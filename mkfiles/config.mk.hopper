@@ -1,0 +1,35 @@
+top_dir=/global/homes/e/esolomon/work/ctf-sep20
+
+
+BLAS_LIBS = #-lblas -llapack
+
+DEFAULT_COMPONENTS = ctf
+
+DEFS = -DHOPPER -DUSE_OMP -DDEBUG=1 -DVALIDATE_INPUTS $(DFLAGS) #-DTAU 
+# -DCHECK_BOUNDS -DBENCH
+CPPFLAGS = 
+LDFLAGS = 
+INCLUDES = 
+
+ifneq (,$(findstring DTAU,$(DEFS)))
+        include $(TAUROOTDIR)/include/Makefile
+        DEFS+=$(TAU_INCLUDE) $(TAU_DEFS) 
+#       LIBS+=$(TAU_MPI_LIBS) $(TAU_LIBS) 
+        LIBS+= $(TAU_LIBS)
+endif
+
+AR = ar -crs
+
+DEPFLAGS = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
+
+WARN_FLAGS = -Wall -Wno-comment -Wno-sign-compare -Wno-unused-variable
+OPT_FLAGS = -g -O3
+ 
+
+CC = cc
+CFLAGS = -std=c99 -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) 
+
+CXX = CC
+CXXFLAGS = -fopenmp -D__STDC_LIMIT_MACROS $(OPT_FLAGS) -Drestrict= $(WARN_FLAGS) 
+
+

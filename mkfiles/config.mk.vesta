@@ -1,0 +1,37 @@
+BGP_ESSL  = /soft/libraries/essl/current/
+
+LDFLAGS = -L$(BGP_ESSL)/lib64 \
+               -L/soft/compilers/ibmcmp-feb2012/xlf/bg/14.1/lib64/ \
+               -L/opt/ibmcmp/lib64 \
+               -L/opt/ibmcmp/lib64
+INCLUDES = -I$(BGP_ESSL)/include 
+
+BLAS_LIBS = -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r
+
+top_dir=/home/solomon/work/cyclopstf
+
+DEFAULT_COMPONENTS = ctf
+
+DEFS = -DDEBUG=0 -DVALIDATE_INPUTS -DUSE_OMP -DVIRT_NTD=1 -DBGQ $(DFLAGS)
+# -DCHECK_BOUNDS -DBENCH
+CPPFLAGS = 
+
+ifneq (,$(findstring DTAU,$(DEFS)))
+        include $(TAUROOTDIR)/include/Makefile
+        DEFS+=$(TAU_INCLUDE) $(TAU_DEFS) 
+#       LIBS+=$(TAU_MPI_LIBS) $(TAU_LIBS) 
+        LIBS+= $(TAU_LIBS)
+endif
+
+AR = ar -crs
+DEPFLAGS = -M -MF $(DEPDIR)/$(notdir $*).Po
+
+WARN_FLAGS = 
+OPT_FLAGS = -qsmp=omp -g -O3
+
+CC	= mpixlc_r
+CFLAGS = -qsmp=omp  $(OPT_FLAGS) $(WARN_FLAGS)  #-std=c99
+
+CXX	= mpixlcxx_r
+CXXFLAGS = -qsmp=omp -D__STDC_LIMIT_MACROS $(OPT_FLAGS) -Drestrict= $(WARN_FLAGS) 
+

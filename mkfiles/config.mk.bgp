@@ -1,0 +1,38 @@
+top_dir=/home/solomon/work/ctf
+
+BGP_ESSL  = /soft/apps/ESSL-4.4.1-0
+BLAS_LD = -L$(BGP_ESSL)/lib \
+               -L/bgsys/ibm_compilers/sles10/prod/opt/ibmcmp/xlf/bg/11.1/bglib/ \
+               -L/soft/apps/ibmcmp/xlsmp/bg/1.7/bglib \
+               -L/soft/apps/ibmcmp/xlf/bg/11.1/bglib
+ 
+INCLUDES = -I$(BGP_ESSL)/include 
+
+BLAS_LIBS = -lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread
+
+
+DEFAULT_COMPONENTS = ctf
+
+DEFS = -DDEBUG=0 -DVALIDATE_INPUTS -DUSE_OMP -DVIRT_NTD=1 -DBGP $(DFLAGS)
+# -DCHECK_BOUNDS -DBENCH
+CPPFLAGS = 
+
+ifneq (,$(findstring DTAU,$(DEFS)))
+        include $(TAUROOTDIR)/include/Makefile
+        DEFS+=$(TAU_INCLUDE) $(TAU_DEFS) 
+#       LIBS+=$(TAU_MPI_LIBS) $(TAU_LIBS) 
+        LIBS+= $(TAU_LIBS)
+endif
+
+AR = ar -crs
+DEPFLAGS = -M -MF $(DEPDIR)/$(notdir $*).Po
+
+WARN_FLAGS = 
+OPT_FLAGS = -qnoipa -g -O3
+
+CC	= mpixlc_r
+CFLAGS = -qsmp=omp -std=c99  $(OPT_FLAGS) $(WARN_FLAGS) 
+
+CXX	= mpixlcxx_r
+CXXFLAGS = -qsmp=omp -D__STDC_LIMIT_MACROS $(OPT_FLAGS) -Drestrict= $(WARN_FLAGS) -I/bgsys/drivers/ppcfloor/arch/include
+

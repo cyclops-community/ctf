@@ -1,0 +1,36 @@
+top_dir=/home/dmatthews/src/cyclopstf
+
+SLIDE=/home/dmatthews/src/aquarius-chem/src/slide
+ELEMENTAL=/share/apps/elemental-0.76
+
+BLAS_LIBS = -Wl,--start-group /share/apps/intel/composerxe/mkl/lib/intel64/libmkl_intel_lp64.a /share/apps/intel/composerxe/mkl/lib/intel64/libmkl_sequential.a /share/apps/intel/composerxe/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm
+ELEMENTAL_LIBS = -lelemental -lplcg -lpmrrr -llapack-addons
+SLIDE_LIBS= -lslide
+
+DEFAULT_COMPONENTS = examples
+
+DEFS = -DDEBUG=0 -DVALIDATE_INPUTS
+# -DCHECK_BOUNDS -DBENCH
+CPPFLAGS = 
+LDFLAGS = 
+INCLUDES = 
+
+AR = ar -crs
+
+DEPFLAGS = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
+
+CC = mpicc
+CFLAGS = -fopenmp -g -O0 -std=c99 -Wall -Wno-comment -Wno-sign-compare -Wno-unused-variable
+
+CXX = mpicxx
+CXXFLAGS = -fopenmp -g -O0 -D__STDC_LIMIT_MACROS -Drestrict= -Wall -Wno-comment -Wno-sign-compare -Wno-unused-variable -Wno-format
+
+FORTRAN_INTEGER_SIZE=4
+F77 = gfortran
+F77_NAME = $(LOWER_UNDERSCORE)
+F90 = gfortran
+F90_NAME = $(LOWER_UNDERSCORE)
+FFLAGS = -g -O2
+FCFLAGS = -g -O2
+FLIBS =  -L/usr/lib64/gcc/x86_64-suse-linux/4.6 -L/usr/lib64/gcc/x86_64-suse-linux/4.6/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/usr/lib64/gcc/x86_64-suse-linux/4.6/../../../../x86_64-suse-linux/lib -L/usr/lib64/gcc/x86_64-suse-linux/4.6/../../.. -lgfortran -lm -lquadmath
+

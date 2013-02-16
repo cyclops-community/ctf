@@ -1,0 +1,232 @@
+\documentclass[letterpaper,12pt]{article}
+
+\usepackage{science,amsmath,enumerate,bm,ctable,fullpage}
+\setlength{\oddsidemargin}{-8.5mm} 
+\setlength{\evensidemargin}{-8.5mm}
+\setlength{\topskip}{.5in}
+\setlength{\topskip}{.5in}
+\setlength{\footskip}{.5in}
+\setlength{\textheight}{10.2in}
+\setlength{\textwidth}{7.2in}
+
+
+\newcommand{\ket}[1]{\lvert #1 \rangle}
+\newcommand{\bra}[1]{\langle #1 \vert}
+
+
+\begin{document}
+
+\title{\bf Coupled Cluster with Singles and Doubles}
+
+\author{
+{\bf Edgar Solomonik }\\
+University of California-Berkeley
+}
+
+\maketitle
+
+\section{Introduction}
+
+Given the truncated Hausdorff expanded Hamiltonian
+\begin{align*}
+\bar{H} = (H+HT_1 +HT_2 +HT_1^2 + \frac{1}{2}HT_2^2+HT_1T_2+\frac{1}{6}HT_1^3
+              +\frac{1}{2}HT_1^2T_2+\frac{1}{2}HT_1T_2^2+\frac{1}{6}HT^3_2 \\
+              +\frac{1}{24}HT_1^4+\frac{1}{6}HT_1^3T_2+\frac{1}{4}HT_1^2T_2^2
+              +\frac{1}{6}HT_1T_2^3+\frac{1}{24}HT_2^4)
+\end{align*}
+We wish to compute the contributions
+\begin{align*}
+\bra{\Phi^a_i}\bar{H}\ket{\Phi_0} \\
+\bra{\Phi^{ab}_{ij}}\bar{H}\ket{\Phi_0} 
+\end{align*}
+
+\section{Multi-term equations}
+
+The following equations were derived via CC diagrams. I will use 
+Einstein notation. $T_1$ and $T_2$ will be implicitly denoted by 
+$T^a_i$ and $T^{ab}_{ij}$, respectively. I will not list permutations
+e.g. $P(ij)$, as these are implicit in product anti-symmetrization.
+
+\subsection{Contributions to $\bra{\Phi^a_i}$}
+
+\begin{align*}
+\bra{\Phi^a_i}H\ket{\Phi_0} &= F^a_i \\
+\bra{\Phi^a_i}HT_1\ket{\Phi_0} &= -F_{ik}T^a_k + F^{ac}T^c_i + \bra{ka}\ket{ci}T^c_k \\
+\bra{\Phi^a_i}HT_2\ket{\Phi_0} &= F^c_kT^{ac}_{ik} + \bra{ak}\ket{cd}T^{cd}_{ik} 
+                                   - \bra{kl}\ket{ic}T^{ac}_{kl} \\
+\bra{\Phi^a_i}HT_1^2\ket{\Phi_0} &= -F^c_kT^c_iT^a_k + \bra{ak}\ket{cd}T^c_iT^d_k 
+                                    - \bra{kl}\ket{ic}T^a_kT^c_l \\
+\bra{\Phi^a_i}HT_1T_2\ket{\Phi_0} &=\frac{1}{2}\bra{kl}\ket{cd}T^{cd}_{ki}T^a_l 
+                                      - \frac{1}{2} \bra{kl}\ket{cd}T^{ac}_{kl}T^d_i 
+                                      + \bra{kl}\ket{cd}T^{ac}_{ik}T^d_l \\
+\bra{\Phi^a_i}\frac{1}{6}HT_1^3\ket{\Phi_0} &=\bra{kl}\ket{cd}T^a_kT^c_lT^d_i \\
+\end{align*}
+
+\newpage
+
+\subsection{Contributions to $\bra{\Phi^{ab}_{ij}}$}
+
+\begin{align*}
+\bra{\Phi^{ab}_{ij}}H\ket{\Phi_0} &= \bra{ab}\ket{ij} \\
+\bra{\Phi^{ab}_{ij}}HT_1\ket{\Phi_0} &= \bra{ab}\ket{cj}T^c_i-\bra{kb}\ket{ij}T^a_k \\
+\bra{\Phi^{ab}_{ij}}HT_2\ket{\Phi_0} &= -F_{ik}T^{ab}_{kj} + F^{ac}T^{cb}_{ij} 
+      + \bra{kb}\ket{cj}T^{ac}_{ik}+\frac{1}{2}\bra{ab}\ket{cd}T^{cd}_{ij}
+      + \frac{1}{2}\bra{kl}\ket{ij}T^{ab}_{kl} \\
+\bra{\Phi^{ab}_{ij}}HT_1^2\ket{\Phi_0} &= \frac{1}{2}\bra{ab}\ket{cd}T^c_iT^d_j
+      + \frac{1}{2}\bra{kl}\ket{ij}T^a_kT^b_l - \bra{kb}\ket{cj}T^a_kT^c_i \\
+\bra{\Phi^{ab}_{ij}}\frac{1}{2}HT_2^2\ket{\Phi_0} &= 
+        \frac{1}{2}\bra{kl}\ket{cd}T^{ac}_{ik}T^{db}_{lj} 
+      + \frac{1}{4}\bra{kl}\ket{cd}T^{ab}_{kl}T^{cd}_{ij} 
+      - \frac{1}{4}\bra{kl}\ket{cd}T^{ac}_{kl}T^{db}_{ij} 
+      - \frac{1}{4}\bra{kl}\ket{cd}T^{cd}_{ik}T^{ab}_{lj} \\
+\bra{\Phi^{ab}_{ij}}HT_1T_2\ket{\Phi_0} &= -F^c_kT^{ac}_{ij}T^b_k - F^c_kT^{ab}_{ik}T^c_j
+      + \bra{ak}\ket{cd}T^{cb}_{ij}T^d_k - \bra{kl}\ket{ic}T^{ab}_{kj}T^c_l
+      + \bra{kb}\ket{cd}T^{ac}_{ik}T^d_j - \bra{kl}\ket{cj}T^{ac}_{ik}T^b_l \\
+    & + \frac{1}{2}\bra{kl}\ket{ic}T^{ab}_{kl}T^c_j 
+      - \frac{1}{2}\bra{ak}\ket{cd}T^{cd}_{ij}T^b_k \\
+\bra{\Phi^{ab}_{ij}}\frac{1}{6}HT_1^3\ket{\Phi_0} &= 
+        \frac{1}{2}\bra{kl}\ket{ic}T^a_kT^b_lT^c_j
+      - \frac{1}{2}\bra{ak}\ket{cd}T^c_iT^d_jT^b_k  \\
+\bra{\Phi^{ab}_{ij}}\frac{1}{2}HT_1^2T_2\ket{\Phi_0} &= 
+        \bra{kl}\ket{cd}T^{ab}_{ik}T^c_lT^d_j + \bra{kl}\ket{cd}T^{ac}_{ij}T^d_kT^b_l 
+      + \bra{kl}\ket{cd}T^{ac}_{kj}T^d_iT^b_l \\
+    & + \bra{kl}\ket{cd}T^{ab}_{kl}T^c_iT^d_j + \frac{1}{4}\bra{kl}\ket{cd}T^{cd}_{ij}T^a_kT^b_l \\
+\bra{\Phi^{ab}_{ij}}\frac{1}{24}HT_1^4\ket{\Phi_0} &= \frac{1}{4}\bra{kl}\ket{cd}T^a_kT^b_lT^c_iT^d_j
+\end{align*}
+
+\section{Two-term factorization}
+
+When possible, I will hide the $T_1$ terms in $T_2$ via the use of
+$$\tilde{T}^{ab}_{ij}=T^{ab}_{ij}+T^a_iT^b_j.$$
+In one case, its also necessary to employ
+$$R^{ab}_{ij}=T^{ab}_{ij}+2T^a_iT^b_j.$$
+The following intermediates are calculated in this factorization
+\begin{align*}
+^{(0)}W^a_i &= \bra{ak}\ket{cd}T^{cd}_{ik} \\
+^{(1)}W^a_i &= \bra{kl}\ket{ic}T^{ac}_{kl} \\
+^{(2)}W^a_i &= \bra{ak}\ket{ic}T^{c}_{k} \\
+^{(3)}W^{ab}_{ij} &= F^{ac}T^{cb}_{ij} \\
+^{(4)}W^{ab}_{ij} &= F_{ik}T^{ab}_{kj} \\
+^{(5)}W^{ab}_{ij} &= \bra{kb}\ket{cj}T^{ac}_{ik} \\
+^{(6)}W^{ab}_{ij} &= \bra{ab}\ket{cd}\tilde{T}^{cd}_{ij} \\
+^{(7)}W^{ab}_{ij} &= \bra{kl}\ket{ij}\tilde{T}^{ab}_{kl} \\
+^{(8)}W^{ab}_{ij} &= \bra{ab}\ket{cd}\tilde{T}^{cd}_{ij} \\
+^{(9)}W^{ab}_{ij} &= ^{(2)}W^a_cT^{cb}_{ij} \\
+^{(10)}W^{ab}_{ij} &= ^{(2)}W^k_iT^{ab}_{kj} \\
+^{(11)}W^{ab}_{ij} &= \bra{kb}\ket{cj}T^{ac}_{ik}
+\end{align*}
+
+\newpage
+
+I will tabulate the two-term contraction contributions to $\bra{\Phi^a_i}$
+and $\bra{\Phi^{ab}_{ij}}$ and list the corresponding multi-term equations.
+For $\bra{\Phi^a_i}$, we get the following terms,
+%Terms that are supposed to cancel will be highlighted in red.
+%Terms that are supposed to add will be highlighted in blue. 
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+Two-term equation & Corresponding multi-term equations \\
+\hline
+$F^a_i$ & $F^a_i$  \\
+\hline
+$F^{ac}T^c_i$ & $F^{ac}T^c_i$  \\
+\hline
+$-F_{ik}T^a_k$ & $-F_{ik}T^a_k$  \\
+\hline
+$F^c_k\tilde{T}^{ac}_{ik}$ & $F^c_kT^{ac}_{ik}
+-F^c_kT^c_iT^a_k$  \\
+\hline
+$\bra{ak}\ket{cd}\tilde{T}^{cd}_{ik}$ 
+  & $\bra{ak}\ket{cd}T^{cd}_{ik} 
+    +\bra{ak}\ket{cd}T^c_iT^d_k$  \\
+\hline
+$-\bra{kl}\ket{ic}\tilde{T}^{ac}_{kl}$ 
+  & $-\bra{kl}\ket{ic}T^{ac}_{kl}
+     -\bra{kl}\ket{ic}T^a_kT^c_l$  \\
+\hline
+$-\frac{1}{2}^{(0)}W_{ki}T^a_k$ 
+  & $\frac{1}{2}\bra{kl}\ket{cd}T^{cd}_{ki}T^a_l$ \\
+\hline
+$-\frac{1}{2}^{(1)}W^{ac}T^c_i$ 
+  & $-\frac{1}{2}\bra{kl}\ket{cd}T^{ac}_{kl}T^d_i$ \\
+\hline
+$^{(2)}W^a_i$ & $\bra{ka}\ket{ci}T^{c}_{k}$  \\
+\hline
+$^{(2)}W^{c}_k\tilde{T}^{ac}_{ik}$ 
+  & $\bra{kl}\ket{cd}T^{ac}_{ik}T^d_l
+    +\bra{kl}\ket{cd}T^a_kT^c_lT^d_i$ \\
+\hline
+\end{tabular}
+%\caption{Two-term contributions to $\bra{\Phi^a_i}$}
+\label{tab:twotermPhi1}
+\end{table}
+Now the $\bra{\Phi^{ab}_{ij}}$ table...\\
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+Two-term equation & Corresponding multi-term equations \\
+\hline
+$\bra{ab}\ket{ij}$  & $\bra{ab}\ket{ij}$  \\
+\hline
+$\frac{1}{4}^{(0)}W^k_iT^{ab}_{kj}$ & $-\frac{1}{4}\bra{kl}\ket{cd}T^{cd}_{ik}T^{ab}_{lj}$ \\
+\hline
+$\frac{1}{4}^{(1)}W^a_cT^{cb}_{ij}$ & $-\frac{1}{4}\bra{kl}\ket{cd}T^{ac}_{kl}T^{db}_{ij}$ \\
+\hline
+$^{(3)}W^{ak}_{ij}T^b_k$ & $F^{ac}T^{cb}_{ij} - F^c_kT^{ac}_{ij}T^b_k$ \\
+\hline
+$^{(4)}W^{ab}_{ic}T^c_j$ & $-F_{ik}T^{ab}_{kj} - F^c_kT^{ab}_{ik}T^c_j$ \\
+\hline
+$\bra{ab}\ket{cj}T^c_i$ & $\bra{ab}\ket{cj}T^c_i$ \\
+\hline
+$-\bra{kb}\ket{ij}T^a_k$ & $-\bra{kb}\ket{ij}T^a_k$ \\
+\hline
+$\bra{kb}\ket{cj}\tilde{T}^{ac}_{ik}$ & 
+  $\bra{kb}\ket{cj}T^{ac}_{ik} 
+  -\bra{kb}\ket{cj}T^a_kT^c_i$ \\
+\hline
+$^{(5)}W^{ab}_{ic}T^c_j$ & $\bra{kb}\ket{cd}T^{ac}_{ik}T^d_j$ \\
+\hline
+$-^{(5)}W^{kb}_{ij}T^a_k$ & $-\bra{kl}\ket{cj}T^{ac}_{ik}T^b_l$ \\
+\hline
+$-\frac{1}{2}^{(6)}W^{ak}_{ij}T^b_k$
+  & $ - \frac{1}{2}\bra{ak}\ket{cd}T^{cd}_{ij}T^b_k 
+      - \frac{1}{2}\bra{ak}\ket{cd}T^c_iT^d_jT^b_k$ \\
+\hline
+$\frac{1}{2}^{(7)}W^{ab}_{ij}$
+  & $ \frac{1}{2}\bra{kl}\ket{ij}T^{ab}_{kl}+\frac{1}{2}\bra{kl}\ket{ij}T^a_kT^b_l$ \\
+\hline
+$\frac{1}{2}^{(7)}W^{ab}_{ic}T^c_j$
+  & $\frac{1}{2}\bra{kl}\ket{ic}T^{ab}_{kl}T^c_j 
+    +\frac{1}{2}\bra{kl}\ket{ic}T^a_kT^b_lT^c_j$ \\
+\hline
+$\frac{1}{2}^{(8)}W^{ab}_{ij}$
+  & $ \frac{1}{2}\bra{ab}\ket{cd}T^{cd}_{ij}+\frac{1}{2}\bra{ab}\ket{cd}T^c_iT^d_j$ \\
+\hline
+$\frac{1}{4}^{(8)}W^{kl}_{ij}\tilde{T}^{ab}_{kl}$
+  & $\frac{1}{4}\bra{kl}\ket{cd}T^{ab}_{kl}T^{cd}_{ij} 
+    +\frac{1}{4}\bra{kl}\ket{cd}T^{ab}_{kl}T^c_iT^d_j
+    +\frac{1}{4}\bra{kl}\ket{cd}T^{cd}_{ij}T^a_kT^b_l
+    +\frac{1}{4}\bra{kl}\ket{cd}T^a_kT^b_lT^c_iT^d_j$ \\
+\hline
+$^{(9)}W^{ab}_{ij}$ & $\bra{ak}\ket{cd}T^{cb}_{ij}T^d_k$ \\
+\hline
+$^{(9)}W^{ab}_{id}T^d_j$ & $\bra{kl}\ket{cd}T^{ac}_{ij}T^d_kT^b_l$ \\
+\hline
+$-^{(10)}W^{ab}_{ij}$ & $-\bra{kl}\ket{ic}T^{ab}_{kj}T^c_l$ \\
+\hline
+$-^{(10)}W^{ak}_{ij}T^b_k$ & $\bra{kl}\ket{cd}T^{ab}_{ik}T^c_lT^d_j$ \\
+\hline
+$\frac{1}{2}^{(11)}W^{ak}_{ic}R^{cb}_{kj}$ 
+  & $\frac{1}{2}\bra{kl}\ket{cd}T^{ac}_{ik}T^{db}_{lj}
+              + \bra{kl}\ket{cd}T^{ac}_{kj}T^{d}_{i}T^b_l$ \\
+\hline
+\end{tabular}
+%\caption{Two-term contributions to $\bra{\Phi^{ab}_{ij}}$}
+\label{tab:twotermPhi2}
+\end{table}
+
+\end{document}
