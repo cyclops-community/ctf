@@ -1,4 +1,4 @@
-top_dir=/home/edgar/work/ctf-new
+top_dir=/home/edgar/work/ctf-new2
 
 DEFAULT_COMPONENTS = ctf
 

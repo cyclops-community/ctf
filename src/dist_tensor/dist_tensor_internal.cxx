@@ -217,10 +217,10 @@ void dist_tensor<dtype>::set_phys_comm(CommData_t ** cdt, int const ndim){
  * \param[in] alloc_data whether this tensor's data should be alloced
  */
 template<typename dtype>
-int dist_tensor<dtype>::define_tensor( int const          ndim,             
-                                       int const *      edge_len, 
-                                       int const *      sym,
-                                       int *                tensor_id,
+int dist_tensor<dtype>::define_tensor( int const          ndim,
+                                       int const *        edge_len, 
+                                       int const *        sym,
+                                       int *              tensor_id,
                                        int const          alloc_data){
   int i;
 

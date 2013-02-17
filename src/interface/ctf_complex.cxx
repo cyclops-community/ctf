@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <string.h>
-#include "../../include/ctf.hpp"
+#include "../../include/ctf_complex.hpp"
 
 //#ifdef ENABLE_ASSERT
 #define DTASSERT(...) assert(__VA_ARGS__)
@@ -130,12 +130,12 @@ int  conv_idx(int const         ndim_A,
 }
 
 
-CTF_World::CTF_World(MPI_Comm comm_){
+cCTF_World::cCTF_World(MPI_Comm comm_){
   int rank, np;
   comm = comm_;
   MPI_Comm_rank(comm, &rank);
   MPI_Comm_size(comm, &np);
-  ctf = new CTF();
+  ctf = new tCTF< std::complex<double> >();
 #ifdef BGQ
   ctf->init(comm, MACHINE_BGQ, rank, np);
 #else
@@ -147,21 +147,21 @@ CTF_World::CTF_World(MPI_Comm comm_){
 #endif
 }
 
-CTF_World::CTF_World(int const ndim, int const * lens, MPI_Comm comm_){
+cCTF_World::cCTF_World(int const ndim, int const * lens, MPI_Comm comm_){
   int rank, np;
   comm = comm_;
   MPI_Comm_rank(comm, &rank);
   MPI_Comm_size(comm, &np);
-  ctf = new CTF();
+  ctf = new tCTF< std::complex<double> >();
   ctf->init(comm, rank, np, ndim, lens);
 }
 
-CTF_World::~CTF_World(){
+cCTF_World::~cCTF_World(){
   delete ctf;
 }
 
-CTF_Tensor::CTF_Tensor(const CTF_Tensor&  A,
-                       const bool         copy){
+cCTF_Tensor::cCTF_Tensor(const cCTF_Tensor&  A,
+                         const bool         copy){
   int ret;
   world = A.world;
 
@@ -177,41 +177,41 @@ CTF_Tensor::CTF_Tensor(const CTF_Tensor&  A,
   }
 }
 
-CTF_Tensor::CTF_Tensor(const int   ndim_,
-                       const int * len_,
-                       const int * sym_,
-                       CTF_World * world_){
+cCTF_Tensor::cCTF_Tensor(const int   ndim_,
+                         const int * len_,
+                         const int * sym_,
+                         cCTF_World * world_){
   int ret;
   world = world_;
 
-  ret = world->ctf->define_tensor(ndim, len_, sym_, &tid);
+  ret = world->ctf->define_tensor(ndim_, len_, sym_, &tid);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   ret = world->ctf->info_tensor(tid, &ndim, &len, &sym);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-CTF_Tensor::~CTF_Tensor(){
+cCTF_Tensor::~cCTF_Tensor(){
   free(sym);
   free(len);
   world->ctf->clean_tensor(tid);
 }
 
-double * CTF_Tensor::get_raw_data(int * size) {
+std::complex<double> * cCTF_Tensor::get_raw_data(int * size) {
   int ret;
-  double * data;
+  std::complex<double> * data;
   ret = world->ctf->get_raw_data(tid, &data, size);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   return data;
 }
 
-void CTF_Tensor::get_local_data(int * npair, int64_t ** global_idx, double ** data) const {
-  kv_pair * pairs;
+void cCTF_Tensor::get_local_data(int * npair, int64_t ** global_idx, std::complex<double> ** data) const {
+  tkv_pair< std::complex<double> > * pairs;
   int ret, i;
   ret = world->ctf->read_local_tensor(tid, npair, &pairs);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   /* FIXME: careful with malloc */
   *global_idx = (int64_t*)malloc((*npair)*sizeof(int64_t));
-  *data = (double*)malloc((*npair)*sizeof(double));
+  *data = (std::complex<double>*)malloc((*npair)*sizeof(std::complex<double>));
   for (i=0; i<(*npair); i++){
     (*global_idx)[i] = pairs[i].k;
     (*data)[i] = pairs[i].d;
@@ -219,14 +219,14 @@ void CTF_Tensor::get_local_data(int * npair, int64_t ** global_idx, double ** da
   free(pairs);
 }
 
-void CTF_Tensor::get_remote_data(int const npair, int64_t const * global_idx, double * data) const {
+void cCTF_Tensor::get_remote_data(int const npair, int64_t const * global_idx, std::complex<double> * data) const {
   int ret, i;
-  kv_pair * pairs;
-  pairs = (kv_pair*)malloc(npair*sizeof(kv_pair));
+  tkv_pair< std::complex<double> > * pairs;
+  pairs = (tkv_pair< std::complex<double> >*)malloc(npair*sizeof(tkv_pair< std::complex<double> >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
   }
-  ret = world->ctf->write_tensor(tid, npair, pairs);
+  ret = world->ctf->read_tensor(tid, npair, pairs);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   for (i=0; i<npair; i++){
     data[i] = pairs[i].d;
@@ -234,29 +234,29 @@ void CTF_Tensor::get_remote_data(int const npair, int64_t const * global_idx, do
   free(pairs);
 }
 
-void CTF_Tensor::write_remote_data(int const        npair, 
-                                   int64_t const *  global_idx, 
-                                   double const *   data) const {
+void cCTF_Tensor::write_remote_data(int const        npair, 
+                                    int64_t const *  global_idx, 
+                                    std::complex<double> const *   data) const {
   int ret, i;
-  kv_pair * pairs;
-  pairs = (kv_pair*)malloc(npair*sizeof(kv_pair));
+  tkv_pair< std::complex<double> > * pairs;
+  pairs = (tkv_pair< std::complex<double> >*)malloc(npair*sizeof(tkv_pair< std::complex<double> >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
   }
-  ret = world->ctf->read_tensor(tid, npair, pairs);
+  ret = world->ctf->write_tensor(tid, npair, pairs);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   free(pairs);
 }
 
-void CTF_Tensor::add_remote_data(int const        npair, 
-                                 double const     alpha, 
-                                 double const     beta,
-                                 int64_t const *  global_idx, 
-                                 double const *   data) {
+void cCTF_Tensor::add_remote_data(int const        npair, 
+                                  double const     alpha, 
+                                  double const     beta,
+                                  int64_t const *  global_idx, 
+                                  std::complex<double> const *   data) {
   int ret, i;
-  kv_pair * pairs;
-  pairs = (kv_pair*)malloc(npair*sizeof(kv_pair));
+  tkv_pair< std::complex<double> > * pairs;
+  pairs = (tkv_pair< std::complex<double> >*)malloc(npair*sizeof(tkv_pair< std::complex<double> >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
@@ -266,7 +266,7 @@ void CTF_Tensor::add_remote_data(int const        npair,
   free(pairs);
 }
 
-void CTF_Tensor::get_all_data(int * npair, double ** vals) const {
+void cCTF_Tensor::get_all_data(int * npair, std::complex<double> ** vals) const {
   int ret;
   uint64_t unpair;
   ret = world->ctf->allread_tensor(tid, &unpair, vals);
@@ -274,13 +274,13 @@ void CTF_Tensor::get_all_data(int * npair, double ** vals) const {
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-void CTF_Tensor::contract(const double          alpha,
-                          const CTF_Tensor&     A,
-                          const char *          idx_A,
-                          const CTF_Tensor&     B,
-                          const char *          idx_B,
-                          const double          beta,
-                          const char *          idx_C) {
+void cCTF_Tensor::contract(const std::complex<double>          alpha,
+                           const cCTF_Tensor&     A,
+                           const char *          idx_A,
+                           const cCTF_Tensor&     B,
+                           const char *          idx_B,
+                           const std::complex<double>          beta,
+                           const char *          idx_C) {
   int ret;
   CTF_ctr_type_t tp;
   tp.tid_A = A.tid;
@@ -296,23 +296,23 @@ void CTF_Tensor::contract(const double          alpha,
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-CTF_Tensor& CTF_Tensor::operator=(const double val){
+cCTF_Tensor& cCTF_Tensor::operator=(const std::complex<double> val){
   int size;
-  double* raw_data = get_raw_data(&size);
+  std::complex<double>* raw_data = get_raw_data(&size);
   std::fill(raw_data, raw_data+size, val);
   return *this;
 }
 
-void CTF_Tensor::print(FILE* fp) const{
+void cCTF_Tensor::print(FILE* fp) const{
   world->ctf->print_tensor(fp, tid);
 }
 
 
-void CTF_Tensor::sum(const double       alpha,
-                     const CTF_Tensor&  A,
-                     const char *       idx_A,
-                     const double       beta,
-                     const char *       idx_B){
+void cCTF_Tensor::sum(const std::complex<double>       alpha,
+                      const cCTF_Tensor&  A,
+                      const char *       idx_A,
+                      const std::complex<double>       beta,
+                      const char *       idx_B){
   int ret;
   int * idx_map_A, * idx_map_B;
   CTF_sum_type_t st;
@@ -328,7 +328,7 @@ void CTF_Tensor::sum(const double       alpha,
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-void CTF_Tensor::scale(const double alpha, const char * idx_A){
+void cCTF_Tensor::scale(const std::complex<double> alpha, const char * idx_A){
   int ret;
   int * idx_map_A;
   conv_idx(ndim, idx_A, &idx_map_A);
@@ -336,9 +336,9 @@ void CTF_Tensor::scale(const double alpha, const char * idx_A){
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-double CTF_Tensor::reduce(CTF_OP op){
+std::complex<double> cCTF_Tensor::reduce(CTF_OP op){
   int ret;
-  double ans;
+  std::complex<double> ans;
   ans = 0.0;
   ret = world->ctf->reduce_tensor(tid, op, &ans);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);

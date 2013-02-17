@@ -16,4 +16,4 @@ ${bindir}/test/test_model: unit_test.o unit_model.o test_sym_kernel.o unit_test_
 
 unit_test.o: FORCE
 
-LIBS += -lctf
+LIBS := -lctf $(LIBS)

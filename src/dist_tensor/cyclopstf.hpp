@@ -28,6 +28,7 @@
 #include "mpi.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <complex>
 
 /* READ ME!
  * ALL BELOW FUNCTIONS MUST BE CALLED BY ALL MEMBERS OF MPI_COMM_WORLD

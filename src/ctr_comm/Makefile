@@ -7,4 +7,4 @@ ${bindir}/test/unit_ctr_comm: unit_ctr_comm.o $(libdir)/libcyclopstf.a
 bench: ${bindir}/bench/bench_ctr_comm
 ${bindir}/bench/bench_ctr_comm: bench_ctr_comm.o $(libdir)/libcyclopstf.a
 
-LIBS += -lcyclopstf $(BLAS_LIBS)
+LIBS := -lctf $(LIBS)

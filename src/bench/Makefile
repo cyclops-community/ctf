@@ -20,4 +20,4 @@ ${bindir}/bench/nonsq_pgemm_bench: nonsq_pgemm_bench.o \
 unit_bench.o: FORCE
 
 INCLUDES += -I${top_dir}/src/dist_tensor
-LIBS += -lctf
+LIBS := -lctf $(LIBS)

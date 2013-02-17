@@ -1556,9 +1556,9 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
   fseq_tsr_sum<dtype> fs;
   fs.func_ptr=sym_seq_sum_ref<dtype>;
  
-  if (false){ 
+  //if (false){ 
     if (scal_diag){
-      printf("symmetrizing diagonal=%d\n",num_sy);
+    //  printf("symmetrizing diagonal=%d\n",num_sy);
       for (i=0; i<num_sy; i++){
         idx_map_A[sym_dim] = sym_dim;
         idx_map_A[sym_dim+i+1] = sym_dim;
@@ -1567,10 +1567,10 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
         }
         fseq_tsr_scl<dtype> fss;
         fss.func_ptr=sym_seq_scl_ref<dtype>;
-        scale_tsr(((double)(num_sy-i))/(num_sy-i+.1), nonsym_tid, idx_map_A, fss);
+        scale_tsr(((double)(num_sy-i))/(num_sy-i+1.), nonsym_tid, idx_map_A, fss);
       }
     }  
-  }
+  //}
   
   idx_map_A[sym_dim] = sym_dim+1;
   idx_map_A[sym_dim+1] = sym_dim;
