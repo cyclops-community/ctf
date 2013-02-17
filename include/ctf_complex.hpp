@@ -1,43 +1,40 @@
-#ifndef _CTF_COMPLEX_HPP_
-#define _CTF_COMPLEX_HPP_
+#ifndef _cCTF_HPP_
+#define _cCTF_HPP_
 
 #include "mpi.h"
 #include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <complex>
-#include <math.h>
 #include "../src/dist_tensor/cyclopstf.hpp"
 
 /**
- * \brief an instance of the CTF library (world) on a MPI communicator
+ * \brief an instance of the cCTF library (world) on a MPI communicator
  */
 class cCTF_World {
   public:
     MPI_Comm comm;
-    tCTF< std::complex<double> >  * ctf;
+    tCTF< std::complex<double> > * ctf;
 
   public:
     /**
-     * \brief creates CTF library on comm_
+     * \brief creates cCTF library on comm_
      */
     cCTF_World(MPI_Comm comm_ = MPI_COMM_WORLD);
 
     /**
-     * \brief creates CTF library on comm_
+     * \brief creates cCTF library on comm_
      * \param ndim number of torus network dimensions
      * \param lens lengths of torus network dimensions
      */
     cCTF_World(int const ndim, int const * lens, MPI_Comm comm_ = MPI_COMM_WORLD);
 
     /**
-     * \brief frees CTF library
+     * \brief frees cCTF library
      */
     ~cCTF_World();
 };
 
 /**
- * \brief an instance of a tensor within a CTF world
+ * \brief an instance of a tensor within a cCTF world
  */
 class cCTF_Tensor {
   public:
@@ -54,7 +51,7 @@ class cCTF_Tensor {
      * \param copy whether to copy the data of A into the new tensor
      */
     cCTF_Tensor(cCTF_Tensor const &  A,
-                bool const          copy = false);
+               bool const          copy = false);
 
     /**
      * \brief copies a tensor filled with zeros
@@ -64,9 +61,9 @@ class cCTF_Tensor {
      * \param world_ a world for the tensor to live in
      */
     cCTF_Tensor(int const            ndim_,
-                int const *          len_,
-                int const *          sym_,
-                cCTF_World *          world_);
+               int const *          len_,
+               int const *          sym_,
+               cCTF_World *          world_);
     
     /**
      * \brief gives the values associated with any set of indices
@@ -74,7 +71,7 @@ class cCTF_Tensor {
      * \param[in] global_idx index within global tensor of each value to fetch
      * \param[in,out] data a prealloced pointer to the data with the specified indices
      */
-    void get_remote_data(int const npair, int64_t const * global_idx, std::complex<double> * data) const;
+    void get_remote_data(int64_t const npair, int64_t const * global_idx, std::complex<double> * data) const;
     
     /**
      * \brief writes in values associated with any set of indices
@@ -82,7 +79,7 @@ class cCTF_Tensor {
      * \param[in] global_idx global index within tensor of value to write
      * \param[in] data values to  write to the indices
      */
-    void write_remote_data(int const npair, int64_t const * global_idx, std::complex<double> const * data) const;
+    void write_remote_data(int64_t const npair, int64_t const * global_idx, std::complex<double> const * data) const;
    
     /**
      * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
@@ -95,7 +92,7 @@ class cCTF_Tensor {
      * \brief idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
      */
     void contract(const std::complex<double> alpha, const cCTF_Tensor& A, const char * idx_A,
-                                                    const cCTF_Tensor& B, const char * idx_B,
+                                      const cCTF_Tensor& B, const char * idx_B,
                   const std::complex<double> beta,                       const char * idx_C);
 
     /**
@@ -142,14 +139,14 @@ class cCTF_Tensor {
      * \param[out] global_idx index within global tensor of each data value
      * \param[out] data pointer to local values in the order of the indices
      */
-    void get_local_data(int * npair, int64_t ** global_idx, std::complex<double> ** data) const;
+    void get_local_data(int64_t * npair, int64_t ** global_idx, std::complex<double> ** data) const;
 
     /**
      * \brief collects the entire tensor data on each process (not memory scalable)
      * \param[out] npair number of values in the tensor
      * \param[out] data pointer to the data of the entire tensor
      */
-    void get_all_data(int * npair, std::complex<double> ** data) const;
+    void get_all_data(int64_t * npair, std::complex<double> ** data) const;
 
     /**
      * \brief sparse add: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
@@ -159,7 +156,7 @@ class cCTF_Tensor {
      * \param[in] global_idx global index within tensor of value to add
      * \param[in] data values to add to the tensor
      */
-    void add_remote_data(int const        npair, 
+    void add_remote_data(int64_t const    npair, 
                          double const     alpha, 
                          double const     beta,
                          int64_t const *  global_idx,
@@ -176,7 +173,7 @@ class cCTF_Tensor {
     void print(FILE * fp) const;
 
     /**
-     * \brief frees CTF tensor
+     * \brief frees cCTF tensor
      */
     ~cCTF_Tensor();
 };

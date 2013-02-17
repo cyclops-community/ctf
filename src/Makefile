@@ -7,7 +7,7 @@ DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard examples/
 
 include ../rules.mk
 
-test_SUBDIRS = test ctr_comm uni_test
+test_SUBDIRS = test ctr_comm unit_test
 test_model_SUBDIRS = unit_test
 pgemm_test_SUBDIRS = test
 nonsq_pgemm_test_SUBDIRS = test

@@ -71,7 +71,7 @@ class CTF_Tensor {
      * \param[in] global_idx index within global tensor of each value to fetch
      * \param[in,out] data a prealloced pointer to the data with the specified indices
      */
-    void get_remote_data(int const npair, int64_t const * global_idx, double * data) const;
+    void get_remote_data(int64_t const npair, int64_t const * global_idx, double * data) const;
     
     /**
      * \brief writes in values associated with any set of indices
@@ -79,7 +79,7 @@ class CTF_Tensor {
      * \param[in] global_idx global index within tensor of value to write
      * \param[in] data values to  write to the indices
      */
-    void write_remote_data(int const npair, int64_t const * global_idx, double const * data) const;
+    void write_remote_data(int64_t const npair, int64_t const * global_idx, double const * data) const;
    
     /**
      * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
@@ -139,14 +139,14 @@ class CTF_Tensor {
      * \param[out] global_idx index within global tensor of each data value
      * \param[out] data pointer to local values in the order of the indices
      */
-    void get_local_data(int * npair, int64_t ** global_idx, double ** data) const;
+    void get_local_data(int64_t * npair, int64_t ** global_idx, double ** data) const;
 
     /**
      * \brief collects the entire tensor data on each process (not memory scalable)
      * \param[out] npair number of values in the tensor
      * \param[out] data pointer to the data of the entire tensor
      */
-    void get_all_data(int * npair, double ** data) const;
+    void get_all_data(int64_t * npair, double ** data) const;
 
     /**
      * \brief sparse add: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
@@ -156,7 +156,7 @@ class CTF_Tensor {
      * \param[in] global_idx global index within tensor of value to add
      * \param[in] data values to add to the tensor
      */
-    void add_remote_data(int const        npair, 
+    void add_remote_data(int64_t const    npair, 
                          double const     alpha, 
                          double const     beta,
                          int64_t const *  global_idx,

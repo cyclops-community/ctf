@@ -224,7 +224,7 @@ int tCTF<dtype>::info_tensor(int const  tensor_id,
  */
 template<typename dtype>
 int tCTF<dtype>::write_tensor(int const               tensor_id, 
-                              int const               num_pair,  
+                              int64_t const           num_pair,  
                               tkv_pair<dtype> * const mapped_data){
   return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'w');
 }
@@ -240,7 +240,7 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
  */
 template<typename dtype>
 int tCTF<dtype>::write_tensor(int const               tensor_id, 
-                              int const               num_pair,  
+                              int64_t const           num_pair,  
                               double const            alpha,
                               double const            beta,
                               tkv_pair<dtype> * const mapped_data){
@@ -256,7 +256,7 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
  */
 template<typename dtype>
 int tCTF<dtype>::read_tensor(int const                tensor_id, 
-                             int const                num_pair, 
+                             int64_t const            num_pair, 
                              tkv_pair<dtype> * const  mapped_data){
   return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'r');
 }
@@ -269,8 +269,8 @@ int tCTF<dtype>::read_tensor(int const                tensor_id,
  * \param[in,out] mapped_data values read
  */
 template<typename dtype>
-int tCTF<dtype>::allread_tensor(int const         tensor_id, 
-                                uint64_t *  num_pair, 
+int tCTF<dtype>::allread_tensor(int const   tensor_id, 
+                                int64_t *   num_pair, 
                                 dtype **    all_data){
   int ret;
   long_int np;
@@ -303,7 +303,7 @@ int tCTF<dtype>::set_zero_tensor(int const tensor_id){
  */
 template<typename dtype>
 int tCTF<dtype>::read_local_tensor(int const          tensor_id, 
-                                   int *              num_pair,  
+                                   int64_t *          num_pair,  
                                    tkv_pair<dtype> ** mapped_data){
   int ret;
   long_int np;

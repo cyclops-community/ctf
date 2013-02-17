@@ -159,19 +159,19 @@ int CTF_info_tensor(int const tensor_id,
 /* Input tensor data with <key, value> pairs where key is the
    global index for the value. */
 int CTF_write_tensor(int const          tensor_id, 
-                     int const          num_pair,  
+                     int64_t const      num_pair,  
                      kv_pair * const    mapped_data);
 
 /* read tensor data with <key, value> pairs where key is the
    global index for the value, which gets filled in. */
 int CTF_read_tensor(int const           tensor_id, 
-                    int const           num_pair, 
+                    int64_t const       num_pair, 
                     kv_pair * const     mapped_data);
 
 /* read entire tensor with each processor (in packed layout).
    WARNING: will use a lot of memory. */
 int CTF_allread_tensor(int const        tensor_id, 
-                       uint64_t *       num_pair, 
+                       int64_t *        num_pair, 
                        double **        all_data);
 
 
@@ -189,7 +189,7 @@ int CTF_set_zero_tensor(int tensor_id);
 
 /* read tensor data pairs local to processor. */
 int CTF_read_local_tensor(int const     tensor_id, 
-                          int *         num_pair,  
+                          int64_t *     num_pair,  
                           kv_pair **    mapped_data);
 
 /* contracts tensors alpha*A*B + beta*C -> C,

@@ -260,14 +260,14 @@ class tCTF{
     /* Input tensor data with <key, value> pairs where key is the
        global index for the value. */
     int write_tensor(int const                tensor_id,
-                     int const                num_pair,
+                     int64_t const            num_pair,
                      tkv_pair<dtype> * const  mapped_data);
     
     /* Add tensor data new=alpha*new+beta*old
        with <key, value> pairs where key is the 
        global index for the value. */
     int write_tensor(int const                tensor_id,
-                     int const                num_pair,
+                     int64_t const            num_pair,
                      double const             alpha,
                      double const             beta,
                      tkv_pair<dtype> * const  mapped_data);
@@ -276,13 +276,13 @@ class tCTF{
     /* read tensor data with <key, value> pairs where key is the
        global index for the value, which gets filled in. */
     int read_tensor(int const               tensor_id,
-                    int const               num_pair,
+                    int64_t const           num_pair,
                     tkv_pair<dtype> * const mapped_data);
 
     /* read entire tensor with each processor (in packed layout).
        WARNING: will use a lot of memory. */
     int allread_tensor(int const  tensor_id,
-                       uint64_t * num_pair,
+                       int64_t *  num_pair,
                        dtype **   all_data);
 
 
@@ -291,7 +291,7 @@ class tCTF{
 
     /* read tensor data pairs local to processor. */
     int read_local_tensor(int const           tensor_id,
-                          int *               num_pair,
+                          int64_t *           num_pair,
                           tkv_pair<dtype> **  mapped_data);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
@@ -333,7 +333,7 @@ class tCTF{
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(dtype const               alpha,
                     dtype const               beta,
-                    int const                   tid_A,
+                    int const                 tid_A,
                     int const                 tid_B,
                     int const *               idx_map_A,
                     int const *               idx_map_B,

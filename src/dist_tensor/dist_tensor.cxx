@@ -199,7 +199,7 @@ int CTF_info_tensor(int const tensor_id,
  * \param[in] mapped_data pairs to write
  */
 int CTF_write_tensor(int const              tensor_id, 
-                     int const              num_pair,  
+                     int64_t const          num_pair,  
                      kv_pair * const        mapped_data){
   return ctf_obj.write_tensor(tensor_id, num_pair, mapped_data);
 }
@@ -212,7 +212,7 @@ int CTF_write_tensor(int const              tensor_id,
  * \param[in,out] mapped_data pairs to read
  */
 int CTF_read_tensor(int const               tensor_id, 
-                    int const               num_pair, 
+                    int64_t const           num_pair, 
                     kv_pair * const         mapped_data){
   return ctf_obj.read_tensor(tensor_id, num_pair, mapped_data);
 }
@@ -225,7 +225,7 @@ int CTF_read_tensor(int const               tensor_id,
  * \param[in,out] mapped_data values read
  */
 int CTF_allread_tensor(int const        tensor_id, 
-                       uint64_t *       num_pair, 
+                       int64_t *        num_pair, 
                        double **        all_data){
   return ctf_obj.allread_tensor(tensor_id, num_pair, all_data);
 }
@@ -254,7 +254,7 @@ int CTF_set_zero_tensor(int const tensor_id){
  * \param[out] mapped_data values read
  */
 int CTF_read_local_tensor(int const       tensor_id, 
-                          int *           num_pair,  
+                          int64_t *       num_pair,  
                           kv_pair **      mapped_data){
   return ctf_obj.read_local_tensor(tensor_id, num_pair, mapped_data);
 }

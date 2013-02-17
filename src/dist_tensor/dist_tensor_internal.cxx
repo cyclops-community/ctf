@@ -750,7 +750,7 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
  */
 template<typename dtype>
 int dist_tensor<dtype>::write_pairs(int const           tensor_id, 
-                                    int const           num_pair,  
+                                    long_int const      num_pair,  
                                     double const        alpha,  
                                     double const        beta,  
                                     tkv_pair<dtype> *   mapped_data, 

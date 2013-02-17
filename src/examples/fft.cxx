@@ -1,11 +1,13 @@
 #include <ctf_complex.hpp>
 #include <assert.h>
+#include <stdlib.h>
 
 /**
  * \brief Forms N-by-N DFT matrix A and inverse-dft iA and checks A*iA=I
  */
 int main(int argc, char ** argv){
-  int myRank, numPes, logn, i, n, np;
+  int myRank, numPes, logn, i;
+  int64_t  n, np;
   int64_t * idx;
   std::complex<double> * data;
   std::complex<double> imag(0,1);
@@ -22,7 +24,7 @@ int main(int argc, char ** argv){
   }
   n = 1<<logn;
   int edge_lens[2] = {n,n};
-  int sym[2]       = {SY,NS};
+  int sym[2]       = {NS,NS};
 
   cCTF_World * wrld = new cCTF_World();
   cCTF_Tensor DFT(2, edge_lens, sym, wrld);
@@ -53,16 +55,16 @@ int main(int argc, char ** argv){
 
  
   DFT.get_local_data(&np, &idx, &data);
-  //DFT.print(stdout);
+  DFT.print(stdout);
   for (i=0; i<np; i++){
-    //printf("data[%d] = %lf\n",idx[i],data[i].real());
+    printf("data[%lld] = %lf\n",idx[i],data[i].real());
     if (idx[i]/n == idx[i]%n)
       assert(fabs(data[i].real() - 1.)<=1.E-9);
     else 
       assert(fabs(data[i].real())<=1.E-9);
   }
   
-  printf("{ DFT matrix * IDFT matrix = Identity } confirmed\n");
+  printf("{ DFT matrix * DFT matrix ^T = Identity } confirmed\n");
 
   free(idx);
   free(data);

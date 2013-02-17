@@ -184,7 +184,7 @@ CTF_Tensor::CTF_Tensor(const int   ndim_,
   int ret;
   world = world_;
 
-  ret = world->ctf->define_tensor(ndim, len_, sym_, &tid);
+  ret = world->ctf->define_tensor(ndim_, len_, sym_, &tid);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   ret = world->ctf->info_tensor(tid, &ndim, &len, &sym);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
@@ -204,7 +204,9 @@ double * CTF_Tensor::get_raw_data(int * size) {
   return data;
 }
 
-void CTF_Tensor::get_local_data(int * npair, int64_t ** global_idx, double ** data) const {
+void CTF_Tensor::get_local_data(int64_t *   npair, 
+                                int64_t **  global_idx, 
+                                double **   data) const {
   kv_pair * pairs;
   int ret, i;
   ret = world->ctf->read_local_tensor(tid, npair, &pairs);
@@ -219,7 +221,9 @@ void CTF_Tensor::get_local_data(int * npair, int64_t ** global_idx, double ** da
   free(pairs);
 }
 
-void CTF_Tensor::get_remote_data(int const npair, int64_t const * global_idx, double * data) const {
+void CTF_Tensor::get_remote_data(int64_t const    npair, 
+                                 int64_t const *  global_idx, 
+                                 double *         data) const {
   int ret, i;
   kv_pair * pairs;
   pairs = (kv_pair*)malloc(npair*sizeof(kv_pair));
@@ -234,7 +238,7 @@ void CTF_Tensor::get_remote_data(int const npair, int64_t const * global_idx, do
   free(pairs);
 }
 
-void CTF_Tensor::write_remote_data(int const        npair, 
+void CTF_Tensor::write_remote_data(int64_t const    npair, 
                                    int64_t const *  global_idx, 
                                    double const *   data) const {
   int ret, i;
@@ -244,12 +248,12 @@ void CTF_Tensor::write_remote_data(int const        npair,
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
   }
-  ret = world->ctf->read_tensor(tid, npair, pairs);
+  ret = world->ctf->write_tensor(tid, npair, pairs);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   free(pairs);
 }
 
-void CTF_Tensor::add_remote_data(int const        npair, 
+void CTF_Tensor::add_remote_data(int64_t const    npair, 
                                  double const     alpha, 
                                  double const     beta,
                                  int64_t const *  global_idx, 
@@ -266,11 +270,9 @@ void CTF_Tensor::add_remote_data(int const        npair,
   free(pairs);
 }
 
-void CTF_Tensor::get_all_data(int * npair, double ** vals) const {
+void CTF_Tensor::get_all_data(int64_t * npair, double ** vals) const {
   int ret;
-  uint64_t unpair;
-  ret = world->ctf->allread_tensor(tid, &unpair, vals);
-  *npair = (int)unpair;
+  ret = world->ctf->allread_tensor(tid, npair, vals);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 

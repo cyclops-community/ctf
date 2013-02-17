@@ -7,7 +7,7 @@ LIBS  = $(BLAS)
 
 CXX         = mpicxx
 WARN_FLAGS  = -Wall #-Wno-comment -Wno-sign-compare -Wno-unused-variable
-OPT_FLAGS   = -g -O3
+OPT_FLAGS   = -g -O0
 CXXFLAGS    = -fopenmp -D__STDC_LIMIT_MACROS $(OPT_FLAGS) -Drestrict= $(WARN_FLAGS) 
 DEFS = -DDEBUG=0 -DVALIDATE_INPUTS -DUSE_OMP $(DFLAGS) $(TARGET_DEFS)
 
