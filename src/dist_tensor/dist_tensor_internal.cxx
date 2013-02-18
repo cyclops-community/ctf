@@ -361,7 +361,7 @@ int * dist_tensor<dtype>::get_sym(int const tensor_id) const {
  * \return raw local data
  */
 template<typename dtype>
-dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, int * size) {
+dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, int64_t * size) {
   *size = tensors[tensor_id]->size;
   return tensors[tensor_id]->data;
 }

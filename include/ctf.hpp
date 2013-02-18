@@ -128,7 +128,7 @@ class tCTF_Tensor {
      * \param[out] size of local data chunk
      * \return pointer to local data
      */
-    dtype * get_raw_data(int * size);
+    dtype * get_raw_data(int64_t * size);
 
     /**
      * \brief gives a read-only copy of the raw current local data with padding included

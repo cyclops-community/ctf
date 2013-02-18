@@ -199,7 +199,7 @@ int tCTF<dtype>::get_symmetry(int const tensor_id, int **sym) const{
  * \param[out] data raw local data
  */
 template<typename dtype>
-int tCTF<dtype>::get_raw_data(int const tensor_id, dtype ** data, int * size) {
+int tCTF<dtype>::get_raw_data(int const tensor_id, dtype ** data, int64_t * size) {
   *data = dt->get_raw_data(tensor_id, size);
   return DIST_TENSOR_SUCCESS;
 }

@@ -256,7 +256,7 @@ class tCTF{
     int get_symmetry(int const tensor_id, int **sym) const;
 
     /* get raw data pointer WARNING: includes padding */
-    int get_raw_data(int const tensor_id, dtype ** data, int * size);
+    int get_raw_data(int const tensor_id, dtype ** data, int64_t * size);
 
     /* Input tensor data with <key, value> pairs where key is the
        global index for the value. */

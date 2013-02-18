@@ -271,7 +271,7 @@ class dist_tensor{
     int get_dim(int const tensor_id) const;
     int * get_edge_len(int const tensor_id) const;
     int * get_sym(int const tensor_id) const;
-    dtype * get_raw_data(int const tensor_id, int * size);
+    dtype * get_raw_data(int const tensor_id, int64_t * size);
 
     int get_tsr_info(int const tensor_id,
                      int * ndim,

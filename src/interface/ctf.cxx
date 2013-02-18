@@ -204,7 +204,7 @@ tCTF_Tensor<dtype>::~tCTF_Tensor(){
 }
 
 template<typename dtype>
-dtype * tCTF_Tensor<dtype>::get_raw_data(int * size) {
+dtype * tCTF_Tensor<dtype>::get_raw_data(int64_t * size) {
   int ret;
   dtype * data;
   ret = world->ctf->get_raw_data(tid, &data, size);
@@ -314,7 +314,7 @@ void tCTF_Tensor<dtype>::contract(const dtype          alpha,
 
 template<typename dtype>
 tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(const dtype val){
-  int size;
+  int64_t size;
   dtype* raw_data = get_raw_data(&size);
   std::fill(raw_data, raw_data+size, val);
   return *this;
