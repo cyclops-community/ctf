@@ -226,7 +226,8 @@ class tCTF{
              int const      inner_size = DEF_INNER_SIZE);
 
 
-//    int init(CommData_t * cdt_global, int const ndim, int const * dim_len);
+    /* return MPI_Comm global_context */
+    MPI_Comm get_MPI_Comm();
 
     /* define a tensor and retrive handle */
     int define_tensor(int const   ndim,

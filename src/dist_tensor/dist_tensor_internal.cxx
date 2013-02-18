@@ -1267,7 +1267,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
 
       }
 #endif
-      DPRINTF(2,"size set to %lld\n",tsr->size);
+      DPRINTF(3,"size set to %lld\n",tsr->size);
       get_buffer_space(tsr->size*sizeof(dtype), (void**)&tsr->data);
       std::fill(tsr->data, tsr->data + tsr->size, get_zero<dtype>());
 /*      free_buffer_space(phys_phase);

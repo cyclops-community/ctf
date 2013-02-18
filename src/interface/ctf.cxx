@@ -129,13 +129,13 @@ int  conv_idx(int const         ndim_A,
   return n;
 }
 
-
-CTF_World::CTF_World(MPI_Comm comm_){
+template<typename dtype>
+tCTF_World<dtype>::tCTF_World(MPI_Comm comm_){
   int rank, np;
   comm = comm_;
   MPI_Comm_rank(comm, &rank);
   MPI_Comm_size(comm, &np);
-  ctf = new CTF();
+  ctf = new tCTF< dtype >();
 #ifdef BGQ
   ctf->init(comm, MACHINE_BGQ, rank, np);
 #else
@@ -147,21 +147,26 @@ CTF_World::CTF_World(MPI_Comm comm_){
 #endif
 }
 
-CTF_World::CTF_World(int const ndim, int const * lens, MPI_Comm comm_){
+template<typename dtype>
+tCTF_World<dtype>::tCTF_World(int const   ndim, 
+                              int const * lens, 
+                              MPI_Comm    comm_){
   int rank, np;
   comm = comm_;
   MPI_Comm_rank(comm, &rank);
   MPI_Comm_size(comm, &np);
-  ctf = new CTF();
+  ctf = new tCTF< dtype >();
   ctf->init(comm, rank, np, ndim, lens);
 }
 
-CTF_World::~CTF_World(){
+template<typename dtype>
+tCTF_World<dtype>::~tCTF_World(){
   delete ctf;
 }
 
-CTF_Tensor::CTF_Tensor(const CTF_Tensor&  A,
-                       const bool         copy){
+template<typename dtype>
+tCTF_Tensor<dtype>::tCTF_Tensor(const tCTF_Tensor<dtype>& A,
+                                const bool                copy){
   int ret;
   world = A.world;
 
@@ -177,10 +182,11 @@ CTF_Tensor::CTF_Tensor(const CTF_Tensor&  A,
   }
 }
 
-CTF_Tensor::CTF_Tensor(const int   ndim_,
-                       const int * len_,
-                       const int * sym_,
-                       CTF_World * world_){
+template<typename dtype>
+tCTF_Tensor<dtype>::tCTF_Tensor(const int           ndim_,
+                                const int *         len_,
+                                const int *         sym_,
+                                tCTF_World<dtype> * world_){
   int ret;
   world = world_;
 
@@ -190,30 +196,33 @@ CTF_Tensor::CTF_Tensor(const int   ndim_,
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-CTF_Tensor::~CTF_Tensor(){
+template<typename dtype>
+tCTF_Tensor<dtype>::~tCTF_Tensor(){
   free(sym);
   free(len);
   world->ctf->clean_tensor(tid);
 }
 
-double * CTF_Tensor::get_raw_data(int * size) {
+template<typename dtype>
+dtype * tCTF_Tensor<dtype>::get_raw_data(int * size) {
   int ret;
-  double * data;
+  dtype * data;
   ret = world->ctf->get_raw_data(tid, &data, size);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   return data;
 }
 
-void CTF_Tensor::get_local_data(int64_t *   npair, 
-                                int64_t **  global_idx, 
-                                double **   data) const {
-  kv_pair * pairs;
+template<typename dtype>
+void tCTF_Tensor<dtype>::get_local_data(int64_t *   npair, 
+                                        int64_t **  global_idx, 
+                                        dtype **   data) const {
+  tkv_pair< dtype > * pairs;
   int ret, i;
   ret = world->ctf->read_local_tensor(tid, npair, &pairs);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   /* FIXME: careful with malloc */
   *global_idx = (int64_t*)malloc((*npair)*sizeof(int64_t));
-  *data = (double*)malloc((*npair)*sizeof(double));
+  *data = (dtype*)malloc((*npair)*sizeof(dtype));
   for (i=0; i<(*npair); i++){
     (*global_idx)[i] = pairs[i].k;
     (*data)[i] = pairs[i].d;
@@ -221,12 +230,13 @@ void CTF_Tensor::get_local_data(int64_t *   npair,
   free(pairs);
 }
 
-void CTF_Tensor::get_remote_data(int64_t const    npair, 
-                                 int64_t const *  global_idx, 
-                                 double *         data) const {
+template<typename dtype>
+void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair, 
+                                         int64_t const *  global_idx, 
+                                         dtype *         data) const {
   int ret, i;
-  kv_pair * pairs;
-  pairs = (kv_pair*)malloc(npair*sizeof(kv_pair));
+  tkv_pair< dtype > * pairs;
+  pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
   }
@@ -238,12 +248,13 @@ void CTF_Tensor::get_remote_data(int64_t const    npair,
   free(pairs);
 }
 
-void CTF_Tensor::write_remote_data(int64_t const    npair, 
-                                   int64_t const *  global_idx, 
-                                   double const *   data) const {
+template<typename dtype>
+void tCTF_Tensor<dtype>::write_remote_data(int64_t const    npair, 
+                                           int64_t const *  global_idx, 
+                                           dtype const *   data) const {
   int ret, i;
-  kv_pair * pairs;
-  pairs = (kv_pair*)malloc(npair*sizeof(kv_pair));
+  tkv_pair< dtype > * pairs;
+  pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
@@ -253,14 +264,15 @@ void CTF_Tensor::write_remote_data(int64_t const    npair,
   free(pairs);
 }
 
-void CTF_Tensor::add_remote_data(int64_t const    npair, 
-                                 double const     alpha, 
-                                 double const     beta,
-                                 int64_t const *  global_idx, 
-                                 double const *   data) {
+template<typename dtype>
+void tCTF_Tensor<dtype>::add_remote_data(int64_t const    npair, 
+                                         double const     alpha, 
+                                         double const     beta,
+                                         int64_t const *  global_idx, 
+                                         dtype const *   data) {
   int ret, i;
-  kv_pair * pairs;
-  pairs = (kv_pair*)malloc(npair*sizeof(kv_pair));
+  tkv_pair< dtype > * pairs;
+  pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
@@ -270,19 +282,21 @@ void CTF_Tensor::add_remote_data(int64_t const    npair,
   free(pairs);
 }
 
-void CTF_Tensor::get_all_data(int64_t * npair, double ** vals) const {
+template<typename dtype>
+void tCTF_Tensor<dtype>::get_all_data(int64_t * npair, dtype ** vals) const {
   int ret;
   ret = world->ctf->allread_tensor(tid, npair, vals);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-void CTF_Tensor::contract(const double          alpha,
-                          const CTF_Tensor&     A,
-                          const char *          idx_A,
-                          const CTF_Tensor&     B,
-                          const char *          idx_B,
-                          const double          beta,
-                          const char *          idx_C) {
+template<typename dtype>
+void tCTF_Tensor<dtype>::contract(const dtype          alpha,
+                                  const tCTF_Tensor<dtype>&     A,
+                                  const char *          idx_A,
+                                  const tCTF_Tensor<dtype>&     B,
+                                  const char *          idx_B,
+                                  const dtype          beta,
+                                  const char *          idx_C) {
   int ret;
   CTF_ctr_type_t tp;
   tp.tid_A = A.tid;
@@ -298,23 +312,25 @@ void CTF_Tensor::contract(const double          alpha,
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-CTF_Tensor& CTF_Tensor::operator=(const double val){
+template<typename dtype>
+tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(const dtype val){
   int size;
-  double* raw_data = get_raw_data(&size);
+  dtype* raw_data = get_raw_data(&size);
   std::fill(raw_data, raw_data+size, val);
   return *this;
 }
 
-void CTF_Tensor::print(FILE* fp) const{
+template<typename dtype>
+void tCTF_Tensor<dtype>::print(FILE* fp) const{
   world->ctf->print_tensor(fp, tid);
 }
 
-
-void CTF_Tensor::sum(const double       alpha,
-                     const CTF_Tensor&  A,
-                     const char *       idx_A,
-                     const double       beta,
-                     const char *       idx_B){
+template<typename dtype>
+void tCTF_Tensor<dtype>::sum(const dtype                alpha,
+                             const tCTF_Tensor<dtype>&  A,
+                             const char *               idx_A,
+                             const dtype                beta,
+                             const char *               idx_B){
   int ret;
   int * idx_map_A, * idx_map_B;
   CTF_sum_type_t st;
@@ -330,7 +346,8 @@ void CTF_Tensor::sum(const double       alpha,
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-void CTF_Tensor::scale(const double alpha, const char * idx_A){
+template<typename dtype>
+void tCTF_Tensor<dtype>::scale(const dtype alpha, const char * idx_A){
   int ret;
   int * idx_map_A;
   conv_idx(ndim, idx_A, &idx_map_A);
@@ -338,12 +355,17 @@ void CTF_Tensor::scale(const double alpha, const char * idx_A){
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
-double CTF_Tensor::reduce(CTF_OP op){
+template<typename dtype>
+dtype tCTF_Tensor<dtype>::reduce(CTF_OP op){
   int ret;
-  double ans;
+  dtype ans;
   ans = 0.0;
   ret = world->ctf->reduce_tensor(tid, op, &ans);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
   return ans;
 }
 
+template class tCTF_World<double>;
+template class tCTF_World< std::complex<double> >;
+template class tCTF_Tensor<double>;
+template class tCTF_Tensor< std::complex<double> >;

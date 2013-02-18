@@ -78,6 +78,11 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   return ret;
 }
 
+template<typename dtype>
+MPI_Comm tCTF<dtype>::get_MPI_Comm(){
+  return (dt->get_global_comm())->cm;
+}
+
 /**
  * \brief  initializes library. 
  *      Sets topology to be a mesh of dimension ndim with
@@ -116,8 +121,8 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
  * \param[in] inner_size is the total block size of dgemm calls 
  */
 template<typename dtype>
-int tCTF<dtype>::init(MPI_Comm const    global_context,
-                      int const             rank, 
+int tCTF<dtype>::init(MPI_Comm const  global_context,
+                      int const       rank, 
                       int const       np, 
                       int const       ndim, 
                       int const *     dim_len,

@@ -22,7 +22,6 @@ fft_SUBDIRS = examples
 
 ctf: ${libdir}/libctf.a
 ${libdir}/libctf.a: interface/ctf.o \
-                    interface/ctf_complex.o \
                     shared/comm.o \
                     shared/util.o \
                     shared/memcontrol.o \

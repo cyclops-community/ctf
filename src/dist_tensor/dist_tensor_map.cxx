@@ -426,12 +426,20 @@ int dist_tensor<dtype>::
   for (i=0; i<tsr->ndim; i++){
     iR = idx_arr[idx_map[i]];
     if (iR != -1){
-      if (tsr->edge_map[iR].type == PHYSICAL_MAP)
+      if (tsr->edge_map[iR].has_child == 1) 
+        pass = 0;
+      if (tsr->edge_map[i].has_child == 1) 
+        pass = 0;
+      if (tsr->edge_map[i].type != VIRTUAL_MAP) 
+        pass = 0;
+      if (tsr->edge_map[i].np != tsr->edge_map[iR].np)
+        pass = 0;
+    /*  if (tsr->edge_map[iR].type == PHYSICAL_MAP)
         pass = 0;
       if (tsr->edge_map[iR].type == VIRTUAL_MAP){
         if (calc_phase(&tsr->edge_map[i]) != tsr->edge_map[iR].np)
           pass = 0;
-      }
+      }*/
     }
     idx_arr[idx_map[i]] = i;
   }
@@ -494,7 +502,7 @@ int dist_tensor<dtype>::
   if (!check_self_mapping(tid_B, idx_B))
     pass = 0;
   if (pass == 0)
-    DPRINTF(2,"failed confirmation here\n");
+    DPRINTF(3,"failed confirmation here\n");
 
   for (i=0; i<ndim_tot; i++){
     iA = idx_arr[2*i];
@@ -502,7 +510,7 @@ int dist_tensor<dtype>::
     if (iA != -1 && iB != -1) {
       if (!comp_dim_map(&tsr_A->edge_map[iA], &tsr_B->edge_map[iB])){
         pass = 0;
-        DPRINTF(2,"failed confirmation here i=%d\n",i);
+        DPRINTF(3,"failed confirmation here i=%d\n",i);
       }
     }
     if (iA != -1) {
@@ -531,7 +539,7 @@ int dist_tensor<dtype>::
   for (i=0; i<topovec[tsr_A->itopo].ndim; i++){
     if (phys_map[i] == 0) {
       pass = 0;
-      DPRINTF(2,"failed confirmation here i=%d\n",i);
+      DPRINTF(3,"failed confirmation here i=%d\n",i);
     }
   }
 
@@ -626,7 +634,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
       iC = idx_arr[3*i+2];
       if (0 == comp_dim_map(&tsr_B->edge_map[iB], &tsr_A->edge_map[iA]) || 
           0 == comp_dim_map(&tsr_B->edge_map[iB], &tsr_C->edge_map[iC])){
-        DPRINTF(2,"failed confirmation here %d\n",iA);
+        DPRINTF(3,"failed confirmation here %d\n",iA);
         pass = 0;
         break;
       } else {
@@ -634,7 +642,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
         for (;;){
           if (map->type == PHYSICAL_MAP){
             if (phys_mapped[map->cdt] == 1){
-              DPRINTF(2,"failed confirmation here %d\n",iA);
+              DPRINTF(3,"failed confirmation here %d\n",iA);
               pass = 0;
               break;
             } else {
@@ -681,7 +689,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
               for (;;){
           if (map->type == PHYSICAL_MAP){
             if (phys_mapped[map->cdt] == 1){
-              DPRINTF(2,"failed confirmation here %d\n",iA);
+              DPRINTF(3,"failed confirmation here %d\n",iA);
               pass = 0;
               break;
             } else
@@ -696,7 +704,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
             for (;;){
               if (map->type == PHYSICAL_MAP){
           if (phys_mapped[map->cdt] == 1){
-            DPRINTF(2,"failed confirmation here %d\n",iA);
+            DPRINTF(3,"failed confirmation here %d\n",iA);
             pass = 0;
             break;
           } else
@@ -713,7 +721,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
 
             if (ph_A != ph_B){
               //if (global_comm->rank == 0) 
-                DPRINTF(2,"failed confirmation here\n");
+                DPRINTF(3,"failed confirmation here\n");
               pass = 0;
               break;
             }
@@ -724,7 +732,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
               for (;;){
                 if (map->type == PHYSICAL_MAP){
                   if (phys_mapped[map->cdt] == 1){
-                    DPRINTF(2,"failed confirmation here %d\n",iB);
+                    DPRINTF(3,"failed confirmation here %d\n",iB);
                     pass = 0;
                     break;
                   } else
@@ -739,7 +747,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
               if (tsr_A->edge_map[iA].type == PHYSICAL_MAP){
                 if (phys_mismatched[tsr_A->edge_map[iA].cdt] == 1){
                   //if (global_comm->rank == 0) 
-                    DPRINTF(2,"failed confirmation here i=%d iA=%d iB=%d\n",i,iA,iB);
+                    DPRINTF(3,"failed confirmation here i=%d iA=%d iB=%d\n",i,iA,iB);
                   pass = 0;
                   break;
                 } else
@@ -749,7 +757,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
               if (tsr_B->edge_map[iB].type == PHYSICAL_MAP){
                 if (phys_mismatched[tsr_B->edge_map[iB].cdt] == 1){
                   //if (global_comm->rank == 0) 
-                    DPRINTF(2,"failed confirmation here i=%d iB=%d iB=%d\n",i,iB,iB);
+                    DPRINTF(3,"failed confirmation here i=%d iB=%d iB=%d\n",i,iB,iB);
                   pass = 0;
                   break;
                 } else
@@ -763,12 +771,12 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
   }
   for (i=0; i<topo_ndim; i++){
     if (phys_mismatched[i] == 1 && phys_mapped[i] == 0){
-      DPRINTF(2,"failed confirmation here i=%d\n",i);
+      DPRINTF(3,"failed confirmation here i=%d\n",i);
       pass = 0;
       break;
     }
     if (phys_mismatched[i] == 0 && phys_mapped[i] == 0){
-      DPRINTF(2,"failed confirmation here i=%d\n",i);
+      DPRINTF(3,"failed confirmation here i=%d\n",i);
       pass = 0;
       break;
     }    
@@ -1694,12 +1702,12 @@ int dist_tensor<dtype>::
     if (iR != -1){
       stable[iR*tsr->ndim+i] = 1;
       stable[i*tsr->ndim+iR] = 1;
-      LIBT_ASSERT(tsr->edge_map[iR].type != PHYSICAL_MAP);
-      if (tsr->edge_map[iR].type == NOT_MAPPED){
+    //  LIBT_ASSERT(tsr->edge_map[iR].type != PHYSICAL_MAP);
+    /*  if (tsr->edge_map[iR].type == NOT_MAPPED){
         tsr->edge_map[iR].type = VIRTUAL_MAP;
         tsr->edge_map[iR].np = 1;
         tsr->edge_map[iR].has_child = 0;
-      }
+      }*/
     }
     idx_arr[idx_map[i]] = i;
   }

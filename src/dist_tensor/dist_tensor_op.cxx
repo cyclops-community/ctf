@@ -363,17 +363,23 @@ int dist_tensor<dtype>::
   scl<dtype> * hscl = NULL, ** rec_scl = NULL;
 
   is_top = 1;
+  tsr = tensors[tid];
 
 #if DEBUG>=1
-  if (global_comm->rank == 0)
+  if (global_comm->rank == 0){
     printf("Scaling tensor %d by %lf.\n", tid, GET_REAL(alpha));
+    printf("The index mapping is");
+    for (i=0; i<tsr->ndim; i++){
+      printf(" %d",idx_map[i]);
+    }
+    printf("\n");
+  }
 #endif
 
-  tsr = tensors[tid];
   unmap_inner(tsr);
   set_padding(tsr);
   inv_idx(tsr->ndim, idx_map, tsr->edge_map,
-    &ndim_tot, &idx_arr);
+          &ndim_tot, &idx_arr);
 
   get_buffer_space(sizeof(int)*tsr->ndim, (void**)&blk_len);
   get_buffer_space(sizeof(int)*tsr->ndim, (void**)&virt_blk_len);
@@ -382,17 +388,21 @@ int dist_tensor<dtype>::
   if (!check_self_mapping(tid, idx_map)){
     save_mapping(tsr, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda,
                  &old_size, &was_padded, &was_cyclic, &old_padding, &old_edge_len, &topovec[tsr->itopo]);
-    itopo = tsr->itopo;
-    clear_mapping(tsr);
-    tsr->itopo = itopo;
-    
-    ret = map_self_indices(tid, idx_map);
-    LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
-    ret = map_tensor_rem(topovec[tsr->itopo].ndim,
-                         topovec[tsr->itopo].dim_comm, tsr);
-    LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
-    ret = map_self_indices(tid, idx_map);
-    LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
+    tsr->need_remap = 0;
+    for (itopo=0; itopo<(int)topovec.size(); itopo++){
+      clear_mapping(tsr);
+      tsr->itopo = itopo;
+      
+      ret = map_self_indices(tid, idx_map);
+      LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
+      ret = map_tensor_rem(topovec[tsr->itopo].ndim,
+                           topovec[tsr->itopo].dim_comm, tsr, 1);
+      LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
+      ret = map_self_indices(tid, idx_map);
+      LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
+      if (check_self_mapping(tid, idx_map)) break;
+    }
+    if (itopo == (int)topovec.size()) return DIST_TENSOR_ERROR;
     tsr->is_mapped = 1;
     set_padding(tsr);
     tsr->is_cyclic = 1;
@@ -407,6 +417,11 @@ int dist_tensor<dtype>::
     if (was_padded)
       free(old_padding);
     free(old_edge_len);
+#if DEBUG >=2
+    if (global_comm->rank == 0)
+      printf("New mapping for tensor %d\n",tid);
+    print_map(stdout,tid);
+#endif
   }
 
   blk_sz = tsr->size;
@@ -433,8 +448,10 @@ int dist_tensor<dtype>::
     if (idx_map[i] != -1){
       map = &tsr->edge_map[iA];
       while (map->has_child) map = map->child;
-      if (map->type == VIRTUAL_MAP)
+      if (map->type == VIRTUAL_MAP){
         virt_dim[i] = map->np;
+        if (st) virt_dim[i] = virt_dim[i]/str->strip_dim[iA];
+      }
       else virt_dim[i] = 1;
     }
     nvirt *= virt_dim[i];
@@ -582,15 +599,19 @@ tsum<dtype> * dist_tensor<dtype>::
     if (iA != -1){
       map = &tsr_A->edge_map[iA];
       while (map->has_child) map = map->child;
-      if (map->type == VIRTUAL_MAP)
+      if (map->type == VIRTUAL_MAP){
         virt_dim[i] = map->np;
+        if (sA) virt_dim[i] = virt_dim[i]/str_A->strip_dim[iA];
+      }
       else virt_dim[i] = 1;
     } else {
       LIBT_ASSERT(iB!=-1);
       map = &tsr_B->edge_map[iB];
       while (map->has_child) map = map->child;
-      if (map->type == VIRTUAL_MAP)
+      if (map->type == VIRTUAL_MAP){
         virt_dim[i] = map->np;
+        if (sB) virt_dim[i] = virt_dim[i]/str_B->strip_dim[iA];
+      }
       else virt_dim[i] = 1;
     }
     nvirt *= virt_dim[i];
@@ -1329,6 +1350,14 @@ ctr<dtype> * dist_tensor<dtype>::
           virt_dim[i] = map->np;
       }
     }
+    if (sA && i_A != -1){
+      nvirt = virt_dim[i]/str_A->strip_dim[i_A];
+    } else if (sB && i_B != -1){
+      nvirt = virt_dim[i]/str_B->strip_dim[i_B];
+    } else if (sC && i_C != -1){
+      nvirt = virt_dim[i]/str_C->strip_dim[i_C];
+    }
+    
     nvirt = nvirt * virt_dim[i];
   }
   if (nvirt_all != NULL)
@@ -1599,13 +1628,13 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
       return DIST_TENSOR_ERROR;
     }
   } else {
-#if DEBUG >= 2
+/*#if DEBUG >= 2
     if (get_global_comm()->rank == 0){
       printf("Keeping mappings:\n");
     }
     print_map(stdout, tid_A);
     print_map(stdout, tid_B);
-#endif
+#endif*/
   }
   /* Construct the tensor algorithm we would like to use */
   LIBT_ASSERT(check_sum_mapping(tid_A, idx_map_A, tid_B, idx_map_B));
@@ -2314,11 +2343,11 @@ int dist_tensor<dtype>::
   } else {
     /* Construct the tensor algorithm we would like to use */
 #if DEBUG >= 2
-    if (get_global_comm()->rank == 0)
+/*    if (get_global_comm()->rank == 0)
       printf("Keeping mappings:\n");
     print_map(stdout, type->tid_A);
     print_map(stdout, type->tid_B);
-    print_map(stdout, type->tid_C);
+    print_map(stdout, type->tid_C);*/
 #endif
     ctrf = construct_contraction(type, buffer, buffer_len,
                                  func_ptr, alpha, beta);

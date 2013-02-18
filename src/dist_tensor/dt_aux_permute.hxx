@@ -1689,7 +1689,7 @@ int cyclic_reshuffle(int const          ndim,
   old_np = 1;
   new_np = 1;
   if (ord_glb_comm == NULL || ord_glb_comm->rank == 0){
-    DPRINTF(2,"is_cyclic = %d, was_cyclic = %d\n",is_cyclic,was_cyclic);
+    DPRINTF(3,"is_cyclic = %d, was_cyclic = %d\n",is_cyclic,was_cyclic);
   }
   if (ord_glb_comm == NULL)
     idx_lyr = 0;
@@ -1762,7 +1762,7 @@ int cyclic_reshuffle(int const          ndim,
   get_buffer_space(MAX(nval,swp_nval)*sizeof(dtype), (void**)&tsr_cyclic_data);
 
   if (ord_glb_comm != NULL){
-    DPRINTF(2,"[%d] send = %d, had= %lld recv = %d, should get = %lld\n", 
+    DPRINTF(4,"[%d] send = %d, had= %lld recv = %d, should get = %lld\n", 
             ord_glb_comm->rank, send_displs[ord_glb_comm->np-1] + send_counts[ord_glb_comm->np-1], nval,
             recv_displs[ord_glb_comm->np-1] + recv_counts[ord_glb_comm->np-1], swp_nval);
   }

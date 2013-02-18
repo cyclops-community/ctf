@@ -1,4 +1,4 @@
-#include <ctf_complex.hpp>
+#include <ctf.hpp>
 #include <assert.h>
 #include <stdlib.h>
 
@@ -24,11 +24,11 @@ int main(int argc, char ** argv){
   }
   n = 1<<logn;
   int edge_lens[2] = {n,n};
-  int sym[2]       = {NS,NS};
+  int sym[2]       = {SY,NS};
 
-  cCTF_World * wrld = new cCTF_World();
-  cCTF_Tensor DFT(2, edge_lens, sym, wrld);
-  cCTF_Tensor IDFT(2, edge_lens, sym, wrld);
+  tCTF_World< std::complex<double> > * wrld = new tCTF_World< std::complex<double> >();
+  tCTF_Tensor< std::complex<double> > DFT(2, edge_lens, sym, wrld);
+  tCTF_Tensor< std::complex<double> > IDFT(2, edge_lens, sym, wrld);
 
   DFT.get_local_data(&np, &idx, &data);
 
@@ -55,16 +55,19 @@ int main(int argc, char ** argv){
 
  
   DFT.get_local_data(&np, &idx, &data);
-  DFT.print(stdout);
+  //DFT.print(stdout);
   for (i=0; i<np; i++){
-    printf("data[%lld] = %lf\n",idx[i],data[i].real());
+    //printf("data[%lld] = %lf\n",idx[i],data[i].real());
     if (idx[i]/n == idx[i]%n)
       assert(fabs(data[i].real() - 1.)<=1.E-9);
     else 
       assert(fabs(data[i].real())<=1.E-9);
   }
   
-  printf("{ DFT matrix * DFT matrix ^T = Identity } confirmed\n");
+  if (myRank == 0)
+    printf("{ DFT matrix * IDFT matrix = Identity } confirmed\n");
+
+  MPI_Barrier(MPI_COMM_WORLD);
 
   free(idx);
   free(data);

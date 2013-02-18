@@ -104,6 +104,8 @@ void strp_tsr<dtype>::run(int const dir){
     if (dir)
       memcpy(A+toff*blk_sz, buffer+boff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));
     else {
+  /*    printf("boff = %d, toff = %d blk_sz = %lld mv_ez=%lld\n",boff,toff,blk_sz,
+              (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));*/
       memcpy(buffer+boff*blk_sz, A+toff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));
     }
     boff += (edge_len[0]/strip_dim[0]);
@@ -369,8 +371,17 @@ template<typename dtype>
 void strp_scl<dtype>::run(){
   dtype * bA;
 
+
+  rec_strp->A = this->A;
   rec_strp->run(0);
   bA = rec_strp->buffer;
+
+/*  printf("alpha = %lf %lf\n",
+          ((std::complex<double>)this->alpha).real(),
+          ((std::complex<double>)this->alpha).imag());
+  printf("A[0] = %lf %lf\n",
+          ((std::complex<double>)bA[0]).real(),
+          ((std::complex<double>)bA[0]).imag());*/
   
   rec_scl->A = bA;
   rec_scl->alpha = this->alpha;
