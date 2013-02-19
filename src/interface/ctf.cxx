@@ -209,6 +209,7 @@ dtype * tCTF_Tensor<dtype>::get_raw_data(int64_t * size) {
   dtype * data;
   ret = world->ctf->get_raw_data(tid, &data, size);
   DTASSERT(ret == DIST_TENSOR_SUCCESS);
+  
   return data;
 }
 
@@ -233,7 +234,7 @@ void tCTF_Tensor<dtype>::get_local_data(int64_t *   npair,
 template<typename dtype>
 void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair, 
                                          int64_t const *  global_idx, 
-                                         dtype *         data) const {
+                                         dtype *          data) const {
   int ret, i;
   tkv_pair< dtype > * pairs;
   pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
@@ -251,7 +252,7 @@ void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair,
 template<typename dtype>
 void tCTF_Tensor<dtype>::write_remote_data(int64_t const    npair, 
                                            int64_t const *  global_idx, 
-                                           dtype const *   data) const {
+                                           dtype const *    data) const {
   int ret, i;
   tkv_pair< dtype > * pairs;
   pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
@@ -269,7 +270,7 @@ void tCTF_Tensor<dtype>::add_remote_data(int64_t const    npair,
                                          double const     alpha, 
                                          double const     beta,
                                          int64_t const *  global_idx, 
-                                         dtype const *   data) {
+                                         dtype const *    data) {
   int ret, i;
   tkv_pair< dtype > * pairs;
   pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
@@ -290,13 +291,13 @@ void tCTF_Tensor<dtype>::get_all_data(int64_t * npair, dtype ** vals) const {
 }
 
 template<typename dtype>
-void tCTF_Tensor<dtype>::contract(const dtype          alpha,
+void tCTF_Tensor<dtype>::contract(const dtype                   alpha,
                                   const tCTF_Tensor<dtype>&     A,
-                                  const char *          idx_A,
+                                  const char *                  idx_A,
                                   const tCTF_Tensor<dtype>&     B,
-                                  const char *          idx_B,
-                                  const dtype          beta,
-                                  const char *          idx_C) {
+                                  const char *                  idx_B,
+                                  const dtype                   beta,
+                                  const char *                  idx_C) {
   int ret;
   CTF_ctr_type_t tp;
   tp.tid_A = A.tid;

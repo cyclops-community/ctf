@@ -89,6 +89,7 @@ struct tensor {
   int is_data_aliased;
   int slay;
   int need_remap;
+  int has_zero_edge_len;
   union {
     dtype * data;
     tkv_pair <dtype> * pairs;

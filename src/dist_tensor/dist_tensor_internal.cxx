@@ -225,20 +225,21 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   int i;
 
   tensor<dtype> * tsr = (tensor<dtype>*)malloc(sizeof(tensor<dtype>));
-
-  tsr->is_padded        = 1;
   get_buffer_space(ndim*sizeof(int), (void**)&tsr->padding);
   memset(tsr->padding, 0, ndim*sizeof(int));
-  tsr->is_mapped        = 0;
-  tsr->itopo            = -1;
-  tsr->is_alloced       = 1;
-  tsr->is_cyclic        = 1;
-  tsr->size             = 0;
-  tsr->is_inner_mapped  = 0;
-  tsr->is_folded        = 0;
-  tsr->is_matrix        = 0;
-  tsr->is_data_aliased  = 0;
-  tsr->need_remap       = 0;
+
+  tsr->is_padded          = 1;
+  tsr->is_mapped          = 0;
+  tsr->itopo              = -1;
+  tsr->is_alloced         = 1;
+  tsr->is_cyclic          = 1;
+  tsr->size               = 0;
+  tsr->is_inner_mapped    = 0;
+  tsr->is_folded          = 0;
+  tsr->is_matrix          = 0;
+  tsr->is_data_aliased    = 0;
+  tsr->need_remap         = 0;
+  tsr->has_zero_edge_len  = 0;
 
   tsr->pairs    = NULL;
   tsr->ndim     = ndim;
@@ -257,6 +258,7 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
 
   /* initialize map array and symmetry table */
   for (i=0; i<ndim; i++){
+    if (tsr->edge_len[i] <= 0) tsr->has_zero_edge_len = 0;
     tsr->edge_map[i].type       = NOT_MAPPED;
     tsr->edge_map[i].has_child  = 0;
     tsr->edge_map[i].np         = 1;
@@ -362,6 +364,10 @@ int * dist_tensor<dtype>::get_sym(int const tensor_id) const {
  */
 template<typename dtype>
 dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, int64_t * size) {
+  if (tensors[tensor_id]->has_zero_edge_len){
+    *size = 0;
+    return NULL;
+  }
   *size = tensors[tensor_id]->size;
   return tensors[tensor_id]->data;
 }
@@ -648,6 +654,8 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
 
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
+  
+  tsr_B->has_zero_edge_len = tsr_A->has_zero_edge_len;
 
   if (tsr_A->is_folded) unfold_tsr(tsr_A);
 
@@ -764,6 +772,8 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
   TAU_FSTART(write_pairs);
 
   tsr = tensors[tensor_id];
+  
+  if (tsr->has_zero_edge_len) return DIST_TENSOR_SUCCESS;
   unmap_inner(tsr);
   set_padding(tsr);
 
@@ -783,9 +793,9 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
                           *virt_phase[i];
       num_virt          = num_virt*virt_phase[i];
       if (map->type == PHYSICAL_MAP)
-              bucket_lda[i]     = topovec[tsr->itopo].lda[map->cdt];
+        bucket_lda[i] = topovec[tsr->itopo].lda[map->cdt];
       else
-              bucket_lda[i]     = 0;
+        bucket_lda[i] = 0;
     }
 
     wr_pairs_layout(tsr->ndim,
@@ -829,7 +839,7 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
  */
 template<typename dtype>
 int dist_tensor<dtype>::read_local_pairs(int                tensor_id, 
-                                         long_int *           num_pair,  
+                                         long_int *         num_pair,  
                                          tkv_pair<dtype> ** mapped_data){
   int i, num_virt, idx_lyr;
   long_int np;
@@ -841,6 +851,10 @@ int dist_tensor<dtype>::read_local_pairs(int                tensor_id,
   TAU_FSTART(read_local_pairs);
 
   tsr = tensors[tensor_id];
+  if (tsr->has_zero_edge_len){
+    *num_pair = 0;
+    return DIST_TENSOR_SUCCESS;
+  }
   unmap_inner(tsr);
   set_padding(tsr);
 
@@ -904,7 +918,7 @@ int dist_tensor<dtype>::read_local_pairs(int                tensor_id,
  */
 template<typename dtype>
 int dist_tensor<dtype>::allread_tsr(int const     tid, 
-                                    long_int *  num_val,  
+                                    long_int *    num_val,  
                                     dtype **      all_data){
   int numPes;
   int * nXs;
@@ -914,6 +928,10 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   dtype * whole_tsr;
 
   numPes = global_comm->np;
+  if (tensors[tid]->has_zero_edge_len){
+    *num_val = 0;
+    return DIST_TENSOR_SUCCESS;
+  }
 
   get_buffer_space(numPes*sizeof(int), (void**)&nXs);
   get_buffer_space(numPes*sizeof(int), (void**)&pXs);
@@ -1430,6 +1448,9 @@ int dist_tensor<dtype>::zero_out_padding(int const tensor_id){
   long_int n;
   int stat;
   tkv_pair<dtype> * mapped_data;
+  if (tensors[tensor_id]->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   stat = read_local_pairs(tensor_id, &n, &mapped_data);
   std::fill(tensors[tensor_id]->data, 
             tensors[tensor_id]->data+tensors[tensor_id]->size, 

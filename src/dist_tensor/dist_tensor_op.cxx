@@ -41,6 +41,9 @@ int dist_tensor<double>::scale_tsr(double const alpha, int const tid){
   tensor<double> * tsr;
 
   tsr = tensors[tid];
+  if (tsr->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
 
   if (tsr->is_mapped){
     cdscal(tsr->size, alpha, tsr->data, 1);
@@ -74,6 +77,9 @@ int dist_tensor<double>::dot_loc_tsr(int const tid_A, int const tid_B, double *p
 
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
+  if (tsr_A->has_zero_edge_len || tsr_B->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
 
   LIBT_ASSERT(tsr_A->is_mapped && tsr_B->is_mapped);
   LIBT_ASSERT(tsr_A->size == tsr_B->size);
@@ -108,6 +114,9 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
 
 
   tsr = tensors[tid];
+  if (tsr->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   unmap_inner(tsr);
   set_padding(tsr);
 
@@ -271,9 +280,9 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
  */
 template<typename dtype>
 int dist_tensor<dtype>::map_tsr(int const tid,
-        dtype (*map_func)(int const ndim,
-              int const * indices,
-              dtype const elem)){
+                                dtype (*map_func)(int const ndim,
+                                                  int const * indices,
+                                                  dtype const elem)){
   long_int i, j, np, stat;
   int * idx;
   tensor<dtype> * tsr;
@@ -281,6 +290,9 @@ int dist_tensor<dtype>::map_tsr(int const tid,
   tkv_pair<dtype> * prs;
 
   tsr = tensors[tid];
+  if (tsr->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   unmap_inner(tsr);
   set_padding(tsr);
 
@@ -333,6 +345,9 @@ int dist_tensor<double>::
   tensor<double> * tsr_A, * tsr_B;
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
+  if (tsr_A->has_zero_edge_len || tsr_B->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   LIBT_ASSERT(tsr_A->size == tsr_B->size);
   cdaxpy(tsr_A->size, alpha, tsr_A->data, 1, tsr_B->data, 1);
   return DIST_TENSOR_SUCCESS;
@@ -364,6 +379,9 @@ int dist_tensor<dtype>::
 
   is_top = 1;
   tsr = tensors[tid];
+  if (tsr->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
 
 #if DEBUG>=1
   if (global_comm->rank == 0){
@@ -1578,6 +1596,9 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
                                      fseq_tsr_sum<dtype> const  func_ptr){
   int stat, new_tid;
   tsum<dtype> * sumf;
+  if (tensors[tid_A]->has_zero_edge_len || tensors[tid_B]->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   if (tid_A == tid_B){
     clone_tensor(tid_A, 1, &new_tid);
     stat = sum_tensors(alpha_, beta, new_tid, tid_B, idx_map_A, idx_map_B, func_ptr);
@@ -2143,6 +2164,10 @@ int dist_tensor<dtype>::
   std::vector<dtype> signs;
   dtype dbeta;
   ctr<dtype> * ctrf;
+  if (tensors[type->tid_A]->has_zero_edge_len || tensors[type->tid_B]->has_zero_edge_len
+      || tensors[type->tid_C]->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
 
   unmap_inner(tensors[type->tid_A]);
   unmap_inner(tensors[type->tid_B]);
@@ -2283,6 +2308,10 @@ int dist_tensor<dtype>::
   long_int membytes;
   ctr<dtype> * ctrf;
 
+  if (tensors[type->tid_A]->has_zero_edge_len || tensors[type->tid_B]->has_zero_edge_len
+      || tensors[type->tid_C]->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   if (type->tid_A == type->tid_B || type->tid_A == type->tid_C){
     clone_tensor(type->tid_A, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;
