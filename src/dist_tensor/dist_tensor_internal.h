@@ -323,7 +323,7 @@ class dist_tensor{
                                         iparam const *          inner_params=NULL,
                                         int *                   nvirt_C = NULL);
 
-    dtype align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
+/*    dtype align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
                                 int ndim_B, int* idx_B, int* sym_B);
 
     dtype align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
@@ -333,7 +333,7 @@ class dist_tensor{
     dtype overcounting_factor(int ndim_A, int* idx_A, int* sym_A,
                             int ndim_B, int* idx_B, int* sym_B,
                             int ndim_C, int* idx_C, int* sym_C);
-
+*/
     int sym_contract( CTF_ctr_type_t const *    type,
                       dtype *                   buffer,
                       int const                 buffer_len,
