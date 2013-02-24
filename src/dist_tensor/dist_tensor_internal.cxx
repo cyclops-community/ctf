@@ -1344,7 +1344,7 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid) {
       for (j=0; j<tsr->ndim; j++){
               fprintf(stream,"[%d]",idx_arr[j]);
       }
-      fprintf(stream," <%E>\n",GET_REAL(all_data[i].d));
+      fprintf(stream," <%20.14E>\n",GET_REAL(all_data[i].d));
     }
     free_buffer_space(recvcnts);
     free_buffer_space(displs);
