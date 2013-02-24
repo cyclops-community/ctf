@@ -22,6 +22,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
+#include "sym_indices.hxx"
 
 /**
  * \brief Scale each tensor element by alpha
@@ -41,6 +42,9 @@ int dist_tensor<double>::scale_tsr(double const alpha, int const tid){
   tensor<double> * tsr;
 
   tsr = tensors[tid];
+  if (tsr->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
 
   if (tsr->is_mapped){
     cdscal(tsr->size, alpha, tsr->data, 1);
@@ -74,6 +78,9 @@ int dist_tensor<double>::dot_loc_tsr(int const tid_A, int const tid_B, double *p
 
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
+  if (tsr_A->has_zero_edge_len || tsr_B->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
 
   LIBT_ASSERT(tsr_A->is_mapped && tsr_B->is_mapped);
   LIBT_ASSERT(tsr_A->size == tsr_B->size);
@@ -108,6 +115,9 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
 
 
   tsr = tensors[tid];
+  if (tsr->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   unmap_inner(tsr);
   set_padding(tsr);
 
@@ -271,9 +281,9 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
  */
 template<typename dtype>
 int dist_tensor<dtype>::map_tsr(int const tid,
-        dtype (*map_func)(int const ndim,
-              int const * indices,
-              dtype const elem)){
+                                dtype (*map_func)(int const ndim,
+                                                  int const * indices,
+                                                  dtype const elem)){
   long_int i, j, np, stat;
   int * idx;
   tensor<dtype> * tsr;
@@ -281,6 +291,9 @@ int dist_tensor<dtype>::map_tsr(int const tid,
   tkv_pair<dtype> * prs;
 
   tsr = tensors[tid];
+  if (tsr->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   unmap_inner(tsr);
   set_padding(tsr);
 
@@ -333,6 +346,9 @@ int dist_tensor<double>::
   tensor<double> * tsr_A, * tsr_B;
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
+  if (tsr_A->has_zero_edge_len || tsr_B->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   LIBT_ASSERT(tsr_A->size == tsr_B->size);
   cdaxpy(tsr_A->size, alpha, tsr_A->data, 1, tsr_B->data, 1);
   return DIST_TENSOR_SUCCESS;
@@ -364,6 +380,9 @@ int dist_tensor<dtype>::
 
   is_top = 1;
   tsr = tensors[tid];
+  if (tsr->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
 
 #if DEBUG>=1
   if (global_comm->rank == 0){
@@ -1578,6 +1597,9 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
                                      fseq_tsr_sum<dtype> const  func_ptr){
   int stat, new_tid;
   tsum<dtype> * sumf;
+  if (tensors[tid_A]->has_zero_edge_len || tensors[tid_B]->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   if (tid_A == tid_B){
     clone_tensor(tid_A, 1, &new_tid);
     stat = sum_tensors(alpha_, beta, new_tid, tid_B, idx_map_A, idx_map_B, func_ptr);
@@ -1722,397 +1744,6 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
   return DIST_TENSOR_SUCCESS;
 }
 
-struct index_locator_
-{
-    int sort;
-    int idx;
-    int pos_A;
-    int pos_B;
-    int pos_C;
-
-    index_locator_(int sort, int idx, int pos_A, int pos_B, int pos_C)
-    : sort(sort), idx(idx), pos_A(pos_A), pos_B(pos_B), pos_C(pos_C) {}
-
-    static bool sortA(const index_locator_& a, const index_locator_& b)
-    {
-        return a.pos_A < b.pos_A;
-    }
-
-    static bool sortB(const index_locator_& a, const index_locator_& b)
-    {
-        return a.pos_B < b.pos_B;
-    }
-
-    static bool sortC(const index_locator_& a, const index_locator_& b)
-    {
-        return a.pos_C < b.pos_C;
-    }
-
-    bool operator==(int idx)
-    {
-        return this->idx == idx;
-    }
-};
-
-template<typename T>
-int relativeSign(const std::vector<T>& s1, const std::vector<T>& s2)
-{
-    int i, j, k;
-    int sign = 1;
-    bool *seen = new bool[s1.size()];
-
-    for (i = 0;i < (int)s1.size();i++) seen[i] = false;
-
-    for (i = 0;i < (int)s1.size();i++)
-    {
-        if (seen[i]) continue;
-        j = i;
-        while (true)
-        {
-            for (k = 0;k < (int)s1.size() && (!(s1[k] == s2[j]) || seen[k]);k++);
-            assert(k < (int)s1.size());
-            j = k;
-            seen[j] = true;
-            if (j == i) break;
-            sign = -sign;
-        }
-    }
-
-    delete[] seen;
-
-    return sign;
-}
-
-template<typename dtype>
-dtype dist_tensor<dtype>::align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
-                                                  int ndim_B, int* idx_B, int* sym_B)
-{
-    int fact = 1;
-
-    std::vector<index_locator_> indices;
-
-    for (int i = 0;i < ndim_A;i++)
-    {
-        int i_in_B = (int)(std::find(idx_B, idx_B+ndim_B, idx_A[i])-idx_B);
-        if (i_in_B == ndim_B) i_in_B = -1;
-
-        if (i_in_B == -1) continue;
-
-        indices.push_back(index_locator_(0, idx_A[i], i, i_in_B, 0));
-    }
-
-    while (!indices.empty())
-    {
-        std::vector<index_locator_> group;
-        group.push_back(indices[0]);
-        group.back().sort = 0;
-        indices.erase(indices.begin());
-
-        int s = 1;
-        for (std::vector<index_locator_>::iterator it = indices.begin();
-             it != indices.end();++it)
-        {
-            if ((group[0].pos_A == -1 && it->pos_A != -1) ||
-                (group[0].pos_A != -1 && it->pos_A == -1) ||
-                (group[0].pos_B == -1 && it->pos_B != -1) ||
-                (group[0].pos_B != -1 && it->pos_B == -1)) continue;
-
-            bool sym_in_A = false;
-            for (int k = group[0].pos_A-1;k >= 0 && sym_A[k] != NS;k--)
-            {
-                if (idx_A[k] == it->idx)
-                {
-                    sym_in_A = true;
-                    break;
-                }
-            }
-            for (int k = group[0].pos_A+1;k < ndim_A && sym_A[k-1] != NS;k++)
-            {
-                if (idx_A[k] == it->idx)
-                {
-                    sym_in_A = true;
-                    break;
-                }
-            }
-            if (!sym_in_A) continue;
-
-            bool sym_in_B = false;
-            for (int k = group[0].pos_B-1;k >= 0 && sym_B[k] != NS;k--)
-            {
-                if (idx_B[k] == it->idx)
-                {
-                    sym_in_B = true;
-                    break;
-                }
-            }
-            for (int k = group[0].pos_B+1;k < ndim_B && sym_B[k-1] != NS;k++)
-            {
-                if (idx_B[k] == it->idx)
-                {
-                    sym_in_B = true;
-                    break;
-                }
-            }
-            if (!sym_in_B) continue;
-
-            group.push_back(*it);
-            group.back().sort = s++;
-            it = indices.erase(it)-1;
-        }
-
-        if (group.size() <= 1) continue;
-
-        std::vector<int> order_A, order_B;
-
-        for (int i = 0;i < (int)group.size();i++)
-            order_A.push_back(group[i].sort);
-
-        std::sort(group.begin(), group.end(), index_locator_::sortB);
-        for (int i = 0;i < (int)group.size();i++)
-        {
-            order_B.push_back(group[i].sort);
-            idx_B[group[group[i].sort].pos_B] = group[i].idx;
-        }
-        if (sym_B[group[0].pos_B] == AS)
-            fact *= relativeSign(order_A, order_B);
-    }
-
-    //if (fact != 1)
-    //{
-    //    std::cout << "I got a -1 !!!!!" << std::endl;
-    //    for (int i = 0;i < ndim_A;i++) std::cout << idx_A[i] << ' ';
-    //    std::cout << std::endl;
-    //    for (int i = 0;i < ndim_B;i++) std::cout << idx_B[i] << ' ';
-    //    std::cout << std::endl;
-    //}
-
-    return (dtype)fact;
-}
-
-template<typename dtype>
-dtype dist_tensor<dtype>::align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
-                                                  int ndim_B, int* idx_B, int* sym_B,
-                                                  int ndim_C, int* idx_C, int* sym_C)
-{
-    int fact = 1;
-
-    std::vector<index_locator_> indices;
-
-    for (int i = 0;i < ndim_A;i++)
-    {
-        int i_in_B = (int)(std::find(idx_B, idx_B+ndim_B, idx_A[i])-idx_B);
-        if (i_in_B == ndim_B) i_in_B = -1;
-
-        int i_in_C = (int)(std::find(idx_C, idx_C+ndim_C, idx_A[i])-idx_C);
-        if (i_in_C == ndim_C) i_in_C = -1;
-
-        if (i_in_B == -1 && i_in_C == -1) continue;
-
-        indices.push_back(index_locator_(0, idx_A[i], i, i_in_B, i_in_C));
-    }
-
-    for (int i = 0;i < ndim_B;i++)
-    {
-        int i_in_A = (int)(std::find(idx_A, idx_A+ndim_A, idx_B[i])-idx_A);
-        if (i_in_A == ndim_A) i_in_A = -1;
-
-        int i_in_C = (int)(std::find(idx_C, idx_C+ndim_C, idx_B[i])-idx_C);
-        if (i_in_C == ndim_C) i_in_C = -1;
-
-        if (i_in_A != -1 || i_in_C == -1) continue;
-
-        indices.push_back(index_locator_(0, idx_B[i], i_in_A, i, i_in_C));
-    }
-
-    while (!indices.empty())
-    {
-        std::vector<index_locator_> group;
-        group.push_back(indices[0]);
-        group.back().sort = 0;
-        indices.erase(indices.begin());
-
-        int s = 1;
-        for (std::vector<index_locator_>::iterator it = indices.begin();
-             it != indices.end();++it)
-        {
-            if ((group[0].pos_A == -1 && it->pos_A != -1) ||
-                (group[0].pos_A != -1 && it->pos_A == -1) ||
-                (group[0].pos_B == -1 && it->pos_B != -1) ||
-                (group[0].pos_B != -1 && it->pos_B == -1) ||
-                (group[0].pos_C == -1 && it->pos_C != -1) ||
-                (group[0].pos_C != -1 && it->pos_C == -1)) continue;
-
-            if (group[0].pos_A != -1)
-            {
-                bool sym_in_A = false;
-                for (int k = group[0].pos_A-1;k >= 0 && sym_A[k] != NS;k--)
-                {
-                    if (idx_A[k] == it->idx)
-                    {
-                        sym_in_A = true;
-                        break;
-                    }
-                }
-                for (int k = group[0].pos_A+1;k < ndim_A && sym_A[k-1] != NS;k++)
-                {
-                    if (idx_A[k] == it->idx)
-                    {
-                        sym_in_A = true;
-                        break;
-                    }
-                }
-                if (!sym_in_A) continue;
-            }
-
-            if (group[0].pos_B != -1)
-            {
-                bool sym_in_B = false;
-                for (int k = group[0].pos_B-1;k >= 0 && sym_B[k] != NS;k--)
-                {
-                    if (idx_B[k] == it->idx)
-                    {
-                        sym_in_B = true;
-                        break;
-                    }
-                }
-                for (int k = group[0].pos_B+1;k < ndim_B && sym_B[k-1] != NS;k++)
-                {
-                    if (idx_B[k] == it->idx)
-                    {
-                        sym_in_B = true;
-                        break;
-                    }
-                }
-                if (!sym_in_B) continue;
-            }
-
-            if (group[0].pos_C != -1)
-            {
-                bool sym_in_C = false;
-                for (int k = group[0].pos_C-1;k >= 0 && sym_C[k] != NS;k--)
-                {
-                    if (idx_C[k] == it->idx)
-                    {
-                        sym_in_C = true;
-                        break;
-                    }
-                }
-                for (int k = group[0].pos_C+1;k < ndim_C && sym_C[k-1] != NS;k++)
-                {
-                    if (idx_C[k] == it->idx)
-                    {
-                        sym_in_C = true;
-                        break;
-                    }
-                }
-                if (!sym_in_C) continue;
-            }
-
-            group.push_back(*it);
-            group.back().sort = s++;
-            it = indices.erase(it)-1;
-        }
-
-        if (group.size() <= 1) continue;
-
-        std::vector<int> order_A, order_B, order_C;
-
-        if (group[0].pos_A != -1)
-        {
-            for (int i = 0;i < (int)group.size();i++)
-                order_A.push_back(group[i].sort);
-
-            if (group[0].pos_B != -1)
-            {
-                std::sort(group.begin(), group.end(), index_locator_::sortB);
-                for (int i = 0;i < (int)group.size();i++)
-                {
-                    order_B.push_back(group[i].sort);
-                    idx_B[group[group[i].sort].pos_B] = group[i].idx;
-                }
-                if (sym_B[group[0].pos_B] == AS)
-                    fact *= relativeSign(order_A, order_B);
-            }
-
-            if (group[0].pos_C != -1)
-            {
-                std::sort(group.begin(), group.end(), index_locator_::sortC);
-                for (int i = 0;i < (int)group.size();i++)
-                {
-                    order_C.push_back(group[i].sort);
-                    idx_C[group[group[i].sort].pos_C] = group[i].idx;
-                }
-                if (sym_C[group[0].pos_C] == AS)
-                    fact *= relativeSign(order_A, order_C);
-            }
-        }
-        else
-        {
-            for (int i = 0;i < (int)group.size();i++)
-                order_B.push_back(group[i].sort);
-
-            std::sort(group.begin(), group.end(), index_locator_::sortC);
-            for (int i = 0;i < (int)group.size();i++)
-            {
-                order_C.push_back(group[i].sort);
-                idx_C[group[group[i].sort].pos_C] = group[i].idx;
-            }
-            if (sym_C[group[0].pos_C] == AS)
-                fact *= relativeSign(order_B, order_C);
-        }
-    }
-
-    //if (fact != 1)
-    //{
-    //    std::cout << "I got a -1 !!!!!" << std::endl;
-    //    for (int i = 0;i < ndim_A;i++) std::cout << idx_A[i] << ' ';
-    //    std::cout << std::endl;
-    //    for (int i = 0;i < ndim_B;i++) std::cout << idx_B[i] << ' ';
-    //    std::cout << std::endl;
-    //    for (int i = 0;i < ndim_C;i++) std::cout << idx_C[i] << ' ';
-    //    std::cout << std::endl;
-    //}
-
-    return (dtype)fact;
-}
-
-template<typename dtype>
-dtype dist_tensor<dtype>::overcounting_factor(int ndim_A, int* idx_A, int* sym_A,
-                                            int ndim_B, int* idx_B, int* sym_B,
-                                            int ndim_C, int* idx_C, int* sym_C)
-{
-    int fact = 1;
-
-    for (int i = 0;i < ndim_A;i++)
-    {
-        int j;
-        for (j = 0;j < ndim_B && idx_A[i] != idx_B[j];j++);
-        if (j == ndim_B) continue;
-
-        int k;
-        for (k = 0;k < ndim_C && idx_A[i] != idx_C[k];k++);
-        if (k != ndim_C) continue;
-
-        int ninarow = 1;
-        while (i < ndim_A &&
-               j < ndim_B &&
-               sym_A[i] != NS &&
-               sym_B[j] != NS &&
-               idx_A[i] == idx_B[j])
-        {
-            ninarow++;
-            i++;
-            j++;
-        }
-        if (i < ndim_A &&
-            j < ndim_B &&
-            idx_A[i] != idx_B[j]) ninarow--;
-
-        for (;ninarow > 1;ninarow--) fact *= ninarow;
-    }
-
-    return (dtype)fact;
-}
 
 /**
  * \brief contracts tensors alpha*A*B+beta*C -> C.
@@ -2143,6 +1774,10 @@ int dist_tensor<dtype>::
   std::vector<dtype> signs;
   dtype dbeta;
   ctr<dtype> * ctrf;
+  if (tensors[type->tid_A]->has_zero_edge_len || tensors[type->tid_B]->has_zero_edge_len
+      || tensors[type->tid_C]->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
 
   unmap_inner(tensors[type->tid_A]);
   unmap_inner(tensors[type->tid_B]);
@@ -2164,7 +1799,7 @@ int dist_tensor<dtype>::
     return stat;
   }
 
-  dtype alignfact = align_symmetric_indices(tensors[type->tid_A]->ndim,
+  double alignfact = align_symmetric_indices(tensors[type->tid_A]->ndim,
                                             type->idx_map_A,
                                             tensors[type->tid_A]->sym,
                                             tensors[type->tid_B]->ndim,
@@ -2177,7 +1812,7 @@ int dist_tensor<dtype>::
   /*
    * Apply a factor of n! for each set of n symmetric indices which are contracted over
    */
-  dtype ocfact = overcounting_factor(tensors[type->tid_A]->ndim,
+  double ocfact = overcounting_factor(tensors[type->tid_A]->ndim,
                                      type->idx_map_A,
                                      tensors[type->tid_A]->sym,
                                      tensors[type->tid_B]->ndim,
@@ -2283,6 +1918,10 @@ int dist_tensor<dtype>::
   long_int membytes;
   ctr<dtype> * ctrf;
 
+  if (tensors[type->tid_A]->has_zero_edge_len || tensors[type->tid_B]->has_zero_edge_len
+      || tensors[type->tid_C]->has_zero_edge_len){
+    return DIST_TENSOR_SUCCESS;
+  }
   if (type->tid_A == type->tid_B || type->tid_A == type->tid_C){
     clone_tensor(type->tid_A, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;

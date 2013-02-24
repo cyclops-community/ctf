@@ -373,7 +373,7 @@ class tCTF{
     /* map data of tid_A with the given function */
     int map_tensor(int const tid,
                    dtype (*map_func)(int const ndim, int const * indices,
-                        dtype const elem));
+                                     dtype const elem));
 
     /* Prints a tensor on one processor. */
     int print_tensor(FILE * stream, int const tid);

@@ -42,10 +42,8 @@ class tCTF_World {
 template<typename dtype>
 class tCTF_Tensor {
   public:
-    int tid;
-    int ndim;
-    int * sym;
-    int * len;
+    int tid, ndim;
+    int * sym, * len;
     tCTF_World<dtype> * world;
 
   public:
