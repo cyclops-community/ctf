@@ -363,6 +363,10 @@ class tCTF{
                      int const                  tid,
                      int const *                idx_map_A,
                      fseq_tsr_scl<dtype> const  func_ptr);
+    
+    /* aligns tensor mapping of tid_A to that of tid_B */
+    int align(int const    tid_A,   
+              int const    tid_B);
 
     /* product will contain the dot prodiuct if tsr_A and tsr_B */
     int dot_tensor(int const tid_A, int const tid_B, dtype *product);
