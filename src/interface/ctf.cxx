@@ -357,6 +357,12 @@ void tCTF_Tensor<dtype>::scale(const dtype alpha, const char * idx_A){
 }
 
 template<typename dtype>
+void tCTF_Tensor<dtype>::align(const tCTF_Tensor& A){
+  int ret = world->ctf->align(tid, A.tid);
+  DTASSERT(ret == DIST_TENSOR_SUCCESS);
+}
+
+template<typename dtype>
 dtype tCTF_Tensor<dtype>::reduce(CTF_OP op){
   int ret;
   dtype ans;

@@ -559,6 +559,27 @@ int tCTF<dtype>::sum_tensors(dtype const  alpha,
   return dt->daxpy_local_tensor_pair(alpha, tid_A, tid_B);
 }
 
+/**
+ * \brief align mapping of tensor A to that of B
+ * \param[in] tid_A tensor handle of A
+ * \param[in] tid_B tensor handle of B
+ */
+template<typename dtype>
+int tCTF<dtype>::align(int const    tid_A,
+                       int const    tid_B){
+  int stat;
+  
+  /* check if the mappings of A and B are the same */
+  stat = dt->check_pair_mapping(tid_A, tid_B);
+  if (stat == 0){
+    /* Align the mappings of A and B */
+    stat = dt->map_tensor_pair(tid_B, tid_A);
+    if (stat != DIST_TENSOR_SUCCESS)
+      return stat;
+  }
+  return DIST_TENSOR_SUCCESS;
+}
+
 template<typename dtype>
 int tCTF<dtype>::print_tensor(FILE * stream, int const tid) {
   return dt->print_tsr(stream, tid);

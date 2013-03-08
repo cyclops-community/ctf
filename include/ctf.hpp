@@ -23,8 +23,8 @@ class tCTF_World {
 
     /**
      * \brief creates tCTF library on comm_
-     * \param ndim number of torus network dimensions
-     * \param lens lengths of torus network dimensions
+     * \param[in] ndim number of torus network dimensions
+     * \param[in] lens lengths of torus network dimensions
      */
     tCTF_World(int const    ndim, 
                int const *  lens, 
@@ -49,23 +49,23 @@ class tCTF_Tensor {
   public:
     /**
      * \brief copies a tensor (setting data to zero or copying A)
-     * \param A tensor to copy
-     * \param copy whether to copy the data of A into the new tensor
+     * \param[in] A tensor to copy
+     * \param[in] copy whether to copy the data of A into the new tensor
      */
-    tCTF_Tensor(tCTF_Tensor const &  A,
-               bool const          copy = false);
+    tCTF_Tensor(tCTF_Tensor const &   A,
+                bool const            copy = false);
 
     /**
      * \brief copies a tensor filled with zeros
-     * \param ndim number of dimensions of tensor
-     * \param len edge lengths of tensor
-     * \param sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
-     * \param world_ a world for the tensor to live in
+     * \param[in] ndim number of dimensions of tensor
+     * \param[in] len edge lengths of tensor
+     * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+     * \param[in] world_ a world for the tensor to live in
      */
     tCTF_Tensor(int const            ndim_,
-               int const *          len_,
-               int const *          sym_,
-               tCTF_World<dtype> *  world_);
+                int const *          len_,
+                int const *          sym_,
+                tCTF_World<dtype> *  world_);
     
     /**
      * \brief gives the values associated with any set of indices
@@ -85,28 +85,28 @@ class tCTF_Tensor {
    
     /**
      * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
-     * \brief alpha A*B scaling factor
-     * \brief A first operand tensor
-     * \brief idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
-     * \brief B second operand tensor
-     * \brief idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
-     * \brief beta C scaling factor
-     * \brief idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
+     * \param[in] alpha A*B scaling factor
+     * \param[in] A first operand tensor
+     * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+     * \param[in] B second operand tensor
+     * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+     * \param[in] beta C scaling factor
+     * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
      */
     void contract(const dtype alpha, const tCTF_Tensor& A, const char * idx_A,
-                                      const tCTF_Tensor& B, const char * idx_B,
-                  const dtype beta,                       const char * idx_C);
+                                     const tCTF_Tensor& B, const char * idx_B,
+                  const dtype beta,                        const char * idx_C);
 
     /**
      * \brief sums B[idx_B] = beta*B[idx_B] + alpha*A[idx_A]
-     * \brief alpha A scaling factor
-     * \brief A first operand tensor
-     * \brief idx_A indices of A in sum, e.g. "ij" -> A_{ij}
-     * \brief beta B scaling factor
-     * \brief idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
+     * \param[in] alpha A scaling factor
+     * \param[in] A first operand tensor
+     * \param[in] idx_A indices of A in sum, e.g. "ij" -> A_{ij}
+     * \param[in] beta B scaling factor
+     * \param[in] idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
      */
     void sum(const dtype alpha, const tCTF_Tensor& A, const char * idx_A,
-             const dtype beta,                       const char * idx_B);
+             const dtype beta,                        const char * idx_B);
     
     /**
      * \brief scales A[idx_A] = alpha*A[idx_A]
@@ -116,8 +116,14 @@ class tCTF_Tensor {
     void scale(const dtype alpha, const char * idx_A);
 
     /**
+     * \brief aligns data mapping with tensor A
+     * \param[in] A align with this tensor
+     */
+    void align(const tCTF_Tensor& A);
+
+    /**
      * \brief performs a reduction on the tensor
-     * \param op reduction operation (see top of this cyclopstf.hpp for choices)
+     * \par[in]am op reduction operation (see top of this cyclopstf.hpp for choices)
      */    
     dtype reduce(CTF_OP op);
 
@@ -162,7 +168,7 @@ class tCTF_Tensor {
                          double const     alpha, 
                          double const     beta,
                          int64_t const *  global_idx,
-                         dtype const *   data);
+                         dtype const *    data);
 
     /**
      * \brief sets all values in the tensor to val
