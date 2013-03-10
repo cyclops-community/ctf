@@ -379,8 +379,12 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     free(old_padding_B);
   free(old_edge_len_B);
   free(idx_arr);
-  clear_mapping(old_map_A);
-  clear_mapping(old_map_B);
+  for (i=0; i<tsr_A->ndim; i++){
+    clear_mapping(old_map_A+i);
+  }
+  for (i=0; i<tsr_B->ndim; i++){
+    clear_mapping(old_map_B+i);
+  }
   free_buffer_space(old_map_A);
   free_buffer_space(old_map_B);
 
