@@ -1,0 +1,11 @@
+To build CTF, setup the top folder and compiler in config.mk. Various premade
+configurations exist in mkfiles/. After setting up the config.mk file, run 
+'make'. Run 'make examples' to build example programs.
+
+More documentation is available on the following website
+http://ctf.cs.berkeley.edu
+
+This is not an official release and we provide no guarantees on correctness
+or speed of the code. Please contact Edgar Solomonik (solomon@cs.berkeley.edu),
+for any questions about usage or technical implementation of the CTF library.
+
