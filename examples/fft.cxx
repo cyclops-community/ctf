@@ -50,8 +50,9 @@ int main(int argc, char ** argv){
   free(idx);
   free(data); 
 
-  DFT.contract(std::complex<double> (1.0, 0.0), DFT, "ij", IDFT, "jk", 
-               std::complex<double> (0.0, 0.0), "ik");
+  /*DFT.contract(std::complex<double> (1.0, 0.0), DFT, "ij", IDFT, "jk", 
+               std::complex<double> (0.0, 0.0), "ik");*/
+  DFT["ik"] = DFT["ij"]*IDFT["jk"];
 
  
   DFT.get_local_data(&np, &idx, &data);

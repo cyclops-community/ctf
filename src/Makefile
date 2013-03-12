@@ -3,7 +3,7 @@ include ../config.mk
 DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard shared/*.o))))
 DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard dist_tensor/*.o))))
 DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard interface/*.o))))
-DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard examples/*.o))))
+DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard shared/*.o))))
 
 include ../rules.mk
 
@@ -18,10 +18,10 @@ nonsq_pgemm_bench_SUBDIRS = bench
 
 ctf_SUBDIRS = ctr_seq ctr_comm shared dist_tensor interface
 
-fft_SUBDIRS = examples
-
 ctf: ${libdir}/libctf.a
-${libdir}/libctf.a: interface/ctf.o \
+${libdir}/libctf.a: interface/ctf_world.o \
+                    interface/ctf_tensor.o \
+                    interface/ctf_idx_tensor.o \
                     shared/comm.o \
                     shared/util.o \
                     shared/memcontrol.o \

@@ -1,4 +1,5 @@
-SUBDIRS = src
+SUBDIRS = src examples
+DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard examples/*.o))))
 
 ifneq (,$(findstring pgemm, $(MAKECMDGOALS)))
 export TARGET_DEFS=-DUSE_SCALAPACK

@@ -36,6 +36,9 @@ class tCTF_World {
     ~tCTF_World();
 };
 
+template<typename dtype>
+class tCTF_Idx_Tensor;
+
 /**
  * \brief an instance of a tensor within a tCTF world
  */
@@ -44,6 +47,8 @@ class tCTF_Tensor {
   public:
     int tid, ndim;
     int * sym, * len;
+    char * idx_map;
+    tCTF_Tensor * ctr_nbr;
     tCTF_World<dtype> * world;
 
   public:
@@ -176,6 +181,11 @@ class tCTF_Tensor {
     tCTF_Tensor& operator=(const dtype val);
     
     /**
+     * \brief associated an index map with the tensor for future operation
+     */
+    tCTF_Idx_Tensor<dtype>& operator[](const char * idx_map_);
+    
+    /**
      * \brief prints tensor data to file using process 0
      */
     void print(FILE * fp) const;
@@ -184,6 +194,93 @@ class tCTF_Tensor {
      * \brief frees tCTF tensor
      */
     ~tCTF_Tensor();
+};
+
+template<typename dtype> static
+tCTF_Idx_Tensor<dtype>& operator*(double d, tCTF_Idx_Tensor<dtype>& tsr){
+  return tsr*d;
+}
+
+template tCTF_Idx_Tensor<double>& operator*(double d, tCTF_Idx_Tensor<double> & tsr);
+template tCTF_Idx_Tensor< std::complex<double> >& operator*(double  d, tCTF_Idx_Tensor< std::complex<double> > & tsr);
+
+
+/**
+ * \brief a tensor with an index map associated with it (necessary for overloaded operators)
+ */
+template<typename dtype>
+class tCTF_Idx_Tensor {
+  public:
+    tCTF_Tensor<dtype> * parent;
+    char * idx_map;
+    int has_contract, has_scale, has_sum, is_intm;
+    double scale;
+    tCTF_Idx_Tensor<dtype> * NBR;
+
+  public:
+    /**
+     * \brief constructor takes in a parent tensor and its indices 
+     * \param[in] parent_ the parent tensor
+     * \param[in] idx_map_ the indices assigned ot this tensor
+     */
+    tCTF_Idx_Tensor(tCTF_Tensor<dtype>* parent_, const char * idx_map_);
+
+    ~tCTF_Idx_Tensor();
+    
+    /**
+     * \brief A = B, compute any operations on operand B and set
+     * \param[in] B tensor on the right hand side
+     */
+    void operator=(tCTF_Idx_Tensor<dtype>& B);
+
+    /**
+     * \brief A += B, compute any operations on operand B and add
+     * \param[in] B tensor on the right hand side
+     */
+    void operator+=(tCTF_Idx_Tensor<dtype>& B);
+    
+    /**
+     * \brief A -> A*B contract two tensors
+     * \param[in] B tensor on the right hand side
+     */
+    void operator*=(tCTF_Idx_Tensor<dtype>& B);
+
+    /**
+     * \brief C -> A*B contract two tensors
+     * \param[in] B tensor on the right hand side
+     */
+    tCTF_Idx_Tensor<dtype>& operator*(tCTF_Idx_Tensor<dtype>& B);
+
+    /**
+     * \brief A -> A+B sums two tensors
+     * \param[in] B tensor on the right hand side
+     */
+    tCTF_Idx_Tensor<dtype>& operator+(tCTF_Idx_Tensor<dtype>& B);
+    
+    /**
+     * \brief A -> A-B subtacts two tensors
+     * \param[in] tsr tensor on the right hand side
+     */
+    tCTF_Idx_Tensor<dtype>& operator-(tCTF_Idx_Tensor<dtype>& B);
+    
+    /**
+     * \brief A -> A-B subtacts two tensors
+     * \param[in] tsr tensor on the right hand side
+     */
+    tCTF_Idx_Tensor<dtype>& operator*(double const scl);
+
+
+    /**
+     * \brief TODO A -> A * B^-1
+     * \param[in] B
+     */
+    //void operator/(tCTF_IdxTensor& tsr);
+
+    /**
+     * \brief execute ips into output with scale beta
+     */    
+    void run(tCTF_Idx_Tensor<dtype>* output, double beta);
+
 };
 
 typedef tCTF<double> CTF;

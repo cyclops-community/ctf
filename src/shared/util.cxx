@@ -351,3 +351,115 @@ void factorize(int n, int *nfactor, int **factor){
     *nfactor = nf;
   }
 }
+
+int conv_idx(int const  ndim,
+             char const *  cidx,
+             int **     iidx){
+  int i, j, n;
+  char c;
+
+  *iidx = (int*)malloc(sizeof(int)*ndim);
+
+  n = 0;
+  for (i=0; i<ndim; i++){
+    c = cidx[i];
+    for (j=0; j<i; j++){
+      if (c == cidx[j]){
+        (*iidx)[i] = (*iidx)[j];
+        break;
+      }
+    }
+    if (j==i){
+      (*iidx)[i] = n;
+      n++;
+    }
+  }
+  return n;
+}
+
+int  conv_idx(int const         ndim_A,
+              char const *         cidx_A,
+              int **            iidx_A,
+              int const         ndim_B,
+              char const *         cidx_B,
+              int **            iidx_B){
+  int i, j, n;
+  char c;
+
+  *iidx_B = (int*)malloc(sizeof(int)*ndim_B);
+
+  n = conv_idx(ndim_A, cidx_A, iidx_A);
+  for (i=0; i<ndim_B; i++){
+    c = cidx_B[i];
+    for (j=0; j<ndim_A; j++){
+      if (c == cidx_A[j]){
+        (*iidx_B)[i] = (*iidx_A)[j];
+        break;
+      }
+    }
+    if (j==ndim_A){
+      for (j=0; j<i; j++){
+        if (c == cidx_B[j]){
+          (*iidx_B)[i] = (*iidx_B)[j];
+          break;
+        }
+      }
+      if (j==i){
+        (*iidx_B)[i] = n;
+        n++;
+      }
+    }
+  }
+  return n;
+}
+
+
+int  conv_idx(int const         ndim_A,
+              char const *         cidx_A,
+              int **            iidx_A,
+              int const         ndim_B,
+              char const *         cidx_B,
+              int **            iidx_B,
+              int const         ndim_C,
+              char const *         cidx_C,
+              int **            iidx_C){
+  int i, j, n;
+  char c;
+
+  *iidx_C = (int*)malloc(sizeof(int)*ndim_C);
+
+  n = conv_idx(ndim_A, cidx_A, iidx_A,
+               ndim_B, cidx_B, iidx_B);
+
+  for (i=0; i<ndim_C; i++){
+    c = cidx_C[i];
+    for (j=0; j<ndim_B; j++){
+      if (c == cidx_B[j]){
+        (*iidx_C)[i] = (*iidx_B)[j];
+        break;
+      }
+    }
+    if (j==ndim_B){
+      for (j=0; j<ndim_A; j++){
+        if (c == cidx_A[j]){
+          (*iidx_C)[i] = (*iidx_A)[j];
+          break;
+        }
+      }
+      if (j==ndim_A){
+        for (j=0; j<i; j++){
+          if (c == cidx_C[j]){
+            (*iidx_C)[i] = (*iidx_C)[j];
+            break;
+          }
+        }
+        if (j==i){
+          (*iidx_C)[i] = n;
+          n++;
+        }
+      }
+    }
+  }
+  return n;
+}
+
