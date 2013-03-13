@@ -21,6 +21,8 @@ ctf_SUBDIRS = ctr_seq ctr_comm shared dist_tensor interface
 ctf: ${libdir}/libctf.a
 ${libdir}/libctf.a: interface/ctf_world.o \
                     interface/ctf_tensor.o \
+                    interface/ctf_matrix.o \
+                    interface/ctf_vector.o \
                     interface/ctf_idx_tensor.o \
                     shared/comm.o \
                     shared/util.o \
@@ -30,5 +32,5 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     dist_tensor/dist_tensor.o \
                     unit_test/unit_test.o 
 
-INCLUDES += -I${top_dir}/src/ctr_comm -I${top_dir}/src/ctr_seq -I${top_dir}/dist_tensor
+INCLUDES += -I${top_dir}/src/ctr_comm -I${top_dir}/src/ctr_seq -I${top_dir}/src/dist_tensor -I${top_dir}/src/util -I${top_dir}/src/interface
 

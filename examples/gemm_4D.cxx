@@ -31,9 +31,9 @@ void gemm_4D(int const  n,
   int sizeN4[] = {n,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor A = CTF_Tensor(4, sizeN4, shapeN4, dw);
-  CTF_Tensor B = CTF_Tensor(4, sizeN4, shapeN4, dw);
-  CTF_Tensor C = CTF_Tensor(4, sizeN4, shapeN4, dw);
+  CTF_Tensor A(4, sizeN4, shapeN4, dw);
+  CTF_Tensor B(4, sizeN4, shapeN4, dw);
+  CTF_Tensor C(4, sizeN4, shapeN4, dw);
 
   if (rank == 0)
     printf("tensor creation succeed\n");
@@ -73,7 +73,7 @@ void gemm_4D(int const  n,
   }
   
   /* verify D=(A*B)*C = A*(B*C) */
-  CTF_Tensor D = CTF_Tensor(4, sizeN4, shapeN4, dw);
+  CTF_Tensor D(4, sizeN4, shapeN4, dw);
   
   D["ijkl"] = A["ijmn"]*B["mnkl"];
   D["ijkl"] = D["ijmn"]*C["mnkl"];
@@ -129,8 +129,7 @@ int main(int argc, char ** argv){
   } else niter = 3;
 
 
-  CTF_World * dw;
-  dw = new CTF_World();
+  CTF_World * dw = new CTF_World();
 
   if (rank == 0){
     printf("Computing C_ijkl = A_ijmn*B_klmn\n");
@@ -146,7 +145,6 @@ int main(int argc, char ** argv){
   }
   gemm_4D(n, AS, niter, dw, dir);
 
-  delete dw;
 
   MPI_Finalize();
   return 0;

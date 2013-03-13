@@ -2,11 +2,14 @@
 #include <assert.h>
 #include <stdlib.h>
 
+
+
+
 /**
  * \brief Forms N-by-N DFT matrix A and inverse-dft iA and checks A*iA=I
  */
 int main(int argc, char ** argv){
-  int myRank, numPes, logn, i;
+  int myRank, numPes, logn, i, j;
   int64_t  n, np;
   int64_t * idx;
   std::complex<double> * data;
@@ -27,11 +30,12 @@ int main(int argc, char ** argv){
   tCTF_World< std::complex<double> > * wrld = new tCTF_World< std::complex<double> >();
   tCTF_Matrix< std::complex<double> > DFT(n, n, SY, wrld);
   tCTF_Matrix< std::complex<double> > IDFT(n, n, SY, wrld);
+  tCTF_Tensor< std::complex<double> > MESH(3, (int[]){n, n, n}, (int[]){NS, NS, NS}, wrld);
 
   DFT.get_local_data(&np, &idx, &data);
 
   for (i=0; i<np; i++){
-    data[i] = exp(-2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
+    data[i] = (1./n)*exp(-2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
   }
   DFT.write_remote_data(np, idx, data);
   //DFT.print(stdout);
@@ -48,23 +52,31 @@ int main(int argc, char ** argv){
   free(idx);
   free(data); 
 
-  /*DFT.contract(std::complex<double> (1.0, 0.0), DFT, "ij", IDFT, "jk", 
-               std::complex<double> (0.0, 0.0), "ik");*/
-  DFT["ik"] = DFT["ij"]*IDFT["jk"];
-
- 
-  DFT.get_local_data(&np, &idx, &data);
-  //DFT.print(stdout);
+  MESH.get_local_data(&np, &idx, &data);
   for (i=0; i<np; i++){
-    //printf("data[%lld] = %lf\n",idx[i],data[i].real());
-    if (idx[i]/n == idx[i]%n)
+    for (j=0; j<n; j++){
+      data[i] += exp(imag*((-2.*M_PI*(j/(double)(n)))
+                      *((idx[i]%n) + ((idx[i]/n)%n) +(idx[i]/(n*n)))));
+    }
+  }
+  MESH.write_remote_data(np, idx, data);
+  //MESH.print(stdout);
+  free(idx);
+  free(data); 
+  
+  MESH["ijk"] = MESH["pqr"]*DFT["ip"]*DFT["jq"]*DFT["kr"];
+ 
+  MESH.get_local_data(&np, &idx, &data);
+  //MESH.print(stdout);
+  for (i=0; i<np; i++){
+    if (idx[i]%n == (idx[i]/n)%n && idx[i]%n == idx[i]/(n*n))
       assert(fabs(data[i].real() - 1.)<=1.E-9);
     else 
       assert(fabs(data[i].real())<=1.E-9);
   }
   
   if (myRank == 0)
-    printf("{ DFT matrix * IDFT matrix = Identity } confirmed\n");
+    printf("{ 3D_IDFT(3D_DFT(I))) = I } confirmed\n");
 
   MPI_Barrier(MPI_COMM_WORLD);
 

@@ -1,9 +1,9 @@
 all: $(DEFAULT_COMPONENTS)
 
-ALL_COMPONENTS = ctf test_model pgemm_test nonsq_pgemm_test bench bench_model nonsq_pgemm_bench examples fft gemm gemm_4D
+ALL_COMPONENTS = src ctf test_model pgemm_test nonsq_pgemm_test bench bench_model nonsq_pgemm_bench examples fft fft_3D gemm gemm_4D
 
-examples: fft gemm
-test_model bench_model pgemm_test nonsq_pgemm_test nonsq_pgemm_bench fft gemm gemm_4D: ctf 
+examples: fft fft_3D gemm
+test_model bench_model pgemm_test nonsq_pgemm_test nonsq_pgemm_bench fft fft_3D gemm gemm_4D: ctf 
 
 bindir = ${top_dir}/bin
 libdir = ${top_dir}/lib

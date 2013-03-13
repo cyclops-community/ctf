@@ -1,9 +1,12 @@
 include ../config.mk
 include ../rules.mk
 
-examples: fft gemm gemm_4D
+examples: fft fft_3D gemm gemm_4D
 fft: ${bindir}/test/fft
 ${bindir}/test/fft: fft.o
+
+fft_3D: ${bindir}/test/fft_3D
+${bindir}/test/fft_3D: fft_3D.o
 
 gemm_4D: ${bindir}/test/gemm_4D
 ${bindir}/test/gemm_4D: gemm_4D.o

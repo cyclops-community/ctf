@@ -53,6 +53,11 @@ class tCTF_Tensor {
 
   public:
     /**
+     * \breif default constructor sets nothing 
+     */
+    tCTF_Tensor(){};
+
+    /**
      * \brief copies a tensor (setting data to zero or copying A)
      * \param[in] A tensor to copy
      * \param[in] copy whether to copy the data of A into the new tensor
@@ -196,6 +201,45 @@ class tCTF_Tensor {
     ~tCTF_Tensor();
 };
 
+/**
+ * \brief Matrix class which encapsulates a 2D tensor 
+ */
+template<typename dtype> 
+class tCTF_Matrix : public tCTF_Tensor<dtype> {
+  public:
+    int nrow, ncol, sym;
+
+    /**
+     * \brief constructor for a matrix
+     * \param[in] nrow number of matrix rows
+     * \param[in] ncol number of matrix columns
+     * \param[in] sym symmetry of matrix
+     * \param[in] world CTF world where the tensor will live
+     */ 
+    tCTF_Matrix(int const           nrow_, 
+                int const           ncol_, 
+                int const           sym_,
+                tCTF_World<dtype> * world);
+
+};
+
+/**
+ * \brief Vector class which encapsulates a 1D tensor 
+ */
+template<typename dtype> 
+class tCTF_Vector : public tCTF_Tensor<dtype> {
+  public:
+    int len;
+
+    /**
+     * \brief constructor for a vector
+     * \param[in] len_ dimension of vector
+     * \param[in] world CTF world where the tensor will live
+     */ 
+    tCTF_Vector(int const          len_,
+               tCTF_World<dtype> * world);
+};
+
 template<typename dtype> static
 tCTF_Idx_Tensor<dtype>& operator*(double d, tCTF_Idx_Tensor<dtype>& tsr){
   return tsr*d;
@@ -285,5 +329,7 @@ class tCTF_Idx_Tensor {
 
 typedef tCTF<double> CTF;
 typedef tCTF_Tensor<double> CTF_Tensor;
+typedef tCTF_Matrix<double> CTF_Matrix;
+typedef tCTF_Vector<double> CTF_Vector;
 typedef tCTF_World<double> CTF_World;
 #endif

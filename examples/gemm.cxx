@@ -29,16 +29,10 @@ void gemm(int const  m,
     printf("m = %d, n = %d, k = %d, p = %d, niter = %d\n", 
             m,n,k,num_pes,niter);
   
-  int shape_NS[] = {NS,NS};
-  int shape[] = {sym,NS};
-  int size_A[] = {m,k};
-  int size_B[] = {k,n};
-  int size_C[] = {m,n};
-
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor A = CTF_Tensor(2, size_A, shape, dw);
-  CTF_Tensor B = CTF_Tensor(2, size_B, shape, dw);
-  CTF_Tensor C = CTF_Tensor(2, size_C, shape_NS, dw);
+  CTF_Matrix A(m, k, sym, dw);
+  CTF_Matrix B(k, n, sym, dw);
+  CTF_Matrix C(m, n, NS,  dw);
 
   if (rank == 0)
     printf("tensor creation succeed\n");
@@ -76,8 +70,8 @@ void gemm(int const  m,
     if (rank == 0)
       printf("Verifying associativity\n");
     /* verify D=(A*B)*C = A*(B*C) */
-    CTF_Tensor D = CTF_Tensor(2, size_C, shape_NS, dw);
-    CTF_Tensor E = CTF_Tensor(2, size_C, shape_NS, dw);
+    CTF_Matrix D(m, n, NS, dw);
+    CTF_Matrix E(m, n, NS, dw);
     
     D["ij"] = A["ik"]*B["kj"];
     D["ij"] = D["ik"]*C["kj"];

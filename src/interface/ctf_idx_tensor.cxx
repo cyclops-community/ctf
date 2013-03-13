@@ -39,6 +39,7 @@ tCTF_Idx_Tensor<dtype> * get_intermediate(tCTF_Idx_Tensor<dtype>* A,
   idx_C = (char*)malloc(sizeof(char)*ndim_C);
   sym_C = (int*)malloc(sizeof(int)*ndim_C);
   len_C = (int*)malloc(sizeof(int)*ndim_C);
+  idx = 0;
   for (i=0; i<A->parent->ndim; i++){
     for (j=0; j<B->parent->ndim; j++){
       if (A->idx_map[i] == B->idx_map[j]){
@@ -81,8 +82,8 @@ tCTF_Idx_Tensor<dtype> * get_intermediate(tCTF_Idx_Tensor<dtype>* A,
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(tCTF_Tensor<dtype> * parent_, const char * idx_map_){
-  idx_map = (char*)malloc((strlen(idx_map_)+1)*sizeof(char));
-  strcpy(idx_map, idx_map_);
+  idx_map = (char*)malloc(parent_->ndim*sizeof(char));
+  memcpy(idx_map, idx_map_,parent_->ndim*sizeof(char));
   parent        = parent_;
   has_contract  = 0;
   has_scale     = 0;
@@ -94,7 +95,6 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(tCTF_Tensor<dtype> * parent_, const char
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
   free(idx_map);
-  if (is_intm) free(parent);
 }
 
 template<typename dtype>
@@ -116,8 +116,10 @@ void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Idx_Tensor<dtype>& tsr){
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator* (tCTF_Idx_Tensor<dtype>& tsr){
-  if (has_contract || has_sum)
-    return (*NBR)*tsr;
+  if (has_contract || has_sum){
+    (*NBR)*tsr;
+    return *this;
+  }
   NBR = &tsr;
   has_contract = 1;
   return *this;
