@@ -144,7 +144,7 @@ class tCTF_Tensor {
      * \param[out] size of local data chunk
      * \return pointer to read-only copy of local data
      */
-    const dtype * raw_data(int * size) const;
+    const dtype * raw_data(int64_t * size) const;
 
     /**
      * \brief gives the global indices and values associated with the local data
@@ -284,4 +284,6 @@ class tCTF_Idx_Tensor {
 };
 
 typedef tCTF<double> CTF;
+typedef tCTF_Tensor<double> CTF_Tensor;
+typedef tCTF_World<double> CTF_World;
 #endif

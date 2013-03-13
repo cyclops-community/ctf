@@ -1,4 +1,4 @@
-top_dir=/home/edgar/work/ctf-new2
+top_dir=/home/edgar/work/ctf
 
 DEFAULT_COMPONENTS = ctf
 
@@ -9,7 +9,7 @@ CXX         = mpicxx
 WARN_FLAGS  = -Wall #-Wno-comment -Wno-sign-compare -Wno-unused-variable
 OPT_FLAGS   = -g -O0
 CXXFLAGS    = -fopenmp -D__STDC_LIMIT_MACROS $(OPT_FLAGS) -Drestrict= $(WARN_FLAGS) 
-DEFS = -DDEBUG=0 -DVALIDATE_INPUTS -DUSE_OMP $(DFLAGS) $(TARGET_DEFS)
+DEFS        = -DDEBUG=0 -DUSE_OMP $(DFLAGS) $(TARGET_DEFS)
 
 #SCALAPACK only necessary for pgemm tests and benchmarks 
 SCALA = -L/home/edgar/work/scalapack-2.0.2/lib -lscalapack
