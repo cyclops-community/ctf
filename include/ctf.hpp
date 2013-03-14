@@ -1,3 +1,5 @@
+/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+
 #ifndef _tCTF_HPP_
 #define _tCTF_HPP_
 

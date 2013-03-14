@@ -1,3 +1,5 @@
+/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
