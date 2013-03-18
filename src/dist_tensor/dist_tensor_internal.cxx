@@ -236,7 +236,7 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
 
   /* initialize map array and symmetry table */
   for (i=0; i<ndim; i++){
-    if (tsr->edge_len[i] <= 0) tsr->has_zero_edge_len = 0;
+    if (tsr->edge_len[i] <= 0) tsr->has_zero_edge_len = 1;
     tsr->edge_map[i].type       = NOT_MAPPED;
     tsr->edge_map[i].has_child  = 0;
     tsr->edge_map[i].np         = 1;
