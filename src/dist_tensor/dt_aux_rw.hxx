@@ -46,7 +46,14 @@ void readwrite(int const        ndim,
   
   if (ndim == 0){
     if (size > 0){
-      LIBT_ASSERT(size == 1);
+      if (size > 1){
+        for (i=1; i<size; i++){
+          //check for write conflicts
+          LIBT_ASSERT(pairs[i].k == 0 || pairs[i].d != pairs[0].d);
+        }
+      }
+  //    printf("size = %lld\n",size);
+  //    LIBT_ASSERT(size == 1);
       if (rw == 'r'){
         pairs[0].d = vdata[0];
       } else {
@@ -97,6 +104,11 @@ void readwrite(int const        ndim,
               data[(int)buf_offset+i] = beta*data[(int)buf_offset+i]+alpha*pairs[pr_offset].d;
             }
             pr_offset++;
+            //Check for write conflicts
+            while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
+              LIBT_ASSERT(pairs[pr_offset-1].d == pairs[pr_offset].d);
+              pr_offset++;
+            }
           } else {
 /*          DEBUG_PRINTF("%d key[%d] %d not matched with %d\n", 
                           (int)pairs[pr_offset-1].k,

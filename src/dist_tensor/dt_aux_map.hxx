@@ -764,8 +764,7 @@ int remap_tensor(int const  tid,
  * \param[in] num_phys_dims number of physical processor grid dimensions
  * \param[in] tsr_edge_len edge lengths of the tensor
  * \param[in] tsr_sym_table the symmetry table of a tensor
- * \param[in,out] restricted an array used to restricted the mapping 
-                  (used internally)
+ * \param[in,out] restricted an array used to restricted the mapping of tensor dims
  * \param[in] phys_comm dimensional communicators
  * \param[in] comm_idx dimensional ordering
  * \param[in] fill if set does recursive mappings and uses all phys dims
@@ -774,15 +773,15 @@ int remap_tensor(int const  tid,
  *     DIST_TENSOR_ERROR if err'ed out
  */
 inline
-int map_tensor(int const    num_phys_dims,
-               int const    tsr_ndim,
+int map_tensor(int const      num_phys_dims,
+               int const      tsr_ndim,
                int const *    tsr_edge_len,
                int const *    tsr_sym_table,
-               int *      restricted,
-               CommData_t **    phys_comm,
+               int *          restricted,
+               CommData_t **  phys_comm,
                int const *    comm_idx,
-               int const    fill,
-               mapping *    tsr_edge_map){
+               int const      fill,
+               mapping *      tsr_edge_map){
   int i,j,max_dim,max_len,phase,ret;
   mapping * map;
 
@@ -796,18 +795,18 @@ int map_tensor(int const    num_phys_dims,
     max_dim = -1;
     for (j=0; j<tsr_ndim; j++){
       if (tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j) > max_len) {
-  /* if tsr dimension can be mapped */
-  if (!restricted[j]){
-    /* if tensor dimension not mapped ot physical dimension or
-       mapped to a physical dimension that can be folded with
-       this one */
-    if (tsr_edge_map[j].type != PHYSICAL_MAP || 
-        (fill && ((comm_idx == NULL && tsr_edge_map[j].cdt == i-1) ||
-        (comm_idx != NULL && tsr_edge_map[j].cdt == comm_idx[i]-1)))){
-      max_dim = j;  
-      max_len = tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j);
-    }
-  } 
+        /* if tsr dimension can be mapped */
+        if (!restricted[j]){
+          /* if tensor dimension not mapped ot physical dimension or
+             mapped to a physical dimension that can be folded with
+             this one */
+          if (tsr_edge_map[j].type != PHYSICAL_MAP || 
+              (fill && ((comm_idx == NULL && tsr_edge_map[j].cdt == i-1) ||
+              (comm_idx != NULL && tsr_edge_map[j].cdt == comm_idx[i]-1)))){
+            max_dim = j;  
+            max_len = tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j);
+          }
+        } 
       }
     }
     if (max_dim == -1){
@@ -1007,4 +1006,69 @@ void morph_topo(topology const *  new_topo,
     }
   }
 }
+
+/**
+ * \brief extracts the diagonal of a tensor if the index map specifies to do so
+ * \param[in] tid id of tensor
+ * \param[in] idx_map index map of tensor for this operation
+ * \param[in] rw if 1 this writes to the diagonal, if 0 it reads the diagonal
+ * \param[in,out] tid_new if rw=1 this will be output as new tid
+                          if rw=0 this should be input as the tid of the extracted diagonal 
+ * \param[out] idx_map_new if rw=1 this will be the new index map
+
+ */
+template<typename dtype>
+int dist_tensor<dtype>::extract_diag(int const    tid,
+                                     int const *  idx_map,
+                                     int const    rw,
+                                     int *        tid_new,
+                                     int **       idx_map_new){
+  int i, j, k, * edge_len, * sym, * ex_idx_map, * diag_idx_map;
+  for (i=0; i<tensors[tid]->ndim; i++){
+    for (j=i+1; j<tensors[tid]->ndim; j++){
+      if (idx_map[i] == idx_map[j]){
+        get_buffer_space(sizeof(int)*tensors[tid]->ndim-1, (void**)&edge_len);
+        get_buffer_space(sizeof(int)*tensors[tid]->ndim-1, (void**)&sym);
+        get_buffer_space(sizeof(int)*tensors[tid]->ndim,   (void**)idx_map_new);
+        get_buffer_space(sizeof(int)*tensors[tid]->ndim,   (void**)&ex_idx_map);
+        get_buffer_space(sizeof(int)*tensors[tid]->ndim-1, (void**)&diag_idx_map);
+        for (k=0; k<tensors[tid]->ndim; k++){
+          if (k<j){
+            ex_idx_map[k]       = k;
+            diag_idx_map[k]    = k;
+            edge_len[k]        = tensors[tid]->edge_len[j];
+            (*idx_map_new)[k]  = idx_map[k];
+            if (k==j-1){
+              sym[k] = NS;
+            } else 
+              sym[k] = tensors[tid]->sym[j];
+          } else if (k>j) {
+            ex_idx_map[k]       = k-1;
+            diag_idx_map[k-1]   = k-1;
+            edge_len[k-1]       = tensors[tid]->edge_len[j];
+            sym[k-1]            = tensors[tid]->sym[j];
+            (*idx_map_new)[k-1] = idx_map[k];
+          } else {
+            ex_idx_map[k] = i;
+          }
+        }
+        fseq_tsr_sum<dtype> fs;
+        fs.func_ptr=sym_seq_sum_ref<dtype>;
+        if (rw){
+          define_tensor(tensors[tid]->ndim-1, edge_len, sym, tid_new, 1);
+          sum_tensors(1.0, 0.0, tid, *tid_new, ex_idx_map, diag_idx_map, fs, 1);
+        } else {
+          sum_tensors(1.0, 0.0, *tid_new, tid, diag_idx_map, ex_idx_map, fs, 1);
+          free(*idx_map_new);
+        }
+        free(edge_len), free(sym), free(ex_idx_map), free(diag_idx_map);
+        return DIST_TENSOR_SUCCESS;
+      }
+    }
+  }
+  return DIST_TENSOR_NEGATIVE;
+}
+                                    
+
+
 #endif

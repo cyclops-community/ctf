@@ -289,7 +289,8 @@ class dist_tensor{
                     int const                   tid_B,
                     int const *                 idx_map_A,
                     int const *                 idx_map_B,
-                    fseq_tsr_sum<dtype> const   func_ptr);
+                    fseq_tsr_sum<dtype> const   func_ptr,
+                    int const                   run_diag = 0);
 
     ctr<dtype> * construct_contraction( CTF_ctr_type_t const *  type,
                                         dtype *                 buffer,
@@ -574,6 +575,11 @@ class dist_tensor{
                           int **                        new_ordering_B,
                           int **                        new_ordering_C);
 
+    int extract_diag(int const    tid,
+                     int const *  idx_map,
+                     int const    rw,
+                     int *        tid_new,
+                     int **       idx_map_new);
 
     int elementalize(int const          tid,
                      int const          x_rank,

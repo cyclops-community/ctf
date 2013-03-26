@@ -2,19 +2,19 @@ include ../config.mk
 include ../rules.mk
 
 examples: fft fft_3D gemm gemm_4D trace
-trace: ${bindir}/test/trace
-${bindir}/test/trace: trace.o
+trace: ${bindir}/trace
+${bindir}/trace: trace.o
 
-fft: ${bindir}/test/fft
-${bindir}/test/fft: fft.o
+fft: ${bindir}/fft
+${bindir}/fft: fft.o
 
-fft_3D: ${bindir}/test/fft_3D
-${bindir}/test/fft_3D: fft_3D.o
+fft_3D: ${bindir}/fft_3D
+${bindir}/fft_3D: fft_3D.o
 
-gemm_4D: ${bindir}/test/gemm_4D
-${bindir}/test/gemm_4D: gemm_4D.o
+gemm_4D: ${bindir}/gemm_4D
+${bindir}/gemm_4D: gemm_4D.o
 
-gemm: ${bindir}/test/gemm
-${bindir}/test/gemm: gemm.o
+gemm: ${bindir}/gemm
+${bindir}/gemm: gemm.o
 
 LIBS := -lctf $(LIBS)
