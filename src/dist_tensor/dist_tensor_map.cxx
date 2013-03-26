@@ -53,6 +53,8 @@ int dist_tensor<dtype>::map_tensor_pair(const int tid_A, const int tid_B){
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
 
+  if (tid_A == tid_B) return DIST_TENSOR_SUCCESS;
+
   unmap_inner(tsr_A);
   unmap_inner(tsr_B);
   set_padding(tsr_A);

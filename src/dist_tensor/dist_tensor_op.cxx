@@ -151,26 +151,18 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       break;
 
     case CTF_OP_SQNRM2:
-      get_buffer_space(tsr->size*sizeof(double), (void**)&aux_arr);
+        acc = 0.0;
       if (tsr->is_mapped){
         if (idx_lyr == 0){
           for (i=0; i<tsr->size; i++){
-            aux_arr[i] = tsr->data[i]*tsr->data[i];
+            acc += tsr->data[i]*tsr->data[i];
           }
-        } else
-          std::fill(aux_arr,aux_arr+tsr->size,0.0);
-            } else {
+            }} else {
         for (i=0; i<tsr->size; i++){
-          aux_arr[i] = tsr->pairs[i].d*tsr->pairs[i].d;
+          acc += tsr->pairs[i].d*tsr->pairs[i].d;
         }
             }
-            for (i=1; i<tsr->size; i*=2){
-        for (j=0; j<tsr->size; j+= i*2){
-          aux_arr[j] = aux_arr[j] + aux_arr[j+i];
-        }
-      }
-      ALLREDUCE(aux_arr, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);
-      free_buffer_space(aux_arr);
+      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);
       break;
 
     case CTF_OP_MAX:
