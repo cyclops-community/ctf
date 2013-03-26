@@ -224,10 +224,10 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     if (ret!=DIST_TENSOR_SUCCESS) return ret;
     return DIST_TENSOR_SUCCESS;*/
 
-/*#if DEBUG >= 1  
+#if DEBUG >= 3  
     print_map(stdout, tid_A,0);
     print_map(stdout, tid_B,0);
-#endif*/
+#endif
     if (!check_sum_mapping(tid_A, idx_map_A, tid_B, idx_map_B)) continue;
     set_padding(tsr_A);
     set_padding(tsr_B);
@@ -405,7 +405,7 @@ int dist_tensor<dtype>::
     }
   }*/
   /* Go in reverse, since the first index of the diagonal set will be mapped */
-  for (i=0; i<tsr->ndim; i++){
+  for (i=tsr->ndim-1; i>=0; i--){
     iR = idx_arr[idx_map[i]];
     if (iR != -1){
       if (tsr->edge_map[iR].has_child == 1) 
@@ -518,12 +518,12 @@ int dist_tensor<dtype>::
   }
   /* Ensure that something is mapped to each dimension, since replciation
      does not make sense in sum for all tensors */
-  for (i=0; i<topovec[tsr_A->itopo].ndim; i++){
+/*  for (i=0; i<topovec[tsr_A->itopo].ndim; i++){
     if (phys_map[i] == 0) {
       pass = 0;
       DPRINTF(3,"failed confirmation here i=%d\n",i);
     }
-  }
+  }*/
 
   free(phys_map);
   free(idx_arr);
@@ -669,31 +669,31 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
             if (iA != -1) {
               map = &tsr_A->edge_map[iA];
               for (;;){
-          if (map->type == PHYSICAL_MAP){
-            if (phys_mapped[map->cdt] == 1){
-              DPRINTF(3,"failed confirmation here %d\n",iA);
-              pass = 0;
-              break;
-            } else
-              phys_mapped[map->cdt] = 1;
-          } else break;
-          if (map->has_child) map = map->child;
-          else break;
+                if (map->type == PHYSICAL_MAP){
+                  if (phys_mapped[map->cdt] == 1){
+                    DPRINTF(3,"failed confirmation here %d\n",iA);
+                    pass = 0;
+                    break;
+                  } else
+                    phys_mapped[map->cdt] = 1;
+                } else break;
+                if (map->has_child) map = map->child;
+                else break;
               } 
             }
           } else if (iA == -1){
             map = &tsr_B->edge_map[iB];
             for (;;){
               if (map->type == PHYSICAL_MAP){
-          if (phys_mapped[map->cdt] == 1){
-            DPRINTF(3,"failed confirmation here %d\n",iA);
-            pass = 0;
-            break;
-          } else
-            phys_mapped[map->cdt] = 1;
-        } else break;
-        if (map->has_child) map = map->child;
-        else break;
+              if (phys_mapped[map->cdt] == 1){
+                DPRINTF(3,"failed confirmation here %d\n",iA);
+                pass = 0;
+                break;
+              } else
+                phys_mapped[map->cdt] = 1;
+            } else break;
+            if (map->has_child) map = map->child;
+            else break;
             } 
           } else { 
             /* Confirm that the phases of A and B 
@@ -703,7 +703,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
 
             if (ph_A != ph_B){
               //if (global_comm->rank == 0) 
-                DPRINTF(3,"failed confirmation here\n");
+                DPRINTF(3,"failed confirmation here iA=%d iB=%d\n",iA,iB);
               pass = 0;
               break;
             }
@@ -757,11 +757,11 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
       pass = 0;
       break;
     }
-    if (phys_mismatched[i] == 0 && phys_mapped[i] == 0){
+ /*   if (phys_mismatched[i] == 0 && phys_mapped[i] == 0){
       DPRINTF(3,"failed confirmation here i=%d\n",i);
       pass = 0;
       break;
-    }    
+    }    */
   }
 
 
@@ -939,9 +939,6 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       ret = map_to_topology(type->tid_A, type->tid_B, type->tid_C, type->idx_map_A,
                             type->idx_map_B, type->idx_map_C, i, j, 
                             idx_arr, idx_ctr, idx_extra, idx_no_ctr);
-      /*print_map(stdout, type->tid_A, 0);
-      print_map(stdout, type->tid_B, 0);
-      print_map(stdout, type->tid_C, 0);*/
       
 
       if (ret == DIST_TENSOR_ERROR) {
@@ -959,6 +956,11 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       tsr_A->itopo = i;
       tsr_B->itopo = i;
       tsr_C->itopo = i;
+#if DEBUG >= 3
+      print_map(stdout, type->tid_A, 0);
+      print_map(stdout, type->tid_B, 0);
+      print_map(stdout, type->tid_C, 0);
+#endif
       
       if (check_contraction_mapping(type) == 0) continue;
       
@@ -1388,7 +1390,6 @@ int dist_tensor<dtype>::
         jsum = idx_sum[j];
         jX = idx_arr[jsum*idx_num+0];
         if (jX == iA+1){
-          /* FIXME: eeeewww... */
           tsr_sym_table[i*tsr_ndim+j] = 1;
           tsr_sym_table[j*tsr_ndim+i] = 1;
         }
@@ -1464,7 +1465,7 @@ int dist_tensor<dtype>::
                     int const           tid_A,
                     int const           tid_B,
                     topology const *    topo){
-  int tsr_ndim, ictr, iA, iB, i, j, jctr, jX, stat;
+  int tsr_ndim, ictr, iA, iB, i, j, jctr, jX, stat, is_premapped;
   int * tsr_edge_len, * tsr_sym_table, * restricted;
   mapping * ctr_map;
 
@@ -1489,6 +1490,19 @@ int dist_tensor<dtype>::
     ctr_map[i].has_child        = 0; 
     ctr_map[i].np               = 1; 
   }
+  for (i=0; i<num_ctr; i++){
+    ictr = idx_ctr[i];
+    iA = idx_arr[ictr*3+0];
+    iB = idx_arr[ictr*3+1];
+
+    copy_mapping(1, &tsr_A->edge_map[iA], &ctr_map[2*i+0]);
+    copy_mapping(1, &tsr_B->edge_map[iB], &ctr_map[2*i+1]);
+  }
+  is_premapped = 0;
+  for (i=0; i<tsr_ndim; i++){ 
+    if (ctr_map[i].type == PHYSICAL_MAP) is_premapped = 1;
+  }
+  
 
   /* Map a tensor of dimension 2*num_ctr, with symmetries among each pair.
    * Set the edge lengths and symmetries according to those in ctr dims of A and B.
@@ -1512,7 +1526,6 @@ int dist_tensor<dtype>::
         jctr = idx_ctr[j];
         jX = idx_arr[jctr*3+0];
         if (jX == iA+1){
-          /* FIXME: eeeewww... */
           tsr_sym_table[2*i*tsr_ndim+2*j] = 1;
           tsr_sym_table[2*i*tsr_ndim+2*j+1] = 1;
           tsr_sym_table[2*j*tsr_ndim+2*i] = 1;
@@ -1542,12 +1555,16 @@ int dist_tensor<dtype>::
     }
   }
   /* Run the mapping algorithm on this construct */
-  stat = map_tensor(topo->ndim,         tsr_ndim, 
-                    tsr_edge_len,       tsr_sym_table,
-                    restricted,         topo->dim_comm,
-                    NULL,               0,
-                    ctr_map);
+  if (is_premapped){
+    stat = map_symtsr(tsr_ndim, tsr_sym_table, ctr_map);
+  } else {
+    stat = map_tensor(topo->ndim,         tsr_ndim, 
+                      tsr_edge_len,       tsr_sym_table,
+                      restricted,         topo->dim_comm,
+                      NULL,               0,
+                      ctr_map);
 
+  }
   if (stat == DIST_TENSOR_ERROR)
     return DIST_TENSOR_ERROR;
   
@@ -1620,11 +1637,15 @@ int dist_tensor<dtype>::
   for (i=0; i<num_no_ctr; i++){
     inoctr = idx_no_ctr[i];
     iA = idx_arr[3*inoctr+0];
+    iB = idx_arr[3*inoctr+1];
     iC = idx_arr[3*inoctr+2];
 
     
     if (iA != -1 && iC != -1){
       copy_mapping(1, tsr_A->edge_map + iA, tsr_C->edge_map + iC); 
+    } 
+    if (iB != -1 && iC != -1){
+      copy_mapping(1, tsr_B->edge_map + iB, tsr_C->edge_map + iC); 
     } 
   }
   stat = map_tensor_rem(topo->ndim, topo->dim_comm, tsr_C, 0);
@@ -1938,12 +1959,30 @@ int dist_tensor<dtype>::
   /* Map C or equivalently, the non-contraction indices of A and B */
   ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
                                 tA, tB, tC, &topovec[itopo]);
+  if (ret == DIST_TENSOR_NEGATIVE) return DIST_TENSOR_NEGATIVE;
+  if (ret == DIST_TENSOR_ERROR) {
+    return DIST_TENSOR_ERROR;
+  }
+  ret = map_symtsr(tsr_A->ndim, tsr_A->sym_table, tsr_A->edge_map);
+  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  ret = map_symtsr(tsr_B->ndim, tsr_B->sym_table, tsr_B->edge_map);
+  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  ret = map_symtsr(tsr_C->ndim, tsr_C->sym_table, tsr_C->edge_map);
+  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
+                            tA, tB, &topovec[itopo]);
+
+  /* Do it again to make sure everything is properly mapped. FIXME: loop */
+  /*ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
+                            tA, tB, &topovec[itopo]);*/
+  /* Map C or equivalently, the non-contraction indices of A and B */
+  /*ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
+                                tA, tB, tC, &topovec[itopo]);*/
   free(idx_arr);
   if (ret == DIST_TENSOR_NEGATIVE) return DIST_TENSOR_NEGATIVE;
   if (ret == DIST_TENSOR_ERROR) {
     return DIST_TENSOR_ERROR;
   }
-
 
   ret = map_symtsr(tsr_A->ndim, tsr_A->sym_table, tsr_A->edge_map);
   if (ret!=DIST_TENSOR_SUCCESS) return ret;

@@ -28,6 +28,21 @@ CXXCOMPILEDEPS = $(CXXCOMPILE) $(DEPFLAGS)
 LINK = $(CXX) $(_CXXFLAGS) $(_LDFLAGS) -o $@
 ARCHIVE = $(AR) $@
 
+#
+# Automatic library dependency generation derived from: Steve Dieters
+# http://lists.gnu.org/archive/html/help-make/2010-03/msg00072.html
+#
+libdeps = \
+$(foreach d, $(patsubst -L%,%,$(filter -L%,$(1))),\
+ $(foreach l, $(patsubst -l%,%,$(filter -l%,$(1))),\
+  $(if $(shell if [ -e $(d)/lib$(l).a ]; then echo "X"; fi),\
+   $(d)/lib$(l).a\
+  )\
+ )\
+) $(filter %.a,$(1))
+
+
+
 .NOTPARALLEL:
 .PHONY: all default clean $(ALL_COMPONENTS)
 FORCE:
@@ -44,11 +59,11 @@ clean:
 		(cd $$subdir && $(MAKE) clean); \
 	done
 
-${bindir}/%: $(_DEPENDENCIES) 
+$(bindir)/%: $(_DEPENDENCIES) $(call libdeps,$(_LIBS))
 	@mkdir -p $(dir $@)
-	$(LINK) $(filter %.o,$^) $(_LIBS)
+	$(LINK) $(filter %.o,$^) $(FLIBS) $(_LIBS)
 
-${libdir}/%: $(_DEPENDENCIES)
+$(libdir)/%: $(_DEPENDENCIES)
 	@mkdir -p $(dir $@)
 	$(ARCHIVE) $(filter %.o,$^)
 
