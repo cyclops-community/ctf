@@ -3,18 +3,18 @@ include ../rules.mk
 
 examples: fft fft_3D gemm gemm_4D trace
 trace: ${bindir}/trace
-${bindir}/trace: trace.o
+${bindir}/trace: trace.o ${libdir}/libctf.a
 
 fft: ${bindir}/fft
-${bindir}/fft: fft.o
+${bindir}/fft: fft.o ${libdir}/libctf.a
 
 fft_3D: ${bindir}/fft_3D
-${bindir}/fft_3D: fft_3D.o
+${bindir}/fft_3D: fft_3D.o ${libdir}/libctf.a
 
 gemm_4D: ${bindir}/gemm_4D
-${bindir}/gemm_4D: gemm_4D.o
+${bindir}/gemm_4D: gemm_4D.o ${libdir}/libctf.a
 
 gemm: ${bindir}/gemm
-${bindir}/gemm: gemm.o
+${bindir}/gemm: gemm.o ${libdir}/libctf.a
 
 LIBS := -lctf $(LIBS)

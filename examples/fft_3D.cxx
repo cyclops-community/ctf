@@ -27,10 +27,13 @@ int main(int argc, char ** argv){
   }
   n = 1<<logn;
 
+  int len[] = {n,n,n};
+  int sym[] = {NS,NS,NS};
+
   tCTF_World< std::complex<double> > * wrld = new tCTF_World< std::complex<double> >();
   tCTF_Matrix< std::complex<double> > DFT(n, n, SY, wrld);
   tCTF_Matrix< std::complex<double> > IDFT(n, n, SY, wrld);
-  tCTF_Tensor< std::complex<double> > MESH(3, (int[]){n, n, n}, (int[]){NS, NS, NS}, wrld);
+  tCTF_Tensor< std::complex<double> > MESH(3, len, sym, wrld);
 
   DFT.get_local_data(&np, &idx, &data);
 
