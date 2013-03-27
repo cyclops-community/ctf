@@ -30,10 +30,10 @@ int main(int argc, char ** argv){
   int len[] = {n,n,n};
   int sym[] = {NS,NS,NS};
 
-  tCTF_World< std::complex<double> > * wrld = new tCTF_World< std::complex<double> >();
-  tCTF_Matrix< std::complex<double> > DFT(n, n, SY, wrld);
-  tCTF_Matrix< std::complex<double> > IDFT(n, n, SY, wrld);
-  tCTF_Tensor< std::complex<double> > MESH(3, len, sym, wrld);
+  cCTF_World * wrld = new cCTF_World();
+  cCTF_Matrix DFT(n, n, SY, wrld);
+  cCTF_Matrix IDFT(n, n, SY, wrld);
+  cCTF_Tensor MESH(3, len, sym, wrld);
 
   DFT.get_local_data(&np, &idx, &data);
 

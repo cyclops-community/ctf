@@ -1369,12 +1369,12 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
       if (tsr_sym->sym[i] == AS) rev_sign = -1.0;
       if (tsr_sym->sym[i] == SY){
         scal_diag = 1;
-        num_sy = 1;
+      }
+      num_sy = 1;
+      i++;
+      while (i<tsr_sym->ndim && tsr_sym->sym[i] != NS){
+        num_sy++;
         i++;
-        while (i<tsr_sym->ndim && tsr_sym->sym[i] == SY){
-          num_sy++;
-          i++;
-        }
       }
       break;
     }
@@ -1411,10 +1411,14 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs);
 
   if (!is_C){
-    idx_map_A[sym_dim] = sym_dim+1;
-    idx_map_A[sym_dim+1] = sym_dim;
+    for (i=0; i<num_sy; i++){
+      idx_map_A[sym_dim] = sym_dim+i+1;
+      idx_map_A[sym_dim+i+1] = sym_dim;
     
-    sum_tensors(rev_sign, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs);
+      sum_tensors(rev_sign, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs);
+      idx_map_A[sym_dim] = sym_dim;
+      idx_map_A[sym_dim+i+1] = sym_dim+i+1;
+    }
     
 //  idx_map_A[sym_dim] = sym_dim;
 //    idx_map_A[sym_dim+1] = sym_dim+1;
@@ -1504,12 +1508,12 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
       if (tsr_sym->sym[i] == AS) rev_sign = -1.0;
       if (tsr_sym->sym[i] == SY){
         scal_diag = 1;
-        num_sy = 1;
+      }
+      num_sy = 1;
+      i++;
+      while (i<tsr_sym->ndim && tsr_sym->sym[i] != NS){
+        num_sy++;
         i++;
-        while (i<tsr_sym->ndim && tsr_sym->sym[i] == SY){
-          num_sy++;
-          i++;
-        }
       }
       break;
     }
@@ -1537,16 +1541,17 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
   fseq_tsr_sum<dtype> fs;
   fs.func_ptr=sym_seq_sum_ref<dtype>;
  
+  sum_tensors(1.0, 0.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs);
   
-  idx_map_A[sym_dim] = sym_dim+1;
-  idx_map_A[sym_dim+1] = sym_dim;
-
-  sum_tensors(rev_sign, 0.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs);
-
-  idx_map_A[sym_dim] = sym_dim;
-  idx_map_A[sym_dim+1] = sym_dim+1;
+  for (i=0; i<num_sy; i++){
+    idx_map_A[sym_dim] = sym_dim+i+1;
+    idx_map_A[sym_dim+i+1] = sym_dim;
+  
+    sum_tensors(rev_sign, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs);
+    idx_map_A[sym_dim] = sym_dim;
+    idx_map_A[sym_dim+i+1] = sym_dim+i+1;
+  }
     
-  sum_tensors(1.0, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs);
 
   //  if (false){ 
     if (scal_diag){

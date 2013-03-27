@@ -1,9 +1,12 @@
 include ../config.mk
 include ../rules.mk
 
-examples: fft fft_3D gemm gemm_4D trace
+examples: fft fft_3D gemm gemm_4D trace sym3
 trace: ${bindir}/trace
 ${bindir}/trace: trace.o ${libdir}/libctf.a
+
+sym3: ${bindir}/sym3
+${bindir}/sym3: sym3.o ${libdir}/libctf.a
 
 fft: ${bindir}/fft
 ${bindir}/fft: fft.o ${libdir}/libctf.a

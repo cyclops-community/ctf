@@ -84,9 +84,8 @@ int dist_tensor<dtype>::red_tsr(int const tid, CTF_OP op, dtype * result){
    end up with the final answer. */
 template<> inline
 int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
-  long_int i, j;
+  long_int i;
   double acc;
-  double * aux_arr;
   tensor<double> * tsr;
   mapping * map;
   int idx_lyr = 0;
@@ -115,6 +114,10 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
         }
       }
     }
+  }
+  if (tsr->need_remap){
+    zero_out_padding(tid);
+    tsr->need_remap = 0;
   }
 
   switch (op){

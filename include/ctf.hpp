@@ -286,6 +286,12 @@ class tCTF_Idx_Tensor {
     void operator+=(tCTF_Idx_Tensor<dtype>& B);
     
     /**
+     * \brief A += B, compute any operations on operand B and add
+     * \param[in] B tensor on the right hand side
+     */
+    void operator-=(tCTF_Idx_Tensor<dtype>& B);
+    
+    /**
      * \brief A -> A*B contract two tensors
      * \param[in] B tensor on the right hand side
      */
@@ -334,4 +340,9 @@ typedef tCTF_Tensor<double> CTF_Tensor;
 typedef tCTF_Matrix<double> CTF_Matrix;
 typedef tCTF_Vector<double> CTF_Vector;
 typedef tCTF_World<double> CTF_World;
+typedef tCTF< std::complex<double> > cCTF;
+typedef tCTF_Tensor< std::complex<double> > cCTF_Tensor;
+typedef tCTF_Matrix< std::complex<double> > cCTF_Matrix;
+typedef tCTF_Vector< std::complex<double> > cCTF_Vector;
+typedef tCTF_World< std::complex<double> > cCTF_World;
 #endif

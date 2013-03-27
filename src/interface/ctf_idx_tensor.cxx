@@ -108,6 +108,16 @@ void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Idx_Tensor<dtype>& tsr){
 }
 
 template<typename dtype>
+void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Idx_Tensor<dtype>& tsr){
+  if (tsr.has_scale) tsr.scale = -1.0*tsr.scale;
+  else {
+    tsr.has_scale = 1;
+    tsr.scale = -1.0;
+  }
+  tsr.run(this, 1.0);
+}
+
+template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Idx_Tensor<dtype>& tsr){
   NBR = &tsr;
   has_contract = 1;
