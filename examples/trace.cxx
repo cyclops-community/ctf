@@ -10,7 +10,7 @@
 #include <ctf.hpp>
 
 void trace(int const  n,
-           CTF_World  *dw){
+           CTF_World  &dw){
   int rank, i, num_pes;
   int64_t np;
   double * pairs;
@@ -110,7 +110,7 @@ int main(int argc, char ** argv){
   } else n = 7;
 
 
-  CTF_World * dw = new CTF_World();
+  CTF_World dw;
 
   if (rank == 0){
     printf("Checking trace calculation n = %d, p = %d:\n",n,np);

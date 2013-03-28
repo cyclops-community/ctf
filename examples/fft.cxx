@@ -26,9 +26,9 @@ int main(int argc, char ** argv){
   }
   n = 1<<logn;
 
-  tCTF_World< std::complex<double> > * wrld = new tCTF_World< std::complex<double> >();
-  tCTF_Matrix< std::complex<double> > DFT(n, n, SY, wrld);
-  tCTF_Matrix< std::complex<double> > IDFT(n, n, SY, wrld);
+  cCTF_World wrld(MPI_COMM_WORLD);
+  cCTF_Matrix DFT(n, n, SY, wrld);
+  cCTF_Matrix IDFT(n, n, SY, wrld);
 
   DFT.get_local_data(&np, &idx, &data);
 

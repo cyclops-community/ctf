@@ -30,7 +30,7 @@ int main(int argc, char ** argv){
   int len[] = {n,n,n};
   int sym[] = {NS,NS,NS};
 
-  cCTF_World * wrld = new cCTF_World();
+  cCTF_World wrld;
   cCTF_Matrix DFT(n, n, SY, wrld);
   cCTF_Matrix IDFT(n, n, SY, wrld);
   cCTF_Tensor MESH(3, len, sym, wrld);
@@ -82,6 +82,7 @@ int main(int argc, char ** argv){
     printf("{ 3D_IDFT(3D_DFT(I))) = I } confirmed\n");
 
   MPI_Barrier(MPI_COMM_WORLD);
+
 
   free(idx);
   free(data);

@@ -8,11 +8,12 @@
 #include <assert.h>
 #include <algorithm>
 #include <ctf.hpp>
+#include "../src/shared/util.h"
 
 void gemm_4D(int const  n,
              int const  sym,
              int const  niter,
-             CTF_World  *dw,
+             CTF_World  &dw,
              char const *dir){
   int rank, i, num_pes;
   int64_t np;
@@ -131,7 +132,8 @@ int main(int argc, char ** argv){
   } else niter = 3;
 
 
-  CTF_World * dw = new CTF_World();
+
+  CTF_World dw;
 
   if (rank == 0){
     printf("Computing C_ijkl = A_ijmn*B_klmn\n");

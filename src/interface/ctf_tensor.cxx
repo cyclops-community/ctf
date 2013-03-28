@@ -32,9 +32,9 @@ template<typename dtype>
 tCTF_Tensor<dtype>::tCTF_Tensor(const int           ndim_,
                                 const int *         len_,
                                 const int *         sym_,
-                                tCTF_World<dtype> * world_){
+                                tCTF_World<dtype> & world_){
   int ret;
-  world = world_;
+  world = &world_;
 
   ret = world->ctf->define_tensor(ndim_, len_, sym_, &tid);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);

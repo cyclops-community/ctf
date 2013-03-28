@@ -21,7 +21,12 @@ class tCTF_World {
     /**
      * \brief creates tCTF library on comm_
      */
-    tCTF_World(MPI_Comm comm_ = MPI_COMM_WORLD);
+    tCTF_World(MPI_Comm comm_);
+    
+    /**
+     * \brief creates tCTF library on MPI_COMM_WORLD
+     */
+    tCTF_World();
 
     /**
      * \brief creates tCTF library on comm_
@@ -77,7 +82,7 @@ class tCTF_Tensor {
     tCTF_Tensor(int const            ndim_,
                 int const *          len_,
                 int const *          sym_,
-                tCTF_World<dtype> *  world_);
+                tCTF_World<dtype> &  world_);
     
     /**
      * \brief gives the values associated with any set of indices
@@ -221,7 +226,7 @@ class tCTF_Matrix : public tCTF_Tensor<dtype> {
     tCTF_Matrix(int const           nrow_, 
                 int const           ncol_, 
                 int const           sym_,
-                tCTF_World<dtype> * world);
+                tCTF_World<dtype> & world);
 
 };
 
@@ -239,7 +244,7 @@ class tCTF_Vector : public tCTF_Tensor<dtype> {
      * \param[in] world CTF world where the tensor will live
      */ 
     tCTF_Vector(int const          len_,
-               tCTF_World<dtype> * world);
+               tCTF_World<dtype> & world);
 };
 
 template<typename dtype> static

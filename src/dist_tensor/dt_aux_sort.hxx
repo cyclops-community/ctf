@@ -442,7 +442,6 @@ void assign_keys(int const          ndim,
   for (i=1; i<ndim; i++){
     edge_lda[i] = edge_lda[i-1]*edge_len[i-1];
   }
-  buf_offset = 0;
   for (p=0;;p++){
     data = vdata + p*(size/nvirt);
     pairs = vpairs + p*(size/nvirt);
@@ -760,4 +759,141 @@ void bucket_by_virt(int const               ndim,
   free_buffer_space(virt_lda);
   TAU_FSTOP(bucket_by_virt);
 }
+
+/**
+ * \brief assigns keys to an array of values
+ * \param[in] ndim tensor dimension
+ * \param[in] size number of values
+ * \param[in] nvirt total virtualization factor
+ * \param[in] edge_len tensor edge lengths with padding
+ * \param[in] sym symmetries of tensor
+ * \param[in] padding how much of the edge lengths is padding
+ * \param[in] phase phase of the tensor on virtualized processor grid
+ * \param[in] virt_dim virtual phase in each dimension
+ * \param[in] phase_rank physical phase rank multiplied by virtual phase
+ * \param[in,out] vdata array of all local data
+ */
+template<typename dtype>
+void zero_padding( int const          ndim,
+                   long_int const     size,
+                   int const          nvirt,
+                   int const *        edge_len,
+                   int const *        sym,
+                   int const *        padding,
+                   int const *        phase,
+                   int const *        virt_dim,
+                   int const *        cphase_rank,
+                   dtype *            vdata){
+  TAU_FSTART(zero_padding);
+#ifdef USE_OMP
+#pragma omp parallel
+#endif
+{
+  int tid, ntd, vst, vend;
+#ifdef USE_OMP
+  tid = omp_get_thread_num();
+  ntd = omp_get_num_threads();
+#else
+  tid = 0;
+  ntd = 1;
+#endif
+  vst = (nvirt/ntd)*tid;
+  vst += MIN(nvirt%ntd,tid);
+  vend = vst+(nvirt/ntd);
+  if (tid < nvirt % ntd) vend++;
+  LIBT_ASSERT(tid != ntd-1 || vend == nvirt);
+  int i, imax, act_lda, act_max, buf_offset, i_st;
+  int is_outside;
+  long_int p;
+  int * idx, * virt_rank, * phase_rank;
+  dtype* data;
+  if (ndim == 0){
+    LIBT_ASSERT(size <= 1);
+    if (size == 1){
+      if (phase_rank != 0) vdata[0] = 0.0;
+    }
+  } else {
+
+    get_buffer_space(ndim*sizeof(int), (void**)&idx);
+    get_buffer_space(ndim*sizeof(int), (void**)&virt_rank);
+    get_buffer_space(ndim*sizeof(int), (void**)&phase_rank);
+
+    memcpy(phase_rank, cphase_rank, ndim*sizeof(int));
+    memset(virt_rank, 0, sizeof(int)*ndim);
+    for (p=0; p<nvirt; p++){
+      if (p>=vst && p<vend){
+        buf_offset = 0;
+        data = vdata + p*(size/nvirt);
+
+        //printf("size = %d\n", size); 
+        memset(idx, 0, ndim*sizeof(int));
+        imax = edge_len[0]/phase[0];
+        for (;;){
+          is_outside = 0;
+          for (i=1; i<ndim; i++){
+            if ((phase_rank[i] >= edge_len[i] - padding[i]) ||
+                (((sym[i] == AS || sym[i] == SH)
+                    && (idx[i] > idx[i+1] || 
+                        (idx[i] == idx[i+1] && phase_rank[i] >= phase_rank[i+1]))) ||
+                  (sym[i] == SY && phase_rank[i] > phase_rank[i+1])) ||
+                  (sym[i] == SY
+                      && (idx[i] > idx[i+1] || 
+                        (idx[i] == idx[i+1] && phase_rank[i] > phase_rank[i+1])))){
+                is_outside = 1;
+              break;
+            }
+          }
+          if (sym[0] != NS)
+            imax = idx[1]+1;
+                /* Increment virtual bucket */
+          if (is_outside){
+            i_st = 0;      
+          } else {
+            i_st = edge_len[0] - padding[0];
+            if (sym[0] != NS)
+              i_st = MIN(i_st,idx[1]+1);
+            if ((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]){
+              i_st = MIN(i_st,idx[1]);
+            }
+            if (sym[0] == SY && phase_rank[0] > phase_rank[1]){
+              i_st = MIN(i_st,idx[1]);
+            }
+          }
+          for (i=i_st; i<imax; i++){
+            data[buf_offset+i] = 0.0;
+          }
+          buf_offset += imax;
+          /* Increment indices and set up offsets */
+          for (act_lda=1; act_lda < ndim; act_lda++){
+            idx[act_lda]++;
+            act_max = edge_len[act_lda]/phase[act_lda];
+            if (sym[act_lda] != NS) act_max = idx[act_lda+1]+1;
+            if (idx[act_lda] >= act_max)
+              idx[act_lda] = 0;
+            LIBT_ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
+            if (idx[act_lda] > 0)
+              break;
+          }
+          if (act_lda >= ndim) break;
+        }
+      }
+      for (act_lda=0; act_lda < ndim; act_lda++){
+        phase_rank[act_lda] -= virt_rank[act_lda];
+        virt_rank[act_lda]++;
+        if (virt_rank[act_lda] >= virt_dim[act_lda])
+          virt_rank[act_lda] = 0;
+        phase_rank[act_lda] += virt_rank[act_lda];
+        if (virt_rank[act_lda] > 0)
+          break;
+      }
+    }
+    //LIBT_ASSERT(buf_offset == size/nvirt);
+    free_buffer_space(idx);
+    free_buffer_space(virt_rank);
+    free_buffer_space(phase_rank);
+  }
+}
+  TAU_FSTOP(zero_padding);
+}
+       
 #endif

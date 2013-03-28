@@ -14,7 +14,7 @@ void gemm(int const  m,
           int const  k,
           int const  sym,
           int const  niter,
-          CTF_World  *dw,
+          CTF_World  &dw,
           char const *dir){
   int rank, i, num_pes;
   int64_t np;
@@ -142,8 +142,7 @@ int main(int argc, char ** argv){
     if (niter < 0) niter = 5;
   } else niter = 5;
 
-  CTF_World * dw;
-  dw = new CTF_World();
+  CTF_World dw;
 
   
   if (rank == 0){
@@ -160,8 +159,6 @@ int main(int argc, char ** argv){
     }
     gemm(m, n, k, AS, niter, dw, dir);
   }
-
-  delete dw;
 
   MPI_Finalize();
   return 0;
