@@ -9,8 +9,7 @@
 #include <algorithm>
 #include <ctf.hpp>
 
-void trace(int const  n,
-           CTF_World  &dw){
+void trace(int const  n){
   int rank, i, num_pes;
   int64_t np;
   double * pairs;
@@ -19,6 +18,8 @@ void trace(int const  n,
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
+  CTF_World dw;
+
 
   if (rank == 0)
     printf("Starting matrix cyclic trace test\n");
@@ -110,14 +111,12 @@ int main(int argc, char ** argv){
   } else n = 7;
 
 
-  CTF_World dw;
-
   if (rank == 0){
     printf("Checking trace calculation n = %d, p = %d:\n",n,np);
   }
-  trace(n, dw);
+  trace(n);
 
   MPI_Finalize();
   return 0;
- }
+}
 
