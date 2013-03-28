@@ -25,10 +25,12 @@ void sym3(int const  n,
   CTF_World * ctf = new CTF_World();
 
   int len[] = {n,n,n,n,n,n};
+  int ANNN[] = {AS,NS,NS,NS};
   int NNNN[] = {NS,NS,NS,NS};
   int NNNNNN[] = {NS,NS,NS,NS,NS,NS};
   int AANAAN[] = {AS,AS,NS,AS,AS,NS};
 
+  CTF_Tensor AA(4, len, ANNN, ctf);
   CTF_Tensor AN(4, len, NNNN, ctf);
   CTF_Tensor BN(4, len, NNNN, ctf);
   CTF_Tensor CA(6, len, AANAAN, ctf);
@@ -51,7 +53,10 @@ void sym3(int const  n,
     BN.write_remote_data(indices.size(), indices.data(), values.data());
   }
 
-  CA["abcijk"] = AN["abim"]*BN["mcjk"];
+  AA["ijkl"]  = AN["ijkl"];
+  AA["ijkl"] -= AN["jikl"];
+
+  CA["abcijk"] = AA["abim"]*BN["mcjk"];
   CN["abcijk"] = AN["abim"]*BN["mcjk"];
 
   CA["abcijk"] -= CN["abcijk"];
