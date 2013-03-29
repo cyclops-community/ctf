@@ -431,6 +431,8 @@ class dist_tensor{
 
     int print_tsr(FILE * stream, int const tid);
 
+    int compare_tsr(FILE * stream, int const tid_A, int const tid_B);
+
     int print_map(FILE * stream, int const tid,
                   int const all=1, int const is_inner=0) const;
 

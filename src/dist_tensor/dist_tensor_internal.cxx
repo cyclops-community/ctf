@@ -1332,21 +1332,122 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid) {
   if (global_comm->rank == 0){
     std::sort(all_data, all_data + tot_sz);
     for (i=0; i<tot_sz; i++){
-      k = all_data[i].k;
-      for (j=0; j<tsr->ndim; j++){
-        idx_arr[tsr->ndim-j-1] = k%adj_edge_len[j];
-        k = k/adj_edge_len[j];
+      if (std::abs(all_data[i].d) > 1e-14)
+      {
+          k = all_data[i].k;
+          for (j=0; j<tsr->ndim; j++){
+              //idx_arr[tsr->ndim-j-1] = k%adj_edge_len[j];
+              idx_arr[j] = k%adj_edge_len[j];
+            k = k/adj_edge_len[j];
+          }
+          for (j=0; j<tsr->ndim; j++){
+                  fprintf(stream,"[%d]",idx_arr[j]);
+          }
+          fprintf(stream," <%20.14E>\n",GET_REAL(all_data[i].d));
       }
-      for (j=0; j<tsr->ndim; j++){
-              fprintf(stream,"[%d]",idx_arr[j]);
-      }
-      fprintf(stream," <%20.14E>\n",GET_REAL(all_data[i].d));
     }
     free_buffer_space(recvcnts);
     free_buffer_space(displs);
     free_buffer_space(adj_edge_len);
     free_buffer_space(idx_arr);
     free_buffer_space(all_data);
+  }
+  //COMM_BARRIER(global_comm);
+  return DIST_TENSOR_SUCCESS;
+}
+/*
+ * \brief print tensors tid_A and tid_A side-by-side to stream
+ * WARNING: serializes ALL data to ONE processor
+ * \param stream output stream (stdout, stdin, FILE)
+ * \param tid_A first tensor handle
+ * \param tid_B second tensor handle
+ */
+template<typename dtype>
+int dist_tensor<dtype>::compare_tsr(FILE * stream, int const tid_A, int const tid_B) {
+    tensor<dtype> const * tsr_A;
+    tensor<dtype> const * tsr_B;
+  int i, j;
+  long_int my_sz, tot_sz =0, my_sz_B;
+  int * recvcnts, * displs, * adj_edge_len, * idx_arr;
+  tkv_pair<dtype> * my_data_A;
+  tkv_pair<dtype> * my_data_B;
+  tkv_pair<dtype> * all_data_A;
+  tkv_pair<dtype> * all_data_B;
+  key k;
+
+  print_map(stdout, tid_A, 1, 0);
+  print_map(stdout, tid_B, 1, 0);
+
+  tsr_A = tensors[tid_A];
+
+  my_sz = 0;
+  read_local_pairs(tid_A, &my_sz, &my_data_A);
+  my_sz_B = 0;
+  read_local_pairs(tid_B, &my_sz_B, &my_data_B);
+  assert(my_sz == my_sz_B);
+
+  if (global_comm->rank == 0){
+    get_buffer_space(global_comm->np*sizeof(int), (void**)&recvcnts);
+    get_buffer_space(global_comm->np*sizeof(int), (void**)&displs);
+    get_buffer_space(tsr_A->ndim*sizeof(int), (void**)&adj_edge_len);
+    get_buffer_space(tsr_A->ndim*sizeof(int), (void**)&idx_arr);
+
+    if (tsr_A->is_padded){
+      for (i=0; i<tsr_A->ndim; i++){
+              adj_edge_len[i] = tsr_A->edge_len[i] - tsr_A->padding[i];
+      }
+    } else {
+      memcpy(adj_edge_len, tsr_A->edge_len, tsr_A->ndim*sizeof(int));
+    }
+  }
+
+  GATHER(&my_sz, 1, COMM_INT_T, recvcnts, 1, COMM_INT_T, 0, global_comm);
+
+  if (global_comm->rank == 0){
+    for (i=0; i<global_comm->np; i++){
+      recvcnts[i] *= sizeof(tkv_pair<dtype>);
+    }
+    displs[0] = 0;
+    for (i=1; i<global_comm->np; i++){
+      displs[i] = displs[i-1] + recvcnts[i-1];
+    }
+    tot_sz = (displs[global_comm->np-1]
+                    + recvcnts[global_comm->np-1])/sizeof(tkv_pair<dtype>);
+    get_buffer_space(tot_sz*sizeof(tkv_pair<dtype>), (void**)&all_data_A);
+    get_buffer_space(tot_sz*sizeof(tkv_pair<dtype>), (void**)&all_data_B);
+  }
+
+  if (my_sz == 0) my_data_A = my_data_B = NULL;
+  GATHERV(my_data_A, my_sz*sizeof(tkv_pair<dtype>), COMM_CHAR_T,
+          all_data_A, recvcnts, displs, COMM_CHAR_T, 0, global_comm);
+  GATHERV(my_data_B, my_sz*sizeof(tkv_pair<dtype>), COMM_CHAR_T,
+          all_data_B, recvcnts, displs, COMM_CHAR_T, 0, global_comm);
+
+  if (global_comm->rank == 0){
+      std::sort(all_data_A, all_data_A + tot_sz);
+      std::sort(all_data_B, all_data_B + tot_sz);
+    for (i=0; i<tot_sz; i++){
+      if (std::abs(all_data_A[i].d) > 1e-14 ||
+          std::abs(all_data_B[i].d) > 1e-14)
+      {
+          k = all_data_A[i].k;
+          for (j=0; j<tsr_A->ndim; j++){
+              //idx_arr[tsr_A->ndim-j-1] = k%adj_edge_len[j];
+              idx_arr[j] = k%adj_edge_len[j];
+            k = k/adj_edge_len[j];
+          }
+          for (j=0; j<tsr_A->ndim; j++){
+                  fprintf(stream,"[%d]",idx_arr[j]);
+          }
+          fprintf(stream," <%20.14E> <%20.14E>\n",GET_REAL(all_data_A[i].d),GET_REAL(all_data_B[i].d));
+      }
+    }
+    free_buffer_space(recvcnts);
+    free_buffer_space(displs);
+    free_buffer_space(adj_edge_len);
+    free_buffer_space(idx_arr);
+    free_buffer_space(all_data_A);
+    free_buffer_space(all_data_B);
   }
   //COMM_BARRIER(global_comm);
   return DIST_TENSOR_SUCCESS;

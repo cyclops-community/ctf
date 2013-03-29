@@ -360,6 +360,9 @@ class tCTF{
     /* Prints a tensor on one processor. */
     int print_tensor(FILE * stream, int const tid);
 
+    /* Compares two tensors on one processor. */
+    int compare_tensor(FILE * stream, int const tid_A, int const tid_B);
+
     /* Prints contraction type. */
     int print_ctr(CTF_ctr_type_t const * ctype) const;
 
