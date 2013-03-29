@@ -2,7 +2,7 @@
 
 struct int1
 {
-	int i[0];
+	int i[1];
 	int1(int a)
 	{
 		i[0] = a;
@@ -15,7 +15,7 @@ struct int1
 
 template<typename dtype>
 tCTF_Vector<dtype>::tCTF_Vector(int const           len_,
-                                tCTF_World<dtype> * world) :
+                                tCTF_World<dtype> & world) :
   tCTF_Tensor<dtype>(1, int1(len_), int1(NS), world) {
   len = len_;
   

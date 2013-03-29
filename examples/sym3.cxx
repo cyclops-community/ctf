@@ -11,7 +11,6 @@
 #include <ctf.hpp>
 
 void sym3(int const  n,
-          CTF_World  *dw,
           char const *dir){
   int rank, i, num_pes;
   
@@ -22,13 +21,15 @@ void sym3(int const  n,
     printf("n = %d\n", n);
 
 
-  CTF_World * ctf = new CTF_World();
+  CTF_World ctf;
 
   int len[] = {n,n,n,n,n,n};
+  int ANNN[] = {AS,NS,NS,NS};
   int NNNN[] = {NS,NS,NS,NS};
   int NNNNNN[] = {NS,NS,NS,NS,NS,NS};
   int AANAAN[] = {AS,AS,NS,AS,AS,NS};
 
+  CTF_Tensor AA(4, len, ANNN, ctf);
   CTF_Tensor AN(4, len, NNNN, ctf);
   CTF_Tensor BN(4, len, NNNN, ctf);
   CTF_Tensor CA(6, len, AANAAN, ctf);
@@ -51,7 +52,10 @@ void sym3(int const  n,
     BN.write_remote_data(indices.size(), indices.data(), values.data());
   }
 
-  CA["abcijk"] = AN["abim"]*BN["mcjk"];
+  AA["ijkl"]  = AN["ijkl"];
+  AA["ijkl"] -= AN["jikl"];
+
+  CA["abcijk"] = AA["abim"]*BN["mcjk"];
   CN["abcijk"] = AN["abim"]*BN["mcjk"];
 
   CA["abcijk"] -= CN["abcijk"];
@@ -96,7 +100,8 @@ void sym3(int const  n,
   CA["abcijk"] -= CN["cabjki"];
   CA["abcijk"] -= CN["cabkij"];
 
-  printf("Norm of answer should be 0, computed is %lf\n",CA.reduce(CTF_OP_SQNRM2));
+  double nrm = CA.reduce(CTF_OP_SQNRM2);
+  if (rank == 0)  printf("Norm of answer should be 0, computed is %lf\n", nrm);
 }
 
 char* getCmdOption(char ** begin,
@@ -125,15 +130,11 @@ int main(int argc, char ** argv){
     if (n < 0) n = 7;
   } else n = 7;
 
-
-  CTF_World * dw = new CTF_World();
-
   if (rank == 0){
     printf("Computing C_ijklmn = A_ijk*B_lmn\n");
   }
-  sym3(n, dw, dir);
-
-
+  sym3(n, dir);
+  
   MPI_Finalize();
   return 0;
  }

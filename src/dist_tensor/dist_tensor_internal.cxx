@@ -747,11 +747,11 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
   mapping * map;
   tensor<dtype> * tsr;
 
-  TAU_FSTART(write_pairs);
 
   tsr = tensors[tensor_id];
   
   if (tsr->has_zero_edge_len) return DIST_TENSOR_SUCCESS;
+  TAU_FSTART(write_pairs);
   unmap_inner(tsr);
   set_padding(tsr);
 
@@ -1524,19 +1524,61 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
  */
 template<typename dtype>
 int dist_tensor<dtype>::zero_out_padding(int const tensor_id){
-  long_int n;
-  int stat;
-  tkv_pair<dtype> * mapped_data;
-  if (tensors[tensor_id]->has_zero_edge_len){
+  int i, num_virt, idx_lyr;
+  long_int np;
+  int * virt_phase, * virt_phys_rank, * phys_phase;
+  tensor<dtype> * tsr;
+  mapping * map;
+
+  TAU_FSTART(zero_out_padding);
+
+  tsr = tensors[tensor_id];
+  if (tsr->has_zero_edge_len){
     return DIST_TENSOR_SUCCESS;
   }
-  stat = read_local_pairs(tensor_id, &n, &mapped_data);
-  std::fill(tensors[tensor_id]->data, 
-            tensors[tensor_id]->data+tensors[tensor_id]->size, 
-            get_zero<dtype>());
-  if (stat != DIST_TENSOR_SUCCESS) return stat;
-  return write_pairs(tensor_id, n, 1.0, 0.0, mapped_data, 'w');
+  unmap_inner(tsr);
+  set_padding(tsr);
 
+
+  if (!tsr->is_mapped){
+    return DIST_TENSOR_SUCCESS;
+  } else {
+    np = tsr->size;
+
+    get_buffer_space(sizeof(int)*tsr->ndim, (void**)&virt_phase);
+    get_buffer_space(sizeof(int)*tsr->ndim, (void**)&phys_phase);
+    get_buffer_space(sizeof(int)*tsr->ndim, (void**)&virt_phys_rank);
+
+
+    num_virt = 1;
+    idx_lyr = global_comm->rank;
+    for (i=0; i<tsr->ndim; i++){
+      /* Calcute rank and phase arrays */
+      map               = tsr->edge_map + i;
+      phys_phase[i]     = calc_phase(map);
+      virt_phase[i]     = phys_phase[i]/calc_phys_phase(map);
+      virt_phys_rank[i] = calc_phys_rank(map, &topovec[tsr->itopo])
+                                              *virt_phase[i];
+      num_virt          = num_virt*virt_phase[i];
+
+      if (map->type == PHYSICAL_MAP)
+        idx_lyr -= topovec[tsr->itopo].lda[map->cdt]
+                                *virt_phys_rank[i]/virt_phase[i];
+    }
+    if (idx_lyr == 0){
+      zero_padding(tsr->ndim, np, num_virt,
+                   tsr->edge_len, tsr->sym, tsr->padding,
+                   phys_phase, virt_phase, virt_phys_rank, tsr->data); 
+    } else {
+      std::fill(tsr->data, tsr->data+np, 0.0);
+    }
+    free(virt_phase);
+    free(phys_phase);
+    free(virt_phys_rank);
+  }
+  TAU_FSTOP(zero_out_padding);
+
+  return DIST_TENSOR_SUCCESS;
 }
 
 template<typename dtype>

@@ -184,8 +184,11 @@ do { printf("warning: "); printf(__VA_ARGS__); printf("\n"); } while(0)
 #else
 #define TAU_PROFILE(NAME,ARG,USER)
 #define TAU_PROFILE_TIMER(ARG1, ARG2, ARG3, ARG4)
+#define TAU_PROFILER_CREATE(ARG1, ARG2, ARG3, ARG4)
 #define TAU_PROFILE_STOP(ARG)
 #define TAU_PROFILE_START(ARG)
+#define TAU_PROFILE_SET_NODE(ARG)
+#define TAU_PROFILE_SET_CONTEXT(ARG)
 #define TAU_FSTART(ARG)
 #define TAU_FSTOP(ARG)
 #endif

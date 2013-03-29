@@ -73,7 +73,7 @@ tCTF_Idx_Tensor<dtype> * get_intermediate(tCTF_Idx_Tensor<dtype>* A,
     }
   }
 
-  tCTF_Tensor<dtype> * tsr_C = new tCTF_Tensor<dtype>(ndim_C, len_C, sym_C, A->parent->world);
+  tCTF_Tensor<dtype> * tsr_C = new tCTF_Tensor<dtype>(ndim_C, len_C, sym_C, (*A->parent->world));
   tCTF_Idx_Tensor<dtype> * itsr_C = new tCTF_Idx_Tensor<dtype>(tsr_C, idx_C);
   itsr_C->is_intm = 1;
   return itsr_C;

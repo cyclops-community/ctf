@@ -173,6 +173,9 @@ class tCTF{
   private:
     dist_tensor<dtype> * dt;
     int initialized;
+#ifdef TAU
+    void * timerctf_tau; //main tau profile pointer
+#endif 
 
   public:
 

@@ -18,6 +18,7 @@
  */
 template<typename dtype>
 tCTF<dtype>::~tCTF(){
+  TAU_FSTOP(ctf_tau);
   exit();
 }
 
@@ -52,6 +53,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
     ret = tCTF<dtype>::init(global_context, MACHINE_8D, rank, np);
   #endif
 #endif
+
   return ret;
 }
 
@@ -73,7 +75,7 @@ MPI_Comm tCTF<dtype>::get_MPI_Comm(){
  */
 template<typename dtype>
 int tCTF<dtype>::init(MPI_Comm const  global_context,
-                      CTF_MACHINE           mach,
+                      CTF_MACHINE     mach,
                       int const       rank, 
                       int const       np,
                       int const       inner_size){      
@@ -104,6 +106,10 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const       ndim, 
                       int const *     dim_len,
                       int const       inner_size){
+  TAU_PROFILER_CREATE(timerctf_tau, "ctf_tau", "int (int, char**)", TAU_USER);
+  TAU_PROFILE_START(timerctf_tau);
+  TAU_PROFILE_SET_NODE(rank);
+  TAU_PROFILE_SET_CONTEXT(0);
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)malloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);

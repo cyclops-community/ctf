@@ -1666,13 +1666,11 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
     TAU_FSTART(map_fold);
     stat = map_fold(&type, &inner_stride);
     TAU_FSTOP(map_fold);
-    if (stat == DIST_TENSOR_ERROR){
-      return DIST_TENSOR_ERROR;
-    }
     if (stat == DIST_TENSOR_SUCCESS){
       sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
                             func_ptr, inner_stride);
-    }
+    } else
+      return DIST_TENSOR_ERROR;
   } else
     sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
                           func_ptr);
@@ -1693,14 +1691,12 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
   sumf->run();
   TAU_FSTOP(sum_func);
 #ifndef SEQ
-  if (tensors[ntid_B]->ndim > 0)
-    tensors[ntid_B]->need_remap = 1;
+  stat = zero_out_padding(ntid_B);
+/*  if (tensors[ntid_B]->ndim > 0)
+    tensors[ntid_B]->need_remap = 1;*/
 #endif
 
 #if VERIFY
-  TAU_FSTART(zero_sum_padding);
-  stat = zero_out_padding(ntid_B);
-  TAU_FSTOP(zero_sum_padding);
   stat = allread_tsr(ntid_A, &nA, &uA);
   assert(stat == DIST_TENSOR_SUCCESS);
   stat = get_tsr_info(ntid_A, &ndim_A, &edge_len_A, &sym_A);
@@ -1882,7 +1878,7 @@ int dist_tensor<dtype>::
     unfold_broken_sym(type, &unfold_type);
 #if PERFORM_DESYM
     if (map_tensors(&unfold_type, buffer, buffer_len,
-        func_ptr, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
+                    func_ptr, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
 #else
     int * sym, dim, sy;
     sy = 0;
@@ -1902,7 +1898,7 @@ int dist_tensor<dtype>::
       if (sym[i] == SY) sy = 1;
     }
     if (sy && map_tensors(&unfold_type, buffer, buffer_len,
-        func_ptr, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
+                          func_ptr, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
 #endif
       desymmetrize(ntid_A, unfold_type.tid_A, 0);
       desymmetrize(ntid_B, unfold_type.tid_B, 0);
@@ -2108,8 +2104,9 @@ int dist_tensor<dtype>::
   ctrf->run();
   TAU_FSTOP(ctr_func);
 #ifndef SEQ
-  if (tensors[type->tid_C]->ndim > 0)
-    tensors[type->tid_C]->need_remap = 1;
+/*  if (tensors[type->tid_C]->ndim > 0)
+    tensors[type->tid_C]->need_remap = 1;*/
+  stat = zero_out_padding(type->tid_C);
 #endif
   if (get_global_comm()->rank == 0){
     DPRINTF(1, "Contraction completed.\n");
@@ -2117,9 +2114,6 @@ int dist_tensor<dtype>::
 
 
 #if VERIFY
-  TAU_FSTART(zero_ctr_padding);
-  stat = zero_out_padding(type->tid_C);
-  TAU_FSTOP(zero_ctr_padding);
   stat = allread_tsr(type->tid_A, &nA, &uA);
   assert(stat == DIST_TENSOR_SUCCESS);
   stat = get_tsr_info(type->tid_A, &ndim_A, &edge_len_A, &sym_A);

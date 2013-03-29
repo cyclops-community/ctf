@@ -30,6 +30,24 @@ tCTF_World<dtype>::tCTF_World(MPI_Comm comm_){
 }
 
 template<typename dtype>
+tCTF_World<dtype>::tCTF_World() {
+  int rank, np;
+  comm = MPI_COMM_WORLD;
+  MPI_Comm_rank(comm, &rank);
+  MPI_Comm_size(comm, &np);
+  ctf = new tCTF< dtype >();
+#ifdef BGQ
+  ctf->init(comm, MACHINE_BGQ, rank, np);
+#else
+#ifdef BGP
+  ctf->init(comm, MACHINE_BGP, rank, np);
+#else
+  ctf->init(comm, MACHINE_8D, rank, np);
+#endif
+#endif
+}
+
+template<typename dtype>
 tCTF_World<dtype>::tCTF_World(int const   ndim, 
                               int const * lens, 
                               MPI_Comm    comm_){
