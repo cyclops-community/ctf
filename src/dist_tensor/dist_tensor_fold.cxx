@@ -1442,7 +1442,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
         idx_map_A[sym_dim+i+1] = sym_dim-num_sy_neg;
         idx_map_A[sym_dim] = sym_dim-num_sy_neg;
         for (j=MAX(sym_dim+i+2,sym_dim+1); j<tsr_sym->ndim; j++){
-          idx_map_A[j] = j-i-1;
+          idx_map_A[j] = j-i-num_sy_neg-2;
         }
         fseq_tsr_scl<dtype> fss;
         fss.func_ptr=sym_seq_scl_ref<dtype>;
@@ -1580,7 +1580,7 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
         idx_map_B[sym_dim+i+1] = sym_dim-num_sy_neg;
         idx_map_B[sym_dim] = sym_dim-num_sy_neg;
         for (j=MAX(sym_dim+i+2,sym_dim+1); j<tsr_sym->ndim; j++){
-          idx_map_B[j] = j-i-1;
+          idx_map_B[j] = j-i-num_sy_neg-2;
         }
         fseq_tsr_scl<dtype> fss;
         fss.func_ptr=sym_seq_scl_ref<dtype>;
