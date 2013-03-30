@@ -810,7 +810,7 @@ void zero_padding( int const          ndim,
   if (ndim == 0){
     LIBT_ASSERT(size <= 1);
     if (size == 1){
-      if (phase_rank != 0) vdata[0] = 0.0;
+      vdata[0] = 0.0;
     }
   } else {
 
