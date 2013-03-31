@@ -1,7 +1,10 @@
 include ../config.mk
 include ../rules.mk
 
-examples: fft fft_3D gemm gemm_4D trace sym3
+examples: fft fft_3D gemm gemm_4D trace sym3 ccsdt_t3_to_t2
+ccsdt_t3_to_t2: ${bindir}/ccsdt_t3_to_t2
+${bindir}/ccsdt_t3_to_t2: ccsdt_t3_to_t2.o ${libdir}/libctf.a
+
 trace: ${bindir}/trace
 ${bindir}/trace: trace.o ${libdir}/libctf.a
 

@@ -2,11 +2,12 @@ all: $(DEFAULT_COMPONENTS)
 
 ALL_COMPONENTS = src ctf test_model pgemm_test nonsq_pgemm_test bench \
                  bench_model nonsq_pgemm_bench examples fft fft_3D gemm \
-                 gemm_4D trace sym3
+                 gemm_4D trace sym3 ccsdt_t3_to_t2
 
-examples: fft fft_3D gemm trace sym3
+examples: fft fft_3D gemm trace sym3 ccsdt_t3_to_t2
 test_model bench_model pgemm_test nonsq_pgemm_test: ctf
 nonsq_pgemm_bench fft fft_3D gemm gemm_4D trace sym3: ctf 
+ccsdt_t3_to_t2: ctf
 
 bindir = ${top_dir}/bin
 libdir = ${top_dir}/lib

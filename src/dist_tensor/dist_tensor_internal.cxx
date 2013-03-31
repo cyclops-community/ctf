@@ -1364,8 +1364,7 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid) {
  */
 template<typename dtype>
 int dist_tensor<dtype>::compare_tsr(FILE * stream, int const tid_A, int const tid_B) {
-    tensor<dtype> const * tsr_A;
-    tensor<dtype> const * tsr_B;
+  tensor<dtype> const * tsr_A;
   int i, j;
   long_int my_sz, tot_sz =0, my_sz_B;
   int * recvcnts, * displs, * adj_edge_len, * idx_arr;
