@@ -50,7 +50,7 @@ typedef uint64_t key;
 #define INNER_MAP 0
 #define FOLD_TSR 1
 #define DEF_INNER_SIZE 256
-#define PERFORM_DESYM 0
+#define PERFORM_DESYM 1
 
 template<typename dtype>
 struct tkv_pair {

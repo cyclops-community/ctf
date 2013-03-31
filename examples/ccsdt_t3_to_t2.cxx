@@ -80,10 +80,11 @@ void ccsdt_t3_to_t2(int const  n,
   NS_C["ijmn"] += NS_A["mnej"]*NS_B["eabimn"];
   NS_C["ijmn"] -= NS_A["mnej"]*NS_B["eabmin"];
   NS_C["ijmn"] -= NS_A["mnej"]*NS_B["eabnmi"];
+  double nrm_AS = AS_C.reduce(CTF_OP_SQNRM2);
+  double nrm_NS = NS_C.reduce(CTF_OP_SQNRM2);
+  if (rank == 0) printf("norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
+  AS_C["ijmn"] -= NS_C["ijmn"];
   
-  NS_C.get_remote_data(np, indices, pairs);
-  AS_C.write_remote_data(np, indices, pairs);
-
   double nrm = AS_C.reduce(CTF_OP_SQNRM2);
   if (rank == 0) printf("norm of AS_C after contraction should be zero, is = %lf\n", nrm);
 
