@@ -248,10 +248,14 @@ int CTF_map_tensor(int const tid,
 int CTF_print_tensor(FILE * stream, int const tid);
 
 /* Prints contraction type. */
-int CTF_print_ctr(CTF_ctr_type_t const * ctype);
+int CTF_print_ctr(CTF_ctr_type_t const * ctype,
+                  double const           alpha,
+                  double const           beta);
 
 /* Prints sum type. */
-int CTF_print_sum(CTF_sum_type_t const * stype);
+int CTF_print_sum(CTF_sum_type_t const * stype,
+                  double const           alpha,
+                  double const           beta);
 
 /* Deletes all tensor handles. Invalidates all tensor ids. */
 int CTF_clean_tensors();

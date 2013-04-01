@@ -1617,7 +1617,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
   CTF_sum_type_t type = {(int)ntid_A, (int)ntid_B,
                          (int*)map_A, (int*)map_B};
 #if DEBUG >= 1
-  print_sum(&type);
+  print_sum(&type,alpha,beta);
 #endif
 
 #if VERIFY
@@ -1996,7 +1996,7 @@ int dist_tensor<dtype>::
 #if DEBUG >= 1
   if (get_global_comm()->rank == 0)
     printf("Contraction permutation:\n");
-  print_ctr(type);
+  print_ctr(type, alpha, beta);
 #endif
 
   TAU_FSTART(contract);

@@ -359,7 +359,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
 #if DEBUG >= 1
   if (dt->get_global_comm()->rank == 0)
     printf("Head contraction :\n");
-  dt->print_ctr(type);
+  dt->print_ctr(type,alpha,beta);
 #endif
 
   return dt->sym_contract(type, buffer, buffer_len, func_ptr, alpha,
@@ -577,14 +577,18 @@ int tCTF<dtype>::compare_tensor(FILE * stream, int const tid_A, int const tid_B)
 
 /* Prints contraction type. */
 template<typename dtype>
-int tCTF<dtype>::print_ctr(CTF_ctr_type_t const * ctype) const {
-  return dt->print_ctr(ctype);
+int tCTF<dtype>::print_ctr(CTF_ctr_type_t const * ctype,
+                           dtype const            alpha,
+                           dtype const            beta) const {
+  return dt->print_ctr(ctype,alpha,beta);
 }
 
 /* Prints sum type. */
 template<typename dtype>
-int tCTF<dtype>::print_sum(CTF_sum_type_t const * stype) const{
-  return dt->print_sum(stype);
+int tCTF<dtype>::print_sum(CTF_sum_type_t const * stype,
+                           dtype const            alpha,
+                           dtype const            beta) const {
+  return dt->print_sum(stype,alpha,beta);
 }
 
 

@@ -436,9 +436,13 @@ class dist_tensor{
     int print_map(FILE * stream, int const tid,
                   int const all=1, int const is_inner=0) const;
 
-    int print_ctr(CTF_ctr_type_t const * ctype) const;
+    int print_ctr(CTF_ctr_type_t const * ctype,
+                  dtype const            alpha,
+                  dtype const            beta) const;
 
-    int print_sum(CTF_sum_type_t const * stype) const;
+    int print_sum(CTF_sum_type_t const * stype,
+                  dtype const            alpha,
+                  dtype const            beta) const;
 
     int zero_out_padding(int const tensor_id);
 

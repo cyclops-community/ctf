@@ -1581,7 +1581,9 @@ int dist_tensor<dtype>::zero_out_padding(int const tensor_id){
 }
 
 template<typename dtype>
-int dist_tensor<dtype>::print_ctr(CTF_ctr_type_t const * ctype) const {
+int dist_tensor<dtype>::print_ctr(CTF_ctr_type_t const * ctype,
+                                  dtype const alpha,
+                                  dtype const beta) const {
   int dim_A, dim_B, dim_C;
   int * sym_A, * sym_B, * sym_C;
   int i,j,max,ex_A, ex_B,ex_C;
@@ -1589,6 +1591,7 @@ int dist_tensor<dtype>::print_ctr(CTF_ctr_type_t const * ctype) const {
   if (global_comm->rank == 0){
     printf("Contacting Tensor %d with %d into %d\n", ctype->tid_A, ctype->tid_B,
                                                                                          ctype->tid_C);
+    printf("alpha = %lf, beta = %lf\n", GET_REAL(alpha), GET_REAL(beta));
     dim_A = get_dim(ctype->tid_A);
     dim_B = get_dim(ctype->tid_B);
     dim_C = get_dim(ctype->tid_C);
@@ -1647,14 +1650,17 @@ int dist_tensor<dtype>::print_ctr(CTF_ctr_type_t const * ctype) const {
 }
 
 template<typename dtype>
-int dist_tensor<dtype>::print_sum(CTF_sum_type_t const * stype) const {
+int dist_tensor<dtype>::print_sum(CTF_sum_type_t const * stype, 
+                                  dtype const            alpha, 
+                                  dtype const            beta) const {
   int dim_A, dim_B;
   int i,j,max,ex_A,ex_B;
   int * sym_A, * sym_B;
   COMM_BARRIER(global_comm);
   if (global_comm->rank == 0){
-    printf("Summing Tensor %d with %d into %d\n",stype->tid_A, stype->tid_B,
-                                                    stype->tid_B);
+    printf("Summing Tensor %lf*%d with %lf*%d into %d\n",
+            GET_REAL(alpha), stype->tid_A, 
+            GET_REAL(beta), stype->tid_B, stype->tid_B);
     dim_A = get_dim(stype->tid_A);
     dim_B = get_dim(stype->tid_B);
     max = dim_A+dim_B; //MAX(MAX((dim_A), (dim_B)), (dim_C));

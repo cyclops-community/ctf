@@ -48,9 +48,9 @@ typedef uint64_t key;
 #define VERIFY 0
 #define VERIFY_REMAP 0
 #define INNER_MAP 0
-#define FOLD_TSR 1
+#define FOLD_TSR 0
 #define DEF_INNER_SIZE 256
-#define PERFORM_DESYM 1
+#define PERFORM_DESYM 0
 
 template<typename dtype>
 struct tkv_pair {
@@ -367,10 +367,14 @@ class tCTF{
     int compare_tensor(FILE * stream, int const tid_A, int const tid_B);
 
     /* Prints contraction type. */
-    int print_ctr(CTF_ctr_type_t const * ctype) const;
+    int print_ctr(CTF_ctr_type_t const * ctype,
+                  dtype const            alpha,
+                  dtype const            beta) const;
 
     /* Prints sum type. */
-    int print_sum(CTF_sum_type_t const * stype) const;
+    int print_sum(CTF_sum_type_t const * stype,
+                  dtype const            alpha,
+                  dtype const            beta) const;
 
     /* Deletes all tensor handles. Invalidates all tensor ids. */
     int clean_tensors();

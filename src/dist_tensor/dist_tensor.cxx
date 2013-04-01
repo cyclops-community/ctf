@@ -425,13 +425,17 @@ int CTF_print_tensor(FILE * stream, int const tid) {
 }
 
 /* Prints contraction type. */
-int CTF_print_ctr(CTF_ctr_type_t const * ctype) {
-  return ctf_obj.print_ctr(ctype);
+int CTF_print_ctr(CTF_ctr_type_t const * ctype,
+                  double const           alpha,
+                  double const           beta) {
+  return ctf_obj.print_ctr(ctype,alpha,beta);
 }
 
 /* Prints sum type. */
-int CTF_print_sum(CTF_sum_type_t const * stype) {
-  return ctf_obj.print_sum(stype);
+int CTF_print_sum(CTF_sum_type_t const * stype,
+                  double const           alpha,
+                  double const           beta) {
+  return ctf_obj.print_sum(stype,alpha,beta);
 }
 
 
