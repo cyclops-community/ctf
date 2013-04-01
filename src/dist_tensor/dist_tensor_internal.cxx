@@ -514,19 +514,22 @@ seq_tsr_ctr<dtype>::seq_tsr_ctr(ctr<dtype> * other) : ctr<dtype>(other) {
   
   ndim_A        = o->ndim_A;
   idx_map_A     = o->idx_map_A;
-  sym_A         = o->sym_A;
+  sym_A         = (int*)malloc(sizeof(int)*ndim_A);
+  memcpy(sym_A, o->sym_A, sizeof(int)*ndim_A);
   edge_len_A    = (int*)malloc(sizeof(int)*ndim_A);
   memcpy(edge_len_A, o->edge_len_A, sizeof(int)*ndim_A);
 
   ndim_B        = o->ndim_B;
   idx_map_B     = o->idx_map_B;
-  sym_B         = o->sym_B;
+  sym_B         = (int*)malloc(sizeof(int)*ndim_B);
+  memcpy(sym_B, o->sym_B, sizeof(int)*ndim_B);
   edge_len_B    = (int*)malloc(sizeof(int)*ndim_B);
   memcpy(edge_len_B, o->edge_len_B, sizeof(int)*ndim_B);
 
   ndim_C        = o->ndim_C;
   idx_map_C     = o->idx_map_C;
-  sym_C         = o->sym_C;
+  sym_C         = (int*)malloc(sizeof(int)*ndim_C);
+  memcpy(sym_C, o->sym_C, sizeof(int)*ndim_C);
   edge_len_C    = (int*)malloc(sizeof(int)*ndim_C);
   memcpy(edge_len_C, o->edge_len_C, sizeof(int)*ndim_C);
 

@@ -523,7 +523,7 @@ tsum<dtype> * dist_tensor<dtype>::
       int const *   idx_B,
       fseq_tsr_sum<dtype> const func_ptr,
       int const   inner_stride){
-  int nvirt, i, iA, iB, ndim_tot, is_top, sA, sB, need_rep, i_A, i_B, j;
+  int nvirt, i, iA, iB, ndim_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
   long_int blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
   int nphys_dim;
   int * idx_arr, * virt_dim, * phys_mapped;
@@ -686,6 +686,11 @@ tsum<dtype> * dist_tensor<dtype>::
     LIBT_ASSERT(rtsum->ncdt_A == 0 || rtsum->cdt_B == 0);
   }
 
+  int * new_sym_A, * new_sym_B;
+  get_buffer_space(sizeof(int)*tsr_A->ndim, (void**)&new_sym_A);
+  memcpy(new_sym_A, tsr_A->sym, sizeof(int)*tsr_A->ndim);
+  get_buffer_space(sizeof(int)*tsr_B->ndim, (void**)&new_sym_B);
+  memcpy(new_sym_B, tsr_B->sym, sizeof(int)*tsr_B->ndim);
 
   /* Multiply over virtual sub-blocks */
   if (nvirt > 1){
@@ -724,9 +729,12 @@ tsum<dtype> * dist_tensor<dtype>::
           if (tsr_A->inner_ordering[j] == i_A){
             j=i;
             do {
-              virt_blk_len_A[j] = 1;
               j--;
             } while (j>=0 && tsr_A->sym[j] != NS);
+            for (k=j+1; k<=i; k++){
+              virt_blk_len_A[k] = 1;
+              new_sym_A[k] = NS;
+            }
             break;
           }
         }
@@ -741,9 +749,12 @@ tsum<dtype> * dist_tensor<dtype>::
           if (tsr_B->inner_ordering[j] == i_B){
             j=i;
             do {
-              virt_blk_len_B[j] = 1;
               j--;
             } while (j>=0 && tsr_B->sym[j] != NS);
+            for (k=j+1; k<=i; k++){
+              virt_blk_len_B[k] = 1;
+              new_sym_B[k] = NS;
+            }
             break;
           }
         }
@@ -760,11 +771,11 @@ tsum<dtype> * dist_tensor<dtype>::
   tsumseq->ndim_A   = tsr_A->ndim;
   tsumseq->idx_map_A  = idx_A;
   tsumseq->edge_len_A = virt_blk_len_A;
-  tsumseq->sym_A  = tsr_A->sym;
+  tsumseq->sym_A  = new_sym_A;
   tsumseq->ndim_B = tsr_B->ndim;
   tsumseq->idx_map_B  = idx_B;
   tsumseq->edge_len_B = virt_blk_len_B;
-  tsumseq->sym_B  = tsr_B->sym;
+  tsumseq->sym_B  = new_sym_B;
   tsumseq->func_ptr = func_ptr;
 
   htsum->A  = tsr_A->data;
@@ -807,7 +818,7 @@ ctr<dtype> * dist_tensor<dtype>::
         int const   is_inner,
         iparam const *    inner_params,
         int *     nvirt_all){
-  int num_tot, i, i_A, i_B, i_C, is_top, j, nphys_dim, nstep;
+  int num_tot, i, i_A, i_B, i_C, is_top, j, nphys_dim, nstep, k;
   long_int nvirt;
   long_int blk_sz_A, blk_sz_B, blk_sz_C;
   long_int vrt_sz_A, vrt_sz_B, vrt_sz_C;
@@ -1358,6 +1369,14 @@ ctr<dtype> * dist_tensor<dtype>::
   LIBT_ASSERT(blk_sz_A >= vrt_sz_A);
   LIBT_ASSERT(blk_sz_B >= vrt_sz_B);
   LIBT_ASSERT(blk_sz_C >= vrt_sz_C);
+    
+  int * new_sym_A, * new_sym_B, * new_sym_C;
+  get_buffer_space(sizeof(int)*tsr_A->ndim, (void**)&new_sym_A);
+  memcpy(new_sym_A, tsr_A->sym, sizeof(int)*tsr_A->ndim);
+  get_buffer_space(sizeof(int)*tsr_B->ndim, (void**)&new_sym_B);
+  memcpy(new_sym_B, tsr_B->sym, sizeof(int)*tsr_B->ndim);
+  get_buffer_space(sizeof(int)*tsr_C->ndim, (void**)&new_sym_C);
+  memcpy(new_sym_C, tsr_C->sym, sizeof(int)*tsr_C->ndim);
 
   /* Multiply over virtual sub-blocks */
   if (nvirt > 1){
@@ -1442,6 +1461,7 @@ ctr<dtype> * dist_tensor<dtype>::
       DPRINTF(1,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
         inner_params->m, inner_params->k);
     }
+
     ctrseq->is_inner    = 1;
     ctrseq->inner_params  = *inner_params;
     ctrseq->inner_params.sz_C = vrt_sz_C;
@@ -1454,9 +1474,12 @@ ctr<dtype> * dist_tensor<dtype>::
           if (tsr_A->inner_ordering[j] == i_A){
             j=i;
             do {
-              virt_blk_len_A[j] = 1;
               j--;
             } while (j>=0 && tsr_A->sym[j] != NS);
+            for (k=j+1; k<=i; k++){
+              virt_blk_len_A[k] = 1;
+              new_sym_A[k] = NS;
+            }
             break;
           }
         }
@@ -1471,9 +1494,12 @@ ctr<dtype> * dist_tensor<dtype>::
           if (tsr_B->inner_ordering[j] == i_B){
             j=i;
             do {
-              virt_blk_len_B[j] = 1;
               j--;
             } while (j>=0 && tsr_B->sym[j] != NS);
+            for (k=j+1; k<=i; k++){
+              virt_blk_len_B[k] = 1;
+              new_sym_B[k] = NS;
+            }
             break;
           }
         }
@@ -1488,9 +1514,12 @@ ctr<dtype> * dist_tensor<dtype>::
           if (tsr_C->inner_ordering[j] == i_C){
             j=i;
             do {
-              virt_blk_len_C[j] = 1;
               j--;
             } while (j>=0 && tsr_C->sym[j] != NS);
+            for (k=j+1; k<=i; k++){
+              virt_blk_len_C[k] = 1;
+              new_sym_C[k] = NS;
+            }
             break;
           }
         }
@@ -1502,15 +1531,15 @@ ctr<dtype> * dist_tensor<dtype>::
   ctrseq->ndim_A  = tsr_A->ndim;
   ctrseq->idx_map_A = type->idx_map_A;
   ctrseq->edge_len_A  = virt_blk_len_A;
-  ctrseq->sym_A   = tsr_A->sym;
+  ctrseq->sym_A   = new_sym_A;
   ctrseq->ndim_B  = tsr_B->ndim;
   ctrseq->idx_map_B = type->idx_map_B;
   ctrseq->edge_len_B  = virt_blk_len_B;
-  ctrseq->sym_B   = tsr_B->sym;
+  ctrseq->sym_B   = new_sym_B;
   ctrseq->ndim_C  = tsr_C->ndim;
   ctrseq->idx_map_C = type->idx_map_C;
   ctrseq->edge_len_C  = virt_blk_len_C;
-  ctrseq->sym_C   = tsr_C->sym;
+  ctrseq->sym_C   = new_sym_C;
 
   hctr->A   = tsr_A->data;
   hctr->B   = tsr_B->data;
@@ -1614,10 +1643,8 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
                                                (int*)map_B,
                                                tensors[ntid_B]->sym);
 
-#if (FOLD_TSR || DEBUG>=1 )
   CTF_sum_type_t type = {(int)ntid_A, (int)ntid_B,
                          (int*)map_A, (int*)map_B};
-#endif
 #if DEBUG >= 1
   print_sum(&type,alpha,beta);
 #endif

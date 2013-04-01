@@ -131,15 +131,15 @@ class seq_tsr_ctr : public ctr<dtype> {
     int ndim_A;
     int * edge_len_A;
     int const * idx_map_A;
-    int const * sym_A;
+    int * sym_A;
     int ndim_B;
     int * edge_len_B;
     int const * idx_map_B;
-    int const * sym_B;
+    int * sym_B;
     int ndim_C;
     int * edge_len_C;
     int const * idx_map_C;
-    int const * sym_C;
+    int * sym_C;
     fseq_tsr_ctr<dtype> func_ptr;
 
     int is_inner;
@@ -150,7 +150,8 @@ class seq_tsr_ctr : public ctr<dtype> {
     ctr<dtype> * clone();
 
     seq_tsr_ctr(ctr<dtype> * other);
-    ~seq_tsr_ctr(){ free(edge_len_A), free(edge_len_B), free(edge_len_C); };
+    ~seq_tsr_ctr(){ free(edge_len_A), free(edge_len_B), free(edge_len_C), 
+                    free(sym_A), free(sym_B), free(sym_C); }
     seq_tsr_ctr(){}
 };
 
@@ -160,11 +161,11 @@ class seq_tsr_sum : public tsum<dtype> {
     int ndim_A;
     int * edge_len_A;
     int const * idx_map_A;
-    int const * sym_A;
+    int * sym_A;
     int ndim_B;
     int * edge_len_B;
     int const * idx_map_B;
-    int const * sym_B;
+    int * sym_B;
     fseq_tsr_sum<dtype> func_ptr;
 
     int is_inner;
@@ -175,7 +176,8 @@ class seq_tsr_sum : public tsum<dtype> {
     tsum<dtype> * clone();
 
     seq_tsr_sum(tsum<dtype> * other);
-    ~seq_tsr_sum(){ free(edge_len_A), free(edge_len_B); };
+    ~seq_tsr_sum(){ free(edge_len_A), free(edge_len_B), 
+                    free(sym_A), free(sym_B); };
     seq_tsr_sum(){}
 };
 
