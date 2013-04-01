@@ -24,9 +24,10 @@ void ccsdt_t3_to_t2(int const  n,
 
   if (rank == 0)
     printf("n = %d\n", n);
-  
+ 
   int shapeAS4[] = {AS,NS,AS,NS};
-  int shapeAS6[] = {AS,NS,NS,AS,NS,NS};
+  int shapeAS6[] = {AS,AS,NS,AS,AS,NS};
+  int shapeHS6[] = {NS,NS,NS,AS,AS,NS};
   int shapeNS4[] = {NS,NS,NS,NS};
   int shapeNS6[] = {NS,NS,NS,NS,NS,NS};
   int nnnm[] = {n,n,n,m};
@@ -36,6 +37,7 @@ void ccsdt_t3_to_t2(int const  n,
   //* Creates distributed tensors initialized with zeros
   CTF_Tensor AS_A(4, nnnm, shapeNS4, dw);
   CTF_Tensor AS_B(6, mmmnnn, shapeAS6, dw);
+  CTF_Tensor HS_B(6, mmmnnn, shapeHS6, dw);
   CTF_Tensor AS_C(4, mmnn, shapeAS4, dw);
   CTF_Tensor NS_A(4, nnnm, shapeNS4, dw);
   CTF_Tensor NS_B(6, mmmnnn, shapeNS6, dw);
@@ -49,34 +51,53 @@ void ccsdt_t3_to_t2(int const  n,
   AS_A.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   AS_A.write_remote_data(np, indices, pairs);
-//  NS_A.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
   AS_B.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.33+indices[i]);
   AS_B.write_remote_data(np, indices, pairs);
-//  NS_B.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
   AS_C.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
   AS_C.write_remote_data(np, indices, pairs);
-//  NS_C.write_remote_data(np, indices, pairs);
-  NS_C["abij"] = AS_C["abij"];
-  NS_A["abij"] = AS_A["abij"];
-  NS_B["abcijk"] = AS_B["abcijk"];
-  NS_B["abcijk"] -= AS_B["bacijk"];
-  NS_B["abcijk"] -= AS_B["abcjik"];
-  NS_B["abcijk"] += AS_B["bacjik"];
 
+  NS_A["abij"] -= AS_A["abji"];
+  NS_A["abij"] -= AS_A["baij"];
+  NS_A["abij"] += AS_A["abij"];
+  NS_A["abij"] += AS_A["baji"];
+
+  HS_B["abcijk"] -= AS_B["abcjik"];
+  HS_B["abcijk"] -= AS_B["abckji"];
+  HS_B["abcijk"] -= AS_B["abcikj"];
+  HS_B["abcijk"] += AS_B["abcijk"];
+  HS_B["abcijk"] += AS_B["abckij"];
+  HS_B["abcijk"] += AS_B["abcjki"];
+  
+  NS_B["ijkabc"] -= HS_B["jikabc"];
+  NS_B["ijkabc"] -= HS_B["kjiabc"];
+  NS_B["ijkabc"] -= HS_B["ikjabc"];
+  NS_B["ijkabc"] += HS_B["ijkabc"];
+  NS_B["ijkabc"] += HS_B["kijabc"];
+  NS_B["ijkabc"] += HS_B["jkiabc"];
+  
+  NS_C["abij"] += AS_C["abij"];
+  
   AS_C["abij"] += 0.5*AS_A["mnje"]*AS_B["abeimn"];
   
   NS_C["abij"] += 0.5*NS_A["mnje"]*NS_B["abeimn"];
-//  NS_C["abij"] -= NS_A["mnje"]*NS_B["abemin"];
   NS_C["abij"] -= 0.5*NS_A["mnie"]*NS_B["abejmn"];
-//  NS_C["abij"] += NS_A["mnie"]*NS_B["abemjn"];
-//  NS_C["abij"] += NS_A["mnje"]*NS_B["abemni"];
-//  NS_C["abij"] += NS_A["nmje"]*NS_B["abenim"];
+  
+  /*NS_C["abij"] -= AS_C["abji"];
+  NS_C["abij"] -= AS_C["baij"];
+  NS_C["abij"] += AS_C["baji"];*/
+  /*NS_C["abij"] -= 0.5*NS_A["mnje"]*NS_B["abeinm"];
+  NS_C["abij"] -= 0.5*NS_A["mnie"]*NS_B["abejmn"];
+  NS_C["abij"] += 0.5*NS_A["mnie"]*NS_B["abejnm"];
+  NS_C["abij"] += 0.5*NS_A["mnje"]*NS_B["abeimn"];
+  NS_C["abij"] -= 0.5*NS_A["mnje"]*NS_B["abeinm"];
+  NS_C["abij"] -= 0.5*NS_A["mnie"]*NS_B["abejmn"];
+  NS_C["abij"] += 0.5*NS_A["mnie"]*NS_B["abejnm"];*/
 
   double nrm_AS = AS_C.reduce(CTF_OP_SQNRM2);
   double nrm_NS = NS_C.reduce(CTF_OP_SQNRM2);

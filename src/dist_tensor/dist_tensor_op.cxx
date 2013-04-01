@@ -1614,8 +1614,10 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
                                                (int*)map_B,
                                                tensors[ntid_B]->sym);
 
+#if (FOLD_TSR || DEBUG>=1 )
   CTF_sum_type_t type = {(int)ntid_A, (int)ntid_B,
                          (int*)map_A, (int*)map_B};
+#endif
 #if DEBUG >= 1
   print_sum(&type,alpha,beta);
 #endif
