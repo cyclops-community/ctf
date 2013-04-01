@@ -980,7 +980,7 @@ int dist_tensor<dtype>::map_fold(CTF_sum_type_t const * type,
     free(fold_idx);
     return DIST_TENSOR_ERROR;
   }
-#if DEBUG >= 1
+#if DEBUG >= 3
   for (i=0; i<nfold; i++){
     printf("Folding index %d\n",fold_idx[i]);
   }
@@ -1026,7 +1026,7 @@ int dist_tensor<dtype>::map_fold(CTF_sum_type_t const * type,
   conv_idx(ftsr_A->ndim, fidx_map_A, &fold_type.idx_map_A,
            ftsr_B->ndim, fidx_map_B, &fold_type.idx_map_B);
 
-#if DEBUG>=1
+#if DEBUG>=2
   if (global_comm->rank == 0){
     printf("Folded summation type:\n");
   }
@@ -1095,7 +1095,7 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
     free(fold_idx);
     return DIST_TENSOR_ERROR;
   }
-#if DEBUG >= 1
+#if DEBUG >= 3
   for (i=0; i<nfold; i++){
     printf("Folding index %d\n",fold_idx[i]);
   }
@@ -1157,7 +1157,7 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
            ftsr_B->ndim, fidx_map_B, &fold_type.idx_map_B,
            ftsr_C->ndim, fidx_map_C, &fold_type.idx_map_C);
 
-#if DEBUG>=1
+#if DEBUG>=2
   if (global_comm->rank == 0){
     printf("Folded contraction type:\n");
   }

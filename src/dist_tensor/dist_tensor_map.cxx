@@ -1658,10 +1658,14 @@ int dist_tensor<dtype>::
   /* The above 2 mappings implictly give us a mapping for C */
   for (i=0; i<num_no_ctr; i++){
     inoctr = idx_no_ctr[i];
+    iA = idx_arr[3*inoctr+0];
     iB = idx_arr[3*inoctr+1];
     iC = idx_arr[3*inoctr+2];
 
     
+    if (iA != -1 && iC != -1){
+      copy_mapping(1, tsr_C->edge_map + iC, tsr_A->edge_map + iA); 
+    } 
     if (iB != -1 && iC != -1){
       copy_mapping(1, tsr_C->edge_map + iC, tsr_B->edge_map + iB); 
     }
@@ -1971,27 +1975,35 @@ int dist_tensor<dtype>::
   if (ret!=DIST_TENSOR_SUCCESS) return ret;
   ret = map_symtsr(tsr_C->ndim, tsr_C->sym_table, tsr_C->edge_map);
   if (ret!=DIST_TENSOR_SUCCESS) return ret;
-  ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
-                            tA, tB, &topovec[itopo]);
 
   /* Do it again to make sure everything is properly mapped. FIXME: loop */
-  /*ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
-                            tA, tB, &topovec[itopo]);*/
-  /* Map C or equivalently, the non-contraction indices of A and B */
-  /*ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
-                                tA, tB, tC, &topovec[itopo]);*/
-  free(idx_arr);
+  ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
+                            tA, tB, &topovec[itopo]);
+  if (ret == DIST_TENSOR_NEGATIVE) return DIST_TENSOR_NEGATIVE;
+  if (ret == DIST_TENSOR_ERROR) {
+    return DIST_TENSOR_ERROR;
+  }
+  ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
+                                tA, tB, tC, &topovec[itopo]);
   if (ret == DIST_TENSOR_NEGATIVE) return DIST_TENSOR_NEGATIVE;
   if (ret == DIST_TENSOR_ERROR) {
     return DIST_TENSOR_ERROR;
   }
 
+  /*ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
+                            tA, tB, &topovec[itopo]);*/
+  /* Map C or equivalently, the non-contraction indices of A and B */
+  /*ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
+                                tA, tB, tC, &topovec[itopo]);*/
   ret = map_symtsr(tsr_A->ndim, tsr_A->sym_table, tsr_A->edge_map);
   if (ret!=DIST_TENSOR_SUCCESS) return ret;
   ret = map_symtsr(tsr_B->ndim, tsr_B->sym_table, tsr_B->edge_map);
   if (ret!=DIST_TENSOR_SUCCESS) return ret;
   ret = map_symtsr(tsr_C->ndim, tsr_C->sym_table, tsr_C->edge_map);
   if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  
+  free(idx_arr);
+
   return DIST_TENSOR_SUCCESS;
 
 }

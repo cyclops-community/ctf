@@ -12,7 +12,6 @@
 
 void ccsdt_t3_to_t2(int const  n,
                     int const  m,
-                    CTF_World  &dw,
                     char const *dir){
   int rank, i, num_pes;
   int64_t np;
@@ -22,6 +21,7 @@ void ccsdt_t3_to_t2(int const  n,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
+  CTF_World dw;
   if (rank == 0)
     printf("n = %d\n", n);
  
@@ -31,7 +31,7 @@ void ccsdt_t3_to_t2(int const  n,
   int shapeTS6[] = {AS,NS,NS,NS,NS,NS};
   int shapeTS4[] = {AS,NS,NS,NS};
   int shapeNS4[] = {NS,NS,NS,NS};
-  int shapeNS6[] = {NS,NS,NS,NS,NS,NS};
+  //int shapeNS6[] = {NS,NS,NS,NS,NS,NS};
   int nnnm[] = {n,n,n,m};
   int mmnn[] = {m,m,n,n};
   int mmmnnn[] = {m,m,m,n,n,n};
@@ -135,9 +135,8 @@ int main(int argc, char ** argv){
 
 
 
-  CTF_World dw;
 
-  ccsdt_t3_to_t2(n, m, dw, dir);
+  ccsdt_t3_to_t2(n, m, dir);
 
 
   MPI_Finalize();

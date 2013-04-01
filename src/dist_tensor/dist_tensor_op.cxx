@@ -1714,6 +1714,14 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
   stat = zero_out_padding(ntid_B);
   TAU_FSTOP(zero_sum_padding);*/
   DEBUG_PRINTF("[%d] performing tensor sum\n", get_global_comm()->rank);
+/*  if (get_global_comm()->rank == 0){
+    for (int i=0; i<tensors[ntid_A]->ndim; i++){
+      printf("padding[%d] = %d\n",i, tensors[ntid_A]->padding[i]);
+    }
+    for (int i=0; i<tensors[ntid_B]->ndim; i++){
+      printf("padding[%d] = %d\n",i, tensors[ntid_B]->padding[i]);
+    }
+  }*/
 
   TAU_FSTART(sum_func);
   /* Invoke the contraction algorithm */

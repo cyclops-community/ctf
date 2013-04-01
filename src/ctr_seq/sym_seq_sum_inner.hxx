@@ -44,12 +44,6 @@ int sym_seq_sum_inr( dtype const        alpha,
   idx_glb = (int*)malloc(sizeof(int)*idx_max);
   memset(idx_glb, 0, sizeof(int)*idx_max);
 
-/*  for (i=0; i<ndim_A; i++){
-    printf("len_A[%d] = %d, sym_A[%d] = %d\n", i, edge_len_A[i], i, edge_len_A[i]);
-  }
-  for (i=0; i<ndim_B; i++){
-    printf("len_B[%d] = %d, sym_B[%d] = %d\n", i, edge_len_B[i], i, edge_len_B[i]);
-  }*/
 
   /* Scale B immediately. FIXME: wrong for iterators over subset of B */
 /*  if (beta != 1.0) {
