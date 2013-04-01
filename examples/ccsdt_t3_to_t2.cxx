@@ -11,6 +11,7 @@
 #include "../src/shared/util.h"
 
 void ccsdt_t3_to_t2(int const  n,
+                    int const  m,
                     CTF_World  &dw,
                     char const *dir){
   int rank, i, num_pes;
@@ -25,65 +26,62 @@ void ccsdt_t3_to_t2(int const  n,
     printf("n = %d\n", n);
   
   int shapeAS4[] = {AS,NS,AS,NS};
-  int shapeAS6[] = {AS,AS,NS,AS,AS,NS};
+  int shapeAS6[] = {AS,NS,NS,AS,NS,NS};
   int shapeNS4[] = {NS,NS,NS,NS};
   int shapeNS6[] = {NS,NS,NS,NS,NS,NS};
-  int sizeN4[] = {n,n,n,n};
-  int sizeN6[] = {n,n,n,n,n,n};
+  int nnnm[] = {n,n,n,m};
+  int mmnn[] = {m,m,n,n};
+  int mmmnnn[] = {m,m,m,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor AS_A(4, sizeN4, shapeAS4, dw);
-  CTF_Tensor AS_B(6, sizeN6, shapeAS6, dw);
-  CTF_Tensor AS_C(4, sizeN4, shapeAS4, dw);
-  CTF_Tensor NS_A(4, sizeN4, shapeNS4, dw);
-  CTF_Tensor NS_B(6, sizeN6, shapeNS6, dw);
-  CTF_Tensor NS_C(4, sizeN4, shapeNS4, dw);
+  CTF_Tensor AS_A(4, nnnm, shapeNS4, dw);
+  CTF_Tensor AS_B(6, mmmnnn, shapeAS6, dw);
+  CTF_Tensor AS_C(4, mmnn, shapeAS4, dw);
+  CTF_Tensor NS_A(4, nnnm, shapeNS4, dw);
+  CTF_Tensor NS_B(6, mmmnnn, shapeNS6, dw);
+  CTF_Tensor NS_C(4, mmnn, shapeNS4, dw);
 
   if (rank == 0)
     printf("tensor creation succeed\n");
 
   //* Writes noise to local data based on global index
+  srand48(2013);
   AS_A.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   AS_A.write_remote_data(np, indices, pairs);
-  NS_A.write_remote_data(np, indices, pairs);
+//  NS_A.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
   AS_B.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(.33+indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.33+indices[i]);
   AS_B.write_remote_data(np, indices, pairs);
-  AS_B.write_remote_data(np, indices, pairs);
+//  NS_B.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
   AS_C.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(.66+indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
   AS_C.write_remote_data(np, indices, pairs);
-  NS_C.write_remote_data(np, indices, pairs);
+//  NS_C.write_remote_data(np, indices, pairs);
+  NS_C["abij"] = AS_C["abij"];
+  NS_A["abij"] = AS_A["abij"];
+  NS_B["abcijk"] = AS_B["abcijk"];
+  NS_B["abcijk"] -= AS_B["bacijk"];
+  NS_B["abcijk"] -= AS_B["abcjik"];
+  NS_B["abcijk"] += AS_B["bacjik"];
 
-  AS_C["ijmn"] += .5*AS_A["mnje"]*AS_B["abeimn"];
+  AS_C["abij"] += 0.5*AS_A["mnje"]*AS_B["abeimn"];
+  
+  NS_C["abij"] += 0.5*NS_A["mnje"]*NS_B["abeimn"];
+//  NS_C["abij"] -= NS_A["mnje"]*NS_B["abemin"];
+  NS_C["abij"] -= 0.5*NS_A["mnie"]*NS_B["abejmn"];
+//  NS_C["abij"] += NS_A["mnie"]*NS_B["abemjn"];
+//  NS_C["abij"] += NS_A["mnje"]*NS_B["abemni"];
+//  NS_C["abij"] += NS_A["nmje"]*NS_B["abenim"];
 
-  NS_C["ijmn"] += NS_A["mnje"]*NS_B["abeimn"];
-  NS_C["ijmn"] -= NS_A["mnje"]*NS_B["abemin"];
-  NS_C["ijmn"] -= NS_A["mnje"]*NS_B["abenmi"];
-  NS_C["ijmn"] -= NS_A["mnje"]*NS_B["aebimn"];
-  NS_C["ijmn"] += NS_A["mnje"]*NS_B["aebmin"];
-  NS_C["ijmn"] += NS_A["mnje"]*NS_B["aebnmi"];
-  NS_C["ijmn"] -= NS_A["mnje"]*NS_B["eabimn"];
-  NS_C["ijmn"] += NS_A["mnje"]*NS_B["eabmin"];
-  NS_C["ijmn"] += NS_A["mnje"]*NS_B["eabnmi"];
-  NS_C["ijmn"] -= NS_A["mnej"]*NS_B["abeimn"];
-  NS_C["ijmn"] += NS_A["mnej"]*NS_B["abemin"];
-  NS_C["ijmn"] += NS_A["mnej"]*NS_B["abenmi"];
-  NS_C["ijmn"] += NS_A["mnej"]*NS_B["aebimn"];
-  NS_C["ijmn"] -= NS_A["mnej"]*NS_B["aebmin"];
-  NS_C["ijmn"] -= NS_A["mnej"]*NS_B["aebnmi"];
-  NS_C["ijmn"] += NS_A["mnej"]*NS_B["eabimn"];
-  NS_C["ijmn"] -= NS_A["mnej"]*NS_B["eabmin"];
-  NS_C["ijmn"] -= NS_A["mnej"]*NS_B["eabnmi"];
   double nrm_AS = AS_C.reduce(CTF_OP_SQNRM2);
   double nrm_NS = NS_C.reduce(CTF_OP_SQNRM2);
   if (rank == 0) printf("norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
-  AS_C["ijmn"] -= NS_C["ijmn"];
+  AS_C["abij"] -= NS_C["abij"];
   
   double nrm = AS_C.reduce(CTF_OP_SQNRM2);
   if (rank == 0) printf("norm of AS_C after contraction should be zero, is = %lf\n", nrm);
@@ -105,7 +103,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, niter, n;
+  int rank, np, niter, n, m;
   int const in_num = argc;
   char dir[120];
   char ** input_str = argv;
@@ -116,8 +114,12 @@ int main(int argc, char ** argv){
 
   if (getCmdOption(input_str, input_str+in_num, "-n")){
     n = atoi(getCmdOption(input_str, input_str+in_num, "-n"));
-    if (n < 0) n = 7;
-  } else n = 7;
+    if (n < 0) n = 4;
+  } else n = 4;
+  if (getCmdOption(input_str, input_str+in_num, "-m")){
+    m = atoi(getCmdOption(input_str, input_str+in_num, "-m"));
+    if (m < 0) m = 6;
+  } else m = 6;
 
   if (getCmdOption(input_str, input_str+in_num, "-niter")){
     niter = atoi(getCmdOption(input_str, input_str+in_num, "-niter"));
@@ -128,7 +130,7 @@ int main(int argc, char ** argv){
 
   CTF_World dw;
 
-  ccsdt_t3_to_t2(n, dw, dir);
+  ccsdt_t3_to_t2(n, m, dw, dir);
 
 
   MPI_Finalize();
