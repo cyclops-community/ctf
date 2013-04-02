@@ -573,9 +573,10 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
   if (tsr_C->is_folded == 1) pass = 0;
   if (tsr_A->need_remap) pass = 0;
   if (tsr_B->need_remap) pass = 0;
-  //if (tsr_C->need_remap) pass = 0;
+  if (tsr_C->need_remap) pass = 0;
   
   if (pass==0){
+    DPRINTF(3,"failed confirmation here\n");
     return 0;
   }
 
@@ -583,6 +584,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
   if (tsr_A->itopo != tsr_C->itopo) pass = 0;
 
   if (pass==0){
+    DPRINTF(3,"failed confirmation here\n");
     return 0;
   }
 
@@ -950,7 +952,10 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         tsr_C->need_remap = need_remap_C;
         return DIST_TENSOR_ERROR;
       }
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
+      if (ret == DIST_TENSOR_NEGATIVE){
+        //printf("map_to_topology returned negative\n");
+        continue;
+      }
   
       tsr_A->is_mapped = 1;
       tsr_B->is_mapped = 1;
@@ -1632,8 +1637,10 @@ int dist_tensor<dtype>::
   /* Map remainders of A and B to remainders of phys grid */
   stat = map_tensor_rem(topo->ndim, topo->dim_comm, tsr_A, 1);
   if (stat != DIST_TENSOR_SUCCESS){
-    TAU_FSTOP(map_noctr_indices);
-    return stat;
+    if (tsr_A->ndim != 0 || tsr_B->ndim != 0 || tsr_C->ndim != 0){
+      TAU_FSTOP(map_noctr_indices);
+      return stat;
+    }
   }
   /* The above 2 mappings implictly give us a mapping for C */
   for (i=0; i<num_no_ctr; i++){

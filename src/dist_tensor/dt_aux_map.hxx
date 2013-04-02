@@ -810,8 +810,9 @@ int map_tensor(int const      num_phys_dims,
       }
     }
     if (max_dim == -1){
-      if (fill)
+      if (fill){
         return DIST_TENSOR_NEGATIVE;
+      }
       break;
     }
     map   = &(tsr_edge_map[max_dim]);
