@@ -759,7 +759,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
       pass = 0;
       break;
     }
- /*   if (phys_mismatched[i] == 0 && phys_mapped[i] == 0){
+/*   if (phys_mismatched[i] == 0 && phys_mapped[i] == 0){
       DPRINTF(3,"failed confirmation here i=%d\n",i);
       pass = 0;
       break;

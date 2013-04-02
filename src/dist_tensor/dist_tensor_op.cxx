@@ -115,10 +115,6 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       }
     }
   }
-  if (tsr->need_remap){
-    zero_out_padding(tid);
-    tsr->need_remap = 0;
-  }
 
   switch (op){
     case CTF_OP_SUM:
@@ -982,15 +978,16 @@ ctr<dtype> * dist_tensor<dtype>::
         hctr->num_lyr = topovec[tsr_A->itopo].dim_comm[i]->np;
         rctr->idx_lyr = topovec[tsr_A->itopo].dim_comm[i]->rank;
         rctr->num_lyr = topovec[tsr_A->itopo].dim_comm[i]->np;*/
-      }
-      if (phys_mapped[3*i+0] == 0){
-        rctr->ncdt_A++;
-      }
-      if (phys_mapped[3*i+1] == 0){
-        rctr->ncdt_B++;
-      }
-      if (phys_mapped[3*i+2] == 0){
-        rctr->ncdt_C++;
+      } else {
+        if (phys_mapped[3*i+0] == 0){
+          rctr->ncdt_A++;
+        }
+        if (phys_mapped[3*i+1] == 0){
+          rctr->ncdt_B++;
+        }
+        if (phys_mapped[3*i+2] == 0){
+          rctr->ncdt_C++;
+        }
       }
     }
     if (rctr->ncdt_A > 0)
@@ -1003,17 +1000,21 @@ ctr<dtype> * dist_tensor<dtype>::
     rctr->ncdt_B = 0;
     rctr->ncdt_C = 0;
     for (i=0; i<nphys_dim; i++){
-      if (phys_mapped[3*i+0] == 0){
-        rctr->cdt_A[rctr->ncdt_A] = topovec[tsr_A->itopo].dim_comm[i];
-        rctr->ncdt_A++;
-      }
-      if (phys_mapped[3*i+1] == 0){
-        rctr->cdt_B[rctr->ncdt_B] = topovec[tsr_B->itopo].dim_comm[i];
-        rctr->ncdt_B++;
-      }
-      if (phys_mapped[3*i+2] == 0){
-        rctr->cdt_C[rctr->ncdt_C] = topovec[tsr_C->itopo].dim_comm[i];
-        rctr->ncdt_C++;
+      if (!(phys_mapped[3*i+0] == 0 &&
+            phys_mapped[3*i+1] == 0 &&
+            phys_mapped[3*i+2] == 0)){
+        if (phys_mapped[3*i+0] == 0){
+          rctr->cdt_A[rctr->ncdt_A] = topovec[tsr_A->itopo].dim_comm[i];
+          rctr->ncdt_A++;
+        }
+        if (phys_mapped[3*i+1] == 0){
+          rctr->cdt_B[rctr->ncdt_B] = topovec[tsr_B->itopo].dim_comm[i];
+          rctr->ncdt_B++;
+        }
+        if (phys_mapped[3*i+2] == 0){
+          rctr->cdt_C[rctr->ncdt_C] = topovec[tsr_C->itopo].dim_comm[i];
+          rctr->ncdt_C++;
+        }
       }
     }
   }
@@ -2143,6 +2144,8 @@ int dist_tensor<dtype>::
 #ifndef SEQ
 /*  if (tensors[type->tid_C]->ndim > 0)
     tensors[type->tid_C]->need_remap = 1;*/
+  stat = zero_out_padding(type->tid_A);
+  stat = zero_out_padding(type->tid_B);
   stat = zero_out_padding(type->tid_C);
 #endif
   if (get_global_comm()->rank == 0){
