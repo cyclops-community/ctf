@@ -156,11 +156,12 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
           for (i=0; i<tsr->size; i++){
             acc += tsr->data[i]*tsr->data[i];
           }
-            }} else {
+        }
+      } else {
         for (i=0; i<tsr->size; i++){
           acc += tsr->pairs[i].d*tsr->pairs[i].d;
         }
-            }
+      }
       ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);
       break;
 

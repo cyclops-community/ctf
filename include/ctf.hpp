@@ -9,6 +9,26 @@
 #include "../src/dist_tensor/cyclopstf.hpp"
 
 /**
+ * labels corresponding to symmetry of each tensor dimension
+ * NS = 0 - nonsymmetric
+ * SY = 1 - symmetric
+ * AS = 2 - antisymmetric
+ * SH = 3 - symmetric hollow
+ */
+#if (!defined NS && !defined SY && !defined SH)
+#define NS 0
+#define SY 1
+#define AS 2
+#define SH 3
+#endif
+
+/**
+ * \brief reduction types for tensor data (enum actually defined in ../src/dist_tensor/cyclopstf.hpp)
+ */
+//enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SQNRM2,
+//              CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS };
+
+/**
  * \brief an instance of the tCTF library (world) on a MPI communicator
  */
 template<typename dtype>
@@ -243,8 +263,45 @@ class tCTF_Vector : public tCTF_Tensor<dtype> {
      * \param[in] len_ dimension of vector
      * \param[in] world CTF world where the tensor will live
      */ 
-    tCTF_Vector(int const          len_,
-               tCTF_World<dtype> & world);
+    tCTF_Vector(int const           len_,
+                tCTF_World<dtype> & world);
+};
+
+/**
+ * \brief Scalar class which encapsulates a 0D tensor 
+ */
+template<typename dtype> 
+class tCTF_Scalar : public tCTF_Tensor<dtype> {
+  public:
+
+    /**
+     * \brief constructor for a scalar
+     * \param[in] world CTF world where the tensor will live
+     */ 
+    tCTF_Scalar(tCTF_World<dtype> & world);
+    
+    /**
+     * \brief constructor for a scalar with predefined value
+     * \param[in] val scalar value
+     * \param[in] world CTF world where the tensor will live
+     */ 
+    tCTF_Scalar(dtype const         val,
+                tCTF_World<dtype> & world);
+
+    /**
+     * \brief returns scalar value
+     */
+    dtype get_val();
+    
+    /**
+     * \brief sets scalar value
+     */
+    void set_val(dtype const val);
+
+    /**
+     * \brief casts into a dtype value
+     */
+    operator dtype() { return get_val(); }
 };
 
 template<typename dtype> static
@@ -332,6 +389,11 @@ class tCTF_Idx_Tensor {
      * \param[in] B
      */
     //void operator/(tCTF_IdxTensor& tsr);
+    
+    /**
+     * \brief casts into a double if dimension of evaluated expression is 0
+     */
+    operator dtype();
 
     /**
      * \brief execute ips into output with scale beta
@@ -344,10 +406,12 @@ typedef tCTF<double> CTF;
 typedef tCTF_Tensor<double> CTF_Tensor;
 typedef tCTF_Matrix<double> CTF_Matrix;
 typedef tCTF_Vector<double> CTF_Vector;
+typedef tCTF_Scalar<double> CTF_Scalar;
 typedef tCTF_World<double> CTF_World;
 typedef tCTF< std::complex<double> > cCTF;
 typedef tCTF_Tensor< std::complex<double> > cCTF_Tensor;
 typedef tCTF_Matrix< std::complex<double> > cCTF_Matrix;
 typedef tCTF_Vector< std::complex<double> > cCTF_Vector;
+typedef tCTF_Scalar< std::complex<double> > cCTF_Scalar;
 typedef tCTF_World< std::complex<double> > cCTF_World;
 #endif

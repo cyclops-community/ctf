@@ -14,7 +14,6 @@ void gemm(int const  m,
           int const  k,
           int const  sym,
           int const  niter,
-          CTF_World  &dw,
           char const *dir){
   int rank, i, num_pes;
   int64_t np;
@@ -23,9 +22,7 @@ void gemm(int const  m,
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
-
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
+  CTF_World dw;
 
   if (rank == 0)
     printf("m = %d, n = %d, k = %d, p = %d, niter = %d\n", 
@@ -142,22 +139,20 @@ int main(int argc, char ** argv){
     if (niter < 0) niter = 5;
   } else niter = 5;
 
-  CTF_World dw;
-
   
   if (rank == 0){
     printf("Non-symmetric: NS = NS*NS gemm:\n");
   }
-  gemm(m, n, k, NS, niter, dw, dir);
+  gemm(m, n, k, NS, niter, dir);
   if (m==n && n==k){ 
     if (rank == 0){
       printf("Symmetric: NS = SY*SY gemm:\n");
     }
-    gemm(m, n, k, SY, niter, dw, dir);
+    gemm(m, n, k, SY, niter, dir);
     if (rank == 0){
       printf("(Anti-)Skew-symmetric: NS = AS*AS gemm:\n");
     }
-    gemm(m, n, k, AS, niter, dw, dir);
+    gemm(m, n, k, AS, niter, dir);
   }
 
   MPI_Finalize();

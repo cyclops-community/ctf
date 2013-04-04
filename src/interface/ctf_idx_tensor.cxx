@@ -172,6 +172,14 @@ tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator*(double const scl){
 }
 
 template<typename dtype>
+tCTF_Idx_Tensor<dtype>::operator dtype(){
+  tCTF_Scalar<dtype> sc(*parent->world);
+  
+  run(&sc[""], 0.0);
+  return sc.get_val();
+}
+
+template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, double beta){
   double alpha;
   if (has_scale) alpha = scale;

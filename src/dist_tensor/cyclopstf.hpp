@@ -22,6 +22,11 @@
  */
 
 /**
+ * \brief reduction types for tensor data
+ */
+enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SQNRM2,
+              CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS };
+/**
  * labels corresponding to symmetry of each tensor dimension
  * NS = 0 - nonsymmetric
  * SY = 1 - symmetric
@@ -35,11 +40,6 @@
 #define SH 3
 #endif
 
-/**
- * \brief reduction types for tensor data
- */
-enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SQNRM2,
-              CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS };
 
 typedef uint64_t key;
 
@@ -90,20 +90,6 @@ enum { DIST_TENSOR_SUCCESS, DIST_TENSOR_ERROR, DIST_TENSOR_NEGATIVE };
 
 enum CTF_MACHINE { MACHINE_GENERIC, MACHINE_BGP, MACHINE_BGQ,
                    MACHINE_8D, NO_TOPOLOGY };
-
-/**
- * labels corresponding to symmetry of each tensor dimension
- * NS = 0 - nonsymmetric
- * SY = 1 - symmetric
- * AS = 2 - antisymmetric
- * SH = 3 - symmetric hollow
- */
-#ifndef NS
-#define NS 0
-#define SY 1
-#define AS 2
-#define SH 3
-#endif
 
 
 /* These now have to live in a struct due to being templated, since one
@@ -209,6 +195,12 @@ class tCTF{
 
     /* return MPI_Comm global_context */
     MPI_Comm get_MPI_Comm();
+    
+    /* return MPI processor rank */
+    int get_rank();
+    
+    /* return number of MPI processes in the defined global context */
+    int get_num_pes();
 
     /* define a tensor and retrive handle */
     int define_tensor(int const   ndim,

@@ -85,8 +85,11 @@ void ccsdt_t3_to_t2(int const  n,
   NS_C["abij"] += 0.5*NS_A["mnje"]*NS_B["abeimn"];
   NS_C["abij"] -= NS_C["abji"];
 
-  double nrm_AS = AS_C.reduce(CTF_OP_SQNRM2);
-  double nrm_NS = NS_C.reduce(CTF_OP_SQNRM2);
+  double nrm_AS = sqrt(AS_C.reduce(CTF_OP_SQNRM2));
+  double nrm_NS = sqrt(NS_C.reduce(CTF_OP_SQNRM2));
+  if (rank == 0) printf("triangular norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
+  nrm_AS = sqrt(AS_C["ijkl"]*AS_C["ijkl"]);
+  nrm_NS = sqrt(NS_C["ijkl"]*NS_C["ijkl"]);
   if (rank == 0) printf("norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
   AS_C["abij"] -= NS_C["abij"];
   

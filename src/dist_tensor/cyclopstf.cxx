@@ -61,6 +61,17 @@ template<typename dtype>
 MPI_Comm tCTF<dtype>::get_MPI_Comm(){
   return (dt->get_global_comm())->cm;
 }
+    
+/* return MPI processor rank */
+template<typename dtype>
+int tCTF<dtype>::get_rank(){
+  return (dt->get_global_comm())->rank;
+}
+/* return number of MPI processes in the defined global context */
+template<typename dtype>
+int tCTF<dtype>::get_num_pes(){
+  return (dt->get_global_comm())->np;
+}
 
 /**
  * \brief  initializes library. 
