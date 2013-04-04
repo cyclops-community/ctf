@@ -788,18 +788,16 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
 #endif
 /* \brief map tensors so that they can be contracted on
  * \param type specification of contraction
- * \param[in] buffer the buffer space to use, or NULL to allocate
- * \param[in] buffer_len length of buffer 
- * \param[in] func_ptr sequential ctr func pointer 
+ * \param[in] ftsr sequential ctr func pointer 
+ * \param[in] felm elementwise ctr func pointer 
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  * \param[out] ctrf contraction class to run
  */
 template<typename dtype>
 int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type, 
-                                    dtype *                     buffer, 
-                                    int const                   buffer_len, 
-                                    fseq_tsr_ctr<dtype>         func_ptr, 
+                                    fseq_tsr_ctr<dtype>         ftsr, 
+                                    fseq_elm_ctr<dtype>         felm, 
                                     dtype const                 alpha,
                                     dtype const                 beta,
                                     ctr<dtype> **               ctrf,
@@ -1012,7 +1010,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       set_padding(tsr_A);
       set_padding(tsr_B);
       set_padding(tsr_C);
-      sctr = construct_contraction(type, buffer, buffer_len, func_ptr, 
+      sctr = construct_contraction(type, ftsr, felm, 
                                     alpha, beta, 0, NULL, &nvirt_all);
      
       comm_vol = sctr->comm_rec(sctr->num_lyr);
@@ -1194,7 +1192,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     set_padding(tsr_A);
     set_padding(tsr_B);
     set_padding(tsr_C);
-    *ctrf = construct_contraction(type, buffer, buffer_len, func_ptr, 
+    *ctrf = construct_contraction(type, ftsr, felm, 
                                   alpha, beta, 0, NULL, &nvirt_all);
     delete *ctrf;
     /* If this cannot be stretched */
@@ -1226,7 +1224,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   set_padding(tsr_A);
   set_padding(tsr_B);
   set_padding(tsr_C);
-  *ctrf = construct_contraction(type, buffer, buffer_len, func_ptr, 
+  *ctrf = construct_contraction(type, ftsr, felm, 
                                 alpha, beta, 0, NULL, &nvirt_all);
 #if DEBUG >= 2
   if (global_comm->rank == 0)

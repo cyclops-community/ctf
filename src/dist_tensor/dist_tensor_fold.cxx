@@ -1425,8 +1425,10 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   }
   fseq_tsr_sum<dtype> fs;
   fs.func_ptr=sym_seq_sum_ref<dtype>;
+  fseq_elm_sum<dtype> felm;
+  felm.func_ptr=NULL;
 
-  sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs);
+  sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
 
   if (!is_C){
     for (i=-num_sy_neg-1; i<num_sy; i++){
@@ -1434,7 +1436,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
       idx_map_A[sym_dim] = sym_dim+i+1;
       idx_map_A[sym_dim+i+1] = sym_dim;
     
-      sum_tensors(rev_sign, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs);
+      sum_tensors(rev_sign, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
       idx_map_A[sym_dim] = sym_dim;
       idx_map_A[sym_dim+i+1] = sym_dim+i+1;
     }
@@ -1456,7 +1458,9 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
         }
         fseq_tsr_scl<dtype> fss;
         fss.func_ptr=sym_seq_scl_ref<dtype>;
-        int ret = scale_tsr(((double)(num_sy+num_sy_neg-i))/(num_sy+num_sy_neg-i+1.), nonsym_tid, idx_map_A, fss);
+        fseq_elm_scl<dtype> fselm;
+        fselm.func_ptr=NULL;
+        int ret = scale_tsr(((double)(num_sy+num_sy_neg-i))/(num_sy+num_sy_neg-i+1.), nonsym_tid, idx_map_A, fss, fselm);
         if (ret != DIST_TENSOR_SUCCESS) ABORT;
       }
     }  
@@ -1568,15 +1572,17 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
   }
   fseq_tsr_sum<dtype> fs;
   fs.func_ptr=sym_seq_sum_ref<dtype>;
+  fseq_elm_sum<dtype> felm;
+  felm.func_ptr=NULL;
  
-  sum_tensors(1.0, 0.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs);
+  sum_tensors(1.0, 0.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
   
   for (i=-num_sy_neg-1; i<num_sy; i++){
     if (i==-1) continue;
     idx_map_A[sym_dim] = sym_dim+i+1;
     idx_map_A[sym_dim+i+1] = sym_dim;
 //    printf("symmetrizing\n");
-    sum_tensors(rev_sign, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs);
+    sum_tensors(rev_sign, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
     idx_map_A[sym_dim] = sym_dim;
     idx_map_A[sym_dim+i+1] = sym_dim+i+1;
   }
@@ -1594,7 +1600,9 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
         }
         fseq_tsr_scl<dtype> fss;
         fss.func_ptr=sym_seq_scl_ref<dtype>;
-        int ret = scale_tsr(((double)(num_sy+num_sy_neg-i))/(num_sy+num_sy_neg-i+1.), sym_tid, idx_map_B, fss);
+        fseq_elm_scl<dtype> fselm;
+        fselm.func_ptr=NULL;
+        int ret = scale_tsr(((double)(num_sy+num_sy_neg-i))/(num_sy+num_sy_neg-i+1.), sym_tid, idx_map_B, fss, fselm);
         if (ret != DIST_TENSOR_SUCCESS) ABORT;
       }
     }  

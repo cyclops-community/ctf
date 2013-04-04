@@ -23,4 +23,7 @@ ${bindir}/gemm_4D: gemm_4D.o ${libdir}/libctf.a
 gemm: ${bindir}/gemm
 ${bindir}/gemm: gemm.o ${libdir}/libctf.a
 
+weight_4D: ${bindir}/weight_4D
+${bindir}/weight_4D: weight_4D.o ${libdir}/libctf.a
+
 LIBS := -lctf $(LIBS)

@@ -28,6 +28,58 @@
 //enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SQNRM2,
 //              CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS };
 
+/* custom element-wise function for tensor scale */
+template<typename dtype>
+class tCTF_fscl {
+  public:
+    /**
+     * \brief function signature for element-wise scale operation
+     * \param[in] alpha scaling value, defined in scale call 
+     *            but subject to internal change due to symmetry
+     * \param[in,out] a element from tensor A
+     **/
+    void  (*func_ptr)(dtype const alpha, 
+                      dtype &     a);
+  public:
+    tCTF_fscl() { func_ptr = NULL; }
+};
+/* custom element-wise function for tensor sum */
+template<typename dtype>
+class tCTF_fsum {
+  public:
+    /**
+     * \brief function signature for element-wise summation operation
+     * \param[in] alpha scaling value, defined in summation call 
+     *            but subject to internal change due to symmetry
+     * \param[in] a element from summand tensor A
+     * \param[in,out] b element from summand tensor B
+     **/
+    void  (*func_ptr)(dtype const alpha, 
+                      dtype const a,
+                      dtype &     b);
+  public:
+    tCTF_fsum() { func_ptr = NULL; }
+};
+/* custom element-wise function for tensor contraction */
+template<typename dtype>
+class tCTF_fctr {
+  public:
+    /**
+     * \brief function signature for element-wise contraction operation
+     * \param[in] alpha scaling value, defined in contraction call 
+     *            but subject to internal change due to symmetry
+     * \param[in] a element from contraction tensor A
+     * \param[in] b element from contraction tensor B
+     * \param[in,out] c element from contraction tensor C
+     **/
+    void  (*func_ptr)(dtype const alpha, 
+                      dtype const a, 
+                      dtype const b,
+                      dtype &     c);
+  public:
+    tCTF_fctr() { func_ptr = NULL; }
+};
+
 /**
  * \brief an instance of the tCTF library (world) on a MPI communicator
  */
@@ -52,6 +104,7 @@ class tCTF_World {
      * \brief creates tCTF library on comm_
      * \param[in] ndim number of torus network dimensions
      * \param[in] lens lengths of torus network dimensions
+     * \param[in] comm MPI global context for this CTF World
      */
     tCTF_World(int const    ndim, 
                int const *  lens, 
@@ -110,7 +163,9 @@ class tCTF_Tensor {
      * \param[in] global_idx index within global tensor of each value to fetch
      * \param[in,out] data a prealloced pointer to the data with the specified indices
      */
-    void get_remote_data(int64_t const npair, int64_t const * global_idx, dtype * data) const;
+    void get_remote_data(int64_t const    npair, 
+                         int64_t const *  global_idx, 
+                         dtype *          data) const;
     
     /**
      * \brief writes in values associated with any set of indices
@@ -118,10 +173,13 @@ class tCTF_Tensor {
      * \param[in] global_idx global index within tensor of value to write
      * \param[in] data values to  write to the indices
      */
-    void write_remote_data(int64_t const npair, int64_t const * global_idx, dtype const * data) const;
+    void write_remote_data(int64_t const   npair, 
+                           int64_t const * global_idx, 
+                           dtype const   * data);
    
     /**
      * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
+     *        if fseq defined computes fseq(alpha,A[idx_A],B[idx_B],beta*C[idx_C])
      * \param[in] alpha A*B scaling factor
      * \param[in] A first operand tensor
      * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
@@ -129,38 +187,54 @@ class tCTF_Tensor {
      * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
      * \param[in] beta C scaling factor
      * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
+     * \param[in] fseq sequential operation to execute, default is multiply-add
      */
-    void contract(const dtype alpha, const tCTF_Tensor& A, const char * idx_A,
-                                     const tCTF_Tensor& B, const char * idx_B,
-                  const dtype beta,                        const char * idx_C);
-
+    void contract(dtype const              alpha, 
+                  const tCTF_Tensor&       A, 
+                  char const *             idx_A,
+                  const tCTF_Tensor&       B, 
+                  char const *             idx_B,
+                  dtype const              beta,
+                  char const *             idx_C,
+                  tCTF_fctr<dtype>         fseq = tCTF_fctr<dtype>());
+    
     /**
      * \brief sums B[idx_B] = beta*B[idx_B] + alpha*A[idx_A]
+     *        if fseq defined computes fseq(alpha,A[idx_A],beta*B[idx_B])
      * \param[in] alpha A scaling factor
      * \param[in] A first operand tensor
      * \param[in] idx_A indices of A in sum, e.g. "ij" -> A_{ij}
      * \param[in] beta B scaling factor
      * \param[in] idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
+     * \param[in] fseq sequential operation to execute, default is multiply-add
      */
-    void sum(const dtype alpha, const tCTF_Tensor& A, const char * idx_A,
-             const dtype beta,                        const char * idx_B);
+    void sum(dtype const             alpha, 
+             const tCTF_Tensor&      A, 
+             char const *            idx_A,
+             dtype const             beta,
+             char const *            idx_B,
+             tCTF_fsum<dtype>        fseq = tCTF_fsum<dtype>());
     
     /**
      * \brief scales A[idx_A] = alpha*A[idx_A]
-     * \brief alpha A scaling factor
-     * \brief idx_A indices of A (this tensor), e.g. "ij" -> A_{ij}
+     *        if fseq defined computes fseq(alpha,A[idx_A])
+     * \param[in] alpha A scaling factor
+     * \param[in] idx_A indices of A (this tensor), e.g. "ij" -> A_{ij}
+     * \param[in] fseq sequential operation to execute, default is multiply-add
      */
-    void scale(const dtype alpha, const char * idx_A);
+    void scale(dtype const             alpha, 
+               char const *            idx_A,
+               tCTF_fscl<dtype>        fseq = tCTF_fscl<dtype>());
 
     /**
      * \brief aligns data mapping with tensor A
      * \param[in] A align with this tensor
      */
-    void align(const tCTF_Tensor& A);
+    void align(tCTF_Tensor const & A);
 
     /**
      * \brief performs a reduction on the tensor
-     * \par[in]am op reduction operation (see top of this cyclopstf.hpp for choices)
+     * \param[in] op reduction operation (see top of this cyclopstf.hpp for choices)
      */    
     dtype reduce(CTF_OP op);
 
@@ -184,14 +258,17 @@ class tCTF_Tensor {
      * \param[out] global_idx index within global tensor of each data value
      * \param[out] data pointer to local values in the order of the indices
      */
-    void get_local_data(int64_t * npair, int64_t ** global_idx, dtype ** data) const;
+    void get_local_data(int64_t *   npair, 
+                        int64_t **  global_idx, 
+                        dtype **    data) const;
 
     /**
      * \brief collects the entire tensor data on each process (not memory scalable)
      * \param[out] npair number of values in the tensor
      * \param[out] data pointer to the data of the entire tensor
      */
-    void get_all_data(int64_t * npair, dtype ** data) const;
+    void get_all_data(int64_t * npair, 
+                      dtype **  data) const;
 
     /**
      * \brief sparse add: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
@@ -202,23 +279,25 @@ class tCTF_Tensor {
      * \param[in] data values to add to the tensor
      */
     void add_remote_data(int64_t const    npair, 
-                         double const     alpha, 
-                         double const     beta,
+                         dtype const      alpha, 
+                         dtype const      beta,
                          int64_t const *  global_idx,
                          dtype const *    data);
 
     /**
      * \brief sets all values in the tensor to val
      */
-    tCTF_Tensor& operator=(const dtype val);
+    tCTF_Tensor& operator=(dtype const val);
     
     /**
      * \brief associated an index map with the tensor for future operation
+     * \param[in] idx_map_ index assignment for this tensor
      */
-    tCTF_Idx_Tensor<dtype>& operator[](const char * idx_map_);
+    tCTF_Idx_Tensor<dtype>& operator[](char const * idx_map_);
     
     /**
      * \brief prints tensor data to file using process 0
+     * \param[in] fp file to print to e.g. stdout
      */
     void print(FILE * fp) const;
 
@@ -309,8 +388,10 @@ tCTF_Idx_Tensor<dtype>& operator*(double d, tCTF_Idx_Tensor<dtype>& tsr){
   return tsr*d;
 }
 
-template tCTF_Idx_Tensor<double>& operator*(double d, tCTF_Idx_Tensor<double> & tsr);
-template tCTF_Idx_Tensor< std::complex<double> >& operator*(double  d, tCTF_Idx_Tensor< std::complex<double> > & tsr);
+template tCTF_Idx_Tensor<double>& 
+            operator*(double d, tCTF_Idx_Tensor<double> & tsr);
+template tCTF_Idx_Tensor< std::complex<double> >& 
+            operator*(double  d, tCTF_Idx_Tensor< std::complex<double> > & tsr);
 
 
 /**
@@ -402,16 +483,23 @@ class tCTF_Idx_Tensor {
 
 };
 
-typedef tCTF<double> CTF;
-typedef tCTF_Tensor<double> CTF_Tensor;
-typedef tCTF_Matrix<double> CTF_Matrix;
-typedef tCTF_Vector<double> CTF_Vector;
-typedef tCTF_Scalar<double> CTF_Scalar;
-typedef tCTF_World<double> CTF_World;
-typedef tCTF< std::complex<double> > cCTF;
+/* these typedefs yield a non-tempalated interface for double and complex<double> */
+typedef tCTF<double>                        CTF;
+typedef tCTF_Tensor<double>                 CTF_Tensor;
+typedef tCTF_Matrix<double>                 CTF_Matrix;
+typedef tCTF_Vector<double>                 CTF_Vector;
+typedef tCTF_Scalar<double>                 CTF_Scalar;
+typedef tCTF_World<double>                  CTF_World;
+typedef tCTF_fscl<double>                   CTF_fscl;
+typedef tCTF_fsum<double>                   CTF_fsum;
+typedef tCTF_fctr<double>                   CTF_fctr;
+typedef tCTF< std::complex<double> >        cCTF;
 typedef tCTF_Tensor< std::complex<double> > cCTF_Tensor;
 typedef tCTF_Matrix< std::complex<double> > cCTF_Matrix;
 typedef tCTF_Vector< std::complex<double> > cCTF_Vector;
 typedef tCTF_Scalar< std::complex<double> > cCTF_Scalar;
-typedef tCTF_World< std::complex<double> > cCTF_World;
+typedef tCTF_World< std::complex<double> >  cCTF_World;
+typedef tCTF_fscl< std::complex<double> >   cCTF_fscl;
+typedef tCTF_fsum< std::complex<double> >   cCTF_fsum;
+typedef tCTF_fctr< std::complex<double> >   cCTF_fctr;
 #endif

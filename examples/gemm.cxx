@@ -36,19 +36,20 @@ void gemm(int const  m,
   if (rank == 0)
     printf("tensor creation succeed\n");
 
+  srand48(13*rank);
   //* Writes noise to local data based on global index
   A.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
   B.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(.33+indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   B.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
   C.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(.66+indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   C.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);

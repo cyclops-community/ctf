@@ -1,41 +1,45 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __SYM_SEQ_CTR_REF_HXX__
-#define __SYM_SEQ_CTR_REF_HXX__
+#ifndef __SYM_SEQ_CTR_CUST_HXX__
+#define __SYM_SEQ_CTR_CUST_HXX__
 
 #include "../shared/util.h"
 #include <limits.h>
 #include "sym_seq_shared.hxx"
+#include "../dist_tensor/cyclopstf.hpp"
+
 
 /**
  * \brief performs symmetric contraction
  */
 template<typename dtype>
-int sym_seq_ctr_ref( dtype const        alpha,
-                     dtype const *      A,
-                     int const          ndim_A,
-                     int const *        edge_len_A,
-                     int const *        _lda_A,
-                     int const *        sym_A,
-                     int const *        idx_map_A,
-                     dtype const *      B,
-                     int const          ndim_B,
-                     int const *        edge_len_B,
-                     int const *        _lda_B,
-                     int const *        sym_B,
-                     int const *        idx_map_B,
-                     dtype const        beta,
-                     dtype *            C,
-                     int const          ndim_C,
-                     int const *        edge_len_C,
-                     int const *        _lda_C,
-                     int const *        sym_C,
-                     int const *        idx_map_C){
-  TAU_FSTART(sym_seq_ctr_ref);
-  int idx, i, idx_max, imin, imax, sz, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
+int sym_seq_ctr_cust(dtype const          alpha,
+                     dtype const *        A,
+                     int const            ndim_A,
+                     int const *          edge_len_A,
+                     int const *          _lda_A,
+                     int const *          sym_A,
+                     int const *          idx_map_A,
+                     dtype const *        B,
+                     int const            ndim_B,
+                     int const *          edge_len_B,
+                     int const *          _lda_B,
+                     int const *          sym_B,
+                     int const *          idx_map_B,
+                     dtype const          beta,
+                     dtype *              C,
+                     int const            ndim_C,
+                     int const *          edge_len_C,
+                     int const *          _lda_C,
+                     int const *          sym_C,
+                     int const *          idx_map_C,
+                     fseq_elm_ctr<dtype>* prm){
+  TAU_FSTART(sym_seq_ctr_cust);
+  int idx, i, idx_max, imin, imax, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
   int off_idx, off_lda, sym_pass;
   int * idx_glb, * rev_idx_map;
   int * dlen_A, * dlen_B, * dlen_C;
+  int64_t sz;
 
   inv_idx(ndim_A,       idx_map_A,
           ndim_B,       idx_map_B,
@@ -52,7 +56,6 @@ int sym_seq_ctr_ref( dtype const        alpha,
   idx_glb = (int*)malloc(sizeof(int)*idx_max);
   memset(idx_glb, 0, sizeof(int)*idx_max);
 
-
   /* Scale C immediately. FIXME: wrong for iterators over subset of C */
   if (beta != get_one<dtype>()) {
     sz = sy_packed_size(ndim_C, edge_len_C, sym_C);
@@ -60,12 +63,14 @@ int sym_seq_ctr_ref( dtype const        alpha,
       C[i] = C[i]*beta;
     }
   }
+
   idx_A = 0, idx_B = 0, idx_C = 0;
   sym_pass = 1;
   for (;;){
     //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
-    if (sym_pass)
-      C[idx_C] += alpha*A[idx_A]*B[idx_B];
+    if (sym_pass){
+      (*(prm->func_ptr))(alpha, A[idx_A], B[idx_B], C[idx_C]);
+    }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 
     for (idx=0; idx<idx_max; idx++){
@@ -95,6 +100,7 @@ int sym_seq_ctr_ref( dtype const        alpha,
     CHECK_SYM(C);
     if (!sym_pass) continue;
     
+
     if (ndim_A > 0)
       RESET_IDX(A);
     if (ndim_B > 0)
@@ -107,9 +113,10 @@ int sym_seq_ctr_ref( dtype const        alpha,
   free(dlen_C);
   free(idx_glb);
   free(rev_idx_map);
-  TAU_FSTOP(sym_seq_ctr_ref);
+  TAU_FSTOP(sym_seq_ctr_cust);
   return 0;
 }
+
 
 
 

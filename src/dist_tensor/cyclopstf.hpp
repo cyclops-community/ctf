@@ -96,7 +96,7 @@ enum CTF_MACHINE { MACHINE_GENERIC, MACHINE_BGP, MACHINE_BGQ,
    cannot typedef. */
 template<typename dtype>
 struct fseq_tsr_scl {
-  /* Function signature for sub-tensor summation recrusive call */
+  /* Function signature for sub-tensor scale recrusive call */
   int  (*func_ptr) ( dtype const        alpha,
                      dtype *            A,
                      int const          ndim_A,
@@ -105,7 +105,15 @@ struct fseq_tsr_scl {
                      int const *        sym_A,
                      int const *        idx_map_A);
 };
-    /* Function signature for sub-tensor summation recrusive call */
+
+/* custom element-wise function for tensor scale */
+template<typename dtype>
+struct fseq_elm_scl {
+  void  (*func_ptr)(dtype const alpha, 
+                    dtype &     a);
+};
+
+/* Function signature for sub-tensor summation recrusive call */
 template<typename dtype>
 struct fseq_tsr_sum {
   int  (*func_ptr) ( dtype const          alpha,
@@ -122,6 +130,14 @@ struct fseq_tsr_sum {
                      int const *          lda_B,
                      int const *          sym_B,
                      int const *          idx_map_B);
+};
+
+/* custom element-wise function for tensor sum */
+template<typename dtype>
+struct fseq_elm_sum {
+  void  (*func_ptr)(dtype const alpha, 
+                    dtype const a,
+                    dtype &     b);
 };
 
 
@@ -149,6 +165,15 @@ struct fseq_tsr_ctr {
                        int const *      lda_C,
                        int const *      sym_C,
                        int const *      idx_map_C);
+};
+
+/* custom element-wise function for tensor sum */
+template<typename dtype>
+struct fseq_elm_ctr {
+  void  (*func_ptr)(dtype const alpha, 
+                    dtype const a, 
+                    dtype const b,
+                    dtype &     c);
 };
 
 template<typename dtype>
@@ -242,8 +267,8 @@ class tCTF{
        global index for the value. */
     int write_tensor(int const                tensor_id,
                      int64_t const            num_pair,
-                     double const             alpha,
-                     double const             beta,
+                     dtype const              alpha,
+                     dtype const              beta,
                      tkv_pair<dtype> * const  mapped_data);
 
 
@@ -275,24 +300,19 @@ class tCTF{
                  dtype const            beta);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
-       accepts custom-sized buffer-space,
-       uses standard symmetric contraction sequential kernel */
-    int contract(CTF_ctr_type_t const * type,
-                 dtype *                buffer,
-                 int const              buffer_len,
-                 dtype const            alpha,
-                 dtype const            beta);
-
-    /* contracts tensors alpha*A*B + beta*C -> C,
-       accepts custom-sized buffer-space (set to NULL for dynamic allocs),
        seq_func used to perform sequential op */
     int contract(CTF_ctr_type_t const *     type,
-                 dtype *                    buffer,
-                 int const                  buffer_len,
                  fseq_tsr_ctr<dtype> const  func_ptr,
                  dtype const                alpha,
                  dtype const                beta,
                  int const                  map_inner = 0);
+    
+    /* contracts tensors alpha*A*B + beta*C -> C,
+       seq_func used to perform element-wise sequential op */
+    int contract(CTF_ctr_type_t const *     type,
+                 fseq_elm_ctr<dtype> const  felm,
+                 dtype const                alpha,
+                 dtype const                beta);
 
     /* DAXPY: a*A + B -> B. */
     int sum_tensors(dtype const  alpha,
@@ -318,7 +338,15 @@ class tCTF{
                     dtype const               alpha,
                     dtype const               beta,
                     fseq_tsr_sum<dtype> const func_ptr);
-
+    
+    /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
+    int sum_tensors(dtype const               alpha,
+                    dtype const               beta,
+                    int const                 tid_A,
+                    int const                 tid_B,
+                    int const *               idx_map_A,
+                    int const *               idx_map_B,
+                    fseq_elm_sum<dtype> const felm);
 
     /* copy A into B. Realloc if necessary */
     int copy_tensor(int const tid_A, int const tid_B);
@@ -336,6 +364,12 @@ class tCTF{
                      int const                  tid,
                      int const *                idx_map_A,
                      fseq_tsr_scl<dtype> const  func_ptr);
+    
+    /* scale tensor by alpha. A <- a*A */
+    int scale_tensor(dtype const                alpha,
+                     int const                  tid,
+                     int const *                idx_map_A,
+                     fseq_elm_scl<dtype> const  felm);
     
     /* aligns tensor mapping of tid_A to that of tid_B */
     int align(int const    tid_A,   
@@ -414,7 +448,6 @@ class tCTF{
                int const          tid_B,
                dtype const        BETA,
                int const          tid_C);
-
 
 };
 

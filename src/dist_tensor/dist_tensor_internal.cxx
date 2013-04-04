@@ -535,7 +535,9 @@ seq_tsr_ctr<dtype>::seq_tsr_ctr(ctr<dtype> * other) : ctr<dtype>(other) {
 
   is_inner      = o->is_inner;
   inner_params  = o->inner_params;
-
+  is_custom     = o->is_custom;
+  custom_params = o->custom_params;
+  
   func_ptr = o->func_ptr;
 }
 
@@ -556,7 +558,31 @@ long_int seq_tsr_ctr<dtype>::mem_fp(){ return 0; }
  */
 template<typename dtype>
 void seq_tsr_ctr<dtype>::run(){
-  if (is_inner){
+  if (is_custom){
+    LIBT_ASSERT(is_inner == 0);
+    sym_seq_ctr_cust(
+                    this->alpha,
+                    this->A,
+                    ndim_A,
+                    edge_len_A,
+                    edge_len_A,
+                    sym_A,
+                    idx_map_A,
+                    this->B,
+                    ndim_B,
+                    edge_len_B,
+                    edge_len_B,
+                    sym_B,
+                    idx_map_B,
+                    this->beta,
+                    this->C,
+                    ndim_C,
+                    edge_len_C,
+                    edge_len_C,
+                    sym_C,
+                    idx_map_C,
+                    &custom_params);
+  } else if (is_inner){
     sym_seq_ctr_inr(this->alpha,
                     this->A,
                     ndim_A,
@@ -740,8 +766,8 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
 template<typename dtype>
 int dist_tensor<dtype>::write_pairs(int const           tensor_id, 
                                     long_int const      num_pair,  
-                                    double const        alpha,  
-                                    double const        beta,  
+                                    dtype const         alpha,  
+                                    dtype const         beta,  
                                     tkv_pair<dtype> *   mapped_data, 
                                     char const          rw){
   int i, num_virt, need_pad;

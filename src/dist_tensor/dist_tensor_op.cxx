@@ -329,14 +329,16 @@ int dist_tensor<double>::
  * \param[in] alpha scaling factor
  * \param[in] tid tensor handle
  * \param[in] idx_map indexer to the tensor
- * \param[in] func_ptr pointer to sequential scale function
+ * \param[in] ftsr pointer to sequential block scale function
+ * \param[in] felm pointer to sequential element-wise scale function
  */
 template<typename dtype>
 int dist_tensor<dtype>::
      scale_tsr(dtype const                alpha,
                int const                  tid,
                int const *                idx_map,
-               fseq_tsr_scl<dtype> const  func_ptr){
+               fseq_tsr_scl<dtype> const  ftsr,
+               fseq_elm_scl<dtype> const  felm){
   int st, is_top, ndim_tot, iA, nvirt, i, ret, was_padded, was_cyclic, itopo;
   long_int blk_sz, vrt_sz, old_size;
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda,
@@ -472,12 +474,14 @@ int dist_tensor<dtype>::
   } else {
     *rec_scl = sclseq;
   }
-  sclseq->alpha   = alpha;
-  sclseq->ndim    = tsr->ndim;
-  sclseq->idx_map = idx_map;
-  sclseq->edge_len  = virt_blk_len;
-  sclseq->sym   = tsr->sym;
-  sclseq->func_ptr  = func_ptr;
+  sclseq->alpha         = alpha;
+  sclseq->ndim          = tsr->ndim;
+  sclseq->idx_map       = idx_map;
+  sclseq->edge_len      = virt_blk_len;
+  sclseq->sym           = tsr->sym;
+  sclseq->func_ptr      = ftsr;
+  sclseq->custom_params = felm;
+  sclseq->is_custom     = (felm.func_ptr != NULL);
 
   hscl->A   = tsr->data;
   hscl->alpha   = alpha;
@@ -507,19 +511,21 @@ int dist_tensor<dtype>::
  * \param[in] idx_A handle to tensor A
  * \param[in] tid_B handle to tensor B
  * \param[in] idx_B handle to tensor B
- * \param[in] func_ptr sequential funciton pointer
+ * \param[in] ftsr pointer to sequential block sum function
+ * \param[in] felm pointer to sequential element-wise sum function
  * \return tsum summation class to run
 */
 template<typename dtype>
 tsum<dtype> * dist_tensor<dtype>::
-    construct_sum(dtype const     alpha,
-      dtype const   beta,
-      int const     tid_A,
-      int const *   idx_A,
-      int const     tid_B,
-      int const *   idx_B,
-      fseq_tsr_sum<dtype> const func_ptr,
-      int const   inner_stride){
+    construct_sum(dtype const                 alpha,
+                  dtype const                 beta,
+                  int const                   tid_A,
+                  int const *                 idx_A,
+                  int const                   tid_B,
+                  int const *                 idx_B,
+                  fseq_tsr_sum<dtype> const   ftsr,
+                  fseq_elm_sum<dtype> const   felm,
+                  int const                   inner_stride){
   int nvirt, i, iA, iB, ndim_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
   long_int blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
   int nphys_dim;
@@ -765,18 +771,20 @@ tsum<dtype> * dist_tensor<dtype>::
   } else {
     *rec_tsum = tsumseq;
   }
-  tsumseq->ndim_A   = tsr_A->ndim;
-  tsumseq->idx_map_A  = idx_A;
-  tsumseq->edge_len_A = virt_blk_len_A;
-  tsumseq->sym_A  = new_sym_A;
-  tsumseq->ndim_B = tsr_B->ndim;
-  tsumseq->idx_map_B  = idx_B;
-  tsumseq->edge_len_B = virt_blk_len_B;
-  tsumseq->sym_B  = new_sym_B;
-  tsumseq->func_ptr = func_ptr;
+  tsumseq->ndim_A         = tsr_A->ndim;
+  tsumseq->idx_map_A      = idx_A;
+  tsumseq->edge_len_A     = virt_blk_len_A;
+  tsumseq->sym_A          = new_sym_A;
+  tsumseq->ndim_B         = tsr_B->ndim;
+  tsumseq->idx_map_B      = idx_B;
+  tsumseq->edge_len_B     = virt_blk_len_B;
+  tsumseq->sym_B          = new_sym_B;
+  tsumseq->func_ptr       = ftsr;
+  tsumseq->custom_params  = felm;
+  tsumseq->is_custom      = (felm.func_ptr != NULL);
 
-  htsum->A  = tsr_A->data;
-  htsum->B  = tsr_B->data;
+  htsum->A      = tsr_A->data;
+  htsum->B      = tsr_B->data;
   htsum->alpha  = alpha;
   htsum->beta   = beta;
 
@@ -793,9 +801,8 @@ tsum<dtype> * dist_tensor<dtype>::
  * \brief contracts tensors alpha*A*B+beta*C -> C.
  *  seq_func needed to perform sequential op
  * \param[in] type the contraction type (defines contraction actors)
- * \param[in] buffer the buffer space to use, or NULL to allocate
- * \param[in] buffer_len length of buffer
- * \param[in] func_ptr sequential ctr func pointer
+ * \param[in] ftsr pointer to sequential block contract function
+ * \param[in] felm pointer to sequential element-wise contract function
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  * \param[in] is_inner whether the tensors have two levels of blocking
@@ -806,15 +813,14 @@ tsum<dtype> * dist_tensor<dtype>::
  */
 template<typename dtype>
 ctr<dtype> * dist_tensor<dtype>::
-    construct_contraction(CTF_ctr_type_t const * type,
-        dtype *     buffer,
-        int const   buffer_len,
-        fseq_tsr_ctr<dtype> func_ptr,
-        dtype const   alpha,
-        dtype const   beta,
-        int const   is_inner,
-        iparam const *    inner_params,
-        int *     nvirt_all){
+    construct_contraction(CTF_ctr_type_t const *      type,
+                          fseq_tsr_ctr<dtype> const   ftsr,
+                          fseq_elm_ctr<dtype> const   felm,
+                          dtype const                 alpha,
+                          dtype const                 beta,
+                          int const                   is_inner,
+                          iparam const *              inner_params,
+                          int *                       nvirt_all){
   int num_tot, i, i_A, i_B, i_C, is_top, j, nphys_dim, nstep, k;
   long_int nvirt;
   long_int blk_sz_A, blk_sz_B, blk_sz_C;
@@ -1423,7 +1429,7 @@ ctr<dtype> * dist_tensor<dtype>::
   }
   if (!is_inner){
     ctrseq->is_inner  = 0;
-    ctrseq->func_ptr  = func_ptr;
+    ctrseq->func_ptr  = ftsr;
   } else if (is_inner == 1) {
     ctrseq->is_inner    = 1;
     ctrseq->inner_params  = *inner_params;
@@ -1529,19 +1535,21 @@ ctr<dtype> * dist_tensor<dtype>::
       }
     }
   }
-  ctrseq->alpha   = alpha;
-  ctrseq->ndim_A  = tsr_A->ndim;
-  ctrseq->idx_map_A = type->idx_map_A;
-  ctrseq->edge_len_A  = virt_blk_len_A;
-  ctrseq->sym_A   = new_sym_A;
-  ctrseq->ndim_B  = tsr_B->ndim;
-  ctrseq->idx_map_B = type->idx_map_B;
-  ctrseq->edge_len_B  = virt_blk_len_B;
-  ctrseq->sym_B   = new_sym_B;
-  ctrseq->ndim_C  = tsr_C->ndim;
-  ctrseq->idx_map_C = type->idx_map_C;
-  ctrseq->edge_len_C  = virt_blk_len_C;
-  ctrseq->sym_C   = new_sym_C;
+  ctrseq->alpha         = alpha;
+  ctrseq->ndim_A        = tsr_A->ndim;
+  ctrseq->idx_map_A     = type->idx_map_A;
+  ctrseq->edge_len_A    = virt_blk_len_A;
+  ctrseq->sym_A         = new_sym_A;
+  ctrseq->ndim_B        = tsr_B->ndim;
+  ctrseq->idx_map_B     = type->idx_map_B;
+  ctrseq->edge_len_B    = virt_blk_len_B;
+  ctrseq->sym_B         = new_sym_B;
+  ctrseq->ndim_C        = tsr_C->ndim;
+  ctrseq->idx_map_C     = type->idx_map_C;
+  ctrseq->edge_len_C    = virt_blk_len_C;
+  ctrseq->sym_C         = new_sym_C;
+  ctrseq->custom_params = felm;
+  ctrseq->is_custom     = (felm.func_ptr != NULL);
 
   hctr->A   = tsr_A->data;
   hctr->B   = tsr_B->data;
@@ -1589,7 +1597,8 @@ ctr<dtype> * dist_tensor<dtype>::
  * \param[in] tid_B tensor handle to B
  * \param[in] idx_map_A index map of A
  * \param[in] idx_map_B index map of B
- * \param[in] func_ptr sequential ctr func pointer
+ * \param[in] ftsr pointer to sequential block sum function
+ * \param[in] felm pointer to sequential element-wise sum function
  * \param[in] run_diag if 1 run diagonal sum
  */
 template<typename dtype>
@@ -1599,7 +1608,8 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
                                      int const      tid_B,
                                      int const *    idx_map_A,
                                      int const *    idx_map_B,
-                                     fseq_tsr_sum<dtype> const  func_ptr,
+                                     fseq_tsr_sum<dtype> const  ftsr,
+                                     fseq_elm_sum<dtype> const  felm,
                                      int const      run_diag){
   int stat, new_tid, * new_idx_map;
   int * map_A, * map_B, * dstack_tid_B;
@@ -1633,7 +1643,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
   }
   if (ntid_A == ntid_B){
     clone_tensor(ntid_A, 1, &new_tid);
-    stat = sum_tensors(alpha_, beta, new_tid, ntid_B, map_A, map_B, func_ptr);
+    stat = sum_tensors(alpha_, beta, new_tid, ntid_B, map_A, map_B, ftsr, felm);
     del_tsr(new_tid);
     return stat;
   }
@@ -1692,22 +1702,22 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
   /* Construct the tensor algorithm we would like to use */
   LIBT_ASSERT(check_sum_mapping(ntid_A, map_A, ntid_B, map_B));
 #if FOLD_TSR
-  if (can_fold(&type)){
+  if (felm.func_ptr == NULL && can_fold(&type)){
     int inner_stride;
     TAU_FSTART(map_fold);
     stat = map_fold(&type, &inner_stride);
     TAU_FSTOP(map_fold);
     if (stat == DIST_TENSOR_SUCCESS){
       sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
-                            func_ptr, inner_stride);
+                            ftsr, felm, inner_stride);
     } else
       return DIST_TENSOR_ERROR;
   } else
     sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
-                          func_ptr);
+                         ftsr, felm);
 #else
   sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
-                        func_ptr);
+                       ftsr, felm);
 #endif
   /*TAU_FSTART(zero_sum_padding);
   stat = zero_out_padding(ntid_A);
@@ -1794,18 +1804,16 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
         Accepts custom-sized buffer-space (set to NULL for dynamic allocs).
  *      seq_func used to perform sequential op
  * \param[in] type the contraction type (defines contraction actors)
- * \param[in] buffer the buffer space to use, or NULL to allocate
- * \param[in] buffer_len length of buffer
- * \param[in] func_ptr sequential ctr func pointer
+ * \param[in] ftsr pointer to sequential block contract function
+ * \param[in] felm pointer to sequential element-wise contract function
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  */
 template<typename dtype>
 int dist_tensor<dtype>::
      sym_contract(CTF_ctr_type_t const *    stype,
-                  dtype *                   buffer,
-                  int const                 buffer_len,
-                  fseq_tsr_ctr<dtype> const func_ptr,
+                  fseq_tsr_ctr<dtype> const ftsr,
+                  fseq_elm_ctr<dtype> const felm,
                   dtype const               alpha,
                   dtype const               beta,
                   int const                 map_inner){
@@ -1872,7 +1880,7 @@ int dist_tensor<dtype>::
     clone_tensor(ntid_A, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;
     new_type.tid_A = new_tid;
-    stat = sym_contract(&new_type, buffer, buffer_len, func_ptr, alpha, beta, map_inner);
+    stat = sym_contract(&new_type, ftsr, felm, alpha, beta, map_inner);
     del_tsr(new_tid);
     return stat;
   }
@@ -1880,7 +1888,7 @@ int dist_tensor<dtype>::
     clone_tensor(ntid_B, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;
     new_type.tid_B = new_tid;
-    stat = sym_contract(&new_type, buffer, buffer_len, func_ptr, alpha, beta, map_inner);
+    stat = sym_contract(&new_type, ftsr, felm, alpha, beta, map_inner);
     del_tsr(new_tid);
     return stat;
   }
@@ -1916,8 +1924,8 @@ int dist_tensor<dtype>::
 
     unfold_broken_sym(type, &unfold_type);
 #if PERFORM_DESYM
-    if (map_tensors(&unfold_type, buffer, buffer_len,
-                    func_ptr, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
+    if (map_tensors(&unfold_type, 
+                    ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
 #else
     int * sym, dim, sy;
     sy = 0;
@@ -1936,15 +1944,15 @@ int dist_tensor<dtype>::
     for (i=0; i<dim; i++){
       if (sym[i] == SY) sy = 1;
     }
-    if (sy && map_tensors(&unfold_type, buffer, buffer_len,
-                          func_ptr, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
+    if (sy && map_tensors(&unfold_type,
+                          ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
 #endif
       desymmetrize(ntid_A, unfold_type.tid_A, 0);
       desymmetrize(ntid_B, unfold_type.tid_B, 0);
       desymmetrize(ntid_C, unfold_type.tid_C, 1);
       if (global_comm->rank == 0)
         DPRINTF(1,"Performing index desymmetrization\n");
-      sym_contract(&unfold_type, buffer, buffer_len, func_ptr, 
+      sym_contract(&unfold_type, ftsr, felm,
                    alpha*alignfact, beta, map_inner);
       symmetrize(ntid_C, unfold_type.tid_C);
       unmap_inner(tensors[unfold_type.tid_A]);
@@ -1965,7 +1973,7 @@ int dist_tensor<dtype>::
                     //&nscl_C, &scl_maps_C, &scl_alpha_C);
       dbeta = beta;
       for (i=0; i<(int)perm_types.size(); i++){
-        contract(&perm_types[i], buffer, buffer_len, func_ptr,
+        contract(&perm_types[i], ftsr, felm,
                   signs[i], dbeta, map_inner);
         free_type(&perm_types[i]);
         dbeta = 1.0;
@@ -1974,7 +1982,7 @@ int dist_tensor<dtype>::
       signs.clear();
     }
   } else {
-    contract(type, buffer, buffer_len, func_ptr, alpha*alignfact*ocfact, beta, map_inner);
+    contract(type, ftsr, felm, alpha*alignfact*ocfact, beta, map_inner);
   }
   if (ntid_A != type->tid_A) del_tsr(ntid_A);
   if (ntid_B != type->tid_B) del_tsr(ntid_B);
@@ -1993,21 +2001,19 @@ int dist_tensor<dtype>::
         Accepts custom-sized buffer-space (set to NULL for dynamic allocs).
  *      seq_func used to perform sequential op
  * \param[in] type the contraction type (defines contraction actors)
- * \param[in] buffer the buffer space to use, or NULL to allocate
- * \param[in] buffer_len length of buffer
- * \param[in] func_ptr sequential ctr func pointer
+ * \param[in] ftsr pointer to sequential block contract function
+ * \param[in] felm pointer to sequential element-wise contract function
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  */
 template<typename dtype>
 int dist_tensor<dtype>::
-     contract(CTF_ctr_type_t const *  type,
-              dtype *       buffer,
-              int const     buffer_len,
-              fseq_tsr_ctr<dtype> const func_ptr,
-              dtype const     alpha,
-              dtype const     beta,
-              int const     map_inner){
+     contract(CTF_ctr_type_t const *      type,
+              fseq_tsr_ctr<dtype> const   ftsr,
+              fseq_elm_ctr<dtype> const   felm,
+              dtype const                 alpha,
+              dtype const                 beta,
+              int const                   map_inner){
   int stat, new_tid;
   long_int membytes;
   ctr<dtype> * ctrf;
@@ -2020,7 +2026,7 @@ int dist_tensor<dtype>::
     clone_tensor(type->tid_A, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;
     new_type.tid_A = new_tid;
-    stat = contract(&new_type, buffer, buffer_len, func_ptr, alpha, beta, map_inner);
+    stat = contract(&new_type, ftsr, felm, alpha, beta, map_inner);
     del_tsr(new_tid);
     return stat;
   }
@@ -2028,7 +2034,7 @@ int dist_tensor<dtype>::
     clone_tensor(type->tid_B, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;
     new_type.tid_B = new_tid;
-    stat = contract(&new_type, buffer, buffer_len, func_ptr, alpha, beta, map_inner);
+    stat = contract(&new_type, ftsr, felm, alpha, beta, map_inner);
     del_tsr(new_tid);
     return stat;
   }
@@ -2060,7 +2066,7 @@ int dist_tensor<dtype>::
 #endif
   /* Check if the current tensor mappings can be contracted on */
 #if REDIST
-  stat = map_tensors(type, buffer, buffer_len, func_ptr, alpha, beta, &ctrf);
+  stat = map_tensors(type, ftsr, felm, alpha, beta, &ctrf);
   if (stat == DIST_TENSOR_ERROR) {
     printf("Failed to map tensors to physical grid\n");
     return DIST_TENSOR_ERROR;
@@ -2068,7 +2074,7 @@ int dist_tensor<dtype>::
 #else
   if (check_contraction_mapping(type) == 0) {
     /* remap if necessary */
-    stat = map_tensors(type, buffer, buffer_len, func_ptr, alpha, beta, &ctrf);
+    stat = map_tensors(type, ftsr, felm, alpha, beta, &ctrf);
     if (stat == DIST_TENSOR_ERROR) {
       printf("Failed to map tensors to physical grid\n");
       return DIST_TENSOR_ERROR;
@@ -2082,13 +2088,12 @@ int dist_tensor<dtype>::
     print_map(stdout, type->tid_B);
     print_map(stdout, type->tid_C);*/
 #endif
-    ctrf = construct_contraction(type, buffer, buffer_len,
-                                 func_ptr, alpha, beta);
+    ctrf = construct_contraction(type, ftsr, felm, alpha, beta);
   }
 #endif
   LIBT_ASSERT(check_contraction_mapping(type));
 #if FOLD_TSR
-  if (map_inner && can_fold(type)){
+  if (felm.func_ptr == NULL && map_inner && can_fold(type)){
     iparam prm;
     TAU_FSTART(map_fold);
     stat = map_fold(type, &prm);
@@ -2098,8 +2103,7 @@ int dist_tensor<dtype>::
     }
     if (stat == DIST_TENSOR_SUCCESS){
       delete ctrf;
-      ctrf = construct_contraction(type, buffer, buffer_len,
-               func_ptr, alpha, beta, 2, &prm);
+      ctrf = construct_contraction(type, ftsr, felm, alpha, beta, 2, &prm);
     }
   }
 #endif
@@ -2114,8 +2118,7 @@ int dist_tensor<dtype>::
     }
     if (stat == DIST_TENSOR_SUCCESS){
       delete ctrf;
-      ctrf = construct_contraction(type, buffer, buffer_len,
-               func_ptr, alpha, beta, 1, &prm);
+      ctrf = construct_contraction(type, ftsr, felm, alpha, beta, 1, &prm);
     }
   }
 #endif

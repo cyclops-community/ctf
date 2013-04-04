@@ -1055,11 +1055,13 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
         }
         fseq_tsr_sum<dtype> fs;
         fs.func_ptr=sym_seq_sum_ref<dtype>;
+        fseq_elm_sum<dtype> felm;
+        felm.func_ptr=NULL;
         if (rw){
           define_tensor(tensors[tid]->ndim-1, edge_len, sym, tid_new, 1);
-          sum_tensors(1.0, 0.0, tid, *tid_new, ex_idx_map, diag_idx_map, fs, 1);
+          sum_tensors(1.0, 0.0, tid, *tid_new, ex_idx_map, diag_idx_map, fs, felm, 1);
         } else {
-          sum_tensors(1.0, 0.0, *tid_new, tid, diag_idx_map, ex_idx_map, fs, 1);
+          sum_tensors(1.0, 0.0, *tid_new, tid, diag_idx_map, ex_idx_map, fs, felm, 1);
           free(*idx_map_new);
         }
         free(edge_len), free(sym), free(ex_idx_map), free(diag_idx_map);

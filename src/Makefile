@@ -30,7 +30,6 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     shared/memcontrol.o \
                     shared/unit_util.o \
                     dist_tensor/cyclopstf.o \
-                    dist_tensor/dist_tensor.o \
                     unit_test/unit_test.o 
 
 INCLUDES += -I${top_dir}/src/ctr_comm -I${top_dir}/src/ctr_seq -I${top_dir}/src/dist_tensor -I${top_dir}/src/util -I${top_dir}/src/interface

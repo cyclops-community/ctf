@@ -240,8 +240,8 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
 template<typename dtype>
 int tCTF<dtype>::write_tensor(int const               tensor_id, 
                               int64_t const           num_pair,  
-                              double const            alpha,
-                              double const            beta,
+                              dtype const             alpha,
+                              dtype const             beta,
                               tkv_pair<dtype> * const mapped_data){
   return dt->write_pairs(tensor_id, num_pair, alpha, beta, mapped_data, 'w');
 }
@@ -324,45 +324,21 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *  type,
                           dtype const             beta){
   fseq_tsr_ctr<dtype> fs;
   fs.func_ptr=sym_seq_ctr_ref<dtype>;
-  return contract(type, NULL, 0, fs, alpha, beta, 1);
+  return contract(type, fs, alpha, beta, 1);
 }
 
-/**
- * \brief contracts tensors alpha*A*B+beta*C -> C,
- *      accepts custom-sized buffer-space,
- *      uses standard symmetric contraction sequential kernel 
- * \param[in] type the contraction type (defines contraction actors)
- * \param[in] buffer the buffer space to use, or NULL to allocate
- * \param[in] buffer_len length of buffer 
- * \param[in] alpha scaling factor for A*B
- * \param[in] beta scaling factor for C
- */
-template<typename dtype>
-int tCTF<dtype>::contract(CTF_ctr_type_t const *  type,
-                          dtype *                 buffer, 
-                          int const               buffer_len, 
-                          dtype const             alpha,
-                          dtype const             beta){
-  fseq_tsr_ctr<dtype> fs;
-  fs.func_ptr=sym_seq_ctr_ref<dtype>;
-  return contract(type, buffer, buffer_len, fs, alpha, beta, 1);
-}
 
 /**
  * \brief contracts tensors alpha*A*B+beta*C -> C. 
         Accepts custom-sized buffer-space (set to NULL for dynamic allocs).
- *      seq_func used to perform sequential op 
+ *      seq_func used to perform sequential block op 
  * \param[in] type the contraction type (defines contraction actors)
- * \param[in] buffer the buffer space to use, or NULL to allocate
- * \param[in] buffer_len length of buffer 
- * \param[in] func_ptr sequential ctr func pointer 
+ * \param[in] func_ptr sequential block ctr func pointer 
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  */
 template<typename dtype>
 int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
-                          dtype *                   buffer, 
-                          int const                 buffer_len, 
                           fseq_tsr_ctr<dtype> const func_ptr, 
                           dtype const               alpha,
                           dtype const               beta,
@@ -372,9 +348,35 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
     printf("Head contraction :\n");
   dt->print_ctr(type,alpha,beta);
 #endif
+  fseq_elm_ctr<dtype> felm;
+  felm.func_ptr = NULL;
 
-  return dt->sym_contract(type, buffer, buffer_len, func_ptr, alpha,
-                                      beta, map_inner);
+  return dt->sym_contract(type, func_ptr, felm, alpha, beta, map_inner);
+}
+    
+/**
+ * \brief contracts tensors alpha*A*B+beta*C -> C. 
+        Accepts custom-sized buffer-space (set to NULL for dynamic allocs).
+ *      seq_func used to perform elementwise sequential op 
+ * \param[in] type the contraction type (defines contraction actors)
+ * \param[in] felm sequential elementwise ctr func ptr
+ * \param[in] alpha scaling factor for A*B
+ * \param[in] beta scaling factor for C
+ */
+template<typename dtype>
+int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
+                          fseq_elm_ctr<dtype> const  felm,
+                          dtype const                alpha,
+                          dtype const                beta){
+#if DEBUG >= 1
+  if (dt->get_global_comm()->rank == 0)
+    printf("Head custom contraction :\n");
+  dt->print_ctr(type,alpha,beta);
+#endif
+  fseq_tsr_ctr<dtype> fs;
+  fs.func_ptr=sym_seq_ctr_ref<dtype>;
+  return dt->sym_contract(type, fs, felm, alpha, beta, 0);
+
 }
 
 /**
@@ -408,9 +410,10 @@ int tCTF<dtype>::scale_tensor(dtype const               alpha,
                               int const *               idx_map){
   fseq_tsr_scl<dtype> fs;
   fs.func_ptr=sym_seq_scl_ref<dtype>;
-  return dt->scale_tsr(alpha, tid, idx_map, fs);
+  fseq_elm_scl<dtype> felm;
+  felm.func_ptr = NULL;
+  return dt->scale_tsr(alpha, tid, idx_map, fs, felm);
 }
-
 
 /**
  * \brief scales a tensor by alpha iterating on idx_map
@@ -424,8 +427,27 @@ int tCTF<dtype>::scale_tensor(dtype const               alpha,
                               int const                 tid, 
                               int const *               idx_map,
                               fseq_tsr_scl<dtype> const func_ptr){
-    return dt->scale_tsr(alpha, tid, idx_map, func_ptr);
-  }
+  fseq_elm_scl<dtype> felm;
+  felm.func_ptr = NULL;
+  return dt->scale_tsr(alpha, tid, idx_map, func_ptr, felm);
+}
+
+/**
+ * \brief scales a tensor by alpha iterating on idx_map
+ * \param[in] alpha scaling factor
+ * \param[in] tid tensor handle
+ * \param[in] idx_map indexer to the tensor
+ * \param[in] felm pointer to sequential elemtwise scale function
+ */
+template<typename dtype>
+int tCTF<dtype>::scale_tensor(dtype const               alpha, 
+                              int const                 tid, 
+                              int const *               idx_map,
+                              fseq_elm_scl<dtype> const felm){
+  fseq_tsr_scl<dtype> fs;
+  fs.func_ptr=sym_seq_scl_ref<dtype>;
+  return dt->scale_tsr(alpha, tid, idx_map, fs, felm);
+}
 
   /**
    * \brief computes a dot product of two tensors A dot B
@@ -504,7 +526,7 @@ int tCTF<dtype>::sum_tensors(CTF_sum_type_t const *     type,
                              dtype const                beta,
                              fseq_tsr_sum<dtype> const  func_ptr){
   return sum_tensors(alpha, beta, type->tid_A, type->tid_B, 
-                                 type->idx_map_A, type->idx_map_B, func_ptr);
+                     type->idx_map_A, type->idx_map_B, func_ptr);
 
 }
 
@@ -526,7 +548,32 @@ int tCTF<dtype>::sum_tensors(dtype const                alpha,
                              int const *                idx_map_A,
                              int const *                idx_map_B,
                              fseq_tsr_sum<dtype> const  func_ptr){
-  return dt->sum_tensors(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr);
+  fseq_elm_sum<dtype> felm;
+  felm.func_ptr = NULL;
+  return dt->sum_tensors(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr, felm);
+}
+
+/**
+ * \brief DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). 
+ * \param[in] alpha scaling factor for A*B
+ * \param[in] beta scaling factor for C
+ * \param[in] tid_A tensor handle to A
+ * \param[in] tid_B tensor handle to B
+ * \param[in] idx_map_A index map of A
+ * \param[in] idx_map_B index map of B
+ * \param[in] func_ptr sequential ctr func pointer 
+ */
+template<typename dtype>
+int tCTF<dtype>::sum_tensors(dtype const                alpha,
+                             dtype const                beta,
+                             int const                  tid_A,
+                             int const                  tid_B,
+                             int const *                idx_map_A,
+                             int const *                idx_map_B,
+                             fseq_elm_sum<dtype> const  felm){
+  fseq_tsr_sum<dtype> fs;
+  fs.func_ptr=sym_seq_sum_ref<dtype>;
+  return dt->sum_tensors(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, fs, felm);
 }
 
 /**
@@ -707,7 +754,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   }
 #endif
 
-  ret = this->contract(&ct, NULL, 0, fs, ALPHA, BETA);
+  ret = this->contract(&ct, fs, ALPHA, BETA);
   (*tensors)[ct.tid_C]->need_remap = 0;
   if (ret != DIST_TENSOR_SUCCESS)
     return ret;
@@ -900,7 +947,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
     fs.func_ptr = &gemm_ctr<dtype,0,1>;
   else
     fs.func_ptr = &gemm_ctr<dtype,0,0>;
-  ret = this->contract(&ct, NULL, 0, fs, ALPHA, BETA);
+  ret = this->contract(&ct, fs, ALPHA, BETA);
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   (*tensors)[ct.tid_C]->need_remap = 0;
   return ret;
