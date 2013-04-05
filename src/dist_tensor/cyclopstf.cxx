@@ -174,7 +174,9 @@ int tCTF<dtype>::get_dimension(int const tensor_id, int *ndim) const{
  */
 template<typename dtype>
 int tCTF<dtype>::get_lengths(int const tensor_id, int **edge_len) const{
-  *edge_len = dt->get_edge_len(tensor_id);
+  int ndim, * sym;
+  dt->get_tsr_info(tensor_id, &ndim, edge_len, &sym);
+  free(sym);
   return DIST_TENSOR_SUCCESS;
 }
     

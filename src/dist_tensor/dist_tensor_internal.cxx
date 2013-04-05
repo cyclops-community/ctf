@@ -233,9 +233,19 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
 
   tsr->sym_table = (int*)calloc(ndim*ndim*sizeof(int),1);
   tsr->edge_map  = (mapping*)malloc(sizeof(mapping)*ndim);
+  
+  (*tensor_id) = tensors.size();
 
   /* initialize map array and symmetry table */
+#if DEBUG >= 3
+  if (global_comm->rank == 0)
+    printf("Tensor %d of dimension %d defined with edge lengths", *tensor_id, ndim);
+#endif
   for (i=0; i<ndim; i++){
+#if DEBUG >= 3
+    if (global_comm->rank == 0)
+      printf(" %d", edge_len[i]);
+#endif
     if (tsr->edge_len[i] <= 0) tsr->has_zero_edge_len = 1;
     tsr->edge_map[i].type       = NOT_MAPPED;
     tsr->edge_map[i].has_child  = 0;
@@ -245,8 +255,11 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
       tsr->sym_table[(i+1)*ndim+i] = 1;
     }
   }
+#if DEBUG >= 3
+  if (global_comm->rank == 0)
+    printf("\n");
+#endif
 
-  (*tensor_id) = tensors.size();
   tensors.push_back(tsr);
 
   /* Set tensor data to zero. */
@@ -359,7 +372,7 @@ dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, int64_t * size) {
  * \param[out] sym the symmetries of the tensor
  */
 template<typename dtype>
-int dist_tensor<dtype>::get_tsr_info( int const tensor_id,
+int dist_tensor<dtype>::get_tsr_info( int const         tensor_id,
                                       int *             ndim,
                                       int **            edge_len,
                                       int **            sym) const{
@@ -636,7 +649,7 @@ void seq_tsr_ctr<dtype>::run(){
 template<typename dtype>
 int dist_tensor<dtype>::clone_tensor( int const tensor_id,
                                       int const copy_data,
-                                      int *       new_tensor_id,
+                                      int *     new_tensor_id,
                                       int const alloc_data){
   int ndim, * edge_len, * sym;
   get_tsr_info(tensor_id, &ndim, &edge_len, &sym);

@@ -1691,13 +1691,13 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
       return DIST_TENSOR_ERROR;
     }
   } else {
-/*#if DEBUG >= 2
+#if DEBUG >= 2
     if (get_global_comm()->rank == 0){
       printf("Keeping mappings:\n");
     }
     print_map(stdout, ntid_A);
     print_map(stdout, ntid_B);
-#endif*/
+#endif
   }
   /* Construct the tensor algorithm we would like to use */
   LIBT_ASSERT(check_sum_mapping(ntid_A, map_A, ntid_B, map_B));
@@ -1726,14 +1726,16 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
   stat = zero_out_padding(ntid_B);
   TAU_FSTOP(zero_sum_padding);*/
   DEBUG_PRINTF("[%d] performing tensor sum\n", get_global_comm()->rank);
-/*  if (get_global_comm()->rank == 0){
+#if DEBUG >=3
+  if (get_global_comm()->rank == 0){
     for (int i=0; i<tensors[ntid_A]->ndim; i++){
       printf("padding[%d] = %d\n",i, tensors[ntid_A]->padding[i]);
     }
     for (int i=0; i<tensors[ntid_B]->ndim; i++){
       printf("padding[%d] = %d\n",i, tensors[ntid_B]->padding[i]);
     }
-  }*/
+  }
+#endif
 
   TAU_FSTART(sum_func);
   /* Invoke the contraction algorithm */
@@ -2082,11 +2084,11 @@ int dist_tensor<dtype>::
   } else {
     /* Construct the tensor algorithm we would like to use */
 #if DEBUG >= 2
-/*    if (get_global_comm()->rank == 0)
+    if (get_global_comm()->rank == 0)
       printf("Keeping mappings:\n");
     print_map(stdout, type->tid_A);
     print_map(stdout, type->tid_B);
-    print_map(stdout, type->tid_C);*/
+    print_map(stdout, type->tid_C);
 #endif
     ctrf = construct_contraction(type, ftsr, felm, alpha, beta);
   }
