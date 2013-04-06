@@ -1616,6 +1616,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const    alpha_,
   int ** dstack_map_B;
   int ntid_A, ntid_B, nst_B;
   tsum<dtype> * sumf;
+  check_sum(tid_A, tid_B, idx_map_A, idx_map_B);
   if (tensors[tid_A]->has_zero_edge_len || tensors[tid_B]->has_zero_edge_len){
     return DIST_TENSOR_SUCCESS;
   }
@@ -1833,6 +1834,7 @@ int dist_tensor<dtype>::
   std::vector<dtype> signs;
   dtype dbeta;
   ctr<dtype> * ctrf;
+  check_contraction(stype);
   if (tensors[type->tid_A]->has_zero_edge_len || tensors[type->tid_B]->has_zero_edge_len
       || tensors[type->tid_C]->has_zero_edge_len){
     return DIST_TENSOR_SUCCESS;

@@ -1745,6 +1745,122 @@ int dist_tensor<dtype>::print_sum(CTF_sum_type_t const * stype,
   return DIST_TENSOR_SUCCESS;
 }
 
+template<typename dtype>
+int dist_tensor<dtype>::check_contraction(CTF_ctr_type_t const * type){
+  int i, num_tot, len;
+  int iA, iB, iC;
+  int ndim_A, ndim_B, ndim_C;
+  int * len_A, * len_B, * len_C;
+  int * sym_A, * sym_B, * sym_C;
+  int * idx_arr;
+  
+  tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
+
+  tsr_A = tensors[type->tid_A];
+  tsr_B = tensors[type->tid_B];
+  tsr_C = tensors[type->tid_C];
+    
+
+  get_tsr_info(type->tid_A, &ndim_A, &len_A, &sym_A);
+  get_tsr_info(type->tid_B, &ndim_B, &len_B, &sym_B);
+  get_tsr_info(type->tid_C, &ndim_C, &len_C, &sym_C);
+  
+  inv_idx(tsr_A->ndim, type->idx_map_A, tsr_A->edge_map,
+          tsr_B->ndim, type->idx_map_B, tsr_B->edge_map,
+          tsr_C->ndim, type->idx_map_C, tsr_C->edge_map,
+          &num_tot, &idx_arr);
+
+  for (i=0; i<num_tot; i++){
+    len = -1;
+    iA = idx_arr[3*i+0];
+    iB = idx_arr[3*i+1];
+    iC = idx_arr[3*i+2];
+    if (iA != -1){
+      len = len_A[iA];
+    }
+    if (len != -1 && iB != -1 && len != len_B[iB]){
+      if (global_comm->rank == 0){
+        printf("Error in contraction call: The %dth edge length of tensor %d does not",
+                iA, type->tid_A);
+        printf("match the %dth edge length of tensor %d.\n",
+                iB, type->tid_B);
+      }
+      ABORT;
+    }
+    if (len != -1 && iC != -1 && len != len_C[iC]){
+      if (global_comm->rank == 0){
+        printf("Error in contraction call: The %dth edge length of tensor %d does not",
+                iA, type->tid_A);
+        printf("match the %dth edge length of tensor %d.\n",
+                iC, type->tid_C);
+      }
+      ABORT;
+    }
+    if (iB != -1){
+      len = len_B[iB];
+    }
+    if (len != -1 && iC != -1 && len != len_C[iC]){
+      if (global_comm->rank == 0){
+        printf("Error in contraction call: The %dth edge length of tensor %d does not",
+                iB, type->tid_B);
+        printf("match the %dth edge length of tensor %d.\n",
+                iC, type->tid_C);
+      }
+      ABORT;
+    }
+  }
+  return DIST_TENSOR_SUCCESS;
+}
+
+
+template<typename dtype>
+int dist_tensor<dtype>::check_sum(int const   tid_A, 
+                                  int const   tid_B, 
+                                  int const * idx_map_A, 
+                                  int const * idx_map_B){
+  int i, num_tot, len;
+  int iA, iB;
+  int ndim_A, ndim_B;
+  int * len_A, * len_B;
+  int * sym_A, * sym_B;
+  int * idx_arr;
+  
+  tensor<dtype> * tsr_A, * tsr_B;
+
+  tsr_A = tensors[tid_A];
+  tsr_B = tensors[tid_B];
+    
+
+  get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
+  get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
+  
+  inv_idx(tsr_A->ndim, idx_map_A, tsr_A->edge_map,
+          tsr_B->ndim, idx_map_B, tsr_B->edge_map,
+          &num_tot, &idx_arr);
+
+  for (i=0; i<num_tot; i++){
+    len = -1;
+    iA = idx_arr[2*i+0];
+    iB = idx_arr[2*i+1];
+    if (iA != -1){
+      len = len_A[iA];
+    }
+    if (len != -1 && iB != -1 && len != len_B[iB]){
+      if (global_comm->rank == 0){
+        printf("Error in sum call: The %dth edge length of tensor %d does not",
+                iA, tid_A);
+        printf("match the %dth edge length of tensor %d.\n",
+                iB, tid_B);
+      }
+      ABORT;
+    }
+  }
+  return DIST_TENSOR_SUCCESS;
+}
+
+
+
+
 
 #include "dist_tensor_map.cxx"
 #include "dist_tensor_op.cxx"

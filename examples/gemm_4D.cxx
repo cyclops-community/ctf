@@ -132,21 +132,20 @@ int main(int argc, char ** argv){
 
 
 
-  CTF_World dw;
 
   if (rank == 0){
     printf("Computing C_ijkl = A_ijmn*B_klmn\n");
     printf("Non-symmetric: NS = NS*NS gemm:\n");
   }
-  gemm_4D(n, NS, niter, dw, dir);
+  gemm_4D(n, NS, niter, dir);
   if (rank == 0){
     printf("Symmetric: SY = SY*SY gemm:\n");
   }
-  gemm_4D(n, SY, niter, dw, dir);
+  gemm_4D(n, SY, niter, dir);
   if (rank == 0){
     printf("(Anti-)Skew-symmetric: AS = AS*AS gemm:\n");
   }
-  gemm_4D(n, AS, niter, dw, dir);
+  gemm_4D(n, AS, niter, dir);
 
 
   MPI_Finalize();

@@ -297,6 +297,13 @@ class dist_tensor{
                                 fseq_elm_sum<dtype> const       felm,
                                 int const                       inr_str=-1);
 
+    int check_contraction(CTF_ctr_type_t const * type);
+
+    int check_sum(int const   tid_A, 
+                  int const   tid_B, 
+                  int const * idx_map_A, 
+                  int const * idx_map_B);
+
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(dtype const                 alpha,
                     dtype const                 beta,
