@@ -1,5 +1,6 @@
 include ../config.mk
-include ../rules.mk
+include ../src/make/make.in
+include ../src/make/rules.mk
 
 examples: fft fft_3D gemm gemm_4D trace sym3 ccsdt_t3_to_t2
 ccsdt_t3_to_t2: ${bindir}/ccsdt_t3_to_t2

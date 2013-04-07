@@ -2,17 +2,18 @@
 
 #include "unit_bench.h"
 #include "../shared/util.h"
+#include "ctf.hpp"
 
 /**
  * main for benchmarks
  */
 int main(int argc, char **argv){
-#ifdef CYCLIC_REPHASE
+/*#ifdef CYCLIC_REPHASE
   bench_cyclic_rephase(argc, argv);
 #endif
 #ifdef CONTRACT
   bench_contract(argc, argv);
-#endif
+#endif*/
 #ifdef SYMMETRY
   bench_symmetry(argc, argv);
 #endif	

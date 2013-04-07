@@ -1,19 +1,17 @@
 DEFAULT_COMPONENTS = ctf
 
-BGP_ESSL    = /soft/apps/ESSL-4.4.1-0
- 
-BLAS        = -lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread
-LIBS        = $(BLAS)
+BGP_ESSL    = /soft/libraries/essl/current/
+LIBS        = -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r
 CXX	        = mpixlcxx_r
 WARN_FLAGS  = #-Drestrict = -Wall 
-OPT_FLAGS   = -qnoipa -g -O3
-CXXFLAGS    = -qsmp=omp  $(OPT_FLAGS) $(WARN_FLAGS) 
-DEFS        = -DBGP -D__STDC_LIMIT_MACROS
-LDFLAGS     = -L$(BGP_ESSL)/lib \
-              -L/bgsys/ibm_compilers/sles10/prod/opt/ibmcmp/xlf/bg/11.1/bglib/ \
-              -L/soft/apps/ibmcmp/xlsmp/bg/1.7/bglib \
-              -L/soft/apps/ibmcmp/xlf/bg/11.1/bglib
-INCLUDES    = -I$(BGP_ESSL)/include -I/bgsys/drivers/ppcfloor/arch/include
+OPT_FLAGS   = -g -O3
+CXXFLAGS    = -qsmp=omp $(OPT_FLAGS) $(WARN_FLAGS) 
+DEFS        = -DBGQ -D__STDC_LIMIT_MACROS
+LDFLAGS     = -L$(BGP_ESSL)/lib64 \
+              -L/soft/compilers/ibmcmp-feb2012/xlf/bg/14.1/lib64/ \
+              -L/opt/ibmcmp/lib64 \
+              -L/opt/ibmcmp/lib64
+INCLUDES    = -I$(BGP_ESSL)/include 
 AR          = ar -crs
 DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
 
@@ -27,7 +25,7 @@ DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
 #SCALA      = -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack
 
 #uncomment below to enable TAU
-#DEFS       := $(DEFS) -DTAU 
+#DEFS      := $(DEFS) -DTAU 
 
 ifneq (,$(findstring DTAU,$(DEFS)))
         include $(TAUROOTDIR)/include/Makefile

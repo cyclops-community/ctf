@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include "comm.h"
 
+#define USE_OMP
 
 typedef int64_t long_int;
 volatile static long_int long_int_max = INT64_MAX;

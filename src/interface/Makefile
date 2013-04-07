@@ -1,2 +1,3 @@
 include ../../config.mk
-include ../../rules.mk
+include ../make/make.in
+include ../make/rules.mk

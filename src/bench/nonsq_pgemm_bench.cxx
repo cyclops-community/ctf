@@ -1,4 +1,3 @@
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF 
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 

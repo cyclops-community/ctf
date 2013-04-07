@@ -1,5 +1,5 @@
 include ../../config.mk
-include ../../rules.mk
+include ../make/rules.mk
 test: DEFS += -DSYMMETRY
 test: test/test_contract test/test_sum test/test_scale
 ${bindir}/test/test_scale: unit_test.o unit_scale.o unit_test_scl.o \
