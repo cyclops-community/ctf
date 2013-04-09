@@ -748,7 +748,7 @@ int remap_tensor(int const  tid,
       printf("data element %d/%lld not received correctly on process %d\n",
               j, tsr->size, global_comm->rank);
       printf("element received was %.3E, correct %.3E\n", 
-              tsr->data[j], shuffled_data_corr[j]);
+              GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));
       ABORT;
     }
   }
@@ -887,7 +887,7 @@ int map_tensor_rem(int const    num_phys_dims,
       phys_mapped[map->cdt] = 1;
       if (map->has_child) map = map->child;
       else break;
-    }
+    } 
   }
 
   num_sub_phys_dims = 0;

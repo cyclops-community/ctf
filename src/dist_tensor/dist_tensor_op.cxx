@@ -2148,7 +2148,7 @@ int dist_tensor<dtype>::
     tensors[type->tid_C]->need_remap = 1;*/
 //  stat = zero_out_padding(type->tid_A);
 //  stat = zero_out_padding(type->tid_B);
-  stat = zero_out_padding(type->tid_C);
+    stat = zero_out_padding(type->tid_C);
 #endif
   if (get_global_comm()->rank == 0){
     DPRINTF(1, "Contraction completed.\n");

@@ -154,6 +154,10 @@ int main(int argc, char ** argv){
       printf("(Anti-)Skew-symmetric: NS = AS*AS gemm:\n");
     }
     gemm(m, n, k, AS, niter, dir);
+    if (rank == 0){
+      printf("Symmetric-hollow: NS = SH*SH gemm:\n");
+    }
+    gemm(m, n, k, SH, niter, dir);
   }
 
   MPI_Finalize();

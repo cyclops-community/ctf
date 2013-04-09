@@ -1548,7 +1548,7 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
 
   if (all)
     COMM_BARRIER(global_comm);
-  if (tsr->is_mapped && (!all || global_comm->rank == 0)){
+  if (/*tsr->is_mapped &&*/ (!all || global_comm->rank == 0)){
     printf("Tensor %d of dimension %d is mapped to a ", tid, tsr->ndim);
     if (is_inner){
       for (i=0; i<inner_topovec[tsr->itopo].ndim-1; i++){

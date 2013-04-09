@@ -827,10 +827,9 @@ void zero_padding( int const          ndim,
         is_outside = 0;
         for (i=1; i<ndim; i++){
           if ((phase_rank[i] >= edge_len[i] - padding[i]) ||
-              (((sym[i] == AS || sym[i] == SH)
+              ((sym[i] == AS || sym[i] == SH)
                   && (idx[i] > idx[i+1] || 
                       (idx[i] == idx[i+1] && phase_rank[i] >= phase_rank[i+1]))) ||
-                (sym[i] == SY && phase_rank[i] > phase_rank[i+1])) ||
                 (sym[i] == SY
                     && (idx[i] > idx[i+1] || 
                       (idx[i] == idx[i+1] && phase_rank[i] > phase_rank[i+1])))){
@@ -840,7 +839,7 @@ void zero_padding( int const          ndim,
         }
         if (sym[0] != NS)
           imax = idx[1]+1;
-              /* Increment virtual bucket */
+        /* Increment virtual bucket */
         if (is_outside){
           i_st = 0;      
         } else {

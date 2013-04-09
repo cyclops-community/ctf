@@ -1356,7 +1356,7 @@ template<typename dtype>
 void dist_tensor<dtype>::desymmetrize(int const sym_tid, 
                                       int const nonsym_tid, 
                                       int const is_C){
-  int i, j, sym_dim, scal_diag, num_sy, num_sy_neg;
+  int i, j, sym_dim, scal_diag, num_sy, num_sy_neg, ctid;
   int * idx_map_A, * idx_map_B;
   tensor<dtype> * tsr_sym, * tsr_nonsym;
   double rev_sign;
@@ -1425,27 +1425,34 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   fseq_elm_sum<dtype> felm;
   felm.func_ptr=NULL;
 
-  sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
-
   if (!is_C){
+    if (scal_diag){
+      clone_tensor(sym_tid, 1, &ctid);
+      for (i=-num_sy_neg-1; i<num_sy-1; i++){
+        tensors[ctid]->sym[sym_dim+i+1] = SH;
+      }
+      zero_out_padding(ctid);
+    } else ctid = sym_tid;
     for (i=-num_sy_neg-1; i<num_sy; i++){
       if (i==-1) continue;
       idx_map_A[sym_dim] = sym_dim+i+1;
       idx_map_A[sym_dim+i+1] = sym_dim;
     
-      sum_tensors(rev_sign, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
+      sum_tensors(rev_sign, 1.0, ctid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
       idx_map_A[sym_dim] = sym_dim;
       idx_map_A[sym_dim+i+1] = sym_dim+i+1;
     }
-    
-//  idx_map_A[sym_dim] = sym_dim;
-//    idx_map_A[sym_dim+1] = sym_dim+1;
+    if (scal_diag) del_tsr(ctid);
   }
+
+  
+  sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
+
 
   /* Do not diagonal rescaling since sum has beta=0 and overwrites diagonal */
 //  if (false){
 //    print_tsr(stdout, nonsym_tid);
-    if (!is_C && scal_diag){
+/*    if (!is_C && scal_diag){
       for (i=-num_sy_neg-1; i<num_sy; i++){
         if (i==-1) continue;
         idx_map_A[sym_dim+i+1] = sym_dim-num_sy_neg;
@@ -1460,7 +1467,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
         int ret = scale_tsr(((double)(num_sy+num_sy_neg-i))/(num_sy+num_sy_neg-i+1.), nonsym_tid, idx_map_A, fss, fselm);
         if (ret != DIST_TENSOR_SUCCESS) ABORT;
       }
-    }  
+    } */ 
 //    print_tsr(stdout, nonsym_tid);
 //  }
   free(idx_map_A);
@@ -1572,7 +1579,6 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
   fseq_elm_sum<dtype> felm;
   felm.func_ptr=NULL;
  
-  sum_tensors(1.0, 0.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
   
   for (i=-num_sy_neg-1; i<num_sy; i++){
     if (i==-1) continue;
@@ -1583,9 +1589,20 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
     idx_map_A[sym_dim] = sym_dim;
     idx_map_A[sym_dim+i+1] = sym_dim+i+1;
   }
+  if (scal_diag) {
+    for (i=-num_sy_neg-1; i<num_sy-1; i++){
+      tensors[sym_tid]->sym[sym_dim+i+1] = SH;
+    }
+    zero_out_padding(sym_tid);
+    for (i=-num_sy_neg-1; i<num_sy-1; i++){
+      tensors[sym_tid]->sym[sym_dim+i+1] = SY;
+    }
+  }
+  
+  sum_tensors(1.0, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
     
 
-  //  if (false){ 
+  /*//  if (false){ 
     if (scal_diag){
     //  printf("symmetrizing diagonal=%d\n",num_sy);
       for (i=-num_sy_neg-1; i<num_sy; i++){
@@ -1602,7 +1619,7 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
         int ret = scale_tsr(((double)(num_sy+num_sy_neg-i))/(num_sy+num_sy_neg-i+1.), sym_tid, idx_map_B, fss, fselm);
         if (ret != DIST_TENSOR_SUCCESS) ABORT;
       }
-    }  
+    }*/  
 //  }
 
   free(idx_map_A);
