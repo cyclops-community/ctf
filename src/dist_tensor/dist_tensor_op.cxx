@@ -1475,63 +1475,57 @@ ctr<dtype> * dist_tensor<dtype>::
     ctrseq->inner_params.sz_C = vrt_sz_C;
     tensor<dtype> * itsr;
     itsr = tensors[tsr_A->rec_tid];
-    i_A = 0;
-    for (i=0; i<tsr_A->ndim; i++){
-      if (tsr_A->sym[i] == NS){
-        for (j=0; j<itsr->ndim; j++){
-          if (tsr_A->inner_ordering[j] == i_A){
-            j=i;
-            do {
-              j--;
-            } while (j>=0 && tsr_A->sym[j] != NS);
-            for (k=j+1; k<=i; k++){
-              virt_blk_len_A[k] = 1;
-              new_sym_A[k] = NS;
-            }
-            break;
-          }
-        }
-        i_A++;
+    for (i=0; i<itsr->ndim; i++){
+      j = tsr_A->inner_ordering[i];
+      for (k=0; k<tsr_A->ndim; k++){
+        if (tsr_A->sym[k] == NS) j--;
+        if (j<0) break;
+      }
+      j = k;
+      while (k>0 && tsr_A->sym[k-1] != NS){
+        k--;
+      }
+      for (; k<=j; k++){
+/*        printf("inner_ordering[%d]=%d setting dim %d of A, to len %d from len %d\n",
+                i, tsr_A->inner_ordering[i], k, 1, virt_blk_len_A[k]);*/
+        virt_blk_len_A[k] = 1;
+        new_sym_A[k] = NS;
       }
     }
     itsr = tensors[tsr_B->rec_tid];
-    i_B = 0;
-    for (i=0; i<tsr_B->ndim; i++){
-      if (tsr_B->sym[i] == NS){
-        for (j=0; j<itsr->ndim; j++){
-          if (tsr_B->inner_ordering[j] == i_B){
-            j=i;
-            do {
-              j--;
-            } while (j>=0 && tsr_B->sym[j] != NS);
-            for (k=j+1; k<=i; k++){
-              virt_blk_len_B[k] = 1;
-              new_sym_B[k] = NS;
-            }
-            break;
-          }
-        }
-        i_B++;
+    for (i=0; i<itsr->ndim; i++){
+      j = tsr_B->inner_ordering[i];
+      for (k=0; k<tsr_B->ndim; k++){
+        if (tsr_B->sym[k] == NS) j--;
+        if (j<0) break;
+      }
+      j = k;
+      while (k>0 && tsr_B->sym[k-1] != NS){
+        k--;
+      }
+      for (; k<=j; k++){
+      /*  printf("inner_ordering[%d]=%d setting dim %d of B, to len %d from len %d\n",
+                i, tsr_B->inner_ordering[i], k, 1, virt_blk_len_B[k]);*/
+        virt_blk_len_B[k] = 1;
+        new_sym_B[k] = NS;
       }
     }
     itsr = tensors[tsr_C->rec_tid];
-    i_C = 0;
-    for (i=0; i<tsr_C->ndim; i++){
-      if (tsr_C->sym[i] == NS){
-        for (j=0; j<itsr->ndim; j++){
-          if (tsr_C->inner_ordering[j] == i_C){
-            j=i;
-            do {
-              j--;
-            } while (j>=0 && tsr_C->sym[j] != NS);
-            for (k=j+1; k<=i; k++){
-              virt_blk_len_C[k] = 1;
-              new_sym_C[k] = NS;
-            }
-            break;
-          }
-        }
-        i_C++;
+    for (i=0; i<itsr->ndim; i++){
+      j = tsr_C->inner_ordering[i];
+      for (k=0; k<tsr_C->ndim; k++){
+        if (tsr_C->sym[k] == NS) j--;
+        if (j<0) break;
+      }
+      j = k;
+      while (k>0 && tsr_C->sym[k-1] != NS){
+        k--;
+      }
+      for (; k<=j; k++){
+      /*  printf("inner_ordering[%d]=%d setting dim %d of C, to len %d from len %d\n",
+                i, tsr_C->inner_ordering[i], k, 1, virt_blk_len_C[k]);*/
+        virt_blk_len_C[k] = 1;
+        new_sym_C[k] = NS;
       }
     }
   }
@@ -2152,8 +2146,8 @@ int dist_tensor<dtype>::
 #ifndef SEQ
 /*  if (tensors[type->tid_C]->ndim > 0)
     tensors[type->tid_C]->need_remap = 1;*/
-  stat = zero_out_padding(type->tid_A);
-  stat = zero_out_padding(type->tid_B);
+//  stat = zero_out_padding(type->tid_A);
+//  stat = zero_out_padding(type->tid_B);
   stat = zero_out_padding(type->tid_C);
 #endif
   if (get_global_comm()->rank == 0){

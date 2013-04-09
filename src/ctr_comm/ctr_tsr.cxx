@@ -64,6 +64,7 @@ void ctr_virt<dtype>::print() {
   for (i=0; i<num_dim; i++){
     printf("virt_dim[%d] = %d\n", i, virt_dim[i]);
   }
+  rec_ctr->print();
 }
 
 

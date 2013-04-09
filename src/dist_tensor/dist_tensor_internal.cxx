@@ -442,6 +442,15 @@ void seq_tsr_scl<dtype>::run(){
                     idx_map);
 }
 
+template<typename dtype>
+void seq_tsr_scl<dtype>::print(){
+  int i;
+  printf("seq_tsr_scl:\n");
+  for (i=0; i<ndim; i++){
+    printf("edge_len[%d]=%lld\n",i,edge_len[i]);
+  }
+}
+
 /**
  * \brief copies sum object
  */
@@ -465,6 +474,18 @@ seq_tsr_sum<dtype>::seq_tsr_sum(tsum<dtype> * other) : tsum<dtype>(other) {
   inr_stride    = o->inr_stride;
 
   func_ptr = o->func_ptr;
+}
+
+template<typename dtype>
+void seq_tsr_sum<dtype>::print(){
+  int i;
+  printf("seq_tsr_sum:\n");
+  for (i=0; i<ndim_A; i++){
+    printf("edge_len_A[%d]=%lld\n",i,edge_len_A[i]);
+  }
+  for (i=0; i<ndim_B; i++){
+    printf("edge_len_B[%d]=%lld\n",i,edge_len_B[i]);
+  }
 }
 
 /**
@@ -514,6 +535,21 @@ void seq_tsr_sum<dtype>::run(){
                       edge_len_B,
                       sym_B,
                       idx_map_B);
+  }
+}
+
+template<typename dtype>
+void seq_tsr_ctr<dtype>::print(){
+  int i;
+  printf("seq_tsr_ctr:\n");
+  for (i=0; i<ndim_A; i++){
+    printf("edge_len_A[%d]=%d\n",i,edge_len_A[i]);
+  }
+  for (i=0; i<ndim_B; i++){
+    printf("edge_len_B[%d]=%d\n",i,edge_len_B[i]);
+  }
+  for (i=0; i<ndim_C; i++){
+    printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
   }
 }
 

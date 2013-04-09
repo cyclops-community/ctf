@@ -304,19 +304,21 @@ long_int ctr_replicate<dtype>::mem_rec() {
  */
 template<typename dtype>
 void ctr_replicate<dtype>::run(){
-  int crank, i;
+  int arank, brank, crank, i;
 
+  arank = 0, brank = 0, crank = 0;
   for (i=0; i<ncdt_A; i++){
+    arank += cdt_A[i]->rank;
     POST_BCAST(this->A, size_A*sizeof(dtype), COMM_CHAR_T, 0, cdt_A[i], 0);
   }
   for (i=0; i<ncdt_B; i++){
+    brank += cdt_B[i]->rank;
     POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i], 0);
   }
-  crank = 0;
   for (i=0; i<ncdt_C; i++){
     crank += cdt_C[i]->rank;
   }
-  if (crank != 0) std::fill(this->C, this->C+size_C, 0.0);
+  if (crank != 0) std::fill(this->C, this->C+size_C, get_zero<dtype>());
   else {
     for (i=0; i<size_C; i++){
       this->C[i] = this->beta * this->C[i];
@@ -335,6 +337,13 @@ void ctr_replicate<dtype>::run(){
   for (i=0; i<ncdt_C; i++){
     /* FIXME Won't work for single precision */
     ALLREDUCE(MPI_IN_PLACE, this->C, size_C*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt_C[i]);
+  }
+
+  if (arank != 0){
+    std::fill(this->A, this->A+size_A, get_zero<dtype>());
+  }
+  if (brank != 0){
+    std::fill(this->B, this->B+size_B, get_zero<dtype>());
   }
 
 

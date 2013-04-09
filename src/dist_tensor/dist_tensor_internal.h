@@ -152,6 +152,7 @@ class seq_tsr_ctr : public ctr<dtype> {
     fseq_elm_ctr<dtype> custom_params;
 
     void run();
+    void print();
     long_int mem_fp();
     ctr<dtype> * clone();
 
@@ -181,6 +182,7 @@ class seq_tsr_sum : public tsum<dtype> {
     fseq_elm_sum<dtype> custom_params;
 
     void run();
+    void print();
     long_int mem_fp();
     tsum<dtype> * clone();
 
@@ -203,6 +205,7 @@ class seq_tsr_scl : public scl<dtype> {
     fseq_elm_scl<dtype> custom_params;
 
     void run();
+    void print();
     long_int mem_fp();
     scl<dtype> * clone();
 
