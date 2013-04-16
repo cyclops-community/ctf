@@ -12,23 +12,12 @@ INCLUDES    =
 AR          = ar -crs
 DEPFLAGS    = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
-#uncomment below to enable optimizations for single MPI process execution
-#DEFS      := $(DEFS) -DSEQ
+#uncomment below to enable performance profiling
+#DEFS      := $(DEFS) -DPROFILE
 
 #uncomment below to enable CTF debugging and status output
 #DEFS      := $(DEFS) -DDEBUG=1
 
 #SCALAPACK only necessary for pgemm tests and benchmarks 
 #SCALA      = -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack
-
-#uncomment below to enable TAU
-#DEFS      := $(DEFS) -DTAU 
-
-ifneq (,$(findstring DTAU,$(DEFS)))
-        include $(TAUROOTDIR)/include/Makefile
-        DEFS+=$(TAU_INCLUDE) $(TAU_DEFS) 
-#       LIBS+=$(TAU_MPI_LIBS) $(TAU_LIBS) 
-        LIBS+= $(TAU_LIBS)
-endif
-
 

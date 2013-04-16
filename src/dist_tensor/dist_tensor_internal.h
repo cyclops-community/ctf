@@ -691,8 +691,13 @@ class dist_tensor{
                fseq_tsr_ctr<dtype> * pfs,
                int *            need_free);
 
-    double GET_REAL(dtype const d) const;
 };
+inline double GET_REAL(double const d) {
+  return d;
+}
+inline  double GET_REAL(std::complex<double> const d) {
+  return d.real();
+}
 
 #include "dist_tensor_internal.cxx"
 #include "scala_backend.cxx"

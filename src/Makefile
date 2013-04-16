@@ -29,6 +29,7 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     interface/ctf_idx_tensor.o \
                     shared/comm.o \
                     shared/util.o \
+                    shared/tau.o \
                     shared/memcontrol.o \
                     shared/unit_util.o \
                     dist_tensor/cyclopstf.o \

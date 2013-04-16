@@ -52,6 +52,7 @@ typedef uint64_t key;
 #define DEF_INNER_SIZE 256
 #define PERFORM_DESYM 1
 //#define USE_SYM_SUM 
+#define USE_BLOCK_RESHUFFLE
 
 template<typename dtype>
 struct tkv_pair {
@@ -185,9 +186,6 @@ class tCTF{
   private:
     dist_tensor<dtype> * dt;
     int initialized;
-#ifdef TAU
-    void * timerctf_tau; //main tau profile pointer
-#endif 
 
   public:
 

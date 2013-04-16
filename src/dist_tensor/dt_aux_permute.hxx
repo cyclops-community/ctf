@@ -1829,4 +1829,152 @@ int cyclic_reshuffle(int const          ndim,
   TAU_FSTOP(cyclic_reshuffle);
   return DIST_TENSOR_SUCCESS;
 }
+
+/**
+ * \brief Reshuffle elements given the global phases stay the same
+ *
+ * \param[in] ndim number of tensor dimensions
+ * \param[in] phase physical*virtual phase
+ * \param[in] old_size number of elements in the subtensor each proc owned
+ * \param[in] old_virt_dim current virtualization dimensions on each process
+ * \param[in] old_rank current physical rank
+ * \param[in] old_pe_lda old lda of processor grid
+ * \param[in] new_size number of elements in the subtensor each proc owns
+ * \param[in] new_virt_dim new virtualization dimensions on each process
+ * \param[in] new_rank new physical rank
+ * \param[in] new_pe_lda new lda of processor grid
+ * \param[in] tsr_data current tensor data
+ * \param[out] ptr_tsr_cyclic_data pointer to a new tensor of 
+              data that will be filled
+ * \param[in] glb_comm the global communicator
+ */
+template<typename dtype>
+void block_reshuffle(int const        ndim,
+                     int const *      phase,
+                     long_int const   old_size,
+                     int const *      old_virt_dim,
+                     int const *      old_rank,
+                     int const *      old_pe_lda,
+                     long_int const   new_size,
+                     int const *      new_virt_dim,
+                     int const *      new_rank,
+                     int const *      new_pe_lda,
+                     dtype *          tsr_data,
+                     dtype *&         tsr_cyclic_data,
+                     CommData_t *     glb_comm){
+  int i, j, idx_lyr_new, idx_lyr_old, glb_blk_idx, blk_idx, prc_idx, loc_idx;
+  int num_old_virt, num_new_virt;
+  int * idx, * old_loc_lda, * new_loc_lda, * phase_lda;
+  long_int blk_sz;
+  MPI_Request * reqs;
+
+  if (ndim == 0){
+    get_buffer_space(sizeof(dtype)*new_size, (void**)&tsr_cyclic_data);
+    tsr_cyclic_data[0] = tsr_data[0];
+    return;
+  }
+
+  TAU_FSTART(block_reshuffle);
+
+  get_buffer_space(sizeof(dtype)*new_size, (void**)&tsr_cyclic_data);
+  get_buffer_space(sizeof(int)*ndim, (void**)&idx);
+  get_buffer_space(sizeof(int)*ndim, (void**)&old_loc_lda);
+  get_buffer_space(sizeof(int)*ndim, (void**)&new_loc_lda);
+  get_buffer_space(sizeof(int)*ndim, (void**)&phase_lda);
+
+  blk_sz = old_size;
+  idx_lyr_old = glb_comm->rank;
+  idx_lyr_new = glb_comm->rank;
+  old_loc_lda[0] = 1;
+  new_loc_lda[0] = 1;
+  phase_lda[0] = 1;
+  num_old_virt = 1;
+  num_new_virt = 1;
+  for (i=0; i<ndim; i++){
+    num_old_virt *= new_virt_dim[i];
+    num_new_virt *= new_virt_dim[i];
+    blk_sz = blk_sz/old_virt_dim[i];
+    idx_lyr_old -= old_rank[i]*old_pe_lda[i];
+    idx_lyr_new -= new_rank[i]*new_pe_lda[i];
+    if (i>0){
+      old_loc_lda[i] = old_loc_lda[i-1]*old_virt_dim[i-1];
+      new_loc_lda[i] = new_loc_lda[i-1]*new_virt_dim[i-1];
+      phase_lda[i] = phase_lda[i-1]*phase[i-1];
+    }
+  }
+  
+  get_buffer_space(sizeof(MPI_Request)*(num_old_virt+num_new_virt), (void**)&reqs);
+
+  if (idx_lyr_new == 0){
+    memset(idx, 0, sizeof(int)*ndim);
+
+    for (;;){
+      loc_idx = 0;
+      blk_idx = 0;
+      prc_idx = 0;
+      for (i=0; i<ndim; i++){
+        loc_idx += idx[i]*new_loc_lda[i];
+        blk_idx += ( idx[i] + new_rank[i]*new_virt_dim[i])                 *phase_lda[i];
+        prc_idx += ((idx[i] + new_rank[i]*new_virt_dim[i])/old_virt_dim[i])*old_pe_lda[i];
+      }
+      DPRINTF(3,"proc %d receiving blk %d (loc %d, size %lld) from proc %d\n", 
+              glb_comm->rank, blk_idx, loc_idx, blk_sz, prc_idx);
+      MPI_Irecv(tsr_cyclic_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
+                MPI_CHAR, prc_idx, blk_idx, glb_comm->cm, reqs+loc_idx);
+      for (i=0; i<ndim; i++){
+        idx[i]++;
+        if (idx[i] >= new_virt_dim[i])
+          idx[i] = 0;
+        else 
+          break;
+      }
+      if (i==ndim) break;
+    }
+  }
+
+  if (idx_lyr_old == 0){
+    memset(idx, 0, sizeof(int)*ndim);
+
+    for (;;){
+      loc_idx = 0;
+      blk_idx = 0;
+      prc_idx = 0;
+      for (i=0; i<ndim; i++){
+        loc_idx += idx[i]*old_loc_lda[i];
+        blk_idx += ( idx[i] + old_rank[i]*old_virt_dim[i])                 *phase_lda[i];
+        prc_idx += ((idx[i] + old_rank[i]*old_virt_dim[i])/new_virt_dim[i])*new_pe_lda[i];
+      }
+      DPRINTF(3,"proc %d sending blk %d (loc %d) to proc %d\n", 
+              glb_comm->rank, blk_idx, loc_idx, prc_idx);
+      MPI_Isend(tsr_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
+                MPI_CHAR, prc_idx, blk_idx, glb_comm->cm, reqs+num_new_virt+loc_idx);
+      for (i=0; i<ndim; i++){
+        idx[i]++;
+        if (idx[i] >= old_virt_dim[i])
+          idx[i] = 0;
+        else 
+          break;
+      }
+      if (i==ndim) break;
+    }
+  }
+
+  if (idx_lyr_new == 0 && idx_lyr_old == 0){
+    MPI_Waitall(num_new_virt+num_old_virt, reqs, MPI_STATUSES_IGNORE);
+  } else if (idx_lyr_new == 0){
+    MPI_Waitall(num_new_virt, reqs, MPI_STATUSES_IGNORE);
+  } else if (idx_lyr_old == 0){
+    MPI_Waitall(num_old_virt, reqs+num_new_virt, MPI_STATUSES_IGNORE);
+  } else {
+    std::fill(tsr_cyclic_data, tsr_cyclic_data+new_size, get_zero<dtype>());
+  }
+
+  free_buffer_space(idx);
+  free_buffer_space(old_loc_lda);
+  free_buffer_space(new_loc_lda);
+  free_buffer_space(phase_lda);
+  free_buffer_space(reqs);
+
+  TAU_FSTOP(block_reshuffle);
+}
 #endif

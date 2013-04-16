@@ -18,7 +18,6 @@
  */
 template<typename dtype>
 tCTF<dtype>::~tCTF(){
-  TAU_FSTOP(ctf_tau);
   exit();
 }
 
@@ -117,8 +116,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const       ndim, 
                       int const *     dim_len,
                       int const       inner_size){
-  TAU_PROFILER_CREATE(timerctf_tau, "ctf_tau", "int (int, char**)", TAU_USER);
-  TAU_PROFILE_START(timerctf_tau);
+  TAU_FSTART(CTF);
   TAU_PROFILE_SET_NODE(rank);
   TAU_PROFILE_SET_CONTEXT(0);
   initialized = 1;
@@ -706,6 +704,7 @@ template<typename dtype>
 int tCTF<dtype>::exit(){
   int ret;
   if (initialized){
+    TAU_FSTOP(CTF);
     ret = tCTF<dtype>::clean_tensors();
     LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
     delete dt;

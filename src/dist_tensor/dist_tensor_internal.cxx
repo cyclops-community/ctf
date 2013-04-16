@@ -26,19 +26,6 @@
 //#define USE_VIRT_25D
 
 
-template <> inline
-double dist_tensor<double>::GET_REAL(double const d) const{
-  return d;
-}
-template <> inline
-double dist_tensor< std::complex<double> >::GET_REAL(std::complex<double> const d) const{
-  return d.real();
-}
-template <typename dtype>
-double dist_tensor<dtype>::GET_REAL(dtype const d) const{
-  ABORT;
-  return 42.0;
-}
 
 /* accessors */
 template<typename dtype>

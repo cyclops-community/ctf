@@ -15,6 +15,14 @@
 #include <unistd.h>
 #include "comm.h"
 
+#ifdef PROFILE
+#define TAU
+#endif
+
+#ifdef TAU
+#include "tau.h"
+#endif
+
 #define USE_OMP
 
 typedef int64_t long_int;
@@ -172,7 +180,7 @@ do { printf("warning: "); printf(__VA_ARGS__); printf("\n"); } while(0)
   #endif
 #endif
 
-#ifdef TAU
+/*#ifdef TAU
 #include <stddef.h>
 #include <Profile/Profiler.h>
 #define TAU_FSTART(ARG)                                 \
@@ -182,7 +190,8 @@ do { printf("warning: "); printf(__VA_ARGS__); printf("\n"); } while(0)
 #define TAU_FSTOP(ARG)                                  \
     TAU_PROFILE_STOP(timer##ARG)
 
-#else
+#else*/
+#ifndef TAU
 #define TAU_PROFILE(NAME,ARG,USER)
 #define TAU_PROFILE_TIMER(ARG1, ARG2, ARG3, ARG4)
 #define TAU_PROFILER_CREATE(ARG1, ARG2, ARG3, ARG4)
@@ -194,7 +203,7 @@ do { printf("warning: "); printf(__VA_ARGS__); printf("\n"); } while(0)
 #define TAU_FSTOP(ARG)
 #endif
 
-#if (defined(TAU) || defined(COMM_TIME))
+#if (defined(COMM_TIME))
 #define INIT_IDLE_TIME                  \
   volatile double __idleTime=0.0;       \
   volatile double __idleTimeDelta=0.0;

@@ -1728,7 +1728,6 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     } else {
       get_sym_perms(type, alpha, perm_types, signs);
       dbeta = beta;
-      printf("num perms = %d\n", perm_types.size());
       for (i=0; i<(int)perm_types.size(); i++){
         sum_tensors(signs[i], dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                     perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);
