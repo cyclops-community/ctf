@@ -283,6 +283,16 @@ class tCTF_Tensor {
                          dtype const      beta,
                          int64_t const *  global_idx,
                          dtype const *    data);
+    /**
+     * \brief obtains a small number of the biggest elements of the 
+     *        tensor in sorted order (e.g. eigenvalues)
+     * \param[in] n number of elements to collect
+     * \param[in] data output data (should be preallocated to size at least n)
+     *
+     * WARNING: currently functional only for dtype=double
+     */
+     void get_max_abs(int const  n,
+                      dtype *    data);
 
     /**
      * \brief sets all values in the tensor to val

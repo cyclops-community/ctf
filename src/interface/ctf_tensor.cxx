@@ -231,6 +231,13 @@ dtype tCTF_Tensor<dtype>::reduce(CTF_OP op){
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   return ans;
 }
+template<typename dtype>
+void tCTF_Tensor<dtype>::get_max_abs(int const  n,
+                                     dtype *    data){
+  int ret;
+  ret = world->ctf->get_max_abs(tid, n, data);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
 
 template<typename dtype>
 tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(const dtype val){

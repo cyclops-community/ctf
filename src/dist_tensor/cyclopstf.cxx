@@ -495,6 +495,20 @@ int tCTF<dtype>::map_tensor(int const tid,
                                               dtype const elem)){
   return dt->map_tsr(tid, map_func);
 }
+
+/**
+ * \brief obtains a small number of the biggest elements of the 
+ *        tensor in sorted order (e.g. eigenvalues)
+ * \param[in] tid index of tensor
+ * \param[in] n number of elements to collect
+ * \param[in] data output data (should be preallocated to size at least n)
+ */
+template<typename dtype>
+int tCTF<dtype>::get_max_abs(int const  tid,
+                             int const  n,
+                             dtype *    data){
+  return dt->get_max_abs(tid, n, data);
+}
     
 /**
  * \brief DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). 
@@ -552,7 +566,11 @@ int tCTF<dtype>::sum_tensors(dtype const                alpha,
                              fseq_tsr_sum<dtype> const  func_ptr){
   fseq_elm_sum<dtype> felm;
   felm.func_ptr = NULL;
+#ifdef USE_SYM_SUM
+  return dt->sym_sum_tsr(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr, felm);
+#else
   return dt->sum_tensors(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr, felm);
+#endif
 }
 
 /**
@@ -575,7 +593,11 @@ int tCTF<dtype>::sum_tensors(dtype const                alpha,
                              fseq_elm_sum<dtype> const  felm){
   fseq_tsr_sum<dtype> fs;
   fs.func_ptr=sym_seq_sum_ref<dtype>;
+#ifdef USE_SYM_SUM
+  return dt->sym_sum_tsr(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, fs, felm);
+#else
   return dt->sum_tensors(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, fs, felm);
+#endif
 }
 
 /**

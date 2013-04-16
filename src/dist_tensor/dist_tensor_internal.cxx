@@ -1025,6 +1025,76 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   return DIST_TENSOR_SUCCESS;
 }
 
+template<typename dtype>
+int dist_tensor<dtype>::get_max_abs(int const  tid,
+                                    int const  n,
+                                    dtype *    data){
+  printf("CTF: Currently unable to get largest values of non-double type array, exiting.\n");
+  return DIST_TENSOR_ERROR;
+}
+
+/**
+ * \brief obtains a small number of the biggest elements of the 
+ *        tensor in sorted order (e.g. eigenvalues)
+ * \param[in] tid index of tensor
+ * \param[in] n number of elements to collect
+ * \param[in] data output data (should be preallocated to size at least n)
+ */
+template<>
+int dist_tensor<double>::get_max_abs(int const  tid,
+                                     int const  n,
+                                     double *    data){
+  int i, j, con, np, rank;
+  tensor<double> * tsr;
+  double val, swp;
+  double * recv_data, * merge_data;
+  MPI_Status stat;
+
+  get_buffer_space(n*sizeof(double), (void**)&recv_data);
+  get_buffer_space(n*sizeof(double), (void**)&merge_data);
+
+  tsr = tensors[tid];
+  
+  std::fill(data, data+n, get_zero<double>());
+  for (i=0; i<tsr->size; i++){
+    val = std::abs(tsr->data[i]);
+    for (j=0; j<n; j++){
+      if (val > data[j]){
+        swp = val;
+        val = data[j];
+        data[j] = swp;
+      }
+    }
+  }
+  np = global_comm->np;
+  rank = global_comm->rank;
+  con = np/2;
+  while (con>0){
+    if (np%2 == 1) con++;
+    if (rank+con < np){
+      MPI_Recv(recv_data, n*sizeof(double), MPI_CHAR, rank+con, 0, global_comm->cm, &stat);
+      i=0, j=0;
+      while (i+j<n){
+        if (data[i]<recv_data[j]){
+          merge_data[i+j] = data[i];
+          i++;
+        } else {
+          merge_data[i+j] = recv_data[j];
+          j++;
+        }
+      }  
+      memcpy(data, merge_data, sizeof(double)*n);
+    } else if (rank-con >= 0 && rank < np){
+      MPI_Send(data, n*sizeof(double), MPI_CHAR, rank-con, 0, global_comm->cm);
+    }
+    np = np/2 + (np%2);
+    con = np/2;
+  }
+  MPI_Bcast(data, n*sizeof(double), MPI_CHAR, 0, global_comm->cm);
+  free(merge_data);
+  free(recv_data);
+  return DIST_TENSOR_SUCCESS;
+}
 
 
 /* \brief deletes a tensor and deallocs the data
@@ -1848,7 +1918,22 @@ int dist_tensor<dtype>::check_contraction(CTF_ctr_type_t const * type){
   return DIST_TENSOR_SUCCESS;
 }
 
+/**
+ * \brief checks the edge lengths specfied for this sum
+ * \param type contains tensor ids and index maps
+ */
+template<typename dtype>
+int dist_tensor<dtype>::check_sum(CTF_sum_type_t const *     type){
+  check_sum(type->tid_A, type->tid_B, type->idx_map_A, type->idx_map_B);
+}
 
+/**
+ * \brief checks the edge lengths specfied for this sum
+ * \param tid_A id of tensor A
+ * \param tid_B id of tensor B
+ * \param idx_map_A indices of tensor A
+ * \param idx_map_B indices of tensor B
+ */
 template<typename dtype>
 int dist_tensor<dtype>::check_sum(int const   tid_A, 
                                   int const   tid_B, 

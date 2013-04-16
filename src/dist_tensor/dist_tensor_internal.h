@@ -301,11 +301,32 @@ class dist_tensor{
                                 int const                       inr_str=-1);
 
     int check_contraction(CTF_ctr_type_t const * type);
+    
+    int check_sum(CTF_sum_type_t const * type);
 
     int check_sum(int const   tid_A, 
                   int const   tid_B, 
                   int const * idx_map_A, 
                   int const * idx_map_B);
+    
+    /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
+    int sym_sum_tsr(dtype const                 alpha,
+                    dtype const                 beta,
+                    CTF_sum_type_t const *      type,
+                    fseq_tsr_sum<dtype> const   ftsr,
+                    fseq_elm_sum<dtype> const   felm,
+                    int const                   run_diag = 0);
+
+    /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
+    int sym_sum_tsr(dtype const                 alpha,
+                    dtype const                 beta,
+                    int const                   tid_A,
+                    int const                   tid_B,
+                    int const *                 idx_map_A,
+                    int const *                 idx_map_B,
+                    fseq_tsr_sum<dtype> const   ftsr,
+                    fseq_elm_sum<dtype> const   felm,
+                    int const                   run_diag = 0);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(dtype const                 alpha,
@@ -443,6 +464,10 @@ class dist_tensor{
                 dtype (*map_func)(int const ndim, int const * indices,
                        dtype const elem));
 
+    int get_max_abs( int const  tid,
+                     int const  n,
+                     dtype *    data);
+
     int set_zero_tsr(int const tensor_id);
 
     int print_tsr(FILE * stream, int const tid);
@@ -544,6 +569,9 @@ class dist_tensor{
     int unfold_broken_sym(CTF_ctr_type_t const *        type,
                           CTF_ctr_type_t *              new_type);
 
+    int unfold_broken_sym(CTF_sum_type_t const *        type,
+                          CTF_sum_type_t *              new_type);
+
     void dealias(int const sym_tid, int const nonsym_tid);
 
     void desymmetrize(int const sym_tid,
@@ -560,11 +588,6 @@ class dist_tensor{
     int is_equal_type(CTF_ctr_type_t const *       old_type,
                       CTF_ctr_type_t const *       new_type);
 
-/*  void get_sym_perms(CTF_ctr_type_t const *   type,
-                       dtype const              alpha,
-                       int *                    nperm,
-                       CTF_ctr_type_t **        perms,
-                       dtype **                 signs);*/
     void order_perm(tensor<dtype> const * tsr_A,
                     tensor<dtype> const * tsr_B,
                     tensor<dtype> const * tsr_C,
@@ -586,6 +609,34 @@ class dist_tensor{
     void add_sym_perm(std::vector<CTF_ctr_type_t>&    perms,
                       std::vector<dtype>&             signs, 
                       CTF_ctr_type_t const *          new_perm,
+                      dtype const                     new_sign);
+    
+    void copy_type(CTF_sum_type_t const *       old_type,
+                   CTF_sum_type_t *             new_type);
+    
+    void free_type(CTF_sum_type_t * old_type);
+    
+    int is_equal_type(CTF_sum_type_t const *       old_type,
+                      CTF_sum_type_t const *       new_type);
+
+    void order_perm(tensor<dtype> const * tsr_A,
+                    tensor<dtype> const * tsr_B,
+                    int *                 idx_arr,
+                    int const             off_A,
+                    int const             off_B,
+                    int *                 idx_map_A,
+                    int *                 idx_map_B,
+                    dtype &               add_sign,
+                    int &                  mod);
+
+    void get_sym_perms(CTF_sum_type_t const *           type,
+                       dtype const                      alpha,
+                       std::vector<CTF_sum_type_t>&     perms,
+                       std::vector<dtype>&              signs);
+
+    void add_sym_perm(std::vector<CTF_sum_type_t>&    perms,
+                      std::vector<dtype>&             signs, 
+                      CTF_sum_type_t const *          new_perm,
                       dtype const                     new_sign);
 
     void get_len_ordering(CTF_sum_type_t const *        type,

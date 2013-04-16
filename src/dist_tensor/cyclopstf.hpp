@@ -51,6 +51,7 @@ typedef uint64_t key;
 #define FOLD_TSR 1
 #define DEF_INNER_SIZE 256
 #define PERFORM_DESYM 1
+//#define USE_SYM_SUM 
 
 template<typename dtype>
 struct tkv_pair {
@@ -385,6 +386,9 @@ class tCTF{
     int map_tensor(int const tid,
                    dtype (*map_func)(int const ndim, int const * indices,
                                      dtype const elem));
+
+    /* obtains the largest n elements (in absolute value) of the tensor */
+    int get_max_abs(int const tid, int const n, dtype * data);
 
     /* Prints a tensor on one processor. */
     int print_tensor(FILE * stream, int const tid);

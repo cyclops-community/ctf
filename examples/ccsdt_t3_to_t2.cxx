@@ -68,6 +68,13 @@ int  ccsdt_t3_to_t2(int const  n,
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
   AS_C.write_remote_data(np, indices, pairs);
 
+#ifdef USE_SYM_SUM
+  NS_A["abij"] = AS_A["abij"];
+  NS_B["abcijk"] = AS_B["abcijk"];
+  //NS_C["abij"] = AS_C["abij"];
+  //NS_B["abcijk"] = HS_B["abcijk"];
+  NS_C.write_remote_data(np, indices, pairs);
+#else
   NS_A["abij"] -= AS_A["baij"];
   NS_A["abij"] += AS_A["abij"];
 
@@ -81,16 +88,20 @@ int  ccsdt_t3_to_t2(int const  n,
   NS_B["ijkabc"] += HS_B["ijkabc"];
   NS_B["ikjabc"] -= HS_B["ijkabc"];
   NS_B["kjiabc"] -= HS_B["ijkabc"];
-  
   NS_C["abij"] += AS_C["abij"];
+#endif
+  
   
   AS_C["abij"] += 0.5*AS_A["mnje"]*AS_B["abeimn"];
   
   NS_C["abij"] += 0.5*NS_A["mnje"]*NS_B["abeimn"];
+
   NS_C["abij"] -= NS_C["abji"];
 
   double nrm_AS = sqrt(AS_C.reduce(CTF_OP_SQNRM2));
   double nrm_NS = sqrt(NS_C.reduce(CTF_OP_SQNRM2));
+
+
 #if DEBUG  >= 1
   if (rank == 0) printf("triangular norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
 #endif
@@ -99,12 +110,16 @@ int  ccsdt_t3_to_t2(int const  n,
 #if DEBUG  >= 1
   if (rank == 0) printf("norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
 #endif
-  AS_C["abij"] -= NS_C["abij"];
+  NS_C["abij"] -= AS_C["abij"];
+#ifndef USE_SYM_SUM
+  NS_C["abij"] += AS_C["abji"];
+#endif
   
-  double nrm = AS_C.reduce(CTF_OP_SQNRM2);
+  
+  double nrm = NS_C.reduce(CTF_OP_SQNRM2);
 #if DEBUG  >= 1
   if (rank == 0){
-    printf("norm of AS_C after contraction should be zero, is = %lf\n", nrm);
+    printf("norm of NS_C after contraction should be zero, is = %lf\n", nrm);
   }
 #endif
   int pass = fabs(nrm) <= 1.E-6;
