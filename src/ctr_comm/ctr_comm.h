@@ -209,9 +209,9 @@ class ctr_lyr : public ctr<dtype> {
     ctr_lyr(){}
 };
 
-#include "ctr_1d_sqr_bcast.cxx"
-#include "ctr_2d_sqr_bcast.cxx"
-#include "ctr_2d_rect_bcast.cxx"
+//#include "ctr_1d_sqr_bcast.cxx"
+//#include "ctr_2d_sqr_bcast.cxx"
+//#include "ctr_2d_rect_bcast.cxx"
 #include "ctr_simple.cxx"
 #include "ctr_2d_general.cxx"
 

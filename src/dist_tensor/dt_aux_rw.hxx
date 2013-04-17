@@ -28,8 +28,8 @@
 template<typename dtype>
 void readwrite(int const        ndim,
                long_int const   size,
-               double const     alpha,
-               double const     beta,
+               dtype const      alpha,
+               dtype const      beta,
                int const        nvirt,
                int const *      edge_len,
                int const *      sym,
@@ -181,8 +181,8 @@ template<typename dtype>
 void wr_pairs_layout(int const          ndim,
                      int const          np,
                      long_int const     nwrite,
-                     double const       alpha,  
-                     double const       beta,  
+                     dtype const        alpha,  
+                     dtype const        beta,  
                      int const          need_pad,
                      char const         rw,
                      int const          num_virt,
@@ -202,6 +202,7 @@ void wr_pairs_layout(int const          ndim,
   int * recv_displs, * send_displs;
   int * depadding, * depad_edge_len;
   tkv_pair<dtype> * swap_data, * buf_data, * el_loc;
+
 
   get_buffer_space(nwrite*sizeof(tkv_pair<dtype>),      (void**)&buf_data);
   get_buffer_space(nwrite*sizeof(tkv_pair<dtype>),      (void**)&swap_data);

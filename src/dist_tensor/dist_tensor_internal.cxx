@@ -27,19 +27,6 @@
 //#define USE_VIRT_25D
 
 
-template <> inline
-double dist_tensor<double>::GET_REAL(double const d) const{
-  return d;
-}
-template <> inline
-double dist_tensor< std::complex<double> >::GET_REAL(std::complex<double> const d) const{
-  return d.real();
-}
-template <typename dtype>
-double dist_tensor<dtype>::GET_REAL(dtype const d) const{
-  ABORT;
-  return 42.0;
-}
 
 /* accessors */
 template<typename dtype>
@@ -234,9 +221,19 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
 
   tsr->sym_table = (int*)calloc(ndim*ndim*sizeof(int),1);
   tsr->edge_map  = (mapping*)malloc(sizeof(mapping)*ndim);
+  
+  (*tensor_id) = tensors.size();
 
   /* initialize map array and symmetry table */
+#if DEBUG >= 3
+  if (global_comm->rank == 0)
+    printf("Tensor %d of dimension %d defined with edge lengths", *tensor_id, ndim);
+#endif
   for (i=0; i<ndim; i++){
+#if DEBUG >= 3
+    if (global_comm->rank == 0)
+      printf(" %d", edge_len[i]);
+#endif
     if (tsr->edge_len[i] <= 0) tsr->has_zero_edge_len = 1;
     tsr->edge_map[i].type       = NOT_MAPPED;
     tsr->edge_map[i].has_child  = 0;
@@ -246,8 +243,11 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
       tsr->sym_table[(i+1)*ndim+i] = 1;
     }
   }
+#if DEBUG >= 3
+  if (global_comm->rank == 0)
+    printf("\n");
+#endif
 
-  (*tensor_id) = tensors.size();
   tensors.push_back(tsr);
 
   /* Set tensor data to zero. */
@@ -376,7 +376,7 @@ dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, int64_t * size) {
  * \param[out] sym the symmetries of the tensor
  */
 template<typename dtype>
-int dist_tensor<dtype>::get_tsr_info( int const tensor_id,
+int dist_tensor<dtype>::get_tsr_info( int const         tensor_id,
                                       int *             ndim,
                                       int **            edge_len,
                                       int **            sym) const{
@@ -446,6 +446,15 @@ void seq_tsr_scl<dtype>::run(){
                     idx_map);
 }
 
+template<typename dtype>
+void seq_tsr_scl<dtype>::print(){
+  int i;
+  printf("seq_tsr_scl:\n");
+  for (i=0; i<ndim; i++){
+    printf("edge_len[%d]=%lld\n",i,edge_len[i]);
+  }
+}
+
 /**
  * \brief copies sum object
  */
@@ -469,6 +478,18 @@ seq_tsr_sum<dtype>::seq_tsr_sum(tsum<dtype> * other) : tsum<dtype>(other) {
   inr_stride    = o->inr_stride;
 
   func_ptr = o->func_ptr;
+}
+
+template<typename dtype>
+void seq_tsr_sum<dtype>::print(){
+  int i;
+  printf("seq_tsr_sum:\n");
+  for (i=0; i<ndim_A; i++){
+    printf("edge_len_A[%d]=%lld\n",i,edge_len_A[i]);
+  }
+  for (i=0; i<ndim_B; i++){
+    printf("edge_len_B[%d]=%lld\n",i,edge_len_B[i]);
+  }
 }
 
 /**
@@ -521,6 +542,21 @@ void seq_tsr_sum<dtype>::run(){
   }
 }
 
+template<typename dtype>
+void seq_tsr_ctr<dtype>::print(){
+  int i;
+  printf("seq_tsr_ctr:\n");
+  for (i=0; i<ndim_A; i++){
+    printf("edge_len_A[%d]=%d\n",i,edge_len_A[i]);
+  }
+  for (i=0; i<ndim_B; i++){
+    printf("edge_len_B[%d]=%d\n",i,edge_len_B[i]);
+  }
+  for (i=0; i<ndim_C; i++){
+    printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
+  }
+}
+
 /**
  * \brief copies ctr object
  */
@@ -552,7 +588,9 @@ seq_tsr_ctr<dtype>::seq_tsr_ctr(ctr<dtype> * other) : ctr<dtype>(other) {
 
   is_inner      = o->is_inner;
   inner_params  = o->inner_params;
-
+  is_custom     = o->is_custom;
+  custom_params = o->custom_params;
+  
   func_ptr = o->func_ptr;
 }
 
@@ -573,7 +611,31 @@ long_int seq_tsr_ctr<dtype>::mem_fp(){ return 0; }
  */
 template<typename dtype>
 void seq_tsr_ctr<dtype>::run(){
-  if (is_inner){
+  if (is_custom){
+    LIBT_ASSERT(is_inner == 0);
+    sym_seq_ctr_cust(
+                    this->alpha,
+                    this->A,
+                    ndim_A,
+                    edge_len_A,
+                    edge_len_A,
+                    sym_A,
+                    idx_map_A,
+                    this->B,
+                    ndim_B,
+                    edge_len_B,
+                    edge_len_B,
+                    sym_B,
+                    idx_map_B,
+                    this->beta,
+                    this->C,
+                    ndim_C,
+                    edge_len_C,
+                    edge_len_C,
+                    sym_C,
+                    idx_map_C,
+                    &custom_params);
+  } else if (is_inner){
     sym_seq_ctr_inr(this->alpha,
                     this->A,
                     ndim_A,
@@ -627,7 +689,7 @@ void seq_tsr_ctr<dtype>::run(){
 template<typename dtype>
 int dist_tensor<dtype>::clone_tensor( int const tensor_id,
                                       int const copy_data,
-                                      int *       new_tensor_id,
+                                      int *     new_tensor_id,
                                       int const alloc_data){
   int ndim, * edge_len, * sym;
   get_tsr_info(tensor_id, &ndim, &edge_len, &sym);
@@ -757,8 +819,8 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
 template<typename dtype>
 int dist_tensor<dtype>::write_pairs(int const           tensor_id, 
                                     long_int const      num_pair,  
-                                    double const        alpha,  
-                                    double const        beta,  
+                                    dtype const         alpha,  
+                                    dtype const         beta,  
                                     tkv_pair<dtype> *   mapped_data, 
                                     char const          rw){
   int i, num_virt, need_pad;
@@ -967,6 +1029,76 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   return DIST_TENSOR_SUCCESS;
 }
 
+template<typename dtype>
+int dist_tensor<dtype>::get_max_abs(int const  tid,
+                                    int const  n,
+                                    dtype *    data){
+  printf("CTF: Currently unable to get largest values of non-double type array, exiting.\n");
+  return DIST_TENSOR_ERROR;
+}
+
+/**
+ * \brief obtains a small number of the biggest elements of the 
+ *        tensor in sorted order (e.g. eigenvalues)
+ * \param[in] tid index of tensor
+ * \param[in] n number of elements to collect
+ * \param[in] data output data (should be preallocated to size at least n)
+ */
+template<>
+int dist_tensor<double>::get_max_abs(int const  tid,
+                                     int const  n,
+                                     double *    data){
+  int i, j, con, np, rank;
+  tensor<double> * tsr;
+  double val, swp;
+  double * recv_data, * merge_data;
+  MPI_Status stat;
+
+  get_buffer_space(n*sizeof(double), (void**)&recv_data);
+  get_buffer_space(n*sizeof(double), (void**)&merge_data);
+
+  tsr = tensors[tid];
+  
+  std::fill(data, data+n, get_zero<double>());
+  for (i=0; i<tsr->size; i++){
+    val = std::abs(tsr->data[i]);
+    for (j=0; j<n; j++){
+      if (val > data[j]){
+        swp = val;
+        val = data[j];
+        data[j] = swp;
+      }
+    }
+  }
+  np = global_comm->np;
+  rank = global_comm->rank;
+  con = np/2;
+  while (con>0){
+    if (np%2 == 1) con++;
+    if (rank+con < np){
+      MPI_Recv(recv_data, n*sizeof(double), MPI_CHAR, rank+con, 0, global_comm->cm, &stat);
+      i=0, j=0;
+      while (i+j<n){
+        if (data[i]<recv_data[j]){
+          merge_data[i+j] = data[i];
+          i++;
+        } else {
+          merge_data[i+j] = recv_data[j];
+          j++;
+        }
+      }  
+      memcpy(data, merge_data, sizeof(double)*n);
+    } else if (rank-con >= 0 && rank < np){
+      MPI_Send(data, n*sizeof(double), MPI_CHAR, rank-con, 0, global_comm->cm);
+    }
+    np = np/2 + (np%2);
+    con = np/2;
+  }
+  MPI_Bcast(data, n*sizeof(double), MPI_CHAR, 0, global_comm->cm);
+  free(merge_data);
+  free(recv_data);
+  return DIST_TENSOR_SUCCESS;
+}
 
 
 /* \brief deletes a tensor and deallocs the data
@@ -1490,7 +1622,7 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
 
   if (all)
     COMM_BARRIER(global_comm);
-  if (tsr->is_mapped && (!all || global_comm->rank == 0)){
+  if (/*tsr->is_mapped &&*/ (!all || global_comm->rank == 0)){
     printf("Tensor %d of dimension %d is mapped to a ", tid, tsr->ndim);
     if (is_inner){
       for (i=0; i<inner_topovec[tsr->itopo].ndim-1; i++){
@@ -1722,6 +1854,137 @@ int dist_tensor<dtype>::print_sum(CTF_sum_type_t const * stype,
   COMM_BARRIER(global_comm);
   return DIST_TENSOR_SUCCESS;
 }
+
+template<typename dtype>
+int dist_tensor<dtype>::check_contraction(CTF_ctr_type_t const * type){
+  int i, num_tot, len;
+  int iA, iB, iC;
+  int ndim_A, ndim_B, ndim_C;
+  int * len_A, * len_B, * len_C;
+  int * sym_A, * sym_B, * sym_C;
+  int * idx_arr;
+  
+  tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
+
+  tsr_A = tensors[type->tid_A];
+  tsr_B = tensors[type->tid_B];
+  tsr_C = tensors[type->tid_C];
+    
+
+  get_tsr_info(type->tid_A, &ndim_A, &len_A, &sym_A);
+  get_tsr_info(type->tid_B, &ndim_B, &len_B, &sym_B);
+  get_tsr_info(type->tid_C, &ndim_C, &len_C, &sym_C);
+  
+  inv_idx(tsr_A->ndim, type->idx_map_A, tsr_A->edge_map,
+          tsr_B->ndim, type->idx_map_B, tsr_B->edge_map,
+          tsr_C->ndim, type->idx_map_C, tsr_C->edge_map,
+          &num_tot, &idx_arr);
+
+  for (i=0; i<num_tot; i++){
+    len = -1;
+    iA = idx_arr[3*i+0];
+    iB = idx_arr[3*i+1];
+    iC = idx_arr[3*i+2];
+    if (iA != -1){
+      len = len_A[iA];
+    }
+    if (len != -1 && iB != -1 && len != len_B[iB]){
+      if (global_comm->rank == 0){
+        printf("Error in contraction call: The %dth edge length of tensor %d does not",
+                iA, type->tid_A);
+        printf("match the %dth edge length of tensor %d.\n",
+                iB, type->tid_B);
+      }
+      ABORT;
+    }
+    if (len != -1 && iC != -1 && len != len_C[iC]){
+      if (global_comm->rank == 0){
+        printf("Error in contraction call: The %dth edge length of tensor %d does not",
+                iA, type->tid_A);
+        printf("match the %dth edge length of tensor %d.\n",
+                iC, type->tid_C);
+      }
+      ABORT;
+    }
+    if (iB != -1){
+      len = len_B[iB];
+    }
+    if (len != -1 && iC != -1 && len != len_C[iC]){
+      if (global_comm->rank == 0){
+        printf("Error in contraction call: The %dth edge length of tensor %d does not",
+                iB, type->tid_B);
+        printf("match the %dth edge length of tensor %d.\n",
+                iC, type->tid_C);
+      }
+      ABORT;
+    }
+  }
+  return DIST_TENSOR_SUCCESS;
+}
+
+/**
+ * \brief checks the edge lengths specfied for this sum
+ * \param type contains tensor ids and index maps
+ */
+template<typename dtype>
+int dist_tensor<dtype>::check_sum(CTF_sum_type_t const *     type){
+  check_sum(type->tid_A, type->tid_B, type->idx_map_A, type->idx_map_B);
+}
+
+/**
+ * \brief checks the edge lengths specfied for this sum
+ * \param tid_A id of tensor A
+ * \param tid_B id of tensor B
+ * \param idx_map_A indices of tensor A
+ * \param idx_map_B indices of tensor B
+ */
+template<typename dtype>
+int dist_tensor<dtype>::check_sum(int const   tid_A, 
+                                  int const   tid_B, 
+                                  int const * idx_map_A, 
+                                  int const * idx_map_B){
+  int i, num_tot, len;
+  int iA, iB;
+  int ndim_A, ndim_B;
+  int * len_A, * len_B;
+  int * sym_A, * sym_B;
+  int * idx_arr;
+  
+  tensor<dtype> * tsr_A, * tsr_B;
+
+  tsr_A = tensors[tid_A];
+  tsr_B = tensors[tid_B];
+    
+
+  get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
+  get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
+  
+  inv_idx(tsr_A->ndim, idx_map_A, tsr_A->edge_map,
+          tsr_B->ndim, idx_map_B, tsr_B->edge_map,
+          &num_tot, &idx_arr);
+
+  for (i=0; i<num_tot; i++){
+    len = -1;
+    iA = idx_arr[2*i+0];
+    iB = idx_arr[2*i+1];
+    if (iA != -1){
+      len = len_A[iA];
+    }
+    if (len != -1 && iB != -1 && len != len_B[iB]){
+      if (global_comm->rank == 0){
+        printf("Error in sum call: The %dth edge length of tensor %d does not",
+                iA, tid_A);
+        printf("match the %dth edge length of tensor %d.\n",
+                iB, tid_B);
+      }
+      ABORT;
+    }
+  }
+  return DIST_TENSOR_SUCCESS;
+}
+
+
+
 
 
 #include "dist_tensor_map.cxx"

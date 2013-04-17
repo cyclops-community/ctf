@@ -5,7 +5,7 @@
 
 #include "../shared/util.h"
 #include <limits.h>
-#include "sym_seq_sum_ref.hxx"
+#include "sym_seq_shared.hxx"
 
 /**
  * \brief performs symmetric summation
@@ -68,22 +68,8 @@ int sym_seq_sum_inr( dtype const        alpha,
     for (idx=0; idx<idx_max; idx++){
       imin = 0, imax = INT_MAX;
 
-#define GET_MIN_MAX(__X,nr)                                                     \
-do{                                                                             \
-      i##__X = rev_idx_map[2*idx+nr];                                           \
-      if (i##__X != -1){                                                        \
-        imax = MIN(imax, edge_len_##__X[i##__X]);                               \
-        /*if (sym_##__X[i##__X] > -1){                                          \
-          imax = MIN(imax, idx_glb[idx_map_##__X[sym_##__X[i##__X]]]+1);        \
-        }                                                                       \
-        if (i##__X > 0 && sym_##__X[i##__X-1] > -1){                            \
-          imin = MAX(imin, idx_glb[idx_map_##__X[i##__X-1]]);                   \
-        }*/                                                                     \
-      }                                                                 \
-} while (0);
-      GET_MIN_MAX(A,0);
-      GET_MIN_MAX(B,1);
-#undef GET_MIN_MAX
+      GET_MIN_MAX(A,0,2);
+      GET_MIN_MAX(B,1,2);
 
       LIBT_ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
 
@@ -98,77 +84,15 @@ do{                                                                             
     }
     if (idx == idx_max) break;
 
-#ifdef SEQ
-#define CHECK_SYM(__X)                              \
-do {                                                \
-        sym_pass = 1;                               \
-        for (i=0; i<ndim_##__X; i++){               \
-          if ((sym_##__X[i] & 0x2) == 0x2){         \
-            if (idx_glb[idx_map_##__X[i+1]] <=      \
-                      idx_glb[idx_map_##__X[i]]) {  \
-              sym_pass = 0;                         \
-              break;                                \
-            }                                       \
-          }                                         \
-          if (sym_##__X[i] == SY){                  \
-            if (idx_glb[idx_map_##__X[i+1]] <       \
-                      idx_glb[idx_map_##__X[i]]) {  \
-              sym_pass = 0;                         \
-              break;                                \
-            }                                       \
-          }                                         \
-        }                                           \
-} while(0)
-#else
-#define CHECK_SYM(__X)                              \
-do {                                                \
-        sym_pass = 1;                               \
-        for (i=0; i<ndim_##__X; i++){               \
-          if (sym_##__X[i] != NS){                  \
-            if (idx_glb[idx_map_##__X[i+1]] <       \
-                      idx_glb[idx_map_##__X[i]]) {  \
-              sym_pass = 0;                         \
-              break;                                \
-            }                                       \
-          }                                         \
-        }                                           \
-} while(0)
-#endif
     CHECK_SYM(A);
     if (!sym_pass) continue;
     CHECK_SYM(B);
     if (!sym_pass) continue;
     
-
-#define RESET_IDX(__X)                                                  \
-do {                                                                    \
-        idx_##__X = idx_glb[idx_map_##__X[0]];                          \
-        off_idx = 0, off_lda = 1;                                       \
-        for (i=1; i<ndim_##__X; i++){                                   \
-          if (sym_##__X[i-1] == NS){                                    \
-            off_idx = i;                                                \
-            off_lda = sy_packed_size(i, dlen_##__X, sym_##__X);         \
-            idx_##__X += off_lda*idx_glb[idx_map_##__X[i]];             \
-          } else if (idx_glb[idx_map_##__X[i]]!=0) {                    \
-            k = 1;                                                      \
-            dlen_##__X[i] = idx_glb[idx_map_##__X[i]];                  \
-            do {                                                        \
-              dlen_##__X[i-k] = idx_glb[idx_map_##__X[i]];              \
-              k++;                                                      \
-            } while (i>=k && sym_##__X[i-k] != NS);                     \
-            idx_##__X += off_lda*sy_packed_size(i+1-off_idx,            \
-                          dlen_##__X+off_idx,sym_##__X+off_idx);        \
-            for (j=0; j<k; j++){                                        \
-              dlen_##__X[i-j] = edge_len_##__X[i-j];                    \
-            }                                                           \
-          }                                                             \
-        }                                                               \
-} while (0)
     if (ndim_A > 0)
       RESET_IDX(A);
     if (ndim_B > 0)
       RESET_IDX(B);
-#undef RESET_IDX
   }
   free(dlen_A);
   free(dlen_B);

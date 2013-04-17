@@ -383,7 +383,7 @@ template<typename dtype>
 int dist_tensor<dtype>::
     check_self_mapping(int const        tid, 
                        int const *      idx_map){
-  int i, pass, iR, max_idx;
+  int i, j, pass, iR, max_idx;
   int * idx_arr;
   tensor<dtype> * tsr;
 
@@ -400,12 +400,14 @@ int dist_tensor<dtype>::
   std::fill(idx_arr, idx_arr+max_idx, -1);
 
   pass = 1;
-/*  for (i=0; i<tsr->ndim; i++){
-    if (tsr->edge_map[i].np > tsr->edge_len[i]){
-      pass = 0;
-      DPRINTF(1,"Failed confirmation here\n");
+  for (i=0; i<tsr->ndim; i++){
+    for (j=0; j<tsr->ndim; j++){
+      if (i != j && tsr->edge_map[i].type == PHYSICAL_MAP &&
+          tsr->edge_map[j].type == PHYSICAL_MAP){
+        if (tsr->edge_map[i].cdt == tsr->edge_map[j].cdt) pass = 0;
+      }
     }
-  }*/
+  }
   /* Go in reverse, since the first index of the diagonal set will be mapped */
   for (i=tsr->ndim-1; i>=0; i--){
     iR = idx_arr[idx_map[i]];
@@ -609,6 +611,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
     pass = 0;
   if (!check_self_mapping(type->tid_C, type->idx_map_C))
     pass = 0;
+  if (pass == 0) DPRINTF(3,"failed confirmation here\n");
 
 
   for (i=0; i<num_tot; i++){
@@ -788,18 +791,16 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
 #endif
 /* \brief map tensors so that they can be contracted on
  * \param type specification of contraction
- * \param[in] buffer the buffer space to use, or NULL to allocate
- * \param[in] buffer_len length of buffer 
- * \param[in] func_ptr sequential ctr func pointer 
+ * \param[in] ftsr sequential ctr func pointer 
+ * \param[in] felm elementwise ctr func pointer 
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  * \param[out] ctrf contraction class to run
  */
 template<typename dtype>
 int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type, 
-                                    dtype *                     buffer, 
-                                    int const                   buffer_len, 
-                                    fseq_tsr_ctr<dtype>         func_ptr, 
+                                    fseq_tsr_ctr<dtype>         ftsr, 
+                                    fseq_elm_ctr<dtype>         felm, 
                                     dtype const                 alpha,
                                     dtype const                 beta,
                                     ctr<dtype> **               ctrf,
@@ -1012,7 +1013,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       set_padding(tsr_A);
       set_padding(tsr_B);
       set_padding(tsr_C);
-      sctr = construct_contraction(type, buffer, buffer_len, func_ptr, 
+      sctr = construct_contraction(type, ftsr, felm, 
                                     alpha, beta, 0, NULL, &nvirt_all);
      
       comm_vol = sctr->comm_rec(sctr->num_lyr);
@@ -1194,7 +1195,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     set_padding(tsr_A);
     set_padding(tsr_B);
     set_padding(tsr_C);
-    *ctrf = construct_contraction(type, buffer, buffer_len, func_ptr, 
+    *ctrf = construct_contraction(type, ftsr, felm, 
                                   alpha, beta, 0, NULL, &nvirt_all);
     delete *ctrf;
     /* If this cannot be stretched */
@@ -1226,7 +1227,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   set_padding(tsr_A);
   set_padding(tsr_B);
   set_padding(tsr_C);
-  *ctrf = construct_contraction(type, buffer, buffer_len, func_ptr, 
+  *ctrf = construct_contraction(type, ftsr, felm, 
                                 alpha, beta, 0, NULL, &nvirt_all);
 #if DEBUG >= 2
   if (global_comm->rank == 0)
@@ -1634,6 +1635,20 @@ int dist_tensor<dtype>::
   tsr_B = tensors[tid_B];
   tsr_C = tensors[tid_C];
 
+/*  for (i=0; i<num_no_ctr; i++){
+    inoctr = idx_no_ctr[i];
+    iA = idx_arr[3*inoctr+0];
+    iB = idx_arr[3*inoctr+1];
+    iC = idx_arr[3*inoctr+2];
+
+    
+    if (iC != -1 && iA != -1){
+      copy_mapping(1, tsr_C->edge_map + iC, tsr_A->edge_map + iA); 
+    } 
+    if (iB != -1 && iA != -1){
+      copy_mapping(1, tsr_C->edge_map + iB, tsr_A->edge_map + iA); 
+    }
+  }*/
   /* Map remainders of A and B to remainders of phys grid */
   stat = map_tensor_rem(topo->ndim, topo->dim_comm, tsr_A, 1);
   if (stat != DIST_TENSOR_SUCCESS){
@@ -1642,7 +1657,6 @@ int dist_tensor<dtype>::
       return stat;
     }
   }
-  /* The above 2 mappings implictly give us a mapping for C */
   for (i=0; i<num_no_ctr; i++){
     inoctr = idx_no_ctr[i];
     iA = idx_arr[3*inoctr+0];
@@ -1662,7 +1676,6 @@ int dist_tensor<dtype>::
     TAU_FSTOP(map_noctr_indices);
     return stat;
   }
-  /* The above 2 mappings implictly give us a mapping for C */
   for (i=0; i<num_no_ctr; i++){
     inoctr = idx_no_ctr[i];
     iA = idx_arr[3*inoctr+0];
@@ -1676,7 +1689,6 @@ int dist_tensor<dtype>::
     if (iB != -1 && iC != -1){
       copy_mapping(1, tsr_C->edge_map + iC, tsr_B->edge_map + iB); 
     }
-//    printf("C mapping %d is type %d, np = %d\n",iC,tsr_C->edge_map[iC].type,tsr_c->edge_map[iC].np);
   }
   TAU_FSTOP(map_noctr_indices);
 
@@ -1930,7 +1942,7 @@ int dist_tensor<dtype>::
   }
 
 
-  ret = map_self_indices(tA, map_A);
+/*  ret = map_self_indices(tA, map_A);
   if (ret == DIST_TENSOR_NEGATIVE) {
     free(idx_arr);
     return DIST_TENSOR_NEGATIVE;
@@ -1956,7 +1968,7 @@ int dist_tensor<dtype>::
   if (ret == DIST_TENSOR_ERROR) {
     free(idx_arr);
     return DIST_TENSOR_ERROR;
-  }
+  }*/
   ret = map_extra_indices(idx_arr, idx_extra, num_extra,
                               tA, tB, tC);
   if (ret == DIST_TENSOR_NEGATIVE) {

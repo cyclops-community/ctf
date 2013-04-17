@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "dist_tensor_internal.h"
-#include "dist_tensor.h"
+#include "../dist_tensor/cyclopstf.hpp"
 #include "../shared/util.h"
 #include "../ctr_comm/ctr_comm.h"
 #include "../shared/unit_util.h"
@@ -237,8 +237,7 @@ void bench_cyclic_rephase(int argc, char **argv){
     assert(new_virt_dim[i] >= 1);
   }
 
-  assert(DIST_TENSOR_SUCCESS==
-	 CTF_init(MPI_COMM_WORLD,myRank, numPes,nphys_dim,dim_len_fr));
+	CTF ctf();
   GLOBAL_BARRIER(cdt_glb);
 #ifdef TAU
   TAU_PROFILE_TIMER(timer, "main", "int (int, char**)", TAU_USER);

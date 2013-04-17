@@ -622,7 +622,7 @@ int remap_tensor(int const  tid,
                  int const *  old_padding,
                  int const *  old_edge_len,
                  CommData_t * global_comm){
-  int j, new_nvirt;
+  int j, new_nvirt, can_block_shuffle;
   int * new_phase, * new_rank, * new_virt_dim, * new_pe_lda;
   mapping * map;
   dtype * shuffled_data;
@@ -636,6 +636,12 @@ int remap_tensor(int const  tid,
   get_buffer_space(sizeof(int)*tsr->ndim, (void**)&new_virt_dim);
 
   new_nvirt = 1;  
+#ifdef USE_BLOCK_RESHUFFLE
+  can_block_shuffle = 1;
+#else
+  can_block_shuffle = 0;
+#endif
+
   for (j=0; j<tsr->ndim; j++){
     map     = tsr->edge_map + j;
     new_phase[j]  = calc_phase(map);
@@ -646,6 +652,7 @@ int remap_tensor(int const  tid,
     else
       new_pe_lda[j] = 0;
     new_nvirt = new_nvirt*new_virt_dim[j];
+    if (new_phase[j] != old_phase[j]) can_block_shuffle = 0;
   }
 #if DEBUG >= 1
   if (global_comm->rank == 0){
@@ -677,34 +684,20 @@ int remap_tensor(int const  tid,
                      global_comm);
 #endif
 
-  if (false){
-    LIBT_ASSERT(was_cyclic == 1);
-    LIBT_ASSERT(tsr->is_cyclic == 1);
-    padded_reshuffle(tid,
-                     tsr->ndim,
-                     old_size,
-                     old_edge_len,
-                     tsr->sym,
+  if (can_block_shuffle){
+    block_reshuffle( tsr->ndim,
                      old_phase,
+                     old_size,
+                     old_virt_dim,
                      old_rank,
                      old_pe_lda,
-                     was_padded,
-                     old_padding,
-                     tsr->edge_len,
-                     new_phase,
+                     tsr->size,
+                     new_virt_dim,
                      new_rank,
                      new_pe_lda,
-                     tsr->is_padded,
-                     tsr->padding,
-                     old_virt_dim,
-                     new_virt_dim,
                      tsr->data,
-                     &shuffled_data,
+                     shuffled_data,
                      global_comm);
-    /*if (tsr->is_padded)
-      free_buffer_space(tsr->padding);
-    tsr->is_padded = is_pad;
-    tsr->padding = new_padding;*/
   } else {
     if (global_comm->rank == 0) {
       DEBUG_PRINTF("remapping with cyclic reshuffle (was padded = %d)\n",
@@ -748,7 +741,7 @@ int remap_tensor(int const  tid,
       printf("data element %d/%lld not received correctly on process %d\n",
               j, tsr->size, global_comm->rank);
       printf("element received was %.3E, correct %.3E\n", 
-              tsr->data[j], shuffled_data_corr[j]);
+              GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));
       ABORT;
     }
   }
@@ -887,7 +880,7 @@ int map_tensor_rem(int const    num_phys_dims,
       phys_mapped[map->cdt] = 1;
       if (map->has_child) map = map->child;
       else break;
-    }
+    } 
   }
 
   num_sub_phys_dims = 0;
@@ -1055,11 +1048,13 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
         }
         fseq_tsr_sum<dtype> fs;
         fs.func_ptr=sym_seq_sum_ref<dtype>;
+        fseq_elm_sum<dtype> felm;
+        felm.func_ptr=NULL;
         if (rw){
           define_tensor(tensors[tid]->ndim-1, edge_len, sym, tid_new, 1);
-          sum_tensors(1.0, 0.0, tid, *tid_new, ex_idx_map, diag_idx_map, fs, 1);
+          sum_tensors(1.0, 0.0, tid, *tid_new, ex_idx_map, diag_idx_map, fs, felm, 1);
         } else {
-          sum_tensors(1.0, 0.0, *tid_new, tid, diag_idx_map, ex_idx_map, fs, 1);
+          sum_tensors(1.0, 0.0, *tid_new, tid, diag_idx_map, ex_idx_map, fs, felm, 1);
           free(*idx_map_new);
         }
         free(edge_len), free(sym), free(ex_idx_map), free(diag_idx_map);

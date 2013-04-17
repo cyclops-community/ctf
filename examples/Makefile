@@ -1,5 +1,6 @@
 include ../config.mk
-include ../rules.mk
+include ../src/make/make.in
+include ../src/make/rules.mk
 
 examples: fft fft_3D gemm gemm_4D trace sym3 ccsdt_t3_to_t2
 ccsdt_t3_to_t2: ${bindir}/ccsdt_t3_to_t2
@@ -22,5 +23,8 @@ ${bindir}/gemm_4D: gemm_4D.o ${libdir}/libctf.a
 
 gemm: ${bindir}/gemm
 ${bindir}/gemm: gemm.o ${libdir}/libctf.a
+
+weight_4D: ${bindir}/weight_4D
+${bindir}/weight_4D: weight_4D.o ${libdir}/libctf.a
 
 LIBS := -lctf $(LIBS)

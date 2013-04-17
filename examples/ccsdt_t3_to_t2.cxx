@@ -10,7 +10,7 @@
 #include <ctf.hpp>
 #include "../src/shared/util.h"
 
-void ccsdt_t3_to_t2(int const  n,
+int  ccsdt_t3_to_t2(int const  n,
                     int const  m,
                     char const *dir){
   int rank, i, num_pes;
@@ -22,8 +22,10 @@ void ccsdt_t3_to_t2(int const  n,
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
   CTF_World dw;
+#if DEBUG  >= 1
   if (rank == 0)
     printf("n = %d\n", n);
+#endif
  
   int shapeAS4[] = {AS,NS,AS,NS};
   int shapeAS6[] = {AS,AS,NS,AS,AS,NS};
@@ -45,8 +47,10 @@ void ccsdt_t3_to_t2(int const  n,
   CTF_Tensor NS_B(6, mmmnnn, shapeTS6, dw);
   CTF_Tensor NS_C(4, mmnn, shapeTS4, dw);
 
+#if DEBUG  >= 1
   if (rank == 0)
     printf("tensor creation succeed\n");
+#endif
 
   //* Writes noise to local data based on global index
   srand48(2013);
@@ -64,6 +68,13 @@ void ccsdt_t3_to_t2(int const  n,
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
   AS_C.write_remote_data(np, indices, pairs);
 
+#ifdef USE_SYM_SUM
+  NS_A["abij"] = AS_A["abij"];
+  NS_B["abcijk"] = AS_B["abcijk"];
+  //NS_C["abij"] = AS_C["abij"];
+  //NS_B["abcijk"] = HS_B["abcijk"];
+  NS_C.write_remote_data(np, indices, pairs);
+#else
   NS_A["abij"] -= AS_A["baij"];
   NS_A["abij"] += AS_A["abij"];
 
@@ -77,26 +88,55 @@ void ccsdt_t3_to_t2(int const  n,
   NS_B["ijkabc"] += HS_B["ijkabc"];
   NS_B["ikjabc"] -= HS_B["ijkabc"];
   NS_B["kjiabc"] -= HS_B["ijkabc"];
-  
   NS_C["abij"] += AS_C["abij"];
+#endif
+  
   
   AS_C["abij"] += 0.5*AS_A["mnje"]*AS_B["abeimn"];
   
   NS_C["abij"] += 0.5*NS_A["mnje"]*NS_B["abeimn"];
+
   NS_C["abij"] -= NS_C["abji"];
 
-  double nrm_AS = AS_C.reduce(CTF_OP_SQNRM2);
-  double nrm_NS = NS_C.reduce(CTF_OP_SQNRM2);
+  double nrm_AS = sqrt(AS_C.reduce(CTF_OP_SQNRM2));
+  double nrm_NS = sqrt(NS_C.reduce(CTF_OP_SQNRM2));
+
+
+#if DEBUG  >= 1
+  if (rank == 0) printf("triangular norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
+#endif
+  nrm_AS = sqrt(AS_C["ijkl"]*AS_C["ijkl"]);
+  nrm_NS = sqrt(NS_C["ijkl"]*NS_C["ijkl"]);
+#if DEBUG  >= 1
   if (rank == 0) printf("norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
-  AS_C["abij"] -= NS_C["abij"];
+#endif
+  NS_C["abij"] -= AS_C["abij"];
+#ifndef USE_SYM_SUM
+  NS_C["abij"] += AS_C["abji"];
+#endif
   
-  double nrm = AS_C.reduce(CTF_OP_SQNRM2);
-  if (rank == 0) printf("norm of AS_C after contraction should be zero, is = %lf\n", nrm);
+  
+  double nrm = NS_C.reduce(CTF_OP_SQNRM2);
+#if DEBUG  >= 1
+  if (rank == 0){
+    printf("norm of NS_C after contraction should be zero, is = %lf\n", nrm);
+  }
+#endif
+  int pass = fabs(nrm) <= 1.E-6;
+
+  if (rank == 0){
+    if (pass)
+      printf("{ AS_C[\"abij\"] += 0.5*AS_A[\"mnje\"]*AS_B[\"abeimn\"] } passed\n");
+    else 
+      printf("{ AS_C[\"abij\"] += 0.5*AS_A[\"mnje\"]*AS_B[\"abeimn\"] } failed\n");
+  }
 
   free(pairs);
   free(indices);
+  return pass;
 } 
 
+#ifndef TEST_SUITE
 
 char* getCmdOption(char ** begin,
                    char ** end,
@@ -135,13 +175,13 @@ int main(int argc, char ** argv){
 
 
 
-
-  ccsdt_t3_to_t2(n, m, dir);
+  int pass = ccsdt_t3_to_t2(n, m, dir);
+  assert(pass);
 
 
   MPI_Finalize();
   return 0;
 }
 
-
+#endif
 

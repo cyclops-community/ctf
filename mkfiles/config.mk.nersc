@@ -1,12 +1,12 @@
 DEFAULT_COMPONENTS = ctf
 
-BLAS        = -llapack -lblas
-LIBS        = $(BLAS) 
-CXX         = mpicxx
+BLAS        = 
+LIBS        =  
+CXX         = CC
 WARN_FLAGS  = #-Drestrict = -Wall 
 OPT_FLAGS   = -g -O3
 CXXFLAGS    = -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) 
-DEFS        = -D__STDC_LIMIT_MACROS
+DEFS        = -DHOPPER -D__STDC_LIMIT_MACROS
 LDFLAGS     = 
 INCLUDES    = 
 AR          = ar -crs

@@ -1,31 +1,33 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __SYM_SEQ_SUM_REF_HXX__
-#define __SYM_SEQ_SUM_REF_HXX__
+#ifndef __SYM_SEQ_SUM_CUST_HXX__
+#define __SYM_SEQ_SUM_CUST_HXX__
 
 #include "../shared/util.h"
 #include <limits.h>
 #include "sym_seq_shared.hxx"
+#include "../dist_tensor/cyclopstf.hpp"
 
 /**
- * \brief performs symmetric contraction
+ * \brief performs symmetric summation
  */
 template<typename dtype>
-int sym_seq_sum_ref( dtype const        alpha,
-                     dtype const *      A,
-                     int const          ndim_A,
-                     int const *        edge_len_A,
-                     int const *        _lda_A,
-                     int const *        sym_A,
-                     int const *        idx_map_A,
-                     dtype const        beta,
-                     dtype *            B,
-                     int const          ndim_B,
-                     int const *        edge_len_B,
-                     int const *        _lda_B,
-                     int const *        sym_B,
-                     int const *        idx_map_B){
-  TAU_FSTART(sym_seq_sum_ref);
+int sym_seq_sum_cust(dtype const          alpha,
+                     dtype const *        A,
+                     int const            ndim_A,
+                     int const *          edge_len_A,
+                     int const *          _lda_A,
+                     int const *          sym_A,
+                     int const *          idx_map_A,
+                     dtype const          beta,
+                     dtype *              B,
+                     int const            ndim_B,
+                     int const *          edge_len_B,
+                     int const *          _lda_B,
+                     int const *          sym_B,
+                     int const *          idx_map_B,
+                     fseq_elm_sum<dtype>* prm){
+  TAU_FSTART(sym_seq_sum_cust);
   int idx, i, idx_max, imin, imax, idx_A, idx_B, iA, iB, j, k;
   int off_idx, off_lda, sym_pass;
   int * idx_glb, * rev_idx_map;
@@ -44,13 +46,19 @@ int sym_seq_sum_ref( dtype const        alpha,
   memset(idx_glb, 0, sizeof(int)*idx_max);
 
 
+  /* Scale B immediately. FIXME: wrong for iterators over subset of B */
+/*  if (beta != 1.0) {
+    sz = sy_packed_size(ndim_B, edge_len_B, sym_B, NULL);
+    for (i=0; i<sz; i++){
+      B[i] = B[i]*beta;
+    }
+  }*/
   idx_A = 0, idx_B = 0;
   sym_pass = 1;
   for (;;){
     if (sym_pass){
-  /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
-              idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
-      B[idx_B] = alpha*A[idx_A] + beta*B[idx_B];
+      B[idx_B] = beta*B[idx_B] 
+                  + (*(prm->func_ptr))(alpha, A[idx_A], B[idx_B]);
     }
 
     for (idx=0; idx<idx_max; idx++){
@@ -64,10 +72,10 @@ int sym_seq_sum_ref( dtype const        alpha,
       idx_glb[idx]++;
 
       if (idx_glb[idx] >= imax){
-              idx_glb[idx] = imin;
+        idx_glb[idx] = imin;
       }
       if (idx_glb[idx] != imin) {
-              break;
+        break;
       }
     }
     if (idx == idx_max) break;
@@ -86,7 +94,7 @@ int sym_seq_sum_ref( dtype const        alpha,
   free(dlen_B);
   free(idx_glb);
   free(rev_idx_map);
-  TAU_FSTOP(sym_seq_sum_ref);
+  TAU_FSTOP(sym_seq_sum_cust);
   return 0;
 }
 

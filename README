@@ -1,9 +1,23 @@
-To build CTF, setup the top folder and compiler in config.mk. Various premade
-configurations exist in mkfiles/. After setting up the config.mk file, run 
-'make'. Run 'make examples' to build example programs.
+To build CTF on a standard linux setup simply run make in the top directory.
 
-More documentation is available on the following website
+To specialize the build configuration (for instance set a custom BLAS library
+or specify MPI compiler), one must set up a config.mk file. Examples and 
+premade config.mk files for a few architectures are located in the 
+mkfiles/ subdirectory. On running make without a config.mk file in the top
+folder, mkfiles/config.mk.linux will be copied to config.mk in the top folder.
+This file will not be overwritten.
+
+The CTF library is built by default and will be located in lib/. The main 
+interface to the library is include/ctf.hpp.
+
+Run 'make examples' to build example programs, see examples/ dir for full list
+(any one of them can be built individually by the command 'make <example_name>'. 
+Any executables that are build will appear in bin/
+
+More documentation on the function CTF library is available on the following website
 http://ctf.cs.berkeley.edu
+
+The license corresponding to the code in this library is in the file license.txt.
 
 This is not an official release and we provide no guarantees on correctness
 or speed of the code. Please contact Edgar Solomonik (solomon@cs.berkeley.edu),

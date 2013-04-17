@@ -87,7 +87,7 @@ void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair,
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
   }
-  ret = world->ctf->write_tensor(tid, npair, pairs);
+  ret = world->ctf->read_tensor(tid, npair, pairs);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   for (i=0; i<npair; i++){
     data[i] = pairs[i].d;
@@ -98,7 +98,7 @@ void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair,
 template<typename dtype>
 void tCTF_Tensor<dtype>::write_remote_data(int64_t const    npair, 
                                            int64_t const *  global_idx, 
-                                           dtype const *    data) const {
+                                           dtype const *    data) {
   int ret, i;
   tkv_pair< dtype > * pairs;
   pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
@@ -113,8 +113,8 @@ void tCTF_Tensor<dtype>::write_remote_data(int64_t const    npair,
 
 template<typename dtype>
 void tCTF_Tensor<dtype>::add_remote_data(int64_t const    npair, 
-                                         double const     alpha, 
-                                         double const     beta,
+                                         dtype const      alpha, 
+                                         dtype const      beta,
                                          int64_t const *  global_idx, 
                                          dtype const *    data) {
   int ret, i;
@@ -143,7 +143,8 @@ void tCTF_Tensor<dtype>::contract(const dtype                   alpha,
                                   const tCTF_Tensor<dtype>&     B,
                                   const char *                  idx_B,
                                   const dtype                   beta,
-                                  const char *                  idx_C) {
+                                  const char *                  idx_C,
+                                  tCTF_fctr<dtype>              fseq){
   int ret;
   CTF_ctr_type_t tp;
   tp.tid_A = A.tid;
@@ -152,7 +153,13 @@ void tCTF_Tensor<dtype>::contract(const dtype                   alpha,
   conv_idx(A.ndim, idx_A, &tp.idx_map_A,
            B.ndim, idx_B, &tp.idx_map_B,
            ndim, idx_C, &tp.idx_map_C);
-  ret = world->ctf->contract(&tp, alpha, beta);
+  if (fseq.func_ptr == NULL)
+    ret = world->ctf->contract(&tp, alpha, beta);
+  else {
+    fseq_elm_ctr<dtype> fs;
+    fs.func_ptr = fseq.func_ptr;
+    ret = world->ctf->contract(&tp, fs, alpha, beta);
+  }
   free(tp.idx_map_A);
   free(tp.idx_map_B);
   free(tp.idx_map_C);
@@ -169,7 +176,8 @@ void tCTF_Tensor<dtype>::sum(const dtype                alpha,
                              const tCTF_Tensor<dtype>&  A,
                              const char *               idx_A,
                              const dtype                beta,
-                             const char *               idx_B){
+                             const char *               idx_B,
+                             tCTF_fsum<dtype>           fseq){
   int ret;
   int * idx_map_A, * idx_map_B;
   CTF_sum_type_t st;
@@ -179,18 +187,32 @@ void tCTF_Tensor<dtype>::sum(const dtype                alpha,
   st.idx_map_B = idx_map_B;
   st.tid_A = A.tid;
   st.tid_B = tid;
-  ret = world->ctf->sum_tensors(&st, alpha, beta);
+  if (fseq.func_ptr == NULL)
+    ret = world->ctf->sum_tensors(&st, alpha, beta);
+  else {
+    fseq_elm_sum<dtype> fs;
+    fs.func_ptr = fseq.func_ptr;
+    ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fs);
+  }
   free(idx_map_A);
   free(idx_map_B);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
 template<typename dtype>
-void tCTF_Tensor<dtype>::scale(const dtype alpha, const char * idx_A){
+void tCTF_Tensor<dtype>::scale(const dtype            alpha, 
+                               const char *           idx_A,
+                               tCTF_fscl<dtype>       fseq){
   int ret;
   int * idx_map_A;
   conv_idx(ndim, idx_A, &idx_map_A);
-  ret = world->ctf->scale_tensor(alpha, tid, idx_map_A);
+  if (fseq.func_ptr == NULL)
+    ret = world->ctf->scale_tensor(alpha, tid, idx_map_A);
+  else{
+    fseq_elm_scl<dtype> fs;
+    fs.func_ptr = fseq.func_ptr;
+    ret = world->ctf->scale_tensor(alpha, tid, idx_map_A, fs);
+  }
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
@@ -208,6 +230,13 @@ dtype tCTF_Tensor<dtype>::reduce(CTF_OP op){
   ret = world->ctf->reduce_tensor(tid, op, &ans);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   return ans;
+}
+template<typename dtype>
+void tCTF_Tensor<dtype>::get_max_abs(int const  n,
+                                     dtype *    data){
+  int ret;
+  ret = world->ctf->get_max_abs(tid, n, data);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
 template<typename dtype>

@@ -1,0 +1,26 @@
+DEFAULT_COMPONENTS = ctf
+
+BGP_ESSL    = /soft/libraries/essl/current/
+LIBS        = -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r
+CXX	        = mpixlcxx_r
+WARN_FLAGS  = #-Drestrict = -Wall 
+OPT_FLAGS   = -g -O3
+CXXFLAGS    = -qsmp=omp $(OPT_FLAGS) $(WARN_FLAGS) 
+DEFS        = -DBGQ -D__STDC_LIMIT_MACROS
+LDFLAGS     = -L$(BGP_ESSL)/lib64 \
+              -L/soft/compilers/ibmcmp-feb2012/xlf/bg/14.1/lib64/ \
+              -L/opt/ibmcmp/lib64 \
+              -L/opt/ibmcmp/lib64
+INCLUDES    = -I$(BGP_ESSL)/include 
+AR          = ar -crs
+DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
+
+#uncomment below to enable performance profiling
+#DEFS      := $(DEFS) -DPROFILE
+
+#uncomment below to enable CTF debugging and status output
+#DEFS      := $(DEFS) -DDEBUG=1
+
+#SCALAPACK only necessary for pgemm tests and benchmarks 
+#SCALA      = -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack
+

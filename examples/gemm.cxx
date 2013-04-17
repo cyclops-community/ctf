@@ -14,7 +14,6 @@ void gemm(int const  m,
           int const  k,
           int const  sym,
           int const  niter,
-          CTF_World  &dw,
           char const *dir){
   int rank, i, num_pes;
   int64_t np;
@@ -23,9 +22,7 @@ void gemm(int const  m,
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
-
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
+  CTF_World dw;
 
   if (rank == 0)
     printf("m = %d, n = %d, k = %d, p = %d, niter = %d\n", 
@@ -39,19 +36,20 @@ void gemm(int const  m,
   if (rank == 0)
     printf("tensor creation succeed\n");
 
+  srand48(13*rank);
   //* Writes noise to local data based on global index
   A.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
   B.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(.33+indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   B.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
   C.get_local_data(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = (1.E-3)*sin(.66+indices[i]);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   C.write_remote_data(np, indices, pairs);
   free(pairs);
   free(indices);
@@ -142,22 +140,24 @@ int main(int argc, char ** argv){
     if (niter < 0) niter = 5;
   } else niter = 5;
 
-  CTF_World dw;
-
   
   if (rank == 0){
     printf("Non-symmetric: NS = NS*NS gemm:\n");
   }
-  gemm(m, n, k, NS, niter, dw, dir);
+  gemm(m, n, k, NS, niter, dir);
   if (m==n && n==k){ 
     if (rank == 0){
       printf("Symmetric: NS = SY*SY gemm:\n");
     }
-    gemm(m, n, k, SY, niter, dw, dir);
+    gemm(m, n, k, SY, niter, dir);
     if (rank == 0){
       printf("(Anti-)Skew-symmetric: NS = AS*AS gemm:\n");
     }
-    gemm(m, n, k, AS, niter, dw, dir);
+    gemm(m, n, k, AS, niter, dir);
+    if (rank == 0){
+      printf("Symmetric-hollow: NS = SH*SH gemm:\n");
+    }
+    gemm(m, n, k, SH, niter, dir);
   }
 
   MPI_Finalize();
