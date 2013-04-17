@@ -73,11 +73,14 @@ class function_timer{
         }
         space[i] = '\0';
         fprintf(output, "%s", space);
-        fprintf(output,"%5d   %3.6lf  %3d.%02d  %3.6lf  %3d.%02d\n",
-                total_calls/np,total_time/np,
+        fprintf(output,"%5d   %3d.%04d  %3d.%02d  %3d.%04d  %3d.%02d\n",
+                total_calls/np,
+                (int)(total_time/np),
+                ((int)(1000.*(total_time)/np))%1000,
                 (int)(100.*(total_time)/complete_time),
                 ((int)(10000.*(total_time)/complete_time))%100,
-                total_excl_time/np,
+                (int)(total_excl_time/np),
+                ((int)(1000.*(total_excl_time)/np))%1000,
                 (int)(100.*(total_excl_time)/complete_time),
                 ((int)(10000.*(total_excl_time)/complete_time))%100);
       } 
@@ -171,7 +174,7 @@ void CTF_timer::exit(){
       part[i] = '\0';
       sprintf(heading,"%s",part);
       //sprintf(part,"calls   total sec   exclusive sec\n");
-      sprintf(part,"        inclusive         exclusive\n");
+      sprintf(part,"       inclusive         exclusive\n");
       strcat(heading,part);
       fprintf(output, "%s", heading);
       for (i=0; i<MAX_NAME_LENGTH; i++){
