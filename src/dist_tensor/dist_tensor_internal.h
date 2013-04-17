@@ -431,9 +431,9 @@ class dist_tensor{
 
     int set_zero_tsr(int const tensor_id);
 
-    int print_tsr(FILE * stream, int const tid);
+    int print_tsr(FILE * stream, int const tid, double cutoff = 0.0);
 
-    int compare_tsr(FILE * stream, int const tid_A, int const tid_B);
+    int compare_tsr(FILE * stream, int const tid_A, int const tid_B, double cutoff = 0.0);
 
     int print_map(FILE * stream, int const tid,
                   int const all=1, int const is_inner=0) const;

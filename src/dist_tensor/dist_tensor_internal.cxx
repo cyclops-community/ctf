@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <vector>
 #include <algorithm>
+#include <errno.h>
 
 #define MAX_NVIRT 256
 #ifndef MIN_NVIRT
@@ -269,7 +270,23 @@ int get_buffer_space(int const len, void ** const ptr){
   int pm;
   //(*ptr) = malloc(len);
   pm = posix_memalign(ptr, ALIGN_BYTES, len);
-  LIBT_ASSERT(pm == 0);
+  //LIBT_ASSERT(pm == 0);
+  if (pm != 0)
+  {
+      if (pm == ENOMEM)
+      {
+          printf("ENOMEM: %d\n", len);
+      }
+      else if (pm == EINVAL)
+      {
+          printf("EINVAL\n");
+      }
+      else
+      {
+          printf("???\n");
+      }
+      abort();
+  }
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -1282,7 +1299,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
  * \param tid tensor handle
  */
 template<typename dtype>
-int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid) {
+int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid, double cutoff) {
   tensor<dtype> const * tsr;
   int i, j;
   long_int my_sz, tot_sz =0;
@@ -1335,7 +1352,7 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid) {
   if (global_comm->rank == 0){
     std::sort(all_data, all_data + tot_sz);
     for (i=0; i<tot_sz; i++){
-      if (std::abs(all_data[i].d) > 1e-14)
+      if (std::abs(all_data[i].d) > cutoff)
       {
           k = all_data[i].k;
           for (j=0; j<tsr->ndim; j++){
@@ -1366,7 +1383,7 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid) {
  * \param tid_B second tensor handle
  */
 template<typename dtype>
-int dist_tensor<dtype>::compare_tsr(FILE * stream, int const tid_A, int const tid_B) {
+int dist_tensor<dtype>::compare_tsr(FILE * stream, int const tid_A, int const tid_B, double cutoff) {
   tensor<dtype> const * tsr_A;
   int i, j;
   long_int my_sz, tot_sz =0, my_sz_B;
@@ -1429,8 +1446,8 @@ int dist_tensor<dtype>::compare_tsr(FILE * stream, int const tid_A, int const ti
       std::sort(all_data_A, all_data_A + tot_sz);
       std::sort(all_data_B, all_data_B + tot_sz);
     for (i=0; i<tot_sz; i++){
-      if (std::abs(all_data_A[i].d) > 1e-14 ||
-          std::abs(all_data_B[i].d) > 1e-14)
+      if (std::abs(all_data_A[i].d) > cutoff ||
+          std::abs(all_data_B[i].d) > cutoff)
       {
           k = all_data_A[i].k;
           for (j=0; j<tsr_A->ndim; j++){

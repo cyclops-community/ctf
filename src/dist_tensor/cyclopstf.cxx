@@ -564,15 +564,15 @@ int tCTF<dtype>::align(int const    tid_A,
 }
 
 template<typename dtype>
-int tCTF<dtype>::print_tensor(FILE * stream, int const tid) {
-  return dt->print_tsr(stream, tid);
+int tCTF<dtype>::print_tensor(FILE * stream, int const tid, double cutoff) {
+  return dt->print_tsr(stream, tid, cutoff);
 }
 
 template<typename dtype>
-int tCTF<dtype>::compare_tensor(FILE * stream, int const tid_A, int const tid_B) {
+int tCTF<dtype>::compare_tensor(FILE * stream, int const tid_A, int const tid_B, double cutoff) {
   int stat = align(tid_A, tid_B);
   if (stat != DIST_TENSOR_SUCCESS) return stat;
-  return dt->compare_tsr(stream, tid_A, tid_B);
+  return dt->compare_tsr(stream, tid_A, tid_B, cutoff);
 }
 
 /* Prints contraction type. */
