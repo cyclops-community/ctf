@@ -16,6 +16,7 @@ char ** main_argv;
 MPI_Comm comm;
 double excl_time;
 double complete_time;
+int set_contxt = 0;
     
 
 class function_timer{
@@ -137,7 +138,7 @@ void CTF_timer::stop(){
 CTF_timer::~CTF_timer(){ }
 
 void CTF_timer::exit(){
-  if (original && !exited) {
+  if (set_contxt && original && !exited) {
     int rank, np, i, j, p, len_symbols;
 
     MPI_Comm_rank(comm, &rank);
@@ -248,6 +249,7 @@ void CTF_set_main_args(int argc, char ** argv){
 }
 
 void CTF_set_context(int const ctxt){
+  set_contxt = 1;
   if (ctxt == 0) comm = MPI_COMM_WORLD;
   else comm = ctxt;
 }
