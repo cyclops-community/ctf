@@ -154,7 +154,7 @@ void CTF_timer::exit(){
       sprintf(filename, "profile.");
       int off;
       if (main_argc != -1){
-        for (off=strlen(main_argv[0]); off>=0; off--){
+        for (off=strlen(main_argv[0]); off>=1; off--){
           if (main_argv[0][off-1] == '/') break;
         }
         for (i=0; i<main_argc; i++){
