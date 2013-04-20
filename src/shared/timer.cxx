@@ -264,3 +264,8 @@ void CTF_set_context(int const ctxt){
   if (ctxt == 0) comm = MPI_COMM_WORLD;
   else comm = (MPI_Comm)ctxt;
 }
+
+void CTF_set_context(MPI_Comm ctxt){
+  set_contxt = 1;
+  comm = ctxt;
+}
