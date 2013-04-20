@@ -12,6 +12,7 @@
 #include "../unit_test/unit_test_ctr.h"
 #endif
 
+#define DEF_INNER_SIZE 256
 
 /** 
  * \brief destructor
@@ -27,33 +28,6 @@ tCTF<dtype>::~tCTF(){
 template<typename dtype>
 tCTF<dtype>::tCTF(){
   initialized = 0;
-}
-
-/**
- * \brief  initializes library. 
- *      Sets topology to be a mesh of dimension ndim with
- *      edge lengths dim_len. 
- *
- * \param[in] global_context communicator decated to this library instance
- * \param[in] rank this pe rank within the global context
- * \param[in] np number of processors
- */
-template<typename dtype>
-int tCTF<dtype>::init(MPI_Comm const  global_context,
-                      int const       rank, 
-                      int const       np){      
-  int ret;
-#ifdef BGQ
-  ret = tCTF<dtype>::init(global_context, MACHINE_BGQ, rank, np);
-#else
-  #ifdef BGP
-    ret = tCTF<dtype>::init(global_context, MACHINE_BGP, rank, np);
-  #else
-    ret = tCTF<dtype>::init(global_context, MACHINE_8D, rank, np);
-  #endif
-#endif
-
-  return ret;
 }
 
 template<typename dtype>
@@ -78,21 +52,23 @@ int tCTF<dtype>::get_num_pes(){
  *      edge lengths dim_len. 
  *
  * \param[in] global_context communicator decated to this library instance
- * \param[in] mach the type of machine we are running on
  * \param[in] rank this pe rank within the global context
  * \param[in] np number of processors
- * \param[in] inner_size is the total block size of dgemm calls 
+ * \param[in] mach the type of machine we are running on
+ * \param[in] argc number of arguments passed to main
+ * \param[in] argv arguments passed to main
  */
 template<typename dtype>
 int tCTF<dtype>::init(MPI_Comm const  global_context,
-                      CTF_MACHINE     mach,
                       int const       rank, 
                       int const       np,
-                      int const       inner_size){      
+                      CTF_MACHINE     mach,
+                      int const       argc,
+                      char * const *  argv){
   int ndim, ret;
   int * dim_len;
   get_topo(np, mach, &ndim, &dim_len);
-  ret = tCTF<dtype>::init(global_context, rank, np, ndim, dim_len, inner_size);
+  ret = tCTF<dtype>::init(global_context, rank, np, ndim, dim_len, argc, argv);
   free(dim_len);
   return ret;
 }
@@ -107,7 +83,8 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
  * \param[in] np number of processors
  * \param[in] ndim is the number of dimensions in the topology
  * \param[in] dim_len is the number of processors along each dimension
- * \param[in] inner_size is the total block size of dgemm calls 
+ * \param[in] argc number of arguments passed to main
+ * \param[in] argv arguments passed to main
  */
 template<typename dtype>
 int tCTF<dtype>::init(MPI_Comm const  global_context,
@@ -115,15 +92,16 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const       np, 
                       int const       ndim, 
                       int const *     dim_len,
-                      int const       inner_size){
+                      int const       argc,
+                      char * const *  argv){
   TAU_FSTART(CTF);
-  TAU_PROFILE_SET_NODE(rank);
-  TAU_PROFILE_SET_CONTEXT(0);
+  CTF_set_context(global_context);
+  CTF_set_main_args(argc, argv);
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)malloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);
   dt = new dist_tensor<dtype>();
-  return dt->initialize(glb_comm, ndim, dim_len, inner_size);
+  return dt->initialize(glb_comm, ndim, dim_len, DEF_INNER_SIZE);
 }
 
 

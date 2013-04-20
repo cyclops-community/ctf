@@ -1,3 +1,5 @@
+/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+
 #include <ctf.hpp>
 
 struct int2

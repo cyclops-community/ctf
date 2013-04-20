@@ -1891,7 +1891,7 @@ void block_reshuffle(int const        ndim,
   num_old_virt = 1;
   num_new_virt = 1;
   for (i=0; i<ndim; i++){
-    num_old_virt *= new_virt_dim[i];
+    num_old_virt *= old_virt_dim[i];
     num_new_virt *= new_virt_dim[i];
     blk_sz = blk_sz/old_virt_dim[i];
     idx_lyr_old -= old_rank[i]*old_pe_lda[i];

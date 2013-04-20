@@ -1,5 +1,5 @@
-#ifndef __TAU_H__
-#define __TAU_H__
+#ifndef __TIMER_H__
+#define __TIMER_H__
 
 class CTF_timer{
   public:
@@ -17,10 +17,10 @@ class CTF_timer{
     
 };
 
-void CTF_set_main_args(int argc, char ** argv);
+void CTF_set_main_args(int argc, char * const * argv);
 void CTF_set_context(int ctxt);
 
-
+#ifdef TAU
 #define TAU_FSTART(ARG)                                           \
   do { CTF_timer t(#ARG); t.start(); } while (0);
 
@@ -42,5 +42,6 @@ void CTF_set_context(int ctxt);
 
 #define TAU_PROFILE_SET_CONTEXT(ARG)                              \
   CTF_set_context(ARG);
+#endif
 
 #endif

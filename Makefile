@@ -6,7 +6,7 @@
 # type make examples to build all examples
 # type make <example_name>
 #   where <example_name> can be one of
-#     gemm gemm_4D fft fft_3D trace sym3 ccsd_t3_to_t2 weight_4D
+#     gemm gemm_4D dft dft_3D trace sym3 ccsd_t3_to_t2 weight_4D
 
 HNAME	:= $(shell hostname | cut -d . -f 1)
 

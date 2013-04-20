@@ -9,6 +9,7 @@ DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard ctr_comm/
 include make/make.in
 include make/rules.mk
 
+test_suite_SUBDIRS = test 
 test_SUBDIRS = test ctr_comm unit_test
 test_model_SUBDIRS = unit_test
 pgemm_test_SUBDIRS = test
@@ -29,7 +30,7 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     interface/ctf_idx_tensor.o \
                     shared/comm.o \
                     shared/util.o \
-                    shared/tau.o \
+                    shared/timer.o \
                     shared/memcontrol.o \
                     shared/unit_util.o \
                     dist_tensor/cyclopstf.o \
