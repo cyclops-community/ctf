@@ -7,16 +7,17 @@
 #include "assert.h"
 #include <iostream>
 #include <vector>
-#include "tau.h"
+#include "timer.h"
 
 #define MAX_NAME_LENGTH 38
 
-int main_argc=-1;
-char ** main_argv;
+int main_argc = 0;
+char * const * main_argv;
 MPI_Comm comm;
 double excl_time;
 double complete_time;
 int set_contxt = 0;
+int output_file_counter = 0;
     
 
 class function_timer{
@@ -95,6 +96,7 @@ bool comp_name(function_timer const & w1, function_timer const & w2) {
 std::vector<function_timer> function_timers;
 
 CTF_timer::CTF_timer(const char * name){
+#ifdef PROFILE
   int i;
   if (function_timers.size() == 0) {
     original = 1;
@@ -117,14 +119,18 @@ CTF_timer::CTF_timer(const char * name){
   }
   timer_name = name;
   exited = 0;
+#endif
 }
   
 void CTF_timer::start(){
+#ifdef PROFILE
   function_timers[index].start_time = MPI_Wtime();
   function_timers[index].start_excl_time = excl_time;
+#endif
 }
 
 void CTF_timer::stop(){
+#ifdef PROFILE
   double delta_time = MPI_Wtime() - function_timers[index].start_time;
   function_timers[index].acc_time += delta_time;
   function_timers[index].acc_excl_time += delta_time - 
@@ -133,11 +139,13 @@ void CTF_timer::stop(){
   function_timers[index].calls++;
   exit();
   exited = 1;
+#endif
 }
 
 CTF_timer::~CTF_timer(){ }
 
 void CTF_timer::exit(){
+#ifdef PROFILE
   if (set_contxt && original && !exited) {
     int rank, np, i, j, p, len_symbols;
 
@@ -151,17 +159,19 @@ void CTF_timer::exit(){
     if (rank == 0){
       char filename[300];
       char part[300];
+      
       sprintf(filename, "profile.");
+      srand(time(NULL));
+      sprintf(filename+strlen(filename), "%d.", output_file_counter);
+      output_file_counter++;
+      
       int off;
-      if (main_argc != -1){
-        for (off=strlen(main_argv[0]); off>=1; off--){
-          if (main_argv[0][off-1] == '/') break;
-        }
+      if (main_argc > 0){
         for (i=0; i<main_argc; i++){
-          if (i==0)
-            sprintf(filename+strlen(filename), "%s.", main_argv[0]+off);
-          else
-            sprintf(filename+strlen(filename), "%s.", main_argv[i]);
+          for (off=strlen(main_argv[i]); off>=1; off--){
+            if (main_argv[i][off-1] == '/') break;
+          }
+          sprintf(filename+strlen(filename), "%s.", main_argv[i]+off);
         }
       } 
       sprintf(filename+strlen(filename), "-p%d.out", np);
@@ -241,9 +251,10 @@ void CTF_timer::exit(){
     } 
     
   }
+#endif
 }
 
-void CTF_set_main_args(int argc, char ** argv){
+void CTF_set_main_args(int argc, char * const * argv){
   main_argv = argv;
   main_argc = argc;
 }

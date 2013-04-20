@@ -10,24 +10,19 @@
 #include <ctf.hpp>
 #include "../src/shared/util.h"
 
-void gemm_4D(int const  n,
-             int const  sym,
-             int const  niter,
-             char const *dir){
+int  gemm_4D(int const    n,
+             int const    sym,
+             int const    niter,
+             CTF_World   &dw){
   int rank, i, num_pes;
   int64_t np;
   double * pairs, * pairs_AB, * pairs_BC;
-  double t, time;
   int64_t * indices, * indices_AB, * indices_BC;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
-  CTF_World dw;
 
-  if (rank == 0)
-    printf("n = %d\n", n);
-  
   int shapeN4[] = {sym,NS,sym,NS};
   int sizeN4[] = {n,n,n,n};
 
@@ -35,9 +30,6 @@ void gemm_4D(int const  n,
   CTF_Tensor A(4, sizeN4, shapeN4, dw);
   CTF_Tensor B(4, sizeN4, shapeN4, dw);
   CTF_Tensor C(4, sizeN4, shapeN4, dw);
-
-  if (rank == 0)
-    printf("tensor creation succeed\n");
 
   srand48(13*rank);
   //* Writes noise to local data based on global index
@@ -58,7 +50,9 @@ void gemm_4D(int const  n,
   free(indices);
 
 
-  t = MPI_Wtime();
+#ifndef TEST_SUITE
+  double time;
+  double t = MPI_Wtime();
   for (i=0; i<niter; i++){
     C["ijkl"] += (.3*i)*A["ijmn"]*B["mnkl"];
   }
@@ -73,6 +67,7 @@ void gemm_4D(int const  n,
             time/niter,niter*c*nd*nd*nd*nd*nd*nd/time);
     printf("Verifying associativity\n");
   }
+#endif
   
   /* verify D=(A*B)*C = A*(B*C) */
   CTF_Tensor D(4, sizeN4, shapeN4, dw);
@@ -82,23 +77,28 @@ void gemm_4D(int const  n,
   C["ijkl"] = B["ijmn"]*C["mnkl"];
   C["ijkl"] = A["ijmn"]*C["mnkl"];
   
-  if (rank == 0)
-    printf("Completed (A*B)*C and A*(B*C) computations, verifying...\n");
-
   C.align(D);  
   C.get_local_data(&np, &indices_BC, &pairs_BC);
   D.get_local_data(&np, &indices_AB, &pairs_AB);
+  int pass = 1;
   for (i=0; i<np; i++){
-    assert(fabs((double)pairs_BC[i]-(double)pairs_AB[i])<1.E-6);
+    if (fabs((double)pairs_BC[i]-(double)pairs_AB[i])>=1.E-6) pass = 0;
   }
   free(pairs_AB);
   free(pairs_BC);
-  if (rank == 0)
-    printf("Verification completed successfully.\n");
-  
+  if (rank == 0){
+    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+    if (pass)
+      printf("{ (A[\"ijmn\"]*B[\"mnpq\"])*C[\"pqkl\"] = A[\"ijmn\"]*(B[\"mnpq\"]*C[\"pqkl\"]) } passed\n");
+    else 
+      printf("{ (A[\"ijmn\"]*B[\"mnpq\"])*C[\"pqkl\"] = A[\"ijmn\"]*(B[\"mnpq\"]*C[\"pqkl\"]) } passed\n");
+  } else 
+    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  return pass;
 } 
 
 
+#ifndef TEST_SUITE
 char* getCmdOption(char ** begin,
                    char ** end,
                    const   std::string & option){
@@ -111,9 +111,8 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, niter, n;
+  int rank, np, niter, n, pass;
   int const in_num = argc;
-  char dir[120];
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -132,27 +131,33 @@ int main(int argc, char ** argv){
 
 
 
+  {
+    CTF_World dw(argc, argv);
 
-  if (rank == 0){
-    printf("Computing C_ijkl = A_ijmn*B_klmn\n");
-    printf("Non-symmetric: NS = NS*NS gemm:\n");
+    if (rank == 0){
+      printf("Computing C_ijkl = A_ijmn*B_klmn\n");
+      printf("Non-symmetric: NS = NS*NS gemm:\n");
+    }
+    pass = gemm_4D(n, NS, niter, dw);
+    assert(pass);
+    if (rank == 0){
+      printf("Symmetric: SY = SY*SY gemm:\n");
+    }
+    pass = gemm_4D(n, SY, niter, dw);
+    assert(pass);
+    if (rank == 0){
+      printf("(Anti-)Skew-symmetric: AS = AS*AS gemm:\n");
+    }
+    pass = gemm_4D(n, AS, niter, dw);
+    assert(pass);
+    if (rank == 0){
+      printf("Symmetric-hollow: SH = SH*SH gemm:\n");
+    }
+    pass = gemm_4D(n, SH, niter, dw);
+    assert(pass);
   }
-  gemm_4D(n, NS, niter, dir);
-  if (rank == 0){
-    printf("Symmetric: SY = SY*SY gemm:\n");
-  }
-  gemm_4D(n, SY, niter, dir);
-  if (rank == 0){
-    printf("(Anti-)Skew-symmetric: AS = AS*AS gemm:\n");
-  }
-  gemm_4D(n, AS, niter, dir);
-  if (rank == 0){
-    printf("Symmetric-hollow: SH = SH*SH gemm:\n");
-  }
-  gemm_4D(n, SH, niter, dir);
-
 
   MPI_Finalize();
   return 0;
- }
-
+}
+#endif

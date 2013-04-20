@@ -4,7 +4,8 @@
 #include <assert.h>
 #include <stdlib.h>
   
-int test_fft(int64_t const n){ 
+int test_dft(int64_t const  n,
+             cCTF_World    &dw){
   int numPes, myRank;
   int64_t  np, i;
   int64_t * idx;
@@ -57,17 +58,19 @@ int test_fft(int64_t const n){
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
   
   if (myRank == 0) {
+    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     if (pass)
       printf("{ DFT[\"ik\"] = DFT[\"ij\"]*IDFT[\"jk\"] } passed\n");
     else
       printf("{ DFT[\"ik\"] = DFT[\"ij\"]*IDFT[\"jk\"] } failed\n");
-  }
+  } else 
+    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
   free(idx);
   free(data);
-  return !pass;
+  return pass;
 }
 
 #ifndef TEST_SUITE
@@ -88,7 +91,12 @@ int main(int argc, char ** argv){
   }
   n = 1<<logn;
 
-  int pass = test_fft(n);
+
+  {
+    cCTF_World dw(argc, argv);
+    int pass = test_dft(n, dw);
+    assert(pass);
+  }
 
   MPI_Finalize();
   

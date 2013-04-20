@@ -1,8 +1,8 @@
 all: $(DEFAULT_COMPONENTS)
 
 EXECUTABLES = pgemm_test nonsq_pgemm_test nonsq_pgemm_bench \
-              examples fft fft_3D gemm gemm_4D trace sym3 \
-              ccsdt_t3_to_t2 weight_4D
+              examples dft dft_3D gemm gemm_4D trace sym3 \
+              ccsdt_t3_to_t2 weight_4D test_suite
 
 LIBRARIES   = ctf
 

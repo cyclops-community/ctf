@@ -10,9 +10,10 @@
 #include <ctf.hpp>
 #include "../src/shared/util.h"
 
-int  ccsdt_t3_to_t2(int const  n,
-                    int const  m,
-                    char const *dir){
+int ccsdt_t3_to_t2(int const     n,
+                   int const     m,
+                   CTF_World    &dw){
+
   int rank, i, num_pes;
   int64_t np;
   double * pairs;
@@ -21,7 +22,6 @@ int  ccsdt_t3_to_t2(int const  n,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
-  CTF_World dw;
 #if DEBUG  >= 1
   if (rank == 0)
     printf("n = %d\n", n);
@@ -125,11 +125,13 @@ int  ccsdt_t3_to_t2(int const  n,
   int pass = fabs(nrm) <= 1.E-6;
 
   if (rank == 0){
+    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     if (pass)
       printf("{ AS_C[\"abij\"] += 0.5*AS_A[\"mnje\"]*AS_B[\"abeimn\"] } passed\n");
     else 
       printf("{ AS_C[\"abij\"] += 0.5*AS_A[\"mnje\"]*AS_B[\"abeimn\"] } failed\n");
-  }
+  } else 
+    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
 
   free(pairs);
   free(indices);
@@ -152,7 +154,6 @@ char* getCmdOption(char ** begin,
 int main(int argc, char ** argv){
   int rank, np, niter, n, m;
   int const in_num = argc;
-  char dir[120];
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -175,8 +176,11 @@ int main(int argc, char ** argv){
 
 
 
-  int pass = ccsdt_t3_to_t2(n, m, dir);
-  assert(pass);
+  {
+    CTF_World dw(argc, argv);
+    int pass = ccsdt_t3_to_t2(n, m, dw);
+    assert(pass);
+  }
 
 
   MPI_Finalize();

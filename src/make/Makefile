@@ -9,6 +9,9 @@ include rules.mk
 
 clean: clean_bin clean_lib
 
+test: test_suite
+	${bindir}/test_suite
+
 clean_bin:
 	for comp in $(EXECUTABLES) ; do \
 		rm -f ${bindir}/$$comp ; \

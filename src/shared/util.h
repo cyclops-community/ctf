@@ -18,10 +18,7 @@
 #ifdef PROFILE
 #define TAU
 #endif
-
-#ifdef TAU
-#include "tau.h"
-#endif
+#include "timer.h"
 
 #define USE_OMP
 
