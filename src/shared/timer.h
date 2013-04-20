@@ -19,7 +19,6 @@ class CTF_timer{
 
 void CTF_set_main_args(int argc, char * const * argv);
 void CTF_set_context(MPI_Comm ctxt);
-void CTF_set_context(int ctxt);
 
 #ifdef TAU
 #define TAU_FSTART(ARG)                                           \
@@ -42,7 +41,8 @@ void CTF_set_context(int ctxt);
  __CTF_timer##ARG.stop();
 
 #define TAU_PROFILE_SET_CONTEXT(ARG)                              \
-  CTF_set_context(ARG);
+  if (ARG==0) CTF_set_context(MPI_COMM_WORLD);                    \
+  else CTF_set_context((MPI_Comm)ARG);
 #endif
 
 #endif
