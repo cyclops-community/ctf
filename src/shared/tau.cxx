@@ -249,5 +249,5 @@ void CTF_set_main_args(int argc, char ** argv){
 
 void CTF_set_context(int const ctxt){
   if (ctxt == 0) comm = MPI_COMM_WORLD;
-  else comm = ctxt;
+  else comm = (MPI_Comm)ctxt;
 }
