@@ -177,7 +177,8 @@ void CTF_timer::exit(){
       sprintf(filename+strlen(filename), "-p%d.out", np);
       
       
-      output = fopen(filename, "w");
+      output = stdout;// fopen(filename, "w");
+      printf("%s\n",filename);
       char heading[MAX_NAME_LENGTH+200];
       for (i=0; i<MAX_NAME_LENGTH; i++){
         part[i] = ' ';
@@ -246,9 +247,9 @@ void CTF_timer::exit(){
       function_timers[i].print(output,comm,rank,np);
     }
     
-    if (rank == 0){
+/*    if (rank == 0){
       fclose(output);
-    } 
+    } */
     
   }
 #endif
