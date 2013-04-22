@@ -746,7 +746,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
 		  if (map->has_child) 
 		    map = map->child;
 		  else break;
-		}
+		} else break;
 	      }
 	      map = &tsr_B->edge_map[iB];
               for (;;){
@@ -760,7 +760,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
 		  if (map->has_child) 
 		    map = map->child;
 		  else break;
-		}
+		} else break;
 	      }
             }
           }
