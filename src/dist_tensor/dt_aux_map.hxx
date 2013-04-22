@@ -163,17 +163,15 @@ int stretch_virt(int const ndim,
  */
 inline
 int get_best_topo(uint64_t const  nvirt,
-      int const   topo,
-      CommData_t *    global_comm,
-      uint64_t const  bcomm_vol = 0,
-      uint64_t const  bmemuse = 0){
+		  int const       topo,
+		  CommData_t *    global_comm,
+		  uint64_t const  bcomm_vol = 0,
+		  uint64_t const  bmemuse = 0){
 
   uint64_t gnvirt, nv, gcomm_vol, gmemuse, bv;
   int btopo, gtopo;
   nv = nvirt;
   ALLREDUCE(&nv, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
-  
-
 
   LIBT_ASSERT(gnvirt <= nvirt);
 

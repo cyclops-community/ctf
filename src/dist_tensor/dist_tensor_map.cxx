@@ -718,40 +718,50 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
                its mapped to a onto a unique free dimension */
             if (comp_dim_map(&tsr_B->edge_map[iB], &tsr_A->edge_map[iA])){
               map = &tsr_B->edge_map[iB];
-              for (;;){
-                if (map->type == PHYSICAL_MAP){
-                  if (phys_mapped[map->cdt] == 1){
-                    DPRINTF(3,"failed confirmation here %d\n",iB);
-                    pass = 0;
-                    break;
-                  } else
-                    phys_mapped[map->cdt] = 1;
-                } else break;
-                if (map->has_child) map = map->child;
-                else break;
-              } 
+	      if (map->type == PHYSICAL_MAP){
+		if (phys_mapped[map->cdt] == 1){
+		  DPRINTF(3,"failed confirmation here %d\n",iB);
+		  pass = 0;
+		} else
+		  phys_mapped[map->cdt] = 1;
+	      } 
+	      if (map->has_child) {
+		if (map->child->type == PHYSICAL_MAP){
+		  DPRINTF(3,"failed confirmation here %d, matched and folded physical mapping not allowed\n",iB);
+		  pass = 0;
+		}
+	      }
             } else {
               /* If the mapping along this dimension is different, make sure
                  the mismatch is mapped onto unqiue physical dimensions */
-              if (tsr_A->edge_map[iA].type == PHYSICAL_MAP){
-                if (phys_mismatched[tsr_A->edge_map[iA].cdt] == 1){
-                  //if (global_comm->rank == 0) 
-                    DPRINTF(3,"failed confirmation here i=%d iA=%d iB=%d\n",i,iA,iB);
-                  pass = 0;
-                  break;
-                } else
-                  phys_mismatched[tsr_A->edge_map[iA].cdt] = 1;
-
-              }
-              if (tsr_B->edge_map[iB].type == PHYSICAL_MAP){
-                if (phys_mismatched[tsr_B->edge_map[iB].cdt] == 1){
-                  //if (global_comm->rank == 0) 
-                    DPRINTF(3,"failed confirmation here i=%d iB=%d iB=%d\n",i,iB,iB);
-                  pass = 0;
-                  break;
-                } else
-                  phys_mismatched[tsr_B->edge_map[iB].cdt] = 1;
-              }
+              map = &tsr_A->edge_map[iA];
+              for (;;){
+		if (map->type == PHYSICAL_MAP){
+		  if (phys_mismatched[map->cdt] == 1){
+		    DPRINTF(3,"failed confirmation here i=%d iA=%d iB=%d\n",i,iA,iB);
+		    pass = 0;
+		    break;
+		  } else
+		    phys_mismatched[map->cdt] = 1;
+		  if (map->has_child) 
+		    map = map->child;
+		  else break;
+		}
+	      }
+	      map = &tsr_B->edge_map[iB];
+              for (;;){
+		if (map->type == PHYSICAL_MAP){
+		  if (phys_mismatched[map->cdt] == 1){
+		    DPRINTF(3,"failed confirmation here i=%d iA=%d iB=%d\n",i,iA,iB);
+		    pass = 0;
+		    break;
+		  } else
+		    phys_mismatched[map->cdt] = 1;
+		  if (map->has_child) 
+		    map = map->child;
+		  else break;
+		}
+	      }
             }
           }
         }
@@ -1093,14 +1103,14 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         if (tnvirt < nvirt) nvirt = UINT64_MAX;
         else nvirt = tnvirt;
       }
-      if (btopo == -1 || ((nvirt <= bnvirt  || nvirt <= ALLOW_NVIRT) && comm_vol < bcomm_vol)) {
+      if (btopo == -1 || (nvirt < bnvirt  || 
+			((nvirt == bnvirt || nvirt <= ALLOW_NVIRT) && comm_vol < bcomm_vol))) {
         comm_vol = sctr->comm_rec(sctr->num_lyr);
         bcomm_vol = comm_vol;
         bmemuse = memuse;
         bnvirt = nvirt;
         btopo = 6*i+j;      
-      }  else if (nvirt == bnvirt ) {
-      }
+      }  
       delete sctr;
 #else
   #if BEST_COMM
@@ -1129,7 +1139,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   /* pick lower dimensional mappings, if equivalent */
 #if BEST_COMM
   if (bnvirt >= ALLOW_NVIRT)
-    gtopo = get_best_topo(bnvirt/ALLOW_NVIRT, btopo, global_comm, bcomm_vol, bmemuse);
+    gtopo = get_best_topo(bnvirt+1-ALLOW_NVIRT, btopo, global_comm, bcomm_vol, bmemuse);
   else
     gtopo = get_best_topo(1, btopo, global_comm, bcomm_vol, bmemuse);
 #else
