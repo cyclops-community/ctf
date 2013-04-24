@@ -101,7 +101,7 @@ int * calc_phase(tensor<dtype> const * tsr){
   mapping * map;
   int * phase;
   int i;
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)&phase);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&phase);
   for (i=0; i<tsr->ndim; i++){
     map = tsr->edge_map + i;
     phase[i] = calc_phase(map);
@@ -123,7 +123,7 @@ int calc_tot_phase(tensor<dtype> const * tsr){
   for (i=0 ; i<tsr->ndim; i++){
     tot_phase *= phase[i];
   }
-  free(phase);
+  CTF_free(phase);
   return tot_phase;
 }
 
@@ -139,7 +139,7 @@ int stretch_virt(int const ndim,
     if (map->type == PHYSICAL_MAP){
       if (map->has_child){
         map->has_child    = 1;
-        map->child    = (mapping*)malloc(sizeof(mapping));
+        map->child    = (mapping*)CTF_alloc(sizeof(mapping));
         map->child->type  = VIRTUAL_MAP;
         map->child->np    = stretch_factor;
         map->child->has_child   = 0;
@@ -234,7 +234,7 @@ inline
 int clear_mapping(mapping * map){
   if (map->type != NOT_MAPPED && map->has_child) {
     clear_mapping(map->child);
-    free(map->child);
+    CTF_free(map->child);
   }
   map->type = NOT_MAPPED;
   map->np = 1;
@@ -278,7 +278,7 @@ int copy_mapping(int const    ndim,
   memcpy(mapping_B, mapping_A, sizeof(mapping)*ndim);
   for (i=0; i<ndim; i++){
     if (mapping_A[i].has_child){
-      get_buffer_space(sizeof(mapping), (void**)&mapping_B[i].child);
+      CTF_alloc_ptr(sizeof(mapping), (void**)&mapping_B[i].child);
       mapping_B[i].child->has_child   = 0;
       mapping_B[i].child->np    = 1;
       mapping_B[i].child->type    = NOT_MAPPED;
@@ -328,7 +328,7 @@ int copy_mapping(int const    ndim_A,
       copy_mapping(1, mapping_A+iA, mapping_B+iB);
     }
   }
-  free(idx_arr);
+  CTF_free(idx_arr);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -408,11 +408,11 @@ int save_mapping(tensor<dtype> *  tsr,
                  int const    is_inner = 0){
   int j;
   mapping * map;
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)old_phase);
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)old_rank);
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)old_virt_dim);
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)old_pe_lda);
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)old_edge_len);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_phase);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_rank);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_virt_dim);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_pe_lda);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_edge_len);
   
   *old_size = tsr->size;
   
@@ -429,7 +429,7 @@ int save_mapping(tensor<dtype> *  tsr,
   memcpy(*old_edge_len, tsr->edge_len, sizeof(int)*tsr->ndim);
   if (tsr->is_padded){
     *was_padded = 1;
-    get_buffer_space(sizeof(int)*tsr->ndim, (void**)old_padding);
+    CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_padding);
     memcpy(*old_padding, tsr->padding, sizeof(int)*tsr->ndim);
   } else {
     *was_padded = 0;
@@ -489,7 +489,7 @@ int map_symtsr(int const    tsr_ndim,
               } else {
                 LIBT_ASSERT(sym_map->type == PHYSICAL_MAP);
                 if (!sym_map->has_child)
-                  sym_map->child    = (mapping*)malloc(sizeof(mapping));
+                  sym_map->child    = (mapping*)CTF_alloc(sizeof(mapping));
                 sym_map->has_child  = 1;
                 sym_map->child->type    = VIRTUAL_MAP;
                 sym_map->child->np    = lcm_phase/sym_phase;
@@ -504,7 +504,7 @@ int map_symtsr(int const    tsr_ndim,
                 map->np = map->np*(lcm_phase/phase);
               } else {
                 if (!map->has_child)
-                  map->child    = (mapping*)malloc(sizeof(mapping));
+                  map->child    = (mapping*)CTF_alloc(sizeof(mapping));
                 LIBT_ASSERT(map->type == PHYSICAL_MAP);
                 map->has_child    = 1;
                 map->child->type  = VIRTUAL_MAP;
@@ -531,8 +531,8 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
   int * new_phase, * sub_edge_len;
   mapping * map;
 
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)&new_phase);
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)&sub_edge_len);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_phase);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&sub_edge_len);
 
 
   if (tsr->is_padded){
@@ -561,7 +561,7 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
       pad = tsr->edge_len[j]%new_phase[j];
       if (pad != 0) {
         if (is_pad == 0){
-          get_buffer_space(sizeof(int)*tsr->ndim, (void**)&tsr->padding);
+          CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&tsr->padding);
           memset(tsr->padding, 0, sizeof(int)*j);
         }
         pad = new_phase[j]-pad;
@@ -574,7 +574,7 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
   /* Set padding to 0 anyways... */
   if (is_pad == 0){
     if(!tsr->is_padded)
-      get_buffer_space(sizeof(int)*tsr->ndim, (void**)&tsr->padding);
+      CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&tsr->padding);
     memset(tsr->padding,0,sizeof(int)*tsr->ndim);
   }  
   for (i=0; i<tsr->ndim; i++){
@@ -586,8 +586,8 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
   
   tsr->is_padded = 1;
 
-  free(sub_edge_len);
-  free(new_phase);
+  CTF_free(sub_edge_len);
+  CTF_free(new_phase);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -628,10 +628,10 @@ int remap_tensor(int const  tid,
   dtype * shuffled_data_corr;
 #endif
 
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)&new_phase);
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)&new_rank);
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)&new_pe_lda);
-  get_buffer_space(sizeof(int)*tsr->ndim, (void**)&new_virt_dim);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_phase);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_rank);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_pe_lda);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_virt_dim);
 
   new_nvirt = 1;  
 #ifdef USE_BLOCK_RESHUFFLE
@@ -701,7 +701,7 @@ int remap_tensor(int const  tid,
       DEBUG_PRINTF("remapping with cyclic reshuffle (was padded = %d)\n",
         tsr->is_padded);
     }
-//    get_buffer_space(sizeof(dtype)*tsr->size, (void**)&shuffled_data);
+//    CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&shuffled_data);
     cyclic_reshuffle(tsr->ndim,
                      old_size,
                      old_edge_len,
@@ -726,11 +726,11 @@ int remap_tensor(int const  tid,
                      tsr->is_cyclic);
   }
 
-  free_buffer_space((void*)new_phase);
-  free_buffer_space((void*)new_rank);
-  free_buffer_space((void*)new_virt_dim);
-  free_buffer_space((void*)new_pe_lda);
-  free_buffer_space((void*)tsr->data);
+  CTF_free((void*)new_phase);
+  CTF_free((void*)new_rank);
+  CTF_free((void*)new_virt_dim);
+  CTF_free((void*)new_pe_lda);
+  CTF_free((void*)tsr->data);
   tsr->data = shuffled_data;
 
 #if VERIFY_REMAP
@@ -818,7 +818,7 @@ int map_tensor(int const      num_phys_dims,
             return DIST_TENSOR_NEGATIVE;
           if (phase/phys_comm[i]->np != 1){
             map->has_child  = 1;
-            map->child    = (mapping*)malloc(sizeof(mapping));
+            map->child    = (mapping*)CTF_alloc(sizeof(mapping));
             map->child->type  = VIRTUAL_MAP;
             map->child->np  = phase/phys_comm[i]->np;
             map->child->has_child = 0;
@@ -826,7 +826,7 @@ int map_tensor(int const      num_phys_dims,
         }
       } else if (map->type == PHYSICAL_MAP){
         if (map->has_child != 1)
-          map->child  = (mapping*)malloc(sizeof(mapping));
+          map->child  = (mapping*)CTF_alloc(sizeof(mapping));
         map->has_child  = 1;
         map             = map->child;
         map->has_child  = 0;
@@ -866,8 +866,8 @@ int map_tensor_rem(int const    num_phys_dims,
   CommData_t ** sub_phys_comm;
   mapping * map;
 
-  get_buffer_space(tsr->ndim*sizeof(int), (void**)&restricted);
-  get_buffer_space(num_phys_dims*sizeof(int), (void**)&phys_mapped);
+  CTF_alloc_ptr(tsr->ndim*sizeof(int), (void**)&restricted);
+  CTF_alloc_ptr(num_phys_dims*sizeof(int), (void**)&phys_mapped);
 
   memset(phys_mapped, 0, num_phys_dims*sizeof(int));  
 
@@ -887,8 +887,8 @@ int map_tensor_rem(int const    num_phys_dims,
       num_sub_phys_dims++;
     }
   }
-  get_buffer_space(num_sub_phys_dims*sizeof(CommData_t*), (void**)&sub_phys_comm);
-  get_buffer_space(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t*), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
   num_sub_phys_dims = 0;
   for (i=0; i<num_phys_dims; i++){
     if (phys_mapped[i] == 0){
@@ -902,10 +902,10 @@ int map_tensor_rem(int const    num_phys_dims,
                     restricted,   sub_phys_comm,
                     comm_idx,     fill,
                     tsr->edge_map);
-  free_buffer_space(restricted);
-  free_buffer_space(phys_mapped);
-  free_buffer_space(sub_phys_comm);
-  free_buffer_space(comm_idx);
+  CTF_free(restricted);
+  CTF_free(phys_mapped);
+  CTF_free(sub_phys_comm);
+  CTF_free(comm_idx);
   return stat;
 }
 
@@ -950,7 +950,7 @@ void morph_topo(topology const *  new_topo,
   for (i=0; i<ndim; i++){
     if (edge_map[i].type == PHYSICAL_MAP){
       old_map = &edge_map[i];
-      get_buffer_space(sizeof(mapping), (void**)&new_map);
+      CTF_alloc_ptr(sizeof(mapping), (void**)&new_map);
       new_rec_map = new_map;
       for (;;){
         old_lda = old_topo->lda[old_map->cdt];
@@ -967,7 +967,7 @@ void morph_topo(topology const *  new_topo,
           if (new_np<old_map->np) {
             old_lda = old_lda * new_rec_map->np;
             new_rec_map->has_child = 1;
-            get_buffer_space(sizeof(mapping), (void**)&new_rec_map->child);
+            CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
             new_rec_map = new_rec_map->child;
           }
         } while (new_np<old_map->np);
@@ -975,14 +975,14 @@ void morph_topo(topology const *  new_topo,
         if (old_map->has_child){
           if (old_map->child->type == VIRTUAL_MAP){
             new_rec_map->has_child = 1;
-            get_buffer_space(sizeof(mapping), (void**)&new_rec_map->child);
+            CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
             new_rec_map->child->type  = VIRTUAL_MAP;
             new_rec_map->child->np    = old_map->child->np;
             new_rec_map->child->has_child   = 0;
             break;
           } else {
             new_rec_map->has_child = 1;
-            get_buffer_space(sizeof(mapping), (void**)&new_rec_map->child);
+            CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
             new_rec_map = new_rec_map->child;
             old_map = old_map->child;
             //continue
@@ -994,7 +994,7 @@ void morph_topo(topology const *  new_topo,
       }
       clear_mapping(&edge_map[i]);      
       edge_map[i] = *new_map;
-      free(new_map);
+      CTF_free(new_map);
     }
   }
 }
@@ -1019,11 +1019,11 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
   for (i=0; i<tensors[tid]->ndim; i++){
     for (j=i+1; j<tensors[tid]->ndim; j++){
       if (idx_map[i] == idx_map[j]){
-        get_buffer_space(sizeof(int)*tensors[tid]->ndim-1, (void**)&edge_len);
-        get_buffer_space(sizeof(int)*tensors[tid]->ndim-1, (void**)&sym);
-        get_buffer_space(sizeof(int)*tensors[tid]->ndim,   (void**)idx_map_new);
-        get_buffer_space(sizeof(int)*tensors[tid]->ndim,   (void**)&ex_idx_map);
-        get_buffer_space(sizeof(int)*tensors[tid]->ndim-1, (void**)&diag_idx_map);
+        CTF_alloc_ptr(sizeof(int)*tensors[tid]->ndim-1, (void**)&edge_len);
+        CTF_alloc_ptr(sizeof(int)*tensors[tid]->ndim-1, (void**)&sym);
+        CTF_alloc_ptr(sizeof(int)*tensors[tid]->ndim,   (void**)idx_map_new);
+        CTF_alloc_ptr(sizeof(int)*tensors[tid]->ndim,   (void**)&ex_idx_map);
+        CTF_alloc_ptr(sizeof(int)*tensors[tid]->ndim-1, (void**)&diag_idx_map);
         for (k=0; k<tensors[tid]->ndim; k++){
           if (k<j){
             ex_idx_map[k]       = k;
@@ -1053,9 +1053,9 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
           sum_tensors(1.0, 0.0, tid, *tid_new, ex_idx_map, diag_idx_map, fs, felm, 1);
         } else {
           sum_tensors(1.0, 0.0, *tid_new, tid, diag_idx_map, ex_idx_map, fs, felm, 1);
-          free(*idx_map_new);
+          CTF_free(*idx_map_new);
         }
-        free(edge_len), free(sym), free(ex_idx_map), free(diag_idx_map);
+        CTF_free(edge_len), CTF_free(sym), CTF_free(ex_idx_map), CTF_free(diag_idx_map);
         return DIST_TENSOR_SUCCESS;
       }
     }

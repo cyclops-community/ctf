@@ -98,8 +98,8 @@ void init_dcmf_comm(int * numPes,
   cdt->rank = *myRank;
   cdt->nreq = nr;
   cdt->nbcast = nb;
-  cdt->ranks = (int*)malloc((*numPes)*sizeof(int));
-  cdt->bcast_clientdata = (int*)malloc(nb*sizeof(int));
+  cdt->ranks = (int*)CTF_alloc((*numPes)*sizeof(int));
+  cdt->bcast_clientdata = (int*)CTF_alloc(nb*sizeof(int));
   memset(cdt->bcast_clientdata, 0, nb*sizeof(int));
                                                                 
   DCMF_Hardware_t hw;                                           
@@ -108,10 +108,10 @@ void init_dcmf_comm(int * numPes,
   DCMF_Barrier_Configuration_t  barrier_conf;
 
   glb_barrier_protocol  = (DCMF_CollectiveProtocol_t *)         
-                          malloc(NUM_GLB_BARRIER_PROTOCOLS*             
+                          CTF_alloc(NUM_GLB_BARRIER_PROTOCOLS*             
                           sizeof(DCMF_CollectiveProtocol_t));   
   glb_lbarrier_protocol= (DCMF_CollectiveProtocol_t *)          
-                          malloc(NUM_LBARRIER_PROTOCOLS*        
+                          CTF_alloc(NUM_LBARRIER_PROTOCOLS*        
                           sizeof(DCMF_CollectiveProtocol_t));   
   for (i = 0; i < NUM_GLB_BARRIER_PROTOCOLS; i++){                      
     barrier_conf.protocol       = glb_bar_protocols[i] ;                
@@ -164,16 +164,16 @@ void init_dcmf_comm(int * numPes,
   cdt->has_allred_protocol = 0;
   
   sub_barrier_protocol  = (DCMF_CollectiveProtocol_t **)                
-                                    malloc(NUM_BARRIER_PROTOCOLS*               
+                                    CTF_alloc(NUM_BARRIER_PROTOCOLS*               
                                     sizeof(DCMF_CollectiveProtocol_t*));        
   sub_lbarrier_protocol = (DCMF_CollectiveProtocol_t **)                
-                                    malloc(NUM_LBARRIER_PROTOCOLS*      
+                                    CTF_alloc(NUM_LBARRIER_PROTOCOLS*      
                                     sizeof(DCMF_CollectiveProtocol_t*));        
   for (i = 0; i < NUM_BARRIER_PROTOCOLS; i++){                  
     barrier_conf.protocol       = bar_protocols[i];
     barrier_conf.cb_geometry    = get_simple_geom; 
     sub_barrier_protocol[i] = (DCMF_CollectiveProtocol_t*)
-                                        malloc(sizeof(DCMF_CollectiveProtocol_t));
+                                        CTF_alloc(sizeof(DCMF_CollectiveProtocol_t));
     status = DCMF_Barrier_register(sub_barrier_protocol[i],     
                                    &barrier_conf);              
   }                                                             
@@ -181,7 +181,7 @@ void init_dcmf_comm(int * numPes,
     barrier_conf.protocol       = lbar_protocols[i];
     barrier_conf.cb_geometry    = get_simple_geom;              
     sub_lbarrier_protocol[i] = (DCMF_CollectiveProtocol_t*)
-                                        malloc(sizeof(DCMF_CollectiveProtocol_t));
+                                        CTF_alloc(sizeof(DCMF_CollectiveProtocol_t));
     status = DCMF_Barrier_register(sub_lbarrier_protocol[i],    
                                    &barrier_conf);              
   }             
@@ -205,7 +205,7 @@ void setup_sub_comm(int const           color,
                     CommData_t*         cdt_sub,
                     CommData_t*         cdt_master){
   int geom_id, i, status;
-  DCMF_Geometry_t * geom = (DCMF_Geometry_t*)malloc(sizeof(DCMF_Geometry_t));
+  DCMF_Geometry_t * geom = (DCMF_Geometry_t*)CTF_alloc(sizeof(DCMF_Geometry_t));
   geom_id = sub_geometries.size() + SUB_GEOM_OFFSET;
   sub_geometries.push_back(geom);
   cdt_sub->geom = geom;
@@ -215,24 +215,24 @@ void setup_sub_comm(int const           color,
   cdt_sub->nreq = nr;
   cdt_sub->nbcast = nb;
   DCMF_CollectiveRequest_t * crequest;
-  crequest = (DCMF_CollectiveRequest_t*)malloc(sizeof(DCMF_CollectiveRequest_t));
+  crequest = (DCMF_CollectiveRequest_t*)CTF_alloc(sizeof(DCMF_CollectiveRequest_t));
   
   if (p > 1){
-    int * rank_info = (int*)malloc(p*cdt_master->np*2*sizeof(int));
-    int * rank_info_swp = (int*)malloc(p*cdt_master->np*2*sizeof(int));
+    int * rank_info = (int*)CTF_alloc(p*cdt_master->np*2*sizeof(int));
+    int * rank_info_swp = (int*)CTF_alloc(p*cdt_master->np*2*sizeof(int));
     memset(rank_info,0,p*cdt_master->np*2*sizeof(int));
     rank_info[cdt_master->rank*2] = color;
     rank_info[cdt_master->rank*2+1] = commrank;
     ALLREDUCE(rank_info, rank_info_swp, p*cdt_master->np*2, 
               DCMF_SIGNED_INT, DCMF_SUM, cdt_master);
 
-    cdt_sub->ranks = (int*)malloc(p*sizeof(int));
+    cdt_sub->ranks = (int*)CTF_alloc(p*sizeof(int));
     for (i=0; i<cdt_master->np; i++) {
       if (rank_info_swp[2*i] == color)
         cdt_sub->ranks[rank_info_swp[2*i+1]] = i;
     }
     
-    cdt_sub->bcast_clientdata = (int*)malloc(nb*sizeof(int));
+    cdt_sub->bcast_clientdata = (int*)CTF_alloc(nb*sizeof(int));
     memset(cdt_sub->bcast_clientdata, 0, nb*sizeof(int));
     
     DCMF_CriticalSection_enter(0);                                      
@@ -272,8 +272,8 @@ void setup_sub_comm(int const           color,
     cdt_sub->has_red_protocol = 0;
     cdt_sub->has_allred_protocol = 0;
     DCMF_CriticalSection_exit(0);
-    free(rank_info);
-    free(rank_info_swp);
+    CTF_free(rank_info);
+    CTF_free(rank_info_swp);
   }
 }
 

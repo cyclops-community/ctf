@@ -69,7 +69,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   int * dim_len;
   get_topo(np, mach, &ndim, &dim_len);
   ret = tCTF<dtype>::init(global_context, rank, np, ndim, dim_len, argc, argv);
-  free(dim_len);
+  CTF_free(dim_len);
   return ret;
 }
 
@@ -98,7 +98,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
   initialized = 1;
-  CommData_t * glb_comm = (CommData_t*)malloc(sizeof(CommData_t));
+  CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);
   dt = new dist_tensor<dtype>();
   return dt->initialize(glb_comm, ndim, dim_len, DEF_INNER_SIZE);
@@ -114,10 +114,10 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
  * \param[out] tensor_id the tensor index (handle)
  */
 template<typename dtype>
-int tCTF<dtype>::define_tensor(int const          ndim,             
+int tCTF<dtype>::define_tensor(int const        ndim,             
                                int const *      edge_len, 
                                int const *      sym,
-                               int *        tensor_id){
+                               int *            tensor_id){
   return dt->define_tensor(ndim, edge_len, sym, tensor_id);
 }
     
@@ -152,7 +152,8 @@ template<typename dtype>
 int tCTF<dtype>::get_lengths(int const tensor_id, int **edge_len) const{
   int ndim, * sym;
   dt->get_tsr_info(tensor_id, &ndim, edge_len, &sym);
-  free(sym);
+  CTF_untag_mem(edge_len);
+  CTF_free(sym);
   return DIST_TENSOR_SUCCESS;
 }
     
@@ -163,6 +164,7 @@ int tCTF<dtype>::get_lengths(int const tensor_id, int **edge_len) const{
 template<typename dtype>
 int tCTF<dtype>::get_symmetry(int const tensor_id, int **sym) const{
   *sym = dt->get_sym(tensor_id);
+  CTF_untag_mem(*sym);
   return DIST_TENSOR_SUCCESS;
 }
     
@@ -189,6 +191,8 @@ int tCTF<dtype>::info_tensor(int const  tensor_id,
                              int **     edge_len,
                              int **     sym) const{
   dt->get_tsr_info(tensor_id, ndim, edge_len, sym);
+  CTF_untag_mem(*sym);
+  CTF_untag_mem(*edge_len);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -252,6 +256,7 @@ int tCTF<dtype>::allread_tensor(int const   tensor_id,
   int ret;
   long_int np;
   ret = dt->allread_tsr(tensor_id, &np, all_data);
+  CTF_untag_mem(*all_data);
   *num_pair = np;
   return ret;
 }
@@ -285,6 +290,8 @@ int tCTF<dtype>::read_local_tensor(int const          tensor_id,
   int ret;
   long_int np;
   ret = dt->read_local_pairs(tensor_id, &np, mapped_data);
+  if (np > 0)
+    CTF_untag_mem(*mapped_data);
   *num_pair = np;
   return ret;
 }
@@ -659,7 +666,7 @@ int tCTF<dtype>::clean_tensors(){
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   for (i=0; i<tensors->size(); i++){
     dt->del_tsr(i);
-    free((*tensors)[i]);
+    CTF_free((*tensors)[i]);
   }
   tensors->clear();
   return DIST_TENSOR_SUCCESS;
@@ -728,7 +735,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   CTF_ctr_type ct;
   fseq_tsr_ctr<dtype> fs;
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
-  get_buffer_space(3*sizeof(int), (void**)&need_free);
+  CTF_alloc_ptr(3*sizeof(int), (void**)&need_free);
   ret = dt->pgemm(TRANSA, TRANSB, M, N, K, ALPHA, A, IA, JA, DESCA,
                   B, IB, JB, DESCB,
                   BETA, C, IC, JC, DESCC, &ct, &fs, need_free);
@@ -778,7 +785,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
                    &old_padding_C, &old_edge_len_C, 
                    dt->get_topo(tsr_nC->itopo));
       if (need_free[2])
-        free(tsr_oC->data);
+        CTF_free(tsr_oC->data);
       tsr_oC->data = tsr_nC->data;
       remap_tensor(otid_C, tsr_oC, dt->get_topo(tsr_oC->itopo), old_size_C, 
                    old_phase_C, old_rank_C, old_virt_dim_C, 
@@ -786,14 +793,14 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
                    old_padding_C, old_edge_len_C, dt->get_global_comm());
     } else{
       if (need_free[2])
-              free(tsr_oC->data);
+              CTF_free(tsr_oC->data);
       tsr_oC->data = tsr_nC->data;
     }
     /* If this process owns any data */
     if (!need_free[2]){
       memcpy(C,tsr_oC->data,tsr_oC->size*sizeof(dtype));
     } else
-      free(tsr_oC->data);
+      CTF_free(tsr_oC->data);
     if (need_free[0])
       dt->del_tsr(otid_A);
     if (need_free[1])
@@ -808,11 +815,11 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #endif
   if ((*tensors)[otid_A]->padding[0] != 0 ||
       (*tensors)[otid_A]->padding[1] != 0){
-    free((*tensors)[otid_A]->data);
+    CTF_free((*tensors)[otid_A]->data);
   }
   if ((*tensors)[otid_B]->padding[0] != 0 ||
       (*tensors)[otid_B]->padding[1] != 0){
-    free((*tensors)[otid_B]->data);
+    CTF_free((*tensors)[otid_B]->data);
   }
   if ((*tensors)[otid_C]->padding[0] != 0 ||
       (*tensors)[otid_C]->padding[1] != 0){
@@ -825,7 +832,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
           = (*tensors)[otid_C]->data[i*brow+j];
       }
     }
-    free((*tensors)[otid_C]->data);
+    CTF_free((*tensors)[otid_C]->data);
   }
   (*tensors)[otid_A]->is_alloced = 0;
   (*tensors)[otid_B]->is_alloced = 0;
@@ -852,7 +859,7 @@ int tCTF<dtype>::def_scala_mat(int const * DESCA,
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   tensor<dtype> * stsr = (*tensors)[stid];
   tensor<dtype> * tsr = (*tensors)[*tid];
-  free(stsr->data);
+  CTF_free(stsr->data);
   stsr->is_alloced = 0;
   tsr->is_matrix = 1;
   tsr->slay = stid;
@@ -881,7 +888,7 @@ int tCTF<dtype>::read_scala_mat(int const tid,
                &old_padding, &old_edge_len, 
                dt->get_topo(tsr->itopo));
   LIBT_ASSERT(tsr->is_matrix);
-  get_buffer_space(sizeof(dtype)*tsr->size, (void**)&stsr->data);
+  CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&stsr->data);
   memcpy(stsr->data, tsr->data, sizeof(dtype)*tsr->size);
   remap_tensor(tsr->slay, stsr, dt->get_topo(stsr->itopo), old_size, 
                old_phase, old_rank, old_virt_dim, 
@@ -889,7 +896,7 @@ int tCTF<dtype>::read_scala_mat(int const tid,
                old_padding, old_edge_len, dt->get_global_comm());
   if (data!=NULL)
     memcpy(data, stsr->data, stsr->size*sizeof(dtype));  
-  free(stsr->data);
+  CTF_free(stsr->data);
   return DIST_TENSOR_SUCCESS;
 }
 /**
@@ -913,9 +920,9 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   ct.tid_B = tid_B;
   ct.tid_C = tid_C;
 
-  ct.idx_map_A = (int*)malloc(sizeof(int)*2);
-  ct.idx_map_B = (int*)malloc(sizeof(int)*2);
-  ct.idx_map_C = (int*)malloc(sizeof(int)*2);
+  ct.idx_map_A = (int*)CTF_alloc(sizeof(int)*2);
+  ct.idx_map_B = (int*)CTF_alloc(sizeof(int)*2);
+  ct.idx_map_C = (int*)CTF_alloc(sizeof(int)*2);
   ct.idx_map_C[0] = 1;
   ct.idx_map_C[1] = 2;
   herm_A = 0;

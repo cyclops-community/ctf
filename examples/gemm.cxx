@@ -52,6 +52,7 @@ int  gemm(int const     m,
   free(pairs);
   free(indices);
 
+  C["ij"] += (.3*i)*A["ik"]*B["kj"];
 #ifndef TEST_SUITE
   double t;
 
@@ -65,7 +66,6 @@ int  gemm(int const     m,
            niter*2.*((double)m)*((double)n)*((double)k)*1.E-9/t);
   }
 #endif
- 
   int pass = 1;
   if (m==n && n==k){ 
     /* verify D=(A*B)*C = A*(B*C) */

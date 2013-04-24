@@ -41,7 +41,7 @@ void read_param_file(char const *       fname,
   char * iter_str, * serial_str = NULL, ** input_str = NULL;
   if (myRank == 0) {
     tot_sz = 0;
-    input_str = (char**)malloc(1000*sizeof(char*));
+    input_str = (char**)CTF_alloc(1000*sizeof(char*));
     char add_str[1000];
     FILE * inFile;
     printf("Opening input file %s\n", fname);
@@ -51,12 +51,12 @@ void read_param_file(char const *       fname,
     while (!feof(inFile)){
       ret = fscanf(inFile, "%s", add_str);
       assert(ret!=EOF);
-      input_str[in_num] = (char*)malloc(strlen(add_str)+1);
+      input_str[in_num] = (char*)CTF_alloc(strlen(add_str)+1);
       tot_sz += strlen(add_str)+1;
       strcpy(input_str[in_num], add_str);
       in_num++;
     }
-    serial_str = (char*)malloc(tot_sz);
+    serial_str = (char*)CTF_alloc(tot_sz);
     iter_str = serial_str;
     for (i=0; i<in_num; i++){
       strcpy(iter_str, input_str[i]);
@@ -66,18 +66,18 @@ void read_param_file(char const *       fname,
   } 
   MPI_Bcast(&in_num, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&tot_sz, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  if (myRank >0) serial_str = (char*)malloc(tot_sz*sizeof(char));
+  if (myRank >0) serial_str = (char*)CTF_alloc(tot_sz*sizeof(char));
   MPI_Bcast(serial_str, tot_sz, MPI_CHAR, 0, MPI_COMM_WORLD);
   if (myRank >0){
     iter_str = serial_str;
-    input_str = (char**)malloc(in_num*sizeof(char*));
+    input_str = (char**)CTF_alloc(in_num*sizeof(char*));
     for (i=0; i<in_num; i++){
-      input_str[i] = (char*)malloc(strlen(iter_str)+2);
+      input_str[i] = (char*)CTF_alloc(strlen(iter_str)+2);
       strcpy(input_str[i], iter_str);
       iter_str += strlen(input_str[i])+1;
     }
   }
   (*argv) = input_str;
   (*argc) = in_num;
-  free(serial_str);
+  CTF_free(serial_str);
 }

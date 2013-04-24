@@ -291,7 +291,14 @@ void __CM(const int     end,
 #define CRIT_TIME_PRINT_ITER(iter)
 #define SUM_CRIT_TIME(cdt, p)
 #endif
-
+int CTF_alloc_ptr(int const len, void ** const ptr);
+void * CTF_alloc(int const len);
+int CTF_free(void * ptr, int const tid);
+int CTF_free(void * ptr);
+int CTF_untag_mem(void * ptr);
+int CTF_free_cond(void * ptr);
+void CTF_mem_create();
+void CTF_mem_exit(int rank);
 
 void cdgemm(const char transa,  const char transb,
             const int m,        const int n,

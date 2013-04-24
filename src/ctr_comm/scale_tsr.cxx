@@ -18,7 +18,7 @@ scl<dtype>::scl(scl * other){
  */
 template<typename dtype>
 scl_virt<dtype>::~scl_virt() {
-  free(virt_dim);
+  CTF_free(virt_dim);
   delete rec_scl;
 }
 
@@ -30,7 +30,7 @@ scl_virt<dtype>::scl_virt(scl<dtype> * other) : scl<dtype>(other) {
   scl_virt<dtype> * o   = (scl_virt<dtype>*)other;
   rec_scl       = o->rec_scl->clone();
   num_dim       = o->num_dim;
-  virt_dim      = (int*)malloc(sizeof(int)*num_dim);
+  virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
   memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
   ndim_A        = o->ndim_A;
@@ -72,9 +72,7 @@ void scl_virt<dtype>::run(){
     idx_arr = (int*)this->buffer;
   } else {
     alloced = 1;
-    ret = posix_memalign((void**)&idx_arr,
-                         ALIGN_BYTES,
-                         mem_fp());
+    ret = CTF_alloc_ptr(mem_fp(), (void**)&idx_arr);
     LIBT_ASSERT(ret==0);
   }
   
@@ -115,7 +113,7 @@ do {                                                                    \
     if (i==num_dim) break;
   }
   if (alloced){
-    free(idx_arr);
+    CTF_free(idx_arr);
   }
   TAU_FSTOP(scl_virt);
 }

@@ -34,7 +34,6 @@ int weight_4D(int const    n,
   CTF_Tensor C(4, sizeN4, shapeN4, dw);
 
   srand48(13*rank);
-  //* Writes noise to local data based on global index
   A.get_local_data(&np_A, &indices_A, &pairs_A);
   for (i=0; i<np_A; i++ ) pairs_A[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write_remote_data(np_A, indices_A, pairs_A);
@@ -58,7 +57,7 @@ int weight_4D(int const    n,
 
   post_pairs_C = (double*)malloc(np_A*sizeof(double));
   C.get_remote_data(np_A, indices_A, post_pairs_C);
- 
+  
   int pass = 1; 
   for (i=0; i<np_A; i++){
     if (fabs(pairs_A[i]) > 1.E-6 &&

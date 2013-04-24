@@ -63,9 +63,9 @@ void readwrite(int const        ndim,
     return;
   }
   TAU_FSTART(readwrite);
-  get_buffer_space(ndim*sizeof(int), (void**)&idx);
-  get_buffer_space(ndim*sizeof(int), (void**)&virt_rank);
-  get_buffer_space(ndim*sizeof(int), (void**)&edge_lda);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&edge_lda);
   
   memset(virt_rank, 0, sizeof(int)*ndim);
   edge_lda[0] = 1;
@@ -97,8 +97,11 @@ void readwrite(int const        ndim,
           if (pairs[pr_offset].k == (key)(idx_offset
                 +i*phase[0]+phase_rank[0])){
             if (rw == 'r'){
+              if (beta == 0.0)
+                pairs[pr_offset].d = alpha*data[buf_offset+i];
+              else
               /* FIXME: should it be the opposite? */
-              pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
+                pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
             } else {
               LIBT_ASSERT(rw =='w');
               data[(int)buf_offset+i] = beta*data[(int)buf_offset+i]+alpha*pairs[pr_offset].d;
@@ -151,9 +154,9 @@ void readwrite(int const        ndim,
   TAU_FSTOP(readwrite);
   //printf("pr_offset = %lld/%lld\n",pr_offset,size);
   LIBT_ASSERT(pr_offset == size);
-  free_buffer_space(idx);
-  free_buffer_space(virt_rank);
-  free_buffer_space(edge_lda);
+  CTF_free(idx);
+  CTF_free(virt_rank);
+  CTF_free(edge_lda);
 }
 
 /**
@@ -204,12 +207,12 @@ void wr_pairs_layout(int const          ndim,
   tkv_pair<dtype> * swap_data, * buf_data, * el_loc;
 
 
-  get_buffer_space(nwrite*sizeof(tkv_pair<dtype>),      (void**)&buf_data);
-  get_buffer_space(nwrite*sizeof(tkv_pair<dtype>),      (void**)&swap_data);
-  get_buffer_space(np*sizeof(int),                      (void**)&bucket_counts);
-  get_buffer_space(np*sizeof(int),                      (void**)&recv_counts);
-  get_buffer_space(np*sizeof(int),                      (void**)&send_displs);
-  get_buffer_space(np*sizeof(int),                      (void**)&recv_displs);
+  CTF_alloc_ptr(nwrite*sizeof(tkv_pair<dtype>),      (void**)&buf_data);
+  CTF_alloc_ptr(nwrite*sizeof(tkv_pair<dtype>),      (void**)&swap_data);
+  CTF_alloc_ptr(np*sizeof(int),                      (void**)&bucket_counts);
+  CTF_alloc_ptr(np*sizeof(int),                      (void**)&recv_counts);
+  CTF_alloc_ptr(np*sizeof(int),                      (void**)&send_displs);
+  CTF_alloc_ptr(np*sizeof(int),                      (void**)&recv_displs);
 
   TAU_FSTART(wr_pairs_layout);
 
@@ -218,12 +221,12 @@ void wr_pairs_layout(int const          ndim,
 
   /* If the packed tensor is padded, pad keys */
   if (need_pad){
-    get_buffer_space(ndim*sizeof(int), (void**)&depad_edge_len);
+    CTF_alloc_ptr(ndim*sizeof(int), (void**)&depad_edge_len);
     for (i=0; i<ndim; i++){
       depad_edge_len[i] = edge_len[i] - padding[i];
     } 
     pad_key(ndim, nwrite, depad_edge_len, padding, swap_data);
-    free_buffer_space(depad_edge_len);
+    CTF_free(depad_edge_len);
   }
 
   /* Figure out which processor the value in a packed layout, lies for each key */
@@ -251,8 +254,8 @@ void wr_pairs_layout(int const          ndim,
   }
 
   if (new_num_pair > nwrite){
-    free_buffer_space(swap_data);
-    get_buffer_space(sizeof(tkv_pair<dtype>)*new_num_pair, (void**)&swap_data);
+    CTF_free(swap_data);
+    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*new_num_pair, (void**)&swap_data);
   }
 
   /* Exchange data according to counts/offsets */
@@ -264,8 +267,8 @@ void wr_pairs_layout(int const          ndim,
                 glb_comm->rank, nwrite, new_num_pair);*/
 
   if (new_num_pair > nwrite){
-    free_buffer_space(buf_data);
-    get_buffer_space(sizeof(tkv_pair<dtype>)*new_num_pair, (void**)&buf_data);
+    CTF_free(buf_data);
+    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*new_num_pair, (void**)&buf_data);
   }
 
   /* Figure out what virtual bucket each key belongs to. Bucket
@@ -283,7 +286,7 @@ void wr_pairs_layout(int const          ndim,
   /* If we want to read the keys, we must return them to where they
      were requested */
   if (rw == 'r'){
-    get_buffer_space(ndim*sizeof(int), (void**)&depadding);
+    CTF_alloc_ptr(ndim*sizeof(int), (void**)&depadding);
     /* Sort the key-value pairs we determine*/
     std::sort(buf_data, buf_data+new_num_pair);
     /* Search for the keys in the order in which we received the keys */
@@ -320,16 +323,16 @@ void wr_pairs_layout(int const          ndim,
       el_loc = std::lower_bound(buf_data, buf_data+nwrite, wr_pairs[i]);
       wr_pairs[i].d = el_loc[0].d;
     }
-    free_buffer_space(depadding);
+    CTF_free(depadding);
   }
   TAU_FSTOP(wr_pairs_layout);
 
-  free_buffer_space(swap_data);
-  free_buffer_space(buf_data);
-  free_buffer_space((void*)bucket_counts);
-  free_buffer_space((void*)recv_counts);
-  free_buffer_space((void*)send_displs);
-  free_buffer_space((void*)recv_displs);
+  CTF_free(swap_data);
+  CTF_free(buf_data);
+  CTF_free((void*)bucket_counts);
+  CTF_free((void*)recv_counts);
+  CTF_free((void*)send_displs);
+  CTF_free((void*)recv_displs);
 
 }
 
@@ -367,7 +370,7 @@ void read_loc_pairs(int const           ndim,
 
   long_int i;
   tkv_pair<dtype> * dpairs;
-  get_buffer_space(sizeof(tkv_pair<dtype>)*nval, (void**)&dpairs);
+  CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&dpairs);
   /* Iterate through packed layout and form key value pairs */
   assign_keys(ndim,             nval,           num_virt,
               edge_len,         sym,
@@ -379,9 +382,9 @@ void read_loc_pairs(int const           ndim,
     long_int new_num_pair;
     int * depadding, * pad_len;
     tkv_pair<dtype> * new_pairs;
-    get_buffer_space(sizeof(tkv_pair<dtype>)*nval, (void**)&new_pairs);
-    get_buffer_space(sizeof(int)*ndim, (void**)&depadding);
-    get_buffer_space(sizeof(int)*ndim, (void**)&pad_len);
+    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&new_pairs);
+    CTF_alloc_ptr(sizeof(int)*ndim, (void**)&depadding);
+    CTF_alloc_ptr(sizeof(int)*ndim, (void**)&pad_len);
 
     for (i=0; i<ndim; i++){
       pad_len[i] = edge_len[i]-padding[i];
@@ -390,7 +393,7 @@ void read_loc_pairs(int const           ndim,
     depad_tsr(ndim, nval, pad_len, sym, padding,
               dpairs, new_pairs, &new_num_pair);
 
-    free_buffer_space(dpairs);
+    CTF_free(dpairs);
     *pairs = new_pairs;
     *nread = new_num_pair;
 
@@ -400,8 +403,8 @@ void read_loc_pairs(int const           ndim,
     
     /* Adjust keys to remove padding */
     pad_key(ndim, new_num_pair, edge_len, depadding, new_pairs);
-    free_buffer_space((void*)pad_len);
-    free_buffer_space((void*)depadding);
+    CTF_free((void*)pad_len);
+    CTF_free((void*)depadding);
   } else {
     *pairs = dpairs;
     *nread = nval;

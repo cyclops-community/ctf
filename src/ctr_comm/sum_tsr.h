@@ -18,7 +18,7 @@ class tsum {
     virtual long_int mem_fp() { return 0; };
     virtual tsum<dtype> * clone() { return NULL; };
     
-    virtual ~tsum(){ if (buffer != NULL) free(buffer); }
+    virtual ~tsum(){ if (buffer != NULL) CTF_free(buffer); }
     tsum(tsum<dtype> * other);
     tsum(){ buffer = NULL; }
 };

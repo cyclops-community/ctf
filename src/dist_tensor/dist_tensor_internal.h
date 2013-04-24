@@ -79,8 +79,7 @@ struct tensor {
 
 
 
-int get_buffer_space(int const len, void ** const ptr);
-int free_buffer_space(void * ptr);
+
 template<typename dtype>
 int padded_reshuffle(int const          tid,
                      int const          ndim,
@@ -157,8 +156,8 @@ class seq_tsr_ctr : public ctr<dtype> {
     ctr<dtype> * clone();
 
     seq_tsr_ctr(ctr<dtype> * other);
-    ~seq_tsr_ctr(){ free(edge_len_A), free(edge_len_B), free(edge_len_C), 
-                    free(sym_A), free(sym_B), free(sym_C); }
+    ~seq_tsr_ctr(){ CTF_free(edge_len_A), CTF_free(edge_len_B), CTF_free(edge_len_C), 
+                    CTF_free(sym_A), CTF_free(sym_B), CTF_free(sym_C); }
     seq_tsr_ctr(){}
 };
 
@@ -187,8 +186,8 @@ class seq_tsr_sum : public tsum<dtype> {
     tsum<dtype> * clone();
 
     seq_tsr_sum(tsum<dtype> * other);
-    ~seq_tsr_sum(){ free(edge_len_A), free(edge_len_B), 
-                    free(sym_A), free(sym_B); };
+    ~seq_tsr_sum(){ CTF_free(edge_len_A), CTF_free(edge_len_B), 
+                    CTF_free(sym_A), CTF_free(sym_B); };
     seq_tsr_sum(){}
 };
 
@@ -210,7 +209,7 @@ class seq_tsr_scl : public scl<dtype> {
     scl<dtype> * clone();
 
     seq_tsr_scl(scl<dtype> * other);
-    ~seq_tsr_scl(){ free(edge_len); };
+    ~seq_tsr_scl(){ CTF_free(edge_len); };
     seq_tsr_scl(){}
 };
 
@@ -226,10 +225,11 @@ class dist_tensor{
     int * phys_lda;
     std::vector< tensor<dtype>* > tensors;
     std::vector<topology> topovec;
+    std::vector<topology> rejected_topos;
 
     int inner_size;
     std::vector<topology> inner_topovec;
-
+    
 
   public:
 

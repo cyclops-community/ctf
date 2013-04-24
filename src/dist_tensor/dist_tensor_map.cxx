@@ -70,13 +70,13 @@ int dist_tensor<dtype>::map_tensor_pair(const int tid_A, const int tid_B){
                old_phase, old_rank, old_virt_dim, 
                old_pe_lda, was_padded, was_cyclic, 
                old_padding, old_edge_len, global_comm);   
-  free(old_phase);
-  free(old_rank);
-  free(old_virt_dim);
-  free(old_pe_lda);
+  CTF_free(old_phase);
+  CTF_free(old_rank);
+  CTF_free(old_virt_dim);
+  CTF_free(old_pe_lda);
   if (was_padded)
-    free(old_padding);
-  free(old_edge_len);
+    CTF_free(old_padding);
+  CTF_free(old_edge_len);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -113,7 +113,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
           tsr_B->ndim, idx_map_B, tsr_B->edge_map,
           &num_tot, &idx_arr);
 
-  get_buffer_space(sizeof(int)*num_tot, (void**)&idx_sum);
+  CTF_alloc_ptr(sizeof(int)*num_tot, (void**)&idx_sum);
   
   num_sum = 0;
   for (i=0; i<num_tot; i++){
@@ -139,8 +139,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
                &old_size_B, &was_padded_B, &was_cyclic_B, &old_padding_B, &old_edge_len_B, &topovec[tsr_B->itopo]);  
   old_topo_A = tsr_A->itopo;
   old_topo_B = tsr_B->itopo;
-  get_buffer_space(sizeof(mapping)*tsr_A->ndim,         (void**)&old_map_A);
-  get_buffer_space(sizeof(mapping)*tsr_B->ndim,         (void**)&old_map_B);
+  CTF_alloc_ptr(sizeof(mapping)*tsr_A->ndim,         (void**)&old_map_A);
+  CTF_alloc_ptr(sizeof(mapping)*tsr_B->ndim,         (void**)&old_map_B);
   for (i=0; i<tsr_A->ndim; i++){
     old_map_A[i].type         = NOT_MAPPED;
     old_map_A[i].has_child    = 0;
@@ -343,30 +343,30 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   if (need_remap)
     remap_tensor(tid_B, tsr_B, &topovec[tsr_B->itopo], old_size_B, old_phase_B, old_rank_B, old_virt_dim_B, 
                  old_pe_lda_B, was_padded_B, was_cyclic_B, old_padding_B, old_edge_len_B, global_comm);   
-  free(idx_sum);
-  free(old_phase_A);
-  free(old_rank_A);
-  free(old_virt_dim_A);
-  free(old_pe_lda_A);
+  CTF_free(idx_sum);
+  CTF_free(old_phase_A);
+  CTF_free(old_rank_A);
+  CTF_free(old_virt_dim_A);
+  CTF_free(old_pe_lda_A);
   if (was_padded_A)
-    free(old_padding_A);
-  free(old_edge_len_A);
-  free(old_phase_B);
-  free(old_rank_B);
-  free(old_virt_dim_B);
-  free(old_pe_lda_B);
+    CTF_free(old_padding_A);
+  CTF_free(old_edge_len_A);
+  CTF_free(old_phase_B);
+  CTF_free(old_rank_B);
+  CTF_free(old_virt_dim_B);
+  CTF_free(old_pe_lda_B);
   if (was_padded_B)
-    free(old_padding_B);
-  free(old_edge_len_B);
-  free(idx_arr);
+    CTF_free(old_padding_B);
+  CTF_free(old_edge_len_B);
+  CTF_free(idx_arr);
   for (i=0; i<tsr_A->ndim; i++){
     clear_mapping(old_map_A+i);
   }
   for (i=0; i<tsr_B->ndim; i++){
     clear_mapping(old_map_B+i);
   }
-  free_buffer_space(old_map_A);
-  free_buffer_space(old_map_B);
+  CTF_free(old_map_A);
+  CTF_free(old_map_B);
 
   return DIST_TENSOR_SUCCESS;
 }
@@ -396,7 +396,7 @@ int dist_tensor<dtype>::
   }
   max_idx++;
 
-  get_buffer_space(sizeof(int)*max_idx, (void**)&idx_arr);
+  CTF_alloc_ptr(sizeof(int)*max_idx, (void**)&idx_arr);
   std::fill(idx_arr, idx_arr+max_idx, -1);
 
   pass = 1;
@@ -429,7 +429,7 @@ int dist_tensor<dtype>::
     }
     idx_arr[idx_map[i]] = i;
   }
-  free_buffer_space(idx_arr);
+  CTF_free(idx_arr);
   return pass;
 }
 
@@ -476,7 +476,7 @@ int dist_tensor<dtype>::
     return 0;
   }
   
-  get_buffer_space(sizeof(int)*topovec[tsr_A->itopo].ndim, (void**)&phys_map);
+  CTF_alloc_ptr(sizeof(int)*topovec[tsr_A->itopo].ndim, (void**)&phys_map);
   memset(phys_map, 0, sizeof(int)*topovec[tsr_A->itopo].ndim);
 
   inv_idx(tsr_A->ndim, idx_A, tsr_A->edge_map,
@@ -529,8 +529,8 @@ int dist_tensor<dtype>::
     }
   }*/
 
-  free(phys_map);
-  free(idx_arr);
+  CTF_free(phys_map);
+  CTF_free(idx_arr);
 
   TAU_FSTOP(check_sum_mapping);
 
@@ -594,8 +594,8 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
     topo_ndim = inner_topovec[tsr_A->itopo].ndim;
   else
     topo_ndim = topovec[tsr_A->itopo].ndim;
-  get_buffer_space(sizeof(int)*topo_ndim, (void**)&phys_mismatched);
-  get_buffer_space(sizeof(int)*topo_ndim, (void**)&phys_mapped);
+  CTF_alloc_ptr(sizeof(int)*topo_ndim, (void**)&phys_mismatched);
+  CTF_alloc_ptr(sizeof(int)*topo_ndim, (void**)&phys_mapped);
   memset(phys_mismatched, 0, sizeof(int)*topo_ndim);
   memset(phys_mapped, 0, sizeof(int)*topo_ndim);
 
@@ -782,9 +782,9 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
   }
 
 
-  free_buffer_space(idx_arr);
-  free_buffer_space(phys_mismatched);
-  free_buffer_space(phys_mapped);
+  CTF_free(idx_arr);
+  CTF_free(phys_mismatched);
+  CTF_free(phys_mapped);
   return pass;
 }
 
@@ -861,22 +861,22 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
           tsr_C->ndim, type->idx_map_C, tsr_C->edge_map,
           &num_tot, &idx_arr);
 
-  get_buffer_space(sizeof(int)*num_tot,         (void**)&idx_no_ctr);
-  get_buffer_space(sizeof(int)*num_tot,         (void**)&idx_extra);
-  get_buffer_space(sizeof(int)*num_tot,         (void**)&idx_ctr);
+  CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_no_ctr);
+  CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_extra);
+  CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_ctr);
 #if BEST_VOL
-  get_buffer_space(sizeof(int)*tsr_A->ndim,     (void**)&virt_blk_len_A);
-  get_buffer_space(sizeof(int)*tsr_B->ndim,     (void**)&virt_blk_len_B);
-  get_buffer_space(sizeof(int)*tsr_C->ndim,     (void**)&virt_blk_len_C);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim,     (void**)&virt_blk_len_A);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim,     (void**)&virt_blk_len_B);
+  CTF_alloc_ptr(sizeof(int)*tsr_C->ndim,     (void**)&virt_blk_len_C);
 #endif
   old_map_A = NULL;
   old_map_B = NULL;
   old_map_C = NULL;
 
   if (do_remap){
-    get_buffer_space(sizeof(mapping)*tsr_A->ndim,         (void**)&old_map_A);
-    get_buffer_space(sizeof(mapping)*tsr_B->ndim,         (void**)&old_map_B);
-    get_buffer_space(sizeof(mapping)*tsr_C->ndim,         (void**)&old_map_C);
+    CTF_alloc_ptr(sizeof(mapping)*tsr_A->ndim,         (void**)&old_map_A);
+    CTF_alloc_ptr(sizeof(mapping)*tsr_B->ndim,         (void**)&old_map_B);
+    CTF_alloc_ptr(sizeof(mapping)*tsr_C->ndim,         (void**)&old_map_C);
     for (i=0; i<tsr_A->ndim; i++){
       old_map_A[i].type         = NOT_MAPPED;
       old_map_A[i].has_child    = 0;
@@ -1155,10 +1155,10 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   set_padding(tsr_C);
   
   if (!do_remap || gtopo == INT_MAX || gtopo == -1){
-    free_buffer_space((void*)idx_arr);
-    free_buffer_space((void*)idx_no_ctr);
-    free_buffer_space((void*)idx_ctr);
-    free_buffer_space((void*)idx_extra);
+    CTF_free((void*)idx_arr);
+    CTF_free((void*)idx_no_ctr);
+    CTF_free((void*)idx_ctr);
+    CTF_free((void*)idx_extra);
     tsr_A->need_remap = need_remap_A;
     tsr_B->need_remap = need_remap_B;
     tsr_C->need_remap = need_remap_C;
@@ -1309,15 +1309,15 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   (*ctrf)->B    = tsr_B->data;
   (*ctrf)->C    = tsr_C->data;
 
-  free( old_phase_A );          free( old_rank_A );
-  free( old_virt_dim_A );       free( old_pe_lda_A );
-  free( old_padding_A );        free( old_edge_len_A );
-  free( old_phase_B );          free( old_rank_B );
-  free( old_virt_dim_B );       free( old_pe_lda_B );
-  free( old_padding_B );        free( old_edge_len_B );
-  free( old_phase_C );          free( old_rank_C );
-  free( old_virt_dim_C );       free( old_pe_lda_C );
-  free( old_padding_C );        free( old_edge_len_C );
+  CTF_free( old_phase_A );          CTF_free( old_rank_A );
+  CTF_free( old_virt_dim_A );       CTF_free( old_pe_lda_A );
+  CTF_free( old_padding_A );        CTF_free( old_edge_len_A );
+  CTF_free( old_phase_B );          CTF_free( old_rank_B );
+  CTF_free( old_virt_dim_B );       CTF_free( old_pe_lda_B );
+  CTF_free( old_padding_B );        CTF_free( old_edge_len_B );
+  CTF_free( old_phase_C );          CTF_free( old_rank_C );
+  CTF_free( old_virt_dim_C );       CTF_free( old_pe_lda_C );
+  CTF_free( old_padding_C );        CTF_free( old_edge_len_C );
   
   for (i=0; i<tsr_A->ndim; i++)
     clear_mapping(old_map_A+i);
@@ -1325,14 +1325,14 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     clear_mapping(old_map_B+i);
   for (i=0; i<tsr_C->ndim; i++)
     clear_mapping(old_map_C+i);
-  free(old_map_A);
-  free(old_map_B);
-  free(old_map_C);
+  CTF_free(old_map_A);
+  CTF_free(old_map_B);
+  CTF_free(old_map_C);
 
-  free_buffer_space((void*)idx_arr);
-  free_buffer_space((void*)idx_no_ctr);
-  free_buffer_space((void*)idx_ctr);
-  free_buffer_space((void*)idx_extra);
+  CTF_free((void*)idx_arr);
+  CTF_free((void*)idx_no_ctr);
+  CTF_free((void*)idx_ctr);
+  CTF_free((void*)idx_extra);
   
   TAU_FSTOP(map_tensors);
 
@@ -1376,10 +1376,10 @@ int dist_tensor<dtype>::
 
   tsr_ndim = num_sum;
 
-  get_buffer_space(tsr_ndim*sizeof(int),                (void**)&restricted);
-  get_buffer_space(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
-  get_buffer_space(tsr_ndim*tsr_ndim*sizeof(int),       (void**)&tsr_sym_table);
-  get_buffer_space(tsr_ndim*sizeof(mapping),            (void**)&sum_map);
+  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&restricted);
+  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
+  CTF_alloc_ptr(tsr_ndim*tsr_ndim*sizeof(int),       (void**)&tsr_sym_table);
+  CTF_alloc_ptr(tsr_ndim*sizeof(mapping),            (void**)&sum_map);
 
   memset(tsr_sym_table, 0, tsr_ndim*tsr_ndim*sizeof(int));
   memset(restricted, 0, tsr_ndim*sizeof(int));
@@ -1447,13 +1447,13 @@ int dist_tensor<dtype>::
       copy_mapping(1, &sum_map[i], &tsr_B->edge_map[iB]);
     }
   }
-  free_buffer_space(restricted);
-  free_buffer_space(tsr_edge_len);
-  free_buffer_space(tsr_sym_table);
+  CTF_free(restricted);
+  CTF_free(tsr_edge_len);
+  CTF_free(tsr_sym_table);
   for (i=0; i<num_sum; i++){
     clear_mapping(sum_map+i);
   }
-  free_buffer_space(sum_map);
+  CTF_free(sum_map);
 
   TAU_FSTOP(map_sum_indices);
   return stat;
@@ -1495,10 +1495,10 @@ int dist_tensor<dtype>::
 
   tsr_ndim = num_ctr*2;
 
-  get_buffer_space(tsr_ndim*sizeof(int),                (void**)&restricted);
-  get_buffer_space(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
-  get_buffer_space(tsr_ndim*tsr_ndim*sizeof(int),       (void**)&tsr_sym_table);
-  get_buffer_space(tsr_ndim*sizeof(mapping),            (void**)&ctr_map);
+  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&restricted);
+  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
+  CTF_alloc_ptr(tsr_ndim*tsr_ndim*sizeof(int),       (void**)&tsr_sym_table);
+  CTF_alloc_ptr(tsr_ndim*sizeof(mapping),            (void**)&ctr_map);
 
   memset(tsr_sym_table, 0, tsr_ndim*tsr_ndim*sizeof(int));
   memset(restricted, 0, tsr_ndim*sizeof(int));
@@ -1599,13 +1599,13 @@ int dist_tensor<dtype>::
       copy_mapping(1, &ctr_map[2*i+1], &tsr_B->edge_map[iB]);
     }
   }
-  free_buffer_space(restricted);
-  free_buffer_space(tsr_edge_len);
-  free_buffer_space(tsr_sym_table);
+  CTF_free(restricted);
+  CTF_free(tsr_edge_len);
+  CTF_free(tsr_sym_table);
   for (i=0; i<2*num_ctr; i++){
     clear_mapping(ctr_map+i);
   }
-  free_buffer_space(ctr_map);
+  CTF_free(ctr_map);
 
   TAU_FSTOP(map_ctr_indices);
   return stat;
@@ -1728,8 +1728,8 @@ int dist_tensor<dtype>::
   max_idx++;
 
 
-  get_buffer_space(sizeof(int)*max_idx, (void**)&idx_arr);
-  get_buffer_space(sizeof(int)*tsr->ndim*tsr->ndim, (void**)&stable);
+  CTF_alloc_ptr(sizeof(int)*max_idx, (void**)&idx_arr);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim*tsr->ndim, (void**)&stable);
   memcpy(stable, tsr->sym_table, sizeof(int)*tsr->ndim*tsr->ndim);
 
   std::fill(idx_arr, idx_arr+max_idx, -1);
@@ -1753,8 +1753,8 @@ int dist_tensor<dtype>::
   ret = map_symtsr(tsr->ndim, stable, tsr->edge_map);
   if (ret!=DIST_TENSOR_SUCCESS) return ret;
 
-  free_buffer_space(idx_arr);
-  free_buffer_space(stable);
+  CTF_free(idx_arr);
+  CTF_free(stable);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -1943,50 +1943,50 @@ int dist_tensor<dtype>::
   ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
                             tA, tB, &topovec[itopo]);
   if (ret == DIST_TENSOR_NEGATIVE) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_NEGATIVE;
   }
   if (ret == DIST_TENSOR_ERROR) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_ERROR;
   }
 
 
 /*  ret = map_self_indices(tA, map_A);
   if (ret == DIST_TENSOR_NEGATIVE) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_NEGATIVE;
   }
   if (ret == DIST_TENSOR_ERROR) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_ERROR;
   }
   ret = map_self_indices(tB, map_B);
   if (ret == DIST_TENSOR_NEGATIVE) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_NEGATIVE;
   }
   if (ret == DIST_TENSOR_ERROR) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_ERROR;
   }
   ret = map_self_indices(tC, map_C);
   if (ret == DIST_TENSOR_NEGATIVE) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_NEGATIVE;
   }
   if (ret == DIST_TENSOR_ERROR) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_ERROR;
   }*/
   ret = map_extra_indices(idx_arr, idx_extra, num_extra,
                               tA, tB, tC);
   if (ret == DIST_TENSOR_NEGATIVE) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_NEGATIVE;
   }
   if (ret == DIST_TENSOR_ERROR) {
-    free(idx_arr);
+    CTF_free(idx_arr);
     return DIST_TENSOR_ERROR;
   }
 
@@ -1994,7 +1994,10 @@ int dist_tensor<dtype>::
   /* Map C or equivalently, the non-contraction indices of A and B */
   ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
                                 tA, tB, tC, &topovec[itopo]);
-  if (ret == DIST_TENSOR_NEGATIVE) return DIST_TENSOR_NEGATIVE;
+  if (ret == DIST_TENSOR_NEGATIVE){
+    CTF_free(idx_arr);
+    return DIST_TENSOR_NEGATIVE;
+  }
   if (ret == DIST_TENSOR_ERROR) {
     return DIST_TENSOR_ERROR;
   }
@@ -2008,13 +2011,19 @@ int dist_tensor<dtype>::
   /* Do it again to make sure everything is properly mapped. FIXME: loop */
   ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
                             tA, tB, &topovec[itopo]);
-  if (ret == DIST_TENSOR_NEGATIVE) return DIST_TENSOR_NEGATIVE;
+  if (ret == DIST_TENSOR_NEGATIVE){
+    CTF_free(idx_arr);
+    return DIST_TENSOR_NEGATIVE;
+  }
   if (ret == DIST_TENSOR_ERROR) {
     return DIST_TENSOR_ERROR;
   }
   ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
                                 tA, tB, tC, &topovec[itopo]);
-  if (ret == DIST_TENSOR_NEGATIVE) return DIST_TENSOR_NEGATIVE;
+  if (ret == DIST_TENSOR_NEGATIVE){
+    CTF_free(idx_arr);
+    return DIST_TENSOR_NEGATIVE;
+  }
   if (ret == DIST_TENSOR_ERROR) {
     return DIST_TENSOR_ERROR;
   }
@@ -2031,7 +2040,7 @@ int dist_tensor<dtype>::
   ret = map_symtsr(tsr_C->ndim, tsr_C->sym_table, tsr_C->edge_map);
   if (ret!=DIST_TENSOR_SUCCESS) return ret;
   
-  free(idx_arr);
+  CTF_free(idx_arr);
 
   return DIST_TENSOR_SUCCESS;
 

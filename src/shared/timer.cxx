@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include "timer.h"
+#include "util.h"
 
 #define MAX_NAME_LENGTH 38
 
@@ -69,7 +70,7 @@ class function_timer{
       int i;
       if (rank == 0){
         fprintf(output, "%s", name);
-        char * space = (char*)malloc(MAX_NAME_LENGTH-strlen(name)+1);
+        char * space = (char*)CTF_alloc(MAX_NAME_LENGTH-strlen(name)+1);
         for (i=0; i<MAX_NAME_LENGTH-(int)strlen(name); i++){
           space[i] = ' ';
         }
@@ -85,6 +86,7 @@ class function_timer{
                 ((int)(1000.*(total_excl_time)/np))%1000,
                 (int)(100.*(total_excl_time)/complete_time),
                 ((int)(10000.*(total_excl_time)/complete_time))%100);
+        CTF_free(space);
       } 
     }
 };
@@ -250,6 +252,7 @@ void CTF_timer::exit(){
 /*    if (rank == 0){
       fclose(output);
     } */
+    function_timers.clear();
     
   }
 #endif

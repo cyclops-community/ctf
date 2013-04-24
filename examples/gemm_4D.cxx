@@ -86,6 +86,8 @@ int  gemm_4D(int const    n,
   }
   free(pairs_AB);
   free(pairs_BC);
+  free(indices_AB);
+  free(indices_BC);
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     if (pass)

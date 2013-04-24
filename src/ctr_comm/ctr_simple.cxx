@@ -8,7 +8,7 @@
  */
 template<typename dtype>
 ctr<dtype>::~ctr(){
-  if (buffer != NULL) free(buffer);
+  if (buffer != NULL) CTF_free(buffer);
 }
 
 /**
@@ -191,11 +191,11 @@ template<typename dtype>
 ctr_replicate<dtype>::~ctr_replicate() {
   delete rec_ctr;
   if (ncdt_A > 0)
-    free(cdt_A);
+    CTF_free(cdt_A);
   if (ncdt_B > 0)
-    free(cdt_B);
+    CTF_free(cdt_B);
   if (ncdt_C > 0)
-    free(cdt_C);
+    CTF_free(cdt_C);
 }
 
 /**
