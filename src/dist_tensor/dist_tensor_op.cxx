@@ -1810,7 +1810,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     clone_tensor(ntid_A, 1, &new_tid);
     stat = sum_tensors(alpha_, beta, new_tid, ntid_B, map_A, map_B, ftsr, felm);
     del_tsr(new_tid);
-    LIBT_ASSERT(stat == DIST_TENSOR_SUCCES);
+    LIBT_ASSERT(stat == DIST_TENSOR_SUCCESS);
   } else{ 
 
     dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->ndim,
