@@ -5,7 +5,7 @@
 #include <stdlib.h>
   
 int test_dft(int64_t const  n,
-             cCTF_World    &dw){
+             cCTF_World    &wrld){
   int numPes, myRank;
   int64_t  np, i;
   int64_t * idx;
@@ -13,7 +13,6 @@ int test_dft(int64_t const  n,
   std::complex<double> imag(0,1);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-  cCTF_World wrld(MPI_COMM_WORLD);
   cCTF_Matrix DFT(n, n, SY, wrld);
   cCTF_Matrix IDFT(n, n, SY, wrld);
 
