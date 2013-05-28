@@ -1569,6 +1569,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
 
   
   sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
+//  print_tsr(stdout, nonsym_tid);
 
 
   /* Do not diagonal rescaling since sum has beta=0 and overwrites diagonal */
@@ -1701,6 +1702,7 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
   fseq_elm_sum<dtype> felm;
   felm.func_ptr=NULL;
  
+//  print_tsr(stdout, nonsym_tid);
   
   for (i=-num_sy_neg-1; i<num_sy; i++){
     if (i==-1) continue;

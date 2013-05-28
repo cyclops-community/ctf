@@ -3,7 +3,7 @@ DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))
 include ../src/make/make.in
 include ../src/make/rules.mk
 
-examples: dft dft_3D gemm gemm_4D trace sym3 fast_sym ccsdt_t3_to_t2 weight_4D test_suite
+examples: dft dft_3D gemm gemm_4D trace sym3 fast_sym fast_sym_4d ccsdt_t3_to_t2 weight_4D test_suite
 
 ccsdt_t3_to_t2: ${bindir}/ccsdt_t3_to_t2
 ${bindir}/ccsdt_t3_to_t2: ccsdt_t3_to_t2.o ${libdir}/libctf.a
@@ -16,6 +16,9 @@ ${bindir}/sym3: sym3.o ${libdir}/libctf.a
 
 fast_sym: ${bindir}/fast_sym
 ${bindir}/fast_sym: fast_sym.o ${libdir}/libctf.a
+
+fast_sym_4d: ${bindir}/fast_sym_4d
+${bindir}/fast_sym_4d: fast_sym_4d.o ${libdir}/libctf.a
 
 dft: ${bindir}/dft
 ${bindir}/dft: dft.o ${libdir}/libctf.a
