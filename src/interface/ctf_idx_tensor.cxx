@@ -221,7 +221,7 @@ void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, double beta){
     } else {
       output->parent->sum(alpha, *(this->parent), idx_map, beta, output->idx_map);
     }
-    delete output;
+    //delete output;
   }  
   delete this;
 }
