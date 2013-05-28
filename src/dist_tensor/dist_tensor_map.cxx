@@ -621,9 +621,12 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
       iA = idx_arr[3*i+0];
       iB = idx_arr[3*i+1];
       iC = idx_arr[3*i+2];
+//      printf("tsr_A[%d].np = %d\n", iA, tsr_A->edge_map[iA].np);
+      //printf("tsr_B[%d].np = %d\n", iB, tsr_B->edge_map[iB].np);
+      //printf("tsr_C[%d].np = %d\n", iC, tsr_C->edge_map[iC].np);
       if (0 == comp_dim_map(&tsr_B->edge_map[iB], &tsr_A->edge_map[iA]) || 
           0 == comp_dim_map(&tsr_B->edge_map[iB], &tsr_C->edge_map[iC])){
-        DPRINTF(3,"failed confirmation here %d\n",iA);
+        DPRINTF(3,"failed confirmation here %d %d %d\n",iA,iB,iC);
         pass = 0;
         break;
       } else {
@@ -643,7 +646,12 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
           else break;
         } 
       }
-    } else {
+    }
+  }
+  for (i=0; i<num_tot; i++){
+    if (idx_arr[3*i+0] == -1 ||
+        idx_arr[3*i+1] == -1 ||
+        idx_arr[3*i+2] == -1){
       for (order=0; order<3; order++){
         switch (order){
           case 0:
