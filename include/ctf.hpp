@@ -324,7 +324,7 @@ class tCTF_Tensor {
      * \brief prints tensor data to file using process 0
      * \param[in] fp file to print to e.g. stdout
      */
-    void print(FILE * fp) const;
+    void print(FILE * fp = stdout) const;
 
     /**
      * \brief frees tCTF tensor
