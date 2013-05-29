@@ -84,7 +84,7 @@ int fast_sym(int const     n,
   C["ij"] -= As["i"]*B["ij"];
   C["ij"] -= A["ij"]*Bs["j"];
 
-  if (n<10){
+  if (n<8){
     printf("A:\n");
     A.print();
     printf("B:\n");
@@ -101,12 +101,8 @@ int fast_sym(int const     n,
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-    if (pass) printf("{ SY[\"ij\"] = SY[\"ik\"]*SY[\"kj\"] } passed\n");
-    else      printf("{ SY[\"ij\"] = SY[\"ik\"]*SY[\"kj\"] } failed\n");
-    if (n <= 16){
-   /*   C_ans.print();
-      C.print();*/
-    }
+    if (pass) printf("{ C[\"(ij)\"] = A[\"(ik)\"]*B[\"(kj)\"] } passed\n");
+    else      printf("{ C[\"(ij)\"] = A[\"(ik)\"]*B[\"(kj)\"] } failed\n");
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
   return pass;
@@ -135,13 +131,13 @@ int main(int argc, char ** argv){
 
   if (getCmdOption(input_str, input_str+in_num, "-n")){
     n = atoi(getCmdOption(input_str, input_str+in_num, "-n"));
-    if (n < 0) n = 4;
-  } else n = 4;
+    if (n < 0) n = 13;
+  } else n = 13;
 
   {
     CTF_World dw(MPI_COMM_WORLD, argc, argv);
     if (rank == 0){
-      printf("Computing C_ij = A_ik*B_kj\n");
+      printf("Computing C_(ij) = A_(ik)*B_(kj)\n");
     }
     int pass = fast_sym(n, dw);
     assert(pass);

@@ -10,8 +10,8 @@
 #include <algorithm>
 #include <ctf.hpp>
 
-int fast_sym(int const     n,
-             CTF_World    &ctf){
+int fast_sym_4D(int const     n,
+                CTF_World    &ctf){
   int rank, i, num_pes;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -101,12 +101,8 @@ int fast_sym(int const     n,
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-    if (pass) printf("{ SY[\"ij\"] = SY[\"ik\"]*SY[\"kj\"] } passed\n");
-    else      printf("{ SY[\"ij\"] = SY[\"ik\"]*SY[\"kj\"] } failed\n");
-    if (n <= 16){
-   /*   C_ans.print();
-      C.print();*/
-    }
+    if (pass) printf("{ C[\"(ij)ab\"] = A[\"(ik)al\"]*B[\"(kj)lb\"] } passed\n");
+    else      printf("{ C[\"(ij)ab\"] = A[\"(ik)al\"]*B[\"(kj)lb\"] } failed\n");
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
   return pass;
@@ -143,7 +139,7 @@ int main(int argc, char ** argv){
     if (rank == 0){
       printf("Computing C_(ij)ab = A_(ik)al*B_(kj)lb\n");
     }
-    int pass = fast_sym(n, dw);
+    int pass = fast_sym_4D(n, dw);
     assert(pass);
   }
   

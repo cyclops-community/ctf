@@ -19,6 +19,8 @@
 #include "../../examples/trace.cxx"
 #include "../../examples/dft.cxx"
 #include "../../examples/dft_3D.cxx"
+#include "../../examples/fast_sym.cxx"
+#include "../../examples/fast_sym_4D.cxx"
 #include "../../examples/ccsdt_t3_to_t2.cxx"
 
 
@@ -119,6 +121,14 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing a 2D trace operation with n = %d:\n",n*n);
     pass.push_back(trace(n*n, dw));
+    
+    if (rank == 0)
+      printf("Testing fast symmetric multiplication operation with n = %d:\n",n*n);
+    pass.push_back(fast_sym(n*n, dw));
+    
+    if (rank == 0)
+      printf("Testing 4D fast symmetric contraction operation with n = %d:\n",n);
+    pass.push_back(fast_sym_4D(n, dw));
 
   }
   {
