@@ -803,7 +803,7 @@ void zero_padding( int const          ndim,
   vend = vst+(nvirt/ntd);
   if (tid < nvirt % ntd) vend++;
   LIBT_ASSERT(tid != ntd-1 || vend == nvirt);
-  int i, imax, act_lda, act_max, buf_offset, i_st;
+  int i, imax, act_lda, act_max, buf_offset, i_st, curr_idx, sym_idx;
   int is_outside;
   long_int p;
   int * idx, * virt_rank, * phase_rank;
@@ -825,50 +825,44 @@ void zero_padding( int const          ndim,
       imax = edge_len[0]/phase[0];
       for (;;){
         is_outside = 0;
-        for (i=1; i<ndim; i++){
-          if ((phase_rank[i] >= edge_len[i] - padding[i]) ||
-              ((sym[i] == AS || sym[i] == SH)
-                  && (idx[i] > idx[i+1] || 
-                      (idx[i] == idx[i+1] && phase_rank[i] >= phase_rank[i+1]))) ||
-                (sym[i] == SY
-                    && (idx[i] > idx[i+1] || 
-                      (idx[i] == idx[i+1] && phase_rank[i] > phase_rank[i+1])))){
+        for (i=0; i<ndim; i++){
+          curr_idx = idx[i]*phase[i]+phase_rank[i];
+          if (curr_idx >= edge_len[i] - padding[i]){
+            is_outside = 1;
+            break;
+          } else if (i < ndim-1) {
+            sym_idx   = idx[i+1]*phase[i+1]+phase_rank[i+1];
+            if (((sym[i] == AS || sym[i] == SH) && curr_idx >= sym_idx) ||
+                ( sym[i] == SY                  && curr_idx >  sym_idx) ) {
               is_outside = 1;
-            break;
+              break;
+            }
           }
         }
-        if (sym[0] != NS)
-          imax = idx[1]+1;
-        /* Increment virtual bucket */
-        if (is_outside){
-          i_st = 0;      
-        } else {
-          i_st = edge_len[0] - padding[0];
-          if (sym[0] != NS)
-            i_st = MIN(i_st,idx[1]+1);
-          if ((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]){
-            i_st = MIN(i_st,idx[1]);
-          }
-          if (sym[0] == SY && phase_rank[0] > phase_rank[1]){
-            i_st = MIN(i_st,idx[1]);
-          }
+/*        for (i=0; i<ndim; i++){
+          printf("phase_rank[%d] = %d, idx[%d] = %d, ",i,phase_rank[i],i,idx[i]);
         }
-        for (i=i_st; i<imax; i++){
-          data[buf_offset+i] = 0.0;
-        }
-        buf_offset += imax;
+        printf("\n");
+        printf("data[%lld]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
+        if (is_outside)
+          data[buf_offset] = 0.0;
+        buf_offset++;
         /* Increment indices and set up offsets */
-        for (act_lda=1; act_lda < ndim; act_lda++){
-          idx[act_lda]++;
-          act_max = edge_len[act_lda]/phase[act_lda];
-          if (sym[act_lda] != NS) act_max = idx[act_lda+1]+1;
-          if (idx[act_lda] >= act_max)
-            idx[act_lda] = 0;
-          LIBT_ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
-          if (idx[act_lda] > 0)
+        for (i=0; i < ndim; i++){
+          idx[i]++;
+          act_max = edge_len[i]/phase[i];
+          if (sym[i] != NS){
+//            sym_idx   = idx[i+1]*phase[i+1]+phase_rank[i+1];
+//            act_max   = MIN(act_max,((sym_idx-phase_rank[i])/phase[i]+1));
+            act_max = MIN(act_max,idx[i+1]+1);
+          }
+          if (idx[i] >= act_max)
+            idx[i] = 0;
+          LIBT_ASSERT(edge_len[i]%phase[i] == 0);
+          if (idx[i] > 0)
             break;
         }
-        if (act_lda >= ndim) break;
+        if (i >= ndim) break;
       }
     }
     for (act_lda=0; act_lda < ndim; act_lda++){

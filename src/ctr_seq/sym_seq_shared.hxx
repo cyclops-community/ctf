@@ -143,7 +143,7 @@ do{                                                                             
 do {                                                \
         sym_pass = 1;                               \
         for (i=0; i<ndim_##__X; i++){               \
-          if ((sym_##__X[i] & 0x2) == 0x2){         \
+          if (sym_##__X[i] == AS || sym_##__X[i] == SH){         \
             if (idx_glb[idx_map_##__X[i+1]] <=      \
                       idx_glb[idx_map_##__X[i]]) {  \
               sym_pass = 0;                         \
