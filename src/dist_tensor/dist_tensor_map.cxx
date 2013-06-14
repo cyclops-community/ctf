@@ -840,7 +840,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   int was_padded_A, was_padded_B, was_padded_C, old_nvirt_all;
   int was_cyclic_A, was_cyclic_B, was_cyclic_C, nvirt_all;
   long_int old_size_A, old_size_B, old_size_C;
-  int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra;
+  int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
   int * old_phase_A, * old_rank_A, * old_virt_dim_A, * old_pe_lda_A;
   int * old_padding_A, * old_edge_len_A;
   int * old_phase_B, * old_rank_B, * old_virt_dim_B, * old_pe_lda_B;
@@ -871,6 +871,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 
   CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_no_ctr);
   CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_extra);
+  CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_weigh);
   CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_ctr);
 #if BEST_VOL
   CTF_alloc_ptr(sizeof(int)*tsr_A->ndim,     (void**)&virt_blk_len_A);
@@ -961,7 +962,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 
       ret = map_to_topology(type->tid_A, type->tid_B, type->tid_C, type->idx_map_A,
                             type->idx_map_B, type->idx_map_C, i, j, 
-                            idx_arr, idx_ctr, idx_extra, idx_no_ctr);
+                            idx_arr, idx_ctr, idx_extra, idx_no_ctr, idx_weigh);
       
 
       if (ret == DIST_TENSOR_ERROR) {
@@ -1167,6 +1168,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     CTF_free((void*)idx_no_ctr);
     CTF_free((void*)idx_ctr);
     CTF_free((void*)idx_extra);
+    CTF_free((void*)idx_weigh);
     tsr_A->need_remap = need_remap_A;
     tsr_B->need_remap = need_remap_B;
     tsr_C->need_remap = need_remap_C;
@@ -1184,7 +1186,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   
   ret = map_to_topology(type->tid_A, type->tid_B, type->tid_C, type->idx_map_A,
                         type->idx_map_B, type->idx_map_C, gtopo/6, gtopo%6, 
-                        idx_arr, idx_ctr, idx_extra, idx_no_ctr);
+                        idx_arr, idx_ctr, idx_extra, idx_no_ctr, idx_weigh);
 
 
   if (ret == DIST_TENSOR_NEGATIVE || ret == DIST_TENSOR_ERROR) {
@@ -1230,7 +1232,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 
       ret = map_to_topology(type->tid_A, type->tid_B, type->tid_C, type->idx_map_A,
                             type->idx_map_B, type->idx_map_C, gtopo/6, gtopo%6, 
-                            idx_arr, idx_ctr, idx_extra, idx_no_ctr);
+                            idx_arr, idx_ctr, idx_extra, idx_no_ctr, idx_weigh);
       tsr_A->is_mapped = 1;
       tsr_B->is_mapped = 1;
       tsr_C->is_mapped = 1;
@@ -1341,6 +1343,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   CTF_free((void*)idx_no_ctr);
   CTF_free((void*)idx_ctr);
   CTF_free((void*)idx_extra);
+  CTF_free((void*)idx_weigh);
   
   TAU_FSTOP(map_tensors);
 
@@ -1467,6 +1470,137 @@ int dist_tensor<dtype>::
   return stat;
 }
 
+/**
+ * \brief map the indices over which we will be weighing
+ *
+ * \param idx_arr array of index mappings of size ndim*3 that
+ *        lists the indices (or -1) of A,B,C 
+ *        corresponding to every global index
+ * \param idx_weigh specification of which indices are being contracted
+ * \param num_tot total number of indices
+ * \param num_weigh number of indices being contracted over
+ * \param tid_A id of A
+ * \param tid_B id of B
+ * \param tid_B id of C
+ * \param topo topology to map to
+ */
+template<typename dtype>
+int dist_tensor<dtype>::
+    map_weigh_indices(int const *         idx_arr,
+                      int const *         idx_weigh,
+                      int const           num_tot,
+                      int const           num_weigh,
+                      int const           tid_A,
+                      int const           tid_B,
+                      int const           tid_C,
+                      topology const *    topo){
+  int tsr_ndim, iweigh, iA, iB, iC, i, j, k, jweigh, jX, stat, is_premapped;
+  int * tsr_edge_len, * tsr_sym_table, * restricted;
+  mapping * weigh_map;
+
+  tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
+  TAU_FSTART(map_weigh_indices);
+
+  tsr_A = tensors[tid_A];
+  tsr_B = tensors[tid_B];
+  tsr_C = tensors[tid_C];
+
+  tsr_ndim = num_weigh;
+
+  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&restricted);
+  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
+  CTF_alloc_ptr(tsr_ndim*tsr_ndim*sizeof(int),       (void**)&tsr_sym_table);
+  CTF_alloc_ptr(tsr_ndim*sizeof(mapping),            (void**)&weigh_map);
+
+  memset(tsr_sym_table, 0, tsr_ndim*tsr_ndim*sizeof(int));
+  memset(restricted, 0, tsr_ndim*sizeof(int));
+
+  for (i=0; i<tsr_ndim; i++){ 
+    weigh_map[i].type             = NOT_MAPPED; 
+    weigh_map[i].has_child        = 0; 
+    weigh_map[i].np               = 1; 
+  }
+  for (i=0; i<num_weigh; i++){
+    iweigh = idx_weigh[i];
+    iA = idx_arr[iweigh*3+0];
+    iB = idx_arr[iweigh*3+1];
+    iC = idx_arr[iweigh*3+2];
+
+    LIBT_ASSERT(tsr_A->edge_map[iA].type != PHYSICAL_MAP);
+    LIBT_ASSERT(tsr_B->edge_map[iB].type != PHYSICAL_MAP);
+    LIBT_ASSERT(tsr_C->edge_map[iC].type != PHYSICAL_MAP);
+
+    tsr_edge_len[i] = tsr_A->edge_len[iA];
+
+    for (j=i+1; j<num_weigh; j++){
+      jX = idx_arr[idx_weigh[j]*3+0];
+
+      for (k=MIN(iA,jX); k<MAX(iA,jX); k++){
+        if (tsr_A->sym[k] == NS)
+          break;
+      }
+      if (k==MAX(iA,jX)){ 
+        tsr_sym_table[i*tsr_ndim+j] = 1;
+        tsr_sym_table[j*tsr_ndim+i] = 1;
+      }
+
+      jX = idx_arr[idx_weigh[j]*3+1];
+
+      for (k=MIN(iB,jX); k<MAX(iB,jX); k++){
+        if (tsr_B->sym[k] == NS)
+          break;
+      }
+      if (k==MAX(iB,jX)){ 
+        tsr_sym_table[i*tsr_ndim+j] = 1;
+        tsr_sym_table[j*tsr_ndim+i] = 1;
+      }
+
+      jX = idx_arr[idx_weigh[j]*3+2];
+
+      for (k=MIN(iC,jX); k<MAX(iC,jX); k++){
+        if (tsr_C->sym[k] == NS)
+          break;
+      }
+      if (k==MAX(iC,jX)){ 
+        tsr_sym_table[i*tsr_ndim+j] = 1;
+        tsr_sym_table[j*tsr_ndim+i] = 1;
+      }
+    }
+  }
+  stat = map_tensor(topo->ndim,         tsr_ndim, 
+                    tsr_edge_len,       tsr_sym_table,
+                    restricted,         topo->dim_comm,
+                    NULL,               0,
+                    weigh_map);
+
+  if (stat == DIST_TENSOR_ERROR)
+    return DIST_TENSOR_ERROR;
+  
+  /* define mapping of tensors A and B according to the mapping of ctr dims */
+  if (stat == DIST_TENSOR_SUCCESS){
+    for (i=0; i<num_weigh; i++){
+      iweigh = idx_weigh[i];
+      iA = idx_arr[iweigh*3+0];
+      iB = idx_arr[iweigh*3+1];
+      iC = idx_arr[iweigh*3+2];
+
+      copy_mapping(1, &weigh_map[i], &tsr_A->edge_map[iA]);
+      copy_mapping(1, &weigh_map[i], &tsr_B->edge_map[iB]);
+      copy_mapping(1, &weigh_map[i], &tsr_C->edge_map[iC]);
+    }
+  }
+  CTF_free(restricted);
+  CTF_free(tsr_edge_len);
+  CTF_free(tsr_sym_table);
+  for (i=0; i<num_weigh; i++){
+    clear_mapping(weigh_map+i);
+  }
+  CTF_free(weigh_map);
+
+  TAU_FSTOP(map_weigh_indices);
+  return stat;
+}
+
 
 /**
  * \brief map the indices over which we will be contracting
@@ -1491,9 +1625,11 @@ int dist_tensor<dtype>::
                     int const           tid_A,
                     int const           tid_B,
                     topology const *    topo){
-  int tsr_ndim, ictr, iA, iB, i, j, jctr, jX, stat, is_premapped;
-  int * tsr_edge_len, * tsr_sym_table, * restricted;
+  int tsr_ndim, ictr, iA, iB, i, j, jctr, jX, stat, is_premapped, num_sub_phys_dims;
+  int * tsr_edge_len, * tsr_sym_table, * restricted, * phys_mapped, * comm_idx;
+  CommData_t ** sub_phys_comm;
   mapping * ctr_map;
+  mapping * map;
 
   tensor<dtype> * tsr_A, * tsr_B;
   TAU_FSTART(map_ctr_indices);
@@ -1507,9 +1643,45 @@ int dist_tensor<dtype>::
   CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
   CTF_alloc_ptr(tsr_ndim*tsr_ndim*sizeof(int),       (void**)&tsr_sym_table);
   CTF_alloc_ptr(tsr_ndim*sizeof(mapping),            (void**)&ctr_map);
+  CTF_alloc_ptr(topo->ndim*sizeof(int),           (void**)&phys_mapped);
 
   memset(tsr_sym_table, 0, tsr_ndim*tsr_ndim*sizeof(int));
   memset(restricted, 0, tsr_ndim*sizeof(int));
+  memset(phys_mapped, 0, topo->ndim*sizeof(int));  
+
+  for (i=0; i<tsr_A->ndim; i++){
+    map = &tsr_A->edge_map[i];
+    while (map->type == PHYSICAL_MAP){
+      phys_mapped[map->cdt] = 1;
+      if (map->has_child) map = map->child;
+      else break;
+    } 
+  }
+  for (i=0; i<tsr_B->ndim; i++){
+    map = &tsr_B->edge_map[i];
+    while (map->type == PHYSICAL_MAP){
+      phys_mapped[map->cdt] = 1;
+      if (map->has_child) map = map->child;
+      else break;
+    } 
+  }
+
+  num_sub_phys_dims = 0;
+  for (i=0; i<topo->ndim; i++){
+    if (phys_mapped[i] == 0){
+      num_sub_phys_dims++;
+    }
+  }
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t*), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
+  num_sub_phys_dims = 0;
+  for (i=0; i<topo->ndim; i++){
+    if (phys_mapped[i] == 0){
+      sub_phys_comm[num_sub_phys_dims] = topo->dim_comm[i];
+      comm_idx[num_sub_phys_dims] = i;
+      num_sub_phys_dims++;
+    }
+  }
 
   for (i=0; i<tsr_ndim; i++){ 
     ctr_map[i].type             = NOT_MAPPED; 
@@ -1584,10 +1756,10 @@ int dist_tensor<dtype>::
   if (is_premapped){
     stat = map_symtsr(tsr_ndim, tsr_sym_table, ctr_map);
   } else {
-    stat = map_tensor(topo->ndim,         tsr_ndim, 
+    stat = map_tensor(num_sub_phys_dims,  tsr_ndim, 
                       tsr_edge_len,       tsr_sym_table,
-                      restricted,         topo->dim_comm,
-                      NULL,               0,
+                      restricted,         sub_phys_comm,
+                      comm_idx,           0,
                       ctr_map);
 
   }
@@ -1846,6 +2018,7 @@ int dist_tensor<dtype>::
  * \param idx_ctr buffer for contraction index storage
  * \param idx_extra buffer for extra index storage
  * \param idx_no_ctr buffer for non-contracted index storage
+ * \param idx_weigh buffer for weigh index storage
  */
 template<typename dtype>
 int dist_tensor<dtype>::
@@ -1860,8 +2033,9 @@ int dist_tensor<dtype>::
                     int *               idx_arr,
                     int *               idx_ctr,
                     int *               idx_extra,
-                    int *               idx_no_ctr){
-  int tA, tB, tC, num_tot, num_ctr, num_no_ctr, num_extra, i, ret;
+                    int *               idx_no_ctr,
+                    int *               idx_weigh){
+  int tA, tB, tC, num_tot, num_ctr, num_no_ctr, num_weigh, num_extra, i, ret;
   int const * map_A, * map_B, * map_C;
   tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
   switch (order){
@@ -1926,11 +2100,11 @@ int dist_tensor<dtype>::
           tsr_B->ndim, map_B, tsr_B->edge_map,
           tsr_C->ndim, map_C, tsr_C->edge_map,
           &num_tot, &idx_arr);
-  num_ctr = 0, num_no_ctr = 0, num_extra = 0;
+  num_ctr = 0, num_no_ctr = 0, num_extra = 0, num_weigh = 0;
   for (i=0; i<num_tot; i++){
     if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
-      idx_no_ctr[num_no_ctr] = i;
-      num_no_ctr++;
+      idx_weigh[num_weigh] = i;
+      num_weigh++;
     } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
       idx_ctr[num_ctr] = i;
       num_ctr++;
@@ -1946,6 +2120,10 @@ int dist_tensor<dtype>::
   tsr_A->itopo = itopo;
   tsr_B->itopo = itopo;
   tsr_C->itopo = itopo;
+  
+  /* Map the weigh indices of A, B, and C*/
+  ret = map_weigh_indices(idx_arr, idx_weigh, num_tot, num_weigh, 
+                          tA, tB, tC, &topovec[itopo]);
   
   /* Map the contraction indices of A and B */
   ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 

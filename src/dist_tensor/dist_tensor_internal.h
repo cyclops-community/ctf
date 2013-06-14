@@ -390,6 +390,14 @@ class dist_tensor{
                         topology const *        topo,
                         int const               idx_num);
 
+    int map_weigh_indices(int const *             idx_arr,
+                          int const *             idx_weigh,
+                          int const               num_tot,
+                          int const               num_weigh,
+                          int const               tid_A,
+                          int const               tid_B,
+                          int const               tid_C,
+                          topology const *        topo);
 
     int map_ctr_indices(int const *             idx_arr,
                         int const *             idx_ctr,
@@ -502,7 +510,8 @@ class dist_tensor{
                         int *           idx_arr,
                         int *           idx_ctr,
                         int *           idx_extra,
-                        int *           idx_no_ctr);
+                        int *           idx_no_ctr,
+                        int *           idx_weigh);
 
     int map_inner(CTF_ctr_type_t const * type,
                   iparam * inner_params);

@@ -268,9 +268,9 @@ int clear_mapping(tensor<dtype> * tsr){
  * \param[in,out] mapping_B mapping to copy to
  */
 inline
-int copy_mapping(int const    ndim,
-     mapping const *  mapping_A,
-     mapping *    mapping_B){
+int copy_mapping(int const        ndim,
+                 mapping const *  mapping_A,
+                 mapping *        mapping_B){
   int i;
   for (i=0; i<ndim; i++){
     clear_mapping(&mapping_B[i]);
