@@ -32,10 +32,41 @@ int CTF_max_threads;
 int CTF_instance_counter = 0;
 int64_t CTF_mem_used[MAX_THREADS];
 std::list<mem_loc> CTF_mem_stacks[MAX_THREADS];
+
+//application memory stack
+void * mst_buffer = NULL;
+int64_t mst_buffer_size = 0;
+int64_t mst_buffer_ptr = 0;
+std::list<mem_loc> mst;
+
+/**
+ * \brief initializes stack buffer
+ */
+void CTF_mst_create(int64_t size){
+  int pm;
+  if (mst_buffer != NULL){
+    printf("Only a single CTF stack may be created in one execution, aborting.\n");
+    ABORT;
+  } else {
+    pm = posix_memalign((void**)&mst_buffer, ALIGN_BYTES, size);
+    LIBT_ASSERT(pm == 0);
+    mst_buffer_size = size;
+    mst_buffer_ptr = 0;
+  }
+}
+
+/**
+ * \brief create instance of memory manager
+ */
 void CTF_mem_create(){
   CTF_instance_counter++;
   CTF_max_threads = omp_get_max_threads();
 }
+
+/**
+ * \brief exit instance of memory manager
+ * \param[in] rank processor index
+ */
 void CTF_mem_exit(int rank){
   CTF_instance_counter--;
   assert(CTF_instance_counter >= 0);
@@ -45,13 +76,68 @@ void CTF_mem_exit(int rank){
         if (rank == 0){
           printf("Warning: memory leak in CTF on thread %d, %lld memory in use at termination",
                   i, CTF_mem_used[i]);
-          printf("in %d unfreed items\n",
+          printf(" in %d unfreed items\n",
                   CTF_mem_stacks[i].size());
         }
+      }
+      if (mst.size() > 0){
+        printf("Warning: %d items not deallocated from custom stack, consuming %lld memory\n",
+                mst.size(), mst_buffer_ptr);
       }
     }
   }
 }
+
+/**
+ * \brief frees buffer allocated on stack
+ * \param[in] ptr pointer to buffer on stack
+ */
+int CTF_mst_free(void * ptr){
+  LIBT_ASSERT((int64_t)(ptr-mst_buffer)<mst_buffer_size);
+  
+  std::list<mem_loc>::iterator it;
+  for (it=--mst.end(); it!=mst.begin(); it--){
+    if (it->ptr == ptr){
+      mst.erase(it);
+      break;
+    }
+  }
+  mst_buffer_ptr = (int64_t)((char*)mst.back().ptr - (char*)mst_buffer);
+  return DIST_TENSOR_SUCCESS;
+}
+
+/**
+ * \brief CTF_mst_alloc abstraction
+ * \param[in] len number of bytes
+ * \param[in,out] ptr pointer to set to new allocation address
+ */
+int CTF_mst_alloc_ptr(int const len, void ** const ptr){
+  int pm, tid;
+  mem_loc m;
+  if (mst_buffer_ptr + len < mst_buffer_size){
+    *ptr = (void*)((char*)mst_buffer+mst_buffer_ptr);
+    m.ptr = *ptr;
+    m.len = len;
+    mst.push_back(m);
+    mst_buffer_ptr = mst_buffer_ptr+len;
+  } else {
+    CTF_alloc_ptr(len, ptr);
+  }
+  return DIST_TENSOR_SUCCESS;
+
+}
+
+/**
+ * \brief CTF_mst_alloc allocates buffer on the specialized memory stack
+ * \param[in] len number of bytes
+ */
+void * CTF_mst_alloc(int const len){
+  void * ptr;
+  int ret = CTF_alloc_ptr(len, &ptr);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  return ptr;
+}
+
 
 /**
  * \brief CTF_alloc abstraction
@@ -132,6 +218,10 @@ int CTF_untag_mem(void * ptr){
 int CTF_free(void * ptr, int const tid){
   int len;
   std::list<mem_loc> * mem_stack;
+
+  if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size){
+    return CTF_mst_free(ptr);
+  }
   
   mem_stack = &CTF_mem_stacks[tid];
 

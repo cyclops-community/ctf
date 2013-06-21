@@ -1786,6 +1786,9 @@ int dist_tensor<dtype>::
     clear_mapping(ctr_map+i);
   }
   CTF_free(ctr_map);
+  CTF_free(phys_mapped);
+  CTF_free(sub_phys_comm);
+  CTF_free(comm_idx);
 
   TAU_FSTOP(map_ctr_indices);
   return stat;

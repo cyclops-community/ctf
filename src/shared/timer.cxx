@@ -101,6 +101,12 @@ CTF_timer::CTF_timer(const char * name){
 #ifdef PROFILE
   int i;
   if (function_timers.size() == 0) {
+    if (name[0] == 'M' && name[1] == 'P' && 
+        name[2] == 'I' && name[3] == '_'){
+      exited = 1;
+      original = 0;
+      return;
+    }
     original = 1;
     index = 0;
     excl_time = 0.0;
@@ -126,21 +132,25 @@ CTF_timer::CTF_timer(const char * name){
   
 void CTF_timer::start(){
 #ifdef PROFILE
-  function_timers[index].start_time = MPI_Wtime();
-  function_timers[index].start_excl_time = excl_time;
+  if (!exited){
+    function_timers[index].start_time = MPI_Wtime();
+    function_timers[index].start_excl_time = excl_time;
+  }
 #endif
 }
 
 void CTF_timer::stop(){
 #ifdef PROFILE
-  double delta_time = MPI_Wtime() - function_timers[index].start_time;
-  function_timers[index].acc_time += delta_time;
-  function_timers[index].acc_excl_time += delta_time - 
-        (excl_time- function_timers[index].start_excl_time); 
-  excl_time = function_timers[index].start_excl_time + delta_time;
-  function_timers[index].calls++;
-  exit();
-  exited = 1;
+  if (!exited){
+    double delta_time = MPI_Wtime() - function_timers[index].start_time;
+    function_timers[index].acc_time += delta_time;
+    function_timers[index].acc_excl_time += delta_time - 
+          (excl_time- function_timers[index].start_excl_time); 
+    excl_time = function_timers[index].start_excl_time + delta_time;
+    function_timers[index].calls++;
+    exit();
+    exited = 1;
+  }
 #endif
 }
 
@@ -231,6 +241,7 @@ void CTF_timer::exit(){
           }
         }
       }
+      MPI_Bcast(&len_symbols, 1, MPI_INT, 0, comm);
       MPI_Bcast(all_symbols, len_symbols, MPI_CHAR, 0, comm);
       j=0;
       while (j<len_symbols){

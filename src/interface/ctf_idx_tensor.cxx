@@ -105,11 +105,13 @@ tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype>& tsr){
   tsr.run(this, 0.0);
+  delete this;
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Idx_Tensor<dtype>& tsr){
   tsr.run(this, 1.0);
+  delete this;
 }
 
 template<typename dtype>
@@ -120,6 +122,7 @@ void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Idx_Tensor<dtype>& tsr){
     tsr.scale = -1.0;
   }
   tsr.run(this, 1.0);
+  delete this;
 }
 
 template<typename dtype>
@@ -179,8 +182,9 @@ tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator*(double const scl){
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>::operator dtype(){
   tCTF_Scalar<dtype> sc(*parent->world);
-  
-  run(&sc[""], 0.0);
+  tCTF_Idx_Tensor<dtype> * isc = &(sc[""]); 
+  run(isc, 0.0);
+  delete isc;
   return sc.get_val();
 }
 
@@ -209,19 +213,19 @@ void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, double beta){
       output->parent->contract(alpha, *(this->parent), this->idx_map,
                                       *(NBR->parent),  NBR->idx_map,
                                beta,                   output->idx_map);
-      delete output;
     }
     delete NBR;
   } else {
     if (has_sum){
-      tCTF_Idx_Tensor * itsr = new tCTF_Idx_Tensor<dtype>(new tCTF_Tensor<dtype>(*(this->parent), 1), idx_map);
+      tCTF_Tensor<dtype> * tcpy = new tCTF_Tensor<dtype>(*(this->parent),1);
+      tCTF_Idx_Tensor * itsr = new tCTF_Idx_Tensor<dtype>(tcpy, idx_map);
       NBR->run(itsr, alpha);
       output->parent->sum(1.0, *(itsr->parent), idx_map, beta, output->idx_map);
       delete itsr;
+      delete tcpy;
     } else {
       output->parent->sum(alpha, *(this->parent), idx_map, beta, output->idx_map);
     }
-    //delete output;
   }  
   delete this;
 }
