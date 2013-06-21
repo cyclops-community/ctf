@@ -394,6 +394,7 @@ void read_loc_pairs(int const           ndim,
               dpairs, new_pairs, &new_num_pair);
 
     CTF_free(dpairs);
+    if (new_pairs <= 0) CTF_free(new_pairs);
     *pairs = new_pairs;
     *nread = new_num_pair;
 

@@ -2,6 +2,7 @@
 
 #include "malloc.h"
 #include <stdint.h>
+#include <iostream>
 #include <unistd.h>
 #include <stdlib.h>
 #include <list>
@@ -34,7 +35,7 @@ int64_t CTF_mem_used[MAX_THREADS];
 std::list<mem_loc> CTF_mem_stacks[MAX_THREADS];
 
 //application memory stack
-void * mst_buffer = NULL;
+void * mst_buffer = 0;
 int64_t mst_buffer_size = 0;
 int64_t mst_buffer_ptr = 0;
 std::list<mem_loc> mst;
@@ -93,7 +94,7 @@ void CTF_mem_exit(int rank){
  * \param[in] ptr pointer to buffer on stack
  */
 int CTF_mst_free(void * ptr){
-  LIBT_ASSERT((int64_t)(ptr-mst_buffer)<mst_buffer_size);
+  LIBT_ASSERT((int64_t)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
   
   std::list<mem_loc>::iterator it;
   for (it=--mst.end(); it!=mst.begin(); it--){
@@ -219,7 +220,8 @@ int CTF_free(void * ptr, int const tid){
   int len;
   std::list<mem_loc> * mem_stack;
 
-  if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size){
+  if ((char*)ptr-(char*)mst_buffer < mst_buffer_size && 
+      (char*)ptr-(char*)mst_buffer >= 0){
     return CTF_mst_free(ptr);
   }
   
