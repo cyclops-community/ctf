@@ -98,7 +98,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   TAU_FSTART(CTF);
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
-  CTF_mst_create(10000000);
+  CTF_mst_create(1000000000);
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);

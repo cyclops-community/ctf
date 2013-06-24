@@ -1,5 +1,6 @@
 all: $(DEFAULT_COMPONENTS)
 
+
 EXECUTABLES = pgemm_test nonsq_pgemm_test nonsq_pgemm_bench \
               examples dft dft_3D gemm gemm_4D trace sym3 \
               ccsdt_t3_to_t2 weight_4D test_suite fast_sym \
@@ -13,6 +14,7 @@ ALL_COMPONENTS = $(EXECUTABLES) $(LIBRARIES)
 
 $(EXECUTABLES): $(LIBRARIES)
 
+
 bindir = ${top_dir}/bin
 libdir = ${top_dir}/lib
 
@@ -21,14 +23,13 @@ DEPS += ${top_dir}/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(
 
 _INCLUDES = $(INCLUDES) -I${top_dir}/include
 _CXXFLAGS = $(CXXFLAGS)
-_DEFS = $(DEFS)
+_DEFS = $(DEFS) 
 _LDFLAGS = $(LDFLAGS) -L${top_dir}/lib
 _DEPENDENCIES = $(DEPENDENCIES) Makefile ${top_dir}/config.mk ${top_dir}/src/make/rules.mk
 _LIBS = $(LIBS)
-pgemm_test nonsq_pgemm_test nonsq_pgemm_bench: 
-_LIBS = $(SCALA) $(LIBS)
-pgemm_test nonsq_pgemm_test nonsq_pgemm_bench: 
-_DEFS += -DUSE_SCALAPACK
+
+
+
 
 CXXCOMPILE = $(CXX) $(_DEFS) $(_INCLUDES) $(_CPPFLAGS) $(_CXXFLAGS)
 CXXCOMPILEDEPS = $(CXXCOMPILE) $(DEPFLAGS)
@@ -55,6 +56,7 @@ $(foreach d, $(patsubst -L%,%,$(filter -L%,$(1))),\
 FORCE:
 
 $(ALL_COMPONENTS):
+	echo $(CXXCOMPILEDEPS); 
 	@for dir in $(SUBDIRS) $($@_SUBDIRS); do \
 		echo "Making $@ in $$dir"; \
 		(cd $$dir && $(MAKE) $@); \
