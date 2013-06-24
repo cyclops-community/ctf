@@ -25,9 +25,12 @@ _DEFS = $(DEFS)
 _LDFLAGS = $(LDFLAGS) -L${top_dir}/lib
 _DEPENDENCIES = $(DEPENDENCIES) Makefile ${top_dir}/config.mk ${top_dir}/src/make/rules.mk
 _LIBS = $(LIBS)
-pgemm_test nonsq_pgemm_test nonsq_pgemm_bench : _LIBS = $(SCALA) $(LIBS)
+pgemm_test nonsq_pgemm_test nonsq_pgemm_bench: 
+_LIBS = $(SCALA) $(LIBS)
+pgemm_test nonsq_pgemm_test nonsq_pgemm_bench: 
+_DEFS += -DUSE_SCALAPACK
 
-CXXCOMPILE = $(CXX) $(DEFS) $(_INCLUDES) $(_CPPFLAGS) $(_CXXFLAGS)
+CXXCOMPILE = $(CXX) $(_DEFS) $(_INCLUDES) $(_CPPFLAGS) $(_CXXFLAGS)
 CXXCOMPILEDEPS = $(CXXCOMPILE) $(DEPFLAGS)
 LINK = $(CXX) $(_CXXFLAGS) $(_LDFLAGS) -o $@
 ARCHIVE = $(AR) $@

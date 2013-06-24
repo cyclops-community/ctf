@@ -17,7 +17,7 @@ typedef std::complex<double> VAL_TYPE;
 #else
 typedef double VAL_TYPE;
 #endif
-#define TESTPAD
+//#define TESTPAD
 
 #define NUM_ITER 5
 
@@ -352,7 +352,7 @@ int main(int argc, char **argv) {
 #else
   CTF * myctf = new CTF;
   myctf->init(MPI_COMM_WORLD,  myRank,numPes);
-  cpdgemm('N','N', m, n, k, ALPHA, 
+  cpdgemm('T','N', m, n, k, ALPHA, 
           mat_A, 1, 1, desc_a,
           mat_B, 1, 1, desc_b, BETA,
           mat_C, 1, 1, desc_c); 
@@ -360,7 +360,7 @@ int main(int argc, char **argv) {
   if (myRank == 0)
     printf("Performed ScaLAPACK pdgemm, starting CTF pdgemm\n");
 
-  myctf->pgemm('N','N', m, n, k, ALPHA, 
+  myctf->pgemm('T','N', m, n, k, ALPHA, 
               mat_A, 1, 1, desc_a,
               mat_B, 1, 1, desc_b, BETA,
               mat_C_CTF, 1, 1, desc_c); 
@@ -381,7 +381,7 @@ int main(int argc, char **argv) {
   startTime = MPI_Wtime();
   for (iter=0; iter < num_iter; iter++){
     //seq_square_matmul(mat_A, mat_B, mat_C, blockDim, 0);
-    cpdgemm('N','N', m, n, k, ALPHA, 
+    cpdgemm('T','N', m, n, k, ALPHA, 
             mat_A, 1, 1, desc_a,
             mat_B, 1, 1, desc_b, BETA,
             mat_C, 1, 1, desc_c); 

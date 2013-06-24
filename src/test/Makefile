@@ -1,4 +1,5 @@
 include ../../config.mk
+DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))
 include ../make/make.in
 include ../make/rules.mk
 

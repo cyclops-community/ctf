@@ -69,7 +69,8 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   int * dim_len;
   get_topo(np, mach, &ndim, &dim_len);
   ret = tCTF<dtype>::init(global_context, rank, np, ndim, dim_len, argc, argv);
-  CTF_free(dim_len);
+  if (np > 1)
+    CTF_free(dim_len);
   return ret;
 }
 
@@ -749,6 +750,9 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #if (!REDIST)
   ret = dt->try_topo_morph(otid_A, otid_B, otid_C);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+/*  dt->print_map(stdout, otid_A);
+  dt->print_map(stdout, otid_B);
+  dt->print_map(stdout, otid_C);*/
   redist = dt->check_contraction_mapping(&ct);
   if (redist == 0) {
     printf("REDISTRIBUTING\n");

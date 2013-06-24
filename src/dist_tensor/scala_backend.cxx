@@ -194,10 +194,12 @@ int dist_tensor<dtype>::load_matrix
   }
   nprow = MAX(1,nprow/nrep);
   myprow = myprow % nprow;
+  //printf("brow = %d, nprow = %d dnrow = %d\n", brow, nprow, dnrow);
   if (brow != dnrow / nprow)
     nrow = brow * nprow;
   else
     nrow = dnrow;
+  //printf("bcol = %d, npcol = %d dncol = %d\n", bcol, npcol, dncol);
   if (bcol != dncol / npcol)
     ncol = bcol * npcol;
   else
@@ -229,6 +231,7 @@ int dist_tensor<dtype>::load_matrix
 
   tsr->is_data_aliased  = 0;
   tsr->need_remap       = 0;
+  tsr->has_zero_edge_len  = 0;
   tsr->size = (((long_int)nrow*(long_int)ncol)*nrep)/global_comm->np;
   LIBT_ASSERT(tsr->size == brow*bcol);
   if (need_free == NULL){
@@ -464,6 +467,7 @@ int dist_tensor<dtype>
   if (ret != DIST_TENSOR_SUCCESS) return ret;
   ret = load_matrix(C, DESCC, &tid_C, need_free + 2);
   if (ret != DIST_TENSOR_SUCCESS) return ret;
+
 
   ct.tid_A = tid_A;
   ct.tid_B = tid_B;

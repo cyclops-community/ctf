@@ -140,6 +140,8 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
     mst.push_back(m);
     mst_buffer_ptr = mst_buffer_ptr+plen;
   } else {
+    printf("Exceeded mst buffer size, current is %lld, composed of %d items\n",
+            mst_buffer_ptr, mst.size());
     CTF_alloc_ptr(len, ptr);
   }
   return DIST_TENSOR_SUCCESS;

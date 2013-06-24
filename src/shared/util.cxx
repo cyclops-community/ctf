@@ -310,7 +310,7 @@ void factorize(int n, int *nfactor, int **factor){
     }
   }
   if (nf == 0){
-    *nfactor    = 0;
+    *nfactor = nf;
   } else {
     ff  = (int*)CTF_alloc(sizeof(int)*nf);
     tmp = n;
