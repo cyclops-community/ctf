@@ -197,7 +197,7 @@ void ctr_2d_general<dtype>::run() {
     alloced = 0;
   } else {
     alloced = 1;
-    ret = CTF_alloc_ptr(mem_fp(), (void**)&this->buffer);
+    ret = CTF_mst_alloc_ptr(mem_fp(), (void**)&this->buffer);
     LIBT_ASSERT(ret==0);
   }
 

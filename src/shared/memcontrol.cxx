@@ -45,14 +45,15 @@ std::list<mem_loc> mst;
  */
 void CTF_mst_create(int64_t size){
   int pm;
-  if (mst_buffer != NULL){
-    printf("Only a single CTF stack may be created in one execution, aborting.\n");
-    ABORT;
-  } else {
-    pm = posix_memalign((void**)&mst_buffer, ALIGN_BYTES, size);
+  void * new_mst_buffer;
+  if (size > mst_buffer_size){
+    pm = posix_memalign((void**)&new_mst_buffer, ALIGN_BYTES, size);
     LIBT_ASSERT(pm == 0);
+    if (mst_buffer != NULL){
+      memcpy(new_mst_buffer, mst_buffer, mst_buffer_ptr);
+    } 
+    mst_buffer = new_mst_buffer;
     mst_buffer_size = size;
-    mst_buffer_ptr = 0;
   }
 }
 
@@ -103,7 +104,17 @@ int CTF_mst_free(void * ptr){
       break;
     }
   }
-  mst_buffer_ptr = (int64_t)((char*)mst.back().ptr - (char*)mst_buffer);
+  if (it == mst.begin()){
+    if (it->ptr == ptr){
+      mst.erase(it);
+    } else
+      return DIST_TENSOR_ERROR;
+  }
+  if (mst.size() > 0)
+    mst_buffer_ptr = (int64_t)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
+  else
+    mst_buffer_ptr = 0;
+  //printf("freed block, mst_buffer_ptr = %lld\n", mst_buffer_ptr);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -113,14 +124,21 @@ int CTF_mst_free(void * ptr){
  * \param[in,out] ptr pointer to set to new allocation address
  */
 int CTF_mst_alloc_ptr(int const len, void ** const ptr){
-  int pm, tid;
+  int pm, tid, plen, off;
+  off = len % MST_ALIGN_BYTES;
+  if (off > 0)
+    plen = len + MST_ALIGN_BYTES - off;
+  else
+    plen = len;
+  
   mem_loc m;
-  if (mst_buffer_ptr + len < mst_buffer_size){
+  //printf("ptr = %lld plen = %d, size = %lld\n", mst_buffer_ptr, plen, mst_buffer_size);
+  if (mst_buffer_ptr + plen < mst_buffer_size){
     *ptr = (void*)((char*)mst_buffer+mst_buffer_ptr);
     m.ptr = *ptr;
-    m.len = len;
+    m.len = plen;
     mst.push_back(m);
-    mst_buffer_ptr = mst_buffer_ptr+len;
+    mst_buffer_ptr = mst_buffer_ptr+plen;
   } else {
     CTF_alloc_ptr(len, ptr);
   }
@@ -134,7 +152,7 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
  */
 void * CTF_mst_alloc(int const len){
   void * ptr;
-  int ret = CTF_alloc_ptr(len, &ptr);
+  int ret = CTF_mst_alloc_ptr(len, &ptr);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   return ptr;
 }

@@ -377,9 +377,9 @@ void calc_cnt_displs(int const          ndim,
 
 #ifdef USE_OMP
 //  int max_ntd = MIN(omp_get_max_threads(),REDIST_MAX_THREADS);
-  CTF_alloc_ptr(nbuf*sizeof(int)*omp_get_max_threads(), (void**)&all_virt_counts);
+  CTF_mst_alloc_ptr(nbuf*sizeof(int)*omp_get_max_threads(), (void**)&all_virt_counts);
 #else
-  CTF_alloc_ptr(nbuf*sizeof(int), (void**)&all_virt_counts);
+  CTF_mst_alloc_ptr(nbuf*sizeof(int), (void**)&all_virt_counts);
 #endif
 
 
@@ -726,7 +726,7 @@ void pup_virt_buff(int const            ndim,
   long_int * idx_offs;
   int * acc_idx, * spad;
 
-  CTF_alloc_ptr(nbuf*sizeof(int), (void**)&virt_counts);
+  CTF_mst_alloc_ptr(nbuf*sizeof(int), (void**)&virt_counts);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&acc_idx);
   CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&idx_offs);
@@ -993,7 +993,7 @@ void opt_pup_virt_buff(int const        ndim,
 #endif
   CTF_alloc_ptr(sizeof(int*)*max_ntd, (void**)&par_virt_counts);
   for (i=0; i<max_ntd; i++)
-    CTF_alloc_ptr(nbuf*sizeof(int), (void**)&par_virt_counts[i]);
+    CTF_mst_alloc_ptr(nbuf*sizeof(int), (void**)&par_virt_counts[i]);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&sub_old_edge_len);
   for (i=0; i<ndim; i++){
     sub_old_edge_len[i] = old_edge_len[i]/old_phase[i];
@@ -1009,10 +1009,10 @@ void opt_pup_virt_buff(int const        ndim,
     old_size = sy_packed_size(ndim, sub_old_edge_len, sym)*new_nvirt;
     new_size = sy_packed_size(ndim, sub_new_edge_len, sym)*old_nvirt;
   }
-  CTF_alloc_ptr(sizeof(int)*MAX(old_size,new_size), 
-                   (void**)&pe_idx_store);
-  CTF_alloc_ptr(sizeof(int)*MAX(old_size,new_size), 
-                   (void**)&target_store);
+  CTF_mst_alloc_ptr(sizeof(int)*MAX(old_size,new_size), 
+                    (void**)&pe_idx_store);
+  CTF_mst_alloc_ptr(sizeof(int)*MAX(old_size,new_size), 
+                    (void**)&target_store);
   std::fill(target_store, target_store+MAX(old_size,new_size), -1);
   for (i=0; i<max_ntd; i++)
     memset(par_virt_counts[i], 0, nbuf*sizeof(int));
