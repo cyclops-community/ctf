@@ -56,7 +56,6 @@ $(foreach d, $(patsubst -L%,%,$(filter -L%,$(1))),\
 FORCE:
 
 $(ALL_COMPONENTS):
-	echo $(CXXCOMPILEDEPS); 
 	@for dir in $(SUBDIRS) $($@_SUBDIRS); do \
 		echo "Making $@ in $$dir"; \
 		(cd $$dir && $(MAKE) $@); \
