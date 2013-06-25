@@ -54,6 +54,8 @@ struct tensor {
   int * edge_len;
   int is_padded;
   int * padding;
+  int is_scp_padded;
+  int * scp_padding; /* to be used by scalapack wrapper */
   int * sym;
   int * sym_table; /* can be compressed into bitmap */
   int is_mapped;

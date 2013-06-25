@@ -2316,6 +2316,8 @@ int dist_tensor<dtype>::
 /*  print_map(stdout, type->tid_A);
   print_map(stdout, type->tid_B);
   print_map(stdout, type->tid_C);*/
+//  stat = zero_out_padding(type->tid_A);
+//  stat = zero_out_padding(type->tid_B);
   TAU_FSTART(ctr_func);
   /* Invoke the contraction algorithm */
   ctrf->run();
@@ -2323,8 +2325,7 @@ int dist_tensor<dtype>::
 #ifndef SEQ
 /*  if (tensors[type->tid_C]->ndim > 0)
     tensors[type->tid_C]->need_remap = 1;*/
-//  stat = zero_out_padding(type->tid_A);
-//  stat = zero_out_padding(type->tid_B);
+  if (tensors[type->tid_C]->is_cyclic)
     stat = zero_out_padding(type->tid_C);
 #endif
   if (get_global_comm()->rank == 0){

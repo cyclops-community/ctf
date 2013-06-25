@@ -1737,7 +1737,7 @@ int cyclic_reshuffle(int const          ndim,
   hvbs_old = sy_packed_size(ndim-1, old_sub_edge_len+1, hsym);
   hvbs_new = sy_packed_size(ndim-1, new_sub_edge_len+1, hsym);
   swp_nval = new_nvirt*sy_packed_size(ndim, new_sub_edge_len, sym);
-  CTF_alloc_ptr(MAX(nval,swp_nval)*sizeof(dtype), (void**)&tsr_cyclic_data);
+  CTF_mst_alloc_ptr(MAX(nval,swp_nval)*sizeof(dtype), (void**)&tsr_cyclic_data);
 
   if (ord_glb_comm != NULL){
     DPRINTF(4,"[%d] send = %d, had= %lld recv = %d, should get = %lld\n", 
@@ -1762,7 +1762,7 @@ int cyclic_reshuffle(int const          ndim,
 
   if (swp_nval > nval){
     CTF_free(tsr_data);
-    CTF_alloc_ptr(swp_nval*sizeof(dtype), (void**)&tsr_data);
+    CTF_mst_alloc_ptr(swp_nval*sizeof(dtype), (void**)&tsr_data);
   }
 
   /* Communicate data */
@@ -1876,7 +1876,7 @@ void block_reshuffle(int const        ndim,
 
   TAU_FSTART(block_reshuffle);
 
-  CTF_alloc_ptr(sizeof(dtype)*new_size, (void**)&tsr_cyclic_data);
+  CTF_mst_alloc_ptr(sizeof(dtype)*new_size, (void**)&tsr_cyclic_data);
   CTF_alloc_ptr(sizeof(int)*ndim, (void**)&idx);
   CTF_alloc_ptr(sizeof(int)*ndim, (void**)&old_loc_lda);
   CTF_alloc_ptr(sizeof(int)*ndim, (void**)&new_loc_lda);

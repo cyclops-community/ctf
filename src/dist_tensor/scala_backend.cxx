@@ -169,9 +169,8 @@ int dist_tensor<dtype>::load_matrix
   if (bcol * mypcol >= dncol) mbcol = 0;
   else mbcol = bcol;
 
-  //printf("brow = %d bcol = %d mbrow = %d mbcol = %d nprow = %d npcol = %d\n",
-        //  brow, bcol, mbrow, mbcol, nprow, npcol);
- 
+//  printf("brow = %d bcol = %d mbrow = %d mbcol = %d nprow = %d npcol = %d\n",
+//          brow, bcol, mbrow, mbcol, nprow, npcol);
 
   has_el = mbrow*mbcol > 0 ? 1 : 0;
 
@@ -214,17 +213,21 @@ int dist_tensor<dtype>::load_matrix
   tsr->is_folded = 0;
   tsr->is_inner_mapped = 0;
   tsr->is_padded = 1;
+  tsr->is_scp_padded = 1;
   tsr->padding = (int*)CTF_alloc(sizeof(int)*2);
   tsr->padding[0] = 0;
   tsr->padding[1] = 0;
+  tsr->scp_padding = (int*)CTF_alloc(sizeof(int)*2);
+  tsr->scp_padding[0] = 0;
+  tsr->scp_padding[1] = 0;
 
 
-  if (need_free != NULL && mbrow*mbcol != 0){
+  if (1){//mbrow*mbcol != 0){//need_free != NULL && ){
     if (nrow != dnrow && myprow == nprow-1){
-      tsr->padding[0] = nrow - dnrow;
+      tsr->scp_padding[0] = nrow - dnrow;
     }
     if (ncol != dncol && mypcol == npcol-1){
-      tsr->padding[1] = ncol - dncol;
+      tsr->scp_padding[1] = ncol - dncol;
     }
   }
 
@@ -250,19 +253,22 @@ int dist_tensor<dtype>::load_matrix
     }
   }
   if (need_free != NULL && mbrow*mbcol != 0 && 
-      (tsr->padding[0] != 0 || tsr->padding[1] != 0)){
+      (tsr->scp_padding[0] != 0 || tsr->scp_padding[1] != 0)){
     CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
     std::fill(tsr->data, tsr->data+tsr->size, get_zero<dtype>());
-    for (i=0; i<bcol-tsr->padding[1]; i++){
-      for (j=0; j<brow-tsr->padding[0]; j++){
-        tsr->data[i*brow+j] = DATA[i*(brow-tsr->padding[0])+j];
+    for (i=0; i<bcol-tsr->scp_padding[1]; i++){
+      for (j=0; j<brow-tsr->scp_padding[0]; j++){
+        tsr->data[i*brow+j] = DATA[i*(brow-tsr->scp_padding[0])+j];
       }
     }
   }
   tsr->ndim = 2;
   tsr->edge_len = (int*)CTF_alloc(sizeof(int)*2);
   tsr->sym = (int*)CTF_alloc(sizeof(int)*2);
-  tsr->sym_table = (int*)calloc(4*sizeof(int),1);
+  tsr->sym_table = (int*)CTF_alloc(4*sizeof(int));
+  for (i=0; i<4; i++){
+    tsr->sym_table[i] = 0;
+  }
   tsr->edge_map  = (mapping*)CTF_alloc(sizeof(mapping)*2);
 
   tsr->edge_len[0] = nrow;

@@ -818,30 +818,37 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #if (!REDIST)
   }
 #endif
-  if ((*tensors)[otid_A]->padding[0] != 0 ||
-      (*tensors)[otid_A]->padding[1] != 0){
+  if ((*tensors)[otid_A]->scp_padding[0] != 0 ||
+      (*tensors)[otid_A]->scp_padding[1] != 0){
     CTF_free((*tensors)[otid_A]->data);
   }
-  if ((*tensors)[otid_B]->padding[0] != 0 ||
-      (*tensors)[otid_B]->padding[1] != 0){
+  if ((*tensors)[otid_B]->scp_padding[0] != 0 ||
+      (*tensors)[otid_B]->scp_padding[1] != 0){
     CTF_free((*tensors)[otid_B]->data);
   }
-  if ((*tensors)[otid_C]->padding[0] != 0 ||
-      (*tensors)[otid_C]->padding[1] != 0){
+  if ((*tensors)[otid_C]->scp_padding[0] != 0 ||
+      (*tensors)[otid_C]->scp_padding[1] != 0){
     int brow, bcol;
     brow = DESCC[4];
     bcol = DESCC[5];
-    for (i=0; i<bcol-(*tensors)[otid_C]->padding[1]; i++){
-      for (j=0; j<brow-(*tensors)[otid_C]->padding[0]; j++){
-        C[i*(brow-(*tensors)[otid_C]->padding[0])+j] 
+    for (i=0; i<bcol-(*tensors)[otid_C]->scp_padding[1]; i++){
+      for (j=0; j<brow-(*tensors)[otid_C]->scp_padding[0]; j++){
+        C[i*(brow-(*tensors)[otid_C]->scp_padding[0])+j] 
           = (*tensors)[otid_C]->data[i*brow+j];
       }
     }
     CTF_free((*tensors)[otid_C]->data);
   }
-  (*tensors)[otid_A]->is_alloced = 0;
-  (*tensors)[otid_B]->is_alloced = 0;
-  (*tensors)[otid_C]->is_alloced = 0;
+  (*tensors)[otid_A]->is_data_aliased = 1;
+  (*tensors)[otid_B]->is_data_aliased = 1;
+  (*tensors)[otid_C]->is_data_aliased = 1;
+  dt->del_tsr(otid_A);
+  dt->del_tsr(otid_B);
+  dt->del_tsr(otid_C);
+  CTF_free(ct.idx_map_A);
+  CTF_free(ct.idx_map_B);
+  CTF_free(ct.idx_map_C);
+  CTF_free(need_free);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -963,6 +970,9 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   ret = this->contract(&ct, fs, ALPHA, BETA);
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   (*tensors)[ct.tid_C]->need_remap = 0;
+  CTF_free(ct.idx_map_A);
+  CTF_free(ct.idx_map_B);
+  CTF_free(ct.idx_map_C);
   return ret;
 };
   

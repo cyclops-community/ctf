@@ -215,6 +215,7 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   memset(tsr->padding, 0, ndim*sizeof(int));
 
   tsr->is_padded          = 1;
+  tsr->is_scp_padded      = 0;
   tsr->is_mapped          = 0;
   tsr->itopo              = -1;
   tsr->is_alloced         = 1;
@@ -1094,6 +1095,8 @@ int dist_tensor<dtype>::del_tsr(int const tid){
     CTF_free(tsr->edge_len);
     if (tsr->is_padded)
       CTF_free(tsr->padding);
+    if (tsr->is_scp_padded)
+      CTF_free(tsr->scp_padding);
     CTF_free(tsr->sym);
     CTF_free(tsr->sym_table);
     if (tsr->is_mapped){
@@ -1397,7 +1400,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
       }
 #endif
       DPRINTF(3,"size set to %lld\n",tsr->size);
-      CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
+      CTF_mst_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
       std::fill(tsr->data, tsr->data + tsr->size, get_zero<dtype>());
 /*      CTF_free(phys_phase);
       CTF_free(sub_edge_len);*/

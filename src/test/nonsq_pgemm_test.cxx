@@ -17,7 +17,7 @@ typedef std::complex<double> VAL_TYPE;
 #else
 typedef double VAL_TYPE;
 #endif
-//#define TESTPAD
+#define TESTPAD
 
 #define NUM_ITER 5
 
@@ -232,8 +232,13 @@ int main(int argc, char **argv) {
   for (i=0; i<fnblk; i++){
     for (j=0; j<fkblk; j++){
 #ifdef ZGEMM_TEST
-      mat_B[i*(fkblk)+j].real() = drand48();
-      mat_B[i*(fkblk)+j].imag() = drand48();
+      if (i>=n){
+        mat_B[i*(fkblk)+j].real() = 0.0;
+        mat_B[i*(fkblk)+j].imag() = 0.0;
+      } else {
+        mat_B[i*(fkblk)+j].real() = drand48();
+        mat_B[i*(fkblk)+j].imag() = drand48();
+      }
 #else
       mat_B[i*(fkblk)+j] = drand48();
 #endif
@@ -243,8 +248,13 @@ int main(int argc, char **argv) {
   for (i=0; i<nblk; i++){
     for (j=0; j<mblk; j++){
 #ifdef ZGEMM_TEST
-      mat_C[i*(mblk)+j].real() = drand48();
-      mat_C[i*(mblk)+j].imag() = drand48();
+      if (i>=n){
+        mat_C[i*(mblk)+j].real() = 0.0;
+        mat_C[i*(mblk)+j].imag() = 0.0;
+      } else {
+        mat_C[i*(mblk)+j].real() = drand48();
+        mat_C[i*(mblk)+j].imag() = drand48();
+      }
 #else
       mat_C[i*(mblk)+j] = drand48();
 #endif
