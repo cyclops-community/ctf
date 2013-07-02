@@ -44,6 +44,7 @@ std::list<mem_loc> mst;
  * \brief initializes stack buffer
  */
 void CTF_mst_create(int64_t size){
+#ifdef USE_MST
   int pm;
   void * new_mst_buffer;
   if (size > mst_buffer_size){
@@ -55,6 +56,7 @@ void CTF_mst_create(int64_t size){
     mst_buffer = new_mst_buffer;
     mst_buffer_size = size;
   }
+#endif
 }
 
 /**
@@ -95,6 +97,7 @@ void CTF_mem_exit(int rank){
  * \param[in] ptr pointer to buffer on stack
  */
 int CTF_mst_free(void * ptr){
+#ifdef USE_MST
   LIBT_ASSERT((int64_t)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
   
   std::list<mem_loc>::iterator it;
@@ -116,6 +119,7 @@ int CTF_mst_free(void * ptr){
     mst_buffer_ptr = 0;
   //printf("freed block, mst_buffer_ptr = %lld\n", mst_buffer_ptr);
   return DIST_TENSOR_SUCCESS;
+#endif
 }
 
 /**
@@ -124,6 +128,7 @@ int CTF_mst_free(void * ptr){
  * \param[in,out] ptr pointer to set to new allocation address
  */
 int CTF_mst_alloc_ptr(int const len, void ** const ptr){
+#ifdef USE_MST
   int pm, tid, plen, off;
   off = len % MST_ALIGN_BYTES;
   if (off > 0)
@@ -145,7 +150,9 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
     CTF_alloc_ptr(len, ptr);
   }
   return DIST_TENSOR_SUCCESS;
-
+#else
+  return CTF_alloc_ptr(len, ptr);
+#endif
 }
 
 /**
@@ -153,10 +160,14 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
  * \param[in] len number of bytes
  */
 void * CTF_mst_alloc(int const len){
+#ifdef USE_MST
   void * ptr;
   int ret = CTF_mst_alloc_ptr(len, &ptr);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   return ptr;
+#else
+  return CTF_alloc(len);
+#endif
 }
 
 
