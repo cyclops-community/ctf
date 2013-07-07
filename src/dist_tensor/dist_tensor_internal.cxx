@@ -227,6 +227,8 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   tsr->is_data_aliased    = 0;
   tsr->need_remap         = 0;
   tsr->has_zero_edge_len  = 0;
+  tsr->is_home            = 0;
+  tsr->has_home           = 0;
 
   tsr->pairs    = NULL;
   tsr->ndim     = ndim;
@@ -712,6 +714,32 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
         CTF_free(tsr_B->pairs);
       CTF_alloc_ptr(tsr_A->size*sizeof(dtype), (void**)&tsr_B->data);
     }
+#ifdef HOME_CONTRACT
+    if (tsr_A->has_home){
+      if (tsr_B->has_home && 
+          (!tsr_B->is_home && tsr_B->home_size != tsr_A->home_size)){ 
+        CTF_free(tsr_B->home_buffer);
+      }
+      if (tsr_A->is_home){
+        tsr_B->home_buffer = tsr_B->data;
+        tsr_B->is_home = 1;
+      } else {
+        if (tsr_B->is_home || tsr_B->home_size != tsr_A->home_size){ 
+          tsr_B->home_buffer = (dtype*)CTF_alloc(tsr_A->home_size);
+        }
+        tsr_B->is_home = 0;
+        memcpy(tsr_B->home_buffer, tsr_A->home_buffer, tsr_A->home_size);
+      }
+      tsr_B->has_home = 1;
+    } else {
+      if (tsr_B->has_home && !tsr_B->is_home){
+        CTF_free(tsr_B->home_buffer);
+      }
+      tsr_B->has_home = 0;
+      tsr_B->is_home = 0;
+    }
+    tsr_B->home_size = tsr_A->home_size;
+#endif
     memcpy(tsr_B->data, tsr_A->data, sizeof(dtype)*tsr_A->size);
   } else {
     if (tsr_B->is_mapped){
@@ -1100,8 +1128,11 @@ int dist_tensor<dtype>::del_tsr(int const tid){
     CTF_free(tsr->sym);
     CTF_free(tsr->sym_table);
     if (tsr->is_mapped){
-      if (!tsr->is_data_aliased)
+      if (!tsr->is_data_aliased){
         CTF_free(tsr->data);
+        if (tsr->has_home && !tsr->is_home) 
+          CTF_free(tsr->home_buffer);
+      }
       clear_mapping(tsr);
     }
     CTF_free(tsr->edge_map);
@@ -1399,8 +1430,22 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
 
       }
 #endif
-      DPRINTF(3,"size set to %lld\n",tsr->size);
+     
+#ifdef HOME_CONTRACT 
+      if (tsr->ndim > 0){
+        tsr->home_size = tsr->size; //MAX(1024+tsr->size, 1.20*tsr->size);
+        tsr->is_home = 1;
+        tsr->has_home = 1;
+        DPRINTF(3,"Initial size of tensor %d is %lld,",tensor_id,tsr->size);
+        DPRINTF(3,"home buffer size is is %lld\n",tsr->home_size);
+        CTF_alloc_ptr(tsr->home_size*sizeof(dtype), (void**)&tsr->home_buffer);
+        tsr->data = tsr->home_buffer;
+      } else {
+        CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
+      }
+#else
       CTF_mst_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
+#endif
       std::fill(tsr->data, tsr->data + tsr->size, get_zero<dtype>());
 /*      CTF_free(phys_phase);
       CTF_free(sub_edge_len);*/
@@ -1439,7 +1484,7 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid) {
 
     if (tsr->is_padded){
       for (i=0; i<tsr->ndim; i++){
-              adj_edge_len[i] = tsr->edge_len[i] - tsr->padding[i];
+         adj_edge_len[i] = tsr->edge_len[i] - tsr->padding[i];
       }
     } else {
       memcpy(adj_edge_len, tsr->edge_len, tsr->ndim*sizeof(int));
@@ -1468,7 +1513,7 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid) {
   if (global_comm->rank == 0){
     std::sort(all_data, all_data + tot_sz);
     for (i=0; i<tot_sz; i++){
-      if (std::abs(all_data[i].d) > 1e-14)
+      if (true /*std::abs(all_data[i].d) > 1e-14*/)
       {
           k = all_data[i].k;
           for (j=0; j<tsr->ndim; j++){
@@ -1725,7 +1770,7 @@ int dist_tensor<dtype>::print_ctr(CTF_ctr_type_t const * ctype,
   int i,j,max,ex_A, ex_B,ex_C;
   COMM_BARRIER(global_comm);
   if (global_comm->rank == 0){
-    printf("Contacting Tensor %d with %d into %d\n", ctype->tid_A, ctype->tid_B,
+    printf("Contracting Tensor %d with %d into %d\n", ctype->tid_A, ctype->tid_B,
                                                                                          ctype->tid_C);
     printf("alpha = %lf, beta = %lf\n", GET_REAL(alpha), GET_REAL(beta));
     dim_A = get_dim(ctype->tid_A);
@@ -1781,6 +1826,9 @@ int dist_tensor<dtype>::print_ctr(CTF_ctr_type_t const * ctype,
       printf("\n");
       if (ex_A + ex_B + ex_C == 0) break;
     }
+    CTF_free(sym_A);
+    CTF_free(sym_B);
+    CTF_free(sym_C);
   }
   return DIST_TENSOR_SUCCESS;
 }
@@ -1834,6 +1882,8 @@ int dist_tensor<dtype>::print_sum(CTF_sum_type_t const * stype,
       printf("\n");
       if (ex_A + ex_B == 0) break;
     }
+    CTF_free(sym_A);
+    CTF_free(sym_B);
   }
   COMM_BARRIER(global_comm);
   return DIST_TENSOR_SUCCESS;

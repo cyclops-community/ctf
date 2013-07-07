@@ -98,7 +98,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   TAU_FSTART(CTF);
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
-  CTF_mst_create(1000000000);
+  CTF_mst_create(1000*(int64_t)1E6);
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);
@@ -330,6 +330,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
                           dtype const               alpha,
                           dtype const               beta,
                           int const                 map_inner){
+  int i;
 #if DEBUG >= 1
   if (dt->get_global_comm()->rank == 0)
     printf("Head contraction :\n");
@@ -338,7 +339,27 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
   fseq_elm_ctr<dtype> felm;
   felm.func_ptr = NULL;
 
-  return dt->sym_contract(type, func_ptr, felm, alpha, beta, map_inner);
+  std::list<mem_transfer> tfs = CTF_contract_mst();
+  if (tfs.size() > 0 && dt->get_global_comm()->rank == 0){
+    DPRINTF(1,"CTF Warning: contracting memory stack\n");
+  }
+  std::list<mem_transfer>::iterator it;
+  int j = 0;
+  for (it=tfs.begin(); it!=tfs.end(); it++){
+    j++;
+    for (i=0; i<dt->get_tensors()->size(); i++){
+      if ((*dt->get_tensors())[i]->data == (dtype*)it->old_ptr){
+        (*dt->get_tensors())[i]->data = (dtype*)it->new_ptr;
+        break;
+      }
+    }
+    if (i == dt->get_tensors()->size()){
+      printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
+      LIBT_ASSERT(0);
+      return DIST_TENSOR_ERROR;
+    }
+  }
+  return dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
 }
     
 /**
@@ -362,7 +383,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
 #endif
   fseq_tsr_ctr<dtype> fs;
   fs.func_ptr=sym_seq_ctr_ref<dtype>;
-  return dt->sym_contract(type, fs, felm, alpha, beta, 0);
+  return dt->home_contract(type, fs, felm, alpha, beta, 0);
 
 }
 
@@ -551,11 +572,7 @@ int tCTF<dtype>::sum_tensors(dtype const                alpha,
                              fseq_tsr_sum<dtype> const  func_ptr){
   fseq_elm_sum<dtype> felm;
   felm.func_ptr = NULL;
-#ifdef USE_SYM_SUM
-  return dt->sym_sum_tsr(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr, felm);
-#else
-  return dt->sum_tensors(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr, felm);
-#endif
+  return dt->home_sum_tsr(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr, felm);
 }
 
 /**
@@ -578,11 +595,7 @@ int tCTF<dtype>::sum_tensors(dtype const                alpha,
                              fseq_elm_sum<dtype> const  felm){
   fseq_tsr_sum<dtype> fs;
   fs.func_ptr=sym_seq_sum_ref<dtype>;
-#ifdef USE_SYM_SUM
-  return dt->sym_sum_tsr(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, fs, felm);
-#else
-  return dt->sum_tensors(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, fs, felm);
-#endif
+  return dt->home_sum_tsr(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, fs, felm);
 }
 
 /**

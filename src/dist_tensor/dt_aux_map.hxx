@@ -652,6 +652,14 @@ int remap_tensor(int const  tid,
     new_nvirt = new_nvirt*new_virt_dim[j];
     if (new_phase[j] != old_phase[j]) can_block_shuffle = 0;
   }
+#ifdef HOME_CONTRACT
+  if (tsr->is_home){
+    DPRINTF(2,"Tensor %d leaving home\n", tid);
+    tsr->data = (dtype*)CTF_mst_alloc(old_size*sizeof(dtype));
+    memcpy(tsr->data, tsr->home_buffer, old_size*sizeof(dtype));
+    tsr->is_home = 0;
+  }
+#endif
 #if DEBUG >= 1
   if (global_comm->rank == 0){
     printf("Remapping tensor %d with virtualization factor of %d\n",tid,new_nvirt);

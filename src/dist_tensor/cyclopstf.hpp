@@ -48,10 +48,11 @@ typedef uint64_t key;
 #define VERIFY 0
 #define VERIFY_REMAP 0
 #define INNER_MAP 0
-#define FOLD_TSR 1
+#define FOLD_TSR 0
 #define PERFORM_DESYM 1
 #define DIAG_RESCALE
 //#define USE_SYM_SUM 
+#define HOME_CONTRACT
 #define USE_BLOCK_RESHUFFLE
 
 template<typename dtype>

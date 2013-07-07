@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <algorithm>
+#include <list>
 #include <vector>
 #include <complex>
 #include <unistd.h>
@@ -306,6 +307,12 @@ void __CM(const int     end,
 
 }*/
 
+struct mem_transfer {
+  void * old_ptr;
+  void * new_ptr;
+};
+
+std::list<mem_transfer> CTF_contract_mst();
 int CTF_alloc_ptr(int const len, void ** const ptr);
 int CTF_mst_alloc_ptr(int const len, void ** const ptr);
 void * CTF_alloc(int const len);
@@ -315,7 +322,6 @@ int CTF_free(void * ptr);
 int CTF_untag_mem(void * ptr);
 int CTF_free_cond(void * ptr);
 void CTF_mem_create();
-void CTF_mst_create(int64_t size);
 void CTF_mst_create(int64_t size);
 void CTF_mem_exit(int rank);
 

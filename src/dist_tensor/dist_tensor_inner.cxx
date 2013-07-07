@@ -36,6 +36,7 @@ void dist_tensor<dtype>::unmap_inner(tensor<dtype> * tsr){
   }
   if (tsr->is_folded){
     unfold_tsr(tsr);
+    set_padding(tsr);
   }
 }
 

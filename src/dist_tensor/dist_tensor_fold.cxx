@@ -1457,6 +1457,7 @@ void dist_tensor<dtype>::dealias(int const sym_tid, int const nonsym_tid){
                  tsr_sym->edge_map);
     tsr_sym->need_remap = tsr_nonsym->need_remap;
     tsr_sym->data = tsr_nonsym->data;
+    tsr_sym->is_home = tsr_nonsym->is_home;
     set_padding(tsr_sym);
   }
 }
@@ -1521,6 +1522,8 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   if (sym_dim == -1) {
     tsr_nonsym->size    = tsr_sym->size;
     tsr_nonsym->data    = tsr_sym->data;
+    tsr_nonsym->home_buffer    = tsr_sym->home_buffer;
+    tsr_nonsym->is_home    = tsr_sym->is_home;
     tsr_nonsym->need_remap = tsr_sym->need_remap;
     tsr_nonsym->is_data_aliased = 1;
     TAU_FSTOP(desymmetrize);

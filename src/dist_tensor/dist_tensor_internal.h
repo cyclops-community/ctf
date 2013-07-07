@@ -77,6 +77,10 @@ struct tensor {
     dtype * data;
     tkv_pair <dtype> * pairs;
   };
+  dtype * home_buffer;
+  long_int home_size;
+  int is_home;
+  int has_home;
 };
 
 
@@ -320,15 +324,15 @@ class dist_tensor{
                     int const                   run_diag = 0);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
-    int sym_sum_tsr(dtype const                 alpha,
-                    dtype const                 beta,
-                    int const                   tid_A,
-                    int const                   tid_B,
-                    int const *                 idx_map_A,
-                    int const *                 idx_map_B,
-                    fseq_tsr_sum<dtype> const   ftsr,
-                    fseq_elm_sum<dtype> const   felm,
-                    int const                   run_diag = 0);
+    int home_sum_tsr( dtype const                 alpha,
+                      dtype const                 beta,
+                      int const                   tid_A,
+                      int const                   tid_B,
+                      int const *                 idx_map_A,
+                      int const *                 idx_map_B,
+                      fseq_tsr_sum<dtype> const   ftsr,
+                      fseq_elm_sum<dtype> const   felm,
+                      int const                   run_diag = 0);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(dtype const                 alpha,
@@ -361,6 +365,13 @@ class dist_tensor{
                             int ndim_B, int* idx_B, int* sym_B,
                             int ndim_C, int* idx_C, int* sym_C);
 */
+    int home_contract(CTF_ctr_type_t const *    type,
+                      fseq_tsr_ctr<dtype> const ftsr,
+                      fseq_elm_ctr<dtype> const felm,
+                      dtype const               alpha,
+                      dtype const               beta,
+                      int const                 map_inner);
+
     int sym_contract( CTF_ctr_type_t const *    type,
                       fseq_tsr_ctr<dtype> const ftsr,
                       fseq_elm_ctr<dtype> const felm,

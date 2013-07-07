@@ -16,6 +16,9 @@
 #include <spi/include/kernel/memory.h>
 #endif
 
+#define JEMALLOC_NO_DEMANGLE
+#include "jemalloc.h"
+
 #include "util.h"
 #include "omp.h"
 #include "memcontrol.h"
@@ -40,6 +43,42 @@ int64_t mst_buffer_size = 0;
 int64_t mst_buffer_ptr = 0;
 std::list<mem_loc> mst;
 
+std::list<mem_transfer> CTF_contract_mst(){
+  std::list<mem_transfer> transfers;
+  if (mst_buffer_ptr > .80*mst_buffer_size){
+    TAU_FSTART(CTF_contract_mst);
+    std::list<mem_loc> old_mst = mst;
+    void * old_mst_buffer = mst_buffer;
+    int64_t old_mst_buffer_size = mst_buffer_size;
+    int64_t old_mst_buffer_ptr = mst_buffer_ptr;
+    mst_buffer_size = 0;
+    mst_buffer_ptr = 0;
+    mst_buffer = 0;
+    mst.clear();
+
+    CTF_mst_create(old_mst_buffer_size);
+    std::list<mem_loc>::iterator it;
+    for (it=old_mst.begin(); it!=old_mst.end(); it++){
+      mem_transfer t;
+      t.old_ptr = it->ptr;
+      t.new_ptr = CTF_mst_alloc(it->len);
+      memcpy(t.new_ptr, t.old_ptr, it->len);
+      transfers.push_back(t);
+    }
+    //DPRINTF(1,"Contracted MST from size %lld to size %lld\n", 
+    printf("Contracted MST from size %lld to size %lld\n", 
+                old_mst_buffer_ptr, mst_buffer_ptr);
+    free(old_mst_buffer);
+    old_mst.clear();
+    TAU_FSTOP(CTF_contract_mst);
+  }
+  return transfers;
+}
+
+std::list<mem_loc> * CTF_get_mst(){
+  return &mst;
+}
+
 /**
  * \brief initializes stack buffer
  */
@@ -48,7 +87,7 @@ void CTF_mst_create(int64_t size){
   int pm;
   void * new_mst_buffer;
   if (size > mst_buffer_size){
-    pm = posix_memalign((void**)&new_mst_buffer, ALIGN_BYTES, size);
+    pm = je_posix_memalign((void**)&new_mst_buffer, ALIGN_BYTES, size);
     LIBT_ASSERT(pm == 0);
     if (mst_buffer != NULL){
       memcpy(new_mst_buffer, mst_buffer, mst_buffer_ptr);
@@ -65,6 +104,10 @@ void CTF_mst_create(int64_t size){
 void CTF_mem_create(){
   CTF_instance_counter++;
   CTF_max_threads = omp_get_max_threads();
+  int i;
+  for (i=0; i<CTF_max_threads; i++){
+    CTF_mem_used[i] = 0;
+  }
 }
 
 /**
@@ -97,7 +140,6 @@ void CTF_mem_exit(int rank){
  * \param[in] ptr pointer to buffer on stack
  */
 int CTF_mst_free(void * ptr){
-#ifdef USE_MST
   LIBT_ASSERT((int64_t)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
   
   std::list<mem_loc>::iterator it;
@@ -110,8 +152,11 @@ int CTF_mst_free(void * ptr){
   if (it == mst.begin()){
     if (it->ptr == ptr){
       mst.erase(it);
-    } else
+    } else {
+      printf("CTF ERROR: Invalid mst free of pointer %p\n", ptr);
+      ABORT;
       return DIST_TENSOR_ERROR;
+    }
   }
   if (mst.size() > 0)
     mst_buffer_ptr = (int64_t)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
@@ -119,7 +164,6 @@ int CTF_mst_free(void * ptr){
     mst_buffer_ptr = 0;
   //printf("freed block, mst_buffer_ptr = %lld\n", mst_buffer_ptr);
   return DIST_TENSOR_SUCCESS;
-#endif
 }
 
 /**
@@ -184,7 +228,7 @@ int CTF_alloc_ptr(int const len, void ** const ptr){
   std::list<mem_loc> * mem_stack;
   mem_stack = &CTF_mem_stacks[tid];
   CTF_mem_used[tid] += len;
-  pm = posix_memalign(ptr, ALIGN_BYTES, len);
+  pm = je_posix_memalign(ptr, ALIGN_BYTES, len);
   m.ptr = *ptr;
   m.len = len;
   mem_stack->push_back(m);
@@ -233,8 +277,9 @@ int CTF_untag_mem(void * ptr){
       len = (*it).len;
       mem_stack->erase(it);
     } else{
-      printf("CTF internal error: failed memory untag\n");
+      printf("CTF ERROR: failed memory untag\n");
       ABORT;
+      return DIST_TENSOR_ERROR;
     }
   }
   CTF_mem_used[0] -= len;
@@ -251,8 +296,8 @@ int CTF_free(void * ptr, int const tid){
   int len;
   std::list<mem_loc> * mem_stack;
 
-  if ((char*)ptr-(char*)mst_buffer < mst_buffer_size && 
-      (char*)ptr-(char*)mst_buffer >= 0){
+  if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
+      (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
     return CTF_mst_free(ptr);
   }
   
@@ -274,12 +319,14 @@ int CTF_free(void * ptr, int const tid){
     if ((*it).ptr == ptr){
       len = (*it).len;
       mem_stack->erase(it);
-    } else
-      return DIST_TENSOR_ERROR;
+    } else {
+//      printf("CTF ERROR: failed memory free\n");
+      return DIST_TENSOR_NEGATIVE;
+    }
   }
   CTF_mem_used[tid] -= len;
   //printf("CTF_mem_used down to %lld stack to %d\n",CTF_mem_used,mem_stack->size());
-  free(ptr);
+  je_free(ptr);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -293,7 +340,7 @@ int CTF_free_cond(void * ptr){
   else tid = omp_get_thread_num();
 
   ret = CTF_free(ptr, tid);
-  if (ret == DIST_TENSOR_ERROR){
+  if (ret == DIST_TENSOR_NEGATIVE){
     if (tid == 0){
       for (i=1; i<CTF_max_threads; i++){
         ret = CTF_free(ptr, i);
@@ -317,10 +364,11 @@ int CTF_free(void * ptr){
   else tid = omp_get_thread_num();
 
   ret = CTF_free(ptr, tid);
-  if (ret == DIST_TENSOR_ERROR){
+  if (ret == DIST_TENSOR_NEGATIVE){
     if (tid != 0 || CTF_max_threads == 1){
-      printf("Invalid free of pointer %p, aborting\n", ptr);
+      printf("CTF ERROR: Invalid free of pointer %p\n", ptr);
       ABORT;
+      return DIST_TENSOR_ERROR;
     } else {
       for (i=1; i<CTF_max_threads; i++){
         ret = CTF_free(ptr, i);
@@ -330,8 +378,9 @@ int CTF_free(void * ptr){
         }
       }
       if (i==CTF_max_threads){
-        printf("Invalid free of pointer %p, aborting\n", ptr);
+        printf("CTF ERROR: Invalid free of pointer %p\n", ptr);
         ABORT;
+        return DIST_TENSOR_ERROR;
       }
     }
   }
@@ -347,7 +396,12 @@ uint64_t proc_bytes_used(){
   /*struct mallinfo info;
   info = mallinfo();
   return (uint64_t)(info.usmblks + info.uordblks + info.hblkhd);*/
-  return (uint64_t)CTF_mem_used;
+  uint64_t ms = 0;
+  int i;
+  for (i=0; i<CTF_max_threads; i++){
+    ms += CTF_mem_used[i];
+  }
+  return ms + (uint64_t)mst_buffer_size;
 }
 
 #ifdef BGQ
