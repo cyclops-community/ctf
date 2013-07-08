@@ -16,8 +16,6 @@
 #include <spi/include/kernel/memory.h>
 #endif
 
-#define JEMALLOC_NO_DEMANGLE
-#include "jemalloc.h"
 
 #include "util.h"
 #include "omp.h"
@@ -87,7 +85,7 @@ void CTF_mst_create(int64_t size){
   int pm;
   void * new_mst_buffer;
   if (size > mst_buffer_size){
-    pm = je_posix_memalign((void**)&new_mst_buffer, ALIGN_BYTES, size);
+    pm = posix_memalign((void**)&new_mst_buffer, ALIGN_BYTES, size);
     LIBT_ASSERT(pm == 0);
     if (mst_buffer != NULL){
       memcpy(new_mst_buffer, mst_buffer, mst_buffer_ptr);
@@ -228,7 +226,7 @@ int CTF_alloc_ptr(int const len, void ** const ptr){
   std::list<mem_loc> * mem_stack;
   mem_stack = &CTF_mem_stacks[tid];
   CTF_mem_used[tid] += len;
-  pm = je_posix_memalign(ptr, ALIGN_BYTES, len);
+  pm = posix_memalign(ptr, ALIGN_BYTES, len);
   m.ptr = *ptr;
   m.len = len;
   mem_stack->push_back(m);
@@ -326,7 +324,7 @@ int CTF_free(void * ptr, int const tid){
   }
   CTF_mem_used[tid] -= len;
   //printf("CTF_mem_used down to %lld stack to %d\n",CTF_mem_used,mem_stack->size());
-  je_free(ptr);
+  free(ptr);
   return DIST_TENSOR_SUCCESS;
 }
 
