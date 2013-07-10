@@ -21,11 +21,11 @@ all $(MAKECMDGOALS):
 	    echo 'Hostname recognized as a NERSC machine, using pre-made config.mk file'; \
 	    cp mkfiles/config.mk.nersc config.mk;   \
 	  else \
-	    if [ $(shell hostname | grep 'surveyor\|intrepid\|udawn' ) ] ;  then \
+	    if [ $(shell hostname | grep 'surveyor\|intrepid\|challenger\|udawn' ) ] ;  then \
 	      echo 'Hostname recognized as a BG/P machine, using pre-made config.mk file'; \
 	      cp mkfiles/config.mk.bgp config.mk;   \
 	    else \
-	      if [ $(shell hostname | grep 'vesta\|mira\|seq' ) ] ;  then \
+	      if [ $(shell hostname | grep 'vesta\|mira\|cetus\|seq' ) ] ;  then \
 		cp mkfiles/config.mk.bgq config.mk;   \
 	      else \
 		echo 'Hostname not recognized: assuming linux, specialize config.mk if necessary'; \
