@@ -23,13 +23,13 @@ all $(MAKECMDGOALS):
 	  else \
 	    if [ $(shell hostname | grep 'surveyor\|intrepid\|challenger\|udawn' ) ] ;  then \
 	      echo 'Hostname recognized as a BG/P machine, using pre-made config.mk file'; \
-	      cp mkfiles/config.mk.bgp config.mk;   \
+	        cp mkfiles/config.mk.bgp config.mk;   \
 	    else \
 	      if [ $(shell hostname | grep 'vesta\|mira\|cetus\|seq' ) ] ;  then \
-		cp mkfiles/config.mk.bgq config.mk;   \
+		      cp mkfiles/config.mk.bgq config.mk;   \
 	      else \
-		echo 'Hostname not recognized: assuming linux, specialize config.mk if necessary'; \
-		cp mkfiles/config.mk.linux config.mk;   \
+		      echo 'Hostname not recognized: assuming linux, specialize config.mk if necessary'; \
+		      cp mkfiles/config.mk.linux config.mk;   \
 	      fi; \
 	    fi; \
 	  fi; \
