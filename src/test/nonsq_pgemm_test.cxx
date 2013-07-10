@@ -232,8 +232,13 @@ int main(int argc, char **argv) {
   for (i=0; i<fnblk; i++){
     for (j=0; j<fkblk; j++){
 #ifdef ZGEMM_TEST
-      mat_B[i*(fkblk)+j].real() = drand48();
-      mat_B[i*(fkblk)+j].imag() = drand48();
+      if (i>=n){
+        mat_B[i*(fkblk)+j].real() = 0.0;
+        mat_B[i*(fkblk)+j].imag() = 0.0;
+      } else {
+        mat_B[i*(fkblk)+j].real() = drand48();
+        mat_B[i*(fkblk)+j].imag() = drand48();
+      }
 #else
       mat_B[i*(fkblk)+j] = drand48();
 #endif
@@ -243,8 +248,13 @@ int main(int argc, char **argv) {
   for (i=0; i<nblk; i++){
     for (j=0; j<mblk; j++){
 #ifdef ZGEMM_TEST
-      mat_C[i*(mblk)+j].real() = drand48();
-      mat_C[i*(mblk)+j].imag() = drand48();
+      if (i>=n){
+        mat_C[i*(mblk)+j].real() = 0.0;
+        mat_C[i*(mblk)+j].imag() = 0.0;
+      } else {
+        mat_C[i*(mblk)+j].real() = drand48();
+        mat_C[i*(mblk)+j].imag() = drand48();
+      }
 #else
       mat_C[i*(mblk)+j] = drand48();
 #endif
@@ -352,7 +362,7 @@ int main(int argc, char **argv) {
 #else
   CTF * myctf = new CTF;
   myctf->init(MPI_COMM_WORLD,  myRank,numPes);
-  cpdgemm('N','N', m, n, k, ALPHA, 
+  cpdgemm('T','N', m, n, k, ALPHA, 
           mat_A, 1, 1, desc_a,
           mat_B, 1, 1, desc_b, BETA,
           mat_C, 1, 1, desc_c); 
@@ -360,7 +370,7 @@ int main(int argc, char **argv) {
   if (myRank == 0)
     printf("Performed ScaLAPACK pdgemm, starting CTF pdgemm\n");
 
-  myctf->pgemm('N','N', m, n, k, ALPHA, 
+  myctf->pgemm('T','N', m, n, k, ALPHA, 
               mat_A, 1, 1, desc_a,
               mat_B, 1, 1, desc_b, BETA,
               mat_C_CTF, 1, 1, desc_c); 
@@ -381,7 +391,7 @@ int main(int argc, char **argv) {
   startTime = MPI_Wtime();
   for (iter=0; iter < num_iter; iter++){
     //seq_square_matmul(mat_A, mat_B, mat_C, blockDim, 0);
-    cpdgemm('N','N', m, n, k, ALPHA, 
+    cpdgemm('T','N', m, n, k, ALPHA, 
             mat_A, 1, 1, desc_a,
             mat_B, 1, 1, desc_b, BETA,
             mat_C, 1, 1, desc_c); 

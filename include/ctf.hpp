@@ -91,24 +91,39 @@ class tCTF_World {
 
   public:
     /**
-     * \brief creates tCTF library on comm_
+     * \brief creates tCTF library on comm_ that can output profile data 
+     *        into a file with a name based on the main args
+     * \param[in] comm_ MPI communicator associated with this CTF instance
+     * \param[in] argc number of main arguments 
+     * \param[in] argv main arguments 
      */
-    tCTF_World(MPI_Comm comm_);
-    
+    tCTF_World(int const      argc,
+               char * const * argv);
+
     /**
-     * \brief creates tCTF library on MPI_COMM_WORLD
+     * \brief creates tCTF library on comm_ that can output profile data 
+     *        into a file with a name based on the main args
+     * \param[in] comm_ MPI communicator associated with this CTF instance
+     * \param[in] argc number of main arguments 
+     * \param[in] argv main arguments 
      */
-    tCTF_World();
+    tCTF_World(MPI_Comm       comm_ = MPI_COMM_WORLD,
+               int const      argc = 0,
+               char * const * argv = NULL);
 
     /**
      * \brief creates tCTF library on comm_
      * \param[in] ndim number of torus network dimensions
      * \param[in] lens lengths of torus network dimensions
      * \param[in] comm MPI global context for this CTF World
+     * \param[in] argc number of main arguments 
+     * \param[in] argv main arguments 
      */
-    tCTF_World(int const    ndim, 
-               int const *  lens, 
-               MPI_Comm     comm_ = MPI_COMM_WORLD);
+    tCTF_World(int const      ndim, 
+               int const *    lens, 
+               MPI_Comm       comm_ = MPI_COMM_WORLD,
+               int const      argc = 0,
+               char * const * argv = NULL);
 
     /**
      * \brief frees tCTF library
@@ -309,7 +324,7 @@ class tCTF_Tensor {
      * \brief prints tensor data to file using process 0
      * \param[in] fp file to print to e.g. stdout
      */
-    void print(FILE * fp) const;
+    void print(FILE * fp = stdout) const;
 
     /**
      * \brief frees tCTF tensor

@@ -1,8 +1,10 @@
 all: $(DEFAULT_COMPONENTS)
 
+
 EXECUTABLES = pgemm_test nonsq_pgemm_test nonsq_pgemm_bench \
-              examples fft fft_3D gemm gemm_4D trace sym3 \
-              ccsdt_t3_to_t2 weight_4D
+              examples dft dft_3D gemm gemm_4D trace sym3 \
+              ccsdt_t3_to_t2 weight_4D test_suite fast_sym \
+              fast_sym_4D
 
 LIBRARIES   = ctf
 
@@ -12,6 +14,7 @@ ALL_COMPONENTS = $(EXECUTABLES) $(LIBRARIES)
 
 $(EXECUTABLES): $(LIBRARIES)
 
+
 bindir = ${top_dir}/bin
 libdir = ${top_dir}/lib
 
@@ -20,13 +23,15 @@ DEPS += ${top_dir}/.dummy $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(
 
 _INCLUDES = $(INCLUDES) -I${top_dir}/include
 _CXXFLAGS = $(CXXFLAGS)
-_DEFS = $(DEFS)
+_DEFS = $(DEFS) 
 _LDFLAGS = $(LDFLAGS) -L${top_dir}/lib
 _DEPENDENCIES = $(DEPENDENCIES) Makefile ${top_dir}/config.mk ${top_dir}/src/make/rules.mk
 _LIBS = $(LIBS)
-pgemm_test nonsq_pgemm_test nonsq_pgemm_bench : _LIBS = $(SCALA) $(LIBS)
 
-CXXCOMPILE = $(CXX) $(DEFS) $(_INCLUDES) $(_CPPFLAGS) $(_CXXFLAGS)
+
+
+
+CXXCOMPILE = $(CXX) $(_DEFS) $(_INCLUDES) $(_CPPFLAGS) $(_CXXFLAGS)
 CXXCOMPILEDEPS = $(CXXCOMPILE) $(DEPFLAGS)
 LINK = $(CXX) $(_CXXFLAGS) $(_LDFLAGS) -o $@
 ARCHIVE = $(AR) $@

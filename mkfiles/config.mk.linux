@@ -19,5 +19,6 @@ DEPFLAGS    = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 #DEFS      := $(DEFS) -DDEBUG=1
 
 #SCALAPACK only necessary for pgemm tests and benchmarks 
-#SCALA      = -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack
+#LIBS      := $(LIBS) -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack -lgfortran
+#DEFS      := $(DEFS) -DUSE_SCALAPACK
 

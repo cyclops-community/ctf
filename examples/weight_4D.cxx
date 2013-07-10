@@ -14,8 +14,9 @@ void divide(double const alpha, double const a, double const b, double & c){
   c+=alpha*(a/b);
 }
 
-void weight_4D(int const  n,
-               int const  sym){
+int weight_4D(int const    n,
+              int const    sym,
+              CTF_World   &dw){
   int rank, i, num_pes;
   int64_t np, np_A;
   double * pairs, * post_pairs_C, * pairs_A;
@@ -23,11 +24,6 @@ void weight_4D(int const  n,
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
-  
-  CTF_World dw;
-
-  if (rank == 0)
-    printf("n = %d\n", n);
   
   int shapeN4[] = {sym,NS,sym,NS};
   int sizeN4[] = {n,n,n,n};
@@ -37,11 +33,7 @@ void weight_4D(int const  n,
   CTF_Tensor B(4, sizeN4, shapeN4, dw);
   CTF_Tensor C(4, sizeN4, shapeN4, dw);
 
-  if (rank == 0)
-    printf("tensor creation succeed\n");
-
   srand48(13*rank);
-  //* Writes noise to local data based on global index
   A.get_local_data(&np_A, &indices_A, &pairs_A);
   for (i=0; i<np_A; i++ ) pairs_A[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write_remote_data(np_A, indices_A, pairs_A);
@@ -66,18 +58,31 @@ void weight_4D(int const  n,
   post_pairs_C = (double*)malloc(np_A*sizeof(double));
   C.get_remote_data(np_A, indices_A, post_pairs_C);
   
+  int pass = 1; 
   for (i=0; i<np_A; i++){
-    assert(fabs(pairs_A[i]) <= 1.E-6 ||
-           fabs((double)post_pairs_C[i]-(double)pairs_A[i])/(double)pairs_A[i]<1.E-6);
+    if (fabs(pairs_A[i]) > 1.E-6 &&
+           fabs((double)post_pairs_C[i]-(double)pairs_A[i])/(double)pairs_A[i]>1.E-6){
+      pass = 0;
+    }
   }
-  if (rank == 0)
-    printf("Verification completed successfully.\n");
+  if (rank == 0){
+    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+    if (pass){
+      printf("{ C[\"ijkl\"] = A[\"ijkl\"]*B[\"ijkl\"] } passed\n");
+    } else {
+      printf("{ C[\"ijkl\"] = A[\"ijkl\"]*B[\"ijkl\"] } failed\n");
+    }
+  } else 
+    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
   
   free(indices_A);
   free(pairs_A);
   free(post_pairs_C);
+  return pass;
 } 
 
+
+#ifndef TEST_SUITE
 
 char* getCmdOption(char ** begin,
                    char ** end,
@@ -105,22 +110,27 @@ int main(int argc, char ** argv){
   } else n = 7;
 
 
-  if (rank == 0){
-    printf("Computing C_ijkl = A_ijkl*B_kilj\n");
-    printf("Non-symmetric: NS = NS*NS weight:\n");
+  {
+    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+
+    if (rank == 0){
+      printf("Computing C_ijkl = A_ijkl*B_kilj\n");
+      printf("Non-symmetric: NS = NS*NS weight:\n");
+    }
+    weight_4D(n, NS, dw);
+    if (rank == 0){
+      printf("Symmetric: SY = SY*SY weight:\n");
+    }
+    weight_4D(n, SY, dw);
+    if (rank == 0){
+      printf("(Anti-)Skew-symmetric: AS = AS*AS weight:\n");
+    }
+    weight_4D(n, AS, dw);
   }
-  weight_4D(n, NS);
-/*  if (rank == 0){
-    printf("Symmetric: SY = SY*SY weight:\n");
-  }
-  weight_4D(n, SY);*/
-  if (rank == 0){
-    printf("(Anti-)Skew-symmetric: AS = AS*AS weight:\n");
-  }
-  weight_4D(n, AS);
 
 
   MPI_Finalize();
   return 0;
 }
 
+#endif

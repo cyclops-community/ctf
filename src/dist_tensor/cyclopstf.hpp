@@ -49,9 +49,10 @@ typedef uint64_t key;
 #define VERIFY_REMAP 0
 #define INNER_MAP 0
 #define FOLD_TSR 1
-#define DEF_INNER_SIZE 256
 #define PERFORM_DESYM 1
+#define DIAG_RESCALE
 //#define USE_SYM_SUM 
+#define HOME_CONTRACT
 #define USE_BLOCK_RESHUFFLE
 
 template<typename dtype>
@@ -194,17 +195,13 @@ class tCTF{
     ~tCTF();
 
     /* initializes library. Sets topology to be a torus of edge lengths equal to the
-       factorization of np. */
+       factorization of np. Main args can be sset for profiler output. */
     int init(MPI_Comm const global_context,
-             int const      rank,
-             int const      np);
-
-    /* initializes library. Sets topology to be that of a predefined machine 'mach'. */
-    int init(MPI_Comm const global_context,
-             CTF_MACHINE    mach,
              int const      rank,
              int const      np,
-             int const      inner_size = DEF_INNER_SIZE);
+             CTF_MACHINE    mach = MACHINE_GENERIC,
+             int const      argc = 0,
+             char * const * argv = NULL);
 
 
     /* initializes library. Sets topology to be a mesh of dimension ndim with
@@ -214,7 +211,8 @@ class tCTF{
              int const      np,
              int const      ndim,
              int const *    dim_len,
-             int const      inner_size = DEF_INNER_SIZE);
+             int const      argc = 0,
+             char * const * argv = NULL);
 
 
     /* return MPI_Comm global_context */

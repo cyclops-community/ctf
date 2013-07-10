@@ -26,7 +26,7 @@ class strp_tsr {
     strp_tsr<dtype> * clone();
 
     strp_tsr(strp_tsr<dtype> * o);
-    ~strp_tsr(){ if (buffer != NULL) free(buffer); free(edge_len); free(strip_dim); free(strip_idx);}
+    ~strp_tsr(){ if (buffer != NULL) CTF_free(buffer); CTF_free(edge_len); CTF_free(strip_dim); CTF_free(strip_idx);}
     strp_tsr(){ buffer = NULL; }
 };
 

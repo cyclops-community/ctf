@@ -310,9 +310,9 @@ void factorize(int n, int *nfactor, int **factor){
     }
   }
   if (nf == 0){
-    *nfactor    = 0;
+    *nfactor = nf;
   } else {
-    ff  = (int*)malloc(sizeof(int)*nf);
+    ff  = (int*)CTF_alloc(sizeof(int)*nf);
     tmp = n;
     nf = 0;
     while (tmp > 1){
@@ -336,7 +336,7 @@ int conv_idx(int const  ndim,
   int i, j, n;
   char c;
 
-  *iidx = (int*)malloc(sizeof(int)*ndim);
+  *iidx = (int*)CTF_alloc(sizeof(int)*ndim);
 
   n = 0;
   for (i=0; i<ndim; i++){
@@ -364,7 +364,7 @@ int  conv_idx(int const         ndim_A,
   int i, j, n;
   char c;
 
-  *iidx_B = (int*)malloc(sizeof(int)*ndim_B);
+  *iidx_B = (int*)CTF_alloc(sizeof(int)*ndim_B);
 
   n = conv_idx(ndim_A, cidx_A, iidx_A);
   for (i=0; i<ndim_B; i++){
@@ -404,7 +404,7 @@ int  conv_idx(int const         ndim_A,
   int i, j, n;
   char c;
 
-  *iidx_C = (int*)malloc(sizeof(int)*ndim_C);
+  *iidx_C = (int*)CTF_alloc(sizeof(int)*ndim_C);
 
   n = conv_idx(ndim_A, cidx_A, iidx_A,
                ndim_B, cidx_B, iidx_B);

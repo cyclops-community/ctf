@@ -54,6 +54,8 @@ struct tensor {
   int * edge_len;
   int is_padded;
   int * padding;
+  int is_scp_padded;
+  int * scp_padding; /* to be used by scalapack wrapper */
   int * sym;
   int * sym_table; /* can be compressed into bitmap */
   int is_mapped;
@@ -75,12 +77,15 @@ struct tensor {
     dtype * data;
     tkv_pair <dtype> * pairs;
   };
+  dtype * home_buffer;
+  long_int home_size;
+  int is_home;
+  int has_home;
 };
 
 
 
-int get_buffer_space(int const len, void ** const ptr);
-int free_buffer_space(void * ptr);
+
 template<typename dtype>
 int padded_reshuffle(int const          tid,
                      int const          ndim,
@@ -157,8 +162,8 @@ class seq_tsr_ctr : public ctr<dtype> {
     ctr<dtype> * clone();
 
     seq_tsr_ctr(ctr<dtype> * other);
-    ~seq_tsr_ctr(){ free(edge_len_A), free(edge_len_B), free(edge_len_C), 
-                    free(sym_A), free(sym_B), free(sym_C); }
+    ~seq_tsr_ctr(){ CTF_free(edge_len_A), CTF_free(edge_len_B), CTF_free(edge_len_C), 
+                    CTF_free(sym_A), CTF_free(sym_B), CTF_free(sym_C); }
     seq_tsr_ctr(){}
 };
 
@@ -187,8 +192,8 @@ class seq_tsr_sum : public tsum<dtype> {
     tsum<dtype> * clone();
 
     seq_tsr_sum(tsum<dtype> * other);
-    ~seq_tsr_sum(){ free(edge_len_A), free(edge_len_B), 
-                    free(sym_A), free(sym_B); };
+    ~seq_tsr_sum(){ CTF_free(edge_len_A), CTF_free(edge_len_B), 
+                    CTF_free(sym_A), CTF_free(sym_B); };
     seq_tsr_sum(){}
 };
 
@@ -210,7 +215,7 @@ class seq_tsr_scl : public scl<dtype> {
     scl<dtype> * clone();
 
     seq_tsr_scl(scl<dtype> * other);
-    ~seq_tsr_scl(){ free(edge_len); };
+    ~seq_tsr_scl(){ CTF_free(edge_len); };
     seq_tsr_scl(){}
 };
 
@@ -226,10 +231,11 @@ class dist_tensor{
     int * phys_lda;
     std::vector< tensor<dtype>* > tensors;
     std::vector<topology> topovec;
+    std::vector<topology> rejected_topos;
 
     int inner_size;
     std::vector<topology> inner_topovec;
-
+    
 
   public:
 
@@ -318,15 +324,15 @@ class dist_tensor{
                     int const                   run_diag = 0);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
-    int sym_sum_tsr(dtype const                 alpha,
-                    dtype const                 beta,
-                    int const                   tid_A,
-                    int const                   tid_B,
-                    int const *                 idx_map_A,
-                    int const *                 idx_map_B,
-                    fseq_tsr_sum<dtype> const   ftsr,
-                    fseq_elm_sum<dtype> const   felm,
-                    int const                   run_diag = 0);
+    int home_sum_tsr( dtype const                 alpha,
+                      dtype const                 beta,
+                      int const                   tid_A,
+                      int const                   tid_B,
+                      int const *                 idx_map_A,
+                      int const *                 idx_map_B,
+                      fseq_tsr_sum<dtype> const   ftsr,
+                      fseq_elm_sum<dtype> const   felm,
+                      int const                   run_diag = 0);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(dtype const                 alpha,
@@ -359,6 +365,13 @@ class dist_tensor{
                             int ndim_B, int* idx_B, int* sym_B,
                             int ndim_C, int* idx_C, int* sym_C);
 */
+    int home_contract(CTF_ctr_type_t const *    type,
+                      fseq_tsr_ctr<dtype> const ftsr,
+                      fseq_elm_ctr<dtype> const felm,
+                      dtype const               alpha,
+                      dtype const               beta,
+                      int const                 map_inner);
+
     int sym_contract( CTF_ctr_type_t const *    type,
                       fseq_tsr_ctr<dtype> const ftsr,
                       fseq_elm_ctr<dtype> const felm,
@@ -390,6 +403,14 @@ class dist_tensor{
                         topology const *        topo,
                         int const               idx_num);
 
+    int map_weigh_indices(int const *             idx_arr,
+                          int const *             idx_weigh,
+                          int const               num_tot,
+                          int const               num_weigh,
+                          int const               tid_A,
+                          int const               tid_B,
+                          int const               tid_C,
+                          topology const *        topo);
 
     int map_ctr_indices(int const *             idx_arr,
                         int const *             idx_ctr,
@@ -502,7 +523,8 @@ class dist_tensor{
                         int *           idx_arr,
                         int *           idx_ctr,
                         int *           idx_extra,
-                        int *           idx_no_ctr);
+                        int *           idx_no_ctr,
+                        int *           idx_weigh);
 
     int map_inner(CTF_ctr_type_t const * type,
                   iparam * inner_params);

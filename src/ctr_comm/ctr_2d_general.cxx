@@ -197,9 +197,7 @@ void ctr_2d_general<dtype>::run() {
     alloced = 0;
   } else {
     alloced = 1;
-    ret = posix_memalign((void**)&this->buffer,
-                         ALIGN_BYTES,
-                         mem_fp());
+    ret = CTF_mst_alloc_ptr(mem_fp(), (void**)&this->buffer);
     LIBT_ASSERT(ret==0);
   }
 
@@ -382,9 +380,9 @@ void ctr_2d_general<dtype>::run() {
     }
     rec_ctr->beta = get_one<dtype>();
   }
-  /* FIXME: reuse that shit */
+  /* FIXME: reuse that */
   if (alloced){
-    free(this->buffer);
+    CTF_free(this->buffer);
     this->buffer = NULL;
   }
   TAU_FSTOP(ctr_2d_general);

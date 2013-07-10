@@ -24,7 +24,7 @@ void get_topo(int const         np,
               int **            dim_len){
   int * dl;
   if (mach == NO_TOPOLOGY){
-    dl = (int*)malloc(sizeof(int));
+    dl = (int*)CTF_alloc(sizeof(int));
     dl[0] = np;
     *ndim = 1;
     *dim_len = dl;
@@ -32,14 +32,14 @@ void get_topo(int const         np,
   if (mach == MACHINE_GENERIC){
     return factorize(np, ndim, dim_len);
   } else if (mach == MACHINE_BGQ) {
-    dl = (int*)malloc((7)*sizeof(int));
+    dl = (int*)CTF_alloc((7)*sizeof(int));
     *dim_len = dl;
 #ifdef BGQ
     int i, dim;
     MPIX_Hardware_t hw;
     MPIX_Hardware(&hw);
 
-    int * topo_dims = (int*)malloc(7*sizeof(int));
+    int * topo_dims = (int*)CTF_alloc(7*sizeof(int));
     topo_dims[0] = hw.Size[0];
     topo_dims[1] = hw.Size[1];
     topo_dims[2] = hw.Size[2];
@@ -71,7 +71,7 @@ void get_topo(int const         np,
     else if ((int)log2(np) <= 2) *ndim = 1;
     else if ((int)log2(np) <= 4) *ndim = 2;
     else *ndim = 3;
-    dl = (int*)malloc((*ndim)*sizeof(int));
+    dl = (int*)CTF_alloc((*ndim)*sizeof(int));
     *dim_len = dl;
     switch ((int)log2(np)){
       case 0:
@@ -155,7 +155,7 @@ void get_topo(int const         np,
       return;
     }
     *ndim = MIN((int)log2(np),8);
-    dl = (int*)malloc((*ndim)*sizeof(int));
+    dl = (int*)CTF_alloc((*ndim)*sizeof(int));
     *dim_len = dl;
     switch ((int)log2(np)){
       case 0:

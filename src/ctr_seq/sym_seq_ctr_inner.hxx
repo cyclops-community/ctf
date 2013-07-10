@@ -55,14 +55,14 @@ int sym_seq_ctr_inr( dtype const        alpha,
           ndim_C,       idx_map_C,
           &idx_max,     &rev_idx_map);
 
-  dlen_A = (int*)malloc(sizeof(int)*ndim_A);
-  dlen_B = (int*)malloc(sizeof(int)*ndim_B);
-  dlen_C = (int*)malloc(sizeof(int)*ndim_C);
+  dlen_A = (int*)CTF_alloc(sizeof(int)*ndim_A);
+  dlen_B = (int*)CTF_alloc(sizeof(int)*ndim_B);
+  dlen_C = (int*)CTF_alloc(sizeof(int)*ndim_C);
   memcpy(dlen_A, edge_len_A, sizeof(int)*ndim_A);
   memcpy(dlen_B, edge_len_B, sizeof(int)*ndim_B);
   memcpy(dlen_C, edge_len_C, sizeof(int)*ndim_C);
 
-  idx_glb = (int*)malloc(sizeof(int)*idx_max);
+  idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
   memset(idx_glb, 0, sizeof(int)*idx_max);
 
 
@@ -122,11 +122,11 @@ int sym_seq_ctr_inr( dtype const        alpha,
     if (ndim_C > 0)
       RESET_IDX(C);
   }
-  free(dlen_A);
-  free(dlen_B);
-  free(dlen_C);
-  free(idx_glb);
-  free(rev_idx_map);
+  CTF_free(dlen_A);
+  CTF_free(dlen_B);
+  CTF_free(dlen_C);
+  CTF_free(idx_glb);
+  CTF_free(rev_idx_map);
   TAU_FSTOP(sym_seq_ctr_inner);
   return 0;
 }

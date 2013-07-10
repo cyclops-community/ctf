@@ -1,3 +1,5 @@
+/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+
 #include <algorithm>
 #include <iomanip>
 #include <ostream>
@@ -67,14 +69,15 @@ void tCTF_Tensor<dtype>::get_local_data(int64_t *   npair,
   int ret, i;
   ret = world->ctf->read_local_tensor(tid, npair, &pairs);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
-  /* FIXME: careful with malloc */
+  /* FIXME: careful with CTF_alloc */
   *global_idx = (int64_t*)malloc((*npair)*sizeof(int64_t));
   *data = (dtype*)malloc((*npair)*sizeof(dtype));
   for (i=0; i<(*npair); i++){
     (*global_idx)[i] = pairs[i].k;
     (*data)[i] = pairs[i].d;
   }
-  free(pairs);
+  if (*npair > 0)
+    free(pairs);
 }
 
 template<typename dtype>
@@ -83,7 +86,7 @@ void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair,
                                          dtype *          data) const {
   int ret, i;
   tkv_pair< dtype > * pairs;
-  pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
+  pairs = (tkv_pair< dtype >*)CTF_alloc(npair*sizeof(tkv_pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
   }
@@ -92,7 +95,7 @@ void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair,
   for (i=0; i<npair; i++){
     data[i] = pairs[i].d;
   }
-  free(pairs);
+  CTF_free(pairs);
 }
 
 template<typename dtype>
@@ -101,14 +104,14 @@ void tCTF_Tensor<dtype>::write_remote_data(int64_t const    npair,
                                            dtype const *    data) {
   int ret, i;
   tkv_pair< dtype > * pairs;
-  pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
+  pairs = (tkv_pair< dtype >*)CTF_alloc(npair*sizeof(tkv_pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
   }
   ret = world->ctf->write_tensor(tid, npair, pairs);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
-  free(pairs);
+  CTF_free(pairs);
 }
 
 template<typename dtype>
@@ -119,14 +122,14 @@ void tCTF_Tensor<dtype>::add_remote_data(int64_t const    npair,
                                          dtype const *    data) {
   int ret, i;
   tkv_pair< dtype > * pairs;
-  pairs = (tkv_pair< dtype >*)malloc(npair*sizeof(tkv_pair< dtype >));
+  pairs = (tkv_pair< dtype >*)CTF_alloc(npair*sizeof(tkv_pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
   }
   ret = world->ctf->write_tensor(tid, npair, alpha, beta, pairs);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
-  free(pairs);
+  CTF_free(pairs);
 }
 
 template<typename dtype>
@@ -160,9 +163,9 @@ void tCTF_Tensor<dtype>::contract(const dtype                   alpha,
     fs.func_ptr = fseq.func_ptr;
     ret = world->ctf->contract(&tp, fs, alpha, beta);
   }
-  free(tp.idx_map_A);
-  free(tp.idx_map_B);
-  free(tp.idx_map_C);
+  CTF_free(tp.idx_map_A);
+  CTF_free(tp.idx_map_B);
+  CTF_free(tp.idx_map_C);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
@@ -194,8 +197,8 @@ void tCTF_Tensor<dtype>::sum(const dtype                alpha,
     fs.func_ptr = fseq.func_ptr;
     ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fs);
   }
-  free(idx_map_A);
-  free(idx_map_B);
+  CTF_free(idx_map_A);
+  CTF_free(idx_map_B);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 

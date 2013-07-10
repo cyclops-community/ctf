@@ -5,7 +5,8 @@
 #include <stdlib.h>
 
 
-int test_dft_3D(int const n){
+int test_dft_3D(int const     n,
+                cCTF_World    &wrld){
   int myRank, numPes;
   int i, j;
   int64_t  np;
@@ -19,7 +20,6 @@ int test_dft_3D(int const n){
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-  cCTF_World wrld;
   cCTF_Matrix DFT(n, n, SY, wrld);
   cCTF_Matrix IDFT(n, n, SY, wrld);
   cCTF_Tensor MESH(3, len, sym, wrld);
@@ -71,11 +71,13 @@ int test_dft_3D(int const n){
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
   
   if (myRank == 0){
+    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     if (pass)
       printf("{ MESH[\"ijk\"] = MESH[\"pqr\"]*DFT[\"ip\"]*DFT[\"jq\"]*DFT[\"kr\"] } passed\n");
     else
       printf("{ MESH[\"ijk\"] = MESH[\"pqr\"]*DFT[\"ip\"]*DFT[\"jq\"]*DFT[\"kr\"] } failed\n");
-  }
+  } else 
+    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -102,7 +104,11 @@ int main(int argc, char ** argv){
   }
   n = 1<<logn;
 
-  test_dft_3D(n);
+  {
+    cCTF_World dw(argc, argv);
+    int pass = test_dft_3D(n, dw);
+    assert(pass);
+  }
 
   MPI_Finalize();
   

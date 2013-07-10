@@ -36,8 +36,8 @@ void depad_tsr(int const                ndim,
 
   long_int num_ins;
   int ntd = omp_get_max_threads();
-  long_int * num_ins_t = (long_int*)malloc(sizeof(long_int)*ntd);
-  long_int * pre_ins_t = (long_int*)malloc(sizeof(long_int)*ntd);
+  long_int * num_ins_t = (long_int*)CTF_alloc(sizeof(long_int)*ntd);
+  long_int * pre_ins_t = (long_int*)CTF_alloc(sizeof(long_int)*ntd);
 
   TAU_FSTART(depad_tsr_cnt);
   #pragma omp parallel
@@ -45,7 +45,7 @@ void depad_tsr(int const                ndim,
     long_int i, j, st, end, tid;
     key * kparts;
     key k;
-    get_buffer_space(sizeof(key)*ndim, (void**)&kparts);
+    CTF_alloc_ptr(sizeof(key)*ndim, (void**)&kparts);
     tid = omp_get_thread_num();
 
     st = (num_pair/ntd)*tid;
@@ -78,7 +78,7 @@ void depad_tsr(int const                ndim,
         }
       }
     }
-    free_buffer_space(kparts);
+    CTF_free(kparts);
   }
   TAU_FSTOP(depad_tsr_cnt);
 
@@ -93,7 +93,7 @@ void depad_tsr(int const                ndim,
     long_int i, j, st, end, tid;
     key * kparts;
     key k;
-    get_buffer_space(sizeof(key)*ndim, (void**)&kparts);
+    CTF_alloc_ptr(sizeof(key)*ndim, (void**)&kparts);
     tid = omp_get_thread_num();
 
     st = (num_pair/ntd)*tid;
@@ -126,14 +126,14 @@ void depad_tsr(int const                ndim,
         }
       }
     }
-    free_buffer_space(kparts);
+    CTF_free(kparts);
   }
   TAU_FSTOP(depad_tsr_move);
   num_ins = pre_ins_t[ntd-1];
 
   *new_num_pair = num_ins;
-  free_buffer_space(pre_ins_t);
-  free_buffer_space(num_ins_t);
+  CTF_free(pre_ins_t);
+  CTF_free(num_ins_t);
 
   TAU_FSTOP(depad_tsr);
 }
@@ -154,7 +154,7 @@ void depad_tsr(int const                ndim,
   key k;
 
 
-  get_buffer_space(sizeof(key)*ndim, (void**)&kparts);
+  CTF_alloc_ptr(sizeof(key)*ndim, (void**)&kparts);
 
   num_ins = 0;
   for (i=0; i<num_pair; i++){
@@ -182,7 +182,7 @@ void depad_tsr(int const                ndim,
     }
   }
   *new_num_pair = num_ins;
-  free_buffer_space(kparts);
+  CTF_free(kparts);
 
   TAU_FSTOP(depad_tsr);
 }
@@ -251,7 +251,7 @@ void pad_tsr(int const                ndim,
   long_int new_el, pad_el;
   int pad_max, virt_lda, outside, offset, edge_lda;
   int * idx;  
-  get_buffer_space(ndim*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
   tkv_pair<dtype> * padded_pairs;
   
   pad_el = 0;
@@ -284,7 +284,7 @@ void pad_tsr(int const                ndim,
     }
     if (act_lda == ndim) break;
   }
-  get_buffer_space(pad_el*sizeof(tkv_pair<dtype>), (void**)&padded_pairs);
+  CTF_alloc_ptr(pad_el*sizeof(tkv_pair<dtype>), (void**)&padded_pairs);
   new_el = 0;
   offset = 0;
   outside = -1;
@@ -432,9 +432,9 @@ void assign_keys(int const          ndim,
   }
 
   TAU_FSTART(assign_keys);
-  get_buffer_space(ndim*sizeof(int), (void**)&idx);
-  get_buffer_space(ndim*sizeof(int), (void**)&virt_rank);
-  get_buffer_space(ndim*sizeof(int), (void**)&edge_lda);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&edge_lda);
   
   memset(virt_rank, 0, sizeof(int)*ndim);
   
@@ -497,9 +497,9 @@ void assign_keys(int const          ndim,
     if (act_lda >= ndim) break;
   }
   LIBT_ASSERT(buf_offset == size/nvirt);
-  free_buffer_space(idx);
-  free_buffer_space(virt_rank);
-  free_buffer_space(edge_lda);
+  CTF_free(idx);
+  CTF_free(virt_rank);
+  CTF_free(edge_lda);
   TAU_FSTOP(assign_keys);
 }
        
@@ -523,8 +523,8 @@ void bucket_by_pe( int const                ndim,
 //  int * inv_edge_len, * inv_virt_phase;
   key k;
 
-/*  get_buffer_space(ndim*sizeof(int), (void**)&inv_edge_len);
-  get_buffer_space(ndim*sizeof(int), (void**)&inv_virt_phase);
+/*  CTF_alloc_ptr(ndim*sizeof(int), (void**)&inv_edge_len);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&inv_virt_phase);
 
 
   for (i=0; i<ndim; i++){
@@ -534,8 +534,8 @@ void bucket_by_pe( int const                ndim,
   memset(bucket_counts, 0, sizeof(int)*np); 
 #ifdef USE_OMP
   int * sub_counts, * sub_offs;
-  get_buffer_space(np*sizeof(int)*omp_get_max_threads(), (void**)&sub_counts);
-  get_buffer_space(np*sizeof(int)*omp_get_max_threads(), (void**)&sub_offs);
+  CTF_alloc_ptr(np*sizeof(int)*omp_get_max_threads(), (void**)&sub_counts);
+  CTF_alloc_ptr(np*sizeof(int)*omp_get_max_threads(), (void**)&sub_offs);
   memset(sub_counts, 0, np*sizeof(int)*omp_get_max_threads());
 #endif
 
@@ -619,8 +619,8 @@ void bucket_by_pe( int const                ndim,
 #endif
   }
 #ifdef USE_OMP
-  free_buffer_space(sub_counts);
-  free_buffer_space(sub_offs);
+  CTF_free(sub_counts);
+  CTF_free(sub_offs);
 #endif
   TAU_FSTOP(bucket_by_pe_move);
 }
@@ -641,9 +641,9 @@ void bucket_by_virt(int const               ndim,
   key k;
   TAU_FSTART(bucket_by_virt);
   
-  get_buffer_space(num_virt*sizeof(int), (void**)&virt_counts);
-  get_buffer_space(num_virt*sizeof(int), (void**)&virt_prefix);
-  get_buffer_space(ndim*sizeof(int), (void**)&virt_lda);
+  CTF_alloc_ptr(num_virt*sizeof(int), (void**)&virt_counts);
+  CTF_alloc_ptr(num_virt*sizeof(int), (void**)&virt_prefix);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_lda);
  
  
   if (ndim > 0){
@@ -657,8 +657,8 @@ void bucket_by_virt(int const               ndim,
   memset(virt_counts, 0, sizeof(int)*num_virt); 
 #ifdef USE_OMP
   int * sub_counts, * sub_offs;
-  get_buffer_space(num_virt*sizeof(int)*omp_get_max_threads(), (void**)&sub_counts);
-  get_buffer_space(num_virt*sizeof(int)*omp_get_max_threads(), (void**)&sub_offs);
+  CTF_alloc_ptr(num_virt*sizeof(int)*omp_get_max_threads(), (void**)&sub_counts);
+  CTF_alloc_ptr(num_virt*sizeof(int)*omp_get_max_threads(), (void**)&sub_offs);
   memset(sub_counts, 0, num_virt*sizeof(int)*omp_get_max_threads());
 #endif
 
@@ -751,12 +751,12 @@ void bucket_by_virt(int const               ndim,
   }
   TAU_FSTOP(bucket_by_virt_sort);
 #ifdef USE_OMP
-  free_buffer_space(sub_counts);
-  free_buffer_space(sub_offs);
+  CTF_free(sub_counts);
+  CTF_free(sub_offs);
 #endif
-  free_buffer_space(virt_prefix);
-  free_buffer_space(virt_counts);
-  free_buffer_space(virt_lda);
+  CTF_free(virt_prefix);
+  CTF_free(virt_counts);
+  CTF_free(virt_lda);
   TAU_FSTOP(bucket_by_virt);
 }
 
@@ -803,15 +803,15 @@ void zero_padding( int const          ndim,
   vend = vst+(nvirt/ntd);
   if (tid < nvirt % ntd) vend++;
   LIBT_ASSERT(tid != ntd-1 || vend == nvirt);
-  int i, imax, act_lda, act_max, buf_offset, i_st;
+  int i, imax, act_lda, act_max, buf_offset, i_st, curr_idx, sym_idx;
   int is_outside;
   long_int p;
   int * idx, * virt_rank, * phase_rank;
   dtype* data;
 
-  get_buffer_space(ndim*sizeof(int), (void**)&idx);
-  get_buffer_space(ndim*sizeof(int), (void**)&virt_rank);
-  get_buffer_space(ndim*sizeof(int), (void**)&phase_rank);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&phase_rank);
 
   memcpy(phase_rank, cphase_rank, ndim*sizeof(int));
   memset(virt_rank, 0, sizeof(int)*ndim);
@@ -825,50 +825,44 @@ void zero_padding( int const          ndim,
       imax = edge_len[0]/phase[0];
       for (;;){
         is_outside = 0;
-        for (i=1; i<ndim; i++){
-          if ((phase_rank[i] >= edge_len[i] - padding[i]) ||
-              ((sym[i] == AS || sym[i] == SH)
-                  && (idx[i] > idx[i+1] || 
-                      (idx[i] == idx[i+1] && phase_rank[i] >= phase_rank[i+1]))) ||
-                (sym[i] == SY
-                    && (idx[i] > idx[i+1] || 
-                      (idx[i] == idx[i+1] && phase_rank[i] > phase_rank[i+1])))){
+        for (i=0; i<ndim; i++){
+          curr_idx = idx[i]*phase[i]+phase_rank[i];
+          if (curr_idx >= edge_len[i] - padding[i]){
+            is_outside = 1;
+            break;
+          } else if (i < ndim-1) {
+            sym_idx   = idx[i+1]*phase[i+1]+phase_rank[i+1];
+            if (((sym[i] == AS || sym[i] == SH) && curr_idx >= sym_idx) ||
+                ( sym[i] == SY                  && curr_idx >  sym_idx) ) {
               is_outside = 1;
-            break;
+              break;
+            }
           }
         }
-        if (sym[0] != NS)
-          imax = idx[1]+1;
-        /* Increment virtual bucket */
-        if (is_outside){
-          i_st = 0;      
-        } else {
-          i_st = edge_len[0] - padding[0];
-          if (sym[0] != NS)
-            i_st = MIN(i_st,idx[1]+1);
-          if ((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]){
-            i_st = MIN(i_st,idx[1]);
-          }
-          if (sym[0] == SY && phase_rank[0] > phase_rank[1]){
-            i_st = MIN(i_st,idx[1]);
-          }
+/*        for (i=0; i<ndim; i++){
+          printf("phase_rank[%d] = %d, idx[%d] = %d, ",i,phase_rank[i],i,idx[i]);
         }
-        for (i=i_st; i<imax; i++){
-          data[buf_offset+i] = 0.0;
-        }
-        buf_offset += imax;
+        printf("\n");
+        printf("data[%lld]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
+        if (is_outside)
+          data[buf_offset] = 0.0;
+        buf_offset++;
         /* Increment indices and set up offsets */
-        for (act_lda=1; act_lda < ndim; act_lda++){
-          idx[act_lda]++;
-          act_max = edge_len[act_lda]/phase[act_lda];
-          if (sym[act_lda] != NS) act_max = idx[act_lda+1]+1;
-          if (idx[act_lda] >= act_max)
-            idx[act_lda] = 0;
-          LIBT_ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
-          if (idx[act_lda] > 0)
+        for (i=0; i < ndim; i++){
+          idx[i]++;
+          act_max = edge_len[i]/phase[i];
+          if (sym[i] != NS){
+//            sym_idx   = idx[i+1]*phase[i+1]+phase_rank[i+1];
+//            act_max   = MIN(act_max,((sym_idx-phase_rank[i])/phase[i]+1));
+            act_max = MIN(act_max,idx[i+1]+1);
+          }
+          if (idx[i] >= act_max)
+            idx[i] = 0;
+          LIBT_ASSERT(edge_len[i]%phase[i] == 0);
+          if (idx[i] > 0)
             break;
         }
-        if (act_lda >= ndim) break;
+        if (i >= ndim) break;
       }
     }
     for (act_lda=0; act_lda < ndim; act_lda++){
@@ -882,9 +876,9 @@ void zero_padding( int const          ndim,
     }
   }
   //LIBT_ASSERT(buf_offset == size/nvirt);
-  free_buffer_space(idx);
-  free_buffer_space(virt_rank);
-  free_buffer_space(phase_rank);
+  CTF_free(idx);
+  CTF_free(virt_rank);
+  CTF_free(phase_rank);
 }
   TAU_FSTOP(zero_padding);
 }

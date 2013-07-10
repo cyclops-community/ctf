@@ -7,15 +7,18 @@
 #include "assert.h"
 #include <iostream>
 #include <vector>
-#include "tau.h"
+#include "timer.h"
+#include "util.h"
 
 #define MAX_NAME_LENGTH 38
 
-int main_argc=-1;
-char ** main_argv;
+int main_argc = 0;
+char * const * main_argv;
 MPI_Comm comm;
 double excl_time;
 double complete_time;
+int set_contxt = 0;
+int output_file_counter = 0;
     
 
 class function_timer{
@@ -67,19 +70,23 @@ class function_timer{
       int i;
       if (rank == 0){
         fprintf(output, "%s", name);
-        char * space = (char*)malloc(MAX_NAME_LENGTH-strlen(name)+1);
+        char * space = (char*)CTF_alloc(MAX_NAME_LENGTH-strlen(name)+1);
         for (i=0; i<MAX_NAME_LENGTH-(int)strlen(name); i++){
           space[i] = ' ';
         }
         space[i] = '\0';
         fprintf(output, "%s", space);
-        fprintf(output,"%5d   %3.6lf  %3d.%02d  %3.6lf  %3d.%02d\n",
-                total_calls/np,total_time/np,
+        fprintf(output,"%5d   %3d.%04d  %3d.%02d  %3d.%04d  %3d.%02d\n",
+                total_calls/np,
+                (int)(total_time/np),
+                ((int)(1000.*(total_time)/np))%1000,
                 (int)(100.*(total_time)/complete_time),
                 ((int)(10000.*(total_time)/complete_time))%100,
-                total_excl_time/np,
+                (int)(total_excl_time/np),
+                ((int)(1000.*(total_excl_time)/np))%1000,
                 (int)(100.*(total_excl_time)/complete_time),
                 ((int)(10000.*(total_excl_time)/complete_time))%100);
+        CTF_free(space);
       } 
     }
 };
@@ -91,8 +98,15 @@ bool comp_name(function_timer const & w1, function_timer const & w2) {
 std::vector<function_timer> function_timers;
 
 CTF_timer::CTF_timer(const char * name){
+#ifdef PROFILE
   int i;
   if (function_timers.size() == 0) {
+    if (name[0] == 'M' && name[1] == 'P' && 
+        name[2] == 'I' && name[3] == '_'){
+      exited = 1;
+      original = 0;
+      return;
+    }
     original = 1;
     index = 0;
     excl_time = 0.0;
@@ -113,28 +127,38 @@ CTF_timer::CTF_timer(const char * name){
   }
   timer_name = name;
   exited = 0;
+#endif
 }
   
 void CTF_timer::start(){
-  function_timers[index].start_time = MPI_Wtime();
-  function_timers[index].start_excl_time = excl_time;
+#ifdef PROFILE
+  if (!exited){
+    function_timers[index].start_time = MPI_Wtime();
+    function_timers[index].start_excl_time = excl_time;
+  }
+#endif
 }
 
 void CTF_timer::stop(){
-  double delta_time = MPI_Wtime() - function_timers[index].start_time;
-  function_timers[index].acc_time += delta_time;
-  function_timers[index].acc_excl_time += delta_time - 
-        (excl_time- function_timers[index].start_excl_time); 
-  excl_time = function_timers[index].start_excl_time + delta_time;
-  function_timers[index].calls++;
-  exit();
-  exited = 1;
+#ifdef PROFILE
+  if (!exited){
+    double delta_time = MPI_Wtime() - function_timers[index].start_time;
+    function_timers[index].acc_time += delta_time;
+    function_timers[index].acc_excl_time += delta_time - 
+          (excl_time- function_timers[index].start_excl_time); 
+    excl_time = function_timers[index].start_excl_time + delta_time;
+    function_timers[index].calls++;
+    exit();
+    exited = 1;
+  }
+#endif
 }
 
 CTF_timer::~CTF_timer(){ }
 
 void CTF_timer::exit(){
-  if (original && !exited) {
+#ifdef PROFILE
+  if (set_contxt && original && !exited) {
     int rank, np, i, j, p, len_symbols;
 
     MPI_Comm_rank(comm, &rank);
@@ -147,23 +171,26 @@ void CTF_timer::exit(){
     if (rank == 0){
       char filename[300];
       char part[300];
+      
       sprintf(filename, "profile.");
+      srand(time(NULL));
+      sprintf(filename+strlen(filename), "%d.", output_file_counter);
+      output_file_counter++;
+      
       int off;
-      if (main_argc != -1){
-        for (off=strlen(main_argv[0]); off>=0; off--){
-          if (main_argv[0][off-1] == '/') break;
-        }
+      if (main_argc > 0){
         for (i=0; i<main_argc; i++){
-          if (i==0)
-            sprintf(filename+strlen(filename), "%s.", main_argv[0]+off);
-          else
-            sprintf(filename+strlen(filename), "%s.", main_argv[i]);
+          for (off=strlen(main_argv[i]); off>=1; off--){
+            if (main_argv[i][off-1] == '/') break;
+          }
+          sprintf(filename+strlen(filename), "%s.", main_argv[i]+off);
         }
       } 
       sprintf(filename+strlen(filename), "-p%d.out", np);
       
       
-      output = fopen(filename, "w");
+      output = stdout;// fopen(filename, "w");
+      printf("%s\n",filename);
       char heading[MAX_NAME_LENGTH+200];
       for (i=0; i<MAX_NAME_LENGTH; i++){
         part[i] = ' ';
@@ -171,7 +198,7 @@ void CTF_timer::exit(){
       part[i] = '\0';
       sprintf(heading,"%s",part);
       //sprintf(part,"calls   total sec   exclusive sec\n");
-      sprintf(part,"        inclusive         exclusive\n");
+      sprintf(part,"       inclusive         exclusive\n");
       strcat(heading,part);
       fprintf(output, "%s", heading);
       for (i=0; i<MAX_NAME_LENGTH; i++){
@@ -214,6 +241,7 @@ void CTF_timer::exit(){
           }
         }
       }
+      MPI_Bcast(&len_symbols, 1, MPI_INT, 0, comm);
       MPI_Bcast(all_symbols, len_symbols, MPI_CHAR, 0, comm);
       j=0;
       while (j<len_symbols){
@@ -232,19 +260,21 @@ void CTF_timer::exit(){
       function_timers[i].print(output,comm,rank,np);
     }
     
-    if (rank == 0){
+/*    if (rank == 0){
       fclose(output);
-    } 
+    } */
+    function_timers.clear();
     
   }
+#endif
 }
 
-void CTF_set_main_args(int argc, char ** argv){
+void CTF_set_main_args(int argc, char * const * argv){
   main_argv = argv;
   main_argc = argc;
 }
 
-void CTF_set_context(int const ctxt){
-  if (ctxt == 0) comm = MPI_COMM_WORLD;
-  else comm = ctxt;
+void CTF_set_context(MPI_Comm ctxt){
+  set_contxt = 1;
+  comm = ctxt;
 }

@@ -16,7 +16,7 @@
  */
 template<typename dtype>
 ctr_virt<dtype>::~ctr_virt() {
-  free(virt_dim);
+  CTF_free(virt_dim);
   delete rec_ctr;
 }
 
@@ -28,7 +28,7 @@ ctr_virt<dtype>::ctr_virt(ctr<dtype> * other) : ctr<dtype>(other) {
   ctr_virt<dtype> * o   = (ctr_virt<dtype>*)other;
   rec_ctr       = o->rec_ctr->clone();
   num_dim       = o->num_dim;
-  virt_dim      = (int*)malloc(sizeof(int)*num_dim);
+  virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
   memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
   ndim_A        = o->ndim_A;
@@ -106,9 +106,7 @@ void ctr_virt<dtype>::run(){
     idx_arr = (int*)this->buffer;
   } else {
     alloced = 1;
-    ret = posix_memalign((void**)&idx_arr,
-                         ALIGN_BYTES,
-                         mem_fp());
+    ret = CTF_alloc_ptr(mem_fp(), (void**)&idx_arr);
     LIBT_ASSERT(ret==0);
   }
 
@@ -138,7 +136,7 @@ do {                                                                    \
 #undef SET_LDA_X
  
   /* dynammically determined size */ 
-  beta_arr = (int*)malloc(sizeof(int)*nb_C);
+  beta_arr = (int*)CTF_alloc(sizeof(int)*nb_C);
   memset(beta_arr, 0, nb_C*sizeof(int));
 #if (VIRT_NTD>1)
 #pragma omp parallel private(off_A,off_B,off_C,tidx_arr,i) 
@@ -208,10 +206,10 @@ do {                                                                    \
     }
   }
   if (alloced){
-    free(idx_arr);
+    CTF_free(idx_arr);
     this->buffer = NULL;
   }
-  free(beta_arr);
+  CTF_free(beta_arr);
   TAU_FSTOP(ctr_virt);
 }
 

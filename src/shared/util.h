@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <algorithm>
+#include <list>
 #include <vector>
 #include <complex>
 #include <unistd.h>
@@ -18,12 +19,10 @@
 #ifdef PROFILE
 #define TAU
 #endif
-
-#ifdef TAU
-#include "tau.h"
-#endif
+#include "timer.h"
 
 #define USE_OMP
+//#define USE_MST
 
 typedef int64_t long_int;
 volatile static long_int long_int_max = INT64_MAX;
@@ -295,6 +294,36 @@ void __CM(const int     end,
 #define SUM_CRIT_TIME(cdt, p)
 #endif
 
+#define MST_ALIGN_BYTES ALIGN_BYTES
+
+/*class CTF_mst {
+
+  public:
+    CTF_mst(int64_t size);
+    ~CTF_mst();
+
+    void alloc(int const len);
+
+
+}*/
+
+struct mem_transfer {
+  void * old_ptr;
+  void * new_ptr;
+};
+
+std::list<mem_transfer> CTF_contract_mst();
+int CTF_alloc_ptr(int const len, void ** const ptr);
+int CTF_mst_alloc_ptr(int const len, void ** const ptr);
+void * CTF_alloc(int const len);
+void * CTF_mst_alloc(int const len);
+int CTF_free(void * ptr, int const tid);
+int CTF_free(void * ptr);
+int CTF_untag_mem(void * ptr);
+int CTF_free_cond(void * ptr);
+void CTF_mem_create();
+void CTF_mst_create(int64_t size);
+void CTF_mem_exit(int rank);
 
 void cdgemm(const char transa,  const char transb,
             const int m,        const int n,

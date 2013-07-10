@@ -10,18 +10,12 @@
 #include <algorithm>
 #include <ctf.hpp>
 
-void sym3(int const  n,
-          char const *dir){
+int  sym3(int const     n,
+          CTF_World    &ctf){
   int rank, i, num_pes;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
-
-  if (rank == 0)
-    printf("n = %d\n", n);
-
-
-  CTF_World ctf;
 
   int len[] = {n,n,n,n,n,n};
   int ANNN[] = {AS,NS,NS,NS};
@@ -101,9 +95,18 @@ void sym3(int const  n,
   CA["abcijk"] -= CN["cabkij"];
 
   double nrm = CA.reduce(CTF_OP_SQNRM2);
-  if (rank == 0)  printf("Norm of answer should be 0, computed is %lf\n", nrm);
+  int pass = (nrm <=1.E-6);
+  
+  if (rank == 0){
+    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+    if (pass) printf("{ CA[\"abcijk\"] = AA[\"abim\"]*BN[\"mcjk\"] } passed\n");
+    else      printf("{ CA[\"abcijk\"] = AA[\"abim\"]*BN[\"mcjk\"] } failed\n");
+  } else 
+    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  return pass;
 }
 
+#ifndef TEST_SUITE
 char* getCmdOption(char ** begin,
                    char ** end,
                    const   std::string & option){
@@ -118,7 +121,6 @@ char* getCmdOption(char ** begin,
 int main(int argc, char ** argv){
   int rank, np, n;
   int const in_num = argc;
-  char dir[120];
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -130,12 +132,16 @@ int main(int argc, char ** argv){
     if (n < 0) n = 7;
   } else n = 7;
 
-  if (rank == 0){
-    printf("Computing C_ijklmn = A_ijk*B_lmn\n");
+  {
+    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    if (rank == 0){
+      printf("Computing C_ijklmn = A_ijk*B_lmn\n");
+    }
+    int pass = sym3(n, dw);
+    assert(pass);
   }
-  sym3(n, dir);
   
   MPI_Finalize();
   return 0;
- }
-
+}
+#endif

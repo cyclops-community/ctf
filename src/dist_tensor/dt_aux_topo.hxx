@@ -55,8 +55,8 @@ void fold_torus(topology *              topo,
   for (i=0; i<ndim; i++){
     /* WARNING: need to deal with nasty stuff in transpose when j-i > 1 */
     for (j=i+1; j<MIN(i+2,ndim); j++){
-      get_buffer_space((ndim-1)*sizeof(CommData_t*),    (void**)&comm_arr);
-      get_buffer_space(sizeof(CommData_t),              (void**)&new_comm);
+      CTF_alloc_ptr((ndim-1)*sizeof(CommData_t*),    (void**)&comm_arr);
+      CTF_alloc_ptr(sizeof(CommData_t),              (void**)&new_comm);
       if (glb_comm != NULL){
         rank = topo->dim_comm[j]->rank*topo->dim_comm[i]->np + topo->dim_comm[i]->rank;
         /* Reorder the lda, bring j lda to lower lda and adjust other ldas */

@@ -58,14 +58,12 @@ void strp_tsr<dtype>::run(int const dir){
       alloced = 0;
     } else {
       alloced = 1;
-      ret = posix_memalign((void**)&buffer,
-                           ALIGN_BYTES,
-                           mem_fp());
+      ret = CTF_alloc_ptr(mem_fp(), (void**)&this->buffer);
       LIBT_ASSERT(ret==0);
     }
   } 
-  idx_arr = (int*)malloc(sizeof(int)*ndim);
-  lda = (int*)malloc(sizeof(int)*ndim);
+  idx_arr = (int*)CTF_alloc(sizeof(int)*ndim);
+  lda = (int*)CTF_alloc(sizeof(int)*ndim);
   memset(idx_arr, 0, sizeof(int)*ndim);
 
   ilda = 1, toff = 0;
@@ -102,12 +100,12 @@ void strp_tsr<dtype>::run(int const dir){
 
   if (dir == 1) {
     if (alloced){
-      free(buffer);
+      CTF_free(buffer);
       buffer = NULL;
     }
   }
-  free(idx_arr);
-  free(lda);
+  CTF_free(idx_arr);
+  CTF_free(lda);
   TAU_FSTOP(strp_tsr);
 }
 
@@ -118,7 +116,7 @@ void strp_tsr<dtype>::run(int const dir){
 template<typename dtype>
 void strp_tsr<dtype>::free_exp(){
   if (alloced){
-    free(buffer);
+    CTF_free(buffer);
     buffer = NULL;
   }
 }

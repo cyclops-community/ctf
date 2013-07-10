@@ -17,6 +17,7 @@
  *                                                       *
  *********************************************************/
 #include "mpi.h"
+#include "util.h"
 
 //typedef MPI_Comm COMM;
 
@@ -41,7 +42,7 @@ do {                                    \
     _cdt->nreq  = 10;                   \
     _cdt->nbcast = 10;                  \
     _cdt->req = (MPI_Request*)          \
-        malloc(sizeof(MPI_Request)*10); \
+        CTF_alloc(sizeof(MPI_Request)*10); \
 } while (0)
     
 #define RINIT_COMM(numPes, myRank, nr, nb, cdt)                 \
@@ -58,7 +59,7 @@ do {                                    \
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);                       \
   cdt->alive = 1;                                               \
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);                       \
-  cdt->req = (MPI_Request*)malloc(sizeof(MPI_Request)*nr);      \
+  cdt->req = (MPI_Request*)CTF_alloc(sizeof(MPI_Request)*nr);      \
   cdt->cm = MPI_COMM_WORLD;                                     \
   cdt->np = numPes;                                             \
   cdt->rank = myRank;                                           \
@@ -73,7 +74,7 @@ do {                                    \
 #define SETUP_SUB_COMM(cdt_master, cdt, commrank, bcolor, p, nr, nb)    \
   do {                                                                  \
   cdt->alive    = 1;                                                    \
-  cdt->req      = (MPI_Request*)malloc(sizeof(MPI_Request)*nr);         \
+  cdt->req      = (MPI_Request*)CTF_alloc(sizeof(MPI_Request)*nr);         \
   cdt->nreq     = nr;                                                   \
   cdt->nbcast   = nb;                                                   \
   cdt->rank     = commrank;                                             \
@@ -219,7 +220,7 @@ do {                                    \
 #define FREE_CDT(cdt)                           \
   do {                                          \
   if (cdt->alive == 1){                         \
-    free(cdt->req);                             \
+    CTF_free(cdt->req);                         \
     if (cdt->cm != MPI_COMM_WORLD)              \
       MPI_Comm_free(&(cdt->cm));                \
     cdt->alive = 0;                             \

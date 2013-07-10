@@ -9,7 +9,8 @@
 #include <algorithm>
 #include <ctf.hpp>
 
-void trace(int const  n){
+int trace(int const     n,
+          CTF_World    &dw){
   int rank, i, num_pes;
   int64_t np;
   double * pairs;
@@ -18,11 +19,6 @@ void trace(int const  n){
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
-  CTF_World dw;
-
-
-  if (rank == 0)
-    printf("Starting matrix cyclic trace test\n");
 
   CTF_Matrix A(n, n, NS, dw);
   CTF_Matrix B(n, n, NS, dw);
@@ -71,28 +67,36 @@ void trace(int const  n){
   tr3 = DIAG.reduce(CTF_OP_SUM);
   DIAG["i"] = C4["ii"];
   tr4 = DIAG.reduce(CTF_OP_SUM);
-  
+ 
+  int pass = 1; 
   if (rank == 0){
-    printf("tr(ABCD)=%lf, tr(DABC)=%lf, tr(CDAB)=%lf, tr(BCDA)=%lf\n",
-            tr1, tr2, tr3, tr4);
+    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+/*    printf("tr(ABCD)=%lf, tr(DABC)=%lf, tr(CDAB)=%lf, tr(BCDA)=%lf\n",
+            tr1, tr2, tr3, tr4);*/
     if (fabs(tr1-tr2)/tr1>1.E-6 || fabs(tr2-tr3)/tr2>1.E-6 || fabs(tr3-tr4)/tr3>1.E-6){
-      printf("FAILED MATRIX TEST: trace not preserved in cyclic permutation\n");
-    } else {
-      printf("PASSED MATRIX TEST: trace preserved during cyclic permutation\n");
+      pass = 0;
     }
-  }
+    if (!pass){
+      printf("{ tr(ABCD) = tr(DABC) = tr(CDAB) = tr(BCDA) } failed\n");
+    } else {
+      printf("{ tr(ABCD) = tr(DABC) = tr(CDAB) = tr(BCDA) } passed\n");
+    }
+  } else 
+    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  return pass;
   
 } 
 
 
+#ifndef TEST_SUITE
 char* getCmdOption(char ** begin,
                  char ** end,
                  const   std::string & option){
-char ** itr = std::find(begin, end, option);
-if (itr != end && ++itr != end){
-  return *itr;
-}
-return 0;
+  char ** itr = std::find(begin, end, option);
+  if (itr != end && ++itr != end){
+    return *itr;
+  }
+  return 0;
 }
 
 
@@ -111,12 +115,16 @@ int main(int argc, char ** argv){
   } else n = 7;
 
 
-  if (rank == 0){
-    printf("Checking trace calculation n = %d, p = %d:\n",n,np);
+  {
+    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    if (rank == 0){
+      printf("Checking trace calculation n = %d, p = %d:\n",n,np);
+    }
+    int pass = trace(n,dw);
+    assert(pass);
   }
-  trace(n);
 
   MPI_Finalize();
   return 0;
 }
-
+#endif

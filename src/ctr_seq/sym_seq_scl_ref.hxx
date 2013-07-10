@@ -28,10 +28,10 @@ int sym_seq_scl_ref( dtype const        alpha,
   inv_idx(ndim_A,       idx_map_A,
           &idx_max,     &rev_idx_map);
 
-  dlen_A = (int*)malloc(sizeof(int)*ndim_A);
+  dlen_A = (int*)CTF_alloc(sizeof(int)*ndim_A);
   memcpy(dlen_A, edge_len_A, sizeof(int)*ndim_A);
 
-  idx_glb = (int*)malloc(sizeof(int)*idx_max);
+  idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
   memset(idx_glb, 0, sizeof(int)*idx_max);
 
 
@@ -66,8 +66,8 @@ int sym_seq_scl_ref( dtype const        alpha,
     if (ndim_A > 0)
       RESET_IDX(A);
   }
-  free(dlen_A);
-  free(idx_glb);
+  CTF_free(dlen_A);
+  CTF_free(idx_glb);
   TAU_FSTOP(sym_seq_sum_ref);
   return 0;
 }

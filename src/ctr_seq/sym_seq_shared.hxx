@@ -40,7 +40,7 @@ void inv_idx(int const          ndim_A,
   }
   dim_max++;
   *ndim_tot = dim_max;
-  *idx_arr = (int*)malloc(sizeof(int)*3*dim_max);
+  *idx_arr = (int*)CTF_alloc(sizeof(int)*3*dim_max);
   std::fill((*idx_arr), (*idx_arr)+3*dim_max, -1);  
 
   for (i=0; i<ndim_A; i++){
@@ -81,7 +81,7 @@ void inv_idx(int const          ndim_A,
   }
   dim_max++;
   *ndim_tot = dim_max;
-  *idx_arr = (int*)malloc(sizeof(int)*2*dim_max);
+  *idx_arr = (int*)CTF_alloc(sizeof(int)*2*dim_max);
   std::fill((*idx_arr), (*idx_arr)+2*dim_max, -1);  
 
   for (i=0; i<ndim_A; i++){
@@ -115,7 +115,7 @@ void inv_idx(int const          ndim_A,
   }
   dim_max++;
   *ndim_tot = dim_max;
-  *idx_arr = (int*)malloc(sizeof(int)*dim_max);
+  *idx_arr = (int*)CTF_alloc(sizeof(int)*dim_max);
   std::fill((*idx_arr), (*idx_arr)+dim_max, -1);  
 
   for (i=0; i<ndim_A; i++){
@@ -143,7 +143,7 @@ do{                                                                             
 do {                                                \
         sym_pass = 1;                               \
         for (i=0; i<ndim_##__X; i++){               \
-          if ((sym_##__X[i] & 0x2) == 0x2){         \
+          if (sym_##__X[i] == AS || sym_##__X[i] == SH){         \
             if (idx_glb[idx_map_##__X[i+1]] <=      \
                       idx_glb[idx_map_##__X[i]]) {  \
               sym_pass = 0;                         \

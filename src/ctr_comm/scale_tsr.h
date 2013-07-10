@@ -16,7 +16,7 @@ class scl {
     virtual long_int mem_fp() { return 0; };
     virtual scl * clone() { return NULL; };
     
-    virtual ~scl(){ if (buffer != NULL) free(buffer); }
+    virtual ~scl(){ if (buffer != NULL) CTF_free(buffer); }
     scl(scl * other);
     scl(){ buffer = NULL; }
 };

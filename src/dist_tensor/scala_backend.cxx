@@ -151,7 +151,7 @@ int dist_tensor<dtype>::load_matrix
   int myprow, mypcol, i, j;
   int brow, bcol, has_el, nrep, mbrow, mbcol;
   topology * topo;
-  tensor<dtype> * tsr = (tensor<dtype>*)malloc(sizeof(tensor<dtype>));
+  tensor<dtype> * tsr = (tensor<dtype>*)CTF_alloc(sizeof(tensor<dtype>));
   ctxt = DESC[1];
   dnrow = DESC[2];
   dncol = DESC[3];
@@ -169,9 +169,8 @@ int dist_tensor<dtype>::load_matrix
   if (bcol * mypcol >= dncol) mbcol = 0;
   else mbcol = bcol;
 
-  //printf("brow = %d bcol = %d mbrow = %d mbcol = %d nprow = %d npcol = %d\n",
-        //  brow, bcol, mbrow, mbcol, nprow, npcol);
- 
+//  printf("brow = %d bcol = %d mbrow = %d mbcol = %d nprow = %d npcol = %d\n",
+//          brow, bcol, mbrow, mbcol, nprow, npcol);
 
   has_el = mbrow*mbcol > 0 ? 1 : 0;
 
@@ -194,10 +193,12 @@ int dist_tensor<dtype>::load_matrix
   }
   nprow = MAX(1,nprow/nrep);
   myprow = myprow % nprow;
+  //printf("brow = %d, nprow = %d dnrow = %d\n", brow, nprow, dnrow);
   if (brow != dnrow / nprow)
     nrow = brow * nprow;
   else
     nrow = dnrow;
+  //printf("bcol = %d, npcol = %d dncol = %d\n", bcol, npcol, dncol);
   if (bcol != dncol / npcol)
     ncol = bcol * npcol;
   else
@@ -212,27 +213,32 @@ int dist_tensor<dtype>::load_matrix
   tsr->is_folded = 0;
   tsr->is_inner_mapped = 0;
   tsr->is_padded = 1;
-  tsr->padding = (int*)malloc(sizeof(int)*2);
+  tsr->is_scp_padded = 1;
+  tsr->padding = (int*)CTF_alloc(sizeof(int)*2);
   tsr->padding[0] = 0;
   tsr->padding[1] = 0;
+  tsr->scp_padding = (int*)CTF_alloc(sizeof(int)*2);
+  tsr->scp_padding[0] = 0;
+  tsr->scp_padding[1] = 0;
 
 
-  if (need_free != NULL && mbrow*mbcol != 0){
+  if (1){//mbrow*mbcol != 0){//need_free != NULL && ){
     if (nrow != dnrow && myprow == nprow-1){
-      tsr->padding[0] = nrow - dnrow;
+      tsr->scp_padding[0] = nrow - dnrow;
     }
     if (ncol != dncol && mypcol == npcol-1){
-      tsr->padding[1] = ncol - dncol;
+      tsr->scp_padding[1] = ncol - dncol;
     }
   }
 
 
   tsr->is_data_aliased  = 0;
   tsr->need_remap       = 0;
+  tsr->has_zero_edge_len  = 0;
   tsr->size = (((long_int)nrow*(long_int)ncol)*nrep)/global_comm->np;
   LIBT_ASSERT(tsr->size == brow*bcol);
   if (need_free == NULL){
-    get_buffer_space(tsr->size*sizeof(dtype), (void**)&tsr->data);
+    CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
     if (mbrow*mbcol == 0){
       std::fill(tsr->data, tsr->data+tsr->size, get_zero<dtype>());
     } else {
@@ -240,27 +246,30 @@ int dist_tensor<dtype>::load_matrix
     }
   } else {
     if (mbrow*mbcol == 0){
-      get_buffer_space(tsr->size*sizeof(dtype), (void**)&tsr->data);
+      CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
       std::fill(tsr->data, tsr->data+tsr->size, get_zero<dtype>());
     } else {
       tsr->data = DATA;
     }
   }
   if (need_free != NULL && mbrow*mbcol != 0 && 
-      (tsr->padding[0] != 0 || tsr->padding[1] != 0)){
-    get_buffer_space(tsr->size*sizeof(dtype), (void**)&tsr->data);
+      (tsr->scp_padding[0] != 0 || tsr->scp_padding[1] != 0)){
+    CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
     std::fill(tsr->data, tsr->data+tsr->size, get_zero<dtype>());
-    for (i=0; i<bcol-tsr->padding[1]; i++){
-      for (j=0; j<brow-tsr->padding[0]; j++){
-        tsr->data[i*brow+j] = DATA[i*(brow-tsr->padding[0])+j];
+    for (i=0; i<bcol-tsr->scp_padding[1]; i++){
+      for (j=0; j<brow-tsr->scp_padding[0]; j++){
+        tsr->data[i*brow+j] = DATA[i*(brow-tsr->scp_padding[0])+j];
       }
     }
   }
   tsr->ndim = 2;
-  tsr->edge_len = (int*)malloc(sizeof(int)*2);
-  tsr->sym = (int*)malloc(sizeof(int)*2);
-  tsr->sym_table = (int*)calloc(4*sizeof(int),1);
-  tsr->edge_map  = (mapping*)malloc(sizeof(mapping)*2);
+  tsr->edge_len = (int*)CTF_alloc(sizeof(int)*2);
+  tsr->sym = (int*)CTF_alloc(sizeof(int)*2);
+  tsr->sym_table = (int*)CTF_alloc(4*sizeof(int));
+  for (i=0; i<4; i++){
+    tsr->sym_table[i] = 0;
+  }
+  tsr->edge_map  = (mapping*)CTF_alloc(sizeof(mapping)*2);
 
   tsr->edge_len[0] = nrow;
   tsr->edge_len[1] = ncol;
@@ -374,13 +383,13 @@ int dist_tensor<dtype>::load_matrix
       printf("WARNING: Creating new topology with nrep = %d!\n", nrep);
     CommData_t ** phys_comm; 
     if (nrep > 1 && nrow > 1 && ncol > 1){
-      phys_comm = (CommData_t**)malloc(3*sizeof(CommData_t*));
-      phys_comm[2] = (CommData_t*)malloc(sizeof(CommData_t));
+      phys_comm = (CommData_t**)CTF_alloc(3*sizeof(CommData_t*));
+      phys_comm[2] = (CommData_t*)CTF_alloc(sizeof(CommData_t));
     }
     else
-      phys_comm = (CommData_t**)malloc(2*sizeof(CommData_t*));
-    phys_comm[0] = (CommData_t*)malloc(sizeof(CommData_t));
-    phys_comm[1] = (CommData_t*)malloc(sizeof(CommData_t));
+      phys_comm = (CommData_t**)CTF_alloc(2*sizeof(CommData_t*));
+    phys_comm[0] = (CommData_t*)CTF_alloc(sizeof(CommData_t));
+    phys_comm[1] = (CommData_t*)CTF_alloc(sizeof(CommData_t));
     if (nrep > 1 && nrow > 1 && ncol > 1){
       int irep = (global_comm->rank - myprow - mypcol*nprow*nrep)/nprow;
       int srep = mypcol*nprow+myprow;
@@ -465,13 +474,14 @@ int dist_tensor<dtype>
   ret = load_matrix(C, DESCC, &tid_C, need_free + 2);
   if (ret != DIST_TENSOR_SUCCESS) return ret;
 
+
   ct.tid_A = tid_A;
   ct.tid_B = tid_B;
   ct.tid_C = tid_C;
 
-  ct.idx_map_A = (int*)malloc(sizeof(int)*2);
-  ct.idx_map_B = (int*)malloc(sizeof(int)*2);
-  ct.idx_map_C = (int*)malloc(sizeof(int)*2);
+  ct.idx_map_A = (int*)CTF_alloc(sizeof(int)*2);
+  ct.idx_map_B = (int*)CTF_alloc(sizeof(int)*2);
+  ct.idx_map_C = (int*)CTF_alloc(sizeof(int)*2);
   ct.idx_map_C[0] = 1;
   ct.idx_map_C[1] = 2;
   herm_A = 0;
