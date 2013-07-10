@@ -387,10 +387,10 @@ class tCTF{
     int get_max_abs(int const tid, int const n, dtype * data);
 
     /* Prints a tensor on one processor. */
-    int print_tensor(FILE * stream, int const tid, double cutoff = 0.0);
+    int print_tensor(FILE * stream, int const tid, double cutoff = -1.0);
 
     /* Compares two tensors on one processor. */
-    int compare_tensor(FILE * stream, int const tid_A, int const tid_B, double cutoff = 0.0);
+    int compare_tensor(FILE * stream, int const tid_A, int const tid_B, double cutoff = -1.0);
 
     /* Prints contraction type. */
     int print_ctr(CTF_ctr_type_t const * ctype,
