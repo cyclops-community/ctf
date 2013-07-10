@@ -36,13 +36,20 @@ volatile static long_int long_int_max = INT64_MAX;
 #define ENABLE_ASSERT 0
 #endif
 #endif
-#ifndef HOPPER
+#ifdef _SC_PHYS_PAGES
 inline
 uint64_t getTotalSystemMemory()
 {
   uint64_t pages = (uint64_t)sysconf(_SC_PHYS_PAGES);
   uint64_t page_size = (uint64_t)sysconf(_SC_PAGE_SIZE);
   return pages * page_size;
+}
+#else
+inline
+uint64_t getTotalSystemMemory()
+{
+  //Assume system memory is 1 GB
+  return ((uint64_t)1)<<30;
 }
 #endif
 
