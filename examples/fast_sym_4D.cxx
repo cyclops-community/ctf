@@ -21,10 +21,8 @@ int fast_sym_4D(int const     n,
   int len4[] = {n,n,n,n};
   int len5[] = {n,n,n,n,n};
   int NNN[] = {NS,NS,NS};
-  int NNNN[] = {NS,NS,NS,NS};
   int HNNN[] = {SH,NS,NS,NS};
   int YYNNN[] = {SY,SY,NS,NS,NS};
-  int YYNNNN[] = {SY,SY,NS,NS,NS,NS};
 
   CTF_Tensor A(4, len4, HNNN, ctf);
   CTF_Tensor B(4, len4, HNNN, ctf);
@@ -39,9 +37,9 @@ int fast_sym_4D(int const     n,
   CTF_Tensor Cs(3, len3, NNN, ctf);
 
   {
-    long long * indices;
+    int64_t * indices;
     double * values;
-    long long size;
+    int64_t size;
     srand48(173*rank);
 
     A.get_local_data(&size, &indices, &values);

@@ -41,7 +41,7 @@ enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SQNRM2,
 #endif
 
 
-typedef long long long_int;
+typedef int64_t long_int;
 typedef long_int key;
 
 /* Force redistributions always by setting to 1 (use 2.5D algorithms) */

@@ -22,7 +22,7 @@
 #define SH 3
 #endif
 
-typedef long long lont_int;
+typedef int64_t lont_int;
 
 /**
  * \brief reduction types for tensor data (enum actually defined in ../src/dist_tensor/cyclopstf.hpp)

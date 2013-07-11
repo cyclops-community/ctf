@@ -1606,7 +1606,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
                                      fseq_tsr_sum<dtype> const  ftsr,
                                      fseq_elm_sum<dtype> const  felm,
                                      int const                  run_diag){
-  int ret, new_tid;
+  int ret;
   tensor<dtype> * tsr_A, * tsr_B;
   CTF_sum_type_t type;
   type.tid_A = tid_A;
@@ -1630,6 +1630,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     return ret;
   #endif
 #else
+  int new_tid;
   if (tsr_A->has_zero_edge_len || 
       tsr_B->has_zero_edge_len){
     return DIST_TENSOR_SUCCESS;
@@ -2083,9 +2084,8 @@ int dist_tensor<dtype>::
 #else
   int ret, new_tid;
   int was_home_A, was_home_B, was_home_C;
-  int was_padded_A, was_padded_B, was_padded_C;
-  int was_cyclic_A, was_cyclic_B, was_cyclic_C;
-  long_int old_size_A, old_size_B, old_size_C;
+  int was_padded_C, was_cyclic_C;
+  long_int old_size_C;
   int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
   int * old_padding_C, * old_edge_len_C;
   tensor<dtype> * tsr_A, * tsr_B, * tsr_C;

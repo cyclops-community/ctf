@@ -9,8 +9,8 @@ int test_dft_3D(int const     n,
                 cCTF_World    &wrld){
   int myRank, numPes;
   int i, j;
-  long long  np;
-  long long * idx;
+  int64_t  np;
+  int64_t * idx;
   std::complex<double> * data;
   std::complex<double> imag(0,1);
   
@@ -93,7 +93,7 @@ int test_dft_3D(int const     n,
  */
 int main(int argc, char ** argv){
   int logn;
-  long long n;
+  int64_t n;
   MPI_Init(&argc, &argv);
 
   if (argc > 1){

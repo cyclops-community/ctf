@@ -347,13 +347,13 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
   int j = 0;
   for (it=tfs.begin(); it!=tfs.end(); it++){
     j++;
-    for (i=0; i<dt->get_tensors()->size(); i++){
+    for (i=0; i<(int)dt->get_tensors()->size(); i++){
       if ((*dt->get_tensors())[i]->data == (dtype*)it->old_ptr){
         (*dt->get_tensors())[i]->data = (dtype*)it->new_ptr;
         break;
       }
     }
-    if (i == dt->get_tensors()->size()){
+    if (i == (int)dt->get_tensors()->size()){
       printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
       LIBT_ASSERT(0);
       return DIST_TENSOR_ERROR;

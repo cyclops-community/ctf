@@ -4,11 +4,11 @@
 #include <assert.h>
 #include <stdlib.h>
   
-int test_dft(long long const  n,
+int test_dft(int64_t const  n,
              cCTF_World    &wrld){
   int numPes, myRank;
-  long long  np, i;
-  long long * idx;
+  int64_t  np, i;
+  int64_t * idx;
   std::complex<double> * data;
   std::complex<double> imag(0,1);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
@@ -78,7 +78,7 @@ int test_dft(long long const  n,
  */
 int main(int argc, char ** argv){
   int myRank, numPes, logn;
-  long long n;
+  int64_t n;
   
   MPI_Init(&argc, &argv);
 

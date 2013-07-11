@@ -24,7 +24,7 @@
 #define USE_OMP
 //#define USE_MST
 
-typedef long long long_int;
+typedef int64_t long_int;
 volatile static long_int long_int_max = INT64_MAX;
 //doesn't work with OpenMPI
 //volatile static long_int mpi_long_int = MPI_LONG_LONG_INT;

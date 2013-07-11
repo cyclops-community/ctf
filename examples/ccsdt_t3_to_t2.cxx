@@ -15,9 +15,9 @@ int ccsdt_t3_to_t2(int const     n,
                    CTF_World    &dw){
 
   int rank, i, num_pes;
-  long long np;
+  int64_t np;
   double * pairs;
-  long long * indices;
+  int64_t * indices;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);

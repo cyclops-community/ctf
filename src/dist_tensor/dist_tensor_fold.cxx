@@ -182,7 +182,7 @@ void permute_target(int const   ndim,
                     int const   ndim_perm,
                     int const * perm,
                     int *       arr){
-  int i, j;
+  int i;
   int * swap;
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&swap);
 

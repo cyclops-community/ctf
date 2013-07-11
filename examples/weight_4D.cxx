@@ -18,9 +18,9 @@ int weight_4D(int const    n,
               int const    sym,
               CTF_World   &dw){
   int rank, i, num_pes;
-  long long np, np_A;
+  int64_t np, np_A;
   double * pairs, * post_pairs_C, * pairs_A;
-  long long * indices, * indices_A;
+  int64_t * indices, * indices_A;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
