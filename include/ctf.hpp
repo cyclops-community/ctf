@@ -22,6 +22,8 @@
 #define SH 3
 #endif
 
+typedef long long lont_int;
+
 /**
  * \brief reduction types for tensor data (enum actually defined in ../src/dist_tensor/cyclopstf.hpp)
  */
@@ -178,8 +180,8 @@ class tCTF_Tensor {
      * \param[in] global_idx index within global tensor of each value to fetch
      * \param[in,out] data a prealloced pointer to the data with the specified indices
      */
-    void get_remote_data(int64_t const    npair, 
-                         int64_t const *  global_idx, 
+    void get_remote_data(long_int const    npair, 
+                         long_int const *  global_idx, 
                          dtype *          data) const;
     
     /**
@@ -188,8 +190,8 @@ class tCTF_Tensor {
      * \param[in] global_idx global index within tensor of value to write
      * \param[in] data values to  write to the indices
      */
-    void write_remote_data(int64_t const   npair, 
-                           int64_t const * global_idx, 
+    void write_remote_data(long_int const   npair, 
+                           long_int const * global_idx, 
                            dtype const   * data);
    
     /**
@@ -258,14 +260,14 @@ class tCTF_Tensor {
      * \param[out] size of local data chunk
      * \return pointer to local data
      */
-    dtype * get_raw_data(int64_t * size);
+    dtype * get_raw_data(long_int * size);
 
     /**
      * \brief gives a read-only copy of the raw current local data with padding included
      * \param[out] size of local data chunk
      * \return pointer to read-only copy of local data
      */
-    const dtype * raw_data(int64_t * size) const;
+    const dtype * raw_data(long_int * size) const;
 
     /**
      * \brief gives the global indices and values associated with the local data
@@ -273,8 +275,8 @@ class tCTF_Tensor {
      * \param[out] global_idx index within global tensor of each data value
      * \param[out] data pointer to local values in the order of the indices
      */
-    void get_local_data(int64_t *   npair, 
-                        int64_t **  global_idx, 
+    void get_local_data(long_int *   npair, 
+                        long_int **  global_idx, 
                         dtype **    data) const;
 
     /**
@@ -282,7 +284,7 @@ class tCTF_Tensor {
      * \param[out] npair number of values in the tensor
      * \param[out] data pointer to the data of the entire tensor
      */
-    void get_all_data(int64_t * npair, 
+    void get_all_data(long_int * npair, 
                       dtype **  data) const;
 
     /**
@@ -293,10 +295,10 @@ class tCTF_Tensor {
      * \param[in] global_idx global index within tensor of value to add
      * \param[in] data values to add to the tensor
      */
-    void add_remote_data(int64_t const    npair, 
+    void add_remote_data(long_int const    npair, 
                          dtype const      alpha, 
                          dtype const      beta,
-                         int64_t const *  global_idx,
+                         long_int const *  global_idx,
                          dtype const *    data);
     /**
      * \brief obtains a small number of the biggest elements of the 
