@@ -654,7 +654,7 @@ int remap_tensor(int const  tid,
   }
 #ifdef HOME_CONTRACT
   if (tsr->is_home){
-    DPRINTF(2,"Tensor %d leaving home\n", tid);
+    DPRINTF(3,"Tensor %d leaving home\n", tid);
     tsr->data = (dtype*)CTF_mst_alloc(old_size*sizeof(dtype));
     memcpy(tsr->data, tsr->home_buffer, old_size*sizeof(dtype));
     tsr->is_home = 0;

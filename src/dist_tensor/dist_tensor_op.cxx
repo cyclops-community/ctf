@@ -408,7 +408,7 @@ int dist_tensor<dtype>::
     if (was_padded)
       CTF_free(old_padding);
     CTF_free(old_edge_len);
-#if DEBUG >=2
+#if DEBUG >=1
     if (global_comm->rank == 0)
       printf("New mapping for tensor %d\n",tid);
     print_map(stdout,tid);
@@ -1677,7 +1677,8 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
   if (was_home_B) unmap_inner(ntsr_B);
 
   if (was_home_B && !ntsr_B->is_home){
-    DPRINTF(2,"Migrating tensor %d back to home\n", tid_B);
+    if (global_comm->rank == 0)
+      DPRINTF(2,"Migrating tensor %d back to home\n", tid_B);
     save_mapping(ntsr_B
                  &old_phase_B, &old_rank_B, 
                  &old_virt_dim_B, &old_pe_lda_B, 
@@ -2165,7 +2166,8 @@ int dist_tensor<dtype>::
   if (was_home_C) unmap_inner(ntsr_C);
 
   if (was_home_C && !ntsr_C->is_home){
-    DPRINTF(2,"Migrating tensor %d back to home\n", stype->tid_C);
+    if (global_comm->rank == 0)
+      DPRINTF(2,"Migrating tensor %d back to home\n", stype->tid_C);
     save_mapping(ntsr_C,
                  &old_phase_C, &old_rank_C, 
                  &old_virt_dim_C, &old_pe_lda_C, 
