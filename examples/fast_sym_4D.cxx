@@ -39,9 +39,9 @@ int fast_sym_4D(int const     n,
   CTF_Tensor Cs(3, len3, NNN, ctf);
 
   {
-    int64_t * indices;
+    long long * indices;
     double * values;
-    int64_t size;
+    long long size;
     srand48(173*rank);
 
     A.get_local_data(&size, &indices, &values);

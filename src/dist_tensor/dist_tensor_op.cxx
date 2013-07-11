@@ -1550,7 +1550,7 @@ ctr<dtype> * dist_tensor<dtype>::
   hctr->C   = tsr_C->data;
   hctr->beta  = beta;
 /*  if (global_comm->rank == 0){
-    int64_t n,m,k;
+    long_int n,m,k;
     dtype old_flops;
     dtype new_flops;
     ggg_sym_nmk(tsr_A->ndim, tsr_A->edge_len, type->idx_map_A, tsr_A->sym,
@@ -2019,7 +2019,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 
     if (nsA != nA) { printf("nsA = %lld, nA = %lld\n",nsA,nA); ABORT; }
     if (nsB != nB) { printf("nsB = %lld, nB = %lld\n",nsB,nB); ABORT; }
-    for (i=0; (uint64_t)i<nA; i++){
+    for (i=0; (ulong_int)i<nA; i++){
       if (fabs(uA[i] - sA[i]) > 1.E-6){
         printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
       }
@@ -2029,7 +2029,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
                 beta, sB, ndim_B, edge_len_B, edge_len_B, sym_B, map_B);
     assert(stat == DIST_TENSOR_SUCCESS);
 
-    for (i=0; (uint64_t)i<nB; i++){
+    for (i=0; (ulong_int)i<nB; i++){
       if (fabs(uB[i] - sB[i]) > 1.E-6){
         printf("B[%d] = %lf, sB[%d] = %lf\n", i, uB[i], i, sB[i]);
       }
@@ -2597,12 +2597,12 @@ int dist_tensor<dtype>::
 
   if (nsA != nA) { printf("nsA = %lld, nA = %lld\n",nsA,nA); ABORT; }
   if (nsB != nB) { printf("nsB = %lld, nB = %lld\n",nsB,nB); ABORT; }
-  for (i=0; (uint64_t)i<nA; i++){
+  for (i=0; (ulong_int)i<nA; i++){
     if (fabs(uA[i] - sA[i]) > 1.E-6){
       printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
     }
   }
-  for (i=0; (uint64_t)i<nB; i++){
+  for (i=0; (ulong_int)i<nB; i++){
     if (fabs(uB[i] - sB[i]) > 1.E-6){
       printf("B[%d] = %lf, sB[%d] = %lf\n", i, uB[i], i, sB[i]);
     }
@@ -2639,7 +2639,7 @@ int dist_tensor<dtype>::
         sym_C, 1, &sym_tmp, &up_ans_C);
   punpack_tsr(up_ans_C, ndim_C, edge_len_C,
         sym_C, 0, &sym_tmp, &pup_C);
-  for (i=0; (uint64_t)i<nC; i++){
+  for (i=0; (ulong_int)i<nC; i++){
     assert(fabs(pup_C[i] - ans_C[i]) < 1.E-6);
   }
   pass = 1;

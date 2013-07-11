@@ -15,9 +15,9 @@ int  gemm_4D(int const    n,
              int const    niter,
              CTF_World   &dw){
   int rank, i, num_pes;
-  int64_t np;
+  long long np;
   double * pairs, * pairs_AB, * pairs_BC;
-  int64_t * indices, * indices_AB, * indices_BC;
+  long long * indices, * indices_AB, * indices_BC;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);

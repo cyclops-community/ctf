@@ -98,7 +98,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   TAU_FSTART(CTF);
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
-  CTF_mst_create(1000*(int64_t)1E6);
+  CTF_mst_create(1000*(long_int)1E6);
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);
@@ -175,7 +175,7 @@ int tCTF<dtype>::get_symmetry(int const tensor_id, int **sym) const{
  * \param[out] data raw local data
  */
 template<typename dtype>
-int tCTF<dtype>::get_raw_data(int const tensor_id, dtype ** data, int64_t * size) {
+int tCTF<dtype>::get_raw_data(int const tensor_id, dtype ** data, long_int * size) {
   *data = dt->get_raw_data(tensor_id, size);
   return DIST_TENSOR_SUCCESS;
 }
@@ -207,7 +207,7 @@ int tCTF<dtype>::info_tensor(int const  tensor_id,
  */
 template<typename dtype>
 int tCTF<dtype>::write_tensor(int const               tensor_id, 
-                              int64_t const           num_pair,  
+                              long_int const           num_pair,  
                               tkv_pair<dtype> * const mapped_data){
   return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'w');
 }
@@ -223,7 +223,7 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
  */
 template<typename dtype>
 int tCTF<dtype>::write_tensor(int const               tensor_id, 
-                              int64_t const           num_pair,  
+                              long_int const           num_pair,  
                               dtype const             alpha,
                               dtype const             beta,
                               tkv_pair<dtype> * const mapped_data){
@@ -239,7 +239,7 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
  */
 template<typename dtype>
 int tCTF<dtype>::read_tensor(int const                tensor_id, 
-                             int64_t const            num_pair, 
+                             long_int const            num_pair, 
                              tkv_pair<dtype> * const  mapped_data){
   return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'r');
 }
@@ -253,7 +253,7 @@ int tCTF<dtype>::read_tensor(int const                tensor_id,
  */
 template<typename dtype>
 int tCTF<dtype>::allread_tensor(int const   tensor_id, 
-                                int64_t *   num_pair, 
+                                long_int *   num_pair, 
                                 dtype **    all_data){
   int ret;
   long_int np;
@@ -287,7 +287,7 @@ int tCTF<dtype>::set_zero_tensor(int const tensor_id){
  */
 template<typename dtype>
 int tCTF<dtype>::read_local_tensor(int const          tensor_id, 
-                                   int64_t *          num_pair,  
+                                   long_int *          num_pair,  
                                    tkv_pair<dtype> ** mapped_data){
   int ret;
   long_int np;

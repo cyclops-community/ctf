@@ -41,7 +41,8 @@ enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SQNRM2,
 #endif
 
 
-typedef uint64_t key;
+typedef long long long_int;
+typedef long_int key;
 
 /* Force redistributions always by setting to 1 (use 2.5D algorithms) */
 #define REDIST 0
@@ -251,19 +252,19 @@ class tCTF{
     int get_symmetry(int const tensor_id, int **sym) const;
 
     /* get raw data pointer WARNING: includes padding */
-    int get_raw_data(int const tensor_id, dtype ** data, int64_t * size);
+    int get_raw_data(int const tensor_id, dtype ** data, long_int * size);
 
     /* Input tensor data with <key, value> pairs where key is the
        global index for the value. */
     int write_tensor(int const                tensor_id,
-                     int64_t const            num_pair,
+                     long_int const            num_pair,
                      tkv_pair<dtype> * const  mapped_data);
     
     /* Add tensor data new=alpha*new+beta*old
        with <key, value> pairs where key is the 
        global index for the value. */
     int write_tensor(int const                tensor_id,
-                     int64_t const            num_pair,
+                     long_int const            num_pair,
                      dtype const              alpha,
                      dtype const              beta,
                      tkv_pair<dtype> * const  mapped_data);
@@ -272,13 +273,13 @@ class tCTF{
     /* read tensor data with <key, value> pairs where key is the
        global index for the value, which gets filled in. */
     int read_tensor(int const               tensor_id,
-                    int64_t const           num_pair,
+                    long_int const           num_pair,
                     tkv_pair<dtype> * const mapped_data);
 
     /* read entire tensor with each processor (in packed layout).
        WARNING: will use a lot of memory. */
     int allread_tensor(int const  tensor_id,
-                       int64_t *  num_pair,
+                       long_int *  num_pair,
                        dtype **   all_data);
 
 
@@ -287,7 +288,7 @@ class tCTF{
 
     /* read tensor data pairs local to processor. */
     int read_local_tensor(int const           tensor_id,
-                          int64_t *           num_pair,
+                          long_int *           num_pair,
                           tkv_pair<dtype> **  mapped_data);
 
     /* contracts tensors alpha*A*B + beta*C -> C,

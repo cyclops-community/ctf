@@ -30,7 +30,7 @@ int  sym3(int const     n,
   CTF_Tensor CN(6, len, NNNNNN, ctf);
 
   {
-    std::vector<int64_t> indices;
+    std::vector<long long> indices;
     std::vector<double> values;
     srand48(173);
 

@@ -143,7 +143,7 @@ int main(int argc, char ** argv){
   }
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)
-    printf("Testing completed, %d/%d tests passed\n", num_pass, pass.size());
+    printf("Testing completed, %d/%zu tests passed\n", num_pass, pass.size());
 
 
   MPI_Finalize();

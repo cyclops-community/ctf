@@ -343,7 +343,7 @@ int * dist_tensor<dtype>::get_sym(int const tensor_id) const {
  * \return raw local data
  */
 template<typename dtype>
-dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, int64_t * size) {
+dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, long_int * size) {
   if (tensors[tensor_id]->has_zero_edge_len){
     *size = 0;
     return NULL;

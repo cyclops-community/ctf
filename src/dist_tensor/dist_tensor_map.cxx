@@ -830,7 +830,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   uint64_t comm_vol, bcomm_vol;
 #endif
 #if BEST_VOL
-  int64_t n,m,k;
+  long_int n,m,k;
   uint64_t gnvirt;
 #endif
 #if BEST_VIRT

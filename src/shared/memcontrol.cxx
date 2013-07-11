@@ -32,13 +32,13 @@ struct mem_loc {
 #define MAX_THREADS 256
 int CTF_max_threads;
 int CTF_instance_counter = 0;
-int64_t CTF_mem_used[MAX_THREADS];
+long_int CTF_mem_used[MAX_THREADS];
 std::list<mem_loc> CTF_mem_stacks[MAX_THREADS];
 
 //application memory stack
 void * mst_buffer = 0;
-int64_t mst_buffer_size = 0;
-int64_t mst_buffer_ptr = 0;
+long_int mst_buffer_size = 0;
+long_int mst_buffer_ptr = 0;
 std::list<mem_loc> mst;
 
 std::list<mem_transfer> CTF_contract_mst(){
@@ -47,8 +47,8 @@ std::list<mem_transfer> CTF_contract_mst(){
     TAU_FSTART(CTF_contract_mst);
     std::list<mem_loc> old_mst = mst;
     void * old_mst_buffer = mst_buffer;
-    int64_t old_mst_buffer_size = mst_buffer_size;
-    int64_t old_mst_buffer_ptr = mst_buffer_ptr;
+    long_int old_mst_buffer_size = mst_buffer_size;
+    long_int old_mst_buffer_ptr = mst_buffer_ptr;
     mst_buffer_size = 0;
     mst_buffer_ptr = 0;
     mst_buffer = 0;
@@ -80,7 +80,7 @@ std::list<mem_loc> * CTF_get_mst(){
 /**
  * \brief initializes stack buffer
  */
-void CTF_mst_create(int64_t size){
+void CTF_mst_create(long_int size){
 #ifdef USE_MST
   int pm;
   void * new_mst_buffer;
@@ -121,12 +121,12 @@ void CTF_mem_exit(int rank){
         if (rank == 0){
           printf("Warning: memory leak in CTF on thread %d, %lld memory in use at termination",
                   i, CTF_mem_used[i]);
-          printf(" in %d unfreed items\n",
+          printf(" in %zu unfreed items\n",
                   CTF_mem_stacks[i].size());
         }
       }
       if (mst.size() > 0){
-        printf("Warning: %d items not deallocated from custom stack, consuming %lld memory\n",
+        printf("Warning: %zu items not deallocated from custom stack, consuming %lld memory\n",
                 mst.size(), mst_buffer_ptr);
       }
     }
@@ -138,7 +138,7 @@ void CTF_mem_exit(int rank){
  * \param[in] ptr pointer to buffer on stack
  */
 int CTF_mst_free(void * ptr){
-  LIBT_ASSERT((int64_t)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
+  LIBT_ASSERT((long_int)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
   
   std::list<mem_loc>::iterator it;
   for (it=--mst.end(); it!=mst.begin(); it--){
@@ -157,7 +157,7 @@ int CTF_mst_free(void * ptr){
     }
   }
   if (mst.size() > 0)
-    mst_buffer_ptr = (int64_t)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
+    mst_buffer_ptr = (long_int)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
   else
     mst_buffer_ptr = 0;
   //printf("freed block, mst_buffer_ptr = %lld\n", mst_buffer_ptr);
@@ -294,8 +294,8 @@ int CTF_free(void * ptr, int const tid){
   int len;
   std::list<mem_loc> * mem_stack;
 
-  if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
-      (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
+  if ((long_int)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
+      (long_int)((char*)ptr-(char*)mst_buffer) >= 0){
     return CTF_mst_free(ptr);
   }
   

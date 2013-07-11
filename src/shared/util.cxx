@@ -214,9 +214,9 @@ void __CM(const int     end,
  * \param[in] sym tensor symmetries
  * \return size of tensor in packed layout
  */
-int64_t sy_packed_size(const int ndim, const int* len, const int* sym){
+long_int sy_packed_size(const int ndim, const int* len, const int* sym){
   int i, k, mp;
-  int64_t size, tmp;
+  long_int size, tmp;
 
   if (ndim == 0) return 1;
 
@@ -254,10 +254,10 @@ int64_t sy_packed_size(const int ndim, const int* len, const int* sym){
  * \param[in] sym tensor symmetries
  * \return size of tensor in packed layout
  */
-int64_t packed_size(const int ndim, const int* len, const int* sym){
+long_int packed_size(const int ndim, const int* len, const int* sym){
 
   int i, k, mp;
-  int64_t size, tmp;
+  long_int size, tmp;
 
   if (ndim == 0) return 1;
 
