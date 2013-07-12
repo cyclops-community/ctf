@@ -750,6 +750,11 @@ void bucket_by_virt(int const               ndim,
         bucket_data+(virt_prefix[i]+virt_counts[i]));
   }
   TAU_FSTOP(bucket_by_virt_sort);
+#if DEBUG >= 1
+  for (i=1; i<num_pair; i++){
+    LIBT_ASSERT(bucket_data[i].k != bucket_data[i-1].k);
+  }
+#endif
 #ifdef USE_OMP
   CTF_free(sub_counts);
   CTF_free(sub_offs);

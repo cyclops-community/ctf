@@ -840,6 +840,21 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
   mapping * map;
   tensor<dtype> * tsr;
 
+#if DEBUG >= 1
+  int ndim, * len, * sym;
+  get_tsr_info(tensor_id, &ndim, &len, &sym);
+  long_int total_tsr_size = 1;
+  for (i=0; i<ndim; i++){
+    total_tsr_size *= len[i];
+  }
+  for (i=0; i<num_pair; i++){
+    LIBT_ASSERT(mapped_data[i].k >= 0);
+    LIBT_ASSERT(mapped_data[i].k < total_tsr_size);
+  }
+  CTF_free(len);
+  CTF_free(sym);
+#endif
+
 
   tsr = tensors[tensor_id];
   
