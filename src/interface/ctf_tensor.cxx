@@ -52,7 +52,7 @@ tCTF_Tensor<dtype>::~tCTF_Tensor(){
 }
 
 template<typename dtype>
-dtype * tCTF_Tensor<dtype>::get_raw_data(int64_t * size) {
+dtype * tCTF_Tensor<dtype>::get_raw_data(long_int * size) {
   int ret;
   dtype * data;
   ret = world->ctf->get_raw_data(tid, &data, size);
@@ -62,15 +62,15 @@ dtype * tCTF_Tensor<dtype>::get_raw_data(int64_t * size) {
 }
 
 template<typename dtype>
-void tCTF_Tensor<dtype>::get_local_data(int64_t *   npair, 
-                                        int64_t **  global_idx, 
+void tCTF_Tensor<dtype>::get_local_data(long_int *   npair, 
+                                        long_int **  global_idx, 
                                         dtype **   data) const {
   tkv_pair< dtype > * pairs;
   int ret, i;
   ret = world->ctf->read_local_tensor(tid, npair, &pairs);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   /* FIXME: careful with CTF_alloc */
-  *global_idx = (int64_t*)malloc((*npair)*sizeof(int64_t));
+  *global_idx = (long_int*)malloc((*npair)*sizeof(long_int));
   *data = (dtype*)malloc((*npair)*sizeof(dtype));
   for (i=0; i<(*npair); i++){
     (*global_idx)[i] = pairs[i].k;
@@ -81,8 +81,8 @@ void tCTF_Tensor<dtype>::get_local_data(int64_t *   npair,
 }
 
 template<typename dtype>
-void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair, 
-                                         int64_t const *  global_idx, 
+void tCTF_Tensor<dtype>::get_remote_data(long_int const    npair, 
+                                         long_int const *  global_idx, 
                                          dtype *          data) const {
   int ret, i;
   tkv_pair< dtype > * pairs;
@@ -99,8 +99,8 @@ void tCTF_Tensor<dtype>::get_remote_data(int64_t const    npair,
 }
 
 template<typename dtype>
-void tCTF_Tensor<dtype>::write_remote_data(int64_t const    npair, 
-                                           int64_t const *  global_idx, 
+void tCTF_Tensor<dtype>::write_remote_data(long_int const    npair, 
+                                           long_int const *  global_idx, 
                                            dtype const *    data) {
   int ret, i;
   tkv_pair< dtype > * pairs;
@@ -115,10 +115,10 @@ void tCTF_Tensor<dtype>::write_remote_data(int64_t const    npair,
 }
 
 template<typename dtype>
-void tCTF_Tensor<dtype>::add_remote_data(int64_t const    npair, 
+void tCTF_Tensor<dtype>::add_remote_data(long_int const    npair, 
                                          dtype const      alpha, 
                                          dtype const      beta,
-                                         int64_t const *  global_idx, 
+                                         long_int const *  global_idx, 
                                          dtype const *    data) {
   int ret, i;
   tkv_pair< dtype > * pairs;
@@ -133,7 +133,7 @@ void tCTF_Tensor<dtype>::add_remote_data(int64_t const    npair,
 }
 
 template<typename dtype>
-void tCTF_Tensor<dtype>::get_all_data(int64_t * npair, dtype ** vals) const {
+void tCTF_Tensor<dtype>::get_all_data(long_int * npair, dtype ** vals) const {
   int ret;
   ret = world->ctf->allread_tensor(tid, npair, vals);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
@@ -244,7 +244,7 @@ void tCTF_Tensor<dtype>::get_max_abs(int const  n,
 
 template<typename dtype>
 tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(const dtype val){
-  int64_t size;
+  long_int size;
   dtype* raw_data = get_raw_data(&size);
   std::fill(raw_data, raw_data+size, val);
   return *this;

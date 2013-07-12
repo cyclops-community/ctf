@@ -803,7 +803,7 @@ void zero_padding( int const          ndim,
   vend = vst+(nvirt/ntd);
   if (tid < nvirt % ntd) vend++;
   LIBT_ASSERT(tid != ntd-1 || vend == nvirt);
-  int i, imax, act_lda, act_max, buf_offset, i_st, curr_idx, sym_idx;
+  int i, act_lda, act_max, buf_offset, curr_idx, sym_idx;
   int is_outside;
   long_int p;
   int * idx, * virt_rank, * phase_rank;
@@ -822,7 +822,6 @@ void zero_padding( int const          ndim,
 
       //printf("size = %d\n", size); 
       memset(idx, 0, ndim*sizeof(int));
-      imax = edge_len[0]/phase[0];
       for (;;){
         is_outside = 0;
         for (i=0; i<ndim; i++){

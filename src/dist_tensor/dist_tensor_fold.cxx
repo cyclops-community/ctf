@@ -182,7 +182,7 @@ void permute_target(int const   ndim,
                     int const   ndim_perm,
                     int const * perm,
                     int *       arr){
-  int i, j;
+  int i;
   int * swap;
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&swap);
 
@@ -275,13 +275,13 @@ void nosym_transpose(int const          ndim,
                      int const          max_ntd,
                      dtype **           tswap_data,
                      int *              chunk_size){
-  int64_t local_size;
-  int64_t j, last_dim;
-  int64_t * lda, * new_lda;
+  long_int local_size;
+  long_int j, last_dim;
+  long_int * lda, * new_lda;
 
   TAU_FSTART(nosym_transpose_thr);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&lda);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&new_lda);
+  CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&lda);
+  CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&new_lda);
   
   if (dir){
     last_dim = new_order[ndim-1];
@@ -304,13 +304,13 @@ void nosym_transpose(int const          ndim,
   #pragma omp parallel num_threads(max_ntd)
 #endif
   {
-    int64_t i, off_old, off_new, tid, ntd, last_max, toff_new, toff_old;
-    int64_t tidx_off;
-    int64_t thread_chunk_size;
-    int64_t * idx;
+    long_int i, off_old, off_new, tid, ntd, last_max, toff_new, toff_old;
+    long_int tidx_off;
+    long_int thread_chunk_size;
+    long_int * idx;
     dtype * swap_data;
-    CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx);
-    memset(idx, 0, ndim*sizeof(int64_t));
+    CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&idx);
+    memset(idx, 0, ndim*sizeof(long_int));
 
 #ifdef USE_OMP
     tid = omp_get_thread_num();
@@ -335,7 +335,7 @@ void nosym_transpose(int const          ndim,
       off_new = idx[last_dim]*new_lda[last_dim];
       toff_old = off_old;
       toff_new = off_new;
-    //  print64_tf("%d %d %d %d %d\n", tid, ntd, idx[last_dim], last_max, edge_len[last_dim]);
+    //  prlong_intf("%d %d %d %d %d\n", tid, ntd, idx[last_dim], last_max, edge_len[last_dim]);
       thread_chunk_size = (local_size*(last_max-tidx_off))/edge_len[last_dim];
     } else {
       thread_chunk_size = local_size;

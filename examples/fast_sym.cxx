@@ -18,10 +18,7 @@ int fast_sym(int const     n,
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
   int len3[] = {n,n,n};
-  int NNN[] = {NS,NS,NS};
   int YYN[] = {SY,SY,NS};
-  int YNN[] = {SH,NS,NS};
-  int HHN[] = {SH,SH,NS};
 
   CTF_Matrix A(n, n, SH, ctf);
   CTF_Matrix B(n, n, SH, ctf);

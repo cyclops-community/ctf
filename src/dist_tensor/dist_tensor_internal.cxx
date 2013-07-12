@@ -343,7 +343,7 @@ int * dist_tensor<dtype>::get_sym(int const tensor_id) const {
  * \return raw local data
  */
 template<typename dtype>
-dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, int64_t * size) {
+dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, long_int * size) {
   if (tensors[tensor_id]->has_zero_edge_len){
     *size = 0;
     return NULL;
@@ -1417,7 +1417,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
       }
       /* Alloc and set the data to zero */
       DEBUG_PRINTF("tsr->size = nvirt = %llu * packed_size = %llu\n",
-                    (unsigned long long int)nvirt, packed_size(tsr->ndim, sub_edge_len,
+                    (unsigned int64_t int)nvirt, packed_size(tsr->ndim, sub_edge_len,
                                        tsr->sym, tsr->sym_type));
       if (global_comm->rank == 0){
         printf("Tensor %d initially mapped with virtualization factor of %llu\n",tensor_id,nvirt);
@@ -1970,7 +1970,7 @@ int dist_tensor<dtype>::check_contraction(CTF_ctr_type_t const * type){
  */
 template<typename dtype>
 int dist_tensor<dtype>::check_sum(CTF_sum_type_t const *     type){
-  check_sum(type->tid_A, type->tid_B, type->idx_map_A, type->idx_map_B);
+  return check_sum(type->tid_A, type->tid_B, type->idx_map_A, type->idx_map_B);
 }
 
 /**

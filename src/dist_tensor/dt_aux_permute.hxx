@@ -1862,7 +1862,7 @@ void block_reshuffle(int const        ndim,
                      dtype *          tsr_data,
                      dtype *&         tsr_cyclic_data,
                      CommData_t *     glb_comm){
-  int i, j, idx_lyr_new, idx_lyr_old, glb_blk_idx, blk_idx, prc_idx, loc_idx;
+  int i, idx_lyr_new, idx_lyr_old, blk_idx, prc_idx, loc_idx;
   int num_old_virt, num_new_virt;
   int * idx, * old_loc_lda, * new_loc_lda, * phase_lda;
   long_int blk_sz;

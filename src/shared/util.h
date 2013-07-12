@@ -329,7 +329,7 @@ int CTF_free(void * ptr);
 int CTF_untag_mem(void * ptr);
 int CTF_free_cond(void * ptr);
 void CTF_mem_create();
-void CTF_mst_create(int64_t size);
+void CTF_mst_create(long_int size);
 void CTF_mem_exit(int rank);
 
 void cdgemm(const char transa,  const char transb,
@@ -405,9 +405,9 @@ void print_matrix(double *M, int n, int m);
 
 //double util_dabs(double x);
 
-int64_t sy_packed_size(const int ndim, const int* len, const int* sym);
+long_int sy_packed_size(const int ndim, const int* len, const int* sym);
 
-int64_t packed_size(const int ndim, const int* len, const int* sym);
+long_int packed_size(const int ndim, const int* len, const int* sym);
 
 void factorize(int n, int *nfactor, int **factor);
 

@@ -21,7 +21,7 @@ template<typename dtype>
 tCTF_Scalar<dtype>::tCTF_Scalar(dtype const        val,
                                 tCTF_World<dtype> & world) :
   tCTF_Tensor<dtype>(0, NULL, NULL, world) {
-  int64_t s; 
+  long_int s; 
   dtype * arr;
 
   if (world.ctf->get_rank() == 0){
@@ -36,7 +36,7 @@ tCTF_Scalar<dtype>::tCTF_Scalar(dtype const        val,
  */
 template<typename dtype>
 dtype tCTF_Scalar<dtype>::get_val(){
-  int64_t s; 
+  long_int s; 
   dtype * val;
   int ret = this->world->ctf->get_raw_data(this->tid, &val, &s); 
 
@@ -51,7 +51,7 @@ dtype tCTF_Scalar<dtype>::get_val(){
  */
 template<typename dtype>
 void tCTF_Scalar<dtype>::set_val(dtype const val){
-  int64_t s; 
+  long_int s; 
   dtype * arr;
   if (this->world->ctf->get_rank() == 0){
     int ret = this->world->ctf->get_raw_data(this->tid, &arr, &s); 

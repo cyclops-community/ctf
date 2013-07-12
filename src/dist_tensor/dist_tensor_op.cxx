@@ -1550,7 +1550,7 @@ ctr<dtype> * dist_tensor<dtype>::
   hctr->C   = tsr_C->data;
   hctr->beta  = beta;
 /*  if (global_comm->rank == 0){
-    int64_t n,m,k;
+    long_int n,m,k;
     dtype old_flops;
     dtype new_flops;
     ggg_sym_nmk(tsr_A->ndim, tsr_A->edge_len, type->idx_map_A, tsr_A->sym,
@@ -1606,7 +1606,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
                                      fseq_tsr_sum<dtype> const  ftsr,
                                      fseq_elm_sum<dtype> const  felm,
                                      int const                  run_diag){
-  int ret, new_tid;
+  int ret;
   tensor<dtype> * tsr_A, * tsr_B;
   CTF_sum_type_t type;
   type.tid_A = tid_A;
@@ -1630,6 +1630,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     return ret;
   #endif
 #else
+  int new_tid;
   if (tsr_A->has_zero_edge_len || 
       tsr_B->has_zero_edge_len){
     return DIST_TENSOR_SUCCESS;
@@ -2019,7 +2020,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 
     if (nsA != nA) { printf("nsA = %lld, nA = %lld\n",nsA,nA); ABORT; }
     if (nsB != nB) { printf("nsB = %lld, nB = %lld\n",nsB,nB); ABORT; }
-    for (i=0; (uint64_t)i<nA; i++){
+    for (i=0; (ulong_int)i<nA; i++){
       if (fabs(uA[i] - sA[i]) > 1.E-6){
         printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
       }
@@ -2029,7 +2030,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
                 beta, sB, ndim_B, edge_len_B, edge_len_B, sym_B, map_B);
     assert(stat == DIST_TENSOR_SUCCESS);
 
-    for (i=0; (uint64_t)i<nB; i++){
+    for (i=0; (ulong_int)i<nB; i++){
       if (fabs(uB[i] - sB[i]) > 1.E-6){
         printf("B[%d] = %lf, sB[%d] = %lf\n", i, uB[i], i, sB[i]);
       }
@@ -2083,9 +2084,8 @@ int dist_tensor<dtype>::
 #else
   int ret, new_tid;
   int was_home_A, was_home_B, was_home_C;
-  int was_padded_A, was_padded_B, was_padded_C;
-  int was_cyclic_A, was_cyclic_B, was_cyclic_C;
-  long_int old_size_A, old_size_B, old_size_C;
+  int was_padded_C, was_cyclic_C;
+  long_int old_size_C;
   int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
   int * old_padding_C, * old_edge_len_C;
   tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
@@ -2597,12 +2597,12 @@ int dist_tensor<dtype>::
 
   if (nsA != nA) { printf("nsA = %lld, nA = %lld\n",nsA,nA); ABORT; }
   if (nsB != nB) { printf("nsB = %lld, nB = %lld\n",nsB,nB); ABORT; }
-  for (i=0; (uint64_t)i<nA; i++){
+  for (i=0; (ulong_int)i<nA; i++){
     if (fabs(uA[i] - sA[i]) > 1.E-6){
       printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
     }
   }
-  for (i=0; (uint64_t)i<nB; i++){
+  for (i=0; (ulong_int)i<nB; i++){
     if (fabs(uB[i] - sB[i]) > 1.E-6){
       printf("B[%d] = %lf, sB[%d] = %lf\n", i, uB[i], i, sB[i]);
     }
@@ -2639,7 +2639,7 @@ int dist_tensor<dtype>::
         sym_C, 1, &sym_tmp, &up_ans_C);
   punpack_tsr(up_ans_C, ndim_C, edge_len_C,
         sym_C, 0, &sym_tmp, &pup_C);
-  for (i=0; (uint64_t)i<nC; i++){
+  for (i=0; (ulong_int)i<nC; i++){
     assert(fabs(pup_C[i] - ans_C[i]) < 1.E-6);
   }
   pass = 1;

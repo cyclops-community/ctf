@@ -830,7 +830,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   uint64_t comm_vol, bcomm_vol;
 #endif
 #if BEST_VOL
-  int64_t n,m,k;
+  long_int n,m,k;
   uint64_t gnvirt;
 #endif
 #if BEST_VIRT
@@ -1144,7 +1144,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     bnvirt = UINT64_MAX;
     btopo = INT_MAX;
   }
-  DEBUG_PRINTF("bnvirt = %llu\n", (unsigned long long int)bnvirt);
+  DEBUG_PRINTF("bnvirt = %llu\n", (uint64_t)bnvirt);
   /* pick lower dimensional mappings, if equivalent */
 #if BEST_COMM
   if (bnvirt >= ALLOW_NVIRT)
@@ -1494,7 +1494,7 @@ int dist_tensor<dtype>::
                       int const           tid_B,
                       int const           tid_C,
                       topology const *    topo){
-  int tsr_ndim, iweigh, iA, iB, iC, i, j, k, jweigh, jX, stat, is_premapped;
+  int tsr_ndim, iweigh, iA, iB, iC, i, j, k, jX, stat;
   int * tsr_edge_len, * tsr_sym_table, * restricted;
   mapping * weigh_map;
 
