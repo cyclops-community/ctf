@@ -232,6 +232,10 @@ int CTF_alloc_ptr(int const len, void ** const ptr){
   mem_stack->push_back(m);
 //  printf("CTF_mem_used up to %lld stack to %d\n",CTF_mem_used,mem_stack->size());
 //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
+ if (pm){
+    printf("CTF ERROR: posix memalign returned an error, %lld memory alloced on this process, wanted to alloc %lld more\n",
+            CTF_mem_used[0], len);
+  }
   LIBT_ASSERT(pm == 0);
   return DIST_TENSOR_SUCCESS;
 
