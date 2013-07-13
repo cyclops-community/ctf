@@ -1469,6 +1469,11 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
 #else
       CTF_mst_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
 #endif
+#if DEBUG >= 2
+      if (global_comm->rank == 0)
+        printf("Tensor %d set to zero with mapping:\n", tensor_id);
+      print_map(stdout, tensor_id);
+#endif
       std::fill(tsr->data, tsr->data + tsr->size, get_zero<dtype>());
 /*      CTF_free(phys_phase);
       CTF_free(sub_edge_len);*/
