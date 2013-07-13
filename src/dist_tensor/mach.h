@@ -35,30 +35,33 @@ void get_topo(int const         np,
     dl = (int*)CTF_alloc((7)*sizeof(int));
     *dim_len = dl;
 #ifdef BGQ
-    int i, dim;
-    MPIX_Hardware_t hw;
-    MPIX_Hardware(&hw);
+    if (np >= 512){
+      int i, dim;
+      MPIX_Hardware_t hw;
+      MPIX_Hardware(&hw);
 
-    int * topo_dims = (int*)CTF_alloc(7*sizeof(int));
-    topo_dims[0] = hw.Size[0];
-    topo_dims[1] = hw.Size[1];
-    topo_dims[2] = hw.Size[2];
-    topo_dims[3] = hw.Size[3];
-    topo_dims[4] = hw.Size[4];
-    topo_dims[5] = MIN(4, np/(topo_dims[0]*topo_dims[1]*
-                              topo_dims[2]*topo_dims[3]*
-                              topo_dims[4]));
-    topo_dims[6] = (np/ (topo_dims[0]*topo_dims[1]*
-                        topo_dims[2]*topo_dims[3]*
-                        topo_dims[4])) / 4;
-    dim = 0;
-    for (i=0; i<7; i++){
-      if (topo_dims[i] > 1){
-        dl[dim] = topo_dims[i];
-        dim++;
+      int * topo_dims = (int*)CTF_alloc(7*sizeof(int));
+      topo_dims[0] = hw.Size[0];
+      topo_dims[1] = hw.Size[1];
+      topo_dims[2] = hw.Size[2];
+      topo_dims[3] = hw.Size[3];
+      topo_dims[4] = hw.Size[4];
+      topo_dims[5] = MIN(4, np/(topo_dims[0]*topo_dims[1]*
+                                topo_dims[2]*topo_dims[3]*
+                                topo_dims[4]));
+      topo_dims[6] = (np/ (topo_dims[0]*topo_dims[1]*
+                          topo_dims[2]*topo_dims[3]*
+                          topo_dims[4])) / 4;
+      dim = 0;
+      for (i=0; i<7; i++){
+        if (topo_dims[i] > 1){
+          dl[dim] = topo_dims[i];
+          dim++;
+        }
       }
-    }
-    *ndim = dim;
+      *ndim = dim;
+    } else
+      factorize(np, ndim, dim_len);
 #else
     factorize(np, ndim, dim_len);
 #endif

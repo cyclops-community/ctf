@@ -1048,7 +1048,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
           need_remap = 1;
         if (need_remap) {
           comm_vol += sizeof(dtype)*tsr_A->size*10.;//(int)(pow((double)global_comm->np,3./4.));
-          memuse = (uint64_t)2*sizeof(dtype)*tsr_A->size;
+          memuse = (uint64_t)sizeof(dtype)*tsr_A->size*3;
         } else
           memuse = 0;
         need_remap = need_remap_B;
@@ -1061,7 +1061,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
           need_remap = 1;
         if (need_remap) {
           comm_vol += sizeof(dtype)*tsr_B->size*10.;//(int)(pow((double)global_comm->np,3./4.));
-          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*2);
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*3);
         }
         need_remap = 0; //need_remap_C;
         if (i == old_topo_C){
@@ -1073,7 +1073,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
           need_remap = 1;
         if (need_remap) {
           comm_vol += sizeof(dtype)*tsr_C->size*10;//(int)(pow((double)global_comm->np,3./4.));
-          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*2);
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*3);
         }
         memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
       } else {
@@ -1258,7 +1258,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #endif
  
       
-  memuse = MAX((uint64_t)(*ctrf)->mem_rec(), (uint64_t)(tsr_A->size+tsr_B->size+tsr_C->size)*sizeof(dtype)*2);
+  memuse = MAX((uint64_t)(*ctrf)->mem_rec(), (uint64_t)(tsr_A->size+tsr_B->size+tsr_C->size)*sizeof(dtype)*3);
   if (global_comm->rank == 0)
     DPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory\n",
             (double)memuse,(double)proc_bytes_available());

@@ -543,22 +543,23 @@ void bucket_by_pe( int const                ndim,
   TAU_FSTART(bucket_by_pe_count);
   /* Calculate counts */
 #ifdef USE_OMP
-  #pragma omp parallel for schedule(static) private(j, loc, k)
+  #pragma omp parallel for schedule(static,256) private(i, j, loc, k)
 #endif
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;
     loc = 0;
-    int tmp_arr[ndim];
+//    int tmp_arr[ndim];
     for (j=0; j<ndim; j++){
-      tmp_arr[j] = (k%edge_len[j])%phase[j];
+/*      tmp_arr[j] = (k%edge_len[j])%phase[j];
       tmp_arr[j] = tmp_arr[j]/virt_phase[j];
-      tmp_arr[j] = tmp_arr[j]*bucket_lda[j];
-//      loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
+      tmp_arr[j] = tmp_arr[j]*bucket_lda[j];*/
+      loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
       k = k/edge_len[j];
     }
-    for (j=0; j<ndim; j++){
+/*    for (j=0; j<ndim; j++){
       loc += tmp_arr[j];
-    }
+    }*/
+    LIBT_ASSERT(loc<np);
 #ifdef USE_OMP
     sub_counts[loc+omp_get_thread_num()*np]++;
 #else
@@ -596,18 +597,14 @@ void bucket_by_pe( int const                ndim,
   /* bucket data */
   TAU_FSTART(bucket_by_pe_move);
 #ifdef USE_OMP
-  #pragma omp parallel for schedule(static) private(j, loc, k)
+  #pragma omp parallel for schedule(static,256) private(i, j, loc, k)
 #endif
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;
     loc = 0;
-    int tmp_arr[ndim];
     for (j=0; j<ndim; j++){
-      tmp_arr[j] = (((k%edge_len[j])%phase[j])/virt_phase[j])*bucket_lda[j];
+      loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
       k = k/edge_len[j];
-    }
-    for (j=0; j<ndim; j++){
-      loc += tmp_arr[j];
     }
 #ifdef USE_OMP
     bucket_data[bucket_off[loc] + sub_offs[loc+omp_get_thread_num()*np]] 

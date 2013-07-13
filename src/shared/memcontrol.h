@@ -5,7 +5,7 @@
 
 /* Factor of total memory which will be saturated */
 #ifndef MEMCAP	
-#define MEMCAP	.65
+#define MEMCAP	.04
 #endif
 
 uint64_t proc_bytes_used();

@@ -843,6 +843,13 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
 #if DEBUG >= 1
   int ndim, * len, * sym;
   get_tsr_info(tensor_id, &ndim, &len, &sym);
+  if (global_comm->rank == 0){
+    if (rw == 'w')
+      printf("Writing data to tensor %d\n", tensor_id);
+    else
+      printf("Reading data from tensor %d\n", tensor_id);
+    print_map(stdout, tensor_id, 0, 0);
+  }
   long_int total_tsr_size = 1;
   for (i=0; i<ndim; i++){
     total_tsr_size *= len[i];
