@@ -1047,7 +1047,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         } else
           need_remap = 1;
         if (need_remap) {
-          comm_vol += sizeof(dtype)*tsr_A->size*10.;//(int)(pow((double)global_comm->np,3./4.));
+          comm_vol += sizeof(dtype)*tsr_A->size*10.*log2(global_comm->np);//(int)(pow((double)global_comm->np,3./4.));
           memuse = (uint64_t)sizeof(dtype)*tsr_A->size*3;
         } else
           memuse = 0;
@@ -1060,7 +1060,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         } else
           need_remap = 1;
         if (need_remap) {
-          comm_vol += sizeof(dtype)*tsr_B->size*10.;//(int)(pow((double)global_comm->np,3./4.));
+          comm_vol += sizeof(dtype)*tsr_B->size*10.*log2(global_comm->np);//(int)(pow((double)global_comm->np,3./4.));
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*3);
         }
         need_remap = 0; //need_remap_C;
@@ -1072,7 +1072,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         } else
           need_remap = 1;
         if (need_remap) {
-          comm_vol += sizeof(dtype)*tsr_C->size*10;//(int)(pow((double)global_comm->np,3./4.));
+          comm_vol += sizeof(dtype)*tsr_C->size*10.*log2(global_comm->np);//(int)(pow((double)global_comm->np,3./4.));
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*3);
         }
         memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
