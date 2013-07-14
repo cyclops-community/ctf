@@ -233,7 +233,6 @@ int dist_tensor<dtype>::load_matrix
 
 
   tsr->is_data_aliased  = 0;
-  tsr->need_remap       = 0;
   tsr->has_zero_edge_len  = 0;
   tsr->size = (((long_int)nrow*(long_int)ncol)*nrep)/global_comm->np;
   LIBT_ASSERT(tsr->size == brow*bcol);

@@ -781,7 +781,6 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #endif
 
   ret = this->contract(&ct, fs, ALPHA, BETA);
-  (*tensors)[ct.tid_C]->need_remap = 0;
   if (ret != DIST_TENSOR_SUCCESS)
     return ret;
 #if (!REDIST)
@@ -982,7 +981,6 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
     fs.func_ptr = &gemm_ctr<dtype,0,0>;
   ret = this->contract(&ct, fs, ALPHA, BETA);
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
-  (*tensors)[ct.tid_C]->need_remap = 0;
   CTF_free(ct.idx_map_A);
   CTF_free(ct.idx_map_B);
   CTF_free(ct.idx_map_C);

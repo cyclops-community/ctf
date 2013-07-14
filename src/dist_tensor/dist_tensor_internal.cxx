@@ -226,7 +226,6 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   tsr->is_folded          = 0;
   tsr->is_matrix          = 0;
   tsr->is_data_aliased    = 0;
-  tsr->need_remap         = 0;
   tsr->has_zero_edge_len  = 0;
   tsr->is_home            = 0;
   tsr->has_home           = 0;
@@ -809,7 +808,6 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
   tsr_B->is_mapped      = tsr_A->is_mapped;
   tsr_B->is_cyclic      = tsr_A->is_cyclic;
   tsr_B->itopo          = tsr_A->itopo;
-  tsr_B->need_remap     = tsr_A->need_remap;
   if (tsr_A->is_mapped)
     copy_mapping(tsr_A->ndim, tsr_A->edge_map, tsr_B->edge_map);
   tsr_B->size = tsr_A->size;

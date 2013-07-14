@@ -379,7 +379,6 @@ int dist_tensor<dtype>::
   if (!check_self_mapping(tid, idx_map)){
     save_mapping(tsr, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda,
                  &old_size, &was_padded, &was_cyclic, &old_padding, &old_edge_len, &topovec[tsr->itopo]);
-    tsr->need_remap = 0;
     for (itopo=0; itopo<(int)topovec.size(); itopo++){
       clear_mapping(tsr);
       tsr->itopo = itopo;
@@ -2003,8 +2002,6 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     TAU_FSTOP(sum_func);
 #ifndef SEQ
     stat = zero_out_padding(ntid_B);
-  /*  if (tensors[ntid_B]->ndim > 0)
-      tensors[ntid_B]->need_remap = 1;*/
 #endif
 
 #if VERIFY
@@ -2574,8 +2571,6 @@ int dist_tensor<dtype>::
   ctrf->run();
   TAU_FSTOP(ctr_func);
 #ifndef SEQ
-/*  if (tensors[type->tid_C]->ndim > 0)
-    tensors[type->tid_C]->need_remap = 1;*/
   if (tensors[type->tid_C]->is_cyclic)
     stat = zero_out_padding(type->tid_C);
 #endif

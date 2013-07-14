@@ -593,6 +593,25 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
 
 
 /**
+ * \brief determines if tensor can be permuted by block
+ * \param[in] ndim dimension of tensor
+ * \param[in] old_phase old cyclic phases in each dimension
+ * \param[in] map new mapping for each edge length
+ * \return 1 if block reshuffle allowed, 0 if not
+ */
+inline int can_block_reshuffle(int const        ndim,
+                               int const *      old_phase,
+                               mapping const *  map){
+  int new_phase, j;
+  int can_block_resh = 1;
+  for (j=0; j<ndim; j++){
+    new_phase  = calc_phase(map+j);
+    if (new_phase != old_phase[j]) can_block_resh = 0;
+  }
+  return can_block_resh;
+}
+
+/**
  * \brief permutes the data of a tensor to its new layout
  * \param[in] tid tensor id
  * \param[in,out] tsr tensor in its new mapping
@@ -635,7 +654,7 @@ int remap_tensor(int const  tid,
 
   new_nvirt = 1;  
 #ifdef USE_BLOCK_RESHUFFLE
-  can_block_shuffle = 1;
+  can_block_shuffle = can_block_reshuffle(tsr->ndim, old_phase, tsr->edge_map);
 #else
   can_block_shuffle = 0;
 #endif
@@ -650,7 +669,6 @@ int remap_tensor(int const  tid,
     else
       new_pe_lda[j] = 0;
     new_nvirt = new_nvirt*new_virt_dim[j];
-    if (new_phase[j] != old_phase[j]) can_block_shuffle = 0;
   }
 #ifdef HOME_CONTRACT
   if (tsr->is_home){
@@ -691,6 +709,9 @@ int remap_tensor(int const  tid,
 #endif
 
   if (can_block_shuffle){
+    if (global_comm->rank == 0) {
+      DPRINTF(1,"remapping tensor %d via block_reshuffle\n", tid);
+    }
     block_reshuffle( tsr->ndim,
                      old_phase,
                      old_size,

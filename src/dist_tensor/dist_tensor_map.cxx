@@ -22,8 +22,6 @@ int dist_tensor<dtype>::check_pair_mapping(const int tid_A, const int tid_B){
   if (tsr_B->is_inner_mapped) return 0;
   if (tsr_A->is_folded) return 0;
   if (tsr_B->is_folded) return 0;
-  if (tsr_A->need_remap) return 0;
-  if (tsr_B->need_remap) return 0;
 
   LIBT_ASSERT(tsr_A->ndim == tsr_B->ndim);
 //  LIBT_ASSERT(tsr_A->size == tsr_B->size);
@@ -94,6 +92,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
                                          const int *    idx_map_B){
   int i, ret, num_sum, num_tot, was_padded_A, was_padded_B, need_remap;
   int was_cyclic_A, was_cyclic_B, need_remap_A, need_remap_B;
+
   int d, old_topo_A, old_topo_B;
   long_int old_size_A, old_size_B;
   int * idx_arr, * idx_sum;
@@ -153,10 +152,6 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   }
   copy_mapping(tsr_A->ndim, tsr_A->edge_map, old_map_A);
   copy_mapping(tsr_B->ndim, tsr_B->edge_map, old_map_B);
-  need_remap_A = tsr_A->need_remap;
-  need_remap_B = tsr_B->need_remap;
-  tsr_A->need_remap = 0;
-  tsr_B->need_remap = 0;
 //  bnvirt = 0;  
   btopo = -1;
   uint64_t size;
@@ -178,16 +173,12 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
                           tid_A, tid_B, &topovec[tsr_A->itopo], 2);
     if (ret == DIST_TENSOR_NEGATIVE) continue;
     else if (ret != DIST_TENSOR_SUCCESS){
-      tsr_A->need_remap = need_remap_A;
-      tsr_B->need_remap = need_remap_B;
       return ret;
     }
 
     ret = map_self_indices(tid_A, idx_map_A);
     if (ret == DIST_TENSOR_NEGATIVE) continue;
     else if (ret != DIST_TENSOR_SUCCESS) {
-      tsr_A->need_remap = need_remap_A;
-      tsr_B->need_remap = need_remap_B;
       return ret;
     }
     ret = map_tensor_rem(topovec[tsr_A->itopo].ndim, 
@@ -195,8 +186,6 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
 
     if (ret == DIST_TENSOR_NEGATIVE) continue;
     else if (ret != DIST_TENSOR_SUCCESS) {
-      tsr_A->need_remap = need_remap_A;
-      tsr_B->need_remap = need_remap_B;
       return ret;
     }
 
@@ -206,16 +195,12 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     ret = map_self_indices(tid_B, idx_map_B);
     if (ret == DIST_TENSOR_NEGATIVE) continue;
     else if (ret != DIST_TENSOR_SUCCESS) {
-      tsr_A->need_remap = need_remap_A;
-      tsr_B->need_remap = need_remap_B;
       return ret;
     }
     ret = map_tensor_rem(topovec[tsr_B->itopo].ndim, 
                          topovec[tsr_B->itopo].dim_comm, tsr_B);
     if (ret == DIST_TENSOR_NEGATIVE) continue;
     else if (ret != DIST_TENSOR_SUCCESS) {
-      tsr_A->need_remap = need_remap_A;
-      tsr_B->need_remap = need_remap_B;
       return ret;
     }
     copy_mapping(tsr_B->ndim, tsr_A->ndim,
@@ -235,22 +220,37 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     set_padding(tsr_B);
     size = tsr_A->size + tsr_B->size;
 
-    need_remap = need_remap_A;
+    need_remap_A = 0;
+    need_remap_B = 0;
+
     if (tsr_A->itopo == old_topo_A){
       for (d=0; d<tsr_A->ndim; d++){
         if (!comp_dim_map(&tsr_A->edge_map[d],&old_map_A[d]))
-          need_remap = 1;
+          need_remap_A = 1;
       }
     } else
-      need_remap = 1;
+      need_remap_A = 1;
+    if (need_remap_A){
+      if (can_block_reshuffle(tsr_A->ndim, old_phase_A, tsr_A->edge_map)){
+        size += tsr_A->size*log2(global_comm->np);
+      } else {
+        size += 10.*tsr_A->size*log2(global_comm->np);
+      }
+    }
     if (tsr_B->itopo == old_topo_B){
       for (d=0; d<tsr_B->ndim; d++){
         if (!comp_dim_map(&tsr_B->edge_map[d],&old_map_B[d]))
-          need_remap = 1;
+          need_remap_B = 1;
       }
     } else
-      need_remap = 1;
-    if (!need_remap) size = 0;
+      need_remap_B = 1;
+    if (need_remap_B){
+      if (can_block_reshuffle(tsr_B->ndim, old_phase_B, tsr_B->edge_map)){
+        size += tsr_B->size*log2(global_comm->np);
+      } else {
+        size += 10.*tsr_B->size*log2(global_comm->np);
+      }
+    }
 
     /*nvirt = (uint64_t)calc_nvirt(tsr_A);
     tnvirt = nvirt*(uint64_t)calc_nvirt(tsr_B);
@@ -321,7 +321,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
  
   tsr_A->is_cyclic = 1;
   tsr_B->is_cyclic = 1;
-  need_remap = need_remap_A;
+  need_remap = 0;
   if (tsr_A->itopo == old_topo_A){
     for (d=0; d<tsr_A->ndim; d++){
       if (!comp_dim_map(&tsr_A->edge_map[d],&old_map_A[d]))
@@ -388,7 +388,6 @@ int dist_tensor<dtype>::
   tensor<dtype> * tsr;
 
   tsr = tensors[tid];
-  if (tsr->need_remap) return 0;
 
   max_idx = -1;
   for (i=0; i<tsr->ndim; i++){
@@ -466,8 +465,6 @@ int dist_tensor<dtype>::
   
   if (tsr_A->is_folded == 1) pass = 0;
   if (tsr_B->is_folded == 1) pass = 0;
-  if (tsr_A->need_remap) pass = 0;
-  //if (tsr_B->need_remap) pass = 0;
   
   if (tsr_A->itopo != tsr_B->itopo) pass = 0;
 
@@ -573,9 +570,6 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
   if (tsr_A->is_folded == 1) pass = 0;
   if (tsr_B->is_folded == 1) pass = 0;
   if (tsr_C->is_folded == 1) pass = 0;
-  if (tsr_A->need_remap) pass = 0;
-  if (tsr_B->need_remap) pass = 0;
-  if (tsr_C->need_remap) pass = 0;
   
   if (pass==0){
     DPRINTF(3,"failed confirmation here\n");
@@ -934,13 +928,20 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     save_mapping(tsr_C, &old_phase_C, &old_rank_C, &old_virt_dim_C, &old_pe_lda_C, 
                  &old_size_C, &was_padded_C, &was_cyclic_C, &old_padding_C, 
                  &old_edge_len_C, &topovec[tsr_C->itopo]);
+  } else {
+    CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&old_phase_A);
+    for (j=0; j<tsr_A->ndim; j++){
+      old_phase_A[j]   = calc_phase(tsr_A->edge_map+j);
+    }
+    CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&old_phase_B);
+    for (j=0; j<tsr_B->ndim; j++){
+      old_phase_B[j]   = calc_phase(tsr_B->edge_map+j);
+    }
+    CTF_alloc_ptr(sizeof(int)*tsr_C->ndim, (void**)&old_phase_C);
+    for (j=0; j<tsr_C->ndim; j++){
+      old_phase_C[j]   = calc_phase(tsr_C->edge_map+j);
+    }
   }
-  need_remap_A = tsr_A->need_remap;
-  need_remap_B = tsr_B->need_remap;
-  need_remap_C = tsr_C->need_remap;
-  tsr_A->need_remap = 0;
-  tsr_B->need_remap = 0;
-  tsr_C->need_remap = 0;
   btopo = -1;
 #if BEST_VIRT
   bnvirt = UINT64_MAX;
@@ -967,9 +968,6 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 
       if (ret == DIST_TENSOR_ERROR) {
         TAU_FSTOP(map_tensors);
-        tsr_A->need_remap = need_remap_A;
-        tsr_B->need_remap = need_remap_B;
-        tsr_C->need_remap = need_remap_C;
         return DIST_TENSOR_ERROR;
       }
       if (ret == DIST_TENSOR_NEGATIVE){
@@ -1037,48 +1035,59 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
      
       comm_vol = sctr->comm_rec(sctr->num_lyr);
       memuse = 0;
-      if (do_remap){
-        need_remap = need_remap_A;
-        if (i == old_topo_A){
-          for (d=0; d<tsr_A->ndim; d++){
-            if (!comp_dim_map(&tsr_A->edge_map[d],&old_map_A[d]))
-              need_remap = 1;
-          }
-        } else
-          need_remap = 1;
-        if (need_remap) {
-          comm_vol += sizeof(dtype)*tsr_A->size*10.*log2(global_comm->np);//(int)(pow((double)global_comm->np,3./4.));
-          memuse = (uint64_t)sizeof(dtype)*tsr_A->size*3;
-        } else
-          memuse = 0;
-        need_remap = need_remap_B;
-        if (i == old_topo_B){
-          for (d=0; d<tsr_B->ndim; d++){
-            if (!comp_dim_map(&tsr_B->edge_map[d],&old_map_B[d]))
-              need_remap = 1;
-          }
-        } else
-          need_remap = 1;
-        if (need_remap) {
-          comm_vol += sizeof(dtype)*tsr_B->size*10.*log2(global_comm->np);//(int)(pow((double)global_comm->np,3./4.));
-          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*3);
+      need_remap_A = 0;
+      need_remap_B = 0;
+      need_remap_C = 0;
+      if (i == old_topo_A){
+        for (d=0; d<tsr_A->ndim; d++){
+          if (!comp_dim_map(&tsr_A->edge_map[d],&old_map_A[d]))
+            need_remap_A = 1;
         }
-        need_remap = 0; //need_remap_C;
-        if (i == old_topo_C){
-          for (d=0; d<tsr_C->ndim; d++){
-            if (!comp_dim_map(&tsr_C->edge_map[d],&old_map_C[d]))
-              need_remap = 1;
-          }
-        } else
-          need_remap = 1;
-        if (need_remap) {
-          comm_vol += sizeof(dtype)*tsr_C->size*10.*log2(global_comm->np);//(int)(pow((double)global_comm->np,3./4.));
-          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*3);
+      } else
+        need_remap_A = 1;
+      if (need_remap_A) {
+        if (can_block_reshuffle(tsr_A->ndim, old_phase_A, tsr_A->edge_map)){
+          comm_vol += sizeof(dtype)*tsr_A->size*log2(global_comm->np);
+          memuse = (uint64_t)sizeof(dtype)*tsr_A->size;
+        } else {
+          comm_vol += 10.*sizeof(dtype)*tsr_A->size*log2(global_comm->np)+80.*global_comm->np;
+          memuse = (uint64_t)sizeof(dtype)*tsr_A->size*2.5;
         }
-        memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
-      } else {
-        memuse = (uint64_t)sctr->mem_rec();
-      } 
+      } else
+        memuse = 0;
+      if (i == old_topo_B){
+        for (d=0; d<tsr_B->ndim; d++){
+          if (!comp_dim_map(&tsr_B->edge_map[d],&old_map_B[d]))
+            need_remap_B = 1;
+        }
+      } else
+        need_remap_B = 1;
+      if (need_remap_B) {
+        if (can_block_reshuffle(tsr_B->ndim, old_phase_B, tsr_B->edge_map)){
+          comm_vol += sizeof(dtype)*tsr_B->size*log2(global_comm->np);
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size);
+        } else {
+          comm_vol += 10.*sizeof(dtype)*tsr_B->size*log2(global_comm->np)+80.*global_comm->np;
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*2.5);
+        }
+      }
+      if (i == old_topo_C){
+        for (d=0; d<tsr_C->ndim; d++){
+          if (!comp_dim_map(&tsr_C->edge_map[d],&old_map_C[d]))
+            need_remap_C = 1;
+        }
+      } else
+        need_remap_C = 1;
+      if (need_remap_C) {
+        if (can_block_reshuffle(tsr_C->ndim, old_phase_C, tsr_C->edge_map)){
+          comm_vol += sizeof(dtype)*tsr_C->size*log2(global_comm->np);
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size);
+        } else {
+          comm_vol += 10.*sizeof(dtype)*tsr_C->size*log2(global_comm->np)+80.*global_comm->np;
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*2.5);
+        }
+      }
+      memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
 
       if ((uint64_t)memuse >= proc_bytes_available()){
         DPRINTF(1,"Not enough memory available for topo %d with order %d\n", i, j);
@@ -1169,9 +1178,9 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     CTF_free((void*)idx_ctr);
     CTF_free((void*)idx_extra);
     CTF_free((void*)idx_weigh);
-    tsr_A->need_remap = need_remap_A;
-    tsr_B->need_remap = need_remap_B;
-    tsr_C->need_remap = need_remap_C;
+    CTF_free(old_phase_A);
+    CTF_free(old_phase_B);
+    CTF_free(old_phase_C);
     TAU_FSTOP(map_tensors);
     if (gtopo == INT_MAX || gtopo == -1){
       printf("ERROR: Failed to map contraction!\n");
@@ -1190,9 +1199,6 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 
 
   if (ret == DIST_TENSOR_NEGATIVE || ret == DIST_TENSOR_ERROR) {
-    tsr_A->need_remap = need_remap_A;
-    tsr_B->need_remap = need_remap_B;
-    tsr_C->need_remap = need_remap_C;
     printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
     TAU_FSTOP(map_tensors);
     return DIST_TENSOR_ERROR;
@@ -1275,7 +1281,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     tsr_C->is_cyclic = 1;
   }
   /* redistribute tensor data */
-  need_remap = need_remap_A;
+  need_remap = 0;
   if (tsr_A->itopo == old_topo_A){
     for (d=0; d<tsr_A->ndim; d++){
       if (!comp_dim_map(&tsr_A->edge_map[d],&old_map_A[d]))
@@ -1288,7 +1294,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
                  old_phase_A, old_rank_A, old_virt_dim_A, 
                  old_pe_lda_A, was_padded_A, was_cyclic_A, 
                  old_padding_A, old_edge_len_A, global_comm);
-  need_remap = need_remap_B;
+  need_remap = 0;
   if (tsr_B->itopo == old_topo_B){
     for (d=0; d<tsr_B->ndim; d++){
       if (!comp_dim_map(&tsr_B->edge_map[d],&old_map_B[d]))
@@ -1301,7 +1307,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
                  old_phase_B, old_rank_B, old_virt_dim_B, 
                  old_pe_lda_B, was_padded_B, was_cyclic_B, 
                  old_padding_B, old_edge_len_B, global_comm);
-  need_remap = need_remap_C;
+  need_remap = 0;
   if (tsr_C->itopo == old_topo_C){
     for (d=0; d<tsr_C->ndim; d++){
       if (!comp_dim_map(&tsr_C->edge_map[d],&old_map_C[d]))
