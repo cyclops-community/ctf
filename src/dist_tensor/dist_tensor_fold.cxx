@@ -1530,7 +1530,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
     return;
   }
 
-  CTF_alloc_ptr(tsr_nonsym->size*sizeof(dtype), (void**)&tsr_nonsym->data);
+  CTF_mst_alloc_ptr(tsr_nonsym->size*sizeof(dtype), (void**)&tsr_nonsym->data);
   std::fill(tsr_nonsym->data, tsr_nonsym->data+tsr_nonsym->size, get_zero<dtype>());
 
   CTF_alloc_ptr(tsr_sym->ndim*sizeof(int), (void**)&idx_map_A);

@@ -1699,12 +1699,12 @@ int cyclic_reshuffle(int const          ndim,
   vbs_old = nval/old_nvirt;
   nbuf = np*new_nvirt;
 
-  CTF_alloc_ptr(np*sizeof(int), (void**)&recv_counts);
-  CTF_alloc_ptr(np*sizeof(int), (void**)&send_counts);
-  CTF_alloc_ptr(nbuf*sizeof(int), (void**)&rvirt_displs);
-  CTF_alloc_ptr(nbuf*sizeof(int), (void**)&svirt_displs);
-  CTF_alloc_ptr(np*sizeof(int), (void**)&send_displs);
-  CTF_alloc_ptr(np*sizeof(int), (void**)&recv_displs);
+  CTF_mst_alloc_ptr(np*sizeof(int), (void**)&recv_counts);
+  CTF_mst_alloc_ptr(np*sizeof(int), (void**)&send_counts);
+  CTF_mst_alloc_ptr(nbuf*sizeof(int), (void**)&rvirt_displs);
+  CTF_mst_alloc_ptr(nbuf*sizeof(int), (void**)&svirt_displs);
+  CTF_mst_alloc_ptr(np*sizeof(int), (void**)&send_displs);
+  CTF_mst_alloc_ptr(np*sizeof(int), (void**)&recv_displs);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&old_sub_edge_len);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&new_sub_edge_len);
 
