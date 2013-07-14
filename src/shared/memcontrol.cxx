@@ -38,6 +38,7 @@ std::list<mem_loc> CTF_mem_stacks[MAX_THREADS];
 //application memory stack
 void * mst_buffer = 0;
 long_int mst_buffer_size = 0;
+long_int mst_buffer_used = 0;
 long_int mst_buffer_ptr = 0;
 std::list<mem_loc> mst;
 
@@ -52,6 +53,8 @@ std::list<mem_transfer> CTF_contract_mst(){
     mst_buffer_size = 0;
     mst_buffer_ptr = 0;
     mst_buffer = 0;
+    mst_buffer_used = 0;
+
     mst.clear();
 
     CTF_mst_create(old_mst_buffer_size);
@@ -160,6 +163,7 @@ int CTF_mst_free(void * ptr){
     mst_buffer_ptr = (long_int)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
   else
     mst_buffer_ptr = 0;
+  mst_buffer_used = mst_buffer_used - it->len;
   //printf("freed block, mst_buffer_ptr = %lld\n", mst_buffer_ptr);
   return DIST_TENSOR_SUCCESS;
 }
@@ -177,7 +181,7 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
     plen = len + MST_ALIGN_BYTES - off;
   else
     plen = len;
-  
+
   mem_loc m;
   //printf("ptr = %lld plen = %d, size = %lld\n", mst_buffer_ptr, plen, mst_buffer_size);
   if (mst_buffer_ptr + plen < mst_buffer_size){
@@ -186,6 +190,7 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
     m.len = plen;
     mst.push_back(m);
     mst_buffer_ptr = mst_buffer_ptr+plen;
+    mst_buffer_used += plen;  
   } else {
     printf("Exceeded mst buffer size, current is %lld, composed of %d items\n",
             mst_buffer_ptr, mst.size());
@@ -403,7 +408,7 @@ uint64_t proc_bytes_used(){
   for (i=0; i<CTF_max_threads; i++){
     ms += CTF_mem_used[i];
   }
-  return ms + (uint64_t)mst_buffer_size;
+  return ms + mst_buffer_used;// + (uint64_t)mst_buffer_size;
 }
 
 #ifdef BGQ
@@ -426,6 +431,9 @@ uint64_t proc_bytes_total() {
 uint64_t proc_bytes_available(){
   uint64_t mem_avail;
   Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail);
+#ifdef USE_MST
+  mem_avail += mst_buffer_size;
+#endif
 /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
           mem_avail, proc_bytes_total() - proc_bytes_used());*/
   
