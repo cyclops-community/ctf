@@ -95,10 +95,48 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const *     dim_len,
                       int const       argc,
                       char * const *  argv){
+  char * mst_size, * mem_size, * ppn;
+  
   TAU_FSTART(CTF);
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
-  CTF_mst_create(1000*(long_int)1E6);
+
+  
+  mst_size = getenv("CTF_MST_SIZE");
+  if (mst_size == NULL){
+#ifdef USE_MST
+    if (rank == 0)
+      DPRINTF(1,"Creating CTF stack of size %lld\n",1000*(long_int)1E6);
+    CTF_mst_create(1000*(long_int)1E6);
+#else
+    if (rank == 0){
+      DPRINTF(1,"Running CTF without stack, define CTF_MST_SIZE ");
+      DPRINTF(1,"environment variable to activate stack\n");
+    }
+#endif
+  } else {
+    uint64_t imst_size = strtoull(mst_size,NULL,0);
+    if (rank == 0)
+      DPRINTF(1,"Creating CTF stack of size %llu due to CTF_MST_SIZE enviroment variable\n",
+                imst_size);
+    CTF_mst_create(imst_size);
+  }
+  mem_size = getenv("CTF_MEMORY_SIZE");
+  if (mem_size != NULL){
+    uint64_t imem_size = strtoull(mem_size,NULL,0);
+    if (rank == 0)
+      DPRINTF(1,"CTF memory size set to %llu by CTF_MEMORY_SIZE environment variable\n",
+                imem_size);
+    CTF_set_mem_size(imem_size);
+  }
+  ppn = getenv("CTF_PPN");
+  if (ppn != NULL){
+    if (rank == 0)
+      DPRINTF(1,"CTF assuming %lld processes per node due to CTF_PPN environment variable\n",
+                atoi(ppn));
+    LIBT_ASSERT(atoi(ppn)>=1);
+    CTF_set_memcap(.75/atof(ppn));
+  }
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);

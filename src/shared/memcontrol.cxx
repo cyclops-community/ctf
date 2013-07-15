@@ -29,6 +29,9 @@ struct mem_loc {
   int len;
 };
 
+/* fraction of total memory which can be saturated */
+double CTF_memcap = 0.75;
+long_int CTF_mem_size = 0;
 #define MAX_THREADS 256
 int CTF_max_threads;
 int CTF_instance_counter = 0;
@@ -37,39 +40,69 @@ std::list<mem_loc> CTF_mem_stacks[MAX_THREADS];
 
 //application memory stack
 void * mst_buffer = 0;
+//size of memory stack
 long_int mst_buffer_size = 0;
+//amount of data stored on stack
 long_int mst_buffer_used = 0;
+//the current offset of the top of the stack 
 long_int mst_buffer_ptr = 0;
+//stack of memory locations
 std::list<mem_loc> mst;
+//copy buffer for contraction of stack with low memory usage
+#define CPY_BUFFER_SIZE 1000
+char * cpy_buffer[CPY_BUFFER_SIZE];
 
+/**
+ * \brief sets what fraction of the memory capacity CTF can use
+ */
+void CTF_set_mem_size(int64_t size){
+  CTF_mem_size = size;
+}
+
+/**
+ * \brief sets what fraction of the memory capacity CTF can use
+ * \param[in] cap memory fraction
+ */
+void CTF_set_memcap(double cap){
+  CTF_memcap = cap;
+}
+
+/**
+ * \brief gets rid of empty space on the stack
+ */
 std::list<mem_transfer> CTF_contract_mst(){
   std::list<mem_transfer> transfers;
+  int i;
   if (mst_buffer_ptr > .80*mst_buffer_size){
     TAU_FSTART(CTF_contract_mst);
     std::list<mem_loc> old_mst = mst;
-    void * old_mst_buffer = mst_buffer;
     long_int old_mst_buffer_size = mst_buffer_size;
     long_int old_mst_buffer_ptr = mst_buffer_ptr;
     mst_buffer_size = 0;
     mst_buffer_ptr = 0;
-    mst_buffer = 0;
     mst_buffer_used = 0;
 
     mst.clear();
 
-    CTF_mst_create(old_mst_buffer_size);
     std::list<mem_loc>::iterator it;
     for (it=old_mst.begin(); it!=old_mst.end(); it++){
       mem_transfer t;
       t.old_ptr = it->ptr;
       t.new_ptr = CTF_mst_alloc(it->len);
-      memcpy(t.new_ptr, t.old_ptr, it->len);
-      transfers.push_back(t);
+      if (t.old_ptr != t.new_ptr){
+        if ((int64_t)((char*)t.old_ptr - (char*)t.new_ptr) < it->len){
+          for (i=0; i<it->len; i+=CPY_BUFFER_SIZE){
+            memcpy(cpy_buffer, (char*)t.old_ptr+i, MIN(it->len-i, CPY_BUFFER_SIZE));
+            memcpy((char*)t.new_ptr+i, cpy_buffer, MIN(it->len-i, CPY_BUFFER_SIZE));
+          }
+        } else
+          memcpy(t.new_ptr, t.old_ptr, it->len);
+      } else
+        transfers.push_back(t);
     }
     //DPRINTF(1,"Contracted MST from size %lld to size %lld\n", 
     printf("Contracted MST from size %lld to size %lld\n", 
                 old_mst_buffer_ptr, mst_buffer_ptr);
-    free(old_mst_buffer);
     old_mst.clear();
     TAU_FSTOP(CTF_contract_mst);
   }
@@ -84,7 +117,6 @@ std::list<mem_loc> * CTF_get_mst(){
  * \brief initializes stack buffer
  */
 void CTF_mst_create(long_int size){
-#ifdef USE_MST
   int pm;
   void * new_mst_buffer;
   if (size > mst_buffer_size){
@@ -96,7 +128,6 @@ void CTF_mst_create(long_int size){
     mst_buffer = new_mst_buffer;
     mst_buffer_size = size;
   }
-#endif
 }
 
 /**
@@ -174,32 +205,32 @@ int CTF_mst_free(void * ptr){
  * \param[in,out] ptr pointer to set to new allocation address
  */
 int CTF_mst_alloc_ptr(int const len, void ** const ptr){
-#ifdef USE_MST
-  int pm, tid, plen, off;
-  off = len % MST_ALIGN_BYTES;
-  if (off > 0)
-    plen = len + MST_ALIGN_BYTES - off;
-  else
-    plen = len;
+  if (mst_buffer_size == 0)
+    return CTF_alloc_ptr(len, ptr);
+  else {
+    int pm, tid, plen, off;
+    off = len % MST_ALIGN_BYTES;
+    if (off > 0)
+      plen = len + MST_ALIGN_BYTES - off;
+    else
+      plen = len;
 
-  mem_loc m;
-  //printf("ptr = %lld plen = %d, size = %lld\n", mst_buffer_ptr, plen, mst_buffer_size);
-  if (mst_buffer_ptr + plen < mst_buffer_size){
-    *ptr = (void*)((char*)mst_buffer+mst_buffer_ptr);
-    m.ptr = *ptr;
-    m.len = plen;
-    mst.push_back(m);
-    mst_buffer_ptr = mst_buffer_ptr+plen;
-    mst_buffer_used += plen;  
-  } else {
-    printf("Exceeded mst buffer size, current is %lld, composed of %d items\n",
-            mst_buffer_ptr, mst.size());
-    CTF_alloc_ptr(len, ptr);
+    mem_loc m;
+    //printf("ptr = %lld plen = %d, size = %lld\n", mst_buffer_ptr, plen, mst_buffer_size);
+    if (mst_buffer_ptr + plen < mst_buffer_size){
+      *ptr = (void*)((char*)mst_buffer+mst_buffer_ptr);
+      m.ptr = *ptr;
+      m.len = plen;
+      mst.push_back(m);
+      mst_buffer_ptr = mst_buffer_ptr+plen;
+      mst_buffer_used += plen;  
+    } else {
+      printf("Exceeded mst buffer size, current is %lld, composed of %d items\n",
+              mst_buffer_ptr, mst.size());
+      CTF_alloc_ptr(len, ptr);
+    }
+    return DIST_TENSOR_SUCCESS;
   }
-  return DIST_TENSOR_SUCCESS;
-#else
-  return CTF_alloc_ptr(len, ptr);
-#endif
 }
 
 /**
@@ -207,14 +238,10 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
  * \param[in] len number of bytes
  */
 void * CTF_mst_alloc(int const len){
-#ifdef USE_MST
   void * ptr;
   int ret = CTF_mst_alloc_ptr(len, &ptr);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   return ptr;
-#else
-  return CTF_alloc(len);
-#endif
 }
 
 
@@ -421,23 +448,23 @@ uint64_t proc_bytes_total() {
   int node_config;
 
   Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &total);
-
-  return total;
+  if (CTF_mem_size > 0){
+    return MIN(total,CTF_mem_size);
+  } else {
+    return total;
+  }
 }
 
 /**
  * \brief gives total memory available on this MPI process 
  */
 uint64_t proc_bytes_available(){
-  uint64_t mem_avail;
-  Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail);
-#ifdef USE_MST
-  mem_avail += mst_buffer_size;
-#endif
+  uint64_t mem_avail = proc_bytes_available();
+  mem_avail += mst_buffer_size-mst_buffer_used();
 /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
           mem_avail, proc_bytes_total() - proc_bytes_used());*/
   
-  return MEMCAP*mem_avail;
+  return CTF_memcap*mem_avail;
 }
 
 
@@ -467,7 +494,7 @@ uint64_t proc_bytes_total() {
  * \brief gives total memory available on this MPI process 
  */
 uint64_t proc_bytes_available(){
-  return MEMCAP*(proc_bytes_total() - proc_bytes_used());
+  return CTF_memcap*proc_bytes_total() - proc_bytes_used();
 }
 
 
@@ -480,7 +507,7 @@ uint64_t proc_bytes_available(){
 /*  struct mallinfo info;
   info = mallinfo();
   return (uint64_t)info.fordblks;*/
-  return MEMCAP*(proc_bytes_total() - proc_bytes_used());
+  return CTF_memcap*proc_bytes_total() - proc_bytes_used();
 }
 
 /**
@@ -489,7 +516,10 @@ uint64_t proc_bytes_available(){
 uint64_t proc_bytes_total(){
   uint64_t pages = (uint64_t)sysconf(_SC_PHYS_PAGES);
   uint64_t page_size = (uint64_t)sysconf(_SC_PAGE_SIZE);
-  return pages * page_size;
+  if (CTF_mem_size != 0)
+    return MIN(pages * page_size, CTF_mem_size);
+  else
+    return pages * page_size;
 }
 #endif
 #endif

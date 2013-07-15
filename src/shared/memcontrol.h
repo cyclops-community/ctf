@@ -3,15 +3,12 @@
 #ifndef __MEMCONTROL_H__
 #define __MEMCONTROL_H__
 
-/* Factor of total memory which will be saturated */
-#ifndef MEMCAP	
-#define MEMCAP	.04
-#endif
 
 uint64_t proc_bytes_used();
 uint64_t proc_bytes_total();
 uint64_t proc_bytes_available();
-
+void CTF_set_memcap(double cap);
+void CTF_set_mem_size(int64_t size);
 
 
 #endif
