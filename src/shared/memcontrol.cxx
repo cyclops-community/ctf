@@ -460,7 +460,7 @@ uint64_t proc_bytes_total() {
  */
 uint64_t proc_bytes_available(){
   uint64_t mem_avail = proc_bytes_available();
-  mem_avail += mst_buffer_size-mst_buffer_used();
+  mem_avail += mst_buffer_size-mst_buffer_used;
 /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
           mem_avail, proc_bytes_total() - proc_bytes_used());*/
   
