@@ -205,6 +205,7 @@ int CTF_mst_free(void * ptr){
  * \param[in,out] ptr pointer to set to new allocation address
  */
 int CTF_mst_alloc_ptr(int const len, void ** const ptr){
+<<<<<<< Updated upstream
   if (mst_buffer_size == 0)
     return CTF_alloc_ptr(len, ptr);
   else {
@@ -230,6 +231,29 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
       CTF_alloc_ptr(len, ptr);
     }
     return DIST_TENSOR_SUCCESS;
+=======
+#ifdef USE_MST
+  int pm, tid, plen, off;
+  off = len % MST_ALIGN_BYTES;
+  if (off > 0)
+    plen = len + MST_ALIGN_BYTES - off;
+  else
+    plen = len;
+
+  mem_loc m;
+  //printf("ptr = %lld plen = %d, size = %lld\n", mst_buffer_ptr, plen, mst_buffer_size);
+  if (mst_buffer_ptr + plen < mst_buffer_size){
+    *ptr = (void*)((char*)mst_buffer+mst_buffer_ptr);
+    m.ptr = *ptr;
+    m.len = plen;
+    mst.push_back(m);
+    mst_buffer_ptr = mst_buffer_ptr+plen;
+    mst_buffer_used += plen;  
+  } else {
+    printf("Exceeded mst buffer size, current ptr is %lld, composed of %d items of size %lld\n",
+            mst_buffer_ptr, mst.size(), mst_buffer_used);;
+    CTF_alloc_ptr(len, ptr);
+>>>>>>> Stashed changes
   }
 }
 
