@@ -696,6 +696,9 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
   int i;
   tensor<dtype> * tsr_A, * tsr_B;
 
+  if (global_comm->rank == 0)
+    DPRINTF(2,"Copying tensor %d to tensor %d\n", tid_A, tid_B);
+
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
   
@@ -814,6 +817,95 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
 
   return DIST_TENSOR_SUCCESS;
 }
+    
+/**
+ * Add tensor data from A to a block of B, 
+ *      B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] 
+ * \param[in] tid_A id of tensor A
+ * \param[in] offsets_A closest corner of tensor block in A
+ * \param[in] ends_A furthest corner of tensor block in A
+ * \param[in] alpha scaling factor of A
+ * \param[in] tid_B id of tensor B
+ * \param[in] offsets_B closest corner of tensor block in B
+ * \param[in] ends_B furthest corner of tensor block in B
+ * \param[in] alpha scaling factor of B
+ */
+template<typename dtype>
+int dist_tensor<dtype>::slice_tensor(int const    tid_A,
+                                     int const *  offsets_A,
+                                     int const *  ends_A,
+                                     double const alpha,
+                                     int const    tid_B,
+                                     int const *  offsets_B,
+                                     int const *  ends_B,
+                                     double const beta){
+  long_int i, j, k, lda, knew, sz_A, blk_sz_A, blk_sz_B;
+  tkv_pair<dtype> * all_data_A, * blk_data_A;
+  tensor<dtype> * tsr_A, * tsr_B;
+  int ndim_A, * len_A, * sym_A;
+  int ndim_B, * len_B, * sym_B;
+  int ret;
+
+  tsr_A = tensors[tid_A];
+  tsr_B = tensors[tid_B];
+
+  sz_A = 0;
+  read_local_pairs(tid_A, &sz_A, &all_data_A);
+  
+  get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
+  get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
+
+  CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_A, (void**)&blk_data_A);
+
+  int * padding = (int*)CTF_alloc(sizeof(int)*tsr_A->ndim);
+  for (i=0; i<tsr_A->ndim; i++){
+    padding[i] = len_A[i] - ends_A[i];
+  }
+  depad_tsr(ndim_A, sz_A, ends_A, sym_A, padding, offsets_A,
+            all_data_A, blk_data_A, &blk_sz_A);
+  CTF_free(all_data_A);
+#ifdef USE_OMP
+  #pragma omp parallel for private(knew, k, lda, i, j)
+#endif
+  for (i=0; i<blk_sz_A; i++){
+    k = blk_data_A[i].k;
+    lda = 1;
+    knew = 0;
+    for (j=0; j<ndim_A; j++){
+      knew += lda*((k%len_A[j])-offsets_A[j]);
+      lda *= (ends_A[j]-offsets_A[j]);
+      k = k/len_A[j];
+    }
+    blk_data_A[i].k = knew;
+  }
+#ifdef USE_OMP
+  #pragma omp parallel for private(knew, k, lda, i, j)
+#endif
+  for (i=0; i<blk_sz_A; i++){
+    k = blk_data_A[i].k;
+    lda = 1;
+    knew = 0;
+    for (j=0; j<ndim_B; j++){
+      knew += lda*((k%(ends_B[j]-offsets_B[j]))+offsets_B[j]);
+      lda *= len_B[j];
+      k = k/(ends_B[j]-offsets_B[j]);
+    }
+    blk_data_A[i].k = knew;
+  }
+
+  ret = write_pairs(tid_B, blk_sz_A, alpha, beta, blk_data_A, 'w');  
+
+  CTF_free(len_A);
+  CTF_free(len_B);
+  CTF_free(sym_A);
+  CTF_free(sym_B);
+  CTF_free(blk_data_A);
+  CTF_free(padding);
+
+  return ret;
+}
+
+
 
 /**
  * \brief  Read or write tensor data by <key, value> pairs where key is the

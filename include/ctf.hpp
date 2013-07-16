@@ -160,7 +160,7 @@ class tCTF_Tensor {
      * \param[in] copy whether to copy the data of A into the new tensor
      */
     tCTF_Tensor(tCTF_Tensor const &   A,
-                bool const            copy = false);
+                bool const            copy = true);
 
     /**
      * \brief copies a tensor filled with zeros
@@ -242,6 +242,33 @@ class tCTF_Tensor {
     void scale(dtype const             alpha, 
                char const *            idx_A,
                tCTF_fscl<dtype>        fseq = tCTF_fscl<dtype>());
+
+    /**
+     * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+     * \param[in] offsets bottom left corner of block
+     * \param[in] ends top right corner of block
+     * \return new tensor corresponding to requested slice
+     */
+    tCTF_Tensor slice(int const * offsets,
+                      int const * ends);
+    
+    /**
+     * \brief cuts out a slice (block) of this tensor = B
+     *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
+     * \param[in] offsets bottom left corner of block
+     * \param[in] ends top right corner of block
+     * \param[in] alpha scaling factor of this tensor
+     * \param[in] offsets bottom left corner of block of A
+     * \param[in] ends top right corner of block of A
+     * \param[in] alpha scaling factor of tensor A
+     */
+    void sum_slice(int const *    offsets,
+                   int const *    ends,
+                   double         beta,
+                   tCTF_Tensor &  A,
+                   int const *    offsets_A,
+                   int const *    ends_A,
+                   double         alpha);
 
     /**
      * \brief aligns data mapping with tensor A

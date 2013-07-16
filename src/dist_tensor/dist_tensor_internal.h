@@ -279,6 +279,15 @@ class dist_tensor{
                      int ** edge_len,
                      int ** sym) const;
 
+    int slice_tensor(int const    tid_A,
+                     int const *  offsets_A,
+                     int const *  ends_A,
+                     double const alpha,
+                     int const    tid_B,
+                     int const *  offsets_B,
+                     int const *  ends_B,
+                     double const beta);
+    
     int write_pairs(int const                 tensor_id,
                     long_int const            num_pair,
                     dtype const               alpha,

@@ -22,6 +22,7 @@
 #include "../../examples/fast_sym.cxx"
 #include "../../examples/fast_sym_4D.cxx"
 #include "../../examples/ccsdt_t3_to_t2.cxx"
+#include "../../examples/strassen.cxx"
 
 
 char* getCmdOption(char ** begin,
@@ -46,8 +47,8 @@ int main(int argc, char ** argv){
 
   if (getCmdOption(input_str, input_str+in_num, "-n")){
     n = atoi(getCmdOption(input_str, input_str+in_num, "-n"));
-    if (n < 2) n = 5;
-  } else n = 5;
+    if (n < 2) n = 6;
+  } else n = 6;
 
   if (rank == 0){
     printf("Testing Cyclops Tensor Framework using %d processors\n",np);
@@ -129,6 +130,10 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing 4D fast symmetric contraction operation with n = %d:\n",n);
     pass.push_back(fast_sym_4D(n, dw));
+    
+    if (rank == 0)
+      printf("Testing non-symmetric Strassen's algorithm with n = %d:\n",n*n);
+    pass.push_back(strassen(n*n, NS, dw));
 
   }
   {

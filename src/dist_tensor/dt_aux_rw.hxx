@@ -369,8 +369,11 @@ void read_loc_pairs(int const           ndim,
                     tkv_pair<dtype> **  pairs){
 
   long_int i;
+  int * prepadding;
   tkv_pair<dtype> * dpairs;
   CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&dpairs);
+  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&prepadding);
+  memset(prepadding, 0, sizeof(int)*ndim);
   /* Iterate through packed layout and form key value pairs */
   assign_keys(ndim,             nval,           num_virt,
               edge_len,         sym,
@@ -390,7 +393,7 @@ void read_loc_pairs(int const           ndim,
       pad_len[i] = edge_len[i]-padding[i];
     }
     /* Get rid of any padded values */
-    depad_tsr(ndim, nval, pad_len, sym, padding,
+    depad_tsr(ndim, nval, pad_len, sym, padding, prepadding,
               dpairs, new_pairs, &new_num_pair);
 
     CTF_free(dpairs);
@@ -410,6 +413,7 @@ void read_loc_pairs(int const           ndim,
     *pairs = dpairs;
     *nread = nval;
   }
+  CTF_free(prepadding);
 }
 
 /**

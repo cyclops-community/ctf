@@ -282,6 +282,19 @@ int tCTF<dtype>::read_tensor(int const                tensor_id,
   return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'r');
 }
 
+template<typename dtype>
+int tCTF<dtype>::slice_tensor( int const    tid_A,
+                               int const *  offsets_A,
+                               int const *  ends_A,
+                               double const alpha,
+                               int const    tid_B,
+                               int const *  offsets_B,
+                               int const *  ends_B,
+                               double const beta){
+  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha,
+                          tid_B, offsets_B, ends_B, beta);
+}
+
 /**
  * \brief read entire tensor with each processor (in packed layout).
  *         WARNING: will use a lot of memory. 

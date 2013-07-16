@@ -18,6 +18,7 @@
  * \param[in] edge_len tensor edge lengths
  * \param[in] sym symmetry types of tensor
  * \param[in] padding padding of tensor (included in edge_len)
+ * \param[in] prepadding padding at start of tensor (included in edge_len)
  * \param[in] pairs padded array of pairs
  * \param[out] new_pairs unpadded pairs
  * \param[out] new_num_pair number of unpadded pairs
@@ -29,6 +30,7 @@ void depad_tsr(int const                ndim,
                int const *              edge_len,
                int const *              sym,
                int const *              padding,
+               int const *              prepadding,
                tkv_pair<dtype> const *  pairs,
                tkv_pair<dtype> *        new_pairs,
                long_int *               new_num_pair){
@@ -59,7 +61,8 @@ void depad_tsr(int const                ndim,
       k = pairs[i].k;
       for (j=0; j<ndim; j++){
         kparts[j] = k%(edge_len[j]+padding[j]);
-        if (kparts[j] >= (key)edge_len[j]) break;
+        if (kparts[j] >= (key)edge_len[j] ||
+            kparts[j] < prepadding[j]) break;
         k = k/(edge_len[j]+padding[j]);
       } 
       if (j==ndim){
@@ -106,7 +109,8 @@ void depad_tsr(int const                ndim,
       k = pairs[i].k;
       for (j=0; j<ndim; j++){
         kparts[j] = k%(edge_len[j]+padding[j]);
-        if (kparts[j] >= (key)edge_len[j]) break;
+        if (kparts[j] >= (key)edge_len[j] ||
+            kparts[j] < prepadding[j]) break;
         k = k/(edge_len[j]+padding[j]);
       } 
       if (j==ndim){

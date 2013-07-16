@@ -99,6 +99,7 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(tCTF_Tensor<dtype> * parent_, const char
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
+  if (is_intm) delete parent;
   CTF_free(idx_map);
 }
 
@@ -134,10 +135,31 @@ void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Idx_Tensor<dtype>& tsr){
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator* (tCTF_Idx_Tensor<dtype>& tsr){
-  if (has_contract || has_sum){
+  if (has_contract){
     (*NBR)*tsr;
     return *this;
   }
+  if (has_sum){
+    tCTF_Tensor<dtype> * tcpy = new tCTF_Tensor<dtype>(*(this->parent),1);
+    if (is_intm) delete parent;
+    parent = tcpy;
+    if (has_scale)
+      NBR->run(this, scale);
+    else
+      NBR->run(this, 1.0);
+    this->has_sum = 0;
+    this->NBR = &tsr;
+  }
+  if (tsr.has_sum){
+    tCTF_Tensor<dtype> * tcpy = new tCTF_Tensor<dtype>(*(tsr.parent),1);
+    if (tsr.is_intm) delete tsr.parent;
+    tsr.parent = tcpy;
+    if (tsr.has_scale)
+      tsr.NBR->run(&tsr, tsr.scale);
+    else
+      tsr.NBR->run(&tsr, 1.0);
+    tsr.has_sum = 0;
+  } 
   NBR = &tsr;
   has_contract = 1;
   return *this;
@@ -206,9 +228,7 @@ void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, double beta){
       itsr->parent->contract(alpha, *(this->parent), this->idx_map,
                                     *(NBR->parent),  NBR->idx_map,
                              0.0,                    itsr->idx_map);
-      tCTF_Tensor<dtype> * ipar = itsr->parent;
       itsr->run(output, beta);
-      delete ipar;
     } else {
       output->parent->contract(alpha, *(this->parent), this->idx_map,
                                       *(NBR->parent),  NBR->idx_map,
@@ -220,7 +240,7 @@ void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, double beta){
       tCTF_Tensor<dtype> * tcpy = new tCTF_Tensor<dtype>(*(this->parent),1);
       tCTF_Idx_Tensor * itsr = new tCTF_Idx_Tensor<dtype>(tcpy, idx_map);
       NBR->run(itsr, alpha);
-      output->parent->sum(1.0, *(itsr->parent), idx_map, beta, output->idx_map);
+      output->parent->sum(1.0, *tcpy, idx_map, beta, output->idx_map);
       delete itsr;
       delete tcpy;
     } else {
