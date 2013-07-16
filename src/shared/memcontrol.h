@@ -3,7 +3,6 @@
 #ifndef __MEMCONTROL_H__
 #define __MEMCONTROL_H__
 
-
 uint64_t proc_bytes_used();
 uint64_t proc_bytes_total();
 uint64_t proc_bytes_available();

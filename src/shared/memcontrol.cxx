@@ -225,8 +225,8 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
       mst_buffer_ptr = mst_buffer_ptr+plen;
       mst_buffer_used += plen;  
     } else {
-      printf("Exceeded mst buffer size, current is %lld, composed of %d items\n",
-              mst_buffer_ptr, mst.size());
+      printf("Exceeded mst buffer size, current ptr is %lld, composed of %d items of size %lld\n",
+              mst_buffer_ptr, mst.size(), mst_buffer_used);;
       CTF_alloc_ptr(len, ptr);
     }
     return DIST_TENSOR_SUCCESS;
@@ -460,7 +460,7 @@ uint64_t proc_bytes_total() {
  */
 uint64_t proc_bytes_available(){
   uint64_t mem_avail = proc_bytes_available();
-  mem_avail += mst_buffer_size-mst_buffer_used();
+  mem_avail += mst_buffer_size-mst_buffer_used;
 /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
           mem_avail, proc_bytes_total() - proc_bytes_used());*/
   
