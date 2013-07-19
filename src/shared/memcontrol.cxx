@@ -459,7 +459,8 @@ uint64_t proc_bytes_total() {
  * \brief gives total memory available on this MPI process 
  */
 uint64_t proc_bytes_available(){
-  uint64_t mem_avail = proc_bytes_available();
+  uint64_t mem_avail;
+  Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail); 
   mem_avail += mst_buffer_size-mst_buffer_used;
 /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
           mem_avail, proc_bytes_total() - proc_bytes_used());*/
