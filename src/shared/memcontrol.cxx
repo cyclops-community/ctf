@@ -73,12 +73,11 @@ void CTF_set_memcap(double cap){
 std::list<mem_transfer> CTF_contract_mst(){
   std::list<mem_transfer> transfers;
   int i;
-  if (mst_buffer_ptr > .80*mst_buffer_size){
+  if (1){/*mst_buffer_ptr > .80*mst_buffer_size && 
+      mst_buffer_used < .40*mst_buffer_size){*/
     TAU_FSTART(CTF_contract_mst);
     std::list<mem_loc> old_mst = mst;
-    long_int old_mst_buffer_size = mst_buffer_size;
     long_int old_mst_buffer_ptr = mst_buffer_ptr;
-    mst_buffer_size = 0;
     mst_buffer_ptr = 0;
     mst_buffer_used = 0;
 
@@ -101,7 +100,7 @@ std::list<mem_transfer> CTF_contract_mst(){
         transfers.push_back(t);
     }
     //DPRINTF(1,"Contracted MST from size %lld to size %lld\n", 
-    printf("Contracted MST from size %lld to size %lld\n", 
+    DPRINTF(1,"Contracted MST from size %lld to size %lld\n", 
                 old_mst_buffer_ptr, mst_buffer_ptr);
     old_mst.clear();
     TAU_FSTOP(CTF_contract_mst);
@@ -177,12 +176,14 @@ int CTF_mst_free(void * ptr){
   std::list<mem_loc>::iterator it;
   for (it=--mst.end(); it!=mst.begin(); it--){
     if (it->ptr == ptr){
+      mst_buffer_used = mst_buffer_used - it->len;
       mst.erase(it);
       break;
     }
   }
   if (it == mst.begin()){
     if (it->ptr == ptr){
+      mst_buffer_used = mst_buffer_used - it->len;
       mst.erase(it);
     } else {
       printf("CTF ERROR: Invalid mst free of pointer %p\n", ptr);
@@ -194,7 +195,6 @@ int CTF_mst_free(void * ptr){
     mst_buffer_ptr = (long_int)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
   else
     mst_buffer_ptr = 0;
-  mst_buffer_used = mst_buffer_used - it->len;
   //printf("freed block, mst_buffer_ptr = %lld\n", mst_buffer_ptr);
   return DIST_TENSOR_SUCCESS;
 }
@@ -225,8 +225,8 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
       mst_buffer_ptr = mst_buffer_ptr+plen;
       mst_buffer_used += plen;  
     } else {
-      printf("Exceeded mst buffer size, current ptr is %lld, composed of %d items of size %lld\n",
-              mst_buffer_ptr, mst.size(), mst_buffer_used);;
+      DPRINTF(2,"Exceeded mst buffer size (%lld), current ptr is %lld, composed of %d items of size %lld\n",
+              mst_buffer_size, mst_buffer_ptr, mst.size(), mst_buffer_used);
       CTF_alloc_ptr(len, ptr);
     }
     return DIST_TENSOR_SUCCESS;

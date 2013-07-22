@@ -95,7 +95,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const *     dim_len,
                       int const       argc,
                       char * const *  argv){
-  char * mst_size, * mem_size, * ppn;
+  char * mst_size, * stack_size, * mem_size, * ppn;
   
   TAU_FSTART(CTF);
   CTF_set_context(global_context);
@@ -103,21 +103,26 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
 
   
   mst_size = getenv("CTF_MST_SIZE");
-  if (mst_size == NULL){
+  stack_size = getenv("CTF_STACK_SIZE");
+  if (mst_size == NULL && stack_size == NULL){
 #ifdef USE_MST
     if (rank == 0)
       DPRINTF(1,"Creating CTF stack of size %lld\n",1000*(long_int)1E6);
     CTF_mst_create(1000*(long_int)1E6);
 #else
     if (rank == 0){
-      DPRINTF(1,"Running CTF without stack, define CTF_MST_SIZE ");
+      DPRINTF(1,"Running CTF without stack, define CTF_STACK_SIZE ");
       DPRINTF(1,"environment variable to activate stack\n");
     }
 #endif
   } else {
-    uint64_t imst_size = strtoull(mst_size,NULL,0);
+    uint64_t imst_size = 0 ;
+    if (mst_size != NULL) 
+      imst_size = strtoull(mst_size,NULL,0);
+    if (stack_size != NULL)
+      imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
     if (rank == 0)
-      DPRINTF(1,"Creating CTF stack of size %llu due to CTF_MST_SIZE enviroment variable\n",
+      DPRINTF(1,"Creating CTF stack of size %llu due to CTF_STACK_SIZE enviroment variable\n",
                 imst_size);
     CTF_mst_create(imst_size);
   }
@@ -390,26 +395,6 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
   fseq_elm_ctr<dtype> felm;
   felm.func_ptr = NULL;
 
-  std::list<mem_transfer> tfs = CTF_contract_mst();
-  if (tfs.size() > 0 && dt->get_global_comm()->rank == 0){
-    DPRINTF(1,"CTF Warning: contracting memory stack\n");
-  }
-  std::list<mem_transfer>::iterator it;
-  int j = 0;
-  for (it=tfs.begin(); it!=tfs.end(); it++){
-    j++;
-    for (i=0; i<(int)dt->get_tensors()->size(); i++){
-      if ((*dt->get_tensors())[i]->data == (dtype*)it->old_ptr){
-        (*dt->get_tensors())[i]->data = (dtype*)it->new_ptr;
-        break;
-      }
-    }
-    if (i == (int)dt->get_tensors()->size()){
-      printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
-      LIBT_ASSERT(0);
-      return DIST_TENSOR_ERROR;
-    }
-  }
   return dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
 }
     

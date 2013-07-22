@@ -344,6 +344,12 @@ class tCTF_Tensor {
     tCTF_Tensor& operator=(dtype const val);
     
     /**
+     * \brief sets the tensor
+     */
+    void operator=(tCTF_Tensor<dtype> A);
+    
+    
+    /**
      * \brief associated an index map with the tensor for future operation
      * \param[in] idx_map_ index assignment for this tensor
      */

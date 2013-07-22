@@ -684,6 +684,8 @@ class dist_tensor{
                      int *        tid_new,
                      int **       idx_map_new);
 
+    void contract_mst();
+
     int elementalize(int const          tid,
                      int const          x_rank,
                      int const          x_np,

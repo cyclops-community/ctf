@@ -59,6 +59,7 @@ int  gemm(int const     m,
   t = MPI_Wtime();
   for (i=0; i<niter; i++){
     C["ij"] += (.3*i)*A["ik"]*B["kj"];
+    CTF_Matrix * D = new CTF_Matrix(n, n, NS, dw);
   }
   t = MPI_Wtime() - t;
   if (rank == 0){

@@ -24,6 +24,8 @@ tCTF_Tensor<dtype>::tCTF_Tensor(const tCTF_Tensor<dtype>& A,
   ret = world->ctf->define_tensor(ndim, len, sym, &tid);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 
+  //printf("Defined tensor %d to be the same as %d, copy=%d\n", tid, A.tid, (int)copy);
+
   if (copy){
     ret = world->ctf->copy_tensor(A.tid, tid);
     LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
@@ -247,7 +249,7 @@ tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const * offsets,
       if (offsets[i] == offsets[i+1] && ends[i] == ends[i+1]){
         new_sym[i] = sym[i];
       } else {
-        LIBT_ASSERT(ends[i] <= offsets[i+1]);
+        LIBT_ASSERT(ends[i+1] >= offsets[i]);
         new_sym[i] = NS;
       }
     } else new_sym[i] = NS;
@@ -292,6 +294,24 @@ tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(const dtype val){
   return *this;
 }
 
+template<typename dtype>
+void tCTF_Tensor<dtype>::operator=(tCTF_Tensor<dtype> A){
+  int ret;  
+
+  world = A.world;
+
+  ret = world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+
+  ret = world->ctf->define_tensor(ndim, len, sym, &tid);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+
+  //printf("Set tensor %d to be the same as %d\n", tid, A.tid);
+
+  ret = world->ctf->copy_tensor(A.tid, tid);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
+    
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>& tCTF_Tensor<dtype>::operator[](const char * idx_map_){

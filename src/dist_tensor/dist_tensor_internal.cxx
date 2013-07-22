@@ -249,12 +249,12 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   (*tensor_id) = tensors.size();
 
   /* initialize map array and symmetry table */
-#if DEBUG >= 3
+#if DEBUG >= 2
   if (global_comm->rank == 0)
     printf("Tensor %d of dimension %d defined with edge lengths", *tensor_id, ndim);
 #endif
   for (i=0; i<ndim; i++){
-#if DEBUG >= 3
+#if DEBUG >= 2
     if (global_comm->rank == 0)
       printf(" %d", edge_len[i]);
 #endif
@@ -267,7 +267,7 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
       tsr->sym_table[(i+1)*ndim+i] = 1;
     }
   }
-#if DEBUG >= 3
+#if DEBUG >= 2
   if (global_comm->rank == 0)
     printf("\n");
 #endif
@@ -1230,6 +1230,9 @@ template<typename dtype>
 int dist_tensor<dtype>::del_tsr(int const tid){
   tensor<dtype> * tsr;
 
+  if (global_comm->rank == 0){
+    DPRINTF(1,"Deleting tensor %d\n",tid);
+  }
   tsr = tensors[tid];
   if (tsr->is_alloced){
     unfold_tsr(tsr);
@@ -2147,6 +2150,35 @@ int dist_tensor<dtype>::check_sum(int const   tid_A,
   return DIST_TENSOR_SUCCESS;
 }
 
+template<typename dtype>
+void dist_tensor<dtype>::contract_mst(){
+  std::list<mem_transfer> tfs = CTF_contract_mst();
+  if (tfs.size() > 0 && get_global_comm()->rank == 0){
+    DPRINTF(1,"CTF Warning: contracting memory stack\n");
+  }
+  std::list<mem_transfer>::iterator it;
+  int i;
+  int j = 0;
+  for (it=tfs.begin(); it!=tfs.end(); it++){
+    j++;
+    for (i=0; i<(int)tensors.size(); i++){
+      if (tensors[i]->data == (dtype*)it->old_ptr){
+        tensors[i]->data = (dtype*)it->new_ptr;
+        break;
+      }
+    }
+    if (i == (int)tensors.size()){
+      printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
+      LIBT_ASSERT(0);
+    }
+    for (i=0; i<(int)tensors.size(); i++){
+      if (tensors[i]->data == (dtype*)it->old_ptr){
+        tensors[i]->data = (dtype*)it->new_ptr;
+      }
+    }
+  }
+
+}
 
 
 
