@@ -73,8 +73,8 @@ void CTF_set_memcap(double cap){
 std::list<mem_transfer> CTF_contract_mst(){
   std::list<mem_transfer> transfers;
   int i;
-  if (1){/*mst_buffer_ptr > .80*mst_buffer_size && 
-      mst_buffer_used < .40*mst_buffer_size){*/
+  if (mst_buffer_ptr > .80*mst_buffer_size && 
+      mst_buffer_used < .40*mst_buffer_size){
     TAU_FSTART(CTF_contract_mst);
     std::list<mem_loc> old_mst = mst;
     long_int old_mst_buffer_ptr = mst_buffer_ptr;
