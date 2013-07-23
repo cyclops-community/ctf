@@ -39,9 +39,9 @@ void readwrite(int const        ndim,
                dtype *          vdata,
                tkv_pair<dtype> *pairs,
                char const       rw){
-  int i, imax, act_lda;
+  long_int i, imax, act_lda;
   long_int idx_offset, act_max, buf_offset, pr_offset, p;
-  int * idx, * virt_rank, * edge_lda;  
+  long_int * idx, * virt_rank, * edge_lda;  
   dtype * data;
   
   if (ndim == 0){
@@ -63,11 +63,11 @@ void readwrite(int const        ndim,
     return;
   }
   TAU_FSTART(readwrite);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&edge_lda);
+  CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&idx);
+  CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&virt_rank);
+  CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&edge_lda);
   
-  memset(virt_rank, 0, sizeof(int)*ndim);
+  memset(virt_rank, 0, sizeof(long_int)*ndim);
   edge_lda[0] = 1;
   for (i=1; i<ndim; i++){
     edge_lda[i] = edge_lda[i-1]*edge_len[i-1];
@@ -84,7 +84,7 @@ void readwrite(int const        ndim,
       idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
     } 
    
-    memset(idx, 0, ndim*sizeof(int));
+    memset(idx, 0, ndim*sizeof(long_int));
     imax = edge_len[0]/phase[0];
     for (;;){
       if (sym[0] != NS)
@@ -104,7 +104,7 @@ void readwrite(int const        ndim,
                 pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
             } else {
               LIBT_ASSERT(rw =='w');
-              data[(int)buf_offset+i] = beta*data[(int)buf_offset+i]+alpha*pairs[pr_offset].d;
+              data[(long_int)buf_offset+i] = beta*data[(long_int)buf_offset+i]+alpha*pairs[pr_offset].d;
             }
             pr_offset++;
             //Check for write conflicts
