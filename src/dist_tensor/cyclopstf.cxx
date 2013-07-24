@@ -12,6 +12,11 @@
 #include "../unit_test/unit_test_ctr.h"
 #endif
 
+#ifdef HPM
+extern "C" void HPM_Start(char *);  
+extern "C" void HPM_Stop(char *);
+#endif
+
 #define DEF_INNER_SIZE 256
 
 /** 
@@ -98,6 +103,9 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   char * mst_size, * stack_size, * mem_size, * ppn;
   
   TAU_FSTART(CTF);
+#ifdef HPM
+  HPM_Start("CTF");
+#endif
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
 
@@ -741,6 +749,9 @@ int tCTF<dtype>::exit(){
   int ret;
   if (initialized){
     TAU_FSTOP(CTF);
+#ifdef HPM
+    HPM_Stop("CCSD");
+#endif
     ret = tCTF<dtype>::clean_tensors();
     LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
     delete dt;
