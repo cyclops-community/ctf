@@ -1231,7 +1231,7 @@ int dist_tensor<dtype>::del_tsr(int const tid){
   tensor<dtype> * tsr;
 
   tsr = tensors[tid];
-  if (tsr->is_alloced){
+  if (tsr != NULL){
     if (global_comm->rank == 0){
       DPRINTF(1,"Deleting tensor %d\n",tid);
     }
@@ -1253,6 +1253,8 @@ int dist_tensor<dtype>::del_tsr(int const tid){
     }
     CTF_free(tsr->edge_map);
     tsr->is_alloced = 0;
+    CTF_free(tsr);
+    tensors[tid] = NULL;
   }
 
   return DIST_TENSOR_SUCCESS;

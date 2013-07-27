@@ -725,7 +725,7 @@ int tCTF<dtype>::clean_tensors(){
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   for (i=0; i<tensors->size(); i++){
     dt->del_tsr(i);
-    CTF_free((*tensors)[i]);
+//    CTF_free((*tensors)[i]);
   }
   tensors->clear();
   return DIST_TENSOR_SUCCESS;
