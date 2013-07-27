@@ -1230,12 +1230,12 @@ template<typename dtype>
 int dist_tensor<dtype>::del_tsr(int const tid){
   tensor<dtype> * tsr;
 
-  if (global_comm->rank == 0){
-    DPRINTF(1,"Deleting tensor %d\n",tid);
-  }
   tsr = tensors[tid];
-  if (tsr->is_alloced){
-    unfold_tsr(tsr);
+  if (tsr != NULL){
+    if (global_comm->rank == 0){
+      DPRINTF(1,"Deleting tensor %d\n",tid);
+    }
+    //unfold_tsr(tsr);
     CTF_free(tsr->edge_len);
     if (tsr->is_padded)
       CTF_free(tsr->padding);
@@ -1253,6 +1253,8 @@ int dist_tensor<dtype>::del_tsr(int const tid){
     }
     CTF_free(tsr->edge_map);
     tsr->is_alloced = 0;
+    CTF_free(tsr);
+    tensors[tid] = NULL;
   }
 
   return DIST_TENSOR_SUCCESS;
