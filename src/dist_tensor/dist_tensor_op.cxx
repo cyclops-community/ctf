@@ -379,7 +379,6 @@ int dist_tensor<dtype>::
   if (!check_self_mapping(tid, idx_map)){
     save_mapping(tsr, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda,
                  &old_size, &was_padded, &was_cyclic, &old_padding, &old_edge_len, &topovec[tsr->itopo]);
-    tsr->need_remap = 0;
     for (itopo=0; itopo<(int)topovec.size(); itopo++){
       clear_mapping(tsr);
       tsr->itopo = itopo;
@@ -1606,20 +1605,26 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
                                      fseq_tsr_sum<dtype> const  ftsr,
                                      fseq_elm_sum<dtype> const  felm,
                                      int const                  run_diag){
-  int ret;
-  tensor<dtype> * tsr_A, * tsr_B;
+  int ret, was_home_A, was_home_B;
+  tensor<dtype> * tsr_A, * tsr_B, * ntsr_A, * ntsr_B;
+  int was_padded_B, was_cyclic_B;
+  long_int old_size_B;
+  int * old_phase_B, * old_rank_B, * old_virt_dim_B, * old_pe_lda_B;
+  int * old_padding_B, * old_edge_len_B;
   CTF_sum_type_t type;
   type.tid_A = tid_A;
   type.tid_B = tid_B;
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
+  
+  contract_mst();
 
   CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&type.idx_map_A);
   CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&type.idx_map_B);
 
   memcpy(type.idx_map_A, idx_map_A, sizeof(int)*tsr_A->ndim);
   memcpy(type.idx_map_B, idx_map_B, sizeof(int)*tsr_B->ndim);
-#ifndef HOUSE_CONTRACT
+#ifndef HOME_CONTRACT
   #ifdef USE_SYM_SUM
     ret = sym_sum_tsr(alpha_, beta, &type, ftsr, felm, run_diag);
     free_type(&type);
@@ -1637,10 +1642,10 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
   }
   if (tid_A == tid_B){
     clone_tensor(tid_A, 1, &new_tid);
-    stat = home_sum_tsr(alpha_, beta, new_tid, tid_B, 
+    ret = home_sum_tsr(alpha_, beta, new_tid, tid_B, 
                         idx_map_A, idx_map_B, ftsr, felm, run_diag);
     del_tsr(new_tid);
-    return stat;
+    return ret;
   }
   was_home_A = tsr_A->is_home;
   was_home_B = tsr_B->is_home;
@@ -1670,7 +1675,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
   #ifdef USE_SYM_SUM
   ret = sym_sum_tsr(alpha_, beta, &type, ftsr, felm, run_diag);
   #else
-  ret = sum_tensors(alpha_, beta, tid_A, tid_B, idx_map_A, idx_map_B, ftsr, felm, run_diag);
+  ret = sum_tensors(alpha_, beta, type.tid_A, type.tid_B, idx_map_A, idx_map_B, ftsr, felm, run_diag);
   #endif
 
   if (ret!= DIST_TENSOR_SUCCESS) return ret;
@@ -1680,7 +1685,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
   if (was_home_B && !ntsr_B->is_home){
     if (global_comm->rank == 0)
       DPRINTF(2,"Migrating tensor %d back to home\n", tid_B);
-    save_mapping(ntsr_B
+    save_mapping(ntsr_B,
                  &old_phase_B, &old_rank_B, 
                  &old_virt_dim_B, &old_pe_lda_B, 
                  &old_size_B, &was_padded_B, 
@@ -1693,7 +1698,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
                  old_pe_lda_B, was_padded_B, was_cyclic_B, 
                  old_padding_B, old_edge_len_B, global_comm);
     memcpy(tsr_B->home_buffer, tsr_B->data, tsr_B->size*sizeof(dtype));
-    BTF_free(tsr_B->data);
+    CTF_free(tsr_B->data);
     tsr_B->data = tsr_B->home_buffer;
     tsr_B->is_home = 1;
     ntsr_B->is_data_aliased = 1;
@@ -1704,12 +1709,23 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     CTF_free(old_pe_lda_B);
     CTF_free(old_padding_B);
     CTF_free(old_edge_len_B);
+  } else if (was_home_B){
+    if (ntsr_B->data != tsr_B->data){
+      printf("Tensor %d is a copy of %d and did not leave home but buffer is %p was %p\n", type.tid_B, tid_B, ntsr_B->data, tsr_B->data);
+      ABORT;
+
+    }
+    ntsr_B->has_home = 0;
+    ntsr_B->is_data_aliased = 1;
+    del_tsr(type.tid_B);
   }
   if (was_home_A && !ntsr_A->is_home){
-    del_tsr(ntype.tid_A);
+    ntsr_A->has_home = 0;
+    del_tsr(type.tid_A);
   } else if (was_home_A) {
+    ntsr_A->has_home = 0;
     ntsr_A->is_data_aliased = 1;
-    del_tsr(ntype.tid_A);
+    del_tsr(type.tid_A);
   }
   free_type(&type);
   return ret;
@@ -1773,8 +1789,9 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
 
   if (ntid_A == ntid_B){
     clone_tensor(ntid_A, 1, &new_tid);
-    stat = sym_sum_tsr(alpha_, beta, new_tid, ntid_B, 
-                       type->idx_map_A, type->idx_map_B, ftsr, felm, run_diag);
+    CTF_sum_type_t new_type = *type;
+    new_type.tid_A = new_tid;
+    stat = sym_sum_tsr(alpha_, beta, &new_type, ftsr, felm, run_diag);
     del_tsr(new_tid);
     return stat;
   }
@@ -1879,6 +1896,8 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
   if (tensors[tid_A]->has_zero_edge_len || tensors[tid_B]->has_zero_edge_len){
     return DIST_TENSOR_SUCCESS;
   }
+
+
   CTF_alloc_ptr(sizeof(int)*tensors[tid_A]->ndim,   (void**)&map_A);
   CTF_alloc_ptr(sizeof(int)*tensors[tid_B]->ndim,   (void**)&map_B);
   CTF_alloc_ptr(sizeof(int*)*tensors[tid_B]->ndim,   (void**)&dstack_map_B);
@@ -2003,8 +2022,6 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     TAU_FSTOP(sum_func);
 #ifndef SEQ
     stat = zero_out_padding(ntid_B);
-  /*  if (tensors[ntid_B]->ndim > 0)
-      tensors[ntid_B]->need_remap = 1;*/
 #endif
 
 #if VERIFY
@@ -2102,6 +2119,9 @@ int dist_tensor<dtype>::
       tsr_C->has_zero_edge_len){
     return DIST_TENSOR_SUCCESS;
   }
+
+  contract_mst();
+
   if (stype->tid_A == stype->tid_B || stype->tid_A == stype->tid_C){
     clone_tensor(stype->tid_A, 1, &new_tid);
     CTF_ctr_type_t new_type = *stype;
@@ -2117,7 +2137,6 @@ int dist_tensor<dtype>::
     del_tsr(new_tid);
     return ret;
   } 
-
 
   CTF_ctr_type_t ntype = *stype;
 
@@ -2201,14 +2220,14 @@ int dist_tensor<dtype>::
     del_tsr(ntype.tid_C);
   }
   if (was_home_A && !ntsr_A->is_home){
-  }
-  if (was_home_A && !ntsr_A->is_home){
+    ntsr_A->has_home = 0;
     del_tsr(ntype.tid_A);
   } else if (was_home_A) {
     ntsr_A->is_data_aliased = 1;
     del_tsr(ntype.tid_A);
   }
   if (was_home_B && !ntsr_B->is_home){
+    ntsr_B->has_home = 0;
     del_tsr(ntype.tid_B);
   } else if (was_home_B) {
     ntsr_B->is_data_aliased = 1;
@@ -2574,8 +2593,6 @@ int dist_tensor<dtype>::
   ctrf->run();
   TAU_FSTOP(ctr_func);
 #ifndef SEQ
-/*  if (tensors[type->tid_C]->ndim > 0)
-    tensors[type->tid_C]->need_remap = 1;*/
   if (tensors[type->tid_C]->is_cyclic)
     stat = zero_out_padding(type->tid_C);
 #endif

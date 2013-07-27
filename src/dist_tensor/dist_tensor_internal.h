@@ -71,7 +71,6 @@ struct tensor {
   int is_matrix;
   int is_data_aliased;
   int slay;
-  int need_remap;
   int has_zero_edge_len;
   union {
     dtype * data;
@@ -280,6 +279,15 @@ class dist_tensor{
                      int ** edge_len,
                      int ** sym) const;
 
+    int slice_tensor(int const    tid_A,
+                     int const *  offsets_A,
+                     int const *  ends_A,
+                     double const alpha,
+                     int const    tid_B,
+                     int const *  offsets_B,
+                     int const *  ends_B,
+                     double const beta);
+    
     int write_pairs(int const                 tensor_id,
                     long_int const            num_pair,
                     dtype const               alpha,
@@ -675,6 +683,8 @@ class dist_tensor{
                      int const    rw,
                      int *        tid_new,
                      int **       idx_map_new);
+
+    void contract_mst();
 
     int elementalize(int const          tid,
                      int const          x_rank,

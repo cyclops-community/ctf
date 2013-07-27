@@ -257,29 +257,47 @@ class tCTF{
     /* Input tensor data with <key, value> pairs where key is the
        global index for the value. */
     int write_tensor(int const                tensor_id,
-                     long_int const            num_pair,
+                     long_int const           num_pair,
                      tkv_pair<dtype> * const  mapped_data);
     
     /* Add tensor data new=alpha*new+beta*old
        with <key, value> pairs where key is the 
        global index for the value. */
     int write_tensor(int const                tensor_id,
-                     long_int const            num_pair,
+                     long_int const           num_pair,
                      dtype const              alpha,
                      dtype const              beta,
                      tkv_pair<dtype> * const  mapped_data);
+
+    /* Add tensor data from A to a block of B, 
+       B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] */
+    int slice_tensor(int const    tid_A,
+                     int const *  offsets_A,
+                     int const *  ends_A,
+                     double const alpha,
+                     int const    tid_B,
+                     int const *  offsets_B,
+                     int const *  ends_B,
+                     double const beta);
+
+    /* read a block from tensor_id, 
+       new_tensor_id = tensor_id[offsets:ends] */
+/*    int read_block_tensor(int const   tensor_id,
+                          int const * offsets,
+                          int const * ends,
+                          int *       new_tensor_id);*/
 
 
     /* read tensor data with <key, value> pairs where key is the
        global index for the value, which gets filled in. */
     int read_tensor(int const               tensor_id,
-                    long_int const           num_pair,
+                    long_int const          num_pair,
                     tkv_pair<dtype> * const mapped_data);
 
     /* read entire tensor with each processor (in packed layout).
        WARNING: will use a lot of memory. */
     int allread_tensor(int const  tensor_id,
-                       long_int *  num_pair,
+                       long_int * num_pair,
                        dtype **   all_data);
 
 
@@ -288,7 +306,7 @@ class tCTF{
 
     /* read tensor data pairs local to processor. */
     int read_local_tensor(int const           tensor_id,
-                          long_int *           num_pair,
+                          long_int *          num_pair,
                           tkv_pair<dtype> **  mapped_data);
 
     /* contracts tensors alpha*A*B + beta*C -> C,

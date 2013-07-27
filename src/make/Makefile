@@ -12,6 +12,21 @@ clean: clean_bin clean_lib
 test: test_suite
 	${bindir}/test_suite
 
+test2: test_suite
+	mpirun -np 2 ${bindir}/test_suite
+
+test3: test_suite
+	mpirun -np 3 ${bindir}/test_suite
+
+test4: test_suite
+	mpirun -np 4 ${bindir}/test_suite
+
+test6: test_suite
+	mpirun -np 6 ${bindir}/test_suite
+
+test8: test_suite
+	mpirun -np 8 ${bindir}/test_suite
+
 clean_bin:
 	for comp in $(EXECUTABLES) ; do \
 		rm -f ${bindir}/$$comp ; \

@@ -18,6 +18,7 @@
  * \param[in] edge_len tensor edge lengths
  * \param[in] sym symmetry types of tensor
  * \param[in] padding padding of tensor (included in edge_len)
+ * \param[in] prepadding padding at start of tensor (included in edge_len)
  * \param[in] pairs padded array of pairs
  * \param[out] new_pairs unpadded pairs
  * \param[out] new_num_pair number of unpadded pairs
@@ -29,6 +30,7 @@ void depad_tsr(int const                ndim,
                int const *              edge_len,
                int const *              sym,
                int const *              padding,
+               int const *              prepadding,
                tkv_pair<dtype> const *  pairs,
                tkv_pair<dtype> *        new_pairs,
                long_int *               new_num_pair){
@@ -59,7 +61,8 @@ void depad_tsr(int const                ndim,
       k = pairs[i].k;
       for (j=0; j<ndim; j++){
         kparts[j] = k%(edge_len[j]+padding[j]);
-        if (kparts[j] >= (key)edge_len[j]) break;
+        if (kparts[j] >= (key)edge_len[j] ||
+            kparts[j] < prepadding[j]) break;
         k = k/(edge_len[j]+padding[j]);
       } 
       if (j==ndim){
@@ -106,7 +109,8 @@ void depad_tsr(int const                ndim,
       k = pairs[i].k;
       for (j=0; j<ndim; j++){
         kparts[j] = k%(edge_len[j]+padding[j]);
-        if (kparts[j] >= (key)edge_len[j]) break;
+        if (kparts[j] >= (key)edge_len[j] ||
+            kparts[j] < prepadding[j]) break;
         k = k/(edge_len[j]+padding[j]);
       } 
       if (j==ndim){
@@ -543,22 +547,23 @@ void bucket_by_pe( int const                ndim,
   TAU_FSTART(bucket_by_pe_count);
   /* Calculate counts */
 #ifdef USE_OMP
-  #pragma omp parallel for schedule(static) private(j, loc, k)
+  #pragma omp parallel for schedule(static,256) private(i, j, loc, k)
 #endif
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;
     loc = 0;
-    int tmp_arr[ndim];
+//    int tmp_arr[ndim];
     for (j=0; j<ndim; j++){
-      tmp_arr[j] = (k%edge_len[j])%phase[j];
+/*      tmp_arr[j] = (k%edge_len[j])%phase[j];
       tmp_arr[j] = tmp_arr[j]/virt_phase[j];
-      tmp_arr[j] = tmp_arr[j]*bucket_lda[j];
-//      loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
+      tmp_arr[j] = tmp_arr[j]*bucket_lda[j];*/
+      loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
       k = k/edge_len[j];
     }
-    for (j=0; j<ndim; j++){
+/*    for (j=0; j<ndim; j++){
       loc += tmp_arr[j];
-    }
+    }*/
+    LIBT_ASSERT(loc<np);
 #ifdef USE_OMP
     sub_counts[loc+omp_get_thread_num()*np]++;
 #else
@@ -596,18 +601,14 @@ void bucket_by_pe( int const                ndim,
   /* bucket data */
   TAU_FSTART(bucket_by_pe_move);
 #ifdef USE_OMP
-  #pragma omp parallel for schedule(static) private(j, loc, k)
+  #pragma omp parallel for schedule(static,256) private(i, j, loc, k)
 #endif
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;
     loc = 0;
-    int tmp_arr[ndim];
     for (j=0; j<ndim; j++){
-      tmp_arr[j] = (((k%edge_len[j])%phase[j])/virt_phase[j])*bucket_lda[j];
+      loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
       k = k/edge_len[j];
-    }
-    for (j=0; j<ndim; j++){
-      loc += tmp_arr[j];
     }
 #ifdef USE_OMP
     bucket_data[bucket_off[loc] + sub_offs[loc+omp_get_thread_num()*np]] 
@@ -750,6 +751,11 @@ void bucket_by_virt(int const               ndim,
         bucket_data+(virt_prefix[i]+virt_counts[i]));
   }
   TAU_FSTOP(bucket_by_virt_sort);
+#if DEBUG >= 1
+  for (i=1; i<num_pair; i++){
+    LIBT_ASSERT(bucket_data[i].k != bucket_data[i-1].k);
+  }
+#endif
 #ifdef USE_OMP
   CTF_free(sub_counts);
   CTF_free(sub_offs);

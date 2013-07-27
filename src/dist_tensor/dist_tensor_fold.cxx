@@ -1455,7 +1455,6 @@ void dist_tensor<dtype>::dealias(int const sym_tid, int const nonsym_tid){
     tsr_sym->itopo = tsr_nonsym->itopo;
     copy_mapping(tsr_nonsym->ndim, tsr_nonsym->edge_map, 
                  tsr_sym->edge_map);
-    tsr_sym->need_remap = tsr_nonsym->need_remap;
     tsr_sym->data = tsr_nonsym->data;
     tsr_sym->is_home = tsr_nonsym->is_home;
     set_padding(tsr_sym);
@@ -1524,13 +1523,12 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
     tsr_nonsym->data    = tsr_sym->data;
     tsr_nonsym->home_buffer    = tsr_sym->home_buffer;
     tsr_nonsym->is_home    = tsr_sym->is_home;
-    tsr_nonsym->need_remap = tsr_sym->need_remap;
     tsr_nonsym->is_data_aliased = 1;
     TAU_FSTOP(desymmetrize);
     return;
   }
 
-  CTF_alloc_ptr(tsr_nonsym->size*sizeof(dtype), (void**)&tsr_nonsym->data);
+  CTF_mst_alloc_ptr(tsr_nonsym->size*sizeof(dtype), (void**)&tsr_nonsym->data);
   std::fill(tsr_nonsym->data, tsr_nonsym->data+tsr_nonsym->size, get_zero<dtype>());
 
   CTF_alloc_ptr(tsr_sym->ndim*sizeof(int), (void**)&idx_map_A);
@@ -1544,6 +1542,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   fs.func_ptr=sym_seq_sum_ref<dtype>;
   fseq_elm_sum<dtype> felm;
   felm.func_ptr=NULL;
+  
 
   if (!is_C){
     if (scal_diag){
@@ -1570,8 +1569,8 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
     if (scal_diag) del_tsr(ctid);
   }
 
-  
   sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
+  
 //  print_tsr(stdout, nonsym_tid);
 
 
@@ -1687,7 +1686,6 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
     set_padding(tsr_sym);
     tsr_sym->size     = tsr_nonsym->size;
     tsr_sym->data     = tsr_nonsym->data;
-    tsr_sym->need_remap = tsr_nonsym->need_remap;
     TAU_FSTOP(symmetrize);
     return;
   }

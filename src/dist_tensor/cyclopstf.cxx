@@ -12,6 +12,11 @@
 #include "../unit_test/unit_test_ctr.h"
 #endif
 
+#ifdef HPM
+extern "C" void HPM_Start(char *);  
+extern "C" void HPM_Stop(char *);
+#endif
+
 #define DEF_INNER_SIZE 256
 
 /** 
@@ -95,10 +100,56 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const *     dim_len,
                       int const       argc,
                       char * const *  argv){
+  char * mst_size, * stack_size, * mem_size, * ppn;
+  
   TAU_FSTART(CTF);
+#ifdef HPM
+  HPM_Start("CTF");
+#endif
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
-  CTF_mst_create(1000*(long_int)1E6);
+
+  
+  mst_size = getenv("CTF_MST_SIZE");
+  stack_size = getenv("CTF_STACK_SIZE");
+  if (mst_size == NULL && stack_size == NULL){
+#ifdef USE_MST
+    if (rank == 0)
+      DPRINTF(1,"Creating CTF stack of size %lld\n",1000*(long_int)1E6);
+    CTF_mst_create(1000*(long_int)1E6);
+#else
+    if (rank == 0){
+      DPRINTF(1,"Running CTF without stack, define CTF_STACK_SIZE ");
+      DPRINTF(1,"environment variable to activate stack\n");
+    }
+#endif
+  } else {
+    uint64_t imst_size = 0 ;
+    if (mst_size != NULL) 
+      imst_size = strtoull(mst_size,NULL,0);
+    if (stack_size != NULL)
+      imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
+    if (rank == 0)
+      DPRINTF(1,"Creating CTF stack of size %llu due to CTF_STACK_SIZE enviroment variable\n",
+                imst_size);
+    CTF_mst_create(imst_size);
+  }
+  mem_size = getenv("CTF_MEMORY_SIZE");
+  if (mem_size != NULL){
+    uint64_t imem_size = strtoull(mem_size,NULL,0);
+    if (rank == 0)
+      DPRINTF(1,"CTF memory size set to %llu by CTF_MEMORY_SIZE environment variable\n",
+                imem_size);
+    CTF_set_mem_size(imem_size);
+  }
+  ppn = getenv("CTF_PPN");
+  if (ppn != NULL){
+    if (rank == 0)
+      DPRINTF(1,"CTF assuming %lld processes per node due to CTF_PPN environment variable\n",
+                atoi(ppn));
+    LIBT_ASSERT(atoi(ppn)>=1);
+    CTF_set_memcap(.75/atof(ppn));
+  }
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);
@@ -244,6 +295,19 @@ int tCTF<dtype>::read_tensor(int const                tensor_id,
   return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'r');
 }
 
+template<typename dtype>
+int tCTF<dtype>::slice_tensor( int const    tid_A,
+                               int const *  offsets_A,
+                               int const *  ends_A,
+                               double const alpha,
+                               int const    tid_B,
+                               int const *  offsets_B,
+                               int const *  ends_B,
+                               double const beta){
+  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha,
+                          tid_B, offsets_B, ends_B, beta);
+}
+
 /**
  * \brief read entire tensor with each processor (in packed layout).
  *         WARNING: will use a lot of memory. 
@@ -339,26 +403,6 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
   fseq_elm_ctr<dtype> felm;
   felm.func_ptr = NULL;
 
-  std::list<mem_transfer> tfs = CTF_contract_mst();
-  if (tfs.size() > 0 && dt->get_global_comm()->rank == 0){
-    DPRINTF(1,"CTF Warning: contracting memory stack\n");
-  }
-  std::list<mem_transfer>::iterator it;
-  int j = 0;
-  for (it=tfs.begin(); it!=tfs.end(); it++){
-    j++;
-    for (i=0; i<(int)dt->get_tensors()->size(); i++){
-      if ((*dt->get_tensors())[i]->data == (dtype*)it->old_ptr){
-        (*dt->get_tensors())[i]->data = (dtype*)it->new_ptr;
-        break;
-      }
-    }
-    if (i == (int)dt->get_tensors()->size()){
-      printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
-      LIBT_ASSERT(0);
-      return DIST_TENSOR_ERROR;
-    }
-  }
   return dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
 }
     
@@ -705,6 +749,9 @@ int tCTF<dtype>::exit(){
   int ret;
   if (initialized){
     TAU_FSTOP(CTF);
+#ifdef HPM
+    HPM_Stop("CCSD");
+#endif
     ret = tCTF<dtype>::clean_tensors();
     LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
     delete dt;
@@ -781,7 +828,6 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #endif
 
   ret = this->contract(&ct, fs, ALPHA, BETA);
-  (*tensors)[ct.tid_C]->need_remap = 0;
   if (ret != DIST_TENSOR_SUCCESS)
     return ret;
 #if (!REDIST)
@@ -982,7 +1028,6 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
     fs.func_ptr = &gemm_ctr<dtype,0,0>;
   ret = this->contract(&ct, fs, ALPHA, BETA);
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
-  (*tensors)[ct.tid_C]->need_remap = 0;
   CTF_free(ct.idx_map_A);
   CTF_free(ct.idx_map_B);
   CTF_free(ct.idx_map_C);

@@ -10,9 +10,10 @@ DEFS        = -DBGQ -D__STDC_LIMIT_MACROS
 
 # On Blue Gene/Q, you must use bglib64 not lib64.
 LDFLAGS     = -L$(BGQ_ESSL)/bglib64 \
-              -L$(IBM_FCMP_DIR)/xlf/bg/14.1/bglib64/ \
-              -L$(IBM_FCMP_DIR)/xlsmp/bg/3.1/bglib64/ \
-              -L$(IBM_FCMP_DIR)/xlmass/bg/7.3/bglib64/ \
+              -L$(IBM_MAIN_DIR)/xlf/bg/14.1/bglib64/ \
+              -L$(IBM_MAIN_DIR)/xlsmp/bg/3.1/bglib64/ \
+              -L$(IBM_MAIN_DIR)/xlmass/bg/7.3/bglib64/ 
+
 INCLUDES    = -I$(BGQ_ESSL)/include 
 AR          = powerpc64-bgq-linux-ar -crs
 DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po

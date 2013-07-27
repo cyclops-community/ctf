@@ -226,7 +226,6 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   tsr->is_folded          = 0;
   tsr->is_matrix          = 0;
   tsr->is_data_aliased    = 0;
-  tsr->need_remap         = 0;
   tsr->has_zero_edge_len  = 0;
   tsr->is_home            = 0;
   tsr->has_home           = 0;
@@ -250,12 +249,12 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   (*tensor_id) = tensors.size();
 
   /* initialize map array and symmetry table */
-#if DEBUG >= 3
+#if DEBUG >= 2
   if (global_comm->rank == 0)
     printf("Tensor %d of dimension %d defined with edge lengths", *tensor_id, ndim);
 #endif
   for (i=0; i<ndim; i++){
-#if DEBUG >= 3
+#if DEBUG >= 2
     if (global_comm->rank == 0)
       printf(" %d", edge_len[i]);
 #endif
@@ -268,7 +267,7 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
       tsr->sym_table[(i+1)*ndim+i] = 1;
     }
   }
-#if DEBUG >= 3
+#if DEBUG >= 2
   if (global_comm->rank == 0)
     printf("\n");
 #endif
@@ -697,6 +696,9 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
   int i;
   tensor<dtype> * tsr_A, * tsr_B;
 
+  if (global_comm->rank == 0)
+    DPRINTF(2,"Copying tensor %d to tensor %d\n", tid_A, tid_B);
+
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
   
@@ -809,13 +811,101 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
   tsr_B->is_mapped      = tsr_A->is_mapped;
   tsr_B->is_cyclic      = tsr_A->is_cyclic;
   tsr_B->itopo          = tsr_A->itopo;
-  tsr_B->need_remap     = tsr_A->need_remap;
   if (tsr_A->is_mapped)
     copy_mapping(tsr_A->ndim, tsr_A->edge_map, tsr_B->edge_map);
   tsr_B->size = tsr_A->size;
 
   return DIST_TENSOR_SUCCESS;
 }
+    
+/**
+ * Add tensor data from A to a block of B, 
+ *      B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] 
+ * \param[in] tid_A id of tensor A
+ * \param[in] offsets_A closest corner of tensor block in A
+ * \param[in] ends_A furthest corner of tensor block in A
+ * \param[in] alpha scaling factor of A
+ * \param[in] tid_B id of tensor B
+ * \param[in] offsets_B closest corner of tensor block in B
+ * \param[in] ends_B furthest corner of tensor block in B
+ * \param[in] alpha scaling factor of B
+ */
+template<typename dtype>
+int dist_tensor<dtype>::slice_tensor(int const    tid_A,
+                                     int const *  offsets_A,
+                                     int const *  ends_A,
+                                     double const alpha,
+                                     int const    tid_B,
+                                     int const *  offsets_B,
+                                     int const *  ends_B,
+                                     double const beta){
+  long_int i, j, k, lda, knew, sz_A, blk_sz_A, blk_sz_B;
+  tkv_pair<dtype> * all_data_A, * blk_data_A;
+  tensor<dtype> * tsr_A, * tsr_B;
+  int ndim_A, * len_A, * sym_A;
+  int ndim_B, * len_B, * sym_B;
+  int ret;
+
+  tsr_A = tensors[tid_A];
+  tsr_B = tensors[tid_B];
+
+  sz_A = 0;
+  read_local_pairs(tid_A, &sz_A, &all_data_A);
+  
+  get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
+  get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
+
+  CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_A, (void**)&blk_data_A);
+
+  int * padding = (int*)CTF_alloc(sizeof(int)*tsr_A->ndim);
+  for (i=0; i<tsr_A->ndim; i++){
+    padding[i] = len_A[i] - ends_A[i];
+  }
+  depad_tsr(ndim_A, sz_A, ends_A, sym_A, padding, offsets_A,
+            all_data_A, blk_data_A, &blk_sz_A);
+  CTF_free(all_data_A);
+#ifdef USE_OMP
+  #pragma omp parallel for private(knew, k, lda, i, j)
+#endif
+  for (i=0; i<blk_sz_A; i++){
+    k = blk_data_A[i].k;
+    lda = 1;
+    knew = 0;
+    for (j=0; j<ndim_A; j++){
+      knew += lda*((k%len_A[j])-offsets_A[j]);
+      lda *= (ends_A[j]-offsets_A[j]);
+      k = k/len_A[j];
+    }
+    blk_data_A[i].k = knew;
+  }
+#ifdef USE_OMP
+  #pragma omp parallel for private(knew, k, lda, i, j)
+#endif
+  for (i=0; i<blk_sz_A; i++){
+    k = blk_data_A[i].k;
+    lda = 1;
+    knew = 0;
+    for (j=0; j<ndim_B; j++){
+      knew += lda*((k%(ends_B[j]-offsets_B[j]))+offsets_B[j]);
+      lda *= len_B[j];
+      k = k/(ends_B[j]-offsets_B[j]);
+    }
+    blk_data_A[i].k = knew;
+  }
+
+  ret = write_pairs(tid_B, blk_sz_A, alpha, beta, blk_data_A, 'w');  
+
+  CTF_free(len_A);
+  CTF_free(len_B);
+  CTF_free(sym_A);
+  CTF_free(sym_B);
+  CTF_free(blk_data_A);
+  CTF_free(padding);
+
+  return ret;
+}
+
+
 
 /**
  * \brief  Read or write tensor data by <key, value> pairs where key is the
@@ -839,6 +929,28 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
   int * virt_phys_rank;
   mapping * map;
   tensor<dtype> * tsr;
+
+#if DEBUG >= 1
+  int ndim, * len, * sym;
+  get_tsr_info(tensor_id, &ndim, &len, &sym);
+  if (global_comm->rank == 0){
+    if (rw == 'w')
+      printf("Writing data to tensor %d\n", tensor_id);
+    else
+      printf("Reading data from tensor %d\n", tensor_id);
+    print_map(stdout, tensor_id, 0, 0);
+  }
+  long_int total_tsr_size = 1;
+  for (i=0; i<ndim; i++){
+    total_tsr_size *= len[i];
+  }
+  for (i=0; i<num_pair; i++){
+    LIBT_ASSERT(mapped_data[i].k >= 0);
+    LIBT_ASSERT(mapped_data[i].k < total_tsr_size);
+  }
+  CTF_free(len);
+  CTF_free(sym);
+#endif
 
 
   tsr = tensors[tensor_id];
@@ -1118,6 +1230,9 @@ template<typename dtype>
 int dist_tensor<dtype>::del_tsr(int const tid){
   tensor<dtype> * tsr;
 
+  if (global_comm->rank == 0){
+    DPRINTF(1,"Deleting tensor %d\n",tid);
+  }
   tsr = tensors[tid];
   if (tsr->is_alloced){
     unfold_tsr(tsr);
@@ -1446,6 +1561,11 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
       }
 #else
       CTF_mst_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
+#endif
+#if DEBUG >= 2
+      if (global_comm->rank == 0)
+        printf("Tensor %d set to zero with mapping:\n", tensor_id);
+      print_map(stdout, tensor_id);
 #endif
       std::fill(tsr->data, tsr->data + tsr->size, get_zero<dtype>());
 /*      CTF_free(phys_phase);
@@ -2030,6 +2150,35 @@ int dist_tensor<dtype>::check_sum(int const   tid_A,
   return DIST_TENSOR_SUCCESS;
 }
 
+template<typename dtype>
+void dist_tensor<dtype>::contract_mst(){
+  std::list<mem_transfer> tfs = CTF_contract_mst();
+  if (tfs.size() > 0 && get_global_comm()->rank == 0){
+    DPRINTF(1,"CTF Warning: contracting memory stack\n");
+  }
+  std::list<mem_transfer>::iterator it;
+  int i;
+  int j = 0;
+  for (it=tfs.begin(); it!=tfs.end(); it++){
+    j++;
+    for (i=0; i<(int)tensors.size(); i++){
+      if (tensors[i]->data == (dtype*)it->old_ptr){
+        tensors[i]->data = (dtype*)it->new_ptr;
+        break;
+      }
+    }
+    if (i == (int)tensors.size()){
+      printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
+      LIBT_ASSERT(0);
+    }
+    for (i=0; i<(int)tensors.size(); i++){
+      if (tensors[i]->data == (dtype*)it->old_ptr){
+        tensors[i]->data = (dtype*)it->new_ptr;
+      }
+    }
+  }
+
+}
 
 
 
