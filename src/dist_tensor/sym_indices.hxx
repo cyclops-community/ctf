@@ -64,8 +64,8 @@ int relativeSign(const std::vector<T>& s1, const std::vector<T>& s2)
 }
 
 inline
-double align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
-                               int ndim_B, int* idx_B, int* sym_B)
+double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
+                               int ndim_B, int* idx_B, const int* sym_B)
 {
     int fact = 1;
 
@@ -170,9 +170,9 @@ double align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
 }
 
 inline
-double align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
-                               int ndim_B, int* idx_B, int* sym_B,
-                               int ndim_C, int* idx_C, int* sym_C)
+double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
+                               int ndim_B, int* idx_B, const int* sym_B,
+                               int ndim_C, int* idx_C, const int* sym_C)
 {
     int fact = 1;
 
@@ -357,9 +357,9 @@ double align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
 }
 
 inline
-double overcounting_factor(int ndim_A, int* idx_A, int* sym_A,
-                           int ndim_B, int* idx_B, int* sym_B,
-                           int ndim_C, int* idx_C, int* sym_C)
+double overcounting_factor(int ndim_A, const int* idx_A, const int* sym_A,
+                           int ndim_B, const int* idx_B, const int* sym_B,
+                           int ndim_C, const int* idx_C, const int* sym_C)
 {
     int fact = 1;
 
