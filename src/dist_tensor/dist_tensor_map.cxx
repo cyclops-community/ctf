@@ -1090,7 +1090,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
 
       if ((uint64_t)memuse >= proc_bytes_available()){
-        DPRINTF(1,"Not enough memory available for topo %d with order %d\n", i, j);
+        DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
         delete sctr;
         continue;
       } 
