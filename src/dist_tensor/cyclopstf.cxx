@@ -750,7 +750,7 @@ int tCTF<dtype>::exit(){
   if (initialized){
     TAU_FSTOP(CTF);
 #ifdef HPM
-    HPM_Stop("CCSD");
+    HPM_Stop("CTF");
 #endif
     ret = tCTF<dtype>::clean_tensors();
     LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
