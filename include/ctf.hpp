@@ -543,6 +543,23 @@ class tCTF_Idx_Tensor {
 
 };
 
+class CTF_Timer{
+  public:
+    char const * timer_name;
+    int index;
+    int exited;
+    int original;
+  
+  public:
+    CTF_Timer(char const * name);
+    ~CTF_Timer();
+    void stop();
+    void start();
+    void exit();
+    
+};
+
+
 /* these typedefs yield a non-tempalated interface for double and complex<double> */
 typedef tCTF<double>                        CTF;
 typedef tCTF_Tensor<double>                 CTF_Tensor;
