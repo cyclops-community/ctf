@@ -80,6 +80,8 @@ struct tensor {
   long_int home_size;
   int is_home;
   int has_home;
+  char * name;
+  int profile;
 };
 
 
@@ -261,7 +263,9 @@ class dist_tensor{
                       int const *       edge_len,
                       int const *       sym,
                       int *             tensor_id,
-                      int const         alloc_data = 1);
+                      int const         alloc_data = 1,
+                      char const *      name = NULL,
+                      int               profile = 0);
 
 
     int set_tsr_data(int const  tensor_id,
@@ -273,6 +277,19 @@ class dist_tensor{
     int * get_edge_len(int const tensor_id) const;
     int * get_sym(int const tensor_id) const;
     dtype * get_raw_data(int const tensor_id, long_int * size);
+    
+    /* set the tensor name */
+    int set_name(int const tensor_id, char const * name);
+    
+    /* get the tensor name */
+    int get_name(int const tensor_id, char ** name);
+    
+    /* turn on profiling */
+    int profile_on(int const tensor_id);
+    
+    /* turn off profiling */
+    int profile_off(int const tensor_id);
+
 
     int get_tsr_info(int const tensor_id,
                      int * ndim,

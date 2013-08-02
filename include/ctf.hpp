@@ -145,6 +145,7 @@ class tCTF_Tensor {
     int tid, ndim;
     int * sym, * len;
     char * idx_map;
+    char const * name;
     tCTF_Tensor * ctr_nbr;
     tCTF_World<dtype> * world;
 
@@ -168,11 +169,15 @@ class tCTF_Tensor {
      * \param[in] len edge lengths of tensor
      * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
      * \param[in] world_ a world for the tensor to live in
+     * \param[in] name an optionary name for the tensor
+     * \param[in] profile set to 1 to profile contractions involving this tensor
      */
     tCTF_Tensor(int const            ndim_,
                 int const *          len_,
                 int const *          sym_,
-                tCTF_World<dtype> &  world_);
+                tCTF_World<dtype> &  world_,
+                char const *         name_ = NULL,
+                int const            profile_ = 0);
     
     /**
      * \brief gives the values associated with any set of indices
@@ -335,8 +340,20 @@ class tCTF_Tensor {
      *
      * WARNING: currently functional only for dtype=double
      */
-     void get_max_abs(int const  n,
-                      dtype *    data);
+    void get_max_abs(int const  n,
+                     dtype *    data);
+
+    // \brief turns on profiling for tensor
+    void profile_on();
+    
+    // \brief turns off profiling for tensor
+    void profile_off();
+
+    /**
+     * \brief sets tensor name
+     * \param[in] name new for tensor
+     */
+    void set_name(char const * name);
 
     /**
      * \brief sets all values in the tensor to val
@@ -381,11 +398,15 @@ class tCTF_Matrix : public tCTF_Tensor<dtype> {
      * \param[in] ncol number of matrix columns
      * \param[in] sym symmetry of matrix
      * \param[in] world CTF world where the tensor will live
+     * \param[in] name_ an optionary name for the tensor
+     * \param[in] profile_ set to 1 to profile contractions involving this tensor
      */ 
     tCTF_Matrix(int const           nrow_, 
                 int const           ncol_, 
                 int const           sym_,
-                tCTF_World<dtype> & world);
+                tCTF_World<dtype> & world,
+                char const *        name_ = NULL,
+                int const           profile_ = 0);
 
 };
 
@@ -401,9 +422,13 @@ class tCTF_Vector : public tCTF_Tensor<dtype> {
      * \brief constructor for a vector
      * \param[in] len_ dimension of vector
      * \param[in] world CTF world where the tensor will live
+     * \param[in] name_ an optionary name for the tensor
+     * \param[in] profile_ set to 1 to profile contractions involving this tensor
      */ 
     tCTF_Vector(int const           len_,
-                tCTF_World<dtype> & world);
+                tCTF_World<dtype> & world,
+                char const *        name_ = NULL,
+                int const           profile_ = 0);
 };
 
 /**
