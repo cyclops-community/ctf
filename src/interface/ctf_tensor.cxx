@@ -17,6 +17,7 @@ tCTF_Tensor<dtype>::tCTF_Tensor(const tCTF_Tensor<dtype>& A,
                                 const bool                copy){
   int ret;
   world = A.world;
+  name = NULL;
 
   ret = world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
@@ -36,11 +37,13 @@ template<typename dtype>
 tCTF_Tensor<dtype>::tCTF_Tensor(const int           ndim_,
                                 const int *         len_,
                                 const int *         sym_,
-                                tCTF_World<dtype> & world_){
+                                tCTF_World<dtype> & world_,
+                                char const *        name_,
+                                int const           profile_){
   int ret;
   world = &world_;
-
-  ret = world->ctf->define_tensor(ndim_, len_, sym_, &tid);
+  name = name_;
+  ret = world->ctf->define_tensor(ndim_, len_, sym_, &tid, name_, profile_);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   ret = world->ctf->info_tensor(tid, &ndim, &len, &sym);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
@@ -169,6 +172,22 @@ void tCTF_Tensor<dtype>::contract(const dtype                   alpha,
   CTF_free(tp.idx_map_B);
   CTF_free(tp.idx_map_C);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
+
+template<typename dtype>
+void tCTF_Tensor<dtype>::set_name(char const * name_) {
+  name = name_;
+  world->ctf->set_name(tid, name_);
+}
+
+template<typename dtype>
+void tCTF_Tensor<dtype>::profile_on() {
+  world->ctf->profile_on(tid);
+}
+
+template<typename dtype>
+void tCTF_Tensor<dtype>::profile_off() {
+  world->ctf->profile_off(tid);
 }
 
 template<typename dtype>

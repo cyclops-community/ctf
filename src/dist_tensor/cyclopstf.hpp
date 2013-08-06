@@ -226,10 +226,12 @@ class tCTF{
     int get_num_pes();
 
     /* define a tensor and retrive handle */
-    int define_tensor(int const   ndim,
-                      int const * edge_len,
-                      int const * sym,
-                      int *       tensor_id);
+    int define_tensor(int const     ndim,
+                      int const *   edge_len,
+                      int const *   sym,
+                      int *         tensor_id,
+                      char const *  name = NULL,
+                      int           profile = 0);
 
     /* Create identical tensor with identical data if copy_data=1 */
     int clone_tensor(int const  tensor_id,
@@ -241,6 +243,18 @@ class tCTF{
                     int *     ndim,
                     int **    edge_len,
                     int **    sym) const;
+
+    /* set the tensor name */
+    int set_name(int const tensor_id, char const * name);
+    
+    /* get the tensor name */
+    int get_name(int const tensor_id, char ** name);
+
+    /* turn on profiling */
+    int profile_on(int const tensor_id);
+    
+    /* turn off profiling */
+    int profile_off(int const tensor_id);
 
     /* get dimension of a tensor */
     int get_dimension(int const tensor_id, int *ndim) const;

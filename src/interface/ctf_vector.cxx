@@ -15,8 +15,10 @@ struct int1
 
 template<typename dtype>
 tCTF_Vector<dtype>::tCTF_Vector(int const           len_,
-                                tCTF_World<dtype> & world) :
-  tCTF_Tensor<dtype>(1, int1(len_), int1(NS), world) {
+                                tCTF_World<dtype> & world,
+                                char const *        name_,
+                                int const           profile_) :
+  tCTF_Tensor<dtype>(1, int1(len_), int1(NS), world, name_, profile_) {
   len = len_;
   
 }
