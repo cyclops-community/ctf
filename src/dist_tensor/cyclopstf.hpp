@@ -202,7 +202,7 @@ class tCTF{
              int const      np,
              CTF_MACHINE    mach = MACHINE_GENERIC,
              int const      argc = 0,
-             char * const * argv = NULL);
+             const char * const * argv = NULL);
 
 
     /* initializes library. Sets topology to be a mesh of dimension ndim with
@@ -213,7 +213,7 @@ class tCTF{
              int const      ndim,
              int const *    dim_len,
              int const      argc = 0,
-             char * const * argv = NULL);
+             const char * const * argv = NULL);
 
 
     /* return MPI_Comm global_context */
@@ -258,7 +258,7 @@ class tCTF{
        global index for the value. */
     int write_tensor(int const                tensor_id,
                      long_int const           num_pair,
-                     tkv_pair<dtype> * const  mapped_data);
+                     tkv_pair<dtype> const *  mapped_data);
     
     /* Add tensor data new=alpha*new+beta*old
        with <key, value> pairs where key is the 
@@ -267,7 +267,7 @@ class tCTF{
                      long_int const           num_pair,
                      dtype const              alpha,
                      dtype const              beta,
-                     tkv_pair<dtype> * const  mapped_data);
+                     tkv_pair<dtype> const *  mapped_data);
 
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] */

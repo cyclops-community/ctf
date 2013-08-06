@@ -69,7 +69,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const       np,
                       CTF_MACHINE     mach,
                       int const       argc,
-                      char * const *  argv){
+                      const char * const *  argv){
   int ndim, ret;
   int * dim_len;
   get_topo(np, mach, &ndim, &dim_len);
@@ -99,7 +99,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const       ndim, 
                       int const *     dim_len,
                       int const       argc,
-                      char * const *  argv){
+                      const char * const *  argv){
   char * mst_size, * stack_size, * mem_size, * ppn;
   
   TAU_FSTART(CTF);
@@ -259,8 +259,8 @@ int tCTF<dtype>::info_tensor(int const  tensor_id,
 template<typename dtype>
 int tCTF<dtype>::write_tensor(int const               tensor_id, 
                               long_int const           num_pair,  
-                              tkv_pair<dtype> * const mapped_data){
-  return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'w');
+                              tkv_pair<dtype> const * mapped_data){
+  return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, const_cast<tkv_pair<dtype>*>(mapped_data), 'w');
 }
 
 /** 
@@ -277,8 +277,8 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
                               long_int const           num_pair,  
                               dtype const             alpha,
                               dtype const             beta,
-                              tkv_pair<dtype> * const mapped_data){
-  return dt->write_pairs(tensor_id, num_pair, alpha, beta, mapped_data, 'w');
+                              tkv_pair<dtype> const * mapped_data){
+  return dt->write_pairs(tensor_id, num_pair, alpha, beta, const_cast<tkv_pair<dtype>*>(mapped_data), 'w');
 }
 
 /**

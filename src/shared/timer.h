@@ -19,7 +19,7 @@ class CTF_timer{
     
 };
 
-void CTF_set_main_args(int argc, char * const * argv);
+void CTF_set_main_args(int argc, const char * const * argv);
 void CTF_set_context(MPI_Comm ctxt);
 
 #ifdef TAU

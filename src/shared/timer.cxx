@@ -13,7 +13,7 @@
 #define MAX_NAME_LENGTH 38
 
 int main_argc = 0;
-char * const * main_argv;
+const char * const * main_argv;
 MPI_Comm comm;
 double excl_time;
 double complete_time;
@@ -269,7 +269,7 @@ void CTF_timer::exit(){
 #endif
 }
 
-void CTF_set_main_args(int argc, char * const * argv){
+void CTF_set_main_args(int argc, const char * const * argv){
   main_argv = argv;
   main_argc = argc;
 }
