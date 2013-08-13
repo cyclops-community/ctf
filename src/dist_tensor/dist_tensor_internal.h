@@ -80,7 +80,7 @@ struct tensor {
   long_int home_size;
   int is_home;
   int has_home;
-  char * name;
+  char const * name;
   int profile;
 };
 
@@ -282,7 +282,7 @@ class dist_tensor{
     int set_name(int const tensor_id, char const * name);
     
     /* get the tensor name */
-    int get_name(int const tensor_id, char ** name);
+    int get_name(int const tensor_id, char const ** name);
     
     /* turn on profiling */
     int profile_on(int const tensor_id);
