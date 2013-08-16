@@ -202,13 +202,17 @@ void dist_tensor<dtype>::set_phys_comm(CommData_t ** cdt, int const ndim){
  * \param[in] sym symmetry relations of tensor
  * \param[out] tensor_id the tensor index (handle)
  * \param[in] alloc_data whether this tensor's data should be alloced
+ * \param[in] name string name for tensor (optionary)
+ * \param[in] profile wether to make profile calls for the tensor
  */
 template<typename dtype>
 int dist_tensor<dtype>::define_tensor( int const          ndim,
                                        int const *        edge_len, 
                                        int const *        sym,
                                        int *              tensor_id,
-                                       int const          alloc_data){
+                                       int const          alloc_data,
+                                       char const *       name,
+                                       int                profile){
   int i;
 
   tensor<dtype> * tsr = (tensor<dtype>*)CTF_alloc(sizeof(tensor<dtype>));
@@ -229,6 +233,12 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   tsr->has_zero_edge_len  = 0;
   tsr->is_home            = 0;
   tsr->has_home           = 0;
+  tsr->profile            = profile;
+  if (name != NULL){
+    tsr->name             = name;
+  } else
+    tsr->name             = NULL;
+
 
   tsr->pairs    = NULL;
   tsr->ndim     = ndim;
@@ -327,6 +337,29 @@ int * dist_tensor<dtype>::get_edge_len(int const tensor_id) const {
   return edge_len;
 }
 
+template<typename dtype>
+int dist_tensor<dtype>::get_name(int const tensor_id, char const ** name){
+  *name = tensors[tensor_id]->name;
+  return DIST_TENSOR_SUCCESS;
+}
+ 
+template<typename dtype>
+int dist_tensor<dtype>::set_name(int const tensor_id, char const * name){
+  tensors[tensor_id]->name = name;
+  return DIST_TENSOR_SUCCESS;
+}
+
+template<typename dtype>
+int dist_tensor<dtype>::profile_on(int const tensor_id){
+  tensors[tensor_id]->profile = 1;
+  return DIST_TENSOR_SUCCESS;
+}
+
+template<typename dtype>
+int dist_tensor<dtype>::profile_off(int const tensor_id){
+  tensors[tensor_id]->profile = 0;
+  return DIST_TENSOR_SUCCESS;
+}
 
 template<typename dtype>
 int * dist_tensor<dtype>::get_sym(int const tensor_id) const {

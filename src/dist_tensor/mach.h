@@ -160,6 +160,7 @@ void get_topo(int const         np,
     *ndim = MIN((int)log2(np),8);
     if (*ndim > 0)
       dl = (int*)CTF_alloc((*ndim)*sizeof(int));
+    else dl = NULL;
     *dim_len = dl;
     switch ((int)log2(np)){
       case 0:

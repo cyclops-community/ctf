@@ -69,7 +69,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const       np,
                       CTF_MACHINE     mach,
                       int const       argc,
-                      char * const *  argv){
+                      const char * const *  argv){
   int ndim, ret;
   int * dim_len;
   get_topo(np, mach, &ndim, &dim_len);
@@ -99,7 +99,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       int const       ndim, 
                       int const *     dim_len,
                       int const       argc,
-                      char * const *  argv){
+                      const char * const *  argv){
   char * mst_size, * stack_size, * mem_size, * ppn;
   
   TAU_FSTART(CTF);
@@ -165,13 +165,18 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
  * \param[in] edge_len global edge lengths of tensor
  * \param[in] sym symmetry relations of tensor
  * \param[out] tensor_id the tensor index (handle)
+ * \param[in] name string name for tensor (optionary)
+ * \param[in] profile wether to make profile calls for the tensor
  */
 template<typename dtype>
 int tCTF<dtype>::define_tensor(int const        ndim,             
                                int const *      edge_len, 
                                int const *      sym,
-                               int *            tensor_id){
-  return dt->define_tensor(ndim, edge_len, sym, tensor_id);
+                               int *            tensor_id,
+                               char const *     name,
+                               int              profile){
+  return dt->define_tensor(ndim, edge_len, sym, 
+                           tensor_id, 1, name, profile);
 }
     
 /* \brief clone a tensor object
@@ -185,6 +190,27 @@ int tCTF<dtype>::clone_tensor(int const tensor_id,
                               int *     new_tensor_id){
   dt->clone_tensor(tensor_id, copy_data, new_tensor_id);
   return DIST_TENSOR_SUCCESS;
+}
+   
+
+template<typename dtype>
+int tCTF<dtype>::get_name(int const tensor_id, char const ** name){
+  return dt->get_name(tensor_id, name);
+}
+ 
+template<typename dtype>
+int tCTF<dtype>::set_name(int const tensor_id, char const * name){
+  return dt->set_name(tensor_id, name);
+}
+
+template<typename dtype>
+int tCTF<dtype>::profile_on(int const tensor_id){
+  return dt->profile_on(tensor_id);
+}
+
+template<typename dtype>
+int tCTF<dtype>::profile_off(int const tensor_id){
+  return dt->profile_off(tensor_id);
 }
     
 /* \brief get dimension of a tensor 
@@ -259,8 +285,8 @@ int tCTF<dtype>::info_tensor(int const  tensor_id,
 template<typename dtype>
 int tCTF<dtype>::write_tensor(int const               tensor_id, 
                               long_int const           num_pair,  
-                              tkv_pair<dtype> * const mapped_data){
-  return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'w');
+                              tkv_pair<dtype> const * mapped_data){
+  return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, const_cast<tkv_pair<dtype>*>(mapped_data), 'w');
 }
 
 /** 
@@ -277,8 +303,8 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
                               long_int const           num_pair,  
                               dtype const             alpha,
                               dtype const             beta,
-                              tkv_pair<dtype> * const mapped_data){
-  return dt->write_pairs(tensor_id, num_pair, alpha, beta, mapped_data, 'w');
+                              tkv_pair<dtype> const * mapped_data){
+  return dt->write_pairs(tensor_id, num_pair, alpha, beta, const_cast<tkv_pair<dtype>*>(mapped_data), 'w');
 }
 
 /**
@@ -394,7 +420,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
                           dtype const               alpha,
                           dtype const               beta,
                           int const                 map_inner){
-  int i;
+  int i, ret;
 #if DEBUG >= 1
   if (dt->get_global_comm()->rank == 0)
     printf("Head contraction :\n");
@@ -403,7 +429,58 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
   fseq_elm_ctr<dtype> felm;
   felm.func_ptr = NULL;
 
-  return dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
+  if ((*dt->get_tensors())[type->tid_A]->profile &&
+      (*dt->get_tensors())[type->tid_B]->profile &&
+      (*dt->get_tensors())[type->tid_C]->profile){
+    char cname[200];
+    cname[0] = '\0';
+    if ((*dt->get_tensors())[type->tid_C]->name != NULL)
+      sprintf(cname, (*dt->get_tensors())[type->tid_C]->name);
+    else
+      sprintf(cname, "%d", type->tid_C);
+    sprintf(cname+strlen(cname),"[");
+    for (i=0; i<(*dt->get_tensors())[type->tid_C]->ndim; i++){
+      if (i>0)
+        sprintf(cname+strlen(cname)," %d",type->idx_map_C[i]);
+      else 
+        sprintf(cname+strlen(cname),"%d",type->idx_map_C[i]);
+    }
+    sprintf(cname+strlen(cname),"]=");
+    if ((*dt->get_tensors())[type->tid_A]->name != NULL)
+      sprintf(cname+strlen(cname), (*dt->get_tensors())[type->tid_A]->name);
+    else
+      sprintf(cname+strlen(cname), "%d", type->tid_A);
+    sprintf(cname+strlen(cname),"[");
+    for (i=0; i<(*dt->get_tensors())[type->tid_A]->ndim; i++){
+      if (i>0)
+        sprintf(cname+strlen(cname)," %d",type->idx_map_A[i]);
+      else
+        sprintf(cname+strlen(cname),"%d",type->idx_map_A[i]);
+    }
+    sprintf(cname+strlen(cname),"]*");
+    if ((*dt->get_tensors())[type->tid_B]->name != NULL)
+      sprintf(cname+strlen(cname), (*dt->get_tensors())[type->tid_B]->name);
+    else
+      sprintf(cname+strlen(cname), "%d", type->tid_B);
+    sprintf(cname+strlen(cname),"[");
+    for (i=0; i<(*dt->get_tensors())[type->tid_B]->ndim; i++){
+      if (i>0)
+        sprintf(cname+strlen(cname)," %d",type->idx_map_B[i]);
+      else 
+        sprintf(cname+strlen(cname),"%d",type->idx_map_B[i]);
+    }
+    sprintf(cname+strlen(cname),"]");
+    
+   
+    CTF_Timer tctr(cname);
+    tctr.start(); 
+    ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
+    tctr.stop();
+  } else 
+    ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
+
+  return ret;
+
 }
     
 /**

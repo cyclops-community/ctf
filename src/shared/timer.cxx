@@ -10,10 +10,10 @@
 #include "timer.h"
 #include "util.h"
 
-#define MAX_NAME_LENGTH 38
+#define MAX_NAME_LENGTH 70
 
 int main_argc = 0;
-char * const * main_argv;
+const char * const * main_argv;
 MPI_Comm comm;
 double excl_time;
 double complete_time;
@@ -97,7 +97,7 @@ bool comp_name(function_timer const & w1, function_timer const & w2) {
 
 std::vector<function_timer> function_timers;
 
-CTF_timer::CTF_timer(const char * name){
+CTF_Timer::CTF_Timer(const char * name){
 #ifdef PROFILE
   int i;
   if (function_timers.size() == 0) {
@@ -130,7 +130,7 @@ CTF_timer::CTF_timer(const char * name){
 #endif
 }
   
-void CTF_timer::start(){
+void CTF_Timer::start(){
 #ifdef PROFILE
   if (!exited){
     function_timers[index].start_time = MPI_Wtime();
@@ -139,7 +139,7 @@ void CTF_timer::start(){
 #endif
 }
 
-void CTF_timer::stop(){
+void CTF_Timer::stop(){
 #ifdef PROFILE
   if (!exited){
     double delta_time = MPI_Wtime() - function_timers[index].start_time;
@@ -154,9 +154,9 @@ void CTF_timer::stop(){
 #endif
 }
 
-CTF_timer::~CTF_timer(){ }
+CTF_Timer::~CTF_Timer(){ }
 
-void CTF_timer::exit(){
+void CTF_Timer::exit(){
 #ifdef PROFILE
   if (set_contxt && original && !exited) {
     int rank, np, i, j, p, len_symbols;
@@ -164,9 +164,9 @@ void CTF_timer::exit(){
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
 
-    FILE * output;
 
     char all_symbols[10000];
+    FILE * output;
 
     if (rank == 0){
       char filename[300];
@@ -245,7 +245,7 @@ void CTF_timer::exit(){
       MPI_Bcast(all_symbols, len_symbols, MPI_CHAR, 0, comm);
       j=0;
       while (j<len_symbols){
-        CTF_timer t(all_symbols+j);
+        CTF_Timer t(all_symbols+j);
         j+=strlen(all_symbols+j)+1;
       }
     }
@@ -256,8 +256,10 @@ void CTF_timer::exit(){
     }
     std::sort(function_timers.begin(), function_timers.end());
     complete_time = function_timers[0].total_time;
-    for (i=0; i<(int)function_timers.size(); i++){
-      function_timers[i].print(output,comm,rank,np);
+    if (rank == 0){
+      for (i=0; i<(int)function_timers.size(); i++){
+        function_timers[i].print(output,comm,rank,np);
+      }
     }
     
 /*    if (rank == 0){
@@ -269,7 +271,7 @@ void CTF_timer::exit(){
 #endif
 }
 
-void CTF_set_main_args(int argc, char * const * argv){
+void CTF_set_main_args(int argc, const char * const * argv){
   main_argv = argv;
   main_argc = argc;
 }

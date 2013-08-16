@@ -1,6 +1,12 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
+#ifdef __MACH__
+#include "sys/malloc.h"
+#include "sys/types.h"
+#include "sys/sysctl.h"
+#else
 #include "malloc.h"
+#endif
 #include <stdint.h>
 #include <iostream>
 #include <unistd.h>
@@ -515,12 +521,20 @@ uint64_t proc_bytes_available(){
  * \brief gives total memory available on this MPI process 
  */
 uint64_t proc_bytes_total(){
+#ifdef __MACH__
+  int mib[] = {CTL_HW,HW_MEMSIZE};
+  int64_t mem;
+  size_t len = 8;
+  sysctl(mib, 2, &mem, &len, NULL, 0);
+  return mem;
+#else
   uint64_t pages = (uint64_t)sysconf(_SC_PHYS_PAGES);
   uint64_t page_size = (uint64_t)sysconf(_SC_PAGE_SIZE);
   if (CTF_mem_size != 0)
     return MIN(pages * page_size, CTF_mem_size);
   else
     return pages * page_size;
+#endif
 }
 #endif
 #endif

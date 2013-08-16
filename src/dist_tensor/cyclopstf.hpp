@@ -202,7 +202,7 @@ class tCTF{
              int const      np,
              CTF_MACHINE    mach = MACHINE_GENERIC,
              int const      argc = 0,
-             char * const * argv = NULL);
+             const char * const * argv = NULL);
 
 
     /* initializes library. Sets topology to be a mesh of dimension ndim with
@@ -213,7 +213,7 @@ class tCTF{
              int const      ndim,
              int const *    dim_len,
              int const      argc = 0,
-             char * const * argv = NULL);
+             const char * const * argv = NULL);
 
 
     /* return MPI_Comm global_context */
@@ -226,10 +226,12 @@ class tCTF{
     int get_num_pes();
 
     /* define a tensor and retrive handle */
-    int define_tensor(int const   ndim,
-                      int const * edge_len,
-                      int const * sym,
-                      int *       tensor_id);
+    int define_tensor(int const     ndim,
+                      int const *   edge_len,
+                      int const *   sym,
+                      int *         tensor_id,
+                      char const *  name = NULL,
+                      int           profile = 0);
 
     /* Create identical tensor with identical data if copy_data=1 */
     int clone_tensor(int const  tensor_id,
@@ -241,6 +243,18 @@ class tCTF{
                     int *     ndim,
                     int **    edge_len,
                     int **    sym) const;
+
+    /* set the tensor name */
+    int set_name(int const tensor_id, char const * name);
+    
+    /* get the tensor name */
+    int get_name(int const tensor_id, char const ** name);
+
+    /* turn on profiling */
+    int profile_on(int const tensor_id);
+    
+    /* turn off profiling */
+    int profile_off(int const tensor_id);
 
     /* get dimension of a tensor */
     int get_dimension(int const tensor_id, int *ndim) const;
@@ -258,7 +272,7 @@ class tCTF{
        global index for the value. */
     int write_tensor(int const                tensor_id,
                      long_int const           num_pair,
-                     tkv_pair<dtype> * const  mapped_data);
+                     tkv_pair<dtype> const *  mapped_data);
     
     /* Add tensor data new=alpha*new+beta*old
        with <key, value> pairs where key is the 
@@ -267,7 +281,7 @@ class tCTF{
                      long_int const           num_pair,
                      dtype const              alpha,
                      dtype const              beta,
-                     tkv_pair<dtype> * const  mapped_data);
+                     tkv_pair<dtype> const *  mapped_data);
 
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] */
