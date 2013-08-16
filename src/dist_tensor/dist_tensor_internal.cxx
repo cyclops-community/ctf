@@ -235,8 +235,7 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   tsr->has_home           = 0;
   tsr->profile            = profile;
   if (name != NULL){
-    tsr->name             = (char*)CTF_alloc(strlen(name)+1);
-    strcpy(tsr->name, name);
+    tsr->name             = name;
   } else
     tsr->name             = NULL;
 
@@ -339,16 +338,14 @@ int * dist_tensor<dtype>::get_edge_len(int const tensor_id) const {
 }
 
 template<typename dtype>
-int dist_tensor<dtype>::get_name(int const tensor_id, char ** name){
-  *name = (char*)malloc(strlen(tensors[tensor_id]->name)+1);
-  strcpy(*name, tensors[tensor_id]->name);
+int dist_tensor<dtype>::get_name(int const tensor_id, char const ** name){
+  *name = tensors[tensor_id]->name;
   return DIST_TENSOR_SUCCESS;
 }
  
 template<typename dtype>
 int dist_tensor<dtype>::set_name(int const tensor_id, char const * name){
-  tensors[tensor_id]->name = (char*)CTF_alloc(strlen(name)+1);
-  strcpy(tensors[tensor_id]->name, name);
+  tensors[tensor_id]->name = name;
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -1272,8 +1269,6 @@ int dist_tensor<dtype>::del_tsr(int const tid){
       DPRINTF(1,"Deleting tensor %d\n",tid);
     }
     //unfold_tsr(tsr);
-    if (tsr->name != NULL) 
-      CTF_free(tsr->name);
     CTF_free(tsr->edge_len);
     if (tsr->is_padded)
       CTF_free(tsr->padding);

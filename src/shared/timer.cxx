@@ -10,7 +10,7 @@
 #include "timer.h"
 #include "util.h"
 
-#define MAX_NAME_LENGTH 38
+#define MAX_NAME_LENGTH 70
 
 int main_argc = 0;
 const char * const * main_argv;

@@ -248,7 +248,7 @@ class tCTF{
     int set_name(int const tensor_id, char const * name);
     
     /* get the tensor name */
-    int get_name(int const tensor_id, char ** name);
+    int get_name(int const tensor_id, char const ** name);
 
     /* turn on profiling */
     int profile_on(int const tensor_id);

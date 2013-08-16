@@ -194,7 +194,7 @@ int tCTF<dtype>::clone_tensor(int const tensor_id,
    
 
 template<typename dtype>
-int tCTF<dtype>::get_name(int const tensor_id, char ** name){
+int tCTF<dtype>::get_name(int const tensor_id, char const ** name){
   return dt->get_name(tensor_id, name);
 }
  
@@ -429,8 +429,8 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
   fseq_elm_ctr<dtype> felm;
   felm.func_ptr = NULL;
 
-  if ((*dt->get_tensors())[type->tid_A]->profile || 
-      (*dt->get_tensors())[type->tid_B]->profile || 
+  if ((*dt->get_tensors())[type->tid_A]->profile &&
+      (*dt->get_tensors())[type->tid_B]->profile &&
       (*dt->get_tensors())[type->tid_C]->profile){
     char cname[200];
     cname[0] = '\0';
