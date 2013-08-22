@@ -190,6 +190,14 @@ class tCTF_Tensor {
                          dtype *          data) const;
     
     /**
+     * \brief gives the values associated with any set of indices
+     * \param[in] npair number of values to fetch
+     * \param[in,out] pairs a prealloced pointer to key-value pairs
+     */
+    void get_remote_data(long_int const    npair,
+                         tkv_pair<dtype> * pairs) const;
+
+    /**
      * \brief writes in values associated with any set of indices
      * \param[in] npair number of values to write into tensor
      * \param[in] global_idx global index within tensor of value to write
@@ -198,6 +206,14 @@ class tCTF_Tensor {
     void write_remote_data(long_int const   npair, 
                            long_int const * global_idx, 
                            dtype const   * data);
+
+    /**
+     * \brief writes in values associated with any set of indices
+     * \param[in] npair number of values to write into tensor
+     * \param[in] pairs key-value pairs to write to the tensor
+     */
+    void write_remote_data(long_int const   npair,
+                           tkv_pair<dtype> const * pairs);
    
     /**
      * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
@@ -312,6 +328,14 @@ class tCTF_Tensor {
                         dtype **    data) const;
 
     /**
+     * \brief gives the global indices and values associated with the local data
+     * \param[out] npair number of local values
+     * \param[out] pairs pointer to local key-value pairs
+     */
+    void get_local_data(long_int *   npair,
+                        tkv_pair<dtype> ** pairs) const;
+
+    /**
      * \brief collects the entire tensor data on each process (not memory scalable)
      * \param[out] npair number of values in the tensor
      * \param[out] data pointer to the data of the entire tensor
@@ -332,6 +356,18 @@ class tCTF_Tensor {
                          dtype const      beta,
                          long_int const *  global_idx,
                          dtype const *    data);
+
+    /**
+     * \brief sparse add: A[pairs[i].k] = alpha*A[pairs[i].k]+beta*pairs[i].d
+     * \param[in] npair number of values to write into tensor
+     * \param[in] alpha scaling factor on original data
+     * \param[in] beta scaling factor on value to add
+     * \param[in] pairs key-value pairs to add to the tensor
+     */
+    void add_remote_data(long_int const    npair,
+                         dtype const      alpha,
+                         dtype const      beta,
+                         tkv_pair<dtype> const * pairs);
     /**
      * \brief obtains a small number of the biggest elements of the 
      *        tensor in sorted order (e.g. eigenvalues)
@@ -375,8 +411,17 @@ class tCTF_Tensor {
     /**
      * \brief prints tensor data to file using process 0
      * \param[in] fp file to print to e.g. stdout
+     * \param[in] cutoff do not print values of absolute value smaller than this
      */
-    void print(FILE * fp = stdout) const;
+    void print(FILE * fp = stdout, double cutoff = -1.0) const;
+
+    /**
+     * \brief prints two sets of tensor data side-by-side to file using process 0
+     * \param[in] fp file to print to e.g. stdout
+     * \param[in] A tensor to compare against
+     * \param[in] cutoff do not print values of absolute value smaller than this
+     */
+    void compare(const tCTF_Tensor<dtype>& A, FILE * fp = stdout, double cutoff = -1.0) const;
 
     /**
      * \brief frees tCTF tensor

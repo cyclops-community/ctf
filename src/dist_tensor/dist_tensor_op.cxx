@@ -1928,10 +1928,10 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
   } else{ 
 
     dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->ndim,
-                                                 (int*)map_A,
+                                                 map_A,
                                                  tensors[ntid_A]->sym,
                                                  tensors[ntid_B]->ndim,
-                                                 (int*)map_B,
+                                                 map_B,
                                                  tensors[ntid_B]->sym);
 
     CTF_sum_type_t type = {(int)ntid_A, (int)ntid_B,

@@ -86,6 +86,13 @@ void tCTF_Tensor<dtype>::get_local_data(long_int *   npair,
 }
 
 template<typename dtype>
+void tCTF_Tensor<dtype>::get_local_data(long_int *   npair,
+                                        tkv_pair<dtype> **   pairs) const {
+  int ret = world->ctf->read_local_tensor(tid, npair, pairs);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
+
+template<typename dtype>
 void tCTF_Tensor<dtype>::get_remote_data(long_int const    npair, 
                                          long_int const *  global_idx, 
                                          dtype *          data) const {
@@ -101,6 +108,13 @@ void tCTF_Tensor<dtype>::get_remote_data(long_int const    npair,
     data[i] = pairs[i].d;
   }
   CTF_free(pairs);
+}
+
+template<typename dtype>
+void tCTF_Tensor<dtype>::get_remote_data(long_int const    npair,
+                                         tkv_pair<dtype> * pairs) const {
+  int ret = world->ctf->read_tensor(tid, npair, pairs);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
 template<typename dtype>
@@ -120,6 +134,13 @@ void tCTF_Tensor<dtype>::write_remote_data(long_int const    npair,
 }
 
 template<typename dtype>
+void tCTF_Tensor<dtype>::write_remote_data(long_int const    npair,
+                                           tkv_pair<dtype> const * pairs) {
+  int ret = world->ctf->write_tensor(tid, npair, pairs);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
+
+template<typename dtype>
 void tCTF_Tensor<dtype>::add_remote_data(long_int const    npair, 
                                          dtype const      alpha, 
                                          dtype const      beta,
@@ -135,6 +156,15 @@ void tCTF_Tensor<dtype>::add_remote_data(long_int const    npair,
   ret = world->ctf->write_tensor(tid, npair, alpha, beta, pairs);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   CTF_free(pairs);
+}
+
+template<typename dtype>
+void tCTF_Tensor<dtype>::add_remote_data(long_int const    npair,
+                                         dtype const      alpha,
+                                         dtype const      beta,
+                                         tkv_pair<dtype> const * pairs) {
+  int ret = world->ctf->write_tensor(tid, npair, alpha, beta, pairs);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
 template<typename dtype>
@@ -191,8 +221,13 @@ void tCTF_Tensor<dtype>::profile_off() {
 }
 
 template<typename dtype>
-void tCTF_Tensor<dtype>::print(FILE* fp) const{
-  world->ctf->print_tensor(fp, tid);
+void tCTF_Tensor<dtype>::print(FILE* fp, double cutoff) const{
+  world->ctf->print_tensor(fp, tid, cutoff);
+}
+
+template<typename dtype>
+void tCTF_Tensor<dtype>::compare(const tCTF_Tensor<dtype>& A, FILE* fp, double cutoff) const{
+  world->ctf->compare_tensor(fp, tid, A.tid, cutoff);
 }
 
 template<typename dtype>

@@ -35,11 +35,11 @@ struct index_locator_
 };
 
 template<typename T>
-int relativeSign(const std::vector<T>& s1, const std::vector<T>& s2)
+int relativeSign(const T& s1, const T& s2)
 {
     int i, j, k;
     int sign = 1;
-    bool *seen = new bool[s1.size()];
+    std::vector<bool> seen(s1.size());
 
     for (i = 0;i < (int)s1.size();i++) seen[i] = false;
 
@@ -58,14 +58,12 @@ int relativeSign(const std::vector<T>& s1, const std::vector<T>& s2)
         }
     }
 
-    delete[] seen;
-
     return sign;
 }
 
-inline
-double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
-                               int ndim_B, int* idx_B, const int* sym_B)
+template <typename T>
+double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
+                               int ndim_B, T& idx_B, const int* sym_B)
 {
     int fact = 1;
 
@@ -73,10 +71,8 @@ double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
 
     for (int i = 0;i < ndim_A;i++)
     {
-        int i_in_B = (int)(std::find(idx_B, idx_B+ndim_B, idx_A[i])-idx_B);
-        if (i_in_B == ndim_B) i_in_B = -1;
-
-        if (i_in_B == -1) continue;
+        int i_in_B; for (i_in_B = 0;i_in_B < ndim_B && idx_A[i] != idx_B[i_in_B];i_in_B++);
+        if (i_in_B == ndim_B) continue;
 
         indices.push_back(index_locator_(0, idx_A[i], i, i_in_B, 0));
     }
@@ -169,10 +165,10 @@ double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
     return (double)fact;
 }
 
-inline
-double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
-                               int ndim_B, int* idx_B, const int* sym_B,
-                               int ndim_C, int* idx_C, const int* sym_C)
+template <typename T>
+double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
+                               int ndim_B, T& idx_B, const int* sym_B,
+                               int ndim_C, T& idx_C, const int* sym_C)
 {
     int fact = 1;
 
@@ -180,10 +176,10 @@ double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
 
     for (int i = 0;i < ndim_A;i++)
     {
-        int i_in_B = (int)(std::find(idx_B, idx_B+ndim_B, idx_A[i])-idx_B);
+        int i_in_B; for (i_in_B = 0;i_in_B < ndim_B && idx_A[i] != idx_B[i_in_B];i_in_B++);
         if (i_in_B == ndim_B) i_in_B = -1;
 
-        int i_in_C = (int)(std::find(idx_C, idx_C+ndim_C, idx_A[i])-idx_C);
+        int i_in_C; for (i_in_C = 0;i_in_C < ndim_C && idx_A[i] != idx_C[i_in_C];i_in_C++);
         if (i_in_C == ndim_C) i_in_C = -1;
 
         if (i_in_B == -1 && i_in_C == -1) continue;
@@ -193,10 +189,10 @@ double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
 
     for (int i = 0;i < ndim_B;i++)
     {
-        int i_in_A = (int)(std::find(idx_A, idx_A+ndim_A, idx_B[i])-idx_A);
+        int i_in_A; for (i_in_A = 0;i_in_A < ndim_A && idx_B[i] != idx_A[i_in_A];i_in_A++);
         if (i_in_A == ndim_A) i_in_A = -1;
 
-        int i_in_C = (int)(std::find(idx_C, idx_C+ndim_C, idx_B[i])-idx_C);
+        int i_in_C; for (i_in_C = 0;i_in_C < ndim_C && idx_B[i] != idx_C[i_in_C];i_in_C++);
         if (i_in_C == ndim_C) i_in_C = -1;
 
         if (i_in_A != -1 || i_in_C == -1) continue;
@@ -356,10 +352,10 @@ double align_symmetric_indices(int ndim_A, int* idx_A, const int* sym_A,
     return (double)fact;
 }
 
-inline
-double overcounting_factor(int ndim_A, const int* idx_A, const int* sym_A,
-                           int ndim_B, const int* idx_B, const int* sym_B,
-                           int ndim_C, const int* idx_C, const int* sym_C)
+template <typename T>
+double overcounting_factor(int ndim_A, const T& idx_A, const int* sym_A,
+                           int ndim_B, const T& idx_B, const int* sym_B,
+                           int ndim_C, const T& idx_C, const int* sym_C)
 {
     int fact = 1;
 
