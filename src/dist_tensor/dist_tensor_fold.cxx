@@ -254,6 +254,7 @@ void calc_fold_nmk( CTF_ctr_type_t const *  type,
   *inner_prm = prm;  
 }
 
+
 /**
  * \brief transposes a non-symmetric (folded) tensor
  *
@@ -466,7 +467,6 @@ void nosym_transpose(int const          ndim,
   CTF_free(chunk_size);
   TAU_FSTOP(nosym_transpose);
 }
-
 
 /**
  * \brief finds and return all summation indices which can be folded into

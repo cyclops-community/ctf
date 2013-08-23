@@ -109,6 +109,9 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
 
+#ifdef USE_OMP
+  DPRINTF(1,"CTF running with %d threads\n",omp_get_max_threads());
+#endif
   
   mst_size = getenv("CTF_MST_SIZE");
   stack_size = getenv("CTF_STACK_SIZE");

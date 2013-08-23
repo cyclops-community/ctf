@@ -21,7 +21,9 @@
 #endif
 #include "timer.h"
 
+#ifndef OMP_OFF
 #define USE_OMP
+#endif
 
 typedef int64_t long_int;
 volatile static long_int long_int_max = INT64_MAX;
