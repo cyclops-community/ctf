@@ -59,6 +59,19 @@ int fast_sym_4D(int const     n,
   }
   C_ans["ijab"] = A["ikal"]*B["kjlb"];
 
+#ifdef USE_SYM_SUM
+  A_rep["ijkal"] += A["ijal"];
+  B_rep["ijklb"] += B["ijlb"];
+  Z["ijkab"] += A_rep["ijkal"]*B_rep["ijklb"];
+  C["ijab"] += Z["ijkab"];
+  Cs["iab"] += A["ikal"]*B["iklb"];
+  As["ial"] += A["ikal"];
+  Bs["ilb"] += B["iklb"];
+  C["ijab"] -= ((double)n)*A["ijal"]*B["ijlb"];
+  C["ijab"] -= Cs["iab"];
+  C["ijab"] -= As["ial"]*B["ijlb"];
+  C["ijab"] -= A["ijal"]*Bs["jlb"];
+#else
   A_rep["ijkal"] += A["ijal"];
   A_rep["ijkal"] += A["ikal"];
   A_rep["ijkal"] += A["jkal"];
@@ -81,6 +94,7 @@ int fast_sym_4D(int const     n,
   C["ijab"] -= Cs["jab"];
   C["ijab"] -= As["ial"]*B["ijlb"];
   C["ijab"] -= A["ijal"]*Bs["jlb"];
+#endif
 
   if (n<4){
     printf("A:\n");

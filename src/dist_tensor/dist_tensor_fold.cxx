@@ -2072,6 +2072,7 @@ void dist_tensor<dtype>::get_sym_perms(CTF_ctr_type_t const *           type,
     while (tsr_A->sym[j] != NS){
       j++;
       for (k=0; k<(int)perms.size(); k++){
+        free_type(&new_type);
         copy_type(&perms[k], &new_type);
         sign = signs[k];
         if (tsr_A->sym[j-1] == AS) sign *= -1.0;
@@ -2087,6 +2088,7 @@ void dist_tensor<dtype>::get_sym_perms(CTF_ctr_type_t const *           type,
     while (tsr_B->sym[j] != NS){
       j++;
       for (k=0; k<(int)perms.size(); k++){
+        free_type(&new_type);
         copy_type(&perms[k], &new_type);
         sign = signs[k];
         if (tsr_B->sym[j-1] == AS) sign *= -1.0;
@@ -2103,6 +2105,7 @@ void dist_tensor<dtype>::get_sym_perms(CTF_ctr_type_t const *           type,
     while (tsr_C->sym[j] != NS){
       j++;
       for (k=0; k<(int)perms.size(); k++){
+        free_type(&new_type);
         copy_type(&perms[k], &new_type);
         sign = signs[k];
         if (tsr_C->sym[j-1] == AS) sign *= -1.0;
@@ -2272,11 +2275,13 @@ void dist_tensor<dtype>::add_sym_perm(std::vector<CTF_sum_type_t>&    perms,
   for (i=0; i<(int)perms.size(); i++){
     if (is_equal_type(&perms[i], &norm_ord_perm)){
       free_type(&norm_ord_perm);
+      CTF_free(idx_arr);
       return;
     }
   }
   perms.push_back(norm_ord_perm);
   signs.push_back(add_sign);
+  CTF_free(idx_arr);
 }
 
 /**
@@ -2308,6 +2313,7 @@ void dist_tensor<dtype>::get_sym_perms(CTF_sum_type_t const *           type,
     while (tsr_A->sym[j] != NS){
       j++;
       for (k=0; k<(int)perms.size(); k++){
+        free_type(&new_type);
         copy_type(&perms[k], &new_type);
         sign = signs[k];
         if (tsr_A->sym[j-1] == AS) sign *= -1.0;
@@ -2323,6 +2329,7 @@ void dist_tensor<dtype>::get_sym_perms(CTF_sum_type_t const *           type,
     while (tsr_B->sym[j] != NS){
       j++;
       for (k=0; k<(int)perms.size(); k++){
+        free_type(&new_type);
         copy_type(&perms[k], &new_type);
         sign = signs[k];
         if (tsr_B->sym[j-1] == AS) sign *= -1.0;
@@ -2333,6 +2340,7 @@ void dist_tensor<dtype>::get_sym_perms(CTF_sum_type_t const *           type,
       }
     }
   }
+  free_type(&new_type);
 }
 
 

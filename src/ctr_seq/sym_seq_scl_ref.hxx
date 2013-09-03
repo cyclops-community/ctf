@@ -68,6 +68,7 @@ int sym_seq_scl_ref( dtype const        alpha,
   }
   CTF_free(dlen_A);
   CTF_free(idx_glb);
+  CTF_free(rev_idx_map);
   TAU_FSTOP(sym_seq_sum_ref);
   return 0;
 }

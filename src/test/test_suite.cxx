@@ -131,15 +131,9 @@ int main(int argc, char ** argv){
       printf("Testing fast symmetric multiplication operation with n = %d:\n",n*n);
     pass.push_back(fast_sym(n*n, dw));
 
-#ifndef USE_SYM_SUM
     if (rank == 0)
       printf("Testing 4D fast symmetric contraction operation with n = %d:\n",n);
     pass.push_back(fast_sym_4D(n, dw));
-#else
-/*    if (rank == 0)
-      printf("Currently unable to do 4D fast symmetric contraction operation with SYM SUM:\n");
-    pass.push_back(0);*/
-#endif
     
     if (rank == 0)
       printf("Testing non-symmetric Strassen's algorithm with n = %d:\n",n*n);

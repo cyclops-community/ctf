@@ -464,7 +464,7 @@ int dist_tensor<dtype>::
     sclv->blk_sz_A  = vrt_sz;
     sclv->idx_map_A = idx_map;
     sclv->buffer  = NULL;
-  }
+  } else CTF_free(virt_dim);
 
   seq_tsr_scl<dtype> * sclseq = new seq_tsr_scl<dtype>;
   if (is_top) {
@@ -1851,11 +1851,13 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     for (i=0; i<dim; i++){
       if (sym[i] == SY) sy = 1;
     }
+    CTF_free(sym);
     sym = get_sym(ntid_B);
     dim = get_dim(ntid_B);
     for (i=0; i<dim; i++){
       if (sym[i] == SY) sy = 1;
     }
+    CTF_free(sym);
     if (sy && sidx%2 == 0){/* && map_tensors(&unfold_type,
                           ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){*/
       if (global_comm->rank == 0)
@@ -1867,7 +1869,6 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
         unmap_inner(tensors[unfold_type.tid_A]);
         dealias(ntid_A, unfold_type.tid_A);
         del_tsr(unfold_type.tid_A);
-        CTF_free(unfold_type.idx_map_A);
       }
     } else {
       get_sym_perms(&new_type, alpha, perm_types, signs);
@@ -1886,6 +1887,8 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
       perm_types.clear();
       signs.clear();
     }
+    CTF_free(unfold_type.idx_map_A);
+    CTF_free(unfold_type.idx_map_B);
   } else {
     sum_tensors(alpha, beta, type->tid_A, type->tid_B, type->idx_map_A, 
                 type->idx_map_B, ftsr, felm, run_diag);
@@ -1897,6 +1900,10 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     ntid_B = dstack_tid_B[i];
   }
   LIBT_ASSERT(ntid_B == type->tid_B);
+  CTF_free(map_A);
+  CTF_free(map_B);
+  CTF_free(dstack_map_B);
+  CTF_free(dstack_tid_B);
 
   return DIST_TENSOR_SUCCESS;
 }
@@ -2409,16 +2416,19 @@ int dist_tensor<dtype>::
       for (i=0; i<dim; i++){
         if (sym[i] == SY) sy = 1;
       }
+      CTF_free(sym);
       sym = get_sym(ntid_B);
       dim = get_dim(ntid_B);
       for (i=0; i<dim; i++){
         if (sym[i] == SY) sy = 1;
       }
+      CTF_free(sym);
       sym = get_sym(ntid_C);
       dim = get_dim(ntid_C);
       for (i=0; i<dim; i++){
         if (sym[i] == SY) sy = 1;
       }
+      CTF_free(sym);
       if (sy && map_tensors(&unfold_type,
                             ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
 #endif
