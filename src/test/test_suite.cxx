@@ -75,9 +75,11 @@ int main(int argc, char ** argv){
       printf("Testing symmetric-hollow: SH = SH*SH weight with n = %d:\n",n);
     pass.push_back(weight_4D(n, SH, dw));
 
+#ifndef USE_SYM_SUM
     if (rank == 0)
       printf("Testing CCSDT T3->T2 with n= %d, m = %d:\n",n,n+1);
     pass.push_back(ccsdt_t3_to_t2(n, n+1, dw));
+#endif
     
     if (rank == 0)
       printf("Testing non-symmetric: NS = NS*NS gemm with n = %d:\n",n*n);
@@ -115,35 +117,34 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing a CCSDT 6D=4D*4D contraction with n = %d:\n",n);
     pass.push_back(sym3(n, dw));
+#else
+    /*if (rank == 0)
+      printf("Currently unable to do fast symmetric multiplication operation with SYM SUM:\n");
+    pass.push_back(0);*/
 #endif
 
-    if (rank == 0)
-      printf("Testing CCSDT T3->T2 with n= %d m = %d\n",n,n+1);
-    pass.push_back(ccsdt_t3_to_t2(n, n+1, dw));
-    
     if (rank == 0)
       printf("Testing a 2D trace operation with n = %d:\n",n*n);
     pass.push_back(trace(n*n, dw));
     
-#ifndef USE_SYM_SUM
     if (rank == 0)
       printf("Testing fast symmetric multiplication operation with n = %d:\n",n*n);
     pass.push_back(fast_sym(n*n, dw));
-    
+
+#ifndef USE_SYM_SUM
     if (rank == 0)
       printf("Testing 4D fast symmetric contraction operation with n = %d:\n",n);
     pass.push_back(fast_sym_4D(n, dw));
 #else
-    if (rank == 0)
-      printf("Currently unable to do fast symmetric multiplication operation with SYM SUM:\n");
-    pass.push_back(0);
-    pass.push_back(0);
+/*    if (rank == 0)
+      printf("Currently unable to do 4D fast symmetric contraction operation with SYM SUM:\n");
+    pass.push_back(0);*/
 #endif
     
     if (rank == 0)
       printf("Testing non-symmetric Strassen's algorithm with n = %d:\n",n*n);
     pass.push_back(strassen(n*n, NS, dw));
-#ifdef USE_SYM
+#if 0//def USE_SYM
     if (rank == 0)
       printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);
     pass.push_back(strassen(n*n, AS, dw));

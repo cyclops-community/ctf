@@ -72,7 +72,7 @@ void strp_tsr<dtype>::run(int const dir){
     ilda *= edge_len[i];
     idx_arr[i] = strip_idx[i]*(edge_len[i]/strip_dim[i]);
     toff += idx_arr[i]*lda[i];
-    DEBUG_PRINTF("[%d] sidx = %d, sdim = %d, edge_len = %d\n", i, strip_idx[i], strip_dim[i], edge_len[i]);
+    DPRINTF(3,"[%d] sidx = %d, sdim = %d, edge_len = %d\n", i, strip_idx[i], strip_dim[i], edge_len[i]);
   }
   
   boff = 0;

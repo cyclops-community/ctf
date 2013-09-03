@@ -1219,22 +1219,15 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
 template<typename dtype>
 int dist_tensor<dtype>::unfold_broken_sym(CTF_sum_type_t const *  type,
                                           CTF_sum_type_t *        new_type){
-  int i, num_tot, iA, iB;
+  int sidx, i, num_tot, iA, iB;
   int * idx_arr;
   
   tensor<dtype> * tsr_A, * tsr_B;
   
   
-  if (new_type == NULL){
-    tsr_A = tensors[type->tid_A];
-    tsr_B = tensors[type->tid_B];
-  } else {
-    clone_tensor(type->tid_A, 0, &new_type->tid_A, 0);
-    clone_tensor(type->tid_B, 0, &new_type->tid_B, 0);
-
-    tsr_A = tensors[new_type->tid_A];
-    tsr_B = tensors[new_type->tid_B];
-    
+  tsr_A = tensors[type->tid_A];
+  tsr_B = tensors[type->tid_B];
+  if (new_type != NULL){
     CTF_alloc_ptr(tsr_A->ndim*sizeof(int), (void**)&new_type->idx_map_A);
     CTF_alloc_ptr(tsr_B->ndim*sizeof(int), (void**)&new_type->idx_map_B);
 
@@ -1246,36 +1239,46 @@ int dist_tensor<dtype>::unfold_broken_sym(CTF_sum_type_t const *  type,
           tsr_B->ndim, type->idx_map_B, tsr_B->edge_map,
           &num_tot, &idx_arr);
 
+  sidx = -1;
   for (i=0; i<tsr_A->ndim; i++){
     if (tsr_A->sym[i] != NS){
       iA = type->idx_map_A[i];
       if (idx_arr[2*iA+1] != -1){
         if (tsr_B->sym[idx_arr[2*iA+1]] == NS ||
             type->idx_map_A[i+1] != type->idx_map_B[idx_arr[2*iA+1]+1]){
-          if (new_type != NULL)
-            tsr_A->sym[i] = NS;
-          CTF_free(idx_arr); 
-          return 2*i;
+          sidx = 2*i;
+          break;
         }
       }
     }
   } 
-  for (i=0; i<tsr_B->ndim; i++){
-    if (tsr_B->sym[i] != NS){
-      iB = type->idx_map_B[i];
-      if (idx_arr[2*iB+0] != -1){
-        if (tsr_A->sym[idx_arr[2*iB+0]] == NS ||
-            type->idx_map_B[i+1] != type->idx_map_A[idx_arr[2*iB+0]+1]){
-          if (new_type != NULL)
-            tsr_B->sym[i] = NS;
-          CTF_free(idx_arr); 
-          return 2*i+1;
+  if (sidx == -1){
+    for (i=0; i<tsr_B->ndim; i++){
+      if (tsr_B->sym[i] != NS){
+        iB = type->idx_map_B[i];
+        if (idx_arr[2*iB+0] != -1){
+          if (tsr_A->sym[idx_arr[2*iB+0]] == NS ||
+              type->idx_map_B[i+1] != type->idx_map_A[idx_arr[2*iB+0]+1]){
+            sidx = 2*i+1;
+            break;
+          }
         }
       }
     }
   } 
+  if (new_type != NULL && sidx != -1){
+    if(sidx%2 == 0){
+      clone_tensor(type->tid_A, 0, &new_type->tid_A, 0);
+      tsr_A = tensors[new_type->tid_A];
+      tsr_A->sym[sidx/2] = NS;
+    } else {
+      clone_tensor(type->tid_B, 0, &new_type->tid_B, 0);
+      tsr_B = tensors[new_type->tid_B];
+      tsr_B->sym[sidx/2] = NS;
+    }
+  }
   CTF_free(idx_arr);
-  return -1;
+  return sidx;
 }
 
 /**
@@ -1473,10 +1476,12 @@ template<typename dtype>
 void dist_tensor<dtype>::desymmetrize(int const sym_tid, 
                                       int const nonsym_tid, 
                                       int const is_C){
-  int i, j, sym_dim, scal_diag, num_sy, num_sy_neg, ctid;
+  int i, is, j, sym_dim, scal_diag, num_sy, num_sy_neg, ctid;
   int * idx_map_A, * idx_map_B;
   tensor<dtype> * tsr_sym, * tsr_nonsym;
   double rev_sign;
+
+  if (sym_tid == nonsym_tid) return;
 
   TAU_FSTART(desymmetrize);
   
@@ -1484,12 +1489,14 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   tsr_nonsym = tensors[nonsym_tid];
 
   sym_dim = -1;
+  is = -1;
   rev_sign = 1.0;
   scal_diag = 0;
   num_sy=0;
   num_sy_neg=0;
   for (i=0; i<tsr_sym->ndim; i++){
     if (tsr_sym->sym[i] != tsr_nonsym->sym[i]){
+      is = i;
       if (tsr_sym->sym[i] == AS) rev_sign = -1.0;
       if (tsr_sym->sym[i] == SY){
         scal_diag = 1;
@@ -1545,28 +1552,22 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   
 
   if (!is_C){
-    if (scal_diag){
+    ctid = sym_tid;
+    if (scal_diag && num_sy+num_sy_neg==1){
+      tensors[ctid]->sym[is] = SH;
       clone_tensor(sym_tid, 1, &ctid);
-      for (i=-num_sy_neg-1; i<num_sy-1; i++){
-#ifdef DIAG_RESCALE
-        tensors[ctid]->sym[sym_dim+i+1] = SH;
-#else
-        tensors[ctid]->sym[sym_dim+i+1] = SY;
-#endif
-      }
       zero_out_padding(ctid);
-    } else ctid = sym_tid;
-//    ctid = sym_tid;
+      tensors[ctid]->sym[is] = SY;
+    } 
     for (i=-num_sy_neg-1; i<num_sy; i++){
       if (i==-1) continue;
       idx_map_A[sym_dim] = sym_dim+i+1;
       idx_map_A[sym_dim+i+1] = sym_dim;
-    
       sum_tensors(rev_sign, 1.0, ctid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
       idx_map_A[sym_dim] = sym_dim;
       idx_map_A[sym_dim+i+1] = sym_dim+i+1;
     }
-    if (scal_diag) del_tsr(ctid);
+    if (scal_diag && num_sy+num_sy_neg==1) del_tsr(ctid);
   }
 
   sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
@@ -1575,21 +1576,37 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
 
 
   /* Do not diagonal rescaling since sum has beta=0 and overwrites diagonal */
-  if (false){
+  if (num_sy+num_sy_neg>1){
 //    print_tsr(stdout, nonsym_tid);
     if (!is_C && scal_diag){
       for (i=-num_sy_neg-1; i<num_sy; i++){
         if (i==-1) continue;
-        idx_map_A[sym_dim+i+1] = sym_dim-num_sy_neg;
+        for (j=0; j<tsr_sym->ndim; j++){
+          if (j==sym_dim+i+1){
+            if (j>sym_dim)
+              idx_map_A[j] = sym_dim;
+            else
+              idx_map_A[j] = sym_dim-1;
+          } else if (j<sym_dim+i+1) {
+            idx_map_A[j] = j;
+          } else {
+            idx_map_A[j] = j-1;
+          }
+        }
+/*        idx_map_A[sym_dim+i+1] = sym_dim-num_sy_neg;
         idx_map_A[sym_dim] = sym_dim-num_sy_neg;
         for (j=MAX(sym_dim+i+2,sym_dim+1); j<tsr_sym->ndim; j++){
-          idx_map_A[j] = j-i-num_sy_neg-1;
-        }
+          idx_map_A[j] = j-1;
+        }*/
         fseq_tsr_scl<dtype> fss;
         fss.func_ptr=sym_seq_scl_ref<dtype>;
         fseq_elm_scl<dtype> fselm;
         fselm.func_ptr=NULL;
-        int ret = scale_tsr(((double)(num_sy+num_sy_neg-i))/(num_sy+num_sy_neg-i+1.), nonsym_tid, idx_map_A, fss, fselm);
+/*        printf("tid %d before scale\n", nonsym_tid);
+        print_tsr(stdout, nonsym_tid);*/
+        int ret = scale_tsr(((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg), nonsym_tid, idx_map_A, fss, fselm);
+/*        printf("tid %d after scale\n", nonsym_tid);
+        print_tsr(stdout, nonsym_tid);*/
         if (ret != DIST_TENSOR_SUCCESS) ABORT;
       }
     } 
@@ -1641,7 +1658,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
  */
 template<typename dtype>
 void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
-  int i, j, sym_dim, scal_diag, num_sy, num_sy_neg;
+  int i, j, is, sym_dim, scal_diag, num_sy, num_sy_neg;
   int * idx_map_A, * idx_map_B;
   tensor<dtype> * tsr_sym, * tsr_nonsym;
   double rev_sign;
@@ -1652,12 +1669,14 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
   tsr_nonsym = tensors[nonsym_tid];
 
   sym_dim = -1;
+  is = -1;
   rev_sign = 1.0;
   scal_diag = 0;
   num_sy=0;
   num_sy_neg=0;
   for (i=0; i<tsr_sym->ndim; i++){
     if (tsr_sym->sym[i] != tsr_nonsym->sym[i]){
+      is = i;
       if (tsr_sym->sym[i] == AS) rev_sign = -1.0;
       if (tsr_sym->sym[i] == SY){
         scal_diag = 1;
@@ -1715,26 +1734,24 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
     idx_map_A[sym_dim] = sym_dim;
     idx_map_A[sym_dim+i+1] = sym_dim+i+1;
   }
-  if (scal_diag) {
-    for (i=-num_sy_neg-1; i<num_sy-1; i++){
-#ifdef DIAG_RESCALE
+  if (scal_diag && num_sy+num_sy_neg == 1) {
+/*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
       tensors[sym_tid]->sym[sym_dim+i+1] = SH;
-#else
+      zero_out_padding(sym_tid);
       tensors[sym_tid]->sym[sym_dim+i+1] = SY;
-#endif
-    }
-//    printf("zeroing out padding\n");
-//    print_tsr(stdout, sym_tid);
+    }*/
+    tensors[sym_tid]->sym[is] = SH;
     zero_out_padding(sym_tid);
-    for (i=-num_sy_neg-1; i<num_sy-1; i++){
+    tensors[sym_tid]->sym[is] = SY;
+/*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
       tensors[sym_tid]->sym[sym_dim+i+1] = SY;
-    }
+    }*/
   }
   
   sum_tensors(1.0, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
     
 
-    if (false){ 
+  if (num_sy+num_sy_neg > 1){
     if (scal_diag){
    //   printf("symmetrizing diagonal=%d\n",num_sy);
       for (i=-num_sy_neg-1; i<num_sy; i++){
@@ -1748,7 +1765,12 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
         fss.func_ptr=sym_seq_scl_ref<dtype>;
         fseq_elm_scl<dtype> fselm;
         fselm.func_ptr=NULL;
-        int ret = scale_tsr(((double)(num_sy+num_sy_neg-i))/(num_sy+num_sy_neg-i+1.), sym_tid, idx_map_B, fss, fselm);
+        /*printf("tid %d before scale\n", nonsym_tid);
+        print_tsr(stdout, sym_tid);*/
+        int ret = scale_tsr(((double)(num_sy-i-1.))/(num_sy-i), sym_tid,
+idx_map_B, fss, fselm);
+/*        printf("tid %d after scale\n", sym_tid);
+        print_tsr(stdout, sym_tid);*/
         if (ret != DIST_TENSOR_SUCCESS) ABORT;
       }
     }
@@ -2177,13 +2199,16 @@ void dist_tensor<dtype>::order_perm(tensor<dtype> const * tsr_A,
         broken = 0;
         jA++;
         jB = idx_arr[2*idx_map_A[jA]+off_B];
+        if ((iB == -1) ^ (jB == -1)) broken = 1;
+        /*if (iB != -1 && jB != -1) {
+          if (tsr_B->sym[iB] != tsr_A->sym[iA]) broken = 1;
+        }
+        
         //if (iB == jB) broken = 1;
-        if (iB != -1 && jB != -1){
           for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
             if (tsr_B->sym[iiB] != tsr_A->sym[iA]) broken = 1;
           }
-        } 
-        if ((iB == -1) ^ (jB == -1)) broken = 1;
+        } */
         //if the symmetry is preserved, make sure index map is ordered
         if (!broken){
           if (idx_map_A[iA] > idx_map_A[jA]){

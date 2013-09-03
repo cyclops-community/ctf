@@ -54,7 +54,7 @@ scl<dtype> * scl_virt<dtype>::clone() {
  */
 template<typename dtype>
 long_int scl_virt<dtype>::mem_fp(){
-  return 3*num_dim*sizeof(int);
+  return (ndim_A+2*num_dim)*sizeof(int);
 }
 
 /**
@@ -64,7 +64,7 @@ template<typename dtype>
 void scl_virt<dtype>::run(){
   int * idx_arr, * lda_A;
   int * ilda_A;
-  int i, off_A, nb_A, alloced, ret; 
+  int i, j, off_A, nb_A, alloced, ret; 
   TAU_FSTART(scl_virt);
 
   if (this->buffer != NULL){    
@@ -77,7 +77,7 @@ void scl_virt<dtype>::run(){
   }
   
   lda_A = idx_arr + num_dim;
-  ilda_A = lda_A + num_dim;
+  ilda_A = lda_A + ndim_A;
   
 
 #define SET_LDA_X(__X)                                                  \
@@ -95,10 +95,19 @@ do {                                                                    \
   SET_LDA_X(A);
 #undef SET_LDA_X
  
+/*  for (i=0; i<ndim_A; i++){
+    printf("lda[%d] = %d idx_map_A[%d] = %d\n",i,lda_A[i],i,idx_map_A[i]);
+  }
+  for (i=0; i<num_dim; i++){
+    printf("ilda[%d] = %d virt_dim[%d] = %d\n",i,ilda_A[i],i,virt_dim[i]);
+  }*/
   memset(idx_arr, 0, num_dim*sizeof(int));
   rec_scl->alpha = this->alpha;
   off_A = 0;
   for (;;){
+ /*   for (i=0; i<num_dim; i++){
+      for (j=0; j<num_dim; j++){
+        if (i!=j && idx_arr[i] != idx_arr[j] && idx_map[i] */
     rec_scl->A = this->A + off_A*blk_sz_A;
     rec_scl->run();
 

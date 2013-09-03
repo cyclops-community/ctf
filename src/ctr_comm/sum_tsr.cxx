@@ -60,7 +60,7 @@ tsum<dtype> * tsum_virt<dtype>::clone() {
  */
 template<typename dtype>
 long_int tsum_virt<dtype>::mem_fp(){
-  return 5*num_dim*sizeof(int);
+  return (ndim_A+ndim_B+3*num_dim)*sizeof(int);
 }
 
 /**
@@ -84,8 +84,8 @@ void tsum_virt<dtype>::run(){
   }
   
   lda_A = idx_arr + num_dim;
-  lda_B = lda_A + num_dim;
-  ilda_A = lda_B + num_dim;
+  lda_B = lda_A + ndim_A;
+  ilda_A = lda_B + ndim_B;
   ilda_B = ilda_A + num_dim;
   
 

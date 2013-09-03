@@ -1732,6 +1732,37 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
 #endif
 }
 
+/**
+ * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
+ *        performs all necessary symmetric permutations
+ * \param[in] alpha scaling factor for A*B
+ * \param[in] beta scaling factor for C
+ * \param[in] tid_A tensor handle to A
+ * \param[in] tid_B tensor handle to B
+ * \param[in] idx_map_A index map of A
+ * \param[in] idx_map_B index map of B
+ * \param[in] ftsr pointer to sequential block sum function
+ * \param[in] felm pointer to sequential element-wise sum function
+ * \param[in] run_diag if 1 run diagonal sum
+ */
+template<typename dtype>
+int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
+                                     dtype const                beta,
+                                     int const                  tid_A,
+                                     int const                  tid_B,
+                                     int const *                idx_map_A,
+                                     int const *                idx_map_B,
+                                     fseq_tsr_sum<dtype> const  ftsr,
+                                     fseq_elm_sum<dtype> const  felm,
+                                     int const                  run_diag){
+  
+  CTF_sum_type_t type;
+  type.tid_A = tid_A;
+  type.tid_B = tid_B;
+  type.idx_map_A = (int*)idx_map_A;
+  type.idx_map_B = (int*)idx_map_B;
+  sym_sum_tsr(alpha_, beta, &type, ftsr, felm, run_diag);
+}
 
 /**
  * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
@@ -1750,7 +1781,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
                                      fseq_tsr_sum<dtype> const  ftsr,
                                      fseq_elm_sum<dtype> const  felm,
                                      int const                  run_diag){
-  int stat, i, new_tid, * new_idx_map;
+  int stat, sidx, i, j, k, new_tid, * new_idx_map;
   int * map_A, * map_B, * dstack_tid_B;
   int ** dstack_map_B;
   int ntid_A, ntid_B, nst_B;
@@ -1758,7 +1789,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   std::vector<dtype> signs;
   dtype dbeta;
   tsum<dtype> * sumf;
-  CTF_sum_type_t unfold_type;
+  CTF_sum_type_t unfold_type, new_type;
   check_sum(type);
   if (tensors[type->tid_A]->has_zero_edge_len || 
       tensors[type->tid_B]->has_zero_edge_len){
@@ -1772,14 +1803,14 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   CTF_alloc_ptr(sizeof(int)*tensors[ntid_B]->ndim,   (void**)&dstack_tid_B);
   memcpy(map_A, type->idx_map_A, tensors[ntid_A]->ndim*sizeof(int));
   memcpy(map_B, type->idx_map_B, tensors[ntid_B]->ndim*sizeof(int));
-  while (extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (!run_diag && extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
     if (ntid_A != type->tid_A) del_tsr(ntid_A);
     CTF_free(map_A);
     ntid_A = new_tid;
     map_A = new_idx_map;
   }
   nst_B = 0;
-  while (extract_diag(ntid_B, map_B, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (!run_diag && extract_diag(ntid_B, map_B, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
     dstack_map_B[nst_B] = map_B;
     dstack_tid_B[nst_B] = ntid_B;
     nst_B++;
@@ -1795,20 +1826,24 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     del_tsr(new_tid);
     return stat;
   }
+  new_type.tid_A = ntid_A;
+  new_type.tid_B = ntid_B;
+  new_type.idx_map_A = map_A;
+  new_type.idx_map_B = map_B;
 
   dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->ndim,
-                                               (int*)map_A,
+                                               map_A,
                                                tensors[ntid_A]->sym,
                                                tensors[ntid_B]->ndim,
-                                               (int*)map_B,
+                                               map_B,
                                                tensors[ntid_B]->sym);
 
 
-  if (unfold_broken_sym(type, NULL) != -1){
+  if (unfold_broken_sym(&new_type, NULL) != -1){
     if (global_comm->rank == 0)
       DPRINTF(1,"Contraction index is broken\n");
 
-    unfold_broken_sym(type, &unfold_type);
+    sidx = unfold_broken_sym(&new_type, &unfold_type);
     int * sym, dim, sy;
     sy = 0;
     sym = get_sym(ntid_A);
@@ -1821,30 +1856,32 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     for (i=0; i<dim; i++){
       if (sym[i] == SY) sy = 1;
     }
-    if (sy){/* && map_tensors(&unfold_type,
+    if (sy && sidx%2 == 0){/* && map_tensors(&unfold_type,
                           ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){*/
-      desymmetrize(ntid_A, unfold_type.tid_A, 0);
-      desymmetrize(ntid_B, unfold_type.tid_B, 0);
       if (global_comm->rank == 0)
         DPRINTF(1,"Performing index desymmetrization\n");
+      desymmetrize(ntid_A, unfold_type.tid_A, 0);
+      unfold_type.tid_B = ntid_B;
       sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
-      symmetrize(ntid_B, unfold_type.tid_B);
-      unmap_inner(tensors[unfold_type.tid_A]);
-      unmap_inner(tensors[unfold_type.tid_B]);
-      dealias(ntid_A, unfold_type.tid_A);
-      dealias(ntid_B, unfold_type.tid_B);
-      del_tsr(unfold_type.tid_A);
-      del_tsr(unfold_type.tid_B);
-      CTF_free(unfold_type.idx_map_A);
-      CTF_free(unfold_type.idx_map_B);
+      if (ntid_A != unfold_type.tid_A){
+        unmap_inner(tensors[unfold_type.tid_A]);
+        dealias(ntid_A, unfold_type.tid_A);
+        del_tsr(unfold_type.tid_A);
+        CTF_free(unfold_type.idx_map_A);
+      }
     } else {
-      get_sym_perms(type, alpha, perm_types, signs);
+      get_sym_perms(&new_type, alpha, perm_types, signs);
+      if (global_comm->rank == 0)
+        DPRINTF(1,"Performing %d summation permutaitons\n", 
+                (int)perm_types.size());
       dbeta = beta;
       for (i=0; i<(int)perm_types.size(); i++){
         sum_tensors(signs[i], dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                     perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);
-        free_type(&perm_types[i]);
         dbeta = 1.0;
+      }
+      for (i=0; i<(int)perm_types.size(); i++){
+        free_type(&perm_types[i]);
       }
       perm_types.clear();
       signs.clear();
@@ -2393,18 +2430,24 @@ int dist_tensor<dtype>::
         sym_contract(&unfold_type, ftsr, felm,
                      alpha*alignfact, beta, map_inner);
         symmetrize(ntid_C, unfold_type.tid_C);
-        unmap_inner(tensors[unfold_type.tid_A]);
-        unmap_inner(tensors[unfold_type.tid_B]);
-        unmap_inner(tensors[unfold_type.tid_C]);
-        dealias(ntid_A, unfold_type.tid_A);
-        dealias(ntid_B, unfold_type.tid_B);
-        dealias(ntid_C, unfold_type.tid_C);
-        del_tsr(unfold_type.tid_A);
-        del_tsr(unfold_type.tid_B);
-        del_tsr(unfold_type.tid_C);
-        CTF_free(unfold_type.idx_map_A);
-        CTF_free(unfold_type.idx_map_B);
-        CTF_free(unfold_type.idx_map_C);
+        if (ntid_A != unfold_type.tid_A){
+          unmap_inner(tensors[unfold_type.tid_A]);
+          dealias(ntid_A, unfold_type.tid_A);
+          del_tsr(unfold_type.tid_A);
+          CTF_free(unfold_type.idx_map_A);
+        }
+        if (ntid_B != unfold_type.tid_B){
+          unmap_inner(tensors[unfold_type.tid_B]);
+          dealias(ntid_B, unfold_type.tid_B);
+          del_tsr(unfold_type.tid_B);
+          CTF_free(unfold_type.idx_map_B);
+        }
+        if (ntid_C != unfold_type.tid_C){
+          unmap_inner(tensors[unfold_type.tid_C]);
+          dealias(ntid_C, unfold_type.tid_C);
+          del_tsr(unfold_type.tid_C);
+          CTF_free(unfold_type.idx_map_C);
+        }
       } else {
         get_sym_perms(type, alpha*alignfact*ocfact, 
                       perm_types, signs);

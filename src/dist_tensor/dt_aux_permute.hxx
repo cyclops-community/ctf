@@ -43,15 +43,14 @@ int strip_diag(int const                ndim,
 
   std::fill(pmap, pmap+ndim_tot, -1);
 
+  need_strip = 0;
+
   for (i=0; i<ndim; i++){
     if (edge_map[i].type == PHYSICAL_MAP) {
       LIBT_ASSERT(pmap[idx_map[i]] == -1);
       pmap[idx_map[i]] = i;
     }
   }
-
-  need_strip = 0;
-
   for (i=0; i<ndim; i++){
     if (edge_map[i].type == VIRTUAL_MAP && pmap[idx_map[i]] != -1)
       need_strip = 1;

@@ -148,7 +148,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   ppn = getenv("CTF_PPN");
   if (ppn != NULL){
     if (rank == 0)
-      DPRINTF(1,"CTF assuming %lld processes per node due to CTF_PPN environment variable\n",
+      DPRINTF(1,"CTF assuming %d processes per node due to CTF_PPN environment variable\n",
                 atoi(ppn));
     LIBT_ASSERT(atoi(ppn)>=1);
     CTF_set_memcap(.75/atof(ppn));
@@ -438,7 +438,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
     char cname[200];
     cname[0] = '\0';
     if ((*dt->get_tensors())[type->tid_C]->name != NULL)
-      sprintf(cname, (*dt->get_tensors())[type->tid_C]->name);
+      sprintf(cname, "%s", (*dt->get_tensors())[type->tid_C]->name);
     else
       sprintf(cname, "%d", type->tid_C);
     sprintf(cname+strlen(cname),"[");
@@ -450,7 +450,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
     }
     sprintf(cname+strlen(cname),"]=");
     if ((*dt->get_tensors())[type->tid_A]->name != NULL)
-      sprintf(cname+strlen(cname), (*dt->get_tensors())[type->tid_A]->name);
+      sprintf(cname+strlen(cname), "%s", (*dt->get_tensors())[type->tid_A]->name);
     else
       sprintf(cname+strlen(cname), "%d", type->tid_A);
     sprintf(cname+strlen(cname),"[");
@@ -462,7 +462,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
     }
     sprintf(cname+strlen(cname),"]*");
     if ((*dt->get_tensors())[type->tid_B]->name != NULL)
-      sprintf(cname+strlen(cname), (*dt->get_tensors())[type->tid_B]->name);
+      sprintf(cname+strlen(cname), "%s", (*dt->get_tensors())[type->tid_B]->name);
     else
       sprintf(cname+strlen(cname), "%d", type->tid_B);
     sprintf(cname+strlen(cname),"[");

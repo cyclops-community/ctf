@@ -1079,9 +1079,15 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
         felm.func_ptr=NULL;
         if (rw){
           define_tensor(tensors[tid]->ndim-1, edge_len, sym, tid_new, 1);
+#ifdef USE_SYM_SUM
+          sym_sum_tsr(1.0, 0.0, tid, *tid_new, ex_idx_map, diag_idx_map, fs, felm, 1);
+        } else {
+          sym_sum_tsr(1.0, 0.0, *tid_new, tid, diag_idx_map, ex_idx_map, fs, felm, 1);
+#else
           sum_tensors(1.0, 0.0, tid, *tid_new, ex_idx_map, diag_idx_map, fs, felm, 1);
         } else {
           sum_tensors(1.0, 0.0, *tid_new, tid, diag_idx_map, ex_idx_map, fs, felm, 1);
+#endif
           CTF_free(*idx_map_new);
         }
         CTF_free(edge_len), CTF_free(sym), CTF_free(ex_idx_map), CTF_free(diag_idx_map);

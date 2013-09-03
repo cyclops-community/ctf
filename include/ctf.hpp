@@ -187,7 +187,7 @@ class tCTF_Tensor {
      */
     void get_remote_data(long_int const    npair, 
                          long_int const *  global_idx, 
-                         dtype *          data) const;
+                         dtype *           data) const;
     
     /**
      * \brief gives the values associated with any set of indices
@@ -205,15 +205,15 @@ class tCTF_Tensor {
      */
     void write_remote_data(long_int const   npair, 
                            long_int const * global_idx, 
-                           dtype const   * data);
+                           dtype const   *  data);
 
     /**
      * \brief writes in values associated with any set of indices
      * \param[in] npair number of values to write into tensor
      * \param[in] pairs key-value pairs to write to the tensor
      */
-    void write_remote_data(long_int const   npair,
-                           tkv_pair<dtype> const * pairs);
+    void write_remote_data(long_int const           npair,
+                           tkv_pair<dtype> const *  pairs);
    
     /**
      * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
@@ -325,14 +325,14 @@ class tCTF_Tensor {
      */
     void get_local_data(long_int *   npair, 
                         long_int **  global_idx, 
-                        dtype **    data) const;
+                        dtype **     data) const;
 
     /**
      * \brief gives the global indices and values associated with the local data
      * \param[out] npair number of local values
      * \param[out] pairs pointer to local key-value pairs
      */
-    void get_local_data(long_int *   npair,
+    void get_local_data(long_int *         npair,
                         tkv_pair<dtype> ** pairs) const;
 
     /**
@@ -341,7 +341,7 @@ class tCTF_Tensor {
      * \param[out] data pointer to the data of the entire tensor
      */
     void get_all_data(long_int * npair, 
-                      dtype **  data) const;
+                      dtype **   data) const;
 
     /**
      * \brief sparse add: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
@@ -351,10 +351,10 @@ class tCTF_Tensor {
      * \param[in] global_idx global index within tensor of value to add
      * \param[in] data values to add to the tensor
      */
-    void add_remote_data(long_int const    npair, 
+    void add_remote_data(long_int const   npair, 
                          dtype const      alpha, 
                          dtype const      beta,
-                         long_int const *  global_idx,
+                         long_int const * global_idx,
                          dtype const *    data);
 
     /**
@@ -364,9 +364,9 @@ class tCTF_Tensor {
      * \param[in] beta scaling factor on value to add
      * \param[in] pairs key-value pairs to add to the tensor
      */
-    void add_remote_data(long_int const    npair,
-                         dtype const      alpha,
-                         dtype const      beta,
+    void add_remote_data(long_int const          npair,
+                         dtype const             alpha,
+                         dtype const             beta,
                          tkv_pair<dtype> const * pairs);
     /**
      * \brief obtains a small number of the biggest elements of the 

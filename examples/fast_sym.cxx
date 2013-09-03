@@ -58,18 +58,45 @@ int fast_sym(int const     n,
   }
   C_ans["ij"] = A["ik"]*B["kj"];
 
+/*  printf("OUT A:\n");
+  A.print(stdout);*/
+#ifdef USE_SYM_SUM
+  A_rep["ijk"] += A["ij"];
+/*  printf("OUT A_rep:\n");
+  A_rep.print(stdout);*/
+  B_rep["ijk"] += B["ij"];
+  Z["ijk"] += A_rep["ijk"]*B_rep["ijk"];
+/*  printf("OUT Z:\n");
+  Z.print(stdout);*/
+  C["ij"] += Z["ijk"];
+/*  printf("OUT C:\n");
+  C.print(stdout);*/
+  Cs["i"] += A["ik"]*B["ik"];
+  As["i"] += A["ik"];
+  Bs["i"] += B["ik"];
+  C["ij"] -= ((double)n)*A["ij"]*B["ij"];
+  C["ij"] -= Cs["i"];
+  C["ij"] -= As["i"]*B["ij"];
+  C["ij"] -= A["ij"]*Bs["j"];
+#else
   A_rep["ijk"] += A["ij"];
   A_rep["ijk"] += A["ik"];
   A_rep["ijk"] += A["jk"];
+/*  printf("OUT A_rep:\n");
+  A_rep.print(stdout);*/
   B_rep["ijk"] += B["ij"];
   B_rep["ijk"] += B["ik"];
   B_rep["ijk"] += B["jk"];
   Z["ijk"] += A_rep["ijk"]*B_rep["ijk"];
+/*  printf("OUT Z:\n");
+  Z.print(stdout);*/
   C["ij"] += Z["ijk"];
   C["ij"] += Z["ikj"];
   C["ij"] += Z["kij"];
-  C["ij"] -= Z["ijj"];
-  C["ij"] -= Z["iij"];
+  C["ij"] -= 2.*Z["ijj"];
+//  C["ij"] -= Z["ijj"];
+/*  printf("OUT C:\n");
+  C.print(stdout);*/
   Cs["i"] += A["ik"]*B["ik"];
   As["i"] += A["ik"];
   As["i"] += A["ki"];
@@ -80,6 +107,7 @@ int fast_sym(int const     n,
   C["ij"] -= Cs["j"];
   C["ij"] -= As["i"]*B["ij"];
   C["ij"] -= A["ij"]*Bs["j"];
+#endif
 
   if (n<8){
     printf("A:\n");

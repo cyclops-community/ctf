@@ -77,7 +77,7 @@ void ctr_virt<dtype>::print() {
  */
 template<typename dtype>
 long_int ctr_virt<dtype>::mem_fp(){
-  return (6+VIRT_NTD)*num_dim*sizeof(int);
+  return (ndim_A+ndim_B+ndim_C+(3+VIRT_NTD)*num_dim)*sizeof(int);
 }
 
 /**
@@ -112,9 +112,9 @@ void ctr_virt<dtype>::run(){
 
   
   lda_A = idx_arr + VIRT_NTD*num_dim;
-  lda_B = lda_A + num_dim;
-  lda_C = lda_B + num_dim;
-  ilda_A = lda_C + num_dim;
+  lda_B = lda_A + ndim_A;
+  lda_C = lda_B + ndim_B;
+  ilda_A = lda_C + ndim_C;
   ilda_B = ilda_A + num_dim;
   ilda_C = ilda_B + num_dim;
 

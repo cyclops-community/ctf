@@ -347,6 +347,16 @@ class dist_tensor{
                     fseq_tsr_sum<dtype> const   ftsr,
                     fseq_elm_sum<dtype> const   felm,
                     int const                   run_diag = 0);
+    
+    int sym_sum_tsr( dtype const                alpha_,
+                     dtype const                beta,
+                     int const                  tid_A,
+                     int const                  tid_B,
+                     int const *                idx_map_A,
+                     int const *                idx_map_B,
+                     fseq_tsr_sum<dtype> const  ftsr,
+                     fseq_elm_sum<dtype> const  felm,
+                     int const                  run_diag);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int home_sum_tsr( dtype const                 alpha,
