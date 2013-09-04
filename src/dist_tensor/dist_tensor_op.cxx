@@ -259,6 +259,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       }
       break;
 
+    /* FIXME: incorrect when there is padding and the actual MIN is > 0 */
     case CTF_OP_MIN:
       if (is_asym) {
         red_tsr(tid, CTF_OP_MAXABS, result);
