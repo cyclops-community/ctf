@@ -2206,9 +2206,12 @@ void dist_tensor<dtype>::order_perm(tensor<dtype> const * tsr_A,
        /* if (iB != -1 && jB != -1) {
           if (tsr_B->sym[iB] != tsr_A->sym[iA]) broken = 1;
         }*/
+        if (iB != -1 && jB != -1) {
         /* Do this because iB,jB can be in reversed order */
         for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
+          LIBT_ASSERT(iiB >= 0 && iiB <= tsr_B->ndim);
           if (tsr_B->sym[iiB] == NS) broken = 1;
+        }
         }
         
 
