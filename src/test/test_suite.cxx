@@ -17,6 +17,7 @@
 #include "../../examples/gemm.cxx"
 #include "../../examples/gemm_4D.cxx"
 #include "../../examples/trace.cxx"
+#include "../../examples/diag_sym.cxx"
 #include "../../examples/dft.cxx"
 #include "../../examples/dft_3D.cxx"
 #include "../../examples/fast_sym.cxx"
@@ -120,6 +121,10 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing a 2D trace operation with n = %d:\n",n*n);
     pass.push_back(trace(n*n, dw));
+    
+    if (rank == 0)
+      printf("Testing a diag sym operation with n = %d:\n",n);
+    pass.push_back(diag_sym(n, dw));
     
     if (rank == 0)
       printf("Testing fast symmetric multiplication operation with n = %d:\n",n*n);

@@ -1897,6 +1897,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     if (ntid_A != type->tid_A) del_tsr(ntid_A);
     CTF_free(map_A);
     ntid_A = new_tid;
+    new_type.tid_A = new_tid;
     map_A = new_idx_map;
   }
   nst_B = 0;
@@ -1905,12 +1906,13 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     dstack_tid_B[nst_B] = ntid_B;
     nst_B++;
     ntid_B = new_tid;
+    new_type.tid_B = new_tid;
     map_B = new_idx_map;
   }
 
   if (ntid_A == ntid_B){
     clone_tensor(ntid_A, 1, &new_tid);
-    CTF_sum_type_t new_type = *type;
+    new_type = *type;
     new_type.tid_A = new_tid;
     stat = sym_sum_tsr(alpha_, beta, &new_type, ftsr, felm, run_diag);
     del_tsr(new_tid);
@@ -1980,8 +1982,8 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     CTF_free(unfold_type.idx_map_A);
     CTF_free(unfold_type.idx_map_B);
   } else {
-    sum_tensors(alpha, beta, type->tid_A, type->tid_B, type->idx_map_A, 
-                type->idx_map_B, ftsr, felm, run_diag);
+    sum_tensors(alpha, beta, new_type.tid_A, new_type.tid_B, new_type.idx_map_A, 
+                new_type.idx_map_B, ftsr, felm, run_diag);
   }
   if (ntid_A != type->tid_A) del_tsr(ntid_A);
   for (i=nst_B-1; i>=0; i--){

@@ -2,7 +2,7 @@ all: $(DEFAULT_COMPONENTS)
 
 
 EXECUTABLES = pgemm_test nonsq_pgemm_test nonsq_pgemm_bench \
-              examples dft dft_3D gemm gemm_4D trace sym3 \
+              examples dft dft_3D gemm gemm_4D trace diag_sym sym3 \
               ccsdt_t3_to_t2 weight_4D test_suite fast_sym \
               fast_sym_4D strassen
 

@@ -1245,10 +1245,14 @@ int dist_tensor<dtype>::unfold_broken_sym(CTF_sum_type_t const *  type,
       iA = type->idx_map_A[i];
       if (idx_arr[2*iA+1] != -1){
         if (tsr_B->sym[idx_arr[2*iA+1]] == NS ||
+            idx_arr[2*type->idx_map_A[i+1]+1] == -1 ||
             type->idx_map_A[i+1] != type->idx_map_B[idx_arr[2*iA+1]+1]){
           sidx = 2*i;
           break;
         }
+      } else if (idx_arr[2*type->idx_map_A[i+1]+1] != -1){
+        sidx = 2*i;
+        break;
       }
     }
   } 
@@ -1258,10 +1262,14 @@ int dist_tensor<dtype>::unfold_broken_sym(CTF_sum_type_t const *  type,
         iB = type->idx_map_B[i];
         if (idx_arr[2*iB+0] != -1){
           if (tsr_A->sym[idx_arr[2*iB+0]] == NS ||
+              idx_arr[2*type->idx_map_B[i+1]+0] == -1 ||
               type->idx_map_B[i+1] != type->idx_map_A[idx_arr[2*iB+0]+1]){
             sidx = 2*i+1;
             break;
           }
+        } else if (idx_arr[2*type->idx_map_B[i+1]+0] != -1){
+          sidx = 2*i+1;
+          break;
         }
       }
     }
