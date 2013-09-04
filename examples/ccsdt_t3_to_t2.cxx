@@ -71,9 +71,11 @@ int ccsdt_t3_to_t2(int const     n,
 #ifdef USE_SYM_SUM
   NS_A["abij"] = AS_A["abij"];
   NS_B["abcijk"] = AS_B["abcijk"];
-  //NS_C["abij"] = AS_C["abij"];
-  //NS_B["abcijk"] = HS_B["abcijk"];
+/*  printf("norm of NS_B is %lf of AS_B is %lf, should be same\n",
+         NS_B.reduce(CTF_OP_SQNRM2), AS_B.reduce(CTF_OP_SQNRM2));*/
   NS_C.write_remote_data(np, indices, pairs);
+  /*printf("norm of NS_C is %lf of AS_C is %lf, should be same\n",
+         NS_C.reduce(CTF_OP_SQNRM2), AS_C.reduce(CTF_OP_SQNRM2));*/
 #else
   NS_A["abij"] -= AS_A["baij"];
   NS_A["abij"] += AS_A["abij"];
@@ -98,15 +100,27 @@ int ccsdt_t3_to_t2(int const     n,
 
   NS_C["abij"] -= NS_C["abji"];
 
-  double nrm_AS = sqrt(AS_C.reduce(CTF_OP_SQNRM2));
-  double nrm_NS = sqrt(NS_C.reduce(CTF_OP_SQNRM2));
+  double nrm_AS, nrm_NS;
+
+  
+  int pass = 1;
 
 
+  nrm_AS = sqrt(AS_C["ijkl"]*AS_C["ijkl"]);
+  nrm_NS = sqrt(NS_C["ijkl"]*NS_C["ijkl"]);
 #if DEBUG  >= 1
   if (rank == 0) printf("triangular norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
 #endif
-  nrm_AS = sqrt(AS_C["ijkl"]*AS_C["ijkl"]);
-  nrm_NS = sqrt(NS_C["ijkl"]*NS_C["ijkl"]);
+  double cnrm_AS = AS_C.reduce(CTF_OP_SQNRM2);
+  double cnrm_NS = NS_C.reduce(CTF_OP_SQNRM2);
+  if (fabs(nrm_AS-cnrm_AS) >= 1.E-6) {
+    printf("ERROR: AS norm not working!\n");
+    pass = 0;
+  }
+  if (fabs(nrm_NS-cnrm_NS) >= 1.E-6) {
+    printf("ERROR: NS norm not working!\n");
+    pass = 0;
+  }
 #if DEBUG  >= 1
   if (rank == 0) printf("norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
 #endif
@@ -115,6 +129,7 @@ int ccsdt_t3_to_t2(int const     n,
   NS_C["abij"] += AS_C["abji"];
 #endif
   
+
   
   double nrm = NS_C.reduce(CTF_OP_SQNRM2);
 #if DEBUG  >= 1
@@ -122,7 +137,7 @@ int ccsdt_t3_to_t2(int const     n,
     printf("norm of NS_C after contraction should be zero, is = %lf\n", nrm);
   }
 #endif
-  int pass = fabs(nrm) <= 1.E-6;
+  if (fabs(nrm) > 1.E-6) pass = 0;
 
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);

@@ -158,14 +158,14 @@ void CTF_mem_exit(int rank){
     for (int i=0; i<CTF_max_threads; i++){
       if (CTF_mem_used[i] > 0){
         if (rank == 0){
-          printf("Warning: memory leak in CTF on thread %d, %lld memory in use at termination",
+          printf("Warning: memory leak in CTF on thread %d, %lld bytes of memory in use at termination",
                   i, CTF_mem_used[i]);
           printf(" in %zu unfreed items\n",
                   CTF_mem_stacks[i].size());
         }
       }
       if (mst.size() > 0){
-        printf("Warning: %zu items not deallocated from custom stack, consuming %lld memory\n",
+        printf("Warning: %zu items not deallocated from custom stack, consuming %lld bytes of memory\n",
                 mst.size(), mst_buffer_ptr);
       }
     }
@@ -271,7 +271,7 @@ int CTF_alloc_ptr(int const len, void ** const ptr){
 //  printf("CTF_mem_used up to %lld stack to %d\n",CTF_mem_used,mem_stack->size());
 //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
  if (pm){
-    printf("CTF ERROR: posix memalign returned an error, %lld memory alloced on this process, wanted to alloc %lld more\n",
+    printf("CTF ERROR: posix memalign returned an error, %lld memory alloced on this process, wanted to alloc %d more\n",
             CTF_mem_used[0], len);
   }
   LIBT_ASSERT(pm == 0);

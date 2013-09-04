@@ -80,6 +80,10 @@ int dist_tensor<dtype>::red_tsr(int const tid, CTF_OP op, dtype * result){
   return DIST_TENSOR_ERROR;
 }
 
+void sum_abs(double const alpha, double const a, double & b){
+  b += alpha*abs(a);
+}
+
 /* Perform an elementwise reduction on a tensor. All processors
    end up with the final answer. */
 template<> inline
@@ -89,6 +93,12 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
   tensor<double> * tsr;
   mapping * map;
   int idx_lyr = 0;
+  int tid_scal, is_asym;
+  int * idx_map;
+  fseq_tsr_sum<double> fs;
+  fseq_elm_sum<double> felm;
+  fseq_tsr_ctr<double> fcs;
+  fseq_elm_ctr<double> fcelm;
 
 
   tsr = tensors[tid];
@@ -115,10 +125,34 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       }
     }
   }
+  is_asym = 0;
+  for (i=0; i<tsr->ndim; i++){
+    if (tsr->sym[i] == AS)
+      is_asym = 1;
+  }
 
   switch (op){
     case CTF_OP_SUM:
-      acc = 0.0;
+      if (is_asym) {
+        *result = 0.0;
+      } else {
+        CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
+        for (i=0; i<tsr->ndim; i++){
+          idx_map[i] = i;
+        }
+        define_tensor(0, NULL, NULL, &tid_scal, 1);
+        fs.func_ptr=sym_seq_sum_ref<double>;
+        felm.func_ptr = NULL;
+        home_sum_tsr(1.0, 0.0, tid, tid_scal, idx_map, NULL, fs, felm);
+        if (global_comm->rank == 0)
+          *result = tensors[tid_scal]->data[0];
+        else
+          *result = 0.0;
+        POST_BCAST(result, sizeof(double), COMM_CHAR_T, 0, global_comm, 0);
+        CTF_free(idx_map);
+      }
+
+/*      acc = 0.0;
       if (tsr->is_mapped){
         if (idx_lyr == 0){
           for (i=0; i<tsr->size; i++){
@@ -130,11 +164,27 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
           acc += tsr->pairs[i].d;
         }
       }
-      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);
+      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);*/
       break;
 
     case CTF_OP_SUMABS:
-      acc = 0.0;
+      CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
+      for (i=0; i<tsr->ndim; i++){
+        idx_map[i] = i;
+      }
+      define_tensor(0, NULL, NULL, &tid_scal, 1);
+      fs.func_ptr=NULL;
+      felm.func_ptr = sum_abs;
+      home_sum_tsr(1.0, 0.0, tid, tid_scal, idx_map, NULL, fs, felm);
+      if (global_comm->rank == 0)
+        *result = tensors[tid_scal]->data[0];
+      else
+        *result = 0.0;
+
+      POST_BCAST(result, sizeof(double), COMM_CHAR_T, 0, global_comm, 0);
+      CTF_free(idx_map);
+
+/*      acc = 0.0;
       if (tsr->is_mapped){
         if (idx_lyr == 0){
           for (i=0; i<tsr->size; i++){
@@ -146,12 +196,34 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
           acc += fabs(tsr->pairs[i].d);
         }
       }
-      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);
+      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);*/
       break;
 
     case CTF_OP_SQNRM2:
-        acc = 0.0;
-      if (tsr->is_mapped){
+      CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
+      for (i=0; i<tsr->ndim; i++){
+        idx_map[i] = i;
+      }
+      define_tensor(0, NULL, NULL, &tid_scal, 1);
+      CTF_ctr_type_t ctype;
+      ctype.tid_A = tid; 
+      ctype.tid_B = tid; 
+      ctype.tid_C = tid_scal; 
+      ctype.idx_map_A = idx_map; 
+      ctype.idx_map_B = idx_map; 
+      ctype.idx_map_C = NULL; 
+      fcs.func_ptr=sym_seq_ctr_ref<double>;
+      fcelm.func_ptr = NULL;
+      home_contract(&ctype, fcs, fcelm, 1.0, 0.0, 0);
+      if (global_comm->rank == 0)
+        *result = sqrt(tensors[tid_scal]->data[0]);
+      else
+        *result = 0.0;
+
+      POST_BCAST(result, sizeof(double), COMM_CHAR_T, 0, global_comm, 0);
+      CTF_free(idx_map);
+
+      /*if (tsr->is_mapped){
         if (idx_lyr == 0){
           for (i=0; i<tsr->size; i++){
             acc += tsr->data[i]*tsr->data[i];
@@ -162,43 +234,52 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
           acc += tsr->pairs[i].d*tsr->pairs[i].d;
         }
       }
-      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);
+      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);*/
       break;
 
     case CTF_OP_MAX:
-      acc = -DBL_MAX;
-      if (tsr->is_mapped){
-        if (idx_lyr == 0){
-          acc = tsr->data[0];
+      if (is_asym) {
+        red_tsr(tid, CTF_OP_MAXABS, result);
+      } else {
+        acc = -DBL_MAX;
+        if (tsr->is_mapped){
+          if (idx_lyr == 0){
+            acc = tsr->data[0];
+            for (i=1; i<tsr->size; i++){
+              acc = MAX(acc, tsr->data[i]);
+            }
+          }
+        } else {
+          acc = tsr->pairs[0].d;
           for (i=1; i<tsr->size; i++){
-            acc = MAX(acc, tsr->data[i]);
+            acc = MAX(acc, tsr->pairs[i].d);
           }
         }
-      } else {
-        acc = tsr->pairs[0].d;
-        for (i=1; i<tsr->size; i++){
-          acc = MAX(acc, tsr->pairs[i].d);
-        }
+        ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_MAX, global_comm);
       }
-      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_MAX, global_comm);
       break;
 
     case CTF_OP_MIN:
-      acc = DBL_MAX;
-      if (tsr->is_mapped){
-        if (idx_lyr == 0){
-          acc = tsr->data[0];
+      if (is_asym) {
+        red_tsr(tid, CTF_OP_MAXABS, result);
+        *result = -1.0 * (*result);
+      } else {
+        acc = DBL_MAX;
+        if (tsr->is_mapped){
+          if (idx_lyr == 0){
+            acc = tsr->data[0];
+            for (i=1; i<tsr->size; i++){
+              acc = MIN(acc, tsr->data[i]);
+            }
+          }
+        } else {
+          acc = tsr->pairs[0].d;
           for (i=1; i<tsr->size; i++){
-            acc = MIN(acc, tsr->data[i]);
+            acc = MIN(acc, tsr->pairs[i].d);
           }
         }
-      } else {
-        acc = tsr->pairs[0].d;
-        for (i=1; i<tsr->size; i++){
-          acc = MIN(acc, tsr->pairs[i].d);
-        }
+        ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_MIN, global_comm);
       }
-      ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_MIN, global_comm);
       break;
 
     case CTF_OP_MAXABS:
@@ -1671,12 +1752,20 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     copy_mapping(tsr_B->ndim, tsr_B->edge_map, ntsr_B->edge_map);
     set_padding(ntsr_B);
   }
+#if DEBUG >= 1
+  if (get_global_comm()->rank == 0)
+    printf("Start head sum:\n");
+#endif
   
   #ifdef USE_SYM_SUM
   ret = sym_sum_tsr(alpha_, beta, &type, ftsr, felm, run_diag);
   #else
   ret = sum_tensors(alpha_, beta, type.tid_A, type.tid_B, idx_map_A, idx_map_B, ftsr, felm, run_diag);
   #endif
+#if DEBUG >= 1
+  if (global_comm->rank == 0)
+    printf("End head sum:\n");
+#endif
 
   if (ret!= DIST_TENSOR_SUCCESS) return ret;
   if (was_home_A) unmap_inner(ntsr_A);
@@ -1873,7 +1962,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     } else {
       get_sym_perms(&new_type, alpha, perm_types, signs);
       if (global_comm->rank == 0)
-        DPRINTF(1,"Performing %d summation permutaitons\n", 
+        DPRINTF(1,"Performing %d summation permutations\n", 
                 (int)perm_types.size());
       dbeta = beta;
       for (i=0; i<(int)perm_types.size(); i++){

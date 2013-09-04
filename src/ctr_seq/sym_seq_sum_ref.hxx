@@ -41,16 +41,47 @@ int sym_seq_sum_ref( dtype const        alpha,
   memcpy(dlen_B, edge_len_B, sizeof(int)*ndim_B);
 
   idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
+
+  if (beta != 0.0){
+    memset(idx_glb, 0, sizeof(int)*idx_max);
+
+    idx_A = 0, idx_B = 0;
+    sym_pass = 1;
+    for (;;){
+      if (sym_pass)
+        B[idx_B] =  beta*B[idx_B];
+      for (idx=0; idx<idx_max; idx++){
+        imin = 0, imax = INT_MAX;
+
+        GET_MIN_MAX(A,0,2);
+        GET_MIN_MAX(B,1,2);
+
+        idx_glb[idx]++;
+        if (idx_glb[idx] >= imax){
+                idx_glb[idx] = imin;
+        }
+        if (idx_glb[idx] != imin) {
+                break;
+        }
+      }
+      if (idx == idx_max) break;
+
+      CHECK_SYM(A);
+      if (!sym_pass) continue;
+      
+      if (ndim_A > 0)
+        RESET_IDX(A);
+    }
+  }
+
   memset(idx_glb, 0, sizeof(int)*idx_max);
-
-
   idx_A = 0, idx_B = 0;
   sym_pass = 1;
   for (;;){
     if (sym_pass){
   /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
               idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
-      B[idx_B] = alpha*A[idx_A] + beta*B[idx_B];
+      B[idx_B] = alpha*A[idx_A] + 1.0*B[idx_B];
     }
 
     for (idx=0; idx<idx_max; idx++){

@@ -426,7 +426,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
   int i, ret;
 #if DEBUG >= 1
   if (dt->get_global_comm()->rank == 0)
-    printf("Head contraction :\n");
+    printf("Start head contraction :\n");
   dt->print_ctr(type,alpha,beta);
 #endif
   fseq_elm_ctr<dtype> felm;
@@ -481,6 +481,10 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
     tctr.stop();
   } else 
     ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
+#if DEBUG >= 1
+  if (dt->get_global_comm()->rank == 0)
+    printf("End head contraction :\n");
+#endif
 
   return ret;
 
@@ -502,12 +506,17 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
                           dtype const                beta){
 #if DEBUG >= 1
   if (dt->get_global_comm()->rank == 0)
-    printf("Head custom contraction :\n");
+    printf("Start head custom contraction:\n");
   dt->print_ctr(type,alpha,beta);
 #endif
   fseq_tsr_ctr<dtype> fs;
   fs.func_ptr=sym_seq_ctr_ref<dtype>;
-  return dt->home_contract(type, fs, felm, alpha, beta, 0);
+  int ret = dt->home_contract(type, fs, felm, alpha, beta, 0);
+#if DEBUG >= 1
+  if (dt->get_global_comm()->rank == 0)
+    printf("End head custom contraction.\n");
+#endif
+  return ret;
 
 }
 

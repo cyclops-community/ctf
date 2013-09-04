@@ -1935,7 +1935,7 @@ void dist_tensor<dtype>::order_perm(tensor<dtype> const * tsr_A,
         //if (iB == jB) broken = 1;
         if (iB != -1 && jB != -1){
           for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
-            if (tsr_B->sym[iiB] != tsr_A->sym[iA]) broken = 1;
+            if (tsr_B->sym[iiB] ==  NS) broken = 1;
           }
         } 
         if ((iB == -1) ^ (jB == -1)) broken = 1;
@@ -1943,7 +1943,7 @@ void dist_tensor<dtype>::order_perm(tensor<dtype> const * tsr_A,
         //if (iC == jC) broken = 1;
         if (iC != -1 && jC != -1){
           for (iiC=MIN(iC,jC); iiC<MAX(iC,jC); iiC++){
-            if (tsr_C->sym[iiC] != tsr_A->sym[iA]) broken = 1;
+            if (tsr_C->sym[iiC] == NS) broken = 1;
           }
         } 
         if ((iC == -1) ^ (jC == -1)) broken = 1;
@@ -2203,14 +2203,16 @@ void dist_tensor<dtype>::order_perm(tensor<dtype> const * tsr_A,
         jA++;
         jB = idx_arr[2*idx_map_A[jA]+off_B];
         if ((iB == -1) ^ (jB == -1)) broken = 1;
-        /*if (iB != -1 && jB != -1) {
+       /* if (iB != -1 && jB != -1) {
           if (tsr_B->sym[iB] != tsr_A->sym[iA]) broken = 1;
+        }*/
+        /* Do this because iB,jB can be in reversed order */
+        for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
+          if (tsr_B->sym[iiB] == NS) broken = 1;
         }
         
-        //if (iB == jB) broken = 1;
-          for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
-            if (tsr_B->sym[iiB] != tsr_A->sym[iA]) broken = 1;
-          }
+
+        /*//if (iB == jB) broken = 1;
         } */
         //if the symmetry is preserved, make sure index map is ordered
         if (!broken){
