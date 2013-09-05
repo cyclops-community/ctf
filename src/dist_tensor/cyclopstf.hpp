@@ -314,6 +314,13 @@ class tCTF{
                        long_int * num_pair,
                        dtype **   all_data);
 
+    /* read entire tensor with each processor to preallocated buffer 
+       (in packed layout).
+       WARNING: will use a lot of memory. */
+    int allread_tensor(int const  tensor_id,
+                       long_int * num_pair,
+                       dtype *    all_data);
+
 
     /* map input tensor local data to zero. */
     int set_zero_tensor(int tensor_id);

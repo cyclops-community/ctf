@@ -175,6 +175,15 @@ void tCTF_Tensor<dtype>::get_all_data(long_int * npair, dtype ** vals) const {
 }
 
 template<typename dtype>
+long_int tCTF_Tensor<dtype>::get_all_data(dtype * vals) const {
+  int ret;
+  long_int npair;
+  ret = world->ctf->allread_tensor(tid, &npair, vals);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  return npair;
+}
+
+template<typename dtype>
 void tCTF_Tensor<dtype>::contract(const dtype                   alpha,
                                   const tCTF_Tensor<dtype>&     A,
                                   const char *                  idx_A,

@@ -318,7 +318,8 @@ class dist_tensor{
 
     int allread_tsr(int const   tensor_id,
                     long_int *  num_val,
-                    dtype **    all_data);
+                    dtype **    all_data,
+                    int const   is_prealloced=0);
 
 
     tsum<dtype>* construct_sum( dtype const                     alpha,

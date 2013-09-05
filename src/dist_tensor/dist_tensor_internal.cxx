@@ -1131,11 +1131,14 @@ int dist_tensor<dtype>::read_local_pairs(int                tensor_id,
  * \param[in] tensor_id tensor handle
  * \param[out] num_pair number of values read
  * \param[in,out] mapped_data values read
+ * \param[in] is_prealloced set to 1 if all_data is already allocated, 0
+ *            default
  */
 template<typename dtype>
 int dist_tensor<dtype>::allread_tsr(int const     tid, 
                                     long_int *    num_val,  
-                                    dtype **      all_data){
+                                    dtype **      all_data,
+                                    int const     is_prealloced){
   int numPes;
   int * nXs;
   int nval, n, i;
@@ -1171,12 +1174,12 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   std::sort(all_pairs,all_pairs+nval);
   if (n>0)
     CTF_free(my_pairs);
-  CTF_alloc_ptr(nval*sizeof(dtype), (void**)&whole_tsr);
+  if (is_prealloced)
+    CTF_alloc_ptr(nval*sizeof(dtype), (void**)all_data);
   for (i=0; i<nval; i++){
-    whole_tsr[i] = all_pairs[i].d;
+    (*all_data)[i] = all_pairs[i].d;
   }
   *num_val = (long_int)nval;
-  *all_data = whole_tsr;
 
   CTF_free(nXs);
   CTF_free(pXs);

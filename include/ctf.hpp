@@ -342,6 +342,12 @@ class tCTF_Tensor {
      */
     void get_all_data(long_int * npair, 
                       dtype **   data) const;
+    
+    /**
+     * \brief collects the entire tensor data on each process (not memory scalable)
+     * \param[in,out] preallocated data pointer to the data of the entire tensor
+     */
+    long_int get_all_data(dtype * data) const;
 
     /**
      * \brief sparse add: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]

@@ -337,6 +337,25 @@ int tCTF<dtype>::slice_tensor( int const    tid_A,
                           tid_B, offsets_B, ends_B, beta);
 }
 
+
+/**
+ * \brief read entire tensor with each processor (in packed layout).
+ *         WARNING: will use a lot of memory. 
+ * \param[in] tensor_id tensor handle
+ * \param[out] num_pair number of values read
+ * \param[in,out] preallocated mapped_data values read
+ */
+template<typename dtype>
+int tCTF<dtype>::allread_tensor(int const   tensor_id, 
+                                long_int *   num_pair, 
+                                dtype *     all_data){
+  int ret;
+  long_int np;
+  ret = dt->allread_tsr(tensor_id, &np, &all_data, 1);
+  *num_pair = np;
+  return ret;
+}
+
 /**
  * \brief read entire tensor with each processor (in packed layout).
  *         WARNING: will use a lot of memory. 
@@ -350,7 +369,7 @@ int tCTF<dtype>::allread_tensor(int const   tensor_id,
                                 dtype **    all_data){
   int ret;
   long_int np;
-  ret = dt->allread_tsr(tensor_id, &np, all_data);
+  ret = dt->allread_tsr(tensor_id, &np, all_data, 0);
   CTF_untag_mem(*all_data);
   *num_pair = np;
   return ret;
