@@ -81,7 +81,7 @@ int dist_tensor<dtype>::red_tsr(int const tid, CTF_OP op, dtype * result){
 }
 
 void sum_abs(double const alpha, double const a, double & b){
-  b += alpha*abs(a);
+  b += alpha*fabs(a);
 }
 
 /* Perform an elementwise reduction on a tensor. All processors
@@ -646,7 +646,6 @@ tsum<dtype> * dist_tensor<dtype>::
   calc_dim(tsr_B->ndim, blk_sz_B, tsr_B->edge_len, tsr_B->edge_map,
            &vrt_sz_B, virt_blk_len_B, blk_len_B);
 
-  is_top = 1;
   /* Strip out the relevant part of the tensor if we are contracting over diagonal */
   sA = strip_diag<dtype>(tsr_A->ndim, ndim_tot, idx_A, vrt_sz_A,
                          tsr_A->edge_map, &topovec[tsr_A->itopo],

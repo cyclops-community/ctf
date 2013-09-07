@@ -16,6 +16,7 @@
 #include "../../examples/sym3.cxx"
 #include "../../examples/gemm.cxx"
 #include "../../examples/gemm_4D.cxx"
+#include "../../examples/scalar.cxx"
 #include "../../examples/trace.cxx"
 #include "../../examples/diag_sym.cxx"
 #include "../../examples/dft.cxx"
@@ -117,6 +118,10 @@ int main(int argc, char ** argv){
       printf("Testing a CCSDT 6D=4D*4D contraction with n = %d:\n",n);
     pass.push_back(sym3(n, dw));
 #endif
+    
+    if (rank == 0)
+      printf("Testing scalar operations\n");
+    pass.push_back(scalar(dw));
 
     if (rank == 0)
       printf("Testing a 2D trace operation with n = %d:\n",n*n);

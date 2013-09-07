@@ -57,8 +57,7 @@ int sym_seq_sum_cust(dtype const          alpha,
   sym_pass = 1;
   for (;;){
     if (sym_pass){
-      B[idx_B] = beta*B[idx_B] 
-                  + (*(prm->func_ptr))(alpha, A[idx_A], B[idx_B]);
+      (*(prm->func_ptr))(alpha, A[idx_A], B[idx_B]);
     }
 
     for (idx=0; idx<idx_max; idx++){

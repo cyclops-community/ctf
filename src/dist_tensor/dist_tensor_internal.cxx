@@ -525,7 +525,25 @@ long_int seq_tsr_sum<dtype>::mem_fp(){ return 0; }
  */
 template<typename dtype>
 void seq_tsr_sum<dtype>::run(){
-  if (is_inner){
+  if (is_custom){
+    LIBT_ASSERT(is_inner == 0);
+    sym_seq_sum_cust(
+                    this->alpha,
+                    this->A,
+                    ndim_A,
+                    edge_len_A,
+                    edge_len_A,
+                    sym_A,
+                    idx_map_A,
+                    this->beta,
+                    this->B,
+                    ndim_B,
+                    edge_len_B,
+                    edge_len_B,
+                    sym_B,
+                    idx_map_B,
+                    &custom_params);
+  } else if (is_inner){
     sym_seq_sum_inr(this->alpha,
                     this->A,
                     ndim_A,
