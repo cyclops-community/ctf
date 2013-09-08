@@ -50,7 +50,7 @@ int diag_sym(int const    n,
   B["abij"] -= mB["bb"];
   C["abij"] = A["abij"]-B["abij"];
 
-  double norm = C.reduce(CTF_OP_SQNRM2);
+  double norm = C.norm2();
   
   if (norm < 1.E-6){
     pass = 1;

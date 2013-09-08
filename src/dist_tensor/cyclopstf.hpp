@@ -24,8 +24,8 @@
 /**
  * \brief reduction types for tensor data
  */
-enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SQNRM2,
-              CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS };
+enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_NORM1, CTF_OP_NORM2,
+              CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS};
 /**
  * labels corresponding to symmetry of each tensor dimension
  * NS = 0 - nonsymmetric

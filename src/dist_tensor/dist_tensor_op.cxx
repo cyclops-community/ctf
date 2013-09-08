@@ -168,6 +168,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);*/
       break;
 
+    case CTF_OP_NORM1:
     case CTF_OP_SUMABS:
       CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
       is_AS = 0;
@@ -217,7 +218,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       ALLREDUCE(&acc, result, 1, MPI_DOUBLE, MPI_SUM, global_comm);*/
       break;
 
-    case CTF_OP_SQNRM2:
+    case CTF_OP_NORM2:
       CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
       for (i=0; i<tsr->ndim; i++){
         idx_map[i] = i;
