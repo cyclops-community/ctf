@@ -84,7 +84,6 @@ tCTF_Idx_Tensor<dtype> * get_intermediate(tCTF_Idx_Tensor<dtype>* A,
   return itsr_C;
 }
 
-
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(tCTF_Tensor<dtype> * parent_, const char * idx_map_){
   idx_map = (char*)CTF_alloc(parent_->ndim*sizeof(char));
@@ -131,6 +130,23 @@ void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Idx_Tensor<dtype>& tsr){
   NBR = &tsr;
   has_contract = 1;
   run(this, 0.0);
+}
+
+template<typename dtype>
+void tCTF_Idx_Tensor<dtype>::operator=(dtype B){
+  *this=(tCTF_Scalar<dtype>(B,*(this->parent->world))[""]);
+}
+template<typename dtype>
+void tCTF_Idx_Tensor<dtype>::operator+=(dtype B){
+  *this+=(tCTF_Scalar<dtype>(B,*(this->parent->world))[""]);
+}
+template<typename dtype>
+void tCTF_Idx_Tensor<dtype>::operator-=(dtype B){
+  *this-=(tCTF_Scalar<dtype>(B,*(this->parent->world))[""]);
+}
+template<typename dtype>
+void tCTF_Idx_Tensor<dtype>::operator*=(dtype B){
+  *this*=(tCTF_Scalar<dtype>(B,*(this->parent->world))[""]);
 }
 
 template<typename dtype>

@@ -42,7 +42,7 @@ int sym_seq_sum_ref( dtype const        alpha,
 
   idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
 
-  if (beta != 0.0){
+  if (beta != 1.0){
     memset(idx_glb, 0, sizeof(int)*idx_max);
 
     idx_A = 0, idx_B = 0;
@@ -68,9 +68,13 @@ int sym_seq_sum_ref( dtype const        alpha,
 
       CHECK_SYM(A);
       if (!sym_pass) continue;
+      CHECK_SYM(B);
+      if (!sym_pass) continue;
       
       if (ndim_A > 0)
         RESET_IDX(A);
+      if (ndim_B > 0)
+        RESET_IDX(B);
     }
   }
 

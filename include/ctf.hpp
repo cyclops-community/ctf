@@ -549,7 +549,7 @@ class tCTF_Idx_Tensor {
      * \param[in] idx_map_ the indices assigned ot this tensor
      */
     tCTF_Idx_Tensor(tCTF_Tensor<dtype>* parent_, const char * idx_map_);
-
+    
     ~tCTF_Idx_Tensor();
     
     /**
@@ -557,24 +557,28 @@ class tCTF_Idx_Tensor {
      * \param[in] B tensor on the right hand side
      */
     void operator=(tCTF_Idx_Tensor<dtype>& B);
+    void operator=(dtype B);
 
     /**
      * \brief A += B, compute any operations on operand B and add
      * \param[in] B tensor on the right hand side
      */
     void operator+=(tCTF_Idx_Tensor<dtype>& B);
+    void operator+=(dtype B);
     
     /**
      * \brief A += B, compute any operations on operand B and add
      * \param[in] B tensor on the right hand side
      */
     void operator-=(tCTF_Idx_Tensor<dtype>& B);
+    void operator-=(dtype B);
     
     /**
      * \brief A -> A*B contract two tensors
      * \param[in] B tensor on the right hand side
      */
     void operator*=(tCTF_Idx_Tensor<dtype>& B);
+    void operator*=(dtype B);
 
     /**
      * \brief C -> A*B contract two tensors

@@ -1609,7 +1609,6 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         tsr->is_home = 1;
         tsr->has_home = 1;
         DPRINTF(3,"Initial size of tensor %d is %lld,",tensor_id,tsr->size);
-        DPRINTF(3,"home buffer size is is %lld\n",tsr->home_size);
         CTF_alloc_ptr(tsr->home_size*sizeof(dtype), (void**)&tsr->home_buffer);
         tsr->data = tsr->home_buffer;
       } else {

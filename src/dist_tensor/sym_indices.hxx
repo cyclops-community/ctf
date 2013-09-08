@@ -389,4 +389,38 @@ double overcounting_factor(int ndim_A, const T& idx_A, const int* sym_A,
 
     return (double)fact;
 }
+
+template <typename T>
+double overcounting_factor(int ndim_A, const T& idx_A, const int* sym_A,
+                           int ndim_B, const T& idx_B, const int* sym_B)
+{
+    double fact;
+    int ninarow;
+    fact = 1.0;
+
+    for (int i = 0;i < ndim_A;i++)
+    {
+        int j;
+        ninarow = 0;
+        for (j = 0;j < ndim_B && idx_A[i] != idx_B[j];j++);
+        if (j>=ndim_B){
+            ninarow = 1;
+            while (sym_A[i] != NS)
+            {
+                i++;
+                for (j = 0;j < ndim_B && idx_A[i] != idx_B[j];j++);
+                if (j>=ndim_B) ninarow++;
+            }
+        }
+        if (ninarow >= 2){
+            if (sym_A[i-ninarow+1]==AS) return 0.0;
+            if (sym_A[i-ninarow+1]==SY) {
+                printf("CTF error: sum over SY index pair currently not functional, ABORTING\n");
+                ABORT;
+            }
+        }
+        for (;ninarow > 1;ninarow--) fact *= ninarow;
+    }
+    return (double)fact;
+}
 #endif

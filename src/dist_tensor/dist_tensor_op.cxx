@@ -92,6 +92,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
   double acc;
   tensor<double> * tsr;
   mapping * map;
+  int is_AS;
   int idx_lyr = 0;
   int tid_scal, is_asym;
   int * idx_map;
@@ -169,13 +170,30 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
 
     case CTF_OP_SUMABS:
       CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
+      is_AS = 0;
       for (i=0; i<tsr->ndim; i++){
         idx_map[i] = i;
+        if (tsr->sym[i] == AS) is_AS = 1;
       }
       define_tensor(0, NULL, NULL, &tid_scal, 1);
       fs.func_ptr=NULL;
       felm.func_ptr = sum_abs;
-      home_sum_tsr(1.0, 0.0, tid, tid_scal, idx_map, NULL, fs, felm);
+      if (is_AS){
+        int * sh_sym, * save_sym;
+        CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&sh_sym);
+        for (i=0; i<tsr->ndim; i++){
+          if (tsr->sym[i] == AS) sh_sym[i] = SH;
+          else sh_sym[i] = tsr->sym[i];
+        }
+        /** FIXME: This ruins tensor meta data immutability */
+        save_sym = tsr->sym;
+        tsr->sym = sh_sym;
+        home_sum_tsr(1.0, 0.0, tid, tid_scal, idx_map, NULL, fs, felm);
+        tsr->sym = save_sym;
+        CTF_free(sh_sym);
+      } else {
+        home_sum_tsr(1.0, 0.0, tid, tid_scal, idx_map, NULL, fs, felm);
+      }
       if (global_comm->rank == 0)
         *result = tensors[tid_scal]->data[0];
       else
@@ -1928,7 +1946,14 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
                                                tensors[ntid_B]->ndim,
                                                map_B,
                                                tensors[ntid_B]->sym);
+  double ocfact = overcounting_factor(tensors[ntid_A]->ndim,
+                                       map_A,
+                                       tensors[ntid_A]->sym,
+                                       tensors[ntid_B]->ndim,
+                                       map_B,
+                                       tensors[ntid_B]->sym);
 
+  alpha *= ocfact;
 
   if (unfold_broken_sym(&new_type, NULL) != -1){
     if (global_comm->rank == 0)

@@ -54,12 +54,26 @@ int scalar(CTF_World    &dw){
   pass -=(4.2 != (double)B);
 
   int n = 7;
-  CTF_Matrix C(n,n,NS,dw);
+  CTF_Matrix C(n,n,AS,dw);
 
   C["ij"]=A[""];
-  /*printf("C sum is %lf, abs sum is %lf, expectd %lf\n",
-          C.reduce(CTF_OP_SUM), C.reduce(CTF_OP_SUMABS), n*n*4.2);*/
-  pass-= !( fabs(C.reduce(CTF_OP_SUM)-n*n*4.2)<1.E-6);
+  
+
+  val = C["ij"];
+/*  if (C.sym == AS){
+    pass-= !( fabs(C.reduce(CTF_OP_SUM)-n*(n-1)*2.1)<1.E-6);
+    printf("C sum is %lf, abs sum is %lf, C[\"ij\"]=%lf expectd %lf\n",
+            C.reduce(CTF_OP_SUM), C.reduce(CTF_OP_SUMABS), val, n*(n-1)*4.2);
+  } else { 
+    printf("C sum is %lf, abs sum is %lf, C[\"ij\"]=%lf expectd %lf\n",
+            C.reduce(CTF_OP_SUM), C.reduce(CTF_OP_SUMABS), val, n*n*4.2);
+  }*/
+  pass-= !( fabs(C.reduce(CTF_OP_SUMABS)-n*(n-1)*4.2)<1.E-6);
+  
+  C["ij"]=13.1;
+
+
+  pass-= !( fabs(C.reduce(CTF_OP_SUMABS)-n*(n-1)*13.1)<1.E-6);
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     if (pass < 1){
