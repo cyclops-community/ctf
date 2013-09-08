@@ -303,6 +303,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       break;
 
     case CTF_OP_MAXABS:
+    case CTF_OP_NORM_INFTY:
       acc = 0.0;
       if (tsr->is_mapped){
         if (idx_lyr == 0){
