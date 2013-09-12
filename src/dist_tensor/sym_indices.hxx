@@ -416,7 +416,7 @@ double overcounting_factor(int ndim_A, const T& idx_A, const int* sym_A,
             if (sym_A[i-ninarow+1]==AS) return 0.0;
             if (sym_A[i-ninarow+1]==SY) {
                 printf("CTF error: sum over SY index pair currently not functional, ABORTING\n");
-                ABORT;
+                abort();
             }
         }
         for (;ninarow > 1;ninarow--) fact *= ninarow;
