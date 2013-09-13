@@ -18,7 +18,7 @@ AR          = ar -crs
 DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
 
 #uncomment below to enable performance profiling
-#DEFS      := $(DEFS) -DPROFILE
+#DEFS      := $(DEFS) -DPROFILE -DPMPI
 
 #uncomment below to enable CTF debugging and status output
 #DEFS      := $(DEFS) -DDEBUG=1
@@ -27,4 +27,4 @@ DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
 #LIBS      := $(LIBS) -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack -lgfortran
 #DEFS      := $(DEFS) -DUSE_SCALAPACK
 
-
+.

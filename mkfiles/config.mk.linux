@@ -13,7 +13,7 @@ AR          = ar -crs
 DEPFLAGS    = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
 #uncomment below to enable performance profiling
-#DEFS      := $(DEFS) -DPROFILE
+#DEFS      := $(DEFS) -DPROFILE -DPMPI
 
 #uncomment below to enable CTF debugging and status output
 #DEFS      := $(DEFS) -DDEBUG=1

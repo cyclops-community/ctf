@@ -19,7 +19,7 @@ AR          = powerpc64-bgq-linux-ar -crs
 DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
 
 #uncomment below to enable performance profiling
-#DEFS      := $(DEFS) -DPROFILE
+#DEFS      := $(DEFS) -DPROFILE -DPMPI
 
 #uncomment below to enable CTF debugging and status output
 #DEFS      := $(DEFS) -DDEBUG=1
