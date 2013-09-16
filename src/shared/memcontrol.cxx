@@ -302,25 +302,22 @@ int CTF_untag_mem(void * ptr){
 
 /*  printf("looking for poitner %p in stack %d\n",
            ptr, tid);*/
-  std::list<mem_loc>::iterator it;
-  for (it=--mem_stack->end(); it!=mem_stack->begin(); it--){
+  std::list<mem_loc>::reverse_iterator it;
+  bool found = false;
+  for (it=mem_stack->rbegin(); it!=mem_stack->rend(); ++it){
     /*printf("looking for poitner %p iterator pointer is %p\n",
              ptr, (*it).ptr);*/
     if ((*it).ptr == ptr){
       len = (*it).len;
-      mem_stack->erase(it);
+      mem_stack->erase((++it).base());
+      found = true;
       break;
     }
   }
-  if (it == mem_stack->begin()){
-    if ((*it).ptr == ptr){
-      len = (*it).len;
-      mem_stack->erase(it);
-    } else{
-      printf("CTF ERROR: failed memory untag\n");
-      ABORT;
-      return DIST_TENSOR_ERROR;
-    }
+  if (!found){
+    printf("CTF ERROR: failed memory untag\n");
+    ABORT;
+    return DIST_TENSOR_ERROR;
   }
   CTF_mem_used[0] -= len;
   return DIST_TENSOR_SUCCESS;
@@ -345,25 +342,19 @@ int CTF_free(void * ptr, int const tid){
 
 /*  printf("looking for poitner %p in stack %d\n",
            ptr, tid);*/
-  std::list<mem_loc>::iterator it;
-  for (it=--mem_stack->end(); it!=mem_stack->begin(); it--){
+  std::list<mem_loc>::reverse_iterator it;
+  bool found = false;
+  for (it=mem_stack->rbegin(); it!=mem_stack->rend(); ++it){
     /*printf("looking for poitner %p iterator pointer is %p\n",
              ptr, (*it).ptr);*/
     if ((*it).ptr == ptr){
       len = (*it).len;
-      mem_stack->erase(it);
+      mem_stack->erase((++it).base());
+      found = true;
       break;
     }
   }
-  if (it == mem_stack->begin()){
-    if ((*it).ptr == ptr){
-      len = (*it).len;
-      mem_stack->erase(it);
-    } else {
-//      printf("CTF ERROR: failed memory free\n");
-      return DIST_TENSOR_NEGATIVE;
-    }
-  }
+  if (!found) return DIST_TENSOR_NEGATIVE;
   CTF_mem_used[tid] -= len;
   //printf("CTF_mem_used down to %lld stack to %d\n",CTF_mem_used,mem_stack->size());
   free(ptr);
