@@ -295,32 +295,25 @@ void * CTF_alloc(int const len){
  * \param[in,out] ptr pointer to set to address to free
  */
 int CTF_untag_mem(void * ptr){
-  int len;
+  int len, found;
   std::list<mem_loc> * mem_stack;
   
   mem_stack = &CTF_mem_stacks[0];
 
-/*  printf("looking for poitner %p in stack %d\n",
-           ptr, tid);*/
-  std::list<mem_loc>::iterator it;
-  for (it=--mem_stack->end(); it!=mem_stack->begin(); it--){
-    /*printf("looking for poitner %p iterator pointer is %p\n",
-             ptr, (*it).ptr);*/
+  std::list<mem_loc>::reverse_iterator it;
+  found = 0;
+  for (it=mem_stack->rbegin(); it!=mem_stack->rend(); it++){
     if ((*it).ptr == ptr){
       len = (*it).len;
-      mem_stack->erase(it);
+      mem_stack->erase((++it).base());
+      found = 1;
       break;
     }
   }
-  if (it == mem_stack->begin()){
-    if ((*it).ptr == ptr){
-      len = (*it).len;
-      mem_stack->erase(it);
-    } else{
-      printf("CTF ERROR: failed memory untag\n");
-      ABORT;
-      return DIST_TENSOR_ERROR;
-    }
+  if (!found){
+    printf("CTF ERROR: failed memory untag\n");
+    ABORT;
+    return DIST_TENSOR_ERROR;
   }
   CTF_mem_used[0] -= len;
   return DIST_TENSOR_SUCCESS;
@@ -333,7 +326,7 @@ int CTF_untag_mem(void * ptr){
  * \param[in] tid thread id from whose stack pointer needs to be freed
  */
 int CTF_free(void * ptr, int const tid){
-  int len;
+  int len, found;
   std::list<mem_loc> * mem_stack;
 
   if ((long_int)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
@@ -343,26 +336,18 @@ int CTF_free(void * ptr, int const tid){
   
   mem_stack = &CTF_mem_stacks[tid];
 
-/*  printf("looking for poitner %p in stack %d\n",
-           ptr, tid);*/
-  std::list<mem_loc>::iterator it;
-  for (it=--mem_stack->end(); it!=mem_stack->begin(); it--){
-    /*printf("looking for poitner %p iterator pointer is %p\n",
-             ptr, (*it).ptr);*/
+  std::list<mem_loc>::reverse_iterator it;
+  found = 0;
+  for (it=mem_stack->rbegin(); it!=mem_stack->rend(); it++){
     if ((*it).ptr == ptr){
       len = (*it).len;
-      mem_stack->erase(it);
+      mem_stack->erase((++it).base());
+      found = 1;
       break;
     }
   }
-  if (it == mem_stack->begin()){
-    if ((*it).ptr == ptr){
-      len = (*it).len;
-      mem_stack->erase(it);
-    } else {
-//      printf("CTF ERROR: failed memory free\n");
-      return DIST_TENSOR_NEGATIVE;
-    }
+  if (!found){
+    return DIST_TENSOR_NEGATIVE;
   }
   CTF_mem_used[tid] -= len;
   //printf("CTF_mem_used down to %lld stack to %d\n",CTF_mem_used,mem_stack->size());
