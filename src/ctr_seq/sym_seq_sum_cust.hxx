@@ -58,6 +58,7 @@ int sym_seq_sum_cust(dtype const          alpha,
   for (;;){
     if (sym_pass){
       (*(prm->func_ptr))(alpha, A[idx_A], B[idx_B]);
+      CTF_FLOPS_ADD(2);
     }
 
     for (idx=0; idx<idx_max; idx++){

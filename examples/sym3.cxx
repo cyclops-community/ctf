@@ -94,7 +94,7 @@ int  sym3(int const     n,
   CA["abcijk"] -= CN["cabjki"];
   CA["abcijk"] -= CN["cabkij"];
 
-  double nrm = CA.reduce(CTF_OP_SQNRM2);
+  double nrm = CA.norm2();
   int pass = (nrm <=1.E-6);
   
   if (rank == 0){

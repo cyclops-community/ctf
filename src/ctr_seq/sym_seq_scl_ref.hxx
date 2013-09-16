@@ -40,6 +40,7 @@ int sym_seq_scl_ref( dtype const        alpha,
   for (;;){
     if (sym_pass){
       A[idx_A] = alpha*A[idx_A];
+      CTF_FLOPS_ADD(1);
     }
 
     for (idx=0; idx<idx_max; idx++){

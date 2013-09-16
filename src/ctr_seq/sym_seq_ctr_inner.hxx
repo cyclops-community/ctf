@@ -68,6 +68,7 @@ int sym_seq_ctr_inr( dtype const        alpha,
 
   /* Scale C immediately. FIXME: wrong for iterators over subset of C */
   if (beta != get_one<dtype>()) {
+    CTF_FLOPS_ADD(prm->sz_C);
     for (i=0; i<prm->sz_C; i++){
       C[i] = C[i]*beta;
     }
@@ -84,6 +85,7 @@ int sym_seq_ctr_inr( dtype const        alpha,
                      B+idx_B*stride_B, prm->k, 1.0,
                      C+idx_C*stride_C, prm->m);
       TAU_FSTOP(gemm);
+      CTF_FLOPS_ADD((2 * (long_int)prm->n * (long_int)prm->m * (long_int)prm->k));
     }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 

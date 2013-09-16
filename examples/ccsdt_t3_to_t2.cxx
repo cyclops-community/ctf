@@ -111,8 +111,8 @@ int ccsdt_t3_to_t2(int const     n,
 #if DEBUG  >= 1
   if (rank == 0) printf("triangular norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
 #endif
-  double cnrm_AS = AS_C.reduce(CTF_OP_SQNRM2);
-  double cnrm_NS = NS_C.reduce(CTF_OP_SQNRM2);
+  double cnrm_AS = AS_C.norm2();
+  double cnrm_NS = NS_C.norm2();
   if (fabs(nrm_AS-cnrm_AS) >= 1.E-6) {
     printf("ERROR: AS norm not working!\n");
     pass = 0;
@@ -131,7 +131,7 @@ int ccsdt_t3_to_t2(int const     n,
   
 
   
-  double nrm = NS_C.reduce(CTF_OP_SQNRM2);
+  double nrm = NS_C.norm2();
 #if DEBUG  >= 1
   if (rank == 0){
     printf("norm of NS_C after contraction should be zero, is = %lf\n", nrm);

@@ -6,6 +6,17 @@
 #include "assert.h"
 #include "util.h"
 
+long_int CTF_total_flop_count = 0;
+
+void CTF_flops_add(long_int n){
+  CTF_total_flop_count+=n;
+}
+
+long_int CTF_get_flops(){
+  return CTF_total_flop_count;
+}
+
+
 #if (defined BGP || defined BGQ)
 #define UTIL_ZGEMM      zgemm
 #define UTIL_DGEMM      dgemm
@@ -440,4 +451,6 @@ int  conv_idx(int const         ndim_A,
   }
   return n;
 }
+
+
 

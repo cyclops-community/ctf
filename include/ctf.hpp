@@ -302,6 +302,21 @@ class tCTF_Tensor {
      * \param[in] op reduction operation (see top of this cyclopstf.hpp for choices)
      */    
     dtype reduce(CTF_OP op);
+    
+    /**
+     * \brief computer the 1-norm of the tensor
+     */    
+    dtype norm1(){ return reduce(CTF_OP_NORM1); };
+
+    /**
+     * \brief computer the 2-norm of the tensor
+     */    
+    dtype norm2(){ return reduce(CTF_OP_NORM2); };
+
+    /**
+     * \brief computer the infinity-norm of the tensor
+     */    
+    dtype norm_infty(){ return reduce(CTF_OP_MAXABS); };
 
     /**
      * \brief gives the raw current local data with padding included
@@ -623,6 +638,9 @@ class tCTF_Idx_Tensor {
 
 };
 
+/**
+ * \brief local process walltime measurement
+ */
 class CTF_Timer{
   public:
     char const * timer_name;
@@ -637,6 +655,32 @@ class CTF_Timer{
     void start();
     void exit();
     
+};
+
+/**
+ * \brief measures flops done in a code region
+ */
+class CTF_Flop_Counter{
+  public:
+    long_int start_count;
+
+  public:
+    /**
+     * \brief constructor, starts counter
+     */
+    CTF_Flop_Counter();
+    ~CTF_Flop_Counter();
+
+    /**
+     * \brief restarts counter
+     */
+    void zero();
+
+    /**
+     * \brief get total flop count over all counters in comm
+     */
+    long_int count(MPI_Comm comm = MPI_COMM_SELF);
+
 };
 
 
