@@ -221,15 +221,20 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
         indices.erase(indices.begin());
 
         int s = 1;
-        for (std::vector<index_locator_>::iterator it = indices.begin();
-             it != indices.end();++it)
+        for (std::vector<index_locator_>::iterator it = indices.begin();;)
         {
+            if (it == indices.end()) break;
+
             if ((group[0].pos_A == -1 && it->pos_A != -1) ||
                 (group[0].pos_A != -1 && it->pos_A == -1) ||
                 (group[0].pos_B == -1 && it->pos_B != -1) ||
                 (group[0].pos_B != -1 && it->pos_B == -1) ||
                 (group[0].pos_C == -1 && it->pos_C != -1) ||
-                (group[0].pos_C != -1 && it->pos_C == -1)) continue;
+                (group[0].pos_C != -1 && it->pos_C == -1))
+            {
+                ++it;
+                continue;
+            }
 
             if (group[0].pos_A != -1)
             {
@@ -250,7 +255,11 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                         break;
                     }
                 }
-                if (!sym_in_A) continue;
+                if (!sym_in_A)
+                {
+                    ++it;
+                    continue;
+                }
             }
 
             if (group[0].pos_B != -1)
@@ -272,7 +281,11 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                         break;
                     }
                 }
-                if (!sym_in_B) continue;
+                if (!sym_in_B)
+                {
+                    ++it;
+                    continue;
+                }
             }
 
             if (group[0].pos_C != -1)
@@ -294,12 +307,16 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                         break;
                     }
                 }
-                if (!sym_in_C) continue;
+                if (!sym_in_C)
+                {
+                    ++it;
+                    continue;
+                }
             }
 
             group.push_back(*it);
             group.back().sort = s++;
-            it = indices.erase(it)-1;
+            it = indices.erase(it);
         }
 
         if (group.size() <= 1) continue;
