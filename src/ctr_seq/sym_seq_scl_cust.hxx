@@ -42,6 +42,7 @@ int sym_seq_scl_cust(dtype const          alpha,
   for (;;){
     if (sym_pass){
       (*(prm->func_ptr))(alpha, A[idx_A]);
+      CTF_FLOPS_ADD(1);
     }
 
     for (idx=0; idx<idx_max; idx++){

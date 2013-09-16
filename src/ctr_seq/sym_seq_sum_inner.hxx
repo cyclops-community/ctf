@@ -61,8 +61,10 @@ int sym_seq_sum_inr( dtype const        alpha,
     //  B[idx_B] = alpha*A[idx_A] + beta*B[idx_B];
       if (beta != 1.0){
         cxaxpy<dtype>(inr_stride, beta-1.0, B+idx_B*inr_stride, 1, B+idx_B*inr_stride, 1);
+        CTF_FLOPS_ADD(2*inr_stride);
       }
       cxaxpy<dtype>(inr_stride, alpha, A+idx_A*inr_stride, 1, B+idx_B*inr_stride, 1); 
+      CTF_FLOPS_ADD(2*inr_stride);
     }
 
     for (idx=0; idx<idx_max; idx++){

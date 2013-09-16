@@ -86,6 +86,7 @@ int sym_seq_sum_ref( dtype const        alpha,
   /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
               idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
       B[idx_B] = alpha*A[idx_A] + 1.0*B[idx_B];
+      CTF_FLOPS_ADD(2);
     }
 
     for (idx=0; idx<idx_max; idx++){

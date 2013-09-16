@@ -25,6 +25,17 @@
 #define USE_OMP
 #endif
 
+#define CTF_COUNT_FLOPS
+
+#ifdef CTF_COUNT_FLOPS
+#define CTF_FLOPS_ADD(n) CTF_flops_add(n)
+#else
+#define CTF_FLOPS_ADD(n) 
+#endif
+
+void CTF_flops_add(long_int n);
+long_int CTF_get_flops();
+
 typedef int64_t long_int;
 volatile static long_int long_int_max = INT64_MAX;
 //doesn't work with OpenMPI

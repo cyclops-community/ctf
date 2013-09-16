@@ -56,16 +56,20 @@ int  gemm(int const     m,
 #ifndef TEST_SUITE
   double t;
 
+  CTF_Flop_Counter f = CTF_Flop_Counter();
   t = MPI_Wtime();
   for (i=0; i<niter; i++){
-    C["ij"] += (.3*i)*A["ik"]*B["kj"];
+    C["ij"] += A["ik"]*B["kj"];
     CTF_Matrix * D = new CTF_Matrix(n, n, NS, dw);
   }
   t = MPI_Wtime() - t;
+  int64_t allf = f.count(dw.comm);
   if (rank == 0){
-    printf("%lf seconds/GEMM, %lf GF\n",t/niter, 
-           niter*2.*((double)m)*((double)n)*((double)k)*1.E-9/t);
+    printf("%lf seconds/GEMM, %lf GF exact, %lf measured by CTF, %lf locally\n",t/niter, 
+           niter*2.*((double)m)*((double)n)*((double)k)*1.E-9/t,
+           ((double)allf)*1.E-9/t,((double)f.count())*1.E-9/t);
   }
+  
 #endif
   int pass = 1;
   if (m==n && n==k){ 

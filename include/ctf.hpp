@@ -638,6 +638,9 @@ class tCTF_Idx_Tensor {
 
 };
 
+/**
+ * \brief local process walltime measurement
+ */
 class CTF_Timer{
   public:
     char const * timer_name;
@@ -652,6 +655,32 @@ class CTF_Timer{
     void start();
     void exit();
     
+};
+
+/**
+ * \brief measures flops done in a code region
+ */
+class CTF_Flop_Counter{
+  public:
+    long_int start_count;
+
+  public:
+    /**
+     * \brief constructor, starts counter
+     */
+    CTF_Flop_Counter();
+    ~CTF_Flop_Counter();
+
+    /**
+     * \brief restarts counter
+     */
+    void zero();
+
+    /**
+     * \brief get total flop count over all counters in comm
+     */
+    long_int count(MPI_Comm comm = MPI_COMM_SELF);
+
 };
 
 
