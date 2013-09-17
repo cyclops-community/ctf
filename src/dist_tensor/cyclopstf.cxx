@@ -118,7 +118,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   if (mst_size == NULL && stack_size == NULL){
 #ifdef USE_MST
     if (rank == 0)
-      DPRINTF(1,"Creating CTF stack of size %lld\n",1000*(long_int)1E6);
+      DPRINTF(1,"Creating CTF stack of size "PRId64"\n",1000*(long_int)1E6);
     CTF_mst_create(1000*(long_int)1E6);
 #else
     if (rank == 0){

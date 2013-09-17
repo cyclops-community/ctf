@@ -765,7 +765,7 @@ int remap_tensor(int const  tid,
 #if VERIFY_REMAP
   for (j=0; j<tsr->size; j++){
     if (tsr->data[j] != shuffled_data_corr[j]){
-      printf("data element %d/%lld not received correctly on process %d\n",
+      printf("data element %d/"PRId64" not received correctly on process %d\n",
               j, tsr->size, global_comm->rank);
       printf("element received was %.3E, correct %.3E\n", 
               GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));

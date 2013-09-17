@@ -468,7 +468,7 @@ void seq_tsr_scl<dtype>::print(){
   int i;
   printf("seq_tsr_scl:\n");
   for (i=0; i<ndim; i++){
-    printf("edge_len[%d]=%lld\n",i,edge_len[i]);
+    printf("edge_len[%d]="PRId64"\n",i,edge_len[i]);
   }
 }
 
@@ -502,10 +502,10 @@ void seq_tsr_sum<dtype>::print(){
   int i;
   printf("seq_tsr_sum:\n");
   for (i=0; i<ndim_A; i++){
-    printf("edge_len_A[%d]=%lld\n",i,edge_len_A[i]);
+    printf("edge_len_A[%d]="PRId64"\n",i,edge_len_A[i]);
   }
   for (i=0; i<ndim_B; i++){
-    printf("edge_len_B[%d]=%lld\n",i,edge_len_B[i]);
+    printf("edge_len_B[%d]="PRId64"\n",i,edge_len_B[i]);
   }
 }
 
@@ -1596,7 +1596,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
       tsr->size =nvirt*packed_size(tsr->ndim, sub_edge_len, 
                                    tsr->sym, tsr->sym_type);
       if (global_comm->rank == 0){
-        printf("Tensor %d is of size %lld, has factor of %lf growth due to padding\n", 
+        printf("Tensor %d is of size "PRId64", has factor of %lf growth due to padding\n", 
               tensor_id, tsr->size,
               global_comm->np*(tsr->size/(double)old_size));
 
@@ -1608,7 +1608,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         tsr->home_size = tsr->size; //MAX(1024+tsr->size, 1.20*tsr->size);
         tsr->is_home = 1;
         tsr->has_home = 1;
-        DPRINTF(3,"Initial size of tensor %d is %lld,",tensor_id,tsr->size);
+        DPRINTF(3,"Initial size of tensor %d is "PRId64",",tensor_id,tsr->size);
         CTF_alloc_ptr(tsr->home_size*sizeof(dtype), (void**)&tsr->home_buffer);
         tsr->data = tsr->home_buffer;
       } else {

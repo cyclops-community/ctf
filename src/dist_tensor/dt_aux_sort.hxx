@@ -389,7 +389,7 @@ void pad_tsr(int const                ndim,
     if (act_lda == ndim) break;
     
   }
-  DEBUG_PRINTF("ndim = %d new_el=%lld, size = %lld, pad_el = %lld\n", ndim, new_el, size, pad_el);
+  DEBUG_PRINTF("ndim = %d new_el="PRId64", size = "PRId64", pad_el = "PRId64"\n", ndim, new_el, size, pad_el);
   LIBT_ASSERT(new_el + size == pad_el);
   memcpy(padded_pairs+new_el, old_data,  size*sizeof(tkv_pair<dtype>));
   *new_pairs = padded_pairs;
@@ -467,7 +467,7 @@ void assign_keys(int const          ndim,
             for (i=0; i<imax; i++){
         LIBT_ASSERT(buf_offset+i<size);
         if (p*(size/nvirt) + buf_offset + i >= size){ 
-          printf("exceeded how much I was supposed to read read %lld/%lld\n", p*(size/nvirt)+buf_offset+i,size);
+          printf("exceeded how much I was supposed to read read "PRId64"/"PRId64"\n", p*(size/nvirt)+buf_offset+i,size);
           ABORT;
         }
         pairs[buf_offset+i].k = idx_offset+i*phase[0]+phase_rank[0];
@@ -850,7 +850,7 @@ void zero_padding( int const          ndim,
           printf("phase_rank[%d] = %d, idx[%d] = %d, ",i,phase_rank[i],i,idx[i]);
         }
         printf("\n");
-        printf("data[%lld]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
+        printf("data["PRId64"]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
         if (is_outside)
           data[buf_offset] = 0.0;
         buf_offset++;

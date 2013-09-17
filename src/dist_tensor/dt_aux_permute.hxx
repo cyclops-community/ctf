@@ -1538,7 +1538,7 @@ int padded_reshuffle(int const          tid,
   }
   swp_nval = new_num_virt*sy_packed_size(ndim, sub_edge_len, sym);
   if (ord_glb_comm->rank == 0){
-    DPRINTF(1,"Tensor %d is of size %lld, has factor of %lf growth due to padding\n", 
+    DPRINTF(1,"Tensor %d is of size "PRId64", has factor of %lf growth due to padding\n", 
     
           tid, swp_nval,
           ord_glb_comm->np*(swp_nval/(double)old_size));
@@ -1741,7 +1741,7 @@ int cyclic_reshuffle(int const          ndim,
   CTF_mst_alloc_ptr(MAX(nval,swp_nval)*sizeof(dtype), (void**)&tsr_cyclic_data);
 
   if (ord_glb_comm != NULL){
-    DPRINTF(4,"[%d] send = %d, had= %lld recv = %d, should get = %lld\n", 
+    DPRINTF(4,"[%d] send = %d, had= "PRId64" recv = %d, should get = "PRId64"\n", 
             ord_glb_comm->rank, send_displs[ord_glb_comm->np-1] + send_counts[ord_glb_comm->np-1], nval,
             recv_displs[ord_glb_comm->np-1] + recv_counts[ord_glb_comm->np-1], swp_nval);
   }
@@ -1918,7 +1918,7 @@ void block_reshuffle(int const        ndim,
         blk_idx += ( idx[i] + new_rank[i]*new_virt_dim[i])                 *phase_lda[i];
         prc_idx += ((idx[i] + new_rank[i]*new_virt_dim[i])/old_virt_dim[i])*old_pe_lda[i];
       }
-      DPRINTF(3,"proc %d receiving blk %d (loc %d, size %lld) from proc %d\n", 
+      DPRINTF(3,"proc %d receiving blk %d (loc %d, size "PRId64") from proc %d\n", 
               glb_comm->rank, blk_idx, loc_idx, blk_sz, prc_idx);
       MPI_Irecv(tsr_cyclic_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
                 MPI_CHAR, prc_idx, blk_idx, glb_comm->cm, reqs+loc_idx);

@@ -16,6 +16,14 @@
 #include <unistd.h>
 #include "comm.h"
 
+#if (defined(__X86_64__) || defined(__IA64__) || defined(__amd64__) || defined(__ppc64__) || defined(_ARCH_PPC))
+#define PRId64 "%ld"
+#elif (defined(__i386__))
+#define PRId64 "%lld"
+#else
+#include <inttypes.h>
+#endif
+
 #ifdef PROFILE
 #define TAU
 #endif

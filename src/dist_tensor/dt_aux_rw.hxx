@@ -52,7 +52,7 @@ void readwrite(int const        ndim,
           LIBT_ASSERT(pairs[i].k == 0 || pairs[i].d != pairs[0].d);
         }
       }
-  //    printf("size = %lld\n",size);
+  //    printf("size = "PRId64"\n",size);
   //    LIBT_ASSERT(size == 1);
       if (rw == 'r'){
         pairs[0].d = vdata[0];
@@ -152,7 +152,7 @@ void readwrite(int const        ndim,
     if (act_lda == ndim) break;
   }
   TAU_FSTOP(readwrite);
-  //printf("pr_offset = %lld/%lld\n",pr_offset,size);
+  //printf("pr_offset = "PRId64"/"PRId64"\n",pr_offset,size);
   LIBT_ASSERT(pr_offset == size);
   CTF_free(idx);
   CTF_free(virt_rank);

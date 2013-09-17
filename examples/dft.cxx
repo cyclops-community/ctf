@@ -45,7 +45,7 @@ int test_dft(int64_t const  n,
   int pass = 1;
   //DFT.print(stdout);
   for (i=0; i<np; i++){
-    //printf("data[%lld] = %lf\n",idx[i],data[i].real());
+    //printf("data["PRId64"] = %lf\n",idx[i],data[i].real());
     if (idx[i]/n == idx[i]%n){
       if (fabs(data[i].real() - 1.)>=1.E-9)
         pass = 0;
