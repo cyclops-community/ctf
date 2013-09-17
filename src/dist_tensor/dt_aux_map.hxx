@@ -194,9 +194,9 @@ int get_best_topo(uint64_t const  nvirt,
     btopo = INT_MAX;
   }
   ALLREDUCE(&btopo, &gtopo, 1, MPI_INT, MPI_MIN, global_comm);
-  /*printf("nvirt = %llu bcomm_vol = %llu bmemuse = %llu topo = %d\n",
+  /*printf("nvirt = "PRIu64" bcomm_vol = "PRIu64" bmemuse = "PRIu64" topo = %d\n",
     nvirt, bcomm_vol, bmemuse, topo);
-  printf("gnvirt = %llu gcomm_vol = %llu gmemuse = %llu bv = %llu nv = %llu gtopo = %d\n",
+  printf("gnvirt = "PRIu64" gcomm_vol = "PRIu64" gmemuse = "PRIu64" bv = "PRIu64" nv = "PRIu64" gtopo = %d\n",
     gnvirt, gcomm_vol, gmemuse, bv, nv, gtopo);*/
 
   return gtopo;

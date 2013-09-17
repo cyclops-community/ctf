@@ -133,7 +133,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
     if (stack_size != NULL)
       imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
     if (rank == 0)
-      DPRINTF(1,"Creating CTF stack of size %llu due to CTF_STACK_SIZE enviroment variable\n",
+      DPRINTF(1,"Creating CTF stack of size "PRIu64" due to CTF_STACK_SIZE enviroment variable\n",
                 imst_size);
     CTF_mst_create(imst_size);
   }
@@ -141,7 +141,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   if (mem_size != NULL){
     uint64_t imem_size = strtoull(mem_size,NULL,0);
     if (rank == 0)
-      DPRINTF(1,"CTF memory size set to %llu by CTF_MEMORY_SIZE environment variable\n",
+      DPRINTF(1,"CTF memory size set to "PRIu64" by CTF_MEMORY_SIZE environment variable\n",
                 imem_size);
     CTF_set_mem_size(imem_size);
   }

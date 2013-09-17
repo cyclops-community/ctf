@@ -1587,11 +1587,11 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         sub_edge_len[i] = tsr->edge_len[i]/phys_phase[i];
       }
       /* Alloc and set the data to zero */
-      DEBUG_PRINTF("tsr->size = nvirt = %llu * packed_size = %llu\n",
+      DEBUG_PRINTF("tsr->size = nvirt = "PRIu64" * packed_size = "PRIu64"\n",
                     (unsigned int64_t int)nvirt, packed_size(tsr->ndim, sub_edge_len,
                                        tsr->sym, tsr->sym_type));
       if (global_comm->rank == 0){
-        printf("Tensor %d initially mapped with virtualization factor of %llu\n",tensor_id,nvirt);
+        printf("Tensor %d initially mapped with virtualization factor of "PRIu64"\n",tensor_id,nvirt);
       }
       tsr->size =nvirt*packed_size(tsr->ndim, sub_edge_len, 
                                    tsr->sym, tsr->sym_type);
