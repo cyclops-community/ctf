@@ -305,6 +305,27 @@ class dist_tensor{
                      int const *  ends_B,
                      double const beta);
     
+/*    int slice_tensor(int const      tid_A,
+                     int const *    offsets_A,
+                     int const *    ends_A,
+                     double const   alpha,
+                     dist_tensor *  dt_other_A,
+                     int const      tid_B,
+                     int const *    offsets_B,
+                     int const *    ends_B,
+                     double const   beta);
+    
+    int slice_tensor(int const      tid_A,
+                     int const *    offsets_A,
+                     int const *    ends_A,
+                     double const   alpha,
+                     int const      tid_B,
+                     int const *    offsets_B,
+                     int const *    ends_B,
+                     double const   beta,
+                     dist_tensor *  dt_other_B);*/
+    
+    
     int write_pairs(int const                 tensor_id,
                     long_int const            num_pair,
                     dtype const               alpha,
