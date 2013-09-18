@@ -292,15 +292,38 @@ void tCTF_Tensor<dtype>::sum_slice(int const *    offsets,
                                    int const *    offsets_A,
                                    int const *    ends_A,
                                    double         alpha){
-  int ret =  world->ctf->slice_tensor(A.tid, offsets_A, ends_A, alpha,
-                                      tid, offsets, ends, beta);
+  int ret, np_A, np_B;
+  if (A.world->comm != world->comm){
+    MPI_Comm_size(A.world->comm, &np_A);
+    MPI_Comm_size(world->comm,   &np_B);
+    LIBT_ASSERT(nb_A != np_B);
+    if (np_A < np_B){
+      ret = world->ctf->slice_tensor(
+                A.tid, offsets_A, ends_A, alpha, A.world->ctf, 
+                tid, offsets, ends, beta);
+    } else {
+      ret = A.world->ctf->slice_tensor(
+                A.tid, offsets_A, ends_A, alpha,
+                tid, offsets, ends, beta, world->ctf);
+    }
+  } else {
+    ret =  world->ctf->slice_tensor(A.tid, offsets_A, ends_A, alpha,
+                                        tid, offsets, ends, beta);
+  }
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
+template<typename dtype>
+tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const *          offsets,
+                                             int const *          ends){
+
+  return slice(offsets, ends, world);
+}
 
 template<typename dtype>
-tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const * offsets,
-                                               int const * ends){
+tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const *          offsets,
+                                             int const *          ends,
+                                             tCTF_World<dtype> *  owrld){
   int i;
   int * new_lens = (int*)CTF_alloc(sizeof(int)*ndim);
   int * new_sym = (int*)CTF_alloc(sizeof(int)*ndim);
@@ -318,7 +341,7 @@ tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const * offsets,
     } else new_sym[i] = NS;
     new_lens[i] = ends[i] - offsets[i];
   }
-  tCTF_Tensor<dtype> new_tsr(ndim, new_lens, new_sym, *world);
+  tCTF_Tensor<dtype> new_tsr(ndim, new_lens, new_sym, *owrld);
   std::fill(new_sym, new_sym+ndim, 0);
   new_tsr.sum_slice(new_sym, new_lens, 0.0, *this, offsets, ends, 1.0);
   CTF_free(new_lens);

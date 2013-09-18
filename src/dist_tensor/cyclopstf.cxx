@@ -333,8 +333,36 @@ int tCTF<dtype>::slice_tensor( int const    tid_A,
                                int const *  offsets_B,
                                int const *  ends_B,
                                double const beta){
-  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha,
-                          tid_B, offsets_B, ends_B, beta);
+  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt,
+                          tid_B, offsets_B, ends_B, beta, dt);
+}
+
+template<typename dtype>
+int tCTF<dtype>::slice_tensor( int const      tid_A,
+                               int const *    offsets_A,
+                               int const *    ends_A,
+                               double const   alpha,
+                               tCTF<dtype> *  dt_other_A,
+                               int const      tid_B,
+                               int const *    offsets_B,
+                               int const *    ends_B,
+                               double const   beta){
+  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt_other_A->dt,
+                          tid_B, offsets_B, ends_B, beta, dt);
+}
+
+template<typename dtype>
+int tCTF<dtype>::slice_tensor( int const      tid_A,
+                               int const *    offsets_A,
+                               int const *    ends_A,
+                               double const   alpha,
+                               int const      tid_B,
+                               int const *    offsets_B,
+                               int const *    ends_B,
+                               double const   beta,
+                               tCTF<dtype> *  dt_other_B){
+  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt,
+                          tid_B, offsets_B, ends_B, beta, dt_other_B->dt);
 }
 
 

@@ -869,6 +869,7 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
   return DIST_TENSOR_SUCCESS;
 }
     
+
 /**
  * Add tensor data from A to a block of B, 
  *      B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] 
@@ -882,14 +883,17 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
  * \param[in] alpha scaling factor of B
  */
 template<typename dtype>
-int dist_tensor<dtype>::slice_tensor(int const    tid_A,
-                                     int const *  offsets_A,
-                                     int const *  ends_A,
-                                     double const alpha,
-                                     int const    tid_B,
-                                     int const *  offsets_B,
-                                     int const *  ends_B,
-                                     double const beta){
+int dist_tensor<dtype>::slice_tensor(int const              tid_A,
+                                     int const *            offsets_A,
+                                     int const *            ends_A,
+                                     double const           alpha,
+                                     dist_tensor<dtype> *   dt_A,
+                                     int const              tid_B,
+                                     int const *            offsets_B,
+                                     int const *            ends_B,
+                                     double const           beta,
+                                     dist_tensor<dtype> *   dt_B){
+    
   long_int i, j, k, lda, knew, sz_A, blk_sz_A, blk_sz_B;
   tkv_pair<dtype> * all_data_A, * blk_data_A;
   tensor<dtype> * tsr_A, * tsr_B;
@@ -897,14 +901,18 @@ int dist_tensor<dtype>::slice_tensor(int const    tid_A,
   int ndim_B, * len_B, * sym_B;
   int ret;
 
-  tsr_A = tensors[tid_A];
-  tsr_B = tensors[tid_B];
+  tsr_A = dt_A->tensors[tid_A];
+  tsr_B = dt_B->tensors[tid_B];
 
   sz_A = 0;
-  read_local_pairs(tid_A, &sz_A, &all_data_A);
+  if (dt_A == NULL){
+    sz_A = 0;
+    all_data_A = NULL;
+  } else 
+    dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
   
-  get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
-  get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
+  dt_A->get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
+  dt_B->get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
 
   CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_A, (void**)&blk_data_A);
 
@@ -944,7 +952,7 @@ int dist_tensor<dtype>::slice_tensor(int const    tid_A,
     blk_data_A[i].k = knew;
   }
 
-  ret = write_pairs(tid_B, blk_sz_A, alpha, beta, blk_data_A, 'w');  
+  ret = dt_B->write_pairs(tid_B, blk_sz_A, alpha, beta, blk_data_A, 'w');  
 
   CTF_free(len_A);
   CTF_free(len_B);
@@ -955,7 +963,6 @@ int dist_tensor<dtype>::slice_tensor(int const    tid_A,
 
   return ret;
 }
-
 
 
 /**

@@ -90,7 +90,7 @@ void readwrite(int const        ndim,
       if (sym[0] != NS)
         imax = idx[1]+1;
       /* Increment virtual bucket */
-      for (i=0; i<imax; i++){
+      for (i=0; i<imax;){// i++){
         if (pr_offset >= size)
           break;
         else {
@@ -113,6 +113,7 @@ void readwrite(int const        ndim,
               pr_offset++;
             }
           } else {
+            i++;
 /*          DEBUG_PRINTF("%d key[%d] %d not matched with %d\n", 
                           (int)pairs[pr_offset-1].k,
                           pr_offset, (int)pairs[pr_offset].k,

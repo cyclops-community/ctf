@@ -296,34 +296,20 @@ class dist_tensor{
                      int ** edge_len,
                      int ** sym) const;
 
-    int slice_tensor(int const    tid_A,
-                     int const *  offsets_A,
-                     int const *  ends_A,
-                     double const alpha,
-                     int const    tid_B,
-                     int const *  offsets_B,
-                     int const *  ends_B,
-                     double const beta);
+    /* Add tensor data from A to a block of B, 
+       B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
+                          + alpha*A[offsets_A:ends_A] */
+    int slice_tensor(int const              tid_A,
+                     int const *            offsets_A,
+                     int const *            ends_A,
+                     double const           alpha,
+                     dist_tensor<dtype> *   dt_A,
+                     int const              tid_B,
+                     int const *            offsets_B,
+                     int const *            ends_B,
+                     double const           beta,
+                     dist_tensor<dtype> *   dt_B);
     
-/*    int slice_tensor(int const      tid_A,
-                     int const *    offsets_A,
-                     int const *    ends_A,
-                     double const   alpha,
-                     dist_tensor *  dt_other_A,
-                     int const      tid_B,
-                     int const *    offsets_B,
-                     int const *    ends_B,
-                     double const   beta);
-    
-    int slice_tensor(int const      tid_A,
-                     int const *    offsets_A,
-                     int const *    ends_A,
-                     double const   alpha,
-                     int const      tid_B,
-                     int const *    offsets_B,
-                     int const *    ends_B,
-                     double const   beta,
-                     dist_tensor *  dt_other_B);*/
     
     
     int write_pairs(int const                 tensor_id,

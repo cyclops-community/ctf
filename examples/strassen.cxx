@@ -13,13 +13,29 @@
 int strassen(int const     n,
              int const     sym,
              CTF_World    &dw){
-  int rank, i, num_pes;
+  int rank, i, num_pes, crank, cnum_pes, ri, rj, rk;
   int64_t np;
   double * pairs, err;
   int64_t * indices;
+
+  MPI_Comm pcomm, ccomm;
+
+  pcomm = dw.comm;
   
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
+  MPI_Comm_rank(pcomm, &rank);
+  MPI_Comm_size(pcomm, &num_pes);
+
+  if (num_pes % 8 == 0){
+    cnum_pes  = num_pes/8;
+    crank     = rank%cnum_pes;
+    ri = rank/(cnum_pes*4);
+    rj = (rank/(cnum_pes*2))%2;
+    rk = (rank/cnum_pes)%2;
+    MPI_Comm_split(pcomm, rank/cnum_pes, rank%cnum_pes, &ccomm);
+  } else {
+    ccomm = dw.comm;
+  }
+  CTF_World cdw(ccomm);
 
 #ifndef TEST_SUITE
   if (rank == 0)
@@ -69,6 +85,51 @@ int strassen(int const     n,
 
   int snhalf[2] = {n/2, n/2};
   int sym_ns[2] = {NS,  NS};
+
+  if (ccomm != dw.comm){
+    printf("Slicing and dicing\n");
+/**    CTF_Matrix cM(n/2, n/2, NS, cdw);
+    CTF_Matrix cA(n/2, n/2, NS, cdw);
+    CTF_Matrix cB(n/2, n/2, NS, cdw);*/
+    int off_ij[2] = {ri * n, rj * n};
+    int end_ij[2] = {ri * n + n/2, rj * n + n/2};
+    int off_ik[2] = {ri * n, rk * n};
+    int end_ik[2] = {ri * n + n/2, rk * n + n/2};
+    int off_kj[2] = {rk * n, rj * n};
+    int end_kj[2] = {rk * n + n/2, rj * n + n/2};
+    CTF_Tensor cA = A.slice(off_ik, end_ik, &cdw);
+    cA.print(stdout);
+    CTF_Tensor cB = B.slice(off_kj, end_kj, &cdw);
+    CTF_Matrix cM(n/2, n/2, NS, cdw);
+    cM["ij"] = cA["ik"]*cB["kj"];
+    cM.print();
+    Cs.sum_slice(off_00, end_11, 1.0, cM, off_ij, end_ij, 1.0);
+
+    Cs["ij"] -= C["ij"];
+    printf("error 2-norm is %lf\n",Cs.norm2());
+
+    /*switch (rank/cnum_pes){
+      case 0:
+        cA.sum_slice(off_00, end_11, 1.0, A, off_00, end_11, 0.0);
+        cA.sum_slice(off_11, end_22, 1.0, A, off_00, end_11, 1.0);
+        cB.sum_slice(off_00, end_11, 1.0, B, off_00, end_11, 0.0);
+        cB.sum_slice(off_11, end_22, 1.0, B, off_00, end_11, 1.0);
+        cM["ij"] = cA["ik"]*cB["kj"];
+        Cs.sum_slice(off_00, end_11, 1.0, cM, off_00, end_11, 1.0);
+        Cs.sum_slice(off_11, end_22, 1.0, cM, off_00, end_11, 1.0);
+        break;
+      base:
+        cA.sum_slice(off_00, end_11, 1.0, A, off_00, end_11, 0.0);
+        cA.sum_slice(off_11, end_22, 1.0, A, off_00, end_11, 1.0);
+        cB.sum_slice(off_00, end_11, 1.0, B, off_00, end_11, 0.0);
+        cB.sum_slice(off_11, end_22, 1.0, B, off_00, end_11, 1.0);
+        cM["ij"] = cA["ik"]*cB["kj"];
+        Cs.sum_slice(off_00, end_11, 1.0, cM, off_00, end_11, 1.0);
+        Cs.sum_slice(off_11, end_22, 1.0, cM, off_00, end_11, 1.0);
+        break;   
+    }*/
+    
+  }
 
   CTF_Tensor A21 = A.slice(off_10, end_21);
   
@@ -167,7 +228,7 @@ int main(int argc, char ** argv){
     }
     pass = strassen(n, NS, dw);
     assert(pass);
-    if (rank == 0){
+    /*if (rank == 0){
       printf("(Anti-)Skew-symmetric: NS = AS*AS strassen:\n");
     }
     pass = strassen(n, AS, dw);
@@ -181,7 +242,7 @@ int main(int argc, char ** argv){
       printf("Symmetric-hollow: NS = SH*SH strassen:\n");
     }
     pass = strassen(n, SH, dw);
-    assert(pass);
+    assert(pass);*/
   }
 
   MPI_Finalize();
