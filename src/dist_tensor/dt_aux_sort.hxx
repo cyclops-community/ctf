@@ -200,29 +200,48 @@ void depad_tsr(int const                ndim,
  * \param[in] num_pair number of pairs
  * \param[in] edge_len tensor edge lengths
  * \param[in] padding padding of tensor (included in edge_len)
+ * \param[in] offsets (default NULL, none applied), offsets keys
  */
 template<typename dtype>
-void pad_key(int const        ndim,
-             long_int const   num_pair,
-             int const *      edge_len,
-             int const *      padding,
-             tkv_pair<dtype> *  pairs){
+void pad_key(int const          ndim,
+             long_int const     num_pair,
+             int const *        edge_len,
+             int const *        padding,
+             tkv_pair<dtype> *  pairs,
+             int const *        offsets = NULL){
   long_int i, j, lda;
   key knew, k;
   TAU_FSTART(pad_key);
+  if (offsets == NULL){
 #ifdef USE_OMP
   #pragma omp parallel for private(knew, k, lda, i, j)
 #endif
-  for (i=0; i<num_pair; i++){
-    k = pairs[i].k;
-    lda = 1;
-    knew = 0;
-    for (j=0; j<ndim; j++){
-      knew += lda*(k%edge_len[j]);
-      lda *= (edge_len[j]+padding[j]);
-      k = k/edge_len[j];
+    for (i=0; i<num_pair; i++){
+      k = pairs[i].k;
+      lda = 1;
+      knew = 0;
+      for (j=0; j<ndim; j++){
+        knew += lda*(k%edge_len[j]);
+        lda *= (edge_len[j]+padding[j]);
+        k = k/edge_len[j];
+      }
+      pairs[i].k = knew;
     }
-    pairs[i].k = knew;
+  } else {
+#ifdef USE_OMP
+  #pragma omp parallel for private(knew, k, lda, i, j)
+#endif
+    for (i=0; i<num_pair; i++){
+      k = pairs[i].k;
+      lda = 1;
+      knew = 0;
+      for (j=0; j<ndim; j++){
+        knew += lda*((k%edge_len[j])+offsets[j]);
+        lda *= (edge_len[j]+padding[j]);
+        k = k/edge_len[j];
+      }
+      pairs[i].k = knew;
+    }
   }
   TAU_FSTOP(pad_key);
 }
@@ -754,9 +773,10 @@ void bucket_by_virt(int const               ndim,
   }
   TAU_FSTOP(bucket_by_virt_sort);
 #if DEBUG >= 1
-  for (i=1; i<num_pair; i++){
+// FIXME: Can we handle replicated keys?
+/*  for (i=1; i<num_pair; i++){
     LIBT_ASSERT(bucket_data[i].k != bucket_data[i-1].k);
-  }
+  }*/
 #endif
 #ifdef USE_OMP
   CTF_free(sub_counts);

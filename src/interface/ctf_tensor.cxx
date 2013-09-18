@@ -296,16 +296,10 @@ void tCTF_Tensor<dtype>::sum_slice(int const *    offsets,
   if (A.world->comm != world->comm){
     MPI_Comm_size(A.world->comm, &np_A);
     MPI_Comm_size(world->comm,   &np_B);
-    LIBT_ASSERT(nb_A != np_B);
-    if (np_A < np_B){
-      ret = world->ctf->slice_tensor(
-                A.tid, offsets_A, ends_A, alpha, A.world->ctf, 
-                tid, offsets, ends, beta);
-    } else {
-      ret = A.world->ctf->slice_tensor(
-                A.tid, offsets_A, ends_A, alpha,
-                tid, offsets, ends, beta, world->ctf);
-    }
+    LIBT_ASSERT(np_A != np_B);
+    ret = world->ctf->slice_tensor(
+              A.tid, offsets_A, ends_A, alpha, A.world->ctf, 
+              tid, offsets, ends, beta);
   } else {
     ret =  world->ctf->slice_tensor(A.tid, offsets_A, ends_A, alpha,
                                         tid, offsets, ends, beta);

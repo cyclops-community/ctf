@@ -108,10 +108,11 @@ void readwrite(int const        ndim,
             }
             pr_offset++;
             //Check for write conflicts
-            while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
+            //FIXME: allow and handle them!
+            /*while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
               LIBT_ASSERT(pairs[pr_offset-1].d == pairs[pr_offset].d);
               pr_offset++;
-            }
+            }*/
           } else {
             i++;
 /*          DEBUG_PRINTF("%d key[%d] %d not matched with %d\n", 

@@ -894,8 +894,9 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
                                      double const           beta,
                                      dist_tensor<dtype> *   dt_B){
     
-  long_int i, j, k, lda, knew, sz_A, blk_sz_A, blk_sz_B;
+  long_int i, j, k, lda, knew, sz_A, blk_sz_A, sz_B, blk_sz_B;
   tkv_pair<dtype> * all_data_A, * blk_data_A;
+  tkv_pair<dtype> * all_data_B, * blk_data_B;
   tensor<dtype> * tsr_A, * tsr_B;
   int ndim_A, * len_A, * sym_A;
   int ndim_B, * len_B, * sym_B;
@@ -904,62 +905,103 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
   tsr_A = dt_A->tensors[tid_A];
   tsr_B = dt_B->tensors[tid_B];
 
-  sz_A = 0;
-  if (dt_A == NULL){
-    sz_A = 0;
-    all_data_A = NULL;
-  } else 
-    dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
-  
   dt_A->get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
   dt_B->get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
 
-  CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_A, (void**)&blk_data_A);
+  int * padding_A = (int*)CTF_alloc(sizeof(int)*tsr_A->ndim);
+  int * toffset_A = (int*)CTF_alloc(sizeof(int)*tsr_A->ndim);
+  int * padding_B = (int*)CTF_alloc(sizeof(int)*tsr_B->ndim);
+  int * toffset_B = (int*)CTF_alloc(sizeof(int)*tsr_B->ndim);
 
-  int * padding = (int*)CTF_alloc(sizeof(int)*tsr_A->ndim);
-  for (i=0; i<tsr_A->ndim; i++){
-    padding[i] = len_A[i] - ends_A[i];
-  }
-  depad_tsr(ndim_A, sz_A, ends_A, sym_A, padding, offsets_A,
-            all_data_A, blk_data_A, &blk_sz_A);
-  CTF_free(all_data_A);
-#ifdef USE_OMP
-  #pragma omp parallel for private(knew, k, lda, i, j)
-#endif
-  for (i=0; i<blk_sz_A; i++){
-    k = blk_data_A[i].k;
-    lda = 1;
-    knew = 0;
-    for (j=0; j<ndim_A; j++){
-      knew += lda*((k%len_A[j])-offsets_A[j]);
-      lda *= (ends_A[j]-offsets_A[j]);
-      k = k/len_A[j];
-    }
-    blk_data_A[i].k = knew;
-  }
-#ifdef USE_OMP
-  #pragma omp parallel for private(knew, k, lda, i, j)
-#endif
-  for (i=0; i<blk_sz_A; i++){
-    k = blk_data_A[i].k;
-    lda = 1;
-    knew = 0;
-    for (j=0; j<ndim_B; j++){
-      knew += lda*((k%(ends_B[j]-offsets_B[j]))+offsets_B[j]);
-      lda *= len_B[j];
-      k = k/(ends_B[j]-offsets_B[j]);
-    }
-    blk_data_A[i].k = knew;
-  }
+    /*dt_B->read_local_pairs(tid_B, &sz_B, &all_data_B);
 
+    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_B, (void**)&blk_data_B);
+
+    for (i=0; i<tsr_B->ndim; i++){
+      padding_B[i] = len_B[i] - ends_B[i];
+    }
+    depad_tsr(ndim_B, sz_B, ends_B, sym_B, padding_B, offsets_B,
+              all_data_B, blk_data_B, &blk_sz_B);
+    if (sz_B > 0)
+      CTF_free(all_data_B);*/
+
+  if (dt_B->get_global_comm()->np <
+      dt_A->get_global_comm()->np){
+    if (ndim_B == 0 || tsr_B->has_zero_edge_len){
+      blk_sz_B = 0;
+    } else {
+      dt_B->read_local_pairs(tid_B, &sz_B, &all_data_B);
+
+      CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_B, (void**)&blk_data_B);
+
+      for (i=0; i<tsr_B->ndim; i++){
+        padding_B[i] = len_B[i] - ends_B[i];
+      }
+      depad_tsr(ndim_B, sz_B, ends_B, sym_B, padding_B, offsets_B,
+                all_data_B, blk_data_B, &blk_sz_B);
+      if (sz_B > 0)
+        CTF_free(all_data_B);
+
+      for (i=0; i<ndim_B; i++){
+        toffset_B[i] = -offsets_B[i];
+        padding_B[i] = ends_B[i]-offsets_B[i]-len_B[i];
+      }
+      pad_key(ndim_B, blk_sz_B, len_B, 
+              padding_B, blk_data_B, toffset_B);
+      for (i=0; i<ndim_A; i++){
+        toffset_A[i] = ends_A[i] - offsets_A[i];
+        padding_A[i] = len_A[i] - toffset_A[i];
+      }
+      pad_key(ndim_A, blk_sz_B, toffset_A, 
+              padding_A, blk_data_B, offsets_A);
+    }
+    ret = dt_A->write_pairs(tid_A, blk_sz_B, 1.0, 0.0, blk_data_B, 'r');  
+    all_data_A = blk_data_B;
+    sz_A = blk_sz_B;
+  } else 
+    dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
+
+  
+
+  if (ndim_A == 0 || tsr_A->has_zero_edge_len){
+    blk_sz_A = 0;
+  } else {
+    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_A, (void**)&blk_data_A);
+
+    for (i=0; i<tsr_A->ndim; i++){
+      padding_A[i] = len_A[i] - ends_A[i];
+    }
+    depad_tsr(ndim_A, sz_A, ends_A, sym_A, padding_A, offsets_A,
+              all_data_A, blk_data_A, &blk_sz_A);
+    if (sz_A > 0)
+      CTF_free(all_data_A);
+
+
+    for (i=0; i<ndim_A; i++){
+      toffset_A[i] = -offsets_A[i];
+      padding_A[i] = ends_A[i]-offsets_A[i]-len_A[i];
+    }
+    pad_key(ndim_A, blk_sz_A, len_A, 
+            padding_A, blk_data_A, toffset_A);
+    for (i=0; i<ndim_B; i++){
+      toffset_B[i] = ends_B[i] - offsets_B[i];
+      padding_B[i] = len_B[i] - toffset_B[i];
+    }
+    pad_key(ndim_B, blk_sz_A, toffset_B, 
+            padding_B, blk_data_A, offsets_B);
+  }
   ret = dt_B->write_pairs(tid_B, blk_sz_A, alpha, beta, blk_data_A, 'w');  
 
   CTF_free(len_A);
   CTF_free(len_B);
   CTF_free(sym_A);
   CTF_free(sym_B);
-  CTF_free(blk_data_A);
-  CTF_free(padding);
+  if (blk_sz_A > 0)
+    CTF_free(blk_data_A);
+  CTF_free(padding_A);
+  CTF_free(padding_B);
+  CTF_free(toffset_A);
+  CTF_free(toffset_B);
 
   return ret;
 }
