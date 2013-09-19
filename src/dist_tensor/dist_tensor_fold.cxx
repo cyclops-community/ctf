@@ -352,16 +352,16 @@ void nosym_transpose(int const          ndim,
       for (;;){
         if (last_dim != 0){
           if (dir)
-            cxcopy(edge_len[0], data+off_old, lda[0], swap_data+off_new+toff_new, new_lda[0]);
+            cxcopy(edge_len[0], data+off_old, lda[0], swap_data+off_new-toff_new, new_lda[0]);
           else
-            cxcopy(edge_len[0], data+off_new, new_lda[0], swap_data+off_old+toff_old, lda[0]);
+            cxcopy(edge_len[0], data+off_new, new_lda[0], swap_data+off_old-toff_old, lda[0]);
 
           idx[0] = 0;
         } else {
           if (dir)
-            cxcopy(last_max-tidx_off, data+off_old, lda[0], swap_data+off_new+toff_new, new_lda[0]);
+            cxcopy(last_max-tidx_off, data+off_old, lda[0], swap_data+off_new-toff_new, new_lda[0]);
           else
-            cxcopy(last_max-tidx_off, data+off_new, new_lda[0], swap_data+off_old+toff_old, lda[0]);
+            cxcopy(last_max-tidx_off, data+off_new, new_lda[0], swap_data+off_old-toff_old, lda[0]);
 
           idx[0] = tidx_off;
         } 
@@ -370,14 +370,11 @@ void nosym_transpose(int const          ndim,
           off_old -= idx[i]*lda[i];
           off_new -= idx[i]*new_lda[i];
           if (i == last_dim){
-            //idx[i] = (idx[i]+1)%last_max;
-            //if (idx[i] == 0) idx[i] = tidx_off;
             idx[i] = (idx[i] == last_max-1 ? tidx_off : idx[i]+1);
             off_old += idx[i]*lda[i];
             off_new += idx[i]*new_lda[i];
             if (idx[i] != tidx_off) break;
           } else {
-            //idx[i] = (idx[i]+1)%edge_len[i];
             idx[i] = (idx[i] == edge_len[i]-1 ? 0 : idx[i]+1);
             off_old += idx[i]*lda[i];
             off_new += idx[i]*new_lda[i];
