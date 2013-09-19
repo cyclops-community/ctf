@@ -351,48 +351,34 @@ void nosym_transpose(int const          ndim,
       swap_data = tswap_data[tid];
       for (;;){
         if (last_dim != 0){
-          for (idx[0] = 0; idx[0] < edge_len[0]; idx[0]++){
-            if (dir)
-              swap_data[off_new-toff_new] = data[off_old];
-            else
-              swap_data[off_old-toff_old] = data[off_new];
-        
-            off_old += lda[0];
-            off_new += new_lda[0];
-          }
-          off_old -= edge_len[0]*lda[0];
-          off_new -= edge_len[0]*new_lda[0];
+          if (dir)
+            cxcopy(edge_len[0], data+off_old, lda[0], swap_data+off_new+toff_new, new_lda[0]);
+          else
+            cxcopy(edge_len[0], data+off_new, new_lda[0], swap_data+off_old+toff_old, lda[0]);
 
           idx[0] = 0;
         } else {
-          for (idx[0] = tidx_off; idx[0] < last_max; idx[0]++){
-            if (dir)
-              swap_data[off_new-toff_new] = data[off_old];
-            else
-              swap_data[off_old-toff_old] = data[off_new];
-        
-            off_old += lda[0];
-            off_new += new_lda[0];
-          }
-          off_old -= last_max*lda[0];
-          off_new -= last_max*new_lda[0];
+          if (dir)
+            cxcopy(last_max-tidx_off, data+off_old, lda[0], swap_data+off_new+toff_new, new_lda[0]);
+          else
+            cxcopy(last_max-tidx_off, data+off_new, new_lda[0], swap_data+off_old+toff_old, lda[0]);
 
           idx[0] = tidx_off;
-          off_old += idx[0]*lda[0];
-          off_new += idx[0]*new_lda[0];
         } 
 
         for (i=1; i<ndim; i++){
           off_old -= idx[i]*lda[i];
           off_new -= idx[i]*new_lda[i];
           if (i == last_dim){
-            idx[i] = (idx[i]+1)%last_max;
-            if (idx[i] == 0) idx[i] = tidx_off;
+            //idx[i] = (idx[i]+1)%last_max;
+            //if (idx[i] == 0) idx[i] = tidx_off;
+            idx[i] = (idx[i] == last_max-1 ? tidx_off : idx[i]+1);
             off_old += idx[i]*lda[i];
             off_new += idx[i]*new_lda[i];
             if (idx[i] != tidx_off) break;
           } else {
-            idx[i] = (idx[i]+1)%edge_len[i];
+            //idx[i] = (idx[i]+1)%edge_len[i];
+            idx[i] = (idx[i] == edge_len[i]-1 ? 0 : idx[i]+1);
             off_old += idx[i]*lda[i];
             off_new += idx[i]*new_lda[i];
             if (idx[i] != 0) break;

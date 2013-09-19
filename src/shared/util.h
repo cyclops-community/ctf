@@ -377,8 +377,21 @@ void czaxpy(const int n,                        std::complex<double> dA,
             const std::complex<double> * dX,    const int incX,
             std::complex<double> * dY,          const int incY);
 
+void cdcopy(const int n,
+            const double * dX,  const int incX,
+            double * dY,        const int incY);
+
+void czcopy(const int n,
+            const std::complex<double> * dX,    const int incX,
+            std::complex<double> * dY,          const int incY);
+
 template <typename dtype>
 void cxaxpy(const int n,        dtype dA,
+            const dtype * dX,   const int incX,
+            dtype * dY, const int incY);
+
+template <typename dtype>
+void cxcopy(const int n,
             const dtype * dX,   const int incX,
             dtype * dY, const int incY);
 
@@ -593,6 +606,23 @@ void cxaxpy< std::complex<double> >
                      std::complex<double> * dY,
                      const int incY){
   czaxpy(n, dA, dX, incX, dY, incY);
+}
+
+template <> inline
+void cxcopy<double>(const int n,
+                    const double * dX,  const int incX,
+                    double * dY,        const int incY){
+  cdcopy(n, dX, incX, dY, incY);
+}
+
+template <> inline
+void cxcopy< std::complex<double> >
+                    (const int n,
+                     const std::complex<double> * dX,
+                     const int incX,
+                     std::complex<double> * dY,
+                     const int incY){
+  czcopy(n, dX, incX, dY, incY);
 }
 
 

@@ -22,6 +22,8 @@ long_int CTF_get_flops(){
 #define UTIL_DGEMM      dgemm
 #define UTIL_DAXPY      daxpy
 #define UTIL_ZAXPY      zaxpy
+#define UTIL_DCOPY      dcopy
+#define UTIL_ZCOPY      zcopy
 #define UTIL_DSCAL      dscal
 #define UTIL_DDOT       ddot
 #else
@@ -29,6 +31,8 @@ long_int CTF_get_flops(){
 #define UTIL_DGEMM      dgemm_
 #define UTIL_DAXPY      daxpy_
 #define UTIL_ZAXPY      zaxpy_
+#define UTIL_DCOPY      dcopy_
+#define UTIL_ZCOPY      zcopy_
 #define UTIL_DSCAL      dscal_
 #define UTIL_DDOT       ddot_
 #endif
@@ -71,6 +75,16 @@ void UTIL_DAXPY(const int * n,          double * dA,
 
 extern "C"
 void UTIL_ZAXPY(const int * n,                          std::complex<double> * dA,
+                const std::complex<double> * dX,        const int * incX,
+                std::complex<double> * dY,              const int * incY);
+
+extern "C"
+void UTIL_DCOPY(const int * n,
+                const double * dX,      const int * incX,
+                double * dY,            const int * incY);
+
+extern "C"
+void UTIL_ZCOPY(const int * n,
                 const std::complex<double> * dX,        const int * incX,
                 std::complex<double> * dY,              const int * incY);
 
@@ -125,6 +139,21 @@ void cdaxpy(const int n,        double dA,
             const double * dX,  const int incX,
             double * dY,        const int incY){
   UTIL_DAXPY(&n, &dA, dX, &incX, dY, &incY);
+}
+
+void czcopy(const int n,
+            const std::complex<double> * dX,
+            const int incX,
+            std::complex<double> * dY,
+            const int incY){
+  UTIL_ZCOPY(&n, dX, &incX, dY, &incY);
+}
+
+
+void cdcopy(const int n,
+            const double * dX,  const int incX,
+            double * dY,        const int incY){
+  UTIL_DCOPY(&n, dX, &incX, dY, &incY);
 }
 
 void cdscal(const int n,        double dA,
