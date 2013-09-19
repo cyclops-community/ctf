@@ -468,7 +468,7 @@ void seq_tsr_scl<dtype>::print(){
   int i;
   printf("seq_tsr_scl:\n");
   for (i=0; i<ndim; i++){
-    printf("edge_len[%d]=%lld\n",i,edge_len[i]);
+    printf("edge_len[%d]="PRId64"\n",i,edge_len[i]);
   }
 }
 
@@ -502,10 +502,10 @@ void seq_tsr_sum<dtype>::print(){
   int i;
   printf("seq_tsr_sum:\n");
   for (i=0; i<ndim_A; i++){
-    printf("edge_len_A[%d]=%lld\n",i,edge_len_A[i]);
+    printf("edge_len_A[%d]="PRId64"\n",i,edge_len_A[i]);
   }
   for (i=0; i<ndim_B; i++){
-    printf("edge_len_B[%d]=%lld\n",i,edge_len_B[i]);
+    printf("edge_len_B[%d]="PRId64"\n",i,edge_len_B[i]);
   }
 }
 
@@ -869,6 +869,7 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
   return DIST_TENSOR_SUCCESS;
 }
     
+
 /**
  * Add tensor data from A to a block of B, 
  *      B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] 
@@ -882,80 +883,128 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
  * \param[in] alpha scaling factor of B
  */
 template<typename dtype>
-int dist_tensor<dtype>::slice_tensor(int const    tid_A,
-                                     int const *  offsets_A,
-                                     int const *  ends_A,
-                                     double const alpha,
-                                     int const    tid_B,
-                                     int const *  offsets_B,
-                                     int const *  ends_B,
-                                     double const beta){
-  long_int i, j, k, lda, knew, sz_A, blk_sz_A, blk_sz_B;
+int dist_tensor<dtype>::slice_tensor(int const              tid_A,
+                                     int const *            offsets_A,
+                                     int const *            ends_A,
+                                     double const           alpha,
+                                     dist_tensor<dtype> *   dt_A,
+                                     int const              tid_B,
+                                     int const *            offsets_B,
+                                     int const *            ends_B,
+                                     double const           beta,
+                                     dist_tensor<dtype> *   dt_B){
+    
+  long_int i, j, k, lda, knew, sz_A, blk_sz_A, sz_B, blk_sz_B;
   tkv_pair<dtype> * all_data_A, * blk_data_A;
+  tkv_pair<dtype> * all_data_B, * blk_data_B;
   tensor<dtype> * tsr_A, * tsr_B;
   int ndim_A, * len_A, * sym_A;
   int ndim_B, * len_B, * sym_B;
   int ret;
 
-  tsr_A = tensors[tid_A];
-  tsr_B = tensors[tid_B];
+  tsr_A = dt_A->tensors[tid_A];
+  tsr_B = dt_B->tensors[tid_B];
 
-  sz_A = 0;
-  read_local_pairs(tid_A, &sz_A, &all_data_A);
+  dt_A->get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
+  dt_B->get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
+
+  int * padding_A = (int*)CTF_alloc(sizeof(int)*tsr_A->ndim);
+  int * toffset_A = (int*)CTF_alloc(sizeof(int)*tsr_A->ndim);
+  int * padding_B = (int*)CTF_alloc(sizeof(int)*tsr_B->ndim);
+  int * toffset_B = (int*)CTF_alloc(sizeof(int)*tsr_B->ndim);
+
+    /*dt_B->read_local_pairs(tid_B, &sz_B, &all_data_B);
+
+    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_B, (void**)&blk_data_B);
+
+    for (i=0; i<tsr_B->ndim; i++){
+      padding_B[i] = len_B[i] - ends_B[i];
+    }
+    depad_tsr(ndim_B, sz_B, ends_B, sym_B, padding_B, offsets_B,
+              all_data_B, blk_data_B, &blk_sz_B);
+    if (sz_B > 0)
+      CTF_free(all_data_B);*/
+
+  if (dt_B->get_global_comm()->np <
+      dt_A->get_global_comm()->np){
+    if (ndim_B == 0 || tsr_B->has_zero_edge_len){
+      blk_sz_B = 0;
+    } else {
+      dt_B->read_local_pairs(tid_B, &sz_B, &all_data_B);
+
+      CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_B, (void**)&blk_data_B);
+
+      for (i=0; i<tsr_B->ndim; i++){
+        padding_B[i] = len_B[i] - ends_B[i];
+      }
+      depad_tsr(ndim_B, sz_B, ends_B, sym_B, padding_B, offsets_B,
+                all_data_B, blk_data_B, &blk_sz_B);
+      if (sz_B > 0)
+        CTF_free(all_data_B);
+
+      for (i=0; i<ndim_B; i++){
+        toffset_B[i] = -offsets_B[i];
+        padding_B[i] = ends_B[i]-offsets_B[i]-len_B[i];
+      }
+      pad_key(ndim_B, blk_sz_B, len_B, 
+              padding_B, blk_data_B, toffset_B);
+      for (i=0; i<ndim_A; i++){
+        toffset_A[i] = ends_A[i] - offsets_A[i];
+        padding_A[i] = len_A[i] - toffset_A[i];
+      }
+      pad_key(ndim_A, blk_sz_B, toffset_A, 
+              padding_A, blk_data_B, offsets_A);
+    }
+    ret = dt_A->write_pairs(tid_A, blk_sz_B, 1.0, 0.0, blk_data_B, 'r');  
+    all_data_A = blk_data_B;
+    sz_A = blk_sz_B;
+  } else 
+    dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
+
   
-  get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
-  get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
 
-  CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_A, (void**)&blk_data_A);
+  if (ndim_A == 0 || tsr_A->has_zero_edge_len){
+    blk_sz_A = 0;
+  } else {
+    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_A, (void**)&blk_data_A);
 
-  int * padding = (int*)CTF_alloc(sizeof(int)*tsr_A->ndim);
-  for (i=0; i<tsr_A->ndim; i++){
-    padding[i] = len_A[i] - ends_A[i];
-  }
-  depad_tsr(ndim_A, sz_A, ends_A, sym_A, padding, offsets_A,
-            all_data_A, blk_data_A, &blk_sz_A);
-  CTF_free(all_data_A);
-#ifdef USE_OMP
-  #pragma omp parallel for private(knew, k, lda, i, j)
-#endif
-  for (i=0; i<blk_sz_A; i++){
-    k = blk_data_A[i].k;
-    lda = 1;
-    knew = 0;
-    for (j=0; j<ndim_A; j++){
-      knew += lda*((k%len_A[j])-offsets_A[j]);
-      lda *= (ends_A[j]-offsets_A[j]);
-      k = k/len_A[j];
+    for (i=0; i<tsr_A->ndim; i++){
+      padding_A[i] = len_A[i] - ends_A[i];
     }
-    blk_data_A[i].k = knew;
-  }
-#ifdef USE_OMP
-  #pragma omp parallel for private(knew, k, lda, i, j)
-#endif
-  for (i=0; i<blk_sz_A; i++){
-    k = blk_data_A[i].k;
-    lda = 1;
-    knew = 0;
-    for (j=0; j<ndim_B; j++){
-      knew += lda*((k%(ends_B[j]-offsets_B[j]))+offsets_B[j]);
-      lda *= len_B[j];
-      k = k/(ends_B[j]-offsets_B[j]);
-    }
-    blk_data_A[i].k = knew;
-  }
+    depad_tsr(ndim_A, sz_A, ends_A, sym_A, padding_A, offsets_A,
+              all_data_A, blk_data_A, &blk_sz_A);
+    if (sz_A > 0)
+      CTF_free(all_data_A);
 
-  ret = write_pairs(tid_B, blk_sz_A, alpha, beta, blk_data_A, 'w');  
+
+    for (i=0; i<ndim_A; i++){
+      toffset_A[i] = -offsets_A[i];
+      padding_A[i] = ends_A[i]-offsets_A[i]-len_A[i];
+    }
+    pad_key(ndim_A, blk_sz_A, len_A, 
+            padding_A, blk_data_A, toffset_A);
+    for (i=0; i<ndim_B; i++){
+      toffset_B[i] = ends_B[i] - offsets_B[i];
+      padding_B[i] = len_B[i] - toffset_B[i];
+    }
+    pad_key(ndim_B, blk_sz_A, toffset_B, 
+            padding_B, blk_data_A, offsets_B);
+  }
+  ret = dt_B->write_pairs(tid_B, blk_sz_A, alpha, beta, blk_data_A, 'w');  
 
   CTF_free(len_A);
   CTF_free(len_B);
   CTF_free(sym_A);
   CTF_free(sym_B);
-  CTF_free(blk_data_A);
-  CTF_free(padding);
+  if (blk_sz_A > 0)
+    CTF_free(blk_data_A);
+  CTF_free(padding_A);
+  CTF_free(padding_B);
+  CTF_free(toffset_A);
+  CTF_free(toffset_B);
 
   return ret;
 }
-
 
 
 /**
@@ -1587,16 +1636,16 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         sub_edge_len[i] = tsr->edge_len[i]/phys_phase[i];
       }
       /* Alloc and set the data to zero */
-      DEBUG_PRINTF("tsr->size = nvirt = %llu * packed_size = %llu\n",
+      DEBUG_PRINTF("tsr->size = nvirt = "PRIu64" * packed_size = "PRIu64"\n",
                     (unsigned int64_t int)nvirt, packed_size(tsr->ndim, sub_edge_len,
                                        tsr->sym, tsr->sym_type));
       if (global_comm->rank == 0){
-        printf("Tensor %d initially mapped with virtualization factor of %llu\n",tensor_id,nvirt);
+        printf("Tensor %d initially mapped with virtualization factor of "PRIu64"\n",tensor_id,nvirt);
       }
       tsr->size =nvirt*packed_size(tsr->ndim, sub_edge_len, 
                                    tsr->sym, tsr->sym_type);
       if (global_comm->rank == 0){
-        printf("Tensor %d is of size %lld, has factor of %lf growth due to padding\n", 
+        printf("Tensor %d is of size "PRId64", has factor of %lf growth due to padding\n", 
               tensor_id, tsr->size,
               global_comm->np*(tsr->size/(double)old_size));
 
@@ -1608,7 +1657,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         tsr->home_size = tsr->size; //MAX(1024+tsr->size, 1.20*tsr->size);
         tsr->is_home = 1;
         tsr->has_home = 1;
-        DPRINTF(3,"Initial size of tensor %d is %lld,",tensor_id,tsr->size);
+        DPRINTF(3,"Initial size of tensor %d is "PRId64",",tensor_id,tsr->size);
         CTF_alloc_ptr(tsr->home_size*sizeof(dtype), (void**)&tsr->home_buffer);
         tsr->data = tsr->home_buffer;
       } else {

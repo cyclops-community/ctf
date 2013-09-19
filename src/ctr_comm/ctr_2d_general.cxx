@@ -37,13 +37,13 @@ ctr_2d_general<dtype>::ctr_2d_general(ctr<dtype> * other) : ctr<dtype>(other) {
 template<typename dtype>
 void ctr_2d_general<dtype>::print() {
   printf("ctr_2d_general: edge_len = %d\n", edge_len);
-  printf("cdt_A = %p, ctr_lda_A = %lld, ctr_sub_lda_A = %lld\n",
+  printf("cdt_A = %p, ctr_lda_A = "PRId64", ctr_sub_lda_A = "PRId64"\n",
           cdt_A, ctr_lda_A, ctr_sub_lda_A);
   if (cdt_A != NULL) printf("cdt_A length = %d\n",cdt_A->np);
-  printf("cdt_B = %p, ctr_lda_B = %lld, ctr_sub_lda_B = %lld\n",
+  printf("cdt_B = %p, ctr_lda_B = "PRId64", ctr_sub_lda_B = "PRId64"\n",
           cdt_B, ctr_lda_B, ctr_sub_lda_B);
   if (cdt_B != NULL) printf("cdt_B length = %d\n",cdt_B->np);
-  printf("cdt_C = %p, ctr_lda_C = %lld, ctr_sub_lda_C = %lld\n",
+  printf("cdt_C = %p, ctr_lda_C = "PRId64", ctr_sub_lda_C = "PRId64"\n",
           cdt_C, ctr_lda_C, ctr_sub_lda_C);
   if (cdt_C != NULL) printf("cdt_C length = %d\n",cdt_C->np);
   rec_ctr->print();

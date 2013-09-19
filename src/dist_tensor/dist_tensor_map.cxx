@@ -1204,7 +1204,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     bnvirt = UINT64_MAX;
     btopo = INT_MAX;
   }
-  DEBUG_PRINTF("bnvirt = %llu\n", (uint64_t)bnvirt);
+  DEBUG_PRINTF("bnvirt = "PRIu64"\n", (uint64_t)bnvirt);
   /* pick lower dimensional mappings, if equivalent */
 #if BEST_COMM
   if (bnvirt >= ALLOW_NVIRT)

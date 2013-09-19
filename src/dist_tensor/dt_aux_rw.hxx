@@ -52,7 +52,7 @@ void readwrite(int const        ndim,
           LIBT_ASSERT(pairs[i].k == 0 || pairs[i].d != pairs[0].d);
         }
       }
-  //    printf("size = %lld\n",size);
+  //    printf("size = "PRId64"\n",size);
   //    LIBT_ASSERT(size == 1);
       if (rw == 'r'){
         pairs[0].d = vdata[0];
@@ -90,7 +90,7 @@ void readwrite(int const        ndim,
       if (sym[0] != NS)
         imax = idx[1]+1;
       /* Increment virtual bucket */
-      for (i=0; i<imax; i++){
+      for (i=0; i<imax;){// i++){
         if (pr_offset >= size)
           break;
         else {
@@ -108,11 +108,13 @@ void readwrite(int const        ndim,
             }
             pr_offset++;
             //Check for write conflicts
-            while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
+            //FIXME: allow and handle them!
+            /*while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
               LIBT_ASSERT(pairs[pr_offset-1].d == pairs[pr_offset].d);
               pr_offset++;
-            }
+            }*/
           } else {
+            i++;
 /*          DEBUG_PRINTF("%d key[%d] %d not matched with %d\n", 
                           (int)pairs[pr_offset-1].k,
                           pr_offset, (int)pairs[pr_offset].k,
@@ -152,7 +154,7 @@ void readwrite(int const        ndim,
     if (act_lda == ndim) break;
   }
   TAU_FSTOP(readwrite);
-  //printf("pr_offset = %lld/%lld\n",pr_offset,size);
+  //printf("pr_offset = "PRId64"/"PRId64"\n",pr_offset,size);
   LIBT_ASSERT(pr_offset == size);
   CTF_free(idx);
   CTF_free(virt_rank);

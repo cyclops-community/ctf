@@ -25,6 +25,7 @@
 #include "../../examples/fast_sym_4D.cxx"
 #include "../../examples/ccsdt_t3_to_t2.cxx"
 #include "../../examples/strassen.cxx"
+#include "../../examples/slice_gemm.cxx"
 
 
 char* getCmdOption(char ** begin,
@@ -150,6 +151,11 @@ int main(int argc, char ** argv){
     printf("Currently cannot do asymmetric Strassen's algorithm with n = %d:\n",n*n);
     pass.push_back(0);
 #endif
+    if (np == 1<<(int)log2(np)){
+      if (rank == 0)
+        printf("Testing non-symmetric sliced GEMM algorithm with (%d %d %d):\n",16,32,8);
+      pass.push_back(test_slice_gemm(16, 32, 8, dw));
+    }
 
   }
   {

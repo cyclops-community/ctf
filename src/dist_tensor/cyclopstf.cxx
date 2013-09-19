@@ -118,7 +118,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   if (mst_size == NULL && stack_size == NULL){
 #ifdef USE_MST
     if (rank == 0)
-      DPRINTF(1,"Creating CTF stack of size %lld\n",1000*(long_int)1E6);
+      DPRINTF(1,"Creating CTF stack of size "PRId64"\n",1000*(long_int)1E6);
     CTF_mst_create(1000*(long_int)1E6);
 #else
     if (rank == 0){
@@ -133,7 +133,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
     if (stack_size != NULL)
       imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
     if (rank == 0)
-      DPRINTF(1,"Creating CTF stack of size %llu due to CTF_STACK_SIZE enviroment variable\n",
+      DPRINTF(1,"Creating CTF stack of size "PRIu64" due to CTF_STACK_SIZE enviroment variable\n",
                 imst_size);
     CTF_mst_create(imst_size);
   }
@@ -141,7 +141,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   if (mem_size != NULL){
     uint64_t imem_size = strtoull(mem_size,NULL,0);
     if (rank == 0)
-      DPRINTF(1,"CTF memory size set to %llu by CTF_MEMORY_SIZE environment variable\n",
+      DPRINTF(1,"CTF memory size set to "PRIu64" by CTF_MEMORY_SIZE environment variable\n",
                 imem_size);
     CTF_set_mem_size(imem_size);
   }
@@ -333,8 +333,36 @@ int tCTF<dtype>::slice_tensor( int const    tid_A,
                                int const *  offsets_B,
                                int const *  ends_B,
                                double const beta){
-  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha,
-                          tid_B, offsets_B, ends_B, beta);
+  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt,
+                          tid_B, offsets_B, ends_B, beta, dt);
+}
+
+template<typename dtype>
+int tCTF<dtype>::slice_tensor( int const      tid_A,
+                               int const *    offsets_A,
+                               int const *    ends_A,
+                               double const   alpha,
+                               tCTF<dtype> *  dt_other_A,
+                               int const      tid_B,
+                               int const *    offsets_B,
+                               int const *    ends_B,
+                               double const   beta){
+  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt_other_A->dt,
+                          tid_B, offsets_B, ends_B, beta, dt);
+}
+
+template<typename dtype>
+int tCTF<dtype>::slice_tensor( int const      tid_A,
+                               int const *    offsets_A,
+                               int const *    ends_A,
+                               double const   alpha,
+                               int const      tid_B,
+                               int const *    offsets_B,
+                               int const *    ends_B,
+                               double const   beta,
+                               tCTF<dtype> *  dt_other_B){
+  return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt,
+                          tid_B, offsets_B, ends_B, beta, dt_other_B->dt);
 }
 
 

@@ -200,29 +200,48 @@ void depad_tsr(int const                ndim,
  * \param[in] num_pair number of pairs
  * \param[in] edge_len tensor edge lengths
  * \param[in] padding padding of tensor (included in edge_len)
+ * \param[in] offsets (default NULL, none applied), offsets keys
  */
 template<typename dtype>
-void pad_key(int const        ndim,
-             long_int const   num_pair,
-             int const *      edge_len,
-             int const *      padding,
-             tkv_pair<dtype> *  pairs){
+void pad_key(int const          ndim,
+             long_int const     num_pair,
+             int const *        edge_len,
+             int const *        padding,
+             tkv_pair<dtype> *  pairs,
+             int const *        offsets = NULL){
   long_int i, j, lda;
   key knew, k;
   TAU_FSTART(pad_key);
+  if (offsets == NULL){
 #ifdef USE_OMP
   #pragma omp parallel for private(knew, k, lda, i, j)
 #endif
-  for (i=0; i<num_pair; i++){
-    k = pairs[i].k;
-    lda = 1;
-    knew = 0;
-    for (j=0; j<ndim; j++){
-      knew += lda*(k%edge_len[j]);
-      lda *= (edge_len[j]+padding[j]);
-      k = k/edge_len[j];
+    for (i=0; i<num_pair; i++){
+      k = pairs[i].k;
+      lda = 1;
+      knew = 0;
+      for (j=0; j<ndim; j++){
+        knew += lda*(k%edge_len[j]);
+        lda *= (edge_len[j]+padding[j]);
+        k = k/edge_len[j];
+      }
+      pairs[i].k = knew;
     }
-    pairs[i].k = knew;
+  } else {
+#ifdef USE_OMP
+  #pragma omp parallel for private(knew, k, lda, i, j)
+#endif
+    for (i=0; i<num_pair; i++){
+      k = pairs[i].k;
+      lda = 1;
+      knew = 0;
+      for (j=0; j<ndim; j++){
+        knew += lda*((k%edge_len[j])+offsets[j]);
+        lda *= (edge_len[j]+padding[j]);
+        k = k/edge_len[j];
+      }
+      pairs[i].k = knew;
+    }
   }
   TAU_FSTOP(pad_key);
 }
@@ -389,7 +408,7 @@ void pad_tsr(int const                ndim,
     if (act_lda == ndim) break;
     
   }
-  DEBUG_PRINTF("ndim = %d new_el=%lld, size = %lld, pad_el = %lld\n", ndim, new_el, size, pad_el);
+  DEBUG_PRINTF("ndim = %d new_el="PRId64", size = "PRId64", pad_el = "PRId64"\n", ndim, new_el, size, pad_el);
   LIBT_ASSERT(new_el + size == pad_el);
   memcpy(padded_pairs+new_el, old_data,  size*sizeof(tkv_pair<dtype>));
   *new_pairs = padded_pairs;
@@ -467,7 +486,7 @@ void assign_keys(int const          ndim,
             for (i=0; i<imax; i++){
         LIBT_ASSERT(buf_offset+i<size);
         if (p*(size/nvirt) + buf_offset + i >= size){ 
-          printf("exceeded how much I was supposed to read read %lld/%lld\n", p*(size/nvirt)+buf_offset+i,size);
+          printf("exceeded how much I was supposed to read read "PRId64"/"PRId64"\n", p*(size/nvirt)+buf_offset+i,size);
           ABORT;
         }
         pairs[buf_offset+i].k = idx_offset+i*phase[0]+phase_rank[0];
@@ -754,9 +773,10 @@ void bucket_by_virt(int const               ndim,
   }
   TAU_FSTOP(bucket_by_virt_sort);
 #if DEBUG >= 1
-  for (i=1; i<num_pair; i++){
+// FIXME: Can we handle replicated keys?
+/*  for (i=1; i<num_pair; i++){
     LIBT_ASSERT(bucket_data[i].k != bucket_data[i-1].k);
-  }
+  }*/
 #endif
 #ifdef USE_OMP
   CTF_free(sub_counts);
@@ -850,7 +870,7 @@ void zero_padding( int const          ndim,
           printf("phase_rank[%d] = %d, idx[%d] = %d, ",i,phase_rank[i],i,idx[i]);
         }
         printf("\n");
-        printf("data[%lld]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
+        printf("data["PRId64"]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
         if (is_outside)
           data[buf_offset] = 0.0;
         buf_offset++;

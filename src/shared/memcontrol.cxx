@@ -24,7 +24,9 @@
 
 
 #include "util.h"
+#ifdef USE_OMP
 #include "omp.h"
+#endif
 #include "memcontrol.h"
 #include "../dist_tensor/cyclopstf.hpp"
 
@@ -105,8 +107,8 @@ std::list<mem_transfer> CTF_contract_mst(){
       } else
         transfers.push_back(t);
     }
-    //DPRINTF(1,"Contracted MST from size %lld to size %lld\n", 
-    DPRINTF(1,"Contracted MST from size %lld to size %lld\n", 
+    //DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
+    DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
                 old_mst_buffer_ptr, mst_buffer_ptr);
     old_mst.clear();
     TAU_FSTOP(CTF_contract_mst);
@@ -140,7 +142,11 @@ void CTF_mst_create(long_int size){
  */
 void CTF_mem_create(){
   CTF_instance_counter++;
+#ifdef USE_OMP
   CTF_max_threads = omp_get_max_threads();
+#else
+  CTF_max_threads = 1;
+#endif
   int i;
   for (i=0; i<CTF_max_threads; i++){
     CTF_mem_used[i] = 0;
@@ -158,14 +164,14 @@ void CTF_mem_exit(int rank){
     for (int i=0; i<CTF_max_threads; i++){
       if (CTF_mem_used[i] > 0){
         if (rank == 0){
-          printf("Warning: memory leak in CTF on thread %d, %lld bytes of memory in use at termination",
+          printf("Warning: memory leak in CTF on thread %d, " PRId64 " bytes of memory in use at termination",
                   i, CTF_mem_used[i]);
           printf(" in %zu unfreed items\n",
                   CTF_mem_stacks[i].size());
         }
       }
       if (mst.size() > 0){
-        printf("Warning: %zu items not deallocated from custom stack, consuming %lld bytes of memory\n",
+        printf("Warning: %zu items not deallocated from custom stack, consuming "PRId64" bytes of memory\n",
                 mst.size(), mst_buffer_ptr);
       }
     }
@@ -201,7 +207,7 @@ int CTF_mst_free(void * ptr){
     mst_buffer_ptr = (long_int)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
   else
     mst_buffer_ptr = 0;
-  //printf("freed block, mst_buffer_ptr = %lld\n", mst_buffer_ptr);
+  //printf("freed block, mst_buffer_ptr = "PRId64"\n", mst_buffer_ptr);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -222,7 +228,7 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
       plen = len;
 
     mem_loc m;
-    //printf("ptr = %lld plen = %d, size = %lld\n", mst_buffer_ptr, plen, mst_buffer_size);
+    //printf("ptr = "PRId64" plen = %d, size = "PRId64"\n", mst_buffer_ptr, plen, mst_buffer_size);
     if (mst_buffer_ptr + plen < mst_buffer_size){
       *ptr = (void*)((char*)mst_buffer+mst_buffer_ptr);
       m.ptr = *ptr;
@@ -231,8 +237,8 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
       mst_buffer_ptr = mst_buffer_ptr+plen;
       mst_buffer_used += plen;  
     } else {
-      DPRINTF(2,"Exceeded mst buffer size (%lld), current ptr is %lld, composed of %d items of size %lld\n",
-              mst_buffer_size, mst_buffer_ptr, mst.size(), mst_buffer_used);
+      DPRINTF(2,"Exceeded mst buffer size ("PRId64"), current ptr is "PRId64", composed of %d items of size "PRId64"\n",
+              mst_buffer_size, mst_buffer_ptr, (int)mst.size(), mst_buffer_used);
       CTF_alloc_ptr(len, ptr);
     }
     return DIST_TENSOR_SUCCESS;
@@ -259,8 +265,12 @@ void * CTF_mst_alloc(int const len){
 int CTF_alloc_ptr(int const len, void ** const ptr){
   int pm, tid;
   mem_loc m;
+#ifdef USE_OMP
   if (CTF_max_threads == 1) tid = 0;
   else tid = omp_get_thread_num();
+#else
+  tid = 0;
+#endif
   std::list<mem_loc> * mem_stack;
   mem_stack = &CTF_mem_stacks[tid];
   CTF_mem_used[tid] += len;
@@ -268,10 +278,10 @@ int CTF_alloc_ptr(int const len, void ** const ptr){
   m.ptr = *ptr;
   m.len = len;
   mem_stack->push_back(m);
-//  printf("CTF_mem_used up to %lld stack to %d\n",CTF_mem_used,mem_stack->size());
+//  printf("CTF_mem_used up to "PRId64" stack to %d\n",CTF_mem_used,mem_stack->size());
 //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
  if (pm){
-    printf("CTF ERROR: posix memalign returned an error, %lld memory alloced on this process, wanted to alloc %d more\n",
+    printf("CTF ERROR: posix memalign returned an error, "PRId64" memory alloced on this process, wanted to alloc %d more\n",
             CTF_mem_used[0], len);
   }
   LIBT_ASSERT(pm == 0);
@@ -350,7 +360,7 @@ int CTF_free(void * ptr, int const tid){
     return DIST_TENSOR_NEGATIVE;
   }
   CTF_mem_used[tid] -= len;
-  //printf("CTF_mem_used down to %lld stack to %d\n",CTF_mem_used,mem_stack->size());
+  //printf("CTF_mem_used down to "PRId64" stack to %d\n",CTF_mem_used,mem_stack->size());
   free(ptr);
   return DIST_TENSOR_SUCCESS;
 }
@@ -361,8 +371,12 @@ int CTF_free(void * ptr, int const tid){
  */
 int CTF_free_cond(void * ptr){
   int ret, tid, i;
+#ifdef USE_OMP
   if (CTF_max_threads == 1) tid = 0;
   else tid = omp_get_thread_num();
+#else
+  tid = 0;
+#endif
 
   ret = CTF_free(ptr, tid);
   if (ret == DIST_TENSOR_NEGATIVE){
@@ -385,13 +399,17 @@ int CTF_free_cond(void * ptr){
  */
 int CTF_free(void * ptr){
   int ret, tid, i;
+#ifdef USE_OMP
   if (CTF_max_threads == 1) tid = 0;
   else tid = omp_get_thread_num();
+#else
+  tid = 0;
+#endif
 
   ret = CTF_free(ptr, tid);
   if (ret == DIST_TENSOR_NEGATIVE){
     if (tid != 0 || CTF_max_threads == 1){
-      printf("CTF ERROR: Invalid free of pointer %p\n", ptr);
+      printf("CTF ERROR: Invalid free of pointer %p by thread %d\n", ptr, tid);
       ABORT;
       return DIST_TENSOR_ERROR;
     } else {
@@ -403,7 +421,7 @@ int CTF_free(void * ptr){
         }
       }
       if (i==CTF_max_threads){
-        printf("CTF ERROR: Invalid free of pointer %p\n", ptr);
+        printf("CTF ERROR: Invalid free of pointer %p by zeroth thread\n", ptr);
         ABORT;
         return DIST_TENSOR_ERROR;
       }

@@ -1666,7 +1666,7 @@ ctr<dtype> * dist_tensor<dtype>::
     ggg_sym_nmk(tsr_A->ndim, virt_blk_len_A, type->idx_map_A, tsr_A->sym,
     tsr_B->ndim, virt_blk_len_B, type->idx_map_B, tsr_B->sym,
     tsr_C->ndim, &n, &m, &k);
-    printf("Each subcontraction is a %lld by %lld by %lld DGEMM performing %E flops\n",n,m,k,
+    printf("Each subcontraction is a "PRId64" by "PRId64" by "PRId64" DGEMM performing %E flops\n",n,m,k,
       2.0*(dtype)n*(dtype)m*(dtype)k);
     new_flops *= 2.0*(dtype)n*(dtype)m*(dtype)k;
     printf("Contraction performing %E flops rather than %E, a factor of %lf more flops due to padding\n",
@@ -2197,8 +2197,8 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     stat = get_tsr_info(ntid_B, &ndim_B, &edge_len_B, &sym_B);
     assert(stat == DIST_TENSOR_SUCCESS);
 
-    if (nsA != nA) { printf("nsA = %lld, nA = %lld\n",nsA,nA); ABORT; }
-    if (nsB != nB) { printf("nsB = %lld, nB = %lld\n",nsB,nB); ABORT; }
+    if (nsA != nA) { printf("nsA = "PRId64", nA = "PRId64"\n",nsA,nA); ABORT; }
+    if (nsB != nB) { printf("nsB = "PRId64", nB = "PRId64"\n",nsB,nB); ABORT; }
     for (i=0; (ulong_int)i<nA; i++){
       if (fabs(uA[i] - sA[i]) > 1.E-6){
         printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
@@ -2783,8 +2783,8 @@ int dist_tensor<dtype>::
   stat = get_tsr_info(type->tid_B, &ndim_B, &edge_len_B, &sym_B);
   assert(stat == DIST_TENSOR_SUCCESS);
 
-  if (nsA != nA) { printf("nsA = %lld, nA = %lld\n",nsA,nA); ABORT; }
-  if (nsB != nB) { printf("nsB = %lld, nB = %lld\n",nsB,nB); ABORT; }
+  if (nsA != nA) { printf("nsA = "PRId64", nA = "PRId64"\n",nsA,nA); ABORT; }
+  if (nsB != nB) { printf("nsB = "PRId64", nB = "PRId64"\n",nsB,nB); ABORT; }
   for (i=0; (ulong_int)i<nA; i++){
     if (fabs(uA[i] - sA[i]) > 1.E-6){
       printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
@@ -2800,7 +2800,7 @@ int dist_tensor<dtype>::
   assert(stat == DIST_TENSOR_SUCCESS);
   stat = get_tsr_info(type->tid_C, &ndim_C, &edge_len_C, &sym_C);
   assert(stat == DIST_TENSOR_SUCCESS);
-  DEBUG_PRINTF("packed size of C is %lld (should be %lld)\n", nC,
+  DEBUG_PRINTF("packed size of C is "PRId64" (should be "PRId64")\n", nC,
     sy_packed_size(ndim_C, edge_len_C, sym_C));
 
   pup_C = (dtype*)CTF_alloc(nC*sizeof(dtype));

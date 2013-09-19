@@ -194,9 +194,9 @@ int get_best_topo(uint64_t const  nvirt,
     btopo = INT_MAX;
   }
   ALLREDUCE(&btopo, &gtopo, 1, MPI_INT, MPI_MIN, global_comm);
-  /*printf("nvirt = %llu bcomm_vol = %llu bmemuse = %llu topo = %d\n",
+  /*printf("nvirt = "PRIu64" bcomm_vol = "PRIu64" bmemuse = "PRIu64" topo = %d\n",
     nvirt, bcomm_vol, bmemuse, topo);
-  printf("gnvirt = %llu gcomm_vol = %llu gmemuse = %llu bv = %llu nv = %llu gtopo = %d\n",
+  printf("gnvirt = "PRIu64" gcomm_vol = "PRIu64" gmemuse = "PRIu64" bv = "PRIu64" nv = "PRIu64" gtopo = %d\n",
     gnvirt, gcomm_vol, gmemuse, bv, nv, gtopo);*/
 
   return gtopo;
@@ -765,7 +765,7 @@ int remap_tensor(int const  tid,
 #if VERIFY_REMAP
   for (j=0; j<tsr->size; j++){
     if (tsr->data[j] != shuffled_data_corr[j]){
-      printf("data element %d/%lld not received correctly on process %d\n",
+      printf("data element %d/"PRId64" not received correctly on process %d\n",
               j, tsr->size, global_comm->rank);
       printf("element received was %.3E, correct %.3E\n", 
               GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));

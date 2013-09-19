@@ -59,7 +59,7 @@ template<typename dtype>
 void ctr_virt<dtype>::print() {
   int i;
   printf("ctr_virt:\n");
-  printf("blk_sz_A = %lld, blk_sz_B = %lld, blk_sz_C = %lld\n",
+  printf("blk_sz_A = "PRId64", blk_sz_B = "PRId64", blk_sz_C = "PRId64"\n",
           blk_sz_A, blk_sz_B, blk_sz_C);
   for (i=0; i<num_dim; i++){
     printf("virt_dim[%d] = %d\n", i, virt_dim[i]);

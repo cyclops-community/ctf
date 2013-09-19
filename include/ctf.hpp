@@ -274,6 +274,18 @@ class tCTF_Tensor {
                       int const * ends);
     
     /**
+     * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+     * \param[in] offsets bottom left corner of block
+     * \param[in] ends top right corner of block
+     * \return new tensor corresponding to requested slice which lives on
+     *          oworld
+     */
+    tCTF_Tensor slice(int const *         offsets,
+                      int const *         ends,
+                      tCTF_World<dtype> * oworld);
+    
+    
+    /**
      * \brief cuts out a slice (block) of this tensor = B
      *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
      * \param[in] offsets bottom left corner of block
@@ -290,6 +302,7 @@ class tCTF_Tensor {
                    int const *    offsets_A,
                    int const *    ends_A,
                    double         alpha);
+    
 
     /**
      * \brief aligns data mapping with tensor A

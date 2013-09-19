@@ -23,16 +23,19 @@ int fast_diagram(int const     n,
   int NNN[] = {NS,NS,NS};
   int NNNN[] = {NS,NS,NS,NS};
   int ANNN[] = {AS,NS,NS,NS};
+  int SNNN[] = {SH,NS,NS,NS};
   int AANNN[] = {AS,AS,NS,NS,NS};
 
-  CTF_Tensor T(4, len4, ANNN, ctf);
-  CTF_Tensor V(4, len4, ANNN, ctf);
+  CTF_Tensor T(4, len4, SNNN, ctf);
+  CTF_Tensor V(4, len4, SNNN, ctf);
 
-  CTF_Tensor W(4, len4, ANNN, ctf);
-  CTF_Tensor W_ans(4, len4, ANNN, ctf);
+  CTF_Tensor W(4, len4, SNNN, ctf);
+  CTF_Tensor W_ans(4, len4, SNNN, ctf);
 
   CTF_Tensor Z_AS(4, len4, ANNN, ctf);
+  CTF_Tensor Z_SH(4, len4, SNNN, ctf);
   CTF_Tensor Z_NS(4, len4, NNNN, ctf);
+  CTF_Tensor Z_D(3, len3, NNN, ctf);
   
 
   CTF_Tensor Ts(3, len3, NNN, ctf);
@@ -62,16 +65,20 @@ int fast_diagram(int const     n,
   Z_NS["afin"] = T["aeim"]*V["efmn"];
 //  Z_NS.print(stdout);
   W_ans["abij"] = Z_NS["afin"]*T["fbnj"];
-//  W_ans.print(stdout);
+  W_ans.print(stdout);
  
 //  Z_AS.print(stdout);
   Z_AS["afin"] = T["aeim"]*V["efmn"];
+  Z_SH["afin"] = T["aeim"]*V["efmn"];
+  Z_D["ain"] = T["aeim"]*V["eamn"];
   W["abij"] = Z_AS["afin"]*T["fbnj"];
-  W["abij"] -= W_ans["abij"];
-  W.print(stdout);
-  Z_AS["ebmj"] = V["efmn"]*T["fbnj"];
-  W["abij"] = T["aeim"]*Z_AS["ebmj"];
-  W["abij"] -= W_ans["abij"];
+  W["abij"] += Z_SH["afin"]*T["fbnj"];
+  W["abij"] += Z_D["ain"]*T["abnj"];
+//  W["abij"] -= Z_SY["aain"]*T["fbnj"];
+//  W.print(stdout);
+  //Z_AS["ebmj"] = V["efmn"]*T["fbnj"];
+//  W["abij"] = T["aeim"]*Z_AS["ebmj"];
+//  W["abij"] -= W_ans["abij"];
   W.print(stdout);
 //  Ts["eim"] = T["feim"];
 //  Zs["ain"] = Ts["eim"]*V["eamn"];

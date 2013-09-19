@@ -285,7 +285,8 @@ class tCTF{
                      tkv_pair<dtype> const *  mapped_data);
 
     /* Add tensor data from A to a block of B, 
-       B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] */
+       B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
+                          + alpha*A[offsets_A:ends_A] */
     int slice_tensor(int const    tid_A,
                      int const *  offsets_A,
                      int const *  ends_A,
@@ -294,6 +295,29 @@ class tCTF{
                      int const *  offsets_B,
                      int const *  ends_B,
                      double const beta);
+
+    /* Same as above, except tid_A lives on dt_other_A */
+    int slice_tensor(int const      tid_A,
+                     int const *    offsets_A,
+                     int const *    ends_A,
+                     double const   alpha,
+                     tCTF<dtype> *  dt_other_A,
+                     int const      tid_B,
+                     int const *    offsets_B,
+                     int const *    ends_B,
+                     double const   beta);
+    
+    /* Same as above, except tid_B lives on dt_other_B */
+    int slice_tensor(int const      tid_A,
+                     int const *    offsets_A,
+                     int const *    ends_A,
+                     double const   alpha,
+                     int const      tid_B,
+                     int const *    offsets_B,
+                     int const *    ends_B,
+                     double const   beta,
+                     tCTF<dtype> *  dt_other_B);
+    
 
     /* read a block from tensor_id, 
        new_tensor_id = tensor_id[offsets:ends] */
