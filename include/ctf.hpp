@@ -566,17 +566,29 @@ class tCTF_Idx_Tensor {
   public:
     tCTF_Tensor<dtype> * parent;
     char * idx_map;
-    int has_contract, has_scale, has_sum, is_intm;
+    int has_contract, has_scale, has_sum, is_intm, is_copy;
     double scale;
-    tCTF_Idx_Tensor<dtype> * NBR;
+    tCTF_Idx_Tensor<dtype> *NBR;
 
   public:
     /**
      * \brief constructor takes in a parent tensor and its indices 
      * \param[in] parent_ the parent tensor
      * \param[in] idx_map_ the indices assigned ot this tensor
+     * \param[in] copy if set to 1, create copy of parent
      */
-    tCTF_Idx_Tensor(tCTF_Tensor<dtype>* parent_, const char * idx_map_);
+    tCTF_Idx_Tensor(tCTF_Tensor<dtype>* parent_, 
+                    const char *        idx_map_,
+                    int                 copy = 0);
+    
+    /**
+     * \brief copy constructor
+     * \param[in] B tensor to copy
+     */
+    tCTF_Idx_Tensor(tCTF_Idx_Tensor<dtype>& B,
+                    int copy = 0);
+    
+    tCTF_Idx_Tensor();
     
     ~tCTF_Idx_Tensor();
     
@@ -699,6 +711,7 @@ class CTF_Flop_Counter{
 
 /* these typedefs yield a non-tempalated interface for double and complex<double> */
 typedef tCTF<double>                        CTF;
+typedef tCTF_Idx_Tensor<double>             CTF_Idx_Tensor;
 typedef tCTF_Tensor<double>                 CTF_Tensor;
 typedef tCTF_Matrix<double>                 CTF_Matrix;
 typedef tCTF_Vector<double>                 CTF_Vector;
@@ -708,6 +721,7 @@ typedef tCTF_fscl<double>                   CTF_fscl;
 typedef tCTF_fsum<double>                   CTF_fsum;
 typedef tCTF_fctr<double>                   CTF_fctr;
 typedef tCTF< std::complex<double> >        cCTF;
+typedef tCTF_Idx_Tensor< std::complex<double> > cCTF_Idx_Tensor;
 typedef tCTF_Tensor< std::complex<double> > cCTF_Tensor;
 typedef tCTF_Matrix< std::complex<double> > cCTF_Matrix;
 typedef tCTF_Vector< std::complex<double> > cCTF_Vector;
