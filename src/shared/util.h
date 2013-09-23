@@ -16,7 +16,8 @@
 #include <unistd.h>
 #include "comm.h"
 
-#if (defined(__X86_64__) || defined(__IA64__) || defined(__amd64__) || defined(__ppc64__) || defined(_ARCH_PPC))
+#if (defined(__X86_64__) || defined(__IA64__) || defined(__amd64__) || \
+     defined(__ppc64__) || defined(_ARCH_PPC) || defined(BGQ) || defined(BGP))
 #define PRId64 "%ld"
 #define PRIu64 "%lu"
 #elif (defined(__i386__))

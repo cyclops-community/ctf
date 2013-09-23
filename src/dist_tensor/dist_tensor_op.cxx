@@ -1870,7 +1870,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   type.tid_B = tid_B;
   type.idx_map_A = (int*)idx_map_A;
   type.idx_map_B = (int*)idx_map_B;
-  sym_sum_tsr(alpha_, beta, &type, ftsr, felm, run_diag);
+  return sym_sum_tsr(alpha_, beta, &type, ftsr, felm, run_diag);
 }
 
 /**
