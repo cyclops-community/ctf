@@ -8,8 +8,7 @@ OPT_FLAGS   = -g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -q
 CXXFLAGS    = -qsmp=omp $(OPT_FLAGS) $(WARN_FLAGS) 
 DEFS        = -DBGQ -D__STDC_LIMIT_MACROS
 
-# On Blue Gene/Q, you must use bglib64 not lib64.
-LDFLAGS     = -L$(BGQ_ESSL)/bglib64 \
+LDFLAGS     = -L$(BGQ_ESSL)/lib64 \
               -L$(IBM_MAIN_DIR)/xlf/bg/14.1/bglib64/ \
               -L$(IBM_MAIN_DIR)/xlsmp/bg/3.1/bglib64/ \
               -L$(IBM_MAIN_DIR)/xlmass/bg/7.3/bglib64/ 
@@ -19,10 +18,10 @@ AR          = powerpc64-bgq-linux-ar -crs
 DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
 
 #uncomment below to enable performance profiling
-#DEFS      := $(DEFS) -DPROFILE -DPMPI
+DEFS      := $(DEFS) -DPROFILE -DPMPI 
 
 #uncomment below to enable CTF debugging and status output
-#DEFS      := $(DEFS) -DDEBUG=1
+#DEFS      := $(DEFS) -DDEBUG=2
 
 #SCALAPACK only necessary for pgemm tests and benchmarks 
 #LIBS      := $(LIBS) -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack -lgfortran

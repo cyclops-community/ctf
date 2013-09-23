@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <algorithm>
 #include <ctf.hpp>
+#include "../src/shared/util.h"
 
 int  gemm(int const     m,
           int const     n,
