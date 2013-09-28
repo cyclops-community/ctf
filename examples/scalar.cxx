@@ -60,6 +60,7 @@ int scalar(CTF_World    &dw){
   
 
   val = C["ij"];
+  
 /*  if (C.sym == AS){
     pass-= !( fabs(C.reduce(CTF_OP_SUM)-n*(n-1)*2.1)<1.E-6);
     printf("C sum is %lf, abs sum is %lf, C[\"ij\"]=%lf expectd %lf\n",
@@ -74,6 +75,21 @@ int scalar(CTF_World    &dw){
 
 
   pass-= !( fabs(C.reduce(CTF_OP_SUMABS)-n*(n-1)*13.1)<1.E-6);
+  int sizeN4[4] = {n,0,n,n};
+  int shapeN4[4] = {NS,NS,SY,NS};
+  CTF_Matrix E(n,n,NS,dw);
+  CTF_Tensor D(4, sizeN4, shapeN4, dw);
+  
+  E["ij"]=13.1;
+
+  E["ii"]=D["klij"]*E["ki"];
+  
+  pass-= !( fabs(E.reduce(CTF_OP_SUMABS)-0)>1.E-6);
+  
+  E["ij"]=D["klij"]*E["ki"];
+
+  pass-= !( fabs(E.reduce(CTF_OP_SUMABS)-0)<1.E-6);
+  
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     if (pass < 1){

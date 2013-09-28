@@ -57,6 +57,7 @@ int dist_tensor<double>::dot_loc_tsr(int const tid_A, int const tid_B, double *p
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
   if (tsr_A->has_zero_edge_len || tsr_B->has_zero_edge_len){
+    *product = 0.0;
     return DIST_TENSOR_SUCCESS;
   }
 
@@ -104,6 +105,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
 
   tsr = tensors[tid];
   if (tsr->has_zero_edge_len){
+    *result = 0.0;
     return DIST_TENSOR_SUCCESS;
   }
   unmap_inner(tsr);
@@ -1739,6 +1741,13 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
   int new_tid;
   if (tsr_A->has_zero_edge_len || 
       tsr_B->has_zero_edge_len){
+    if (beta != 1.0 && !tsr_B->has_zero_edge_len){ 
+      fseq_tsr_scl<dtype> fs;
+      fs.func_ptr=sym_seq_scl_ref<dtype>;
+      fseq_elm_scl<dtype> felm;
+      felm.func_ptr = NULL;
+      scale_tsr(beta, tid_B, idx_map_B, fs, felm); 
+    }
     return DIST_TENSOR_SUCCESS;
   }
   if (tid_A == tid_B){
@@ -1902,6 +1911,14 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   check_sum(type);
   if (tensors[type->tid_A]->has_zero_edge_len || 
       tensors[type->tid_B]->has_zero_edge_len){
+    tensor<dtype> * tsr_B = tensors[type->tid_B];
+    if (beta != 1.0 && !tsr_B->has_zero_edge_len){ 
+      fseq_tsr_scl<dtype> fs;
+      fs.func_ptr=sym_seq_scl_ref<dtype>;
+      fseq_elm_scl<dtype> felm;
+      felm.func_ptr = NULL;
+      scale_tsr(beta, type->tid_B, type->idx_map_B, fs, felm); 
+    }
     return DIST_TENSOR_SUCCESS;
   }
   ntid_A = type->tid_A;
@@ -2056,6 +2073,14 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
   tsum<dtype> * sumf;
   check_sum(tid_A, tid_B, idx_map_A, idx_map_B);
   if (tensors[tid_A]->has_zero_edge_len || tensors[tid_B]->has_zero_edge_len){
+    tensor<dtype> * tsr_B = tensors[tid_B];
+    if (beta != 1.0 && !tsr_B->has_zero_edge_len){ 
+      fseq_tsr_scl<dtype> fs;
+      fs.func_ptr=sym_seq_scl_ref<dtype>;
+      fseq_elm_scl<dtype> felm;
+      felm.func_ptr = NULL;
+      scale_tsr(beta, tid_B, idx_map_B, fs, felm); 
+    }
     return DIST_TENSOR_SUCCESS;
   }
 
@@ -2279,6 +2304,26 @@ int dist_tensor<dtype>::
   if (tsr_A->has_zero_edge_len || 
       tsr_B->has_zero_edge_len || 
       tsr_C->has_zero_edge_len){
+    if (beta != 1.0 && !tsr_C->has_zero_edge_len){ 
+      int * new_idx_map_C; 
+      int num_diag = 0;
+      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->ndim);
+      for (int i=0; i<tsr_C->ndim; i++){
+        new_idx_map_C[i]=i-num_diag;
+        for (int j=0; j<i; j++){
+          if (stype->idx_map_C[i] == stype->idx_map_C[j]){
+            new_idx_map_C[i]=j-num_diag;
+            num_diag++;
+            break;
+          }
+        }
+      }
+      fseq_tsr_scl<dtype> fs;
+      fs.func_ptr=sym_seq_scl_ref<dtype>;
+      fseq_elm_scl<dtype> felm;
+      felm.func_ptr = NULL;
+      scale_tsr(beta, stype->tid_C, new_idx_map_C, fs, felm); 
+    }
     return DIST_TENSOR_SUCCESS;
   }
 
@@ -2432,8 +2477,29 @@ int dist_tensor<dtype>::
   dtype dbeta;
   ctr<dtype> * ctrf;
   check_contraction(stype);
-  if (tensors[type->tid_A]->has_zero_edge_len || tensors[type->tid_B]->has_zero_edge_len
-      || tensors[type->tid_C]->has_zero_edge_len){
+  if (tensors[stype->tid_A]->has_zero_edge_len || tensors[stype->tid_B]->has_zero_edge_len
+      || tensors[stype->tid_C]->has_zero_edge_len){
+    tensor<dtype>* tsr_C = tensors[stype->tid_C];
+    if (beta != 1.0 && !tsr_C->has_zero_edge_len){ 
+      int * new_idx_map_C; 
+      int num_diag = 0;
+      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->ndim);
+      for (int i=0; i<tsr_C->ndim; i++){
+        new_idx_map_C[i]=i-num_diag;
+        for (int j=0; j<i; j++){
+          if (stype->idx_map_C[i] == stype->idx_map_C[j]){
+            new_idx_map_C[i]=j-num_diag;
+            num_diag++;
+            break;
+          }
+        }
+      }
+      fseq_tsr_scl<dtype> fs;
+      fs.func_ptr=sym_seq_scl_ref<dtype>;
+      fseq_elm_scl<dtype> felm;
+      felm.func_ptr = NULL;
+      scale_tsr(beta, stype->tid_C, new_idx_map_C, fs, felm); 
+    }
     return DIST_TENSOR_SUCCESS;
   }
   ntid_A = type->tid_A;
@@ -2636,6 +2702,27 @@ int dist_tensor<dtype>::
 
   if (tensors[type->tid_A]->has_zero_edge_len || tensors[type->tid_B]->has_zero_edge_len
       || tensors[type->tid_C]->has_zero_edge_len){
+    tensor<dtype> * tsr_C = tensors[type->tid_C];
+    if (beta != 1.0 && !tsr_C->has_zero_edge_len){ 
+      int * new_idx_map_C; 
+      int num_diag = 0;
+      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->ndim);
+      for (int i=0; i<tsr_C->ndim; i++){
+        new_idx_map_C[i]=i-num_diag;
+        for (int j=0; j<i; j++){
+          if (type->idx_map_C[i] == type->idx_map_C[j]){
+            new_idx_map_C[i]=j-num_diag;
+            num_diag++;
+            break;
+          }
+        }
+      }
+      fseq_tsr_scl<dtype> fs;
+      fs.func_ptr=sym_seq_scl_ref<dtype>;
+      fseq_elm_scl<dtype> felm;
+      felm.func_ptr = NULL;
+      scale_tsr(beta, type->tid_C, new_idx_map_C, fs, felm); 
+    }
     return DIST_TENSOR_SUCCESS;
   }
   if (type->tid_A == type->tid_B || type->tid_A == type->tid_C){
