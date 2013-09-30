@@ -159,6 +159,10 @@ CTF_Timer::~CTF_Timer(){ }
 void CTF_Timer::exit(){
 #ifdef PROFILE
   if (set_contxt && original && !exited) {
+    if (comm != MPI_COMM_WORLD){
+      function_timers.clear();
+      return;
+    }
     int rank, np, i, j, p, len_symbols;
 
     MPI_Comm_rank(comm, &rank);
@@ -277,6 +281,7 @@ void CTF_set_main_args(int argc, const char * const * argv){
 }
 
 void CTF_set_context(MPI_Comm ctxt){
+  if (!set_contxt)
+    comm = ctxt;
   set_contxt = 1;
-  comm = ctxt;
 }
