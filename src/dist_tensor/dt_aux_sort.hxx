@@ -844,6 +844,14 @@ void zero_padding( int const          ndim,
   memcpy(phase_rank, cphase_rank, ndim*sizeof(int));
   memset(virt_rank, 0, sizeof(int)*ndim);
   for (p=0; p<nvirt; p++){
+    int is_sh_pad0 = 0;
+    if (((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]) ||
+        ( sym[0] == SY                  && phase_rank[0] >  phase_rank[1]) ) {
+      is_sh_pad0 = 1;
+    }
+    int pad0 = (padding[0]+phase_rank[0])/phase[0];
+    int len0 = edge_len[0]/phase[0]-pad0;
+    int plen0 = edge_len[0]/phase[0];
     if (p>=vst && p<vend){
       buf_offset = 0;
       data = vdata + p*(size/nvirt);
@@ -852,7 +860,7 @@ void zero_padding( int const          ndim,
       memset(idx, 0, ndim*sizeof(int));
       for (;;){
         is_outside = 0;
-        for (i=0; i<ndim; i++){
+        for (i=1; i<ndim; i++){
           curr_idx = idx[i]*phase[i]+phase_rank[i];
           if (curr_idx >= edge_len[i] - padding[i]){
             is_outside = 1;
@@ -871,11 +879,19 @@ void zero_padding( int const          ndim,
         }
         printf("\n");
         printf("data["PRId64"]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
-        if (is_outside)
-          data[buf_offset] = 0.0;
-        buf_offset++;
+
+  
+        if (sym[0] != NS) plen0 = idx[1]+1;
+        if (is_outside){
+          std::fill(data+buf_offset, data+buf_offset+plen0, 0.0);
+        } else {
+          int s1 = MIN(plen0-is_sh_pad0,len0);
+/*          if (sym[0] == SH) s1 = MIN(s1, len0-1);*/
+          std::fill(data+buf_offset+s1, data+buf_offset+plen0, 0.0);
+        }
+        buf_offset+=plen0;
         /* Increment indices and set up offsets */
-        for (i=0; i < ndim; i++){
+        for (i=1; i < ndim; i++){
           idx[i]++;
           act_max = edge_len[i]/phase[i];
           if (sym[i] != NS){
