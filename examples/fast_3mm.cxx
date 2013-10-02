@@ -32,18 +32,18 @@ int fast_diagram(int const     n,
   int64_t size;
   srand48(173*rank);
 
-  T.get_local_data(&size, &indices, &values);
+  T.read_local(&size, &indices, &values);
   for (i=0; i<size; i++){
     values[i] = drand48();
   }
-  T.write_remote_data(size, indices, values);
+  T.write(size, indices, values);
   free(indices);
   free(values);
-  V.get_local_data(&size, &indices, &values);
+  V.read_local(&size, &indices, &values);
   for (i=0; i<size; i++){
     values[i] = drand48();
   }
-  V.write_remote_data(size, indices, values);
+  V.write(size, indices, values);
   free(indices);
   free(values);
   Z_NS["af"] = T["ae"]*V["ef"];
@@ -63,9 +63,9 @@ int fast_diagram(int const     n,
 //  Z_SY["aa"] -= Z_SY["aa"];
 //  Z_D["a"] = T["ae"]*V["ea"];
 
-/*  Z_AS.get_local_data(&size, &indices, &values);
+/*  Z_AS.read_local(&size, &indices, &values);
   Z_SY["abij"] = 0.0;
-  Z_SY.write_remote_data(size, indices, values);*/
+  Z_SY.write(size, indices, values);*/
   W["ab"] = .5*Z_SY["af"]*T["fb"];
   W["ab"] += .5*Z_SY["aa"]*T["ab"];
   W["ab"] += .5*Z_AS["af"]*T["fb"];

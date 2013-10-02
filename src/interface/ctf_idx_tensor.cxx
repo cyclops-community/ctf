@@ -205,7 +205,7 @@ tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator-(tCTF_Idx_Tensor<dtype>
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator*(double const scl){
+tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator*(double  scl){
   if (has_contract)
     return (*NBR)*scl;
   if (has_scale){
@@ -227,8 +227,8 @@ tCTF_Idx_Tensor<dtype>::operator dtype(){
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, double beta){
-  double alpha;
+void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, dtype  beta){
+  dtype  alpha;
   if (has_scale) alpha = scale;
   else alpha = 1.0;
   if (has_contract){

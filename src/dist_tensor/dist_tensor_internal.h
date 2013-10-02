@@ -302,12 +302,12 @@ class dist_tensor{
     int slice_tensor(int const              tid_A,
                      int const *            offsets_A,
                      int const *            ends_A,
-                     double const           alpha,
+                     dtype const            alpha,
                      dist_tensor<dtype> *   dt_A,
                      int const              tid_B,
                      int const *            offsets_B,
                      int const *            ends_B,
-                     double const           beta,
+                     dtype const            beta,
                      dist_tensor<dtype> *   dt_B);
     
     

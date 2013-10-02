@@ -297,18 +297,38 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
  *         with <key, value> pairs where key is the 
  *         global index for the value. 
  * \param[in] tensor_id tensor handle
- * \param[in] 
  * \param[in] num_pair number of pairs to write
+ * \param[in] alpha scaling factor of written value
+ * \param[in] beta scaling factor of old value
  * \param[in] mapped_data pairs to write
  */
 template<typename dtype>
 int tCTF<dtype>::write_tensor(int const               tensor_id, 
-                              long_int const           num_pair,  
-                              dtype const             alpha,
-                              dtype const             beta,
+                              long_int const          num_pair,  
+                              dtype const              alpha,
+                              dtype const              beta,
                               tkv_pair<dtype> const * mapped_data){
   return dt->write_pairs(tensor_id, num_pair, alpha, beta, const_cast<tkv_pair<dtype>*>(mapped_data), 'w');
 }
+
+/**
+ * \brief read tensor data with <key, value> pairs where key is the
+ *              global index for the value, which gets filled in. 
+ * \param[in] tensor_id tensor handle
+ * \param[in] num_pair number of pairs to read
+ * \param[in] alpha scaling factor of read value
+ * \param[in] beta scaling factor of old value
+ * \param[in] mapped_data pairs to write
+ */
+template<typename dtype>
+int tCTF<dtype>::read_tensor(int const                tensor_id, 
+                             long_int const           num_pair, 
+                             dtype const               alpha, 
+                             dtype const               beta, 
+                             tkv_pair<dtype> * const  mapped_data){
+  return dt->write_pairs(tensor_id, num_pair, alpha, beta, mapped_data, 'r');
+}
+
 
 /**
  * \brief read tensor data with <key, value> pairs where key is the
@@ -319,20 +339,20 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
  */
 template<typename dtype>
 int tCTF<dtype>::read_tensor(int const                tensor_id, 
-                             long_int const            num_pair, 
+                             long_int const           num_pair, 
                              tkv_pair<dtype> * const  mapped_data){
-  return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, mapped_data, 'r');
+  return read_tensor(tensor_id, num_pair, 1.0, 0.0, mapped_data);
 }
 
 template<typename dtype>
 int tCTF<dtype>::slice_tensor( int const    tid_A,
                                int const *  offsets_A,
                                int const *  ends_A,
-                               double const alpha,
+                               dtype const  alpha,
                                int const    tid_B,
                                int const *  offsets_B,
                                int const *  ends_B,
-                               double const beta){
+                               dtype const  beta){
   return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt,
                           tid_B, offsets_B, ends_B, beta, dt);
 }
@@ -341,12 +361,12 @@ template<typename dtype>
 int tCTF<dtype>::slice_tensor( int const      tid_A,
                                int const *    offsets_A,
                                int const *    ends_A,
-                               double const   alpha,
+                               dtype const    alpha,
                                tCTF<dtype> *  dt_other_A,
                                int const      tid_B,
                                int const *    offsets_B,
                                int const *    ends_B,
-                               double const   beta){
+                               dtype const    beta){
   return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt_other_A->dt,
                           tid_B, offsets_B, ends_B, beta, dt);
 }
@@ -355,11 +375,11 @@ template<typename dtype>
 int tCTF<dtype>::slice_tensor( int const      tid_A,
                                int const *    offsets_A,
                                int const *    ends_A,
-                               double const   alpha,
+                               dtype const    alpha,
                                int const      tid_B,
                                int const *    offsets_B,
                                int const *    ends_B,
-                               double const   beta,
+                               dtype const    beta,
                                tCTF<dtype> *  dt_other_B){
   return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt,
                           tid_B, offsets_B, ends_B, beta, dt_other_B->dt);

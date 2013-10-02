@@ -34,17 +34,17 @@ int weight_4D(int const    n,
   CTF_Tensor C(4, sizeN4, shapeN4, dw);
 
   srand48(13*rank);
-  A.get_local_data(&np_A, &indices_A, &pairs_A);
+  A.read_local(&np_A, &indices_A, &pairs_A);
   for (i=0; i<np_A; i++ ) pairs_A[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  A.write_remote_data(np_A, indices_A, pairs_A);
-  B.get_local_data(&np, &indices, &pairs);
+  A.write(np_A, indices_A, pairs_A);
+  B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  B.write_remote_data(np, indices, pairs);
+  B.write(np, indices, pairs);
   free(pairs);
   free(indices);
-  C.get_local_data(&np, &indices, &pairs);
+  C.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  C.write_remote_data(np, indices, pairs);
+  C.write(np, indices, pairs);
   free(pairs);
   free(indices);
 
@@ -56,7 +56,7 @@ int weight_4D(int const    n,
   C.contract(1.0, C, "ijkl", B, "klij", 0.0, "ijkl", fctr);
 
   post_pairs_C = (double*)malloc(np_A*sizeof(double));
-  C.get_remote_data(np_A, indices_A, post_pairs_C);
+  C.read(np_A, indices_A, post_pairs_C);
   
   int pass = 1; 
   for (i=0; i<np_A; i++){
