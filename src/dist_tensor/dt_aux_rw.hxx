@@ -100,7 +100,7 @@ void readwrite(int const        ndim,
               if (beta == 0.0)
                 pairs[pr_offset].d = alpha*data[buf_offset+i];
               else
-              /* FIXME: should it be the opposite? */
+              /* should it be the opposite? No, because 'pairs' was passed in and 'data' is being added to pairs, so data is operand, gets alpha. */
                 pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
             } else {
               LIBT_ASSERT(rw =='w');
@@ -108,11 +108,16 @@ void readwrite(int const        ndim,
             }
             pr_offset++;
             //Check for write conflicts
-            //FIXME: allow and handle them!
-            /*while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
-              LIBT_ASSERT(pairs[pr_offset-1].d == pairs[pr_offset].d);
+            //Fixed: allow and handle them!
+            while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
+              if (rw == 'r'){
+                pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
+              } else {
+                //data[(long_int)buf_offset+i] = beta*data[(long_int)buf_offset+i]+alpha*pairs[pr_offset].d;
+                data[(long_int)buf_offset+i] += alpha*pairs[pr_offset].d;
+              }
               pr_offset++;
-            }*/
+            }
           } else {
             i++;
 /*          DEBUG_PRINTF("%d key[%d] %d not matched with %d\n", 

@@ -24,6 +24,9 @@ test4: test_suite
 test6: test_suite
 	mpirun -np 6 ${bindir}/test_suite
 
+test7: test_suite
+	mpirun -np 7 ${bindir}/test_suite
+
 test8: test_suite
 	mpirun -np 8 ${bindir}/test_suite
 
