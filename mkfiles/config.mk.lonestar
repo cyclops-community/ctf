@@ -1,10 +1,10 @@
 DEFAULT_COMPONENTS = ctf
 
 BLAS        = -I$(TACC_MKL_INC) -Wl,-rpath,$(TACC_MKL_LIB) \
-	    -L$(TACC_MKL_LIB) \
-	    -Wl,--start-group \
-	    -lmkl_intel_lp64 -lmkl_sequential -lmkl_core \
-	    -Wl,--end-group -lpthread
+              -L$(TACC_MKL_LIB) \
+              -Wl,--start-group \
+              -lmkl_intel_lp64 -lmkl_sequential -lmkl_core \
+              -Wl,--end-group -lpthread
 LIBS        = $(BLAS) 
 CXX         = mpicxx
 WARN_FLAGS  = #-Drestrict = -Wall 
@@ -17,7 +17,7 @@ AR          = ar -crs
 DEPFLAGS    = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
 #uncomment below to enable performance profiling
-DEFS      := $(DEFS) -DPROFILE -DPMPI
+#DEFS      := $(DEFS) -DPROFILE -DPMPI
 
 #uncomment below to enable CTF debugging and status output
 #DEFS      := $(DEFS) -DDEBUG=1
