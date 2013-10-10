@@ -20,11 +20,11 @@
      defined(__ppc64__) || defined(_ARCH_PPC) || defined(BGQ) || defined(BGP))
 #define PRId64 "%ld"
 #define PRIu64 "%lu"
-#elif (defined(__i386__))
+#else //if (defined(__i386__))
 #define PRId64 "%lld"
 #define PRIu64 "%llu"
-#else
-#include <inttypes.h>
+//#else
+//#include <inttypes.h>
 #endif
 
 #ifdef PROFILE
