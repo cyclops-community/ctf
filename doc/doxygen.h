@@ -7,6 +7,8 @@
  * a distributed-memory quantum chemistry software suite running on top of the CTF library.
  * Jeff Hammond (Argonne National Laborarory) and James Demmel (University of California-Berkeley) have overseen the high-level development of the ideas in the CTF framework.
  *
+ * The software may be obtained using GIT via the command, git clone git://repo.eecs.berkeley.edu/users/solomon/ctf.git
+ *
  * The source to CTF is available for reference and usage under
  * a BSD license. Please email solomon@eecs.berkeley.edu with all questions and interest.
  *
