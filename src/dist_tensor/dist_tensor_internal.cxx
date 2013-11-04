@@ -2158,10 +2158,10 @@ int dist_tensor<dtype>::check_contraction(CTF_ctr_type_t const * type){
     }
     if (len != -1 && iC != -1 && len != len_C[iC]){
       if (global_comm->rank == 0){
-        printf("Error in contraction call: The %dth edge length of tensor %d does not",
-                iA, type->tid_A);
-        printf("match the %dth edge length of tensor %d.\n",
-                iC, type->tid_C);
+        printf("Error in contraction call: The %dth edge length of tensor %d (%d) does not",
+                iA, type->tid_A, len);
+        printf("match the %dth edge length of tensor %d (%d).\n",
+                iC, type->tid_C, len_C[iC]);
       }
       ABORT;
     }

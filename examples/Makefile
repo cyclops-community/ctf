@@ -5,7 +5,7 @@ include ../src/make/rules.mk
 
 examples: dft dft_3D gemm gemm_4D scalar trace diag_sym fast_diagram \
           fast_3mm sym3 fast_sym fast_sym_4D ccsdt_t3_to_t2 weight_4D \
-          test_suite strassen slice_gemm
+          test_suite strassen slice_gemm ccsd
 
 fast_3mm: ${bindir}/fast_3mm
 ${bindir}/fast_3mm: fast_3mm.o ${libdir}/libctf.a
@@ -54,5 +54,8 @@ ${bindir}/strassen: strassen.o ${libdir}/libctf.a
 
 slice_gemm: ${bindir}/slice_gemm
 ${bindir}/slice_gemm: slice_gemm.o ${libdir}/libctf.a
+
+ccsd: ${bindir}/ccsd
+${bindir}/ccsd: ccsd.o ${libdir}/libctf.a
 
 LIBS := -lctf $(LIBS)
