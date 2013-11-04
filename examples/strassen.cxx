@@ -53,19 +53,19 @@ int strassen(int const     n,
   CTF_Matrix M7(n/2, n/2, NS,  dw);
 
   srand48(13*rank);
-  A.get_local_data(&np, &indices, &pairs);
+  A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
-  A.write_remote_data(np, indices, pairs);
+  A.write(np, indices, pairs);
   free(pairs);
   free(indices);
-  B.get_local_data(&np, &indices, &pairs);
+  B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
-  B.write_remote_data(np, indices, pairs);
+  B.write(np, indices, pairs);
   free(pairs);
   free(indices);
-  /*C.get_local_data(&np, &indices, &pairs);
+  /*C.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = 0.0;
-  C.write_remote_data(np, indices, pairs);
+  C.write(np, indices, pairs);
   free(pairs);
   free(indices);*/
 
@@ -98,73 +98,73 @@ int strassen(int const     n,
 
     switch (rank/cnum_pes){
       case 0: //M1
-        cA.sum_slice(off_00, end_11, 1.0, A, off_00, end_11, 1.0);
-        cA.sum_slice(off_00, end_11, 1.0, A, off_11, end_22, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_00, end_11, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_11, end_22, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_00, end_11, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_11, end_22, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_00, end_11, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_11, end_22, 1.0);
         cC["ij"] = cA["ik"]*cB["kj"];
-        Cs.sum_slice(off_00, end_11, 1.0, cC, off_00, end_11, 1.0);
-        Cs.sum_slice(off_11, end_22, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_00, end_11, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_11, end_22, 1.0, cC, off_00, end_11, 1.0);
         break;
       case 1: //M6
-        cA.sum_slice(off_00, end_11, 1.0, A, off_00, end_11, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_00, end_11, 1.0);
         cA["ik"] = -1.0*cA["ik"];
-        cA.sum_slice(off_00, end_11, 1.0, A, off_10, end_21, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_00, end_11, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_01, end_12, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_10, end_21, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_00, end_11, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_01, end_12, 1.0);
         cC["ij"] = cA["ik"]*cB["kj"];
-        Cs.sum_slice(off_11, end_22, 1.0, cC, off_00, end_11, 1.0);
-        Cs.sum_slice(off_00, off_00, 1.0, dummy, NULL, NULL, 1.0);
+        Cs.slice(off_11, end_22, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_00, off_00, 1.0, dummy, NULL, NULL, 1.0);
         break;
       case 2: //M7
-        cA.sum_slice(off_00, end_11, 1.0, A, off_11, end_22, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_11, end_22, 1.0);
         cA["ik"] = -1.0*cA["ik"];
-        cA.sum_slice(off_00, end_11, 1.0, A, off_01, end_12, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_11, end_22, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_10, end_21, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_01, end_12, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_11, end_22, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_10, end_21, 1.0);
         cC["ij"] = cA["ik"]*cB["kj"];
-        Cs.sum_slice(off_00, end_11, 1.0, cC, off_00, end_11, 1.0);
-        Cs.sum_slice(off_00, off_00, 1.0, dummy, NULL, NULL, 1.0);
+        Cs.slice(off_00, end_11, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_00, off_00, 1.0, dummy, NULL, NULL, 1.0);
         break;
       case 3: //M2
-        cA.sum_slice(off_00, end_11, 1.0, A, off_11, end_22, 1.0);
-        cA.sum_slice(off_00, end_11, 1.0, A, off_10, end_21, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_00, end_11, 1.0);
-        dummy.sum_slice(NULL, NULL, 1.0, B, off_00, off_00, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_11, end_22, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_10, end_21, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_00, end_11, 1.0);
+        dummy.slice(NULL, NULL, 1.0, B, off_00, off_00, 1.0);
         cC["ij"] = cA["ik"]*cB["kj"];
-        Cs.sum_slice(off_10, end_21, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_10, end_21, 1.0, cC, off_00, end_11, 1.0);
         cC["ij"] = -1.0*cC["ij"];
-        Cs.sum_slice(off_11, end_22, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_11, end_22, 1.0, cC, off_00, end_11, 1.0);
         break;
       case 4: //M5
-        cA.sum_slice(off_00, end_11, 1.0, A, off_01, end_12, 1.0);
-        cA.sum_slice(off_00, end_11, 1.0, A, off_00, end_11, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_11, end_22, 1.0);
-        dummy.sum_slice(NULL, NULL, 1.0, B, off_00, off_00, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_01, end_12, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_00, end_11, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_11, end_22, 1.0);
+        dummy.slice(NULL, NULL, 1.0, B, off_00, off_00, 1.0);
         cC["ij"] = -1.0*cA["ik"]*cB["kj"];
-        Cs.sum_slice(off_00, end_11, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_00, end_11, 1.0, cC, off_00, end_11, 1.0);
         cC["ij"] = -1.0*cC["ij"];
-        Cs.sum_slice(off_01, end_12, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_01, end_12, 1.0, cC, off_00, end_11, 1.0);
         break;
       case 5: //M3
-        cA.sum_slice(off_00, end_11, 1.0, A, off_00, end_11, 1.0);
-        dummy.sum_slice(NULL, NULL, 1.0, A, off_00, off_00, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_11, end_22, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_00, end_11, 1.0);
+        dummy.slice(NULL, NULL, 1.0, A, off_00, off_00, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_11, end_22, 1.0);
         cB["kj"] = -1.0*cB["kj"];
-        cB.sum_slice(off_00, end_11, 1.0, B, off_01, end_12, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_01, end_12, 1.0);
         cC["ij"] = cA["ik"]*cB["kj"];
-        Cs.sum_slice(off_01, end_12, 1.0, cC, off_00, end_11, 1.0);
-        Cs.sum_slice(off_11, end_22, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_01, end_12, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_11, end_22, 1.0, cC, off_00, end_11, 1.0);
         break;
       case 6: //M4
-        cA.sum_slice(off_00, end_11, 1.0, A, off_11, end_22, 1.0);
-        dummy.sum_slice(NULL, NULL, 1.0, A, off_00, off_00, 1.0);
-        cB.sum_slice(off_00, end_11, 1.0, B, off_00, end_11, 1.0);
+        cA.slice(off_00, end_11, 1.0, A, off_11, end_22, 1.0);
+        dummy.slice(NULL, NULL, 1.0, A, off_00, off_00, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_00, end_11, 1.0);
         cB["kj"] = -1.0*cB["kj"];
-        cB.sum_slice(off_00, end_11, 1.0, B, off_10, end_21, 1.0);
+        cB.slice(off_00, end_11, 1.0, B, off_10, end_21, 1.0);
         cC["ij"] = cA["ik"]*cB["kj"];
-        Cs.sum_slice(off_10, end_21, 1.0, cC, off_00, end_11, 1.0);
-        Cs.sum_slice(off_00, end_11, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_10, end_21, 1.0, cC, off_00, end_11, 1.0);
+        Cs.slice(off_00, end_11, 1.0, cC, off_00, end_11, 1.0);
         break;
     }
   } else {
@@ -216,18 +216,18 @@ int strassen(int const     n,
     printf("[5] %lf\n", M3.norm2());
     printf("[6] %lf\n", M4.norm2());*/
 
-    Cs.sum_slice(off_00, end_11, 0.0, M1, off_00, end_11, 1.0);
-    Cs.sum_slice(off_00, end_11, 1.0, M4, off_00, end_11, 1.0);
-    Cs.sum_slice(off_00, end_11, 1.0, M5, off_00, end_11, -1.0);
-    Cs.sum_slice(off_00, end_11, 1.0, M7, off_00, end_11, 1.0);
-    Cs.sum_slice(off_01, end_12, 0.0, M3, off_00, end_11, 1.0);
-    Cs.sum_slice(off_01, end_12, 1.0, M5, off_00, end_11, 1.0);
-    Cs.sum_slice(off_10, end_21, 0.0, M2, off_00, end_11, 1.0);
-    Cs.sum_slice(off_10, end_21, 1.0, M4, off_00, end_11, 1.0);
-    Cs.sum_slice(off_11, end_22, 0.0, M1, off_00, end_11, 1.0);
-    Cs.sum_slice(off_11, end_22, 1.0, M2, off_00, end_11, -1.0);
-    Cs.sum_slice(off_11, end_22, 1.0, M3, off_00, end_11, 1.0);
-    Cs.sum_slice(off_11, end_22, 1.0, M6, off_00, end_11, 1.0);
+    Cs.slice(off_00, end_11, 0.0, M1, off_00, end_11, 1.0);
+    Cs.slice(off_00, end_11, 1.0, M4, off_00, end_11, 1.0);
+    Cs.slice(off_00, end_11, 1.0, M5, off_00, end_11, -1.0);
+    Cs.slice(off_00, end_11, 1.0, M7, off_00, end_11, 1.0);
+    Cs.slice(off_01, end_12, 0.0, M3, off_00, end_11, 1.0);
+    Cs.slice(off_01, end_12, 1.0, M5, off_00, end_11, 1.0);
+    Cs.slice(off_10, end_21, 0.0, M2, off_00, end_11, 1.0);
+    Cs.slice(off_10, end_21, 1.0, M4, off_00, end_11, 1.0);
+    Cs.slice(off_11, end_22, 0.0, M1, off_00, end_11, 1.0);
+    Cs.slice(off_11, end_22, 1.0, M2, off_00, end_11, -1.0);
+    Cs.slice(off_11, end_22, 1.0, M3, off_00, end_11, 1.0);
+    Cs.slice(off_11, end_22, 1.0, M6, off_00, end_11, 1.0);
   }
 
   err = ((1./n)/n)*(C["ij"]-Cs["ij"])*(C["ij"]-Cs["ij"]);

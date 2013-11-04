@@ -21,7 +21,7 @@ int scalar(CTF_World    &dw){
 
   CTF_Scalar A(dw);
 
-  A.get_local_data(&np,&indices,&pairs);
+  A.read_local(&np,&indices,&pairs);
   pass -=!(np<=1);
  
   if (np>0){
@@ -29,13 +29,13 @@ int scalar(CTF_World    &dw){
     pass -=!(pairs[0] == 0.0);
     pairs[0] = 4.2;  
   } 
-  A.write_remote_data(np,indices,pairs);
+  A.write(np,indices,pairs);
   if (np>0){
     free(indices);
     free(pairs);
   }
   //A = 4.2;
-  A.get_local_data(&np,&indices,&pairs);
+  A.read_local(&np,&indices,&pairs);
   pass -= !(np<=1);
  
   if (np>0){

@@ -24,41 +24,41 @@ int test_dft_3D(int const     n,
   cCTF_Matrix IDFT(n, n, SY, wrld);
   cCTF_Tensor MESH(3, len, sym, wrld);
 
-  DFT.get_local_data(&np, &idx, &data);
+  DFT.read_local(&np, &idx, &data);
 
   for (i=0; i<np; i++){
     data[i] = (1./n)*exp(-2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
   }
-  DFT.write_remote_data(np, idx, data);
+  DFT.write(np, idx, data);
   //DFT.print(stdout);
   free(idx);
   free(data); 
   
-  IDFT.get_local_data(&np, &idx, &data);
+  IDFT.read_local(&np, &idx, &data);
 
   for (i=0; i<np; i++){
     data[i] = (1./n)*exp(2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
   }
-  IDFT.write_remote_data(np, idx, data);
+  IDFT.write(np, idx, data);
   //IDFT.print(stdout);
   free(idx);
   free(data); 
 
-  MESH.get_local_data(&np, &idx, &data);
+  MESH.read_local(&np, &idx, &data);
   for (i=0; i<np; i++){
     for (j=0; j<n; j++){
       data[i] += exp(imag*((-2.*M_PI*(j/(double)(n)))
                       *((idx[i]%n) + ((idx[i]/n)%n) +(idx[i]/(n*n)))));
     }
   }
-  MESH.write_remote_data(np, idx, data);
+  MESH.write(np, idx, data);
   //MESH.print(stdout);
   free(idx);
   free(data); 
   
   MESH["ijk"] = MESH["pqr"]*DFT["ip"]*DFT["jq"]*DFT["kr"];
  
-  MESH.get_local_data(&np, &idx, &data);
+  MESH.read_local(&np, &idx, &data);
   //MESH.print(stdout);
   int pass = 1;
   for (i=0; i<np; i++){

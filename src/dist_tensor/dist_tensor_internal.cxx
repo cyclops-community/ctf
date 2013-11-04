@@ -886,12 +886,12 @@ template<typename dtype>
 int dist_tensor<dtype>::slice_tensor(int const              tid_A,
                                      int const *            offsets_A,
                                      int const *            ends_A,
-                                     double const           alpha,
+                                     dtype const            alpha,
                                      dist_tensor<dtype> *   dt_A,
                                      int const              tid_B,
                                      int const *            offsets_B,
                                      int const *            ends_B,
-                                     double const           beta,
+                                     dtype const            beta,
                                      dist_tensor<dtype> *   dt_B){
     
   long_int i, j, k, lda, knew, sz_A, blk_sz_A, sz_B, blk_sz_B;
