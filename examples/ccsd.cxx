@@ -84,9 +84,9 @@ class Integrals {
     srand48(rank*13);
 
     for (i=0; i<15; i++){
-      tarr[i]->get_local_data(&sz, &indices, &values);
+      tarr[i]->read_local(&sz, &indices, &values);
       for (j=0; j<sz; j++) values[j] = drand48()-.5;
-      tarr[i]->write_remote_data(sz, indices, values);
+      tarr[i]->write(sz, indices, values);
       free(indices), free(values);
     }
   }
@@ -153,8 +153,8 @@ class Amplitudes {
 void ccsd(Integrals   &V,
           Amplitudes  &T){
 
-  CTF_Tensor TAU = CTF_Tensor(T.abij);
-  TAU["abij"] += .5*T["ai"]*T["bj"];
+  CTF_Tensor T21 = CTF_Tensor(T.abij);
+  T21["abij"] += .5*T["ai"]*T["bj"];
 
   CTF_Idx_Tensor Fme(V["me"],1);
   Fme += V["mnef"]*T["fn"];
@@ -174,7 +174,7 @@ void ccsd(Integrals   &V,
   
   CTF_Idx_Tensor Wmnij(V["mnij"],1);
   Wmnij -= V["mnei"]*T["ej"];
-  Wmnij += V["mnef"]*TAU["efij"];
+  Wmnij += V["mnef"]*T21["efij"];
 
   CTF_Idx_Tensor Wamei(V["amei"],1);
   Wamei -= Wmnei*T["an"];
@@ -190,8 +190,8 @@ void ccsd(Integrals   &V,
   Zai += V["ae"]*T["ei"]; 
   Zai += V["amei"]*T["em"];
   Zai += V["aeim"]*Fme;
-  Zai += .5*V["amef"]*TAU["efim"];
-  Zai -= .5*Wmnei*TAU["eamn"];
+  Zai += .5*V["amef"]*T21["efim"];
+  Zai -= .5*Wmnei*T21["eamn"];
   
   CTF_Idx_Tensor Zabij(V["abij"],1);
   Zabij += V["abei"]*T["ej"];
@@ -199,14 +199,15 @@ void ccsd(Integrals   &V,
   Zabij -= Wamij*T["bm"]; 
   Zabij += Fae*T["ebij"];
   Zabij -= Fmi*T["abmj"];
-  Zabij += .5*V["abef"]*TAU["efij"];
-  Zabij += .5*Wmnij*TAU["abmn"];
+  Zabij += .5*V["abef"]*T21["efij"];
+  Zabij += .5*Wmnij*T21["abmn"];
   
   CTF_fctr fctr;
   fctr.func_ptr = &divide;
 
   CTF_Tensor Dai(2, V.ai.len, V.ai.sym, *V.dw);
-  CTF_Tensor Dabij(4, V.abij.len, V.aibj.sym, *V.dw);
+  int sh_sym[4] = {SH, NS, SH, NS};
+  CTF_Tensor Dabij(4, V.abij.len, sh_sym, *V.dw);
   Dai["ai"] += V["i"];
   Dai["ai"] -= V["a"];
  

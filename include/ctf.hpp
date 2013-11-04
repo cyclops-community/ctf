@@ -329,6 +329,9 @@ class tCTF_Tensor {
     tCTF_Tensor slice(int const * offsets,
                       int const * ends);
     
+    tCTF_Tensor slice(long_int corner_off,
+                      long_int corner_end);
+    
     /**
      * \brief cuts out a slice (block) of this tensor A[offsets,ends)
      * \param[in] offsets bottom left corner of block
@@ -338,6 +341,10 @@ class tCTF_Tensor {
      */
     tCTF_Tensor slice(int const *         offsets,
                       int const *         ends,
+                      tCTF_World<dtype> * oworld);
+
+    tCTF_Tensor slice(long_int            corner_off,
+                      long_int            corner_end,
                       tCTF_World<dtype> * oworld);
     
     
@@ -359,6 +366,33 @@ class tCTF_Tensor {
                int const *    ends_A,
                dtype          alpha);
     
+    void slice(long_int       corner_off,
+               long_int       corner_end,
+               dtype          beta,
+               tCTF_Tensor &  A,
+               long_int       corner_off_A,
+               long_int       corner_end_A,
+               dtype          alpha);
+
+    /**
+     * \brief TODO: apply permutation to matrix, potentially extracting a slice
+     *              B[perms_B[0][i],perms_B[0][j],...] 
+     *                = beta*B[...] + alpha*A[perms_A[0][i],perms_A[1][j],...]
+     *
+     * \param[in] perms_B specifies permutations for tensor B, e.g. B[perms_B[0][i],perms_B[1][j]]
+     *                    if NULL then no permutation applied, if a subarray NULL, a permutation
+     *                    will be applied only if it is defined for a previous index in the symmetric
+     *                    index group to which the NULL subarray index belongs
+     * \param[in] beta scaling factor for values of tensor B (this)
+     * \param[in] A specification of operand tensor A
+     * \param[in] perms_A see description of perms_B, mentally performing %s/B/A/g
+     * \param[in] alpha scaling factor for A tensor
+     */
+    /*void permute(int const **   perms_B,
+                 dtype          beta,
+                 tCTF_Tensor &  A,
+                 int const **   perms_A,
+                 dtype          alpha);*/
 
     /**
      * \brief aligns data mapping with tensor A
@@ -470,7 +504,6 @@ class tCTF_Tensor {
      */
     void operator=(tCTF_Tensor<dtype> A);
     
-    
     /**
      * \brief associated an index map with the tensor for future operation
      * \param[in] idx_map_ index assignment for this tensor
@@ -482,7 +515,6 @@ class tCTF_Tensor {
      * \param[in] indices, vector of indices to sparse tensor
      */
     tCTF_Sparse_Tensor<dtype>& operator[](std::vector<long_int> indices);
-    
     
     /**
      * \brief prints tensor data to file using process 0

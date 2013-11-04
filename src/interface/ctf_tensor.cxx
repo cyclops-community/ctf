@@ -339,11 +339,44 @@ void tCTF_Tensor<dtype>::slice(int const *    offsets,
 }
 
 template<typename dtype>
+void tCTF_Tensor<dtype>::slice(long_int       corner_off,
+                               long_int       corner_end,
+                               dtype          beta,
+                               tCTF_Tensor &  A,
+                               long_int       corner_off_A,
+                               long_int       corner_end_A,
+                               dtype          alpha){
+  int * offsets, * ends, * offsets_A, * ends_A;
+ 
+  conv_idx(this->ndim, this->len, corner_off, &offsets);
+  conv_idx(this->ndim, this->len, corner_end, &ends);
+  conv_idx(A.ndim, A.len, corner_off_A, &offsets_A);
+  conv_idx(A.ndim, A.len, corner_end_A, &ends_A);
+  
+  slice(offsets, ends, beta, A, offsets_A, ends_A, alpha);
+
+  CTF_free(offsets);
+  CTF_free(ends);
+  CTF_free(offsets_A);
+  CTF_free(ends_A);
+}
+
+template<typename dtype>
 tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const *          offsets,
                                              int const *          ends){
 
   return slice(offsets, ends, world);
 }
+
+template<typename dtype>
+tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(long_int corner_off,
+                                             long_int corner_end){
+
+  return slice(corner_off, corner_end, world);
+}
+
+
+
 
 template<typename dtype>
 tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const *          offsets,
@@ -372,6 +405,22 @@ tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const *          offsets,
   CTF_free(new_lens);
   CTF_free(new_sym);
   return new_tsr;
+}
+
+template<typename dtype>
+tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(long_int             corner_off,
+                                             long_int             corner_end,
+                                             tCTF_World<dtype> *  owrld){
+
+  int * offsets, * ends;
+ 
+  conv_idx(this->ndim, this->len, corner_off, &offsets);
+  conv_idx(this->ndim, this->len, corner_end, &ends);
+  
+  slice(offsets, ends, owrld);
+
+  CTF_free(offsets);
+  CTF_free(ends);
 }
 
 template<typename dtype>
@@ -435,6 +484,8 @@ tCTF_Sparse_Tensor<dtype>& tCTF_Tensor<dtype>::operator[](std::vector<int64_t> i
   tCTF_Sparse_Tensor<dtype> * stsr = new tCTF_Sparse_Tensor<dtype>(indices,this);
   return *stsr;
 }
+
+
 
 
 

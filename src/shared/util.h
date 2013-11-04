@@ -637,24 +637,39 @@ void cxcopy< std::complex<double> >
 }
 
 
-int conv_idx(int const  ndim,
-             char const *  cidx,
-             int **     iidx);
+int conv_idx(int const      ndim,
+             char const *   cidx,
+             int **         iidx);
 
 int  conv_idx(int const         ndim_A,
-              char const *         cidx_A,
+              char const *      cidx_A,
               int **            iidx_A,
               int const         ndim_B,
-              char const *         cidx_B,
+              char const *      cidx_B,
               int **            iidx_B);
 
 int  conv_idx(int const         ndim_A,
-              char const *         cidx_A,
+              char const *      cidx_A,
               int **            iidx_A,
               int const         ndim_B,
-              char const *         cidx_B,
+              char const *      cidx_B,
               int **            iidx_B,
               int const         ndim_C,
-              char const *         cidx_C,
+              char const *      cidx_C,
               int **            iidx_C);
+
+int conv_idx(int          ndim,
+             int const *  lens,
+             long_int     idx,
+             int **       idx_arr);
+
+int conv_idx(int          ndim,
+             int const *  lens,
+             long_int     idx,
+             int *        idx_arr);
+
+int conv_idx(int          ndim,
+             int const *  lens,
+             int const *  idx_arr,
+             long_int *   idx);
 #endif

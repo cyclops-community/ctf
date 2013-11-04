@@ -409,8 +409,11 @@ void nosym_transpose(int const          ndim,
   int * chunk_size;
   dtype ** tswap_data;
 
-  if (ndim == 0) return;
   TAU_FSTART(nosym_transpose);
+  if (ndim == 0){
+    TAU_FSTOP(nosym_transpose);
+    return;
+  }
 #ifdef USE_OMP
   int max_ntd = MIN(16,omp_get_max_threads());
   CTF_alloc_ptr(max_ntd*sizeof(dtype*), (void**)&tswap_data);
@@ -1202,7 +1205,7 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
 template<typename dtype>
 int dist_tensor<dtype>::unfold_broken_sym(CTF_sum_type_t const *  type,
                                           CTF_sum_type_t *        new_type){
-  int sidx, i, num_tot, iA, iB;
+  int sidx, i, num_tot, iA, iA2, iB;
   int * idx_arr;
   
   tensor<dtype> * tsr_A, * tsr_B;
@@ -1256,6 +1259,19 @@ int dist_tensor<dtype>::unfold_broken_sym(CTF_sum_type_t const *  type,
         }
       }
     }
+  }
+  if (sidx == -1){
+    for (i=0; i<tsr_A->ndim; i++){
+      if (tsr_A->sym[i] == SY){
+        iA = type->idx_map_A[i];
+        iA2 = type->idx_map_A[i+1];
+        if (idx_arr[2*iA+1] == -1 &&
+            idx_arr[2*iA2+1] == -1){
+          sidx = 2*i;
+          break;
+        }
+      }
+    }
   } 
   if (new_type != NULL && sidx != -1){
     if(sidx%2 == 0){
@@ -1282,7 +1298,7 @@ int dist_tensor<dtype>::unfold_broken_sym(CTF_sum_type_t const *  type,
 template<typename dtype>
 int dist_tensor<dtype>::unfold_broken_sym(CTF_ctr_type_t const *  type,
                                           CTF_ctr_type_t *        new_type){
-  int i, num_tot, iA, iB, iC;
+  int i, num_tot, iA, iB, iC, iA2, iB2;
   int * idx_arr;
   
   tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
@@ -1428,6 +1444,33 @@ int dist_tensor<dtype>::unfold_broken_sym(CTF_ctr_type_t const *  type,
       }
     }
   }
+  for (i=0; i<tsr_A->ndim; i++){
+    if (tsr_A->sym[i] == SY){
+      iA = type->idx_map_A[i];
+      iA2 = type->idx_map_A[i+1];
+      if (idx_arr[3*iA+2] == -1 &&
+          idx_arr[3*iA2+2] == -1){
+        if (new_type != NULL)
+          tsr_A->sym[i] = NS;
+        CTF_free(idx_arr); 
+        return 3*i;
+      }
+    }
+  }
+  for (i=0; i<tsr_B->ndim; i++){
+    if (tsr_B->sym[i] == SY){
+      iB = type->idx_map_B[i];
+      iB2 = type->idx_map_B[i+1];
+      if (idx_arr[3*iB+2] == -1 &&
+          idx_arr[3*iB2+2] == -1){
+        if (new_type != NULL)
+          tsr_B->sym[i] = NS;
+        CTF_free(idx_arr); 
+        return 3*i+1;
+      }
+    }
+  }
+
   CTF_free(idx_arr);
   return -1;
 }

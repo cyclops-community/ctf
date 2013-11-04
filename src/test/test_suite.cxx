@@ -26,6 +26,7 @@
 #include "../../examples/ccsdt_t3_to_t2.cxx"
 #include "../../examples/strassen.cxx"
 #include "../../examples/slice_gemm.cxx"
+#include "../../examples/readwrite_test.cxx"
 
 
 char* getCmdOption(char ** begin,
@@ -143,6 +144,10 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing non-symmetric Strassen's algorithm with n = %d:\n",n*n);
     pass.push_back(strassen(n*n, NS, dw));
+    
+    if (rank == 0)
+      printf("Testing diagonal write with n = %d:\n",n*n);
+    pass.push_back(readwrite_test(n, dw));
 #if 0//def USE_SYM
     if (rank == 0)
       printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);
