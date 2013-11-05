@@ -417,10 +417,12 @@ tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(long_int             corner_off,
   conv_idx(this->ndim, this->len, corner_off, &offsets);
   conv_idx(this->ndim, this->len, corner_end, &ends);
   
-  slice(offsets, ends, owrld);
+  tCTF_Tensor tsr = slice(offsets, ends, owrld);
 
   CTF_free(offsets);
   CTF_free(ends);
+
+  return tsr;
 }
 
 template<typename dtype>

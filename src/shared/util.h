@@ -658,18 +658,18 @@ int  conv_idx(int const         ndim_A,
               char const *      cidx_C,
               int **            iidx_C);
 
-int conv_idx(int          ndim,
-             int const *  lens,
-             long_int     idx,
-             int **       idx_arr);
+void conv_idx(int          ndim,
+              int const *  lens,
+              long_int     idx,
+              int **       idx_arr);
 
-int conv_idx(int          ndim,
-             int const *  lens,
-             long_int     idx,
-             int *        idx_arr);
+void conv_idx(int          ndim,
+              int const *  lens,
+              long_int     idx,
+              int *        idx_arr);
 
-int conv_idx(int          ndim,
-             int const *  lens,
-             int const *  idx_arr,
-             long_int *   idx);
+void conv_idx(int          ndim,
+              int const *  lens,
+              int const *  idx_arr,
+              long_int *   idx);
 #endif

@@ -481,10 +481,10 @@ int  conv_idx(int const         ndim_A,
   return n;
 }
 
-int conv_idx(int          ndim,
-             int const *  lens,
-             long_int     idx,
-             int *        idx_arr){
+void conv_idx(int          ndim,
+              int const *  lens,
+              long_int     idx,
+              int *        idx_arr){
   int i;
   long_int cidx = idx;
   for (i=0; i<ndim; i++){
@@ -493,18 +493,18 @@ int conv_idx(int          ndim,
   }
 }
 
-int conv_idx(int          ndim,
-             int const *  lens,
-             long_int     idx,
-             int **       idx_arr){
+void conv_idx(int          ndim,
+              int const *  lens,
+              long_int     idx,
+              int **       idx_arr){
   (*idx_arr) = (int*)CTF_alloc(ndim*sizeof(int));
   conv_idx(ndim, lens, idx, *idx_arr);
 }
 
-int conv_idx(int          ndim,
-             int const *  lens,
-             int const *  idx_arr,
-             long_int *   idx){
+void conv_idx(int          ndim,
+              int const *  lens,
+              int const *  idx_arr,
+              long_int *   idx){
   int i;
   long_int lda = 1;
   *idx = 0;
