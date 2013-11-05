@@ -345,6 +345,19 @@ int tCTF<dtype>::read_tensor(int const                tensor_id,
 }
 
 template<typename dtype>
+int tCTF<dtype>::permute_tensor( int const              tid_A,
+                                 int * const *          permutation_A,
+                                 dtype const            alpha,
+                                 tCTF<dtype> *          tC_A,
+                                 int const              tid_B,
+                                 int * const *          permutation_B,
+                                 dtype const            beta,
+                                 tCTF<dtype> *          tC_B){
+  return dt->permute_tensor(tid_A, permutation_A, alpha, tC_A->dt, tid_B, permutation_B, beta, tC_B->dt);
+}
+
+
+template<typename dtype>
 int tCTF<dtype>::slice_tensor( int const    tid_A,
                                int const *  offsets_A,
                                int const *  ends_A,

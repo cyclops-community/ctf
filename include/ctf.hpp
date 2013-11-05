@@ -376,23 +376,41 @@ class tCTF_Tensor {
 
     /**
      * \brief TODO: apply permutation to matrix, potentially extracting a slice
-     *              B[perms_B[0][i],perms_B[0][j],...] 
+     *              B[i,j,...] 
      *                = beta*B[...] + alpha*A[perms_A[0][i],perms_A[1][j],...]
      *
-     * \param[in] perms_B specifies permutations for tensor B, e.g. B[perms_B[0][i],perms_B[1][j]]
-     *                    if NULL then no permutation applied, if a subarray NULL, a permutation
-     *                    will be applied only if it is defined for a previous index in the symmetric
-     *                    index group to which the NULL subarray index belongs
      * \param[in] beta scaling factor for values of tensor B (this)
-     * \param[in] A specification of operand tensor A
-     * \param[in] perms_A see description of perms_B, mentally performing %s/B/A/g
+     * \param[in] A specification of operand tensor A must live on 
+                    the same CTF_World or a subset of the CTF_World on which B lives
+     * \param[in] perms_A specifies permutations for tensor A, e.g. A[perms_A[0][i],perms_A[1][j]]
+     *                    if a subarray NULL, no permutation applied to this index,
+     *                    if an entry is -1, the corresponding entries of the tensor are skipped 
+                            (A must then be smaller than B)
      * \param[in] alpha scaling factor for A tensor
      */
-    /*void permute(int const **   perms_B,
+    void permute(dtype          beta,
+                 tCTF_Tensor &  A,
+                 int * const *  perms_A,
+                 dtype          alpha);
+
+    /**
+     * \brief TODO: apply permutation to matrix, potentially extracting a slice
+     *              B[perms_B[0][i],perms_B[0][j],...] 
+     *                = beta*B[...] + alpha*A[i,j,...]
+     *
+     * \param[in] perms_B specifies permutations for tensor B, e.g. B[perms_B[0][i],perms_B[1][j]]
+     *                    if a subarray NULL, no permutation applied to this index,
+     *                    if an entry is -1, the corresponding entries of the tensor are skipped 
+     *                       (A must then be smaller than B)
+     * \param[in] beta scaling factor for values of tensor B (this)
+     * \param[in] A specification of operand tensor A must live on 
+                    the same CTF_World or a superset of the CTF_World on which B lives
+     * \param[in] alpha scaling factor for A tensor
+     */
+    void permute(int * const *  perms_B,
                  dtype          beta,
                  tCTF_Tensor &  A,
-                 int const **   perms_A,
-                 dtype          alpha);*/
+                 dtype          alpha);
 
     /**
      * \brief aligns data mapping with tensor A

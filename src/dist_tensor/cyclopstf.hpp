@@ -284,6 +284,20 @@ class tCTF{
                      dtype const              beta,
                      tkv_pair<dtype> const *  mapped_data);
 
+    /**
+     * Permutes a tensor along each dimension skips if perm set to -1, generalizes slice.
+     *        one of permutation_A or permutation_B has to be set to NULL, if multiworld read, then
+     *        the parent world tensor should not be being permuted
+     */
+    int permute_tensor(int const              tid_A,
+                       int * const *          permutation_A,
+                       dtype const            alpha,
+                       tCTF<dtype> *          tC_A,
+                       int const              tid_B,
+                       int * const *          permutation_B,
+                       dtype const            beta,
+                       tCTF<dtype> *          tC_B);
+    
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
                           + alpha*A[offsets_A:ends_A] */

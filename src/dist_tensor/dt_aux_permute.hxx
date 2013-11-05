@@ -942,6 +942,31 @@ void pup_virt_buff(int const            ndim,
 
 /**
  * \brief version of pup_virt_buff which assumes padding and cyclic layout
+ *
+ * \param[in] ndim dimension of tensor
+ * \param[in] len non-padded edge lengths of tensor
+ * \param[in] sym symmetries of tensor
+ * \param[in] old_phys_rank ranks of this processor on the old processor grid
+ * \param[in] old_phys_dim edge lengths of the old processor grid
+ * \param[in] old_phys_lda old stride factors derived from old_phys_dim
+ * \param[in] old_virt_dim old virtualization factors along each dimension
+ * \param[in] old_virt_lda old stride factors derived from old_virt_dim
+ * \param[in] old_virt_nelem the old number of elements per block
+ * \param[in] old_padding the old padding of each tensor edge length (corner 2 of slice)
+ * \param[in] old_offsets old offsets of each tensor edge (corner 1 of slice)
+ * \param[in] old_permutation permutation array for each edge length (no perm if NULL)
+ * \param[in] new_phys_np the new number of processors
+ * \param[in] new_phys_rank ranks of this processor on the new processor grid
+ * \param[in] new_phys_dim edge lengths of the new processor grid
+ * \param[in] new_phys_lda new stride factors derived from new_phys_dim
+ * \param[in] new_virt_dim new virtualization factors along each dimension
+ * \param[in] new_virt_lda new stride factors derived from new_virt_dim
+ * \param[in] new_virt_nelem the new number of elements per block
+ * \param[in] new_padding the new padding of each tensor edge length (corner 2 of slice)
+ * \param[in,out] old_data the previous set of values stored locally
+ * \param[in,out] new_data buffers to fill with data to send to each process and virtual bucket
+ * \param[in] forward is 0 on the receiving side and reverses the role of all the previous parameters
+ 
  */
 template<typename dtype>
 void pad_cyclic_pup_virt_buff(int const        ndim,
@@ -955,6 +980,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
                               long_int const   old_virt_nelem,
                               int const *      old_padding,
                               int const *      old_offsets,
+                              int * const *     old_permutation,
                               int const        new_phys_np,
                               int const *      new_phys_rank,
                               int const *      new_phys_dim,
@@ -963,11 +989,9 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
                               int const *      new_virt_lda,
                               long_int const   new_virt_nelem,
                               int const *      new_padding,
-                              int const *      new_offsets,
                               dtype *          old_data,
                               dtype **         new_data,
-                              int const        forward)
-{
+                              int const        forward){
   if (ndim == 0){
     if (forward)
       new_data[0][0] = old_data[0];
@@ -1003,21 +1027,35 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
     int pidx = 0;
     for (int vr = 0;vr < old_virt_dim[dim];vr++){
       for (int vidx = 0;vidx < old_virt_edge_len[dim];vidx++,pidx++){
-        int gidx = (vidx*old_phys_dim[dim]+old_phys_rank[dim])*old_virt_dim[dim]+vr;
-        int total_rank = gidx%(new_phys_dim[dim]*new_virt_dim[dim]);
-        int phys_rank = total_rank/new_virt_dim[dim];
-        if (forward){
-          int virt_rank = total_rank%new_virt_dim[dim];
-          bucket_offset[dim][pidx] = phys_rank*MAX(1,new_phys_lda[dim])*new_virt_np+
-                         virt_rank*new_virt_lda[dim];
-          //printf("f %d - %d %d %d - %d - %d %d %d - %d\n", dim, vr, vidx, pidx, gidx, total_rank,
-          //    phys_rank, virt_rank, bucket_offset[dim][pidx]);
+        int _gidx = (vidx*old_phys_dim[dim]+old_phys_rank[dim])*old_virt_dim[dim]+vr;
+        int gidx;
+        if (_gidx > len[dim] || (old_offsets != NULL && _gidx < old_offsets[dim])){
+          gidx = -1;
+        } else {
+          if (old_permutation == NULL || old_permutation[dim] == NULL){
+            gidx = _gidx;
+          } else {
+            gidx = old_permutation[dim][gidx];
+          }
         }
-        else{
-          bucket_offset[dim][pidx] = phys_rank*MAX(1,new_phys_lda[dim])*old_virt_np+
-                         vr*old_virt_lda[dim];
-          //printf("r %d - %d %d %d - %d - %d %d - %d\n", dim, vr, vidx, pidx, gidx, total_rank,
-          //    phys_rank, bucket_offset[dim][pidx]);
+        if (gidx != -1){
+          int total_rank = gidx%(new_phys_dim[dim]*new_virt_dim[dim]);
+          int phys_rank = total_rank/new_virt_dim[dim];
+          if (forward){
+            int virt_rank = total_rank%new_virt_dim[dim];
+            bucket_offset[dim][pidx] = phys_rank*MAX(1,new_phys_lda[dim])*new_virt_np+
+                           virt_rank*new_virt_lda[dim];
+            //printf("f %d - %d %d %d - %d - %d %d %d - %d\n", dim, vr, vidx, pidx, gidx, total_rank,
+            //    phys_rank, virt_rank, bucket_offset[dim][pidx]);
+          }
+          else{
+            bucket_offset[dim][pidx] = phys_rank*MAX(1,new_phys_lda[dim])*old_virt_np+
+                           vr*old_virt_lda[dim];
+            //printf("r %d - %d %d %d - %d - %d %d - %d\n", dim, vr, vidx, pidx, gidx, total_rank,
+            //    phys_rank, bucket_offset[dim][pidx]);
+          }
+        } else {
+          bucket_offset[dim][pidx] = -1;
         }
       }
     }
@@ -1100,18 +1138,20 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   bool done = false;
   for (int offset = 0;!done;){
     int bucket0 = 0;
+    bool outside0 = false;
     for (int dim = 1;dim < ndim;dim++){
+      if (bucket_offset[dim][virt_offset[dim]+idx[dim]] == -1) outside0 = true;
       bucket0 += bucket_offset[dim][virt_offset[dim]+idx[dim]];
     }
 
-    bool outside0 = false;
-    for (int dim = 1;dim < ndim;dim++){
-      if (gidx[dim] >= (sym[dim] == NS ? ends[dim] :
-                       (sym[dim] == SY ? gidx[dim+1]+1 :
-                                         gidx[dim+1])) ||
-          gidx[dim] < offs[dim]){
-        outside0 = true;
-        break;
+    if (!outside0){
+      for (int dim = 1;dim < ndim;dim++){
+        if (gidx[dim] >= (sym[dim] == NS ? ends[dim] :
+                         (sym[dim] == SY ? gidx[dim+1]+1 :
+                                           gidx[dim+1]))){
+          outside0 = true;
+          break;
+        }
       }
     }
 
@@ -1989,12 +2029,16 @@ int padded_reshuffle(int const          tid,
  * \param[in] old_pe_lda old lda of processor grid
  * \param[in] is_old_pad whether tensor was padded
  * \param[in] old_padding padding of current tensor
+ * \param[in] old_offsets old offsets of each tensor edge (corner 1 of slice)
+ * \param[in] old_permutation permutation array for each edge length (no perm if NULL)
  * \param[in] new_edge_len new edge lengths of tensor
  * \param[in] new_phase new physical*virtual phase
  * \param[in] new_rank new physical rank
+ * \param[in] new_pe_lda new lda of processor grid
  * \param[in] is_new_pad whether tensor will be padded
  * \param[in] new_padding padding we want
- * \param[in] new_pe_lda new lda of processor grid
+ * \param[in] new_offsets old offsets of each tensor edge (corner 1 of slice)
+ * \param[in] new_permutation permutation array for each edge length (no perm if NULL)
  * \param[in] old_virt_dim current virtualization dimensions on each process
  * \param[in] new_virt_dim new virtualization dimensions on each process
  * \param[in,out] ptr_tsr_data current tensor data
@@ -2014,12 +2058,16 @@ int cyclic_reshuffle(int const          ndim,
                      int const *        old_pe_lda,
                      int const          is_old_pad,
                      int const *        old_padding,
+                     int const *        old_offsets,
+                     int * const *      old_permutation,
                      int const *        new_edge_len,
                      int const *        new_phase,
                      int const *        new_rank,
                      int const *        new_pe_lda,
                      int const          is_new_pad,
                      int const *        new_padding,
+                     int const *        new_offsets,
+                     int * const *      new_permutation,
                      int const *        old_virt_dim,
                      int const *        new_virt_dim,
                      dtype **           ptr_tsr_data,
@@ -2170,9 +2218,9 @@ int cyclic_reshuffle(int const          ndim,
 
         pad_cyclic_pup_virt_buff(ndim, real_edge_len, sym, 
                                  old_rank, old_phys_dim, old_pe_lda, old_virt_dim,
-                                 old_virt_lda, vbs_old, old_padding, NULL,
+                                 old_virt_lda, vbs_old, old_padding, old_offsets, old_permutation,
                                  new_np, new_rank, new_phys_dim, new_pe_lda, new_virt_dim,
-                                 new_virt_lda, vbs_new, new_padding, NULL,
+                                 new_virt_lda, vbs_new, new_padding, 
                                  tsr_data, new_data, 1);
 
         /*
@@ -2279,9 +2327,9 @@ int cyclic_reshuffle(int const          ndim,
 
           pad_cyclic_pup_virt_buff(ndim, real_edge_len, sym, 
                                    new_rank, new_phys_dim, new_pe_lda, new_virt_dim,
-                                   new_virt_lda, vbs_new, new_padding, NULL,
+                                   new_virt_lda, vbs_new, new_padding, new_offsets, new_permutation,
                                    old_np, old_rank, old_phys_dim, old_pe_lda, old_virt_dim,
-                                   old_virt_lda, vbs_old, old_padding, NULL,
+                                   old_virt_lda, vbs_old, old_padding, 
                                    tsr_cyclic_data, new_data, 0);
 
           /*

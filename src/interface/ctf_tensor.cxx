@@ -314,6 +314,27 @@ void tCTF_Tensor<dtype>::scale(dtype                  alpha,
   }
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
+template<typename dtype>
+
+
+void tCTF_Tensor<dtype>::permute(dtype                  beta,
+                                 tCTF_Tensor &          A,
+                                 int * const *           perms_A,
+                                 dtype                  alpha){
+  int ret = world->ctf->permute_tensor(A.tid, perms_A, alpha, A.world->ctf, 
+                                       tid, NULL, beta, world->ctf);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
+
+template<typename dtype>
+void tCTF_Tensor<dtype>::permute(int * const *           perms_B,
+                                 dtype                  beta,
+                                 tCTF_Tensor &          A,
+                                 dtype                  alpha){
+  int ret = world->ctf->permute_tensor(A.tid, NULL, alpha, A.world->ctf, 
+                                       tid, perms_B, beta, world->ctf);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
 
 template<typename dtype>
 void tCTF_Tensor<dtype>::slice(int const *    offsets,
