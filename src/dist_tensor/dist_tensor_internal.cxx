@@ -2323,10 +2323,10 @@ int dist_tensor<dtype>::check_sum(int const   tid_A,
     }
     if (len != -1 && iB != -1 && len != len_B[iB]){
       if (global_comm->rank == 0){
-        printf("Error in sum call: The %dth edge length of tensor %d does not",
-                iA, tid_A);
-        printf("match the %dth edge length of tensor %d.\n",
-                iB, tid_B);
+        printf("i = %d Error in sum call: The %dth edge length (%d) of tensor %d does not",
+                i, iA, len, tid_A);
+        printf("match the %dth edge length (%d) of tensor %d.\n",
+                iB, len_B[iB], tid_B);
       }
       ABORT;
     }

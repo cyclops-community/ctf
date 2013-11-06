@@ -110,12 +110,14 @@ void readwrite(int const        ndim,
             //Check for write conflicts
             //Fixed: allow and handle them!
             while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
+//              printf("found overlapped write of key %ld and value %lf\n", pairs[pr_offset].k, pairs[pr_offset].d);
               if (rw == 'r'){
                 pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
               } else {
                 //data[(long_int)buf_offset+i] = beta*data[(long_int)buf_offset+i]+alpha*pairs[pr_offset].d;
                 data[(long_int)buf_offset+i] += alpha*pairs[pr_offset].d;
               }
+//              printf("rw = %c found overlapped write and set value to %lf\n", rw, data[(long_int)buf_offset+i]);
               pr_offset++;
             }
           } else {
@@ -233,6 +235,10 @@ void wr_pairs_layout(int const          ndim,
   } 
   TAU_FSTART(check_key_ranges);
   nwrite = 0;
+  std::vector<long_int> changed_key_indices;
+  std::vector< tkv_pair<dtype> > new_changed_pairs;
+  std::vector<double> changed_key_scale;
+
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&ckey);
   for (i=0; i<inwrite; i++){
     conv_idx(ndim, depad_edge_len, wr_pairs[i].k, ckey);
@@ -253,19 +259,31 @@ void wr_pairs_layout(int const          ndim,
             sign     *= -1;
           }
           is_perm = 1;
-        } else if (sym[j] == AS && ckey[j] > ckey[j+1]){
+        }/* else if (sym[j] == AS && ckey[j] > ckey[j+1]){
           swp       = ckey[j];
           ckey[j]   = ckey[j+1];
           ckey[j+1] = swp;
           is_perm = 1;
-        } 
+        } */
       }
-    }  
+    } 
     if (!is_out){
       conv_idx(ndim, depad_edge_len, ckey, &(swap_data[nwrite].k));
       swap_data[nwrite].d = ((double)sign)*wr_pairs[i].d;
+      if (rw == 'r' && swap_data[nwrite].k != wr_pairs[i].k){
+        /*printf("the %lldth key has been set from %lld to %lld\n",
+                 i, wr_pairs[i].k, swap_data[nwrite].k);*/
+        changed_key_indices.push_back(i);
+        new_changed_pairs.push_back(swap_data[nwrite]);
+        changed_key_scale.push_back((double)sign);
+      }
       nwrite++;
-    }  
+    } else if (rw == 'r'){
+      changed_key_indices.push_back(i);
+      new_changed_pairs.push_back(wr_pairs[i]);
+      changed_key_scale.push_back(0.0);
+
+    } 
   }
   CTF_free(ckey);
   TAU_FSTOP(check_key_ranges);
@@ -364,10 +382,24 @@ void wr_pairs_layout(int const          ndim,
     /* Sort the pairs that were sent out, now with correct values */
     std::sort(buf_data, buf_data+nwrite);
     /* Search for the keys in the same order they were requested */
-    for (i=0; i<nwrite; i++){
-      el_loc = std::lower_bound(buf_data, buf_data+nwrite, wr_pairs[i]);
-      wr_pairs[i].d = el_loc[0].d;
+    j=0;
+    for (i=0; i<inwrite; i++){
+      if (j<changed_key_indices.size() && changed_key_indices[j] == i){
+        if (changed_key_scale[j] == 0.0){
+          wr_pairs[i].d= 0.0;
+        } else {
+          el_loc = std::lower_bound(buf_data, buf_data+nwrite, new_changed_pairs[j]);
+          wr_pairs[i].d = changed_key_scale[j]*el_loc[0].d;
+        }
+        j++;
+      } else {
+        el_loc = std::lower_bound(buf_data, buf_data+nwrite, wr_pairs[i]);
+        wr_pairs[i].d = el_loc[0].d;
+      }
     }
+    changed_key_indices.clear();
+    changed_key_scale.clear();
+    new_changed_pairs.clear();
     CTF_free(depadding);
   }
   TAU_FSTOP(wr_pairs_layout);

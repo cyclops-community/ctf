@@ -42,16 +42,55 @@ int sym_seq_sum_inr( dtype const        alpha,
   memcpy(dlen_B, edge_len_B, sizeof(int)*ndim_B);
 
   idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
-  memset(idx_glb, 0, sizeof(int)*idx_max);
 
 
   /* Scale B immediately. FIXME: wrong for iterators over subset of B */
 /*  if (beta != 1.0) {
-    sz = sy_packed_size(ndim_B, edge_len_B, sym_B, NULL);
+    long_int sz = sy_packed_size(ndim_B, edge_len_B, sym_B);
     for (i=0; i<sz; i++){
       B[i] = B[i]*beta;
     }
   }*/
+
+  if (beta != 1.0){
+    memset(idx_glb, 0, sizeof(int)*idx_max);
+
+    idx_A = 0, idx_B = 0;
+    sym_pass = 1;
+    for (;;){
+      //if (sym_pass)
+        //B[idx_B] =  beta*B[idx_B];
+      if (sym_pass){
+        cxscal<dtype>(inr_stride, beta, B+idx_B*inr_stride, 1);
+        CTF_FLOPS_ADD(2*inr_stride);
+      }
+      for (idx=0; idx<idx_max; idx++){
+        imin = 0, imax = INT_MAX;
+
+        GET_MIN_MAX(B,1,2);
+
+        if (rev_idx_map[2*idx+1] == -1) imax = imin+1;
+
+        idx_glb[idx]++;
+        if (idx_glb[idx] >= imax){
+           idx_glb[idx] = imin;
+        }
+        if (idx_glb[idx] != imin) {
+           break;
+        }
+      }
+      if (idx == idx_max) break;
+
+      CHECK_SYM(B);
+      if (!sym_pass) continue;
+
+      if (ndim_B > 0)
+        RESET_IDX(B);
+    }
+  }
+
+  memset(idx_glb, 0, sizeof(int)*idx_max);
+  
   idx_A = 0, idx_B = 0;
   sym_pass = 1;
   for (;;){
@@ -59,10 +98,10 @@ int sym_seq_sum_inr( dtype const        alpha,
   /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
               idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
     //  B[idx_B] = alpha*A[idx_A] + beta*B[idx_B];
-      if (beta != 1.0){
+  /*    if (beta != 1.0){
         cxaxpy<dtype>(inr_stride, beta-1.0, B+idx_B*inr_stride, 1, B+idx_B*inr_stride, 1);
         CTF_FLOPS_ADD(2*inr_stride);
-      }
+      }*/
       cxaxpy<dtype>(inr_stride, alpha, A+idx_A*inr_stride, 1, B+idx_B*inr_stride, 1); 
       CTF_FLOPS_ADD(2*inr_stride);
     }

@@ -25,6 +25,7 @@ long_int CTF_get_flops(){
 #define UTIL_DCOPY      dcopy
 #define UTIL_ZCOPY      zcopy
 #define UTIL_DSCAL      dscal
+#define UTIL_ZSCAL      zscal
 #define UTIL_DDOT       ddot
 #else
 #define UTIL_ZGEMM      zgemm_
@@ -34,6 +35,7 @@ long_int CTF_get_flops(){
 #define UTIL_DCOPY      dcopy_
 #define UTIL_ZCOPY      zcopy_
 #define UTIL_DSCAL      dscal_
+#define UTIL_ZSCAL      zscal_
 #define UTIL_DDOT       ddot_
 #endif
 
@@ -91,7 +93,11 @@ void UTIL_ZCOPY(const int * n,
 
 extern "C"
 void UTIL_DSCAL(const int *n,           double *dA,
-                const double * dX,      const int *incX);
+                double * dX,      const int *incX);
+
+extern "C"
+void UTIL_ZSCAL(const int *n,           std::complex<double> *dA,
+                std::complex<double> * dX,      const int *incX);
 
 extern "C"
 double UTIL_DDOT(const int * n,         const double * dX,      
@@ -157,9 +163,15 @@ void cdcopy(const int n,
 }
 
 void cdscal(const int n,        double dA,
-            const double * dX,  const int incX){
+            double * dX,  const int incX){
   UTIL_DSCAL(&n, &dA, dX, &incX);
 }
+
+void czscal(const int n,        std::complex<double> dA,
+            std::complex<double> * dX,  const int incX){
+  UTIL_ZSCAL(&n, &dA, dX, &incX);
+}
+
 
 double cddot(const int n,       const double *dX,
              const int incX,    const double *dY,
