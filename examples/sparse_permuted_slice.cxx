@@ -179,7 +179,7 @@ int main(int argc, char ** argv){
     pass = sparse_permuted_slice(n, b, SY, dw);
     assert(pass);
     if (rank == 0){
-      printf("Testing skew-symmetric multiworld permutation with n=%d\n",n);
+      printf("Testing symmetric-hollow multiworld permutation with n=%d\n",n);
     }
     pass = sparse_permuted_slice(n, b, SH, dw);
     assert(pass);

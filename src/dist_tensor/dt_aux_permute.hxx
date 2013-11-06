@@ -980,7 +980,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
                               long_int const   old_virt_nelem,
                               int const *      old_padding,
                               int const *      old_offsets,
-                              int * const *     old_permutation,
+                              int * const *    old_permutation,
                               int const        new_phys_np,
                               int const *      new_phys_rank,
                               int const *      new_phys_dim,
@@ -1027,8 +1027,8 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
     int pidx = 0;
     for (int vr = 0;vr < old_virt_dim[dim];vr++){
       for (int vidx = 0;vidx < old_virt_edge_len[dim];vidx++,pidx++){
-        int _gidx = (vidx*old_phys_dim[dim]+old_phys_rank[dim])*old_virt_dim[dim]+vr;
-        int gidx;
+        long_int _gidx = ((long_int)vidx*old_phys_dim[dim]+old_phys_rank[dim])*old_virt_dim[dim]+vr;
+        long_int gidx;
         if (_gidx > len[dim] || (old_offsets != NULL && _gidx < old_offsets[dim])){
           gidx = -1;
         } else {
@@ -1064,7 +1064,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
 #ifdef USE_OMP
   int max_ntd = omp_get_max_threads();
 
-  int old_size, new_size;
+  long_int old_size, new_size;
   old_size = sy_packed_size(ndim, old_virt_edge_len, sym)*old_virt_np;
   new_size = sy_packed_size(ndim, new_virt_edge_len, sym)*new_virt_np;
   /*if (forward){
@@ -1136,7 +1136,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   memset(idx_acc, 0, sizeof(int)*ndim);
 
   bool done = false;
-  for (int offset = 0;!done;){
+  for (long_int offset = 0;!done;){
     int bucket0 = 0;
     bool outside0 = false;
     for (int dim = 1;dim < ndim;dim++){
@@ -1148,7 +1148,8 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
       for (int dim = 1;dim < ndim;dim++){
         if (gidx[dim] >= (sym[dim] == NS ? ends[dim] :
                          (sym[dim] == SY ? gidx[dim+1]+1 :
-                                           gidx[dim+1]))){
+                                           gidx[dim+1])) ||
+            gidx[dim] < offs[dim]){
           outside0 = true;
           break;
         }
