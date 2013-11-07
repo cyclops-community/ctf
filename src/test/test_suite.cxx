@@ -140,7 +140,8 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing 4D fast symmetric contraction operation with n = %d:\n",n);
     pass.push_back(fast_sym_4D(n, dw));
-    
+   
+#ifndef PROFILE 
     if (rank == 0)
       printf("Testing non-symmetric Strassen's algorithm with n = %d:\n",n*n);
     pass.push_back(strassen(n*n, NS, dw));
@@ -161,6 +162,7 @@ int main(int argc, char ** argv){
         printf("Testing non-symmetric sliced GEMM algorithm with (%d %d %d):\n",16,32,8);
       pass.push_back(test_slice_gemm(16, 32, 8, dw));
     }
+#endif
 
   }
   {

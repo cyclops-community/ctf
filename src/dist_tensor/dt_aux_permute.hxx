@@ -1022,6 +1022,9 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   for (int dim = 0;dim < ndim;dim++) new_virt_edge_len[dim] = new_phys_edge_len[dim]/new_virt_dim[dim];
 
   int **bucket_offset; CTF_alloc_ptr(sizeof(int*)*ndim, (void**)&bucket_offset);
+
+  TAU_FSTART(form_cyclic_bucket_offsets);
+  
   for (int dim = 0;dim < ndim;dim++){
     CTF_alloc_ptr(sizeof(int)*old_phys_edge_len[dim], (void**)&bucket_offset[dim]);
     int pidx = 0;
@@ -1060,6 +1063,10 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
       }
     }
   }
+
+  TAU_FSTOP(form_cyclic_bucket_offsets);
+
+  TAU_FSTART(bucket_cyclic_data);
 
 #ifdef USE_OMP
   int max_ntd = omp_get_max_threads();
@@ -1280,6 +1287,8 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
       par_virt_counts[thread][bckt] = par_tmp - par_virt_counts[thread][bckt];
     }
   }
+  TAU_FSTOP(bucket_cyclic_data);
+  TAU_FSTART(move_cyclic_data);
   if (forward){
     #pragma omp parallel for
     for (int i=0; i<MAX(old_size,new_size); i++){
@@ -1297,6 +1306,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
       }
     }
   }
+  TAU_FSTOP(move_cyclic_data);
   for (int t=0; t<max_ntd; t++){
     CTF_free(par_virt_counts[t]);
   }
