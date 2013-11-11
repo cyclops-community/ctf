@@ -34,23 +34,25 @@ struct index_locator_
     }
 };
 
-template<typename T>
-int relativeSign(const T& s1, const T& s2)
+template<typename RAIterator>
+int relativeSign(RAIterator s1b, RAIterator s1e, RAIterator s2b, RAIterator s2e)
 {
+    int sz = s1e-s1b;
+    assert(sz == (int)(s2e-s2b));
     int i, j, k;
     int sign = 1;
-    std::vector<bool> seen(s1.size());
+    std::vector<bool> seen(sz);
 
-    for (i = 0;i < (int)s1.size();i++) seen[i] = false;
+    for (i = 0;i < sz;i++) seen[i] = false;
 
-    for (i = 0;i < (int)s1.size();i++)
+    for (i = 0;i < sz;i++)
     {
         if (seen[i]) continue;
         j = i;
         while (true)
         {
-            for (k = 0;k < (int)s1.size() && (!(s1[k] == s2[j]) || seen[k]);k++);
-            assert(k < (int)s1.size());
+            for (k = 0;k < sz && (!(*(s1b+k) == *(s2b+j)) || seen[k]);k++);
+            assert(k < sz);
             j = k;
             seen[j] = true;
             if (j == i) break;
@@ -59,6 +61,12 @@ int relativeSign(const T& s1, const T& s2)
     }
 
     return sign;
+}
+
+template<typename T>
+int relativeSign(const T& s1, const T& s2)
+{
+    return relativeSign(s1.begin(), s1.end(), s2.begin(), s2.end());
 }
 
 template <typename T>
