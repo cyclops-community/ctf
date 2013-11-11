@@ -66,7 +66,7 @@ int sym_seq_ctr_ref( dtype const        alpha,
     //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
     if (sym_pass){
       C[idx_C] += alpha*A[idx_A]*B[idx_B];
-      CTF_FLOPS_ADD(1);
+      CTF_FLOPS_ADD(3);
     }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 

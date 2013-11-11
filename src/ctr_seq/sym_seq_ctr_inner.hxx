@@ -85,7 +85,8 @@ int sym_seq_ctr_inr( dtype const        alpha,
                      B+idx_B*stride_B, prm->k, 1.0,
                      C+idx_C*stride_C, prm->m);
       TAU_FSTOP(gemm);
-      CTF_FLOPS_ADD((2 * (long_int)prm->n * (long_int)prm->m * (long_int)prm->k));
+      // count n^2 FLOPS too
+      CTF_FLOPS_ADD((2 * (long_int)prm->n * (long_int)prm->m * (long_int)(prm->k+1)));
     }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 

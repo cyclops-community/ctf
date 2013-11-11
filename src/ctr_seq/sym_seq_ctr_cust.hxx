@@ -70,7 +70,7 @@ int sym_seq_ctr_cust(dtype const          alpha,
     //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
     if (sym_pass){
       (*(prm->func_ptr))(alpha, A[idx_A], B[idx_B], C[idx_C]);
-      CTF_FLOPS_ADD(2);
+      CTF_FLOPS_ADD(3);
     }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 
