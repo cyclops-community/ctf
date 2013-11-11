@@ -68,7 +68,7 @@ void slice_gemm(int const   n,
     int off_00[2] = {0, 0};
     int end_11[2] = {m/ni, n/nj};
     
-    C.sum_slice(off_ij, end_ij, 1.0, cC, off_00, end_11, 1.0);
+    C.slice(off_ij, end_ij, 1.0, cC, off_00, end_11, 1.0);
   }
 }
 
@@ -91,14 +91,14 @@ int test_slice_gemm(int const n,
   MPI_Comm_size(pcomm, &num_pes);
   
   srand48(13*rank);
-  A.get_local_data(&np, &indices, &pairs);
+  A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
-  A.write_remote_data(np, indices, pairs);
+  A.write(np, indices, pairs);
   free(pairs);
   free(indices);
-  B.get_local_data(&np, &indices, &pairs);
+  B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
-  B.write_remote_data(np, indices, pairs);
+  B.write(np, indices, pairs);
   free(pairs);
   free(indices);
 

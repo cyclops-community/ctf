@@ -39,11 +39,11 @@ int  sym3(int const     n,
       values.push_back(drand48());
     }
 
-    AN.write_remote_data(indices.size(), indices.data(), values.data());
+    AN.write(indices.size(), indices.data(), values.data());
     for (i=0; i<n*n*n*n/num_pes; i++){
       values.push_back(drand48());
     }
-    BN.write_remote_data(indices.size(), indices.data(), values.data());
+    BN.write(indices.size(), indices.data(), values.data());
   }
 
   AA["ijkl"]  = AN["ijkl"];

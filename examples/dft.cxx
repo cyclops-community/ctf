@@ -16,22 +16,22 @@ int test_dft(int64_t const  n,
   cCTF_Matrix DFT(n, n, SY, wrld, "DFT", 1);
   cCTF_Matrix IDFT(n, n, SY, wrld, "IDFT", 0);
 
-  DFT.get_local_data(&np, &idx, &data);
+  DFT.read_local(&np, &idx, &data);
 
   for (i=0; i<np; i++){
     data[i] = exp(-2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
   }
-  DFT.write_remote_data(np, idx, data);
+  DFT.write(np, idx, data);
   //DFT.print(stdout);
   free(idx);
   free(data); 
   
-  IDFT.get_local_data(&np, &idx, &data);
+  IDFT.read_local(&np, &idx, &data);
 
   for (i=0; i<np; i++){
     data[i] = (1./n)*exp(2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
   }
-  IDFT.write_remote_data(np, idx, data);
+  IDFT.write(np, idx, data);
   //IDFT.print(stdout);
   free(idx);
   free(data); 
@@ -41,7 +41,7 @@ int test_dft(int64_t const  n,
   DFT["ik"] = DFT["ij"]*IDFT["jk"];
 
  
-  DFT.get_local_data(&np, &idx, &data);
+  DFT.read_local(&np, &idx, &data);
   int pass = 1;
   //DFT.print(stdout);
   for (i=0; i<np; i++){

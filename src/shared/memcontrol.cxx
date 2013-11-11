@@ -44,7 +44,9 @@ long_int CTF_mem_size = 0;
 int CTF_max_threads;
 int CTF_instance_counter = 0;
 long_int CTF_mem_used[MAX_THREADS];
+#ifndef PRODUCTION
 std::list<mem_loc> CTF_mem_stacks[MAX_THREADS];
+#endif
 
 //application memory stack
 void * mst_buffer = 0;
@@ -160,6 +162,7 @@ void CTF_mem_create(){
 void CTF_mem_exit(int rank){
   CTF_instance_counter--;
   assert(CTF_instance_counter >= 0);
+#ifndef PRODUCTION
   if (CTF_instance_counter == 0){
     for (int i=0; i<CTF_max_threads; i++){
       if (CTF_mem_used[i] > 0){
@@ -176,6 +179,7 @@ void CTF_mem_exit(int rank){
       }
     }
   }
+#endif
 }
 
 /**
@@ -271,16 +275,18 @@ int CTF_alloc_ptr(int const len, void ** const ptr){
 #else
   tid = 0;
 #endif
+  pm = posix_memalign(ptr, ALIGN_BYTES, len);
+#ifndef PRODUCTION
+  CTF_mem_used[tid] += len;
   std::list<mem_loc> * mem_stack;
   mem_stack = &CTF_mem_stacks[tid];
-  CTF_mem_used[tid] += len;
-  pm = posix_memalign(ptr, ALIGN_BYTES, len);
   m.ptr = *ptr;
   m.len = len;
   mem_stack->push_back(m);
 //  printf("CTF_mem_used up to "PRId64" stack to %d\n",CTF_mem_used,mem_stack->size());
 //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
- if (pm){
+#endif
+  if (pm){
     printf("CTF ERROR: posix memalign returned an error, "PRId64" memory alloced on this process, wanted to alloc %d more\n",
             CTF_mem_used[0], len);
   }
@@ -305,7 +311,10 @@ void * CTF_alloc(int const len){
  * \param[in,out] ptr pointer to set to address to free
  */
 int CTF_untag_mem(void * ptr){
-  int len, found;
+  int len;
+  int found;
+
+#ifndef PRODUCTION
   std::list<mem_loc> * mem_stack;
   
   mem_stack = &CTF_mem_stacks[0];
@@ -326,6 +335,7 @@ int CTF_untag_mem(void * ptr){
     return DIST_TENSOR_ERROR;
   }
   CTF_mem_used[0] -= len;
+#endif
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -344,6 +354,7 @@ int CTF_free(void * ptr, int const tid){
     return CTF_mst_free(ptr);
   }
   
+#ifndef PRODUCTION
   mem_stack = &CTF_mem_stacks[tid];
 
   std::list<mem_loc>::reverse_iterator it;
@@ -360,6 +371,7 @@ int CTF_free(void * ptr, int const tid){
     return DIST_TENSOR_NEGATIVE;
   }
   CTF_mem_used[tid] -= len;
+#endif
   //printf("CTF_mem_used down to "PRId64" stack to %d\n",CTF_mem_used,mem_stack->size());
   free(ptr);
   return DIST_TENSOR_SUCCESS;
@@ -398,6 +410,13 @@ int CTF_free_cond(void * ptr){
  * \param[in,out] ptr pointer to set to address to free
  */
 int CTF_free(void * ptr){
+#ifdef PRODUCTION
+  if ((long_int)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
+      (long_int)((char*)ptr-(char*)mst_buffer) >= 0){
+    return CTF_mst_free(ptr);
+  }
+  free(ptr);  
+#else
   int ret, tid, i;
 #ifdef USE_OMP
   if (CTF_max_threads == 1) tid = 0;
@@ -405,6 +424,7 @@ int CTF_free(void * ptr){
 #else
   tid = 0;
 #endif
+
 
   ret = CTF_free(ptr, tid);
   if (ret == DIST_TENSOR_NEGATIVE){
@@ -427,6 +447,7 @@ int CTF_free(void * ptr){
       }
     }
   }
+#endif
   return DIST_TENSOR_SUCCESS;
 
 }

@@ -221,7 +221,7 @@ do {                                    \
   do {                                          \
   if (cdt->alive == 1){                         \
     CTF_free(cdt->req);                         \
-    if (cdt->cm != MPI_COMM_WORLD)              \
+    if (cdt->cm != MPI_COMM_WORLD && cdt->cm != MPI_COMM_SELF)              \
       MPI_Comm_free(&(cdt->cm));                \
     cdt->alive = 0;                             \
   }                                             \

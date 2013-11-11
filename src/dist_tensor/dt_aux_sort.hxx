@@ -195,6 +195,173 @@ void depad_tsr(int const                ndim,
 #endif
 
 /**
+ * \brief permutes keys
+ * \param[in] ndim tensor dimension
+ * \param[in] num_pair number of pairs
+ * \param[in] edge_len old nonpadded tensor edge lengths
+ * \param[in] new_edge_len new nonpadded tensor edge lengths
+ * \param[in] permutation permutation to apply to keys of each pair
+ * \param[in,out] pairs the keys and values as pairs
+ * \param[out] new_num_pair number of new pairs, since pairs are ignored if perm[i][j] == -1
+ */
+template<typename dtype>
+void permute_keys(int const                   ndim,
+                  long_int const              num_pair,
+                  int const *                 edge_len,
+                  int const *                 new_edge_len,
+                  int * const *               permutation,
+                  tkv_pair<dtype> *           pairs,
+                  long_int *                  new_num_pair){
+  TAU_FSTART(permute_keys);
+  int mntd = omp_get_max_threads();
+  long_int counts[mntd];
+  std::fill(counts,counts+mntd,0);
+#ifdef USE_OMP
+  #pragma omp parallel
+#endif
+  { 
+    int i, j, tid, ntd, outside;
+    long_int lda, wkey, knew, kdim, tstart, tnum_pair, cnum_pair;
+#ifdef USE_OMP
+    tid = omp_get_thread_num();
+    ntd = omp_get_num_threads();
+#else
+    tid = 0;
+    ntd = 1;
+#endif
+    tnum_pair = num_pair/ntd;
+    tstart = tnum_pair * tid + MIN(tid, num_pair % ntd);
+    if (tid < num_pair % ntd) tnum_pair++;
+
+    std::vector< tkv_pair<dtype> > my_pairs;
+    cnum_pair = 0;
+
+    for (i=tstart; i<tstart+tnum_pair; i++){
+      wkey = pairs[i].k;
+      lda = 1;
+      knew = 0;
+      outside = 0;
+      for (j=0; j<ndim; j++){
+        kdim = wkey%edge_len[j];
+        if (permutation[j] != NULL){
+          if (permutation[j][kdim] == -1){
+            outside = 1;
+          } else{
+            knew += lda*permutation[j][kdim];
+          }
+        } else {
+          knew += lda*kdim;
+        }
+        lda *= new_edge_len[j];
+        wkey = wkey/edge_len[j];
+      }
+      if (!outside){
+        tkv_pair<dtype> tkp;
+        tkp.k = knew;
+        tkp.d = pairs[i].d;
+        cnum_pair++;
+        my_pairs.push_back(tkp);
+      }
+    }
+    counts[tid] = cnum_pair;
+    {
+      #pragma omp barrier
+      long_int pfx = 0;
+      for (i=0; i<tid; i++){
+        pfx += counts[i];
+      }
+      std::copy(my_pairs.begin(),my_pairs.begin()+cnum_pair,pairs+pfx);
+      my_pairs.clear();
+    }
+  } 
+  *new_num_pair = 0;
+  for (int i=0; i<mntd; i++){
+    *new_num_pair += counts[i];
+  }
+  TAU_FSTOP(permute_keys);
+}
+
+/**
+ * \brief depermutes keys (apply P^T)
+ * \param[in] ndim tensor dimension
+ * \param[in] num_pair number of pairs
+ * \param[in] edge_len old nonpadded tensor edge lengths
+ * \param[in] new_edge_len new nonpadded tensor edge lengths
+ * \param[in] permutation permutation to apply to keys of each pair
+ * \param[in,out] pairs the keys and values as pairs
+ */
+template<typename dtype>
+void depermute_keys(int const                   ndim,
+                    long_int const              num_pair,
+                    int const *                 edge_len,
+                    int const *                 new_edge_len,
+                    int * const *               permutation,
+                    tkv_pair<dtype> *           pairs){
+  TAU_FSTART(depermute_keys);
+  int mntd = omp_get_max_threads();
+  long_int counts[mntd];
+  std::fill(counts,counts+mntd,0);
+  int ** depermutation = (int**)CTF_alloc(ndim*sizeof(int*));
+  TAU_FSTART(form_depermutation);
+  for (int d=0; d<ndim; d++){
+    if (permutation[d] == NULL){
+      depermutation[d] = NULL;
+    } else {
+      depermutation[d] = (int*)CTF_alloc(new_edge_len[d]*sizeof(int));
+      std::fill(depermutation[d],depermutation[d]+new_edge_len[d], -1);
+      for (int i=0; i<edge_len[d]; i++){
+        depermutation[d][permutation[d][i]] = i;
+      }
+    }
+  }
+  TAU_FSTOP(form_depermutation);
+#ifdef USE_OMP
+  #pragma omp parallel
+#endif
+  { 
+    int i, j, tid, ntd, outside;
+    long_int lda, wkey, knew, kdim, tstart, tnum_pair, cnum_pair;
+#ifdef USE_OMP
+    tid = omp_get_thread_num();
+    ntd = omp_get_num_threads();
+#else
+    tid = 0;
+    ntd = 1;
+#endif
+    tnum_pair = num_pair/ntd;
+    tstart = tnum_pair * tid + MIN(tid, num_pair % ntd);
+    if (tid < num_pair % ntd) tnum_pair++;
+
+    std::vector< tkv_pair<dtype> > my_pairs;
+    cnum_pair = 0;
+
+    for (i=tstart; i<tstart+tnum_pair; i++){
+      wkey = pairs[i].k;
+      lda = 1;
+      knew = 0;
+      for (j=0; j<ndim; j++){
+        kdim = wkey%new_edge_len[j];
+        if (depermutation[j] != NULL){
+          LIBT_ASSERT(depermutation[j][kdim] != -1);
+          knew += lda*depermutation[j][kdim];
+        } else {
+          knew += lda*kdim;
+        }
+        lda *= edge_len[j];
+        wkey = wkey/new_edge_len[j];
+      }
+      pairs[i].k = knew;
+    }
+  }
+  for (int d=0; d<ndim; d++){
+    CTF_free(depermutation[d]);
+  }
+  CTF_free(depermutation);
+
+  TAU_FSTOP(depermute_keys);
+}
+
+/**
  * \brief applies padding to keys
  * \param[in] ndim tensor dimension
  * \param[in] num_pair number of pairs
@@ -844,6 +1011,14 @@ void zero_padding( int const          ndim,
   memcpy(phase_rank, cphase_rank, ndim*sizeof(int));
   memset(virt_rank, 0, sizeof(int)*ndim);
   for (p=0; p<nvirt; p++){
+    int is_sh_pad0 = 0;
+    if (((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]) ||
+        ( sym[0] == SY                  && phase_rank[0] >  phase_rank[1]) ) {
+      is_sh_pad0 = 1;
+    }
+    int pad0 = (padding[0]+phase_rank[0])/phase[0];
+    int len0 = edge_len[0]/phase[0]-pad0;
+    int plen0 = edge_len[0]/phase[0];
     if (p>=vst && p<vend){
       buf_offset = 0;
       data = vdata + p*(size/nvirt);
@@ -852,7 +1027,7 @@ void zero_padding( int const          ndim,
       memset(idx, 0, ndim*sizeof(int));
       for (;;){
         is_outside = 0;
-        for (i=0; i<ndim; i++){
+        for (i=1; i<ndim; i++){
           curr_idx = idx[i]*phase[i]+phase_rank[i];
           if (curr_idx >= edge_len[i] - padding[i]){
             is_outside = 1;
@@ -871,11 +1046,19 @@ void zero_padding( int const          ndim,
         }
         printf("\n");
         printf("data["PRId64"]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
-        if (is_outside)
-          data[buf_offset] = 0.0;
-        buf_offset++;
+
+  
+        if (sym[0] != NS) plen0 = idx[1]+1;
+        if (is_outside){
+          std::fill(data+buf_offset, data+buf_offset+plen0, 0.0);
+        } else {
+          int s1 = MIN(plen0-is_sh_pad0,len0);
+/*          if (sym[0] == SH) s1 = MIN(s1, len0-1);*/
+          std::fill(data+buf_offset+s1, data+buf_offset+plen0, 0.0);
+        }
+        buf_offset+=plen0;
         /* Increment indices and set up offsets */
-        for (i=0; i < ndim; i++){
+        for (i=1; i < ndim; i++){
           idx[i]++;
           act_max = edge_len[i]/phase[i];
           if (sym[i] != NS){

@@ -47,18 +47,18 @@ int fast_diagram(int const     n,
     int64_t size;
     srand48(173*rank);
 
-    T.get_local_data(&size, &indices, &values);
+    T.read_local(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
-    T.write_remote_data(size, indices, values);
+    T.write(size, indices, values);
     free(indices);
     free(values);
-    V.get_local_data(&size, &indices, &values);
+    V.read_local(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
-    V.write_remote_data(size, indices, values);
+    V.write(size, indices, values);
     free(indices);
     free(values);
   }

@@ -81,10 +81,10 @@ uint64_t getTotalSystemMemory()
 inline void handler() {
 #if (!BGP && !BGQ && !HOPPER)
   int i, size;
-  void *array[10];
+  void *array[20];
 
   // get void*'s for all entries on the stack
-  size = backtrace(array, 10);
+  size = backtrace(array, 20);
 
   // print out all the frames to stderr
   backtrace_symbols(array, size);
@@ -396,6 +396,12 @@ void czcopy(const int n,
             const std::complex<double> * dX,    const int incX,
             std::complex<double> * dY,          const int incY);
 
+void cdscal(const int n,        double dA,
+            double * dX,  const int incX);
+
+void czscal(const int n,        std::complex<double> dA,
+            std::complex<double> * dX,  const int incX);
+
 template <typename dtype>
 void cxaxpy(const int n,        dtype dA,
             const dtype * dX,   const int incX,
@@ -406,8 +412,9 @@ void cxcopy(const int n,
             const dtype * dX,   const int incX,
             dtype * dY, const int incY);
 
-void cdscal(const int n,        double dA,
-            const double * dX,  const int incX);
+template <typename dtype>
+void cxscal(const int n, dtype dA,
+            dtype * dX,  const int incX);
 
 double cddot(const int n,       const double *dX,
              const int incX,    const double *dY,
@@ -620,6 +627,21 @@ void cxaxpy< std::complex<double> >
 }
 
 template <> inline
+void cxscal<double>(const int n,        double dA,
+                    double * dX,  const int incX){
+  cdscal(n, dA, dX, incX);
+}
+
+template <> inline
+void cxscal< std::complex<double> >
+                    (const int n,
+                     std::complex<double> dA,
+                     std::complex<double> * dX,
+                     const int incX){
+  czscal(n, dA, dX, incX);
+}
+
+template <> inline
 void cxcopy<double>(const int n,
                     const double * dX,  const int incX,
                     double * dY,        const int incY){
@@ -637,24 +659,39 @@ void cxcopy< std::complex<double> >
 }
 
 
-int conv_idx(int const  ndim,
-             char const *  cidx,
-             int **     iidx);
+int conv_idx(int const      ndim,
+             char const *   cidx,
+             int **         iidx);
 
 int  conv_idx(int const         ndim_A,
-              char const *         cidx_A,
+              char const *      cidx_A,
               int **            iidx_A,
               int const         ndim_B,
-              char const *         cidx_B,
+              char const *      cidx_B,
               int **            iidx_B);
 
 int  conv_idx(int const         ndim_A,
-              char const *         cidx_A,
+              char const *      cidx_A,
               int **            iidx_A,
               int const         ndim_B,
-              char const *         cidx_B,
+              char const *      cidx_B,
               int **            iidx_B,
               int const         ndim_C,
-              char const *         cidx_C,
+              char const *      cidx_C,
               int **            iidx_C);
+
+void conv_idx(int          ndim,
+              int const *  lens,
+              long_int     idx,
+              int **       idx_arr);
+
+void conv_idx(int          ndim,
+              int const *  lens,
+              long_int     idx,
+              int *        idx_arr);
+
+void conv_idx(int          ndim,
+              int const *  lens,
+              int const *  idx_arr,
+              long_int *   idx);
 #endif

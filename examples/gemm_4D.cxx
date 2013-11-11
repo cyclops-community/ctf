@@ -33,19 +33,19 @@ int  gemm_4D(int const    n,
 
   srand48(13*rank);
   //* Writes noise to local data based on global index
-  A.get_local_data(&np, &indices, &pairs);
+  A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  A.write_remote_data(np, indices, pairs);
+  A.write(np, indices, pairs);
   free(pairs);
   free(indices);
-  B.get_local_data(&np, &indices, &pairs);
+  B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  B.write_remote_data(np, indices, pairs);
+  B.write(np, indices, pairs);
   free(pairs);
   free(indices);
-  C.get_local_data(&np, &indices, &pairs);
+  C.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  C.write_remote_data(np, indices, pairs);
+  C.write(np, indices, pairs);
   free(pairs);
   free(indices);
 
@@ -78,8 +78,8 @@ int  gemm_4D(int const    n,
   C["ijkl"] = A["ijmn"]*C["mnkl"];
   
   C.align(D);  
-  C.get_local_data(&np, &indices_BC, &pairs_BC);
-  D.get_local_data(&np, &indices_AB, &pairs_AB);
+  C.read_local(&np, &indices_BC, &pairs_BC);
+  D.read_local(&np, &indices_AB, &pairs_AB);
   int pass = 1;
   for (i=0; i<np; i++){
     if (fabs((double)pairs_BC[i]-(double)pairs_AB[i])>=1.E-6) pass = 0;

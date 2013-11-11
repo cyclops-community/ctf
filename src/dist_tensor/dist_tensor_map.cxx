@@ -215,6 +215,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
       else if (ret != DIST_TENSOR_SUCCESS) return ret;
       ret = map_tensor_rem(topovec[tsr_B->itopo].ndim, 
                            topovec[tsr_B->itopo].dim_comm, tsr_B);
+      if (ret == DIST_TENSOR_NEGATIVE) continue;
+      else if (ret != DIST_TENSOR_SUCCESS) return ret;
       copy_mapping(tsr_B->ndim, tsr_A->ndim,
                    idx_map_B, tsr_B->edge_map, 
                    idx_map_A, tsr_A->edge_map,0);
@@ -1235,6 +1237,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     TAU_FSTOP(map_tensors);
     if (gtopo == INT_MAX || gtopo == -1){
       printf("ERROR: Failed to map contraction!\n");
+      ABORT;
       return DIST_TENSOR_ERROR;
     }
     return DIST_TENSOR_SUCCESS;

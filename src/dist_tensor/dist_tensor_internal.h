@@ -296,18 +296,27 @@ class dist_tensor{
                      int ** edge_len,
                      int ** sym) const;
 
+    int permute_tensor(int const              tid_A,
+                       int * const *          permutation_A,
+                       dtype const            alpha,
+                       dist_tensor<dtype> *   dt_A,
+                       int const              tid_B,
+                       int * const *          permutation_B,
+                       dtype const            beta,
+                       dist_tensor<dtype> *   dt_B);
+    
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
                           + alpha*A[offsets_A:ends_A] */
     int slice_tensor(int const              tid_A,
                      int const *            offsets_A,
                      int const *            ends_A,
-                     double const           alpha,
+                     dtype const            alpha,
                      dist_tensor<dtype> *   dt_A,
                      int const              tid_B,
                      int const *            offsets_B,
                      int const *            ends_B,
-                     double const           beta,
+                     dtype const            beta,
                      dist_tensor<dtype> *   dt_B);
     
     

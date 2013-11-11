@@ -110,12 +110,14 @@ void readwrite(int const        ndim,
             //Check for write conflicts
             //Fixed: allow and handle them!
             while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
+//              printf("found overlapped write of key %ld and value %lf\n", pairs[pr_offset].k, pairs[pr_offset].d);
               if (rw == 'r'){
                 pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
               } else {
                 //data[(long_int)buf_offset+i] = beta*data[(long_int)buf_offset+i]+alpha*pairs[pr_offset].d;
                 data[(long_int)buf_offset+i] += alpha*pairs[pr_offset].d;
               }
+//              printf("rw = %c found overlapped write and set value to %lf\n", rw, data[(long_int)buf_offset+i]);
               pr_offset++;
             }
           } else {
@@ -170,7 +172,7 @@ void readwrite(int const        ndim,
  * \brief read or write pairs from / to tensor
  * \param[in] ndim tensor dimension
  * \param[in] np number of processors
- * \param[in] nwrite number of pairs
+ * \param[in] inwrite number of pairs
  * \param[in] alpha multiplier for new value
  * \param[in] beta multiplier for old value
  * \param[in] need_pad whether tensor is padded
@@ -190,7 +192,7 @@ void readwrite(int const        ndim,
 template<typename dtype>
 void wr_pairs_layout(int const          ndim,
                      int const          np,
-                     long_int const     nwrite,
+                     long_int const     inwrite,
                      dtype const        alpha,  
                      dtype const        beta,  
                      int const          need_pad,
@@ -207,15 +209,17 @@ void wr_pairs_layout(int const          ndim,
                      dtype *            rw_data,
                      CommData_t *       glb_comm){
 
-  long_int i, new_num_pair;
+  long_int i, new_num_pair, nwrite, swp;
   int * bucket_counts, * recv_counts;
   int * recv_displs, * send_displs;
   int * depadding, * depad_edge_len;
+  int * ckey;
+  int j, is_out, sign, is_perm;
   tkv_pair<dtype> * swap_data, * buf_data, * el_loc;
 
 
-  CTF_alloc_ptr(nwrite*sizeof(tkv_pair<dtype>),      (void**)&buf_data);
-  CTF_alloc_ptr(nwrite*sizeof(tkv_pair<dtype>),      (void**)&swap_data);
+  CTF_alloc_ptr(inwrite*sizeof(tkv_pair<dtype>),      (void**)&buf_data);
+  CTF_alloc_ptr(inwrite*sizeof(tkv_pair<dtype>),      (void**)&swap_data);
   CTF_alloc_ptr(np*sizeof(int),                      (void**)&bucket_counts);
   CTF_alloc_ptr(np*sizeof(int),                      (void**)&recv_counts);
   CTF_alloc_ptr(np*sizeof(int),                      (void**)&send_displs);
@@ -224,17 +228,69 @@ void wr_pairs_layout(int const          ndim,
   TAU_FSTART(wr_pairs_layout);
 
   /* Copy out the input data, do not touch that array */
-  memcpy(swap_data, wr_pairs, nwrite*sizeof(tkv_pair<dtype>));
+//  memcpy(swap_data, wr_pairs, nwrite*sizeof(tkv_pair<dtype>));
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&depad_edge_len);
+  for (i=0; i<ndim; i++){
+    depad_edge_len[i] = edge_len[i] - padding[i];
+  } 
+  TAU_FSTART(check_key_ranges);
+  nwrite = 0;
+  std::vector<long_int> changed_key_indices;
+  std::vector< tkv_pair<dtype> > new_changed_pairs;
+  std::vector<double> changed_key_scale;
+
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&ckey);
+  for (i=0; i<inwrite; i++){
+    conv_idx(ndim, depad_edge_len, wr_pairs[i].k, ckey);
+    is_out = 0;
+    sign = 1;
+    is_perm = 1;
+    while (is_perm && !is_out){
+      is_perm = 0;
+      for (j=0; j<ndim-1; j++){
+        if ((sym[j] == SH || sym[j] == AS) && ckey[j] == ckey[j+1]){
+          is_out = 1;
+          break;
+        } else if (sym[j] != NS && ckey[j] > ckey[j+1]){
+          swp       = ckey[j];
+          ckey[j]   = ckey[j+1];
+          ckey[j+1] = swp;
+          if (sym[j] == AS){
+            sign     *= -1;
+          }
+          is_perm = 1;
+        }/* else if (sym[j] == AS && ckey[j] > ckey[j+1]){
+          swp       = ckey[j];
+          ckey[j]   = ckey[j+1];
+          ckey[j+1] = swp;
+          is_perm = 1;
+        } */
+      }
+    } 
+    if (!is_out){
+      conv_idx(ndim, depad_edge_len, ckey, &(swap_data[nwrite].k));
+      swap_data[nwrite].d = ((double)sign)*wr_pairs[i].d;
+      if (rw == 'r' && swap_data[nwrite].k != wr_pairs[i].k){
+        /*printf("the %lldth key has been set from %lld to %lld\n",
+                 i, wr_pairs[i].k, swap_data[nwrite].k);*/
+        changed_key_indices.push_back(i);
+        new_changed_pairs.push_back(swap_data[nwrite]);
+        changed_key_scale.push_back((double)sign);
+      }
+      nwrite++;
+    } else if (rw == 'r'){
+      changed_key_indices.push_back(i);
+      new_changed_pairs.push_back(wr_pairs[i]);
+      changed_key_scale.push_back(0.0);
+
+    } 
+  }
+  CTF_free(ckey);
+  TAU_FSTOP(check_key_ranges);
 
   /* If the packed tensor is padded, pad keys */
-  if (need_pad){
-    CTF_alloc_ptr(ndim*sizeof(int), (void**)&depad_edge_len);
-    for (i=0; i<ndim; i++){
-      depad_edge_len[i] = edge_len[i] - padding[i];
-    } 
-    pad_key(ndim, nwrite, depad_edge_len, padding, swap_data);
-    CTF_free(depad_edge_len);
-  }
+  pad_key(ndim, nwrite, depad_edge_len, padding, swap_data);
+  CTF_free(depad_edge_len);
 
   /* Figure out which processor the value in a packed layout, lies for each key */
   bucket_by_pe(ndim, nwrite, np, 
@@ -326,10 +382,24 @@ void wr_pairs_layout(int const          ndim,
     /* Sort the pairs that were sent out, now with correct values */
     std::sort(buf_data, buf_data+nwrite);
     /* Search for the keys in the same order they were requested */
-    for (i=0; i<nwrite; i++){
-      el_loc = std::lower_bound(buf_data, buf_data+nwrite, wr_pairs[i]);
-      wr_pairs[i].d = el_loc[0].d;
+    j=0;
+    for (i=0; i<inwrite; i++){
+      if (j<changed_key_indices.size() && changed_key_indices[j] == i){
+        if (changed_key_scale[j] == 0.0){
+          wr_pairs[i].d= 0.0;
+        } else {
+          el_loc = std::lower_bound(buf_data, buf_data+nwrite, new_changed_pairs[j]);
+          wr_pairs[i].d = changed_key_scale[j]*el_loc[0].d;
+        }
+        j++;
+      } else {
+        el_loc = std::lower_bound(buf_data, buf_data+nwrite, wr_pairs[i]);
+        wr_pairs[i].d = el_loc[0].d;
+      }
     }
+    changed_key_indices.clear();
+    changed_key_scale.clear();
+    new_changed_pairs.clear();
     CTF_free(depadding);
   }
   TAU_FSTOP(wr_pairs_layout);

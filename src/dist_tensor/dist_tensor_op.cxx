@@ -1748,6 +1748,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
       felm.func_ptr = NULL;
       scale_tsr(beta, tid_B, idx_map_B, fs, felm); 
     }
+    free_type(&type);
     return DIST_TENSOR_SUCCESS;
   }
   if (tid_A == tid_B){
@@ -1755,6 +1756,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     ret = home_sum_tsr(alpha_, beta, new_tid, tid_B, 
                         idx_map_A, idx_map_B, ftsr, felm, run_diag);
     del_tsr(new_tid);
+    free_type(&type);
     return ret;
   }
   was_home_A = tsr_A->is_home;
@@ -2652,7 +2654,7 @@ int dist_tensor<dtype>::
                     signs[i], dbeta, map_inner);
           free_type(&perm_types[i]);
           dbeta = 1.0;
-       }
+      }
       perm_types.clear();
       signs.clear();
       }

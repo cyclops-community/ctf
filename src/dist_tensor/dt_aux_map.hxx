@@ -638,7 +638,11 @@ int remap_tensor(int const  tid,
                  int const    was_cyclic,
                  int const *  old_padding,
                  int const *  old_edge_len,
-                 CommData_t * global_comm){
+                 CommData_t * global_comm,
+                 int const *  old_offsets = NULL,
+                 int * const * old_permutation = NULL,
+                 int const *  new_offsets = NULL,
+                 int * const * new_permutation = NULL){
   int j, new_nvirt, can_block_shuffle;
   int * new_phase, * new_rank, * new_virt_dim, * new_pe_lda;
   mapping * map;
@@ -658,6 +662,10 @@ int remap_tensor(int const  tid,
 #else
   can_block_shuffle = 0;
 #endif
+  if (old_offsets != NULL || old_permutation != NULL ||
+      new_offsets != NULL || new_permutation != NULL){
+    can_block_shuffle = 0;
+  }
 
   for (j=0; j<tsr->ndim; j++){
     map     = tsr->edge_map + j;
@@ -740,12 +748,16 @@ int remap_tensor(int const  tid,
                      old_pe_lda,
                      was_padded,
                      old_padding,
+                     old_offsets,
+                     old_permutation,
                      tsr->edge_len,
                      new_phase,
                      new_rank,
                      new_pe_lda,
                      tsr->is_padded,
                      tsr->padding,
+                     new_offsets,
+                     new_permutation,
                      old_virt_dim,
                      new_virt_dim,
                      &tsr->data,

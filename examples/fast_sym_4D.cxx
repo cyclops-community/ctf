@@ -42,18 +42,18 @@ int fast_sym_4D(int const     n,
     int64_t size;
     srand48(173*rank);
 
-    A.get_local_data(&size, &indices, &values);
+    A.read_local(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
-    A.write_remote_data(size, indices, values);
+    A.write(size, indices, values);
     free(indices);
     free(values);
-    B.get_local_data(&size, &indices, &values);
+    B.read_local(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
-    B.write_remote_data(size, indices, values);
+    B.write(size, indices, values);
     free(indices);
     free(values);
   }

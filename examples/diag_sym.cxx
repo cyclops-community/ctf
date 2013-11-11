@@ -33,14 +33,14 @@ int diag_sym(int const    n,
 
   CTF_Matrix mA(n,n,NS,dw);
   CTF_Matrix mB(n,n,NS,dw);
-  mA.get_local_data(&np, &indices, &pairs);
+  mA.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  mA.write_remote_data(np, indices, pairs);
+  mA.write(np, indices, pairs);
   free(pairs);
   free(indices);
-  mB.get_local_data(&np, &indices, &pairs);
+  mB.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  mB.write_remote_data(np, indices, pairs);
+  mB.write(np, indices, pairs);
   free(pairs);
   free(indices);
 

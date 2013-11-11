@@ -284,38 +284,52 @@ class tCTF{
                      dtype const              beta,
                      tkv_pair<dtype> const *  mapped_data);
 
+    /**
+     * Permutes a tensor along each dimension skips if perm set to -1, generalizes slice.
+     *        one of permutation_A or permutation_B has to be set to NULL, if multiworld read, then
+     *        the parent world tensor should not be being permuted
+     */
+    int permute_tensor(int const              tid_A,
+                       int * const *          permutation_A,
+                       dtype const            alpha,
+                       tCTF<dtype> *          tC_A,
+                       int const              tid_B,
+                       int * const *          permutation_B,
+                       dtype const            beta,
+                       tCTF<dtype> *          tC_B);
+    
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
                           + alpha*A[offsets_A:ends_A] */
     int slice_tensor(int const    tid_A,
                      int const *  offsets_A,
                      int const *  ends_A,
-                     double const alpha,
+                     dtype const  alpha,
                      int const    tid_B,
                      int const *  offsets_B,
                      int const *  ends_B,
-                     double const beta);
+                     dtype const  beta);
 
     /* Same as above, except tid_A lives on dt_other_A */
     int slice_tensor(int const      tid_A,
                      int const *    offsets_A,
                      int const *    ends_A,
-                     double const   alpha,
+                     dtype const    alpha,
                      tCTF<dtype> *  dt_other_A,
                      int const      tid_B,
                      int const *    offsets_B,
                      int const *    ends_B,
-                     double const   beta);
+                     dtype const    beta);
     
     /* Same as above, except tid_B lives on dt_other_B */
     int slice_tensor(int const      tid_A,
                      int const *    offsets_A,
                      int const *    ends_A,
-                     double const   alpha,
+                     dtype const    alpha,
                      int const      tid_B,
                      int const *    offsets_B,
                      int const *    ends_B,
-                     double const   beta,
+                     dtype const    beta,
                      tCTF<dtype> *  dt_other_B);
     
 
@@ -328,10 +342,20 @@ class tCTF{
 
 
     /* read tensor data with <key, value> pairs where key is the
+       global index for the value, which gets filled in with 
+       beta times the old values plus alpha times the values read from the tensor. */
+    int read_tensor(int const               tensor_id,
+                    long_int const          num_pair,
+                    dtype const             alpha,
+                    dtype const             beta,
+                    tkv_pair<dtype> * const mapped_data);
+    
+    /* read tensor data with <key, value> pairs where key is the
        global index for the value, which gets filled in. */
     int read_tensor(int const               tensor_id,
                     long_int const          num_pair,
                     tkv_pair<dtype> * const mapped_data);
+
 
     /* read entire tensor with each processor (in packed layout).
        WARNING: will use a lot of memory. */

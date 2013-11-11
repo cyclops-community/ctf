@@ -871,27 +871,108 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
     
 
 /**
+ * \brief permutes a tensor along each dimension skips if perm set to -1, generalizes slice.
+ *        one of permutation_A or permutation_B has to be set to NULL, if multiworld read, then
+ *        the parent world tensor should not be being permuted
+ *
+ * \param[in] tid_A id of first tensor
+ * \param[in] permutation_A permutation for each edge lengths of the first tensor, can be NULL,
+ *                          and subpointers can be NULL
+ * \param[in] dt_A the dist_tensor object (world) on which A lives
+ * \param[in] alpha scaling factor for the A tensor
+ * \param[in] tid_B analogous to tid_A
+ * \param[in] permutation_B analogous to permutation_A
+ * \param[in] beta analogous to alpha
+ * \param[in] dt_B analogous to dt_A
+ */
+template<typename dtype>
+int dist_tensor<dtype>::permute_tensor(int const              tid_A,
+                                       int * const *          permutation_A,
+                                       dtype const            alpha,
+                                       dist_tensor<dtype> *   dt_A,
+                                       int const              tid_B,
+                                       int * const *          permutation_B,
+                                       dtype const            beta,
+                                       dist_tensor<dtype> *   dt_B){
+    
+  long_int sz_A, blk_sz_A, sz_B, blk_sz_B;
+  tkv_pair<dtype> * all_data_A, * blk_data_A;
+  tkv_pair<dtype> * all_data_B, * blk_data_B;
+  tensor<dtype> * tsr_A, * tsr_B;
+  int ndim_A, * len_A, * sym_A;
+  int ndim_B, * len_B, * sym_B;
+  int ret;
+
+  tsr_A = dt_A->tensors[tid_A];
+  tsr_B = dt_B->tensors[tid_B];
+
+  dt_A->get_tsr_info(tid_A, &ndim_A, &len_A, &sym_A);
+  dt_B->get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
+
+  if (permutation_B != NULL){
+    LIBT_ASSERT(permutation_A == NULL);
+    LIBT_ASSERT(dt_B->get_global_comm()->np <= dt_A->get_global_comm()->np);
+    if (ndim_B == 0 || tsr_B->has_zero_edge_len){
+      blk_sz_B = 0;
+    } else {
+      dt_B->read_local_pairs(tid_B, &sz_B, &all_data_B);
+      //permute all_data_B
+      permute_keys(ndim_B, sz_B, len_B, len_A, permutation_B, all_data_B, &blk_sz_B);
+    }
+    ret = dt_A->write_pairs(tid_A, blk_sz_B, 1.0, 0.0, all_data_B, 'r');  
+    if (blk_sz_B > 0)
+      depermute_keys(ndim_B, blk_sz_B, len_B, len_A, permutation_B, all_data_B);
+    all_data_A = all_data_B;
+    blk_sz_A = blk_sz_B;
+  } else {
+    LIBT_ASSERT(permutation_A != NULL);
+    LIBT_ASSERT(permutation_B == NULL);
+    LIBT_ASSERT(dt_B->get_global_comm()->np >= dt_A->get_global_comm()->np);
+    if (ndim_A == 0 || tsr_A->has_zero_edge_len){
+      blk_sz_A = 0;
+    } else {
+      dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
+      //permute all_data_A
+      permute_keys(ndim_A, sz_A, len_A, len_B, permutation_A, all_data_A, &blk_sz_A);
+    }
+  }
+
+  ret = dt_B->write_pairs(tid_B, blk_sz_A, alpha, beta, all_data_A, 'w');  
+
+  CTF_free(len_A);
+  CTF_free(len_B);
+  CTF_free(sym_A);
+  CTF_free(sym_B);
+  if (blk_sz_A > 0)
+    CTF_free(all_data_A);
+
+  return ret;
+}
+
+/**
  * Add tensor data from A to a block of B, 
  *      B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] 
  * \param[in] tid_A id of tensor A
  * \param[in] offsets_A closest corner of tensor block in A
  * \param[in] ends_A furthest corner of tensor block in A
+ * \param[in] permutation_A permutation of indices for each dimension (NULL if none)
  * \param[in] alpha scaling factor of A
  * \param[in] tid_B id of tensor B
  * \param[in] offsets_B closest corner of tensor block in B
  * \param[in] ends_B furthest corner of tensor block in B
+ * \param[in] permutation_B permutation of indices for each dimension (NULL if none)
  * \param[in] alpha scaling factor of B
  */
 template<typename dtype>
 int dist_tensor<dtype>::slice_tensor(int const              tid_A,
                                      int const *            offsets_A,
                                      int const *            ends_A,
-                                     double const           alpha,
+                                     dtype const            alpha,
                                      dist_tensor<dtype> *   dt_A,
                                      int const              tid_B,
                                      int const *            offsets_B,
                                      int const *            ends_B,
-                                     double const           beta,
+                                     dtype const            beta,
                                      dist_tensor<dtype> *   dt_B){
     
   long_int i, j, k, lda, knew, sz_A, blk_sz_A, sz_B, blk_sz_B;
@@ -924,6 +1005,10 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
               all_data_B, blk_data_B, &blk_sz_B);
     if (sz_B > 0)
       CTF_free(all_data_B);*/
+
+  if (dt_A == dt_B){
+    //use remap_tensor()
+  } //else {
 
   if (dt_B->get_global_comm()->np <
       dt_A->get_global_comm()->np){
@@ -958,9 +1043,9 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
     ret = dt_A->write_pairs(tid_A, blk_sz_B, 1.0, 0.0, blk_data_B, 'r');  
     all_data_A = blk_data_B;
     sz_A = blk_sz_B;
-  } else 
+  } else {
     dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
-
+  }
   
 
   if (ndim_A == 0 || tsr_A->has_zero_edge_len){
@@ -2158,10 +2243,10 @@ int dist_tensor<dtype>::check_contraction(CTF_ctr_type_t const * type){
     }
     if (len != -1 && iC != -1 && len != len_C[iC]){
       if (global_comm->rank == 0){
-        printf("Error in contraction call: The %dth edge length of tensor %d does not",
-                iA, type->tid_A);
-        printf("match the %dth edge length of tensor %d.\n",
-                iC, type->tid_C);
+        printf("Error in contraction call: The %dth edge length of tensor %d (%d) does not",
+                iA, type->tid_A, len);
+        printf("match the %dth edge length of tensor %d (%d).\n",
+                iC, type->tid_C, len_C[iC]);
       }
       ABORT;
     }
@@ -2238,10 +2323,10 @@ int dist_tensor<dtype>::check_sum(int const   tid_A,
     }
     if (len != -1 && iB != -1 && len != len_B[iB]){
       if (global_comm->rank == 0){
-        printf("Error in sum call: The %dth edge length of tensor %d does not",
-                iA, tid_A);
-        printf("match the %dth edge length of tensor %d.\n",
-                iB, tid_B);
+        printf("i = %d Error in sum call: The %dth edge length (%d) of tensor %d does not",
+                i, iA, len, tid_A);
+        printf("match the %dth edge length (%d) of tensor %d.\n",
+                iB, len_B[iB], tid_B);
       }
       ABORT;
     }
