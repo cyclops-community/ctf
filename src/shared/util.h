@@ -111,7 +111,7 @@ inline void handler() {
 #define LIBT_ASSERT(...)                \
 do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
 #else
-#define LIBT_ASSERT(...)
+#define LIBT_ASSERT(...) do {} while(0 && (__VA_ARGS__))
 #endif
 #endif
 
@@ -174,13 +174,14 @@ do { printf("warning: "); printf(__VA_ARGS__); printf("\n"); } while(0)
         #endif
 #else
   #ifndef DPRINTF
-  #define DPRINTF(...)
+  #define DPRINTF(...) do { } while (0)
   #endif
   #ifndef DEBUG_PRINTF
-  #define DEBUG_PRINTF(...)
+  #define DEBUG_PRINTF(...) do {} while (0)
   #endif
   #ifndef RANK_PRINTF
-  #define RANK_PRINTF(...)
+  #define RANK_PRINTF(...) do { } while (0)
+
   #endif
   #ifndef PRINT_INT
   #define PRINT_INT(var)

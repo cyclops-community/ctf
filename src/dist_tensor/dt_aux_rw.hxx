@@ -384,7 +384,7 @@ void wr_pairs_layout(int const          ndim,
     /* Search for the keys in the same order they were requested */
     j=0;
     for (i=0; i<inwrite; i++){
-      if (j<changed_key_indices.size() && changed_key_indices[j] == i){
+      if (j<(int)changed_key_indices.size() && changed_key_indices[j] == i){
         if (changed_key_scale[j] == 0.0){
           wr_pairs[i].d= 0.0;
         } else {

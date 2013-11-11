@@ -261,11 +261,11 @@ int main(int argc, char ** argv){
       Integrals V(no, nv, dw);
       V.fill_rand();
       Amplitudes T(no, nv, dw);
-      double d = MPI_Wtime();
       for (i=0; i<niter; i++){
+        double d = MPI_Wtime();
         ccsd(V,T);
         if (rank == 0)
-          printf("Completed %dth CCSD iteration, time = %lf, |T| is %lf\n",
+          printf("Completed %dth CCSD iteration in time = %lf, |T| is %lf\n",
                   i, MPI_Wtime()-d, T.ai.norm2()+T.abij.norm2());
         else {
           T.ai.norm2();

@@ -896,8 +896,8 @@ int dist_tensor<dtype>::permute_tensor(int const              tid_A,
                                        dist_tensor<dtype> *   dt_B){
     
   long_int sz_A, blk_sz_A, sz_B, blk_sz_B;
-  tkv_pair<dtype> * all_data_A, * blk_data_A;
-  tkv_pair<dtype> * all_data_B, * blk_data_B;
+  tkv_pair<dtype> * all_data_A;
+  tkv_pair<dtype> * all_data_B;
   tensor<dtype> * tsr_A, * tsr_B;
   int ndim_A, * len_A, * sym_A;
   int ndim_B, * len_B, * sym_B;
@@ -975,7 +975,7 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
                                      dtype const            beta,
                                      dist_tensor<dtype> *   dt_B){
     
-  long_int i, j, k, lda, knew, sz_A, blk_sz_A, sz_B, blk_sz_B;
+  long_int i, sz_A, blk_sz_A, sz_B, blk_sz_B;
   tkv_pair<dtype> * all_data_A, * blk_data_A;
   tkv_pair<dtype> * all_data_B, * blk_data_B;
   tensor<dtype> * tsr_A, * tsr_B;
@@ -1296,7 +1296,6 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   int nval, n, i;
   int * pXs;
   tkv_pair<dtype> * my_pairs, * all_pairs;
-  dtype * whole_tsr;
 
   numPes = global_comm->np;
   if (tensors[tid]->has_zero_edge_len){

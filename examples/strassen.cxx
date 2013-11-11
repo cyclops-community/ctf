@@ -13,7 +13,7 @@
 int strassen(int const     n,
              int const     sym,
              CTF_World    &dw){
-  int rank, i, num_pes, crank, cnum_pes, ri, rj, rk;
+  int rank, i, num_pes, cnum_pes;
   int64_t np;
   double * pairs, err;
   int64_t * indices;
@@ -27,7 +27,6 @@ int strassen(int const     n,
 
   if (num_pes % 7 == 0){
     cnum_pes  = num_pes/7;
-    crank     = rank%cnum_pes;
     MPI_Comm_split(pcomm, rank/cnum_pes, rank%cnum_pes, &ccomm);
   } else {
     ccomm = dw.comm;

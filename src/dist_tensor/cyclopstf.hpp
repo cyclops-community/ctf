@@ -529,9 +529,6 @@ class tCTF{
 
     int pgemm( char const         TRANSA,
                char const         TRANSB,
-               int const          M,
-               int const          N,
-               int const          K,
                dtype const        ALPHA,
                int const          tid_A,
                int const          tid_B,

@@ -110,7 +110,8 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   CTF_set_main_args(argc, argv);
 
 #ifdef USE_OMP
-  DPRINTF(1,"CTF running with %d threads\n",omp_get_max_threads());
+  if (rank == 0)
+    DPRINTF(1,"CTF running with %d threads\n",omp_get_max_threads());
 #endif
   
   mst_size = getenv("CTF_MST_SIZE");
@@ -1145,9 +1146,6 @@ int tCTF<dtype>::read_scala_mat(int const tid,
 template<typename dtype>
 int tCTF<dtype>::pgemm(char const   TRANSA, 
                        char const   TRANSB, 
-                       int const    M, 
-                       int const    N, 
-                       int const    K, 
                        dtype const  ALPHA,
                        int const    tid_A,
                        int const    tid_B,
@@ -1196,7 +1194,6 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   else
     fs.func_ptr = &gemm_ctr<dtype,0,0>;
   ret = this->contract(&ct, fs, ALPHA, BETA);
-  std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   CTF_free(ct.idx_map_A);
   CTF_free(ct.idx_map_B);
   CTF_free(ct.idx_map_C);

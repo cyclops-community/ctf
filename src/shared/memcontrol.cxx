@@ -87,7 +87,6 @@ std::list<mem_transfer> CTF_contract_mst(){
       mst_buffer_used < .40*mst_buffer_size){
     TAU_FSTART(CTF_contract_mst);
     std::list<mem_loc> old_mst = mst;
-    long_int old_mst_buffer_ptr = mst_buffer_ptr;
     mst_buffer_ptr = 0;
     mst_buffer_used = 0;
 
@@ -110,8 +109,8 @@ std::list<mem_transfer> CTF_contract_mst(){
         transfers.push_back(t);
     }
     //DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
-    DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
-                old_mst_buffer_ptr, mst_buffer_ptr);
+    //DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
+      //          old_mst_buffer_ptr, mst_buffer_ptr);
     old_mst.clear();
     TAU_FSTOP(CTF_contract_mst);
   }
@@ -224,7 +223,7 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
   if (mst_buffer_size == 0)
     return CTF_alloc_ptr(len, ptr);
   else {
-    int pm, tid, plen, off;
+    int plen, off;
     off = len % MST_ALIGN_BYTES;
     if (off > 0)
       plen = len + MST_ALIGN_BYTES - off;
