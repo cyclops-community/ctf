@@ -78,10 +78,10 @@ int  gemm(int const     m,
     CTF_Matrix D(m, n, NS, dw);
     CTF_Matrix E(m, n, NS, dw);
     
-    D["ij"] = A["ik"]*B["kj"];
-    D["ij"] = D["ik"]*C["kj"];
-    E["ij"] = B["ik"]*C["kj"];
-    E["ij"] = A["ik"]*E["kj"];
+    D["ij"] = (A["ik"]*B["kj"]);
+    D["ij"] = (D["ik"]*C["kj"]);
+    E["ij"] = (B["ik"]*C["kj"]);
+    E["ij"] = (A["ik"]*E["kj"]);
     
     D.align(E);
     D.read_local(&np, &indices_BC, &pairs_BC);

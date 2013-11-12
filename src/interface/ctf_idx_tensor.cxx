@@ -11,9 +11,8 @@
 #include "../../include/ctf.hpp"
 
 template<typename dtype>
-void get_intermediate(tCTF_Idx_Tensor<dtype>& A, 
-                      tCTF_Idx_Tensor<dtype>& B,
-                      tCTF_Idx_Tensor<dtype>& out){
+tCTF_Idx_Tensor<dtype> get_intermediate(tCTF_Idx_Tensor<dtype>& A, 
+                                        tCTF_Idx_Tensor<dtype>& B){
   int * len_C, * sym_C;
   char * idx_C;
   int ndim_C, i, j, idx;
@@ -76,12 +75,11 @@ void get_intermediate(tCTF_Idx_Tensor<dtype>& A,
   }
 
   tCTF_Tensor<dtype> * tsr_C = new tCTF_Tensor<dtype>(ndim_C, len_C, sym_C, *(A.parent->world));
-  out.parent = tsr_C;
-  out.idx_map = idx_C;
+  tCTF_Idx_Tensor<dtype> out(tsr_C, idx_C);
   out.is_intm = 1;
   CTF_free(sym_C);
   CTF_free(len_C);
-
+  return out;
 }
 
 template<typename dtype>
@@ -102,11 +100,12 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(tCTF_Tensor<dtype> *  parent_,
   is_intm       = 0;
   is_copy       = copy;
   NBR           = NULL;
+  scale         = 1.0;
 }
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
-    tCTF_Idx_Tensor<dtype> &  other,
+    tCTF_Idx_Tensor<dtype> const &  other,
     int                       copy) {
   if (copy){
     parent = new tCTF_Tensor<dtype>(*other.parent,1);
@@ -116,12 +115,13 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
     parent        = other.parent;
   }
   memcpy(idx_map, other.idx_map, parent->ndim*sizeof(char));
-  has_contract  = 0;
-  has_scale     = 0;
-  has_sum       = 0;
-  is_intm       = 0;
+  has_contract  = other.has_contract;
+  has_scale     = other.has_scale;
+  has_sum       = other.has_sum;
+  is_intm       = other.is_intm;
   is_copy       = copy;
-  NBR           = NULL;
+  NBR           = other.NBR;
+  scale         = other.scale;
 }
 
 template<typename dtype>
@@ -134,6 +134,7 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(){
   is_intm       = 0;
   is_copy       = 0;
   NBR           = NULL;
+  scale         = 1.0;
 }
 
 template<typename dtype>
@@ -144,17 +145,17 @@ tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
 
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype>& tsr){
+void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype> tsr){
   tsr.run(this, 0.0);
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Idx_Tensor<dtype>& tsr){
+void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Idx_Tensor<dtype> tsr){
   tsr.run(this, 1.0);
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Idx_Tensor<dtype>& tsr){
+void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Idx_Tensor<dtype> tsr){
   if (tsr.has_scale) tsr.scale = -1.0*tsr.scale;
   else {
     tsr.has_scale = 1;
@@ -164,7 +165,7 @@ void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Idx_Tensor<dtype>& tsr){
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Idx_Tensor<dtype>& tsr){
+void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Idx_Tensor<dtype> tsr){
   NBR = &tsr;
   has_contract = 1;
   run(this, 0.0);
@@ -188,9 +189,9 @@ void tCTF_Idx_Tensor<dtype>::operator*=(dtype B){
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator* (tCTF_Idx_Tensor<dtype>& tsr){
+tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::operator* (tCTF_Idx_Tensor<dtype> tsr){
   if (has_contract){
-    (*NBR)*tsr;
+    *NBR = (*NBR)*tsr;
     return *this;
   }
   if (has_sum){
@@ -224,18 +225,22 @@ tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator* (tCTF_Idx_Tensor<dtype
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator+(tCTF_Idx_Tensor<dtype>& tsr){
-  if (has_contract || has_sum)
-    return (*NBR)+tsr;
+tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::operator+(tCTF_Idx_Tensor<dtype> tsr){
+  if (has_contract || has_sum){
+    *NBR = (*NBR)-tsr;
+    return *this;
+  }
   NBR = &tsr;
   has_sum = 1;
   return *this;
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator-(tCTF_Idx_Tensor<dtype>& tsr){
-  if (has_contract || has_sum)
-    return (*NBR)-tsr;
+tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::operator-(tCTF_Idx_Tensor<dtype> tsr){
+  if (has_contract || has_sum){
+    *NBR = (*NBR)-tsr;
+    return *this;
+  }
   NBR = &tsr;
   has_sum = 1;
   if (tsr.has_scale) tsr.scale = -1.0*tsr.scale;
@@ -247,9 +252,11 @@ tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator-(tCTF_Idx_Tensor<dtype>
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator*(double  scl){
-  if (has_contract)
-    return (*NBR)*scl;
+tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::operator*(double  scl){
+  if (has_contract){
+    *NBR =(*NBR)*scl;
+    return *this;
+  }
   if (has_scale){
     scale *= scl;
   } else {
@@ -259,14 +266,14 @@ tCTF_Idx_Tensor<dtype>& tCTF_Idx_Tensor<dtype>::operator*(double  scl){
   return *this;
 }
 
-template<typename dtype>
+/*template<typename dtype>
 tCTF_Idx_Tensor<dtype>::operator dtype(){
   tCTF_Scalar<dtype> sc(*parent->world);
-  tCTF_Idx_Tensor<dtype> * isc = &(sc[""]); 
+  tCTF_Idx_Tensor<dtype> * isc = new tCTF_Idx_Tensor<dtype>(&sc,""); 
   run(isc, 0.0);
 //  delete isc;
   return sc.get_val();
-}
+}*/
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, dtype  beta){
@@ -278,11 +285,12 @@ void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, dtype  beta){
       alpha *= NBR->scale;
     }
     if (NBR->has_contract || NBR->has_sum){
-      tCTF_Idx_Tensor itsr;
-      get_intermediate(*this,*NBR,itsr);
+      tCTF_Idx_Tensor itsr = get_intermediate(*this,*NBR);
       itsr.has_sum = NBR->has_sum;
       itsr.has_contract = NBR->has_contract;
       itsr.NBR = NBR->NBR;
+      printf("interm tsr has_Contract = %d, NBR = %p, NBR.has_scale = %d\n", itsr.has_contract, itsr.NBR,
+      itsr.NBR->has_scale);
       
       itsr.parent->contract(alpha, *(this->parent), this->idx_map,
                                     *(NBR->parent),  NBR->idx_map,

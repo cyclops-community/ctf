@@ -139,6 +139,15 @@ class tCTF_Idx_Tensor;
 template<typename dtype>
 class tCTF_Sparse_Tensor;
 
+template<typename dtype>
+class tCTF_Term;
+
+template<typename dtype>
+class tCTF_Sum_Term;
+
+template<typename dtype>
+class tCTF_Contract_Term;
+
 /**
  * \brief an instance of a tensor within a tCTF world
  */
@@ -526,13 +535,13 @@ class tCTF_Tensor {
      * \brief associated an index map with the tensor for future operation
      * \param[in] idx_map_ index assignment for this tensor
      */
-    tCTF_Idx_Tensor<dtype>& operator[](char const * idx_map_);
+    tCTF_Idx_Tensor<dtype> operator[](char const * idx_map_);
     
     /**
      * \brief gives handle to sparse index subset of tensors
      * \param[in] indices, vector of indices to sparse tensor
      */
-    tCTF_Sparse_Tensor<dtype>& operator[](std::vector<long_int> indices);
+    tCTF_Sparse_Tensor<dtype> operator[](std::vector<long_int> indices);
     
     /**
      * \brief prints tensor data to file using process 0
@@ -640,27 +649,25 @@ class tCTF_Scalar : public tCTF_Tensor<dtype> {
 };
 
 template<typename dtype> static
-tCTF_Idx_Tensor<dtype>& operator*(double d, tCTF_Idx_Tensor<dtype>& tsr){
-  return tsr*d;
+tCTF_Term<dtype> operator*(double d, tCTF_Term<dtype> tsr){
+  tsr.scale *= d;
+  return tsr;
 }
 
-template tCTF_Idx_Tensor<double>& 
-            operator*(double d, tCTF_Idx_Tensor<double> & tsr);
-template tCTF_Idx_Tensor< std::complex<double> >& 
-            operator*(double  d, tCTF_Idx_Tensor< std::complex<double> > & tsr);
+template tCTF_Term<double>
+            operator*(double d, tCTF_Term<double> tsr);
+template tCTF_Term< std::complex<double> >
+            operator*(double  d, tCTF_Term< std::complex<double> > tsr);
 
 
 /**
  * \brief a tensor with an index map associated with it (necessary for overloaded operators)
  */
 template<typename dtype>
-class tCTF_Idx_Tensor {
+class tCTF_Idx_Tensor : tCTF_Term<dtype> {
   public:
     tCTF_Tensor<dtype> * parent;
     char * idx_map;
-    int has_contract, has_scale, has_sum, is_intm, is_copy;
-    double scale;
-    tCTF_Idx_Tensor<dtype> *NBR;
 
   public:
     /**
@@ -676,66 +683,52 @@ class tCTF_Idx_Tensor {
     /**
      * \brief copy constructor
      * \param[in] B tensor to copy
+     * \param[in] copy if 1 then copy the parent tensor of B into a new tensor
      */
-    tCTF_Idx_Tensor(tCTF_Idx_Tensor<dtype>& B,
+    tCTF_Idx_Tensor(tCTF_Idx_Tensor<dtype> const & B,
                     int copy = 0);
     
+
     tCTF_Idx_Tensor();
     
     ~tCTF_Idx_Tensor();
     
     /**
+     * \brief evalues the expression to produce an intermediate with 
+     *        all expression indices remaining
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    tCTF_Idx_Tensor<dtype> execute();
+    
+    /**
+     * \brief evalues the expression, which just scales by default
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    void execute(tCTF_Idx_Tensor<dtype> output);
+    
+    /**
      * \brief A = B, compute any operations on operand B and set
      * \param[in] B tensor on the right hand side
      */
-    void operator=(tCTF_Idx_Tensor<dtype>& B);
-    void operator=(dtype B);
+    void operator=(tCTF_Term<dtype> B);
 
     /**
      * \brief A += B, compute any operations on operand B and add
      * \param[in] B tensor on the right hand side
      */
-    void operator+=(tCTF_Idx_Tensor<dtype>& B);
-    void operator+=(dtype B);
+    void operator+=(tCTF_Term<dtype> B);
     
     /**
      * \brief A += B, compute any operations on operand B and add
      * \param[in] B tensor on the right hand side
      */
-    void operator-=(tCTF_Idx_Tensor<dtype>& B);
-    void operator-=(dtype B);
+    void operator-=(tCTF_Term<dtype> B);
     
     /**
      * \brief A -> A*B contract two tensors
      * \param[in] B tensor on the right hand side
      */
-    void operator*=(tCTF_Idx_Tensor<dtype>& B);
-    void operator*=(dtype B);
-
-    /**
-     * \brief C -> A*B contract two tensors
-     * \param[in] B tensor on the right hand side
-     */
-    tCTF_Idx_Tensor<dtype>& operator*(tCTF_Idx_Tensor<dtype>& B);
-
-    /**
-     * \brief A -> A+B sums two tensors
-     * \param[in] B tensor on the right hand side
-     */
-    tCTF_Idx_Tensor<dtype>& operator+(tCTF_Idx_Tensor<dtype>& B);
-    
-    /**
-     * \brief A -> A-B subtacts two tensors
-     * \param[in] tsr tensor on the right hand side
-     */
-    tCTF_Idx_Tensor<dtype>& operator-(tCTF_Idx_Tensor<dtype>& B);
-    
-    /**
-     * \brief A -> A-B subtacts two tensors
-     * \param[in] tsr tensor on the right hand side
-     */
-    tCTF_Idx_Tensor<dtype>& operator*(double scl);
-
+    void operator*=(tCTF_Term<dtype> B);
 
     /**
      * \brief TODO A -> A * B^-1
@@ -746,13 +739,116 @@ class tCTF_Idx_Tensor {
     /**
      * \brief casts into a double if dimension of evaluated expression is 0
      */
-    operator dtype();
+    //operator dtype();
 
     /**
      * \brief execute ips into output with scale beta
      */    
-    void run(tCTF_Idx_Tensor<dtype>* output, dtype  beta);
+    //void run(tCTF_Idx_Tensor<dtype>* output, dtype  beta);
 
+};
+
+/**
+ * \brief a term is an object representing some expression among tensors
+ */
+template<typename dtype>
+class tCTF_Term {
+  public:
+    double scale;
+
+    /**
+     * \brief construct empty Term
+     */ 
+    tCTF_Term();
+
+    /**
+     * \brief evalues the expression, which just scales by default
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    void execute(tCTF_Idx_Tensor<dtype> output);
+    
+    /**
+     * \brief evalues the expression to produce an intermediate with 
+     *        all expression indices remaining
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    tCTF_Idx_Tensor<dtype> execute();
+    
+    /**
+     * \brief constructs a new term which multiplies by tensor A
+     * \param[in] A term to multiply by
+     */
+    tCTF_Contract_Term<dtype> operator*(tCTF_Term<dtype> A);
+    
+    /**
+     * \brief constructs a new term by addition of two terms
+     * \param[in] A term to add to output
+     */
+    tCTF_Sum_Term<dtype> operator+(tCTF_Term<dtype> A);
+    
+    /**
+     * \brief constructs a new term by subtracting term A
+     * \param[in] A subtracted term
+     */
+    tCTF_Sum_Term<dtype> operator-(tCTF_Term<dtype> A);
+
+    /**
+     * \brief multiples by a constant
+     * \param[in] scl scaling factor to multiply term by
+     */
+    tCTF_Term<dtype> operator*(dtype scl);
+};
+
+template<typename dtype>
+class tCTF_Sum_Term : tCTF_Term<dtype> {
+  public:
+    std::vector< tCTF_Term<dtype> > operands;
+
+    /**
+     * construct sum term corresponding to a single tensor
+     * \param[in] output tensor to write results into and its indices
+     */ 
+    //tCTF_Sum_Term<dtype>(tCTF_Idx_Tensor<dtype> const & tsr);
+
+    /**
+     * \brief evalues the expression by summing operands into output
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    void execute(tCTF_Idx_Tensor<dtype> output);
+    
+    /**
+     * \brief evalues the expression to produce an intermediate with 
+     *        all expression indices remaining
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    tCTF_Idx_Tensor<dtype> execute();
+    
+
+};
+
+template<typename dtype>
+class tCTF_Contract_Term : tCTF_Term<dtype> {
+  public:
+    std::vector< tCTF_Term<dtype> > operands;
+
+    /**
+     * \brief ovverride execution to  to contract operands and add them to output
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    void execute(tCTF_Idx_Tensor<dtype> output);
+    
+    /**
+     * \brief evalues the expression to produce an intermediate with 
+     *        all expression indices remaining
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    tCTF_Idx_Tensor<dtype> execute();
+    
+    /**
+     * \brief override contraction to grow vector rather than create recursive terms
+     * \param[in] A term to multiply by
+     */
+    tCTF_Contract_Term<dtype> operator*(tCTF_Term<dtype> A);
 };
 
 /**

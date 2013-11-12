@@ -497,15 +497,15 @@ void tCTF_Tensor<dtype>::operator=(tCTF_Tensor<dtype> A){
     
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype>& tCTF_Tensor<dtype>::operator[](const char * idx_map_){
-  tCTF_Idx_Tensor<dtype> * itsr = new tCTF_Idx_Tensor<dtype>(this, idx_map_);
-  return *itsr;
+tCTF_Idx_Tensor<dtype> tCTF_Tensor<dtype>::operator[](const char * idx_map_){
+  tCTF_Idx_Tensor<dtype> itsr(this, idx_map_);
+  return itsr;
 }
 
 template<typename dtype>
-tCTF_Sparse_Tensor<dtype>& tCTF_Tensor<dtype>::operator[](std::vector<int64_t> indices){
-  tCTF_Sparse_Tensor<dtype> * stsr = new tCTF_Sparse_Tensor<dtype>(indices,this);
-  return *stsr;
+tCTF_Sparse_Tensor<dtype> tCTF_Tensor<dtype>::operator[](std::vector<int64_t> indices){
+  tCTF_Sparse_Tensor<dtype> stsr(indices,this);
+  return stsr;
 }
 
 
