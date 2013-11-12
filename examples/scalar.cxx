@@ -10,7 +10,7 @@
 #include <ctf.hpp>
 
 int scalar(CTF_World    &dw){
-  int rank, i, num_pes, pass;
+  int rank, num_pes, pass;
   int64_t np, * indices;
   double val, * pairs;
   

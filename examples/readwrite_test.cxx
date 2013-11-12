@@ -97,7 +97,7 @@ int readwrite_test(int const    n,
 #endif
   }
   
-  for (i=0; i<vals.size(); i++){
+  for (i=0; i<(int)vals.size(); i++){
     vals[i] = sqrt(vals[i]);
   }
   A_SY[indices]=vals;

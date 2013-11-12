@@ -179,7 +179,6 @@ void permute(int const    ndim,
  */
 inline 
 void permute_target(int const   ndim,
-                    int const   ndim_perm,
                     int const * perm,
                     int *       arr){
   int i;
@@ -1022,8 +1021,8 @@ int dist_tensor<dtype>::map_fold(CTF_sum_type_t const * type,
   
   get_len_ordering(&fold_type, &fnew_ord_A, &fnew_ord_B); 
 
-  permute_target(ftsr_A->ndim, ftsr_A->ndim, fnew_ord_A, tsr_A->inner_ordering);
-  permute_target(ftsr_B->ndim, ftsr_B->ndim, fnew_ord_B, tsr_B->inner_ordering);
+  permute_target(ftsr_A->ndim, fnew_ord_A, tsr_A->inner_ordering);
+  permute_target(ftsr_B->ndim, fnew_ord_B, tsr_B->inner_ordering);
   
 
   nvirt_A = calc_nvirt(tsr_A);
@@ -1153,9 +1152,9 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
   
   get_len_ordering(&fold_type, &fnew_ord_A, &fnew_ord_B, &fnew_ord_C); 
 
-  permute_target(ftsr_A->ndim, ftsr_A->ndim, fnew_ord_A, tsr_A->inner_ordering);
-  permute_target(ftsr_B->ndim, ftsr_B->ndim, fnew_ord_B, tsr_B->inner_ordering);
-  permute_target(ftsr_C->ndim, ftsr_C->ndim, fnew_ord_C, tsr_C->inner_ordering);
+  permute_target(ftsr_A->ndim, fnew_ord_A, tsr_A->inner_ordering);
+  permute_target(ftsr_B->ndim, fnew_ord_B, tsr_B->inner_ordering);
+  permute_target(ftsr_C->ndim, fnew_ord_C, tsr_C->inner_ordering);
   
 
   nvirt_A = calc_nvirt(tsr_A);

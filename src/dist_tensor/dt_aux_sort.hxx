@@ -319,8 +319,8 @@ void depermute_keys(int const                   ndim,
   #pragma omp parallel
 #endif
   { 
-    int i, j, tid, ntd, outside;
-    long_int lda, wkey, knew, kdim, tstart, tnum_pair, cnum_pair;
+    int i, j, tid, ntd;
+    long_int lda, wkey, knew, kdim, tstart, tnum_pair;
 #ifdef USE_OMP
     tid = omp_get_thread_num();
     ntd = omp_get_num_threads();
@@ -333,7 +333,6 @@ void depermute_keys(int const                   ndim,
     if (tid < num_pair % ntd) tnum_pair++;
 
     std::vector< tkv_pair<dtype> > my_pairs;
-    cnum_pair = 0;
 
     for (i=tstart; i<tstart+tnum_pair; i++){
       wkey = pairs[i].k;

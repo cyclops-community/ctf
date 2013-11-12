@@ -16,7 +16,7 @@ void slice_gemm(int const   n,
                 CTF_Tensor &A,
                 CTF_Tensor &B,
                 CTF_Tensor &C){
-  int rank, i, num_pes, crank, cnum_pes, ri, rj, rk, ni, nj, nk, div;
+  int rank, num_pes, cnum_pes, ri, rj, rk, ni, nj, nk, div;
   MPI_Comm pcomm, ccomm;
   pcomm = C.world->comm;
   

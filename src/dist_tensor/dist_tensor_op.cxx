@@ -1901,14 +1901,13 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
                                      fseq_tsr_sum<dtype> const  ftsr,
                                      fseq_elm_sum<dtype> const  felm,
                                      int const                  run_diag){
-  int stat, sidx, i, j, k, new_tid, * new_idx_map;
+  int stat, sidx, i, new_tid, * new_idx_map;
   int * map_A, * map_B, * dstack_tid_B;
   int ** dstack_map_B;
   int ntid_A, ntid_B, nst_B;
   std::vector<CTF_sum_type_t> perm_types;
   std::vector<dtype> signs;
   dtype dbeta;
-  tsum<dtype> * sumf;
   CTF_sum_type_t unfold_type, new_type;
   check_sum(type);
   if (tensors[type->tid_A]->has_zero_edge_len || 
@@ -2699,7 +2698,6 @@ int dist_tensor<dtype>::
               dtype const                 beta,
               int const                   map_inner){
   int stat, new_tid;
-  long_int membytes;
   ctr<dtype> * ctrf;
 
   if (tensors[type->tid_A]->has_zero_edge_len || tensors[type->tid_B]->has_zero_edge_len
@@ -2831,13 +2829,12 @@ int dist_tensor<dtype>::
   if (get_global_comm()->rank == 0)
     ctrf->print();
 #endif
-  membytes = ctrf->mem_rec();
 
   if (get_global_comm()->rank == 0){
     DPRINTF(1,"[%d] performing contraction\n",
         get_global_comm()->rank);
     DPRINTF(1,"%E bytes of buffer space will be needed for this contraction\n",
-      (double)membytes);
+      (double)ctrf->mem_rec());
     DPRINTF(1,"System memory = %E bytes total, %E bytes used, %E bytes available.\n",
       (double)proc_bytes_total(),
       (double)proc_bytes_used(),

@@ -64,7 +64,7 @@ template<typename dtype>
 void scl_virt<dtype>::run(){
   int * idx_arr, * lda_A;
   int * ilda_A;
-  int i, j, off_A, nb_A, alloced, ret; 
+  int i, off_A, nb_A, alloced, ret; 
   TAU_FSTART(scl_virt);
 
   if (this->buffer != NULL){    
