@@ -23,7 +23,7 @@
 #define SH 3
 #endif
 
-typedef long_int lont_int;
+typedef long_int int64_t;
 
 /**
  * \brief reduction types for tensor data (enum actually defined in ../src/dist_tensor/cyclopstf.hpp)
@@ -664,10 +664,11 @@ template tCTF_Term< std::complex<double> >
  * \brief a tensor with an index map associated with it (necessary for overloaded operators)
  */
 template<typename dtype>
-class tCTF_Idx_Tensor : tCTF_Term<dtype> {
+class tCTF_Idx_Tensor : public tCTF_Term<dtype> {
   public:
     tCTF_Tensor<dtype> * parent;
     char * idx_map;
+    int is_intm;
 
   public:
     /**
@@ -800,7 +801,7 @@ class tCTF_Term {
 };
 
 template<typename dtype>
-class tCTF_Sum_Term : tCTF_Term<dtype> {
+class tCTF_Sum_Term : public tCTF_Term<dtype> {
   public:
     std::vector< tCTF_Term<dtype> > operands;
 
@@ -823,11 +824,22 @@ class tCTF_Sum_Term : tCTF_Term<dtype> {
      */
     tCTF_Idx_Tensor<dtype> execute();
     
+    /**
+     * \brief constructs a new term by addition of two terms
+     * \param[in] A term to add to output
+     */
+    tCTF_Sum_Term<dtype> operator+(tCTF_Term<dtype> A);
+    
+    /**
+     * \brief constructs a new term by subtracting term A
+     * \param[in] A subtracted term
+     */
+    tCTF_Sum_Term<dtype> operator-(tCTF_Term<dtype> A);
 
 };
 
 template<typename dtype>
-class tCTF_Contract_Term : tCTF_Term<dtype> {
+class tCTF_Contract_Term : public tCTF_Term<dtype> {
   public:
     std::vector< tCTF_Term<dtype> > operands;
 
