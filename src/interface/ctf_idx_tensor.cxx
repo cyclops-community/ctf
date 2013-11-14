@@ -114,7 +114,6 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
     } else {
       parent = other.parent;
     }
-    printf("cloned idx map of length %d\n", other.parent->ndim);
     idx_map = (char*)CTF_alloc(other.parent->ndim*sizeof(char));
     memcpy(idx_map, other.idx_map, parent->ndim*sizeof(char));
     is_intm       = other.is_intm;
@@ -157,14 +156,12 @@ tCTF_World<dtype> * tCTF_Idx_Tensor<dtype>::where_am_i() const {
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype> const & B){
-  printf("HERE2\n");
   this->scale = 0.0;
   B.execute(*this);
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Term<dtype> const & B){
-  printf("HERE\n");
   this->scale = 0.0;
   B.execute(*this);
 }
@@ -178,8 +175,9 @@ void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Term<dtype> const & B){
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> const & B){
   this->scale = 1.0;
-  //B.scale *= -1.0;
-  B.execute(*this);
+  tCTF_Term<dtype> * Bcpy = B.clone();
+  Bcpy->scale *= -1.0;
+  Bcpy->execute(*this);
 }
 
 template<typename dtype>
@@ -192,6 +190,9 @@ template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::execute(tCTF_Idx_Tensor<dtype> output) const {
   if (parent == NULL){
     output.scale *= this->scale;
+    tCTF_Scalar<dtype> ts(this->scale, *(output.where_am_i()));
+    output.parent->sum(1.0, ts, "",
+                       output.scale, output.idx_map);
   } else {
     output.parent->sum(this->scale, *this->parent, idx_map,
                        output.scale, output.idx_map);

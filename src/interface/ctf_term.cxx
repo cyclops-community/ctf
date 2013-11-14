@@ -166,7 +166,7 @@ tCTF_Contract_Term<dtype> tCTF_Term<dtype>::operator*(dtype scl) const {
 template<typename dtype>
 tCTF_Sum_Term<dtype>::~tCTF_Sum_Term(){
   for (int i=0; i<(int)operands.size(); i++){
-    //delete operands[i];
+    delete operands[i];
   }
   operands.clear();
 }
@@ -223,14 +223,13 @@ tCTF_Idx_Tensor<dtype> tCTF_Sum_Term<dtype>::execute() const {
 template<typename dtype>
 void tCTF_Sum_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output) const{
   std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
-  dtype oscale = output.scale;
-  output.scale = 1.0;
   for (int i=0; i<((int)tmp_ops.size())-1; i++){
     tmp_ops[i]->execute(output);
+    output.scale = 1.0;
   }
   tCTF_Idx_Tensor<dtype> itsr = tmp_ops.back()->execute();
   output.parent->sum(itsr.scale, *(itsr.parent), itsr.idx_map,
-                      oscale, output.idx_map); 
+                      output.scale, output.idx_map); 
 }
 
 template<typename dtype>
@@ -347,14 +346,22 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
     tmp_ops.pop_back();
     tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
     tmp_ops.pop_back();
-    tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
-    intm->parent->contract(this->scale*op_A.scale*op_B.scale, 
-                                  *(op_A.parent), op_A.idx_map,
-                                  *(op_B.parent), op_B.idx_map,
-                            intm->scale,         intm->idx_map);
-    tmp_ops.push_back(intm);
-    if (op_A.is_intm) { delete op_A.parent; } 
-    if (op_B.is_intm) { delete op_B.parent; } 
+    if (op_A.parent == NULL) {
+      op_B.scale *= op_A.scale;
+      tmp_ops.push_back(op_B.clone());
+    } else if (op_B.parent == NULL) {
+      op_A.scale *= op_B.scale;
+      tmp_ops.push_back(op_A.clone());
+    } else {
+      tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
+      intm->parent->contract(this->scale*op_A.scale*op_B.scale, 
+                                    *(op_A.parent), op_A.idx_map,
+                                    *(op_B.parent), op_B.idx_map,
+                              intm->scale,         intm->idx_map);
+      tmp_ops.push_back(intm);
+      if (op_A.is_intm) { delete op_A.parent; } 
+      if (op_B.is_intm) { delete op_B.parent; } 
+    }
   } 
   return tmp_ops[0]->execute();
 }
