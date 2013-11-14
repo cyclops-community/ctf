@@ -14,7 +14,7 @@
 
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype> get_full_intm(tCTF_Idx_Tensor<dtype>& A, 
+tCTF_Idx_Tensor<dtype> * get_full_intm(tCTF_Idx_Tensor<dtype>& A, 
                                      tCTF_Idx_Tensor<dtype>& B){
   int * len_C, * sym_C;
   char * idx_C;
@@ -33,7 +33,7 @@ tCTF_Idx_Tensor<dtype> get_full_intm(tCTF_Idx_Tensor<dtype>& A,
   for (j=0; j<B.parent->ndim; j++){
     ndim_C++;
     for (i=0; i<MAX(A.parent->ndim, B.parent->ndim); i++){
-      if (i<j && A.idx_map[i] == A.idx_map[j]){
+      if (i<j && B.idx_map[i] == B.idx_map[j]){
         ndim_C--;
         break;
       }
@@ -59,22 +59,25 @@ tCTF_Idx_Tensor<dtype> get_full_intm(tCTF_Idx_Tensor<dtype>& A,
     sym_C[idx] = NS;
     idx++;
   }
+  int ndim_AC = idx;
   for (j=0; j<B.parent->ndim; j++){
     for (i=0; i<j && B.idx_map[i] != B.idx_map[j]; i++){}
     if (i!=j) break;
-    for (i=0; i<idx && idx_C[i] != B.idx_map[j]; i++){}
-    if (i!=j && sym_C[i] != NS) {
-      if (i==0){
-        if (B.parent->sym[i] != sym_C[j]){
+    for (i=0; i<ndim_AC && idx_C[i] != B.idx_map[j]; i++){}
+    if (i!=ndim_AC){
+      if (sym_C[i] != NS) {
+        if (i==0){
+          if (B.parent->sym[i] != sym_C[j]){
+            sym_C[j] = NS;
+          }
+        } else if (j>0 && idx_C[i+1] == B.idx_map[j-1]){
+          if (B.parent->sym[j-1] == NS) 
+            sym_C[j] = NS;
+        } else if (B.parent->sym[j] != sym_C[j]){
+          sym_C[j] = NS;
+        } else if (idx_C[i+1] != B.idx_map[j+1]){
           sym_C[j] = NS;
         }
-      } else if (j>0 && idx_C[i+1] == B.idx_map[j-1]){
-        if (B.parent->sym[j-1] == NS) 
-          sym_C[j] = NS;
-      } else if (B.parent->sym[j] != sym_C[j]){
-        sym_C[j] = NS;
-      } else if (idx_C[i+1] != B.idx_map[j+1]){
-        sym_C[j] = NS;
       }
       break;
     }
@@ -88,8 +91,8 @@ tCTF_Idx_Tensor<dtype> get_full_intm(tCTF_Idx_Tensor<dtype>& A,
   }
 
   tCTF_Tensor<dtype> * tsr_C = new tCTF_Tensor<dtype>(ndim_C, len_C, sym_C, *(A.parent->world));
-  tCTF_Idx_Tensor<dtype> out(tsr_C, idx_C);
-  out.is_intm = 1;
+  tCTF_Idx_Tensor<dtype> * out = new tCTF_Idx_Tensor<dtype>(tsr_C, idx_C);
+  out->is_intm = 1;
   CTF_free(sym_C);
   CTF_free(len_C);
   return out;
@@ -103,152 +106,265 @@ tCTF_Term<dtype>::tCTF_Term(){
 }
 
 template<typename dtype>
-void tCTF_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output){
-  ABORT; //I don't see why this part of the code should ever be reached
-//  output.scale *= scale;
+tCTF_Term<dtype>::operator dtype() const {
+  assert(where_am_i() != NULL);
+  tCTF_Scalar<dtype> sc(*where_am_i());
+  tCTF_Idx_Tensor<dtype> isc(&sc,""); 
+  execute(isc);
+//  delete isc;
+  return sc.get_val();
 }
 
-template<typename dtype>
-tCTF_Idx_Tensor<dtype> tCTF_Term<dtype>::execute(){
-  ABORT; //I don't see why this part of the code should ever be reached
-  return tCTF_Idx_Tensor<dtype>();
-}
+//template<typename dtype>
+//void tCTF_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output){
+//  ABORT; //I don't see why this part of the code should ever be reached
+////  output.scale *= scale;
+//}
+//
+//template<typename dtype>
+//tCTF_Idx_Tensor<dtype> tCTF_Term<dtype>::execute(){
+//  ABORT; //I don't see why this part of the code should ever be reached
+//  return tCTF_Idx_Tensor<dtype>();
+//}
 
 
 template<typename dtype>
-tCTF_Contract_Term<dtype> tCTF_Term<dtype>::operator*(tCTF_Term<dtype> A){
+tCTF_Contract_Term<dtype> tCTF_Term<dtype>::operator*(tCTF_Term<dtype> const & A) const {
   tCTF_Contract_Term<dtype> trm;
-  trm.operands.push_back(*this);
-  trm.operands.push_back(A);
+  trm.operands.push_back(this->clone());
+  trm.operands.push_back(A.clone());
   return trm;
 }
 
 template<typename dtype>
-tCTF_Sum_Term<dtype> tCTF_Term<dtype>::operator+(tCTF_Term<dtype> A){
+tCTF_Sum_Term<dtype> tCTF_Term<dtype>::operator+(tCTF_Term<dtype> const & A) const {
   tCTF_Sum_Term<dtype> trm;
-  trm.operands.push_back(*this);
-  trm.operands.push_back(A);
+  trm.operands.push_back(this->clone());
+  trm.operands.push_back(A.clone());
   return trm;
 }
 
 template<typename dtype>
-tCTF_Sum_Term<dtype> tCTF_Term<dtype>::operator-(tCTF_Term<dtype> A){
+tCTF_Sum_Term<dtype> tCTF_Term<dtype>::operator-(tCTF_Term<dtype> const & A) const {
   tCTF_Sum_Term<dtype> trm;
-  trm.operands.push_back(*this);
-  trm.operands.push_back(A);
-  trm.operands[1].scale = -1.0 * A.scale;
+  trm.operands.push_back(this->clone());
+  trm.operands.push_back(A.clone());
+  trm.operands[1]->scale = -1.0 * A.scale;
+  return trm;
+}
+
+template<typename dtype>
+tCTF_Contract_Term<dtype> tCTF_Term<dtype>::operator*(dtype scl) const {
+  tCTF_Contract_Term<dtype> trm;
+  tCTF_Idx_Tensor<dtype> iscl(scl);
+  trm.operands.push_back(this->clone());
+  trm.operands.push_back(iscl.clone());
   return trm;
 }
 
 //functions spectific to tCTF_Sum_Term
 template<typename dtype>
-tCTF_Sum_Term<dtype> tCTF_Sum_Term<dtype>::operator+(tCTF_Term<dtype> A){
-  operands.push_back(A);
-  return *this;
+tCTF_Sum_Term<dtype>::~tCTF_Sum_Term(){
+  for (int i=0; i<(int)operands.size(); i++){
+    //delete operands[i];
+  }
+  operands.clear();
 }
 
 template<typename dtype>
-tCTF_Sum_Term<dtype> tCTF_Sum_Term<dtype>::operator-(tCTF_Term<dtype> A){
-  operands.push_back(A);
-  operands.back().scale = -1.0 * A.scale;
-  return *this;
+tCTF_Sum_Term<dtype>::tCTF_Sum_Term(tCTF_Sum_Term<dtype> const & other){
+  this->scale = other.scale;
+  for (int i=0; i<(int)other.operands.size(); i++){
+    this->operands.push_back(other.operands[i]->clone());
+  }
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype> tCTF_Sum_Term<dtype>::execute(){
-  while (operands.size() > 1){
-    tCTF_Idx_Tensor<dtype> op_A = operands.back().execute();
-    operands.pop_back();
-    tCTF_Idx_Tensor<dtype> op_B = operands.back().execute();
-    operands.pop_back();
-    tCTF_Idx_Tensor<dtype> intm = get_full_intm(op_A, op_B);
-    intm.parent->sum(op_A.scale, *(op_A.parent), op_A.idx_map,
-                     intm.scale,                 intm.idx_map);
-    intm.parent->sum(op_B.scale, *(op_B.parent), op_B.idx_map,
-                     intm.scale,                 intm.idx_map);
-    operands.push_back(intm);
+tCTF_Term<dtype> * tCTF_Sum_Term<dtype>::clone() const{
+  return new tCTF_Sum_Term<dtype>(*this);
+}
+
+template<typename dtype>
+tCTF_Sum_Term<dtype> tCTF_Sum_Term<dtype>::operator+(tCTF_Term<dtype> const & A) const {
+  tCTF_Sum_Term st(*this);
+  st.operands.push_back(A.clone());
+  return st;
+}
+
+template<typename dtype>
+tCTF_Sum_Term<dtype> tCTF_Sum_Term<dtype>::operator-(tCTF_Term<dtype> const & A) const {
+  tCTF_Sum_Term st(*this);
+  st.operands.push_back(A.clone());
+  st.operands.back()->scale = -1.0 * A.scale;
+  return st;
+}
+
+template<typename dtype>
+tCTF_Idx_Tensor<dtype> tCTF_Sum_Term<dtype>::execute() const {
+  std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
+  while (tmp_ops.size() > 1){
+    tCTF_Idx_Tensor<dtype> op_A = tmp_ops.back()->execute();
+    tmp_ops.pop_back();
+    tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
+    tmp_ops.pop_back();
+    tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
+    intm->parent->sum(op_A.scale, *(op_A.parent), op_A.idx_map,
+                     intm->scale,               intm->idx_map);
+    intm->parent->sum(op_B.scale, *(op_B.parent), op_B.idx_map,
+                     intm->scale,               intm->idx_map);
+    tmp_ops.push_back(intm);
     if (op_A.is_intm) { delete op_A.parent; } 
     if (op_B.is_intm) { delete op_B.parent; } 
   }
-  operands[0].scale *= this->scale; 
-  return operands[0].execute();
+  tmp_ops[0]->scale *= this->scale; 
+  return tmp_ops[0]->execute();
 }
 
 template<typename dtype>
-void tCTF_Sum_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output){
-  double oscale = output.scale;
+void tCTF_Sum_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output) const{
+  std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
+  dtype oscale = output.scale;
   output.scale = 1.0;
-  for (int i=0; i<operands.size()-1; i++){
-    operands[i].execute(output);
+  for (int i=0; i<((int)tmp_ops.size())-1; i++){
+    tmp_ops[i]->execute(output);
   }
-  tCTF_Idx_Tensor<dtype> itsr = operands.back().execute();
+  tCTF_Idx_Tensor<dtype> itsr = tmp_ops.back()->execute();
   output.parent->sum(itsr.scale, *(itsr.parent), itsr.idx_map,
                       oscale, output.idx_map); 
+}
+
+template<typename dtype>
+tCTF_World<dtype> * tCTF_Sum_Term<dtype>::where_am_i() const {
+  tCTF_World<dtype> * w = NULL;
+  for (int i=0; i<(int)operands.size(); i++){
+    if (operands[i]->where_am_i() != NULL) {
+      w = operands[i]->where_am_i();
+    }
+  }
+  return w;
 }
 
 
 //functions spectific to tCTF_Contract_Term
 template<typename dtype>
-tCTF_Contract_Term<dtype> tCTF_Contract_Term<dtype>::operator*(tCTF_Term<dtype>  A){
-  operands.push_back(A);
-  return *this;
+tCTF_Contract_Term<dtype>::~tCTF_Contract_Term(){
+  for (int i=0; i<(int)operands.size(); i++){
+    delete operands[i];
+  }
+  operands.clear();
 }
 
 template<typename dtype>
-void tCTF_Contract_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output){
-  while (operands.size() > 2){
-    tCTF_Idx_Tensor<dtype> op_A = operands.back().execute();
-    operands.pop_back();
-    tCTF_Idx_Tensor<dtype> op_B = operands.back().execute();
-    operands.pop_back();
-    tCTF_Idx_Tensor<dtype> intm = get_full_intm(op_A, op_B);
-    intm.parent->contract(this->scale*op_A.scale*op_B.scale, 
-                                  *(op_A.parent), op_A.idx_map,
-                                  *(op_B.parent), op_B.idx_map,
-                            intm.scale,           intm.idx_map);
-    operands.push_back(intm);
-    if (op_A.is_intm) { delete op_A.parent; } 
-    if (op_B.is_intm) { delete op_B.parent; } 
+tCTF_World<dtype> * tCTF_Contract_Term<dtype>::where_am_i() const {
+  tCTF_World<dtype> * w = NULL;
+  for (int i=0; i<(int)operands.size(); i++){
+    if (operands[i]->where_am_i() != NULL) {
+      w = operands[i]->where_am_i();
+    }
+  }
+  return w;
+}
+
+template<typename dtype>
+tCTF_Contract_Term<dtype>::tCTF_Contract_Term(tCTF_Contract_Term<dtype> const & other){
+  this->scale = other.scale;
+  for (int i=0; i<(int)other.operands.size(); i++){
+    tCTF_Term<dtype> * t = other.operands[i]->clone();
+    operands.push_back(t);
+  }
+}
+
+template<typename dtype>
+tCTF_Term<dtype> * tCTF_Contract_Term<dtype>::clone() const {
+  return new tCTF_Contract_Term<dtype>(*this);
+}
+
+template<typename dtype>
+tCTF_Contract_Term<dtype> tCTF_Contract_Term<dtype>::operator*(tCTF_Term<dtype> const & A) const {
+  tCTF_Contract_Term<dtype> ct(*this);
+  ct.operands.push_back(A.clone());
+  return ct;
+}
+
+template<typename dtype>
+void tCTF_Contract_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output)const {
+  std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
+  while (tmp_ops.size() > 2){
+    tCTF_Idx_Tensor<dtype> op_A = tmp_ops.back()->execute();
+    tmp_ops.pop_back();
+    tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
+    tmp_ops.pop_back();
+    if (op_A.parent == NULL) {
+      op_B.scale *= op_A.scale;
+      tmp_ops.push_back(op_B.clone());
+    } else if (op_B.parent == NULL) {
+      op_A.scale *= op_B.scale;
+      tmp_ops.push_back(op_A.clone());
+    } else {
+      tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
+      intm->parent->contract(this->scale*op_A.scale*op_B.scale, 
+                                    *(op_A.parent), op_A.idx_map,
+                                    *(op_B.parent), op_B.idx_map,
+                              intm->scale,         intm->idx_map);
+      tmp_ops.push_back(intm);
+      if (op_A.is_intm) { delete op_A.parent; } 
+      if (op_B.is_intm) { delete op_B.parent; } 
+    }
   } 
   {
-    LIBT_ASSERT(operands.size() == 2);
-    tCTF_Idx_Tensor<dtype> op_A = operands.back().execute();
-    operands.pop_back();
-    tCTF_Idx_Tensor<dtype> op_B = operands.back().execute();
-    operands.pop_back();
+    LIBT_ASSERT(tmp_ops.size() == 2);
+    tCTF_Idx_Tensor<dtype> op_A = tmp_ops.back()->execute();
+    tmp_ops.pop_back();
+    tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
+    tmp_ops.pop_back();
     
-    output.parent->contract(this->scale*op_A.scale*op_B.scale, 
-                                  *(op_A.parent), op_A.idx_map,
-                                  *(op_B.parent), op_B.idx_map,
-                           output.scale,        output.idx_map);
+    if (op_A.parent == NULL && op_B.parent == NULL){
+      assert(0); //FIXME write scalar to whole tensor
+    } else if (op_A.parent == NULL){
+      output.parent->sum(this->scale*op_A.scale*op_B.scale, 
+                                *(op_B.parent), op_B.idx_map,
+                         output.scale,        output.idx_map);
+    } else if (op_B.parent == NULL){
+      output.parent->sum(this->scale*op_A.scale*op_B.scale, 
+                                *(op_A.parent), op_A.idx_map,
+                         output.scale,        output.idx_map);
+    } else {
+      output.parent->contract(this->scale*op_A.scale*op_B.scale, 
+                                    *(op_A.parent), op_A.idx_map,
+                                    *(op_B.parent), op_B.idx_map,
+                             output.scale,        output.idx_map);
+    }
     if (op_A.is_intm) { delete op_A.parent; } 
     if (op_B.is_intm) { delete op_B.parent; } 
   } 
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute(){
-  while (operands.size() > 1){
-    tCTF_Idx_Tensor<dtype> op_A = operands.back().execute();
-    operands.pop_back();
-    tCTF_Idx_Tensor<dtype> op_B = operands.back().execute();
-    operands.pop_back();
-    tCTF_Idx_Tensor<dtype> intm = get_full_intm(op_A, op_B);
-    intm.parent->contract(this->scale*op_A.scale*op_B.scale, 
+tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
+  std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
+  while (tmp_ops.size() > 1){
+    tCTF_Idx_Tensor<dtype> op_A = tmp_ops.back()->execute();
+    tmp_ops.pop_back();
+    tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
+    tmp_ops.pop_back();
+    tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
+    intm->parent->contract(this->scale*op_A.scale*op_B.scale, 
                                   *(op_A.parent), op_A.idx_map,
                                   *(op_B.parent), op_B.idx_map,
-                            intm.scale,           intm.idx_map);
-    operands.push_back(intm);
+                            intm->scale,         intm->idx_map);
+    tmp_ops.push_back(intm);
     if (op_A.is_intm) { delete op_A.parent; } 
     if (op_B.is_intm) { delete op_B.parent; } 
   } 
-  return operands[0].execute();
+  return tmp_ops[0]->execute();
 }
 
 
 template class tCTF_Term<double>;
-template class tCTF_Term< std::complex<double> >;
 template class tCTF_Sum_Term<double>;
-template class tCTF_Sum_Term< std::complex<double> >;
 template class tCTF_Contract_Term<double>;
+#ifdef CTF_COMPLEX
+template class tCTF_Term< std::complex<double> >;
+template class tCTF_Sum_Term< std::complex<double> >;
 template class tCTF_Contract_Term< std::complex<double> >;
+#endif

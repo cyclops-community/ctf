@@ -502,6 +502,7 @@ tCTF_Idx_Tensor<dtype> tCTF_Tensor<dtype>::operator[](const char * idx_map_){
   return itsr;
 }
 
+
 template<typename dtype>
 tCTF_Sparse_Tensor<dtype> tCTF_Tensor<dtype>::operator[](std::vector<int64_t> indices){
   tCTF_Sparse_Tensor<dtype> stsr(indices,this);
@@ -513,4 +514,6 @@ tCTF_Sparse_Tensor<dtype> tCTF_Tensor<dtype>::operator[](std::vector<int64_t> in
 
 
 template class tCTF_Tensor<double>;
+#ifdef CTF_COMPLEX
 template class tCTF_Tensor< std::complex<double> >;
+#endif

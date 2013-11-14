@@ -202,6 +202,7 @@ int CTF_mst_free(void * ptr){
       mst.erase(it);
     } else {
       printf("CTF ERROR: Invalid mst free of pointer %p\n", ptr);
+//      free(ptr);
       ABORT;
       return DIST_TENSOR_ERROR;
     }

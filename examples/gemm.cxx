@@ -53,6 +53,7 @@ int  gemm(int const     m,
   free(pairs);
   free(indices);
 
+  C["ij"] += A["ik"]*B["kj"];
   C["ij"] += (.3*i)*A["ik"]*B["kj"];
 #ifndef TEST_SUITE
   double t;
@@ -150,6 +151,12 @@ int main(int argc, char ** argv){
 
   {
     CTF_World dw(MPI_COMM_WORLD, argc, argv);
+
+    CTF_Scalar ts(1.0,dw);
+    CTF_Idx_Tensor its(&ts,"");
+    CTF_Idx_Tensor tts(its); 
+    tts.operator*(its);
+
     int pass;    
     if (rank == 0){
       printf("Non-symmetric: NS = NS*NS gemm:\n");

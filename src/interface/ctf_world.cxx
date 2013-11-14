@@ -74,4 +74,6 @@ tCTF_World<dtype>::~tCTF_World(){
 
 
 template class tCTF_World<double>;
+#ifdef CTF_COMPLEX
 template class tCTF_World< std::complex<double> >;
+#endif

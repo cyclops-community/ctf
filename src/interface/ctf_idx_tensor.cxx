@@ -104,15 +104,21 @@ template<typename dtype>
 tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
     tCTF_Idx_Tensor<dtype> const &  other,
     int                       copy) {
-  if (copy){
-    parent = new tCTF_Tensor<dtype>(*other.parent,1);
-    idx_map = (char*)CTF_alloc(other.parent->ndim*sizeof(char));
+  if (other.parent == NULL){
+    parent        = NULL;
+    idx_map       = NULL;
+    is_intm       = 0;
   } else {
+    if (copy){
+      parent = new tCTF_Tensor<dtype>(*other.parent,1);
+    } else {
+      parent = other.parent;
+    }
+    printf("cloned idx map of length %d\n", other.parent->ndim);
     idx_map = (char*)CTF_alloc(other.parent->ndim*sizeof(char));
-    parent        = other.parent;
+    memcpy(idx_map, other.idx_map, parent->ndim*sizeof(char));
+    is_intm       = other.is_intm;
   }
-  memcpy(idx_map, other.idx_map, parent->ndim*sizeof(char));
-  is_intm       = other.is_intm;
   this->scale    = other.scale;
 }
 
@@ -125,44 +131,75 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(){
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
-  CTF_free(idx_map);
+tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(dtype val){
+  parent        = NULL;
+  idx_map       = NULL;
+  is_intm       = 0;
+  this->scale   = val;
 }
 
+template<typename dtype>
+tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
+  if (idx_map != NULL)  free(idx_map);
+  idx_map = NULL;
+}
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Term<dtype> B){
+tCTF_Term<dtype> * tCTF_Idx_Tensor<dtype>::clone() const {
+  return new tCTF_Idx_Tensor<dtype>(*this);
+}
+
+template<typename dtype>
+tCTF_World<dtype> * tCTF_Idx_Tensor<dtype>::where_am_i() const {
+  if (parent == NULL) return NULL;
+  return parent->world;
+}
+
+template<typename dtype>
+void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype> const & B){
+  printf("HERE2\n");
   this->scale = 0.0;
   B.execute(*this);
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Term<dtype> B){
+void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Term<dtype> const & B){
+  printf("HERE\n");
+  this->scale = 0.0;
+  B.execute(*this);
+}
+
+template<typename dtype>
+void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Term<dtype> const & B){
   this->scale = 1.0;
   B.execute(*this);
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> B){
+void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> const & B){
   this->scale = 1.0;
-  B.scale *= -1.0;
+  //B.scale *= -1.0;
   B.execute(*this);
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Term<dtype> B){
+void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Term<dtype> const & B){
   tCTF_Contract_Term<dtype> ctrm = (*this)*B;
   *this = ctrm;
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::execute(tCTF_Idx_Tensor<dtype> output){
-  output.parent->sum(this->scale, *this->parent, idx_map,
-                     output.scale, output.idx_map);
+void tCTF_Idx_Tensor<dtype>::execute(tCTF_Idx_Tensor<dtype> output) const {
+  if (parent == NULL){
+    output.scale *= this->scale;
+  } else {
+    output.parent->sum(this->scale, *this->parent, idx_map,
+                       output.scale, output.idx_map);
+  } 
 }
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::execute(){
+tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::execute() const {
   return *this;
 }
 
@@ -226,14 +263,6 @@ tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::operator*(double  scl){
   return *this;
 }*/
 
-/*template<typename dtype>
-tCTF_Idx_Tensor<dtype>::operator dtype(){
-  tCTF_Scalar<dtype> sc(*parent->world);
-  tCTF_Idx_Tensor<dtype> * isc = new tCTF_Idx_Tensor<dtype>(&sc,""); 
-  run(isc, 0.0);
-//  delete isc;
-  return sc.get_val();
-}*/
 /*
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, dtype  beta){
@@ -281,4 +310,6 @@ void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, dtype  beta){
 
 
 template class tCTF_Idx_Tensor<double>;
+#ifdef CTF_COMPLEX
 template class tCTF_Idx_Tensor< std::complex<double> >;
+#endif
