@@ -61,6 +61,10 @@ tCTF_Tensor<dtype>::tCTF_Tensor(int                 ndim_,
 
 template<typename dtype>
 tCTF_Tensor<dtype>::~tCTF_Tensor(){
+/*  if (sym != NULL)
+    CTF_free_cond(sym);
+  if (len != NULL)
+    CTF_free_cond(len);*/
   if (sym != NULL)
     free(sym);
   if (len != NULL)
@@ -482,7 +486,7 @@ void tCTF_Tensor<dtype>::get_max_abs(int        n,
 }
 
 template<typename dtype>
-tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(      dtype val){
+tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(dtype val){
   long_int size;
   dtype* raw = get_raw_data(&size);
   std::fill(raw, raw+size, val);
@@ -499,6 +503,7 @@ void tCTF_Tensor<dtype>::operator=(tCTF_Tensor<dtype> A){
     free(sym);
   if (len != NULL)
     free(len);
+    //free(len);
   ret = world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 

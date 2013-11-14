@@ -125,6 +125,8 @@ class Integrals {
     if (0 == strcmp("ijkl",new_idx_map)) return ijkl[idx_map_];
     printf("Invalid integral indices\n");
     ABORT;
+//shut up compiler
+    return aa[idx_map_];
   }
 };
 

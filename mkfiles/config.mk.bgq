@@ -17,8 +17,12 @@ INCLUDES    = -I$(BGQ_ESSL)/include
 AR          = powerpc64-bgq-linux-ar -crs
 DEPFLAGS    = -M -MF $(DEPDIR)/$(notdir $*).Po
 
+#defining production removes memory tracking, definining CTF_COMPLEX instantiates
+#CTF for the complex<double> type
+DEFS       := $(DEFS) -DPRODUCTION -DCTF_COMPLEX
+
 #uncomment below to enable performance profiling
-DEFS      := $(DEFS) -DPROFILE -DPMPI 
+#DEFS      := $(DEFS) -DPROFILE -DPMPI 
 
 #uncomment below to enable CTF debugging and status output
 #DEFS      := $(DEFS) -DDEBUG=2

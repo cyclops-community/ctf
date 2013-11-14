@@ -265,7 +265,9 @@ void permute_keys(int const                   ndim,
     }
     counts[tid] = cnum_pair;
     {
+#ifdef USE_OMP
       #pragma omp barrier
+#endif
       long_int pfx = 0;
       for (i=0; i<tid; i++){
         pfx += counts[i];
@@ -357,7 +359,8 @@ void depermute_keys(int const                   ndim,
     }
   }
   for (int d=0; d<ndim; d++){
-    CTF_free(depermutation[d]);
+    if (permutation[d] != NULL)
+      CTF_free(depermutation[d]);
   }
   CTF_free(depermutation);
 
@@ -578,6 +581,7 @@ void pad_tsr(int const                ndim,
     if (act_lda == ndim) break;
     
   }
+  CTF_free(idx);
   DEBUG_PRINTF("ndim = %d new_el="PRId64", size = "PRId64", pad_el = "PRId64"\n", ndim, new_el, size, pad_el);
   LIBT_ASSERT(new_el + size == pad_el);
   memcpy(padded_pairs+new_el, old_data,  size*sizeof(tkv_pair<dtype>));

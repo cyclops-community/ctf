@@ -267,16 +267,16 @@ void * CTF_mst_alloc(int const len){
  * \param[in,out] ptr pointer to set to new allocation address
  */
 int CTF_alloc_ptr(int const len, void ** const ptr){
-  int pm, tid;
-  mem_loc m;
+  int pm = posix_memalign(ptr, ALIGN_BYTES, len);
+#ifndef PRODUCTION
+  int tid;
 #ifdef USE_OMP
   if (CTF_max_threads == 1) tid = 0;
   else tid = omp_get_thread_num();
 #else
   tid = 0;
 #endif
-  pm = posix_memalign(ptr, ALIGN_BYTES, len);
-#ifndef PRODUCTION
+  mem_loc m;
   CTF_mem_used[tid] += len;
   std::list<mem_loc> * mem_stack;
   mem_stack = &CTF_mem_stacks[tid];
@@ -311,10 +311,9 @@ void * CTF_alloc(int const len){
  * \param[in,out] ptr pointer to set to address to free
  */
 int CTF_untag_mem(void * ptr){
+#ifndef PRODUCTION
   int len;
   int found;
-
-#ifndef PRODUCTION
   std::list<mem_loc> * mem_stack;
   
   mem_stack = &CTF_mem_stacks[0];
@@ -346,15 +345,14 @@ int CTF_untag_mem(void * ptr){
  * \param[in] tid thread id from whose stack pointer needs to be freed
  */
 int CTF_free(void * ptr, int const tid){
-  int len, found;
-  std::list<mem_loc> * mem_stack;
-
   if ((long_int)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
       (long_int)((char*)ptr-(char*)mst_buffer) >= 0){
     return CTF_mst_free(ptr);
   }
-  
 #ifndef PRODUCTION
+  int len, found;
+  std::list<mem_loc> * mem_stack;
+
   mem_stack = &CTF_mem_stacks[tid];
 
   std::list<mem_loc>::reverse_iterator it;
@@ -382,6 +380,9 @@ int CTF_free(void * ptr, int const tid){
  * \param[in,out] ptr pointer to set to address to free
  */
 int CTF_free_cond(void * ptr){
+#ifdef PRODUCTION
+  return DIST_TENSOR_SUCCESS; //FIXME ...
+#endif
   int ret, tid, i;
 #ifdef USE_OMP
   if (CTF_max_threads == 1) tid = 0;
@@ -402,6 +403,7 @@ int CTF_free_cond(void * ptr){
       }
     }
   }
+//  if (ret == DIST_TENSOR_NEGATIVE) free(ptr);
   return DIST_TENSOR_SUCCESS;
 }
 

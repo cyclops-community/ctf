@@ -109,14 +109,15 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
     idx_map       = NULL;
     is_intm       = 0;
   } else {
-    if (copy){
+    if (copy || other.is_intm){
       parent = new tCTF_Tensor<dtype>(*other.parent,1);
+      is_intm = 1;
     } else {
       parent = other.parent;
+      is_intm = 0;
     }
     idx_map = (char*)CTF_alloc(other.parent->ndim*sizeof(char));
     memcpy(idx_map, other.idx_map, parent->ndim*sizeof(char));
-    is_intm       = other.is_intm;
   }
   this->scale    = other.scale;
 }
@@ -139,6 +140,10 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(dtype val){
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
+  if (is_intm) { 
+    delete parent;
+    is_intm = 0;
+  }
   if (idx_map != NULL)  free(idx_map);
   idx_map = NULL;
 }
