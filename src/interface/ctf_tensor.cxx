@@ -13,6 +13,16 @@
 #include "../shared/util.h"
 
 template<typename dtype>
+tCTF_Tensor<dtype>::tCTF_Tensor(){
+  tid = -1;
+  ndim = -1;
+  sym = NULL;
+  len = NULL;
+  name = NULL;
+  world = NULL;
+}
+
+template<typename dtype>
 tCTF_Tensor<dtype>::tCTF_Tensor(const tCTF_Tensor<dtype>& A,
                                  bool                copy){
   int ret;
@@ -51,8 +61,10 @@ tCTF_Tensor<dtype>::tCTF_Tensor(int                 ndim_,
 
 template<typename dtype>
 tCTF_Tensor<dtype>::~tCTF_Tensor(){
-  free(sym);
-  free(len);
+  if (sym != NULL)
+    free(sym);
+  if (len != NULL)
+    free(len);
   world->ctf->clean_tensor(tid);
 }
 
@@ -483,6 +495,10 @@ void tCTF_Tensor<dtype>::operator=(tCTF_Tensor<dtype> A){
 
   world = A.world;
 
+  if (sym != NULL)
+    free(sym);
+  if (len != NULL)
+    free(len);
   ret = world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 

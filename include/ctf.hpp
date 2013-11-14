@@ -158,14 +158,13 @@ class tCTF_Tensor {
     int * sym, * len;
     char * idx_map;
     char const * name;
-    tCTF_Tensor * ctr_nbr;
     tCTF_World<dtype> * world;
 
   public:
     /**
-     * \breif default constructor sets nothing 
+     * \breif default constructor
      */
-    tCTF_Tensor(){};
+    tCTF_Tensor();
 
     /**
      * \brief copies a tensor (setting data to zero or copying A)

@@ -62,7 +62,6 @@ int  gemm(int const     m,
   t = MPI_Wtime();
   for (i=0; i<niter; i++){
     C["ij"] += A["ik"]*B["kj"];
-    CTF_Matrix * D = new CTF_Matrix(n, n, NS, dw);
   }
   t = MPI_Wtime() - t;
   int64_t allf = f.count(dw.comm);

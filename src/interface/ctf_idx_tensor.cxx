@@ -178,6 +178,7 @@ void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> const & B){
   tCTF_Term<dtype> * Bcpy = B.clone();
   Bcpy->scale *= -1.0;
   Bcpy->execute(*this);
+  delete Bcpy;
 }
 
 template<typename dtype>

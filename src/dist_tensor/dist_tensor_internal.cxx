@@ -1423,6 +1423,10 @@ int dist_tensor<dtype>::del_tsr(int const tid){
       DPRINTF(1,"Deleting tensor %d\n",tid);
     }
     //unfold_tsr(tsr);
+    if (tsr->is_folded){ 
+      del_tsr(tsr->rec_tid);
+      CTF_free(tsr->inner_ordering);
+    }
     CTF_free(tsr->edge_len);
     if (tsr->is_padded)
       CTF_free(tsr->padding);

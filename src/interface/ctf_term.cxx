@@ -95,6 +95,7 @@ tCTF_Idx_Tensor<dtype> * get_full_intm(tCTF_Idx_Tensor<dtype>& A,
   out->is_intm = 1;
   CTF_free(sym_C);
   CTF_free(len_C);
+  CTF_free(idx_C);
   return out;
 }
 
@@ -201,11 +202,16 @@ tCTF_Sum_Term<dtype> tCTF_Sum_Term<dtype>::operator-(tCTF_Term<dtype> const & A)
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype> tCTF_Sum_Term<dtype>::execute() const {
-  std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
+  std::vector< tCTF_Term<dtype>* > tmp_ops;
+  for (int i=0; i<(int)operands.size(); i++){
+    tmp_ops.push_back(operands[i]->clone());
+  }
   while (tmp_ops.size() > 1){
     tCTF_Idx_Tensor<dtype> op_A = tmp_ops.back()->execute();
+    delete tmp_ops.back();
     tmp_ops.pop_back();
     tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
+    delete tmp_ops.back();
     tmp_ops.pop_back();
     tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
     intm->parent->sum(op_A.scale, *(op_A.parent), op_A.idx_map,
@@ -217,7 +223,10 @@ tCTF_Idx_Tensor<dtype> tCTF_Sum_Term<dtype>::execute() const {
     if (op_B.is_intm) { delete op_B.parent; } 
   }
   tmp_ops[0]->scale *= this->scale; 
-  return tmp_ops[0]->execute();
+  tCTF_Idx_Tensor<dtype> ans = tmp_ops[0]->execute();
+  delete tmp_ops[0];
+  tmp_ops.clear();
+  return ans;
 }
 
 template<typename dtype>
@@ -287,11 +296,16 @@ tCTF_Contract_Term<dtype> tCTF_Contract_Term<dtype>::operator*(tCTF_Term<dtype> 
 
 template<typename dtype>
 void tCTF_Contract_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output)const {
-  std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
+  std::vector< tCTF_Term<dtype>* > tmp_ops;
+  for (int i=0; i<(int)operands.size(); i++){
+    tmp_ops.push_back(operands[i]->clone());
+  }
   while (tmp_ops.size() > 2){
     tCTF_Idx_Tensor<dtype> op_A = tmp_ops.back()->execute();
+    delete tmp_ops.back();
     tmp_ops.pop_back();
     tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
+    delete tmp_ops.back();
     tmp_ops.pop_back();
     if (op_A.parent == NULL) {
       op_B.scale *= op_A.scale;
@@ -313,8 +327,10 @@ void tCTF_Contract_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output)const {
   {
     LIBT_ASSERT(tmp_ops.size() == 2);
     tCTF_Idx_Tensor<dtype> op_A = tmp_ops.back()->execute();
+    delete tmp_ops.back();
     tmp_ops.pop_back();
     tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
+    delete tmp_ops.back();
     tmp_ops.pop_back();
     
     if (op_A.parent == NULL && op_B.parent == NULL){
@@ -340,11 +356,16 @@ void tCTF_Contract_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output)const {
 
 template<typename dtype>
 tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
-  std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
+  std::vector< tCTF_Term<dtype>* > tmp_ops;
+  for (int i=0; i<(int)operands.size(); i++){
+    tmp_ops.push_back(operands[i]->clone());
+  }
   while (tmp_ops.size() > 1){
     tCTF_Idx_Tensor<dtype> op_A = tmp_ops.back()->execute();
+    delete tmp_ops.back();
     tmp_ops.pop_back();
     tCTF_Idx_Tensor<dtype> op_B = tmp_ops.back()->execute();
+    delete tmp_ops.back();
     tmp_ops.pop_back();
     if (op_A.parent == NULL) {
       op_B.scale *= op_A.scale;

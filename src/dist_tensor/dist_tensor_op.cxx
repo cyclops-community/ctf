@@ -2363,6 +2363,7 @@ int dist_tensor<dtype>::
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
       scale_tsr(beta, stype->tid_C, new_idx_map_C, fs, felm); 
+      CTF_free(new_idx_map_C);
     }
     return DIST_TENSOR_SUCCESS;
   }
@@ -2539,6 +2540,7 @@ int dist_tensor<dtype>::
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
       scale_tsr(beta, stype->tid_C, new_idx_map_C, fs, felm); 
+      CTF_free(new_idx_map_C);
     }
     return DIST_TENSOR_SUCCESS;
   }
@@ -2761,6 +2763,7 @@ int dist_tensor<dtype>::
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
       scale_tsr(beta, type->tid_C, new_idx_map_C, fs, felm); 
+      CTF_free(new_idx_map_C);
     }
     return DIST_TENSOR_SUCCESS;
   }

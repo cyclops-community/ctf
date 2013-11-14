@@ -30,10 +30,8 @@ int scalar(CTF_World    &dw){
     pairs[0] = 4.2;  
   } 
   A.write(np,indices,pairs);
-  if (np>0){
-    free(indices);
-    free(pairs);
-  }
+  free(indices);
+  free(pairs);
   //A = 4.2;
   A.read_local(&np,&indices,&pairs);
   pass -= !(np<=1);
@@ -41,9 +39,9 @@ int scalar(CTF_World    &dw){
   if (np>0){
     pass -=(indices[0] != 0);
     pass -=(pairs[0] != 4.2);
-    free(indices);
-    free(pairs);
   } 
+  free(indices);
+  free(pairs);
   val = A;
   pass -=(val != 4.2);
   

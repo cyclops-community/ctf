@@ -736,20 +736,15 @@ void calc_cnt_displs(int const          ndim,
                      int * const *      bucket_offset){
   int * all_virt_counts;
 
-  long_int vbs = sy_packed_size(ndim, old_virt_edge_len, sym);
 #ifdef USE_OMP
+  long_int vbs = sy_packed_size(ndim, old_virt_edge_len, sym);
   int max_ntd = omp_get_max_threads();
   max_ntd = MAX(1,MIN(max_ntd,vbs/nbuf));
 #else
   int max_ntd = 1;
 #endif
   
-#ifdef USE_OMP
-//  int max_ntd = MIN(omp_get_max_threads(),REDIST_MAX_THREADS);
   CTF_mst_alloc_ptr(nbuf*sizeof(int)*max_ntd, (void**)&all_virt_counts);
-#else
-  CTF_mst_alloc_ptr(nbuf*sizeof(int), (void**)&all_virt_counts);
-#endif
 
 
   /* Count how many elements need to go to each new virtual bucket */
@@ -780,7 +775,7 @@ void calc_cnt_displs(int const          ndim,
       end_ldim += MIN(omp_tid+1,last_len%omp_ntd);
 #else
       {
-      int j, imax, act_max, skip;
+      int imax, act_max, skip;
       int start_ldim, end_ldim, i_st, vc, dim;
       int * virt_counts;
       long_int * old_virt_idx, * virt_rank;

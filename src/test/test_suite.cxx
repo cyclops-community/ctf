@@ -19,8 +19,10 @@
 #include "../../examples/scalar.cxx"
 #include "../../examples/trace.cxx"
 #include "../../examples/diag_sym.cxx"
+#ifdef CTF_COMPLEX
 #include "../../examples/dft.cxx"
 #include "../../examples/dft_3D.cxx"
+#endif
 #include "../../examples/fast_sym.cxx"
 #include "../../examples/fast_sym_4D.cxx"
 #include "../../examples/ccsdt_t3_to_t2.cxx"
@@ -126,8 +128,8 @@ int main(int argc, char ** argv){
     pass.push_back(scalar(dw));
 
     if (rank == 0)
-      printf("Testing a 2D trace operation with n = %d:\n",n*n);
-    pass.push_back(trace(n*n, dw));
+      printf("Testing a 2D trace operation with n = %d:\n",n);
+    pass.push_back(trace(n, dw));
     
     if (rank == 0)
       printf("Testing a diag sym operation with n = %d:\n",n);
@@ -165,6 +167,7 @@ int main(int argc, char ** argv){
 #endif
 
   }
+#ifdef CTF_COMPLEX
   {
     cCTF_World dw(MPI_COMM_WORLD, argc, argv);
     if (rank == 0)
@@ -175,6 +178,7 @@ int main(int argc, char ** argv){
     pass.push_back(test_dft_3D(n, dw));
 
   }
+#endif
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)
     printf("Testing completed, %d/%zu tests passed\n", num_pass, pass.size());

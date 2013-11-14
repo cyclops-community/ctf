@@ -410,12 +410,13 @@ int CTF_free_cond(void * ptr){
  * \param[in,out] ptr pointer to set to address to free
  */
 int CTF_free(void * ptr){
-#ifdef PRODUCTION
   if ((long_int)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
       (long_int)((char*)ptr-(char*)mst_buffer) >= 0){
     return CTF_mst_free(ptr);
   }
+#ifdef PRODUCTION
   free(ptr);  
+  return DIST_TENSOR_SUCCESS;
 #else
   int ret, tid, i;
 #ifdef USE_OMP
