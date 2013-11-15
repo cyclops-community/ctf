@@ -344,10 +344,10 @@ struct mem_transfer {
 };
 
 std::list<mem_transfer> CTF_contract_mst();
-int CTF_alloc_ptr(int const len, void ** const ptr);
-int CTF_mst_alloc_ptr(int const len, void ** const ptr);
-void * CTF_alloc(int const len);
-void * CTF_mst_alloc(int const len);
+int CTF_alloc_ptr(long_int const len, void ** const ptr);
+int CTF_mst_alloc_ptr(long_int const len, void ** const ptr);
+void * CTF_alloc(long_int const len);
+void * CTF_mst_alloc(long_int const len);
 int CTF_free(void * ptr, int const tid);
 int CTF_free(void * ptr);
 int CTF_untag_mem(void * ptr);

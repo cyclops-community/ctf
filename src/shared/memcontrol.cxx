@@ -34,7 +34,7 @@
 
 struct mem_loc {
   void * ptr;
-  int len;
+  long_int len;
 };
 
 /* fraction of total memory which can be saturated */
@@ -65,7 +65,7 @@ char * cpy_buffer[CPY_BUFFER_SIZE];
 /**
  * \brief sets what fraction of the memory capacity CTF can use
  */
-void CTF_set_mem_size(int64_t size){
+void CTF_set_mem_size(long_int size){
   CTF_mem_size = size;
 }
 
@@ -82,7 +82,7 @@ void CTF_set_memcap(double cap){
  */
 std::list<mem_transfer> CTF_contract_mst(){
   std::list<mem_transfer> transfers;
-  int i;
+  long_int i;
   if (mst_buffer_ptr > .80*mst_buffer_size && 
       mst_buffer_used < .40*mst_buffer_size){
     TAU_FSTART(CTF_contract_mst);
@@ -98,7 +98,7 @@ std::list<mem_transfer> CTF_contract_mst(){
       t.old_ptr = it->ptr;
       t.new_ptr = CTF_mst_alloc(it->len);
       if (t.old_ptr != t.new_ptr){
-        if ((int64_t)((char*)t.old_ptr - (char*)t.new_ptr) < it->len){
+        if ((long_int)((char*)t.old_ptr - (char*)t.new_ptr) < it->len){
           for (i=0; i<it->len; i+=CPY_BUFFER_SIZE){
             memcpy(cpy_buffer, (char*)t.old_ptr+i, MIN(it->len-i, CPY_BUFFER_SIZE));
             memcpy((char*)t.new_ptr+i, cpy_buffer, MIN(it->len-i, CPY_BUFFER_SIZE));
@@ -220,11 +220,11 @@ int CTF_mst_free(void * ptr){
  * \param[in] len number of bytes
  * \param[in,out] ptr pointer to set to new allocation address
  */
-int CTF_mst_alloc_ptr(int const len, void ** const ptr){
+int CTF_mst_alloc_ptr(long_int const len, void ** const ptr){
   if (mst_buffer_size == 0)
     return CTF_alloc_ptr(len, ptr);
   else {
-    int plen, off;
+    long_int plen, off;
     off = len % MST_ALIGN_BYTES;
     if (off > 0)
       plen = len + MST_ALIGN_BYTES - off;
@@ -253,7 +253,7 @@ int CTF_mst_alloc_ptr(int const len, void ** const ptr){
  * \brief CTF_mst_alloc allocates buffer on the specialized memory stack
  * \param[in] len number of bytes
  */
-void * CTF_mst_alloc(int const len){
+void * CTF_mst_alloc(long_int const len){
   void * ptr;
   int ret = CTF_mst_alloc_ptr(len, &ptr);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
@@ -266,7 +266,7 @@ void * CTF_mst_alloc(int const len){
  * \param[in] len number of bytes
  * \param[in,out] ptr pointer to set to new allocation address
  */
-int CTF_alloc_ptr(int const len, void ** const ptr){
+int CTF_alloc_ptr(long_int const len, void ** const ptr){
   int pm = posix_memalign(ptr, ALIGN_BYTES, len);
 #ifndef PRODUCTION
   int tid;
@@ -287,7 +287,7 @@ int CTF_alloc_ptr(int const len, void ** const ptr){
 //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
 #endif
   if (pm){
-    printf("CTF ERROR: posix memalign returned an error, "PRId64" memory alloced on this process, wanted to alloc %d more\n",
+    printf("CTF ERROR: posix memalign returned an error, "PRId64" memory alloced on this process, wanted to alloc %lld more\n",
             CTF_mem_used[0], len);
   }
   LIBT_ASSERT(pm == 0);
@@ -299,7 +299,7 @@ int CTF_alloc_ptr(int const len, void ** const ptr){
  * \brief CTF_alloc abstraction
  * \param[in] len number of bytes
  */
-void * CTF_alloc(int const len){
+void * CTF_alloc(long_int const len){
   void * ptr;
   int ret = CTF_alloc_ptr(len, &ptr);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
@@ -312,7 +312,7 @@ void * CTF_alloc(int const len){
  */
 int CTF_untag_mem(void * ptr){
 #ifndef PRODUCTION
-  int len;
+  long_int len;
   int found;
   std::list<mem_loc> * mem_stack;
   
