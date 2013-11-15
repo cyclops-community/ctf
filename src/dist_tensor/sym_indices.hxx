@@ -34,23 +34,24 @@ struct index_locator_
     }
 };
 
-template<typename T>
-int relativeSign(const T& s1, const T& s2)
+template <typename iterator>
+int relativeSign(iterator b1, iterator e1, iterator b2, iterator e2)
 {
-    int i, j, k;
+    assert((int)(e2-b2) == (int)(e1-b1));
+
     int sign = 1;
-    std::vector<bool> seen(s1.size());
+    int n = (int)(e1-b1);
+    std::vector<bool> seen(n, false);
 
-    for (i = 0;i < (int)s1.size();i++) seen[i] = false;
-
-    for (i = 0;i < (int)s1.size();i++)
+    for (int i = 0;i < n;i++)
     {
         if (seen[i]) continue;
-        j = i;
+        int j = i;
         while (true)
         {
-            for (k = 0;k < (int)s1.size() && (!(s1[k] == s2[j]) || seen[k]);k++);
-            assert(k < (int)s1.size());
+            int k;
+            for (k = 0;k < n && (!(*(b1+k) == *(b2+j)) || seen[k]);k++);
+            assert(k < n);
             j = k;
             seen[j] = true;
             if (j == i) break;
@@ -61,6 +62,37 @@ int relativeSign(const T& s1, const T& s2)
     return sign;
 }
 
+template<typename T>
+int relativeSign(const T& s1, const T& s2)
+{
+    return relativeSign(s1.begin(), s1.end(), s2.begin(), s2.end());
+}
+
+
+//    int i, j, k;
+//    int sign = 1;
+//    std::vector<bool> seen(s1.size());
+//
+//    for (i = 0;i < (int)s1.size();i++) seen[i] = false;
+//
+//    for (i = 0;i < (int)s1.size();i++)
+//    {
+//        if (seen[i]) continue;
+//        j = i;
+//        while (true)
+//        {
+//            for (k = 0;k < (int)s1.size() && (!(s1[k] == s2[j]) || seen[k]);k++);
+//            assert(k < (int)s1.size());
+//            j = k;
+//            seen[j] = true;
+//            if (j == i) break;
+//            sign = -sign;
+//        }
+//    }
+//
+//    return sign;
+//}
+//
 template <typename T>
 double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                                int ndim_B, T& idx_B, const int* sym_B)
