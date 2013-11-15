@@ -2352,7 +2352,7 @@ int dist_tensor<dtype>::
         new_idx_map_C[i]=i-num_diag;
         for (int j=0; j<i; j++){
           if (stype->idx_map_C[i] == stype->idx_map_C[j]){
-            new_idx_map_C[i]=j-num_diag;
+            new_idx_map_C[i]=new_idx_map_C[j];
             num_diag++;
             break;
           }
