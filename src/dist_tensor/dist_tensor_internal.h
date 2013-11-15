@@ -25,7 +25,10 @@
 #define NREQ    4
 #define NBCAST  4
 
-
+/**
+ * \defgroup internal Tensor mapping and redistribution internals
+ * @{
+ */
 enum {
   NOT_MAPPED,
   PHYSICAL_MAP,
@@ -777,4 +780,8 @@ inline  double GET_REAL(std::complex<double> const d) {
 
 #include "dist_tensor_internal.cxx"
 #include "scala_backend.cxx"
+
+/**
+ * @}
+ */
 #endif

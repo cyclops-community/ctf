@@ -1,5 +1,12 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup permute_multiworld
+  * @{ 
+  * \brief tests permute function between different worlds
+  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -213,5 +220,10 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+
+/**
+ * @} 
+ * @}
+ */
 
 #endif

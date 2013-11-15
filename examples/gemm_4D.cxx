@@ -1,4 +1,10 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup gemm_4D
+  * @{ 
+  * \brief Folded matrix multiplication on 4D tensors
+  */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,4 +168,9 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+/**
+ * @} 
+ * @}
+ */
+
 #endif

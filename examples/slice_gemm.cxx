@@ -1,4 +1,10 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup slice_gemm
+  * @{ 
+  * \brief Performs recursive parallel matrix multiplication using the slice interface to extract blocks
+  */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -170,5 +176,10 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+/**
+ * @} 
+ * @}
+ */
 
 #endif
+

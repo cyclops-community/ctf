@@ -1,5 +1,12 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup CCSD 
+  * @{ 
+  * \brief A Coupled Cluster Singles and Doubles contraction code extracted from Aquarius
+  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -282,6 +289,10 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+/**
+ * @} 
+ * @}
+ */
 
 #endif
 

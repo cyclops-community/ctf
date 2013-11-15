@@ -3,6 +3,13 @@
 #include <ctf.hpp>
 #include <assert.h>
 #include <stdlib.h>
+
+/** \addtogroup examples 
+  * @{ 
+  * \addtogroup DFT
+  * @{ 
+  */
+
   
 int test_dft(int64_t const  n,
              cCTF_World    &wrld){
@@ -100,5 +107,10 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   
 }
+/**
+ * @} 
+ * @}
+ */
+
 
 #endif

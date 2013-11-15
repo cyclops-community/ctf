@@ -25,63 +25,26 @@
 
 typedef long_int int64_t;
 
+template<typename dtype> class tCTF_fscl;
+template<typename dtype> class tCTF_fsum;
+template<typename dtype> class tCTF_fctr;
+template<typename dtype> class tCTF_Idx_Tensor;
+template<typename dtype> class tCTF_Sparse_Tensor;
+template<typename dtype> class tCTF_Term;
+template<typename dtype> class tCTF_Sum_Term;
+template<typename dtype> class tCTF_Contract_Term;
+
+/**
+ * \defgroup CTF CTF: main C++ interface
+ * @{
+ */
+
+
 /**
  * \brief reduction types for tensor data (enum actually defined in ../src/dist_tensor/cyclopstf.hpp)
  */
 //enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SQNRM2,
 //              CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS };
-
-/* custom element-wise function for tensor scale */
-template<typename dtype>
-class tCTF_fscl {
-  public:
-    /**
-     * \brief function signature for element-wise scale operation
-     * \param[in] alpha scaling value, defined in scale call 
-     *            but subject to internal change due to symmetry
-     * \param[in,out] a element from tensor A
-     **/
-    void  (*func_ptr)(dtype   alpha, 
-                      dtype & a);
-  public:
-    tCTF_fscl() { func_ptr = NULL; }
-};
-/* custom element-wise function for tensor sum */
-template<typename dtype>
-class tCTF_fsum {
-  public:
-    /**
-     * \brief function signature for element-wise summation operation
-     * \param[in] alpha scaling value, defined in summation call 
-     *            but subject to internal change due to symmetry
-     * \param[in] a element from summand tensor A
-     * \param[in,out] b element from summand tensor B
-     **/
-    void  (*func_ptr)(dtype   alpha, 
-                      dtype   a,
-                      dtype  &b);
-  public:
-    tCTF_fsum() { func_ptr = NULL; }
-};
-/* custom element-wise function for tensor contraction */
-template<typename dtype>
-class tCTF_fctr {
-  public:
-    /**
-     * \brief function signature for element-wise contraction operation
-     * \param[in] alpha scaling value, defined in contraction call 
-     *            but subject to internal change due to symmetry
-     * \param[in] a element from contraction tensor A
-     * \param[in] b element from contraction tensor B
-     * \param[in,out] c element from contraction tensor C
-     **/
-    void  (*func_ptr)(dtype  alpha, 
-                      dtype  a, 
-                      dtype  b,
-                      dtype &c);
-  public:
-    tCTF_fctr() { func_ptr = NULL; }
-};
 
 /**
  * \brief an instance of the tCTF library (world) on a MPI communicator
@@ -133,20 +96,7 @@ class tCTF_World {
     ~tCTF_World();
 };
 
-template<typename dtype>
-class tCTF_Idx_Tensor;
 
-template<typename dtype>
-class tCTF_Sparse_Tensor;
-
-template<typename dtype>
-class tCTF_Term;
-
-template<typename dtype>
-class tCTF_Sum_Term;
-
-template<typename dtype>
-class tCTF_Contract_Term;
 
 /**
  * \brief an instance of a tensor within a tCTF world
@@ -192,6 +142,9 @@ class tCTF_Tensor {
     
     /**
      * \brief gives the values associated with any set of indices
+     * The sparse data is defined in coordinate format. The tensor index (i,j,k,l) of a tensor with edge lengths
+     * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
+     * and the column index is second for matrices, which means they are column major. 
      * \param[in] npair number of values to fetch
      * \param[in] global_idx index within global tensor of each value to fetch
      * \param[in,out] data a prealloced pointer to the data with the specified indices
@@ -209,7 +162,7 @@ class tCTF_Tensor {
               tkv_pair<dtype> * pairs) const;
     
     /**
-     * \brief sparse add: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
+     * \brief sparse read: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
      * \param[in] npair number of values to read into tensor
      * \param[in] alpha scaling factor on read data
      * \param[in] beta scaling factor on value in initial values vector
@@ -237,6 +190,9 @@ class tCTF_Tensor {
 
     /**
      * \brief writes in values associated with any set of indices
+     * The sparse data is defined in coordinate format. The tensor index (i,j,k,l) of a tensor with edge lengths
+     * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
+     * and the column index is second for matrices, which means they are column major. 
      * \param[in] npair number of values to write into tensor
      * \param[in] global_idx global index within tensor of value to write
      * \param[in] data values to  write to the indices
@@ -647,19 +603,6 @@ class tCTF_Scalar : public tCTF_Tensor<dtype> {
     operator dtype() { return get_val(); }
 };
 
-template<typename dtype> static
-tCTF_Contract_Term<dtype> operator*(double d, tCTF_Term<dtype> const & tsr){
-  return (tsr*d);
-}
-
-template tCTF_Contract_Term<double> 
-            operator*(double d, tCTF_Term<double> const & tsr);
-/*#ifdef COMPLEX
-template tCTF_Term< std::complex<double> > &
-            operator*(double  d, tCTF_Term< std::complex<double> > const & tsr);
-#endif
-*/
-
 /**
  * \brief a tensor with an index map associated with it (necessary for overloaded operators)
  */
@@ -759,6 +702,175 @@ class tCTF_Idx_Tensor : public tCTF_Term<dtype> {
      */
     tCTF_World<dtype> * where_am_i() const;
 };
+
+
+/**
+ * \brief element-wise function for scaling the elements of a tensor via the scale() function
+ */
+template<typename dtype>
+class tCTF_fscl {
+  public:
+    /**
+     * \brief function signature for element-wise scale operation
+     * \param[in] alpha scaling value, defined in scale call 
+     *            but subject to internal change due to symmetry
+     * \param[in,out] a element from tensor A
+     **/
+    void  (*func_ptr)(dtype   alpha, 
+                      dtype & a);
+  public:
+    tCTF_fscl() { func_ptr = NULL; }
+};
+/**
+ * \brief Interface for custom element-wise function for tensor summation to be used with sum() call on tensors
+ */
+template<typename dtype>
+class tCTF_fsum {
+  public:
+    /**
+     * \brief function signature for element-wise summation operation
+     * \param[in] alpha scaling value, defined in summation call 
+     *            but subject to internal change due to symmetry
+     * \param[in] a element from summand tensor A
+     * \param[in,out] b element from summand tensor B
+     **/
+    void  (*func_ptr)(dtype   alpha, 
+                      dtype   a,
+                      dtype  &b);
+  public:
+    tCTF_fsum() { func_ptr = NULL; }
+};
+
+/**
+ * \brief Interface for custom element-wise function for tensor contraction to be used with contract() call on tensors
+ */
+template<typename dtype>
+class tCTF_fctr {
+  public:
+    /**
+     * \brief function signature for element-wise contraction operation
+     * \param[in] alpha scaling value, defined in contraction call 
+     *            but subject to internal change due to symmetry
+     * \param[in] a element from contraction tensor A
+     * \param[in] b element from contraction tensor B
+     * \param[in,out] c element from contraction tensor C
+     **/
+    void  (*func_ptr)(dtype  alpha, 
+                      dtype  a, 
+                      dtype  b,
+                      dtype &c);
+  public:
+    tCTF_fctr() { func_ptr = NULL; }
+};
+
+
+/**
+ * \brief a sparse subset of a tensor 
+ */
+template<typename dtype>
+class tCTF_Sparse_Tensor {
+  public:
+    tCTF_Tensor<dtype> * parent;
+    std::vector<long_int> indices;
+    dtype scale;
+
+    /** 
+      * \brief base constructor 
+      */
+    tCTF_Sparse_Tensor();
+    
+    /**
+     * \brief initialize a tensor which corresponds to a set of indices 
+     * \param[in] indices a vector of global indices to tensor values
+     * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
+     */
+    tCTF_Sparse_Tensor(std::vector<long_int> indices,
+                       tCTF_Tensor<dtype> * parent);
+
+    /**
+     * \brief initialize a tensor which corresponds to a set of indices 
+     * \param[in] number of values this sparse tensor will have locally
+     * \param[in] indices an array of global indices to tensor values
+     * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
+     */
+    tCTF_Sparse_Tensor(long_int              n,
+                       long_int *            indices,
+                       tCTF_Tensor<dtype> * parent);
+
+    /**
+     * \brief set the sparse set of indices on the parent tensor to values
+     *        forall(j) i = indices[j]; parent[i] = beta*parent[i] + alpha*values[j];
+     * \param[in] alpha scaling factor on values array 
+     * \param[in] values data, should be of same size as the number of indices (n)
+     * \param[in] beta scaling factor to apply to previously existing data
+     */
+    void write(dtype              alpha, 
+               dtype *            values,
+               dtype              beta); 
+
+    // C++ overload special-cases of above method
+    void operator=(std::vector<dtype> values); 
+    void operator+=(std::vector<dtype> values); 
+    void operator-=(std::vector<dtype> values); 
+    void operator=(dtype * values); 
+    void operator+=(dtype * values); 
+    void operator-=(dtype * values); 
+
+    /**
+     * \brief read the sparse set of indices on the parent tensor to values
+     *        forall(j) i = indices[j]; values[j] = alpha*parent[i] + beta*values[j];
+     * \param[in] alpha scaling factor on parent array 
+     * \param[in] values data, should be preallocated to the same size as the number of indices (n)
+     * \param[in] beta scaling factor to apply to previously existing data in values
+     */
+    void read(dtype              alpha, 
+              dtype *            values,
+              dtype              beta); 
+
+    // C++ overload special-cases of above method
+    operator std::vector<dtype>();
+    operator dtype*();
+};
+
+
+
+/* these typedefs yield a non-tempalated interface for double and complex<double> */
+// \brief a world for double precision tensor types 
+typedef tCTF<double>                        CTF;
+typedef tCTF_Idx_Tensor<double>             CTF_Idx_Tensor;
+typedef tCTF_Tensor<double>                 CTF_Tensor;
+typedef tCTF_Sparse_Tensor<double>          CTF_Sparse_Tensor;
+typedef tCTF_Matrix<double>                 CTF_Matrix;
+typedef tCTF_Vector<double>                 CTF_Vector;
+typedef tCTF_Scalar<double>                 CTF_Scalar;
+typedef tCTF_World<double>                  CTF_World;
+typedef tCTF_fscl<double>                   CTF_fscl;
+typedef tCTF_fsum<double>                   CTF_fsum;
+typedef tCTF_fctr<double>                   CTF_fctr;
+#ifdef CTF_COMPLEX
+// \brief a world for complex double precision tensor types 
+typedef tCTF< std::complex<double> >        cCTF;
+typedef tCTF_Idx_Tensor< std::complex<double> > cCTF_Idx_Tensor;
+typedef tCTF_Tensor< std::complex<double> > cCTF_Tensor;
+typedef tCTF_Sparse_Tensor< std::complex<double> > cCTF_Sparse_Tensor;
+typedef tCTF_Matrix< std::complex<double> > cCTF_Matrix;
+typedef tCTF_Vector< std::complex<double> > cCTF_Vector;
+typedef tCTF_Scalar< std::complex<double> > cCTF_Scalar;
+typedef tCTF_World< std::complex<double> >  cCTF_World;
+typedef tCTF_fscl< std::complex<double> >   cCTF_fscl;
+typedef tCTF_fsum< std::complex<double> >   cCTF_fsum;
+typedef tCTF_fctr< std::complex<double> >   cCTF_fctr;
+#endif
+
+/**
+ * @}
+ */
+
+/**
+ * \defgroup expression Tensor expression compiler
+ * @{
+ */
+
 
 /**
  * \brief a term is an abstract object representing some expression of tensors
@@ -878,21 +990,37 @@ class tCTF_Sum_Term : public tCTF_Term<dtype> {
     tCTF_World<dtype> * where_am_i() const;
 };
 
+template<typename dtype> static
+tCTF_Contract_Term<dtype> operator*(double d, tCTF_Term<dtype> const & tsr){
+  return (tsr*d);
+}
+
+template tCTF_Contract_Term<double> 
+            operator*(double d, tCTF_Term<double> const & tsr);
+#ifdef COMPLEX
+template tCTF_Term< std::complex<double> > &
+            operator*(double  d, tCTF_Term< std::complex<double> > const & tsr);
+#endif
+
+
+/**
+ * \brief An experession representing a contraction of a set of tensors contained in operands 
+ */
 template<typename dtype>
 class tCTF_Contract_Term : public tCTF_Term<dtype> {
   public:
     std::vector< tCTF_Term<dtype>* > operands;
 
-    // default constructor
+    // \brief default constructor
     tCTF_Contract_Term() : tCTF_Term<dtype>() {}
 
-    // destructor frees operands
+    // \brief destructor frees operands
     ~tCTF_Contract_Term();
   
-    // copy constructor
+    // \brief copy constructor
     tCTF_Contract_Term(tCTF_Contract_Term<dtype> const & other);
 
-    // dervied clone calls copy constructor
+    // \brief dervied clone calls copy constructor
     tCTF_Term<dtype> * clone() const;
 
     /**
@@ -919,74 +1047,20 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
      */
     tCTF_World<dtype> * where_am_i() const;
 };
+/**
+ * @}
+ */
+
 
 /**
- * \brief a sparse subset of a tensor 
+ * \defgroup timer Timing and cost measurement
+ * @{
  */
-template<typename dtype>
-class tCTF_Sparse_Tensor {
-  public:
-    tCTF_Tensor<dtype> * parent;
-    std::vector<long_int> indices;
-    dtype scale;
 
-    /** 
-      * \brief base constructor 
-      */
-    tCTF_Sparse_Tensor();
-    
-    /**
-     * \brief initialize a tensor which corresponds to a set of indices 
-     * \param[in] indices a vector of global indices to tensor values
-     * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
-     */
-    tCTF_Sparse_Tensor(std::vector<long_int> indices,
-                       tCTF_Tensor<dtype> * parent);
 
-    /**
-     * \brief initialize a tensor which corresponds to a set of indices 
-     * \param[in] number of values this sparse tensor will have locally
-     * \param[in] indices an array of global indices to tensor values
-     * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
-     */
-    tCTF_Sparse_Tensor(long_int              n,
-                       long_int *            indices,
-                       tCTF_Tensor<dtype> * parent);
-
-    /**
-     * \brief set the sparse set of indices on the parent tensor to values
-     *        forall(j) i = indices[j]; parent[i] = beta*parent[i] + alpha*values[j];
-     * \param[in] alpha scaling factor on values array 
-     * \param[in] values data, should be of same size as the number of indices (n)
-     * \param[in] beta scaling factor to apply to previously existing data
-     */
-    void write(dtype              alpha, 
-               dtype *            values,
-               dtype              beta); 
-
-    // C++ overload special-cases of above method
-    void operator=(std::vector<dtype> values); 
-    void operator+=(std::vector<dtype> values); 
-    void operator-=(std::vector<dtype> values); 
-    void operator=(dtype * values); 
-    void operator+=(dtype * values); 
-    void operator-=(dtype * values); 
-
-    /**
-     * \brief read the sparse set of indices on the parent tensor to values
-     *        forall(j) i = indices[j]; values[j] = alpha*parent[i] + beta*values[j];
-     * \param[in] alpha scaling factor on parent array 
-     * \param[in] values data, should be preallocated to the same size as the number of indices (n)
-     * \param[in] beta scaling factor to apply to previously existing data in values
-     */
-    void read(dtype              alpha, 
-              dtype *            values,
-              dtype              beta); 
-
-    // C++ overload special-cases of above method
-    operator std::vector<dtype>();
-    operator dtype*();
-};
+/**
+ * \brief a term is an abstract object representing some expression of tensors
+ */
 
 /**
  * \brief local process walltime measurement
@@ -1006,6 +1080,7 @@ class CTF_Timer{
     void exit();
     
 };
+
 
 /**
  * \brief measures flops done in a code region
@@ -1033,30 +1108,11 @@ class CTF_Flop_Counter{
 
 };
 
+/**
+ * @}
+ */
 
-/* these typedefs yield a non-tempalated interface for double and complex<double> */
-typedef tCTF<double>                        CTF;
-typedef tCTF_Idx_Tensor<double>             CTF_Idx_Tensor;
-typedef tCTF_Tensor<double>                 CTF_Tensor;
-typedef tCTF_Sparse_Tensor<double>          CTF_Sparse_Tensor;
-typedef tCTF_Matrix<double>                 CTF_Matrix;
-typedef tCTF_Vector<double>                 CTF_Vector;
-typedef tCTF_Scalar<double>                 CTF_Scalar;
-typedef tCTF_World<double>                  CTF_World;
-typedef tCTF_fscl<double>                   CTF_fscl;
-typedef tCTF_fsum<double>                   CTF_fsum;
-typedef tCTF_fctr<double>                   CTF_fctr;
-#ifdef CTF_COMPLEX
-typedef tCTF< std::complex<double> >        cCTF;
-typedef tCTF_Idx_Tensor< std::complex<double> > cCTF_Idx_Tensor;
-typedef tCTF_Tensor< std::complex<double> > cCTF_Tensor;
-typedef tCTF_Sparse_Tensor< std::complex<double> > cCTF_Sparse_Tensor;
-typedef tCTF_Matrix< std::complex<double> > cCTF_Matrix;
-typedef tCTF_Vector< std::complex<double> > cCTF_Vector;
-typedef tCTF_Scalar< std::complex<double> > cCTF_Scalar;
-typedef tCTF_World< std::complex<double> >  cCTF_World;
-typedef tCTF_fscl< std::complex<double> >   cCTF_fscl;
-typedef tCTF_fsum< std::complex<double> >   cCTF_fsum;
-typedef tCTF_fctr< std::complex<double> >   cCTF_fctr;
+
+
 #endif
-#endif
+

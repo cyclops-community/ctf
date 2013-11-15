@@ -1,5 +1,12 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
+/** \addtogroup examples 
+  * @{ 
+  * \addtogroup DFT_3D
+  * @{ 
+  */
+
+
 #include <ctf.hpp>
 #include <assert.h>
 #include <stdlib.h>
@@ -113,4 +120,9 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   
 }
+/**
+ * @} 
+ * @}
+ */
+
 #endif

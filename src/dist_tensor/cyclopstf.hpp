@@ -20,6 +20,10 @@
  * call read_*_tensor() to read tensor data
  * call clean_tensors() to clean up internal handles
  */
+/**
+ * \addtogroup CTF CTF: main C++ interface
+ * @{
+ */
 
 /**
  * \brief reduction types for tensor data
@@ -40,22 +44,9 @@ enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS,
 #define AS 2
 #define SH 3
 #endif
-
-
 typedef int64_t long_int;
 typedef long_int key;
 
-/* Force redistributions always by setting to 1 (use 2.5D algorithms) */
-#define REDIST 0
-#define VERIFY 0
-#define VERIFY_REMAP 0
-#define INNER_MAP 0
-#define FOLD_TSR 1
-#define PERFORM_DESYM 1
-#define DIAG_RESCALE
-#define USE_SYM_SUM 
-#define HOME_CONTRACT
-#define USE_BLOCK_RESHUFFLE
 
 template<typename dtype>
 struct tkv_pair {
@@ -74,6 +65,25 @@ template<typename dtype>
 inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
   return (i.k<j.k);
 }
+/**
+ * @}
+ */
+
+/**
+ * \defgroup internal Tensor mapping and redistribution internals
+ * @{
+ */
+/* Force redistributions always by setting to 1 (use 2.5D algorithms) */
+#define REDIST 0
+#define VERIFY 0
+#define VERIFY_REMAP 0
+#define INNER_MAP 0
+#define FOLD_TSR 1
+#define PERFORM_DESYM 1
+#define DIAG_RESCALE
+#define USE_SYM_SUM 
+#define HOME_CONTRACT
+#define USE_BLOCK_RESHUFFLE
 
 typedef struct CTF_ctr_type {
   int   tid_A;
@@ -541,6 +551,10 @@ class tCTF{
 //template class tCTF< std::complex<double> >;
 
 typedef tCTF<double> CTF;
+
+/**
+ * @}
+ */
 
 
 //#include "cyclopstf.cxx"

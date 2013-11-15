@@ -1,4 +1,10 @@
-/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+/** Copyright (c) 2011, Edgar Solomonik, all rights reserved.
+  * \addtogroup examples 
+  * @{ 
+  * \addtogroup CCSDT_T3_to_T2
+  * @{ 
+  * \brief A symmetric contraction from CCSDT compared with the explicitly permuted nonsymmetric form
+  */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -202,6 +208,10 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+/**
+ * @} 
+ * @}
+ */
 
 #endif
 

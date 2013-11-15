@@ -1,5 +1,10 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
-
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup scalar
+  * @{ 
+  * \brief Basic functionality test for CTF_Scalar type and tensors with a zero edge length
+  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

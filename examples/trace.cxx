@@ -1,4 +1,10 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup trace
+  * @{ 
+  * \brief tests trace over diagonal of Matrices
+  */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,4 +133,9 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+/**
+ * @} 
+ * @}
+ */
+
 #endif

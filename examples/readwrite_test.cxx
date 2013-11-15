@@ -1,4 +1,10 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup readwrite_test
+  * @{ 
+  * \brief Tests how writes to diagonals are handled for various tensors
+  */
 
 #include <stdio.h>
 #include <stdlib.h>

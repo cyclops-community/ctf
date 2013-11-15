@@ -6,6 +6,11 @@
 #include "../shared/comm.h"
 #include "../shared/util.h"
 
+/**
+ * \addtogroup nest_dist Nested distributed contraction and summation routines
+ * @{
+ */
+
 template<typename dtype>
 class ctr {
   public: 
@@ -215,6 +220,9 @@ class ctr_lyr : public ctr<dtype> {
 #include "ctr_simple.cxx"
 #include "ctr_2d_general.cxx"
 
+/**
+ * @}
+ */
 
 
 #endif // __CTR_COMM_H__

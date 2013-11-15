@@ -1,5 +1,13 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup weight_4D
+  * @{ 
+  * \brief tests custom element-wise functions by implementing division elementwise on 4D tensors
+  */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -132,5 +140,10 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+
+/**
+ * @} 
+ * @}
+ */
 
 #endif

@@ -1,4 +1,10 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+/** \addtogroup examples 
+  * @{ 
+  * \defgroup sym3
+  * @{ 
+  * \brief tests a contraction between a 6D and a 4D tensor
+  */
 
 #include <stdio.h>
 #include <stdlib.h>
