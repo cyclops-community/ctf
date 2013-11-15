@@ -80,7 +80,7 @@
  * into a <a href="http://ctf.eecs.berkeley.edu/classtCTF__Idx__Tensor.html">CTF_Idx_Tensor</a>, which is a tensor with indices such as "ijkl". 
  * It is also possible to use the CTF_Idx_Tensor type directly.
  * 
- * Tensors can be summed and contracted via the sum() and contract() calls or via operator notation with index strings
+ * Tensors can be summed and contracted via the CTF_Tensor::sum() and CTF_Tensor::contract() calls or via operator notation with index strings
  * e.g.  implies contraction over the mn indices. Summations can be done similarly.
  * Indexing over diagonals is possible by repeating the index in the string e.g. "ii".
  * Custom elementwise operations may be performed on each element instead of addition and multiplication via the constructs
@@ -90,7 +90,7 @@
  *
  * \subsection spio Sparse global data input and output 
  *
- * The CTF_Tensor functions read() and write() may be used for sparse global bulk data writes.
+ * The functions CTF_Tensor::read() and CTF_Tensor::write() may be used for sparse global bulk data writes.
  * It is possible to write via an array of structs format of index-value pairs and via indepdent arrays.
  * The operator [] is also overloaded for CTF_Tensor to take a vector of indices, defining a  
  * <a href="http://ctf.eecs.berkeley.edu/classtCTF__Sparse__Tensor.html">CTF_Sparse_Tensor</a>, which is not currently
@@ -101,10 +101,10 @@
  * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
  * and the column index is second for matrices, which means they are column major. 
  *
- * Blocks or 'slices' of the tensor can be extracted using the slice() function. 
+ * Blocks or 'slices' of the tensor can be extracted using the CTF_Tensor::slice() function. 
  * It is possible to slice between tensors which are on different worlds, orchsetrating data movement between blocks of arrays on different MPI communicators.
  *
- * It is also possible to read/write to a block, 'slice', or sub-tensor (all-equivalent) of any permutation of the tensor via the permute() function.
+ * It is also possible to read/write to a block, 'slice', or sub-tensor (all-equivalent) of any permutation of the tensor via the CTF_Tensor::permute() function.
  * The function can be used to reorder the tensor in any fashion along each dimension, or to extract certain slices (via -1s in the permutation array).
  * This function also works across MPI communicators (CTF_Worlds) and is a generalization of slice.
  *
