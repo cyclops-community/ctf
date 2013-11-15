@@ -45,9 +45,8 @@ void depad_tsr(int const                ndim,
   #pragma omp parallel
   {
     long_int i, j, st, end, tid;
-    key * kparts;
     key k;
-    CTF_alloc_ptr(sizeof(key)*ndim, (void**)&kparts);
+    key kparts[ndim];
     tid = omp_get_thread_num();
 
     st = (num_pair/ntd)*tid;
@@ -81,7 +80,6 @@ void depad_tsr(int const                ndim,
         }
       }
     }
-    CTF_free(kparts);
   }
   TAU_FSTOP(depad_tsr_cnt);
 
@@ -94,9 +92,8 @@ void depad_tsr(int const                ndim,
   #pragma omp parallel
   {
     long_int i, j, st, end, tid;
-    key * kparts;
     key k;
-    CTF_alloc_ptr(sizeof(key)*ndim, (void**)&kparts);
+    key kparts[ndim];
     tid = omp_get_thread_num();
 
     st = (num_pair/ntd)*tid;
@@ -130,7 +127,6 @@ void depad_tsr(int const                ndim,
         }
       }
     }
-    CTF_free(kparts);
   }
   TAU_FSTOP(depad_tsr_move);
   num_ins = pre_ins_t[ntd-1];
@@ -213,7 +209,11 @@ void permute_keys(int const                   ndim,
                   tkv_pair<dtype> *           pairs,
                   long_int *                  new_num_pair){
   TAU_FSTART(permute_keys);
+#ifdef USE_OMP
   int mntd = omp_get_max_threads();
+#else
+  int mntd = 1;
+#endif
   long_int counts[mntd];
   std::fill(counts,counts+mntd,0);
 #ifdef USE_OMP
@@ -265,7 +265,9 @@ void permute_keys(int const                   ndim,
     }
     counts[tid] = cnum_pair;
     {
+#ifdef USE_OMP
       #pragma omp barrier
+#endif
       long_int pfx = 0;
       for (i=0; i<tid; i++){
         pfx += counts[i];
@@ -298,7 +300,11 @@ void depermute_keys(int const                   ndim,
                     int * const *               permutation,
                     tkv_pair<dtype> *           pairs){
   TAU_FSTART(depermute_keys);
+#ifdef USE_OMP
   int mntd = omp_get_max_threads();
+#else
+  int mntd = 1;
+#endif
   long_int counts[mntd];
   std::fill(counts,counts+mntd,0);
   int ** depermutation = (int**)CTF_alloc(ndim*sizeof(int*));
@@ -353,7 +359,8 @@ void depermute_keys(int const                   ndim,
     }
   }
   for (int d=0; d<ndim; d++){
-    CTF_free(depermutation[d]);
+    if (permutation[d] != NULL)
+      CTF_free(depermutation[d]);
   }
   CTF_free(depermutation);
 
@@ -574,6 +581,7 @@ void pad_tsr(int const                ndim,
     if (act_lda == ndim) break;
     
   }
+  CTF_free(idx);
   DEBUG_PRINTF("ndim = %d new_el="PRId64", size = "PRId64", pad_el = "PRId64"\n", ndim, new_el, size, pad_el);
   LIBT_ASSERT(new_el + size == pad_el);
   memcpy(padded_pairs+new_el, old_data,  size*sizeof(tkv_pair<dtype>));

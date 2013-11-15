@@ -53,6 +53,7 @@ int  gemm(int const     m,
   free(pairs);
   free(indices);
 
+  C["ij"] += A["ik"]*B["kj"];
   C["ij"] += (.3*i)*A["ik"]*B["kj"];
 #ifndef TEST_SUITE
   double t;
@@ -61,7 +62,6 @@ int  gemm(int const     m,
   t = MPI_Wtime();
   for (i=0; i<niter; i++){
     C["ij"] += A["ik"]*B["kj"];
-    CTF_Matrix * D = new CTF_Matrix(n, n, NS, dw);
   }
   t = MPI_Wtime() - t;
   int64_t allf = f.count(dw.comm);
@@ -78,10 +78,10 @@ int  gemm(int const     m,
     CTF_Matrix D(m, n, NS, dw);
     CTF_Matrix E(m, n, NS, dw);
     
-    D["ij"] = A["ik"]*B["kj"];
-    D["ij"] = D["ik"]*C["kj"];
-    E["ij"] = B["ik"]*C["kj"];
-    E["ij"] = A["ik"]*E["kj"];
+    D["ij"] = (A["ik"]*B["kj"]);
+    D["ij"] = (D["ik"]*C["kj"]);
+    E["ij"] = (B["ik"]*C["kj"]);
+    E["ij"] = (A["ik"]*E["kj"]);
     
     D.align(E);
     D.read_local(&np, &indices_BC, &pairs_BC);
@@ -150,6 +150,12 @@ int main(int argc, char ** argv){
 
   {
     CTF_World dw(MPI_COMM_WORLD, argc, argv);
+
+    CTF_Scalar ts(1.0,dw);
+    CTF_Idx_Tensor its(&ts,"");
+    CTF_Idx_Tensor tts(its); 
+    tts.operator*(its);
+
     int pass;    
     if (rank == 0){
       printf("Non-symmetric: NS = NS*NS gemm:\n");

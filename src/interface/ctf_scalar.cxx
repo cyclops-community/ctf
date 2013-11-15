@@ -62,4 +62,6 @@ void tCTF_Scalar<dtype>::set_val(dtype const val){
   
 
 template class tCTF_Scalar<double>;
+#ifdef CTF_COMPLEX
 template class tCTF_Scalar< std::complex<double> >;
+#endif

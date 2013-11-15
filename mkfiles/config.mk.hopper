@@ -12,6 +12,10 @@ INCLUDES    =
 AR          = ar -crs
 DEPFLAGS    = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
+#defining production removes memory tracking, definining CTF_COMPLEX instantiates
+#CTF for the complex<double> type
+DEFS       := $(DEFS) -DPRODUCTION -DCTF_COMPLEX
+
 #uncomment below to enable performance profiling
 #DEFS      := $(DEFS) -DPROFILE -DPMPI
 

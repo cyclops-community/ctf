@@ -48,7 +48,7 @@ int relativeSign(RAIterator s1b, RAIterator s1e, RAIterator s2b, RAIterator s2e)
     for (i = 0;i < sz;i++)
     {
         if (seen[i]) continue;
-        j = i;
+        int j = i;
         while (true)
         {
             for (k = 0;k < sz && (!(*(s1b+k) == *(s2b+j)) || seen[k]);k++);

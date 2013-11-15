@@ -24,4 +24,6 @@ tCTF_Vector<dtype>::tCTF_Vector(int const           len_,
 }
 
 template class tCTF_Vector<double>;
+#ifdef CTF_COMPLEX
 template class tCTF_Vector< std::complex<double> >;
+#endif

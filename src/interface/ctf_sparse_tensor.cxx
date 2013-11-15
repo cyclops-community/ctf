@@ -116,4 +116,6 @@ tCTF_Sparse_Tensor<dtype>::operator dtype*(){
 
 
 template class tCTF_Sparse_Tensor<double>;
+#ifdef CTF_COMPLEX
 template class tCTF_Sparse_Tensor< std::complex<double> >;
+#endif

@@ -29,6 +29,7 @@ int strassen(int const     n,
     cnum_pes  = num_pes/7;
     MPI_Comm_split(pcomm, rank/cnum_pes, rank%cnum_pes, &ccomm);
   } else {
+    cnum_pes = 1;
     ccomm = dw.comm;
   }
   CTF_World cdw(ccomm);

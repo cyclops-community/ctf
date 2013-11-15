@@ -539,7 +539,7 @@ int dist_tensor<dtype>::
   nvirt = 1;
   for (i=0; i<ndim_tot; i++){
     iA = idx_arr[i];
-    if (idx_map[i] != -1){
+    if (iA != -1){
       map = &tsr->edge_map[iA];
       while (map->has_child) map = map->child;
       if (map->type == VIRTUAL_MAP){
@@ -547,7 +547,7 @@ int dist_tensor<dtype>::
         if (st) virt_dim[i] = virt_dim[i]/str->strip_dim[iA];
       }
       else virt_dim[i] = 1;
-    }
+    } else virt_dim[i] = 1;
     nvirt *= virt_dim[i];
   }
 
@@ -1746,7 +1746,20 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
       fs.func_ptr=sym_seq_scl_ref<dtype>;
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
-      scale_tsr(beta, tid_B, idx_map_B, fs, felm); 
+      int sub_idx_map_B[tsr_B->ndim];
+      int sm_idx=0;
+      for (int i=0; i<tsr_B->ndim; i++){
+        sub_idx_map_B[i]=sm_idx;
+        sm_idx++;
+        for (int j=0; j<i; j++){
+          if (idx_map_B[i]==idx_map_B[j]){
+            sub_idx_map_B[i]=sub_idx_map_B[j];
+            sm_idx--;
+            break;
+          }
+        }
+      }
+      scale_tsr(beta, tid_B, sub_idx_map_B, fs, felm); 
     }
     free_type(&type);
     return DIST_TENSOR_SUCCESS;
@@ -1918,7 +1931,20 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
       fs.func_ptr=sym_seq_scl_ref<dtype>;
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
-      scale_tsr(beta, type->tid_B, type->idx_map_B, fs, felm); 
+      int sub_idx_map_B[tsr_B->ndim];
+      int sm_idx=0;
+      for (int i=0; i<tsr_B->ndim; i++){
+        sub_idx_map_B[i]=sm_idx;
+        sm_idx++;
+        for (int j=0; j<i; j++){
+          if (type->idx_map_B[i]==type->idx_map_B[j]){
+            sub_idx_map_B[i]=sub_idx_map_B[j];
+            sm_idx--;
+            break;
+          }
+        }
+      }
+      scale_tsr(beta, type->tid_B, sub_idx_map_B, fs, felm); 
     }
     return DIST_TENSOR_SUCCESS;
   }
@@ -2080,7 +2106,20 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
       fs.func_ptr=sym_seq_scl_ref<dtype>;
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
-      scale_tsr(beta, tid_B, idx_map_B, fs, felm); 
+      int sub_idx_map_B[tsr_B->ndim];
+      int sm_idx=0;
+      for (int i=0; i<tsr_B->ndim; i++){
+        sub_idx_map_B[i]=sm_idx;
+        sm_idx++;
+        for (int j=0; j<i; j++){
+          if (idx_map_B[i]==idx_map_B[j]){
+            sub_idx_map_B[i]=sub_idx_map_B[j];
+            sm_idx--;
+            break;
+          }
+        }
+      }
+      scale_tsr(beta, tid_B, sub_idx_map_B, fs, felm); 
     }
     return DIST_TENSOR_SUCCESS;
   }
@@ -2324,6 +2363,7 @@ int dist_tensor<dtype>::
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
       scale_tsr(beta, stype->tid_C, new_idx_map_C, fs, felm); 
+      CTF_free(new_idx_map_C);
     }
     return DIST_TENSOR_SUCCESS;
   }
@@ -2500,6 +2540,7 @@ int dist_tensor<dtype>::
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
       scale_tsr(beta, stype->tid_C, new_idx_map_C, fs, felm); 
+      CTF_free(new_idx_map_C);
     }
     return DIST_TENSOR_SUCCESS;
   }
@@ -2722,6 +2763,7 @@ int dist_tensor<dtype>::
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
       scale_tsr(beta, type->tid_C, new_idx_map_C, fs, felm); 
+      CTF_free(new_idx_map_C);
     }
     return DIST_TENSOR_SUCCESS;
   }

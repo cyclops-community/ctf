@@ -170,7 +170,7 @@ void CTF_Timer::exit(){
 
 
     char all_symbols[10000];
-    FILE * output;
+    FILE * output = NULL;
 
     if (rank == 0){
       char filename[300];

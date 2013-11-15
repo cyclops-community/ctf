@@ -31,7 +31,7 @@ int readwrite_test(int const    n,
   CTF_Tensor A_SH(4, sizeN4, shape_SH4, dw);
   CTF_Tensor A_AS(4, sizeN4, shape_AS4, dw);
 
-  std::vector<lont_int> indices;
+  std::vector<long_int> indices;
   std::vector<double> vals;
 
   if (rank == 0){

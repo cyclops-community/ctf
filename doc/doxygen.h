@@ -52,6 +52,8 @@
  * Similarly, for DEBUG mode is activated using -DDEBUG=1 (or =2 =3 for even more print outs).
  *
  * Environment Variables:
+ *
+ * OMP_NUM_THREADS number of threads to use on each MPI process, can be changed from within the code with omp_set_num_threads()
  * 
  * CTF_MEMORY_SIZE tells CTF how much memory on the node there is for usage. By default CTF will try to read the available memory using system calls.
  *

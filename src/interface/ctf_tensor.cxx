@@ -13,6 +13,16 @@
 #include "../shared/util.h"
 
 template<typename dtype>
+tCTF_Tensor<dtype>::tCTF_Tensor(){
+  tid = -1;
+  ndim = -1;
+  sym = NULL;
+  len = NULL;
+  name = NULL;
+  world = NULL;
+}
+
+template<typename dtype>
 tCTF_Tensor<dtype>::tCTF_Tensor(const tCTF_Tensor<dtype>& A,
                                  bool                copy){
   int ret;
@@ -51,8 +61,14 @@ tCTF_Tensor<dtype>::tCTF_Tensor(int                 ndim_,
 
 template<typename dtype>
 tCTF_Tensor<dtype>::~tCTF_Tensor(){
-  free(sym);
-  free(len);
+/*  if (sym != NULL)
+    CTF_free_cond(sym);
+  if (len != NULL)
+    CTF_free_cond(len);*/
+  if (sym != NULL)
+    free(sym);
+  if (len != NULL)
+    free(len);
   world->ctf->clean_tensor(tid);
 }
 
@@ -470,7 +486,7 @@ void tCTF_Tensor<dtype>::get_max_abs(int        n,
 }
 
 template<typename dtype>
-tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(      dtype val){
+tCTF_Tensor<dtype>& tCTF_Tensor<dtype>::operator=(dtype val){
   long_int size;
   dtype* raw = get_raw_data(&size);
   std::fill(raw, raw+size, val);
@@ -483,6 +499,11 @@ void tCTF_Tensor<dtype>::operator=(tCTF_Tensor<dtype> A){
 
   world = A.world;
 
+  if (sym != NULL)
+    free(sym);
+  if (len != NULL)
+    free(len);
+    //free(len);
   ret = world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 
@@ -497,15 +518,16 @@ void tCTF_Tensor<dtype>::operator=(tCTF_Tensor<dtype> A){
     
 
 template<typename dtype>
-tCTF_Idx_Tensor<dtype>& tCTF_Tensor<dtype>::operator[](const char * idx_map_){
-  tCTF_Idx_Tensor<dtype> * itsr = new tCTF_Idx_Tensor<dtype>(this, idx_map_);
-  return *itsr;
+tCTF_Idx_Tensor<dtype> tCTF_Tensor<dtype>::operator[](const char * idx_map_){
+  tCTF_Idx_Tensor<dtype> itsr(this, idx_map_);
+  return itsr;
 }
 
+
 template<typename dtype>
-tCTF_Sparse_Tensor<dtype>& tCTF_Tensor<dtype>::operator[](std::vector<int64_t> indices){
-  tCTF_Sparse_Tensor<dtype> * stsr = new tCTF_Sparse_Tensor<dtype>(indices,this);
-  return *stsr;
+tCTF_Sparse_Tensor<dtype> tCTF_Tensor<dtype>::operator[](std::vector<int64_t> indices){
+  tCTF_Sparse_Tensor<dtype> stsr(indices,this);
+  return stsr;
 }
 
 
@@ -513,4 +535,6 @@ tCTF_Sparse_Tensor<dtype>& tCTF_Tensor<dtype>::operator[](std::vector<int64_t> i
 
 
 template class tCTF_Tensor<double>;
+#ifdef CTF_COMPLEX
 template class tCTF_Tensor< std::complex<double> >;
+#endif

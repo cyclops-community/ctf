@@ -32,4 +32,6 @@ tCTF_Matrix<dtype>::tCTF_Matrix(int const           nrow_,
 }
 
 template class tCTF_Matrix<double>;
+#ifdef CTF_COMPLEX
 template class tCTF_Matrix< std::complex<double> >;
+#endif

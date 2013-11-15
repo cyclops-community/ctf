@@ -91,7 +91,7 @@ class Integrals {
     }
   }
   
-  tCTF_Idx_Tensor<double>& operator[](char const * idx_map_){
+  tCTF_Idx_Tensor<double> operator[](char const * idx_map_){
     int i, lenm, no, nv;
     lenm = strlen(idx_map_);
     char new_idx_map[lenm+1];
@@ -125,6 +125,8 @@ class Integrals {
     if (0 == strcmp("ijkl",new_idx_map)) return ijkl[idx_map_];
     printf("Invalid integral indices\n");
     ABORT;
+//shut up compiler
+    return aa[idx_map_];
   }
 };
 
@@ -144,7 +146,7 @@ class Amplitudes {
     abij = CTF_Tensor(4,vvoo,shapeASAS,dw_,"T",1);
   }
 
-  tCTF_Idx_Tensor<double>& operator[](char const * idx_map_){
+  tCTF_Idx_Tensor<double> operator[](char const * idx_map_){
     if (strlen(idx_map_) == 4) return abij[idx_map_];
     else return ai[idx_map_];
   }
