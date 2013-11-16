@@ -2357,7 +2357,8 @@ int padded_reshuffle(int const          tid,
 
 
   CTF_free(old_virt_phase_rank);
-  CTF_free(pairs);
+  if (pairs != NULL)
+    CTF_free(pairs);
   CTF_free(virt_phase_rank);
   CTF_free(sub_edge_len);
   TAU_FSTOP(padded_reshuffle);
