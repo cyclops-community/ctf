@@ -2930,6 +2930,7 @@ void block_reshuffle(int const        ndim,
     MPI_Waitall(num_new_virt, reqs, MPI_STATUSES_IGNORE);
   } else if (idx_lyr_old == 0){
     MPI_Waitall(num_old_virt, reqs+num_new_virt, MPI_STATUSES_IGNORE);
+    std::fill(tsr_cyclic_data, tsr_cyclic_data+new_size, get_zero<dtype>());
   } else {
     std::fill(tsr_cyclic_data, tsr_cyclic_data+new_size, get_zero<dtype>());
   }

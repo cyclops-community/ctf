@@ -264,6 +264,13 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
     printf("Tensor %d of dimension %d defined with edge lengths", *tensor_id, ndim);
 #endif
   for (i=0; i<ndim; i++){
+#if DEBUG >= 1
+    int maxlen;
+    ALLREDUCE(sym+i,&maxlen,1,MPI_INT,MPI_MAX,global_comm);
+    LIBT_ASSERT(maxlen==sym[i]);
+    ALLREDUCE(edge_len+i,&maxlen,1,MPI_INT,MPI_MAX,global_comm);
+    LIBT_ASSERT(maxlen==edge_len[i]);
+#endif
 #if DEBUG >= 2
     if (global_comm->rank == 0)
       printf(" %d", edge_len[i]);

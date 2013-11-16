@@ -81,10 +81,10 @@ uint64_t getTotalSystemMemory()
 inline void handler() {
 #if (!BGP && !BGQ && !HOPPER)
   int i, size;
-  void *array[20];
+  void *array[26];
 
   // get void*'s for all entries on the stack
-  size = backtrace(array, 20);
+  size = backtrace(array, 25);
 
   // print out all the frames to stderr
   backtrace_symbols(array, size);
@@ -103,7 +103,10 @@ inline void handler() {
       strcat(syscom,buf2);
 
   }
+  int *iiarr = NULL;
+  iiarr[0]++;
   assert(system(syscom)==0);
+  printf("%d",iiarr[0]);
 #endif
 }
 #ifndef LIBT_ASSERT
