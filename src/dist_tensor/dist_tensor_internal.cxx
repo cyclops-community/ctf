@@ -66,7 +66,7 @@ int dist_tensor<dtype>::dist_cleanup(){
   for (iter=topovec.begin(); iter<topovec.end(); iter++){
     for (j=0; j<iter->ndim; j++){
       // folded communicator pointers are replicated
-      CTF_free_cond(iter->dim_comm[j]); 
+      // CTF_free_cond(iter->dim_comm[j]); 
     }
     CTF_free(iter->dim_comm);
   }
@@ -737,6 +737,8 @@ int dist_tensor<dtype>::clone_tensor( int const tensor_id,
   get_tsr_info(tensor_id, &ndim, &edge_len, &sym);
   define_tensor(ndim, edge_len, sym, 
                 new_tensor_id, alloc_data);
+  if (global_comm->rank == 0)
+    DPRINTF(2,"Cloned tensor %d from tensor %d\n", *new_tensor_id,tensor_id);
   CTF_free(edge_len), CTF_free(sym);
   if (copy_data){
     return cpy_tsr(tensor_id, *new_tensor_id);

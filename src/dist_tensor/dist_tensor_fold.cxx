@@ -1587,8 +1587,8 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   if (!is_C){
     ctid = sym_tid;
     if (scal_diag && num_sy+num_sy_neg==1){
-      tensors[ctid]->sym[is] = SH;
       clone_tensor(sym_tid, 1, &ctid);
+      tensors[ctid]->sym[is] = SH;
       zero_out_padding(ctid);
       tensors[ctid]->sym[is] = SY;
     } 

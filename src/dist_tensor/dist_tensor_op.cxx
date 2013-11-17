@@ -450,7 +450,7 @@ int dist_tensor<dtype>::
   int * virt_dim, * idx_arr;
   int * virt_blk_len, * blk_len;
   mapping * map;
-  tensor<dtype> * tsr;
+  tensor<dtype> * tsr, * ntsr;
   strp_tsr<dtype> * str;
   scl<dtype> * hscl = NULL, ** rec_scl = NULL;
 
@@ -470,37 +470,51 @@ int dist_tensor<dtype>::
     printf("\n");
   }
 #endif
+  
+  int was_home = tsr->is_home;
+  int ntid = tid;
+  if (was_home){
+    clone_tensor(tid, 0, &ntid, 0);
+    ntsr = tensors[ntid];
+    ntsr->data = tsr->data;
+    ntsr->home_buffer = tsr->home_buffer;
+    ntsr->is_home = 1;
+    ntsr->is_mapped = 1;
+    ntsr->itopo = tsr->itopo;
+    copy_mapping(tsr->ndim, tsr->edge_map, ntsr->edge_map);
+    set_padding(ntsr);
+  } else ntsr = tsr;    
 
-  unmap_inner(tsr);
-  set_padding(tsr);
-  inv_idx(tsr->ndim, idx_map, tsr->edge_map,
+  unmap_inner(ntsr);
+  set_padding(ntsr);
+  inv_idx(ntsr->ndim, idx_map, ntsr->edge_map,
           &ndim_tot, &idx_arr);
 
-  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&blk_len);
-  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&virt_blk_len);
+  CTF_alloc_ptr(sizeof(int)*ntsr->ndim, (void**)&blk_len);
+  CTF_alloc_ptr(sizeof(int)*ntsr->ndim, (void**)&virt_blk_len);
   CTF_alloc_ptr(sizeof(int)*ndim_tot, (void**)&virt_dim);
 
-  if (!check_self_mapping(tid, idx_map)){
-    save_mapping(tsr, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda,
-                 &old_size, &was_padded, &was_cyclic, &old_padding, &old_edge_len, &topovec[tsr->itopo]);
+  if (!check_self_mapping(ntid, idx_map)){
+    save_mapping(ntsr, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda,
+                 &old_size, &was_padded, &was_cyclic, &old_padding, &old_edge_len, &topovec[ntsr->itopo]);
     for (itopo=0; itopo<(int)topovec.size(); itopo++){
-      clear_mapping(tsr);
-      tsr->itopo = itopo;
+      clear_mapping(ntsr);
+      ntsr->itopo = itopo;
       
-      ret = map_self_indices(tid, idx_map);
+      ret = map_self_indices(ntid, idx_map);
       if (ret!=DIST_TENSOR_SUCCESS) continue;
-      ret = map_tensor_rem(topovec[tsr->itopo].ndim,
-                           topovec[tsr->itopo].dim_comm, tsr, 1);
+      ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
+                           topovec[ntsr->itopo].dim_comm, ntsr, 1);
       if (ret!=DIST_TENSOR_SUCCESS) continue;
-      ret = map_self_indices(tid, idx_map);
+      ret = map_self_indices(ntid, idx_map);
       if (ret!=DIST_TENSOR_SUCCESS) continue;
-      if (check_self_mapping(tid, idx_map)) break;
+      if (check_self_mapping(ntid, idx_map)) break;
     }
     if (itopo == (int)topovec.size()) return DIST_TENSOR_ERROR;
-    tsr->is_mapped = 1;
-    set_padding(tsr);
-    tsr->is_cyclic = 1;
-    remap_tensor(tid, tsr, &topovec[tsr->itopo], old_size, old_phase,
+    ntsr->is_mapped = 1;
+    set_padding(ntsr);
+    ntsr->is_cyclic = 1;
+    remap_tensor(ntid, ntsr, &topovec[ntsr->itopo], old_size, old_phase,
                  old_rank, old_virt_dim, old_pe_lda,
                  was_padded, was_cyclic, old_padding, old_edge_len,
                  global_comm);
@@ -513,17 +527,17 @@ int dist_tensor<dtype>::
     CTF_free(old_edge_len);
 #if DEBUG >=1
     if (global_comm->rank == 0)
-      printf("New mapping for tensor %d\n",tid);
-    print_map(stdout,tid);
+      printf("New mapping for tensor %d\n",ntid);
+    print_map(stdout,ntid);
 #endif
   }
 
-  blk_sz = tsr->size;
-  calc_dim(tsr->ndim, blk_sz, tsr->edge_len, tsr->edge_map,
+  blk_sz = ntsr->size;
+  calc_dim(ntsr->ndim, blk_sz, ntsr->edge_len, ntsr->edge_map,
            &vrt_sz, virt_blk_len, blk_len);
 
-  st = strip_diag<dtype>(tsr->ndim, ndim_tot, idx_map, vrt_sz,
-                         tsr->edge_map, &topovec[tsr->itopo],
+  st = strip_diag<dtype>(ntsr->ndim, ndim_tot, idx_map, vrt_sz,
+                         ntsr->edge_map, &topovec[ntsr->itopo],
                          blk_len, &blk_sz, &str);
   if (st){
     if (global_comm->rank == 0)
@@ -540,7 +554,7 @@ int dist_tensor<dtype>::
   for (i=0; i<ndim_tot; i++){
     iA = idx_arr[i];
     if (iA != -1){
-      map = &tsr->edge_map[iA];
+      map = &ntsr->edge_map[iA];
       while (map->has_child) map = map->child;
       if (map->type == VIRTUAL_MAP){
         virt_dim[i] = map->np;
@@ -564,7 +578,7 @@ int dist_tensor<dtype>::
 
     sclv->num_dim   = ndim_tot;
     sclv->virt_dim  = virt_dim;
-    sclv->ndim_A  = tsr->ndim;
+    sclv->ndim_A  = ntsr->ndim;
     sclv->blk_sz_A  = vrt_sz;
     sclv->idx_map_A = idx_map;
     sclv->buffer  = NULL;
@@ -578,15 +592,15 @@ int dist_tensor<dtype>::
     *rec_scl = sclseq;
   }
   sclseq->alpha         = alpha;
-  sclseq->ndim          = tsr->ndim;
+  sclseq->ndim          = ntsr->ndim;
   sclseq->idx_map       = idx_map;
   sclseq->edge_len      = virt_blk_len;
-  sclseq->sym           = tsr->sym;
+  sclseq->sym           = ntsr->sym;
   sclseq->func_ptr      = ftsr;
   sclseq->custom_params = felm;
   sclseq->is_custom     = (felm.func_ptr != NULL);
 
-  hscl->A   = tsr->data;
+  hscl->A   = ntsr->data;
   hscl->alpha   = alpha;
 
   CTF_free(idx_arr);
@@ -595,6 +609,44 @@ int dist_tensor<dtype>::
   hscl->run();
 
   delete hscl;
+  
+  if (was_home && !ntsr->is_home){
+    if (global_comm->rank == 0)
+      DPRINTF(2,"Migrating tensor %d back to home\n", tid);
+    save_mapping(ntsr,
+                 &old_phase, &old_rank, 
+                 &old_virt_dim, &old_pe_lda, 
+                 &old_size, &was_padded, 
+                 &was_cyclic, &old_padding, 
+                 &old_edge_len, &topovec[ntsr->itopo]);
+    tsr->data = ntsr->data;
+    tsr->is_home = 0;
+    remap_tensor(tid, tsr, &topovec[tsr->itopo], old_size, 
+                 old_phase, old_rank, old_virt_dim, 
+                 old_pe_lda, was_padded, was_cyclic, 
+                 old_padding, old_edge_len, global_comm);
+    memcpy(tsr->home_buffer, tsr->data, tsr->size*sizeof(dtype));
+    CTF_free(tsr->data);
+    tsr->data = tsr->home_buffer;
+    tsr->is_home = 1;
+    ntsr->is_data_aliased = 1;
+    del_tsr(ntid);
+    CTF_free(old_phase);
+    CTF_free(old_rank);
+    CTF_free(old_virt_dim);
+    CTF_free(old_pe_lda);
+    CTF_free(old_padding);
+    CTF_free(old_edge_len);
+  } else if (was_home){
+    if (ntsr->data != tsr->data){
+      printf("Tensor %d is a copy of %d and did not leave home but buffer is %p was %p\n", ntid, tid, ntsr->data, tsr->data);
+      ABORT;
+
+    }
+    ntsr->has_home = 0;
+    ntsr->is_data_aliased = 1;
+    del_tsr(ntid);
+  }
 
 #if DEBUG>=1
   if (global_comm->rank == 0)

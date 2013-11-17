@@ -71,7 +71,7 @@ int readwrite_test(int const    n,
     pass = 0;
 #ifndef TEST_SUITE
     if (rank == 0){
-      printf("Symmetric diagonal write failed!\n");
+      printf("Symmetric diagonal write failed!, err - %lf\n",sum-n*(n+1.)/2.);
     }
 #endif
   }
@@ -108,13 +108,28 @@ int readwrite_test(int const    n,
   }
   A_SY[indices]=vals;
 
+  sum = 0.0;
+  
+  A_NS["ijkl"]=0.0;
+  A_NS["ijkl"]=A_SY["ijkl"];
+  sum += A_NS["ijkl"]*A_NS["ijkl"];
+
+  if (abs(sum-n*(n+1.)/2.)>1E-6){
+    pass = 0;
+#ifndef TEST_SUITE
+    if (rank == 0){
+      printf("Nonsymmetric self contraction failed!, err = %lf\n",sum-n*(n+1.)/2.);
+    }
+#endif
+  }
+
   sum = A_SY["ijkl"]*A_SY["ijkl"];
 
   if (abs(sum-n*(n+1.)/2.)>1E-6){
     pass = 0;
 #ifndef TEST_SUITE
     if (rank == 0){
-      printf("Symmetric self contraction failed!\n");
+      printf("Symmetric self contraction failed!, err = %lf\n",sum-n*(n+1.)/2.);
     }
 #endif
   }

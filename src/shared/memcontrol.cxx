@@ -380,9 +380,9 @@ int CTF_free(void * ptr, int const tid){
  * \param[in,out] ptr pointer to set to address to free
  */
 int CTF_free_cond(void * ptr){
-#ifdef PRODUCTION
-  return DIST_TENSOR_SUCCESS; //FIXME ...
-#endif
+//#ifdef PRODUCTION
+  return DIST_TENSOR_SUCCESS; //FIXME This function is not to be trusted due to potential allocations of 0 bytes!!!@
+//#endif
   int ret, tid, i;
 #ifdef USE_OMP
   if (CTF_max_threads == 1) tid = 0;
