@@ -488,12 +488,12 @@ int dist_tensor<dtype>::
       tsr->itopo = itopo;
       
       ret = map_self_indices(tid, idx_map);
-      LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
+      if (ret!=DIST_TENSOR_SUCCESS) continue;
       ret = map_tensor_rem(topovec[tsr->itopo].ndim,
                            topovec[tsr->itopo].dim_comm, tsr, 1);
-      LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
+      if (ret!=DIST_TENSOR_SUCCESS) continue;
       ret = map_self_indices(tid, idx_map);
-      LIBT_ASSERT(ret==DIST_TENSOR_SUCCESS);
+      if (ret!=DIST_TENSOR_SUCCESS) continue;
       if (check_self_mapping(tid, idx_map)) break;
     }
     if (itopo == (int)topovec.size()) return DIST_TENSOR_ERROR;

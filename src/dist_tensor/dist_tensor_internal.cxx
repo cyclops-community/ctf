@@ -266,9 +266,9 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   for (i=0; i<ndim; i++){
 #if DEBUG >= 1
     int maxlen;
-    ALLREDUCE(sym+i,&maxlen,1,MPI_INT,MPI_MAX,global_comm);
+    ALLREDUCE(tsr->sym+i,&maxlen,1,MPI_INT,MPI_MAX,global_comm);
     LIBT_ASSERT(maxlen==sym[i]);
-    ALLREDUCE(edge_len+i,&maxlen,1,MPI_INT,MPI_MAX,global_comm);
+    ALLREDUCE(tsr->edge_len+i,&maxlen,1,MPI_INT,MPI_MAX,global_comm);
     LIBT_ASSERT(maxlen==edge_len[i]);
 #endif
 #if DEBUG >= 2

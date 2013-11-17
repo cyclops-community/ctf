@@ -1111,5 +1111,97 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
 }
                                     
 
+/**
+ * \brief build stack required for stripping out diagonals of tensor
+ * \param[in] ndim number of dimensions of this tensor
+ * \param[in] ndim_tot number of dimensions invovled in contraction/sum
+ * \param[in] idx_map the index mapping for this contraction/sum
+ * \param[in] vrt_sz size of virtual block
+ * \param[in] edge_map mapping of each dimension
+ * \param[in] topology the tensor is mapped to
+ * \param[in,out] blk_edge_len edge lengths of local block after strip
+ * \param[in,out] blk_sz size of local sub-block block after strip
+ * \param[out] stpr class that recursively strips tensor
+ * \return 1 if tensor needs to be stripped, 0 if not
+ */
+template<typename dtype>
+int strip_diag(int const                ndim,
+               int const                ndim_tot,
+               int const *              idx_map,
+               long_int const           vrt_sz,
+               mapping const *          edge_map,
+               topology const *         topo,
+               int *                    blk_edge_len,
+               long_int *               blk_sz,
+               strp_tsr<dtype> **       stpr){
+  long_int i;
+  int need_strip;
+  int * pmap, * edge_len, * sdim, * sidx;
+  strp_tsr<dtype> * stripper;
+
+  CTF_alloc_ptr(ndim_tot*sizeof(int), (void**)&pmap);
+
+  std::fill(pmap, pmap+ndim_tot, -1);
+
+  need_strip = 0;
+
+  for (i=0; i<ndim; i++){
+    if (edge_map[i].type == PHYSICAL_MAP) {
+      LIBT_ASSERT(pmap[idx_map[i]] == -1);
+      pmap[idx_map[i]] = i;
+    }
+  }
+  for (i=0; i<ndim; i++){
+    if (edge_map[i].type == VIRTUAL_MAP && pmap[idx_map[i]] != -1)
+      need_strip = 1;
+  }
+  if (need_strip == 0) {
+    CTF_free(pmap);
+    return 0;
+  }
+
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&edge_len);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&sdim);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&sidx);
+  stripper = new strp_tsr<dtype>;
+
+  std::fill(sdim, sdim+ndim, 1);
+  std::fill(sidx, sidx+ndim, 0);
+
+  for (i=0; i<ndim; i++){
+    edge_len[i] = calc_phase(edge_map+i)/calc_phys_phase(edge_map+i);
+/*    if (edge_map[i].type == VIRTUAL_MAP) {
+      edge_len[i] = edge_map[i].np;
+    }
+    if (edge_map[i].type == PHYSICAL_MAP && edge_map[i].has_child) {
+      //dont allow recursive mappings for self indices
+      // or things get weird here
+      //LIBT_ASSERT(edge_map[i].child->type == VIRTUAL_MAP);
+      edge_len[i] = edge_map[i].child->np;
+    }*/
+    if (edge_map[i].type == VIRTUAL_MAP && pmap[idx_map[i]] != -1) {
+      LIBT_ASSERT(edge_map[i].np == edge_map[pmap[idx_map[i]]].np);
+      sdim[i] = edge_map[i].np;
+      sidx[i] = calc_phys_rank(edge_map+pmap[idx_map[i]],topo);
+    }
+    blk_edge_len[i] = blk_edge_len[i] / sdim[i];
+    *blk_sz = (*blk_sz) / sdim[i];
+  }
+
+  stripper->alloced     = 0;
+  stripper->ndim        = ndim;
+  stripper->edge_len    = edge_len;
+  stripper->strip_dim   = sdim;
+  stripper->strip_idx   = sidx;
+  stripper->buffer      = NULL;
+  stripper->blk_sz      = vrt_sz;
+
+  *stpr = stripper;
+
+  CTF_free(pmap);
+
+  return 1;
+}
+
 
 #endif

@@ -467,12 +467,15 @@ int dist_tensor<dtype>::
           pass = 0;
         if (tsr->edge_map[i].np != tsr->edge_map[iR].np)
           pass = 0;
-      /*  if (tsr->edge_map[iR].type == PHYSICAL_MAP)
+        if (tsr->edge_map[iR].type == PHYSICAL_MAP)
           pass = 0;
         if (tsr->edge_map[iR].type == VIRTUAL_MAP){
-          if (calc_phase(&tsr->edge_map[i]) != tsr->edge_map[iR].np)
+          if (calc_phase(&tsr->edge_map[i]) != calc_phase(tsr->edge_map+iR))
             pass = 0;
-        }*/
+        }
+        if (tsr->edge_map[iR].has_child && tsr->edge_map[iR].child->type == PHYSICAL_MAP){
+          pass = 0;
+        }
         if (!pass) {
           DPRINTF(3,"failed confirmation here i=%d iR=%d\n",i,iR);
           break;
