@@ -1171,19 +1171,19 @@ int strip_diag(int const                ndim,
 
   for (i=0; i<ndim; i++){
     edge_len[i] = calc_phase(edge_map+i)/calc_phys_phase(edge_map+i);
-    if (edge_map[i].type == VIRTUAL_MAP) {
-      edge_len[i] = edge_map[i].np;
-    }
-    if (edge_map[i].type == PHYSICAL_MAP && edge_map[i].has_child) {
+    //if (edge_map[i].type == VIRTUAL_MAP) {
+    //  edge_len[i] = edge_map[i].np;
+    //}
+    //if (edge_map[i].type == PHYSICAL_MAP && edge_map[i].has_child) {
       //dont allow recursive mappings for self indices
       // or things get weird here
       //LIBT_ASSERT(edge_map[i].child->type == VIRTUAL_MAP);
-      edge_len[i] = edge_map[i].child->np;
-    }
+    //  edge_len[i] = edge_map[i].child->np;
+   // }
     if (edge_map[i].type == VIRTUAL_MAP && pmap[idx_map[i]] != -1) {
-      LIBT_ASSERT(edge_map[i].np == edge_map[pmap[idx_map[i]]].np);
-      sdim[i] = edge_map[i].np;
+      sdim[i] = edge_len[i];
       sidx[i] = calc_phys_rank(edge_map+pmap[idx_map[i]],topo);
+      LIBT_ASSERT(edge_map[i].np == edge_map[pmap[idx_map[i]]].np);
     }
     blk_edge_len[i] = blk_edge_len[i] / sdim[i];
     *blk_sz = (*blk_sz) / sdim[i];

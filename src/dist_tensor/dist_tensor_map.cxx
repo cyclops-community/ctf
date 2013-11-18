@@ -463,16 +463,16 @@ int dist_tensor<dtype>::
           pass = 0;
         if (tsr->edge_map[i].has_child == 1) 
           pass = 0;
-        if (tsr->edge_map[i].type != VIRTUAL_MAP) 
+/*        if (tsr->edge_map[i].type != VIRTUAL_MAP) 
+          pass = 0;*/
+/*        if (tsr->edge_map[i].np != tsr->edge_map[iR].np)
+          pass = 0;*/
+        if (tsr->edge_map[i].type == PHYSICAL_MAP)
           pass = 0;
-        if (tsr->edge_map[i].np != tsr->edge_map[iR].np)
+//        if (tsr->edge_map[iR].type == VIRTUAL_MAP){
+        if (calc_phase(&tsr->edge_map[i]) != calc_phase(tsr->edge_map+iR)){
           pass = 0;
-        /*if (tsr->edge_map[iR].type == PHYSICAL_MAP)
-          pass = 0;
-        if (tsr->edge_map[iR].type == VIRTUAL_MAP){
-          if (calc_phase(&tsr->edge_map[i]) != calc_phase(tsr->edge_map+iR))
-            pass = 0;
-        }*/
+        }
         /*if (tsr->edge_map[iR].has_child && tsr->edge_map[iR].child->type == PHYSICAL_MAP){
           pass = 0;
         }*/
@@ -480,6 +480,7 @@ int dist_tensor<dtype>::
           DPRINTF(3,"failed confirmation here i=%d iR=%d\n",i,iR);
           break;
         }
+        continue;
       }
       idx_arr[idx_map[i]] = i;
     }

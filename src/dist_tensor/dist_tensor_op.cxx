@@ -549,7 +549,7 @@ int dist_tensor<dtype>::
     }
 
     clear_mapping(ntsr);
-    ntsr->is_mapped = 1;
+    set_padding(ntsr);
     ntsr->is_cyclic = 1;
     ntsr->itopo = btopo;
     ret = map_self_indices(ntid, idx_map);
