@@ -1665,7 +1665,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         }
       }
       if (btopo == -1)
-              bnvirt = UINT64_MAX;
+        bnvirt = UINT64_MAX;
       /* pick lower dimensional mappings, if equivalent */
       ///btopo = get_best_topo(bnvirt, btopo, global_comm, 0, bmemuse);
       btopo = get_best_topo(bmemuse, btopo, global_comm);

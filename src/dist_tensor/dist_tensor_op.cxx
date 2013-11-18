@@ -443,12 +443,15 @@ int dist_tensor<dtype>::
                int const *                idx_map,
                fseq_tsr_scl<dtype> const  ftsr,
                fseq_elm_scl<dtype> const  felm){
-  int st, is_top, ndim_tot, iA, nvirt, i, ret, was_padded, was_cyclic, itopo;
+  int st, is_top, ndim_tot, iA,  ret, was_padded, was_cyclic, itopo, btopo;
   long_int blk_sz, vrt_sz, old_size;
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda,
       * old_padding, * old_edge_len;
+  old_phase = NULL;
   int * virt_dim, * idx_arr;
   int * virt_blk_len, * blk_len;
+  uint64_t nvirt, bnvirt;
+  uint64_t memuse, bmemuse;
   mapping * map;
   tensor<dtype> * tsr, * ntsr;
   strp_tsr<dtype> * str;
@@ -464,11 +467,13 @@ int dist_tensor<dtype>::
   if (global_comm->rank == 0){
     printf("Scaling tensor %d by %lf.\n", tid, GET_REAL(alpha));
     printf("The index mapping is");
-    for (i=0; i<tsr->ndim; i++){
+    for (int i=0; i<tsr->ndim; i++){
       printf(" %d",idx_map[i]);
     }
     printf("\n");
+    printf("Old mapping for tensor %d\n",tid);
   }
+  print_map(stdout,tid);
 #endif
   
   int was_home = tsr->is_home;
@@ -497,10 +502,12 @@ int dist_tensor<dtype>::
   if (!check_self_mapping(ntid, idx_map)){
     save_mapping(ntsr, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda,
                  &old_size, &was_padded, &was_cyclic, &old_padding, &old_edge_len, &topovec[ntsr->itopo]);
-    for (itopo=0; itopo<(int)topovec.size(); itopo++){
+    bnvirt = UINT64_MAX, btopo = -1;
+    bmemuse = UINT64_MAX;
+    for (itopo=global_comm->rank; itopo<(int)topovec.size(); itopo+=global_comm->np){
       clear_mapping(ntsr);
+      set_padding(ntsr);
       ntsr->itopo = itopo;
-      
       ret = map_self_indices(ntid, idx_map);
       if (ret!=DIST_TENSOR_SUCCESS) continue;
       ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
@@ -508,28 +515,61 @@ int dist_tensor<dtype>::
       if (ret!=DIST_TENSOR_SUCCESS) continue;
       ret = map_self_indices(ntid, idx_map);
       if (ret!=DIST_TENSOR_SUCCESS) continue;
-      if (check_self_mapping(ntid, idx_map)) break;
+      if (check_self_mapping(ntid, idx_map)) {
+        set_padding(ntsr);
+        memuse = (uint64_t)ntsr->size;
+
+        if ((uint64_t)memuse >= proc_bytes_available()){
+          DPRINTF(1,"Not enough memory to scale tensor on topo %d\n", itopo);
+          continue;
+        }
+
+        nvirt = (uint64_t)calc_nvirt(ntsr);
+        LIBT_ASSERT(nvirt != 0);
+        if (btopo == -1 || nvirt < bnvirt){
+          bnvirt = nvirt;
+          btopo = itopo;
+          bmemuse = memuse;
+        } else if (nvirt == bnvirt && memuse < bmemuse){
+          btopo = itopo;
+          bmemuse = memuse;
+        }
+      }
     }
-    if (itopo == (int)topovec.size()) return DIST_TENSOR_ERROR;
+    if (btopo == -1)
+      bnvirt = UINT64_MAX;
+    /* pick lower dimensional mappings, if equivalent */
+    ///btopo = get_best_topo(bnvirt, btopo, global_comm, 0, bmemuse);
+    btopo = get_best_topo(bmemuse, btopo, global_comm);
+
+    if (btopo == -1 || btopo == INT_MAX) {
+      if (global_comm->rank==0)
+        printf("ERROR: FAILED TO MAP TENSOR SCALE\n");
+      return DIST_TENSOR_ERROR;
+    }
+
+    clear_mapping(ntsr);
     ntsr->is_mapped = 1;
-    set_padding(ntsr);
     ntsr->is_cyclic = 1;
+    ntsr->itopo = btopo;
+    ret = map_self_indices(ntid, idx_map);
+    if (ret!=DIST_TENSOR_SUCCESS) ABORT;
+    ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
+                         topovec[ntsr->itopo].dim_comm, ntsr, 1);
+    if (ret!=DIST_TENSOR_SUCCESS) ABORT;
+    ret = map_self_indices(ntid, idx_map);
+    if (ret!=DIST_TENSOR_SUCCESS) ABORT;
+    set_padding(ntsr);
+#if DEBUG >=1
+    if (global_comm->rank == 0){
+      printf("New mapping for tensor %d\n",ntid);
+    }
+    print_map(stdout,ntid);
+#endif
     remap_tensor(ntid, ntsr, &topovec[ntsr->itopo], old_size, old_phase,
                  old_rank, old_virt_dim, old_pe_lda,
                  was_padded, was_cyclic, old_padding, old_edge_len,
                  global_comm);
-    CTF_free(old_phase);
-    CTF_free(old_rank);
-    CTF_free(old_virt_dim);
-    CTF_free(old_pe_lda);
-    if (was_padded)
-      CTF_free(old_padding);
-    CTF_free(old_edge_len);
-#if DEBUG >=1
-    if (global_comm->rank == 0)
-      printf("New mapping for tensor %d\n",ntid);
-    print_map(stdout,ntid);
-#endif
   }
 
   blk_sz = ntsr->size;
@@ -551,7 +591,7 @@ int dist_tensor<dtype>::
   }
 
   nvirt = 1;
-  for (i=0; i<ndim_tot; i++){
+  for (int i=0; i<ndim_tot; i++){
     iA = idx_arr[i];
     if (iA != -1){
       map = &ntsr->edge_map[iA];
@@ -631,12 +671,6 @@ int dist_tensor<dtype>::
     tsr->is_home = 1;
     ntsr->is_data_aliased = 1;
     del_tsr(ntid);
-    CTF_free(old_phase);
-    CTF_free(old_rank);
-    CTF_free(old_virt_dim);
-    CTF_free(old_pe_lda);
-    CTF_free(old_padding);
-    CTF_free(old_edge_len);
   } else if (was_home){
     if (ntsr->data != tsr->data){
       printf("Tensor %d is a copy of %d and did not leave home but buffer is %p was %p\n", ntid, tid, ntsr->data, tsr->data);
@@ -652,6 +686,14 @@ int dist_tensor<dtype>::
   if (global_comm->rank == 0)
     printf("Done scaling tensor %d.\n", tid);
 #endif
+  if (old_phase != NULL){
+    CTF_free(old_phase);
+    CTF_free(old_rank);
+    CTF_free(old_virt_dim);
+    CTF_free(old_pe_lda);
+    CTF_free(old_padding);
+    CTF_free(old_edge_len);
+  }
 
   return DIST_TENSOR_SUCCESS;
 
