@@ -61,7 +61,7 @@ int diag_sym(int const    n,
 
   double norm = C.norm2();
   
-  if (norm < 1.E-6){
+  if (norm < 1.E-10){
     pass = 1;
     if (rank == 0)
       printf("{(A[\"(ab)(ij)\"]=mA[\"ii\"]-mB[\"aa\"]=mA[\"jj\"]-mB[\"bb\"]} passed \n");

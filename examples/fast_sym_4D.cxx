@@ -115,7 +115,7 @@ int fast_sym_4D(int const     n,
   CTF_Matrix Diff(n, n, SY, ctf);
   Diff["ijab"] = C["ijab"]-C_ans["ijab"];
   double nrm = sqrt(Diff["ij"]*Diff["ij"]);
-  int pass = (nrm <=1.E-6);
+  int pass = (nrm <=1.E-10);
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);

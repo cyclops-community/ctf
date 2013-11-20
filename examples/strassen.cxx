@@ -241,12 +241,12 @@ int strassen(int const     n,
 
   if (rank == 0){
       //printf("{ Strassen's error norm = %E\n",err);
-    if (err<1.E-6)
+    if (err<1.E-10)
       printf("{ Strassen's algorithm via slicing } passed\n");
     else
       printf("{ Strassen's algorithm via slicing } FAILED, error norm = %E\n",err);
   }
-  return err<1.E-6;
+  return err<1.E-10;
 } 
 
 

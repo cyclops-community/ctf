@@ -88,7 +88,7 @@ int fast_diagram(int const     n,
 
   double nrm = sqrt((W["abij"]-W_ans["abij"])*(W["abij"]-W_ans["abij"]));
 
-  int pass = (nrm <=1.E-6);
+  int pass = (nrm <=1.E-10);
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);

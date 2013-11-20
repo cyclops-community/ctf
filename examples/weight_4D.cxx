@@ -68,8 +68,8 @@ int weight_4D(int const    n,
   
   int pass = 1; 
   for (i=0; i<np_A; i++){
-    if (fabs(pairs_A[i]) > 1.E-6 &&
-           fabs((double)post_pairs_C[i]-(double)pairs_A[i])/(double)pairs_A[i]>1.E-6){
+    if (fabs(pairs_A[i]) > 1.E-10 &&
+           fabs((double)post_pairs_C[i]-(double)pairs_A[i])/(double)pairs_A[i]>1.E-10){
       pass = 0;
     }
   }

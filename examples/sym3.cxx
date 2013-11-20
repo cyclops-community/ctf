@@ -101,7 +101,7 @@ int  sym3(int const     n,
   CA["abcijk"] -= CN["cabkij"];
 
   double nrm = CA.norm2();
-  int pass = (nrm <=1.E-6);
+  int pass = (nrm <=1.E-10);
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);

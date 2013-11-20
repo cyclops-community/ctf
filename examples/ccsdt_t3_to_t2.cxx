@@ -120,11 +120,11 @@ int ccsdt_t3_to_t2(int const     n,
 #endif
   double cnrm_AS = AS_C.norm2();
   double cnrm_NS = NS_C.norm2();
-  if (fabs(nrm_AS-cnrm_AS) >= 1.E-6) {
+  if (fabs(nrm_AS-cnrm_AS) >= 1.E-10) {
     printf("ERROR: AS norm not working!\n");
     pass = 0;
   }
-  if (fabs(nrm_NS-cnrm_NS) >= 1.E-6) {
+  if (fabs(nrm_NS-cnrm_NS) >= 1.E-10) {
     printf("ERROR: NS norm not working!\n");
     pass = 0;
   }
@@ -144,7 +144,7 @@ int ccsdt_t3_to_t2(int const     n,
     printf("norm of NS_C after contraction should be zero, is = %lf\n", nrm);
   }
 #endif
-  if (fabs(nrm) > 1.E-6) pass = 0;
+  if (fabs(nrm) > 1.E-10) pass = 0;
 
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);

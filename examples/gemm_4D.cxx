@@ -88,7 +88,7 @@ int  gemm_4D(int const    n,
   D.read_local(&np, &indices_AB, &pairs_AB);
   int pass = 1;
   for (i=0; i<np; i++){
-    if (fabs((double)pairs_BC[i]-(double)pairs_AB[i])>=1.E-6) pass = 0;
+    if (fabs((double)pairs_BC[i]-(double)pairs_AB[i])>=1.E-10) pass = 0;
   }
   free(pairs_AB);
   free(pairs_BC);

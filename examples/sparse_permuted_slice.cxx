@@ -114,7 +114,7 @@ int sparse_permuted_slice(int         n,
   // Check that B == callback_B3
   callback_B3["ij"] = callback_B3["ij"] - B["ij"];
 
-  pass = callback_B3.norm2() < 1.E-6;
+  pass = callback_B3.norm2() < 1.E-10;
 
   if (!pass){
     if (rank == 0){ 

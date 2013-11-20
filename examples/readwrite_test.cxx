@@ -53,7 +53,7 @@ int readwrite_test(int const    n,
 
   sum = A_NS.reduce(CTF_OP_SUM);
 
-  if (abs(sum-n*(n+1.)/2.)>1E-6){
+  if (abs(sum-n*(n+1.)/2.)>1.E-10){
     pass = 0;
 #ifndef TEST_SUITE
     if (rank == 0){
@@ -67,7 +67,7 @@ int readwrite_test(int const    n,
   sum = A_SY.reduce(CTF_OP_SUM);
 
 
-  if (abs(sum-n*(n+1.)/2.)>1E-6){
+  if (abs(sum-n*(n+1.)/2.)>1.E-10){
     pass = 0;
 #ifndef TEST_SUITE
     if (rank == 0){
@@ -114,7 +114,7 @@ int readwrite_test(int const    n,
   A_NS["ijkl"]=A_SY["ijkl"];
   sum += A_NS["ijkl"]*A_NS["ijkl"];
 
-  if (abs(sum-n*(n+1.)/2.)>1E-6){
+  if (abs(sum-n*(n+1.)/2.)>1.E-10){
     pass = 0;
 #ifndef TEST_SUITE
     if (rank == 0){
@@ -125,7 +125,7 @@ int readwrite_test(int const    n,
 
   sum = A_SY["ijkl"]*A_SY["ijkl"];
 
-  if (abs(sum-n*(n+1.)/2.)>1E-6){
+  if (abs(sum-n*(n+1.)/2.)>1.E-10){
     pass = 0;
 #ifndef TEST_SUITE
     if (rank == 0){
