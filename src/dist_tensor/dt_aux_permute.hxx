@@ -2744,7 +2744,10 @@ void block_reshuffle(int const        ndim,
 
   if (ndim == 0){
     CTF_alloc_ptr(sizeof(dtype)*new_size, (void**)&tsr_cyclic_data);
-    tsr_cyclic_data[0] = tsr_data[0];
+    if (glb_comm->rank == 0)
+      tsr_cyclic_data[0] = tsr_data[0];
+    else
+      tsr_cyclic_data[0] = 0.0;
     return;
   }
 
@@ -2757,13 +2760,14 @@ void block_reshuffle(int const        ndim,
   CTF_alloc_ptr(sizeof(int)*ndim, (void**)&phase_lda);
 
   blk_sz = old_size;
-  idx_lyr_old = glb_comm->rank;
-  idx_lyr_new = glb_comm->rank;
   old_loc_lda[0] = 1;
   new_loc_lda[0] = 1;
   phase_lda[0] = 1;
   num_old_virt = 1;
   num_new_virt = 1;
+  idx_lyr_old = glb_comm->rank;
+  idx_lyr_new = glb_comm->rank;
+
   for (i=0; i<ndim; i++){
     num_old_virt *= old_virt_dim[i];
     num_new_virt *= new_virt_dim[i];
