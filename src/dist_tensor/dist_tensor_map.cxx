@@ -1,6 +1,5 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#define ALLOW_NVIRT 8
 
 /**
  * \brief Checks whether A and B are mapped the same way 

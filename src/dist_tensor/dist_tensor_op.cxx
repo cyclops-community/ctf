@@ -511,7 +511,7 @@ int dist_tensor<dtype>::
       ret = map_self_indices(ntid, idx_map);
       if (ret!=DIST_TENSOR_SUCCESS) continue;
       ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
-                           topovec[ntsr->itopo].dim_comm, ntsr, 1);
+                           topovec[ntsr->itopo].dim_comm, ntsr, 0);
       if (ret!=DIST_TENSOR_SUCCESS) continue;
       ret = map_self_indices(ntid, idx_map);
       if (ret!=DIST_TENSOR_SUCCESS) continue;
@@ -530,17 +530,21 @@ int dist_tensor<dtype>::
           bnvirt = nvirt;
           btopo = itopo;
           bmemuse = memuse;
-        } else if (nvirt == bnvirt && memuse < bmemuse){
+        } else if ((nvirt == bnvirt || nvirt <= ALLOW_NVIRT) && memuse < bmemuse){
           btopo = itopo;
           bmemuse = memuse;
         }
       }
     }
-    if (btopo == -1)
+    if (btopo == -1){
       bnvirt = UINT64_MAX;
+      bmemuse = UINT64_MAX;
+    }
     /* pick lower dimensional mappings, if equivalent */
-    ///btopo = get_best_topo(bnvirt, btopo, global_comm, 0, bmemuse);
-    btopo = get_best_topo(bmemuse, btopo, global_comm);
+    if (bnvirt >= ALLOW_NVIRT)
+      btopo = get_best_topo(bnvirt+1-ALLOW_NVIRT, btopo, global_comm, 0.0, bmemuse);
+    else
+      btopo = get_best_topo(1, btopo, global_comm, 0.0, bmemuse);
 
     if (btopo == -1 || btopo == INT_MAX) {
       if (global_comm->rank==0)
@@ -555,7 +559,7 @@ int dist_tensor<dtype>::
     ret = map_self_indices(ntid, idx_map);
     if (ret!=DIST_TENSOR_SUCCESS) ABORT;
     ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
-                         topovec[ntsr->itopo].dim_comm, ntsr, 1);
+                         topovec[ntsr->itopo].dim_comm, ntsr, 0);
     if (ret!=DIST_TENSOR_SUCCESS) ABORT;
     ret = map_self_indices(ntid, idx_map);
     if (ret!=DIST_TENSOR_SUCCESS) ABORT;
