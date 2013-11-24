@@ -651,6 +651,14 @@ int remap_tensor(int const  tid,
   dtype * shuffled_data_corr;
 #endif
 
+  if (tsr->profile) {
+    char spf[80];
+    strcpy(spf,"redistribute_");
+    strcat(spf,tsr->name);
+    CTF_Timer t_pf(spf);
+    t_pf.start();
+  }
+
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_phase);
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_rank);
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_pe_lda);
@@ -787,6 +795,16 @@ int remap_tensor(int const  tid,
   }
 
 #endif
+  if (tsr->profile) {
+    char spf[80];
+    strcpy(spf,"redistribute_");
+    strcat(spf,tsr->name);
+    CTF_Timer t_pf(spf);
+    t_pf.stop();
+  }
+
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_phase);
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_rank);
 
   return DIST_TENSOR_SUCCESS;
 }

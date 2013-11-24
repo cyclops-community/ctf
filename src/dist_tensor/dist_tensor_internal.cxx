@@ -736,7 +736,7 @@ int dist_tensor<dtype>::clone_tensor( int const tensor_id,
   int ndim, * edge_len, * sym;
   get_tsr_info(tensor_id, &ndim, &edge_len, &sym);
   define_tensor(ndim, edge_len, sym, 
-                new_tensor_id, alloc_data);
+                new_tensor_id, alloc_data, tensors[tensor_id]->name, tensors[tensor_id]->profile);
   if (global_comm->rank == 0)
     DPRINTF(2,"Cloned tensor %d from tensor %d\n", *new_tensor_id,tensor_id);
   CTF_free(edge_len), CTF_free(sym);

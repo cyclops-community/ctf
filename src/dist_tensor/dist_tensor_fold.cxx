@@ -1521,6 +1521,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   tsr_sym = tensors[sym_tid];
   tsr_nonsym = tensors[nonsym_tid];
 
+
   sym_dim = -1;
   is = -1;
   rev_sign = 1.0;
@@ -1566,6 +1567,13 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
     tsr_nonsym->is_data_aliased = 1;
     TAU_FSTOP(desymmetrize);
     return;
+  }
+  if (tsr_sym->profile) {
+    char spf[80];
+    strcpy(spf,"desymmetrize_");
+    strcat(spf,tsr_sym->name);
+    CTF_Timer t_pf(spf);
+    t_pf.start();
   }
 
   CTF_mst_alloc_ptr(tsr_nonsym->size*sizeof(dtype), (void**)&tsr_nonsym->data);
@@ -1678,6 +1686,14 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
       }
       break;
   }*/
+  if (tsr_sym->profile) {
+    char spf[80];
+    strcpy(spf,"desymmetrize_");
+    strcat(spf,tsr_sym->name);
+    CTF_Timer t_pf(spf);
+    t_pf.stop();
+  }
+
   TAU_FSTOP(desymmetrize);
 
 }

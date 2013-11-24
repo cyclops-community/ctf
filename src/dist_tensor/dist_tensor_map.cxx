@@ -107,6 +107,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
   
+  TAU_FSTART(map_tensor_pair);
+
   inv_idx(tsr_A->ndim, idx_map_A, tsr_A->edge_map,
           tsr_B->ndim, idx_map_B, tsr_B->edge_map,
           &num_tot, &idx_arr);
@@ -297,6 +299,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     min_size = UINT64_MAX;
   /* pick lower dimensional mappings, if equivalent */
   gtopo = get_best_topo(min_size, btopo, global_comm);
+  TAU_FSTOP(map_tensor_pair);
   if (gtopo == -1){
     printf("ERROR: Failed to map pair!\n");
     ABORT;
@@ -360,6 +363,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   print_map(stdout, tid_A);
   print_map(stdout, tid_B);
 #endif
+
+  TAU_FSTART(redistribute_for_sum);
  
   tsr_A->is_cyclic = 1;
   tsr_B->is_cyclic = 1;
@@ -385,6 +390,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   if (need_remap)
     remap_tensor(tid_B, tsr_B, &topovec[tsr_B->itopo], old_size_B, old_phase_B, old_rank_B, old_virt_dim_B, 
                  old_pe_lda_B, was_padded_B, was_cyclic_B, old_padding_B, old_edge_len_B, global_comm);   
+
+  TAU_FSTOP(redistribute_for_sum);
   CTF_free(idx_sum);
   CTF_free(old_phase_A);
   CTF_free(old_rank_A);
@@ -1337,7 +1344,9 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     tsr_B->is_cyclic = 1;
     tsr_C->is_cyclic = 1;
   }
+  TAU_FSTOP(map_tensors);
   /* redistribute tensor data */
+  TAU_FSTART(redistribute_for_contraction);
   need_remap = 0;
   if (tsr_A->itopo == old_topo_A){
     for (d=0; d<tsr_A->ndim; d++){
@@ -1377,6 +1386,8 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
                  old_phase_C, old_rank_C, old_virt_dim_C, 
                  old_pe_lda_C, was_padded_C, was_cyclic_C, 
                  old_padding_C, old_edge_len_C, global_comm);
+                 
+  TAU_FSTOP(redistribute_for_contraction);
   
   (*ctrf)->A    = tsr_A->data;
   (*ctrf)->B    = tsr_B->data;
@@ -1408,7 +1419,6 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   CTF_free((void*)idx_extra);
   CTF_free((void*)idx_weigh);
   
-  TAU_FSTOP(map_tensors);
 
 
   return DIST_TENSOR_SUCCESS;

@@ -2366,7 +2366,6 @@ int cyclic_reshuffle(int const          ndim,
   dtype * tsr_data = *ptr_tsr_data;
 
   TAU_FSTART(cyclic_reshuffle);
-
   if (ord_glb_comm == NULL)
     np = 1;
   else
@@ -2714,7 +2713,6 @@ int cyclic_reshuffle(int const          ndim,
   CTF_free(old_virt_edge_len);
   CTF_free(new_phys_edge_len);
   CTF_free(old_phys_edge_len);
-
 
   TAU_FSTOP(cyclic_reshuffle);
   return DIST_TENSOR_SUCCESS;

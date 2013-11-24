@@ -27,12 +27,12 @@ tCTF_Tensor<dtype>::tCTF_Tensor(const tCTF_Tensor<dtype>& A,
                                  bool                copy){
   int ret;
   world = A.world;
-  name = NULL;
+  name = A.name;
 
   ret = world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 
-  ret = world->ctf->define_tensor(ndim, len, sym, &tid);
+  ret = world->ctf->define_tensor(ndim, len, sym, &tid, name, name!=NULL);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 
   //printf("Defined tensor %d to be the same as %d, copy=%d\n", tid, A.tid, (int)copy);
@@ -498,6 +498,7 @@ void tCTF_Tensor<dtype>::operator=(tCTF_Tensor<dtype> A){
   int ret;  
 
   world = A.world;
+  name = A.name;
 
   if (sym != NULL)
     free(sym);
@@ -507,7 +508,7 @@ void tCTF_Tensor<dtype>::operator=(tCTF_Tensor<dtype> A){
   ret = world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 
-  ret = world->ctf->define_tensor(ndim, len, sym, &tid);
+  ret = world->ctf->define_tensor(ndim, len, sym, &tid, name, name != NULL);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 
   //printf("Set tensor %d to be the same as %d\n", tid, A.tid);

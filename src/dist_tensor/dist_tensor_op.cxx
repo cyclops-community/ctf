@@ -570,10 +570,12 @@ int dist_tensor<dtype>::
     }
     print_map(stdout,ntid);
 #endif
+    TAU_FSTART(redistribute_for_scale);
     remap_tensor(ntid, ntsr, &topovec[ntsr->itopo], old_size, old_phase,
                  old_rank, old_virt_dim, old_pe_lda,
                  was_padded, was_cyclic, old_padding, old_edge_len,
                  global_comm);
+    TAU_FSTOP(redistribute_for_scale);
   }
 
   blk_sz = ntsr->size;
@@ -665,10 +667,12 @@ int dist_tensor<dtype>::
                  &old_edge_len, &topovec[ntsr->itopo]);
     tsr->data = ntsr->data;
     tsr->is_home = 0;
+    TAU_FSTART(redistribute_for_scale_home);
     remap_tensor(tid, tsr, &topovec[tsr->itopo], old_size, 
                  old_phase, old_rank, old_virt_dim, 
                  old_pe_lda, was_padded, was_cyclic, 
                  old_padding, old_edge_len, global_comm);
+    TAU_FSTOP(redistribute_for_scale_home);
     memcpy(tsr->home_buffer, tsr->data, tsr->size*sizeof(dtype));
     CTF_free(tsr->data);
     tsr->data = tsr->home_buffer;
@@ -1924,10 +1928,12 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
                  &old_edge_len_B, &topovec[ntsr_B->itopo]);
     tsr_B->data = ntsr_B->data;
     tsr_B->is_home = 0;
+    TAU_FSTART(redistribute_for_sum_home);
     remap_tensor(tid_B, tsr_B, &topovec[tsr_B->itopo], old_size_B, 
                  old_phase_B, old_rank_B, old_virt_dim_B, 
                  old_pe_lda_B, was_padded_B, was_cyclic_B, 
                  old_padding_B, old_edge_len_B, global_comm);
+    TAU_FSTOP(redistribute_for_sum_home);
     memcpy(tsr_B->home_buffer, tsr_B->data, tsr_B->size*sizeof(dtype));
     CTF_free(tsr_B->data);
     tsr_B->data = tsr_B->home_buffer;
@@ -2541,10 +2547,12 @@ int dist_tensor<dtype>::
                  &old_edge_len_C, &topovec[ntsr_C->itopo]);
     tsr_C->data = ntsr_C->data;
     tsr_C->is_home = 0;
+    TAU_FSTART(redistribute_for_ctr_home);
     remap_tensor(stype->tid_C, tsr_C, &topovec[tsr_C->itopo], old_size_C, 
                  old_phase_C, old_rank_C, old_virt_dim_C, 
                  old_pe_lda_C, was_padded_C, was_cyclic_C, 
                  old_padding_C, old_edge_len_C, global_comm);
+    TAU_FSTOP(redistribute_for_ctr_home);
     memcpy(tsr_C->home_buffer, tsr_C->data, tsr_C->size*sizeof(dtype));
     CTF_free(tsr_C->data);
     tsr_C->data = tsr_C->home_buffer;
