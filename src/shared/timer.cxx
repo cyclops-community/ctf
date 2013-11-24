@@ -10,7 +10,7 @@
 #include "timer.h"
 #include "util.h"
 
-#define MAX_NAME_LENGTH 70
+#define MAX_NAME_LENGTH 43
 
 int main_argc = 0;
 const char * const * main_argv;
@@ -38,13 +38,9 @@ class function_timer{
     function_timer(char const * name_, 
                    double const start_time_,
                    double const start_excl_time_){
-      sprintf(name, "%s", name_);
+      snprintf(name, MAX_NAME_LENGTH, "%s", name_);
       start_time = start_time_;
       start_excl_time = start_excl_time_;
-      if (strlen(name) > MAX_NAME_LENGTH) {
-        printf("function name must be fewer than %d characters\n",MAX_NAME_LENGTH);
-        assert(0);
-      }
       acc_time = 0.0;
       acc_excl_time = 0.0;
       calls = 0;
