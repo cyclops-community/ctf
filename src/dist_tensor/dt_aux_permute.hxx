@@ -1396,8 +1396,24 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   int *idx_acc; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&idx_acc);
   memset(idx_acc, 0, sizeof(int)*ndim);
 
+  long_int offset = 0;
+
+  if (ndim > 1 && offs[ndim-1] > 0){
+    idx[ndim-1] = offs[ndim-1]/(old_phys_dim[ndim-1]*old_virt_dim[ndim-1]);
+    gidx[ndim-1] += idx[ndim-1]*old_phys_dim[ndim-1]*old_virt_dim[ndim-1];
+    int *sy_idx_len; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&sy_idx_len);
+    int dim = ndim-1;
+    do {
+      sy_idx_len[dim] = idx[ndim-1];
+      dim--;      
+    } while (dim >= 0 && sym[dim] != NS);
+    memcpy(sy_idx_len, old_virt_edge_len, (dim+1)*sizeof(int));
+    offset = sy_packed_size(ndim, sy_idx_len, sym);
+    CTF_free(sy_idx_len);
+  }
+
   bool done = false;
-  for (long_int offset = 0;!done;){
+  for (;!done;){
     int bucket0 = 0;
     bool outside0 = false;
     for (int dim = 1;dim < ndim;dim++){
