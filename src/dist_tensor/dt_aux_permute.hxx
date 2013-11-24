@@ -1399,7 +1399,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   long_int offset = 0;
 
   if (ndim > 1 && offs[ndim-1] > 0){
-    idx[ndim-1] = offs[ndim-1]/(old_phys_dim[ndim-1]*old_virt_dim[ndim-1]);
+    idx[ndim-1] = MIN(old_virt_edge_len[ndim-1]-1,offs[ndim-1]/(old_phys_dim[ndim-1]*old_virt_dim[ndim-1]));
     gidx[ndim-1] += idx[ndim-1]*old_phys_dim[ndim-1]*old_virt_dim[ndim-1];
     int *sy_idx_len; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&sy_idx_len);
     int dim = ndim-1;
