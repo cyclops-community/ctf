@@ -766,6 +766,25 @@ void calc_cnt_displs(int const          ndim,
             
             /* Increment virtual bucket */
             for (int i=i_st; i<imax; i++){
+/*
+              if (sym[0] != NS){
+                if ((sym[0] != SY && virt_rank[0] >= virt_rank[1]) ||
+                    (sym[0] == SY && virt_rank[0] > virt_rank[1])) {
+
+                  LIBT_ASSERT(i<idx[1]);
+                } else {
+                  LIBT_ASSERT(i<=idx[1]);
+                }
+              }
+              for (int dim = 1; dim < ndim-1; dim++){
+                if (sym[dim] != NS){
+                  if ((sym[dim] != SY && virt_rank[dim] >= virt_rank[dim+1]) ||
+                      (sym[dim] == SY && virt_rank[dim] > virt_rank[dim+1])) {
+                    LIBT_ASSERT(idx[dim]<idx[dim+1]);
+                  } else
+                    LIBT_ASSERT(idx[dim]<=idx[dim+1]);
+                }
+              }*/
               vc = bucket_offset[0][old_virt_idx[0]*old_virt_edge_len[0]+i];
               virt_counts[idx_offset+vc]++;
             }
@@ -783,12 +802,16 @@ void calc_cnt_displs(int const          ndim,
                 act_max = MIN(act_max, end_ldim);
               if (sym[dim] != NS) 
                 act_max = MIN(act_max,idx[dim+1]+1-spad[dim]);
-              if (idx[dim] >= act_max)
+              bool ended = false;
+              if (idx[dim] >= act_max){
+                ended = true;
                 idx[dim] = 0;
+                if (sym[dim-1] != NS) idx[dim] = idx[dim-1]+spad[dim-1];
+              }
               idx_offset -= idx_offs[dim];
               idx_offs[dim] = bucket_offset[dim][old_virt_idx[dim]*old_virt_edge_len[dim]+idx[dim]];
               idx_offset += idx_offs[dim];
-              if (idx[dim] > 0)
+              if (!ended)
                 break;
             }
             if (dim == ndim) break;
@@ -1540,9 +1563,16 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   CTF_free(idx);
   CTF_free(virt_offset);
 
-/*  for (int i = 0;i < nbucket-1;i++){
-    assert(count[i] == (int)(new_data[i+1]-new_data[i]));
-  }*/
+#if DEBUG >= 1
+  int pass = true;
+  for (int i = 0;i < nbucket-1;i++){
+    if (count[i] != (long_int)(new_data[i+1]-new_data[i])){
+      printf("count %d should have been %d is %d\n", i, (int)(new_data[i+1]-new_data[i]), count[i]);
+      pass = false;
+    }
+  }
+  if (!pass) ABORT;
+#endif
   CTF_free(offs);
   CTF_free(ends);
  
@@ -2364,6 +2394,16 @@ int cyclic_reshuffle(int const          ndim,
 
   dtype * tsr_cyclic_data, * swp_ptr;
   dtype * tsr_data = *ptr_tsr_data;
+  if (ndim == 0){
+    CTF_alloc_ptr(sizeof(dtype), (void**)&tsr_cyclic_data);
+    if (ord_glb_comm->rank == 0){
+      tsr_cyclic_data[0] = tsr_data[0];
+    } else {
+      tsr_cyclic_data[0] = get_zero<dtype>();
+    }
+    *ptr_tsr_cyclic_data = tsr_cyclic_data;
+    return DIST_TENSOR_SUCCESS;
+  }
 
   TAU_FSTART(cyclic_reshuffle);
   if (ord_glb_comm == NULL)
