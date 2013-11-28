@@ -31,7 +31,7 @@ void calc_idx_arr(int         ndim,
   long_int idx_rem = idx;
   memset(idx_arr, 0, ndim*sizeof(int));
   for (int dim=ndim-1; dim>=0; dim--){
-    if (idx_rem == 0) return;
+    if (idx_rem == 0) break;
     int idim;
     if (dim == 0 || sym[dim-1] == NS){
       long_int lda = packed_size(dim, lens, sym);
@@ -50,7 +50,7 @@ void calc_idx_arr(int         ndim,
       kidx += sg+1;
       int mkidx = kidx;
 #if DEBUG >= 1
-      for (int idim=dim-sg; idim<=dim; idim++){
+      for (int idim=dim-sg+1; idim<=dim; idim++){
         plen[idim] = mkidx+1;
       }
       long_int smidx = packed_size(dim+1, plen, sym);
@@ -58,7 +58,7 @@ void calc_idx_arr(int         ndim,
 #endif
       long_int midx = 0;
       for (; mkidx >= 0; mkidx--){
-        for (int idim=dim-sg; idim<=dim; idim++){
+        for (int idim=dim-sg+1; idim<=dim; idim++){
           plen[idim] = mkidx;
         }
         midx = packed_size(dim+1, plen, sym);
@@ -69,6 +69,7 @@ void calc_idx_arr(int         ndim,
       idx_rem -= midx;
     }
   }
+  LIBT_ASSERT(idx_rem == 0);
 }
 
 /**
@@ -503,8 +504,12 @@ void calc_cnt_displs_old(int const          ndim,
                 act_max = MIN(act_max, end_ldim);
               if (sym[act_lda] != NS) 
                 act_max = MIN(act_max,idx[act_lda+1]+1-spad[act_lda]);
-              if (idx[act_lda] >= act_max)
+              bool ended = true;
+              if (idx[act_lda] >= act_max){
+                ended = false;
                 idx[act_lda] = 0;
+                if (sym[act_lda-1] != NS) idx[act_lda] = idx[act_lda-1]+spad[act_lda-1];
+              }
               idx_offset -= idx_offs[act_lda];
               if (was_cyclic)
                 idx_offs[act_lda] = idx[act_lda]*old_phase[act_lda]+virt_rank[act_lda];
@@ -515,7 +520,7 @@ void calc_cnt_displs_old(int const          ndim,
               else
                 idx_offs[act_lda] = (idx_offs[act_lda]/(new_edge_len[act_lda]/new_phase[act_lda]))*buf_lda[act_lda];
               idx_offset += idx_offs[act_lda];
-              if (idx[act_lda] > 0)
+              if (ended)//idx[act_lda] > 0)
                 break;
             }
             if (act_lda == ndim) break;
@@ -863,16 +868,16 @@ void calc_cnt_displs(int const          ndim,
                 act_max = MIN(act_max, end_ldim);
               if (sym[dim] != NS) 
                 act_max = MIN(act_max,idx[dim+1]+1-spad[dim]);
-              bool ended = false;
+              bool ended = true;
               if (idx[dim] >= act_max){
-                ended = true;
+                ended = false;
                 idx[dim] = 0;
                 if (sym[dim-1] != NS) idx[dim] = idx[dim-1]+spad[dim-1];
               }
               idx_offset -= idx_offs[dim];
               idx_offs[dim] = bucket_offset[dim][old_virt_idx[dim]*old_virt_edge_len[dim]+idx[dim]];
               idx_offset += idx_offs[dim];
-              if (!ended)
+              if (ended)
                 break;
             }
             if (dim == ndim) break;
@@ -1404,6 +1409,10 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   
   int nbucket = new_phys_np*(forward ? new_virt_np : old_virt_np);
 
+#if DEBUG >= 1
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+#endif
 
   TAU_FSTART(cyclic_pup_bucket);
 #ifdef USE_OMP
@@ -1435,10 +1444,6 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
     CTF_mst_alloc_ptr(sizeof(int)*nbucket, (void**)&par_virt_counts[t]);
     std::fill(par_virt_counts[t], par_virt_counts[t]+nbucket, 0);
   }*/
-#if DEBUG >= 1
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-#endif
   #pragma omp parallel num_threads(max_ntd)
   {
 #endif
@@ -1470,6 +1475,18 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
     calc_idx_arr(ndim-1, len+1, sym+1, glb_idx_end, gidx_end+1);
     gidx_st[0] = 0;
     gidx_end[0] = 0;
+#if DEBUG >= 1
+    if (ntd == 1){
+      if (gidx_end[ndim-1] != len[ndim-1]){
+        for (int dim=0; dim<ndim; dim++){
+          printf("glb_idx_end = %ld, gidx_end[%d]= %d, len[%d] = %d\n", 
+                 glb_idx_end, dim, gidx_end[dim], dim, len[dim]);
+        }
+        ABORT;
+      }
+      LIBT_ASSERT(gidx_end[ndim-1] <= ends[ndim-1]);
+    } 
+#endif
   } else {
     //FIXME the below means redistribution of a vector is non-threaded
     if (tid == 0){
@@ -1568,6 +1585,9 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
         break;
       }
     }
+    if (is_at_start){
+      zero_len_toff = gidx_st[0];
+    }
     for (int dim = ndim-1;dim >0;dim--){
       if (gidx_end[dim] < gidx[dim]){
         outside0 = true;
@@ -1582,9 +1602,6 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
     if (is_at_end){
       len_zero_max = MIN(ends[0],gidx_end[0]);
       done = true;
-    }
-    if (is_at_start){
-      zero_len_toff = gidx_st[0];
     }
 #endif
 
@@ -1716,7 +1733,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   CTF_free(old_virt_lda);
 
 #ifndef USE_OMP
-#ifdef DEBUG >= 1
+#if DEBUG >= 1
   bool pass = true;
   for (int i = 0;i < nbucket-1;i++){
     if (count[i] != (long_int)(new_data[i+1]-new_data[i])){
