@@ -287,7 +287,7 @@ int CTF_alloc_ptr(long_int const len, void ** const ptr){
 //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
 #endif
   if (pm){
-    printf("CTF ERROR: posix memalign returned an error, "PRId64" memory alloced on this process, wanted to alloc %lld more\n",
+    printf("CTF ERROR: posix memalign returned an error, "PRId64" memory alloced on this process, wanted to alloc "PRId64" more\n",
             CTF_mem_used[0], len);
   }
   LIBT_ASSERT(pm == 0);

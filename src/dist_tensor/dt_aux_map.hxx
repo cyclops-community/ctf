@@ -784,15 +784,18 @@ int remap_tensor(int const  tid,
   tsr->data = shuffled_data;
 
 #if VERIFY_REMAP
+  bool abortt = false;
   for (j=0; j<tsr->size; j++){
     if (tsr->data[j] != shuffled_data_corr[j]){
       printf("data element %d/"PRId64" not received correctly on process %d\n",
               j, tsr->size, global_comm->rank);
       printf("element received was %.3E, correct %.3E\n", 
               GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));
-      ABORT;
+      abortt = true;
     }
   }
+  if (abortt) ABORT;
+  CTF_free(shuffled_data_corr);
 
 #endif
   if (tsr->profile) {
@@ -803,8 +806,6 @@ int remap_tensor(int const  tid,
     t_pf.stop();
   }
 
-  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_phase);
-  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_rank);
 
   return DIST_TENSOR_SUCCESS;
 }
