@@ -339,7 +339,7 @@ void nosym_transpose(int const          ndim,
       thread_chunk_size = (local_size*(last_max-tidx_off))/edge_len[last_dim];
     } else {
       thread_chunk_size = local_size;
-      last_dim = 2;
+      last_dim = 1;
     } 
     chunk_size[tid] = 0;
     if (last_max != 0 && tidx_off != last_max && (ndim != 1 || tid == 0)){

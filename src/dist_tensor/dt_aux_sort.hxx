@@ -992,6 +992,23 @@ void zero_padding( int const          ndim,
 #pragma omp parallel
 #endif
 {
+  int i, act_lda, act_max, buf_offset, curr_idx, sym_idx;
+  int is_outside;
+  long_int p;
+  int * idx, * virt_rank, * phase_rank, * virt_len;
+  dtype* data;
+
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&phase_rank);
+  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_len);
+  for (int dim=0; dim<ndim; dim++){
+    virt_len[dim] = edge_len[dim]/phase[dim];
+  }
+
+  memcpy(phase_rank, cphase_rank, ndim*sizeof(int));
+  memset(virt_rank, 0, sizeof(int)*ndim);
+
   int tid, ntd, vst, vend;
 #ifdef USE_OMP
   tid = omp_get_thread_num();
@@ -1000,38 +1017,78 @@ void zero_padding( int const          ndim,
   tid = 0;
   ntd = 1;
 #endif
-  vst = (nvirt/ntd)*tid;
-  vst += MIN(nvirt%ntd,tid);
-  vend = vst+(nvirt/ntd);
-  if (tid < nvirt % ntd) vend++;
-  LIBT_ASSERT(tid != ntd-1 || vend == nvirt);
-  int i, act_lda, act_max, buf_offset, curr_idx, sym_idx;
-  int is_outside;
-  long_int p;
-  int * idx, * virt_rank, * phase_rank;
-  dtype* data;
 
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&phase_rank);
+  int * st_idx=NULL, * end_idx; 
+  long_int st_index = 0;
+  long_int end_index = size/nvirt;
 
-  memcpy(phase_rank, cphase_rank, ndim*sizeof(int));
-  memset(virt_rank, 0, sizeof(int)*ndim);
-  for (p=0; p<nvirt; p++){
-    int is_sh_pad0 = 0;
-    if (((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]) ||
-        ( sym[0] == SY                  && phase_rank[0] >  phase_rank[1]) ) {
-      is_sh_pad0 = 1;
+  if (ntd <= nvirt){
+    vst = (nvirt/ntd)*tid;
+    vst += MIN(nvirt%ntd,tid);
+    vend = vst+(nvirt/ntd);
+    if (tid < nvirt % ntd) vend++;
+  } else {
+    long_int vrt_sz = size/nvirt;
+    long_int chunk = size/ntd;
+    long_int st_chunk = chunk*tid + MIN(tid,size%ntd);
+    long_int end_chunk = st_chunk+chunk;
+    if (tid<(size%ntd))
+      end_chunk++;
+    vst = st_chunk/vrt_sz;
+    vend = end_chunk/vrt_sz;
+    if ((end_chunk%vrt_sz) > 0) vend++;
+    
+    st_index = st_chunk-vst*vrt_sz;
+    end_index = end_chunk-(vend-1)*vrt_sz;
+  
+    CTF_alloc_ptr(ndim*sizeof(int), (void**)&st_idx);
+    CTF_alloc_ptr(ndim*sizeof(int), (void**)&end_idx);
+
+    int * ssym;
+    CTF_alloc_ptr(ndim*sizeof(int), (void**)&ssym);
+    for (int dim=0;dim<ndim;dim++){
+      if (sym[dim] != NS) ssym[dim] = SY;
+      else ssym[dim] = NS;
     }
-    int pad0 = (padding[0]+phase_rank[0])/phase[0];
-    int len0 = edge_len[0]/phase[0]-pad0;
-    int plen0 = edge_len[0]/phase[0];
+  
+    //calculate index with all indices, to properly load balance with symmetry
+    //then clip the first index to avoid logic inside the inner loop
+    calc_idx_arr(ndim, virt_len, ssym, st_index, st_idx);
+    calc_idx_arr(ndim, virt_len, ssym, end_index, end_idx);
+
+    CTF_free(ssym);
+
+    if (st_idx[0] != 0){
+      st_index -= st_idx[0];
+      st_idx[0] = 0;
+    }
+    if (end_idx[0] != 0){
+      end_index += virt_len[0]-end_idx[0];
+    }
+    CTF_free(end_idx);
+  }
+  LIBT_ASSERT(tid != ntd-1 || vend == nvirt);
+  for (p=0; p<nvirt; p++){
     if (p>=vst && p<vend){
-      buf_offset = 0;
+      int is_sh_pad0 = 0;
+      if (((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]) ||
+          ( sym[0] == SY                  && phase_rank[0] >  phase_rank[1]) ) {
+        is_sh_pad0 = 1;
+      }
+      int pad0 = (padding[0]+phase_rank[0])/phase[0];
+      int len0 = virt_len[0]-pad0;
+      int plen0 = virt_len[0];
       data = vdata + p*(size/nvirt);
 
-      //printf("size = %d\n", size); 
-      memset(idx, 0, ndim*sizeof(int));
+      if (p==vst && st_index != 0){
+        idx[0] = 0;
+        memcpy(idx+1,st_idx+1,(ndim-1)*sizeof(int));
+        buf_offset = st_index;
+      } else {
+        buf_offset = 0;
+        memset(idx, 0, ndim*sizeof(int));
+      }
+      
       for (;;){
         is_outside = 0;
         for (i=1; i<ndim; i++){
@@ -1053,21 +1110,28 @@ void zero_padding( int const          ndim,
         }
         printf("\n");
         printf("data["PRId64"]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
-
   
         if (sym[0] != NS) plen0 = idx[1]+1;
+
         if (is_outside){
-          std::fill(data+buf_offset, data+buf_offset+plen0, 0.0);
+//          std::fill(data+buf_offset, data+buf_offset+plen0, 0.0);
+          for (long_int j=buf_offset; j<buf_offset+plen0; j++){
+            data[j] = 0.0;
+          }
         } else {
           int s1 = MIN(plen0-is_sh_pad0,len0);
 /*          if (sym[0] == SH) s1 = MIN(s1, len0-1);*/
-          std::fill(data+buf_offset+s1, data+buf_offset+plen0, 0.0);
+//          std::fill(data+buf_offset+s1, data+buf_offset+plen0, 0.0);
+          for (long_int j=buf_offset+s1; j<buf_offset+plen0; j++){
+            data[j] = 0.0;
+          }
         }
         buf_offset+=plen0;
+        if (p == vend-1 && buf_offset >= end_index) break;
         /* Increment indices and set up offsets */
         for (i=1; i < ndim; i++){
           idx[i]++;
-          act_max = edge_len[i]/phase[i];
+          act_max = virt_len[i];
           if (sym[i] != NS){
 //            sym_idx   = idx[i+1]*phase[i+1]+phase_rank[i+1];
 //            act_max   = MIN(act_max,((sym_idx-phase_rank[i])/phase[i]+1));
@@ -1095,7 +1159,9 @@ void zero_padding( int const          ndim,
   //LIBT_ASSERT(buf_offset == size/nvirt);
   CTF_free(idx);
   CTF_free(virt_rank);
+  CTF_free(virt_len);
   CTF_free(phase_rank);
+  if (st_idx != NULL) CTF_free(st_idx);
 }
   TAU_FSTOP(zero_padding);
 }

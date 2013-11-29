@@ -10,67 +10,6 @@
 #include "omp.h"
 #endif
 
-/*
- * \brief calculates dimensional indices corresponding to a symmetric-packed index
- *        For each symmetric (SH or AS) group of size sg we have
- *          idx = n*(n-1)*...*(n-sg) / d*(d-1)*...
- *        therefore (idx*sg!)^(1/sg) >= n-sg
- *        or similarly in the SY case ... >= n
- *
- * \param[in] ndim number of dimensions in the tensor 
- * \param[in] lens edge lengths 
- * \param[in] sym symmetry
- * \param[in] idx index in the global tensor, in packed format
- * \param[out] idx_arr preallocated to size ndim, computed to correspond to idx
- */
-void calc_idx_arr(int         ndim,
-                  int const * lens,
-                  int const * sym,
-                  long_int    idx,
-                  int *       idx_arr){
-  long_int idx_rem = idx;
-  memset(idx_arr, 0, ndim*sizeof(int));
-  for (int dim=ndim-1; dim>=0; dim--){
-    if (idx_rem == 0) break;
-    int idim;
-    if (dim == 0 || sym[dim-1] == NS){
-      long_int lda = packed_size(dim, lens, sym);
-      idx_arr[dim] = idx_rem/lda;
-      idx_rem -= idx_arr[dim]*lda;
-    } else {
-      int plen[dim];
-      memcpy(plen, lens, dim*sizeof(int));
-      int sg = 2;
-      int fsg = 2;
-      while (dim >= sg && sym[dim-sg] != NS) { sg++; fsg*=sg; }
-      long_int lda = packed_size(dim-sg+1, lens, sym);
-      double fsg_idx = (((double)idx_rem)*fsg)/lda;
-      int kidx = (int)pow(fsg_idx,1./sg);
-      //if (sym[dim-1] != SY) 
-      kidx += sg+1;
-      int mkidx = kidx;
-#if DEBUG >= 1
-      for (int idim=dim-sg+1; idim<=dim; idim++){
-        plen[idim] = mkidx+1;
-      }
-      long_int smidx = packed_size(dim+1, plen, sym);
-      LIBT_ASSERT(smidx > idx_rem);
-#endif
-      long_int midx = 0;
-      for (; mkidx >= 0; mkidx--){
-        for (int idim=dim-sg+1; idim<=dim; idim++){
-          plen[idim] = mkidx;
-        }
-        midx = packed_size(dim+1, plen, sym);
-        if (midx <= idx_rem) break;
-      }
-      if (midx == 0) mkidx = 0;
-      idx_arr[dim] = mkidx;
-      idx_rem -= midx;
-    }
-  }
-  LIBT_ASSERT(idx_rem == 0);
-}
 
 /**
  * \brief ,calculate the block-sizes of a tensor

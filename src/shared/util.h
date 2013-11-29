@@ -456,6 +456,20 @@ long_int sy_packed_size(const int ndim, const int* len, const int* sym);
 
 long_int packed_size(const int ndim, const int* len, const int* sym);
 
+
+/*
+ * \brief calculates dimensional indices corresponding to a symmetric-packed index
+ *        For each symmetric (SH or AS) group of size sg we have
+ *          idx = n*(n-1)*...*(n-sg) / d*(d-1)*...
+ *        therefore (idx*sg!)^(1/sg) >= n-sg
+ *        or similarly in the SY case ... >= n
+ */
+void calc_idx_arr(int         ndim,
+                  int const * lens,
+                  int const * sym,
+                  long_int    idx,
+                  int *       idx_arr);
+
 void factorize(int n, int *nfactor, int **factor);
 
 inline
