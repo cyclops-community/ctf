@@ -368,8 +368,8 @@ void calc_idx_arr(int         ndim,
       idx_arr[dim] = idx_rem/lda;
       idx_rem -= idx_arr[dim]*lda;
     } else {
-      int plen[dim];
-      memcpy(plen, lens, dim*sizeof(int));
+      int plen[dim+1];
+      memcpy(plen, lens, (dim+1)*sizeof(int));
       int sg = 2;
       int fsg = 2;
       while (dim >= sg && sym[dim-sg] != NS) { sg++; fsg*=sg; }
