@@ -83,12 +83,24 @@ int  gemm(int const     m,
     /* verify D=(A*B)*C = A*(B*C) */
     CTF_Matrix D(m, n, NS, dw);
     CTF_Matrix E(m, n, NS, dw);
+    if (num_pes > 1){
+      MPI_Comm halbcomm;
+      MPI_Comm_split(dw.comm, rank%2, rank/2, &halbcomm);
+      CTF_World hdw(halbcomm);
+      CTF_Matrix hB(n, n, NS, hdw);
+      hB["ij"] += B["ij"];
+      assert(hB.norm2()>1.E-6);
     
-    D["ij"] = (A["ik"]*B["kj"]);
-    D["ij"] = (D["ik"]*C["kj"]);
-    E["ij"] = (B["ik"]*C["kj"]);
-    E["ij"] = (A["ik"]*E["kj"]);
-    
+      D["ij"] = (A["ik"]*hB["kj"]);
+      D["ij"] = (D["ik"]*C["kj"]);
+      E["ij"] = (hB["ik"]*C["kj"]);
+      E["ij"] = (A["ik"]*E["kj"]);
+    } else {
+      D["ij"] = (A["ik"]*B["kj"]);
+      D["ij"] = (D["ik"]*C["kj"]);
+      E["ij"] = (B["ik"]*C["kj"]);
+      E["ij"] = (A["ik"]*E["kj"]);
+    }
     D.align(E);
     D.read_local(&np, &indices_BC, &pairs_BC);
     E.read_local(&np, &indices_AB, &pairs_AB);

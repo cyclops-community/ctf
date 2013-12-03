@@ -139,6 +139,13 @@ class tCTF_Tensor {
                 tCTF_World<dtype> &  world_,
                 char const *         name_ = NULL,
                 int                  profile_ = 0);
+
+    /**
+     * \brief creates a copy of the tensor, in a different world if specified
+     * \param[in] oworld pointer to another world (NULL oworld = this->world)
+     * \return new tensor object on oworld
+     */
+    tCTF_Tensor<dtype> clone(tCTF_World<dtype> * oworld = NULL) const;
     
     /**
      * \brief gives the values associated with any set of indices
@@ -291,10 +298,10 @@ class tCTF_Tensor {
      * \return new tensor corresponding to requested slice
      */
     tCTF_Tensor slice(int const * offsets,
-                      int const * ends);
+                      int const * ends) const;
     
     tCTF_Tensor slice(long_int corner_off,
-                      long_int corner_end);
+                      long_int corner_end) const;
     
     /**
      * \brief cuts out a slice (block) of this tensor A[offsets,ends)
@@ -305,11 +312,11 @@ class tCTF_Tensor {
      */
     tCTF_Tensor slice(int const *         offsets,
                       int const *         ends,
-                      tCTF_World<dtype> * oworld);
+                      tCTF_World<dtype> * oworld) const;
 
     tCTF_Tensor slice(long_int            corner_off,
                       long_int            corner_end,
-                      tCTF_World<dtype> * oworld);
+                      tCTF_World<dtype> * oworld) const;
     
     
     /**
@@ -325,18 +332,18 @@ class tCTF_Tensor {
     void slice(int const *    offsets,
                int const *    ends,
                dtype          beta,
-               tCTF_Tensor &  A,
+               tCTF_Tensor const & A,
                int const *    offsets_A,
                int const *    ends_A,
-               dtype          alpha);
+               dtype          alpha) const;
     
     void slice(long_int       corner_off,
                long_int       corner_end,
                dtype          beta,
-               tCTF_Tensor &  A,
+               tCTF_Tensor const & A,
                long_int       corner_off_A,
                long_int       corner_end_A,
-               dtype          alpha);
+               dtype          alpha) const;
 
     /**
      * \brief TODO: apply permutation to matrix, potentially extracting a slice

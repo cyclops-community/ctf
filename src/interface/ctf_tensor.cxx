@@ -73,6 +73,17 @@ tCTF_Tensor<dtype>::~tCTF_Tensor(){
 }
 
 template<typename dtype>
+tCTF_Tensor<dtype> tCTF_Tensor<dtype>::clone(tCTF_World<dtype> * oworld) const{
+  if (oworld == NULL || oworld == this->world){
+    return tCTF_Tensor(*this,true);
+  } else {
+    int offs[ndim];
+    memset(offs,0,sizeof(int)*ndim);
+    return slice(offs,len,oworld);
+  }
+}
+
+template<typename dtype>
 dtype * tCTF_Tensor<dtype>::get_raw_data(long_int * size) {
   int ret;
   dtype * data;
@@ -247,6 +258,14 @@ void tCTF_Tensor<dtype>::contract(dtype                         alpha,
   conv_idx(A.ndim, idx_A, &tp.idx_map_A,
            B.ndim, idx_B, &tp.idx_map_B,
            ndim, idx_C, &tp.idx_map_C);
+  if (A.world->ctf != world->ctf){
+    tCTF_Tensor nA = A.clone(world);
+    return contract(alpha, nA, idx_A, B, idx_B, beta, idx_C, fseq);
+  }
+  if (B.world->ctf != world->ctf){
+    tCTF_Tensor nB = B.clone(world);
+    return contract(alpha, A, idx_A, nB, idx_B, beta, idx_C, fseq);
+  }
   if (fseq.func_ptr == NULL)
     ret = world->ctf->contract(&tp, alpha, beta);
   else {
@@ -298,20 +317,26 @@ void tCTF_Tensor<dtype>::sum(dtype                      alpha,
   CTF_sum_type_t st;
   conv_idx(A.ndim, idx_A, &idx_map_A,
            ndim, idx_B, &idx_map_B);
-  st.idx_map_A = idx_map_A;
-  st.idx_map_B = idx_map_B;
-  st.tid_A = A.tid;
-  st.tid_B = tid;
-  if (fseq.func_ptr == NULL)
-    ret = world->ctf->sum_tensors(&st, alpha, beta);
-  else {
-    fseq_elm_sum<dtype> fs;
-    fs.func_ptr = fseq.func_ptr;
-    ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fs);
+  if (A.world->ctf != world->ctf){
+    tCTF_Tensor nA = A.clone(world);
+    return sum(alpha, nA, idx_A, beta, idx_B, fseq);
+  } else {
+    
+    st.idx_map_A = idx_map_A;
+    st.idx_map_B = idx_map_B;
+    st.tid_A = A.tid;
+    st.tid_B = tid;
+    if (fseq.func_ptr == NULL)
+      ret = world->ctf->sum_tensors(&st, alpha, beta);
+    else {
+      fseq_elm_sum<dtype> fs;
+      fs.func_ptr = fseq.func_ptr;
+      ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fs);
+    }
+    CTF_free(idx_map_A);
+    CTF_free(idx_map_B);
+    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   }
-  CTF_free(idx_map_A);
-  CTF_free(idx_map_B);
-  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
 template<typename dtype>
@@ -356,10 +381,10 @@ template<typename dtype>
 void tCTF_Tensor<dtype>::slice(int const *    offsets,
                                int const *    ends,
                                dtype          beta,
-                               tCTF_Tensor &  A,
+                               tCTF_Tensor const &  A,
                                int const *    offsets_A,
                                int const *    ends_A,
-                               dtype          alpha){
+                               dtype          alpha) const {
   int ret, np_A, np_B;
   if (A.world->comm != world->comm){
     MPI_Comm_size(A.world->comm, &np_A);
@@ -379,10 +404,10 @@ template<typename dtype>
 void tCTF_Tensor<dtype>::slice(long_int       corner_off,
                                long_int       corner_end,
                                dtype          beta,
-                               tCTF_Tensor &  A,
+                               tCTF_Tensor const &  A,
                                long_int       corner_off_A,
                                long_int       corner_end_A,
-                               dtype          alpha){
+                               dtype          alpha) const {
   int * offsets, * ends, * offsets_A, * ends_A;
  
   conv_idx(this->ndim, this->len, corner_off, &offsets);
@@ -400,14 +425,14 @@ void tCTF_Tensor<dtype>::slice(long_int       corner_off,
 
 template<typename dtype>
 tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const *          offsets,
-                                             int const *          ends){
+                                             int const *          ends) const {
 
   return slice(offsets, ends, world);
 }
 
 template<typename dtype>
 tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(long_int corner_off,
-                                             long_int corner_end){
+                                             long_int corner_end) const {
 
   return slice(corner_off, corner_end, world);
 }
@@ -418,7 +443,7 @@ tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(long_int corner_off,
 template<typename dtype>
 tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const *          offsets,
                                              int const *          ends,
-                                             tCTF_World<dtype> *  owrld){
+                                             tCTF_World<dtype> *  owrld) const {
   int i;
   int * new_lens = (int*)CTF_alloc(sizeof(int)*ndim);
   int * new_sym = (int*)CTF_alloc(sizeof(int)*ndim);
@@ -447,7 +472,7 @@ tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(int const *          offsets,
 template<typename dtype>
 tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(long_int             corner_off,
                                              long_int             corner_end,
-                                             tCTF_World<dtype> *  owrld){
+                                             tCTF_World<dtype> *  owrld) const {
 
   int * offsets, * ends;
  
@@ -464,6 +489,10 @@ tCTF_Tensor<dtype> tCTF_Tensor<dtype>::slice(long_int             corner_off,
 
 template<typename dtype>
 void tCTF_Tensor<dtype>::align(const tCTF_Tensor& A){
+  if (A.world->ctf != world->ctf) {
+    printf("ERROR: cannot align tensors on different CTF instances\n");
+    ABORT;
+  }
   int ret = world->ctf->align(tid, A.tid);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
