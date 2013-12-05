@@ -1492,7 +1492,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
     offset += idx_acc[dim]; 
 
     LIBT_ASSERT(ist == 0 || gidx[dim] <= gidx_st[dim]);
-    LIBT_ASSERT(ist < old_virt_edge_len[dim]);
+//    LIBT_ASSERT(ist < old_virt_edge_len[dim]);
 
     if (gidx[dim] > gidx_st[dim]) break;
 
