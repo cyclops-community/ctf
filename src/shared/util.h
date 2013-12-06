@@ -154,6 +154,20 @@ do { printf("error:%s:%d ",__FILE__,__LINE__); printf(__VA_ARGS__); printf("\n")
 do { printf("warning: "); printf(__VA_ARGS__); printf("\n"); } while(0)
 #endif
 
+#if defined(VERBOSE)
+  #ifndef VPRINTF
+  #define VPRINTF(i,...) \
+    do { if (i<=VERBOSE) { \
+      printf("CTF: "__VA_ARGS__); } \
+    } while (0)
+  #endif
+#else
+  #ifndef VPRINTF
+  #define VPRINTF(...) do { } while (0)
+  #endif
+#endif
+
+
 #ifdef DEBUG
   #ifndef DPRINTF
   #define DPRINTF(i,...) \
@@ -191,16 +205,6 @@ do { printf("warning: "); printf(__VA_ARGS__); printf("\n"); } while(0)
   #endif
 #endif
 
-#ifdef VERBOSE
-  #ifndef VERBOSE_PRINTF
-  #define VERBOSE_PRINTF(...) \
-    do { LOC; printf(__VA_ARGS__); } while(0)
-  #endif
-#else
-  #ifndef VERBOSE_PRINTF
-  #define VERBOSE_PRINTF
-  #endif
-#endif
 
 #ifdef DUMPDEBUG
   #ifndef DUMPDEBUG_PRINTF

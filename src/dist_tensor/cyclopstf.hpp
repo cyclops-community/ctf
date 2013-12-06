@@ -47,6 +47,7 @@ enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS,
 typedef int64_t long_int;
 typedef long_int key;
 
+static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
 template<typename dtype>
 struct tkv_pair {
@@ -80,7 +81,7 @@ inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
 #define INNER_MAP 0
 #define FOLD_TSR 1
 #define PERFORM_DESYM 1
-#define ALLOW_NVIRT 8
+#define ALLOW_NVIRT 32
 #define DIAG_RESCALE
 #define USE_SYM_SUM 
 #define HOME_CONTRACT

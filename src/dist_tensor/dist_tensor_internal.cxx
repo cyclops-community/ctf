@@ -125,17 +125,13 @@ int dist_tensor<dtype>::initialize(CommData_t * cdt_global,
 /* FIXME: Sorting will fuck up dimensional ordering */
 //  std::sort(srt_dim_len, srt_dim_len + ndim);
 
-#if DEBUG >= 1
   if (cdt_global->rank == 0)
-    printf("Setting up initial torus topology:\n");
-#endif
+    VPRINTF(1,"Setting up initial torus physical topology P:\n");
   stride = 1, cut = 0;
   for (i=0; i<ndim; i++){
     LIBT_ASSERT(dim_len[i] != 1);
-#if DEBUG >= 1
     if (cdt_global->rank == 0)
-      printf("dim[%d] = %d:\n",i,srt_dim_len[i]);
-#endif
+      VPRINTF(1,"P[%d] = %d\n",i,srt_dim_len[i]);
 
     phys_comm[i] = (CommData_t*)CTF_alloc(sizeof(CommData_t));
     SETUP_SUB_COMM(cdt_global, phys_comm[i],
@@ -181,6 +177,10 @@ void dist_tensor<dtype>::set_phys_comm(CommData_t ** cdt, int const ndim){
   lda = 1;
   /* Figure out the lda of each dimension communicator */
   for (i=0; i<ndim; i++){
+#if DEBUG >= 1
+    if (global_comm->rank == 0)
+      printf("Added topo %d dim[%d] = %d:\n",(int)topovec.size(),i,cdt[i]->np);
+#endif
     LIBT_ASSERT(cdt[i]->np != 1);
     new_topo.lda[i] = lda;
     lda = lda*cdt[i]->np;
@@ -1970,54 +1970,12 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
   mapping * map;
   tsr = tensors[tid];
 
-
-  if (all)
-    COMM_BARRIER(global_comm);
-  if (/*tsr->is_mapped &&*/ (!all || global_comm->rank == 0)){
-    printf("Tensor %d of dimension %d is mapped to a ", tid, tsr->ndim);
-    if (is_inner){
-      for (i=0; i<inner_topovec[tsr->itopo].ndim-1; i++){
-              printf("%d-by-", inner_topovec[tsr->itopo].dim_comm[i]->np);
-      }
-      if (inner_topovec[tsr->itopo].ndim > 0)
-              printf("%d inner topology.\n", inner_topovec[tsr->itopo].dim_comm[i]->np);
-    } else {
-      for (i=0; i<topovec[tsr->itopo].ndim-1; i++){
-              printf("%d-by-", topovec[tsr->itopo].dim_comm[i]->np);
-      }
-      if (topovec[tsr->itopo].ndim > 0)
-              printf("%d topology.\n", topovec[tsr->itopo].dim_comm[i]->np);
-    }
-    for (i=0; i<tsr->ndim; i++){
-      switch (tsr->edge_map[i].type){
-        case NOT_MAPPED:
-          printf("Dimension %d of length %d and symmetry %d is not mapped\n",i,tsr->edge_len[i],tsr->sym[i]);
-          break;
-
-        case PHYSICAL_MAP:
-          printf("Dimension %d of length %d and symmetry %d is mapped to physical dimension %d with phase %d\n",
-            i,tsr->edge_len[i],tsr->sym[i],tsr->edge_map[i].cdt,tsr->edge_map[i].np);
-          map = &tsr->edge_map[i];
-          while (map->has_child){
-            map = map->child;
-            if (map->type == VIRTUAL_MAP)
-              printf("\tDimension %d also has a virtualized child of phase %d\n", i, map->np);
-            else
-              printf("\tDimension %d also has a physical child mapped to physical dimension %d with phase %d\n",
-                      i, map->cdt, map->np);
-          }
-          break;
-
-        case VIRTUAL_MAP:
-          printf("Dimension %d of length %d and symmetry %d is mapped virtually with phase %d\n",
-            i,tsr->edge_len[i],tsr->sym[i],tsr->edge_map[i].np);
-          break;
-      }
-    }
+  if (!all || global_comm->rank == 0){
+    tsr->print_map(stdout);
   }
-  if (all)
-    COMM_BARRIER(global_comm);
+
   return DIST_TENSOR_SUCCESS;
+
 }
 
 /**
@@ -2383,7 +2341,7 @@ void dist_tensor<dtype>::contract_mst(){
 
 
 
-
+#include "tensor_object.cxx"
 #include "dist_tensor_map.cxx"
 #include "dist_tensor_op.cxx"
 #include "dist_tensor_inner.cxx"
