@@ -92,7 +92,8 @@ class Integrals {
 
     for (i=0; i<15; i++){
       tarr[i]->read_local(&sz, &indices, &values);
-      for (j=0; j<sz; j++) values[j] = drand48()-.5;
+//      for (j=0; j<sz; j++) values[j] = drand48()-.5;
+      for (j=0; j<sz; j++) values[j] = ((indices[j]*16+i)%13077)/13077. -.5;
       tarr[i]->write(sz, indices, values);
       free(indices), free(values);
     }
