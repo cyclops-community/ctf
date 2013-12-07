@@ -52,7 +52,8 @@ struct topology {
 
 
 template<typename dtype>
-struct tensor {
+class tensor {
+  public:
   int ndim;
   int * edge_len;
   int is_padded;
@@ -85,6 +86,8 @@ struct tensor {
   int has_home;
   char const * name;
   int profile;
+
+  void print_map(FILE * stream) const;
 };
 
 

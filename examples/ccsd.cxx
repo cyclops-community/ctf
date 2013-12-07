@@ -61,20 +61,20 @@ class Integrals {
     aa = CTF_Vector(nv,dw_);
     ii = CTF_Vector(no,dw_);
     
-    ab = CTF_Matrix(nv,nv,AS,dw_,"V",1);
-    ai = CTF_Matrix(nv,no,NS,dw_,"V",1);
-    ia = CTF_Matrix(no,nv,NS,dw_,"V",1);
-    ij = CTF_Matrix(no,no,AS,dw_,"V",1);
+    ab = CTF_Matrix(nv,nv,AS,dw_,"Vab",1);
+    ai = CTF_Matrix(nv,no,NS,dw_,"Vai",1);
+    ia = CTF_Matrix(no,nv,NS,dw_,"Via",1);
+    ij = CTF_Matrix(no,no,AS,dw_,"Vij",1);
 
-    abcd = CTF_Tensor(4,vvvv,shapeASAS,dw_,"V",1);
-    abci = CTF_Tensor(4,vvvo,shapeASNS,dw_,"V",1);
-    aibc = CTF_Tensor(4,vovv,shapeNSAS,dw_,"V",1);
-    aibj = CTF_Tensor(4,vovo,shapeNSNS,dw_,"V",1);
-    abij = CTF_Tensor(4,vvoo,shapeASAS,dw_,"V",1);
-    ijab = CTF_Tensor(4,oovv,shapeASAS,dw_,"V",1);
-    aijk = CTF_Tensor(4,vooo,shapeNSAS,dw_,"V",1);
-    ijak = CTF_Tensor(4,oovo,shapeASNS,dw_,"V",1);
-    ijkl = CTF_Tensor(4,oooo,shapeASAS,dw_,"V",1);
+    abcd = CTF_Tensor(4,vvvv,shapeASAS,dw_,"Vabcd",1);
+    abci = CTF_Tensor(4,vvvo,shapeASNS,dw_,"Vabci",1);
+    aibc = CTF_Tensor(4,vovv,shapeNSAS,dw_,"Vaibc",1);
+    aibj = CTF_Tensor(4,vovo,shapeNSNS,dw_,"Vaibj",1);
+    abij = CTF_Tensor(4,vvoo,shapeASAS,dw_,"Vabij",1);
+    ijab = CTF_Tensor(4,oovv,shapeASAS,dw_,"Vijab",1);
+    aijk = CTF_Tensor(4,vooo,shapeNSAS,dw_,"Vaijk",1);
+    ijak = CTF_Tensor(4,oovo,shapeASNS,dw_,"Vijak",1);
+    ijkl = CTF_Tensor(4,oooo,shapeASAS,dw_,"Vijkl",1);
   }
 
   void fill_rand(){
@@ -92,7 +92,8 @@ class Integrals {
 
     for (i=0; i<15; i++){
       tarr[i]->read_local(&sz, &indices, &values);
-      for (j=0; j<sz; j++) values[j] = drand48()-.5;
+//      for (j=0; j<sz; j++) values[j] = drand48()-.5;
+      for (j=0; j<sz; j++) values[j] = ((indices[j]*16+i)%13077)/13077. -.5;
       tarr[i]->write(sz, indices, values);
       free(indices), free(values);
     }
@@ -148,9 +149,9 @@ class Amplitudes {
     int shapeASAS[] = {AS,NS,AS,NS};
     int vvoo[]      = {nv,nv,no,no};
 
-    ai = CTF_Matrix(nv,no,NS,dw_,"T",1);
+    ai = CTF_Matrix(nv,no,NS,dw_,"Tai",1);
 
-    abij = CTF_Tensor(4,vvoo,shapeASAS,dw_,"T",1);
+    abij = CTF_Tensor(4,vvoo,shapeASAS,dw_,"Tabij",1);
   }
 
   tCTF_Idx_Tensor<double> operator[](char const * idx_map_){

@@ -111,7 +111,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
 
 #ifdef USE_OMP
   if (rank == 0)
-    DPRINTF(1,"CTF running with %d threads\n",omp_get_max_threads());
+    VPRINTF(1,"Running with %d threads\n",omp_get_max_threads());
 #endif
   
   mst_size = getenv("CTF_MST_SIZE");
@@ -119,12 +119,11 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   if (mst_size == NULL && stack_size == NULL){
 #ifdef USE_MST
     if (rank == 0)
-      DPRINTF(1,"Creating CTF stack of size "PRId64"\n",1000*(long_int)1E6);
+      VPRINTF(1,"Creating stack of size "PRId64"\n",1000*(long_int)1E6);
     CTF_mst_create(1000*(long_int)1E6);
 #else
     if (rank == 0){
-      DPRINTF(1,"Running CTF without stack, define CTF_STACK_SIZE ");
-      DPRINTF(1,"environment variable to activate stack\n");
+      VPRINTF(1,"Running without stack, define CTF_STACK_SIZE environment variable to activate stack\n");
     }
 #endif
   } else {
@@ -134,7 +133,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
     if (stack_size != NULL)
       imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
     if (rank == 0)
-      DPRINTF(1,"Creating CTF stack of size "PRIu64" due to CTF_STACK_SIZE enviroment variable\n",
+      VPRINTF(1,"Creating stack of size "PRIu64" due to CTF_STACK_SIZE enviroment variable\n",
                 imst_size);
     CTF_mst_create(imst_size);
   }
@@ -142,14 +141,14 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
   if (mem_size != NULL){
     uint64_t imem_size = strtoull(mem_size,NULL,0);
     if (rank == 0)
-      DPRINTF(1,"CTF memory size set to "PRIu64" by CTF_MEMORY_SIZE environment variable\n",
+      VPRINTF(1,"Memory size set to "PRIu64" by CTF_MEMORY_SIZE environment variable\n",
                 imem_size);
     CTF_set_mem_size(imem_size);
   }
   ppn = getenv("CTF_PPN");
   if (ppn != NULL){
     if (rank == 0)
-      DPRINTF(1,"CTF assuming %d processes per node due to CTF_PPN environment variable\n",
+      VPRINTF(1,"Assuming %d processes per node due to CTF_PPN environment variable\n",
                 atoi(ppn));
     LIBT_ASSERT(atoi(ppn)>=1);
     CTF_set_memcap(.75/atof(ppn));
@@ -554,14 +553,25 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
         sprintf(cname+strlen(cname),"%d",type->idx_map_B[i]);
     }
     sprintf(cname+strlen(cname),"]");
-    
+
+    double dtt;
+    if (dt->get_global_comm()->rank == 0){
+      dtt = MPI_Wtime();
+      VPRINTF(1,"Starting %s\n",cname);
+    }
    
     CTF_Timer tctr(cname);
     tctr.start(); 
     ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
     tctr.stop();
+    if (dt->get_global_comm()->rank == 0){
+      VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   }
   } else 
     ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
+  if ((*dt->get_tensors())[type->tid_A]->profile &&
+      (*dt->get_tensors())[type->tid_B]->profile &&
+      (*dt->get_tensors())[type->tid_C]->profile){
+  }
 #if DEBUG >= 1
   if (dt->get_global_comm()->rank == 0)
     printf("End head contraction :\n");

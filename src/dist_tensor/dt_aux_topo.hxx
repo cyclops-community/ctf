@@ -62,6 +62,8 @@ void fold_torus(topology *              topo,
         /* Reorder the lda, bring j lda to lower lda and adjust other ldas */
         color = glb_comm->rank - topo->dim_comm[i]->rank*topo->lda[i]
                                - topo->dim_comm[j]->rank*topo->lda[j];
+        if (j<ndim-1)
+          color = (color%topo->lda[i])+(color/topo->lda[j+1]);
       }
       np = topo->dim_comm[i]->np*topo->dim_comm[j]->np;
 

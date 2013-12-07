@@ -83,7 +83,7 @@ int  gemm(int const     m,
     /* verify D=(A*B)*C = A*(B*C) */
     CTF_Matrix D(m, n, NS, dw);
     CTF_Matrix E(m, n, NS, dw);
-    if (num_pes > 1){
+    if (0 && num_pes > 1){
       MPI_Comm halbcomm;
       MPI_Comm_split(dw.comm, rank%2, rank/2, &halbcomm);
       CTF_World hdw(halbcomm);

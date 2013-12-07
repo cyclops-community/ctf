@@ -1379,10 +1379,10 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
 
   int ** par_virt_counts;
   CTF_alloc_ptr(sizeof(int*)*max_ntd, (void**)&par_virt_counts);
-/*  for (int t=0; t<max_ntd; t++){
+  for (int t=0; t<max_ntd; t++){
     CTF_mst_alloc_ptr(sizeof(int)*nbucket, (void**)&par_virt_counts[t]);
     std::fill(par_virt_counts[t], par_virt_counts[t]+nbucket, 0);
-  }*/
+  }
   #pragma omp parallel num_threads(max_ntd)
   {
 #endif
@@ -1442,8 +1442,9 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
 #endif
   // FIXME: may be better to mst_alloc, but this should ensure the 
   //        compiler knows there are no write conflicts
-  int *count; CTF_alloc_ptr(sizeof(int)*nbucket, (void**)&count);
-  memset(count, 0, sizeof(int)*nbucket);
+  //int *count; CTF_alloc_ptr(sizeof(int)*nbucket, (void**)&count);
+  //memset(count, 0, sizeof(int)*nbucket);
+  int * count = par_virt_counts[tid];
 
   int *gidx; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&gidx);
   memset(gidx, 0, sizeof(int)*ndim);
@@ -1491,7 +1492,7 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
     offset += idx_acc[dim]; 
 
     LIBT_ASSERT(ist == 0 || gidx[dim] <= gidx_st[dim]);
-    LIBT_ASSERT(ist < old_virt_edge_len[dim]);
+//    LIBT_ASSERT(ist < old_virt_edge_len[dim]);
 
     if (gidx[dim] > gidx_st[dim]) break;
 
@@ -1706,20 +1707,26 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
   }
   TAU_FSTOP(cyclic_pup_bucket);
   TAU_FSTART(cyclic_pup_move);
-  if (forward){
-    #pragma omp parallel for
-    for (int i=0; i<MAX(old_size,new_size); i++){
-      if (bucket_store[i] != -1){
-        int ct = count_store[i]+par_virt_counts[thread_store[i]][bucket_store[i]];
-        new_data[bucket_store[i]][ct] = old_data[i];
+  {
+    long_int tot_sz = MAX(old_size, new_size);
+    int i;
+    if (forward){
+      #pragma omp parallel for private(i)
+      for (i=0; i<tot_sz; i++){
+	if (bucket_store[i] != -1){
+	  int pc = par_virt_counts[thread_store[i]][bucket_store[i]];
+	  int ct = count_store[i]+pc;
+	  new_data[bucket_store[i]][ct] = old_data[i];
+	}
       }
-    }
-  } else {
-    #pragma omp parallel for
-    for (int i=0; i<MAX(old_size,new_size); i++){
-      if (bucket_store[i] != -1){
-        int ct = count_store[i]+par_virt_counts[thread_store[i]][bucket_store[i]];
-        old_data[i] = new_data[bucket_store[i]][ct];
+    } else {
+      #pragma omp parallel for private(i)
+      for (i=0; i<tot_sz; i++){
+	if (bucket_store[i] != -1){
+	  int pc = par_virt_counts[thread_store[i]][bucket_store[i]];
+	  int ct = count_store[i]+pc;
+	  old_data[i] = new_data[bucket_store[i]][ct];
+	}
       }
     }
   }

@@ -124,6 +124,7 @@
  * However, we warn that the current version will produce a profile for each world, which may be undesired when extensively using subworlds and slice().
  *
  * CTF can be built with performance profiling by adding -DPROFILE and for MPI routines profiling -DPMPI to DEFS in config.mk.
+ * It is possible to compiler CTF with the variable -DVERBOSE=1 to obtain basic reports on contraction mappings and redistributions.
  * Similarly, for DEBUG mode is activated using -DDEBUG=1 (or =2 =3 for even more print outs).
  *
  * Environment Variables:
@@ -143,7 +144,7 @@
  *
  * examples/ provides various example codes using CTF
  *
- * src/dist_tensor/ contains the tensor parallel logic, which inputs, outputs, maps, and redistributes, 
+ * src/dist_tensor/ contains the tensor parallel logic, which inputs, outputs, maps, and redistributions, 
  * the tensor. The logic that constructs tensor contrations is here. 
  *
  * src/ctr_comm/ contains the distributed tensor contraction routines

@@ -651,13 +651,6 @@ int remap_tensor(int const  tid,
   dtype * shuffled_data_corr;
 #endif
 
-  if (tsr->profile) {
-    char spf[80];
-    strcpy(spf,"redistribute_");
-    strcat(spf,tsr->name);
-    CTF_Timer t_pf(spf);
-    t_pf.start();
-  }
 
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_phase);
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&new_rank);
@@ -695,11 +688,20 @@ int remap_tensor(int const  tid,
     tsr->is_home = 0;
   }
 #endif
-#if DEBUG >= 1
-  if (global_comm->rank == 0){
-    printf("Remapping tensor %d with virtualization factor of %d\n",tid,new_nvirt);
-  }
+  if (tsr->profile) {
+    char spf[80];
+    strcpy(spf,"redistribute_");
+    strcat(spf,tsr->name);
+    if (global_comm->rank == 0){
+      if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",tsr->name);
+      else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",tsr->name);
+#if VERBOSE >=1
+      tsr->print_map(stdout);
 #endif
+    }
+    CTF_Timer t_pf(spf);
+    t_pf.start();
+  }
 
 #if VERIFY_REMAP
     padded_reshuffle(tid,
@@ -726,9 +728,6 @@ int remap_tensor(int const  tid,
 #endif
 
   if (can_block_shuffle){
-    if (global_comm->rank == 0) {
-      DPRINTF(1,"remapping tensor %d via block_reshuffle\n", tid);
-    }
     block_reshuffle( tsr->ndim,
                      old_phase,
                      old_size,
@@ -743,10 +742,6 @@ int remap_tensor(int const  tid,
                      shuffled_data,
                      global_comm);
   } else {
-    if (global_comm->rank == 0) {
-      DEBUG_PRINTF("remapping with cyclic reshuffle (was padded = %d)\n",
-        tsr->is_padded);
-    }
 //    CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&shuffled_data);
     cyclic_reshuffle(tsr->ndim,
                      old_size,
