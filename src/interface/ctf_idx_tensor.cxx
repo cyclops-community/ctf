@@ -161,35 +161,55 @@ tCTF_World<dtype> * tCTF_Idx_Tensor<dtype>::where_am_i() const {
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype> const & B){
-  this->scale = 0.0;
-  B.execute(*this);
+  if (global_schedule != NULL) {
+    std::cout << "op= tensor" << std::endl;
+  } else {
+    this->scale = 0.0;
+    B.execute(*this);
+  }
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Term<dtype> const & B){
-  this->scale = 0.0;
-  B.execute(*this);
+  if (global_schedule != NULL) {
+    std::cout << "op= term" << std::endl;
+  } else {
+    this->scale = 0.0;
+    B.execute(*this);
+  }
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Term<dtype> const & B){
-  this->scale = 1.0;
-  B.execute(*this);
+  if (global_schedule != NULL) {
+    std::cout << "op+= term" << std::endl;
+  } else {
+    this->scale = 1.0;
+    B.execute(*this);
+  }
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> const & B){
-  this->scale = 1.0;
-  tCTF_Term<dtype> * Bcpy = B.clone();
-  Bcpy->scale *= -1.0;
-  Bcpy->execute(*this);
-  delete Bcpy;
+  if (global_schedule != NULL) {
+    std::cout << "op-= term" << std::endl;
+  } else {
+    this->scale = 1.0;
+    tCTF_Term<dtype> * Bcpy = B.clone();
+    Bcpy->scale *= -1.0;
+    Bcpy->execute(*this);
+    delete Bcpy;
+  }
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Term<dtype> const & B){
-  tCTF_Contract_Term<dtype> ctrm = (*this)*B;
-  *this = ctrm;
+  if (global_schedule != NULL) {
+    std::cout << "op*= term" << std::endl;
+  } else {
+    tCTF_Contract_Term<dtype> ctrm = (*this)*B;
+    *this = ctrm;
+  }
 }
 
 template<typename dtype>

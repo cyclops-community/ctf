@@ -161,40 +161,50 @@ class Amplitudes {
 
 void ccsd(Integrals   &V,
           Amplitudes  &T){
+  tCTF_Schedule<double> sched;
+  //sched.record();
 
   CTF_Tensor T21 = CTF_Tensor(T.abij);
   T21["abij"] += .5*T["ai"]*T["bj"];
 
-  CTF_Idx_Tensor Fme(V["me"],1);
+  CTF_Idx_Tensor Fme(V["me"]);
+  Fme += V["me"];
   Fme += V["mnef"]*T["fn"];
   
-  CTF_Idx_Tensor Fae(V["ae"],1);
+  CTF_Idx_Tensor Fae(V["ae"]);
+  Fae += V["ae"];
   Fae -= Fme*T["am"];
   Fae -=.5*V["mnef"]*T["afmn"];
   Fae += V["anef"]*T["fn"];
 
-  CTF_Idx_Tensor Fmi(V["mi"],1);
+  CTF_Idx_Tensor Fmi(V["mi"]);
+  Fmi += V["mi"];
   Fmi += Fme*T["ei"];
   Fmi += .5*V["mnef"]*T["efin"];
   Fmi += V["mnfi"]*T["fn"];
 
-  CTF_Idx_Tensor Wmnei(V["mnei"],1);
+  CTF_Idx_Tensor Wmnei(V["mnei"]);
+  Wmnei += V["mnei"];
   Wmnei += V["mnef"]*T["fi"];
   
-  CTF_Idx_Tensor Wmnij(V["mnij"],1);
+  CTF_Idx_Tensor Wmnij(V["mnij"]);
+  Wmnij += V["mnij"];
   Wmnij -= V["mnei"]*T["ej"];
   Wmnij += V["mnef"]*T21["efij"];
 
-  CTF_Idx_Tensor Wamei(V["amei"],1);
+  CTF_Idx_Tensor Wamei(V["amei"]);
+  Wamei += V["amei"];
   Wamei -= Wmnei*T["an"];
   Wamei += V["amef"]*T["fi"];
   Wamei += .5*V["mnef"]*T["afin"];
   
-  CTF_Idx_Tensor Wamij(V["amij"],1);
+  CTF_Idx_Tensor Wamij(V["amij"]);
+  Wamij += V["amij"];
   Wamij += V["amei"]*T["ej"];
   Wamij += V["amef"]*T["efij"];
 
-  CTF_Idx_Tensor Zai(V["ai"],1);
+  CTF_Idx_Tensor Zai(V["ai"]);
+  Zai += V["ai"];
   Zai -= Fmi*T["am"]; 
   Zai += V["ae"]*T["ei"]; 
   Zai += V["amei"]*T["em"];
@@ -202,7 +212,8 @@ void ccsd(Integrals   &V,
   Zai += .5*V["amef"]*T21["efim"];
   Zai -= .5*Wmnei*T21["eamn"];
   
-  CTF_Idx_Tensor Zabij(V["abij"],1);
+  CTF_Idx_Tensor Zabij(V["abij"]);
+  Zabij += V["abij"];
   Zabij += V["abei"]*T["ej"];
   Zabij += Wamei*T["ebmj"];
   Zabij -= Wamij*T["bm"]; 
@@ -224,6 +235,8 @@ void ccsd(Integrals   &V,
   Dabij["abij"] += V["j"];
   Dabij["abij"] -= V["a"];
   Dabij["abij"] -= V["b"];
+
+  sched.execute();
 
   T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);

@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <vector>
+#include <set>
+#include <map>
 #include "../src/dist_tensor/cyclopstf.hpp"
 
 /**
@@ -1057,6 +1059,101 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
 /**
  * @}
  */
+
+/**
+ * \defgroup scheduler Dynamic scheduler.
+ * @{
+ */
+enum tCTF_TensorOperationTypes { SUM, SUBTRACT, MULTIPLY };
+
+class tCTF_TensorOperationBase {
+
+};
+
+template<typename dtype>
+class tCTF_TensorOperation : tCTF_TensorOperationBase {
+public:
+	/**
+	 * \brief Constructor, create the tensor operation lhs op= rhs
+	 */
+	tCTF_TensorOperation(tCTF_TensorOperationTypes op,
+			tCTF_Idx_Tensor<dtype>* lhs,
+			tCTF_Term<dtype>* rhs) :
+			  op(op),
+			  lhs(lhs),
+			  rhs(rhs) {}
+
+	/**
+	 * \brief returns the tensor this writes to
+	 * TODO: could this ever write to multiple targets?
+	 */
+	tCTF_Tensor<dtype>* get_outputs();
+
+	/**
+	 * \brief returns a set of tensors this depends on (reads from)
+	 */
+	std::set<tCTF_Tensor<dtype>*> get_inputs();
+
+protected:
+	tCTF_TensorOperationTypes op;
+	tCTF_Idx_Tensor<dtype>* lhs;
+	tCTF_Term<dtype>* rhs;
+};
+
+// untemplatized scheduler abstract base class to assist in global operations
+class tCTF_ScheduleBase {
+	virtual void add_operation(tCTF_TensorOperationBase* op) = 0;
+};
+
+extern tCTF_ScheduleBase* global_schedule;
+
+template<typename dtype>
+class tCTF_Schedule : public tCTF_ScheduleBase {
+public:
+	/**
+	 * \brief Starts recording all tensor operations to this schedule
+	 * (instead of executing them immediately)
+	 */
+	void record();
+
+	/**
+	 * \brief Executes the schedule and implicitly terminates recording
+	 */
+	void execute();
+
+	/**
+	 * \brief Adds a tensor operation to this schedule.
+	 * THIS IS CALL ORDER DEPENDENT - operations will *appear* to execute
+	 * sequentially in the order they were added.
+	 */
+	void add_operation_typed(tCTF_TensorOperation<dtype>* op);
+	void add_operation(tCTF_TensorOperationBase* op);
+
+protected:
+	/**
+	 * Internal scheduling operation overview:
+	 * DAG Structure:
+	 * 	This maintains an ordered list of steps, which defines when an operation
+	 * 	may be performed while respecting dependencies. A operation is at step
+	 * 	n+1 when the last write to any of its dependencies are at step n.
+	 * 	Step 0 is the root (may be executed immediately).
+	 *
+	 * DAG Construction:
+	 * 	A map of tCTF_Tensor -> int, representing the last step in which a
+	 * 	tensor was written to. If no entry exists (yet), it is implicitly -1.
+	 * 	On each add_operation call, the dependencies are scanned to find the
+	 * 	proper step to insert it. Additional data-level optimizations (like
+	 * 	aggregating separate sum operations) done here, though scheduling
+	 * 	optimizations and decisions are left until execute. This only determines
+	 * 	the earliest time an operation *may* be executed to respect scheduling.
+	 */
+	std::vector<std::vector<tCTF_TensorOperation<dtype>*> > steps;
+	std::map<tCTF_Tensor<dtype>*, int> tensor_latest_write;
+};
+/**
+ * @}
+ */
+
 
 
 /**

@@ -26,6 +26,7 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     interface/ctf_tensor.o \
                     interface/ctf_matrix.o \
                     interface/ctf_scalar.o \
+                    interface/ctf_schedule.o \
                     interface/ctf_vector.o \
                     interface/ctf_term.o \
                     interface/ctf_idx_tensor.o \
