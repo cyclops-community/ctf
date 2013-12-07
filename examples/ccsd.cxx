@@ -158,6 +158,26 @@ class Amplitudes {
     if (strlen(idx_map_) == 4) return abij[idx_map_];
     else return ai[idx_map_];
   }
+  
+  void fill_rand(){
+    int i, rank;
+    long_int j, sz, * indices;
+    double * values;
+    
+    CTF_Tensor * tarr[] =  {&ai, &abij};
+    MPI_Comm comm = dw->comm;
+    MPI_Comm_rank(comm, &rank);
+
+    srand48(rank*25);
+
+    for (i=0; i<2; i++){
+      tarr[i]->read_local(&sz, &indices, &values);
+//      for (j=0; j<sz; j++) values[j] = drand48()-.5;
+      for (j=0; j<sz; j++) values[j] = ((indices[j]*13+i)%13077)/13077. -.5;
+      tarr[i]->write(sz, indices, values);
+      free(indices), free(values);
+    }
+  }
 };
 
 void ccsd(Integrals   &V,
@@ -166,36 +186,53 @@ void ccsd(Integrals   &V,
   CTF_Tensor T21 = CTF_Tensor(T.abij);
   T21["abij"] += .5*T["ai"]*T["bj"];
 
-  CTF_Idx_Tensor Fme(V["me"],1);
+  CTF_Tensor tFme(*V["me"].parent);
+  CTF_Idx_Tensor Fme(&tFme,"me");
+  Fme += V["me"];
   Fme += V["mnef"]*T["fn"];
   
-  CTF_Idx_Tensor Fae(V["ae"],1);
+  CTF_Tensor tFae(*V["ae"].parent);
+  CTF_Idx_Tensor Fae(&tFae,"ae");
+  Fae += V["ae"];
   Fae -= Fme*T["am"];
   Fae -=.5*V["mnef"]*T["afmn"];
   Fae += V["anef"]*T["fn"];
 
-  CTF_Idx_Tensor Fmi(V["mi"],1);
+  CTF_Tensor tFmi(*V["mi"].parent);
+  CTF_Idx_Tensor Fmi(&tFmi,"mi");
+  Fmi += V["mi"];
   Fmi += Fme*T["ei"];
   Fmi += .5*V["mnef"]*T["efin"];
   Fmi += V["mnfi"]*T["fn"];
 
-  CTF_Idx_Tensor Wmnei(V["mnei"],1);
+  CTF_Tensor tWmnei(*V["mnei"].parent);
+  CTF_Idx_Tensor Wmnei(&tWmnei,"mnei");
+  Wmnei += V["mnei"];
+  Wmnei += V["mnei"];
   Wmnei += V["mnef"]*T["fi"];
   
-  CTF_Idx_Tensor Wmnij(V["mnij"],1);
+  CTF_Tensor tWmnij(*V["mnij"].parent);
+  CTF_Idx_Tensor Wmnij(&tWmnij,"mnij");
+  Wmnij += V["mnij"];
   Wmnij -= V["mnei"]*T["ej"];
   Wmnij += V["mnef"]*T21["efij"];
 
-  CTF_Idx_Tensor Wamei(V["amei"],1);
+  CTF_Tensor tWamei(*V["amei"].parent);
+  CTF_Idx_Tensor Wamei(&tWamei,"amei");
+  Wamei += V["amei"];
   Wamei -= Wmnei*T["an"];
   Wamei += V["amef"]*T["fi"];
   Wamei += .5*V["mnef"]*T["afin"];
   
-  CTF_Idx_Tensor Wamij(V["amij"],1);
+  CTF_Tensor tWamij(*V["amij"].parent);
+  CTF_Idx_Tensor Wamij(&tWamij,"amij");
+  Wamij += V["amij"];
   Wamij += V["amei"]*T["ej"];
   Wamij += V["amef"]*T["efij"];
 
-  CTF_Idx_Tensor Zai(V["ai"],1);
+  CTF_Tensor tZai(*V["ai"].parent);
+  CTF_Idx_Tensor Zai(&tZai,"ai");
+  Zai += V["ai"];
   Zai -= Fmi*T["am"]; 
   Zai += V["ae"]*T["ei"]; 
   Zai += V["amei"]*T["em"];
@@ -203,7 +240,9 @@ void ccsd(Integrals   &V,
   Zai += .5*V["amef"]*T21["efim"];
   Zai -= .5*Wmnei*T21["eamn"];
   
-  CTF_Idx_Tensor Zabij(V["abij"],1);
+  CTF_Tensor tZabij(*V["abij"].parent);
+  CTF_Idx_Tensor Zabij(&tZabij,"abij");
+  Zabij += V["abij"];
   Zabij += V["abei"]*T["ej"];
   Zabij += Wamei*T["ebmj"];
   Zabij -= Wamij*T["bm"]; 
@@ -272,6 +311,7 @@ int main(int argc, char ** argv){
       V.fill_rand();
       Amplitudes T(no, nv, dw);
       for (i=0; i<niter; i++){
+        T.fill_rand();
         double d = MPI_Wtime();
         ccsd(V,T);
         if (rank == 0)
