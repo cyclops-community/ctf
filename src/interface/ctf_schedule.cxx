@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdlib.h> // TODO: remove me; for random
+#include <time.h>
 #include "../shared/util.h"
 #include "../../include/ctf.hpp"
 
@@ -27,6 +28,8 @@ void tCTF_Schedule<dtype>::execute_op(tCTF_TensorOperation<dtype>* op) {
 
 template<typename dtype>
 void tCTF_Schedule<dtype>::execute() {
+  srand (time(NULL));
+
   global_schedule = NULL;
 
   typename std::deque<tCTF_TensorOperation<dtype>*>::iterator it;
@@ -36,19 +39,22 @@ void tCTF_Schedule<dtype>::execute() {
     (*it)->dependency_left = (*it)->dependency_count;
   }
   ready_tasks = root_tasks;
+  int front = ready_tasks.size();
 
   while (!ready_tasks.empty()) {
-    std::cout << "RQ exec " << ready_tasks.size() << std::endl;
+    int elem = rand() % front;
 
-    int elem = 10;
-    if (elem >= ready_tasks.size()) {
-      elem = ready_tasks.size() - 1;
-    }
+    std::cout << "RQ exec " << elem << "/" << front << " / " << ready_tasks.size() << std::endl;
 
     it = ready_tasks.begin() + elem;
     tCTF_TensorOperation<dtype>* op = *it;
     ready_tasks.erase(it);
     execute_op(op);
+    front--;
+
+    if (front == 0) {
+      front = ready_tasks.size();
+    }
   }
 }
 
@@ -56,8 +62,9 @@ template<typename dtype>
 void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) {
   steps_original.push_back(op);
 
+  tCTF_Tensor<dtype>* op_lhs = op->get_outputs();
   std::set<tCTF_Tensor<dtype>*> op_deps = op->get_inputs();
-  tCTF_Tensor<dtype>* op_rhs = op->get_outputs();
+  op_deps.insert(op_lhs); // implicitly depends on myself
 
   typename std::set<tCTF_Tensor<dtype>*>::iterator deps_iter;
   for (deps_iter = op_deps.begin(); deps_iter != op_deps.end(); deps_iter++) {
@@ -71,7 +78,7 @@ void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) 
       op->dependency_count++;
     }
   }
-  latest_write[op_rhs] = op;
+  latest_write[op_lhs] = op;
 
   if (op->dependency_count == 0) {
     root_tasks.push_back(op);

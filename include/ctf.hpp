@@ -1116,7 +1116,8 @@ public:
 			  op(op),
 			  lhs(lhs),
 			  rhs(rhs),
-			  dependency_count(0) {}
+			  dependency_count(0),
+			  read_dependency_count(0) {}
 
 	/**
 	 * \brief returns the tensor this writes to
@@ -1137,8 +1138,15 @@ public:
   /**
    * Schedule Recording Variables
    */
+	// Number of dependencies I have
   int dependency_count;
+  // List of all successors - operations which have me as a dependency
   std::vector<tCTF_TensorOperation<dtype>* > successors;
+
+  // Number of operations which read from me
+  int read_dependency_count;
+  // The operation which writes to the variable I write to next
+  tCTF_TensorOperation<dtype>* next_write;
 
   /**
    * Schedule Execution Variables
