@@ -183,6 +183,9 @@ class Amplitudes {
 void ccsd(Integrals   &V,
           Amplitudes  &T){
 
+  tCTF_Schedule<double> sched;
+  sched.record();
+
   CTF_Tensor T21 = CTF_Tensor(T.abij);
   T21["abij"] += .5*T["ai"]*T["bj"];
 
@@ -264,6 +267,8 @@ void ccsd(Integrals   &V,
   Dabij["abij"] += V["j"];
   Dabij["abij"] -= V["a"];
   Dabij["abij"] -= V["b"];
+
+  sched.execute();
 
   T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
