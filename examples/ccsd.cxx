@@ -182,7 +182,7 @@ class Amplitudes {
 
 void ccsd(Integrals   &V,
           Amplitudes  &T){
-
+  double timer = MPI_Wtime();
   tCTF_Schedule<double> sched;
   sched.record();
 
@@ -254,6 +254,10 @@ void ccsd(Integrals   &V,
   Zabij += .5*V["abef"]*T21["efij"];
   Zabij += .5*Wmnij*T21["abmn"];
   
+  printf("Record: %lf\n",
+          MPI_Wtime()-timer);
+
+  timer = MPI_Wtime();
   sched.execute();
 
   CTF_fctr fctr;
@@ -274,6 +278,9 @@ void ccsd(Integrals   &V,
 
   T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
+
+  printf("All execute: %lf\n",
+          MPI_Wtime()-timer);
 } 
 
 #ifndef TEST_SUITE

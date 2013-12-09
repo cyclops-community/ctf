@@ -42,9 +42,9 @@ void tCTF_Schedule<dtype>::execute() {
   int front = ready_tasks.size();
 
   while (!ready_tasks.empty()) {
-    int elem = rand() % front;
+    int elem = rand() % ready_tasks.size();
 
-    std::cout << "RQ exec " << elem << "/" << front << " / " << ready_tasks.size() << std::endl;
+    //std::cout << "RQ exec " << elem << "/" << ready_tasks.size() << std::endl;
 
     it = ready_tasks.begin() + elem;
     tCTF_TensorOperation<dtype>* op = *it;
@@ -69,19 +69,35 @@ void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) 
   for (deps_iter = op_deps.begin(); deps_iter != op_deps.end(); deps_iter++) {
     tCTF_Tensor<dtype>* dep = *deps_iter;
     typename std::map<tCTF_Tensor<dtype>*, tCTF_TensorOperation<dtype>*>::iterator dep_loc = latest_write.find(dep);
-    if (dep_loc == latest_write.end()) {
-      // dependency already "resolved" - do nothing
+    tCTF_TensorOperation<dtype>* dep_op;
+    if (dep_loc != latest_write.end()) {
+      dep_op = dep_loc->second;
     } else {
-      // need to add dependency
-      dep_loc->second->successors.push_back(op);
-      op->dependency_count++;
+      dep_op = new tCTF_TensorOperation<dtype>(TENSOR_OP_NONE, NULL, NULL);
+      latest_write[dep] = dep_op;
+      root_tasks.push_back(dep_op);
+      steps_original.push_back(dep_op);
+    }
+
+    dep_op->successors.push_back(op);
+    dep_op->reads.push_back(op);
+    op->dependency_count++;
+  }
+  typename std::map<tCTF_Tensor<dtype>*, tCTF_TensorOperation<dtype>*>::iterator prev_loc = latest_write.find(op_lhs);
+  if (prev_loc != latest_write.end()) {
+    // if there was a previous write, add its dependencies to my dependencies
+    // to ensure that I don't clobber values that a ready dependency needs
+    std::vector<tCTF_TensorOperation<dtype>*>* prev_reads = &(prev_loc->second->reads);
+    typename std::vector<tCTF_TensorOperation<dtype>*>::iterator prev_iter;
+    for (prev_iter = prev_reads->begin(); prev_iter != prev_reads->end(); prev_iter++) {
+      if (*prev_iter != op) {
+        (*prev_iter)->successors.push_back(op);
+        op->dependency_count++;
+      }
     }
   }
-  latest_write[op_lhs] = op;
 
-  if (op->dependency_count == 0) {
-    root_tasks.push_back(op);
-  }
+  latest_write[op_lhs] = op;
 }
 
 template<typename dtype>
@@ -96,6 +112,8 @@ void tCTF_TensorOperation<dtype>::execute() {
   assert(global_schedule == NULL);  // ensure this isn't going into a record()
 
   switch (op) {
+  case TENSOR_OP_NONE:
+    break;
   case TENSOR_OP_SET:
     *lhs = *rhs;
     break;
@@ -131,7 +149,7 @@ std::set<tCTF_Tensor<dtype>*> tCTF_TensorOperation<dtype>::get_inputs() const {
     inputs.insert(lhs->parent);
     break;
   default:
-    std::cerr << "tCTF_TensorOperation::execute(): unexpected op: " << op << std::endl;
+    std::cerr << "tCTF_TensorOperation::get_inputs(): unexpected op: " << op << std::endl;
     assert(false);
   }
   return inputs;

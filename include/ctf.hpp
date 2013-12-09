@@ -1086,6 +1086,7 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
  * @{
  */
 enum tCTF_TensorOperationTypes {
+  TENSOR_OP_NONE,
   TENSOR_OP_SET,
   TENSOR_OP_SUM,
   TENSOR_OP_SUBTRACT,
@@ -1116,8 +1117,7 @@ public:
 			  op(op),
 			  lhs(lhs),
 			  rhs(rhs),
-			  dependency_count(0),
-			  read_dependency_count(0) {}
+			  dependency_count(0) {}
 
 	/**
 	 * \brief returns the tensor this writes to
@@ -1140,13 +1140,9 @@ public:
    */
 	// Number of dependencies I have
   int dependency_count;
-  // List of all successors - operations which have me as a dependency
+  // List of all successors - operations that depend on me
   std::vector<tCTF_TensorOperation<dtype>* > successors;
-
-  // Number of operations which read from me
-  int read_dependency_count;
-  // The operation which writes to the variable I write to next
-  tCTF_TensorOperation<dtype>* next_write;
+  std::vector<tCTF_TensorOperation<dtype>* > reads;
 
   /**
    * Schedule Execution Variables
