@@ -12,7 +12,7 @@ void tCTF_Schedule<dtype>::record() {
 }
 
 template<typename dtype>
-void tCTF_Schedule<dtype>::execute_op(tCTF_TensorOperation<dtype>* op) {
+inline void tCTF_Schedule<dtype>::execute_op(tCTF_TensorOperation<dtype>* op) {
   assert(op->dependency_left == 0);
   op->execute();
 
@@ -39,22 +39,18 @@ void tCTF_Schedule<dtype>::execute() {
     (*it)->dependency_left = (*it)->dependency_count;
   }
   ready_tasks = root_tasks;
-  int front = ready_tasks.size();
 
   while (!ready_tasks.empty()) {
-    int elem = rand() % ready_tasks.size();
-
-    //std::cout << "RQ exec " << elem << "/" << ready_tasks.size() << std::endl;
-
+    /*int elem = rand() % ready_tasks.size();
+    std::cout << "RQ exec " << elem << "/" << ready_tasks.size() << std::endl;
     it = ready_tasks.begin() + elem;
     tCTF_TensorOperation<dtype>* op = *it;
     ready_tasks.erase(it);
-    execute_op(op);
-    front--;
+    execute_op(op);*/
 
-    if (front == 0) {
-      front = ready_tasks.size();
-    }
+    tCTF_TensorOperation<dtype>* op = ready_tasks.front();
+    ready_tasks.pop_front();
+    execute_op(op);
   }
 }
 

@@ -1180,7 +1180,7 @@ public:
 	/**
 	 * \bried Executes a tensor operation, handling scheduling
 	 */
-	void execute_op(tCTF_TensorOperation<dtype>* op);
+	inline void execute_op(tCTF_TensorOperation<dtype>* op);
 
 	/**
 	 * \brief Adds a tensor operation to this schedule.
