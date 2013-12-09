@@ -163,6 +163,7 @@ template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype> const & B){
   if (global_schedule != NULL) {
     std::cout << "op= tensor" << std::endl;
+    assert(false);
   } else {
     this->scale = 0.0;
     B.execute(*this);
@@ -172,7 +173,8 @@ void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype> const & B){
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Term<dtype> const & B){
   if (global_schedule != NULL) {
-    std::cout << "op= term" << std::endl;
+    global_schedule->add_operation(
+        new tCTF_TensorOperation<dtype>(TENSOR_OP_SET, new tCTF_Idx_Tensor(*this), B.clone()));
   } else {
     this->scale = 0.0;
     B.execute(*this);
@@ -182,7 +184,8 @@ void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Term<dtype> const & B){
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Term<dtype> const & B){
   if (global_schedule != NULL) {
-    std::cout << "op+= term" << std::endl;
+    global_schedule->add_operation(
+        new tCTF_TensorOperation<dtype>(TENSOR_OP_SUM, new tCTF_Idx_Tensor(*this), B.clone()));
   } else {
     this->scale = 1.0;
     B.execute(*this);
@@ -192,7 +195,8 @@ void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Term<dtype> const & B){
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> const & B){
   if (global_schedule != NULL) {
-    std::cout << "op-= term" << std::endl;
+    global_schedule->add_operation(
+        new tCTF_TensorOperation<dtype>(TENSOR_OP_SUBTRACT, new tCTF_Idx_Tensor(*this), B.clone()));
   } else {
     this->scale = 1.0;
     tCTF_Term<dtype> * Bcpy = B.clone();
@@ -205,7 +209,8 @@ void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> const & B){
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator*=(tCTF_Term<dtype> const & B){
   if (global_schedule != NULL) {
-    std::cout << "op*= term" << std::endl;
+    global_schedule->add_operation(
+        new tCTF_TensorOperation<dtype>(TENSOR_OP_MULTIPLY, new tCTF_Idx_Tensor(*this), B.clone()));
   } else {
     tCTF_Contract_Term<dtype> ctrm = (*this)*B;
     *this = ctrm;

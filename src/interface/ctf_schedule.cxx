@@ -1,3 +1,4 @@
+#include <iostream>
 #include "../shared/util.h"
 #include "../../include/ctf.hpp"
 
@@ -11,16 +12,46 @@ void tCTF_Schedule<dtype>::record() {
 template<typename dtype>
 void tCTF_Schedule<dtype>::execute() {
   global_schedule = NULL;
+
+  typename std::vector<tCTF_TensorOperation<dtype>*>::iterator it;
+  for (it = steps_original.begin(); it != steps_original.end(); it++) {
+    (*it)->execute();
+  }
 }
 
 template<typename dtype>
 void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) {
-  return;
+  steps_original.push_back(op);
 }
 
 template<typename dtype>
 void tCTF_Schedule<dtype>::add_operation(tCTF_TensorOperationBase* op) {
-  return;
+  tCTF_TensorOperation<dtype>* op_typed = dynamic_cast<tCTF_TensorOperation<dtype>* >(op);
+  assert(op_typed != NULL);
+  add_operation_typed(op_typed);
+}
+
+template<typename dtype>
+void tCTF_TensorOperation<dtype>::execute() {
+  assert(global_schedule == NULL);  // ensure this isn't going into a record()
+
+  switch (op) {
+  case TENSOR_OP_SET:
+    *lhs = *rhs;
+    break;
+  case TENSOR_OP_SUM:
+    *lhs += *rhs;
+    break;
+  case TENSOR_OP_SUBTRACT:
+    *lhs -= *rhs;
+    break;
+  case TENSOR_OP_MULTIPLY:
+    *lhs *= *rhs;
+    break;
+  default:
+    std::cerr << "tCTF_TensorOperation::execute(): unexpected op: " << op << std::endl;
+    assert(false);
+  }
 }
 
 template<typename dtype>

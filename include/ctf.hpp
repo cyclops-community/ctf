@@ -1064,21 +1064,26 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
  * \defgroup scheduler Dynamic scheduler.
  * @{
  */
-enum tCTF_TensorOperationTypes { SUM, SUBTRACT, MULTIPLY };
+enum tCTF_TensorOperationTypes {
+  TENSOR_OP_SET,
+  TENSOR_OP_SUM,
+  TENSOR_OP_SUBTRACT,
+  TENSOR_OP_MULTIPLY };
 
 class tCTF_TensorOperationBase {
-
+public:
+  virtual ~tCTF_TensorOperationBase() {}
 };
 
 template<typename dtype>
-class tCTF_TensorOperation : tCTF_TensorOperationBase {
+class tCTF_TensorOperation : public tCTF_TensorOperationBase {
 public:
 	/**
 	 * \brief Constructor, create the tensor operation lhs op= rhs
 	 */
 	tCTF_TensorOperation(tCTF_TensorOperationTypes op,
 			tCTF_Idx_Tensor<dtype>* lhs,
-			tCTF_Term<dtype>* rhs) :
+			const tCTF_Term<dtype>* rhs) :
 			  op(op),
 			  lhs(lhs),
 			  rhs(rhs) {}
@@ -1094,14 +1099,17 @@ public:
 	 */
 	std::set<tCTF_Tensor<dtype>*> get_inputs();
 
+	void execute();
+
 protected:
 	tCTF_TensorOperationTypes op;
 	tCTF_Idx_Tensor<dtype>* lhs;
-	tCTF_Term<dtype>* rhs;
+	const tCTF_Term<dtype>* rhs;
 };
 
 // untemplatized scheduler abstract base class to assist in global operations
 class tCTF_ScheduleBase {
+public:
 	virtual void add_operation(tCTF_TensorOperationBase* op) = 0;
 };
 
@@ -1149,6 +1157,8 @@ protected:
 	 */
 	std::vector<std::vector<tCTF_TensorOperation<dtype>*> > steps;
 	std::map<tCTF_Tensor<dtype>*, int> tensor_latest_write;
+
+	std::vector<tCTF_TensorOperation<dtype>*> steps_original;
 };
 /**
  * @}

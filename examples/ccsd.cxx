@@ -254,6 +254,8 @@ void ccsd(Integrals   &V,
   Zabij += .5*V["abef"]*T21["efij"];
   Zabij += .5*Wmnij*T21["abmn"];
   
+  sched.execute();
+
   CTF_fctr fctr;
   fctr.func_ptr = &divide;
 
@@ -268,7 +270,7 @@ void ccsd(Integrals   &V,
   Dabij["abij"] -= V["a"];
   Dabij["abij"] -= V["b"];
 
-  sched.execute();
+
 
   T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
