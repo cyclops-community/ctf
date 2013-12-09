@@ -64,7 +64,6 @@ void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) 
 
   tCTF_Tensor<dtype>* op_lhs = op->get_outputs();
   std::set<tCTF_Tensor<dtype>*> op_deps = op->get_inputs();
-  op_deps.insert(op_lhs); // implicitly depends on myself
 
   typename std::set<tCTF_Tensor<dtype>*>::iterator deps_iter;
   for (deps_iter = op_deps.begin(); deps_iter != op_deps.end(); deps_iter++) {
@@ -122,7 +121,20 @@ tCTF_Tensor<dtype>* tCTF_TensorOperation<dtype>::get_outputs() const {
 
 template<typename dtype>
 std::set<tCTF_Tensor<dtype>*> tCTF_TensorOperation<dtype>::get_inputs() const {
-  return rhs->get_inputs();
+  typename std::set<tCTF_Tensor<dtype>*> inputs = rhs->get_inputs();
+  switch (op) {
+  case TENSOR_OP_SET:
+    break;
+  case TENSOR_OP_SUM:
+  case TENSOR_OP_SUBTRACT:
+  case TENSOR_OP_MULTIPLY:
+    inputs.insert(lhs->parent);
+    break;
+  default:
+    std::cerr << "tCTF_TensorOperation::execute(): unexpected op: " << op << std::endl;
+    assert(false);
+  }
+  return inputs;
 }
 
 template class tCTF_Schedule<double>;
