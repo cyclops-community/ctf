@@ -235,6 +235,13 @@ tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::execute() const {
   return *this;
 }
 
+template<typename dtype>
+std::set<tCTF_Tensor<dtype>*> tCTF_Idx_Tensor<dtype>::get_inputs() const {
+  std::set<tCTF_Tensor<dtype>*> inputs;
+  inputs.insert(parent);
+  return inputs;
+}
+
 /*template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(dtype B){
   *this=(tCTF_Scalar<dtype>(B,*(this->parent->world))[""]);
@@ -337,9 +344,6 @@ void tCTF_Idx_Tensor<dtype>::run(tCTF_Idx_Tensor<dtype>* output, dtype  beta){
 //  if (!is_perm)
 //    delete this;
 }*/
-
-
-
 
 template class tCTF_Idx_Tensor<double>;
 #ifdef CTF_COMPLEX

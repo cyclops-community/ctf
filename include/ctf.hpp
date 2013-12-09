@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <vector>
+#include <deque>
 #include <set>
 #include <map>
 #include "../src/dist_tensor/cyclopstf.hpp"
@@ -667,6 +668,11 @@ class tCTF_Idx_Tensor : public tCTF_Term<dtype> {
     void execute(tCTF_Idx_Tensor<dtype> output) const;
     
     /**
+     * \brief returns the set of input tensors
+     */
+    std::set<tCTF_Tensor<dtype>*> get_inputs() const;
+
+    /**
      * \brief A = B, compute any operations on operand B and set
      * \param[in] B tensor on the right hand side
      */
@@ -911,6 +917,11 @@ class tCTF_Term {
     virtual tCTF_Idx_Tensor<dtype> execute() const = 0;
     
     /**
+     * \brief returns the set of input tensors
+     */
+    virtual std::set<tCTF_Tensor<dtype>*> get_inputs() const = 0;
+
+    /**
      * \brief constructs a new term which multiplies by tensor A
      * \param[in] A term to multiply by
      */
@@ -973,7 +984,7 @@ class tCTF_Sum_Term : public tCTF_Term<dtype> {
      * \param[in,out] output tensor to write results into and its indices
      */
     void execute(tCTF_Idx_Tensor<dtype> output) const;
-    
+
     /**
      * \brief evalues the expression to produce an intermediate with 
      *        all expression indices remaining
@@ -981,6 +992,11 @@ class tCTF_Sum_Term : public tCTF_Term<dtype> {
      */
     tCTF_Idx_Tensor<dtype> execute() const;
     
+    /**
+     * \brief returns the set of input tensors
+     */
+    std::set<tCTF_Tensor<dtype>*> get_inputs() const;
+
     /**
      * \brief constructs a new term by addition of two terms
      * \param[in] A term to add to output
@@ -1039,6 +1055,11 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
     void execute(tCTF_Idx_Tensor<dtype> output) const;
     
     /**
+     * \brief returns the set of input tensors
+     */
+    std::set<tCTF_Tensor<dtype>*> get_inputs() const;
+
+    /**
      * \brief evalues the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
@@ -1070,11 +1091,19 @@ enum tCTF_TensorOperationTypes {
   TENSOR_OP_SUBTRACT,
   TENSOR_OP_MULTIPLY };
 
+/**
+ * \brief Provides a untemplated base class for tensor operations.
+ */
 class tCTF_TensorOperationBase {
 public:
   virtual ~tCTF_TensorOperationBase() {}
 };
 
+/**
+ * \brief A tensor operation, containing all the data (op, lhs, rhs) required
+ * to run it. Also provides methods to get a list of inputs and outputs, as well
+ * as successor and dependency information used in scheduling.
+ */
 template<typename dtype>
 class tCTF_TensorOperation : public tCTF_TensorOperationBase {
 public:
@@ -1086,20 +1115,35 @@ public:
 			const tCTF_Term<dtype>* rhs) :
 			  op(op),
 			  lhs(lhs),
-			  rhs(rhs) {}
+			  rhs(rhs),
+			  dependency_count(0) {}
 
 	/**
 	 * \brief returns the tensor this writes to
 	 * TODO: could this ever write to multiple targets?
 	 */
-	tCTF_Tensor<dtype>* get_outputs();
+	tCTF_Tensor<dtype>* get_outputs() const;
 
 	/**
 	 * \brief returns a set of tensors this depends on (reads from)
 	 */
-	std::set<tCTF_Tensor<dtype>*> get_inputs();
+	std::set<tCTF_Tensor<dtype>*> get_inputs() const;
 
+	/**
+	 * \brief runs this operation, but does NOT handle dependency scheduling
+	 */
 	void execute();
+
+  /**
+   * Schedule Recording Variables
+   */
+  int dependency_count;
+  std::vector<tCTF_TensorOperation<dtype>* > successors;
+
+  /**
+   * Schedule Execution Variables
+   */
+  int dependency_left;
 
 protected:
 	tCTF_TensorOperationTypes op;
@@ -1130,6 +1174,11 @@ public:
 	void execute();
 
 	/**
+	 * \bried Executes a tensor operation, handling scheduling
+	 */
+	void execute_op(tCTF_TensorOperation<dtype>* op);
+
+	/**
 	 * \brief Adds a tensor operation to this schedule.
 	 * THIS IS CALL ORDER DEPENDENT - operations will *appear* to execute
 	 * sequentially in the order they were added.
@@ -1141,24 +1190,46 @@ protected:
 	/**
 	 * Internal scheduling operation overview:
 	 * DAG Structure:
-	 * 	This maintains an ordered list of steps, which defines when an operation
-	 * 	may be performed while respecting dependencies. A operation is at step
-	 * 	n+1 when the last write to any of its dependencies are at step n.
-	 * 	Step 0 is the root (may be executed immediately).
+	 *  Each task maintains:
+	 *    dependency_count: the number of dependencies that the task has
+	 *    dependency_left: the number of dependencies left before this task can
+	 *      execute
+	 *    successors: a vector of tasks which has this as a dependency
+	 *  On completing a task, it decrements the dependency_left of all
+	 *  successors. Once the count reaches zero, the task is added to the ready
+	 *  queue and can be scheduled for execution.
+	 *  To allow one schedule to be executed many times, dependency_count is
+	 *  only modified by recording tasks, and is copied to dependency_left when
+	 *  the schedule starts executing.
 	 *
 	 * DAG Construction:
-	 * 	A map of tCTF_Tensor -> int, representing the last step in which a
-	 * 	tensor was written to. If no entry exists (yet), it is implicitly -1.
-	 * 	On each add_operation call, the dependencies are scanned to find the
-	 * 	proper step to insert it. Additional data-level optimizations (like
-	 * 	aggregating separate sum operations) done here, though scheduling
-	 * 	optimizations and decisions are left until execute. This only determines
-	 * 	the earliest time an operation *may* be executed to respect scheduling.
+	 *  A map from tensors pointers to operations is maintained, which contains
+	 *  the latest operation that writes to a tensor.
+	 *  When a new operation is added, it checks this map for all dependencies.
+	 *  If a dependency has no entry yet, then it is considered satisfied.
+	 *  Otherwise, it depends on the current entry - and the latest write
+	 *  operation adds this task as a successor.
+	 *  Then, the latest_write for this operation is updated.
 	 */
-	std::vector<std::vector<tCTF_TensorOperation<dtype>*> > steps;
-	std::map<tCTF_Tensor<dtype>*, int> tensor_latest_write;
 
-	std::vector<tCTF_TensorOperation<dtype>*> steps_original;
+	/**
+	 * Schedule Recording Variables
+	 */
+	// Tasks with no dependencies, which can be executed at the start
+	std::deque<tCTF_TensorOperation<dtype>*> root_tasks;
+
+  // For debugging purposes - the steps in the original input order
+  std::deque<tCTF_TensorOperation<dtype>*> steps_original;
+
+  // Last operation writing to the key tensor
+  std::map<tCTF_Tensor<dtype>*, tCTF_TensorOperation<dtype>*> latest_write;
+
+  /**
+   * Schedule Execution Variables
+   */
+  // Ready queue of tasks with all dependencies satisfied
+  std::deque<tCTF_TensorOperation<dtype>*> ready_tasks;
+
 };
 /**
  * @}

@@ -242,6 +242,16 @@ void tCTF_Sum_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output) const{
 }
 
 template<typename dtype>
+std::set<tCTF_Tensor<dtype>*> tCTF_Sum_Term<dtype>::get_inputs() const {
+  std::set<tCTF_Tensor<dtype>*> inputs;
+  for (int i=0; i<(int)operands.size(); i++){
+    std::set<tCTF_Tensor<dtype>*> op_inputs = operands[i]->get_inputs();
+    inputs.insert(op_inputs.begin(), op_inputs.end());
+  }
+  return inputs;
+}
+
+template<typename dtype>
 tCTF_World<dtype> * tCTF_Sum_Term<dtype>::where_am_i() const {
   tCTF_World<dtype> * w = NULL;
   for (int i=0; i<(int)operands.size(); i++){
@@ -387,6 +397,15 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
   return tmp_ops[0]->execute();
 }
 
+template<typename dtype>
+std::set<tCTF_Tensor<dtype>*> tCTF_Contract_Term<dtype>::get_inputs() const {
+  std::set<tCTF_Tensor<dtype>*> inputs;
+  for (int i=0; i<(int)operands.size(); i++){
+    std::set<tCTF_Tensor<dtype>*> op_inputs = operands[i]->get_inputs();
+    inputs.insert(op_inputs.begin(), op_inputs.end());
+  }
+  return inputs;
+}
 
 template class tCTF_Term<double>;
 template class tCTF_Sum_Term<double>;
