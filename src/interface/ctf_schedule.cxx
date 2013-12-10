@@ -69,6 +69,8 @@ void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) 
     if (dep_loc != latest_write.end()) {
       dep_op = dep_loc->second;
     } else {
+      // create dummy "guard" operation to serve as a root dependency
+      // TODO: this can be optimized away
       dep_op = new tCTF_TensorOperation<dtype>(TENSOR_OP_NONE, NULL, NULL);
       latest_write[dep] = dep_op;
       root_tasks.push_back(dep_op);
