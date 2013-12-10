@@ -452,6 +452,48 @@ int tCTF<dtype>::set_zero_tensor(int const tensor_id){
   return dt->set_zero_tsr(tensor_id);
 }
 
+
+
+/**
+ * \brief estimate the cost of a contraction C[idx_C] = A[idx_A]*B[idx_B]
+ * \param[in] A first operand tensor
+ * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+ * \param[in] B second operand tensor
+ * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+ * \param[in] beta C scaling factor
+ * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
+ * \return cost as a int64_t type, currently a rought estimate of flops/processor
+ */
+template<typename dtype>
+int64_t tCTF<dtype>::estimate_cost(int          tid_A,
+                      int const *  idx_A,
+                      int          tid_B,
+                      int const *  idx_B,
+                      int          tid_C,
+                      int const *  idx_C){
+  return dt->estimate_cost(tid_A, idx_A, tid_B, idx_B, tid_C, idx_C);
+  
+}
+
+/**
+ * \brief estimate the cost of a sum B[idx_B] = A[idx_A]
+ * \param[in] A first operand tensor
+ * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+ * \param[in] B second operand tensor
+ * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+ * \return cost as a int64_t type, currently a rought estimate of flops/processor
+ */
+template<typename dtype>
+int64_t tCTF<dtype>::estimate_cost(int          tid_A,
+                      int const *  idx_A,
+                      int          tid_B,
+                      int const *  idx_B){
+  return dt->estimate_cost(tid_A, idx_A, tid_B, idx_B);
+  
+}
+
+
+
 /**
  * \brief read tensor data pairs local to processor. 
  * \param[in] tensor_id tensor handle
