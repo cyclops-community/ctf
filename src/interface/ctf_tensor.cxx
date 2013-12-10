@@ -242,6 +242,34 @@ long_int tCTF_Tensor<dtype>::read_all(dtype * vals) const {
 }
 
 template<typename dtype>
+int64_t tCTF_Tensor<dtype>::estimate_cost(
+                                  const tCTF_Tensor<dtype>&     A,
+                                  const char *                  idx_A,
+                                  const tCTF_Tensor<dtype>&     B,
+                                  const char *                  idx_B,
+                                  const char *                  idx_C){
+  int * idx_map_A, * idx_map_B, * idx_map_C;
+  conv_idx(A.ndim, idx_A, &idx_map_A,
+           B.ndim, idx_B, &idx_map_B,
+           ndim, idx_C, &idx_map_C);
+  return world->ctf->estimate_cost(A.tid, idx_map_A, B.tid, idx_map_B, tid, idx_map_C);
+}
+
+template<typename dtype>
+int64_t tCTF_Tensor<dtype>::estimate_cost(
+                                  const tCTF_Tensor<dtype>&     A,
+                                  const char *                  idx_A,
+                                  const char *                  idx_B){
+  int * idx_map_A, * idx_map_B;
+  CTF_sum_type_t st;
+  conv_idx(A.ndim, idx_A, &idx_map_A,
+           ndim, idx_B, &idx_map_B);
+  return world->ctf->estimate_cost(A.tid, idx_map_A, tid, idx_map_B);
+
+  
+}
+
+template<typename dtype>
 void tCTF_Tensor<dtype>::contract(dtype                         alpha,
                                   const tCTF_Tensor<dtype>&     A,
                                   const char *                  idx_A,

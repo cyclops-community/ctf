@@ -1015,10 +1015,31 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
     if (sz_B > 0)
       CTF_free(all_data_B);*/
 
-  if (dt_A == dt_B){
+/*  if (dt_A == dt_B){
+    int ntid_B;
+    int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda, * old_padding;
+    int * old_edge_len;
+    dt_A->define_tensor(ndim_B,len_B, sym_B,&ntid_B,1,tsr_B->name,tsr_B->profile);
+    save_mapping(tsr_B, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda, 
+                     &old_size, &was_padded, &old_padding, &old_edge_len, &dt_B->topovec[tsr_B->itopo]);
+    tensor<dtype> * ntsr_B = dt_A->tensors[ntid_B];
+    CTF_free(ntsr_B->data);
+    ntsr_B->data = (dtype*)CTF_alloc(sizeof(dtype)*tsr_B->size);
+    if (ntsr_B->is_home) ntsr_B->home_buffer = ntsr_B->data;
+    memcpy(ntsr_B->data, tsr_B->data,sizeof(dtype)*tsr_B->size);
+    remap_tensor(ntid_B, ntsr_B, &topovec[ntsr_B->itopo], old_size, 
+                 old_phase, old_rank, old_virt_dim, 
+                 old_pe_lda, was_padded, was_cyclic, 
+                 old_padding, old_edge_len, global_comm);   
+  CTF_free(old_phase);
+  CTF_free(old_rank);
+    remap_tensor(ntid_B,
+                 tsr_B,
+                 dt
+    
     //use remap_tensor()
   } //else {
-
+*/
   if (dt_B->get_global_comm()->np <
       dt_A->get_global_comm()->np){
     if (ndim_B == 0 || tsr_B->has_zero_edge_len){
@@ -2346,3 +2367,4 @@ void dist_tensor<dtype>::contract_mst(){
 #include "dist_tensor_op.cxx"
 #include "dist_tensor_inner.cxx"
 #include "dist_tensor_fold.cxx"
+#include "dist_tensor_model.cxx"

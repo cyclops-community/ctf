@@ -265,6 +265,34 @@ class tCTF_Tensor {
                   dtype                    beta,
                   char const *             idx_C,
                   tCTF_fctr<dtype>         fseq = tCTF_fctr<dtype>());
+
+    /**
+     * \brief estimate the cost of a contraction C[idx_C] = A[idx_A]*B[idx_B]
+     * \param[in] A first operand tensor
+     * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+     * \param[in] B second operand tensor
+     * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+     * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
+     * \return cost as a int64_t type, currently a rought estimate of flops/processor
+     */
+    int64_t estimate_cost(const tCTF_Tensor & A,
+                          char const *        idx_A,
+                          const tCTF_Tensor & B,
+                          char const *        idx_B,
+                          char const *        idx_C);
+    
+    /**
+     * \brief estimate the cost of a sum B[idx_B] = A[idx_A]
+     * \param[in] A first operand tensor
+     * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+     * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+     * \return cost as a int64_t type, currently a rought estimate of flops/processor
+     */
+    int64_t estimate_cost(const tCTF_Tensor & A,
+                          char const *        idx_A,
+                          char const *        idx_B);
+
+
     
     /**
      * \brief sums B[idx_B] = beta*B[idx_B] + alpha*A[idx_A]
