@@ -1,6 +1,4 @@
 #include <iostream>
-#include <stdlib.h> // TODO: remove me; for random
-#include <time.h>
 #include "../shared/util.h"
 #include "../../include/ctf.hpp"
 
@@ -27,6 +25,23 @@ inline void tCTF_Schedule<dtype>::execute_op(tCTF_TensorOperation<dtype>* op) {
 }
 
 template<typename dtype>
+void tCTF_Schedule<dtype>::partition_and_execute() {
+  int rank, size;
+  MPI_Comm_rank(world->comm, &rank);
+  MPI_Comm_size(world->comm, &size);
+
+  // Partition operations into worlds, and do split
+  int my_color = rank % ready_tasks.size();
+  // TODO: better approach than scattershotting tensors
+  MPI_Comm my_comm;
+  MPI_Comm_split(world->comm, my_color, rank, &my_comm);
+
+  tCTF_TensorOperation<dtype>* op = ready_tasks.front();
+  ready_tasks.pop_front();
+  execute_op(op);
+}
+
+template<typename dtype>
 void tCTF_Schedule<dtype>::execute() {
   srand (time(NULL));
 
@@ -41,16 +56,7 @@ void tCTF_Schedule<dtype>::execute() {
   ready_tasks = root_tasks;
 
   while (!ready_tasks.empty()) {
-    /*int elem = rand() % ready_tasks.size();
-    std::cout << "RQ exec " << elem << "/" << ready_tasks.size() << std::endl;
-    it = ready_tasks.begin() + elem;
-    tCTF_TensorOperation<dtype>* op = *it;
-    ready_tasks.erase(it);
-    execute_op(op);*/
-
-    tCTF_TensorOperation<dtype>* op = ready_tasks.front();
-    ready_tasks.pop_front();
-    execute_op(op);
+    partition_and_execute();
   }
 }
 

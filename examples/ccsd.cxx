@@ -183,7 +183,7 @@ class Amplitudes {
 void ccsd(Integrals   &V,
           Amplitudes  &T){
   double timer = MPI_Wtime();
-  tCTF_Schedule<double> sched;
+  tCTF_Schedule<double> sched(V.dw);
   sched.record();
 
   CTF_Tensor T21 = CTF_Tensor(T.abij);
