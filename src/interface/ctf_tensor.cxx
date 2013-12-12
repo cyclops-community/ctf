@@ -73,17 +73,6 @@ tCTF_Tensor<dtype>::~tCTF_Tensor(){
 }
 
 template<typename dtype>
-tCTF_Tensor<dtype> tCTF_Tensor<dtype>::clone(tCTF_World<dtype> * oworld) const{
-  if (oworld == NULL || oworld == this->world){
-    return tCTF_Tensor(*this,true);
-  } else {
-    int offs[ndim];
-    memset(offs,0,sizeof(int)*ndim);
-    return slice(offs,len,oworld);
-  }
-}
-
-template<typename dtype>
 dtype * tCTF_Tensor<dtype>::get_raw_data(long_int * size) {
   int ret;
   dtype * data;
@@ -286,14 +275,8 @@ void tCTF_Tensor<dtype>::contract(dtype                         alpha,
   conv_idx(A.ndim, idx_A, &tp.idx_map_A,
            B.ndim, idx_B, &tp.idx_map_B,
            ndim, idx_C, &tp.idx_map_C);
-  if (A.world->ctf != world->ctf){
-    tCTF_Tensor nA = A.clone(world);
-    return contract(alpha, nA, idx_A, B, idx_B, beta, idx_C, fseq);
-  }
-  if (B.world->ctf != world->ctf){
-    tCTF_Tensor nB = B.clone(world);
-    return contract(alpha, A, idx_A, nB, idx_B, beta, idx_C, fseq);
-  }
+  LIBT_ASSERT(A.world->ctf == world->ctf);
+  LIBT_ASSERT(B.world->ctf == world->ctf);
   if (fseq.func_ptr == NULL)
     ret = world->ctf->contract(&tp, alpha, beta);
   else {
@@ -345,26 +328,22 @@ void tCTF_Tensor<dtype>::sum(dtype                      alpha,
   CTF_sum_type_t st;
   conv_idx(A.ndim, idx_A, &idx_map_A,
            ndim, idx_B, &idx_map_B);
-  if (A.world->ctf != world->ctf){
-    tCTF_Tensor nA = A.clone(world);
-    return sum(alpha, nA, idx_A, beta, idx_B, fseq);
-  } else {
+  LIBT_ASSERT(A.world->ctf == world->ctf);
     
-    st.idx_map_A = idx_map_A;
-    st.idx_map_B = idx_map_B;
-    st.tid_A = A.tid;
-    st.tid_B = tid;
-    if (fseq.func_ptr == NULL)
-      ret = world->ctf->sum_tensors(&st, alpha, beta);
-    else {
-      fseq_elm_sum<dtype> fs;
-      fs.func_ptr = fseq.func_ptr;
-      ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fs);
-    }
-    CTF_free(idx_map_A);
-    CTF_free(idx_map_B);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  st.idx_map_A = idx_map_A;
+  st.idx_map_B = idx_map_B;
+  st.tid_A = A.tid;
+  st.tid_B = tid;
+  if (fseq.func_ptr == NULL)
+    ret = world->ctf->sum_tensors(&st, alpha, beta);
+  else {
+    fseq_elm_sum<dtype> fs;
+    fs.func_ptr = fseq.func_ptr;
+    ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fs);
   }
+  CTF_free(idx_map_A);
+  CTF_free(idx_map_B);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
 template<typename dtype>
@@ -404,6 +383,22 @@ void tCTF_Tensor<dtype>::permute(int * const *           perms_B,
                                        tid, perms_B, beta, world->ctf);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
+template<typename dtype>
+void tCTF_Tensor<dtype>::add_to_subworld(
+                         tCTF_Tensor<dtype> * tsr,
+                         double alpha,
+                         double beta) const {
+  ABORT;
+}
+
+template<typename dtype>
+void tCTF_Tensor<dtype>::add_from_subworld(
+                         tCTF_Tensor<dtype> * tsr,
+                         double alpha,
+                         double beta) const {
+  ABORT;
+}
+
 
 template<typename dtype>
 void tCTF_Tensor<dtype>::slice(int const *    offsets,

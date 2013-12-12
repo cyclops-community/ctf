@@ -386,7 +386,6 @@ int comp_dim_map(mapping const *  map_A,
  * \param[out] old_rank rank of this processor along each dimension
  * \param[out] old_virt_dim virtualization of the mapping
  * \param[out] old_pe_lda processor lda of mapping
- * \param[out] was_padded whether the tensor was padded
  * \param[out] was_cyclic whether the mapping was cyclic
  * \param[out] old_padding what the padding was
  * \param[out] old_edge_len what the edge lengths were
@@ -400,7 +399,6 @@ int save_mapping(tensor<dtype> *  tsr,
                  int **     old_virt_dim,
                  int **     old_pe_lda,
                  long_int *   old_size,
-                 int *      was_padded,
                  int *      was_cyclic,
                  int **     old_padding,
                  int **     old_edge_len,
@@ -427,13 +425,8 @@ int save_mapping(tensor<dtype> *  tsr,
       (*old_pe_lda)[j]  = 0;
   }
   memcpy(*old_edge_len, tsr->edge_len, sizeof(int)*tsr->ndim);
-  if (tsr->is_padded){
-    *was_padded = 1;
-    CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_padding);
-    memcpy(*old_padding, tsr->padding, sizeof(int)*tsr->ndim);
-  } else {
-    *was_padded = 0;
-  }
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_padding);
+  memcpy(*old_padding, tsr->padding, sizeof(int)*tsr->ndim);
   *was_cyclic = tsr->is_cyclic;
   return DIST_TENSOR_SUCCESS;
 }
@@ -527,7 +520,7 @@ int map_symtsr(int const    tsr_ndim,
  */
 template<typename dtype>
 int set_padding(tensor<dtype> * tsr, int const is_inner=0){
-  int is_pad, j, pad, i;
+  int j, pad, i;
   int * new_phase, * sub_edge_len;
   mapping * map;
 
@@ -535,10 +528,8 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&sub_edge_len);
 
 
-  if (tsr->is_padded){
-    for (i=0; i<tsr->ndim; i++){
-      tsr->edge_len[i] -= tsr->padding[i];
-    }
+  for (i=0; i<tsr->ndim; i++){
+    tsr->edge_len[i] -= tsr->padding[i];
   }
 /*  for (i=0; i<tsr->ndim; i++){
     printf("tensor edge len[%d] = %d\n",i,tsr->edge_len[i]);
@@ -546,37 +537,15 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
       printf("tensor padding was [%d] = %d\n",i,tsr->padding[i]);
     }
   }*/
-  is_pad = 0; 
   for (j=0; j<tsr->ndim; j++){
     map = tsr->edge_map + j;
     new_phase[j] = calc_phase(map);
-    if (tsr->is_padded){
-      pad = tsr->edge_len[j]%new_phase[j];
-      if (pad != 0) {
-        pad = new_phase[j]-pad;
-        is_pad = 1;
-      }
-      tsr->padding[j] = pad;
-    } else {
-      pad = tsr->edge_len[j]%new_phase[j];
-      if (pad != 0) {
-        if (is_pad == 0){
-          CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&tsr->padding);
-          memset(tsr->padding, 0, sizeof(int)*j);
-        }
-        pad = new_phase[j]-pad;
-        tsr->padding[j] = pad;
-        is_pad = 1;
-      } else if (is_pad)
-        tsr->padding[j] = 0;
+    pad = tsr->edge_len[j]%new_phase[j];
+    if (pad != 0) {
+      pad = new_phase[j]-pad;
     }
+    tsr->padding[j] = pad;
   }
-  /* Set padding to 0 anyways... */
-  if (is_pad == 0){
-    if(!tsr->is_padded)
-      CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&tsr->padding);
-    memset(tsr->padding,0,sizeof(int)*tsr->ndim);
-  }  
   for (i=0; i<tsr->ndim; i++){
     tsr->edge_len[i] += tsr->padding[i];
     sub_edge_len[i] = tsr->edge_len[i]/new_phase[i];
@@ -584,7 +553,6 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
   tsr->size = calc_nvirt(tsr,is_inner)
     *sy_packed_size(tsr->ndim, sub_edge_len, tsr->sym);
   
-  tsr->is_padded = 1;
 
   CTF_free(sub_edge_len);
   CTF_free(new_phase);
@@ -620,7 +588,6 @@ inline int can_block_reshuffle(int const        ndim,
  * \param[in] old_rank old distribution rank
  * \param[in] old_virt_dim old distribution virtualization
  * \param[in] old_pe_lda old distribution processor ldas
- * \param[in] was_padded whether the tensor was padded
  * \param[in] old_padding what the padding was
  * \param[in] old_edge_len what the padded edge lengths were
  * \param[in] global_comm global communicator
@@ -634,7 +601,6 @@ int remap_tensor(int const  tid,
                  int const *  old_rank,
                  int const *  old_virt_dim,
                  int const *  old_pe_lda,
-                 int const    was_padded,
                  int const    was_cyclic,
                  int const *  old_padding,
                  int const *  old_edge_len,
@@ -712,13 +678,11 @@ int remap_tensor(int const  tid,
                      old_phase,
                      old_rank,
                      old_pe_lda,
-                     was_padded,
                      old_padding,
                      tsr->edge_len,
                      new_phase,
                      new_rank,
                      new_pe_lda,
-                     tsr->is_padded,
                      tsr->padding,
                      old_virt_dim,
                      new_virt_dim,
@@ -750,7 +714,6 @@ int remap_tensor(int const  tid,
                      old_phase,
                      old_rank,
                      old_pe_lda,
-                     was_padded,
                      old_padding,
                      old_offsets,
                      old_permutation,
@@ -758,7 +721,6 @@ int remap_tensor(int const  tid,
                      new_phase,
                      new_rank,
                      new_pe_lda,
-                     tsr->is_padded,
                      tsr->padding,
                      new_offsets,
                      new_permutation,

@@ -1014,7 +1014,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
   int * old_padding_C, * old_edge_len_C;
   int * need_free;
-  int was_padded_C, was_cyclic_C;
+  int was_cyclic_C;
   tensor<dtype> * tsr_nC, * tsr_oC;
   CTF_ctr_type ct;
   fseq_tsr_ctr<dtype> fs;
@@ -1067,7 +1067,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
       need_remap = 1;
     if (need_remap){
       save_mapping(tsr_nC, &old_phase_C, &old_rank_C, &old_virt_dim_C, 
-                   &old_pe_lda_C, &old_size_C, &was_padded_C, &was_cyclic_C, 
+                   &old_pe_lda_C, &old_size_C, &was_cyclic_C, 
                    &old_padding_C, &old_edge_len_C, 
                    dt->get_topo(tsr_nC->itopo));
       if (need_free[2])
@@ -1075,7 +1075,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
       tsr_oC->data = tsr_nC->data;
       remap_tensor(otid_C, tsr_oC, dt->get_topo(tsr_oC->itopo), old_size_C, 
                    old_phase_C, old_rank_C, old_virt_dim_C, 
-                   old_pe_lda_C, was_padded_C, was_cyclic_C, 
+                   old_pe_lda_C, was_cyclic_C, 
                    old_padding_C, old_edge_len_C, dt->get_global_comm());
     } else{
       if (need_free[2])
@@ -1170,14 +1170,14 @@ int tCTF<dtype>::read_scala_mat(int const tid,
                                 dtype * data){
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda;
   int * old_padding, * old_edge_len;
-  int was_padded, was_cyclic;
+  int was_cyclic;
   long_int old_size;
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   tensor<dtype> * tsr = (*tensors)[tid];
   tensor<dtype> * stsr = (*tensors)[tsr->slay];
   dt->unmap_inner(tsr);
   save_mapping(tsr, &old_phase, &old_rank, &old_virt_dim, 
-               &old_pe_lda, &old_size, &was_padded, &was_cyclic, 
+               &old_pe_lda, &old_size, &was_cyclic, 
                &old_padding, &old_edge_len, 
                dt->get_topo(tsr->itopo));
   LIBT_ASSERT(tsr->is_matrix);
@@ -1185,7 +1185,7 @@ int tCTF<dtype>::read_scala_mat(int const tid,
   memcpy(stsr->data, tsr->data, sizeof(dtype)*tsr->size);
   remap_tensor(tsr->slay, stsr, dt->get_topo(stsr->itopo), old_size, 
                old_phase, old_rank, old_virt_dim, 
-               old_pe_lda, was_padded, was_cyclic, 
+               old_pe_lda, was_cyclic, 
                old_padding, old_edge_len, dt->get_global_comm());
   if (data!=NULL)
     memcpy(data, stsr->data, stsr->size*sizeof(dtype));  

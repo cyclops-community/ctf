@@ -443,7 +443,7 @@ int dist_tensor<dtype>::
                int const *                idx_map,
                fseq_tsr_scl<dtype> const  ftsr,
                fseq_elm_scl<dtype> const  felm){
-  int st, is_top, ndim_tot, iA,  ret, was_padded, was_cyclic, itopo, btopo;
+  int st, is_top, ndim_tot, iA,  ret, was_cyclic, itopo, btopo;
   long_int blk_sz, vrt_sz, old_size;
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda,
       * old_padding, * old_edge_len;
@@ -501,7 +501,7 @@ int dist_tensor<dtype>::
 
   if (!check_self_mapping(ntid, idx_map)){
     save_mapping(ntsr, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda,
-                 &old_size, &was_padded, &was_cyclic, &old_padding, &old_edge_len, &topovec[ntsr->itopo]);
+                 &old_size, &was_cyclic, &old_padding, &old_edge_len, &topovec[ntsr->itopo]);
     bnvirt = UINT64_MAX, btopo = -1;
     bmemuse = UINT64_MAX;
     for (itopo=global_comm->rank; itopo<(int)topovec.size(); itopo+=global_comm->np){
@@ -573,7 +573,7 @@ int dist_tensor<dtype>::
     TAU_FSTART(redistribute_for_scale);
     remap_tensor(ntid, ntsr, &topovec[ntsr->itopo], old_size, old_phase,
                  old_rank, old_virt_dim, old_pe_lda,
-                 was_padded, was_cyclic, old_padding, old_edge_len,
+                 was_cyclic, old_padding, old_edge_len,
                  global_comm);
     TAU_FSTOP(redistribute_for_scale);
   }
@@ -662,7 +662,7 @@ int dist_tensor<dtype>::
     save_mapping(ntsr,
                  &old_phase, &old_rank, 
                  &old_virt_dim, &old_pe_lda, 
-                 &old_size, &was_padded, 
+                 &old_size,  
                  &was_cyclic, &old_padding, 
                  &old_edge_len, &topovec[ntsr->itopo]);
     tsr->data = ntsr->data;
@@ -670,7 +670,7 @@ int dist_tensor<dtype>::
     TAU_FSTART(redistribute_for_scale_home);
     remap_tensor(tid, tsr, &topovec[tsr->itopo], old_size, 
                  old_phase, old_rank, old_virt_dim, 
-                 old_pe_lda, was_padded, was_cyclic, 
+                 old_pe_lda, was_cyclic, 
                  old_padding, old_edge_len, global_comm);
     TAU_FSTOP(redistribute_for_scale_home);
     memcpy(tsr->home_buffer, tsr->data, tsr->size*sizeof(dtype));
@@ -1812,7 +1812,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
                                      int const                  run_diag){
   int ret, was_home_A, was_home_B;
   tensor<dtype> * tsr_A, * tsr_B, * ntsr_A, * ntsr_B;
-  int was_padded_B, was_cyclic_B;
+  int was_cyclic_B;
   long_int old_size_B;
   int * old_phase_B, * old_rank_B, * old_virt_dim_B, * old_pe_lda_B;
   int * old_padding_B, * old_edge_len_B;
@@ -1923,7 +1923,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     save_mapping(ntsr_B,
                  &old_phase_B, &old_rank_B, 
                  &old_virt_dim_B, &old_pe_lda_B, 
-                 &old_size_B, &was_padded_B, 
+                 &old_size_B, 
                  &was_cyclic_B, &old_padding_B, 
                  &old_edge_len_B, &topovec[ntsr_B->itopo]);
     tsr_B->data = ntsr_B->data;
@@ -1931,7 +1931,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     TAU_FSTART(redistribute_for_sum_home);
     remap_tensor(tid_B, tsr_B, &topovec[tsr_B->itopo], old_size_B, 
                  old_phase_B, old_rank_B, old_virt_dim_B, 
-                 old_pe_lda_B, was_padded_B, was_cyclic_B, 
+                 old_pe_lda_B, was_cyclic_B, 
                  old_padding_B, old_edge_len_B, global_comm);
     TAU_FSTOP(redistribute_for_sum_home);
     memcpy(tsr_B->home_buffer, tsr_B->data, tsr_B->size*sizeof(dtype));
@@ -2432,7 +2432,7 @@ int dist_tensor<dtype>::
 #else
   int ret, new_tid;
   int was_home_A, was_home_B, was_home_C;
-  int was_padded_C, was_cyclic_C;
+  int was_cyclic_C;
   long_int old_size_C;
   int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
   int * old_padding_C, * old_edge_len_C;
@@ -2542,7 +2542,7 @@ int dist_tensor<dtype>::
     save_mapping(ntsr_C,
                  &old_phase_C, &old_rank_C, 
                  &old_virt_dim_C, &old_pe_lda_C, 
-                 &old_size_C, &was_padded_C, 
+                 &old_size_C,  
                  &was_cyclic_C, &old_padding_C, 
                  &old_edge_len_C, &topovec[ntsr_C->itopo]);
     tsr_C->data = ntsr_C->data;
@@ -2550,7 +2550,7 @@ int dist_tensor<dtype>::
     TAU_FSTART(redistribute_for_ctr_home);
     remap_tensor(stype->tid_C, tsr_C, &topovec[tsr_C->itopo], old_size_C, 
                  old_phase_C, old_rank_C, old_virt_dim_C, 
-                 old_pe_lda_C, was_padded_C, was_cyclic_C, 
+                 old_pe_lda_C, was_cyclic_C, 
                  old_padding_C, old_edge_len_C, global_comm);
     TAU_FSTOP(redistribute_for_ctr_home);
     memcpy(tsr_C->home_buffer, tsr_C->data, tsr_C->size*sizeof(dtype));

@@ -175,7 +175,6 @@ void readwrite(int const        ndim,
  * \param[in] inwrite number of pairs
  * \param[in] alpha multiplier for new value
  * \param[in] beta multiplier for old value
- * \param[in] need_pad whether tensor is padded
  * \param[in] rw whether to read 'r' or write 'w'
  * \param[in] num_virt new total virtualization factor
  * \param[in] sym symmetries of tensor
@@ -195,7 +194,6 @@ void wr_pairs_layout(int const          ndim,
                      long_int const     inwrite,
                      dtype const        alpha,  
                      dtype const        beta,  
-                     int const          need_pad,
                      char const         rw,
                      int const          num_virt,
                      int const *        sym,
@@ -372,12 +370,10 @@ void wr_pairs_layout(int const          ndim,
     
 
     /* unpad the keys if necesary */
-    if (need_pad){
-      for (i=0; i<ndim; i++){
-        depadding[i] = -padding[i];
-      } 
-      pad_key(ndim, nwrite, edge_len, depadding, buf_data);
-    }
+    for (i=0; i<ndim; i++){
+      depadding[i] = -padding[i];
+    } 
+    pad_key(ndim, nwrite, edge_len, depadding, buf_data);
 
     /* Sort the pairs that were sent out, now with correct values */
     std::sort(buf_data, buf_data+nwrite);
@@ -433,7 +429,6 @@ void wr_pairs_layout(int const          ndim,
 template<typename dtype>
 void read_loc_pairs(int const           ndim,
                     long_int const      nval,
-                    int const           pad,
                     int const           num_virt,
                     int const *         sym,
                     int const *         edge_len,
@@ -458,38 +453,33 @@ void read_loc_pairs(int const           ndim,
               data,             dpairs);
 
   /* If we need to unpad */
-  if (pad){
-    long_int new_num_pair;
-    int * depadding, * pad_len;
-    tkv_pair<dtype> * new_pairs;
-    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&new_pairs);
-    CTF_alloc_ptr(sizeof(int)*ndim, (void**)&depadding);
-    CTF_alloc_ptr(sizeof(int)*ndim, (void**)&pad_len);
+  long_int new_num_pair;
+  int * depadding, * pad_len;
+  tkv_pair<dtype> * new_pairs;
+  CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&new_pairs);
+  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&depadding);
+  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&pad_len);
 
-    for (i=0; i<ndim; i++){
-      pad_len[i] = edge_len[i]-padding[i];
-    }
-    /* Get rid of any padded values */
-    depad_tsr(ndim, nval, pad_len, sym, padding, prepadding,
-              dpairs, new_pairs, &new_num_pair);
-
-    CTF_free(dpairs);
-    if (new_pairs <= 0) CTF_free(new_pairs);
-    *pairs = new_pairs;
-    *nread = new_num_pair;
-
-    for (i=0; i<ndim; i++){
-      depadding[i] = -padding[i];
-    }
-    
-    /* Adjust keys to remove padding */
-    pad_key(ndim, new_num_pair, edge_len, depadding, new_pairs);
-    CTF_free((void*)pad_len);
-    CTF_free((void*)depadding);
-  } else {
-    *pairs = dpairs;
-    *nread = nval;
+  for (i=0; i<ndim; i++){
+    pad_len[i] = edge_len[i]-padding[i];
   }
+  /* Get rid of any padded values */
+  depad_tsr(ndim, nval, pad_len, sym, padding, prepadding,
+            dpairs, new_pairs, &new_num_pair);
+
+  CTF_free(dpairs);
+  if (new_pairs <= 0) CTF_free(new_pairs);
+  *pairs = new_pairs;
+  *nread = new_num_pair;
+
+  for (i=0; i<ndim; i++){
+    depadding[i] = -padding[i];
+  }
+  
+  /* Adjust keys to remove padding */
+  pad_key(ndim, new_num_pair, edge_len, depadding, new_pairs);
+  CTF_free((void*)pad_len);
+  CTF_free((void*)depadding);
   CTF_free(prepadding);
 }
 

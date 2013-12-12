@@ -12,23 +12,22 @@ void dist_tensor<dtype>::unmap_inner(tensor<dtype> * tsr){
   if (tsr->is_inner_mapped){
     int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda;
     int * old_padding, * old_edge_len;
-    int was_padded, was_cyclic;
+    int was_cyclic;
     long_int old_size;
     tensor<dtype> * itsr = tensors[tsr->rec_tid];
     save_mapping(itsr, &old_phase, &old_rank, &old_virt_dim, &old_pe_lda, 
-                 &old_size, &was_padded, &was_cyclic, &old_padding, 
+                 &old_size, &was_cyclic, &old_padding, 
                  &old_edge_len, &inner_topovec[itsr->itopo], 1);  
     clear_mapping(itsr);
     set_padding(itsr,1);
     remap_inr_tsr(tsr, itsr, old_size, old_phase, old_rank, old_virt_dim,
-                  old_pe_lda, was_padded, was_cyclic, old_padding,
+                  old_pe_lda, was_cyclic, old_padding,
                   old_edge_len, NULL);
     CTF_free(old_phase);
     CTF_free(old_rank);
     CTF_free(old_virt_dim);
     CTF_free(old_pe_lda);
-    if (was_padded)
-      CTF_free(old_padding);
+    CTF_free(old_padding);
     CTF_free(old_edge_len);
     del_tsr(tsr->rec_tid);
     tsr->is_inner_mapped = 0;
@@ -331,7 +330,6 @@ void create_inner_map(int const ndim,
  * \param[in] old_virt_dim old distribution virtualization
  * \param[in] old_pe_lda old distribution processor ldas
  * \param[in] was_cyclic whether the tensor was mapping cyclically
- * \param[in] was_padded whether the tensor was padded
  * \param[in] old_padding what the padding was
  * \param[in] old_edge_len what the padded edge lengths were
  * \param[in] ordering index reordering 
@@ -345,7 +343,6 @@ int dist_tensor<dtype>::
                    int const *          old_rank,
                    int const *          old_virt_dim,
                    int const *          old_pe_lda,
-                   int const            was_padded,
                    int const            was_cyclic,
                    int const *          old_padding,
                    int const *          old_edge_len,
@@ -389,7 +386,6 @@ int dist_tensor<dtype>::
                      old_phase,
                      old_rank,
                      new_pe_lda,
-                     was_padded,
                      old_padding,
                      NULL,
                      NULL,
@@ -397,7 +393,6 @@ int dist_tensor<dtype>::
                      new_phase,
                      new_rank,
                      new_pe_lda,
-                     itsr->is_padded,
                      itsr->padding,
                      NULL,
                      NULL,
@@ -506,7 +501,6 @@ int dist_tensor<dtype>::map_inner(CTF_ctr_type_t const * type,
 //  uint64_t nvirt, tnvirt, bnvirt;
   uint64_t min_size, size;
   int btopo, gtopo;
-  int was_padded_A, was_padded_B, was_padded_C;
   int was_cyclic_A, was_cyclic_B, was_cyclic_C;
   long_int old_size_A, old_size_B, old_size_C;
   int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra;
@@ -612,13 +606,13 @@ int dist_tensor<dtype>::map_inner(CTF_ctr_type_t const * type,
   set_padding(tsr_C,1);
   /* Save the current mappings of A, B, C */
   save_mapping(tsr_A, &old_phase_A, &old_rank_A, &old_virt_dim_A, &old_pe_lda_A, 
-               &old_size_A, &was_padded_A, &was_cyclic_A, &old_padding_A, 
+               &old_size_A, &was_cyclic_A, &old_padding_A, 
                &old_edge_len_A, &inner_topovec[tsr_A->itopo], 1);
   save_mapping(tsr_B, &old_phase_B, &old_rank_B, &old_virt_dim_B, &old_pe_lda_B, 
-               &old_size_B, &was_padded_B, &was_cyclic_B, &old_padding_B, 
+               &old_size_B, &was_cyclic_B, &old_padding_B, 
                &old_edge_len_B, &inner_topovec[tsr_B->itopo], 1);
   save_mapping(tsr_C, &old_phase_C, &old_rank_C, &old_virt_dim_C, &old_pe_lda_C, 
-               &old_size_C, &was_padded_C, &was_cyclic_C, &old_padding_C, 
+               &old_size_C, &was_cyclic_C, &old_padding_C, 
                &old_edge_len_C, &inner_topovec[tsr_C->itopo], 1);
 
   btopo = -1;
@@ -760,7 +754,7 @@ int dist_tensor<dtype>::map_inner(CTF_ctr_type_t const * type,
   if (need_remap)
     remap_inr_tsr(otsr_A, tsr_A, 
                   old_size_A, old_phase_A, old_rank_A, old_virt_dim_A, 
-                  old_pe_lda_A, was_padded_A, was_cyclic_A, 
+                  old_pe_lda_A, was_cyclic_A, 
                   old_padding_A, old_edge_len_A, ordering_A);
   need_remap = 0;
   if (tsr_B->itopo == old_topo_B){
@@ -773,7 +767,7 @@ int dist_tensor<dtype>::map_inner(CTF_ctr_type_t const * type,
   if (need_remap)
     remap_inr_tsr(otsr_B, tsr_B, 
                   old_size_B, old_phase_B, old_rank_B, old_virt_dim_B, 
-                  old_pe_lda_B, was_padded_B, was_cyclic_B, 
+                  old_pe_lda_B, was_cyclic_B, 
                   old_padding_B, old_edge_len_B, ordering_B);
   need_remap = 0;
   if (tsr_C->itopo == old_topo_C){
@@ -786,7 +780,7 @@ int dist_tensor<dtype>::map_inner(CTF_ctr_type_t const * type,
   if (need_remap)
     remap_inr_tsr(otsr_C, tsr_C, 
                   old_size_C, old_phase_C, old_rank_C, old_virt_dim_C, 
-                  old_pe_lda_C, was_padded_C, was_cyclic_C, 
+                  old_pe_lda_C, was_cyclic_C, 
                   old_padding_C, old_edge_len_C, ordering_C);
   
 

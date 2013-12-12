@@ -212,7 +212,6 @@ int dist_tensor<dtype>::load_matrix
   tsr->is_cyclic = 0;
   tsr->is_folded = 0;
   tsr->is_inner_mapped = 0;
-  tsr->is_padded = 1;
   tsr->is_scp_padded = 1;
   tsr->padding = (int*)CTF_alloc(sizeof(int)*2);
   tsr->padding[0] = 0;

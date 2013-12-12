@@ -144,13 +144,6 @@ class tCTF_Tensor {
                 int                  profile_ = 0);
 
     /**
-     * \brief creates a copy of the tensor, in a different world if specified
-     * \param[in] oworld pointer to another world (NULL oworld = this->world)
-     * \return new tensor object on oworld
-     */
-    tCTF_Tensor<dtype> clone(tCTF_World<dtype> * oworld = NULL) const;
-    
-    /**
      * \brief gives the values associated with any set of indices
      * The sparse data is defined in coordinate format. The tensor index (i,j,k,l) of a tensor with edge lengths
      * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
@@ -413,6 +406,31 @@ class tCTF_Tensor {
                  dtype          beta,
                  tCTF_Tensor &  A,
                  dtype          alpha);
+    
+   /**
+     * \brief accumulates this tensor to a tensor object defined on a different world
+     *        worlds must have same relative processor ordering
+     * \param[in] tsr a tensor object of the same characteristic as this tensor, 
+     *             but on a different CTF_world/MPI_comm
+     * \param[in] alpha scaling factor for this tensor
+     * \param[in] beta scaling factor for tensor tsr
+     */
+    void add_to_subworld(tCTF_Tensor<dtype> * tsr,
+                         double alpha = 1.0,
+                         double beta = 0.0) const;
+    
+   /**
+     * \brief accumulates this tensor from a tensor object defined on a different world
+     *        worlds must have same relative processor ordering
+     * \param[in] tsr a tensor object of the same characteristic as this tensor, 
+     *             but on a different CTF_world/MPI_comm
+     * \param[in] alpha scaling factor for tensor tsr
+     * \param[in] beta scaling factor for this tensor
+     */
+    void add_from_subworld(tCTF_Tensor<dtype> * tsr,
+                           double alpha = 1.0,
+                           double beta = 0.0) const;
+    
 
     /**
      * \brief aligns data mapping with tensor A

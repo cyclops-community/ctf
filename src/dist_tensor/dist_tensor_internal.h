@@ -56,7 +56,6 @@ class tensor {
   public:
   int ndim;
   int * edge_len;
-  int is_padded;
   int * padding;
   int is_scp_padded;
   int * scp_padding; /* to be used by scalapack wrapper */
@@ -643,7 +642,6 @@ class dist_tensor{
                        int const *      old_rank,
                        int const *      old_virt_dim,
                        int const *      old_pe_lda,
-                       int const        was_padded,
                        int const        was_cyclic,
                        int const *      old_padding,
                        int const *      old_edge_len,
