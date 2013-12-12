@@ -32,8 +32,10 @@
 #endif
 #include "timer.h"
 
+#ifndef __APPLE__
 #ifndef OMP_OFF
 #define USE_OMP
+#endif
 #endif
 
 #define CTF_COUNT_FLOPS

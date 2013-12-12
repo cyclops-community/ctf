@@ -1442,9 +1442,12 @@ void pad_cyclic_pup_virt_buff(int const        ndim,
 #endif
   // FIXME: may be better to mst_alloc, but this should ensure the 
   //        compiler knows there are no write conflicts
-  //int *count; CTF_alloc_ptr(sizeof(int)*nbucket, (void**)&count);
-  //memset(count, 0, sizeof(int)*nbucket);
+#ifdef USE_OMP
   int * count = par_virt_counts[tid];
+#else
+  int *count; CTF_alloc_ptr(sizeof(int)*nbucket, (void**)&count);
+  memset(count, 0, sizeof(int)*nbucket);
+#endif
 
   int *gidx; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&gidx);
   memset(gidx, 0, sizeof(int)*ndim);
