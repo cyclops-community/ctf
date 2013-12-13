@@ -355,7 +355,30 @@ int tCTF<dtype>::permute_tensor( int const              tid_A,
                                  tCTF<dtype> *          tC_B){
   return dt->permute_tensor(tid_A, permutation_A, alpha, tC_A->dt, tid_B, permutation_B, beta, tC_B->dt);
 }
+template<typename dtype>
+int tCTF<dtype>::add_to_subworld(int          tid,
+                                 int          tid_sub,
+                                 tCTF<dtype> *tC_sub,
+                                 double       alpha,
+                                 double       beta){
+  if (tC_sub == NULL)
+    return dt->add_to_subworld(tid, tid_sub, NULL, alpha, beta);
+  else
+    return dt->add_to_subworld(tid, tid_sub, tC_sub->dt, alpha, beta);
+}
+    
+template<typename dtype>
+int tCTF<dtype>::add_from_subworld(int          tid,
+                                   int          tid_sub,
+                                   tCTF<dtype> *tC_sub,
+                                   double       alpha,
+                                   double       beta){
+  if (tC_sub == NULL)
+    return dt->add_from_subworld(tid, tid_sub, NULL, alpha, beta);
+  else
+    return dt->add_from_subworld(tid, tid_sub, tC_sub->dt, alpha, beta);
 
+}
 
 template<typename dtype>
 int tCTF<dtype>::slice_tensor( int const    tid_A,

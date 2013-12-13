@@ -310,6 +310,18 @@ class dist_tensor{
                        dtype const            beta,
                        dist_tensor<dtype> *   dt_B);
     
+    int  add_to_subworld(int                 tid,
+                         int                 tid_sub,
+                         dist_tensor<dtype> *dt_sub,
+                         double              alpha,
+                         double              beta);
+    
+    int  add_from_subworld(int                 tid,
+                           int                 tid_sub,
+                           dist_tensor<dtype> *dt_sub,
+                           double              alpha,
+                           double              beta);
+    
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
                           + alpha*A[offsets_A:ends_A] */

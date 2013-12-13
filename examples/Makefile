@@ -5,7 +5,7 @@ include ../src/make/rules.mk
 
 examples: dft dft_3D gemm gemm_4D scalar trace diag_sym fast_diagram \
           fast_3mm sym3 fast_sym fast_sym_4D ccsdt_t3_to_t2 weight_4D \
-          test_suite strassen slice_gemm ccsd readwrite_test \
+          test_suite strassen slice_gemm ccsd readwrite_test subworld_gemm \
           permute_multiworld sparse_permuted_slice
 
 sparse_permuted_slice: ${bindir}/sparse_permuted_slice
@@ -55,6 +55,9 @@ ${bindir}/gemm_4D: gemm_4D.o ${libdir}/libctf.a
 
 gemm: ${bindir}/gemm
 ${bindir}/gemm: gemm.o ${libdir}/libctf.a
+
+subworld_gemm: ${bindir}/subworld_gemm
+${bindir}/subworld_gemm: subworld_gemm.o ${libdir}/libctf.a
 
 weight_4D: ${bindir}/weight_4D
 ${bindir}/weight_4D: weight_4D.o ${libdir}/libctf.a

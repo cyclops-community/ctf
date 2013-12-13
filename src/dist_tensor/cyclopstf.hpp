@@ -309,6 +309,34 @@ class tCTF{
                        int * const *          permutation_B,
                        dtype const            beta,
                        tCTF<dtype> *          tC_B);
+
+   /**
+     * \brief accumulates this tensor to a tensor object defined on a different world
+     * \param[in] tid id of tensor on this CTF instance
+     * \param[in] tid_sub id of tensor on a subcomm of this CTF inst
+     * \param[in] tC_sub CTF instance on a mpi subcomm
+     * \param[in] alpha scaling factor for this tensor
+     * \param[in] beta scaling factor for tensor tsr
+     */
+    int  add_to_subworld(int          tid,
+                         int          tid_sub,
+                         tCTF<dtype> *tC_sub,
+                         double       alpha,
+                         double       beta);
+   /**
+     * \brief accumulates this tensor from a tensor object defined on a different world
+     * \param[in] tsr a tensor object of the same characteristic as this tensor, 
+     * \param[in] tid id of tensor on this CTF instance
+     * \param[in] tid_sub id of tensor on a subcomm of this CTF inst
+     * \param[in] tC_sub CTF instance on a mpi subcomm
+     * \param[in] alpha scaling factor for this tensor
+     * \param[in] beta scaling factor for tensor tsr
+     */
+    int  add_from_subworld(int          tid,
+                           int          tid_sub,
+                           tCTF<dtype> *tC_sub,
+                           double       alpha,
+                           double       beta);
     
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 

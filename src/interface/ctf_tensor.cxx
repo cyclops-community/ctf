@@ -388,7 +388,12 @@ void tCTF_Tensor<dtype>::add_to_subworld(
                          tCTF_Tensor<dtype> * tsr,
                          double alpha,
                          double beta) const {
-  ABORT;
+  int ret;
+  if (tsr == NULL)
+    ret = world->ctf->add_to_subworld(tid, -1, NULL, alpha, beta);
+  else
+    ret = world->ctf->add_to_subworld(tid, tsr->tid, tsr->world->ctf, alpha, beta);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
 template<typename dtype>
@@ -396,7 +401,12 @@ void tCTF_Tensor<dtype>::add_from_subworld(
                          tCTF_Tensor<dtype> * tsr,
                          double alpha,
                          double beta) const {
-  ABORT;
+  int ret;
+  if (tsr == NULL)
+    ret = world->ctf->add_from_subworld(tid, -1, NULL, alpha, beta);
+  else
+    ret = world->ctf->add_from_subworld(tid, tsr->tid, tsr->world->ctf, alpha, beta);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 
 

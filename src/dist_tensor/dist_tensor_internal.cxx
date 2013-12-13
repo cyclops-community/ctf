@@ -945,6 +945,56 @@ int dist_tensor<dtype>::permute_tensor(int const              tid_A,
   return ret;
 }
 
+template<typename dtype>
+int dist_tensor<dtype>::add_to_subworld(int                 tid,
+                                        int                 tid_sub,
+                                        dist_tensor<dtype> *dt_sub,
+                                        double              alpha,
+                                        double              beta){
+  tensor<dtype> * this_tsr = tensors[tid];
+  int offsets[this_tsr->ndim];
+  memset(offsets, 0, this_tsr->ndim*sizeof(int));
+  int ndim, * lens, * sym;
+  get_tsr_info(tid, &ndim, &lens, &sym);
+  if (dt_sub == NULL){
+    int dtid;
+    CommData_t * cdt = (CommData_t*)CTF_alloc(sizeof(CommData_t));
+    SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
+    dist_tensor<dtype> dt_self;
+    dt_self.initialize(cdt, 0, NULL, 0);
+    dt_self.define_tensor(0, NULL, NULL, &dtid);
+    return slice_tensor(tid, offsets, offsets, alpha, this, dtid, NULL, NULL, beta, &dt_self);
+  } else {
+    return slice_tensor(tid, offsets, lens, alpha, this, tid_sub, offsets, lens, beta, dt_sub);
+  }
+}
+
+template<typename dtype>
+int dist_tensor<dtype>::add_from_subworld(int                 tid,
+                                          int                 tid_sub,
+                                          dist_tensor<dtype> *dt_sub,
+                                          double              alpha,
+                                          double              beta){
+  tensor<dtype> * this_tsr = tensors[tid];
+  int offsets[this_tsr->ndim];
+  memset(offsets, 0, this_tsr->ndim*sizeof(int));
+  int ndim, * lens, * sym;
+  get_tsr_info(tid, &ndim, &lens, &sym);
+  if (dt_sub == NULL){
+    int dtid;
+    CommData_t * cdt = (CommData_t*)CTF_alloc(sizeof(CommData_t));
+    SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
+    dist_tensor<dtype> dt_self;
+    dt_self.initialize(cdt, 0, NULL, 0);
+    dt_self.define_tensor(0, NULL, NULL, &dtid);
+    return slice_tensor(dtid, NULL, NULL, alpha, &dt_self, tid, offsets, offsets, beta, this);
+  } else {
+    return slice_tensor(tid_sub, offsets, lens, alpha, dt_sub, tid, offsets, lens, beta, this);
+  }
+
+}
+    
+
 /**
  * Add tensor data from A to a block of B, 
  *      B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] + alpha*A[offsets_A:ends_A] 

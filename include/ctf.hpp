@@ -409,7 +409,6 @@ class tCTF_Tensor {
     
    /**
      * \brief accumulates this tensor to a tensor object defined on a different world
-     *        worlds must have same relative processor ordering
      * \param[in] tsr a tensor object of the same characteristic as this tensor, 
      *             but on a different CTF_world/MPI_comm
      * \param[in] alpha scaling factor for this tensor
@@ -421,7 +420,6 @@ class tCTF_Tensor {
     
    /**
      * \brief accumulates this tensor from a tensor object defined on a different world
-     *        worlds must have same relative processor ordering
      * \param[in] tsr a tensor object of the same characteristic as this tensor, 
      *             but on a different CTF_world/MPI_comm
      * \param[in] alpha scaling factor for tensor tsr
