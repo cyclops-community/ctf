@@ -11,6 +11,8 @@
 #include "../unit_test/unit_test.h"
 #include "../unit_test/unit_test_ctr.h"
 #endif
+#include "dt_aux.h"
+#include "scala_backend.cxx"
 
 #ifdef HPM
 extern "C" void HPM_Start(char *);  
@@ -619,18 +621,22 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
     }
     sprintf(cname+strlen(cname),"]");
 
+#if VERBOSE >=1
     double dtt;
     if (dt->get_global_comm()->rank == 0){
       dtt = MPI_Wtime();
       VPRINTF(1,"Starting %s\n",cname);
     }
+#endif
    
     CTF_Timer tctr(cname);
     tctr.start(); 
     ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
     tctr.stop();
+#if VERBOSE >=1
     if (dt->get_global_comm()->rank == 0){
       VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   }
+#endif
   } else 
     ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
   if ((*dt->get_tensors())[type->tid_A]->profile &&

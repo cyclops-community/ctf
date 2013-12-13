@@ -362,7 +362,6 @@ void calc_idx_arr(int         ndim,
   memset(idx_arr, 0, ndim*sizeof(int));
   for (int dim=ndim-1; dim>=0; dim--){
     if (idx_rem == 0) break;
-    int idim;
     if (dim == 0 || sym[dim-1] == NS){
       long_int lda = packed_size(dim, lens, sym);
       idx_arr[dim] = idx_rem/lda;

@@ -50,6 +50,29 @@ struct topology {
   int * lda;
 };
 
+inline int get_distribution_size(int ndim){
+  return sizeof(int)*2 + sizeof(long_int) + ndim*sizeof(int)*6;
+}
+
+class distribution {
+  public:
+  int ndim;
+  int * phase;
+  int * virt_phase;
+  int * pe_lda;
+  int * edge_len;
+  int * padding;
+  int * perank;
+  int is_cyclic;
+  long_int size;
+
+  distribution();
+  ~distribution();
+
+  void serialize(char ** buffer, int * size);
+  void deserialize(char const * buffer);
+};
+
 
 template<typename dtype>
 class tensor {
@@ -310,17 +333,25 @@ class dist_tensor{
                        dtype const            beta,
                        dist_tensor<dtype> *   dt_B);
     
+    void orient_subworld(int                 ndim,
+                        int                 tid_sub,
+                        dist_tensor<dtype> *dt_sub,
+                        int &               bw_mirror_rank,
+                        int &               fw_mirror_rank,
+                        distribution &      odst,
+                        dtype **            sub_buffer_);
+
     int  add_to_subworld(int                 tid,
                          int                 tid_sub,
                          dist_tensor<dtype> *dt_sub,
-                         double              alpha,
-                         double              beta);
+                         dtype              alpha,
+                         dtype              beta);
     
     int  add_from_subworld(int                 tid,
                            int                 tid_sub,
                            dist_tensor<dtype> *dt_sub,
-                           double              alpha,
-                           double              beta);
+                           dtype              alpha,
+                           dtype              beta);
     
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
@@ -821,8 +852,7 @@ inline  double GET_REAL(std::complex<double> const d) {
   return d.real();
 }
 
-#include "dist_tensor_internal.cxx"
-#include "scala_backend.cxx"
+//#include "dist_tensor_internal.cxx"
 
 /**
  * @}

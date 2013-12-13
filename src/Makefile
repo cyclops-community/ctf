@@ -37,6 +37,8 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     shared/timer.o \
                     shared/memcontrol.o \
                     shared/unit_util.o \
+                    dist_tensor/dist_tensor_internal.o \
+                    dist_tensor/distribution.o \
                     dist_tensor/cyclopstf.o \
                     unit_test/unit_test.o 
 

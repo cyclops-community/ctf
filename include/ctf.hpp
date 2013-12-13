@@ -415,8 +415,8 @@ class tCTF_Tensor {
      * \param[in] beta scaling factor for tensor tsr
      */
     void add_to_subworld(tCTF_Tensor<dtype> * tsr,
-                         double alpha = 1.0,
-                         double beta = 0.0) const;
+                         dtype alpha = 1.0,
+                         dtype beta = 0.0) const;
     
    /**
      * \brief accumulates this tensor from a tensor object defined on a different world
@@ -426,8 +426,8 @@ class tCTF_Tensor {
      * \param[in] beta scaling factor for this tensor
      */
     void add_from_subworld(tCTF_Tensor<dtype> * tsr,
-                           double alpha = 1.0,
-                           double beta = 0.0) const;
+                           dtype alpha = 1.0,
+                           dtype beta = 0.0) const;
     
 
     /**

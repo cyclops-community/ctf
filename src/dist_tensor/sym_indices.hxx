@@ -39,7 +39,7 @@ int relativeSign(RAIterator s1b, RAIterator s1e, RAIterator s2b, RAIterator s2e)
 {
     int sz = s1e-s1b;
     assert(sz == (int)(s2e-s2b));
-    int i, j, k;
+    int i, k;
     int sign = 1;
     std::vector<bool> seen(sz);
 

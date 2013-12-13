@@ -250,7 +250,6 @@ int64_t tCTF_Tensor<dtype>::estimate_cost(
                                   const char *                  idx_A,
                                   const char *                  idx_B){
   int * idx_map_A, * idx_map_B;
-  CTF_sum_type_t st;
   conv_idx(A.ndim, idx_A, &idx_map_A,
            ndim, idx_B, &idx_map_B);
   return world->ctf->estimate_cost(A.tid, idx_map_A, tid, idx_map_B);
@@ -386,8 +385,8 @@ void tCTF_Tensor<dtype>::permute(int * const *           perms_B,
 template<typename dtype>
 void tCTF_Tensor<dtype>::add_to_subworld(
                          tCTF_Tensor<dtype> * tsr,
-                         double alpha,
-                         double beta) const {
+                         dtype alpha,
+                         dtype beta) const {
   int ret;
   if (tsr == NULL)
     ret = world->ctf->add_to_subworld(tid, -1, NULL, alpha, beta);
@@ -399,8 +398,8 @@ void tCTF_Tensor<dtype>::add_to_subworld(
 template<typename dtype>
 void tCTF_Tensor<dtype>::add_from_subworld(
                          tCTF_Tensor<dtype> * tsr,
-                         double alpha,
-                         double beta) const {
+                         dtype alpha,
+                         dtype beta) const {
   int ret;
   if (tsr == NULL)
     ret = world->ctf->add_from_subworld(tid, -1, NULL, alpha, beta);

@@ -432,6 +432,25 @@ int save_mapping(tensor<dtype> *  tsr,
 }
 
 /**
+ * \brief saves the mapping of a tensor to a distribution data structure
+ *        function allocates memory for the internal arrays, delete it later
+ * \param[in] tsr tensor pointer
+ * \param[in,out] dstrib object to save distribution data into
+ * \param[out] old_rank rank of this processor along each dimension
+ * \param[in] topo topology of the processor grid mapped to
+ * \param[in] is_inner whether this is an inner mapping
+ */ 
+template<typename dtype>
+int save_mapping(tensor<dtype> *  tsr,
+                 distribution &   dstrib,
+                 topology const * topo){
+  dstrib.ndim = tsr->ndim;
+  return save_mapping(tsr, &dstrib.phase, &dstrib.perank, &dstrib.virt_phase, 
+                      &dstrib.pe_lda, &dstrib.size, &dstrib.is_cyclic, &dstrib.padding, &dstrib.edge_len, topo);
+}
+
+
+/**
  * \brief adjust a mapping to maintan symmetry
  * \param[in] tsr_ndim is the number of dimensions of the tensor
  * \param[in] tsr_sym_table the symmetry table of a tensor
@@ -767,6 +786,57 @@ int remap_tensor(int const  tid,
   return DIST_TENSOR_SUCCESS;
 }
 
+/**
+ * \brief permutes the data of a tensor to its new layout
+ * \param[in] tid tensor id
+ * \param[in,out] tsr tensor in its new mapping
+ * \param[in] old_size size of tensor before redistribution
+ * \param[in] old_phase old distribution phase
+ * \param[in] old_rank old distribution rank
+ * \param[in] old_virt_dim old distribution virtualization
+ * \param[in] old_pe_lda old distribution processor ldas
+ * \param[in] old_padding what the padding was
+ * \param[in] old_edge_len what the padded edge lengths were
+ * \param[in] global_comm global communicator
+ */
+template<typename dtype>
+int redistribute(int const *          sym,
+                 CommData_t *         cdt,
+                 distribution const & new_dist,
+                 dtype *              new_data,
+                 dtype                alpha,
+                 distribution const & old_dist,
+                 dtype *              old_data,
+                 dtype                beta){
+
+  return  cyclic_reshuffle(old_dist.ndim,
+                           old_dist.size,
+                           old_dist.edge_len,
+                           sym,
+                           old_dist.phase,
+                           old_dist.perank,
+                           old_dist.pe_lda,
+                           old_dist.padding,
+                           NULL,
+                           NULL,
+                           new_dist.edge_len,
+                           new_dist.phase,
+                           new_dist.perank,
+                           new_dist.pe_lda,
+                           new_dist.padding,
+                           NULL,
+                           NULL,
+                           old_dist.virt_phase,
+                           new_dist.virt_phase,
+                           &old_data,
+                           &new_data,
+                           cdt,
+                           old_dist.is_cyclic,
+                           new_dist.is_cyclic,
+                           false,
+                           alpha,
+                           beta);
+}
 
 /**
  * \brief map a tensor

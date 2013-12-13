@@ -14,7 +14,7 @@ int dist_tensor<dtype>::scale_tsr(dtype const alpha, int const tid){
   return DIST_TENSOR_ERROR;
 }
 
-template<> inline
+template<> 
 int dist_tensor<double>::scale_tsr(double const alpha, int const tid){
   int i;
   tensor<double> * tsr;
@@ -49,7 +49,7 @@ int dist_tensor<dtype>::dot_loc_tsr(int const tid_A, int const tid_B, dtype *pro
   return DIST_TENSOR_ERROR;
 }
 
-template<> inline
+template<> 
 int dist_tensor<double>::dot_loc_tsr(int const tid_A, int const tid_B, double *product){
   double dprod;
   tensor<double> * tsr_A, * tsr_B;
@@ -87,7 +87,7 @@ void sum_abs(double const alpha, double const a, double & b){
 
 /* Perform an elementwise reduction on a tensor. All processors
    end up with the final answer. */
-template<> inline
+template<> 
 int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
   long_int i;
   double acc;
@@ -414,7 +414,7 @@ int dist_tensor<dtype>::
   return DIST_TENSOR_ERROR;
 }
 
-template<> inline
+template<> 
 int dist_tensor<double>::
     daxpy_local_tensor_pair(double alpha, const int tid_A, const int tid_B){
   tensor<double> * tsr_A, * tsr_B;

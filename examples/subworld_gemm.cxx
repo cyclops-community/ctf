@@ -17,15 +17,16 @@
 #include <ctf.hpp>
 
 
-int test_subworld_gemm(int const n,
-                       int const m,
-                       int const k,
-                       int const div,
+int test_subworld_gemm(int n,
+                       int m,
+                       int k,
+                       int div_,
                        CTF_World &dw){
   int rank, num_pes;
   int64_t i, np;
   double * pairs, err;
   int64_t * indices;
+  
   
   CTF_Matrix C(m, n, NS, dw);
   CTF_Matrix C_ans(m, n, NS, dw);
@@ -35,6 +36,10 @@ int test_subworld_gemm(int const n,
   MPI_Comm pcomm = dw.comm;
   MPI_Comm_rank(pcomm, &rank);
   MPI_Comm_size(pcomm, &num_pes);
+  
+  int div = div_;
+  if (div > num_pes) div = num_pes;
+
   
   srand48(13*rank);
   A.read_local(&np, &indices, &pairs);
@@ -120,22 +125,20 @@ int main(int argc, char ** argv){
 
   if (getCmdOption(input_str, input_str+in_num, "-n")){
     n = atoi(getCmdOption(input_str, input_str+in_num, "-n"));
-    if (n < 0) n = 256;
-  } else n = 256;
+    if (n < 0) n = 23;
+  } else n = 23;
   if (getCmdOption(input_str, input_str+in_num, "-m")){
     m = atoi(getCmdOption(input_str, input_str+in_num, "-m"));
-    if (m < 0) m = 128;
-  } else m = 128;
+    if (m < 0) m = 17;
+  } else m = 17;
   if (getCmdOption(input_str, input_str+in_num, "-k")){
     k = atoi(getCmdOption(input_str, input_str+in_num, "-k"));
-    if (k < 0) k = 512;
-  } else k = 512;
+    if (k < 0) k = 31;
+  } else k = 31;
   if (getCmdOption(input_str, input_str+in_num, "-div")){
     div = atoi(getCmdOption(input_str, input_str+in_num, "-div"));
     if (div < 0) div = 2;
   } else div = 2;
-
-  if (div > np) div = np;
 
   {
     CTF_World dw(MPI_COMM_WORLD, argc, argv);

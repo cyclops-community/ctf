@@ -1305,8 +1305,8 @@ void pad_cyclic_pup_virt_buff(int              ndim,
                               dtype **         new_data,
                               int              forward,
                               int * const *    bucket_offset,
-                              double           alpha = 1.0,
-                              double           beta = 0.0){
+                              dtype           alpha = 1.0,
+                              dtype           beta = 0.0){
   if (ndim == 0){
     if (forward)
       new_data[0][0] = old_data[0];
@@ -2320,7 +2320,6 @@ int padded_reshuffle(int const          tid,
                      CommData_t *       ord_glb_comm){
   int i, old_num_virt, new_num_virt, numPes;
   long_int new_nval, swp_nval;
-  long_int old_size;
   int idx_lyr;
   int * virt_phase_rank, * old_virt_phase_rank, * sub_edge_len;
   tkv_pair<dtype> * pairs;
@@ -2368,7 +2367,9 @@ int padded_reshuffle(int const          tid,
     pairs = NULL;
   }
 
-  old_size = sy_packed_size(ndim, new_edge_len, sym);
+#if DEBUG >= 1
+  long_int old_size = sy_packed_size(ndim, new_edge_len, sym);
+#endif
 
   for (i=0; i<ndim; i++){
     sub_edge_len[i] = new_edge_len[i] / new_phase[i];
@@ -2483,8 +2484,8 @@ int cyclic_reshuffle(int const          ndim,
                      int const          was_cyclic,
                      int const          is_cyclic,
                      bool               reuse_buffers = 1,
-                     double             alpha = 1.0,
-                     double             beta = 0.0){
+                     dtype             alpha = 1.0,
+                     dtype             beta = 0.0){
   int i, nbuf, np, old_nvirt, new_nvirt, old_np, new_np, idx_lyr;
   long_int vbs_old, vbs_new;
   long_int hvbs_old, hvbs_new;
