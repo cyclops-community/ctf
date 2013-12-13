@@ -7,7 +7,7 @@
  * CTF is capable of performing summation and contraction, as well as data manipulation and mapping.
  * The software is available on GitHub (github.com/solomonik/ctf) and maybe obtained via the command 
  *
- * git clone git://github.com/solomonik/ctf
+ * git clone https://github.com/solomonik/ctf
  *
  * The lead developer of this code is Edgar Solomonik (University of California-Berkeley).
  * Devin Matthews (University of Austin Texas) has also made significant contributions to CTF.
