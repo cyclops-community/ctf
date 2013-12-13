@@ -1,7 +1,7 @@
-Documentation on the using/building/running and the internal software of the CTF library is available on the following website
+Full documentation on  using/building/running and documentation of the software of the CTF library is available on the following website
 http://ctf.cs.berkeley.edu
 
-Brief build instructions below:
+Brief build and execution instructions below:
 
 To build CTF with a standard setup simply run make in the top directory.
 
@@ -10,8 +10,8 @@ or specify MPI compiler), one must set up a config.mk file. Examples and
 premade config.mk files for a few architectures are located in the 
 mkfiles/ subdirectory. On running make without a config.mk file in the top
 folder, mkfiles/config.mk.linux will be copied to config.mk in the top folder by default,
-unless the hostname is recognized. Apple machines should also be recognized automatically,
-but this is not currently well-tested. The config.mk file will not be overwritten
+unless the hostname is recognized. OpenMP is currently disabled for Apple architectures.
+The config.mk file will not be overwritten
 after the first call to 'make'. The first call to 'make' will create the 
 file src/make/make.in, which records the top level directory. So, if you desire to move
 the built source code, change or delete and recreate this file by running make again.
@@ -20,8 +20,12 @@ The CTF library is built by default and will be located in lib/. The main
 interface to the library is include/ctf.hpp.
 
 Run 'make examples' to build example programs, see examples/ dir for full list
-(any one of them can be built individually by the command 'make <example_name>'. 
-Any executables that are build will appear in bin/
+Run 'make test' to run a short test suite, which should confirm the functionality
+of CTF using a single MPI process. Running 'make test#n' with '#n' in  {1,2,3,4,5,6,7,8}
+with test functionality on #n processors. The number of threads should be set via
+OMP_NUM_THREADS.
+All examples can be built individually by the command 'make <example_name>'. 
+Any executables that are built will appear in bin/
 
 The license corresponding to the code in this library is in the file license.txt.
 

@@ -1,13 +1,20 @@
 /*! \mainpage 
  * \section intro Introduction
- * This is the documentation for a distributed memory tensor contraction library.
- * The lead developer of this code is Edgar Solomonik (University of California-Berkeley).
- * Devin Matthews (University of Austin Texas) has also made contributions to CTF.
- * Devin also leads the development of Aquarius (https://code.google.com/p/aquarius-chem/),
- * a distributed-memory quantum chemistry software suite running on top of the CTF library.
- * Jeff Hammond (Argonne National Laborarory) and James Demmel (University of California-Berkeley) have overseen the high-level development of the ideas in the CTF framework.
+ * 
+ * Cyclops Tensor Framework (CTF) is a distributed-memory library that provides support for high-dimensional arrays (tensors).
+ * CTF arrays are distributed over MPI communicators and two-level parallelism (MPI + threads) 
+ * is supported with via extensive internal usage of OpenMP and capability to exploit threaded BLAS effectively. 
+ * CTF is capable of performing summation and contraction, as well as data manipulation and mapping.
+ * The software is available on GitHub (github.com/solomonik/ctf) and maybe obtained via the command 
  *
- * The software may be obtained using GIT via the command, git clone git://repo.eecs.berkeley.edu/users/solomon/ctf.git
+ * git clone git://github.com/solomonik/ctf
+ *
+ * The lead developer of this code is Edgar Solomonik (University of California-Berkeley).
+ * Devin Matthews (University of Austin Texas) has also made significant contributions to CTF.
+ * Additionally, Devin leads the development of Aquarius (https://code.google.com/p/aquarius-chem/),
+ * a distributed-memory quantum chemistry software suite running on top of the CTF library.
+ * Richard Lin (UC Berkeley) is working on multi-contraction scheduling in (on top of) CTF.
+ * Jeff Hammond (Argonne National Laborarory) and James Demmel (University of California-Berkeley) have overseen the high-level development of the ideas in the CTF framework.
  *
  * The source to CTF is available for reference and usage under
  * a BSD license. Please email solomon@eecs.berkeley.edu with all questions and interest.
