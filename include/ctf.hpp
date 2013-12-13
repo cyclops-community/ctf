@@ -1210,6 +1210,13 @@ extern tCTF_ScheduleBase* global_schedule;
 template<typename dtype>
 class tCTF_Schedule : public tCTF_ScheduleBase {
 public:
+  /**
+   * \brief Constructor, optionally specifying a world to restrict processor
+   * allocations to
+   */
+  tCTF_Schedule(tCTF_World<dtype>* world = NULL) :
+    world(world) {}
+
 	/**
 	 * \brief Starts recording all tensor operations to this schedule
 	 * (instead of executing them immediately)
@@ -1220,6 +1227,12 @@ public:
 	 * \brief Executes the schedule and implicitly terminates recording
 	 */
 	void execute();
+
+  /**
+   * \brief Executes a slide of the ready_queue, partitioning it among the
+   * processors in the grid
+   */
+  inline void partition_and_execute();
 
 	/**
 	 * \bried Executes a tensor operation, handling scheduling
@@ -1235,6 +1248,8 @@ public:
 	void add_operation(tCTF_TensorOperationBase* op);
 
 protected:
+	tCTF_World<dtype>* world;
+
 	/**
 	 * Internal scheduling operation overview:
 	 * DAG Structure:
