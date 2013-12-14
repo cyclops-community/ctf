@@ -10,9 +10,10 @@ void tCTF_Schedule<dtype>::record() {
 }
 
 template<typename dtype>
-inline void tCTF_Schedule<dtype>::execute_op(tCTF_TensorOperation<dtype>* op) {
+inline void tCTF_Schedule<dtype>::execute_op(tCTF_TensorOperation<dtype>* op,
+    std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap) {
   assert(op->dependency_left == 0);
-  op->execute();
+  op->execute(remap);
 
   typename std::vector<tCTF_TensorOperation<dtype>* >::iterator it;
   for (it=op->successors.begin(); it!=op->successors.end(); it++) {
@@ -32,13 +33,42 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
 
   // Partition operations into worlds, and do split
   int my_color = rank % ready_tasks.size();
+  int total_colors = size <= ready_tasks.size()? size : ready_tasks.size();
   // TODO: better approach than scattershotting tensors
   MPI_Comm my_comm;
   MPI_Comm_split(world->comm, my_color, rank, &my_comm);
 
-  tCTF_TensorOperation<dtype>* op = ready_tasks.front();
-  ready_tasks.pop_front();
-  execute_op(op);
+  // Get tensors which need to be sent to subworlds and build remap table
+  std::vector<std::set<tCTF_Tensor<dtype>*> > world_tensors;
+  std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*> remap;
+  std::set<tCTF_Tensor<dtype>*> all_tensors;  // all tensors used in this step
+  std::set<tCTF_Tensor<dtype>*> my_tensors; // all tensors which I have a local copy of
+  std::set<tCTF_Tensor<dtype>*> my_output_tensors;  // tensors which need to be written back into global
+  for (int color=0; color<total_colors; color++) {
+    std::set<tCTF_Tensor<dtype>*>
+  }
+
+  // Communicate tensors to subworlds
+  for (int color=0; color<total_colors; color++) {
+    // if color is world then set world pointer otherwise null
+    if (color != my_color) {
+
+    } else {
+
+    }
+  }
+
+  // Execute operations
+  for (int task=0; task<total_colors; task++) {
+    if (task == my_color) {
+      tCTF_TensorOperation<dtype>* op = ready_tasks.front();
+      execute_op(op, &remap);
+    }
+    ready_tasks.pop_front();
+  }
+
+  // Communicate results back into global
+
 }
 
 template<typename dtype>
@@ -112,23 +142,31 @@ void tCTF_Schedule<dtype>::add_operation(tCTF_TensorOperationBase* op) {
 }
 
 template<typename dtype>
-void tCTF_TensorOperation<dtype>::execute() {
+void tCTF_TensorOperation<dtype>::execute(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap) {
   assert(global_schedule == NULL);  // ensure this isn't going into a record()
+
+  tCTF_Idx_Tensor<dtype>* remapped_lhs = lhs;
+  tCTF_Term<dtype>* remapped_rhs = rhs;
+
+  if (remap != NULL) {
+    assert(false);
+    // TODO IMPLEMENT ME
+  }
 
   switch (op) {
   case TENSOR_OP_NONE:
     break;
   case TENSOR_OP_SET:
-    *lhs = *rhs;
+    *remapped_lhs = *remapped_rhs;
     break;
   case TENSOR_OP_SUM:
-    *lhs += *rhs;
+    *remapped_lhs += *remapped_rhs;
     break;
   case TENSOR_OP_SUBTRACT:
-    *lhs -= *rhs;
+    *remapped_lhs -= *remapped_rhs;
     break;
   case TENSOR_OP_MULTIPLY:
-    *lhs *= *rhs;
+    *remapped_lhs *= *remapped_rhs;
     break;
   default:
     std::cerr << "tCTF_TensorOperation::execute(): unexpected op: " << op << std::endl;
