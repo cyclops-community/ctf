@@ -1305,8 +1305,8 @@ void pad_cyclic_pup_virt_buff(int              ndim,
                               dtype **         new_data,
                               int              forward,
                               int * const *    bucket_offset,
-                              dtype           alpha = 1.0,
-                              dtype           beta = 0.0){
+                              dtype            alpha,
+                              dtype            beta){
   if (ndim == 0){
     if (forward)
       new_data[0][0] = old_data[0];
@@ -1555,8 +1555,8 @@ void pad_cyclic_pup_virt_buff(int              ndim,
 
         offset += old_virt_nelem*virt_min;
         if (forward){
-          LIBT_ASSERT(alpha == 1.0);
-          LIBT_ASSERT(beta  == 0.0);
+          LIBT_ASSERT(alpha == get_one<dtype>());
+          LIBT_ASSERT(beta  == get_zero<dtype>());
           for (virt_offset[0] = virt_min*old_virt_edge_len[0];
                virt_offset[0] < virt_max*old_virt_edge_len[0];
                virt_offset[0] += old_virt_edge_len[0])
@@ -2483,9 +2483,9 @@ int cyclic_reshuffle(int const          ndim,
                      CommData_t *       ord_glb_comm,
                      int const          was_cyclic,
                      int const          is_cyclic,
-                     bool               reuse_buffers = 1,
-                     dtype             alpha = 1.0,
-                     dtype             beta = 0.0){
+                     bool               reuse_buffers,
+                     dtype             alpha,
+                     dtype             beta){
   int i, nbuf, np, old_nvirt, new_nvirt, old_np, new_np, idx_lyr;
   long_int vbs_old, vbs_new;
   long_int hvbs_old, hvbs_new;
@@ -2677,7 +2677,8 @@ int cyclic_reshuffle(int const          ndim,
                                  new_np, new_rank, new_phys_dim, new_virt_dim,
                                  new_phys_edge_len, new_virt_edge_len,
                                  vbs_new,  
-                                 tsr_data, new_data, 1, bucket_offset);
+                                 tsr_data, new_data, 1, bucket_offset, 
+                                 get_one<dtype>(), get_zero<dtype>());
 
         /*
         opt_pup_virt_buff(ndim,             nbuf,           np,
@@ -2861,7 +2862,8 @@ int cyclic_reshuffle(int const          ndim,
                                new_np, new_rank, new_phys_dim, new_virt_dim,
                                new_phys_edge_len, new_virt_edge_len,
                                vbs_new,  
-                               tsr_data, new_data, 1, bucket_offset);
+                               tsr_data, new_data, 1, bucket_offset,
+                               get_one<dtype>(), get_zero<dtype>());
       CTF_free(new_data);
     }
     for (int dim = 0;dim < ndim;dim++){

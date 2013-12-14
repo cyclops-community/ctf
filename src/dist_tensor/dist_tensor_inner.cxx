@@ -402,7 +402,10 @@ int dist_tensor<dtype>::
                      &end_vdata,
                      NULL,
                      1,
-                     1);
+                     1,
+                     1,
+                     get_one<dtype>(),
+                     get_zero<dtype>());
     if (new_nvirt > 1 && ordering != NULL)
       inner_transpose(itsr->ndim, new_nvirt, new_inner_ordering,
                       itsr->size/new_nvirt, 0, end_vdata);

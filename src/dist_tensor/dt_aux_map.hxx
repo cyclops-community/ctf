@@ -749,7 +749,7 @@ int remap_tensor(int const  tid,
                      &shuffled_data,
                      global_comm,
                      was_cyclic,
-                     tsr->is_cyclic);
+                     tsr->is_cyclic, 1, get_one<dtype>(), get_zero<dtype>());
   }
 
   CTF_free((void*)new_phase);
@@ -787,26 +787,24 @@ int remap_tensor(int const  tid,
 }
 
 /**
- * \brief permutes the data of a tensor to its new layout
- * \param[in] tid tensor id
- * \param[in,out] tsr tensor in its new mapping
- * \param[in] old_size size of tensor before redistribution
- * \param[in] old_phase old distribution phase
- * \param[in] old_rank old distribution rank
- * \param[in] old_virt_dim old distribution virtualization
- * \param[in] old_pe_lda old distribution processor ldas
- * \param[in] old_padding what the padding was
- * \param[in] old_edge_len what the padded edge lengths were
- * \param[in] global_comm global communicator
+ * \brief does a permute add of data from one distribution to another
+ * \param[in] sym symmetry of tensor
+ * \param[in] cdt comm to redistribute on
+ * \param[in] old_dist old distribution info
+ * \param[in] old_data old data (data to add)
+ * \param[in] alpha scaling factor of the data to add (old_data)
+ * \param[in] new_dist new distribution info
+ * \param[in] new_data new data (data to be accumulated to)
+ * \param[in] beta scaling factor of the data to add (new_data)
  */
 template<typename dtype>
 int redistribute(int const *          sym,
                  CommData_t *         cdt,
-                 distribution const & new_dist,
-                 dtype *              new_data,
-                 dtype                alpha,
                  distribution const & old_dist,
                  dtype *              old_data,
+                 dtype                alpha,
+                 distribution const & new_dist,
+                 dtype *              new_data,
                  dtype                beta){
 
   return  cyclic_reshuffle(old_dist.ndim,

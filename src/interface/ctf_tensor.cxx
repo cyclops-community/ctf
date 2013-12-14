@@ -394,6 +394,11 @@ void tCTF_Tensor<dtype>::add_to_subworld(
     ret = world->ctf->add_to_subworld(tid, tsr->tid, tsr->world->ctf, alpha, beta);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
+template<typename dtype>
+void tCTF_Tensor<dtype>::add_to_subworld(
+                         tCTF_Tensor<dtype> * tsr) const {
+  return add_to_subworld(tsr, get_one<dtype>(), get_one<dtype>());
+}
 
 template<typename dtype>
 void tCTF_Tensor<dtype>::add_from_subworld(
@@ -407,6 +412,12 @@ void tCTF_Tensor<dtype>::add_from_subworld(
     ret = world->ctf->add_from_subworld(tid, tsr->tid, tsr->world->ctf, alpha, beta);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
+template<typename dtype>
+void tCTF_Tensor<dtype>::add_from_subworld(
+                         tCTF_Tensor<dtype> * tsr) const {
+  return add_from_subworld(tsr, get_one<dtype>(), get_one<dtype>());
+}
+
 
 
 template<typename dtype>

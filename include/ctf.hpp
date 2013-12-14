@@ -411,23 +411,25 @@ class tCTF_Tensor {
      * \brief accumulates this tensor to a tensor object defined on a different world
      * \param[in] tsr a tensor object of the same characteristic as this tensor, 
      *             but on a different CTF_world/MPI_comm
-     * \param[in] alpha scaling factor for this tensor
-     * \param[in] beta scaling factor for tensor tsr
+     * \param[in] alpha scaling factor for this tensor (default 1.0)
+     * \param[in] beta scaling factor for tensor tsr (default 1.0)
      */
     void add_to_subworld(tCTF_Tensor<dtype> * tsr,
-                         dtype alpha = 1.0,
-                         dtype beta = 0.0) const;
+                         dtype alpha,
+                         dtype beta) const;
+    void add_to_subworld(tCTF_Tensor<dtype> * tsr) const;
     
    /**
      * \brief accumulates this tensor from a tensor object defined on a different world
      * \param[in] tsr a tensor object of the same characteristic as this tensor, 
      *             but on a different CTF_world/MPI_comm
-     * \param[in] alpha scaling factor for tensor tsr
-     * \param[in] beta scaling factor for this tensor
+     * \param[in] alpha scaling factor for tensor tsr (default 1.0)
+     * \param[in] beta scaling factor for this tensor (default 1.0)
      */
     void add_from_subworld(tCTF_Tensor<dtype> * tsr,
-                           dtype alpha = 1.0,
-                           dtype beta = 0.0) const;
+                           dtype alpha,
+                           dtype beta) const;
+    void add_from_subworld(tCTF_Tensor<dtype> * tsr) const;
     
 
     /**

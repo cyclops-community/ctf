@@ -361,8 +361,8 @@ template<typename dtype>
 int tCTF<dtype>::add_to_subworld(int          tid,
                                  int          tid_sub,
                                  tCTF<dtype> *tC_sub,
-                                 double       alpha,
-                                 double       beta){
+                                 dtype       alpha,
+                                 dtype       beta){
   if (tC_sub == NULL)
     return dt->add_to_subworld(tid, tid_sub, NULL, alpha, beta);
   else
@@ -373,8 +373,8 @@ template<typename dtype>
 int tCTF<dtype>::add_from_subworld(int          tid,
                                    int          tid_sub,
                                    tCTF<dtype> *tC_sub,
-                                   double       alpha,
-                                   double       beta){
+                                   dtype       alpha,
+                                   dtype       beta){
   if (tC_sub == NULL)
     return dt->add_from_subworld(tid, tid_sub, NULL, alpha, beta);
   else

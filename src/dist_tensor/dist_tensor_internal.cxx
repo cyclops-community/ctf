@@ -2164,6 +2164,12 @@ int dist_tensor<dtype>::zero_out_padding(int const tensor_id){
   unmap_inner(tsr);
   set_padding(tsr);
 
+  long_int npair;
+  tkv_pair<dtype> * kvdata;
+  read_local_pairs(tensor_id, &npair, &kvdata);
+  std::fill(tsr->data, tsr->data+tsr->size, 0.0);
+  write_pairs(tensor_id, npair, 1.0, 0.0, kvdata, 'w');
+  return DIST_TENSOR_SUCCESS;
 
   if (!tsr->is_mapped){
     return DIST_TENSOR_SUCCESS;

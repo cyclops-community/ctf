@@ -85,7 +85,7 @@ inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
 #define DIAG_RESCALE
 #define USE_SYM_SUM 
 #define HOME_CONTRACT
-#define USE_BLOCK_RESHUFFLE
+//#define USE_BLOCK_RESHUFFLE
 
 typedef struct CTF_ctr_type {
   int   tid_A;
@@ -321,8 +321,8 @@ class tCTF{
     int  add_to_subworld(int          tid,
                          int          tid_sub,
                          tCTF<dtype> *tC_sub,
-                         double       alpha,
-                         double       beta);
+                         dtype       alpha,
+                         dtype       beta);
    /**
      * \brief accumulates this tensor from a tensor object defined on a different world
      * \param[in] tsr a tensor object of the same characteristic as this tensor, 
@@ -335,8 +335,8 @@ class tCTF{
     int  add_from_subworld(int          tid,
                            int          tid_sub,
                            tCTF<dtype> *tC_sub,
-                           double       alpha,
-                           double       beta);
+                           dtype       alpha,
+                           dtype       beta);
     
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
