@@ -1172,14 +1172,16 @@ public:
 	tCTF_Tensor<dtype>* get_outputs() const;
 
 	/**
-	 * \brief returns a set of tensors this depends on (reads from)
+	 * \brief returns a set of tensors this depends on (reads from), including
+	 * the output if the previous value is required.
 	 */
 	std::set<tCTF_Tensor<dtype>*> get_inputs() const;
 
 	/**
 	 * \brief runs this operation, but does NOT handle dependency scheduling
+	 * optionally takes a remapping of tensors
 	 */
-	void execute();
+	void execute(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL);
 
   /**
    * Schedule Recording Variables
@@ -1239,7 +1241,8 @@ public:
 	/**
 	 * \bried Executes a tensor operation, handling scheduling
 	 */
-	inline void execute_op(tCTF_TensorOperation<dtype>* op);
+	inline void execute_op(tCTF_TensorOperation<dtype>* op,
+	    std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap);
 
 	/**
 	 * \brief Adds a tensor operation to this schedule.
