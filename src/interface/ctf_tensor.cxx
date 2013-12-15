@@ -44,6 +44,21 @@ tCTF_Tensor<dtype>::tCTF_Tensor(const tCTF_Tensor<dtype>& A,
 }
 
 template<typename dtype>
+tCTF_Tensor<dtype>::tCTF_Tensor(const tCTF_Tensor<dtype>& A,
+                                tCTF_World<dtype> & world_){
+  int ret;
+  world = &world_;
+  name = A.name;
+
+  ret = A.world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+
+  ret = world->ctf->define_tensor(ndim, len, sym, &tid, name, name!=NULL);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
+
+
+template<typename dtype>
 tCTF_Tensor<dtype>::tCTF_Tensor(int                 ndim_,
                                 int const *         len_,
                                 int const *         sym_,

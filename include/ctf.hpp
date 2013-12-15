@@ -142,6 +142,14 @@ class tCTF_Tensor {
                 tCTF_World<dtype> &  world_,
                 char const *         name_ = NULL,
                 int                  profile_ = 0);
+    
+    /**
+     * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
+     * \param[in] A tensor whose characteristics to copy
+     * \param[in] world_ a world for the tensor we are creating to live in, can be different from A
+     */
+    tCTF_Tensor(tCTF_Tensor const & A,
+                tCTF_World<dtype> & world_);
 
     /**
      * \brief gives the values associated with any set of indices
