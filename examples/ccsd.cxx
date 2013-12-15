@@ -329,8 +329,8 @@ int main(int argc, char ** argv){
         double d = MPI_Wtime();
         ccsd(V,T);
         if (rank == 0)
-          printf("Completed %dth CCSD iteration in time = %lf, |T| is %lf\n",
-                  i, MPI_Wtime()-d, T.ai.norm2()+T.abij.norm2());
+          printf("(%d nodes) Completed %dth CCSD iteration in time = %lf, |T| is %lf\n",
+              np, i, MPI_Wtime()-d, T.ai.norm2()+T.abij.norm2());
         else {
           T.ai.norm2();
           T.abij.norm2();

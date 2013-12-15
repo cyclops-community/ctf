@@ -1192,6 +1192,10 @@ public:
 	 */
 	void execute(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL);
 
+	bool is_dummy() {
+	  return op == TENSOR_OP_NONE;
+	}
+
   /**
    * Schedule Recording Variables
    */

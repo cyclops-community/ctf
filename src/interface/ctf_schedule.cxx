@@ -28,71 +28,100 @@ inline void tCTF_Schedule<dtype>::schedule_op_successors(tCTF_TensorOperation<dt
  */
 template<typename dtype>
 struct tCTF_PartitionOps {
+  int color;
+  tCTF_World<dtype>* world;
+
   std::vector<tCTF_TensorOperation<dtype>*> ops;  // operations to execute
   std::set<tCTF_Tensor<dtype>*> local_tensors; // all local tensors used
   std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*> remap; // mapping from global tensor -> local tensor
+
+  std::set<tCTF_Tensor<dtype>*> global_tensors; // all referenced tensors stored as global tensors
   std::set<tCTF_Tensor<dtype>*> output_tensors; // tensors to be written back out, stored as global tensors
 };
-/*
+
 template<typename dtype>
 void tCTF_Schedule<dtype>::partition_and_execute() {
   int rank, size;
   MPI_Comm_rank(world->comm, &rank);
   MPI_Comm_size(world->comm, &size);
 
+  std::cout << rank << " / " << size << " partition_execute" << std::endl;
+
   // Partition operations into worlds, and do split
   std::vector<tCTF_PartitionOps<dtype> > comm_ops; // operations for each subcomm
   int my_color = rank % ready_tasks.size();
   int total_colors = size <= ready_tasks.size()? size : ready_tasks.size();
 
+  MPI_Comm my_comm;
+  MPI_Comm_split(world->comm, my_color, rank, &my_comm);
+
   for (int color=0; color<total_colors; color++) {
-    // dummy partitioning for now
     comm_ops.push_back(tCTF_PartitionOps<dtype>());
+    comm_ops[color].color = color;
+    if (color == my_color) {
+      comm_ops[color].world = new tCTF_World<dtype>(my_comm);
+    } else {
+      comm_ops[color].world = NULL;
+    }
+    // dummy partitioning for now
+    // TODO: better partitioning approach
     comm_ops[color].ops.push_back(ready_tasks.front());
     ready_tasks.pop_front();
   }
-
-  // TODO: better approach than scattershotting tensors
-  MPI_Comm my_comm;
-  MPI_Comm_split(world->comm, my_color, rank, &my_comm);
 
   // Initialize local data structures
   for (auto comm_op : comm_ops) {
     // gather required tensors
     for (auto op : comm_op.ops) {
-      //comm_op.local_tensors      op->test;
-
+      op->get_inputs(&comm_op.global_tensors);
+      op->get_outputs(&comm_op.global_tensors);
+      op->get_outputs(&comm_op.output_tensors);
     }
   }
 
-  // Communicate tensors to subworlds
-  for (int color=0; color<total_colors; color++) {
-    // if color is world then set world pointer otherwise null
-    if (color != my_color) {
-
-    } else {
-
+  // Create and communicate tensors to subworlds
+  for (auto comm_op : comm_ops) {
+    for (auto global_tensor : comm_op.global_tensors) {
+      tCTF_Tensor<dtype>* local_clone;
+      if (comm_op.world != NULL) {
+        local_clone = new tCTF_Tensor<dtype>(*global_tensor, *comm_op.world);
+      } else {
+        local_clone = NULL;
+      }
+      comm_op.local_tensors.insert(local_clone);
+      comm_op.remap[global_tensor] = local_clone;
+      global_tensor->add_to_subworld(local_clone, 1, 0);
+    }
+    for (auto output_tensor : comm_op.output_tensors) {
+      assert(comm_op.remap.find(output_tensor) != comm_op.remap.end());
     }
   }
 
-  // Execute operations
-  for (int task=0; task<total_colors; task++) {
-
+  // Run my tasks
+  if (comm_ops.size() > my_color) {
+    for (auto op : comm_ops[my_color].ops) {
+      std::cout << rank << "Exec" << std::endl;
+      op->execute(&comm_ops[my_color].remap);
+    }
   }
 
   // Communicate results back into global
-
+  for (auto comm_op : comm_ops) {
+    for (auto output_tensor : comm_op.output_tensors) {
+      output_tensor->add_from_subworld(comm_op.remap[output_tensor], 1, 0);
+    }
+  }
 
   // Update ready tasks
   for (auto comm_op : comm_ops) {
     for (auto op : comm_op.ops) {
-      op->execute();
       schedule_op_successors(op);
     }
   }
 }
-*/
 
+/*
+// The dead simple scheduler
 template<typename dtype>
 void tCTF_Schedule<dtype>::partition_and_execute() {
   while (ready_tasks.size() >= 1) {
@@ -102,7 +131,7 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
     schedule_op_successors(op);
   }
 }
-
+*/
 
 template<typename dtype>
 void tCTF_Schedule<dtype>::execute() {
@@ -118,7 +147,22 @@ void tCTF_Schedule<dtype>::execute() {
   }
   ready_tasks = root_tasks;
 
+  // Preprocess dummy operations
   while (!ready_tasks.empty()) {
+    if (ready_tasks.front()->is_dummy()) {
+      schedule_op_successors(ready_tasks.front());
+      ready_tasks.pop_front();
+    } else {
+      break;
+    }
+  }
+
+  while (!ready_tasks.empty()) {
+    int rank;
+    MPI_Comm_rank(world->comm, &rank);
+    if (rank == 0) {
+      std::cout << "Partition" << std::endl;
+    }
     partition_and_execute();
   }
 }
@@ -187,8 +231,9 @@ void tCTF_TensorOperation<dtype>::execute(std::map<tCTF_Tensor<dtype>*, tCTF_Ten
   const tCTF_Term<dtype>* remapped_rhs = rhs;
 
   if (remap != NULL) {
-    assert(false);
-    // TODO IMPLEMENT ME
+    remapped_lhs = dynamic_cast<tCTF_Idx_Tensor<dtype>* >(remapped_lhs->clone(remap));
+    assert(remapped_lhs != NULL);
+    remapped_rhs = remapped_rhs->clone(remap);
   }
 
   switch (op) {
@@ -220,6 +265,7 @@ void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*>* out
 template<typename dtype>
 void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
   rhs->get_inputs(inputs_set);
+
   switch (op) {
   case TENSOR_OP_SET:
     break;

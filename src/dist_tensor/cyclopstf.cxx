@@ -1102,9 +1102,9 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
       if (need_free[2])
         CTF_free(tsr_oC->data);
       tsr_oC->data = tsr_nC->data;
-      remap_tensor(otid_C, tsr_oC, dt->get_topo(tsr_oC->itopo), old_size_C, 
-                   old_phase_C, old_rank_C, old_virt_dim_C, 
-                   old_pe_lda_C, was_cyclic_C, 
+      remap_tensor(otid_C, tsr_oC, dt->get_topo(tsr_oC->itopo), old_size_C,
+                   old_phase_C, old_rank_C, old_virt_dim_C,
+                   old_pe_lda_C, was_cyclic_C,
                    old_padding_C, old_edge_len_C, dt->get_global_comm());
     } else{
       if (need_free[2])
@@ -1212,9 +1212,9 @@ int tCTF<dtype>::read_scala_mat(int const tid,
   LIBT_ASSERT(tsr->is_matrix);
   CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&stsr->data);
   memcpy(stsr->data, tsr->data, sizeof(dtype)*tsr->size);
-  remap_tensor(tsr->slay, stsr, dt->get_topo(stsr->itopo), old_size, 
-               old_phase, old_rank, old_virt_dim, 
-               old_pe_lda, was_cyclic, 
+  remap_tensor(tsr->slay, stsr, dt->get_topo(stsr->itopo), old_size,
+               old_phase, old_rank, old_virt_dim,
+               old_pe_lda, was_cyclic,
                old_padding, old_edge_len, dt->get_global_comm());
   if (data!=NULL)
     memcpy(data, stsr->data, stsr->size*sizeof(dtype));  
