@@ -4,7 +4,7 @@ BLAS        = -llapack -lblas
 LIBS        = $(BLAS) 
 CXX         = mpicxx
 WARN_FLAGS  = #-Drestrict = -Wall 
-OPT_FLAGS   = -g -O3 --std=c++11
+OPT_FLAGS   = -g -O3 -std=c++0x
 CXXFLAGS    = -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) 
 DEFS        = -D__STDC_LIMIT_MACROS
 LDFLAGS     = 
