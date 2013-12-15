@@ -294,7 +294,7 @@ tCTF_Contract_Term<dtype>::tCTF_Contract_Term(
 }
 
 template<typename dtype>
-tCTF_Term<dtype> * tCTF_Contract_Term<dtype>::clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL) const {
+tCTF_Term<dtype> * tCTF_Contract_Term<dtype>::clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap) const {
   return new tCTF_Contract_Term<dtype>(*this, remap);
 }
 
@@ -401,7 +401,7 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
 template<typename dtype>
 void tCTF_Contract_Term<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
   for (int i=0; i<(int)operands.size(); i++){
-    operands[i]->get_inputs(inputs_Set);
+    operands[i]->get_inputs(inputs_set);
   }
 }
 

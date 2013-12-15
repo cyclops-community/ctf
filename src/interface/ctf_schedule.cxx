@@ -60,7 +60,7 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
   for (auto comm_op : comm_ops) {
     // gather required tensors
     for (auto op : comm_op.ops) {
-      comm_op.local_tensors      op->test;
+      //comm_op.local_tensors      op->test;
 
     }
   }
@@ -86,6 +86,7 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
   // Update ready tasks
   for (auto comm_op : comm_ops) {
     for (auto op : comm_op.ops) {
+      op->execute();
       schedule_op_successors(op);
     }
   }
@@ -114,8 +115,13 @@ template<typename dtype>
 void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) {
   steps_original.push_back(op);
 
-  tCTF_Tensor<dtype>* op_lhs = op->get_outputs();
-  std::set<tCTF_Tensor<dtype>*> op_deps = op->get_inputs();
+  std::set<tCTF_Tensor<dtype>*> op_lhs_set;
+  op->get_outputs(&op_lhs_set);
+  assert(op_lhs_set.size() == 1); // limited case to make this a bit easier
+  tCTF_Tensor<dtype>* op_lhs = *op_lhs_set.begin();
+
+  std::set<tCTF_Tensor<dtype>*> op_deps;
+  op->get_inputs(&op_deps);
 
   typename std::set<tCTF_Tensor<dtype>*>::iterator deps_iter;
   for (deps_iter = op_deps.begin(); deps_iter != op_deps.end(); deps_iter++) {
@@ -166,7 +172,7 @@ void tCTF_TensorOperation<dtype>::execute(std::map<tCTF_Tensor<dtype>*, tCTF_Ten
   assert(global_schedule == NULL);  // ensure this isn't going into a record()
 
   tCTF_Idx_Tensor<dtype>* remapped_lhs = lhs;
-  tCTF_Term<dtype>* remapped_rhs = rhs;
+  const tCTF_Term<dtype>* remapped_rhs = rhs;
 
   if (remap != NULL) {
     assert(false);

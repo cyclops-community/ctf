@@ -114,7 +114,7 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
     if (remap != NULL) {
       auto it = remap->find(parent);
       if (it != remap->end()) {
-        parent = *it;
+        parent = it->second;
       }
     }
 
@@ -159,7 +159,7 @@ tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
 
 template<typename dtype>
 tCTF_Term<dtype> * tCTF_Idx_Tensor<dtype>::clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap) const {
-  return new tCTF_Idx_Tensor<dtype>(*this, remap);
+  return new tCTF_Idx_Tensor<dtype>(*this, 0, remap);
 }
 
 template<typename dtype>
