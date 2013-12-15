@@ -33,7 +33,7 @@ struct tCTF_PartitionOps {
   std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*> remap; // mapping from global tensor -> local tensor
   std::set<tCTF_Tensor<dtype>*> output_tensors; // tensors to be written back out, stored as global tensors
 };
-
+/*
 template<typename dtype>
 void tCTF_Schedule<dtype>::partition_and_execute() {
   int rank, size;
@@ -91,6 +91,18 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
     }
   }
 }
+*/
+
+template<typename dtype>
+void tCTF_Schedule<dtype>::partition_and_execute() {
+  while (ready_tasks.size() >= 1) {
+    tCTF_TensorOperation<dtype>* op = ready_tasks.front();
+    ready_tasks.pop_front();
+    op->execute();
+    schedule_op_successors(op);
+  }
+}
+
 
 template<typename dtype>
 void tCTF_Schedule<dtype>::execute() {
