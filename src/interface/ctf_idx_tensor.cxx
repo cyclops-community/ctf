@@ -112,7 +112,7 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
   } else {
     parent = other.parent;
     if (remap != NULL) {
-      auto it = remap->find(parent);
+      typename std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>::iterator it = remap->find(parent);
       if (it != remap->end()) {
         parent = it->second;
       }
