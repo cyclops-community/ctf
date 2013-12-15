@@ -103,17 +103,26 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(tCTF_Tensor<dtype> *  parent_,
 template<typename dtype>
 tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
     tCTF_Idx_Tensor<dtype> const &  other,
-    int                       copy) {
+    int                       copy,
+    std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap) {
   if (other.parent == NULL){
     parent        = NULL;
     idx_map       = NULL;
     is_intm       = 0;
   } else {
+    parent = other.parent;
+    if (remap != NULL) {
+      auto it = remap->find(parent);
+      if (it != remap->end()) {
+        parent = *it;
+      }
+    }
+
     if (copy || other.is_intm){
-      parent = new tCTF_Tensor<dtype>(*other.parent,1);
+      parent = new tCTF_Tensor<dtype>(*parent,1);
       is_intm = 1;
     } else {
-      parent = other.parent;
+      // leave parent as is - already correct
       is_intm = 0;
     }
     idx_map = (char*)CTF_alloc(other.parent->ndim*sizeof(char));
@@ -149,8 +158,8 @@ tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
 }
 
 template<typename dtype>
-tCTF_Term<dtype> * tCTF_Idx_Tensor<dtype>::clone() const {
-  return new tCTF_Idx_Tensor<dtype>(*this);
+tCTF_Term<dtype> * tCTF_Idx_Tensor<dtype>::clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap) const {
+  return new tCTF_Idx_Tensor<dtype>(*this, remap);
 }
 
 template<typename dtype>
@@ -236,10 +245,8 @@ tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::execute() const {
 }
 
 template<typename dtype>
-std::set<tCTF_Tensor<dtype>*> tCTF_Idx_Tensor<dtype>::get_inputs() const {
-  std::set<tCTF_Tensor<dtype>*> inputs;
-  inputs.insert(parent);
-  return inputs;
+void tCTF_Idx_Tensor<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
+  inputs_set->insert(parent);
 }
 
 /*template<typename dtype>

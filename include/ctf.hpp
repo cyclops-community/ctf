@@ -673,7 +673,7 @@ class tCTF_Idx_Tensor : public tCTF_Term<dtype> {
 
   
     // dervied clone calls copy constructor
-    tCTF_Term<dtype> * clone() const;
+    tCTF_Term<dtype> * clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL) const;
 
     /**
      * \brief constructor takes in a parent tensor and its indices 
@@ -691,8 +691,8 @@ class tCTF_Idx_Tensor : public tCTF_Term<dtype> {
      * \param[in] copy if 1 then copy the parent tensor of B into a new tensor
      */
     tCTF_Idx_Tensor(tCTF_Idx_Tensor<dtype> const & B,
-                    int copy = 0);
-    
+                    int copy = 0,
+                    std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL);
 
     tCTF_Idx_Tensor();
     
@@ -714,9 +714,9 @@ class tCTF_Idx_Tensor : public tCTF_Term<dtype> {
     void execute(tCTF_Idx_Tensor<dtype> output) const;
     
     /**
-     * \brief returns the set of input tensors
-     */
-    std::set<tCTF_Tensor<dtype>*> get_inputs() const;
+    * \brief appends the tensors this depends on to the input set
+    */
+    void get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const;
 
     /**
      * \brief A = B, compute any operations on operand B and set
@@ -947,7 +947,7 @@ class tCTF_Term {
     /**
      * \brief base classes must implement this copy function to retrieve pointer
      */ 
-    virtual tCTF_Term * clone() const = 0;
+    virtual tCTF_Term * clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL) const = 0;
     
     /**
      * \brief evalues the expression, which just scales by default
@@ -963,9 +963,9 @@ class tCTF_Term {
     virtual tCTF_Idx_Tensor<dtype> execute() const = 0;
     
     /**
-     * \brief returns the set of input tensors
-     */
-    virtual std::set<tCTF_Tensor<dtype>*> get_inputs() const = 0;
+    * \brief appends the tensors this depends on to the input set
+    */
+    virtual void get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const = 0;
 
     /**
      * \brief constructs a new term which multiplies by tensor A
@@ -1014,10 +1014,11 @@ class tCTF_Sum_Term : public tCTF_Term<dtype> {
     ~tCTF_Sum_Term();
   
     // copy constructor
-    tCTF_Sum_Term(tCTF_Sum_Term<dtype> const & other);
+    tCTF_Sum_Term(tCTF_Sum_Term<dtype> const & other,
+        std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL);
 
     // dervied clone calls copy constructor
-    tCTF_Term<dtype> * clone() const;
+    tCTF_Term<dtype>* clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL) const;
 
     /**
      * construct sum term corresponding to a single tensor
@@ -1039,9 +1040,9 @@ class tCTF_Sum_Term : public tCTF_Term<dtype> {
     tCTF_Idx_Tensor<dtype> execute() const;
     
     /**
-     * \brief returns the set of input tensors
-     */
-    std::set<tCTF_Tensor<dtype>*> get_inputs() const;
+    * \brief appends the tensors this depends on to the input set
+    */
+    void get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const;
 
     /**
      * \brief constructs a new term by addition of two terms
@@ -1089,10 +1090,11 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
     ~tCTF_Contract_Term();
   
     // \brief copy constructor
-    tCTF_Contract_Term(tCTF_Contract_Term<dtype> const & other);
+    tCTF_Contract_Term(tCTF_Contract_Term<dtype> const & other,
+        std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL);
 
     // \brief dervied clone calls copy constructor
-    tCTF_Term<dtype> * clone() const;
+    tCTF_Term<dtype> * clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL) const;
 
     /**
      * \brief override execution to  to contract operands and add them to output
@@ -1101,9 +1103,9 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
     void execute(tCTF_Idx_Tensor<dtype> output) const;
     
     /**
-     * \brief returns the set of input tensors
-     */
-    std::set<tCTF_Tensor<dtype>*> get_inputs() const;
+    * \brief appends the tensors this depends on to the input set
+    */
+    void get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const;
 
     /**
      * \brief evalues the expression to produce an intermediate with 
@@ -1165,17 +1167,16 @@ public:
 			  rhs(rhs),
 			  dependency_count(0) {}
 
-	/**
-	 * \brief returns the tensor this writes to
-	 * TODO: could this ever write to multiple targets?
-	 */
-	tCTF_Tensor<dtype>* get_outputs() const;
+  /**
+   * \brief appends the tensors this writes to to the input set
+   */
+  void get_outputs(std::set<tCTF_Tensor<dtype>*>* outputs_set) const;
 
 	/**
-	 * \brief returns a set of tensors this depends on (reads from), including
-	 * the output if the previous value is required.
+	 * \brief appends the tensors this depends on (reads from, including the output
+	 * if a previous value is required) to the input set
 	 */
-	std::set<tCTF_Tensor<dtype>*> get_inputs() const;
+	void get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const;
 
 	/**
 	 * \brief runs this operation, but does NOT handle dependency scheduling
@@ -1239,10 +1240,9 @@ public:
   inline void partition_and_execute();
 
 	/**
-	 * \bried Executes a tensor operation, handling scheduling
+	 * \brief Call when a tensor op finishes, this adds newly enabled ops to the ready queue
 	 */
-	inline void execute_op(tCTF_TensorOperation<dtype>* op,
-	    std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap);
+	inline void schedule_op_successors(tCTF_TensorOperation<dtype>* op);
 
 	/**
 	 * \brief Adds a tensor operation to this schedule.

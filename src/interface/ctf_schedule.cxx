@@ -10,10 +10,8 @@ void tCTF_Schedule<dtype>::record() {
 }
 
 template<typename dtype>
-inline void tCTF_Schedule<dtype>::execute_op(tCTF_TensorOperation<dtype>* op,
-    std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap) {
+inline void tCTF_Schedule<dtype>::schedule_op_successors(tCTF_TensorOperation<dtype>* op) {
   assert(op->dependency_left == 0);
-  op->execute(remap);
 
   typename std::vector<tCTF_TensorOperation<dtype>* >::iterator it;
   for (it=op->successors.begin(); it!=op->successors.end(); it++) {
@@ -25,6 +23,17 @@ inline void tCTF_Schedule<dtype>::execute_op(tCTF_TensorOperation<dtype>* op,
   }
 }
 
+/**
+ * \brief Data structure containing what each partition is going to do.
+ */
+template<typename dtype>
+struct tCTF_PartitionOps {
+  std::vector<tCTF_TensorOperation<dtype>*> ops;  // operations to execute
+  std::set<tCTF_Tensor<dtype>*> local_tensors; // all local tensors used
+  std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*> remap; // mapping from global tensor -> local tensor
+  std::set<tCTF_Tensor<dtype>*> output_tensors; // tensors to be written back out, stored as global tensors
+};
+
 template<typename dtype>
 void tCTF_Schedule<dtype>::partition_and_execute() {
   int rank, size;
@@ -32,20 +41,28 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
   MPI_Comm_size(world->comm, &size);
 
   // Partition operations into worlds, and do split
+  std::vector<tCTF_PartitionOps<dtype> > comm_ops; // operations for each subcomm
   int my_color = rank % ready_tasks.size();
   int total_colors = size <= ready_tasks.size()? size : ready_tasks.size();
+
+  for (int color=0; color<total_colors; color++) {
+    // dummy partitioning for now
+    comm_ops.push_back(tCTF_PartitionOps<dtype>());
+    comm_ops[color].ops.push_back(ready_tasks.front());
+    ready_tasks.pop_front();
+  }
+
   // TODO: better approach than scattershotting tensors
   MPI_Comm my_comm;
   MPI_Comm_split(world->comm, my_color, rank, &my_comm);
 
-  // Get tensors which need to be sent to subworlds and build remap table
-  std::vector<std::set<tCTF_Tensor<dtype>*> > world_tensors;
-  std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*> remap;
-  std::set<tCTF_Tensor<dtype>*> all_tensors;  // all tensors used in this step
-  std::set<tCTF_Tensor<dtype>*> my_tensors; // all tensors which I have a local copy of
-  std::set<tCTF_Tensor<dtype>*> my_output_tensors;  // tensors which need to be written back into global
-  for (int color=0; color<total_colors; color++) {
-    std::set<tCTF_Tensor<dtype>*>
+  // Initialize local data structures
+  for (auto comm_op : comm_ops) {
+    // gather required tensors
+    for (auto op : comm_op.ops) {
+      comm_op.local_tensors      op->test;
+
+    }
   }
 
   // Communicate tensors to subworlds
@@ -60,15 +77,18 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
 
   // Execute operations
   for (int task=0; task<total_colors; task++) {
-    if (task == my_color) {
-      tCTF_TensorOperation<dtype>* op = ready_tasks.front();
-      execute_op(op, &remap);
-    }
-    ready_tasks.pop_front();
+
   }
 
   // Communicate results back into global
 
+
+  // Update ready tasks
+  for (auto comm_op : comm_ops) {
+    for (auto op : comm_op.ops) {
+      schedule_op_successors(op);
+    }
+  }
 }
 
 template<typename dtype>
@@ -175,26 +195,25 @@ void tCTF_TensorOperation<dtype>::execute(std::map<tCTF_Tensor<dtype>*, tCTF_Ten
 }
 
 template<typename dtype>
-tCTF_Tensor<dtype>* tCTF_TensorOperation<dtype>::get_outputs() const {
-  return lhs->parent;
+void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*>* outputs_set) const {
+  outputs_set->insert(lhs->parent);
 }
 
 template<typename dtype>
-std::set<tCTF_Tensor<dtype>*> tCTF_TensorOperation<dtype>::get_inputs() const {
-  typename std::set<tCTF_Tensor<dtype>*> inputs = rhs->get_inputs();
+void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
+  rhs->get_inputs(inputs_set);
   switch (op) {
   case TENSOR_OP_SET:
     break;
   case TENSOR_OP_SUM:
   case TENSOR_OP_SUBTRACT:
   case TENSOR_OP_MULTIPLY:
-    inputs.insert(lhs->parent);
+    inputs_set->insert(lhs->parent);
     break;
   default:
     std::cerr << "tCTF_TensorOperation::get_inputs(): unexpected op: " << op << std::endl;
     assert(false);
   }
-  return inputs;
 }
 
 template class tCTF_Schedule<double>;

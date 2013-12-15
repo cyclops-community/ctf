@@ -173,16 +173,18 @@ tCTF_Sum_Term<dtype>::~tCTF_Sum_Term(){
 }
 
 template<typename dtype>
-tCTF_Sum_Term<dtype>::tCTF_Sum_Term(tCTF_Sum_Term<dtype> const & other){
+tCTF_Sum_Term<dtype>::tCTF_Sum_Term(
+    tCTF_Sum_Term<dtype> const & other,
+    std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap){
   this->scale = other.scale;
   for (int i=0; i<(int)other.operands.size(); i++){
-    this->operands.push_back(other.operands[i]->clone());
+    this->operands.push_back(other.operands[i]->clone(remap));
   }
 }
 
 template<typename dtype>
-tCTF_Term<dtype> * tCTF_Sum_Term<dtype>::clone() const{
-  return new tCTF_Sum_Term<dtype>(*this);
+tCTF_Term<dtype> * tCTF_Sum_Term<dtype>::clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap) const{
+  return new tCTF_Sum_Term<dtype>(*this, remap);
 }
 
 template<typename dtype>
@@ -242,13 +244,10 @@ void tCTF_Sum_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output) const{
 }
 
 template<typename dtype>
-std::set<tCTF_Tensor<dtype>*> tCTF_Sum_Term<dtype>::get_inputs() const {
-  std::set<tCTF_Tensor<dtype>*> inputs;
+void tCTF_Sum_Term<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
   for (int i=0; i<(int)operands.size(); i++){
-    std::set<tCTF_Tensor<dtype>*> op_inputs = operands[i]->get_inputs();
-    inputs.insert(op_inputs.begin(), op_inputs.end());
+    operands[i]->get_inputs(inputs_set);
   }
-  return inputs;
 }
 
 template<typename dtype>
@@ -284,17 +283,19 @@ tCTF_World<dtype> * tCTF_Contract_Term<dtype>::where_am_i() const {
 }
 
 template<typename dtype>
-tCTF_Contract_Term<dtype>::tCTF_Contract_Term(tCTF_Contract_Term<dtype> const & other){
+tCTF_Contract_Term<dtype>::tCTF_Contract_Term(
+    tCTF_Contract_Term<dtype> const & other,
+    std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap){
   this->scale = other.scale;
   for (int i=0; i<(int)other.operands.size(); i++){
-    tCTF_Term<dtype> * t = other.operands[i]->clone();
+    tCTF_Term<dtype> * t = other.operands[i]->clone(remap);
     operands.push_back(t);
   }
 }
 
 template<typename dtype>
-tCTF_Term<dtype> * tCTF_Contract_Term<dtype>::clone() const {
-  return new tCTF_Contract_Term<dtype>(*this);
+tCTF_Term<dtype> * tCTF_Contract_Term<dtype>::clone(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL) const {
+  return new tCTF_Contract_Term<dtype>(*this, remap);
 }
 
 template<typename dtype>
@@ -398,13 +399,10 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
 }
 
 template<typename dtype>
-std::set<tCTF_Tensor<dtype>*> tCTF_Contract_Term<dtype>::get_inputs() const {
-  std::set<tCTF_Tensor<dtype>*> inputs;
+void tCTF_Contract_Term<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
   for (int i=0; i<(int)operands.size(); i++){
-    std::set<tCTF_Tensor<dtype>*> op_inputs = operands[i]->get_inputs();
-    inputs.insert(op_inputs.begin(), op_inputs.end());
+    operands[i]->get_inputs(inputs_Set);
   }
-  return inputs;
 }
 
 template class tCTF_Term<double>;
