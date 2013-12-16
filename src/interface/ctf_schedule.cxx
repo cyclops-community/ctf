@@ -344,12 +344,13 @@ void tCTF_TensorOperation<dtype>::execute(std::map<tCTF_Tensor<dtype>*, tCTF_Ten
 
 template<typename dtype>
 void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* outputs_set) const {
-  assert(lhs->parent->name);
+  assert(lhs->parent);
   outputs_set->insert(lhs->parent);
 }
 
 template<typename dtype>
 void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const {
+  assert(rhs != NULL);
   rhs->get_inputs(inputs_set);
 
   switch (op) {
@@ -358,9 +359,8 @@ void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tenso
   case TENSOR_OP_SUM:
   case TENSOR_OP_SUBTRACT:
   case TENSOR_OP_MULTIPLY:
-    if (lhs->parent) {
-      inputs_set->insert(lhs->parent);
-    }
+    assert(lhs != NULL && lhs->parent != NULL);
+    inputs_set->insert(lhs->parent);
     break;
   default:
     std::cerr << "tCTF_TensorOperation::get_inputs(): unexpected op: " << op << std::endl;
