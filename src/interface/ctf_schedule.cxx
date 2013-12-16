@@ -71,6 +71,13 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   }
   std::sort(ready_tasks.begin(), ready_tasks.end(), tensor_op_cost_greater<dtype>);
   if (rank == 0) {
+    for (auto it : ready_tasks) {
+      std::cout << it->name() << "(" << it->estimate_cost() << ") ";
+    }
+    std::cout << std::endl;
+  }
+
+  if (rank == 0) {
     std::cout << "Imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost();
     std::cout << " " << double(ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost())*100/ready_tasks[total_colors-1]->estimate_cost() << "% ";
     std::cout << ", max potential imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[ready_tasks.size()-1]->estimate_cost();
@@ -328,6 +335,7 @@ long_int tCTF_TensorOperation<dtype>::estimate_cost() {
     assert(rhs != NULL);
     assert(lhs != NULL);
     cached_estimated_cost = rhs->estimate_cost(*lhs);
+    assert(cached_estimated_cost > 0);
   }
   return cached_estimated_cost;
 }
