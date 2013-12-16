@@ -66,6 +66,9 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   MPI_Comm_split(world->comm, my_color, rank, &my_comm);
 
   // sort tasks by runtime to load-balance
+  for (auto it : ready_tasks) {
+    assert(it != NULL);
+  }
   std::sort(ready_tasks.begin(), ready_tasks.end(), tensor_op_cost_greater<dtype>);
   if (rank == 0) {
     std::cout << "Imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost();
@@ -321,7 +324,12 @@ void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inpu
 
 template<typename dtype>
 long_int tCTF_TensorOperation<dtype>::estimate_cost() {
-  return rhs->estimate_cost(*lhs);
+  if (cached_estimated_cost == 0) {
+    assert(rhs != NULL);
+    assert(lhs != NULL);
+    cached_estimated_cost = rhs->estimate_cost(*lhs);
+  }
+  return cached_estimated_cost;
 }
 
 template class tCTF_Schedule<double>;
