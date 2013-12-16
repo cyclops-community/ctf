@@ -1250,6 +1250,11 @@ public:
 	 */
 	void execute(std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>* remap = NULL);
 
+	/**
+	 *\brief provides an estimated runtime cost
+	 */
+	long_int estimate_cost();
+
 	bool is_dummy() {
 	  return op == TENSOR_OP_NONE;
 	}
