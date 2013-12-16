@@ -56,20 +56,46 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
 
   // Partition operations into worlds, and do split
   std::vector<tCTF_PartitionOps<dtype> > comm_ops; // operations for each subcomm
-  int total_colors = size <= ready_tasks.size()? size : ready_tasks.size();
-  if (partitions > 0 && total_colors > partitions) {
-    total_colors = partitions;
+  int max_colors = size <= ready_tasks.size()? size : ready_tasks.size();
+  if (partitions > 0 && max_colors > partitions) {
+    max_colors = partitions;
   }
-  int my_color = rank % total_colors;
+
+  // Sort tasks by descending runtime - run largest tasks forst
+  std::sort(ready_tasks.begin(), ready_tasks.end(), tensor_op_cost_greater<dtype>);
+
+  // Maximum load imbalance algorithm:
+  // Keep attempting to add the next available task until either reached max_colors
+  // (user-specified parameter or number of nodes) or the next added node would
+  // require less than one processor's worth of compute
+  long_int sum_cost = 0;
+  for (int i=0; i<max_colors; i++) {
+    long_int this_cost = ready_tasks[i]->estimate_cost();
+    if (this_cost < (this_cost + sum_cost) / size) {
+      max_colors = i;
+      break;
+    } else {
+      sum_cost += this_cost;
+    }
+  }
+
+  // Do processor division according to estimated cost
+  // Algorithm: divide sum_cost into size blocks, and each processor samples the
+  // middle of its block to determine which task it works on
+  int color_sample_point = (sum_cost / size) * rank + (sum_cost / size / 2);
+  int my_color = 0;
+  for (int i=0; i<max_colors; i++) {
+    my_color = i;
+    if (color_sample_point < ready_tasks[i]->estimate_cost()) {
+      break;
+    } else {
+      color_sample_point -= ready_tasks[i]->estimate_cost();
+    }
+  }
 
   MPI_Comm my_comm;
   MPI_Comm_split(world->comm, my_color, rank, &my_comm);
 
-  // sort tasks by runtime to load-balance
-  for (auto it : ready_tasks) {
-    assert(it != NULL);
-  }
-  std::sort(ready_tasks.begin(), ready_tasks.end(), tensor_op_cost_greater<dtype>);
   if (rank == 0) {
     for (auto it : ready_tasks) {
       std::cout << it->name() << "(" << it->estimate_cost() << ") ";
@@ -78,14 +104,14 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   }
 
   if (rank == 0) {
-    std::cout << "Partitions: " << total_colors;
-    std::cout << ", imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost();
-    std::cout << " " << double(ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost())*100/ready_tasks[total_colors-1]->estimate_cost() << "% ";
+    std::cout << "Partitions: " << max_colors;
+    std::cout << ", imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[max_colors-1]->estimate_cost();
+    std::cout << " " << double(ready_tasks[0]->estimate_cost() - ready_tasks[max_colors-1]->estimate_cost())*100/ready_tasks[max_colors-1]->estimate_cost() << "% ";
     std::cout << ", max potential imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[ready_tasks.size()-1]->estimate_cost();
     std::cout << " " << double(ready_tasks[0]->estimate_cost() - ready_tasks[ready_tasks.size()-1]->estimate_cost())*100/ready_tasks[ready_tasks.size()-1]->estimate_cost() << "% " << std::endl;
   }
 
-  for (int color=0; color<total_colors; color++) {
+  for (int color=0; color<max_colors; color++) {
     comm_ops.push_back(tCTF_PartitionOps<dtype>());
     comm_ops[color].color = color;
     if (color == my_color) {
