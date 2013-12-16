@@ -921,12 +921,12 @@ int dist_tensor<dtype>::permute_tensor(int const              tid_A,
     all_data_A = all_data_B;
     blk_sz_A = blk_sz_B;
   } else {
-    LIBT_ASSERT(permutation_A != NULL);
-    LIBT_ASSERT(permutation_B == NULL);
     LIBT_ASSERT(dt_B->get_global_comm()->np >= dt_A->get_global_comm()->np);
     if (ndim_A == 0 || tsr_A->has_zero_edge_len){
       blk_sz_A = 0;
     } else {
+      LIBT_ASSERT(permutation_A != NULL);
+      LIBT_ASSERT(permutation_B == NULL);
       dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
       //permute all_data_A
       permute_keys(ndim_A, sz_A, len_A, len_B, permutation_A, all_data_A, &blk_sz_A);
@@ -2163,13 +2163,6 @@ int dist_tensor<dtype>::zero_out_padding(int const tensor_id){
   }
   unmap_inner(tsr);
   set_padding(tsr);
-
-  long_int npair;
-  tkv_pair<dtype> * kvdata;
-  read_local_pairs(tensor_id, &npair, &kvdata);
-  std::fill(tsr->data, tsr->data+tsr->size, 0.0);
-  write_pairs(tensor_id, npair, 1.0, 0.0, kvdata, 'w');
-  return DIST_TENSOR_SUCCESS;
 
   if (!tsr->is_mapped){
     return DIST_TENSOR_SUCCESS;
