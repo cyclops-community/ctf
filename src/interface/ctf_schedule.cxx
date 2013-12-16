@@ -335,6 +335,7 @@ long_int tCTF_TensorOperation<dtype>::estimate_cost() {
     assert(rhs != NULL);
     assert(lhs != NULL);
     cached_estimated_cost = rhs->estimate_cost(*lhs);
+    assert(cached_estimated_cost > 0);
   }
   return cached_estimated_cost;
 }
