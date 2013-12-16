@@ -133,6 +133,7 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
     } else {
       comm_ops[color].world = NULL;
     }
+    assert(max_starting_task + color < ready_tasks.size());
     comm_ops[color].ops.push_back(ready_tasks[max_starting_task + color]);
     ready_tasks.erase(ready_tasks.begin() + max_starting_task + color);
   }
