@@ -351,6 +351,7 @@ void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*, tens
 
 template<typename dtype>
 void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const {
+  assert(this != NULL);
   assert(rhs != NULL);
   assert(inputs_set != NULL);
   rhs->get_inputs(inputs_set);
