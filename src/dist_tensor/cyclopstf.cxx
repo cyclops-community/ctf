@@ -104,12 +104,13 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       const char * const *  argv){
   char * mst_size, * stack_size, * mem_size, * ppn;
   
-  TAU_FSTART(CTF);
+  if (global_context == MPI_COMM_WORLD){
+    TAU_FSTART(CTF);
 #ifdef HPM
-  HPM_Start("CTF");
+    HPM_Start("CTF");
 #endif
-  CTF_set_context(global_context);
-  CTF_set_main_args(argc, argv);
+    CTF_set_context(global_context);
+    CTF_set_main_args(argc, argv);
 
 #ifdef USE_OMP
   if (rank == 0)
@@ -154,6 +155,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                 atoi(ppn));
     LIBT_ASSERT(atoi(ppn)>=1);
     CTF_set_memcap(.75/atof(ppn));
+  }
   }
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
@@ -999,10 +1001,12 @@ template<typename dtype>
 int tCTF<dtype>::exit(){
   int ret;
   if (initialized){
-    TAU_FSTOP(CTF);
+    if (dt->get_global_comm()->cm == MPI_COMM_WORLD){
+      TAU_FSTOP(CTF);
 #ifdef HPM
-    HPM_Stop("CTF");
+      HPM_Stop("CTF");
 #endif
+    }
     ret = tCTF<dtype>::clean_tensors();
     LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
     delete dt;
