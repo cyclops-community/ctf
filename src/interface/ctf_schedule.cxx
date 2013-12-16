@@ -40,7 +40,10 @@ struct tCTF_PartitionOps {
 };
 
 template<typename dtype>
-void tCTF_Schedule<dtype>::partition_and_execute() {
+tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
+  tCTF_ScheduleTimer schedule_timer;
+  schedule_timer.total_time = MPI_Wtime();
+
   int rank, size;
   MPI_Comm_rank(world->comm, &rank);
   MPI_Comm_size(world->comm, &size);
@@ -78,6 +81,7 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
   }
 
   // Create and communicate tensors to subworlds
+  schedule_timer.comm_down_time = MPI_Wtime();
   for (auto &comm_op : comm_ops) {
     for (auto &global_tensor : comm_op.global_tensors) {
       tCTF_Tensor<dtype>* local_clone;
@@ -94,21 +98,28 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
       assert(comm_op.remap.find(output_tensor) != comm_op.remap.end());
     }
   }
+  schedule_timer.comm_down_time = MPI_Wtime() - schedule_timer.comm_down_time;
 
   // Run my tasks
+  MPI_Barrier(world->comm);
+  schedule_timer.exec_time = MPI_Wtime();
   if (comm_ops.size() > my_color) {
     for (auto &op : comm_ops[my_color].ops) {
-      std::cout << rank << "Exec " << op->name() << std::endl;
       op->execute(&comm_ops[my_color].remap);
     }
   }
 
+  MPI_Barrier(world->comm);
+  schedule_timer.exec_time = MPI_Wtime() - schedule_timer.exec_time;
+
   // Communicate results back into global
+  schedule_timer.comm_up_time = MPI_Wtime();
   for (auto &comm_op : comm_ops) {
     for (auto &output_tensor : comm_op.output_tensors) {
       output_tensor->add_from_subworld(comm_op.remap[output_tensor], 1, 0);
     }
   }
+  schedule_timer.comm_up_time = MPI_Wtime() - schedule_timer.comm_up_time;
 
   // Clean up local tensors & world
   if (comm_ops.size() > my_color) {
@@ -124,6 +135,9 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
       schedule_op_successors(op);
     }
   }
+
+  schedule_timer.total_time = MPI_Wtime() - schedule_timer.total_time;
+  return schedule_timer;
 }
 
 /*
@@ -140,8 +154,8 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
 */
 
 template<typename dtype>
-void tCTF_Schedule<dtype>::execute() {
-  srand (time(NULL));
+tCTF_ScheduleTimer tCTF_Schedule<dtype>::execute() {
+  tCTF_ScheduleTimer schedule_timer;
 
   global_schedule = NULL;
 
@@ -169,8 +183,9 @@ void tCTF_Schedule<dtype>::execute() {
     if (rank == 0) {
       std::cout << "Partition" << std::endl;
     }
-    partition_and_execute();
+    schedule_timer += partition_and_execute();
   }
+  return schedule_timer;
 }
 
 template<typename dtype>

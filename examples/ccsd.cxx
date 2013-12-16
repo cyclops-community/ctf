@@ -182,6 +182,7 @@ class Amplitudes {
 
 void ccsd(Integrals   &V,
           Amplitudes  &T){
+  int rank;   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   double timer = MPI_Wtime();
   tCTF_Schedule<double> sched(V.dw);
   sched.record();
@@ -254,11 +255,13 @@ void ccsd(Integrals   &V,
   Zabij += .5*V["abef"]*T21["efij"];
   Zabij += .5*Wmnij*T21["abmn"];
   
-  printf("Record: %lf\n",
-          MPI_Wtime()-timer);
+  if (rank == 0) {
+    printf("Record: %lf\n",
+            MPI_Wtime()-timer);
+  }
 
   timer = MPI_Wtime();
-  sched.execute();
+  tCTF_ScheduleTimer schedule_time = sched.execute();
 
   CTF_fctr fctr;
   fctr.func_ptr = &divide;
@@ -279,8 +282,14 @@ void ccsd(Integrals   &V,
   T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
 
-  printf("All execute: %lf\n",
-          MPI_Wtime()-timer);
+  if (rank == 0) {
+    printf("Schedule comm down: %lf\n", schedule_time.comm_down_time);
+    printf("Schedule execute: %lf\n", schedule_time.exec_time);
+    printf("Schedule comm up: %lf\n", schedule_time.comm_up_time);
+    printf("Schedule total: %lf\n", schedule_time.total_time);
+    printf("All execute: %lf\n",
+            MPI_Wtime()-timer);
+  }
 } 
 
 #ifndef TEST_SUITE
