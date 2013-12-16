@@ -181,10 +181,12 @@ class Amplitudes {
 };
 
 void ccsd(Integrals   &V,
-          Amplitudes  &T){
+          Amplitudes  &T,
+          int sched_nparts = 0){
   int rank;   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   double timer = MPI_Wtime();
   tCTF_Schedule<double> sched(V.dw);
+  sched.set_max_partitions(sched_nparts);
   sched.record();
 
   CTF_Tensor T21 = CTF_Tensor(T.abij);
@@ -306,7 +308,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, niter, no, nv, i;
+  int rank, np, niter, no, nv, sched_nparts, i;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -326,6 +328,10 @@ int main(int argc, char ** argv){
     niter = atoi(getCmdOption(input_str, input_str+in_num, "-niter"));
     if (niter < 0) niter = 1;
   } else niter = 1;
+  if (getCmdOption(input_str, input_str+in_num, "-nparts")){
+    sched_nparts = atoi(getCmdOption(input_str, input_str+in_num, "-nparts"));
+    if (sched_nparts < 0) sched_nparts = 0;
+  } else sched_nparts = 0;
 
   {
     CTF_World dw(argc, argv);
@@ -336,7 +342,7 @@ int main(int argc, char ** argv){
       for (i=0; i<niter; i++){
         T.fill_rand();
         double d = MPI_Wtime();
-        ccsd(V,T);
+        ccsd(V,T,sched_nparts);
         if (rank == 0)
           printf("(%d nodes) Completed %dth CCSD iteration in time = %lf, |T| is %lf\n",
               np, i, MPI_Wtime()-d, T.ai.norm2()+T.abij.norm2());

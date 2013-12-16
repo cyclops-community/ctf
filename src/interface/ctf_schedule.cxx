@@ -50,8 +50,11 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
 
   // Partition operations into worlds, and do split
   std::vector<tCTF_PartitionOps<dtype> > comm_ops; // operations for each subcomm
-  int my_color = rank % ready_tasks.size();
   int total_colors = size <= ready_tasks.size()? size : ready_tasks.size();
+  if (partitions > 0 && total_colors > partitions) {
+    total_colors = partitions;
+  }
+  int my_color = rank % total_colors;
 
   MPI_Comm my_comm;
   MPI_Comm_split(world->comm, my_color, rank, &my_comm);

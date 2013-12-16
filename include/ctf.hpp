@@ -1259,7 +1259,8 @@ public:
    * allocations to
    */
   tCTF_Schedule(tCTF_World<dtype>* world = NULL) :
-    world(world) {}
+    world(world),
+    partitions(0) {}
 
 	/**
 	 * \brief Starts recording all tensor operations to this schedule
@@ -1290,6 +1291,13 @@ public:
 	 */
 	void add_operation_typed(tCTF_TensorOperation<dtype>* op);
 	void add_operation(tCTF_TensorOperationBase* op);
+
+	/**
+	 * Testing functionality
+	 */
+	void set_max_partitions(int in_partitions) {
+	  partitions = in_partitions;
+	}
 
 protected:
 	tCTF_World<dtype>* world;
@@ -1336,6 +1344,11 @@ protected:
    */
   // Ready queue of tasks with all dependencies satisfied
   std::deque<tCTF_TensorOperation<dtype>*> ready_tasks;
+
+  /**
+   * Testing variables
+   */
+  int partitions;
 
 };
 /**
