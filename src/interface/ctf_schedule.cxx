@@ -78,7 +78,8 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   }
 
   if (rank == 0) {
-    std::cout << "Imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost();
+    std::cout << "Partitions: " << total_colors;
+    std::cout << ", imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost();
     std::cout << " " << double(ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost())*100/ready_tasks[total_colors-1]->estimate_cost() << "% ";
     std::cout << ", max potential imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[ready_tasks.size()-1]->estimate_cost();
     std::cout << " " << double(ready_tasks[0]->estimate_cost() - ready_tasks[ready_tasks.size()-1]->estimate_cost())*100/ready_tasks[ready_tasks.size()-1]->estimate_cost() << "% " << std::endl;
