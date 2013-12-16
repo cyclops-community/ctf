@@ -45,8 +45,6 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
   MPI_Comm_rank(world->comm, &rank);
   MPI_Comm_size(world->comm, &size);
 
-  std::cout << rank << " / " << size << " partition_execute" << std::endl;
-
   // Partition operations into worlds, and do split
   std::vector<tCTF_PartitionOps<dtype> > comm_ops; // operations for each subcomm
   int my_color = rank % ready_tasks.size();
@@ -100,7 +98,7 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
   // Run my tasks
   if (comm_ops.size() > my_color) {
     for (auto &op : comm_ops[my_color].ops) {
-      std::cout << rank << "Exec" << std::endl;
+      std::cout << rank << "Exec " << op->name() << std::endl;
       op->execute(&comm_ops[my_color].remap);
     }
   }
@@ -110,6 +108,14 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
     for (auto &output_tensor : comm_op.output_tensors) {
       output_tensor->add_from_subworld(comm_op.remap[output_tensor], 1, 0);
     }
+  }
+
+  // Clean up local tensors & world
+  if (comm_ops.size() > my_color) {
+    for (auto &local_tensor : comm_ops[my_color].local_tensors) {
+      delete local_tensor;
+    }
+    delete comm_ops[my_color].world;
   }
 
   // Update ready tasks
