@@ -1210,6 +1210,13 @@ public:
    */
   int dependency_left;
 
+  /**
+   * Debugging Helpers
+   */
+  const char* name() {
+    return lhs->parent->name;
+  }
+
 protected:
 	tCTF_TensorOperationTypes op;
 	tCTF_Idx_Tensor<dtype>* lhs;
