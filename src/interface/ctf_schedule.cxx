@@ -42,7 +42,8 @@ struct tCTF_PartitionOps {
 
 template<typename dtype>
 bool tensor_op_cost_greater(tCTF_TensorOperation<dtype>* A, tCTF_TensorOperation<dtype>* B) {
-  return A->estimate_cost() > B->estimate_cost();
+  //return A->estimate_cost() > B->estimate_cost();
+  return A->successors.size() > B->successors.size();
 }
 
 template<typename dtype>
@@ -69,9 +70,13 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   // (user-specified parameter or number of nodes) or the next added node would
   // require less than one processor's worth of compute
   long_int sum_cost = 0;
+  long_int min_cost = 0;
   for (int i=0; i<max_colors; i++) {
     long_int this_cost = ready_tasks[i]->estimate_cost();
-    if (this_cost < (this_cost + sum_cost) / size) {
+    if (min_cost == 0 || this_cost < min_cost) {
+      min_cost = this_cost;
+    }
+    if (min_cost < (this_cost + sum_cost) / size) {
       max_colors = i;
       break;
     } else {
