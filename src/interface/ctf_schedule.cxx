@@ -141,6 +141,7 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   for (auto &comm_op : comm_ops) {
     // gather required tensors
     for (auto &op : comm_op.ops) {
+      assert(op != NULL);
       op->get_inputs(&comm_op.global_tensors);
       op->get_outputs(&comm_op.global_tensors);
       op->get_outputs(&comm_op.output_tensors);
