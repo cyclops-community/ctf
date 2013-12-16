@@ -70,9 +70,9 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
   }
 
   // Initialize local data structures
-  for (auto comm_op : comm_ops) {
+  for (auto &comm_op : comm_ops) {
     // gather required tensors
-    for (auto op : comm_op.ops) {
+    for (auto &op : comm_op.ops) {
       op->get_inputs(&comm_op.global_tensors);
       op->get_outputs(&comm_op.global_tensors);
       op->get_outputs(&comm_op.output_tensors);
@@ -80,8 +80,8 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
   }
 
   // Create and communicate tensors to subworlds
-  for (auto comm_op : comm_ops) {
-    for (auto global_tensor : comm_op.global_tensors) {
+  for (auto &comm_op : comm_ops) {
+    for (auto &global_tensor : comm_op.global_tensors) {
       tCTF_Tensor<dtype>* local_clone;
       if (comm_op.world != NULL) {
         local_clone = new tCTF_Tensor<dtype>(*global_tensor, *comm_op.world);
@@ -92,29 +92,29 @@ void tCTF_Schedule<dtype>::partition_and_execute() {
       comm_op.remap[global_tensor] = local_clone;
       global_tensor->add_to_subworld(local_clone, 1, 0);
     }
-    for (auto output_tensor : comm_op.output_tensors) {
+    for (auto &output_tensor : comm_op.output_tensors) {
       assert(comm_op.remap.find(output_tensor) != comm_op.remap.end());
     }
   }
 
   // Run my tasks
   if (comm_ops.size() > my_color) {
-    for (auto op : comm_ops[my_color].ops) {
+    for (auto &op : comm_ops[my_color].ops) {
       std::cout << rank << "Exec" << std::endl;
       op->execute(&comm_ops[my_color].remap);
     }
   }
 
   // Communicate results back into global
-  for (auto comm_op : comm_ops) {
-    for (auto output_tensor : comm_op.output_tensors) {
+  for (auto &comm_op : comm_ops) {
+    for (auto &output_tensor : comm_op.output_tensors) {
       output_tensor->add_from_subworld(comm_op.remap[output_tensor], 1, 0);
     }
   }
 
   // Update ready tasks
-  for (auto comm_op : comm_ops) {
-    for (auto op : comm_op.ops) {
+  for (auto &comm_op : comm_ops) {
+    for (auto &op : comm_op.ops) {
       schedule_op_successors(op);
     }
   }
@@ -259,6 +259,7 @@ void tCTF_TensorOperation<dtype>::execute(std::map<tCTF_Tensor<dtype>*, tCTF_Ten
 
 template<typename dtype>
 void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*>* outputs_set) const {
+  assert(lhs->parent->name);
   outputs_set->insert(lhs->parent);
 }
 
@@ -272,7 +273,9 @@ void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inpu
   case TENSOR_OP_SUM:
   case TENSOR_OP_SUBTRACT:
   case TENSOR_OP_MULTIPLY:
-    inputs_set->insert(lhs->parent);
+    if (lhs->parent) {
+      inputs_set->insert(lhs->parent);
+    }
     break;
   default:
     std::cerr << "tCTF_TensorOperation::get_inputs(): unexpected op: " << op << std::endl;

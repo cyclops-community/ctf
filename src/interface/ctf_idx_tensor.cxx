@@ -113,9 +113,8 @@ tCTF_Idx_Tensor<dtype>::tCTF_Idx_Tensor(
     parent = other.parent;
     if (remap != NULL) {
       typename std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*>::iterator it = remap->find(parent);
-      if (it != remap->end()) {
-        parent = it->second;
-      }
+      assert(it != remap->end()); // assume a remapping will be complete
+      parent = it->second;
     }
 
     if (copy || other.is_intm){
@@ -246,7 +245,9 @@ tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::execute() const {
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
-  inputs_set->insert(parent);
+  if (parent) {
+    inputs_set->insert(parent);
+  }
 }
 
 /*template<typename dtype>
