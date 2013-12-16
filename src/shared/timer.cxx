@@ -156,7 +156,7 @@ void CTF_Timer::exit(){
 #ifdef PROFILE
   if (set_contxt && original && !exited) {
     if (comm != MPI_COMM_WORLD){
-      function_timers.clear();
+      //function_timers.clear();
       return;
     }
     int rank, np, i, j, p, len_symbols;
