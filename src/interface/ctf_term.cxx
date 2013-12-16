@@ -460,7 +460,6 @@ long_int tCTF_Contract_Term<dtype>::estimate_cost(tCTF_Idx_Tensor<dtype> output)
     if (op_A.parent == NULL) {
       tmp_ops.push_back(op_B.clone());
     } else if (op_B.parent == NULL) {
-      op_A.scale *= op_B.scale;
       tmp_ops.push_back(op_A.clone());
     } else {
       tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
