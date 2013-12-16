@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include "../shared/util.h"
 #include "../../include/ctf.hpp"
@@ -40,6 +41,11 @@ struct tCTF_PartitionOps {
 };
 
 template<typename dtype>
+bool tensor_op_cost_greater(tCTF_TensorOperation<dtype>* A, tCTF_TensorOperation<dtype>* B) {
+  return A->estimate_cost() > B->estimate_cost();
+}
+
+template<typename dtype>
 tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   tCTF_ScheduleTimer schedule_timer;
   schedule_timer.total_time = MPI_Wtime();
@@ -58,6 +64,15 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
 
   MPI_Comm my_comm;
   MPI_Comm_split(world->comm, my_color, rank, &my_comm);
+
+  // sort tasks by runtime to load-balance
+  std::sort(ready_tasks.begin(), ready_tasks.end(), tensor_op_cost_greater<dtype>);
+  if (rank == 0) {
+    std::cout << "Imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost();
+    std::cout << " " << double(ready_tasks[0]->estimate_cost() - ready_tasks[total_colors-1]->estimate_cost())*100/ready_tasks[total_colors-1]->estimate_cost() << "% ";
+    std::cout << ", max potential imbalance: " << ready_tasks[0]->estimate_cost() - ready_tasks[ready_tasks.size()-1]->estimate_cost();
+    std::cout << " " << double(ready_tasks[0]->estimate_cost() - ready_tasks[ready_tasks.size()-1]->estimate_cost())*100/ready_tasks[ready_tasks.size()-1]->estimate_cost() << "% " << std::endl;
+  }
 
   for (int color=0; color<total_colors; color++) {
     comm_ops.push_back(tCTF_PartitionOps<dtype>());
@@ -302,6 +317,11 @@ void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inpu
     std::cerr << "tCTF_TensorOperation::get_inputs(): unexpected op: " << op << std::endl;
     assert(false);
   }
+}
+
+template<typename dtype>
+long_int tCTF_TensorOperation<dtype>::estimate_cost() {
+  return rhs->estimate_cost(*lhs);
 }
 
 template class tCTF_Schedule<double>;
