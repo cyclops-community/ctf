@@ -133,7 +133,6 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
     } else {
       comm_ops[color].world = NULL;
     }
-    assert(max_starting_task + color < ready_tasks.size());
     comm_ops[color].ops.push_back(ready_tasks[max_starting_task + color]);
     ready_tasks.erase(ready_tasks.begin() + max_starting_task + color);
   }
@@ -353,9 +352,6 @@ void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*, tens
 
 template<typename dtype>
 void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const {
-  assert(this != NULL);
-  assert(rhs != NULL);
-  assert(inputs_set != NULL);
   rhs->get_inputs(inputs_set);
 
   switch (op) {
@@ -364,7 +360,7 @@ void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tenso
   case TENSOR_OP_SUM:
   case TENSOR_OP_SUBTRACT:
   case TENSOR_OP_MULTIPLY:
-    assert(lhs != NULL && lhs->parent != NULL);
+    assert(lhs->parent != NULL);
     inputs_set->insert(lhs->parent);
     break;
   default:
