@@ -24,6 +24,12 @@ inline void tCTF_Schedule<dtype>::schedule_op_successors(tCTF_TensorOperation<dt
   }
 }
 
+template<typename dtype>
+bool tensor_op_cost_greater(tCTF_TensorOperation<dtype>* A, tCTF_TensorOperation<dtype>* B) {
+  //return A->estimate_cost() > B->estimate_cost();
+  return A->successors.size() > B->successors.size();
+}
+
 /**
  * \brief Data structure containing what each partition is going to do.
  */
@@ -33,18 +39,12 @@ struct tCTF_PartitionOps {
   tCTF_World<dtype>* world;
 
   std::vector<tCTF_TensorOperation<dtype>*> ops;  // operations to execute
-  std::set<tCTF_Tensor<dtype>*> local_tensors; // all local tensors used
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> local_tensors; // all local tensors used
   std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*> remap; // mapping from global tensor -> local tensor
 
-  std::set<tCTF_Tensor<dtype>*> global_tensors; // all referenced tensors stored as global tensors
-  std::set<tCTF_Tensor<dtype>*> output_tensors; // tensors to be written back out, stored as global tensors
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> global_tensors; // all referenced tensors stored as global tensors
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> output_tensors; // tensors to be written back out, stored as global tensors
 };
-
-template<typename dtype>
-bool tensor_op_cost_greater(tCTF_TensorOperation<dtype>* A, tCTF_TensorOperation<dtype>* B) {
-  //return A->estimate_cost() > B->estimate_cost();
-  return A->successors.size() > B->successors.size();
-}
 
 template<typename dtype>
 tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
@@ -249,15 +249,15 @@ template<typename dtype>
 void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) {
   steps_original.push_back(op);
 
-  std::set<tCTF_Tensor<dtype>*> op_lhs_set;
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> op_lhs_set;
   op->get_outputs(&op_lhs_set);
   assert(op_lhs_set.size() == 1); // limited case to make this a bit easier
   tCTF_Tensor<dtype>* op_lhs = *op_lhs_set.begin();
 
-  std::set<tCTF_Tensor<dtype>*> op_deps;
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> op_deps;
   op->get_inputs(&op_deps);
 
-  typename std::set<tCTF_Tensor<dtype>*>::iterator deps_iter;
+  typename std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>::iterator deps_iter;
   for (deps_iter = op_deps.begin(); deps_iter != op_deps.end(); deps_iter++) {
     tCTF_Tensor<dtype>* dep = *deps_iter;
     typename std::map<tCTF_Tensor<dtype>*, tCTF_TensorOperation<dtype>*>::iterator dep_loc = latest_write.find(dep);
@@ -336,13 +336,13 @@ void tCTF_TensorOperation<dtype>::execute(std::map<tCTF_Tensor<dtype>*, tCTF_Ten
 }
 
 template<typename dtype>
-void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*>* outputs_set) const {
+void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* outputs_set) const {
   assert(lhs->parent->name);
   outputs_set->insert(lhs->parent);
 }
 
 template<typename dtype>
-void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
+void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const {
   rhs->get_inputs(inputs_set);
 
   switch (op) {

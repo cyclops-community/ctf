@@ -289,7 +289,7 @@ void tCTF_Sum_Term<dtype>::execute(tCTF_Idx_Tensor<dtype> output) const{
 }
 
 template<typename dtype>
-void tCTF_Sum_Term<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
+void tCTF_Sum_Term<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const {
   for (int i=0; i<(int)operands.size(); i++){
     operands[i]->get_inputs(inputs_set);
   }
@@ -535,7 +535,7 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::estimate_cost(long_int & cost)
 
 
 template<typename dtype>
-void tCTF_Contract_Term<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
+void tCTF_Contract_Term<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const {
   for (int i=0; i<(int)operands.size(); i++){
     operands[i]->get_inputs(inputs_set);
   }

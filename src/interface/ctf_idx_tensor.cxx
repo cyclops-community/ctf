@@ -263,7 +263,7 @@ tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::estimate_cost(long_int & cost) co
 }
 
 template<typename dtype>
-void tCTF_Idx_Tensor<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
+void tCTF_Idx_Tensor<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const {
   if (parent) {
     inputs_set->insert(parent);
   }
