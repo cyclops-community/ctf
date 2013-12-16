@@ -180,9 +180,6 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::execute() {
   while (!ready_tasks.empty()) {
     int rank;
     MPI_Comm_rank(world->comm, &rank);
-    if (rank == 0) {
-      std::cout << "Partition" << std::endl;
-    }
     schedule_timer += partition_and_execute();
   }
   return schedule_timer;
