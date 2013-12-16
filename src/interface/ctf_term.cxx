@@ -231,7 +231,10 @@ tCTF_Idx_Tensor<dtype> tCTF_Sum_Term<dtype>::estimate_cost(long_int & cost) cons
 
 template<typename dtype>
 long_int tCTF_Sum_Term<dtype>::estimate_cost(tCTF_Idx_Tensor<dtype> output) const{
-  std::vector< tCTF_Term<dtype>* > tmp_ops = operands;
+  std::vector< tCTF_Term<dtype>* > tmp_ops;
+  for (int i=0; i<(int)operands.size(); i++){
+    tmp_ops.push_back(operands[i]->clone());
+  }
   long_int cost = 0;
   for (int i=0; i<((int)tmp_ops.size())-1; i++){
     cost += tmp_ops[i]->estimate_cost(output);
@@ -239,6 +242,7 @@ long_int tCTF_Sum_Term<dtype>::estimate_cost(tCTF_Idx_Tensor<dtype> output) cons
   tCTF_Idx_Tensor<dtype> itsr = tmp_ops.back()->estimate_cost(cost);
   cost += output.parent->estimate_cost( *(itsr.parent), itsr.idx_map,
                        output.idx_map); 
+  tmp_ops.clear();
   return cost;
 }
 
