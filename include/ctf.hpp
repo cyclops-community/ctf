@@ -1231,7 +1231,8 @@ public:
 			  op(op),
 			  lhs(lhs),
 			  rhs(rhs),
-			  dependency_count(0) {}
+			  dependency_count(0),
+			  cached_estimated_cost(0) {}
 
   /**
    * \brief appends the tensors this writes to to the input set
@@ -1284,6 +1285,8 @@ protected:
 	tCTF_TensorOperationTypes op;
 	tCTF_Idx_Tensor<dtype>* lhs;
 	const tCTF_Term<dtype>* rhs;
+
+	long_int cached_estimated_cost;
 };
 
 // untemplatized scheduler abstract base class to assist in global operations
