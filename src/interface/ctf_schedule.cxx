@@ -85,9 +85,9 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
         min_cost = this_cost;
       }
       if (min_cost < (this_cost + sum_cost) / size) {
-        num_tasks = i - starting_task;
         break;
       } else {
+        num_tasks = i - starting_task + 1;
         sum_cost += this_cost;
       }
     }
