@@ -136,7 +136,6 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
     } else {
       comm_ops[color].world = NULL;
     }
-    std::cout << rank << ": " << max_starting_task << " + " << color << " / " << ready_tasks.size() << std::endl;
     comm_ops[color].ops.push_back(ready_tasks[max_starting_task + color]);
   }
 
