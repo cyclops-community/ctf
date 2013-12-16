@@ -1231,6 +1231,26 @@ public:
 
 extern tCTF_ScheduleBase* global_schedule;
 
+struct tCTF_ScheduleTimer {
+  double comm_down_time;
+  double exec_time;
+  double comm_up_time;
+  double total_time;
+
+  tCTF_ScheduleTimer():
+    comm_down_time(0),
+    exec_time(0),
+    comm_up_time(0),
+    total_time(0) {}
+
+  void operator+=(tCTF_ScheduleTimer const & B) {
+    comm_down_time += B.comm_down_time;
+    exec_time += B.exec_time;
+    comm_up_time += B.comm_up_time;
+    total_time += B.total_time;
+  }
+};
+
 template<typename dtype>
 class tCTF_Schedule : public tCTF_ScheduleBase {
 public:
@@ -1250,13 +1270,13 @@ public:
 	/**
 	 * \brief Executes the schedule and implicitly terminates recording
 	 */
-	void execute();
+	tCTF_ScheduleTimer execute();
 
   /**
    * \brief Executes a slide of the ready_queue, partitioning it among the
    * processors in the grid
    */
-  inline void partition_and_execute();
+  inline tCTF_ScheduleTimer partition_and_execute();
 
 	/**
 	 * \brief Call when a tensor op finishes, this adds newly enabled ops to the ready queue
