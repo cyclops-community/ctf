@@ -75,11 +75,11 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   int max_num_tasks = 0;
   int max_cost = 0;
   // Try to find the longest sequence of tasks that aren't too imbalanced
-  for (int starting_task=0; starting_task<max_colors; starting_task++) {
+  for (int starting_task=0; starting_task<ready_tasks.size(); starting_task++) {
     long_int sum_cost = 0;
     long_int min_cost = 0;
     int num_tasks = 0;
-    for (int i=starting_task; i<max_colors; i++) {
+    for (int i=starting_task; i<ready_tasks.size(); i++) {
       long_int this_cost = ready_tasks[i]->estimate_cost();
       if (min_cost == 0 || this_cost < min_cost) {
         min_cost = this_cost;
@@ -89,6 +89,9 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
       } else {
         num_tasks = i - starting_task + 1;
         sum_cost += this_cost;
+      }
+      if (num_tasks >= max_colors) {
+        break;
       }
     }
 
@@ -133,6 +136,7 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
     } else {
       comm_ops[color].world = NULL;
     }
+    std::cout << rank << ": " << max_starting_task << " + " << color << " / " << ready_tasks.size() << std::endl;
     comm_ops[color].ops.push_back(ready_tasks[max_starting_task + color]);
     ready_tasks.erase(ready_tasks.begin() + max_starting_task + color);
   }
