@@ -454,7 +454,6 @@ long_int tCTF_Contract_Term<dtype>::estimate_cost(tCTF_Idx_Tensor<dtype> output)
     tCTF_Idx_Tensor<dtype> op_A = pop_A->estimate_cost(cost);
     tCTF_Idx_Tensor<dtype> op_B = pop_B->estimate_cost(cost);
     if (op_A.parent == NULL) {
-      op_B.scale *= op_A.scale;
       tmp_ops.push_back(op_B.clone());
     } else if (op_B.parent == NULL) {
       op_A.scale *= op_B.scale;
@@ -514,10 +513,8 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::estimate_cost(long_int & cost)
     tCTF_Idx_Tensor<dtype> op_A = pop_A->estimate_cost(cost);
     tCTF_Idx_Tensor<dtype> op_B = pop_B->estimate_cost(cost);
     if (op_A.parent == NULL) {
-      op_B.scale *= op_A.scale;
       tmp_ops.push_back(op_B.clone());
     } else if (op_B.parent == NULL) {
-      op_A.scale *= op_B.scale;
       tmp_ops.push_back(op_A.clone());
     } else {
       tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
