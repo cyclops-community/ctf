@@ -138,7 +138,10 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
     }
     std::cout << rank << ": " << max_starting_task << " + " << color << " / " << ready_tasks.size() << std::endl;
     comm_ops[color].ops.push_back(ready_tasks[max_starting_task + color]);
-    ready_tasks.erase(ready_tasks.begin() + max_starting_task + color);
+  }
+
+  for (int color=0; color<max_num_tasks; color++) {
+    ready_tasks.erase(ready_tasks.begin() + max_starting_task);
   }
 
   // Initialize local data structures
