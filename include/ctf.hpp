@@ -722,6 +722,19 @@ class tCTF_Idx_Tensor : public tCTF_Term<dtype> {
     void execute(tCTF_Idx_Tensor<dtype> output) const;
     
     /**
+     * \brief estimates the cost of a contraction
+     * \param[in] output tensor to write results into and its indices
+     */
+    long_int estimate_cost(tCTF_Idx_Tensor<dtype> output) const;
+    
+    /**
+     * \brief estimates the cost the expression to produce an intermediate with 
+     *        all expression indices remaining
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    tCTF_Idx_Tensor<dtype> estimate_cost(long_int & cost) const;
+    
+    /**
     * \brief appends the tensors this depends on to the input set
     */
     void get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const;
@@ -964,6 +977,21 @@ class tCTF_Term {
     virtual void execute(tCTF_Idx_Tensor<dtype> output) const = 0;
     
     /**
+     * \brief estimates the cost of a contraction/sum/.. term
+     * \param[in] output tensor to write results into and its indices
+     */
+    virtual long_int estimate_cost(tCTF_Idx_Tensor<dtype> output) const = 0;
+    
+    /**
+     * \brief estimates the cost the expression to produce an intermediate with 
+     *        all expression indices remaining
+     * \param\[in,out] cost the cost of the operatiob
+     * \return output tensor to write results into and its indices
+     */
+    virtual tCTF_Idx_Tensor<dtype> estimate_cost(long_int & cost) const = 0;
+    
+    
+    /**
      * \brief evalues the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
@@ -1040,12 +1068,28 @@ class tCTF_Sum_Term : public tCTF_Term<dtype> {
      */
     void execute(tCTF_Idx_Tensor<dtype> output) const;
 
+  
     /**
      * \brief evalues the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
      */
     tCTF_Idx_Tensor<dtype> execute() const;
+    
+    /**
+     * \brief estimates the cost of a sum term
+     * \param[in] output tensor to write results into and its indices
+     */
+    long_int estimate_cost(tCTF_Idx_Tensor<dtype> output) const;
+    
+    /**
+     * \brief estimates the cost the expression to produce an intermediate with 
+     *        all expression indices remaining
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    tCTF_Idx_Tensor<dtype> estimate_cost(long_int & cost) const;
+    
+    
     
     /**
     * \brief appends the tensors this depends on to the input set
@@ -1121,6 +1165,20 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
      * \param[in,out] output tensor to write results into and its indices
      */
     tCTF_Idx_Tensor<dtype> execute() const;
+    
+    /**
+     * \brief estimates the cost of a contract term
+     * \param[in] output tensor to write results into and its indices
+     */
+    long_int estimate_cost(tCTF_Idx_Tensor<dtype> output) const;
+    
+    /**
+     * \brief estimates the cost the expression to produce an intermediate with 
+     *        all expression indices remaining
+     * \param[in,out] output tensor to write results into and its indices
+     */
+    tCTF_Idx_Tensor<dtype> estimate_cost(long_int & cost) const;
+    
     
     /**
      * \brief override contraction to grow vector rather than create recursive terms

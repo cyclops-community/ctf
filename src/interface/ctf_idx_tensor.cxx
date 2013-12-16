@@ -244,6 +244,25 @@ tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::execute() const {
 }
 
 template<typename dtype>
+long_int tCTF_Idx_Tensor<dtype>::estimate_cost(tCTF_Idx_Tensor<dtype> output) const {
+  long_int cost = 0;
+  if (parent == NULL){
+    tCTF_Scalar<dtype> ts(this->scale, *(output.where_am_i()));
+    cost += output.parent->estimate_cost(ts, "",
+                       output.idx_map);
+  } else {
+    cost += output.parent->estimate_cost(*this->parent, idx_map,
+                        output.idx_map);
+  } 
+  return cost;
+}
+
+template<typename dtype>
+tCTF_Idx_Tensor<dtype> tCTF_Idx_Tensor<dtype>::estimate_cost(long_int & cost) const {
+  return *this;
+}
+
+template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*>* inputs_set) const {
   if (parent) {
     inputs_set->insert(parent);
