@@ -590,6 +590,11 @@ class tCTF_Tensor {
 template<typename dtype>
 struct tensor_tid_less {
   bool operator()(tCTF_Tensor<dtype>* A, tCTF_Tensor<dtype>* B) {
+    if (A == NULL && B != NULL) {
+      return true;
+    } else if (A == NULL || B == NULL) {
+      return false;
+    }
     return A->tid < B->tid;
   }
 };
