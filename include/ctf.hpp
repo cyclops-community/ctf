@@ -378,7 +378,7 @@ class tCTF_Tensor {
                dtype          alpha) const;
 
     /**
-     * \brief TODO: apply permutation to matrix, potentially extracting a slice
+     * \brief Apply permutation to matrix, potentially extracting a slice
      *              B[i,j,...] 
      *                = beta*B[...] + alpha*A[perms_A[0][i],perms_A[1][j],...]
      *
@@ -397,7 +397,7 @@ class tCTF_Tensor {
                  dtype          alpha);
 
     /**
-     * \brief TODO: apply permutation to matrix, potentially extracting a slice
+     * \brief Apply permutation to matrix, potentially extracting a slice
      *              B[perms_B[0][i],perms_B[0][j],...] 
      *                = beta*B[...] + alpha*A[i,j,...]
      *
