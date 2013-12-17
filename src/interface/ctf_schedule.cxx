@@ -39,11 +39,11 @@ struct tCTF_PartitionOps {
   tCTF_World<dtype>* world;
 
   std::vector<tCTF_TensorOperation<dtype>*> ops;  // operations to execute
-  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> local_tensors; // all local tensors used
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> > local_tensors; // all local tensors used
   std::map<tCTF_Tensor<dtype>*, tCTF_Tensor<dtype>*> remap; // mapping from global tensor -> local tensor
 
-  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> global_tensors; // all referenced tensors stored as global tensors
-  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> output_tensors; // tensors to be written back out, stored as global tensors
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> > global_tensors; // all referenced tensors stored as global tensors
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> > output_tensors; // tensors to be written back out, stored as global tensors
 };
 
 template<typename dtype>
@@ -122,8 +122,9 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   if (rank == 0) {
     std::cout << "Maxparts " << max_colors << ", start " << max_starting_task <<
         ", tasks " << max_num_tasks << " // ";
-    for (auto it : ready_tasks) {
-      std::cout << it->name() << "(" << it->estimate_cost() << ") ";
+    typename std::deque<tCTF_TensorOperation<dtype>*>::iterator ready_tasks_iter;
+    for (ready_tasks_iter=ready_tasks.begin();ready_tasks_iter!=ready_tasks.end();ready_tasks_iter++) {
+      std::cout << (*ready_tasks_iter)->name() << "(" << (*ready_tasks_iter)->estimate_cost() << ") ";
     }
     std::cout << std::endl;
   }
@@ -143,33 +144,37 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
     ready_tasks.erase(ready_tasks.begin() + max_starting_task);
   }
 
+  typename std::vector<tCTF_PartitionOps<dtype> >::iterator comm_op_iter;
   // Initialize local data structures
-  for (auto &comm_op : comm_ops) {
+  for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
     // gather required tensors
-    for (auto &op : comm_op.ops) {
-      assert(op != NULL);
-      op->get_inputs(&comm_op.global_tensors);
-      op->get_outputs(&comm_op.global_tensors);
-      op->get_outputs(&comm_op.output_tensors);
+    typename std::vector<tCTF_TensorOperation<dtype>*>::iterator op_iter;
+    for (op_iter=comm_op_iter->ops.begin(); op_iter!=comm_op_iter->ops.end(); op_iter++) {
+      assert(*op_iter != NULL);
+      (*op_iter)->get_inputs(&comm_op_iter->global_tensors);
+      (*op_iter)->get_outputs(&comm_op_iter->global_tensors);
+      (*op_iter)->get_outputs(&comm_op_iter->output_tensors);
     }
   }
 
   // Create and communicate tensors to subworlds
   schedule_timer.comm_down_time = MPI_Wtime();
-  for (auto &comm_op : comm_ops) {
-    for (auto &global_tensor : comm_op.global_tensors) {
+  for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
+    typename std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >::iterator global_tensor_iter;
+    for (global_tensor_iter=comm_op_iter->global_tensors.begin(); global_tensor_iter!=comm_op_iter->global_tensors.end(); global_tensor_iter++) {
       tCTF_Tensor<dtype>* local_clone;
-      if (comm_op.world != NULL) {
-        local_clone = new tCTF_Tensor<dtype>(*global_tensor, *comm_op.world);
+      if (comm_op_iter->world != NULL) {
+        local_clone = new tCTF_Tensor<dtype>(*(*global_tensor_iter), *comm_op_iter->world);
       } else {
         local_clone = NULL;
       }
-      comm_op.local_tensors.insert(local_clone);
-      comm_op.remap[global_tensor] = local_clone;
-      global_tensor->add_to_subworld(local_clone, 1, 0);
+      comm_op_iter->local_tensors.insert(local_clone);
+      comm_op_iter->remap[*global_tensor_iter] = local_clone;
+      (*global_tensor_iter)->add_to_subworld(local_clone, 1, 0);
     }
-    for (auto &output_tensor : comm_op.output_tensors) {
-      assert(comm_op.remap.find(output_tensor) != comm_op.remap.end());
+    typename std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >::iterator output_tensor_iter;
+    for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {
+      assert(comm_op_iter->remap.find(*output_tensor_iter) != comm_op_iter->remap.end());
     }
   }
   schedule_timer.comm_down_time = MPI_Wtime() - schedule_timer.comm_down_time;
@@ -178,8 +183,9 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   MPI_Barrier(world->comm);
   schedule_timer.exec_time = MPI_Wtime();
   if (comm_ops.size() > my_color) {
-    for (auto &op : comm_ops[my_color].ops) {
-      op->execute(&comm_ops[my_color].remap);
+    typename std::vector<tCTF_TensorOperation<dtype>*>::iterator op_iter;
+    for (op_iter=comm_ops[my_color].ops.begin(); op_iter!=comm_ops[my_color].ops.end(); op_iter++) {
+      (*op_iter)->execute(&comm_ops[my_color].remap);
     }
   }
 
@@ -188,25 +194,28 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
 
   // Communicate results back into global
   schedule_timer.comm_up_time = MPI_Wtime();
-  for (auto &comm_op : comm_ops) {
-    for (auto &output_tensor : comm_op.output_tensors) {
-      output_tensor->add_from_subworld(comm_op.remap[output_tensor], 1, 0);
+  for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
+    typename std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >::iterator output_tensor_iter;
+    for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {
+      (*output_tensor_iter)->add_from_subworld(comm_op_iter->remap[*output_tensor_iter], 1, 0);
     }
   }
   schedule_timer.comm_up_time = MPI_Wtime() - schedule_timer.comm_up_time;
 
   // Clean up local tensors & world
   if (comm_ops.size() > my_color) {
-    for (auto &local_tensor : comm_ops[my_color].local_tensors) {
-      delete local_tensor;
+    typename std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >::iterator local_tensor_iter;
+    for (local_tensor_iter=comm_ops[my_color].local_tensors.begin(); local_tensor_iter!=comm_ops[my_color].local_tensors.end(); local_tensor_iter++) {
+      delete *local_tensor_iter;
     }
     delete comm_ops[my_color].world;
   }
 
   // Update ready tasks
-  for (auto &comm_op : comm_ops) {
-    for (auto &op : comm_op.ops) {
-      schedule_op_successors(op);
+  for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
+    typename std::vector<tCTF_TensorOperation<dtype>*>::iterator op_iter;
+    for (op_iter=comm_op_iter->ops.begin(); op_iter!=comm_op_iter->ops.end(); op_iter++) {
+      schedule_op_successors(*op_iter);
     }
   }
 
@@ -263,15 +272,15 @@ template<typename dtype>
 void tCTF_Schedule<dtype>::add_operation_typed(tCTF_TensorOperation<dtype>* op) {
   steps_original.push_back(op);
 
-  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> op_lhs_set;
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> > op_lhs_set;
   op->get_outputs(&op_lhs_set);
   assert(op_lhs_set.size() == 1); // limited case to make this a bit easier
   tCTF_Tensor<dtype>* op_lhs = *op_lhs_set.begin();
 
-  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>> op_deps;
+  std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> > op_deps;
   op->get_inputs(&op_deps);
 
-  typename std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>::iterator deps_iter;
+  typename std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >::iterator deps_iter;
   for (deps_iter = op_deps.begin(); deps_iter != op_deps.end(); deps_iter++) {
     tCTF_Tensor<dtype>* dep = *deps_iter;
     typename std::map<tCTF_Tensor<dtype>*, tCTF_TensorOperation<dtype>*>::iterator dep_loc = latest_write.find(dep);
@@ -350,14 +359,14 @@ void tCTF_TensorOperation<dtype>::execute(std::map<tCTF_Tensor<dtype>*, tCTF_Ten
 }
 
 template<typename dtype>
-void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* outputs_set) const {
+void tCTF_TensorOperation<dtype>::get_outputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >* outputs_set) const {
   assert(lhs->parent);
   assert(outputs_set != NULL);
   outputs_set->insert(lhs->parent);
 }
 
 template<typename dtype>
-void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const {
+void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const {
   rhs->get_inputs(inputs_set);
 
   switch (op) {

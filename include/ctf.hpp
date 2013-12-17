@@ -753,7 +753,7 @@ class tCTF_Idx_Tensor : public tCTF_Term<dtype> {
     /**
     * \brief appends the tensors this depends on to the input set
     */
-    void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const;
+    void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
 
     /**
      * \brief A = B, compute any operations on operand B and set
@@ -1017,7 +1017,7 @@ class tCTF_Term {
     /**
     * \brief appends the tensors this depends on to the input set
     */
-    virtual void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const = 0;
+    virtual void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const = 0;
 
     /**
      * \brief constructs a new term which multiplies by tensor A
@@ -1110,7 +1110,7 @@ class tCTF_Sum_Term : public tCTF_Term<dtype> {
     /**
     * \brief appends the tensors this depends on to the input set
     */
-    void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const;
+    void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
 
     /**
      * \brief constructs a new term by addition of two terms
@@ -1173,7 +1173,7 @@ class tCTF_Contract_Term : public tCTF_Term<dtype> {
     /**
     * \brief appends the tensors this depends on to the input set
     */
-    void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const;
+    void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
 
     /**
      * \brief evalues the expression to produce an intermediate with 
@@ -1253,13 +1253,13 @@ public:
   /**
    * \brief appends the tensors this writes to to the input set
    */
-  void get_outputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* outputs_set) const;
+  void get_outputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >* outputs_set) const;
 
 	/**
 	 * \brief appends the tensors this depends on (reads from, including the output
 	 * if a previous value is required) to the input set
 	 */
-	void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype>>* inputs_set) const;
+	void get_inputs(std::set<tCTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
 
 	/**
 	 * \brief runs this operation, but does NOT handle dependency scheduling
