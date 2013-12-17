@@ -287,6 +287,8 @@ void ccsd(Integrals   &V,
   if (rank == 0) {
     printf("Schedule comm down: %lf\n", schedule_time.comm_down_time);
     printf("Schedule execute: %lf\n", schedule_time.exec_time);
+    printf("Schedule imbalance, wall: %lf\n", schedule_time.imbalance_wall_time);
+    printf("Schedule imbalance, accum: %lf\n", schedule_time.imbalance_acuum_time);
     printf("Schedule comm up: %lf\n", schedule_time.comm_up_time);
     printf("Schedule total: %lf\n", schedule_time.total_time);
     printf("All execute: %lf\n",

@@ -192,6 +192,16 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   MPI_Barrier(world->comm);
   schedule_timer.exec_time = MPI_Wtime() - schedule_timer.exec_time;
 
+  // Instrument imbalance
+  double min_exec, max_exec, my_imbal, accum_imbal;
+  MPI_Allreduce(&schedule_timer.exec_time, &min_exec, 1, MPI_DOUBLE, MPI_MIN, world->comm);
+  MPI_Allreduce(&schedule_timer.exec_time, &max_exec, 1, MPI_DOUBLE, MPI_MAX, world->comm);
+  schedule_timer.imbalance_wall_time = max_exec - min_exec;
+
+  my_imbal = schedule_timer.exec_time - min_exec;
+  MPI_Allreduce(&my_imbal, &accum_imbal, 1, MPI_DOUBLE, MPI_SUM, world->comm);
+  schedule_timer.imbalance_acuum_time = accum_imbal;
+
   // Communicate results back into global
   schedule_timer.comm_up_time = MPI_Wtime();
   for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
@@ -263,7 +273,11 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::execute() {
   while (!ready_tasks.empty()) {
     int rank;
     MPI_Comm_rank(world->comm, &rank);
-    schedule_timer += partition_and_execute();
+    tCTF_ScheduleTimer iter_timer = partition_and_execute();
+    if (rank == 0) {
+      printf("Schedule imbalance, wall: %lf; accum: %lf\n", iter_timer.imbalance_wall_time, iter_timer.imbalance_acuum_time);
+    }
+    schedule_timer += iter_timer;
   }
   return schedule_timer;
 }
