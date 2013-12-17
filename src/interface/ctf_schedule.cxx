@@ -188,17 +188,17 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
       (*op_iter)->execute(&comm_ops[my_color].remap);
     }
   }
-
+  double my_exec_time = MPI_Wtime() - schedule_timer.exec_time;
   MPI_Barrier(world->comm);
   schedule_timer.exec_time = MPI_Wtime() - schedule_timer.exec_time;
 
   // Instrument imbalance
   double min_exec, max_exec, my_imbal, accum_imbal;
-  MPI_Allreduce(&schedule_timer.exec_time, &min_exec, 1, MPI_DOUBLE, MPI_MIN, world->comm);
-  MPI_Allreduce(&schedule_timer.exec_time, &max_exec, 1, MPI_DOUBLE, MPI_MAX, world->comm);
+  MPI_Allreduce(&my_exec_time, &min_exec, 1, MPI_DOUBLE, MPI_MIN, world->comm);
+  MPI_Allreduce(&my_exec_time, &max_exec, 1, MPI_DOUBLE, MPI_MAX, world->comm);
   schedule_timer.imbalance_wall_time = max_exec - min_exec;
 
-  my_imbal = schedule_timer.exec_time - min_exec;
+  my_imbal = my_exec_time - min_exec;
   MPI_Allreduce(&my_imbal, &accum_imbal, 1, MPI_DOUBLE, MPI_SUM, world->comm);
   schedule_timer.imbalance_acuum_time = accum_imbal;
 
