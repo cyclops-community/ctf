@@ -58,6 +58,12 @@ struct tkv_pair {
   bool operator< (const tkv_pair<dtype>& other) const{
     return k < other.k;
   }
+  bool operator==(const tkv_pair<dtype>& other) const{
+    return (k == other.k && d == other.d);
+  }
+  bool operator!=(const tkv_pair<dtype>& other) const{
+    return !(*this == other);
+  }
 };
 
 typedef tkv_pair<double> kv_pair;
@@ -83,7 +89,7 @@ inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
 #define PERFORM_DESYM 1
 #define ALLOW_NVIRT 32
 #define DIAG_RESCALE
-#define USE_SYM_SUM 
+#define USE_SYM_SUM
 #define HOME_CONTRACT
 #define USE_BLOCK_RESHUFFLE
 
@@ -126,7 +132,7 @@ struct fseq_tsr_scl {
 /* custom element-wise function for tensor scale */
 template<typename dtype>
 struct fseq_elm_scl {
-  void  (*func_ptr)(dtype const alpha, 
+  void  (*func_ptr)(dtype const alpha,
                     dtype &     a);
 };
 
@@ -152,7 +158,7 @@ struct fseq_tsr_sum {
 /* custom element-wise function for tensor sum */
 template<typename dtype>
 struct fseq_elm_sum {
-  void  (*func_ptr)(dtype const alpha, 
+  void  (*func_ptr)(dtype const alpha,
                     dtype const a,
                     dtype &     b);
 };
@@ -187,8 +193,8 @@ struct fseq_tsr_ctr {
 /* custom element-wise function for tensor sum */
 template<typename dtype>
 struct fseq_elm_ctr {
-  void  (*func_ptr)(dtype const alpha, 
-                    dtype const a, 
+  void  (*func_ptr)(dtype const alpha,
+                    dtype const a,
                     dtype const b,
                     dtype &     c);
 };
@@ -231,10 +237,10 @@ class tCTF{
 
     /* return MPI_Comm global_context */
     MPI_Comm get_MPI_Comm();
-    
+
     /* return MPI processor rank */
     int get_rank();
-    
+
     /* return number of MPI processes in the defined global context */
     int get_num_pes();
 
@@ -259,13 +265,13 @@ class tCTF{
 
     /* set the tensor name */
     int set_name(int const tensor_id, char const * name);
-    
+
     /* get the tensor name */
     int get_name(int const tensor_id, char const ** name);
 
     /* turn on profiling */
     int profile_on(int const tensor_id);
-    
+
     /* turn off profiling */
     int profile_off(int const tensor_id);
 
@@ -286,9 +292,9 @@ class tCTF{
     int write_tensor(int const                tensor_id,
                      long_int const           num_pair,
                      tkv_pair<dtype> const *  mapped_data);
-    
+
     /* Add tensor data new=alpha*new+beta*old
-       with <key, value> pairs where key is the 
+       with <key, value> pairs where key is the
        global index for the value. */
     int write_tensor(int const                tensor_id,
                      long_int const           num_pair,
@@ -309,9 +315,9 @@ class tCTF{
                        int * const *          permutation_B,
                        dtype const            beta,
                        tCTF<dtype> *          tC_B);
-    
-    /* Add tensor data from A to a block of B, 
-       B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
+
+    /* Add tensor data from A to a block of B,
+       B[offsets_B:ends_B] = beta*B[offsets_B:ends_B]
                           + alpha*A[offsets_A:ends_A] */
     int slice_tensor(int const    tid_A,
                      int const *  offsets_A,
@@ -332,7 +338,7 @@ class tCTF{
                      int const *    offsets_B,
                      int const *    ends_B,
                      dtype const    beta);
-    
+
     /* Same as above, except tid_B lives on dt_other_B */
     int slice_tensor(int const      tid_A,
                      int const *    offsets_A,
@@ -343,9 +349,9 @@ class tCTF{
                      int const *    ends_B,
                      dtype const    beta,
                      tCTF<dtype> *  dt_other_B);
-    
 
-    /* read a block from tensor_id, 
+
+    /* read a block from tensor_id,
        new_tensor_id = tensor_id[offsets:ends] */
 /*    int read_block_tensor(int const   tensor_id,
                           int const * offsets,
@@ -354,14 +360,14 @@ class tCTF{
 
 
     /* read tensor data with <key, value> pairs where key is the
-       global index for the value, which gets filled in with 
+       global index for the value, which gets filled in with
        beta times the old values plus alpha times the values read from the tensor. */
     int read_tensor(int const               tensor_id,
                     long_int const          num_pair,
                     dtype const             alpha,
                     dtype const             beta,
                     tkv_pair<dtype> * const mapped_data);
-    
+
     /* read tensor data with <key, value> pairs where key is the
        global index for the value, which gets filled in. */
     int read_tensor(int const               tensor_id,
@@ -375,7 +381,7 @@ class tCTF{
                        long_int * num_pair,
                        dtype **   all_data);
 
-    /* read entire tensor with each processor to preallocated buffer 
+    /* read entire tensor with each processor to preallocated buffer
        (in packed layout).
        WARNING: will use a lot of memory. */
     int allread_tensor(int const  tensor_id,
@@ -404,7 +410,7 @@ class tCTF{
                  dtype const                alpha,
                  dtype const                beta,
                  int const                  map_inner = 0);
-    
+
     /* contracts tensors alpha*A*B + beta*C -> C,
        seq_func used to perform element-wise sequential op */
     int contract(CTF_ctr_type_t const *     type,
@@ -436,7 +442,7 @@ class tCTF{
                     dtype const               alpha,
                     dtype const               beta,
                     fseq_tsr_sum<dtype> const func_ptr);
-    
+
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(dtype const               alpha,
                     dtype const               beta,
@@ -462,15 +468,15 @@ class tCTF{
                      int const                  tid,
                      int const *                idx_map_A,
                      fseq_tsr_scl<dtype> const  func_ptr);
-    
+
     /* scale tensor by alpha. A <- a*A */
     int scale_tensor(dtype const                alpha,
                      int const                  tid,
                      int const *                idx_map_A,
                      fseq_elm_scl<dtype> const  felm);
-    
+
     /* aligns tensor mapping of tid_A to that of tid_B */
-    int align(int const    tid_A,   
+    int align(int const    tid_A,
               int const    tid_B);
 
     /* product will contain the dot prodiuct if tsr_A and tsr_B */
