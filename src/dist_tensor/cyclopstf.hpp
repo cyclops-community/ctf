@@ -316,7 +316,6 @@ class tCTF{
                        dtype const            beta,
                        tCTF<dtype> *          tC_B);
 
-<<<<<<< HEAD
    /**
      * \brief accumulates this tensor to a tensor object defined on a different world
      * \param[in] tid id of tensor on this CTF instance
@@ -504,7 +503,6 @@ class tCTF{
                      int const *                idx_map_A,
                      fseq_elm_scl<dtype> const  felm);
 
-<<<<<<< HEAD
     /**
      * \brief estimate the cost of a contraction C[idx_C] = A[idx_A]*B[idx_B]
      * \param[in] A first operand tensor
