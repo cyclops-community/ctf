@@ -925,6 +925,16 @@ class tCTF_Term {
      * \param[in] A subtracted term
      */
     tCTF_Sum_Term<dtype> operator-(tCTF_Term<dtype> const & A) const;
+    
+    /**
+     * \brief A = B, compute any operations on operand B and set
+     * \param[in] B tensor on the right hand side
+     */
+    void operator=(tCTF_Term<dtype> const & B) { execute() = B; };
+    void operator=(tCTF_Idx_Tensor<dtype> const & B) { execute() = B; };
+    void operator+=(tCTF_Term<dtype> const & B) { execute() += B; };
+    void operator-=(tCTF_Term<dtype> const & B) { execute() -= B; };
+    void operator*=(tCTF_Term<dtype> const & B) { execute() *= B; };
 
     /**
      * \brief multiples by a constant

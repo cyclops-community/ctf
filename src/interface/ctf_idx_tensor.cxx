@@ -163,26 +163,30 @@ template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype> const & B){
   this->scale = 0.0;
   B.execute(*this);
+  this->scale = 1.0;
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Term<dtype> const & B){
   this->scale = 0.0;
   B.execute(*this);
+  this->scale = 1.0;
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Term<dtype> const & B){
-  this->scale = 1.0;
+//  this->scale = 1.0;
   B.execute(*this);
+  this->scale = 1.0;
 }
 
 template<typename dtype>
 void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> const & B){
-  this->scale = 1.0;
+//  this->scale = 1.0;
   tCTF_Term<dtype> * Bcpy = B.clone();
   Bcpy->scale *= -1.0;
   Bcpy->execute(*this);
+  this->scale = 1.0;
   delete Bcpy;
 }
 
