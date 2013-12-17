@@ -1316,18 +1316,24 @@ extern tCTF_ScheduleBase* global_schedule;
 struct tCTF_ScheduleTimer {
   double comm_down_time;
   double exec_time;
+  double imbalance_wall_time;
+  double imbalance_acuum_time;
   double comm_up_time;
   double total_time;
 
   tCTF_ScheduleTimer():
     comm_down_time(0),
     exec_time(0),
+    imbalance_wall_time(0),
+    imbalance_acuum_time(0),
     comm_up_time(0),
     total_time(0) {}
 
   void operator+=(tCTF_ScheduleTimer const & B) {
     comm_down_time += B.comm_down_time;
     exec_time += B.exec_time;
+    imbalance_wall_time += B.imbalance_wall_time;
+    imbalance_acuum_time += B.imbalance_acuum_time;
     comm_up_time += B.comm_up_time;
     total_time += B.total_time;
   }
