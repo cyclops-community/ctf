@@ -175,6 +175,7 @@ void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Idx_Tensor<dtype> const & B){
   } else {
     this->scale = 0.0;
     B.execute(*this);
+    this->scale = 1.0;
   }
 }
 
@@ -186,6 +187,7 @@ void tCTF_Idx_Tensor<dtype>::operator=(tCTF_Term<dtype> const & B){
   } else {
     this->scale = 0.0;
     B.execute(*this);
+    this->scale = 1.0;
   }
 }
 
@@ -195,8 +197,9 @@ void tCTF_Idx_Tensor<dtype>::operator+=(tCTF_Term<dtype> const & B){
     global_schedule->add_operation(
         new tCTF_TensorOperation<dtype>(TENSOR_OP_SUM, new tCTF_Idx_Tensor(*this), B.clone()));
   } else {
-    this->scale = 1.0;
+    //this->scale = 1.0;
     B.execute(*this);
+    this->scale = 1.0;
   }
 }
 
@@ -206,10 +209,10 @@ void tCTF_Idx_Tensor<dtype>::operator-=(tCTF_Term<dtype> const & B){
     global_schedule->add_operation(
         new tCTF_TensorOperation<dtype>(TENSOR_OP_SUBTRACT, new tCTF_Idx_Tensor(*this), B.clone()));
   } else {
-    this->scale = 1.0;
     tCTF_Term<dtype> * Bcpy = B.clone();
     Bcpy->scale *= -1.0;
     Bcpy->execute(*this);
+    this->scale = 1.0;
     delete Bcpy;
   }
 }
