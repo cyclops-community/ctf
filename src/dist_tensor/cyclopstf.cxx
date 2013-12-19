@@ -151,8 +151,14 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
       VPRINTF(1,"Assuming %d processes per node due to CTF_PPN environment variable\n",
                 atoi(ppn));
     LIBT_ASSERT(atoi(ppn)>=1);
+#ifdef BGQ
+    CTF_set_memcap(.75);
+#else
     CTF_set_memcap(.75/atof(ppn));
+#endif
   }
+  if (rank == 0)
+    VPRINTF(1,"Total amount of memory available to process 0 is %llu\n", proc_bytes_available());
   initialized = 1;
   CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
   SET_COMM(global_context, rank, np, glb_comm);
