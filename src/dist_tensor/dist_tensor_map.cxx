@@ -1247,7 +1247,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     TAU_FSTOP(map_tensors);
     if (gtopo == INT_MAX || gtopo == -1){
       printf("ERROR: Failed to map contraction!\n");
-      ABORT;
+      //ABORT;
       return DIST_TENSOR_ERROR;
     }
     return DIST_TENSOR_SUCCESS;
