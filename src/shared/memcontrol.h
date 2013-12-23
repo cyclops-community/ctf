@@ -8,6 +8,7 @@ uint64_t proc_bytes_total();
 uint64_t proc_bytes_available();
 void CTF_set_memcap(double cap);
 void CTF_set_mem_size(long_int size);
+int CTF_get_num_instances();
 
 
 #endif

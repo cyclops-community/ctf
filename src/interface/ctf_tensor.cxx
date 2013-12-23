@@ -108,8 +108,7 @@ void tCTF_Tensor<dtype>::read_local(long_int *   npair,
     (*global_idx)[i] = pairs[i].k;
     (*data)[i] = pairs[i].d;
   }
-  if (*npair > 0)
-    free(pairs);
+  free(pairs);
 }
 
 template<typename dtype>

@@ -82,9 +82,8 @@ inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
  */
 /* Force redistributions always by setting to 1 (use 2.5D algorithms) */
 #define REDIST 0
-#define VERIFY 0
+//#define VERIFY 0
 #define VERIFY_REMAP 0
-#define INNER_MAP 0
 #define FOLD_TSR 1
 #define PERFORM_DESYM 1
 #define ALLOW_NVIRT 32
@@ -408,8 +407,7 @@ class tCTF{
     int contract(CTF_ctr_type_t const *     type,
                  fseq_tsr_ctr<dtype> const  func_ptr,
                  dtype const                alpha,
-                 dtype const                beta,
-                 int const                  map_inner = 0);
+                 dtype const                beta);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
        seq_func used to perform element-wise sequential op */

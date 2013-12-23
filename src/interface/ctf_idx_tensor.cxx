@@ -144,7 +144,7 @@ tCTF_Idx_Tensor<dtype>::~tCTF_Idx_Tensor(){
     delete parent;
     is_intm = 0;
   }
-  if (idx_map != NULL)  free(idx_map);
+  if (idx_map != NULL)  CTF_free(idx_map);
   idx_map = NULL;
 }
 

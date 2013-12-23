@@ -7,17 +7,12 @@
 #include "../shared/memcontrol.h"
 #include <stdint.h>
 #include <limits.h>
-#if VERIFY
-#include "../unit_test/unit_test.h"
-#include "../unit_test/unit_test_ctr.h"
-#endif
 
 #ifdef HPM
 extern "C" void HPM_Start(char *);  
 extern "C" void HPM_Stop(char *);
 #endif
 
-#define DEF_INNER_SIZE 256
 
 /** 
  * \brief destructor
@@ -37,18 +32,18 @@ tCTF<dtype>::tCTF(){
 
 template<typename dtype>
 MPI_Comm tCTF<dtype>::get_MPI_Comm(){
-  return (dt->get_global_comm())->cm;
+  return (dt->get_global_comm()).cm;
 }
     
 /* return MPI processor rank */
 template<typename dtype>
 int tCTF<dtype>::get_rank(){
-  return (dt->get_global_comm())->rank;
+  return (dt->get_global_comm()).rank;
 }
 /* return number of MPI processes in the defined global context */
 template<typename dtype>
 int tCTF<dtype>::get_num_pes(){
-  return (dt->get_global_comm())->np;
+  return (dt->get_global_comm()).np;
 }
 
 /**
@@ -102,68 +97,71 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
                       const char * const *  argv){
   char * mst_size, * stack_size, * mem_size, * ppn;
   
-  TAU_FSTART(CTF);
-#ifdef HPM
-  HPM_Start("CTF");
-#endif
   CTF_set_context(global_context);
   CTF_set_main_args(argc, argv);
+  CTF_mem_create();
 
+  if (CTF_get_num_instances() == 1){
+    TAU_FSTART(CTF);
+#ifdef HPM
+    HPM_Start("CTF");
+#endif
 #ifdef USE_OMP
-  if (rank == 0)
-    VPRINTF(1,"Running with %d threads\n",omp_get_max_threads());
+    if (rank == 0)
+      VPRINTF(1,"Running with %d threads\n",omp_get_max_threads());
 #endif
   
-  mst_size = getenv("CTF_MST_SIZE");
-  stack_size = getenv("CTF_STACK_SIZE");
-  if (mst_size == NULL && stack_size == NULL){
+    mst_size = getenv("CTF_MST_SIZE");
+    stack_size = getenv("CTF_STACK_SIZE");
+    if (mst_size == NULL && stack_size == NULL){
 #ifdef USE_MST
-    if (rank == 0)
-      VPRINTF(1,"Creating stack of size "PRId64"\n",1000*(long_int)1E6);
-    CTF_mst_create(1000*(long_int)1E6);
+      if (rank == 0)
+        VPRINTF(1,"Creating stack of size "PRId64"\n",1000*(long_int)1E6);
+      CTF_mst_create(1000*(long_int)1E6);
 #else
-    if (rank == 0){
-      VPRINTF(1,"Running without stack, define CTF_STACK_SIZE environment variable to activate stack\n");
+      if (rank == 0){
+        VPRINTF(1,"Running without stack, define CTF_STACK_SIZE environment variable to activate stack\n");
+      }
+#endif
+    } else {
+      uint64_t imst_size = 0 ;
+      if (mst_size != NULL) 
+        imst_size = strtoull(mst_size,NULL,0);
+      if (stack_size != NULL)
+        imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
+      if (rank == 0)
+        VPRINTF(1,"Creating stack of size "PRIu64" due to CTF_STACK_SIZE enviroment variable\n",
+                  imst_size);
+      CTF_mst_create(imst_size);
     }
-#endif
-  } else {
-    uint64_t imst_size = 0 ;
-    if (mst_size != NULL) 
-      imst_size = strtoull(mst_size,NULL,0);
-    if (stack_size != NULL)
-      imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
-    if (rank == 0)
-      VPRINTF(1,"Creating stack of size "PRIu64" due to CTF_STACK_SIZE enviroment variable\n",
-                imst_size);
-    CTF_mst_create(imst_size);
-  }
-  mem_size = getenv("CTF_MEMORY_SIZE");
-  if (mem_size != NULL){
-    uint64_t imem_size = strtoull(mem_size,NULL,0);
-    if (rank == 0)
-      VPRINTF(1,"Memory size set to "PRIu64" by CTF_MEMORY_SIZE environment variable\n",
-                imem_size);
-    CTF_set_mem_size(imem_size);
-  }
-  ppn = getenv("CTF_PPN");
-  if (ppn != NULL){
-    if (rank == 0)
-      VPRINTF(1,"Assuming %d processes per node due to CTF_PPN environment variable\n",
-                atoi(ppn));
-    LIBT_ASSERT(atoi(ppn)>=1);
+    mem_size = getenv("CTF_MEMORY_SIZE");
+    if (mem_size != NULL){
+      uint64_t imem_size = strtoull(mem_size,NULL,0);
+      if (rank == 0)
+        VPRINTF(1,"Memory size set to "PRIu64" by CTF_MEMORY_SIZE environment variable\n",
+                  imem_size);
+      CTF_set_mem_size(imem_size);
+    }
+    ppn = getenv("CTF_PPN");
+    if (ppn != NULL){
+      if (rank == 0)
+        VPRINTF(1,"Assuming %d processes per node due to CTF_PPN environment variable\n",
+                  atoi(ppn));
+      LIBT_ASSERT(atoi(ppn)>=1);
 #ifdef BGQ
-    CTF_set_memcap(.75);
+      CTF_set_memcap(.75);
 #else
-    CTF_set_memcap(.75/atof(ppn));
+      CTF_set_memcap(.75/atof(ppn));
 #endif
-  }
-  if (rank == 0)
-    VPRINTF(1,"Total amount of memory available to process 0 is %llu\n", proc_bytes_available());
+    }
+    if (rank == 0)
+      VPRINTF(1,"Total amount of memory available to process 0 is " PRIu64 "\n", proc_bytes_available());
+  } 
   initialized = 1;
-  CommData_t * glb_comm = (CommData_t*)CTF_alloc(sizeof(CommData_t));
+  CommData_t glb_comm;
   SET_COMM(global_context, rank, np, glb_comm);
   dt = new dist_tensor<dtype>();
-  return dt->initialize(glb_comm, ndim, dim_len, DEF_INNER_SIZE);
+  return dt->initialize(glb_comm, ndim, dim_len);
 }
 
 
@@ -490,7 +488,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *  type,
                           dtype const             beta){
   fseq_tsr_ctr<dtype> fs;
   fs.func_ptr=sym_seq_ctr_ref<dtype>;
-  return contract(type, fs, alpha, beta, 1);
+  return contract(type, fs, alpha, beta);
 }
 
 
@@ -507,11 +505,10 @@ template<typename dtype>
 int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
                           fseq_tsr_ctr<dtype> const func_ptr, 
                           dtype const               alpha,
-                          dtype const               beta,
-                          int const                 map_inner){
+                          dtype const               beta){
   int i, ret;
 #if DEBUG >= 1
-  if (dt->get_global_comm()->rank == 0)
+  if (dt->get_global_comm().rank == 0)
     printf("Start head contraction :\n");
   dt->print_ctr(type,alpha,beta);
 #endif
@@ -560,26 +557,28 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
     }
     sprintf(cname+strlen(cname),"]");
 
+#ifdef VERBOSE
     double dtt;
-    if (dt->get_global_comm()->rank == 0){
+    if (dt->get_global_comm().rank == 0){
       dtt = MPI_Wtime();
       VPRINTF(1,"Starting %s\n",cname);
     }
+#endif
    
     CTF_Timer tctr(cname);
     tctr.start(); 
-    ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
+    ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
     tctr.stop();
-    if (dt->get_global_comm()->rank == 0){
+    if (dt->get_global_comm().rank == 0){
       VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   }
   } else 
-    ret = dt->home_contract(type, func_ptr, felm, alpha, beta, map_inner);
+    ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
   if ((*dt->get_tensors())[type->tid_A]->profile &&
       (*dt->get_tensors())[type->tid_B]->profile &&
       (*dt->get_tensors())[type->tid_C]->profile){
   }
 #if DEBUG >= 1
-  if (dt->get_global_comm()->rank == 0)
+  if (dt->get_global_comm().rank == 0)
     printf("End head contraction :\n");
 #endif
 
@@ -602,15 +601,15 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
                           dtype const                alpha,
                           dtype const                beta){
 #if DEBUG >= 1
-  if (dt->get_global_comm()->rank == 0)
+  if (dt->get_global_comm().rank == 0)
     printf("Start head custom contraction:\n");
   dt->print_ctr(type,alpha,beta);
 #endif
   fseq_tsr_ctr<dtype> fs;
   fs.func_ptr=sym_seq_ctr_ref<dtype>;
-  int ret = dt->home_contract(type, fs, felm, alpha, beta, 0);
+  int ret = dt->home_contract(type, fs, felm, alpha, beta);
 #if DEBUG >= 1
-  if (dt->get_global_comm()->rank == 0)
+  if (dt->get_global_comm().rank == 0)
     printf("End head custom contraction.\n");
 #endif
   return ret;
@@ -934,10 +933,12 @@ template<typename dtype>
 int tCTF<dtype>::exit(){
   int ret;
   if (initialized){
-    TAU_FSTOP(CTF);
+    if (CTF_get_num_instances() == 1){
+      TAU_FSTOP(CTF);
 #ifdef HPM
-    HPM_Stop("CTF");
+      HPM_Stop("CTF");
 #endif
+    }
     ret = tCTF<dtype>::clean_tensors();
     LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
     delete dt;
@@ -1117,7 +1118,7 @@ int tCTF<dtype>::def_scala_mat(int const * DESCA,
   tensor<dtype> * stsr = (*tensors)[stid];
   tensor<dtype> * tsr = (*tensors)[*tid];
   CTF_free(stsr->data);
-  stsr->is_alloced = 0;
+  stsr->is_data_aliased = 1;
   tsr->is_matrix = 1;
   tsr->slay = stid;
   return DIST_TENSOR_SUCCESS;

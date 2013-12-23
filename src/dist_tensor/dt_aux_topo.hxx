@@ -24,7 +24,7 @@ int find_topology(topology *                    topo,
     if (iter->ndim == topo->ndim){
       found = j;
       for (i=0; i<iter->ndim; i++) {
-        if (iter->dim_comm[i]->np != topo->dim_comm[i]->np){
+        if (iter->dim_comm[i].np != topo->dim_comm[i].np){
           found = -1;
         }
       }
@@ -41,12 +41,12 @@ int find_topology(topology *                    topo,
  */
 template<typename dtype>
 void fold_torus(topology *              topo, 
-                CommData * const        glb_comm,
+                CommData_t const        glb_comm,
                 dist_tensor<dtype> *    dt){
   int i, j, k, ndim, rank, color, np;
   //int ins;
-  CommData_t * new_comm;
-  CommData_t ** comm_arr;
+  CommData_t   new_comm;
+  CommData_t  * comm_arr;
 
   ndim = topo->ndim;
   
@@ -55,24 +55,16 @@ void fold_torus(topology *              topo,
   for (i=0; i<ndim; i++){
     /* WARNING: need to deal with nasty stuff in transpose when j-i > 1 */
     for (j=i+1; j<MIN(i+2,ndim); j++){
-      CTF_alloc_ptr((ndim-1)*sizeof(CommData_t*),    (void**)&comm_arr);
-      CTF_alloc_ptr(sizeof(CommData_t),              (void**)&new_comm);
-      if (glb_comm != NULL){
-        rank = topo->dim_comm[j]->rank*topo->dim_comm[i]->np + topo->dim_comm[i]->rank;
-        /* Reorder the lda, bring j lda to lower lda and adjust other ldas */
-        color = glb_comm->rank - topo->dim_comm[i]->rank*topo->lda[i]
-                               - topo->dim_comm[j]->rank*topo->lda[j];
+      CTF_alloc_ptr((ndim-1)*sizeof(CommData_t),    (void**)&comm_arr);
+      rank = topo->dim_comm[j].rank*topo->dim_comm[i].np + topo->dim_comm[i].rank;
+      /* Reorder the lda, bring j lda to lower lda and adjust other ldas */
+      color = glb_comm.rank - topo->dim_comm[i].rank*topo->lda[i]
+                            - topo->dim_comm[j].rank*topo->lda[j];
 //        if (j<ndim-1)
 //          color = (color%topo->lda[i])+(color/topo->lda[j+1]);
-      }
-      np = topo->dim_comm[i]->np*topo->dim_comm[j]->np;
+      np = topo->dim_comm[i].np*topo->dim_comm[j].np;
 
-      if (glb_comm != NULL){
-        SETUP_SUB_COMM(glb_comm, new_comm, rank, color, np, NREQ, NBCAST);
-      } else {
-        new_comm->np    = np;
-        new_comm->rank  = 0;
-      }
+      SETUP_SUB_COMM_SHELL(glb_comm, new_comm, rank, color, np);
 
       for (k=0; k<ndim-1; k++){
         if (k<i) 
@@ -92,7 +84,7 @@ void fold_torus(topology *              topo,
       for (k=0; k<ndim-1; k++){
         if (k<i) {
           if (ins == 0){
-            if (topo->dim_comm[k]->np <= np){
+            if (topo->dim_comm[k].np <= np){
               comm_arr[k] = new_comm;
               ins = 1;
             } else
@@ -114,10 +106,7 @@ void fold_torus(topology *              topo,
           }
         }
       }*/
-      if (glb_comm != NULL)
-        dt->set_phys_comm(comm_arr, ndim-1);
-      else
-        dt->set_inner_comm(comm_arr, ndim-1);
+      dt->set_phys_comm(comm_arr, ndim-1);
     }
   }
 }

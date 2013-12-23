@@ -207,7 +207,7 @@ void wr_pairs_layout(int const          ndim,
                      int const *        bucket_lda,
                      tkv_pair<dtype> *  wr_pairs,
                      dtype *            rw_data,
-                     CommData_t *       glb_comm){
+                     CommData_t         glb_comm){
 
   long_int i, new_num_pair, nwrite, swp;
   int * bucket_counts, * recv_counts;
@@ -474,7 +474,7 @@ void read_loc_pairs(int const           ndim,
               dpairs, new_pairs, &new_num_pair);
 
     CTF_free(dpairs);
-    if (new_pairs <= 0) CTF_free(new_pairs);
+    if (nval == 0) CTF_free(new_pairs);
     *pairs = new_pairs;
     *nread = new_num_pair;
 
