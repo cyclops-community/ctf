@@ -1065,7 +1065,7 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
   CTF_free(len_B);
   CTF_free(sym_A);
   CTF_free(sym_B);
-  if (blk_sz_A > 0)
+  if (ndim_A != 0 && !tsr_A->has_zero_edge_len)
     CTF_free(blk_data_A);
   CTF_free(padding_A);
   CTF_free(padding_B);
