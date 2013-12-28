@@ -272,7 +272,7 @@ void calc_cnt_displs_old(int const          ndim,
                      int *              recv_displs,
                      int *              svirt_displs,
                      int *              rvirt_displs,
-                     CommData_t *       ord_glb_comm,
+                     CommData_t         ord_glb_comm,
                      int const          idx_lyr,
                      int const          was_cyclic,
                      int const          is_cyclic,
@@ -540,11 +540,8 @@ void calc_cnt_displs_old(int const          ndim,
   }
 
   /* Exchange counts */
-  if (ord_glb_comm == NULL)
-    recv_counts[0] = send_counts[0];
-  else
-    ALL_TO_ALL(send_counts, 1, COMM_INT_T, 
-               recv_counts, 1, COMM_INT_T, ord_glb_comm);
+  ALL_TO_ALL(send_counts, 1, COMM_INT_T, 
+             recv_counts, 1, COMM_INT_T, ord_glb_comm);
   
   /* Calculate displacements out of the count arrays */
   send_displs[0] = 0;
@@ -566,11 +563,8 @@ void calc_cnt_displs_old(int const          ndim,
   }
 
   /* Exchange displacements for virt buckets */
-  if (ord_glb_comm == NULL)
-    memcpy(rvirt_displs, svirt_displs, new_nvirt*sizeof(int));
-  else
-    ALL_TO_ALL(svirt_displs, new_nvirt, COMM_INT_T, 
-               rvirt_displs, new_nvirt, COMM_INT_T, ord_glb_comm);
+  ALL_TO_ALL(svirt_displs, new_nvirt, COMM_INT_T, 
+             rvirt_displs, new_nvirt, COMM_INT_T, ord_glb_comm);
   
   CTF_free(all_virt_counts);
   CTF_free(idx);
@@ -633,7 +627,7 @@ void calc_cnt_displs(int const          ndim,
                      int *              recv_displs,
                      int *              svirt_displs,
                      int *              rvirt_displs,
-                     CommData_t *       ord_glb_comm,
+                     CommData_t         ord_glb_comm,
                      int const          idx_lyr,
                      int const          was_cyclic,
                      int const          is_cyclic,
@@ -885,11 +879,8 @@ void calc_cnt_displs(int const          ndim,
   }
 
   /* Exchange counts */
-  if (ord_glb_comm == NULL)
-    recv_counts[0] = send_counts[0];
-  else
-    ALL_TO_ALL(send_counts, 1, COMM_INT_T, 
-               recv_counts, 1, COMM_INT_T, ord_glb_comm);
+  ALL_TO_ALL(send_counts, 1, COMM_INT_T, 
+             recv_counts, 1, COMM_INT_T, ord_glb_comm);
   
   /* Calculate displacements out of the count arrays */
   send_displs[0] = 0;
@@ -911,11 +902,8 @@ void calc_cnt_displs(int const          ndim,
   }
 
   /* Exchange displacements for virt buckets */
-  if (ord_glb_comm == NULL)
-    memcpy(rvirt_displs, svirt_displs, new_nvirt*sizeof(int));
-  else
-    ALL_TO_ALL(svirt_displs, new_nvirt, COMM_INT_T, 
-               rvirt_displs, new_nvirt, COMM_INT_T, ord_glb_comm);
+  ALL_TO_ALL(svirt_displs, new_nvirt, COMM_INT_T, 
+             rvirt_displs, new_nvirt, COMM_INT_T, ord_glb_comm);
   
   CTF_free(all_virt_counts);
 
@@ -2317,7 +2305,7 @@ int padded_reshuffle(int const          tid,
                      int const *        new_virt_dim,
                      dtype *            tsr_data,
                      dtype **           tsr_cyclic_data,
-                     CommData_t *       ord_glb_comm){
+                     CommData_t         ord_glb_comm){
   int i, old_num_virt, new_num_virt, numPes;
   long_int new_nval, swp_nval;
   int idx_lyr;
@@ -2328,7 +2316,7 @@ int padded_reshuffle(int const          tid,
 
   TAU_FSTART(padded_reshuffle);
 
-  numPes = ord_glb_comm->np;
+  numPes = ord_glb_comm.np;
 
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_phase_rank);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&old_virt_phase_rank);
@@ -2336,9 +2324,9 @@ int padded_reshuffle(int const          tid,
 
   new_num_virt = 1;
   old_num_virt = 1;
-  idx_lyr = ord_glb_comm->rank;
+  idx_lyr = ord_glb_comm.rank;
   for (i=0; i<ndim; i++){
-/*  if (ord_glb_comm == NULL || ord_glb_comm->rank == 0){
+/*  if (ord_glb_comm == NULL || ord_glb_comm.rank == 0){
       printf("old_pe_lda[%d] = %d, old_phase = %d, old_virt_dim = %d\n",
               i,old_pe_lda[i], old_phase[i], old_virt_dim[i]);
       printf("new_pe_lda[%d] = %d, new_phase = %d, new_virt_dim = %d\n",
@@ -2374,15 +2362,15 @@ int padded_reshuffle(int const          tid,
   for (i=0; i<ndim; i++){
     sub_edge_len[i] = new_edge_len[i] / new_phase[i];
   }
-  if (ord_glb_comm->rank == 0){
+  if (ord_glb_comm.rank == 0){
     DPRINTF(1,"Tensor %d now has virtualization factor of %d\n",tid,new_num_virt);
   }
   swp_nval = new_num_virt*sy_packed_size(ndim, sub_edge_len, sym);
-  if (ord_glb_comm->rank == 0){
+  if (ord_glb_comm.rank == 0){
     DPRINTF(1,"Tensor %d is of size "PRId64", has factor of %lf growth due to padding\n", 
     
           tid, swp_nval,
-          ord_glb_comm->np*(swp_nval/(double)old_size));
+          ord_glb_comm.np*(swp_nval/(double)old_size));
   }
 
   CTF_alloc_ptr(swp_nval*sizeof(dtype), (void**)&tsr_new_data);
@@ -2480,7 +2468,7 @@ int cyclic_reshuffle(int const          ndim,
                      int const *        new_virt_dim,
                      dtype **           ptr_tsr_data,
                      dtype **           ptr_tsr_cyclic_data,
-                     CommData_t *       ord_glb_comm,
+                     CommData_t         ord_glb_comm,
                      int const          was_cyclic,
                      int const          is_cyclic,
                      bool               reuse_buffers,
@@ -2498,12 +2486,11 @@ int cyclic_reshuffle(int const          ndim,
   int * old_sub_edge_len, * new_sub_edge_len;
   
 
-  dtype * swp_ptr;
   dtype * tsr_data = *ptr_tsr_data;
   dtype * tsr_cyclic_data = *ptr_tsr_cyclic_data;
   if (ndim == 0){
     CTF_alloc_ptr(sizeof(dtype), (void**)&tsr_cyclic_data);
-    if (ord_glb_comm->rank == 0){
+    if (ord_glb_comm.rank == 0){
       tsr_cyclic_data[0] = beta*tsr_cyclic_data[0] + alpha*tsr_data[0];
     } else {
       tsr_cyclic_data[0] = get_zero<dtype>();
@@ -2514,12 +2501,8 @@ int cyclic_reshuffle(int const          ndim,
   
   LIBT_ASSERT(!reuse_buffers || beta == 0.0);
 
-
   TAU_FSTART(cyclic_reshuffle);
-  if (ord_glb_comm == NULL)
-    np = 1;
-  else
-    np = ord_glb_comm->np;
+    np = ord_glb_comm.np;
 
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&hsym);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
@@ -2533,20 +2516,11 @@ int cyclic_reshuffle(int const          ndim,
   old_nvirt = 1;
   old_np = 1;
   new_np = 1;
-  if (ord_glb_comm == NULL || ord_glb_comm->rank == 0){
+  if (ord_glb_comm.rank == 0){
     DPRINTF(3,"is_cyclic = %d, was_cyclic = %d\n",is_cyclic,was_cyclic);
   }
-  if (ord_glb_comm == NULL)
-    idx_lyr = 0;
-  else
-    idx_lyr = ord_glb_comm->rank;
+  idx_lyr = ord_glb_comm.rank;
   for (i=0; i<ndim; i++) {
-    if (ord_glb_comm == NULL || ord_glb_comm->rank == 0){
-      /*printf("old_pe_lda[%d] = %d, old_phase = %d, old_virt_dim = %d\n",
-              i,old_pe_lda[i], old_phase[i], old_virt_dim[i]);
-      printf("new_pe_lda[%d] = %d, new_phase = %d, new_virt_dim = %d\n",
-            i,new_pe_lda[i], new_phase[i], new_virt_dim[i]);*/
-    }
     buf_lda[i] = nbuf;
     new_virt_lda[i] = new_nvirt;
     old_virt_lda[i] = old_nvirt;
@@ -2625,10 +2599,10 @@ int cyclic_reshuffle(int const          ndim,
     
     TAU_FSTOP(calc_cnt_displs);
   /*for (i=0; i<np; i++){
-    printf("[%d] send_counts[%d] = %d recv_counts[%d] = %d\n", ord_glb_comm->rank, i, send_counts[i], i, recv_counts[i]);
+    printf("[%d] send_counts[%d] = %d recv_counts[%d] = %d\n", ord_glb_comm.rank, i, send_counts[i], i, recv_counts[i]);
   }
   for (i=0; i<nbuf; i++){
-    printf("[%d] svirt_displs[%d] = %d rvirt_displs[%d] = %d\n", ord_glb_comm->rank, i, svirt_displs[i], i, rvirt_displs[i]);
+    printf("[%d] svirt_displs[%d] = %d rvirt_displs[%d] = %d\n", ord_glb_comm.rank, i, svirt_displs[i], i, rvirt_displs[i]);
   }*/
 
 //  }
@@ -2651,11 +2625,6 @@ int cyclic_reshuffle(int const          ndim,
   if (reuse_buffers){
     CTF_mst_alloc_ptr(MAX(nval,swp_nval)*sizeof(dtype), (void**)&tsr_cyclic_data);
 
-    if (ord_glb_comm != NULL){
-      DPRINTF(4,"[%d] send = %d, had= "PRId64" recv = %d, should get = "PRId64"\n", 
-              ord_glb_comm->rank, send_displs[ord_glb_comm->np-1] + send_counts[ord_glb_comm->np-1], nval,
-              recv_displs[ord_glb_comm->np-1] + recv_counts[ord_glb_comm->np-1], swp_nval);
-    }
     TAU_FSTART(pack_virt_buf);
     if (idx_lyr == 0){
       if (was_cyclic&&is_cyclic) {
@@ -2733,31 +2702,23 @@ int cyclic_reshuffle(int const          ndim,
     }
 
     /* Communicate data */
-    if (ord_glb_comm != NULL){
-      TAU_FSTART(ALL_TO_ALL_V);
-      /* FIXME: not general to all types */
-      if (sizeof(dtype) == 4)
-        ALL_TO_ALLV(tsr_cyclic_data, send_counts, send_displs, MPI_FLOAT,
-                    tsr_data, recv_counts, recv_displs, MPI_FLOAT, ord_glb_comm);
-      if (sizeof(dtype) == 8)
-        ALL_TO_ALLV(tsr_cyclic_data, send_counts, send_displs, COMM_DOUBLE_T,
-                    tsr_data, recv_counts, recv_displs, COMM_DOUBLE_T, ord_glb_comm);
-      if (sizeof(dtype) == 16)
-        ALL_TO_ALLV(tsr_cyclic_data, send_counts, send_displs, MPI::DOUBLE_COMPLEX,
-                    tsr_data, recv_counts, recv_displs, MPI::DOUBLE_COMPLEX, ord_glb_comm);
-      TAU_FSTOP(ALL_TO_ALL_V);
-    } else {
-  //    memcpy(tsr_data, tsr_cyclic_data, swp_nval*sizeof(dtype));
-      swp_ptr = tsr_cyclic_data;
-      tsr_cyclic_data = tsr_data;
-      tsr_data = swp_ptr;
-    }
+    TAU_FSTART(ALL_TO_ALL_V);
+    /* FIXME: not general to all types */
+    if (sizeof(dtype) == 4)
+      ALL_TO_ALLV(tsr_cyclic_data, send_counts, send_displs, MPI_FLOAT,
+                  tsr_data, recv_counts, recv_displs, MPI_FLOAT, ord_glb_comm);
+    if (sizeof(dtype) == 8)
+      ALL_TO_ALLV(tsr_cyclic_data, send_counts, send_displs, COMM_DOUBLE_T,
+                  tsr_data, recv_counts, recv_displs, COMM_DOUBLE_T, ord_glb_comm);
+    if (sizeof(dtype) == 16)
+      ALL_TO_ALLV(tsr_cyclic_data, send_counts, send_displs, MPI::DOUBLE_COMPLEX,
+                  tsr_data, recv_counts, recv_displs, MPI::DOUBLE_COMPLEX, ord_glb_comm);
+    TAU_FSTOP(ALL_TO_ALL_V);
 
     std::fill(tsr_cyclic_data, tsr_cyclic_data+swp_nval, get_zero<dtype>());
     TAU_FSTART(unpack_virt_buf);
     /* Deserialize data into correctly ordered virtual sub blocks */
-    if (ord_glb_comm == NULL ||
-        recv_displs[ord_glb_comm->np-1] + recv_counts[ord_glb_comm->np-1] > 0){
+    if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
 
       if (was_cyclic&&is_cyclic)
       {
@@ -2874,7 +2835,6 @@ int cyclic_reshuffle(int const          ndim,
     TAU_FSTOP(pack_virt_buf);
 
     /* Communicate data */
-    LIBT_ASSERT(ord_glb_comm != NULL);
     if (sizeof(dtype) == 4)
       ALL_TO_ALLV(send_buffer, send_counts, send_displs, MPI_FLOAT,
                   recv_buffer, recv_counts, recv_displs, MPI_FLOAT, ord_glb_comm);
@@ -2888,8 +2848,7 @@ int cyclic_reshuffle(int const          ndim,
 
     TAU_FSTART(unpack_virt_buf);
     /* Deserialize data into correctly ordered virtual sub blocks */
-    if (recv_displs[ord_glb_comm->np-1] + recv_counts[ord_glb_comm->np-1] > 0){
-
+    if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
       dtype **new_data; CTF_alloc_ptr(sizeof(dtype*)*np*new_nvirt, (void**)&new_data);
       for (int p = 0,b = 0;p < np;p++){
         for (int v = 0;v < new_nvirt;v++,b++)
@@ -2980,7 +2939,7 @@ void block_reshuffle(int const        ndim,
                      int const *      new_pe_lda,
                      dtype *          tsr_data,
                      dtype *&         tsr_cyclic_data,
-                     CommData_t *     glb_comm){
+                     CommData_t       glb_comm){
   int i, idx_lyr_new, idx_lyr_old, blk_idx, prc_idx, loc_idx;
   int num_old_virt, num_new_virt;
   int * idx, * old_loc_lda, * new_loc_lda, * phase_lda;
@@ -2989,7 +2948,7 @@ void block_reshuffle(int const        ndim,
 
   if (ndim == 0){
     CTF_alloc_ptr(sizeof(dtype)*new_size, (void**)&tsr_cyclic_data);
-    if (glb_comm->rank == 0)
+    if (glb_comm.rank == 0)
       tsr_cyclic_data[0] = tsr_data[0];
     else
       tsr_cyclic_data[0] = 0.0;
@@ -3010,8 +2969,8 @@ void block_reshuffle(int const        ndim,
   phase_lda[0] = 1;
   num_old_virt = 1;
   num_new_virt = 1;
-  idx_lyr_old = glb_comm->rank;
-  idx_lyr_new = glb_comm->rank;
+  idx_lyr_old = glb_comm.rank;
+  idx_lyr_new = glb_comm.rank;
 
   for (i=0; i<ndim; i++){
     num_old_virt *= old_virt_dim[i];
@@ -3041,9 +3000,9 @@ void block_reshuffle(int const        ndim,
         prc_idx += ((idx[i] + new_rank[i]*new_virt_dim[i])/old_virt_dim[i])*old_pe_lda[i];
       }
       DPRINTF(3,"proc %d receiving blk %d (loc %d, size "PRId64") from proc %d\n", 
-              glb_comm->rank, blk_idx, loc_idx, blk_sz, prc_idx);
+              glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx);
       MPI_Irecv(tsr_cyclic_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
-                MPI_CHAR, prc_idx, blk_idx, glb_comm->cm, reqs+loc_idx);
+                MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+loc_idx);
       for (i=0; i<ndim; i++){
         idx[i]++;
         if (idx[i] >= new_virt_dim[i])
@@ -3068,9 +3027,9 @@ void block_reshuffle(int const        ndim,
         prc_idx += ((idx[i] + old_rank[i]*old_virt_dim[i])/new_virt_dim[i])*new_pe_lda[i];
       }
       DPRINTF(3,"proc %d sending blk %d (loc %d) to proc %d\n", 
-              glb_comm->rank, blk_idx, loc_idx, prc_idx);
+              glb_comm.rank, blk_idx, loc_idx, prc_idx);
       MPI_Isend(tsr_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
-                MPI_CHAR, prc_idx, blk_idx, glb_comm->cm, reqs+num_new_virt+loc_idx);
+                MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
       for (i=0; i<ndim; i++){
         idx[i]++;
         if (idx[i] >= old_virt_dim[i])

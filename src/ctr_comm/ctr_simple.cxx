@@ -170,9 +170,9 @@ void ctr_lyr<dtype>::run(){
   rec_ctr->A            = this->A;
   rec_ctr->B            = this->B;
   rec_ctr->C            = this->C;
-  rec_ctr->beta         = cdt->rank > 0 ? 0.0 : this->beta;
-  rec_ctr->num_lyr      = cdt->np;
-  rec_ctr->idx_lyr      = cdt->rank;
+  rec_ctr->beta         = cdt.rank > 0 ? 0.0 : this->beta;
+  rec_ctr->num_lyr      = cdt.np;
+  rec_ctr->idx_lyr      = cdt.rank;
 
   rec_ctr->run();
   
@@ -231,17 +231,17 @@ void ctr_replicate<dtype>::print() {
   printf("cdt_A = %p, size_A = "PRId64", ncdt_A = %d\n",
           cdt_A, size_A, ncdt_A);
   for (i=0; i<ncdt_A; i++){
-    printf("cdt_A[%d] length = %d\n",i,cdt_A[i]->np);
+    printf("cdt_A[%d] length = %d\n",i,cdt_A[i].np);
   }
   printf("cdt_B = %p, size_B = "PRId64", ncdt_B = %d\n",
           cdt_B, size_B, ncdt_B);
   for (i=0; i<ncdt_B; i++){
-    printf("cdt_B[%d] length = %d\n",i,cdt_B[i]->np);
+    printf("cdt_B[%d] length = %d\n",i,cdt_B[i].np);
   }
   printf("cdt_C = %p, size_C = "PRId64", ncdt_C = %d\n",
           cdt_C, size_C, ncdt_C);
   for (i=0; i<ncdt_C; i++){
-    printf("cdt_C[%d] length = %d\n",i,cdt_C[i]->np);
+    printf("cdt_C[%d] length = %d\n",i,cdt_C[i].np);
   }
   rec_ctr->print();
 }
@@ -256,16 +256,16 @@ uint64_t ctr_replicate<dtype>::comm_fp(int nlyr){
   long_int tot_sz;
   tot_sz = 0;
   for (i=0; i<ncdt_A; i++){
-    LIBT_ASSERT(cdt_A[i]->np > 0);
-    tot_sz += size_A*log(cdt_A[i]->np);
+    LIBT_ASSERT(cdt_A[i].np > 0);
+    tot_sz += size_A*log(cdt_A[i].np);
   }
   for (i=0; i<ncdt_B; i++){
-    LIBT_ASSERT(cdt_B[i]->np > 0);
-    tot_sz += size_B*log(cdt_B[i]->np);
+    LIBT_ASSERT(cdt_B[i].np > 0);
+    tot_sz += size_B*log(cdt_B[i].np);
   }
   for (i=0; i<ncdt_C; i++){
-    LIBT_ASSERT(cdt_C[i]->np > 0);
-    tot_sz += size_C*log(cdt_C[i]->np);
+    LIBT_ASSERT(cdt_C[i].np > 0);
+    tot_sz += size_C*log(cdt_C[i].np);
   }
   return ((uint64_t)tot_sz)*sizeof(dtype);
 }
@@ -308,15 +308,15 @@ void ctr_replicate<dtype>::run(){
 
   arank = 0, brank = 0, crank = 0;
   for (i=0; i<ncdt_A; i++){
-    arank += cdt_A[i]->rank;
+    arank += cdt_A[i].rank;
     POST_BCAST(this->A, size_A*sizeof(dtype), COMM_CHAR_T, 0, cdt_A[i], 0);
   }
   for (i=0; i<ncdt_B; i++){
-    brank += cdt_B[i]->rank;
+    brank += cdt_B[i].rank;
     POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i], 0);
   }
   for (i=0; i<ncdt_C; i++){
-    crank += cdt_C[i]->rank;
+    crank += cdt_C[i].rank;
   }
   if (crank != 0) std::fill(this->C, this->C+size_C, get_zero<dtype>());
   else {

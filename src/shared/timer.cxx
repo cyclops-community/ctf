@@ -11,6 +11,7 @@
 #include "util.h"
 
 #define MAX_NAME_LENGTH 53
+#define MAX_TOT_SYMBOLS_LEN 1000000
 
 int main_argc = 0;
 const char * const * main_argv;
@@ -165,7 +166,7 @@ void CTF_Timer::exit(){
     MPI_Comm_size(comm, &np);
 
 
-    char all_symbols[10000];
+    char all_symbols[MAX_TOT_SYMBOLS_LEN];
     FILE * output = NULL;
 
     if (rank == 0){
@@ -249,6 +250,7 @@ void CTF_Timer::exit(){
         j+=strlen(all_symbols+j)+1;
       }
     }
+    LIBT_ASSERT(len_symbols <= MAX_TOT_SYMBOLS_LEN);
 
     std::sort(function_timers.begin(), function_timers.end(),comp_name);
     for (i=0; i<(int)function_timers.size(); i++){

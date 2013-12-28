@@ -17,8 +17,6 @@ int dist_tensor<dtype>::check_pair_mapping(const int tid_A, const int tid_B){
   
   if (!tsr_A->is_mapped) return 0;
   if (!tsr_B->is_mapped) return 0;
-  if (tsr_A->is_inner_mapped) return 0;
-  if (tsr_B->is_inner_mapped) return 0;
   if (tsr_A->is_folded) return 0;
   if (tsr_B->is_folded) return 0;
 
@@ -122,7 +120,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     }
   }
 #if DEBUG >= 2
-  if (global_comm->rank == 0)
+  if (global_comm.rank == 0)
     printf("Initial mappings:\n");
   print_map(stdout, tid_A);
   print_map(stdout, tid_B);
@@ -157,8 +155,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   uint64_t size;
   uint64_t min_size = UINT64_MAX;
   /* Attempt to map to all possible permutations of processor topology */
-  for (i=global_comm->rank; i<2*(int)topovec.size(); i+=global_comm->np){
-//  for (i=global_comm->rank*topovec.size(); i<(int)topovec.size(); i++){
+  for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
+//  for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
     clear_mapping(tsr_A);
     clear_mapping(tsr_B);
     set_padding(tsr_A);
@@ -261,9 +259,9 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
       need_remap_A = 1;
     if (need_remap_A){
       if (can_block_reshuffle(tsr_A->ndim, old_phase_A, tsr_A->edge_map)){
-        size += tsr_A->size*log2(global_comm->np);
+        size += tsr_A->size*log2(global_comm.np);
       } else {
-        size += 10.*tsr_A->size*log2(global_comm->np);
+        size += 10.*tsr_A->size*log2(global_comm.np);
       }
     }
     if (tsr_B->itopo == old_topo_B){
@@ -275,9 +273,9 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
       need_remap_B = 1;
     if (need_remap_B){
       if (can_block_reshuffle(tsr_B->ndim, old_phase_B, tsr_B->edge_map)){
-        size += tsr_B->size*log2(global_comm->np);
+        size += tsr_B->size*log2(global_comm.np);
       } else {
-        size += 10.*tsr_B->size*log2(global_comm->np);
+        size += 10.*tsr_B->size*log2(global_comm.np);
       }
     }
 
@@ -357,7 +355,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   set_padding(tsr_A);
   set_padding(tsr_B);
 #if DEBUG >= 2
-  if (global_comm->rank == 0)
+  if (global_comm.rank == 0)
     printf("New mappings:\n");
   print_map(stdout, tid_A);
   print_map(stdout, tid_B);
@@ -520,8 +518,6 @@ int dist_tensor<dtype>::
   if (tsr_A->is_mapped == 0) pass = 0;
   if (tsr_B->is_mapped == 0) pass = 0;
   
-  if (tsr_A->is_inner_mapped == 1) pass = 0;
-  if (tsr_B->is_inner_mapped == 1) pass = 0;
   
   if (tsr_A->is_folded == 1) pass = 0;
   if (tsr_B->is_folded == 1) pass = 0;
@@ -598,11 +594,9 @@ int dist_tensor<dtype>::
 
 /* \brief Check whether current tensor mapping can be contracted on 
  * \param type specification of contraction
- * \param is_inner whether its an inner contraction
  */
 template<typename dtype>
-int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
-                                                  int const is_inner){
+int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type){
   int num_tot, i, ph_A, ph_B, iA, iB, iC, pass, order, topo_ndim;
   int * idx_arr;
   int * phys_mismatched, * phys_mapped;
@@ -619,13 +613,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
   if (tsr_A->is_mapped == 0) pass = 0;
   if (tsr_B->is_mapped == 0) pass = 0;
   if (tsr_C->is_mapped == 0) pass = 0;
-  LIBT_ASSERT(pass==1 || is_inner==0);
- 
-  if (!is_inner) {
-    if (tsr_A->is_inner_mapped == 1) pass = 0;
-    if (tsr_B->is_inner_mapped == 1) pass = 0;
-    if (tsr_C->is_inner_mapped == 1) pass = 0;
-  }
+  LIBT_ASSERT(pass==1);
   
   if (tsr_A->is_folded == 1) pass = 0;
   if (tsr_B->is_folded == 1) pass = 0;
@@ -644,10 +632,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
     return 0;
   }
 
-  if (is_inner)
-    topo_ndim = inner_topovec[tsr_A->itopo].ndim;
-  else
-    topo_ndim = topovec[tsr_A->itopo].ndim;
+  topo_ndim = topovec[tsr_A->itopo].ndim;
   CTF_alloc_ptr(sizeof(int)*topo_ndim, (void**)&phys_mismatched);
   CTF_alloc_ptr(sizeof(int)*topo_ndim, (void**)&phys_mapped);
   memset(phys_mismatched, 0, sizeof(int)*topo_ndim);
@@ -771,7 +756,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type,
             ph_B = calc_phase(&tsr_B->edge_map[iB]);
 
             if (ph_A != ph_B){
-              //if (global_comm->rank == 0) 
+              //if (global_comm.rank == 0) 
                 DPRINTF(3,"failed confirmation here iA=%d iB=%d\n",iA,iB);
               pass = 0;
               break;
@@ -966,7 +951,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     LIBT_ASSERT(tsr_B->is_mapped);
     LIBT_ASSERT(tsr_C->is_mapped);
   #if DEBUG >= 2
-    if (global_comm->rank == 0)
+    if (global_comm.rank == 0)
       printf("Initial mappings:\n");
     print_map(stdout, type->tid_A);
     print_map(stdout, type->tid_B);
@@ -1012,8 +997,8 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #endif
   for (j=0; j<6; j++){
     /* Attempt to map to all possible permutations of processor topology */
-    for (i=global_comm->rank; i<(int)topovec.size(); i+=global_comm->np){
-//    for (i=global_comm->rank*topovec.size(); i<(int)topovec.size(); i++){
+    for (i=global_comm.rank; i<(int)topovec.size(); i+=global_comm.np){
+//    for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
       clear_mapping(tsr_A);
       clear_mapping(tsr_B);
       clear_mapping(tsr_C);
@@ -1107,10 +1092,10 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         need_remap_A = 1;
       if (need_remap_A) {
         if (can_block_reshuffle(tsr_A->ndim, old_phase_A, tsr_A->edge_map)){
-          comm_vol += sizeof(dtype)*tsr_A->size*log2(global_comm->np);
+          comm_vol += sizeof(dtype)*tsr_A->size*log2(global_comm.np);
           memuse = (uint64_t)sizeof(dtype)*tsr_A->size;
         } else {
-          comm_vol += 10.*sizeof(dtype)*tsr_A->size*log2(global_comm->np)+80.*global_comm->np;
+          comm_vol += 10.*sizeof(dtype)*tsr_A->size*log2(global_comm.np)+80.*global_comm.np;
           memuse = (uint64_t)sizeof(dtype)*tsr_A->size*2.5;
         }
       } else
@@ -1124,10 +1109,10 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         need_remap_B = 1;
       if (need_remap_B) {
         if (can_block_reshuffle(tsr_B->ndim, old_phase_B, tsr_B->edge_map)){
-          comm_vol += sizeof(dtype)*tsr_B->size*log2(global_comm->np);
+          comm_vol += sizeof(dtype)*tsr_B->size*log2(global_comm.np);
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size);
         } else {
-          comm_vol += 10.*sizeof(dtype)*tsr_B->size*log2(global_comm->np)+80.*global_comm->np;
+          comm_vol += 10.*sizeof(dtype)*tsr_B->size*log2(global_comm.np)+80.*global_comm.np;
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*2.5);
         }
       }
@@ -1140,10 +1125,10 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         need_remap_C = 1;
       if (need_remap_C) {
         if (can_block_reshuffle(tsr_C->ndim, old_phase_C, tsr_C->edge_map)){
-          comm_vol += sizeof(dtype)*tsr_C->size*log2(global_comm->np);
+          comm_vol += sizeof(dtype)*tsr_C->size*log2(global_comm.np);
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size);
         } else {
-          comm_vol += 10.*sizeof(dtype)*tsr_C->size*log2(global_comm->np)+80.*global_comm->np;
+          comm_vol += 10.*sizeof(dtype)*tsr_C->size*log2(global_comm.np)+80.*global_comm.np;
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*2.5);
         }
       }
@@ -1244,7 +1229,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     TAU_FSTOP(map_tensors);
     if (gtopo == INT_MAX || gtopo == -1){
       printf("ERROR: Failed to map contraction!\n");
-      ABORT;
+      //ABORT;
       return DIST_TENSOR_ERROR;
     }
     return DIST_TENSOR_SUCCESS;
@@ -1270,7 +1255,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #if DEBUG > 2
   if (!check_contraction_mapping(type))
     printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
-  else if (global_comm->rank == 0) printf("Mapping successful!\n");
+  else if (global_comm.rank == 0) printf("Mapping successful!\n");
 #endif
   LIBT_ASSERT(check_contraction_mapping(type));
 
@@ -1317,7 +1302,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   *ctrf = construct_contraction(type, ftsr, felm, 
                                 alpha, beta, 0, NULL, &nvirt_all);
 #if DEBUG >= 2
-  if (global_comm->rank == 0)
+  if (global_comm.rank == 0)
     printf("New mappings:\n");
   print_map(stdout, type->tid_A);
   print_map(stdout, type->tid_B);
@@ -1326,7 +1311,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
  
       
   memuse = MAX((uint64_t)(*ctrf)->mem_rec(), (uint64_t)(tsr_A->size+tsr_B->size+tsr_C->size)*sizeof(dtype)*3);
-  if (global_comm->rank == 0)
+  if (global_comm.rank == 0)
     DPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory\n",
             (double)memuse,(double)proc_bytes_available());
           
@@ -1709,7 +1694,7 @@ int dist_tensor<dtype>::
                     topology const *    topo){
   int tsr_ndim, ictr, iA, iB, i, j, jctr, jX, stat, is_premapped, num_sub_phys_dims;
   int * tsr_edge_len, * tsr_sym_table, * restricted, * phys_mapped, * comm_idx;
-  CommData_t ** sub_phys_comm;
+  CommData_t  * sub_phys_comm;
   mapping * ctr_map;
   mapping * map;
 
@@ -1754,7 +1739,7 @@ int dist_tensor<dtype>::
       num_sub_phys_dims++;
     }
   }
-  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t*), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t), (void**)&sub_phys_comm);
   CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
   num_sub_phys_dims = 0;
   for (i=0; i<topo->ndim; i++){

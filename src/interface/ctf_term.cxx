@@ -440,7 +440,10 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
     delete pop_A;
     delete pop_B;
   } 
-  return tmp_ops[0]->execute();
+  tCTF_Idx_Tensor<dtype> rtsr = tmp_ops[0]->execute();
+  delete tmp_ops[0];
+  tmp_ops.clear();
+  return rtsr;
 }
 
 template<typename dtype>

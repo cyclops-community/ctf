@@ -742,7 +742,6 @@ void dist_tensor<dtype>::fold_tsr(tensor<dtype> * tsr,
   int * fold_sym;
   int fold_tid;
   
-  LIBT_ASSERT(tsr->is_inner_mapped == 0);
   if (tsr->is_folded != 0) unfold_tsr(tsr);
   
   CTF_alloc_ptr(tsr->ndim*sizeof(int), (void**)&sub_edge_len);
@@ -1013,7 +1012,7 @@ int dist_tensor<dtype>::map_fold(CTF_sum_type_t const * type,
            ftsr_B->ndim, fidx_map_B, &fold_type.idx_map_B);
 
 #if DEBUG>=2
-  if (global_comm->rank == 0){
+  if (global_comm.rank == 0){
     printf("Folded summation type:\n");
   }
   print_sum(&fold_type,0.0,0.0);
@@ -1144,7 +1143,7 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
            ftsr_C->ndim, fidx_map_C, &fold_type.idx_map_C);
 
 #if DEBUG>=2
-  if (global_comm->rank == 0){
+  if (global_comm.rank == 0){
     printf("Folded contraction type:\n");
   }
   print_ctr(&fold_type,0.0,0.0);
@@ -1573,7 +1572,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
     strcpy(spf,"desymmetrize_");
     strcat(spf,tsr_sym->name);
     CTF_Timer t_pf(spf);
-    if (global_comm->rank == 0) 
+    if (global_comm.rank == 0) 
       VPRINTF(1,"Desymmetrizing %s\n", tsr_sym->name);
     t_pf.start();
   }
@@ -1724,7 +1723,7 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
     strcpy(spf,"symmetrize_");
     strcat(spf,tsr_nonsym->name);
     CTF_Timer t_pf(spf);
-    if (global_comm->rank == 0) 
+    if (global_comm.rank == 0) 
       VPRINTF(1,"Symmetrizing %s\n", tsr_nonsym->name);
     t_pf.start();
   }

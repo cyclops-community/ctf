@@ -55,8 +55,8 @@ class tsum_replicate : public tsum<dtype> {
     int ncdt_A; /* number of processor dimensions to replicate A along */
     int ncdt_B; /* number of processor dimensions to replicate B along */
 
-    CommData_t ** cdt_A;
-    CommData_t ** cdt_B;
+    CommData_t * cdt_A;
+    CommData_t * cdt_B;
     /* Class to be called on sub-blocks */
     tsum<dtype> * rec_tsum;
     

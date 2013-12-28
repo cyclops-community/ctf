@@ -75,7 +75,7 @@ int calc_phys_rank(mapping const * map, topology const * topo){
     rank = 0;
   } else {
     if (map->type == PHYSICAL_MAP) {
-      rank = topo->dim_comm[map->cdt]->rank;
+      rank = topo->dim_comm[map->cdt].rank;
       phase = map->np;
     } else {
       rank = 0;
@@ -164,7 +164,7 @@ int stretch_virt(int const ndim,
 inline
 int get_best_topo(uint64_t const  nvirt,
 		  int const       topo,
-		  CommData_t *    global_comm,
+		  CommData_t      global_comm,
 		  uint64_t const  bcomm_vol = 0,
 		  uint64_t const  bmemuse = 0){
 
@@ -255,7 +255,6 @@ int clear_mapping(tensor<dtype> * tsr){
   }
   tsr->itopo = -1;
   tsr->is_mapped = 0;
-  tsr->is_inner_mapped = 0;
   tsr->is_folded = 0;
 
   return DIST_TENSOR_SUCCESS;
@@ -623,7 +622,7 @@ int remap_tensor(int const  tid,
                  int const    was_cyclic,
                  int const *  old_padding,
                  int const *  old_edge_len,
-                 CommData_t * global_comm,
+                 CommData_t   global_comm,
                  int const *  old_offsets = NULL,
                  int * const * old_permutation = NULL,
                  int const *  new_offsets = NULL,
@@ -666,7 +665,7 @@ int remap_tensor(int const  tid,
   }
 #ifdef HOME_CONTRACT
   if (tsr->is_home){    
-    if (global_comm->rank == 0)
+    if (global_comm.rank == 0)
       DPRINTF(2,"Tensor %d leaving home\n", tid);
     tsr->data = (dtype*)CTF_mst_alloc(old_size*sizeof(dtype));
     memcpy(tsr->data, tsr->home_buffer, old_size*sizeof(dtype));
@@ -677,7 +676,7 @@ int remap_tensor(int const  tid,
     char spf[80];
     strcpy(spf,"redistribute_");
     strcat(spf,tsr->name);
-    if (global_comm->rank == 0){
+    if (global_comm.rank == 0){
       if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",tsr->name);
       else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",tsr->name);
 #if VERBOSE >=1
@@ -764,7 +763,7 @@ int remap_tensor(int const  tid,
   for (j=0; j<tsr->size; j++){
     if (tsr->data[j] != shuffled_data_corr[j]){
       printf("data element %d/"PRId64" not received correctly on process %d\n",
-              j, tsr->size, global_comm->rank);
+              j, tsr->size, global_comm.rank);
       printf("element received was %.3E, correct %.3E\n", 
               GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));
       abortt = true;
@@ -799,7 +798,7 @@ int remap_tensor(int const  tid,
  */
 template<typename dtype>
 int redistribute(int const *          sym,
-                 CommData_t *         cdt,
+                 CommData_t &         cdt,
                  distribution const & old_dist,
                  dtype *              old_data,
                  dtype                alpha,
@@ -855,7 +854,7 @@ int map_tensor(int const      num_phys_dims,
                int const *    tsr_edge_len,
                int const *    tsr_sym_table,
                int *          restricted,
-               CommData_t **  phys_comm,
+               CommData_t  *  phys_comm,
                int const *    comm_idx,
                int const      fill,
                mapping *      tsr_edge_map){
@@ -893,20 +892,21 @@ int map_tensor(int const      num_phys_dims,
       break;
     }
     map   = &(tsr_edge_map[max_dim]);
-    map->has_child  = 0;
+// FIXME: why?
+  //  map->has_child  = 0;
     if (map->type != NOT_MAPPED){
       while (map->has_child) map = map->child;
-      phase   = phys_comm[i]->np;
+      phase   = phys_comm[i].np;
       if (map->type == VIRTUAL_MAP){
-        if (phys_comm[i]->np != map->np){
-          phase     = lcm(map->np, phys_comm[i]->np);
-          if ((phase < map->np || phase < phys_comm[i]->np) || phase >= MAX_PHASE)
+        if (phys_comm[i].np != map->np){
+          phase     = lcm(map->np, phys_comm[i].np);
+          if ((phase < map->np || phase < phys_comm[i].np) || phase >= MAX_PHASE)
             return DIST_TENSOR_NEGATIVE;
-          if (phase/phys_comm[i]->np != 1){
+          if (phase/phys_comm[i].np != 1){
             map->has_child  = 1;
             map->child    = (mapping*)CTF_alloc(sizeof(mapping));
             map->child->type  = VIRTUAL_MAP;
-            map->child->np  = phase/phys_comm[i]->np;
+            map->child->np  = phase/phys_comm[i].np;
             map->child->has_child = 0;
           }
         }
@@ -919,7 +919,7 @@ int map_tensor(int const      num_phys_dims,
       }
     }
     map->type     = PHYSICAL_MAP;
-    map->np     = phys_comm[i]->np;
+    map->np     = phys_comm[i].np;
     map->cdt    = (comm_idx == NULL) ? i : comm_idx[i];
     if (!fill)
       restricted[max_dim] = 1;
@@ -944,12 +944,12 @@ int map_tensor(int const      num_phys_dims,
 */
 template<typename dtype>
 int map_tensor_rem(int const    num_phys_dims,
-                   CommData_t **  phys_comm,
+                   CommData_t  *  phys_comm,
                    tensor<dtype> *  tsr,
                    int const    fill = 0){
   int i, num_sub_phys_dims, stat;
   int * restricted, * phys_mapped, * comm_idx;
-  CommData_t ** sub_phys_comm;
+  CommData_t  * sub_phys_comm;
   mapping * map;
 
   CTF_alloc_ptr(tsr->ndim*sizeof(int), (void**)&restricted);
@@ -973,7 +973,7 @@ int map_tensor_rem(int const    num_phys_dims,
       num_sub_phys_dims++;
     }
   }
-  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t*), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t), (void**)&sub_phys_comm);
   CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
   num_sub_phys_dims = 0;
   for (i=0; i<num_phys_dims; i++){
@@ -1007,11 +1007,11 @@ int can_morph(topology const * topo_keep, topology const * topo_change){
   lda = 1;
   j = 0;
   for (i=0; i<topo_keep->ndim; i++){
-    lda *= topo_keep->dim_comm[i]->np;
-    if (lda == topo_change->dim_comm[j]->np){
+    lda *= topo_keep->dim_comm[i].np;
+    if (lda == topo_change->dim_comm[j].np){
       j++;
       lda = 1;
-    } else if (lda > topo_change->dim_comm[j]->np){
+    } else if (lda > topo_change->dim_comm[j].np){
       return 0;
     }
   }
@@ -1048,7 +1048,7 @@ void morph_topo(topology const *  new_topo,
           LIBT_ASSERT(j!=new_topo->ndim);
           new_rec_map->type   = PHYSICAL_MAP;
           new_rec_map->cdt    = j;
-          new_rec_map->np     = new_topo->dim_comm[j]->np;
+          new_rec_map->np     = new_topo->dim_comm[j].np;
           new_np    *= new_rec_map->np;
           if (new_np<old_map->np) {
             old_lda = old_lda * new_rec_map->np;

@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
   myctf->def_scala_mat(desc_a, mat_A, &tid_A);
   myctf->def_scala_mat(desc_b, mat_B, &tid_B);
   myctf->def_scala_mat(desc_c, mat_C_CTF, &tid_C);
-  myctf->pgemm('T', 'N', m, n, k, ALPHA, tid_A, tid_B, BETA, tid_C);
+  myctf->pgemm('T', 'N', ALPHA, tid_A, tid_B, BETA, tid_C);
   myctf->read_scala_mat(tid_C, mat_C_CTF);
 
 #if 0
@@ -353,7 +353,7 @@ int main(int argc, char **argv) {
   myctf->def_scala_mat(desc_a, mat_A, &tid_A);
   myctf->def_scala_mat(desc_b, mat_B, &tid_B);
   myctf->def_scala_mat(desc_c, mat_C_CTF, &tid_C);
-  myctf->pgemm('T', 'N', m, n, k, ALPHA, tid_A, tid_B, BETA, tid_C);
+  myctf->pgemm('T', 'N', ALPHA, tid_A, tid_B, BETA, tid_C);
   myctf->read_scala_mat(tid_C, mat_C_CTF);
 
 
@@ -406,7 +406,7 @@ int main(int argc, char **argv) {
 	    mat_A, 1, 1, desc_a,
 	    mat_B, 1, 1, desc_b, BETA,
 	    mat_C, 1, 1, desc_c); */
-    myctf->pgemm('T', 'N', m, n, k, ALPHA, tid_A, tid_B, BETA, tid_C);
+    myctf->pgemm('T', 'N', ALPHA, tid_A, tid_B, BETA, tid_C);
     if (iter == 0)
       ans_verify = mat_C[2];
   }

@@ -16,9 +16,6 @@
 #include "../ctr_seq/sym_seq_scl_cust.hxx"
 #include "../ctr_seq/sym_seq_sum_cust.hxx"
 #include "../ctr_seq/sym_seq_ctr_cust.hxx"
-#if VERIFY
-#include "../unit_test/unit_test.h"
-#endif
 #include <limits.h>
 #include <stdint.h>
 
@@ -46,7 +43,7 @@ struct mapping {
 /* Only supporting mesh/torus topologies */
 struct topology {
   int ndim;
-  CommData_t ** dim_comm;
+  CommData_t  * dim_comm;
   int * lda;
 };
 
@@ -89,7 +86,6 @@ class tensor {
   int itopo;
   mapping * edge_map;
   long_int size;
-  int is_inner_mapped;
   int is_folded;
   int * inner_ordering;
   int rec_tid;
@@ -135,7 +131,7 @@ int padded_reshuffle(int const          tid,
                      int const *        new_virt_dim,
                      dtype *            tsr_data,
                      dtype **           tsr_cyclic_data,
-                     CommData_t *       ord_glb_comm);
+                     CommData_t         ord_glb_comm);
 
 template<typename dtype>
 int cyclic_reshuffle(int const          ndim,
@@ -157,7 +153,7 @@ int cyclic_reshuffle(int const          ndim,
                      int const *        new_virt_dim,
                      dtype **           tsr_data,
                      dtype **           tsr_cyclic_data,
-                     CommData_t *       ord_glb_comm,
+                     CommData_t         ord_glb_comm,
                      int const          was_cyclic = 0,
                      int const          is_cyclic = 0);
 
@@ -254,38 +250,32 @@ class dist_tensor{
 
   protected:
     /* internal library state */
-    CommData_t * global_comm;
+    CommData_t   global_comm;
     int num_phys_dims;
-    CommData_t * phys_comm;
+    CommData_t   phys_comm;
     int * phys_lda;
     std::vector< tensor<dtype>* > tensors;
     std::vector<topology> topovec;
     std::vector<topology> rejected_topos;
 
-    int inner_size;
-    std::vector<topology> inner_topovec;
-    
 
   public:
 
     ~dist_tensor();
 
     int dist_cleanup();
-    CommData_t * get_global_comm();
-    void set_global_comm(CommData_t * cdt);
-    CommData_t * get_phys_comm();
-    void set_phys_comm(CommData_t ** cdt, int const ndim);
-    void set_inner_comm(CommData_t ** cdt, int const ndim);
+    CommData_t   get_global_comm();
+    void set_global_comm(CommData_t   cdt);
+    CommData_t   get_phys_comm();
+    void set_phys_comm(CommData_t * cdt, int const ndim);
     int get_phys_ndim();
     int * get_phys_lda();
     std::vector< tensor<dtype>* > * get_tensors();
 
-    int initialize(CommData_t * cdt_global,
+    int initialize(CommData_t   cdt_global,
                    int const    ndim,
-                   int const *  dim_len,
-                   int const    inner_sz);
+                   int const *  dim_len);
 
-    int init_inner_topology(int const inner_sz);
 
     int define_tensor(int const         ndim,
                       int const *       edge_len,
@@ -480,8 +470,8 @@ class dist_tensor{
                                         fseq_elm_ctr<dtype> const felm,
                                         dtype const               alpha,
                                         dtype const               beta,
-                                        int const                 is_inner=0,
-                                        iparam const *            inner_params=NULL,
+                                        int const                 is_inner = 0,
+                                        iparam const *            inner_params = NULL,
                                         int *                     nvirt_C = NULL);
 
 /*    dtype align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
@@ -499,22 +489,19 @@ class dist_tensor{
                       fseq_tsr_ctr<dtype> const ftsr,
                       fseq_elm_ctr<dtype> const felm,
                       dtype const               alpha,
-                      dtype const               beta,
-                      int const                 map_inner);
+                      dtype const               beta);
 
     int sym_contract( CTF_ctr_type_t const *    type,
                       fseq_tsr_ctr<dtype> const ftsr,
                       fseq_elm_ctr<dtype> const felm,
                       dtype const               alpha,
-                      dtype const               beta,
-                      int const                 map_inner);
+                      dtype const               beta);
 
     int contract( CTF_ctr_type_t const *        type,
                   fseq_tsr_ctr<dtype> const     ftsr,
                   fseq_elm_ctr<dtype> const     felm,
                   dtype const                   alpha,
-                  dtype const                   beta,
-                  int const                     map_inner);
+                  dtype const                   beta);
 
     int map_tensors(CTF_ctr_type_t const *      type,
                     fseq_tsr_ctr<dtype> const   ftsr,
@@ -569,8 +556,7 @@ class dist_tensor{
     int map_self_indices(int const      tid,
                                            int const*   idx_map);
 
-    int check_contraction_mapping(CTF_ctr_type_t const * type,
-                                  int const is_inner = 0);
+    int check_contraction_mapping(CTF_ctr_type_t const * type);
 
     int check_sum_mapping(int const     tid_A,
                           int const *   idx_A,
@@ -626,7 +612,7 @@ class dist_tensor{
     int compare_tsr(FILE * stream, int const tid_A, int const tid_B, double cutoff = -1.0);
 
     int print_map(FILE * stream, int const tid,
-                  int const all=1, int const is_inner=0) const;
+                  int const all=1) const;
 
     int print_ctr(CTF_ctr_type_t const * ctype,
                   dtype const            alpha,

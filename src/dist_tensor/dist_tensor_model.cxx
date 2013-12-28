@@ -22,7 +22,7 @@ int64_t dist_tensor<dtype>::estimate_cost(int tid_A,
     if (idx_arr[2*dim+0] != -1) cost *= tsr_A->edge_len[idx_arr[2*dim+0]];
     else if (idx_arr[2*dim+1] != -1) cost *= tsr_B->edge_len[idx_arr[2*dim+1]];
   }
-  return cost / global_comm->np;
+  return cost / global_comm.np;
 }
     
 template<typename dtype>
@@ -52,7 +52,7 @@ int64_t dist_tensor<dtype>::estimate_cost(int tid_A,
     else if (idx_arr[3*dim+1] != -1) cost *= tsr_B->edge_len[idx_arr[3*dim+1]];
     else if (idx_arr[3*dim+2] != -1) cost *= tsr_C->edge_len[idx_arr[3*dim+2]];
   }
-  return cost / global_comm->np;
+  return cost / global_comm.np;
 }
     
 

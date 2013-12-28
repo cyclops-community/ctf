@@ -143,14 +143,16 @@ void CTF_mst_create(long_int size){
  */
 void CTF_mem_create(){
   CTF_instance_counter++;
+  if (CTF_instance_counter == 1){
 #ifdef USE_OMP
-  CTF_max_threads = omp_get_max_threads();
+    CTF_max_threads = omp_get_max_threads();
 #else
-  CTF_max_threads = 1;
+    CTF_max_threads = 1;
 #endif
-  int i;
-  for (i=0; i<CTF_max_threads; i++){
-    CTF_mem_used[i] = 0;
+    int i;
+    for (i=0; i<CTF_max_threads; i++){
+      CTF_mem_used[i] = 0;
+    }
   }
 }
 
@@ -266,7 +268,8 @@ void * CTF_mst_alloc(long_int const len){
  * \param[in] len number of bytes
  * \param[in,out] ptr pointer to set to new allocation address
  */
-int CTF_alloc_ptr(long_int const len, void ** const ptr){
+int CTF_alloc_ptr(long_int const len_, void ** const ptr){
+  long_int len = MAX(4,len_);
   int pm = posix_memalign(ptr, ALIGN_BYTES, len);
 #ifndef PRODUCTION
   int tid;
@@ -456,6 +459,10 @@ int CTF_free(void * ptr){
 }
 
 
+int CTF_get_num_instances(){
+  return CTF_instance_counter;
+}
+
 /**
  * \brief gives total memory used on this MPI process 
  */
@@ -494,11 +501,12 @@ uint64_t proc_bytes_total() {
 uint64_t proc_bytes_available(){
   uint64_t mem_avail;
   Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail); 
+  mem_avail*= CTF_memcap;
   mem_avail += mst_buffer_size-mst_buffer_used;
 /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
           mem_avail, proc_bytes_total() - proc_bytes_used());*/
   
-  return CTF_memcap*mem_avail;
+  return mem_avail;
 }
 
 

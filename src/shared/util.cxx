@@ -212,7 +212,7 @@ double util_dabs(double x){
  * \param[in] myRank your rank if relevant
  */
 void __CM(const int     end, 
-          const CommData *cdt, 
+          const CommData cdt, 
           const int     p, 
           const int     iter, 
           const int     myRank){
@@ -229,13 +229,13 @@ void __CM(const int     end,
   else if (end == 1){
     __commTime += TIME_SEC() - __commTimeDelta;
   } else if (end == 2) {
-    MPI_Reduce((void*)&__commTime, (void*)&__commTimeDelta, 1, COMM_DOUBLE_T, COMM_OP_SUM, 0, cdt->cm); 
+    MPI_Reduce((void*)&__commTime, (void*)&__commTimeDelta, 1, COMM_DOUBLE_T, COMM_OP_SUM, 0, cdt.cm); 
     __commTime = __commTimeDelta/p;
     if (myRank == 0)
       printf("%lf seconds spent doing communication on average per iteration\n", __commTime/iter); 
 
     MPI_Reduce((void*)&__idleTime, (void*)&__idleTimeDelta, 1,
-            COMM_DOUBLE_T, COMM_OP_SUM, 0, cdt->cm);
+            COMM_DOUBLE_T, COMM_OP_SUM, 0, cdt.cm);
     __idleTime = __idleTimeDelta/p;
     if (myRank == 0)
       printf("%lf seconds spent idle per iteration\n", __idleTime/iter); 
@@ -243,16 +243,16 @@ void __CM(const int     end,
     __commTime =0.0;
     __idleTime =0.0;
   } else if (end == 4){
-    MPI_Irecv(NULL,0,MPI_CHAR,iter,myRank,cdt->cm,&(cdt->req[myRank]));
+    MPI_Irecv(NULL,0,MPI_CHAR,iter,myRank,cdt.cm,&(cdt.req[myRank]));
   } else if (end == 5){
     __idleTimeDelta =TIME_SEC();
-    MPI_Send(NULL,0,MPI_CHAR,iter,myRank,cdt->cm);
+    MPI_Send(NULL,0,MPI_CHAR,iter,myRank,cdt.cm);
     __idleTime += TIME_SEC() - __idleTimeDelta;
     __commTimeDelta = TIME_SEC(); 
   } else if (end == 6){
     MPI_Status __stat;
     __idleTimeDelta =TIME_SEC();
-    MPI_Wait(&(cdt->req[myRank]),&__stat);
+    MPI_Wait(&(cdt.req[myRank]),&__stat);
     __idleTime += TIME_SEC() - __idleTimeDelta;
     __commTimeDelta = TIME_SEC(); 
   }
