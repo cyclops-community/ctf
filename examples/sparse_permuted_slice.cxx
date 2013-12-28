@@ -109,7 +109,15 @@ int sparse_permuted_slice(int         n,
   // Retrieve the data I wrote from B3 into A_rep back into callback_B3
   CTF_Tensor callback_B3(3, lens_B3, symm, id_world);
 
+  double t_str, t_stp;
+  if (rank == 0)
+    t_str = MPI_Wtime();
   callback_B3.permute(perms_rep, 1.0, A_rep, 1.0);
+  if (rank == 0){
+    t_stp = MPI_Wtime();
+    printf("permute took %lf sec\n", t_stp-t_str);
+  }
+  
 
   // Check that B == callback_B3
   callback_B3["ij"] = callback_B3["ij"] - B["ij"];
