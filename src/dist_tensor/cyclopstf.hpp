@@ -82,9 +82,8 @@ inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
  */
 /* Force redistributions always by setting to 1 (use 2.5D algorithms) */
 #define REDIST 0
-#define VERIFY 0
+//#define VERIFY 0
 #define VERIFY_REMAP 0
-#define INNER_MAP 0
 #define FOLD_TSR 1
 #define PERFORM_DESYM 1
 #define ALLOW_NVIRT 32
@@ -316,8 +315,36 @@ class tCTF{
                        dtype const            beta,
                        tCTF<dtype> *          tC_B);
 
-    /* Add tensor data from A to a block of B,
-       B[offsets_B:ends_B] = beta*B[offsets_B:ends_B]
+   /**
+     * \brief accumulates this tensor to a tensor object defined on a different world
+     * \param[in] tid id of tensor on this CTF instance
+     * \param[in] tid_sub id of tensor on a subcomm of this CTF inst
+     * \param[in] tC_sub CTF instance on a mpi subcomm
+     * \param[in] alpha scaling factor for this tensor
+     * \param[in] beta scaling factor for tensor tsr
+     */
+    int  add_to_subworld(int          tid,
+                         int          tid_sub,
+                         tCTF<dtype> *tC_sub,
+                         dtype       alpha,
+                         dtype       beta);
+   /**
+     * \brief accumulates this tensor from a tensor object defined on a different world
+     * \param[in] tsr a tensor object of the same characteristic as this tensor, 
+     * \param[in] tid id of tensor on this CTF instance
+     * \param[in] tid_sub id of tensor on a subcomm of this CTF inst
+     * \param[in] tC_sub CTF instance on a mpi subcomm
+     * \param[in] alpha scaling factor for this tensor
+     * \param[in] beta scaling factor for tensor tsr
+     */
+    int  add_from_subworld(int          tid,
+                           int          tid_sub,
+                           tCTF<dtype> *tC_sub,
+                           dtype       alpha,
+                           dtype       beta);
+    
+    /* Add tensor data from A to a block of B, 
+       B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
                           + alpha*A[offsets_A:ends_A] */
     int slice_tensor(int const    tid_A,
                      int const *  offsets_A,
@@ -408,8 +435,7 @@ class tCTF{
     int contract(CTF_ctr_type_t const *     type,
                  fseq_tsr_ctr<dtype> const  func_ptr,
                  dtype const                alpha,
-                 dtype const                beta,
-                 int const                  map_inner = 0);
+                 dtype const                beta);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
        seq_func used to perform element-wise sequential op */
@@ -474,6 +500,37 @@ class tCTF{
                      int const                  tid,
                      int const *                idx_map_A,
                      fseq_elm_scl<dtype> const  felm);
+
+    /**
+     * \brief estimate the cost of a contraction C[idx_C] = A[idx_A]*B[idx_B]
+     * \param[in] A first operand tensor
+     * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+     * \param[in] B second operand tensor
+     * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+     * \param[in] beta C scaling factor
+     * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
+     * \return cost as a int64_t type, currently a rought estimate of flops/processor
+     */
+    int64_t estimate_cost(int tid_A,
+                          int const *        idx_A,
+                          int tid_B,
+                          int const *        idx_B,
+                          int tid_C,
+                          int const *        idx_C);
+    
+    /**
+     * \brief estimate the cost of a sum B[idx_B] = A[idx_A]
+     * \param[in] A first operand tensor
+     * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+     * \param[in] B second operand tensor
+     * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+     * \return cost as a int64_t type, currently a rought estimate of flops/processor
+     */
+    int64_t estimate_cost(int tid_A,
+                          int const *        idx_A,
+                          int tid_B,
+                          int const *        idx_B);
+
 
     /* aligns tensor mapping of tid_A to that of tid_B */
     int align(int const    tid_A,

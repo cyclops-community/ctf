@@ -23,12 +23,15 @@ ctr_2d_general<dtype>::ctr_2d_general(ctr<dtype> * other) : ctr<dtype>(other) {
   ctr_lda_A     = o->ctr_lda_A;
   ctr_sub_lda_A = o->ctr_sub_lda_A;
   cdt_A         = o->cdt_A;
+  move_A        = o->move_A;
   ctr_lda_B     = o->ctr_lda_B;
   ctr_sub_lda_B = o->ctr_sub_lda_B;
   cdt_B         = o->cdt_B;
+  move_B        = o->move_B;
   ctr_lda_C     = o->ctr_lda_C;
   ctr_sub_lda_C = o->ctr_sub_lda_C;
   cdt_C         = o->cdt_C;
+  move_C        = o->move_C;
 }
 
 /**
@@ -37,15 +40,15 @@ ctr_2d_general<dtype>::ctr_2d_general(ctr<dtype> * other) : ctr<dtype>(other) {
 template<typename dtype>
 void ctr_2d_general<dtype>::print() {
   printf("ctr_2d_general: edge_len = %d\n", edge_len);
-  printf("cdt_A = %p, ctr_lda_A = "PRId64", ctr_sub_lda_A = "PRId64"\n",
-          cdt_A, ctr_lda_A, ctr_sub_lda_A);
-  if (cdt_A != NULL) printf("cdt_A length = %d\n",cdt_A->np);
-  printf("cdt_B = %p, ctr_lda_B = "PRId64", ctr_sub_lda_B = "PRId64"\n",
-          cdt_B, ctr_lda_B, ctr_sub_lda_B);
-  if (cdt_B != NULL) printf("cdt_B length = %d\n",cdt_B->np);
-  printf("cdt_C = %p, ctr_lda_C = "PRId64", ctr_sub_lda_C = "PRId64"\n",
-          cdt_C, ctr_lda_C, ctr_sub_lda_C);
-  if (cdt_C != NULL) printf("cdt_C length = %d\n",cdt_C->np);
+  printf("move_A = %d, ctr_lda_A = "PRId64", ctr_sub_lda_A = "PRId64"\n",
+          move_A, ctr_lda_A, ctr_sub_lda_A);
+  if (move_A) printf("cdt_A length = %d\n",cdt_A.np);
+  printf("move_B = %d, ctr_lda_B = "PRId64", ctr_sub_lda_B = "PRId64"\n",
+          move_B, ctr_lda_B, ctr_sub_lda_B);
+  if (move_B) printf("cdt_B length = %d\n",cdt_B.np);
+  printf("move_C = %d, ctr_lda_C = "PRId64", ctr_sub_lda_C = "PRId64"\n",
+          move_C, ctr_lda_C, ctr_sub_lda_C);
+  if (move_C) printf("cdt_C length = %d\n",cdt_C.np);
   rec_ctr->print();
 }
 
@@ -70,22 +73,22 @@ uint64_t ctr_2d_general<dtype>::comm_fp(int nlyr) {
   long_int s_A,         s_B,    s_C;
   db = long_int_max;
   s_A = 0, s_B = 0, s_C = 0;
-  if (cdt_A != NULL){
-    np_A        = cdt_A->np;
+  if (move_A){
+    np_A        = cdt_A.np;
     b_A         = edge_len/np_A;
-    s_A         = ctr_lda_A*ctr_sub_lda_A*(long_int)log(cdt_A->np);
+    s_A         = ctr_lda_A*ctr_sub_lda_A*(long_int)log(cdt_A.np);
     db          = MIN(b_A, db);
   } 
-  if (cdt_B != NULL){
-    np_B        = cdt_B->np;
+  if (move_B){
+    np_B        = cdt_B.np;
     b_B         = edge_len/np_B;
-    s_B         = ctr_lda_B*ctr_sub_lda_B*(long_int)log(cdt_B->np);
+    s_B         = ctr_lda_B*ctr_sub_lda_B*(long_int)log(cdt_B.np);
     db          = MIN(b_B, db);
   }
-  if (cdt_C != NULL){
-    np_C        = cdt_C->np;
+  if (move_C){
+    np_C        = cdt_C.np;
     b_C         = edge_len/np_C;
-    s_C         = ctr_lda_C*ctr_sub_lda_C*(long_int)log(cdt_C->np);
+    s_C         = ctr_lda_C*ctr_sub_lda_C*(long_int)log(cdt_C.np);
     db          = MIN(b_C, db);
   }
   return ((s_A+s_B+s_C)*(uint64_t)db*sizeof(dtype)*edge_len/db)/MIN(nlyr,edge_len);
@@ -98,12 +101,12 @@ template<typename dtype>
 uint64_t ctr_2d_general<dtype>::comm_rec(int nlyr) {
   long_int db;
   db = long_int_max;
-  if (cdt_A != NULL)
-    db          = MIN(db,edge_len/cdt_A->np);
-  if (cdt_B != NULL)
-    db          = MIN(db,edge_len/cdt_B->np);
-  if (cdt_C != NULL)
-    db          = MIN(db,edge_len/cdt_C->np);
+  if (move_A)
+    db          = MIN(db,edge_len/cdt_A.np);
+  if (move_B)
+    db          = MIN(db,edge_len/cdt_B.np);
+  if (move_C)
+    db          = MIN(db,edge_len/cdt_C.np);
   return (edge_len/db)*rec_ctr->comm_rec(1) + comm_fp(nlyr);
 }
 
@@ -127,15 +130,15 @@ long_int ctr_2d_general<dtype>::mem_fp() {
   if (ctr_sub_lda_C != 0)
     s_C = ctr_sub_lda_C*ctr_lda_C;
   aux_size = 0;
-  if (cdt_A != NULL){
-    np_A        = cdt_A->np;
+  if (move_A){
+    np_A        = cdt_A.np;
     LIBT_ASSERT(np_A!=0);
     b_A         = edge_len/np_A;
     s_A         = ctr_lda_A*ctr_sub_lda_A;
     db          = MIN(b_A, db);
   } 
-  if (cdt_B != NULL){
-    np_B        = cdt_B->np;
+  if (move_B){
+    np_B        = cdt_B.np;
     LIBT_ASSERT(np_B!=0);
     b_B         = edge_len/np_B;
     s_B         = ctr_lda_B*ctr_sub_lda_B;
@@ -144,8 +147,8 @@ long_int ctr_2d_general<dtype>::mem_fp() {
     }
     db          = MIN(b_B, db);
   }
-  if (cdt_C != NULL){
-    np_C        = cdt_C->np;
+  if (move_C){
+    np_C        = cdt_C.np;
     LIBT_ASSERT(np_C!=0);
     b_C         = edge_len/np_C;
     s_C         = ctr_lda_C*ctr_sub_lda_C;
@@ -184,10 +187,8 @@ void ctr_2d_general<dtype>::run() {
   
   TAU_FSTART(ctr_2d_general);
 
-  /* Must move at least one tensor */
-  LIBT_ASSERT(!(cdt_A == NULL && cdt_B == NULL && cdt_C == NULL));
   /* Must move at most two tensors */
-  LIBT_ASSERT(!(cdt_A != NULL && cdt_B != NULL && cdt_C != NULL));
+  LIBT_ASSERT(!(move_A && move_B && move_C));
   
   rec_ctr->beta         = this->beta;
   rec_ctr->num_lyr      = 1;
@@ -213,25 +214,25 @@ void ctr_2d_general<dtype>::run() {
     s_B = ctr_sub_lda_B*ctr_lda_B;
   if (ctr_sub_lda_C != 0)
     s_C = ctr_sub_lda_C*ctr_lda_C;
-  if (cdt_A != NULL){
-    rank_A      = cdt_A->rank;
-    np_A        = cdt_A->np;
+  if (move_A){
+    rank_A      = cdt_A.rank;
+    np_A        = cdt_A.np;
     b_A         = edge_len/np_A;
     s_A         = ctr_lda_A*ctr_sub_lda_A;
     db          = MIN(b_A, db);
     LIBT_ASSERT(edge_len%np_A == 0);
   } 
-  if (cdt_B != NULL){
-    rank_B      = cdt_B->rank;
-    np_B        = cdt_B->np;
+  if (move_B){
+    rank_B      = cdt_B.rank;
+    np_B        = cdt_B.np;
     b_B         = edge_len/np_B;
     s_B         = ctr_lda_B*ctr_sub_lda_B;
     db          = MIN(b_B, db);
     LIBT_ASSERT(edge_len%np_B == 0);
   }
-  if (cdt_C != NULL){
-    rank_C      = cdt_C->rank;
-    np_C        = cdt_C->np;
+  if (move_C){
+    rank_C      = cdt_C.rank;
+    np_C        = cdt_C.np;
     b_C         = edge_len/np_C;
     s_C         = ctr_lda_C*ctr_sub_lda_C;
     db          = MIN(b_C, db);
@@ -246,7 +247,7 @@ void ctr_2d_general<dtype>::run() {
 
 
   for (ib=this->idx_lyr*db; ib<edge_len; ib+=db*this->num_lyr){
-    if (cdt_A != NULL){
+    if (move_A){
       owner_A   = ib / b_A;
       c_A       = MIN(((owner_A+1)*b_A-ib), db);
       if (rank_A == owner_A){
@@ -288,7 +289,7 @@ void ctr_2d_general<dtype>::run() {
         }      
       }
     }
-    if (cdt_B != NULL){
+    if (move_B){
       owner_B   = ib / b_B;
       c_B       = MIN(((owner_B+1)*b_B-ib), db);
       if (rank_B == owner_B){
@@ -330,7 +331,7 @@ void ctr_2d_general<dtype>::run() {
         }      
       }
     }
-    if (cdt_C != NULL){
+    if (move_C){
       op_C = buf_C;
       rec_ctr->beta = get_zero<dtype>();
     } else {
@@ -353,7 +354,7 @@ void ctr_2d_general<dtype>::run() {
 
     rec_ctr->run();
 
-    if (cdt_C != NULL){
+    if (move_C){
       /* FIXME: Wont work for single precsion */
       ALLREDUCE(MPI_IN_PLACE, op_C, db*s_C*(sizeof(dtype)/sizeof(double)), COMM_DOUBLE_T, COMM_OP_SUM, cdt_C);
       owner_C   = ib / b_C;

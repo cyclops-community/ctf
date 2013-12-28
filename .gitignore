@@ -1,3 +1,5 @@
+*.o
+.*
 # Build directories
 *.o
 .deps

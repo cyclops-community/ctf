@@ -200,7 +200,7 @@ void tsum_replicate<dtype>::run(){
   }*/
   brank = 0;
   for (i=0; i<ncdt_B; i++){
-    brank += cdt_B[i]->rank;
+    brank += cdt_B[i].rank;
   }
   if (brank != 0) std::fill(this->B, this->B+size_B, 0.0);
 

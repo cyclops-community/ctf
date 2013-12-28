@@ -29,6 +29,7 @@
 #include "../../examples/strassen.cxx"
 #include "../../examples/slice_gemm.cxx"
 #include "../../examples/readwrite_test.cxx"
+#include "../../examples/subworld_gemm.cxx"
 
 
 char* getCmdOption(char ** begin,
@@ -145,7 +146,11 @@ int main(int argc, char ** argv){
    
 #ifndef PROFILE 
     if (rank == 0)
-      printf("Testing non-symmetric Strassen's algorithm with n = %d:\n",n*n);
+      printf("Testing gemm on subworld algorithm with n,m,k = %d div = 3:\n",n*n);
+    pass.push_back(test_subworld_gemm(n*n, n*n, n*n, 3, dw));
+    
+    if (rank == 0)
+      printf("Testing non-symmetric Strassen's algorithm with n = %d:\n", n*n);
     pass.push_back(strassen(n*n, NS, dw));
     
     if (rank == 0)

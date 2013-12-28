@@ -181,7 +181,13 @@ class Amplitudes {
 };
 
 void ccsd(Integrals   &V,
-          Amplitudes  &T){
+          Amplitudes  &T,
+          int sched_nparts = 0){
+  int rank;   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  double timer = MPI_Wtime();
+  tCTF_Schedule<double> sched(V.dw);
+  sched.set_max_partitions(sched_nparts);
+  sched.record();
 
   CTF_Tensor T21 = CTF_Tensor(T.abij);
   T21["abij"] += .5*T["ai"]*T["bj"];
@@ -251,6 +257,14 @@ void ccsd(Integrals   &V,
   Zabij += .5*V["abef"]*T21["efij"];
   Zabij += .5*Wmnij*T21["abmn"];
   
+  if (rank == 0) {
+    printf("Record: %lf\n",
+            MPI_Wtime()-timer);
+  }
+
+  timer = MPI_Wtime();
+  tCTF_ScheduleTimer schedule_time = sched.execute();
+
   CTF_fctr fctr;
   fctr.func_ptr = &divide;
 
@@ -265,8 +279,21 @@ void ccsd(Integrals   &V,
   Dabij["abij"] -= V["a"];
   Dabij["abij"] -= V["b"];
 
+
+
   T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
+
+  if (rank == 0) {
+    printf("Schedule comm down: %lf\n", schedule_time.comm_down_time);
+    printf("Schedule execute: %lf\n", schedule_time.exec_time);
+    printf("Schedule imbalance, wall: %lf\n", schedule_time.imbalance_wall_time);
+    printf("Schedule imbalance, accum: %lf\n", schedule_time.imbalance_acuum_time);
+    printf("Schedule comm up: %lf\n", schedule_time.comm_up_time);
+    printf("Schedule total: %lf\n", schedule_time.total_time);
+    printf("All execute: %lf\n",
+            MPI_Wtime()-timer);
+  }
 } 
 
 #ifndef TEST_SUITE
@@ -283,7 +310,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, niter, no, nv, i;
+  int rank, np, niter, no, nv, sched_nparts, i;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -303,6 +330,10 @@ int main(int argc, char ** argv){
     niter = atoi(getCmdOption(input_str, input_str+in_num, "-niter"));
     if (niter < 0) niter = 1;
   } else niter = 1;
+  if (getCmdOption(input_str, input_str+in_num, "-nparts")){
+    sched_nparts = atoi(getCmdOption(input_str, input_str+in_num, "-nparts"));
+    if (sched_nparts < 0) sched_nparts = 0;
+  } else sched_nparts = 0;
 
   {
     CTF_World dw(argc, argv);
@@ -313,10 +344,10 @@ int main(int argc, char ** argv){
       for (i=0; i<niter; i++){
         T.fill_rand();
         double d = MPI_Wtime();
-        ccsd(V,T);
+        ccsd(V,T,sched_nparts);
         if (rank == 0)
-          printf("Completed %dth CCSD iteration in time = %lf, |T| is %lf\n",
-                  i, MPI_Wtime()-d, T.ai.norm2()+T.abij.norm2());
+          printf("(%d nodes) Completed %dth CCSD iteration in time = %lf, |T| is %lf\n",
+              np, i, MPI_Wtime()-d, T.ai.norm2()+T.abij.norm2());
         else {
           T.ai.norm2();
           T.abij.norm2();

@@ -85,10 +85,12 @@ int  gemm_ctr( dtype const      alpha,
   return 0;
 }
 
+
+/*
 #define DECLARE_GEMM_CTR(type, herm_A, herm_B)          \
 template                                                \
 int gemm_ctr< type , herm_A, herm_B>                    \
-                    (type const alpha,          \
+                    (type const alpha,                  \
                      type const *       A,              \
                      int const          ndim_A,         \
                      int const *        edge_len_A,     \
@@ -117,29 +119,7 @@ DECLARE_GEMM_CTR(std::complex<double>, 0, 0);
 DECLARE_GEMM_CTR(std::complex<double>, 0, 1);
 DECLARE_GEMM_CTR(std::complex<double>, 1, 0);
 DECLARE_GEMM_CTR(std::complex<double>, 1, 1);
-
-/*template 
-int gemm_ctr< std::complex<double> >(std::complex<double>  const        alpha,
-                                     std::complex<double>  const *      A,
-                                     int const                          ndim_A,
-                                     int const *                        edge_len_A,
-                                     int const *                        lda_A,
-                                     int const *                        sym_A,
-                                     int const *                        idx_map_A,
-                                     std::complex<double> const *       B,
-                                     int const                          ndim_B,
-                                     int const *                        edge_len_B,
-                                     int const *                        lda_B,
-                                     int const *                        sym_B,
-                                     int const *                        idx_map_B,
-                                     std::complex<double>  const        beta,
-                                     std::complex<double> *             C,
-                                     int const                          ndim_C,
-                                     int const *                        edge_len_C,
-                                     int const *                        lda_C,
-                                     int const *                        sym_C,
-                                     int const *                        idx_map_C);*/
-
+*/
 
 template<typename dtype>
 int dist_tensor<dtype>::load_matrix
@@ -181,9 +161,9 @@ int dist_tensor<dtype>::load_matrix
 
   ALLREDUCE(MPI_IN_PLACE, &has_el, 1, COMM_INT_T, COMM_OP_SUM, global_comm);
 
-//  if (global_comm->rank >= has_el) LIBT_ASSERT(mbrow*mbcol == 0);
-  LIBT_ASSERT(global_comm->np % has_el == 0);
-  nrep = global_comm->np / has_el;
+//  if (global_comm.rank >= has_el) LIBT_ASSERT(mbrow*mbcol == 0);
+  LIBT_ASSERT(global_comm.np % has_el == 0);
+  nrep = global_comm.np / has_el;
   
 
   /* ASSUMES COLUMN MAJOR GRID */
@@ -203,16 +183,18 @@ int dist_tensor<dtype>::load_matrix
     ncol = bcol * npcol;
   else
     ncol = dncol;
-  if (global_comm->rank == 0)
+  if (global_comm.rank == 0)
     DPRINTF(1,"%d [%d] by %d [%d] matrix on %d by %d by %d proc grid\n", 
             dnrow,nrow,dncol,ncol,nprow,nrep,npcol);
   
   tsr->is_mapped = 1;
+  tsr->has_home = 0;
+  tsr->is_home = 0;
+  tsr->profile = 0;
+  tsr->name = NULL;
   tsr->is_alloced = 1;
   tsr->is_cyclic = 0;
   tsr->is_folded = 0;
-  tsr->is_inner_mapped = 0;
-  tsr->is_padded = 1;
   tsr->is_scp_padded = 1;
   tsr->padding = (int*)CTF_alloc(sizeof(int)*2);
   tsr->padding[0] = 0;
@@ -234,7 +216,7 @@ int dist_tensor<dtype>::load_matrix
 
   tsr->is_data_aliased  = 0;
   tsr->has_zero_edge_len  = 0;
-  tsr->size = (((long_int)nrow*(long_int)ncol)*nrep)/global_comm->np;
+  tsr->size = (((long_int)nrow*(long_int)ncol)*nrep)/global_comm.np;
   LIBT_ASSERT(tsr->size == brow*bcol);
   if (need_free == NULL){
     CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
@@ -294,8 +276,8 @@ int dist_tensor<dtype>::load_matrix
     }
     if ((nrep == 1 && npcol == 1 && topo->ndim == 1) ||
         (nrep != 1 && npcol == 1 && topo->ndim == 2)){
-      if (topo->dim_comm[0]->np == nprow && 
-          topo->dim_comm[0]->rank == myprow){
+      if (topo->dim_comm[0].np == nprow && 
+          topo->dim_comm[0].rank == myprow){
         tsr->itopo = i;
         tsr->edge_map[0].cdt = 0;
         tsr->edge_map[0].np = nprow;
@@ -309,8 +291,8 @@ int dist_tensor<dtype>::load_matrix
     if ((nrep == 1 && nprow == 1 && topo->ndim == 1) ||
         (nrep != 1 && nprow == 1 && topo->ndim == 2)){
       if (nrep == 1){
-        if (topo->dim_comm[0]->np == npcol && 
-            topo->dim_comm[0]->rank == mypcol){
+        if (topo->dim_comm[0].np == npcol && 
+            topo->dim_comm[0].rank == mypcol){
           tsr->itopo = i;
           tsr->edge_map[0].type = VIRTUAL_MAP;
           tsr->edge_map[0].np = nprow;
@@ -321,8 +303,8 @@ int dist_tensor<dtype>::load_matrix
           break;
         }
       } else {
-        if (topo->dim_comm[1]->np == npcol && 
-            topo->dim_comm[1]->rank == mypcol){
+        if (topo->dim_comm[1].np == npcol && 
+            topo->dim_comm[1].rank == mypcol){
           tsr->itopo = i;
           tsr->edge_map[0].type = VIRTUAL_MAP;
           tsr->edge_map[0].np = nprow;
@@ -336,11 +318,11 @@ int dist_tensor<dtype>::load_matrix
     }
 
     if ((nrep == 1 && topo->ndim == 2) || (nrep > 1 && topo->ndim == 3)){
-      if (topo->dim_comm[0]->np == nprow && 
-          topo->dim_comm[0]->rank == myprow){
+      if (topo->dim_comm[0].np == nprow && 
+          topo->dim_comm[0].rank == myprow){
         if (nrep == 1){
-          if (topo->dim_comm[1]->np == npcol && 
-              topo->dim_comm[1]->rank == mypcol){
+          if (topo->dim_comm[1].np == npcol && 
+              topo->dim_comm[1].rank == mypcol){
             tsr->itopo = i;
             tsr->edge_map[0].cdt = 0;
             tsr->edge_map[1].cdt = 1;
@@ -350,8 +332,8 @@ int dist_tensor<dtype>::load_matrix
             break;
           }
         } else {
-          if (topo->dim_comm[2]->np == npcol && 
-              topo->dim_comm[2]->rank == mypcol){
+          if (topo->dim_comm[2].np == npcol && 
+              topo->dim_comm[2].rank == mypcol){
             tsr->itopo = i;
             tsr->edge_map[0].cdt = 0;
             tsr->edge_map[1].cdt = 2;
@@ -362,10 +344,10 @@ int dist_tensor<dtype>::load_matrix
           }
         }
       } 
-/*      if (topo->dim_comm[0]->np == npcol && 
-          topo->dim_comm[0]->rank == mypcol){
-        if (topo->dim_comm[1]->np == nprow && 
-            topo->dim_comm[1]->rank == myprow){
+/*      if (topo->dim_comm[0].np == npcol && 
+          topo->dim_comm[0].rank == mypcol){
+        if (topo->dim_comm[1].np == nprow && 
+            topo->dim_comm[1].rank == myprow){
           tsr->topo = topo;
           tsr->edge_map[0].cdt = 1;
           tsr->edge_map[1].cdt = 0;
@@ -378,35 +360,32 @@ int dist_tensor<dtype>::load_matrix
     }
   }
   if (itopo == -1){
-    if (global_comm->rank == 0)
+    if (global_comm.rank == 0)
       printf("WARNING: Creating new topology with nrep = %d!\n", nrep);
-    CommData_t ** phys_comm; 
+    CommData_t  * phys_comm; 
     if (nrep > 1 && nrow > 1 && ncol > 1){
-      phys_comm = (CommData_t**)CTF_alloc(3*sizeof(CommData_t*));
-      phys_comm[2] = (CommData_t*)CTF_alloc(sizeof(CommData_t));
+      phys_comm = (CommData_t*)CTF_alloc(3*sizeof(CommData_t));
     }
     else
-      phys_comm = (CommData_t**)CTF_alloc(2*sizeof(CommData_t*));
-    phys_comm[0] = (CommData_t*)CTF_alloc(sizeof(CommData_t));
-    phys_comm[1] = (CommData_t*)CTF_alloc(sizeof(CommData_t));
+      phys_comm = (CommData_t*)CTF_alloc(2*sizeof(CommData_t));
     if (nrep > 1 && nrow > 1 && ncol > 1){
-      int irep = (global_comm->rank - myprow - mypcol*nprow*nrep)/nprow;
+      int irep = (global_comm.rank - myprow - mypcol*nprow*nrep)/nprow;
       int srep = mypcol*nprow+myprow;
       SETUP_SUB_COMM(global_comm, phys_comm[0], myprow, mypcol*nrep+irep,
-                     nprow, NREQ, NBCAST);
+                     nprow);
       SETUP_SUB_COMM(global_comm, phys_comm[1], 
                      irep,
                      srep,
-                     nrep, NREQ, NBCAST);
+                     nrep);
       SETUP_SUB_COMM(global_comm, phys_comm[2], mypcol, myprow+irep*npcol,
-                     npcol, NREQ, NBCAST);
+                     npcol);
       tsr->edge_map[1].cdt = 2;
     } else {
       tsr->edge_map[1].cdt = 1;
       SETUP_SUB_COMM(global_comm, phys_comm[0], myprow, mypcol,
-                     nprow, NREQ, NBCAST);
+                     nprow);
       SETUP_SUB_COMM(global_comm, phys_comm[1], mypcol, myprow,
-                     npcol, NREQ, NBCAST);
+                     npcol);
     }
     itopo = topovec.size();
     tsr->edge_map[0].cdt = 0;

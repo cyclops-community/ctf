@@ -37,30 +37,6 @@ class ctr {
 };
 
 template<typename dtype>
-class ctr_1d_sqr_bcast : public ctr<dtype> {
-  public: 
-    /* Class to be called on sub-blocks */
-    ctr<dtype> * rec_ctr;
-    int k;
-    int ctr_lda; /* local lda_A of contraction dimension 'k' */
-    int ctr_sub_lda; /* elements per local lda_A 
-                        of contraction dimension 'k' */
-    int sz;
-    CommData_t * cdt;
-    int cdt_dir;
-    
-    void run();
-    void print() {};
-    long_int mem_fp();
-    long_int mem_rec();
-    ctr<dtype> * clone();
-    
-    ctr_1d_sqr_bcast(ctr<dtype> * other);
-    ~ctr_1d_sqr_bcast();
-    ctr_1d_sqr_bcast(){}
-};
-
-template<typename dtype>
 class ctr_replicate : public ctr<dtype> {
   public: 
     int ncdt_A; /* number of processor dimensions to replicate A along */
@@ -70,9 +46,9 @@ class ctr_replicate : public ctr<dtype> {
     long_int size_B; /* size of B blocks */
     long_int size_C; /* size of C blocks */
 
-    CommData_t ** cdt_A;
-    CommData_t ** cdt_B;
-    CommData_t ** cdt_C;
+    CommData_t * cdt_A;
+    CommData_t * cdt_B;
+    CommData_t * cdt_C;
     /* Class to be called on sub-blocks */
     ctr<dtype> * rec_ctr;
     
@@ -103,9 +79,14 @@ class ctr_2d_general : public ctr<dtype> {
     long_int ctr_lda_C; /* local lda_C of contraction dimension 'k' */
     long_int ctr_sub_lda_C; /* elements per local lda_C 
                           of contraction dimension 'k' */
-    CommData_t * cdt_A;
-    CommData_t * cdt_B;
-    CommData_t * cdt_C;
+    
+    bool move_A;
+    bool move_B;
+    bool move_C;
+
+    CommData_t cdt_A;
+    CommData_t cdt_B;
+    CommData_t cdt_C;
     /* Class to be called on sub-blocks */
     ctr<dtype> * rec_ctr;
     
@@ -148,28 +129,6 @@ class ctr_2d_rect_bcast : public ctr<dtype> {
     ctr_2d_rect_bcast(){}
 };
 
-
-template<typename dtype>
-class ctr_2d_sqr_bcast : public ctr<dtype> {
-  public: 
-    /* Class to be called on sub-blocks */
-    ctr<dtype> * rec_ctr;
-    int k;
-    long_int sz_A; /* number of elements in a block of A */
-    long_int sz_B; /* number of elements in a block of A */
-    CommData_t * cdt_x;
-    CommData_t * cdt_y;
-    
-    void run();
-    long_int mem_fp();
-    long_int mem_rec();
-    ctr<dtype> * clone();
-
-    ctr_2d_sqr_bcast(ctr<dtype> * other);
-    ~ctr_2d_sqr_bcast();
-    ctr_2d_sqr_bcast(){}
-};
-
 /* Assume LDA equal to dim */
 template<typename dtype>
 class ctr_dgemm : public ctr<dtype> {
@@ -200,7 +159,7 @@ class ctr_lyr : public ctr<dtype> {
     /* Class to be called on sub-blocks */
     ctr<dtype> * rec_ctr;
     int k;
-    CommData_t * cdt;
+    CommData_t cdt;
     long_int sz_C;
     
     void print() {};

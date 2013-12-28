@@ -10,8 +10,7 @@ include make/make.in
 include make/rules.mk
 
 test_suite_SUBDIRS = test 
-test_SUBDIRS = test ctr_comm unit_test
-test_model_SUBDIRS = unit_test
+test_SUBDIRS = test ctr_comm 
 pgemm_test_SUBDIRS = test
 nonsq_pgemm_test_SUBDIRS = test
 
@@ -26,18 +25,18 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     interface/ctf_tensor.o \
                     interface/ctf_matrix.o \
                     interface/ctf_scalar.o \
+                    interface/ctf_schedule.o \
                     interface/ctf_vector.o \
                     interface/ctf_term.o \
                     interface/ctf_idx_tensor.o \
                     interface/ctf_sparse_tensor.o \
                     interface/ctf_flop_counter.o \
-                    shared/comm.o \
                     shared/util.o \
                     shared/timer.o \
                     shared/memcontrol.o \
-                    shared/unit_util.o \
-                    dist_tensor/cyclopstf.o \
-                    unit_test/unit_test.o 
+                    dist_tensor/dist_tensor_internal.o \
+                    dist_tensor/distribution.o \
+                    dist_tensor/cyclopstf.o 
 
 
 #INCLUDES += -I${top_dir}/src/ctr_comm -I${top_dir}/src/ctr_seq -I${top_dir}/src/dist_tensor -I${top_dir}/src/util -I${top_dir}/src/interface

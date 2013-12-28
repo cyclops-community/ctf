@@ -75,7 +75,7 @@ int calc_phys_rank(mapping const * map, topology const * topo){
     rank = 0;
   } else {
     if (map->type == PHYSICAL_MAP) {
-      rank = topo->dim_comm[map->cdt]->rank;
+      rank = topo->dim_comm[map->cdt].rank;
       phase = map->np;
     } else {
       rank = 0;
@@ -164,7 +164,7 @@ int stretch_virt(int const ndim,
 inline
 int get_best_topo(uint64_t const  nvirt,
 		  int const       topo,
-		  CommData_t *    global_comm,
+		  CommData_t      global_comm,
 		  uint64_t const  bcomm_vol = 0,
 		  uint64_t const  bmemuse = 0){
 
@@ -255,7 +255,6 @@ int clear_mapping(tensor<dtype> * tsr){
   }
   tsr->itopo = -1;
   tsr->is_mapped = 0;
-  tsr->is_inner_mapped = 0;
   tsr->is_folded = 0;
 
   return DIST_TENSOR_SUCCESS;
@@ -386,7 +385,6 @@ int comp_dim_map(mapping const *  map_A,
  * \param[out] old_rank rank of this processor along each dimension
  * \param[out] old_virt_dim virtualization of the mapping
  * \param[out] old_pe_lda processor lda of mapping
- * \param[out] was_padded whether the tensor was padded
  * \param[out] was_cyclic whether the mapping was cyclic
  * \param[out] old_padding what the padding was
  * \param[out] old_edge_len what the edge lengths were
@@ -400,7 +398,6 @@ int save_mapping(tensor<dtype> *  tsr,
                  int **     old_virt_dim,
                  int **     old_pe_lda,
                  long_int *   old_size,
-                 int *      was_padded,
                  int *      was_cyclic,
                  int **     old_padding,
                  int **     old_edge_len,
@@ -427,16 +424,30 @@ int save_mapping(tensor<dtype> *  tsr,
       (*old_pe_lda)[j]  = 0;
   }
   memcpy(*old_edge_len, tsr->edge_len, sizeof(int)*tsr->ndim);
-  if (tsr->is_padded){
-    *was_padded = 1;
-    CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_padding);
-    memcpy(*old_padding, tsr->padding, sizeof(int)*tsr->ndim);
-  } else {
-    *was_padded = 0;
-  }
+  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_padding);
+  memcpy(*old_padding, tsr->padding, sizeof(int)*tsr->ndim);
   *was_cyclic = tsr->is_cyclic;
   return DIST_TENSOR_SUCCESS;
 }
+
+/**
+ * \brief saves the mapping of a tensor to a distribution data structure
+ *        function allocates memory for the internal arrays, delete it later
+ * \param[in] tsr tensor pointer
+ * \param[in,out] dstrib object to save distribution data into
+ * \param[out] old_rank rank of this processor along each dimension
+ * \param[in] topo topology of the processor grid mapped to
+ * \param[in] is_inner whether this is an inner mapping
+ */ 
+template<typename dtype>
+int save_mapping(tensor<dtype> *  tsr,
+                 distribution &   dstrib,
+                 topology const * topo){
+  dstrib.ndim = tsr->ndim;
+  return save_mapping(tsr, &dstrib.phase, &dstrib.perank, &dstrib.virt_phase, 
+                      &dstrib.pe_lda, &dstrib.size, &dstrib.is_cyclic, &dstrib.padding, &dstrib.edge_len, topo);
+}
+
 
 /**
  * \brief adjust a mapping to maintan symmetry
@@ -527,7 +538,7 @@ int map_symtsr(int const    tsr_ndim,
  */
 template<typename dtype>
 int set_padding(tensor<dtype> * tsr, int const is_inner=0){
-  int is_pad, j, pad, i;
+  int j, pad, i;
   int * new_phase, * sub_edge_len;
   mapping * map;
 
@@ -535,10 +546,8 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&sub_edge_len);
 
 
-  if (tsr->is_padded){
-    for (i=0; i<tsr->ndim; i++){
-      tsr->edge_len[i] -= tsr->padding[i];
-    }
+  for (i=0; i<tsr->ndim; i++){
+    tsr->edge_len[i] -= tsr->padding[i];
   }
 /*  for (i=0; i<tsr->ndim; i++){
     printf("tensor edge len[%d] = %d\n",i,tsr->edge_len[i]);
@@ -546,37 +555,15 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
       printf("tensor padding was [%d] = %d\n",i,tsr->padding[i]);
     }
   }*/
-  is_pad = 0; 
   for (j=0; j<tsr->ndim; j++){
     map = tsr->edge_map + j;
     new_phase[j] = calc_phase(map);
-    if (tsr->is_padded){
-      pad = tsr->edge_len[j]%new_phase[j];
-      if (pad != 0) {
-        pad = new_phase[j]-pad;
-        is_pad = 1;
-      }
-      tsr->padding[j] = pad;
-    } else {
-      pad = tsr->edge_len[j]%new_phase[j];
-      if (pad != 0) {
-        if (is_pad == 0){
-          CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&tsr->padding);
-          memset(tsr->padding, 0, sizeof(int)*j);
-        }
-        pad = new_phase[j]-pad;
-        tsr->padding[j] = pad;
-        is_pad = 1;
-      } else if (is_pad)
-        tsr->padding[j] = 0;
+    pad = tsr->edge_len[j]%new_phase[j];
+    if (pad != 0) {
+      pad = new_phase[j]-pad;
     }
+    tsr->padding[j] = pad;
   }
-  /* Set padding to 0 anyways... */
-  if (is_pad == 0){
-    if(!tsr->is_padded)
-      CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&tsr->padding);
-    memset(tsr->padding,0,sizeof(int)*tsr->ndim);
-  }  
   for (i=0; i<tsr->ndim; i++){
     tsr->edge_len[i] += tsr->padding[i];
     sub_edge_len[i] = tsr->edge_len[i]/new_phase[i];
@@ -584,7 +571,6 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
   tsr->size = calc_nvirt(tsr,is_inner)
     *sy_packed_size(tsr->ndim, sub_edge_len, tsr->sym);
   
-  tsr->is_padded = 1;
 
   CTF_free(sub_edge_len);
   CTF_free(new_phase);
@@ -620,7 +606,6 @@ inline int can_block_reshuffle(int const        ndim,
  * \param[in] old_rank old distribution rank
  * \param[in] old_virt_dim old distribution virtualization
  * \param[in] old_pe_lda old distribution processor ldas
- * \param[in] was_padded whether the tensor was padded
  * \param[in] old_padding what the padding was
  * \param[in] old_edge_len what the padded edge lengths were
  * \param[in] global_comm global communicator
@@ -634,11 +619,10 @@ int remap_tensor(int const  tid,
                  int const *  old_rank,
                  int const *  old_virt_dim,
                  int const *  old_pe_lda,
-                 int const    was_padded,
                  int const    was_cyclic,
                  int const *  old_padding,
                  int const *  old_edge_len,
-                 CommData_t * global_comm,
+                 CommData_t   global_comm,
                  int const *  old_offsets = NULL,
                  int * const * old_permutation = NULL,
                  int const *  new_offsets = NULL,
@@ -681,7 +665,7 @@ int remap_tensor(int const  tid,
   }
 #ifdef HOME_CONTRACT
   if (tsr->is_home){    
-    if (global_comm->rank == 0)
+    if (global_comm.rank == 0)
       DPRINTF(2,"Tensor %d leaving home\n", tid);
     tsr->data = (dtype*)CTF_mst_alloc(old_size*sizeof(dtype));
     memcpy(tsr->data, tsr->home_buffer, old_size*sizeof(dtype));
@@ -692,7 +676,7 @@ int remap_tensor(int const  tid,
     char spf[80];
     strcpy(spf,"redistribute_");
     strcat(spf,tsr->name);
-    if (global_comm->rank == 0){
+    if (global_comm.rank == 0){
       if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",tsr->name);
       else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",tsr->name);
 #if VERBOSE >=1
@@ -712,13 +696,11 @@ int remap_tensor(int const  tid,
                      old_phase,
                      old_rank,
                      old_pe_lda,
-                     was_padded,
                      old_padding,
                      tsr->edge_len,
                      new_phase,
                      new_rank,
                      new_pe_lda,
-                     tsr->is_padded,
                      tsr->padding,
                      old_virt_dim,
                      new_virt_dim,
@@ -750,7 +732,6 @@ int remap_tensor(int const  tid,
                      old_phase,
                      old_rank,
                      old_pe_lda,
-                     was_padded,
                      old_padding,
                      old_offsets,
                      old_permutation,
@@ -758,7 +739,6 @@ int remap_tensor(int const  tid,
                      new_phase,
                      new_rank,
                      new_pe_lda,
-                     tsr->is_padded,
                      tsr->padding,
                      new_offsets,
                      new_permutation,
@@ -768,7 +748,7 @@ int remap_tensor(int const  tid,
                      &shuffled_data,
                      global_comm,
                      was_cyclic,
-                     tsr->is_cyclic);
+                     tsr->is_cyclic, 1, get_one<dtype>(), get_zero<dtype>());
   }
 
   CTF_free((void*)new_phase);
@@ -783,7 +763,7 @@ int remap_tensor(int const  tid,
   for (j=0; j<tsr->size; j++){
     if (tsr->data[j] != shuffled_data_corr[j]){
       printf("data element %d/"PRId64" not received correctly on process %d\n",
-              j, tsr->size, global_comm->rank);
+              j, tsr->size, global_comm.rank);
       printf("element received was %.3E, correct %.3E\n", 
               GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));
       abortt = true;
@@ -805,6 +785,55 @@ int remap_tensor(int const  tid,
   return DIST_TENSOR_SUCCESS;
 }
 
+/**
+ * \brief does a permute add of data from one distribution to another
+ * \param[in] sym symmetry of tensor
+ * \param[in] cdt comm to redistribute on
+ * \param[in] old_dist old distribution info
+ * \param[in] old_data old data (data to add)
+ * \param[in] alpha scaling factor of the data to add (old_data)
+ * \param[in] new_dist new distribution info
+ * \param[in] new_data new data (data to be accumulated to)
+ * \param[in] beta scaling factor of the data to add (new_data)
+ */
+template<typename dtype>
+int redistribute(int const *          sym,
+                 CommData_t &         cdt,
+                 distribution const & old_dist,
+                 dtype *              old_data,
+                 dtype                alpha,
+                 distribution const & new_dist,
+                 dtype *              new_data,
+                 dtype                beta){
+
+  return  cyclic_reshuffle(old_dist.ndim,
+                           old_dist.size,
+                           old_dist.edge_len,
+                           sym,
+                           old_dist.phase,
+                           old_dist.perank,
+                           old_dist.pe_lda,
+                           old_dist.padding,
+                           NULL,
+                           NULL,
+                           new_dist.edge_len,
+                           new_dist.phase,
+                           new_dist.perank,
+                           new_dist.pe_lda,
+                           new_dist.padding,
+                           NULL,
+                           NULL,
+                           old_dist.virt_phase,
+                           new_dist.virt_phase,
+                           &old_data,
+                           &new_data,
+                           cdt,
+                           old_dist.is_cyclic,
+                           new_dist.is_cyclic,
+                           false,
+                           alpha,
+                           beta);
+}
 
 /**
  * \brief map a tensor
@@ -825,7 +854,7 @@ int map_tensor(int const      num_phys_dims,
                int const *    tsr_edge_len,
                int const *    tsr_sym_table,
                int *          restricted,
-               CommData_t **  phys_comm,
+               CommData_t  *  phys_comm,
                int const *    comm_idx,
                int const      fill,
                mapping *      tsr_edge_map){
@@ -863,20 +892,21 @@ int map_tensor(int const      num_phys_dims,
       break;
     }
     map   = &(tsr_edge_map[max_dim]);
-    map->has_child  = 0;
+// FIXME: why?
+  //  map->has_child  = 0;
     if (map->type != NOT_MAPPED){
       while (map->has_child) map = map->child;
-      phase   = phys_comm[i]->np;
+      phase   = phys_comm[i].np;
       if (map->type == VIRTUAL_MAP){
-        if (phys_comm[i]->np != map->np){
-          phase     = lcm(map->np, phys_comm[i]->np);
-          if ((phase < map->np || phase < phys_comm[i]->np) || phase >= MAX_PHASE)
+        if (phys_comm[i].np != map->np){
+          phase     = lcm(map->np, phys_comm[i].np);
+          if ((phase < map->np || phase < phys_comm[i].np) || phase >= MAX_PHASE)
             return DIST_TENSOR_NEGATIVE;
-          if (phase/phys_comm[i]->np != 1){
+          if (phase/phys_comm[i].np != 1){
             map->has_child  = 1;
             map->child    = (mapping*)CTF_alloc(sizeof(mapping));
             map->child->type  = VIRTUAL_MAP;
-            map->child->np  = phase/phys_comm[i]->np;
+            map->child->np  = phase/phys_comm[i].np;
             map->child->has_child = 0;
           }
         }
@@ -889,7 +919,7 @@ int map_tensor(int const      num_phys_dims,
       }
     }
     map->type     = PHYSICAL_MAP;
-    map->np     = phys_comm[i]->np;
+    map->np     = phys_comm[i].np;
     map->cdt    = (comm_idx == NULL) ? i : comm_idx[i];
     if (!fill)
       restricted[max_dim] = 1;
@@ -914,12 +944,12 @@ int map_tensor(int const      num_phys_dims,
 */
 template<typename dtype>
 int map_tensor_rem(int const    num_phys_dims,
-                   CommData_t **  phys_comm,
+                   CommData_t  *  phys_comm,
                    tensor<dtype> *  tsr,
                    int const    fill = 0){
   int i, num_sub_phys_dims, stat;
   int * restricted, * phys_mapped, * comm_idx;
-  CommData_t ** sub_phys_comm;
+  CommData_t  * sub_phys_comm;
   mapping * map;
 
   CTF_alloc_ptr(tsr->ndim*sizeof(int), (void**)&restricted);
@@ -943,7 +973,7 @@ int map_tensor_rem(int const    num_phys_dims,
       num_sub_phys_dims++;
     }
   }
-  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t*), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t), (void**)&sub_phys_comm);
   CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
   num_sub_phys_dims = 0;
   for (i=0; i<num_phys_dims; i++){
@@ -977,11 +1007,11 @@ int can_morph(topology const * topo_keep, topology const * topo_change){
   lda = 1;
   j = 0;
   for (i=0; i<topo_keep->ndim; i++){
-    lda *= topo_keep->dim_comm[i]->np;
-    if (lda == topo_change->dim_comm[j]->np){
+    lda *= topo_keep->dim_comm[i].np;
+    if (lda == topo_change->dim_comm[j].np){
       j++;
       lda = 1;
-    } else if (lda > topo_change->dim_comm[j]->np){
+    } else if (lda > topo_change->dim_comm[j].np){
       return 0;
     }
   }
@@ -1018,7 +1048,7 @@ void morph_topo(topology const *  new_topo,
           LIBT_ASSERT(j!=new_topo->ndim);
           new_rec_map->type   = PHYSICAL_MAP;
           new_rec_map->cdt    = j;
-          new_rec_map->np     = new_topo->dim_comm[j]->np;
+          new_rec_map->np     = new_topo->dim_comm[j].np;
           new_np    *= new_rec_map->np;
           if (new_np<old_map->np) {
             old_lda = old_lda * new_rec_map->np;

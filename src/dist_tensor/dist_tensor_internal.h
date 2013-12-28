@@ -16,9 +16,6 @@
 #include "../ctr_seq/sym_seq_scl_cust.hxx"
 #include "../ctr_seq/sym_seq_sum_cust.hxx"
 #include "../ctr_seq/sym_seq_ctr_cust.hxx"
-#if VERIFY
-#include "../unit_test/unit_test.h"
-#endif
 #include <limits.h>
 #include <stdint.h>
 
@@ -46,8 +43,31 @@ struct mapping {
 /* Only supporting mesh/torus topologies */
 struct topology {
   int ndim;
-  CommData_t ** dim_comm;
+  CommData_t  * dim_comm;
   int * lda;
+};
+
+inline int get_distribution_size(int ndim){
+  return sizeof(int)*2 + sizeof(long_int) + ndim*sizeof(int)*6;
+}
+
+class distribution {
+  public:
+  int ndim;
+  int * phase;
+  int * virt_phase;
+  int * pe_lda;
+  int * edge_len;
+  int * padding;
+  int * perank;
+  int is_cyclic;
+  long_int size;
+
+  distribution();
+  ~distribution();
+
+  void serialize(char ** buffer, int * size);
+  void deserialize(char const * buffer);
 };
 
 
@@ -56,7 +76,6 @@ class tensor {
   public:
   int ndim;
   int * edge_len;
-  int is_padded;
   int * padding;
   int is_scp_padded;
   int * scp_padding; /* to be used by scalapack wrapper */
@@ -67,7 +86,6 @@ class tensor {
   int itopo;
   mapping * edge_map;
   long_int size;
-  int is_inner_mapped;
   int is_folded;
   int * inner_ordering;
   int rec_tid;
@@ -113,7 +131,7 @@ int padded_reshuffle(int const          tid,
                      int const *        new_virt_dim,
                      dtype *            tsr_data,
                      dtype **           tsr_cyclic_data,
-                     CommData_t *       ord_glb_comm);
+                     CommData_t         ord_glb_comm);
 
 template<typename dtype>
 int cyclic_reshuffle(int const          ndim,
@@ -135,7 +153,7 @@ int cyclic_reshuffle(int const          ndim,
                      int const *        new_virt_dim,
                      dtype **           tsr_data,
                      dtype **           tsr_cyclic_data,
-                     CommData_t *       ord_glb_comm,
+                     CommData_t         ord_glb_comm,
                      int const          was_cyclic = 0,
                      int const          is_cyclic = 0);
 
@@ -232,38 +250,32 @@ class dist_tensor{
 
   protected:
     /* internal library state */
-    CommData_t * global_comm;
+    CommData_t   global_comm;
     int num_phys_dims;
-    CommData_t * phys_comm;
+    CommData_t   phys_comm;
     int * phys_lda;
     std::vector< tensor<dtype>* > tensors;
     std::vector<topology> topovec;
     std::vector<topology> rejected_topos;
 
-    int inner_size;
-    std::vector<topology> inner_topovec;
-    
 
   public:
 
     ~dist_tensor();
 
     int dist_cleanup();
-    CommData_t * get_global_comm();
-    void set_global_comm(CommData_t * cdt);
-    CommData_t * get_phys_comm();
-    void set_phys_comm(CommData_t ** cdt, int const ndim);
-    void set_inner_comm(CommData_t ** cdt, int const ndim);
+    CommData_t   get_global_comm();
+    void set_global_comm(CommData_t   cdt);
+    CommData_t   get_phys_comm();
+    void set_phys_comm(CommData_t * cdt, int const ndim);
     int get_phys_ndim();
     int * get_phys_lda();
     std::vector< tensor<dtype>* > * get_tensors();
 
-    int initialize(CommData_t * cdt_global,
+    int initialize(CommData_t   cdt_global,
                    int const    ndim,
-                   int const *  dim_len,
-                   int const    inner_sz);
+                   int const *  dim_len);
 
-    int init_inner_topology(int const inner_sz);
 
     int define_tensor(int const         ndim,
                       int const *       edge_len,
@@ -311,6 +323,26 @@ class dist_tensor{
                        dtype const            beta,
                        dist_tensor<dtype> *   dt_B);
     
+    void orient_subworld(int                 ndim,
+                        int                 tid_sub,
+                        dist_tensor<dtype> *dt_sub,
+                        int &               bw_mirror_rank,
+                        int &               fw_mirror_rank,
+                        distribution &      odst,
+                        dtype **            sub_buffer_);
+
+    int  add_to_subworld(int                 tid,
+                         int                 tid_sub,
+                         dist_tensor<dtype> *dt_sub,
+                         dtype              alpha,
+                         dtype              beta);
+    
+    int  add_from_subworld(int                 tid,
+                           int                 tid_sub,
+                           dist_tensor<dtype> *dt_sub,
+                           dtype              alpha,
+                           dtype              beta);
+    
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
                           + alpha*A[offsets_A:ends_A] */
@@ -353,6 +385,36 @@ class dist_tensor{
                                 fseq_tsr_sum<dtype> const       ftsr,
                                 fseq_elm_sum<dtype> const       felm,
                                 int const                       inr_str=-1);
+     /**
+      * \brief estimate the cost of a contraction C[idx_C] = A[idx_A]*B[idx_B]
+     * \param[in] A first operand tensor
+     * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+     * \param[in] B second operand tensor
+     * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+     * \param[in] beta C scaling factor
+     * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
+     * \return cost as a int64_t type, currently a rought estimate of flops/processor
+     */
+    int64_t estimate_cost(int tid_A,
+                          int const *        idx_A,
+                          int tid_B,
+                          int const *        idx_B,
+                          int tid_C,
+                          int const *        idx_C);
+    
+    /**
+     * \brief estimate the cost of a sum B[idx_B] = A[idx_A]
+     * \param[in] A first operand tensor
+     * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+     * \param[in] B second operand tensor
+     * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+     * \return cost as a int64_t type, currently a rought estimate of flops/processor
+     */
+    int64_t estimate_cost(int tid_A,
+                          int const *        idx_A,
+                          int tid_B,
+                          int const *        idx_B);
+    
 
     int check_contraction(CTF_ctr_type_t const * type);
     
@@ -408,8 +470,8 @@ class dist_tensor{
                                         fseq_elm_ctr<dtype> const felm,
                                         dtype const               alpha,
                                         dtype const               beta,
-                                        int const                 is_inner=0,
-                                        iparam const *            inner_params=NULL,
+                                        int const                 is_inner = 0,
+                                        iparam const *            inner_params = NULL,
                                         int *                     nvirt_C = NULL);
 
 /*    dtype align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
@@ -427,22 +489,19 @@ class dist_tensor{
                       fseq_tsr_ctr<dtype> const ftsr,
                       fseq_elm_ctr<dtype> const felm,
                       dtype const               alpha,
-                      dtype const               beta,
-                      int const                 map_inner);
+                      dtype const               beta);
 
     int sym_contract( CTF_ctr_type_t const *    type,
                       fseq_tsr_ctr<dtype> const ftsr,
                       fseq_elm_ctr<dtype> const felm,
                       dtype const               alpha,
-                      dtype const               beta,
-                      int const                 map_inner);
+                      dtype const               beta);
 
     int contract( CTF_ctr_type_t const *        type,
                   fseq_tsr_ctr<dtype> const     ftsr,
                   fseq_elm_ctr<dtype> const     felm,
                   dtype const                   alpha,
-                  dtype const                   beta,
-                  int const                     map_inner);
+                  dtype const                   beta);
 
     int map_tensors(CTF_ctr_type_t const *      type,
                     fseq_tsr_ctr<dtype> const   ftsr,
@@ -497,8 +556,7 @@ class dist_tensor{
     int map_self_indices(int const      tid,
                                            int const*   idx_map);
 
-    int check_contraction_mapping(CTF_ctr_type_t const * type,
-                                  int const is_inner = 0);
+    int check_contraction_mapping(CTF_ctr_type_t const * type);
 
     int check_sum_mapping(int const     tid_A,
                           int const *   idx_A,
@@ -554,7 +612,7 @@ class dist_tensor{
     int compare_tsr(FILE * stream, int const tid_A, int const tid_B, double cutoff = -1.0);
 
     int print_map(FILE * stream, int const tid,
-                  int const all=1, int const is_inner=0) const;
+                  int const all=1) const;
 
     int print_ctr(CTF_ctr_type_t const * ctype,
                   dtype const            alpha,
@@ -613,7 +671,6 @@ class dist_tensor{
                        int const *      old_rank,
                        int const *      old_virt_dim,
                        int const *      old_pe_lda,
-                       int const        was_padded,
                        int const        was_cyclic,
                        int const *      old_padding,
                        int const *      old_edge_len,
@@ -781,8 +838,7 @@ inline  double GET_REAL(std::complex<double> const d) {
   return d.real();
 }
 
-#include "dist_tensor_internal.cxx"
-#include "scala_backend.cxx"
+//#include "dist_tensor_internal.cxx"
 
 /**
  * @}
