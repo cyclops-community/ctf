@@ -63,6 +63,26 @@ long_int ctr_dgemm<dtype>::mem_fp(){
   return 0;
 }
 
+
+/**
+ * \brief returns the number of bytes this kernel will send per processor
+ * \return bytes sent
+ */
+template<typename dtype>
+uint64_t ctr_dgemm<dtype>::comm_fp(int nlyr) {
+  /* FIXME make cost proper, for now return sizes of each submatrix scaled by .2 */
+  return .2*(n*m+m*k+n*k);
+}
+
+/**
+ * \brief returns the number of bytes send by each proc recursively 
+ * \return bytes needed for recursive contraction
+ */
+template<typename dtype>
+uint64_t ctr_dgemm<dtype>::comm_rec(int nlyr) {
+  return comm_fp(nlyr);
+}
+
 /**
  * \brief a wrapper for zgemm
  */
