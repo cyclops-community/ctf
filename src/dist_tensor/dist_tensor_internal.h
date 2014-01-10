@@ -245,7 +245,7 @@ class dist_tensor{
     CommData_t   get_global_comm();
     void set_global_comm(CommData_t   cdt);
     CommData_t   get_phys_comm();
-    void set_phys_comm(CommData_t * cdt, int const ndim);
+    void set_phys_comm(CommData_t * cdt, int const ndim, int fold=1);
     int get_phys_ndim();
     int * get_phys_lda();
     std::vector< tensor<dtype>* > * get_tensors();

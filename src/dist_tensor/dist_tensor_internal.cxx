@@ -47,7 +47,6 @@ int dist_tensor<dtype>::dist_cleanup(){
   
   std::set<MPI_Comm> commset;
   std::set<MPI_Comm>::iterator csiter;
-
   for (iter=topovec.begin(); iter<topovec.end(); iter++){
     for (j=0; j<iter->ndim; j++){
       commset.insert(iter->dim_comm[j].cm);
@@ -144,7 +143,7 @@ int dist_tensor<dtype>::initialize(CommData_t   cdt_global,
  * \param[in] ndim number of dimensions
  */
 template<typename dtype>
-void dist_tensor<dtype>::set_phys_comm(CommData_t * cdt, int const ndim){
+void dist_tensor<dtype>::set_phys_comm(CommData_t * cdt, int const ndim, int fold){
   int i, lda;
   topology new_topo;
 
@@ -173,7 +172,7 @@ void dist_tensor<dtype>::set_phys_comm(CommData_t * cdt, int const ndim){
   }
   topovec.push_back(new_topo);
 
-  if (ndim > 1)
+  if (ndim > 1 && fold)
     fold_torus(&new_topo, global_comm, this);
 }
 
