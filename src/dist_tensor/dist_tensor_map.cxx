@@ -240,8 +240,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     return DIST_TENSOR_SUCCESS;*/
 
 #if DEBUG >= 3  
-    print_map(stdout, tid_A,0);
-    print_map(stdout, tid_B,0);
+    /*print_map(stdout, tid_A,0);
+    print_map(stdout, tid_B,0);*/
 #endif
     if (!check_sum_mapping(tid_A, idx_map_A, tid_B, idx_map_B)) continue;
     set_padding(tsr_A);
@@ -653,7 +653,9 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type){
     pass = 0;
   if (!check_self_mapping(type->tid_C, type->idx_map_C))
     pass = 0;
-  if (pass == 0) DPRINTF(3,"failed confirmation here\n");
+  if (pass == 0){
+    DPRINTF(3,"failed confirmation here\n");
+  }
 
 
   for (i=0; i<num_tot; i++){
@@ -954,11 +956,11 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     LIBT_ASSERT(tsr_B->is_mapped);
     LIBT_ASSERT(tsr_C->is_mapped);
   #if DEBUG >= 2
-    if (global_comm.rank == 0)
+    /*if (global_comm.rank == 0)
       printf("Initial mappings:\n");
     print_map(stdout, type->tid_A);
     print_map(stdout, type->tid_B);
-    print_map(stdout, type->tid_C);
+    print_map(stdout, type->tid_C);*/
   #endif
     unmap_inner(tsr_A);
     unmap_inner(tsr_B);
@@ -1000,8 +1002,11 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #endif
   for (j=0; j<6; j++){
     /* Attempt to map to all possible permutations of processor topology */
+#if DEBUG < 3 
     for (i=global_comm.rank; i<(int)topovec.size(); i+=global_comm.np){
-//    for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
+#else
+    for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
+#endif
       clear_mapping(tsr_A);
       clear_mapping(tsr_B);
       clear_mapping(tsr_C);
@@ -1030,6 +1035,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       tsr_B->itopo = i;
       tsr_C->itopo = i;
 #if DEBUG >= 3
+      printf("\nTest mappings:\n");
       print_map(stdout, type->tid_A, 0);
       print_map(stdout, type->tid_B, 0);
       print_map(stdout, type->tid_C, 0);
@@ -1082,6 +1088,10 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
                                     alpha, beta, 0, NULL, &nvirt_all);
      
       comm_vol = sctr->comm_rec(sctr->num_lyr);
+      //sctr->print();
+#if DEBUG >= 3
+      printf("mapping passed comm_vol = " PRIu64 "\n", comm_vol);
+#endif
       memuse = 0;
       need_remap_A = 0;
       need_remap_B = 0;
@@ -1189,6 +1199,9 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #endif
     }
   }
+#if DEBUG>=3
+  COMM_BARRIER(global_comm);
+#endif
 #if BEST_VOL
   ALLREDUCE(&bnvirt, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, global_comm);
   if (bnvirt != gnvirt){
@@ -1305,11 +1318,11 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   *ctrf = construct_contraction(type, ftsr, felm, 
                                 alpha, beta, 0, NULL, &nvirt_all);
 #if DEBUG >= 2
-  if (global_comm.rank == 0)
+  /*if (global_comm.rank == 0)
     printf("New mappings:\n");
   print_map(stdout, type->tid_A);
   print_map(stdout, type->tid_B);
-  print_map(stdout, type->tid_C);
+  print_map(stdout, type->tid_C);*/
 #endif
  
       

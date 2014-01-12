@@ -162,6 +162,8 @@ class seq_tsr_ctr : public ctr<dtype> {
     void run();
     void print();
     long_int mem_fp();
+    uint64_t comm_rec(int nlyr);
+    uint64_t comm_fp(int nlyr);
     ctr<dtype> * clone();
 
     seq_tsr_ctr(ctr<dtype> * other);

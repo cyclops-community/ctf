@@ -71,7 +71,7 @@ long_int ctr_dgemm<dtype>::mem_fp(){
 template<typename dtype>
 uint64_t ctr_dgemm<dtype>::comm_fp(int nlyr) {
   /* FIXME make cost proper, for now return sizes of each submatrix scaled by .2 */
-  return .2*(n*m+m*k+n*k);
+  return n*m+m*k+n*k;
 }
 
 /**
