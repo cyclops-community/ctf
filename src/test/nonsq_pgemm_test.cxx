@@ -17,7 +17,7 @@ typedef std::complex<double> VAL_TYPE;
 #else
 typedef double VAL_TYPE;
 #endif
-#define TESTPAD
+//#define TESTPAD
 
 #define NUM_ITER 5
 

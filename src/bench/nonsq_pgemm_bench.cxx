@@ -188,7 +188,8 @@ int main(int argc, char **argv) {
   int iter, i, j, nblk, mblk;
 
   nblk = n/npcol;
-  mblk = m/nprow;
+  //mblk = m/nprow;
+  mblk = m/npcol;
 
   VAL_TYPE * mat_A = (VAL_TYPE*)malloc(k*m*sizeof(VAL_TYPE)/numPes);
   VAL_TYPE * mat_B = (VAL_TYPE*)malloc(n*k*sizeof(VAL_TYPE)/numPes);
@@ -198,13 +199,13 @@ int main(int argc, char **argv) {
   VAL_TYPE ans_verify;
 
   srand48(13*myRank);
-  for (i=0; i<k/npcol; i++){
-    for (j=0; j<m/nprow; j++){
+  for (i=0; i<k/nprow; i++){
+    for (j=0; j<m/npcol; j++){
 #ifdef ZGEMM_TEST
-      mat_A[i*(m/nprow)+j].real() = drand48();
-      mat_A[i*(m/nprow)+j].imag() = drand48();
+      mat_A[i*(m/npcol)+j].real() = drand48();
+      mat_A[i*(m/npcol)+j].imag() = drand48();
 #else
-      mat_A[i*(m/nprow)+j] = drand48();
+      mat_A[i*(m/npcol)+j] = drand48();
 #endif
     }
   }
@@ -296,16 +297,16 @@ int main(int argc, char **argv) {
   if (myRank == 0)
     printf("Performed ScaLAPACK pzgemm, starting CTF pzgemm\n");
 
-/*  myctf->pgemm('T','N', m, n, k, ALPHA, 
+  myctf->pgemm('T','N', m, n, k, ALPHA, 
 	      mat_A, 1, 1, desc_a,
 	      mat_B, 1, 1, desc_b, BETA,
-	      mat_C_CTF, 1, 1, desc_c); */
-  myctf->def_scala_mat(desc_a, mat_A, &tid_A);
+	      mat_C_CTF, 1, 1, desc_c); 
+/*  myctf->def_scala_mat(desc_a, mat_A, &tid_A);
   myctf->def_scala_mat(desc_b, mat_B, &tid_B);
   myctf->def_scala_mat(desc_c, mat_C_CTF, &tid_C);
   myctf->pgemm('T', 'N', ALPHA, tid_A, tid_B, BETA, tid_C);
   myctf->read_scala_mat(tid_C, mat_C_CTF);
-
+*/
 #if 0
   for (i=0; i<mblk; i++){
     for (j=0; j<nblk; j++){
@@ -346,16 +347,16 @@ int main(int argc, char **argv) {
   if (myRank == 0)
     printf("Performed ScaLAPACK pdgemm, starting CTF pdgemm\n");
 
-  /*myctf->pgemm('N','N', m, n, k, ALPHA, 
+  myctf->pgemm('N','N', m, n, k, ALPHA, 
 	      mat_A, 1, 1, desc_a,
 	      mat_B, 1, 1, desc_b, BETA,
-	      mat_C_CTF, 1, 1, desc_c); */
-  myctf->def_scala_mat(desc_a, mat_A, &tid_A);
+	      mat_C_CTF, 1, 1, desc_c); 
+  /*myctf->def_scala_mat(desc_a, mat_A, &tid_A);
   myctf->def_scala_mat(desc_b, mat_B, &tid_B);
   myctf->def_scala_mat(desc_c, mat_C_CTF, &tid_C);
   myctf->pgemm('T', 'N', ALPHA, tid_A, tid_B, BETA, tid_C);
   myctf->read_scala_mat(tid_C, mat_C_CTF);
-
+*/
 
   for (i=0; i<mblk; i++){
     for (j=0; j<nblk; j++){
@@ -402,11 +403,11 @@ int main(int argc, char **argv) {
   startTime = MPI_Wtime();
   for (iter=0; iter < num_iter; iter++){
     //seq_square_matmul(mat_A, mat_B, mat_C, blockDim, 0);
-    /*myctf->pgemm('T','N', m, n, k, ALPHA, 
+    myctf->pgemm('T','N', m, n, k, ALPHA, 
 	    mat_A, 1, 1, desc_a,
 	    mat_B, 1, 1, desc_b, BETA,
-	    mat_C, 1, 1, desc_c); */
-    myctf->pgemm('T', 'N', ALPHA, tid_A, tid_B, BETA, tid_C);
+	    mat_C, 1, 1, desc_c); 
+//    myctf->pgemm('T', 'N', ALPHA, tid_A, tid_B, BETA, tid_C);
     if (iter == 0)
       ans_verify = mat_C[2];
   }
