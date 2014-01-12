@@ -146,6 +146,8 @@ class ctr_dgemm : public ctr<dtype> {
     void print() {};
     void run();
     long_int mem_fp();
+    uint64_t comm_fp(int nlyr);
+    uint64_t comm_rec(int nlyr);
     ctr<dtype> * clone();
 
     ctr_dgemm(ctr<dtype> * other);

@@ -631,6 +631,23 @@ ctr<dtype> * seq_tsr_ctr<dtype>::clone() {
 template<typename dtype>
 long_int seq_tsr_ctr<dtype>::mem_fp(){ return 0; }
 
+template<typename dtype>
+uint64_t seq_tsr_ctr<dtype>::comm_fp(int nlyr){ 
+  uint64_t size_A = sy_packed_size(ndim_A, edge_len_A, sym_A);
+  uint64_t size_B = sy_packed_size(ndim_B, edge_len_B, sym_B);
+  uint64_t size_C = sy_packed_size(ndim_C, edge_len_C, sym_C);
+  if (is_inner) size_A *= inner_params.m*inner_params.k;
+  if (is_inner) size_B *= inner_params.n*inner_params.k;
+  if (is_inner) size_C *= inner_params.m*inner_params.n;
+  
+  return .1*(size_A+size_B+size_C);
+}
+
+template<typename dtype>
+uint64_t seq_tsr_ctr<dtype>::comm_rec(int nlyr){ 
+  return comm_fp(nlyr);
+}
+
 /**
  * \brief wraps user sequential function signature
  */
@@ -1728,7 +1745,8 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         tsr->home_size = tsr->size; //MAX(1024+tsr->size, 1.20*tsr->size);
         tsr->is_home = 1;
         tsr->has_home = 1;
-        DPRINTF(3,"Initial size of tensor %d is "PRId64",",tensor_id,tsr->size);
+        if (global_comm.rank == 0)
+          DPRINTF(3,"Initial size of tensor %d is "PRId64",",tensor_id,tsr->size);
         CTF_alloc_ptr(tsr->home_size*sizeof(dtype), (void**)&tsr->home_buffer);
         tsr->data = tsr->home_buffer;
       } else {
@@ -1941,9 +1959,54 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
   tensor<dtype> const * tsr;
   tsr = tensors[tid];
 
+#ifndef DEBUG
   if (!all || global_comm.rank == 0){
     tsr->print_map(stdout);
   }
+#else
+  mapping * map;
+  int i;
+  if (all)
+    COMM_BARRIER(global_comm);
+  fflush(stdout);
+  if (/*tsr->is_mapped &&*/ (!all || global_comm.rank == 0)){
+    printf("\nTensor %d of dimension %d is mapped to a ", tid, tsr->ndim);
+    for (i=0; i<topovec[tsr->itopo].ndim-1; i++){
+            printf("%d-by-", topovec[tsr->itopo].dim_comm[i].np);
+    }
+    if (topovec[tsr->itopo].ndim > 0)
+            printf("%d topology.\n", topovec[tsr->itopo].dim_comm[i].np);
+    for (i=0; i<tsr->ndim; i++){
+      switch (tsr->edge_map[i].type){
+        case NOT_MAPPED:
+          printf("Dimension %d of length %d and symmetry %d is not mapped\n",i,tsr->edge_len[i],tsr->sym[i]);
+          break;
+
+        case PHYSICAL_MAP:
+          printf("Dimension %d of length %d and symmetry %d is mapped to physical dimension %d with phase %d\n",
+            i,tsr->edge_len[i],tsr->sym[i],tsr->edge_map[i].cdt,tsr->edge_map[i].np);
+          map = &tsr->edge_map[i];
+          while (map->has_child){
+            map = map->child;
+            if (map->type == VIRTUAL_MAP)
+              printf("\tDimension %d also has a virtualized child of phase %d\n", i, map->np);
+            else
+              printf("\tDimension %d also has a physical child mapped to physical dimension %d with phase %d\n",
+                      i, map->cdt, map->np);
+          }
+          break;
+
+        case VIRTUAL_MAP:
+          printf("Dimension %d of length %d and symmetry %d is mapped virtually with phase %d\n",
+            i,tsr->edge_len[i],tsr->sym[i],tsr->edge_map[i].np);
+          break;
+      }
+    }
+  }
+  fflush(stdout);
+  if (all)
+    COMM_BARRIER(global_comm);
+#endif
 
   return DIST_TENSOR_SUCCESS;
 
