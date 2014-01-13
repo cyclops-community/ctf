@@ -155,8 +155,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   uint64_t size;
   uint64_t min_size = UINT64_MAX;
   /* Attempt to map to all possible permutations of processor topology */
-  for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
-//  for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
+//  for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
+  for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
     clear_mapping(tsr_A);
     clear_mapping(tsr_B);
     set_padding(tsr_A);
@@ -239,8 +239,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     return DIST_TENSOR_SUCCESS;*/
 
 #if DEBUG >= 3  
-    print_map(stdout, tid_A,0);
-    print_map(stdout, tid_B,0);
+    /*print_map(stdout, tid_A,0);
+    print_map(stdout, tid_B,0);*/
 #endif
     if (!check_sum_mapping(tid_A, idx_map_A, tid_B, idx_map_B)) continue;
     set_padding(tsr_A);
@@ -261,7 +261,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
       if (can_block_reshuffle(tsr_A->ndim, old_phase_A, tsr_A->edge_map)){
         size += tsr_A->size*log2(global_comm.np);
       } else {
-        size += 10.*tsr_A->size*log2(global_comm.np);
+        size += 5.*tsr_A->size*log2(global_comm.np);
       }
     }
     if (tsr_B->itopo == old_topo_B){
@@ -275,7 +275,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
       if (can_block_reshuffle(tsr_B->ndim, old_phase_B, tsr_B->edge_map)){
         size += tsr_B->size*log2(global_comm.np);
       } else {
-        size += 10.*tsr_B->size*log2(global_comm.np);
+        size += 5.*tsr_B->size*log2(global_comm.np);
       }
     }
 
@@ -541,7 +541,7 @@ int dist_tensor<dtype>::
   if (!check_self_mapping(tid_B, idx_B))
     pass = 0;
   if (pass == 0)
-    DPRINTF(3,"failed confirmation here\n");
+    DPRINTF(4,"failed confirmation here\n");
 
   for (i=0; i<ndim_tot; i++){
     iA = idx_arr[2*i];
@@ -549,7 +549,7 @@ int dist_tensor<dtype>::
     if (iA != -1 && iB != -1) {
       if (!comp_dim_map(&tsr_A->edge_map[iA], &tsr_B->edge_map[iB])){
         pass = 0;
-        DPRINTF(3,"failed confirmation here i=%d\n",i);
+        DPRINTF(4,"failed confirmation here i=%d\n",i);
       }
     }
     if (iA != -1) {
@@ -650,7 +650,9 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type){
     pass = 0;
   if (!check_self_mapping(type->tid_C, type->idx_map_C))
     pass = 0;
-  if (pass == 0) DPRINTF(3,"failed confirmation here\n");
+  if (pass == 0){
+    DPRINTF(3,"failed confirmation here\n");
+  }
 
 
   for (i=0; i<num_tot; i++){
@@ -865,20 +867,12 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   int num_tot, i, ret, j, need_remap, d;
   int need_remap_A, need_remap_B, need_remap_C;
   uint64_t memuse, bmemuse;
-#if BEST_COMM
-  uint64_t comm_vol, bcomm_vol;
-#endif
-#if BEST_VOL
-  long_int n,m,k;
-  uint64_t gnvirt;
-#endif
-#if BEST_VIRT
-  uint64_t nvirt, tnvirt, bnvirt;
-#endif
+  double est_time, best_time;
   int btopo, gtopo;
   int old_nvirt_all;
   int was_cyclic_A, was_cyclic_B, was_cyclic_C, nvirt_all;
   long_int old_size_A, old_size_B, old_size_C;
+  long_int nvirt;
   int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
   int * old_phase_A, * old_rank_A, * old_virt_dim_A, * old_pe_lda_A;
   int * old_padding_A, * old_edge_len_A;
@@ -886,9 +880,6 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   int * old_padding_B, * old_edge_len_B;
   int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
   int * old_padding_C, * old_edge_len_C;
-#if BEST_VOL
-  int * virt_blk_len_A, * virt_blk_len_B, * virt_blk_len_C;
-#endif
   mapping * old_map_A, * old_map_B, * old_map_C;
   int old_topo_A, old_topo_B, old_topo_C;
   tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
@@ -951,11 +942,11 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     LIBT_ASSERT(tsr_B->is_mapped);
     LIBT_ASSERT(tsr_C->is_mapped);
   #if DEBUG >= 2
-    if (global_comm.rank == 0)
+    /*if (global_comm.rank == 0)
       printf("Initial mappings:\n");
     print_map(stdout, type->tid_A);
     print_map(stdout, type->tid_B);
-    print_map(stdout, type->tid_C);
+    print_map(stdout, type->tid_C);*/
   #endif
     unmap_inner(tsr_A);
     unmap_inner(tsr_B);
@@ -988,17 +979,15 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     }
   }
   btopo = -1;
-#if BEST_VIRT
-  bnvirt = UINT64_MAX;
-#endif  
-#if BEST_COMM
-  bcomm_vol = UINT64_MAX;
+  best_time = DBL_MAX;
   bmemuse = UINT64_MAX;
-#endif
   for (j=0; j<6; j++){
     /* Attempt to map to all possible permutations of processor topology */
+#if DEBUG < 3 
     for (i=global_comm.rank; i<(int)topovec.size(); i+=global_comm.np){
-//    for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
+#else
+    for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
+#endif
       clear_mapping(tsr_A);
       clear_mapping(tsr_B);
       clear_mapping(tsr_C);
@@ -1027,12 +1016,14 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       tsr_B->itopo = i;
       tsr_C->itopo = i;
 #if DEBUG >= 3
+      printf("\nTest mappings:\n");
       print_map(stdout, type->tid_A, 0);
       print_map(stdout, type->tid_B, 0);
       print_map(stdout, type->tid_C, 0);
 #endif
       
       if (check_contraction_mapping(type) == 0) continue;
+      est_time = 0.0;
       
       nvirt_all = -1;
       old_nvirt_all = -2;
@@ -1078,7 +1069,11 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       sctr = construct_contraction(type, ftsr, felm, 
                                     alpha, beta, 0, NULL, &nvirt_all);
      
-      comm_vol = sctr->comm_rec(sctr->num_lyr);
+      est_time = sctr->est_time_rec(sctr->num_lyr);
+      //sctr->print();
+#if DEBUG >= 3
+      printf("mapping passed contr est_time = %lf sec\n", est_time);
+#endif
       memuse = 0;
       need_remap_A = 0;
       need_remap_B = 0;
@@ -1091,12 +1086,15 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       } else
         need_remap_A = 1;
       if (need_remap_A) {
+        nvirt = (uint64_t)calc_nvirt(tsr_A);
+        est_time += global_comm.estimate_alltoallv_time(sizeof(dtype)*tsr_A->size);
         if (can_block_reshuffle(tsr_A->ndim, old_phase_A, tsr_A->edge_map)){
-          comm_vol += sizeof(dtype)*tsr_A->size*log2(global_comm.np);
-          memuse = (uint64_t)sizeof(dtype)*tsr_A->size;
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_A->size);
         } else {
-          comm_vol += 10.*sizeof(dtype)*tsr_A->size*log2(global_comm.np)+80.*global_comm.np;
-          memuse = (uint64_t)sizeof(dtype)*tsr_A->size*2.5;
+          est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_A->size+global_comm.estimate_alltoall_time(nvirt);
+          if (nvirt > 1) 
+            est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_A->size;
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_A->size*2.5);
         }
       } else
         memuse = 0;
@@ -1108,11 +1106,14 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       } else
         need_remap_B = 1;
       if (need_remap_B) {
+        nvirt = (uint64_t)calc_nvirt(tsr_B);
+        est_time += global_comm.estimate_alltoallv_time(sizeof(dtype)*tsr_B->size);
         if (can_block_reshuffle(tsr_B->ndim, old_phase_B, tsr_B->edge_map)){
-          comm_vol += sizeof(dtype)*tsr_B->size*log2(global_comm.np);
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size);
         } else {
-          comm_vol += 10.*sizeof(dtype)*tsr_B->size*log2(global_comm.np)+80.*global_comm.np;
+          est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_B->size+global_comm.estimate_alltoall_time(nvirt);
+          if (nvirt > 1) 
+            est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_B->size;
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*2.5);
         }
       }
@@ -1124,15 +1125,21 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       } else
         need_remap_C = 1;
       if (need_remap_C) {
+        nvirt = (uint64_t)calc_nvirt(tsr_C);
+        est_time += global_comm.estimate_alltoallv_time(sizeof(dtype)*tsr_B->size);
         if (can_block_reshuffle(tsr_C->ndim, old_phase_C, tsr_C->edge_map)){
-          comm_vol += sizeof(dtype)*tsr_C->size*log2(global_comm.np);
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size);
         } else {
-          comm_vol += 10.*sizeof(dtype)*tsr_C->size*log2(global_comm.np)+80.*global_comm.np;
+          est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_C->size+global_comm.estimate_alltoall_time(nvirt);
+          if (nvirt > 1) 
+            est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_C->size;
           memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*2.5);
         }
       }
       memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
+#if DEBUG >= 3
+      printf("total (with redistribution) est_time = %lf\n", est_time);
+#endif
 
       if ((uint64_t)memuse >= proc_bytes_available()){
         DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
@@ -1140,24 +1147,8 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         continue;
       } 
 
-#if BEST_VOL
-      calc_dim(tsr_A->ndim, 0, tsr_A->edge_len, tsr_A->edge_map, 
-               NULL, virt_blk_len_A, NULL);
-      calc_dim(tsr_B->ndim, 0, tsr_B->edge_len, tsr_B->edge_map, 
-               NULL, virt_blk_len_B, NULL);
-      calc_dim(tsr_C->ndim, 0, tsr_C->edge_len, tsr_C->edge_map, 
-               NULL, virt_blk_len_C, NULL);
-      ggg_sym_nmk(tsr_A->ndim, virt_blk_len_A, type->idx_map_A, tsr_A->sym, 
-                  tsr_B->ndim, virt_blk_len_B, type->idx_map_B, tsr_B->sym, 
-                  tsr_C->ndim, &n, &m, &k);
-      if (btopo == -1 || n*m*k > bnvirt ) {
-        bnvirt = n*m*k;
-        btopo = 6*i+j;      
-      }
-#endif
-#if BEST_VIRT
       /* be careful about overflow */
-      nvirt = (uint64_t)calc_nvirt(tsr_A);
+/*      nvirt = (uint64_t)calc_nvirt(tsr_A);
       tnvirt = nvirt*(uint64_t)calc_nvirt(tsr_B);
       if (tnvirt < nvirt) nvirt = UINT64_MAX;
       else {
@@ -1165,28 +1156,30 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         tnvirt = nvirt*(uint64_t)calc_nvirt(tsr_C);
         if (tnvirt < nvirt) nvirt = UINT64_MAX;
         else nvirt = tnvirt;
-      }
-      if (btopo == -1 || (nvirt < bnvirt  || 
-			((nvirt == bnvirt || nvirt <= ALLOW_NVIRT) && comm_vol < bcomm_vol))) {
-        comm_vol = sctr->comm_rec(sctr->num_lyr);
-        bcomm_vol = comm_vol;
+      }*/
+      //if (btopo == -1 || (nvirt < bnvirt  || 
+			//((nvirt == bnvirt || nvirt <= ALLOW_NVIRT) && est_time < best_time))) {
+      if (est_time < best_time) {
+        best_time = est_time;
         bmemuse = memuse;
-        bnvirt = nvirt;
         btopo = 6*i+j;      
       }  
       delete sctr;
-#else
+/*#else
   #if BEST_COMM
-      comm_vol = sctr->comm_rec(sctr->num_lyr);
-      if (comm_vol < bcomm_vol){
-        bcomm_vol = comm_vol;
+      est_time = sctr->comm_rec(sctr->num_lyr);
+      if (est_time < best_time){
+        best_time = est_time;
         btopo = 6*i+j;
       }
   #endif
-#endif
+#endif*/
     }
   }
-#if BEST_VOL
+#if DEBUG>=3
+  COMM_BARRIER(global_comm);
+#endif
+/*#if BEST_VOL
   ALLREDUCE(&bnvirt, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, global_comm);
   if (bnvirt != gnvirt){
     btopo = INT_MAX;
@@ -1199,16 +1192,22 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     btopo = INT_MAX;
   }
   DEBUG_PRINTF("bnvirt = "PRIu64"\n", (uint64_t)bnvirt);
-  /* pick lower dimensional mappings, if equivalent */
+  // pick lower dimensional mappings, if equivalent 
 #if BEST_COMM
   if (bnvirt >= ALLOW_NVIRT)
-    gtopo = get_best_topo(bnvirt+1-ALLOW_NVIRT, btopo, global_comm, bcomm_vol, bmemuse);
+    gtopo = get_best_topo(bnvirt+1-ALLOW_NVIRT, btopo, global_comm, best_time, bmemuse);
   else
-    gtopo = get_best_topo(1, btopo, global_comm, bcomm_vol, bmemuse);
+    gtopo = get_best_topo(1, btopo, global_comm, best_time, bmemuse);
 #else
   gtopo = get_best_topo(bnvirt, btopo, global_comm);
 #endif
-#endif
+#endif*/
+  double gbest_time;
+  ALLREDUCE(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm);
+  if (best_time != gbest_time){
+    btopo = INT_MAX;
+  }
+  ALLREDUCE(&btopo, &gtopo, 1, MPI_INT, MPI_MIN, global_comm);
   
   clear_mapping(tsr_A);
   clear_mapping(tsr_B);
@@ -1255,7 +1254,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #if DEBUG > 2
   if (!check_contraction_mapping(type))
     printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
-  else if (global_comm.rank == 0) printf("Mapping successful!\n");
+//  else if (global_comm.rank == 0) printf("Mapping successful estimated execution time = %lf sec\n",best_time);
 #endif
   LIBT_ASSERT(check_contraction_mapping(type));
 
@@ -1312,8 +1311,8 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       
   memuse = MAX((uint64_t)(*ctrf)->mem_rec(), (uint64_t)(tsr_A->size+tsr_B->size+tsr_C->size)*sizeof(dtype)*3);
   if (global_comm.rank == 0)
-    DPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory\n",
-            (double)memuse,(double)proc_bytes_available());
+    VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
+            (double)memuse,(double)proc_bytes_available(),best_time);
           
   if (tsr_A->is_cyclic == 0 &&
       tsr_B->is_cyclic == 0 &&

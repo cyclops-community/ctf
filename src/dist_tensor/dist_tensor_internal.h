@@ -8,14 +8,7 @@
 #include "../ctr_comm/sum_tsr.h"
 #include "../ctr_comm/ctr_tsr.h"
 #include "../ctr_comm/ctr_comm.h"
-#include "../ctr_seq/sym_seq_sum_inner.hxx"
-#include "../ctr_seq/sym_seq_ctr_inner.hxx"
-#include "../ctr_seq/sym_seq_scl_ref.hxx"
-#include "../ctr_seq/sym_seq_sum_ref.hxx"
-#include "../ctr_seq/sym_seq_ctr_ref.hxx"
-#include "../ctr_seq/sym_seq_scl_cust.hxx"
-#include "../ctr_seq/sym_seq_sum_cust.hxx"
-#include "../ctr_seq/sym_seq_ctr_cust.hxx"
+#include "../ctr_comm/seq_tsr.h"
 #include <limits.h>
 #include <stdint.h>
 
@@ -158,94 +151,6 @@ int cyclic_reshuffle(int const          ndim,
                      int const          is_cyclic = 0);
 
 template<typename dtype>
-class seq_tsr_ctr : public ctr<dtype> {
-  public:
-    dtype alpha;
-    int ndim_A;
-    int * edge_len_A;
-    int const * idx_map_A;
-    int * sym_A;
-    int ndim_B;
-    int * edge_len_B;
-    int const * idx_map_B;
-    int * sym_B;
-    int ndim_C;
-    int * edge_len_C;
-    int const * idx_map_C;
-    int * sym_C;
-    fseq_tsr_ctr<dtype> func_ptr;
-
-    int is_inner;
-    iparam inner_params;
-    
-    int is_custom;
-    fseq_elm_ctr<dtype> custom_params;
-
-    void run();
-    void print();
-    long_int mem_fp();
-    ctr<dtype> * clone();
-
-    seq_tsr_ctr(ctr<dtype> * other);
-    ~seq_tsr_ctr(){ CTF_free(edge_len_A), CTF_free(edge_len_B), CTF_free(edge_len_C), 
-                    CTF_free(sym_A), CTF_free(sym_B), CTF_free(sym_C); }
-    seq_tsr_ctr(){}
-};
-
-template<typename dtype>
-class seq_tsr_sum : public tsum<dtype> {
-  public:
-    int ndim_A;
-    int * edge_len_A;
-    int const * idx_map_A;
-    int * sym_A;
-    int ndim_B;
-    int * edge_len_B;
-    int const * idx_map_B;
-    int * sym_B;
-    fseq_tsr_sum<dtype> func_ptr;
-
-    int is_inner;
-    int inr_stride;
-    
-    int is_custom;
-    fseq_elm_sum<dtype> custom_params;
-
-    void run();
-    void print();
-    long_int mem_fp();
-    tsum<dtype> * clone();
-
-    seq_tsr_sum(tsum<dtype> * other);
-    ~seq_tsr_sum(){ CTF_free(edge_len_A), CTF_free(edge_len_B), 
-                    CTF_free(sym_A), CTF_free(sym_B); };
-    seq_tsr_sum(){}
-};
-
-template<typename dtype>
-class seq_tsr_scl : public scl<dtype> {
-  public:
-    int ndim;
-    int * edge_len;
-    int const * idx_map;
-    int const * sym;
-    fseq_tsr_scl<dtype> func_ptr;
-
-    int is_custom;
-    fseq_elm_scl<dtype> custom_params;
-
-    void run();
-    void print();
-    long_int mem_fp();
-    scl<dtype> * clone();
-
-    seq_tsr_scl(scl<dtype> * other);
-    ~seq_tsr_scl(){ CTF_free(edge_len); };
-    seq_tsr_scl(){}
-};
-
-
-template<typename dtype>
 class dist_tensor{
 
   protected:
@@ -267,7 +172,7 @@ class dist_tensor{
     CommData_t   get_global_comm();
     void set_global_comm(CommData_t   cdt);
     CommData_t   get_phys_comm();
-    void set_phys_comm(CommData_t * cdt, int const ndim);
+    void set_phys_comm(CommData_t * cdt, int const ndim, int fold=1);
     int get_phys_ndim();
     int * get_phys_lda();
     std::vector< tensor<dtype>* > * get_tensors();

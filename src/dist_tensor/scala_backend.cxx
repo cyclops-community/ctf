@@ -360,8 +360,8 @@ int dist_tensor<dtype>::load_matrix
     }
   }
   if (itopo == -1){
-    if (global_comm.rank == 0)
-      printf("WARNING: Creating new topology with nrep = %d!\n", nrep);
+    /*f (global_comm.rank == 0)
+      printf("WARNING: Creating new topology with nrep = %d, itopo = %lu!\n", nrep, topovec.size());*/
     CommData_t  * phys_comm; 
     if (nrep > 1 && nrow > 1 && ncol > 1){
       phys_comm = (CommData_t*)CTF_alloc(3*sizeof(CommData_t));
@@ -392,9 +392,9 @@ int dist_tensor<dtype>::load_matrix
     tsr->edge_map[0].np = nprow;
     tsr->edge_map[1].np = npcol;
     if (nrep > 1 && nrow > 1 && ncol > 1)
-      set_phys_comm(phys_comm,3);
+      set_phys_comm(phys_comm,3,0);
     else 
-      set_phys_comm(phys_comm,2);
+      set_phys_comm(phys_comm,2,0);
     LIBT_ASSERT((int)topovec.size() > itopo);
     tsr->itopo = itopo;
 /*    printf("ERROR: topology not found\n");

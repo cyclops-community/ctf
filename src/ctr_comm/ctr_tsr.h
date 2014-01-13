@@ -26,6 +26,7 @@ class ctr_virt : public ctr<dtype> {
     void run();
     long_int mem_fp();
     long_int mem_rec();
+    double est_time_rec(int nlyr);
     ctr<dtype> * clone();
   
     ~ctr_virt();

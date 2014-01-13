@@ -26,8 +26,8 @@ class ctr {
     virtual void print() { };
     virtual long_int mem_fp() { return 0; };
     virtual long_int mem_rec() { return mem_fp(); };
-    virtual uint64_t comm_fp(int nlyr) { return 0; };
-    virtual uint64_t comm_rec(int nlyr) { return comm_fp(nlyr); };
+    virtual double est_time_fp(int nlyr) { return 0; };
+    virtual double est_time_rec(int nlyr) { return est_time_fp(nlyr); };
     virtual ctr<dtype> * clone() { return NULL; };
     
     virtual ~ctr();
@@ -55,8 +55,8 @@ class ctr_replicate : public ctr<dtype> {
     void run();
     long_int mem_fp();
     long_int mem_rec();
-    uint64_t comm_fp(int nlyr);
-    uint64_t comm_rec(int nlyr);
+    double est_time_fp(int nlyr);
+    double est_time_rec(int nlyr);
     void print();
     ctr<dtype> * clone();
 
@@ -94,8 +94,8 @@ class ctr_2d_general : public ctr<dtype> {
     void run();
     long_int mem_fp();
     long_int mem_rec();
-    uint64_t comm_fp(int nlyr);
-    uint64_t comm_rec(int nlyr);
+    double est_time_fp(int nlyr);
+    double est_time_rec(int nlyr);
     ctr<dtype> * clone();
 
     ctr_2d_general(ctr<dtype> * other);
@@ -146,6 +146,8 @@ class ctr_dgemm : public ctr<dtype> {
     void print() {};
     void run();
     long_int mem_fp();
+    double est_time_fp(int nlyr);
+    double est_time_rec(int nlyr);
     ctr<dtype> * clone();
 
     ctr_dgemm(ctr<dtype> * other);

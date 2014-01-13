@@ -47,7 +47,6 @@ int dist_tensor<dtype>::dist_cleanup(){
   
   std::set<MPI_Comm> commset;
   std::set<MPI_Comm>::iterator csiter;
-
   for (iter=topovec.begin(); iter<topovec.end(); iter++){
     for (j=0; j<iter->ndim; j++){
       commset.insert(iter->dim_comm[j].cm);
@@ -143,7 +142,7 @@ int dist_tensor<dtype>::initialize(CommData_t   cdt_global,
  * \param[in] ndim number of dimensions
  */
 template<typename dtype>
-void dist_tensor<dtype>::set_phys_comm(CommData_t * cdt, int const ndim){
+void dist_tensor<dtype>::set_phys_comm(CommData_t * cdt, int const ndim, int fold){
   int i, lda;
   topology new_topo;
 
@@ -172,7 +171,7 @@ void dist_tensor<dtype>::set_phys_comm(CommData_t * cdt, int const ndim){
   }
   topovec.push_back(new_topo);
 
-  if (ndim > 1)
+  if (ndim > 1 && fold)
     fold_torus(&new_topo, global_comm, this);
 }
 
@@ -401,300 +400,6 @@ int dist_tensor<dtype>::get_tsr_info( int const         tensor_id,
   return DIST_TENSOR_SUCCESS;
 }
 
-/**
- * \brief copies scl object
- */
-template<typename dtype>
-seq_tsr_scl<dtype>::seq_tsr_scl(scl<dtype> * other) : scl<dtype>(other) {
-  seq_tsr_scl<dtype> * o = (seq_tsr_scl<dtype>*)other;
-  
-  ndim          = o->ndim;
-  idx_map       = o->idx_map;
-  sym           = o->sym;
-  edge_len      = (int*)CTF_alloc(sizeof(int)*ndim);
-  memcpy(edge_len, o->edge_len, sizeof(int)*ndim);
-
-  func_ptr = o->func_ptr;
-}
-
-/**
- * \brief copies scl object
- */
-template<typename dtype>
-scl<dtype> * seq_tsr_scl<dtype>::clone() {
-  return new seq_tsr_scl<dtype>(this);
-}
-
-
-template<typename dtype>
-long_int seq_tsr_scl<dtype>::mem_fp(){ return 0; }
-
-/**
- * \brief wraps user sequential function signature
- */
-template<typename dtype>
-void seq_tsr_scl<dtype>::run(){
-  func_ptr.func_ptr(this->alpha,
-                    this->A,
-                    ndim,
-                    edge_len,
-                    edge_len,
-                    sym,
-                    idx_map);
-}
-
-template<typename dtype>
-void seq_tsr_scl<dtype>::print(){
-  int i;
-  printf("seq_tsr_scl:\n");
-  for (i=0; i<ndim; i++){
-    printf("edge_len[%d]="PRId64"\n",i,edge_len[i]);
-  }
-}
-
-/**
- * \brief copies sum object
- */
-template<typename dtype>
-seq_tsr_sum<dtype>::seq_tsr_sum(tsum<dtype> * other) : tsum<dtype>(other) {
-  seq_tsr_sum<dtype> * o = (seq_tsr_sum<dtype>*)other;
-  
-  ndim_A        = o->ndim_A;
-  idx_map_A     = o->idx_map_A;
-  sym_A         = o->sym_A;
-  edge_len_A    = (int*)CTF_alloc(sizeof(int)*ndim_A);
-  memcpy(edge_len_A, o->edge_len_A, sizeof(int)*ndim_A);
-
-  ndim_B        = o->ndim_B;
-  idx_map_B     = o->idx_map_B;
-  sym_B         = o->sym_B;
-  edge_len_B    = (int*)CTF_alloc(sizeof(int)*ndim_B);
-  memcpy(edge_len_B, o->edge_len_B, sizeof(int)*ndim_B);
-  
-  is_inner      = o->is_inner;
-  inr_stride    = o->inr_stride;
-
-  func_ptr = o->func_ptr;
-}
-
-template<typename dtype>
-void seq_tsr_sum<dtype>::print(){
-  int i;
-  printf("seq_tsr_sum:\n");
-  for (i=0; i<ndim_A; i++){
-    printf("edge_len_A[%d]="PRId64"\n",i,edge_len_A[i]);
-  }
-  for (i=0; i<ndim_B; i++){
-    printf("edge_len_B[%d]="PRId64"\n",i,edge_len_B[i]);
-  }
-}
-
-/**
- * \brief copies sum object
- */
-template<typename dtype>
-tsum<dtype> * seq_tsr_sum<dtype>::clone() {
-  return new seq_tsr_sum<dtype>(this);
-}
-
-template<typename dtype>
-long_int seq_tsr_sum<dtype>::mem_fp(){ return 0; }
-
-/**
- * \brief wraps user sequential function signature
- */
-template<typename dtype>
-void seq_tsr_sum<dtype>::run(){
-  if (is_custom){
-    LIBT_ASSERT(is_inner == 0);
-    sym_seq_sum_cust(
-                    this->alpha,
-                    this->A,
-                    ndim_A,
-                    edge_len_A,
-                    edge_len_A,
-                    sym_A,
-                    idx_map_A,
-                    this->beta,
-                    this->B,
-                    ndim_B,
-                    edge_len_B,
-                    edge_len_B,
-                    sym_B,
-                    idx_map_B,
-                    &custom_params);
-  } else if (is_inner){
-    sym_seq_sum_inr(this->alpha,
-                    this->A,
-                    ndim_A,
-                    edge_len_A,
-                    edge_len_A,
-                    sym_A,
-                    idx_map_A,
-                    this->beta,
-                    this->B,
-                    ndim_B,
-                    edge_len_B,
-                    edge_len_B,
-                    sym_B,
-                    idx_map_B,
-                    inr_stride);
-  } else {
-    func_ptr.func_ptr(this->alpha,
-                      this->A,
-                      ndim_A,
-                      edge_len_A,
-                      edge_len_A,
-                      sym_A,
-                      idx_map_A,
-                      this->beta,
-                      this->B,
-                      ndim_B,
-                      edge_len_B,
-                      edge_len_B,
-                      sym_B,
-                      idx_map_B);
-  }
-}
-
-template<typename dtype>
-void seq_tsr_ctr<dtype>::print(){
-  int i;
-  printf("seq_tsr_ctr:\n");
-  for (i=0; i<ndim_A; i++){
-    printf("edge_len_A[%d]=%d\n",i,edge_len_A[i]);
-  }
-  for (i=0; i<ndim_B; i++){
-    printf("edge_len_B[%d]=%d\n",i,edge_len_B[i]);
-  }
-  for (i=0; i<ndim_C; i++){
-    printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
-  }
-}
-
-/**
- * \brief copies ctr object
- */
-template<typename dtype>
-seq_tsr_ctr<dtype>::seq_tsr_ctr(ctr<dtype> * other) : ctr<dtype>(other) {
-  seq_tsr_ctr<dtype> * o = (seq_tsr_ctr<dtype>*)other;
-  alpha = o->alpha;
-  
-  ndim_A        = o->ndim_A;
-  idx_map_A     = o->idx_map_A;
-  sym_A         = (int*)CTF_alloc(sizeof(int)*ndim_A);
-  memcpy(sym_A, o->sym_A, sizeof(int)*ndim_A);
-  edge_len_A    = (int*)CTF_alloc(sizeof(int)*ndim_A);
-  memcpy(edge_len_A, o->edge_len_A, sizeof(int)*ndim_A);
-
-  ndim_B        = o->ndim_B;
-  idx_map_B     = o->idx_map_B;
-  sym_B         = (int*)CTF_alloc(sizeof(int)*ndim_B);
-  memcpy(sym_B, o->sym_B, sizeof(int)*ndim_B);
-  edge_len_B    = (int*)CTF_alloc(sizeof(int)*ndim_B);
-  memcpy(edge_len_B, o->edge_len_B, sizeof(int)*ndim_B);
-
-  ndim_C        = o->ndim_C;
-  idx_map_C     = o->idx_map_C;
-  sym_C         = (int*)CTF_alloc(sizeof(int)*ndim_C);
-  memcpy(sym_C, o->sym_C, sizeof(int)*ndim_C);
-  edge_len_C    = (int*)CTF_alloc(sizeof(int)*ndim_C);
-  memcpy(edge_len_C, o->edge_len_C, sizeof(int)*ndim_C);
-
-  is_inner      = o->is_inner;
-  inner_params  = o->inner_params;
-  is_custom     = o->is_custom;
-  custom_params = o->custom_params;
-  
-  func_ptr = o->func_ptr;
-}
-
-/**
- * \brief copies ctr object
- */
-template<typename dtype>
-ctr<dtype> * seq_tsr_ctr<dtype>::clone() {
-  return new seq_tsr_ctr<dtype>(this);
-}
-
-
-template<typename dtype>
-long_int seq_tsr_ctr<dtype>::mem_fp(){ return 0; }
-
-/**
- * \brief wraps user sequential function signature
- */
-template<typename dtype>
-void seq_tsr_ctr<dtype>::run(){
-  if (is_custom){
-    LIBT_ASSERT(is_inner == 0);
-    sym_seq_ctr_cust(
-                    this->alpha,
-                    this->A,
-                    ndim_A,
-                    edge_len_A,
-                    edge_len_A,
-                    sym_A,
-                    idx_map_A,
-                    this->B,
-                    ndim_B,
-                    edge_len_B,
-                    edge_len_B,
-                    sym_B,
-                    idx_map_B,
-                    this->beta,
-                    this->C,
-                    ndim_C,
-                    edge_len_C,
-                    edge_len_C,
-                    sym_C,
-                    idx_map_C,
-                    &custom_params);
-  } else if (is_inner){
-    sym_seq_ctr_inr(this->alpha,
-                    this->A,
-                    ndim_A,
-                    edge_len_A,
-                    edge_len_A,
-                    sym_A,
-                    idx_map_A,
-                    this->B,
-                    ndim_B,
-                    edge_len_B,
-                    edge_len_B,
-                    sym_B,
-                    idx_map_B,
-                    this->beta,
-                    this->C,
-                    ndim_C,
-                    edge_len_C,
-                    edge_len_C,
-                    sym_C,
-                    idx_map_C,
-                    &inner_params);
-  } else {
-    func_ptr.func_ptr(this->alpha,
-                      this->A,
-                      ndim_A,
-                      edge_len_A,
-                      edge_len_A,
-                      sym_A,
-                      idx_map_A,
-                      this->B,
-                      ndim_B,
-                      edge_len_B,
-                      edge_len_B,
-                      sym_B,
-                      idx_map_B,
-                      this->beta,
-                      this->C,
-                      ndim_C,
-                      edge_len_C,
-                      edge_len_C,
-                      sym_C,
-                      idx_map_C);
-  }
-}
 
 /* \brief clone a tensor object
  * \param[in] tensor_id id of old tensor
@@ -1903,7 +1608,8 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         tsr->home_size = tsr->size; //MAX(1024+tsr->size, 1.20*tsr->size);
         tsr->is_home = 1;
         tsr->has_home = 1;
-        DPRINTF(3,"Initial size of tensor %d is "PRId64",",tensor_id,tsr->size);
+        if (global_comm.rank == 0)
+          DPRINTF(3,"Initial size of tensor %d is "PRId64",",tensor_id,tsr->size);
         CTF_alloc_ptr(tsr->home_size*sizeof(dtype), (void**)&tsr->home_buffer);
         tsr->data = tsr->home_buffer;
       } else {
@@ -2108,9 +1814,54 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
   tensor<dtype> const * tsr;
   tsr = tensors[tid];
 
+#ifndef DEBUG
   if (!all || global_comm.rank == 0){
     tsr->print_map(stdout);
   }
+#else
+  mapping * map;
+  int i;
+  if (all)
+    COMM_BARRIER(global_comm);
+  fflush(stdout);
+  if (/*tsr->is_mapped &&*/ (!all || global_comm.rank == 0)){
+    printf("\nTensor %d of dimension %d is mapped to a ", tid, tsr->ndim);
+    for (i=0; i<topovec[tsr->itopo].ndim-1; i++){
+            printf("%d-by-", topovec[tsr->itopo].dim_comm[i].np);
+    }
+    if (topovec[tsr->itopo].ndim > 0)
+            printf("%d topology.\n", topovec[tsr->itopo].dim_comm[i].np);
+    for (i=0; i<tsr->ndim; i++){
+      switch (tsr->edge_map[i].type){
+        case NOT_MAPPED:
+          printf("Dimension %d of length %d and symmetry %d is not mapped\n",i,tsr->edge_len[i],tsr->sym[i]);
+          break;
+
+        case PHYSICAL_MAP:
+          printf("Dimension %d of length %d and symmetry %d is mapped to physical dimension %d with phase %d\n",
+            i,tsr->edge_len[i],tsr->sym[i],tsr->edge_map[i].cdt,tsr->edge_map[i].np);
+          map = &tsr->edge_map[i];
+          while (map->has_child){
+            map = map->child;
+            if (map->type == VIRTUAL_MAP)
+              printf("\tDimension %d also has a virtualized child of phase %d\n", i, map->np);
+            else
+              printf("\tDimension %d also has a physical child mapped to physical dimension %d with phase %d\n",
+                      i, map->cdt, map->np);
+          }
+          break;
+
+        case VIRTUAL_MAP:
+          printf("Dimension %d of length %d and symmetry %d is mapped virtually with phase %d\n",
+            i,tsr->edge_len[i],tsr->sym[i],tsr->edge_map[i].np);
+          break;
+      }
+    }
+  }
+  fflush(stdout);
+  if (all)
+    COMM_BARRIER(global_comm);
+#endif
 
   return DIST_TENSOR_SUCCESS;
 

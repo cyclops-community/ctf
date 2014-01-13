@@ -31,6 +31,7 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     interface/ctf_idx_tensor.o \
                     interface/ctf_sparse_tensor.o \
                     interface/ctf_flop_counter.o \
+                    ctr_comm/seq_tsr.o \
                     shared/util.o \
                     shared/timer.o \
                     shared/memcontrol.o \

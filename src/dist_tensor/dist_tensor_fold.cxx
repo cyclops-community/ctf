@@ -965,11 +965,6 @@ int dist_tensor<dtype>::map_fold(CTF_sum_type_t const * type,
     CTF_free(fold_idx);
     return DIST_TENSOR_ERROR;
   }
-#if DEBUG >= 3
-  for (i=0; i<nfold; i++){
-    printf("Folding index %d\n",fold_idx[i]);
-  }
-#endif
 
   /* overestimate this space to not bother with it later */
   CTF_alloc_ptr(nfold*sizeof(int), (void**)&fidx_map_A);
@@ -1080,11 +1075,6 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
     CTF_free(fold_idx);
     return DIST_TENSOR_ERROR;
   }
-#if DEBUG >= 3
-  for (i=0; i<nfold; i++){
-    printf("Folding index %d\n",fold_idx[i]);
-  }
-#endif
 
   /* overestimate this space to not bother with it later */
   CTF_alloc_ptr(nfold*sizeof(int), (void**)&fidx_map_A);

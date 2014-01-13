@@ -15,15 +15,49 @@
  *********************************************************/
 #include "mpi.h"
 #include "util.h"
+//latency time per message
+#define COST_LATENCY 1.e-6
+//memory bandwidth: time per per byte
+#define COST_MEMBW 1.e-9
+//network bandwidth: time per byte
+#define COST_NETWBW 5.e-10
+//flop cost: time per flop
+#define COST_FLOP 2.e-11
+
 
 //typedef MPI_Comm COMM;
 
-typedef struct CommData {
+typedef class CommData {
+  public:
   MPI_Comm cm;
   int np;
   int rank;
   int color;
   int alive;
+ 
+  double estimate_bcast_time(long_int msg_sz) {
+#ifdef BGQ
+    return msg_sz*COST_NETWBW+COST_LATENCY;
+#else
+    return msg_sz*(double)log2(np)*COST_NETWBW;
+#endif
+  }
+  
+  double estimate_allred_time(long_int msg_sz) {
+#ifdef BGQ
+    return msg_sz*(2.*COST_MEMBW+COST_NETWBW)+COST_LATENCY;
+#else
+    return msg_sz*(double)log2(np)*(2.*COST_MEMBW+COST_FLOP+COST_NETWBW);
+#endif
+  }
+  
+  double estimate_alltoall_time(long_int chunk_sz) {
+    return chunk_sz*np*log2(np)*COST_NETWBW+2.*log2(np)*COST_LATENCY;
+  }
+  
+  double estimate_alltoallv_time(long_int tot_sz) {
+    return 2.*tot_sz*log2(np)*COST_NETWBW+2.*log2(np)*COST_LATENCY;
+  }
 } CommData_t;
 
 #define SET_COMM(_cm, _rank, _np, _cdt) \

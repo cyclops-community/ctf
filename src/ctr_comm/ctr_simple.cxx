@@ -63,6 +63,27 @@ long_int ctr_dgemm<dtype>::mem_fp(){
   return 0;
 }
 
+
+/**
+ * \brief returns the number of bytes this kernel will send per processor
+ * \return bytes sent
+ */
+template<typename dtype>
+double ctr_dgemm<dtype>::est_time_fp(int nlyr) {
+  /* FIXME make cost proper, for now return sizes of each submatrix scaled by .2 */
+  LIBT_ASSERT(0);
+  return n*m+m*k+n*k;
+}
+
+/**
+ * \brief returns the number of bytes send by each proc recursively 
+ * \return bytes needed for recursive contraction
+ */
+template<typename dtype>
+double ctr_dgemm<dtype>::est_time_rec(int nlyr) {
+  return est_time_fp(nlyr);
+}
+
 /**
  * \brief a wrapper for zgemm
  */
@@ -251,23 +272,23 @@ void ctr_replicate<dtype>::print() {
  * \return bytes needed
  */
 template<typename dtype>
-uint64_t ctr_replicate<dtype>::comm_fp(int nlyr){
+double ctr_replicate<dtype>::est_time_fp(int nlyr){
   int i;
-  long_int tot_sz;
-  tot_sz = 0;
+  double tot_sz;
+  tot_sz = 0.0;
   for (i=0; i<ncdt_A; i++){
     LIBT_ASSERT(cdt_A[i].np > 0);
-    tot_sz += size_A*log(cdt_A[i].np);
+    tot_sz += cdt_A[i].estimate_bcast_time(size_A*sizeof(dtype));
   }
   for (i=0; i<ncdt_B; i++){
     LIBT_ASSERT(cdt_B[i].np > 0);
-    tot_sz += size_B*log(cdt_B[i].np);
+    tot_sz += cdt_B[i].estimate_bcast_time(size_B*sizeof(dtype));
   }
   for (i=0; i<ncdt_C; i++){
     LIBT_ASSERT(cdt_C[i].np > 0);
-    tot_sz += size_C*log(cdt_C[i].np);
+    tot_sz += cdt_C[i].estimate_allred_time(size_C*sizeof(dtype));
   }
-  return ((uint64_t)tot_sz)*sizeof(dtype);
+  return tot_sz;
 }
 
 /**
@@ -275,8 +296,8 @@ uint64_t ctr_replicate<dtype>::comm_fp(int nlyr){
  * \return bytes needed for recursive contraction
  */
 template<typename dtype>
-uint64_t ctr_replicate<dtype>::comm_rec(int nlyr) {
-  return rec_ctr->comm_rec(nlyr) + comm_fp(nlyr);
+double ctr_replicate<dtype>::est_time_rec(int nlyr) {
+  return rec_ctr->est_time_rec(nlyr) + est_time_fp(nlyr);
 }
 
 /**

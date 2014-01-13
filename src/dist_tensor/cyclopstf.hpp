@@ -86,7 +86,7 @@ inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
 #define VERIFY_REMAP 0
 #define FOLD_TSR 1
 #define PERFORM_DESYM 1
-#define ALLOW_NVIRT 32
+#define ALLOW_NVIRT 1024
 #define DIAG_RESCALE
 #define USE_SYM_SUM
 #define HOME_CONTRACT

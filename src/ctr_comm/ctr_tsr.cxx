@@ -68,6 +68,19 @@ void ctr_virt<dtype>::print() {
 }
 
 
+/**
+ * \brief returns the number of bytes send by each proc recursively 
+ * \return bytes needed for recursive contraction
+ */
+template<typename dtype>
+double ctr_virt<dtype>::est_time_rec(int nlyr) {
+  /* FIXME: for now treat flops like comm, later make proper cost */
+  int nvirt = 1;
+  for (int dim=0; dim<num_dim; dim++){
+    nvirt *= virt_dim[dim];
+  }
+  return nvirt*rec_ctr->est_time_rec(nlyr);
+}
 
 
 /**

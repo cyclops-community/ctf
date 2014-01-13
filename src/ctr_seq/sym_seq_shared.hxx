@@ -5,6 +5,12 @@
 #include "../shared/util.h"
 #include <limits.h>
 
+struct iparam {
+  int n;
+  int m;
+  int k;
+  long_int sz_C;
+};
 
 
 /**
