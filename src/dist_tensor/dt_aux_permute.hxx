@@ -2546,9 +2546,6 @@ int cyclic_reshuffle(int const          ndim,
   old_nvirt = 1;
   old_np = 1;
   new_np = 1;
-  if (ord_glb_comm.rank == 0){
-    DPRINTF(3,"is_cyclic = %d, was_cyclic = %d\n",is_cyclic,was_cyclic);
-  }
   idx_lyr = ord_glb_comm.rank;
   for (i=0; i<ndim; i++) {
     buf_lda[i] = nbuf;
@@ -2953,7 +2950,7 @@ void block_reshuffle(int const        ndim,
         blk_idx += ( idx[i] + new_rank[i]*new_virt_dim[i])                 *phase_lda[i];
         prc_idx += ((idx[i] + new_rank[i]*new_virt_dim[i])/old_virt_dim[i])*old_pe_lda[i];
       }
-      DPRINTF(3,"proc %d receiving blk %d (loc %d, size "PRId64") from proc %d\n", 
+      DPRINTF(4,"proc %d receiving blk %d (loc %d, size "PRId64") from proc %d\n", 
               glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx);
       MPI_Irecv(tsr_cyclic_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
                 MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+loc_idx);
@@ -2980,7 +2977,7 @@ void block_reshuffle(int const        ndim,
         blk_idx += ( idx[i] + old_rank[i]*old_virt_dim[i])                 *phase_lda[i];
         prc_idx += ((idx[i] + old_rank[i]*old_virt_dim[i])/new_virt_dim[i])*new_pe_lda[i];
       }
-      DPRINTF(3,"proc %d sending blk %d (loc %d) to proc %d\n", 
+      DPRINTF(4,"proc %d sending blk %d (loc %d) to proc %d\n", 
               glb_comm.rank, blk_idx, loc_idx, prc_idx);
       MPI_Isend(tsr_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
                 MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
