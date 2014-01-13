@@ -76,19 +76,19 @@ uint64_t ctr_2d_general<dtype>::comm_fp(int nlyr) {
   if (move_A){
     np_A        = cdt_A.np;
     b_A         = edge_len/np_A;
-    s_A         = ctr_lda_A*ctr_sub_lda_A*(long_int)log(cdt_A.np);
+    s_A         = cdt_A.estimate_cost(ctr_lda_A*ctr_sub_lda_A);
     db          = MIN(b_A, db);
   } 
   if (move_B){
     np_B        = cdt_B.np;
     b_B         = edge_len/np_B;
-    s_B         = ctr_lda_B*ctr_sub_lda_B*(long_int)log(cdt_B.np);
+    s_B         = cdt_B.estimate_cost(ctr_lda_B*ctr_sub_lda_B);
     db          = MIN(b_B, db);
   }
   if (move_C){
     np_C        = cdt_C.np;
     b_C         = edge_len/np_C;
-    s_C         = ctr_lda_C*ctr_sub_lda_C*(long_int)log(cdt_C.np);
+    s_C         = cdt_C.estimate_cost(ctr_lda_C*ctr_sub_lda_C);
     db          = MIN(b_C, db);
   }
   return ((s_A+s_B+s_C)*(uint64_t)db*sizeof(dtype)*edge_len/db)/MIN(nlyr,edge_len);
