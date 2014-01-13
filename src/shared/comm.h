@@ -18,12 +18,21 @@
 
 //typedef MPI_Comm COMM;
 
-typedef struct CommData {
+typedef class CommData {
+  public:
   MPI_Comm cm;
   int np;
   int rank;
   int color;
   int alive;
+ 
+  uint64_t estimate_cost(uint64_t msg_sz) {
+#ifdef BGQ
+    return msg_sz;
+#else
+    return msg_sz*((uint64_t)log2(np)+1);
+#endif
+  }
 } CommData_t;
 
 #define SET_COMM(_cm, _rank, _np, _cdt) \

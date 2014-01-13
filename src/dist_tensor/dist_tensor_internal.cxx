@@ -636,11 +636,14 @@ uint64_t seq_tsr_ctr<dtype>::comm_fp(int nlyr){
   uint64_t size_A = sy_packed_size(ndim_A, edge_len_A, sym_A);
   uint64_t size_B = sy_packed_size(ndim_B, edge_len_B, sym_B);
   uint64_t size_C = sy_packed_size(ndim_C, edge_len_C, sym_C);
-  if (is_inner) size_A *= inner_params.m*inner_params.k;
-  if (is_inner) size_B *= inner_params.n*inner_params.k;
-  if (is_inner) size_C *= inner_params.m*inner_params.n;
+  if (is_inner) size_A *= inner_params.m*inner_params.k*sizeof(dtype);
+  if (is_inner) size_B *= inner_params.n*inner_params.k*sizeof(dtype);
+  if (is_inner) size_C *= inner_params.m*inner_params.n*sizeof(dtype);
   
-  return .1*(size_A+size_B+size_C);
+  uint64_t flops = 2*inner_params.m;
+  flops *= inner_params.n;
+  flops *= inner_params.k;
+  return .1*(size_A+size_B+size_C)+.002*flops;
 }
 
 template<typename dtype>

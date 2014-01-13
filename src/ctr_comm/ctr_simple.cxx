@@ -277,15 +277,15 @@ uint64_t ctr_replicate<dtype>::comm_fp(int nlyr){
   tot_sz = 0;
   for (i=0; i<ncdt_A; i++){
     LIBT_ASSERT(cdt_A[i].np > 0);
-    tot_sz += size_A*log(cdt_A[i].np);
+    tot_sz += cdt_A[i].estimate_cost(size_A);
   }
   for (i=0; i<ncdt_B; i++){
     LIBT_ASSERT(cdt_B[i].np > 0);
-    tot_sz += size_B*log(cdt_B[i].np);
+    tot_sz += cdt_B[i].estimate_cost(size_B);
   }
   for (i=0; i<ncdt_C; i++){
     LIBT_ASSERT(cdt_C[i].np > 0);
-    tot_sz += size_C*log(cdt_C[i].np);
+    tot_sz += cdt_C[i].estimate_cost(size_C);
   }
   return ((uint64_t)tot_sz)*sizeof(dtype);
 }
