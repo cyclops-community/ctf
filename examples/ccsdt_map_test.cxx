@@ -25,15 +25,17 @@ int ccsdt_map_test(int const     n,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
-  int shapeAS6[] = {NS,AS,NS,NS,NS,NS};
+  int shapeAS6[] = {AS,AS,NS,AS,AS,NS};
   int mmmnnn[] = {m,m,m,n,n,n};
+  int shapeNS4[] = {NS,NS,NS,NS};
+  int mnmn[] = {m,n,m,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Matrix W(n, n, NS, dw, "W", 1);
+  CTF_Tensor W(4, mnmn, shapeNS4, dw, "W", 1);
   CTF_Tensor T(6, mmmnnn, shapeAS6, dw, "T", 1);
   CTF_Tensor Z(6, mmmnnn, shapeAS6, dw, "Z", 1);
 
-  Z["abcijk"] += W["mj"]*T["abcimk"];
+  Z["612745"] += W["6307"]*T["012345"];
 
   return 1;
 } 

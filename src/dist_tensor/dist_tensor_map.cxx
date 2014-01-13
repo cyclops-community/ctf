@@ -156,8 +156,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   uint64_t size;
   uint64_t min_size = UINT64_MAX;
   /* Attempt to map to all possible permutations of processor topology */
-  for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
-//  for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
+//  for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
+  for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
     clear_mapping(tsr_A);
     clear_mapping(tsr_B);
     set_padding(tsr_A);
@@ -544,7 +544,7 @@ int dist_tensor<dtype>::
   if (!check_self_mapping(tid_B, idx_B))
     pass = 0;
   if (pass == 0)
-    DPRINTF(3,"failed confirmation here\n");
+    DPRINTF(4,"failed confirmation here\n");
 
   for (i=0; i<ndim_tot; i++){
     iA = idx_arr[2*i];
@@ -552,7 +552,7 @@ int dist_tensor<dtype>::
     if (iA != -1 && iB != -1) {
       if (!comp_dim_map(&tsr_A->edge_map[iA], &tsr_B->edge_map[iB])){
         pass = 0;
-        DPRINTF(3,"failed confirmation here i=%d\n",i);
+        DPRINTF(4,"failed confirmation here i=%d\n",i);
       }
     }
     if (iA != -1) {
@@ -1186,7 +1186,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       if (comm_vol < bcomm_vol) {
         bcomm_vol = comm_vol;
         bmemuse = memuse;
-        bnvirt = nvirt;
+        bnvirt = 1;//nvirt;
         btopo = 6*i+j;      
       }  
       delete sctr;
