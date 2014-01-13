@@ -73,13 +73,13 @@ void ctr_virt<dtype>::print() {
  * \return bytes needed for recursive contraction
  */
 template<typename dtype>
-uint64_t ctr_virt<dtype>::comm_rec(int nlyr) {
+double ctr_virt<dtype>::est_time_rec(int nlyr) {
   /* FIXME: for now treat flops like comm, later make proper cost */
   int nvirt = 1;
   for (int dim=0; dim<num_dim; dim++){
     nvirt *= virt_dim[dim];
   }
-  return nvirt*rec_ctr->comm_rec(nlyr);
+  return nvirt*rec_ctr->est_time_rec(nlyr);
 }
 
 

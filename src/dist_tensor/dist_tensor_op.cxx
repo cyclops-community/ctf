@@ -2955,6 +2955,11 @@ int dist_tensor<dtype>::
     print_map(stdout, type->tid_C);
 #endif
     ctrf = construct_contraction(type, ftsr, felm, alpha, beta);
+    if (global_comm.rank == 0){
+      uint64_t memuse = ctrf->mem_rec();
+      VPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
+              (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
+    }
   }
 #endif
   LIBT_ASSERT(check_contraction_mapping(type));

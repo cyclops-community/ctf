@@ -14,6 +14,10 @@
 #include <vector>
 #include <complex>
 #include <unistd.h>
+
+typedef int64_t long_int;
+volatile static long_int long_int_max = INT64_MAX;
+
 #include "comm.h"
 
 #if (defined(__X86_64__) || defined(__IA64__) || defined(__amd64__) || \
@@ -49,8 +53,6 @@
 void CTF_flops_add(long_int n);
 long_int CTF_get_flops();
 
-typedef int64_t long_int;
-volatile static long_int long_int_max = INT64_MAX;
 //doesn't work with OpenMPI
 //volatile static long_int mpi_long_int = MPI_LONG_LONG_INT;
 

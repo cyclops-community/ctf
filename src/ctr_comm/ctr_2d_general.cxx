@@ -66,39 +66,39 @@ ctr<dtype> * ctr_2d_general<dtype>::clone() {
  * \return bytes sent
  */
 template<typename dtype>
-uint64_t ctr_2d_general<dtype>::comm_fp(int nlyr) {
+double ctr_2d_general<dtype>::est_time_fp(int nlyr) {
   long_int db;
   int np_A,     np_B,   np_C;
   long_int b_A,         b_B,    b_C;
-  long_int s_A,         s_B,    s_C;
+  double s_A,         s_B,    s_C;
   db = long_int_max;
   s_A = 0, s_B = 0, s_C = 0;
   if (move_A){
     np_A        = cdt_A.np;
     b_A         = edge_len/np_A;
-    s_A         = cdt_A.estimate_cost(ctr_lda_A*ctr_sub_lda_A);
+    s_A         = cdt_A.estimate_bcast_time(sizeof(dtype)*ctr_lda_A*ctr_sub_lda_A);
     db          = MIN(b_A, db);
   } 
   if (move_B){
     np_B        = cdt_B.np;
     b_B         = edge_len/np_B;
-    s_B         = cdt_B.estimate_cost(ctr_lda_B*ctr_sub_lda_B);
+    s_B         = cdt_B.estimate_bcast_time(sizeof(dtype)*ctr_lda_B*ctr_sub_lda_B);
     db          = MIN(b_B, db);
   }
   if (move_C){
     np_C        = cdt_C.np;
     b_C         = edge_len/np_C;
-    s_C         = cdt_C.estimate_cost(ctr_lda_C*ctr_sub_lda_C);
+    s_C         = cdt_C.estimate_allred_time(sizeof(dtype)*ctr_lda_C*ctr_sub_lda_C);
     db          = MIN(b_C, db);
   }
-  return ((s_A+s_B+s_C)*(uint64_t)db*sizeof(dtype)*edge_len/db)/MIN(nlyr,edge_len);
+  return ((s_A+s_B+s_C)*(double)db*edge_len/db)/MIN(nlyr,edge_len);
 }
 /**
  * \brief returns the number of bytes send by each proc recursively 
  * \return bytes needed for recursive contraction
  */
 template<typename dtype>
-uint64_t ctr_2d_general<dtype>::comm_rec(int nlyr) {
+double ctr_2d_general<dtype>::est_time_rec(int nlyr) {
   long_int db;
   db = long_int_max;
   if (move_A)
@@ -107,7 +107,7 @@ uint64_t ctr_2d_general<dtype>::comm_rec(int nlyr) {
     db          = MIN(db,edge_len/cdt_B.np);
   if (move_C)
     db          = MIN(db,edge_len/cdt_C.np);
-  return (edge_len/db)*rec_ctr->comm_rec(1) + comm_fp(nlyr);
+  return (edge_len/db)*rec_ctr->est_time_rec(1) + est_time_fp(nlyr);
 }
 
 /**

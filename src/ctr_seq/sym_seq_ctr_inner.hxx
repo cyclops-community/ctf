@@ -7,12 +7,6 @@
 #include <limits.h>
 #include "sym_seq_shared.hxx"
 
-struct iparam {
-  int n;
-  int m;
-  int k;
-  long_int sz_C;
-};
 
 
 /**
