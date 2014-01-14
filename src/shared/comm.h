@@ -37,7 +37,7 @@ typedef class CommData {
  
   double estimate_bcast_time(long_int msg_sz) {
 #ifdef BGQ
-    return msg_sz*COST_NETWBW+COST_LATENCY;
+    return msg_sz*(double)COST_NETWBW+COST_LATENCY;
 #else
     return msg_sz*(double)log2(np)*COST_NETWBW;
 #endif
@@ -45,7 +45,7 @@ typedef class CommData {
   
   double estimate_allred_time(long_int msg_sz) {
 #ifdef BGQ
-    return msg_sz*(2.*COST_MEMBW+COST_NETWBW)+COST_LATENCY;
+    return msg_sz*(double)(2.*COST_MEMBW+COST_NETWBW)+COST_LATENCY;
 #else
     return msg_sz*(double)log2(np)*(2.*COST_MEMBW+COST_FLOP+COST_NETWBW);
 #endif
