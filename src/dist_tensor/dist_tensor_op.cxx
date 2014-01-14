@@ -2982,7 +2982,7 @@ int dist_tensor<dtype>::
   if (get_global_comm().rank == 0)
     ctrf->print();
 #endif
-
+  double dtt = MPI_Wtime();
   if (get_global_comm().rank == 0){
     DPRINTF(1,"[%d] performing contraction\n",
         get_global_comm().rank);
@@ -3007,7 +3007,7 @@ int dist_tensor<dtype>::
     stat = zero_out_padding(type->tid_C);
 #endif
   if (get_global_comm().rank == 0){
-    DPRINTF(1, "Contraction completed.\n");
+    VPRINTF(1, "Contraction permutation completed in %lf sec.\n",MPI_Wtime()-dtt);
   }
 
 
