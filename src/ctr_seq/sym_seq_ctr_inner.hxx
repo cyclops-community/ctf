@@ -6,7 +6,7 @@
 #include "../shared/util.h"
 #include <limits.h>
 #include "sym_seq_shared.hxx"
-
+#include "offload.h"
 
 
 /**
@@ -69,15 +69,34 @@ int sym_seq_ctr_inr( dtype const        alpha,
   }
   idx_A = 0, idx_B = 0, idx_C = 0;
   sym_pass = 1;
+
+#ifdef OFFLOAD
+  offload_ptr<dtype> ptr_A(prm->m*prm->k);
+  offload_ptr<dtype> ptr_B(prm->k*prm->n);
+  offload_ptr<dtype> ptr_C(prm->m*prm->n);
+#endif
+
   for (;;){
     //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
     if (sym_pass){
 //      C[idx_C] += alpha*A[idx_A]*B[idx_B];
       TAU_FSTART(gemm);
+#ifdef OFFLOAD
+//      if (prm->m*prm->n*prm->k > 1000){
+      ptr_A.upload(A+idx_A*stride_A);
+      ptr_B.upload(B+idx_B*stride_B);
+      ptr_C.upload(C+idx_C*stride_C);
+      offload_gemm<dtype>('T', 'N', prm->m, prm->n, prm->k, alpha, 
+                          ptr_A, prm->k,
+                          ptr_B, prm->k, 1.0,
+                          ptr_C, prm->m);
+      ptr_C.download(C+idx_C*stride_C);
+#else
       cxgemm<dtype>('T', 'N', prm->m, prm->n, prm->k, alpha, 
                      A+idx_A*stride_A, prm->k,
                      B+idx_B*stride_B, prm->k, 1.0,
                      C+idx_C*stride_C, prm->m);
+#endif
       TAU_FSTOP(gemm);
       // count n^2 FLOPS too
       CTF_FLOPS_ADD((2 * (long_int)prm->n * (long_int)prm->m * (long_int)(prm->k+1)));

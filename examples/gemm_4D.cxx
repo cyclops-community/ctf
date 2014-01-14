@@ -99,7 +99,7 @@ int  gemm_4D(int const    n,
     if (pass)
       printf("{ (A[\"ijmn\"]*B[\"mnpq\"])*C[\"pqkl\"] = A[\"ijmn\"]*(B[\"mnpq\"]*C[\"pqkl\"]) } passed\n");
     else 
-      printf("{ (A[\"ijmn\"]*B[\"mnpq\"])*C[\"pqkl\"] = A[\"ijmn\"]*(B[\"mnpq\"]*C[\"pqkl\"]) } passed\n");
+      printf("{ (A[\"ijmn\"]*B[\"mnpq\"])*C[\"pqkl\"] = A[\"ijmn\"]*(B[\"mnpq\"]*C[\"pqkl\"]) } failed!\n");
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
   return pass;

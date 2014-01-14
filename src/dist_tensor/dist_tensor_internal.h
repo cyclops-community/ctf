@@ -61,6 +61,8 @@ class distribution {
 
   void serialize(char ** buffer, int * size);
   void deserialize(char const * buffer);
+  private:
+  void free_data();
 };
 
 

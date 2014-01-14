@@ -11,8 +11,9 @@ distribution::distribution(){
   ndim = -1;
 }
 
-distribution::~distribution(){
+void distribution::free_data(){
   if (ndim != -1){
+
     CTF_free(phase);
     CTF_free(virt_phase);
     CTF_free(pe_lda);
@@ -21,6 +22,10 @@ distribution::~distribution(){
     CTF_free(perank);
   }
   ndim = -1;
+}
+
+distribution::~distribution(){
+  free_data();
 }
 
 void distribution::serialize(char ** buffer_, int * bufsz_){
@@ -64,6 +69,8 @@ void distribution::serialize(char ** buffer_, int * bufsz_){
 
 void distribution::deserialize(char const * buffer){
   int buffer_ptr = 0;
+  
+  free_data();
 
   ndim = ((int*)(buffer+buffer_ptr))[0];
   buffer_ptr += sizeof(int);

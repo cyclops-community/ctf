@@ -105,6 +105,9 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
 #ifdef HPM
     HPM_Start("CTF");
 #endif
+#ifdef OFFLOAD
+    offload_init();
+#endif
     CTF_set_context(global_context);
     CTF_set_main_args(argc, argv);
 
@@ -1006,10 +1009,13 @@ int tCTF<dtype>::exit(){
     initialized = 0;
     CTF_mem_exit(rank);
     if (CTF_get_num_instances() == 0){
-      TAU_FSTOP(CTF);
+#ifdef OFFLOAD
+      offload_exit();
+#endif
 #ifdef HPM
       HPM_Stop("CTF");
 #endif
+      TAU_FSTOP(CTF);
     }
     return ret;
   } else

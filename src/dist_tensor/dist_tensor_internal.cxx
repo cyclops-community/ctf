@@ -728,9 +728,9 @@ int dist_tensor<dtype>::add_to_subworld(int                 tid,
     dist_tensor<dtype> dt_self;
     dt_self.initialize(cdt, 0, NULL, 0);
     dt_self.define_tensor(0, NULL, NULL, &dtid);
-    return slice_tensor(tid, offsets, offsets, alpha, this, dtid, NULL, NULL, beta, &dt_self);
+    slice_tensor(tid, offsets, offsets, alpha, this, dtid, NULL, NULL, beta, &dt_self);
   } else {
-    return slice_tensor(tid, offsets, lens, alpha, this, tid_sub, offsets, lens, beta, dt_sub);
+    slice_tensor(tid, offsets, lens, alpha, this, tid_sub, offsets, lens, beta, dt_sub);
   }
 #else
   int fw_mirror_rank, bw_mirror_rank;
@@ -757,8 +757,10 @@ int dist_tensor<dtype>::add_to_subworld(int                 tid,
     MPI_Wait(&req, &stat);
   }
   CTF_free(sub_buffer);
-  return DIST_TENSOR_SUCCESS; 
 #endif
+  CTF_free(lens);
+  CTF_free(sym);
+  return DIST_TENSOR_SUCCESS; 
 }
 
 template<typename dtype>
@@ -780,9 +782,9 @@ int dist_tensor<dtype>::add_from_subworld(int                 tid,
     dist_tensor<dtype> dt_self;
     dt_self.initialize(cdt, 0, NULL, 0);
     dt_self.define_tensor(0, NULL, NULL, &dtid);
-    return slice_tensor(dtid, NULL, NULL, alpha, &dt_self, tid, offsets, offsets, beta, this);
+    slice_tensor(dtid, NULL, NULL, alpha, &dt_self, tid, offsets, offsets, beta, this);
   } else {
-    return slice_tensor(tid_sub, offsets, lens, alpha, dt_sub, tid, offsets, lens, beta, this);
+    slice_tensor(tid_sub, offsets, lens, alpha, dt_sub, tid, offsets, lens, beta, this);
   }
 #else
   int fw_mirror_rank, bw_mirror_rank;
@@ -796,8 +798,10 @@ int dist_tensor<dtype>::add_from_subworld(int                 tid,
   redistribute(sym, global_comm, odst, sub_buffer,     alpha,
                                  idst, this_tsr->data,  beta);
   CTF_free(sub_buffer);
-  return DIST_TENSOR_SUCCESS;
 #endif
+  CTF_free(lens);
+  CTF_free(sym);
+  return DIST_TENSOR_SUCCESS; 
 }
     
 

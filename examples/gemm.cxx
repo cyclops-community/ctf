@@ -117,7 +117,7 @@ int  gemm(int const     m,
       if (pass)
         printf("{ (A[\"ij\"]*B[\"jk\"])*C[\"kl\"] = A[\"ij\"]*(B[\"jk\"]*C[\"kl\"]) } passed\n");
       else 
-        printf("{ (A[\"ij\"]*B[\"jk\"])*C[\"kl\"] = A[\"ij\"]*(B[\"jk\"]*C[\"kl\"]) } passed\n");
+        printf("{ (A[\"ij\"]*B[\"jk\"])*C[\"kl\"] = A[\"ij\"]*(B[\"jk\"]*C[\"kl\"]) } failed!\n");
     } else 
       MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     free(pairs_AB);
