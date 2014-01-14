@@ -1312,7 +1312,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   memuse = MAX((uint64_t)(*ctrf)->mem_rec(), (uint64_t)(tsr_A->size+tsr_B->size+tsr_C->size)*sizeof(dtype)*3);
   if (global_comm.rank == 0)
     VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
-            (double)memuse,(double)proc_bytes_available(),best_time);
+            (double)memuse,(double)proc_bytes_available(),gbest_time);
           
   if (tsr_A->is_cyclic == 0 &&
       tsr_B->is_cyclic == 0 &&
