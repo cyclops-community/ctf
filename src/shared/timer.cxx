@@ -48,11 +48,11 @@ class function_timer{
     }
 
     void compute_totals(MPI_Comm comm){ 
-      MPI_Allreduce(&acc_time, &total_time, 1, 
+      PMPI_Allreduce(&acc_time, &total_time, 1, 
                     MPI_DOUBLE, MPI_SUM, comm);
-      MPI_Allreduce(&acc_excl_time, &total_excl_time, 1, 
+      PMPI_Allreduce(&acc_excl_time, &total_excl_time, 1, 
                     MPI_DOUBLE, MPI_SUM, comm);
-      MPI_Allreduce(&calls, &total_calls, 1, 
+      PMPI_Allreduce(&calls, &total_calls, 1, 
                     MPI_INT, MPI_SUM, comm);
     }
 
@@ -160,13 +160,14 @@ void CTF_Timer::exit(){
       //function_timers.clear();
       return;
     }
-    int rank, np, i, j, p, len_symbols;
+    int rank, np, i, j, p, len_symbols, nrecv_symbols;
 
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
 
 
     char all_symbols[MAX_TOT_SYMBOLS_LEN];
+    char recv_symbols[MAX_TOT_SYMBOLS_LEN];
     FILE * output = NULL;
 
     if (rank == 0){
@@ -213,37 +214,38 @@ void CTF_Timer::exit(){
       strcat(heading,part);
       fprintf(output, "%s", heading);
 
-      len_symbols = 0;
-      for (i=0; i<(int)function_timers.size(); i++){
-        sprintf(all_symbols+len_symbols, "%s", function_timers[i].name);
-        len_symbols += strlen(function_timers[i].name)+1;
-      }
+    }
+    len_symbols = 0;
+    for (i=0; i<(int)function_timers.size(); i++){
+      sprintf(all_symbols+len_symbols, "%s", function_timers[i].name);
+      len_symbols += strlen(function_timers[i].name)+1;
     }
     if (np > 1){
-      for (p=0; p<np; p++){
-        if (rank == p){
-          MPI_Send(&len_symbols, 1, MPI_INT, (p+1)%np, 1, comm);
-          MPI_Send(all_symbols, len_symbols, MPI_CHAR, (p+1)%np, 2, comm);
+      for (int lp=1; lp<log2(np)+1; lp++){
+        int gap = 1<<lp;
+        if (rank%gap == gap/2){
+          PMPI_Send(&len_symbols, 1, MPI_INT, rank-gap/2, 1, comm);
+          PMPI_Send(all_symbols, len_symbols, MPI_CHAR, rank-gap/2, 2, comm);
         }
-        if (rank == (p+1)%np){
+        if (rank%gap==0 && rank+gap/2<np){
           MPI_Status stat;
-          MPI_Recv(&len_symbols, 1, MPI_INT, p, 1, comm, &stat);
-          MPI_Recv(all_symbols, len_symbols, MPI_CHAR, p, 2, comm, &stat);
-          for (i=0; i<(int)function_timers.size(); i++){
+          PMPI_Recv(&nrecv_symbols, 1, MPI_INT, rank+gap/2, 1, comm, &stat);
+          PMPI_Recv(recv_symbols, nrecv_symbols, MPI_CHAR, rank+gap/2, 2, comm, &stat);
+          for (i=0; i<nrecv_symbols; i+=strlen(recv_symbols+i)+1){
             j=0;
-            while (j<len_symbols && strcmp(all_symbols+j, function_timers[i].name) != 0){
+            while (j<len_symbols && strcmp(all_symbols+j, recv_symbols+i) != 0){
               j+=strlen(all_symbols+j)+1;
             }
             
             if (j>=len_symbols){
-              sprintf(all_symbols+len_symbols, "%s", function_timers[i].name);
-              len_symbols += strlen(function_timers[i].name)+1;
+              sprintf(all_symbols+len_symbols, "%s", recv_symbols+i);
+              len_symbols += strlen(recv_symbols+i)+1;
             }
           }
         }
       }
-      MPI_Bcast(&len_symbols, 1, MPI_INT, 0, comm);
-      MPI_Bcast(all_symbols, len_symbols, MPI_CHAR, 0, comm);
+      PMPI_Bcast(&len_symbols, 1, MPI_INT, 0, comm);
+      PMPI_Bcast(all_symbols, len_symbols, MPI_CHAR, 0, comm);
       j=0;
       while (j<len_symbols){
         CTF_Timer t(all_symbols+j);
