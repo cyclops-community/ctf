@@ -245,8 +245,8 @@ double seq_tsr_ctr<dtype>::est_time_fp(int nlyr){
   }
   for (int i=0; i<idx_max; i++){
     if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
-    else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_A[rev_idx_map[3*i+1]];
-    else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_A[rev_idx_map[3*i+2]];
+    else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
+    else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
   }
   CTF_free(rev_idx_map);
   return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
