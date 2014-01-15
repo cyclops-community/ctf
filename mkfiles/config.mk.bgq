@@ -2,7 +2,8 @@ DEFAULT_COMPONENTS = ctf
 
 BGQ_ESSL    = /soft/libraries/essl/current/
 LIBS        = -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r
-CXX	        = mpixlcxx_r
+CXX	    = mpixlcxx_r
+OFFLOAD_CXX = $(CXX)
 WARN_FLAGS  = #-Drestrict = -Wall 
 OPT_FLAGS   = -g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport
 CXXFLAGS    = -qsmp=omp $(OPT_FLAGS) $(WARN_FLAGS) 

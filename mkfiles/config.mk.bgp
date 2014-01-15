@@ -5,6 +5,7 @@ BGP_ESSL    = /soft/apps/ESSL-4.4.1-0
 BLAS        = -lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread
 LIBS        = $(BLAS)
 CXX	        = mpixlcxx_r
+OFFLOAD_CXX = $(CXX)
 WARN_FLAGS  = #-Drestrict = -Wall 
 OPT_FLAGS   = -qnoipa -g -O3
 CXXFLAGS    = -qsmp=omp  $(OPT_FLAGS) $(WARN_FLAGS) 

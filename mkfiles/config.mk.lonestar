@@ -7,6 +7,7 @@ BLAS        = -I$(TACC_MKL_INC) -Wl,-rpath,$(TACC_MKL_LIB) \
               -Wl,--end-group -lpthread
 LIBS        = $(BLAS) 
 CXX         = mpicxx
+OFFLOAD_CXX = $(CXX)
 WARN_FLAGS  = #-Drestrict = -Wall 
 OPT_FLAGS   = -g -O3
 CXXFLAGS    = -openmp $(OPT_FLAGS) $(WARN_FLAGS) 

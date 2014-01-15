@@ -3,6 +3,7 @@ DEFAULT_COMPONENTS = ctf
 BLAS        = 
 LIBS        =  
 CXX         = CC
+OFFLOAD_CXX = $(CXX)
 WARN_FLAGS  = #-Drestrict = -Wall 
 OPT_FLAGS   = -g -O3
 CXXFLAGS    = -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) 
