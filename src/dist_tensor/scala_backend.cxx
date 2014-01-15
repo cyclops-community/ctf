@@ -1,6 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "dist_tensor_internal.h"
+#include "../shared/offload.h"
 
 #if (defined BGP || defined BGQ)
 #define BLACS_GRIDINFO blacs_gridinfo
@@ -16,25 +17,22 @@ inline
 void BLACS_GRIDINFO(int *, int *, int *, int *, int *) { assert(0); }
 #endif
 
-
-
-
 template<typename dtype, int is_herm_A, int is_herm_B>
-int  gemm_ctr( dtype const      alpha,
-               dtype const *    A,
+int gemm_ctr(  dtype  const     alpha,
+               dtype  const *   A,
                int const        ndim_A,
                int const *      edge_len_A,
                int const *      lda_A,
                int const *      sym_A,
                int const *      idx_map_A,
-               dtype const *    B,
+               dtype  const *   B,
                int const        ndim_B,
                int const *      edge_len_B,
                int const *      lda_B,
                int const *      sym_B,
                int const *      idx_map_B,
-               dtype const      beta,
-               dtype *          C,
+               dtype  const     beta,
+               dtype  *         C,
                int const        ndim_C,
                int const *      edge_len_C,
                int const *      lda_C,
@@ -79,12 +77,35 @@ int  gemm_ctr( dtype const      alpha,
   LIBT_ASSERT(n==edge_len_C[1]);
   la_C = m;
 
+
+#ifdef OFFLOAD
+  TAU_FSTART(offload_alloc);
+  offload_ptr<dtype> ptr_A(m*k);
+  offload_ptr<dtype> ptr_B(k*n);
+  offload_ptr<dtype> ptr_C(m*n);
+  TAU_FSTOP(offload_alloc);
+  TAU_FSTART(offload_upload);
+  ptr_A.upload(A);
+  ptr_B.upload(B);
+  ptr_C.upload(C);
+  TAU_FSTOP(offload_upload);
+  TAU_FSTART(offload_gemm);
+  TAU_FSTART(dgemm);
+  offload_gemm<dtype>(ta, tb, m, n, k, alpha, 
+                      ptr_A, la_A,
+                      ptr_B, la_B, beta,
+                      ptr_C, la_C);
+  TAU_FSTOP(dgemm);
+  TAU_FSTART(offload_download);
+  ptr_C.download(C);
+  TAU_FSTOP(offload_download);
+#else
   TAU_FSTART(dgemm);
   cxgemm(ta, tb, m, n, k, alpha, A, la_A, B, la_B, beta, C, la_C);
   TAU_FSTOP(dgemm);
+#endif
   return 0;
 }
-
 
 /*
 #define DECLARE_GEMM_CTR(type, herm_A, herm_B)          \

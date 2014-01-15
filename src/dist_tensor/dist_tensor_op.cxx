@@ -2931,8 +2931,11 @@ int dist_tensor<dtype>::
   assert(stat == DIST_TENSOR_SUCCESS);
 #endif
   /* Check if the current tensor mappings can be contracted on */
+  fseq_tsr_ctr<dtype> fftsr=ftsr;
+  if (ftsr.func_ptr == NULL)
+    fftsr.func_ptr = &sym_seq_ctr_ref<dtype>;
 #if REDIST
-  stat = map_tensors(type, ftsr, felm, alpha, beta, &ctrf);
+  stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
   if (stat == DIST_TENSOR_ERROR) {
     printf("Failed to map tensors to physical grid\n");
     return DIST_TENSOR_ERROR;
@@ -2940,7 +2943,7 @@ int dist_tensor<dtype>::
 #else
   if (check_contraction_mapping(type) == 0) {
     /* remap if necessary */
-    stat = map_tensors(type, ftsr, felm, alpha, beta, &ctrf);
+    stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
     if (stat == DIST_TENSOR_ERROR) {
       printf("Failed to map tensors to physical grid\n");
       return DIST_TENSOR_ERROR;
@@ -2954,7 +2957,7 @@ int dist_tensor<dtype>::
     print_map(stdout, type->tid_B);
     print_map(stdout, type->tid_C);
 #endif
-    ctrf = construct_contraction(type, ftsr, felm, alpha, beta);
+    ctrf = construct_contraction(type, fftsr, felm, alpha, beta);
     if (global_comm.rank == 0){
       uint64_t memuse = ctrf->mem_rec();
       VPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
@@ -2964,7 +2967,9 @@ int dist_tensor<dtype>::
 #endif
   LIBT_ASSERT(check_contraction_mapping(type));
 #if FOLD_TSR
-  if (felm.func_ptr == NULL  && can_fold(type)){
+  if (felm.func_ptr == NULL && 
+      ftsr.func_ptr == NULL && //sym_seq_ctr_ref<dtype> && 
+      can_fold(type)){
     iparam prm;
     TAU_FSTART(map_fold);
     stat = map_fold(type, &prm);
@@ -2974,9 +2979,9 @@ int dist_tensor<dtype>::
     }
     if (stat == DIST_TENSOR_SUCCESS){
       delete ctrf;
-      ctrf = construct_contraction(type, ftsr, felm, alpha, beta, 2, &prm);
+      ctrf = construct_contraction(type, fftsr, felm, alpha, beta, 2, &prm);
     }
-  }
+  } 
 #endif
 #if DEBUG >=2
   if (get_global_comm().rank == 0)

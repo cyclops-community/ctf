@@ -557,7 +557,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *  type,
                           dtype const             alpha,
                           dtype const             beta){
   fseq_tsr_ctr<dtype> fs;
-  fs.func_ptr=sym_seq_ctr_ref<dtype>;
+  fs.func_ptr=NULL;//sym_seq_ctr_ref<dtype>;
   return contract(type, fs, alpha, beta);
 }
 
@@ -675,7 +675,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
   dt->print_ctr(type,alpha,beta);
 #endif
   fseq_tsr_ctr<dtype> fs;
-  fs.func_ptr=sym_seq_ctr_ref<dtype>;
+  fs.func_ptr=NULL;//sym_seq_ctr_ref<dtype>;
   int ret = dt->home_contract(type, fs, felm, alpha, beta);
 #if DEBUG >= 1
   if (dt->get_global_comm().rank == 0)

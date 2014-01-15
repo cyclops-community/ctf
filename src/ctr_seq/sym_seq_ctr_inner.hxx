@@ -6,7 +6,7 @@
 #include "../shared/util.h"
 #include <limits.h>
 #include "sym_seq_shared.hxx"
-#include "offload.h"
+#include "../shared/offload.h"
 
 
 /**

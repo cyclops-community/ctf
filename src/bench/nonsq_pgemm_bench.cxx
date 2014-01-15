@@ -403,10 +403,12 @@ int main(int argc, char **argv) {
   startTime = MPI_Wtime();
   for (iter=0; iter < num_iter; iter++){
     //seq_square_matmul(mat_A, mat_B, mat_C, blockDim, 0);
+    TAU_FSTART(ctf_pgemm_bench);
     myctf->pgemm('T','N', m, n, k, ALPHA, 
 	    mat_A, 1, 1, desc_a,
 	    mat_B, 1, 1, desc_b, BETA,
 	    mat_C, 1, 1, desc_c); 
+    TAU_FSTOP(ctf_pgemm_bench);
 //    myctf->pgemm('T', 'N', ALPHA, tid_A, tid_B, BETA, tid_C);
     if (iter == 0)
       ans_verify = mat_C[2];

@@ -32,7 +32,7 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     interface/ctf_sparse_tensor.o \
                     interface/ctf_flop_counter.o \
                     ctr_comm/seq_tsr.o \
-                    ctr_seq/offload.o \
+                    shared/offload.o \
                     shared/util.o \
                     shared/timer.o \
                     shared/memcontrol.o \
@@ -40,9 +40,9 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     dist_tensor/distribution.o \
                     dist_tensor/cyclopstf.o 
 
-ctr_seq/offload.o: ctr_seq/offload.h ctr_seq/offload.cxx $(_DEPENDENCIES)
+shared/offload.o: shared/offload.h shared/offload.cxx $(_DEPENDENCIES)
 	@mkdir -p $(DEPDIR)
-	$(OFFLOAD_CXX) -c ctr_seq/offload.cxx -o ctr_seq/offload.o
+	$(OFFLOAD_CXX) -c shared/offload.cxx -o shared/offload.o
 
 #INCLUDES += -I${top_dir}/src/ctr_comm -I${top_dir}/src/ctr_seq -I${top_dir}/src/dist_tensor -I${top_dir}/src/util -I${top_dir}/src/interface
 
