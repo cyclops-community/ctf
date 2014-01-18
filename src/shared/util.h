@@ -39,6 +39,7 @@ volatile static long_int long_int_max = INT64_MAX;
 #ifndef __APPLE__
 #ifndef OMP_OFF
 #define USE_OMP
+#include "omp.h"
 #endif
 #endif
 

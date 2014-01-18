@@ -3,7 +3,6 @@ DEFAULT_COMPONENTS = ctf
 BLAS        = 
 LIBS        =  
 CXX         = CC
-OFFLOAD_CXX = $(CXX)
 WARN_FLAGS  = #-Drestrict = -Wall 
 OPT_FLAGS   = -g -O3
 CXXFLAGS    = -openmp $(OPT_FLAGS) $(WARN_FLAGS) 
@@ -27,3 +26,4 @@ DEFS       := $(DEFS) -DPRODUCTION -DCTF_COMPLEX
 #LIBS      := $(LIBS) -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack -lgfortran
 #DEFS      := $(DEFS) -DUSE_SCALAPACK
 
+OFFLOAD_CXX = $(CXX) $(DEFS) -x c -c

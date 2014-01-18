@@ -9,7 +9,8 @@
  */
 template<typename dtype>
 ctr_2d_general<dtype>::~ctr_2d_general() {
-   delete rec_ctr;
+  if (rec_ctr != NULL)
+    delete rec_ctr;
 }
 
 /**

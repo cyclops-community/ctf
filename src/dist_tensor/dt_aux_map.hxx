@@ -127,6 +127,180 @@ int calc_tot_phase(tensor<dtype> const * tsr){
   return tot_phase;
 }
 
+/**
+ * \brief sets up a ctr_2d_general (2D SUMMA) level where A is not communicated
+ *        function will be called with A/B/C permuted depending on desired alg
+ *
+ * \param[in] i index in the total index map currently worked on
+ * \param[in,out] virt_dim virtual processor grid lengths
+ * \param[out] cg_edge_len edge lengths of ctr_2d_gen object to set
+ * \param[in,out] total_iter the total number of ctr_2d_gen iterations
+ * \param[in] topovec vector of topologies
+ * \param[in] tsr_A A tensor
+ * \param[in] i_A the index in A to which index i corresponds
+ * \param[out] cg_cdt_A the communicator for A to be set for ctr_2d_gen
+ * \param[out] cg_ctr_lda_A parameter of ctr_2d_gen corresponding to upper lda for lda_cpy
+ * \param[out] cg_ctr_sub_lda_A parameter of ctr_2d_gen corresponding to lower lda for lda_cpy
+ * \param[out] cg_move_A tells ctr_2d_gen whether A should be communicated
+ * \param[in,out] blk_len_A lengths of local A piece after this ctr_2d_gen level
+ * \param[in,out] blk_sz_A size of local A piece after this ctr_2d_gen level
+ * \param[in] virt_blk_edge_len_A edge lengths of virtual blocks of A
+ * \param[in] load_phase_A tells the offloader how often A buffer changes for ctr_2d_gen
+ *
+ * ... the other parameters are specified the same as for _A but this time for _B and _C
+ */
+template<typename dtype>
+int  ctr_2d_gen_build(int                     i,
+                      int                   * virt_dim,
+                      int                   & cg_edge_len,
+                      int                   & total_iter,
+                      std::vector<topology> & topovec,
+                      tensor<dtype>         * tsr_A,
+                      int                     i_A,
+                      CommData_t            & cg_cdt_A,
+                      long_int              & cg_ctr_lda_A,
+                      long_int              & cg_ctr_sub_lda_A,
+                      bool                  & cg_move_A,
+                      int                   * blk_len_A,
+                      long_int              & blk_sz_A,
+                      int const             * virt_blk_len_A,
+                      int                   & load_phase_A,
+                      tensor<dtype>         * tsr_B,
+                      int                     i_B,
+                      CommData_t            & cg_cdt_B,
+                      long_int              & cg_ctr_lda_B,
+                      long_int              & cg_ctr_sub_lda_B,
+                      bool                  & cg_move_B,
+                      int                   * blk_len_B,
+                      long_int              & blk_sz_B,
+                      int const             * virt_blk_len_B,
+                      int                   & load_phase_B,
+                      tensor<dtype>         * tsr_C,
+                      int                     i_C,
+                      CommData_t            & cg_cdt_C,
+                      long_int              & cg_ctr_lda_C,
+                      long_int              & cg_ctr_sub_lda_C,
+                      bool                  & cg_move_C,
+                      int                   * blk_len_C,
+                      long_int              & blk_sz_C,
+                      int const             * virt_blk_len_C,
+                      int                   & load_phase_C){
+  mapping * map;
+  int j;
+  int nstep = 1;
+  if (comp_dim_map(&tsr_C->edge_map[i_C], &tsr_B->edge_map[i_B])){
+    map = &tsr_B->edge_map[i_B];
+    while (map->has_child) map = map->child;
+    if (map->type == VIRTUAL_MAP){
+      virt_dim[i] = map->np;
+    }
+    return 0;
+  } else {
+    if (tsr_B->edge_map[i_B].type == VIRTUAL_MAP &&
+      tsr_C->edge_map[i_C].type == VIRTUAL_MAP){
+      virt_dim[i] = tsr_B->edge_map[i_B].np;
+      return 0;
+    } else {
+      cg_edge_len = 1;
+      if (tsr_B->edge_map[i_B].type == PHYSICAL_MAP){
+        cg_edge_len = lcm(cg_edge_len, tsr_B->edge_map[i_B].np);
+        cg_cdt_B = topovec[tsr_B->itopo].dim_comm[tsr_B->edge_map[i_B].cdt];
+        nstep = tsr_B->edge_map[i_B].np;
+        cg_move_B = 1;
+      } else
+        cg_move_B = 0;
+      if (tsr_C->edge_map[i_C].type == PHYSICAL_MAP){
+        cg_edge_len = lcm(cg_edge_len, tsr_C->edge_map[i_C].np);
+        cg_cdt_C = topovec[tsr_C->itopo].dim_comm[tsr_C->edge_map[i_C].cdt];
+        nstep = MAX(nstep, tsr_C->edge_map[i_C].np);
+        cg_move_C = 1;
+      } else
+        cg_move_C = 0;
+      cg_ctr_lda_A = 1;
+      cg_ctr_sub_lda_A = 0;
+      cg_move_A = 0;
+
+
+      /* Adjust the block lengths, since this algorithm will cut
+         the block into smaller ones of the min block length */
+      /* Determine the LDA of this dimension, based on virtualization */
+      cg_ctr_lda_B  = 1;
+      if (tsr_B->edge_map[i_B].type == PHYSICAL_MAP)
+        cg_ctr_sub_lda_B= blk_sz_B*tsr_B->edge_map[i_B].np/cg_edge_len;
+      else
+        cg_ctr_sub_lda_B= blk_sz_B/cg_edge_len;
+      for (j=i_B+1; j<tsr_B->ndim; j++) {
+        cg_ctr_sub_lda_B = (cg_ctr_sub_lda_B *
+              virt_blk_len_B[j]) / blk_len_B[j];
+        cg_ctr_lda_B = (cg_ctr_lda_B*blk_len_B[j])
+              /virt_blk_len_B[j];
+      }
+      cg_ctr_lda_C  = 1;
+      if (tsr_C->edge_map[i_C].type == PHYSICAL_MAP)
+        cg_ctr_sub_lda_C= blk_sz_C*tsr_C->edge_map[i_C].np/cg_edge_len;
+      else
+        cg_ctr_sub_lda_C= blk_sz_C/cg_edge_len;
+      for (j=i_C+1; j<tsr_C->ndim; j++) {
+        cg_ctr_sub_lda_C = (cg_ctr_sub_lda_C *
+              virt_blk_len_C[j]) / blk_len_C[j];
+        cg_ctr_lda_C = (cg_ctr_lda_C*blk_len_C[j])
+              /virt_blk_len_C[j];
+      }
+      if (tsr_B->edge_map[i_B].type != PHYSICAL_MAP){
+        blk_sz_B  = blk_sz_B / nstep;
+        blk_len_B[i_B] = blk_len_B[i_B] / nstep;
+      } else {
+        blk_sz_B  = blk_sz_B * tsr_B->edge_map[i_B].np / nstep;
+        blk_len_B[i_B] = blk_len_B[i_B] * tsr_B->edge_map[i_B].np / nstep;
+      }
+      if (tsr_C->edge_map[i_C].type != PHYSICAL_MAP){
+        blk_sz_C  = blk_sz_C / nstep;
+        blk_len_C[i_C] = blk_len_C[i_C] / nstep;
+      } else {
+        blk_sz_C  = blk_sz_C * tsr_C->edge_map[i_C].np / nstep;
+        blk_len_C[i_C] = blk_len_C[i_C] * tsr_C->edge_map[i_C].np / nstep;
+      }
+
+      if (tsr_B->edge_map[i_B].has_child){
+        LIBT_ASSERT(tsr_B->edge_map[i_B].child->type == VIRTUAL_MAP);
+        virt_dim[i] = tsr_B->edge_map[i_B].np*tsr_B->edge_map[i_B].child->np/nstep;
+      }
+      if (tsr_C->edge_map[i_C].has_child) {
+        LIBT_ASSERT(tsr_C->edge_map[i_C].child->type == VIRTUAL_MAP);
+        virt_dim[i] = tsr_C->edge_map[i_C].np*tsr_C->edge_map[i_C].child->np/nstep;
+      }
+      if (tsr_C->edge_map[i_C].type == VIRTUAL_MAP){
+        virt_dim[i] = tsr_C->edge_map[i_C].np/nstep;
+      }
+      if (tsr_B->edge_map[i_B].type == VIRTUAL_MAP)
+        virt_dim[i] = tsr_B->edge_map[i_B].np/nstep;
+#ifdef OFFLOAD
+      total_iter *= nstep;
+      if (cg_ctr_sub_lda_A == 0)
+        load_phase_A *= nstep;
+      else 
+        load_phase_A  = 1;
+      if (cg_ctr_sub_lda_B == 0)   
+        load_phase_B *= nstep;
+      else 
+        load_phase_B  = 1;
+      if (cg_ctr_sub_lda_C == 0) 
+        load_phase_C *= nstep;
+      else 
+        load_phase_C  = 1;
+#endif
+    }
+  } 
+  return 1;
+}
+
+
+/**
+ * \brief stretch virtualization by a factor
+ * \param[in] ndim number of maps to stretch
+ * \param[in] stretch_factor factor to strech by
+ * \param[in] maps mappings along each dimension to stretch
+ */
 inline 
 int stretch_virt(int const ndim,
      int const stretch_factor,
