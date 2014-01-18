@@ -8,7 +8,7 @@
 #include "../ctr_comm/sum_tsr.h"
 #include "../ctr_comm/ctr_tsr.h"
 #include "../ctr_comm/ctr_comm.h"
-#include "../ctr_comm/seq_tsr.h"
+#include "../ctr_seq/seq_tsr.h"
 #include <limits.h>
 #include <stdint.h>
 

@@ -88,6 +88,8 @@ void seq_tsr_sum<dtype>::print(){
   for (i=0; i<ndim_B; i++){
     printf("edge_len_B[%d]=%d\n",i,edge_len_B[i]);
   }
+  printf("is inner = %d\n", is_inner);
+  if (is_inner) printf("inner stride = %d\n", inr_stride);
 }
 
 /**
@@ -162,7 +164,7 @@ template<typename dtype>
 void seq_tsr_ctr<dtype>::print(){
   int i;
   printf("seq_tsr_ctr:\n");
-  for (i=0; i<ndim_A; i++){
+  /*for (i=0; i<ndim_A; i++){
     printf("edge_len_A[%d]=%d\n",i,edge_len_A[i]);
   }
   for (i=0; i<ndim_B; i++){
@@ -170,7 +172,10 @@ void seq_tsr_ctr<dtype>::print(){
   }
   for (i=0; i<ndim_C; i++){
     printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
-  }
+  }*/
+  printf("is inner = %d\n", is_inner);
+  if (is_inner) printf("inner n = %d m= %d k = %d\n",
+                        inner_params.n, inner_params.m, inner_params.k);
 }
 
 /**

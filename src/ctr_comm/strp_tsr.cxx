@@ -255,8 +255,8 @@ long_int strp_ctr<dtype>::mem_rec() {
  * \return bytes needed for recursive contraction
  */
 template<typename dtype>
-uint64_t strp_ctr<dtype>::comm_rec(int nlyr) {
-  return rec_ctr->comm_rec(nlyr);
+double strp_ctr<dtype>::est_time_rec(int nlyr) {
+  return rec_ctr->est_time_rec(nlyr);
 }
 
 
@@ -367,8 +367,12 @@ void strp_scl<dtype>::run(){
 }
 
 
-
-
-
-
+template class strp_tsr<double>;
+template class strp_tsr< std::complex<double> >;
+template class strp_scl<double>;
+template class strp_scl< std::complex<double> >;
+template class strp_sum<double>;
+template class strp_sum< std::complex<double> >;
+template class strp_ctr<double>;
+template class strp_ctr< std::complex<double> >;
 

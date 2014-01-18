@@ -3,18 +3,18 @@
 #define __SEQ_TSR_H__
 
 #include "../dist_tensor/cyclopstf.hpp"
-#include "ctr_comm.h"
-#include "sum_tsr.h"
-#include "scale_tsr.h"
-#include "../ctr_seq/sym_seq_shared.hxx"
-#include "../ctr_seq/sym_seq_sum_inner.hxx"
-#include "../ctr_seq/sym_seq_ctr_inner.hxx"
-#include "../ctr_seq/sym_seq_scl_ref.hxx"
-#include "../ctr_seq/sym_seq_sum_ref.hxx"
-#include "../ctr_seq/sym_seq_ctr_ref.hxx"
-#include "../ctr_seq/sym_seq_scl_cust.hxx"
-#include "../ctr_seq/sym_seq_sum_cust.hxx"
-#include "../ctr_seq/sym_seq_ctr_cust.hxx"
+#include "../ctr_comm/ctr_comm.h"
+#include "../ctr_comm/sum_tsr.h"
+#include "../ctr_comm/scale_tsr.h"
+#include "sym_seq_shared.hxx"
+#include "sym_seq_sum_inner.hxx"
+#include "sym_seq_ctr_inner.hxx"
+#include "sym_seq_scl_ref.hxx"
+#include "sym_seq_sum_ref.hxx"
+#include "sym_seq_ctr_ref.hxx"
+#include "sym_seq_scl_cust.hxx"
+#include "sym_seq_sum_cust.hxx"
+#include "sym_seq_ctr_cust.hxx"
 
 template<typename dtype>
 class seq_tsr_ctr : public ctr<dtype> {

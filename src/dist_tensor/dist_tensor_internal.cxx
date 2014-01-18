@@ -1312,7 +1312,7 @@ int dist_tensor<dtype>::del_tsr(int const tid){
   tsr = tensors[tid];
   if (tsr != NULL){
     if (global_comm.rank == 0){
-      DPRINTF(1,"Deleting tensor %d\n",tid);
+      DPRINTF(3,"Deleting tensor %d\n",tid);
     }
     //unfold_tsr(tsr);
     if (tsr->is_folded){ 

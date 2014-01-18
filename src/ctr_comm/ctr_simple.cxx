@@ -366,6 +366,13 @@ void ctr_replicate<dtype>::run(){
   if (brank != 0){
     std::fill(this->B, this->B+size_B, get_zero<dtype>());
   }
-
-
 }
+
+template class ctr<double>;
+template class ctr< std::complex<double> >;
+template class ctr_replicate<double>;
+template class ctr_replicate< std::complex<double> >;
+template class ctr_lyr<double>;
+template class ctr_lyr< std::complex<double> >;
+template class ctr_dgemm<double>;
+template class ctr_dgemm< std::complex<double> >;

@@ -942,11 +942,11 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     LIBT_ASSERT(tsr_B->is_mapped);
     LIBT_ASSERT(tsr_C->is_mapped);
   #if DEBUG >= 2
-    /*if (global_comm.rank == 0)
+    if (global_comm.rank == 0)
       printf("Initial mappings:\n");
     print_map(stdout, type->tid_A);
     print_map(stdout, type->tid_B);
-    print_map(stdout, type->tid_C);*/
+    print_map(stdout, type->tid_C);
   #endif
     unmap_inner(tsr_A);
     unmap_inner(tsr_B);

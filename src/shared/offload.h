@@ -17,6 +17,7 @@ class offload_ptr {
 
     void download(dtype * host_ptr);
     void upload(dtype const * host_ptr);
+    void set_zero();
 };
 
 void host_pinned_alloc(void ** ptr, long_int size);
@@ -35,6 +36,21 @@ void offload_gemm( char                 tA,
                    int                  lda_B,
                    dtype                beta,
                    offload_ptr<dtype> & C,
+                   int                  lda_C);
+
+template <typename dtype>
+void offload_gemm( char                 tA,
+                   char                 tB,
+                   int                  m,
+                   int                  n,
+                   int                  k,
+                   dtype                alpha,
+                   dtype const        * dev_A,
+                   int                  lda_A,
+                   dtype const        * dev_B,
+                   int                  lda_B,
+                   dtype                beta,
+                   dtype              * dev_C,
                    int                  lda_C);
 
 #endif

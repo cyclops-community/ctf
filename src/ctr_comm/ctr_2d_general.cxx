@@ -390,3 +390,5 @@ void ctr_2d_general<dtype>::run() {
 }
 
 
+template class ctr_2d_general<double>;
+template class ctr_2d_general< std::complex<double> >;

@@ -62,7 +62,7 @@ class ctr_virt_25d : public ctr<dtype> {
 };
 
 
-#include "ctr_tsr.cxx"
+//#include "ctr_tsr.cxx"
 //#include "ctr_tsr_25d.cxx"
 
 #endif // __CTR_TSR_H__

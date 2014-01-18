@@ -5,6 +5,7 @@
 #include <cublas_v2.h>
 #include "../shared/util.h"
 #include "offload.h"
+#include "device_launch_parameters.h"
 
 int initialized = 0;
 cublasHandle_t cuhandle;
@@ -69,6 +70,86 @@ void offload_ptr<dtype>::upload(dtype const * host_ptr){
   LIBT_ASSERT(err == cudaSuccess);
 }
 
+
+template <typename dtype>
+__global__ void gset_zero(dtype *arr, int64_t size, dtype val) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+  for (int i=idx; i<size; i+= gridDim.x*blockDim.x) {
+    arr[i]=val;
+  }
+}
+
+/**
+ * \brief set array to 0
+ */
+template <typename dtype>
+void offload_ptr<dtype>::set_zero(){
+  int blockSize = 256;
+  int numBlocks = (size + blockSize - 1) / (size);
+  gset_zero<<<blockSize, numBlocks>>>(dev_ptr, size, get_zero<dtype>());
+}
+
+
+void host_pinned_alloc(void ** ptr, long_int size){
+  cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
+  LIBT_ASSERT(err == cudaSuccess);
+}
+
+void host_pinned_free(void * ptr){
+  cudaError_t err = cudaFreeHost(ptr);
+  LIBT_ASSERT(err == cudaSuccess);
+}
+
+/**
+ * \brief performs an offloaded gemm using device pointer of objects
+ *        specialized instantization to double
+ */
+template <typename dtype>
+void offload_gemm(char                  tA,
+                  char                  tB,
+                  int                   m,
+                  int                   n,
+                  int                   k,
+                  dtype                 alpha,
+                  offload_ptr<dtype> &  A,
+                  int                   lda_A,
+                  offload_ptr<dtype> &  B,
+                  int                   lda_B,
+                  dtype                 beta,
+                  offload_ptr<dtype> &  C,
+                  int                   lda_C){
+  offload_gemm(tA, tB, m, n, k, alpha, A.dev_ptr, lda_A, B.dev_ptr, lda_B, beta, C.dev_ptr, lda_C);
+}
+template 
+void offload_gemm(char                  tA,
+                  char                  tB,
+                  int                   m,
+                  int                   n,
+                  int                   k,
+                  double                alpha,
+                  offload_ptr<double> & A,
+                  int                   lda_A,
+                  offload_ptr<double> & B,
+                  int                   lda_B,
+                  double                beta,
+                  offload_ptr<double> & C,
+                  int                   lda_C);
+template 
+void offload_gemm(char                                  tA,
+                  char                                  tB,
+                  int                                   m,
+                  int                                   n,
+                  int                                   k,
+                  std::complex<double>                  alpha,
+                  offload_ptr< std::complex<double> > & A,
+                  int                                   lda_A,
+                  offload_ptr< std::complex<double> > & B,
+                  int                                   lda_B,
+                  std::complex<double>                  beta,
+                  offload_ptr< std::complex<double> > & C,
+                  int                                   lda_C);
+
 /**
  * \brief performs an offloaded gemm using device pointer of objects
  *        specialized instantization to double
@@ -80,12 +161,12 @@ void offload_gemm<double>(char                  tA,
                           int                   n,
                           int                   k,
                           double                alpha,
-                          offload_ptr<double> & A,
+                          double const        * dev_A,
                           int                   lda_A,
-                          offload_ptr<double> & B,
+                          double const        * dev_B,
                           int                   lda_B,
                           double                beta,
-                          offload_ptr<double> & C,
+                          double              * dev_C,
                           int                   lda_C){
   LIBT_ASSERT(initialized);
 
@@ -115,9 +196,9 @@ void offload_gemm<double>(char                  tA,
 
   cublasStatus_t status = 
     cublasDgemm(cuhandle, cuA, cuB, m, n, k, &alpha, 
-                A.dev_ptr, lda_A, 
-                B.dev_ptr, lda_B, &beta, 
-                C.dev_ptr, lda_C);
+                dev_A, lda_A, 
+                dev_B, lda_B, &beta, 
+                dev_C, lda_C);
   
   LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
 }
@@ -134,12 +215,12 @@ void offload_gemm< std::complex<double> >(
                          int                                   n,
                          int                                   k,
                          std::complex<double>                  alpha,
-                         offload_ptr< std::complex<double> > & A,
+                         std::complex<double> const          * dev_A,
                          int                                   lda_A,
-                         offload_ptr< std::complex<double> > & B,
+                         std::complex<double> const          * dev_B,
                          int                                   lda_B,
                          std::complex<double>                  beta,
-                         offload_ptr< std::complex<double> > & C,
+                         std::complex<double>                * dev_C,
                          int                                   lda_C){
   LIBT_ASSERT(initialized);
   
@@ -178,10 +259,10 @@ void offload_gemm< std::complex<double> >(
   cublasStatus_t status = 
     cublasZgemm(cuhandle, cuA, cuB, m, n, k, 
                 reinterpret_cast<cuDoubleComplex*>(&alpha), 
-                reinterpret_cast<cuDoubleComplex*>(A.dev_ptr), lda_A, 
-                reinterpret_cast<cuDoubleComplex*>(B.dev_ptr), lda_B, 
+                reinterpret_cast<const cuDoubleComplex*>(dev_A), lda_A, 
+                reinterpret_cast<const cuDoubleComplex*>(dev_B), lda_B, 
                 reinterpret_cast<cuDoubleComplex*>(&beta), 
-                reinterpret_cast<cuDoubleComplex*>(C.dev_ptr), lda_C);
+                reinterpret_cast<cuDoubleComplex*>(dev_C), lda_C);
   
   LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
 }

@@ -82,7 +82,7 @@ class strp_ctr : public ctr<dtype> {
     void run();
     long_int mem_fp();
     long_int mem_rec();
-    uint64_t comm_rec(int nlyr);
+    double est_time_rec(int nlyr);
     ctr<dtype> * clone();
   
     ~strp_ctr();
@@ -91,7 +91,7 @@ class strp_ctr : public ctr<dtype> {
 };
 
 
-#include "strp_tsr.cxx"
+//#include "strp_tsr.cxx"
 
 
 

@@ -5,6 +5,7 @@
 
 #include "../shared/comm.h"
 #include "../shared/util.h"
+#include "../shared/offload.h"
 
 /**
  * \addtogroup nest_dist Nested distributed contraction and summation routines
@@ -175,11 +176,43 @@ class ctr_lyr : public ctr<dtype> {
     ctr_lyr(){}
 };
 
+#ifdef OFFLOAD
+template<typename dtype>
+class ctr_offload : public ctr<dtype> {
+  public: 
+    /* Class to be called on sub-blocks */
+    ctr<dtype> * rec_ctr;
+    long_int size_A;
+    long_int size_B;
+    long_int size_C;
+    int iter_counter;
+    int total_iter;
+    int upload_phase_A;
+    int upload_phase_B;
+    int download_phase_C;
+    offload_ptr<dtype> * ptr_A;
+    offload_ptr<dtype> * ptr_B;
+    offload_ptr<dtype> * ptr_C;
+    
+    void print();
+    void run();
+    long_int mem_fp();
+    long_int mem_rec();
+    double est_time_fp(int nlyr);
+    double est_time_rec(int nlyr);
+    ctr<dtype> * clone();
+
+    ctr_offload(ctr<dtype> * other);
+    ~ctr_offload();
+    ctr_offload(){ iter_counter = 0; ptr_A = NULL; ptr_B = NULL; ptr_C = NULL; }
+};
+#endif
+
 //#include "ctr_1d_sqr_bcast.cxx"
 //#include "ctr_2d_sqr_bcast.cxx"
 //#include "ctr_2d_rect_bcast.cxx"
-#include "ctr_simple.cxx"
-#include "ctr_2d_general.cxx"
+//#include "ctr_simple.cxx"
+//#include "ctr_2d_general.cxx"
 
 /**
  * @}

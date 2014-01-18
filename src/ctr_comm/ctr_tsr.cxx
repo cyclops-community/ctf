@@ -227,5 +227,7 @@ do {                                                                    \
 }
 
 
+template class ctr_virt<double>;
+template class ctr_virt< std::complex<double> >;
 
 

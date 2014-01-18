@@ -1245,6 +1245,13 @@ ctr<dtype> * dist_tensor<dtype>::
     }
   }
 
+#ifdef OFFLOAD
+  int total_iter = 1;
+  int upload_phase_A = 1;
+  int upload_phase_B = 1;
+  int download_phase_C = 1;
+#endif
+
   nvirt = 1;
 /*  if (nvirt_all != NULL)
     *nvirt_all = 1;*/
@@ -1301,6 +1308,7 @@ ctr<dtype> * dist_tensor<dtype>::
         ctr_gen->ctr_sub_lda_A = 0;
         ctr_gen->move_A = 0;
 
+
         /* Adjust the block lengths, since this algorithm will cut
            the block into smaller ones of the min block length */
         /* Determine the LDA of this dimension, based on virtualization */
@@ -1354,7 +1362,23 @@ ctr<dtype> * dist_tensor<dtype>::
         }
         if (tsr_B->edge_map[i_B].type == VIRTUAL_MAP)
           virt_dim[i] = tsr_B->edge_map[i_B].np/nstep;
+#ifdef OFFLOAD
+        total_iter *= nstep;
+        if (ctr_gen->ctr_sub_lda_A == 0)
+          upload_phase_A *= nstep;
+        else 
+          upload_phase_A  = 1;
+        if (ctr_gen->ctr_sub_lda_B == 0)   
+          upload_phase_B *= nstep;
+        else 
+          upload_phase_B  = 1;
+        if (ctr_gen->ctr_sub_lda_C == 0) 
+          download_phase_C *= nstep;
+        else 
+          download_phase_C  = 1;
+#endif
       }
+
     }
       }
       if (i_B == -1){
@@ -1402,6 +1426,7 @@ ctr<dtype> * dist_tensor<dtype>::
             ctr_gen->ctr_lda_B = 1;
             ctr_gen->ctr_sub_lda_B = 0;
             ctr_gen->move_B = 0;
+
 
             /* Adjust the block lengths, since this algorithm will cut
                the block into smaller ones of the min block length */
@@ -1463,6 +1488,22 @@ ctr<dtype> * dist_tensor<dtype>::
             }
             if (tsr_A->edge_map[i_A].type == VIRTUAL_MAP)
               virt_dim[i] = tsr_A->edge_map[i_A].np/nstep;
+#ifdef OFFLOAD
+            total_iter *= nstep;
+            if (ctr_gen->ctr_sub_lda_A == 0)
+              upload_phase_A *= nstep;
+            else 
+              upload_phase_A  = 1;
+            if (ctr_gen->ctr_sub_lda_B == 0)   
+              upload_phase_B *= nstep;
+            else 
+              upload_phase_B  = 1;
+            if (ctr_gen->ctr_sub_lda_C == 0) 
+              download_phase_C *= nstep;
+            else 
+              download_phase_C  = 1;
+#endif
+
           }
         }
       }
@@ -1508,6 +1549,7 @@ ctr<dtype> * dist_tensor<dtype>::
             ctr_gen->ctr_lda_C = 1;
             ctr_gen->ctr_sub_lda_C = 0;
             ctr_gen->move_C = 0;
+
 
             /* Adjust the block lengths, since this algorithm will cut
                the block into smaller ones of the min block length */
@@ -1562,6 +1604,21 @@ ctr<dtype> * dist_tensor<dtype>::
               virt_dim[i] = tsr_B->edge_map[i_B].np/nstep;
             if (tsr_A->edge_map[i_A].type == VIRTUAL_MAP)
               virt_dim[i] = tsr_A->edge_map[i_A].np/nstep;
+#ifdef OFFLOAD
+            total_iter *= nstep;
+            if (ctr_gen->ctr_sub_lda_A == 0)
+              upload_phase_A *= nstep;
+            else 
+              upload_phase_A  = 1;
+            if (ctr_gen->ctr_sub_lda_B == 0)   
+              upload_phase_B *= nstep;
+            else 
+              upload_phase_B  = 1;
+            if (ctr_gen->ctr_sub_lda_C == 0) 
+              download_phase_C *= nstep;
+            else 
+              download_phase_C  = 1;
+#endif
           }
         }
       }
@@ -1607,6 +1664,29 @@ ctr<dtype> * dist_tensor<dtype>::
   memcpy(new_sym_B, tsr_B->sym, sizeof(int)*tsr_B->ndim);
   CTF_alloc_ptr(sizeof(int)*tsr_C->ndim, (void**)&new_sym_C);
   memcpy(new_sym_C, tsr_C->sym, sizeof(int)*tsr_C->ndim);
+
+#ifdef OFFLOAD
+  if (is_inner > 0){
+    ctr_offload<dtype> * ctroff = new ctr_offload<dtype>;
+    if (is_top){
+      hctr = ctroff;
+      hctr->idx_lyr = 0;
+      hctr->num_lyr = 0;
+      is_top = 0;
+    } else {
+      *rec_ctr = ctroff;
+    }
+    rec_ctr = &ctroff->rec_ctr;
+
+    ctroff->size_A = blk_sz_A;
+    ctroff->size_B = blk_sz_B;
+    ctroff->size_C = blk_sz_C;
+    ctroff->total_iter = total_iter;
+    ctroff->upload_phase_A = upload_phase_A;
+    ctroff->upload_phase_B = upload_phase_B;
+    ctroff->download_phase_C = download_phase_C;
+  }
+#endif
 
   /* Multiply over virtual sub-blocks */
   if (nvirt > 1){

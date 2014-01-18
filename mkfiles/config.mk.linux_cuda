@@ -27,4 +27,4 @@ DEFS      := $(DEFS) -DOFFLOAD -DUSE_CUDA
 LIBS      := $(LIBS) -L$(HOME)/work/scalapack-2.0.2/lib -lscalapack -lgfortran
 DEFS      := $(DEFS) -DUSE_SCALAPACK
 
-OFFLOAD_CXX = nvcc -ccbin g++ -m64 -O2 -g $(DEFS)
+OFFLOAD_CXX = nvcc -ccbin g++ -m64 $(OPT_FLAGS) $(DEFS) 

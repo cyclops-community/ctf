@@ -23,6 +23,8 @@
 #define COST_NETWBW 5.e-10
 //flop cost: time per flop
 #define COST_FLOP 2.e-11
+//flop cost: time per flop
+#define COST_OFFLOADBW 5.e-10
 
 
 //typedef MPI_Comm COMM;
@@ -39,7 +41,7 @@ typedef class CommData {
 #ifdef BGQ
     return msg_sz*(double)COST_NETWBW+COST_LATENCY;
 #else
-    return msg_sz*(double)log2(np)*COST_NETWBW;
+    return msg_sz*(double)log2((double)np)*COST_NETWBW;
 #endif
   }
   
@@ -47,16 +49,16 @@ typedef class CommData {
 #ifdef BGQ
     return msg_sz*(double)(2.*COST_MEMBW+COST_NETWBW)+COST_LATENCY;
 #else
-    return msg_sz*(double)log2(np)*(2.*COST_MEMBW+COST_FLOP+COST_NETWBW);
+    return msg_sz*(double)log2((double)np)*(2.*COST_MEMBW+COST_FLOP+COST_NETWBW);
 #endif
   }
   
   double estimate_alltoall_time(long_int chunk_sz) {
-    return chunk_sz*np*log2(np)*COST_NETWBW+2.*log2(np)*COST_LATENCY;
+    return chunk_sz*np*log2((double)np)*COST_NETWBW+2.*log2((double)np)*COST_LATENCY;
   }
   
   double estimate_alltoallv_time(long_int tot_sz) {
-    return 2.*tot_sz*log2(np)*COST_NETWBW+2.*log2(np)*COST_LATENCY;
+    return 2.*tot_sz*log2((double)np)*COST_NETWBW+2.*log2((double)np)*COST_LATENCY;
   }
 } CommData_t;
 
