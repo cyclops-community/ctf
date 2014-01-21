@@ -46,8 +46,13 @@ ${libdir}/libctf.a: interface/ctf_world.o \
                     dist_tensor/cyclopstf.o 
 
 shared/offload.o: shared/offload.h shared/offload.cu $(_DEPENDENCIES)
+ifneq (,$(findstring OFFLOAD,$(DEFS)))
 	@mkdir -p $(DEPDIR)
 	$(OFFLOAD_CXX) -c shared/offload.cu -o shared/offload.o
+else
+	touch shared/offload.o
+endif
 
+	
 #INCLUDES += -I${top_dir}/src/ctr_comm -I${top_dir}/src/ctr_seq -I${top_dir}/src/dist_tensor -I${top_dir}/src/util -I${top_dir}/src/interface
 
