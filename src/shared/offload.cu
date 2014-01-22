@@ -3,9 +3,33 @@
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
-#include "../shared/util.h"
-#include "offload.h"
+#include <complex>
+#include <assert.h>
+//#include "../shared/util.h"
 #include "device_launch_parameters.h"
+
+template<typename dtype>
+dtype get_zero(){
+  assert(0);
+}
+template<> inline
+double get_zero<double>() { return 0.0; }
+
+template<> inline
+std::complex<double> get_zero< std::complex<double> >() { return std::complex<double>(0.0,0.0); }
+
+
+typedef int64_t long_int;
+#ifndef LIBT_ASSERT
+#ifdef DEBUG
+#define LIBT_ASSERT(...)                \
+do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
+#else
+#define LIBT_ASSERT(...) do {} while(0 && (__VA_ARGS__))
+#endif
+#endif
+
+#include "offload.h"
 
 int initialized = 0;
 cublasHandle_t cuhandle;
