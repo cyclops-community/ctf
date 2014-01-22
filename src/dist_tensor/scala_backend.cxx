@@ -79,7 +79,7 @@ int gemm_ctr(  dtype  const     alpha,
 
 
 #ifdef OFFLOAD
-  TAU_FSTART(offload_alloc);
+  /*TAU_FSTART(offload_alloc);
   offload_ptr<dtype> ptr_A(m*k);
   offload_ptr<dtype> ptr_B(k*n);
   offload_ptr<dtype> ptr_C(m*n);
@@ -89,16 +89,16 @@ int gemm_ctr(  dtype  const     alpha,
   ptr_B.upload(B);
   ptr_C.upload(C);
   TAU_FSTOP(offload_upload);
-  TAU_FSTART(offload_gemm);
-  TAU_FSTART(dgemm);
+  TAU_FSTART(offload_gemm);*/
+  TAU_FSTART(offload_dgemm);
   offload_gemm<dtype>(ta, tb, m, n, k, alpha, 
-                      ptr_A, la_A,
-                      ptr_B, la_B, beta,
-                      ptr_C, la_C);
-  TAU_FSTOP(dgemm);
-  TAU_FSTART(offload_download);
+                      A, la_A,
+                      B, la_B, beta,
+                      C, la_C);
+  TAU_FSTOP(offload_dgemm);
+/*  TAU_FSTART(offload_download);
   ptr_C.download(C);
-  TAU_FSTOP(offload_download);
+  TAU_FSTOP(offload_download);*/
 #else
   TAU_FSTART(dgemm);
   cxgemm(ta, tb, m, n, k, alpha, A, la_A, B, la_B, beta, C, la_C);
