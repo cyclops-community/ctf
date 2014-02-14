@@ -155,8 +155,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   uint64_t size;
   uint64_t min_size = UINT64_MAX;
   /* Attempt to map to all possible permutations of processor topology */
-//  for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
-  for (i=global_comm.rank*topovec.size(); i<(int)topovec.size(); i++){
+  for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
+//  for (i=global_comm.rank*topovec.size(); i<2*(int)topovec.size(); i++){
     clear_mapping(tsr_A);
     clear_mapping(tsr_B);
     set_padding(tsr_A);
@@ -239,8 +239,8 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     return DIST_TENSOR_SUCCESS;*/
 
 #if DEBUG >= 3  
-    /*print_map(stdout, tid_A,0);
-    print_map(stdout, tid_B,0);*/
+    print_map(stdout, tid_A,0);
+    print_map(stdout, tid_B,0);
 #endif
     if (!check_sum_mapping(tid_A, idx_map_A, tid_B, idx_map_B)) continue;
     set_padding(tsr_A);
