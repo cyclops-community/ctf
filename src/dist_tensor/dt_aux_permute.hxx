@@ -1257,7 +1257,7 @@ int ** compute_bucket_offsets(int              ndim,
  * \param[in] old_virt_nelem the old number of elements per block
  * \param[in] old_offsets old offsets of each tensor edge (corner 1 of slice)
  * \param[in] old_permutation permutation array for each edge length (no perm if NULL)
- * \param[in] new_phys_np the new number of processors
+ * \param[in] total_np the total number of processors
  * \param[in] new_phys_rank ranks of this processor on the new processor grid
  * \param[in] new_phys_dim edge lengths of the new processor grid
  * \param[in] new_virt_dim new virtualization factors along each dimension
@@ -1282,7 +1282,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
                               long_int const   old_virt_nelem,
                               int const *      old_offsets,
                               int * const *    old_permutation,
-                              int const        new_phys_np,
+                              int const        total_np,
                               int const *      new_phys_rank,
                               int const *      new_phys_dim,
                               int const *      new_virt_dim,
@@ -1309,7 +1309,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
   int new_virt_np = 1;
   for (int dim = 0;dim < ndim;dim++) new_virt_np *= new_virt_dim[dim];
   
-  int nbucket = new_phys_np*(forward ? new_virt_np : old_virt_np);
+  int nbucket = total_np*(forward ? new_virt_np : old_virt_np);
 
 #if DEBUG >= 1
   int rank;
@@ -1555,7 +1555,11 @@ void pad_cyclic_pup_virt_buff(int              ndim,
             count_store[offset]  = count[bucket]++;
             thread_store[offset] = tid;
 #else
+            //printf("[%d] bucket = %d offset = %ld\n", rank, bucket, offset);
+            //printf("[%d] count[bucket] = %d, nbucket = %d\n", rank, count[bucket]++, nbucket);
+            //std::cout << old_data[offset] << "\n";
             new_data[bucket][count[bucket]++] = old_data[offset];
+            //std::cout << "new_data[bucket][count[bucket]++]" << new_data[bucket][count[bucket]-1] << "\n";
 #endif
             offset += old_virt_nelem;
           }
@@ -2640,7 +2644,7 @@ int cyclic_reshuffle(int const          ndim,
                                  old_rank, old_phys_dim, old_virt_dim,
                                  old_phys_edge_len, old_virt_edge_len,
                                  vbs_old, old_offsets, old_permutation,
-                                 new_np, new_rank, new_phys_dim, new_virt_dim,
+                                 np, new_rank, new_phys_dim, new_virt_dim,
                                  new_phys_edge_len, new_virt_edge_len,
                                  vbs_new,  
                                  tsr_data, new_data, 1, bucket_offset, 
@@ -2753,7 +2757,7 @@ int cyclic_reshuffle(int const          ndim,
                                  new_rank, new_phys_dim, new_virt_dim,
                                  new_phys_edge_len, new_virt_edge_len,
                                  vbs_new, new_offsets, new_permutation,
-                                 old_np, old_rank, old_phys_dim,  old_virt_dim,
+                                 np, old_rank, old_phys_dim,  old_virt_dim,
                                  old_phys_edge_len, old_virt_edge_len,
                                  vbs_old,  
                                  tsr_cyclic_data, new_data, 0, bucket_offset,
@@ -2817,7 +2821,7 @@ int cyclic_reshuffle(int const          ndim,
                                old_rank, old_phys_dim, old_virt_dim,
                                old_phys_edge_len, old_virt_edge_len,
                                vbs_old, old_offsets, old_permutation,
-                               new_np, new_rank, new_phys_dim, new_virt_dim,
+                               np, new_rank, new_phys_dim, new_virt_dim,
                                new_phys_edge_len, new_virt_edge_len,
                                vbs_new,  
                                tsr_data, new_data, 1, bucket_offset,
@@ -2862,7 +2866,7 @@ int cyclic_reshuffle(int const          ndim,
                                new_rank, new_phys_dim, new_virt_dim,
                                new_phys_edge_len, new_virt_edge_len,
                                vbs_new, new_offsets, new_permutation,
-                               old_np, old_rank, old_phys_dim,  old_virt_dim,
+                               np, old_rank, old_phys_dim,  old_virt_dim,
                                old_phys_edge_len, old_virt_edge_len,
                                vbs_old,  
                                tsr_cyclic_data, new_data, 0, bucket_offset,

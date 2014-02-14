@@ -515,8 +515,16 @@ int comp_dim_map(mapping const *  map_A,
                  mapping const *  map_B){
   if (map_A->type == NOT_MAPPED &&
       map_B->type == NOT_MAPPED) return 1;
-  if (map_A->type == NOT_MAPPED ||
-      map_B->type == NOT_MAPPED) return 0;
+/*  if (map_A->type == NOT_MAPPED ||
+      map_B->type == NOT_MAPPED) return 0;*/
+  if (map_A->type == NOT_MAPPED){
+    if (map_B->type == VIRTUAL_MAP && map_B->np == 1) return 1;
+    else return 0;
+  }
+  if (map_B->type == NOT_MAPPED){
+    if (map_A->type == VIRTUAL_MAP && map_A->np == 1) return 1;
+    else return 0;
+  }
 
   if (map_A->type == PHYSICAL_MAP){
     if (map_B->type != PHYSICAL_MAP || 
@@ -621,7 +629,6 @@ int save_mapping(tensor<dtype> *  tsr,
   return save_mapping(tsr, &dstrib.phase, &dstrib.perank, &dstrib.virt_phase, 
                       &dstrib.pe_lda, &dstrib.size, &dstrib.is_cyclic, &dstrib.padding, &dstrib.edge_len, topo);
 }
-
 
 /**
  * \brief adjust a mapping to maintan symmetry
@@ -1167,6 +1174,72 @@ int map_tensor_rem(int const    num_phys_dims,
   CTF_free(sub_phys_comm);
   CTF_free(comm_idx);
   return stat;
+}
+
+/**
+ * \brief extracts the set of physical dimensions still available for mapping
+ * \param[in] topo topology
+ * \param[in] ndim_A dimension of A
+ * \param[in] edge_map_A mapping of A
+ * \param[in] ndim_B dimension of B
+ * \param[in] edge_map_B mapping of B
+ * \param[out] num_sub_phys_dims number of free torus dimensions
+ * \param[out] sub_phys_comm the torus dimensions
+ * \param[out] comm_idx index of the free torus dimensions in the origin topology
+ */
+void extract_free_comms(topology const *  topo,
+                        int               ndim_A,
+                        mapping const *   edge_map_A,
+                        int               ndim_B,
+                        mapping const *   edge_map_B,
+                        int &             num_sub_phys_dims,
+                        CommData_t **     psub_phys_comm,
+                        int **            pcomm_idx){
+  int i;
+  int phys_mapped[topo->ndim];
+  CommData_t * sub_phys_comm;
+  int * comm_idx;
+  mapping const * map;
+  memset(phys_mapped, 0, topo->ndim*sizeof(int));  
+  
+  num_sub_phys_dims = 0;
+
+  for (i=0; i<ndim_A; i++){
+    map = &edge_map_A[i];
+    while (map->type == PHYSICAL_MAP){
+      phys_mapped[map->cdt] = 1;
+      if (map->has_child) map = map->child;
+      else break;
+    } 
+  }
+  for (i=0; i<ndim_B; i++){
+    map = &edge_map_B[i];
+    while (map->type == PHYSICAL_MAP){
+      phys_mapped[map->cdt] = 1;
+      if (map->has_child) map = map->child;
+      else break;
+    } 
+  }
+
+  num_sub_phys_dims = 0;
+  for (i=0; i<topo->ndim; i++){
+    if (phys_mapped[i] == 0){
+      num_sub_phys_dims++;
+    }
+  }
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
+  num_sub_phys_dims = 0;
+  for (i=0; i<topo->ndim; i++){
+    if (phys_mapped[i] == 0){
+      sub_phys_comm[num_sub_phys_dims] = topo->dim_comm[i];
+      comm_idx[num_sub_phys_dims] = i;
+      num_sub_phys_dims++;
+    }
+  }
+  *pcomm_idx = comm_idx;
+  *psub_phys_comm = sub_phys_comm;
+
 }
 
 /**

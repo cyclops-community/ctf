@@ -83,7 +83,7 @@ inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
 /* Force redistributions always by setting to 1 (use 2.5D algorithms) */
 #define REDIST 0
 //#define VERIFY 0
-#define VERIFY_REMAP 0
+#define VERIFY_REMAP 1
 #define FOLD_TSR 1
 #define PERFORM_DESYM 1
 #define ALLOW_NVIRT 1024
@@ -247,8 +247,14 @@ class tCTF{
                       int const *   edge_len,
                       int const *   sym,
                       int *         tensor_id,
+#if DEBUG < 3
                       char const *  name = NULL,
-                      int           profile = 0);
+                      int           profile = 0
+#else
+                      char const *  name = "X",
+                      int           profile = 1
+#endif
+                      );
 
     /* Create identical tensor with identical data if copy_data=1 */
     int clone_tensor(int const  tensor_id,

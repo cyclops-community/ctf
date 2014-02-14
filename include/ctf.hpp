@@ -140,8 +140,14 @@ class tCTF_Tensor {
                 int const *          len_,
                 int const *          sym_,
                 tCTF_World<dtype> &  world_,
-                char const *         name_ = NULL,
-                int                  profile_ = 0);
+#if DEBUG < 3
+                char const *  name_ = NULL,
+                int           profile_ = 0
+#else
+                char const *  name_ = "X",
+                int           profile_ = 1
+#endif
+                 );
     
     /**
      * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
