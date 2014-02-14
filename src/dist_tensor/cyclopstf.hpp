@@ -247,8 +247,14 @@ class tCTF{
                       int const *   edge_len,
                       int const *   sym,
                       int *         tensor_id,
+#if DEBUG < 3
                       char const *  name = NULL,
-                      int           profile = 0);
+                      int           profile = 0
+#else
+                      char const *  name = "X",
+                      int           profile = 1
+#endif
+                      );
 
     /* Create identical tensor with identical data if copy_data=1 */
     int clone_tensor(int const  tensor_id,

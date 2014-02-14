@@ -135,7 +135,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
       if (stack_size != NULL)
         imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
       if (rank == 0)
-        VPRINTF(1,"Creating stack of size "PRIu64" due to CTF_STACK_SIZE enviroment variable\n",
+        printf("Creating stack of size "PRIu64" due to CTF_STACK_SIZE enviroment variable\n",
                   imst_size);
       CTF_mst_create(imst_size);
     }

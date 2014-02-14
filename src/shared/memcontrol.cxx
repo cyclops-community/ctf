@@ -108,9 +108,10 @@ std::list<mem_transfer> CTF_contract_mst(){
       } else
         transfers.push_back(t);
     }
+    printf("Contracted MST\n");
+  // from size "PRId64" to size "PRId64"\n", 
     //DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
-    //DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
-      //          old_mst_buffer_ptr, mst_buffer_ptr);
+    //            old_mst_buffer_ptr, mst_buffer_ptr);
     old_mst.clear();
     TAU_FSTOP(CTF_contract_mst);
   }

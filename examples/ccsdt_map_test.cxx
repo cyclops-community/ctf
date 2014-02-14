@@ -17,7 +17,6 @@
 #include "../src/shared/util.h"
 
 int ccsdt_map_test(int const     n,
-                   int const     m,
                    CTF_World    &dw){
 
   int rank, i, num_pes;
@@ -25,17 +24,18 @@ int ccsdt_map_test(int const     n,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
-  int shapeAS6[] = {AS,AS,NS,AS,AS,NS};
-  int mmmnnn[] = {m,m,m,n,n,n};
+  //int shapeAS6[] = {AS,AS,NS,AS,AS,NS};
+  int shapeNS6[] = {NS,NS,NS,NS,NS,NS};
+  int nnnnnn[] = {n,n,n,n,n,n};
   int shapeNS4[] = {NS,NS,NS,NS};
-  int mnmn[] = {m,n,m,n};
+  int nnnn[] = {n,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor W(4, mnmn, shapeNS4, dw, "W", 1);
-  CTF_Tensor T(6, mmmnnn, shapeAS6, dw, "T", 1);
-  CTF_Tensor Z(6, mmmnnn, shapeAS6, dw, "Z", 1);
+  CTF_Tensor W(4, nnnn, shapeNS4, dw, "W", 1);
+  CTF_Tensor T(4, nnnn, shapeNS4, dw, "T", 1);
+  CTF_Tensor Z(6, nnnnnn, shapeNS6, dw, "Z", 1);
 
-  Z["612745"] += W["6307"]*T["012345"];
+  Z["hijmno"] += W["hijk"]*T["kmno"];
 
   return 1;
 } 
@@ -64,10 +64,6 @@ int main(int argc, char ** argv){
     n = atoi(getCmdOption(input_str, input_str+in_num, "-n"));
     if (n < 0) n = 4;
   } else n = 4;
-  if (getCmdOption(input_str, input_str+in_num, "-m")){
-    m = atoi(getCmdOption(input_str, input_str+in_num, "-m"));
-    if (m < 0) m = 6;
-  } else m = 6;
 
   if (getCmdOption(input_str, input_str+in_num, "-niter")){
     niter = atoi(getCmdOption(input_str, input_str+in_num, "-niter"));
@@ -78,7 +74,7 @@ int main(int argc, char ** argv){
 
   {
     CTF_World dw(argc, argv);
-    int pass = ccsdt_map_test(n, m, dw);
+    int pass = ccsdt_map_test(n, dw);
     assert(pass);
   }
 
