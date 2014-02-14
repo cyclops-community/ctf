@@ -31,6 +31,10 @@ all $(MAKECMDGOALS):
         if [ $(shell hostname | grep 'hopper' ) ] ;  then \
           echo 'Hostname recognized as Hopper, using pre-made config.mk file'; \
           cp mkfiles/config.mk.hopper config.mk;   \
+				else \
+					if [ $(shell hostname | grep 'titan' ) ] ;  then \
+						echo 'Hostname recognized as Titan, using pre-made config.mk file'; \
+						cp mkfiles/config.mk.titan config.mk;   \
 	else \
 	  if [ $(shell hostname | grep 'cvrsvc' ) ] ;  then \
 	    echo 'Hostname recognized as Carver, using pre-made config.mk file'; \
@@ -49,7 +53,8 @@ all $(MAKECMDGOALS):
 		  echo 'Hostname not recognized: assuming linux, specialize config.mk if necessary'; \
 		  cp mkfiles/config.mk.linux config.mk;   \
 		fi; \
-	      fi; \
+	      	fi; \
+	    	fi; \
 	    fi; \
 	  fi; \
 	fi; \
