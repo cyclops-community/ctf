@@ -83,7 +83,7 @@ inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
 /* Force redistributions always by setting to 1 (use 2.5D algorithms) */
 #define REDIST 0
 //#define VERIFY 0
-#define VERIFY_REMAP 1
+#define VERIFY_REMAP 0
 #define FOLD_TSR 1
 #define PERFORM_DESYM 1
 #define ALLOW_NVIRT 1024
