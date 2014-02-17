@@ -69,7 +69,7 @@ int bench_contraction(int          n,
 
   if (rank == 0)
     printf("Performed %d iterations of C[\"%s\"] += A[\"%s\"]*B[\"%s\"] in %lf sec/iter\n", 
-           niter, iA, iB, iC, (end_time-st_time)/niter);
+           niter, iC, iA, iB, (end_time-st_time)/niter);
 
   return 1;
 } 
