@@ -317,18 +317,21 @@ int main(int argc, char **argv) {
 #ifdef ZGEMM_TEST
   tCTF< std::complex<double> > * myctf = new tCTF< std::complex<double> >;
   myctf->init(MPI_COMM_WORLD,  myRank,numPes);
+  double scalaTime = MPI_Wtime();
   cpzgemm('T','N', m, n, k, ALPHA, 
           mat_A, 1, 1, desc_a,
           mat_B, 1, 1, desc_b, BETA,
           mat_C, 1, 1, desc_c); 
 
   if (myRank == 0)
-    printf("Performed ScaLAPACK pzgemm, starting CTF pzgemm\n");
-
+    printf("Performed ScaLAPACK pzgemm in %lf sec, starting CTF pzgemm\n", MPI_Wtime()-scalaTime);
+  double ctfTime = MPI_Wtime();
   myctf->pgemm('T','N', m, n, k, ALPHA, 
               mat_A, 1, 1, desc_a,
               mat_B, 1, 1, desc_b, BETA,
               mat_C_CTF, 1, 1, desc_c); 
+  if (myRank == 0)
+    printf("Performed CTF pzgemm in %lf sec\n", MPI_Wtime()-ctfTime);
 
   if (myRank < npcol*npcol){
     for (i=0; i<mblk; i++){
