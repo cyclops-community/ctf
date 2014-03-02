@@ -165,6 +165,9 @@ struct fseq_elm_sum {
 
 template<typename dtype>
 struct fseq_tsr_ctr {
+#ifdef OFFLOAD
+    int is_offloadable;
+#endif
     /* Function signature for sub-tensor contraction recrusive call */
     int  (*func_ptr) ( dtype const      alpha,
                        dtype const *    A,

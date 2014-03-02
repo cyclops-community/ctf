@@ -558,6 +558,9 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *  type,
                           dtype const             beta){
   fseq_tsr_ctr<dtype> fs;
   fs.func_ptr=NULL;//sym_seq_ctr_ref<dtype>;
+#ifdef OFFLOAD
+  fs.is_offloadable=0;
+#endif
   return contract(type, fs, alpha, beta);
 }
 
@@ -676,6 +679,9 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
 #endif
   fseq_tsr_ctr<dtype> fs;
   fs.func_ptr=NULL;//sym_seq_ctr_ref<dtype>;
+#ifdef OFFLOAD
+  fs.is_offloadable=0;
+#endif
   int ret = dt->home_contract(type, fs, felm, alpha, beta);
 #if DEBUG >= 1
   if (dt->get_global_comm().rank == 0)
@@ -1057,6 +1063,9 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   tensor<dtype> * tsr_nC, * tsr_oC;
   CTF_ctr_type ct;
   fseq_tsr_ctr<dtype> fs;
+#ifdef OFFLOAD
+  fs.is_offloadable=1;
+#endif
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   CTF_alloc_ptr(3*sizeof(int), (void**)&need_free);
   ret = dt->pgemm(TRANSA, TRANSB, M, N, K, ALPHA, A, IA, JA, DESCA,
@@ -1245,6 +1254,9 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   int herm_A, herm_B, ret;
   CTF_ctr_type ct;
   fseq_tsr_ctr<dtype> fs;
+#ifdef OFFLOAD
+  fs.is_offloadable=1;
+#endif
   ct.tid_A = tid_A;
   ct.tid_B = tid_B;
   ct.tid_C = tid_C;

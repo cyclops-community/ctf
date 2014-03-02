@@ -5,6 +5,7 @@
 #include <cublas_v2.h>
 #include <complex>
 #include <assert.h>
+#include <stdio.h>
 //#include "../shared/util.h"
 #include "device_launch_parameters.h"
 
@@ -23,7 +24,7 @@ typedef int64_t long_int;
 #ifndef LIBT_ASSERT
 #ifdef DEBUG
 #define LIBT_ASSERT(...)                \
-do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
+do { assert(__VA_ARGS__); } while (0)
 #else
 #define LIBT_ASSERT(...) do {} while(0 && (__VA_ARGS__))
 #endif
@@ -36,8 +37,9 @@ cublasHandle_t cuhandle;
 
 void offload_init(){
   if (!initialized){
-/*    int dev = findCudaDevice();
-    LIBT_ASSERT(dev != -1):*/
+    int ndev=0;
+    cudaGetDeviceCount(&ndev);
+    LIBT_ASSERT(ndev > 0);
     cublasStatus_t status = cublasCreate(&cuhandle);
     LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
   }
@@ -218,6 +220,7 @@ void offload_gemm<double>(char                  tA,
       break;
   }  
 
+  //printf("offloading dgemm\n");
   cublasStatus_t status = 
     cublasDgemm(cuhandle, cuA, cuB, m, n, k, &alpha, 
                 dev_A, lda_A, 
@@ -280,6 +283,7 @@ void offload_gemm< std::complex<double> >(
       break;
   }  
 
+  //printf("offloading zgemm\n");
   cublasStatus_t status = 
     cublasZgemm(cuhandle, cuA, cuB, m, n, k, 
                 reinterpret_cast<cuDoubleComplex*>(&alpha), 
@@ -293,6 +297,4 @@ void offload_gemm< std::complex<double> >(
 
 template class offload_ptr<double>;
 template class offload_ptr< std::complex<double> >;
-
-
 #endif

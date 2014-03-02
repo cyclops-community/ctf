@@ -10,6 +10,8 @@ struct iparam {
   int m;
   int k;
   long_int sz_C;
+  char tA;
+  char tB;
 };
 
 

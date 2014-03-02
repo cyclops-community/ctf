@@ -1012,8 +1012,11 @@ int dist_tensor<dtype>::map_fold(CTF_sum_type_t const * type,
   }
   print_sum(&fold_type,0.0,0.0);
 #endif
-  
+ 
+  //for type order 1 to 3 
   get_len_ordering(&fold_type, &fnew_ord_A, &fnew_ord_B); 
+
+
 
   permute_target(ftsr_A->ndim, fnew_ord_A, tsr_A->inner_ordering);
   permute_target(ftsr_B->ndim, fnew_ord_B, tsr_B->inner_ordering);
@@ -1139,7 +1142,13 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
   print_ctr(&fold_type,0.0,0.0);
 #endif
   
+  //for type order 1 to 3 
   get_len_ordering(&fold_type, &fnew_ord_A, &fnew_ord_B, &fnew_ord_C); 
+  
+  //permute_target(ftsr_A->ndim, fnew_ord_A, cpy_tsr_A_inner_ordering);
+  //permute_target(ftsr_B->ndim, fnew_ord_B, cpy_tsr_B_inner_ordering);
+
+  //get nosym_transpose_estimate cost estimate an save best
 
   permute_target(ftsr_A->ndim, fnew_ord_A, tsr_A->inner_ordering);
   permute_target(ftsr_B->ndim, fnew_ord_B, tsr_B->inner_ordering);
@@ -1164,6 +1173,11 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
 
   calc_fold_nmk<dtype>(&fold_type, fnew_ord_A, fnew_ord_B, 
                        ftsr_A, ftsr_B, ftsr_C, &iprm);
+
+  //FIXME: try all possibilities
+  iprm.tA = 'T';
+  iprm.tB = 'N';
+
   CTF_free(fidx_map_A);
   CTF_free(fidx_map_B);
   CTF_free(fidx_map_C);

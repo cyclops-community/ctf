@@ -79,12 +79,12 @@ int sym_seq_ctr_inr( dtype const        alpha,
       TAU_FSTART(gemm);
 #ifdef OFFLOAD
 //      if (prm->m*prm->n*prm->k > 1000){
-      offload_gemm<dtype>('T', 'N', prm->m, prm->n, prm->k, alpha, 
+      offload_gemm<dtype>(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
                           A+idx_A*stride_A, prm->k,
                           B+idx_B*stride_B, prm->k, 1.0,
                           C+idx_C*stride_C, prm->m);
 #else
-      cxgemm<dtype>('T', 'N', prm->m, prm->n, prm->k, alpha, 
+      cxgemm<dtype>(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
                      A+idx_A*stride_A, prm->k,
                      B+idx_B*stride_B, prm->k, 1.0,
                      C+idx_C*stride_C, prm->m);

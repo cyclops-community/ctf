@@ -234,6 +234,9 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       ctype.idx_map_B = idx_map; 
       ctype.idx_map_C = NULL; 
       fcs.func_ptr=sym_seq_ctr_ref<double>;
+#ifdef OFFLOAD
+      fcs.is_offloadable = 0;
+#endif
       fcelm.func_ptr = NULL;
       home_contract(&ctype, fcs, fcelm, 1.0, 0.0);
       if (global_comm.rank == 0)
@@ -1436,7 +1439,7 @@ ctr<dtype> * dist_tensor<dtype>::
   memcpy(new_sym_C, tsr_C->sym, sizeof(int)*tsr_C->ndim);
 
 #ifdef OFFLOAD
-  if (is_inner > 0){
+  if (ftsr.is_offloadable || is_inner > 0){
     ctr_offload<dtype> * ctroff = new ctr_offload<dtype>;
     if (is_top){
       hctr = ctroff;
@@ -2782,8 +2785,10 @@ int dist_tensor<dtype>::
 #endif
   /* Check if the current tensor mappings can be contracted on */
   fseq_tsr_ctr<dtype> fftsr=ftsr;
-  if (ftsr.func_ptr == NULL)
+  if (ftsr.func_ptr == NULL){
     fftsr.func_ptr = &sym_seq_ctr_ref<dtype>;
+    fftsr.is_offloadable = 0;
+  }
 #if REDIST
   stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
   if (stat == DIST_TENSOR_ERROR) {

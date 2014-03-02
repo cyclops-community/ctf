@@ -514,6 +514,9 @@ int dist_tensor<dtype>
     fs.func_ptr = &gemm_ctr<dtype,0,1>;
   else
     fs.func_ptr = &gemm_ctr<dtype,0,0>;
+#ifdef OFFLOAD
+  fs.is_offloadable=1;
+#endif
   *pfs = fs;
   return DIST_TENSOR_SUCCESS;
 }
