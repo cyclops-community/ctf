@@ -6,7 +6,10 @@ include ../src/make/rules.mk
 examples: dft dft_3D gemm gemm_4D scalar trace diag_sym fast_diagram \
           fast_3mm sym3 fast_sym fast_sym_4D ccsdt_t3_to_t2 weight_4D \
           test_suite strassen slice_gemm ccsd readwrite_test subworld_gemm \
-          permute_multiworld sparse_permuted_slice ccsdt_map_test
+          permute_multiworld sparse_permuted_slice ccsdt_map_test bench_contraction
+
+bench_contraction: ${bindir}/bench_contraction
+${bindir}/bench_contraction: bench_contraction.o ${libdir}/libctf.a
 
 ccsdt_map_test: ${bindir}/ccsdt_map_test
 ${bindir}/ccsdt_map_test: ccsdt_map_test.o ${libdir}/libctf.a
