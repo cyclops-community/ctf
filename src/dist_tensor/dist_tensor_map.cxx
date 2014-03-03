@@ -453,7 +453,7 @@ int dist_tensor<dtype>::
         if (map2->type == PHYSICAL_MAP){
           if (map1->cdt == map2->cdt) pass = 0;
           if (!pass){          
-            DPRINTF(3,"failed confirmation here i=%d j=%d\n",i,j);
+            DPRINTF(3,"failed confirmation here i=%d\n",i);
             break;
           }
         }

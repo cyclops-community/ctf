@@ -2787,7 +2787,9 @@ int dist_tensor<dtype>::
   fseq_tsr_ctr<dtype> fftsr=ftsr;
   if (ftsr.func_ptr == NULL){
     fftsr.func_ptr = &sym_seq_ctr_ref<dtype>;
+#ifdef OFFLOAD
     fftsr.is_offloadable = 0;
+#endif
   }
 #if REDIST
   stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
