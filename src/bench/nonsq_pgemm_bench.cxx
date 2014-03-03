@@ -319,9 +319,9 @@ int main(int argc, char **argv) {
       }
     }
   }
-#endif
   if (myRank == 0)
     printf("PZGEMM Verification complete, correct if no errors.\n");
+#endif
 		    		    
   double startTime, endTime;
   startTime = MPI_Wtime();
@@ -387,9 +387,13 @@ int main(int argc, char **argv) {
     endTime = MPI_Wtime();
     printf("Completed %u ScaLAPACK iterations\n", iter);
     printf("Time elapsed per iteration: %f\n", (endTime - startTime)/num_iter);
+#ifdef ZGEMM_TEST
+    printf("Gigaflops: %f\n", 8.*m*n*k/
+                                ((endTime - startTime)/num_iter)*1E-9);
+#else
     printf("Gigaflops: %f\n", 2.*m*n*k/
-				((endTime - startTime)/num_iter)*1E-9);
-    //printf("Ans=%lf\n",ans_verify);
+                                ((endTime - startTime)/num_iter)*1E-9);
+#endif
   }
   
 #ifdef TAU
@@ -418,9 +422,13 @@ int main(int argc, char **argv) {
     endTime = MPI_Wtime();
     printf("Completed %u CTF PGEMM iterations\n", iter);
     printf("Time elapsed per iteration: %f\n", (endTime - startTime)/num_iter);
+#ifdef ZGEMM_TEST
+    printf("Gigaflops: %f\n", 8.*m*n*k/
+                                ((endTime - startTime)/num_iter)*1E-9);
+#else
     printf("Gigaflops: %f\n", 2.*m*n*k/
-				((endTime - startTime)/num_iter)*1E-9);
-    //printf("Ans=%lf\n",ans_verify);
+                                ((endTime - startTime)/num_iter)*1E-9);
+#endif
   }
 
   TAU_PROFILE_STOP(timer);

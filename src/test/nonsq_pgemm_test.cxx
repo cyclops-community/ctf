@@ -407,8 +407,13 @@ int main(int argc, char **argv) {
     endTime = MPI_Wtime();
     printf("Completed %u ScaLAPACK iterations\n", iter);
     printf("Time elapsed per iteration: %f\n", (endTime - startTime)/num_iter);
+#ifdef ZGEMM_TEST
+    printf("Gigaflops: %f\n", 8.*m*n*k/
+                                ((endTime - startTime)/num_iter)*1E-9);
+#else
     printf("Gigaflops: %f\n", 2.*m*n*k/
                                 ((endTime - startTime)/num_iter)*1E-9);
+#endif
     //printf("Ans=%lf\n",ans_verify);
   }
   
