@@ -32,10 +32,8 @@ volatile static long_int long_int_max = INT64_MAX;
 //#include <inttypes.h>
 #endif
 
-#ifdef PROFILE
-#define TAU
-#endif
 #include "timer.h"
+#include "pmpi.h"
 
 #ifndef __APPLE__
 #ifndef OMP_OFF

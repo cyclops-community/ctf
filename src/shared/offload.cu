@@ -8,8 +8,43 @@
 #include <stdio.h>
 //#include "../shared/util.h"
 #include "device_launch_parameters.h"
-#include "util.h"
+#include "timer.h"
 #include "offload.h"
+
+#ifndef LIBT_ASSERT
+#if ENABLE_ASSERT
+#define LIBT_ASSERT(...)                \
+do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
+#else
+#define LIBT_ASSERT(...) do {} while(0 && (__VA_ARGS__))
+#endif
+#endif
+
+#define ABORT                                   \
+  do{                                           \
+   assert(0); } while (0)
+
+template<typename dtype>
+dtype get_zero(){
+  ABORT;
+}
+template<typename dtype>
+dtype get_one(){
+  ABORT;
+}
+
+
+template<> inline
+double get_zero<double>() { return 0.0; }
+
+template<> inline
+std::complex<double> get_zero< std::complex<double> >() { return std::complex<double>(0.0,0.0); }
+
+template<> inline
+double get_one<double>() { return 1.0; }
+
+template<> inline
+std::complex<double> get_one< std::complex<double> >() { return std::complex<double>(1.0,0.0); }
 
 int initialized = 0;
 cublasHandle_t cuhandle;
