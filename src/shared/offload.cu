@@ -8,28 +8,7 @@
 #include <stdio.h>
 //#include "../shared/util.h"
 #include "device_launch_parameters.h"
-
-template<typename dtype>
-dtype get_zero(){
-  assert(0);
-}
-template<> inline
-double get_zero<double>() { return 0.0; }
-
-template<> inline
-std::complex<double> get_zero< std::complex<double> >() { return std::complex<double>(0.0,0.0); }
-
-
-typedef int64_t long_int;
-#ifndef LIBT_ASSERT
-#ifdef DEBUG
-#define LIBT_ASSERT(...)                \
-do { assert(__VA_ARGS__); } while (0)
-#else
-#define LIBT_ASSERT(...) do {} while(0 && (__VA_ARGS__))
-#endif
-#endif
-
+#include "util.h"
 #include "offload.h"
 
 int initialized = 0;
@@ -81,8 +60,10 @@ offload_ptr<dtype>::~offload_ptr(){
  */
 template <typename dtype>
 void offload_ptr<dtype>::download(dtype * host_ptr){
+  TAU_FSTART(cuda_download);
   cudaError_t err = cudaMemcpy(host_ptr, dev_ptr, size*sizeof(dtype),
                                cudaMemcpyDeviceToHost);
+  TAU_FSTOP(cuda_download);
   LIBT_ASSERT(err == cudaSuccess);
 }
 /**
@@ -91,8 +72,10 @@ void offload_ptr<dtype>::download(dtype * host_ptr){
  */
 template <typename dtype>
 void offload_ptr<dtype>::upload(dtype const * host_ptr){
+  TAU_FSTART(cuda_upload);
   cudaError_t err = cudaMemcpy(dev_ptr, host_ptr, size*sizeof(dtype),
                                cudaMemcpyHostToDevice);
+  TAU_FSTOP(cuda_upload);
   LIBT_ASSERT(err == cudaSuccess);
 }
 
@@ -145,7 +128,9 @@ void offload_gemm(char                  tA,
                   dtype                 beta,
                   offload_ptr<dtype> &  C,
                   int                   lda_C){
+  TAU_FSTART(cuda_gemm);
   offload_gemm(tA, tB, m, n, k, alpha, A.dev_ptr, lda_A, B.dev_ptr, lda_B, beta, C.dev_ptr, lda_C);
+  TAU_FSTOP(cuda_gemm);
 }
 template 
 void offload_gemm(char                  tA,
