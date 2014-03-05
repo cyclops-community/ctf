@@ -34,7 +34,7 @@ class ctr {
     virtual ~ctr();
   
     ctr(ctr<dtype> * other);
-    ctr(){ buffer = NULL; }
+    ctr(){ buffer = NULL; idx_lyr = 0; num_lyr = 1; }
 };
 
 template<typename dtype>

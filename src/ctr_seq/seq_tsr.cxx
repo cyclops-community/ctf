@@ -236,13 +236,17 @@ double seq_tsr_ctr<dtype>::est_time_fp(int nlyr){
   if (is_inner) size_B *= inner_params.n*inner_params.k*sizeof(dtype);
   if (is_inner) size_C *= inner_params.m*inner_params.n*sizeof(dtype);
  
+  LIBT_ASSERT(size_A > 0);
+  LIBT_ASSERT(size_B > 0);
+  LIBT_ASSERT(size_C > 0);
+
   int idx_max, * rev_idx_map; 
   inv_idx(ndim_A,       idx_map_A,
           ndim_B,       idx_map_B,
           ndim_C,       idx_map_C,
           &idx_max,     &rev_idx_map);
 
-  uint64_t flops = 2;
+  double flops = 2.0;
   if (is_inner) {
     flops *= inner_params.m;
     flops *= inner_params.n;
@@ -253,6 +257,7 @@ double seq_tsr_ctr<dtype>::est_time_fp(int nlyr){
     else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
     else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
   }
+  LIBT_ASSERT(flops >= 0.0);
   CTF_free(rev_idx_map);
   return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
 }

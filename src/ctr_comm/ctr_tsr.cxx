@@ -75,7 +75,7 @@ void ctr_virt<dtype>::print() {
 template<typename dtype>
 double ctr_virt<dtype>::est_time_rec(int nlyr) {
   /* FIXME: for now treat flops like comm, later make proper cost */
-  int nvirt = 1;
+  long_int nvirt = 1;
   for (int dim=0; dim<num_dim; dim++){
     nvirt *= virt_dim[dim];
   }

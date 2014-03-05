@@ -16,15 +16,15 @@
 #include "mpi.h"
 #include "util.h"
 //latency time per message
-#define COST_LATENCY 1.e-6
+#define COST_LATENCY (1.e-6)
 //memory bandwidth: time per per byte
-#define COST_MEMBW 1.e-9
+#define COST_MEMBW (1.e-9)
 //network bandwidth: time per byte
-#define COST_NETWBW 5.e-10
+#define COST_NETWBW (5.e-10)
 //flop cost: time per flop
-#define COST_FLOP 2.e-11
+#define COST_FLOP (2.e-11)
 //flop cost: time per flop
-#define COST_OFFLOADBW 5.e-10
+#define COST_OFFLOADBW (5.e-10)
 
 
 //typedef MPI_Comm COMM;

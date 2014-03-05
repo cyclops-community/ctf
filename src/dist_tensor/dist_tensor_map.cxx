@@ -1134,7 +1134,8 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       //sctr->print();
 #if DEBUG >= 3
       printf("mapping passed contr est_time = %lf sec\n", est_time);
-#endif
+#endif 
+      LIBT_ASSERT(est_time > 0.0);
       memuse = 0;
       need_remap_A = 0;
       need_remap_B = 0;
@@ -1201,6 +1202,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #if DEBUG >= 3
       printf("total (with redistribution) est_time = %lf\n", est_time);
 #endif
+      LIBT_ASSERT(est_time > 0.0);
 
       if ((uint64_t)memuse >= proc_bytes_available()){
         DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
