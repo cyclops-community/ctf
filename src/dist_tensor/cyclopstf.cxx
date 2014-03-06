@@ -1105,7 +1105,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
     } else
       need_remap = 1;
     if (need_remap){
-      save_mapping(tsr_nC, &old_phase_C, &old_rank_C, &old_virt_dim_C, 
+      save_mapping<dtype>(tsr_nC, &old_phase_C, &old_rank_C, &old_virt_dim_C, 
                    &old_pe_lda_C, &old_size_C, &was_cyclic_C, 
                    &old_padding_C, &old_edge_len_C, 
                    dt->get_topo(tsr_nC->itopo));
@@ -1215,11 +1215,13 @@ int tCTF<dtype>::read_scala_mat(int const tid,
   tensor<dtype> * tsr = (*tensors)[tid];
   tensor<dtype> * stsr = (*tensors)[tsr->slay];
   dt->unmap_inner(tsr);
+
   save_mapping(tsr, &old_phase, &old_rank, &old_virt_dim, 
                &old_pe_lda, &old_size, &was_cyclic, 
-               &old_padding, &old_edge_len, 
-               dt->get_topo(tsr->itopo));
-  LIBT_ASSERT(tsr->is_matrix);
+               &old_padding, &old_edge_len, (dt->get_topo(tsr->itopo)));
+  
+//  LIBT_ASSERT(tsr->is_matrix);
+
   CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&stsr->data);
   memcpy(stsr->data, tsr->data, sizeof(dtype)*tsr->size);
   remap_tensor(tsr->slay, stsr, dt->get_topo(stsr->itopo), old_size,
