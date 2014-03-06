@@ -4,7 +4,7 @@ BLAS        =
 LIBS        =  
 CXX         = CC
 WARN_FLAGS  = #-Drestrict = -Wall 
-OPT_FLAGS   = -g -O3
+OPT_FLAGS   = -g -O2
 CXXFLAGS    = -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) 
 DEFS        = -DHOPPER -D__STDC_LIMIT_MACROS
 LDFLAGS     = 

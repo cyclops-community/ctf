@@ -8,7 +8,7 @@ BLAS        = -I$(TACC_MKL_INC) -Wl,-rpath,$(TACC_MKL_LIB) \
 LIBS        = $(BLAS) 
 CXX         = mpicxx
 WARN_FLAGS  = #-Drestrict = -Wall 
-OPT_FLAGS   = -g -O3
+OPT_FLAGS   = -g -O2
 CXXFLAGS    = -openmp $(OPT_FLAGS) $(WARN_FLAGS) 
 DEFS        = -D__STDC_LIMIT_MACROS
 LDFLAGS     = 
