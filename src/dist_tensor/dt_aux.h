@@ -11,8 +11,7 @@ int save_mapping(tensor<dtype> *  tsr,
                  int *      was_cyclic,
                  int **     old_padding,
                  int **     old_edge_len,
-                 topology const * topo,
-                 int const    is_inner = 0);
+                 topology const * topo);
 
 
 template<typename dtype>
@@ -27,11 +26,11 @@ int remap_tensor(int const  tid,
                  int const    was_cyclic,
                  int const *  old_padding,
                  int const *  old_edge_len,
-                 CommData_t   global_comm,
-                 int const *  old_offsets = NULL,
+                 CommData_t   global_comm);
+                 /*int const *  old_offsets = NULL,
                  int * const * old_permutation = NULL,
                  int const *  new_offsets = NULL,
-                 int * const * new_permutation = NULL);
+                 int * const * new_permutation = NULL);*/
 
 int comp_dim_map(mapping const *  map_A,
                  mapping const *  map_B);

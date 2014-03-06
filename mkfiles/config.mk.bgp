@@ -6,7 +6,7 @@ BLAS        = -lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthre
 LIBS        = $(BLAS)
 CXX	        = mpixlcxx_r
 WARN_FLAGS  = #-Drestrict = -Wall 
-OPT_FLAGS   = -qnoipa -g -O3
+OPT_FLAGS   = -qnoipa -g -O2
 CXXFLAGS    = -qsmp=omp  $(OPT_FLAGS) $(WARN_FLAGS) 
 DEFS        = -DBGP -D__STDC_LIMIT_MACROS
 LDFLAGS     = -L$(BGP_ESSL)/lib \

@@ -571,7 +571,6 @@ int comp_dim_map(mapping const *  map_A,
  * \param[out] old_padding what the padding was
  * \param[out] old_edge_len what the edge lengths were
  * \param[in] topo topology of the processor grid mapped to
- * \param[in] is_inner whether this is an inner mapping
  */ 
 template<typename dtype>
 int save_mapping(tensor<dtype> *  tsr,
@@ -583,8 +582,8 @@ int save_mapping(tensor<dtype> *  tsr,
                  int *      was_cyclic,
                  int **     old_padding,
                  int **     old_edge_len,
-                 topology const * topo,
-                 int const    is_inner = 0){
+                 topology const * topo){
+  int is_inner = 0;
   int j;
   mapping * map;
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_phase);
@@ -803,11 +802,15 @@ int remap_tensor(int const  tid,
                  int const    was_cyclic,
                  int const *  old_padding,
                  int const *  old_edge_len,
-                 CommData_t   global_comm,
+                 CommData_t   global_comm){/*
                  int const *  old_offsets = NULL,
                  int * const * old_permutation = NULL,
                  int const *  new_offsets = NULL,
-                 int * const * new_permutation = NULL){
+                 int * const * new_permutation = NULL){*/
+  int const *  old_offsets = NULL;
+  int * const * old_permutation = NULL;
+  int const *  new_offsets = NULL;
+  int * const * new_permutation = NULL;
   int j, new_nvirt, can_block_shuffle;
   int * new_phase, * new_rank, * new_virt_dim, * new_pe_lda;
   mapping * map;

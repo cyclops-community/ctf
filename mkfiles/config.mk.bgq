@@ -4,7 +4,7 @@ BGQ_ESSL    = /soft/libraries/essl/current/
 LIBS        = -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r
 CXX	    = mpixlcxx_r
 WARN_FLAGS  = #-Drestrict = -Wall 
-OPT_FLAGS   = -g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport
+OPT_FLAGS   = -g -O2 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport
 CXXFLAGS    = -qsmp=omp $(OPT_FLAGS) $(WARN_FLAGS) 
 DEFS        = -DBGQ -D__STDC_LIMIT_MACROS
 
