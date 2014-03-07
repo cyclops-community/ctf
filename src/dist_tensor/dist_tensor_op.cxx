@@ -2344,7 +2344,8 @@ int dist_tensor<dtype>::
 
   contract_mst();
 
-  if (stype->tid_A == stype->tid_B || stype->tid_A == stype->tid_C){
+  //if (stype->tid_A == stype->tid_B || stype->tid_A == stype->tid_C){
+  /*if (stype->tid_A == stype->tid_C){
     clone_tensor(stype->tid_A, 1, &new_tid);
     CTF_ctr_type_t new_type = *stype;
     new_type.tid_A = new_tid;
@@ -2358,7 +2359,7 @@ int dist_tensor<dtype>::
     ret = home_contract(&new_type, ftsr, felm, alpha, beta);
     del_tsr(new_tid);
     return ret;
-  } 
+  }*/ 
 
   CTF_ctr_type_t ntype = *stype;
 
@@ -2378,32 +2379,45 @@ int dist_tensor<dtype>::
     set_padding(ntsr_A);
   }     
   if (was_home_B){
-    clone_tensor(stype->tid_B, 0, &ntype.tid_B, 0);
-    ntsr_B = tensors[ntype.tid_B];
-    ntsr_B->data = tsr_B->data;
-    ntsr_B->home_buffer = tsr_B->home_buffer;
-    ntsr_B->is_home = 1;
-    ntsr_B->is_mapped = 1;
-    ntsr_B->itopo = tsr_B->itopo;
-    copy_mapping(tsr_B->ndim, tsr_B->edge_map, ntsr_B->edge_map);
-    set_padding(ntsr_B);
+    if (stype->tid_A == stype->tid_B){
+      ntype.tid_B = ntype.tid_A;
+      ntsr_B = tensors[ntype.tid_B];
+    } else {
+      clone_tensor(stype->tid_B, 0, &ntype.tid_B, 0);
+      ntsr_B = tensors[ntype.tid_B];
+      ntsr_B->data = tsr_B->data;
+      ntsr_B->home_buffer = tsr_B->home_buffer;
+      ntsr_B->is_home = 1;
+      ntsr_B->is_mapped = 1;
+      ntsr_B->itopo = tsr_B->itopo;
+      copy_mapping(tsr_B->ndim, tsr_B->edge_map, ntsr_B->edge_map);
+      set_padding(ntsr_B);
+    }
   }
   if (was_home_C){
-    clone_tensor(stype->tid_C, 0, &ntype.tid_C, 0);
-    ntsr_C = tensors[ntype.tid_C];
-    ntsr_C->data = tsr_C->data;
-    ntsr_C->home_buffer = tsr_C->home_buffer;
-    ntsr_C->is_home = 1;
-    ntsr_C->is_mapped = 1;
-    ntsr_C->itopo = tsr_C->itopo;
-    copy_mapping(tsr_C->ndim, tsr_C->edge_map, ntsr_C->edge_map);
-    set_padding(ntsr_C);
+    if (stype->tid_C == stype->tid_A){
+      ntype.tid_C = ntype.tid_A;
+      ntsr_C = tensors[ntype.tid_C];
+    } else if (stype->tid_C == stype->tid_B){
+      ntype.tid_C = ntype.tid_B;
+      ntsr_C = tensors[ntype.tid_C];
+    } else {
+      clone_tensor(stype->tid_C, 0, &ntype.tid_C, 0);
+      ntsr_C = tensors[ntype.tid_C];
+      ntsr_C->data = tsr_C->data;
+      ntsr_C->home_buffer = tsr_C->home_buffer;
+      ntsr_C->is_home = 1;
+      ntsr_C->is_mapped = 1;
+      ntsr_C->itopo = tsr_C->itopo;
+      copy_mapping(tsr_C->ndim, tsr_C->edge_map, ntsr_C->edge_map);
+      set_padding(ntsr_C);
+    }
   }
 
   ret = sym_contract(&ntype, ftsr, felm, alpha, beta);
   if (ret!= DIST_TENSOR_SUCCESS) return ret;
   if (was_home_A) unmap_inner(ntsr_A);
-  if (was_home_B) unmap_inner(ntsr_B);
+  if (was_home_B && stype->tid_A != stype->tid_B) unmap_inner(ntsr_B);
   if (was_home_C) unmap_inner(ntsr_C);
 
   if (was_home_C && !ntsr_C->is_home){
@@ -2450,10 +2464,10 @@ int dist_tensor<dtype>::
     ntsr_A->is_data_aliased = 1;
     del_tsr(ntype.tid_A);
   }
-  if (was_home_B && !ntsr_B->is_home){
+  if (was_home_B && stype->tid_A != stype->tid_B && !ntsr_B->is_home){
     ntsr_B->has_home = 0;
     del_tsr(ntype.tid_B);
-  } else if (was_home_B) {
+  } else if (was_home_B && stype->tid_A != stype->tid_B) {
     ntsr_B->is_data_aliased = 1;
     del_tsr(ntype.tid_B);
   }
@@ -2560,7 +2574,8 @@ int dist_tensor<dtype>::
   unmap_inner(tensors[ntid_A]);
   unmap_inner(tensors[ntid_B]);
   unmap_inner(tensors[ntid_C]);
-  if (ntid_A == ntid_B || ntid_A == ntid_C){
+  /*if (ntid_A == ntid_B || ntid_A == ntid_C){*/
+  if (ntid_A == ntid_C){
     clone_tensor(ntid_A, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;
     new_type.tid_A = new_tid;

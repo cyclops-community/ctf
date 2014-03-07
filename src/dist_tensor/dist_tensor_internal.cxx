@@ -1612,6 +1612,8 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
         tsr->home_size = tsr->size; //MAX(1024+tsr->size, 1.20*tsr->size);
         tsr->is_home = 1;
         tsr->has_home = 1;
+        //tsr->is_home = 0;
+        //tsr->has_home = 0;
         if (global_comm.rank == 0)
           DPRINTF(3,"Initial size of tensor %d is "PRId64",",tensor_id,tsr->size);
         CTF_alloc_ptr(tsr->home_size*sizeof(dtype), (void**)&tsr->home_buffer);

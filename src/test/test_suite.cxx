@@ -30,6 +30,7 @@
 #include "../../examples/slice_gemm.cxx"
 #include "../../examples/readwrite_test.cxx"
 #include "../../examples/subworld_gemm.cxx"
+#include "../../examples/multi_tsr_sym.cxx"
 
 
 char* getCmdOption(char ** begin,
@@ -143,6 +144,10 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing 4D fast symmetric contraction operation with n = %d:\n",n);
     pass.push_back(fast_sym_4D(n, dw));
+    
+    if (rank == 0)
+      printf("Testing multi-tensor symmetric contraction with m = %d n = %d:\n",n*n,n);
+    pass.push_back(multi_tsr_sym(n^2,n, dw));
    
 #ifndef PROFILE 
     if (rank == 0)

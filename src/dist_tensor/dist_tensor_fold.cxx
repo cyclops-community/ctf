@@ -1409,40 +1409,59 @@ int dist_tensor<dtype>::unfold_broken_sym(CTF_ctr_type_t const *  type,
       }
     }
   } 
-  for (i=0; i<tsr_C->ndim; i++){
-    if (tsr_C->sym[i] != NS){
-      iC = type->idx_map_C[i];
-      if (idx_arr[3*iC+1] != -1){
-        if (tsr_B->sym[idx_arr[3*iC+1]] == NS ||
-            type->idx_map_C[i+1] != type->idx_map_B[idx_arr[3*iC+1]+1]){
-          if (new_type != NULL)
-            tsr_C->sym[i] = NS;
-          CTF_free(idx_arr); 
-          return 3*i+2;
+  //if A=B, output symmetry may still be preserved, so long as all indices in A and B are proper
+  bool is_preserv = true;
+  if (type->tid_A != type->tid_B) is_preserv = false; 
+  else {
+    for (int j=0; j<tsr_A->ndim; j++){
+      if (type->idx_map_A[j] != type->idx_map_B[j]){
+        iA = type->idx_map_A[j];
+        iB = type->idx_map_B[j];
+        if (idx_arr[3*iA+2] == -1 || idx_arr[3*iB+2] == -1) is_preserv = false;
+        else {
+          for (int k=MIN(idx_arr[3*iA+2],idx_arr[3*iB+2]);
+                   k<MAX(idx_arr[3*iA+2],idx_arr[3*iB+2]);
+                   k++){
+             if (tsr_C->sym[k] != SY) is_preserv = false;
+          }
         }
-      } else {
-        if (idx_arr[3*type->idx_map_C[i+1]+1] != -1){
-          if (new_type != NULL)
-            tsr_C->sym[i] = NS;
-          CTF_free(idx_arr); 
-          return 3*i+2;
-        }       
       }
-      if (idx_arr[3*iC+0] != -1){
-        if (tsr_A->sym[idx_arr[3*iC+0]] == NS ||
-            type->idx_map_C[i+1] != type->idx_map_A[idx_arr[3*iC+0]+1]){
-          if (new_type != NULL)
-            tsr_C->sym[i] = NS;
-          CTF_free(idx_arr); 
-          return 3*i+2;
-        }
-      } else {
-        if (idx_arr[3*type->idx_map_C[i+1]] != -1){
+    }
+  }
+  if (!is_preserv){
+    for (i=0; i<tsr_C->ndim; i++){
+      if (tsr_C->sym[i] != NS){
+        iC = type->idx_map_C[i];
+        if (idx_arr[3*iC+1] != -1){
+          if (tsr_B->sym[idx_arr[3*iC+1]] == NS ||
+              type->idx_map_C[i+1] != type->idx_map_B[idx_arr[3*iC+1]+1]){
+            if (new_type != NULL)
+              tsr_C->sym[i] = NS;
+            CTF_free(idx_arr); 
+            return 3*i+2;
+          }
+        } else if (idx_arr[3*type->idx_map_C[i+1]+1] != -1){
           if (new_type != NULL)
             tsr_C->sym[i] = NS;
           CTF_free(idx_arr); 
           return 3*i+2;
         }       
+        if (idx_arr[3*iC+0] != -1){
+          if (tsr_A->sym[idx_arr[3*iC+0]] == NS ||
+              type->idx_map_C[i+1] != type->idx_map_A[idx_arr[3*iC+0]+1]){
+            if (new_type != NULL)
+              tsr_C->sym[i] = NS;
+            CTF_free(idx_arr); 
+            return 3*i+2;
+          }
+        } else if (idx_arr[3*iC+0] == -1){
+          if (idx_arr[3*type->idx_map_C[i+1]] != -1){
+            if (new_type != NULL)
+              tsr_C->sym[i] = NS;
+            CTF_free(idx_arr); 
+            return 3*i+2;
+          }       
+        }
       }
     }
   }
