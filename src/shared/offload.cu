@@ -9,6 +9,9 @@
 //#include "../shared/util.h"
 #include "device_launch_parameters.h"
 #include "timer.h"
+
+typedef int64_t long_int;
+volatile static long_int long_int_max = INT64_MAX;
 #include "offload.h"
 
 #ifndef LIBT_ASSERT
@@ -18,6 +21,18 @@ do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
 #else
 #define LIBT_ASSERT(...) do {} while(0 && (__VA_ARGS__))
 #endif
+#endif
+
+#ifndef PROFILE
+#define TAU_PROFILE(NAME,ARG,USER)
+#define TAU_PROFILE_TIMER(ARG1, ARG2, ARG3, ARG4)
+#define TAU_PROFILER_CREATE(ARG1, ARG2, ARG3, ARG4)
+#define TAU_PROFILE_STOP(ARG)
+#define TAU_PROFILE_START(ARG)
+#define TAU_PROFILE_SET_NODE(ARG)
+#define TAU_PROFILE_SET_CONTEXT(ARG)
+#define TAU_FSTART(ARG)
+#define TAU_FSTOP(ARG)
 #endif
 
 #define ABORT                                   \
@@ -246,6 +261,9 @@ void offload_gemm<double>(char                  tA,
                 dev_A, lda_A, 
                 dev_B, lda_B, &beta, 
                 dev_C, lda_C);
+#ifdef PROFILE
+  cudaDeviceSynchronize();
+#endif
   
   LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
 }
@@ -303,7 +321,7 @@ void offload_gemm< std::complex<double> >(
       break;
   }  
 
-  //printf("offloading zgemm\n");
+  TAU_FSTART(cublas_zgemm);
   cublasStatus_t status = 
     cublasZgemm(cuhandle, cuA, cuB, m, n, k, 
                 reinterpret_cast<cuDoubleComplex*>(&alpha), 
@@ -311,8 +329,13 @@ void offload_gemm< std::complex<double> >(
                 reinterpret_cast<const cuDoubleComplex*>(dev_B), lda_B, 
                 reinterpret_cast<cuDoubleComplex*>(&beta), 
                 reinterpret_cast<cuDoubleComplex*>(dev_C), lda_C);
+#ifdef PROFILE
+  cudaDeviceSynchronize();
+#endif
+  TAU_FSTOP(cublas_zgemm);
   
   LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
+  assert(status == CUBLAS_STATUS_SUCCESS);
 }
 
 template class offload_ptr<double>;

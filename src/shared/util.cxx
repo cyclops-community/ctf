@@ -5,6 +5,7 @@
 #include "string.h"
 #include "assert.h"
 #include "util.h"
+#include "../../include/ctf.hpp"
 
 long_int CTF_total_flop_count = 0;
 

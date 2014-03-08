@@ -1472,26 +1472,6 @@ protected:
  */
 
 /**
- * \brief local process walltime measurement
- */
-class CTF_Timer{
-  public:
-    char const * timer_name;
-    int index;
-    int exited;
-    int original;
-  
-  public:
-    CTF_Timer(char const * name);
-    ~CTF_Timer();
-    void stop();
-    void start();
-    void exit();
-    
-};
-
-
-/**
  * \brief measures flops done in a code region
  */
 class CTF_Flop_Counter{

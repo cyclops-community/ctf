@@ -7,8 +7,9 @@ DEFAULT_COMPONENTS = ctf
 
 BLAS        = 
 LIBS        = $(BLAS) -lcuda -lcudart -lcublas
+#LIBS        = $(BLAS)  -lcuda -lcudart -lcublas
 CXX         = CC
-OPT_FLAGS   = -g -O2
+OPT_FLAGS   = -g -O3
 WARN_FLAGS  =
 CXXFLAGS    = -fopenmp $(OPT_FLAGS) $(WARN_FLAGS) 
 DEFS        = -D__STDC_LIMIT_MACROS
@@ -20,16 +21,18 @@ DEPFLAGS    = -MT $@ -MD -MP -MF $(DEPDIR)/$(notdir $*).Po
 
 #defining production removes memory tracking, definining CTF_COMPLEX instantiates
 #CTF for the complex<double> type
-DEFS       := $(DEFS) -DCTF_COMPLEX #-DPROFILE -DPMPI -DVERBOSE=1
+DEFS       := $(DEFS) -DCTF_COMPLEX 
 
 #uncomment below to enable performance profiling
+#DEFS       := $(DEFS) -DPROFILE -DPMPI
+
+#uncomment below to enable CUDA
 DEFS      := $(DEFS) -DOFFLOAD -DUSE_CUDA
 
 #uncomment below to enable CTF debugging and status output
-#DEFS      := $(DEFS) -DDEBUG=1
+#DEFS      := $(DEFS) -DVERBOSE=1 -DDEBUG=1
 
 #SCALAPACK only necessary for pgemm tests and benchmarks 
-#LIBS      := $(LIBS) 
-DEFS      := $(DEFS) -DUSE_SCALAPACK
+#DEFS      := $(DEFS) -DUSE_SCALAPACK
 
-OFFLOAD_CXX = nvcc -ccbin g++ -m64 $(OPT_FLAGS) $(DEFS) 
+OFFLOAD_CXX = nvcc -ccbin gcc -m64 $(OPT_FLAGS) $(DEFS) 

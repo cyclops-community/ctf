@@ -1,7 +1,27 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
 
-#include "../../include/ctf.hpp"
+//#include "../../include/ctf.hpp"
+/**
+ * \brief local process walltime measurement
+ */
+class CTF_Timer{
+  public:
+    char const * timer_name;
+    int index;
+    int exited;
+    int original;
+  
+  public:
+    CTF_Timer(char const * name);
+    ~CTF_Timer();
+    void stop();
+    void start();
+    void exit();
+    
+};
+
+
 
 void CTF_set_main_args(int argc, const char * const * argv);
 

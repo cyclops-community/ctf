@@ -91,10 +91,13 @@ int gemm_ctr(  dtype  const     alpha,
   TAU_FSTOP(offload_upload);
   TAU_FSTART(offload_gemm);*/
   TAU_FSTART(offload_sdgemm);
+  //double t_st = MPI_Wtime();
   offload_gemm<dtype>(ta, tb, m, n, k, alpha, 
                       A, la_A,
                       B, la_B, beta,
                       C, la_C);
+  //t_st = MPI_Wtime() - t_st;
+  //printf("offload_gemm took %E sec, achieved %lf GF\n",t_st, (8.E-9*m*n*k)/t_st);
   TAU_FSTOP(offload_sdgemm);
 /*  TAU_FSTART(offload_download);
   ptr_C.download(C);
