@@ -1256,6 +1256,8 @@ ctr<dtype> * dist_tensor<dtype>::
 //#endif
   int nstep =1;
   nvirt = 1;
+
+  ctr_2d_general<dtype> * bottom_ctr_gen = NULL;
 /*  if (nvirt_all != NULL)
     *nvirt_all = 1;*/
   for (i=0; i<num_tot; i++){
@@ -1269,6 +1271,9 @@ ctr<dtype> * dist_tensor<dtype>::
         (i_A == -1 && i_B != -1 && i_C != -1)) {
       ctr_2d_general<dtype> * ctr_gen = new ctr_2d_general<dtype>;
       ctr_gen->buffer = NULL; //fix learn to use buffer space
+#ifdef OFFLOAD
+      ctr_gen->alloc_host_buf = false;
+#endif
       int is_built = 0;
       if (i_A == -1){
         is_built = ctr_2d_gen_build(i,
@@ -1390,6 +1395,8 @@ ctr<dtype> * dist_tensor<dtype>::
         } else {
           *rec_ctr = ctr_gen;
         }
+        if (bottom_ctr_gen == NULL)
+          bottom_ctr_gen == ctr_gen;
         rec_ctr = &ctr_gen->rec_ctr;
       } else {
         ctr_gen->rec_ctr = NULL;
@@ -1440,6 +1447,8 @@ ctr<dtype> * dist_tensor<dtype>::
 
 #ifdef OFFLOAD
   if (ftsr.is_offloadable || is_inner > 0){
+    if (bottom_ctr_gen != NULL)
+      bottom_ctr_gen->alloc_host_buf = true;
     ctr_offload<dtype> * ctroff = new ctr_offload<dtype>;
     if (is_top){
       hctr = ctroff;

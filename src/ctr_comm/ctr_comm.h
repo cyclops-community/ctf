@@ -80,7 +80,10 @@ class ctr_2d_general : public ctr<dtype> {
     long_int ctr_lda_C; /* local lda_C of contraction dimension 'k' */
     long_int ctr_sub_lda_C; /* elements per local lda_C 
                           of contraction dimension 'k' */
-    
+#ifdef OFFLOAD
+    bool alloc_host_buf;
+#endif
+
     bool move_A;
     bool move_B;
     bool move_C;

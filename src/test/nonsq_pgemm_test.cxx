@@ -10,6 +10,7 @@
 //#include <assert.h>
 #include "../dist_tensor/cyclopstf.hpp"
 #include "../shared/util.h"
+#include "../shared/offload.h"
 
 #define ZGEMM_TEST
 #ifdef ZGEMM_TEST
@@ -128,7 +129,7 @@ int main(int argc, char **argv) {
   char **argv;*/
   int myRank, numPes;
   int64_t m, k, n;
-  int nprow, npcol;
+  int nprow, npcol, alloc_host_buf;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
@@ -141,8 +142,8 @@ int main(int argc, char **argv) {
     MPI_Abort(MPI_COMM_WORLD, -1);
   }*/
 
-  if (argc != 1 && argc >= 7) {
-    if (myRank == 0) printf("%s [m] [n] [k] [nprow] [niter]\n",
+  if (argc != 1 && argc >= 8) {
+    if (myRank == 0) printf("%s [m] [n] [k] [nprow] [niter] [alloc_host_buf]\n",
                                argv[0]);
     //printf("%s [matrix_dimension_X] [matrix_dimension_Y] [block_dimension_X] [block_dimension_Y]\n", argv[0]);
     MPI_Abort(MPI_COMM_WORLD, -1);
@@ -172,6 +173,9 @@ int main(int argc, char **argv) {
   int num_iter;
   if (argc > 5) num_iter = atoi(argv[5]);
   else num_iter = NUM_ITER;
+  
+  if (argc > 6) alloc_host_buf = atoi(argv[6]);
+  else alloc_host_buf = 1;
 
 #ifdef ZGEMM_TEST
   std::complex<double> ALPHA = std::complex<double>(2.0,-.7);
@@ -184,11 +188,12 @@ int main(int argc, char **argv) {
 
 
   if (myRank == 0){ 
-    printf("MATRIX MULTIPLICATION OF MATRICES\n");
-    printf("MATRIX DIMENSIONS ARE %lld by %lld by %lld\n", m, n, k);
-    printf("PROCESSOR GRID IS %d by %d\n", nprow, npcol);
-    printf("PERFORMING %d ITERATIONS\n", num_iter);
-    printf("WITH RANDOM DATA\n");
+    printf("matrix multiplication of matrices\n");
+    printf("matrix dimensions are %lld by %lld by %lld\n", m, n, k);
+    printf("processor grid is %d by %d\n", nprow, npcol);
+    printf("performing %d iterations\n", num_iter);
+    printf("with random data\n");
+    printf("alloc_host_buf = %d\n",alloc_host_buf);
 //    printf("ALPHA = %lf, BETA = %lf\n",ALPHA,BETA);
   }
 
@@ -210,10 +215,29 @@ int main(int argc, char **argv) {
   fkblk = k/nprow;
 #endif
 
+#ifdef OFFLOAD
+  VAL_TYPE * mat_A;
+  VAL_TYPE * mat_B; 
+  VAL_TYPE * mat_C;
+  VAL_TYPE * mat_C_CTF;
+ 
+  if (alloc_host_buf){
+    host_pinned_alloc((void**)&mat_A,fkblk*fmblk*sizeof(VAL_TYPE));
+    host_pinned_alloc((void**)&mat_B,fnblk*fkblk*sizeof(VAL_TYPE));
+    host_pinned_alloc((void**)&mat_C,nblk*mblk*sizeof(VAL_TYPE));
+    host_pinned_alloc((void**)&mat_C_CTF,nblk*mblk*sizeof(VAL_TYPE));
+  } else {
+    mat_A = (VAL_TYPE*)malloc((fkblk*fmblk*sizeof(VAL_TYPE)));
+    mat_B = (VAL_TYPE*)malloc((fnblk*fkblk*sizeof(VAL_TYPE)));
+    mat_C = (VAL_TYPE*)malloc(nblk*mblk*sizeof(VAL_TYPE));
+    mat_C_CTF = (VAL_TYPE*)malloc(nblk*mblk*sizeof(VAL_TYPE));
+  }
+#else
   VAL_TYPE * mat_A = (VAL_TYPE*)malloc((fkblk*fmblk*sizeof(VAL_TYPE)));
   VAL_TYPE * mat_B = (VAL_TYPE*)malloc((fnblk*fkblk*sizeof(VAL_TYPE)));
   VAL_TYPE * mat_C = (VAL_TYPE*)malloc(nblk*mblk*sizeof(VAL_TYPE));
   VAL_TYPE * mat_C_CTF = (VAL_TYPE*)malloc(nblk*mblk*sizeof(VAL_TYPE));
+#endif
 
   VAL_TYPE ans_verify;
 

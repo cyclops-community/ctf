@@ -5,7 +5,7 @@
 #include <climits>
 
 /**
- * \brief deallocates ctr_2d_general object
+ * \brief deallocs ctr_2d_general object
  */
 template<typename dtype>
 ctr_2d_general<dtype>::~ctr_2d_general() {
@@ -33,6 +33,9 @@ ctr_2d_general<dtype>::ctr_2d_general(ctr<dtype> * other) : ctr<dtype>(other) {
   ctr_sub_lda_C = o->ctr_sub_lda_C;
   cdt_C         = o->cdt_C;
   move_C        = o->move_C;
+#ifdef OFFLOAD
+  alloc_host_buf = o->alloc_host_buf;
+#endif
 }
 
 /**
@@ -50,6 +53,12 @@ void ctr_2d_general<dtype>::print() {
   printf("move_C = %d, ctr_lda_C = "PRId64", ctr_sub_lda_C = "PRId64"\n",
           move_C, ctr_lda_C, ctr_sub_lda_C);
   if (move_C) printf("cdt_C length = %d\n",cdt_C.np);
+#ifdef OFFLOAD
+  if (alloc_host_buf)
+    printf("alloc_host_buf is true\n");
+  else
+    printf("alloc_host_buf is false\n");
+#endif
   rec_ctr->print();
 }
 
@@ -199,7 +208,14 @@ void ctr_2d_general<dtype>::run() {
     alloced = 0;
   } else {
     alloced = 1;
+#ifdef OFFLOAD
+    if (alloc_host_buf)
+      host_pinned_alloc((void**)&this->buffer, mem_fp());
+    else
+      ret = CTF_mst_alloc_ptr(mem_fp(), (void**)&this->buffer);
+#else
     ret = CTF_mst_alloc_ptr(mem_fp(), (void**)&this->buffer);
+#endif
     LIBT_ASSERT(ret==0);
   }
 
@@ -384,7 +400,14 @@ void ctr_2d_general<dtype>::run() {
   }
   /* FIXME: reuse that */
   if (alloced){
+#ifdef OFFLOAD
+    if (alloc_host_buf)
+      host_pinned_free(this->buffer);
+    else
+      CTF_free(this->buffer);
+#else
     CTF_free(this->buffer);
+#endif
     this->buffer = NULL;
   }
   TAU_FSTOP(ctr_2d_general);

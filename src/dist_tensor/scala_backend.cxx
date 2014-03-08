@@ -90,12 +90,12 @@ int gemm_ctr(  dtype  const     alpha,
   ptr_C.upload(C);
   TAU_FSTOP(offload_upload);
   TAU_FSTART(offload_gemm);*/
-  TAU_FSTART(offload_dgemm);
+  TAU_FSTART(offload_sdgemm);
   offload_gemm<dtype>(ta, tb, m, n, k, alpha, 
                       A, la_A,
                       B, la_B, beta,
                       C, la_C);
-  TAU_FSTOP(offload_dgemm);
+  TAU_FSTOP(offload_sdgemm);
 /*  TAU_FSTART(offload_download);
   ptr_C.download(C);
   TAU_FSTOP(offload_download);*/
