@@ -373,6 +373,7 @@ void tCTF_Tensor<dtype>::scale(dtype                  alpha,
     fs.func_ptr = fseq.func_ptr;
     ret = world->ctf->scale_tensor(alpha, tid, idx_map_A, fs);
   }
+  CTF_free(idx_map_A);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
 }
 template<typename dtype>

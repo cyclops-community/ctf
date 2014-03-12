@@ -6,7 +6,7 @@ EXECUTABLES = pgemm_test nonsq_pgemm_test nonsq_pgemm_bench \
               fast_diagram sym3 fast_3mm readwrite_test permute_multiworld \
               ccsdt_t3_to_t2 weight_4D test_suite fast_sym subworld_gemm \
               fast_sym_4D strassen slice_gemm ccsd sparse_permuted_slice ccsdt_map_test \
-              bench_contraction multi_tsr_sym
+              bench_contraction multi_tsr_sym diag_ctr readall_test
 
 LIBRARIES   = ctf
 

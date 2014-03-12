@@ -19,6 +19,7 @@
 #include "../../examples/scalar.cxx"
 #include "../../examples/trace.cxx"
 #include "../../examples/diag_sym.cxx"
+#include "../../examples/diag_ctr.cxx"
 #ifdef CTF_COMPLEX
 #include "../../examples/dft.cxx"
 #include "../../examples/dft_3D.cxx"
@@ -29,6 +30,7 @@
 #include "../../examples/strassen.cxx"
 #include "../../examples/slice_gemm.cxx"
 #include "../../examples/readwrite_test.cxx"
+#include "../../examples/readall_test.cxx"
 #include "../../examples/subworld_gemm.cxx"
 #include "../../examples/multi_tsr_sym.cxx"
 
@@ -138,6 +140,10 @@ int main(int argc, char ** argv){
     pass.push_back(diag_sym(n, dw));
     
     if (rank == 0)
+      printf("Testing a diag ctr operation with n = %d m = %d:\n",n,n*n);
+    pass.push_back(diag_ctr(n, n*n, dw));
+    
+    if (rank == 0)
       printf("Testing fast symmetric multiplication operation with n = %d:\n",n*n);
     pass.push_back(fast_sym(n*n, dw));
 
@@ -159,8 +165,12 @@ int main(int argc, char ** argv){
     pass.push_back(strassen(n*n, NS, dw));
     
     if (rank == 0)
-      printf("Testing diagonal write with n = %d:\n",n*n);
+      printf("Testing diagonal write with n = %d:\n",n);
     pass.push_back(readwrite_test(n, dw));
+    
+  if (rank == 0)
+      printf("Testing readall test with n = %d m = %d:\n",n,n*n);
+    pass.push_back(readall_test(n, n*n, dw));
 #if 0//def USE_SYM
     if (rank == 0)
       printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);

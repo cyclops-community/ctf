@@ -478,7 +478,8 @@ int dist_tensor<dtype>::
   }
   print_map(stdout,tid);
 #endif
-  
+ 
+#ifdef HOME_CONTRACT 
   int was_home = tsr->is_home;
   int ntid = tid;
   if (was_home){
@@ -492,7 +493,10 @@ int dist_tensor<dtype>::
     copy_mapping(tsr->ndim, tsr->edge_map, ntsr->edge_map);
     set_padding(ntsr);
   } else ntsr = tsr;    
-
+#else
+  int ntid = tid;
+  ntsr = tsr;
+#endif
   unmap_inner(ntsr);
   set_padding(ntsr);
   inv_idx(ntsr->ndim, idx_map, ntsr->edge_map,
@@ -672,7 +676,8 @@ int dist_tensor<dtype>::
   }
 
   saved_map = false;
-  
+
+#ifdef HOME_CONTRACT
   if (was_home && !ntsr->is_home){
     saved_map = true;
     if (global_comm.rank == 0)
@@ -707,6 +712,7 @@ int dist_tensor<dtype>::
     ntsr->is_data_aliased = 1;
     del_tsr(ntid);
   }
+#endif
 
 #if DEBUG>=1
   if (global_comm.rank == 0)
@@ -1906,6 +1912,9 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   std::vector<dtype> signs;
   dtype dbeta;
   CTF_sum_type_t unfold_type, new_type;
+//#if (DEBUG >= 1 || VERBOSE >= 1)
+//  print_sum(type,alpha_,beta);
+//#endif
   check_sum(type);
   if (tensors[type->tid_A]->has_zero_edge_len || 
       tensors[type->tid_B]->has_zero_edge_len){
@@ -2516,6 +2525,9 @@ int dist_tensor<dtype>::
   dtype dbeta;
   ctr<dtype> * ctrf;
   check_contraction(stype);
+  unmap_inner(tensors[stype->tid_A]);
+  unmap_inner(tensors[stype->tid_B]);
+  unmap_inner(tensors[stype->tid_C]);
   if (tensors[stype->tid_A]->has_zero_edge_len || tensors[stype->tid_B]->has_zero_edge_len
       || tensors[stype->tid_C]->has_zero_edge_len){
     tensor<dtype>* tsr_C = tensors[stype->tid_C];
@@ -2657,6 +2669,9 @@ int dist_tensor<dtype>::
       if (sy && map_tensors(&unfold_type,
                             ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
 #endif
+        if (ntid_A == ntid_B){
+          clone_tensor(ntid_A, 1, &ntid_A);
+        }
         desymmetrize(ntid_A, unfold_type.tid_A, 0);
         desymmetrize(ntid_B, unfold_type.tid_B, 0);
         desymmetrize(ntid_C, unfold_type.tid_C, 1);

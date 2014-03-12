@@ -123,6 +123,10 @@ int readwrite_test(int const    n,
 #endif
   }
 
+  CTF_Tensor B_SY(4, sizeN4, shape_SY4, dw);
+  
+/*  B_SY["ijkl"]=A_SY["ijkl"];
+  sum = A_SY["ijkl"]*B_SY["ijkl"];*/
   sum = A_SY["ijkl"]*A_SY["ijkl"];
 
   if (abs(sum-n*(n+1.)/2.)>1.E-10){

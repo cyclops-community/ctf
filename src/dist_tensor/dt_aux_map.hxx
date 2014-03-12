@@ -1364,7 +1364,7 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
           if (k<j){
             ex_idx_map[k]       = k;
             diag_idx_map[k]    = k;
-            edge_len[k]        = tensors[tid]->edge_len[j]-tensors[tid]->padding[j];
+            edge_len[k]        = tensors[tid]->edge_len[k]-tensors[tid]->padding[k];
             (*idx_map_new)[k]  = idx_map[k];
             if (k==j-1){
               sym[k] = NS;
@@ -1373,7 +1373,7 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
           } else if (k>j) {
             ex_idx_map[k]       = k-1;
             diag_idx_map[k-1]   = k-1;
-            edge_len[k-1]       = tensors[tid]->edge_len[j]-tensors[tid]->padding[j];
+            edge_len[k-1]       = tensors[tid]->edge_len[k]-tensors[tid]->padding[k];
             sym[k-1]            = tensors[tid]->sym[k];
             (*idx_map_new)[k-1] = idx_map[k];
           } else {

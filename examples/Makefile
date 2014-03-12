@@ -7,7 +7,10 @@ examples: dft dft_3D gemm gemm_4D scalar trace diag_sym fast_diagram \
           fast_3mm sym3 fast_sym fast_sym_4D ccsdt_t3_to_t2 weight_4D \
           test_suite strassen slice_gemm ccsd readwrite_test subworld_gemm \
           permute_multiworld sparse_permuted_slice ccsdt_map_test bench_contraction \
-          multi_tsr_sym
+          multi_tsr_sym diag_ctr readall_test
+
+readall_test: ${bindir}/readall_test
+${bindir}/readall_test: readall_test.o ${libdir}/libctf.a
 
 multi_tsr_sym: ${bindir}/multi_tsr_sym
 ${bindir}/multi_tsr_sym: multi_tsr_sym.o ${libdir}/libctf.a
@@ -35,6 +38,9 @@ ${bindir}/fast_diagram: fast_diagram.o ${libdir}/libctf.a
 
 diag_sym: ${bindir}/diag_sym
 ${bindir}/diag_sym: diag_sym.o ${libdir}/libctf.a
+
+diag_ctr: ${bindir}/diag_ctr
+${bindir}/diag_ctr: diag_ctr.o ${libdir}/libctf.a
 
 ccsdt_t3_to_t2: ${bindir}/ccsdt_t3_to_t2
 ${bindir}/ccsdt_t3_to_t2: ccsdt_t3_to_t2.o ${libdir}/libctf.a

@@ -3,6 +3,8 @@
 #ifndef _tCTF_HPP_
 #define _tCTF_HPP_
 
+#define CTF_VERSION 100
+
 #include "mpi.h"
 #include <stdio.h>
 #include <stdint.h>

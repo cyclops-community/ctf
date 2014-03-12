@@ -1166,6 +1166,7 @@ int dist_tensor<dtype>::read_local_pairs(int                tensor_id,
     return DIST_TENSOR_SUCCESS;
   }
   TAU_FSTOP(read_local_pairs);
+  return DIST_TENSOR_SUCCESS;
 }
 
 
@@ -1211,13 +1212,13 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   nval = pXs[numPes-1] + nXs[numPes-1];
   CTF_alloc_ptr(nval, (void**)&all_pairs);
   MPI_Allgatherv(my_pairs, n, MPI_CHAR,
-                 all_pairs, nXs, pXs, MPI_CHAR, MPI_COMM_WORLD);
+                 all_pairs, nXs, pXs, MPI_CHAR, global_comm.cm);
   nval = nval/sizeof(tkv_pair<dtype>);
 
   std::sort(all_pairs,all_pairs+nval);
   if (n>0)
     CTF_free(my_pairs);
-  if (is_prealloced)
+  if (!is_prealloced)
     CTF_alloc_ptr(nval*sizeof(dtype), (void**)all_data);
   for (i=0; i<nval; i++){
     (*all_data)[i] = all_pairs[i].d;
