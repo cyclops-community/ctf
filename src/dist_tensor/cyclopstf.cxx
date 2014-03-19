@@ -268,6 +268,19 @@ int tCTF<dtype>::get_raw_data(int const tensor_id, dtype ** data, long_int * siz
   *data = dt->get_raw_data(tensor_id, size);
   return DIST_TENSOR_SUCCESS;
 }
+   
+ 
+/* \brief fill tensor with random data in the itnerval [range-start, range_stop],
+ *        drand48() is seeded based on current time and processor rank
+ *        not reproducible
+ * \param[in] tensor_id id of tensor
+ * \param[int] range_start start of random numbers
+ * \param[int] range_stop end of random numbers
+ */
+template<typename dtype>
+int tCTF<dtype>::fill_random(int tensor_id, dtype range_start, dtype range_stop) {
+  return dt->fill_random(tensor_id, range_start, range_stop);
+}
 
 /**
  * \brief get information about tensor

@@ -481,6 +481,14 @@ class tCTF_Tensor {
      * \return pointer to local data
      */
     dtype * get_raw_data(long_int * size);
+    
+    /* \brief fill tensor with random data in the itnerval [range-start, range_stop],
+     *        drand48() is seeded based on current time and processor rank
+     *        not reproducible
+     * \param[int] range_start start of random numbers
+     * \param[int] range_stop end of random numbers
+     */
+    void fill_random(dtype range_start, dtype range_stop);
 
     /**
      * \brief gives a read-only copy of the raw current local data with padding included

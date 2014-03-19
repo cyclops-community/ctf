@@ -202,6 +202,8 @@ class dist_tensor{
     int * get_edge_len(int const tensor_id) const;
     int * get_sym(int const tensor_id) const;
     dtype * get_raw_data(int const tensor_id, long_int * size);
+    /* fill with random numbers seeded by time and rank */
+    int fill_random(int tensor_id, dtype range_start, dtype range_stop);
     
     /* set the tensor name */
     int set_name(int const tensor_id, char const * name);

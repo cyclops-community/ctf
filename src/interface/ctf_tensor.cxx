@@ -96,6 +96,12 @@ dtype * tCTF_Tensor<dtype>::get_raw_data(long_int * size) {
   
   return data;
 }
+template<typename dtype>
+void tCTF_Tensor<dtype>::fill_random(dtype range_start, dtype range_stop){
+  int ret;
+  ret = world->ctf->fill_random(tid, range_start, range_stop);
+  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+}
 
 template<typename dtype>
 void tCTF_Tensor<dtype>::read_local(long_int *   npair, 

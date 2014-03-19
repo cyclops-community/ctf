@@ -294,6 +294,9 @@ class tCTF{
     /* get raw data pointer WARNING: includes padding */
     int get_raw_data(int const tensor_id, dtype ** data, long_int * size);
 
+    /* fill with random numbers seeded by time and rank */
+    int fill_random(int tensor_id, dtype range_start, dtype range_stop);
+
     /* Input tensor data with <key, value> pairs where key is the
        global index for the value. */
     int write_tensor(int const                tensor_id,

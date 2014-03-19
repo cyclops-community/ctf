@@ -24,8 +24,6 @@ int diag_ctr(int const    n,
              CTF_World   &dw){
   int rank, i, num_pes, pass;
   int64_t np;
-  double * pairs;
-  int64_t * indices;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
@@ -41,11 +39,7 @@ int diag_ctr(int const    n,
 
   CTF_Matrix mA(n,m,NS,dw);
   CTF_Matrix mB(n,m,NS,dw);
-  A.read_local(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  A.write(np, indices, pairs);
-  free(pairs);
-  free(indices);
+  A.fill_random(-.5,.5);
   pass = 1;
   double tr = 0.0;
   tr += A["aiai"];

@@ -43,22 +43,10 @@ int  gemm(int const     m,
 
   srand48(13*rank);
   //* Writes noise to local data based on global index
-  A.read_local(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  A.write(np, indices, pairs);
-  free(pairs);
-  free(indices);
-  B.read_local(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  B.write(np, indices, pairs);
-  free(pairs);
-  free(indices);
-  C.read_local(&np, &indices, &pairs);
-  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  C.write(np, indices, pairs);
-  free(pairs);
-  free(indices);
-
+  A.fill_random(-.5,.5);
+  B.fill_random(-.5,.5);
+  C.fill_random(-.5,.5);
+ 
   C["ij"] += A["ik"]*B["kj"];
   C["ij"] += (.3*i)*A["ik"]*B["kj"];
 #ifndef TEST_SUITE

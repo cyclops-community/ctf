@@ -366,6 +366,24 @@ dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, long_int * size) {
   return tensors[tensor_id]->data;
 }
 
+ 
+/* \brief fill tensor with random data in the itnerval [range-start, range_stop],
+ *        drand48() is seeded based on current time and processor rank
+ *        not reproducible
+ * \param[in] tensor_id id of tensor
+ * \param[int] range_start start of random numbers
+ * \param[int] range_stop end of random numbers
+ */
+template<typename dtype>
+int dist_tensor<dtype>::fill_random(int tensor_id, dtype range_start, dtype range_stop) {
+  tensor<dtype> * tsr = tensors[tensor_id];
+  srand48(time(NULL)*(((double)global_comm.rank+1)/global_comm.np));
+  for (long_int i=0; i<tsr->size; i++){
+    tsr->data[i] = drand48()*(range_stop-range_start)+range_start;
+  }
+  return DIST_TENSOR_SUCCESS;
+}
+
 /**
  * \brief pulls out information about a tensor
  * \param[in] tensor_id tensor handle
@@ -1713,6 +1731,7 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid, double cutoff) {
     CTF_free(idx_arr);
     CTF_free(all_data);
   }
+  CTF_free(my_data);
   //COMM_BARRIER(global_comm);
   return DIST_TENSOR_SUCCESS;
 }
