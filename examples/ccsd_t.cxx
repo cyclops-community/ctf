@@ -70,7 +70,7 @@ int ccsd_t(int no, int nv, int bA, int bK, int niter, CTF_World &dw){
 
   CTF_Tensor T2s(4, sizeT2s, shapeNSAS, dw);
   CTF_Tensor Vabijs(4, sizeVabijs, shapeNSAS, dw);
-  CTF_Tensor Vbceks(4, sizeVbceks, shapeNSNS, dw);
+  CTF_Tensor Vbceks(4, sizeVbceks, shapeASNS, dw);
   CTF_Tensor Vmcjks(4, sizeVmcjks, shapeNSNS, dw);
 
   int sizeT3s[] = {bA,nv,nv,no,no,bK};
@@ -89,6 +89,7 @@ int ccsd_t(int no, int nv, int bA, int bK, int niter, CTF_World &dw){
 
     T2s.slice(zeros,sizeT2s,0.0,T2,offsets_iA,ends_iA,1.0);
     Vabijs.slice(zeros,sizeVabijs,0.0,Vabij,offsets_iA,ends_iA,1.0);
+
 
     int stEv = iA;
     int endEv = MIN(nv,iA+bA);
@@ -114,6 +115,9 @@ int ccsd_t(int no, int nv, int bA, int bK, int niter, CTF_World &dw){
     
       int ends_bcekA[] = {nv, nv, nv, MIN(no,iK+bK)};
       Vbceks.slice(zeros,ends_Vbceks,0.0,Vbcek,offsets_iK,ends_bcekA,1.0);
+    double err = 0.0;
+    err += Vmcjks["abij"]-Vmcjk["abij"];
+    printf("err=%E\n",err);
       
       T3c["abcijk"] = T2s["aeij"]*Vbceks["bcek"];
       T3c["abcijk"] -= T2s["abim"]*Vmcjks["mcjk"];
