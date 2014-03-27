@@ -1153,14 +1153,6 @@ tCTF_Contract_Term<dtype> operator*(double d, tCTF_Term<dtype> const & tsr){
   return (tsr*d);
 }
 
-template tCTF_Contract_Term<double> 
-            operator*(double d, tCTF_Term<double> const & tsr);
-#ifdef COMPLEX
-template tCTF_Term< std::complex<double> > &
-            operator*(double  d, tCTF_Term< std::complex<double> > const & tsr);
-#endif
-
-
 /**
  * \brief An experession representing a contraction of a set of tensors contained in operands 
  */
