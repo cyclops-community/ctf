@@ -979,6 +979,10 @@ int remap_tensor(int const  tid,
  * \param[in] new_dist new distribution info
  * \param[in] new_data new data (data to be accumulated to)
  * \param[in] beta scaling factor of the data to add (new_data)
+ * \param[in] old_offsets cut from start of tensor edge length
+ * \param[in] new_offsets cut from start of tensor edge length
+ * \param[in] old_perm reordering along edge length
+ * \param[in] new_perm reordering along edge length
  */
 template<typename dtype>
 int redistribute(int const *          sym,
@@ -988,7 +992,11 @@ int redistribute(int const *          sym,
                  dtype                alpha,
                  distribution const & new_dist,
                  dtype *              new_data,
-                 dtype                beta){
+                 dtype                beta,
+                 int const *          old_offsets = NULL,
+                 int const *          new_offsets = NULL,
+                 int * const *        old_perm = NULL,
+                 int * const *        new_perm = NULL){
 
   return  cyclic_reshuffle(old_dist.ndim,
                            old_dist.size,
@@ -998,15 +1006,15 @@ int redistribute(int const *          sym,
                            old_dist.perank,
                            old_dist.pe_lda,
                            old_dist.padding,
-                           NULL,
-                           NULL,
+                           old_offsets,
+                           old_perm,
                            new_dist.edge_len,
                            new_dist.phase,
                            new_dist.perank,
                            new_dist.pe_lda,
                            new_dist.padding,
-                           NULL,
-                           NULL,
+                           new_offsets,
+                           new_perm,
                            old_dist.virt_phase,
                            new_dist.virt_phase,
                            &old_data,

@@ -868,6 +868,28 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
   int * padding_B = (int*)CTF_alloc(sizeof(int)*tsr_B->ndim);
   int * toffset_B = (int*)CTF_alloc(sizeof(int)*tsr_B->ndim);
 
+  if (dt_A == dt_B){
+    printf("HERE\n");
+    distribution idst, odst;
+    save_mapping(tsr_A, idst, &topovec[tsr_A->itopo]);
+    save_mapping(tsr_B, odst, &topovec[tsr_B->itopo]);
+  
+    for (int dim=0; dim<tsr_A->ndim; dim++){
+      padding_A[dim] = MAX(idst.padding[dim], idst.edge_len[dim]-ends_A[dim]);
+    }
+    CTF_free(idst.padding);
+    idst.padding = padding_A;
+    for (int dim=0; dim<tsr_B->ndim; dim++){
+      padding_B[dim] = MAX(odst.padding[dim], odst.edge_len[dim]-ends_B[dim]);
+    }
+    CTF_free(odst.padding);
+    odst.padding = padding_A;
+
+    redistribute(tsr_A->sym, global_comm, idst, tsr_A->data, alpha, 
+                                   odst, tsr_B->data, beta, offsets_A, offsets_B);
+    
+  } else {
+  
     /*dt_B->read_local_pairs(tid_B, &sz_B, &all_data_B);
 
     CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*sz_B, (void**)&blk_data_B);
@@ -999,7 +1021,7 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
   CTF_free(padding_B);
   CTF_free(toffset_A);
   CTF_free(toffset_B);
-
+  }
   return ret;
 }
 
