@@ -144,78 +144,60 @@ do {                                    \
 #else
 #define BCAST(buf, sz, type, root, cdt)                 \
   do {                                                  \
-  __CM(0,cdt,0,0,0);                                    \
   MPI_Bcast(buf, sz, type, root, cdt.cm);              \
-  __CM(1,cdt,0,0,0);                                    \
   }while (0)
 #endif
 
 #define REDUCE(sbuf, rbuf, sz, type, op, root, cdt)             \
   do {                                                          \
-  __CM(0,cdt,0,0,0);                                            \
   MPI_Reduce(sbuf, rbuf, sz, type, op, root, cdt.cm);          \
-  __CM(1,cdt,0,0,0);                                            \
   } while(0)
 
 #define ALLREDUCE(sbuf, rbuf, sz, type, op, cdt)        \
   do {                                                  \
-  __CM(0,cdt,0,0,0);                                    \
   MPI_Allreduce(sbuf, rbuf, sz, type, op, cdt.cm);     \
-  __CM(1,cdt,0,0,0);                                    \
   } while(0)
 
 #define ALLGATHER(sbuf, sendcnt, t_send,                        \
                   rbuf, recvcnt, t_recv, cdt)                   \
   do {                                                          \
-  __CM(0,cdt,0,0,0);                                            \
   MPI_Allgather(sbuf, sendcnt, t_send,                          \
                 rbuf, recvcnt, t_recv, cdt.cm);                \
-  __CM(1,cdt,0,0,0);                                            \
   } while(0)
 
 #define GATHER(sbuf, sendcnt, t_send,                           \
                rbuf, recvcnt, t_recv, root, cdt)                \
   do {                                                          \
-  __CM(0,cdt,0,0,0);                                            \
   MPI_Gather(sbuf, sendcnt, t_send,                             \
              rbuf, recvcnt, t_recv, root, cdt.cm);             \
-  __CM(1,cdt,0,0,0);                                            \
   } while(0)
 
 #define GATHERV(sbuf, sendcnt, t_send,                          \
                 rbuf, recvcnts, displs, t_recv, root, cdt)      \
   do {                                                          \
-  __CM(0,cdt,0,0,0);                                            \
   MPI_Gatherv(sbuf, sendcnt, t_send,                            \
               rbuf, recvcnts, displs, t_recv, root, cdt.cm);   \
-  __CM(1,cdt,0,0,0);                                            \
   } while(0)
 
 #define SCATTERV(sbuf, sendcnts, displs, t_send,                \
                  rbuf, recvcnt, t_recv, root, cdt)              \
   do {                                                          \
-  __CM(0,cdt,0,0,0);                                            \
   MPI_Scatterv(sbuf, sendcnts, displs, t_send,                  \
                rbuf, recvcnt, t_recv, root, cdt.cm);           \
-  __CM(1,cdt,0,0,0);                                            \
   } while(0)
 
 #define ALL_TO_ALL(sendbuf, sendcount, sendtype, recvbuf,       \
                    recvcnt, recvtype, cdt)                      \
   do {                                                          \
-  __CM(0,cdt,0,0,0);                                            \
   MPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcnt,  \
                recvtype, cdt.cm);                              \
-  __CM(1,cdt,0,0,0);                                            \
   } while(0)
 
 #define ALL_TO_ALLV(sendbuf, sendcnts, sdispls, sendtype,       \
                     recvbuf, recvcnts, rdispls, recvtype, cdt)  \
   do {                                                          \
-  __CM(0,cdt,0,0,0);                                            \
   MPI_Alltoallv(sendbuf, sendcnts, sdispls, sendtype,           \
-                recvbuf, recvcnts, rdispls, recvtype, cdt.cm)  \
-  __CM(1,cdt,0,0,0);                                            \
+                recvbuf, recvcnts, rdispls, recvtype, cdt.cm);  \
   } while(0)
 
 
@@ -233,17 +215,13 @@ do {                                    \
 
 #define BLOCK_SEND(buf, sz, type, to, id, cdt)          \
   do {                                                  \
-  __CM(5,cdt,0,to,id);                                  \
   MPI_Send(buf, sz, type, to,                           \
             id, cdt.cm);                               \
-  __CM(1,cdt,0,0,0);                                    \
   } while(0)
 
 #define WAIT_RECV(req, stat, cdt)                       \
   do {                                                  \
-  __CM(6,cdt,0,id,id);                                  \
   MPI_Wait(req, stat);                                  \
-  __CM(1,cdt,0,0,0);                                    \
   } while (0)
 
 #define COMM_BARRIER(cdt)               \
@@ -261,4 +239,24 @@ do {                                    \
 
 #endif
   
+/**
+ * \brief performs all-to-all-v with 64-bit integer counts and offset on arbitrary
+ *        length types (datum_size), and uses point-to-point when all-to-all-v sparse
+ * \param[in] send_buffer data to send
+ * \param[in] send_counts number of datums to send to each process
+ * \param[in] send_displs displacements of datum sets in sen_buffer
+ * \param[in] datum_size size of MPI_datatype to use
+ * \param[in,out] recv_buffer data to recv
+ * \param[in] recv_counts number of datums to recv to each process
+ * \param[in] recv_displs displacements of datum sets in sen_buffer
+ * \param[in] cdt wrapper for communicator
+ */
+void CTF_all_to_allv(void const *     send_buffer, 
+                     long_int const * send_counts,
+                     long_int const * send_displs,
+                     long_int         datum_size,
+                     void *           recv_buffer, 
+                     long_int const * recv_counts,
+                     long_int const * recv_displs,
+                     CommData_t       cdt);
 #endif

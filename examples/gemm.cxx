@@ -60,7 +60,7 @@ int  gemm(int const     m,
   free(indices);
 
   C["ij"] += A["ik"]*B["kj"];
-  C["ij"] += (.3*i)*A["ik"]*B["kj"];
+  C["ij"] += .3*A["ik"]*B["kj"];
 #ifndef TEST_SUITE
   double t;
 
