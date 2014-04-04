@@ -600,7 +600,7 @@ void conv_idx(int          ndim,
  * \param[in] recv_displs displacements of datum sets in sen_buffer
  * \param[in] cdt wrapper for communicator
  */
-void CTF_all_to_allv(void const *     send_buffer, 
+void CTF_all_to_allv(void *           send_buffer, 
                      long_int const * send_counts,
                      long_int const * send_displs,
                      long_int         datum_size,
@@ -633,7 +633,7 @@ void CTF_all_to_allv(void const *     send_buffer,
     int nnr = 0;
     for (int p=0; p<np; p++){
       if (recv_counts[p] != 0){
-        MPI_Irecv(recv_buffer+recv_displs[p]*datum_size, 
+        MPI_Irecv(((char*)recv_buffer)+recv_displs[p]*datum_size, 
                   datum_size*recv_counts[p], 
                   MPI_CHAR, p, p, cdt.cm, reqs+nnr);
         nnr++;
@@ -643,7 +643,7 @@ void CTF_all_to_allv(void const *     send_buffer,
     for (int lp=0; lp<np; lp++){
       int p = (lp+cdt.rank)%np;
       if (send_counts[p] != 0){
-        MPI_Isend(send_buffer+send_displs[p]*datum_size, 
+        MPI_Isend(((char*)send_buffer)+send_displs[p]*datum_size, 
                   datum_size*send_counts[p], 
                   MPI_CHAR, p, cdt.rank, cdt.cm, reqs+nnr+nns);
         nns++;
@@ -679,7 +679,7 @@ void CTF_all_to_allv(void const *     send_buffer,
         ALL_TO_ALLV(send_buffer, i32_send_counts, i32_send_displs, MPI_DOUBLE_COMPLEX,
                     recv_buffer, i32_recv_counts, i32_recv_displs, MPI_DOUBLE_COMPLEX, cdt);
         break;
-      base: 
+      default: 
         ABORT;
         break;
     }

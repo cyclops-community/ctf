@@ -251,7 +251,7 @@ do {                                    \
  * \param[in] recv_displs displacements of datum sets in sen_buffer
  * \param[in] cdt wrapper for communicator
  */
-void CTF_all_to_allv(void const *     send_buffer, 
+void CTF_all_to_allv(void *           send_buffer, 
                      long_int const * send_counts,
                      long_int const * send_displs,
                      long_int         datum_size,
