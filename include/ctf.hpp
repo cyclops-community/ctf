@@ -1454,10 +1454,33 @@ protected:
  */
 
 
-#ifndef __TIMER_H__
 #define MAX_NAME_LENGTH 53
+    
+class CTF_Function_timer{
+  public:
+    char name[MAX_NAME_LENGTH];
+    double start_time;
+    double start_excl_time;
+    double acc_time;
+    double acc_excl_time;
+    int calls;
 
-class CTF_Function_timer;
+    double total_time;
+    double total_excl_time;
+    int total_calls;
+
+  public: 
+    CTF_Function_timer(char const * name_, 
+                   double const start_time_,
+                   double const start_excl_time_);
+    void compute_totals(MPI_Comm comm);
+    bool operator<(CTF_Function_timer const & w) const ;
+    void print(FILE *         output, 
+               MPI_Comm const comm, 
+               int const      rank,
+               int const      np);
+};
+
 
 /**
  * \defgroup timer Timing and cost measurement
@@ -1501,7 +1524,6 @@ class CTF_Timer_epoch{
     void end();
 };
 
-#endif
 
 /**
  * \brief a term is an abstract object representing some expression of tensors

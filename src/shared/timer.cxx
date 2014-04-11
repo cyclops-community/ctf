@@ -19,31 +19,6 @@ double excl_time;
 double complete_time;
 int set_contxt = 0;
 int output_file_counter = 0;
-    
-class CTF_Function_timer{
-  public:
-    char name[MAX_NAME_LENGTH];
-    double start_time;
-    double start_excl_time;
-    double acc_time;
-    double acc_excl_time;
-    int calls;
-
-    double total_time;
-    double total_excl_time;
-    int total_calls;
-
-  public: 
-    CTF_Function_timer(char const * name_, 
-                   double const start_time_,
-                   double const start_excl_time_);
-    void compute_totals(MPI_Comm comm);
-    bool operator<(CTF_Function_timer const & w) const ;
-    void print(FILE *         output, 
-               MPI_Comm const comm, 
-               int const      rank,
-               int const      np);
-};
 
 CTF_Function_timer::CTF_Function_timer(char const * name_, 
                                double const start_time_,
