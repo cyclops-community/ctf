@@ -3,8 +3,15 @@
 
 //#include "../../include/ctf.hpp"
 /**
+ * \defgroup timer Timing and cost measurement
+ * @{
+ *//**
  * \brief local process walltime measurement
  */
+#ifndef __tCTF_HPP__
+#define MAX_NAME_LENGTH 53
+
+class CTF_Function_timer;
 class CTF_Timer{
   public:
     char const * timer_name;
@@ -21,7 +28,26 @@ class CTF_Timer{
     
 };
 
+/**
+ * \brief epoch during which to measure timers
+ */
+class CTF_Timer_epoch{
+  private:
+    CTF_Timer * tmr_inner;
+    CTF_Timer * tmr_outer;
+    std::vector<CTF_Function_timer> saved_function_timers;
+  public:
+    char const * name;
+    //create epoch called name
+    CTF_Timer_epoch(char const * name_);
+    
+    //clears timers and begins epoch
+    void begin();
 
+    //prints timers and clears them
+    void end();
+};
+#endif
 
 void CTF_set_main_args(int argc, const char * const * argv);
 
