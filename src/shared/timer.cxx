@@ -284,6 +284,8 @@ void CTF_Timer_epoch::begin(){
   tmr_outer = new CTF_Timer(name);
   tmr_outer->start();
   saved_function_timers = function_timers;
+  save_excl_time = excl_time;
+  save_complete_time = complete_time;
   function_timers.clear();
   tmr_inner = new CTF_Timer(name);
   tmr_inner->start();
@@ -295,6 +297,8 @@ void CTF_Timer_epoch::end(){
   tmr_inner->stop();
   function_timers.clear();
   function_timers = saved_function_timers;
+  excl_time = save_excl_time;
+  complete_time = save_complete_time;
   tmr_outer->stop();
   delete tmr_inner;
   delete tmr_outer;

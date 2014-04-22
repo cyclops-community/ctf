@@ -1512,6 +1512,8 @@ class CTF_Timer_epoch{
     CTF_Timer * tmr_inner;
     CTF_Timer * tmr_outer;
     std::vector<CTF_Function_timer> saved_function_timers;
+    double save_excl_time;
+    double save_complete_time; 
   public:
     char const * name;
     //create epoch called name
