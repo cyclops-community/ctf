@@ -57,7 +57,7 @@ void CTF_Function_timer::print(FILE *         output,
     }
     space[i] = '\0';
     fprintf(output, "%s", space);
-    fprintf(output,"%5d   %3d.%04d  %3d.%02d  %3d.%04d  %3d.%02d\n",
+    fprintf(output,"%5d   %3d.%03d   %3d.%02d  %3d.%03d   %3d.%02d\n",
             total_calls/np,
             (int)(total_time/np),
             ((int)(1000.*(total_time)/np))%1000,
@@ -285,7 +285,7 @@ void CTF_Timer_epoch::begin(){
   tmr_outer->start();
   saved_function_timers = function_timers;
   save_excl_time = excl_time;
-  save_complete_time = complete_time;
+  excl_time = 0.0;
   function_timers.clear();
   tmr_inner = new CTF_Timer(name);
   tmr_inner->start();
@@ -298,7 +298,6 @@ void CTF_Timer_epoch::end(){
   function_timers.clear();
   function_timers = saved_function_timers;
   excl_time = save_excl_time;
-  complete_time = save_complete_time;
   tmr_outer->stop();
   delete tmr_inner;
   delete tmr_outer;
