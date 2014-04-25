@@ -185,9 +185,11 @@ void ccsd(Integrals   &V,
           int sched_nparts = 0){
   int rank;   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   double timer = MPI_Wtime();
+#ifdef SCHEDULE_CCSD
   tCTF_Schedule<double> sched(V.dw);
   sched.set_max_partitions(sched_nparts);
   sched.record();
+#endif
 
   CTF_Tensor T21 = CTF_Tensor(T.abij);
   T21["abij"] += .5*T["ai"]*T["bj"];
@@ -256,7 +258,8 @@ void ccsd(Integrals   &V,
   Zabij -= Fmi*T["abmj"];
   Zabij += .5*V["abef"]*T21["efij"];
   Zabij += .5*Wmnij*T21["abmn"];
-  
+ 
+#ifdef SCHEDULE_CCSD 
   if (rank == 0) {
     printf("Record: %lf\n",
             MPI_Wtime()-timer);
@@ -264,6 +267,7 @@ void ccsd(Integrals   &V,
 
   timer = MPI_Wtime();
   tCTF_ScheduleTimer schedule_time = sched.execute();
+#endif
 
   CTF_fctr fctr;
   fctr.func_ptr = &divide;
@@ -284,6 +288,7 @@ void ccsd(Integrals   &V,
   T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
 
+#ifdef SCHEDULE_CCSD
   if (rank == 0) {
     printf("Schedule comm down: %lf\n", schedule_time.comm_down_time);
     printf("Schedule execute: %lf\n", schedule_time.exec_time);
@@ -294,6 +299,7 @@ void ccsd(Integrals   &V,
     printf("All execute: %lf\n",
             MPI_Wtime()-timer);
   }
+#endif
 } 
 
 #ifndef TEST_SUITE
