@@ -43,6 +43,27 @@ EOF
   return $status
 }
 
+
+#Usage: 'testcompiler $1' where 
+# $1 - 0 if no printouts, 1 if verbose
+function testcompiler
+{
+  status=1
+  cat > .test.c <<EOF
+  int main(){ return 0; }
+EOF
+  if [ $1 -eq 1 ]; then
+    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c $LDFLAGS  2>&1 )
+  else
+    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c $LDFLAGS  > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.c a.out
+  return $status
+}
+
 function testopenmp
 {
   status=1
@@ -118,7 +139,7 @@ function defaultflags
             if [ "x$AR"        = "x" ]; then AR='xiar'; fi
             if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-openmp -g -O3'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
-            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
             PASS_TO_LINKER='-Wl,'
             ;;
@@ -126,7 +147,7 @@ function defaultflags
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
             if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -g -O3'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
-            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall -Wno-comment -Wno-sign-compare'; fi
             PASS_TO_LINKER='-Wl,'
             ;;
@@ -136,7 +157,7 @@ function defaultflags
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
             if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -g -O2'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
-            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS -Drestrict='; fi
+            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
             PASS_TO_LINKER='-Wl,'
             ;;
@@ -178,7 +199,7 @@ while [ "x$1" != "x" ]; do
       eval "${1%%=*}=\"${1#*=}\""
       ;;
     *)
-      echo "WARNING: Unknown option \"$1\""
+      echo "WARNING: Unknown option \"$1\"."
       usage
       exit 1
       ;;
@@ -191,7 +212,7 @@ done
 #
 echo -n 'Checking hostname... '
 if [ "$NERSC_HOST" = "carver" ]; then
-    echo 'Hostname recognized as a NERSC machine'
+    echo 'Hostname recognized as a NERSC machine.'
     host=nersc
     
     if [ "x$BLASLIBS" = "x" ]; then
@@ -209,7 +230,7 @@ if [ "$NERSC_HOST" = "carver" ]; then
     
     
 elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
-    echo 'Hostname recognized as a NERSC machine'
+    echo 'Hostname recognized as a NERSC machine.'
     host=nersc
     
     CXX=CC
@@ -219,7 +240,7 @@ elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     
     
 elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
-  echo 'Hostname recognized as a BG/P machine'
+  echo 'Hostname recognized as a BG/P machine.'
   
   host=bgp
   BLASLIBS='-lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread'
@@ -232,11 +253,11 @@ elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
   AR='ar'
   CXX=mpixlcxx_r
   CXXFLAGS='-qsmp=omp -qnoipa -g -O3'
-  DEFS='-DBGP -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS -Drestrict='
+  DEFS='-DBGP -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
   WARNFLAGS='-Wall'
   
 elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
-  echo 'Hostname recognized as a BG/Q machine'
+  echo 'Hostname recognized as a BG/Q machine.'
  
   host=bgq
   SCALAPACKLIBS="-L/soft/libraries/alcf/current/xl/SCALAPACK/lib/ -lscalapack"
@@ -247,7 +268,7 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
   AR='ar'
   CXX=mpixlcxx_r
   CXXFLAGS='-qsmp=omp -g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport'
-  DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS -Drestrict='
+  DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
   WARNFLAGS=''
 
 elif (hostname | grep 'titan'); then
@@ -264,7 +285,7 @@ else
   # Check for other common architectures (just Linux for now)
   #
   host=linux
-  echo 'Hostname not recognized, assuming generic Linux host'
+  echo 'Hostname not recognized, assuming generic Linux host.'
 
   #
   # Check for compiler used by MPI
@@ -278,13 +299,26 @@ else
 fi
 
 #
+# Check that compiler works without error
+#
+echo -n 'Checking compiler and flags... '
+if testcompiler 0; then
+  echo 'successful.'
+else
+  echo 'FAILED! error below:'
+  echo
+  testcompiler 1
+  echo
+  exit 1
+fi
+#
 # Check if OpenMP is provided
 #
 echo -n 'Checking if OpenMP is provided... '
 if testopenmp; then
-  echo 'OpenMP works'
+  echo 'OpenMP works.'
 else
-  echo 'Unable to compile OpenMP test program, will build without OpenMP, to enable OpenMP please provide e.g. CXXFLAGS=-fopenmp'
+  echo 'Unable to compile OpenMP test program, will build without OpenMP, to enable OpenMP please provide e.g. CXXFLAGS=-fopenmp.'
   DEFS="$DEFS -DOMP_OFF"
 fi
   
@@ -295,17 +329,40 @@ fi
 echo -n 'Checking whether BLAS works... '
 if testlink "$BLASLIBS" dgemm_ 0; then
   UNDERSCORE=1
-  echo 'BLAS found, with underscores'
+  echo 'BLAS works, with underscores.'
 else
   if testlink "$BLASLIBS" dgemm 0; then
     UNDERSCORE= 0
-    echo 'BLAS found, without underscores'
+    echo 'BLAS works, without underscores.'
   else
-    UNDERSCORE=1
-    echo 
-    testlink "$BLASLIBS" dgemm_ 1
-    echo 'WARNING: Unable to link with BLAS, please specify correct --blas and/or LDFLAGS (run ./configure --help to see all options),'
-    echo '  CTF library can still build (via 'make'), but none of the executables will'
+    if [ "x$BLASLIBS" = "x" ]; then
+      if testlink -lblas dgemm_ 0; then
+        UNDERSCORE=1
+        echo
+        echo '  WARNING: BLAS libirary was not specified, using -lblas (with underscores).'
+        BLASLIBS=-lblas
+      elif testlink -lblas dgemm 0; then
+        UNDERSCORE=0
+        echo
+        echo '  WARNING: BLAS libirary was not specified, using -lblas (without underscores).'
+        BLASLIBS=-lblas
+      else
+        UNDERSCORE=1
+        echo
+        echo '  WARNING: BLAS libirary was not specified, executables will not build,'
+        echo '  please specify correct --blas and/or LDFLAGS (run ./configure --help to see all options),'
+        echo '  CTF library can still build (via make).'
+      fi
+    else 
+      UNDERSCORE=1
+      echo
+      echo '  WARNING: Unable to link with specified BLAS library, build error below:'
+      echo
+      testlink "$BLASLIBS" dgemm_ 1
+      echo
+      echo '  please specify correct --blas and/or LDFLAGS (run ./configure --help to see all options),'
+      echo '  CTF library can still build (via 'make'), but none of the executables will.'
+    fi
   fi
 fi
 
@@ -321,21 +378,23 @@ fi
 
 echo -n 'Checking whether ScaLAPACK is provided... '
 if testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 0; then
-  echo 'SCALAPACK found'
+  echo 'SCALAPACK found.'
   DEFS="$DEFS -DUSE_SCALAPACK"
 else
   echo
+  echo '  ScaLAPACK not found, a couple of the tests/benchmarks will not build, build error below:'
+  echo
   testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 1
-  echo 'ScaLAPACK not found, a couple of the tests/benchmarks will not build'
+  echo
 fi
 
 echo -n 'Checking whether NVCC (cuda) is provided... '
 if [ "x$NVCC" = "x" ]; then
   NVCC="$CXX -x c -c"
-  echo 'NVCC is not provided, cuda will not be used'
+  echo 'NVCC is not provided, cuda will not be used.'
 else
   DEFS="$DEFS -DOFFLOAD -DUSE_CUDA"
-  echo 'NVCC provided and cuda will be used'
+  echo 'NVCC provided and cuda will be used.'
 fi
 
 cat > config.mk <<EOF
