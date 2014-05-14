@@ -7,12 +7,13 @@ BENCHMARKS = bench_contraction
 $(BENCHMARKS): %:  ../../bin/%
 
 .PHONY: $(SCALA_BENCHMARKS)
-$(SCALA_BENCHMARKS): %:  ./../../bin/%
+$(SCALA_BENCHMARKS): %:  
+ifneq (,$(findstring DUSE_SCALAPACK,$(DEFS))) 
+	$(MAKE) ../../bin/$@
+else
+	@echo 'cannot build $@ without ScaLAPACK';
+endif
+
 
 ../../bin/%: %.cxx 
 	$(FCXX) $< -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
-
-./../../bin/%: %.cxx 
-ifneq (,$(findstring DUSE_SCALAPACK,$(DEFS))) 
-	$(FCXX) $< -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
-endif

@@ -9,12 +9,13 @@ SCALA_TESTS = pgemm_test nonsq_pgemm_test
 $(TESTS): %:  ../../bin/%
 
 .PHONY: $(SCALA_TESTS)
-$(SCALA_TESTS): %:  ./../../bin/%
+$(SCALA_TESTS): %:  
+ifneq (,$(findstring DUSE_SCALAPACK,$(DEFS))) 
+	$(MAKE) ../../bin/$@
+else
+	@echo 'cannot build $@ without ScaLAPACK';
+endif
 
 ../../bin/%: %.cxx 
-	$(FCXX) $@.cxx -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
-
-./../../bin/%: %.cxx 
-ifneq (,$(findstring DUSE_SCALAPACK,$(DEFS))) 
 	$(FCXX) $< -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
-endif
+

@@ -51,6 +51,7 @@ function testopenmp
   int main(){ 
     int i;
     int j = 0;
+    omp_set_num_threads(1);
     #pragma omp for
     for (i=0; i<10; i++){
       j+=i;
@@ -58,7 +59,7 @@ function testopenmp
     return j; 
   }
 EOF
-  $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c  $LDFLAGS  > /dev/null 2>&1
+  $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c  $LDFLAGS > /dev/null 2>&1
   if [ -x a.out ]; then
     status=0
   fi
