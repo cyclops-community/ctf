@@ -127,6 +127,7 @@ do {                                                                    \
   TAU_FSTOP(scl_virt);
 }
 
-
-
-
+template class scl<double>;
+template class scl< std::complex<double> >;
+template class scl_virt<double>;
+template class scl_virt< std::complex<double> >;

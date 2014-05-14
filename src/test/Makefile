@@ -1,16 +1,20 @@
 include ../../config.mk
-DEPS += $(addprefix $(DEPDIR)/,$(notdir $(patsubst %.o,%.Po,$(wildcard *.o))))
-include ../make/make.in
-include ../make/rules.mk
 
-pgemm_test: ${bindir}/pgemm_test
-${bindir}/pgemm_test: pgemm_test.o ${libdir}/libctf.a
+TESTS = test_suite diag_sym sym3 readwrite_test \
+        ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test
 
-nonsq_pgemm_test: ${bindir}/nonsq_pgemm_test
-${bindir}/nonsq_pgemm_test: nonsq_pgemm_test.o ${libdir}/libctf.a
+SCALA_TESTS = pgemm_test nonsq_pgemm_test 
 
-test_suite: ${bindir}/test_suite
-${bindir}/test_suite: test_suite.o ${libdir}/libctf.a 
+.PHONY: $(TESTS)
+$(TESTS): %:  ../../bin/%
 
+.PHONY: $(SCALA_TESTS)
+$(SCALA_TESTS): %:  ./../../bin/%
 
-LIBS := -lctf $(LIBS)
+../../bin/%: %.cxx 
+	$(FCXX) $@.cxx -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
+
+./../../bin/%: %.cxx 
+ifneq (,$(findstring DUSE_SCALAPACK,$(DEFS))) 
+	$(FCXX) $< -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
+endif

@@ -69,6 +69,5 @@ class tsum_replicate : public tsum<dtype> {
     tsum_replicate(){}
 };
 
-#include "sum_tsr.cxx"
 
 #endif // __SUM_TSR_H__

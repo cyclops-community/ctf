@@ -218,3 +218,10 @@ void tsum_replicate<dtype>::run(){
 
 
 }
+
+template class tsum<double>;
+template class tsum< std::complex<double> >;
+template class tsum_virt<double>;
+template class tsum_virt< std::complex<double> >;
+template class tsum_replicate<double>;
+template class tsum_replicate< std::complex<double> >;

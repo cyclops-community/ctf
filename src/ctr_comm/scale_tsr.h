@@ -43,6 +43,5 @@ class scl_virt : public scl<dtype> {
 };
 
 
-#include "scale_tsr.cxx"
 
 #endif // __SCL_TSR_H__

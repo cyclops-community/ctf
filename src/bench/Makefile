@@ -1,11 +1,18 @@
 include ../../config.mk
-include ../make/make.in
-include ../make/rules.mk
 
-nonsq_pgemm_bench: ${bindir}/nonsq_pgemm_bench
-${bindir}/nonsq_pgemm_bench: nonsq_pgemm_bench.o \
-                                   ${libdir}/libctf.a
+SCALA_BENCHMARKS = nonsq_pgemm_bench 
+BENCHMARKS = bench_contraction
 
+.PHONY: $(BENCHMARKS)
+$(BENCHMARKS): %:  ../../bin/%
 
-INCLUDES += -I${top_dir}/src/dist_tensor
-LIBS := -lctf $(LIBS)
+.PHONY: $(SCALA_BENCHMARKS)
+$(SCALA_BENCHMARKS): %:  ./../../bin/%
+
+../../bin/%: %.cxx 
+	$(FCXX) $< -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
+
+./../../bin/%: %.cxx 
+ifneq (,$(findstring DUSE_SCALAPACK,$(DEFS))) 
+	$(FCXX) $< -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
+endif

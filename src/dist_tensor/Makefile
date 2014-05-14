@@ -1,3 +1,12 @@
 include ../../config.mk
-include ../make/make.in
-include ../make/rules.mk
+
+
+OBJS = cyclopstf.o  distribution.o  dist_tensor_internal.o
+
+ctf: $(OBJS) 
+
+$(OBJS): %.o: %.cxx *.h
+	$(FCXX) -c $<
+
+clean: 
+	rm -f $(OBJS) 

@@ -13,26 +13,26 @@
 
 #define TEST_SUITE
 #include "../../examples/weight_4D.cxx"
-#include "../../examples/sym3.cxx"
+#include "sym3.cxx"
 #include "../../examples/gemm.cxx"
 #include "../../examples/gemm_4D.cxx"
 #include "../../examples/scalar.cxx"
 #include "../../examples/trace.cxx"
-#include "../../examples/diag_sym.cxx"
-#include "../../examples/diag_ctr.cxx"
+#include "diag_sym.cxx"
+#include "diag_ctr.cxx"
 #ifdef CTF_COMPLEX
 #include "../../examples/dft.cxx"
 #include "../../examples/dft_3D.cxx"
 #endif
-#include "../../examples/fast_sym.cxx"
-#include "../../examples/fast_sym_4D.cxx"
-#include "../../examples/ccsdt_t3_to_t2.cxx"
+#include "../studies/fast_sym.cxx"
+#include "../studies/fast_sym_4D.cxx"
+#include "ccsdt_t3_to_t2.cxx"
 #include "../../examples/strassen.cxx"
 #include "../../examples/slice_gemm.cxx"
-#include "../../examples/readwrite_test.cxx"
-#include "../../examples/readall_test.cxx"
+#include "readwrite_test.cxx"
+#include "readall_test.cxx"
 #include "../../examples/subworld_gemm.cxx"
-#include "../../examples/multi_tsr_sym.cxx"
+#include "multi_tsr_sym.cxx"
 
 
 char* getCmdOption(char ** begin,
