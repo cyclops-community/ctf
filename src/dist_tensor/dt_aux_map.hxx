@@ -131,6 +131,8 @@ int calc_tot_phase(tensor<dtype> const * tsr){
  * \brief sets up a ctr_2d_general (2D SUMMA) level where A is not communicated
  *        function will be called with A/B/C permuted depending on desired alg
  *
+ * \param[in] is_used whether this ctr will actually be run
+ * \param[in] global_comm comm for this CTF instance
  * \param[in] i index in the total index map currently worked on
  * \param[in,out] virt_dim virtual processor grid lengths
  * \param[out] cg_edge_len edge lengths of ctr_2d_gen object to set
@@ -150,7 +152,9 @@ int calc_tot_phase(tensor<dtype> const * tsr){
  * ... the other parameters are specified the same as for _A but this time for _B and _C
  */
 template<typename dtype>
-int  ctr_2d_gen_build(int                     i,
+int  ctr_2d_gen_build(int                     is_used,
+                      CommData_t              global_comm,
+                      int                     i,
                       int                   * virt_dim,
                       int                   & cg_edge_len,
                       int                   & total_iter,
@@ -205,6 +209,8 @@ int  ctr_2d_gen_build(int                     i,
       if (tsr_B->edge_map[i_B].type == PHYSICAL_MAP){
         cg_edge_len = lcm(cg_edge_len, tsr_B->edge_map[i_B].np);
         cg_cdt_B = topovec[tsr_B->itopo].dim_comm[tsr_B->edge_map[i_B].cdt];
+        if (is_used && cg_cdt_B.alive == 0)
+          SHELL_SPLIT(global_comm, cg_cdt_B);
         nstep = tsr_B->edge_map[i_B].np;
         cg_move_B = 1;
       } else
@@ -212,6 +218,8 @@ int  ctr_2d_gen_build(int                     i,
       if (tsr_C->edge_map[i_C].type == PHYSICAL_MAP){
         cg_edge_len = lcm(cg_edge_len, tsr_C->edge_map[i_C].np);
         cg_cdt_C = topovec[tsr_C->itopo].dim_comm[tsr_C->edge_map[i_C].cdt];
+        if (is_used && cg_cdt_C.alive == 0)
+          SHELL_SPLIT(global_comm, cg_cdt_C);
         nstep = MAX(nstep, tsr_C->edge_map[i_C].np);
         cg_move_C = 1;
       } else

@@ -69,7 +69,6 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   // Keep attempting to add the next available task until either reached max_colors
   // (user-specified parameter or number of nodes) or the next added node would
   // require less than one processor's worth of compute
-  int starting_task;
 
   int max_starting_task = 0;
   int max_num_tasks = 0;

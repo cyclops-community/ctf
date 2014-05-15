@@ -4,7 +4,7 @@ OBJS = seq_tsr.o
 
 ctf: $(OBJS) 
 
-$(OBJS): %.o: %.cxx *.h
+$(OBJS): %.o: %.cxx *.hxx
 	$(FCXX) -c $<
 
 

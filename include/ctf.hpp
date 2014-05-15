@@ -1254,10 +1254,10 @@ public:
 	tCTF_TensorOperation(tCTF_TensorOperationTypes op,
 			tCTF_Idx_Tensor<dtype>* lhs,
 			const tCTF_Term<dtype>* rhs) :
+			  dependency_count(0),
 			  op(op),
 			  lhs(lhs),
 			  rhs(rhs),
-			  dependency_count(0),
 			  cached_estimated_cost(0) {}
 
   /**

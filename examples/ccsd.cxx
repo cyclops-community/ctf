@@ -184,8 +184,8 @@ void ccsd(Integrals   &V,
           Amplitudes  &T,
           int sched_nparts = 0){
   int rank;   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  double timer = MPI_Wtime();
 #ifdef SCHEDULE_CCSD
+  double timer = MPI_Wtime();
   tCTF_Schedule<double> sched(V.dw);
   sched.set_max_partitions(sched_nparts);
   sched.record();

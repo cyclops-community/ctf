@@ -104,7 +104,7 @@ class ctr_2d_general : public ctr<dtype> {
 
     ctr_2d_general(ctr<dtype> * other);
     ~ctr_2d_general();
-    ctr_2d_general(){}
+    ctr_2d_general(){ move_A=0; move_B=0; move_C=0; }
 };
 
 template<typename dtype>

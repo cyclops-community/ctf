@@ -84,7 +84,7 @@ int test_dft(int64_t const  n,
  * \brief Forms N-by-N DFT matrix A and inverse-dft iA and checks A*iA=I
  */
 int main(int argc, char ** argv){
-  int myRank, numPes, logn;
+  int logn;
   int64_t n;
   
   MPI_Init(&argc, &argv);

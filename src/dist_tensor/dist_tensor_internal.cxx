@@ -42,14 +42,15 @@ void dist_tensor<dtype>::set_global_comm(CommData_t cdt){ global_comm = cdt; }
  */
 template<typename dtype>
 int dist_tensor<dtype>::dist_cleanup(){
-  int j, rank;
+  int j;
   std::vector<topology>::iterator iter;
   
   std::set<MPI_Comm> commset;
   std::set<MPI_Comm>::iterator csiter;
   for (iter=topovec.begin(); iter<topovec.end(); iter++){
     for (j=0; j<iter->ndim; j++){
-      commset.insert(iter->dim_comm[j].cm);
+      if (iter->dim_comm[j].alive)
+        commset.insert(iter->dim_comm[j].cm);
     }
     CTF_free(iter->dim_comm);
     CTF_free(iter->lda);
@@ -62,8 +63,10 @@ int dist_tensor<dtype>::dist_cleanup(){
     }
   } 
   commset.clear();
-  rank = global_comm.rank;
-  FREE_CDT(global_comm);
+  int is_mpi_dead;
+  MPI_Finalized(&is_mpi_dead);
+  if (!is_mpi_dead)
+    FREE_CDT(global_comm);
   return DIST_TENSOR_SUCCESS;
 }
 
@@ -114,7 +117,7 @@ int dist_tensor<dtype>::initialize(CommData_t   cdt_global,
     if (cdt_global.rank == 0)
       VPRINTF(1,"P[%d] = %d\n",i,srt_dim_len[i]);
 
-    SETUP_SUB_COMM(cdt_global, phys_comm[i],
+    SETUP_SUB_COMM_SHELL(cdt_global, phys_comm[i],
                    ((rank/stride)%srt_dim_len[ndim-i-1]),
                    (((rank/(stride*srt_dim_len[ndim-i-1]))*stride)+cut),
                    srt_dim_len[ndim-i-1]);
@@ -122,13 +125,13 @@ int dist_tensor<dtype>::initialize(CommData_t   cdt_global,
     cut = (rank - (rank/stride)*stride);
   }
   set_phys_comm(phys_comm, ndim);
-  for (i=0; i<(int)topovec.size(); i++){
+/*  for (i=0; i<(int)topovec.size(); i++){
     for (int j=0; j<topovec[i].ndim; j++){
       if (topovec[i].dim_comm[j].alive == 0){
         SHELL_SPLIT(cdt_global, topovec[i].dim_comm[j]);
       }
     }
-  }
+  }*/
   CTF_free(srt_dim_len);
 
   return DIST_TENSOR_SUCCESS;
@@ -1837,7 +1840,7 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
             printf("%d-by-", topovec[tsr->itopo].dim_comm[i].np);
     }
     if (topovec[tsr->itopo].ndim > 0)
-            printf("%d topology.\n", topovec[tsr->itopo].dim_comm[i].np);
+            printf("%d topology (#%d).\n", topovec[tsr->itopo].dim_comm[i].np, tsr->itopo);
     for (i=0; i<tsr->ndim; i++){
       switch (tsr->edge_map[i].type){
         case NOT_MAPPED:

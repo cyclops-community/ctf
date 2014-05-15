@@ -663,7 +663,6 @@ int dist_tensor<dtype>::
   CTF_free(blk_len);
 
   hscl->run();
-
   delete hscl;
   
   if (saved_map){
@@ -907,10 +906,14 @@ tsum<dtype> * dist_tensor<dtype>::
     for (i=0; i<nphys_dim; i++){
       if (phys_mapped[2*i+0] == 0 && phys_mapped[2*i+1] == 1){
         rtsum->cdt_A[rtsum->ncdt_A] = topovec[tsr_A->itopo].dim_comm[i];
+        if (rtsum->cdt_A[rtsum->ncdt_A].alive == 0)
+          SHELL_SPLIT(global_comm, rtsum->cdt_A[rtsum->ncdt_A]);
         rtsum->ncdt_A++;
       }
       if (phys_mapped[2*i+1] == 0 && phys_mapped[2*i+0] == 1){
         rtsum->cdt_B[rtsum->ncdt_B] = topovec[tsr_B->itopo].dim_comm[i];
+        if (rtsum->cdt_B[rtsum->ncdt_B].alive == 0)
+          SHELL_SPLIT(global_comm, rtsum->cdt_B[rtsum->ncdt_B]);
         rtsum->ncdt_B++;
       }
     }
@@ -1037,6 +1040,7 @@ tsum<dtype> * dist_tensor<dtype>::
  *                     0->no blocking 1->inner_blocking 2->folding
  * \param[in] inner_params parameters for inner contraction
  * \param[out] nvirt_all total virtualization factor
+ * \param[in] is_used whether this ctr pointer will actually be run
  * \return ctr contraction class to run
  */
 template<typename dtype>
@@ -1048,7 +1052,8 @@ ctr<dtype> * dist_tensor<dtype>::
                           dtype const                 beta,
                           int const                   is_inner,
                           iparam const *              inner_params,
-                          int *                       nvirt_all){
+                          int *                       nvirt_all,
+                          int                         is_used){
   int num_tot, i, i_A, i_B, i_C, is_top, j, nphys_dim,  k;
   long_int nvirt;
   long_int blk_sz_A, blk_sz_B, blk_sz_C;
@@ -1240,14 +1245,20 @@ ctr<dtype> * dist_tensor<dtype>::
             phys_mapped[3*i+2] == 0)){
         if (phys_mapped[3*i+0] == 0){
           rctr->cdt_A[rctr->ncdt_A] = topovec[tsr_A->itopo].dim_comm[i];
+          if (is_used && rctr->cdt_A[rctr->ncdt_A].alive == 0)
+            SHELL_SPLIT(global_comm, rctr->cdt_A[rctr->ncdt_A]);
           rctr->ncdt_A++;
         }
         if (phys_mapped[3*i+1] == 0){
           rctr->cdt_B[rctr->ncdt_B] = topovec[tsr_B->itopo].dim_comm[i];
+          if (is_used && rctr->cdt_B[rctr->ncdt_B].alive == 0)
+            SHELL_SPLIT(global_comm, rctr->cdt_B[rctr->ncdt_B]);
           rctr->ncdt_B++;
         }
         if (phys_mapped[3*i+2] == 0){
           rctr->cdt_C[rctr->ncdt_C] = topovec[tsr_C->itopo].dim_comm[i];
+          if (is_used && rctr->cdt_C[rctr->ncdt_C].alive == 0)
+            SHELL_SPLIT(global_comm, rctr->cdt_C[rctr->ncdt_C]);
           rctr->ncdt_C++;
         }
       }
@@ -1260,7 +1271,6 @@ ctr<dtype> * dist_tensor<dtype>::
   int upload_phase_B = 1;
   int download_phase_C = 1;
 //#endif
-  int nstep =1;
   nvirt = 1;
 
   ctr_2d_general<dtype> * bottom_ctr_gen = NULL;
@@ -1282,7 +1292,9 @@ ctr<dtype> * dist_tensor<dtype>::
 #endif
       int is_built = 0;
       if (i_A == -1){
-        is_built = ctr_2d_gen_build(i,
+        is_built = ctr_2d_gen_build(is_used,
+                                    global_comm,
+                                    i,
                                     virt_dim,
                                     ctr_gen->edge_len,
                                     total_iter,
@@ -1319,7 +1331,9 @@ ctr<dtype> * dist_tensor<dtype>::
                                     download_phase_C);
       }
       if (i_B == -1){
-        is_built = ctr_2d_gen_build(i,
+        is_built = ctr_2d_gen_build(is_used,
+                                    global_comm,
+                                    i,
                                     virt_dim,
                                     ctr_gen->edge_len,
                                     total_iter,
@@ -1356,7 +1370,9 @@ ctr<dtype> * dist_tensor<dtype>::
                                     upload_phase_A);
       }
       if (i_C == -1){
-        is_built = ctr_2d_gen_build(i,
+        is_built = ctr_2d_gen_build(is_used,
+                                    global_comm,
+                                    i,
                                     virt_dim,
                                     ctr_gen->edge_len,
                                     total_iter,
@@ -1402,7 +1418,7 @@ ctr<dtype> * dist_tensor<dtype>::
           *rec_ctr = ctr_gen;
         }
         if (bottom_ctr_gen == NULL)
-          bottom_ctr_gen == ctr_gen;
+          bottom_ctr_gen = ctr_gen;
         rec_ctr = &ctr_gen->rec_ctr;
       } else {
         ctr_gen->rec_ctr = NULL;
@@ -2238,6 +2254,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 
     TAU_FSTART(sum_func);
     /* Invoke the contraction algorithm */
+
     sumf->run();
     TAU_FSTOP(sum_func);
 #ifndef SEQ
@@ -2318,7 +2335,7 @@ int dist_tensor<dtype>::
 #ifndef HOME_CONTRACT
   return sym_contract(stype, ftsr, felm, alpha, beta);
 #else
-  int ret, new_tid;
+  int ret;
   int was_home_A, was_home_B, was_home_C;
   int was_cyclic_C;
   long_int old_size_C;
@@ -2859,11 +2876,13 @@ int dist_tensor<dtype>::
     print_map(stdout, type->tid_C);
 #endif
     ctrf = construct_contraction(type, fftsr, felm, alpha, beta);
+#ifdef VERBOSE
     if (global_comm.rank == 0){
       uint64_t memuse = ctrf->mem_rec();
       VPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
               (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
     }
+#endif
   }
 #endif
   LIBT_ASSERT(check_contraction_mapping(type));
@@ -2888,6 +2907,7 @@ int dist_tensor<dtype>::
   if (get_global_comm().rank == 0)
     ctrf->print();
 #endif
+#if DEBUG >=1
   double dtt = MPI_Wtime();
   if (get_global_comm().rank == 0){
     DPRINTF(1,"[%d] performing contraction\n",
@@ -2899,6 +2919,7 @@ int dist_tensor<dtype>::
       (double)proc_bytes_used(),
       (double)proc_bytes_available());
   }
+#endif
 /*  print_map(stdout, type->tid_A);
   print_map(stdout, type->tid_B);
   print_map(stdout, type->tid_C);*/
@@ -2907,6 +2928,7 @@ int dist_tensor<dtype>::
   TAU_FSTART(ctr_func);
   /* Invoke the contraction algorithm */
   ctrf->run();
+
   TAU_FSTOP(ctr_func);
 #ifndef SEQ
   if (tensors[type->tid_C]->is_cyclic)

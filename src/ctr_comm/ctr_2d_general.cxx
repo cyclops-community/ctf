@@ -9,6 +9,9 @@
  */
 template<typename dtype>
 ctr_2d_general<dtype>::~ctr_2d_general() {
+  if (move_A) FREE_CDT(cdt_A);
+  if (move_B) FREE_CDT(cdt_B);
+  if (move_C) FREE_CDT(cdt_C);
   if (rec_ctr != NULL)
     delete rec_ctr;
 }

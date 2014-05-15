@@ -23,9 +23,6 @@ int readall_test(int const    n,
                  int const    m,
                  CTF_World   &dw){
   int rank, i, num_pes, pass;
-  int64_t np;
-  double * pairs;
-  int64_t * indices;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);

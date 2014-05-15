@@ -211,10 +211,19 @@ void ctr_lyr<dtype>::run(){
 template<typename dtype>
 ctr_replicate<dtype>::~ctr_replicate() {
   delete rec_ctr;
+  for (int i=0; i<ncdt_A; i++){
+    FREE_CDT(cdt_A[i]);
+  }
   if (ncdt_A > 0)
     CTF_free(cdt_A);
+  for (int i=0; i<ncdt_B; i++){
+    FREE_CDT(cdt_B[i]);
+  }
   if (ncdt_B > 0)
     CTF_free(cdt_B);
+  for (int i=0; i<ncdt_C; i++){
+    FREE_CDT(cdt_C[i]);
+  }
   if (ncdt_C > 0)
     CTF_free(cdt_C);
 }

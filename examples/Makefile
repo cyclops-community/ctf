@@ -7,7 +7,7 @@ EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weight_4D subworld_gemm \
 .PHONY: $(EXAMPLES)
 $(EXAMPLES): %:  ../bin/%
 
-../bin/%: %.cxx 
+../bin/%: %.cxx ../lib/libctf.a
 	$(FCXX) $< -o $@ -I../include/ -L../lib -lctf $(LIBS)
 
 

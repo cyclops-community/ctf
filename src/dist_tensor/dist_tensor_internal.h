@@ -379,7 +379,8 @@ class dist_tensor{
                                         dtype const               beta,
                                         int const                 is_inner = 0,
                                         iparam const *            inner_params = NULL,
-                                        int *                     nvirt_C = NULL);
+                                        int *                     nvirt_C = NULL,
+                                        int                       is_used = 1);
 
 /*    dtype align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
                                 int ndim_B, int* idx_B, int* sym_B);

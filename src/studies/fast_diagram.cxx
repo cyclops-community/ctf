@@ -19,12 +19,12 @@ int fast_diagram(int const     n,
 
   int len3[] = {n,n,n};
   int len4[] = {n,n,n,n};
-  int len5[] = {n,n,n,n,n};
+  //int len5[] = {n,n,n,n,n};
   int NNN[] = {NS,NS,NS};
   int NNNN[] = {NS,NS,NS,NS};
   int ANNN[] = {AS,NS,NS,NS};
   int SNNN[] = {SH,NS,NS,NS};
-  int AANNN[] = {AS,AS,NS,NS,NS};
+  //int AANNN[] = {AS,AS,NS,NS,NS};
 
   CTF_Tensor T(4, len4, SNNN, ctf);
   CTF_Tensor V(4, len4, SNNN, ctf);

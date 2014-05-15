@@ -38,11 +38,12 @@ studies: $(STUDIES)
 $(STUDIES):
 	$(MAKE) $@ -C src/studies
 
-lib/libctf.a: ctf
+lib/libctf.a: objs 
 	$(AR) -crs $@ src/*/*.o
 
-ctf: src 
-	$(MAKE) $@ -C src
+.PHONY: objs
+objs: src/*/*
+	$(MAKE) ctf -C src
 	
 clean: clean_bin clean_lib
 	$(MAKE) $@ -C src

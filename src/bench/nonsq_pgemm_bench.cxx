@@ -128,7 +128,6 @@ int main(int argc, char **argv) {
   int myRank, numPes;
   int m, k, n;
   int nprow, npcol;
-  int tid_A, tid_B, tid_C;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);

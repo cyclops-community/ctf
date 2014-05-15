@@ -147,8 +147,14 @@ do {                                                                    \
 template<typename dtype>
 tsum_replicate<dtype>::~tsum_replicate() {
   delete rec_tsum;
+  for (int i=0; i<ncdt_A; i++){
+    FREE_CDT(cdt_A[i]);
+  }
   if (ncdt_A > 0)
     CTF_free(cdt_A);
+  for (int i=0; i<ncdt_B; i++){
+    FREE_CDT(cdt_B[i]);
+  }
   if (ncdt_B > 0)
     CTF_free(cdt_B);
 }

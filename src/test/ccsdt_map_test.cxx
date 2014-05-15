@@ -19,7 +19,7 @@
 int ccsdt_map_test(int const     n,
                    CTF_World    &dw){
 
-  int rank, i, num_pes;
+  int rank, num_pes;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
@@ -52,7 +52,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, niter, n, m;
+  int rank, np, niter, n;
   int const in_num = argc;
   char ** input_str = argv;
 

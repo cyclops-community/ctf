@@ -177,7 +177,7 @@ char* getCmdOption(char ** begin,
 }
 
 int main(int argc, char ** argv){
-  int rank, np, niter, n, pass;
+  int rank, np, n;
   int const in_num = argc;
   char ** input_str = argv;
 

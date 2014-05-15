@@ -137,7 +137,7 @@ void CTF_Timer::stop(){
 CTF_Timer::~CTF_Timer(){ }
 
 void print_timers(char const * name){
-  int rank, np, i, j, p, len_symbols, nrecv_symbols;
+  int rank, np, i, j, len_symbols, nrecv_symbols;
 
   MPI_Comm_rank(comm, &rank);
   MPI_Comm_size(comm, &np);

@@ -887,7 +887,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
                                     int const                   do_remap){
   int num_tot, i, ret, j, need_remap, d;
   int need_remap_A, need_remap_B, need_remap_C;
-  uint64_t memuse, bmemuse;
+  uint64_t memuse;//, bmemuse;
   double est_time, best_time;
   int btopo, gtopo;
   int old_nvirt_all;
@@ -1017,7 +1017,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   }
   btopo = -1;
   best_time = DBL_MAX;
-  bmemuse = UINT64_MAX;
+  //bmemuse = UINT64_MAX;
 
   for (j=0; j<6; j++){
     /* Attempt to map to all possible permutations of processor topology */
@@ -1128,7 +1128,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       set_padding(tsr_B);
       set_padding(tsr_C);
       sctr = construct_contraction(type, ftsr, felm, 
-                                    alpha, beta, 0, NULL, &nvirt_all);
+                                    alpha, beta, 0, NULL, &nvirt_all, 0);
      
       est_time = sctr->est_time_rec(sctr->num_lyr);
       //sctr->print();
@@ -1224,7 +1224,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 			//((nvirt == bnvirt || nvirt <= ALLOW_NVIRT) && est_time < best_time))) {
       if (est_time < best_time) {
         best_time = est_time;
-        bmemuse = memuse;
+        //bmemuse = memuse;
         btopo = 6*t+j;      
       }  
       delete sctr;
@@ -1360,7 +1360,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     set_padding(tsr_B);
     set_padding(tsr_C);
     *ctrf = construct_contraction(type, ftsr, felm, 
-                                  alpha, beta, 0, NULL, &nvirt_all);
+                                  alpha, beta, 0, NULL, &nvirt_all, 0);
     delete *ctrf;
     /* If this cannot be stretched */
     if (old_nvirt_all == nvirt_all || nvirt_all > MAX_NVIRT){
@@ -1392,7 +1392,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   set_padding(tsr_B);
   set_padding(tsr_C);
   *ctrf = construct_contraction(type, ftsr, felm, 
-                                alpha, beta, 0, NULL, &nvirt_all);
+                                alpha, beta, 0, NULL, &nvirt_all, 1);
 #if DEBUG >= 2
   if (global_comm.rank == 0)
     printf("New mappings:\n");
@@ -1803,7 +1803,7 @@ int dist_tensor<dtype>::
                     int const           tid_A,
                     int const           tid_B,
                     topology const *    topo){
-  int tsr_ndim, ictr, iA, iB, i, j, jctr, jX, stat, is_premapped, num_sub_phys_dims;
+  int tsr_ndim, ictr, iA, iB, i, j, jctr, jX, stat, num_sub_phys_dims;
   int * tsr_edge_len, * tsr_sym_table, * restricted, * comm_idx;
   CommData_t  * sub_phys_comm;
   mapping * ctr_map;
@@ -1837,10 +1837,9 @@ int dist_tensor<dtype>::
     copy_mapping(1, &tsr_A->edge_map[iA], &ctr_map[2*i+0]);
     copy_mapping(1, &tsr_B->edge_map[iB], &ctr_map[2*i+1]);
   }
-  is_premapped = 0;
-  for (i=0; i<tsr_ndim; i++){ 
+/*  for (i=0; i<tsr_ndim; i++){ 
     if (ctr_map[i].type == PHYSICAL_MAP) is_premapped = 1;
-  }
+  }*/
 
   extract_free_comms(topo, tsr_A->ndim, tsr_A->edge_map,
                            tsr_B->ndim, tsr_B->edge_map,
