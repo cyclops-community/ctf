@@ -102,6 +102,78 @@ class tCTF_World {
 };
 
 
+class CTF_Semiring {
+  public: 
+    int el_size;
+    char * addid;
+    char * mulid;
+    MPI_Op addmop;
+
+    void (*add)(char const * a, 
+                char const * b,
+                char *       c);
+    
+    void (*mul)(char const * a, 
+                char const * b,
+                char *       c);
+
+  public:
+    CTF_Semiring(int            size, 
+                 char const *   addid,
+                 char const *   mulid,
+                 MPI_Op         addmop,
+                 void (*add)(char const * a,
+                             char const * b,
+                             char       * c),
+                 void (*mul)(char const * a,
+                             char const * b,
+                             char       * c)){};
+};
+
+template <typename dtype, dtype (*func)(dtype const a, dtype const b)>
+void detypedfunc(char const * a,
+                 char const * b,
+                 char *       c){
+  dtype ans = (*func)(((dtype const *)a)[0], ((dtype const *)b)[0]);
+  ((dtype *)c)[0] = ans;
+}
+
+template <typename dtype, 
+          dtype (*fadd)(dtype a, dtype b),
+          dtype (*fmul)(dtype a, dtype b)>
+class tCTF_Semiring {
+  public:
+    dtype addid;
+    dtype mulid;
+    MPI_Op addmop;
+  public:
+
+    tCTF_Semiring(dtype  addid_,
+                  dtype  mulid_,
+                  MPI_Op addmop_){
+      addid = addid_;
+      mulid = mulid_;
+      addmop = addmop_;
+    }
+
+    operator CTF_Semiring() {
+      CTF_Semiring r(sizeof(dtype), 
+                     (char const *)&addid, 
+                     (char const *)&mulid, 
+                     addmop, 
+                     &detypedfunc<dtype,fadd>,
+                     &detypedfunc<dtype,fmul>);
+      return r;
+    }
+};
+
+class CTF_SemiringElement {
+  public:
+    CTF_Semiring r;
+    char * val;
+  
+};
+
 
 /**
  * \brief an instance of a tensor within a tCTF world
