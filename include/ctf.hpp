@@ -12,6 +12,7 @@
 #include <deque>
 #include <set>
 #include <map>
+#include <assert.h>
 #include "../src/dist_tensor/cyclopstf.hpp"
 
 /**
