@@ -501,8 +501,8 @@ int lcm(int a, int b){
  * \param[in,out] B matrix to write to
  */
 template<typename dtype>
-void lda_cpy(const int nrow,  const int ncol,
-             const int lda_A, const int lda_B,
+void lda_cpy(int nrow,  int ncol,
+             int lda_A, int lda_B,
              const dtype *A,        dtype *B){
   if (lda_A == nrow && lda_B == nrow){
     memcpy(B,A,nrow*ncol*sizeof(dtype));
@@ -510,6 +510,20 @@ void lda_cpy(const int nrow,  const int ncol,
     int i;
     for (i=0; i<ncol; i++){
       memcpy(B+lda_B*i,A+lda_A*i,nrow*sizeof(dtype));
+    }
+  }
+}
+
+void lda_cpy(int el_size,
+             int nrow,  int ncol,
+             int lda_A, int lda_B,
+             const char * A, char * B){
+  if (lda_A == nrow && lda_B == nrow){
+    memcpy(B,A,el_size*nrow*ncol);
+  } else {
+    int i;
+    for (i=0; i<ncol; i++){
+      memcpy(B+el_size*lda_B*i,A+el_size*lda_A*i,nrow*el_size);
     }
   }
 }
@@ -544,6 +558,36 @@ void lda_cpy(const int nrow,  const int ncol,
   }
 }
 
+void sfill(int          el_size, 
+           char *       target_start, 
+           char const * target_end, 
+           char const * value){
+  switch (el_size){
+    case 4:
+      std::fill((float*)target_start, 
+                (float const *)target_end
+                ((float*)value)[0]);
+      break;
+    case 8:
+      std::fill((double*)target_start, 
+                (double const *)target_end
+                ((double*)value)[0]);
+      break;
+    case 16:
+      std::fill((std::<complex<double> >*)target_start, 
+                (std::<complex<double> > const *)target_end
+                ((std::<complex<double> >*)value)[0]);
+      break;
+
+    base:
+      int64_t n = (target_start-target_end)/el_size;
+      for (int i=0; i<n; i++){
+        memcpy(target_start+i*el_size,value,el_size);
+      }
+      break;
+  }
+} 
+
 /**
  * \brief we receive a contiguous buffer kb-by-n B and (k-kb)-by-n B_aux
  * which is the block below.
@@ -559,15 +603,28 @@ void lda_cpy(const int nrow,  const int ncol,
 template<typename dtype>
 void coalesce_bwd(dtype         *B,
                   dtype const   *B_aux,
-                  int const     k,
-                  int const     n,
-                  int const     kb){
+                  int           k,
+                  int           n,
+                  int           kb){
   int i;
   for (i=n-1; i>=0; i--){
     memcpy(B+i*k+kb, B_aux+i*(k-kb), (k-kb)*sizeof(dtype));
     if (i>0) memcpy(B+i*k, B+i*kb, kb*sizeof(dtype));
   }
 }
+void coalesce_bwd(int           el_size,
+                  char         *B,
+                  char const   *B_aux,
+                  int           k,
+                  int           n,
+                  int           kb){
+  int i;
+  for (i=n-1; i>=0; i--){
+    memcpy(B+el_size*(i*k+kb), B_aux+el_size*(i*(k-kb)), (k-kb)*el_size);
+    if (i>0) memcpy(B+el_size*i*k, B+el_size*i*kb, kb*el_size);
+  }
+}
+
 
 
 /* Copies submatrix to submatrix */

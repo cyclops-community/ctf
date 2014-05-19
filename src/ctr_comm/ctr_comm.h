@@ -12,16 +12,17 @@
  * @{
  */
 
-template<typename dtype>
 class ctr {
   public: 
-    dtype * A; /* m by k */
-    dtype * B; /* k by n */
-    dtype * C; /* m by n */
-    dtype beta;
+    char * A; /* m by k */
+    char * B; /* k by n */
+    char * C; /* m by n */
+    CTF_Semiring sr_A;
+    CTF_Semiring sr_B;
+    CTF_Semiring sr_C;
+    char const * beta;
     int num_lyr; /* number of copies of this matrix being computed on */
     int idx_lyr; /* the index of this copy */
-    dtype * buffer;
 
     virtual void run() { printf("SHOULD NOTR\n"); };
     virtual void print() { };
@@ -29,16 +30,15 @@ class ctr {
     virtual long_int mem_rec() { return mem_fp(); };
     virtual double est_time_fp(int nlyr) { return 0; };
     virtual double est_time_rec(int nlyr) { return est_time_fp(nlyr); };
-    virtual ctr<dtype> * clone() { return NULL; };
+    virtual ctr * clone() { return NULL; };
     
     virtual ~ctr();
   
-    ctr(ctr<dtype> * other);
-    ctr(){ buffer = NULL; idx_lyr = 0; num_lyr = 1; }
+    ctr(ctr * other);
+    ctr(){ idx_lyr = 0; num_lyr = 1; }
 };
 
-template<typename dtype>
-class ctr_replicate : public ctr<dtype> {
+class ctr_replicate : public ctr {
   public: 
     int ncdt_A; /* number of processor dimensions to replicate A along */
     int ncdt_B; /* number of processor dimensions to replicate B along */
@@ -51,7 +51,7 @@ class ctr_replicate : public ctr<dtype> {
     CommData_t * cdt_B;
     CommData_t * cdt_C;
     /* Class to be called on sub-blocks */
-    ctr<dtype> * rec_ctr;
+    ctr * rec_ctr;
     
     void run();
     long_int mem_fp();
@@ -59,15 +59,14 @@ class ctr_replicate : public ctr<dtype> {
     double est_time_fp(int nlyr);
     double est_time_rec(int nlyr);
     void print();
-    ctr<dtype> * clone();
+    ctr * clone();
 
-    ctr_replicate(ctr<dtype> * other);
+    ctr_replicate(ctr * other);
     ~ctr_replicate();
     ctr_replicate(){}
 };
 
-template<typename dtype>
-class ctr_2d_general : public ctr<dtype> {
+class ctr_2d_general : public ctr {
   public: 
     int edge_len;
 
@@ -92,7 +91,7 @@ class ctr_2d_general : public ctr<dtype> {
     CommData_t cdt_B;
     CommData_t cdt_C;
     /* Class to be called on sub-blocks */
-    ctr<dtype> * rec_ctr;
+    ctr * rec_ctr;
     
     void print();
     void run();
@@ -100,15 +99,21 @@ class ctr_2d_general : public ctr<dtype> {
     long_int mem_rec();
     double est_time_fp(int nlyr);
     double est_time_rec(int nlyr);
-    ctr<dtype> * clone();
-
-    ctr_2d_general(ctr<dtype> * other);
+    ctr * clone();
+    void find_bsizes(long_int & b_A,
+                     long_int & b_B,
+                     long_int & b_C,
+                     long_int & s_A,
+                     long_int & s_B,
+                     long_int & s_C,
+                     long_int & db,
+                     long_int & aux_size)
+    ctr_2d_general(ctr * other);
     ~ctr_2d_general();
     ctr_2d_general(){ move_A=0; move_B=0; move_C=0; }
 };
 
-template<typename dtype>
-class ctr_2d_rect_bcast : public ctr<dtype> {
+class ctr_2d_rect_bcast : public ctr {
   public: 
     int k;
     long_int ctr_lda_A; /* local lda_A of contraction dimension 'k' */
@@ -120,22 +125,21 @@ class ctr_2d_rect_bcast : public ctr<dtype> {
     CommData_t * cdt_x;
     CommData_t * cdt_y;
     /* Class to be called on sub-blocks */
-    ctr<dtype> * rec_ctr;
+    ctr * rec_ctr;
     
     void print() {};
     void run();
     long_int mem_fp();
     long_int mem_rec();
-    ctr<dtype> * clone();
+    ctr * clone();
 
-    ctr_2d_rect_bcast(ctr<dtype> * other);
+    ctr_2d_rect_bcast(ctr * other);
     ~ctr_2d_rect_bcast();
     ctr_2d_rect_bcast(){}
 };
 
 /* Assume LDA equal to dim */
-template<typename dtype>
-class ctr_dgemm : public ctr<dtype> {
+class ctr_dgemm : public ctr {
   public: 
     char transp_A;
     char transp_B;
@@ -152,18 +156,17 @@ class ctr_dgemm : public ctr<dtype> {
     long_int mem_fp();
     double est_time_fp(int nlyr);
     double est_time_rec(int nlyr);
-    ctr<dtype> * clone();
+    ctr * clone();
 
-    ctr_dgemm(ctr<dtype> * other);
+    ctr_dgemm(ctr * other);
     ~ctr_dgemm();
     ctr_dgemm(){}
 };
 
-template<typename dtype>
-class ctr_lyr : public ctr<dtype> {
+class ctr_lyr : public ctr {
   public: 
     /* Class to be called on sub-blocks */
-    ctr<dtype> * rec_ctr;
+    ctr * rec_ctr;
     int k;
     CommData_t cdt;
     long_int sz_C;
@@ -172,19 +175,18 @@ class ctr_lyr : public ctr<dtype> {
     void run();
     long_int mem_fp();
     long_int mem_rec();
-    ctr<dtype> * clone();
+    ctr * clone();
 
-    ctr_lyr(ctr<dtype> * other);
+    ctr_lyr(ctr * other);
     ~ctr_lyr();
     ctr_lyr(){}
 };
 
 #ifdef OFFLOAD
-template<typename dtype>
-class ctr_offload : public ctr<dtype> {
+class ctr_offload : public ctr {
   public: 
     /* Class to be called on sub-blocks */
-    ctr<dtype> * rec_ctr;
+    ctr * rec_ctr;
     long_int size_A;
     long_int size_B;
     long_int size_C;
@@ -193,9 +195,9 @@ class ctr_offload : public ctr<dtype> {
     int upload_phase_A;
     int upload_phase_B;
     int download_phase_C;
-    offload_ptr<dtype> * ptr_A;
-    offload_ptr<dtype> * ptr_B;
-    offload_ptr<dtype> * ptr_C;
+    offload_ptr * ptr_A;
+    offload_ptr * ptr_B;
+    offload_ptr * ptr_C;
     
     void print();
     void run();
@@ -203,9 +205,9 @@ class ctr_offload : public ctr<dtype> {
     long_int mem_rec();
     double est_time_fp(int nlyr);
     double est_time_rec(int nlyr);
-    ctr<dtype> * clone();
+    ctr * clone();
 
-    ctr_offload(ctr<dtype> * other);
+    ctr_offload(ctr * other);
     ~ctr_offload();
     ctr_offload(){ iter_counter = 0; ptr_A = NULL; ptr_B = NULL; ptr_C = NULL; }
 };

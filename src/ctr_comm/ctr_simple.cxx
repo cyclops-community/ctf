@@ -19,6 +19,9 @@ ctr<dtype>::ctr(ctr<dtype> * other){
   A = other->A;
   B = other->B;
   C = other->C;
+  sr_A = other->sr_A;
+  sr_B = other->sr_B;
+  sr_C = other->sr_C;
   beta = other->beta;
   num_lyr = other->num_lyr;
   idx_lyr = other->idx_lyr;
