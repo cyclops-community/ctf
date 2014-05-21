@@ -221,7 +221,7 @@ class tCTF_Term {
     operator dtype() const;
 };
 
-template<typename dtype, typename dtype_A>
+template<typename dtype>
 class tCTF_Sum_Term : public tCTF_Term<dtype> {
   public:
     std::vector< tCTF_Term<dtype>* > operands;

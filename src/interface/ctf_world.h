@@ -6,6 +6,8 @@
  * @{
  */
 
+class CTF;
+
 /**
  * \brief an instance of the CTF library (world) on a MPI communicator
  */

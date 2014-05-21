@@ -48,30 +48,6 @@ typedef int64_t long_int;
 typedef long_int key;
 
 static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
-
-template<typename dtype>
-struct tkv_pair {
-  key k;
-  dtype d;
-  tkv_pair() {}
-  tkv_pair(key k, dtype d) : k(k), d(d) {}
-  bool operator< (const tkv_pair<dtype>& other) const{
-    return k < other.k;
-  }
-  bool operator==(const tkv_pair<dtype>& other) const{
-    return (k == other.k && d == other.d);
-  }
-  bool operator!=(const tkv_pair<dtype>& other) const{
-    return !(*this == other);
-  }
-};
-
-typedef tkv_pair<double> kv_pair;
-
-template<typename dtype>
-inline bool comp_tkv_pair(tkv_pair<dtype> i,tkv_pair<dtype> j) {
-  return (i.k<j.k);
-}
 /**
  * @}
  */
@@ -298,7 +274,7 @@ class tCTF{
        global index for the value. */
     int write_tensor(int const                tensor_id,
                      long_int const           num_pair,
-                     tkv_pair<dtype> const *  mapped_data);
+                     CTF_pair<dtype> const *  mapped_data);
 
     /* Add tensor data new=alpha*new+beta*old
        with <key, value> pairs where key is the
@@ -307,7 +283,7 @@ class tCTF{
                      long_int const           num_pair,
                      dtype const              alpha,
                      dtype const              beta,
-                     tkv_pair<dtype> const *  mapped_data);
+                     CTF_pair<dtype> const *  mapped_data);
 
     /**
      * Permutes a tensor along each dimension skips if perm set to -1, generalizes slice.
@@ -401,13 +377,13 @@ class tCTF{
                     long_int const          num_pair,
                     dtype const             alpha,
                     dtype const             beta,
-                    tkv_pair<dtype> * const mapped_data);
+                    CTF_pair<dtype> * const mapped_data);
 
     /* read tensor data with <key, value> pairs where key is the
        global index for the value, which gets filled in. */
     int read_tensor(int const               tensor_id,
                     long_int const          num_pair,
-                    tkv_pair<dtype> * const mapped_data);
+                    CTF_pair<dtype> * const mapped_data);
 
 
     /* read entire tensor with each processor (in packed layout).
@@ -430,7 +406,7 @@ class tCTF{
     /* read tensor data pairs local to processor. */
     int read_local_tensor(int const           tensor_id,
                           long_int *          num_pair,
-                          tkv_pair<dtype> **  mapped_data);
+                          CTF_pair<dtype> **  mapped_data);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
        uses standard symmetric contraction sequential kernel */

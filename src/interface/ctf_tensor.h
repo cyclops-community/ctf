@@ -4,13 +4,40 @@
 #include "ctf_world.h"
 
 /**
+ * \brief index-value pair used for tensor data input
+ */
+template<typename dtype=double>
+class CTF_pair {
+  long_int k;
+  dtype d;
+  CTF_pair() {}
+  CTF_pair(long_int k, dtype d) : k(k), d(d) {}
+  bool operator< (const CTF_pair<dtype>& other) const{
+    return k < other.k;
+  }
+  bool operator==(const CTF_pair<dtype>& other) const{
+    return (k == other.k && d == other.d);
+  }
+  bool operator!=(const CTF_pair<dtype>& other) const{
+    return !(*this == other);
+  }
+};
+
+template<typename dtype>
+inline bool comp_CTF_pair(CTF_pair<dtype> i,
+                          CTF_pair<dtype> j) {
+  return (i.k<j.k);
+}
+
+/**
  * \defgroup CTF CTF: C++ Tensor interface
  * @{
  */
 
 /**
- * \brief an instance of a tensor within a tCTF world
+ * \brief an instance of a tensor within a CTF world
  */
+template <typename dtype=double>
 class CTF_Tensor {
   public:
     int tid, ndim;
@@ -24,16 +51,37 @@ class CTF_Tensor {
     /**
      * \breif default constructor
      */
-    tCTF_Tensor();
+    CTF_Tensor();
 
     /**
      * \brief copies a tensor (setting data to zero or copying A)
      * \param[in] A tensor to copy
      * \param[in] copy whether to copy the data of A into the new tensor
      */
-    tCTF_Tensor(tCTF_Tensor const &   A,
+    CTF_Tensor(CTF_Tensor const &   A,
                 bool                  copy = true);
 
+    /**
+     * \brief copies a tensor filled with zeros
+     * \param[in] ndim_ number of dimensions of tensor
+     * \param[in] len_ edge lengths of tensor
+     * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+     * \param[in] world_ a world for the tensor to live in
+     * \param[in] name_ an optionary name for the tensor
+     * \param[in] profile_ set to 1 to profile contractions involving this tensor
+     */
+    CTF_Tensor(int            ndim_,
+                int const *    len_,
+                int const *    sym_,
+                CTF_World &    world_,
+#if DEBUG < 3
+                char const *   name_ = NULL,
+                int            profile_ = 0
+#else
+                char const *   name_ = "X",
+                int            profile_ = 1
+#endif
+                 );
     /**
      * \brief copies a tensor filled with zeros
      * \param[in] ndim_ number of dimensions of tensor
@@ -44,26 +92,20 @@ class CTF_Tensor {
      * \param[in] name_ an optionary name for the tensor
      * \param[in] profile_ set to 1 to profile contractions involving this tensor
      */
-    tCTF_Tensor(int            ndim_,
+    CTF_Tensor(int            ndim_,
                 int const *    len_,
                 int const *    sym_,
                 CTF_World &    world_,
                 CTF_Semiring   semiring_,
-#if DEBUG < 3
                 char const *   name_ = NULL,
-                int            profile_ = 0
-#else
-                char const *   name_ = "X",
-                int            profile_ = 1
-#endif
-                 );
+                int            profile_ = 0);
     
     /**
      * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
      * \param[in] A tensor whose characteristics to copy
      * \param[in] world_ a world for the tensor we are creating to live in, can be different from A
      */
-    tCTF_Tensor(tCTF_Tensor const & A,
+    CTF_Tensor(CTF_Tensor const & A,
                 CTF_World        & world_);
 
     /**
@@ -85,7 +127,7 @@ class CTF_Tensor {
      * \param[in,out] pairs a prealloced pointer to key-value pairs
      */
     void read(long_int          npair,
-              tkv_pair<dtype> * pairs) const;
+              CTF_pair<dtype> * pairs) const;
     
     /**
      * \brief sparse read: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
@@ -111,7 +153,7 @@ class CTF_Tensor {
     void read(long_int          npair,
               dtype             alpha,
               dtype             beta,
-              tkv_pair<dtype> * pairs) const;
+              CTF_pair<dtype> * pairs) const;
    
 
     /**
@@ -133,7 +175,7 @@ class CTF_Tensor {
      * \param[in] pairs key-value pairs to write to the tensor
      */
     void write(long_int                 npair,
-               tkv_pair<dtype> const *  pairs);
+               CTF_pair<dtype> const *  pairs);
     
     /**
      * \brief sparse add: A[global_idx[i]] = beta*A[global_idx[i]]+alpha*data[i]
@@ -159,7 +201,7 @@ class CTF_Tensor {
     void write(long_int                npair,
                dtype                   alpha,
                dtype                   beta,
-               tkv_pair<dtype> const * pairs);
+               CTF_pair<dtype> const * pairs);
    
     /**
      * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
@@ -174,13 +216,13 @@ class CTF_Tensor {
      * \param[in] fseq sequential operation to execute, default is multiply-add
      */
     void contract(dtype                    alpha, 
-                  const tCTF_Tensor&       A, 
+                  const CTF_Tensor&        A, 
                   char const *             idx_A,
-                  const tCTF_Tensor&       B, 
+                  const CTF_Tensor&        B, 
                   char const *             idx_B,
                   dtype                    beta,
                   char const *             idx_C,
-                  tCTF_fctr<dtype>         fseq = tCTF_fctr<dtype>());
+                  CTF_Fbilinear<dtype>     fseq = CTF_Fbilinear<dtype>());
 
     /**
      * \brief estimate the cost of a contraction C[idx_C] = A[idx_A]*B[idx_B]
@@ -191,9 +233,9 @@ class CTF_Tensor {
      * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
      * \return cost as a int64_t type, currently a rought estimate of flops/processor
      */
-    int64_t estimate_cost(const tCTF_Tensor & A,
+    int64_t estimate_cost(const CTF_Tensor & A,
                           char const *        idx_A,
-                          const tCTF_Tensor & B,
+                          const CTF_Tensor & B,
                           char const *        idx_B,
                           char const *        idx_C);
     
@@ -204,10 +246,9 @@ class CTF_Tensor {
      * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
      * \return cost as a int64_t type, currently a rought estimate of flops/processor
      */
-    int64_t estimate_cost(const tCTF_Tensor & A,
+    int64_t estimate_cost(const CTF_Tensor & A,
                           char const *        idx_A,
                           char const *        idx_B);
-
 
     
     /**
@@ -221,11 +262,11 @@ class CTF_Tensor {
      * \param[in] fseq sequential operation to execute, default is multiply-add
      */
     void sum(dtype                   alpha, 
-             const tCTF_Tensor&      A, 
+             const CTF_Tensor&      A, 
              char const *            idx_A,
              dtype                   beta,
              char const *            idx_B,
-             tCTF_fsum<dtype>        fseq = tCTF_fsum<dtype>());
+             CTF_fsum<dtype>        fseq = CTF_fsum<dtype>());
     
     /**
      * \brief scales A[idx_A] = alpha*A[idx_A]
@@ -236,7 +277,7 @@ class CTF_Tensor {
      */
     void scale(dtype                   alpha, 
                char const *            idx_A,
-               tCTF_fscl<dtype>        fseq = tCTF_fscl<dtype>());
+               CTF_fscl<dtype>        fseq = CTF_fscl<dtype>());
 
     /**
      * \brief cuts out a slice (block) of this tensor A[offsets,ends)
@@ -244,10 +285,10 @@ class CTF_Tensor {
      * \param[in] ends top right corner of block
      * \return new tensor corresponding to requested slice
      */
-    tCTF_Tensor slice(int const * offsets,
+    CTF_Tensor slice(int const * offsets,
                       int const * ends) const;
     
-    tCTF_Tensor slice(long_int corner_off,
+    CTF_Tensor slice(long_int corner_off,
                       long_int corner_end) const;
     
     /**
@@ -257,13 +298,13 @@ class CTF_Tensor {
      * \return new tensor corresponding to requested slice which lives on
      *          oworld
      */
-    tCTF_Tensor slice(int const *         offsets,
+    CTF_Tensor slice(int const *         offsets,
                       int const *         ends,
-                      tCTF_World<dtype> * oworld) const;
+                      CTF_World<dtype> * oworld) const;
 
-    tCTF_Tensor slice(long_int            corner_off,
+    CTF_Tensor slice(long_int            corner_off,
                       long_int            corner_end,
-                      tCTF_World<dtype> * oworld) const;
+                      CTF_World<dtype> * oworld) const;
     
     
     /**
@@ -279,7 +320,7 @@ class CTF_Tensor {
     void slice(int const *    offsets,
                int const *    ends,
                dtype          beta,
-               tCTF_Tensor const & A,
+               CTF_Tensor const & A,
                int const *    offsets_A,
                int const *    ends_A,
                dtype          alpha) const;
@@ -287,7 +328,7 @@ class CTF_Tensor {
     void slice(long_int       corner_off,
                long_int       corner_end,
                dtype          beta,
-               tCTF_Tensor const & A,
+               CTF_Tensor const & A,
                long_int       corner_off_A,
                long_int       corner_end_A,
                dtype          alpha) const;
@@ -307,7 +348,7 @@ class CTF_Tensor {
      * \param[in] alpha scaling factor for A tensor
      */
     void permute(dtype          beta,
-                 tCTF_Tensor &  A,
+                 CTF_Tensor &  A,
                  int * const *  perms_A,
                  dtype          alpha);
 
@@ -327,7 +368,7 @@ class CTF_Tensor {
      */
     void permute(int * const *  perms_B,
                  dtype          beta,
-                 tCTF_Tensor &  A,
+                 CTF_Tensor &  A,
                  dtype          alpha);
     
    /**
@@ -337,10 +378,10 @@ class CTF_Tensor {
      * \param[in] alpha scaling factor for this tensor (default 1.0)
      * \param[in] beta scaling factor for tensor tsr (default 1.0)
      */
-    void add_to_subworld(tCTF_Tensor<dtype> * tsr,
+    void add_to_subworld(CTF_Tensor<dtype> * tsr,
                          dtype alpha,
                          dtype beta) const;
-    void add_to_subworld(tCTF_Tensor<dtype> * tsr) const;
+    void add_to_subworld(CTF_Tensor<dtype> * tsr) const;
     
    /**
      * \brief accumulates this tensor from a tensor object defined on a different world
@@ -349,17 +390,17 @@ class CTF_Tensor {
      * \param[in] alpha scaling factor for tensor tsr (default 1.0)
      * \param[in] beta scaling factor for this tensor (default 1.0)
      */
-    void add_from_subworld(tCTF_Tensor<dtype> * tsr,
+    void add_from_subworld(CTF_Tensor<dtype> * tsr,
                            dtype alpha,
                            dtype beta) const;
-    void add_from_subworld(tCTF_Tensor<dtype> * tsr) const;
+    void add_from_subworld(CTF_Tensor<dtype> * tsr) const;
     
 
     /**
      * \brief aligns data mapping with tensor A
      * \param[in] A align with this tensor
      */
-    void align(tCTF_Tensor const & A);
+    void align(CTF_Tensor const & A);
 
     /**
      * \brief performs a reduction on the tensor
@@ -412,7 +453,7 @@ class CTF_Tensor {
      * \param[out] pairs pointer to local key-value pairs
      */
     void read_local(long_int *         npair,
-                    tkv_pair<dtype> ** pairs) const;
+                    CTF_pair<dtype> ** pairs) const;
 
     /**
      * \brief collects the entire tensor data on each process (not memory scalable)
@@ -458,24 +499,24 @@ class CTF_Tensor {
     /**
      * \brief sets all values in the tensor to val
      */
-    tCTF_Tensor& operator=(dtype val);
+    CTF_Tensor& operator=(dtype val);
     
     /**
      * \brief sets the tensor
      */
-    void operator=(tCTF_Tensor<dtype> A);
+    void operator=(CTF_Tensor<dtype> A);
     
     /**
      * \brief associated an index map with the tensor for future operation
      * \param[in] idx_map_ index assignment for this tensor
      */
-    tCTF_Idx_Tensor<dtype> operator[](char const * idx_map_);
+    CTF_Idx_Tensor<dtype> operator[](char const * idx_map_);
     
     /**
      * \brief gives handle to sparse index subset of tensors
      * \param[in] indices, vector of indices to sparse tensor
      */
-    tCTF_Sparse_Tensor<dtype> operator[](std::vector<long_int> indices);
+    CTF_Sparse_Tensor<dtype> operator[](std::vector<long_int> indices);
     
     /**
      * \brief prints tensor data to file using process 0
@@ -490,25 +531,21 @@ class CTF_Tensor {
      * \param[in] A tensor to compare against
      * \param[in] cutoff do not print values of absolute value smaller than this
      */
-    void compare(const tCTF_Tensor<dtype>& A, FILE * fp = stdout, double cutoff = -1.0) const;
+    void compare(const CTF_Tensor<dtype>& A, FILE * fp = stdout, double cutoff = -1.0) const;
 
     /**
-     * \brief frees tCTF tensor
+     * \brief frees CTF tensor
      */
-    ~tCTF_Tensor();
+    ~CTF_Tensor();
 };
 
-template<typename dtype>
-class tCTF_Tensor : public CTF_Tensor {
-
-};
 
 
 /**
  * \brief Matrix class which encapsulates a 2D tensor 
  */
-template<typename dtype> 
-class tCTF_Matrix : public tCTF_Tensor<dtype> {
+template<typename dtype=double> 
+class CTF_Matrix : public CTF_Tensor<dtype> {
   public:
     int nrow, ncol, sym;
 
@@ -521,10 +558,10 @@ class tCTF_Matrix : public tCTF_Tensor<dtype> {
      * \param[in] name_ an optionary name for the tensor
      * \param[in] profile_ set to 1 to profile contractions involving this tensor
      */ 
-    tCTF_Matrix(int                 nrow_, 
+    CTF_Matrix(int                 nrow_, 
                 int                 ncol_, 
                 int                 sym_,
-                tCTF_World<dtype> & world,
+                CTF_World<dtype> & world,
                 char const *        name_ = NULL,
                 int                 profile_ = 0);
 
@@ -534,8 +571,8 @@ class tCTF_Matrix : public tCTF_Tensor<dtype> {
 /**
  * \brief Vector class which encapsulates a 1D tensor 
  */
-template<typename dtype> 
-class tCTF_Vector : public tCTF_Tensor<dtype> {
+template<typename dtype=double> 
+class CTF_Vector : public CTF_Tensor<dtype> {
   public:
     int len;
 
@@ -546,8 +583,8 @@ class tCTF_Vector : public tCTF_Tensor<dtype> {
      * \param[in] name_ an optionary name for the tensor
      * \param[in] profile_ set to 1 to profile contractions involving this tensor
      */ 
-    tCTF_Vector(int                 len_,
-                tCTF_World<dtype> & world,
+    CTF_Vector(int                 len_,
+                CTF_World<dtype> & world,
                 char const *        name_ = NULL,
                 int                 profile_ = 0);
 };
@@ -556,15 +593,15 @@ class tCTF_Vector : public tCTF_Tensor<dtype> {
 /**
  * \brief Scalar class which encapsulates a 0D tensor 
  */
-template<typename dtype> 
-class tCTF_Scalar : public tCTF_Tensor<dtype> {
+template<typename dtype=double> 
+class CTF_Scalar : public CTF_Tensor<dtype> {
   public:
     /**
      * \brief constructor for a scalar with predefined value
      * \param[in] val scalar value
      * \param[in] world CTF world where the tensor will live
      */ 
-    tCTF_Scalar(dtype       val,
+    CTF_Scalar(dtype       val,
                 CTF_World & world);
 
     /**
@@ -588,25 +625,25 @@ class tCTF_Scalar : public tCTF_Tensor<dtype> {
 /**
  * \brief a sparse subset of a tensor 
  */
-template<typename dtype>
-class tCTF_Sparse_Tensor {
+template<typename dtype=double>
+class CTF_Sparse_Tensor {
   public:
-    tCTF_Tensor<dtype> * parent;
+    CTF_Tensor<dtype> * parent;
     std::vector<long_int> indices;
     dtype scale;
 
     /** 
       * \brief base constructor 
       */
-    tCTF_Sparse_Tensor();
+    CTF_Sparse_Tensor();
     
     /**
      * \brief initialize a tensor which corresponds to a set of indices 
      * \param[in] indices a vector of global indices to tensor values
      * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
      */
-    tCTF_Sparse_Tensor(std::vector<long_int> indices,
-                       tCTF_Tensor<dtype> * parent);
+    CTF_Sparse_Tensor(std::vector<long_int> indices,
+                       CTF_Tensor<dtype> * parent);
 
     /**
      * \brief initialize a tensor which corresponds to a set of indices 
@@ -614,9 +651,9 @@ class tCTF_Sparse_Tensor {
      * \param[in] indices an array of global indices to tensor values
      * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
      */
-    tCTF_Sparse_Tensor(long_int              n,
+    CTF_Sparse_Tensor(long_int              n,
                        long_int *            indices,
-                       tCTF_Tensor<dtype> * parent);
+                       CTF_Tensor<dtype> * parent);
 
     /**
      * \brief set the sparse set of indices on the parent tensor to values
