@@ -11,7 +11,7 @@ template<typename dtype>
 int dist_tensor<dtype>::scale_tsr(dtype const alpha, int const tid){
   if (global_comm.rank == 0)
     printf("FAILURE: scale_tsr currently only supported for tensors of type double\n");
-  return DIST_TENSOR_ERROR;
+  return CTF_ERROR;
 }
 
 template<> 
@@ -21,7 +21,7 @@ int dist_tensor<double>::scale_tsr(double const alpha, int const tid){
 
   tsr = tensors[tid];
   if (tsr->has_zero_edge_len){
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
 
   if (tsr->is_mapped){
@@ -32,7 +32,7 @@ int dist_tensor<double>::scale_tsr(double const alpha, int const tid){
     }
   }
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -46,7 +46,7 @@ template<typename dtype>
 int dist_tensor<dtype>::dot_loc_tsr(int const tid_A, int const tid_B, dtype *product){
   if (global_comm.rank == 0)
     printf("FAILURE: dot_loc_tsr currently only supported for tensors of type double\n");
-  return DIST_TENSOR_ERROR;
+  return CTF_ERROR;
 }
 
 template<> 
@@ -58,7 +58,7 @@ int dist_tensor<double>::dot_loc_tsr(int const tid_A, int const tid_B, double *p
   tsr_B = tensors[tid_B];
   if (tsr_A->has_zero_edge_len || tsr_B->has_zero_edge_len){
     *product = 0.0;
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
 
   LIBT_ASSERT(tsr_A->is_mapped && tsr_B->is_mapped);
@@ -69,7 +69,7 @@ int dist_tensor<double>::dot_loc_tsr(int const tid_A, int const tid_B, double *p
   /* FIXME: Wont work for single precision */
   ALLREDUCE(&dprod, product, 1, COMM_DOUBLE_T, COMM_OP_SUM, global_comm);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /* Perform an elementwise reduction on a tensor. All processors
@@ -78,7 +78,7 @@ template<typename dtype>
 int dist_tensor<dtype>::red_tsr(int const tid, CTF_OP op, dtype * result){
   if (global_comm.rank == 0)
     printf("FAILURE: reductions currently only supported for tensors of type double\n");
-  return DIST_TENSOR_ERROR;
+  return CTF_ERROR;
 }
 
 void sum_abs(double const alpha, double const a, double & b){
@@ -106,7 +106,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
   tsr = tensors[tid];
   if (tsr->has_zero_edge_len){
     *result = 0.0;
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   unmap_inner(tsr);
   set_padding(tsr);
@@ -345,10 +345,10 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       break;
 
     default:
-      return DIST_TENSOR_ERROR;
+      return CTF_ERROR;
       break;
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -369,7 +369,7 @@ int dist_tensor<dtype>::map_tsr(int const tid,
 
   tsr = tensors[tid];
   if (tsr->has_zero_edge_len){
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   unmap_inner(tsr);
   set_padding(tsr);
@@ -379,7 +379,7 @@ int dist_tensor<dtype>::map_tsr(int const tid,
   /* Extract key-value pair representation */
   if (tsr->is_mapped){
     stat = read_local_pairs(tid, &np, &prs);
-    if (stat != DIST_TENSOR_SUCCESS) return stat;
+    if (stat != CTF_SUCCESS) return stat;
   } else {
     np = tsr->size;
     prs = tsr->pairs;
@@ -397,10 +397,10 @@ int dist_tensor<dtype>::map_tsr(int const tid,
   if (tsr->is_mapped){
     stat = write_pairs(tid, np, 1.0, 0.0, prs,'w');
     CTF_free(prs);
-    if (stat != DIST_TENSOR_SUCCESS) return stat;
+    if (stat != CTF_SUCCESS) return stat;
   }
   CTF_free(idx);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -414,7 +414,7 @@ int dist_tensor<dtype>::
     daxpy_local_tensor_pair(dtype alpha, const int tid_A, const int tid_B){
   if (global_comm.rank == 0)
     printf("FAILURE: daxpy currently only supported for tensors of type double\n");
-  return DIST_TENSOR_ERROR;
+  return CTF_ERROR;
 }
 
 template<> 
@@ -424,11 +424,11 @@ int dist_tensor<double>::
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
   if (tsr_A->has_zero_edge_len || tsr_B->has_zero_edge_len){
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   LIBT_ASSERT(tsr_A->size == tsr_B->size);
   cdaxpy(tsr_A->size, alpha, tsr_A->data, 1, tsr_B->data, 1);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -463,7 +463,7 @@ int dist_tensor<dtype>::
   is_top = 1;
   tsr = tensors[tid];
   if (tsr->has_zero_edge_len){
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
 
 #if DEBUG>=1
@@ -519,12 +519,12 @@ int dist_tensor<dtype>::
       set_padding(ntsr);
       ntsr->itopo = itopo;
       ret = map_self_indices(ntid, idx_map);
-      if (ret!=DIST_TENSOR_SUCCESS) continue;
+      if (ret!=CTF_SUCCESS) continue;
       ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
                            topovec[ntsr->itopo].dim_comm, ntsr, 0);
-      if (ret!=DIST_TENSOR_SUCCESS) continue;
+      if (ret!=CTF_SUCCESS) continue;
       ret = map_self_indices(ntid, idx_map);
-      if (ret!=DIST_TENSOR_SUCCESS) continue;
+      if (ret!=CTF_SUCCESS) continue;
       if (check_self_mapping(ntid, idx_map)) {
         set_padding(ntsr);
         memuse = (uint64_t)ntsr->size;
@@ -559,7 +559,7 @@ int dist_tensor<dtype>::
     if (btopo == -1 || btopo == INT_MAX) {
       if (global_comm.rank==0)
         printf("ERROR: FAILED TO MAP TENSOR SCALE\n");
-      return DIST_TENSOR_ERROR;
+      return CTF_ERROR;
     }
 
     clear_mapping(ntsr);
@@ -567,12 +567,12 @@ int dist_tensor<dtype>::
     ntsr->is_cyclic = 1;
     ntsr->itopo = btopo;
     ret = map_self_indices(ntid, idx_map);
-    if (ret!=DIST_TENSOR_SUCCESS) ABORT;
+    if (ret!=CTF_SUCCESS) ABORT;
     ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
                          topovec[ntsr->itopo].dim_comm, ntsr, 0);
-    if (ret!=DIST_TENSOR_SUCCESS) ABORT;
+    if (ret!=CTF_SUCCESS) ABORT;
     ret = map_self_indices(ntid, idx_map);
-    if (ret!=DIST_TENSOR_SUCCESS) ABORT;
+    if (ret!=CTF_SUCCESS) ABORT;
     set_padding(ntsr);
 #if DEBUG >=1
     if (global_comm.rank == 0){
@@ -726,7 +726,7 @@ int dist_tensor<dtype>::
     CTF_free(old_edge_len);
   }
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 
 }
 
@@ -1766,7 +1766,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
       scale_tsr(beta, tid_B, sub_idx_map_B, fs, felm); 
     }
     free_type(&type);
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   if (tid_A == tid_B){
     clone_tensor(tid_A, 1, &new_tid);
@@ -1815,7 +1815,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     printf("End head sum:\n");
 #endif
 
-  if (ret!= DIST_TENSOR_SUCCESS) return ret;
+  if (ret!= CTF_SUCCESS) return ret;
   if (was_home_A) unmap_inner(ntsr_A);
   if (was_home_B) unmap_inner(ntsr_B);
 
@@ -1955,7 +1955,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
       }
       scale_tsr(beta, type->tid_B, sub_idx_map_B, fs, felm); 
     }
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   ntid_A = type->tid_A;
   ntid_B = type->tid_B;
@@ -1965,7 +1965,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   CTF_alloc_ptr(sizeof(int)*tensors[ntid_B]->ndim,   (void**)&dstack_tid_B);
   memcpy(map_A, type->idx_map_A, tensors[ntid_A]->ndim*sizeof(int));
   memcpy(map_B, type->idx_map_B, tensors[ntid_B]->ndim*sizeof(int));
-  while (!run_diag && extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (!run_diag && extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     if (ntid_A != type->tid_A) del_tsr(ntid_A);
     CTF_free(map_A);
     ntid_A = new_tid;
@@ -1973,7 +1973,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     map_A = new_idx_map;
   }
   nst_B = 0;
-  while (!run_diag && extract_diag(ntid_B, map_B, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (!run_diag && extract_diag(ntid_B, map_B, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     dstack_map_B[nst_B] = map_B;
     dstack_tid_B[nst_B] = ntid_B;
     nst_B++;
@@ -2030,7 +2030,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     }
     CTF_free(sym);
     if (sy && sidx%2 == 0){/* && map_tensors(&unfold_type,
-                          ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){*/
+                          ftsr, felm, alpha, beta, &ctrf, 0) == CTF_SUCCESS){*/
       if (global_comm.rank == 0)
         DPRINTF(1,"Performing index desymmetrization\n");
       desymmetrize(ntid_A, unfold_type.tid_A, 0);
@@ -2076,7 +2076,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   CTF_free(dstack_map_B);
   CTF_free(dstack_tid_B);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -2130,7 +2130,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
       }
       scale_tsr(beta, tid_B, sub_idx_map_B, fs, felm); 
     }
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
 
 
@@ -2142,14 +2142,14 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
   memcpy(map_B, idx_map_B, tensors[tid_B]->ndim*sizeof(int));
   ntid_A = tid_A;
   ntid_B = tid_B;
-  while (!run_diag && extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (!run_diag && extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     if (ntid_A != tid_A) del_tsr(ntid_A);
     CTF_free(map_A);
     ntid_A = new_tid;
     map_A = new_idx_map;
   }
   nst_B = 0;
-  while (!run_diag && extract_diag(ntid_B, map_B, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (!run_diag && extract_diag(ntid_B, map_B, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     dstack_map_B[nst_B] = map_B;
     dstack_tid_B[nst_B] = ntid_B;
     nst_B++;
@@ -2160,7 +2160,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     clone_tensor(ntid_A, 1, &new_tid);
     stat = sum_tensors(alpha_, beta, new_tid, ntid_B, map_A, map_B, ftsr, felm);
     del_tsr(new_tid);
-    LIBT_ASSERT(stat == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(stat == CTF_SUCCESS);
   } else{ 
 
     dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->ndim,
@@ -2185,10 +2185,10 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     int * edge_len_A, * edge_len_B;
     int * sym_A, * sym_B;
     stat = allread_tsr(ntid_A, &nsA, &sA);
-    assert(stat == DIST_TENSOR_SUCCESS);
+    assert(stat == CTF_SUCCESS);
 
     stat = allread_tsr(ntid_B, &nsB, &sB);
-    assert(stat == DIST_TENSOR_SUCCESS);
+    assert(stat == CTF_SUCCESS);
 #endif
 
     TAU_FSTART(sum_tensors);
@@ -2201,9 +2201,9 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 #endif
       /* remap if necessary */
       stat = map_tensor_pair(ntid_A, map_A, ntid_B, map_B);
-      if (stat == DIST_TENSOR_ERROR) {
+      if (stat == CTF_ERROR) {
         printf("Failed to map tensors to physical grid\n");
-        return DIST_TENSOR_ERROR;
+        return CTF_ERROR;
       }
     } else {
 #if DEBUG >= 2
@@ -2222,11 +2222,11 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
       TAU_FSTART(map_fold);
       stat = map_fold(&type, &inner_stride);
       TAU_FSTOP(map_fold);
-      if (stat == DIST_TENSOR_SUCCESS){
+      if (stat == CTF_SUCCESS){
         sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
                               ftsr, felm, inner_stride);
       } else
-        return DIST_TENSOR_ERROR;
+        return CTF_ERROR;
     } else
       sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
                            ftsr, felm);
@@ -2263,14 +2263,14 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 
 #if VERIFY
     stat = allread_tsr(ntid_A, &nA, &uA);
-    assert(stat == DIST_TENSOR_SUCCESS);
+    assert(stat == CTF_SUCCESS);
     stat = get_tsr_info(ntid_A, &ndim_A, &edge_len_A, &sym_A);
-    assert(stat == DIST_TENSOR_SUCCESS);
+    assert(stat == CTF_SUCCESS);
 
     stat = allread_tsr(ntid_B, &nB, &uB);
-    assert(stat == DIST_TENSOR_SUCCESS);
+    assert(stat == CTF_SUCCESS);
     stat = get_tsr_info(ntid_B, &ndim_B, &edge_len_B, &sym_B);
-    assert(stat == DIST_TENSOR_SUCCESS);
+    assert(stat == CTF_SUCCESS);
 
     if (nsA != nA) { printf("nsA = "PRId64", nA = "PRId64"\n",nsA,nA); ABORT; }
     if (nsB != nB) { printf("nsB = "PRId64", nB = "PRId64"\n",nsB,nB); ABORT; }
@@ -2282,7 +2282,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 
     cpy_sym_sum(alpha, uA, ndim_A, edge_len_A, edge_len_A, sym_A, map_A,
                 beta, sB, ndim_B, edge_len_B, edge_len_B, sym_B, map_B);
-    assert(stat == DIST_TENSOR_SUCCESS);
+    assert(stat == CTF_SUCCESS);
 
     for (i=0; (ulong_int)i<nB; i++){
       if (fabs(uB[i] - sB[i]) > 1.E-6){
@@ -2300,7 +2300,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     if (ntid_A != tid_A) del_tsr(ntid_A);
     for (int i=nst_B-1; i>=0; i--){
       int ret = extract_diag(dstack_tid_B[i], dstack_map_B[i], 0, &ntid_B, &new_idx_map);
-      LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+      LIBT_ASSERT(ret == CTF_SUCCESS);
       del_tsr(ntid_B);
       ntid_B = dstack_tid_B[i];
     }
@@ -2312,7 +2312,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
   CTF_free(dstack_tid_B);
 
   TAU_FSTOP(sum_tensors);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -2374,7 +2374,7 @@ int dist_tensor<dtype>::
       scale_tsr(beta, stype->tid_C, new_idx_map_C, fs, felm); 
       CTF_free(new_idx_map_C);
     }
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
 
   contract_mst();
@@ -2450,7 +2450,7 @@ int dist_tensor<dtype>::
   }
 
   ret = sym_contract(&ntype, ftsr, felm, alpha, beta);
-  if (ret!= DIST_TENSOR_SUCCESS) return ret;
+  if (ret!= CTF_SUCCESS) return ret;
   if (was_home_A) unmap_inner(ntsr_A);
   if (was_home_B && stype->tid_A != stype->tid_B) unmap_inner(ntsr_B);
   if (was_home_C) unmap_inner(ntsr_C);
@@ -2511,7 +2511,7 @@ int dist_tensor<dtype>::
       del_tsr(ntype.tid_B);
     }
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 #endif
 }
 
@@ -2574,7 +2574,7 @@ int dist_tensor<dtype>::
       scale_tsr(beta, stype->tid_C, new_idx_map_C, fs, felm); 
       CTF_free(new_idx_map_C);
     }
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   ntid_A = type->tid_A;
   ntid_B = type->tid_B;
@@ -2587,20 +2587,20 @@ int dist_tensor<dtype>::
   memcpy(map_A, type->idx_map_A, tensors[ntid_A]->ndim*sizeof(int));
   memcpy(map_B, type->idx_map_B, tensors[ntid_B]->ndim*sizeof(int));
   memcpy(map_C, type->idx_map_C, tensors[ntid_C]->ndim*sizeof(int));
-  while (extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     if (ntid_A != type->tid_A) del_tsr(ntid_A);
     CTF_free(map_A);
     ntid_A = new_tid;
     map_A = new_idx_map;
   }
-  while (extract_diag(ntid_B, map_B, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (extract_diag(ntid_B, map_B, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     if (ntid_B != type->tid_B) del_tsr(ntid_B);
     CTF_free(map_B);
     ntid_B = new_tid;
     map_B = new_idx_map;
   }
   nst_C = 0;
-  while (extract_diag(ntid_C, map_C, 1, &new_tid, &new_idx_map) == DIST_TENSOR_SUCCESS){
+  while (extract_diag(ntid_C, map_C, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     dstack_map_C[nst_C] = map_C;
     dstack_tid_C[nst_C] = ntid_C;
     nst_C++;
@@ -2624,14 +2624,14 @@ int dist_tensor<dtype>::
     new_type.tid_A = new_tid;
     stat = sym_contract(&new_type, ftsr, felm, alpha, beta);
     del_tsr(new_tid);
-    LIBT_ASSERT(stat == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(stat == CTF_SUCCESS);
   } else if (ntid_B == ntid_C){
     clone_tensor(ntid_B, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;
     new_type.tid_B = new_tid;
     stat = sym_contract(&new_type, ftsr, felm, alpha, beta);
     del_tsr(new_tid);
-    LIBT_ASSERT(stat == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(stat == CTF_SUCCESS);
   } else {
 
     double alignfact = align_symmetric_indices(tensors[ntid_A]->ndim,
@@ -2666,7 +2666,7 @@ int dist_tensor<dtype>::
       unfold_broken_sym(type, &unfold_type);
 #if PERFORM_DESYM
       if (map_tensors(&unfold_type, 
-                      ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
+                      ftsr, felm, alpha, beta, &ctrf, 0) == CTF_SUCCESS){
 #else
       int * sym, dim, sy;
       sy = 0;
@@ -2689,7 +2689,7 @@ int dist_tensor<dtype>::
       }
       CTF_free(sym);
       if (sy && map_tensors(&unfold_type,
-                            ftsr, felm, alpha, beta, &ctrf, 0) == DIST_TENSOR_SUCCESS){
+                            ftsr, felm, alpha, beta, &ctrf, 0) == CTF_SUCCESS){
 #endif
         if (ntid_A == ntid_B){
           clone_tensor(ntid_A, 1, &ntid_A);
@@ -2753,7 +2753,7 @@ int dist_tensor<dtype>::
   CTF_free(dstack_map_C);
   CTF_free(dstack_tid_C);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -2800,7 +2800,7 @@ int dist_tensor<dtype>::
       scale_tsr(beta, type->tid_C, new_idx_map_C, fs, felm); 
       CTF_free(new_idx_map_C);
     }
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   if (type->tid_A == type->tid_B || type->tid_A == type->tid_C){
     clone_tensor(type->tid_A, 1, &new_tid);
@@ -2836,13 +2836,13 @@ int dist_tensor<dtype>::
   int * sym_A, * sym_B, * sym_C;
   int * sym_tmp;
   stat = allread_tsr(type->tid_A, &nsA, &sA);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
 
   stat = allread_tsr(type->tid_B, &nsB, &sB);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
 
   stat = allread_tsr(type->tid_C, &nC, &ans_C);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
 #endif
   /* Check if the current tensor mappings can be contracted on */
   fseq_tsr_ctr<dtype> fftsr=ftsr;
@@ -2854,17 +2854,17 @@ int dist_tensor<dtype>::
   }
 #if REDIST
   stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
-  if (stat == DIST_TENSOR_ERROR) {
+  if (stat == CTF_ERROR) {
     printf("Failed to map tensors to physical grid\n");
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
 #else
   if (check_contraction_mapping(type) == 0) {
     /* remap if necessary */
     stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
-    if (stat == DIST_TENSOR_ERROR) {
+    if (stat == CTF_ERROR) {
       printf("Failed to map tensors to physical grid\n");
-      return DIST_TENSOR_ERROR;
+      return CTF_ERROR;
     }
   } else {
     /* Construct the tensor algorithm we would like to use */
@@ -2894,10 +2894,10 @@ int dist_tensor<dtype>::
     TAU_FSTART(map_fold);
     stat = map_fold(type, &prm);
     TAU_FSTOP(map_fold);
-    if (stat == DIST_TENSOR_ERROR){
-      return DIST_TENSOR_ERROR;
+    if (stat == CTF_ERROR){
+      return CTF_ERROR;
     }
-    if (stat == DIST_TENSOR_SUCCESS){
+    if (stat == CTF_SUCCESS){
       delete ctrf;
       ctrf = construct_contraction(type, fftsr, felm, alpha, beta, 2, &prm);
     }
@@ -2941,14 +2941,14 @@ int dist_tensor<dtype>::
 
 #if VERIFY
   stat = allread_tsr(type->tid_A, &nA, &uA);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
   stat = get_tsr_info(type->tid_A, &ndim_A, &edge_len_A, &sym_A);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
 
   stat = allread_tsr(type->tid_B, &nB, &uB);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
   stat = get_tsr_info(type->tid_B, &ndim_B, &edge_len_B, &sym_B);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
 
   if (nsA != nA) { printf("nsA = "PRId64", nA = "PRId64"\n",nsA,nA); ABORT; }
   if (nsB != nB) { printf("nsB = "PRId64", nB = "PRId64"\n",nsB,nB); ABORT; }
@@ -2964,9 +2964,9 @@ int dist_tensor<dtype>::
   }
 
   stat = allread_tsr(type->tid_C, &nC, &uC);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
   stat = get_tsr_info(type->tid_C, &ndim_C, &edge_len_C, &sym_C);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
   DEBUG_PRINTF("packed size of C is "PRId64" (should be "PRId64")\n", nC,
     sy_packed_size(ndim_C, edge_len_C, sym_C));
 
@@ -2977,7 +2977,7 @@ int dist_tensor<dtype>::
         uB, ndim_B, edge_len_B, edge_len_B, sym_B, type->idx_map_B,
         beta,
     ans_C, ndim_C, edge_len_C, edge_len_C, sym_C, type->idx_map_C);
-  assert(stat == DIST_TENSOR_SUCCESS);
+  assert(stat == CTF_SUCCESS);
 
 #if ( DEBUG>=5)
   for (i=0; i<nC; i++){
@@ -3016,7 +3016,7 @@ int dist_tensor<dtype>::
   delete ctrf;
 
   TAU_FSTOP(contract);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 
 
 }

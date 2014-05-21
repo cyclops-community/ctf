@@ -207,7 +207,7 @@ int CTF_mst_free(void * ptr){
       printf("CTF ERROR: Invalid mst free of pointer %p\n", ptr);
 //      free(ptr);
       ABORT;
-      return DIST_TENSOR_ERROR;
+      return CTF_ERROR;
     }
   }
   if (mst.size() > 0)
@@ -215,7 +215,7 @@ int CTF_mst_free(void * ptr){
   else
     mst_buffer_ptr = 0;
   //printf("freed block, mst_buffer_ptr = "PRId64"\n", mst_buffer_ptr);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -248,7 +248,7 @@ int CTF_mst_alloc_ptr(long_int const len, void ** const ptr){
               mst_buffer_size, mst_buffer_ptr, (int)mst.size(), mst_buffer_used);
       CTF_alloc_ptr(len, ptr);
     }
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
 }
 
@@ -259,7 +259,7 @@ int CTF_mst_alloc_ptr(long_int const len, void ** const ptr){
 void * CTF_mst_alloc(long_int const len){
   void * ptr;
   int ret = CTF_mst_alloc_ptr(len, &ptr);
-  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  LIBT_ASSERT(ret == CTF_SUCCESS);
   return ptr;
 }
 
@@ -295,7 +295,7 @@ int CTF_alloc_ptr(long_int const len_, void ** const ptr){
             CTF_mem_used[0], len);
   }
   LIBT_ASSERT(pm == 0);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 
 }
 
@@ -306,7 +306,7 @@ int CTF_alloc_ptr(long_int const len_, void ** const ptr){
 void * CTF_alloc(long_int const len){
   void * ptr;
   int ret = CTF_alloc_ptr(len, &ptr);
-  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  LIBT_ASSERT(ret == CTF_SUCCESS);
   return ptr;
 }
 
@@ -335,11 +335,11 @@ int CTF_untag_mem(void * ptr){
   if (!found){
     printf("CTF ERROR: failed memory untag\n");
     ABORT;
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
   CTF_mem_used[0] -= len;
 #endif
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
   
@@ -370,13 +370,13 @@ int CTF_free(void * ptr, int const tid){
     }
   }
   if (!found){
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
   CTF_mem_used[tid] -= len;
 #endif
   //printf("CTF_mem_used down to "PRId64" stack to %d\n",CTF_mem_used,mem_stack->size());
   free(ptr);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -385,7 +385,7 @@ int CTF_free(void * ptr, int const tid){
  */
 int CTF_free_cond(void * ptr){
 //#ifdef PRODUCTION
-  return DIST_TENSOR_SUCCESS; //FIXME This function is not to be trusted due to potential allocations of 0 bytes!!!@
+  return CTF_SUCCESS; //FIXME This function is not to be trusted due to potential allocations of 0 bytes!!!@
 //#endif
   int ret, tid, i;
 #ifdef USE_OMP
@@ -396,19 +396,19 @@ int CTF_free_cond(void * ptr){
 #endif
 
   ret = CTF_free(ptr, tid);
-  if (ret == DIST_TENSOR_NEGATIVE){
+  if (ret == CTF_NEGATIVE){
     if (tid == 0){
       for (i=1; i<CTF_max_threads; i++){
         ret = CTF_free(ptr, i);
-        if (ret == DIST_TENSOR_SUCCESS){
-          return DIST_TENSOR_SUCCESS;
+        if (ret == CTF_SUCCESS){
+          return CTF_SUCCESS;
           break;
         }
       }
     }
   }
-//  if (ret == DIST_TENSOR_NEGATIVE) free(ptr);
-  return DIST_TENSOR_SUCCESS;
+//  if (ret == CTF_NEGATIVE) free(ptr);
+  return CTF_SUCCESS;
 }
 
 /**
@@ -422,7 +422,7 @@ int CTF_free(void * ptr){
   }
 #ifdef PRODUCTION
   free(ptr);  
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 #else
   int ret, tid, i;
 #ifdef USE_OMP
@@ -434,28 +434,28 @@ int CTF_free(void * ptr){
 
 
   ret = CTF_free(ptr, tid);
-  if (ret == DIST_TENSOR_NEGATIVE){
+  if (ret == CTF_NEGATIVE){
     if (tid != 0 || CTF_max_threads == 1){
       printf("CTF ERROR: Invalid free of pointer %p by thread %d\n", ptr, tid);
       ABORT;
-      return DIST_TENSOR_ERROR;
+      return CTF_ERROR;
     } else {
       for (i=1; i<CTF_max_threads; i++){
         ret = CTF_free(ptr, i);
-        if (ret == DIST_TENSOR_SUCCESS){
-          return DIST_TENSOR_SUCCESS;
+        if (ret == CTF_SUCCESS){
+          return CTF_SUCCESS;
           break;
         }
       }
       if (i==CTF_max_threads){
         printf("CTF ERROR: Invalid free of pointer %p by zeroth thread\n", ptr);
         ABORT;
-        return DIST_TENSOR_ERROR;
+        return CTF_ERROR;
       }
     }
   }
 #endif
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 
 }
 

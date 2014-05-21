@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __DIST_TENSOR_PERMUTE_HXX__
-#define __DIST_TENSOR_PERMUTE_HXX__
+#ifndef __CTF_PERMUTE_HXX__
+#define __CTF_PERMUTE_HXX__
 #include "dist_tensor_internal.h"
 #include "cyclopstf.hpp"
 #include "../shared/util.h"
@@ -2410,7 +2410,7 @@ int padded_reshuffle(int const          tid,
   CTF_free(sub_edge_len);
   TAU_FSTOP(padded_reshuffle);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -2502,7 +2502,7 @@ int cyclic_reshuffle(int const          ndim,
       tsr_cyclic_data[0] = get_zero<dtype>();
     }
     *ptr_tsr_cyclic_data = tsr_cyclic_data;
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   
   LIBT_ASSERT(!reuse_buffers || beta == 0.0);
@@ -2893,7 +2893,7 @@ int cyclic_reshuffle(int const          ndim,
   CTF_free(old_phys_edge_len);
 
   TAU_FSTOP(cyclic_reshuffle);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**

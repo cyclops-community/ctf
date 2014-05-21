@@ -963,7 +963,7 @@ int dist_tensor<dtype>::map_fold(CTF_sum_type_t const * type,
   get_fold_indices(type, &nfold, &fold_idx);
   if (nfold == 0){
     CTF_free(fold_idx);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
 
   /* overestimate this space to not bother with it later */
@@ -1050,7 +1050,7 @@ int dist_tensor<dtype>::map_fold(CTF_sum_type_t const * type,
   CTF_free(all_flen_B);
   CTF_free(fold_idx);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -1076,7 +1076,7 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
   get_fold_indices(type, &nfold, &fold_idx);
   if (nfold == 0) {
     CTF_free(fold_idx);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
 
   /* overestimate this space to not bother with it later */
@@ -1193,7 +1193,7 @@ int dist_tensor<dtype>::map_fold(CTF_ctr_type_t const * type,
   CTF_free(fold_idx);
 
   *inner_prm = iprm;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -1672,7 +1672,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
         int ret = scale_tsr(((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg), nonsym_tid, idx_map_A, fss, fselm);
 /*        printf("tid %d after scale\n", nonsym_tid);
         print_tsr(stdout, nonsym_tid);*/
-        if (ret != DIST_TENSOR_SUCCESS) ABORT;
+        if (ret != CTF_SUCCESS) ABORT;
       }
     } 
 //    print_tsr(stdout, nonsym_tid);
@@ -1854,7 +1854,7 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
 idx_map_B, fss, fselm);
 /*        printf("tid %d after scale\n", sym_tid);
         print_tsr(stdout, sym_tid);*/
-        if (ret != DIST_TENSOR_SUCCESS) ABORT;
+        if (ret != CTF_SUCCESS) ABORT;
       }
     }
   }

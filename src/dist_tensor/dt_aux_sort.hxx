@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __DIST_TENSOR_SORT_HXX__
-#define __DIST_TENSOR_SORT_HXX__
+#ifndef __CTF_SORT_HXX__
+#define __CTF_SORT_HXX__
 #include "dist_tensor_internal.h"
 #include "cyclopstf.hpp"
 #include "../shared/util.h"

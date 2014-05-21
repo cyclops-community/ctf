@@ -86,7 +86,7 @@ class CTF_Timer_epoch{
  */
 class CTF_Flop_Counter{
   public:
-    long_int start_count;
+    int64_t  start_count;
 
   public:
     /**
@@ -103,7 +103,7 @@ class CTF_Flop_Counter{
     /**
      * \brief get total flop count over all counters in comm
      */
-    long_int count(MPI_Comm comm = MPI_COMM_SELF);
+    int64_t  count(MPI_Comm comm = MPI_COMM_SELF);
 
 };
 

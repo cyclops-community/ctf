@@ -48,7 +48,7 @@ int dist_tensor<dtype>::map_tensor_pair(const int tid_A, const int tid_B){
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
 
-  if (tid_A == tid_B) return DIST_TENSOR_SUCCESS;
+  if (tid_A == tid_B) return CTF_SUCCESS;
 
   unmap_inner(tsr_A);
   unmap_inner(tsr_B);
@@ -71,7 +71,7 @@ int dist_tensor<dtype>::map_tensor_pair(const int tid_A, const int tid_B){
   CTF_free(old_pe_lda);
   CTF_free(old_padding);
   CTF_free(old_edge_len);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -169,74 +169,74 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
 
     if (i%2 == 0){
       ret = map_self_indices(tid_A, idx_map_A);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
     } else {
       ret = map_self_indices(tid_B, idx_map_B);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
     }
     ret = map_sum_indices(idx_arr, idx_sum, num_tot, num_sum, 
                           tid_A, tid_B, &topovec[tsr_A->itopo], 2);
-    if (ret == DIST_TENSOR_NEGATIVE) continue;
-    else if (ret != DIST_TENSOR_SUCCESS){
+    if (ret == CTF_NEGATIVE) continue;
+    else if (ret != CTF_SUCCESS){
       return ret;
     }
     if (i%2 == 0){
       ret = map_self_indices(tid_A, idx_map_A);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
     } else {
       ret = map_self_indices(tid_B, idx_map_B);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
     }
 
     if (i%2 == 0){
       ret = map_self_indices(tid_A, idx_map_A);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
       ret = map_tensor_rem(topovec[tsr_A->itopo].ndim, 
                            topovec[tsr_A->itopo].dim_comm, tsr_A);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
       copy_mapping(tsr_A->ndim, tsr_B->ndim,
                    idx_map_A, tsr_A->edge_map, 
                    idx_map_B, tsr_B->edge_map,0);
       ret = map_tensor_rem(topovec[tsr_B->itopo].ndim, 
                            topovec[tsr_B->itopo].dim_comm, tsr_B);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
     } else {
       ret = map_self_indices(tid_B, idx_map_B);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
       ret = map_tensor_rem(topovec[tsr_B->itopo].ndim, 
                            topovec[tsr_B->itopo].dim_comm, tsr_B);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
       copy_mapping(tsr_B->ndim, tsr_A->ndim,
                    idx_map_B, tsr_B->edge_map, 
                    idx_map_A, tsr_A->edge_map,0);
       ret = map_tensor_rem(topovec[tsr_A->itopo].ndim, 
                            topovec[tsr_A->itopo].dim_comm, tsr_A);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
     }
     if (i%2 == 0){
       ret = map_self_indices(tid_B, idx_map_B);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
     } else {
       ret = map_self_indices(tid_A, idx_map_A);
-      if (ret == DIST_TENSOR_NEGATIVE) continue;
-      else if (ret != DIST_TENSOR_SUCCESS) return ret;
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != CTF_SUCCESS) return ret;
     }
 
 /*    ret = map_symtsr(tsr_A->ndim, tsr_A->sym_table, tsr_A->edge_map);
     ret = map_symtsr(tsr_B->ndim, tsr_B->sym_table, tsr_B->edge_map);
-    if (ret!=DIST_TENSOR_SUCCESS) return ret;
-    return DIST_TENSOR_SUCCESS;*/
+    if (ret!=CTF_SUCCESS) return ret;
+    return CTF_SUCCESS;*/
 
 #if DEBUG >= 3  
     print_map(stdout, tid_A,0);
@@ -300,7 +300,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   if (gtopo == -1){
     printf("ERROR: Failed to map pair!\n");
     ABORT;
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
   
   clear_mapping(tsr_A);
@@ -313,39 +313,39 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     
   if (gtopo%2 == 0){
     ret = map_self_indices(tid_A, idx_map_A);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
   } else {
     ret = map_self_indices(tid_B, idx_map_B);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
   }
   ret = map_sum_indices(idx_arr, idx_sum, num_tot, num_sum, 
                         tid_A, tid_B, &topovec[tsr_A->itopo], 2);
-  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  LIBT_ASSERT(ret == CTF_SUCCESS);
 
   if (gtopo%2 == 0){
     ret = map_self_indices(tid_A, idx_map_A);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
     ret = map_tensor_rem(topovec[tsr_A->itopo].ndim, 
                          topovec[tsr_A->itopo].dim_comm, tsr_A);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
     copy_mapping(tsr_A->ndim, tsr_B->ndim,
                  idx_map_A, tsr_A->edge_map, 
                  idx_map_B, tsr_B->edge_map,0);
     ret = map_tensor_rem(topovec[tsr_B->itopo].ndim, 
                          topovec[tsr_B->itopo].dim_comm, tsr_B);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
   } else {
     ret = map_self_indices(tid_B, idx_map_B);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
     ret = map_tensor_rem(topovec[tsr_B->itopo].ndim, 
                          topovec[tsr_B->itopo].dim_comm, tsr_B);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
     copy_mapping(tsr_B->ndim, tsr_A->ndim,
                  idx_map_B, tsr_B->edge_map, 
                  idx_map_A, tsr_A->edge_map,0);
     ret = map_tensor_rem(topovec[tsr_A->itopo].ndim, 
                          topovec[tsr_A->itopo].dim_comm, tsr_A);
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
   }
 
   tsr_A->is_mapped = 1;
@@ -412,7 +412,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   CTF_free(old_map_A);
   CTF_free(old_map_B);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -1061,11 +1061,11 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
                             idx_arr, idx_ctr, idx_extra, idx_no_ctr, idx_weigh);
       
 
-      if (ret == DIST_TENSOR_ERROR) {
+      if (ret == CTF_ERROR) {
         TAU_FSTOP(map_tensors);
-        return DIST_TENSOR_ERROR;
+        return CTF_ERROR;
       }
-      if (ret == DIST_TENSOR_NEGATIVE){
+      if (ret == CTF_NEGATIVE){
         //printf("map_to_topology returned negative\n");
         continue;
       }
@@ -1303,9 +1303,9 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     if (ttopo == INT_MAX || ttopo == -1){
       printf("ERROR: Failed to map contraction!\n");
       //ABORT;
-      return DIST_TENSOR_ERROR;
+      return CTF_ERROR;
     }
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   if (ttopo < 18){
     switch (ttopo/6){
@@ -1336,10 +1336,10 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
                         idx_arr, idx_ctr, idx_extra, idx_no_ctr, idx_weigh);
 
 
-  if (ret == DIST_TENSOR_NEGATIVE || ret == DIST_TENSOR_ERROR) {
+  if (ret == CTF_NEGATIVE || ret == CTF_ERROR) {
     printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
     TAU_FSTOP(map_tensors);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
   tsr_A->is_mapped = 1;
   tsr_B->is_mapped = 1;
@@ -1495,7 +1495,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   
 
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -1601,13 +1601,13 @@ int dist_tensor<dtype>::
                     NULL,               0,
                     sum_map);
 
-  if (stat == DIST_TENSOR_ERROR){
+  if (stat == CTF_ERROR){
     TAU_FSTOP(map_sum_indices);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
   
   /* define mapping of tensors A and B according to the mapping of sum dims */
-  if (stat == DIST_TENSOR_SUCCESS){
+  if (stat == CTF_SUCCESS){
     for (i=0; i<num_sum; i++){
       isum = idx_sum[i];
       iA = idx_arr[isum*idx_num+0];
@@ -1677,7 +1677,7 @@ int dist_tensor<dtype>::
     if (tsr_A->edge_map[iA].type == PHYSICAL_MAP ||
         tsr_B->edge_map[iB].type == PHYSICAL_MAP ||
         tsr_C->edge_map[iC].type == PHYSICAL_MAP)
-      return DIST_TENSOR_NEGATIVE; 
+      return CTF_NEGATIVE; 
   }  
   CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&restricted);
   CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
@@ -1749,11 +1749,11 @@ int dist_tensor<dtype>::
                     comm_idx,           0,
                     weigh_map);
 
-  if (stat == DIST_TENSOR_ERROR)
-    return DIST_TENSOR_ERROR;
+  if (stat == CTF_ERROR)
+    return CTF_ERROR;
   
   /* define mapping of tensors A and B according to the mapping of ctr dims */
-  if (stat == DIST_TENSOR_SUCCESS){
+  if (stat == CTF_SUCCESS){
     for (i=0; i<num_weigh; i++){
       iweigh = idx_weigh[i];
       iA = idx_arr[iweigh*3+0];
@@ -1907,11 +1907,11 @@ int dist_tensor<dtype>::
                       ctr_map);
 
   //}
-  if (stat == DIST_TENSOR_ERROR)
-    return DIST_TENSOR_ERROR;
+  if (stat == CTF_ERROR)
+    return CTF_ERROR;
   
   /* define mapping of tensors A and B according to the mapping of ctr dims */
-  if (stat == DIST_TENSOR_SUCCESS){
+  if (stat == CTF_SUCCESS){
     for (i=0; i<num_ctr; i++){
       ictr = idx_ctr[i];
       iA = idx_arr[ictr*3+0];
@@ -1987,7 +1987,7 @@ int dist_tensor<dtype>::
   }*/
   /* Map remainders of A and B to remainders of phys grid */
   stat = map_tensor_rem(topo->ndim, topo->dim_comm, tsr_A, 1);
-  if (stat != DIST_TENSOR_SUCCESS){
+  if (stat != CTF_SUCCESS){
     if (tsr_A->ndim != 0 || tsr_B->ndim != 0 || tsr_C->ndim != 0){
       TAU_FSTOP(map_noctr_indices);
       return stat;
@@ -2008,7 +2008,7 @@ int dist_tensor<dtype>::
     } 
   }
   stat = map_tensor_rem(topo->ndim, topo->dim_comm, tsr_C, 0);
-  if (stat != DIST_TENSOR_SUCCESS){
+  if (stat != CTF_SUCCESS){
     TAU_FSTOP(map_noctr_indices);
     return stat;
   }
@@ -2028,7 +2028,7 @@ int dist_tensor<dtype>::
   }
   TAU_FSTOP(map_noctr_indices);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -2080,12 +2080,12 @@ int dist_tensor<dtype>::
 
   if (!npp){
     ret = map_symtsr(tsr->ndim, stable, tsr->edge_map);
-    if (ret!=DIST_TENSOR_SUCCESS) return ret;
+    if (ret!=CTF_SUCCESS) return ret;
   }
 
   CTF_free(idx_arr);
   CTF_free(stable);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -2125,7 +2125,7 @@ int dist_tensor<dtype>::
     if (iA != -1){
       //FIXME handle extra indices via reduction
       if (tsr_A->edge_map[iA].type == PHYSICAL_MAP)
-        return DIST_TENSOR_NEGATIVE;
+        return CTF_NEGATIVE;
       if (tsr_A->edge_map[iA].type == NOT_MAPPED){
         tsr_A->edge_map[iA].type = VIRTUAL_MAP;
         tsr_A->edge_map[iA].np = 1;
@@ -2134,7 +2134,7 @@ int dist_tensor<dtype>::
     } else {
       if (iB != -1) {
         if (tsr_B->edge_map[iB].type == PHYSICAL_MAP)
-          return DIST_TENSOR_NEGATIVE;
+          return CTF_NEGATIVE;
         if (tsr_B->edge_map[iB].type == NOT_MAPPED){
           tsr_B->edge_map[iB].type = VIRTUAL_MAP;
           tsr_B->edge_map[iB].np = 1;
@@ -2143,7 +2143,7 @@ int dist_tensor<dtype>::
       } else {
         LIBT_ASSERT(iC != -1);
         if (tsr_C->edge_map[iC].type == PHYSICAL_MAP)
-          return DIST_TENSOR_NEGATIVE;
+          return CTF_NEGATIVE;
         if (tsr_C->edge_map[iC].type == NOT_MAPPED){
           tsr_C->edge_map[iC].type = VIRTUAL_MAP;
           tsr_C->edge_map[iC].np = 1;
@@ -2152,7 +2152,7 @@ int dist_tensor<dtype>::
       }
     }
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -2242,7 +2242,7 @@ int dist_tensor<dtype>::
       map_C = idx_map_A;
       break;
     default:
-      return DIST_TENSOR_ERROR;
+      return CTF_ERROR;
       break;
   }
   
@@ -2278,103 +2278,103 @@ int dist_tensor<dtype>::
   /* Map the weigh indices of A, B, and C*/
   ret = map_weigh_indices(idx_arr, idx_weigh, num_tot, num_weigh, 
                           tA, tB, tC, &topovec[itopo]);
-  if (ret == DIST_TENSOR_NEGATIVE) {
+  if (ret == CTF_NEGATIVE) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
+  if (ret == CTF_ERROR) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
 
   
   /* Map the contraction indices of A and B */
   ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
                             tA, tB, &topovec[itopo]);
-  if (ret == DIST_TENSOR_NEGATIVE) {
+  if (ret == CTF_NEGATIVE) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
+  if (ret == CTF_ERROR) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
 
 
 /*  ret = map_self_indices(tA, map_A);
-  if (ret == DIST_TENSOR_NEGATIVE) {
+  if (ret == CTF_NEGATIVE) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
+  if (ret == CTF_ERROR) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
   ret = map_self_indices(tB, map_B);
-  if (ret == DIST_TENSOR_NEGATIVE) {
+  if (ret == CTF_NEGATIVE) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
+  if (ret == CTF_ERROR) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
   ret = map_self_indices(tC, map_C);
-  if (ret == DIST_TENSOR_NEGATIVE) {
+  if (ret == CTF_NEGATIVE) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
+  if (ret == CTF_ERROR) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }*/
   ret = map_extra_indices(idx_arr, idx_extra, num_extra,
                               tA, tB, tC);
-  if (ret == DIST_TENSOR_NEGATIVE) {
+  if (ret == CTF_NEGATIVE) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
+  if (ret == CTF_ERROR) {
     CTF_free(idx_arr);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
 
 
   /* Map C or equivalently, the non-contraction indices of A and B */
   ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
                                 tA, tB, tC, &topovec[itopo]);
-  if (ret == DIST_TENSOR_NEGATIVE){
+  if (ret == CTF_NEGATIVE){
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
-    return DIST_TENSOR_ERROR;
+  if (ret == CTF_ERROR) {
+    return CTF_ERROR;
   }
   ret = map_symtsr(tsr_A->ndim, tsr_A->sym_table, tsr_A->edge_map);
-  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  if (ret!=CTF_SUCCESS) return ret;
   ret = map_symtsr(tsr_B->ndim, tsr_B->sym_table, tsr_B->edge_map);
-  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  if (ret!=CTF_SUCCESS) return ret;
   ret = map_symtsr(tsr_C->ndim, tsr_C->sym_table, tsr_C->edge_map);
-  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  if (ret!=CTF_SUCCESS) return ret;
 
   /* Do it again to make sure everything is properly mapped. FIXME: loop */
   ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
                             tA, tB, &topovec[itopo]);
-  if (ret == DIST_TENSOR_NEGATIVE){
+  if (ret == CTF_NEGATIVE){
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
-    return DIST_TENSOR_ERROR;
+  if (ret == CTF_ERROR) {
+    return CTF_ERROR;
   }
   ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
                                 tA, tB, tC, &topovec[itopo]);
-  if (ret == DIST_TENSOR_NEGATIVE){
+  if (ret == CTF_NEGATIVE){
     CTF_free(idx_arr);
-    return DIST_TENSOR_NEGATIVE;
+    return CTF_NEGATIVE;
   }
-  if (ret == DIST_TENSOR_ERROR) {
-    return DIST_TENSOR_ERROR;
+  if (ret == CTF_ERROR) {
+    return CTF_ERROR;
   }
 
   /*ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, 
@@ -2383,15 +2383,15 @@ int dist_tensor<dtype>::
   /*ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, 
                                 tA, tB, tC, &topovec[itopo]);*/
   ret = map_symtsr(tsr_A->ndim, tsr_A->sym_table, tsr_A->edge_map);
-  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  if (ret!=CTF_SUCCESS) return ret;
   ret = map_symtsr(tsr_B->ndim, tsr_B->sym_table, tsr_B->edge_map);
-  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  if (ret!=CTF_SUCCESS) return ret;
   ret = map_symtsr(tsr_C->ndim, tsr_C->sym_table, tsr_C->edge_map);
-  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  if (ret!=CTF_SUCCESS) return ret;
   
   CTF_free(idx_arr);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 
 }
 /**
@@ -2417,7 +2417,7 @@ int dist_tensor<dtype>::try_topo_morph(int const tid_A,
   itC = tsr_C->itopo;
 
   if (itA == itB && itB == itC){
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
 
   if (topovec[itA].ndim >= topovec[itB].ndim){
@@ -2449,12 +2449,12 @@ int dist_tensor<dtype>::try_topo_morph(int const tid_A,
   if (itA != itC){
     ret = can_morph(&topovec[itC], &topovec[itA]);
     if (!ret)
-      return DIST_TENSOR_NEGATIVE;
+      return CTF_NEGATIVE;
   }
   if (itB != itC){
     ret = can_morph(&topovec[itC], &topovec[itB]);
     if (!ret)
-      return DIST_TENSOR_NEGATIVE;
+      return CTF_NEGATIVE;
   }
   
   if (itA != itC){
@@ -2467,7 +2467,7 @@ int dist_tensor<dtype>::try_topo_morph(int const tid_A,
                tsr_change_B->ndim, tsr_change_B->edge_map);
     tsr_change_B->itopo = itC;
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 
 }
 

@@ -26,7 +26,7 @@ tCTF_Scalar<dtype>::tCTF_Scalar(dtype const        val,
 
   if (world.ctf->get_rank() == 0){
     int ret = this->world->ctf->get_raw_data(this->tid, &arr, &s); 
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
     arr[0] = val;
   }
 }
@@ -40,7 +40,7 @@ dtype tCTF_Scalar<dtype>::get_val(){
   dtype * val;
   int ret = this->world->ctf->get_raw_data(this->tid, &val, &s); 
 
-  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  LIBT_ASSERT(ret == CTF_SUCCESS);
 
   MPI_Bcast(val, sizeof(dtype), MPI_CHAR, 0, this->world->comm);
   return val[0];
@@ -55,7 +55,7 @@ void tCTF_Scalar<dtype>::set_val(dtype const val){
   dtype * arr;
   if (this->world->ctf->get_rank() == 0){
     int ret = this->world->ctf->get_raw_data(this->tid, &arr, &s); 
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
     arr[0] = val;
   }
 }

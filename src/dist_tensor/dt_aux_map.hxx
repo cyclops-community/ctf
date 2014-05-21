@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __DIST_TENSOR_MAP_HXX__
-#define __DIST_TENSOR_MAP_HXX__
+#ifndef __CTF_MAP_HXX__
+#define __CTF_MAP_HXX__
 
 #include "dist_tensor_internal.h"
 #include "cyclopstf.hpp"
@@ -333,7 +333,7 @@ int stretch_virt(int const ndim,
       map->np   = stretch_factor;
     }
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -421,7 +421,7 @@ int clear_mapping(mapping * map){
   map->type = NOT_MAPPED;
   map->np = 1;
   map->has_child = 0;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /* \brief zeros out mapping
@@ -439,7 +439,7 @@ int clear_mapping(tensor<dtype> * tsr){
   tsr->is_mapped = 0;
   tsr->is_folded = 0;
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -466,7 +466,7 @@ int copy_mapping(int const        ndim,
       copy_mapping(1, mapping_A[i].child, mapping_B[i].child);
     }
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -510,7 +510,7 @@ int copy_mapping(int const    ndim_A,
     }
   }
   CTF_free(idx_arr);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /** \brief compares two mappings
@@ -616,7 +616,7 @@ int save_mapping(tensor<dtype> *  tsr,
   CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)old_padding);
   memcpy(*old_padding, tsr->padding, sizeof(int)*tsr->ndim);
   *was_cyclic = tsr->is_cyclic;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -642,8 +642,8 @@ int save_mapping(tensor<dtype> *  tsr,
  * \param[in] tsr_ndim is the number of dimensions of the tensor
  * \param[in] tsr_sym_table the symmetry table of a tensor
  * \param[in,out] tsr_edge_map is the mapping
- * \return DIST_TENSOR_SUCCESS if mapping successful, DIST_TENSOR_NEGATIVE if not, 
- *     DIST_TENSOR_ERROR if err'ed out
+ * \return CTF_SUCCESS if mapping successful, CTF_NEGATIVE if not, 
+ *     CTF_ERROR if err'ed out
  */
 inline
 int map_symtsr(int const    tsr_ndim,
@@ -660,7 +660,7 @@ int map_symtsr(int const    tsr_ndim,
 #ifndef MAXLOOP
 #define MAXLOOP 20
 #endif
-    if (loop >= MAXLOOP) return DIST_TENSOR_NEGATIVE;
+    if (loop >= MAXLOOP) return CTF_NEGATIVE;
     loop++;
     for (i=0; i<tsr_ndim; i++){
       if (tsr_edge_map[i].type != NOT_MAPPED){
@@ -675,7 +675,7 @@ int map_symtsr(int const    tsr_ndim,
             else continue;
             lcm_phase   = lcm(sym_phase, phase);
             if ((lcm_phase < sym_phase || lcm_phase < phase) || lcm_phase >= MAX_PHASE)
-              return DIST_TENSOR_NEGATIVE;
+              return CTF_NEGATIVE;
             /* Adjust phase of symmetric (j) dimension */
             if (sym_map->type == NOT_MAPPED){
               sym_map->type     = VIRTUAL_MAP;
@@ -716,7 +716,7 @@ int map_symtsr(int const    tsr_ndim,
       }
     }
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -762,7 +762,7 @@ int set_padding(tensor<dtype> * tsr, int const is_inner=0){
 
   CTF_free(sub_edge_len);
   CTF_free(new_phase);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -974,7 +974,7 @@ int remap_tensor(int const  tid,
   }
 
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -1037,8 +1037,8 @@ int redistribute(int const *          sym,
  * \param[in] comm_idx dimensional ordering
  * \param[in] fill if set does recursive mappings and uses all phys dims
  * \param[in,out] tsr_edge_map mapping of tensor
- * \return DIST_TENSOR_SUCCESS if mapping successful, DIST_TENSOR_NEGATIVE if not, 
- *     DIST_TENSOR_ERROR if err'ed out
+ * \return CTF_SUCCESS if mapping successful, CTF_NEGATIVE if not, 
+ *     CTF_ERROR if err'ed out
  */
 inline
 int map_tensor(int const      num_phys_dims,
@@ -1055,7 +1055,7 @@ int map_tensor(int const      num_phys_dims,
 
   /* Make sure the starting mappings are consistent among symmetries */
   ret = map_symtsr(tsr_ndim, tsr_sym_table, tsr_edge_map);
-  if (ret!=DIST_TENSOR_SUCCESS) return ret;
+  if (ret!=CTF_SUCCESS) return ret;
 
   /* Assign physical dimensions */
   for (i=0; i<num_phys_dims; i++){
@@ -1079,7 +1079,7 @@ int map_tensor(int const      num_phys_dims,
     }
     if (max_dim == -1){
       if (fill){
-        return DIST_TENSOR_NEGATIVE;
+        return CTF_NEGATIVE;
       }
       break;
     }
@@ -1093,7 +1093,7 @@ int map_tensor(int const      num_phys_dims,
         if (phys_comm[i].np != map->np){
           phase     = lcm(map->np, phys_comm[i].np);
           if ((phase < map->np || phase < phys_comm[i].np) || phase >= MAX_PHASE)
-            return DIST_TENSOR_NEGATIVE;
+            return CTF_NEGATIVE;
           if (phase/phys_comm[i].np != 1){
             map->has_child  = 1;
             map->child    = (mapping*)CTF_alloc(sizeof(mapping));
@@ -1116,7 +1116,7 @@ int map_tensor(int const      num_phys_dims,
     if (!fill)
       restricted[max_dim] = 1;
     ret = map_symtsr(tsr_ndim, tsr_sym_table, tsr_edge_map);
-    if (ret!=DIST_TENSOR_SUCCESS) return ret;
+    if (ret!=CTF_SUCCESS) return ret;
   }
   for (i=0; i<tsr_ndim; i++){
     if (tsr_edge_map[i].type == NOT_MAPPED){
@@ -1125,7 +1125,7 @@ int map_tensor(int const      num_phys_dims,
       tsr_edge_map[i].has_child   = 0;
     }
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -1406,11 +1406,11 @@ int dist_tensor<dtype>::extract_diag(int const    tid,
           CTF_free(*idx_map_new);
         }
         CTF_free(edge_len), CTF_free(sym), CTF_free(ex_idx_map), CTF_free(diag_idx_map);
-        return DIST_TENSOR_SUCCESS;
+        return CTF_SUCCESS;
       }
     }
   }
-  return DIST_TENSOR_NEGATIVE;
+  return CTF_NEGATIVE;
 }
                                     
 

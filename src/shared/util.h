@@ -15,6 +15,7 @@
 #include <complex>
 #include <unistd.h>
 #include <iostream>
+#include "util_ext.h"
 
 typedef int64_t long_int;
 volatile static long_int long_int_max = INT64_MAX;
@@ -355,12 +356,6 @@ struct mem_transfer {
 };
 
 std::list<mem_transfer> CTF_contract_mst();
-int CTF_alloc_ptr(long_int const len, void ** const ptr);
-int CTF_mst_alloc_ptr(long_int const len, void ** const ptr);
-void * CTF_alloc(long_int const len);
-void * CTF_mst_alloc(long_int const len);
-int CTF_free(void * ptr, int const tid);
-int CTF_free(void * ptr);
 int CTF_untag_mem(void * ptr);
 int CTF_free_cond(void * ptr);
 void CTF_mem_create();
@@ -560,26 +555,26 @@ void lda_cpy(const int nrow,  const int ncol,
 
 void sfill(int          el_size, 
            char *       target_start, 
-           char const * target_end, 
+           char *       target_end, 
            char const * value){
   switch (el_size){
     case 4:
       std::fill((float*)target_start, 
-                (float const *)target_end
+                (float*)target_end,
                 ((float*)value)[0]);
       break;
     case 8:
       std::fill((double*)target_start, 
-                (double const *)target_end
+                (double*)target_end,
                 ((double*)value)[0]);
       break;
     case 16:
-      std::fill((std::<complex<double> >*)target_start, 
-                (std::<complex<double> > const *)target_end
-                ((std::<complex<double> >*)value)[0]);
+      std::fill((std::complex<double>*)target_start, 
+                (std::complex<double>*)target_end,
+                ((std::complex<double>*)value)[0]);
       break;
 
-    base:
+    default:
       int64_t n = (target_start-target_end)/el_size;
       for (int i=0; i<n; i++){
         memcpy(target_start+i*el_size,value,el_size);

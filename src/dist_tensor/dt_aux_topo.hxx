@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __DIST_TENSOR_TOPO_HXX__
-#define __DIST_TENSOR_TOPO_HXX__
+#ifndef __CTF_TOPO_HXX__
+#define __CTF_TOPO_HXX__
 
 #include "dist_tensor_internal.h"
 #include "cyclopstf.hpp"

@@ -201,7 +201,7 @@ int tCTF<dtype>::clone_tensor(int const tensor_id,
                               int const copy_data,
                               int *     new_tensor_id){
   dt->clone_tensor(tensor_id, copy_data, new_tensor_id);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
    
 
@@ -232,7 +232,7 @@ int tCTF<dtype>::profile_off(int const tensor_id){
 template<typename dtype>
 int tCTF<dtype>::get_dimension(int const tensor_id, int *ndim) const{
   *ndim = dt->get_dim(tensor_id);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
     
 /* \brief get lengths of a tensor 
@@ -245,7 +245,7 @@ int tCTF<dtype>::get_lengths(int const tensor_id, int **edge_len) const{
   dt->get_tsr_info(tensor_id, &ndim, edge_len, &sym);
   CTF_untag_mem(edge_len);
   CTF_free(sym);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
     
 /* \brief get symmetry of a tensor 
@@ -256,7 +256,7 @@ template<typename dtype>
 int tCTF<dtype>::get_symmetry(int const tensor_id, int **sym) const{
   *sym = dt->get_sym(tensor_id);
   CTF_untag_mem(*sym);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
     
 /* \brief get raw data pointer WARNING: includes padding 
@@ -266,7 +266,7 @@ int tCTF<dtype>::get_symmetry(int const tensor_id, int **sym) const{
 template<typename dtype>
 int tCTF<dtype>::get_raw_data(int const tensor_id, dtype ** data, long_int * size) {
   *data = dt->get_raw_data(tensor_id, size);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -284,7 +284,7 @@ int tCTF<dtype>::info_tensor(int const  tensor_id,
   dt->get_tsr_info(tensor_id, ndim, edge_len, sym);
   CTF_untag_mem(*sym);
   CTF_untag_mem(*edge_len);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -775,7 +775,7 @@ int tCTF<dtype>::dot_tensor(int const tid_A, int const tid_B, dtype *product){
   if (stat == 0){
     /* Align the mappings of A and B */
     stat = dt->map_tensor_pair(tid_A, tid_B);
-    if (stat != DIST_TENSOR_SUCCESS)
+    if (stat != CTF_SUCCESS)
       return stat;
   }
   /* Compute the dot product of A and B */
@@ -919,7 +919,7 @@ int tCTF<dtype>::sum_tensors(dtype const  alpha,
   if (stat == 0){
     /* Align the mappings of A and B */
     stat = dt->map_tensor_pair(tid_A, tid_B);
-    if (stat != DIST_TENSOR_SUCCESS)
+    if (stat != CTF_SUCCESS)
       return stat;
   }
   /* Sum tensors */
@@ -941,10 +941,10 @@ int tCTF<dtype>::align(int const    tid_A,
   if (stat == 0){
     /* Align the mappings of A and B */
     stat = dt->map_tensor_pair(tid_B, tid_A);
-    if (stat != DIST_TENSOR_SUCCESS)
+    if (stat != CTF_SUCCESS)
       return stat;
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -955,7 +955,7 @@ int tCTF<dtype>::print_tensor(FILE * stream, int const tid, double cutoff) {
 template<typename dtype>
 int tCTF<dtype>::compare_tensor(FILE * stream, int const tid_A, int const tid_B, double cutoff) {
   int stat = align(tid_A, tid_B);
-  if (stat != DIST_TENSOR_SUCCESS) return stat;
+  if (stat != CTF_SUCCESS) return stat;
   return dt->compare_tsr(stream, tid_A, tid_B, cutoff);
 }
 
@@ -988,7 +988,7 @@ int tCTF<dtype>::clean_tensors(){
 //    CTF_free((*tensors)[i]);
   }
   tensors->clear();
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -1010,7 +1010,7 @@ int tCTF<dtype>::exit(){
   if (initialized){
     int rank = dt->get_global_comm().rank;
     ret = tCTF<dtype>::clean_tensors();
-    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+    LIBT_ASSERT(ret == CTF_SUCCESS);
     delete dt;
     initialized = 0;
     CTF_mem_exit(rank);
@@ -1025,7 +1025,7 @@ int tCTF<dtype>::exit(){
     }
     return ret;
   } else
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
 }
 
 /* \brief ScaLAPACK back-end, see their DOC */
@@ -1071,7 +1071,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   ret = dt->pgemm(TRANSA, TRANSB, M, N, K, ALPHA, A, IA, JA, DESCA,
                   B, IB, JB, DESCB,
                   BETA, C, IC, JC, DESCC, &ct, &fs, need_free);
-  if (ret != DIST_TENSOR_SUCCESS)
+  if (ret != CTF_SUCCESS)
     return ret;
 
   otid_A = ct.tid_A;
@@ -1079,7 +1079,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   otid_C = ct.tid_C;
 #if (!REDIST)
   ret = dt->try_topo_morph(otid_A, otid_B, otid_C);
-  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  LIBT_ASSERT(ret == CTF_SUCCESS);
 /*  dt->print_map(stdout, otid_A);
   dt->print_map(stdout, otid_B);
   dt->print_map(stdout, otid_C);*/
@@ -1098,7 +1098,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #endif
 
   ret = this->contract(&ct, fs, ALPHA, BETA);
-  if (ret != DIST_TENSOR_SUCCESS)
+  if (ret != CTF_SUCCESS)
     return ret;
 #if (!REDIST)
   if (redist == 0){
@@ -1178,7 +1178,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   CTF_free(ct.idx_map_B);
   CTF_free(ct.idx_map_C);
   CTF_free(need_free);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -1195,7 +1195,7 @@ int tCTF<dtype>::def_scala_mat(int const * DESCA,
                                int * tid){
   int ret, stid;
   ret = dt->load_matrix((dtype*)data, DESCA, &stid, NULL);
-  if (ret != DIST_TENSOR_SUCCESS) return ret;
+  if (ret != CTF_SUCCESS) return ret;
   clone_tensor(stid, 1, tid);
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   tensor<dtype> * stsr = (*tensors)[stid];
@@ -1204,7 +1204,7 @@ int tCTF<dtype>::def_scala_mat(int const * DESCA,
   stsr->is_data_aliased = 1;
   tsr->is_matrix = 1;
   tsr->slay = stid;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -1240,7 +1240,7 @@ int tCTF<dtype>::read_scala_mat(int const tid,
   if (data!=NULL)
     memcpy(data, stsr->data, stsr->size*sizeof(dtype));  
   CTF_free(stsr->data);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 /**
  * \brief CTF interface for pgemm

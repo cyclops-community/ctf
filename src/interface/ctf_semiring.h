@@ -1,11 +1,51 @@
 #ifndef __CTF_SEMIRING_H__
 #define __CTF_SEMIRING_H__
 
+// it seems to not be possible to initialize template argument function pointers
+// to NULL, so defining this dummy_gemm function instead
+template<typename dtype>
+void default_gemm(dtype         tA,
+                  dtype         tB,
+                  int           m,
+                  int           n,
+                  int           k,
+                  dtype         alpha,
+                  dtype const * A,
+                  dtype const * B,
+                  dtype         beta,
+                  dtype *       C){
+  int i,j,l;
+  int istride_A, lstride_A, jstride_B, lstride_B;
+  if (tA == 'N' || tA == 'n'){
+    istride_A=1; 
+    lstride_A=m; 
+  } else {
+    istride_A=k; 
+    lstride_A=1; 
+  }
+  if (tB == 'N' || tB == 'n'){
+    jstride_B=k; 
+    lstride_B=1; 
+  } else {
+    jstride_B=1; 
+    lstride_B=m; 
+  }
+  for (j=0; j<n; j++){
+    for (i=0; i<m; i++){
+      C[j*m+i] *= beta;
+      for (l=0; l<k; l++){
+        C[j*m+i] += A[istride_A*i+lstride_A*l]*B[lstride_B*l+jstride_B*j];
+      }
+    }
+  }
+}
+
+
 /**
  * \brief semirings defined the elementwise operations computed 
  *         in each tensor contraction
  */
-class CTF_Semiring {
+class CTF_Untyped_Semiring {
   public: 
     int el_size;
     char * addid;
@@ -54,7 +94,7 @@ class CTF_Semiring {
      * \brief copy constructor
      * \param[in] other another semiring to copy from
      */
-    CTF_Semiring(CTF_Semiring const &other);
+    CTF_Untyped_Semiring(CTF_Untyped_Semiring const &other);
 
     /**
      * \brief constructor creates semiring with all parameters
@@ -68,7 +108,7 @@ class CTF_Semiring {
      * \param[in] mul function pointer to multiply c=a*b on semiring
      * \param[in] gemm function pointer to multiply blocks C, A, and B on semiring
      */
-    CTF_Semiring(int          el_size, 
+    CTF_Untyped_Semiring(int          el_size, 
                  char const * addid,
                  char const * mulid,
                  MPI_Op       addmop,
@@ -101,7 +141,7 @@ class CTF_Semiring {
     /**
      * \brief destructor frees addid and mulid
      */
-    ~CTF_Semiring();
+    ~CTF_Untyped_Semiring();
 };
 
 template <typename dtype, dtype (*func)(dtype const a, dtype const b)>
@@ -113,8 +153,8 @@ void detypedfunc(char const * a,
 }
 
 template <typename dtype, 
-          dtype (*gemm)(char,char,int,int,int,dtype,
-                        dtype const*,dtype const*,dtype,dtype*)>
+          void (*gemm)(char,char,int,int,int,dtype,
+                       dtype const*,dtype const*,dtype,dtype*)>
 void detypedgemm(char         tA,
                  char         tB,
                  int          m,
@@ -133,19 +173,21 @@ void detypedgemm(char         tA,
            (dtype       *)C);
 }
 
-// it seems to not be possible to initialize template argument function pointers
-// to NULL, so defining this dummy_gemm function instead
-template<typename dtype>
-dtype dummy_gemm(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*){
-  assert(0);
+template <typename dtype>
+dtype default_add(dtype & a, dtype & b){
+  return a+b;
 }
 
+template <typename dtype>
+dtype default_mul(dtype & a, dtype & b){
+  return a*b;
+}
 
-template <typename dtype, 
-          dtype (*fadd)(dtype a, dtype b),
-          dtype (*fmul)(dtype a, dtype b),
-          dtype (*gemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&dummy_gemm<dtype> >
-class tCTF_Semiring {
+template <typename dtype=double, 
+          dtype (*fadd)(dtype a, dtype b)=&default_add<dtype>,
+          dtype (*fmul)(dtype a, dtype b)=&default_mul<dtype>,
+          void (*gemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype> >
+class CTF_Semiring {
   public:
     dtype addid;
     dtype mulid;
@@ -154,7 +196,7 @@ class tCTF_Semiring {
     /**
      * \brief constructor
      */
-    tCTF_Semiring(dtype  addid_,
+    CTF_Semiring(dtype  addid_,
                   dtype  mulid_,
                   MPI_Op addmop_){
       addid = addid_;
@@ -162,9 +204,10 @@ class tCTF_Semiring {
       addmop = addmop_;
     }
 
-    operator CTF_Semiring() {
-      if (gemm == &dummy_gemm<dtype>){
-        CTF_Semiring r(sizeof(dtype), 
+    operator CTF_Untyped_Semiring() {
+      if (gemm == &default_gemm<dtype>){
+        //FIXME: default to sgemm/dgemm/zgemm
+        CTF_Untyped_Semiring r(sizeof(dtype), 
                        (char const *)&addid, 
                        (char const *)&mulid, 
                        addmop, 
@@ -172,7 +215,7 @@ class tCTF_Semiring {
                        &detypedfunc<dtype,fmul>);
         return r;
       } else {
-        CTF_Semiring r(sizeof(dtype), 
+        CTF_Untyped_Semiring r(sizeof(dtype), 
                        (char const *)&addid, 
                        (char const *)&mulid, 
                        addmop, 

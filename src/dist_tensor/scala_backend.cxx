@@ -422,13 +422,13 @@ int dist_tensor<dtype>::load_matrix
     LIBT_ASSERT((int)topovec.size() > itopo);
     tsr->itopo = itopo;
 /*    printf("ERROR: topology not found\n");
-    return DIST_TENSOR_ERROR;*/
+    return CTF_ERROR;*/
   }
 
   (*tid) = tensors.size();
   tensors.push_back(tsr);
   
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -470,11 +470,11 @@ int dist_tensor<dtype>
 
 
   ret = load_matrix(A, DESCA, &tid_A, need_free);
-  if (ret != DIST_TENSOR_SUCCESS) return ret;
+  if (ret != CTF_SUCCESS) return ret;
   ret = load_matrix(B, DESCB, &tid_B, need_free + 1);
-  if (ret != DIST_TENSOR_SUCCESS) return ret;
+  if (ret != CTF_SUCCESS) return ret;
   ret = load_matrix(C, DESCC, &tid_C, need_free + 2);
-  if (ret != DIST_TENSOR_SUCCESS) return ret;
+  if (ret != CTF_SUCCESS) return ret;
 
 
   ct.tid_A = tid_A;
@@ -521,5 +521,5 @@ int dist_tensor<dtype>
   fs.is_offloadable=1;
 #endif
   *pfs = fs;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }

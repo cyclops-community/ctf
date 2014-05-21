@@ -75,11 +75,11 @@ tCTF_ScheduleTimer tCTF_Schedule<dtype>::partition_and_execute() {
   int max_cost = 0;
   // Try to find the longest sequence of tasks that aren't too imbalanced
   for (int starting_task=0; starting_task<ready_tasks.size(); starting_task++) {
-    long_int sum_cost = 0;
-    long_int min_cost = 0;
+    int64_t  sum_cost = 0;
+    int64_t  min_cost = 0;
     int num_tasks = 0;
     for (int i=starting_task; i<ready_tasks.size(); i++) {
-      long_int this_cost = ready_tasks[i]->estimate_cost();
+      int64_t  this_cost = ready_tasks[i]->estimate_cost();
       if (min_cost == 0 || this_cost < min_cost) {
         min_cost = this_cost;
       }
@@ -398,7 +398,7 @@ void tCTF_TensorOperation<dtype>::get_inputs(std::set<tCTF_Tensor<dtype>*, tenso
 }
 
 template<typename dtype>
-long_int tCTF_TensorOperation<dtype>::estimate_cost() {
+int64_t  tCTF_TensorOperation<dtype>::estimate_cost() {
   if (cached_estimated_cost == 0) {
     assert(rhs != NULL);
     assert(lhs != NULL);

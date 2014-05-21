@@ -67,7 +67,7 @@ int dist_tensor<dtype>::dist_cleanup(){
   MPI_Finalized(&is_mpi_dead);
   if (!is_mpi_dead)
     FREE_CDT(global_comm);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -77,7 +77,7 @@ template<typename dtype>
 dist_tensor<dtype>::~dist_tensor(){
   int ret;
   ret = dist_cleanup();
-  LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  LIBT_ASSERT(ret == CTF_SUCCESS);
 }
 
 
@@ -134,7 +134,7 @@ int dist_tensor<dtype>::initialize(CommData_t   cdt_global,
   }*/
   CTF_free(srt_dim_len);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -279,7 +279,7 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
   if (alloc_data)
     return set_zero_tsr(*tensor_id);
   else
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -297,7 +297,7 @@ int dist_tensor<dtype>::set_tsr_data( int const tensor_id,
                                       dtype * tsr_data){
   tensors[tensor_id]->data = tsr_data;
   tensors[tensor_id]->size = num_val;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -325,25 +325,25 @@ int * dist_tensor<dtype>::get_edge_len(int const tensor_id) const {
 template<typename dtype>
 int dist_tensor<dtype>::get_name(int const tensor_id, char const ** name){
   *name = tensors[tensor_id]->name;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
  
 template<typename dtype>
 int dist_tensor<dtype>::set_name(int const tensor_id, char const * name){
   tensors[tensor_id]->name = name;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
 int dist_tensor<dtype>::profile_on(int const tensor_id){
   tensors[tensor_id]->profile = 1;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
 int dist_tensor<dtype>::profile_off(int const tensor_id){
   tensors[tensor_id]->profile = 0;
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -400,7 +400,7 @@ int dist_tensor<dtype>::get_tsr_info( int const         tensor_id,
   *edge_len = el;
   *sym = s;
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -424,7 +424,7 @@ int dist_tensor<dtype>::clone_tensor( int const tensor_id,
   if (copy_data){
     return cpy_tsr(tensor_id, *new_tensor_id);
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -544,7 +544,7 @@ int dist_tensor<dtype>::cpy_tsr(int const tid_A, int const tid_B){
     copy_mapping(tsr_A->ndim, tsr_A->edge_map, tsr_B->edge_map);
   tsr_B->size = tsr_A->size;
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
     
 
@@ -763,7 +763,7 @@ int dist_tensor<dtype>::add_to_subworld(int                 tid,
 #endif
   CTF_free(lens);
   CTF_free(sym);
-  return DIST_TENSOR_SUCCESS; 
+  return CTF_SUCCESS; 
 }
 
 template<typename dtype>
@@ -804,7 +804,7 @@ int dist_tensor<dtype>::add_from_subworld(int                 tid,
 #endif
   CTF_free(lens);
   CTF_free(sym);
-  return DIST_TENSOR_SUCCESS; 
+  return CTF_SUCCESS; 
 }
     
 
@@ -1037,7 +1037,7 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
 
   tsr = tensors[tensor_id];
   
-  if (tsr->has_zero_edge_len) return DIST_TENSOR_SUCCESS;
+  if (tsr->has_zero_edge_len) return CTF_SUCCESS;
   TAU_FSTART(write_pairs);
   unmap_inner(tsr);
   set_padding(tsr);
@@ -1088,10 +1088,10 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
   } else {
     DEBUG_PRINTF("SHOULD NOT BE HERE, ALWAYS MAP ME\n");
     TAU_FSTOP(write_pairs);
-    return DIST_TENSOR_ERROR;
+    return CTF_ERROR;
   }
   TAU_FSTOP(write_pairs);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -1116,7 +1116,7 @@ int dist_tensor<dtype>::read_local_pairs(int                tensor_id,
   tsr = tensors[tensor_id];
   if (tsr->has_zero_edge_len){
     *num_pair = 0;
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   unmap_inner(tsr);
   set_padding(tsr);
@@ -1125,7 +1125,7 @@ int dist_tensor<dtype>::read_local_pairs(int                tensor_id,
   if (!tsr->is_mapped){
     *num_pair = tsr->size;
     *mapped_data = tsr->pairs;
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   } else {
     np = tsr->size;
 
@@ -1166,10 +1166,10 @@ int dist_tensor<dtype>::read_local_pairs(int                tensor_id,
     CTF_free((void*)virt_phys_rank);
 
     TAU_FSTOP(read_local_pairs);
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   TAU_FSTOP(read_local_pairs);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -1196,7 +1196,7 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   numPes = global_comm.np;
   if (tensors[tid]->has_zero_edge_len){
     *num_val = 0;
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
 
   CTF_alloc_ptr(numPes*sizeof(int), (void**)&nXs);
@@ -1232,7 +1232,7 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   CTF_free(pXs);
   CTF_free(all_pairs);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -1240,7 +1240,7 @@ int dist_tensor<dtype>::get_max_abs(int const  tid,
                                     int const  n,
                                     dtype *    data){
   printf("CTF: Currently unable to get largest values of non-double type array, exiting.\n");
-  return DIST_TENSOR_ERROR;
+  return CTF_ERROR;
 }
 
 /**
@@ -1303,7 +1303,7 @@ int dist_tensor<double>::get_max_abs(int const  tid,
   MPI_Bcast(data, n*sizeof(double), MPI_CHAR, 0, global_comm.cm);
   CTF_free(merge_data);
   CTF_free(recv_data);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 
@@ -1343,7 +1343,7 @@ int dist_tensor<dtype>::del_tsr(int const tid){
     tensors[tid] = NULL;
   }
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /* WARNING: not a standard spec function, know what you are doing */
@@ -1466,7 +1466,7 @@ int dist_tensor<dtype>::elementalize(int const      tid,
   CTF_free((void*)new_edge_len);
   CTF_free((void*)shuffled_data);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /* \brief set the tensor to zero, called internally for each defined tensor
@@ -1501,10 +1501,10 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
                                  tsr->sym_table, restricted,
                                  topovec[i].dim_comm, NULL, 0,
                                  tsr->edge_map);
-        if (map_success == DIST_TENSOR_ERROR) {
+        if (map_success == CTF_ERROR) {
           LIBT_ASSERT(0);
-          return DIST_TENSOR_ERROR;
-        } else if (map_success == DIST_TENSOR_SUCCESS){
+          return CTF_ERROR;
+        } else if (map_success == CTF_SUCCESS){
           tsr->itopo = i;
           set_padding(tsr);
           memuse = (uint64_t)tsr->size;
@@ -1535,7 +1535,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
       if (btopo == -1 || btopo == INT_MAX) {
         if (global_comm.rank==0)
           printf("ERROR: FAILED TO MAP TENSOR\n");
-        return DIST_TENSOR_ERROR;
+        return CTF_ERROR;
       }
 
       memset(restricted, 0, tsr->ndim*sizeof(int));
@@ -1545,7 +1545,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
                                tsr->edge_len, tsr->sym_table, restricted,
                                topovec[btopo].dim_comm, NULL, 0,
                                tsr->edge_map);
-      LIBT_ASSERT(map_success == DIST_TENSOR_SUCCESS);
+      LIBT_ASSERT(map_success == CTF_SUCCESS);
 
       tsr->itopo = btopo;
 
@@ -1638,7 +1638,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
       CTF_free(sub_edge_len);*/
     }
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 /*
  * \brief print tensor tid to stream
@@ -1717,7 +1717,7 @@ int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid, double cutoff) {
     CTF_free(all_data);
   }
   //COMM_BARRIER(global_comm);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 /*
  * \brief print tensors tid_A and tid_A side-by-side to stream
@@ -1809,7 +1809,7 @@ int dist_tensor<dtype>::compare_tsr(FILE * stream, int const tid_A, int const ti
     CTF_free(all_data_B);
   }
   //COMM_BARRIER(global_comm);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /*
@@ -1873,7 +1873,7 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
     COMM_BARRIER(global_comm);
 #endif
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 
 }
 
@@ -1893,13 +1893,13 @@ int dist_tensor<dtype>::zero_out_padding(int const tensor_id){
 
   tsr = tensors[tensor_id];
   if (tsr->has_zero_edge_len){
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   }
   unmap_inner(tsr);
   set_padding(tsr);
 
   if (!tsr->is_mapped){
-    return DIST_TENSOR_SUCCESS;
+    return CTF_SUCCESS;
   } else {
     np = tsr->size;
 
@@ -1936,7 +1936,7 @@ int dist_tensor<dtype>::zero_out_padding(int const tensor_id){
   }
   TAU_FSTOP(zero_out_padding);
 
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -2008,7 +2008,7 @@ int dist_tensor<dtype>::print_ctr(CTF_ctr_type_t const * ctype,
     CTF_free(sym_B);
     CTF_free(sym_C);
   }
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -2064,7 +2064,7 @@ int dist_tensor<dtype>::print_sum(CTF_sum_type_t const * stype,
     CTF_free(sym_B);
   }
   COMM_BARRIER(global_comm);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -2138,7 +2138,7 @@ int dist_tensor<dtype>::check_contraction(CTF_ctr_type_t const * type){
   CTF_free(sym_B);
   CTF_free(sym_C);
   CTF_free(idx_arr);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 /**
@@ -2204,7 +2204,7 @@ int dist_tensor<dtype>::check_sum(int const   tid_A,
   CTF_free(len_A);
   CTF_free(len_B);
   CTF_free(idx_arr);
-  return DIST_TENSOR_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>

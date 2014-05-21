@@ -1,12 +1,14 @@
 #ifndef __CTF_WORLD_H__
 #define __CTF_WORLD_H__
 
+#include <mpi.h>
+
 /**
  * \defgroup CTF CTF: C++ World interface
  * @{
  */
 
-class CTF;
+//class CTF;
 
 /**
  * \brief an instance of the CTF library (world) on a MPI communicator
@@ -14,7 +16,7 @@ class CTF;
 class CTF_World {
   public:
     MPI_Comm comm;
-    CTF * ctf;
+  //  CTF * ctf;
 
   public:
     /**

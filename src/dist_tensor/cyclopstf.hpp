@@ -10,7 +10,7 @@
 
 /* READ ME!
  * ALL BELOW FUNCTIONS MUST BE CALLED BY ALL MEMBERS OF MPI_COMM_WORLD
- * all functions return DIST_TENSOR_SUCCESS if successfully compeleted
+ * all functions return CTF_SUCCESS if successfully compeleted
  *
  * Usage:
  * call init_dist_tensor_lib() to initialize library
@@ -24,13 +24,6 @@
  * \addtogroup CTF CTF: main C++ interface
  * @{
  */
-
-/**
- * \brief reduction types for tensor data
- */
-enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS,
-              CTF_OP_NORM1, CTF_OP_NORM2, CTF_OP_NORM_INFTY,
-              CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS};
 /**
  * labels corresponding to symmetry of each tensor dimension
  * NS = 0 - nonsymmetric
@@ -38,16 +31,16 @@ enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS,
  * AS = 2 - antisymmetric
  * SH = 3 - symmetric hollow
  */
-#if (!defined NS && !defined SY && !defined SH)
-#define NS 0
-#define SY 1
-#define AS 2
-#define SH 3
-#endif
-typedef int64_t long_int;
-typedef long_int key;
-
-static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
+//#if (!defined NS && !defined SY && !defined SH)
+//#define NS 0
+//#define SY 1
+//#define AS 2
+//#define SH 3
+//#endif
+//typedef int64_t long_int;
+//typedef long_int key;
+//
+//static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 /**
  * @}
  */
@@ -84,7 +77,7 @@ typedef struct CTF_sum_type {
   int * idx_map_B; /* map indices of tensor B to sum */
 } CTF_sum_type_t;
 
-enum { DIST_TENSOR_SUCCESS, DIST_TENSOR_ERROR, DIST_TENSOR_NEGATIVE };
+enum { CTF_SUCCESS, CTF_ERROR, CTF_NEGATIVE };
 
 enum CTF_MACHINE { MACHINE_GENERIC, MACHINE_BGP, MACHINE_BGQ,
                    MACHINE_8D, NO_TOPOLOGY };
