@@ -1,5 +1,5 @@
-#ifndef __CTF_TIMER_H__
-#define __CTF_TIMER_H__
+#ifndef __TIMER_H__
+#define __TIMER_H__
 
 
 /**
@@ -9,7 +9,7 @@
 
 #define MAX_NAME_LENGTH 53
     
-class CTF_Function_timer{
+class Function_timer{
   public:
     char name[MAX_NAME_LENGTH];
     double start_time;
@@ -23,11 +23,11 @@ class CTF_Function_timer{
     int total_calls;
 
   public: 
-    CTF_Function_timer(char const * name_, 
+    Function_timer(char const * name_, 
                    double const start_time_,
                    double const start_excl_time_);
     void compute_totals(MPI_Comm comm);
-    bool operator<(CTF_Function_timer const & w) const ;
+    bool operator<(Function_timer const & w) const ;
     void print(FILE *         output, 
                MPI_Comm const comm, 
                int const      rank,
@@ -38,7 +38,7 @@ class CTF_Function_timer{
 /**
  * \brief local process walltime measurement
  */
-class CTF_Timer{
+class Timer{
   public:
     char const * timer_name;
     int index;
@@ -46,8 +46,8 @@ class CTF_Timer{
     int original;
   
   public:
-    CTF_Timer(char const * name);
-    ~CTF_Timer();
+    Timer(char const * name);
+    ~Timer();
     void stop();
     void start();
     void exit();
@@ -57,17 +57,17 @@ class CTF_Timer{
 /**
  * \brief epoch during which to measure timers
  */
-class CTF_Timer_epoch{
+class Timer_epoch{
   private:
-    CTF_Timer * tmr_inner;
-    CTF_Timer * tmr_outer;
-    std::vector<CTF_Function_timer> saved_function_timers;
+    Timer * tmr_inner;
+    Timer * tmr_outer;
+    std::vector<Function_timer> saved_function_timers;
     double save_excl_time;
     double save_complete_time; 
   public:
     char const * name;
     //create epoch called name
-    CTF_Timer_epoch(char const * name_);
+    Timer_epoch(char const * name_);
     
     //clears timers and begins epoch
     void begin();
@@ -84,7 +84,7 @@ class CTF_Timer_epoch{
 /**
  * \brief measures flops done in a code region
  */
-class CTF_Flop_Counter{
+class Flop_Counter{
   public:
     int64_t  start_count;
 
@@ -92,8 +92,8 @@ class CTF_Flop_Counter{
     /**
      * \brief constructor, starts counter
      */
-    CTF_Flop_Counter();
-    ~CTF_Flop_Counter();
+    Flop_Counter();
+    ~Flop_Counter();
 
     /**
      * \brief restarts counter

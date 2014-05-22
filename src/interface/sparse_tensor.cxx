@@ -11,7 +11,7 @@
 #include "../../include/ctf.hpp"
 
 template<typename dtype>
-tCTF_Sparse_Tensor<dtype>::tCTF_Sparse_Tensor(){
+Sparse_Tensor<dtype>::Sparse_Tensor(){
   parent = NULL;
   scale = 1.0;
 }
@@ -22,8 +22,8 @@ tCTF_Sparse_Tensor<dtype>::tCTF_Sparse_Tensor(){
  * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
  */
 template<typename dtype>
-tCTF_Sparse_Tensor<dtype>::tCTF_Sparse_Tensor(std::vector<int64_t> indices_,
-                                              tCTF_Tensor<dtype> * parent_){
+Sparse_Tensor<dtype>::Sparse_Tensor(std::vector<int64_t> indices_,
+                                    Tensor<dtype> *      parent_){
   parent        = parent_;
   indices       = indices_;
   scale         = 1.0;
@@ -36,9 +36,9 @@ tCTF_Sparse_Tensor<dtype>::tCTF_Sparse_Tensor(std::vector<int64_t> indices_,
  * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
  */
 template<typename dtype>
-tCTF_Sparse_Tensor<dtype>::tCTF_Sparse_Tensor(int64_t              n,
-                                              int64_t *            indices_,
-                                              tCTF_Tensor<dtype> * parent_){
+Sparse_Tensor<dtype>::Sparse_Tensor(int64_t              n,
+                                    int64_t *            indices_,
+                                    Tensor<dtype> *      parent_){
   parent        = parent_;
   indices       = std::vector<int64_t>(indices_,indices_+n);
   scale         = 1.0;
@@ -52,7 +52,7 @@ tCTF_Sparse_Tensor<dtype>::tCTF_Sparse_Tensor(int64_t              n,
  * \param[in] beta scaling factor to apply to previously existing data
  */
 template<typename dtype>
-void tCTF_Sparse_Tensor<dtype>::write(dtype    alpha, 
+void Sparse_Tensor<dtype>::write(dtype    alpha, 
                                       dtype *  values,
                                       dtype    beta){
   parent->write(indices.size(),alpha,beta,&indices[0],&values[0]);
@@ -60,29 +60,29 @@ void tCTF_Sparse_Tensor<dtype>::write(dtype    alpha,
 
 // C++ overload special-cases of above method
 template<typename dtype>
-void tCTF_Sparse_Tensor<dtype>::operator=(std::vector<dtype> values){
+void Sparse_Tensor<dtype>::operator=(std::vector<dtype> values){
   write(get_one<dtype>(), &values[0], get_zero<dtype>());
 }
 template<typename dtype>
-void tCTF_Sparse_Tensor<dtype>::operator=(dtype* values){
+void Sparse_Tensor<dtype>::operator=(dtype* values){
   write(get_one<dtype>(), values, get_zero<dtype>());
 }
 
 template<typename dtype>
-void tCTF_Sparse_Tensor<dtype>::operator+=(std::vector<dtype> values){
+void Sparse_Tensor<dtype>::operator+=(std::vector<dtype> values){
   write(get_one<dtype>(), &values[0], get_one<dtype>());
 }
 template<typename dtype>
-void tCTF_Sparse_Tensor<dtype>::operator+=(dtype* values){
+void Sparse_Tensor<dtype>::operator+=(dtype* values){
   write(get_one<dtype>(), values, get_one<dtype>());
 }
 
 template<typename dtype>
-void tCTF_Sparse_Tensor<dtype>::operator-=(std::vector<dtype> values){
+void Sparse_Tensor<dtype>::operator-=(std::vector<dtype> values){
   write(-get_one<dtype>(), &values[0], get_one<dtype>());
 }
 template<typename dtype>
-void tCTF_Sparse_Tensor<dtype>::operator-=(dtype* values){
+void Sparse_Tensor<dtype>::operator-=(dtype* values){
   write(-get_one<dtype>(), values, get_one<dtype>());
 }
 
@@ -95,27 +95,22 @@ void tCTF_Sparse_Tensor<dtype>::operator-=(dtype* values){
  * \param[in] beta scaling factor to apply to previously existing data in values
  */
 template<typename dtype>
-void tCTF_Sparse_Tensor<dtype>::read(dtype   alpha, 
-                                     dtype * values,
-                                     dtype   beta){
+void Sparse_Tensor<dtype>::read(dtype   alpha, 
+                                dtype * values,
+                                dtype   beta){
   parent->read(indices.size(),alpha,beta,&indices[0],values);
 }
 template<typename dtype>
-tCTF_Sparse_Tensor<dtype>::operator std::vector<dtype>(){
+Sparse_Tensor<dtype>::operator std::vector<dtype>(){
   std::vector<dtype> values(indices.size());
   read(1.0, &values[0], 0.0);
   return values;
 }
 
 template<typename dtype>
-tCTF_Sparse_Tensor<dtype>::operator dtype*(){
+Sparse_Tensor<dtype>::operator dtype*(){
   dtype * values = (dtype*)malloc(sizeof(dtype)*indices.size());
   read(1.0, values, 0.0);
   return values;
 }
 
-
-template class tCTF_Sparse_Tensor<double>;
-#ifdef CTF_COMPLEX
-template class tCTF_Sparse_Tensor< std::complex<double> >;
-#endif

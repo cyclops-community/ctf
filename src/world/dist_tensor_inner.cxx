@@ -1,6 +1,5 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#define MAX_GROWTH 8
 
 /**
  * \brief undo the inner blocking of a tensor

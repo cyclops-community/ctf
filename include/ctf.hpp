@@ -12,13 +12,17 @@
 
 #define CTF_VERSION 110
 
-#include "../src/interface/ctf_world.h"
-#include "../src/interface/ctf_semiring.h"
-#include "../src/interface/ctf_tensor.h"
-#include "../src/interface/ctf_expression.h"
-#include "../src/interface/ctf_schedule.h"
-#include "../src/interface/ctf_timer.h"
-#include "../src/interface/ctf_functions.h"
+namespace CTF {
+
+#include "../src/interface/world.h"
+#include "../src/interface/semiring.h"
+#include "../src/interface/tensor.h"
+#include "../src/interface/expression.h"
+#include "../src/interface/schedule.h"
+#include "../src/interface/timer.h"
+#include "../src/interface/functions.h"
+
+}
 
 #endif
 

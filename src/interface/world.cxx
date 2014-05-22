@@ -13,7 +13,7 @@
 #include "../shared/util.h"
 
 template<typename dtype>
-tCTF_World<dtype>::tCTF_World(int const      argc,
+tWorld<dtype>::tWorld(int const      argc,
                               char * const * argv){
   int rank, np;
   comm = MPI_COMM_WORLD;
@@ -33,7 +33,7 @@ tCTF_World<dtype>::tCTF_World(int const      argc,
 
 
 template<typename dtype>
-tCTF_World<dtype>::tCTF_World(MPI_Comm       comm_,
+tWorld<dtype>::tWorld(MPI_Comm       comm_,
                               int const      argc,
                               char * const * argv){
   int rank, np;
@@ -54,7 +54,7 @@ tCTF_World<dtype>::tCTF_World(MPI_Comm       comm_,
 
 
 template<typename dtype>
-tCTF_World<dtype>::tCTF_World(int const       ndim, 
+tWorld<dtype>::tWorld(int const       ndim, 
                               int const *     lens, 
                               MPI_Comm        comm_,
                               int const       argc,
@@ -68,12 +68,12 @@ tCTF_World<dtype>::tCTF_World(int const       ndim,
 }
 
 template<typename dtype>
-tCTF_World<dtype>::~tCTF_World(){
+tWorld<dtype>::~tWorld(){
   delete ctf;
 }
 
 
-template class tCTF_World<double>;
-#ifdef CTF_COMPLEX
-template class tCTF_World< std::complex<double> >;
+template class tWorld<double>;
+#ifdef COMPLEX
+template class tWorld< std::complex<double> >;
 #endif

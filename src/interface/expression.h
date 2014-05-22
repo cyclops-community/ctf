@@ -1,7 +1,7 @@
-#ifndef __CTF_EXPRESSION_H__
-#define __CTF_EXPRESSION_H__
+#ifndef __EXPRESSION_H__
+#define __EXPRESSION_H__
 
-#include "ctf_tensor.h"
+#include "tensor.h"
 #include <map>
 #include <set>
 
@@ -10,9 +10,9 @@
  * @{
  */
 
-template <typename dtype> class CTF_Term;
-template <typename dtype> class CTF_Sum_Term;
-template <typename dtype> class CTF_Contract_Term;
+template <typename dtype> class Term;
+template <typename dtype> class Sum_Term;
+template <typename dtype> class Contract_Term;
 
 /**
  * \brief comparison function for sets of tensor pointers
@@ -20,7 +20,7 @@ template <typename dtype> class CTF_Contract_Term;
  */
 template<typename dtype>
 struct tensor_tid_less {
-  bool operator()(CTF_Tensor<dtype>* A, CTF_Tensor<dtype>* B) {
+  bool operator()(Tensor<dtype>* A, Tensor<dtype>* B) {
     if (A == NULL && B != NULL) {
       return true;
     } else if (A == NULL || B == NULL) {
@@ -35,9 +35,9 @@ struct tensor_tid_less {
  * \brief a tensor with an index map associated with it (necessary for overloaded operators)
  */
 template<typename dtype=double>
-class CTF_Idx_Tensor : public CTF_Term<dtype> {
+class Idx_Tensor : public Term<dtype> {
   public:
-    CTF_Tensor<dtype> * parent;
+    Tensor<dtype> * parent;
     char * idx_map;
     int is_intm;
 
@@ -45,7 +45,7 @@ class CTF_Idx_Tensor : public CTF_Term<dtype> {
 
   
     // dervied clone calls copy constructor
-    CTF_Term<dtype> * clone(std::map< CTF_Tensor<dtype>*, CTF_Tensor<dtype>* >* remap = NULL) const;
+    Term<dtype> * clone(std::map< Tensor<dtype>*, Tensor<dtype>* >* remap = NULL) const;
 
     /**
      * \brief constructor takes in a parent tensor and its indices 
@@ -53,100 +53,100 @@ class CTF_Idx_Tensor : public CTF_Term<dtype> {
      * \param[in] idx_map_ the indices assigned ot this tensor
      * \param[in] copy if set to 1, create copy of parent
      */
-    CTF_Idx_Tensor(CTF_Tensor<dtype>* parent_, 
-                   const char *       idx_map_,
-                   int                copy = 0);
+    Idx_Tensor(Tensor<dtype> * parent_, 
+               const char *    idx_map_,
+               int             copy = 0);
     
     /**
      * \brief copy constructor
      * \param[in] B tensor to copy
      * \param[in] copy if 1 then copy the parent tensor of B into a new tensor
      */
-    CTF_Idx_Tensor(CTF_Idx_Tensor<dtype> const & B,
+    Idx_Tensor(Idx_Tensor<dtype> const & B,
                    int copy = 0,
-                   std::map<CTF_Tensor<dtype>*, CTF_Tensor<dtype>*>* remap = NULL);
+                   std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL);
 
-    CTF_Idx_Tensor();
+    Idx_Tensor();
     
-    CTF_Idx_Tensor(dtype val);
+    Idx_Tensor(dtype val);
     
-    ~CTF_Idx_Tensor();
+    ~Idx_Tensor();
     
     /**
      * \brief evalues the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
      */
-    CTF_Idx_Tensor<dtype> execute() const;
+    Idx_Tensor<dtype> execute() const;
     
     /**
      * \brief evalues the expression, which just scales by default
      * \param[in,out] output tensor to write results into and its indices
      */
-    void execute(CTF_Idx_Tensor<dtype> output) const;
+    void execute(Idx_Tensor<dtype> output) const;
     
     /**
      * \brief estimates the cost of a contraction
      * \param[in] output tensor to write results into and its indices
      */
-    int64_t  estimate_cost(CTF_Idx_Tensor<dtype> output) const;
+    int64_t estimate_cost(Idx_Tensor<dtype> output) const;
     
     /**
      * \brief estimates the cost the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
      */
-    CTF_Idx_Tensor<dtype> estimate_cost(int64_t  & cost) const;
+    Idx_Tensor<dtype> estimate_cost(int64_t  & cost) const;
     
     /**
     * \brief appends the tensors this depends on to the input set
     */
-    void get_inputs(std::set< CTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
+    void get_inputs(std::set< Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
 
     /**
      * \brief A = B, compute any operations on operand B and set
      * \param[in] B tensor on the right hand side
      */
-    void operator=(CTF_Term<dtype> const & B);
-    void operator=(CTF_Idx_Tensor<dtype> const & B);
+    void operator=(Term<dtype> const & B);
+    void operator=(Idx_Tensor<dtype> const & B);
 
     /**
      * \brief A += B, compute any operations on operand B and add
      * \param[in] B tensor on the right hand side
      */
-    void operator+=(CTF_Term<dtype> const & B);
+    void operator+=(Term<dtype> const & B);
     
     /**
      * \brief A += B, compute any operations on operand B and add
      * \param[in] B tensor on the right hand side
      */
-    void operator-=(CTF_Term<dtype> const & B);
+    void operator-=(Term<dtype> const & B);
     
     /**
      * \brief A -> A*B contract two tensors
      * \param[in] B tensor on the right hand side
      */
-    void operator*=(CTF_Term<dtype> const & B);
+    void operator*=(Term<dtype> const & B);
 
     /**
      * \brief TODO A -> A * B^-1
      * \param[in] B
      */
-    //void operator/(CTF_IdxTensor& tsr);
+    //void operator/(IdxTensor& tsr);
     
     /**
      * \brief execute ips into output with scale beta
      */    
-    //void run(CTF_Idx_Tensor<dtype>* output, dtype  beta);
+    //void run(Idx_Tensor<dtype>* output, dtype  beta);
 
-    /*operator CTF_Term<dtype>* (){
-      CTF_Idx_Tensor * tsr = new CTF_Idx_Tensor(*this);
+    /*operator Term<dtype>* (){
+      Idx_Tensor * tsr = new Idx_Tensor(*this);
       return tsr;
     }*/
     /**
      * \brief figures out what world this term lives on
      */
-    CTF_World * where_am_i() const;
+    World * where_am_i() const;
 };
 
 
@@ -154,29 +154,29 @@ class CTF_Idx_Tensor : public CTF_Term<dtype> {
  * \brief a term is an abstract object representing some expression of tensors
  */
 template<typename dtype=double>
-class CTF_Term {
+class Term {
   public:
     dtype scale;
    
-    CTF_Term();
-    virtual ~CTF_Term(){};
+    Term();
+    virtual ~Term(){};
 
     /**
      * \brief base classes must implement this copy function to retrieve pointer
      */ 
-    virtual CTF_Term * clone(std::map<CTF_Tensor<dtype>*, CTF_Tensor<dtype>*>* remap = NULL) const = 0;
+    virtual Term * clone(std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL) const = 0;
     
     /**
      * \brief evalues the expression, which just scales by default
      * \param[in,out] output tensor to write results into and its indices
      */
-    virtual void execute(CTF_Idx_Tensor<dtype> output) const = 0;
+    virtual void execute(Idx_Tensor<dtype> output) const = 0;
     
     /**
      * \brief estimates the cost of a contraction/sum/.. term
      * \param[in] output tensor to write results into and its indices
      */
-    virtual int64_t  estimate_cost(CTF_Idx_Tensor<dtype> output) const = 0;
+    virtual int64_t  estimate_cost(Idx_Tensor<dtype> output) const = 0;
     
     /**
      * \brief estimates the cost the expression to produce an intermediate with 
@@ -184,7 +184,7 @@ class CTF_Term {
      * \param\[in,out] cost the cost of the operatiob
      * \return output tensor to write results into and its indices
      */
-    virtual CTF_Idx_Tensor<dtype> estimate_cost(int64_t  & cost) const = 0;
+    virtual Idx_Tensor<dtype> estimate_cost(int64_t  & cost) const = 0;
     
     
     /**
@@ -192,51 +192,51 @@ class CTF_Term {
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
      */
-    virtual CTF_Idx_Tensor<dtype> execute() const = 0;
+    virtual Idx_Tensor<dtype> execute() const = 0;
     
     /**
     * \brief appends the tensors this depends on to the input set
     */
-    virtual void get_inputs(std::set<CTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const = 0;
+    virtual void get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const = 0;
 
     /**
      * \brief constructs a new term which multiplies by tensor A
      * \param[in] A term to multiply by
      */
-    CTF_Contract_Term<dtype> operator*(CTF_Term<dtype> const & A) const;
+    Contract_Term<dtype> operator*(Term<dtype> const & A) const;
     
     /**
      * \brief constructs a new term by addition of two terms
      * \param[in] A term to add to output
      */
-    CTF_Sum_Term<dtype> operator+(CTF_Term<dtype> const & A) const;
+    Sum_Term<dtype> operator+(Term<dtype> const & A) const;
     
     /**
      * \brief constructs a new term by subtracting term A
      * \param[in] A subtracted term
      */
-    CTF_Sum_Term<dtype> operator-(CTF_Term<dtype> const & A) const;
+    Sum_Term<dtype> operator-(Term<dtype> const & A) const;
     
     /**
      * \brief A = B, compute any operations on operand B and set
      * \param[in] B tensor on the right hand side
      */
-    void operator=(CTF_Term<dtype> const & B) { execute() = B; };
-    void operator=(CTF_Idx_Tensor<dtype> const & B) { execute() = B; };
-    void operator+=(CTF_Term<dtype> const & B) { execute() += B; };
-    void operator-=(CTF_Term<dtype> const & B) { execute() -= B; };
-    void operator*=(CTF_Term<dtype> const & B) { execute() *= B; };
+    void operator=(Term<dtype> const & B) { execute() = B; };
+    void operator=(Idx_Tensor<dtype> const & B) { execute() = B; };
+    void operator+=(Term<dtype> const & B) { execute() += B; };
+    void operator-=(Term<dtype> const & B) { execute() -= B; };
+    void operator*=(Term<dtype> const & B) { execute() *= B; };
 
     /**
      * \brief multiples by a constant
      * \param[in] scl scaling factor to multiply term by
      */
-    CTF_Contract_Term<dtype> operator*(dtype scl) const;
+    Contract_Term<dtype> operator*(dtype scl) const;
 
     /**
      * \brief figures out what world this term lives on
      */
-    virtual CTF_World * where_am_i() const = 0;
+    virtual World * where_am_i() const = 0;
 
     /**
      * \brief casts into a double if dimension of evaluated expression is 0
@@ -245,83 +245,80 @@ class CTF_Term {
 };
 
 template<typename dtype=double>
-class CTF_Sum_Term : public CTF_Term<dtype> {
+class Sum_Term : public Term<dtype> {
   public:
-    std::vector< CTF_Term<dtype>* > operands;
+    std::vector< Term<dtype>* > operands;
 
     // default constructor
-    CTF_Sum_Term() : CTF_Term<dtype>() {}
+    Sum_Term() : Term<dtype>() {}
 
     // destructor frees operands
-    ~CTF_Sum_Term();
+    ~Sum_Term();
   
     // copy constructor
-    CTF_Sum_Term(CTF_Sum_Term<dtype> const & other,
-        std::map<CTF_Tensor<dtype>*, CTF_Tensor<dtype>*>* remap = NULL);
+    Sum_Term(Sum_Term<dtype> const & other,
+        std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL);
 
     // dervied clone calls copy constructor
-    CTF_Term<dtype>* clone(std::map<CTF_Tensor<dtype>*, CTF_Tensor<dtype>*>* remap = NULL) const;
+    Term<dtype>* clone(std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL) const;
 
     /**
      * construct sum term corresponding to a single tensor
      * \param[in] output tensor to write results into and its indices
      */ 
-    //CTF_Sum_Term<dtype>(CTF_Idx_Tensor<dtype> const & tsr);
+    //Sum_Term<dtype>(Idx_Tensor<dtype> const & tsr);
 
     /**
      * \brief evalues the expression by summing operands into output
      * \param[in,out] output tensor to write results into and its indices
      */
-    void execute(CTF_Idx_Tensor<dtype> output) const;
-
+    void execute(Idx_Tensor<dtype> output) const;
   
     /**
      * \brief evalues the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
      */
-    CTF_Idx_Tensor<dtype> execute() const;
+    Idx_Tensor<dtype> execute() const;
     
     /**
      * \brief estimates the cost of a sum term
      * \param[in] output tensor to write results into and its indices
      */
-    int64_t  estimate_cost(CTF_Idx_Tensor<dtype> output) const;
+    int64_t  estimate_cost(Idx_Tensor<dtype> output) const;
     
     /**
      * \brief estimates the cost the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
      */
-    CTF_Idx_Tensor<dtype> estimate_cost(int64_t  & cost) const;
-    
-    
+    Idx_Tensor<dtype> estimate_cost(int64_t  & cost) const;
     
     /**
     * \brief appends the tensors this depends on to the input set
     */
-    void get_inputs(std::set<CTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
+    void get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
 
     /**
      * \brief constructs a new term by addition of two terms
      * \param[in] A term to add to output
      */
-    CTF_Sum_Term<dtype> operator+(CTF_Term<dtype> const & A) const;
+    Sum_Term<dtype> operator+(Term<dtype> const & A) const;
     
     /**
      * \brief constructs a new term by subtracting term A
      * \param[in] A subtracted term
      */
-    CTF_Sum_Term<dtype> operator-(CTF_Term<dtype> const & A) const;
+    Sum_Term<dtype> operator-(Term<dtype> const & A) const;
 
     /**
      * \brief figures out what world this term lives on
      */
-    CTF_World * where_am_i() const;
+    World * where_am_i() const;
 };
 
 template<typename dtype> static
-CTF_Contract_Term<dtype> operator*(double d, CTF_Term<dtype> const & tsr){
+Contract_Term<dtype> operator*(double d, Term<dtype> const & tsr){
   return (tsr*d);
 }
 
@@ -329,71 +326,71 @@ CTF_Contract_Term<dtype> operator*(double d, CTF_Term<dtype> const & tsr){
  * \brief An experession representing a contraction of a set of tensors contained in operands 
  */
 template<typename dtype=double>
-class CTF_Contract_Term : public CTF_Term<dtype> {
+class Contract_Term : public Term<dtype> {
   public:
-    std::vector< CTF_Term<dtype>* > operands;
+    std::vector< Term<dtype>* > operands;
 
     // \brief default constructor
-    CTF_Contract_Term() : CTF_Term<dtype>() {}
+    Contract_Term() : Term<dtype>() {}
 
     // \brief destructor frees operands
-    ~CTF_Contract_Term();
+    ~Contract_Term();
   
     // \brief copy constructor
-    CTF_Contract_Term(CTF_Contract_Term<dtype> const & other,
-        std::map<CTF_Tensor<dtype>*, CTF_Tensor<dtype>*>* remap = NULL);
+    Contract_Term(Contract_Term<dtype> const & other,
+        std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL);
 
     // \brief dervied clone calls copy constructor
-    CTF_Term<dtype> * clone(std::map<CTF_Tensor<dtype>*, CTF_Tensor<dtype>*>* remap = NULL) const;
+    Term<dtype> * clone(std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL) const;
 
     /**
      * \brief override execution to  to contract operands and add them to output
      * \param[in,out] output tensor to write results into and its indices
      */
-    void execute(CTF_Idx_Tensor<dtype> output) const;
+    void execute(Idx_Tensor<dtype> output) const;
     
     /**
     * \brief appends the tensors this depends on to the input set
     */
-    void get_inputs(std::set<CTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
+    void get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
 
     /**
      * \brief evalues the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
      */
-    CTF_Idx_Tensor<dtype> execute() const;
+    Idx_Tensor<dtype> execute() const;
     
     /**
      * \brief estimates the cost of a contract term
      * \param[in] output tensor to write results into and its indices
      */
-    int64_t  estimate_cost(CTF_Idx_Tensor<dtype> output) const;
+    int64_t  estimate_cost(Idx_Tensor<dtype> output) const;
     
     /**
      * \brief estimates the cost the expression to produce an intermediate with 
      *        all expression indices remaining
      * \param[in,out] output tensor to write results into and its indices
      */
-    CTF_Idx_Tensor<dtype> estimate_cost(int64_t  & cost) const;
+    Idx_Tensor<dtype> estimate_cost(int64_t  & cost) const;
     
     
     /**
      * \brief override contraction to grow vector rather than create recursive terms
      * \param[in] A term to multiply by
      */
-    CTF_Contract_Term<dtype> operator*(CTF_Term<dtype> const & A) const;
+    Contract_Term<dtype> operator*(Term<dtype> const & A) const;
 
     /**
      * \brief figures out what world this term lives on
      */
-    CTF_World * where_am_i() const;
+    World * where_am_i() const;
 };
 /**
  * @}
  */
 
-#include "ctf_idx_tensor.cxx"
-#include "ctf_term.cxx"
+#include "idx_tensor.cxx"
+#include "term.cxx"
 
 #endif

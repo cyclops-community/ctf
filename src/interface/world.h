@@ -1,22 +1,21 @@
-#ifndef __CTF_WORLD_H__
-#define __CTF_WORLD_H__
+#ifndef __WORLD_H__
+#define __WORLD_H__
 
 #include <mpi.h>
+#include "../world/internal_world.h"
 
 /**
  * \defgroup CTF CTF: C++ World interface
  * @{
  */
 
-//class CTF;
-
 /**
  * \brief an instance of the CTF library (world) on a MPI communicator
  */
-class CTF_World {
+class World {
   public:
     MPI_Comm comm;
-  //  CTF * ctf;
+    Int_World * internal;
 
   public:
     /**
@@ -26,7 +25,7 @@ class CTF_World {
      * \param[in] argc number of main arguments 
      * \param[in] argv main arguments 
      */
-    CTF_World(int argc, char * const * argv);
+    World(int argc, char * const * argv);
 
     /**
      * \brief creates CTF library on comm_ that can output profile data 
@@ -35,9 +34,9 @@ class CTF_World {
      * \param[in] argc number of main arguments 
      * \param[in] argv main arguments 
      */
-    CTF_World(MPI_Comm       comm_ = MPI_COMM_WORLD,
-               int            argc = 0,
-               char * const * argv = NULL);
+    World(MPI_Comm       comm_ = MPI_COMM_WORLD,
+          int            argc = 0,
+          char * const * argv = NULL);
 
     /**
      * \brief creates CTF library on comm_
@@ -47,16 +46,16 @@ class CTF_World {
      * \param[in] argc number of main arguments 
      * \param[in] argv main arguments 
      */
-    CTF_World(int            ndim, 
-               int const *    lens, 
-               MPI_Comm       comm_ = MPI_COMM_WORLD,
-               int            argc = 0,
-               char * const * argv = NULL);
+    World(int            ndim, 
+          int const *    lens, 
+          MPI_Comm       comm_ = MPI_COMM_WORLD,
+          int            argc = 0,
+          char * const * argv = NULL);
 
     /**
      * \brief frees CTF library
      */
-    ~CTF_World();
+    ~World();
 };
 
 /**

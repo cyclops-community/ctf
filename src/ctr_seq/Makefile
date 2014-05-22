@@ -1,10 +1,10 @@
 include ../../config.mk
 
-OBJS = seq_tsr.o
+OBJS = seq_tsr.o 
 
 ctf: $(OBJS) 
 
-$(OBJS): %.o: %.cxx *.hxx
+$(OBJS): %.o: %.cxx %.h
 	$(FCXX) -c $<
 
 

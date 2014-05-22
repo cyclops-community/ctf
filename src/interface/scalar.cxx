@@ -1,6 +1,5 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 #include "../shared/util.h"
-#include "../../include/ctf.hpp"
 
 
 /**
@@ -8,8 +7,8 @@
  * \param[in] world CTF world where the tensor will live
  */ 
 template<typename dtype>
-tCTF_Scalar<dtype>::tCTF_Scalar(tCTF_World<dtype> & world) :
-  tCTF_Tensor<dtype>(0, NULL, NULL, world) {
+Scalar<dtype>::Scalar(World & world) :
+  Tensor<dtype>(0, NULL, NULL, world) {
   
 }
 /**
@@ -18,15 +17,15 @@ tCTF_Scalar<dtype>::tCTF_Scalar(tCTF_World<dtype> & world) :
  * \param[in] world CTF world where the tensor will live
  */ 
 template<typename dtype>
-tCTF_Scalar<dtype>::tCTF_Scalar(dtype const        val,
-                                tCTF_World<dtype> & world) :
-  tCTF_Tensor<dtype>(0, NULL, NULL, world) {
+Scalar<dtype>::Scalar(dtype const         val,
+                      World             & world) :
+  Tensor<dtype>(0, NULL, NULL, world) {
   long_int s; 
   dtype * arr;
 
   if (world.ctf->get_rank() == 0){
     int ret = this->world->ctf->get_raw_data(this->tid, &arr, &s); 
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    LIBT_ASSERT(ret == SUCCESS);
     arr[0] = val;
   }
 }
@@ -35,12 +34,12 @@ tCTF_Scalar<dtype>::tCTF_Scalar(dtype const        val,
  * \brief returns scalar value
  */
 template<typename dtype>
-dtype tCTF_Scalar<dtype>::get_val(){
+dtype Scalar<dtype>::get_val(){
   long_int s; 
   dtype * val;
   int ret = this->world->ctf->get_raw_data(this->tid, &val, &s); 
 
-  LIBT_ASSERT(ret == CTF_SUCCESS);
+  LIBT_ASSERT(ret == SUCCESS);
 
   MPI_Bcast(val, sizeof(dtype), MPI_CHAR, 0, this->world->comm);
   return val[0];
@@ -50,18 +49,13 @@ dtype tCTF_Scalar<dtype>::get_val(){
  * \brief sets scalar value
  */
 template<typename dtype>
-void tCTF_Scalar<dtype>::set_val(dtype const val){
+void Scalar<dtype>::set_val(dtype const val){
   long_int s; 
   dtype * arr;
   if (this->world->ctf->get_rank() == 0){
     int ret = this->world->ctf->get_raw_data(this->tid, &arr, &s); 
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    LIBT_ASSERT(ret == SUCCESS);
     arr[0] = val;
   }
 }
   
-
-template class tCTF_Scalar<double>;
-#ifdef CTF_COMPLEX
-template class tCTF_Scalar< std::complex<double> >;
-#endif

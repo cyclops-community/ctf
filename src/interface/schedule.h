@@ -1,5 +1,5 @@
-#ifndef __CTF_SCHEDULE_H__
-#define __CTF_SCHEDULE_H__
+#ifndef __SCHEDULE_H__
+#define __SCHEDULE_H__
 #include <deque>
 #include <set>
 #include <map>
@@ -8,7 +8,7 @@
  * \defgroup scheduler Dynamic scheduler.
  * @{
  */
-enum CTF_TensorOperationTypes {
+enum TensorOperationTypes {
   TENSOR_OP_NONE,
   TENSOR_OP_SET,
   TENSOR_OP_SUM,
@@ -18,9 +18,9 @@ enum CTF_TensorOperationTypes {
 /**
  * \brief Provides a untemplated base class for tensor operations.
  */
-class CTF_TensorOperationBase {
+class TensorOperationBase {
 public:
-  virtual ~CTF_TensorOperationBase() {}
+  virtual ~TensorOperationBase() {}
 };
 
 /**
@@ -29,14 +29,14 @@ public:
  * as successor and dependency information used in scheduling.
  */
 template<typename dtype>
-class CTF_TensorOperation : public CTF_TensorOperationBase {
+class TensorOperation : public TensorOperationBase {
 public:
 	/**
 	 * \brief Constructor, create the tensor operation lhs op= rhs
 	 */
-	CTF_TensorOperation(CTF_TensorOperationTypes op,
-			CTF_Idx_Tensor<dtype>* lhs,
-			const CTF_Term<dtype>* rhs) :
+	TensorOperation(TensorOperationTypes op,
+			Idx_Tensor<dtype>* lhs,
+			const Term<dtype>* rhs) :
 			  dependency_count(0),
 			  op(op),
 			  lhs(lhs),
@@ -46,19 +46,19 @@ public:
   /**
    * \brief appends the tensors this writes to to the input set
    */
-  void get_outputs(std::set<CTF_Tensor<dtype>*, tensor_tid_less<dtype> >* outputs_set) const;
+  void get_outputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* outputs_set) const;
 
 	/**
 	 * \brief appends the tensors this depends on (reads from, including the output
 	 * if a previous value is required) to the input set
 	 */
-	void get_inputs(std::set<CTF_Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
+	void get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
 
 	/**
 	 * \brief runs this operation, but does NOT handle dependency scheduling
 	 * optionally takes a remapping of tensors
 	 */
-	void execute(std::map<CTF_Tensor<dtype>*, CTF_Tensor<dtype>*>* remap = NULL);
+	void execute(std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL);
 
 	/**
 	 *\brief provides an estimated runtime cost
@@ -75,8 +75,8 @@ public:
 	// Number of dependencies I have
   int dependency_count;
   // List of all successors - operations that depend on me
-  std::vector<CTF_TensorOperation<dtype>* > successors;
-  std::vector<CTF_TensorOperation<dtype>* > reads;
+  std::vector<TensorOperation<dtype>* > successors;
+  std::vector<TensorOperation<dtype>* > reads;
 
   /**
    * Schedule Execution Variables
@@ -91,22 +91,22 @@ public:
   }
 
 protected:
-	CTF_TensorOperationTypes op;
-	CTF_Idx_Tensor<dtype>* lhs;
-	const CTF_Term<dtype>* rhs;
+	TensorOperationTypes op;
+	Idx_Tensor<dtype>* lhs;
+	const Term<dtype>* rhs;
 
 	int64_t  cached_estimated_cost;
 };
 
 // untemplatized scheduler abstract base class to assist in global operations
-class CTF_ScheduleBase {
+class ScheduleBase {
 public:
-	virtual void add_operation(CTF_TensorOperationBase* op) = 0;
+	virtual void add_operation(TensorOperationBase* op) = 0;
 };
 
-extern CTF_ScheduleBase* global_schedule;
+extern ScheduleBase* global_schedule;
 
-struct CTF_ScheduleTimer {
+struct ScheduleTimer {
   double comm_down_time;
   double exec_time;
   double imbalance_wall_time;
@@ -114,7 +114,7 @@ struct CTF_ScheduleTimer {
   double comm_up_time;
   double total_time;
 
-  CTF_ScheduleTimer():
+  ScheduleTimer():
     comm_down_time(0),
     exec_time(0),
     imbalance_wall_time(0),
@@ -122,7 +122,7 @@ struct CTF_ScheduleTimer {
     comm_up_time(0),
     total_time(0) {}
 
-  void operator+=(CTF_ScheduleTimer const & B) {
+  void operator+=(ScheduleTimer const & B) {
     comm_down_time += B.comm_down_time;
     exec_time += B.exec_time;
     imbalance_wall_time += B.imbalance_wall_time;
@@ -133,13 +133,13 @@ struct CTF_ScheduleTimer {
 };
 
 template<typename dtype>
-class CTF_Schedule : public CTF_ScheduleBase {
+class Schedule : public ScheduleBase {
 public:
   /**
    * \brief Constructor, optionally specifying a world to restrict processor
    * allocations to
    */
-  CTF_Schedule(CTF_World* world = NULL) :
+  Schedule(World* world = NULL) :
     world(world),
     partitions(0) {}
 
@@ -152,26 +152,26 @@ public:
 	/**
 	 * \brief Executes the schedule and implicitly terminates recording
 	 */
-	CTF_ScheduleTimer execute();
+	ScheduleTimer execute();
 
   /**
    * \brief Executes a slide of the ready_queue, partitioning it among the
    * processors in the grid
    */
-  inline CTF_ScheduleTimer partition_and_execute();
+  inline ScheduleTimer partition_and_execute();
 
 	/**
 	 * \brief Call when a tensor op finishes, this adds newly enabled ops to the ready queue
 	 */
-	inline void schedule_op_successors(CTF_TensorOperation<dtype>* op);
+	inline void schedule_op_successors(TensorOperation<dtype>* op);
 
 	/**
 	 * \brief Adds a tensor operation to this schedule.
 	 * THIS IS CALL ORDER DEPENDENT - operations will *appear* to execute
 	 * sequentially in the order they were added.
 	 */
-	void add_operation_typed(CTF_TensorOperation<dtype>* op);
-	void add_operation(CTF_TensorOperationBase* op);
+	void add_operation_typed(TensorOperation<dtype>* op);
+	void add_operation(TensorOperationBase* op);
 
 	/**
 	 * Testing functionality
@@ -181,7 +181,7 @@ public:
 	}
 
 protected:
-	CTF_World* world;
+	World* world;
 
 	/**
 	 * Internal scheduling operation overview:
@@ -212,19 +212,19 @@ protected:
 	 * Schedule Recording Variables
 	 */
 	// Tasks with no dependencies, which can be executed at the start
-	std::deque<CTF_TensorOperation<dtype>*> root_tasks;
+	std::deque<TensorOperation<dtype>*> root_tasks;
 
   // For debugging purposes - the steps in the original input order
-  std::deque<CTF_TensorOperation<dtype>*> steps_original;
+  std::deque<TensorOperation<dtype>*> steps_original;
 
   // Last operation writing to the key tensor
-  std::map<CTF_Tensor<dtype>*, CTF_TensorOperation<dtype>*> latest_write;
+  std::map<Tensor<dtype>*, TensorOperation<dtype>*> latest_write;
 
   /**
    * Schedule Execution Variables
    */
   // Ready queue of tasks with all dependencies satisfied
-  std::deque<CTF_TensorOperation<dtype>*> ready_tasks;
+  std::deque<TensorOperation<dtype>*> ready_tasks;
 
   /**
    * Testing variables
@@ -236,6 +236,6 @@ protected:
  * @}
  */
 
-
+#include "schedule.cxx"
 
 #endif

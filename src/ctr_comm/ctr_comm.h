@@ -6,6 +6,7 @@
 #include "../shared/comm.h"
 #include "../shared/util.h"
 #include "../shared/offload.h"
+#include "../ctr_seq/int_semiring.h"
 
 /**
  * \addtogroup nest_dist Nested distributed contraction and summation routines
@@ -17,10 +18,10 @@ class ctr {
     char * A; /* m by k */
     char * B; /* k by n */
     char * C; /* m by n */
-    CTF_Semiring sr_A;
-    CTF_Semiring sr_B;
-    CTF_Semiring sr_C;
-    char const * beta;
+    int el_size_A;
+    int el_size_B;
+    Int_Semiring sr_C;
+    Int_Scalar beta;
     int num_lyr; /* number of copies of this matrix being computed on */
     int idx_lyr; /* the index of this copy */
 
@@ -146,7 +147,7 @@ class ctr_dgemm : public ctr {
   /*  int lda_A;
     int lda_B;
     int lda_C;*/
-    dtype alpha;
+    Int_Scalar alpha;
     int n;
     int m;
     int k;

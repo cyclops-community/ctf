@@ -1,13 +1,15 @@
-#ifndef __CTF_FUNCTIONS_H__
-#define __CTF_FUNCTIONS_H__
+#ifndef __FUNCTIONS_H__
+#define __FUNCTIONS_H__
 
-template <typename dtype> class CTF_Idx_Tensor;
+#include "../ctr_seq/int_functions.h"
+
+template <typename dtype> class Idx_Tensor;
 
 /**
  * \brief custom scalar function on tensor: e.g. A["ij"] = f(A["ij"])
  */
 template<typename dtype=double>
-class CTF_Endomorphism  {
+class Endomorphism : public Int_Endomorphism {
   public:
     /**
      * \brief function signature for element-wise operation a=f(a)
@@ -18,14 +20,14 @@ class CTF_Endomorphism  {
      * \brief constructor takes function pointer
      * \param[in] f scalar function: (type) -> (type)
      */
-    CTF_Endomorphism(dtype (*f)(dtype));
+    Endomorphism(dtype (*f)(dtype));
 
     /** 
      * \brief evaluate A=f(A) 
      * \param[in] A operand tensor with pre-defined indices 
      * \return f(A)
     */
-    CTF_Idx_Tensor<dtype> operator()(CTF_Idx_Tensor<dtype> const & A);
+    Idx_Tensor<dtype> operator()(Idx_Tensor<dtype> const & A);
 };
 
 /**
@@ -33,7 +35,7 @@ class CTF_Endomorphism  {
  *          e.g. B["ij"] = f(A["ij"])
  */
 template<typename dtype_B=double, typename dtype_A=dtype_B>
-class CTF_Univar_Function {
+class Univar_Function : public Int_Univar_Function {
   public:
     /**
      * \brief function signature for element-wise multiplication, compute b=f(a)
@@ -45,14 +47,14 @@ class CTF_Univar_Function {
      * \param[in] f linear function (type_A)->(type_B)
      * \param[in] fadd associative addition function (type_B,type_B)->(type_B)
      */
-    CTF_Univar_Function(dtype_B (*f)(dtype_A));
+    Univar_Function(dtype_B (*f)(dtype_A));
 
     /** 
      * \brief evaluate B=f(A) 
      * \param[in] A operand tensor with pre-defined indices 
      * return f(A) output tensor 
      */
-    CTF_Idx_Tensor<dtype_B> operator()(CTF_Idx_Tensor<dtype_A> const  & A);
+    Idx_Tensor<dtype_B> operator()(Idx_Tensor<dtype_A> const  & A);
 
 };
 
@@ -61,7 +63,7 @@ class CTF_Univar_Function {
  *          e.g. C["ij"] = f(A["ik"],B["kj"])
  */
 template<typename dtype_C=double, typename dtype_A=dtype_C, typename dtype_B=dtype_C>
-class CTF_Bivar_Function {
+class Bivar_Function : public Int_Bivar_Function {
   public:
     /**
      * \brief function signature for element-wise multiplication, compute C=f(A,B)
@@ -73,12 +75,12 @@ class CTF_Bivar_Function {
      * \param[in] f bilinear function (type_A,type_B)->(type_C)
      * \param[in] fadd associative addition function (type_B,type_B)->(type_B)
      */
-    CTF_Bivar_Function(dtype_C (*f)(dtype_A, dtype_B));
+    Bivar_Function(dtype_C (*f)(dtype_A, dtype_B));
 
     /**
      * \brief default constructor sets function pointer to NULL
      */
-    CTF_Bivar_Function();
+    Bivar_Function();
 
     /** 
      * \brief evaluate C=f(A,B) 
@@ -86,8 +88,8 @@ class CTF_Bivar_Function {
      * \param[in] B right operand tensor with pre-defined indices
      * \return C output tensor
     */
-    CTF_Idx_Tensor<dtype_C> operator()(CTF_Idx_Tensor<dtype_A> const  & A, 
-                                       CTF_Idx_Tensor<dtype_B> const  & B);
+    Idx_Tensor<dtype_C> operator()(Idx_Tensor<dtype_A> const  & A, 
+                                   Idx_Tensor<dtype_B> const  & B);
 };
 
 
