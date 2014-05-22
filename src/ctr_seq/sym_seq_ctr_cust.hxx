@@ -12,7 +12,6 @@
 /**
  * \brief performs symmetric contraction
  */
-template<typename dtype>
 int sym_seq_ctr_cust(dtype const          alpha,
                      dtype const *        A,
                      int const            ndim_A,

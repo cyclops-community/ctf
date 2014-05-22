@@ -7,7 +7,7 @@ template <typename dtype> class CTF_Idx_Tensor;
  * \brief custom scalar function on tensor: e.g. A["ij"] = f(A["ij"])
  */
 template<typename dtype=double>
-class CTF_Fscalar  {
+class CTF_Endomorphism  {
   public:
     /**
      * \brief function signature for element-wise operation a=f(a)
@@ -18,7 +18,7 @@ class CTF_Fscalar  {
      * \brief constructor takes function pointer
      * \param[in] f scalar function: (type) -> (type)
      */
-    CTF_Fscalar(dtype (*f)(dtype));
+    CTF_Endomorphism(dtype (*f)(dtype));
 
     /** 
      * \brief evaluate A=f(A) 
@@ -33,7 +33,7 @@ class CTF_Fscalar  {
  *          e.g. B["ij"] = f(A["ij"])
  */
 template<typename dtype_B=double, typename dtype_A=dtype_B>
-class CTF_Flinear {
+class CTF_Univar_Function {
   public:
     /**
      * \brief function signature for element-wise multiplication, compute b=f(a)
@@ -45,7 +45,7 @@ class CTF_Flinear {
      * \param[in] f linear function (type_A)->(type_B)
      * \param[in] fadd associative addition function (type_B,type_B)->(type_B)
      */
-    CTF_Flinear(dtype_B (*f)(dtype_A));
+    CTF_Univar_Function(dtype_B (*f)(dtype_A));
 
     /** 
      * \brief evaluate B=f(A) 
@@ -61,7 +61,7 @@ class CTF_Flinear {
  *          e.g. C["ij"] = f(A["ik"],B["kj"])
  */
 template<typename dtype_C=double, typename dtype_A=dtype_C, typename dtype_B=dtype_C>
-class CTF_Fbilinear {
+class CTF_Bivar_Function {
   public:
     /**
      * \brief function signature for element-wise multiplication, compute C=f(A,B)
@@ -73,12 +73,12 @@ class CTF_Fbilinear {
      * \param[in] f bilinear function (type_A,type_B)->(type_C)
      * \param[in] fadd associative addition function (type_B,type_B)->(type_B)
      */
-    CTF_Fbilinear(dtype_C (*f)(dtype_A, dtype_B));
+    CTF_Bivar_Function(dtype_C (*f)(dtype_A, dtype_B));
 
     /**
      * \brief default constructor sets function pointer to NULL
      */
-    CTF_Fbilinear();
+    CTF_Bivar_Function();
 
     /** 
      * \brief evaluate C=f(A,B) 

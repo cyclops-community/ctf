@@ -4,9 +4,8 @@
 /**
  * \brief copies scl object
  */
-template<typename dtype>
-seq_tsr_scl<dtype>::seq_tsr_scl(scl<dtype> * other) : scl<dtype>(other) {
-  seq_tsr_scl<dtype> * o = (seq_tsr_scl<dtype>*)other;
+seq_tsr_scl::seq_tsr_scl(scl * other) : scl(other) {
+  seq_tsr_scl * o = (seq_tsr_scl*)other;
   
   ndim          = o->ndim;
   idx_map       = o->idx_map;
@@ -20,20 +19,17 @@ seq_tsr_scl<dtype>::seq_tsr_scl(scl<dtype> * other) : scl<dtype>(other) {
 /**
  * \brief copies scl object
  */
-template<typename dtype>
-scl<dtype> * seq_tsr_scl<dtype>::clone() {
-  return new seq_tsr_scl<dtype>(this);
+scl * seq_tsr_scl::clone() {
+  return new seq_tsr_scl(this);
 }
 
 
-template<typename dtype>
-long_int seq_tsr_scl<dtype>::mem_fp(){ return 0; }
+long_int seq_tsr_scl::mem_fp(){ return 0; }
 
 /**
  * \brief wraps user sequential function signature
  */
-template<typename dtype>
-void seq_tsr_scl<dtype>::run(){
+void seq_tsr_scl::run(){
   func_ptr.func_ptr(this->alpha,
                     this->A,
                     ndim,
@@ -43,8 +39,7 @@ void seq_tsr_scl<dtype>::run(){
                     idx_map);
 }
 
-template<typename dtype>
-void seq_tsr_scl<dtype>::print(){
+void seq_tsr_scl::print(){
   int i;
   printf("seq_tsr_scl:\n");
   for (i=0; i<ndim; i++){
@@ -56,9 +51,8 @@ void seq_tsr_scl<dtype>::print(){
 /**
  * \brief copies sum object
  */
-template<typename dtype>
-seq_tsr_sum<dtype>::seq_tsr_sum(tsum<dtype> * other) : tsum<dtype>(other) {
-  seq_tsr_sum<dtype> * o = (seq_tsr_sum<dtype>*)other;
+seq_tsr_sum::seq_tsr_sum(tsum * other) : tsum(other) {
+  seq_tsr_sum * o = (seq_tsr_sum*)other;
   
   ndim_A        = o->ndim_A;
   idx_map_A     = o->idx_map_A;
@@ -78,8 +72,7 @@ seq_tsr_sum<dtype>::seq_tsr_sum(tsum<dtype> * other) : tsum<dtype>(other) {
   func_ptr = o->func_ptr;
 }
 
-template<typename dtype>
-void seq_tsr_sum<dtype>::print(){
+void seq_tsr_sum::print(){
   int i;
   printf("seq_tsr_sum:\n");
   for (i=0; i<ndim_A; i++){
@@ -95,19 +88,16 @@ void seq_tsr_sum<dtype>::print(){
 /**
  * \brief copies sum object
  */
-template<typename dtype>
-tsum<dtype> * seq_tsr_sum<dtype>::clone() {
-  return new seq_tsr_sum<dtype>(this);
+tsum * seq_tsr_sum::clone() {
+  return new seq_tsr_sum(this);
 }
 
-template<typename dtype>
-long_int seq_tsr_sum<dtype>::mem_fp(){ return 0; }
+long_int seq_tsr_sum::mem_fp(){ return 0; }
 
 /**
  * \brief wraps user sequential function signature
  */
-template<typename dtype>
-void seq_tsr_sum<dtype>::run(){
+void seq_tsr_sum::run(){
   if (is_custom){
     LIBT_ASSERT(is_inner == 0);
     sym_seq_sum_cust(
@@ -160,8 +150,7 @@ void seq_tsr_sum<dtype>::run(){
   }
 }
 
-template<typename dtype>
-void seq_tsr_ctr<dtype>::print(){
+void seq_tsr_ctr::print(){
   int i;
   printf("seq_tsr_ctr:\n");
   for (i=0; i<ndim_A; i++){
@@ -181,9 +170,8 @@ void seq_tsr_ctr<dtype>::print(){
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-seq_tsr_ctr<dtype>::seq_tsr_ctr(ctr<dtype> * other) : ctr<dtype>(other) {
-  seq_tsr_ctr<dtype> * o = (seq_tsr_ctr<dtype>*)other;
+seq_tsr_ctr::seq_tsr_ctr(ctr * other) : ctr(other) {
+  seq_tsr_ctr * o = (seq_tsr_ctr*)other;
   alpha = o->alpha;
   
   ndim_A        = o->ndim_A;
@@ -218,23 +206,20 @@ seq_tsr_ctr<dtype>::seq_tsr_ctr(ctr<dtype> * other) : ctr<dtype>(other) {
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr<dtype> * seq_tsr_ctr<dtype>::clone() {
-  return new seq_tsr_ctr<dtype>(this);
+ctr * seq_tsr_ctr::clone() {
+  return new seq_tsr_ctr(this);
 }
 
 
-template<typename dtype>
-long_int seq_tsr_ctr<dtype>::mem_fp(){ return 0; }
+long_int seq_tsr_ctr::mem_fp(){ return 0; }
 
-template<typename dtype>
-double seq_tsr_ctr<dtype>::est_time_fp(int nlyr){ 
+double seq_tsr_ctr::est_time_fp(int nlyr){ 
   uint64_t size_A = sy_packed_size(ndim_A, edge_len_A, sym_A);
   uint64_t size_B = sy_packed_size(ndim_B, edge_len_B, sym_B);
   uint64_t size_C = sy_packed_size(ndim_C, edge_len_C, sym_C);
-  if (is_inner) size_A *= inner_params.m*inner_params.k*sizeof(dtype);
-  if (is_inner) size_B *= inner_params.n*inner_params.k*sizeof(dtype);
-  if (is_inner) size_C *= inner_params.m*inner_params.n*sizeof(dtype);
+  if (is_inner) size_A *= inner_params.m*inner_params.k*el_size;
+  if (is_inner) size_B *= inner_params.n*inner_params.k*el_size;
+  if (is_inner) size_C *= inner_params.m*inner_params.n*el_size;
  
   LIBT_ASSERT(size_A > 0);
   LIBT_ASSERT(size_B > 0);
@@ -262,16 +247,14 @@ double seq_tsr_ctr<dtype>::est_time_fp(int nlyr){
   return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
 }
 
-template<typename dtype>
-double seq_tsr_ctr<dtype>::est_time_rec(int nlyr){ 
+double seq_tsr_ctr::est_time_rec(int nlyr){ 
   return est_time_fp(nlyr);
 }
 
 /**
  * \brief wraps user sequential function signature
  */
-template<typename dtype>
-void seq_tsr_ctr<dtype>::run(){
+void seq_tsr_ctr::run(){
   if (is_custom){
     LIBT_ASSERT(is_inner == 0);
     sym_seq_ctr_cust(
@@ -341,12 +324,3 @@ void seq_tsr_ctr<dtype>::run(){
                       idx_map_C);
   }
 }
-
-template class seq_tsr_scl<double>;
-template class seq_tsr_sum<double>;
-template class seq_tsr_ctr<double>;
-//#ifdef CTF_COMPLEX
-template class seq_tsr_scl< std::complex<double> >;
-template class seq_tsr_sum< std::complex<double> >;
-template class seq_tsr_ctr< std::complex<double> >;
-//#endif

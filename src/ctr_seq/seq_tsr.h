@@ -16,8 +16,7 @@
 #include "sym_seq_sum_cust.hxx"
 #include "sym_seq_ctr_cust.hxx"
 
-template<typename dtype>
-class seq_tsr_ctr : public ctr<dtype> {
+class seq_tsr_ctr : public ctr {
   public:
     dtype alpha;
     int ndim_A;
@@ -32,29 +31,28 @@ class seq_tsr_ctr : public ctr<dtype> {
     int * edge_len_C;
     int const * idx_map_C;
     int * sym_C;
-    fseq_tsr_ctr<dtype> func_ptr;
+    fseq_tsr_ctr func_ptr;
 
     int is_inner;
     iparam inner_params;
     
     int is_custom;
-    fseq_elm_ctr<dtype> custom_params;
+    fseq_elm_ctr custom_params;
 
     void run();
     void print();
     long_int mem_fp();
     double est_time_rec(int nlyr);
     double est_time_fp(int nlyr);
-    ctr<dtype> * clone();
+    ctr * clone();
 
-    seq_tsr_ctr(ctr<dtype> * other);
+    seq_tsr_ctr(ctr * other);
     ~seq_tsr_ctr(){ CTF_free(edge_len_A), CTF_free(edge_len_B), CTF_free(edge_len_C), 
                     CTF_free(sym_A), CTF_free(sym_B), CTF_free(sym_C); }
     seq_tsr_ctr(){}
 };
 
-template<typename dtype>
-class seq_tsr_sum : public tsum<dtype> {
+class seq_tsr_sum : public tsum {
   public:
     int ndim_A;
     int * edge_len_A;
@@ -64,43 +62,42 @@ class seq_tsr_sum : public tsum<dtype> {
     int * edge_len_B;
     int const * idx_map_B;
     int * sym_B;
-    fseq_tsr_sum<dtype> func_ptr;
+    fseq_tsr_sum func_ptr;
 
     int is_inner;
     int inr_stride;
     
     int is_custom;
-    fseq_elm_sum<dtype> custom_params;
+    fseq_elm_sum custom_params;
 
     void run();
     void print();
     long_int mem_fp();
-    tsum<dtype> * clone();
+    tsum * clone();
 
-    seq_tsr_sum(tsum<dtype> * other);
+    seq_tsr_sum(tsum * other);
     ~seq_tsr_sum(){ CTF_free(edge_len_A), CTF_free(edge_len_B), 
                     CTF_free(sym_A), CTF_free(sym_B); };
     seq_tsr_sum(){}
 };
 
-template<typename dtype>
-class seq_tsr_scl : public scl<dtype> {
+class seq_tsr_scl : public scl {
   public:
     int ndim;
     int * edge_len;
     int const * idx_map;
     int const * sym;
-    fseq_tsr_scl<dtype> func_ptr;
+    fseq_tsr_scl func_ptr;
 
     int is_custom;
-    fseq_elm_scl<dtype> custom_params;
+    fseq_elm_scl custom_params;
 
     void run();
     void print();
     long_int mem_fp();
-    scl<dtype> * clone();
+    scl * clone();
 
-    seq_tsr_scl(scl<dtype> * other);
+    seq_tsr_scl(scl * other);
     ~seq_tsr_scl(){ CTF_free(edge_len); };
     seq_tsr_scl(){}
 };

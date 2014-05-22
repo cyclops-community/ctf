@@ -37,8 +37,8 @@
 //#define AS 2
 //#define SH 3
 //#endif
-//typedef int64_t long_int;
-//typedef long_int key;
+//typedef int64_t int64_t ;
+//typedef int64_t  key;
 //
 //static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 /**
@@ -88,7 +88,7 @@ enum CTF_MACHINE { MACHINE_GENERIC, MACHINE_BGP, MACHINE_BGQ,
 template<typename dtype>
 struct fseq_tsr_scl {
   /* Function signature for sub-tensor scale recrusive call */
-  int  (*func_ptr) ( dtype const        alpha,
+  int  (*func_ptr) ( CTF_Int_Scalar         alpha,
                      dtype *            A,
                      int const          ndim_A,
                      int const *        edge_len_A,
@@ -100,21 +100,21 @@ struct fseq_tsr_scl {
 /* custom element-wise function for tensor scale */
 template<typename dtype>
 struct fseq_elm_scl {
-  void  (*func_ptr)(dtype const alpha,
+  void  (*func_ptr)(CTF_Int_Scalar  alpha,
                     dtype &     a);
 };
 
 /* Function signature for sub-tensor summation recrusive call */
 template<typename dtype>
 struct fseq_tsr_sum {
-  int  (*func_ptr) ( dtype const          alpha,
+  int  (*func_ptr) ( CTF_Int_Scalar           alpha,
                      dtype const *        A,
                      int const            ndim_A,
                      int const *          edge_len_A,
                      int const *          lda_A,
                      int const *          sym_A,
                      int const *          idx_map_A,
-                     dtype const          beta,
+                     CTF_Int_Scalar           beta,
                      dtype *              B,
                      int const            ndim_B,
                      int const *          edge_len_B,
@@ -126,7 +126,7 @@ struct fseq_tsr_sum {
 /* custom element-wise function for tensor sum */
 template<typename dtype>
 struct fseq_elm_sum {
-  void  (*func_ptr)(dtype const alpha,
+  void  (*func_ptr)(CTF_Int_Scalar  alpha,
                     dtype const a,
                     dtype &     b);
 };
@@ -138,7 +138,7 @@ struct fseq_tsr_ctr {
     int is_offloadable;
 #endif
     /* Function signature for sub-tensor contraction recrusive call */
-    int  (*func_ptr) ( dtype const      alpha,
+    int  (*func_ptr) ( CTF_Int_Scalar       alpha,
                        dtype const *    A,
                        int const        ndim_A,
                        int const *      edge_len_A,
@@ -151,7 +151,7 @@ struct fseq_tsr_ctr {
                        int const *      lda_B,
                        int const *      sym_B,
                        int const *      idx_map_B,
-                       dtype const      beta,
+                       CTF_Int_Scalar       beta,
                        dtype *          C,
                        int const        ndim_C,
                        int const *      edge_len_C,
@@ -163,26 +163,32 @@ struct fseq_tsr_ctr {
 /* custom element-wise function for tensor sum */
 template<typename dtype>
 struct fseq_elm_ctr {
-  void  (*func_ptr)(dtype const alpha,
+  void  (*func_ptr)(CTF_Int_Scalar  alpha,
                     dtype const a,
                     dtype const b,
                     dtype &     c);
 };
 
-template<typename dtype>
 class dist_tensor;
 
-template<typename dtype>
-class tCTF{
+class CTF_Int_Scalar{
+  public:
+    int el_size;
+    char * value;
+
+  
+}
+
+class CTF_Int_World{
   private:
-    dist_tensor<dtype> * dt;
+    dist_tensor * dt;
     int initialized;
 
   public:
 
 
-    tCTF();
-    ~tCTF();
+    CTF_Int_World();
+    ~CTF_Int_World();
 
     /* initializes library. Sets topology to be a torus of edge lengths equal to the
        factorization of np. Main args can be sset for profiler output. */
@@ -261,21 +267,21 @@ class tCTF{
     int get_symmetry(int const tensor_id, int **sym) const;
 
     /* get raw data pointer WARNING: includes padding */
-    int get_raw_data(int const tensor_id, dtype ** data, long_int * size);
+    int get_raw_data(int const tensor_id, dtype ** data, int64_t  * size);
 
     /* Input tensor data with <key, value> pairs where key is the
        global index for the value. */
     int write_tensor(int const                tensor_id,
-                     long_int const           num_pair,
+                     int64_t  const           num_pair,
                      CTF_pair<dtype> const *  mapped_data);
 
     /* Add tensor data new=alpha*new+beta*old
        with <key, value> pairs where key is the
        global index for the value. */
     int write_tensor(int const                tensor_id,
-                     long_int const           num_pair,
-                     dtype const              alpha,
-                     dtype const              beta,
+                     int64_t  const           num_pair,
+                     CTF_Int_Scalar              alpha,
+                     CTF_Int_Scalar              beta,
                      CTF_pair<dtype> const *  mapped_data);
 
     /**
@@ -285,12 +291,12 @@ class tCTF{
      */
     int permute_tensor(int const              tid_A,
                        int * const *          permutation_A,
-                       dtype const            alpha,
-                       tCTF<dtype> *          tC_A,
+                       CTF_Int_Scalar             alpha,
+                       CTF_Int_World *          tC_A,
                        int const              tid_B,
                        int * const *          permutation_B,
-                       dtype const            beta,
-                       tCTF<dtype> *          tC_B);
+                       CTF_Int_Scalar             beta,
+                       CTF_Int_World *          tC_B);
 
    /**
      * \brief accumulates this tensor to a tensor object defined on a different world
@@ -302,9 +308,9 @@ class tCTF{
      */
     int  add_to_subworld(int          tid,
                          int          tid_sub,
-                         tCTF<dtype> *tC_sub,
-                         dtype       alpha,
-                         dtype       beta);
+                         CTF_Int_World *tC_sub,
+                         CTF_Int_Scalar       alpha,
+                         CTF_Int_Scalar       beta);
    /**
      * \brief accumulates this tensor from a tensor object defined on a different world
      * \param[in] tsr a tensor object of the same characteristic as this tensor, 
@@ -316,9 +322,9 @@ class tCTF{
      */
     int  add_from_subworld(int          tid,
                            int          tid_sub,
-                           tCTF<dtype> *tC_sub,
-                           dtype       alpha,
-                           dtype       beta);
+                           CTF_Int_World *tC_sub,
+                           CTF_Int_Scalar       alpha,
+                           CTF_Int_Scalar       beta);
     
     /* Add tensor data from A to a block of B, 
        B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
@@ -326,33 +332,33 @@ class tCTF{
     int slice_tensor(int const    tid_A,
                      int const *  offsets_A,
                      int const *  ends_A,
-                     dtype const  alpha,
+                     CTF_Int_Scalar   alpha,
                      int const    tid_B,
                      int const *  offsets_B,
                      int const *  ends_B,
-                     dtype const  beta);
+                     CTF_Int_Scalar   beta);
 
     /* Same as above, except tid_A lives on dt_other_A */
     int slice_tensor(int const      tid_A,
                      int const *    offsets_A,
                      int const *    ends_A,
-                     dtype const    alpha,
-                     tCTF<dtype> *  dt_other_A,
+                     CTF_Int_Scalar     alpha,
+                     CTF_Int_World *  dt_other_A,
                      int const      tid_B,
                      int const *    offsets_B,
                      int const *    ends_B,
-                     dtype const    beta);
+                     CTF_Int_Scalar     beta);
 
     /* Same as above, except tid_B lives on dt_other_B */
     int slice_tensor(int const      tid_A,
                      int const *    offsets_A,
                      int const *    ends_A,
-                     dtype const    alpha,
+                     CTF_Int_Scalar     alpha,
                      int const      tid_B,
                      int const *    offsets_B,
                      int const *    ends_B,
-                     dtype const    beta,
-                     tCTF<dtype> *  dt_other_B);
+                     CTF_Int_Scalar     beta,
+                     CTF_Int_World *  dt_other_B);
 
 
     /* read a block from tensor_id,
@@ -367,29 +373,29 @@ class tCTF{
        global index for the value, which gets filled in with
        beta times the old values plus alpha times the values read from the tensor. */
     int read_tensor(int const               tensor_id,
-                    long_int const          num_pair,
-                    dtype const             alpha,
-                    dtype const             beta,
+                    int64_t  const          num_pair,
+                    CTF_Int_Scalar              alpha,
+                    CTF_Int_Scalar              beta,
                     CTF_pair<dtype> * const mapped_data);
 
     /* read tensor data with <key, value> pairs where key is the
        global index for the value, which gets filled in. */
     int read_tensor(int const               tensor_id,
-                    long_int const          num_pair,
+                    int64_t  const          num_pair,
                     CTF_pair<dtype> * const mapped_data);
 
 
     /* read entire tensor with each processor (in packed layout).
        WARNING: will use a lot of memory. */
     int allread_tensor(int const  tensor_id,
-                       long_int * num_pair,
+                       int64_t  * num_pair,
                        dtype **   all_data);
 
     /* read entire tensor with each processor to preallocated buffer
        (in packed layout).
        WARNING: will use a lot of memory. */
     int allread_tensor(int const  tensor_id,
-                       long_int * num_pair,
+                       int64_t  * num_pair,
                        dtype *    all_data);
 
 
@@ -398,42 +404,42 @@ class tCTF{
 
     /* read tensor data pairs local to processor. */
     int read_local_tensor(int const           tensor_id,
-                          long_int *          num_pair,
+                          int64_t  *          num_pair,
                           CTF_pair<dtype> **  mapped_data);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
        uses standard symmetric contraction sequential kernel */
     int contract(CTF_ctr_type_t const * type,
-                 dtype const            alpha,
-                 dtype const            beta);
+                 CTF_Int_Scalar             alpha,
+                 CTF_Int_Scalar             beta);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
        seq_func used to perform sequential op */
     int contract(CTF_ctr_type_t const *     type,
                  fseq_tsr_ctr<dtype> const  func_ptr,
-                 dtype const                alpha,
-                 dtype const                beta);
+                 CTF_Int_Scalar                 alpha,
+                 CTF_Int_Scalar                 beta);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
        seq_func used to perform element-wise sequential op */
     int contract(CTF_ctr_type_t const *     type,
                  fseq_elm_ctr<dtype> const  felm,
-                 dtype const                alpha,
-                 dtype const                beta);
+                 CTF_Int_Scalar                 alpha,
+                 CTF_Int_Scalar                 beta);
 
     /* DAXPY: a*A + B -> B. */
-    int sum_tensors(dtype const  alpha,
+    int sum_tensors(CTF_Int_Scalar   alpha,
                     int const    tid_A,
                     int const    tid_B);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(CTF_sum_type_t const *  type,
-                    dtype const             alpha,
-                    dtype const             beta);
+                    CTF_Int_Scalar              alpha,
+                    CTF_Int_Scalar              beta);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
-    int sum_tensors(dtype const               alpha,
-                    dtype const               beta,
+    int sum_tensors(CTF_Int_Scalar                alpha,
+                    CTF_Int_Scalar                beta,
                     int const                 tid_A,
                     int const                 tid_B,
                     int const *               idx_map_A,
@@ -442,13 +448,13 @@ class tCTF{
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(CTF_sum_type_t const *    type,
-                    dtype const               alpha,
-                    dtype const               beta,
+                    CTF_Int_Scalar                alpha,
+                    CTF_Int_Scalar                beta,
                     fseq_tsr_sum<dtype> const func_ptr);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
-    int sum_tensors(dtype const               alpha,
-                    dtype const               beta,
+    int sum_tensors(CTF_Int_Scalar                alpha,
+                    CTF_Int_Scalar                beta,
                     int const                 tid_A,
                     int const                 tid_B,
                     int const *               idx_map_A,
@@ -459,21 +465,21 @@ class tCTF{
     int copy_tensor(int const tid_A, int const tid_B);
 
     /* scale tensor by alpha. A <- a*A */
-    int scale_tensor(dtype const alpha, int const tid);
+    int scale_tensor(CTF_Int_Scalar  alpha, int const tid);
 
     /* scale tensor by alpha. A <- a*A */
-    int scale_tensor(dtype const                alpha,
+    int scale_tensor(CTF_Int_Scalar                 alpha,
                      int const                  tid,
                      int const *                idx_map_A);
 
     /* scale tensor by alpha. A <- a*A */
-    int scale_tensor(dtype const                alpha,
+    int scale_tensor(CTF_Int_Scalar                 alpha,
                      int const                  tid,
                      int const *                idx_map_A,
                      fseq_tsr_scl<dtype> const  func_ptr);
 
     /* scale tensor by alpha. A <- a*A */
-    int scale_tensor(dtype const                alpha,
+    int scale_tensor(CTF_Int_Scalar                 alpha,
                      int const                  tid,
                      int const *                idx_map_A,
                      fseq_elm_scl<dtype> const  felm);
@@ -535,13 +541,13 @@ class tCTF{
 
     /* Prints contraction type. */
     int print_ctr(CTF_ctr_type_t const * ctype,
-                  dtype const            alpha,
-                  dtype const            beta) const;
+                  CTF_Int_Scalar             alpha,
+                  CTF_Int_Scalar             beta) const;
 
     /* Prints sum type. */
     int print_sum(CTF_sum_type_t const * stype,
-                  dtype const            alpha,
-                  dtype const            beta) const;
+                  CTF_Int_Scalar             alpha,
+                  CTF_Int_Scalar             beta) const;
 
     /* Deletes all tensor handles. Invalidates all tensor ids. */
     int clean_tensors();
@@ -589,17 +595,12 @@ class tCTF{
 
 };
 
-//template class tCTF<double>;
-//template class tCTF< std::complex<double> >;
-
-typedef tCTF<double> CTF;
 
 /**
  * @}
  */
 
 
-//#include "cyclopstf.cxx"
 
 #endif ////__CYCLOPSTF_HPP__
 
