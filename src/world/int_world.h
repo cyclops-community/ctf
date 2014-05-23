@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <complex>
+#include "../ctr_seq/int_functions.h"
+#include "../interface/tensor.h"
 
 /* READ ME!
  * ALL BELOW FUNCTIONS MUST BE CALLED BY ALL MEMBERS OF MPI_COMM_WORLD
@@ -89,8 +91,24 @@ class Int_Scalar{
     int el_size;
     char * value;
 
-  
-}
+};
+
+class Int_Pair{
+  int64_t k;
+  virtual char * v(){ return NULL; }
+  virtual bool operator<(const Int_Pair & other) const { 
+    assert(0);
+    return 1;
+  }
+  virtual bool operator==(const Int_Pair & other) const { 
+    assert(0);
+    return 1;
+  }
+  virtual bool operator!=(const Int_Pair & other) const { 
+    assert(0);
+    return 1;
+  }
+};
 
 class Int_World{
   private:
@@ -180,13 +198,13 @@ class Int_World{
     int get_symmetry(int const tensor_id, int **sym) const;
 
     /* get raw data pointer WARNING: includes padding */
-    int get_raw_data(int const tensor_id, dtype ** data, int64_t  * size);
+    int get_raw_data(int const tensor_id, char ** data, int64_t  * size);
 
     /* Input tensor data with <key, value> pairs where key is the
        global index for the value. */
     int write_tensor(int const                tensor_id,
                      int64_t  const           num_pair,
-                     pair<dtype> const *  mapped_data);
+                     Int_Pair const *  mapped_data);
 
     /* Add tensor data new=alpha*new+beta*old
        with <key, value> pairs where key is the
@@ -195,7 +213,7 @@ class Int_World{
                      int64_t  const           num_pair,
                      Int_Scalar              alpha,
                      Int_Scalar              beta,
-                     pair<dtype> const *  mapped_data);
+                     Int_Pair const *  mapped_data);
 
     /**
      * Permutes a tensor along each dimension skips if perm set to -1, generalizes slice.
@@ -289,27 +307,27 @@ class Int_World{
                     int64_t  const          num_pair,
                     Int_Scalar              alpha,
                     Int_Scalar              beta,
-                    pair<dtype> * const mapped_data);
+                    Int_Pair * const mapped_data);
 
     /* read tensor data with <key, value> pairs where key is the
        global index for the value, which gets filled in. */
     int read_tensor(int const               tensor_id,
                     int64_t  const          num_pair,
-                    pair<dtype> * const mapped_data);
+                    Int_Pair * const mapped_data);
 
 
     /* read entire tensor with each processor (in packed layout).
        WARNING: will use a lot of memory. */
     int allread_tensor(int const  tensor_id,
                        int64_t  * num_pair,
-                       dtype **   all_data);
+                       char  **   all_data);
 
     /* read entire tensor with each processor to preallocated buffer
        (in packed layout).
        WARNING: will use a lot of memory. */
     int allread_tensor(int const  tensor_id,
                        int64_t  * num_pair,
-                       dtype *    all_data);
+                       char  *    all_data);
 
 
     /* map input tensor local data to zero. */
@@ -318,7 +336,7 @@ class Int_World{
     /* read tensor data pairs local to processor. */
     int read_local_tensor(int const           tensor_id,
                           int64_t  *          num_pair,
-                          pair<dtype> **  mapped_data);
+                          Int_Pair **  mapped_data);
 
     /* contracts tensors alpha*A*B + beta*C -> C,
        uses standard symmetric contraction sequential kernel */
@@ -328,17 +346,17 @@ class Int_World{
 
     /* contracts tensors alpha*A*B + beta*C -> C,
        seq_func used to perform sequential op */
-    int contract(ctr_type_t const *     type,
+/*    int contract(ctr_type_t const *     type,
                  fseq_tsr_ctr<dtype> const  func_ptr,
                  Int_Scalar                 alpha,
                  Int_Scalar                 beta);
-
+*/
     /* contracts tensors alpha*A*B + beta*C -> C,
        seq_func used to perform element-wise sequential op */
     int contract(ctr_type_t const *     type,
-                 Bivar_Function      const  felm,
-                 Int_Scalar                 alpha,
-                 Int_Scalar                 beta);
+                 Int_Bivar_Function  const  felm,
+                 Int_Scalar             alpha,
+                 Int_Scalar             beta);
 
     /* DAXPY: a*A + B -> B. */
     int sum_tensors(Int_Scalar   alpha,
@@ -347,24 +365,24 @@ class Int_World{
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(sum_type_t const *  type,
-                    Int_Scalar              alpha,
-                    Int_Scalar              beta);
+                    Int_Scalar          alpha,
+                    Int_Scalar          beta);
 
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
-    int sum_tensors(Int_Scalar                alpha,
+  /*  int sum_tensors(Int_Scalar                alpha,
                     Int_Scalar                beta,
                     int const                 tid_A,
                     int const                 tid_B,
                     int const *               idx_map_A,
                     int const *               idx_map_B,
                     fseq_tsr_sum<dtype> const func_ptr);
-
+*/
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
-    int sum_tensors(sum_type_t const *    type,
+   /* int sum_tensors(sum_type_t const *    type,
                     Int_Scalar                alpha,
                     Int_Scalar                beta,
                     fseq_tsr_sum<dtype> const func_ptr);
-
+*/
     /* DAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B). */
     int sum_tensors(Int_Scalar                alpha,
                     Int_Scalar                beta,
@@ -372,7 +390,7 @@ class Int_World{
                     int const                 tid_B,
                     int const *               idx_map_A,
                     int const *               idx_map_B,
-                    Univar_Function     const felm);
+                    Int_Univar_Function     const felm);
 
     /* copy A into B. Realloc if necessary */
     int copy_tensor(int const tid_A, int const tid_B);
@@ -386,16 +404,16 @@ class Int_World{
                      int const *                idx_map_A);
 
     /* scale tensor by alpha. A <- a*A */
-    int scale_tensor(Int_Scalar                 alpha,
+/*    int scale_tensor(Int_Scalar                 alpha,
                      int const                  tid,
                      int const *                idx_map_A,
                      fseq_tsr_scl<dtype> const  func_ptr);
-
+*/
     /* scale tensor by alpha. A <- a*A */
     int scale_tensor(Int_Scalar                 alpha,
                      int const                  tid,
                      int const *                idx_map_A,
-                     Endomorphosim       const  felm);
+                     Int_Endomorphism       const  felm);
 
     /**
      * \brief estimate the cost of a contraction C[idx_C] = A[idx_A]*B[idx_B]
@@ -433,18 +451,19 @@ class Int_World{
               int const    tid_B);
 
     /* product will contain the dot prodiuct if tsr_A and tsr_B */
-    int dot_tensor(int const tid_A, int const tid_B, dtype *product);
+    int dot_tensor(int const tid_A, int const tid_B, char *product);
 
     /* reduce data of tid_A with the given OP */
-    int reduce_tensor(int const tid, OP op, dtype * result);
+    int reduce_tensor(int const tid, OP op, char * result);
 
     /* map data of tid_A with the given function */
-    int map_tensor(int const tid,
-                   dtype (*map_func)(int const ndim, int const * indices,
-                                     dtype const elem));
-
+/*    int map_tensor(int const tid,
+                   dtype (*map_func)(int ndim, 
+                                     int const * indices,
+                                     dtype elem));
+*/
     /* obtains the largest n elements (in absolute value) of the tensor */
-    int get_max_abs(int const tid, int const n, dtype * data);
+    int get_max_abs(int const tid, int const n, char * data);
 
     /* Prints a tensor on one processor. */
     int print_tensor(FILE * stream, int const tid, double cutoff = -1.0);

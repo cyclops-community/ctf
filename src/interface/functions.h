@@ -28,6 +28,13 @@ class Endomorphism : public Int_Endomorphism {
      * \return f(A)
     */
     Idx_Tensor<dtype> operator()(Idx_Tensor<dtype> const & A);
+
+    /**
+     * \brief apply function f to value stored at a
+     * \param[in,out] a pointer to operand that will be cast to dtype
+     *                  is set to result of applying f on value at a
+     */
+    void apply_f(char * a){ return ((dtype*)a)[0]=f(((dtype*)a)[0]); };
 };
 
 /**
@@ -55,6 +62,13 @@ class Univar_Function : public Int_Univar_Function {
      * return f(A) output tensor 
      */
     Idx_Tensor<dtype_B> operator()(Idx_Tensor<dtype_A> const  & A);
+    
+    /**
+     * \brief apply function f to value stored at a
+     * \param[in] a pointer to operand that will be cast to dtype 
+     * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+     */
+    void apply_f(char const * a, char * b) { ((dtype_B*)b)[0]=f(((dtype_A*)a)[0]); }
 
 };
 
@@ -90,6 +104,16 @@ class Bivar_Function : public Int_Bivar_Function {
     */
     Idx_Tensor<dtype_C> operator()(Idx_Tensor<dtype_A> const  & A, 
                                    Idx_Tensor<dtype_B> const  & B);
+    
+    /**
+     * \brief apply function f to values stored at a and b
+     * \param[in] a pointer to first operand that will be cast to dtype 
+     * \param[in] b pointer to second operand that will be cast to dtype 
+     * \param[in,out] result: c=&f(*a,*b) 
+     */
+    void apply_f(char const * a, char const * b, char * c){ 
+      ((dtype_C*)c)[0]=f(((dtype_A const*)a)[0],((dtype_B const*)b)[0]); 
+    }
 };
 
 

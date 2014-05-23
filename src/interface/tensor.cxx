@@ -10,7 +10,7 @@
 #include <limits.h>
 #include <string.h>
 #include "../shared/util_ext.h"
-#include "../dist_tensor/cyclopstf.hpp"
+#include "../world/int_world.h"
 
 template<typename dtype>
 Tensor<dtype>::Tensor(){

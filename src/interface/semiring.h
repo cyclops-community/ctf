@@ -43,17 +43,49 @@ void default_gemm(dtype         tA,
 }
 
 template<>
-void default_gemm<double>(
-                  double         tA,
-                  double         tB,
-                  int            m,
-                  int            n,
-                  int            k,
-                  double         alpha,
-                  double const * A,
-                  double const * B,
-                  double         beta,
-                  double *       C);
+void default_gemm<float>
+          (float          tA,
+           float          tB,
+           int            m,
+           int            n,
+           int            k,
+           float          alpha,
+           float  const * A,
+           float  const * B,
+           float          beta,
+           float  *       C){
+  sgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
+}
+
+template<>
+void default_gemm<double>
+          (double         tA,
+           double         tB,
+           int            m,
+           int            n,
+           int            k,
+           double         alpha,
+           double const * A,
+           double const * B,
+           double         beta,
+           double *       C){
+  dgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
+}
+
+template<>
+void default_gemm< std::complex<double> >
+          (std::complex<double>         tA,
+           std::complex<double>         tB,
+           int                          m,
+           int                          n,
+           int                          k,
+           std::complex<double>         alpha,
+           std::complex<double> const * A,
+           std::complex<double> const * B,
+           std::complex<double>         beta,
+           std::complex<double> *       C){
+  zgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
+}
 
 template <typename dtype>
 dtype default_add(dtype & a, dtype & b){
@@ -95,7 +127,7 @@ class Semiring : public Int_Semiring {
      */
     Semiring(dtype  addid_,
              dtype  mulid_,
-             MPI_Op addmop_=MPI_OP_SUM,
+             MPI_Op addmop_=MPI_SUM,
              dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
              dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
              void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,

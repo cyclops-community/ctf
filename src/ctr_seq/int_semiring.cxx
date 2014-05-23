@@ -2,6 +2,32 @@
 #include "../shared/util.h"
 #include "../../include/ctf.hpp"
 
+
+void dgemm(double         tA,
+           double         tB,
+           int            m,
+           int            n,
+           int            k,
+           double         alpha,
+           double const * A,
+           double const * B,
+           double         beta,
+           double *       C){
+  int lda_A, lda_B, lda_C;
+  lda_C = m;
+  if (tA == 'n' || tA == 'N'){
+    lda_A = m;
+  } else {
+    lda_A = k;
+  }
+  if (tB == 'n' || tB == 'N'){
+    lda_B = k;
+  } else {
+    lda_B = n;
+  }
+  cdgemm(tA,tB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
+}
+
 Int_Semiring::Int_Semiring(Int_Semiring const & other){
   el_size = other.el_size;
   addid = (char*)alloc(el_size);

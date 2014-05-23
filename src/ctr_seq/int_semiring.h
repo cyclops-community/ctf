@@ -1,6 +1,38 @@
 #ifndef __INT_SEMIRING_H__
 #define __INT_SEMIRING_H__
 
+void sgemm(float          tA,
+           float          tB,
+           int            m,
+           int            n,
+           int            k,
+           float          alpha,
+           float  const * A,
+           float  const * B,
+           float          beta,
+           float  *       C);
+
+void dgemm(double         tA,
+           double         tB,
+           int            m,
+           int            n,
+           int            k,
+           double         alpha,
+           double const * A,
+           double const * B,
+           double         beta,
+           double *       C);
+
+void zgemm(std::complex<double>         tA,
+           std::complex<double>         tB,
+           int                          m,
+           int                          n,
+           int                          k,
+           std::complex<double>         alpha,
+           std::complex<double> const * A,
+           std::complex<double> const * B,
+           std::complex<double>         beta,
+           std::complex<double> *       C);
 /**
  * \brief semirings defined the elementwise operations computed 
  *         in each tensor contraction

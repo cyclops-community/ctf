@@ -34,25 +34,28 @@ template <typename dtype> class Sparse_Tensor;
  * \brief index-value pair used for tensor data input
  */
 template<typename dtype=double>
-class pair {
-  int64_t  k;
+class Pair : Int_Pair {
+  //int64_t k;
   dtype d;
-  pair() {}
-  pair(int64_t  k, dtype d) : k(k), d(d) {}
-  bool operator< (const pair<dtype>& other) const{
+  Pair() {}
+  Pair(int64_t  k, dtype d) : k(k), d(d) {}
+  bool operator< (const Pair<dtype>& other) const{
     return k < other.k;
   }
-  bool operator==(const pair<dtype>& other) const{
+  bool operator==(const Pair<dtype>& other) const{
     return (k == other.k && d == other.d);
   }
-  bool operator!=(const pair<dtype>& other) const{
+  bool operator!=(const Pair<dtype>& other) const{
     return !(*this == other);
+  }
+  char * v(){
+    return (char*)&d;
   }
 };
 
 template<typename dtype>
-inline bool comp_pair(pair<dtype> i,
-                          pair<dtype> j) {
+inline bool comp_pair(Pair<dtype> i,
+                          Pair<dtype> j) {
   return (i.k<j.k);
 }
 
@@ -147,8 +150,8 @@ class Tensor {
      * \param[in] npair number of values to fetch
      * \param[in,out] pairs a prealloced pointer to key-value pairs
      */
-    void read(int64_t           npair,
-              pair<dtype> * pairs) const;
+    void read(int64_t       npair,
+              Pair<dtype> * pairs) const;
     
     /**
      * \brief sparse read: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
@@ -174,7 +177,7 @@ class Tensor {
     void read(int64_t       npair,
               dtype         alpha,
               dtype         beta,
-              pair<dtype> * pairs) const;
+              Pair<dtype> * pairs) const;
    
 
     /**
@@ -196,7 +199,7 @@ class Tensor {
      * \param[in] pairs key-value pairs to write to the tensor
      */
     void write(int64_t              npair,
-               pair<dtype> const *  pairs);
+               Pair<dtype> const *  pairs);
     
     /**
      * \brief sparse add: A[global_idx[i]] = beta*A[global_idx[i]]+alpha*data[i]
@@ -222,7 +225,7 @@ class Tensor {
     void write(int64_t             npair,
                dtype               alpha,
                dtype               beta,
-               pair<dtype> const * pairs);
+               Pair<dtype> const * pairs);
    
     /**
      * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
@@ -430,6 +433,16 @@ class Tensor {
     dtype reduce(OP op);
     
     /**
+     * \brief map data according to global index
+     * \param[in]  map_funcfunction that takes indices and tensor element value and returns new value 
+     */
+    void map_tensor(dtype (*map_func)(int ndim, 
+                                      int const * indices,
+                                      dtype elem));
+
+    /* obtains the largest n elements (in absolute value) of the tensor */
+    int get_max_abs(int const tid, int const n, char * data);
+    /**
      * \brief computes the entrywise 1-norm of the tensor
      */    
     dtype norm1(){ return reduce(OP_NORM1); };
@@ -474,7 +487,7 @@ class Tensor {
      * \param[out] pairs pointer to local key-value pairs
      */
     void read_local(int64_t  *     npair,
-                    pair<dtype> ** pairs) const;
+                    Pair<dtype> ** pairs) const;
 
     /**
      * \brief collects the entire tensor data on each process (not memory scalable)

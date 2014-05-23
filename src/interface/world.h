@@ -2,7 +2,7 @@
 #define __WORLD_H__
 
 #include <mpi.h>
-#include "../world/internal_world.h"
+#include "../world/int_world.h"
 
 /**
  * \defgroup CTF CTF: C++ World interface
