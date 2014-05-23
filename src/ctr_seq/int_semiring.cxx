@@ -2,17 +2,17 @@
 #include "../shared/util.h"
 #include "../../include/ctf.hpp"
 
-
-void dgemm(double         tA,
-           double         tB,
-           int            m,
-           int            n,
-           int            k,
-           double         alpha,
-           double const * A,
-           double const * B,
-           double         beta,
-           double *       C){
+template <typename dtype>
+void dgemm(dtype         tA,
+           dtype         tB,
+           int           m,
+           int           n,
+           int           k,
+           dtype         alpha,
+           dtype const * A,
+           dtype const * B,
+           dtype         beta,
+           dtype *       C){
   int lda_A, lda_B, lda_C;
   lda_C = m;
   if (tA == 'n' || tA == 'N'){
@@ -25,8 +25,13 @@ void dgemm(double         tA,
   } else {
     lda_B = n;
   }
-  cdgemm(tA,tB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
+  cxgemm<dtype>(tA,tB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
 }
+
+typedef sgemm template <> dgemm<float>;
+typedef dgemm template <> dgemm<double>;
+typedef cgemm template <> dgemm< std::complex<float> >;
+typedef zgemm template <> dgemm< std::complex<double> >;
 
 Int_Semiring::Int_Semiring(Int_Semiring const & other){
   el_size = other.el_size;
