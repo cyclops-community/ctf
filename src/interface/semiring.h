@@ -88,6 +88,79 @@ void default_gemm< std::complex<double> >
 }
 
 template <typename dtype>
+void default_axpy(int           n,
+                  dtype         alpha,
+                  dtype const * X,
+                  int           incX,
+                  dtype *       Y,
+                  int           incY){
+  for (int i=0; i<n; i++){
+    Y[incY*i] += alpha*X[incX*i];
+  }
+}
+
+template <>
+void default_axpy<float>
+                 (int           n,
+                  float         alpha,
+                  float const * X,
+                  int           incX,
+                  float *       Y,
+                  int           incY){
+  csaxpy(n,alpha,X,incX,Y,incY);
+}
+
+template <>
+void default_axpy<double>
+                 (int            n,
+                  double         alpha,
+                  double const * X,
+                  int            incX,
+                  double *       Y,
+                  int            incY){
+  cdaxpy(n,alpha,X,incX,Y,incY);
+}
+
+template <>
+void default_axpy< std::complex<double> >
+                 (int                          n,
+                  std::complex<double>         alpha,
+                  std::complex<double> const * X,
+                  int                          incX,
+                  std::complex<double> *       Y,
+                  int                          incY){
+  czaxpy(n,alpha,X,incX,Y,incY);
+}
+
+
+template <typename dtype>
+void default_scal(int           n,
+                  dtype         alpha,
+                  dtype *       X,
+                  int           incX){
+  for (int i=0; i<n; i++){
+    X[incX*i] *= alpha;
+  }
+}
+
+template <>
+void default_scal<float>(int n, float alpha, float * X, int incX){
+  csscal(n,alpha,X,incX);
+}
+
+template <>
+void default_scal<double>(int n, double alpha, double * X, int incX){
+  cdscal(n,alpha,X,incX);
+}
+
+template <>
+void default_scal< std::complex<double> >
+    (int n, std::complex<double> alpha, std::complex<double> * X, int incX){
+  czscal(n,alpha,X,incX);
+}
+
+
+template <typename dtype>
 dtype default_add(dtype & a, dtype & b){
   return a+b;
 }
@@ -132,7 +205,7 @@ class Semiring : public Int_Semiring {
              dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
              void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
              void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
-             void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype> >){
+             void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>){
       addid = addid_;
       mulid = mulid_;
       addmop = addmop_;
@@ -155,7 +228,7 @@ class Semiring : public Int_Semiring {
       addid = addid_;
       addmop = addmop_;
       fadd = fadd_;
-      fmul = &default_fmul<dtype>;
+      fmul = &default_mul<dtype>;
       gemm = &default_gemm<dtype>;
       axpy = &default_axpy<dtype>;
       scal = &default_scal<dtype>;

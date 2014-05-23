@@ -361,23 +361,6 @@ int CTF_free_cond(void * ptr);
 void CTF_mem_create();
 void CTF_mst_create(long_int size);
 void CTF_mem_exit(int rank);
-
-void cdgemm(const char transa,  const char transb,
-            const int m,        const int n,
-            const int k,        const double a,
-            const double * A,   const int lda,
-            const double * B,   const int ldb,
-            const double b,     double * C,
-                                const int ldc);
-
-void czgemm(const char transa,  const char transb,
-            const int m,        const int n,
-            const int k,        const std::complex<double> a,
-            const std::complex<double> * A,     const int lda,
-            const std::complex<double> * B,     const int ldb,
-            const std::complex<double> b,       std::complex<double> * C,
-                                const int ldc);
-
 template <typename dtype>
 void cxgemm(const char transa,  const char transb,
             const int m,        const int n,
@@ -386,15 +369,6 @@ void cxgemm(const char transa,  const char transb,
             const dtype * B,    const int ldb,
             const dtype b,      dtype * C,
                                 const int ldc);
-
-void cdaxpy(const int n,        double dA,
-            const double * dX,  const int incX,
-            double * dY,        const int incY);
-
-void czaxpy(const int n,                        std::complex<double> dA,
-            const std::complex<double> * dX,    const int incX,
-            std::complex<double> * dY,          const int incY);
-
 void cdcopy(const int n,
             const double * dX,  const int incX,
             double * dY,        const int incY);
@@ -402,13 +376,6 @@ void cdcopy(const int n,
 void czcopy(const int n,
             const std::complex<double> * dX,    const int incX,
             std::complex<double> * dY,          const int incY);
-
-void cdscal(const int n,        double dA,
-            double * dX,  const int incX);
-
-void czscal(const int n,        std::complex<double> dA,
-            std::complex<double> * dX,  const int incX);
-
 template <typename dtype>
 void cxaxpy(const int n,        dtype dA,
             const dtype * dX,   const int incX,

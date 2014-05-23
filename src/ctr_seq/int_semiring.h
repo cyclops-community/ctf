@@ -1,6 +1,8 @@
 #ifndef __INT_SEMIRING_H__
 #define __INT_SEMIRING_H__
 
+#include "../shared/util_ext.h"
+
 void sgemm(float          tA,
            float          tB,
            int            m,
