@@ -1,7 +1,6 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include <algorithm>
-#include <iomanip>
 #include <ostream>
 #include <iostream>
 #include <assert.h>
@@ -24,7 +23,7 @@ Tensor<dtype>::Tensor(){
 
 template<typename dtype>
 Tensor<dtype>::Tensor(const Tensor<dtype>& A,
-                                 bool                copy){
+                      bool                 copy){
   int ret;
   world = A.world;
   name = A.name;
@@ -44,8 +43,8 @@ Tensor<dtype>::Tensor(const Tensor<dtype>& A,
 }
 
 template<typename dtype>
-Tensor<dtype>::Tensor(const Tensor<dtype>& A,
-                                World<dtype> & world_){
+Tensor<dtype>::Tensor(const Tensor<dtype> & A,
+                      World &               world_){
   int ret;
   world = &world_;
   name = A.name;
@@ -60,11 +59,11 @@ Tensor<dtype>::Tensor(const Tensor<dtype>& A,
 
 template<typename dtype>
 Tensor<dtype>::Tensor(int                 ndim_,
-                                int const *         len_,
-                                int const *         sym_,
-                                World<dtype> & world_,
-                                char const *        name_,
-                                int const           profile_){
+                      int const *         len_,
+                      int const *         sym_,
+                      World &             world_,
+                      char const *        name_,
+                      int const           profile_){
   int ret;
   world = &world_;
   name = name_;
@@ -99,9 +98,9 @@ dtype * Tensor<dtype>::get_raw_data(int64_t * size) {
 
 template<typename dtype>
 void Tensor<dtype>::read_local(int64_t *   npair, 
-                                    int64_t **  global_idx, 
-                                    dtype **   data) const {
-  pair< dtype > * pairs;
+                               int64_t **  global_idx, 
+                               dtype **   data) const {
+  Pair< dtype > * pairs;
   int ret, i;
   ret = world->ctf->read_local_tensor(tid, npair, &pairs);
   assert(ret == SUCCESS);
@@ -116,19 +115,19 @@ void Tensor<dtype>::read_local(int64_t *   npair,
 }
 
 template<typename dtype>
-void Tensor<dtype>::read_local(int64_t *   npair,
-                                    pair<dtype> **   pairs) const {
+void Tensor<dtype>::read_local(int64_t *      npair,
+                               Pair<dtype> ** pairs) const {
   int ret = world->ctf->read_local_tensor(tid, npair, pairs);
   assert(ret == SUCCESS);
 }
 
 template<typename dtype>
 void Tensor<dtype>::read(int64_t          npair, 
-                              int64_t const *  global_idx, 
-                              dtype *           data) const {
+                         int64_t const *  global_idx, 
+                         dtype *          data) const {
   int ret, i;
-  pair< dtype > * pairs;
-  pairs = (pair< dtype >*)alloc(npair*sizeof(pair< dtype >));
+  Pair< dtype > * pairs;
+  pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
   }
@@ -142,7 +141,7 @@ void Tensor<dtype>::read(int64_t          npair,
 
 template<typename dtype>
 void Tensor<dtype>::read(int64_t          npair,
-                              pair<dtype> * pairs) const {
+                          Pair<dtype> * pairs) const {
   int ret = world->ctf->read_tensor(tid, npair, pairs);
   assert(ret == SUCCESS);
 }
@@ -152,8 +151,8 @@ void Tensor<dtype>::write(int64_t          npair,
                                int64_t const *  global_idx, 
                                dtype const *     data) {
   int ret, i;
-  pair< dtype > * pairs;
-  pairs = (pair< dtype >*)alloc(npair*sizeof(pair< dtype >));
+  Pair< dtype > * pairs;
+  pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
@@ -165,7 +164,7 @@ void Tensor<dtype>::write(int64_t          npair,
 
 template<typename dtype>
 void Tensor<dtype>::write(int64_t                npair,
-                               pair<dtype> const * pairs) {
+                               Pair<dtype> const * pairs) {
   int ret = world->ctf->write_tensor(tid, npair, pairs);
   assert(ret == SUCCESS);
 }
@@ -177,8 +176,8 @@ void Tensor<dtype>::write(int64_t         npair,
                                int64_t const * global_idx, 
                                dtype const *    data) {
   int ret, i;
-  pair< dtype > * pairs;
-  pairs = (pair< dtype >*)alloc(npair*sizeof(pair< dtype >));
+  Pair< dtype > * pairs;
+  pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
@@ -192,7 +191,7 @@ template<typename dtype>
 void Tensor<dtype>::write(int64_t          npair,
                                dtype             alpha,
                                dtype             beta,
-                               pair<dtype> const * pairs) {
+                               Pair<dtype> const * pairs) {
   int ret = world->ctf->write_tensor(tid, npair, alpha, beta, pairs);
   assert(ret == SUCCESS);
 }
@@ -204,8 +203,8 @@ void Tensor<dtype>::read(int64_t         npair,
                               int64_t const * global_idx, 
                               dtype *          data) const{
   int ret, i;
-  pair< dtype > * pairs;
-  pairs = (pair< dtype >*)alloc(npair*sizeof(pair< dtype >));
+  Pair< dtype > * pairs;
+  pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
   for (i=0; i<npair; i++){
     pairs[i].k = global_idx[i];
     pairs[i].d = data[i];
@@ -219,10 +218,10 @@ void Tensor<dtype>::read(int64_t         npair,
 }
 
 template<typename dtype>
-void Tensor<dtype>::read(int64_t          npair,
-                              dtype             alpha,
-                              dtype             beta,
-                              pair<dtype> * pairs) const{
+void Tensor<dtype>::read(int64_t       npair,
+                         dtype         alpha,
+                         dtype         beta,
+                         Pair<dtype> * pairs) const{
   int ret = world->ctf->read_tensor(tid, npair, alpha, beta, pairs);
   assert(ret == SUCCESS);
 }
@@ -247,10 +246,10 @@ int64_t Tensor<dtype>::read_all(dtype * vals) const {
 template<typename dtype>
 int64_t Tensor<dtype>::estimate_cost(
                                   const Tensor<dtype>&     A,
-                                  const char *                  idx_A,
+                                  const char *             idx_A,
                                   const Tensor<dtype>&     B,
-                                  const char *                  idx_B,
-                                  const char *                  idx_C){
+                                  const char *             idx_B,
+                                  const char *             idx_C){
   int * idx_map_A, * idx_map_B, * idx_map_C;
   conv_idx(A.ndim, idx_A, &idx_map_A,
            B.ndim, idx_B, &idx_map_B,
@@ -260,9 +259,9 @@ int64_t Tensor<dtype>::estimate_cost(
 
 template<typename dtype>
 int64_t Tensor<dtype>::estimate_cost(
-                                  const Tensor<dtype>&     A,
-                                  const char *                  idx_A,
-                                  const char *                  idx_B){
+                                  const Tensor<dtype>& A,
+                                  const char *         idx_A,
+                                  const char *         idx_B){
   int * idx_map_A, * idx_map_B;
   conv_idx(A.ndim, idx_A, &idx_map_A,
            ndim, idx_B, &idx_map_B);
@@ -272,14 +271,14 @@ int64_t Tensor<dtype>::estimate_cost(
 }
 
 template<typename dtype>
-void Tensor<dtype>::contract(dtype                         alpha,
-                                  const Tensor<dtype>&     A,
-                                  const char *                  idx_A,
-                                  const Tensor<dtype>&     B,
-                                  const char *                  idx_B,
-                                  dtype                         beta,
-                                  const char *                  idx_C,
-                                  fctr<dtype>              fseq){
+void Tensor<dtype>::contract(dtype                 alpha,
+                             const Tensor<dtype>&  A,
+                             const char *          idx_A,
+                             const Tensor<dtype>&  B,
+                             const char *          idx_B,
+                             dtype                 beta,
+                             const char *          idx_C,
+                             Bivar_Function<dtype> fseq){
   int ret;
   ctr_type_t tp;
   tp.tid_A = A.tid;
@@ -290,13 +289,12 @@ void Tensor<dtype>::contract(dtype                         alpha,
            ndim, idx_C, &tp.idx_map_C);
   assert(A.world->ctf == world->ctf);
   assert(B.world->ctf == world->ctf);
-  if (fseq.func_ptr == NULL)
-    ret = world->ctf->contract(&tp, alpha, beta);
-  else {
+  ret = world->ctf->contract(&tp, fseq, alpha, beta);
+/*  else {
     fseq_elm_ctr<dtype> fs;
     fs.func_ptr = fseq.func_ptr;
     ret = world->ctf->contract(&tp, fs, alpha, beta);
-  }
+  }*/
   free(tp.idx_map_A);
   free(tp.idx_map_B);
   free(tp.idx_map_C);
@@ -330,12 +328,12 @@ void Tensor<dtype>::compare(const Tensor<dtype>& A, FILE* fp, double cutoff) con
 }
 
 template<typename dtype>
-void Tensor<dtype>::sum(dtype                      alpha,
-                             const Tensor<dtype>&  A,
-                             const char *               idx_A,
-                             dtype                      beta,
-                             const char *               idx_B,
-                             fsum<dtype>           fseq){
+void Tensor<dtype>::sum(dtype                  alpha,
+                        const Tensor<dtype>&   A,
+                        const char *           idx_A,
+                        dtype                  beta,
+                        const char *           idx_B,
+                        Univar_Function<dtype> fseq){
   int ret;
   int * idx_map_A, * idx_map_B;
   sum_type_t st;
@@ -347,52 +345,40 @@ void Tensor<dtype>::sum(dtype                      alpha,
   st.idx_map_B = idx_map_B;
   st.tid_A = A.tid;
   st.tid_B = tid;
-  if (fseq.func_ptr == NULL)
-    ret = world->ctf->sum_tensors(&st, alpha, beta);
-  else {
-    fseq_elm_sum<dtype> fs;
-    fs.func_ptr = fseq.func_ptr;
-    ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fs);
-  }
+  ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fseq);
   free(idx_map_A);
   free(idx_map_B);
   assert(ret == SUCCESS);
 }
 
 template<typename dtype>
-void Tensor<dtype>::scale(dtype                  alpha, 
-                               const char *           idx_A,
-                               fscl<dtype>       fseq){
+void Tensor<dtype>::scale(dtype                alpha, 
+                          const char *         idx_A,
+                          Endomorphism<dtype>  fseq){
   int ret;
   int * idx_map_A;
   conv_idx(ndim, idx_A, &idx_map_A);
-  if (fseq.func_ptr == NULL)
-    ret = world->ctf->scale_tensor(alpha, tid, idx_map_A);
-  else{
-    fseq_elm_scl<dtype> fs;
-    fs.func_ptr = fseq.func_ptr;
-    ret = world->ctf->scale_tensor(alpha, tid, idx_map_A, fs);
-  }
+  ret = world->ctf->scale_tensor(alpha, tid, idx_map_A, fseq);
   free(idx_map_A);
   assert(ret == SUCCESS);
 }
 template<typename dtype>
 
 
-void Tensor<dtype>::permute(dtype                  beta,
-                                 Tensor &          A,
-                                 int * const *           perms_A,
-                                 dtype                  alpha){
+void Tensor<dtype>::permute(dtype             beta,
+                            Tensor &          A,
+                            int * const *     perms_A,
+                            dtype             alpha){
   int ret = world->ctf->permute_tensor(A.tid, perms_A, alpha, A.world->ctf, 
                                        tid, NULL, beta, world->ctf);
   assert(ret == SUCCESS);
 }
 
 template<typename dtype>
-void Tensor<dtype>::permute(int * const *           perms_B,
-                                 dtype                  beta,
-                                 Tensor &          A,
-                                 dtype                  alpha){
+void Tensor<dtype>::permute(int * const * perms_B,
+                            dtype         beta,
+                            Tensor &      A,
+                            dtype         alpha){
   int ret = world->ctf->permute_tensor(A.tid, NULL, alpha, A.world->ctf, 
                                        tid, perms_B, beta, world->ctf);
   assert(ret == SUCCESS);
@@ -437,12 +423,12 @@ void Tensor<dtype>::add_from_subworld(
 
 template<typename dtype>
 void Tensor<dtype>::slice(int const *    offsets,
-                               int const *    ends,
-                               dtype          beta,
-                               Tensor const &  A,
-                               int const *    offsets_A,
-                               int const *    ends_A,
-                               dtype          alpha) const {
+                          int const *    ends,
+                          dtype          beta,
+                          Tensor const & A,
+                          int const *    offsets_A,
+                          int const *    ends_A,
+                          dtype          alpha) const {
   int ret, np_A, np_B;
   if (A.world->comm != world->comm){
     MPI_Comm_size(A.world->comm, &np_A);
@@ -459,13 +445,13 @@ void Tensor<dtype>::slice(int const *    offsets,
 }
 
 template<typename dtype>
-void Tensor<dtype>::slice(int64_t       corner_off,
-                               int64_t       corner_end,
-                               dtype          beta,
-                               Tensor const &  A,
-                               int64_t       corner_off_A,
-                               int64_t       corner_end_A,
-                               dtype          alpha) const {
+void Tensor<dtype>::slice(int64_t        corner_off,
+                          int64_t        corner_end,
+                          dtype          beta,
+                          Tensor const & A,
+                          int64_t        corner_off_A,
+                          int64_t        corner_end_A,
+                          dtype          alpha) const {
   int * offsets, * ends, * offsets_A, * ends_A;
  
   conv_idx(this->ndim, this->len, corner_off, &offsets);
@@ -482,15 +468,15 @@ void Tensor<dtype>::slice(int64_t       corner_off,
 }
 
 template<typename dtype>
-Tensor<dtype> Tensor<dtype>::slice(int const *          offsets,
-                                             int const *          ends) const {
+Tensor<dtype> Tensor<dtype>::slice(int const * offsets,
+                                   int const * ends) const {
 
   return slice(offsets, ends, world);
 }
 
 template<typename dtype>
 Tensor<dtype> Tensor<dtype>::slice(int64_t corner_off,
-                                             int64_t corner_end) const {
+                                   int64_t corner_end) const {
 
   return slice(corner_off, corner_end, world);
 }
@@ -499,12 +485,12 @@ Tensor<dtype> Tensor<dtype>::slice(int64_t corner_off,
 
 
 template<typename dtype>
-Tensor<dtype> Tensor<dtype>::slice(int const *          offsets,
-                                             int const *          ends,
-                                             World<dtype> *  owrld) const {
+Tensor<dtype> Tensor<dtype>::slice(int const *  offsets,
+                                   int const *  ends,
+                                   World *      owrld) const {
   int i;
-  int * new_lens = (int*)alloc(sizeof(int)*ndim);
-  int * new_sym = (int*)alloc(sizeof(int)*ndim);
+  int * new_lens = (int*)CTF_alloc(sizeof(int)*ndim);
+  int * new_sym = (int*)CTF_alloc(sizeof(int)*ndim);
   for (i=0; i<ndim; i++){
     assert(ends[i] - offsets[i] > 0 && 
                 offsets[i] >= 0 && 
@@ -528,9 +514,9 @@ Tensor<dtype> Tensor<dtype>::slice(int const *          offsets,
 }
 
 template<typename dtype>
-Tensor<dtype> Tensor<dtype>::slice(int64_t             corner_off,
-                                             int64_t             corner_end,
-                                             World<dtype> *  owrld) const {
+Tensor<dtype> Tensor<dtype>::slice(int64_t  corner_off,
+                                   int64_t  corner_end,
+                                   World *  owrld) const {
 
   int * offsets, * ends;
  
@@ -565,8 +551,8 @@ dtype Tensor<dtype>::reduce(OP op){
   return ans;
 }
 template<typename dtype>
-void Tensor<dtype>::get_max_abs(int        n,
-                                     dtype *    data){
+void Tensor<dtype>::get_max_abs(int     n,
+                                dtype * data){
   int ret;
   ret = world->ctf->get_max_abs(tid, n, data);
   assert(ret == SUCCESS);
@@ -650,9 +636,9 @@ class Sparse_Tensor {
      * \param[in] indices an array of global indices to tensor values
      * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
      */
-    Sparse_Tensor(int64_t              n,
-                       int64_t *            indices,
-                       Tensor<dtype> * parent);
+    Sparse_Tensor(int64_t         n,
+                  int64_t *       indices,
+                  Tensor<dtype> * parent);
 
     /**
      * \brief set the sparse set of indices on the parent tensor to values

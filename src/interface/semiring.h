@@ -26,11 +26,6 @@ class Semiring : public Int_Semiring {
     void (*scal)(int,dtype,dtype*,int);
   public:
     /**
-     * \brief default constructor, instantiates to (*,+) and {s,d,z}gemm if possible
-     */
-    Semiring();
-    
-    /**
      * \brief constructor for semiring equipped with * and +
      * \param[in] addid_ additive identity
      * \param[in] mulid_ multiplicative identity

@@ -703,28 +703,6 @@ void cxcopy< std::complex<double> >
   czcopy(n, dX, incX, dY, incY);
 }
 
-
-int conv_idx(int const      ndim,
-             char const *   cidx,
-             int **         iidx);
-
-int  conv_idx(int const         ndim_A,
-              char const *      cidx_A,
-              int **            iidx_A,
-              int const         ndim_B,
-              char const *      cidx_B,
-              int **            iidx_B);
-
-int  conv_idx(int const         ndim_A,
-              char const *      cidx_A,
-              int **            iidx_A,
-              int const         ndim_B,
-              char const *      cidx_B,
-              int **            iidx_B,
-              int const         ndim_C,
-              char const *      cidx_C,
-              int **            iidx_C);
-
 void conv_idx(int          ndim,
               int const *  lens,
               long_int     idx,

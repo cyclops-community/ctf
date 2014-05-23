@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <complex>
 #include "../ctr_seq/int_functions.h"
-#include "../interface/tensor.h"
 
 /* READ ME!
  * ALL BELOW FUNCTIONS MUST BE CALLED BY ALL MEMBERS OF MPI_COMM_WORLD
@@ -79,6 +78,14 @@ typedef struct sum_type {
   int * idx_map_B; /* map indices of tensor B to sum */
 } sum_type_t;
 
+
+/**
+ * \brief reduction types for tensor data
+ */
+enum OP { OP_SUM, OP_SUMABS,
+          OP_NORM1, OP_NORM2, OP_NORM_INFTY,
+          OP_MAX, OP_MIN, OP_MAXABS, OP_MINABS};
+
 enum { SUCCESS, ERROR, NEGATIVE };
 
 enum MACHINE { MACHINE_GENERIC, MACHINE_BGP, MACHINE_BGQ,
@@ -93,21 +100,21 @@ class Int_Scalar{
 
 };
 
-class Int_Pair{
-  int64_t k;
-  virtual char * v(){ return NULL; }
-  virtual bool operator<(const Int_Pair & other) const { 
-    assert(0);
-    return 1;
-  }
-  virtual bool operator==(const Int_Pair & other) const { 
-    assert(0);
-    return 1;
-  }
-  virtual bool operator!=(const Int_Pair & other) const { 
-    assert(0);
-    return 1;
-  }
+class Int_Pair {
+  public:
+    virtual char * v(){ return NULL; }
+    virtual bool operator<(const Int_Pair & other) const { 
+      assert(0);
+      return 1;
+    }
+    virtual bool operator==(const Int_Pair & other) const { 
+      assert(0);
+      return 1;
+    }
+    virtual bool operator!=(const Int_Pair & other) const { 
+      assert(0);
+      return 1;
+    }
 };
 
 class Int_World{
@@ -491,7 +498,7 @@ class Int_World{
     int exit();
 
     /* ScaLAPACK back-end */
-    int pgemm( char const         TRANSA,
+    /*int pgemm( char const         TRANSA,
                char const         TRANSB,
                int const          M,
                int const          N,
@@ -510,21 +517,21 @@ class Int_World{
                int const          IC,
                int const          JC,
                int const *        DESCC);
-
+*/
     /* define matrix from ScaLAPACK descriptor */
-    int def_scala_mat(int const * DESCA, dtype const * data, int * tid);
+  //  int def_scala_mat(int const * DESCA, dtype const * data, int * tid);
 
     /* reads a ScaLAPACK matrix to the original data pointer */
-    int read_scala_mat(int const tid, dtype * data);
+//    int read_scala_mat(int const tid, dtype * data);
 
-    int pgemm( char const         TRANSA,
+  /*  int pgemm( char const         TRANSA,
                char const         TRANSB,
                dtype const        ALPHA,
                int const          tid_A,
                int const          tid_B,
                dtype const        BETA,
                int const          tid_C);
-
+*/
 };
 
 

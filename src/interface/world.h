@@ -15,7 +15,7 @@
 class World {
   public:
     MPI_Comm comm;
-    Int_World * internal;
+    Int_World * ctf;
 
   public:
     /**

@@ -66,4 +66,28 @@ void ccscal(int n, std::complex<float> dA, std::complex<float> * dX, int incX);
 
 void czscal(int n, std::complex<double> dA, std::complex<double> * dX, int incX);
 
+
+int conv_idx(int          ndim,
+             char const * cidx,
+             int **       iidx);
+
+int conv_idx(int          ndim_A,
+             char const * cidx_A,
+             int **       iidx_A,
+             int          ndim_B,
+             char const * cidx_B,
+             int **       iidx_B);
+
+int conv_idx(int          ndim_A,
+             char const * cidx_A,
+             int **       iidx_A,
+             int          ndim_B,
+             char const * cidx_B,
+             int **       iidx_B,
+             int          ndim_C,
+             char const * cidx_C,
+             int **       iidx_C);
+
+
+
 #endif
