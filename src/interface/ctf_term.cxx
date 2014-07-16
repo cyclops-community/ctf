@@ -132,10 +132,10 @@ tCTF_Term<dtype>::operator dtype() const {
 template<typename dtype>
 tCTF_Contract_Term<dtype> tCTF_Term<dtype>::operator*(tCTF_Term<dtype> const & A) const {
   tCTF_Contract_Term<dtype> trm;
-  //trm.operands.push_back(A.clone());
-  //trm.operands.push_back(this->clone());
-  trm.operands.push_back(this->clone());
   trm.operands.push_back(A.clone());
+  trm.operands.push_back(this->clone());
+  //trm.operands.push_back(this->clone());
+  //trm.operands.push_back(A.clone());
   return trm;
 }
 

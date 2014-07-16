@@ -112,8 +112,17 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
     CTF_set_main_args(argc, argv);
 
 #ifdef USE_OMP
-    if (rank == 0)
-      VPRINTF(1,"Running with %d threads\n",omp_get_max_threads());
+    char * ntd = getenv("OMP_NUM_THREADS");
+    if (ntd == NULL){
+      omp_set_num_threads(1);
+      if (rank == 0){
+        VPRINTF(1,"Running with 1 thread using omp_set_num_threads(1), because OMP_NUM_THREADS is not defined\n");
+      }
+    } else {
+      if (rank == 0 && ntd != NULL){
+        VPRINTF(1,"Running with %d threads\n",omp_get_num_threads());
+      }
+    }
 #endif
   
     mst_size = getenv("CTF_MST_SIZE");
@@ -632,30 +641,36 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
   sprintf(cname+strlen(cname),"]");
 
   double dtt;
+  CTF_Timer tctr(cname);
   if (dt->get_global_comm().rank == 0){
     dtt = MPI_Wtime();
     VPRINTF(1,"Contracting: %s\n",cname);
-   
-    CTF_Timer tctr(cname);
-    if ((*dt->get_tensors())[type->tid_A]->profile &&
-        (*dt->get_tensors())[type->tid_B]->profile &&
-        (*dt->get_tensors())[type->tid_C]->profile){
-      tctr.start(); 
+  }
+  if ((*dt->get_tensors())[type->tid_A]->profile &&
+      (*dt->get_tensors())[type->tid_B]->profile &&
+      (*dt->get_tensors())[type->tid_C]->profile){
+    tctr.start(); 
+  }
+  ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
+  
+#if (VERBOSE>1)
+  if (dt->get_global_comm().rank == 0){
+    if (dt->get_global_comm().rank == 0){
+      VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   
     }
-      ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
-    if ((*dt->get_tensors())[type->tid_A]->profile &&
-        (*dt->get_tensors())[type->tid_B]->profile &&
-        (*dt->get_tensors())[type->tid_C]->profile){
-      tctr.stop();
-      if (dt->get_global_comm().rank == 0){
-        VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   
-      }
-    }
+  }
+#endif
+  if ((*dt->get_tensors())[type->tid_A]->profile &&
+      (*dt->get_tensors())[type->tid_B]->profile &&
+      (*dt->get_tensors())[type->tid_C]->profile){
+    tctr.stop();
   }
 #else
   ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
+#if DEBUG >= 1
   if (dt->get_global_comm().rank == 0)
     printf("End head contraction.\n");
+#endif
 #endif
 
   return ret;
