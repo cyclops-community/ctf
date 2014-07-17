@@ -208,8 +208,8 @@ void wr_pairs_layout(int const          ndim,
                      CommData_t         glb_comm){
 
   long_int i, new_num_pair, nwrite, swp;
-  int * bucket_counts, * recv_counts;
-  int * recv_displs, * send_displs;
+  long_int * bucket_counts, * recv_counts;
+  long_int * recv_displs, * send_displs;
   int * depadding, * depad_edge_len;
   int * ckey;
   int j, is_out, sign, is_perm;
@@ -218,10 +218,10 @@ void wr_pairs_layout(int const          ndim,
 
   CTF_alloc_ptr(inwrite*sizeof(tkv_pair<dtype>),      (void**)&buf_data);
   CTF_alloc_ptr(inwrite*sizeof(tkv_pair<dtype>),      (void**)&swap_data);
-  CTF_alloc_ptr(np*sizeof(int),                      (void**)&bucket_counts);
-  CTF_alloc_ptr(np*sizeof(int),                      (void**)&recv_counts);
-  CTF_alloc_ptr(np*sizeof(int),                      (void**)&send_displs);
-  CTF_alloc_ptr(np*sizeof(int),                      (void**)&recv_displs);
+  CTF_alloc_ptr(np*sizeof(long_int),                  (void**)&bucket_counts);
+  CTF_alloc_ptr(np*sizeof(long_int),                  (void**)&recv_counts);
+  CTF_alloc_ptr(np*sizeof(long_int),                  (void**)&send_displs);
+  CTF_alloc_ptr(np*sizeof(long_int),                  (void**)&recv_displs);
 
   TAU_FSTART(wr_pairs_layout);
 
@@ -297,8 +297,8 @@ void wr_pairs_layout(int const          ndim,
                send_displs, buf_data);
 
   /* Exchange send counts */
-  ALL_TO_ALL(bucket_counts, 1, COMM_INT_T, 
-             recv_counts, 1, COMM_INT_T, glb_comm);
+  ALL_TO_ALL(bucket_counts, 1, MPI_INT64_T,
+             recv_counts, 1, MPI_INT64_T, glb_comm);
 
   /* calculate offsets */
   recv_displs[0] = 0;
@@ -307,12 +307,12 @@ void wr_pairs_layout(int const          ndim,
   }
   new_num_pair = recv_displs[np-1] + recv_counts[np-1];
 
-  for (i=0; i<np; i++){
+  /*for (i=0; i<np; i++){
     bucket_counts[i] = bucket_counts[i]*sizeof(tkv_pair<dtype>);
     send_displs[i] = send_displs[i]*sizeof(tkv_pair<dtype>);
     recv_counts[i] = recv_counts[i]*sizeof(tkv_pair<dtype>);
     recv_displs[i] = recv_displs[i]*sizeof(tkv_pair<dtype>);
-  }
+  }*/
 
   if (new_num_pair > nwrite){
     CTF_free(swap_data);
@@ -320,8 +320,10 @@ void wr_pairs_layout(int const          ndim,
   }
 
   /* Exchange data according to counts/offsets */
-  ALL_TO_ALLV(buf_data, bucket_counts, send_displs, MPI_CHAR,
-              swap_data, recv_counts, recv_displs, MPI_CHAR, glb_comm);
+  //ALL_TO_ALLV(buf_data, bucket_counts, send_displs, MPI_CHAR,
+  //            swap_data, recv_counts, recv_displs, MPI_CHAR, glb_comm);
+  CTF_all_to_allv(buf_data, bucket_counts, send_displs, sizeof(tkv_pair<dtype>),
+                  swap_data, recv_counts, recv_displs, glb_comm);
   
 
   /*printf("[%d] old_num_pair = %d new_num_pair = %d\n", 
@@ -365,8 +367,10 @@ void wr_pairs_layout(int const          ndim,
     }
   
     /* Inverse the transpose we did above to get the keys back to requestors */
-    ALL_TO_ALLV(swap_data, recv_counts, recv_displs, MPI_CHAR,
-                buf_data, bucket_counts, send_displs, MPI_CHAR, glb_comm);
+    //ALL_TO_ALLV(swap_data, recv_counts, recv_displs, MPI_CHAR,
+    //            buf_data, bucket_counts, send_displs, MPI_CHAR, glb_comm);
+    CTF_all_to_allv(swap_data, recv_counts, recv_displs, sizeof(tkv_pair<dtype>),
+                    buf_data, bucket_counts, send_displs, glb_comm);
     
 
     /* unpad the keys if necesary */
@@ -380,7 +384,7 @@ void wr_pairs_layout(int const          ndim,
     /* Search for the keys in the same order they were requested */
     j=0;
     for (i=0; i<inwrite; i++){
-      if (j<(int)changed_key_indices.size() && changed_key_indices[j] == i){
+      if (j<(long_int)changed_key_indices.size() && changed_key_indices[j] == i){
         if (changed_key_scale[j] == 0.0){
           wr_pairs[i].d= 0.0;
         } else {
