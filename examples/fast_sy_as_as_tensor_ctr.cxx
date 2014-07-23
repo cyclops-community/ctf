@@ -16,6 +16,136 @@
 #include <algorithm>
 #include <ctf.hpp>
 
+//gets parity of (a,b) in chi(c)
+int parity(char const * a, char const * b, char const * c, int len_A, int len_B){
+  char ab[len_A+len_B];
+  for (int i=0; i<len_A; i++){
+    ab[i] = a[i];
+  }
+  for (int i=0; i<len_B; i++){
+    ab[len_A+i] = b[i];
+  }
+  /*for (int i=0; i<len_A+len_B; i++){
+    printf("%c", ab[i]);
+  }
+  printf("\n");
+  for (int i=0; i<len_A+len_B; i++){
+    printf("%c", c[i]);
+  }
+  printf("\n");*/
+  int par = 0;
+  for (int i=0; i<len_A+len_B; i++){
+    if (ab[i] != c[i]){
+      int j;
+      for (j=i+1; j<len_A+len_B; j++){
+        if (ab[j] == c[i]){
+          ab[j] = ab[i];
+          ab[i] = c[i];
+          par++;
+          break;
+        }
+      }
+      assert(j<len_A+len_B);
+    }
+  }
+  //printf("parity = %d\n", par);
+  return par;
+}
+
+//gets parity of a in chi(c)
+int parity(char const * a, char const * c, int len_A, int len_C){
+  if (len_A == len_C) return parity(a, NULL, c, len_A, 0);
+  else {
+    char b[len_C-len_A];
+    int ib = 0;
+    for (int i=0; i<len_C; i++){
+      int j;
+      for (j=0; j<len_A; j++){
+        if (c[i] == a[j]) break;
+      }
+      if (j==len_A){
+        b[ib] = c[i];
+        ib++;
+      }
+    }
+    assert(ib == len_C-len_A);
+    return parity(a, b, c, len_A, len_C-len_A);
+  }
+}
+
+double sign(int par){
+  //printf("par = %d, %d\n",par, par%2);
+  if (par%2 == 1) return -1.0;
+  else return 1.0;
+}
+
+
+void get_rand_as_tsr(CTF_Tensor &tsr, int seed){
+  int64_t * indices, size;
+  double * values;
+  int dim = tsr.ndim;
+  if (dim == 1){
+    srand48(seed);
+    tsr.read_local(&size, &indices, &values);
+    for (int64_t i=0; i<size; i++){
+      values[i] = drand48();
+    }
+    tsr.write(size, indices, values);
+    free(indices);
+    free(values);
+  } else {
+    CTF_Tensor tsr_n1(dim-1, tsr.len, tsr.sym, *tsr.world);
+    get_rand_as_tsr(tsr_n1, seed+1);
+    CTF_Vector v(tsr.len[0], *tsr.world);
+    srand48(2*seed);
+    v.read_local(&size, &indices, &values);
+    for (int64_t i=0; i<size; i++){
+      values[i] = drand48();
+    }
+    v.write(size, indices, values);
+    free(indices);
+    free(values);
+    char str[dim];
+    char str_n1[dim-1];
+    for (int i=0; i<dim; i++){
+      str[i] = 'a'+i;
+    }
+    double sgn = 1.0;
+    for (int i=0; i<dim; i++){
+      for (int j=0; j<dim-1; j++){
+        if (j>=i) str_n1[j] = str[j+1];
+        else str_n1[j] =str[j];
+      }
+      //printf("sgn = %lf %lf\n",sgn,sign(parity(str+i, str_n1, str, 1, dim-1)));
+      assert(sign(parity(str+i, str_n1, str, 1, dim-1)) == sgn);
+      tsr[str] += sgn*v[str+i]*tsr_n1[str_n1];
+      sgn *= -1.0;
+    }
+  }
+}
+
+bool check_asym(CTF_Tensor tsr){
+  int dim = tsr.ndim;
+  CTF_Tensor ptsr(dim, tsr.len, tsr.sym, *tsr.world);
+  char str[dim];
+  char pstr[dim];
+  for (int i=0; i<dim; i++){
+    str[i] = 'a'+i;
+    pstr[i] = 'a'+i;
+  }
+  for (int i=0; i<dim; i++){
+    for (int j=i+1; j<dim; j++){
+      pstr[i] = str[j];
+      pstr[j] = str[i];
+      ptsr[str] += tsr[str];
+      ptsr[str] += tsr[pstr];
+      if (ptsr.norm2() > 1.E-6) return false;
+      pstr[i] = str[i];
+      pstr[j] = str[j];
+    }
+  }
+  return true;
+}
 
 bool check_sym(CTF_Tensor tsr){
   int dim = tsr.ndim;
@@ -247,33 +377,16 @@ int fast_tensor_ctr(int        n,
   CTF_Tensor C(s+t, len_C, sym_C, ctf, "C", 1);
   CTF_Tensor C_int(s+t, len_C, sym_C, ctf, "C_psym", 1);
   CTF_Tensor C_ans(s+t, len_C, sym_C, ctf, "C_ans", 1);
-  
-  CTF_Vector vec(n, ctf, "vec", 1);
-  srand48(13);
-  vec.read_local(&size, &indices, &values);
-  for (i=0; i<size; i++){
-    values[i] = drand48();
-  }
-  vec.write(size, indices, values);
-  free(indices);
-  free(values);
-
-  for (i=0; i<s+v; i++){
-    A[idx_A] += vec[idx_A+i];
-  }
-  
-  vec.read_local(&size, &indices, &values);
-  for (i=0; i<size; i++){
-    values[i] = drand48();
-  }
-  vec.write(size, indices, values);
-  free(indices);
-  free(values);
-
-  for (i=0; i<t+v; i++){
-    B[idx_B] += vec[idx_B+i];
-  }
-
+  get_rand_as_tsr(A, 13);
+  //A.print();
+  assert(check_asym(A));
+  if (A.ndim > 1)
+    assert(!check_sym(A));
+ 
+  get_rand_as_tsr(B, 21);
+  assert(check_asym(B));
+  if (B.ndim > 1)
+    assert(!check_sym(B));
     
   C_int[idx_C] += A[idx_A]*B[idx_B];
 
@@ -312,8 +425,11 @@ int fast_tensor_ctr(int        n,
   chi(idx_Z, s+t+v, s+v, &nAperms, &idx_Asv);
 
   for (i=0; i<nAperms; i++){
-    Z_A_ops[idx_Z] += A[idx_Asv[i]];
+    Z_A_ops[idx_Z] += sign(parity(idx_Asv[i], idx_Z, s+v, s+t+v))*A[idx_Asv[i]];
   }
+  bool is_A_asym = check_asym(Z_A_ops);
+  if (is_A_asym) printf("Z_A_ops is antisymmetric\n");
+  else printf("Z_A_ops is NOT antisymmetric!!\n");
   
   int nBperms;
   char ** idx_Btv;
@@ -321,8 +437,11 @@ int fast_tensor_ctr(int        n,
   chi(idx_Z, s+t+v, t+v, &nBperms, &idx_Btv);
 
   for (i=0; i<nBperms; i++){
-    Z_B_ops[idx_Z] += B[idx_Btv[i]];
+    Z_B_ops[idx_Z] += sign(parity(idx_Btv[i], idx_Z, t+v, s+t+v))*B[idx_Btv[i]];
   }
+  bool is_B_asym = check_asym(Z_B_ops);
+  if (is_B_asym) printf("Z_B_ops is antisymmetric\n");
+  else printf("Z_B_ops is NOT antisymmetric!!\n");
   
 
   Z_mults[idx_Z] = Z_A_ops[idx_Z]*Z_B_ops[idx_Z];
@@ -336,13 +455,16 @@ int fast_tensor_ctr(int        n,
     idx_Z[i] = idx_Z[s+t-1]+(i-s-t+1);
   }
 
-  C[idx_C]+=Z_mults[idx_Z];
+  C[idx_C]+=sign(s*t+s*v+t*v)*Z_mults[idx_Z];
 
   CTF_Tensor V(s+t, len_C, sym_C, ctf, "V");
   for (int r=0; r<v; r++){
     for (int p=std::max(v-t-r,0); p<=v-r; p++){
       for (int q=std::max(v-s-r,0); q<=v-p-r; q++){
         double prefact = (double)(choose(v,r)*choose(v-r,p)*choose(v-p-r,q)*pow(n,v-p-q-r));
+        double sgn_V = sign(s*t+(p+q)*v+p*q);
+        prefact*= sgn_V;
+  
         char idx_kr[r];
         for (i=0; i<r; i++){
           idx_kr[i] = 'a'+s+t+i;
@@ -369,13 +491,15 @@ int fast_tensor_ctr(int        n,
           memcpy(idx_VAA, idx_VAsvpr[i], (s+v-p-r)*sizeof(char));
           memcpy(idx_VAA+s+v-p-r, idx_kr, r*sizeof(char));
           memcpy(idx_VAA+s+v-p, idx_kp, p*sizeof(char));
-          V_A_ops[idx_VA] += A[idx_VAA];
+          double sgn_VA = sign(parity(idx_VAsvpr[i], idx_C, s+v-p-r, s+t));
+          V_A_ops[idx_VA] += sgn_VA*A[idx_VAA];
         }
 
         CTF_Tensor V_B_ops(s+t+r, len_Z, sym_Z, ctf, "V_B_ops");
         char idx_VB[s+t+r];
         memcpy(idx_VB,idx_C,(s+t)*sizeof(char));
         memcpy(idx_VB+s+t,idx_kr,r*sizeof(char));
+
 
         int nvBperms;
         char ** idx_VBtvqr;
@@ -391,7 +515,8 @@ int fast_tensor_ctr(int        n,
           for (i=0; i<s+t+r; i++){
             printf("index %d of V_B is %c\n",i, idx_VB[i]);
           }*/
-          V_B_ops[idx_VB] += B[idx_VBB];
+          double sgn_VB = sign(parity(idx_VBtvqr[i], idx_C, t+v-q-r, s+t));
+          V_B_ops[idx_VB] += sgn_VB*B[idx_VBB];
         }
 
         V[idx_C] += prefact*V_A_ops[idx_VA]*V_B_ops[idx_VB];
@@ -415,26 +540,37 @@ int fast_tensor_ctr(int        n,
     memcpy(idx_U, idx_kr, sizeof(char)*r);
     memcpy(idx_UA, idx_kr, sizeof(char)*r);
     memcpy(idx_UB, idx_kr, sizeof(char)*r);
-    memcpy(idx_UA+r, idx_kv, sizeof(char)*v);
-    memcpy(idx_UB+r, idx_kv, sizeof(char)*v);
     int npermU;
     char ** idxj, ** idxl;
     chi(idx_C, s+t-2*r, s-r, t-r, &npermU, &idxj, &idxl);
     memcpy(idx_U+r,idx_C,s+t-2*r);
     for (int i=0; i<npermU; i++){
-      memcpy(idx_UA+r+v,idxj[i],s-r);
-      memcpy(idx_UB+r+v,idxl[i],t-r);
+      memcpy(idx_UA+r,idxj[i],s-r);
+      memcpy(idx_UB+r,idxl[i],t-r);
+      memcpy(idx_UA+s, idx_kv, sizeof(char)*v);
+      memcpy(idx_UB+t, idx_kv, sizeof(char)*v);
+//      double sgnU = sign(parity(idxj[i], idxl[i], idx_C, s-r, t-r));
       U[idx_U] += A[idx_UA]*B[idx_UB];
     }
-    int npermW;
-    char ** idxh, ** idxr;
-    chi(idx_C, s+t, r, s+t-2*r, &npermW, &idxr, &idxh);
-    for (int i=0; i<npermW; i++){
-      memcpy(idx_U,idxr[i],r);
-      memcpy(idx_U+r,idxh[i],s+t-2*r);
-      W[idx_C] += U[idx_U];
+    int npermW1;
+    char ** idxh1;
+    chi(idx_C, s+t, s+t-r, &npermW1,&idxh1);
+    for (int j=0; j<npermW1; j++){
+//      double sgn1 = sign(parity(idxh1[j], idx_C, s+t-r, s+t));
+      int npermW;
+      char ** idxh, ** idxr;
+      chi(idxh1[j], s+t-r, r, s+t-2*r, &npermW, &idxr, &idxh);
+      for (int i=0; i<npermW; i++){
+        memcpy(idx_U,idxr[i],r);
+        memcpy(idx_U+r,idxh[i],s+t-2*r);
+        //W[idx_C] += sgn1*sign(parity(idxr[i], idxh[i],idxh1[j], r,s+t-2*r))*U[idx_U];
+        W[idx_C] += sign(s*t)*U[idx_U];
+      }
     }
   }
+  assert(check_sym(C));
+  assert(check_sym(V));
+  assert(check_sym(W));
   
   C[idx_C] -= V[idx_C];
   C[idx_C] -= W[idx_C];
