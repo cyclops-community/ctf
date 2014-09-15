@@ -6,7 +6,6 @@
 #include "mpi.h"
 #include <stdint.h>
 #include <stdio.h>
-#include <complex>
 #include "../ctr_seq/int_functions.h"
 
 /* READ ME!

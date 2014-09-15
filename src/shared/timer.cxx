@@ -7,8 +7,8 @@
 #include "assert.h"
 #include <iostream>
 #include <vector>
-#include "timer.h"
 #include "util.h"
+#include "timer.h"
 
 #define MAX_TOT_SYMBOLS_LEN 1000000
 
@@ -20,7 +20,7 @@ double complete_time;
 int set_contxt = 0;
 int output_file_counter = 0;
 
-CTF_Function_timer::CTF_Function_timer(char const * name_, 
+Function_timer::Function_timer(char const * name_, 
                                double const start_time_,
                                double const start_excl_time_){
   snprintf(name, MAX_NAME_LENGTH, "%s", name_);
@@ -31,7 +31,7 @@ CTF_Function_timer::CTF_Function_timer(char const * name_,
   calls = 0;
 }
 
-void CTF_Function_timer::compute_totals(MPI_Comm comm){ 
+void Function_timer::compute_totals(MPI_Comm comm){ 
   PMPI_Allreduce(&acc_time, &total_time, 1, 
                 MPI_DOUBLE, MPI_SUM, comm);
   PMPI_Allreduce(&acc_excl_time, &total_excl_time, 1, 
@@ -40,11 +40,11 @@ void CTF_Function_timer::compute_totals(MPI_Comm comm){
                 MPI_INT, MPI_SUM, comm);
 }
 
-bool CTF_Function_timer::operator<(CTF_Function_timer const & w) const {
+bool Function_timer::operator<(Function_timer const & w) const {
   return total_time > w.total_time;
 }
 
-void CTF_Function_timer::print(FILE *         output, 
+void Function_timer::print(FILE *         output, 
                            MPI_Comm const comm, 
                            int const      rank,
                            int const      np){
@@ -71,13 +71,13 @@ void CTF_Function_timer::print(FILE *         output,
   } 
 }
 
-bool comp_name(CTF_Function_timer const & w1, CTF_Function_timer const & w2) {
+bool comp_name(Function_timer const & w1, Function_timer const & w2) {
   return strcmp(w1.name, w2.name)>0;
 }
 
-std::vector<CTF_Function_timer> function_timers;
+std::vector<Function_timer> function_timers;
 
-CTF_Timer::CTF_Timer(const char * name){
+Timer::Timer(const char * name){
 #ifdef PROFILE
   int i;
   if (function_timers.size() == 0) {
@@ -90,7 +90,7 @@ CTF_Timer::CTF_Timer(const char * name){
     original = 1;
     index = 0;
     excl_time = 0.0;
-    function_timers.push_back(CTF_Function_timer(name, MPI_Wtime(), 0.0)); 
+    function_timers.push_back(Function_timer(name, MPI_Wtime(), 0.0)); 
   } else {
     for (i=0; i<(int)function_timers.size(); i++){
       if (strcmp(function_timers[i].name, name) == 0){
@@ -103,14 +103,14 @@ CTF_Timer::CTF_Timer(const char * name){
     original = (index==0);
   }
   if (index == (int)function_timers.size()) {
-    function_timers.push_back(CTF_Function_timer(name, MPI_Wtime(), excl_time)); 
+    function_timers.push_back(Function_timer(name, MPI_Wtime(), excl_time)); 
   }
   timer_name = name;
   exited = 0;
 #endif
 }
   
-void CTF_Timer::start(){
+void Timer::start(){
 #ifdef PROFILE
   if (!exited){
     function_timers[index].start_time = MPI_Wtime();
@@ -119,7 +119,7 @@ void CTF_Timer::start(){
 #endif
 }
 
-void CTF_Timer::stop(){
+void Timer::stop(){
 #ifdef PROFILE
   if (!exited){
     double delta_time = MPI_Wtime() - function_timers[index].start_time;
@@ -134,7 +134,7 @@ void CTF_Timer::stop(){
 #endif
 }
 
-CTF_Timer::~CTF_Timer(){ }
+Timer::~Timer(){ }
 
 void print_timers(char const * name){
   int rank, np, i, j, len_symbols, nrecv_symbols;
@@ -225,7 +225,7 @@ void print_timers(char const * name){
     PMPI_Bcast(all_symbols, len_symbols, MPI_CHAR, 0, comm);
     j=0;
     while (j<len_symbols){
-      CTF_Timer t(all_symbols+j);
+      Timer t(all_symbols+j);
       j+=strlen(all_symbols+j)+1;
     }
   }
@@ -249,7 +249,7 @@ void print_timers(char const * name){
 
 }
 
-void CTF_Timer::exit(){
+void Timer::exit(){
 #ifdef PROFILE
   if (set_contxt && original && !exited) {
     if (comm != MPI_COMM_WORLD){
@@ -273,26 +273,26 @@ void CTF_set_context(MPI_Comm ctxt){
   set_contxt = 1;
 }
 
-CTF_Timer_epoch::CTF_Timer_epoch(char const * name_){
+Timer_epoch::Timer_epoch(char const * name_){
 #ifdef PROFILE
   name = name_;
 #endif
 }
 
-void CTF_Timer_epoch::begin(){
+void Timer_epoch::begin(){
 #ifdef PROFILE
-  tmr_outer = new CTF_Timer(name);
+  tmr_outer = new Timer(name);
   tmr_outer->start();
   saved_function_timers = function_timers;
   save_excl_time = excl_time;
   excl_time = 0.0;
   function_timers.clear();
-  tmr_inner = new CTF_Timer(name);
+  tmr_inner = new Timer(name);
   tmr_inner->start();
 #endif
 }
 
-void CTF_Timer_epoch::end(){
+void Timer_epoch::end(){
 #ifdef PROFILE
   tmr_inner->stop();
   function_timers.clear();

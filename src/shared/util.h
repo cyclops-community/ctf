@@ -3,19 +3,8 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
-#include <string.h>
-#include <string>
-#include <stdio.h>
-#include <assert.h>
-#include <stdint.h>
-#include <math.h>
-#include <algorithm>
-#include <list>
-#include <vector>
-#include <complex>
-#include <unistd.h>
-#include <iostream>
 #include "util_ext.h"
+#include "../../include/ctf.hpp"
 
 typedef int64_t long_int;
 volatile static long_int long_int_max = INT64_MAX;

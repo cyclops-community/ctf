@@ -1,15 +1,6 @@
 /*Copyright (c) 2013, Edgar Solomonik, all rights reserved.*/
 
-#include <algorithm>
-#include <iomanip>
-#include <ostream>
-#include <iostream>
-#include <assert.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <limits.h>
-#include <string.h>
-//#include "../shared/util.h"
+#include "../shared/util_ext.h"
 //#include "../../include/ctf.hpp"
 #include "expression.h"
 #include "schedule.h"
@@ -164,7 +155,7 @@ Term<dtype> * Idx_Tensor<dtype>::clone(std::map<Tensor<dtype>*, Tensor<dtype>*>*
 }
 
 template<typename dtype>
-World<dtype> * Idx_Tensor<dtype>::where_am_i() const {
+World * Idx_Tensor<dtype>::where_am_i() const {
   if (parent == NULL) return NULL;
   return parent->world;
 }
@@ -249,8 +240,8 @@ Idx_Tensor<dtype> Idx_Tensor<dtype>::execute() const {
 }
 
 template<typename dtype>
-long_int Idx_Tensor<dtype>::estimate_cost(Idx_Tensor<dtype> output) const {
-  long_int cost = 0;
+int64_t Idx_Tensor<dtype>::estimate_cost(Idx_Tensor<dtype> output) const {
+  int64_t cost = 0;
   if (parent == NULL){
     Scalar<dtype> ts(this->scale, *(output.where_am_i()));
     cost += output.parent->estimate_cost(ts, "",
@@ -263,7 +254,7 @@ long_int Idx_Tensor<dtype>::estimate_cost(Idx_Tensor<dtype> output) const {
 }
 
 template<typename dtype>
-Idx_Tensor<dtype> Idx_Tensor<dtype>::estimate_cost(long_int & cost) const {
+Idx_Tensor<dtype> Idx_Tensor<dtype>::estimate_cost(int64_t & cost) const {
   return *this;
 }
 

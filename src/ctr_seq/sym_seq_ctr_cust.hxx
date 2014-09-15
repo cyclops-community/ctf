@@ -6,33 +6,33 @@
 #include "../shared/util.h"
 #include <limits.h>
 #include "sym_seq_shared.hxx"
-#include "../dist_tensor/cyclopstf.hpp"
 
 
 /**
  * \brief performs symmetric contraction
  */
-int sym_seq_ctr_cust(dtype const          alpha,
-                     dtype const *        A,
+int sym_seq_ctr_cust(char const *         A,
+                     Int_Semiring         isA,
                      int const            ndim_A,
                      int const *          edge_len_A,
                      int const *          _lda_A,
                      int const *          sym_A,
                      int const *          idx_map_A,
-                     dtype const *        B,
+                     char const *         B,
+                     Int_Semiring         isB,
                      int const            ndim_B,
                      int const *          edge_len_B,
                      int const *          _lda_B,
                      int const *          sym_B,
                      int const *          idx_map_B,
-                     dtype const          beta,
-                     dtype *              C,
+                     char *               C,
+                     Int_Semiring         isC,
                      int const            ndim_C,
                      int const *          edge_len_C,
                      int const *          _lda_C,
                      int const *          sym_C,
                      int const *          idx_map_C,
-                     fseq_elm_ctr<dtype>* prm){
+                     Int_Bivar_Function   func){
   TAU_FSTART(sym_seq_ctr_cust);
   int idx, i, idx_max, imin, imax, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
   int off_idx, off_lda, sym_pass;
@@ -56,19 +56,20 @@ int sym_seq_ctr_cust(dtype const          alpha,
   memset(idx_glb, 0, sizeof(int)*idx_max);
 
   /* Scale C immediately. FIXME: wrong for iterators over subset of C */
-  if (beta != get_one<dtype>()) {
+  /*if (beta != get_one<dtype>()) {
     sz = sy_packed_size(ndim_C, edge_len_C, sym_C);
     for (i=0; i<sz; i++){
       C[i] = C[i]*beta;
     }
-  }
+  }*/
 
   idx_A = 0, idx_B = 0, idx_C = 0;
   sym_pass = 1;
   for (;;){
     //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
     if (sym_pass){
-      (*(prm->func_ptr))(alpha, A[idx_A], B[idx_B], C[idx_C]);
+      func.apply_f(A+idx_A*isA.el_size, B+idx_B*isB.el_size, 
+                   C+idx_C*isC.el_size);
       CTF_FLOPS_ADD(3);
     }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);

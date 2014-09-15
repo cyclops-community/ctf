@@ -3,8 +3,8 @@
 
 #include "../shared/util_ext.h"
 
-void sgemm(float          tA,
-           float          tB,
+void sgemm(char           tA,
+           char           tB,
            int            m,
            int            n,
            int            k,
@@ -14,8 +14,8 @@ void sgemm(float          tA,
            float          beta,
            float  *       C);
 
-void dgemm(double         tA,
-           double         tB,
+void dgemm(char           tA,
+           char           tB,
            int            m,
            int            n,
            int            k,
@@ -25,8 +25,8 @@ void dgemm(double         tA,
            double         beta,
            double *       C);
 
-void cgemm(std::complex<float>         tA,
-           std::complex<float>         tB,
+void cgemm(char                        tA,
+           char                        tB,
            int                         m,
            int                         n,
            int                         k,
@@ -36,8 +36,8 @@ void cgemm(std::complex<float>         tA,
            std::complex<float>         beta,
            std::complex<float> *       C);
 
-void zgemm(std::complex<double>         tA,
-           std::complex<double>         tB,
+void zgemm(char                         tA,
+           char                         tB,
            int                          m,
            int                          n,
            int                          k,
@@ -48,8 +48,8 @@ void zgemm(std::complex<double>         tA,
            std::complex<double> *       C);
 
 template<typename dtype>
-void default_gemm(dtype         tA,
-                  dtype         tB,
+void default_gemm(char          tA,
+                  char          tB,
                   int           m,
                   int           n,
                   int           k,
@@ -88,8 +88,8 @@ void default_gemm(dtype         tA,
 
 template<>
 void default_gemm<float>
-          (float          tA,
-           float          tB,
+          (char           tA,
+           char           tB,
            int            m,
            int            n,
            int            k,
@@ -103,8 +103,8 @@ void default_gemm<float>
 
 template<>
 void default_gemm<double>
-          (double         tA,
-           double         tB,
+          (char           tA,
+           char           tB,
            int            m,
            int            n,
            int            k,
@@ -118,8 +118,8 @@ void default_gemm<double>
 
 template<>
 void default_gemm< std::complex<float> >
-          (std::complex<float>         tA,
-           std::complex<float>         tB,
+          (char                        tA,
+           char                        tB,
            int                         m,
            int                         n,
            int                         k,
@@ -133,8 +133,8 @@ void default_gemm< std::complex<float> >
 
 template<>
 void default_gemm< std::complex<double> >
-          (std::complex<double>         tA,
-           std::complex<double>         tB,
+          (char                         tA,
+           char                         tB,
            int                          m,
            int                          n,
            int                          k,
@@ -284,6 +284,12 @@ class Int_Semiring {
                  char *       C);
 
   public:
+    /**
+     * \brief default constructor
+     */
+    Int_Semiring();
+
+
     /**
      * \brief copy constructor
      * \param[in] other another semiring to copy from

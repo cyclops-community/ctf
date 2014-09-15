@@ -2,6 +2,8 @@
 #ifndef __INT_FUNCTIONS_H__
 #define __INT_FUNCTIONS_H__
 
+#include "assert.h"
+
 /**
  * \brief untyped internal class for singly-typed single variable function (Endomorphism)
  */

@@ -1,10 +1,10 @@
 /*Copyright (c) 2014, Edgar Solomonik, all rights reserved.*/
 #include "../shared/util.h"
-#include "../../include/ctf.hpp"
+#include "../../include/ctf_ext.hpp"
 
 template <typename dtype>
-void dgemm(dtype         tA,
-           dtype         tB,
+void dgemm(char          tA,
+           char          tB,
            int           m,
            int           n,
            int           k,
@@ -32,6 +32,8 @@ typedef sgemm template <> dgemm<float>;
 typedef dgemm template <> dgemm<double>;
 typedef cgemm template <> dgemm< std::complex<float> >;
 typedef zgemm template <> dgemm< std::complex<double> >;
+
+Int_Semiring::Int_Semiring(){}
 
 Int_Semiring::Int_Semiring(Int_Semiring const & other){
   el_size = other.el_size;

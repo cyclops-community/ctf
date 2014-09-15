@@ -6,7 +6,6 @@
 #include "../shared/util.h"
 #include <limits.h>
 #include "sym_seq_shared.hxx"
-#include "../dist_tensor/cyclopstf.hpp"
 
 /**
  * \brief performs symmetric summation

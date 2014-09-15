@@ -8,6 +8,7 @@
 #include "../shared/offload.h"
 #include "../ctr_seq/int_semiring.h"
 
+using namespace CTF;
 /**
  * \addtogroup nest_dist Nested distributed contraction and summation routines
  * @{
@@ -108,7 +109,7 @@ class ctr_2d_general : public ctr {
                      long_int & s_B,
                      long_int & s_C,
                      long_int & db,
-                     long_int & aux_size)
+                     long_int & aux_size);
     ctr_2d_general(ctr * other);
     ~ctr_2d_general();
     ctr_2d_general(){ move_A=0; move_B=0; move_C=0; }

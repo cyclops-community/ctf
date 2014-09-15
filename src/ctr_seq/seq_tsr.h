@@ -2,7 +2,7 @@
 #ifndef __SEQ_TSR_H__
 #define __SEQ_TSR_H__
 
-#include "../dist_tensor/cyclopstf.hpp"
+#include "../shared/util.h"
 #include "../ctr_comm/ctr_comm.h"
 #include "../ctr_comm/sum_tsr.h"
 #include "../ctr_comm/scale_tsr.h"

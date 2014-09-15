@@ -1,15 +1,15 @@
 /*Copyright (c) 2013, Edgar Solomonik, all rights reserved.*/
 
 #include <algorithm>
-#include <iomanip>
-#include <ostream>
-#include <iostream>
+//#include <iomanip>
+//#include <ostream>
+//#include <iostream>
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <limits.h>
 #include <string.h>
-//#include "../shared/util.h"
+#include "../shared/util_ext.h"
 //#include "../../include/ctf.hpp"
 
 
@@ -44,9 +44,9 @@ Idx_Tensor<dtype> * get_full_intm(Idx_Tensor<dtype>& A,
     }
   }
 
-  idx_C = (char*)alloc(sizeof(char)*ndim_C);
-  sym_C = (int*)alloc(sizeof(int)*ndim_C);
-  len_C = (int*)alloc(sizeof(int)*ndim_C);
+  idx_C = (char*)malloc(sizeof(char)*ndim_C);
+  sym_C = (int*)malloc(sizeof(int)*ndim_C);
+  len_C = (int*)malloc(sizeof(int)*ndim_C);
   idx = 0;
   for (i=0; i<A.parent->ndim; i++){
     for (j=0; j<i && A.idx_map[i] != A.idx_map[j]; j++){}
@@ -202,7 +202,7 @@ Sum_Term<dtype> Sum_Term<dtype>::operator-(Term<dtype> const & A) const {
   return st;
 }
 template<typename dtype>
-Idx_Tensor<dtype> Sum_Term<dtype>::estimate_cost(long_int & cost) const {
+Idx_Tensor<dtype> Sum_Term<dtype>::estimate_cost(int64_t & cost) const {
   std::vector< Term<dtype>* > tmp_ops;
   for (int i=0; i<(int)operands.size(); i++){
     tmp_ops.push_back(operands[i]->clone());
@@ -230,12 +230,12 @@ Idx_Tensor<dtype> Sum_Term<dtype>::estimate_cost(long_int & cost) const {
 }
 
 template<typename dtype>
-long_int Sum_Term<dtype>::estimate_cost(Idx_Tensor<dtype> output) const{
+int64_t Sum_Term<dtype>::estimate_cost(Idx_Tensor<dtype> output) const{
   std::vector< Term<dtype>* > tmp_ops;
   for (int i=0; i<(int)operands.size(); i++){
     tmp_ops.push_back(operands[i]->clone());
   }
-  long_int cost = 0;
+  int64_t cost = 0;
   for (int i=0; i<((int)tmp_ops.size())-1; i++){
     cost += tmp_ops[i]->estimate_cost(output);
   }
@@ -296,8 +296,8 @@ void Sum_Term<dtype>::get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype>
 }
 
 template<typename dtype>
-World<dtype> * Sum_Term<dtype>::where_am_i() const {
-  World<dtype> * w = NULL;
+World * Sum_Term<dtype>::where_am_i() const {
+  World * w = NULL;
   for (int i=0; i<(int)operands.size(); i++){
     if (operands[i]->where_am_i() != NULL) {
       w = operands[i]->where_am_i();
@@ -317,8 +317,8 @@ Contract_Term<dtype>::~Contract_Term(){
 }
 
 template<typename dtype>
-World<dtype> * Contract_Term<dtype>::where_am_i() const {
-  World<dtype> * w = NULL;
+World * Contract_Term<dtype>::where_am_i() const {
+  World * w = NULL;
   for (int i=0; i<(int)operands.size(); i++){
     if (operands[i]->where_am_i() != NULL) {
       w = operands[i]->where_am_i();
@@ -447,8 +447,8 @@ Idx_Tensor<dtype> Contract_Term<dtype>::execute() const {
 }
 
 template<typename dtype>
-long_int Contract_Term<dtype>::estimate_cost(Idx_Tensor<dtype> output)const {
-  long_int cost = 0;
+int64_t Contract_Term<dtype>::estimate_cost(Idx_Tensor<dtype> output)const {
+  int64_t cost = 0;
   std::vector< Term<dtype>* > tmp_ops;
   for (int i=0; i<(int)operands.size(); i++){
     tmp_ops.push_back(operands[i]->clone());
@@ -506,7 +506,7 @@ long_int Contract_Term<dtype>::estimate_cost(Idx_Tensor<dtype> output)const {
 }
 
 template<typename dtype>
-Idx_Tensor<dtype> Contract_Term<dtype>::estimate_cost(long_int & cost) const {
+Idx_Tensor<dtype> Contract_Term<dtype>::estimate_cost(int64_t & cost) const {
   std::vector< Term<dtype>* > tmp_ops;
   for (int i=0; i<(int)operands.size(); i++){
     tmp_ops.push_back(operands[i]->clone());

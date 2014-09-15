@@ -1,6 +1,4 @@
-#include <algorithm>
-#include <iostream>
-#include "../shared/util.h"
+#include "../shared/util_ext.h"
 
 ScheduleBase* global_schedule;
 
@@ -35,7 +33,7 @@ bool tensor_op_cost_greater(TensorOperation<dtype>* A, TensorOperation<dtype>* B
 template<typename dtype>
 struct PartitionOps {
   int color;
-  tWorld<dtype>* world;
+  World * world;
 
   std::vector<TensorOperation<dtype>*> ops;  // operations to execute
   std::set<Tensor<dtype>*, tensor_tid_less<dtype> > local_tensors; // all local tensors used
@@ -131,7 +129,7 @@ ScheduleTimer Schedule<dtype>::partition_and_execute() {
     comm_ops.push_back(PartitionOps<dtype>());
     comm_ops[color].color = color;
     if (color == my_color) {
-      comm_ops[color].world = new tWorld<dtype>(my_comm);
+      comm_ops[color].world = new World(my_comm);
     } else {
       comm_ops[color].world = NULL;
     }
@@ -340,11 +338,11 @@ template<typename dtype>
 void TensorOperation<dtype>::execute(std::map<Tensor<dtype>*, Tensor<dtype>*>* remap) {
   assert(global_schedule == NULL);  // ensure this isn't going into a record()
 
-  tIdx_Tensor<dtype>* remapped_lhs = lhs;
-  const tTerm<dtype>* remapped_rhs = rhs;
+  Idx_Tensor<dtype>* remapped_lhs = lhs;
+  const Term<dtype>* remapped_rhs = rhs;
 
   if (remap != NULL) {
-    remapped_lhs = dynamic_cast<tIdx_Tensor<dtype>* >(remapped_lhs->clone(remap));
+    remapped_lhs = dynamic_cast<Idx_Tensor<dtype>* >(remapped_lhs->clone(remap));
     assert(remapped_lhs != NULL);
     remapped_rhs = remapped_rhs->clone(remap);
   }

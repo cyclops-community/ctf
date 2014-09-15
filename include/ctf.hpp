@@ -7,6 +7,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <vector>
+#include <map>
+#include <set>
+#include <deque>
+#include <complex>
 #include <assert.h>
 
 

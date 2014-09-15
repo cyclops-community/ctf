@@ -2,8 +2,6 @@
 #define __EXPRESSION_H__
 
 #include "tensor.h"
-#include <map>
-#include <set>
 
 /**
  * \defgroup expression Tensor expression compiler

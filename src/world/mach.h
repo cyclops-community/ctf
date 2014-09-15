@@ -4,7 +4,6 @@
 #define __MACH_H__
 
 #include "dist_tensor_internal.h"
-#include "cyclopstf.hpp"
 #include "../shared/util.h"
 #ifdef BGQ
 #include "mpix.h"

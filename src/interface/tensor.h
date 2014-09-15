@@ -624,6 +624,14 @@ class Vector : public Tensor<dtype> {
 template<typename dtype=double> 
 class Scalar : public Tensor<dtype> {
   public:
+
+    /**
+     * \brief constructor for a scalar
+     * \param[in] world CTF world where the tensor will live
+     */
+    Scalar(World & world);
+
+
     /**
      * \brief constructor for a scalar with predefined value
      * \param[in] val scalar value

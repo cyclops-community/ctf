@@ -1,8 +1,6 @@
 #ifndef __SCHEDULE_H__
 #define __SCHEDULE_H__
-#include <deque>
-#include <set>
-#include <map>
+#include "../shared/util_ext.h"
 
 /**
  * \defgroup scheduler Dynamic scheduler.

@@ -14,8 +14,7 @@
 /**
  * \brief deallocates ctr_virt object
  */
-template<typename dtype>
-ctr_virt<dtype>::~ctr_virt() {
+ctr_virt::~ctr_virt() {
   CTF_free(virt_dim);
   delete rec_ctr;
 }
@@ -23,9 +22,8 @@ ctr_virt<dtype>::~ctr_virt() {
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr_virt<dtype>::ctr_virt(ctr<dtype> * other) : ctr<dtype>(other) {
-  ctr_virt<dtype> * o   = (ctr_virt<dtype>*)other;
+ctr_virt::ctr_virt(ctr * other) : ctr(other) {
+  ctr_virt * o   = (ctr_virt*)other;
   rec_ctr       = o->rec_ctr->clone();
   num_dim       = o->num_dim;
   virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
@@ -47,16 +45,14 @@ ctr_virt<dtype>::ctr_virt(ctr<dtype> * other) : ctr<dtype>(other) {
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr<dtype> * ctr_virt<dtype>::clone() {
-  return new ctr_virt<dtype>(this);
+ctr * ctr_virt::clone() {
+  return new ctr_virt(this);
 }
 
 /**
  * \brief prints ctr object
  */
-template<typename dtype>
-void ctr_virt<dtype>::print() {
+void ctr_virt::print() {
   int i;
   printf("ctr_virt:\n");
   printf("blk_sz_A = "PRId64", blk_sz_B = "PRId64", blk_sz_C = "PRId64"\n",
@@ -72,8 +68,7 @@ void ctr_virt<dtype>::print() {
  * \brief returns the number of bytes send by each proc recursively 
  * \return bytes needed for recursive contraction
  */
-template<typename dtype>
-double ctr_virt<dtype>::est_time_rec(int nlyr) {
+double ctr_virt::est_time_rec(int nlyr) {
   /* FIXME: for now treat flops like comm, later make proper cost */
   long_int nvirt = 1;
   for (int dim=0; dim<num_dim; dim++){
@@ -88,8 +83,7 @@ double ctr_virt<dtype>::est_time_rec(int nlyr) {
    we need
  * \return bytes needed
  */
-template<typename dtype>
-long_int ctr_virt<dtype>::mem_fp(){
+long_int ctr_virt::mem_fp(){
   return (ndim_A+ndim_B+ndim_C+(3+VIRT_NTD)*num_dim)*sizeof(int);
 }
 
@@ -97,8 +91,7 @@ long_int ctr_virt<dtype>::mem_fp(){
  * \brief returns the number of bytes of buffer space we need recursively 
  * \return bytes needed for recursive contraction
  */
-template<typename dtype>
-long_int ctr_virt<dtype>::mem_rec() {
+long_int ctr_virt::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 
@@ -106,8 +99,7 @@ long_int ctr_virt<dtype>::mem_rec() {
 /**
  * \brief iterates over the dense virtualization block grid and contracts
  */
-template<typename dtype>
-void ctr_virt<dtype>::run(){
+void ctr_virt::run(){
   TAU_FSTART(ctr_virt);
   int * idx_arr, * tidx_arr, * lda_A, * lda_B, * lda_C, * beta_arr;
   int * ilda_A, * ilda_B, * ilda_C;
@@ -179,7 +171,7 @@ do {                                                                    \
         end_off = start_off + nb_C/ntd;
       }
 
-      ctr<dtype> * tid_rec_ctr;
+      ctr * tid_rec_ctr;
       if (tid > 0)
         tid_rec_ctr = rec_ctr->clone();
       else
@@ -226,8 +218,5 @@ do {                                                                    \
   TAU_FSTOP(ctr_virt);
 }
 
-
-template class ctr_virt<double>;
-template class ctr_virt< std::complex<double> >;
 
 

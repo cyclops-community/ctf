@@ -3,7 +3,7 @@
 #ifndef __DIST_TENSOR_INTERNAL_H__
 #define __DIST_TENSOR_INTERNAL_H__
 
-#include "cyclopstf.hpp"
+#include "../shared/util.h"
 #include "../ctr_comm/scale_tsr.h"
 #include "../ctr_comm/sum_tsr.h"
 #include "../ctr_comm/ctr_tsr.h"

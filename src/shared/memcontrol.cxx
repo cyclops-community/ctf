@@ -23,12 +23,13 @@
 #endif
 
 
+#include "../world/int_world.h"
 #include "util.h"
 #ifdef USE_OMP
 #include "omp.h"
 #endif
 #include "memcontrol.h"
-#include "../dist_tensor/cyclopstf.hpp"
+//#include "../dist_tensor/cyclopstf.hpp"
 
 //struct mallinfo mallinfo(void);
 
@@ -38,14 +39,14 @@ struct mem_loc {
 };
 
 /* fraction of total memory which can be saturated */
-double CTF_memcap = 0.75;
-long_int CTF_mem_size = 0;
+double memcap = 0.75;
+long_int mem_size = 0;
 #define MAX_THREADS 256
-int CTF_max_threads;
-int CTF_instance_counter = 0;
-long_int CTF_mem_used[MAX_THREADS];
+int max_threads;
+int instance_counter = 0;
+long_int mem_used[MAX_THREADS];
 #ifndef PRODUCTION
-std::list<mem_loc> CTF_mem_stacks[MAX_THREADS];
+std::list<mem_loc> mem_stacks[MAX_THREADS];
 #endif
 
 //application memory stack
@@ -65,27 +66,27 @@ char * cpy_buffer[CPY_BUFFER_SIZE];
 /**
  * \brief sets what fraction of the memory capacity CTF can use
  */
-void CTF_set_mem_size(long_int size){
-  CTF_mem_size = size;
+void set_mem_size(long_int size){
+  mem_size = size;
 }
 
 /**
  * \brief sets what fraction of the memory capacity CTF can use
  * \param[in] cap memory fraction
  */
-void CTF_set_memcap(double cap){
-  CTF_memcap = cap;
+void set_memcap(double cap){
+  memcap = cap;
 }
 
 /**
  * \brief gets rid of empty space on the stack
  */
-std::list<mem_transfer> CTF_contract_mst(){
+std::list<mem_transfer> contract_mst(){
   std::list<mem_transfer> transfers;
   long_int i;
   if (mst_buffer_ptr > .80*mst_buffer_size && 
       mst_buffer_used < .40*mst_buffer_size){
-    TAU_FSTART(CTF_contract_mst);
+    TAU_FSTART(contract_mst);
     std::list<mem_loc> old_mst = mst;
     mst_buffer_ptr = 0;
     mst_buffer_used = 0;
@@ -113,19 +114,19 @@ std::list<mem_transfer> CTF_contract_mst(){
     //DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
     //            old_mst_buffer_ptr, mst_buffer_ptr);
     old_mst.clear();
-    TAU_FSTOP(CTF_contract_mst);
+    TAU_FSTOP(contract_mst);
   }
   return transfers;
 }
 
-std::list<mem_loc> * CTF_get_mst(){
+std::list<mem_loc> * get_mst(){
   return &mst;
 }
 
 /**
  * \brief initializes stack buffer
  */
-void CTF_mst_create(long_int size){
+void mst_create(long_int size){
   int pm;
   void * new_mst_buffer;
   if (size > mst_buffer_size){
@@ -142,17 +143,17 @@ void CTF_mst_create(long_int size){
 /**
  * \brief create instance of memory manager
  */
-void CTF_mem_create(){
-  CTF_instance_counter++;
-  if (CTF_instance_counter == 1){
+void mem_create(){
+  instance_counter++;
+  if (instance_counter == 1){
 #ifdef USE_OMP
-    CTF_max_threads = omp_get_max_threads();
+    max_threads = omp_get_max_threads();
 #else
-    CTF_max_threads = 1;
+    max_threads = 1;
 #endif
     int i;
-    for (i=0; i<CTF_max_threads; i++){
-      CTF_mem_used[i] = 0;
+    for (i=0; i<max_threads; i++){
+      mem_used[i] = 0;
     }
   }
 }
@@ -161,18 +162,18 @@ void CTF_mem_create(){
  * \brief exit instance of memory manager
  * \param[in] rank processor index
  */
-void CTF_mem_exit(int rank){
-  CTF_instance_counter--;
-  assert(CTF_instance_counter >= 0);
+void mem_exit(int rank){
+  instance_counter--;
+  assert(instance_counter >= 0);
 #ifndef PRODUCTION
-  if (CTF_instance_counter == 0){
-    for (int i=0; i<CTF_max_threads; i++){
-      if (CTF_mem_used[i] > 0){
+  if (instance_counter == 0){
+    for (int i=0; i<max_threads; i++){
+      if (mem_used[i] > 0){
         if (rank == 0){
           printf("Warning: memory leak in CTF on thread %d, " PRId64 " bytes of memory in use at termination",
-                  i, CTF_mem_used[i]);
+                  i, mem_used[i]);
           printf(" in %zu unfreed items\n",
-                  CTF_mem_stacks[i].size());
+                  mem_stacks[i].size());
         }
       }
       if (mst.size() > 0){
@@ -185,7 +186,7 @@ void CTF_mem_exit(int rank){
 }
 
 /**
- * \brief frees buffer allocated on stack
+ * \brief frees buffer CTF_allocated on stack
  * \param[in] ptr pointer to buffer on stack
  */
 int CTF_mst_free(void * ptr){
@@ -207,7 +208,7 @@ int CTF_mst_free(void * ptr){
       printf("CTF ERROR: Invalid mst free of pointer %p\n", ptr);
 //      free(ptr);
       ABORT;
-      return CTF_ERROR;
+      return ERROR;
     }
   }
   if (mst.size() > 0)
@@ -215,13 +216,13 @@ int CTF_mst_free(void * ptr){
   else
     mst_buffer_ptr = 0;
   //printf("freed block, mst_buffer_ptr = "PRId64"\n", mst_buffer_ptr);
-  return CTF_SUCCESS;
+  return SUCCESS;
 }
 
 /**
  * \brief CTF_mst_alloc abstraction
  * \param[in] len number of bytes
- * \param[in,out] ptr pointer to set to new allocation address
+ * \param[in,out] ptr pointer to set to new CTF_allocation address
  */
 int CTF_mst_alloc_ptr(long_int const len, void ** const ptr){
   if (mst_buffer_size == 0)
@@ -248,18 +249,18 @@ int CTF_mst_alloc_ptr(long_int const len, void ** const ptr){
               mst_buffer_size, mst_buffer_ptr, (int)mst.size(), mst_buffer_used);
       CTF_alloc_ptr(len, ptr);
     }
-    return CTF_SUCCESS;
+    return SUCCESS;
   }
 }
 
 /**
- * \brief CTF_mst_alloc allocates buffer on the specialized memory stack
+ * \brief CTF_mst_alloc CTF_allocates buffer on the specialized memory stack
  * \param[in] len number of bytes
  */
 void * CTF_mst_alloc(long_int const len){
   void * ptr;
   int ret = CTF_mst_alloc_ptr(len, &ptr);
-  LIBT_ASSERT(ret == CTF_SUCCESS);
+  LIBT_ASSERT(ret == SUCCESS);
   return ptr;
 }
 
@@ -267,7 +268,7 @@ void * CTF_mst_alloc(long_int const len){
 /**
  * \brief CTF_alloc abstraction
  * \param[in] len number of bytes
- * \param[in,out] ptr pointer to set to new allocation address
+ * \param[in,out] ptr pointer to set to new CTF_allocation address
  */
 int CTF_alloc_ptr(long_int const len_, void ** const ptr){
   long_int len = MAX(4,len_);
@@ -275,27 +276,27 @@ int CTF_alloc_ptr(long_int const len_, void ** const ptr){
 #ifndef PRODUCTION
   int tid;
 #ifdef USE_OMP
-  if (CTF_max_threads == 1) tid = 0;
+  if (max_threads == 1) tid = 0;
   else tid = omp_get_thread_num();
 #else
   tid = 0;
 #endif
   mem_loc m;
-  CTF_mem_used[tid] += len;
+  mem_used[tid] += len;
   std::list<mem_loc> * mem_stack;
-  mem_stack = &CTF_mem_stacks[tid];
+  mem_stack = &mem_stacks[tid];
   m.ptr = *ptr;
   m.len = len;
   mem_stack->push_back(m);
-//  printf("CTF_mem_used up to "PRId64" stack to %d\n",CTF_mem_used,mem_stack->size());
+//  printf("mem_used up to "PRId64" stack to %d\n",mem_used,mem_stack->size());
 //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
 #endif
   if (pm){
-    printf("CTF ERROR: posix memalign returned an error, "PRId64" memory alloced on this process, wanted to alloc "PRId64" more\n",
-            CTF_mem_used[0], len);
+    printf("CTF ERROR: posix memalign returned an error, "PRId64" memory CTF_alloced on this process, wanted to CTF_alloc "PRId64" more\n",
+            mem_used[0], len);
   }
   LIBT_ASSERT(pm == 0);
-  return CTF_SUCCESS;
+  return SUCCESS;
 
 }
 
@@ -306,21 +307,21 @@ int CTF_alloc_ptr(long_int const len_, void ** const ptr){
 void * CTF_alloc(long_int const len){
   void * ptr;
   int ret = CTF_alloc_ptr(len, &ptr);
-  LIBT_ASSERT(ret == CTF_SUCCESS);
+  LIBT_ASSERT(ret == SUCCESS);
   return ptr;
 }
 
 /**
- * \brief stops tracking memory allocated by CTF, so user doesn't have to call CTF_free
+ * \brief stops tracking memory CTF_allocated by CTF, so user doesn't have to call free
  * \param[in,out] ptr pointer to set to address to free
  */
-int CTF_untag_mem(void * ptr){
+int untag_mem(void * ptr){
 #ifndef PRODUCTION
   long_int len;
   int found;
   std::list<mem_loc> * mem_stack;
   
-  mem_stack = &CTF_mem_stacks[0];
+  mem_stack = &mem_stacks[0];
 
   std::list<mem_loc>::reverse_iterator it;
   found = 0;
@@ -335,11 +336,11 @@ int CTF_untag_mem(void * ptr){
   if (!found){
     printf("CTF ERROR: failed memory untag\n");
     ABORT;
-    return CTF_ERROR;
+    return ERROR;
   }
-  CTF_mem_used[0] -= len;
+  mem_used[0] -= len;
 #endif
-  return CTF_SUCCESS;
+  return SUCCESS;
 }
 
   
@@ -357,7 +358,7 @@ int CTF_free(void * ptr, int const tid){
   int len, found;
   std::list<mem_loc> * mem_stack;
 
-  mem_stack = &CTF_mem_stacks[tid];
+  mem_stack = &mem_stacks[tid];
 
   std::list<mem_loc>::reverse_iterator it;
   found = 0;
@@ -370,13 +371,13 @@ int CTF_free(void * ptr, int const tid){
     }
   }
   if (!found){
-    return CTF_NEGATIVE;
+    return NEGATIVE;
   }
-  CTF_mem_used[tid] -= len;
+  mem_used[tid] -= len;
 #endif
-  //printf("CTF_mem_used down to "PRId64" stack to %d\n",CTF_mem_used,mem_stack->size());
+  //printf("mem_used down to "PRId64" stack to %d\n",mem_used,mem_stack->size());
   free(ptr);
-  return CTF_SUCCESS;
+  return SUCCESS;
 }
 
 /**
@@ -385,30 +386,30 @@ int CTF_free(void * ptr, int const tid){
  */
 int CTF_free_cond(void * ptr){
 //#ifdef PRODUCTION
-  return CTF_SUCCESS; //FIXME This function is not to be trusted due to potential allocations of 0 bytes!!!@
+  return SUCCESS; //FIXME This function is not to be trusted due to potential CTF_allocations of 0 bytes!!!@
 //#endif
   int ret, tid, i;
 #ifdef USE_OMP
-  if (CTF_max_threads == 1) tid = 0;
+  if (max_threads == 1) tid = 0;
   else tid = omp_get_thread_num();
 #else
   tid = 0;
 #endif
 
   ret = CTF_free(ptr, tid);
-  if (ret == CTF_NEGATIVE){
+  if (ret == NEGATIVE){
     if (tid == 0){
-      for (i=1; i<CTF_max_threads; i++){
+      for (i=1; i<max_threads; i++){
         ret = CTF_free(ptr, i);
-        if (ret == CTF_SUCCESS){
-          return CTF_SUCCESS;
+        if (ret == SUCCESS){
+          return SUCCESS;
           break;
         }
       }
     }
   }
-//  if (ret == CTF_NEGATIVE) free(ptr);
-  return CTF_SUCCESS;
+//  if (ret == NEGATIVE) free(ptr);
+  return SUCCESS;
 }
 
 /**
@@ -422,11 +423,11 @@ int CTF_free(void * ptr){
   }
 #ifdef PRODUCTION
   free(ptr);  
-  return CTF_SUCCESS;
+  return SUCCESS;
 #else
   int ret, tid, i;
 #ifdef USE_OMP
-  if (CTF_max_threads == 1) tid = 0;
+  if (max_threads == 1) tid = 0;
   else tid = omp_get_thread_num();
 #else
   tid = 0;
@@ -434,34 +435,34 @@ int CTF_free(void * ptr){
 
 
   ret = CTF_free(ptr, tid);
-  if (ret == CTF_NEGATIVE){
-    if (tid != 0 || CTF_max_threads == 1){
+  if (ret == NEGATIVE){
+    if (tid != 0 || max_threads == 1){
       printf("CTF ERROR: Invalid free of pointer %p by thread %d\n", ptr, tid);
       ABORT;
-      return CTF_ERROR;
+      return ERROR;
     } else {
-      for (i=1; i<CTF_max_threads; i++){
+      for (i=1; i<max_threads; i++){
         ret = CTF_free(ptr, i);
-        if (ret == CTF_SUCCESS){
-          return CTF_SUCCESS;
+        if (ret == SUCCESS){
+          return SUCCESS;
           break;
         }
       }
-      if (i==CTF_max_threads){
+      if (i==max_threads){
         printf("CTF ERROR: Invalid free of pointer %p by zeroth thread\n", ptr);
         ABORT;
-        return CTF_ERROR;
+        return ERROR;
       }
     }
   }
 #endif
-  return CTF_SUCCESS;
+  return SUCCESS;
 
 }
 
 
-int CTF_get_num_instances(){
-  return CTF_instance_counter;
+int get_num_instances(){
+  return instance_counter;
 }
 
 /**
@@ -473,8 +474,8 @@ uint64_t proc_bytes_used(){
   return (uint64_t)(info.usmblks + info.uordblks + info.hblkhd);*/
   uint64_t ms = 0;
   int i;
-  for (i=0; i<CTF_max_threads; i++){
-    ms += CTF_mem_used[i];
+  for (i=0; i<max_threads; i++){
+    ms += mem_used[i];
   }
   return ms + mst_buffer_used;// + (uint64_t)mst_buffer_size;
 }
@@ -489,8 +490,8 @@ uint64_t proc_bytes_total() {
   int node_config;
 
   Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &total);
-  if (CTF_mem_size > 0){
-    return MIN(total,CTF_mem_size);
+  if (mem_size > 0){
+    return MIN(total,mem_size);
   } else {
     return total;
   }
@@ -502,7 +503,7 @@ uint64_t proc_bytes_total() {
 uint64_t proc_bytes_available(){
   uint64_t mem_avail;
   Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail); 
-  mem_avail*= CTF_memcap;
+  mem_avail*= memcap;
   mem_avail += mst_buffer_size-mst_buffer_used;
 /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
           mem_avail, proc_bytes_total() - proc_bytes_used());*/
@@ -537,7 +538,7 @@ uint64_t proc_bytes_total() {
  * \brief gives total memory available on this MPI process 
  */
 uint64_t proc_bytes_available(){
-  return CTF_memcap*proc_bytes_total() - proc_bytes_used();
+  return memcap*proc_bytes_total() - proc_bytes_used();
 }
 
 
@@ -550,7 +551,7 @@ uint64_t proc_bytes_available(){
 /*  struct mallinfo info;
   info = mallinfo();
   return (uint64_t)info.fordblks;*/
-  return CTF_memcap*proc_bytes_total() - proc_bytes_used();
+  return memcap*proc_bytes_total() - proc_bytes_used();
 }
 
 /**
@@ -566,8 +567,8 @@ uint64_t proc_bytes_total(){
 #else
   uint64_t pages = (uint64_t)sysconf(_SC_PHYS_PAGES);
   uint64_t page_size = (uint64_t)sysconf(_SC_PAGE_SIZE);
-  if (CTF_mem_size != 0)
-    return MIN(pages * page_size, CTF_mem_size);
+  if (mem_size != 0)
+    return MIN(pages * page_size, mem_size);
   else
     return pages * page_size;
 #endif

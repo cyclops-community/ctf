@@ -6,10 +6,9 @@
 #include "ctr_comm.h"
 #include "../shared/util.h"
 
-template<typename dtype>
-class ctr_virt : public ctr<dtype> {
+class ctr_virt {
   public: 
-    ctr<dtype> * rec_ctr;
+    ctr * rec_ctr;
     int num_dim;
     int * virt_dim;
     int ndim_A;
@@ -27,17 +26,16 @@ class ctr_virt : public ctr<dtype> {
     long_int mem_fp();
     long_int mem_rec();
     double est_time_rec(int nlyr);
-    ctr<dtype> * clone();
+    ctr * clone();
   
     ~ctr_virt();
-    ctr_virt(ctr<dtype> *other);
+    ctr_virt(ctr *other);
     ctr_virt(){}
 };
 
-template<typename dtype>
-class ctr_virt_25d : public ctr<dtype> {
+class ctr_virt_25d : public ctr {
   public: 
-    ctr<dtype> * rec_ctr;
+    ctr * rec_ctr;
     int num_dim;
     int * virt_dim;
     int ndim_A;
@@ -54,15 +52,12 @@ class ctr_virt_25d : public ctr<dtype> {
     void run();
     long_int mem_fp();
     long_int mem_rec();
-    ctr<dtype> * clone();
+    ctr * clone();
   
     ~ctr_virt_25d();
-    ctr_virt_25d(ctr<dtype> *other);
+    ctr_virt_25d(ctr *other);
     ctr_virt_25d(){}
 };
 
-
-//#include "ctr_tsr.cxx"
-//#include "ctr_tsr_25d.cxx"
 
 #endif // __CTR_TSR_H__

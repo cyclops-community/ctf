@@ -1,13 +1,5 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#include <algorithm>
-#include <ostream>
-#include <iostream>
-#include <assert.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <limits.h>
-#include <string.h>
 #include "../shared/util_ext.h"
 #include "../world/int_world.h"
 
@@ -76,13 +68,13 @@ Tensor<dtype>::Tensor(int                 ndim_,
 template<typename dtype>
 Tensor<dtype>::~Tensor(){
 /*  if (sym != NULL)
-    free_cond(sym);
+    CTF_free_cond(sym);
   if (len != NULL)
-    free_cond(len);*/
+    CTF_free_cond(len);*/
   if (sym != NULL)
-    free(sym);
+    CTF_free(sym);
   if (len != NULL)
-    free(len);
+    CTF_free(len);
   world->ctf->clean_tensor(tid);
 }
 
@@ -105,13 +97,13 @@ void Tensor<dtype>::read_local(int64_t *   npair,
   ret = world->ctf->read_local_tensor(tid, npair, &pairs);
   assert(ret == SUCCESS);
   /* FIXME: careful with alloc */
-  *global_idx = (int64_t*)malloc((*npair)*sizeof(int64_t));
-  *data = (dtype*)malloc((*npair)*sizeof(dtype));
+  *global_idx = (int64_t*)CTF_alloc((*npair)*sizeof(int64_t));
+  *data = (dtype*)CTF_alloc((*npair)*sizeof(dtype));
   for (i=0; i<(*npair); i++){
     (*global_idx)[i] = pairs[i].k;
     (*data)[i] = pairs[i].d;
   }
-  free(pairs);
+  CTF_free(pairs);
 }
 
 template<typename dtype>
@@ -136,7 +128,7 @@ void Tensor<dtype>::read(int64_t          npair,
   for (i=0; i<npair; i++){
     data[i] = pairs[i].d;
   }
-  free(pairs);
+  CTF_free(pairs);
 }
 
 template<typename dtype>
@@ -159,7 +151,7 @@ void Tensor<dtype>::write(int64_t          npair,
   }
   ret = world->ctf->write_tensor(tid, npair, pairs);
   assert(ret == SUCCESS);
-  free(pairs);
+  CTF_free(pairs);
 }
 
 template<typename dtype>
@@ -184,7 +176,7 @@ void Tensor<dtype>::write(int64_t         npair,
   }
   ret = world->ctf->write_tensor(tid, npair, alpha, beta, pairs);
   assert(ret == SUCCESS);
-  free(pairs);
+  CTF_free(pairs);
 }
 
 template<typename dtype>
@@ -214,7 +206,7 @@ void Tensor<dtype>::read(int64_t         npair,
   for (i=0; i<npair; i++){
     data[i] = pairs[i].d;
   }
-  free(pairs);
+  CTF_free(pairs);
 }
 
 template<typename dtype>
@@ -295,9 +287,9 @@ void Tensor<dtype>::contract(dtype                 alpha,
     fs.func_ptr = fseq.func_ptr;
     ret = world->ctf->contract(&tp, fs, alpha, beta);
   }*/
-  free(tp.idx_map_A);
-  free(tp.idx_map_B);
-  free(tp.idx_map_C);
+  CTF_free(tp.idx_map_A);
+  CTF_free(tp.idx_map_B);
+  CTF_free(tp.idx_map_C);
   assert(ret == SUCCESS);
 }
 
@@ -346,8 +338,8 @@ void Tensor<dtype>::sum(dtype                  alpha,
   st.tid_A = A.tid;
   st.tid_B = tid;
   ret = world->ctf->sum_tensors(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fseq);
-  free(idx_map_A);
-  free(idx_map_B);
+  CTF_free(idx_map_A);
+  CTF_free(idx_map_B);
   assert(ret == SUCCESS);
 }
 
@@ -359,7 +351,7 @@ void Tensor<dtype>::scale(dtype                alpha,
   int * idx_map_A;
   conv_idx(ndim, idx_A, &idx_map_A);
   ret = world->ctf->scale_tensor(alpha, tid, idx_map_A, fseq);
-  free(idx_map_A);
+  CTF_free(idx_map_A);
   assert(ret == SUCCESS);
 }
 template<typename dtype>
@@ -398,7 +390,7 @@ void Tensor<dtype>::add_to_subworld(
 template<typename dtype>
 void Tensor<dtype>::add_to_subworld(
                          Tensor<dtype> * tsr) const {
-  return add_to_subworld(tsr, get_one<dtype>(), get_one<dtype>());
+  return add_to_subworld(tsr, semiring.mulid, semiring.mulid);
 }
 
 template<typename dtype>
@@ -416,7 +408,7 @@ void Tensor<dtype>::add_from_subworld(
 template<typename dtype>
 void Tensor<dtype>::add_from_subworld(
                          Tensor<dtype> * tsr) const {
-  return add_from_subworld(tsr, get_one<dtype>(), get_one<dtype>());
+  return add_from_subworld(tsr, semiring.mulid, semiring.mulid);
 }
 
 
@@ -461,10 +453,10 @@ void Tensor<dtype>::slice(int64_t        corner_off,
   
   slice(offsets, ends, beta, A, offsets_A, ends_A, alpha);
 
-  free(offsets);
-  free(ends);
-  free(offsets_A);
-  free(ends_A);
+  CTF_free(offsets);
+  CTF_free(ends);
+  CTF_free(offsets_A);
+  CTF_free(ends_A);
 }
 
 template<typename dtype>
@@ -508,8 +500,8 @@ Tensor<dtype> Tensor<dtype>::slice(int const *  offsets,
   Tensor<dtype> new_tsr(ndim, new_lens, new_sym, *owrld);
   std::fill(new_sym, new_sym+ndim, 0);
   new_tsr.slice(new_sym, new_lens, 0.0, *this, offsets, ends, 1.0);
-  free(new_lens);
-  free(new_sym);
+  CTF_free(new_lens);
+  CTF_free(new_sym);
   return new_tsr;
 }
 
@@ -525,8 +517,8 @@ Tensor<dtype> Tensor<dtype>::slice(int64_t  corner_off,
   
   Tensor tsr = slice(offsets, ends, owrld);
 
-  free(offsets);
-  free(ends);
+  CTF_free(offsets);
+  CTF_free(ends);
 
   return tsr;
 }
@@ -535,7 +527,7 @@ template<typename dtype>
 void Tensor<dtype>::align(const Tensor& A){
   if (A.world->ctf != world->ctf) {
     printf("ERROR: cannot align tensors on different CTF instances\n");
-    ABORT;
+    assert(0);
   }
   int ret = world->ctf->align(tid, A.tid);
   assert(ret == SUCCESS);
@@ -574,10 +566,10 @@ void Tensor<dtype>::operator=(Tensor<dtype> A){
   name = A.name;
 
   if (sym != NULL)
-    free(sym);
+    CTF_free(sym);
   if (len != NULL)
-    free(len);
-    //free(len);
+    CTF_free(len);
+    //CTF_free(len);
   ret = world->ctf->info_tensor(A.tid, &ndim, &len, &sym);
   assert(ret == SUCCESS);
 
@@ -603,77 +595,6 @@ Sparse_Tensor<dtype> Tensor<dtype>::operator[](std::vector<int64_t> indices){
   Sparse_Tensor<dtype> stsr(indices,this);
   return stsr;
 }
-
-
-
-
-/**
- * \brief a sparse subset of a tensor 
- */
-template<typename dtype>
-class Sparse_Tensor {
-  public:
-    Tensor<dtype> * parent;
-    std::vector<int64_t> indices;
-    dtype scale;
-
-    /** 
-      * \brief base constructor 
-      */
-    Sparse_Tensor();
-    
-    /**
-     * \brief initialize a tensor which corresponds to a set of indices 
-     * \param[in] indices a vector of global indices to tensor values
-     * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
-     */
-    Sparse_Tensor(std::vector<int64_t> indices,
-                       Tensor<dtype> * parent);
-
-    /**
-     * \brief initialize a tensor which corresponds to a set of indices 
-     * \param[in] number of values this sparse tensor will have locally
-     * \param[in] indices an array of global indices to tensor values
-     * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
-     */
-    Sparse_Tensor(int64_t         n,
-                  int64_t *       indices,
-                  Tensor<dtype> * parent);
-
-    /**
-     * \brief set the sparse set of indices on the parent tensor to values
-     *        forall(j) i = indices[j]; parent[i] = beta*parent[i] + alpha*values[j];
-     * \param[in] alpha scaling factor on values array 
-     * \param[in] values data, should be of same size as the number of indices (n)
-     * \param[in] beta scaling factor to apply to previously existing data
-     */
-    void write(dtype              alpha, 
-               dtype *            values,
-               dtype              beta); 
-
-    // C++ overload special-cases of above method
-    void operator=(std::vector<dtype> values); 
-    void operator+=(std::vector<dtype> values); 
-    void operator-=(std::vector<dtype> values); 
-    void operator=(dtype * values); 
-    void operator+=(dtype * values); 
-    void operator-=(dtype * values); 
-
-    /**
-     * \brief read the sparse set of indices on the parent tensor to values
-     *        forall(j) i = indices[j]; values[j] = alpha*parent[i] + beta*values[j];
-     * \param[in] alpha scaling factor on parent array 
-     * \param[in] values data, should be preallocated to the same size as the number of indices (n)
-     * \param[in] beta scaling factor to apply to previously existing data in values
-     */
-    void read(dtype              alpha, 
-              dtype *            values,
-              dtype              beta); 
-
-    // C++ overload special-cases of above method
-    operator std::vector<dtype>();
-    operator dtype*();
-};
 
 
 

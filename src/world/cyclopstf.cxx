@@ -1,7 +1,6 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "dist_tensor_internal.h"
-#include "cyclopstf.hpp"
 #include "mach.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
