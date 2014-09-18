@@ -2,7 +2,8 @@
 #define __WORLD_H__
 
 #include <mpi.h>
-#include "../world/int_world.h"
+#include "internal_interface.hpp"
+
 
 /**
  * \defgroup CTF CTF: C++ World interface
@@ -15,7 +16,7 @@
 class World {
   public:
     MPI_Comm comm;
-    Int_World * ctf;
+    CTF_internal::world * ctf;
 
   public:
     /**

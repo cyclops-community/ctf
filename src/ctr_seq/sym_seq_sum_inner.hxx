@@ -11,15 +11,16 @@
  * \brief performs symmetric summation
  */
 template<typename dtype>
-int sym_seq_sum_inr( dtype const        alpha,
-                     dtype const *      A,
+int sym_seq_sum_inr( char const *       alpha,
+                     char const *       A,
                      int const          ndim_A,
                      int const *        edge_len_A,
                      int const *        _lda_A,
                      int const *        sym_A,
                      int const *        idx_map_A,
-                     dtype const        beta,
-                     dtype *            B,
+                     char const *       beta,
+                     char *             B,
+                     semiring           sr_B,
                      int const          ndim_B,
                      int const *        edge_len_B,
                      int const *        _lda_B,
@@ -61,7 +62,8 @@ int sym_seq_sum_inr( dtype const        alpha,
       //if (sym_pass)
         //B[idx_B] =  beta*B[idx_B];
       if (sym_pass){
-        cxscal<dtype>(inr_stride, beta, B+idx_B*inr_stride, 1);
+        //cxscal<dtype>(inr_stride, beta, B+idx_B*inr_stride, 1);
+        sr_B.scal(inr_stride, beta, B+idx_B*inr_stride*sr_B.el_size, 1);
         CTF_FLOPS_ADD(2*inr_stride);
       }
       for (idx=0; idx<idx_max; idx++){
@@ -102,7 +104,8 @@ int sym_seq_sum_inr( dtype const        alpha,
         cxaxpy<dtype>(inr_stride, beta-1.0, B+idx_B*inr_stride, 1, B+idx_B*inr_stride, 1);
         CTF_FLOPS_ADD(2*inr_stride);
       }*/
-      cxaxpy<dtype>(inr_stride, alpha, A+idx_A*inr_stride, 1, B+idx_B*inr_stride, 1); 
+      //cxaxpy<dtype>(inr_stride, alpha, A+idx_A*inr_stride, 1, B+idx_B*inr_stride, 1); 
+      sr_B.axpy<dtype>(inr_stride, alpha, A+sr_B.el_size*idx_A*inr_stride, 1, B+sr_B*el_size*idx_B*inr_stride, 1); 
       CTF_FLOPS_ADD(2*inr_stride);
     }
 

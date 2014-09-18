@@ -239,7 +239,7 @@ void default_scal< std::complex<double> >
  * \brief semirings defined the elementwise operations computed 
  *         in each tensor contraction
  */
-class Int_Semiring {
+class semiring {
   public: 
     int el_size;
     char * addid;
@@ -287,14 +287,14 @@ class Int_Semiring {
     /**
      * \brief default constructor
      */
-    Int_Semiring();
+    semiring();
 
 
     /**
      * \brief copy constructor
      * \param[in] other another semiring to copy from
      */
-    Int_Semiring(Int_Semiring const &other);
+    semiring(semiring const &other);
 
     /**
      * \brief constructor creates semiring with all parameters
@@ -308,7 +308,7 @@ class Int_Semiring {
      * \param[in] mul function pointer to multiply c=a*b on semiring
      * \param[in] gemm function pointer to multiply blocks C, A, and B on semiring
      */
-    Int_Semiring(int          el_size, 
+    semiring(    int          el_size, 
                  char const * addid,
                  char const * mulid,
                  MPI_Op       addmop,
@@ -341,7 +341,16 @@ class Int_Semiring {
     /**
      * \brief destructor frees addid and mulid
      */
-    ~Int_Semiring();
+    ~semiring();
+    
+    // returns true if semiring elements a and b are equal
+    bool isequal(char const * a, char const * b);
+    
+    // copies element b to element a
+    void copy(char * a, char const * b);
+    
+    // copies n elements from array b to array a
+    void copy(char * a, char const * b, int64_t n);
 };
 
 template <typename dtype, dtype (*func)(dtype const a, dtype const b)>

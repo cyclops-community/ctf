@@ -10,22 +10,21 @@
 /**
  * \brief performs symmetric summation
  */
-template<typename dtype>
-int sym_seq_sum_cust(dtype const          alpha,
-                     dtype const *        A,
+int sym_seq_sum_cust(char const *         A,
+                     semiring             isA,
                      int const            ndim_A,
                      int const *          edge_len_A,
                      int const *          _lda_A,
                      int const *          sym_A,
                      int const *          idx_map_A,
-                     dtype const          beta,
-                     dtype *              B,
+                     char *               B,
+                     semiring             isB,
                      int const            ndim_B,
                      int const *          edge_len_B,
                      int const *          _lda_B,
                      int const *          sym_B,
                      int const *          idx_map_B,
-                     fseq_elm_sum<dtype>* prm){
+                     univar_function      func){
   TAU_FSTART(sym_seq_sum_cust);
   int idx, i, idx_max, imin, imax, idx_A, idx_B, iA, iB, j, k;
   int off_idx, off_lda, sym_pass;
@@ -56,7 +55,7 @@ int sym_seq_sum_cust(dtype const          alpha,
   sym_pass = 1;
   for (;;){
     if (sym_pass){
-      (*(prm->func_ptr))(alpha, A[idx_A], B[idx_B]);
+      func.apply_f(A+idx_A*isA.el_size, B+idx_B*isB.el_size);
       CTF_FLOPS_ADD(2);
     }
 

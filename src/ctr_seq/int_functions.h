@@ -1,13 +1,13 @@
 
-#ifndef __INT_FUNCTIONS_H__
-#define __INT_FUNCTIONS_H__
+#ifndef __INT_fUNCTIONS_H__
+#define __INT_fUNCTIONS_H__
 
 #include "assert.h"
 
 /**
  * \brief untyped internal class for singly-typed single variable function (Endomorphism)
  */
-class Int_Endomorphism {
+class endomorphism {
   public:
     /**
      * \brief apply function f to value stored at a
@@ -20,7 +20,7 @@ class Int_Endomorphism {
 /**
  * \brief untyped internal class for doubly-typed univariate function
  */
-class Int_Univar_Function {
+class univar_function {
   public:
     /**
      * \brief apply function f to value stored at a
@@ -33,7 +33,7 @@ class Int_Univar_Function {
 /**
  * \brief untyped internal class for triply-typed bivariate function
  */
-class Int_Bivar_Function {
+class bivar_function {
   public:
     /**
      * \brief apply function f to values stored at a and b

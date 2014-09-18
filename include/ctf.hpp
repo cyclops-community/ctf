@@ -19,12 +19,12 @@
 namespace CTF {
 
 #include "../src/interface/world.h"
-#include "../src/interface/semiring.h"
 #include "../src/interface/tensor.h"
+#include "../src/interface/semiring.h"
+#include "../src/interface/functions.h"
 #include "../src/interface/expression.h"
 #include "../src/interface/schedule.h"
 #include "../src/interface/timer.h"
-#include "../src/interface/functions.h"
 
 }
 

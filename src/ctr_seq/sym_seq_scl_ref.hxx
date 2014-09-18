@@ -11,14 +11,14 @@
 /**
  * \brief performs symmetric contraction
  */
-template<typename dtype>
-int sym_seq_scl_ref( dtype const        alpha,
-                     dtype *      A,
-                     int const          ndim_A,
-                     int const *        edge_len_A,
-                     int const *        _lda_A,
-                     int const *        sym_A,
-                     int const *        idx_map_A){
+int sym_seq_scl_ref(char const * alpha,
+                    char *       A,
+                    semiring     sr_A,
+                    int          ndim_A,
+                    int const *  edge_len_A,
+                    int const *  _lda_A,
+                    int const *  sym_A,
+                    int const *  idx_map_A){
   TAU_FSTART(sym_seq_sum_ref);
   int idx, i, idx_max, imin, imax, idx_A, iA, j, k;
   int off_idx, off_lda, sym_pass;
@@ -39,7 +39,8 @@ int sym_seq_scl_ref( dtype const        alpha,
   sym_pass = 1;
   for (;;){
     if (sym_pass){
-      A[idx_A] = alpha*A[idx_A];
+      //A[idx_A] = alpha*A[idx_A];
+      sr_A.mul(A+idx_A*sr_A.el_size, alpha, A+idx_A*sr_A.el_size);
       CTF_FLOPS_ADD(1);
     }
 

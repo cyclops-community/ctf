@@ -11,15 +11,16 @@
  * \brief performs symmetric contraction
  */
 template<typename dtype>
-int sym_seq_sum_ref( dtype const        alpha,
-                     dtype const *      A,
+int sym_seq_sum_ref( char const *       alpha,
+                     char const *        A,
                      int const          ndim_A,
                      int const *        edge_len_A,
                      int const *        _lda_A,
                      int const *        sym_A,
                      int const *        idx_map_A,
-                     dtype const        beta,
-                     dtype *            B,
+                     char const *       beta,
+                     char *             B,
+                     semiring           sr_B,
                      int const          ndim_B,
                      int const *        edge_len_B,
                      int const *        _lda_B,
@@ -49,7 +50,8 @@ int sym_seq_sum_ref( dtype const        alpha,
     sym_pass = 1;
     for (;;){
       if (sym_pass)
-        B[idx_B] =  beta*B[idx_B];
+        sr_B.mul(B+sr_B.el_size*idx_B, beta, B+sr_B.el_size*idx_B);
+        //B[idx_B] =  beta*B[idx_B];
       for (idx=0; idx<idx_max; idx++){
         imin = 0, imax = INT_MAX;
 
@@ -85,7 +87,10 @@ int sym_seq_sum_ref( dtype const        alpha,
     if (sym_pass){
   /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
               idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
-      B[idx_B] = alpha*A[idx_A] + 1.0*B[idx_B];
+      char tmp[sr_B.el_size];
+      sr_B.mul(A+sr_B.el_size*idx_A, alpha, tmp);
+      sr_B.add(B+sr_B.el_size*idx_B, tmp, B+sr_B.el_size*idx_B);
+//      B[idx_B] = alpha*A[idx_A] + 1.0*B[idx_B];
       CTF_FLOPS_ADD(2);
     }
 

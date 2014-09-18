@@ -6,6 +6,7 @@
 #include "semiring.h"
 #include <vector>
 
+
 /**
  * labels corresponding to symmetry of each tensor dimension
  * NS = 0 - nonsymmetric
@@ -20,28 +21,30 @@
 #define SH 3
 #endif
 
+/**
+ * \brief reduction types for tensor data
+ */
+enum OP { OP_SUM, OP_SUMABS,
+          OP_NORM1, OP_NORM2, OP_NORM_INFTY,
+          OP_MAX, OP_MIN, OP_MAXABS, OP_MINABS};
+
+
 template <typename dtype> class Idx_Tensor;
 template <typename dtype> class Sparse_Tensor;
 
+
+using CTF_internal::pair;
+using CTF_internal::pair::k;
 /**
  * \brief index-value pair used for tensor data input
  */
 template<typename dtype=double>
-class Pair : public Int_Pair {
+class Pair : public CTF_internal::pair {
   public:
-    int64_t k;
     dtype d;
     Pair() {}
     Pair(int64_t  k, dtype d) : k(k), d(d) {}
-    bool operator< (const Pair<dtype>& other) const{
-      return k < other.k;
-    }
-    bool operator==(const Pair<dtype>& other) const{
-      return (k == other.k && d == other.d);
-    }
-    bool operator!=(const Pair<dtype>& other) const{
-      return !(*this == other);
-    }
+    
     char * v(){
       return (char*)&d;
     }

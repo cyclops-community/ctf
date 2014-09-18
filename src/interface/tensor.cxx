@@ -133,15 +133,15 @@ void Tensor<dtype>::read(int64_t          npair,
 
 template<typename dtype>
 void Tensor<dtype>::read(int64_t          npair,
-                          Pair<dtype> * pairs) const {
+                         Pair<dtype> *    pairs) const {
   int ret = world->ctf->read_tensor(tid, npair, pairs);
   assert(ret == SUCCESS);
 }
 
 template<typename dtype>
 void Tensor<dtype>::write(int64_t          npair, 
-                               int64_t const *  global_idx, 
-                               dtype const *     data) {
+                          int64_t const *  global_idx, 
+                          dtype const *    data) {
   int ret, i;
   Pair< dtype > * pairs;
   pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
@@ -155,18 +155,18 @@ void Tensor<dtype>::write(int64_t          npair,
 }
 
 template<typename dtype>
-void Tensor<dtype>::write(int64_t                npair,
-                               Pair<dtype> const * pairs) {
+void Tensor<dtype>::write(int64_t             npair,
+                          Pair<dtype> const * pairs) {
   int ret = world->ctf->write_tensor(tid, npair, pairs);
   assert(ret == SUCCESS);
 }
 
 template<typename dtype>
-void Tensor<dtype>::write(int64_t         npair, 
-                               dtype            alpha, 
-                               dtype            beta,
-                               int64_t const * global_idx, 
-                               dtype const *    data) {
+void Tensor<dtype>::write(int64_t          npair, 
+                          dtype            alpha, 
+                          dtype            beta,
+                          int64_t const *  global_idx, 
+                          dtype const *    data) {
   int ret, i;
   Pair< dtype > * pairs;
   pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
@@ -180,20 +180,20 @@ void Tensor<dtype>::write(int64_t         npair,
 }
 
 template<typename dtype>
-void Tensor<dtype>::write(int64_t          npair,
-                               dtype             alpha,
-                               dtype             beta,
-                               Pair<dtype> const * pairs) {
+void Tensor<dtype>::write(int64_t             npair,
+                          dtype               alpha,
+                          dtype               beta,
+                          Pair<dtype> const * pairs) {
   int ret = world->ctf->write_tensor(tid, npair, alpha, beta, pairs);
   assert(ret == SUCCESS);
 }
 
 template<typename dtype>
 void Tensor<dtype>::read(int64_t         npair, 
-                              dtype            alpha, 
-                              dtype            beta,
-                              int64_t const * global_idx, 
-                              dtype *          data) const{
+                         dtype           alpha, 
+                         dtype           beta,
+                         int64_t const * global_idx, 
+                         dtype *         data) const{
   int ret, i;
   Pair< dtype > * pairs;
   pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));

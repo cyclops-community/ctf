@@ -1,4 +1,3 @@
-
 #ifndef __SEQ_TSR_H__
 #define __SEQ_TSR_H__
 
@@ -18,7 +17,7 @@
 
 class seq_tsr_ctr : public ctr {
   public:
-    dtype alpha;
+    char * alpha;
     int ndim_A;
     int * edge_len_A;
     int const * idx_map_A;
@@ -31,13 +30,13 @@ class seq_tsr_ctr : public ctr {
     int * edge_len_C;
     int const * idx_map_C;
     int * sym_C;
-    fseq_tsr_ctr func_ptr;
+    //fseq_tsr_ctr func_ptr;
 
     int is_inner;
     iparam inner_params;
     
     int is_custom;
-    fseq_elm_ctr custom_params;
+    bivar_function func; // custom_params;
 
     void run();
     void print();
@@ -62,13 +61,14 @@ class seq_tsr_sum : public tsum {
     int * edge_len_B;
     int const * idx_map_B;
     int * sym_B;
-    fseq_tsr_sum func_ptr;
+    //fseq_tsr_sum func_ptr;
 
     int is_inner;
     int inr_stride;
     
     int is_custom;
-    fseq_elm_sum custom_params;
+    univar_function func; //fseq_elm_sum custom_params;
+    
 
     void run();
     void print();
@@ -87,10 +87,10 @@ class seq_tsr_scl : public scl {
     int * edge_len;
     int const * idx_map;
     int const * sym;
-    fseq_tsr_scl func_ptr;
+    //fseq_tsr_scl func_ptr;
 
     int is_custom;
-    fseq_elm_scl custom_params;
+    endomorphism func; //fseq_elm_scl custom_params;
 
     void run();
     void print();

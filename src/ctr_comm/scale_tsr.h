@@ -5,11 +5,10 @@
 
 #include "../shared/util.h"
 
-template<typename dtype>
 class scl {
   public:
-    dtype * A; 
-    dtype alpha;
+    char * A; 
+    char * alpha;
     void * buffer;
 
     virtual void run() {};
@@ -21,11 +20,10 @@ class scl {
     scl(){ buffer = NULL; }
 };
 
-template<typename dtype>
-class scl_virt : public scl<dtype> {
+class scl_virt : public scl {
   public: 
     /* Class to be called on sub-blocks */
-    scl<dtype> * rec_scl;
+    scl * rec_scl;
 
     int num_dim;
     int * virt_dim;
@@ -35,9 +33,9 @@ class scl_virt : public scl<dtype> {
     
     void run();
     long_int mem_fp();
-    scl<dtype> * clone();
+    scl * clone();
     
-    scl_virt(scl<dtype> * other);
+    scl_virt(scl * other);
     ~scl_virt();
     scl_virt(){}
 };

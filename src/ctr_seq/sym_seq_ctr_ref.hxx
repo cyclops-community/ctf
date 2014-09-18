@@ -11,26 +11,27 @@
  * \brief performs symmetric contraction
  */
 template<typename dtype>
-int sym_seq_ctr_ref( dtype const        alpha,
-                     dtype const *      A,
-                     int const          ndim_A,
-                     int const *        edge_len_A,
-                     int const *        _lda_A,
-                     int const *        sym_A,
-                     int const *        idx_map_A,
-                     dtype const *      B,
-                     int const          ndim_B,
-                     int const *        edge_len_B,
-                     int const *        _lda_B,
-                     int const *        sym_B,
-                     int const *        idx_map_B,
-                     dtype const        beta,
-                     dtype *            C,
-                     int const          ndim_C,
-                     int const *        edge_len_C,
-                     int const *        _lda_C,
-                     int const *        sym_C,
-                     int const *        idx_map_C){
+int sym_seq_ctr_ref(char const *       alpha,
+                    char const *       A,
+                    int                ndim_A,
+                    int const *        edge_len_A,
+                    int const *        _lda_A,
+                    int const *        sym_A,
+                    int const *        idx_map_A,
+                    char const *       B,
+                    int                ndim_B,
+                    int const *        edge_len_B,
+                    int const *        _lda_B,
+                    int const *        sym_B,
+                    int const *        idx_map_B,
+                    char const *       beta,
+                    char *             C,
+                    semiring           sr_C,
+                    int                ndim_C,
+                    int const *        edge_len_C,
+                    int const *        _lda_C,
+                    int const *        sym_C,
+                    int const *        idx_map_C){
   TAU_FSTART(sym_seq_ctr_ref);
   int idx, i, idx_max, imin, imax, sz, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
   int off_idx, off_lda, sym_pass;
@@ -57,7 +58,9 @@ int sym_seq_ctr_ref( dtype const        alpha,
   if (beta != get_one<dtype>()) {
     sz = sy_packed_size(ndim_C, edge_len_C, sym_C);
     for (i=0; i<sz; i++){
-      C[i] = C[i]*beta;
+//      C[i] = C[i]*beta;
+      sr_C.mul(C+i*sr_C.el_size, beta, 
+               C+i*sr_C.el_size);
     }
   }
   idx_A = 0, idx_B = 0, idx_C = 0;
@@ -65,7 +68,10 @@ int sym_seq_ctr_ref( dtype const        alpha,
   for (;;){
     //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
     if (sym_pass){
-      C[idx_C] += alpha*A[idx_A]*B[idx_B];
+      char tmp[sr_C.el_size];
+      sr_C.mul(A+idx_A*sr_C.el_size, B+idx_B*sr_C.el_size, tmp);
+      sr_C.mul(tmp, alpha, tmp);
+      sr_C.add(tmp, C+idx_C*sr_C.el_size, C+idx_C*sr_C.el_size);
       CTF_FLOPS_ADD(3);
     }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);

@@ -12,28 +12,30 @@
 /**
  * \brief performs symmetric contraction
  */
-template<typename dtype>
-int sym_seq_ctr_inr( dtype const        alpha,
-                     dtype const *      A,
-                     int const          ndim_A,
-                     int const *        edge_len_A,
-                     int const *        _lda_A,
-                     int const *        sym_A,
-                     int const *        idx_map_A,
-                     dtype const *      B,
-                     int const          ndim_B,
-                     int const *        edge_len_B,
-                     int const *        _lda_B,
-                     int const *        sym_B,
-                     int const *        idx_map_B,
-                     dtype const        beta,
-                     dtype *            C,
-                     int const          ndim_C,
-                     int const *        edge_len_C,
-                     int const *        _lda_C,
-                     int const *        sym_C,
-                     int const *        idx_map_C,
-                     iparam const *     prm){
+int sym_seq_ctr_inr(char const *       alpha,
+                    char const *       A,
+                    semiring           sr_A,
+                    int                ndim_A,
+                    int const *        edge_len_A,
+                    int const *        _lda_A,
+                    int const *        sym_A,
+                    int const *        idx_map_A,
+                    char const *       B,
+                    semiring           sr_B,
+                    int                ndim_B,
+                    int const *        edge_len_B,
+                    int const *        _lda_B,
+                    int const *        sym_B,
+                    int const *        idx_map_B,
+                    char const *       beta,
+                    char *             C,
+                    semiring           sr_C,
+                    int                ndim_C,
+                    int const *        edge_len_C,
+                    int const *        _lda_C,
+                    int const *        sym_C,
+                    int const *        idx_map_C,
+                    iparam const *     prm){
   TAU_FSTART(sym_seq_ctr_inner);
   int idx, i, idx_max, imin, imax, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
   int off_idx, off_lda, sym_pass, stride_A, stride_B, stride_C;
@@ -62,11 +64,12 @@ int sym_seq_ctr_inr( dtype const        alpha,
 
   /* Scale C immediately. FIXME: wrong for iterators over subset of C */
 #ifndef OFFLOAD
-  if (beta != get_one<dtype>()) {
+  if (sr_C.isequal(beta, sr_C.mulid)){
     CTF_FLOPS_ADD(prm->sz_C);
-    for (i=0; i<prm->sz_C; i++){
+/*    for (i=0; i<prm->sz_C; i++){
       C[i] = C[i]*beta;
-    }
+    }*/
+    sr_C.scal(prm->sz_C, beta, C, 1);
   }
 #endif
   idx_A = 0, idx_B = 0, idx_C = 0;
@@ -80,14 +83,14 @@ int sym_seq_ctr_inr( dtype const        alpha,
 #ifdef OFFLOAD
 //      if (prm->m*prm->n*prm->k > 1000){
       offload_gemm<dtype>(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
-                          A+idx_A*stride_A, prm->k,
-                          B+idx_B*stride_B, prm->k, 1.0,
-                          C+idx_C*stride_C, prm->m);
+                          A+idx_A*stride_A*sr_A.el_size, prm->k,
+                          B+idx_B*stride_B*sr_B.el_size, prm->k, sr_C.mulid,
+                          C+idx_C*stride_C*sr_C.el_size, prm->m);
 #else
-      cxgemm<dtype>(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
-                     A+idx_A*stride_A, prm->k,
-                     B+idx_B*stride_B, prm->k, 1.0,
-                     C+idx_C*stride_C, prm->m);
+      sr_C.gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
+                A+idx_A*stride_A*sr_A.el_size, 
+                B+idx_B*stride_B*sr_B.el_size, sr_C.mulid,
+                C+idx_C*stride_C*sr_C.el_size);
 #endif
       TAU_FSTOP(gemm);
       // count n^2 FLOPS too

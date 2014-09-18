@@ -12,33 +12,33 @@
  * \brief performs symmetric contraction
  */
 int sym_seq_ctr_cust(char const *         A,
-                     Int_Semiring         isA,
-                     int const            ndim_A,
+                     semiring             sr_A,
+                     int                  ndim_A,
                      int const *          edge_len_A,
                      int const *          _lda_A,
                      int const *          sym_A,
                      int const *          idx_map_A,
                      char const *         B,
-                     Int_Semiring         isB,
-                     int const            ndim_B,
+                     semiring             sr_B,
+                     int                  ndim_B,
                      int const *          edge_len_B,
                      int const *          _lda_B,
                      int const *          sym_B,
                      int const *          idx_map_B,
                      char *               C,
-                     Int_Semiring         isC,
-                     int const            ndim_C,
+                     semiring             sr_C,
+                     int                  ndim_C,
                      int const *          edge_len_C,
                      int const *          _lda_C,
                      int const *          sym_C,
                      int const *          idx_map_C,
-                     Int_Bivar_Function   func){
+                     bivar_function       func){
   TAU_FSTART(sym_seq_ctr_cust);
   int idx, i, idx_max, imin, imax, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
   int off_idx, off_lda, sym_pass;
   int * idx_glb, * rev_idx_map;
   int * dlen_A, * dlen_B, * dlen_C;
-  int64_t sz;
+  //int64_t sz;
 
   inv_idx(ndim_A,       idx_map_A,
           ndim_B,       idx_map_B,
@@ -68,8 +68,8 @@ int sym_seq_ctr_cust(char const *         A,
   for (;;){
     //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
     if (sym_pass){
-      func.apply_f(A+idx_A*isA.el_size, B+idx_B*isB.el_size, 
-                   C+idx_C*isC.el_size);
+      func.apply_f(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, 
+                   C+idx_C*sr_C.el_size);
       CTF_FLOPS_ADD(3);
     }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);

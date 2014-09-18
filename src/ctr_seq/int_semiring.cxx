@@ -33,9 +33,9 @@ typedef dgemm template <> dgemm<double>;
 typedef cgemm template <> dgemm< std::complex<float> >;
 typedef zgemm template <> dgemm< std::complex<double> >;
 
-Int_Semiring::Int_Semiring(){}
+semiring::semiring(){}
 
-Int_Semiring::Int_Semiring(Int_Semiring const & other){
+semiring::semiring(semiring const & other){
   el_size = other.el_size;
   addid = (char*)alloc(el_size);
   memcpy(addid,other.addid,el_size);
@@ -46,7 +46,7 @@ Int_Semiring::Int_Semiring(Int_Semiring const & other){
   gemm = other.gemm;
 }
 
-Int_Semiring::Int_Semiring(
+semiring::semiring(
                  int          el_size_, 
                  char const * addid_,
                  char const * mulid_,
@@ -77,8 +77,28 @@ Int_Semiring::Int_Semiring(
   gemm = gemm_;
 }
 
-Int_Semiring::~Int_Semiring(){
+semiring::~semiring(){
   free(addid);
   free(mulid);
 }
+
+ 
+// returns true if semiring elements a and b are equal
+bool semiring::isequal(char const * a, char const * b){
+  bool iseq = true;
+  for (int i=0; i<el_size; i++){
+    if (a[i] != b[i]) iseq = false;
+  }
+}
+    
+// copies element b to element a
+void copy(char * a, char const * b){
+  memcpy(a, b, el_size);
+}
+    
+// copies n elements from array b to array a
+void copy(char * a, char const * b, int64_t n){
+  memcpy(a, b, el_size*n);
+}
+
 

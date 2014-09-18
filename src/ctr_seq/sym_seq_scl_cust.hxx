@@ -6,19 +6,20 @@
 #include "../shared/util.h"
 #include <limits.h>
 #include "sym_seq_shared.hxx"
-
+#include "int_semiring.h"
+#include "int_functions.h"
 
 /**
  * \brief performs symmetric contraction
  */
 int sym_seq_scl_cust(char *               A,
-                     Int_Semiring         isA,
+                     semiring             sr_A,
                      int const            ndim_A,
                      int const *          edge_len_A,
                      int const *          _lda_A,
                      int const *          sym_A,
                      int const *          idx_map_A,
-                     Int_Endomporphism    func){
+                     endomorphism        func){
   TAU_FSTART(sym_seq_sum_cust)
   int idx, i, idx_max, imin, imax, idx_A, iA, j, k;
   int off_idx, off_lda, sym_pass;
@@ -39,7 +40,7 @@ int sym_seq_scl_cust(char *               A,
   sym_pass = 1;
   for (;;){
     if (sym_pass){
-      func.apply_f(A+idx_A*isA.el_size);
+      func.apply_f(A+idx_A*sr_A.el_size);
       CTF_FLOPS_ADD(1);
     }
 

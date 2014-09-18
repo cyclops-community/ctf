@@ -5,29 +5,27 @@
 
 #include "../shared/util.h"
 
-template<typename dtype>
 class tsum {
   public:
-    dtype * A; 
-    dtype alpha;
-    dtype * B; 
-    dtype beta;
+    char * A; 
+    char * alpha;
+    char * B; 
+    char * beta;
     void * buffer;
 
     virtual void run() {};
     virtual long_int mem_fp() { return 0; };
-    virtual tsum<dtype> * clone() { return NULL; };
+    virtual tsum * clone() { return NULL; };
     
     virtual ~tsum(){ if (buffer != NULL) CTF_free(buffer); }
-    tsum(tsum<dtype> * other);
+    tsum(tsum * other);
     tsum(){ buffer = NULL; }
 };
 
-template<typename dtype>
-class tsum_virt : public tsum<dtype> {
+class tsum_virt : public tsum {
   public: 
     /* Class to be called on sub-blocks */
-    tsum<dtype> * rec_tsum;
+    tsum * rec_tsum;
 
     int num_dim;
     int * virt_dim;
@@ -40,15 +38,14 @@ class tsum_virt : public tsum<dtype> {
     
     void run();
     long_int mem_fp();
-    tsum<dtype> * clone();
+    tsum * clone();
     
-    tsum_virt(tsum<dtype> * other);
+    tsum_virt(tsum * other);
     ~tsum_virt();
     tsum_virt(){}
 };
 
-template<typename dtype>
-class tsum_replicate : public tsum<dtype> {
+class tsum_replicate : public tsum {
   public: 
     long_int size_A; /* size of A blocks */
     long_int size_B; /* size of B blocks */
@@ -58,13 +55,13 @@ class tsum_replicate : public tsum<dtype> {
     CommData_t * cdt_A;
     CommData_t * cdt_B;
     /* Class to be called on sub-blocks */
-    tsum<dtype> * rec_tsum;
+    tsum * rec_tsum;
     
     void run();
     long_int mem_fp();
-    tsum<dtype> * clone();
+    tsum * clone();
 
-    tsum_replicate(tsum<dtype> * other);
+    tsum_replicate(tsum * other);
     ~tsum_replicate();
     tsum_replicate(){}
 };
