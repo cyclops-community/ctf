@@ -8,6 +8,8 @@
  * @{
  */
 
+namespace CTF {
+
 template <typename dtype> class Term;
 template <typename dtype> class Sum_Term;
 template <typename dtype> class Contract_Term;
@@ -388,7 +390,9 @@ class Contract_Term : public Term<dtype> {
  * @}
  */
 
+}
 #include "idx_tensor.cxx"
 #include "term.cxx"
+
 
 #endif

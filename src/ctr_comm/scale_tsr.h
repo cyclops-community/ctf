@@ -12,7 +12,7 @@ class scl {
     void * buffer;
 
     virtual void run() {};
-    virtual long_int mem_fp() { return 0; };
+    virtual int64_t mem_fp() { return 0; };
     virtual scl * clone() { return NULL; };
     
     virtual ~scl(){ if (buffer != NULL) CTF_free(buffer); }
@@ -28,11 +28,11 @@ class scl_virt : public scl {
     int num_dim;
     int * virt_dim;
     int ndim_A;
-    long_int blk_sz_A;
+    int64_t blk_sz_A;
     int const * idx_map_A;
     
     void run();
-    long_int mem_fp();
+    int64_t mem_fp();
     scl * clone();
     
     scl_virt(scl * other);

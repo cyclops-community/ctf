@@ -33,9 +33,9 @@ strp_tsr<dtype>* strp_tsr<dtype>::clone(){
  * \return bytes needed
  */
 template<typename dtype>
-long_int strp_tsr<dtype>::mem_fp(){
+int64_t strp_tsr<dtype>::mem_fp(){
   int i;
-  long_int sub_sz;
+  int64_t sub_sz;
   sub_sz = blk_sz;
   for (i=0; i<ndim; i++){
     sub_sz = sub_sz * edge_len[i] / strip_dim[i];
@@ -158,7 +158,7 @@ tsum<dtype>* strp_sum<dtype>::clone() {
  * \brief gets memory usage of op
  */
 template<typename dtype>
-long_int strp_sum<dtype>::mem_fp(){
+int64_t strp_sum<dtype>::mem_fp(){
   return 0;
 }
 
@@ -237,7 +237,7 @@ ctr<dtype>* strp_ctr<dtype>::clone() {
  * \brief gets memory usage of op
  */
 template<typename dtype>
-long_int strp_ctr<dtype>::mem_fp(){
+int64_t strp_ctr<dtype>::mem_fp(){
   return 0;
 }
 
@@ -246,7 +246,7 @@ long_int strp_ctr<dtype>::mem_fp(){
  * \return bytes needed for recursive contraction
  */
 template<typename dtype>
-long_int strp_ctr<dtype>::mem_rec() {
+int64_t strp_ctr<dtype>::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 
@@ -335,7 +335,7 @@ scl<dtype>* strp_scl<dtype>::clone() {
  * \brief gets memory usage of op
  */
 template<typename dtype>
-long_int strp_scl<dtype>::mem_fp(){
+int64_t strp_scl<dtype>::mem_fp(){
   return 0;
 }
 

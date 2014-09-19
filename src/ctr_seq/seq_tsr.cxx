@@ -24,7 +24,7 @@ scl * seq_tsr_scl::clone() {
 }
 
 
-long_int seq_tsr_scl::mem_fp(){ return 0; }
+int64_t seq_tsr_scl::mem_fp(){ return 0; }
 
 /**
  * \brief wraps user sequential function signature
@@ -92,7 +92,7 @@ tsum * seq_tsr_sum::clone() {
   return new seq_tsr_sum(this);
 }
 
-long_int seq_tsr_sum::mem_fp(){ return 0; }
+int64_t seq_tsr_sum::mem_fp(){ return 0; }
 
 /**
  * \brief wraps user sequential function signature
@@ -211,7 +211,7 @@ ctr * seq_tsr_ctr::clone() {
 }
 
 
-long_int seq_tsr_ctr::mem_fp(){ return 0; }
+int64_t seq_tsr_ctr::mem_fp(){ return 0; }
 
 double seq_tsr_ctr::est_time_fp(int nlyr){ 
   uint64_t size_A = sy_packed_size(ndim_A, edge_len_A, sym_A);

@@ -59,7 +59,7 @@ tsum<dtype> * tsum_virt<dtype>::clone() {
  * \return bytes needed
  */
 template<typename dtype>
-long_int tsum_virt<dtype>::mem_fp(){
+int64_t tsum_virt<dtype>::mem_fp(){
   return (ndim_A+ndim_B+3*num_dim)*sizeof(int);
 }
 
@@ -70,7 +70,7 @@ template<typename dtype>
 void tsum_virt<dtype>::run(){
   int * idx_arr, * lda_A, * lda_B, * beta_arr;
   int * ilda_A, * ilda_B;
-  long_int i, off_A, off_B;
+  int64_t i, off_A, off_B;
   int nb_A, nb_B, alloced, ret; 
   TAU_FSTART(sum_virt);
 
@@ -186,7 +186,7 @@ tsum<dtype> * tsum_replicate<dtype>::clone() {
  * \return bytes needed
  */
 template<typename dtype>
-long_int tsum_replicate<dtype>::mem_fp(){
+int64_t tsum_replicate<dtype>::mem_fp(){
   return 0;
 }
 

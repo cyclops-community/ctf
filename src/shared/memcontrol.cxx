@@ -35,16 +35,16 @@
 
 struct mem_loc {
   void * ptr;
-  long_int len;
+  int64_t len;
 };
 
 /* fraction of total memory which can be saturated */
 double memcap = 0.75;
-long_int mem_size = 0;
+int64_t mem_size = 0;
 #define MAX_THREADS 256
 int max_threads;
 int instance_counter = 0;
-long_int mem_used[MAX_THREADS];
+int64_t mem_used[MAX_THREADS];
 #ifndef PRODUCTION
 std::list<mem_loc> mem_stacks[MAX_THREADS];
 #endif
@@ -52,11 +52,11 @@ std::list<mem_loc> mem_stacks[MAX_THREADS];
 //application memory stack
 void * mst_buffer = 0;
 //size of memory stack
-long_int mst_buffer_size = 0;
+int64_t mst_buffer_size = 0;
 //amount of data stored on stack
-long_int mst_buffer_used = 0;
+int64_t mst_buffer_used = 0;
 //the current offset of the top of the stack 
-long_int mst_buffer_ptr = 0;
+int64_t mst_buffer_ptr = 0;
 //stack of memory locations
 std::list<mem_loc> mst;
 //copy buffer for contraction of stack with low memory usage
@@ -66,7 +66,7 @@ char * cpy_buffer[CPY_BUFFER_SIZE];
 /**
  * \brief sets what fraction of the memory capacity CTF can use
  */
-void set_mem_size(long_int size){
+void set_mem_size(int64_t size){
   mem_size = size;
 }
 
@@ -83,7 +83,7 @@ void set_memcap(double cap){
  */
 std::list<mem_transfer> contract_mst(){
   std::list<mem_transfer> transfers;
-  long_int i;
+  int64_t i;
   if (mst_buffer_ptr > .80*mst_buffer_size && 
       mst_buffer_used < .40*mst_buffer_size){
     TAU_FSTART(contract_mst);
@@ -99,7 +99,7 @@ std::list<mem_transfer> contract_mst(){
       t.old_ptr = it->ptr;
       t.new_ptr = CTF_mst_alloc(it->len);
       if (t.old_ptr != t.new_ptr){
-        if ((long_int)((char*)t.old_ptr - (char*)t.new_ptr) < it->len){
+        if ((int64_t)((char*)t.old_ptr - (char*)t.new_ptr) < it->len){
           for (i=0; i<it->len; i+=CPY_BUFFER_SIZE){
             memcpy(cpy_buffer, (char*)t.old_ptr+i, MIN(it->len-i, CPY_BUFFER_SIZE));
             memcpy((char*)t.new_ptr+i, cpy_buffer, MIN(it->len-i, CPY_BUFFER_SIZE));
@@ -126,7 +126,7 @@ std::list<mem_loc> * get_mst(){
 /**
  * \brief initializes stack buffer
  */
-void mst_create(long_int size){
+void mst_create(int64_t size){
   int pm;
   void * new_mst_buffer;
   if (size > mst_buffer_size){
@@ -190,7 +190,7 @@ void mem_exit(int rank){
  * \param[in] ptr pointer to buffer on stack
  */
 int CTF_mst_free(void * ptr){
-  LIBT_ASSERT((long_int)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
+  LIBT_ASSERT((int64_t)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
   
   std::list<mem_loc>::iterator it;
   for (it=--mst.end(); it!=mst.begin(); it--){
@@ -212,7 +212,7 @@ int CTF_mst_free(void * ptr){
     }
   }
   if (mst.size() > 0)
-    mst_buffer_ptr = (long_int)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
+    mst_buffer_ptr = (int64_t)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
   else
     mst_buffer_ptr = 0;
   //printf("freed block, mst_buffer_ptr = "PRId64"\n", mst_buffer_ptr);
@@ -224,11 +224,11 @@ int CTF_mst_free(void * ptr){
  * \param[in] len number of bytes
  * \param[in,out] ptr pointer to set to new CTF_allocation address
  */
-int CTF_mst_alloc_ptr(long_int const len, void ** const ptr){
+int CTF_mst_alloc_ptr(int64_t const len, void ** const ptr){
   if (mst_buffer_size == 0)
     return CTF_alloc_ptr(len, ptr);
   else {
-    long_int plen, off;
+    int64_t plen, off;
     off = len % MST_ALIGN_BYTES;
     if (off > 0)
       plen = len + MST_ALIGN_BYTES - off;
@@ -257,7 +257,7 @@ int CTF_mst_alloc_ptr(long_int const len, void ** const ptr){
  * \brief CTF_mst_alloc CTF_allocates buffer on the specialized memory stack
  * \param[in] len number of bytes
  */
-void * CTF_mst_alloc(long_int const len){
+void * CTF_mst_alloc(int64_t const len){
   void * ptr;
   int ret = CTF_mst_alloc_ptr(len, &ptr);
   LIBT_ASSERT(ret == SUCCESS);
@@ -270,8 +270,8 @@ void * CTF_mst_alloc(long_int const len){
  * \param[in] len number of bytes
  * \param[in,out] ptr pointer to set to new CTF_allocation address
  */
-int CTF_alloc_ptr(long_int const len_, void ** const ptr){
-  long_int len = MAX(4,len_);
+int CTF_alloc_ptr(int64_t const len_, void ** const ptr){
+  int64_t len = MAX(4,len_);
   int pm = posix_memalign(ptr, ALIGN_BYTES, len);
 #ifndef PRODUCTION
   int tid;
@@ -304,7 +304,7 @@ int CTF_alloc_ptr(long_int const len_, void ** const ptr){
  * \brief CTF_alloc abstraction
  * \param[in] len number of bytes
  */
-void * CTF_alloc(long_int const len){
+void * CTF_alloc(int64_t const len){
   void * ptr;
   int ret = CTF_alloc_ptr(len, &ptr);
   LIBT_ASSERT(ret == SUCCESS);
@@ -317,7 +317,7 @@ void * CTF_alloc(long_int const len){
  */
 int untag_mem(void * ptr){
 #ifndef PRODUCTION
-  long_int len;
+  int64_t len;
   int found;
   std::list<mem_loc> * mem_stack;
   
@@ -350,8 +350,8 @@ int untag_mem(void * ptr){
  * \param[in] tid thread id from whose stack pointer needs to be freed
  */
 int CTF_free(void * ptr, int const tid){
-  if ((long_int)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
-      (long_int)((char*)ptr-(char*)mst_buffer) >= 0){
+  if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
+      (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
     return CTF_mst_free(ptr);
   }
 #ifndef PRODUCTION
@@ -417,8 +417,8 @@ int CTF_free_cond(void * ptr){
  * \param[in,out] ptr pointer to set to address to free
  */
 int CTF_free(void * ptr){
-  if ((long_int)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
-      (long_int)((char*)ptr-(char*)mst_buffer) >= 0){
+  if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
+      (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
     return CTF_mst_free(ptr);
   }
 #ifdef PRODUCTION

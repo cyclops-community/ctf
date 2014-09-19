@@ -1,6 +1,6 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __DIST_TENSOR_INTERNAL_H__
+#if 0 //ndef __DIST_TENSOR_INTERNAL_H__
 #define __DIST_TENSOR_INTERNAL_H__
 
 #include "../shared/util.h"
@@ -18,8 +18,8 @@
 #define NREQ    4
 #define NBCAST  4
 
-typedef int64_t long_int;
-typedef long_int key;
+typedef int64_t int64_t;
+typedef int64_t key;
 
 static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
@@ -52,146 +52,8 @@ inline bool comp_tkv_pair(tkv_pair i, tkv_pair j) {
  * \defgroup internal Tensor mapping and redistribution internals
  * @{
  */
-enum {
-  NOT_MAPPED,
-  PHYSICAL_MAP,
-  VIRTUAL_MAP
-};
-
-struct mapping {
-  int type;
-  int np;
-  int cdt;
-  int has_child;
-  mapping * child;
-};
-
-/* Only supporting mesh/torus topologies */
-struct topology {
-  int ndim;
-  CommData_t  * dim_comm;
-  int * lda;
-};
-
-inline int get_distribution_size(int ndim){
-  return sizeof(int)*2 + sizeof(long_int) + ndim*sizeof(int)*6;
-}
-
-class distribution {
-  public:
-  int ndim;
-  int * phase;
-  int * virt_phase;
-  int * pe_lda;
-  int * edge_len;
-  int * padding;
-  int * perank;
-  int is_cyclic;
-  long_int size;
-
-  distribution();
-  ~distribution();
-
-  void serialize(char ** buffer, int * size);
-  void deserialize(char const * buffer);
-  private:
-  void free_data();
-};
-
-
-class tensor {
-  public:
-  int ndim;
-  int * edge_len;
-  int * padding;
-  int is_scp_padded;
-  int * scp_padding; /* to be used by scalapack wrapper */
-  int * sym;
-  int * sym_table; /* can be compressed into bitmap */
-  int is_mapped;
-  int is_alloced;
-  int itopo;
-  mapping * edge_map;
-  long_int size;
-  int is_folded;
-  int * inner_ordering;
-  int rec_tid;
-  int is_cyclic;
-  int is_matrix;
-  int is_data_aliased;
-  int slay;
-  int has_zero_edge_len;
-  union {
-    char * data;
-    tkv_pair * pairs;
-  };
-  char * home_buffer;
-  long_int home_size;
-  int is_home;
-  int has_home;
-  char const * name;
-  int profile;
-
-  void print_map(FILE * stream) const;
-};
-
-
-
-int padded_reshuffle(int         tid,
-                     int         ndim,
-                     int         nval,
-                     int const * old_edge_len,
-                     int const * sym,
-                     int const * old_phase,
-                     int const * old_rank,
-                     int         is_old_pad,
-                     int const * old_padding,
-                     int const * new_edge_len,
-                     int const * new_phase,
-                     int const * new_rank,
-                     int const * new_pe_lda,
-                     int         is_new_pad,
-                     int const * new_padding,
-                     int const * old_virt_dim,
-                     int const * new_virt_dim,
-                     char *      tsr_data,
-                     char * *    tsr_cyclic_data,
-                     CommData_t  ord_glb_comm);
-
-int cyclic_reshuffle(int         ndim,
-                     int         nval,
-                     int const * old_edge_len,
-                     int const * sym,
-                     int const * old_phase,
-                     int const * old_rank,
-                     int const * old_pe_lda,
-                     int         is_old_pad,
-                     int const * old_padding,
-                     int const * new_edge_len,
-                     int const * new_phase,
-                     int const * new_rank,
-                     int const * new_pe_lda,
-                     int         is_new_pad,
-                     int const * new_padding,
-                     int const * old_virt_dim,
-                     int const * new_virt_dim,
-                     char **     tsr_data,
-                     char **     tsr_cyclic_data,
-                     CommData_t  ord_glb_comm,
-                     int         was_cyclic = 0,
-                     int         is_cyclic = 0);
 
 class dist_tensor{
-
-  protected:
-    /* internal library state */
-    CommData_t   global_comm;
-    int num_phys_dims;
-    CommData_t   phys_comm;
-    int * phys_lda;
-    std::vector< tensor* > tensors;
-    std::vector<topology> topovec;
-    std::vector<topology> rejected_topos;
 
 
   public:
@@ -199,15 +61,15 @@ class dist_tensor{
     ~dist_tensor();
 
     int dist_cleanup();
-    CommData_t get_global_comm();
-    void set_global_comm(CommData_t   cdt);
-    CommData_t get_phys_comm();
-    void set_phys_comm(CommData_t * cdt, int ndim, int fold=1);
+    CommData get_global_comm();
+    void set_global_comm(CommData   cdt);
+    CommData get_phys_comm();
+    void set_phys_comm(CommData *   cdt, int ndim, int fold=1);
     int get_phys_ndim();
     int * get_phys_lda();
     std::vector< tensor* > * get_tensors();
 
-    int initialize(CommData_t   cdt_global,
+    int initialize(CommData   cdt_global,
                    int          ndim,
                    int const *  dim_len);
 
@@ -229,7 +91,7 @@ class dist_tensor{
     int get_dim(int tensor_id) const;
     int * get_edge_len(int tensor_id) const;
     int * get_sym(int tensor_id) const;
-    char * get_raw_data(int tensor_id, long_int * size);
+    char * get_raw_data(int tensor_id, int64_t * size);
     
     /* set the tensor name */
     int set_name(int tensor_id, char const * name);
@@ -295,18 +157,18 @@ class dist_tensor{
     
     
     int write_pairs(int              tensor_id,
-                    long_int         num_pair,
+                    int64_t          num_pair,
                     char const *     alpha,
                     char const *     beta,
                     tkv_pair * const mapped_data,
                     char const       rw);
 
     int read_local_pairs(int          tensor_id,
-                         long_int *   num_pair,
+                         int64_t *    num_pair,
                          tkv_pair **  mapped_data);
 
     int allread_tsr(int        tensor_id,
-                    long_int * num_val,
+                    int64_t * num_val,
                     char * *   all_data,
                     int        is_prealloced=0);
 
@@ -591,7 +453,7 @@ class dist_tensor{
 
     int remap_inr_tsr(tensor *    otsr,
                       tensor *    itsr,
-                      long_int    old_size,
+                      int64_t     old_size,
                       int const * old_phase,
                       int const * old_rank,
                       int const * old_virt_dim,
@@ -723,7 +585,7 @@ class dist_tensor{
                      int      x_np,
                      int      y_rank,
                      int      y_np,
-                     long_int blk_sz,
+                     int64_t blk_sz,
                      char *   data);
 
     /* ScaLAPACK back-end */

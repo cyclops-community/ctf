@@ -1,9 +1,10 @@
 /*Copyright (c) 2013, Edgar Solomonik, all rights reserved.*/
 
-#include "../shared/util_ext.h"
-//#include "../../include/ctf.hpp"
+#include "common.h"
 #include "expression.h"
 #include "schedule.h"
+
+namespace CTF {
 
 //template<typename dtype>
 //Idx_Tensor<dtype> get_intermediate(Idx_Tensor<dtype>& A, 
@@ -367,4 +368,4 @@ void Idx_Tensor<dtype>::run(Idx_Tensor<dtype>* output, dtype  beta){
 //  if (!is_perm)
 //    delete this;
 }*/
-
+}

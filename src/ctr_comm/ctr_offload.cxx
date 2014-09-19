@@ -86,7 +86,7 @@ double ctr_offload<dtype>::est_time_rec(int nlyr) {
  * \return bytes needed
  */
 template<typename dtype>
-long_int ctr_offload<dtype>::mem_fp(){
+int64_t ctr_offload<dtype>::mem_fp(){
   return size_C*sizeof(dtype);
 }
 
@@ -95,7 +95,7 @@ long_int ctr_offload<dtype>::mem_fp(){
  * \return bytes needed for recursive contraction
  */
 template<typename dtype>
-long_int ctr_offload<dtype>::mem_rec() {
+int64_t ctr_offload<dtype>::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 

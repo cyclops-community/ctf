@@ -1,6 +1,7 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
 
+namespace CTF {
 
 /**
  * \defgroup timer Timing and cost measurement
@@ -106,6 +107,8 @@ class Flop_Counter{
     int64_t  count(MPI_Comm comm = MPI_COMM_SELF);
 
 };
+
+}
 
 /**
  * @}

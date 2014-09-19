@@ -4,6 +4,8 @@
 
 #include "assert.h"
 
+namespace CTF_int {
+
 /**
  * \brief untyped internal class for singly-typed single variable function (Endomorphism)
  */
@@ -43,5 +45,7 @@ class bivar_function {
      */
     virtual void apply_f(char const * a, char const * b, char * c) { assert(0); }
 };
+
+}
 
 #endif

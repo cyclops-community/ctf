@@ -1,4 +1,6 @@
-#include "../shared/util_ext.h"
+#include "common.h"
+
+namespace CTF {
 
 ScheduleBase* global_schedule;
 
@@ -404,4 +406,4 @@ int64_t  TensorOperation<dtype>::estimate_cost() {
   }
   return cached_estimated_cost;
 }
-
+}

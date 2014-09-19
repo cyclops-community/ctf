@@ -53,7 +53,7 @@ scl<dtype> * scl_virt<dtype>::clone() {
  * \return bytes needed
  */
 template<typename dtype>
-long_int scl_virt<dtype>::mem_fp(){
+int64_t scl_virt<dtype>::mem_fp(){
   return (ndim_A+2*num_dim)*sizeof(int);
 }
 

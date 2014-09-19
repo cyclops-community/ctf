@@ -3,13 +3,15 @@
 
 #include "../ctr_seq/int_functions.h"
 
+namespace CTF {
+
 template <typename dtype> class Idx_Tensor;
 
 /**
  * \brief custom scalar function on tensor: e.g. A["ij"] = f(A["ij"])
  */
 template<typename dtype=double>
-class Endomorphism : public Int_Endomorphism {
+class Endomorphism : public CTF_int::endomorphism {
   public:
     /**
      * \brief function signature for element-wise operation a=f(a)
@@ -42,7 +44,7 @@ class Endomorphism : public Int_Endomorphism {
  *          e.g. B["ij"] = f(A["ij"])
  */
 template<typename dtype_B=double, typename dtype_A=dtype_B>
-class Univar_Function : public Int_Univar_Function {
+class Univar_Function : public CTF_int::univar_function {
   public:
     /**
      * \brief function signature for element-wise multiplication, compute b=f(a)
@@ -77,7 +79,7 @@ class Univar_Function : public Int_Univar_Function {
  *          e.g. C["ij"] = f(A["ik"],B["kj"])
  */
 template<typename dtype_C=double, typename dtype_A=dtype_C, typename dtype_B=dtype_C>
-class Bivar_Function : public Int_Bivar_Function {
+class Bivar_Function : public CTF_int::bivar_function {
   public:
     /**
      * \brief function signature for element-wise multiplication, compute C=f(A,B)
@@ -116,6 +118,7 @@ class Bivar_Function : public Int_Bivar_Function {
     }
 };
 
+}
 
 #endif
 

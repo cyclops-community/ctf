@@ -62,7 +62,7 @@ ctr<dtype> * ctr_dgemm<dtype>::clone() {
  * \return bytes needed
  */
 template<typename dtype>
-long_int ctr_dgemm<dtype>::mem_fp(){
+int64_t ctr_dgemm<dtype>::mem_fp(){
   return 0;
 }
 
@@ -172,7 +172,7 @@ ctr<dtype> * ctr_lyr<dtype>::clone() {
  * \return bytes needed
  */
 template<typename dtype>
-long_int ctr_lyr<dtype>::mem_fp(){
+int64_t ctr_lyr<dtype>::mem_fp(){
   return 0;
 }
 
@@ -181,7 +181,7 @@ long_int ctr_lyr<dtype>::mem_fp(){
  * \return bytes needed for recursive contraction
  */
 template<typename dtype>
-long_int ctr_lyr<dtype>::mem_rec() {
+int64_t ctr_lyr<dtype>::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 
@@ -318,7 +318,7 @@ double ctr_replicate<dtype>::est_time_rec(int nlyr) {
  * \return bytes needed
  */
 template<typename dtype>
-long_int ctr_replicate<dtype>::mem_fp(){
+int64_t ctr_replicate<dtype>::mem_fp(){
   return 0;
 }
 
@@ -327,7 +327,7 @@ long_int ctr_replicate<dtype>::mem_fp(){
  * \return bytes needed for recursive contraction
  */
 template<typename dtype>
-long_int ctr_replicate<dtype>::mem_rec() {
+int64_t ctr_replicate<dtype>::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 

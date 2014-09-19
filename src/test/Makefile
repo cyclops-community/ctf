@@ -19,3 +19,5 @@ endif
 ../../bin/%: %.cxx ../../lib/libctf.a
 	$(FCXX) $< -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
 
+clean: 
+	rm -f $(OBJS) 

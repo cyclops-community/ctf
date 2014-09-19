@@ -70,7 +70,7 @@ void ctr_virt::print() {
  */
 double ctr_virt::est_time_rec(int nlyr) {
   /* FIXME: for now treat flops like comm, later make proper cost */
-  long_int nvirt = 1;
+  int64_t nvirt = 1;
   for (int dim=0; dim<num_dim; dim++){
     nvirt *= virt_dim[dim];
   }
@@ -83,7 +83,7 @@ double ctr_virt::est_time_rec(int nlyr) {
    we need
  * \return bytes needed
  */
-long_int ctr_virt::mem_fp(){
+int64_t ctr_virt::mem_fp(){
   return (ndim_A+ndim_B+ndim_C+(3+VIRT_NTD)*num_dim)*sizeof(int);
 }
 
@@ -91,7 +91,7 @@ long_int ctr_virt::mem_fp(){
  * \brief returns the number of bytes of buffer space we need recursively 
  * \return bytes needed for recursive contraction
  */
-long_int ctr_virt::mem_rec() {
+int64_t ctr_virt::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 
@@ -103,7 +103,7 @@ void ctr_virt::run(){
   TAU_FSTART(ctr_virt);
   int * idx_arr, * tidx_arr, * lda_A, * lda_B, * lda_C, * beta_arr;
   int * ilda_A, * ilda_B, * ilda_C;
-  long_int i, off_A, off_B, off_C;
+  int64_t i, off_A, off_B, off_C;
   int nb_A, nb_B, nb_C, alloced, ret; 
 
   if (this->buffer != NULL){    

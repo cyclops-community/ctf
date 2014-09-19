@@ -1,7 +1,7 @@
 include ../../config.mk
 
 
-OBJS = cyclopstf.o  distribution.o  dist_tensor_internal.o
+OBJS = int_world.o  distribution.o  dist_tensor_internal.o
 
 ctf: $(OBJS) 
 

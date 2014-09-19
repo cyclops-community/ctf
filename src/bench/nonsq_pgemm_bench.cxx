@@ -286,7 +286,7 @@ int main(int argc, char **argv) {
 
 #ifdef ZGEMM_TEST
   tCTF< std::complex<double> > * myctf = new tCTF< std::complex<double> >;
-  myctf->init(MPI_COMM_WORLD,myRank,numPes,MACHINE_BGQ);
+  myctf->init(MPI_COMM_WORLD,myRank,numPes,TOPOLOGY_BGQ);
 
   cpzgemm('T','N', m, n, k, ALPHA, 
 	  mat_A, 1, 1, desc_a,
@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
 
 #else
   CTF * myctf = new CTF;
-  myctf->init(MPI_COMM_WORLD,MACHINE_BGQ,myRank,numPes);
+  myctf->init(MPI_COMM_WORLD,TOPOLOGY_BGQ,myRank,numPes);
   cpdgemm('N','N', m, n, k, ALPHA, 
 	  mat_A, 1, 1, desc_a,
 	  mat_B, 1, 1, desc_b, BETA,

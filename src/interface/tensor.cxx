@@ -1,7 +1,9 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#include "../shared/util_ext.h"
+#include "../interface/common.h"
 #include "../world/int_world.h"
+
+namespace CTF {
 
 template<typename dtype>
 Tensor<dtype>::Tensor(){
@@ -272,7 +274,7 @@ void Tensor<dtype>::contract(dtype                 alpha,
                              const char *          idx_C,
                              Bivar_Function<dtype> fseq){
   int ret;
-  ctr_type_t tp;
+  CTF_int::ctr_type_t tp;
   tp.tid_A = A.tid;
   tp.tid_B = B.tid;
   tp.tid_C = tid;
@@ -328,7 +330,7 @@ void Tensor<dtype>::sum(dtype                  alpha,
                         Univar_Function<dtype> fseq){
   int ret;
   int * idx_map_A, * idx_map_B;
-  sum_type_t st;
+  CTF_int::sum_type_t st;
   conv_idx(A.ndim, idx_A, &idx_map_A,
            ndim, idx_B, &idx_map_B);
   assert(A.world->ctf == world->ctf);
@@ -596,5 +598,5 @@ Sparse_Tensor<dtype> Tensor<dtype>::operator[](std::vector<int64_t> indices){
   return stsr;
 }
 
-
+}
 

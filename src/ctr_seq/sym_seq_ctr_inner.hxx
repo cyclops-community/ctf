@@ -94,7 +94,7 @@ int sym_seq_ctr_inr(char const *       alpha,
 #endif
       TAU_FSTOP(gemm);
       // count n^2 FLOPS too
-      CTF_FLOPS_ADD((2 * (long_int)prm->n * (long_int)prm->m * (long_int)(prm->k+1)));
+      CTF_FLOPS_ADD((2 * (int64_t)prm->n * (int64_t)prm->m * (int64_t)(prm->k+1)));
     }
     //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 

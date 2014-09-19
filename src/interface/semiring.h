@@ -3,6 +3,8 @@
 
 #include "../ctr_seq/int_semiring.h"
 
+namespace CTF {
+
 template <typename dtype>
 dtype default_add(dtype & a, dtype & b){
   return a+b;
@@ -14,7 +16,7 @@ dtype default_mul(dtype & a, dtype & b){
 }
 
 template <typename dtype=double> 
-class Semiring : public Int_Semiring {
+class Semiring : public CTF_int::semiring {
   public:
     dtype addid;
     dtype mulid;
@@ -41,9 +43,9 @@ class Semiring : public Int_Semiring {
              MPI_Op addmop_=MPI_SUM,
              dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
              dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
-             void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
-             void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
-             void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>){
+             void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&CTF_int::default_gemm<dtype>,
+             void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&CTF_int::default_axpy<dtype>,
+             void (*scal_)(int,dtype,dtype*,int)=&CTF_int::default_scal<dtype>){
       addid = addid_;
       mulid = mulid_;
       addmop = addmop_;
@@ -67,12 +69,13 @@ class Semiring : public Int_Semiring {
       addmop = addmop_;
       fadd = fadd_;
       fmul = &default_mul<dtype>;
-      gemm = &default_gemm<dtype>;
-      axpy = &default_axpy<dtype>;
-      scal = &default_scal<dtype>;
+      gemm = &CTF_int::default_gemm<dtype>;
+      axpy = &CTF_int::default_axpy<dtype>;
+      scal = &CTF_int::default_scal<dtype>;
     }
 
 };
 
+}
 
 #endif

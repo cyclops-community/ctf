@@ -89,7 +89,7 @@ void sum_abs(double const alpha, double const a, double & b){
    end up with the final answer. */
 template<> 
 int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
-  long_int i;
+  int64_t i;
   double acc;
   tensor<double> * tsr;
   mapping * map;
@@ -361,7 +361,7 @@ int dist_tensor<dtype>::map_tsr(int const tid,
                                 dtype (*map_func)(int const ndim,
                                                   int const * indices,
                                                   dtype const elem)){
-  long_int i, j, np, stat;
+  int64_t i, j, np, stat;
   int * idx;
   tensor<dtype> * tsr;
   key k;
@@ -447,7 +447,7 @@ int dist_tensor<dtype>::
                fseq_tsr_scl<dtype> const  ftsr,
                fseq_elm_scl<dtype> const  felm){
   int st, is_top, ndim_tot, iA,  ret, was_cyclic, itopo, btopo;
-  long_int blk_sz, vrt_sz, old_size;
+  int64_t blk_sz, vrt_sz, old_size;
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda,
       * old_padding, * old_edge_len;
   old_phase = NULL;
@@ -755,7 +755,7 @@ tsum<dtype> * dist_tensor<dtype>::
                   fseq_elm_sum<dtype> const   felm,
                   int const                   inner_stride){
   int nvirt, i, iA, iB, ndim_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
-  long_int blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
+  int64_t blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
   int nphys_dim;
   int * idx_arr, * virt_dim, * phys_mapped;
   int * virt_blk_len_A, * virt_blk_len_B;
@@ -898,9 +898,9 @@ tsum<dtype> * dist_tensor<dtype>::
       }
     }
     if (rtsum->ncdt_A > 0)
-      CTF_alloc_ptr(sizeof(CommData_t)*rtsum->ncdt_A, (void**)&rtsum->cdt_A);
+      CTF_alloc_ptr(sizeof(CommData)*rtsum->ncdt_A, (void**)&rtsum->cdt_A);
     if (rtsum->ncdt_B > 0)
-      CTF_alloc_ptr(sizeof(CommData_t)*rtsum->ncdt_B, (void**)&rtsum->cdt_B);
+      CTF_alloc_ptr(sizeof(CommData)*rtsum->ncdt_B, (void**)&rtsum->cdt_B);
     rtsum->ncdt_A = 0;
     rtsum->ncdt_B = 0;
     for (i=0; i<nphys_dim; i++){
@@ -1055,9 +1055,9 @@ ctr<dtype> * dist_tensor<dtype>::
                           int *                       nvirt_all,
                           int                         is_used){
   int num_tot, i, i_A, i_B, i_C, is_top, j, nphys_dim,  k;
-  long_int nvirt;
-  long_int blk_sz_A, blk_sz_B, blk_sz_C;
-  long_int vrt_sz_A, vrt_sz_B, vrt_sz_C;
+  int64_t nvirt;
+  int64_t blk_sz_A, blk_sz_B, blk_sz_C;
+  int64_t vrt_sz_A, vrt_sz_B, vrt_sz_C;
   int sA, sB, sC, need_rep;
   int * blk_len_A, * virt_blk_len_A, * blk_len_B;
   int * virt_blk_len_B, * blk_len_C, * virt_blk_len_C;
@@ -1231,11 +1231,11 @@ ctr<dtype> * dist_tensor<dtype>::
       }
     }
     if (rctr->ncdt_A > 0)
-      CTF_alloc_ptr(sizeof(CommData_t)*rctr->ncdt_A, (void**)&rctr->cdt_A);
+      CTF_alloc_ptr(sizeof(CommData)*rctr->ncdt_A, (void**)&rctr->cdt_A);
     if (rctr->ncdt_B > 0)
-      CTF_alloc_ptr(sizeof(CommData_t)*rctr->ncdt_B, (void**)&rctr->cdt_B);
+      CTF_alloc_ptr(sizeof(CommData)*rctr->ncdt_B, (void**)&rctr->cdt_B);
     if (rctr->ncdt_C > 0)
-      CTF_alloc_ptr(sizeof(CommData_t)*rctr->ncdt_C, (void**)&rctr->cdt_C);
+      CTF_alloc_ptr(sizeof(CommData)*rctr->ncdt_C, (void**)&rctr->cdt_C);
     rctr->ncdt_A = 0;
     rctr->ncdt_B = 0;
     rctr->ncdt_C = 0;
@@ -1656,7 +1656,7 @@ ctr<dtype> * dist_tensor<dtype>::
   hctr->C   = tsr_C->data;
   hctr->beta  = beta;
 /*  if (global_comm.rank == 0){
-    long_int n,m,k;
+    int64_t n,m,k;
     dtype old_flops;
     dtype new_flops;
     ggg_sym_nmk(tsr_A->ndim, tsr_A->edge_len, type->idx_map_A, tsr_A->sym,
@@ -1715,7 +1715,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
   int ret, was_home_A, was_home_B;
   tensor<dtype> * tsr_A, * tsr_B, * ntsr_A, * ntsr_B;
   int was_cyclic_B;
-  long_int old_size_B;
+  int64_t old_size_B;
   int * old_phase_B, * old_rank_B, * old_virt_dim_B, * old_pe_lda_B;
   int * old_padding_B, * old_edge_len_B;
   CTF_sum_type_t type;
@@ -2177,8 +2177,8 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 #endif
 
 #if VERIFY
-    long_int nsA, nsB;
-    long_int nA, nB;
+    int64_t nsA, nsB;
+    int64_t nA, nB;
     dtype * sA, * sB;
     dtype * uA, * uB;
     int ndim_A, ndim_B,  i;
@@ -2274,7 +2274,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 
     if (nsA != nA) { printf("nsA = "PRId64", nA = "PRId64"\n",nsA,nA); ABORT; }
     if (nsB != nB) { printf("nsB = "PRId64", nB = "PRId64"\n",nsB,nB); ABORT; }
-    for (i=0; (ulong_int)i<nA; i++){
+    for (i=0; (uint64_t)i<nA; i++){
       if (fabs(uA[i] - sA[i]) > 1.E-6){
         printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
       }
@@ -2284,7 +2284,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
                 beta, sB, ndim_B, edge_len_B, edge_len_B, sym_B, map_B);
     assert(stat == CTF_SUCCESS);
 
-    for (i=0; (ulong_int)i<nB; i++){
+    for (i=0; (uint64_t)i<nB; i++){
       if (fabs(uB[i] - sB[i]) > 1.E-6){
         printf("B[%d] = %lf, sB[%d] = %lf\n", i, uB[i], i, sB[i]);
       }
@@ -2338,7 +2338,7 @@ int dist_tensor<dtype>::
   int ret;
   int was_home_A, was_home_B, was_home_C;
   int was_cyclic_C;
-  long_int old_size_C;
+  int64_t old_size_C;
   int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
   int * old_padding_C, * old_edge_len_C;
   tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
@@ -2826,8 +2826,8 @@ int dist_tensor<dtype>::
 
   TAU_FSTART(contract);
 #if VERIFY
-  long_int nsA, nsB;
-  long_int nA, nB, nC, up_nC;
+  int64_t nsA, nsB;
+  int64_t nA, nB, nC, up_nC;
   dtype * sA, * sB, * ans_C;
   dtype * uA, * uB, * uC;
   dtype * up_C, * up_ans_C, * pup_C;
@@ -2952,12 +2952,12 @@ int dist_tensor<dtype>::
 
   if (nsA != nA) { printf("nsA = "PRId64", nA = "PRId64"\n",nsA,nA); ABORT; }
   if (nsB != nB) { printf("nsB = "PRId64", nB = "PRId64"\n",nsB,nB); ABORT; }
-  for (i=0; (ulong_int)i<nA; i++){
+  for (i=0; (uint64_t)i<nA; i++){
     if (fabs(uA[i] - sA[i]) > 1.E-6){
       printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
     }
   }
-  for (i=0; (ulong_int)i<nB; i++){
+  for (i=0; (uint64_t)i<nB; i++){
     if (fabs(uB[i] - sB[i]) > 1.E-6){
       printf("B[%d] = %lf, sB[%d] = %lf\n", i, uB[i], i, sB[i]);
     }
@@ -2994,7 +2994,7 @@ int dist_tensor<dtype>::
         sym_C, 1, &sym_tmp, &up_ans_C);
   punpack_tsr(up_ans_C, ndim_C, edge_len_C,
         sym_C, 0, &sym_tmp, &pup_C);
-  for (i=0; (ulong_int)i<nC; i++){
+  for (i=0; (uint64_t)i<nC; i++){
     assert(fabs(pup_C[i] - ans_C[i]) < 1.E-6);
   }
   pass = 1;

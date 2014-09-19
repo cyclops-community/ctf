@@ -1,6 +1,5 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#include "dist_tensor_internal.h"
 #include "../shared/offload.h"
 
 #if (defined BGP || defined BGQ)
@@ -240,7 +239,7 @@ int dist_tensor<dtype>::load_matrix
 
   tsr->is_data_aliased  = 0;
   tsr->has_zero_edge_len  = 0;
-  tsr->size = (((long_int)nrow*(long_int)ncol)*nrep)/global_comm.np;
+  tsr->size = (((int64_t)nrow*(int64_t)ncol)*nrep)/global_comm.np;
   LIBT_ASSERT(tsr->size == brow*bcol);
   if (need_free == NULL){
     CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
@@ -386,12 +385,12 @@ int dist_tensor<dtype>::load_matrix
   if (itopo == -1){
     /*f (global_comm.rank == 0)
       printf("WARNING: Creating new topology with nrep = %d, itopo = %lu!\n", nrep, topovec.size());*/
-    CommData_t  * phys_comm; 
+    CommData  * phys_comm; 
     if (nrep > 1 && nrow > 1 && ncol > 1){
-      phys_comm = (CommData_t*)CTF_alloc(3*sizeof(CommData_t));
+      phys_comm = (CommData*)CTF_alloc(3*sizeof(CommData));
     }
     else
-      phys_comm = (CommData_t*)CTF_alloc(2*sizeof(CommData_t));
+      phys_comm = (CommData*)CTF_alloc(2*sizeof(CommData));
     if (nrep > 1 && nrow > 1 && ncol > 1){
       int irep = (global_comm.rank - myprow - mypcol*nprow*nrep)/nprow;
       int srep = mypcol*nprow+myprow;

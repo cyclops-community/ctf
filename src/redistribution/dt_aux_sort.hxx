@@ -26,25 +26,25 @@
 #ifdef USE_OMP
 template<typename dtype>
 void depad_tsr(int const                ndim,
-               long_int const           num_pair,
+               int64_t const           num_pair,
                int const *              edge_len,
                int const *              sym,
                int const *              padding,
                int const *              prepadding,
                tkv_pair<dtype> const *  pairs,
                tkv_pair<dtype> *        new_pairs,
-               long_int *               new_num_pair){
+               int64_t *                new_num_pair){
   TAU_FSTART(depad_tsr);
 
-  long_int num_ins;
+  int64_t num_ins;
   int ntd = omp_get_max_threads();
-  long_int * num_ins_t = (long_int*)CTF_alloc(sizeof(long_int)*ntd);
-  long_int * pre_ins_t = (long_int*)CTF_alloc(sizeof(long_int)*ntd);
+  int64_t * num_ins_t = (int64_t*)CTF_alloc(sizeof(int64_t)*ntd);
+  int64_t * pre_ins_t = (int64_t*)CTF_alloc(sizeof(int64_t)*ntd);
 
   TAU_FSTART(depad_tsr_cnt);
   #pragma omp parallel
   {
-    long_int i, j, st, end, tid;
+    int64_t i, j, st, end, tid;
     key k;
     key kparts[ndim];
     tid = omp_get_thread_num();
@@ -91,7 +91,7 @@ void depad_tsr(int const                ndim,
   TAU_FSTART(depad_tsr_move);
   #pragma omp parallel
   {
-    long_int i, j, st, end, tid;
+    int64_t i, j, st, end, tid;
     key k;
     key kparts[ndim];
     tid = omp_get_thread_num();
@@ -140,17 +140,17 @@ void depad_tsr(int const                ndim,
 #else
 template<typename dtype>
 void depad_tsr(int const                ndim,
-               long_int const           num_pair,
+               int64_t const           num_pair,
                int const *              edge_len,
                int const *              sym,
                int const *              padding,
                int const *              prepadding,
                tkv_pair<dtype> const *  pairs,
                tkv_pair<dtype> *        new_pairs,
-               long_int *               new_num_pair){
+               int64_t *                new_num_pair){
   
   TAU_FSTART(depad_tsr);
-  long_int i, j, num_ins;
+  int64_t i, j, num_ins;
   key * kparts;
   key k;
 
@@ -202,26 +202,26 @@ void depad_tsr(int const                ndim,
  */
 template<typename dtype>
 void permute_keys(int const                   ndim,
-                  long_int const              num_pair,
+                  int64_t const              num_pair,
                   int const *                 edge_len,
                   int const *                 new_edge_len,
                   int * const *               permutation,
                   tkv_pair<dtype> *           pairs,
-                  long_int *                  new_num_pair){
+                  int64_t *                   new_num_pair){
   TAU_FSTART(permute_keys);
 #ifdef USE_OMP
   int mntd = omp_get_max_threads();
 #else
   int mntd = 1;
 #endif
-  long_int counts[mntd];
+  int64_t counts[mntd];
   std::fill(counts,counts+mntd,0);
 #ifdef USE_OMP
   #pragma omp parallel
 #endif
   { 
     int i, j, tid, ntd, outside;
-    long_int lda, wkey, knew, kdim, tstart, tnum_pair, cnum_pair;
+    int64_t lda, wkey, knew, kdim, tstart, tnum_pair, cnum_pair;
 #ifdef USE_OMP
     tid = omp_get_thread_num();
     ntd = omp_get_num_threads();
@@ -268,7 +268,7 @@ void permute_keys(int const                   ndim,
 #ifdef USE_OMP
       #pragma omp barrier
 #endif
-      long_int pfx = 0;
+      int64_t pfx = 0;
       for (i=0; i<tid; i++){
         pfx += counts[i];
       }
@@ -294,7 +294,7 @@ void permute_keys(int const                   ndim,
  */
 template<typename dtype>
 void depermute_keys(int const                   ndim,
-                    long_int const              num_pair,
+                    int64_t const              num_pair,
                     int const *                 edge_len,
                     int const *                 new_edge_len,
                     int * const *               permutation,
@@ -305,7 +305,7 @@ void depermute_keys(int const                   ndim,
 #else
   int mntd = 1;
 #endif
-  long_int counts[mntd];
+  int64_t counts[mntd];
   std::fill(counts,counts+mntd,0);
   int ** depermutation = (int**)CTF_alloc(ndim*sizeof(int*));
   TAU_FSTART(form_depermutation);
@@ -326,7 +326,7 @@ void depermute_keys(int const                   ndim,
 #endif
   { 
     int i, j, tid, ntd;
-    long_int lda, wkey, knew, kdim, tstart, tnum_pair;
+    int64_t lda, wkey, knew, kdim, tstart, tnum_pair;
 #ifdef USE_OMP
     tid = omp_get_thread_num();
     ntd = omp_get_num_threads();
@@ -377,12 +377,12 @@ void depermute_keys(int const                   ndim,
  */
 template<typename dtype>
 void pad_key(int const          ndim,
-             long_int const     num_pair,
+             int64_t const     num_pair,
              int const *        edge_len,
              int const *        padding,
              tkv_pair<dtype> *  pairs,
              int const *        offsets = NULL){
-  long_int i, j, lda;
+  int64_t i, j, lda;
   key knew, k;
   TAU_FSTART(pad_key);
   if (offsets == NULL){
@@ -435,7 +435,7 @@ void pad_key(int const          ndim,
  */
 template<typename dtype>
 void pad_tsr(int const                ndim,
-             long_int const           size,
+             int64_t const           size,
              int const *              edge_len,
              int const *              sym,
              int const *              padding,
@@ -444,9 +444,9 @@ void pad_tsr(int const                ndim,
              int const *              virt_phase,
              tkv_pair<dtype> const *  old_data,
              tkv_pair<dtype> **       new_pairs,
-             long_int *               new_size){
+             int64_t *                new_size){
   int i, imax, act_lda;
-  long_int new_el, pad_el;
+  int64_t new_el, pad_el;
   int pad_max, virt_lda, outside, offset, edge_lda;
   int * idx;  
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
@@ -607,7 +607,7 @@ void pad_tsr(int const                ndim,
  */
 template<typename dtype>
 void assign_keys(int const          ndim,
-                 long_int const     size,
+                 int64_t const     size,
                  int const          nvirt,
                  int const *        edge_len,
                  int const *        sym,
@@ -617,7 +617,7 @@ void assign_keys(int const          ndim,
                  dtype const *      vdata,
                  tkv_pair<dtype> *  vpairs){
   int i, imax, act_lda, idx_offset, act_max, buf_offset;
-  long_int p;
+  int64_t p;
   int * idx, * virt_rank, * edge_lda;  
   dtype const * data;
   tkv_pair<dtype> * pairs;
@@ -708,7 +708,7 @@ void assign_keys(int const          ndim,
  */
 template <typename dtype>
 void bucket_by_pe( int const                ndim,
-                   long_int const           num_pair,
+                   int64_t const           num_pair,
                    int const                np,
                    int const *              phase,
                    int const *              virt_phase,
@@ -718,7 +718,7 @@ void bucket_by_pe( int const                ndim,
                    int *                    bucket_counts,
                    int *                    bucket_off,
                    tkv_pair<dtype> *        bucket_data){
-  long_int i, j, loc;
+  int64_t i, j, loc;
 //  int * inv_edge_len, * inv_virt_phase;
   key k;
 
@@ -827,12 +827,12 @@ void bucket_by_pe( int const                ndim,
 template <typename dtype>
 void bucket_by_virt(int const               ndim,
                     int const               num_virt,
-                    long_int const          num_pair,
+                    int64_t const          num_pair,
                     int const *             virt_phase,
                     int const *             edge_len,
                     tkv_pair<dtype> const * mapped_data,
                     tkv_pair<dtype> *       bucket_data){
-  long_int i, j, loc;
+  int64_t i, j, loc;
   int * virt_counts, * virt_prefix, * virt_lda;
   key k;
   TAU_FSTART(bucket_by_virt);
@@ -977,7 +977,7 @@ void bucket_by_virt(int const               ndim,
  */
 template<typename dtype>
 void zero_padding( int const          ndim,
-                   long_int const     size,
+                   int64_t const     size,
                    int const          nvirt,
                    int const *        edge_len,
                    int const *        sym,
@@ -994,7 +994,7 @@ void zero_padding( int const          ndim,
 {
   int i, act_lda, act_max, buf_offset, curr_idx, sym_idx;
   int is_outside;
-  long_int p;
+  int64_t p;
   int * idx, * virt_rank, * phase_rank, * virt_len;
   dtype* data;
 
@@ -1019,8 +1019,8 @@ void zero_padding( int const          ndim,
 #endif
 
   int * st_idx=NULL, * end_idx; 
-  long_int st_index = 0;
-  long_int end_index = size/nvirt;
+  int64_t st_index = 0;
+  int64_t end_index = size/nvirt;
 
   if (ntd <= nvirt){
     vst = (nvirt/ntd)*tid;
@@ -1028,10 +1028,10 @@ void zero_padding( int const          ndim,
     vend = vst+(nvirt/ntd);
     if (tid < nvirt % ntd) vend++;
   } else {
-    long_int vrt_sz = size/nvirt;
-    long_int chunk = size/ntd;
-    long_int st_chunk = chunk*tid + MIN(tid,size%ntd);
-    long_int end_chunk = st_chunk+chunk;
+    int64_t vrt_sz = size/nvirt;
+    int64_t chunk = size/ntd;
+    int64_t st_chunk = chunk*tid + MIN(tid,size%ntd);
+    int64_t end_chunk = st_chunk+chunk;
     if (tid<(size%ntd))
       end_chunk++;
     vst = st_chunk/vrt_sz;
@@ -1115,14 +1115,14 @@ void zero_padding( int const          ndim,
 
         if (is_outside){
 //          std::fill(data+buf_offset, data+buf_offset+plen0, 0.0);
-          for (long_int j=buf_offset; j<buf_offset+plen0; j++){
+          for (int64_t j=buf_offset; j<buf_offset+plen0; j++){
             data[j] = 0.0;
           }
         } else {
           int s1 = MIN(plen0-is_sh_pad0,len0);
 /*          if (sym[0] == SH) s1 = MIN(s1, len0-1);*/
 //          std::fill(data+buf_offset+s1, data+buf_offset+plen0, 0.0);
-          for (long_int j=buf_offset+s1; j<buf_offset+plen0; j++){
+          for (int64_t j=buf_offset+s1; j<buf_offset+plen0; j++){
             data[j] = 0.0;
           }
         }

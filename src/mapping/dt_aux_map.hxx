@@ -153,7 +153,7 @@ int calc_tot_phase(tensor<dtype> const * tsr){
  */
 template<typename dtype>
 int  ctr_2d_gen_build(int                     is_used,
-                      CommData_t              global_comm,
+                      CommData              global_comm,
                       int                     i,
                       int                   * virt_dim,
                       int                   & cg_edge_len,
@@ -161,32 +161,32 @@ int  ctr_2d_gen_build(int                     is_used,
                       std::vector<topology> & topovec,
                       tensor<dtype>         * tsr_A,
                       int                     i_A,
-                      CommData_t            & cg_cdt_A,
-                      long_int              & cg_ctr_lda_A,
-                      long_int              & cg_ctr_sub_lda_A,
+                      CommData            & cg_cdt_A,
+                      int64_t               & cg_ctr_lda_A,
+                      int64_t               & cg_ctr_sub_lda_A,
                       bool                  & cg_move_A,
                       int                   * blk_len_A,
-                      long_int              & blk_sz_A,
+                      int64_t               & blk_sz_A,
                       int const             * virt_blk_len_A,
                       int                   & load_phase_A,
                       tensor<dtype>         * tsr_B,
                       int                     i_B,
-                      CommData_t            & cg_cdt_B,
-                      long_int              & cg_ctr_lda_B,
-                      long_int              & cg_ctr_sub_lda_B,
+                      CommData            & cg_cdt_B,
+                      int64_t               & cg_ctr_lda_B,
+                      int64_t               & cg_ctr_sub_lda_B,
                       bool                  & cg_move_B,
                       int                   * blk_len_B,
-                      long_int              & blk_sz_B,
+                      int64_t               & blk_sz_B,
                       int const             * virt_blk_len_B,
                       int                   & load_phase_B,
                       tensor<dtype>         * tsr_C,
                       int                     i_C,
-                      CommData_t            & cg_cdt_C,
-                      long_int              & cg_ctr_lda_C,
-                      long_int              & cg_ctr_sub_lda_C,
+                      CommData            & cg_cdt_C,
+                      int64_t               & cg_ctr_lda_C,
+                      int64_t               & cg_ctr_sub_lda_C,
                       bool                  & cg_move_C,
                       int                   * blk_len_C,
-                      long_int              & blk_sz_C,
+                      int64_t               & blk_sz_C,
                       int const             * virt_blk_len_C,
                       int                   & load_phase_C){
   mapping * map;
@@ -346,7 +346,7 @@ int stretch_virt(int const ndim,
 inline
 int get_best_topo(uint64_t const  nvirt,
 		  int const       topo,
-		  CommData_t      global_comm,
+		  CommData      global_comm,
 		  uint64_t const  bcomm_vol = 0,
 		  uint64_t const  bmemuse = 0){
 
@@ -586,7 +586,7 @@ int save_mapping(tensor<dtype> *  tsr,
                  int **     old_rank,
                  int **     old_virt_dim,
                  int **     old_pe_lda,
-                 long_int *   old_size,
+                 int64_t *    old_size,
                  int *      was_cyclic,
                  int **     old_padding,
                  int **     old_edge_len,
@@ -802,7 +802,7 @@ template<typename dtype>
 int remap_tensor(int const  tid,
                  tensor<dtype> *tsr,
                  topology const * topo,
-                 long_int const old_size,
+                 int64_t const old_size,
                  int const *  old_phase,
                  int const *  old_rank,
                  int const *  old_virt_dim,
@@ -810,7 +810,7 @@ int remap_tensor(int const  tid,
                  int const    was_cyclic,
                  int const *  old_padding,
                  int const *  old_edge_len,
-                 CommData_t   global_comm){/*
+                 CommData   global_comm){/*
                  int const *  old_offsets = NULL,
                  int * const * old_permutation = NULL,
                  int const *  new_offsets = NULL,
@@ -990,7 +990,7 @@ int remap_tensor(int const  tid,
  */
 template<typename dtype>
 int redistribute(int const *          sym,
-                 CommData_t &         cdt,
+                 CommData &         cdt,
                  distribution const & old_dist,
                  dtype *              old_data,
                  dtype                alpha,
@@ -1046,7 +1046,7 @@ int map_tensor(int const      num_phys_dims,
                int const *    tsr_edge_len,
                int const *    tsr_sym_table,
                int *          restricted,
-               CommData_t  *  phys_comm,
+               CommData  *  phys_comm,
                int const *    comm_idx,
                int const      fill,
                mapping *      tsr_edge_map){
@@ -1136,12 +1136,12 @@ int map_tensor(int const      num_phys_dims,
 */
 template<typename dtype>
 int map_tensor_rem(int const    num_phys_dims,
-                   CommData_t  *  phys_comm,
+                   CommData  *  phys_comm,
                    tensor<dtype> *  tsr,
                    int const    fill = 0){
   int i, num_sub_phys_dims, stat;
   int * restricted, * phys_mapped, * comm_idx;
-  CommData_t  * sub_phys_comm;
+  CommData  * sub_phys_comm;
   mapping * map;
 
   CTF_alloc_ptr(tsr->ndim*sizeof(int), (void**)&restricted);
@@ -1165,7 +1165,7 @@ int map_tensor_rem(int const    num_phys_dims,
       num_sub_phys_dims++;
     }
   }
-  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData), (void**)&sub_phys_comm);
   CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
   num_sub_phys_dims = 0;
   for (i=0; i<num_phys_dims; i++){
@@ -1204,11 +1204,11 @@ void extract_free_comms(topology const *  topo,
                         int               ndim_B,
                         mapping const *   edge_map_B,
                         int &             num_sub_phys_dims,
-                        CommData_t **     psub_phys_comm,
+                        CommData *  *     psub_phys_comm,
                         int **            pcomm_idx){
   int i;
   int phys_mapped[topo->ndim];
-  CommData_t * sub_phys_comm;
+  CommData *   sub_phys_comm;
   int * comm_idx;
   mapping const * map;
   memset(phys_mapped, 0, topo->ndim*sizeof(int));  
@@ -1238,7 +1238,7 @@ void extract_free_comms(topology const *  topo,
       num_sub_phys_dims++;
     }
   }
-  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData), (void**)&sub_phys_comm);
   CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
   num_sub_phys_dims = 0;
   for (i=0; i<topo->ndim; i++){
@@ -1431,13 +1431,13 @@ template<typename dtype>
 int strip_diag(int const                ndim,
                int const                ndim_tot,
                int const *              idx_map,
-               long_int const           vrt_sz,
+               int64_t const           vrt_sz,
                mapping const *          edge_map,
                topology const *         topo,
                int *                    blk_edge_len,
-               long_int *               blk_sz,
+               int64_t *                blk_sz,
                strp_tsr<dtype> **       stpr){
-  long_int i;
+  int64_t i;
   int need_strip;
   int * pmap, * edge_len, * sdim, * sidx;
   strp_tsr<dtype> * stripper;

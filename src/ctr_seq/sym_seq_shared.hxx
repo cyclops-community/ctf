@@ -9,7 +9,7 @@ struct iparam {
   int n;
   int m;
   int k;
-  long_int sz_C;
+  int64_t sz_C;
   char tA;
   char tB;
 };

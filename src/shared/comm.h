@@ -29,38 +29,6 @@
 
 //typedef MPI_Comm COMM;
 
-typedef class CommData {
-  public:
-  MPI_Comm cm;
-  int np;
-  int rank;
-  int color;
-  int alive;
- 
-  double estimate_bcast_time(long_int msg_sz) {
-#ifdef BGQ
-    return msg_sz*(double)COST_NETWBW+COST_LATENCY;
-#else
-    return msg_sz*(double)log2((double)np)*COST_NETWBW;
-#endif
-  }
-  
-  double estimate_allred_time(long_int msg_sz) {
-#ifdef BGQ
-    return msg_sz*(double)(2.*COST_MEMBW+COST_NETWBW)+COST_LATENCY;
-#else
-    return msg_sz*(double)log2((double)np)*(2.*COST_MEMBW+COST_FLOP+COST_NETWBW);
-#endif
-  }
-  
-  double estimate_alltoall_time(long_int chunk_sz) {
-    return chunk_sz*np*log2((double)np)*COST_NETWBW+2.*log2((double)np)*COST_LATENCY;
-  }
-  
-  double estimate_alltoallv_time(long_int tot_sz) {
-    return 2.*tot_sz*log2((double)np)*COST_NETWBW+2.*log2((double)np)*COST_LATENCY;
-  }
-} CommData_t;
 
 #define SET_COMM(_cm, _rank, _np, _cdt) \
 do {                                    \
@@ -239,24 +207,27 @@ do {                                    \
 
 #endif
   
-/**
- * \brief performs all-to-all-v with 64-bit integer counts and offset on arbitrary
- *        length types (datum_size), and uses point-to-point when all-to-all-v sparse
- * \param[in] send_buffer data to send
- * \param[in] send_counts number of datums to send to each process
- * \param[in] send_displs displacements of datum sets in sen_buffer
- * \param[in] datum_size size of MPI_datatype to use
- * \param[in,out] recv_buffer data to recv
- * \param[in] recv_counts number of datums to recv to each process
- * \param[in] recv_displs displacements of datum sets in sen_buffer
- * \param[in] cdt wrapper for communicator
- */
-void CTF_all_to_allv(void *           send_buffer, 
-                     long_int const * send_counts,
-                     long_int const * send_displs,
-                     long_int         datum_size,
-                     void *           recv_buffer, 
-                     long_int const * recv_counts,
-                     long_int const * recv_displs,
-                     CommData_t       cdt);
+namespace CTF_int {
+
+  /**
+   * \brief performs all-to-all-v with 64-bit integer counts and offset on arbitrary
+   *        length types (datum_size), and uses point-to-point when all-to-all-v sparse
+   * \param[in] send_buffer data to send
+   * \param[in] send_counts number of datums to send to each process
+   * \param[in] send_displs displacements of datum sets in sen_buffer
+   * \param[in] datum_size size of MPI_datatype to use
+   * \param[in,out] recv_buffer data to recv
+   * \param[in] recv_counts number of datums to recv to each process
+   * \param[in] recv_displs displacements of datum sets in sen_buffer
+   * \param[in] cdt wrapper for communicator
+   */
+  void CTF_all_to_allv(void *           send_buffer, 
+                       int64_t const * send_counts,
+                       int64_t const * send_displs,
+                       int64_t          datum_size,
+                       void *           recv_buffer, 
+                       int64_t const * recv_counts,
+                       int64_t const * recv_displs,
+                       CommData       cdt);
+}
 #endif

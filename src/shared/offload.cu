@@ -10,8 +10,8 @@
 #include "device_launch_parameters.h"
 #include "timer.h"
 
-typedef int64_t long_int;
-volatile static long_int long_int_max = INT64_MAX;
+typedef int64_t int64_t;
+volatile static int64_t int64_t_max = INT64_MAX;
 #include "offload.h"
 
 #ifndef LIBT_ASSERT
@@ -89,7 +89,7 @@ void offload_exit(){
  * \param[in] size number of elements to create for buffer
  */
 template <typename dtype>
-offload_ptr<dtype>::offload_ptr(long_int size_){
+offload_ptr<dtype>::offload_ptr(int64_t size_){
   size = size_;
   cudaError_t err = cudaMalloc((void**)&dev_ptr, size_*sizeof(dtype));
   LIBT_ASSERT(err == cudaSuccess);
@@ -150,7 +150,7 @@ void offload_ptr<dtype>::set_zero(){
 }
 
 
-void host_pinned_alloc(void ** ptr, long_int size){
+void host_pinned_alloc(void ** ptr, int64_t size){
   cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
   LIBT_ASSERT(err == cudaSuccess);
 }

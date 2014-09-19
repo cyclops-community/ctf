@@ -3,8 +3,6 @@
 #ifndef __INTERNAL_INTERFACE_HPP__
 #define __INTERNAL_INTERFACE_HPP__
 
-namespace CTF_internal {
-
 #include "../world/int_world.h"
 #include "../tensor/int_tensor.h"
 #include "../ctr_seq/int_semiring.h"
@@ -14,7 +12,6 @@ namespace CTF_internal {
 #include "../ctr_comm/scale_tsr.h"
 #include "../ctr_comm/strp_tsr.h"
 
-}
 
 #endif// __INTERNAL_INTERFACE_HPP__
 

@@ -40,7 +40,7 @@ class seq_tsr_ctr : public ctr {
 
     void run();
     void print();
-    long_int mem_fp();
+    int64_t mem_fp();
     double est_time_rec(int nlyr);
     double est_time_fp(int nlyr);
     ctr * clone();
@@ -72,7 +72,7 @@ class seq_tsr_sum : public tsum {
 
     void run();
     void print();
-    long_int mem_fp();
+    int64_t mem_fp();
     tsum * clone();
 
     seq_tsr_sum(tsum * other);
@@ -94,7 +94,7 @@ class seq_tsr_scl : public scl {
 
     void run();
     void print();
-    long_int mem_fp();
+    int64_t mem_fp();
     scl * clone();
 
     seq_tsr_scl(scl * other);

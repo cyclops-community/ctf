@@ -13,7 +13,7 @@ class strp_tsr {
   public: 
     int alloced;
     int ndim;
-    long_int blk_sz;
+    int64_t blk_sz;
     int * edge_len;
     int * strip_dim;
     int * strip_idx;
@@ -22,7 +22,7 @@ class strp_tsr {
     
     void run(int const dir);
     void free_exp();
-    long_int mem_fp();
+    int64_t mem_fp();
     strp_tsr<dtype> * clone();
 
     strp_tsr(strp_tsr<dtype> * o);
@@ -38,7 +38,7 @@ class strp_scl : public scl<dtype> {
     strp_tsr<dtype> * rec_strp;
 
     void run();
-    long_int mem_fp();
+    int64_t mem_fp();
     scl<dtype> * clone();
     
     strp_scl(scl<dtype> * other);
@@ -58,7 +58,7 @@ class strp_sum : public tsum<dtype> {
     int strip_B;
     
     void run();
-    long_int mem_fp();
+    int64_t mem_fp();
     tsum<dtype> * clone();
     
     strp_sum(tsum<dtype> * other);
@@ -80,8 +80,8 @@ class strp_ctr : public ctr<dtype> {
     int strip_C;
     
     void run();
-    long_int mem_fp();
-    long_int mem_rec();
+    int64_t mem_fp();
+    int64_t mem_rec();
     double est_time_rec(int nlyr);
     ctr<dtype> * clone();
   

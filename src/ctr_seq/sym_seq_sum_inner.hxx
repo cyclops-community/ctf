@@ -47,7 +47,7 @@ int sym_seq_sum_inr( char const *       alpha,
 
   /* Scale B immediately. FIXME: wrong for iterators over subset of B */
 /*  if (beta != 1.0) {
-    long_int sz = sy_packed_size(ndim_B, edge_len_B, sym_B);
+    int64_t sz = sy_packed_size(ndim_B, edge_len_B, sym_B);
     for (i=0; i<sz; i++){
       B[i] = B[i]*beta;
     }

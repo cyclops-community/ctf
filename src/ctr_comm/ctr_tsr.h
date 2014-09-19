@@ -12,19 +12,19 @@ class ctr_virt {
     int num_dim;
     int * virt_dim;
     int ndim_A;
-    long_int blk_sz_A;
+    int64_t blk_sz_A;
     int const * idx_map_A;
     int ndim_B;
-    long_int blk_sz_B;
+    int64_t blk_sz_B;
     int const * idx_map_B;
     int ndim_C;
-    long_int blk_sz_C;
+    int64_t blk_sz_C;
     int const * idx_map_C;
     
     void print();
     void run();
-    long_int mem_fp();
-    long_int mem_rec();
+    int64_t mem_fp();
+    int64_t mem_rec();
     double est_time_rec(int nlyr);
     ctr * clone();
   
@@ -39,19 +39,19 @@ class ctr_virt_25d : public ctr {
     int num_dim;
     int * virt_dim;
     int ndim_A;
-    long_int blk_sz_A;
+    int64_t blk_sz_A;
     int const * idx_map_A;
     int ndim_B;
-    long_int blk_sz_B;
+    int64_t blk_sz_B;
     int const * idx_map_B;
     int ndim_C;
-    long_int blk_sz_C;
+    int64_t blk_sz_C;
     int const * idx_map_C;
     
     void print();
     void run();
-    long_int mem_fp();
-    long_int mem_rec();
+    int64_t mem_fp();
+    int64_t mem_rec();
     ctr * clone();
   
     ~ctr_virt_25d();

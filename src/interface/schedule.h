@@ -1,6 +1,8 @@
 #ifndef __SCHEDULE_H__
 #define __SCHEDULE_H__
-#include "../shared/util_ext.h"
+#include "common.h"
+
+namespace CTF {
 
 /**
  * \defgroup scheduler Dynamic scheduler.
@@ -230,6 +232,8 @@ protected:
   int partitions;
 
 };
+
+}
 /**
  * @}
  */

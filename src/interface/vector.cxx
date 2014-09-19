@@ -1,4 +1,6 @@
-#include "../../include/ctf.hpp"
+#include "common.h"
+
+namespace CTF {
 
 struct int1
 {
@@ -23,3 +25,4 @@ Vector<dtype>::Vector(int const           len_,
   
 }
 
+}

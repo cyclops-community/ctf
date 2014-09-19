@@ -31,9 +31,9 @@
 
 /* accessors */
 template<typename dtype>
-CommData_t dist_tensor<dtype>::get_global_comm(){ return global_comm; }
+CommData dist_tensor<dtype>::get_global_comm(){ return global_comm; }
 template<typename dtype>
-void dist_tensor<dtype>::set_global_comm(CommData_t cdt){ global_comm = cdt; }
+void dist_tensor<dtype>::set_global_comm(CommData cdt){ global_comm = cdt; }
 
 
 
@@ -88,7 +88,7 @@ dist_tensor<dtype>::~dist_tensor(){
  * \param[in] inner_size is the total block size of dgemm calls
  */
 template<typename dtype>
-int dist_tensor<dtype>::initialize(CommData_t   cdt_global,
+int dist_tensor<dtype>::initialize(CommData   cdt_global,
                                    int const    ndim,
                                    int const *  dim_len){
   int i, rank, stride, cut;
@@ -104,7 +104,7 @@ int dist_tensor<dtype>::initialize(CommData_t   cdt_global,
   set_global_comm(cdt_global);
 
   /* setup dimensional communicators */
-  CommData_t * phys_comm = (CommData_t*)CTF_alloc(ndim*sizeof(CommData_t));
+  CommData *   phys_comm = (CommData*)CTF_alloc(ndim*sizeof(CommData));
 
 /* FIXME: Sorting will fuck up dimensional ordering */
 //  std::sort(srt_dim_len, srt_dim_len + ndim);
@@ -145,7 +145,7 @@ int dist_tensor<dtype>::initialize(CommData_t   cdt_global,
  * \param[in] ndim number of dimensions
  */
 template<typename dtype>
-void dist_tensor<dtype>::set_phys_comm(CommData_t * cdt, int const ndim, int fold){
+void dist_tensor<dtype>::set_phys_comm(CommData *   cdt, int const ndim, int fold){
   int i, lda;
   topology new_topo;
 
@@ -360,7 +360,7 @@ int * dist_tensor<dtype>::get_sym(int const tensor_id) const {
  * \return raw local data
  */
 template<typename dtype>
-dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, long_int * size) {
+dtype * dist_tensor<dtype>::get_raw_data(int const tensor_id, int64_t * size) {
   if (tensors[tensor_id]->has_zero_edge_len){
     *size = 0;
     return NULL;
@@ -573,7 +573,7 @@ int dist_tensor<dtype>::permute_tensor(int const              tid_A,
                                        dtype const            beta,
                                        dist_tensor<dtype> *   dt_B){
     
-  long_int sz_A, blk_sz_A, sz_B, blk_sz_B;
+  int64_t sz_A, blk_sz_A, sz_B, blk_sz_B;
   tkv_pair<dtype> * all_data_A;
   tkv_pair<dtype> * all_data_B;
   tensor<dtype> * tsr_A, * tsr_B;
@@ -726,7 +726,7 @@ int dist_tensor<dtype>::add_to_subworld(int                 tid,
   memset(offsets, 0, this_tsr->ndim*sizeof(int));
   if (dt_sub == NULL){
     int dtid;
-    CommData_t * cdt = (CommData_t*)CTF_alloc(sizeof(CommData_t));
+    CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
     SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
     dist_tensor<dtype> dt_self;
     dt_self.initialize(cdt, 0, NULL, 0);
@@ -780,7 +780,7 @@ int dist_tensor<dtype>::add_from_subworld(int                 tid,
   memset(offsets, 0, this_tsr->ndim*sizeof(int));
   if (dt_sub == NULL){
     int dtid;
-    CommData_t * cdt = (CommData_t*)CTF_alloc(sizeof(CommData_t));
+    CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
     SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
     dist_tensor<dtype> dt_self;
     dt_self.initialize(cdt, 0, NULL, 0);
@@ -834,7 +834,7 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
                                      dtype const            beta,
                                      dist_tensor<dtype> *   dt_B){
     
-  long_int i, sz_A, blk_sz_A, sz_B, blk_sz_B;
+  int64_t i, sz_A, blk_sz_A, sz_B, blk_sz_B;
   tkv_pair<dtype> * all_data_A, * blk_data_A;
   tkv_pair<dtype> * all_data_B, * blk_data_B;
   tensor<dtype> * tsr_A, * tsr_B;
@@ -1001,7 +1001,7 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
  */
 template<typename dtype>
 int dist_tensor<dtype>::write_pairs(int const           tensor_id, 
-                                    long_int const      num_pair,  
+                                    int64_t const      num_pair,  
                                     dtype const         alpha,  
                                     dtype const         beta,  
                                     tkv_pair<dtype> *   mapped_data, 
@@ -1022,7 +1022,7 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
       printf("Reading data from tensor %d\n", tensor_id);
     print_map(stdout, tensor_id, 0);
   }
-  long_int total_tsr_size = 1;
+  int64_t total_tsr_size = 1;
   for (i=0; i<ndim; i++){
     total_tsr_size *= len[i];
   }
@@ -1102,10 +1102,10 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
  */
 template<typename dtype>
 int dist_tensor<dtype>::read_local_pairs(int                tensor_id, 
-                                         long_int *         num_pair,  
+                                         int64_t *          num_pair,  
                                          tkv_pair<dtype> ** mapped_data){
   int i, num_virt, idx_lyr;
-  long_int np;
+  int64_t np;
   int * virt_phase, * virt_phys_rank, * phys_phase;
   tensor<dtype> * tsr;
   tkv_pair<dtype> * pairs;
@@ -1184,7 +1184,7 @@ int dist_tensor<dtype>::read_local_pairs(int                tensor_id,
  */
 template<typename dtype>
 int dist_tensor<dtype>::allread_tsr(int const     tid, 
-                                    long_int *    num_val,  
+                                    int64_t *     num_val,  
                                     dtype **      all_data,
                                     int const     is_prealloced){
   int numPes;
@@ -1203,7 +1203,7 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   CTF_alloc_ptr(numPes*sizeof(int), (void**)&pXs);
   pXs[0] = 0;
 
-  long_int ntt = 0;
+  int64_t ntt = 0;
   my_pairs = NULL;
   read_local_pairs(tid, &ntt, &my_pairs);
   n = (int)ntt;
@@ -1226,7 +1226,7 @@ int dist_tensor<dtype>::allread_tsr(int const     tid,
   for (i=0; i<nval; i++){
     (*all_data)[i] = all_pairs[i].d;
   }
-  *num_val = (long_int)nval;
+  *num_val = (int64_t)nval;
 
   CTF_free(nXs);
   CTF_free(pXs);
@@ -1353,7 +1353,7 @@ int dist_tensor<dtype>::elementalize(int const      tid,
                                      int const      x_np,
                                      int const      y_rank,
                                      int const      y_np,
-                                     long_int const blk_sz,
+                                     int64_t const blk_sz,
                                      dtype *          data){
   tensor<dtype> * tsr;
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda, * old_padding;
@@ -1361,7 +1361,7 @@ int dist_tensor<dtype>::elementalize(int const      tid,
   int * new_padding, * old_edge_len;
   dtype * shuffled_data;
   int i, j, pad, my_x_dim, my_y_dim, was_cyclic;
-  long_int old_size;
+  int64_t old_size;
 
 
 
@@ -1650,7 +1650,7 @@ template<typename dtype>
 int dist_tensor<dtype>::print_tsr(FILE * stream, int const tid, double cutoff) {
   tensor<dtype> const * tsr;
   int i, j;
-  long_int my_sz, tot_sz =0;
+  int64_t my_sz, tot_sz =0;
   int * recvcnts, * displs, * adj_edge_len, * idx_arr;
   tkv_pair<dtype> * my_data;
   tkv_pair<dtype> * all_data;
@@ -1730,7 +1730,7 @@ template<typename dtype>
 int dist_tensor<dtype>::compare_tsr(FILE * stream, int const tid_A, int const tid_B, double cutoff) {
   tensor<dtype> const * tsr_A;
   int i, j;
-  long_int my_sz, tot_sz =0, my_sz_B;
+  int64_t my_sz, tot_sz =0, my_sz_B;
   int * recvcnts, * displs, * adj_edge_len, * idx_arr;
   tkv_pair<dtype> * my_data_A;
   tkv_pair<dtype> * my_data_B;
@@ -1884,7 +1884,7 @@ int dist_tensor<dtype>::print_map(FILE *    stream,
 template<typename dtype>
 int dist_tensor<dtype>::zero_out_padding(int const tensor_id){
   int i, num_virt, idx_lyr;
-  long_int np;
+  int64_t np;
   int * virt_phase, * virt_phys_rank, * phys_phase;
   tensor<dtype> * tsr;
   mapping * map;

@@ -83,15 +83,15 @@ ctr * ctr_2d_general::clone() {
  * \param[out] db contraction block size = min(b_A,b_B,b_C)
  * \param[out] aux_size size of auxillary buffer needed 
  */
-void ctr_2d_general::find_bsizes(long_int & b_A,
-                                 long_int & b_B,
-                                 long_int & b_C,
-                                 long_int & s_A,
-                                 long_int & s_B,
-                                 long_int & s_C,
-                                 long_int & db,
-                                 long_int & aux_size){
-  db = long_int_max;
+void ctr_2d_general::find_bsizes(int64_t & b_A,
+                                 int64_t & b_B,
+                                 int64_t & b_C,
+                                 int64_t & s_A,
+                                 int64_t & s_B,
+                                 int64_t & s_C,
+                                 int64_t & db,
+                                 int64_t & aux_size){
+  db = int64_t_max;
   s_A = 0, s_B = 0, s_C = 0;
   b_A = 0, b_B = 0, b_C = 0;
   if (move_A){
@@ -121,7 +121,7 @@ void ctr_2d_general::find_bsizes(long_int & b_A,
  * \return bytes sent
  */
 double ctr_2d_general::est_time_fp(int nlyr) {
-  long_int b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
+  int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
   find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size);
   return ((s_A+s_B+s_C)*(double)db*edge_len/db)/MIN(nlyr,edge_len);
 }
@@ -130,8 +130,8 @@ double ctr_2d_general::est_time_fp(int nlyr) {
  * \return bytes needed for recursive contraction
  */
 double ctr_2d_general::est_time_rec(int nlyr) {
-  long_int db;
-  db = long_int_max;
+  int64_t db;
+  db = int64_t_max;
   if (move_A)
     db          = MIN(db,edge_len/cdt_A.np);
   if (move_B)
@@ -146,8 +146,8 @@ double ctr_2d_general::est_time_rec(int nlyr) {
    we need 
  * \return bytes needed
  */
-long_int ctr_2d_general::mem_fp() {
-  long_int b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
+int64_t ctr_2d_general::mem_fp() {
+  int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
   find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size);
   return el_size_A*s_A*db+el_size_B*s_B*db+sr_C.el_size*s_C*db+aux_size;
 }
@@ -156,7 +156,7 @@ long_int ctr_2d_general::mem_fp() {
  * \brief returns the number of bytes of buffer space we need recursively 
  * \return bytes needed for recursive contraction
  */
-long_int ctr_2d_general::mem_rec() {
+int64_t ctr_2d_general::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 
@@ -167,11 +167,11 @@ long_int ctr_2d_general::mem_rec() {
  */
 void ctr_2d_general::run() {
   int owner_A, owner_B, owner_C,  alloced, ret;
-  long_int ib, c_A, c_B, c_C;
+  int64_t ib, c_A, c_B, c_C;
   char * buf_A, * buf_B, * buf_C, * buf_aux; 
   char * op_A, * op_B, * op_C; 
   int rank_A, rank_B, rank_C;
-  long_int b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
+  int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
   rank_A = cdt_A.rank;
   rank_B = cdt_B.rank;
   rank_C = cdt_C.rank;

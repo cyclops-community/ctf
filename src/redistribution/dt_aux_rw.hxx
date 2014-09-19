@@ -27,7 +27,7 @@
  */
 template<typename dtype>
 void readwrite(int const        ndim,
-               long_int const   size,
+               int64_t const   size,
                dtype const      alpha,
                dtype const      beta,
                int const        nvirt,
@@ -39,9 +39,9 @@ void readwrite(int const        ndim,
                dtype *          vdata,
                tkv_pair<dtype> *pairs,
                char const       rw){
-  long_int i, imax, act_lda;
-  long_int idx_offset, act_max, buf_offset, pr_offset, p;
-  long_int * idx, * virt_rank, * edge_lda;  
+  int64_t i, imax, act_lda;
+  int64_t idx_offset, act_max, buf_offset, pr_offset, p;
+  int64_t * idx, * virt_rank, * edge_lda;  
   dtype * data;
   
   if (ndim == 0){
@@ -63,11 +63,11 @@ void readwrite(int const        ndim,
     return;
   }
   TAU_FSTART(readwrite);
-  CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(long_int), (void**)&edge_lda);
+  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx);
+  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&virt_rank);
+  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&edge_lda);
   
-  memset(virt_rank, 0, sizeof(long_int)*ndim);
+  memset(virt_rank, 0, sizeof(int64_t)*ndim);
   edge_lda[0] = 1;
   for (i=1; i<ndim; i++){
     edge_lda[i] = edge_lda[i-1]*edge_len[i-1];
@@ -84,7 +84,7 @@ void readwrite(int const        ndim,
       idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
     } 
    
-    memset(idx, 0, ndim*sizeof(long_int));
+    memset(idx, 0, ndim*sizeof(int64_t));
     imax = edge_len[0]/phase[0];
     for (;;){
       if (sym[0] != NS)
@@ -104,7 +104,7 @@ void readwrite(int const        ndim,
                 pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
             } else {
               LIBT_ASSERT(rw =='w');
-              data[(long_int)buf_offset+i] = beta*data[(long_int)buf_offset+i]+alpha*pairs[pr_offset].d;
+              data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
             }
             pr_offset++;
             //Check for write conflicts
@@ -114,10 +114,10 @@ void readwrite(int const        ndim,
               if (rw == 'r'){
                 pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
               } else {
-                //data[(long_int)buf_offset+i] = beta*data[(long_int)buf_offset+i]+alpha*pairs[pr_offset].d;
-                data[(long_int)buf_offset+i] += alpha*pairs[pr_offset].d;
+                //data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
+                data[(int64_t)buf_offset+i] += alpha*pairs[pr_offset].d;
               }
-//              printf("rw = %c found overlapped write and set value to %lf\n", rw, data[(long_int)buf_offset+i]);
+//              printf("rw = %c found overlapped write and set value to %lf\n", rw, data[(int64_t)buf_offset+i]);
               pr_offset++;
             }
           } else {
@@ -191,7 +191,7 @@ void readwrite(int const        ndim,
 template<typename dtype>
 void wr_pairs_layout(int const          ndim,
                      int const          np,
-                     long_int const     inwrite,
+                     int64_t const     inwrite,
                      dtype const        alpha,  
                      dtype const        beta,  
                      char const         rw,
@@ -205,9 +205,9 @@ void wr_pairs_layout(int const          ndim,
                      int const *        bucket_lda,
                      tkv_pair<dtype> *  wr_pairs,
                      dtype *            rw_data,
-                     CommData_t         glb_comm){
+                     CommData         glb_comm){
 
-  long_int i, new_num_pair, nwrite, swp;
+  int64_t i, new_num_pair, nwrite, swp;
   int * bucket_counts, * recv_counts;
   int * recv_displs, * send_displs;
   int * depadding, * depad_edge_len;
@@ -233,7 +233,7 @@ void wr_pairs_layout(int const          ndim,
   } 
   TAU_FSTART(check_key_ranges);
   nwrite = 0;
-  std::vector<long_int> changed_key_indices;
+  std::vector<int64_t> changed_key_indices;
   std::vector< tkv_pair<dtype> > new_changed_pairs;
   std::vector<double> changed_key_scale;
 
@@ -428,7 +428,7 @@ void wr_pairs_layout(int const          ndim,
  */
 template<typename dtype>
 void read_loc_pairs(int const           ndim,
-                    long_int const      nval,
+                    int64_t const      nval,
                     int const           num_virt,
                     int const *         sym,
                     int const *         edge_len,
@@ -436,11 +436,11 @@ void read_loc_pairs(int const           ndim,
                     int const *         virt_dim,
                     int const *         virt_phase,
                     int *               virt_phase_rank,
-                    long_int *          nread,
+                    int64_t *           nread,
                     dtype const *       data,
                     tkv_pair<dtype> **  pairs){
 
-  long_int i;
+  int64_t i;
   int * prepadding;
   tkv_pair<dtype> * dpairs;
   CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&dpairs);
@@ -453,7 +453,7 @@ void read_loc_pairs(int const           ndim,
               data,             dpairs);
 
   /* If we need to unpad */
-  long_int new_num_pair;
+  int64_t new_num_pair;
   int * depadding, * pad_len;
   tkv_pair<dtype> * new_pairs;
   CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&new_pairs);
@@ -507,8 +507,8 @@ void rw_smtr(int const          ndim,
   /***** UNTESTED AND LIKELY UNNECESSARY *****/
 
   int sym_idx, j, k, is_symm;
-  long_int i, l, bottom_size, top_size;
-  long_int write_idx, read_idx;
+  int64_t i, l, bottom_size, top_size;
+  int64_t write_idx, read_idx;
   
   /* determine which symmetry is broken and return if none */
   sym_idx = -1;

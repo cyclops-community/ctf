@@ -43,7 +43,7 @@ template<typename dtype>
 int dist_tensor<dtype>::map_tensor_pair(const int tid_A, const int tid_B){
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda, * old_padding, * old_edge_len;
   int was_cyclic;
-  long_int old_size;
+  int64_t old_size;
   tensor<dtype> * tsr_A, * tsr_B;
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
@@ -90,7 +90,7 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   int was_cyclic_A, was_cyclic_B, need_remap_A, need_remap_B;
 
   int d, old_topo_A, old_topo_B;
-  long_int old_size_A, old_size_B;
+  int64_t old_size_A, old_size_B;
   int * idx_arr, * idx_sum;
   mapping * old_map_A, * old_map_B;
   int * old_phase_A, * old_rank_A, * old_virt_dim_A, * old_pe_lda_A, 
@@ -892,8 +892,8 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   int btopo, gtopo;
   int old_nvirt_all;
   int was_cyclic_A, was_cyclic_B, was_cyclic_C, nvirt_all;
-  long_int old_size_A, old_size_B, old_size_C;
-  long_int nvirt;
+  int64_t old_size_A, old_size_B, old_size_C;
+  int64_t nvirt;
   int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
   int * old_phase_A, * old_rank_A, * old_virt_dim_A, * old_pe_lda_A;
   int * old_padding_A, * old_edge_len_A;
@@ -1655,7 +1655,7 @@ int dist_tensor<dtype>::
                       topology const *    topo){
   int tsr_ndim, iweigh, iA, iB, iC, i, j, k, jX, stat, num_sub_phys_dims;
   int * tsr_edge_len, * tsr_sym_table, * restricted, * comm_idx;
-  CommData_t  * sub_phys_comm;
+  CommData  * sub_phys_comm;
   mapping * weigh_map;
 
   tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
@@ -1805,7 +1805,7 @@ int dist_tensor<dtype>::
                     topology const *    topo){
   int tsr_ndim, ictr, iA, iB, i, j, jctr, jX, stat, num_sub_phys_dims;
   int * tsr_edge_len, * tsr_sym_table, * restricted, * comm_idx;
-  CommData_t  * sub_phys_comm;
+  CommData  * sub_phys_comm;
   mapping * ctr_map;
 
   tensor<dtype> * tsr_A, * tsr_B;

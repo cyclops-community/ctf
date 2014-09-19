@@ -1,11 +1,13 @@
 #ifndef __TENSOR_H__
 #define __TENSOR_H__
 
-#include "world.h"
 #include "functions.h"
 #include "semiring.h"
+#include "../tensor/int_tensor.h"
+#include "world.h"
 #include <vector>
 
+namespace CTF {
 
 /**
  * labels corresponding to symmetry of each tensor dimension
@@ -21,29 +23,22 @@
 #define SH 3
 #endif
 
-/**
- * \brief reduction types for tensor data
- */
-enum OP { OP_SUM, OP_SUMABS,
-          OP_NORM1, OP_NORM2, OP_NORM_INFTY,
-          OP_MAX, OP_MIN, OP_MAXABS, OP_MINABS};
-
 
 template <typename dtype> class Idx_Tensor;
 template <typename dtype> class Sparse_Tensor;
 
-
-using CTF_internal::pair;
-using CTF_internal::pair::k;
 /**
  * \brief index-value pair used for tensor data input
  */
 template<typename dtype=double>
-class Pair : public CTF_internal::pair {
+class Pair : public CTF_int::pair {
   public:
     dtype d;
     Pair() {}
-    Pair(int64_t  k, dtype d) : k(k), d(d) {}
+    Pair(int64_t  k_, dtype d_){
+      this->k = k_; 
+      d =d_;
+    }
     
     char * v(){
       return (char*)&d;
@@ -76,7 +71,7 @@ class Tensor {
 
   public:
     /**
-     * \breif default constructor
+     * \brief default constructor
      */
     Tensor();
 
@@ -729,11 +724,13 @@ class Sparse_Tensor {
     operator dtype*();
 };
 
+}
 
 #include "tensor.cxx"
 #include "matrix.cxx"
 #include "vector.cxx"
 #include "scalar.cxx"
+
 /**
  * @}
  */

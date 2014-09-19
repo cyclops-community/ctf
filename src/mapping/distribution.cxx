@@ -45,8 +45,8 @@ void distribution::serialize(char ** buffer_, int * bufsz_){
   buffer_ptr += sizeof(int);
   ((int*)(buffer+buffer_ptr))[0] = is_cyclic;
   buffer_ptr += sizeof(int);
-  ((long_int*)(buffer+buffer_ptr))[0] = size;
-  buffer_ptr += sizeof(long_int);
+  ((int64_t*)(buffer+buffer_ptr))[0] = size;
+  buffer_ptr += sizeof(int64_t);
   memcpy((int*)(buffer+buffer_ptr), phase, sizeof(int)*ndim);
   buffer_ptr += sizeof(int)*ndim;
   memcpy((int*)(buffer+buffer_ptr), virt_phase, sizeof(int)*ndim);
@@ -84,8 +84,8 @@ void distribution::deserialize(char const * buffer){
 
   is_cyclic = ((int*)(buffer+buffer_ptr))[0];
   buffer_ptr += sizeof(int);
-  size = ((long_int*)(buffer+buffer_ptr))[0];
-  buffer_ptr += sizeof(long_int);
+  size = ((int64_t*)(buffer+buffer_ptr))[0];
+  buffer_ptr += sizeof(int64_t);
   memcpy(phase, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);
   buffer_ptr += sizeof(int)*ndim;
   memcpy(virt_phase, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);

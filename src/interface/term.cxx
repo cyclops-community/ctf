@@ -1,16 +1,8 @@
 /*Copyright (c) 2013, Edgar Solomonik, all rights reserved.*/
 
-#include <algorithm>
-//#include <iomanip>
-//#include <ostream>
-//#include <iostream>
-#include <assert.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <limits.h>
-#include <string.h>
-#include "../shared/util_ext.h"
-//#include "../../include/ctf.hpp"
+#include "common.h"
+
+namespace CTF {
 
 
 template<typename dtype>
@@ -542,5 +534,7 @@ void Contract_Term<dtype>::get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<d
   for (int i=0; i<(int)operands.size(); i++){
     operands[i]->get_inputs(inputs_set);
   }
+}
+
 }
 

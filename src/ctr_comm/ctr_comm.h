@@ -28,8 +28,8 @@ class ctr {
 
     virtual void run() { printf("SHOULD NOTR\n"); };
     virtual void print() { };
-    virtual long_int mem_fp() { return 0; };
-    virtual long_int mem_rec() { return mem_fp(); };
+    virtual int64_t mem_fp() { return 0; };
+    virtual int64_t mem_rec() { return mem_fp(); };
     virtual double est_time_fp(int nlyr) { return 0; };
     virtual double est_time_rec(int nlyr) { return est_time_fp(nlyr); };
     virtual ctr * clone() { return NULL; };
@@ -45,19 +45,19 @@ class ctr_replicate : public ctr {
     int ncdt_A; /* number of processor dimensions to replicate A along */
     int ncdt_B; /* number of processor dimensions to replicate B along */
     int ncdt_C; /* number of processor dimensions to replicate C along */
-    long_int size_A; /* size of A blocks */
-    long_int size_B; /* size of B blocks */
-    long_int size_C; /* size of C blocks */
+    int64_t size_A; /* size of A blocks */
+    int64_t size_B; /* size of B blocks */
+    int64_t size_C; /* size of C blocks */
 
-    CommData_t * cdt_A;
-    CommData_t * cdt_B;
-    CommData_t * cdt_C;
+    CommData *   cdt_A;
+    CommData *   cdt_B;
+    CommData *   cdt_C;
     /* Class to be called on sub-blocks */
     ctr * rec_ctr;
     
     void run();
-    long_int mem_fp();
-    long_int mem_rec();
+    int64_t mem_fp();
+    int64_t mem_rec();
     double est_time_fp(int nlyr);
     double est_time_rec(int nlyr);
     void print();
@@ -72,14 +72,14 @@ class ctr_2d_general : public ctr {
   public: 
     int edge_len;
 
-    long_int ctr_lda_A; /* local lda_A of contraction dimension 'k' */
-    long_int ctr_sub_lda_A; /* elements per local lda_A 
+    int64_t ctr_lda_A; /* local lda_A of contraction dimension 'k' */
+    int64_t ctr_sub_lda_A; /* elements per local lda_A 
                           of contraction dimension 'k' */
-    long_int ctr_lda_B; /* local lda_B of contraction dimension 'k' */
-    long_int ctr_sub_lda_B; /* elements per local lda_B 
+    int64_t ctr_lda_B; /* local lda_B of contraction dimension 'k' */
+    int64_t ctr_sub_lda_B; /* elements per local lda_B 
                           of contraction dimension 'k' */
-    long_int ctr_lda_C; /* local lda_C of contraction dimension 'k' */
-    long_int ctr_sub_lda_C; /* elements per local lda_C 
+    int64_t ctr_lda_C; /* local lda_C of contraction dimension 'k' */
+    int64_t ctr_sub_lda_C; /* elements per local lda_C 
                           of contraction dimension 'k' */
 #ifdef OFFLOAD
     bool alloc_host_buf;
@@ -89,27 +89,27 @@ class ctr_2d_general : public ctr {
     bool move_B;
     bool move_C;
 
-    CommData_t cdt_A;
-    CommData_t cdt_B;
-    CommData_t cdt_C;
+    CommData cdt_A;
+    CommData cdt_B;
+    CommData cdt_C;
     /* Class to be called on sub-blocks */
     ctr * rec_ctr;
     
     void print();
     void run();
-    long_int mem_fp();
-    long_int mem_rec();
+    int64_t mem_fp();
+    int64_t mem_rec();
     double est_time_fp(int nlyr);
     double est_time_rec(int nlyr);
     ctr * clone();
-    void find_bsizes(long_int & b_A,
-                     long_int & b_B,
-                     long_int & b_C,
-                     long_int & s_A,
-                     long_int & s_B,
-                     long_int & s_C,
-                     long_int & db,
-                     long_int & aux_size);
+    void find_bsizes(int64_t & b_A,
+                     int64_t & b_B,
+                     int64_t & b_C,
+                     int64_t & s_A,
+                     int64_t & s_B,
+                     int64_t & s_C,
+                     int64_t & db,
+                     int64_t & aux_size);
     ctr_2d_general(ctr * other);
     ~ctr_2d_general();
     ctr_2d_general(){ move_A=0; move_B=0; move_C=0; }
@@ -118,21 +118,21 @@ class ctr_2d_general : public ctr {
 class ctr_2d_rect_bcast : public ctr {
   public: 
     int k;
-    long_int ctr_lda_A; /* local lda_A of contraction dimension 'k' */
-    long_int ctr_sub_lda_A; /* elements per local lda_A 
+    int64_t ctr_lda_A; /* local lda_A of contraction dimension 'k' */
+    int64_t ctr_sub_lda_A; /* elements per local lda_A 
                           of contraction dimension 'k' */
-    long_int ctr_lda_B; /* local lda_B of contraction dimension 'k' */
-    long_int ctr_sub_lda_B; /* elements per local lda_B 
+    int64_t ctr_lda_B; /* local lda_B of contraction dimension 'k' */
+    int64_t ctr_sub_lda_B; /* elements per local lda_B 
                           of contraction dimension 'k' */
-    CommData_t * cdt_x;
-    CommData_t * cdt_y;
+    CommData *   cdt_x;
+    CommData *   cdt_y;
     /* Class to be called on sub-blocks */
     ctr * rec_ctr;
     
     void print() {};
     void run();
-    long_int mem_fp();
-    long_int mem_rec();
+    int64_t mem_fp();
+    int64_t mem_rec();
     ctr * clone();
 
     ctr_2d_rect_bcast(ctr * other);
@@ -155,7 +155,7 @@ class ctr_dgemm : public ctr {
     
     void print() {};
     void run();
-    long_int mem_fp();
+    int64_t mem_fp();
     double est_time_fp(int nlyr);
     double est_time_rec(int nlyr);
     ctr * clone();
@@ -170,13 +170,13 @@ class ctr_lyr : public ctr {
     /* Class to be called on sub-blocks */
     ctr * rec_ctr;
     int k;
-    CommData_t cdt;
-    long_int sz_C;
+    CommData cdt;
+    int64_t sz_C;
     
     void print() {};
     void run();
-    long_int mem_fp();
-    long_int mem_rec();
+    int64_t mem_fp();
+    int64_t mem_rec();
     ctr * clone();
 
     ctr_lyr(ctr * other);
@@ -189,9 +189,9 @@ class ctr_offload : public ctr {
   public: 
     /* Class to be called on sub-blocks */
     ctr * rec_ctr;
-    long_int size_A;
-    long_int size_B;
-    long_int size_C;
+    int64_t size_A;
+    int64_t size_B;
+    int64_t size_C;
     int iter_counter;
     int total_iter;
     int upload_phase_A;
@@ -203,8 +203,8 @@ class ctr_offload : public ctr {
     
     void print();
     void run();
-    long_int mem_fp();
-    long_int mem_rec();
+    int64_t mem_fp();
+    int64_t mem_rec();
     double est_time_fp(int nlyr);
     double est_time_rec(int nlyr);
     ctr * clone();

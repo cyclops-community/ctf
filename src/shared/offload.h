@@ -11,9 +11,9 @@ template <typename dtype>
 class offload_ptr {
   public:
     dtype * dev_ptr;
-    long_int size;
+    int64_t size;
 
-    offload_ptr(long_int size_);
+    offload_ptr(int64_t size_);
     ~offload_ptr();
 
     void download(dtype * host_ptr);
@@ -21,7 +21,7 @@ class offload_ptr {
     void set_zero();
 };
 
-void host_pinned_alloc(void ** ptr, long_int size);
+void host_pinned_alloc(void ** ptr, int64_t size);
 void host_pinned_free(void * ptr);
 
 template <typename dtype>

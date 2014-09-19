@@ -1,50 +1,46 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#include "dist_tensor_internal.h"
-#include "mach.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
 #include <stdint.h>
 #include <limits.h>
-#include "dt_aux.h"
-#include "scala_backend.cxx"
+#include "int_topology.h"
+#include "int_world.h"
 
 #ifdef HPM
 extern "C" void HPM_Start(char *);  
 extern "C" void HPM_Stop(char *);
 #endif
 
+using namespace CTF;
+
+namespace CTF_int {
 
 /** 
  * \brief destructor
  */
-template<typename dtype>
-tCTF<dtype>::~tCTF(){
+world::~world(){
   exit();
 }
 
 /** 
  * \brief constructor
  */
-template<typename dtype>
-tCTF<dtype>::tCTF(){
+world::world(){
   initialized = 0;
 }
 
-template<typename dtype>
-MPI_Comm tCTF<dtype>::get_MPI_Comm(){
-  return (dt->get_global_comm()).cm;
+MPI_Comm world::get_MPI_Comm(){
+  return global_comm.cm;
 }
     
 /* return MPI processor rank */
-template<typename dtype>
-int tCTF<dtype>::get_rank(){
-  return (dt->get_global_comm()).rank;
+int world::get_rank(){
+  return global_comm.rank;
 }
 /* return number of MPI processes in the defined global context */
-template<typename dtype>
-int tCTF<dtype>::get_num_pes(){
-  return (dt->get_global_comm()).np;
+int world::get_num_pes(){
+  return global_comm.np;
 }
 
 /**
@@ -59,17 +55,16 @@ int tCTF<dtype>::get_num_pes(){
  * \param[in] argc number of arguments passed to main
  * \param[in] argv arguments passed to main
  */
-template<typename dtype>
-int tCTF<dtype>::init(MPI_Comm const  global_context,
+int world::init(MPI_Comm const  global_context,
                       int const       rank, 
                       int const       np,
-                      CTF_MACHINE     mach,
+                      TOPOLOGY         mach,
                       int const       argc,
                       const char * const *  argv){
   int ndim, ret;
   int * dim_len;
   get_topo(np, mach, &ndim, &dim_len);
-  ret = tCTF<dtype>::init(global_context, rank, np, ndim, dim_len, argc, argv);
+  ret = world::init(global_context, rank, np, ndim, dim_len, argc, argv);
   if (np > 1)
     CTF_free(dim_len);
   return ret;
@@ -88,8 +83,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
  * \param[in] argc number of arguments passed to main
  * \param[in] argv arguments passed to main
  */
-template<typename dtype>
-int tCTF<dtype>::init(MPI_Comm const  global_context,
+int world::init(MPI_Comm const  global_context,
                       int const       rank, 
                       int const       np, 
                       int const       ndim, 
@@ -120,8 +114,8 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
     if (mst_size == NULL && stack_size == NULL){
 #ifdef USE_MST
       if (rank == 0)
-        VPRINTF(1,"Creating stack of size "PRId64"\n",1000*(long_int)1E6);
-      CTF_mst_create(1000*(long_int)1E6);
+        VPRINTF(1,"Creating stack of size "PRId64"\n",1000*(int64_t)1E6);
+      CTF_mst_create(1000*(int64_t)1E6);
 #else
       if (rank == 0){
         VPRINTF(1,"Running without stack, define CTF_STACK_SIZE environment variable to activate stack\n");
@@ -162,7 +156,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
       VPRINTF(1,"Total amount of memory available to process 0 is " PRIu64 "\n", proc_bytes_available());
   } 
   initialized = 1;
-  CommData_t glb_comm;
+  CommData glb_comm;
   SET_COMM(global_context, rank, np, glb_comm);
   dt = new dist_tensor<dtype>();
   return dt->initialize(glb_comm, ndim, dim_len);
@@ -179,8 +173,7 @@ int tCTF<dtype>::init(MPI_Comm const  global_context,
  * \param[in] name string name for tensor (optionary)
  * \param[in] profile wether to make profile calls for the tensor
  */
-template<typename dtype>
-int tCTF<dtype>::define_tensor(int const        ndim,             
+int world::define_tensor(int const        ndim,             
                                int const *      edge_len, 
                                int const *      sym,
                                int *            tensor_id,
@@ -195,8 +188,7 @@ int tCTF<dtype>::define_tensor(int const        ndim,
  * \param[in] copy_data if 0 then leave tensor blank, if 1 copy data from old
  * \param[out] new_tensor_id id of new tensor
  */
-template<typename dtype>
-int tCTF<dtype>::clone_tensor(int const tensor_id,
+int world::clone_tensor(int const tensor_id,
                               int const copy_data,
                               int *     new_tensor_id){
   dt->clone_tensor(tensor_id, copy_data, new_tensor_id);
@@ -204,23 +196,19 @@ int tCTF<dtype>::clone_tensor(int const tensor_id,
 }
    
 
-template<typename dtype>
-int tCTF<dtype>::get_name(int const tensor_id, char const ** name){
+int world::get_name(int const tensor_id, char const ** name){
   return dt->get_name(tensor_id, name);
 }
  
-template<typename dtype>
-int tCTF<dtype>::set_name(int const tensor_id, char const * name){
+int world::set_name(int const tensor_id, char const * name){
   return dt->set_name(tensor_id, name);
 }
 
-template<typename dtype>
-int tCTF<dtype>::profile_on(int const tensor_id){
+int world::profile_on(int const tensor_id){
   return dt->profile_on(tensor_id);
 }
 
-template<typename dtype>
-int tCTF<dtype>::profile_off(int const tensor_id){
+int world::profile_off(int const tensor_id){
   return dt->profile_off(tensor_id);
 }
     
@@ -228,8 +216,7 @@ int tCTF<dtype>::profile_off(int const tensor_id){
  * \param[in] tensor_id id of tensor
  * \param[out] ndim dimension of tensor
  */
-template<typename dtype>
-int tCTF<dtype>::get_dimension(int const tensor_id, int *ndim) const{
+int world::get_dimension(int const tensor_id, int *ndim) const{
   *ndim = dt->get_dim(tensor_id);
   return CTF_SUCCESS;
 }
@@ -238,8 +225,7 @@ int tCTF<dtype>::get_dimension(int const tensor_id, int *ndim) const{
  * \param[in] tensor_id id of tensor
  * \param[out] edge_len edge lengths of tensor
  */
-template<typename dtype>
-int tCTF<dtype>::get_lengths(int const tensor_id, int **edge_len) const{
+int world::get_lengths(int const tensor_id, int **edge_len) const{
   int ndim, * sym;
   dt->get_tsr_info(tensor_id, &ndim, edge_len, &sym);
   CTF_untag_mem(edge_len);
@@ -251,8 +237,7 @@ int tCTF<dtype>::get_lengths(int const tensor_id, int **edge_len) const{
  * \param[in] tensor_id id of tensor
  * \param[out] sym symmetries of tensor
  */
-template<typename dtype>
-int tCTF<dtype>::get_symmetry(int const tensor_id, int **sym) const{
+int world::get_symmetry(int const tensor_id, int **sym) const{
   *sym = dt->get_sym(tensor_id);
   CTF_untag_mem(*sym);
   return CTF_SUCCESS;
@@ -262,8 +247,7 @@ int tCTF<dtype>::get_symmetry(int const tensor_id, int **sym) const{
  * \param[in] tensor_id id of tensor
  * \param[out] data raw local data
  */
-template<typename dtype>
-int tCTF<dtype>::get_raw_data(int const tensor_id, dtype ** data, long_int * size) {
+int world::get_raw_data(int const tensor_id, dtype ** data, int64_t * size) {
   *data = dt->get_raw_data(tensor_id, size);
   return CTF_SUCCESS;
 }
@@ -275,8 +259,7 @@ int tCTF<dtype>::get_raw_data(int const tensor_id, dtype ** data, long_int * siz
  * \param[out] edge_len edge lengths of tensor
  * \param[out] sym symmetries of tensor
  */
-template<typename dtype>
-int tCTF<dtype>::info_tensor(int const  tensor_id,
+int world::info_tensor(int const  tensor_id,
                              int *      ndim,
                              int **     edge_len,
                              int **     sym) const{
@@ -293,9 +276,8 @@ int tCTF<dtype>::info_tensor(int const  tensor_id,
  * \param[in] num_pair number of pairs to write
  * \param[in] mapped_data pairs to write
  */
-template<typename dtype>
-int tCTF<dtype>::write_tensor(int const               tensor_id, 
-                              long_int const           num_pair,  
+int world::write_tensor(int const               tensor_id, 
+                              int64_t const           num_pair,  
                               tkv_pair<dtype> const * mapped_data){
   return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, const_cast<tkv_pair<dtype>*>(mapped_data), 'w');
 }
@@ -310,9 +292,8 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
  * \param[in] beta scaling factor of old value
  * \param[in] mapped_data pairs to write
  */
-template<typename dtype>
-int tCTF<dtype>::write_tensor(int const               tensor_id, 
-                              long_int const          num_pair,  
+int world::write_tensor(int const               tensor_id, 
+                              int64_t const          num_pair,  
                               dtype const              alpha,
                               dtype const              beta,
                               tkv_pair<dtype> const * mapped_data){
@@ -328,9 +309,8 @@ int tCTF<dtype>::write_tensor(int const               tensor_id,
  * \param[in] beta scaling factor of old value
  * \param[in] mapped_data pairs to write
  */
-template<typename dtype>
-int tCTF<dtype>::read_tensor(int const                tensor_id, 
-                             long_int const           num_pair, 
+int world::read_tensor(int const                tensor_id, 
+                             int64_t const           num_pair, 
                              dtype const               alpha, 
                              dtype const               beta, 
                              tkv_pair<dtype> * const  mapped_data){
@@ -345,28 +325,25 @@ int tCTF<dtype>::read_tensor(int const                tensor_id,
  * \param[in] num_pair number of pairs to read
  * \param[in,out] mapped_data pairs to read
  */
-template<typename dtype>
-int tCTF<dtype>::read_tensor(int const                tensor_id, 
-                             long_int const           num_pair, 
+int world::read_tensor(int const                tensor_id, 
+                             int64_t const           num_pair, 
                              tkv_pair<dtype> * const  mapped_data){
   return read_tensor(tensor_id, num_pair, 1.0, 0.0, mapped_data);
 }
 
-template<typename dtype>
-int tCTF<dtype>::permute_tensor( int const              tid_A,
+int world::permute_tensor( int const              tid_A,
                                  int * const *          permutation_A,
                                  dtype const            alpha,
-                                 tCTF<dtype> *          tC_A,
+                                 world *          tC_A,
                                  int const              tid_B,
                                  int * const *          permutation_B,
                                  dtype const            beta,
-                                 tCTF<dtype> *          tC_B){
+                                 world *          tC_B){
   return dt->permute_tensor(tid_A, permutation_A, alpha, tC_A->dt, tid_B, permutation_B, beta, tC_B->dt);
 }
-template<typename dtype>
-int tCTF<dtype>::add_to_subworld(int          tid,
+int world::add_to_subworld(int          tid,
                                  int          tid_sub,
-                                 tCTF<dtype> *tC_sub,
+                                 world *tC_sub,
                                  dtype       alpha,
                                  dtype       beta){
   if (tC_sub == NULL)
@@ -375,10 +352,9 @@ int tCTF<dtype>::add_to_subworld(int          tid,
     return dt->add_to_subworld(tid, tid_sub, tC_sub->dt, alpha, beta);
 }
     
-template<typename dtype>
-int tCTF<dtype>::add_from_subworld(int          tid,
+int world::add_from_subworld(int          tid,
                                    int          tid_sub,
-                                   tCTF<dtype> *tC_sub,
+                                   world *tC_sub,
                                    dtype       alpha,
                                    dtype       beta){
   if (tC_sub == NULL)
@@ -388,8 +364,7 @@ int tCTF<dtype>::add_from_subworld(int          tid,
 
 }
 
-template<typename dtype>
-int tCTF<dtype>::slice_tensor( int const    tid_A,
+int world::slice_tensor( int const    tid_A,
                                int const *  offsets_A,
                                int const *  ends_A,
                                dtype const  alpha,
@@ -401,12 +376,11 @@ int tCTF<dtype>::slice_tensor( int const    tid_A,
                           tid_B, offsets_B, ends_B, beta, dt);
 }
 
-template<typename dtype>
-int tCTF<dtype>::slice_tensor( int const      tid_A,
+int world::slice_tensor( int const      tid_A,
                                int const *    offsets_A,
                                int const *    ends_A,
                                dtype const    alpha,
-                               tCTF<dtype> *  dt_other_A,
+                               world *  dt_other_A,
                                int const      tid_B,
                                int const *    offsets_B,
                                int const *    ends_B,
@@ -415,8 +389,7 @@ int tCTF<dtype>::slice_tensor( int const      tid_A,
                           tid_B, offsets_B, ends_B, beta, dt);
 }
 
-template<typename dtype>
-int tCTF<dtype>::slice_tensor( int const      tid_A,
+int world::slice_tensor( int const      tid_A,
                                int const *    offsets_A,
                                int const *    ends_A,
                                dtype const    alpha,
@@ -424,7 +397,7 @@ int tCTF<dtype>::slice_tensor( int const      tid_A,
                                int const *    offsets_B,
                                int const *    ends_B,
                                dtype const    beta,
-                               tCTF<dtype> *  dt_other_B){
+                               world *  dt_other_B){
   return dt->slice_tensor(tid_A, offsets_A, ends_A, alpha, dt,
                           tid_B, offsets_B, ends_B, beta, dt_other_B->dt);
 }
@@ -437,12 +410,11 @@ int tCTF<dtype>::slice_tensor( int const      tid_A,
  * \param[out] num_pair number of values read
  * \param[in,out] preallocated mapped_data values read
  */
-template<typename dtype>
-int tCTF<dtype>::allread_tensor(int const   tensor_id, 
-                                long_int *   num_pair, 
+int world::allread_tensor(int const   tensor_id, 
+                                int64_t *    num_pair, 
                                 dtype *     all_data){
   int ret;
-  long_int np;
+  int64_t np;
   ret = dt->allread_tsr(tensor_id, &np, &all_data, 1);
   *num_pair = np;
   return ret;
@@ -455,12 +427,11 @@ int tCTF<dtype>::allread_tensor(int const   tensor_id,
  * \param[out] num_pair number of values read
  * \param[in,out] mapped_data values read
  */
-template<typename dtype>
-int tCTF<dtype>::allread_tensor(int const   tensor_id, 
-                                long_int *   num_pair, 
+int world::allread_tensor(int const   tensor_id, 
+                                int64_t *    num_pair, 
                                 dtype **    all_data){
   int ret;
-  long_int np;
+  int64_t np;
   ret = dt->allread_tsr(tensor_id, &np, all_data, 0);
   CTF_untag_mem(*all_data);
   *num_pair = np;
@@ -468,7 +439,7 @@ int tCTF<dtype>::allread_tensor(int const   tensor_id,
 }
 
 /* input tensor local data or set buffer for contract answer. */
-/*int tCTF<dtype>::set_local_tensor(int const   tensor_id, 
+/*int world::set_local_tensor(int const   tensor_id, 
                          int const      num_val, 
                          dtype *        tsr_data){
   return set_tsr_data(tensor_id, num_val, tsr_data);  
@@ -478,8 +449,7 @@ int tCTF<dtype>::allread_tensor(int const   tensor_id,
  * \brief  map input tensor local data to zero
  * \param[in] tensor_id tensor handle
  */
-template<typename dtype>
-int tCTF<dtype>::set_zero_tensor(int const tensor_id){
+int world::set_zero_tensor(int const tensor_id){
   return dt->set_zero_tsr(tensor_id);
 }
 
@@ -495,8 +465,7 @@ int tCTF<dtype>::set_zero_tensor(int const tensor_id){
  * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
  * \return cost as a int64_t type, currently a rought estimate of flops/processor
  */
-template<typename dtype>
-int64_t tCTF<dtype>::estimate_cost(int          tid_A,
+int64_t world::estimate_cost(int          tid_A,
                       int const *  idx_A,
                       int          tid_B,
                       int const *  idx_B,
@@ -514,8 +483,7 @@ int64_t tCTF<dtype>::estimate_cost(int          tid_A,
  * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
  * \return cost as a int64_t type, currently a rought estimate of flops/processor
  */
-template<typename dtype>
-int64_t tCTF<dtype>::estimate_cost(int          tid_A,
+int64_t world::estimate_cost(int          tid_A,
                       int const *  idx_A,
                       int          tid_B,
                       int const *  idx_B){
@@ -531,12 +499,11 @@ int64_t tCTF<dtype>::estimate_cost(int          tid_A,
  * \param[out] num_pair number of values read
  * \param[out] mapped_data values read
  */
-template<typename dtype>
-int tCTF<dtype>::read_local_tensor(int const          tensor_id, 
-                                   long_int *          num_pair,  
+int world::read_local_tensor(int const          tensor_id, 
+                                   int64_t *           num_pair,  
                                    tkv_pair<dtype> ** mapped_data){
   int ret;
-  long_int np;
+  int64_t np;
   ret = dt->read_local_pairs(tensor_id, &np, mapped_data);
   if (np > 0)
     CTF_untag_mem(*mapped_data);
@@ -551,8 +518,7 @@ int tCTF<dtype>::read_local_tensor(int const          tensor_id,
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  */
-template<typename dtype>
-int tCTF<dtype>::contract(CTF_ctr_type_t const *  type,
+int world::contract(CTF_ctr_type_t const *  type,
                           dtype const             alpha,
                           dtype const             beta){
   fseq_tsr_ctr<dtype> fs;
@@ -573,14 +539,13 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *  type,
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  */
-template<typename dtype>
-int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
+int world::contract(CTF_ctr_type_t const *    type,
                           fseq_tsr_ctr<dtype> const func_ptr, 
                           dtype const               alpha,
                           dtype const               beta){
   int i, ret;
 #if DEBUG >= 1
-  if (dt->get_global_comm().rank == 0)
+  if (global_comm.rank == 0)
     printf("Start head contraction :\n");
   dt->print_ctr(type,alpha,beta);
 #endif
@@ -631,7 +596,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
 
 #ifdef VERBOSE
     double dtt;
-    if (dt->get_global_comm().rank == 0){
+    if (global_comm.rank == 0){
       dtt = MPI_Wtime();
       VPRINTF(1,"Starting %s\n",cname);
     }
@@ -642,14 +607,14 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
     ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
     tctr.stop();
 #if VERBOSE >=1
-    if (dt->get_global_comm().rank == 0){
+    if (global_comm.rank == 0){
       VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   
     }
 #endif
   } else 
     ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
 #if DEBUG >= 1
-  if (dt->get_global_comm().rank == 0)
+  if (global_comm.rank == 0)
     printf("End head contraction.\n");
 #endif
 
@@ -666,13 +631,12 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *    type,
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  */
-template<typename dtype>
-int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
+int world::contract(CTF_ctr_type_t const *     type,
                           fseq_elm_ctr<dtype> const  felm,
                           dtype const                alpha,
                           dtype const                beta){
 #if DEBUG >= 1
-  if (dt->get_global_comm().rank == 0)
+  if (global_comm.rank == 0)
     printf("Start head custom contraction:\n");
   dt->print_ctr(type,alpha,beta);
 #endif
@@ -683,7 +647,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
 #endif
   int ret = dt->home_contract(type, fs, felm, alpha, beta);
 #if DEBUG >= 1
-  if (dt->get_global_comm().rank == 0)
+  if (global_comm.rank == 0)
     printf("End head custom contraction.\n");
 #endif
   return ret;
@@ -695,8 +659,7 @@ int tCTF<dtype>::contract(CTF_ctr_type_t const *     type,
  * \param[in] tid_A tensor handle to copy from
  * \param[in] tid_B tensor handle to copy to
  */
-template<typename dtype>
-int tCTF<dtype>::copy_tensor(int const tid_A, int const tid_B){
+int world::copy_tensor(int const tid_A, int const tid_B){
   return dt->cpy_tsr(tid_A, tid_B);
 }
 
@@ -705,8 +668,7 @@ int tCTF<dtype>::copy_tensor(int const tid_A, int const tid_B){
  * \param[in] alpha scaling factor
  * \param[in] tid tensor handle
  */
-template<typename dtype>
-int tCTF<dtype>::scale_tensor(dtype const alpha, int const tid){
+int world::scale_tensor(dtype const alpha, int const tid){
   return dt->scale_tsr(alpha, tid);
 }
 /**
@@ -715,8 +677,7 @@ int tCTF<dtype>::scale_tensor(dtype const alpha, int const tid){
  * \param[in] tid tensor handle
  * \param[in] idx_map indexer to the tensor
  */
-template<typename dtype>
-int tCTF<dtype>::scale_tensor(dtype const               alpha, 
+int world::scale_tensor(dtype const               alpha, 
                               int const                 tid, 
                               int const *               idx_map){
   fseq_tsr_scl<dtype> fs;
@@ -733,8 +694,7 @@ int tCTF<dtype>::scale_tensor(dtype const               alpha,
  * \param[in] idx_map indexer to the tensor
  * \param[in] func_ptr pointer to sequential scale function
  */
-template<typename dtype>
-int tCTF<dtype>::scale_tensor(dtype const               alpha, 
+int world::scale_tensor(dtype const               alpha, 
                               int const                 tid, 
                               int const *               idx_map,
                               fseq_tsr_scl<dtype> const func_ptr){
@@ -750,8 +710,7 @@ int tCTF<dtype>::scale_tensor(dtype const               alpha,
  * \param[in] idx_map indexer to the tensor
  * \param[in] felm pointer to sequential elemtwise scale function
  */
-template<typename dtype>
-int tCTF<dtype>::scale_tensor(dtype const               alpha, 
+int world::scale_tensor(dtype const               alpha, 
                               int const                 tid, 
                               int const *               idx_map,
                               fseq_elm_scl<dtype> const felm){
@@ -766,8 +725,7 @@ int tCTF<dtype>::scale_tensor(dtype const               alpha,
  * \param[in] tid_B tensor handle to B
  * \param[out] product the result of the dot-product
  */
-template<typename dtype>
-int tCTF<dtype>::dot_tensor(int const tid_A, int const tid_B, dtype *product){
+int world::dot_tensor(int const tid_A, int const tid_B, dtype *product){
   int stat;
   /* check if the mappings of A and B are the same */
   stat = dt->check_pair_mapping(tid_A, tid_B);
@@ -787,8 +745,7 @@ int tCTF<dtype>::dot_tensor(int const tid_A, int const tid_B, dtype *product){
  * \param[in] CTF::OP reduction operation to apply
  * \param[out] result result of reduction operation
  */
-template<typename dtype>
-int tCTF<dtype>::reduce_tensor(int const tid, CTF_OP op, dtype * result){
+int world::reduce_tensor(int const tid, CTF_OP op, dtype * result){
   return dt->red_tsr(tid, op, result);
 }
 
@@ -797,8 +754,7 @@ int tCTF<dtype>::reduce_tensor(int const tid, CTF_OP op, dtype * result){
  * \param[in] tid tensor handle
  * \param[in] map_func function pointer to apply to each element
  */
-template<typename dtype>
-int tCTF<dtype>::map_tensor(int const tid, 
+int world::map_tensor(int const tid, 
                             dtype (*map_func)(int const   ndim, 
                                               int const * indices, 
                                               dtype const elem)){
@@ -812,8 +768,7 @@ int tCTF<dtype>::map_tensor(int const tid,
  * \param[in] n number of elements to collect
  * \param[in] data output data (should be preallocated to size at least n)
  */
-template<typename dtype>
-int tCTF<dtype>::get_max_abs(int const  tid,
+int world::get_max_abs(int const  tid,
                              int const  n,
                              dtype *    data){
   return dt->get_max_abs(tid, n, data);
@@ -826,8 +781,7 @@ int tCTF<dtype>::get_max_abs(int const  tid,
  * \param[in] alpha scaling factor for A*B
  * \param[in] beta scaling factor for C
  */
-template<typename dtype>
-int tCTF<dtype>::sum_tensors(CTF_sum_type_t const * type,
+int world::sum_tensors(CTF_sum_type_t const * type,
                              dtype const            alpha,
                              dtype const            beta){
   
@@ -845,8 +799,7 @@ int tCTF<dtype>::sum_tensors(CTF_sum_type_t const * type,
  * \param[in] beta scaling factor for C
  * \param[in] func_ptr sequential ctr func pointer 
  */
-template<typename dtype>
-int tCTF<dtype>::sum_tensors(CTF_sum_type_t const *     type,
+int world::sum_tensors(CTF_sum_type_t const *     type,
                              dtype const                alpha,
                              dtype const                beta,
                              fseq_tsr_sum<dtype> const  func_ptr){
@@ -865,8 +818,7 @@ int tCTF<dtype>::sum_tensors(CTF_sum_type_t const *     type,
  * \param[in] idx_map_B index map of B
  * \param[in] func_ptr sequential ctr func pointer 
  */
-template<typename dtype>
-int tCTF<dtype>::sum_tensors(dtype const                alpha,
+int world::sum_tensors(dtype const                alpha,
                              dtype const                beta,
                              int const                  tid_A,
                              int const                  tid_B,
@@ -888,8 +840,7 @@ int tCTF<dtype>::sum_tensors(dtype const                alpha,
  * \param[in] idx_map_B index map of B
  * \param[in] func_ptr sequential ctr func pointer 
  */
-template<typename dtype>
-int tCTF<dtype>::sum_tensors(dtype const                alpha,
+int world::sum_tensors(dtype const                alpha,
                              dtype const                beta,
                              int const                  tid_A,
                              int const                  tid_B,
@@ -907,8 +858,7 @@ int tCTF<dtype>::sum_tensors(dtype const                alpha,
  * \param[in] tid_A tensor handle of A
  * \param[in] tid_B tensor handle of B
  */
-template<typename dtype>
-int tCTF<dtype>::sum_tensors(dtype const  alpha,
+int world::sum_tensors(dtype const  alpha,
                              int const    tid_A,
                              int const    tid_B){
   int stat;
@@ -930,8 +880,7 @@ int tCTF<dtype>::sum_tensors(dtype const  alpha,
  * \param[in] tid_A tensor handle of A
  * \param[in] tid_B tensor handle of B
  */
-template<typename dtype>
-int tCTF<dtype>::align(int const    tid_A,
+int world::align(int const    tid_A,
                        int const    tid_B){
   int stat;
   
@@ -946,29 +895,25 @@ int tCTF<dtype>::align(int const    tid_A,
   return CTF_SUCCESS;
 }
 
-template<typename dtype>
-int tCTF<dtype>::print_tensor(FILE * stream, int const tid, double cutoff) {
+int world::print_tensor(FILE * stream, int const tid, double cutoff) {
   return dt->print_tsr(stream, tid, cutoff);
 }
 
-template<typename dtype>
-int tCTF<dtype>::compare_tensor(FILE * stream, int const tid_A, int const tid_B, double cutoff) {
+int world::compare_tensor(FILE * stream, int const tid_A, int const tid_B, double cutoff) {
   int stat = align(tid_A, tid_B);
   if (stat != CTF_SUCCESS) return stat;
   return dt->compare_tsr(stream, tid_A, tid_B, cutoff);
 }
 
 /* Prints contraction type. */
-template<typename dtype>
-int tCTF<dtype>::print_ctr(CTF_ctr_type_t const * ctype,
+int world::print_ctr(CTF_ctr_type_t const * ctype,
                            dtype const            alpha,
                            dtype const            beta) const {
   return dt->print_ctr(ctype,alpha,beta);
 }
 
 /* Prints sum type. */
-template<typename dtype>
-int tCTF<dtype>::print_sum(CTF_sum_type_t const * stype,
+int world::print_sum(CTF_sum_type_t const * stype,
                            dtype const            alpha,
                            dtype const            beta) const {
   return dt->print_sum(stype,alpha,beta);
@@ -978,8 +923,7 @@ int tCTF<dtype>::print_sum(CTF_sum_type_t const * stype,
 /**
  * \brief removes all tensors, invalidates all handles
  */
-template<typename dtype>
-int tCTF<dtype>::clean_tensors(){
+int world::clean_tensors(){
   unsigned int i;
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   for (i=0; i<tensors->size(); i++){
@@ -994,8 +938,7 @@ int tCTF<dtype>::clean_tensors(){
  * \brief removes a tensor, invalidates its handle
  * \param tid tensor handle
  */
-template<typename dtype>
-int tCTF<dtype>::clean_tensor(int const tid){
+int world::clean_tensor(int const tid){
   return dt->del_tsr(tid);
 }
 
@@ -1003,12 +946,11 @@ int tCTF<dtype>::clean_tensor(int const tid){
  * \brief removes all tensors, invalidates all handles, and exits library.
  *              Do not use library instance after executing this.
  */
-template<typename dtype>
-int tCTF<dtype>::exit(){
+int world::exit(){
   int ret;
   if (initialized){
-    int rank = dt->get_global_comm().rank;
-    ret = tCTF<dtype>::clean_tensors();
+    int rank = global_comm.rank;
+    ret = world::clean_tensors();
     LIBT_ASSERT(ret == CTF_SUCCESS);
     delete dt;
     initialized = 0;
@@ -1028,8 +970,7 @@ int tCTF<dtype>::exit(){
 }
 
 /* \brief ScaLAPACK back-end, see their DOC */
-template<typename dtype>
-int tCTF<dtype>::pgemm(char const   TRANSA, 
+int world::pgemm(char const   TRANSA, 
                        char const   TRANSB, 
                        int const    M, 
                        int const    N, 
@@ -1054,7 +995,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #endif
   int stid_A, stid_B, stid_C;
   int otid_A, otid_B, otid_C;
-  long_int old_size_C;
+  int64_t old_size_C;
   int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
   int * old_padding_C, * old_edge_len_C;
   int * need_free;
@@ -1123,7 +1064,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
       remap_tensor(otid_C, tsr_oC, dt->get_topo(tsr_oC->itopo), old_size_C,
                    old_phase_C, old_rank_C, old_virt_dim_C,
                    old_pe_lda_C, was_cyclic_C,
-                   old_padding_C, old_edge_len_C, dt->get_global_comm());
+                   old_padding_C, old_edge_len_C, global_comm);
     } else{
       if (need_free[2])
               CTF_free(tsr_oC->data);
@@ -1188,8 +1129,7 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
  * \param[in] data pointer to actual data
  * \param[out] tid tensor handle
  */
-template<typename dtype>
-int tCTF<dtype>::def_scala_mat(int const * DESCA,
+int world::def_scala_mat(int const * DESCA,
                                dtype const * data,
                                int * tid){
   int ret, stid;
@@ -1212,13 +1152,12 @@ int tCTF<dtype>::def_scala_mat(int const * DESCA,
  * \param[in] tid tensor handle
  * \param[in,out] data pointer to buffer data
  */
-template<typename dtype>
-int tCTF<dtype>::read_scala_mat(int const tid,
+int world::read_scala_mat(int const tid,
                                 dtype * data){
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda;
   int * old_padding, * old_edge_len;
   int was_cyclic;
-  long_int old_size;
+  int64_t old_size;
   std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
   tensor<dtype> * tsr = (*tensors)[tid];
   tensor<dtype> * stsr = (*tensors)[tsr->slay];
@@ -1235,7 +1174,7 @@ int tCTF<dtype>::read_scala_mat(int const tid,
   remap_tensor(tsr->slay, stsr, dt->get_topo(stsr->itopo), old_size,
                old_phase, old_rank, old_virt_dim,
                old_pe_lda, was_cyclic,
-               old_padding, old_edge_len, dt->get_global_comm());
+               old_padding, old_edge_len, global_comm);
   if (data!=NULL)
     memcpy(data, stsr->data, stsr->size*sizeof(dtype));  
   CTF_free(stsr->data);
@@ -1244,8 +1183,7 @@ int tCTF<dtype>::read_scala_mat(int const tid,
 /**
  * \brief CTF interface for pgemm
  */
-template<typename dtype>
-int tCTF<dtype>::pgemm(char const   TRANSA, 
+int world::pgemm(char const   TRANSA, 
                        char const   TRANSB, 
                        dtype const  ALPHA,
                        int const    tid_A,
@@ -1303,11 +1241,6 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
   CTF_free(ct.idx_map_C);
   return ret;
 };
-  
-/* Instantiate the ugly templates */
-template class tCTF<double>;
-#if (VERIFY==0)
-template class tCTF< std::complex<double> >;
-#endif
 
+}
 

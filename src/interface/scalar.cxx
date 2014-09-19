@@ -1,6 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
-#include "../shared/util_ext.h"
+#include "common.h"
 
+namespace CTF {
 
 /**
  * \brief constructor for a scalar
@@ -58,4 +59,5 @@ void Scalar<dtype>::set_val(dtype const val){
     arr[0] = val;
   }
 }
-  
+ 
+} 
