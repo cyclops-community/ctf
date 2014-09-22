@@ -10,37 +10,37 @@ Idx_Tensor<dtype> * get_full_intm(Idx_Tensor<dtype>& A,
                                      Idx_Tensor<dtype>& B){
   int * len_C, * sym_C;
   char * idx_C;
-  int ndim_C, i, j, idx;
+  int order_C, i, j, idx;
   
-  ndim_C = 0;
-  for (i=0; i<A.parent->ndim; i++){
-    ndim_C++;
+  order_C = 0;
+  for (i=0; i<A.parent->order; i++){
+    order_C++;
     for (j=0; j<i; j++){
       if (A.idx_map[i] == A.idx_map[j]){
-        ndim_C--;
+        order_C--;
         break;
       }
     }
   }
-  for (j=0; j<B.parent->ndim; j++){
-    ndim_C++;
-    for (i=0; i<MAX(A.parent->ndim, B.parent->ndim); i++){
+  for (j=0; j<B.parent->order; j++){
+    order_C++;
+    for (i=0; i<MAX(A.parent->order, B.parent->order); i++){
       if (i<j && B.idx_map[i] == B.idx_map[j]){
-        ndim_C--;
+        order_C--;
         break;
       }
-      if (i<A.parent->ndim && A.idx_map[i] == B.idx_map[j]){
-        ndim_C--;
+      if (i<A.parent->order && A.idx_map[i] == B.idx_map[j]){
+        order_C--;
         break;
       }
     }
   }
 
-  idx_C = (char*)malloc(sizeof(char)*ndim_C);
-  sym_C = (int*)malloc(sizeof(int)*ndim_C);
-  len_C = (int*)malloc(sizeof(int)*ndim_C);
+  idx_C = (char*)malloc(sizeof(char)*order_C);
+  sym_C = (int*)malloc(sizeof(int)*order_C);
+  len_C = (int*)malloc(sizeof(int)*order_C);
   idx = 0;
-  for (i=0; i<A.parent->ndim; i++){
+  for (i=0; i<A.parent->order; i++){
     for (j=0; j<i && A.idx_map[i] != A.idx_map[j]; j++){}
     if (j!=i) break;
     idx_C[idx] = A.idx_map[i];
@@ -51,12 +51,12 @@ Idx_Tensor<dtype> * get_full_intm(Idx_Tensor<dtype>& A,
     sym_C[idx] = NS;
     idx++;
   }
-  int ndim_AC = idx;
-  for (j=0; j<B.parent->ndim; j++){
+  int order_AC = idx;
+  for (j=0; j<B.parent->order; j++){
     for (i=0; i<j && B.idx_map[i] != B.idx_map[j]; i++){}
     if (i!=j) break;
-    for (i=0; i<ndim_AC && idx_C[i] != B.idx_map[j]; i++){}
-    if (i!=ndim_AC){
+    for (i=0; i<order_AC && idx_C[i] != B.idx_map[j]; i++){}
+    if (i!=order_AC){
       if (sym_C[i] != NS) {
         if (i==0){
           if (B.parent->sym[i] != sym_C[j]){
@@ -82,7 +82,7 @@ Idx_Tensor<dtype> * get_full_intm(Idx_Tensor<dtype>& A,
     idx++;
   }
 
-  Tensor<dtype> * tsr_C = new Tensor<dtype>(ndim_C, len_C, sym_C, *(A.parent->world));
+  Tensor<dtype> * tsr_C = new Tensor<dtype>(order_C, len_C, sym_C, *(A.parent->world));
   Idx_Tensor<dtype> * out = new Idx_Tensor<dtype>(tsr_C, idx_C);
   out->is_intm = 1;
   free(sym_C);

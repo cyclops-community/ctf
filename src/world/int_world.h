@@ -78,12 +78,12 @@ namespace CTF_int {
                const char * const * argv = NULL);
 
 
-      /* initializes library. Sets topology to be a mesh of dimension ndim with
+      /* initializes library. Sets topology to be a mesh of dimension order with
          edge lengths dim_len. */
       int init(MPI_Comm       global_context,
                int            rank,
                int            np,
-               int            ndim,
+               int            order,
                int const *    dim_len,
                int            argc = 0,
                const char * const * argv = NULL);
@@ -99,27 +99,30 @@ namespace CTF_int {
       int get_num_pes();
 
       /* define a tensor and retrive handle */
-      int define_tensor(int           ndim,
+      int define_tensor(semiring      sr, 
+                        int           order,
                         int const *   edge_len,
                         int const *   sym,
                         int *         tensor_id,
+                        bool          alloc_data = 1,
   #if DEBUG < 3
                         char const *  name = NULL,
-                        int           profile = 0
+                        bool          profile = 0
   #else
                         char const *  name = "X",
-                        int           profile = 1
+                        bool          profile = 1
   #endif
                         );
 
       /* Create identical tensor with identical data if copy_data=1 */
       int clone_tensor(int        tensor_id,
-                       int        copy_data,
-                       int *      new_tensor_id);
+                       bool       copy_data,
+                       int *      new_tensor_id,
+                       bool       alloc_data = 1);
 
       /* get information about a tensor */
       int info_tensor(int tensor_id,
-                      int *     ndim,
+                      int *     order,
                       int **    edge_len,
                       int **    sym) const;
 
@@ -136,7 +139,7 @@ namespace CTF_int {
       int profile_off(int tensor_id);
 
       /* get dimension of a tensor */
-      int get_dimension(int tensor_id, int *ndim) const;
+      int get_dimension(int tensor_id, int *order) const;
 
       /* get lengths of a tensor */
       int get_lengths(int tensor_id, int **edge_len) const;
@@ -397,7 +400,7 @@ namespace CTF_int {
 
       /* map data of tid_A with the given function */
   /*    int map_tensor(int tid,
-                     dtype (*map_func)(int ndim, 
+                     dtype (*map_func)(int order, 
                                        int const * indices,
                                        dtype elem));
   */

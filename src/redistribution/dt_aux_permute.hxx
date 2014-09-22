@@ -13,7 +13,7 @@
 
 /**
  * \brief ,calculate the block-sizes of a tensor
- * \param[in] ndim number of dimensions of this tensor
+ * \param[in] order number of dimensions of this tensor
  * \param[in] size is the size of the local tensor stored
  * \param[in] edge_len edge lengths of global tensor
  * \param[in] edge_map mapping of each dimension
@@ -22,7 +22,7 @@
  * \param[out] blk_edge_len edge lengths of local block
  */
 inline
-void calc_dim(int const         ndim,
+void calc_dim(int const         order,
               int64_t const    size,
               int const *       edge_len,
               mapping const *   edge_map,
@@ -33,7 +33,7 @@ void calc_dim(int const         ndim,
   mapping const * map;
   vsz = size;
 
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     if (blk_edge_len != NULL)
       blk_edge_len[i] = edge_len[i];
     vrt_edge_len[i] = edge_len[i];
@@ -61,31 +61,31 @@ void calc_dim(int const         ndim,
 
 /**
  * \brief invert index map
- * \param[in] ndim_A number of dimensions of A
+ * \param[in] order_A number of dimensions of A
  * \param[in] idx_A index map of A
  * \param[in] edge_map_B mapping of each dimension of A
- * \param[out] ndim_tot number of total dimensions
- * \param[out] idx_arr 2*ndim_tot index array
+ * \param[out] order_tot number of total dimensions
+ * \param[out] idx_arr 2*order_tot index array
  */
 inline
-void inv_idx(int const          ndim_A,
+void inv_idx(int const          order_A,
              int const *        idx_A,
              mapping const *    edge_map_A,
-             int *              ndim_tot,
+             int *              order_tot,
              int **             idx_arr){
   int i, dim_max;
 
   dim_max = -1;
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if (idx_A[i] > dim_max) dim_max = idx_A[i];
   }
   dim_max++;
 
-  *ndim_tot = dim_max;
+  *order_tot = dim_max;
   CTF_alloc_ptr(sizeof(int)*dim_max, (void**)idx_arr);
   std::fill((*idx_arr), (*idx_arr)+dim_max, -1);
 
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if ((*idx_arr)[idx_A[i]] == -1)
       (*idx_arr)[idx_A[i]] = i;
     else {
@@ -97,40 +97,40 @@ void inv_idx(int const          ndim_A,
 
 /**
  * \brief invert index map
- * \param[in] ndim_A number of dimensions of A
+ * \param[in] order_A number of dimensions of A
  * \param[in] idx_A index map of A
  * \param[in] edge_map_B mapping of each dimension of A
- * \param[in] ndim_B number of dimensions of B
+ * \param[in] order_B number of dimensions of B
  * \param[in] idx_B index map of B
  * \param[in] edge_map_B mapping of each dimension of B
- * \param[out] ndim_tot number of total dimensions
- * \param[out] idx_arr 2*ndim_tot index array
+ * \param[out] order_tot number of total dimensions
+ * \param[out] idx_arr 2*order_tot index array
  */
 inline
-void inv_idx(int const          ndim_A,
+void inv_idx(int const          order_A,
              int const *        idx_A,
              mapping const *    edge_map_A,
-             int const          ndim_B,
+             int const          order_B,
              int const *        idx_B,
              mapping const *    edge_map_B,
-             int *              ndim_tot,
+             int *              order_tot,
              int **             idx_arr){
   int i, dim_max;
 
   dim_max = -1;
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if (idx_A[i] > dim_max) dim_max = idx_A[i];
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     if (idx_B[i] > dim_max) dim_max = idx_B[i];
   }
   dim_max++;
 
-  *ndim_tot = dim_max;
+  *order_tot = dim_max;
   CTF_alloc_ptr(sizeof(int)*2*dim_max, (void**)idx_arr);
   std::fill((*idx_arr), (*idx_arr)+2*dim_max, -1);
 
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if ((*idx_arr)[2*idx_A[i]] == -1)
       (*idx_arr)[2*idx_A[i]] = i;
     else {
@@ -138,7 +138,7 @@ void inv_idx(int const          ndim_A,
         (*idx_arr)[2*idx_A[i]] = i;
     }
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     if ((*idx_arr)[2*idx_B[i]+1] == -1)
       (*idx_arr)[2*idx_B[i]+1] = i;
     else {
@@ -150,48 +150,48 @@ void inv_idx(int const          ndim_A,
 
 /**
  * \brief invert index map
- * \param[in] ndim_A number of dimensions of A
+ * \param[in] order_A number of dimensions of A
  * \param[in] idx_A index map of A
  * \param[in] edge_map_B mapping of each dimension of A
- * \param[in] ndim_B number of dimensions of B
+ * \param[in] order_B number of dimensions of B
  * \param[in] idx_B index map of B
  * \param[in] edge_map_B mapping of each dimension of B
- * \param[in] ndim_C number of dimensions of C
+ * \param[in] order_C number of dimensions of C
  * \param[in] idx_C index map of C
  * \param[in] edge_map_C mapping of each dimension of C
- * \param[out] ndim_tot number of total dimensions
- * \param[out] idx_arr 3*ndim_tot index array
+ * \param[out] order_tot number of total dimensions
+ * \param[out] idx_arr 3*order_tot index array
  */
 inline
-void inv_idx(int const          ndim_A,
+void inv_idx(int const          order_A,
              int const *        idx_A,
              mapping const *    edge_map_A,
-             int const          ndim_B,
+             int const          order_B,
              int const *        idx_B,
              mapping const *    edge_map_B,
-             int const          ndim_C,
+             int const          order_C,
              int const *        idx_C,
              mapping const *    edge_map_C,
-             int *              ndim_tot,
+             int *              order_tot,
              int **             idx_arr){
   int i, dim_max;
 
   dim_max = -1;
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if (idx_A[i] > dim_max) dim_max = idx_A[i];
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     if (idx_B[i] > dim_max) dim_max = idx_B[i];
   }
-  for (i=0; i<ndim_C; i++){
+  for (i=0; i<order_C; i++){
     if (idx_C[i] > dim_max) dim_max = idx_C[i];
   }
   dim_max++;
-  *ndim_tot = dim_max;
+  *order_tot = dim_max;
   CTF_alloc_ptr(sizeof(int)*3*dim_max, (void**)idx_arr);
   std::fill((*idx_arr), (*idx_arr)+3*dim_max, -1);
 
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if ((*idx_arr)[3*idx_A[i]] == -1)
       (*idx_arr)[3*idx_A[i]] = i;
     else {
@@ -199,7 +199,7 @@ void inv_idx(int const          ndim_A,
         (*idx_arr)[3*idx_A[i]] = i;
     }
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     if ((*idx_arr)[3*idx_B[i]+1] == -1)
       (*idx_arr)[3*idx_B[i]+1] = i;
     else {
@@ -207,7 +207,7 @@ void inv_idx(int const          ndim_A,
         (*idx_arr)[3*idx_B[i]+1] = i;
     }
   }
-  for (i=0; i<ndim_C; i++){
+  for (i=0; i<order_C; i++){
     if ((*idx_arr)[3*idx_C[i]+2] == -1)
       (*idx_arr)[3*idx_C[i]+2] = i;
     else {
@@ -220,7 +220,7 @@ void inv_idx(int const          ndim_A,
 
 /**
  * \brief assigns keys to an array of values
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] nbuf number of global virtual buckets
  * \param[in] new_nvirt new total virtualization factor
  * \param[in] np number of processors
@@ -249,7 +249,7 @@ void inv_idx(int const          ndim_A,
  * \param[in] bucket_offset offsets for target index for each dimension
  */
 template<typename dtype>
-void calc_cnt_displs_old(int const          ndim, 
+void calc_cnt_displs_old(int const          order, 
                      int const          nbuf,
                      int const          new_nvirt,
                      int const          np,
@@ -284,7 +284,7 @@ void calc_cnt_displs_old(int const          ndim,
 
 #ifdef USE_OMP
 //  int max_ntd = MIN(omp_get_max_threads(),REDIST_MAX_THREADS);
-  int64_t vbs = sy_packed_size(ndim, old_virt_edge_len, sym);
+  int64_t vbs = sy_packed_size(order, old_virt_edge_len, sym);
   int max_ntd = omp_get_max_threads();
   max_ntd = MAX(1,MIN(max_ntd,vbs/nbuf));
   CTF_mst_alloc_ptr(nbuf*sizeof(int64_t)*max_ntd, (void**)&all_virt_counts);
@@ -295,7 +295,7 @@ void calc_cnt_displs_old(int const          ndim,
 
   /* Count how many elements need to go to each new virtual bucket */
   if (idx_lyr==0){
-    if (ndim == 0){
+    if (order == 0){
       memset(all_virt_counts, 0, nbuf*sizeof(int64_t));
       all_virt_counts[0]++;
     } else {
@@ -309,7 +309,7 @@ void calc_cnt_displs_old(int const          ndim,
       int * idx;
       int64_t * idx_offs;
       int * spad;
-      int last_len = old_edge_len[ndim-1]/old_phase[ndim-1]+1;
+      int last_len = old_edge_len[order-1]/old_phase[order-1]+1;
       int omp_ntd, omp_tid;
       omp_ntd = omp_get_num_threads();
       omp_tid = omp_get_thread_num();
@@ -327,29 +327,29 @@ void calc_cnt_displs_old(int const          ndim,
       int64_t * idx;
       int64_t * idx_offs;
       int * spad;
-      int last_len = old_edge_len[ndim-1]/old_phase[ndim-1]+1;
+      int last_len = old_edge_len[order-1]/old_phase[order-1]+1;
       virt_counts = all_virt_counts;
       start_ldim = 0;
       end_ldim = last_len;
 #endif
-      CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx);
-      CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx_offs);
-      CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&old_virt_idx);
-      CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&virt_rank);
-      CTF_alloc_ptr(ndim*sizeof(int), (void**)&spad);
+      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
+      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx_offs);
+      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&old_virt_idx);
+      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&virt_rank);
+      CTF_alloc_ptr(order*sizeof(int), (void**)&spad);
       memset(virt_counts, 0, nbuf*sizeof(int64_t));
-      memset(old_virt_idx, 0, ndim*sizeof(int64_t));
+      memset(old_virt_idx, 0, order*sizeof(int64_t));
       /* virt_rank = physical_rank*num_virtual_ranks + virtual_rank */
-      for (i=0; i<ndim; i++){ 
+      for (i=0; i<order; i++){ 
         virt_rank[i] = old_rank[i]*old_virt_dim[i]; 
       }
       for (;;){
-        memset(idx, 0, ndim*sizeof(int64_t));
-        memset(idx_offs, 0, ndim*sizeof(int64_t));
+        memset(idx, 0, order*sizeof(int64_t));
+        memset(idx_offs, 0, order*sizeof(int64_t));
         idx_offset = 0; 
         skip = 0;
-        idx[ndim-1] = MAX(idx[ndim-1],start_ldim);
-        for (i=0; i<ndim; i++) {
+        idx[order-1] = MAX(idx[order-1],start_ldim);
+        for (i=0; i<order; i++) {
           /* Warning: This next if block has a history of bugs */
           //spad[i] = padding[i];
           if (sym[i] != NS){
@@ -371,7 +371,7 @@ void calc_cnt_displs_old(int const          ndim,
             imax = (old_edge_len[i]-padding[i])/old_phase[i];
             if (virt_rank[i] < (old_edge_len[i]-padding[i])%old_phase[i])
               imax++;
-            if (i == ndim - 1)
+            if (i == order - 1)
               imax = MIN(imax, end_ldim);
             if (idx[i] >= imax)
               skip = 1;
@@ -404,7 +404,7 @@ void calc_cnt_displs_old(int const          ndim,
             if (sym[0] != NS) {
               imax = MIN(imax,idx[1]+1-spad[0]);
             }
-            if (ndim == 1){
+            if (order == 1){
               imax = MIN(imax, end_ldim);
               i_st = start_ldim;
             } else
@@ -426,13 +426,13 @@ void calc_cnt_displs_old(int const          ndim,
 //              svirt_displs[idx_offset+vc]++;
             }
             /* Increment indices and set up offsets */
-            for (act_lda=1; act_lda < ndim; act_lda++){
+            for (act_lda=1; act_lda < order; act_lda++){
               idx[act_lda]++;
               act_max = (old_edge_len[act_lda]-padding[act_lda])/old_phase[act_lda];
               if (virt_rank[act_lda] <
                   (old_edge_len[act_lda]-padding[act_lda])%old_phase[act_lda])
                 act_max++;
-              if (act_lda == ndim - 1)
+              if (act_lda == order - 1)
                 act_max = MIN(act_max, end_ldim);
               if (sym[act_lda] != NS) 
                 act_max = MIN(act_max,idx[act_lda+1]+1-spad[act_lda]);
@@ -455,11 +455,11 @@ void calc_cnt_displs_old(int const          ndim,
               if (ended)//idx[act_lda] > 0)
                 break;
             }
-            if (act_lda == ndim) break;
+            if (act_lda == order) break;
           }
         }
         /* (OUTER LOOP) Iterate over virtual ranks on this pe */
-        for (act_lda=0; act_lda<ndim; act_lda++){
+        for (act_lda=0; act_lda<order; act_lda++){
           old_virt_idx[act_lda]++;
           if (old_virt_idx[act_lda] >= old_virt_dim[act_lda])
             old_virt_idx[act_lda] = 0;
@@ -470,7 +470,7 @@ void calc_cnt_displs_old(int const          ndim,
           if (old_virt_idx[act_lda] > 0)
             break;  
         }
-        if (act_lda == ndim) break;
+        if (act_lda == order) break;
       }
       CTF_free(idx);
       CTF_free(idx_offs);
@@ -493,19 +493,19 @@ void calc_cnt_displs_old(int const          ndim,
   int64_t * idx_offs;
 
   /* reduce virtual counts to phyiscal processor counts */
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx_offs);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx_offs);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
 
   /* FIXME: unnecessary memset */
-  memset(idx, 0, ndim*sizeof(int64_t));
-  memset(idx_offs, 0, ndim*sizeof(int64_t));
+  memset(idx, 0, order*sizeof(int64_t));
+  memset(idx_offs, 0, order*sizeof(int64_t));
   memset(send_counts, 0, np*sizeof(int64_t));
   idx_offset = 0;
   buf_offset = 0;
   virt_offset = 0;
 
   /* Calculate All-to-all processor grid offsets from the virtual bucket counts */
-  if (ndim == 0){
+  if (order == 0){
     send_counts[0] = virt_counts[0];
     memset(svirt_displs, 0, np*sizeof(int64_t));
   } else {
@@ -520,7 +520,7 @@ void calc_cnt_displs_old(int const          ndim,
       }
       buf_offset += new_phase[0];//buf_lda[1];
       // Increment indices and set up offsets 
-      for (act_lda=1; act_lda<ndim; act_lda++){
+      for (act_lda=1; act_lda<order; act_lda++){
         idx[act_lda]++;
         if (idx[act_lda] >= new_phase[act_lda]){
           idx[act_lda] = 0;
@@ -535,7 +535,7 @@ void calc_cnt_displs_old(int const          ndim,
         if (idx[act_lda] > 0)
           break;
       }
-      if (act_lda == ndim) break;
+      if (act_lda == order) break;
     }    
   }
 
@@ -575,7 +575,7 @@ void calc_cnt_displs_old(int const          ndim,
 
 /**
  * \brief assigns keys to an array of values
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] nbuf number of global virtual buckets
  * \param[in] new_nvirt new total virtualization factor
  * \param[in] np number of processors
@@ -604,7 +604,7 @@ void calc_cnt_displs_old(int const          ndim,
  * \param[in] bucket_offset offsets for target index for each dimension
  */
 template<typename dtype>
-void calc_cnt_displs(int const          ndim, 
+void calc_cnt_displs(int const          order, 
                      int const          nbuf,
                      int const          new_nvirt,
                      int const          np,
@@ -635,7 +635,7 @@ void calc_cnt_displs(int const          ndim,
   int64_t * all_virt_counts;
 
 #ifdef USE_OMP
-  int64_t vbs = sy_packed_size(ndim, old_virt_edge_len, sym);
+  int64_t vbs = sy_packed_size(order, old_virt_edge_len, sym);
   int max_ntd = omp_get_max_threads();
   max_ntd = MAX(1,MIN(max_ntd,vbs/nbuf));
 #else
@@ -647,7 +647,7 @@ void calc_cnt_displs(int const          ndim,
 
   /* Count how many elements need to go to each new virtual bucket */
   if (idx_lyr==0){
-    if (ndim == 0){
+    if (order == 0){
       memset(all_virt_counts, 0, nbuf*sizeof(int64_t));
       all_virt_counts[0]++;
     } else {
@@ -662,7 +662,7 @@ void calc_cnt_displs(int const          ndim,
       int64_t idx_offset;
       int64_t * idx_offs;
       int * spad;
-      int last_len = old_edge_len[ndim-1]/old_phase[ndim-1]+1;
+      int last_len = old_edge_len[order-1]/old_phase[order-1]+1;
       int omp_ntd, omp_tid;
       omp_ntd = omp_get_num_threads();
       omp_tid = omp_get_thread_num();
@@ -681,29 +681,29 @@ void calc_cnt_displs(int const          ndim,
       int64_t idx_offset;
       int64_t * idx_offs;
       int * spad;
-      int last_len = old_edge_len[ndim-1]/old_phase[ndim-1]+1;
+      int last_len = old_edge_len[order-1]/old_phase[order-1]+1;
       virt_counts = all_virt_counts;
       start_ldim = 0;
       end_ldim = last_len;
 #endif
-      CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx);
-      CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx_offs);
-      CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&old_virt_idx);
-      CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&virt_rank);
-      CTF_alloc_ptr(ndim*sizeof(int), (void**)&spad);
+      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
+      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx_offs);
+      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&old_virt_idx);
+      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&virt_rank);
+      CTF_alloc_ptr(order*sizeof(int), (void**)&spad);
       memset(virt_counts, 0, nbuf*sizeof(int64_t));
-      memset(old_virt_idx, 0, ndim*sizeof(int64_t));
+      memset(old_virt_idx, 0, order*sizeof(int64_t));
       /* virt_rank = physical_rank*num_virtual_ranks + virtual_rank */
-      for (int i=0; i<ndim; i++){ 
+      for (int i=0; i<order; i++){ 
         virt_rank[i] = old_rank[i]*old_virt_dim[i]; 
       }
       for (;;){
-        memset(idx, 0, ndim*sizeof(int64_t));
-        memset(idx_offs, 0, ndim*sizeof(int64_t));
+        memset(idx, 0, order*sizeof(int64_t));
+        memset(idx_offs, 0, order*sizeof(int64_t));
         idx_offset = 0; 
         skip = 0;
-        idx[ndim-1] = MAX(idx[ndim-1],start_ldim);
-        for (dim=0; dim<ndim; dim++) {
+        idx[order-1] = MAX(idx[order-1],start_ldim);
+        for (dim=0; dim<order; dim++) {
           /* Warning: This next if block has a history of bugs */
           //spad[dim] = padding[dim];
           if (sym[dim] != NS){
@@ -723,7 +723,7 @@ void calc_cnt_displs(int const          ndim,
             imax = (old_edge_len[dim]-padding[dim])/old_phase[dim];
             if (virt_rank[dim] < (old_edge_len[dim]-padding[dim])%old_phase[dim])
               imax++;
-            if (dim == ndim - 1)
+            if (dim == order - 1)
               imax = MIN(imax, end_ldim);
             if (idx[dim] >= imax)
               skip = 1;
@@ -744,7 +744,7 @@ void calc_cnt_displs(int const          ndim,
             if (sym[0] != NS) {
               imax = MIN(imax,idx[1]+1-spad[0]);
             }
-            if (ndim == 1){
+            if (order == 1){
               imax = MIN(imax, end_ldim);
               i_st = start_ldim;
             } else
@@ -762,7 +762,7 @@ void calc_cnt_displs(int const          ndim,
                   ASSERT(i<=idx[1]);
                 }
               }
-              for (int dim = 1; dim < ndim-1; dim++){
+              for (int dim = 1; dim < order-1; dim++){
                 if (sym[dim] != NS){
                   if ((sym[dim] != SY && virt_rank[dim] >= virt_rank[dim+1]) ||
                       (sym[dim] == SY && virt_rank[dim] > virt_rank[dim+1])) {
@@ -775,13 +775,13 @@ void calc_cnt_displs(int const          ndim,
               virt_counts[idx_offset+vc]++;
             }
             /* Increment indices and set up offsets */
-            for (dim=1; dim < ndim; dim++){
+            for (dim=1; dim < order; dim++){
               idx[dim]++;
               act_max = (old_edge_len[dim]-padding[dim])/old_phase[dim];
               if (virt_rank[dim] <
                   (old_edge_len[dim]-padding[dim])%old_phase[dim])
                 act_max++;
-              if (dim == ndim - 1)
+              if (dim == order - 1)
                 act_max = MIN(act_max, end_ldim);
               if (sym[dim] != NS) 
                 act_max = MIN(act_max,idx[dim+1]+1-spad[dim]);
@@ -797,11 +797,11 @@ void calc_cnt_displs(int const          ndim,
               if (ended)
                 break;
             }
-            if (dim == ndim) break;
+            if (dim == order) break;
           }
         }
         /* (OUTER LOOP) Iterate over virtual ranks on this pe */
-        for (dim=0; dim<ndim; dim++){
+        for (dim=0; dim<order; dim++){
           old_virt_idx[dim]++;
           if (old_virt_idx[dim] >= old_virt_dim[dim])
             old_virt_idx[dim] = 0;
@@ -812,7 +812,7 @@ void calc_cnt_displs(int const          ndim,
           if (old_virt_idx[dim] > 0)
             break;  
         }
-        if (dim == ndim) break;
+        if (dim == order) break;
       }
       CTF_free(idx);
       CTF_free(idx_offs);
@@ -837,7 +837,7 @@ void calc_cnt_displs(int const          ndim,
   memset(send_counts, 0, np*sizeof(int64_t));
 
   /* Calculate All-to-all processor grid offsets from the virtual bucket counts */
-  if (ndim == 0){
+  if (order == 0){
  //   send_counts[0] = virt_counts[0];
     memset(svirt_displs, 0, np*sizeof(int64_t));
   } else {
@@ -852,7 +852,7 @@ void calc_cnt_displs(int const          ndim,
       }
       buf_offset += new_phase[0];//buf_lda[1];
       // Increment indices and set up offsets 
-      for (act_lda=1; act_lda<ndim; act_lda++){
+      for (act_lda=1; act_lda<order; act_lda++){
         idx[act_lda]++;
         if (idx[act_lda] >= new_phase[act_lda]){
           idx[act_lda] = 0;
@@ -867,7 +867,7 @@ void calc_cnt_displs(int const          ndim,
         if (idx[act_lda] > 0)
           break;
       }
-      if (act_lda == ndim) break;
+      if (act_lda == order) break;
     }*/
     for (int i=0; i<np; i++){
       for (int j=0; j<new_nvirt; j++){
@@ -912,7 +912,7 @@ void calc_cnt_displs(int const          ndim,
 /**
  * \brief move data between buckets and tensor layout
  *
- * \param[in] ndim number of tensor dimensions
+ * \param[in] order number of tensor dimensions
  * \param[in] nbuf number of global virtual buckets
  * \param[in] new_nvirt new total virtualization factor
  * \param[in] edge_len current edge lengths of tensor
@@ -937,7 +937,7 @@ void calc_cnt_displs(int const          ndim,
  * \param[in] is_cyclic whether the new mapping is cyclic
  */
 template<typename dtype>
-void pup_virt_buff(int const            ndim, 
+void pup_virt_buff(int const            order, 
                    int const            nbuf,
                    int const            new_nvirt,
                    int const *          edge_len,
@@ -973,28 +973,28 @@ void pup_virt_buff(int const            ndim,
   int * spad;
 
   CTF_mst_alloc_ptr(nbuf*sizeof(int64_t), (void**)&virt_counts);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&acc_idx);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx_offs);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&old_virt_idx);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&spad);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&acc_idx);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx_offs);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&old_virt_idx);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&virt_rank);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&spad);
 
-  memset(old_virt_idx, 0, ndim*sizeof(int64_t));
-  memset(acc_idx, 0, ndim*sizeof(int64_t));
+  memset(old_virt_idx, 0, order*sizeof(int64_t));
+  memset(acc_idx, 0, order*sizeof(int64_t));
   memset(virt_counts, 0, nbuf*sizeof(int64_t));
-  for (i=0; i<ndim; i++){ virt_rank[i] = old_rank[i]*old_virt_dim[i]; }
+  for (i=0; i<order; i++){ virt_rank[i] = old_rank[i]*old_virt_dim[i]; }
 
   /* Loop accross all virtual subtensors in order, and keep order within
      subtensors. We should move through one of the arrays contiguously */
   arr_idx = 0;
   overt_idx = 0;
-  memset(idx, 0, ndim*sizeof(int64_t));
-  memset(idx_offs, 0, ndim*sizeof(int64_t));
+  memset(idx, 0, order*sizeof(int64_t));
+  memset(idx_offs, 0, order*sizeof(int64_t));
 
   idx_offset = 0;
   virt_offset = 0;
-  for (i=1; i<ndim; i++) {
+  for (i=1; i<order; i++) {
     idx_offs[i] = (virt_rank[i]%new_phase[i]);
     idx_offset += (idx_offs[i]/new_virt_dim[i])*pe_lda[i];
     virt_offset += (idx_offs[i]%new_virt_dim[i])*new_virt_lda[i];
@@ -1002,7 +1002,7 @@ void pup_virt_buff(int const            ndim,
 
   outside = 0;
   poutside = -1;
-  for (i=1; i<ndim; i++){
+  for (i=1; i<order; i++){
     if (sym[i] != NS){
       if (sym[i] == SY){
         if (old_rank[i+1]*old_virt_dim[i+1] <
@@ -1071,7 +1071,7 @@ void pup_virt_buff(int const            ndim,
       }
     }
     /* Adjust outer indices */
-    for (act_lda=1; act_lda < ndim; act_lda++){
+    for (act_lda=1; act_lda < order; act_lda++){
       overt_idx -= old_virt_idx[act_lda]*old_virt_lda[act_lda];
       /* get outer virtual index */
       old_virt_idx[act_lda]++;
@@ -1148,7 +1148,7 @@ void pup_virt_buff(int const            ndim,
     if (poutside > -1) outside = 1;
     else {
       outside = 0;
-      for (i=1; i<ndim; i++){
+      for (i=1; i<order; i++){
         if (sym[i] != NS && idx[i+1] == idx[i]){
           if (old_rank[i+1]*old_virt_dim[i+1]+
               old_virt_idx[i+1] + (sym[i]==SY) <=
@@ -1159,7 +1159,7 @@ void pup_virt_buff(int const            ndim,
         }
       }
     }
-    if (act_lda == ndim) break;
+    if (act_lda == order) break;
   }
 /*  for (i=1; i<nbuf; i++){
     printf("[%d] virt_counts = %d, virt_displs = %d\n",i-1, virt_counts[i-1],
@@ -1175,7 +1175,7 @@ void pup_virt_buff(int const            ndim,
   CTF_free(spad);
 }
 
-int ** compute_bucket_offsets(int              ndim,
+int ** compute_bucket_offsets(int              order,
                               int const *      len,
                               int const *      old_phys_rank,
                               int const *      old_phys_dim,
@@ -1195,9 +1195,9 @@ int ** compute_bucket_offsets(int              ndim,
 
   TAU_FSTART(compute_bucket_offsets);
   
-  int **bucket_offset; CTF_alloc_ptr(sizeof(int*)*ndim, (void**)&bucket_offset);
+  int **bucket_offset; CTF_alloc_ptr(sizeof(int*)*order, (void**)&bucket_offset);
   
-  for (int dim = 0;dim < ndim;dim++){
+  for (int dim = 0;dim < order;dim++){
     CTF_alloc_ptr(sizeof(int)*old_phys_edge_len[dim], (void**)&bucket_offset[dim]);
     int pidx = 0;
     for (int vr = 0;vr < old_virt_dim[dim];vr++){
@@ -1246,7 +1246,7 @@ int ** compute_bucket_offsets(int              ndim,
 /**
  * \brief version of pup_virt_buff which assumes padding and cyclic layout
  *
- * \param[in] ndim dimension of tensor
+ * \param[in] order dimension of tensor
  * \param[in] len non-padded edge lengths of tensor
  * \param[in] sym symmetries of tensor
  * \param[in] old_phys_rank ranks of this processor on the old processor grid
@@ -1271,7 +1271,7 @@ int ** compute_bucket_offsets(int              ndim,
  
  */
 template<typename dtype>
-void pad_cyclic_pup_virt_buff(int              ndim,
+void pad_cyclic_pup_virt_buff(int              order,
                               int const *      len,
                               int const *      sym,
                               int const *      old_phys_rank,
@@ -1295,7 +1295,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
                               int * const *    bucket_offset,
                               dtype            alpha,
                               dtype            beta){
-  if (ndim == 0){
+  if (order == 0){
     if (forward)
       new_data[0][0] = old_data[0];
     else
@@ -1304,10 +1304,10 @@ void pad_cyclic_pup_virt_buff(int              ndim,
   }
 
   int old_virt_np = 1;
-  for (int dim = 0;dim < ndim;dim++) old_virt_np *= old_virt_dim[dim];
+  for (int dim = 0;dim < order;dim++) old_virt_np *= old_virt_dim[dim];
 
   int new_virt_np = 1;
-  for (int dim = 0;dim < ndim;dim++) new_virt_np *= new_virt_dim[dim];
+  for (int dim = 0;dim < order;dim++) new_virt_np *= new_virt_dim[dim];
   
   int nbucket = total_np*(forward ? new_virt_np : old_virt_np);
 
@@ -1322,12 +1322,12 @@ void pad_cyclic_pup_virt_buff(int              ndim,
   max_ntd = MAX(1,MIN(max_ntd,new_virt_nelem/nbucket));
 
   int64_t old_size, new_size;
-  old_size = sy_packed_size(ndim, old_virt_edge_len, sym)*old_virt_np;
-  new_size = sy_packed_size(ndim, new_virt_edge_len, sym)*new_virt_np;
+  old_size = sy_packed_size(order, old_virt_edge_len, sym)*old_virt_np;
+  new_size = sy_packed_size(order, new_virt_edge_len, sym)*new_virt_np;
   /*if (forward){
   } else {
-    old_size = sy_packed_size(ndim, old_virt_edge_len, sym)*new_virt_np;
-    new_size = sy_packed_size(ndim, new_virt_edge_len, sym)*old_virt_np;
+    old_size = sy_packed_size(order, old_virt_edge_len, sym)*new_virt_np;
+    new_size = sy_packed_size(order, new_virt_edge_len, sym)*old_virt_np;
   }*/
   /*printf("old_size=%d, new_size=%d,old_virt_np=%d,new_virt_np=%d\n",
           old_size,new_size,old_virt_np,new_virt_np);
@@ -1350,43 +1350,43 @@ void pad_cyclic_pup_virt_buff(int              ndim,
   {
 #endif
 
-  int *offs; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&offs);
+  int *offs; CTF_alloc_ptr(sizeof(int)*order, (void**)&offs);
   if (old_offsets == NULL)
-    for (int dim = 0;dim < ndim;dim++) offs[dim] = 0;
+    for (int dim = 0;dim < order;dim++) offs[dim] = 0;
   else 
-    for (int dim = 0;dim < ndim;dim++) offs[dim] = old_offsets[dim];
+    for (int dim = 0;dim < order;dim++) offs[dim] = old_offsets[dim];
 
-  int *ends; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&ends);
-  for (int dim = 0;dim < ndim;dim++) ends[dim] = len[dim];
+  int *ends; CTF_alloc_ptr(sizeof(int)*order, (void**)&ends);
+  for (int dim = 0;dim < order;dim++) ends[dim] = len[dim];
 
 #ifdef USE_OMP
   int tid = omp_get_thread_num();
   int ntd = omp_get_num_threads();
   //partition the global tensor among threads, to preserve 
   //global ordering and load balance in partitioning
-  int gidx_st[ndim];
-  int gidx_end[ndim];
-  if (ndim > 1){
-    int64_t all_size = packed_size(ndim-1, len+1, sym+1);
+  int gidx_st[order];
+  int gidx_end[order];
+  if (order > 1){
+    int64_t all_size = packed_size(order-1, len+1, sym+1);
     int64_t chnk = all_size/ntd;
     int64_t glb_idx_st = chnk*tid + MIN(tid,all_size%ntd);
     int64_t glb_idx_end = glb_idx_st+chnk+(tid<(all_size%ntd));
     //calculate global indices along each dimension corresponding to partition
 //    printf("glb_idx_st = %ld, glb_idx_end = %ld\n",glb_idx_st,glb_idx_end);
-    calc_idx_arr(ndim-1, len+1, sym+1, glb_idx_st, gidx_st+1);
-    calc_idx_arr(ndim-1, len+1, sym+1, glb_idx_end, gidx_end+1);
+    calc_idx_arr(order-1, len+1, sym+1, glb_idx_st, gidx_st+1);
+    calc_idx_arr(order-1, len+1, sym+1, glb_idx_end, gidx_end+1);
     gidx_st[0] = 0;
     gidx_end[0] = 0;
 #if DEBUG >= 1
     if (ntd == 1){
-      if (gidx_end[ndim-1] != len[ndim-1]){
-        for (int dim=0; dim<ndim; dim++){
+      if (gidx_end[order-1] != len[order-1]){
+        for (int dim=0; dim<order; dim++){
           printf("glb_idx_end = %ld, gidx_end[%d]= %d, len[%d] = %d\n", 
                  glb_idx_end, dim, gidx_end[dim], dim, len[dim]);
         }
         ABORT;
       }
-      ASSERT(gidx_end[ndim-1] <= ends[ndim-1]);
+      ASSERT(gidx_end[order-1] <= ends[order-1]);
     } 
 #endif
   } else {
@@ -1412,27 +1412,27 @@ void pad_cyclic_pup_virt_buff(int              ndim,
   memset(count, 0, sizeof(int64_t)*nbucket);
 #endif
 
-  int *gidx; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&gidx);
-  memset(gidx, 0, sizeof(int)*ndim);
-  for (int dim = 0;dim < ndim;dim++){
+  int *gidx; CTF_alloc_ptr(sizeof(int)*order, (void**)&gidx);
+  memset(gidx, 0, sizeof(int)*order);
+  for (int dim = 0;dim < order;dim++){
     gidx[dim] = old_phys_rank[dim]*old_virt_dim[dim];
   }
 
-  int64_t *virt_offset; CTF_alloc_ptr(sizeof(int64_t)*ndim, (void**)&virt_offset);
-  memset(virt_offset, 0, sizeof(int64_t)*ndim);
+  int64_t *virt_offset; CTF_alloc_ptr(sizeof(int64_t)*order, (void**)&virt_offset);
+  memset(virt_offset, 0, sizeof(int64_t)*order);
 
-  int *idx; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&idx);
-  memset(idx, 0, sizeof(int)*ndim);
+  int *idx; CTF_alloc_ptr(sizeof(int)*order, (void**)&idx);
+  memset(idx, 0, sizeof(int)*order);
 
-  int64_t *virt_acc; CTF_alloc_ptr(sizeof(int64_t)*ndim, (void**)&virt_acc);
-  memset(virt_acc, 0, sizeof(int64_t)*ndim);
+  int64_t *virt_acc; CTF_alloc_ptr(sizeof(int64_t)*order, (void**)&virt_acc);
+  memset(virt_acc, 0, sizeof(int64_t)*order);
 
-  int64_t *idx_acc; CTF_alloc_ptr(sizeof(int64_t)*ndim, (void**)&idx_acc);
-  memset(idx_acc, 0, sizeof(int64_t)*ndim);
+  int64_t *idx_acc; CTF_alloc_ptr(sizeof(int64_t)*order, (void**)&idx_acc);
+  memset(idx_acc, 0, sizeof(int64_t)*order);
   
-  int64_t *old_virt_lda; CTF_alloc_ptr(sizeof(int64_t)*ndim, (void**)&old_virt_lda);
+  int64_t *old_virt_lda; CTF_alloc_ptr(sizeof(int64_t)*order, (void**)&old_virt_lda);
   old_virt_lda[0] = old_virt_nelem;
-  for (int dim=1; dim<ndim; dim++){
+  for (int dim=1; dim<order; dim++){
     old_virt_lda[dim] = old_virt_lda[dim-1]*old_virt_dim[dim-1];
   }
 
@@ -1441,12 +1441,12 @@ void pad_cyclic_pup_virt_buff(int              ndim,
   int64_t zero_len_toff = 0;
 
 #ifdef USE_OMP
-  for (int dim=ndim-1; dim>=0; dim--){
+  for (int dim=order-1; dim>=0; dim--){
     int64_t iist = MAX(0,(gidx_st[dim]-old_phys_rank[dim]*old_virt_dim[dim]));
     int64_t ist = iist/(old_phys_dim[dim]*old_virt_dim[dim]);
     if (sym[dim] != NS) ist = MIN(ist,idx[dim+1]);
-    int plen[ndim];
-    memcpy(plen,old_virt_edge_len,ndim*sizeof(int));
+    int plen[order];
+    memcpy(plen,old_virt_edge_len,order*sizeof(int));
     int idim = dim;
     do {
       plen[idim] = ist;
@@ -1481,7 +1481,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
 #ifdef USE_OMP
     bool is_at_end = true;
     bool is_at_start = true;
-    for (int dim = ndim-1;dim >0;dim--){
+    for (int dim = order-1;dim >0;dim--){
       if (gidx[dim] > gidx_st[dim]){
         is_at_start = false;
         break;
@@ -1494,7 +1494,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
     if (is_at_start){
       zero_len_toff = gidx_st[0];
     }
-    for (int dim = ndim-1;dim >0;dim--){
+    for (int dim = order-1;dim >0;dim--){
       if (gidx_end[dim] < gidx[dim]){
         outside0 = true;
         done = true;
@@ -1512,14 +1512,14 @@ void pad_cyclic_pup_virt_buff(int              ndim,
 #endif
 
     if (!outside0){
-      for (int dim = 1;dim < ndim;dim++){
+      for (int dim = 1;dim < order;dim++){
         if (bucket_offset[dim][virt_offset[dim]+idx[dim]] == -1) outside0 = true;
         bucket0 += bucket_offset[dim][virt_offset[dim]+idx[dim]];
       }
     }
 
     if (!outside0){
-      for (int dim = 1;dim < ndim;dim++){
+      for (int dim = 1;dim < order;dim++){
         if (gidx[dim] >= (sym[dim] == NS ? ends[dim] :
                          (sym[dim] == SY ? gidx[dim+1]+1 :
                                            gidx[dim+1])) ||
@@ -1598,7 +1598,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
 
     /* Adjust outer indices */
     if (!done){
-      for (int dim = 1;dim < ndim;dim++){
+      for (int dim = 1;dim < order;dim++){
         offset += old_virt_lda[dim];
   
         virt_offset[dim] += old_virt_edge_len[dim];
@@ -1622,7 +1622,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
             idx[dim] = 0;//(dim == 0 || sym[dim-1] == NS ? 0 : idx[dim-1]);
             //gidx[dim] += idx[dim]*old_phys_dim[dim]*old_virt_dim[dim];
 
-            if (dim == ndim-1) done = true;
+            if (dim == order-1) done = true;
           }
           else{
             gidx[dim] += idx[dim]*old_phys_dim[dim]*old_virt_dim[dim];
@@ -1634,7 +1634,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
           break;
         }
       }
-      if (ndim <= 1) done = true;
+      if (order <= 1) done = true;
     }
   }
   CTF_free(gidx);
@@ -1730,7 +1730,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
  * \brief optimized version of pup_virt_buff
  */
 template<typename dtype>
-void opt_pup_virt_buff(int const        ndim,
+void opt_pup_virt_buff(int const        order,
                        int const        nbuf,
                        int const        numPes,
                        int64_t const   hvbs,
@@ -1758,8 +1758,8 @@ void opt_pup_virt_buff(int const        ndim,
                        int const        is_cyclic,
                        int const        p_or_up){
 
-/*  if (ndim==4){
-    if (sym[ndim-2] != NS) printf("ncase with last sym\n");
+/*  if (order==4){
+    if (sym[order-2] != NS) printf("ncase with last sym\n");
     else printf("case with no last sym\n");
   }*/
 
@@ -1783,20 +1783,20 @@ void opt_pup_virt_buff(int const        ndim,
   CTF_alloc_ptr(sizeof(int64_t)*max_ntd*nbuf, (void**)&par_virt_counts);
   //for (i=0; i<max_ntd; i++)
   //  CTF_mst_alloc_ptr(nbuf*sizeof(int64_t), (void**)&par_virt_counts[i]);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&sub_old_edge_len);
-  for (i=0; i<ndim; i++){
+  CTF_alloc_ptr(order*sizeof(int), (void**)&sub_old_edge_len);
+  for (i=0; i<order; i++){
     sub_old_edge_len[i] = old_edge_len[i]/old_phase[i];
   }
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&sub_new_edge_len);
-  for (i=0; i<ndim; i++){
+  CTF_alloc_ptr(order*sizeof(int), (void**)&sub_new_edge_len);
+  for (i=0; i<order; i++){
     sub_new_edge_len[i] = new_edge_len[i]/new_phase[i];
   }
   if (p_or_up){
-    old_size = sy_packed_size(ndim, sub_old_edge_len, sym)*old_nvirt;
-    new_size = sy_packed_size(ndim, sub_new_edge_len, sym)*new_nvirt;
+    old_size = sy_packed_size(order, sub_old_edge_len, sym)*old_nvirt;
+    new_size = sy_packed_size(order, sub_new_edge_len, sym)*new_nvirt;
   } else {
-    old_size = sy_packed_size(ndim, sub_old_edge_len, sym)*new_nvirt;
-    new_size = sy_packed_size(ndim, sub_new_edge_len, sym)*old_nvirt;
+    old_size = sy_packed_size(order, sub_old_edge_len, sym)*new_nvirt;
+    new_size = sy_packed_size(order, sub_new_edge_len, sym)*old_nvirt;
   }
   CTF_mst_alloc_ptr(sizeof(int64_t)*MAX(old_size,new_size), 
                     (void**)&pe_idx_store);
@@ -1833,7 +1833,7 @@ void opt_pup_virt_buff(int const        ndim,
 #endif
 
 
-  if (ndim == 0){
+  if (order == 0){
     if (tid == 0){
       ledge_len_st = 0;
       ledge_len_max = 1;
@@ -1842,7 +1842,7 @@ void opt_pup_virt_buff(int const        ndim,
       ledge_len_max = 1;
     }
   } else {
-    if (ndim == 1){
+    if (order == 1){
       if (tid == 0){
         ledge_len_st = 0;
         ledge_len_max = old_edge_len[0]/old_phase[0];
@@ -1851,34 +1851,34 @@ void opt_pup_virt_buff(int const        ndim,
         ledge_len_max = old_edge_len[0]/old_phase[0];
       }
     } else {
-      if (sym[ndim-1] == 0){
-        part_size = (old_edge_len[ndim-1]/old_phase[ndim-1])/ntd;
-        if (tid < (old_edge_len[ndim-1]/old_phase[ndim-1])%ntd){
+      if (sym[order-1] == 0){
+        part_size = (old_edge_len[order-1]/old_phase[order-1])/ntd;
+        if (tid < (old_edge_len[order-1]/old_phase[order-1])%ntd){
           part_size++;
-          ledge_len_st = ((old_edge_len[ndim-1]/old_phase[ndim-1])/ntd + 1)*tid;
+          ledge_len_st = ((old_edge_len[order-1]/old_phase[order-1])/ntd + 1)*tid;
         } else
-          ledge_len_st = ((old_edge_len[ndim-1]/old_phase[ndim-1])/ntd)*tid
-            + (old_edge_len[ndim-1]/old_phase[ndim-1])%ntd;
+          ledge_len_st = ((old_edge_len[order-1]/old_phase[order-1])/ntd)*tid
+            + (old_edge_len[order-1]/old_phase[order-1])%ntd;
         ledge_len_max = ledge_len_st+part_size;
       } else {
-        CTF_alloc_ptr(ndim*sizeof(int), (void**)&sub_edge_len);
-        part_size = (old_edge_len[ndim-1]/old_phase[ndim-1])/ntd;
+        CTF_alloc_ptr(order*sizeof(int), (void**)&sub_edge_len);
+        part_size = (old_edge_len[order-1]/old_phase[order-1])/ntd;
         cptr = 0;
-        for (i=0; i<ndim; i++){
+        for (i=0; i<order; i++){
           sub_edge_len[i] = old_edge_len[i]/old_phase[i];
         }
-        allsize = packed_size(ndim, sub_edge_len, sym);
+        allsize = packed_size(order, sub_edge_len, sym);
       
         ledge_len_st = -1;
         ledge_len_max = -1;
-        for (i=0; i<old_edge_len[ndim-1]/old_phase[ndim-1]; i++){
-          sub_edge_len[ndim-1] = i;
-          cptr = ndim - 2;
+        for (i=0; i<old_edge_len[order-1]/old_phase[order-1]; i++){
+          sub_edge_len[order-1] = i;
+          cptr = order - 2;
           while (cptr >= 0 && sym[cptr] != 0){
             sub_edge_len[cptr] = i;
             cptr--;
           }
-          csize = packed_size(ndim, sub_edge_len, sym);
+          csize = packed_size(order, sub_edge_len, sym);
           if (ledge_len_st == -1 && csize >= (allsize/ntd)*tid){
             ledge_len_st = i;
           }
@@ -1895,48 +1895,48 @@ void opt_pup_virt_buff(int const        ndim,
   if (ledge_len_max!=ledge_len_st) {
 
   //CTF_alloc_ptr(nbuf*sizeof(int64_t), (void**)&virt_counts);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&acc_idx);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx_offs);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&old_virt_idx);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&spad);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&off_edge_len);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&acc_idx);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx_offs);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&old_virt_idx);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&virt_rank);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&spad);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&off_edge_len);
 
   //virt_counts = par_virt_counts[tid];
   virt_counts = par_virt_counts+tid*nbuf;
 
-  memset(old_virt_idx, 0, ndim*sizeof(int64_t));
-  memset(acc_idx, 0, ndim*sizeof(int64_t));
+  memset(old_virt_idx, 0, order*sizeof(int64_t));
+  memset(acc_idx, 0, order*sizeof(int64_t));
 //  memset(virt_counts, 0, nbuf*sizeof(int64_t));
 
-  for (i=0; i<ndim; i++){ virt_rank[i] = old_rank[i]*old_virt_dim[i]; }
+  for (i=0; i<order; i++){ virt_rank[i] = old_rank[i]*old_virt_dim[i]; }
 
   /* Loop accross all virtual subtensors in order, and keep order within
      subtensors. We should move through one of the arrays contiguously */
   arr_idx = 0;
   overt_idx = 0;
-  memset(idx, 0, ndim*sizeof(int64_t));
-  memset(idx_offs, 0, ndim*sizeof(int64_t));
+  memset(idx, 0, order*sizeof(int64_t));
+  memset(idx_offs, 0, order*sizeof(int64_t));
 
-  if (ndim != 0){
-    idx[ndim-1] = ledge_len_st;
+  if (order != 0){
+    idx[order-1] = ledge_len_st;
 
-    for (i=0; i<ndim; i++){
+    for (i=0; i<order; i++){
       off_edge_len[i] = old_edge_len[i]/old_phase[i];
     }
-    i=ndim-1;
+    i=order-1;
     do {
       off_edge_len[i] = ledge_len_st;
       i--;
     } while (i>=0 && sym[i] != NS);
 
-    arr_idx += sy_packed_size(ndim, off_edge_len, sym);
+    arr_idx += sy_packed_size(order, off_edge_len, sym);
   }
 
   idx_offset = 0;
   virt_offset = 0;
-  for (i=1; i<ndim; i++) {
+  for (i=1; i<order; i++) {
     if (was_cyclic)
       idx_offs[i] = idx[i]*old_phase[i]+virt_rank[i];
     else
@@ -1949,7 +1949,7 @@ void opt_pup_virt_buff(int const        ndim,
     virt_offset += (idx_offs[i]%new_virt_dim[i])*new_virt_lda[i];
   }
   poutside = -1;
-  for (i=1; i<ndim; i++){
+  for (i=1; i<order; i++){
     pact_max = (old_edge_len[i]-padding[i])/old_phase[i];
     if ((old_edge_len[i]-padding[i])%old_phase[i] 
         > old_rank[i]*old_virt_dim[i])
@@ -1964,7 +1964,7 @@ void opt_pup_virt_buff(int const        ndim,
   }
   outside = 0;
   if (poutside > -1) outside = 1;
-  for (i=1; i<ndim; i++){
+  for (i=1; i<order; i++){
     if (sym[i] != NS && idx[i+1] == idx[i]){
       if (old_rank[i+1]*old_virt_dim[i+1]+(sym[i]==SY)<=
           old_rank[i]*old_virt_dim[i]){
@@ -1973,7 +1973,7 @@ void opt_pup_virt_buff(int const        ndim,
       }
     }
   }
-  if (ndim > 0){
+  if (order > 0){
     imax = old_edge_len[0]/old_phase[0];
     for (;;){
       if (sym[0] != NS)
@@ -1987,7 +1987,7 @@ void opt_pup_virt_buff(int const        ndim,
             old_rank[0]*old_virt_dim[0])
           ispm++;
         padimax = MIN(imax,ispm);
-        if (ndim == 1) {
+        if (order == 1) {
           i=ledge_len_st;
           padimax = MIN(padimax,ledge_len_max);
         } else i=0;
@@ -2095,7 +2095,7 @@ void opt_pup_virt_buff(int const        ndim,
         } 
       }
       /* Adjust outer indices */
-      for (act_lda=1; act_lda < ndim; act_lda++){
+      for (act_lda=1; act_lda < order; act_lda++){
         overt_idx -= old_virt_idx[act_lda]*old_virt_lda[act_lda];
         /* get outer virtual index */
         old_virt_idx[act_lda]++;
@@ -2132,7 +2132,7 @@ void opt_pup_virt_buff(int const        ndim,
             arr_idx += acc_idx[act_lda-1];
           }
           idx[act_lda]++;
-          if (act_lda == ndim - 1)
+          if (act_lda == order - 1)
             act_max = ledge_len_max;
           else
             act_max = old_edge_len[act_lda]/old_phase[act_lda];
@@ -2181,7 +2181,7 @@ void opt_pup_virt_buff(int const        ndim,
       if (poutside > -1) outside = 1;
       else {
         outside = 0;
-        for (i=1; i<ndim; i++){
+        for (i=1; i<order; i++){
           if (sym[i] != NS && idx[i+1] == idx[i]){
             if (old_rank[i+1]*old_virt_dim[i+1]+
                 old_virt_idx[i+1] + (sym[i]==SY)<=
@@ -2192,7 +2192,7 @@ void opt_pup_virt_buff(int const        ndim,
           }
         }
       }
-      if (act_lda == ndim) {
+      if (act_lda == order) {
         break;
       }
     }
@@ -2220,7 +2220,7 @@ void opt_pup_virt_buff(int const        ndim,
     }
   }
   TAU_FSTART(opt_pup_virt_buf_move);
-  if (ndim == 0){
+  if (order == 0){
     tsr_cyclic_data[0] = tsr_data[0];
   } else {
     if (p_or_up){
@@ -2270,7 +2270,7 @@ void opt_pup_virt_buff(int const        ndim,
 /**
  * \brief Repad and reshuffle elements
  *
- * \param ndim number of tensor dimensions
+ * \param order number of tensor dimensions
  * \param nval number of elements in each subtensor
  * \param old_edge_len old edge lengths of tensor
  * \param sym symmetries of tensor
@@ -2292,7 +2292,7 @@ void opt_pup_virt_buff(int const        ndim,
  */
 template<typename dtype>
 int padded_reshuffle(int const          tid,
-                     int const          ndim, 
+                     int const          order, 
                      int64_t const     nval,
                      int const *        old_edge_len,
                      int const *        sym,
@@ -2322,14 +2322,14 @@ int padded_reshuffle(int const          tid,
 
   numPes = ord_glb_comm.np;
 
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_phase_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&old_virt_phase_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&sub_edge_len);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&virt_phase_rank);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&old_virt_phase_rank);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&sub_edge_len);
 
   new_num_virt = 1;
   old_num_virt = 1;
   idx_lyr = ord_glb_comm.rank;
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
 /*  if (ord_glb_comm == NULL || ord_glb_comm.rank == 0){
       printf("old_pe_lda[%d] = %d, old_phase = %d, old_virt_dim = %d\n",
               i,old_pe_lda[i], old_phase[i], old_virt_dim[i]);
@@ -2350,7 +2350,7 @@ int padded_reshuffle(int const          tid,
     idx_lyr -= old_rank[i]*old_pe_lda[i];
   }
   if (idx_lyr == 0 ){
-    read_loc_pairs(ndim, nval, old_num_virt, sym,
+    read_loc_pairs(order, nval, old_num_virt, sym,
                    old_edge_len, old_padding, old_virt_dim,
                    old_phase, old_virt_phase_rank, &new_nval, tsr_data,
                    &pairs);
@@ -2360,18 +2360,18 @@ int padded_reshuffle(int const          tid,
   }
 
 #if DEBUG >= 1
-  int64_t old_size = sy_packed_size(ndim, new_edge_len, sym);
+  int64_t old_size = sy_packed_size(order, new_edge_len, sym);
 #endif
 
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     sub_edge_len[i] = new_edge_len[i] / new_phase[i];
   }
   if (ord_glb_comm.rank == 0){
     DPRINTF(1,"Tensor %d now has virtualization factor of %d\n",tid,new_num_virt);
   }
-  swp_nval = new_num_virt*sy_packed_size(ndim, sub_edge_len, sym);
+  swp_nval = new_num_virt*sy_packed_size(order, sub_edge_len, sym);
   if (ord_glb_comm.rank == 0){
-    DPRINTF(1,"Tensor %d is of size "PRId64", has factor of %lf growth due to padding\n", 
+    DPRINTF(1,"Tensor %d is of size " PRId64 ", has factor of %lf growth due to padding\n", 
     
           tid, swp_nval,
           ord_glb_comm.np*(swp_nval/(double)old_size));
@@ -2382,7 +2382,7 @@ int padded_reshuffle(int const          tid,
   std::fill(tsr_new_data, tsr_new_data+swp_nval, get_zero<dtype>());
 
 
-  wr_pairs_layout(ndim,
+  wr_pairs_layout(order,
                   numPes,
                   new_nval,
                   (dtype)1.0,
@@ -2418,7 +2418,7 @@ int padded_reshuffle(int const          tid,
 /**
  * \brief Reshuffle elements
  *
- * \param[in] ndim number of tensor dimensions
+ * \param[in] order number of tensor dimensions
  * \param[in] nval number of elements in the subtensors each proc owns
  * \param[in] old_edge_len old edge lengths of tensor
  * \param[in] sym symmetries of tensor
@@ -2451,7 +2451,7 @@ int padded_reshuffle(int const          tid,
  * \param[in] beta scaling tensor for original data
  */
 template<typename dtype>
-int cyclic_reshuffle(int const          ndim, 
+int cyclic_reshuffle(int const          order, 
                      int64_t const     nval,
                      int const *        old_edge_len,
                      int const *        sym,
@@ -2494,7 +2494,7 @@ int cyclic_reshuffle(int const          ndim,
 
   dtype * tsr_data = *ptr_tsr_data;
   dtype * tsr_cyclic_data = *ptr_tsr_cyclic_data;
-  if (ndim == 0){
+  if (order == 0){
     CTF_alloc_ptr(sizeof(dtype), (void**)&tsr_cyclic_data);
     if (ord_glb_comm.rank == 0){
       tsr_cyclic_data[0] = beta*tsr_cyclic_data[0] + alpha*tsr_data[0];
@@ -2510,12 +2510,12 @@ int cyclic_reshuffle(int const          ndim,
   TAU_FSTART(cyclic_reshuffle);
     np = ord_glb_comm.np;
 
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&hsym);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx_offs);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&old_virt_lda);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&new_virt_lda);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&buf_lda);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&hsym);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx_offs);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&old_virt_lda);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&new_virt_lda);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&buf_lda);
 
   nbuf = 1;
   new_nvirt = 1;
@@ -2523,7 +2523,7 @@ int cyclic_reshuffle(int const          ndim,
   old_np = 1;
   new_np = 1;
   idx_lyr = ord_glb_comm.rank;
-  for (i=0; i<ndim; i++) {
+  for (i=0; i<order; i++) {
     buf_lda[i] = nbuf;
     new_virt_lda[i] = new_nvirt;
     old_virt_lda[i] = old_nvirt;
@@ -2549,36 +2549,36 @@ int cyclic_reshuffle(int const          ndim,
   CTF_mst_alloc_ptr(nbuf*sizeof(int64_t), (void**)&svirt_displs);
   CTF_mst_alloc_ptr(np*sizeof(int64_t), (void**)&send_displs);
   CTF_mst_alloc_ptr(np*sizeof(int64_t), (void**)&recv_displs);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&old_sub_edge_len);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&new_sub_edge_len);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&old_sub_edge_len);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&new_sub_edge_len);
   int ** bucket_offset;
   
-  int *real_edge_len; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&real_edge_len);
-  for (i=0; i<ndim; i++) real_edge_len[i] = old_edge_len[i]-old_padding[i];
+  int *real_edge_len; CTF_alloc_ptr(sizeof(int)*order, (void**)&real_edge_len);
+  for (i=0; i<order; i++) real_edge_len[i] = old_edge_len[i]-old_padding[i];
   
-  int *old_phys_dim; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&old_phys_dim);
-  for (i=0; i<ndim; i++) old_phys_dim[i] = old_phase[i]/old_virt_dim[i];
+  int *old_phys_dim; CTF_alloc_ptr(sizeof(int)*order, (void**)&old_phys_dim);
+  for (i=0; i<order; i++) old_phys_dim[i] = old_phase[i]/old_virt_dim[i];
 
-  int *new_phys_dim; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&new_phys_dim);
-  for (i=0; i<ndim; i++) new_phys_dim[i] = new_phase[i]/new_virt_dim[i];
+  int *new_phys_dim; CTF_alloc_ptr(sizeof(int)*order, (void**)&new_phys_dim);
+  for (i=0; i<order; i++) new_phys_dim[i] = new_phase[i]/new_virt_dim[i];
   
-  int *old_phys_edge_len; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&old_phys_edge_len);
-  for (int dim = 0;dim < ndim;dim++) old_phys_edge_len[dim] = (real_edge_len[dim]+old_padding[dim])/old_phys_dim[dim];
+  int *old_phys_edge_len; CTF_alloc_ptr(sizeof(int)*order, (void**)&old_phys_edge_len);
+  for (int dim = 0;dim < order;dim++) old_phys_edge_len[dim] = (real_edge_len[dim]+old_padding[dim])/old_phys_dim[dim];
 
-  int *new_phys_edge_len; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&new_phys_edge_len);
-  for (int dim = 0;dim < ndim;dim++) new_phys_edge_len[dim] = (real_edge_len[dim]+new_padding[dim])/new_phys_dim[dim];
+  int *new_phys_edge_len; CTF_alloc_ptr(sizeof(int)*order, (void**)&new_phys_edge_len);
+  for (int dim = 0;dim < order;dim++) new_phys_edge_len[dim] = (real_edge_len[dim]+new_padding[dim])/new_phys_dim[dim];
 
-  int *old_virt_edge_len; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&old_virt_edge_len);
-  for (int dim = 0;dim < ndim;dim++) old_virt_edge_len[dim] = old_phys_edge_len[dim]/old_virt_dim[dim];
+  int *old_virt_edge_len; CTF_alloc_ptr(sizeof(int)*order, (void**)&old_virt_edge_len);
+  for (int dim = 0;dim < order;dim++) old_virt_edge_len[dim] = old_phys_edge_len[dim]/old_virt_dim[dim];
 
-  int *new_virt_edge_len; CTF_alloc_ptr(sizeof(int)*ndim, (void**)&new_virt_edge_len);
-  for (int dim = 0;dim < ndim;dim++) new_virt_edge_len[dim] = new_phys_edge_len[dim]/new_virt_dim[dim];
+  int *new_virt_edge_len; CTF_alloc_ptr(sizeof(int)*order, (void**)&new_virt_edge_len);
+  for (int dim = 0;dim < order;dim++) new_virt_edge_len[dim] = new_phys_edge_len[dim]/new_virt_dim[dim];
   
 
 
 //  if (idx_lyr == 0){
     bucket_offset = compute_bucket_offsets(
-                              ndim, real_edge_len, old_rank, old_phys_dim,
+                              order, real_edge_len, old_rank, old_phys_dim,
                               old_virt_dim, old_virt_lda, old_offsets,
                               old_permutation, new_phys_dim, new_pe_lda,
                               new_virt_dim, new_virt_lda, 1,
@@ -2588,7 +2588,7 @@ int cyclic_reshuffle(int const          ndim,
 
     TAU_FSTART(calc_cnt_displs);
     /* Calculate bucket counts to begin exchange */
-    calc_cnt_displs<dtype>( ndim,         nbuf,           new_nvirt,
+    calc_cnt_displs<dtype>( order,         nbuf,           new_nvirt,
                             np,           old_edge_len,   new_edge_len,
                             old_virt_edge_len,
                             sym,          old_phase,      old_rank,       
@@ -2609,20 +2609,20 @@ int cyclic_reshuffle(int const          ndim,
   }*/
 
 //  }
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     new_sub_edge_len[i] = new_edge_len[i];
     old_sub_edge_len[i] = old_edge_len[i];
   }
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     new_sub_edge_len[i] = new_sub_edge_len[i] / new_phase[i];
     old_sub_edge_len[i] = old_sub_edge_len[i] / old_phase[i];
   }
-  for (i=1; i<ndim; i++){
+  for (i=1; i<order; i++){
     hsym[i-1] = sym[i];
   }
-  hvbs_old = sy_packed_size(ndim-1, old_sub_edge_len+1, hsym);
-  hvbs_new = sy_packed_size(ndim-1, new_sub_edge_len+1, hsym);
-  swp_nval = new_nvirt*sy_packed_size(ndim, new_sub_edge_len, sym);
+  hvbs_old = sy_packed_size(order-1, old_sub_edge_len+1, hsym);
+  hvbs_new = sy_packed_size(order-1, new_sub_edge_len+1, hsym);
+  swp_nval = new_nvirt*sy_packed_size(order, new_sub_edge_len, sym);
   vbs_new = swp_nval/new_nvirt;
 
   if (reuse_buffers){
@@ -2642,7 +2642,7 @@ int cyclic_reshuffle(int const          ndim,
         //dtype *test_data; CTF_alloc_ptr(sizeof(dtype)*ndata, (void**)&test_data);
         //memset(test_data, 0, sizeof(dtype)*ndata);
 
-        pad_cyclic_pup_virt_buff(ndim, real_edge_len, sym, 
+        pad_cyclic_pup_virt_buff(order, real_edge_len, sym, 
                                  old_rank, old_phys_dim, old_virt_dim,
                                  old_phys_edge_len, old_virt_edge_len,
                                  vbs_old, old_offsets, old_permutation,
@@ -2653,7 +2653,7 @@ int cyclic_reshuffle(int const          ndim,
                                  get_one<dtype>(), get_zero<dtype>());
 
         /*
-        opt_pup_virt_buff(ndim,             nbuf,           np,
+        opt_pup_virt_buff(order,             nbuf,           np,
                           hvbs_old,         old_nvirt,      new_nvirt,
                           old_edge_len,     new_edge_len,
                           sym,              old_phase,
@@ -2680,7 +2680,7 @@ int cyclic_reshuffle(int const          ndim,
         */
         CTF_free(new_data);
       } else {
-        opt_pup_virt_buff(ndim,             nbuf,           np,
+        opt_pup_virt_buff(order,             nbuf,           np,
                           hvbs_old,         old_nvirt,      new_nvirt,
                           old_edge_len,     new_edge_len,
                           sym,              old_phase,
@@ -2692,7 +2692,7 @@ int cyclic_reshuffle(int const          ndim,
                           was_cyclic,       is_cyclic,      1);
       }
     }
-    for (int dim = 0;dim < ndim;dim++){
+    for (int dim = 0;dim < order;dim++){
       CTF_free(bucket_offset[dim]);
     }
     CTF_free(bucket_offset);
@@ -2724,7 +2724,7 @@ int cyclic_reshuffle(int const          ndim,
               new_data[b] = tsr_data+recv_displs[p]+rvirt_displs[b];
         }
         bucket_offset = compute_bucket_offsets(
-                                ndim, real_edge_len, new_rank, new_phys_dim,
+                                order, real_edge_len, new_rank, new_phys_dim,
                                 new_virt_dim, new_virt_lda, new_offsets,
                                 new_permutation, old_phys_dim, old_pe_lda,
                                 old_virt_dim, old_virt_lda, 0,
@@ -2735,7 +2735,7 @@ int cyclic_reshuffle(int const          ndim,
         dtype *test_data; CTF_alloc_ptr(sizeof(dtype)*swp_nval, (void**)&test_data);
         memset(test_data, 0, sizeof(dtype)*swp_nval);
 
-        opt_pup_virt_buff(ndim,             nbuf,           np,
+        opt_pup_virt_buff(order,             nbuf,           np,
                           hvbs_new,         old_nvirt,      new_nvirt,
                           new_edge_len,     old_edge_len,
                           sym,              new_phase,
@@ -2747,7 +2747,7 @@ int cyclic_reshuffle(int const          ndim,
                           is_cyclic,        was_cyclic,     0);
                           */
 
-        pad_cyclic_pup_virt_buff(ndim, real_edge_len, sym, 
+        pad_cyclic_pup_virt_buff(order, real_edge_len, sym, 
                                  new_rank, new_phys_dim, new_virt_dim,
                                  new_phys_edge_len, new_virt_edge_len,
                                  vbs_new, new_offsets, new_permutation,
@@ -2756,7 +2756,7 @@ int cyclic_reshuffle(int const          ndim,
                                  vbs_old,  
                                  tsr_cyclic_data, new_data, 0, bucket_offset,
                                  alpha, beta);
-        for (int dim = 0;dim < ndim;dim++){
+        for (int dim = 0;dim < order;dim++){
           CTF_free(bucket_offset[dim]);
         }
         CTF_free(bucket_offset);
@@ -2781,7 +2781,7 @@ int cyclic_reshuffle(int const          ndim,
       }
       else
       {
-        opt_pup_virt_buff(ndim,             nbuf,           np,
+        opt_pup_virt_buff(order,             nbuf,           np,
                           hvbs_new,         old_nvirt,      new_nvirt,
                           new_edge_len,     old_edge_len,
                           sym,              new_phase,
@@ -2811,7 +2811,7 @@ int cyclic_reshuffle(int const          ndim,
           new_data[b] = send_buffer+send_displs[p]+svirt_displs[b];
       }
 
-      pad_cyclic_pup_virt_buff(ndim, real_edge_len, sym, 
+      pad_cyclic_pup_virt_buff(order, real_edge_len, sym, 
                                old_rank, old_phys_dim, old_virt_dim,
                                old_phys_edge_len, old_virt_edge_len,
                                vbs_old, old_offsets, old_permutation,
@@ -2822,7 +2822,7 @@ int cyclic_reshuffle(int const          ndim,
                                get_one<dtype>(), get_zero<dtype>());
       CTF_free(new_data);
     }
-    for (int dim = 0;dim < ndim;dim++){
+    for (int dim = 0;dim < order;dim++){
       CTF_free(bucket_offset[dim]);
     }
     CTF_free(bucket_offset);
@@ -2843,13 +2843,13 @@ int cyclic_reshuffle(int const          ndim,
           new_data[b] = recv_buffer+recv_displs[p]+rvirt_displs[b];
       }
       bucket_offset = compute_bucket_offsets(
-                              ndim, real_edge_len, new_rank, new_phys_dim,
+                              order, real_edge_len, new_rank, new_phys_dim,
                               new_virt_dim, new_virt_lda, new_offsets,
                               new_permutation, old_phys_dim, old_pe_lda,
                               old_virt_dim, old_virt_lda, 0,
                               new_nvirt, old_nvirt, new_phys_edge_len, new_virt_edge_len);
 
-      pad_cyclic_pup_virt_buff(ndim, real_edge_len, sym, 
+      pad_cyclic_pup_virt_buff(order, real_edge_len, sym, 
                                new_rank, new_phys_dim, new_virt_dim,
                                new_phys_edge_len, new_virt_edge_len,
                                vbs_new, new_offsets, new_permutation,
@@ -2858,7 +2858,7 @@ int cyclic_reshuffle(int const          ndim,
                                vbs_old,  
                                tsr_cyclic_data, new_data, 0, bucket_offset,
                                alpha, beta);
-      for (int dim = 0;dim < ndim;dim++){
+      for (int dim = 0;dim < order;dim++){
         CTF_free(bucket_offset[dim]);
       }
       CTF_free(bucket_offset);
@@ -2899,7 +2899,7 @@ int cyclic_reshuffle(int const          ndim,
 /**
  * \brief Reshuffle elements given the global phases stay the same
  *
- * \param[in] ndim number of tensor dimensions
+ * \param[in] order number of tensor dimensions
  * \param[in] phase physical*virtual phase
  * \param[in] old_size number of elements in the subtensor each proc owned
  * \param[in] old_virt_dim current virtualization dimensions on each process
@@ -2915,7 +2915,7 @@ int cyclic_reshuffle(int const          ndim,
  * \param[in] glb_comm the global communicator
  */
 template<typename dtype>
-void block_reshuffle(int const        ndim,
+void block_reshuffle(int const        order,
                      int const *      phase,
                      int64_t const   old_size,
                      int const *      old_virt_dim,
@@ -2934,7 +2934,7 @@ void block_reshuffle(int const        ndim,
   int64_t blk_sz;
   MPI_Request * reqs;
 
-  if (ndim == 0){
+  if (order == 0){
     CTF_alloc_ptr(sizeof(dtype)*new_size, (void**)&tsr_cyclic_data);
     if (glb_comm.rank == 0)
       tsr_cyclic_data[0] = tsr_data[0];
@@ -2946,10 +2946,10 @@ void block_reshuffle(int const        ndim,
   TAU_FSTART(block_reshuffle);
 
   CTF_mst_alloc_ptr(sizeof(dtype)*new_size, (void**)&tsr_cyclic_data);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&idx);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&old_loc_lda);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&new_loc_lda);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&phase_lda);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&idx);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&old_loc_lda);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&new_loc_lda);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&phase_lda);
 
   blk_sz = old_size;
   old_loc_lda[0] = 1;
@@ -2960,7 +2960,7 @@ void block_reshuffle(int const        ndim,
   idx_lyr_old = glb_comm.rank;
   idx_lyr_new = glb_comm.rank;
 
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     num_old_virt *= old_virt_dim[i];
     num_new_virt *= new_virt_dim[i];
     blk_sz = blk_sz/old_virt_dim[i];
@@ -2976,40 +2976,40 @@ void block_reshuffle(int const        ndim,
   CTF_alloc_ptr(sizeof(MPI_Request)*(num_old_virt+num_new_virt), (void**)&reqs);
 
   if (idx_lyr_new == 0){
-    memset(idx, 0, sizeof(int)*ndim);
+    memset(idx, 0, sizeof(int)*order);
 
     for (;;){
       loc_idx = 0;
       blk_idx = 0;
       prc_idx = 0;
-      for (i=0; i<ndim; i++){
+      for (i=0; i<order; i++){
         loc_idx += idx[i]*new_loc_lda[i];
         blk_idx += ( idx[i] + new_rank[i]*new_virt_dim[i])                 *phase_lda[i];
         prc_idx += ((idx[i] + new_rank[i]*new_virt_dim[i])/old_virt_dim[i])*old_pe_lda[i];
       }
-      DPRINTF(4,"proc %d receiving blk %d (loc %d, size "PRId64") from proc %d\n", 
+      DPRINTF(4,"proc %d receiving blk %d (loc %d, size " PRId64 ") from proc %d\n", 
               glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx);
       MPI_Irecv(tsr_cyclic_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
                 MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+loc_idx);
-      for (i=0; i<ndim; i++){
+      for (i=0; i<order; i++){
         idx[i]++;
         if (idx[i] >= new_virt_dim[i])
           idx[i] = 0;
         else 
           break;
       }
-      if (i==ndim) break;
+      if (i==order) break;
     }
   }
 
   if (idx_lyr_old == 0){
-    memset(idx, 0, sizeof(int)*ndim);
+    memset(idx, 0, sizeof(int)*order);
 
     for (;;){
       loc_idx = 0;
       blk_idx = 0;
       prc_idx = 0;
-      for (i=0; i<ndim; i++){
+      for (i=0; i<order; i++){
         loc_idx += idx[i]*old_loc_lda[i];
         blk_idx += ( idx[i] + old_rank[i]*old_virt_dim[i])                 *phase_lda[i];
         prc_idx += ((idx[i] + old_rank[i]*old_virt_dim[i])/new_virt_dim[i])*new_pe_lda[i];
@@ -3018,14 +3018,14 @@ void block_reshuffle(int const        ndim,
               glb_comm.rank, blk_idx, loc_idx, prc_idx);
       MPI_Isend(tsr_data+loc_idx*blk_sz, blk_sz*sizeof(dtype), 
                 MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
-      for (i=0; i<ndim; i++){
+      for (i=0; i<order; i++){
         idx[i]++;
         if (idx[i] >= old_virt_dim[i])
           idx[i] = 0;
         else 
           break;
       }
-      if (i==ndim) break;
+      if (i==order) break;
     }
   }
 

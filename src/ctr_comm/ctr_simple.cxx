@@ -261,17 +261,17 @@ template<typename dtype>
 void ctr_replicate<dtype>::print() {
   int i;
   printf("ctr_replicate: \n");
-  printf("cdt_A = %p, size_A = "PRId64", ncdt_A = %d\n",
+  printf("cdt_A = %p, size_A = " PRId64 ", ncdt_A = %d\n",
           cdt_A, size_A, ncdt_A);
   for (i=0; i<ncdt_A; i++){
     printf("cdt_A[%d] length = %d\n",i,cdt_A[i].np);
   }
-  printf("cdt_B = %p, size_B = "PRId64", ncdt_B = %d\n",
+  printf("cdt_B = %p, size_B = " PRId64 ", ncdt_B = %d\n",
           cdt_B, size_B, ncdt_B);
   for (i=0; i<ncdt_B; i++){
     printf("cdt_B[%d] length = %d\n",i,cdt_B[i].np);
   }
-  printf("cdt_C = %p, size_C = "PRId64", ncdt_C = %d\n",
+  printf("cdt_C = %p, size_C = " PRId64 ", ncdt_C = %d\n",
           cdt_C, size_C, ncdt_C);
   for (i=0; i<ncdt_C; i++){
     printf("cdt_C[%d] length = %d\n",i,cdt_C[i].np);

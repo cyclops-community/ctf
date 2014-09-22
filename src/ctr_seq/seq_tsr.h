@@ -18,15 +18,15 @@
 class seq_tsr_ctr : public ctr {
   public:
     char * alpha;
-    int ndim_A;
+    int order_A;
     int * edge_len_A;
     int const * idx_map_A;
     int * sym_A;
-    int ndim_B;
+    int order_B;
     int * edge_len_B;
     int const * idx_map_B;
     int * sym_B;
-    int ndim_C;
+    int order_C;
     int * edge_len_C;
     int const * idx_map_C;
     int * sym_C;
@@ -53,11 +53,11 @@ class seq_tsr_ctr : public ctr {
 
 class seq_tsr_sum : public tsum {
   public:
-    int ndim_A;
+    int order_A;
     int * edge_len_A;
     int const * idx_map_A;
     int * sym_A;
-    int ndim_B;
+    int order_B;
     int * edge_len_B;
     int const * idx_map_B;
     int * sym_B;
@@ -83,7 +83,7 @@ class seq_tsr_sum : public tsum {
 
 class seq_tsr_scl : public scl {
   public:
-    int ndim;
+    int order;
     int * edge_len;
     int const * idx_map;
     int const * sym;

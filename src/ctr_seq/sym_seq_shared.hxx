@@ -17,86 +17,86 @@ struct iparam {
 
 /**
  * \brief invert index map
- * \param[in] ndim_A number of dimensions of A
+ * \param[in] order_A number of dimensions of A
  * \param[in] idx_A index map of A
- * \param[in] ndim_B number of dimensions of B
+ * \param[in] order_B number of dimensions of B
  * \param[in] idx_B index map of B
- * \param[in] ndim_C number of dimensions of C
+ * \param[in] order_C number of dimensions of C
  * \param[in] idx_C index map of C
- * \param[out] ndim_tot number of total dimensions
- * \param[out] idx_arr 3*ndim_tot index array
+ * \param[out] order_tot number of total dimensions
+ * \param[out] idx_arr 3*order_tot index array
  */
 inline
-void inv_idx(int const          ndim_A,
+void inv_idx(int const          order_A,
              int const *        idx_A,
-             int const          ndim_B,
+             int const          order_B,
              int const *        idx_B,
-             int const          ndim_C,
+             int const          order_C,
              int const *        idx_C,
-             int *              ndim_tot,
+             int *              order_tot,
              int **             idx_arr){
   int i, dim_max;
 
   dim_max = -1;
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if (idx_A[i] > dim_max) dim_max = idx_A[i];
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     if (idx_B[i] > dim_max) dim_max = idx_B[i];
   }
-  for (i=0; i<ndim_C; i++){
+  for (i=0; i<order_C; i++){
     if (idx_C[i] > dim_max) dim_max = idx_C[i];
   }
   dim_max++;
-  *ndim_tot = dim_max;
+  *order_tot = dim_max;
   *idx_arr = (int*)CTF_alloc(sizeof(int)*3*dim_max);
   std::fill((*idx_arr), (*idx_arr)+3*dim_max, -1);  
 
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     (*idx_arr)[3*idx_A[i]] = i;
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     (*idx_arr)[3*idx_B[i]+1] = i;
   }
-  for (i=0; i<ndim_C; i++){
+  for (i=0; i<order_C; i++){
     (*idx_arr)[3*idx_C[i]+2] = i;
   }
 }
 
 /**
  * \brief invert index map
- * \param[in] ndim_A number of dimensions of A
+ * \param[in] order_A number of dimensions of A
  * \param[in] idx_A index map of A
- * \param[in] ndim_B number of dimensions of B
+ * \param[in] order_B number of dimensions of B
  * \param[in] idx_B index map of B
- * \param[out] ndim_tot number of total dimensions
- * \param[out] idx_arr 2*ndim_tot index array
+ * \param[out] order_tot number of total dimensions
+ * \param[out] idx_arr 2*order_tot index array
  */
 inline
-void inv_idx(int const          ndim_A,
+void inv_idx(int const          order_A,
              int const *        idx_A,
-             int const          ndim_B,
+             int const          order_B,
              int const *        idx_B,
-             int *              ndim_tot,
+             int *              order_tot,
              int **             idx_arr){
   int i, dim_max;
 
   dim_max = -1;
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if (idx_A[i] > dim_max) dim_max = idx_A[i];
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     if (idx_B[i] > dim_max) dim_max = idx_B[i];
   }
   dim_max++;
-  *ndim_tot = dim_max;
+  *order_tot = dim_max;
   *idx_arr = (int*)CTF_alloc(sizeof(int)*2*dim_max);
   std::fill((*idx_arr), (*idx_arr)+2*dim_max, -1);  
 
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     (*idx_arr)[2*idx_A[i]] = i;
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     (*idx_arr)[2*idx_B[i]+1] = i;
   }
 }
@@ -104,30 +104,30 @@ void inv_idx(int const          ndim_A,
 
 /**
  * \brief invert index map
- * \param[in] ndim_A number of dimensions of A
+ * \param[in] order_A number of dimensions of A
  * \param[in] idx_A index map of A
- * \param[in] ndim_B number of dimensions of B
+ * \param[in] order_B number of dimensions of B
  * \param[in] idx_B index map of B
- * \param[out] ndim_tot number of total dimensions
- * \param[out] idx_arr 2*ndim_tot index array
+ * \param[out] order_tot number of total dimensions
+ * \param[out] idx_arr 2*order_tot index array
  */
 inline
-void inv_idx(int const          ndim_A,
+void inv_idx(int const          order_A,
              int const *        idx_A,
-             int *              ndim_tot,
+             int *              order_tot,
              int **             idx_arr){
   int i, dim_max;
 
   dim_max = -1;
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     if (idx_A[i] > dim_max) dim_max = idx_A[i];
   }
   dim_max++;
-  *ndim_tot = dim_max;
+  *order_tot = dim_max;
   *idx_arr = (int*)CTF_alloc(sizeof(int)*dim_max);
   std::fill((*idx_arr), (*idx_arr)+dim_max, -1);  
 
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     (*idx_arr)[idx_A[i]] = i;
   }
 }
@@ -151,7 +151,7 @@ do{                                                                             
 #define CHECK_SYM(__X)                              \
 do {                                                \
         sym_pass = 1;                               \
-        for (i=0; i<ndim_##__X; i++){               \
+        for (i=0; i<order_##__X; i++){               \
           if (sym_##__X[i] == AS || sym_##__X[i] == SH){         \
             if (idx_glb[idx_map_##__X[i+1]] <=      \
                       idx_glb[idx_map_##__X[i]]) {  \
@@ -172,7 +172,7 @@ do {                                                \
 #define CHECK_SYM(__X)                              \
 do {                                                \
         sym_pass = 1;                               \
-        for (i=0; i<ndim_##__X; i++){               \
+        for (i=0; i<order_##__X; i++){               \
           if (sym_##__X[i] != NS){                  \
             if (idx_glb[idx_map_##__X[i+1]] <       \
                       idx_glb[idx_map_##__X[i]]) {  \
@@ -188,7 +188,7 @@ do {                                                \
 do {                                                                    \
         idx_##__X = idx_glb[idx_map_##__X[0]];                          \
         off_idx = 0, off_lda = 1;                                       \
-        for (i=1; i<ndim_##__X; i++){                                   \
+        for (i=1; i<order_##__X; i++){                                   \
           if (sym_##__X[i-1] == NS){                                    \
             off_idx = i;                                                \
             off_lda = sy_packed_size(i, dlen_##__X, sym_##__X); \

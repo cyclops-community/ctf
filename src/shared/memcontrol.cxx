@@ -110,8 +110,8 @@ std::list<mem_transfer> contract_mst(){
         transfers.push_back(t);
     }
     printf("Contracted MST\n");
-  // from size "PRId64" to size "PRId64"\n", 
-    //DPRINTF(1,"Contracted MST from size "PRId64" to size "PRId64"\n", 
+  // from size " PRId64 " to size " PRId64 "\n", 
+    //DPRINTF(1,"Contracted MST from size " PRId64 " to size " PRId64 "\n", 
     //            old_mst_buffer_ptr, mst_buffer_ptr);
     old_mst.clear();
     TAU_FSTOP(contract_mst);
@@ -177,7 +177,7 @@ void mem_exit(int rank){
         }
       }
       if (mst.size() > 0){
-        printf("Warning: %zu items not deallocated from custom stack, consuming "PRId64" bytes of memory\n",
+        printf("Warning: %zu items not deallocated from custom stack, consuming " PRId64 " bytes of memory\n",
                 mst.size(), mst_buffer_ptr);
       }
     }
@@ -215,7 +215,7 @@ int CTF_mst_free(void * ptr){
     mst_buffer_ptr = (int64_t)((char*)mst.back().ptr - (char*)mst_buffer)+mst.back().len;
   else
     mst_buffer_ptr = 0;
-  //printf("freed block, mst_buffer_ptr = "PRId64"\n", mst_buffer_ptr);
+  //printf("freed block, mst_buffer_ptr = " PRId64 "\n", mst_buffer_ptr);
   return SUCCESS;
 }
 
@@ -236,7 +236,7 @@ int CTF_mst_alloc_ptr(int64_t const len, void ** const ptr){
       plen = len;
 
     mem_loc m;
-    //printf("ptr = "PRId64" plen = %d, size = "PRId64"\n", mst_buffer_ptr, plen, mst_buffer_size);
+    //printf("ptr = " PRId64 " plen = %d, size = " PRId64 "\n", mst_buffer_ptr, plen, mst_buffer_size);
     if (mst_buffer_ptr + plen < mst_buffer_size){
       *ptr = (void*)((char*)mst_buffer+mst_buffer_ptr);
       m.ptr = *ptr;
@@ -245,7 +245,7 @@ int CTF_mst_alloc_ptr(int64_t const len, void ** const ptr){
       mst_buffer_ptr = mst_buffer_ptr+plen;
       mst_buffer_used += plen;  
     } else {
-      DPRINTF(2,"Exceeded mst buffer size ("PRId64"), current ptr is "PRId64", composed of %d items of size "PRId64"\n",
+      DPRINTF(2,"Exceeded mst buffer size (" PRId64 "), current ptr is " PRId64 ", composed of %d items of size " PRId64 "\n",
               mst_buffer_size, mst_buffer_ptr, (int)mst.size(), mst_buffer_used);
       CTF_alloc_ptr(len, ptr);
     }
@@ -288,11 +288,11 @@ int CTF_alloc_ptr(int64_t const len_, void ** const ptr){
   m.ptr = *ptr;
   m.len = len;
   mem_stack->push_back(m);
-//  printf("mem_used up to "PRId64" stack to %d\n",mem_used,mem_stack->size());
+//  printf("mem_used up to " PRId64 " stack to %d\n",mem_used,mem_stack->size());
 //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
 #endif
   if (pm){
-    printf("CTF ERROR: posix memalign returned an error, "PRId64" memory CTF_alloced on this process, wanted to CTF_alloc "PRId64" more\n",
+    printf("CTF ERROR: posix memalign returned an error, " PRId64 " memory CTF_alloced on this process, wanted to CTF_alloc " PRId64 " more\n",
             mem_used[0], len);
   }
   ASSERT(pm == 0);
@@ -375,7 +375,7 @@ int CTF_free(void * ptr, int const tid){
   }
   mem_used[tid] -= len;
 #endif
-  //printf("mem_used down to "PRId64" stack to %d\n",mem_used,mem_stack->size());
+  //printf("mem_used down to " PRId64 " stack to %d\n",mem_used,mem_stack->size());
   free(ptr);
   return SUCCESS;
 }

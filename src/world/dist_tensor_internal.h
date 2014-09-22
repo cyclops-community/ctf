@@ -64,17 +64,17 @@ class dist_tensor{
     CommData get_global_comm();
     void set_global_comm(CommData   cdt);
     CommData get_phys_comm();
-    void set_phys_comm(CommData *   cdt, int ndim, int fold=1);
-    int get_phys_ndim();
+    void set_phys_comm(CommData *   cdt, int order, int fold=1);
+    int get_phys_order();
     int * get_phys_lda();
     std::vector< tensor* > * get_tensors();
 
     int initialize(CommData   cdt_global,
-                   int          ndim,
+                   int          order,
                    int const *  dim_len);
 
 
-    int define_tensor(int          ndim,
+    int define_tensor(int          order,
                       int const *  edge_len,
                       int const *  sym,
                       int *        tensor_id,
@@ -107,7 +107,7 @@ class dist_tensor{
 
 
     int get_tsr_info(int tensor_id,
-                     int * ndim,
+                     int * order,
                      int ** edge_len,
                      int ** sym) const;
 
@@ -120,7 +120,7 @@ class dist_tensor{
                        char const *  beta,
                        dist_tensor * dt_B);
     
-    void orient_subworld(int           ndim,
+    void orient_subworld(int           order,
                         int            tid_sub,
                         dist_tensor *  dt_sub,
                         int &          bw_mirror_rank,
@@ -266,16 +266,16 @@ class dist_tensor{
                                 int *                  nvirt_C = NULL,
                                 int                    is_used = 1);
 
-/*    dtype align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
-                                int ndim_B, int* idx_B, int* sym_B);
+/*    dtype align_symmetric_indices(int order_A, int* idx_A, int* sym_A,
+                                int order_B, int* idx_B, int* sym_B);
 
-    dtype align_symmetric_indices(int ndim_A, int* idx_A, int* sym_A,
-                                int ndim_B, int* idx_B, int* sym_B,
-                                int ndim_C, int* idx_C, int* sym_C);
+    dtype align_symmetric_indices(int order_A, int* idx_A, int* sym_A,
+                                int order_B, int* idx_B, int* sym_B,
+                                int order_C, int* idx_C, int* sym_C);
 
-    dtype overcounting_factor(int ndim_A, int* idx_A, int* sym_A,
-                            int ndim_B, int* idx_B, int* sym_B,
-                            int ndim_C, int* idx_C, int* sym_C);
+    dtype overcounting_factor(int order_A, int* idx_A, int* sym_A,
+                            int order_B, int* idx_B, int* sym_B,
+                            int order_C, int* idx_C, int* sym_C);
 */
     int home_contract(CTF_ctr_type_t const * type,
                       Int_Bivar_Function *   func_ptr,
@@ -385,7 +385,7 @@ class dist_tensor{
     int del_tsr(int tid);
 
     int map_tsr(int tid,
-                char * (*map_func)(int ndim, int const * indices,
+                char * (*map_func)(int order, int const * indices,
                                    char * elem));
 
     int get_max_abs(int        tid,

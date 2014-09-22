@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
 
   if (myRank == 0){ 
     printf("matrix multiplication of matrices\n");
-    printf("matrix dimensions are "PRId64" by "PRId64" by "PRId64"\n", m, n, k);
+    printf("matrix dimensions are " PRId64 " by " PRId64 " by " PRId64 "\n", m, n, k);
     printf("processor grid is %d by %d\n", nprow, npcol);
     printf("performing %d iterations\n", num_iter);
     printf("with random data\n");

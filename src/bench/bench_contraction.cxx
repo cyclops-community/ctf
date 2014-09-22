@@ -28,36 +28,36 @@ int bench_contraction(int          n,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
-  int ndim_A, ndim_B, ndim_C;
-  ndim_A = strlen(iA);
-  ndim_B = strlen(iB);
-  ndim_C = strlen(iC);
+  int order_A, order_B, order_C;
+  order_A = strlen(iA);
+  order_B = strlen(iB);
+  order_C = strlen(iC);
 
-  int NS_A[ndim_A];
-  int NS_B[ndim_B];
-  int NS_C[ndim_C];
-  int n_A[ndim_A];
-  int n_B[ndim_B];
-  int n_C[ndim_C];
+  int NS_A[order_A];
+  int NS_B[order_B];
+  int NS_C[order_C];
+  int n_A[order_A];
+  int n_B[order_B];
+  int n_C[order_C];
 
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     n_A[i] = n;
     NS_A[i] = NS;
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     n_B[i] = n;
     NS_B[i] = NS;
   }
-  for (i=0; i<ndim_C; i++){
+  for (i=0; i<order_C; i++){
     n_C[i] = n;
     NS_C[i] = NS;
   }
 
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor A(ndim_A, n_A, NS_A, dw, "A", 1);
-  CTF_Tensor B(ndim_B, n_B, NS_B, dw, "B", 1);
-  CTF_Tensor C(ndim_C, n_C, NS_C, dw, "C", 1);
+  CTF_Tensor A(order_A, n_A, NS_A, dw, "A", 1);
+  CTF_Tensor B(order_B, n_B, NS_B, dw, "B", 1);
+  CTF_Tensor C(order_C, n_C, NS_C, dw, "C", 1);
 
   double st_time = MPI_Wtime();
 

@@ -11,39 +11,39 @@ namespace CTF {
 //                                        Idx_Tensor<dtype>& B){
 //  int * len_C, * sym_C;
 //  char * idx_C;
-//  int ndim_C, i, j, idx;
+//  int order_C, i, j, idx;
 //  
-//  ndim_C = 0;
-//  for (i=0; i<A.parent->ndim; i++){
-//    ndim_C++;
-//    for (j=0; j<B.parent->ndim; j++){
+//  order_C = 0;
+//  for (i=0; i<A.parent->order; i++){
+//    order_C++;
+//    for (j=0; j<B.parent->order; j++){
 //      if (A.idx_map[i] == B.idx_map[j]){
-//        ndim_C--;
+//        order_C--;
 //        break;
 //      }
 //    }
 //  }
-//  for (j=0; j<B.parent->ndim; j++){
-//    ndim_C++;
-//    for (i=0; i<A.parent->ndim; i++){
+//  for (j=0; j<B.parent->order; j++){
+//    order_C++;
+//    for (i=0; i<A.parent->order; i++){
 //      if (A.idx_map[i] == B.idx_map[j]){
-//        ndim_C--;
+//        order_C--;
 //        break;
 //      }
 //    }
 //  }
 //
-//  idx_C = (char*)alloc(sizeof(char)*ndim_C);
-//  sym_C = (int*)alloc(sizeof(int)*ndim_C);
-//  len_C = (int*)alloc(sizeof(int)*ndim_C);
+//  idx_C = (char*)alloc(sizeof(char)*order_C);
+//  sym_C = (int*)alloc(sizeof(int)*order_C);
+//  len_C = (int*)alloc(sizeof(int)*order_C);
 //  idx = 0;
-//  for (i=0; i<A.parent->ndim; i++){
-//    for (j=0; j<B.parent->ndim; j++){
+//  for (i=0; i<A.parent->order; i++){
+//    for (j=0; j<B.parent->order; j++){
 //      if (A.idx_map[i] == B.idx_map[j]){
 //        break;
 //      }
 //    }
-//    if (j == B.parent->ndim){
+//    if (j == B.parent->order){
 //      idx_C[idx] = A.idx_map[i];
 //      len_C[idx] = A.parent->len[i];
 //      if (idx >= 1 && i >= 1 && idx_C[idx-1] == A.idx_map[i-1] && A.parent->sym[i-1] != NS){
@@ -53,13 +53,13 @@ namespace CTF {
 //      idx++;
 //    }
 //  }
-//  for (j=0; j<B.parent->ndim; j++){
-//    for (i=0; i<A.parent->ndim; i++){
+//  for (j=0; j<B.parent->order; j++){
+//    for (i=0; i<A.parent->order; i++){
 //      if (A.idx_map[i] == B.idx_map[j]){
 //        break;
 //      }
 //    }
-//    if (i == A.parent->ndim){
+//    if (i == A.parent->order){
 //      idx_C[idx] = B.idx_map[j];
 //      len_C[idx] = B.parent->len[j];
 //      if (idx >= 1 && j >= 1 && idx_C[idx-1] == B.idx_map[j-1] && B.parent->sym[j-1] != NS){
@@ -70,7 +70,7 @@ namespace CTF {
 //    }
 //  }
 //
-//  Tensor<dtype> * tsr_C = new Tensor<dtype>(ndim_C, len_C, sym_C, *(A.parent->world));
+//  Tensor<dtype> * tsr_C = new Tensor<dtype>(order_C, len_C, sym_C, *(A.parent->world));
 //  Idx_Tensor<dtype> out(tsr_C, idx_C);
 //  out.is_intm = 1;
 //  free(sym_C);
@@ -84,12 +84,12 @@ Idx_Tensor<dtype>::Idx_Tensor(Tensor<dtype> *  parent_,
                                         int                   copy){
   if (copy){
     parent = new Tensor<dtype>(*parent,1);
-    idx_map = (char*)alloc(parent->ndim*sizeof(char));
+    idx_map = (char*)alloc(parent->order*sizeof(char));
   } else {
-    idx_map = (char*)alloc(parent_->ndim*sizeof(char));
+    idx_map = (char*)alloc(parent_->order*sizeof(char));
     parent        = parent_;
   }
-  memcpy(idx_map, idx_map_, parent->ndim*sizeof(char));
+  memcpy(idx_map, idx_map_, parent->order*sizeof(char));
   is_intm       = 0;
   this->scale    = 1.0;
 }
@@ -118,8 +118,8 @@ Idx_Tensor<dtype>::Idx_Tensor(
       // leave parent as is - already correct
       is_intm = 0;
     }
-    idx_map = (char*)alloc(other.parent->ndim*sizeof(char));
-    memcpy(idx_map, other.idx_map, parent->ndim*sizeof(char));
+    idx_map = (char*)alloc(other.parent->order*sizeof(char));
+    memcpy(idx_map, other.idx_map, parent->order*sizeof(char));
   }
   this->scale    = other.scale;
 }

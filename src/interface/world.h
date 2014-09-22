@@ -43,13 +43,13 @@ class World {
 
     /**
      * \brief creates CTF library on comm_
-     * \param[in] ndim number of torus network dimensions
+     * \param[in] order number of torus network dimensions
      * \param[in] lens lengths of torus network dimensions
      * \param[in] comm MPI global context for this CTF World
      * \param[in] argc number of main arguments 
      * \param[in] argv main arguments 
      */
-    World(int            ndim, 
+    World(int            order, 
           int const *    lens, 
           MPI_Comm       comm_ = MPI_COMM_WORLD,
           int            argc = 0,

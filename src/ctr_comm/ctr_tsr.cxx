@@ -29,15 +29,15 @@ ctr_virt::ctr_virt(ctr * other) : ctr(other) {
   virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
   memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
-  ndim_A        = o->ndim_A;
+  order_A        = o->order_A;
   blk_sz_A      = o->blk_sz_A;
   idx_map_A     = o->idx_map_A;
 
-  ndim_B        = o->ndim_B;
+  order_B        = o->order_B;
   blk_sz_B      = o->blk_sz_B;
   idx_map_B     = o->idx_map_B;
 
-  ndim_C        = o->ndim_C;
+  order_C        = o->order_C;
   blk_sz_C      = o->blk_sz_C;
   idx_map_C     = o->idx_map_C;
 }
@@ -55,7 +55,7 @@ ctr * ctr_virt::clone() {
 void ctr_virt::print() {
   int i;
   printf("ctr_virt:\n");
-  printf("blk_sz_A = "PRId64", blk_sz_B = "PRId64", blk_sz_C = "PRId64"\n",
+  printf("blk_sz_A = " PRId64 ", blk_sz_B = " PRId64 ", blk_sz_C = " PRId64 "\n",
           blk_sz_A, blk_sz_B, blk_sz_C);
   for (i=0; i<num_dim; i++){
     printf("virt_dim[%d] = %d\n", i, virt_dim[i]);
@@ -84,7 +84,7 @@ double ctr_virt::est_time_rec(int nlyr) {
  * \return bytes needed
  */
 int64_t ctr_virt::mem_fp(){
-  return (ndim_A+ndim_B+ndim_C+(3+VIRT_NTD)*num_dim)*sizeof(int);
+  return (order_A+order_B+order_C+(3+VIRT_NTD)*num_dim)*sizeof(int);
 }
 
 /**
@@ -117,21 +117,21 @@ void ctr_virt::run(){
 
   
   lda_A = idx_arr + VIRT_NTD*num_dim;
-  lda_B = lda_A + ndim_A;
-  lda_C = lda_B + ndim_B;
-  ilda_A = lda_C + ndim_C;
+  lda_B = lda_A + order_A;
+  lda_C = lda_B + order_B;
+  ilda_A = lda_C + order_C;
   ilda_B = ilda_A + num_dim;
   ilda_C = ilda_B + num_dim;
 
 #define SET_LDA_X(__X)                                                  \
 do {                                                                    \
   nb_##__X = 1;                                                         \
-  for (i=0; i<ndim_##__X; i++){                                         \
+  for (i=0; i<order_##__X; i++){                                         \
     lda_##__X[i] = nb_##__X;                                            \
     nb_##__X = nb_##__X*virt_dim[idx_map_##__X[i]];                     \
   }                                                                     \
   memset(ilda_##__X, 0, num_dim*sizeof(int));                           \
-  for (i=0; i<ndim_##__X; i++){                                         \
+  for (i=0; i<order_##__X; i++){                                         \
     ilda_##__X[idx_map_##__X[i]] += lda_##__X[i];                       \
   }                                                                     \
 } while (0)

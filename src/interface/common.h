@@ -34,24 +34,24 @@ namespace CTF {
 
   enum { SUCCESS, ERROR, NEGATIVE };
 
-  int conv_idx(int          ndim,
+  int conv_idx(int          order,
                char const * cidx,
                int **       iidx);
 
-  int conv_idx(int          ndim_A,
+  int conv_idx(int          order_A,
                char const * cidx_A,
                int **       iidx_A,
-               int          ndim_B,
+               int          order_B,
                char const * cidx_B,
                int **       iidx_B);
 
-  int conv_idx(int          ndim_A,
+  int conv_idx(int          order_A,
                char const * cidx_A,
                int **       iidx_A,
-               int          ndim_B,
+               int          order_B,
                char const * cidx_B,
                int **       iidx_B,
-               int          ndim_C,
+               int          order_C,
                char const * cidx_C,
                int **       iidx_C);
 
@@ -117,17 +117,17 @@ namespace CTF_int {
 
   void czscal(int n, std::complex<double> dA, std::complex<double> * dX, int incX);
 
-  void conv_idx(int          ndim,
+  void conv_idx(int          order,
                 int const *  lens,
                 int64_t      idx,
                 int **       idx_arr);
 
-  void conv_idx(int          ndim,
+  void conv_idx(int          order,
                 int const *  lens,
                 int64_t      idx,
                 int *        idx_arr);
 
-  void conv_idx(int          ndim,
+  void conv_idx(int          order,
                 int const *  lens,
                 int const *  idx_arr,
                 int64_t *    idx);

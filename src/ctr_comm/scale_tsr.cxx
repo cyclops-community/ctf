@@ -33,7 +33,7 @@ scl_virt<dtype>::scl_virt(scl<dtype> * other) : scl<dtype>(other) {
   virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
   memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
-  ndim_A        = o->ndim_A;
+  order_A        = o->order_A;
   blk_sz_A      = o->blk_sz_A;
   idx_map_A     = o->idx_map_A;
 }
@@ -54,7 +54,7 @@ scl<dtype> * scl_virt<dtype>::clone() {
  */
 template<typename dtype>
 int64_t scl_virt<dtype>::mem_fp(){
-  return (ndim_A+2*num_dim)*sizeof(int);
+  return (order_A+2*num_dim)*sizeof(int);
 }
 
 /**
@@ -77,25 +77,25 @@ void scl_virt<dtype>::run(){
   }
   
   lda_A = idx_arr + num_dim;
-  ilda_A = lda_A + ndim_A;
+  ilda_A = lda_A + order_A;
   
 
 #define SET_LDA_X(__X)                                                  \
 do {                                                                    \
   nb_##__X = 1;                                                         \
-  for (i=0; i<ndim_##__X; i++){                                 \
+  for (i=0; i<order_##__X; i++){                                 \
     lda_##__X[i] = nb_##__X;                                            \
     nb_##__X = nb_##__X*virt_dim[idx_map_##__X[i]];     \
   }                                                                     \
   memset(ilda_##__X, 0, num_dim*sizeof(int));                   \
-  for (i=0; i<ndim_##__X; i++){                                 \
+  for (i=0; i<order_##__X; i++){                                 \
     ilda_##__X[idx_map_##__X[i]] += lda_##__X[i];                       \
   }                                                                     \
 } while (0)
   SET_LDA_X(A);
 #undef SET_LDA_X
  
-/*  for (i=0; i<ndim_A; i++){
+/*  for (i=0; i<order_A; i++){
     printf("lda[%d] = %d idx_map_A[%d] = %d\n",i,lda_A[i],i,idx_map_A[i]);
   }
   for (i=0; i<num_dim; i++){

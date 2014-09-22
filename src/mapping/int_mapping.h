@@ -23,13 +23,13 @@ struct mapping {
   mapping * child;
 };
 
-inline int get_distribution_size(int ndim){
-  return sizeof(int)*2 + sizeof(int64_t) + ndim*sizeof(int)*6;
+inline int get_distribution_size(int order){
+  return sizeof(int)*2 + sizeof(int64_t) + order*sizeof(int)*6;
 }
 
 class distribution {
   public:
-  int ndim;
+  int order;
   int * phase;
   int * virt_phase;
   int * pe_lda;

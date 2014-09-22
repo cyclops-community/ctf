@@ -12,8 +12,8 @@ int64_t dist_tensor<dtype>::estimate_cost(int tid_A,
     
   int * idx_arr;
   int num_tot;
-  inv_idx(tsr_A->ndim, idx_A, tsr_A->edge_map,
-          tsr_B->ndim, idx_B, tsr_B->edge_map,
+  inv_idx(tsr_A->order, idx_A, tsr_A->edge_map,
+          tsr_B->order, idx_B, tsr_B->edge_map,
           &num_tot, &idx_arr);
 
   int64_t cost = 1;
@@ -40,9 +40,9 @@ int64_t dist_tensor<dtype>::estimate_cost(int tid_A,
 
   int num_tot;
   int * idx_arr;
-  inv_idx(tsr_A->ndim, idx_A, tsr_A->edge_map,
-          tsr_B->ndim, idx_B, tsr_B->edge_map,
-          tsr_C->ndim, idx_C, tsr_C->edge_map,
+  inv_idx(tsr_A->order, idx_A, tsr_A->edge_map,
+          tsr_B->order, idx_B, tsr_B->edge_map,
+          tsr_C->order, idx_C, tsr_C->edge_map,
           &num_tot, &idx_arr);
 
   int64_t cost = 1;

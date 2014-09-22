@@ -13,7 +13,7 @@
 template<typename dtype>
 int sym_seq_sum_ref( char const *       alpha,
                      char const *        A,
-                     int const          ndim_A,
+                     int const          order_A,
                      int const *        edge_len_A,
                      int const *        _lda_A,
                      int const *        sym_A,
@@ -21,7 +21,7 @@ int sym_seq_sum_ref( char const *       alpha,
                      char const *       beta,
                      char *             B,
                      semiring           sr_B,
-                     int const          ndim_B,
+                     int const          order_B,
                      int const *        edge_len_B,
                      int const *        _lda_B,
                      int const *        sym_B,
@@ -32,14 +32,14 @@ int sym_seq_sum_ref( char const *       alpha,
   int * idx_glb, * rev_idx_map;
   int * dlen_A, * dlen_B;
 
-  inv_idx(ndim_A,       idx_map_A,
-          ndim_B,       idx_map_B,
+  inv_idx(order_A,       idx_map_A,
+          order_B,       idx_map_B,
           &idx_max,     &rev_idx_map);
 
-  dlen_A = (int*)CTF_alloc(sizeof(int)*ndim_A);
-  dlen_B = (int*)CTF_alloc(sizeof(int)*ndim_B);
-  memcpy(dlen_A, edge_len_A, sizeof(int)*ndim_A);
-  memcpy(dlen_B, edge_len_B, sizeof(int)*ndim_B);
+  dlen_A = (int*)CTF_alloc(sizeof(int)*order_A);
+  dlen_B = (int*)CTF_alloc(sizeof(int)*order_B);
+  memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
+  memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
 
   idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
 
@@ -73,9 +73,9 @@ int sym_seq_sum_ref( char const *       alpha,
       CHECK_SYM(B);
       if (!sym_pass) continue;
       
-      if (ndim_A > 0)
+      if (order_A > 0)
         RESET_IDX(A);
-      if (ndim_B > 0)
+      if (order_B > 0)
         RESET_IDX(B);
     }
   }
@@ -118,9 +118,9 @@ int sym_seq_sum_ref( char const *       alpha,
     CHECK_SYM(B);
     if (!sym_pass) continue;
     
-    if (ndim_A > 0)
+    if (order_A > 0)
       RESET_IDX(A);
-    if (ndim_B > 0)
+    if (order_B > 0)
       RESET_IDX(B);
   }
   CTF_free(dlen_A);

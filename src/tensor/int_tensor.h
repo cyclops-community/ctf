@@ -32,10 +32,20 @@ class pair {
 
 
 class tensor {
+  private:
+  int init(semiring sr,
+           int order,
+           int const * edge_len,
+           int const * sym,
+           bool alloc_data,
+           char const * name,
+           bool profile);
   public:
   semiring sr;
-  int ndim;
+  int order;
+  //padded tensor edge lengths
   int * edge_len;
+  //padding along each edge length
   int * padding;
   int is_scp_padded;
   int * scp_padding; /* to be used by scalapack wrapper */
@@ -65,17 +75,21 @@ class tensor {
   char const * name;
   bool profile;
 
+  //FIXME: unfolds other
+  //tensor(tensor const & other);
+  tensor(tensor * other);
+
   tensor(semiring sr,
-         int ndim,
+         int order,
          int const * edge_len,
-         int const * sym
+         int const * sym,
          bool alloc_data = false,
          char const * name = NULL,
          bool profile = 1);
 
   int set_padding();
 
-  void set_zero():
+  void set_zero();
 
   void print_map(FILE * stream) const;
 

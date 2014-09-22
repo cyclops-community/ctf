@@ -35,11 +35,11 @@ tsum_virt<dtype>::tsum_virt(tsum<dtype> * other) : tsum<dtype>(other) {
   virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
   memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
-  ndim_A        = o->ndim_A;
+  order_A        = o->order_A;
   blk_sz_A      = o->blk_sz_A;
   idx_map_A     = o->idx_map_A;
 
-  ndim_B        = o->ndim_B;
+  order_B        = o->order_B;
   blk_sz_B      = o->blk_sz_B;
   idx_map_B     = o->idx_map_B;
 }
@@ -60,7 +60,7 @@ tsum<dtype> * tsum_virt<dtype>::clone() {
  */
 template<typename dtype>
 int64_t tsum_virt<dtype>::mem_fp(){
-  return (ndim_A+ndim_B+3*num_dim)*sizeof(int);
+  return (order_A+order_B+3*num_dim)*sizeof(int);
 }
 
 /**
@@ -84,20 +84,20 @@ void tsum_virt<dtype>::run(){
   }
   
   lda_A = idx_arr + num_dim;
-  lda_B = lda_A + ndim_A;
-  ilda_A = lda_B + ndim_B;
+  lda_B = lda_A + order_A;
+  ilda_A = lda_B + order_B;
   ilda_B = ilda_A + num_dim;
   
 
 #define SET_LDA_X(__X)                                                  \
 do {                                                                    \
   nb_##__X = 1;                                                         \
-  for (i=0; i<ndim_##__X; i++){                                 \
+  for (i=0; i<order_##__X; i++){                                 \
     lda_##__X[i] = nb_##__X;                                            \
     nb_##__X = nb_##__X*virt_dim[idx_map_##__X[i]];     \
   }                                                                     \
   memset(ilda_##__X, 0, num_dim*sizeof(int));                   \
-  for (i=0; i<ndim_##__X; i++){                                 \
+  for (i=0; i<order_##__X; i++){                                 \
     ilda_##__X[idx_map_##__X[i]] += lda_##__X[i];                       \
   }                                                                     \
 } while (0)

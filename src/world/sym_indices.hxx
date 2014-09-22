@@ -70,17 +70,17 @@ int relativeSign(const T& s1, const T& s2)
 }
 
 template <typename T>
-double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
-                               int ndim_B, T& idx_B, const int* sym_B)
+double align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
+                               int order_B, T& idx_B, const int* sym_B)
 {
     int fact = 1;
 
     std::vector<index_locator_> indices;
 
-    for (int i = 0;i < ndim_A;i++)
+    for (int i = 0;i < order_A;i++)
     {
-        int i_in_B; for (i_in_B = 0;i_in_B < ndim_B && idx_A[i] != idx_B[i_in_B];i_in_B++);
-        if (i_in_B == ndim_B) continue;
+        int i_in_B; for (i_in_B = 0;i_in_B < order_B && idx_A[i] != idx_B[i_in_B];i_in_B++);
+        if (i_in_B == order_B) continue;
 
         indices.push_back(index_locator_(0, idx_A[i], i, i_in_B, 0));
     }
@@ -115,7 +115,7 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                     break;
                 }
             }
-            for (int k = group[0].pos_A+1;k < ndim_A && sym_A[k-1] != NS;k++)
+            for (int k = group[0].pos_A+1;k < order_A && sym_A[k-1] != NS;k++)
             {
                 if (idx_A[k] == it->idx)
                 {
@@ -138,7 +138,7 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                     break;
                 }
             }
-            for (int k = group[0].pos_B+1;k < ndim_B && sym_B[k-1] != NS;k++)
+            for (int k = group[0].pos_B+1;k < order_B && sym_B[k-1] != NS;k++)
             {
                 if (idx_B[k] == it->idx)
                 {
@@ -177,9 +177,9 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
     //if (fact != 1)
     //{
     //    std::cout << "I got a -1 !!!!!" << std::endl;
-    //    for (int i = 0;i < ndim_A;i++) std::cout << idx_A[i] << ' ';
+    //    for (int i = 0;i < order_A;i++) std::cout << idx_A[i] << ' ';
     //    std::cout << std::endl;
-    //    for (int i = 0;i < ndim_B;i++) std::cout << idx_B[i] << ' ';
+    //    for (int i = 0;i < order_B;i++) std::cout << idx_B[i] << ' ';
     //    std::cout << std::endl;
     //}
 
@@ -187,34 +187,34 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
 }
 
 template <typename T>
-double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
-                               int ndim_B, T& idx_B, const int* sym_B,
-                               int ndim_C, T& idx_C, const int* sym_C)
+double align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
+                               int order_B, T& idx_B, const int* sym_B,
+                               int order_C, T& idx_C, const int* sym_C)
 {
     int fact = 1;
 
     std::vector<index_locator_> indices;
 
-    for (int i = 0;i < ndim_A;i++)
+    for (int i = 0;i < order_A;i++)
     {
-        int i_in_B; for (i_in_B = 0;i_in_B < ndim_B && idx_A[i] != idx_B[i_in_B];i_in_B++);
-        if (i_in_B == ndim_B) i_in_B = -1;
+        int i_in_B; for (i_in_B = 0;i_in_B < order_B && idx_A[i] != idx_B[i_in_B];i_in_B++);
+        if (i_in_B == order_B) i_in_B = -1;
 
-        int i_in_C; for (i_in_C = 0;i_in_C < ndim_C && idx_A[i] != idx_C[i_in_C];i_in_C++);
-        if (i_in_C == ndim_C) i_in_C = -1;
+        int i_in_C; for (i_in_C = 0;i_in_C < order_C && idx_A[i] != idx_C[i_in_C];i_in_C++);
+        if (i_in_C == order_C) i_in_C = -1;
 
         if (i_in_B == -1 && i_in_C == -1) continue;
 
         indices.push_back(index_locator_(0, idx_A[i], i, i_in_B, i_in_C));
     }
 
-    for (int i = 0;i < ndim_B;i++)
+    for (int i = 0;i < order_B;i++)
     {
-        int i_in_A; for (i_in_A = 0;i_in_A < ndim_A && idx_B[i] != idx_A[i_in_A];i_in_A++);
-        if (i_in_A == ndim_A) i_in_A = -1;
+        int i_in_A; for (i_in_A = 0;i_in_A < order_A && idx_B[i] != idx_A[i_in_A];i_in_A++);
+        if (i_in_A == order_A) i_in_A = -1;
 
-        int i_in_C; for (i_in_C = 0;i_in_C < ndim_C && idx_B[i] != idx_C[i_in_C];i_in_C++);
-        if (i_in_C == ndim_C) i_in_C = -1;
+        int i_in_C; for (i_in_C = 0;i_in_C < order_C && idx_B[i] != idx_C[i_in_C];i_in_C++);
+        if (i_in_C == order_C) i_in_C = -1;
 
         if (i_in_A != -1 || i_in_C == -1) continue;
 
@@ -255,7 +255,7 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                         break;
                     }
                 }
-                for (int k = group[0].pos_A+1;k < ndim_A && sym_A[k-1] != NS;k++)
+                for (int k = group[0].pos_A+1;k < order_A && sym_A[k-1] != NS;k++)
                 {
                     if (idx_A[k] == it->idx)
                     {
@@ -281,7 +281,7 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                         break;
                     }
                 }
-                for (int k = group[0].pos_B+1;k < ndim_B && sym_B[k-1] != NS;k++)
+                for (int k = group[0].pos_B+1;k < order_B && sym_B[k-1] != NS;k++)
                 {
                     if (idx_B[k] == it->idx)
                     {
@@ -307,7 +307,7 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
                         break;
                     }
                 }
-                for (int k = group[0].pos_C+1;k < ndim_C && sym_C[k-1] != NS;k++)
+                for (int k = group[0].pos_C+1;k < order_C && sym_C[k-1] != NS;k++)
                 {
                     if (idx_C[k] == it->idx)
                     {
@@ -379,11 +379,11 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
     //if (fact != 1)
     //{
     //    std::cout << "I got a -1 !!!!!" << std::endl;
-    //    for (int i = 0;i < ndim_A;i++) std::cout << idx_A[i] << ' ';
+    //    for (int i = 0;i < order_A;i++) std::cout << idx_A[i] << ' ';
     //    std::cout << std::endl;
-    //    for (int i = 0;i < ndim_B;i++) std::cout << idx_B[i] << ' ';
+    //    for (int i = 0;i < order_B;i++) std::cout << idx_B[i] << ' ';
     //    std::cout << std::endl;
-    //    for (int i = 0;i < ndim_C;i++) std::cout << idx_C[i] << ' ';
+    //    for (int i = 0;i < order_C;i++) std::cout << idx_C[i] << ' ';
     //    std::cout << std::endl;
     //}
 
@@ -391,25 +391,25 @@ double align_symmetric_indices(int ndim_A, T& idx_A, const int* sym_A,
 }
 
 template <typename T>
-double overcounting_factor(int ndim_A, const T& idx_A, const int* sym_A,
-                           int ndim_B, const T& idx_B, const int* sym_B,
-                           int ndim_C, const T& idx_C, const int* sym_C)
+double overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
+                           int order_B, const T& idx_B, const int* sym_B,
+                           int order_C, const T& idx_C, const int* sym_C)
 {
     int fact = 1;
 
-    for (int i = 0;i < ndim_A;i++)
+    for (int i = 0;i < order_A;i++)
     {
         int j;
-        for (j = 0;j < ndim_B && idx_A[i] != idx_B[j];j++);
-        if (j == ndim_B) continue;
+        for (j = 0;j < order_B && idx_A[i] != idx_B[j];j++);
+        if (j == order_B) continue;
 
         int k;
-        for (k = 0;k < ndim_C && idx_A[i] != idx_C[k];k++);
-        if (k != ndim_C) continue;
+        for (k = 0;k < order_C && idx_A[i] != idx_C[k];k++);
+        if (k != order_C) continue;
 
         int ninarow = 1;
-        while (i < ndim_A &&
-               j < ndim_B &&
+        while (i < order_A &&
+               j < order_B &&
                sym_A[i] != NS &&
                sym_B[j] != NS &&
                idx_A[i] == idx_B[j])
@@ -418,8 +418,8 @@ double overcounting_factor(int ndim_A, const T& idx_A, const int* sym_A,
             i++;
             j++;
         }
-        if (i < ndim_A &&
-            j < ndim_B &&
+        if (i < order_A &&
+            j < order_B &&
             idx_A[i] != idx_B[j]) ninarow--;
 
         if (ninarow >= 2){
@@ -432,25 +432,25 @@ double overcounting_factor(int ndim_A, const T& idx_A, const int* sym_A,
 }
 
 template <typename T>
-double overcounting_factor(int ndim_A, const T& idx_A, const int* sym_A,
-                           int ndim_B, const T& idx_B, const int* sym_B)
+double overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
+                           int order_B, const T& idx_B, const int* sym_B)
 {
     double fact;
     int ninarow;
     fact = 1.0;
 
-    for (int i = 0;i < ndim_A;i++)
+    for (int i = 0;i < order_A;i++)
     {
         int j;
         ninarow = 0;
-        for (j = 0;j < ndim_B && idx_A[i] != idx_B[j];j++);
-        if (j>=ndim_B){
+        for (j = 0;j < order_B && idx_A[i] != idx_B[j];j++);
+        if (j>=order_B){
             ninarow = 1;
             while (sym_A[i] != NS)
             {
                 i++;
-                for (j = 0;j < ndim_B && idx_A[i] != idx_B[j];j++);
-                if (j>=ndim_B) ninarow++;
+                for (j = 0;j < order_B && idx_A[i] != idx_B[j];j++);
+                if (j>=order_B) ninarow++;
             }
         }
         if (ninarow >= 2){

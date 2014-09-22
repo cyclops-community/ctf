@@ -264,25 +264,25 @@ void __CM(const int     end,
 #endif
 /**
  * \brief computes the size of a tensor in NOT HOLLOW packed symmetric layout
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] len tensor edge _elngths
  * \param[in] sym tensor symmetries
  * \return size of tensor in packed layout
  */
-int64_t sy_packed_size(const int ndim, const int* len, const int* sym){
+int64_t sy_packed_size(const int order, const int* len, const int* sym){
   int i, k, mp;
   int64_t size, tmp;
 
-  if (ndim == 0) return 1;
+  if (order == 0) return 1;
 
   k = 1;
   tmp = 1;
   size = 1;
-  if (ndim > 0)
+  if (order > 0)
     mp = len[0];
   else
     mp = 1;
-  for (i = 0;i < ndim;i++){
+  for (i = 0;i < order;i++){
     tmp = (tmp * mp) / k;
     k++;
     mp ++;
@@ -291,7 +291,7 @@ int64_t sy_packed_size(const int ndim, const int* len, const int* sym){
       size *= tmp;
       k = 1;
       tmp = 1;
-      if (i < ndim - 1) mp = len[i + 1];
+      if (i < order - 1) mp = len[i + 1];
     }
   }
   size *= tmp;
@@ -304,26 +304,26 @@ int64_t sy_packed_size(const int ndim, const int* len, const int* sym){
 
 /**
  * \brief computes the size of a tensor in packed symmetric layout
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] len tensor edge _elngths
  * \param[in] sym tensor symmetries
  * \return size of tensor in packed layout
  */
-int64_t packed_size(const int ndim, const int* len, const int* sym){
+int64_t packed_size(const int order, const int* len, const int* sym){
 
   int i, k, mp;
   int64_t size, tmp;
 
-  if (ndim == 0) return 1;
+  if (order == 0) return 1;
 
   k = 1;
   tmp = 1;
   size = 1;
-  if (ndim > 0)
+  if (order > 0)
     mp = len[0];
   else
     mp = 1;
-  for (i = 0;i < ndim;i++){
+  for (i = 0;i < order;i++){
     tmp = (tmp * mp) / k;
     k++;
     if (sym[i] != 1)
@@ -335,7 +335,7 @@ int64_t packed_size(const int ndim, const int* len, const int* sym){
       size *= tmp;
       k = 1;
       tmp = 1;
-      if (i < ndim - 1) mp = len[i + 1];
+      if (i < order - 1) mp = len[i + 1];
     }
   }
   size *= tmp;
@@ -350,20 +350,20 @@ int64_t packed_size(const int ndim, const int* len, const int* sym){
  *        therefore (idx*sg!)^(1/sg) >= n-sg
  *        or similarly in the SY case ... >= n
  *
- * \param[in] ndim number of dimensions in the tensor 
+ * \param[in] order number of dimensions in the tensor 
  * \param[in] lens edge lengths 
  * \param[in] sym symmetry
  * \param[in] idx index in the global tensor, in packed format
- * \param[out] idx_arr preallocated to size ndim, computed to correspond to idx
+ * \param[out] idx_arr preallocated to size order, computed to correspond to idx
  */
-void calc_idx_arr(int         ndim,
+void calc_idx_arr(int         order,
                   int const * lens,
                   int const * sym,
                   int64_t    idx,
                   int *       idx_arr){
   int64_t idx_rem = idx;
-  memset(idx_arr, 0, ndim*sizeof(int));
-  for (int dim=ndim-1; dim>=0; dim--){
+  memset(idx_arr, 0, order*sizeof(int));
+  for (int dim=order-1; dim>=0; dim--){
     if (idx_rem == 0) break;
     if (dim == 0 || sym[dim-1] == NS){
       int64_t lda = packed_size(dim, lens, sym);
@@ -445,16 +445,16 @@ void factorize(int n, int *nfactor, int **factor){
   }
 }
 
-int conv_idx(int const  ndim,
+int conv_idx(int const  order,
              char const *  cidx,
              int **     iidx){
   int i, j, n;
   char c;
 
-  *iidx = (int*)CTF_alloc(sizeof(int)*ndim);
+  *iidx = (int*)CTF_alloc(sizeof(int)*order);
 
   n = 0;
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     c = cidx[i];
     for (j=0; j<i; j++){
       if (c == cidx[j]){
@@ -470,27 +470,27 @@ int conv_idx(int const  ndim,
   return n;
 }
 
-int  conv_idx(int const         ndim_A,
+int  conv_idx(int const         order_A,
               char const *         cidx_A,
               int **            iidx_A,
-              int const         ndim_B,
+              int const         order_B,
               char const *         cidx_B,
               int **            iidx_B){
   int i, j, n;
   char c;
 
-  *iidx_B = (int*)CTF_alloc(sizeof(int)*ndim_B);
+  *iidx_B = (int*)CTF_alloc(sizeof(int)*order_B);
 
-  n = conv_idx(ndim_A, cidx_A, iidx_A);
-  for (i=0; i<ndim_B; i++){
+  n = conv_idx(order_A, cidx_A, iidx_A);
+  for (i=0; i<order_B; i++){
     c = cidx_B[i];
-    for (j=0; j<ndim_A; j++){
+    for (j=0; j<order_A; j++){
       if (c == cidx_A[j]){
         (*iidx_B)[i] = (*iidx_A)[j];
         break;
       }
     }
-    if (j==ndim_A){
+    if (j==order_A){
       for (j=0; j<i; j++){
         if (c == cidx_B[j]){
           (*iidx_B)[i] = (*iidx_B)[j];
@@ -507,39 +507,39 @@ int  conv_idx(int const         ndim_A,
 }
 
 
-int  conv_idx(int const         ndim_A,
+int  conv_idx(int const         order_A,
               char const *         cidx_A,
               int **            iidx_A,
-              int const         ndim_B,
+              int const         order_B,
               char const *         cidx_B,
               int **            iidx_B,
-              int const         ndim_C,
+              int const         order_C,
               char const *         cidx_C,
               int **            iidx_C){
   int i, j, n;
   char c;
 
-  *iidx_C = (int*)CTF_alloc(sizeof(int)*ndim_C);
+  *iidx_C = (int*)CTF_alloc(sizeof(int)*order_C);
 
-  n = conv_idx(ndim_A, cidx_A, iidx_A,
-               ndim_B, cidx_B, iidx_B);
+  n = conv_idx(order_A, cidx_A, iidx_A,
+               order_B, cidx_B, iidx_B);
 
-  for (i=0; i<ndim_C; i++){
+  for (i=0; i<order_C; i++){
     c = cidx_C[i];
-    for (j=0; j<ndim_B; j++){
+    for (j=0; j<order_B; j++){
       if (c == cidx_B[j]){
         (*iidx_C)[i] = (*iidx_B)[j];
         break;
       }
     }
-    if (j==ndim_B){
-      for (j=0; j<ndim_A; j++){
+    if (j==order_B){
+      for (j=0; j<order_A; j++){
         if (c == cidx_A[j]){
           (*iidx_C)[i] = (*iidx_A)[j];
           break;
         }
       }
-      if (j==ndim_A){
+      if (j==order_A){
         for (j=0; j<i; j++){
           if (c == cidx_C[j]){
             (*iidx_C)[i] = (*iidx_C)[j];
@@ -556,34 +556,34 @@ int  conv_idx(int const         ndim_A,
   return n;
 }
 
-void conv_idx(int          ndim,
+void conv_idx(int          order,
               int const *  lens,
               int64_t     idx,
               int *        idx_arr){
   int i;
   int64_t cidx = idx;
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     idx_arr[i] = cidx%lens[i];
     cidx = cidx/lens[i];
   }
 }
 
-void conv_idx(int          ndim,
+void conv_idx(int          order,
               int const *  lens,
               int64_t     idx,
               int **       idx_arr){
-  (*idx_arr) = (int*)CTF_alloc(ndim*sizeof(int));
-  conv_idx(ndim, lens, idx, *idx_arr);
+  (*idx_arr) = (int*)CTF_alloc(order*sizeof(int));
+  conv_idx(order, lens, idx, *idx_arr);
 }
 
-void conv_idx(int          ndim,
+void conv_idx(int          order,
               int const *  lens,
               int const *  idx_arr,
               int64_t *   idx){
   int i;
   int64_t lda = 1;
   *idx = 0;
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     (*idx) += idx_arr[i]*lda;
     lda *= lens[i];
   }

@@ -412,9 +412,9 @@ namespace CTF_int {
 
   //double util_dabs(double x);
 
-  int64_t sy_packed_size(const int ndim, const int* len, const int* sym);
+  int64_t sy_packed_size(const int order, const int* len, const int* sym);
 
-  int64_t packed_size(const int ndim, const int* len, const int* sym);
+  int64_t packed_size(const int order, const int* len, const int* sym);
 
 
   /*
@@ -424,7 +424,7 @@ namespace CTF_int {
    *        therefore (idx*sg!)^(1/sg) >= n-sg
    *        or similarly in the SY case ... >= n
    */
-  void calc_idx_arr(int         ndim,
+  void calc_idx_arr(int         order,
                     int const * lens,
                     int const * sym,
                     int64_t     idx,

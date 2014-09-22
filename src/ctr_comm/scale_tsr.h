@@ -27,7 +27,7 @@ class scl_virt : public scl {
 
     int num_dim;
     int * virt_dim;
-    int ndim_A;
+    int order_A;
     int64_t blk_sz_A;
     int const * idx_map_A;
     

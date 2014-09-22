@@ -15,14 +15,14 @@
 int sym_seq_ctr_inr(char const *       alpha,
                     char const *       A,
                     semiring           sr_A,
-                    int                ndim_A,
+                    int                order_A,
                     int const *        edge_len_A,
                     int const *        _lda_A,
                     int const *        sym_A,
                     int const *        idx_map_A,
                     char const *       B,
                     semiring           sr_B,
-                    int                ndim_B,
+                    int                order_B,
                     int const *        edge_len_B,
                     int const *        _lda_B,
                     int const *        sym_B,
@@ -30,7 +30,7 @@ int sym_seq_ctr_inr(char const *       alpha,
                     char const *       beta,
                     char *             C,
                     semiring           sr_C,
-                    int                ndim_C,
+                    int                order_C,
                     int const *        edge_len_C,
                     int const *        _lda_C,
                     int const *        sym_C,
@@ -46,17 +46,17 @@ int sym_seq_ctr_inr(char const *       alpha,
   stride_B = prm->k*prm->n;
   stride_C = prm->m*prm->n;
 
-  inv_idx(ndim_A,       idx_map_A,
-          ndim_B,       idx_map_B,
-          ndim_C,       idx_map_C,
+  inv_idx(order_A,       idx_map_A,
+          order_B,       idx_map_B,
+          order_C,       idx_map_C,
           &idx_max,     &rev_idx_map);
 
-  dlen_A = (int*)CTF_alloc(sizeof(int)*ndim_A);
-  dlen_B = (int*)CTF_alloc(sizeof(int)*ndim_B);
-  dlen_C = (int*)CTF_alloc(sizeof(int)*ndim_C);
-  memcpy(dlen_A, edge_len_A, sizeof(int)*ndim_A);
-  memcpy(dlen_B, edge_len_B, sizeof(int)*ndim_B);
-  memcpy(dlen_C, edge_len_C, sizeof(int)*ndim_C);
+  dlen_A = (int*)CTF_alloc(sizeof(int)*order_A);
+  dlen_B = (int*)CTF_alloc(sizeof(int)*order_B);
+  dlen_C = (int*)CTF_alloc(sizeof(int)*order_C);
+  memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
+  memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
+  memcpy(dlen_C, edge_len_C, sizeof(int)*order_C);
 
   idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
   memset(idx_glb, 0, sizeof(int)*idx_max);
@@ -126,11 +126,11 @@ int sym_seq_ctr_inr(char const *       alpha,
     if (!sym_pass) continue;
     
 
-    if (ndim_A > 0)
+    if (order_A > 0)
       RESET_IDX(A);
-    if (ndim_B > 0)
+    if (order_B > 0)
       RESET_IDX(B);
-    if (ndim_C > 0)
+    if (order_C > 0)
       RESET_IDX(C);
   }
   CTF_free(dlen_A);

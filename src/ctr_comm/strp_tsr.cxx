@@ -10,7 +10,7 @@
 template<typename dtype>
 strp_tsr<dtype>::strp_tsr(strp_tsr<dtype> * o) {
   alloced       = o->alloced;
-  ndim          = o->ndim;
+  order          = o->order;
   blk_sz        = o->blk_sz;
   edge_len      = o->edge_len;
   strip_dim     = o->strip_dim;
@@ -37,7 +37,7 @@ int64_t strp_tsr<dtype>::mem_fp(){
   int i;
   int64_t sub_sz;
   sub_sz = blk_sz;
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     sub_sz = sub_sz * edge_len[i] / strip_dim[i];
   }
   return sub_sz*sizeof(dtype);
@@ -62,12 +62,12 @@ void strp_tsr<dtype>::run(int const dir){
       ASSERT(ret==0);
     }
   } 
-  idx_arr = (int*)CTF_alloc(sizeof(int)*ndim);
-  lda = (int*)CTF_alloc(sizeof(int)*ndim);
-  memset(idx_arr, 0, sizeof(int)*ndim);
+  idx_arr = (int*)CTF_alloc(sizeof(int)*order);
+  lda = (int*)CTF_alloc(sizeof(int)*order);
+  memset(idx_arr, 0, sizeof(int)*order);
 
   ilda = 1, toff = 0;
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     lda[i] = ilda;
     ilda *= edge_len[i];
     idx_arr[i] = strip_idx[i]*(edge_len[i]/strip_dim[i]);
@@ -80,13 +80,13 @@ void strp_tsr<dtype>::run(int const dir){
     if (dir)
       memcpy(A+toff*blk_sz, buffer+boff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));
     else {
-  /*    printf("boff = %d, toff = %d blk_sz = "PRId64" mv_ez="PRId64"\n",boff,toff,blk_sz,
+  /*    printf("boff = %d, toff = %d blk_sz = " PRId64 " mv_ez=" PRId64 "\n",boff,toff,blk_sz,
               (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));*/
       memcpy(buffer+boff*blk_sz, A+toff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));
     }
     boff += (edge_len[0]/strip_dim[0]);
 
-    for (i=1; i<ndim; i++){
+    for (i=1; i<order; i++){
       toff -= idx_arr[i]*lda[i];
       idx_arr[i]++;
       if (idx_arr[i] >= (strip_idx[i]+1)*(edge_len[i]/strip_dim[i]))
@@ -94,7 +94,7 @@ void strp_tsr<dtype>::run(int const dir){
       toff += idx_arr[i]*lda[i];
       if (idx_arr[i] != strip_idx[i]*(edge_len[i]/strip_dim[i])) break;
     }
-    if (i==ndim) break;    
+    if (i==order) break;    
   }
   
 

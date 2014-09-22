@@ -8,7 +8,7 @@
 namespace CTF_int {
 
 int padded_reshuffle(int         tid,
-                     int         ndim,
+                     int         order,
                      int         nval,
                      int const * old_edge_len,
                      int const * sym,
@@ -28,7 +28,7 @@ int padded_reshuffle(int         tid,
                      char * *    tsr_cyclic_data,
                      CommData  ord_glb_comm);
 
-int cyclic_reshuffle(int         ndim,
+int cyclic_reshuffle(int         order,
                      int         nval,
                      int const * old_edge_len,
                      int const * sym,

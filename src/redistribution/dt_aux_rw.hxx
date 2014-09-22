@@ -12,7 +12,7 @@
 
 /**
  * \brief read or write pairs from / to tensor
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] size number of pairs
  * \param[in] alpha multiplier for new value
  * \param[in] beta multiplier for old value
@@ -26,7 +26,7 @@
  * \param[in] rw whether to read 'r' or write 'w'
  */
 template<typename dtype>
-void readwrite(int const        ndim,
+void readwrite(int const        order,
                int64_t const   size,
                dtype const      alpha,
                dtype const      beta,
@@ -44,7 +44,7 @@ void readwrite(int const        ndim,
   int64_t * idx, * virt_rank, * edge_lda;  
   dtype * data;
   
-  if (ndim == 0){
+  if (order == 0){
     if (size > 0){
       if (size > 1){
         for (i=1; i<size; i++){
@@ -52,7 +52,7 @@ void readwrite(int const        ndim,
           ASSERT(pairs[i].k == 0 || pairs[i].d != pairs[0].d);
         }
       }
-  //    printf("size = "PRId64"\n",size);
+  //    printf("size = " PRId64 "\n",size);
   //    ASSERT(size == 1);
       if (rw == 'r'){
         pairs[0].d = vdata[0];
@@ -63,13 +63,13 @@ void readwrite(int const        ndim,
     return;
   }
   TAU_FSTART(readwrite);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&edge_lda);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&virt_rank);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&edge_lda);
   
-  memset(virt_rank, 0, sizeof(int64_t)*ndim);
+  memset(virt_rank, 0, sizeof(int64_t)*order);
   edge_lda[0] = 1;
-  for (i=1; i<ndim; i++){
+  for (i=1; i<order; i++){
     edge_lda[i] = edge_lda[i-1]*edge_len[i-1];
   }
 
@@ -80,11 +80,11 @@ void readwrite(int const        ndim,
   for (p=0;;p++){
     data = data + buf_offset;
     idx_offset = 0, buf_offset = 0;
-    for (act_lda=1; act_lda<ndim; act_lda++){
+    for (act_lda=1; act_lda<order; act_lda++){
       idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
     } 
    
-    memset(idx, 0, ndim*sizeof(int64_t));
+    memset(idx, 0, order*sizeof(int64_t));
     imax = edge_len[0]/phase[0];
     for (;;){
       if (sym[0] != NS)
@@ -133,7 +133,7 @@ void readwrite(int const        ndim,
       if (pr_offset >= size)
         break;
       /* Increment indices and set up offsets */
-      for (act_lda=1; act_lda < ndim; act_lda++){
+      for (act_lda=1; act_lda < order; act_lda++){
         idx_offset -= (idx[act_lda]*phase[act_lda]+phase_rank[act_lda])
                       *edge_lda[act_lda];
         idx[act_lda]++;
@@ -147,9 +147,9 @@ void readwrite(int const        ndim,
         if (idx[act_lda] > 0)
           break;
       }
-      if (act_lda == ndim) break;
+      if (act_lda == order) break;
     }
-    for (act_lda=0; act_lda < ndim; act_lda++){
+    for (act_lda=0; act_lda < order; act_lda++){
       phase_rank[act_lda] -= virt_rank[act_lda];
       virt_rank[act_lda]++;
       if (virt_rank[act_lda] >= virt_dim[act_lda])
@@ -158,10 +158,10 @@ void readwrite(int const        ndim,
       if (virt_rank[act_lda] > 0)
         break;
     }
-    if (act_lda == ndim) break;
+    if (act_lda == order) break;
   }
   TAU_FSTOP(readwrite);
-  //printf("pr_offset = "PRId64"/"PRId64"\n",pr_offset,size);
+  //printf("pr_offset = " PRId64 "/" PRId64 "\n",pr_offset,size);
   ASSERT(pr_offset == size);
   CTF_free(idx);
   CTF_free(virt_rank);
@@ -170,7 +170,7 @@ void readwrite(int const        ndim,
 
 /**
  * \brief read or write pairs from / to tensor
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] np number of processors
  * \param[in] inwrite number of pairs
  * \param[in] alpha multiplier for new value
@@ -189,7 +189,7 @@ void readwrite(int const        ndim,
  * \param[in] glb_comm the global communicator
  */
 template<typename dtype>
-void wr_pairs_layout(int const          ndim,
+void wr_pairs_layout(int const          order,
                      int const          np,
                      int64_t const     inwrite,
                      dtype const        alpha,  
@@ -227,8 +227,8 @@ void wr_pairs_layout(int const          ndim,
 
   /* Copy out the input data, do not touch that array */
 //  memcpy(swap_data, wr_pairs, nwrite*sizeof(tkv_pair<dtype>));
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&depad_edge_len);
-  for (i=0; i<ndim; i++){
+  CTF_alloc_ptr(order*sizeof(int), (void**)&depad_edge_len);
+  for (i=0; i<order; i++){
     depad_edge_len[i] = edge_len[i] - padding[i];
   } 
   TAU_FSTART(check_key_ranges);
@@ -237,15 +237,15 @@ void wr_pairs_layout(int const          ndim,
   std::vector< tkv_pair<dtype> > new_changed_pairs;
   std::vector<double> changed_key_scale;
 
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&ckey);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&ckey);
   for (i=0; i<inwrite; i++){
-    conv_idx(ndim, depad_edge_len, wr_pairs[i].k, ckey);
+    conv_idx(order, depad_edge_len, wr_pairs[i].k, ckey);
     is_out = 0;
     sign = 1;
     is_perm = 1;
     while (is_perm && !is_out){
       is_perm = 0;
-      for (j=0; j<ndim-1; j++){
+      for (j=0; j<order-1; j++){
         if ((sym[j] == SH || sym[j] == AS) && ckey[j] == ckey[j+1]){
           is_out = 1;
           break;
@@ -266,7 +266,7 @@ void wr_pairs_layout(int const          ndim,
       }
     } 
     if (!is_out){
-      conv_idx(ndim, depad_edge_len, ckey, &(swap_data[nwrite].k));
+      conv_idx(order, depad_edge_len, ckey, &(swap_data[nwrite].k));
       swap_data[nwrite].d = ((double)sign)*wr_pairs[i].d;
       if (rw == 'r' && swap_data[nwrite].k != wr_pairs[i].k){
         /*printf("the %lldth key has been set from %lld to %lld\n",
@@ -287,11 +287,11 @@ void wr_pairs_layout(int const          ndim,
   TAU_FSTOP(check_key_ranges);
 
   /* If the packed tensor is padded, pad keys */
-  pad_key(ndim, nwrite, depad_edge_len, padding, swap_data);
+  pad_key(order, nwrite, depad_edge_len, padding, swap_data);
   CTF_free(depad_edge_len);
 
   /* Figure out which processor the value in a packed layout, lies for each key */
-  bucket_by_pe(ndim, nwrite, np, 
+  bucket_by_pe(order, nwrite, np, 
                phys_phase, virt_phase, bucket_lda, 
                edge_len, swap_data, bucket_counts, 
                send_displs, buf_data);
@@ -336,11 +336,11 @@ void wr_pairs_layout(int const          ndim,
 
   /* Figure out what virtual bucket each key belongs to. Bucket
      and sort them accordingly */
-  bucket_by_virt(ndim, num_virt, new_num_pair, virt_phase, 
+  bucket_by_virt(order, num_virt, new_num_pair, virt_phase, 
                      edge_len, swap_data, buf_data);
 
   /* Write or read the values corresponding to the keys */
-  readwrite(ndim,       new_num_pair,   alpha,
+  readwrite(order,       new_num_pair,   alpha,
             beta,       num_virt,       edge_len,   
             sym,        phys_phase,     virt_phase,
             virt_phys_rank,     
@@ -349,7 +349,7 @@ void wr_pairs_layout(int const          ndim,
   /* If we want to read the keys, we must return them to where they
      were requested */
   if (rw == 'r'){
-    CTF_alloc_ptr(ndim*sizeof(int), (void**)&depadding);
+    CTF_alloc_ptr(order*sizeof(int), (void**)&depadding);
     /* Sort the key-value pairs we determine*/
     std::sort(buf_data, buf_data+new_num_pair);
     /* Search for the keys in the order in which we received the keys */
@@ -374,10 +374,10 @@ void wr_pairs_layout(int const          ndim,
     
 
     /* unpad the keys if necesary */
-    for (i=0; i<ndim; i++){
+    for (i=0; i<order; i++){
       depadding[i] = -padding[i];
     } 
-    pad_key(ndim, nwrite, edge_len, depadding, buf_data);
+    pad_key(order, nwrite, edge_len, depadding, buf_data);
 
     /* Sort the pairs that were sent out, now with correct values */
     std::sort(buf_data, buf_data+nwrite);
@@ -415,7 +415,7 @@ void wr_pairs_layout(int const          ndim,
 
 /**
  * \brief read tensor pairs local to processor
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] nval number of local values
  * \param[in] pad whether tensor is padded
  * \param[in] num_virt new total virtualization factor
@@ -431,7 +431,7 @@ void wr_pairs_layout(int const          ndim,
  * \param[out] pairs local pairs read
  */
 template<typename dtype>
-void read_loc_pairs(int const           ndim,
+void read_loc_pairs(int const           order,
                     int64_t const      nval,
                     int const           num_virt,
                     int const *         sym,
@@ -448,10 +448,10 @@ void read_loc_pairs(int const           ndim,
   int * prepadding;
   tkv_pair<dtype> * dpairs;
   CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&dpairs);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&prepadding);
-  memset(prepadding, 0, sizeof(int)*ndim);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&prepadding);
+  memset(prepadding, 0, sizeof(int)*order);
   /* Iterate through packed layout and form key value pairs */
-  assign_keys(ndim,             nval,           num_virt,
+  assign_keys(order,             nval,           num_virt,
               edge_len,         sym,
               virt_phase,       virt_dim,       virt_phase_rank,
               data,             dpairs);
@@ -461,14 +461,14 @@ void read_loc_pairs(int const           ndim,
   int * depadding, * pad_len;
   tkv_pair<dtype> * new_pairs;
   CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&new_pairs);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&depadding);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&pad_len);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&depadding);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&pad_len);
 
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     pad_len[i] = edge_len[i]-padding[i];
   }
   /* Get rid of any padded values */
-  depad_tsr(ndim, nval, pad_len, sym, padding, prepadding,
+  depad_tsr(order, nval, pad_len, sym, padding, prepadding,
             dpairs, new_pairs, &new_num_pair);
 
   CTF_free(dpairs);
@@ -476,12 +476,12 @@ void read_loc_pairs(int const           ndim,
   *pairs = new_pairs;
   *nread = new_num_pair;
 
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     depadding[i] = -padding[i];
   }
   
   /* Adjust keys to remove padding */
-  pad_key(ndim, new_num_pair, edge_len, depadding, new_pairs);
+  pad_key(order, new_num_pair, edge_len, depadding, new_pairs);
   CTF_free((void*)pad_len);
   CTF_free((void*)depadding);
   CTF_free(prepadding);
@@ -489,7 +489,7 @@ void read_loc_pairs(int const           ndim,
 
 /**
  * \brief desymmetrizes one index of a tensor
- * \param[in] ndim dimension of tensor
+ * \param[in] order dimension of tensor
  * \param[in] edge_len edge lengths of tensor
  * \param[in] sign -1 if subtraction +1 if adding
  * \param[in] permute whether to permute symmetic indices
@@ -499,7 +499,7 @@ void read_loc_pairs(int const           ndim,
  * \param[in,out] data_write data of the desymmetrized tensor 
  */
 template<typename dtype>
-void rw_smtr(int const          ndim,
+void rw_smtr(int const          order,
              int const *        edge_len,
              double const       sign,
              int const          permute,
@@ -517,7 +517,7 @@ void rw_smtr(int const          ndim,
   /* determine which symmetry is broken and return if none */
   sym_idx = -1;
   is_symm = 0;
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     if (sym_read[i] != sym_write[i]){
       sym_idx = i;
     }
@@ -526,7 +526,7 @@ void rw_smtr(int const          ndim,
 
   /* determine the size of the index spaces below and above the symmetric indices */
   bottom_size   = packed_size(sym_idx, edge_len, sym_read);
-  top_size      = packed_size(ndim-sym_idx-2, edge_len+sym_idx+2, sym_read+sym_idx+2);
+  top_size      = packed_size(order-sym_idx-2, edge_len+sym_idx+2, sym_read+sym_idx+2);
 
   read_idx = 0;
   write_idx = 0;

@@ -31,7 +31,7 @@ int is_sym_preserved( CTF_ctr_type_t const *    type,
                       tensor<dtype> const *     tsr_C){
   int i;
 
-  for (i=0; i<tsr_A->ndim; i++){
+  for (i=0; i<tsr_A->order; i++){
     
   }
   return 0;
@@ -65,9 +65,9 @@ void calc_nmk(CTF_ctr_type_t const *    type,
   phase_A = calc_phase<dtype>(tsr_A);
   phase_B = calc_phase<dtype>(tsr_B);
 
-  inv_idx(tsr_A->ndim, type->idx_map_A, tsr_A->edge_map,
-          tsr_B->ndim, type->idx_map_B, tsr_B->edge_map,
-          tsr_C->ndim, type->idx_map_C, tsr_C->edge_map,
+  inv_idx(tsr_A->order, type->idx_map_A, tsr_A->edge_map,
+          tsr_B->order, type->idx_map_B, tsr_B->edge_map,
+          tsr_C->order, type->idx_map_C, tsr_C->edge_map,
           &num_tot, &idx_arr);
   num_ctr = 0;
   for (i=0; i<num_tot; i++){
@@ -78,13 +78,13 @@ void calc_nmk(CTF_ctr_type_t const *    type,
   prm.m = 1;
   prm.n = 1;
   prm.k = 1;
-  for (i=0; i<tsr_A->ndim; i++){
+  for (i=0; i<tsr_A->order; i++){
     if (i >= num_ctr)
       prm.m = prm.m * phase_A[ordering_A[i]];
     else 
       prm.k = prm.k * phase_A[ordering_A[i]];
   }
-  for (i=0; i<tsr_B->ndim; i++){
+  for (i=0; i<tsr_B->order; i++){
     if (i >= num_ctr)
       prm.n = prm.n * phase_B[ordering_B[i]];
   }
@@ -110,11 +110,11 @@ void calc_sub_edge_len(tensor<dtype> *  tsr,
   int * sub_edge_len, * phase;
   mapping * map;
 
-  CTF_alloc_ptr(tsr->ndim*sizeof(int), (void**)&sub_edge_len);
-  CTF_alloc_ptr(tsr->ndim*sizeof(int), (void**)&phase);
+  CTF_alloc_ptr(tsr->order*sizeof(int), (void**)&sub_edge_len);
+  CTF_alloc_ptr(tsr->order*sizeof(int), (void**)&phase);
 
   /* Pad the tensor */
-  for (i=0; i<tsr->ndim; i++){
+  for (i=0; i<tsr->order; i++){
     if (tsr->edge_map[i].type == NOT_MAPPED)
       phase[i] = 1;
     else if (tsr->edge_map[i].type == PHYSICAL_MAP){
@@ -130,7 +130,7 @@ void calc_sub_edge_len(tensor<dtype> *  tsr,
     }
   }
 
-  for (i=0; i<tsr->ndim; i++){
+  for (i=0; i<tsr->order; i++){
     sub_edge_len[i] = tsr->edge_len[i]/phase[i];
   }
   CTF_free(phase);
@@ -159,13 +159,13 @@ void dist_tensor<dtype>::get_new_ordering(
   tsr_A = tensors[type->tid_A];
   tsr_B = tensors[type->tid_B];
   tsr_C = tensors[type->tid_C];
-  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&ordering_A);
-  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&ordering_B);
-  CTF_alloc_ptr(sizeof(int)*tsr_C->ndim, (void**)&ordering_C);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->order, (void**)&ordering_A);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->order, (void**)&ordering_B);
+  CTF_alloc_ptr(sizeof(int)*tsr_C->order, (void**)&ordering_C);
 
-  inv_idx(tsr_A->ndim, type->idx_map_A, tsr_A->edge_map,
-          tsr_B->ndim, type->idx_map_B, tsr_B->edge_map,
-          tsr_C->ndim, type->idx_map_C, tsr_C->edge_map,
+  inv_idx(tsr_A->order, type->idx_map_A, tsr_A->edge_map,
+          tsr_B->order, type->idx_map_B, tsr_B->edge_map,
+          tsr_C->order, type->idx_map_C, tsr_C->edge_map,
           &num_tot, &idx_arr);
   num_ctr = 0, num_no_ctr_A = 0;
   for (i=0; i<num_tot; i++){

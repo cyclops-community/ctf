@@ -13,7 +13,7 @@
 
 /**
  * \brief retrieves the unpadded pairs
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] num_pair number of pairs
  * \param[in] edge_len tensor edge lengths
  * \param[in] sym symmetry types of tensor
@@ -25,7 +25,7 @@
  */
 #ifdef USE_OMP
 template<typename dtype>
-void depad_tsr(int const                ndim,
+void depad_tsr(int const                order,
                int64_t const           num_pair,
                int const *              edge_len,
                int const *              sym,
@@ -46,7 +46,7 @@ void depad_tsr(int const                ndim,
   {
     int64_t i, j, st, end, tid;
     key k;
-    key kparts[ndim];
+    key kparts[order];
     tid = omp_get_thread_num();
 
     st = (num_pair/ntd)*tid;
@@ -58,14 +58,14 @@ void depad_tsr(int const                ndim,
     num_ins_t[tid] = 0;
     for (i=st; i<end; i++){
       k = pairs[i].k;
-      for (j=0; j<ndim; j++){
+      for (j=0; j<order; j++){
         kparts[j] = k%(edge_len[j]+padding[j]);
         if (kparts[j] >= (key)edge_len[j] ||
             kparts[j] < prepadding[j]) break;
         k = k/(edge_len[j]+padding[j]);
       } 
-      if (j==ndim){
-        for (j=0; j<ndim; j++){
+      if (j==order){
+        for (j=0; j<order; j++){
           if (sym[j] == SY){
             if (kparts[j+1] < kparts[j])
               break;
@@ -75,7 +75,7 @@ void depad_tsr(int const                ndim,
               break;
           }
         }
-        if (j==ndim){
+        if (j==order){
           num_ins_t[tid]++;
         }
       }
@@ -93,7 +93,7 @@ void depad_tsr(int const                ndim,
   {
     int64_t i, j, st, end, tid;
     key k;
-    key kparts[ndim];
+    key kparts[order];
     tid = omp_get_thread_num();
 
     st = (num_pair/ntd)*tid;
@@ -104,14 +104,14 @@ void depad_tsr(int const                ndim,
 
     for (i=st; i<end; i++){
       k = pairs[i].k;
-      for (j=0; j<ndim; j++){
+      for (j=0; j<order; j++){
         kparts[j] = k%(edge_len[j]+padding[j]);
         if (kparts[j] >= (key)edge_len[j] ||
             kparts[j] < prepadding[j]) break;
         k = k/(edge_len[j]+padding[j]);
       } 
-      if (j==ndim){
-        for (j=0; j<ndim; j++){
+      if (j==order){
+        for (j=0; j<order; j++){
           if (sym[j] == SY){
             if (kparts[j+1] < kparts[j])
               break;
@@ -121,7 +121,7 @@ void depad_tsr(int const                ndim,
               break;
           }
         }
-        if (j==ndim){
+        if (j==order){
           new_pairs[pre_ins_t[tid]] = pairs[i];
           pre_ins_t[tid]++;
         }
@@ -139,7 +139,7 @@ void depad_tsr(int const                ndim,
 }
 #else
 template<typename dtype>
-void depad_tsr(int const                ndim,
+void depad_tsr(int const                order,
                int64_t const           num_pair,
                int const *              edge_len,
                int const *              sym,
@@ -155,19 +155,19 @@ void depad_tsr(int const                ndim,
   key k;
 
 
-  CTF_alloc_ptr(sizeof(key)*ndim, (void**)&kparts);
+  CTF_alloc_ptr(sizeof(key)*order, (void**)&kparts);
 
   num_ins = 0;
   for (i=0; i<num_pair; i++){
     k = pairs[i].k;
-    for (j=0; j<ndim; j++){
+    for (j=0; j<order; j++){
       kparts[j] = k%(edge_len[j]+padding[j]);
       if (kparts[j] >= (key)edge_len[j] ||
           kparts[j] < prepadding[j]) break;
       k = k/(edge_len[j]+padding[j]);
     } 
-    if (j==ndim){
-      for (j=0; j<ndim; j++){
+    if (j==order){
+      for (j=0; j<order; j++){
         if (sym[j] == SY){
           if (kparts[j+1] < kparts[j])
             break;
@@ -177,7 +177,7 @@ void depad_tsr(int const                ndim,
             break;
         }
       }
-      if (j==ndim){
+      if (j==order){
         new_pairs[num_ins] = pairs[i];
         num_ins++;
       }
@@ -192,7 +192,7 @@ void depad_tsr(int const                ndim,
 
 /**
  * \brief permutes keys
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] num_pair number of pairs
  * \param[in] edge_len old nonpadded tensor edge lengths
  * \param[in] new_edge_len new nonpadded tensor edge lengths
@@ -201,7 +201,7 @@ void depad_tsr(int const                ndim,
  * \param[out] new_num_pair number of new pairs, since pairs are ignored if perm[i][j] == -1
  */
 template<typename dtype>
-void permute_keys(int const                   ndim,
+void permute_keys(int const                   order,
                   int64_t const              num_pair,
                   int const *                 edge_len,
                   int const *                 new_edge_len,
@@ -241,7 +241,7 @@ void permute_keys(int const                   ndim,
       lda = 1;
       knew = 0;
       outside = 0;
-      for (j=0; j<ndim; j++){
+      for (j=0; j<order; j++){
         kdim = wkey%edge_len[j];
         if (permutation[j] != NULL){
           if (permutation[j][kdim] == -1){
@@ -285,7 +285,7 @@ void permute_keys(int const                   ndim,
 
 /**
  * \brief depermutes keys (apply P^T)
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] num_pair number of pairs
  * \param[in] edge_len old nonpadded tensor edge lengths
  * \param[in] new_edge_len new nonpadded tensor edge lengths
@@ -293,7 +293,7 @@ void permute_keys(int const                   ndim,
  * \param[in,out] pairs the keys and values as pairs
  */
 template<typename dtype>
-void depermute_keys(int const                   ndim,
+void depermute_keys(int const                   order,
                     int64_t const              num_pair,
                     int const *                 edge_len,
                     int const *                 new_edge_len,
@@ -307,9 +307,9 @@ void depermute_keys(int const                   ndim,
 #endif
   int64_t counts[mntd];
   std::fill(counts,counts+mntd,0);
-  int ** depermutation = (int**)CTF_alloc(ndim*sizeof(int*));
+  int ** depermutation = (int**)CTF_alloc(order*sizeof(int*));
   TAU_FSTART(form_depermutation);
-  for (int d=0; d<ndim; d++){
+  for (int d=0; d<order; d++){
     if (permutation[d] == NULL){
       depermutation[d] = NULL;
     } else {
@@ -344,7 +344,7 @@ void depermute_keys(int const                   ndim,
       wkey = pairs[i].k;
       lda = 1;
       knew = 0;
-      for (j=0; j<ndim; j++){
+      for (j=0; j<order; j++){
         kdim = wkey%new_edge_len[j];
         if (depermutation[j] != NULL){
           ASSERT(depermutation[j][kdim] != -1);
@@ -358,7 +358,7 @@ void depermute_keys(int const                   ndim,
       pairs[i].k = knew;
     }
   }
-  for (int d=0; d<ndim; d++){
+  for (int d=0; d<order; d++){
     if (permutation[d] != NULL)
       CTF_free(depermutation[d]);
   }
@@ -369,14 +369,14 @@ void depermute_keys(int const                   ndim,
 
 /**
  * \brief applies padding to keys
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] num_pair number of pairs
  * \param[in] edge_len tensor edge lengths
  * \param[in] padding padding of tensor (included in edge_len)
  * \param[in] offsets (default NULL, none applied), offsets keys
  */
 template<typename dtype>
-void pad_key(int const          ndim,
+void pad_key(int const          order,
              int64_t const     num_pair,
              int const *        edge_len,
              int const *        padding,
@@ -393,7 +393,7 @@ void pad_key(int const          ndim,
       k = pairs[i].k;
       lda = 1;
       knew = 0;
-      for (j=0; j<ndim; j++){
+      for (j=0; j<order; j++){
         knew += lda*(k%edge_len[j]);
         lda *= (edge_len[j]+padding[j]);
         k = k/edge_len[j];
@@ -408,7 +408,7 @@ void pad_key(int const          ndim,
       k = pairs[i].k;
       lda = 1;
       knew = 0;
-      for (j=0; j<ndim; j++){
+      for (j=0; j<order; j++){
         knew += lda*((k%edge_len[j])+offsets[j]);
         lda *= (edge_len[j]+padding[j]);
         k = k/edge_len[j];
@@ -421,7 +421,7 @@ void pad_key(int const          ndim,
 
 /**
  * \brief pads a tensor
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] num_pair number of pairs
  * \param[in] edge_len tensor edge lengths
  * \param[in] sym symmetries of tensor
@@ -434,7 +434,7 @@ void pad_key(int const          ndim,
  * \param[out] new_size number of new padded pairs
  */
 template<typename dtype>
-void pad_tsr(int const                ndim,
+void pad_tsr(int const                order,
              int64_t const           size,
              int const *              edge_len,
              int const *              sym,
@@ -449,20 +449,20 @@ void pad_tsr(int const                ndim,
   int64_t new_el, pad_el;
   int pad_max, virt_lda, outside, offset, edge_lda;
   int * idx;  
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&idx);
   tkv_pair<dtype> * padded_pairs;
   
   pad_el = 0;
  
   for (;;){ 
-    memset(idx, 0, ndim*sizeof(int));
+    memset(idx, 0, order*sizeof(int));
     for (;;){
       if (sym[0] != NS)
         pad_max = idx[1]+1;
       else
         pad_max = (edge_len[0]+padding[0])/phys_phase[0];
       pad_el+=pad_max;
-      for (act_lda=1; act_lda<ndim; act_lda++){
+      for (act_lda=1; act_lda<order; act_lda++){
         idx[act_lda]++;
         imax = (edge_len[act_lda]+padding[act_lda])/phys_phase[act_lda];
         if (sym[act_lda] != NS)
@@ -471,29 +471,29 @@ void pad_tsr(int const                ndim,
           idx[act_lda] = 0;
         if (idx[act_lda] != 0) break;      
       }
-      if (act_lda == ndim) break;
+      if (act_lda == order) break;
 
     }
-    for (act_lda=0; act_lda<ndim; act_lda++){
+    for (act_lda=0; act_lda<order; act_lda++){
       virt_phys_rank[act_lda]++;
       if (virt_phys_rank[act_lda]%virt_phase[act_lda]==0)
         virt_phys_rank[act_lda] -= virt_phase[act_lda];
       if (virt_phys_rank[act_lda]%virt_phase[act_lda]!=0) break;      
     }
-    if (act_lda == ndim) break;
+    if (act_lda == order) break;
   }
   CTF_alloc_ptr(pad_el*sizeof(tkv_pair<dtype>), (void**)&padded_pairs);
   new_el = 0;
   offset = 0;
   outside = -1;
   virt_lda=1;
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     offset += virt_phys_rank[i]*virt_lda;
     virt_lda*=(edge_len[i]+padding[i]);
   }
 
   for (;;){
-    memset(idx, 0, ndim*sizeof(int));
+    memset(idx, 0, order*sizeof(int));
     for (;;){
       if (sym[0] != NS){
         if (idx[1] < edge_len[0]/phys_phase[0]) {
@@ -529,7 +529,7 @@ void pad_tsr(int const                ndim,
       }
 
       edge_lda = edge_len[0]+padding[0];
-      for (act_lda=1; act_lda<ndim; act_lda++){
+      for (act_lda=1; act_lda<order; act_lda++){
         offset -= idx[act_lda]*edge_lda*phys_phase[act_lda];
         idx[act_lda]++;
         imax = (edge_len[act_lda]+padding[act_lda])/phys_phase[act_lda];
@@ -565,11 +565,11 @@ void pad_tsr(int const                ndim,
         if (idx[act_lda] != 0) break;      
         edge_lda*=(edge_len[act_lda]+padding[act_lda]);
       }
-      if (act_lda == ndim) break;
+      if (act_lda == order) break;
 
     }
     virt_lda = 1;
-    for (act_lda=0; act_lda<ndim; act_lda++){
+    for (act_lda=0; act_lda<order; act_lda++){
       offset -= virt_phys_rank[act_lda]*virt_lda;
       virt_phys_rank[act_lda]++;
       if (virt_phys_rank[act_lda]%virt_phase[act_lda]==0)
@@ -578,11 +578,11 @@ void pad_tsr(int const                ndim,
       if (virt_phys_rank[act_lda]%virt_phase[act_lda]!=0) break;      
       virt_lda*=(edge_len[act_lda]+padding[act_lda]);
     }
-    if (act_lda == ndim) break;
+    if (act_lda == order) break;
     
   }
   CTF_free(idx);
-  DEBUG_PRINTF("ndim = %d new_el="PRId64", size = "PRId64", pad_el = "PRId64"\n", ndim, new_el, size, pad_el);
+  DEBUG_PRINTF("order = %d new_el=" PRId64 ", size = " PRId64 ", pad_el = " PRId64 "\n", order, new_el, size, pad_el);
   ASSERT(new_el + size == pad_el);
   memcpy(padded_pairs+new_el, old_data,  size*sizeof(tkv_pair<dtype>));
   *new_pairs = padded_pairs;
@@ -594,7 +594,7 @@ void pad_tsr(int const                ndim,
 
 /**
  * \brief assigns keys to an array of values
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] size number of values
  * \param[in] nvirt total virtualization factor
  * \param[in] edge_len tensor edge lengths
@@ -606,7 +606,7 @@ void pad_tsr(int const                ndim,
  * \param[out] vpairs pairs of keys and inputted values
  */
 template<typename dtype>
-void assign_keys(int const          ndim,
+void assign_keys(int const          order,
                  int64_t const     size,
                  int const          nvirt,
                  int const *        edge_len,
@@ -621,7 +621,7 @@ void assign_keys(int const          ndim,
   int * idx, * virt_rank, * edge_lda;  
   dtype const * data;
   tkv_pair<dtype> * pairs;
-  if (ndim == 0){
+  if (order == 0){
     ASSERT(size <= 1);
     if (size == 1){
       vpairs[0].k = 0;
@@ -631,14 +631,14 @@ void assign_keys(int const          ndim,
   }
 
   TAU_FSTART(assign_keys);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&edge_lda);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&virt_rank);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&edge_lda);
   
-  memset(virt_rank, 0, sizeof(int)*ndim);
+  memset(virt_rank, 0, sizeof(int)*order);
   
   edge_lda[0] = 1;
-  for (i=1; i<ndim; i++){
+  for (i=1; i<order; i++){
     edge_lda[i] = edge_lda[i-1]*edge_len[i-1];
   }
   for (p=0;;p++){
@@ -646,12 +646,12 @@ void assign_keys(int const          ndim,
     pairs = vpairs + p*(size/nvirt);
 
     idx_offset = 0, buf_offset = 0;
-    for (act_lda=1; act_lda<ndim; act_lda++){
+    for (act_lda=1; act_lda<order; act_lda++){
       idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
     } 
   
     //printf("size = %d\n", size); 
-    memset(idx, 0, ndim*sizeof(int));
+    memset(idx, 0, order*sizeof(int));
     imax = edge_len[0]/phase[0];
     for (;;){
       if (sym[0] != NS)
@@ -660,7 +660,7 @@ void assign_keys(int const          ndim,
             for (i=0; i<imax; i++){
         ASSERT(buf_offset+i<size);
         if (p*(size/nvirt) + buf_offset + i >= size){ 
-          printf("exceeded how much I was supposed to read read "PRId64"/"PRId64"\n", p*(size/nvirt)+buf_offset+i,size);
+          printf("exceeded how much I was supposed to read read " PRId64 "/" PRId64 "\n", p*(size/nvirt)+buf_offset+i,size);
           ABORT;
         }
         pairs[buf_offset+i].k = idx_offset+i*phase[0]+phase_rank[0];
@@ -668,7 +668,7 @@ void assign_keys(int const          ndim,
       }
       buf_offset += imax;
       /* Increment indices and set up offsets */
-      for (act_lda=1; act_lda < ndim; act_lda++){
+      for (act_lda=1; act_lda < order; act_lda++){
         idx_offset -= (idx[act_lda]*phase[act_lda]+phase_rank[act_lda])
                 *edge_lda[act_lda];
         idx[act_lda]++;
@@ -682,9 +682,9 @@ void assign_keys(int const          ndim,
         if (idx[act_lda] > 0)
           break;
       }
-      if (act_lda >= ndim) break;
+      if (act_lda >= order) break;
     }
-    for (act_lda=0; act_lda < ndim; act_lda++){
+    for (act_lda=0; act_lda < order; act_lda++){
       phase_rank[act_lda] -= virt_rank[act_lda];
       virt_rank[act_lda]++;
       if (virt_rank[act_lda] >= virt_dim[act_lda])
@@ -693,7 +693,7 @@ void assign_keys(int const          ndim,
       if (virt_rank[act_lda] > 0)
         break;
     }
-    if (act_lda >= ndim) break;
+    if (act_lda >= order) break;
   }
   ASSERT(buf_offset == size/nvirt);
   CTF_free(idx);
@@ -707,7 +707,7 @@ void assign_keys(int const          ndim,
  * \brief optimized version of bucket_by_pe
  */
 template <typename dtype>
-void bucket_by_pe( int const                ndim,
+void bucket_by_pe( int const                order,
                    int64_t const           num_pair,
                    int const                np,
                    int const *              phase,
@@ -722,11 +722,11 @@ void bucket_by_pe( int const                ndim,
 //  int * inv_edge_len, * inv_virt_phase;
   key k;
 
-/*  CTF_alloc_ptr(ndim*sizeof(int), (void**)&inv_edge_len);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&inv_virt_phase);
+/*  CTF_alloc_ptr(order*sizeof(int), (void**)&inv_edge_len);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&inv_virt_phase);
 
 
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     inv_edge_len[i]
   }*/
 
@@ -747,15 +747,15 @@ void bucket_by_pe( int const                ndim,
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;
     loc = 0;
-//    int tmp_arr[ndim];
-    for (j=0; j<ndim; j++){
+//    int tmp_arr[order];
+    for (j=0; j<order; j++){
 /*      tmp_arr[j] = (k%edge_len[j])%phase[j];
       tmp_arr[j] = tmp_arr[j]/virt_phase[j];
       tmp_arr[j] = tmp_arr[j]*bucket_lda[j];*/
       loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
       k = k/edge_len[j];
     }
-/*    for (j=0; j<ndim; j++){
+/*    for (j=0; j<order; j++){
       loc += tmp_arr[j];
     }*/
     ASSERT(loc<np);
@@ -801,7 +801,7 @@ void bucket_by_pe( int const                ndim,
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;
     loc = 0;
-    for (j=0; j<ndim; j++){
+    for (j=0; j<order; j++){
       loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
       k = k/edge_len[j];
     }
@@ -825,7 +825,7 @@ void bucket_by_pe( int const                ndim,
  * \brief optimized version of bucket_by_virt
  */
 template <typename dtype>
-void bucket_by_virt(int const               ndim,
+void bucket_by_virt(int const               order,
                     int const               num_virt,
                     int64_t const          num_pair,
                     int const *             virt_phase,
@@ -839,12 +839,12 @@ void bucket_by_virt(int const               ndim,
   
   CTF_alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_counts);
   CTF_alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_prefix);
-  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&virt_lda);
+  CTF_alloc_ptr(order*sizeof(int64_t), (void**)&virt_lda);
  
  
-  if (ndim > 0){
+  if (order > 0){
     virt_lda[0] = 1;
-    for (i=1; i<ndim; i++){
+    for (i=1; i<order; i++){
       ASSERT(virt_phase[i] > 0);
       virt_lda[i] = virt_phase[i-1]*virt_lda[i-1];
     }
@@ -866,7 +866,7 @@ void bucket_by_virt(int const               ndim,
     k = mapped_data[i].k;
     loc = 0;
     //#pragma unroll
-    for (j=0; j<ndim; j++){
+    for (j=0; j<order; j++){
       loc += (k%virt_phase[j])*virt_lda[j];
       k = k/edge_len[j];
     }
@@ -899,7 +899,7 @@ void bucket_by_virt(int const               ndim,
     k = mapped_data[i].k;
     loc = 0;
     //#pragma unroll
-    for (j=0; j<ndim; j++){
+    for (j=0; j<order; j++){
       loc += (k%virt_phase[j])*virt_lda[j];
       k = k/edge_len[j];
     }
@@ -912,7 +912,7 @@ void bucket_by_virt(int const               ndim,
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;
     loc = 0;
-    for (j=0; j<ndim; j++){
+    for (j=0; j<order; j++){
       loc += (k%virt_phase[j])*virt_lda[j];
       k = k/edge_len[j];
     }
@@ -928,7 +928,7 @@ void bucket_by_virt(int const               ndim,
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;
     loc = 0;
-    for (j=0; j<ndim; j++){
+    for (j=0; j<order; j++){
       loc += (k%virt_phase[j])*virt_lda[j];
       k = k/edge_len[j];
     }
@@ -964,7 +964,7 @@ void bucket_by_virt(int const               ndim,
 
 /**
  * \brief assigns keys to an array of values
- * \param[in] ndim tensor dimension
+ * \param[in] order tensor dimension
  * \param[in] size number of values
  * \param[in] nvirt total virtualization factor
  * \param[in] edge_len tensor edge lengths with padding
@@ -976,7 +976,7 @@ void bucket_by_virt(int const               ndim,
  * \param[in,out] vdata array of all local data
  */
 template<typename dtype>
-void zero_padding( int const          ndim,
+void zero_padding( int const          order,
                    int64_t const     size,
                    int const          nvirt,
                    int const *        edge_len,
@@ -986,7 +986,7 @@ void zero_padding( int const          ndim,
                    int const *        virt_dim,
                    int const *        cphase_rank,
                    dtype *            vdata){
-  if (ndim == 0) return;
+  if (order == 0) return;
   TAU_FSTART(zero_padding);
 #ifdef USE_OMP
 #pragma omp parallel
@@ -998,16 +998,16 @@ void zero_padding( int const          ndim,
   int * idx, * virt_rank, * phase_rank, * virt_len;
   dtype* data;
 
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&phase_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_len);
-  for (int dim=0; dim<ndim; dim++){
+  CTF_alloc_ptr(order*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&virt_rank);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&phase_rank);
+  CTF_alloc_ptr(order*sizeof(int), (void**)&virt_len);
+  for (int dim=0; dim<order; dim++){
     virt_len[dim] = edge_len[dim]/phase[dim];
   }
 
-  memcpy(phase_rank, cphase_rank, ndim*sizeof(int));
-  memset(virt_rank, 0, sizeof(int)*ndim);
+  memcpy(phase_rank, cphase_rank, order*sizeof(int));
+  memset(virt_rank, 0, sizeof(int)*order);
 
   int tid, ntd, vst, vend;
 #ifdef USE_OMP
@@ -1041,20 +1041,20 @@ void zero_padding( int const          ndim,
     st_index = st_chunk-vst*vrt_sz;
     end_index = end_chunk-(vend-1)*vrt_sz;
   
-    CTF_alloc_ptr(ndim*sizeof(int), (void**)&st_idx);
-    CTF_alloc_ptr(ndim*sizeof(int), (void**)&end_idx);
+    CTF_alloc_ptr(order*sizeof(int), (void**)&st_idx);
+    CTF_alloc_ptr(order*sizeof(int), (void**)&end_idx);
 
     int * ssym;
-    CTF_alloc_ptr(ndim*sizeof(int), (void**)&ssym);
-    for (int dim=0;dim<ndim;dim++){
+    CTF_alloc_ptr(order*sizeof(int), (void**)&ssym);
+    for (int dim=0;dim<order;dim++){
       if (sym[dim] != NS) ssym[dim] = SY;
       else ssym[dim] = NS;
     }
   
     //calculate index with all indices, to properly load balance with symmetry
     //then clip the first index to avoid logic inside the inner loop
-    calc_idx_arr(ndim, virt_len, ssym, st_index, st_idx);
-    calc_idx_arr(ndim, virt_len, ssym, end_index, end_idx);
+    calc_idx_arr(order, virt_len, ssym, st_index, st_idx);
+    calc_idx_arr(order, virt_len, ssym, end_index, end_idx);
 
     CTF_free(ssym);
 
@@ -1082,21 +1082,21 @@ void zero_padding( int const          ndim,
 
       if (p==vst && st_index != 0){
         idx[0] = 0;
-        memcpy(idx+1,st_idx+1,(ndim-1)*sizeof(int));
+        memcpy(idx+1,st_idx+1,(order-1)*sizeof(int));
         buf_offset = st_index;
       } else {
         buf_offset = 0;
-        memset(idx, 0, ndim*sizeof(int));
+        memset(idx, 0, order*sizeof(int));
       }
       
       for (;;){
         is_outside = 0;
-        for (i=1; i<ndim; i++){
+        for (i=1; i<order; i++){
           curr_idx = idx[i]*phase[i]+phase_rank[i];
           if (curr_idx >= edge_len[i] - padding[i]){
             is_outside = 1;
             break;
-          } else if (i < ndim-1) {
+          } else if (i < order-1) {
             sym_idx   = idx[i+1]*phase[i+1]+phase_rank[i+1];
             if (((sym[i] == AS || sym[i] == SH) && curr_idx >= sym_idx) ||
                 ( sym[i] == SY                  && curr_idx >  sym_idx) ) {
@@ -1105,11 +1105,11 @@ void zero_padding( int const          ndim,
             }
           }
         }
-/*        for (i=0; i<ndim; i++){
+/*        for (i=0; i<order; i++){
           printf("phase_rank[%d] = %d, idx[%d] = %d, ",i,phase_rank[i],i,idx[i]);
         }
         printf("\n");
-        printf("data["PRId64"]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
+        printf("data[" PRId64 "]=%lf is_outside = %d\n", buf_offset+p*(size/nvirt), data[buf_offset], is_outside);*/
   
         if (sym[0] != NS) plen0 = idx[1]+1;
 
@@ -1129,7 +1129,7 @@ void zero_padding( int const          ndim,
         buf_offset+=plen0;
         if (p == vend-1 && buf_offset >= end_index) break;
         /* Increment indices and set up offsets */
-        for (i=1; i < ndim; i++){
+        for (i=1; i < order; i++){
           idx[i]++;
           act_max = virt_len[i];
           if (sym[i] != NS){
@@ -1143,10 +1143,10 @@ void zero_padding( int const          ndim,
           if (idx[i] > 0)
             break;
         }
-        if (i >= ndim) break;
+        if (i >= order) break;
       }
     }
-    for (act_lda=0; act_lda < ndim; act_lda++){
+    for (act_lda=0; act_lda < order; act_lda++){
       phase_rank[act_lda] -= virt_rank[act_lda];
       virt_rank[act_lda]++;
       if (virt_rank[act_lda] >= virt_dim[act_lda])

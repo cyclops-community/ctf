@@ -29,10 +29,10 @@ class tsum_virt : public tsum {
 
     int num_dim;
     int * virt_dim;
-    int ndim_A;
+    int order_A;
     int64_t blk_sz_A;
     int const * idx_map_A;
-    int ndim_B;
+    int order_B;
     int64_t blk_sz_B;
     int const * idx_map_B;
     

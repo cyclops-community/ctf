@@ -19,20 +19,20 @@ void BLACS_GRIDINFO(int *, int *, int *, int *, int *) { assert(0); }
 template<typename dtype, int is_herm_A, int is_herm_B>
 int gemm_ctr(  dtype  const     alpha,
                dtype  const *   A,
-               int const        ndim_A,
+               int const        order_A,
                int const *      edge_len_A,
                int const *      lda_A,
                int const *      sym_A,
                int const *      idx_map_A,
                dtype  const *   B,
-               int const        ndim_B,
+               int const        order_B,
                int const *      edge_len_B,
                int const *      lda_B,
                int const *      sym_B,
                int const *      idx_map_B,
                dtype  const     beta,
                dtype  *         C,
-               int const        ndim_C,
+               int const        order_C,
                int const *      edge_len_C,
                int const *      lda_C,
                int const *      sym_C,
@@ -40,9 +40,9 @@ int gemm_ctr(  dtype  const     alpha,
   char ta, tb;
   int n, m, k;
   int la_A, la_B, la_C;
-  ASSERT(ndim_A == 2);
-  ASSERT(ndim_B == 2);
-  ASSERT(ndim_C == 2);
+  ASSERT(order_A == 2);
+  ASSERT(order_B == 2);
+  ASSERT(order_C == 2);
 
   if (idx_map_A[0] == 0){
     k = edge_len_A[0];
@@ -115,20 +115,20 @@ template                                                \
 int gemm_ctr< type , herm_A, herm_B>                    \
                     (type const alpha,                  \
                      type const *       A,              \
-                     int const          ndim_A,         \
+                     int const          order_A,         \
                      int const *        edge_len_A,     \
                      int const *        lda_A,          \
                      int const *        sym_A,          \
                      int const *        idx_map_A,      \
                      type const *       B,              \
-                     int const          ndim_B,         \
+                     int const          order_B,         \
                      int const *        edge_len_B,     \
                      int const *        lda_B,          \
                      int const *        sym_B,          \
                      int const *        idx_map_B,      \
                      type const         beta,           \
                      type *             C,              \
-                     int const          ndim_C,         \
+                     int const          order_C,         \
                      int const *        edge_len_C,     \
                      int const *        lda_C,          \
                      int const *        sym_C,          \
@@ -266,7 +266,7 @@ int dist_tensor<dtype>::load_matrix
       }
     }
   }
-  tsr->ndim = 2;
+  tsr->order = 2;
   tsr->edge_len = (int*)CTF_alloc(sizeof(int)*2);
   tsr->sym = (int*)CTF_alloc(sizeof(int)*2);
   tsr->sym_table = (int*)CTF_alloc(4*sizeof(int));
@@ -287,8 +287,8 @@ int dist_tensor<dtype>::load_matrix
   itopo = -1;
   for (i=0; i<(int)topovec.size(); i++){
     topo = &topovec[i];
-    if ((nrep == 1 && nprow == 1 && npcol == 1 && topo->ndim == 0) ||
-        (nrep > 1 && nprow == 1 && npcol == 1 && topo->ndim == 1)){
+    if ((nrep == 1 && nprow == 1 && npcol == 1 && topo->order == 0) ||
+        (nrep > 1 && nprow == 1 && npcol == 1 && topo->order == 1)){
       tsr->itopo = i;
       tsr->edge_map[0].type = VIRTUAL_MAP;
       tsr->edge_map[1].type = VIRTUAL_MAP;
@@ -297,8 +297,8 @@ int dist_tensor<dtype>::load_matrix
       itopo = i;
       break;
     }
-    if ((nrep == 1 && npcol == 1 && topo->ndim == 1) ||
-        (nrep != 1 && npcol == 1 && topo->ndim == 2)){
+    if ((nrep == 1 && npcol == 1 && topo->order == 1) ||
+        (nrep != 1 && npcol == 1 && topo->order == 2)){
       if (topo->dim_comm[0].np == nprow && 
           topo->dim_comm[0].rank == myprow){
         tsr->itopo = i;
@@ -311,8 +311,8 @@ int dist_tensor<dtype>::load_matrix
         break;
       }
     }
-    if ((nrep == 1 && nprow == 1 && topo->ndim == 1) ||
-        (nrep != 1 && nprow == 1 && topo->ndim == 2)){
+    if ((nrep == 1 && nprow == 1 && topo->order == 1) ||
+        (nrep != 1 && nprow == 1 && topo->order == 2)){
       if (nrep == 1){
         if (topo->dim_comm[0].np == npcol && 
             topo->dim_comm[0].rank == mypcol){
@@ -340,7 +340,7 @@ int dist_tensor<dtype>::load_matrix
       }
     }
 
-    if ((nrep == 1 && topo->ndim == 2) || (nrep > 1 && topo->ndim == 3)){
+    if ((nrep == 1 && topo->order == 2) || (nrep > 1 && topo->order == 3)){
       if (topo->dim_comm[0].np == nprow && 
           topo->dim_comm[0].rank == myprow){
         if (nrep == 1){

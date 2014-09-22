@@ -7,11 +7,11 @@
 seq_tsr_scl::seq_tsr_scl(scl * other) : scl(other) {
   seq_tsr_scl * o = (seq_tsr_scl*)other;
   
-  ndim          = o->ndim;
+  order          = o->order;
   idx_map       = o->idx_map;
   sym           = o->sym;
-  edge_len      = (int*)CTF_alloc(sizeof(int)*ndim);
-  memcpy(edge_len, o->edge_len, sizeof(int)*ndim);
+  edge_len      = (int*)CTF_alloc(sizeof(int)*order);
+  memcpy(edge_len, o->edge_len, sizeof(int)*order);
 
   func_ptr = o->func_ptr;
 }
@@ -32,7 +32,7 @@ int64_t seq_tsr_scl::mem_fp(){ return 0; }
 void seq_tsr_scl::run(){
   func_ptr.func_ptr(this->alpha,
                     this->A,
-                    ndim,
+                    order,
                     edge_len,
                     edge_len,
                     sym,
@@ -42,7 +42,7 @@ void seq_tsr_scl::run(){
 void seq_tsr_scl::print(){
   int i;
   printf("seq_tsr_scl:\n");
-  for (i=0; i<ndim; i++){
+  for (i=0; i<order; i++){
     printf("edge_len[%d]=%d\n",i,edge_len[i]);
   }
 }
@@ -54,17 +54,17 @@ void seq_tsr_scl::print(){
 seq_tsr_sum::seq_tsr_sum(tsum * other) : tsum(other) {
   seq_tsr_sum * o = (seq_tsr_sum*)other;
   
-  ndim_A        = o->ndim_A;
+  order_A        = o->order_A;
   idx_map_A     = o->idx_map_A;
   sym_A         = o->sym_A;
-  edge_len_A    = (int*)CTF_alloc(sizeof(int)*ndim_A);
-  memcpy(edge_len_A, o->edge_len_A, sizeof(int)*ndim_A);
+  edge_len_A    = (int*)CTF_alloc(sizeof(int)*order_A);
+  memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
 
-  ndim_B        = o->ndim_B;
+  order_B        = o->order_B;
   idx_map_B     = o->idx_map_B;
   sym_B         = o->sym_B;
-  edge_len_B    = (int*)CTF_alloc(sizeof(int)*ndim_B);
-  memcpy(edge_len_B, o->edge_len_B, sizeof(int)*ndim_B);
+  edge_len_B    = (int*)CTF_alloc(sizeof(int)*order_B);
+  memcpy(edge_len_B, o->edge_len_B, sizeof(int)*order_B);
   
   is_inner      = o->is_inner;
   inr_stride    = o->inr_stride;
@@ -75,10 +75,10 @@ seq_tsr_sum::seq_tsr_sum(tsum * other) : tsum(other) {
 void seq_tsr_sum::print(){
   int i;
   printf("seq_tsr_sum:\n");
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     printf("edge_len_A[%d]=%d\n",i,edge_len_A[i]);
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     printf("edge_len_B[%d]=%d\n",i,edge_len_B[i]);
   }
   printf("is inner = %d\n", is_inner);
@@ -103,14 +103,14 @@ void seq_tsr_sum::run(){
     sym_seq_sum_cust(
                     this->alpha,
                     this->A,
-                    ndim_A,
+                    order_A,
                     edge_len_A,
                     edge_len_A,
                     sym_A,
                     idx_map_A,
                     this->beta,
                     this->B,
-                    ndim_B,
+                    order_B,
                     edge_len_B,
                     edge_len_B,
                     sym_B,
@@ -119,14 +119,14 @@ void seq_tsr_sum::run(){
   } else if (is_inner){
     sym_seq_sum_inr(this->alpha,
                     this->A,
-                    ndim_A,
+                    order_A,
                     edge_len_A,
                     edge_len_A,
                     sym_A,
                     idx_map_A,
                     this->beta,
                     this->B,
-                    ndim_B,
+                    order_B,
                     edge_len_B,
                     edge_len_B,
                     sym_B,
@@ -135,14 +135,14 @@ void seq_tsr_sum::run(){
   } else {
     func_ptr.func_ptr(this->alpha,
                       this->A,
-                      ndim_A,
+                      order_A,
                       edge_len_A,
                       edge_len_A,
                       sym_A,
                       idx_map_A,
                       this->beta,
                       this->B,
-                      ndim_B,
+                      order_B,
                       edge_len_B,
                       edge_len_B,
                       sym_B,
@@ -153,13 +153,13 @@ void seq_tsr_sum::run(){
 void seq_tsr_ctr::print(){
   int i;
   printf("seq_tsr_ctr:\n");
-  for (i=0; i<ndim_A; i++){
+  for (i=0; i<order_A; i++){
     printf("edge_len_A[%d]=%d\n",i,edge_len_A[i]);
   }
-  for (i=0; i<ndim_B; i++){
+  for (i=0; i<order_B; i++){
     printf("edge_len_B[%d]=%d\n",i,edge_len_B[i]);
   }
-  for (i=0; i<ndim_C; i++){
+  for (i=0; i<order_C; i++){
     printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
   }
   printf("is inner = %d\n", is_inner);
@@ -174,26 +174,26 @@ seq_tsr_ctr::seq_tsr_ctr(ctr * other) : ctr(other) {
   seq_tsr_ctr * o = (seq_tsr_ctr*)other;
   alpha = o->alpha;
   
-  ndim_A        = o->ndim_A;
+  order_A        = o->order_A;
   idx_map_A     = o->idx_map_A;
-  sym_A         = (int*)CTF_alloc(sizeof(int)*ndim_A);
-  memcpy(sym_A, o->sym_A, sizeof(int)*ndim_A);
-  edge_len_A    = (int*)CTF_alloc(sizeof(int)*ndim_A);
-  memcpy(edge_len_A, o->edge_len_A, sizeof(int)*ndim_A);
+  sym_A         = (int*)CTF_alloc(sizeof(int)*order_A);
+  memcpy(sym_A, o->sym_A, sizeof(int)*order_A);
+  edge_len_A    = (int*)CTF_alloc(sizeof(int)*order_A);
+  memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
 
-  ndim_B        = o->ndim_B;
+  order_B        = o->order_B;
   idx_map_B     = o->idx_map_B;
-  sym_B         = (int*)CTF_alloc(sizeof(int)*ndim_B);
-  memcpy(sym_B, o->sym_B, sizeof(int)*ndim_B);
-  edge_len_B    = (int*)CTF_alloc(sizeof(int)*ndim_B);
-  memcpy(edge_len_B, o->edge_len_B, sizeof(int)*ndim_B);
+  sym_B         = (int*)CTF_alloc(sizeof(int)*order_B);
+  memcpy(sym_B, o->sym_B, sizeof(int)*order_B);
+  edge_len_B    = (int*)CTF_alloc(sizeof(int)*order_B);
+  memcpy(edge_len_B, o->edge_len_B, sizeof(int)*order_B);
 
-  ndim_C        = o->ndim_C;
+  order_C        = o->order_C;
   idx_map_C     = o->idx_map_C;
-  sym_C         = (int*)CTF_alloc(sizeof(int)*ndim_C);
-  memcpy(sym_C, o->sym_C, sizeof(int)*ndim_C);
-  edge_len_C    = (int*)CTF_alloc(sizeof(int)*ndim_C);
-  memcpy(edge_len_C, o->edge_len_C, sizeof(int)*ndim_C);
+  sym_C         = (int*)CTF_alloc(sizeof(int)*order_C);
+  memcpy(sym_C, o->sym_C, sizeof(int)*order_C);
+  edge_len_C    = (int*)CTF_alloc(sizeof(int)*order_C);
+  memcpy(edge_len_C, o->edge_len_C, sizeof(int)*order_C);
 
   is_inner      = o->is_inner;
   inner_params  = o->inner_params;
@@ -214,9 +214,9 @@ ctr * seq_tsr_ctr::clone() {
 int64_t seq_tsr_ctr::mem_fp(){ return 0; }
 
 double seq_tsr_ctr::est_time_fp(int nlyr){ 
-  uint64_t size_A = sy_packed_size(ndim_A, edge_len_A, sym_A);
-  uint64_t size_B = sy_packed_size(ndim_B, edge_len_B, sym_B);
-  uint64_t size_C = sy_packed_size(ndim_C, edge_len_C, sym_C);
+  uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A);
+  uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B);
+  uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C);
   if (is_inner) size_A *= inner_params.m*inner_params.k*el_size;
   if (is_inner) size_B *= inner_params.n*inner_params.k*el_size;
   if (is_inner) size_C *= inner_params.m*inner_params.n*el_size;
@@ -226,9 +226,9 @@ double seq_tsr_ctr::est_time_fp(int nlyr){
   ASSERT(size_C > 0);
 
   int idx_max, * rev_idx_map; 
-  inv_idx(ndim_A,       idx_map_A,
-          ndim_B,       idx_map_B,
-          ndim_C,       idx_map_C,
+  inv_idx(order_A,       idx_map_A,
+          order_B,       idx_map_B,
+          order_C,       idx_map_C,
           &idx_max,     &rev_idx_map);
 
   double flops = 2.0;
@@ -260,20 +260,20 @@ void seq_tsr_ctr::run(){
     sym_seq_ctr_cust(
                     this->alpha,
                     this->A,
-                    ndim_A,
+                    order_A,
                     edge_len_A,
                     edge_len_A,
                     sym_A,
                     idx_map_A,
                     this->B,
-                    ndim_B,
+                    order_B,
                     edge_len_B,
                     edge_len_B,
                     sym_B,
                     idx_map_B,
                     this->beta,
                     this->C,
-                    ndim_C,
+                    order_C,
                     edge_len_C,
                     edge_len_C,
                     sym_C,
@@ -282,20 +282,20 @@ void seq_tsr_ctr::run(){
   } else if (is_inner){
     sym_seq_ctr_inr(this->alpha,
                     this->A,
-                    ndim_A,
+                    order_A,
                     edge_len_A,
                     edge_len_A,
                     sym_A,
                     idx_map_A,
                     this->B,
-                    ndim_B,
+                    order_B,
                     edge_len_B,
                     edge_len_B,
                     sym_B,
                     idx_map_B,
                     this->beta,
                     this->C,
-                    ndim_C,
+                    order_C,
                     edge_len_C,
                     edge_len_C,
                     sym_C,
@@ -304,20 +304,20 @@ void seq_tsr_ctr::run(){
   } else {
     func_ptr.func_ptr(this->alpha,
                       this->A,
-                      ndim_A,
+                      order_A,
                       edge_len_A,
                       edge_len_A,
                       sym_A,
                       idx_map_A,
                       this->B,
-                      ndim_B,
+                      order_B,
                       edge_len_B,
                       edge_len_B,
                       sym_B,
                       idx_map_B,
                       this->beta,
                       this->C,
-                      ndim_C,
+                      order_C,
                       edge_len_C,
                       edge_len_C,
                       sym_C,

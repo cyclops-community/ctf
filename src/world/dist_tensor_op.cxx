@@ -113,7 +113,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
 
   if (tsr->is_mapped){
     idx_lyr = global_comm.rank;
-    for (i=0; i<tsr->ndim; i++){
+    for (i=0; i<tsr->order; i++){
       map = &tsr->edge_map[i];
       if (map->type == PHYSICAL_MAP){
         idx_lyr -= topovec[tsr->itopo].dim_comm[map->cdt].rank
@@ -129,7 +129,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
     }
   }
   is_asym = 0;
-  for (i=0; i<tsr->ndim; i++){
+  for (i=0; i<tsr->order; i++){
     if (tsr->sym[i] == AS)
       is_asym = 1;
   }
@@ -139,8 +139,8 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       if (is_asym) {
         *result = 0.0;
       } else {
-        CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
-        for (i=0; i<tsr->ndim; i++){
+        CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)&idx_map);
+        for (i=0; i<tsr->order; i++){
           idx_map[i] = i;
         }
         define_tensor(0, NULL, NULL, &tid_scal, 1);
@@ -172,9 +172,9 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
 
     case CTF_OP_NORM1:
     case CTF_OP_SUMABS:
-      CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
+      CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)&idx_map);
       is_AS = 0;
-      for (i=0; i<tsr->ndim; i++){
+      for (i=0; i<tsr->order; i++){
         idx_map[i] = i;
         if (tsr->sym[i] == AS) is_AS = 1;
       }
@@ -183,8 +183,8 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       felm.func_ptr = sum_abs;
       if (is_AS){
         int * sh_sym, * save_sym;
-        CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&sh_sym);
-        for (i=0; i<tsr->ndim; i++){
+        CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)&sh_sym);
+        for (i=0; i<tsr->order; i++){
           if (tsr->sym[i] == AS) sh_sym[i] = SH;
           else sh_sym[i] = tsr->sym[i];
         }
@@ -221,8 +221,8 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
       break;
 
     case CTF_OP_NORM2:
-      CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&idx_map);
-      for (i=0; i<tsr->ndim; i++){
+      CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)&idx_map);
+      for (i=0; i<tsr->order; i++){
         idx_map[i] = i;
       }
       define_tensor(0, NULL, NULL, &tid_scal, 1);
@@ -358,7 +358,7 @@ int dist_tensor<double>::red_tsr(int const tid, CTF_OP op, double * result){
  */
 template<typename dtype>
 int dist_tensor<dtype>::map_tsr(int const tid,
-                                dtype (*map_func)(int const ndim,
+                                dtype (*map_func)(int const order,
                                                   int const * indices,
                                                   dtype const elem)){
   int64_t i, j, np, stat;
@@ -374,7 +374,7 @@ int dist_tensor<dtype>::map_tsr(int const tid,
   unmap_inner(tsr);
   set_padding(tsr);
 
-  CTF_alloc_ptr(tsr->ndim*sizeof(int), (void**)&idx);
+  CTF_alloc_ptr(tsr->order*sizeof(int), (void**)&idx);
 
   /* Extract key-value pair representation */
   if (tsr->is_mapped){
@@ -387,11 +387,11 @@ int dist_tensor<dtype>::map_tsr(int const tid,
   /* Extract location from key and map */
   for (i=0; i<np; i++){
     k = prs[i].k;
-    for (j=0; j<tsr->ndim; j++){
+    for (j=0; j<tsr->order; j++){
       idx[j] = k%tsr->edge_len[j];
       k = k/tsr->edge_len[j];
     }
-    prs[i].d = map_func(tsr->ndim, idx, prs[i].d);
+    prs[i].d = map_func(tsr->order, idx, prs[i].d);
   }
   /* Rewrite pairs to packed layout */
   if (tsr->is_mapped){
@@ -446,7 +446,7 @@ int dist_tensor<dtype>::
                int const *                idx_map,
                fseq_tsr_scl<dtype> const  ftsr,
                fseq_elm_scl<dtype> const  felm){
-  int st, is_top, ndim_tot, iA,  ret, was_cyclic, itopo, btopo;
+  int st, is_top, order_tot, iA,  ret, was_cyclic, itopo, btopo;
   int64_t blk_sz, vrt_sz, old_size;
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda,
       * old_padding, * old_edge_len;
@@ -470,7 +470,7 @@ int dist_tensor<dtype>::
   if (global_comm.rank == 0){
     printf("Scaling tensor %d by %lf.\n", tid, GET_REAL(alpha));
     printf("The index mapping is");
-    for (int i=0; i<tsr->ndim; i++){
+    for (int i=0; i<tsr->order; i++){
       printf(" %d",idx_map[i]);
     }
     printf("\n");
@@ -490,7 +490,7 @@ int dist_tensor<dtype>::
     ntsr->is_home = 1;
     ntsr->is_mapped = 1;
     ntsr->itopo = tsr->itopo;
-    copy_mapping(tsr->ndim, tsr->edge_map, ntsr->edge_map);
+    copy_mapping(tsr->order, tsr->edge_map, ntsr->edge_map);
     set_padding(ntsr);
   } else ntsr = tsr;    
 #else
@@ -499,12 +499,12 @@ int dist_tensor<dtype>::
 #endif
   unmap_inner(ntsr);
   set_padding(ntsr);
-  inv_idx(ntsr->ndim, idx_map, ntsr->edge_map,
-          &ndim_tot, &idx_arr);
+  inv_idx(ntsr->order, idx_map, ntsr->edge_map,
+          &order_tot, &idx_arr);
 
-  CTF_alloc_ptr(sizeof(int)*ntsr->ndim, (void**)&blk_len);
-  CTF_alloc_ptr(sizeof(int)*ntsr->ndim, (void**)&virt_blk_len);
-  CTF_alloc_ptr(sizeof(int)*ndim_tot, (void**)&virt_dim);
+  CTF_alloc_ptr(sizeof(int)*ntsr->order, (void**)&blk_len);
+  CTF_alloc_ptr(sizeof(int)*ntsr->order, (void**)&virt_blk_len);
+  CTF_alloc_ptr(sizeof(int)*order_tot, (void**)&virt_dim);
 
   bool saved_map = false;
 
@@ -520,7 +520,7 @@ int dist_tensor<dtype>::
       ntsr->itopo = itopo;
       ret = map_self_indices(ntid, idx_map);
       if (ret!=CTF_SUCCESS) continue;
-      ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
+      ret = map_tensor_rem(topovec[ntsr->itopo].order,
                            topovec[ntsr->itopo].dim_comm, ntsr, 0);
       if (ret!=CTF_SUCCESS) continue;
       ret = map_self_indices(ntid, idx_map);
@@ -568,7 +568,7 @@ int dist_tensor<dtype>::
     ntsr->itopo = btopo;
     ret = map_self_indices(ntid, idx_map);
     if (ret!=CTF_SUCCESS) ABORT;
-    ret = map_tensor_rem(topovec[ntsr->itopo].ndim,
+    ret = map_tensor_rem(topovec[ntsr->itopo].order,
                          topovec[ntsr->itopo].dim_comm, ntsr, 0);
     if (ret!=CTF_SUCCESS) ABORT;
     ret = map_self_indices(ntid, idx_map);
@@ -589,10 +589,10 @@ int dist_tensor<dtype>::
   }
 
   blk_sz = ntsr->size;
-  calc_dim(ntsr->ndim, blk_sz, ntsr->edge_len, ntsr->edge_map,
+  calc_dim(ntsr->order, blk_sz, ntsr->edge_len, ntsr->edge_map,
            &vrt_sz, virt_blk_len, blk_len);
 
-  st = strip_diag<dtype>(ntsr->ndim, ndim_tot, idx_map, vrt_sz,
+  st = strip_diag<dtype>(ntsr->order, order_tot, idx_map, vrt_sz,
                          ntsr->edge_map, &topovec[ntsr->itopo],
                          blk_len, &blk_sz, &str);
   if (st){
@@ -607,7 +607,7 @@ int dist_tensor<dtype>::
   }
 
   nvirt = 1;
-  for (int i=0; i<ndim_tot; i++){
+  for (int i=0; i<order_tot; i++){
     iA = idx_arr[i];
     if (iA != -1){
       map = &ntsr->edge_map[iA];
@@ -632,9 +632,9 @@ int dist_tensor<dtype>::
     }
     rec_scl = &sclv->rec_scl;
 
-    sclv->num_dim   = ndim_tot;
+    sclv->num_dim   = order_tot;
     sclv->virt_dim  = virt_dim;
-    sclv->ndim_A  = ntsr->ndim;
+    sclv->order_A  = ntsr->order;
     sclv->blk_sz_A  = vrt_sz;
     sclv->idx_map_A = idx_map;
     sclv->buffer  = NULL;
@@ -648,7 +648,7 @@ int dist_tensor<dtype>::
     *rec_scl = sclseq;
   }
   sclseq->alpha         = alpha;
-  sclseq->ndim          = ntsr->ndim;
+  sclseq->order          = ntsr->order;
   sclseq->idx_map       = idx_map;
   sclseq->edge_len      = virt_blk_len;
   sclseq->sym           = ntsr->sym;
@@ -754,7 +754,7 @@ tsum<dtype> * dist_tensor<dtype>::
                   fseq_tsr_sum<dtype> const   ftsr,
                   fseq_elm_sum<dtype> const   felm,
                   int const                   inner_stride){
-  int nvirt, i, iA, iB, ndim_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
+  int nvirt, i, iA, iB, order_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
   int64_t blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
   int nphys_dim;
   int * idx_arr, * virt_dim, * phys_mapped;
@@ -770,17 +770,17 @@ tsum<dtype> * dist_tensor<dtype>::
   tsr_A = tensors[tid_A];
   tsr_B = tensors[tid_B];
 
-  inv_idx(tsr_A->ndim, idx_A, tsr_A->edge_map,
-          tsr_B->ndim, idx_B, tsr_B->edge_map,
-          &ndim_tot, &idx_arr);
+  inv_idx(tsr_A->order, idx_A, tsr_A->edge_map,
+          tsr_B->order, idx_B, tsr_B->edge_map,
+          &order_tot, &idx_arr);
 
-  nphys_dim = topovec[tsr_A->itopo].ndim;
+  nphys_dim = topovec[tsr_A->itopo].order;
 
-  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&blk_len_A);
-  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&blk_len_B);
-  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&virt_blk_len_A);
-  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&virt_blk_len_B);
-  CTF_alloc_ptr(sizeof(int)*ndim_tot, (void**)&virt_dim);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->order, (void**)&blk_len_A);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->order, (void**)&blk_len_B);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->order, (void**)&virt_blk_len_A);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->order, (void**)&virt_blk_len_B);
+  CTF_alloc_ptr(sizeof(int)*order_tot, (void**)&virt_dim);
   CTF_alloc_ptr(sizeof(int)*nphys_dim*2, (void**)&phys_mapped);
   memset(phys_mapped, 0, sizeof(int)*nphys_dim*2);
 
@@ -788,16 +788,16 @@ tsum<dtype> * dist_tensor<dtype>::
   /* Determine the block dimensions of each local subtensor */
   blk_sz_A = tsr_A->size;
   blk_sz_B = tsr_B->size;
-  calc_dim(tsr_A->ndim, blk_sz_A, tsr_A->edge_len, tsr_A->edge_map,
+  calc_dim(tsr_A->order, blk_sz_A, tsr_A->edge_len, tsr_A->edge_map,
            &vrt_sz_A, virt_blk_len_A, blk_len_A);
-  calc_dim(tsr_B->ndim, blk_sz_B, tsr_B->edge_len, tsr_B->edge_map,
+  calc_dim(tsr_B->order, blk_sz_B, tsr_B->edge_len, tsr_B->edge_map,
            &vrt_sz_B, virt_blk_len_B, blk_len_B);
 
   /* Strip out the relevant part of the tensor if we are contracting over diagonal */
-  sA = strip_diag<dtype>(tsr_A->ndim, ndim_tot, idx_A, vrt_sz_A,
+  sA = strip_diag<dtype>(tsr_A->order, order_tot, idx_A, vrt_sz_A,
                          tsr_A->edge_map, &topovec[tsr_A->itopo],
                          blk_len_A, &blk_sz_A, &str_A);
-  sB = strip_diag<dtype>(tsr_B->ndim, ndim_tot, idx_B, vrt_sz_B,
+  sB = strip_diag<dtype>(tsr_B->order, order_tot, idx_B, vrt_sz_B,
                          tsr_B->edge_map, &topovec[tsr_B->itopo],
                          blk_len_B, &blk_sz_B, &str_B);
   if (sA || sB){
@@ -815,7 +815,7 @@ tsum<dtype> * dist_tensor<dtype>::
   }
 
   nvirt = 1;
-  for (i=0; i<ndim_tot; i++){
+  for (i=0; i<order_tot; i++){
     iA = idx_arr[2*i];
     iB = idx_arr[2*i+1];
     if (iA != -1){
@@ -839,7 +839,7 @@ tsum<dtype> * dist_tensor<dtype>::
     nvirt *= virt_dim[i];
   }
 
-  for (i=0; i<tsr_A->ndim; i++){
+  for (i=0; i<tsr_A->order; i++){
     map = &tsr_A->edge_map[i];
     if (map->type == PHYSICAL_MAP){
       phys_mapped[2*map->cdt+0] = 1;
@@ -851,7 +851,7 @@ tsum<dtype> * dist_tensor<dtype>::
       }
     }
   }
-  for (i=0; i<tsr_B->ndim; i++){
+  for (i=0; i<tsr_B->order; i++){
     map = &tsr_B->edge_map[i];
     if (map->type == PHYSICAL_MAP){
       phys_mapped[2*map->cdt+1] = 1;
@@ -921,10 +921,10 @@ tsum<dtype> * dist_tensor<dtype>::
   }
 
   int * new_sym_A, * new_sym_B;
-  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&new_sym_A);
-  memcpy(new_sym_A, tsr_A->sym, sizeof(int)*tsr_A->ndim);
-  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&new_sym_B);
-  memcpy(new_sym_B, tsr_B->sym, sizeof(int)*tsr_B->ndim);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->order, (void**)&new_sym_A);
+  memcpy(new_sym_A, tsr_A->sym, sizeof(int)*tsr_A->order);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->order, (void**)&new_sym_B);
+  memcpy(new_sym_B, tsr_B->sym, sizeof(int)*tsr_B->order);
 
   /* Multiply over virtual sub-blocks */
   if (nvirt > 1){
@@ -937,12 +937,12 @@ tsum<dtype> * dist_tensor<dtype>::
     }
     rec_tsum = &tsumv->rec_tsum;
 
-    tsumv->num_dim  = ndim_tot;
+    tsumv->num_dim  = order_tot;
     tsumv->virt_dim   = virt_dim;
-    tsumv->ndim_A = tsr_A->ndim;
+    tsumv->order_A = tsr_A->order;
     tsumv->blk_sz_A = vrt_sz_A;
     tsumv->idx_map_A  = idx_A;
-    tsumv->ndim_B = tsr_B->ndim;
+    tsumv->order_B = tsr_B->order;
     tsumv->blk_sz_B = vrt_sz_B;
     tsumv->idx_map_B  = idx_B;
     tsumv->buffer = NULL;
@@ -957,9 +957,9 @@ tsum<dtype> * dist_tensor<dtype>::
     tensor<dtype> * itsr;
     itsr = tensors[tsr_A->rec_tid];
     i_A = 0;
-    for (i=0; i<tsr_A->ndim; i++){
+    for (i=0; i<tsr_A->order; i++){
       if (tsr_A->sym[i] == NS){
-        for (j=0; j<itsr->ndim; j++){
+        for (j=0; j<itsr->order; j++){
           if (tsr_A->inner_ordering[j] == i_A){
             j=i;
             do {
@@ -977,9 +977,9 @@ tsum<dtype> * dist_tensor<dtype>::
     }
     itsr = tensors[tsr_B->rec_tid];
     i_B = 0;
-    for (i=0; i<tsr_B->ndim; i++){
+    for (i=0; i<tsr_B->order; i++){
       if (tsr_B->sym[i] == NS){
-        for (j=0; j<itsr->ndim; j++){
+        for (j=0; j<itsr->order; j++){
           if (tsr_B->inner_ordering[j] == i_B){
             j=i;
             do {
@@ -1002,11 +1002,11 @@ tsum<dtype> * dist_tensor<dtype>::
   } else {
     *rec_tsum = tsumseq;
   }
-  tsumseq->ndim_A         = tsr_A->ndim;
+  tsumseq->order_A         = tsr_A->order;
   tsumseq->idx_map_A      = idx_A;
   tsumseq->edge_len_A     = virt_blk_len_A;
   tsumseq->sym_A          = new_sym_A;
-  tsumseq->ndim_B         = tsr_B->ndim;
+  tsumseq->order_B         = tsr_B->order;
   tsumseq->idx_map_B      = idx_B;
   tsumseq->edge_len_B     = virt_blk_len_B;
   tsumseq->sym_B          = new_sym_B;
@@ -1074,20 +1074,20 @@ ctr<dtype> * dist_tensor<dtype>::
   tsr_B = tensors[type->tid_B];
   tsr_C = tensors[type->tid_C];
 
-  inv_idx(tsr_A->ndim, type->idx_map_A, tsr_A->edge_map,
-          tsr_B->ndim, type->idx_map_B, tsr_B->edge_map,
-          tsr_C->ndim, type->idx_map_C, tsr_C->edge_map,
+  inv_idx(tsr_A->order, type->idx_map_A, tsr_A->edge_map,
+          tsr_B->order, type->idx_map_B, tsr_B->edge_map,
+          tsr_C->order, type->idx_map_C, tsr_C->edge_map,
           &num_tot, &idx_arr);
 
-  nphys_dim = topovec[tsr_A->itopo].ndim;
+  nphys_dim = topovec[tsr_A->itopo].order;
 
-  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&virt_blk_len_A);
-  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&virt_blk_len_B);
-  CTF_alloc_ptr(sizeof(int)*tsr_C->ndim, (void**)&virt_blk_len_C);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->order, (void**)&virt_blk_len_A);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->order, (void**)&virt_blk_len_B);
+  CTF_alloc_ptr(sizeof(int)*tsr_C->order, (void**)&virt_blk_len_C);
 
-  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&blk_len_A);
-  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&blk_len_B);
-  CTF_alloc_ptr(sizeof(int)*tsr_C->ndim, (void**)&blk_len_C);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->order, (void**)&blk_len_A);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->order, (void**)&blk_len_B);
+  CTF_alloc_ptr(sizeof(int)*tsr_C->order, (void**)&blk_len_C);
   CTF_alloc_ptr(sizeof(int)*num_tot, (void**)&virt_dim);
   CTF_alloc_ptr(sizeof(int)*nphys_dim*3, (void**)&phys_mapped);
   memset(phys_mapped, 0, sizeof(int)*nphys_dim*3);
@@ -1097,21 +1097,21 @@ ctr<dtype> * dist_tensor<dtype>::
   blk_sz_A = tsr_A->size;
   blk_sz_B = tsr_B->size;
   blk_sz_C = tsr_C->size;
-  calc_dim(tsr_A->ndim, blk_sz_A, tsr_A->edge_len, tsr_A->edge_map,
+  calc_dim(tsr_A->order, blk_sz_A, tsr_A->edge_len, tsr_A->edge_map,
            &vrt_sz_A, virt_blk_len_A, blk_len_A);
-  calc_dim(tsr_B->ndim, blk_sz_B, tsr_B->edge_len, tsr_B->edge_map,
+  calc_dim(tsr_B->order, blk_sz_B, tsr_B->edge_len, tsr_B->edge_map,
            &vrt_sz_B, virt_blk_len_B, blk_len_B);
-  calc_dim(tsr_C->ndim, blk_sz_C, tsr_C->edge_len, tsr_C->edge_map,
+  calc_dim(tsr_C->order, blk_sz_C, tsr_C->edge_len, tsr_C->edge_map,
            &vrt_sz_C, virt_blk_len_C, blk_len_C);
 
   /* Strip out the relevant part of the tensor if we are contracting over diagonal */
-  sA = strip_diag<dtype>( tsr_A->ndim, num_tot, type->idx_map_A, vrt_sz_A,
+  sA = strip_diag<dtype>( tsr_A->order, num_tot, type->idx_map_A, vrt_sz_A,
                           tsr_A->edge_map, &topovec[tsr_A->itopo],
                           blk_len_A, &blk_sz_A, &str_A);
-  sB = strip_diag<dtype>( tsr_B->ndim, num_tot, type->idx_map_B, vrt_sz_B,
+  sB = strip_diag<dtype>( tsr_B->order, num_tot, type->idx_map_B, vrt_sz_B,
                           tsr_B->edge_map, &topovec[tsr_B->itopo],
                           blk_len_B, &blk_sz_B, &str_B);
-  sC = strip_diag<dtype>( tsr_C->ndim, num_tot, type->idx_map_C, vrt_sz_C,
+  sC = strip_diag<dtype>( tsr_C->order, num_tot, type->idx_map_C, vrt_sz_C,
                           tsr_C->edge_map, &topovec[tsr_C->itopo],
                           blk_len_C, &blk_sz_C, &str_C);
 
@@ -1134,7 +1134,7 @@ ctr<dtype> * dist_tensor<dtype>::
     sctr->strip_C = sC;
   }
 
-  for (i=0; i<tsr_A->ndim; i++){
+  for (i=0; i<tsr_A->order; i++){
     map = &tsr_A->edge_map[i];
     if (map->type == PHYSICAL_MAP){
       phys_mapped[3*map->cdt+0] = 1;
@@ -1146,7 +1146,7 @@ ctr<dtype> * dist_tensor<dtype>::
       }
     }
   }
-  for (i=0; i<tsr_B->ndim; i++){
+  for (i=0; i<tsr_B->order; i++){
     map = &tsr_B->edge_map[i];
     if (map->type == PHYSICAL_MAP){
       phys_mapped[3*map->cdt+1] = 1;
@@ -1158,7 +1158,7 @@ ctr<dtype> * dist_tensor<dtype>::
       }
     }
   }
-  for (i=0; i<tsr_C->ndim; i++){
+  for (i=0; i<tsr_C->order; i++){
     map = &tsr_C->edge_map[i];
     if (map->type == PHYSICAL_MAP){
       phys_mapped[3*map->cdt+2] = 1;
@@ -1460,12 +1460,12 @@ ctr<dtype> * dist_tensor<dtype>::
   ASSERT(blk_sz_C >= vrt_sz_C);
     
   int * new_sym_A, * new_sym_B, * new_sym_C;
-  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&new_sym_A);
-  memcpy(new_sym_A, tsr_A->sym, sizeof(int)*tsr_A->ndim);
-  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&new_sym_B);
-  memcpy(new_sym_B, tsr_B->sym, sizeof(int)*tsr_B->ndim);
-  CTF_alloc_ptr(sizeof(int)*tsr_C->ndim, (void**)&new_sym_C);
-  memcpy(new_sym_C, tsr_C->sym, sizeof(int)*tsr_C->ndim);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->order, (void**)&new_sym_A);
+  memcpy(new_sym_A, tsr_A->sym, sizeof(int)*tsr_A->order);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->order, (void**)&new_sym_B);
+  memcpy(new_sym_B, tsr_B->sym, sizeof(int)*tsr_B->order);
+  CTF_alloc_ptr(sizeof(int)*tsr_C->order, (void**)&new_sym_C);
+  memcpy(new_sym_C, tsr_C->sym, sizeof(int)*tsr_C->order);
 
 #ifdef OFFLOAD
   if (ftsr.is_offloadable || is_inner > 0){
@@ -1511,13 +1511,13 @@ ctr<dtype> * dist_tensor<dtype>::
 
     ctrv->num_dim   = num_tot;
     ctrv->virt_dim  = virt_dim;
-    ctrv->ndim_A  = tsr_A->ndim;
+    ctrv->order_A  = tsr_A->order;
     ctrv->blk_sz_A  = vrt_sz_A;
     ctrv->idx_map_A = type->idx_map_A;
-    ctrv->ndim_B  = tsr_B->ndim;
+    ctrv->order_B  = tsr_B->order;
     ctrv->blk_sz_B  = vrt_sz_B;
     ctrv->idx_map_B = type->idx_map_B;
-    ctrv->ndim_C  = tsr_C->ndim;
+    ctrv->order_C  = tsr_C->order;
     ctrv->blk_sz_C  = vrt_sz_C;
     ctrv->idx_map_C = type->idx_map_C;
     ctrv->buffer  = NULL;
@@ -1544,7 +1544,7 @@ ctr<dtype> * dist_tensor<dtype>::
     int * iphase;
     itsr = tensors[tsr_A->rec_tid];
     iphase = calc_phase<dtype>(itsr);
-    for (i=0; i<tsr_A->ndim; i++){
+    for (i=0; i<tsr_A->order; i++){
       if (virt_blk_len_A[i]%iphase[i] > 0)
         virt_blk_len_A[i] = virt_blk_len_A[i]/iphase[i]+1;
       else
@@ -1554,7 +1554,7 @@ ctr<dtype> * dist_tensor<dtype>::
     CTF_free(iphase);
     itsr = tensors[tsr_B->rec_tid];
     iphase = calc_phase<dtype>(itsr);
-    for (i=0; i<tsr_B->ndim; i++){
+    for (i=0; i<tsr_B->order; i++){
       if (virt_blk_len_B[i]%iphase[i] > 0)
         virt_blk_len_B[i] = virt_blk_len_B[i]/iphase[i]+1;
       else
@@ -1563,7 +1563,7 @@ ctr<dtype> * dist_tensor<dtype>::
     CTF_free(iphase);
     itsr = tensors[tsr_C->rec_tid];
     iphase = calc_phase<dtype>(itsr);
-    for (i=0; i<tsr_C->ndim; i++){
+    for (i=0; i<tsr_C->order; i++){
       if (virt_blk_len_C[i]%iphase[i] > 0)
         virt_blk_len_C[i] = virt_blk_len_C[i]/iphase[i]+1;
       else
@@ -1581,9 +1581,9 @@ ctr<dtype> * dist_tensor<dtype>::
     ctrseq->inner_params.sz_C = vrt_sz_C;
     tensor<dtype> * itsr;
     itsr = tensors[tsr_A->rec_tid];
-    for (i=0; i<itsr->ndim; i++){
+    for (i=0; i<itsr->order; i++){
       j = tsr_A->inner_ordering[i];
-      for (k=0; k<tsr_A->ndim; k++){
+      for (k=0; k<tsr_A->order; k++){
         if (tsr_A->sym[k] == NS) j--;
         if (j<0) break;
       }
@@ -1599,9 +1599,9 @@ ctr<dtype> * dist_tensor<dtype>::
       }
     }
     itsr = tensors[tsr_B->rec_tid];
-    for (i=0; i<itsr->ndim; i++){
+    for (i=0; i<itsr->order; i++){
       j = tsr_B->inner_ordering[i];
-      for (k=0; k<tsr_B->ndim; k++){
+      for (k=0; k<tsr_B->order; k++){
         if (tsr_B->sym[k] == NS) j--;
         if (j<0) break;
       }
@@ -1617,9 +1617,9 @@ ctr<dtype> * dist_tensor<dtype>::
       }
     }
     itsr = tensors[tsr_C->rec_tid];
-    for (i=0; i<itsr->ndim; i++){
+    for (i=0; i<itsr->order; i++){
       j = tsr_C->inner_ordering[i];
-      for (k=0; k<tsr_C->ndim; k++){
+      for (k=0; k<tsr_C->order; k++){
         if (tsr_C->sym[k] == NS) j--;
         if (j<0) break;
       }
@@ -1636,15 +1636,15 @@ ctr<dtype> * dist_tensor<dtype>::
     }
   }
   ctrseq->alpha         = alpha;
-  ctrseq->ndim_A        = tsr_A->ndim;
+  ctrseq->order_A        = tsr_A->order;
   ctrseq->idx_map_A     = type->idx_map_A;
   ctrseq->edge_len_A    = virt_blk_len_A;
   ctrseq->sym_A         = new_sym_A;
-  ctrseq->ndim_B        = tsr_B->ndim;
+  ctrseq->order_B        = tsr_B->order;
   ctrseq->idx_map_B     = type->idx_map_B;
   ctrseq->edge_len_B    = virt_blk_len_B;
   ctrseq->sym_B         = new_sym_B;
-  ctrseq->ndim_C        = tsr_C->ndim;
+  ctrseq->order_C        = tsr_C->order;
   ctrseq->idx_map_C     = type->idx_map_C;
   ctrseq->edge_len_C    = virt_blk_len_C;
   ctrseq->sym_C         = new_sym_C;
@@ -1659,9 +1659,9 @@ ctr<dtype> * dist_tensor<dtype>::
     int64_t n,m,k;
     dtype old_flops;
     dtype new_flops;
-    ggg_sym_nmk(tsr_A->ndim, tsr_A->edge_len, type->idx_map_A, tsr_A->sym,
-    tsr_B->ndim, tsr_B->edge_len, type->idx_map_B, tsr_B->sym,
-    tsr_C->ndim, &n, &m, &k);
+    ggg_sym_nmk(tsr_A->order, tsr_A->edge_len, type->idx_map_A, tsr_A->sym,
+    tsr_B->order, tsr_B->edge_len, type->idx_map_B, tsr_B->sym,
+    tsr_C->order, &n, &m, &k);
     old_flops = 2.0*(dtype)n*(dtype)m*(dtype)k;
     new_flops = calc_nvirt(tsr_A);
     new_flops *= calc_nvirt(tsr_B);
@@ -1669,10 +1669,10 @@ ctr<dtype> * dist_tensor<dtype>::
     new_flops *= global_comm.np;
     new_flops = sqrt(new_flops);
     new_flops *= global_comm.np;
-    ggg_sym_nmk(tsr_A->ndim, virt_blk_len_A, type->idx_map_A, tsr_A->sym,
-    tsr_B->ndim, virt_blk_len_B, type->idx_map_B, tsr_B->sym,
-    tsr_C->ndim, &n, &m, &k);
-    printf("Each subcontraction is a "PRId64" by "PRId64" by "PRId64" DGEMM performing %E flops\n",n,m,k,
+    ggg_sym_nmk(tsr_A->order, virt_blk_len_A, type->idx_map_A, tsr_A->sym,
+    tsr_B->order, virt_blk_len_B, type->idx_map_B, tsr_B->sym,
+    tsr_C->order, &n, &m, &k);
+    printf("Each subcontraction is a " PRId64 " by " PRId64 " by " PRId64 " DGEMM performing %E flops\n",n,m,k,
       2.0*(dtype)n*(dtype)m*(dtype)k);
     new_flops *= 2.0*(dtype)n*(dtype)m*(dtype)k;
     printf("Contraction performing %E flops rather than %E, a factor of %lf more flops due to padding\n",
@@ -1726,11 +1726,11 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
   
   contract_mst();
 
-  CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&type.idx_map_A);
-  CTF_alloc_ptr(sizeof(int)*tsr_B->ndim, (void**)&type.idx_map_B);
+  CTF_alloc_ptr(sizeof(int)*tsr_A->order, (void**)&type.idx_map_A);
+  CTF_alloc_ptr(sizeof(int)*tsr_B->order, (void**)&type.idx_map_B);
 
-  memcpy(type.idx_map_A, idx_map_A, sizeof(int)*tsr_A->ndim);
-  memcpy(type.idx_map_B, idx_map_B, sizeof(int)*tsr_B->ndim);
+  memcpy(type.idx_map_A, idx_map_A, sizeof(int)*tsr_A->order);
+  memcpy(type.idx_map_B, idx_map_B, sizeof(int)*tsr_B->order);
 #ifndef HOME_CONTRACT
   #ifdef USE_SYM_SUM
     ret = sym_sum_tsr(alpha_, beta, &type, ftsr, felm, run_diag);
@@ -1750,9 +1750,9 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
       fs.func_ptr=sym_seq_scl_ref<dtype>;
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
-      int sub_idx_map_B[tsr_B->ndim];
+      int sub_idx_map_B[tsr_B->order];
       int sm_idx=0;
-      for (int i=0; i<tsr_B->ndim; i++){
+      for (int i=0; i<tsr_B->order; i++){
         sub_idx_map_B[i]=sm_idx;
         sm_idx++;
         for (int j=0; j<i; j++){
@@ -1786,7 +1786,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     ntsr_A->is_home = 1;
     ntsr_A->is_mapped = 1;
     ntsr_A->itopo = tsr_A->itopo;
-    copy_mapping(tsr_A->ndim, tsr_A->edge_map, ntsr_A->edge_map);
+    copy_mapping(tsr_A->order, tsr_A->edge_map, ntsr_A->edge_map);
     set_padding(ntsr_A);
   }     
   if (was_home_B){
@@ -1797,7 +1797,7 @@ int dist_tensor<dtype>::home_sum_tsr(dtype const                alpha_,
     ntsr_B->is_home = 1;
     ntsr_B->is_mapped = 1;
     ntsr_B->itopo = tsr_B->itopo;
-    copy_mapping(tsr_B->ndim, tsr_B->edge_map, ntsr_B->edge_map);
+    copy_mapping(tsr_B->order, tsr_B->edge_map, ntsr_B->edge_map);
     set_padding(ntsr_B);
   }
 #if DEBUG >= 1
@@ -1940,9 +1940,9 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
       fs.func_ptr=sym_seq_scl_ref<dtype>;
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
-      int sub_idx_map_B[tsr_B->ndim];
+      int sub_idx_map_B[tsr_B->order];
       int sm_idx=0;
-      for (int i=0; i<tsr_B->ndim; i++){
+      for (int i=0; i<tsr_B->order; i++){
         sub_idx_map_B[i]=sm_idx;
         sm_idx++;
         for (int j=0; j<i; j++){
@@ -1959,12 +1959,12 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   }
   ntid_A = type->tid_A;
   ntid_B = type->tid_B;
-  CTF_alloc_ptr(sizeof(int)*tensors[ntid_A]->ndim,   (void**)&map_A);
-  CTF_alloc_ptr(sizeof(int)*tensors[ntid_B]->ndim,   (void**)&map_B);
-  CTF_alloc_ptr(sizeof(int*)*tensors[ntid_B]->ndim,   (void**)&dstack_map_B);
-  CTF_alloc_ptr(sizeof(int)*tensors[ntid_B]->ndim,   (void**)&dstack_tid_B);
-  memcpy(map_A, type->idx_map_A, tensors[ntid_A]->ndim*sizeof(int));
-  memcpy(map_B, type->idx_map_B, tensors[ntid_B]->ndim*sizeof(int));
+  CTF_alloc_ptr(sizeof(int)*tensors[ntid_A]->order,   (void**)&map_A);
+  CTF_alloc_ptr(sizeof(int)*tensors[ntid_B]->order,   (void**)&map_B);
+  CTF_alloc_ptr(sizeof(int*)*tensors[ntid_B]->order,   (void**)&dstack_map_B);
+  CTF_alloc_ptr(sizeof(int)*tensors[ntid_B]->order,   (void**)&dstack_tid_B);
+  memcpy(map_A, type->idx_map_A, tensors[ntid_A]->order*sizeof(int));
+  memcpy(map_B, type->idx_map_B, tensors[ntid_B]->order*sizeof(int));
   while (!run_diag && extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     if (ntid_A != type->tid_A) del_tsr(ntid_A);
     CTF_free(map_A);
@@ -1995,16 +1995,16 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
   new_type.idx_map_A = map_A;
   new_type.idx_map_B = map_B;
 
-  dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->ndim,
+  dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->order,
                                                map_A,
                                                tensors[ntid_A]->sym,
-                                               tensors[ntid_B]->ndim,
+                                               tensors[ntid_B]->order,
                                                map_B,
                                                tensors[ntid_B]->sym);
-  double ocfact = overcounting_factor(tensors[ntid_A]->ndim,
+  double ocfact = overcounting_factor(tensors[ntid_A]->order,
                                        map_A,
                                        tensors[ntid_A]->sym,
-                                       tensors[ntid_B]->ndim,
+                                       tensors[ntid_B]->order,
                                        map_B,
                                        tensors[ntid_B]->sym);
 
@@ -2115,9 +2115,9 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
       fs.func_ptr=sym_seq_scl_ref<dtype>;
       fseq_elm_scl<dtype> felm;
       felm.func_ptr = NULL;
-      int sub_idx_map_B[tsr_B->ndim];
+      int sub_idx_map_B[tsr_B->order];
       int sm_idx=0;
-      for (int i=0; i<tsr_B->ndim; i++){
+      for (int i=0; i<tsr_B->order; i++){
         sub_idx_map_B[i]=sm_idx;
         sm_idx++;
         for (int j=0; j<i; j++){
@@ -2134,12 +2134,12 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
   }
 
 
-  CTF_alloc_ptr(sizeof(int)*tensors[tid_A]->ndim,   (void**)&map_A);
-  CTF_alloc_ptr(sizeof(int)*tensors[tid_B]->ndim,   (void**)&map_B);
-  CTF_alloc_ptr(sizeof(int*)*tensors[tid_B]->ndim,   (void**)&dstack_map_B);
-  CTF_alloc_ptr(sizeof(int)*tensors[tid_B]->ndim,   (void**)&dstack_tid_B);
-  memcpy(map_A, idx_map_A, tensors[tid_A]->ndim*sizeof(int));
-  memcpy(map_B, idx_map_B, tensors[tid_B]->ndim*sizeof(int));
+  CTF_alloc_ptr(sizeof(int)*tensors[tid_A]->order,   (void**)&map_A);
+  CTF_alloc_ptr(sizeof(int)*tensors[tid_B]->order,   (void**)&map_B);
+  CTF_alloc_ptr(sizeof(int*)*tensors[tid_B]->order,   (void**)&dstack_map_B);
+  CTF_alloc_ptr(sizeof(int)*tensors[tid_B]->order,   (void**)&dstack_tid_B);
+  memcpy(map_A, idx_map_A, tensors[tid_A]->order*sizeof(int));
+  memcpy(map_B, idx_map_B, tensors[tid_B]->order*sizeof(int));
   ntid_A = tid_A;
   ntid_B = tid_B;
   while (!run_diag && extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
@@ -2163,10 +2163,10 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     ASSERT(stat == CTF_SUCCESS);
   } else{ 
 
-    dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->ndim,
+    dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->order,
                                                  map_A,
                                                  tensors[ntid_A]->sym,
-                                                 tensors[ntid_B]->ndim,
+                                                 tensors[ntid_B]->order,
                                                  map_B,
                                                  tensors[ntid_B]->sym);
 
@@ -2181,7 +2181,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     int64_t nA, nB;
     dtype * sA, * sB;
     dtype * uA, * uB;
-    int ndim_A, ndim_B,  i;
+    int order_A, order_B,  i;
     int * edge_len_A, * edge_len_B;
     int * sym_A, * sym_B;
     stat = allread_tsr(ntid_A, &nsA, &sA);
@@ -2243,10 +2243,10 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     DEBUG_PRINTF("[%d] performing tensor sum\n", get_global_comm().rank);
 #if DEBUG >=3
     if (get_global_comm().rank == 0){
-      for (int i=0; i<tensors[ntid_A]->ndim; i++){
+      for (int i=0; i<tensors[ntid_A]->order; i++){
         printf("padding[%d] = %d\n",i, tensors[ntid_A]->padding[i]);
       }
-      for (int i=0; i<tensors[ntid_B]->ndim; i++){
+      for (int i=0; i<tensors[ntid_B]->order; i++){
         printf("padding[%d] = %d\n",i, tensors[ntid_B]->padding[i]);
       }
     }
@@ -2264,24 +2264,24 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 #if VERIFY
     stat = allread_tsr(ntid_A, &nA, &uA);
     assert(stat == CTF_SUCCESS);
-    stat = get_tsr_info(ntid_A, &ndim_A, &edge_len_A, &sym_A);
+    stat = get_tsr_info(ntid_A, &order_A, &edge_len_A, &sym_A);
     assert(stat == CTF_SUCCESS);
 
     stat = allread_tsr(ntid_B, &nB, &uB);
     assert(stat == CTF_SUCCESS);
-    stat = get_tsr_info(ntid_B, &ndim_B, &edge_len_B, &sym_B);
+    stat = get_tsr_info(ntid_B, &order_B, &edge_len_B, &sym_B);
     assert(stat == CTF_SUCCESS);
 
-    if (nsA != nA) { printf("nsA = "PRId64", nA = "PRId64"\n",nsA,nA); ABORT; }
-    if (nsB != nB) { printf("nsB = "PRId64", nB = "PRId64"\n",nsB,nB); ABORT; }
+    if (nsA != nA) { printf("nsA = " PRId64 ", nA = " PRId64 "\n",nsA,nA); ABORT; }
+    if (nsB != nB) { printf("nsB = " PRId64 ", nB = " PRId64 "\n",nsB,nB); ABORT; }
     for (i=0; (uint64_t)i<nA; i++){
       if (fabs(uA[i] - sA[i]) > 1.E-6){
         printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
       }
     }
 
-    cpy_sym_sum(alpha, uA, ndim_A, edge_len_A, edge_len_A, sym_A, map_A,
-                beta, sB, ndim_B, edge_len_B, edge_len_B, sym_B, map_B);
+    cpy_sym_sum(alpha, uA, order_A, edge_len_A, edge_len_A, sym_A, map_A,
+                beta, sB, order_B, edge_len_B, edge_len_B, sym_B, map_B);
     assert(stat == CTF_SUCCESS);
 
     for (i=0; (uint64_t)i<nB; i++){
@@ -2356,8 +2356,8 @@ int dist_tensor<dtype>::
     if (beta != 1.0 && !tsr_C->has_zero_edge_len){ 
       int * new_idx_map_C; 
       int num_diag = 0;
-      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->ndim);
-      for (int i=0; i<tsr_C->ndim; i++){
+      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->order);
+      for (int i=0; i<tsr_C->order; i++){
         new_idx_map_C[i]=i-num_diag;
         for (int j=0; j<i; j++){
           if (stype->idx_map_C[i] == stype->idx_map_C[j]){
@@ -2410,7 +2410,7 @@ int dist_tensor<dtype>::
     ntsr_A->is_home = 1;
     ntsr_A->is_mapped = 1;
     ntsr_A->itopo = tsr_A->itopo;
-    copy_mapping(tsr_A->ndim, tsr_A->edge_map, ntsr_A->edge_map);
+    copy_mapping(tsr_A->order, tsr_A->edge_map, ntsr_A->edge_map);
     set_padding(ntsr_A);
   }     
   if (was_home_B){
@@ -2425,7 +2425,7 @@ int dist_tensor<dtype>::
       ntsr_B->is_home = 1;
       ntsr_B->is_mapped = 1;
       ntsr_B->itopo = tsr_B->itopo;
-      copy_mapping(tsr_B->ndim, tsr_B->edge_map, ntsr_B->edge_map);
+      copy_mapping(tsr_B->order, tsr_B->edge_map, ntsr_B->edge_map);
       set_padding(ntsr_B);
     }
   }
@@ -2444,7 +2444,7 @@ int dist_tensor<dtype>::
       ntsr_C->is_home = 1;
       ntsr_C->is_mapped = 1;
       ntsr_C->itopo = tsr_C->itopo;
-      copy_mapping(tsr_C->ndim, tsr_C->edge_map, ntsr_C->edge_map);
+      copy_mapping(tsr_C->order, tsr_C->edge_map, ntsr_C->edge_map);
       set_padding(ntsr_C);
     }
   }
@@ -2486,7 +2486,7 @@ int dist_tensor<dtype>::
     CTF_free(old_edge_len_C);
   } else if (was_home_C) {
 /*    tsr_C->itopo = ntsr_C->itopo;
-    copy_mapping(tsr_C->ndim, ntsr_C->edge_map, tsr_C->edge_map);
+    copy_mapping(tsr_C->order, ntsr_C->edge_map, tsr_C->edge_map);
     set_padding(tsr_C);*/
     ASSERT(ntsr_C->data == tsr_C->data);
     ntsr_C->is_data_aliased = 1;
@@ -2556,8 +2556,8 @@ int dist_tensor<dtype>::
     if (beta != 1.0 && !tsr_C->has_zero_edge_len){ 
       int * new_idx_map_C; 
       int num_diag = 0;
-      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->ndim);
-      for (int i=0; i<tsr_C->ndim; i++){
+      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->order);
+      for (int i=0; i<tsr_C->order; i++){
         new_idx_map_C[i]=i-num_diag;
         for (int j=0; j<i; j++){
           if (stype->idx_map_C[i] == stype->idx_map_C[j]){
@@ -2579,14 +2579,14 @@ int dist_tensor<dtype>::
   ntid_A = type->tid_A;
   ntid_B = type->tid_B;
   ntid_C = type->tid_C;
-  CTF_alloc_ptr(sizeof(int)*tensors[ntid_A]->ndim,   (void**)&map_A);
-  CTF_alloc_ptr(sizeof(int)*tensors[ntid_B]->ndim,   (void**)&map_B);
-  CTF_alloc_ptr(sizeof(int)*tensors[ntid_C]->ndim,   (void**)&map_C);
-  CTF_alloc_ptr(sizeof(int*)*tensors[ntid_C]->ndim,   (void**)&dstack_map_C);
-  CTF_alloc_ptr(sizeof(int)*tensors[ntid_C]->ndim,   (void**)&dstack_tid_C);
-  memcpy(map_A, type->idx_map_A, tensors[ntid_A]->ndim*sizeof(int));
-  memcpy(map_B, type->idx_map_B, tensors[ntid_B]->ndim*sizeof(int));
-  memcpy(map_C, type->idx_map_C, tensors[ntid_C]->ndim*sizeof(int));
+  CTF_alloc_ptr(sizeof(int)*tensors[ntid_A]->order,   (void**)&map_A);
+  CTF_alloc_ptr(sizeof(int)*tensors[ntid_B]->order,   (void**)&map_B);
+  CTF_alloc_ptr(sizeof(int)*tensors[ntid_C]->order,   (void**)&map_C);
+  CTF_alloc_ptr(sizeof(int*)*tensors[ntid_C]->order,   (void**)&dstack_map_C);
+  CTF_alloc_ptr(sizeof(int)*tensors[ntid_C]->order,   (void**)&dstack_tid_C);
+  memcpy(map_A, type->idx_map_A, tensors[ntid_A]->order*sizeof(int));
+  memcpy(map_B, type->idx_map_B, tensors[ntid_B]->order*sizeof(int));
+  memcpy(map_C, type->idx_map_C, tensors[ntid_C]->order*sizeof(int));
   while (extract_diag(ntid_A, map_A, 1, &new_tid, &new_idx_map) == CTF_SUCCESS){
     if (ntid_A != type->tid_A) del_tsr(ntid_A);
     CTF_free(map_A);
@@ -2634,26 +2634,26 @@ int dist_tensor<dtype>::
     ASSERT(stat == CTF_SUCCESS);
   } else {
 
-    double alignfact = align_symmetric_indices(tensors[ntid_A]->ndim,
+    double alignfact = align_symmetric_indices(tensors[ntid_A]->order,
                                               map_A,
                                               tensors[ntid_A]->sym,
-                                              tensors[ntid_B]->ndim,
+                                              tensors[ntid_B]->order,
                                               map_B,
                                               tensors[ntid_B]->sym,
-                                              tensors[ntid_C]->ndim,
+                                              tensors[ntid_C]->order,
                                               map_C,
                                               tensors[ntid_C]->sym);
 
     /*
      * Apply a factor of n! for each set of n symmetric indices which are contracted over
      */
-    double ocfact = overcounting_factor(tensors[ntid_A]->ndim,
+    double ocfact = overcounting_factor(tensors[ntid_A]->order,
                                        map_A,
                                        tensors[ntid_A]->sym,
-                                       tensors[ntid_B]->ndim,
+                                       tensors[ntid_B]->order,
                                        map_B,
                                        tensors[ntid_B]->sym,
-                                       tensors[ntid_C]->ndim,
+                                       tensors[ntid_C]->order,
                                        map_C,
                                        tensors[ntid_C]->sym);
 
@@ -2782,8 +2782,8 @@ int dist_tensor<dtype>::
     if (beta != 1.0 && !tsr_C->has_zero_edge_len){ 
       int * new_idx_map_C; 
       int num_diag = 0;
-      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->ndim);
-      for (int i=0; i<tsr_C->ndim; i++){
+      new_idx_map_C = (int*)CTF_alloc(sizeof(int)*tsr_C->order);
+      for (int i=0; i<tsr_C->order; i++){
         new_idx_map_C[i]=i-num_diag;
         for (int j=0; j<i; j++){
           if (type->idx_map_C[i] == type->idx_map_C[j]){
@@ -2831,7 +2831,7 @@ int dist_tensor<dtype>::
   dtype * sA, * sB, * ans_C;
   dtype * uA, * uB, * uC;
   dtype * up_C, * up_ans_C, * pup_C;
-  int ndim_A, ndim_B, ndim_C, i, pass;
+  int order_A, order_B, order_C, i, pass;
   int * edge_len_A, * edge_len_B, * edge_len_C;
   int * sym_A, * sym_B, * sym_C;
   int * sym_tmp;
@@ -2942,16 +2942,16 @@ int dist_tensor<dtype>::
 #if VERIFY
   stat = allread_tsr(type->tid_A, &nA, &uA);
   assert(stat == CTF_SUCCESS);
-  stat = get_tsr_info(type->tid_A, &ndim_A, &edge_len_A, &sym_A);
+  stat = get_tsr_info(type->tid_A, &order_A, &edge_len_A, &sym_A);
   assert(stat == CTF_SUCCESS);
 
   stat = allread_tsr(type->tid_B, &nB, &uB);
   assert(stat == CTF_SUCCESS);
-  stat = get_tsr_info(type->tid_B, &ndim_B, &edge_len_B, &sym_B);
+  stat = get_tsr_info(type->tid_B, &order_B, &edge_len_B, &sym_B);
   assert(stat == CTF_SUCCESS);
 
-  if (nsA != nA) { printf("nsA = "PRId64", nA = "PRId64"\n",nsA,nA); ABORT; }
-  if (nsB != nB) { printf("nsB = "PRId64", nB = "PRId64"\n",nsB,nB); ABORT; }
+  if (nsA != nA) { printf("nsA = " PRId64 ", nA = " PRId64 "\n",nsA,nA); ABORT; }
+  if (nsB != nB) { printf("nsB = " PRId64 ", nB = " PRId64 "\n",nsB,nB); ABORT; }
   for (i=0; (uint64_t)i<nA; i++){
     if (fabs(uA[i] - sA[i]) > 1.E-6){
       printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
@@ -2965,18 +2965,18 @@ int dist_tensor<dtype>::
 
   stat = allread_tsr(type->tid_C, &nC, &uC);
   assert(stat == CTF_SUCCESS);
-  stat = get_tsr_info(type->tid_C, &ndim_C, &edge_len_C, &sym_C);
+  stat = get_tsr_info(type->tid_C, &order_C, &edge_len_C, &sym_C);
   assert(stat == CTF_SUCCESS);
-  DEBUG_PRINTF("packed size of C is "PRId64" (should be "PRId64")\n", nC,
-    sy_packed_size(ndim_C, edge_len_C, sym_C));
+  DEBUG_PRINTF("packed size of C is " PRId64 " (should be " PRId64 ")\n", nC,
+    sy_packed_size(order_C, edge_len_C, sym_C));
 
   pup_C = (dtype*)CTF_alloc(nC*sizeof(dtype));
 
   cpy_sym_ctr(alpha,
-        uA, ndim_A, edge_len_A, edge_len_A, sym_A, type->idx_map_A,
-        uB, ndim_B, edge_len_B, edge_len_B, sym_B, type->idx_map_B,
+        uA, order_A, edge_len_A, edge_len_A, sym_A, type->idx_map_A,
+        uB, order_B, edge_len_B, edge_len_B, sym_B, type->idx_map_B,
         beta,
-    ans_C, ndim_C, edge_len_C, edge_len_C, sym_C, type->idx_map_C);
+    ans_C, order_C, edge_len_C, edge_len_C, sym_C, type->idx_map_C);
   assert(stat == CTF_SUCCESS);
 
 #if ( DEBUG>=5)
@@ -2988,18 +2988,18 @@ int dist_tensor<dtype>::
   }
 #endif
 
-  punpack_tsr(uC, ndim_C, edge_len_C,
+  punpack_tsr(uC, order_C, edge_len_C,
         sym_C, 1, &sym_tmp, &up_C);
-  punpack_tsr(ans_C, ndim_C, edge_len_C,
+  punpack_tsr(ans_C, order_C, edge_len_C,
         sym_C, 1, &sym_tmp, &up_ans_C);
-  punpack_tsr(up_ans_C, ndim_C, edge_len_C,
+  punpack_tsr(up_ans_C, order_C, edge_len_C,
         sym_C, 0, &sym_tmp, &pup_C);
   for (i=0; (uint64_t)i<nC; i++){
     assert(fabs(pup_C[i] - ans_C[i]) < 1.E-6);
   }
   pass = 1;
   up_nC = 1;
-  for (i=0; i<ndim_C; i++){ up_nC *= edge_len_C[i]; };
+  for (i=0; i<order_C; i++){ up_nC *= edge_len_C[i]; };
 
   for (i=0; i<(int)up_nC; i++){
     if (fabs((up_C[i]-up_ans_C[i])/up_ans_C[i]) > 1.E-6 &&

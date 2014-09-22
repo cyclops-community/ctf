@@ -12,7 +12,7 @@ template<typename dtype>
 class strp_tsr {
   public: 
     int alloced;
-    int ndim;
+    int order;
     int64_t blk_sz;
     int * edge_len;
     int * strip_dim;

@@ -13,7 +13,7 @@ namespace CTF_int {
   /* mesh/torus topology configuration */
   class topology {
     public:
-    int ndim;
+    int order;
     int * lens;
     int * lda;
     bool is_activated;
@@ -30,12 +30,12 @@ namespace CTF_int {
 
     /**
      * \brief constructs torus topology 
-     * \param[in] ndim_ number of torus dimensions
+     * \param[in] order_ number of torus dimensions
      * \param[in] lens_ lengths of torus dimensions
      * \param[in] cdt communicator for whole torus 
      * \param[in] activate whether to create MPI_Comms
      */
-    topology(int ndim_, 
+    topology(int order_, 
              int const * lens_, 
              CommData cdt,
              bool activate=false);
@@ -48,7 +48,7 @@ namespace CTF_int {
    * \brief get dimension and torus lengths of specified topology
    *
    * \param[in] mach specified topology
-   * \param[out] ndim dimension of torus
+   * \param[out] order dimension of torus
    * \param[out] dim_len torus lengths of topology
    */
   topology get_phys_topo(CommData glb_comm,

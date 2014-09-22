@@ -53,7 +53,7 @@ World::World(MPI_Comm       comm_,
 }
 
 
-World::World(int const       ndim, 
+World::World(int const       order, 
                               int const *     lens, 
                               MPI_Comm        comm_,
                               int const       argc,
@@ -63,7 +63,7 @@ World::World(int const       ndim,
   MPI_Comm_rank(comm, &rank);
   MPI_Comm_size(comm, &np);
   ctf = new tCTF< dtype >();
-  ctf->init(comm, rank, np, ndim, lens, argc, argv);
+  ctf->init(comm, rank, np, order, lens, argc, argv);
 }
 
 World::~World(){

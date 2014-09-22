@@ -8,11 +8,11 @@ distribution::distribution(){
   edge_len = NULL;
   padding = NULL;
   perank = NULL;
-  ndim = -1;
+  order = -1;
 }
 
 void distribution::free_data(){
-  if (ndim != -1){
+  if (order != -1){
 
     CTF_free(phase);
     CTF_free(virt_phase);
@@ -21,7 +21,7 @@ void distribution::free_data(){
     CTF_free(padding);
     CTF_free(perank);
   }
-  ndim = -1;
+  order = -1;
 }
 
 distribution::~distribution(){
@@ -30,35 +30,35 @@ distribution::~distribution(){
 
 void distribution::serialize(char ** buffer_, int * bufsz_){
 
-  ASSERT(ndim != -1);
+  ASSERT(order != -1);
 
   int bufsz;
   char * buffer;
   
-  bufsz = get_distribution_size(ndim);
+  bufsz = get_distribution_size(order);
 
   CTF_alloc_ptr(bufsz, (void**)&buffer);
 
   int buffer_ptr = 0;
 
-  ((int*)(buffer+buffer_ptr))[0] = ndim;
+  ((int*)(buffer+buffer_ptr))[0] = order;
   buffer_ptr += sizeof(int);
   ((int*)(buffer+buffer_ptr))[0] = is_cyclic;
   buffer_ptr += sizeof(int);
   ((int64_t*)(buffer+buffer_ptr))[0] = size;
   buffer_ptr += sizeof(int64_t);
-  memcpy((int*)(buffer+buffer_ptr), phase, sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy((int*)(buffer+buffer_ptr), virt_phase, sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy((int*)(buffer+buffer_ptr), pe_lda, sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy((int*)(buffer+buffer_ptr), edge_len, sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy((int*)(buffer+buffer_ptr), padding, sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy((int*)(buffer+buffer_ptr), perank, sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
+  memcpy((int*)(buffer+buffer_ptr), phase, sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy((int*)(buffer+buffer_ptr), virt_phase, sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy((int*)(buffer+buffer_ptr), pe_lda, sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy((int*)(buffer+buffer_ptr), edge_len, sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy((int*)(buffer+buffer_ptr), padding, sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy((int*)(buffer+buffer_ptr), perank, sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
 
   ASSERT(buffer_ptr == bufsz);
 
@@ -72,32 +72,32 @@ void distribution::deserialize(char const * buffer){
   
   free_data();
 
-  ndim = ((int*)(buffer+buffer_ptr))[0];
+  order = ((int*)(buffer+buffer_ptr))[0];
   buffer_ptr += sizeof(int);
 
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&phase);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&virt_phase);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&pe_lda);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&edge_len);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&padding);
-  CTF_alloc_ptr(sizeof(int)*ndim, (void**)&perank);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&phase);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&edge_len);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&padding);
+  CTF_alloc_ptr(sizeof(int)*order, (void**)&perank);
 
   is_cyclic = ((int*)(buffer+buffer_ptr))[0];
   buffer_ptr += sizeof(int);
   size = ((int64_t*)(buffer+buffer_ptr))[0];
   buffer_ptr += sizeof(int64_t);
-  memcpy(phase, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy(virt_phase, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy(pe_lda, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy(edge_len, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy(padding, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
-  memcpy(perank, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);
-  buffer_ptr += sizeof(int)*ndim;
+  memcpy(phase, (int*)(buffer+buffer_ptr), sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy(virt_phase, (int*)(buffer+buffer_ptr), sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy(pe_lda, (int*)(buffer+buffer_ptr), sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy(edge_len, (int*)(buffer+buffer_ptr), sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy(padding, (int*)(buffer+buffer_ptr), sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
+  memcpy(perank, (int*)(buffer+buffer_ptr), sizeof(int)*order);
+  buffer_ptr += sizeof(int)*order;
 
-  ASSERT(buffer_ptr == get_distribution_size(ndim));
+  ASSERT(buffer_ptr == get_distribution_size(order));
 }

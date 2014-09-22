@@ -22,15 +22,30 @@ namespace CTF {
   Matrix<dtype>::Matrix(int const           nrow_,
                         int const           ncol_,
                         int const           sym_,
-                        World &             world,
+                        World &             world_,
                         char const *        name_,
                         int const           profile_) :
     Tensor<dtype>(2, int2(nrow_, ncol_), int2(sym_, NS), 
-                        world, name_, profile_) {
+                        world_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
     sym = sym_;
-    
   }
+
+  template<typename dtype>
+  Matrix<dtype>::Matrix(int const           nrow_,
+                        int const           ncol_,
+                        int const           sym_,
+                        World &             world_,
+                        Semiring<dtype>     sr_,
+                        char const *        name_,
+                        int const           profile_) :
+    Tensor<dtype>(2, int2(nrow_, ncol_), int2(sym_, NS), 
+                        world_, sr_, name_, profile_) {
+    nrow = nrow_;
+    ncol = ncol_;
+    sym = sym_;
+  }
+
 
 }
