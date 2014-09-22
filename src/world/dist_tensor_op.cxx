@@ -2172,7 +2172,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 
     CTF_sum_type_t type = {(int)ntid_A, (int)ntid_B,
                            (int*)map_A, (int*)map_B};
-#if (DEBUG >= 1 || VERBOSE >= 1)
+#if DEBUG >= 1 //|| VERBOSE >= 1)
     print_sum(&type,alpha,beta);
 #endif
 
@@ -2818,7 +2818,7 @@ int dist_tensor<dtype>::
     del_tsr(new_tid);
     return stat;
   }
-#if (DEBUG >= 1 || VERBOSE >= 1)
+#if DEBUG >= 1 //|| VERBOSE >= 1)
   if (get_global_comm().rank == 0)
     printf("Contraction permutation:\n");
   print_ctr(type, alpha, beta);
@@ -2879,7 +2879,7 @@ int dist_tensor<dtype>::
 #ifdef VERBOSE
     if (global_comm.rank == 0){
       uint64_t memuse = ctrf->mem_rec();
-      VPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
+      DPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
               (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
     }
 #endif
@@ -2935,7 +2935,7 @@ int dist_tensor<dtype>::
     stat = zero_out_padding(type->tid_C);
 #endif
   if (get_global_comm().rank == 0){
-    VPRINTF(1, "Contraction permutation completed in %lf sec.\n",MPI_Wtime()-dtt);
+    DPRINTF(1, "Contraction permutation completed in %lf sec.\n",MPI_Wtime()-dtt);
   }
 
 

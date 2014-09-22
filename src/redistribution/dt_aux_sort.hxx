@@ -715,8 +715,8 @@ void bucket_by_pe( int const                ndim,
                    int const *              bucket_lda,
                    int const *              edge_len,
                    tkv_pair<dtype> const *  mapped_data,
-                   int *                    bucket_counts,
-                   int *                    bucket_off,
+                   int64_t *               bucket_counts,
+                   int64_t *               bucket_off,
                    tkv_pair<dtype> *        bucket_data){
   int64_t i, j, loc;
 //  int * inv_edge_len, * inv_virt_phase;
@@ -730,12 +730,12 @@ void bucket_by_pe( int const                ndim,
     inv_edge_len[i]
   }*/
 
-  memset(bucket_counts, 0, sizeof(int)*np); 
+  memset(bucket_counts, 0, sizeof(int64_t)*np); 
 #ifdef USE_OMP
-  int * sub_counts, * sub_offs;
-  CTF_alloc_ptr(np*sizeof(int)*omp_get_max_threads(), (void**)&sub_counts);
-  CTF_alloc_ptr(np*sizeof(int)*omp_get_max_threads(), (void**)&sub_offs);
-  memset(sub_counts, 0, np*sizeof(int)*omp_get_max_threads());
+  int64_t * sub_counts, * sub_offs;
+  CTF_alloc_ptr(np*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_counts);
+  CTF_alloc_ptr(np*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_offs);
+  memset(sub_counts, 0, np*sizeof(int64_t)*omp_get_max_threads());
 #endif
 
 
@@ -783,14 +783,14 @@ void bucket_by_pe( int const                ndim,
   
   /* reset counts */
 #ifdef USE_OMP
-  memset(sub_offs, 0, sizeof(int)*np);
+  memset(sub_offs, 0, sizeof(int64_t)*np);
   for (i=1; i<omp_get_max_threads(); i++){
     for (j=0; j<np; j++){
       sub_offs[j+i*np]=sub_counts[j+(i-1)*np]+sub_offs[j+(i-1)*np];
     }
   }
 #else
-  memset(bucket_counts, 0, sizeof(int)*np); 
+  memset(bucket_counts, 0, sizeof(int64_t)*np); 
 #endif
 
   /* bucket data */
@@ -833,13 +833,13 @@ void bucket_by_virt(int const               ndim,
                     tkv_pair<dtype> const * mapped_data,
                     tkv_pair<dtype> *       bucket_data){
   int64_t i, j, loc;
-  int * virt_counts, * virt_prefix, * virt_lda;
+  int64_t * virt_counts, * virt_prefix, * virt_lda;
   key k;
   TAU_FSTART(bucket_by_virt);
   
-  CTF_alloc_ptr(num_virt*sizeof(int), (void**)&virt_counts);
-  CTF_alloc_ptr(num_virt*sizeof(int), (void**)&virt_prefix);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_lda);
+  CTF_alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_counts);
+  CTF_alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_prefix);
+  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&virt_lda);
  
  
   if (ndim > 0){
@@ -850,12 +850,12 @@ void bucket_by_virt(int const               ndim,
     }
   }
 
-  memset(virt_counts, 0, sizeof(int)*num_virt); 
+  memset(virt_counts, 0, sizeof(int64_t)*num_virt); 
 #ifdef USE_OMP
-  int * sub_counts, * sub_offs;
-  CTF_alloc_ptr(num_virt*sizeof(int)*omp_get_max_threads(), (void**)&sub_counts);
-  CTF_alloc_ptr(num_virt*sizeof(int)*omp_get_max_threads(), (void**)&sub_offs);
-  memset(sub_counts, 0, num_virt*sizeof(int)*omp_get_max_threads());
+  int64_t * sub_counts, * sub_offs;
+  CTF_alloc_ptr(num_virt*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_counts);
+  CTF_alloc_ptr(num_virt*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_offs);
+  memset(sub_counts, 0, num_virt*sizeof(int64_t)*omp_get_max_threads());
 #endif
 
   /* bucket data */
@@ -886,7 +886,7 @@ void bucket_by_virt(int const               ndim,
     virt_prefix[i] = virt_prefix[i-1] + virt_counts[i-1];
   }
 
-  memset(sub_offs, 0, sizeof(int)*num_virt);
+  memset(sub_offs, 0, sizeof(int64_t)*num_virt);
   for (i=1; i<omp_get_max_threads(); i++){
     for (j=0; j<num_virt; j++){
       sub_offs[j+i*num_virt]=sub_counts[j+(i-1)*num_virt]+sub_offs[j+(i-1)*num_virt];
@@ -923,7 +923,7 @@ void bucket_by_virt(int const               ndim,
   for (i=1; i<num_virt; i++){
     virt_prefix[i] = virt_prefix[i-1] + virt_counts[i-1];
   }
-  memset(virt_counts, 0, sizeof(int)*num_virt); 
+  memset(virt_counts, 0, sizeof(int64_t)*num_virt); 
 
   for (i=0; i<num_pair; i++){
     k = mapped_data[i].k;

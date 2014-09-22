@@ -105,8 +105,17 @@ int world::init(MPI_Comm const  global_context,
     CTF_set_main_args(argc, argv);
 
 #ifdef USE_OMP
-    if (rank == 0)
-      VPRINTF(1,"Running with %d threads\n",omp_get_max_threads());
+    char * ntd = getenv("OMP_NUM_THREADS");
+    if (ntd == NULL){
+      omp_set_num_threads(1);
+      if (rank == 0){
+        VPRINTF(1,"Running with 1 thread using omp_set_num_threads(1), because OMP_NUM_THREADS is not defined\n");
+      }
+    } else {
+      if (rank == 0 && ntd != NULL){
+        VPRINTF(1,"Running with %d threads\n",omp_get_num_threads());
+      }
+    }
 #endif
   
     mst_size = getenv("CTF_MST_SIZE");
@@ -552,70 +561,78 @@ int world::contract(CTF_ctr_type_t const *    type,
   fseq_elm_ctr<dtype> felm;
   felm.func_ptr = NULL;
 
+/*  if ((*dt->get_tensors())[type->tid_A]->profile &&
+      (*dt->get_tensors())[type->tid_B]->profile &&
+      (*dt->get_tensors())[type->tid_C]->profile){*/
+#ifdef VERBOSE 
+  char cname[200];
+  cname[0] = '\0';
+  if ((*dt->get_tensors())[type->tid_C]->name != NULL)
+    sprintf(cname, "%.2lf*%s",beta, (*dt->get_tensors())[type->tid_C]->name);
+  else
+    sprintf(cname, "%d", type->tid_C);
+  sprintf(cname+strlen(cname),"[");
+  for (i=0; i<(*dt->get_tensors())[type->tid_C]->ndim; i++){
+    if (i>0)
+      sprintf(cname+strlen(cname)," %d",type->idx_map_C[i]);
+    else 
+      sprintf(cname+strlen(cname),"%d",type->idx_map_C[i]);
+  }
+  sprintf(cname+strlen(cname),"]+=%.2lf*",alpha);
+  if ((*dt->get_tensors())[type->tid_A]->name != NULL)
+    sprintf(cname+strlen(cname), "%s", (*dt->get_tensors())[type->tid_A]->name);
+  else
+    sprintf(cname+strlen(cname), "%d", type->tid_A);
+  sprintf(cname+strlen(cname),"[");
+  for (i=0; i<(*dt->get_tensors())[type->tid_A]->ndim; i++){
+    if (i>0)
+      sprintf(cname+strlen(cname)," %d",type->idx_map_A[i]);
+    else
+      sprintf(cname+strlen(cname),"%d",type->idx_map_A[i]);
+  }
+  sprintf(cname+strlen(cname),"]*");
+  if ((*dt->get_tensors())[type->tid_B]->name != NULL)
+    sprintf(cname+strlen(cname), "%s", (*dt->get_tensors())[type->tid_B]->name);
+  else
+    sprintf(cname+strlen(cname), "%d", type->tid_B);
+  sprintf(cname+strlen(cname),"[");
+  for (i=0; i<(*dt->get_tensors())[type->tid_B]->ndim; i++){
+    if (i>0)
+      sprintf(cname+strlen(cname)," %d",type->idx_map_B[i]);
+    else 
+      sprintf(cname+strlen(cname),"%d",type->idx_map_B[i]);
+  }
+  sprintf(cname+strlen(cname),"]");
+
+  double dtt;
+  CTF_Timer tctr(cname);
+  if (global_comm.rank == 0){
+    dtt = MPI_Wtime();
+    VPRINTF(1,"Contracting: %s\n",cname);
+  }
   if ((*dt->get_tensors())[type->tid_A]->profile &&
       (*dt->get_tensors())[type->tid_B]->profile &&
       (*dt->get_tensors())[type->tid_C]->profile){
-    char cname[200];
-    cname[0] = '\0';
-    if ((*dt->get_tensors())[type->tid_C]->name != NULL)
-      sprintf(cname, "%s", (*dt->get_tensors())[type->tid_C]->name);
-    else
-      sprintf(cname, "%d", type->tid_C);
-    sprintf(cname+strlen(cname),"[");
-    for (i=0; i<(*dt->get_tensors())[type->tid_C]->ndim; i++){
-      if (i>0)
-        sprintf(cname+strlen(cname)," %d",type->idx_map_C[i]);
-      else 
-        sprintf(cname+strlen(cname),"%d",type->idx_map_C[i]);
-    }
-    sprintf(cname+strlen(cname),"]=");
-    if ((*dt->get_tensors())[type->tid_A]->name != NULL)
-      sprintf(cname+strlen(cname), "%s", (*dt->get_tensors())[type->tid_A]->name);
-    else
-      sprintf(cname+strlen(cname), "%d", type->tid_A);
-    sprintf(cname+strlen(cname),"[");
-    for (i=0; i<(*dt->get_tensors())[type->tid_A]->ndim; i++){
-      if (i>0)
-        sprintf(cname+strlen(cname)," %d",type->idx_map_A[i]);
-      else
-        sprintf(cname+strlen(cname),"%d",type->idx_map_A[i]);
-    }
-    sprintf(cname+strlen(cname),"]*");
-    if ((*dt->get_tensors())[type->tid_B]->name != NULL)
-      sprintf(cname+strlen(cname), "%s", (*dt->get_tensors())[type->tid_B]->name);
-    else
-      sprintf(cname+strlen(cname), "%d", type->tid_B);
-    sprintf(cname+strlen(cname),"[");
-    for (i=0; i<(*dt->get_tensors())[type->tid_B]->ndim; i++){
-      if (i>0)
-        sprintf(cname+strlen(cname)," %d",type->idx_map_B[i]);
-      else 
-        sprintf(cname+strlen(cname),"%d",type->idx_map_B[i]);
-    }
-    sprintf(cname+strlen(cname),"]");
-
-#ifdef VERBOSE
-    double dtt;
-    if (global_comm.rank == 0){
-      dtt = MPI_Wtime();
-      VPRINTF(1,"Starting %s\n",cname);
-    }
-#endif
-   
-    CTF_Timer tctr(cname);
     tctr.start(); 
-    ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
-    tctr.stop();
-#if VERBOSE >=1
-    if (global_comm.rank == 0){
-      VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   
-    }
+  }
+  ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
+  
+#if (VERBOSE>1)
+  if (global_comm.rank == 0){
+    VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   
+  }
 #endif
-  } else 
-    ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
+  if ((*dt->get_tensors())[type->tid_A]->profile &&
+      (*dt->get_tensors())[type->tid_B]->profile &&
+      (*dt->get_tensors())[type->tid_C]->profile){
+    tctr.stop();
+  }
+#else
+  ret = dt->home_contract(type, func_ptr, felm, alpha, beta);
 #if DEBUG >= 1
   if (global_comm.rank == 0)
     printf("End head contraction.\n");
+#endif
 #endif
 
   return ret;
@@ -827,7 +844,55 @@ int world::sum_tensors(dtype const                alpha,
                              fseq_tsr_sum<dtype> const  func_ptr){
   fseq_elm_sum<dtype> felm;
   felm.func_ptr = NULL;
+
+#ifdef VERBOSE
+  char cname[200];
+  cname[0] = '\0';
+  if ((*dt->get_tensors())[tid_B]->name != NULL)
+    sprintf(cname, "%.2lf*%s", beta, (*dt->get_tensors())[tid_B]->name);
+  else
+    sprintf(cname, "%d", tid_B);
+  sprintf(cname+strlen(cname),"[");
+  for (int i=0; i<(*dt->get_tensors())[tid_B]->ndim; i++){
+    if (i>0)
+      sprintf(cname+strlen(cname)," %d",idx_map_B[i]);
+    else 
+      sprintf(cname+strlen(cname),"%d",idx_map_B[i]);
+  }
+  sprintf(cname+strlen(cname),"]+=%.2lf*",alpha);
+  if ((*dt->get_tensors())[tid_A]->name != NULL)
+    sprintf(cname+strlen(cname), "%s", (*dt->get_tensors())[tid_A]->name);
+  else
+    sprintf(cname+strlen(cname), "%d", tid_A);
+  sprintf(cname+strlen(cname),"[");
+  for (int i=0; i<(*dt->get_tensors())[tid_A]->ndim; i++){
+    if (i>0)
+      sprintf(cname+strlen(cname)," %d",idx_map_A[i]);
+    else
+      sprintf(cname+strlen(cname),"%d",idx_map_A[i]);
+  }
+  sprintf(cname+strlen(cname),"]");
+  double dtt;
+  if (dt->get_global_comm().rank == 0){
+    dtt = MPI_Wtime();
+    VPRINTF(1,"Summing: %s\n",cname);
+  }
+ 
+  CTF_Timer tctr(cname);
+  if ((*dt->get_tensors())[tid_A]->profile &&
+      (*dt->get_tensors())[tid_B]->profile)
+    tctr.start(); 
   return dt->home_sum_tsr(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr, felm);
+  if ((*dt->get_tensors())[tid_A]->profile &&
+      (*dt->get_tensors())[tid_B]->profile){
+    tctr.stop();
+    VPRINTF(1,"Ended %s in %lf seconds\n",cname,MPI_Wtime()-dtt);   
+  }
+#else
+  return dt->home_sum_tsr(alpha, beta, tid_A, tid_B, idx_map_A, idx_map_B, func_ptr, felm);
+#endif
+
+
 }
 
 /**

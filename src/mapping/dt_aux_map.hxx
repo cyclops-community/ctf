@@ -869,9 +869,9 @@ int remap_tensor(int const  tid,
     strcpy(spf,"redistribute_");
     strcat(spf,tsr->name);
     if (global_comm.rank == 0){
+#if DEBUG >=1
       if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",tsr->name);
       else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",tsr->name);
-#if VERBOSE >=1
       tsr->print_map(stdout);
 #endif
     }
