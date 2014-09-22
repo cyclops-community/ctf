@@ -131,7 +131,7 @@ void mst_create(int64_t size){
   void * new_mst_buffer;
   if (size > mst_buffer_size){
     pm = posix_memalign((void**)&new_mst_buffer, ALIGN_BYTES, size);
-    LIBT_ASSERT(pm == 0);
+    ASSERT(pm == 0);
     if (mst_buffer != NULL){
       memcpy(new_mst_buffer, mst_buffer, mst_buffer_ptr);
     } 
@@ -190,7 +190,7 @@ void mem_exit(int rank){
  * \param[in] ptr pointer to buffer on stack
  */
 int CTF_mst_free(void * ptr){
-  LIBT_ASSERT((int64_t)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
+  ASSERT((int64_t)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
   
   std::list<mem_loc>::iterator it;
   for (it=--mst.end(); it!=mst.begin(); it--){
@@ -260,7 +260,7 @@ int CTF_mst_alloc_ptr(int64_t const len, void ** const ptr){
 void * CTF_mst_alloc(int64_t const len){
   void * ptr;
   int ret = CTF_mst_alloc_ptr(len, &ptr);
-  LIBT_ASSERT(ret == SUCCESS);
+  ASSERT(ret == SUCCESS);
   return ptr;
 }
 
@@ -295,7 +295,7 @@ int CTF_alloc_ptr(int64_t const len_, void ** const ptr){
     printf("CTF ERROR: posix memalign returned an error, "PRId64" memory CTF_alloced on this process, wanted to CTF_alloc "PRId64" more\n",
             mem_used[0], len);
   }
-  LIBT_ASSERT(pm == 0);
+  ASSERT(pm == 0);
   return SUCCESS;
 
 }
@@ -307,7 +307,7 @@ int CTF_alloc_ptr(int64_t const len_, void ** const ptr){
 void * CTF_alloc(int64_t const len){
   void * ptr;
   int ret = CTF_alloc_ptr(len, &ptr);
-  LIBT_ASSERT(ret == SUCCESS);
+  ASSERT(ret == SUCCESS);
   return ptr;
 }
 

@@ -99,7 +99,7 @@ int64_t seq_tsr_sum::mem_fp(){ return 0; }
  */
 void seq_tsr_sum::run(){
   if (is_custom){
-    LIBT_ASSERT(is_inner == 0);
+    ASSERT(is_inner == 0);
     sym_seq_sum_cust(
                     this->alpha,
                     this->A,
@@ -221,9 +221,9 @@ double seq_tsr_ctr::est_time_fp(int nlyr){
   if (is_inner) size_B *= inner_params.n*inner_params.k*el_size;
   if (is_inner) size_C *= inner_params.m*inner_params.n*el_size;
  
-  LIBT_ASSERT(size_A > 0);
-  LIBT_ASSERT(size_B > 0);
-  LIBT_ASSERT(size_C > 0);
+  ASSERT(size_A > 0);
+  ASSERT(size_B > 0);
+  ASSERT(size_C > 0);
 
   int idx_max, * rev_idx_map; 
   inv_idx(ndim_A,       idx_map_A,
@@ -242,7 +242,7 @@ double seq_tsr_ctr::est_time_fp(int nlyr){
     else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
     else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
   }
-  LIBT_ASSERT(flops >= 0.0);
+  ASSERT(flops >= 0.0);
   CTF_free(rev_idx_map);
   return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
 }
@@ -256,7 +256,7 @@ double seq_tsr_ctr::est_time_rec(int nlyr){
  */
 void seq_tsr_ctr::run(){
   if (is_custom){
-    LIBT_ASSERT(is_inner == 0);
+    ASSERT(is_inner == 0);
     sym_seq_ctr_cust(
                     this->alpha,
                     this->A,

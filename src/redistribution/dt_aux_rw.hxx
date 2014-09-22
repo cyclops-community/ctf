@@ -49,11 +49,11 @@ void readwrite(int const        ndim,
       if (size > 1){
         for (i=1; i<size; i++){
           //check for write conflicts
-          LIBT_ASSERT(pairs[i].k == 0 || pairs[i].d != pairs[0].d);
+          ASSERT(pairs[i].k == 0 || pairs[i].d != pairs[0].d);
         }
       }
   //    printf("size = "PRId64"\n",size);
-  //    LIBT_ASSERT(size == 1);
+  //    ASSERT(size == 1);
       if (rw == 'r'){
         pairs[0].d = vdata[0];
       } else {
@@ -103,7 +103,7 @@ void readwrite(int const        ndim,
               /* should it be the opposite? No, because 'pairs' was passed in and 'data' is being added to pairs, so data is operand, gets alpha. */
                 pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
             } else {
-              LIBT_ASSERT(rw =='w');
+              ASSERT(rw =='w');
               data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
             }
             pr_offset++;
@@ -143,7 +143,7 @@ void readwrite(int const        ndim,
           idx[act_lda] = 0;
         idx_offset += (idx[act_lda]*phase[act_lda]+phase_rank[act_lda])
                       *edge_lda[act_lda];
-        LIBT_ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
+        ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
         if (idx[act_lda] > 0)
           break;
       }
@@ -162,7 +162,7 @@ void readwrite(int const        ndim,
   }
   TAU_FSTOP(readwrite);
   //printf("pr_offset = "PRId64"/"PRId64"\n",pr_offset,size);
-  LIBT_ASSERT(pr_offset == size);
+  ASSERT(pr_offset == size);
   CTF_free(idx);
   CTF_free(virt_rank);
   CTF_free(edge_lda);
@@ -360,7 +360,7 @@ void wr_pairs_layout(int const          ndim,
 #if (DEBUG>=5)
       if (el_loc < buf_data || el_loc >= buf_data+new_num_pair){
         DEBUG_PRINTF("swap_data[%d].k = %d, not found\n", i, (int)swap_data[i].k);
-        LIBT_ASSERT(0);
+        ASSERT(0);
       }
 #endif
       swap_data[i].d = el_loc->d;

@@ -347,7 +347,7 @@ void depermute_keys(int const                   ndim,
       for (j=0; j<ndim; j++){
         kdim = wkey%new_edge_len[j];
         if (depermutation[j] != NULL){
-          LIBT_ASSERT(depermutation[j][kdim] != -1);
+          ASSERT(depermutation[j][kdim] != -1);
           knew += lda*depermutation[j][kdim];
         } else {
           knew += lda*kdim;
@@ -583,7 +583,7 @@ void pad_tsr(int const                ndim,
   }
   CTF_free(idx);
   DEBUG_PRINTF("ndim = %d new_el="PRId64", size = "PRId64", pad_el = "PRId64"\n", ndim, new_el, size, pad_el);
-  LIBT_ASSERT(new_el + size == pad_el);
+  ASSERT(new_el + size == pad_el);
   memcpy(padded_pairs+new_el, old_data,  size*sizeof(tkv_pair<dtype>));
   *new_pairs = padded_pairs;
   *new_size = pad_el;
@@ -622,7 +622,7 @@ void assign_keys(int const          ndim,
   dtype const * data;
   tkv_pair<dtype> * pairs;
   if (ndim == 0){
-    LIBT_ASSERT(size <= 1);
+    ASSERT(size <= 1);
     if (size == 1){
       vpairs[0].k = 0;
       vpairs[0].d = vdata[0];
@@ -658,7 +658,7 @@ void assign_keys(int const          ndim,
         imax = idx[1]+1;
             /* Increment virtual bucket */
             for (i=0; i<imax; i++){
-        LIBT_ASSERT(buf_offset+i<size);
+        ASSERT(buf_offset+i<size);
         if (p*(size/nvirt) + buf_offset + i >= size){ 
           printf("exceeded how much I was supposed to read read "PRId64"/"PRId64"\n", p*(size/nvirt)+buf_offset+i,size);
           ABORT;
@@ -678,7 +678,7 @@ void assign_keys(int const          ndim,
           idx[act_lda] = 0;
         idx_offset += (idx[act_lda]*phase[act_lda]+phase_rank[act_lda])
                 *edge_lda[act_lda];
-        LIBT_ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
+        ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
         if (idx[act_lda] > 0)
           break;
       }
@@ -695,7 +695,7 @@ void assign_keys(int const          ndim,
     }
     if (act_lda >= ndim) break;
   }
-  LIBT_ASSERT(buf_offset == size/nvirt);
+  ASSERT(buf_offset == size/nvirt);
   CTF_free(idx);
   CTF_free(virt_rank);
   CTF_free(edge_lda);
@@ -758,7 +758,7 @@ void bucket_by_pe( int const                ndim,
 /*    for (j=0; j<ndim; j++){
       loc += tmp_arr[j];
     }*/
-    LIBT_ASSERT(loc<np);
+    ASSERT(loc<np);
 #ifdef USE_OMP
     sub_counts[loc+omp_get_thread_num()*np]++;
 #else
@@ -845,7 +845,7 @@ void bucket_by_virt(int const               ndim,
   if (ndim > 0){
     virt_lda[0] = 1;
     for (i=1; i<ndim; i++){
-      LIBT_ASSERT(virt_phase[i] > 0);
+      ASSERT(virt_phase[i] > 0);
       virt_lda[i] = virt_phase[i-1]*virt_lda[i-1];
     }
   }
@@ -949,7 +949,7 @@ void bucket_by_virt(int const               ndim,
 #if DEBUG >= 1
 // FIXME: Can we handle replicated keys?
 /*  for (i=1; i<num_pair; i++){
-    LIBT_ASSERT(bucket_data[i].k != bucket_data[i-1].k);
+    ASSERT(bucket_data[i].k != bucket_data[i-1].k);
   }*/
 #endif
 #ifdef USE_OMP
@@ -1067,7 +1067,7 @@ void zero_padding( int const          ndim,
     }
     CTF_free(end_idx);
   }
-  LIBT_ASSERT(tid != ntd-1 || vend == nvirt);
+  ASSERT(tid != ntd-1 || vend == nvirt);
   for (p=0; p<nvirt; p++){
     if (p>=vst && p<vend){
       int is_sh_pad0 = 0;
@@ -1139,7 +1139,7 @@ void zero_padding( int const          ndim,
           }
           if (idx[i] >= act_max)
             idx[i] = 0;
-          LIBT_ASSERT(edge_len[i]%phase[i] == 0);
+          ASSERT(edge_len[i]%phase[i] == 0);
           if (idx[i] > 0)
             break;
         }
@@ -1156,7 +1156,7 @@ void zero_padding( int const          ndim,
         break;
     }
   }
-  //LIBT_ASSERT(buf_offset == size/nvirt);
+  //ASSERT(buf_offset == size/nvirt);
   CTF_free(idx);
   CTF_free(virt_rank);
   CTF_free(virt_len);

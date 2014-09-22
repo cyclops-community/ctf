@@ -386,7 +386,7 @@ void calc_idx_arr(int         ndim,
         plen[idim] = mkidx+1;
       }
       int64_t smidx = packed_size(dim+1, plen, sym);
-      LIBT_ASSERT(smidx > idx_rem);
+      ASSERT(smidx > idx_rem);
 #endif
       int64_t midx = 0;
       for (; mkidx >= 0; mkidx--){
@@ -401,7 +401,7 @@ void calc_idx_arr(int         ndim,
       idx_rem -= midx;
     }
   }
-  LIBT_ASSERT(idx_rem == 0);
+  ASSERT(idx_rem == 0);
 }
 
 /**

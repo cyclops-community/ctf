@@ -125,7 +125,7 @@ void calc_sub_edge_len(tensor<dtype> *  tsr,
         phase[i] = phase[i]*map->np;
       } 
     } else {
-      LIBT_ASSERT(tsr->edge_map[i].type == VIRTUAL_MAP);
+      ASSERT(tsr->edge_map[i].type == VIRTUAL_MAP);
       phase[i] = tsr->edge_map[i].np;
     }
   }

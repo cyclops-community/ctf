@@ -353,6 +353,9 @@ namespace CTF_int {
       
       // copies n elements from array b to array a
       void copy(char * a, char const * b, int64_t n);
+
+      // sets n elements of array a to value b
+      void set(char * a, char const * b, int64_t n);
   };
 
   template <typename dtype, dtype (*func)(dtype const a, dtype const b)>

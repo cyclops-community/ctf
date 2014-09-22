@@ -61,8 +61,8 @@ int dist_tensor<double>::dot_loc_tsr(int const tid_A, int const tid_B, double *p
     return CTF_SUCCESS;
   }
 
-  LIBT_ASSERT(tsr_A->is_mapped && tsr_B->is_mapped);
-  LIBT_ASSERT(tsr_A->size == tsr_B->size);
+  ASSERT(tsr_A->is_mapped && tsr_B->is_mapped);
+  ASSERT(tsr_A->size == tsr_B->size);
 
   dprod = cddot(tsr_A->size, tsr_A->data, 1, tsr_B->data, 1);
 
@@ -426,7 +426,7 @@ int dist_tensor<double>::
   if (tsr_A->has_zero_edge_len || tsr_B->has_zero_edge_len){
     return CTF_SUCCESS;
   }
-  LIBT_ASSERT(tsr_A->size == tsr_B->size);
+  ASSERT(tsr_A->size == tsr_B->size);
   cdaxpy(tsr_A->size, alpha, tsr_A->data, 1, tsr_B->data, 1);
   return CTF_SUCCESS;
 }
@@ -535,7 +535,7 @@ int dist_tensor<dtype>::
         }
 
         nvirt = (uint64_t)calc_nvirt(ntsr);
-        LIBT_ASSERT(nvirt != 0);
+        ASSERT(nvirt != 0);
         if (btopo == -1 || nvirt < bnvirt){
           bnvirt = nvirt;
           btopo = itopo;
@@ -827,7 +827,7 @@ tsum<dtype> * dist_tensor<dtype>::
       }
       else virt_dim[i] = 1;
     } else {
-      LIBT_ASSERT(iB!=-1);
+      ASSERT(iB!=-1);
       map = &tsr_B->edge_map[iB];
       while (map->has_child) map = map->child;
       if (map->type == VIRTUAL_MAP){
@@ -917,7 +917,7 @@ tsum<dtype> * dist_tensor<dtype>::
         rtsum->ncdt_B++;
       }
     }
-    LIBT_ASSERT(rtsum->ncdt_A == 0 || rtsum->cdt_B == 0);
+    ASSERT(rtsum->ncdt_A == 0 || rtsum->cdt_B == 0);
   }
 
   int * new_sym_A, * new_sym_B;
@@ -1175,7 +1175,7 @@ ctr<dtype> * dist_tensor<dtype>::
     if (phys_mapped[3*i+0] == 0 ||
       phys_mapped[3*i+1] == 0 ||
       phys_mapped[3*i+2] == 0){
-      /*LIBT_ASSERT((phys_mapped[3*i+0] == 0 && phys_mapped[3*i+1] == 0) ||
+      /*ASSERT((phys_mapped[3*i+0] == 0 && phys_mapped[3*i+1] == 0) ||
       (phys_mapped[3*i+0] == 0 && phys_mapped[3*i+2] == 0) ||
       (phys_mapped[3*i+1] == 0 && phys_mapped[3*i+2] == 0));*/
       need_rep = 1;
@@ -1213,7 +1213,7 @@ ctr<dtype> * dist_tensor<dtype>::
           phys_mapped[3*i+2] == 0){
 /*        printf("ERROR: ALL-TENSOR REPLICATION NO LONGER DONE\n");
         ABORT;
-        LIBT_ASSERT(rctr->num_lyr == 1);
+        ASSERT(rctr->num_lyr == 1);
         hctr->idx_lyr = topovec[tsr_A->itopo].dim_comm[i].rank;
         hctr->num_lyr = topovec[tsr_A->itopo].dim_comm[i]->np;
         rctr->idx_lyr = topovec[tsr_A->itopo].dim_comm[i].rank;
@@ -1455,9 +1455,9 @@ ctr<dtype> * dist_tensor<dtype>::
   if (nvirt_all != NULL)
     *nvirt_all = nvirt;
 
-  LIBT_ASSERT(blk_sz_A >= vrt_sz_A);
-  LIBT_ASSERT(blk_sz_B >= vrt_sz_B);
-  LIBT_ASSERT(blk_sz_C >= vrt_sz_C);
+  ASSERT(blk_sz_A >= vrt_sz_A);
+  ASSERT(blk_sz_B >= vrt_sz_B);
+  ASSERT(blk_sz_C >= vrt_sz_C);
     
   int * new_sym_A, * new_sym_B, * new_sym_C;
   CTF_alloc_ptr(sizeof(int)*tsr_A->ndim, (void**)&new_sym_A);
@@ -2070,7 +2070,7 @@ int dist_tensor<dtype>::sym_sum_tsr( dtype const                alpha_,
     del_tsr(ntid_B);
     ntid_B = dstack_tid_B[i];
   }
-  LIBT_ASSERT(ntid_B == type->tid_B);
+  ASSERT(ntid_B == type->tid_B);
   CTF_free(map_A);
   CTF_free(map_B);
   CTF_free(dstack_map_B);
@@ -2160,7 +2160,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     clone_tensor(ntid_A, 1, &new_tid);
     stat = sum_tensors(alpha_, beta, new_tid, ntid_B, map_A, map_B, ftsr, felm);
     del_tsr(new_tid);
-    LIBT_ASSERT(stat == CTF_SUCCESS);
+    ASSERT(stat == CTF_SUCCESS);
   } else{ 
 
     dtype alpha = alpha_*align_symmetric_indices(tensors[ntid_A]->ndim,
@@ -2215,7 +2215,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
 #endif
     }
     /* Construct the tensor algorithm we would like to use */
-    LIBT_ASSERT(check_sum_mapping(ntid_A, map_A, ntid_B, map_B));
+    ASSERT(check_sum_mapping(ntid_A, map_A, ntid_B, map_B));
 #if FOLD_TSR
     if (felm.func_ptr == NULL && can_fold(&type)){
       int inner_stride;
@@ -2300,11 +2300,11 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     if (ntid_A != tid_A) del_tsr(ntid_A);
     for (int i=nst_B-1; i>=0; i--){
       int ret = extract_diag(dstack_tid_B[i], dstack_map_B[i], 0, &ntid_B, &new_idx_map);
-      LIBT_ASSERT(ret == CTF_SUCCESS);
+      ASSERT(ret == CTF_SUCCESS);
       del_tsr(ntid_B);
       ntid_B = dstack_tid_B[i];
     }
-    LIBT_ASSERT(ntid_B == tid_B);
+    ASSERT(ntid_B == tid_B);
   }
   CTF_free(map_A);
   CTF_free(map_B);
@@ -2488,7 +2488,7 @@ int dist_tensor<dtype>::
 /*    tsr_C->itopo = ntsr_C->itopo;
     copy_mapping(tsr_C->ndim, ntsr_C->edge_map, tsr_C->edge_map);
     set_padding(tsr_C);*/
-    LIBT_ASSERT(ntsr_C->data == tsr_C->data);
+    ASSERT(ntsr_C->data == tsr_C->data);
     ntsr_C->is_data_aliased = 1;
     del_tsr(ntype.tid_C);
   }
@@ -2624,14 +2624,14 @@ int dist_tensor<dtype>::
     new_type.tid_A = new_tid;
     stat = sym_contract(&new_type, ftsr, felm, alpha, beta);
     del_tsr(new_tid);
-    LIBT_ASSERT(stat == CTF_SUCCESS);
+    ASSERT(stat == CTF_SUCCESS);
   } else if (ntid_B == ntid_C){
     clone_tensor(ntid_B, 1, &new_tid);
     CTF_ctr_type_t new_type = *type;
     new_type.tid_B = new_tid;
     stat = sym_contract(&new_type, ftsr, felm, alpha, beta);
     del_tsr(new_tid);
-    LIBT_ASSERT(stat == CTF_SUCCESS);
+    ASSERT(stat == CTF_SUCCESS);
   } else {
 
     double alignfact = align_symmetric_indices(tensors[ntid_A]->ndim,
@@ -2744,7 +2744,7 @@ int dist_tensor<dtype>::
       del_tsr(ntid_C);
       ntid_C = dstack_tid_C[i];
     }
-    LIBT_ASSERT(ntid_C == type->tid_C);
+    ASSERT(ntid_C == type->tid_C);
   }
 
   CTF_free(map_A);
@@ -2885,7 +2885,7 @@ int dist_tensor<dtype>::
 #endif
   }
 #endif
-  LIBT_ASSERT(check_contraction_mapping(type));
+  ASSERT(check_contraction_mapping(type));
 #if FOLD_TSR
   if (felm.func_ptr == NULL && 
       ftsr.func_ptr == NULL && //sym_seq_ctr_ref<dtype> && 

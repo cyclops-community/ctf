@@ -229,7 +229,7 @@ void print_timers(char const * name){
       j+=strlen(all_symbols+j)+1;
     }
   }
-  LIBT_ASSERT(len_symbols <= MAX_TOT_SYMBOLS_LEN);
+  ASSERT(len_symbols <= MAX_TOT_SYMBOLS_LEN);
 
   std::sort(function_timers.begin(), function_timers.end(),comp_name);
   for (i=0; i<(int)function_timers.size(); i++){

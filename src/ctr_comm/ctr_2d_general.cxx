@@ -179,7 +179,7 @@ void ctr_2d_general::run() {
   TAU_FSTART(ctr_2d_general);
 
   /* Must move at most two tensors */
-  LIBT_ASSERT(!(move_A && move_B && move_C));
+  ASSERT(!(move_A && move_B && move_C));
   
   rec_ctr->beta         = this->beta;
   rec_ctr->num_lyr      = 1;
@@ -196,7 +196,7 @@ void ctr_2d_general::run() {
   if (0){
   } else {
     ret = CTF_mst_alloc_ptr(s_A*db*el_size_A, (void**)&buf_A);
-    LIBT_ASSERT(ret==0);
+    ASSERT(ret==0);
     ret = CTF_mst_alloc_ptr(s_B*db*el_size_B, (void**)&buf_B);
     LIBT_BSSERT(ret==0);
     ret = CTF_mst_alloc_ptr(s_C*db*sr_C.el_size, (void**)&buf_C);

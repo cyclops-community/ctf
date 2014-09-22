@@ -122,7 +122,7 @@ void ctr_offload<dtype>::run(){
       ptr_B->upload(this->B);
   }
   if (this->beta != get_one<dtype>()){
-    LIBT_ASSERT(iter_counter % download_phase_C == 0);
+    ASSERT(iter_counter % download_phase_C == 0);
     //FIXME daxpy 
     CTF_FLOPS_ADD(size_C);
     for (int i=0; i<size_C; i++){

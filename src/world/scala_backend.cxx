@@ -40,9 +40,9 @@ int gemm_ctr(  dtype  const     alpha,
   char ta, tb;
   int n, m, k;
   int la_A, la_B, la_C;
-  LIBT_ASSERT(ndim_A == 2);
-  LIBT_ASSERT(ndim_B == 2);
-  LIBT_ASSERT(ndim_C == 2);
+  ASSERT(ndim_A == 2);
+  ASSERT(ndim_B == 2);
+  ASSERT(ndim_C == 2);
 
   if (idx_map_A[0] == 0){
     k = edge_len_A[0];
@@ -59,12 +59,12 @@ int gemm_ctr(  dtype  const     alpha,
     ta = 'N';
   }
   if (idx_map_B[0] == 0) {
-    LIBT_ASSERT(k==edge_len_B[0]);
+    ASSERT(k==edge_len_B[0]);
     n = edge_len_B[1];
     la_B = k;
     tb = 'N';
   } else {
-    LIBT_ASSERT(k==edge_len_B[1]);
+    ASSERT(k==edge_len_B[1]);
     n = edge_len_B[0];
     la_B = n;
     if (is_herm_B)
@@ -72,8 +72,8 @@ int gemm_ctr(  dtype  const     alpha,
     else
       tb = 'T';
   }
-  LIBT_ASSERT(m==edge_len_C[0]);
-  LIBT_ASSERT(n==edge_len_C[1]);
+  ASSERT(m==edge_len_C[0]);
+  ASSERT(n==edge_len_C[1]);
   la_C = m;
 
 
@@ -184,8 +184,8 @@ int dist_tensor<dtype>::load_matrix
 
   ALLREDUCE(MPI_IN_PLACE, &has_el, 1, COMM_INT_T, COMM_OP_SUM, global_comm);
 
-//  if (global_comm.rank >= has_el) LIBT_ASSERT(mbrow*mbcol == 0);
-  LIBT_ASSERT(global_comm.np % has_el == 0);
+//  if (global_comm.rank >= has_el) ASSERT(mbrow*mbcol == 0);
+  ASSERT(global_comm.np % has_el == 0);
   nrep = global_comm.np / has_el;
   
 
@@ -240,7 +240,7 @@ int dist_tensor<dtype>::load_matrix
   tsr->is_data_aliased  = 0;
   tsr->has_zero_edge_len  = 0;
   tsr->size = (((int64_t)nrow*(int64_t)ncol)*nrep)/global_comm.np;
-  LIBT_ASSERT(tsr->size == brow*bcol);
+  ASSERT(tsr->size == brow*bcol);
   if (need_free == NULL){
     CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
     if (mbrow*mbcol == 0){
@@ -418,7 +418,7 @@ int dist_tensor<dtype>::load_matrix
       set_phys_comm(phys_comm,3,0);
     else 
       set_phys_comm(phys_comm,2,0);
-    LIBT_ASSERT((int)topovec.size() > itopo);
+    ASSERT((int)topovec.size() > itopo);
     tsr->itopo = itopo;
 /*    printf("ERROR: topology not found\n");
     return CTF_ERROR;*/
@@ -460,12 +460,12 @@ int dist_tensor<dtype>
   CTF_ctr_type ct;
   fseq_tsr_ctr<dtype> fs;
 
-  LIBT_ASSERT(IA == 1);
-  LIBT_ASSERT(JA == 1);
-  LIBT_ASSERT(IB == 1);
-  LIBT_ASSERT(JB == 1);
-  LIBT_ASSERT(IC == 1);
-  LIBT_ASSERT(JC == 1);
+  ASSERT(IA == 1);
+  ASSERT(JA == 1);
+  ASSERT(IB == 1);
+  ASSERT(JB == 1);
+  ASSERT(IC == 1);
+  ASSERT(JC == 1);
 
 
   ret = load_matrix(A, DESCA, &tid_A, need_free);
@@ -491,7 +491,7 @@ int dist_tensor<dtype>
     ct.idx_map_A[0] = 1;
     ct.idx_map_A[1] = 0;
   } else {
-    LIBT_ASSERT(TRANSA == 'T' || TRANSA == 't' || TRANSA == 'c' || TRANSA == 'C');
+    ASSERT(TRANSA == 'T' || TRANSA == 't' || TRANSA == 'c' || TRANSA == 'C');
     if (TRANSA == 'c' || TRANSA == 'C')
       herm_A = 1;
     ct.idx_map_A[0] = 0;
@@ -501,7 +501,7 @@ int dist_tensor<dtype>
     ct.idx_map_B[0] = 0;
     ct.idx_map_B[1] = 2;
   } else {
-    LIBT_ASSERT(TRANSB == 'T' || TRANSB == 't' || TRANSB == 'c' || TRANSB == 'C');
+    ASSERT(TRANSB == 'T' || TRANSB == 't' || TRANSB == 'c' || TRANSB == 'C');
     if (TRANSB == 'c' || TRANSB == 'C')
       herm_B = 1;
     ct.idx_map_B[0] = 2;

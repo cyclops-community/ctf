@@ -59,6 +59,10 @@ namespace CTF_int {
       std::vector< tensor* > tensors;
       std::vector<topology> topovec;
 
+    // initializes world stack and parameters
+    int initialize(int                   argc,
+                   const char * const *  argv);
+
     public:
 
       world();
@@ -69,7 +73,7 @@ namespace CTF_int {
       int init(MPI_Comm       global_context,
                int            rank,
                int            np,
-               TOPOLOGY        mach = TOPOLOGY_GENERIC,
+               TOPOLOGY       mach = TOPOLOGY_GENERIC,
                int            argc = 0,
                const char * const * argv = NULL);
 
@@ -233,14 +237,6 @@ namespace CTF_int {
                        int const *    ends_B,
                        char const *   beta,
                        world *        dt_other_B);
-
-
-      /* read a block from tensor_id,
-         new_tensor_id = tensor_id[offsets:ends] */
-  /*    int read_block_tensor(int         tensor_id,
-                            int const * offsets,
-                            int const * ends,
-                            int *       new_tensor_id);*/
 
 
       /* read tensor data with <key, value> pairs where key is the

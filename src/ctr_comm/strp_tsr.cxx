@@ -59,7 +59,7 @@ void strp_tsr<dtype>::run(int const dir){
     } else {
       alloced = 1;
       ret = CTF_alloc_ptr(mem_fp(), (void**)&this->buffer);
-      LIBT_ASSERT(ret==0);
+      ASSERT(ret==0);
     }
   } 
   idx_arr = (int*)CTF_alloc(sizeof(int)*ndim);

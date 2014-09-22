@@ -33,6 +33,7 @@ class pair {
 
 class tensor {
   public:
+  semiring sr;
   int ndim;
   int * edge_len;
   int * padding;
@@ -40,29 +41,41 @@ class tensor {
   int * scp_padding; /* to be used by scalapack wrapper */
   int * sym;
   int * sym_table; /* can be compressed into bitmap */
-  int is_mapped;
-  int is_alloced;
+  bool is_mapped;
+  bool is_alloced;
   int itopo;
   mapping * edge_map;
   int64_t size;
-  int is_folded;
+  bool is_folded;
   int * inner_ordering;
   int rec_tid;
-  int is_cyclic;
-  int is_matrix;
-  int is_data_aliased;
-  int slay;
-  int has_zero_edge_len;
+  bool is_cyclic;
+  bool is_matrix;
+  bool is_data_aliased;
+  bool slay;
+  bool has_zero_edge_len;
   union {
     char * data;
     pair * pairs;
   };
   char * home_buffer;
   int64_t home_size;
-  int is_home;
-  int has_home;
+  bool is_home;
+  bool has_home;
   char const * name;
-  int profile;
+  bool profile;
+
+  tensor(semiring sr,
+         int ndim,
+         int const * edge_len,
+         int const * sym
+         bool alloc_data = false,
+         char const * name = NULL,
+         bool profile = 1);
+
+  int set_padding();
+
+  void set_zero():
 
   void print_map(FILE * stream) const;
 

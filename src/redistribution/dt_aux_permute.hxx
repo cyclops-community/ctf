@@ -353,7 +353,7 @@ void calc_cnt_displs_old(int const          ndim,
           /* Warning: This next if block has a history of bugs */
           //spad[i] = padding[i];
           if (sym[i] != NS){
-            LIBT_ASSERT(padding[i] < old_phase[i]);
+            ASSERT(padding[i] < old_phase[i]);
             spad[i] = 1;
             if (sym[i] != SY && virt_rank[i] < virt_rank[i+1])
               spad[i]--;
@@ -707,7 +707,7 @@ void calc_cnt_displs(int const          ndim,
           /* Warning: This next if block has a history of bugs */
           //spad[dim] = padding[dim];
           if (sym[dim] != NS){
-            LIBT_ASSERT(padding[dim] < old_phase[dim]);
+            ASSERT(padding[dim] < old_phase[dim]);
             spad[dim] = 1;
             if (sym[dim] != SY && virt_rank[dim] < virt_rank[dim+1])
               spad[dim]--;
@@ -757,18 +757,18 @@ void calc_cnt_displs(int const          ndim,
                 if ((sym[0] != SY && virt_rank[0] >= virt_rank[1]) ||
                     (sym[0] == SY && virt_rank[0] > virt_rank[1])) {
 
-                  LIBT_ASSERT(i<idx[1]);
+                  ASSERT(i<idx[1]);
                 } else {
-                  LIBT_ASSERT(i<=idx[1]);
+                  ASSERT(i<=idx[1]);
                 }
               }
               for (int dim = 1; dim < ndim-1; dim++){
                 if (sym[dim] != NS){
                   if ((sym[dim] != SY && virt_rank[dim] >= virt_rank[dim+1]) ||
                       (sym[dim] == SY && virt_rank[dim] > virt_rank[dim+1])) {
-                    LIBT_ASSERT(idx[dim]<idx[dim+1]);
+                    ASSERT(idx[dim]<idx[dim+1]);
                   } else
-                    LIBT_ASSERT(idx[dim]<=idx[dim+1]);
+                    ASSERT(idx[dim]<=idx[dim+1]);
                 }
               }*/
               vc = bucket_offset[0][old_virt_idx[0]*old_virt_edge_len[0]+i];
@@ -1079,13 +1079,13 @@ void pup_virt_buff(int const            ndim,
       vr_max = MIN(vr_max, ((edge_len[act_lda]-padding[act_lda])-
                     (idx[act_lda]*old_phase[act_lda]
                     +old_rank[act_lda]*old_virt_dim[act_lda])));
-        //LIBT_ASSERT(vr_max!=0 || outside>0);
+        //ASSERT(vr_max!=0 || outside>0);
       if (sym[act_lda] != NS && idx[act_lda] == idx[act_lda+1]){
         vr_max = MIN(vr_max, 
                 ((old_virt_idx[act_lda+1]+(sym[act_lda]==SY)+
                   old_rank[act_lda+1]*old_virt_dim[act_lda+1])-
                   (old_rank[act_lda]*old_virt_dim[act_lda])));
-        //LIBT_ASSERT(vr_max!=0 || outside>0);
+        //ASSERT(vr_max!=0 || outside>0);
       }
       if (old_virt_idx[act_lda] >= vr_max)
         old_virt_idx[act_lda] = 0;
@@ -1386,7 +1386,7 @@ void pad_cyclic_pup_virt_buff(int              ndim,
         }
         ABORT;
       }
-      LIBT_ASSERT(gidx_end[ndim-1] <= ends[ndim-1]);
+      ASSERT(gidx_end[ndim-1] <= ends[ndim-1]);
     } 
 #endif
   } else {
@@ -1457,8 +1457,8 @@ void pad_cyclic_pup_virt_buff(int              ndim,
     idx_acc[dim] = sy_packed_size(dim+1, plen, sym);
     offset += idx_acc[dim]; 
 
-    LIBT_ASSERT(ist == 0 || gidx[dim] <= gidx_st[dim]);
-//    LIBT_ASSERT(ist < old_virt_edge_len[dim]);
+    ASSERT(ist == 0 || gidx[dim] <= gidx_st[dim]);
+//    ASSERT(ist < old_virt_edge_len[dim]);
 
     if (gidx[dim] > gidx_st[dim]) break;
 
@@ -1543,8 +1543,8 @@ void pad_cyclic_pup_virt_buff(int              ndim,
 
         offset += old_virt_nelem*virt_min;
         if (forward){
-          LIBT_ASSERT(alpha == get_one<dtype>());
-          LIBT_ASSERT(beta  == get_zero<dtype>());
+          ASSERT(alpha == get_one<dtype>());
+          ASSERT(beta  == get_zero<dtype>());
           for (virt_offset[0] = virt_min*old_virt_edge_len[0];
                virt_offset[0] < virt_max*old_virt_edge_len[0];
                virt_offset[0] += old_virt_edge_len[0])
@@ -1683,8 +1683,8 @@ void pad_cyclic_pup_virt_buff(int              ndim,
     int64_t tot_sz = MAX(old_size, new_size);
     int64_t i;
     if (forward){
-      LIBT_ASSERT(alpha == 1.0);
-      LIBT_ASSERT(beta  == 0.0);
+      ASSERT(alpha == 1.0);
+      ASSERT(beta  == 0.0);
       #pragma omp parallel for private(i)
       for (i=0; i<tot_sz; i++){
         if (bucket_store[i] != -1){
@@ -1886,7 +1886,7 @@ void opt_pup_virt_buff(int const        ndim,
             ledge_len_max = i;
           }
         }
-        LIBT_ASSERT(ledge_len_max != -1);
+        ASSERT(ledge_len_max != -1);
       }
 
     }
@@ -2103,13 +2103,13 @@ void opt_pup_virt_buff(int const        ndim,
         vr_max = MIN(vr_max, ((old_edge_len[act_lda]-padding[act_lda])-
                       (idx[act_lda]*old_phase[act_lda]
                       +old_rank[act_lda]*old_virt_dim[act_lda])));
-          //LIBT_ASSERT(vr_max!=0 || outside>0);
+          //ASSERT(vr_max!=0 || outside>0);
         if (sym[act_lda] != NS && idx[act_lda] == idx[act_lda+1]){
           vr_max = MIN(vr_max, 
                   ((old_virt_idx[act_lda+1]+(sym[act_lda]==SY)+
                     old_rank[act_lda+1]*old_virt_dim[act_lda+1])-
                     (old_rank[act_lda]*old_virt_dim[act_lda])));
-          //LIBT_ASSERT(vr_max!=0 || outside>0);
+          //ASSERT(vr_max!=0 || outside>0);
         }
         if (old_virt_idx[act_lda] >= vr_max)
           old_virt_idx[act_lda] = 0;
@@ -2505,7 +2505,7 @@ int cyclic_reshuffle(int const          ndim,
     return CTF_SUCCESS;
   }
   
-  LIBT_ASSERT(!reuse_buffers || beta == 0.0);
+  ASSERT(!reuse_buffers || beta == 0.0);
 
   TAU_FSTART(cyclic_reshuffle);
     np = ord_glb_comm.np;
@@ -2802,7 +2802,7 @@ int cyclic_reshuffle(int const          ndim,
     CTF_mst_alloc_ptr(nval*sizeof(dtype), (void**)&send_buffer);
     CTF_mst_alloc_ptr(swp_nval*sizeof(dtype), (void**)&recv_buffer);
 
-    LIBT_ASSERT(was_cyclic&&is_cyclic);
+    ASSERT(was_cyclic&&is_cyclic);
     TAU_FSTART(pack_virt_buf);
     if (idx_lyr == 0){
       dtype **new_data; CTF_alloc_ptr(sizeof(dtype*)*np*new_nvirt, (void**)&new_data);

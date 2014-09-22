@@ -80,7 +80,7 @@ void tsum_virt<dtype>::run(){
   } else {
     alloced = 1;
     ret = CTF_alloc_ptr(mem_fp(), (void**)&idx_arr);
-    LIBT_ASSERT(ret==0);
+    ASSERT(ret==0);
   }
   
   lda_A = idx_arr + num_dim;

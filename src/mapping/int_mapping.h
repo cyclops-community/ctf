@@ -3,7 +3,7 @@
 #ifndef __INT_MAPPING_H__
 #define __INT_MAPPING_H__
 
-#include "../interface/common.h"
+#include "../world/int_topology.h"
 
 namespace CTF_int {
 

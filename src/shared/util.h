@@ -104,12 +104,12 @@ namespace CTF_int {
     printf("%d",iiarr[0]);
   #endif
   }
-  #ifndef LIBT_ASSERT
+  #ifndef ASSERT
   #if ENABLE_ASSERT
-  #define LIBT_ASSERT(...)                \
+  #define ASSERT(...)                \
   do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
   #else
-  #define LIBT_ASSERT(...) do {} while(0 && (__VA_ARGS__))
+  #define ASSERT(...) do {} while(0 && (__VA_ARGS__))
   #endif
   #endif
 
@@ -587,8 +587,8 @@ namespace CTF_int {
       memcpy(B,A,size*sizeof(dtype));
     }
     int i,j,o;
-    LIBT_ASSERT(size%lda_o == 0);
-    LIBT_ASSERT(lda_o%lda_i == 0);
+    ASSERT(size%lda_o == 0);
+    ASSERT(lda_o%lda_i == 0);
     for (o=0; o<size/lda_o; o++){
       for (j=0; j<lda_i; j++){
         for (i=0; i<lda_o/lda_i; i++){

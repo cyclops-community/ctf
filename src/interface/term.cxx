@@ -373,7 +373,7 @@ void Contract_Term<dtype>::execute(Idx_Tensor<dtype> output)const {
     delete pop_B;
   } 
   {
-    LIBT_ASSERT(tmp_ops.size() == 2);
+    ASSERT(tmp_ops.size() == 2);
     Term<dtype> * pop_A = tmp_ops.back();
     tmp_ops.pop_back();
     Term<dtype> * pop_B = tmp_ops.back();
@@ -468,7 +468,7 @@ int64_t Contract_Term<dtype>::estimate_cost(Idx_Tensor<dtype> output)const {
     delete pop_B;
   } 
   {
-    LIBT_ASSERT(tmp_ops.size() == 2);
+    ASSERT(tmp_ops.size() == 2);
     Term<dtype> * pop_A = tmp_ops.back();
     tmp_ops.pop_back();
     Term<dtype> * pop_B = tmp_ops.back();

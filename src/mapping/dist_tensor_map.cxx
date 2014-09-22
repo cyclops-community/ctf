@@ -20,8 +20,8 @@ int dist_tensor<dtype>::check_pair_mapping(const int tid_A, const int tid_B){
   if (tsr_A->is_folded) return 0;
   if (tsr_B->is_folded) return 0;
 
-  LIBT_ASSERT(tsr_A->ndim == tsr_B->ndim);
-//  LIBT_ASSERT(tsr_A->size == tsr_B->size);
+  ASSERT(tsr_A->ndim == tsr_B->ndim);
+//  ASSERT(tsr_A->size == tsr_B->size);
 
   for (i=0; i<tsr_A->ndim; i++){
     map_A = &tsr_A->edge_map[i];
@@ -313,39 +313,39 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
     
   if (gtopo%2 == 0){
     ret = map_self_indices(tid_A, idx_map_A);
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
   } else {
     ret = map_self_indices(tid_B, idx_map_B);
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
   }
   ret = map_sum_indices(idx_arr, idx_sum, num_tot, num_sum, 
                         tid_A, tid_B, &topovec[tsr_A->itopo], 2);
-  LIBT_ASSERT(ret == CTF_SUCCESS);
+  ASSERT(ret == CTF_SUCCESS);
 
   if (gtopo%2 == 0){
     ret = map_self_indices(tid_A, idx_map_A);
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
     ret = map_tensor_rem(topovec[tsr_A->itopo].ndim, 
                          topovec[tsr_A->itopo].dim_comm, tsr_A);
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
     copy_mapping(tsr_A->ndim, tsr_B->ndim,
                  idx_map_A, tsr_A->edge_map, 
                  idx_map_B, tsr_B->edge_map,0);
     ret = map_tensor_rem(topovec[tsr_B->itopo].ndim, 
                          topovec[tsr_B->itopo].dim_comm, tsr_B);
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
   } else {
     ret = map_self_indices(tid_B, idx_map_B);
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
     ret = map_tensor_rem(topovec[tsr_B->itopo].ndim, 
                          topovec[tsr_B->itopo].dim_comm, tsr_B);
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
     copy_mapping(tsr_B->ndim, tsr_A->ndim,
                  idx_map_B, tsr_B->edge_map, 
                  idx_map_A, tsr_A->edge_map,0);
     ret = map_tensor_rem(topovec[tsr_A->itopo].ndim, 
                          topovec[tsr_A->itopo].dim_comm, tsr_A);
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
   }
 
   tsr_A->is_mapped = 1;
@@ -634,7 +634,7 @@ int dist_tensor<dtype>::check_contraction_mapping(CTF_ctr_type_t const * type){
   if (tsr_A->is_mapped == 0) pass = 0;
   if (tsr_B->is_mapped == 0) pass = 0;
   if (tsr_C->is_mapped == 0) pass = 0;
-  LIBT_ASSERT(pass==1);
+  ASSERT(pass==1);
   
   if (tsr_A->is_folded == 1) pass = 0;
   if (tsr_B->is_folded == 1) pass = 0;
@@ -975,9 +975,9 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
   old_topo_B = tsr_B->itopo;
   old_topo_C = tsr_C->itopo;
   if (do_remap){
-    LIBT_ASSERT(tsr_A->is_mapped);
-    LIBT_ASSERT(tsr_B->is_mapped);
-    LIBT_ASSERT(tsr_C->is_mapped);
+    ASSERT(tsr_A->is_mapped);
+    ASSERT(tsr_B->is_mapped);
+    ASSERT(tsr_C->is_mapped);
   #if DEBUG >= 2
     if (global_comm.rank == 0)
       printf("Initial mappings:\n");
@@ -1135,7 +1135,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #if DEBUG >= 3
       printf("mapping passed contr est_time = %lf sec\n", est_time);
 #endif 
-      LIBT_ASSERT(est_time > 0.0);
+      ASSERT(est_time > 0.0);
       memuse = 0;
       need_remap_A = 0;
       need_remap_B = 0;
@@ -1202,7 +1202,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
 #if DEBUG >= 3
       printf("total (with redistribution) est_time = %lf\n", est_time);
 #endif
-      LIBT_ASSERT(est_time > 0.0);
+      ASSERT(est_time > 0.0);
 
       if ((uint64_t)memuse >= proc_bytes_available()){
         DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
@@ -1349,7 +1349,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
     printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
 //  else if (global_comm.rank == 0) printf("Mapping successful estimated execution time = %lf sec\n",best_time);
 #endif
-  LIBT_ASSERT(check_contraction_mapping(type));
+  ASSERT(check_contraction_mapping(type));
 
 
   nvirt_all = -1;
@@ -1555,7 +1555,7 @@ int dist_tensor<dtype>::
     iB = idx_arr[isum*2+1];
 
     if (tsr_A->edge_map[iA].type != NOT_MAPPED){
-      LIBT_ASSERT(tsr_B->edge_map[iB].type == NOT_MAPPED);
+      ASSERT(tsr_B->edge_map[iB].type == NOT_MAPPED);
       copy_mapping(1, &tsr_A->edge_map[iA], &sum_map[i]);
     } else if (tsr_B->edge_map[iB].type != NOT_MAPPED){
       copy_mapping(1, &tsr_B->edge_map[iB], &sum_map[i]);
@@ -2069,7 +2069,7 @@ int dist_tensor<dtype>::
     if (iR != -1){
       stable[iR*tsr->ndim+i] = 1;
       stable[i*tsr->ndim+iR] = 1;
-    //  LIBT_ASSERT(tsr->edge_map[iR].type != PHYSICAL_MAP);
+    //  ASSERT(tsr->edge_map[iR].type != PHYSICAL_MAP);
       if (tsr->edge_map[iR].type == NOT_MAPPED){
         npp = 1;
         tsr->edge_map[iR].type = VIRTUAL_MAP;
@@ -2143,7 +2143,7 @@ int dist_tensor<dtype>::
           tsr_B->edge_map[iB].has_child = 0;
         }
       } else {
-        LIBT_ASSERT(iC != -1);
+        ASSERT(iC != -1);
         if (tsr_C->edge_map[iC].type == PHYSICAL_MAP)
           return CTF_NEGATIVE;
         if (tsr_C->edge_map[iC].type == NOT_MAPPED){

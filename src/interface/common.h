@@ -12,7 +12,7 @@
 #include <complex>
 #include <unistd.h>
 #include <iostream>
-
+#include "mpi.h"
 
 int CTF_alloc_ptr(int64_t len, void ** const ptr);
 int CTF_mst_alloc_ptr(int64_t len, void ** const ptr);

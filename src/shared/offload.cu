@@ -14,12 +14,12 @@ typedef int64_t int64_t;
 volatile static int64_t int64_t_max = INT64_MAX;
 #include "offload.h"
 
-#ifndef LIBT_ASSERT
+#ifndef ASSERT
 #if ENABLE_ASSERT
-#define LIBT_ASSERT(...)                \
+#define ASSERT(...)                \
 do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
 #else
-#define LIBT_ASSERT(...) do {} while(0 && (__VA_ARGS__))
+#define ASSERT(...) do {} while(0 && (__VA_ARGS__))
 #endif
 #endif
 
@@ -68,9 +68,9 @@ void offload_init(){
   if (!initialized){
     int ndev=0;
     cudaGetDeviceCount(&ndev);
-    LIBT_ASSERT(ndev > 0);
+    ASSERT(ndev > 0);
     cublasStatus_t status = cublasCreate(&cuhandle);
-    LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
+    ASSERT(status == CUBLAS_STATUS_SUCCESS);
   }
   initialized = 1;
 }
@@ -78,7 +78,7 @@ void offload_init(){
 void offload_exit(){
   if (initialized){
     cublasStatus_t status = cublasDestroy(cuhandle);
-    LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
+    ASSERT(status == CUBLAS_STATUS_SUCCESS);
     initialized = 0;
   }
 }
@@ -92,7 +92,7 @@ template <typename dtype>
 offload_ptr<dtype>::offload_ptr(int64_t size_){
   size = size_;
   cudaError_t err = cudaMalloc((void**)&dev_ptr, size_*sizeof(dtype));
-  LIBT_ASSERT(err == cudaSuccess);
+  ASSERT(err == cudaSuccess);
 }
 
 /**
@@ -101,7 +101,7 @@ offload_ptr<dtype>::offload_ptr(int64_t size_){
 template <typename dtype>
 offload_ptr<dtype>::~offload_ptr(){
   cudaError_t err = cudaFree(dev_ptr);
-  LIBT_ASSERT(err == cudaSuccess);
+  ASSERT(err == cudaSuccess);
 }
 
 /**
@@ -114,7 +114,7 @@ void offload_ptr<dtype>::download(dtype * host_ptr){
   cudaError_t err = cudaMemcpy(host_ptr, dev_ptr, size*sizeof(dtype),
                                cudaMemcpyDeviceToHost);
   TAU_FSTOP(cuda_download);
-  LIBT_ASSERT(err == cudaSuccess);
+  ASSERT(err == cudaSuccess);
 }
 /**
  * \brief uploads all data to device pointer from host pointer
@@ -126,7 +126,7 @@ void offload_ptr<dtype>::upload(dtype const * host_ptr){
   cudaError_t err = cudaMemcpy(dev_ptr, host_ptr, size*sizeof(dtype),
                                cudaMemcpyHostToDevice);
   TAU_FSTOP(cuda_upload);
-  LIBT_ASSERT(err == cudaSuccess);
+  ASSERT(err == cudaSuccess);
 }
 
 
@@ -152,12 +152,12 @@ void offload_ptr<dtype>::set_zero(){
 
 void host_pinned_alloc(void ** ptr, int64_t size){
   cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
-  LIBT_ASSERT(err == cudaSuccess);
+  ASSERT(err == cudaSuccess);
 }
 
 void host_pinned_free(void * ptr){
   cudaError_t err = cudaFreeHost(ptr);
-  LIBT_ASSERT(err == cudaSuccess);
+  ASSERT(err == cudaSuccess);
 }
 
 /**
@@ -229,7 +229,7 @@ void offload_gemm<double>(char                  tA,
                           double                beta,
                           double              * dev_C,
                           int                   lda_C){
-  LIBT_ASSERT(initialized);
+  ASSERT(initialized);
 
   cublasOperation_t cuA;  
   switch (tA){
@@ -265,7 +265,7 @@ void offload_gemm<double>(char                  tA,
   cudaDeviceSynchronize();
 #endif
   
-  LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
+  ASSERT(status == CUBLAS_STATUS_SUCCESS);
 }
 
 /**
@@ -287,7 +287,7 @@ void offload_gemm< std::complex<double> >(
                          std::complex<double>                  beta,
                          std::complex<double>                * dev_C,
                          int                                   lda_C){
-  LIBT_ASSERT(initialized);
+  ASSERT(initialized);
   
   cublasOperation_t cuA;  
   switch (tA){
@@ -334,7 +334,7 @@ void offload_gemm< std::complex<double> >(
 #endif
   TAU_FSTOP(cublas_zgemm);
   
-  LIBT_ASSERT(status == CUBLAS_STATUS_SUCCESS);
+  ASSERT(status == CUBLAS_STATUS_SUCCESS);
   assert(status == CUBLAS_STATUS_SUCCESS);
 }
 

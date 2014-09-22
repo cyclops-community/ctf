@@ -65,7 +65,7 @@ int sym_seq_sum_cust(char const *         A,
       GET_MIN_MAX(A,0,2);
       GET_MIN_MAX(B,1,2);
 
-      LIBT_ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
+      ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
 
       idx_glb[idx]++;
 

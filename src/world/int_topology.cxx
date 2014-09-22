@@ -13,6 +13,30 @@ namespace CTF_int {
     is_activated = false;
     dim_comm = NULL;
   }
+  
+  topology::~topology(){
+    CTF_free(lens);
+    CTF_free(lda);
+    for (int i=0; i<ndim; i++){
+      FREE_CDT(dim_comm[i]);
+    }
+    CTF_free(dim_comm);
+  }
+
+  topology::topology(topology const & other){
+    ndim = other.ndim;
+
+    lens = (int*)CTF_alloc(ndim*sizeof(int));
+    memcpy(lens, other.lens, ndim*sizeof(int));
+
+    lda  = (int*)CTF_alloc(ndim*sizeof(int));
+    memcpy(ldas, other.lda, ndim*sizeof(int));
+
+    dim_comm  = (int*)CTF_alloc(ndim*sizeof(CommData));
+    memcpy(dim_comm, other.dim_comm, CommData*sizeof(int));
+
+    is_activated = other.is_activated;
+  }
 
   topology::topology(int ndim_, 
                      int const * lens_, 
@@ -59,7 +83,7 @@ namespace CTF_int {
     } else if (mach == TOPOLOGY_BGQ) {
       dl = (int*)CTF_alloc((7)*sizeof(int));
       *dim_len = dl;
-  #ifdef BGQ
+      #ifdef BGQ
       if (np >= 512){
         int i, dim;
         MPIX_Hardware_t hw;
@@ -88,7 +112,7 @@ namespace CTF_int {
         CTF_free(topo_dims);
         return topo;
       } else 
-    #else
+      #else
       {
         int ndim;
         int * dim_len;
@@ -97,7 +121,7 @@ namespace CTF_int {
         CTF_free(dim_len);
         return topo;
       }
-    #endif
+      #endif
     } else if (mach == TOPOLOGY_BGP) {
       int ndim;
       int * dim_len;
@@ -340,88 +364,46 @@ namespace CTF_int {
     }
   }
 
-  void fold_torus(topology *  topo, 
-                  CommDatat   glb_comm,
-                  dist_tensor<dtype> *    dt){
-    int i, j, k, ndim, rank, color, np;
-    //int ins;
-    CommData   new_comm;
-    CommData  * comm_arr;
-
-    ndim = topo->ndim;
+  std::vector<topology> peel_torus(topology const & topo, 
+                                   CommData         glb_comm){
+    std::vector<topology> topos;
+    topos.push_back(topo);
     
-    if (ndim <= 1) return;
+    if (topo.ndim <= 1) return;
+    
+    int * new_lens = (int*)malloc(sizeof(int)*topo.ndim-1);
 
-    for (i=0; i<ndim; i++){
-      /* WARNING: need to deal with nasty stuff in transpose when j-i > 1 */
-      for (j=i+1; j<MIN(i+2,ndim); j++){
-        CTF_alloc_ptr((ndim-1)*sizeof(CommData),    (void**)&comm_arr);
-        rank = topo->dim_comm[j].rank*topo->dim_comm[i].np + topo->dim_comm[i].rank;
-        /* Reorder the lda, bring j lda to lower lda and adjust other ldas */
-        color = glb_comm.rank - topo->dim_comm[i].rank*topo->lda[i]
-                              - topo->dim_comm[j].rank*topo->lda[j];
-  //        if (j<ndim-1)
-  //          color = (color%topo->lda[i])+(color/topo->lda[j+1]);
-        np = topo->dim_comm[i].np*topo->dim_comm[j].np;
-
-        SETUP_SUB_COMM_SHELL(glb_comm, new_comm, rank, color, np);
-
-        for (k=0; k<ndim-1; k++){
-          if (k<i) 
-            comm_arr[k] = topo->dim_comm[k];
-          else {
-            if (k==i) 
-              comm_arr[k] = new_comm;
-            else {
-              if (k>i && k<j) 
-                comm_arr[k] = topo->dim_comm[k];
-              else
-                comm_arr[k] = topo->dim_comm[k+1];
-            }
-          }
-        }
-  /*      ins = 0;
-        for (k=0; k<ndim-1; k++){
-          if (k<i) {
-            if (ins == 0){
-              if (topo->dim_comm[k].np <= np){
-                comm_arr[k] = new_comm;
-                ins = 1;
-              } else
-                comm_arr[k] = topo->dim_comm[k];
-            } else
-              comm_arr[k] = topo->dim_comm[k-1];
-          }
-          else {
-            if (k==i) {
-              if (ins == 0) {
-                comm_arr[k] = new_comm;
-                ins = 1;
-              } else comm_arr[k] = topo->dim_comm[k-1];
-            }
-            else {
-              LIBT_ASSERT(ins == 1);
-              if (k>i && k<j) comm_arr[k] = topo->dim_comm[k];
-              else comm_arr[k] = topo->dim_comm[k+1];
-            }
-          }
-        }*/
-        dt->set_phys_comm(comm_arr, ndim-1);
+    for (int i=0; i<ndim-1; i++){
+      for (int j=0; j<i; j++){
+        lens[j] = topo.lens[j];
+      }
+      lens[i] = topo.lens[i]+topo.lens[i+1];
+      for (int j=i+2; j<ndim; j++){
+        lens[j-1] = topo.lens[j];
+      }
+    }
+    topology new_topo = topology(ndim-1, lens, glb_comm);
+    topos.push_back(new_topo);
+    for (int i=0; i<(int)topos.size(); i++){
+      std::vector<topology> more_topos = peel_torus(topos[i], glb_comm);
+      for (int j=0; j<(int)more_topos.size(); j++){
+        if (find_topology(more_topos[j], topos) == -1)
+          push_back(topos, more_topos[j]);
       }
     }
   }
     
-  int find_topology(topology *                    topo, 
-                    std::vector<topology>         topovec){
+  int find_topology(topology const &              topo, 
+                    std::vector<topology> const   topovec){
     int i, j, found;
     std::vector<topology>::iterator iter;
     
     found = -1;
     for (j=0, iter=topovec.begin(); iter<topovec.end(); iter++, j++){
-      if (iter->ndim == topo->ndim){
+      if (iter->ndim == topo.ndim){
         found = j;
         for (i=0; i<iter->ndim; i++) {
-          if (iter->dim_comm[i].np != topo->dim_comm[i].np){
+          if (iter->dim_comm[i].np != topo.dim_comm[i].np){
             found = -1;
           }
         }

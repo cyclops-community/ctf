@@ -77,7 +77,7 @@ template<typename dtype>
 dist_tensor<dtype>::~dist_tensor(){
   int ret;
   ret = dist_cleanup();
-  LIBT_ASSERT(ret == CTF_SUCCESS);
+  ASSERT(ret == CTF_SUCCESS);
 }
 
 
@@ -113,7 +113,7 @@ int dist_tensor<dtype>::initialize(CommData   cdt_global,
     VPRINTF(1,"Setting up initial torus physical topology P:\n");
   stride = 1, cut = 0;
   for (i=0; i<ndim; i++){
-    LIBT_ASSERT(dim_len[i] != 1);
+    ASSERT(dim_len[i] != 1);
     if (cdt_global.rank == 0)
       VPRINTF(1,"P[%d] = %d\n",i,srt_dim_len[i]);
 
@@ -167,10 +167,10 @@ void dist_tensor<dtype>::set_phys_comm(CommData *   cdt, int const ndim, int fol
     if (global_comm.rank == 0)
       printf("Added topo %d dim[%d] = %d:\n",(int)topovec.size(),i,cdt[i].np);
 #endif
-    LIBT_ASSERT(cdt[i].np != 1);
+    ASSERT(cdt[i].np != 1);
     new_topo.lda[i] = lda;
     lda = lda*cdt[i].np;
-    LIBT_ASSERT(cdt[i].np > 0);
+    ASSERT(cdt[i].np > 0);
   }
   topovec.push_back(new_topo);
 
@@ -201,47 +201,9 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
                                        int                profile){
   int i;
 
-  tensor<dtype> * tsr = (tensor<dtype>*)CTF_alloc(sizeof(tensor<dtype>));
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&tsr->padding);
-  memset(tsr->padding, 0, ndim*sizeof(int));
-
-  tsr->is_scp_padded      = 0;
-  tsr->is_mapped          = 0;
-  tsr->itopo              = -1;
-  tsr->is_alloced         = 1;
-  tsr->is_cyclic          = 1;
-  tsr->size               = 0;
-  tsr->is_folded          = 0;
-  tsr->is_matrix          = 0;
-  tsr->is_data_aliased    = 0;
-  tsr->has_zero_edge_len  = 0;
-  tsr->is_home            = 0;
-  tsr->has_home           = 0;
-  tsr->profile            = profile;
-  if (name != NULL){
-    tsr->name             = name;
-  } else
-    tsr->name             = NULL;
-
-
-  tsr->pairs    = NULL;
-  tsr->ndim     = ndim;
-  tsr->edge_len = (int*)CTF_alloc(ndim*sizeof(int));
-  memcpy(tsr->edge_len, edge_len, ndim*sizeof(int));
-  tsr->sym      = (int*)CTF_alloc(ndim*sizeof(int));
-  memcpy(tsr->sym, sym, ndim*sizeof(int));
-//  memcpy(inner_sym, sym, ndim*sizeof(int));
-/*  for (i=0; i<ndim; i++){
-    if (tsr->sym[i] != NS)
-      tsr->sym[i] = SY;
-  }*/
-
-  tsr->sym_table = (int*)CTF_alloc(ndim*ndim*sizeof(int));
-  memset(tsr->sym_table, 0, ndim*ndim*sizeof(int));
-  tsr->edge_map  = (mapping*)CTF_alloc(sizeof(mapping)*ndim);
-  
+  tensor<dtype> * tsr = new tensor(ndim, edge_len, sym, alloc_data, name, profile);
   (*tensor_id) = tensors.size();
-
+  
   /* initialize map array and symmetry table */
 #if DEBUG >= 2
   if (global_comm.rank == 0)
@@ -251,23 +213,15 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
 #if DEBUG >= 1
     int maxlen;
     ALLREDUCE(tsr->sym+i,&maxlen,1,MPI_INT,MPI_MAX,global_comm);
-    LIBT_ASSERT(maxlen==sym[i]);
+    ASSERT(maxlen==sym[i]);
     ALLREDUCE(tsr->edge_len+i,&maxlen,1,MPI_INT,MPI_MAX,global_comm);
-    LIBT_ASSERT(maxlen==edge_len[i]);
+    ASSERT(maxlen==edge_len[i]);
 #endif
 #if DEBUG >= 2
     if (global_comm.rank == 0)
       printf(" %d", edge_len[i]);
 #endif
-    if (tsr->edge_len[i] <= 0) tsr->has_zero_edge_len = 1;
-    tsr->edge_map[i].type       = NOT_MAPPED;
-    tsr->edge_map[i].has_child  = 0;
-    tsr->edge_map[i].np         = 1;
-    if (tsr->sym[i] != NS) {
-      tsr->sym_table[(i+1)+i*ndim] = 1;
-      tsr->sym_table[(i+1)*ndim+i] = 1;
-    }
-  }
+
 #if DEBUG >= 2
   if (global_comm.rank == 0)
     printf("\n");
@@ -275,11 +229,7 @@ int dist_tensor<dtype>::define_tensor( int const          ndim,
 
   tensors.push_back(tsr);
 
-  /* Set tensor data to zero. */
-  if (alloc_data)
-    return set_zero_tsr(*tensor_id);
-  else
-    return CTF_SUCCESS;
+  return CTF_SUCCESS;
 }
 
 template<typename dtype>
@@ -588,8 +538,8 @@ int dist_tensor<dtype>::permute_tensor(int const              tid_A,
   dt_B->get_tsr_info(tid_B, &ndim_B, &len_B, &sym_B);
 
   if (permutation_B != NULL){
-    LIBT_ASSERT(permutation_A == NULL);
-    LIBT_ASSERT(dt_B->get_global_comm().np <= dt_A->get_global_comm().np);
+    ASSERT(permutation_A == NULL);
+    ASSERT(dt_B->get_global_comm().np <= dt_A->get_global_comm().np);
     if (ndim_B == 0 || tsr_B->has_zero_edge_len){
       blk_sz_B = 0;
     } else {
@@ -603,12 +553,12 @@ int dist_tensor<dtype>::permute_tensor(int const              tid_A,
     all_data_A = all_data_B;
     blk_sz_A = blk_sz_B;
   } else {
-    LIBT_ASSERT(dt_B->get_global_comm().np >= dt_A->get_global_comm().np);
+    ASSERT(dt_B->get_global_comm().np >= dt_A->get_global_comm().np);
     if (ndim_A == 0 || tsr_A->has_zero_edge_len){
       blk_sz_A = 0;
     } else {
-      LIBT_ASSERT(permutation_A != NULL);
-      LIBT_ASSERT(permutation_B == NULL);
+      ASSERT(permutation_A != NULL);
+      ASSERT(permutation_B == NULL);
       dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
       //permute all_data_A
       permute_keys(ndim_A, sz_A, len_A, len_B, permutation_A, all_data_A, &blk_sz_A);
@@ -641,19 +591,19 @@ void dist_tensor<dtype>::orient_subworld(int                 ndim,
   MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, global_comm.cm);
   //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
   //this should in most sane cases ensure that a unique subcomm is involved
-  if (dt_sub != NULL) LIBT_ASSERT(tot_sub == dt_sub->get_global_comm().np);
+  if (dt_sub != NULL) ASSERT(tot_sub == dt_sub->get_global_comm().np);
 
   int sub_root_rank = 0;
   int buf_sz = get_distribution_size(ndim);
   char * buffer;
   if (dt_sub != NULL && dt_sub->get_global_comm().rank == 0){
     MPI_Allreduce(&global_comm.rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, global_comm.cm);
-    LIBT_ASSERT(sub_root_rank == global_comm.rank);
+    ASSERT(sub_root_rank == global_comm.rank);
     distribution dstrib;
     save_mapping(dt_sub->tensors[tid_sub], dstrib, &dt_sub->topovec[dt_sub->tensors[tid_sub]->itopo]);
     int bsz;
     dstrib.serialize(&buffer, &bsz);
-    LIBT_ASSERT(bsz == buf_sz);
+    ASSERT(bsz == buf_sz);
     MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, global_comm.cm);
   } else {
     buffer = (char*)CTF_alloc(buf_sz);
@@ -695,7 +645,7 @@ void dist_tensor<dtype>::orient_subworld(int                 ndim,
     save_mapping(dt_sub->tensors[tid_sub], ndstr, &dt_sub->topovec[dt_sub->tensors[tid_sub]->itopo]);
     int bsz;
     ndstr.serialize(&sbuffer, &bsz);
-    LIBT_ASSERT(bsz == buf_sz);
+    ASSERT(bsz == buf_sz);
     MPI_Send(sbuffer, buf_sz, MPI_CHAR, fw_mirror_rank, 0, global_comm.cm);
     MPI_Send(dt_sub->tensors[tid_sub]->data, odst.size*sizeof(dtype), MPI_CHAR, fw_mirror_rank, 1, global_comm.cm);
     CTF_free(sbuffer);
@@ -749,7 +699,7 @@ int dist_tensor<dtype>::add_to_subworld(int                 tid,
 
   MPI_Request req;
   if (fw_mirror_rank >= 0){
-    LIBT_ASSERT(dt_sub != NULL);
+    ASSERT(dt_sub != NULL);
     MPI_Irecv(dt_sub->tensors[tid_sub]->data, odst.size*sizeof(dtype), MPI_CHAR, fw_mirror_rank, 0, global_comm.cm, &req);
   }
  
@@ -884,7 +834,7 @@ int dist_tensor<dtype>::slice_tensor(int const              tid_A,
     MPI_Status stat;
     MPI_Irecv(&nrank, 1, MPI_INT, (cdt->rank+1)%cdt->np, 0, cdt->cm, &stat);
     MPI_Send(ocdt->rank, 1, MPI_INT, (cdt->rank+cdt->np-1)%cdt->np, 0, cdt->cm);
-    LIBT_ASSERT(nrank != ocdt->rank);
+    ASSERT(nrank != ocdt->rank);
     if (cdt->rank == 0 && nrank < ocdt->rank) can_fast_remap = false;
     if (cdt->rank != 0 && nrank > ocdt->rank) can_fast_remap = false;
   }
@@ -1027,8 +977,8 @@ int dist_tensor<dtype>::write_pairs(int const           tensor_id,
     total_tsr_size *= len[i];
   }
   for (i=0; i<num_pair; i++){
-    LIBT_ASSERT(mapped_data[i].k >= 0);
-    LIBT_ASSERT(mapped_data[i].k < total_tsr_size);
+    ASSERT(mapped_data[i].k >= 0);
+    ASSERT(mapped_data[i].k < total_tsr_size);
   }
   CTF_free(len);
   CTF_free(sym);
@@ -1502,7 +1452,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
                                  topovec[i].dim_comm, NULL, 0,
                                  tsr->edge_map);
         if (map_success == CTF_ERROR) {
-          LIBT_ASSERT(0);
+          ASSERT(0);
           return CTF_ERROR;
         } else if (map_success == CTF_SUCCESS){
           tsr->itopo = i;
@@ -1515,7 +1465,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
           }
 
           nvirt = (uint64_t)calc_nvirt(tsr);
-          LIBT_ASSERT(nvirt != 0);
+          ASSERT(nvirt != 0);
           if (btopo == -1 || nvirt < bnvirt){
             bnvirt = nvirt;
             btopo = i;
@@ -1545,7 +1495,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
                                tsr->edge_len, tsr->sym_table, restricted,
                                topovec[btopo].dim_comm, NULL, 0,
                                tsr->edge_map);
-      LIBT_ASSERT(map_success == CTF_SUCCESS);
+      ASSERT(map_success == CTF_SUCCESS);
 
       tsr->itopo = btopo;
 
@@ -1569,7 +1519,7 @@ int dist_tensor<dtype>::set_zero_tsr(int tensor_id){
             nvirt *= tsr->edge_map[i].child->np;
           } 
         } else {
-          LIBT_ASSERT(tsr->edge_map[i].type == VIRTUAL_MAP);
+          ASSERT(tsr->edge_map[i].type == VIRTUAL_MAP);
           phys_phase[i] = tsr->edge_map[i].np;
           nvirt *= tsr->edge_map[i].np;
         }
@@ -2226,7 +2176,7 @@ void dist_tensor<dtype>::contract_mst(){
     }
     if (i == (int)tensors.size()){
       printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
-      LIBT_ASSERT(0);
+      ASSERT(0);
     }
     for (i=0; i<(int)tensors.size(); i++){
       if (tensors[i]->data == (dtype*)it->old_ptr){

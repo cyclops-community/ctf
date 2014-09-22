@@ -28,7 +28,7 @@ int calc_phase(mapping const * map){
 #if DEBUG >1
     if (phase == 0)
       printf("phase should never be zero! map type = %d\n",map->type);
-    LIBT_ASSERT(phase!=0);
+    ASSERT(phase!=0);
 #endif
     if (map->has_child){
       phase = phase*calc_phase(map->child);
@@ -89,43 +89,6 @@ int calc_phys_rank(mapping const * map, topology const * topo){
   return rank;
 }
 
-
-/**
- * \brief compute the cyclic phase of each tensor dimension
- *
- * \param tsr tensor
- * \return int * of cyclic phases
- */
-template<typename dtype>
-int * calc_phase(tensor<dtype> const * tsr){
-  mapping * map;
-  int * phase;
-  int i;
-  CTF_alloc_ptr(sizeof(int)*tsr->ndim, (void**)&phase);
-  for (i=0; i<tsr->ndim; i++){
-    map = tsr->edge_map + i;
-    phase[i] = calc_phase(map);
-  }
-  return phase;  
-}
-
-/**
- * \brief calculate the total number of blocks of the tensor
- *
- * \param tsr tensor
- * \return int total phase factor
- */
-template<typename dtype>
-int calc_tot_phase(tensor<dtype> const * tsr){
-  int i, tot_phase;
-  int * phase = calc_phase(tsr);
-  tot_phase = 1;
-  for (i=0 ; i<tsr->ndim; i++){
-    tot_phase *= phase[i];
-  }
-  CTF_free(phase);
-  return tot_phase;
-}
 
 /**
  * \brief sets up a ctr_2d_general (2D SUMMA) level where A is not communicated
@@ -270,11 +233,11 @@ int  ctr_2d_gen_build(int                     is_used,
       }
 
       if (tsr_B->edge_map[i_B].has_child){
-        LIBT_ASSERT(tsr_B->edge_map[i_B].child->type == VIRTUAL_MAP);
+        ASSERT(tsr_B->edge_map[i_B].child->type == VIRTUAL_MAP);
         virt_dim[i] = tsr_B->edge_map[i_B].np*tsr_B->edge_map[i_B].child->np/nstep;
       }
       if (tsr_C->edge_map[i_C].has_child) {
-        LIBT_ASSERT(tsr_C->edge_map[i_C].child->type == VIRTUAL_MAP);
+        ASSERT(tsr_C->edge_map[i_C].child->type == VIRTUAL_MAP);
         virt_dim[i] = tsr_C->edge_map[i_C].np*tsr_C->edge_map[i_C].child->np/nstep;
       }
       if (tsr_C->edge_map[i_C].type == VIRTUAL_MAP){
@@ -355,7 +318,7 @@ int get_best_topo(uint64_t const  nvirt,
   nv = nvirt;
   ALLREDUCE(&nv, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
 
-  LIBT_ASSERT(gnvirt <= nvirt);
+  ASSERT(gnvirt <= nvirt);
 
   nv = bcomm_vol;
   bv = bmemuse;
@@ -384,29 +347,6 @@ int get_best_topo(uint64_t const  nvirt,
   return gtopo;
 }
 
-/**
- * \brief calculate virtualization factor of tensor
- * \param[in] tsr tensor
- * return virtualization factor
- */
-template<typename dtype>
-uint64_t calc_nvirt(tensor<dtype> * tsr, int const is_inner=0){
-  int j;
-  uint64_t nvirt, tnvirt;
-  mapping * map;
-  nvirt = 1;
-  if (is_inner) return calc_tot_phase(tsr);
-  for (j=0; j<tsr->ndim; j++){
-    map = &tsr->edge_map[j];
-    while (map->has_child) map = map->child;
-    if (map->type == VIRTUAL_MAP){
-      tnvirt = nvirt*(uint64_t)map->np;
-      if (tnvirt < nvirt) return UINT64_MAX;
-      else nvirt = tnvirt;
-    }
-  }
-  return nvirt;  
-}
 
 /** 
  * \brief clears mapping and frees children
@@ -499,7 +439,7 @@ int copy_mapping(int const    ndim_A,
     iB = idx_arr[2*i+1];
     if (iA == -1){
       if (make_virt){
-        LIBT_ASSERT(iB!=-1);
+        ASSERT(iB!=-1);
         mapping_B[iB].type = VIRTUAL_MAP;
         mapping_B[iB].np = 1;
         mapping_B[iB].has_child = 0;
@@ -556,7 +496,7 @@ int comp_dim_map(mapping const *  map_A,
       }
     }
   } else {
-    LIBT_ASSERT(map_A->type == VIRTUAL_MAP);
+    ASSERT(map_A->type == VIRTUAL_MAP);
     if (map_B->type != VIRTUAL_MAP ||
         map_B->np != map_A->np) {
       DEBUG_PRINTF("failed confirmation here\n");
@@ -686,7 +626,7 @@ int map_symtsr(int const    tsr_ndim,
               if (sym_map->type == VIRTUAL_MAP){
                 sym_map->np = sym_map->np*(lcm_phase/sym_phase);
               } else {
-                LIBT_ASSERT(sym_map->type == PHYSICAL_MAP);
+                ASSERT(sym_map->type == PHYSICAL_MAP);
                 if (!sym_map->has_child)
                   sym_map->child    = (mapping*)CTF_alloc(sizeof(mapping));
                 sym_map->has_child  = 1;
@@ -704,7 +644,7 @@ int map_symtsr(int const    tsr_ndim,
               } else {
                 if (!map->has_child)
                   map->child    = (mapping*)CTF_alloc(sizeof(mapping));
-                LIBT_ASSERT(map->type == PHYSICAL_MAP);
+                ASSERT(map->type == PHYSICAL_MAP);
                 map->has_child    = 1;
                 map->child->type  = VIRTUAL_MAP;
                 map->child->np    = lcm_phase/phase;
@@ -1303,7 +1243,7 @@ void morph_topo(topology const *  new_topo,
           for (j=0; j<new_topo->ndim; j++){
             if (new_topo->lda[j] == old_lda) break;
           } 
-          LIBT_ASSERT(j!=new_topo->ndim);
+          ASSERT(j!=new_topo->ndim);
           new_rec_map->type   = PHYSICAL_MAP;
           new_rec_map->cdt    = j;
           new_rec_map->np     = new_topo->dim_comm[j].np;
@@ -1450,7 +1390,7 @@ int strip_diag(int const                ndim,
 
   for (i=0; i<ndim; i++){
     if (edge_map[i].type == PHYSICAL_MAP) {
-      LIBT_ASSERT(pmap[idx_map[i]] == -1);
+      ASSERT(pmap[idx_map[i]] == -1);
       pmap[idx_map[i]] = i;
     }
   }
@@ -1479,13 +1419,13 @@ int strip_diag(int const                ndim,
     //if (edge_map[i].type == PHYSICAL_MAP && edge_map[i].has_child) {
       //dont allow recursive mappings for self indices
       // or things get weird here
-      //LIBT_ASSERT(edge_map[i].child->type == VIRTUAL_MAP);
+      //ASSERT(edge_map[i].child->type == VIRTUAL_MAP);
     //  edge_len[i] = edge_map[i].child->np;
    // }
     if (edge_map[i].type == VIRTUAL_MAP && pmap[idx_map[i]] != -1) {
       sdim[i] = edge_len[i];
       sidx[i] = calc_phys_rank(edge_map+pmap[idx_map[i]],topo);
-      LIBT_ASSERT(edge_map[i].np == edge_map[pmap[idx_map[i]]].np);
+      ASSERT(edge_map[i].np == edge_map[pmap[idx_map[i]]].np);
     }
     blk_edge_len[i] = blk_edge_len[i] / sdim[i];
     *blk_sz = (*blk_sz) / sdim[i];

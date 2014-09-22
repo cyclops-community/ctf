@@ -81,7 +81,7 @@ int sym_seq_ctr_cust(char const *         A,
       GET_MIN_MAX(B,1,3);
       GET_MIN_MAX(C,2,3);
 
-      LIBT_ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
+      ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
 
       idx_glb[idx]++;
 

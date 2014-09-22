@@ -74,7 +74,7 @@ int64_t ctr_dgemm<dtype>::mem_fp(){
 template<typename dtype>
 double ctr_dgemm<dtype>::est_time_fp(int nlyr) {
   /* FIXME make cost proper, for now return sizes of each submatrix scaled by .2 */
-  LIBT_ASSERT(0);
+  ASSERT(0);
   return n*m+m*k+n*k;
 }
 
@@ -289,15 +289,15 @@ double ctr_replicate<dtype>::est_time_fp(int nlyr){
   double tot_sz;
   tot_sz = 0.0;
   for (i=0; i<ncdt_A; i++){
-    LIBT_ASSERT(cdt_A[i].np > 0);
+    ASSERT(cdt_A[i].np > 0);
     tot_sz += cdt_A[i].estimate_bcast_time(size_A*sizeof(dtype));
   }
   for (i=0; i<ncdt_B; i++){
-    LIBT_ASSERT(cdt_B[i].np > 0);
+    ASSERT(cdt_B[i].np > 0);
     tot_sz += cdt_B[i].estimate_bcast_time(size_B*sizeof(dtype));
   }
   for (i=0; i<ncdt_C; i++){
-    LIBT_ASSERT(cdt_C[i].np > 0);
+    ASSERT(cdt_C[i].np > 0);
     tot_sz += cdt_C[i].estimate_allred_time(size_C*sizeof(dtype));
   }
   return tot_sz;

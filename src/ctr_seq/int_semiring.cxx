@@ -92,13 +92,38 @@ bool semiring::isequal(char const * a, char const * b){
 }
     
 // copies element b to element a
-void copy(char * a, char const * b){
+void semiring::copy(char * a, char const * b){
   memcpy(a, b, el_size);
 }
     
 // copies n elements from array b to array a
-void copy(char * a, char const * b, int64_t n){
+void semiring::copy(char * a, char const * b, int64_t n){
   memcpy(a, b, el_size*n);
 }
 
+// sets n elements of array a to value b
+void semiring::set(char * a, char const * b, int64_t n){
+  switch (el_size) {
+    case 4:
+      float * ia = (float*)a;
+      float ib = *((float*)b);
+      std::fill(ia, ia+n, ib);
+      break;
+    case 8:
+      double * ia = (double*)a;
+      double ib = *((double*)b);
+      std::fill(ia, ia+n, ib);
+      break;
+    case 16:
+      std::complex<double> * ia = (std::complex<double>*)a;
+      std::complex<double> ib = *((std::complex<double>*)b);
+      std::fill(ia, ia+n, ib);
+      break;
+    default:
+      for (int i=0; i<n; i++){
+        memcpy(a+i*el_size, b, el_size);
+      }
+      break;
+  }
+}
 

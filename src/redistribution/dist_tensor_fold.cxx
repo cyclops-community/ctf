@@ -299,7 +299,7 @@ void nosym_transpose(int const          ndim,
   for (j=1; j<ndim; j++){
     new_lda[new_order[j]] = new_lda[new_order[j-1]]*edge_len[new_order[j-1]];
   }
-  LIBT_ASSERT(local_size == new_lda[new_order[ndim-1]]*edge_len[new_order[ndim-1]]);
+  ASSERT(local_size == new_lda[new_order[ndim-1]]*edge_len[new_order[ndim-1]]);
 #ifdef USE_OMP
   #pragma omp parallel num_threads(max_ntd)
 #endif
@@ -1682,7 +1682,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
 
 /*  switch (tsr_sym->edge_map[sym_dim].type){
     case NOT_MAPPED:
-      LIBT_ASSERT(tsr_sym->edge_map[sym_dim+1].type == NOT_MAPPED);
+      ASSERT(tsr_sym->edge_map[sym_dim+1].type == NOT_MAPPED);
       rw_smtr<dtype>(tsr_sym->ndim, tsr_sym->edge_len, 1.0, 0, 
          tsr_sym->sym, tsr_nonsym->sym,
          tsr_sym->data, tsr_nonsym->data);
@@ -1696,7 +1696,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   nvirt = 
 
       } else {
-  LIBT_ASSERT(tsr_sym->edge_map[sym_dim+1].type == PHYSICAL_MAP);
+  ASSERT(tsr_sym->edge_map[sym_dim+1].type == PHYSICAL_MAP);
 
       }
       break;
@@ -1705,7 +1705,7 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
       if (tsr_sym->edge_map[sym_dim+1].type == VIRTUAL_MAP){
 
       } else {
-  LIBT_ASSERT(tsr_sym->edge_map[sym_dim+1].type == PHYSICAL_MAP);
+  ASSERT(tsr_sym->edge_map[sym_dim+1].type == PHYSICAL_MAP);
 
       }
       break;
@@ -1894,7 +1894,7 @@ void cmp_sym_perms(int const    ndim,
   int * pm;
   double sgn;
 
-  LIBT_ASSERT(sym[0] != NS);
+  ASSERT(sym[0] != NS);
   CTF_alloc_ptr(sizeof(int)*ndim, (void**)&pm);
 
   np=0;
@@ -2300,7 +2300,7 @@ void dist_tensor<dtype>::order_perm(tensor<dtype> const * tsr_A,
         if (iB != -1 && jB != -1) {
         /* Do this because iB,jB can be in reversed order */
         for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
-          LIBT_ASSERT(iiB >= 0 && iiB <= tsr_B->ndim);
+          ASSERT(iiB >= 0 && iiB <= tsr_B->ndim);
           if (tsr_B->sym[iiB] == NS) broken = 1;
         }
         }

@@ -3,9 +3,7 @@
 #ifndef __INT_TOPOLOGY_H__
 #define __INT_TOPOLOGY_H__
 
-#include "../world/int_world.h"
 #include "../interface/common.h"
-#include "../shared/util.h"
 
 namespace CTF_int {
 
@@ -14,6 +12,7 @@ namespace CTF_int {
 
   /* mesh/torus topology configuration */
   class topology {
+    public:
     int ndim;
     int * lens;
     int * lda;
@@ -21,6 +20,14 @@ namespace CTF_int {
     CommData * dim_comm;
 
     topology();
+    ~topology();
+
+    /** 
+     * \brief copy constructor
+     * \param[in] other topology to copy
+     */
+    topology(topology const & other);
+
     /**
      * \brief constructs torus topology 
      * \param[in] ndim_ number of torus dimensions
@@ -32,7 +39,6 @@ namespace CTF_int {
              int const * lens_, 
              CommData cdt,
              bool activate=false);
-    ~topology();
     
     void activate();
     void deactivate();
@@ -53,24 +59,16 @@ namespace CTF_int {
    * \param[in] topo topology to fold
    * \param[in] glb_comm  global communicator
    */
-  std::vector<topology> peel_torus(topology topo, 
-                                   CommData glb_comm);
+  std::vector<topology> peel_torus(topology const & topo, 
+                                   CommData         glb_comm);
 
-  /**
-   * \brief folds a torus topology into all configurations of 1 less dimensionality
-   * \param[in] topo topology to fold
-   * \param[in] glb_comm  global communicator
-   */
-  void fold_torus(topology *           topo, 
-                  CommData             glb_comm,
-                  dist_tensor<dtype> * dt){
   /**
    * \brief searches for an equivalent topology in avector of topologies
    * \param[in] topo topology to match
    * \param[in] topovec vector of existing parameters
    * \return -1 if not found, otherwise index of first found topology
    */
-  int find_topology(topology *                    topo, 
+  int find_topology(topology const &              topo, 
                     std::vector<topology>         topovec);
 
   

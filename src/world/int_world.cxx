@@ -56,18 +56,16 @@ int world::get_num_pes(){
  * \param[in] argv arguments passed to main
  */
 int world::init(MPI_Comm const  global_context,
-                      int const       rank, 
-                      int const       np,
-                      TOPOLOGY         mach,
-                      int const       argc,
-                      const char * const *  argv){
-  int ndim, ret;
-  int * dim_len;
-  get_topo(np, mach, &ndim, &dim_len);
-  ret = world::init(global_context, rank, np, ndim, dim_len, argc, argv);
-  if (np > 1)
-    CTF_free(dim_len);
-  return ret;
+                int             rank, 
+                int             np,
+                TOPOLOGY        mach,
+                int             argc,
+                const char * const *  argv){
+  SET_COMM(global_context, rank, np, global_comm);
+  phys_topology = get_phys_topo(global_comm, mach);
+  topovec = peel_torus(phys_topology, global_comm);
+  
+  return initialize(argc, argv);
 }
 
 /**
@@ -84,14 +82,29 @@ int world::init(MPI_Comm const  global_context,
  * \param[in] argv arguments passed to main
  */
 int world::init(MPI_Comm const  global_context,
-                      int const       rank, 
-                      int const       np, 
-                      int const       ndim, 
+                      int             rank, 
+                      int             np, 
+                      int             ndim, 
                       int const *     dim_len,
-                      int const       argc,
+                      int             argc,
+                      const char * const *  argv){
+  SET_COMM(global_context, rank, np, global_comm);
+  phys_topology = topology(ndim, dim_len, global_comm, 1);
+  topovec = peel_torus(phys_topology, global_comm);
+
+  return initialize(argc, argv);
+}
+
+/**
+ * \brief initializes world stack and parameters
+ * \param[in] argc number of arguments passed to main
+ * \param[in] argv arguments passed to main
+ */
+int world::initialize(int                   argc,
                       const char * const *  argv){
   char * mst_size, * stack_size, * mem_size, * ppn;
-  
+  int rank = global_comm.rank;  
+
   CTF_mem_create();
   if (CTF_get_num_instances() == 1){
     TAU_FSTART(CTF);
@@ -101,7 +114,7 @@ int world::init(MPI_Comm const  global_context,
 #ifdef OFFLOAD
     offload_init();
 #endif
-    CTF_set_context(global_context);
+    CTF_set_context(global_comm.cm);
     CTF_set_main_args(argc, argv);
 
 #ifdef USE_OMP
@@ -154,7 +167,7 @@ int world::init(MPI_Comm const  global_context,
       if (rank == 0)
         VPRINTF(1,"Assuming %d processes per node due to CTF_PPN environment variable\n",
                   atoi(ppn));
-      LIBT_ASSERT(atoi(ppn)>=1);
+      ASSERT(atoi(ppn)>=1);
 #ifdef BGQ
       CTF_set_memcap(.75);
 #else
@@ -165,10 +178,7 @@ int world::init(MPI_Comm const  global_context,
       VPRINTF(1,"Total amount of memory available to process 0 is " PRIu64 "\n", proc_bytes_available());
   } 
   initialized = 1;
-  CommData glb_comm;
-  SET_COMM(global_context, rank, np, glb_comm);
-  dt = new dist_tensor<dtype>();
-  return dt->initialize(glb_comm, ndim, dim_len);
+  return SUCCESS;
 }
 
 
@@ -182,7 +192,7 @@ int world::init(MPI_Comm const  global_context,
  * \param[in] name string name for tensor (optionary)
  * \param[in] profile wether to make profile calls for the tensor
  */
-int world::define_tensor(int const        ndim,             
+int world::define_tensor(int              ndim,             
                                int const *      edge_len, 
                                int const *      sym,
                                int *            tensor_id,
@@ -197,27 +207,27 @@ int world::define_tensor(int const        ndim,
  * \param[in] copy_data if 0 then leave tensor blank, if 1 copy data from old
  * \param[out] new_tensor_id id of new tensor
  */
-int world::clone_tensor(int const tensor_id,
-                              int const copy_data,
+int world::clone_tensor(int       tensor_id,
+                              int       copy_data,
                               int *     new_tensor_id){
   dt->clone_tensor(tensor_id, copy_data, new_tensor_id);
   return CTF_SUCCESS;
 }
    
 
-int world::get_name(int const tensor_id, char const ** name){
+int world::get_name(int       tensor_id, char const ** name){
   return dt->get_name(tensor_id, name);
 }
  
-int world::set_name(int const tensor_id, char const * name){
+int world::set_name(int       tensor_id, char const * name){
   return dt->set_name(tensor_id, name);
 }
 
-int world::profile_on(int const tensor_id){
+int world::profile_on(int       tensor_id){
   return dt->profile_on(tensor_id);
 }
 
-int world::profile_off(int const tensor_id){
+int world::profile_off(int       tensor_id){
   return dt->profile_off(tensor_id);
 }
     
@@ -225,7 +235,7 @@ int world::profile_off(int const tensor_id){
  * \param[in] tensor_id id of tensor
  * \param[out] ndim dimension of tensor
  */
-int world::get_dimension(int const tensor_id, int *ndim) const{
+int world::get_dimension(int       tensor_id, int *ndim) const{
   *ndim = dt->get_dim(tensor_id);
   return CTF_SUCCESS;
 }
@@ -234,7 +244,7 @@ int world::get_dimension(int const tensor_id, int *ndim) const{
  * \param[in] tensor_id id of tensor
  * \param[out] edge_len edge lengths of tensor
  */
-int world::get_lengths(int const tensor_id, int **edge_len) const{
+int world::get_lengths(int       tensor_id, int **edge_len) const{
   int ndim, * sym;
   dt->get_tsr_info(tensor_id, &ndim, edge_len, &sym);
   CTF_untag_mem(edge_len);
@@ -246,7 +256,7 @@ int world::get_lengths(int const tensor_id, int **edge_len) const{
  * \param[in] tensor_id id of tensor
  * \param[out] sym symmetries of tensor
  */
-int world::get_symmetry(int const tensor_id, int **sym) const{
+int world::get_symmetry(int       tensor_id, int **sym) const{
   *sym = dt->get_sym(tensor_id);
   CTF_untag_mem(*sym);
   return CTF_SUCCESS;
@@ -256,7 +266,7 @@ int world::get_symmetry(int const tensor_id, int **sym) const{
  * \param[in] tensor_id id of tensor
  * \param[out] data raw local data
  */
-int world::get_raw_data(int const tensor_id, dtype ** data, int64_t * size) {
+int world::get_raw_data(int       tensor_id, dtype ** data, int64_t * size) {
   *data = dt->get_raw_data(tensor_id, size);
   return CTF_SUCCESS;
 }
@@ -268,7 +278,7 @@ int world::get_raw_data(int const tensor_id, dtype ** data, int64_t * size) {
  * \param[out] edge_len edge lengths of tensor
  * \param[out] sym symmetries of tensor
  */
-int world::info_tensor(int const  tensor_id,
+int world::info_tensor(int        tensor_id,
                              int *      ndim,
                              int **     edge_len,
                              int **     sym) const{
@@ -285,7 +295,7 @@ int world::info_tensor(int const  tensor_id,
  * \param[in] num_pair number of pairs to write
  * \param[in] mapped_data pairs to write
  */
-int world::write_tensor(int const               tensor_id, 
+int world::write_tensor(int                     tensor_id, 
                               int64_t const           num_pair,  
                               tkv_pair<dtype> const * mapped_data){
   return dt->write_pairs(tensor_id, num_pair, 1.0, 0.0, const_cast<tkv_pair<dtype>*>(mapped_data), 'w');
@@ -301,7 +311,7 @@ int world::write_tensor(int const               tensor_id,
  * \param[in] beta scaling factor of old value
  * \param[in] mapped_data pairs to write
  */
-int world::write_tensor(int const               tensor_id, 
+int world::write_tensor(int                     tensor_id, 
                               int64_t const          num_pair,  
                               dtype const              alpha,
                               dtype const              beta,
@@ -318,7 +328,7 @@ int world::write_tensor(int const               tensor_id,
  * \param[in] beta scaling factor of old value
  * \param[in] mapped_data pairs to write
  */
-int world::read_tensor(int const                tensor_id, 
+int world::read_tensor(int                      tensor_id, 
                              int64_t const           num_pair, 
                              dtype const               alpha, 
                              dtype const               beta, 
@@ -334,17 +344,17 @@ int world::read_tensor(int const                tensor_id,
  * \param[in] num_pair number of pairs to read
  * \param[in,out] mapped_data pairs to read
  */
-int world::read_tensor(int const                tensor_id, 
+int world::read_tensor(int                      tensor_id, 
                              int64_t const           num_pair, 
                              tkv_pair<dtype> * const  mapped_data){
   return read_tensor(tensor_id, num_pair, 1.0, 0.0, mapped_data);
 }
 
-int world::permute_tensor( int const              tid_A,
+int world::permute_tensor( int                    tid_A,
                                  int * const *          permutation_A,
                                  dtype const            alpha,
                                  world *          tC_A,
-                                 int const              tid_B,
+                                 int                    tid_B,
                                  int * const *          permutation_B,
                                  dtype const            beta,
                                  world *          tC_B){
@@ -373,11 +383,11 @@ int world::add_from_subworld(int          tid,
 
 }
 
-int world::slice_tensor( int const    tid_A,
+int world::slice_tensor( int          tid_A,
                                int const *  offsets_A,
                                int const *  ends_A,
                                dtype const  alpha,
-                               int const    tid_B,
+                               int          tid_B,
                                int const *  offsets_B,
                                int const *  ends_B,
                                dtype const  beta){
@@ -385,12 +395,12 @@ int world::slice_tensor( int const    tid_A,
                           tid_B, offsets_B, ends_B, beta, dt);
 }
 
-int world::slice_tensor( int const      tid_A,
+int world::slice_tensor( int            tid_A,
                                int const *    offsets_A,
                                int const *    ends_A,
                                dtype const    alpha,
                                world *  dt_other_A,
-                               int const      tid_B,
+                               int            tid_B,
                                int const *    offsets_B,
                                int const *    ends_B,
                                dtype const    beta){
@@ -398,11 +408,11 @@ int world::slice_tensor( int const      tid_A,
                           tid_B, offsets_B, ends_B, beta, dt);
 }
 
-int world::slice_tensor( int const      tid_A,
+int world::slice_tensor( int            tid_A,
                                int const *    offsets_A,
                                int const *    ends_A,
                                dtype const    alpha,
-                               int const      tid_B,
+                               int            tid_B,
                                int const *    offsets_B,
                                int const *    ends_B,
                                dtype const    beta,
@@ -419,7 +429,7 @@ int world::slice_tensor( int const      tid_A,
  * \param[out] num_pair number of values read
  * \param[in,out] preallocated mapped_data values read
  */
-int world::allread_tensor(int const   tensor_id, 
+int world::allread_tensor(int         tensor_id, 
                                 int64_t *    num_pair, 
                                 dtype *     all_data){
   int ret;
@@ -436,7 +446,7 @@ int world::allread_tensor(int const   tensor_id,
  * \param[out] num_pair number of values read
  * \param[in,out] mapped_data values read
  */
-int world::allread_tensor(int const   tensor_id, 
+int world::allread_tensor(int         tensor_id, 
                                 int64_t *    num_pair, 
                                 dtype **    all_data){
   int ret;
@@ -448,8 +458,8 @@ int world::allread_tensor(int const   tensor_id,
 }
 
 /* input tensor local data or set buffer for contract answer. */
-/*int world::set_local_tensor(int const   tensor_id, 
-                         int const      num_val, 
+/*int world::set_local_tensor(int         tensor_id, 
+                         int            num_val, 
                          dtype *        tsr_data){
   return set_tsr_data(tensor_id, num_val, tsr_data);  
 }*/
@@ -458,7 +468,7 @@ int world::allread_tensor(int const   tensor_id,
  * \brief  map input tensor local data to zero
  * \param[in] tensor_id tensor handle
  */
-int world::set_zero_tensor(int const tensor_id){
+int world::set_zero_tensor(int       tensor_id){
   return dt->set_zero_tsr(tensor_id);
 }
 
@@ -508,7 +518,7 @@ int64_t world::estimate_cost(int          tid_A,
  * \param[out] num_pair number of values read
  * \param[out] mapped_data values read
  */
-int world::read_local_tensor(int const          tensor_id, 
+int world::read_local_tensor(int                tensor_id, 
                                    int64_t *           num_pair,  
                                    tkv_pair<dtype> ** mapped_data){
   int ret;
@@ -676,7 +686,7 @@ int world::contract(CTF_ctr_type_t const *     type,
  * \param[in] tid_A tensor handle to copy from
  * \param[in] tid_B tensor handle to copy to
  */
-int world::copy_tensor(int const tid_A, int const tid_B){
+int world::copy_tensor(int       tid_A, int       tid_B){
   return dt->cpy_tsr(tid_A, tid_B);
 }
 
@@ -685,7 +695,7 @@ int world::copy_tensor(int const tid_A, int const tid_B){
  * \param[in] alpha scaling factor
  * \param[in] tid tensor handle
  */
-int world::scale_tensor(dtype const alpha, int const tid){
+int world::scale_tensor(dtype const alpha, int       tid){
   return dt->scale_tsr(alpha, tid);
 }
 /**
@@ -695,7 +705,7 @@ int world::scale_tensor(dtype const alpha, int const tid){
  * \param[in] idx_map indexer to the tensor
  */
 int world::scale_tensor(dtype const               alpha, 
-                              int const                 tid, 
+                              int                       tid, 
                               int const *               idx_map){
   fseq_tsr_scl<dtype> fs;
   fs.func_ptr=sym_seq_scl_ref<dtype>;
@@ -712,7 +722,7 @@ int world::scale_tensor(dtype const               alpha,
  * \param[in] func_ptr pointer to sequential scale function
  */
 int world::scale_tensor(dtype const               alpha, 
-                              int const                 tid, 
+                              int                       tid, 
                               int const *               idx_map,
                               fseq_tsr_scl<dtype> const func_ptr){
   fseq_elm_scl<dtype> felm;
@@ -728,7 +738,7 @@ int world::scale_tensor(dtype const               alpha,
  * \param[in] felm pointer to sequential elemtwise scale function
  */
 int world::scale_tensor(dtype const               alpha, 
-                              int const                 tid, 
+                              int                       tid, 
                               int const *               idx_map,
                               fseq_elm_scl<dtype> const felm){
   fseq_tsr_scl<dtype> fs;
@@ -742,7 +752,7 @@ int world::scale_tensor(dtype const               alpha,
  * \param[in] tid_B tensor handle to B
  * \param[out] product the result of the dot-product
  */
-int world::dot_tensor(int const tid_A, int const tid_B, dtype *product){
+int world::dot_tensor(int       tid_A, int       tid_B, dtype *product){
   int stat;
   /* check if the mappings of A and B are the same */
   stat = dt->check_pair_mapping(tid_A, tid_B);
@@ -762,7 +772,7 @@ int world::dot_tensor(int const tid_A, int const tid_B, dtype *product){
  * \param[in] CTF::OP reduction operation to apply
  * \param[out] result result of reduction operation
  */
-int world::reduce_tensor(int const tid, CTF_OP op, dtype * result){
+int world::reduce_tensor(int       tid, CTF_OP op, dtype * result){
   return dt->red_tsr(tid, op, result);
 }
 
@@ -771,8 +781,8 @@ int world::reduce_tensor(int const tid, CTF_OP op, dtype * result){
  * \param[in] tid tensor handle
  * \param[in] map_func function pointer to apply to each element
  */
-int world::map_tensor(int const tid, 
-                            dtype (*map_func)(int const   ndim, 
+int world::map_tensor(int       tid, 
+                            dtype (*map_func)(int         ndim, 
                                               int const * indices, 
                                               dtype const elem)){
   return dt->map_tsr(tid, map_func);
@@ -785,8 +795,8 @@ int world::map_tensor(int const tid,
  * \param[in] n number of elements to collect
  * \param[in] data output data (should be preallocated to size at least n)
  */
-int world::get_max_abs(int const  tid,
-                             int const  n,
+int world::get_max_abs(int        tid,
+                             int        n,
                              dtype *    data){
   return dt->get_max_abs(tid, n, data);
 }
@@ -837,8 +847,8 @@ int world::sum_tensors(CTF_sum_type_t const *     type,
  */
 int world::sum_tensors(dtype const                alpha,
                              dtype const                beta,
-                             int const                  tid_A,
-                             int const                  tid_B,
+                             int                        tid_A,
+                             int                        tid_B,
                              int const *                idx_map_A,
                              int const *                idx_map_B,
                              fseq_tsr_sum<dtype> const  func_ptr){
@@ -907,8 +917,8 @@ int world::sum_tensors(dtype const                alpha,
  */
 int world::sum_tensors(dtype const                alpha,
                              dtype const                beta,
-                             int const                  tid_A,
-                             int const                  tid_B,
+                             int                        tid_A,
+                             int                        tid_B,
                              int const *                idx_map_A,
                              int const *                idx_map_B,
                              fseq_elm_sum<dtype> const  felm){
@@ -924,8 +934,8 @@ int world::sum_tensors(dtype const                alpha,
  * \param[in] tid_B tensor handle of B
  */
 int world::sum_tensors(dtype const  alpha,
-                             int const    tid_A,
-                             int const    tid_B){
+                             int          tid_A,
+                             int          tid_B){
   int stat;
   
   /* check if the mappings of A and B are the same */
@@ -945,8 +955,8 @@ int world::sum_tensors(dtype const  alpha,
  * \param[in] tid_A tensor handle of A
  * \param[in] tid_B tensor handle of B
  */
-int world::align(int const    tid_A,
-                       int const    tid_B){
+int world::align(int          tid_A,
+                       int          tid_B){
   int stat;
   
   /* check if the mappings of A and B are the same */
@@ -960,11 +970,11 @@ int world::align(int const    tid_A,
   return CTF_SUCCESS;
 }
 
-int world::print_tensor(FILE * stream, int const tid, double cutoff) {
+int world::print_tensor(FILE * stream, int       tid, double cutoff) {
   return dt->print_tsr(stream, tid, cutoff);
 }
 
-int world::compare_tensor(FILE * stream, int const tid_A, int const tid_B, double cutoff) {
+int world::compare_tensor(FILE * stream, int       tid_A, int       tid_B, double cutoff) {
   int stat = align(tid_A, tid_B);
   if (stat != CTF_SUCCESS) return stat;
   return dt->compare_tsr(stream, tid_A, tid_B, cutoff);
@@ -1003,7 +1013,7 @@ int world::clean_tensors(){
  * \brief removes a tensor, invalidates its handle
  * \param tid tensor handle
  */
-int world::clean_tensor(int const tid){
+int world::clean_tensor(int       tid){
   return dt->del_tsr(tid);
 }
 
@@ -1016,7 +1026,7 @@ int world::exit(){
   if (initialized){
     int rank = global_comm.rank;
     ret = world::clean_tensors();
-    LIBT_ASSERT(ret == CTF_SUCCESS);
+    ASSERT(ret == CTF_SUCCESS);
     delete dt;
     initialized = 0;
     CTF_mem_exit(rank);
@@ -1035,12 +1045,12 @@ int world::exit(){
 }
 
 /* \brief ScaLAPACK back-end, see their DOC */
-int world::pgemm(char const   TRANSA, 
-                       char const   TRANSB, 
+int world::pgemm(char         TRANSA, 
+                       char         TRANSB, 
                        int const    M, 
                        int const    N, 
                        int const    K, 
-                       dtype const  ALPHA,
+                       dtype        ALPHA,
                        dtype *      A, 
                        int const    IA, 
                        int const    JA, 
@@ -1049,7 +1059,7 @@ int world::pgemm(char const   TRANSA,
                        int const    IB, 
                        int const    JB, 
                        int const *  DESCB, 
-                       dtype const  BETA,
+                       dtype        BETA,
                        dtype *      C, 
                        int const    IC, 
                        int const    JC, 
@@ -1084,7 +1094,7 @@ int world::pgemm(char const   TRANSA,
   otid_C = ct.tid_C;
 #if (!REDIST)
   ret = dt->try_topo_morph(otid_A, otid_B, otid_C);
-  LIBT_ASSERT(ret == CTF_SUCCESS);
+  ASSERT(ret == CTF_SUCCESS);
 /*  dt->print_map(stdout, otid_A);
   dt->print_map(stdout, otid_B);
   dt->print_map(stdout, otid_C);*/
@@ -1217,7 +1227,7 @@ int world::def_scala_mat(int const * DESCA,
  * \param[in] tid tensor handle
  * \param[in,out] data pointer to buffer data
  */
-int world::read_scala_mat(int const tid,
+int world::read_scala_mat(int       tid,
                                 dtype * data){
   int * old_phase, * old_rank, * old_virt_dim, * old_pe_lda;
   int * old_padding, * old_edge_len;
@@ -1232,7 +1242,7 @@ int world::read_scala_mat(int const tid,
                &old_pe_lda, &old_size, &was_cyclic, 
                &old_padding, &old_edge_len, (dt->get_topo(tsr->itopo)));
   
-//  LIBT_ASSERT(tsr->is_matrix);
+//  ASSERT(tsr->is_matrix);
 
   CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&stsr->data);
   memcpy(stsr->data, tsr->data, sizeof(dtype)*tsr->size);
@@ -1248,13 +1258,13 @@ int world::read_scala_mat(int const tid,
 /**
  * \brief CTF interface for pgemm
  */
-int world::pgemm(char const   TRANSA, 
-                       char const   TRANSB, 
-                       dtype const  ALPHA,
-                       int const    tid_A,
-                       int const    tid_B,
-                       dtype const  BETA,
-                       int const    tid_C){
+int world::pgemm(char         TRANSA, 
+                       char         TRANSB, 
+                       dtype        ALPHA,
+                       int          tid_A,
+                       int          tid_B,
+                       dtype        BETA,
+                       int          tid_C){
   int herm_A, herm_B, ret;
   CTF_ctr_type ct;
   fseq_tsr_ctr<dtype> fs;
@@ -1276,7 +1286,7 @@ int world::pgemm(char const   TRANSA,
     ct.idx_map_A[0] = 1;
     ct.idx_map_A[1] = 0;
   } else {
-    LIBT_ASSERT(TRANSA == 'T' || TRANSA == 't' || TRANSA == 'c' || TRANSA == 'C');
+    ASSERT(TRANSA == 'T' || TRANSA == 't' || TRANSA == 'c' || TRANSA == 'C');
     if (TRANSA == 'c' || TRANSA == 'C')
       herm_A = 1;
     ct.idx_map_A[0] = 0;
@@ -1286,7 +1296,7 @@ int world::pgemm(char const   TRANSA,
     ct.idx_map_B[0] = 0;
     ct.idx_map_B[1] = 2;
   } else {
-    LIBT_ASSERT(TRANSB == 'T' || TRANSB == 't' || TRANSB == 'c' || TRANSB == 'C');
+    ASSERT(TRANSB == 'T' || TRANSB == 't' || TRANSB == 'c' || TRANSB == 'C');
     if (TRANSB == 'c' || TRANSB == 'C')
       herm_B = 1;
     ct.idx_map_B[0] = 2;

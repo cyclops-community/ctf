@@ -49,7 +49,7 @@ int sym_seq_scl_cust(char *               A,
 
       GET_MIN_MAX(A,0,1);
 
-      LIBT_ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
+      ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
 
       idx_glb[idx]++;
 

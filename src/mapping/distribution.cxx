@@ -30,7 +30,7 @@ distribution::~distribution(){
 
 void distribution::serialize(char ** buffer_, int * bufsz_){
 
-  LIBT_ASSERT(ndim != -1);
+  ASSERT(ndim != -1);
 
   int bufsz;
   char * buffer;
@@ -60,7 +60,7 @@ void distribution::serialize(char ** buffer_, int * bufsz_){
   memcpy((int*)(buffer+buffer_ptr), perank, sizeof(int)*ndim);
   buffer_ptr += sizeof(int)*ndim;
 
-  LIBT_ASSERT(buffer_ptr == bufsz);
+  ASSERT(buffer_ptr == bufsz);
 
   *buffer_ = buffer;
   *bufsz_ = bufsz;
@@ -99,5 +99,5 @@ void distribution::deserialize(char const * buffer){
   memcpy(perank, (int*)(buffer+buffer_ptr), sizeof(int)*ndim);
   buffer_ptr += sizeof(int)*ndim;
 
-  LIBT_ASSERT(buffer_ptr == get_distribution_size(ndim));
+  ASSERT(buffer_ptr == get_distribution_size(ndim));
 }
