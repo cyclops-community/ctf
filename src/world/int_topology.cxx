@@ -61,6 +61,12 @@ namespace CTF_int {
     this->activate();
   }
 
+  void int_topology::activate(){
+    for (int i=0; i<order; i++){
+    
+    }
+  }
+
   topology * get_phys_topo(CommData glb_comm,
                            TOPOLOGY mach){
     int np = glb_comm.np

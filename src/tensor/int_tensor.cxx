@@ -186,12 +186,6 @@ namespace CTF_int {
     }
   }
 
-
-  /**
-   * \brief compute the cyclic phase of each tensor dimension
-   *
-   * \return int * of cyclic phases
-   */
   int * tensor::calc_phase(){
     mapping * map;
     int * phase;
@@ -204,11 +198,6 @@ namespace CTF_int {
     return phase;  
   }
   
-  /**
-   * \brief calculate the total number of blocks of the tensor
-   *
-   * \return int total phase factor
-   */
   int tensor::calc_tot_phase(){
     int i, tot_phase;
     int * phase = this->calc_phase();
@@ -220,10 +209,6 @@ namespace CTF_int {
     return tot_phase;
   }
   
-  /**
-   * \brief calculate virtualization factor of tensor
-   * return virtualization factor
-   */
   int64_t tensor::calc_nvirt(){
     int j;
     int64_t nvirt, tnvirt;
@@ -242,10 +227,7 @@ namespace CTF_int {
     return nvirt;  
   }
 
-  /**
-   * \brief sets padding of a tensor
-   */
-  int tensor::set_padding(){
+    int tensor::set_padding(){
     int j, pad, i;
     int * new_phase, * sub_edge_len;
     mapping * map;

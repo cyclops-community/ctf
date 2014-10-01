@@ -7,7 +7,7 @@ namespace CTF {
 
   template<typename dtype>
   Tensor<dtype>::Tensor(){
-    tid = -1;
+    tsr = NULL;
     order = -1;
     sym = NULL;
     len = NULL;
@@ -24,10 +24,10 @@ namespace CTF {
     name = A.name;
     sr = A.sr;
 
-    ret = world->ctf->info_tensor(A.tid, &order, &len, &sym);
+    ret = A->info_tensor(&order, &len, &sym);
     assert(ret == SUCCESS);
 
-    ret = world->ctf->define_tensor(sr, order, len, sym, &tid, 1, name, name!=NULL);
+    ret = world->ctf->define_tensor(sr, order, len, sym, tsr, 1, name, name!=NULL);
     assert(ret == SUCCESS);
 
     //printf("Defined tensor %d to be the same as %d, copy=%d\n", tid, A.tid, (int)copy);

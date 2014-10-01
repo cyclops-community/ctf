@@ -10,7 +10,7 @@ namespace CTF_int {
   enum TOPOLOGY { TOPOLOGY_GENERIC, TOPOLOGY_BGP, TOPOLOGY_BGQ,
                   TOPOLOGY_8D, NO_TOPOLOGY };
 
-  /* mesh/torus topology configuration */
+  /* \brief mesh/torus topology configuration */
   class topology {
     public:
     int order;
@@ -39,8 +39,10 @@ namespace CTF_int {
              int const * lens_, 
              CommData cdt,
              bool activate=false);
-    
+   
+    /* \brief create MPI communicators */ 
     void activate();
+    /* \breif free MPI communicators */
     void deactivate();
   };
 

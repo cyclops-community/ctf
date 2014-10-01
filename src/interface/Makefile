@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = flop_counter.o schedule.o world.o 
+OBJS = flop_counter.o schedule.o world.o common.o
 
 ctf: $(OBJS) 
 

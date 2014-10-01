@@ -13,14 +13,6 @@
 
 namespace CTF_int {
 
-  /**
-   * labels corresponding to symmetry of each tensor dimension
-   * NS = 0 - nonsymmetric
-   * SY = 1 - symmetric
-   * AS = 2 - antisymmetric
-   * SH = 3 - symmetric hollow
-   */
-
   /* Force redistributions always by setting to 1 */
   #define REDIST 0
   //#define VERIFY 0
@@ -33,43 +25,70 @@ namespace CTF_int {
   #define HOME_CONTRACT
   #define USE_BLOCK_RESHUFFLE
 
-
+  // \brief defines tensor contraction operands and indices
   typedef struct ctr_type {
-    int   tid_A;
-    int   tid_B;
-    int   tid_C;
+    tensor * tsr_A;
+    tensor * tsr_B;
+    tensor * tsr_C;
     int * idx_map_A; /* map indices of tensor A to contraction */
     int * idx_map_B; /* map indices of tensor B to contraction */
     int * idx_map_C; /* map indices of tensor C to contraction */
   } ctr_type_t;
 
+  // \brief defines tensor summation operands and indices
   typedef struct sum_type {
-    int   tid_A;
-    int   tid_B;
+    tensor * tsr_A;
+    tensor * tsr_B;
     int * idx_map_A; /* map indices of tensor A to sum */
     int * idx_map_B; /* map indices of tensor B to sum */
   } sum_type_t;
 
+  // \brief orchestrating center, defined by an MPI comm and a topology
+  //          which keeps track of all derived topologies, tensors, mappings, and operations
   class world{
     private:
       /* internal library state */
-      int initialized;
+      
+      //\brief whether the world has been initialized
+      bool initialized;
+      //\brief communicator data for MPI comm defining this world
       CommData global_comm;
+      //\brief main torus topology corresponding to the world
       topology phys_topology;
-      std::vector< tensor* > tensors;
+      //\brief tensors defined within the world
+      //std::vector< tensor* > tensors;
+      //\brief derived topologies
       std::vector<topology> topovec;
 
-    // initializes world stack and parameters
-    int initialize(int                   argc,
-                   const char * const *  argv);
+      /**
+       * \brief initializes world stack and parameters, args only needed for profiler output
+       * \param[in] argc number of arguments to application
+       * \param[in] argv arguments to application
+       */
+      int initialize(int                   argc,
+                     const char * const *  argv);
 
     public:
 
+      /** 
+       * \brief constructor
+       */
       world();
+      /** 
+       * \brief destructor
+       */
       ~world();
 
-      /* initializes library. Sets topology to be a torus of edge lengths equal to the
-         factorization of np. Main args can be sset for profiler output. */
+      /**
+       * \brief  initializes library by determining topology based on mach specifier. 
+       *
+       * \param[in] global_context communicator decated to this library instance
+       * \param[in] rank this pe rank within the global context
+       * \param[in] np number of processors
+       * \param[in] mach the type of machine we are running on
+       * \param[in] argc number of arguments passed to main
+       * \param[in] argv arguments passed to main
+       */
       int init(MPI_Comm       global_context,
                int            rank,
                int            np,
@@ -78,8 +97,18 @@ namespace CTF_int {
                const char * const * argv = NULL);
 
 
-      /* initializes library. Sets topology to be a mesh of dimension order with
-         edge lengths dim_len. */
+      /**
+       * \brief  initializes library by determining topology based on 
+       *      mesh of dimension order with edge lengths dim_len. 
+       *
+       * \param[in] global_context communicator decated to this library instance
+       * \param[in] rank this pe rank within the global context
+       * \param[in] np number of processors
+       * \param[in] order the number of dimensions in the torus
+       * \param[in] dim_len the size of the span of each dimension
+       * \param[in] argc number of arguments passed to main
+       * \param[in] argv arguments passed to main
+       */
       int init(MPI_Comm       global_context,
                int            rank,
                int            np,
@@ -89,16 +118,26 @@ namespace CTF_int {
                const char * const * argv = NULL);
 
 
-      /* return MPI_Comm global_context */
+      /* \brief return MPI_Comm global_context */
       MPI_Comm get_MPI_Comm();
 
-      /* return MPI processor rank */
+      /* \brief return MPI processor rank */
       int get_rank();
 
-      /* return number of MPI processes in the defined global context */
+      /* \brief return number of MPI processes in the defined global context */
       int get_num_pes();
 
-      /* define a tensor and retrive handle */
+      /**
+       * \brief  defines a tensor and retrieves handle
+       *
+       * \param[in] sr semiring defining type of tensor
+       * \param[in] order number of tensor dimensions
+       * \param[in] edge_len global edge lengths of tensor
+       * \param[in] sym symmetry relations of tensor
+       * \param[out] tensor_id the tensor index (handle)
+       * \param[in] name string name for tensor (optionary)
+       * \param[in] profile wether to make profile calls for the tensor
+       */
       int define_tensor(semiring      sr, 
                         int           order,
                         int const *   edge_len,
@@ -120,36 +159,7 @@ namespace CTF_int {
                        int *      new_tensor_id,
                        bool       alloc_data = 1);
 
-      /* get information about a tensor */
-      int info_tensor(int tensor_id,
-                      int *     order,
-                      int **    edge_len,
-                      int **    sym) const;
-
-      /* set the tensor name */
-      int set_name(int tensor_id, char const * name);
-
-      /* get the tensor name */
-      int get_name(int tensor_id, char const ** name);
-
-      /* turn on profiling */
-      int profile_on(int tensor_id);
-
-      /* turn off profiling */
-      int profile_off(int tensor_id);
-
-      /* get dimension of a tensor */
-      int get_dimension(int tensor_id, int *order) const;
-
-      /* get lengths of a tensor */
-      int get_lengths(int tensor_id, int **edge_len) const;
-
-      /* get symmetry of a tensor */
-      int get_symmetry(int tensor_id, int **sym) const;
-
-      /* get raw data pointer WARNING: includes padding */
-      int get_raw_data(int tensor_id, char ** data, int64_t * size);
-
+      
       /* Input tensor data with <key, value> pairs where key is the
          global index for the value. */
       int write_tensor(int                      tensor_id,

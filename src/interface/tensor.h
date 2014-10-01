@@ -62,7 +62,8 @@ namespace CTF {
   template <typename dtype=double>
   class Tensor {
     public:
-      int tid, order;
+      CTF_int::tensor * tsr;
+      int order;
       int * sym, * len;
       char * idx_map;
       char const * name;
@@ -433,7 +434,7 @@ namespace CTF {
                                         dtype elem));
 
       /* obtains the largest n elements (in absolute value) of the tensor */
-      int get_max_abs(int const tid, int const n, char * data);
+      int get_max_abs(int n, char * data);
       /**
        * \brief computes the entrywise 1-norm of the tensor
        */    

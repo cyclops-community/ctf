@@ -135,20 +135,78 @@ namespace CTF_int {
 
   class CommData {
     public:
-    MPI_Comm cm;
-    int np;
-    int rank;
-    int color;
-    int alive;
+      MPI_Comm cm;
+      int np;
+      int rank;
+      int color;
+      int alive;
+
+      CommData();
+      ~CommData();
+
+      /**
+       * \brief create active communicator wrapper
+       * \param[in] cm_ MPI_Comm defining this wrapper
+       */
+      CommData(MPI_Comm cm_);
+
+      /**
+       * \brief create active communicator wrapper
+       * \param[in] rank_ rank within this comm
+       * \param[in] color_ identifier of comm within parent
+       * \param[in] np_ number of processors within this comm
+       */
+      CommData(int rank_, int color_, int np);
+
+      /**
+       * \brief create active subcomm from parent comm which must be active
+       * \param[in] rank_ processor rank within subcomm
+       * \param[in] color_ identifier of subcomm within this comm
+       * \param[in] parent comm to split
+      */
+      CommData(int rank_, int color_, CommData parent);
+
+      /**
+       * \brief activate this subcommunicator by splitting parent_comm
+       * \param[in] parent_comm communicator to split
+       */
+      void activate(MPI_Comm parent_comm);
+
+      /* \brief deactivate (MPI_Free) this comm */
+      void deactivate();
+     
+      /* \brief provide estimate of broadcast execution time */
+      double estimate_bcast_time(int64_t msg_sz);
    
-    double estimate_bcast_time(int64_t msg_sz);
- 
-    double estimate_allred_time(int64_t msg_sz);
-   
-    double estimate_alltoall_time(int64_t chunk_sz);
-   
-    double estimate_alltoallv_time(int64_t tot_sz);
+      /* \brief provide estimate of allreduction execution time */
+      double estimate_allred_time(int64_t msg_sz);
+     
+      /* \brief provide estimate of all_to_all execution time */
+      double estimate_alltoall_time(int64_t chunk_sz);
+     
+      /* \brief provide estimate of all_to_all_v execution time */
+      double estimate_alltoallv_time(int64_t tot_sz);
+
+      /**
+       * \brief performs all-to-all-v with 64-bit integer counts and offset on arbitrary
+       *        length types (datum_size), and uses point-to-point when all-to-all-v sparse
+       * \param[in] send_buffer data to send
+       * \param[in] send_counts number of datums to send to each process
+       * \param[in] send_displs displacements of datum sets in sen_buffer
+       * \param[in] datum_size size of MPI_datatype to use
+       * \param[in,out] recv_buffer data to recv
+       * \param[in] recv_counts number of datums to recv to each process
+       * \param[in] recv_displs displacements of datum sets in sen_buffer
+       */
+      void all_to_allv(void *           send_buffer, 
+                       int64_t const * send_counts,
+                       int64_t const * send_displs,
+                       int64_t          datum_size,
+                       void *           recv_buffer, 
+                       int64_t const * recv_counts,
+                       int64_t const * recv_displs);
+
   };
 }
 
-  #endif
+#endif

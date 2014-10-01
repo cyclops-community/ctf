@@ -16,16 +16,10 @@ using namespace CTF;
 
 namespace CTF_int {
 
-  /** 
-   * \brief destructor
-   */
   world::~world(){
     exit();
   }
 
-  /** 
-   * \brief constructor
-   */
   world::world(){
     initialized = 0;
   }
@@ -34,27 +28,14 @@ namespace CTF_int {
     return global_comm.cm;
   }
       
-  /* return MPI processor rank */
   int world::get_rank(){
     return global_comm.rank;
   }
-  /* return number of MPI processes in the defined global context */
+  
   int world::get_num_pes(){
     return global_comm.np;
   }
 
-  /**
-   * \brief  initializes library. 
-   *      Sets topology to be a mesh of dimension order with
-   *      edge lengths dim_len. 
-   *
-   * \param[in] global_context communicator decated to this library instance
-   * \param[in] rank this pe rank within the global context
-   * \param[in] np number of processors
-   * \param[in] mach the type of machine we are running on
-   * \param[in] argc number of arguments passed to main
-   * \param[in] argv arguments passed to main
-   */
   int world::init(MPI_Comm const  global_context,
                   int             rank, 
                   int             np,
@@ -68,19 +49,6 @@ namespace CTF_int {
     return initialize(argc, argv);
   }
 
-  /**
-   * \brief  initializes library. 
-   *      Sets topology to be a mesh of dimension order with
-   *      edge lengths dim_len. 
-   *
-   * \param[in] global_context communicator decated to this library instance
-   * \param[in] rank this pe rank within the global context
-   * \param[in] np number of processors
-   * \param[in] order is the number of dimensions in the topology
-   * \param[in] dim_len is the number of processors along each dimension
-   * \param[in] argc number of arguments passed to main
-   * \param[in] argv arguments passed to main
-   */
   int world::init(MPI_Comm const  global_context,
                         int             rank, 
                         int             np, 
@@ -95,11 +63,6 @@ namespace CTF_int {
     return initialize(argc, argv);
   }
 
-  /**
-   * \brief initializes world stack and parameters
-   * \param[in] argc number of arguments passed to main
-   * \param[in] argv arguments passed to main
-   */
   int world::initialize(int                   argc,
                         const char * const *  argv){
     char * mst_size, * stack_size, * mem_size, * ppn;
@@ -182,17 +145,6 @@ namespace CTF_int {
   }
 
 
-  /**
-   * \brief  defines a tensor and retrieves handle
-   *
-   * \param[in] sr semiring defining type of tensor
-   * \param[in] order number of tensor dimensions
-   * \param[in] edge_len global edge lengths of tensor
-   * \param[in] sym symmetry relations of tensor
-   * \param[out] tensor_id the tensor index (handle)
-   * \param[in] name string name for tensor (optionary)
-   * \param[in] profile wether to make profile calls for the tensor
-   */
   int world::define_tensor(semiring         sr,
                            int              order,             
                            int const *      edge_len, 
