@@ -209,9 +209,10 @@ class tCTF_Tensor {
 
     /**
      * \brief writes in values associated with any set of indices
-     * The sparse data is defined in coordinate format. The tensor index (i,j,k,l) of a tensor with edge lengths
-     * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
-     * and the column index is second for matrices, which means they are column major. 
+     *  The sparse data is defined in coordinate format. The tensor index (i,j,k,l) of a tensor with edge lengths
+     *  {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
+     *  and the column index is second for matrices, which means they are column major. 
+     *  if the tensor is symmetric, each key-value pair will be written to all symmetrically-equivalent locations
      * \param[in] npair number of values to write into tensor
      * \param[in] global_idx global index within tensor of value to write
      * \param[in] data values to  write to the indices
@@ -230,6 +231,7 @@ class tCTF_Tensor {
     
     /**
      * \brief sparse add: A[global_idx[i]] = beta*A[global_idx[i]]+alpha*data[i]
+     *  if the tensor is symmetric, each key-value pair will be added to all symmetrically-equivalent locations
      * \param[in] npair number of values to write into tensor
      * \param[in] alpha scaling factor on value to add
      * \param[in] beta scaling factor on original data
@@ -244,6 +246,7 @@ class tCTF_Tensor {
 
     /**
      * \brief sparse add: A[pairs[i].k] = alpha*A[pairs[i].k]+beta*pairs[i].d
+     *  if the tensor is symmetric, each key-value pair will be added to all symmetrically-equivalent locations
      * \param[in] npair number of values to write into tensor
      * \param[in] alpha scaling factor on value to add
      * \param[in] beta scaling factor on original data

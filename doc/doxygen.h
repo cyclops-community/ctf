@@ -14,15 +14,15 @@
  * Additionally, Devin leads the development of Aquarius (https://code.google.com/p/aquarius-chem/),
  * a distributed-memory quantum chemistry software suite running on top of the CTF library.
  * Richard Lin (UC Berkeley) is working on multi-contraction scheduling in (on top of) CTF.
- * Jeff Hammond (Argonne National Laborarory) and James Demmel (University of California-Berkeley) have overseen the high-level development of the ideas in the CTF framework.
+ * Jeff Hammond (Intel) and James Demmel (University of California-Berkeley) have overseen the high-level development of the ideas in the CTF framework.
  *
  * The source to CTF is available for reference and usage under
  * a BSD license. Please email solomon@eecs.berkeley.edu with all questions and interest.
  *
  * CTF aims to provide support for distributed memory tensors (scalars, vectors, matrices, etc.).
- * CTF provides summation and contration routines in Einstein notation, so that any for loops are implicitly described by the index notation.
- * The tensors in CTF are templated (only double and complex<double> currently tested), associated with an MPI communicator, and custom elementwise functions can be defined for contract and sum.
- * A number of example codes using CTF are provided in the examples/ subdirectory. CTF uses hybried parallelism with MPI and OpenMP, so please
+ * CTF provides summation and contraction routines in Einstein notation, so that any for loops are implicitly described by the index notation.
+ * The tensors in CTF are templated (only double and complex<double> currently tested), associated with an MPI communicator, and custom element-wise functions can be defined for contract and sum.
+ * A number of example codes using CTF are provided in the examples/ subdirectory. CTF uses hybrid parallelism with MPI and OpenMP, so please
  * set OMP_NUM_THREADS appropriately (e.g. Ubuntu defaults to the number of cores which is wrong when using more than 1 MPI process).
  *
  * The algorithms and application of CTF are described in detail in the following publications
@@ -45,7 +45,7 @@
  * The complex interface is instantiated to the predicate cCTF_...
  * Instantiation of the complex type can be turned off by excluding the flag -DCTF_COMPLEX from the DEFS variables in the config.mk file.
  *
- * \subsection dstruct Data Structures
+ * \subsection destruct Data Structures
  *
  * The basic tensor constructs are <a href="http://ctf.eecs.berkeley.edu/classtCTF__Tensor.html">CTF_Tensor</a>, 
  * <a href="http://ctf.eecs.berkeley.edu/classtCTF__Matrix.html">CTF_Matrix</a>, 
@@ -61,14 +61,14 @@
  * A scalar may also be represented as a zero-dimensional CTF_Tensor.
  *
  * A <a href="http://ctf.eecs.berkeley.edu/classtCTF__Vector.html">CTF_Vector</a> 
- * is a dense array of values that is distributed over the communicator correspoding 
+ * is a dense array of values that is distributed over the communicator corresponding 
  * to the CTF_World on which the vector is defined. A vector is a 1-dimensional tensor.
  *
  * A <a href="http://ctf.eecs.berkeley.edu/classtCTF__Matrix.html">CTF_Matrix</a> 
- * is a dense matrix. The matrix may be defined with a symmetry (AS-asymmtric, SY-symmetric, SH-symmetric-hollow, NS-nonsymmetric),
- * where asymmteric (skew-symmetric) and symmetric-hollow matrices are zero along the diagonal while symmetric (SY) ones are not.
+ * is a dense matrix. The matrix may be defined with a symmetry (AS-asymmetric, SY-symmetric, SH-symmetric-hollow, NS-nonsymmetric),
+ * where asymmetric (skew-symmetric) and symmetric-hollow matrices are zero along the diagonal while symmetric (SY) ones are not.
  * The symmetric matrix stored in packed format internally, but may sometimes be unpacked when operated on if enough memory is available.
- * A CTF_Matrix is internall equivalent to a 2-dimensional CTF_Tensor with symmetry {SY/AS/SH/NS,NS} and edge lengths {nrow,ncol}.
+ * A CTF_Matrix is internal equivalent to a 2-dimensional CTF_Tensor with symmetry {SY/AS/SH/NS,NS} and edge lengths {nrow,ncol}.
  *
  * A <a href="http://ctf.eecs.berkeley.edu/classtCTF__Tensor.html">CTF_Tensor</a> is an arbitrary-dimensional
  * distributed array, which can be defined as usual on any CTF_World. The symmetry is specified via an array of integers of length equal
@@ -90,7 +90,7 @@
  * Tensors can be summed and contracted via the CTF_Tensor::sum() and CTF_Tensor::contract() calls or via operator notation with index strings
  * e.g.  implies contraction over the mn indices. Summations can be done similarly.
  * Indexing over diagonals is possible by repeating the index in the string e.g. "ii".
- * Custom elementwise operations may be performed on each element instead of addition and multiplication via the constructs
+ * Custom element-wise operations may be performed on each element instead of addition and multiplication via the constructs
  * <a href="http://ctf.eecs.berkeley.edu/classtCTF__fscl.html">CTF_fscl</a> for a single tensor,
  * <a href="http://ctf.eecs.berkeley.edu/classtCTF__fsum.html">CTF_fsum</a> for summation of a pair of tensors, and
  * <a href="http://ctf.eecs.berkeley.edu/classtCTF__fctr.html">CTF_fctr</a> for contraction of two tensors into a third.
@@ -98,7 +98,7 @@
  * \subsection spio Sparse global data input and output 
  *
  * The functions CTF_Tensor::read() and CTF_Tensor::write() may be used for sparse global bulk data writes.
- * It is possible to write via an array of structs format of index-value pairs and via indepdent arrays.
+ * It is possible to write via an array of struts format of index-value pairs and via independent arrays.
  * The operator [] is also overloaded for CTF_Tensor to take a vector of indices, defining a  
  * <a href="http://ctf.eecs.berkeley.edu/classtCTF__Sparse__Tensor.html">CTF_Sparse_Tensor</a>, which is not currently
  * as fantastic as its name may suggest. The current class is basically a wrapper for the index and value vector
@@ -109,7 +109,7 @@
  * and the column index is second for matrices, which means they are column major. 
  *
  * Blocks or 'slices' of the tensor can be extracted using the CTF_Tensor::slice() function. 
- * It is possible to slice between tensors which are on different worlds, orchsetrating data movement between blocks of arrays on different MPI communicators.
+ * It is possible to slice between tensors which are on different worlds, orchestrating data movement between blocks of arrays on different MPI communicators.
  *
  * It is also possible to read/write to a block, 'slice', or sub-tensor (all-equivalent) of any permutation of the tensor via the CTF_Tensor::permute() function.
  * The function can be used to reorder the tensor in any fashion along each dimension, or to extract certain slices (via -1s in the permutation array).
@@ -120,9 +120,9 @@
  * Simply running 'make' should work on some supercomputers, Apple, and Linux machines.
  * CTF will try to recognize the hostname or detect Apple and if neither works, default to a Linux config.
  * Regardless of the machine, 'make' will generate a config.mk file, which can be manipulated.
- * Files for various machines are available in the subfolder mkfiles/.
+ * Files for various machines are available in the sub-folder mkfiles/.
  * Once this configuration file is setup, running 'make' will build the CTF library and place it into libs.
- * Running 'make test' or 'make test\#n' where #n is in {2,3,4,6,7,8} will test the library on using #n mpi processes.
+ * Running 'make test' or 'make test\#n' where #n is in {2,3,4,6,7,8} will test the library on using #n MPI processes.
  * 
  * The sub-directory 'examples' contains a suite of sample codes. These can be built all-together
  * via the command 'make examples'.
@@ -152,7 +152,7 @@
  * examples/ provides various example codes using CTF
  *
  * src/dist_tensor/ contains the tensor parallel logic, which inputs, outputs, maps, and redistributions, 
- * the tensor. The logic that constructs tensor contrations is here. 
+ * the tensor. The logic that constructs tensor contractions is here. 
  *
  * src/ctr_comm/ contains the distributed tensor contraction routines
  *
