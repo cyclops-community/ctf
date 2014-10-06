@@ -1,114 +1,49 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "../interface/common.h"
-#include "../world/int_world.h"
+#include "world.h"
 
 namespace CTF {
 
   template<typename dtype>
-  Tensor<dtype>::Tensor(){
-    tsr = NULL;
-    order = -1;
-    sym = NULL;
-    len = NULL;
-    name = NULL;
-    world = NULL;
-    sr = Semiring<dtype>();
-  }
+  Tensor<dtype>::Tensor() : CTF_int::tensor() { }
 
   template<typename dtype>
   Tensor<dtype>::Tensor(const Tensor<dtype>& A,
-                        bool                 copy){
-    int ret;
-    world = A.world;
-    name = A.name;
-    sr = A.sr;
-
-    ret = A->info_tensor(&order, &len, &sym);
-    assert(ret == SUCCESS);
-
-    ret = world->ctf->define_tensor(sr, order, len, sym, tsr, 1, name, name!=NULL);
-    assert(ret == SUCCESS);
-
-    //printf("Defined tensor %d to be the same as %d, copy=%d\n", tid, A.tid, (int)copy);
-
-    if (copy){
-      ret = world->ctf->copy_tensor(A.tid, tid);
-      assert(ret == SUCCESS);
-    }
-  }
+                        bool                 copy) 
+    : CTF_int::tensor(&A, copy) { }
 
   template<typename dtype>
   Tensor<dtype>::Tensor(const Tensor<dtype> & A,
-                        World &               world_){
-    int ret;
-    world = &world_;
-    name = A.name;
-    sr = A.sr;
-
-    ret = A.world->ctf->info_tensor(A.tid, &order, &len, &sym);
-    assert(ret == SUCCESS);
-
-    ret = world->ctf->define_tensor(sr, order, len, sym, &tid, 1, name, name!=NULL);
-    assert(ret == SUCCESS);
-  }
-
+                        World *               world_) 
+    : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile) { }
 
   template<typename dtype>
-  Tensor<dtype>::Tensor(int                 order_,
-                        int const *         len_,
-                        int const *         sym_,
-                        World &             world_,
-                        char const *        name_,
-                        int const           profile_){
-    int ret;
-    world = &world_;
-    name = name_;
-    sr = Semiring<dtype>();
-    ret = world->ctf->define_tensor(sr, order_, len_, sym_, &tid, 1, name_, profile_);
-    assert(ret == SUCCESS);
-    ret = world->ctf->info_tensor(tid, &order, &len, &sym);
-    assert(ret == SUCCESS);
-  }
+  Tensor<dtype>::Tensor(int                 order,
+                        int const *         lens,
+                        int const *         sym,
+                        World *             wrld,
+                        char const *        name,
+                        int const           profile)
+    : CTF_int::tensor(Semiring<dtype>(), order, lens, sym, wrld, 1, name, profile) { }
 
   template<typename dtype>
-  Tensor<dtype>::Tensor(int                 order_,
-                        int const *         len_,
-                        int const *         sym_,
-                        World &             world_,
-                        Semiring<dtype>     sr_,
-                        char const *        name_,
-                        int const           profile_){
-    int ret;
-    world = &world_;
-    name = name_;
-    sr = sr_;
-    ret = world->ctf->define_tensor(sr, order_, len_, sym_, &tid, 1, name_, profile_);
-    assert(ret == SUCCESS);
-    ret = world->ctf->info_tensor(tid, &order, &len, &sym);
-    assert(ret == SUCCESS);
-  }
+  Tensor<dtype>::Tensor(int                 order,
+                        int const *         len,
+                        int const *         sym,
+                        World *             world,
+                        Semiring<dtype>     sr,
+                        char const *        name,
+                        int const           profile)
+    : CTF_int::tensor(sr, order, lens, sym, wrld, 1, name, profile) {}
 
   template<typename dtype>
-  Tensor<dtype>::~Tensor(){
-  /*  if (sym != NULL)
-      CTF_free_cond(sym);
-    if (len != NULL)
-      CTF_free_cond(len);*/
-    if (sym != NULL)
-      CTF_free(sym);
-    if (len != NULL)
-      CTF_free(len);
-    world->ctf->clean_tensor(tid);
-  }
+  Tensor<dtype>::~Tensor(){ }
 
   template<typename dtype>
   dtype * Tensor<dtype>::get_raw_data(int64_t * size) {
-    int ret;
     dtype * data;
-    ret = world->ctf->get_raw_data(tid, &data, size);
-    assert(ret == SUCCESS);
-    
+    this->get_raw_data(&data, size);
     return data;
   }
 
@@ -610,8 +545,8 @@ namespace CTF {
 
   template<typename dtype>
   Idx_Tensor<dtype> Tensor<dtype>::operator[](const char * idx_map_){
-    Idx_Tensor<dtype> itsr(this, idx_map_);
-    return itsr;
+    Idx_Tensor<dtype> idxtsr(this, idx_map_);
+    return idxtsr;
   }
 
 

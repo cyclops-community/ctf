@@ -2,7 +2,7 @@ include ../config.mk
 
 ctf: subdirs
 
-SUBDIRS = world shared interface tensor ctr_seq ctr_comm mapping redistribution test bench studies
+SUBDIRS = interface shared tensor ctr_seq ctr_comm mapping redistribution test bench studies
      
 .PHONY: subdirs $(SUBDIRS)
      

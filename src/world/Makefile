@@ -1,7 +1,7 @@
 include ../../config.mk
 
 
-OBJS = int_world.o  distribution.o  dist_tensor_internal.o
+OBJS =  distribution.o  dist_tensor_internal.o
 
 ctf: $(OBJS) 
 

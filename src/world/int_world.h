@@ -12,62 +12,9 @@
 
 
 namespace CTF_int {
-
-  /* Force redistributions always by setting to 1 */
-  #define REDIST 0
-  //#define VERIFY 0
-  #define VERIFY_REMAP 0
-  #define FOLD_TSR 1
-  #define PERFORM_DESYM 1
-  #define ALLOW_NVIRT 1024
-  #define DIAG_RESCALE
-  #define USE_SYM_SUM
-  #define HOME_CONTRACT
-  #define USE_BLOCK_RESHUFFLE
-
-  // \brief defines tensor contraction operands and indices
-  typedef struct ctr_type {
-    tensor * tsr_A;
-    tensor * tsr_B;
-    tensor * tsr_C;
-    int * idx_map_A; /* map indices of tensor A to contraction */
-    int * idx_map_B; /* map indices of tensor B to contraction */
-    int * idx_map_C; /* map indices of tensor C to contraction */
-  } ctr_type_t;
-
-  // \brief defines tensor summation operands and indices
-  typedef struct sum_type {
-    tensor * tsr_A;
-    tensor * tsr_B;
-    int * idx_map_A; /* map indices of tensor A to sum */
-    int * idx_map_B; /* map indices of tensor B to sum */
-  } sum_type_t;
-
   // \brief orchestrating center, defined by an MPI comm and a topology
   //          which keeps track of all derived topologies, tensors, mappings, and operations
   class world{
-    private:
-      /* internal library state */
-      
-      //\brief whether the world has been initialized
-      bool initialized;
-      //\brief communicator data for MPI comm defining this world
-      CommData global_comm;
-      //\brief main torus topology corresponding to the world
-      topology phys_topology;
-      //\brief tensors defined within the world
-      //std::vector< tensor* > tensors;
-      //\brief derived topologies
-      std::vector<topology> topovec;
-
-      /**
-       * \brief initializes world stack and parameters, args only needed for profiler output
-       * \param[in] argc number of arguments to application
-       * \param[in] argv arguments to application
-       */
-      int initialize(int                   argc,
-                     const char * const *  argv);
-
     public:
 
       /** 
@@ -78,45 +25,6 @@ namespace CTF_int {
        * \brief destructor
        */
       ~world();
-
-      /**
-       * \brief  initializes library by determining topology based on mach specifier. 
-       *
-       * \param[in] global_context communicator decated to this library instance
-       * \param[in] rank this pe rank within the global context
-       * \param[in] np number of processors
-       * \param[in] mach the type of machine we are running on
-       * \param[in] argc number of arguments passed to main
-       * \param[in] argv arguments passed to main
-       */
-      int init(MPI_Comm       global_context,
-               int            rank,
-               int            np,
-               TOPOLOGY       mach = TOPOLOGY_GENERIC,
-               int            argc = 0,
-               const char * const * argv = NULL);
-
-
-      /**
-       * \brief  initializes library by determining topology based on 
-       *      mesh of dimension order with edge lengths dim_len. 
-       *
-       * \param[in] global_context communicator decated to this library instance
-       * \param[in] rank this pe rank within the global context
-       * \param[in] np number of processors
-       * \param[in] order the number of dimensions in the torus
-       * \param[in] dim_len the size of the span of each dimension
-       * \param[in] argc number of arguments passed to main
-       * \param[in] argv arguments passed to main
-       */
-      int init(MPI_Comm       global_context,
-               int            rank,
-               int            np,
-               int            order,
-               int const *    dim_len,
-               int            argc = 0,
-               const char * const * argv = NULL);
-
 
       /* \brief return MPI_Comm global_context */
       MPI_Comm get_MPI_Comm();

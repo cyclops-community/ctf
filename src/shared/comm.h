@@ -1,4 +1,5 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+#if 0
 
 #ifndef __COMM_H__
 #define __COMM_H__
@@ -194,9 +195,6 @@
 //  } while(0)
 //
 //
-//#endif
-  
-namespace CTF_int {
-
-}
+#endif
+#endif
 #endif

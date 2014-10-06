@@ -15,6 +15,7 @@ namespace CTF_int {
     VIRTUAL_MAP
   };
 
+  // \brief object keeping track of a mapping of a tensor dimension onto a torus dimension
   class mapping {
     public:
       map_type type;
@@ -22,7 +23,35 @@ namespace CTF_int {
       int cdt;
       int has_child;
       mapping * child;
+
+      /**
+       * \brief compute the phase of a mapping
+       *
+       * \return int phase
+       */
+      int calc_phase();
+      
+      /**
+       * \brief compute the physical phase of a mapping
+       *
+       * \return int physical phase
+       */
+      int calc_phys_phase();
+      
+      /**
+       * \brief compute the physical rank of a mapping
+       *
+       * \param topo topology
+       * \return int physical rank
+       */
+      int calc_phys_rank(topology const * topo);
   };
+  
+  /** \brief compares two mappings
+   * \param map_A first map
+   * \param map_B second map
+   * return true if mapping is exactly the same, false otherwise 
+   */
   int comp_dim_map(mapping const *  map_A,
                    mapping const *  map_B);
 

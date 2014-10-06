@@ -35,9 +35,9 @@ namespace CTF {
     public:
       dtype d;
       Pair() {}
-      Pair(int64_t  k_, dtype d_){
+      Pair(int64_t k_, dtype d_){
         this->k = k_; 
-        d =d_;
+        d = d_;
       }
       
       char * v(){
@@ -60,17 +60,11 @@ namespace CTF {
    * \brief an instance of a tensor within a CTF world
    */
   template <typename dtype=double>
-  class Tensor {
+  class Tensor : protected CTF_int::tensor {
     public:
-      CTF_int::tensor * tsr;
-      int order;
-      int * sym, * len;
-      char * idx_map;
-      char const * name;
-      World * world;
-      Semiring<dtype> sr;
+      /** \brief templated semiring on which tensor elements and operations are defined */
+      //Semiring<dtype> typed_ring;
 
-    public:
       /**
        * \brief default constructor
        */
@@ -85,22 +79,23 @@ namespace CTF {
              bool           copy = true);
 
       /**
-       * \brief copies a tensor filled with zeros
+       * \brief defines tensor filled with zeros on the default semiring
        * \param[in] order_ number of dimensions of tensor
        * \param[in] len_ edge lengths of tensor
        * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
-       * \param[in] world_ a world for the tensor to live in
+       * \param[in] wrld_ a world for the tensor to live in
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */
-      Tensor(int          dim_,
-             int const *  len_,
-             int const *  sym_,
-             World &      world_,
-             char const * name_ = NULL,
-             int          profile_ = 0);
+      Tensor(int          dim,
+             int const *  len,
+             int const *  sym,
+             World *      wrld,
+             char const * name = NULL,
+             int          profile = 0);
+
       /**
-       * \brief copies a tensor filled with zeros
+       * \brief defines a tensor filled with zeros on a specified semiring
        * \param[in] order_ number of dimensions of tensor
        * \param[in] len_ edge lengths of tensor
        * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
@@ -109,13 +104,13 @@ namespace CTF {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */
-      Tensor(int             order_,
-             int const *     len_,
-             int const *     sym_,
-             World &         world_,
-             Semiring<dtype> sr_,
-             char const *    name_ = NULL,
-             int             profile_ = 0);
+      Tensor(int             order,
+             int const *     len,
+             int const *     sym,
+             World *         wrld,
+             Semiring<dtype> sr,
+             char const *    name = NULL,
+             int             profile = 0);
       
       /**
        * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
@@ -123,7 +118,7 @@ namespace CTF {
        * \param[in] world_ a world for the tensor we are creating to live in, can be different from A
        */
       Tensor(Tensor const & A,
-             World        & world_);
+             World        * wrld);
 
       /**
        * \brief gives the values associated with any set of indices
@@ -305,6 +300,12 @@ namespace CTF {
       Tensor slice(int const * offsets,
                    int const * ends) const;
       
+      /**
+       * \brief cuts out a slice (block) of this tensor with corners specified by global index
+       * \param[in] corner_off top left corner of block
+       * \param[in] corner_end bottom right corner of block
+       * \return new tensor corresponding to requested slice
+      */
       Tensor slice(int64_t corner_off,
                    int64_t corner_end) const;
       
@@ -312,6 +313,7 @@ namespace CTF {
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
+       * \param[in] oworld the world in which the new tensor should be defined
        * \return new tensor corresponding to requested slice which lives on
        *          oworld
        */
@@ -319,6 +321,14 @@ namespace CTF {
                    int const *         ends,
                    World *             oworld) const;
 
+      /**
+       * \brief cuts out a slice (block) of this tensor with corners specified by global index
+       * \param[in] corner_off top left corner of block
+       * \param[in] corner_end bottom right corner of block
+       * \param[in] oworld the world in which the new tensor should be defined
+       * \return new tensor corresponding to requested slice which lives on
+       *          oworld
+       */
       Tensor slice(int64_t             corner_off,
                    int64_t             corner_end,
                    World *             oworld) const;
@@ -537,7 +547,7 @@ namespace CTF {
        * \brief associated an index map with the tensor for future operation
        * \param[in] idx_map_ index assignment for this tensor
        */
-      Idx_Tensor<dtype> operator[](char const * idx_map_);
+      Idx_Tensor<dtype> operator[](char const * idx_map);
       
       /**
        * \brief gives handle to sparse index subset of tensors
@@ -585,12 +595,12 @@ namespace CTF {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */ 
-      Matrix(int          nrow_, 
-             int          ncol_, 
-             int          sym_,
-             World      & world,
-             char const * name_ = NULL,
-             int          profile_ = 0);
+      Matrix(int          nrow, 
+             int          ncol, 
+             int          sym,
+             World      * wrld,
+             char const * name = NULL,
+             int          profile = 0);
 
       /**
        * \brief constructor for a matrix
@@ -602,13 +612,13 @@ namespace CTF {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */ 
-      Matrix(int             nrow_, 
-             int             ncol_, 
-             int             sym_,
-             World      &    world,
-             Semiring<dtype> sr_,
-             char const *    name_ = NULL,
-             int             profile_ = 0);
+      Matrix(int             nrow, 
+             int             ncol, 
+             int             sym,
+             World      *    wrld,
+             Semiring<dtype> sr,
+             char const *    name = NULL,
+             int             profile = 0);
 
 
   };
@@ -629,10 +639,10 @@ namespace CTF {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */ 
-      Vector(int             len_,
-             World         & world,
-             char const *    name_ = NULL,
-             int             profile_ = 0);
+      Vector(int             len,
+             World         * wrld,
+             char const *    name = NULL,
+             int             profile = 0);
 
       /**
        * \brief constructor for a vector
@@ -642,11 +652,11 @@ namespace CTF {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */ 
-      Vector(int             len_,
-             World         & world,
-             Semiring<dtype> sr_,
-             char const *    name_ = NULL,
-             int             profile_ = 0);
+      Vector(int             len,
+             World         * world,
+             Semiring<dtype> sr,
+             char const *    name = NULL,
+             int             profile = 0);
 
   };
 
@@ -662,15 +672,15 @@ namespace CTF {
        * \brief constructor for a scalar
        * \param[in] world CTF world where the tensor will live
        */
-      Scalar(World & world_);
+      Scalar(World * wrld);
 
       /**
        * \brief constructor for a scalar
        * \param[in] world CTF world where the tensor will live
        * \param[in] sr_ defines the tensor arithmetic for this tensor
        */
-      Scalar(World &         world_,
-             Semiring<dtype> sr_);
+      Scalar(World *         wrld,
+             Semiring<dtype> sr);
 
       /**
        * \brief constructor for a scalar with predefined value
@@ -678,7 +688,7 @@ namespace CTF {
        * \param[in] world CTF world where the tensor will live
        */ 
       Scalar(dtype   val,
-             World & world);
+             World * wrld);
 
       /**
        * \brief returns scalar value
@@ -704,8 +714,11 @@ namespace CTF {
   template<typename dtype=double>
   class Sparse_Tensor {
     public:
+      /** \brief dense tensor whose subset this sparse tensor is of */
       Tensor<dtype> * parent;
+      /** \brief indices of the sparse elements of this tensor */
       std::vector<int64_t > indices;
+      /** \brief scaling factor by which to scale the tensor elements */
       dtype scale;
 
       /** 
