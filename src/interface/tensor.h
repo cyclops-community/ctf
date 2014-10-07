@@ -340,6 +340,7 @@ namespace CTF {
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
        * \param[in] alpha scaling factor of this tensor
+       * \param[in] A tensor who owns pure-operand slice
        * \param[in] offsets bottom left corner of block of A
        * \param[in] ends top right corner of block of A
        * \param[in] alpha scaling factor of tensor A
@@ -351,7 +352,17 @@ namespace CTF {
                  int const *    offsets_A,
                  int const *    ends_A,
                  dtype          alpha) const;
-      
+      /**
+       * \brief cuts out a slice (block) of this tensor = B
+       *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
+       * \param[in] corner_off top left corner of block
+       * \param[in] corner_end bottom right corner of block       
+       * \param[in] alpha scaling factor of this tensor
+       * \param[in] A tensor who owns pure-operand slice
+       * \param[in] corner_off top left corner of block of A
+       * \param[in] corner_end bottom right corner of block of A
+       * \param[in] alpha scaling factor of tensor A
+       */
       void slice(int64_t        corner_off,
                  int64_t        corner_end,
                  dtype          beta,
@@ -408,9 +419,15 @@ namespace CTF {
       void add_to_subworld(Tensor<dtype> * tsr,
                            dtype           alpha,
                            dtype           beta) const;
+     /**
+       * \brief accumulates this tensor to a tensor object defined on a different world
+       * \param[in] tsr a tensor object of the same characteristic as this tensor, 
+       *             but on a different world/MPI_comm
+       */
+
       void add_to_subworld(Tensor<dtype> * tsr) const;
       
-     /**
+      /**
        * \brief accumulates this tensor from a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor, 
        *             but on a different world/MPI_comm
@@ -420,6 +437,11 @@ namespace CTF {
       void add_from_subworld(Tensor<dtype> * tsr,
                              dtype           alpha,
                              dtype           beta) const;
+      /**
+       * \brief accumulates this tensor from a tensor object defined on a different world
+       * \param[in] tsr a tensor object of the same characteristic as this tensor, 
+       *             but on a different world/MPI_comm
+       */
       void add_from_subworld(Tensor<dtype> * tsr) const;
       
 
@@ -443,8 +465,6 @@ namespace CTF {
                                         int const * indices,
                                         dtype elem));
 
-      /* obtains the largest n elements (in absolute value) of the tensor */
-      int get_max_abs(int n, char * data);
       /**
        * \brief computes the entrywise 1-norm of the tensor
        */    

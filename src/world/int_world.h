@@ -67,137 +67,6 @@ namespace CTF_int {
                        int *      new_tensor_id,
                        bool       alloc_data = 1);
 
-      
-      /* Input tensor data with <key, value> pairs where key is the
-         global index for the value. */
-      int write_tensor(int                      tensor_id,
-                       int64_t                  num_pair,
-                       pair * const             mapped_data);
-
-      /* Add tensor data new=alpha*new+beta*old
-         with <key, value> pairs where key is the
-         global index for the value. */
-      int write_tensor(int                      tensor_id,
-                       int64_t                  num_pair,
-                       char const *             alpha,
-                       char const *             beta,
-                       pair * const             mapped_data);
-
-      /**
-       * Permutes a tensor along each dimension skips if perm set to -1, generalizes slice.
-       *        one of permutation_A or permutation_B has to be set to NULL, if multiworld read, then
-       *        the parent world tensor should not be being permuted
-       */
-      int permute_tensor(int                    tid_A,
-                         int * const *          permutation_A,
-                         char const *           alpha,
-                         world *                tC_A,
-                         int                    tid_B,
-                         int * const *          permutation_B,
-                         char const *           beta,
-                         world *                tC_B);
-
-     /**
-       * \brief accumulates this tensor to a tensor object defined on a different world
-       * \param[in] tid id of tensor on this CTF instance
-       * \param[in] tid_sub id of tensor on a subcomm of this CTF inst
-       * \param[in] tC_sub CTF instance on a mpi subcomm
-       * \param[in] alpha scaling factor for this tensor
-       * \param[in] beta scaling factor for tensor tsr
-       */
-      int  add_to_subworld(int          tid,
-                           int          tid_sub,
-                           world *      tC_sub,
-                           char const * alpha,
-                           char const * beta);
-     /**
-       * \brief accumulates this tensor from a tensor object defined on a different world
-       * \param[in] tsr a tensor object of the same characteristic as this tensor, 
-       * \param[in] tid id of tensor on this CTF instance
-       * \param[in] tid_sub id of tensor on a subcomm of this CTF inst
-       * \param[in] tC_sub CTF instance on a mpi subcomm
-       * \param[in] alpha scaling factor for this tensor
-       * \param[in] beta scaling factor for tensor tsr
-       */
-      int  add_from_subworld(int          tid,
-                             int          tid_sub,
-                             world *      tC_sub,
-                             char const * alpha,
-                             char const * beta);
-      
-      /* Add tensor data from A to a block of B, 
-         B[offsets_B:ends_B] = beta*B[offsets_B:ends_B] 
-                            + alpha*A[offsets_A:ends_A] */
-      int slice_tensor(int          tid_A,
-                       int const *  offsets_A,
-                       int const *  ends_A,
-                       char const * alpha,
-                       int          tid_B,
-                       int const *  offsets_B,
-                       int const *  ends_B,
-                       char const * beta);
-
-      /* Same as above, except tid_A lives on dt_other_A */
-      int slice_tensor(int            tid_A,
-                       int const *    offsets_A,
-                       int const *    ends_A,
-                       char const *   alpha,
-                       world *        dt_other_A,
-                       int            tid_B,
-                       int const *    offsets_B,
-                       int const *    ends_B,
-                       char const *   beta);
-
-      /* Same as above, except tid_B lives on dt_other_B */
-      int slice_tensor(int            tid_A,
-                       int const *    offsets_A,
-                       int const *    ends_A,
-                       char const *   alpha,
-                       int            tid_B,
-                       int const *    offsets_B,
-                       int const *    ends_B,
-                       char const *   beta,
-                       world *        dt_other_B);
-
-
-      /* read tensor data with <key, value> pairs where key is the
-         global index for the value, which gets filled in with
-         beta times the old values plus alpha times the values read from the tensor. */
-      int read_tensor(int                     tensor_id,
-                      int64_t                 num_pair,
-                      char const *            alpha,
-                      char const *            beta,
-                      pair * const            mapped_data);
-
-      /* read tensor data with <key, value> pairs where key is the
-         global index for the value, which gets filled in. */
-      int read_tensor(int                     tensor_id,
-                      int64_t                 num_pair,
-                      pair * const            mapped_data);
-
-
-      /* read entire tensor with each processor (in packed layout).
-         WARNING: will use a lot of memory. */
-      int allread_tensor(int        tensor_id,
-                         int64_t *  num_pair,
-                         char **    all_data);
-
-      /* read entire tensor with each processor to preallocated buffer
-         (in packed layout).
-         WARNING: will use a lot of memory. */
-      int allread_tensor(int        tensor_id,
-                         int64_t *  num_pair,
-                         char *     all_data);
-
-
-      /* map input tensor local data to zero. */
-      int set_zero_tensor(int tensor_id);
-
-      /* read tensor data pairs local to processor. */
-      int read_local_tensor(int                 tensor_id,
-                            int64_t *           num_pair,
-                            pair **             mapped_data);
-
       /* contracts tensors alpha*A*B + beta*C -> C,
          uses standard symmetric contraction sequential kernel */
       int contract(ctr_type_t const * type,
@@ -251,10 +120,6 @@ namespace CTF_int {
                       int const *         idx_map_A,
                       int const *         idx_map_B,
                       univar_function     felm);
-
-      /* copy A into B. Realloc if necessary */
-      int copy_tensor(int tid_A, int tid_B);
-
       /* scale tensor by alpha. A <- a*A */
       int scale_tensor(char const * alpha, int tid);
 
@@ -304,32 +169,6 @@ namespace CTF_int {
                             int const *        idx_A,
                             int tid_B,
                             int const *        idx_B);
-
-
-      /* aligns tensor mapping of tid_A to that of tid_B */
-      int align(int          tid_A,
-                int          tid_B);
-
-      /* product will contain the dot prodiuct if tsr_A and tsr_B */
-      int dot_tensor(int tid_A, int tid_B, char *product);
-
-      /* reduce data of tid_A with the given OP */
-      int reduce_tensor(int tid, CTF::OP op, char * result);
-
-      /* map data of tid_A with the given function */
-  /*    int map_tensor(int tid,
-                     dtype (*map_func)(int order, 
-                                       int const * indices,
-                                       dtype elem));
-  */
-      /* obtains the largest n elements (in absolute value) of the tensor */
-      int get_max_abs(int tid, int n, char * data);
-
-      /* Prints a tensor on one processor. */
-      int print_tensor(FILE * stream, int tid, double cutoff = -1.0);
-
-      /* Compares two tensors on one processor. */
-      int compare_tensor(FILE * stream, int tid_A, int tid_B, double cutoff = -1.0);
 
       /* Prints contraction type. */
       int print_ctr(ctr_type_t const * ctype,

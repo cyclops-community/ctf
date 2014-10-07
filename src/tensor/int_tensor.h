@@ -96,34 +96,53 @@ namespace CTF_int {
       int * lens;
       /** \brief padded tensor edge lengths */
       int * pad_edge_len;
-      /** \brief padding along each edge length */
+      /** \brief padding along each edge length (less than distribution phase) */
       int * padding;
       /** \brief name given to tensor */
       char const * name;
+      /** \brief whether tensor data has additional padding */
       int is_scp_padded;
-      int * scp_padding; /* to be used by scalapack wrapper */
-      int * sym_table; /* can be compressed into bitmap */
+      /** \brief additional padding, may be greater than ScaLAPACK phase */
+      int * scp_padding; 
+      /** \brief order-by-order table of dimensional symmetry relations */
+      int * sym_table; 
+      /** \brief whether a mapping has been selected */
       bool is_mapped;
-      bool is_alloced;
-      int itopo;
+      /** \brief topology to which the tensor is mapped */
+      topology * topo;
+      /** \brief mappings of each tensor dimension onto topology dimensions */
       mapping * edge_map;
+      /** \brief current size of local tensor data chunk (mapping-dependent) */
       int64_t size;
+      /** \brief whether the data is folded/transposed into a (lower-order) tensor */
       bool is_folded;
+      /** \brief ordering of the dimensions according to which the tensori s folded */
       int * inner_ordering;
+      /** \brief representation of folded tensor (shares data pointer) */
       tensor * rec_tsr;
+      /** \brief whether the tensor data is cyclically distributed (blocked if false) */
       bool is_cyclic;
-      bool is_matrix;
+      /** \brief whether the tensor data is an alias of another tensor object's data */
       bool is_data_aliased;
-      bool slay;
+      /** \brief tensor object associated with tensor object whose data pointer needs to be preserved, 
+          needed for ScaLAPACK wrapper FIXME: home buffer should presumably take care of this... */
+      tensor * slay;
+      /** \brief if true tensor has a zero edge length, so is zero, which short-cuts stuff */
       bool has_zero_edge_len;
+      /** \brief tensor data, either the data or the key-value pairs should exist at any given time */
       union {
         char * data;
         pair * pairs;
       };
-      char * home_buffer;
-      int64_t home_size;
-      bool is_home;
+      /** \brief whether the tensor has a home mapping/buffer */
       bool has_home;
+      /** \brief buffer associated with home mapping of tensor, to which it is returned */
+      char * home_buffer;
+      /** \brief size of home buffer */
+      int64_t home_size;
+      /** \brief whether the latest tensor data is in the home buffer */
+      bool is_home;
+      /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
 
       tensor();
@@ -154,6 +173,7 @@ namespace CTF_int {
              bool alloc_data = false,
              char const * name = NULL,
              bool profile = 1);
+
       /**
        * \brief compute the cyclic phase of each tensor dimension
        * \return int * of cyclic phases
@@ -212,6 +232,194 @@ namespace CTF_int {
        * \param[out] size number of elements in data
        */
       void get_raw_data(char ** data, int64_t * size);
+
+      /**
+       * \brief  Input tensor data with <key, value> pairs where key is the
+       *              global index for the value. 
+       * \param[in] num_pair number of pairs to write
+       * \param[in] mapped_data pairs to write
+       */
+      int write(int64_t                  num_pair,
+                       pair * const             mapped_data);
+
+      /** 
+       * \brief  Add tensor data new=alpha*new+beta*old
+       *         with <key, value> pairs where key is the 
+       *         global index for the value. 
+       * \param[in] num_pair number of pairs to write
+       * \param[in] alpha scaling factor of written value
+       * \param[in] beta scaling factor of old value
+       * \param[in] mapped_data pairs to write
+       */
+       int write(int64_t                  num_pair,
+                       char const *             alpha,
+                       char const *             beta,
+                       pair * const             mapped_data);
+
+      /**
+       * \brief read tensor data with <key, value> pairs where key is the
+       *         global index for the value, which gets filled in with
+       *         beta times the old values plus alpha times the values read from the tensor. 
+       * \param[in] num_pair number of pairs to read
+       * \param[in] alpha scaling factor of read value
+       * \param[in] beta scaling factor of old value
+       * \param[in] mapped_data pairs to write
+       */
+      int read(int64_t                 num_pair,
+                      char const *            alpha,
+                      char const *            beta,
+                      pair * const            mapped_data);
+
+      /**
+       * \brief read tensor data with <key, value> pairs where key is the
+       *              global index for the value, which gets filled in. 
+       * \param[in] num_pair number of pairs to read
+       * \param[in,out] mapped_data pairs to read
+       */
+      int read(int64_t                 num_pair,
+                      pair * const            mapped_data);
+
+      /**
+       * \brief read entire tensor with each processor (in packed layout).
+       *         WARNING: will use an 'unscalable' amount of memory. 
+       * \param[out] num_pair number of values read
+       * \param[in,out] mapped_data values read (allocated by library)
+       */
+      int allread(int64_t *  num_pair,
+                         char **    all_data);
+
+      /**
+       * \brief read entire tensor with each processor (in packed layout).
+       *         WARNING: will use an 'unscalable' amount of memory. 
+       * \param[out] num_pair number of values read
+       * \param[in,out] preallocated mapped_data values read
+       */
+      int allread(int64_t *  num_pair,
+                         char *     all_data);
+
+      /**
+        * \brief accumulates this tensor to a tensor object defined on a different world
+        * \param[in] tsr_sub tensor on a subcomm of this world
+        * \param[in] alpha scaling factor for this tensor
+        * \param[in] beta scaling factor for tensor tsr
+        */
+      int  add_to_subworld(tensor *     tsr_sub,
+                           char const * alpha,
+                           char const * beta);
+      /**
+        * \brief accumulates this tensor from a tensor object defined on a different world
+        * \param[in] tsr_sub id of tensor on a subcomm of this CTF inst
+        * \param[in] tC_sub CTF instance on a mpi subcomm
+        * \param[in] alpha scaling factor for this tensor
+        * \param[in] beta scaling factor for tensor tsr
+        */
+      int  add_from_subworld(tensor *     tid_sub,
+                             char const * alpha,
+                             char const * beta);
+       /**
+       * \brief cuts out a slice (block) of this tensor = B
+       *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
+       * \param[in] offsets bottom left corner of block
+       * \param[in] ends top right corner of block
+       * \param[in] alpha scaling factor of this tensor
+       * \param[in] A tensor who owns pure-operand slice
+       * \param[in] offsets bottom left corner of block of A
+       * \param[in] ends top right corner of block of A
+       * \param[in] alpha scaling factor of tensor A
+       */
+      void slice(int const *    offsets,
+                 int const *    ends,
+                 char const *   beta,
+                 tensor const & A,
+                 int const *    offsets_A,
+                 int const *    ends_A,
+                 char const *   alpha) const;
+     
+      /* Same as above, except tid_B lives on dt_other_B */
+/*      int slice_tensor(int            tid_A,
+                       int const *    offsets_A,
+                       int const *    ends_A,
+                       char const *   alpha,
+                       int            tid_B,
+                       int const *    offsets_B,
+                       int const *    ends_B,
+                       char const *   beta,
+                       world *        dt_other_B);
+*/
+      /**
+       * Permutes a tensor along each dimension skips if perm set to -1, generalizes slice.
+       *        one of permutation_A or permutation_B has to be set to NULL, if multiworld read, then
+       *        the parent world tensor should not be being permuted
+       * \param[in] A pure-operand tensor
+       * \param[in] permutation_A mappings for each dimension of A indices
+       * \param[in] alpha scaling factor for A
+       * \param[in] permutation_B mappings for each dimension of B (this) indices
+       * \param[in] alpha scaling factor for current values of B
+       */
+      int permute(tensor &               A,
+                         int * const *          permutation_A,
+                         char const *           alpha,
+                         int * const *          permutation_B,
+                         char const *           beta);
+
+      /**
+       * \brief read tensor data pairs local to processor. 
+       * \param[out] num_pair number of values read
+       * \param[out] mapped_data values read
+       */
+      int read_local(int64_t *           num_pair,
+                            pair **             mapped_data);
+
+      /** 
+       * \brief copy A into this (B). Realloc if necessary 
+       * \param[in] A tensor to copy
+       */
+      int copy(tensor * A);
+
+      /**
+       * \brief align mapping of thisa tensor to that of B
+       * \param[in] B tensor handle of B
+       */
+      int align(tensor * B);
+
+      /* product will contain the dot prodiuct if tsr_A and tsr_B */
+      //int dot_tensor(int tid_A, int tid_B, char *product);
+
+      /**
+       * \brief Performs an elementwise reduction on a tensor 
+       * \param[in] CTF::OP reduction operation to apply
+       * \param[out] result result of reduction operation
+       */
+      int reduce(CTF::OP op, char * result);
+
+      /* map data of tid_A with the given function */
+/*      int map_tensor(int tid,
+                     dtype (*map_func)(int order, 
+                                       int const * indices,
+                                       dtype elem));*/
+      /** 
+       * \brief obtains the largest n elements (in absolute value) of the tensor 
+       * \param[in] n number of elements to fill
+       * \param[in,out] data preallocated array of size at least n, in which to put the elements
+       */
+      int get_max_abs(int n, char * data);
+      /**
+       * \brief prints tensor data to file using process 0
+       * \param[in] fp file to print to e.g. stdout
+       * \param[in] cutoff do not print values of absolute value smaller than this
+       */
+      void print(FILE * fp = stdout, double cutoff = -1.0) const;
+
+      /**
+       * \brief prints two sets of tensor data side-by-side to file using process 0
+       * \param[in] fp file to print to e.g. stdout
+       * \param[in] A tensor to compare against
+       * \param[in] cutoff do not print values of absolute value smaller than this
+       */
+      void compare(const tensor & A, FILE * fp = stdout, double cutoff = -1.0) const;
+
+
+
   };
 }
 
