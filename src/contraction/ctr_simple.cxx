@@ -3,19 +3,18 @@
 #include "../shared/util.h"
 #include "ctr_comm.h"
 
+namespace CTF_int {
 /**
  * \brief deallocates generic ctr object
  */
-template<typename dtype>
-ctr<dtype>::~ctr(){
+ctr::~ctr(){
   if (buffer != NULL) CTF_free(buffer);
 }
 
 /**
  * \brief copies generic ctr object
  */
-template<typename dtype>
-ctr<dtype>::ctr(ctr<dtype> * other){
+ctr::ctr(ctr * other){
   A = other->A;
   B = other->B;
   C = other->C;
@@ -31,15 +30,13 @@ ctr<dtype>::ctr(ctr<dtype> * other){
 /**
  * \brief deallocates ctr_dgemm object
  */
-template<typename dtype>
-ctr_dgemm<dtype>::~ctr_dgemm() { }
+ctr_dgemm::~ctr_dgemm() { }
 
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr_dgemm<dtype>::ctr_dgemm(ctr<dtype> * other) : ctr<dtype>(other) {
-  ctr_dgemm<dtype> * o = (ctr_dgemm<dtype>*)other;
+ctr_dgemm::ctr_dgemm(ctr * other) : ctr(other) {
+  ctr_dgemm * o = (ctr_dgemm*)other;
   n = o->n;
   m = o->m;
   k = o->k;
@@ -50,9 +47,8 @@ ctr_dgemm<dtype>::ctr_dgemm(ctr<dtype> * other) : ctr<dtype>(other) {
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr<dtype> * ctr_dgemm<dtype>::clone() {
-  return new ctr_dgemm<dtype>(this);
+ctr * ctr_dgemm::clone() {
+  return new ctr_dgemm(this);
 }
 
 
@@ -61,8 +57,7 @@ ctr<dtype> * ctr_dgemm<dtype>::clone() {
    we need 
  * \return bytes needed
  */
-template<typename dtype>
-int64_t ctr_dgemm<dtype>::mem_fp(){
+int64_t ctr_dgemm::mem_fp(){
   return 0;
 }
 
@@ -71,8 +66,7 @@ int64_t ctr_dgemm<dtype>::mem_fp(){
  * \brief returns the number of bytes this kernel will send per processor
  * \return bytes sent
  */
-template<typename dtype>
-double ctr_dgemm<dtype>::est_time_fp(int nlyr) {
+double ctr_dgemm::est_time_fp(int nlyr) {
   /* FIXME make cost proper, for now return sizes of each submatrix scaled by .2 */
   ASSERT(0);
   return n*m+m*k+n*k;
@@ -82,8 +76,7 @@ double ctr_dgemm<dtype>::est_time_fp(int nlyr) {
  * \brief returns the number of bytes send by each proc recursively 
  * \return bytes needed for recursive contraction
  */
-template<typename dtype>
-double ctr_dgemm<dtype>::est_time_rec(int nlyr) {
+double ctr_dgemm::est_time_rec(int nlyr) {
   return est_time_fp(nlyr);
 }
 
@@ -115,8 +108,7 @@ void ctr_dgemm< std::complex<double> >::run(){
 /**
  * \brief a wrapper for dgemm
  */
-template<typename dtype>
-void ctr_dgemm<dtype>::run(){
+void ctr_dgemm::run(){
   const int lda_A = transp_A == 'n' ? m : k;
   const int lda_B = transp_B == 'n' ? k : n;
   const int lda_C = m;
@@ -140,17 +132,15 @@ void ctr_dgemm<dtype>::run(){
 /**
  * \brief deallocates ctr_lyr object
  */
-template<typename dtype>
-ctr_lyr<dtype>::~ctr_lyr() {
+ctr_lyr::~ctr_lyr() {
   delete rec_ctr;
 }
 
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr_lyr<dtype>::ctr_lyr(ctr<dtype> * other) : ctr<dtype>(other) {
-  ctr_lyr<dtype> * o = (ctr_lyr<dtype>*)other;
+ctr_lyr::ctr_lyr(ctr * other) : ctr(other) {
+  ctr_lyr * o = (ctr_lyr*)other;
   rec_ctr = o->rec_ctr->clone();
   k = o->k;
   cdt = o->cdt;
@@ -160,9 +150,8 @@ ctr_lyr<dtype>::ctr_lyr(ctr<dtype> * other) : ctr<dtype>(other) {
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr<dtype> * ctr_lyr<dtype>::clone() {
-  return new ctr_lyr<dtype>(this);
+ctr * ctr_lyr::clone() {
+  return new ctr_lyr(this);
 }
 
 
@@ -171,8 +160,7 @@ ctr<dtype> * ctr_lyr<dtype>::clone() {
    we need 
  * \return bytes needed
  */
-template<typename dtype>
-int64_t ctr_lyr<dtype>::mem_fp(){
+int64_t ctr_lyr::mem_fp(){
   return 0;
 }
 
@@ -180,8 +168,7 @@ int64_t ctr_lyr<dtype>::mem_fp(){
  * \brief returns the number of bytes of buffer space we need recursively 
  * \return bytes needed for recursive contraction
  */
-template<typename dtype>
-int64_t ctr_lyr<dtype>::mem_rec() {
+int64_t ctr_lyr::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 
@@ -189,8 +176,7 @@ int64_t ctr_lyr<dtype>::mem_rec() {
 /**
  * \brief performs replication along a dimension, generates 2.5D algs
  */
-template<typename dtype>
-void ctr_lyr<dtype>::run(){
+void ctr_lyr::run(){
   rec_ctr->A            = this->A;
   rec_ctr->B            = this->B;
   rec_ctr->C            = this->C;
@@ -211,8 +197,7 @@ void ctr_lyr<dtype>::run(){
 /**
  * \brief deallocates ctr_replicate object
  */
-template<typename dtype>
-ctr_replicate<dtype>::~ctr_replicate() {
+ctr_replicate::~ctr_replicate() {
   delete rec_ctr;
   for (int i=0; i<ncdt_A; i++){
     FREE_CDT(cdt_A[i]);
@@ -234,9 +219,8 @@ ctr_replicate<dtype>::~ctr_replicate() {
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr_replicate<dtype>::ctr_replicate(ctr<dtype> * other) : ctr<dtype>(other) {
-  ctr_replicate<dtype> * o = (ctr_replicate<dtype>*)other;
+ctr_replicate::ctr_replicate(ctr * other) : ctr(other) {
+  ctr_replicate * o = (ctr_replicate*)other;
   rec_ctr = o->rec_ctr->clone();
   size_A = o->size_A;
   size_B = o->size_B;
@@ -249,16 +233,14 @@ ctr_replicate<dtype>::ctr_replicate(ctr<dtype> * other) : ctr<dtype>(other) {
 /**
  * \brief copies ctr object
  */
-template<typename dtype>
-ctr<dtype> * ctr_replicate<dtype>::clone() {
-  return new ctr_replicate<dtype>(this);
+ctr * ctr_replicate::clone() {
+  return new ctr_replicate(this);
 }
 
 /**
  * \brief print ctr object
  */
-template<typename dtype>
-void ctr_replicate<dtype>::print() {
+void ctr_replicate::print() {
   int i;
   printf("ctr_replicate: \n");
   printf("cdt_A = %p, size_A = " PRId64 ", ncdt_A = %d\n",
@@ -283,22 +265,21 @@ void ctr_replicate<dtype>::print() {
  * \brief returns the number of bytes this kernel will send per processor
  * \return bytes needed
  */
-template<typename dtype>
-double ctr_replicate<dtype>::est_time_fp(int nlyr){
+double ctr_replicate::est_time_fp(int nlyr){
   int i;
   double tot_sz;
   tot_sz = 0.0;
   for (i=0; i<ncdt_A; i++){
     ASSERT(cdt_A[i].np > 0);
-    tot_sz += cdt_A[i].estimate_bcast_time(size_A*sizeof(dtype));
+    tot_sz += cdt_A[i].estimate_bcast_time(size_A*sr_A.el_size);
   }
   for (i=0; i<ncdt_B; i++){
     ASSERT(cdt_B[i].np > 0);
-    tot_sz += cdt_B[i].estimate_bcast_time(size_B*sizeof(dtype));
+    tot_sz += cdt_B[i].estimate_bcast_time(size_B*sr_B.el_size);
   }
   for (i=0; i<ncdt_C; i++){
     ASSERT(cdt_C[i].np > 0);
-    tot_sz += cdt_C[i].estimate_allred_time(size_C*sizeof(dtype));
+    tot_sz += cdt_C[i].estimate_allred_time(size_C*sr_C.el_size);
   }
   return tot_sz;
 }
@@ -307,8 +288,7 @@ double ctr_replicate<dtype>::est_time_fp(int nlyr){
  * \brief returns the number of bytes send by each proc recursively 
  * \return bytes needed for recursive contraction
  */
-template<typename dtype>
-double ctr_replicate<dtype>::est_time_rec(int nlyr) {
+double ctr_replicate::est_time_rec(int nlyr) {
   return rec_ctr->est_time_rec(nlyr) + est_time_fp(nlyr);
 }
 
@@ -317,8 +297,7 @@ double ctr_replicate<dtype>::est_time_rec(int nlyr) {
    we need 
  * \return bytes needed
  */
-template<typename dtype>
-int64_t ctr_replicate<dtype>::mem_fp(){
+int64_t ctr_replicate::mem_fp(){
   return 0;
 }
 
@@ -326,8 +305,7 @@ int64_t ctr_replicate<dtype>::mem_fp(){
  * \brief returns the number of bytes of buffer space we need recursively 
  * \return bytes needed for recursive contraction
  */
-template<typename dtype>
-int64_t ctr_replicate<dtype>::mem_rec() {
+int64_t ctr_replicate::mem_rec() {
   return rec_ctr->mem_rec() + mem_fp();
 }
 
@@ -335,23 +313,22 @@ int64_t ctr_replicate<dtype>::mem_rec() {
 /**
  * \brief performs replication along a dimension, generates 2.5D algs
  */
-template<typename dtype>
-void ctr_replicate<dtype>::run(){
+void ctr_replicate::run(){
   int arank, brank, crank, i;
 
   arank = 0, brank = 0, crank = 0;
   for (i=0; i<ncdt_A; i++){
     arank += cdt_A[i].rank;
-    POST_BCAST(this->A, size_A*sizeof(dtype), COMM_CHAR_T, 0, cdt_A[i], 0);
+    POST_BCAST(this->A, size_A*sr_A.el_size, COMM_CHAR_T, 0, cdt_A[i], 0);
   }
   for (i=0; i<ncdt_B; i++){
     brank += cdt_B[i].rank;
-    POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i], 0);
+    POST_BCAST(this->B, size_B*sr_B.el_size, COMM_CHAR_T, 0, cdt_B[i], 0);
   }
   for (i=0; i<ncdt_C; i++){
     crank += cdt_C[i].rank;
   }
-  if (crank != 0) std::fill(this->C, this->C+size_C, get_zero<dtype>());
+  if (crank != 0) this->sr_C.set(this->C, this->sr_C.addid, size_C);
   else {
     for (i=0; i<size_C; i++){
       this->C[i] = this->beta * this->C[i];
@@ -369,22 +346,14 @@ void ctr_replicate<dtype>::run(){
   
   for (i=0; i<ncdt_C; i++){
     /* FIXME Won't work for single precision */
-    ALLREDUCE(MPI_IN_PLACE, this->C, size_C*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt_C[i]);
+    ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype, sr_C.addmop, cdt_C[i]);
   }
 
   if (arank != 0){
-    std::fill(this->A, this->A+size_A, get_zero<dtype>());
+    this->sr_A.set(this->A, this->sr_A.addid, size_A);
   }
   if (brank != 0){
-    std::fill(this->B, this->B+size_B, get_zero<dtype>());
+    this->sr_B.set(this->B, this->sr_B.addid, size_B);
   }
 }
 
-template class ctr<double>;
-template class ctr< std::complex<double> >;
-template class ctr_replicate<double>;
-template class ctr_replicate< std::complex<double> >;
-template class ctr_lyr<double>;
-template class ctr_lyr< std::complex<double> >;
-template class ctr_dgemm<double>;
-template class ctr_dgemm< std::complex<double> >;

@@ -1,17 +1,10 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __SYM_SEQ_CTR_INNER_HXX__
-#define __SYM_SEQ_CTR_INNER_HXX__
-
-#include "../shared/util.h"
+#include "../shared/iter_tsr.h"
 #include <limits.h>
-#include "sym_seq_shared.hxx"
+#include "sym_seq_ctr.h"
 #include "../shared/offload.h"
 
-
-/**
- * \brief performs symmetric contraction
- */
 int sym_seq_ctr_inr(char const *       alpha,
                     char const *       A,
                     semiring           sr_A,
@@ -142,9 +135,3 @@ int sym_seq_ctr_inr(char const *       alpha,
   return 0;
 }
 
-
-
-
-
-
-#endif

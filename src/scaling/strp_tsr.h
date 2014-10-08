@@ -3,96 +3,169 @@
 #ifndef __STRP_TSR_H__
 #define __STRP_TSR_H__
 
-#include "ctr_comm.h"
-#include "scale_tsr.h"
-#include "sum_tsr.h"
+#include "../contraction/ctr_comm.h"
+#include "../scaling/scale_tsr.h"
+#include "../summation/sum_tsr.h"
 #include "../shared/util.h"
 
-template<typename dtype>
-class strp_tsr {
-  public: 
-    int alloced;
-    int order;
-    int64_t blk_sz;
-    int * edge_len;
-    int * strip_dim;
-    int * strip_idx;
-    dtype * A;
-    dtype * buffer;
-    
-    void run(int const dir);
-    void free_exp();
-    int64_t mem_fp();
-    strp_tsr<dtype> * clone();
+namespace CTF_int {
+  class strp_tsr {
+    public: 
+      int alloced;
+      int order;
+      int64_t blk_sz;
+      int * edge_len;
+      int * strip_dim;
+      int * strip_idx;
+      char * A;
+      char * buffer;
+      semiring sr_A;
+      
+      /**
+       * \brief strips out part of tensor to be operated on
+       * \param[in] dir whether to strip or unstrip tensor
+       */
+      void run(int const dir);
 
-    strp_tsr(strp_tsr<dtype> * o);
-    ~strp_tsr(){ if (buffer != NULL) CTF_free(buffer); CTF_free(edge_len); CTF_free(strip_dim); CTF_free(strip_idx);}
-    strp_tsr(){ buffer = NULL; }
-};
+      /**
+       * \brief deallocates buffer
+       */
+      void free_exp();
 
-template<typename dtype>
-class strp_scl : public scl<dtype> {
-  public: 
-    scl<dtype> * rec_scl;
-    
-    strp_tsr<dtype> * rec_strp;
+      /**
+       * \brief returns the number of bytes of buffer space
+         we need
+       * \return bytes needed
+       */
+      int64_t mem_fp();
 
-    void run();
-    int64_t mem_fp();
-    scl<dtype> * clone();
-    
-    strp_scl(scl<dtype> * other);
-    ~strp_scl();
-    strp_scl(){}
-};
+      /**
+       * \brief copies strp_tsr object
+       */
+      strp_tsr * clone();
 
-template<typename dtype>
-class strp_sum : public tsum<dtype> {
-  public: 
-    tsum<dtype> * rec_tsum;
-    
-    strp_tsr<dtype> * rec_strp_A;
-    strp_tsr<dtype> * rec_strp_B;
+      /**
+       * \brief copies strp_tsr object
+       */
+      strp_tsr(strp_tsr * o);
+      ~strp_tsr(){ if (buffer != NULL) CTF_free(buffer); CTF_free(edge_len); CTF_free(strip_dim); CTF_free(strip_idx);}
+      strp_tsr(){ buffer = NULL; }
+  };
 
-    int strip_A;
-    int strip_B;
-    
-    void run();
-    int64_t mem_fp();
-    tsum<dtype> * clone();
-    
-    strp_sum(tsum<dtype> * other);
-    ~strp_sum();
-    strp_sum(){}
-};
+  class strp_scl : public scl {
+    public: 
+      scl * rec_scl;
+      
+      strp_tsr * rec_strp;
 
-template<typename dtype>
-class strp_ctr : public ctr<dtype> {
-  public: 
-    ctr<dtype> * rec_ctr;
-    
-    strp_tsr<dtype> * rec_strp_A;
-    strp_tsr<dtype> * rec_strp_B;
-    strp_tsr<dtype> * rec_strp_C;
+      /**
+       * \brief runs strip for scale of tensor
+       */
+      void run();
 
-    int strip_A;
-    int strip_B;
-    int strip_C;
-    
-    void run();
-    int64_t mem_fp();
-    int64_t mem_rec();
-    double est_time_rec(int nlyr);
-    ctr<dtype> * clone();
+      /**
+       * \brief gets memory usage of op
+       */
+      int64_t mem_fp();
+
+      /**
+       * \brief copies strp_scl object
+       */
+      scl * clone();
+      
+      /**
+       * \brief copies scl object
+       */
+      strp_scl(scl * other);
+
+      /**
+       * \brief deconstructor
+       */
+      ~strp_scl();
+      strp_scl(){}
+  };
+
+  class strp_sum : public tsum {
+    public: 
+      tsum * rec_tsum;
+      
+      strp_tsr * rec_strp_A;
+      strp_tsr * rec_strp_B;
+
+      int strip_A;
+      int strip_B;
+      
+      /**
+       * \brief runs strip for sum of tensors
+       */
+      void run();
+
+      /**
+       * \brief gets memory usage of op
+       */
+      int64_t mem_fp();
+
+      /**
+       * \brief copies strp_sum object
+       */
+      tsum * clone();
+      
+      strp_sum(tsum * other);
+
+      /**
+       * \brief deconstructor
+       */
+      ~strp_sum();
+      strp_sum(){}
+  };
+
+  class strp_ctr : public ctr {
+    public: 
+      ctr * rec_ctr;
+      
+      strp_tsr * rec_strp_A;
+      strp_tsr * rec_strp_B;
+      strp_tsr * rec_strp_C;
+
+      int strip_A;
+      int strip_B;
+      int strip_C;
+      
+      /**
+       * \brief runs strip for contraction of tensors
+       */
+      void run();
+
+      /**
+       * \brief returns the number of bytes of buffer space we need recursively 
+       * \return bytes needed for recursive contraction
+       */
+      int64_t mem_fp();
+      int64_t mem_rec();
+
+
+      /**
+       * \brief returns the number of bytes sent recursively 
+       * \return bytes needed for recursive contraction
+       */
+      double est_time_rec(int nlyr);
   
-    ~strp_ctr();
-    strp_ctr(ctr<dtype> *other);
-    strp_ctr(){}
-};
+      /**
+       * \brief copies strp_ctr object
+       */
+      ctr * clone();
+    
+      /**
+       * \brief deconstructor
+       */
+      ~strp_ctr();
 
-
-//#include "strp_tsr.cxx"
-
-
+      /**
+       * \brief copies strp_ctr object
+       */
+      strp_ctr(ctr *other);
+      strp_ctr(){}
+  };
+}
 
 #endif // __STRP_TSR_H__

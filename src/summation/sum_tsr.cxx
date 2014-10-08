@@ -6,8 +6,7 @@
 /**
  * \brief copies generic tsum object
  */
-template<typename dtype>
-tsum<dtype>::tsum(tsum<dtype> * other){
+tsum::tsum(tsum * other){
   A = other->A;
   alpha = other->alpha;
   B = other->B;
@@ -18,8 +17,7 @@ tsum<dtype>::tsum(tsum<dtype> * other){
 /**
  * \brief deallocates tsum_virt object
  */
-template<typename dtype>
-tsum_virt<dtype>::~tsum_virt() {
+tsum_virt::~tsum_virt() {
   CTF_free(virt_dim);
   delete rec_tsum;
 }
@@ -27,8 +25,7 @@ tsum_virt<dtype>::~tsum_virt() {
 /**
  * \brief copies tsum object
  */
-template<typename dtype>
-tsum_virt<dtype>::tsum_virt(tsum<dtype> * other) : tsum<dtype>(other) {
+tsum_virt::tsum_virt(tsum * other) : tsum(other) {
   tsum_virt * o         = (tsum_virt*)other;
   rec_tsum      = o->rec_tsum->clone();
   num_dim       = o->num_dim;
@@ -47,8 +44,7 @@ tsum_virt<dtype>::tsum_virt(tsum<dtype> * other) : tsum<dtype>(other) {
 /**
  * \brief copies tsum object
  */
-template<typename dtype>
-tsum<dtype> * tsum_virt<dtype>::clone() {
+tsum * tsum_virt::clone() {
   return new tsum_virt(this);
 }
 
@@ -58,16 +54,14 @@ tsum<dtype> * tsum_virt<dtype>::clone() {
    we need
  * \return bytes needed
  */
-template<typename dtype>
-int64_t tsum_virt<dtype>::mem_fp(){
+int64_t tsum_virt::mem_fp(){
   return (order_A+order_B+3*num_dim)*sizeof(int);
 }
 
 /**
  * \brief iterates over the dense virtualization block grid and contracts
  */
-template<typename dtype>
-void tsum_virt<dtype>::run(){
+void tsum_virt::run(){
   int * idx_arr, * lda_A, * lda_B, * beta_arr;
   int * ilda_A, * ilda_B;
   int64_t i, off_A, off_B;
@@ -144,8 +138,7 @@ do {                                                                    \
 /**
  * \brief deallocates tsum_replicate object
  */
-template<typename dtype>
-tsum_replicate<dtype>::~tsum_replicate() {
+tsum_replicate::~tsum_replicate() {
   delete rec_tsum;
   for (int i=0; i<ncdt_A; i++){
     FREE_CDT(cdt_A[i]);
@@ -162,9 +155,8 @@ tsum_replicate<dtype>::~tsum_replicate() {
 /**
  * \brief copies tsum object
  */
-template<typename dtype>
-tsum_replicate<dtype>::tsum_replicate(tsum<dtype> * other) : tsum<dtype>(other) {
-  tsum_replicate<dtype> * o = (tsum_replicate<dtype>*)other;
+tsum_replicate::tsum_replicate(tsum * other) : tsum(other) {
+  tsum_replicate * o = (tsum_replicate*)other;
   rec_tsum = o->rec_tsum->clone();
   size_A = o->size_A;
   size_B = o->size_B;
@@ -175,9 +167,8 @@ tsum_replicate<dtype>::tsum_replicate(tsum<dtype> * other) : tsum<dtype>(other) 
 /**
  * \brief copies tsum object
  */
-template<typename dtype>
-tsum<dtype> * tsum_replicate<dtype>::clone() {
-  return new tsum_replicate<dtype>(this);
+tsum * tsum_replicate::clone() {
+  return new tsum_replicate(this);
 }
 
 /**
@@ -185,8 +176,7 @@ tsum<dtype> * tsum_replicate<dtype>::clone() {
    we need 
  * \return bytes needed
  */
-template<typename dtype>
-int64_t tsum_replicate<dtype>::mem_fp(){
+int64_t tsum_replicate::mem_fp(){
   return 0;
 }
 
@@ -194,12 +184,11 @@ int64_t tsum_replicate<dtype>::mem_fp(){
 /**
  * \brief performs replication along a dimension, generates 2.5D algs
  */
-template<typename dtype>
-void tsum_replicate<dtype>::run(){
+void tsum_replicate::run(){
   int brank, i;
 
   for (i=0; i<ncdt_A; i++){
-    POST_BCAST(this->A, size_A*sizeof(dtype), COMM_CHAR_T, 0, cdt_A[i], 0);
+    POST_BCAST(this->A, size_A*sr_A.el_size, COMM_CHAR_T, 0, cdt_A[i], 0);
   }
  /* for (i=0; i<ncdt_B; i++){
     POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i], 0);
@@ -208,7 +197,7 @@ void tsum_replicate<dtype>::run(){
   for (i=0; i<ncdt_B; i++){
     brank += cdt_B[i].rank;
   }
-  if (brank != 0) std::fill(this->B, this->B+size_B, 0.0);
+  if (brank != 0) sr_B.set(this->B, sr_B.addid, size_B);
 
   rec_tsum->A           = this->A;
   rec_tsum->B           = this->B;
@@ -219,15 +208,9 @@ void tsum_replicate<dtype>::run(){
   
   for (i=0; i<ncdt_B; i++){
     /* FIXME Won't work for single precision */
-    ALLREDUCE(MPI_IN_PLACE, this->B, size_B*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt_B[i]);
+    ALLREDUCE(MPI_IN_PLACE, this->B, size_B, sr_B.mdtype, sr_B.addmop, cdt_B[i]);
   }
 
 
 }
 
-template class tsum<double>;
-template class tsum< std::complex<double> >;
-template class tsum_virt<double>;
-template class tsum_virt< std::complex<double> >;
-template class tsum_replicate<double>;
-template class tsum_replicate< std::complex<double> >;

@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = seq_tsr.o 
+OBJS = int_scaling sym_seq_scl_ref sym_seq_scl_cust scale_tsr strp_tsr
 
 ctf: $(OBJS) 
 
