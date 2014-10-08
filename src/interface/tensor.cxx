@@ -414,7 +414,127 @@ namespace CTF {
   }
 
   template<typename dtype>
-  int64_t Tensor<dtype>::estimate_cost(
+  void Tensor<dtype>::contract(dtype                 alpha,
+                               const Tensor<dtype>&  A,
+                               const char *          idx_A,
+                               const Tensor<dtype>&  B,
+                               const char *          idx_B,
+                               dtype                 beta,
+                               const char *          idx_C){
+    int * idx_map_A;
+    int * idx_map_B;
+    int * idx_map_C;
+    conv_idx(A.order, idx_A, &idx_map_A,
+             B.order, idx_B, &idx_map_B,
+               order, idx_C, &idx_map_C);
+    assert(A.wrld->global_comm.cm == wrld->global_comm.cm);
+    assert(B.wrld->global_comm.cm == wrld->global_comm.cm);
+    CTF_int::contraction ctr 
+      = CTF_int::contraction(A, idx_map_A, B, idx_map_B, alpha, 
+                                           this, idx_map_C, beta);
+    ctr.execute();
+    CTF_free(idx_map_A);
+    CTF_free(idx_map_B);
+    CTF_free(idx_map_C);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::contract(const Tensor<dtype>&  A,
+                               const char *          idx_A,
+                               const Tensor<dtype>&  B,
+                               const char *          idx_B,
+                               const char *          idx_C,
+                               Bivar_Function<dtype> fseq){
+    int * idx_map_A;
+    int * idx_map_B;
+    int * idx_map_C;
+    conv_idx(A.order, idx_A, &idx_map_A,
+             B.order, idx_B, &idx_map_B,
+               order, idx_C, &idx_map_C);
+    assert(A.wrld->global_comm.cm == wrld->global_comm.cm);
+    assert(B.wrld->global_comm.cm == wrld->global_comm.cm);
+    CTF_int::contraction ctr 
+      = CTF_int::contraction(A, idx_map_A, B, idx_map_B, 
+                                           this, idx_map_C, fseq);
+    ctr.execute();
+
+    CTF_free(idx_map_A);
+    CTF_free(idx_map_B);
+    CTF_free(idx_map_C);
+  }
+
+
+  template<typename dtype>
+  void Tensor<dtype>::sum(dtype                  alpha,
+                          const Tensor<dtype>&   A,
+                          const char *           idx_A,
+                          dtype                  beta,
+                          const char *           idx_B){
+    int * idx_map_A, * idx_map_B;
+    conv_idx(A.order, idx_A, &idx_map_A,
+               order, idx_B, &idx_map_B);
+    assert(A.wrld->global_comm.cm == wrld->global_comm.cm);
+
+    CTF_int::summation sum 
+      = CTF_int::summation(A, idx_map_A, alpha, this, idx_map_B, beta);
+
+    sum.execute();
+
+    CTF_free(idx_map_A);
+    CTF_free(idx_map_B);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::sum(const Tensor<dtype>&   A,
+                          const char *           idx_A,
+                          const char *           idx_B,
+                          Univar_Function<dtype> fseq){
+    int * idx_map_A, * idx_map_B;
+    conv_idx(A.order, idx_A, &idx_map_A,
+               order, idx_B, &idx_map_B);
+    assert(A.wrld->global_comm.cm == wrld->global_comm.cm);
+    
+    CTF_int::summation sum 
+      = CTF_int::summation(A, idx_map_A, this, idx_map_B, fseq);
+
+    sum.execute();
+    CTF_free(idx_map_A);
+    CTF_free(idx_map_B);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::scale(dtype                alpha, 
+                            const char *         idx_A){
+    int * idx_map_A;
+    conv_idx(order, idx_A, &idx_map_A);
+    CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, alpha);
+    scl.execute();
+    CTF_free(idx_map_A);
+  }
+
+
+  template<typename dtype>
+  void Tensor<dtype>::scale(const char *         idx_A,
+                            Endomorphism<dtype>  fseq){
+    int ret;
+    int * idx_map_A;
+    conv_idx(order, idx_A, &idx_map_A);
+    CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, fseq);
+    scl.execute();
+    CTF_free(idx_map_A);
+  }
+
+  template<typename dtype>
+  Tensor<dtype>& Tensor<dtype>::operator=(dtype val){
+    int64_t size;
+    dtype* raw = get_raw_data(&size);
+    //FIXME: Uuuuh, padding?
+    std::fill(raw, raw+size, val);
+    return *this;
+  }
+ 
+  template<typename dtype>
+  double Tensor<dtype>::estimate_time(
                                     const Tensor<dtype>&     A,
                                     const char *             idx_A,
                                     const Tensor<dtype>&     B,
@@ -424,95 +544,25 @@ namespace CTF {
     conv_idx(A.order, idx_A, &idx_map_A,
              B.order, idx_B, &idx_map_B,
              order, idx_C, &idx_map_C);
-    return CTF_int::tensor::estimate_cost(A.tid, idx_map_A, B.tid, idx_map_B, tid, idx_map_C);
+    CTF_int::contraction ctr
+      = CTF_int::contraction(A, idx_map_A, B, idx_map_B, 1.0, 
+                                           this, idx_map_C, 1.0);
+    return ctr.estimate_time();
   }
-
+    
   template<typename dtype>
-  int64_t Tensor<dtype>::estimate_cost(
+  double Tensor<dtype>::estimate_time(
                                     const Tensor<dtype>& A,
                                     const char *         idx_A,
                                     const char *         idx_B){
     int * idx_map_A, * idx_map_B;
     conv_idx(A.order, idx_A, &idx_map_A,
              order, idx_B, &idx_map_B);
-    return CTF_int::tensor::estimate_cost(A.tid, idx_map_A, tid, idx_map_B);
+    CTF_int::summation sum 
+      = CTF_int::summation(A, idx_map_A, 1.0, this, idx_map_B, 1.0);
+
+    return sum.estimate_time();
     
-  }
-
-  template<typename dtype>
-  void Tensor<dtype>::contract(dtype                 alpha,
-                               const Tensor<dtype>&  A,
-                               const char *          idx_A,
-                               const Tensor<dtype>&  B,
-                               const char *          idx_B,
-                               dtype                 beta,
-                               const char *          idx_C,
-                               Bivar_Function<dtype> fseq){
-    int ret;
-    CTF_int::ctr_type_t tp;
-    tp.tid_A = A.tid;
-    tp.tid_B = B.tid;
-    tp.tid_C = tid;
-    conv_idx(A.order, idx_A, &tp.idx_map_A,
-             B.order, idx_B, &tp.idx_map_B,
-             order, idx_C, &tp.idx_map_C);
-    assert(A.wrld->ctf == world->ctf);
-    assert(B.wrld->ctf == world->ctf);
-    ret = CTF_int::tensor::contract(&tp, fseq, alpha, beta);
-  /*  else {
-      fseq_elm_ctr<dtype> fs;
-      fs.func_ptr = fseq.func_ptr;
-      ret = CTF_int::tensor::contract(&tp, fs, alpha, beta);
-    }*/
-    CTF_free(tp.idx_map_A);
-    CTF_free(tp.idx_map_B);
-    CTF_free(tp.idx_map_C);
-    assert(ret == SUCCESS);
-  }
-
-
-  template<typename dtype>
-  void Tensor<dtype>::sum(dtype                  alpha,
-                          const Tensor<dtype>&   A,
-                          const char *           idx_A,
-                          dtype                  beta,
-                          const char *           idx_B,
-                          Univar_Function<dtype> fseq){
-    int ret;
-    int * idx_map_A, * idx_map_B;
-    CTF_int::sum_type_t st;
-    conv_idx(A.order, idx_A, &idx_map_A,
-             order, idx_B, &idx_map_B);
-    assert(A.wrld->ctf == world->ctf);
-      
-    st.idx_map_A = idx_map_A;
-    st.idx_map_B = idx_map_B;
-    st.tid_A = A.tid;
-    st.tid_B = tid;
-    ret = CTF_int::tensor::sums(alpha, beta, A.tid, tid, idx_map_A, idx_map_B, fseq);
-    CTF_free(idx_map_A);
-    CTF_free(idx_map_B);
-    assert(ret == SUCCESS);
-  }
-
-  template<typename dtype>
-  void Tensor<dtype>::scale(dtype                alpha, 
-                            const char *         idx_A,
-                            Endomorphism<dtype>  fseq){
-    int ret;
-    int * idx_map_A;
-    conv_idx(order, idx_A, &idx_map_A);
-    ret = CTF_int::tensor::scale(alpha, tid, idx_map_A, fseq);
-    CTF_free(idx_map_A);
-    assert(ret == SUCCESS);
-  }
-  template<typename dtype>
-  template<typename dtype>
-  Tensor<dtype>& Tensor<dtype>::operator=(dtype val){
-    int64_t size;
-    dtype* raw = get_raw_data(&size);
-    std::fill(raw, raw+size, val);
-    return *this;
   }
 
   template<typename dtype>
@@ -544,7 +594,6 @@ namespace CTF {
     ret = CTF_int::tensor::copy(A.tid, tid);
     assert(ret == SUCCESS);*/
   }
-      
 
   template<typename dtype>
   Idx_Tensor<dtype> Tensor<dtype>::operator[](const char * idx_map_){

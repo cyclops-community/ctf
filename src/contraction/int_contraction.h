@@ -2,9 +2,9 @@
 #define __INT_CONTRACTION_H__
 
 #include "assert.h"
-#include "ctr_comm.h"
 
 namespace CTF_int {
+  class tensor; 
 
   /**
    * \brief untyped internal class for triply-typed bivariate function

@@ -1,9 +1,10 @@
 #ifndef __INT_SCALING_H__
 #define __INT_SCALING_H__
 
-#include "scale_tsr.h"
 
 namespace CTF_int {
+  class tensor; 
+
   /**
    * \brief untyped internal class for singly-typed single variable function (Endomorphism)
    */
@@ -38,9 +39,9 @@ namespace CTF_int {
        * \param[in] alpha scaling factor alpha * A[idx_A];
                       A[idx_A] = alpha * A[idx_A]
        */
-      summation(tensor * A, 
-                int const * idx_A,
-                char const * alpha);
+      scaling(tensor * A, 
+              int const * idx_A,
+              char const * alpha);
      
       /**
        * \brief constructor definining scaling with custom function
@@ -48,9 +49,9 @@ namespace CTF_int {
        * \param[in] idx_A indices of left operand
                       func(&A[idx_A])
        */
-      contraction(tensor * A, 
-                  int const * idx_A,
-                  endomorphism func);
+      scaling(tensor * A, 
+              int const * idx_A,
+              endomorphism func);
 
       /** \brief run scaling  */
       void execute();

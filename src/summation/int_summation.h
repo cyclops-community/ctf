@@ -2,9 +2,9 @@
 #define __INT_SUMMATION_H__
 
 #include "assert.h"
-#include "sum_tsr.h"
 
 namespace CTF_int {
+  class tensor; 
 
   /**
    * \brief untyped internal class for doubly-typed univariate function
@@ -66,11 +66,11 @@ namespace CTF_int {
        * \param[in] func custom elementwise function 
                       func(A[idx_A],&B[idx_B])
        */
-      contraction(tensor * A, 
-                  int const * idx_A,
-                  tensor * B, 
-                  int const * idx_B,
-                  univar_function func);
+      summation(tensor * A, 
+                int const * idx_A,
+                tensor * B, 
+                int const * idx_B,
+                univar_function func);
 
       /** \brief run summation  */
       void execute();

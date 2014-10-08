@@ -217,7 +217,6 @@ namespace CTF {
      
       /**
        * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
-       *        if fseq defined computes fseq(alpha,A[idx_A],B[idx_B],beta*C[idx_C])
        * \param[in] alpha A*B scaling factor
        * \param[in] A first operand tensor
        * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
@@ -225,7 +224,6 @@ namespace CTF {
        * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
        * \param[in] beta C scaling factor
        * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
-       * \param[in] fseq sequential operation to execute, default is multiply-add
        */
       void contract(dtype                 alpha, 
                     const Tensor &        A, 
@@ -233,63 +231,94 @@ namespace CTF {
                     const Tensor &        B, 
                     char const *          idx_B,
                     dtype                 beta,
-                    char const *          idx_C,
-                    Bivar_Function<dtype> fseq = Bivar_Function<dtype>());
+                    char const *          idx_C);
 
       /**
-       * \brief estimate the cost of a contraction C[idx_C] = A[idx_A]*B[idx_B]
+       * \brief contracts computes fseq(A[idx_A],B[idx_B],C[idx_C])
        * \param[in] A first operand tensor
        * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
        * \param[in] B second operand tensor
        * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
        * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
-       * \return cost as a int64_t type, currently a rought estimate of flops/processor
+       * \param[in] fseq sequential operation to execute, default is multiply-add
        */
-      int64_t estimate_cost(const Tensor & A,
-                            char const *   idx_A,
-                            const Tensor & B,
-                            char const *   idx_B,
-                            char const *   idx_C);
-      
-      /**
-       * \brief estimate the cost of a sum B[idx_B] = A[idx_A]
-       * \param[in] A first operand tensor
-       * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
-       * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
-       * \return cost as a int64_t type, currently a rought estimate of flops/processor
-       */
-      int64_t estimate_cost(const Tensor & A,
-                            char const *   idx_A,
-                            char const *   idx_B);
+      void contract(const Tensor &        A, 
+                    char const *          idx_A,
+                    const Tensor &        B, 
+                    char const *          idx_B,
+                    char const *          idx_C,
+                    Bivar_Function<dtype> fseq);
 
-      
       /**
        * \brief sums B[idx_B] = beta*B[idx_B] + alpha*A[idx_A]
-       *        if fseq defined computes fseq(alpha,A[idx_A],beta*B[idx_B])
        * \param[in] alpha A scaling factor
        * \param[in] A first operand tensor
        * \param[in] idx_A indices of A in sum, e.g. "ij" -> A_{ij}
        * \param[in] beta B scaling factor
        * \param[in] idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
-       * \param[in] fseq sequential operation to execute, default is multiply-add
        */
       void sum(dtype                  alpha, 
                const Tensor &         A, 
                char const *           idx_A,
                dtype                  beta,
+               char const *           idx_B);
+      
+      /**
+       * \brief  computes fseq(alpha,A[idx_A],beta*B[idx_B])
+       * \param[in] A first operand tensor
+       * \param[in] idx_A indices of A in sum, e.g. "ij" -> A_{ij}
+       * \param[in] idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
+       * \param[in] fseq sequential operation to execute, default is multiply-add
+       */
+      void sum(const Tensor &         A, 
+               char const *           idx_A,
                char const *           idx_B,
-               Univar_Function<dtype> fseq = Univar_Function<dtype>());
+               Univar_Function<dtype> fseq);
       
       /**
        * \brief scales A[idx_A] = alpha*A[idx_A]
-       *        if fseq defined computes fseq(alpha,A[idx_A])
        * \param[in] alpha A scaling factor
+       * \param[in] idx_A indices of A (this tensor), e.g. "ij" -> A_{ij}
+       */
+      void scale(dtype               alpha, 
+                 char const *        idx_A);
+
+      /**
+       * \brief computes fseq(alpha,A[idx_A])
        * \param[in] idx_A indices of A (this tensor), e.g. "ij" -> A_{ij}
        * \param[in] fseq sequential operation to execute, default is multiply-add
        */
-      void scale(dtype               alpha, 
-                 char const *        idx_A,
-                 Endomorphism<dtype> fseq = Endomorphism<dtype>());
+      void scale(char const *        idx_A,
+                 Endomorphism<dtype> fseq);
+
+
+      /**
+       * \brief estimate the time of a contraction C[idx_C] = A[idx_A]*B[idx_B]
+       * \param[in] A first operand tensor
+       * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+       * \param[in] B second operand tensor
+       * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+       * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
+       * \return time in seconds, at the moment not at all precise
+       */
+      double estimate_time(const Tensor & A,
+                           char const *   idx_A,
+                           const Tensor & B,
+                           char const *   idx_B,
+                           char const *   idx_C);
+      
+      /**
+       * \brief estimate the time of a sum B[idx_B] = A[idx_A]
+       * \param[in] A first operand tensor
+       * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
+       * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+       * \return time in seconds, at the moment not at all precise
+       */
+      double estimate_time(const Tensor & A,
+                           char const *   idx_A,
+                           char const *   idx_B);
+
+
 
       /**
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
