@@ -5,7 +5,7 @@
 #include "dist_tensor_internal.h"
 #include "cyclopstf.hpp"
 #include "../shared/util.h"
-#include "../ctr_comm/strp_tsr.h"
+#include "../scaling/strp_tsr.h"
 #ifdef USE_OMP
 #include "omp.h"
 #endif

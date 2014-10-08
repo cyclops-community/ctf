@@ -1,6 +1,8 @@
 #ifndef __INT_SCALING_H__
 #define __INT_SCALING_H__
 
+#include "scale_tsr.h"
+
 namespace CTF_int {
   /**
    * \brief untyped internal class for singly-typed single variable function (Endomorphism)
@@ -15,59 +17,49 @@ namespace CTF_int {
       virtual void apply_f(char * a) { assert(0); }
   };
 
-  class seq_tsr_scl : public scl {
+  /**
+   * \brief class for execution distributed scaling of a tensor
+   */
+  class scaling {
     public:
-      int order;
-      int * edge_len;
-      int const * idx_map;
-      int const * sym;
-      //fseq_tsr_scl func_ptr;
-  
-      int is_custom;
-      endomorphism func; //fseq_elm_scl custom_params;
-  
-      void run();
-      void print();
-      int64_t mem_fp();
-      scl * clone();
-  
+      /** \brief operand/output */
+      tensor * A;
+
+      /** \brief scaling of A */
+      char const * alpha;
+    
+      /** \brief indices of A */
+      int const * idx_A;
+
       /**
-       * \brief copies scl object
-       * \param[in] other object to copy
+       * \brief constructor definining contraction with C's mul and add ops
+       * \param[in] A left operand tensor
+       * \param[in] idx_A indices of left operand
+       * \param[in] alpha scaling factor alpha * A[idx_A];
+                      A[idx_A] = alpha * A[idx_A]
        */
-      seq_tsr_scl(scl * other);
-      ~seq_tsr_scl(){ CTF_free(edge_len); };
-      seq_tsr_scl(){}
+      summation(tensor * A, 
+                int const * idx_A,
+                char const * alpha);
+     
+      /**
+       * \brief constructor definining scaling with custom function
+       * \param[in] A left operand tensor
+       * \param[in] idx_A indices of left operand
+                      func(&A[idx_A])
+       */
+      contraction(tensor * A, 
+                  int const * idx_A,
+                  endomorphism func);
+
+      /** \brief run scaling  */
+      void execute();
+      
+      /** \brief predicts execution time in seconds using performance models */
+      double estimate_time();
+    
   };
 
-  /**
-   * \brief invert index map
-   * \param[in] order_A number of dimensions of A
-   * \param[in] idx_A index map of A
-   * \param[in] order_B number of dimensions of B
-   * \param[in] idx_B index map of B
-   * \param[out] order_tot number of total dimensions
-   * \param[out] idx_arr 2*order_tot index array
-   */
-  void inv_idx(int const          order_A,
-               int const *        idx_A,
-               int *              order_tot,
-               int **             idx_arr){
-    int i, dim_max;
-
-    dim_max = -1;
-    for (i=0; i<order_A; i++){
-      if (idx_A[i] > dim_max) dim_max = idx_A[i];
-    }
-    dim_max++;
-    *order_tot = dim_max;
-    *idx_arr = (int*)CTF_alloc(sizeof(int)*dim_max);
-    std::fill((*idx_arr), (*idx_arr)+dim_max, -1);  
-
-    for (i=0; i<order_A; i++){
-      (*idx_arr)[idx_A[i]] = i;
-    }
-  }
 }
 
 #endif

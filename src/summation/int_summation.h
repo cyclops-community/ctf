@@ -2,6 +2,7 @@
 #define __INT_SUMMATION_H__
 
 #include "assert.h"
+#include "sum_tsr.h"
 
 namespace CTF_int {
 
@@ -19,57 +20,65 @@ namespace CTF_int {
   };
 
 
-  class seq_tsr_sum : public tsum {
-    public:
-      int order_A;
-      int * edge_len_A;
-      int const * idx_map_A;
-      int * sym_A;
-      int order_B;
-      int * edge_len_B;
-      int const * idx_map_B;
-      int * sym_B;
-      //fseq_tsr_sum func_ptr;
-
-      int is_inner;
-      int inr_stride;
-      
-      int is_custom;
-      univar_function func; //fseq_elm_sum custom_params;
-      
-      /**
-       * \brief wraps user sequential function signature
-       */
-      void run();
-      void print();
-      int64_t mem_fp();
-      tsum * clone();
-
-      /**
-       * \brief copies sum object
-       * \param[in] other object to copy
-       */
-      seq_tsr_sum(tsum * other);
-      ~seq_tsr_sum(){ CTF_free(edge_len_A), CTF_free(edge_len_B), 
-                      CTF_free(sym_A), CTF_free(sym_B); };
-      seq_tsr_sum(){}
-  };
-
   /**
-   * \brief invert index map
-   * \param[in] order_A number of dimensions of A
-   * \param[in] idx_A index map of A
-   * \param[in] order_B number of dimensions of B
-   * \param[in] idx_B index map of B
-   * \param[out] order_tot number of total dimensions
-   * \param[out] idx_arr 2*order_tot index array
+   * \brief class for execution distributed summation of tensors
    */
-  void inv_idx(int const          order_A,
-               int const *        idx_A,
-               int const          order_B,
-               int const *        idx_B,
-               int *              order_tot,
-               int **             idx_arr);
+  class summation {
+     public:
+      /** \brief left operand */
+      tensor * A;
+      /** \brief output */
+      tensor * B;
+
+      /** \brief scaling of A */
+      char const * alpha;
+      /** \biref scaling of existing B */
+      char const * beta;
+    
+      /** \brief indices of left operand */
+      int const * idx_A;
+      /** \brief indices of output */
+      int const * idx_B;
+
+      /**
+       * \brief constructor definining summation with C's mul and add ops
+       * \param[in] A left operand tensor
+       * \param[in] idx_A indices of left operand
+       * \param[in] alpha scaling factor alpha * A[idx_A];
+       * \param[in] B ouput operand tensor
+       * \param[in] idx_B indices of right operand
+       * \param[in] beta scaling factor of ouput 
+                      C[idx_B] = beta*B[idx_B] + alpha * A[idx_A]
+       */
+      summation(tensor * A, 
+                int const * idx_A,
+                char const * alpha, 
+                tensor * B, 
+                int const * idx_B,
+                char const * beta);
+     
+      /**
+       * \brief constructor definining summation with custom function
+       * \param[in] A left operand tensor
+       * \param[in] idx_A indices of left operand
+       * \param[in] B ouput operand tensor
+       * \param[in] idx_B indices of right operand
+       * \param[in] func custom elementwise function 
+                      func(A[idx_A],&B[idx_B])
+       */
+      contraction(tensor * A, 
+                  int const * idx_A,
+                  tensor * B, 
+                  int const * idx_B,
+                  univar_function func);
+
+      /** \brief run summation  */
+      void execute();
+      
+      /** \brief predicts execution time in seconds using performance models */
+      double estimate_time();
+   
+  };
 }
 
 #endif
