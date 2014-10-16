@@ -4,6 +4,7 @@
 #define __INT_TENSOR_H__
 
 #include "../mapping/int_mapping.h"
+#include "../mapping/int_distribution.h"
 #include "../interface/world.h"
 
 namespace CTF_int {
@@ -38,6 +39,7 @@ namespace CTF_int {
       bool operator!=(const pair& other) const{
         return !(*this == other);
       }*/
+      virtual int size() { assert(0); }
   };
 
   class tensor;
@@ -297,25 +299,6 @@ namespace CTF_int {
       int allread(int64_t *  num_pair,
                          char *     all_data);
 
-      /**
-        * \brief accumulates this tensor to a tensor object defined on a different world
-        * \param[in] tsr_sub tensor on a subcomm of this world
-        * \param[in] alpha scaling factor for this tensor
-        * \param[in] beta scaling factor for tensor tsr
-        */
-      int  add_to_subworld(tensor *     tsr_sub,
-                           char const * alpha,
-                           char const * beta);
-      /**
-        * \brief accumulates this tensor from a tensor object defined on a different world
-        * \param[in] tsr_sub id of tensor on a subcomm of this CTF inst
-        * \param[in] tC_sub CTF instance on a mpi subcomm
-        * \param[in] alpha scaling factor for this tensor
-        * \param[in] beta scaling factor for tensor tsr
-        */
-      int  add_from_subworld(tensor *     tid_sub,
-                             char const * alpha,
-                             char const * beta);
        /**
        * \brief cuts out a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
@@ -330,7 +313,7 @@ namespace CTF_int {
       void slice(int const *    offsets,
                  int const *    ends,
                  char const *   beta,
-                 tensor const & A,
+                 tensor const * A,
                  int const *    offsets_A,
                  int const *    ends_A,
                  char const *   alpha) const;
@@ -356,7 +339,7 @@ namespace CTF_int {
        * \param[in] permutation_B mappings for each dimension of B (this) indices
        * \param[in] alpha scaling factor for current values of B
        */
-      int permute(tensor &               A,
+      int permute(tensor *               A,
                          int * const *          permutation_A,
                          char const *           alpha,
                          int * const *          permutation_B,
@@ -416,9 +399,41 @@ namespace CTF_int {
        * \param[in] A tensor to compare against
        * \param[in] cutoff do not print values of absolute value smaller than this
        */
-      void compare(const tensor & A, FILE * fp = stdout, double cutoff = -1.0) const;
+      void compare(const tensor * A, FILE * fp = stdout, double cutoff = -1.0) const;
 
-
+      /**
+       * \brief maps data from this world (subcomm) to the correct order of processors with
+       *        respect to a parent (greater_world) comm
+       * \param[in] greater_world comm with respect to which the data needs to be ordered
+       * \param[out] bw_mirror_rank processor rank in greater_world from which data is received
+       * \param[out] fw_mirror_rank processor rank in greater_world to   which data is sent
+       * \param[out] distribution mapping of data on output defined on oriented subworld
+       * \param[out] sub_buffer_ allocated buffer of received data on oriented subworld
+      */
+      void orient_subworld(CTF::World *   greater_world,
+                           int &          bw_mirror_rank,
+                           int &          fw_mirror_rank,
+                           distribution & odst,
+                           char **       sub_buffer_);
+      /**
+        * \brief accumulates this tensor to a tensor object defined on a different world
+        * \param[in] tsr_sub tensor on a subcomm of this world
+        * \param[in] alpha scaling factor for this tensor
+        * \param[in] beta scaling factor for tensor tsr
+        */
+      void add_to_subworld(tensor *     tsr_sub,
+                           char const * alpha,
+                           char const * beta);
+      /**
+        * \brief accumulates this tensor from a tensor object defined on a different world
+        * \param[in] tsr_sub id of tensor on a subcomm of this CTF inst
+        * \param[in] tC_sub CTF instance on a mpi subcomm
+        * \param[in] alpha scaling factor for this tensor
+        * \param[in] beta scaling factor for tensor tsr
+        */
+      void add_from_subworld(tensor *     tid_sub,
+                             char const * alpha,
+                             char const * beta);
 
   };
 }

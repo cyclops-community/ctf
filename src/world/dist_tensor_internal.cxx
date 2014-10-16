@@ -492,58 +492,6 @@ int dist_tensor<dtype>::permute_tensor(int const              tid_A,
                                        dtype const            beta,
                                        dist_tensor<dtype> *   dt_B){
     
-  int64_t sz_A, blk_sz_A, sz_B, blk_sz_B;
-  tkv_pair<dtype> * all_data_A;
-  tkv_pair<dtype> * all_data_B;
-  tensor<dtype> * tsr_A, * tsr_B;
-  int order_A, * len_A, * sym_A;
-  int order_B, * len_B, * sym_B;
-  int ret;
-
-  tsr_A = dt_A->tensors[tid_A];
-  tsr_B = dt_B->tensors[tid_B];
-
-  dt_A->get_tsr_info(tid_A, &order_A, &len_A, &sym_A);
-  dt_B->get_tsr_info(tid_B, &order_B, &len_B, &sym_B);
-
-  if (permutation_B != NULL){
-    ASSERT(permutation_A == NULL);
-    ASSERT(dt_B->get_global_comm().np <= dt_A->get_global_comm().np);
-    if (order_B == 0 || tsr_B->has_zero_edge_len){
-      blk_sz_B = 0;
-    } else {
-      dt_B->read_local_pairs(tid_B, &sz_B, &all_data_B);
-      //permute all_data_B
-      permute_keys(order_B, sz_B, len_B, len_A, permutation_B, all_data_B, &blk_sz_B);
-    }
-    ret = dt_A->write_pairs(tid_A, blk_sz_B, 1.0, 0.0, all_data_B, 'r');  
-    if (blk_sz_B > 0)
-      depermute_keys(order_B, blk_sz_B, len_B, len_A, permutation_B, all_data_B);
-    all_data_A = all_data_B;
-    blk_sz_A = blk_sz_B;
-  } else {
-    ASSERT(dt_B->get_global_comm().np >= dt_A->get_global_comm().np);
-    if (order_A == 0 || tsr_A->has_zero_edge_len){
-      blk_sz_A = 0;
-    } else {
-      ASSERT(permutation_A != NULL);
-      ASSERT(permutation_B == NULL);
-      dt_A->read_local_pairs(tid_A, &sz_A, &all_data_A);
-      //permute all_data_A
-      permute_keys(order_A, sz_A, len_A, len_B, permutation_A, all_data_A, &blk_sz_A);
-    }
-  }
-
-  ret = dt_B->write_pairs(tid_B, blk_sz_A, alpha, beta, all_data_A, 'w');  
-
-  CTF_free(len_A);
-  CTF_free(len_B);
-  CTF_free(sym_A);
-  CTF_free(sym_B);
-  if (blk_sz_A > 0)
-    CTF_free(all_data_A);
-
-  return ret;
 }
 
 template<typename dtype>
@@ -554,80 +502,6 @@ void dist_tensor<dtype>::orient_subworld(int                 order,
                                         int &               fw_mirror_rank,
                                         distribution &      odst,
                                         dtype **            sub_buffer_){
-  int is_sub = 0;
-  if (dt_sub != NULL) is_sub = 1;
-  int tot_sub;
-  MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, global_comm.cm);
-  //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
-  //this should in most sane cases ensure that a unique subcomm is involved
-  if (dt_sub != NULL) ASSERT(tot_sub == dt_sub->get_global_comm().np);
-
-  int sub_root_rank = 0;
-  int buf_sz = get_distribution_size(order);
-  char * buffer;
-  if (dt_sub != NULL && dt_sub->get_global_comm().rank == 0){
-    MPI_Allreduce(&global_comm.rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, global_comm.cm);
-    ASSERT(sub_root_rank == global_comm.rank);
-    distribution dstrib;
-    save_mapping(dt_sub->tensors[tid_sub], dstrib, &dt_sub->topovec[dt_sub->tensors[tid_sub]->itopo]);
-    int bsz;
-    dstrib.serialize(&buffer, &bsz);
-    ASSERT(bsz == buf_sz);
-    MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, global_comm.cm);
-  } else {
-    buffer = (char*)CTF_alloc(buf_sz);
-    MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, global_comm.cm);
-    MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, global_comm.cm);
-  }
-  odst.deserialize(buffer);
-  CTF_free(buffer);
-
-  bw_mirror_rank = -1;
-  fw_mirror_rank = -1;
-  MPI_Request req;
-  if (dt_sub != NULL){
-    fw_mirror_rank = dt_sub->get_global_comm().rank;
-    MPI_Isend(&(global_comm.rank), 1, MPI_INT, dt_sub->get_global_comm().rank, 13, global_comm.cm, &req);
-  }
-  if (global_comm.rank < tot_sub){
-    MPI_Status stat;
-    MPI_Recv(&bw_mirror_rank, 1, MPI_INT, MPI_ANY_SOURCE, 13, global_comm.cm, &stat);
-  }
-  if (fw_mirror_rank >= 0){
-    MPI_Status stat;
-    MPI_Wait(&req, &stat);
-  }
-
-  MPI_Request req1, req2;
-
-  dtype * sub_buffer = (dtype*)CTF_mst_alloc(sizeof(dtype)*odst.size);
-
-  char * rbuffer;
-  if (bw_mirror_rank >= 0){
-    rbuffer = (char*)CTF_alloc(buf_sz);
-    MPI_Irecv(rbuffer, buf_sz, MPI_CHAR, bw_mirror_rank, 0, global_comm.cm, &req1);
-    MPI_Irecv(sub_buffer, odst.size*sizeof(dtype), MPI_CHAR, bw_mirror_rank, 1, global_comm.cm, &req2);
-  } 
-  if (fw_mirror_rank >= 0){
-    char * sbuffer;
-    distribution ndstr;
-    save_mapping(dt_sub->tensors[tid_sub], ndstr, &dt_sub->topovec[dt_sub->tensors[tid_sub]->itopo]);
-    int bsz;
-    ndstr.serialize(&sbuffer, &bsz);
-    ASSERT(bsz == buf_sz);
-    MPI_Send(sbuffer, buf_sz, MPI_CHAR, fw_mirror_rank, 0, global_comm.cm);
-    MPI_Send(dt_sub->tensors[tid_sub]->data, odst.size*sizeof(dtype), MPI_CHAR, fw_mirror_rank, 1, global_comm.cm);
-    CTF_free(sbuffer);
-  }
-  if (bw_mirror_rank >= 0){
-    MPI_Status stat;
-    MPI_Wait(&req1, &stat);
-    MPI_Wait(&req2, &stat);
-    odst.deserialize(rbuffer);
-    CTF_free(rbuffer);
-  } else
-    std::fill(sub_buffer, sub_buffer + odst.size, 0.0);
-  *sub_buffer_ = sub_buffer;
 }
 
 //#define USE_SLICE_FOR_SUBWORLD
@@ -637,51 +511,6 @@ int dist_tensor<dtype>::add_to_subworld(int                 tid,
                                         dist_tensor<dtype> *dt_sub,
                                         dtype               alpha,
                                         dtype               beta){
-  tensor<dtype> * this_tsr = tensors[tid];
-  int order, * lens, * sym;
-  get_tsr_info(tid, &order, &lens, &sym);
-#ifdef USE_SLICE_FOR_SUBWORLD
-  int offsets[this_tsr->order];
-  memset(offsets, 0, this_tsr->order*sizeof(int));
-  if (dt_sub == NULL){
-    int dtid;
-    CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
-    SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
-    dist_tensor<dtype> dt_self;
-    dt_self.initialize(cdt, 0, NULL, 0);
-    dt_self.define_tensor(0, NULL, NULL, &dtid);
-    slice_tensor(tid, offsets, offsets, alpha, this, dtid, NULL, NULL, beta, &dt_self);
-  } else {
-    slice_tensor(tid, offsets, lens, alpha, this, tid_sub, offsets, lens, beta, dt_sub);
-  }
-#else
-  int fw_mirror_rank, bw_mirror_rank;
-  distribution odst;
-  dtype * sub_buffer;
-  orient_subworld(order, tid_sub, dt_sub, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
-  
-  distribution idst;
-  save_mapping(this_tsr, idst, &topovec[this_tsr->itopo]);
-
-  redistribute(sym, global_comm, idst, this_tsr->data, alpha, 
-                                 odst, sub_buffer,      beta);
-
-  MPI_Request req;
-  if (fw_mirror_rank >= 0){
-    ASSERT(dt_sub != NULL);
-    MPI_Irecv(dt_sub->tensors[tid_sub]->data, odst.size*sizeof(dtype), MPI_CHAR, fw_mirror_rank, 0, global_comm.cm, &req);
-  }
- 
-  if (bw_mirror_rank >= 0)
-    MPI_Send(sub_buffer, odst.size*sizeof(dtype), MPI_CHAR, bw_mirror_rank, 0, global_comm.cm);
-  if (fw_mirror_rank >= 0){
-    MPI_Status stat;
-    MPI_Wait(&req, &stat);
-  }
-  CTF_free(sub_buffer);
-#endif
-  CTF_free(lens);
-  CTF_free(sym);
   return CTF_SUCCESS; 
 }
 
@@ -691,36 +520,6 @@ int dist_tensor<dtype>::add_from_subworld(int                 tid,
                                           dist_tensor<dtype> *dt_sub,
                                           dtype              alpha,
                                           dtype              beta){
-  tensor<dtype> * this_tsr = tensors[tid];
-  int order, * lens, * sym;
-  get_tsr_info(tid, &order, &lens, &sym);
-#ifdef USE_SLICE_FOR_SUBWORLD
-  int offsets[this_tsr->order];
-  memset(offsets, 0, this_tsr->order*sizeof(int));
-  if (dt_sub == NULL){
-    int dtid;
-    CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
-    SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
-    dist_tensor<dtype> dt_self;
-    dt_self.initialize(cdt, 0, NULL, 0);
-    dt_self.define_tensor(0, NULL, NULL, &dtid);
-    slice_tensor(dtid, NULL, NULL, alpha, &dt_self, tid, offsets, offsets, beta, this);
-  } else {
-    slice_tensor(tid_sub, offsets, lens, alpha, dt_sub, tid, offsets, lens, beta, this);
-  }
-#else
-  int fw_mirror_rank, bw_mirror_rank;
-  distribution odst;
-  dtype * sub_buffer;
-  orient_subworld(order, tid_sub, dt_sub, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
-  
-  distribution idst;
-  save_mapping(this_tsr, idst, &topovec[this_tsr->itopo]);
-
-  redistribute(sym, global_comm, odst, sub_buffer,     alpha,
-                                 idst, this_tsr->data,  beta);
-  CTF_free(sub_buffer);
-#endif
   CTF_free(lens);
   CTF_free(sym);
   return CTF_SUCCESS; 

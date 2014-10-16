@@ -34,7 +34,7 @@ namespace CTF_int {
       if (other->is_folded) other->unfold();
 
       if (other->is_mapped){
-        CTF_alloc_ptr(other->size*sizeof(dtype), (void**)&this->data);
+        CTF_alloc_ptr(other->size*sr.el_size, (void**)&this->data);
     #ifdef HOME_CONTRACT
         if (other->has_home){
           if (this->has_home && 
@@ -46,7 +46,7 @@ namespace CTF_int {
             this->is_home = 1;
           } else {
             if (this->is_home || this->home_size != other->home_size){ 
-              this->home_buffer = (dtype*)CTF_alloc(other->home_size);
+              this->home_buffer = (char*)CTF_alloc(other->home_size);
             }
             this->is_home = 0;
             memcpy(this->home_buffer, other->home_buffer, other->home_size);
@@ -61,37 +61,35 @@ namespace CTF_int {
         }
         this->home_size = other->home_size;
     #endif
-        memcpy(this->data, other->data, sizeof(dtype)*other->size);
+        memcpy(this->data, other->data, sr.el_size*other->size);
       } else {
         if (this->is_mapped){
           CTF_free(this->data);
-          CTF_alloc_ptr(other->size*sizeof(tkv_pair<dtype>), 
+          CTF_alloc_ptr(other->size*(sizeof(int64_t)+sr.el_size), 
                          (void**)&this->pairs);
         } else {
           if (this->size < other->size || this->size > 2*other->size){
             CTF_free(this->pairs);
-            CTF_alloc_ptr(other->size*sizeof(tkv_pair<dtype>), 
+            CTF_alloc_ptr(other->size*(sizeof(int64_t)+sr.el_size), 
                              (void**)&this->pairs);
           }
         }
         memcpy(this->pairs, other->pairs, 
-                sizeof(tkv_pair<dtype>)*other->size);
+               (sizeof(int64_t)+sr.el_size)*other->size);
       } 
       if (this->is_folded){
-        del_tsr(this->rec_tid);
+        del_tsr(this->rec_tsr);
       }
       this->is_folded = other->is_folded;
       if (other->is_folded){
-        int new_tensor_id;
-        tensor<dtype> * itsr = tensors[other->rec_tid];
-        define_tensor(other->ord, itsr->pad_edge_len, other->sym, 
-                                  &new_tensor_id, 0);
+        tensor * itsr = other->rec_tsr;
+        Tensor * rtsr = Tensor(itsr->sr, itsr->lens, itsr->sym, itsr->wrld, 0);
         CTF_alloc_ptr(sizeof(int)*other->ord, 
                          (void**)&this->inner_ording);
         for (i=0; i<other->ord; i++){
           this->inner_ording[i] = other->inner_ording[i];
         }
-        this->rec_tid = new_tensor_id;
+        this->rec_tsr = rtsr;
       }
 
       this->ord = other->ord;
@@ -332,22 +330,22 @@ namespace CTF_int {
         this->has_home = 1;
         //this->is_home = 0;
         //this->has_home = 0;
-        if (global_comm.rank == 0)
-          DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);
-        CTF_alloc_ptr(this->home_size*sizeof(dtype), (void**)&this->home_buffer);
+/*        if (global_comm.rank == 0)
+          DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
+        CTF_alloc_ptr(this->home_size*sr.el_size, (void**)&this->home_buffer);
         this->data = this->home_buffer;
       } else {
-        CTF_alloc_ptr(this->size*sizeof(dtype), (void**)&this->data);
+        CTF_alloc_ptr(this->size*sr.el_size, (void**)&this->data);
       }
 #else
-      CTF_mst_alloc_ptr(this->size*sizeof(dtype), (void**)&this->data);
+      CTF_mst_alloc_ptr(this->size*sr.el_size, (void**)&this->data);
 #endif
 #if DEBUG >= 2
       if (global_comm.rank == 0)
-        printf("Tensor %d set to zero with mapping:\n", tensor_id);
-      print_map(stdout, tensor_id);
+        printf("New tensor defined:\n");
+      this->print_map(stdout);
 #endif
-      std::fill(this->data, this->data + this->size, get_zero<dtype>());
+      sr.set(this->data, sr.add_id, this->size);
     }
 
   }
@@ -362,25 +360,236 @@ namespace CTF_int {
         printf("CTF: %2s %5d %5d %5d %5d\n", SY_strings[sym[dim]], unpad_edge_len[dim], tp, pp, vp);
       }
   }
-}
+   
+  void tensor::set_name(char const * name_){
+    name = name_;
+  }
+
+  void tensor::get_name(char const * name_){
+    return name;
+  }
+
+  void tensor::profile_on(){
+    profile = true;
+  }
+
+  void tensor::profile_off(){
+    profile = false;
+  }
+
+  void tensor::get_raw_data(char ** data_, int64_t * size_) {
+    *size_ = size;
+    *data_ = data;
+  }
+
+  int tensor::permute(tensor *               A,
+                       int * const *          permutation_A,
+                       char const *           alpha,
+                       int * const *          permutation_B,
+                       char const *           beta){
+    int64_t sz_A, blk_sz_A, sz_B, blk_sz_B;
+    pair * all_data_A;
+    pair * all_data_B;
+    tensor * tsr_A, * tsr_B;
+    int ret;
+
+    tsr_A = A;
+    tsr_B = this;
+
+    if (permutation_B != NULL){
+      ASSERT(permutation_A == NULL);
+      ASSERT(dt_B->get_global_comm().np <= dt_A->get_global_comm().np);
+      if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
+        blk_sz_B = 0;
+      } else {
+        tsr_B->read_local_pairs(&sz_B, &all_data_B);
+        //permute all_data_B
+        permute_keys(tsr_B->order, sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, &blk_sz_B);
+      }
+      ret = tsr_A->write_pairs(blk_sz_B, 1.0, 0.0, all_data_B, 'r');  
+      if (blk_sz_B > 0)
+        depermute_keys(tsr_B->order, blk_sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B);
+      all_data_A = all_data_B;
+      blk_sz_A = blk_sz_B;
+    } else {
+      ASSERT(dt_B->get_global_comm().np >= dt_A->get_global_comm().np);
+      if (tsr_A->order == 0 || tsr_A->has_zero_edge_len){
+        blk_sz_A = 0;
+      } else {
+        ASSERT(permutation_A != NULL);
+        ASSERT(permutation_B == NULL);
+        tsr_A->read_local_pairs(&sz_A, &all_data_A);
+        //permute all_data_A
+        permute_keys(tsr_A->order, sz_A, tsr_A->lens, tsr_B->lens, permutation_A, all_data_A, &blk_sz_A);
+      }
+    }
+
+    ret = tsr_B->write_pairs(blk_sz_A, alpha, beta, all_data_A, 'w');  
+
+    if (blk_sz_A > 0)
+      CTF_free(all_data_A);
+
+    return ret;
+  }
+
+  void tensor::orient_subworld(CTF::World *   greater_world,
+                               int &          bw_mirror_rank,
+                               int &          fw_mirror_rank,
+                               distribution & odst,
+                               char **       sub_buffer_){
+    int is_sub = 0;
+    if (order == 0) is_sub = 1;
+    int tot_sub;
+    MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, greater_world->cm);
+    //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
+    //this should in most sane cases ensure that a unique subcomm is involved
+    if (order == 0) ASSERT(tot_sub == wlrd->np);
+
+    int sub_root_rank = 0;
+    int buf_sz = get_distribution_size(order);
+    char * buffer;
+    if (order == 0 && wlrd->rank == 0){
+      MPI_Allreduce(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->cm);
+      ASSERT(sub_root_rank == greater_world->rank);
+      distribution dstrib;
+      save_mapping(this, dstrib, &wrld->topovec[this->itopo]);
+      int bsz;
+      dstrib.serialize(&buffer, &bsz);
+      ASSERT(bsz == buf_sz);
+      MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->cm);
+    } else {
+      buffer = (char*)CTF_alloc(buf_sz);
+      MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->cm);
+      MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->cm);
+    }
+    odst.deserialize(buffer);
+    CTF_free(buffer);
+
+    bw_mirror_rank = -1;
+    fw_mirror_rank = -1;
+    MPI_Request req;
+    if (order == 0){
+      fw_mirror_rank = wlrd->rank;
+      MPI_Isend(&(greater_world->rank), 1, MPI_INT, wlrd->rank, 13, greater_world->cm, &req);
+    }
+    if (greater_world->rank < tot_sub){
+      MPI_Status stat;
+      MPI_Recv(&bw_mirror_rank, 1, MPI_INT, MPI_ANY_SOURCE, 13, greater_world->cm, &stat);
+    }
+    if (fw_mirror_rank >= 0){
+      MPI_Status stat;
+      MPI_Wait(&req, &stat);
+    }
+
+    MPI_Request req1, req2;
+
+    char * sub_buffer = (char*)CTF_mst_alloc(sr.el_size*odst.size);
+
+    char * rbuffer;
+    if (bw_mirror_rank >= 0){
+      rbuffer = (char*)CTF_alloc(buf_sz);
+      MPI_Irecv(rbuffer, buf_sz, MPI_CHAR, bw_mirror_rank, 0, greater_world->cm, &req1);
+      MPI_Irecv(sub_buffer, odst.size*sr.el_size, MPI_CHAR, bw_mirror_rank, 1, greater_world->cm, &req2);
+    } 
+    if (fw_mirror_rank >= 0){
+      char * sbuffer;
+      distribution ndstr;
+      save_mapping(this, ndstr, &wrld->topovec[this->itopo]);
+      int bsz;
+      ndstr.serialize(&sbuffer, &bsz);
+      ASSERT(bsz == buf_sz);
+      MPI_Send(sbuffer, buf_sz, MPI_CHAR, fw_mirror_rank, 0, greater_world->cm);
+      MPI_Send(this->data, odst.size*sr.el_size, MPI_CHAR, fw_mirror_rank, 1, greater_world->cm);
+      CTF_free(sbuffer);
+    }
+    if (bw_mirror_rank >= 0){
+      MPI_Status stat;
+      MPI_Wait(&req1, &stat);
+      MPI_Wait(&req2, &stat);
+      odst.deserialize(rbuffer);
+      CTF_free(rbuffer);
+    } else
+      std::fill(sub_buffer, sub_buffer + odst.size, 0.0);
+    *sub_buffer_ = sub_buffer;
+
+  }
+  
+  void tensor::add_to_subworld(tensor *     tsr_sub,
+                           char const * alpha,
+                           char const * beta){
+    int order, * lens, * sym;
+  #ifdef USE_SLICE_FOR_SUBWORLD
+    int offsets[this->order];
+    memset(offsets, 0, this->order*sizeof(int));
+    if (tsr_sub == NULL){
+      CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
+      SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
+      World dt_self = World(cdt, 0, NULL, 0);
+      Tensor stsr = Tensor(sr, 0, NULL, NULL, &dt_self);
+      slice(offsets, offsets, alpha, this, stsr, NULL, NULL, beta);
+    } else {
+      slice(offsets, lens, alpha, this, tsr_sub, offsets, lens, beta);
+    }
+  #else
+    int fw_mirror_rank, bw_mirror_rank;
+    distribution odst;
+    char * sub_buffer;
+    tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
+    
+    distribution idst;
+    save_mapping(this, idst, &topovec[this->itopo]);
+
+    redistribute(sym, global_comm, idst, this->data, alpha, 
+                                   odst, sub_buffer,      beta);
+
+    MPI_Request req;
+    if (fw_mirror_rank >= 0){
+      ASSERT(tsr_sub != NULL);
+      MPI_Irecv(tsr_sub->data, odst.size*sr.el_size, MPI_CHAR, fw_mirror_rank, 0, global_comm.cm, &req);
+    }
+   
+    if (bw_mirror_rank >= 0)
+      MPI_Send(sub_buffer, odst.size*sr.el_size, MPI_CHAR, bw_mirror_rank, 0, global_comm.cm);
+    if (fw_mirror_rank >= 0){
+      MPI_Status stat;
+      MPI_Wait(&req, &stat);
+    }
+    CTF_free(sub_buffer);
+  #endif
+
+  }
  
-void tensor::set_name(char const * name_){
-  name = name_;
+  void tensor::add_from_subworld(tensor *     tsr_sub,
+                           char const * alpha,
+                           char const * beta){
+    int order, * lens, * sym;
+  #ifdef USE_SLICE_FOR_SUBWORLD
+    int offsets[this->order];
+    memset(offsets, 0, this->order*sizeof(int));
+    if (tsr_sub == NULL){
+      int dtid;
+      CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
+      SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
+      World dt_self = World(cdt, 0, NULL, 0);
+      Tensor stsr = Tensor(sr, 0, NULL, NULL, &dt_self);
+      stsr->slice(NULL, NULL, alpha, this, tid, offsets, offsets, beta);
+    } else {
+      tsr_sub->slice(offsets, lens, alpha, this, tid, offsets, lens, beta);
+    }
+  #else
+    int fw_mirror_rank, bw_mirror_rank;
+    distribution odst;
+    dtype * sub_buffer;
+    tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
+    
+    distribution idst;
+    save_mapping(this, idst, &topovec[this->itopo]);
+
+    redistribute(sym, global_comm, odst, sub_buffer,     alpha,
+                                   idst, this->data,  beta);
+    CTF_free(sub_buffer);
+  #endif
+
+  }
 }
 
-void tensor::get_name(char const * name_){
-  return name;
-}
-
-void tensor::profile_on(){
-  profile = true;
-}
-
-void tensor::profile_off(){
-  profile = false;
-}
-
-void tensor::get_raw_data(char ** data_, int64_t * size_) {
-  *size_ = size;
-  *data_ = data;
-}

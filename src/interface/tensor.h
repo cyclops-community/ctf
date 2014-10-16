@@ -43,6 +43,10 @@ namespace CTF {
       char * v(){
         return (char*)&d;
       }
+      
+      virtual int size(){ 
+        return sizeof(int64_t)+sizeof(dtype);
+      }
   };
 
   template<typename dtype>
