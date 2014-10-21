@@ -9,16 +9,6 @@
 
 
 
-int64_t CTF_total_flop_count = 0;
-
-void CTF_flops_add(int64_t n){
-  CTF_total_flop_count+=n;
-}
-
-int64_t CTF_get_flops(){
-  return CTF_total_flop_count;
-}
-
 
 #if (defined BGP || defined BGQ)
 #define UTIL_ZGEMM      zgemm

@@ -384,7 +384,8 @@ namespace CTF {
                  Tensor const & A,
                  int const *    offsets_A,
                  int const *    ends_A,
-                 dtype          alpha) const;
+                 dtype          alpha);
+
       /**
        * \brief cuts out a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
@@ -402,7 +403,7 @@ namespace CTF {
                  Tensor const & A,
                  int64_t        corner_off_A,
                  int64_t        corner_end_A,
-                 dtype          alpha) const;
+                 dtype          alpha);
 
       /**
        * \brief Apply permutation to matrix, potentially extracting a slice
@@ -835,6 +836,8 @@ namespace CTF {
 }
 
 #include "tensor.cxx"
+#include "idx_tensor.cxx"
+#include "term.cxx"
 #include "matrix.cxx"
 #include "vector.cxx"
 #include "scalar.cxx"

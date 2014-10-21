@@ -1,5 +1,5 @@
-#ifndef __TIMER_H__
-#define __TIMER_H__
+#ifndef __INT_TIMER_H__
+#define __INT_TIMER_H__
 
 #include "../../include/ctf.hpp"
 /**

@@ -1,7 +1,7 @@
 include ../../config.mk
 
 
-OBJS = util.o memcontrol.o timer.o comm.o
+OBJS = util.o memcontrol.o int_timer.o
 
 NVCC_OBJS = offload.o
 

@@ -22,7 +22,6 @@ int CTF_free(void * ptr, int const tid);
 int CTF_free(void * ptr);
 
 
-
 namespace CTF {
 
   /**
@@ -59,6 +58,16 @@ namespace CTF {
 }
 
 namespace CTF_int {
+
+  int64_t total_flop_count = 0;
+
+  void flops_add(int64_t n){
+    total_flop_count+=n;
+  }
+
+  int64_t get_flops(){
+    return total_flop_count;
+  }
 
   void csgemm(char transa,      char transb,
               int m,            int n,
@@ -146,31 +155,31 @@ namespace CTF_int {
 
       /**
        * \brief create active communicator wrapper
-       * \param[in] cm_ MPI_Comm defining this wrapper
+       * \param[in] cm MPI_Comm defining this wrapper
        */
-      CommData(MPI_Comm cm_);
+      CommData(MPI_Comm cm);
 
       /**
-       * \brief create active communicator wrapper
-       * \param[in] rank_ rank within this comm
-       * \param[in] color_ identifier of comm within parent
-       * \param[in] np_ number of processors within this comm
+       * \brief create non-active communicator wrapper
+       * \param[in] rank rank within this comm
+       * \param[in] color identifier of comm within parent
+       * \param[in] np number of processors within this comm
        */
-      CommData(int rank_, int color_, int np);
+      CommData(int rank, int color, int np);
 
       /**
        * \brief create active subcomm from parent comm which must be active
-       * \param[in] rank_ processor rank within subcomm
-       * \param[in] color_ identifier of subcomm within this comm
+       * \param[in] rank processor rank within subcomm
+       * \param[in] color identifier of subcomm within this comm
        * \param[in] parent comm to split
       */
-      CommData(int rank_, int color_, CommData parent);
+      CommData(int rank, int color, CommData parent);
 
       /**
        * \brief activate this subcommunicator by splitting parent_comm
        * \param[in] parent_comm communicator to split
        */
-      void activate(MPI_Comm parent_comm);
+      void activate(MPI_Comm parent);
 
       /* \brief deactivate (MPI_Free) this comm */
       void deactivate();

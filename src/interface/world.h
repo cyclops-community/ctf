@@ -1,8 +1,8 @@
 #ifndef __WORLD_H__
 #define __WORLD_H__
 
-#include <mpi.h>
 #include "common.h"
+#include "../world/int_topology.h"
 
 /**
  * \defgroup CTF CTF: C++ World interface
@@ -20,7 +20,7 @@ namespace CTF {
       /** \brief whether the world has been initialized */
       bool initialized;
       /** \brief communicator data for MPI comm defining this world */
-      CTF_int::CommData global_comm;
+      CTF_int::CommData cdt;
       /** \brief main torus topology corresponding to the world */
       CTF_int::topology phys_topology;
       /** \brief derived topologies */
@@ -75,30 +75,35 @@ namespace CTF {
 
 
     public:
+      /** \brief set of processors making up this world */
       MPI_Comm comm;
+      /** \brief rank of local processor */
+      int rank;
+      /** \brief number of processors */
+      int np;
 
       /**
-       * \brief creates CTF library on comm_ that can output profile data 
+       * \brief creates CTF library on comm that can output profile data 
        *        into a file with a name based on the main args
-       * \param[in] comm_ MPI communicator associated with this CTF instance
+       * \param[in] comm MPI communicator associated with this CTF instance
        * \param[in] argc number of main arguments 
        * \param[in] argv main arguments 
        */
       World(int argc, char * const * argv);
 
       /**
-       * \brief creates CTF library on comm_ that can output profile data 
+       * \brief creates CTF library on comm that can output profile data 
        *        into a file with a name based on the main args
-       * \param[in] comm_ MPI communicator associated with this CTF instance
+       * \param[in] comm MPI communicator associated with this CTF instance
        * \param[in] argc number of main arguments 
        * \param[in] argv main arguments 
        */
-      World(MPI_Comm       comm_ = MPI_COMM_WORLD,
+      World(MPI_Comm       comm = MPI_COMM_WORLD,
             int            argc = 0,
             char * const * argv = NULL);
 
       /**
-       * \brief creates CTF library on comm_
+       * \brief creates CTF library on comm
        * \param[in] order number of torus network dimensions
        * \param[in] lens lengths of torus network dimensions
        * \param[in] comm MPI global context for this CTF World
@@ -107,7 +112,7 @@ namespace CTF {
        */
       World(int            order, 
             int const *    lens, 
-            MPI_Comm       comm_ = MPI_COMM_WORLD,
+            MPI_Comm       comm = MPI_COMM_WORLD,
             int            argc = 0,
             char * const * argv = NULL);
 

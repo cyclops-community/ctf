@@ -5,26 +5,26 @@ namespace CTF {
 
   
   template<typename dtype>
-  Scalar<dtype>::Scalar(World & world) :
+  Scalar<dtype>::Scalar(World * world) :
     Tensor<dtype>(0, NULL, NULL, world) {
     
   }
 
   template<typename dtype>
-  Scalar<dtype>::Scalar(World & world_, Semiring<dtype> sr_) :
+  Scalar<dtype>::Scalar(World * world_, Semiring<dtype> sr_) :
     Tensor<dtype>(0, NULL, NULL, world_, sr_) {
     
   }
 
   template<typename dtype>
-  Scalar<dtype>::Scalar(dtype const         val,
-                        World             & world) :
+  Scalar<dtype>::Scalar(dtype          val,
+                        World             * world) :
     Tensor<dtype>(0, NULL, NULL, world) {
     int64_t s; 
     dtype * arr;
 
-    if (world.ctf->get_rank() == 0){
-      int ret = this->world->ctf->get_raw_data(this->tid, &arr, &s); 
+    if (world->cdt.rank() == 0){
+      int ret = this->get_raw_data(&arr, &s); 
       assert(ret == SUCCESS);
       arr[0] = val;
     }
@@ -35,7 +35,7 @@ namespace CTF {
   dtype Scalar<dtype>::get_val(){
     int64_t s; 
     dtype * val;
-    int ret = this->world->ctf->get_raw_data(this->tid, &val, &s); 
+    int ret = this->get_raw_data(this->tid, &val, &s); 
 
     assert(ret == SUCCESS);
 

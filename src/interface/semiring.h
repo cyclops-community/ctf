@@ -6,12 +6,12 @@
 namespace CTF {
 
   template <typename dtype>
-  dtype default_add(dtype & a, dtype & b){
+  dtype default_add(dtype a, dtype b){
     return a+b;
   }
 
   template <typename dtype>
-  dtype default_mul(dtype & a, dtype & b){
+  dtype default_mul(dtype a, dtype b){
     return a*b;
   }
 
@@ -50,8 +50,8 @@ namespace CTF {
     Semiring(dtype  addid_,
              dtype  mulid_,
              MPI_Op addmop_=MPI_SUM,
-             dtype (*fadd_)(dtype & a, dtype &  b)=&default_add<dtype>,
-             dtype (*fmul_)(dtype & a, dtype & b)=&default_mul<dtype>,
+             dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
+             dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
              void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&CTF_int::default_gemm<dtype>,
              void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&CTF_int::default_axpy<dtype>,
              void (*scal_)(int,dtype,dtype*,int)=&CTF_int::default_scal<dtype>){

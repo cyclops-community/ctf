@@ -7,23 +7,23 @@ using namespace CTF;
 namespace CTF_int {
 
   tensor::tensor(){
-    ord=-1;
+    order=-1;
   }
 
   tensor::tensor(semiring sr,
-                 int ord,
+                 int order,
                  int const * edge_len,
                  int const * sym,
-                 world * wrld,
+                 World * wrld,
                  bool alloc_data,
                  char const * name,
                  bool profile){
-    this->init(sr,ord,edge_len,sym,wrld,alloc_data,name,profile);
+    this->init(sr,order,edge_len,sym,wrld,alloc_data,name,profile);
   }
 
-  tensor(tensor * other, bool copy){
+  tensor::tensor(tensor * other, bool copy){
     
-    this->init(other->sr, other->ord, other.get_lengths(),
+    this->init(other->sr, other->order, other->lens,
                other->sym, other->wrld, 0, other->name,
                other->profile);
   
@@ -84,39 +84,39 @@ namespace CTF_int {
       if (other->is_folded){
         tensor * itsr = other->rec_tsr;
         Tensor * rtsr = Tensor(itsr->sr, itsr->lens, itsr->sym, itsr->wrld, 0);
-        CTF_alloc_ptr(sizeof(int)*other->ord, 
+        CTF_alloc_ptr(sizeof(int)*other->order, 
                          (void**)&this->inner_ording);
-        for (i=0; i<other->ord; i++){
+        for (i=0; i<other->order; i++){
           this->inner_ording[i] = other->inner_ording[i];
         }
         this->rec_tsr = rtsr;
       }
 
-      this->ord = other->ord;
-      memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int)*other->ord);
-      memcpy(this->padding, other->padding, sizeof(int)*other->ord);
-      memcpy(this->sym, other->sym, sizeof(int)*other->ord);
-      memcpy(this->sym_table, other->sym_table, sizeof(int)*other->ord*other->ord);
+      this->order = other->order;
+      memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int)*other->order);
+      memcpy(this->padding, other->padding, sizeof(int)*other->order);
+      memcpy(this->sym, other->sym, sizeof(int)*other->order);
+      memcpy(this->sym_table, other->sym_table, sizeof(int)*other->order*other->order);
       this->is_mapped      = other->is_mapped;
       this->is_cyclic      = other->is_cyclic;
       this->itopo          = other->itopo;
       if (other->is_mapped)
-        copy_mapping(other->ord, other->edge_map, this->edge_map);
+        copy_mapping(other->order, other->edge_map, this->edge_map);
       this->size = other->size;
     }
 
   }
 
   void tensor::init(semiring sr,
-                    int ord,
+                    int order,
                     int const * edge_len,
                     int const * sym,
-                    world * wrld_,
+                    World * wrld_,
                     bool alloc_data,
                     char const * name,
                     bool profile){
-    CTF_alloc_ptr(ord*sizeof(int), (void**)&this->padding);
-    memset(this->padding, 0, ord*sizeof(int));
+    CTF_alloc_ptr(order*sizeof(int), (void**)&this->padding);
+    memset(this->padding, 0, order*sizeof(int));
 
     this->wrld               = wrld;
     this->sr                 = sr;
@@ -140,27 +140,27 @@ namespace CTF_int {
 
 
     this->pairs    = NULL;
-    this->ord     = ord;
-    this->unpad_edge_len = (int*)CTF_alloc(ord*sizeof(int));
-    memcpy(this->unpad_edge_len, unpad_edge_len, ord*sizeof(int));
-    this->pad_edge_len = (int*)CTF_alloc(ord*sizeof(int));
-    memcpy(this->pad_edge_len, unpad_edge_len, ord*sizeof(int));
-    this->sym      = (int*)CTF_alloc(ord*sizeof(int));
-    memcpy(this->sym, sym, ord*sizeof(int));
+    this->order     = order;
+    this->unpad_edge_len = (int*)CTF_alloc(order*sizeof(int));
+    memcpy(this->unpad_edge_len, unpad_edge_len, order*sizeof(int));
+    this->pad_edge_len = (int*)CTF_alloc(order*sizeof(int));
+    memcpy(this->pad_edge_len, unpad_edge_len, order*sizeof(int));
+    this->sym      = (int*)CTF_alloc(order*sizeof(int));
+    memcpy(this->sym, sym, order*sizeof(int));
   
-    this->sym_table = (int*)CTF_alloc(ord*ord*sizeof(int));
-    memset(this->sym_table, 0, ord*ord*sizeof(int));
-    this->edge_map  = (mapping*)CTF_alloc(sizeof(mapping)*ord);
+    this->sym_table = (int*)CTF_alloc(order*order*sizeof(int));
+    memset(this->sym_table, 0, order*order*sizeof(int));
+    this->edge_map  = (mapping*)CTF_alloc(sizeof(mapping)*order);
 
     /* initialize map array and symmetry table */
-    for (i=0; i<ord; i++){
+    for (i=0; i<order; i++){
       if (this->unpad_edge_len[i] <= 0) this->has_zero_edge_len = 1;
       this->edge_map[i].type       = NOT_MAPPED;
       this->edge_map[i].has_child  = 0;
       this->edge_map[i].np         = 1;
       if (this->sym[i] != NS) {
-        this->sym_table[(i+1)+i*ord] = 1;
-        this->sym_table[(i+1)*ord+i] = 1;
+        this->sym_table[(i+1)+i*order] = 1;
+        this->sym_table[(i+1)*order+i] = 1;
       }
     }
     /* Set tensor data to zero. */
@@ -174,8 +174,8 @@ namespace CTF_int {
     mapping * map;
     int * phase;
     int i;
-    CTF_alloc_ptr(sizeof(int)*this->ord, (void**)&phase);
-    for (i=0; i<this->ord; i++){
+    CTF_alloc_ptr(sizeof(int)*this->order, (void**)&phase);
+    for (i=0; i<this->order; i++){
       map = this->edge_map + i;
       phase[i] = calc_phase(map);
     }
@@ -186,7 +186,7 @@ namespace CTF_int {
     int i, tot_phase;
     int * phase = this->calc_phase();
     tot_phase = 1;
-    for (i=0 ; i<this->ord; i++){
+    for (i=0 ; i<this->order; i++){
       tot_phase *= phase[i];
     }
     CTF_free(phase);
@@ -199,7 +199,7 @@ namespace CTF_int {
     mapping * map;
     nvirt = 1;
     if (is_inner) return this->calc_tot_phase();
-    for (j=0; j<this->ord; j++){
+    for (j=0; j<this->order; j++){
       map = &this->edge_map[j];
       while (map->has_child) map = map->child;
       if (map->type == VIRTUAL_MAP){
@@ -216,14 +216,14 @@ namespace CTF_int {
     int * new_phase, * sub_edge_len;
     mapping * map;
 
-    CTF_alloc_ptr(sizeof(int)*this->ord, (void**)&new_phase);
-    CTF_alloc_ptr(sizeof(int)*this->ord, (void**)&sub_edge_len);
+    CTF_alloc_ptr(sizeof(int)*this->order, (void**)&new_phase);
+    CTF_alloc_ptr(sizeof(int)*this->order, (void**)&sub_edge_len);
 /*
-    for (i=0; i<this->ord; i++){
+    for (i=0; i<this->order; i++){
       this->edge_len[i] -= this->padding[i];
     }*/
 
-    for (j=0; j<this->ord; j++){
+    for (j=0; j<this->order; j++){
       map = this->edge_map + j;
       new_phase[j] = calc_phase(map);
       pad = this->unpad_edge_len[j]%new_phase[j];
@@ -232,11 +232,11 @@ namespace CTF_int {
       }
       this->padding[j] = pad;
     }
-    for (i=0; i<this->ord; i++){
+    for (i=0; i<this->order; i++){
       this->pad_edge_len[i] = this->unpad_edge_len[i] + this->padding[i];
       sub_edge_len[i] = this->pad_edge_len[i]/new_phase[i];
     }
-    this->size = calc_nvirt()*sy_packed_size(this->ord, sub_edge_len, this->sym);
+    this->size = calc_nvirt()*sy_packed_size(this->order, sub_edge_len, this->sym);
     
 
     CTF_free(sub_edge_len);
@@ -255,8 +255,8 @@ namespace CTF_int {
       if (this->pairs != NULL){
         for (i=0; i<this->size; i++) this->pairs[i].d = sr.add_id;
       } else {
-        CTF_alloc_ptr(this->ord*sizeof(int), (void**)&restricted);
-  //      memset(restricted, 0, this->ord*sizeof(int));
+        CTF_alloc_ptr(this->order*sizeof(int), (void**)&restricted);
+  //      memset(restricted, 0, this->order*sizeof(int));
 
         /* Map the tensor if necessary */
         bnvirt = UINT64_MAX, btopo = -1;
@@ -264,8 +264,8 @@ namespace CTF_int {
         for (i=global_comm.rank; i<(int)topovec.size(); i+=global_comm.np){
           this->clear_mapping();
           this->set_padding();
-          memset(restricted, 0, this->ord*sizeof(int));
-          map_success = map_tensor(topovec[i].ord, this->ord, this->pad_edge_len,
+          memset(restricted, 0, this->order*sizeof(int));
+          map_success = map_tensor(topovec[i].order, this->order, this->pad_edge_len,
                                    this->sym_table, restricted,
                                    topovec[i].dim_comm, NULL, 0,
                                    this->edge_map);
@@ -306,10 +306,10 @@ namespace CTF_int {
           return CTF_ERROR;
         }
 
-        memset(restricted, 0, this->ord*sizeof(int));
+        memset(restricted, 0, this->order*sizeof(int));
         this->clear_mapping();
         this->set_padding();
-        map_success = map_tensor(topovec[btopo].ord, this->ord,
+        map_success = map_tensor(topovec[btopo].order, this->order,
                                  this->pad_edge_len, this->sym_table, restricted,
                                  topovec[btopo].dim_comm, NULL, 0,
                                  this->edge_map);
@@ -324,7 +324,7 @@ namespace CTF_int {
 
      
 #ifdef HOME_CONTRACT 
-      if (this->ord > 0){
+      if (this->order > 0){
         this->home_size = this->size; //MAX(1024+this->size, 1.20*this->size);
         this->is_home = 1;
         this->has_home = 1;
@@ -353,7 +353,7 @@ namespace CTF_int {
   void tensor::print_map(FILE * stream) const{
 
       printf("CTF: sym  len  tphs  pphs  vphs\n");
-      for (int dim=0; dim<ord; dim++){
+      for (int dim=0; dim<order; dim++){
         int tp = calc_phase(edge_map+dim);
         int pp = calc_phys_phase(edge_map+dim);
         int vp = tp/pp;
@@ -398,7 +398,7 @@ namespace CTF_int {
 
     if (permutation_B != NULL){
       ASSERT(permutation_A == NULL);
-      ASSERT(dt_B->get_global_comm().np <= dt_A->get_global_comm().np);
+      ASSERT(tsr_B->wrld->np <= tsr_A->wrld->np);
       if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
         blk_sz_B = 0;
       } else {
@@ -406,13 +406,13 @@ namespace CTF_int {
         //permute all_data_B
         permute_keys(tsr_B->order, sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, &blk_sz_B);
       }
-      ret = tsr_A->write_pairs(blk_sz_B, 1.0, 0.0, all_data_B, 'r');  
+      ret = tsr_A->write(blk_sz_B, 1.0, 0.0, all_data_B, 'r');  
       if (blk_sz_B > 0)
         depermute_keys(tsr_B->order, blk_sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B);
       all_data_A = all_data_B;
       blk_sz_A = blk_sz_B;
     } else {
-      ASSERT(dt_B->get_global_comm().np >= dt_A->get_global_comm().np);
+      ASSERT(tsr_B->wrld->np >= tsr_A->wrld->np);
       if (tsr_A->order == 0 || tsr_A->has_zero_edge_len){
         blk_sz_A = 0;
       } else {
@@ -424,7 +424,7 @@ namespace CTF_int {
       }
     }
 
-    ret = tsr_B->write_pairs(blk_sz_A, alpha, beta, all_data_A, 'w');  
+    ret = tsr_B->write(blk_sz_A, alpha, beta, all_data_A, 'w');  
 
     if (blk_sz_A > 0)
       CTF_free(all_data_A);
@@ -513,7 +513,105 @@ namespace CTF_int {
     *sub_buffer_ = sub_buffer;
 
   }
-  
+  void tensor::slice(int const *    offsets,
+             int const *    ends,
+             char const *   beta,
+             tensor const * A,
+             int const *    offsets_A,
+             int const *    ends_A,
+             char const *   alpha){
+      
+    int64_t i, sz_A, blk_sz_A, sz_B, blk_sz_B;
+    pair * all_data_A, * blk_data_A;
+    pair * all_data_B, * blk_data_B;
+    tensor * tsr_A, * tsr_B;
+    int ret;
+
+    tsr_A = A;
+    tsr_B = this;
+
+    dt_A->get_tsr_info(tid_A, &tsr_A->order, &tsr_A->lens, &tsr_A->sym);
+    dt_B->get_tsr_info(tid_B, &tsr_B->order, &tsr_B->lens, &tsr_B->sym);
+
+    int * padding_A = (int*)CTF_alloc(sizeof(int)*tsr_A->order);
+    int * toffset_A = (int*)CTF_alloc(sizeof(int)*tsr_A->order);
+    int * padding_B = (int*)CTF_alloc(sizeof(int)*tsr_B->order);
+    int * toffset_B = (int*)CTF_alloc(sizeof(int)*tsr_B->order);
+
+    if (tsr_B->wrld->np < tsr_A->wrld->np){
+      if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
+        blk_sz_B = 0;
+      } else {
+        tsr_B->read_local_pairs(&sz_B, &all_data_B);
+
+        CTF_alloc_ptr((sizeof(int64_t)+tsr_B->sr.el_size)*sz_B, (void**)&blk_data_B);
+
+        for (i=0; i<tsr_B->order; i++){
+          padding_B[i] = tsr_B->lens[i] - ends_B[i];
+        }
+        depad_tsr(tsr_B->order, sz_B, ends_B, tsr_B->sym, padding_B, offsets_B,
+                  all_data_B, blk_data_B, &blk_sz_B);
+        if (sz_B > 0)
+          CTF_free(all_data_B);
+
+        for (i=0; i<tsr_B->order; i++){
+          toffset_B[i] = -offsets_B[i];
+          padding_B[i] = ends_B[i]-offsets_B[i]-tsr_B->lens[i];
+        }
+        pad_key(tsr_B->order, blk_sz_B, tsr_B->lens, 
+                padding_B, blk_data_B, toffset_B);
+        for (i=0; i<tsr_A->order; i++){
+          toffset_A[i] = ends_A[i] - offsets_A[i];
+          padding_A[i] = tsr_A->lens[i] - toffset_A[i];
+        }
+        pad_key(tsr_A->order, blk_sz_B, toffset_A, 
+                padding_A, blk_data_B, offsets_A);
+      }
+      tsr_A->write(blk_sz_B, 1.0, 0.0, blk_data_B, 'r');  
+      all_data_A = blk_data_B;
+      sz_A = blk_sz_B;
+    } else {
+      tsr_A->read_local_pairs(&sz_A, &all_data_A);
+    }
+    
+
+    if (tsr_A->order == 0 || tsr_A->has_zero_edge_len){
+      blk_sz_A = 0;
+    } else {
+      CTF_alloc_ptr((sizeof(int64_t)+tsr_A->sr.el_size)*sz_A, (void**)&blk_data_A);
+
+      for (i=0; i<tsr_A->order; i++){
+        padding_A[i] = tsr_A->lens[i] - ends_A[i];
+      }
+      depad_tsr(tsr_A->order, sz_A, ends_A, tsr_A->sym, padding_A, offsets_A,
+                all_data_A, blk_data_A, &blk_sz_A);
+      if (sz_A > 0)
+        CTF_free(all_data_A);
+
+
+      for (i=0; i<tsr_A->order; i++){
+        toffset_A[i] = -offsets_A[i];
+        padding_A[i] = ends_A[i]-offsets_A[i]-tsr_A->lens[i];
+      }
+      pad_key(tsr_A->order, blk_sz_A, tsr_A->lens, 
+              padding_A, blk_data_A, toffset_A);
+      for (i=0; i<tsr_B->order; i++){
+        toffset_B[i] = ends_B[i] - offsets_B[i];
+        padding_B[i] = tsr_B->lens[i] - toffset_B[i];
+      }
+      pad_key(tsr_B->order, blk_sz_A, toffset_B, 
+              padding_B, blk_data_A, offsets_B);
+    }
+    tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');  
+
+    if (tsr_A->order != 0 && !tsr_A->has_zero_edge_len)
+      CTF_free(blk_data_A);
+    CTF_free(padding_A);
+    CTF_free(padding_B);
+    CTF_free(toffset_A);
+    CTF_free(toffset_B);
+  }
+ 
   void tensor::add_to_subworld(tensor *     tsr_sub,
                            char const * alpha,
                            char const * beta){
@@ -572,14 +670,14 @@ namespace CTF_int {
       SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
       World dt_self = World(cdt, 0, NULL, 0);
       Tensor stsr = Tensor(sr, 0, NULL, NULL, &dt_self);
-      stsr->slice(NULL, NULL, alpha, this, tid, offsets, offsets, beta);
+      stsr->slice(NULL, NULL, alpha, this, tsr_sub, offsets, offsets, beta);
     } else {
-      tsr_sub->slice(offsets, lens, alpha, this, tid, offsets, lens, beta);
+      tsr_sub->slice(offsets, lens, alpha, this, tsr_sub, offsets, lens, beta);
     }
   #else
     int fw_mirror_rank, bw_mirror_rank;
     distribution odst;
-    dtype * sub_buffer;
+    char * sub_buffer;
     tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
     distribution idst;
@@ -589,6 +687,162 @@ namespace CTF_int {
                                    idst, this->data,  beta);
     CTF_free(sub_buffer);
   #endif
+
+  }
+
+  int tensor::write(int64_t                  num_pair,
+                   char const *             alpha,
+                   char const *             beta,
+                   pair *              mapped_data,
+                   char const rw = 'w'){
+    int i, num_virt;
+    int * phys_phase, * virt_phase, * bucket_lda;
+    int * virt_phys_rank;
+    mapping * map;
+    tensor * tsr;
+
+  #if DEBUG >= 1
+    if (global_comm.rank == 0){
+   /*   if (rw == 'w')
+        printf("Writing data to tensor %d\n", tensor_id);
+      else
+        printf("Reading data from tensor %d\n", tensor_id);*/
+      print_map(stdout, tensor_id, 0);
+    }
+    int64_t total_tsr_size = 1;
+    for (i=0; i<order; i++){
+      total_tsr_size *= lens[i];
+    }
+    for (i=0; i<num_pair; i++){
+      ASSERT(mapped_data[i].k >= 0);
+      ASSERT(mapped_data[i].k < total_tsr_size);
+    }
+  #endif
+
+    tsr = this;
+    
+    if (tsr->has_zero_edge_len) return;
+    TAU_FSTART(write_pairs);
+    tsr->unmap_inner();
+    tsr->set_padding();
+
+    if (tsr->is_mapped){
+      CTF_alloc_ptr(tsr->order*sizeof(int),     (void**)&phys_phase);
+      CTF_alloc_ptr(tsr->order*sizeof(int),     (void**)&virt_phys_rank);
+      CTF_alloc_ptr(tsr->order*sizeof(int),     (void**)&bucket_lda);
+      CTF_alloc_ptr(tsr->order*sizeof(int),     (void**)&virt_phase);
+      num_virt = 1;
+      /* Setup rank/phase arrays, given current mapping */
+      for (i=0; i<tsr->order; i++){
+        map               = tsr->edge_map + i;
+        phys_phase[i]     = calc_phase(map);
+        virt_phase[i]     = phys_phase[i]/calc_phys_phase(map);
+        virt_phys_rank[i] = calc_phys_rank(map, tsr->topo)
+                            *virt_phase[i];
+        num_virt          = num_virt*virt_phase[i];
+        if (map->type == PHYSICAL_MAP)
+          bucket_lda[i] = topovec[tsr->itopo].lda[map->cdt];
+        else
+          bucket_lda[i] = 0;
+      }
+
+      wr_pairs_layout(tsr->order,
+                      global_comm.np,
+                      num_pair,
+                      alpha,
+                      beta,
+                      rw,
+                      num_virt,
+                      tsr->sym,
+                      tsr->edge_len,
+                      tsr->padding,
+                      phys_phase,
+                      virt_phase,
+                      virt_phys_rank,
+                      bucket_lda,
+                      mapped_data,
+                      tsr->data,
+                      global_comm);
+
+      CTF_free(phys_phase);
+      CTF_free(virt_phys_rank);
+      CTF_free(bucket_lda);
+      CTF_free(virt_phase);
+
+    } else {
+      DEBUG_PRINTF("SHOULD NOT BE HERE, ALWAYS MAP ME\n");
+    }
+    TAU_FSTOP(write_pairs);
+  }
+
+
+  int tensor::read_local(int64_t *           num_pair,
+                        pair **             mapped_data){
+    int i, num_virt, idx_lyr;
+    int64_t np;
+    int * virt_phase, * virt_phys_rank, * phys_phase;
+    tensor * tsr;
+    pair * pairs;
+    mapping * map;
+
+    TAU_FSTART(read_local_pairs);
+
+    tsr = this;
+    if (tsr->has_zero_edge_len){
+      *num_pair = 0;
+      return CTF_SUCCESS;
+    }
+    tsr->unmap_inner();
+    tsr->set_padding();
+
+
+    if (!tsr->is_mapped){
+      *num_pair = tsr->size;
+      *mapped_data = tsr->pairs;
+      return;
+    } else {
+      np = tsr->size;
+
+      CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)&virt_phase);
+      CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)&phys_phase);
+      CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)&virt_phys_rank);
+
+
+      num_virt = 1;
+      idx_lyr = global_comm.rank;
+      for (i=0; i<tsr->order; i++){
+        /* Calcute rank and phase arrays */
+        map               = tsr->edge_map + i;
+        phys_phase[i]     = calc_phase(map);
+        virt_phase[i]     = phys_phase[i]/calc_phys_phase(map);
+        virt_phys_rank[i] = calc_phys_rank(map, tsr->topo)
+                                                *virt_phase[i];
+        num_virt          = num_virt*virt_phase[i];
+
+        if (map->type == PHYSICAL_MAP)
+          idx_lyr -= tsr->topo->lda[map->cdt]
+                                  *virt_phys_rank[i]/virt_phase[i];
+      }
+      if (idx_lyr == 0){
+        read_loc_pairs(tsr->order, np, num_virt,
+                       tsr->sym, tsr->edge_len, tsr->padding,
+                       virt_phase, phys_phase, virt_phys_rank, num_pair,
+                       tsr->data, &pairs); 
+        *mapped_data = pairs;
+      } else {
+        *mapped_data = NULL;
+        *num_pair = 0;
+      }
+
+
+      CTF_free((void*)virt_phase);
+      CTF_free((void*)phys_phase);
+      CTF_free((void*)virt_phys_rank);
+
+      TAU_FSTOP(read_local_pairs);
+      return;
+    }
+    TAU_FSTOP(read_local_pairs);
 
   }
 }

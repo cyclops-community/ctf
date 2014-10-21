@@ -116,7 +116,7 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::write(int64_t             npair,
                             Pair<dtype> const * pairs) {
-    int ret = CTF_int::tensor::write(npair, pairs);
+    int ret = CTF_int::tensor::write(npair, 1.0, 0.0, pairs);
     assert(ret == SUCCESS);
   }
 
@@ -283,7 +283,7 @@ namespace CTF {
                             Tensor const & A,
                             int const *    offsets_A,
                             int const *    ends_A,
-                            dtype          alpha) const {
+                            dtype          alpha){
     int ret, np_A, np_B;
     if (A.wrld->comm != wrld->comm){
       MPI_Comm_size(A.wrld->comm, &np_A);
@@ -308,7 +308,7 @@ namespace CTF {
                             Tensor const & A,
                             int64_t        corner_off_A,
                             int64_t        corner_end_A,
-                            dtype          alpha) const {
+                            dtype          alpha){
     int * offsets, * ends, * offsets_A, * ends_A;
    
     conv_idx(this->order, this->len, corner_off, &offsets);
@@ -387,7 +387,7 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::align(const Tensor& A){
-    if (A.wrld->global_comm.cm != wrld->global_comm.cm) {
+    if (A.wrld->cdt.cm != wrld->cdt.cm) {
       printf("ERROR: cannot align tensors on different CTF instances\n");
       assert(0);
     }
@@ -427,8 +427,8 @@ namespace CTF {
     conv_idx(A.order, idx_A, &idx_map_A,
              B.order, idx_B, &idx_map_B,
                order, idx_C, &idx_map_C);
-    assert(A.wrld->global_comm.cm == wrld->global_comm.cm);
-    assert(B.wrld->global_comm.cm == wrld->global_comm.cm);
+    assert(A.wrld->cdt.cm == wrld->cdt.cm);
+    assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
       = CTF_int::contraction(A, idx_map_A, B, idx_map_B, alpha, 
                                            this, idx_map_C, beta);
@@ -451,8 +451,8 @@ namespace CTF {
     conv_idx(A.order, idx_A, &idx_map_A,
              B.order, idx_B, &idx_map_B,
                order, idx_C, &idx_map_C);
-    assert(A.wrld->global_comm.cm == wrld->global_comm.cm);
-    assert(B.wrld->global_comm.cm == wrld->global_comm.cm);
+    assert(A.wrld->cdt.cm == wrld->cdt.cm);
+    assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
       = CTF_int::contraction(A, idx_map_A, B, idx_map_B, 
                                            this, idx_map_C, fseq);
@@ -473,7 +473,7 @@ namespace CTF {
     int * idx_map_A, * idx_map_B;
     conv_idx(A.order, idx_A, &idx_map_A,
                order, idx_B, &idx_map_B);
-    assert(A.wrld->global_comm.cm == wrld->global_comm.cm);
+    assert(A.wrld->cdt.cm == wrld->cdt.cm);
 
     CTF_int::summation sum 
       = CTF_int::summation(A, idx_map_A, alpha, this, idx_map_B, beta);
@@ -492,7 +492,7 @@ namespace CTF {
     int * idx_map_A, * idx_map_B;
     conv_idx(A.order, idx_A, &idx_map_A,
                order, idx_B, &idx_map_B);
-    assert(A.wrld->global_comm.cm == wrld->global_comm.cm);
+    assert(A.wrld->cdt.cm == wrld->cdt.cm);
     
     CTF_int::summation sum 
       = CTF_int::summation(A, idx_map_A, this, idx_map_B, fseq);

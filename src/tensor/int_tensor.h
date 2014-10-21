@@ -6,6 +6,7 @@
 #include "../mapping/int_mapping.h"
 #include "../mapping/int_distribution.h"
 #include "../interface/world.h"
+#include "int_semiring.h"
 
 namespace CTF_int {
 
@@ -235,28 +236,21 @@ namespace CTF_int {
        */
       void get_raw_data(char ** data, int64_t * size);
 
-      /**
-       * \brief  Input tensor data with <key, value> pairs where key is the
-       *              global index for the value. 
-       * \param[in] num_pair number of pairs to write
-       * \param[in] mapped_data pairs to write
-       */
-      int write(int64_t                  num_pair,
-                       pair * const             mapped_data);
-
       /** 
        * \brief  Add tensor data new=alpha*new+beta*old
        *         with <key, value> pairs where key is the 
        *         global index for the value. 
        * \param[in] num_pair number of pairs to write
-       * \param[in] alpha scaling factor of written value
-       * \param[in] beta scaling factor of old value
+       * \param[in] alpha scaling factor of written (read) value
+       * \param[in] beta scaling factor of old (existing) value
        * \param[in] mapped_data pairs to write
+       * \param[in] rw weather to read (r) or write (w)
        */
        int write(int64_t                  num_pair,
                        char const *             alpha,
                        char const *             beta,
-                       pair * const             mapped_data);
+                       pair *             mapped_data,
+                       char const rw = 'w');
 
       /**
        * \brief read tensor data with <key, value> pairs where key is the
@@ -316,7 +310,7 @@ namespace CTF_int {
                  tensor const * A,
                  int const *    offsets_A,
                  int const *    ends_A,
-                 char const *   alpha) const;
+                 char const *   alpha);
      
       /* Same as above, except tid_B lives on dt_other_B */
 /*      int slice_tensor(int            tid_A,
