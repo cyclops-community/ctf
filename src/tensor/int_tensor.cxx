@@ -78,16 +78,16 @@ namespace CTF_int {
                (sizeof(int64_t)+sr.el_size)*other->size);
       } 
       if (this->is_folded){
-        del_tsr(this->rec_tsr);
+        delete this->rec_tsr;
       }
       this->is_folded = other->is_folded;
       if (other->is_folded){
         tensor * itsr = other->rec_tsr;
-        Tensor * rtsr = Tensor(itsr->sr, itsr->lens, itsr->sym, itsr->wrld, 0);
+        tensor * rtsr = new tensor(itsr->sr, itsr->order, itsr->lens, itsr->sym, itsr->wrld, 0);
         CTF_alloc_ptr(sizeof(int)*other->order, 
-                         (void**)&this->inner_ording);
-        for (i=0; i<other->order; i++){
-          this->inner_ording[i] = other->inner_ording[i];
+                         (void**)&this->inner_ordering);
+        for (int i=0; i<other->order; i++){
+          this->inner_ordering[i] = other->inner_ordering[i];
         }
         this->rec_tsr = rtsr;
       }
@@ -99,7 +99,7 @@ namespace CTF_int {
       memcpy(this->sym_table, other->sym_table, sizeof(int)*other->order*other->order);
       this->is_mapped      = other->is_mapped;
       this->is_cyclic      = other->is_cyclic;
-      this->itopo          = other->itopo;
+      this->topo       = other->topo;
       if (other->is_mapped)
         copy_mapping(other->order, other->edge_map, this->edge_map);
       this->size = other->size;
@@ -122,8 +122,8 @@ namespace CTF_int {
     this->sr                 = sr;
     this->is_scp_padded      = 0;
     this->is_mapped          = 0;
-    this->itopo              = -1;
-    this->is_alloced         = 1;
+    this->topo           = NULL;
+    //this->is_alloced         = 1;
     this->is_cyclic          = 1;
     this->size               = 0;
     this->is_folded          = 0;
@@ -177,7 +177,7 @@ namespace CTF_int {
     CTF_alloc_ptr(sizeof(int)*this->order, (void**)&phase);
     for (i=0; i<this->order; i++){
       map = this->edge_map + i;
-      phase[i] = calc_phase(map);
+      phase[i] = map->calc_phase();
     }
     return phase;  
   }
@@ -273,7 +273,7 @@ namespace CTF_int {
             LIBT_ASSERT(0);
             return CTF_ERROR;
           } else if (map_success == CTF_SUCCESS){
-            this->itopo = i;
+            this->topo = topovec[i];
             this->set_padding();
             memuse = (int64_t)this->size;
 
@@ -315,7 +315,7 @@ namespace CTF_int {
                                  this->edge_map);
         LIBT_ASSERT(map_success == CTF_SUCCESS);
 
-        this->itopo = btopo;
+        this->topo = topovec[btopo];
 
         CTF_free(restricted);
 
@@ -451,8 +451,7 @@ namespace CTF_int {
     if (order == 0 && wlrd->rank == 0){
       MPI_Allreduce(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->cm);
       ASSERT(sub_root_rank == greater_world->rank);
-      distribution dstrib;
-      save_mapping(this, dstrib, &wrld->topovec[this->itopo]);
+      distribution dstrib = distribution(this);
       int bsz;
       dstrib.serialize(&buffer, &bsz);
       ASSERT(bsz == buf_sz);
@@ -494,7 +493,7 @@ namespace CTF_int {
     if (fw_mirror_rank >= 0){
       char * sbuffer;
       distribution ndstr;
-      save_mapping(this, ndstr, &wrld->topovec[this->itopo]);
+      save_mapping(this, ndstr, &wrld->topovec[this->topo]);
       int bsz;
       ndstr.serialize(&sbuffer, &bsz);
       ASSERT(bsz == buf_sz);
@@ -623,7 +622,7 @@ namespace CTF_int {
       CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
       SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
       World dt_self = World(cdt, 0, NULL, 0);
-      Tensor stsr = Tensor(sr, 0, NULL, NULL, &dt_self);
+      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self);
       slice(offsets, offsets, alpha, this, stsr, NULL, NULL, beta);
     } else {
       slice(offsets, lens, alpha, this, tsr_sub, offsets, lens, beta);
@@ -635,7 +634,7 @@ namespace CTF_int {
     tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
     distribution idst;
-    save_mapping(this, idst, &topovec[this->itopo]);
+    save_mapping(this, idst, &topovec[this->topo]);
 
     redistribute(sym, global_comm, idst, this->data, alpha, 
                                    odst, sub_buffer,      beta);
@@ -669,7 +668,7 @@ namespace CTF_int {
       CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
       SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
       World dt_self = World(cdt, 0, NULL, 0);
-      Tensor stsr = Tensor(sr, 0, NULL, NULL, &dt_self);
+      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self);
       stsr->slice(NULL, NULL, alpha, this, tsr_sub, offsets, offsets, beta);
     } else {
       tsr_sub->slice(offsets, lens, alpha, this, tsr_sub, offsets, lens, beta);
@@ -681,7 +680,7 @@ namespace CTF_int {
     tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
     distribution idst;
-    save_mapping(this, idst, &topovec[this->itopo]);
+    save_mapping(this, idst, &topovec[this->topo]);
 
     redistribute(sym, global_comm, odst, sub_buffer,     alpha,
                                    idst, this->data,  beta);
@@ -741,7 +740,7 @@ namespace CTF_int {
                             *virt_phase[i];
         num_virt          = num_virt*virt_phase[i];
         if (map->type == PHYSICAL_MAP)
-          bucket_lda[i] = topovec[tsr->itopo].lda[map->cdt];
+          bucket_lda[i] = topovec[tsr->topo].lda[map->cdt];
         else
           bucket_lda[i] = 0;
       }
@@ -843,6 +842,124 @@ namespace CTF_int {
       return;
     }
     TAU_FSTOP(read_local_pairs);
+
+  }
+
+  void tensor::unfold(){
+    int i, j, nvirt, allfold_dim;
+    int * all_edge_len, * sub_edge_len;
+    if (this->is_folded){
+      CTF_alloc_ptr(this->ndim*sizeof(int), (void**)&all_edge_len);
+      CTF_alloc_ptr(this->ndim*sizeof(int), (void**)&sub_edge_len);
+      calc_dim(this->ndim, this->size, this->edge_len, this->edge_map,
+               NULL, sub_edge_len, NULL);
+      allfold_dim = 0;
+      for (i=0; i<this->ndim; i++){
+        if (this->sym[i] == NS){
+          j=1;
+          while (i-j >= 0 && this->sym[i-j] != NS) j++;
+          all_edge_len[allfold_dim] = sy_packed_size(j, sub_edge_len+i-j+1,
+                                                     this->sym+i-j+1);
+          allfold_dim++;
+        }
+      }
+      nvirt = this->calc_nvirt();
+      for (i=0; i<nvirt; i++){
+        nosym_transpose(sr, allfold_dim, this->inner_ordering, all_edge_len, 
+                               this->data + i*(this->size/nvirt), 0);
+      }
+      delete this->rec_tsr;
+      CTF_free(this->inner_ordering);
+      CTF_free(all_edge_len);
+      CTF_free(sub_edge_len);
+
+    }  
+    this->is_folded = 0;
+  }
+
+  void tensor::fold(int       nfold,
+                int const *     fold_idx,
+                int const *     idx_map,
+                int *           all_fdim,
+                int **          all_flen){
+    int i, j, k, fdim, allfold_dim, is_fold, fold_dim;
+    int * sub_edge_len, * fold_edge_len, * all_edge_len, * dim_order;
+    int * fold_sym;
+    tensor * fold_tsr;
+    
+    if (this->is_folded != 0) this->unfold_tsr();
+    
+    CTF_alloc_ptr(this->ndim*sizeof(int), (void**)&sub_edge_len);
+
+    allfold_dim = 0, fold_dim = 0;
+    for (j=0; j<this->ndim; j++){
+      if (this->sym[j] == NS){
+        allfold_dim++;
+        for (i=0; i<nfold; i++){
+          if (fold_idx[i] == idx_map[j])
+            fold_dim++;
+        }
+      }
+    }
+    CTF_alloc_ptr(allfold_dim*sizeof(int), (void**)&all_edge_len);
+    CTF_alloc_ptr(allfold_dim*sizeof(int), (void**)&dim_order);
+    CTF_alloc_ptr(fold_dim*sizeof(int), (void**)&fold_edge_len);
+    CTF_alloc_ptr(fold_dim*sizeof(int), (void**)&fold_sym);
+
+    calc_dim(this->ndim, this->size, this->edge_len, this->edge_map,
+       NULL, sub_edge_len, NULL);
+
+    allfold_dim = 0, fdim = 0;
+    for (j=0; j<this->ndim; j++){
+      if (this->sym[j] == NS){
+        k=1;
+        while (j-k >= 0 && this->sym[j-k] != NS) k++;
+        all_edge_len[allfold_dim] = sy_packed_size(k, sub_edge_len+j-k+1,
+                                                    this->sym+j-k+1);
+        is_fold = 0;
+        for (i=0; i<nfold; i++){
+          if (fold_idx[i] == idx_map[j]){
+            k=1;
+            while (j-k >= 0 && this->sym[j-k] != NS) k++;
+            fold_edge_len[fdim] = sy_packed_size(k, sub_edge_len+j-k+1,
+                                                 this->sym+j-k+1);
+            is_fold = 1;
+          }
+        }
+        if (is_fold) {
+          dim_order[fdim] = allfold_dim;
+          fdim++;
+        } else
+          dim_order[fold_dim+allfold_dim-fdim] = allfold_dim;
+        allfold_dim++;
+      }
+    }
+    std::fill(fold_sym, fold_sym+fold_dim, NS);
+    fold_tsr = new tensor(sr, fold_dim, fold_edge_len, fold_sym, wrld, 0);
+
+    this->is_folded      = 1;
+    this->rec_tsr        = fold_tsr;
+    this->inner_ordering = dim_order;
+
+    *all_fdim = allfold_dim;
+    *all_flen = all_edge_len;
+
+    CTF_free(fold_edge_len);
+    CTF_free(fold_sym);
+    
+    CTF_free(sub_edge_len);
+
+  }
+  
+  void tensor::pull_alias(tensor const * other){
+    if (other->is_data_aliased){
+      this->topo = other->topo;
+      copy_mapping(other->ndim, other->edge_map, 
+                   this->edge_map);
+      this->data = other->data;
+      this->is_home = other->is_home;
+      this->set_padding();
+    }
 
   }
 }

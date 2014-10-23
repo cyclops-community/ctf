@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = int_mapping.o 
+OBJS = int_mapping.o int_distribution.o
 
 ctf: $(OBJS) 
 

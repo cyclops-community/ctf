@@ -13,7 +13,7 @@ namespace CTF_int {
     order = -1;
   }
 
-  distribution::distribution(tensor const & tsr){
+  distribution::distribution(tensor const * tsr){
     CTF_alloc_ptr(sizeof(int)*order, (void**)&phase);
     CTF_alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
     CTF_alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
@@ -21,8 +21,8 @@ namespace CTF_int {
     CTF_alloc_ptr(sizeof(int)*order, (void**)&padding);
     CTF_alloc_ptr(sizeof(int)*order, (void**)&perank);
    
-    order = tsr.order;
-    size = tsr.size;
+    order = tsr->order;
+    size = tsr->size;
  
     for (j=0; j<tsr->order; j++){
       mapping * map = tsr->edge_map + j;

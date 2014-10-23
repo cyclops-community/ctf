@@ -71,21 +71,21 @@ namespace CTF_int {
       /**
        * \brief initializes tensor data
        * \param[in] sr defines the tensor arithmetic for this tensor
-       * \param[in] ord number of dimensions of tensor
+       * \param[in] order number of dimensions of tensor
        * \param[in] edge_len edge lengths of tensor
        * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
        * \param[in] wrld a distributed context for the tensor to live in
        * \param[in] name_an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      int init(semiring sr,
-               int ord,
-               int const * edge_len,
-               int const * sym,
-               CTF::World * wrld,
-               bool alloc_data,
-               char const * name,
-               bool profile);
+      void init(semiring sr,
+                int order,
+                int const * edge_len,
+                int const * sym,
+                CTF::World * wrld,
+                bool alloc_data,
+                char const * name,
+                bool profile);
     public:
       /** \brief distributed processor context on which tensor is defined */
       CTF::World * wrld;
@@ -161,7 +161,7 @@ namespace CTF_int {
       /**
        * \brief defines a tensor object with some mapping (if alloc_data)
        * \param[in] sr defines the tensor arithmetic for this tensor
-       * \param[in] ord number of dimensions of tensor
+       * \param[in] order number of dimensions of tensor
        * \param[in] edge_len edge lengths of tensor
        * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
        * \param[in] wrld a distributed context for the tensor to live in
@@ -169,7 +169,7 @@ namespace CTF_int {
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
       tensor(semiring sr,
-             int ord,
+             int order,
              int const * edge_len,
              int const * sym,
              CTF::World * wrld,
@@ -429,6 +429,34 @@ namespace CTF_int {
                              char const * alpha,
                              char const * beta);
 
+      /**
+       * \brief undo the folding of a local tensor block
+       *        unsets is_folded and deletes rec_tsr
+       */
+      void unfold();
+
+      /**
+       * \brief fold a tensor by putting the symmetry-preserved 
+       *        portion in the leading dimensions of the tensor
+       *        sets is_folded and creates rec_tsr with aliased data
+       *
+       * \param[in] nfold number of global indices we are folding
+       * \param[in] fold_idx which global indices we are folding
+       * \param[in] idx_map how this tensor indices map to the global indices
+       * \param[out] all_fdim number of dimensions including unfolded dimensions
+       * \param[out] all_flen edge lengths including unfolded dimensions
+       */
+      void fold(int       nfold,
+                int const *     fold_idx,
+                int const *     idx_map,
+                int *           all_fdim,
+                int **          all_flen);
+
+      /**
+        * \brief pulls data from an tensor with an aliased buffer
+        * \param[in] other tensor with aliased data to pull from
+        */ 
+      void pull_alias(tensor const * other);
   };
 }
 

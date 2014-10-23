@@ -33,7 +33,7 @@ namespace CTF_int {
        * \brief create distribution object which defines a tensor's data decomposition
        * \param[in] tsr tensor whose distribution to record
        */
-      distribution(tensor const & tsr);
+      distribution(tensor const * tsr);
 
       /**
        * \brief create distribution object by deserializing buffer
@@ -43,7 +43,7 @@ namespace CTF_int {
 
       /**
        * \brief serialize object into contiguous data buffer
-       * \param[out] buffer unallocated array into which to serialize
+        \param[out] buffer unallocated array into which to serialize
        * \param[out] size length of serialized array
       */
       void serialize(char ** buffer, int * size);

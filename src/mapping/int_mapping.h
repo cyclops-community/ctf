@@ -55,6 +55,16 @@ namespace CTF_int {
   int comp_dim_map(mapping const *  map_A,
                    mapping const *  map_B);
 
+  /**
+   * \brief copies mapping A to B
+   * \param[in] order number of dimensions
+   * \param[in] mapping_A mapping to copy from 
+   * \param[in,out] mapping_B mapping to copy to
+   */
+  void copy_mapping(int const        order,
+                    mapping const *  mapping_A,
+                    mapping *        mapping_B);
+
 }
 
 #endif
