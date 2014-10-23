@@ -1,10 +1,15 @@
 
+#include "../interface/common.h"
 #include "int_tensor.h"
 #include "../shared/util.h"
+#include "../shared/memcontrol.h"
+#include "../redistribution/int_sort.h"
 
 using namespace CTF;
 
 namespace CTF_int {
+
+  static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
   tensor::tensor(){
     order=-1;
@@ -127,7 +132,6 @@ namespace CTF_int {
     this->is_cyclic          = 1;
     this->size               = 0;
     this->is_folded          = 0;
-    this->is_matrix          = 0;
     this->is_data_aliased    = 0;
     this->has_zero_edge_len  = 0;
     this->is_home            = 0;
@@ -141,10 +145,10 @@ namespace CTF_int {
 
     this->pairs    = NULL;
     this->order     = order;
-    this->unpad_edge_len = (int*)CTF_alloc(order*sizeof(int));
-    memcpy(this->unpad_edge_len, unpad_edge_len, order*sizeof(int));
+    this->lens = (int*)CTF_alloc(order*sizeof(int));
+    memcpy(this->lens, edge_len, order*sizeof(int));
     this->pad_edge_len = (int*)CTF_alloc(order*sizeof(int));
-    memcpy(this->pad_edge_len, unpad_edge_len, order*sizeof(int));
+    memcpy(this->pad_edge_len, lens, order*sizeof(int));
     this->sym      = (int*)CTF_alloc(order*sizeof(int));
     memcpy(this->sym, sym, order*sizeof(int));
   
@@ -153,8 +157,8 @@ namespace CTF_int {
     this->edge_map  = (mapping*)CTF_alloc(sizeof(mapping)*order);
 
     /* initialize map array and symmetry table */
-    for (i=0; i<order; i++){
-      if (this->unpad_edge_len[i] <= 0) this->has_zero_edge_len = 1;
+    for (int i=0; i<order; i++){
+      if (this->lens[i] <= 0) this->has_zero_edge_len = 1;
       this->edge_map[i].type       = NOT_MAPPED;
       this->edge_map[i].has_child  = 0;
       this->edge_map[i].np         = 1;
@@ -198,7 +202,6 @@ namespace CTF_int {
     int64_t nvirt, tnvirt;
     mapping * map;
     nvirt = 1;
-    if (is_inner) return this->calc_tot_phase();
     for (j=0; j<this->order; j++){
       map = &this->edge_map[j];
       while (map->has_child) map = map->child;
@@ -225,15 +228,15 @@ namespace CTF_int {
 
     for (j=0; j<this->order; j++){
       map = this->edge_map + j;
-      new_phase[j] = calc_phase(map);
-      pad = this->unpad_edge_len[j]%new_phase[j];
+      new_phase[j] = map->calc_phase();
+      pad = this->lens[j]%new_phase[j];
       if (pad != 0) {
         pad = new_phase[j]-pad;
       }
       this->padding[j] = pad;
     }
     for (i=0; i<this->order; i++){
-      this->pad_edge_len[i] = this->unpad_edge_len[i] + this->padding[i];
+      this->pad_edge_len[i] = this->lens[i] + this->padding[i];
       sub_edge_len[i] = this->pad_edge_len[i]/new_phase[i];
     }
     this->size = calc_nvirt()*sy_packed_size(this->order, sub_edge_len, this->sym);
@@ -243,17 +246,17 @@ namespace CTF_int {
     CTF_free(new_phase);
   }
 
-  void tensor::set_zero() {
+  int tensor::set_zero() {
     int * restricted;
     int i, map_success, btopo;
     int64_t nvirt, bnvirt;
     int64_t memuse, bmemuse;
 
     if (this->is_mapped){
-      sr.set(this->data, sr.add_id, this->size);
+      sr.set(this->data, sr.addid, this->size);
     } else {
       if (this->pairs != NULL){
-        for (i=0; i<this->size; i++) this->pairs[i].d = sr.add_id;
+        sr.set(this->pairs, sr.addid, this->size);
       } else {
         CTF_alloc_ptr(this->order*sizeof(int), (void**)&restricted);
   //      memset(restricted, 0, this->order*sizeof(int));
@@ -261,19 +264,19 @@ namespace CTF_int {
         /* Map the tensor if necessary */
         bnvirt = UINT64_MAX, btopo = -1;
         bmemuse = UINT64_MAX;
-        for (i=global_comm.rank; i<(int)topovec.size(); i+=global_comm.np){
+        for (i=wrld->rank; i<wrld->topovec.size(); i+=wrld->np){
           this->clear_mapping();
           this->set_padding();
           memset(restricted, 0, this->order*sizeof(int));
-          map_success = map_tensor(topovec[i].order, this->order, this->pad_edge_len,
+          map_success = map_tensor(wrld->topovec[i].order, this->order, this->pad_edge_len,
                                    this->sym_table, restricted,
-                                   topovec[i].dim_comm, NULL, 0,
+                                   wrld->topovec[i].dim_comm, NULL, 0,
                                    this->edge_map);
-          if (map_success == CTF_ERROR) {
-            LIBT_ASSERT(0);
-            return CTF_ERROR;
-          } else if (map_success == CTF_SUCCESS){
-            this->topo = topovec[i];
+          if (map_success == ERROR) {
+            ASSERT(0);
+            return ERROR;
+          } else if (map_success == SUCCESS){
+            this->topo = &wrld->topovec[i];
             this->set_padding();
             memuse = (int64_t)this->size;
 
@@ -283,7 +286,7 @@ namespace CTF_int {
             }
 
             nvirt = (int64_t)this->calc_nvirt();
-            LIBT_ASSERT(nvirt != 0);
+            ASSERT(nvirt != 0);
             if (btopo == -1 || nvirt < bnvirt){
               bnvirt = nvirt;
               btopo = i;
@@ -298,24 +301,24 @@ namespace CTF_int {
           bnvirt = UINT64_MAX;
         /* pick lower dimensional mappings, if equivalent */
         ///btopo = get_best_topo(bnvirt, btopo, global_comm, 0, bmemuse);
-        btopo = get_best_topo(bmemuse, btopo, global_comm);
+        btopo = get_best_topo(bmemuse, btopo, wrld->cdt);
 
         if (btopo == -1 || btopo == INT_MAX) {
-          if (global_comm.rank==0)
+          if (wrld->rank==0)
             printf("ERROR: FAILED TO MAP TENSOR\n");
-          return CTF_ERROR;
+          return ERROR;
         }
 
         memset(restricted, 0, this->order*sizeof(int));
         this->clear_mapping();
         this->set_padding();
-        map_success = map_tensor(topovec[btopo].order, this->order,
+        map_success = map_tensor(wrld->topovec[btopo].order, this->order,
                                  this->pad_edge_len, this->sym_table, restricted,
-                                 topovec[btopo].dim_comm, NULL, 0,
+                                 wrld->topovec[btopo].dim_comm, NULL, 0,
                                  this->edge_map);
-        LIBT_ASSERT(map_success == CTF_SUCCESS);
+        ASSERT(map_success == SUCCESS);
 
-        this->topo = topovec[btopo];
+        this->topo = &wrld->topovec[btopo];
 
         CTF_free(restricted);
 
@@ -324,40 +327,41 @@ namespace CTF_int {
 
      
 #ifdef HOME_CONTRACT 
-      if (this->order > 0){
-        this->home_size = this->size; //MAX(1024+this->size, 1.20*this->size);
-        this->is_home = 1;
-        this->has_home = 1;
-        //this->is_home = 0;
-        //this->has_home = 0;
-/*        if (global_comm.rank == 0)
-          DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
-        CTF_alloc_ptr(this->home_size*sr.el_size, (void**)&this->home_buffer);
-        this->data = this->home_buffer;
-      } else {
-        CTF_alloc_ptr(this->size*sr.el_size, (void**)&this->data);
-      }
+        if (this->order > 0){
+          this->home_size = this->size; //MAX(1024+this->size, 1.20*this->size);
+          this->is_home = 1;
+          this->has_home = 1;
+          //this->is_home = 0;
+          //this->has_home = 0;
+  /*        if (wrld->rank == 0)
+            DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
+          CTF_alloc_ptr(this->home_size*sr.el_size, (void**)&this->home_buffer);
+          this->data = this->home_buffer;
+        } else {
+          CTF_alloc_ptr(this->size*sr.el_size, (void**)&this->data);
+        }
 #else
-      CTF_mst_alloc_ptr(this->size*sr.el_size, (void**)&this->data);
+        CTF_mst_alloc_ptr(this->size*sr.el_size, (void**)&this->data);
 #endif
 #if DEBUG >= 2
-      if (global_comm.rank == 0)
-        printf("New tensor defined:\n");
-      this->print_map(stdout);
+        if (wrld->rank == 0)
+          printf("New tensor defined:\n");
+        this->print_map(stdout);
 #endif
-      sr.set(this->data, sr.add_id, this->size);
+        sr.set(this->data, sr.addid, this->size);
+      }
     }
-
+    return SUCCESS;
   }
 
-  void tensor::print_map(FILE * stream) const{
+  void tensor::print_map(FILE * stream) const {
 
       printf("CTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
-        int tp = calc_phase(edge_map+dim);
-        int pp = calc_phys_phase(edge_map+dim);
+        int tp = edge_map[dim].calc_phase();
+        int pp = edge_map[dim].calc_phys_phase();
         int vp = tp/pp;
-        printf("CTF: %2s %5d %5d %5d %5d\n", SY_strings[sym[dim]], unpad_edge_len[dim], tp, pp, vp);
+        printf("CTF: %2s %5d %5d %5d %5d\n", SY_strings[sym[dim]], lens[dim], tp, pp, vp);
       }
   }
    
@@ -365,7 +369,7 @@ namespace CTF_int {
     name = name_;
   }
 
-  void tensor::get_name(char const * name_){
+  char const * tensor::get_name(){
     return name;
   }
 
@@ -402,13 +406,13 @@ namespace CTF_int {
       if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
         blk_sz_B = 0;
       } else {
-        tsr_B->read_local_pairs(&sz_B, &all_data_B);
+        tsr_B->read_local(&sz_B, &all_data_B);
         //permute all_data_B
-        permute_keys(tsr_B->order, sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, &blk_sz_B);
+        permute_keys(tsr_B->order, sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, &blk_sz_B, sr);
       }
       ret = tsr_A->write(blk_sz_B, 1.0, 0.0, all_data_B, 'r');  
       if (blk_sz_B > 0)
-        depermute_keys(tsr_B->order, blk_sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B);
+        depermute_keys(tsr_B->order, blk_sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, sr);
       all_data_A = all_data_B;
       blk_sz_A = blk_sz_B;
     } else {
@@ -420,7 +424,7 @@ namespace CTF_int {
         ASSERT(permutation_B == NULL);
         tsr_A->read_local_pairs(&sz_A, &all_data_A);
         //permute all_data_A
-        permute_keys(tsr_A->order, sz_A, tsr_A->lens, tsr_B->lens, permutation_A, all_data_A, &blk_sz_A);
+        permute_keys(tsr_A->order, sz_A, tsr_A->lens, tsr_B->lens, permutation_A, all_data_A, &blk_sz_A, sr);
       }
     }
 
@@ -443,12 +447,12 @@ namespace CTF_int {
     MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, greater_world->cm);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
     //this should in most sane cases ensure that a unique subcomm is involved
-    if (order == 0) ASSERT(tot_sub == wlrd->np);
+    if (order == 0) ASSERT(tot_sub == wrld->np);
 
     int sub_root_rank = 0;
     int buf_sz = get_distribution_size(order);
     char * buffer;
-    if (order == 0 && wlrd->rank == 0){
+    if (order == 0 && wrld->rank == 0){
       MPI_Allreduce(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->cm);
       ASSERT(sub_root_rank == greater_world->rank);
       distribution dstrib = distribution(this);
@@ -468,8 +472,8 @@ namespace CTF_int {
     fw_mirror_rank = -1;
     MPI_Request req;
     if (order == 0){
-      fw_mirror_rank = wlrd->rank;
-      MPI_Isend(&(greater_world->rank), 1, MPI_INT, wlrd->rank, 13, greater_world->cm, &req);
+      fw_mirror_rank = wrld->rank;
+      MPI_Isend(&(greater_world->rank), 1, MPI_INT, wrld->rank, 13, greater_world->cm, &req);
     }
     if (greater_world->rank < tot_sub){
       MPI_Status stat;
@@ -634,7 +638,7 @@ namespace CTF_int {
     tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
     distribution idst;
-    save_mapping(this, idst, &topovec[this->topo]);
+    save_mapping(this, idst, &wlrd->topovec[this->topo]);
 
     redistribute(sym, global_comm, idst, this->data, alpha, 
                                    odst, sub_buffer,      beta);
@@ -680,7 +684,7 @@ namespace CTF_int {
     tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
     distribution idst;
-    save_mapping(this, idst, &topovec[this->topo]);
+    save_mapping(this, idst, &wrld->topovec[this->topo]);
 
     redistribute(sym, global_comm, odst, sub_buffer,     alpha,
                                    idst, this->data,  beta);
@@ -701,7 +705,7 @@ namespace CTF_int {
     tensor * tsr;
 
   #if DEBUG >= 1
-    if (global_comm.rank == 0){
+    if (wrld->rank == 0){
    /*   if (rw == 'w')
         printf("Writing data to tensor %d\n", tensor_id);
       else
@@ -734,19 +738,19 @@ namespace CTF_int {
       /* Setup rank/phase arrays, given current mapping */
       for (i=0; i<tsr->order; i++){
         map               = tsr->edge_map + i;
-        phys_phase[i]     = calc_phase(map);
+        phys_phase[i]     = map->calc_phase();
         virt_phase[i]     = phys_phase[i]/calc_phys_phase(map);
         virt_phys_rank[i] = calc_phys_rank(map, tsr->topo)
                             *virt_phase[i];
         num_virt          = num_virt*virt_phase[i];
         if (map->type == PHYSICAL_MAP)
-          bucket_lda[i] = topovec[tsr->topo].lda[map->cdt];
+          bucket_lda[i] = wrld->topovec[tsr->topo].lda[map->cdt];
         else
           bucket_lda[i] = 0;
       }
 
       wr_pairs_layout(tsr->order,
-                      global_comm.np,
+                      wrld->np,
                       num_pair,
                       alpha,
                       beta,
@@ -789,7 +793,7 @@ namespace CTF_int {
     tsr = this;
     if (tsr->has_zero_edge_len){
       *num_pair = 0;
-      return CTF_SUCCESS;
+      return SUCCESS;
     }
     tsr->unmap_inner();
     tsr->set_padding();
@@ -808,11 +812,11 @@ namespace CTF_int {
 
 
       num_virt = 1;
-      idx_lyr = global_comm.rank;
+      idx_lyr = wrld->rank;
       for (i=0; i<tsr->order; i++){
         /* Calcute rank and phase arrays */
         map               = tsr->edge_map + i;
-        phys_phase[i]     = calc_phase(map);
+        phys_phase[i]     = map->calc_phase();
         virt_phase[i]     = phys_phase[i]/calc_phys_phase(map);
         virt_phys_rank[i] = calc_phys_rank(map, tsr->topo)
                                                 *virt_phase[i];
@@ -960,7 +964,18 @@ namespace CTF_int {
       this->is_home = other->is_home;
       this->set_padding();
     }
+  }
 
+  void tensor::clear_mapping(){
+    int j;
+    mapping * map;
+    for (j=0; j<this->order; j++){
+      map = this->edge_map + j;
+      map->clear();
+    }
+    this->itopo = -1;
+    this->is_mapped = 0;
+    this->is_folded = 0;
   }
 }
 

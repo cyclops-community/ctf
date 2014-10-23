@@ -73,7 +73,20 @@ namespace CTF_int {
   int find_topology(topology const &              topo, 
                     std::vector<topology>         topovec);
 
-  
+ 
+  /**
+   * \brief get the best topologoes (least nvirt) over all procs
+   * \param[in] nvirt best virtualization achieved by this proc
+   * \param[in] topo topology index corresponding to best virtualization
+   * \param[in] globla_comm is the global communicator
+   * return virtualization factor
+   */
+   int get_best_topo(uint64_t  nvirt,
+          int       topo,
+          CommData      global_comm,
+          uint64_t   bcomm_vol = 0,
+          uint64_t   bmemuse = 0);
+   
 }
 
 #endif

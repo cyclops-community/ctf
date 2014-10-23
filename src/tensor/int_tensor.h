@@ -203,7 +203,7 @@ namespace CTF_int {
       /**
        * \brief elects a mapping and sets tensor data to zero
        */
-      void set_zero();
+      int set_zero();
 
       /**
        * \brief displays mapping information
@@ -457,6 +457,10 @@ namespace CTF_int {
         * \param[in] other tensor with aliased data to pull from
         */ 
       void pull_alias(tensor const * other);
+
+    
+      /** \brief zeros out mapping */
+      void clear_mapping();
   };
 }
 

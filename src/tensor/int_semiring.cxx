@@ -1,6 +1,7 @@
 /*Copyright (c) 2014, Edgar Solomonik, all rights reserved.*/
 #include "../shared/util.h"
 #include "../../include/ctf_ext.hpp"
+#include "int_tensor.h"
 
 template <typename dtype>
 void dgemm(char          tA,
@@ -83,7 +84,6 @@ semiring::~semiring(){
 }
 
  
-// returns true if semiring elements a and b are equal
 bool semiring::isequal(char const * a, char const * b){
   bool iseq = true;
   for (int i=0; i<el_size; i++){
@@ -91,17 +91,14 @@ bool semiring::isequal(char const * a, char const * b){
   }
 }
     
-// copies element b to element a
 void semiring::copy(char * a, char const * b){
   memcpy(a, b, el_size);
 }
     
-// copies n elements from array b to array a
 void semiring::copy(char * a, char const * b, int64_t n){
   memcpy(a, b, el_size*n);
 }
 
-// sets n elements of array a to value b
 void semiring::set(char * a, char const * b, int64_t n){
   switch (el_size) {
     case 4:
@@ -124,6 +121,12 @@ void semiring::set(char * a, char const * b, int64_t n){
         memcpy(a+i*el_size, b, el_size);
       }
       break;
+  }
+}
+
+void semiring::set(pair * a, char const * b, int64_t n){
+  for (int i=0; i<n; i++){
+    memcpy(pair + n*(sizeof(int64_t)+el_size), b, el_size);
   }
 }
 

@@ -21,7 +21,6 @@
 typedef int64_t int64_t;
 typedef int64_t key;
 
-static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
 class tkv_pair {
   private:

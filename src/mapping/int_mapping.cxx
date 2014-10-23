@@ -63,6 +63,19 @@ namespace CTF_int {
     }
     return rank;
   }
+
+  void mapping::clear(){
+    if (this->type != NOT_MAPPED && this->has_child) {
+      this->child->clear();
+      delete this->child;
+    }
+    this->type = NOT_MAPPED;
+    this->np = 1;
+    this->has_child = 0;
+  }
+
+
+
   int comp_dim_map(mapping const *  map_A,
                    mapping const *  map_B){
     if (map_A->type == NOT_MAPPED &&
@@ -110,12 +123,12 @@ namespace CTF_int {
     return 1;
   }
 
-  void copy_mapping(int const        order,
+  void copy_mapping(int              order,
                     mapping const *  mapping_A,
                     mapping *        mapping_B){
     int i;
     for (i=0; i<order; i++){
-      clear_mapping(&mapping_B[i]);
+      mapping_B[i].clear();
     }
     memcpy(mapping_B, mapping_A, sizeof(mapping)*order);
     for (i=0; i<order; i++){
@@ -129,4 +142,124 @@ namespace CTF_int {
     }
   }
 
+  int copy_mapping(int          order_A,
+                   int          order_B,
+                   int const *    idx_A,
+                   mapping const *  mapping_A,
+                   int const *    idx_B,
+                   mapping *    mapping_B,
+                   int          make_virt = 1){
+    int i, order_tot, iA, iB;
+    int * idx_arr;
+
+
+    inv_idx(order_A, idx_A, mapping_A,
+            order_B, idx_B, mapping_B,
+            &order_tot, &idx_arr);
+
+    for (i=0; i<order_tot; i++){
+      iA = idx_arr[2*i];
+      iB = idx_arr[2*i+1];
+      if (iA == -1){
+        if (make_virt){
+          ASSERT(iB!=-1);
+          mapping_B[iB].type = VIRTUAL_MAP;
+          mapping_B[iB].np = 1;
+          mapping_B[iB].has_child = 0;
+        }
+      } else if (iB != -1){
+        mapping_B[iB].clear();
+        copy_mapping(1, mapping_A+iA, mapping_B+iB);
+      }
+    }
+    CTF_free(idx_arr);
+    return CTF_SUCCESS;
+  }
+
+  int map_tensor(int            num_phys_dims,
+                 int            tsr_order,
+                 int const *    tsr_edge_len,
+                 int const *    tsr_sym_table,
+                 int *          restricted,
+                 CommData  *  phys_comm,
+                 int const *    comm_idx,
+                 int            fill,
+                 mapping *      tsr_edge_map){
+    int i,j,max_dim,max_len,phase,ret;
+    mapping * map;
+
+    /* Make sure the starting mappings are consistent among symmetries */
+    ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
+    if (ret!=CTF_SUCCESS) return ret;
+
+    /* Assign physical dimensions */
+    for (i=0; i<num_phys_dims; i++){
+      max_len = -1;
+      max_dim = -1;
+      for (j=0; j<tsr_order; j++){
+        if (tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j) > max_len) {
+          /* if tsr dimension can be mapped */
+          if (!restricted[j]){
+            /* if tensor dimension not mapped ot physical dimension or
+               mapped to a physical dimension that can be folded with
+               this one */
+            if (tsr_edge_map[j].type != PHYSICAL_MAP || 
+                (fill && ((comm_idx == NULL && tsr_edge_map[j].cdt == i-1) ||
+                (comm_idx != NULL && tsr_edge_map[j].cdt == comm_idx[i]-1)))){
+              max_dim = j;  
+              max_len = tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j);
+            }
+          } 
+        }
+      }
+      if (max_dim == -1){
+        if (fill){
+          return CTF_NEGATIVE;
+        }
+        break;
+      }
+      map   = &(tsr_edge_map[max_dim]);
+  // FIXME: why?
+    //  map->has_child  = 0;
+      if (map->type != NOT_MAPPED){
+        while (map->has_child) map = map->child;
+        phase   = phys_comm[i].np;
+        if (map->type == VIRTUAL_MAP){
+          if (phys_comm[i].np != map->np){
+            phase     = lcm(map->np, phys_comm[i].np);
+            if ((phase < map->np || phase < phys_comm[i].np) || phase >= MAX_PHASE)
+              return CTF_NEGATIVE;
+            if (phase/phys_comm[i].np != 1){
+              map->has_child  = 1;
+              map->child    = (mapping*)CTF_alloc(sizeof(mapping));
+              map->child->type  = VIRTUAL_MAP;
+              map->child->np  = phase/phys_comm[i].np;
+              map->child->has_child = 0;
+            }
+          }
+        } else if (map->type == PHYSICAL_MAP){
+          if (map->has_child != 1)
+            map->child  = (mapping*)CTF_alloc(sizeof(mapping));
+          map->has_child  = 1;
+          map             = map->child;
+          map->has_child  = 0;
+        }
+      }
+      map->type     = PHYSICAL_MAP;
+      map->np     = phys_comm[i].np;
+      map->cdt    = (comm_idx == NULL) ? i : comm_idx[i];
+      if (!fill)
+        restricted[max_dim] = 1;
+      ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
+      if (ret!=CTF_SUCCESS) return ret;
+    }
+    for (i=0; i<tsr_order; i++){
+      if (tsr_edge_map[i].type == NOT_MAPPED){
+        tsr_edge_map[i].type        = VIRTUAL_MAP;
+        tsr_edge_map[i].np          = 1;
+        tsr_edge_map[i].has_child   = 0;
+      }
+    }
+    return CTF_SUCCESS;
+  }
 }

@@ -5,6 +5,138 @@
 
 namespace CTF_int {
 
+  class pair;
+
+  /**
+   * \brief semirings defined the elementwise operations computed 
+   *         in each tensor contraction
+   */
+  class semiring {
+    public: 
+      /** \brief size of each element of semiring in bytes */
+      int el_size;
+      /** \brief identity element for addition i.e. 0 */
+      char * addid;
+      /** \brief identity element for multiplication i.e. 1 */
+      char * mulid;
+      /** \brief MPI addition operation */
+      MPI_Op addmop;
+      /** \brief MPI datatype */
+      MPI_Datatype mdtype;
+
+      /** \brief c = a+b */
+      void (*add)(char const * a, 
+                  char const * b,
+                  char *       c);
+      
+      /** \brief c = a*b */
+      void (*mul)(char const * a, 
+                  char const * b,
+                  char *       c);
+
+      /** \brief X["i"]=alpha*X["i"]; */
+      void (*scal)(int          n,
+                   char const * alpha,
+                   char const * X,
+                   int          incX);
+
+      /** \brief Y["i"]+=alpha*X["i"]; */
+      void (*axpy)(int          n,
+                   char const * alpha,
+                   char const * X,
+                   int          incX,
+                   char       * Y,
+                   int          incY);
+
+      /** \brief beta*C["ij"]=alpha*A^tA["ik"]*B^tB["kj"]; */
+      void (*gemm)(char         tA,
+                   char         tB,
+                   int          m,
+                   int          n,
+                   int          k,
+                   char const * alpha,
+                   char const * A,
+                   char const * B,
+                   char const * beta,
+                   char *       C);
+
+    public:
+      /**
+       * \brief default constructor
+       */
+      semiring();
+
+
+      /**
+       * \brief copy constructor
+       * \param[in] other another semiring to copy from
+       */
+      semiring(semiring const &other);
+
+      /**
+       * \brief constructor creates semiring with all parameters
+       * \param[in] el_size number of bytes in each element in the semiring set
+       * \param[in] addid additive identity element 
+       *              (e.g. 0.0 for the (+,*) semiring over doubles)
+       * \param[in] mulid multiplicative identity element 
+       *              (e.g. 1.0 for the (+,*) semiring over doubles)
+       * \param[in] addmop addition operation to pass to MPI reductions
+       * \param[in] add function pointer to add c=a+b on semiring
+       * \param[in] mul function pointer to multiply c=a*b on semiring
+       * \param[in] gemm function pointer to multiply blocks C, A, and B on semiring
+       */
+      semiring(    int          el_size, 
+                   char const * addid,
+                   char const * mulid,
+                   MPI_Op       addmop,
+                   void (*add )(char const * a,
+                                char const * b,
+                                char       * c),
+                   void (*mul )(char const * a,
+                                char const * b,
+                                char       * c),
+                   void (*gemm)(char         tA,
+                                char         tB,
+                                int          m,
+                                int          n,
+                                int          k,
+                                char const * alpha,
+                                char const * A,
+                                char const * B,
+                                char const * beta,
+                                char *       C)=NULL,
+                   void (*axpy)(int          n,
+                                char const * alpha,
+                                char const * X,
+                                int          incX,
+                                char       * Y,
+                                int          incY)=NULL,
+                   void (*scal)(int          n,
+                                char const * alpha,
+                                char const * X,
+                                int          incX)=NULL);
+      /**
+       * \brief destructor frees addid and mulid
+       */
+      ~semiring();
+      
+      /** \brief returns true if semiring elements a and b are equal */
+      bool isequal(char const * a, char const * b);
+      
+      /** \brief copies element b to element a */
+      void copy(char * a, char const * b);
+      
+      /** \brief copies n elements from array b to array a */
+      void copy(char * a, char const * b, int64_t n);
+
+      /** \brief sets n elements of array a to value b */
+      void set(char * a, char const * b, int64_t n);
+      
+      /** \brief sets n elements of array of pairs a to value b */
+      void set(pair * a, char const * b, int64_t n);
+  };
+
+
   void sgemm(char           tA,
              char           tB,
              int            m,
@@ -85,8 +217,6 @@ namespace CTF_int {
       }
     }
   }
-
-
 
   template<>
   void default_gemm<float>
@@ -204,7 +334,6 @@ namespace CTF_int {
     czaxpy(n,alpha,X,incX,Y,incY);
   }
 
-
   template <typename dtype>
   void default_scal(int           n,
                     dtype         alpha,
@@ -236,128 +365,6 @@ namespace CTF_int {
       (int n, std::complex<double> alpha, std::complex<double> * X, int incX){
     czscal(n,alpha,X,incX);
   }
-
-  /**
-   * \brief semirings defined the elementwise operations computed 
-   *         in each tensor contraction
-   */
-  class semiring {
-    public: 
-      int el_size;
-      char * addid;
-      char * mulid;
-      MPI_Op addmop;
-      MPI_Datatype mdtype;
-
-      // c = a+b
-      void (*add)(char const * a, 
-                  char const * b,
-                  char *       c);
-      
-      // c = a*b
-      void (*mul)(char const * a, 
-                  char const * b,
-                  char *       c);
-
-      // X["i"]=alpha*X["i"];
-      void (*scal)(int          n,
-                   char const * alpha,
-                   char const * X,
-                   int          incX);
-
-      // Y["i"]+=alpha*X["i"];
-      void (*axpy)(int          n,
-                   char const * alpha,
-                   char const * X,
-                   int          incX,
-                   char       * Y,
-                   int          incY);
-
-      // beta*C["ij"]=alpha*A^tA["ik"]*B^tB["kj"];
-      void (*gemm)(char         tA,
-                   char         tB,
-                   int          m,
-                   int          n,
-                   int          k,
-                   char const * alpha,
-                   char const * A,
-                   char const * B,
-                   char const * beta,
-                   char *       C);
-
-    public:
-      /**
-       * \brief default constructor
-       */
-      semiring();
-
-
-      /**
-       * \brief copy constructor
-       * \param[in] other another semiring to copy from
-       */
-      semiring(semiring const &other);
-
-      /**
-       * \brief constructor creates semiring with all parameters
-       * \param[in] el_size number of bytes in each element in the semiring set
-       * \param[in] addid additive identity element 
-       *              (e.g. 0.0 for the (+,*) semiring over doubles)
-       * \param[in] mulid multiplicative identity element 
-       *              (e.g. 1.0 for the (+,*) semiring over doubles)
-       * \param[in] addmop addition operation to pass to MPI reductions
-       * \param[in] add function pointer to add c=a+b on semiring
-       * \param[in] mul function pointer to multiply c=a*b on semiring
-       * \param[in] gemm function pointer to multiply blocks C, A, and B on semiring
-       */
-      semiring(    int          el_size, 
-                   char const * addid,
-                   char const * mulid,
-                   MPI_Op       addmop,
-                   void (*add )(char const * a,
-                                char const * b,
-                                char       * c),
-                   void (*mul )(char const * a,
-                                char const * b,
-                                char       * c),
-                   void (*gemm)(char         tA,
-                                char         tB,
-                                int          m,
-                                int          n,
-                                int          k,
-                                char const * alpha,
-                                char const * A,
-                                char const * B,
-                                char const * beta,
-                                char *       C)=NULL,
-                   void (*axpy)(int          n,
-                                char const * alpha,
-                                char const * X,
-                                int          incX,
-                                char       * Y,
-                                int          incY)=NULL,
-                   void (*scal)(int          n,
-                                char const * alpha,
-                                char const * X,
-                                int          incX)=NULL);
-      /**
-       * \brief destructor frees addid and mulid
-       */
-      ~semiring();
-      
-      // returns true if semiring elements a and b are equal
-      bool isequal(char const * a, char const * b);
-      
-      // copies element b to element a
-      void copy(char * a, char const * b);
-      
-      // copies n elements from array b to array a
-      void copy(char * a, char const * b, int64_t n);
-
-      // sets n elements of array a to value b
-      void set(char * a, char const * b, int64_t n);
-  };
-
   template <typename dtype, dtype (*func)(dtype const a, dtype const b)>
   void detypedfunc(char const * a,
                    char const * b,

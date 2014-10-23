@@ -419,4 +419,43 @@ namespace CTF_int {
     return -1;  
   }
 
+  int get_best_topo(uint64_t   nvirt,
+          int        topo,
+          CommData      global_comm,
+          uint64_t   bcomm_vol = 0,
+          uint64_t   bmemuse = 0){
+
+      uint64_t gnvirt, nv, gcomm_vol, gmemuse, bv;
+      int btopo, gtopo;
+      nv = nvirt;
+      ALLREDUCE(&nv, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
+
+      ASSERT(gnvirt <= nvirt);
+
+      nv = bcomm_vol;
+      bv = bmemuse;
+      if (nvirt == gnvirt){
+        btopo = topo;
+      } else {
+        btopo = INT_MAX;
+        nv = UINT64_MAX;
+        bv = UINT64_MAX;
+      }
+      ALLREDUCE(&nv, &gcomm_vol, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
+      if (bcomm_vol != gcomm_vol){
+        btopo = INT_MAX;
+        bv = UINT64_MAX;
+      }
+      ALLREDUCE(&bv, &gmemuse, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
+      if (bmemuse != gmemuse){
+        btopo = INT_MAX;
+      }
+      ALLREDUCE(&btopo, &gtopo, 1, MPI_INT, MPI_MIN, global_comm);
+      /*printf("nvirt = " PRIu64 " bcomm_vol = " PRIu64 " bmemuse = " PRIu64 " topo = %d\n",
+        nvirt, bcomm_vol, bmemuse, topo);
+      printf("gnvirt = " PRIu64 " gcomm_vol = " PRIu64 " gmemuse = " PRIu64 " bv = " PRIu64 " nv = " PRIu64 " gtopo = %d\n",
+        gnvirt, gcomm_vol, gmemuse, bv, nv, gtopo);*/
+
+      return gtopo;
+  }
 }

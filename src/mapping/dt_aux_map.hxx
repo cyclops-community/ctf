@@ -220,54 +220,6 @@ int stretch_virt(int const order,
   return CTF_SUCCESS;
 }
 
-/**
- * \brief get the best topologoes (least nvirt) over all procs
- * \param[in] nvirt best virtualization achieved by this proc
- * \param[in] topo topology index corresponding to best virtualization
- * \param[in] globla_comm is the global communicator
- * return virtualization factor
- */
-inline
-int get_best_topo(uint64_t const  nvirt,
-		  int const       topo,
-		  CommData      global_comm,
-		  uint64_t const  bcomm_vol = 0,
-		  uint64_t const  bmemuse = 0){
-
-  uint64_t gnvirt, nv, gcomm_vol, gmemuse, bv;
-  int btopo, gtopo;
-  nv = nvirt;
-  ALLREDUCE(&nv, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
-
-  ASSERT(gnvirt <= nvirt);
-
-  nv = bcomm_vol;
-  bv = bmemuse;
-  if (nvirt == gnvirt){
-    btopo = topo;
-  } else {
-    btopo = INT_MAX;
-    nv = UINT64_MAX;
-    bv = UINT64_MAX;
-  }
-  ALLREDUCE(&nv, &gcomm_vol, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
-  if (bcomm_vol != gcomm_vol){
-    btopo = INT_MAX;
-    bv = UINT64_MAX;
-  }
-  ALLREDUCE(&bv, &gmemuse, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
-  if (bmemuse != gmemuse){
-    btopo = INT_MAX;
-  }
-  ALLREDUCE(&btopo, &gtopo, 1, MPI_INT, MPI_MIN, global_comm);
-  /*printf("nvirt = " PRIu64 " bcomm_vol = " PRIu64 " bmemuse = " PRIu64 " topo = %d\n",
-    nvirt, bcomm_vol, bmemuse, topo);
-  printf("gnvirt = " PRIu64 " gcomm_vol = " PRIu64 " gmemuse = " PRIu64 " bv = " PRIu64 " nv = " PRIu64 " gtopo = %d\n",
-    gnvirt, gcomm_vol, gmemuse, bv, nv, gtopo);*/
-
-  return gtopo;
-}
-
 
 /** 
  * \brief clears mapping and frees children
@@ -275,14 +227,6 @@ int get_best_topo(uint64_t const  nvirt,
  */
 inline
 int clear_mapping(mapping * map){
-  if (map->type != NOT_MAPPED && map->has_child) {
-    clear_mapping(map->child);
-    CTF_free(map->child);
-  }
-  map->type = NOT_MAPPED;
-  map->np = 1;
-  map->has_child = 0;
-  return CTF_SUCCESS;
 }
 
 /* \brief zeros out mapping
@@ -290,17 +234,6 @@ int clear_mapping(mapping * map){
  */
 template<typename dtype>
 int clear_mapping(tensor<dtype> * tsr){
-  int j;
-  mapping * map;
-  for (j=0; j<tsr->order; j++){
-    map = tsr->edge_map + j;
-    clear_mapping(map);
-  }
-  tsr->itopo = -1;
-  tsr->is_mapped = 0;
-  tsr->is_folded = 0;
-
-  return CTF_SUCCESS;
 }
 
 /**
@@ -313,65 +246,6 @@ inline
 int copy_mapping(int const        order,
                  mapping const *  mapping_A,
                  mapping *        mapping_B){
-  int i;
-  for (i=0; i<order; i++){
-    clear_mapping(&mapping_B[i]);
-  }
-  memcpy(mapping_B, mapping_A, sizeof(mapping)*order);
-  for (i=0; i<order; i++){
-    if (mapping_A[i].has_child){
-      CTF_alloc_ptr(sizeof(mapping), (void**)&mapping_B[i].child);
-      mapping_B[i].child->has_child   = 0;
-      mapping_B[i].child->np    = 1;
-      mapping_B[i].child->type    = NOT_MAPPED;
-      copy_mapping(1, mapping_A[i].child, mapping_B[i].child);
-    }
-  }
-  return CTF_SUCCESS;
-}
-
-/**
- * \brief copies mapping A to B
- * \param[in] order_A number of dimensions in A
- * \param[in] order_B number of dimensions in B
- * \param[in] idx_A index mapping of A
- * \param[in] mapping_A mapping to copy from 
- * \param[in] idx_B index mapping of B
- * \param[in,out] mapping_B mapping to copy to
- */
-inline
-int copy_mapping(int const    order_A,
-                 int const    order_B,
-                 int const *    idx_A,
-                 mapping const *  mapping_A,
-                 int const *    idx_B,
-                 mapping *    mapping_B,
-                 int const    make_virt = 1){
-  int i, order_tot, iA, iB;
-  int * idx_arr;
-
-
-  inv_idx(order_A, idx_A, mapping_A,
-          order_B, idx_B, mapping_B,
-          &order_tot, &idx_arr);
-
-  for (i=0; i<order_tot; i++){
-    iA = idx_arr[2*i];
-    iB = idx_arr[2*i+1];
-    if (iA == -1){
-      if (make_virt){
-        ASSERT(iB!=-1);
-        mapping_B[iB].type = VIRTUAL_MAP;
-        mapping_B[iB].np = 1;
-        mapping_B[iB].has_child = 0;
-      }
-    } else if (iB != -1){
-      clear_mapping(&mapping_B[iB]);
-      copy_mapping(1, mapping_A+iA, mapping_B+iB);
-    }
-  }
-  CTF_free(idx_arr);
-  return CTF_SUCCESS;
 }
 
 /**
@@ -832,107 +706,6 @@ int redistribute(int const *          sym,
                            false,
                            alpha,
                            beta);
-}
-
-/**
- * \brief map a tensor
- * \param[in] num_phys_dims number of physical processor grid dimensions
- * \param[in] tsr_edge_len edge lengths of the tensor
- * \param[in] tsr_sym_table the symmetry table of a tensor
- * \param[in,out] restricted an array used to restricted the mapping of tensor dims
- * \param[in] phys_comm dimensional communicators
- * \param[in] comm_idx dimensional ordering
- * \param[in] fill if set does recursive mappings and uses all phys dims
- * \param[in,out] tsr_edge_map mapping of tensor
- * \return CTF_SUCCESS if mapping successful, CTF_NEGATIVE if not, 
- *     CTF_ERROR if err'ed out
- */
-inline
-int map_tensor(int const      num_phys_dims,
-               int const      tsr_order,
-               int const *    tsr_edge_len,
-               int const *    tsr_sym_table,
-               int *          restricted,
-               CommData  *  phys_comm,
-               int const *    comm_idx,
-               int const      fill,
-               mapping *      tsr_edge_map){
-  int i,j,max_dim,max_len,phase,ret;
-  mapping * map;
-
-  /* Make sure the starting mappings are consistent among symmetries */
-  ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
-  if (ret!=CTF_SUCCESS) return ret;
-
-  /* Assign physical dimensions */
-  for (i=0; i<num_phys_dims; i++){
-    max_len = -1;
-    max_dim = -1;
-    for (j=0; j<tsr_order; j++){
-      if (tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j) > max_len) {
-        /* if tsr dimension can be mapped */
-        if (!restricted[j]){
-          /* if tensor dimension not mapped ot physical dimension or
-             mapped to a physical dimension that can be folded with
-             this one */
-          if (tsr_edge_map[j].type != PHYSICAL_MAP || 
-              (fill && ((comm_idx == NULL && tsr_edge_map[j].cdt == i-1) ||
-              (comm_idx != NULL && tsr_edge_map[j].cdt == comm_idx[i]-1)))){
-            max_dim = j;  
-            max_len = tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j);
-          }
-        } 
-      }
-    }
-    if (max_dim == -1){
-      if (fill){
-        return CTF_NEGATIVE;
-      }
-      break;
-    }
-    map   = &(tsr_edge_map[max_dim]);
-// FIXME: why?
-  //  map->has_child  = 0;
-    if (map->type != NOT_MAPPED){
-      while (map->has_child) map = map->child;
-      phase   = phys_comm[i].np;
-      if (map->type == VIRTUAL_MAP){
-        if (phys_comm[i].np != map->np){
-          phase     = lcm(map->np, phys_comm[i].np);
-          if ((phase < map->np || phase < phys_comm[i].np) || phase >= MAX_PHASE)
-            return CTF_NEGATIVE;
-          if (phase/phys_comm[i].np != 1){
-            map->has_child  = 1;
-            map->child    = (mapping*)CTF_alloc(sizeof(mapping));
-            map->child->type  = VIRTUAL_MAP;
-            map->child->np  = phase/phys_comm[i].np;
-            map->child->has_child = 0;
-          }
-        }
-      } else if (map->type == PHYSICAL_MAP){
-        if (map->has_child != 1)
-          map->child  = (mapping*)CTF_alloc(sizeof(mapping));
-        map->has_child  = 1;
-        map             = map->child;
-        map->has_child  = 0;
-      }
-    }
-    map->type     = PHYSICAL_MAP;
-    map->np     = phys_comm[i].np;
-    map->cdt    = (comm_idx == NULL) ? i : comm_idx[i];
-    if (!fill)
-      restricted[max_dim] = 1;
-    ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
-    if (ret!=CTF_SUCCESS) return ret;
-  }
-  for (i=0; i<tsr_order; i++){
-    if (tsr_edge_map[i].type == NOT_MAPPED){
-      tsr_edge_map[i].type        = VIRTUAL_MAP;
-      tsr_edge_map[i].np          = 1;
-      tsr_edge_map[i].has_child   = 0;
-    }
-  }
-  return CTF_SUCCESS;
 }
 
 /**

@@ -151,8 +151,8 @@ namespace CTF_int {
     do { printf("debug:%s:%d ",__FILE__,__LINE__); } while(0)
   #endif
 
-  #ifndef ERROR
-  #define ERROR(...) \
+  #ifndef THROW_ERROR
+  #define THROW_ERROR(...) \
   do { printf("error:%s:%d ",__FILE__,__LINE__); printf(__VA_ARGS__); printf("\n"); quit(1); } while(0)
   #endif
 
