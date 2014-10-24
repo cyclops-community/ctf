@@ -296,18 +296,18 @@ namespace CTF_int {
        /**
        * \brief cuts out a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
-       * \param[in] offsets bottom left corner of block
-       * \param[in] ends top right corner of block
+       * \param[in] offsets_B bottom left corner of block
+       * \param[in] ends_B top right corner of block
        * \param[in] alpha scaling factor of this tensor
        * \param[in] A tensor who owns pure-operand slice
        * \param[in] offsets bottom left corner of block of A
        * \param[in] ends top right corner of block of A
        * \param[in] alpha scaling factor of tensor A
        */
-      void slice(int const *    offsets,
-                 int const *    ends,
+      void slice(int const *    offsets_B,
+                 int const *    ends_B,
                  char const *   beta,
-                 tensor const * A,
+                 tensor  *      A,
                  int const *    offsets_A,
                  int const *    ends_A,
                  char const *   alpha);
@@ -461,6 +461,19 @@ namespace CTF_int {
     
       /** \brief zeros out mapping */
       void clear_mapping();
+
+
+      /**
+       * \brief permutes the data of a tensor to its new layout
+       * \param[in] old_dist previous distribution to remap data from
+        */
+      int redistribute(distribution const & old_dist);
+                      /*int const *  old_offsets = NULL,
+                       int * const * old_permutation = NULL,
+                       int const *  new_offsets = NULL,
+                       int * const * new_permutation = NULL);*/
+
+
   };
 }
 

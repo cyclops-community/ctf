@@ -410,7 +410,7 @@ namespace CTF_int {
         //permute all_data_B
         permute_keys(tsr_B->order, sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, &blk_sz_B, sr);
       }
-      ret = tsr_A->write(blk_sz_B, 1.0, 0.0, all_data_B, 'r');  
+      ret = tsr_A->write(blk_sz_B, sr.mulid, sr.addid, all_data_B, 'r');  
       if (blk_sz_B > 0)
         depermute_keys(tsr_B->order, blk_sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, sr);
       all_data_A = all_data_B;
@@ -422,7 +422,7 @@ namespace CTF_int {
       } else {
         ASSERT(permutation_A != NULL);
         ASSERT(permutation_B == NULL);
-        tsr_A->read_local_pairs(&sz_A, &all_data_A);
+        tsr_A->read_local(&sz_A, &all_data_A);
         //permute all_data_A
         permute_keys(tsr_A->order, sz_A, tsr_A->lens, tsr_B->lens, permutation_A, all_data_A, &blk_sz_A, sr);
       }
@@ -444,7 +444,7 @@ namespace CTF_int {
     int is_sub = 0;
     if (order == 0) is_sub = 1;
     int tot_sub;
-    MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, greater_world->cm);
+    MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, greater_world->comm);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
     //this should in most sane cases ensure that a unique subcomm is involved
     if (order == 0) ASSERT(tot_sub == wrld->np);
@@ -453,19 +453,19 @@ namespace CTF_int {
     int buf_sz = get_distribution_size(order);
     char * buffer;
     if (order == 0 && wrld->rank == 0){
-      MPI_Allreduce(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->cm);
+      MPI_Allreduce(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
       ASSERT(sub_root_rank == greater_world->rank);
       distribution dstrib = distribution(this);
       int bsz;
       dstrib.serialize(&buffer, &bsz);
       ASSERT(bsz == buf_sz);
-      MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->cm);
+      MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
     } else {
       buffer = (char*)CTF_alloc(buf_sz);
-      MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->cm);
-      MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->cm);
+      MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
+      MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
     }
-    odst.deserialize(buffer);
+    odst = distribution(buffer);
     CTF_free(buffer);
 
     bw_mirror_rank = -1;
@@ -473,11 +473,11 @@ namespace CTF_int {
     MPI_Request req;
     if (order == 0){
       fw_mirror_rank = wrld->rank;
-      MPI_Isend(&(greater_world->rank), 1, MPI_INT, wrld->rank, 13, greater_world->cm, &req);
+      MPI_Isend(&(greater_world->rank), 1, MPI_INT, wrld->rank, 13, greater_world->comm, &req);
     }
     if (greater_world->rank < tot_sub){
       MPI_Status stat;
-      MPI_Recv(&bw_mirror_rank, 1, MPI_INT, MPI_ANY_SOURCE, 13, greater_world->cm, &stat);
+      MPI_Recv(&bw_mirror_rank, 1, MPI_INT, MPI_ANY_SOURCE, 13, greater_world->comm, &stat);
     }
     if (fw_mirror_rank >= 0){
       MPI_Status stat;
@@ -491,35 +491,34 @@ namespace CTF_int {
     char * rbuffer;
     if (bw_mirror_rank >= 0){
       rbuffer = (char*)CTF_alloc(buf_sz);
-      MPI_Irecv(rbuffer, buf_sz, MPI_CHAR, bw_mirror_rank, 0, greater_world->cm, &req1);
-      MPI_Irecv(sub_buffer, odst.size*sr.el_size, MPI_CHAR, bw_mirror_rank, 1, greater_world->cm, &req2);
+      MPI_Irecv(rbuffer, buf_sz, MPI_CHAR, bw_mirror_rank, 0, greater_world->comm, &req1);
+      MPI_Irecv(sub_buffer, odst.size*sr.el_size, MPI_CHAR, bw_mirror_rank, 1, greater_world->comm, &req2);
     } 
     if (fw_mirror_rank >= 0){
       char * sbuffer;
-      distribution ndstr;
-      save_mapping(this, ndstr, &wrld->topovec[this->topo]);
+      distribution ndstr = distribution(this);
       int bsz;
       ndstr.serialize(&sbuffer, &bsz);
       ASSERT(bsz == buf_sz);
-      MPI_Send(sbuffer, buf_sz, MPI_CHAR, fw_mirror_rank, 0, greater_world->cm);
-      MPI_Send(this->data, odst.size*sr.el_size, MPI_CHAR, fw_mirror_rank, 1, greater_world->cm);
+      MPI_Send(sbuffer, buf_sz, MPI_CHAR, fw_mirror_rank, 0, greater_world->comm);
+      MPI_Send(this->data, odst.size*sr.el_size, MPI_CHAR, fw_mirror_rank, 1, greater_world->comm);
       CTF_free(sbuffer);
     }
     if (bw_mirror_rank >= 0){
       MPI_Status stat;
       MPI_Wait(&req1, &stat);
       MPI_Wait(&req2, &stat);
-      odst.deserialize(rbuffer);
+      odst = distribution(rbuffer);
       CTF_free(rbuffer);
     } else
       std::fill(sub_buffer, sub_buffer + odst.size, 0.0);
     *sub_buffer_ = sub_buffer;
 
   }
-  void tensor::slice(int const *    offsets,
-             int const *    ends,
+  void tensor::slice(int const *    offsets_B,
+             int const *    ends_B,
              char const *   beta,
-             tensor const * A,
+             tensor * A,
              int const *    offsets_A,
              int const *    ends_A,
              char const *   alpha){
@@ -533,9 +532,6 @@ namespace CTF_int {
     tsr_A = A;
     tsr_B = this;
 
-    dt_A->get_tsr_info(tid_A, &tsr_A->order, &tsr_A->lens, &tsr_A->sym);
-    dt_B->get_tsr_info(tid_B, &tsr_B->order, &tsr_B->lens, &tsr_B->sym);
-
     int * padding_A = (int*)CTF_alloc(sizeof(int)*tsr_A->order);
     int * toffset_A = (int*)CTF_alloc(sizeof(int)*tsr_A->order);
     int * padding_B = (int*)CTF_alloc(sizeof(int)*tsr_B->order);
@@ -545,7 +541,7 @@ namespace CTF_int {
       if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
         blk_sz_B = 0;
       } else {
-        tsr_B->read_local_pairs(&sz_B, &all_data_B);
+        tsr_B->read_local(&sz_B, &all_data_B);
 
         CTF_alloc_ptr((sizeof(int64_t)+tsr_B->sr.el_size)*sz_B, (void**)&blk_data_B);
 
@@ -637,8 +633,7 @@ namespace CTF_int {
     char * sub_buffer;
     tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
-    distribution idst;
-    save_mapping(this, idst, &wlrd->topovec[this->topo]);
+    distribution idst = distribution(this);
 
     redistribute(sym, global_comm, idst, this->data, alpha, 
                                    odst, sub_buffer,      beta);
@@ -668,7 +663,6 @@ namespace CTF_int {
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
     if (tsr_sub == NULL){
-      int dtid;
       CommData *   cdt = (CommData*)CTF_alloc(sizeof(CommData));
       SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
       World dt_self = World(cdt, 0, NULL, 0);
@@ -683,8 +677,7 @@ namespace CTF_int {
     char * sub_buffer;
     tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
-    distribution idst;
-    save_mapping(this, idst, &wrld->topovec[this->topo]);
+    distribution idst = distribution(this);
 
     redistribute(sym, global_comm, odst, sub_buffer,     alpha,
                                    idst, this->data,  beta);
@@ -976,6 +969,140 @@ namespace CTF_int {
     this->itopo = -1;
     this->is_mapped = 0;
     this->is_folded = 0;
+  }
+
+  int tensor::redistribute(distribution const & old_dist){
+                      /*int const *  old_offsets = NULL,
+                       int * const * old_permutation = NULL,
+                       int const *  new_offsets = NULL,
+                       int * const * new_permutation = NULL);*/
+    int const *  old_offsets = NULL;
+    int * const * old_permutation = NULL;
+    int const *  new_offsets = NULL;
+    int * const * new_permutation = NULL;
+    int j, new_nvirt, can_block_shuffle;
+    mapping * map;
+    dtype * shuffled_data;
+  #if VERIFY_REMAP
+    dtype * shuffled_data_corr;
+  #endif
+
+    distribution new_dist = distribution(this);
+    new_nvirt = 1;  
+  #ifdef USE_BLOCK_RESHUFFLE
+    can_block_shuffle = can_block_reshuffle(tsr->order, old_dist.phase, tsr->edge_map);
+  #else
+    can_block_shuffle = 0;
+  #endif
+    if (old_offsets != NULL || old_permutation != NULL ||
+        new_offsets != NULL || new_permutation != NULL){
+      can_block_shuffle = 0;
+    }
+
+  #ifdef HOME_CONTRACT
+    if (tsr->is_home){    
+      if (global_comm.rank == 0)
+        DPRINTF(2,"Tensor %d leaving home\n", tid);
+      tsr->data = (dtype*)CTF_mst_alloc(old_dist.size*sizeof(dtype));
+      memcpy(tsr->data, tsr->home_buffer, old_dist.size*sizeof(dtype));
+      tsr->is_home = 0;
+    }
+  #endif
+    if (tsr->profile) {
+      char spf[80];
+      strcpy(spf,"redistribute_");
+      strcat(spf,tsr->name);
+      if (global_comm.rank == 0){
+  #if DEBUG >=1
+        if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",tsr->name);
+        else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",tsr->name);
+        tsr->print_map(stdout);
+  #endif
+      }
+      CTF_Timer t_pf(spf);
+      t_pf.start();
+    }
+
+#if VERIFY_REMAP
+    padded_reshuffle(sym, old_dist, new_dist, tsr->data, &shuffled_data_corr, sr, wlrd->cdt);
+#endif
+
+    if (can_block_shuffle){
+      block_reshuffle( tsr->order,
+                       old_phase,
+                       old_size,
+                       old_virt_dim,
+                       old_rank,
+                       old_pe_lda,
+                       tsr->size,
+                       new_virt_dim,
+                       new_rank,
+                       new_pe_lda,
+                       tsr->data,
+                       shuffled_data,
+                       global_comm);
+    } else {
+      cyclic_reshuffle(sym, old_dist, new_dist, tsr->data, &shuffled_data, sr, wlrd->cdt);
+  //    CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&shuffled_data);
+      cyclic_reshuffle(tsr->order,
+                       old_size,
+                       old_edge_len,
+                       tsr->sym,
+                       old_phase,
+                       old_rank,
+                       old_pe_lda,
+                       old_padding,
+                       old_offsets,
+                       old_permutation,
+                       tsr->edge_len,
+                       new_phase,
+                       new_rank,
+                       new_pe_lda,
+                       tsr->padding,
+                       new_offsets,
+                       new_permutation,
+                       old_virt_dim,
+                       new_virt_dim,
+                       &tsr->data,
+                       &shuffled_data,
+                       global_comm,
+                       was_cyclic,
+                       tsr->is_cyclic, 1, get_one<dtype>(), get_zero<dtype>());
+    }
+
+    CTF_free((void*)new_phase);
+    CTF_free((void*)new_rank);
+    CTF_free((void*)new_virt_dim);
+    CTF_free((void*)new_pe_lda);
+    CTF_free((void*)tsr->data);
+    tsr->data = shuffled_data;
+
+  #if VERIFY_REMAP
+    bool abortt = false;
+    for (j=0; j<tsr->size; j++){
+      if (tsr->data[j] != shuffled_data_corr[j]){
+        printf("data element %d/" PRId64 " not received correctly on process %d\n",
+                j, tsr->size, global_comm.rank);
+        printf("element received was %.3E, correct %.3E\n", 
+                GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));
+        abortt = true;
+      }
+    }
+    if (abortt) ABORT;
+    CTF_free(shuffled_data_corr);
+
+  #endif
+    if (tsr->profile) {
+      char spf[80];
+      strcpy(spf,"redistribute_");
+      strcat(spf,tsr->name);
+      CTF_Timer t_pf(spf);
+      t_pf.stop();
+    }
+
+
+    return CTF_SUCCESS;
+
   }
 }
 

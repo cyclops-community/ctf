@@ -4,13 +4,14 @@
 namespace CTF_int {
 
   distribution::distribution(){
-    phase = NULL;
+    /*phase = NULL;
     virt_phase = NULL;
     pe_lda = NULL;
     pad_edge_len = NULL;
     padding = NULL;
     perank = NULL;
     order = -1;
+    size = -1;*/
   }
 
   distribution::distribution(tensor const * tsr){
