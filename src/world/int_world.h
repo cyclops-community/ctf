@@ -6,8 +6,8 @@
 #include "mpi.h"
 #include <stdint.h>
 #include <stdio.h>
-#include "../ctr_seq/int_functions.h"
-#include "../tensor/int_tensor.h"
+#include "../ctr_seq/functions.h"
+#include "../tensor/untyped_tensor.h"
 #include "../interface/common.h"
 
 

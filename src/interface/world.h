@@ -2,7 +2,7 @@
 #define __WORLD_H__
 
 #include "common.h"
-#include "../mapping/int_topology.h"
+#include "../mapping/topology.h"
 
 /**
  * \defgroup CTF CTF: C++ World interface

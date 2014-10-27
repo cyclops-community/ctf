@@ -4,8 +4,8 @@
 #include "../shared/memcontrol.h"
 #include <stdint.h>
 #include <limits.h>
-#include "int_topology.h"
-#include "int_world.h"
+#include "topology.h"
+#include "world.h"
 
 #ifdef HPM
 extern "C" void HPM_Start(char *);  

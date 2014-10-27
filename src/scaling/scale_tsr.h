@@ -3,7 +3,7 @@
 #ifndef __SCL_TSR_H__
 #define __SCL_TSR_H__
 
-#include "../tensor/int_semiring.h"
+#include "../tensor/untyped_semiring.h"
 
 namespace CTF_int {
   class scl {

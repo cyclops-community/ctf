@@ -8,7 +8,7 @@
 #include <stdio.h>
 //#include "../shared/util.h"
 #include "device_launch_parameters.h"
-#include "timer.h"
+#include "int_timer.h"
 
 typedef int64_t int64_t;
 volatile static int64_t int64_t_max = INT64_MAX;

@@ -3,7 +3,7 @@
 
 #include "functions.h"
 #include "semiring.h"
-#include "../tensor/int_tensor.h"
+#include "../tensor/untyped_tensor.h"
 #include "world.h"
 #include <vector>
 

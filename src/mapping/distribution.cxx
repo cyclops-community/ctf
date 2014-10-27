@@ -1,5 +1,5 @@
 
-#include "../tensor/int_tensor.h"
+#include "../tensor/untyped_tensor.h"
 
 namespace CTF_int {
 

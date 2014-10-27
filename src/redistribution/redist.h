@@ -3,7 +3,7 @@
 #ifndef __INT_REDIST_H__
 #define __INT_REDIST_H__
 
-#include "../tensor/int_tensor.h"
+#include "../tensor/untyped_semiring.h"
 
 namespace CTF_int {
   /**
@@ -17,8 +17,8 @@ namespace CTF_int {
    * \param[in] ord_glb_comm communicator on which to redistribute
    */
   void padded_reshuffle(int const * sym,
-                       distribution const & old_dist
-                       distribution const & new_dist
+                       distribution const & old_dist,
+                       distribution const & new_dist,
                        char *      tsr_data,
                        char **     tsr_cyclic_data,
                        semiring    sr,
@@ -45,12 +45,12 @@ namespace CTF_int {
    * \param[in] beta scaling tensor for original data
    */
   void cyclic_reshuffle(int const * sym,
-                       distribution const & old_dist
-                       distribution const & new_dist
+                       distribution const & old_dist,
+                       distribution const & new_dist,
                        char **     tsr_data,
                        char **     tsr_cyclic_data,
                        semiring    sr,
-                       CommData    ord_glb_comm
+                       CommData    ord_glb_comm,
                        bool        reuse_buffers,
                        char const *       alpha,
                        char const *       beta);
@@ -63,8 +63,8 @@ namespace CTF_int {
    * \param[in] sr semiring defining data
    * \param[in] glb_comm communicator on which to redistribute
    */
-  void block_reshuffle(distribution const & old_dist
-                       distribution const & new_dist
+  void block_reshuffle(distribution const & old_dist,
+                       distribution const & new_dist,
                        char **     tsr_data,
                        char **     tsr_cyclic_data,
                        semiring    sr,

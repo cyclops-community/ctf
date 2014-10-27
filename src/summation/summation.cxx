@@ -1,4 +1,4 @@
-#include "int_scaling.h"
+#include "summation.h"
 
 namespace CTF_int {
 

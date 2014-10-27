@@ -1,4 +1,4 @@
-#include "int_topology.h"
+#include "topology.h"
 
 #ifdef BGQ
 #include "mpix.h"

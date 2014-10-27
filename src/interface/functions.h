@@ -1,9 +1,9 @@
 #ifndef __FUNCTIONS_H__
 #define __FUNCTIONS_H__
 
-#include "../scaling/int_scaling.h"
-#include "../summation/int_summation.h"
-#include "../contraction/int_contraction.h"
+#include "../scaling/scaling.h"
+#include "../summation/summation.h"
+#include "../contraction/contraction.h"
 
 namespace CTF {
 

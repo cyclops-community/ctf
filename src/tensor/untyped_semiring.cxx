@@ -1,7 +1,7 @@
 /*Copyright (c) 2014, Edgar Solomonik, all rights reserved.*/
 #include "../shared/util.h"
 #include "../../include/ctf_ext.hpp"
-#include "int_tensor.h"
+#include "untyped_tensor.h"
 
 template <typename dtype>
 void dgemm(char          tA,

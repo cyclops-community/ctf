@@ -9,9 +9,9 @@
 #include "../ctr_comm/ctr_tsr.h"
 #include "../ctr_comm/ctr_comm.h"
 #include "../ctr_seq/seq_tsr.h"
-#include "../ctr_seq/int_functions.h"
-#include "../ctr_seq/int_semiring.h"
-#include "int_world.h"
+#include "../ctr_seq/functions.h"
+#include "../ctr_seq/untyped_semiring.h"
+#include "world.h"
 #include <limits.h>
 #include <stdint.h>
 

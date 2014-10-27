@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = int_tensor.o int_semiring
+OBJS = untyped_tensor.o untyped_semiring
 
 ctf: $(OBJS) 
 

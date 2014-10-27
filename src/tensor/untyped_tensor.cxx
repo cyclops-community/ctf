@@ -1,9 +1,11 @@
 
 #include "../interface/common.h"
-#include "int_tensor.h"
+#include "untyped_tensor.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
-#include "../redistribution/int_sort.h"
+#include "../redistribution/sparse_rw.h"
+#include "../redistribution/pad.h"
+#include "../redistribution/redist.h"
 
 using namespace CTF;
 
@@ -300,7 +302,7 @@ namespace CTF_int {
         if (btopo == -1)
           bnvirt = UINT64_MAX;
         /* pick lower dimensional mappings, if equivalent */
-        ///btopo = get_best_topo(bnvirt, btopo, global_comm, 0, bmemuse);
+        ///btopo = get_best_topo(bnvirt, btopo, wrld->cdt, 0, bmemuse);
         btopo = get_best_topo(bmemuse, btopo, wrld->cdt);
 
         if (btopo == -1 || btopo == INT_MAX) {
@@ -527,7 +529,6 @@ namespace CTF_int {
     pair * all_data_A, * blk_data_A;
     pair * all_data_B, * blk_data_B;
     tensor * tsr_A, * tsr_B;
-    int ret;
 
     tsr_A = A;
     tsr_B = this;
@@ -549,7 +550,7 @@ namespace CTF_int {
           padding_B[i] = tsr_B->lens[i] - ends_B[i];
         }
         depad_tsr(tsr_B->order, sz_B, ends_B, tsr_B->sym, padding_B, offsets_B,
-                  all_data_B, blk_data_B, &blk_sz_B);
+                  all_data_B, sr, blk_data_B, &blk_sz_B);
         if (sz_B > 0)
           CTF_free(all_data_B);
 
@@ -558,19 +559,19 @@ namespace CTF_int {
           padding_B[i] = ends_B[i]-offsets_B[i]-tsr_B->lens[i];
         }
         pad_key(tsr_B->order, blk_sz_B, tsr_B->lens, 
-                padding_B, blk_data_B, toffset_B);
+                padding_B, blk_data_B, sr, toffset_B);
         for (i=0; i<tsr_A->order; i++){
           toffset_A[i] = ends_A[i] - offsets_A[i];
           padding_A[i] = tsr_A->lens[i] - toffset_A[i];
         }
         pad_key(tsr_A->order, blk_sz_B, toffset_A, 
-                padding_A, blk_data_B, offsets_A);
+                padding_A, blk_data_B, sr, offsets_A);
       }
-      tsr_A->write(blk_sz_B, 1.0, 0.0, blk_data_B, 'r');  
+      tsr_A->write(blk_sz_B, sr.mulid, sr.addid, blk_data_B, 'r');  
       all_data_A = blk_data_B;
       sz_A = blk_sz_B;
     } else {
-      tsr_A->read_local_pairs(&sz_A, &all_data_A);
+      tsr_A->read_local(&sz_A, &all_data_A);
     }
     
 
@@ -583,7 +584,7 @@ namespace CTF_int {
         padding_A[i] = tsr_A->lens[i] - ends_A[i];
       }
       depad_tsr(tsr_A->order, sz_A, ends_A, tsr_A->sym, padding_A, offsets_A,
-                all_data_A, blk_data_A, &blk_sz_A);
+                all_data_A, sr, blk_data_A, &blk_sz_A);
       if (sz_A > 0)
         CTF_free(all_data_A);
 
@@ -593,13 +594,13 @@ namespace CTF_int {
         padding_A[i] = ends_A[i]-offsets_A[i]-tsr_A->lens[i];
       }
       pad_key(tsr_A->order, blk_sz_A, tsr_A->lens, 
-              padding_A, blk_data_A, toffset_A);
+              padding_A, blk_data_A, sr, toffset_A);
       for (i=0; i<tsr_B->order; i++){
         toffset_B[i] = ends_B[i] - offsets_B[i];
         padding_B[i] = tsr_B->lens[i] - toffset_B[i];
       }
       pad_key(tsr_B->order, blk_sz_A, toffset_B, 
-              padding_B, blk_data_A, offsets_B);
+              padding_B, blk_data_A, sr, offsets_B);
     }
     tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');  
 
@@ -614,7 +615,6 @@ namespace CTF_int {
   void tensor::add_to_subworld(tensor *     tsr_sub,
                            char const * alpha,
                            char const * beta){
-    int order, * lens, * sym;
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
@@ -631,21 +631,22 @@ namespace CTF_int {
     int fw_mirror_rank, bw_mirror_rank;
     distribution odst;
     char * sub_buffer;
-    tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
+    tsr_sub->orient_subworld(wrld, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
     distribution idst = distribution(this);
 
-    redistribute(sym, global_comm, idst, this->data, alpha, 
-                                   odst, sub_buffer,      beta);
+/*    redistribute(sym, wrld->comm, idst, this->data, alpha, 
+                                   odst, sub_buffer,      beta);*/
+    cyclic_reshuffle(sym, idst, odst, &this->data, &sub_buffer, sr, wrld->cdt, 1, alpha, beta);
 
     MPI_Request req;
     if (fw_mirror_rank >= 0){
       ASSERT(tsr_sub != NULL);
-      MPI_Irecv(tsr_sub->data, odst.size*sr.el_size, MPI_CHAR, fw_mirror_rank, 0, global_comm.cm, &req);
+      MPI_Irecv(tsr_sub->data, odst.size*sr.el_size, MPI_CHAR, fw_mirror_rank, 0, wrld->cdt.cm, &req);
     }
    
     if (bw_mirror_rank >= 0)
-      MPI_Send(sub_buffer, odst.size*sr.el_size, MPI_CHAR, bw_mirror_rank, 0, global_comm.cm);
+      MPI_Send(sub_buffer, odst.size*sr.el_size, MPI_CHAR, bw_mirror_rank, 0, wrld->cdt.cm);
     if (fw_mirror_rank >= 0){
       MPI_Status stat;
       MPI_Wait(&req, &stat);
@@ -658,7 +659,6 @@ namespace CTF_int {
   void tensor::add_from_subworld(tensor *     tsr_sub,
                            char const * alpha,
                            char const * beta){
-    int order, * lens, * sym;
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
@@ -675,12 +675,13 @@ namespace CTF_int {
     int fw_mirror_rank, bw_mirror_rank;
     distribution odst;
     char * sub_buffer;
-    tsr_sub->orient_subworld(world, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
+    tsr_sub->orient_subworld(wrld, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
     distribution idst = distribution(this);
 
-    redistribute(sym, global_comm, odst, sub_buffer,     alpha,
-                                   idst, this->data,  beta);
+/*    redistribute(sym, wrld->cdt, odst, sub_buffer,     alpha,
+                                   idst, this->data,  beta);*/
+    cyclic_reshuffle(sym, idst, odst, &sub_buffer, &this->data, sr, wrld->cdt, 1, alpha, beta);
     CTF_free(sub_buffer);
   #endif
 
@@ -690,7 +691,7 @@ namespace CTF_int {
                    char const *             alpha,
                    char const *             beta,
                    pair *              mapped_data,
-                   char const rw = 'w'){
+                   char const rw){
     int i, num_virt;
     int * phys_phase, * virt_phase, * bucket_lda;
     int * virt_phys_rank;
@@ -717,9 +718,8 @@ namespace CTF_int {
 
     tsr = this;
     
-    if (tsr->has_zero_edge_len) return;
+    if (tsr->has_zero_edge_len) return SUCCESS;
     TAU_FSTART(write_pairs);
-    tsr->unmap_inner();
     tsr->set_padding();
 
     if (tsr->is_mapped){
@@ -732,12 +732,12 @@ namespace CTF_int {
       for (i=0; i<tsr->order; i++){
         map               = tsr->edge_map + i;
         phys_phase[i]     = map->calc_phase();
-        virt_phase[i]     = phys_phase[i]/calc_phys_phase(map);
-        virt_phys_rank[i] = calc_phys_rank(map, tsr->topo)
+        virt_phase[i]     = phys_phase[i]/map->calc_phys_phase();
+        virt_phys_rank[i] = map->calc_phys_rank(tsr->topo)
                             *virt_phase[i];
         num_virt          = num_virt*virt_phase[i];
         if (map->type == PHYSICAL_MAP)
-          bucket_lda[i] = wrld->topovec[tsr->topo].lda[map->cdt];
+          bucket_lda[i] = tsr->topo->lda[map->cdt];
         else
           bucket_lda[i] = 0;
       }
@@ -750,7 +750,7 @@ namespace CTF_int {
                       rw,
                       num_virt,
                       tsr->sym,
-                      tsr->edge_len,
+                      tsr->pad_edge_len,
                       tsr->padding,
                       phys_phase,
                       virt_phase,
@@ -758,7 +758,7 @@ namespace CTF_int {
                       bucket_lda,
                       mapped_data,
                       tsr->data,
-                      global_comm);
+                      wrld->cdt);
 
       CTF_free(phys_phase);
       CTF_free(virt_phys_rank);
@@ -788,14 +788,13 @@ namespace CTF_int {
       *num_pair = 0;
       return SUCCESS;
     }
-    tsr->unmap_inner();
     tsr->set_padding();
 
 
     if (!tsr->is_mapped){
       *num_pair = tsr->size;
       *mapped_data = tsr->pairs;
-      return;
+      return SUCCESS;
     } else {
       np = tsr->size;
 
@@ -810,7 +809,7 @@ namespace CTF_int {
         /* Calcute rank and phase arrays */
         map               = tsr->edge_map + i;
         phys_phase[i]     = map->calc_phase();
-        virt_phase[i]     = phys_phase[i]/calc_phys_phase(map);
+        virt_phase[i]     = phys_phase[i]/map->calc_phys_phase;
         virt_phys_rank[i] = calc_phys_rank(map, tsr->topo)
                                                 *virt_phase[i];
         num_virt          = num_virt*virt_phase[i];
@@ -821,7 +820,7 @@ namespace CTF_int {
       }
       if (idx_lyr == 0){
         read_loc_pairs(tsr->order, np, num_virt,
-                       tsr->sym, tsr->edge_len, tsr->padding,
+                       tsr->sym, tsr->pad_edge_len, tsr->padding,
                        virt_phase, phys_phase, virt_phys_rank, num_pair,
                        tsr->data, &pairs); 
         *mapped_data = pairs;
@@ -836,7 +835,7 @@ namespace CTF_int {
       CTF_free((void*)virt_phys_rank);
 
       TAU_FSTOP(read_local_pairs);
-      return;
+      return SUCCESS;
     }
     TAU_FSTOP(read_local_pairs);
 
@@ -848,7 +847,7 @@ namespace CTF_int {
     if (this->is_folded){
       CTF_alloc_ptr(this->ndim*sizeof(int), (void**)&all_edge_len);
       CTF_alloc_ptr(this->ndim*sizeof(int), (void**)&sub_edge_len);
-      calc_dim(this->ndim, this->size, this->edge_len, this->edge_map,
+      calc_dim(this->ndim, this->size, this->pad_edge_len, this->edge_map,
                NULL, sub_edge_len, NULL);
       allfold_dim = 0;
       for (i=0; i<this->ndim; i++){
@@ -903,7 +902,7 @@ namespace CTF_int {
     CTF_alloc_ptr(fold_dim*sizeof(int), (void**)&fold_edge_len);
     CTF_alloc_ptr(fold_dim*sizeof(int), (void**)&fold_sym);
 
-    calc_dim(this->ndim, this->size, this->edge_len, this->edge_map,
+    calc_dim(this->ndim, this->size, this->pad_edge_len, this->edge_map,
        NULL, sub_edge_len, NULL);
 
     allfold_dim = 0, fdim = 0;
@@ -1001,7 +1000,7 @@ namespace CTF_int {
 
   #ifdef HOME_CONTRACT
     if (tsr->is_home){    
-      if (global_comm.rank == 0)
+      if (wrld->cdt.rank == 0)
         DPRINTF(2,"Tensor %d leaving home\n", tid);
       tsr->data = (dtype*)CTF_mst_alloc(old_dist.size*sizeof(dtype));
       memcpy(tsr->data, tsr->home_buffer, old_dist.size*sizeof(dtype));
@@ -1012,7 +1011,7 @@ namespace CTF_int {
       char spf[80];
       strcpy(spf,"redistribute_");
       strcat(spf,tsr->name);
-      if (global_comm.rank == 0){
+      if (wrld->cdt.rank == 0){
   #if DEBUG >=1
         if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",tsr->name);
         else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",tsr->name);
@@ -1028,7 +1027,7 @@ namespace CTF_int {
 #endif
 
     if (can_block_shuffle){
-      block_reshuffle( tsr->order,
+/*      block_reshuffle( tsr->order,
                        old_phase,
                        old_size,
                        old_virt_dim,
@@ -1040,11 +1039,12 @@ namespace CTF_int {
                        new_pe_lda,
                        tsr->data,
                        shuffled_data,
-                       global_comm);
+                       wrld->cdt);*/
+      block_reshuffle(old_dist, new_dist, &tsr->data, &shuffled_data, sr, wrld->cdt);
     } else {
-      cyclic_reshuffle(sym, old_dist, new_dist, tsr->data, &shuffled_data, sr, wlrd->cdt);
+      cyclic_reshuffle(sym, old_dist, new_dist, &tsr->data, &shuffled_data, sr, wlrd->cdt, 1, sr.mulid, sr.addid);
   //    CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&shuffled_data);
-      cyclic_reshuffle(tsr->order,
+/*      cyclic_reshuffle(tsr->order,
                        old_size,
                        old_edge_len,
                        tsr->sym,
@@ -1065,9 +1065,9 @@ namespace CTF_int {
                        new_virt_dim,
                        &tsr->data,
                        &shuffled_data,
-                       global_comm,
+                       wrld->cdt,
                        was_cyclic,
-                       tsr->is_cyclic, 1, get_one<dtype>(), get_zero<dtype>());
+                       tsr->is_cyclic, 1, get_one<dtype>(), get_zero<dtype>());*/
     }
 
     CTF_free((void*)new_phase);
@@ -1082,7 +1082,7 @@ namespace CTF_int {
     for (j=0; j<tsr->size; j++){
       if (tsr->data[j] != shuffled_data_corr[j]){
         printf("data element %d/" PRId64 " not received correctly on process %d\n",
-                j, tsr->size, global_comm.rank);
+                j, tsr->size, wrld->cdt.rank);
         printf("element received was %.3E, correct %.3E\n", 
                 GET_REAL(tsr->data[j]), GET_REAL(shuffled_data_corr[j]));
         abortt = true;

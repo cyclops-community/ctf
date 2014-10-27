@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = int_redist.o int_sort.o
+OBJS = redist.o sparse_rw.o pad.o
 
 ctf: $(OBJS) 
 

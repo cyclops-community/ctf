@@ -1,7 +1,7 @@
 #ifndef __SEMIRING_H__
 #define __SEMIRING_H__
 
-#include "../tensor/int_semiring.h"
+#include "../tensor/untyped_semiring.h"
 
 namespace CTF {
 

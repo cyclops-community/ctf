@@ -6,7 +6,7 @@
 //#include "../shared/comm.h"
 //#include "../shared/util.h"
 #include "../shared/offload.h"
-#include "../tensor/int_semiring.h"
+#include "../tensor/untyped_semiring.h"
 
 namespace CTF_int{
   /**

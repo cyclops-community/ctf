@@ -1,5 +1,5 @@
 
-#include "int_mapping.h"
+#include "mapping.h"
 
 namespace CTF_int {
   int mapping::calc_phase(){

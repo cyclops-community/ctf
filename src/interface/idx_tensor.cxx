@@ -341,7 +341,7 @@ namespace CTF {
         itsr.has_sum = NBR->has_sum;
         itsr.has_contract = NBR->has_contract;
         itsr.NBR = NBR->NBR;
-        printf("interm tsr has_Contract = %d, NBR = %p, NBR.has_scale = %d\n", itsr.has_contract, itsr.NBR,
+        printf("erm tsr has_Contract = %d, NBR = %p, NBR.has_scale = %d\n", itsr.has_contract, itsr.NBR,
         itsr.NBR->has_scale);
         
         itsr.parent->contract(alpha, *(this->parent), this->idx_map,

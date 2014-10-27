@@ -396,7 +396,7 @@ int main(int argc, char **argv) {
   }
   
 #ifdef TAU
-  TAU_PROFILE_TIMER(timer, "main", "int (int, char**)", TAU_USER);
+  TAU_PROFILE_TIMER(timer, "main", " (int, char**)", TAU_USER);
   TAU_PROFILE_START(timer);
   TAU_PROFILE_INIT(argc, argv);
   TAU_PROFILE_SET_NODE(myRank);

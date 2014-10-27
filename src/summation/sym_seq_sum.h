@@ -1,7 +1,7 @@
 #ifndef __INT_SYM_SEQ_SUM_H__
 #define __INT_SYM_SEQ_SUM_H__
 
-#include "int_summation.h"
+#include "summation.h"
 
 namespace CTF_int {
   /**

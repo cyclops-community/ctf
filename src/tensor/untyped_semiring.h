@@ -5,7 +5,38 @@
 
 namespace CTF_int {
 
-  class pair;
+  /**
+   * \brief char * -based index-value pair used for tensor data input
+   */
+  class pair {
+    public: 
+      /** \brief key, global index [i1,i2,...] specified as i1+len[0]*i2+... */
+      int64_t k;
+
+      /**
+       * \brief returns tensor value of this key-value pair as a char *
+       * \return value
+       */
+      virtual char * v() { assert(0); };
+
+      pair() {}
+
+      /**
+       * \brief compares key to other pair to determine which index appears first
+       * \param[in] other pair to compare with
+       * \return true if this key smaller than other's key
+       */
+      bool operator< (const pair& other) const{
+        return k < other.k;
+      }
+  /*  bool operator==(const pair& other) const{
+        return (k == other.k && d == other.d);
+      }
+      bool operator!=(const pair& other) const{
+        return !(*this == other);
+      }*/
+      virtual int size() { assert(0); }
+  };
 
   /**
    * \brief semirings defined the elementwise operations computed 
