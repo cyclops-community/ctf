@@ -1,22 +1,11 @@
 #ifndef __INT_SCALING_H__
 #define __INT_SCALING_H__
 
+#include "../interface/common.h"
+#include "sym_seq_scl.h"
 
 namespace CTF_int {
   class tensor; 
-
-  /**
-   * \brief untyped internal class for singly-typed single variable function (Endomorphism)
-   */
-  class endomorphism {
-    public:
-      /**
-       * \brief apply function f to value stored at a
-       * \param[in,out] a pointer to operand that will be cast to type by extending class
-       *                  return result of applying f on value at a
-       */
-      virtual void apply_f(char * a) { assert(0); }
-  };
 
   /**
    * \brief class for execution distributed scaling of a tensor
@@ -30,31 +19,37 @@ namespace CTF_int {
       char const * alpha;
     
       /** \brief indices of A */
-      int const * idx_A;
+      int const * idx_map;
+      
+      /** \brief whether there is a pairwise custom function */
+      bool is_custom;
+
+      /** \brief function to execute on pairwise elements */
+      endomorphism func;
 
       /**
        * \brief constructor definining contraction with C's mul and add ops
        * \param[in] A left operand tensor
-       * \param[in] idx_A indices of left operand
-       * \param[in] alpha scaling factor alpha * A[idx_A];
-                      A[idx_A] = alpha * A[idx_A]
+       * \param[in] idx_map indices of left operand
+       * \param[in] alpha scaling factor alpha * A[idx_map];
+                      A[idx_map] = alpha * A[idx_map]
        */
       scaling(tensor * A, 
-              int const * idx_A,
+              int const * idx_map,
               char const * alpha);
      
       /**
        * \brief constructor definining scaling with custom function
        * \param[in] A left operand tensor
-       * \param[in] idx_A indices of left operand
-                      func(&A[idx_A])
+       * \param[in] idx_map indices of left operand
+                      func(&A[idx_map])
        */
       scaling(tensor * A, 
-              int const * idx_A,
+              int const * idx_map,
               endomorphism func);
 
-      /** \brief run scaling  */
-      void execute();
+      /** \brief run scaling  \return whether success or error */
+      int execute();
       
       /** \brief predicts execution time in seconds using performance models */
       double estimate_time();

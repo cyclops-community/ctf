@@ -21,7 +21,7 @@ namespace CTF_int {
                int64_t      num_pair,
                int const *        edge_len,
                int const *        padding,
-               pair *  pairs,
+               char *  pairs,
                semiring const & sr,
                int const *        offsets = NULL);
 
@@ -34,9 +34,9 @@ namespace CTF_int {
    * \param[in] padding padding of tensor (included in edge_len)
    * \param[in] prepadding padding at start of tensor (included in edge_len)
    * \param[in] pairs padded array of pairs
-   * \param[in] semiring defines sizeo of each pair
    * \param[out] new_pairs unpadded pairs
    * \param[out] new_num_pair number of unpadded pairs
+   * \param[in] semiring defines sizeo of each pair
    */
   void depad_tsr(int                 order,
                  int64_t            num_pair,
@@ -44,10 +44,10 @@ namespace CTF_int {
                  int const *              sym,
                  int const *              padding,
                  int const *              prepadding,
-                 pair const *  pairs,
-                 semiring const & sr,
-                 pair *        new_pairs,
-               int64_t *                new_num_pair);
+                 char const *  pairs,
+                 char *        new_pairs,
+                  int64_t *                new_num_pair,
+                 semiring const & sr);
 
   /**
    * \brief pads a tensor
@@ -60,9 +60,9 @@ namespace CTF_int {
    * \param[in] virt_phase_rank physical phase rank multiplied by virtual phase
    * \param[in] virt_phase virtual phase in each dimension
    * \param[in] old_data array of input pairs
-   * \param[in] semiring defines sizeo of each pair
    * \param[out] new_pairs padded pairs
    * \param[out] new_size number of new padded pairs
+   * \param[in] semiring defines sizeo of each pair
    */
   void pad_tsr(int                 order,
                int64_t            size,
@@ -72,10 +72,10 @@ namespace CTF_int {
                int const *              phys_phase,
                int *                    virt_phys_rank,
                int const *              virt_phase,
-               pair const *  old_data,
-                 semiring const & sr,
-               pair **       new_pairs,
-               int64_t *                new_size);
+               char const *  old_data,
+               char **       new_pairs,
+               int64_t *                new_size,
+               semiring const & sr);
   
   /**
    * \brief sets to zero all values in padded region of tensor

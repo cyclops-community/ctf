@@ -516,7 +516,6 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::scale(const char *         idx_A,
                             Endomorphism<dtype>  fseq){
-    int ret;
     int * idx_map_A;
     conv_idx(order, idx_A, &idx_map_A);
     CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, fseq);
@@ -571,7 +570,7 @@ namespace CTF {
 
 //    FIXME: delete current data
 
-    ret = CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
+    ret = init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
     assert(ret == SUCCESS);
 /*
     sr = A.sr;

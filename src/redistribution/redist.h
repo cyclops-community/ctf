@@ -69,6 +69,19 @@ namespace CTF_int {
                        char **     tsr_cyclic_data,
                        semiring    sr,
                        CommData   glb_comm);
+
+
+  /**
+   * \brief determines if tensor can be permuted by block
+   * \param[in] order dimension of tensor
+   * \param[in] old_phase old cyclic phases in each dimension
+   * \param[in] map new mapping for each edge length
+   * \return 1 if block reshuffle allowed, 0 if not
+   */
+  int can_block_reshuffle(int         order,
+                          int const *      old_phase,
+                          mapping const *  map);
+
 }
 
 #endif

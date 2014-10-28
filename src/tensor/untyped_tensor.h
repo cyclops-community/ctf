@@ -34,7 +34,7 @@ namespace CTF_int {
 
   /** \brief internal distributed tensor class */
   class tensor {
-    private:
+    protected:
       /**
        * \brief initializes tensor data
        * \param[in] sr defines the tensor arithmetic for this tensor
@@ -102,7 +102,7 @@ namespace CTF_int {
       /** \brief tensor data, either the data or the key-value pairs should exist at any given time */
       union {
         char * data;
-        pair * pairs;
+        char * pairs;
       };
       /** \brief whether the tensor has a home mapping/buffer */
       bool has_home;
@@ -122,8 +122,9 @@ namespace CTF_int {
        * \brief creates tensor copy, unfolds other if other is folded
        * \param[in] other tensor to copy
        * \param[in] copy whether to copy mapping and data
+       * \param[in] alloc_data whether th allocate data
        */
-      tensor(tensor * other, bool copy = 1);
+      tensor(tensor * other, bool copy = 1, bool alloc_data = 1);
 
       /**
        * \brief defines a tensor object with some mapping (if alloc_data)
@@ -216,7 +217,7 @@ namespace CTF_int {
        int write(int64_t                  num_pair,
                        char const *             alpha,
                        char const *             beta,
-                       pair *             mapped_data,
+                       char *             mapped_data,
                        char const rw = 'w');
 
       /**
@@ -231,7 +232,7 @@ namespace CTF_int {
       int read(int64_t                 num_pair,
                       char const *            alpha,
                       char const *            beta,
-                      pair * const            mapped_data);
+                      char * const            mapped_data);
 
       /**
        * \brief read tensor data with <key, value> pairs where key is the
@@ -240,7 +241,7 @@ namespace CTF_int {
        * \param[in,out] mapped_data pairs to read
        */
       int read(int64_t                 num_pair,
-                      pair * const            mapped_data);
+                      char * const            mapped_data);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -312,7 +313,7 @@ namespace CTF_int {
        * \param[out] mapped_data values read
        */
       int read_local(int64_t *           num_pair,
-                            pair **             mapped_data);
+                            char **             mapped_data);
 
       /** 
        * \brief copy A into this (B). Realloc if necessary 
@@ -440,7 +441,14 @@ namespace CTF_int {
                        int const *  new_offsets = NULL,
                        int * const * new_permutation = NULL);*/
 
-
+      /**
+        * \brief map the remainder of a tensor 
+        * \param[in] num_phys_dims number of physical processor grid dimensions
+        * \param[in] phys_comm dimensional communicators
+        */
+        int map_tensor_rem(int     num_phys_dims,
+                           CommData  *  phys_comm,
+                           int     fill = 0);
   };
 }
 

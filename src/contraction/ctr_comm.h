@@ -9,6 +9,22 @@
 #include "../tensor/untyped_semiring.h"
 
 namespace CTF_int{
+
+  /**
+   * \brief untyped internal class for triply-typed bivariate function
+   */
+  class bivar_function {
+    public:
+      /**
+       * \brief apply function f to values stored at a and b
+       * \param[in] a pointer to first operand that will be cast to type by extending class
+       * \param[in] b pointer to second operand that will be cast to type by extending class
+       * \param[in,out] result: c=&f(*a,*b) 
+       */
+      virtual void apply_f(char const * a, char const * b, char * c) { assert(0); }
+  };
+
+
   /**
    * \addtogroup nest_dist Nested distributed contraction and summation routines
    * @{

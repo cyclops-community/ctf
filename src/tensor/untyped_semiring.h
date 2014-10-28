@@ -5,19 +5,18 @@
 
 namespace CTF_int {
 
+#if 0
   /**
    * \brief char * -based index-value pair used for tensor data input
    */
   class pair {
     public: 
-      /** \brief key, global index [i1,i2,...] specified as i1+len[0]*i2+... */
       int64_t k;
 
       /**
-       * \brief returns tensor value of this key-value pair as a char *
-       * \return value
+       * \brief tensor value of this key-value pair is a char *
        */
-      virtual char * v() { assert(0); };
+      char * v;
 
       pair() {}
 
@@ -37,6 +36,7 @@ namespace CTF_int {
       }*/
       virtual int size() { assert(0); }
   };
+#endif
 
   /**
    * \brief semirings defined the elementwise operations computed 
@@ -164,7 +164,7 @@ namespace CTF_int {
       void set(char * a, char const * b, int64_t n);
       
       /** \brief sets n elements of array of pairs a to value b */
-      void set(pair * a, char const * b, int64_t n);
+      void set_pairs(char * a, char const * b, int64_t n);
   };
 
 

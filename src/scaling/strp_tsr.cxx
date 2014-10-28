@@ -124,7 +124,7 @@ namespace CTF_int {
   }
 
   void strp_sum::run(){
-    dtype * bA, * bB;
+    char * bA, * bB;
 
     if (strip_A) {
       rec_strp_A->A = this->A;
@@ -192,7 +192,7 @@ namespace CTF_int {
 
 
   void strp_ctr::run(){
-    dtype * bA, * bB, * bC;
+    char * bA, * bB, * bC;
 
     if (strip_A) {
       rec_strp_A->A = this->A;
@@ -251,7 +251,7 @@ namespace CTF_int {
   }
 
   void strp_scl::run(){
-    dtype * bA;
+    char * bA;
 
 
     rec_strp->A = this->A;
@@ -271,4 +271,86 @@ namespace CTF_int {
     
     rec_strp->run(1);
   }
+
+  int strip_diag(int                 order,
+                 int                 order_tot,
+                 int const *              idx_map,
+                 int64_t            vrt_sz,
+                 mapping const *          edge_map,
+                 topology const *         topo,
+                 semiring const &         sr,
+                 int *                    blk_edge_len,
+                 int64_t *                blk_sz,
+                 strp_tsr **       stpr){
+    int64_t i;
+    int need_strip;
+    int * pmap, * edge_len, * sdim, * sidx;
+    strp_tsr * stripper;
+
+    CTF_alloc_ptr(order_tot*sizeof(int), (void**)&pmap);
+
+    std::fill(pmap, pmap+order_tot, -1);
+
+    need_strip = 0;
+
+    for (i=0; i<order; i++){
+      if (edge_map[i].type == PHYSICAL_MAP) {
+        ASSERT(pmap[idx_map[i]] == -1);
+        pmap[idx_map[i]] = i;
+      }
+    }
+    for (i=0; i<order; i++){
+      if (edge_map[i].type == VIRTUAL_MAP && pmap[idx_map[i]] != -1)
+        need_strip = 1;
+    }
+    if (need_strip == 0) {
+      CTF_free(pmap);
+      return 0;
+    }
+
+    CTF_alloc_ptr(order*sizeof(int), (void**)&edge_len);
+    CTF_alloc_ptr(order*sizeof(int), (void**)&sdim);
+    CTF_alloc_ptr(order*sizeof(int), (void**)&sidx);
+    stripper = new strp_tsr;
+
+    std::fill(sdim, sdim+order, 1);
+    std::fill(sidx, sidx+order, 0);
+
+    for (i=0; i<order; i++){
+      edge_len[i] = edge_map[i].calc_phase()/edge_map[i].calc_phys_phase();
+      //if (edge_map[i].type == VIRTUAL_MAP) {
+      //  edge_len[i] = edge_map[i].np;
+      //}
+      //if (edge_map[i].type == PHYSICAL_MAP && edge_map[i].has_child) {
+        //dont allow recursive mappings for self indices
+        // or things get weird here
+        //ASSERT(edge_map[i].child->type == VIRTUAL_MAP);
+      //  edge_len[i] = edge_map[i].child->np;
+     // }
+      if (edge_map[i].type == VIRTUAL_MAP && pmap[idx_map[i]] != -1) {
+        sdim[i] = edge_len[i];
+        sidx[i] = edge_map[pmap[idx_map[i]]].calc_phys_rank(topo);
+        ASSERT(edge_map[i].np == edge_map[pmap[idx_map[i]]].np);
+      }
+      blk_edge_len[i] = blk_edge_len[i] / sdim[i];
+      *blk_sz = (*blk_sz) / sdim[i];
+    }
+
+    stripper->alloced     = 0;
+    stripper->order        = order;
+    stripper->edge_len    = edge_len;
+    stripper->strip_dim   = sdim;
+    stripper->strip_idx   = sidx;
+    stripper->buffer      = NULL;
+    stripper->blk_sz      = vrt_sz;
+    stripper->sr_A        = sr;
+
+    *stpr = stripper;
+
+    CTF_free(pmap);
+
+    return 1;
+  }
+
+  
 }

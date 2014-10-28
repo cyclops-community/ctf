@@ -131,8 +131,8 @@ namespace CTF_int {
     sym           = o->sym;
     edge_len      = (int*)CTF_alloc(sizeof(int)*order);
     memcpy(edge_len, o->edge_len, sizeof(int)*order);
-
-    func_ptr = o->func_ptr;
+    is_custom = o->is_custom;
+    func = o->func;
   }
 
   scl * seq_tsr_scl::clone() {
@@ -142,8 +142,19 @@ namespace CTF_int {
   int64_t seq_tsr_scl::mem_fp(){ return 0; }
 
   void seq_tsr_scl::run(){
-    func_ptr.func_ptr(this->alpha,
+    if (is_custom)
+      sym_seq_scl_cust(this->A,
+                       sr_A,
+                       order,
+                       edge_len,
+                       edge_len,
+                       sym,
+                       idx_map,
+                       func);
+    else
+      sym_seq_scl_ref(alpha,
                       this->A,
+                      sr_A,
                       order,
                       edge_len,
                       edge_len,
@@ -154,27 +165,9 @@ namespace CTF_int {
   void seq_tsr_scl::print(){
     int i;
     printf("seq_tsr_scl:\n");
+    printf("is_custom = %d\n",is_custom);
     for (i=0; i<order; i++){
       printf("edge_len[%d]=%d\n",i,edge_len[i]);
-    }
-  }
-  void inv_idx(int const          order_A,
-               int const *        idx_A,
-               int *              order_tot,
-               int **             idx_arr){
-    int i, dim_max;
-
-    dim_max = -1;
-    for (i=0; i<order_A; i++){
-      if (idx_A[i] > dim_max) dim_max = idx_A[i];
-    }
-    dim_max++;
-    *order_tot = dim_max;
-    *idx_arr = (int*)CTF_alloc(sizeof(int)*dim_max);
-    std::fill((*idx_arr), (*idx_arr)+dim_max, -1);  
-
-    for (i=0; i<order_A; i++){
-      (*idx_arr)[idx_A[i]] = i;
     }
   }
 

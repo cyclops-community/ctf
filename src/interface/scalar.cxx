@@ -23,7 +23,7 @@ namespace CTF {
     int64_t s; 
     dtype * arr;
 
-    if (world->cdt.rank() == 0){
+    if (world->cdt.rank == 0){
       int ret = this->get_raw_data(&arr, &s); 
       assert(ret == SUCCESS);
       arr[0] = val;

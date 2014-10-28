@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = scaling sym_seq_scl_ref sym_seq_scl_cust scale_tsr strp_tsr
+OBJS = scaling.o sym_seq_scl.o scale_tsr.o strp_tsr.o
 
 ctf: $(OBJS) 
 

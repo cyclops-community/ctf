@@ -51,6 +51,23 @@ namespace CTF_int {
       void free_data();
   };
 
+  /**
+   * \brief calculate the block-sizes of a tensor
+   * \param[in] order number of dimensions of this tensor
+   * \param[in] size is the size of the local tensor stored
+   * \param[in] edge_len edge lengths of global tensor
+   * \param[in] edge_map mapping of each dimension
+   * \param[out] vrt_sz size of virtual block
+   * \param[out] vrt_edge_len edge lengths of virtual block
+   * \param[out] blk_edge_len edge lengths of local block
+   */
+  void calc_dim(int         order,
+                int64_t    size,
+                int const *       edge_len,
+                mapping const *   edge_map,
+                int64_t *         vrt_sz,
+                int *             vrt_edge_len,
+                int *             blk_edge_len);
 }
 
 #endif

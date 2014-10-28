@@ -9,7 +9,8 @@ namespace CTF_int {
   class scl {
     public:
       char * A; 
-      char * alpha;
+      semiring sr_A;
+      char const * alpha;
       void * buffer;
 
       virtual void run() {};

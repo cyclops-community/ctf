@@ -2,7 +2,7 @@
 #include "mapping.h"
 
 namespace CTF_int {
-  int mapping::calc_phase(){
+  int mapping::calc_phase() const {
     int phase;
     if (this->type == NOT_MAPPED){
       phase = 1;
@@ -20,7 +20,7 @@ namespace CTF_int {
     return phase;  
   }
 
-  int mapping::calc_phys_phase(){
+  int mapping::calc_phys_phase() const {
     int phase;
     if (this->type == NOT_MAPPED){
       phase = 1;
@@ -44,7 +44,7 @@ namespace CTF_int {
    * \param topo topology
    * \return int physical rank
    */
-  int mapping::calc_phys_rank(topology const * topo){
+  int mapping::calc_phys_rank(topology const * topo) const {
     int rank, phase;
     if (this->type == NOT_MAPPED){
       rank = 0;
@@ -262,4 +262,215 @@ namespace CTF_int {
     }
     return CTF_SUCCESS;
   }
+
+  
+  int check_self_mapping(tensor const * tsr,
+                         int const *      idx_map){
+    int i, j, pass, iR, max_idx;
+    int * idx_arr;
+    tensor<dtype> * tsr;
+    mapping * map1, * map2;
+
+
+    max_idx = -1;
+    for (i=0; i<tsr->order; i++){
+      if (idx_map[i] > max_idx) max_idx = idx_map[i];
+    }
+    max_idx++;
+
+    CTF_alloc_ptr(sizeof(int)*max_idx, (void**)&idx_arr);
+    std::fill(idx_arr, idx_arr+max_idx, -1);
+
+    pass = 1;
+    for (i=0; i<tsr->order; i++){
+      map1 = &tsr->edge_map[i];
+      while (map1->type == PHYSICAL_MAP) {
+        map2 = map1;
+        while (map2->has_child){
+          map2 = map2->child;
+          if (map2->type == PHYSICAL_MAP){
+            if (map1->cdt == map2->cdt) pass = 0;
+            if (!pass){          
+              DPRINTF(3,"failed confirmation here i=%d\n",i);
+              break;
+            }
+          }
+        }
+        for (j=i+1; j<tsr->order; j++){
+          map2 = &tsr->edge_map[j];
+          while (map2->type == PHYSICAL_MAP){
+            if (map1->cdt == map2->cdt) pass = 0;
+            if (!pass){          
+              DPRINTF(3,"failed confirmation here i=%d j=%d\n",i,j);
+              break;
+            }
+            if (map2->has_child)
+              map2 = map2->child;
+            else break;
+          }
+        }
+        if (map1->has_child)
+          map1 = map1->child;
+        else break;
+      }
+    }
+    /* Go in reverse, since the first index of the diagonal set will be mapped */
+    if (pass){
+      for (i=tsr->order-1; i>=0; i--){
+        iR = idx_arr[idx_map[i]];
+        if (iR != -1){
+          if (tsr->edge_map[iR].has_child == 1) 
+            pass = 0;
+          if (tsr->edge_map[i].has_child == 1) 
+            pass = 0;
+  /*        if (tsr->edge_map[i].type != VIRTUAL_MAP) 
+            pass = 0;*/
+  /*        if (tsr->edge_map[i].np != tsr->edge_map[iR].np)
+            pass = 0;*/
+          if (tsr->edge_map[i].type == PHYSICAL_MAP)
+            pass = 0;
+  //        if (tsr->edge_map[iR].type == VIRTUAL_MAP){
+          if (tsr->edge_map[i].calc_phase() 
+              != tsr->edge_map[iR].calc_phase()){
+            pass = 0;
+          }
+          /*if (tsr->edge_map[iR].has_child && tsr->edge_map[iR].child->type == PHYSICAL_MAP){
+            pass = 0;
+          }*/
+          if (!pass) {
+            DPRINTF(3,"failed confirmation here i=%d iR=%d\n",i,iR);
+            break;
+          }
+          continue;
+        }
+        idx_arr[idx_map[i]] = i;
+      }
+    }
+    CTF_free(idx_arr);
+    return pass;
+  }
+
+  int map_self_indices(tensor const * tsr,
+                       int const* idx_map){
+    int iR, max_idx, i, ret, npp;
+    int * idx_arr, * stable;
+    tensor<dtype> * tsr;
+
+    
+    max_idx = -1;
+    for (i=0; i<tsr->order; i++){
+      if (idx_map[i] > max_idx) max_idx = idx_map[i];
+    }
+    max_idx++;
+
+
+    CTF_alloc_ptr(sizeof(int)*max_idx, (void**)&idx_arr);
+    CTF_alloc_ptr(sizeof(int)*tsr->order*tsr->order, (void**)&stable);
+    memcpy(stable, tsr->sym_table, sizeof(int)*tsr->order*tsr->order);
+
+    std::fill(idx_arr, idx_arr+max_idx, -1);
+
+    /* Go in reverse, since the first index of the diagonal set will be mapped */
+    npp = 0;
+    for (i=0; i<tsr->order; i++){
+      iR = idx_arr[idx_map[i]];
+      if (iR != -1){
+        stable[iR*tsr->order+i] = 1;
+        stable[i*tsr->order+iR] = 1;
+      //  ASSERT(tsr->edge_map[iR].type != PHYSICAL_MAP);
+        if (tsr->edge_map[iR].type == NOT_MAPPED){
+          npp = 1;
+          tsr->edge_map[iR].type = VIRTUAL_MAP;
+          tsr->edge_map[iR].np = 1;
+          tsr->edge_map[iR].has_child = 0;
+        }
+      }
+      idx_arr[idx_map[i]] = i;
+    }
+
+    if (!npp){
+      ret = map_symtsr(tsr->order, stable, tsr->edge_map);
+      if (ret!=CTF_SUCCESS) return ret;
+    }
+
+    CTF_free(idx_arr);
+    CTF_free(stable);
+    return CTF_SUCCESS;
+  }
+
+  int map_symtsr(int    tsr_order,
+                 int const *    tsr_sym_table,
+                 mapping *    tsr_edge_map){
+    int i,j,phase,adj,loop,sym_phase,lcm_phase;
+    mapping * sym_map, * map;
+
+    /* Make sure the starting mappings are consistent among symmetries */
+    adj = 1;
+    loop = 0;
+    while (adj){
+      adj = 0;
+  #ifndef MAXLOOP
+  #define MAXLOOP 20
+  #endif
+      if (loop >= MAXLOOP) return CTF_NEGATIVE;
+      loop++;
+      for (i=0; i<tsr_order; i++){
+        if (tsr_edge_map[i].type != NOT_MAPPED){
+          map   = &tsr_edge_map[i];
+          phase   = calc_phase(map);
+          for (j=0; j<tsr_order; j++){
+            if (i!=j && tsr_sym_table[i*tsr_order+j] == 1){
+              sym_map   = &(tsr_edge_map[j]);
+              sym_phase   = calc_phase(sym_map);
+              /* Check if symmetric phase inconsitent */
+              if (sym_phase != phase) adj = 1;
+              else continue;
+              lcm_phase   = lcm(sym_phase, phase);
+              if ((lcm_phase < sym_phase || lcm_phase < phase) || lcm_phase >= MAX_PHASE)
+                return CTF_NEGATIVE;
+              /* Adjust phase of symmetric (j) dimension */
+              if (sym_map->type == NOT_MAPPED){
+                sym_map->type     = VIRTUAL_MAP;
+                sym_map->np   = lcm_phase;
+                sym_map->has_child  = 0;
+              } else if (sym_phase != lcm_phase) { 
+                while (sym_map->has_child) sym_map = sym_map->child;
+                if (sym_map->type == VIRTUAL_MAP){
+                  sym_map->np = sym_map->np*(lcm_phase/sym_phase);
+                } else {
+                  ASSERT(sym_map->type == PHYSICAL_MAP);
+                  if (!sym_map->has_child)
+                    sym_map->child    = (mapping*)CTF_alloc(sizeof(mapping));
+                  sym_map->has_child  = 1;
+                  sym_map->child->type    = VIRTUAL_MAP;
+                  sym_map->child->np    = lcm_phase/sym_phase;
+
+                  sym_map->child->has_child = 0;
+                }
+              }
+              /* Adjust phase of reference (i) dimension if also necessary */
+              if (lcm_phase > phase){
+                while (map->has_child) map = map->child;
+                if (map->type == VIRTUAL_MAP){
+                  map->np = map->np*(lcm_phase/phase);
+                } else {
+                  if (!map->has_child)
+                    map->child    = (mapping*)CTF_alloc(sizeof(mapping));
+                  ASSERT(map->type == PHYSICAL_MAP);
+                  map->has_child    = 1;
+                  map->child->type  = VIRTUAL_MAP;
+                  map->child->np    = lcm_phase/phase;
+                  map->child->has_child = 0;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return CTF_SUCCESS;
+  }
+
+
+
 }

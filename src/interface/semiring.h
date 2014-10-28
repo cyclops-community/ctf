@@ -4,6 +4,34 @@
 #include "../tensor/untyped_semiring.h"
 
 namespace CTF {
+  /**
+   * \brief index-value pair used for tensor data input
+   */
+  template<typename dtype=double>
+  class Pair  {
+    public:
+      /** \brief key, global index [i1,i2,...] specified as i1+len[0]*i2+... */
+      int64_t k;
+
+      /** \brief tensor value associated with index */
+      dtype v;
+
+      /**
+       * \brief constructor builds pair
+       * \param[in] k_ key
+       * \param[in] v_ value
+       */
+      Pair(int64_t k_, dtype v_){
+        this->k = k_; 
+        v = v_;
+      }
+  };
+
+  template<typename dtype>
+  inline bool comp_pair(Pair<dtype> i,
+                        Pair<dtype> j) {
+    return (i.k<j.k);
+  }
 
   template <typename dtype>
   dtype default_add(dtype a, dtype b){

@@ -6,7 +6,7 @@ namespace CTF_int {
                int64_t      num_pair,
                int const *        edge_len,
                int const *        padding,
-               pair *  pairs,
+               char *  pairs,
                semiring const & sr,
                int const *        offsets = NULL){
     int64_t i, j, lda;
@@ -53,10 +53,10 @@ namespace CTF_int {
                  int const *              sym,
                  int const *              padding,
                  int const *              prepadding,
-                 pair const *  pairs,
-                 semiring const & sr,
-                 pair *        new_pairs,
-                 int64_t *                new_num_pair){
+                 char const *  pairs,
+                 char *        new_pairs,
+                 int64_t *                new_num_pair,
+                 semiring const & sr){
 
     TAU_FSTART(depad_tsr);
 #ifdef USE_OMP
@@ -207,16 +207,16 @@ namespace CTF_int {
                  int const *              phys_phase,
                  int *                    virt_phys_rank,
                  int const *              virt_phase,
-                 pair const *  old_data,
-                   semiring const & sr,
-                 pair **       new_pairs,
-                 int64_t *                new_size){
+                 char const *  old_data,
+                 char **       new_pairs,
+                 int64_t *                new_size,
+                 semiring const & sr){
     int i, imax, act_lda;
     int64_t new_el, pad_el;
     int pad_max, virt_lda, outside, offset, edge_lda;
     int * idx;  
     CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
-    pair * padded_pairs;
+    char * padded_pairs;
     
     pad_el = 0;
    

@@ -12,54 +12,6 @@
 
 
 /**
- * \brief ,calculate the block-sizes of a tensor
- * \param[in] order number of dimensions of this tensor
- * \param[in] size is the size of the local tensor stored
- * \param[in] edge_len edge lengths of global tensor
- * \param[in] edge_map mapping of each dimension
- * \param[out] vrt_sz size of virtual block
- * \param[out] vrt_edge_len edge lengths of virtual block
- * \param[out] blk_edge_len edge lengths of local block
- */
-inline
-void calc_dim(int const         order,
-              int64_t const    size,
-              int const *       edge_len,
-              mapping const *   edge_map,
-              int64_t *         vrt_sz,
-              int *             vrt_edge_len,
-              int *             blk_edge_len){
-  int64_t vsz, i, cont;
-  mapping const * map;
-  vsz = size;
-
-  for (i=0; i<order; i++){
-    if (blk_edge_len != NULL)
-      blk_edge_len[i] = edge_len[i];
-    vrt_edge_len[i] = edge_len[i];
-    map = &edge_map[i];
-    do {
-      if (blk_edge_len != NULL){
-        if (map->type == PHYSICAL_MAP)
-          blk_edge_len[i] = blk_edge_len[i] / map->np;
-      }
-      vrt_edge_len[i] = vrt_edge_len[i] / map->np;
-      if (vrt_sz != NULL){
-        if (map->type == VIRTUAL_MAP)
-          vsz = vsz / map->np;
-      } 
-      if (map->has_child){
-        cont = 1;
-        map = map->child;
-      } else 
-        cont = 0;
-    } while (cont);
-  }
-  if (vrt_sz != NULL)
-    *vrt_sz = vsz;
-}
-
-/**
  * \brief invert index map
  * \param[in] order_A number of dimensions of A
  * \param[in] idx_A index map of A

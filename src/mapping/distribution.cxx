@@ -128,4 +128,43 @@ namespace CTF_int {
     }
     order = -1;
   }
+
+
+  void calc_dim(int         order,
+                int64_t    size,
+                int const *       edge_len,
+                mapping const *   edge_map,
+                int64_t *         vrt_sz,
+                int *             vrt_edge_len,
+                int *             blk_edge_len){
+    int64_t vsz, i, cont;
+    mapping const * map;
+    vsz = size;
+
+    for (i=0; i<order; i++){
+      if (blk_edge_len != NULL)
+        blk_edge_len[i] = edge_len[i];
+      vrt_edge_len[i] = edge_len[i];
+      map = &edge_map[i];
+      do {
+        if (blk_edge_len != NULL){
+          if (map->type == PHYSICAL_MAP)
+            blk_edge_len[i] = blk_edge_len[i] / map->np;
+        }
+        vrt_edge_len[i] = vrt_edge_len[i] / map->np;
+        if (vrt_sz != NULL){
+          if (map->type == VIRTUAL_MAP)
+            vsz = vsz / map->np;
+        } 
+        if (map->has_child){
+          cont = 1;
+          map = map->child;
+        } else 
+          cont = 0;
+      } while (cont);
+    }
+    if (vrt_sz != NULL)
+      *vrt_sz = vsz;
+  }
+
 }

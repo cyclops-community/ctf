@@ -28,34 +28,6 @@ namespace CTF {
   template <typename dtype> class Sparse_Tensor;
 
   /**
-   * \brief index-value pair used for tensor data input
-   */
-  template<typename dtype=double>
-  class Pair : public CTF_int::pair {
-    public:
-      dtype d;
-      Pair() {}
-      Pair(int64_t k_, dtype d_){
-        this->k = k_; 
-        d = d_;
-      }
-      
-      char * v(){
-        return (char*)&d;
-      }
-      
-      virtual int size(){ 
-        return sizeof(int64_t)+sizeof(dtype);
-      }
-  };
-
-  template<typename dtype>
-  inline bool comp_pair(Pair<dtype> i,
-                        Pair<dtype> j) {
-    return (i.k<j.k);
-  }
-
-  /**
    * \defgroup CTF CTF: C++ Tensor interface
    * @{
    */

@@ -3,10 +3,10 @@
 #ifndef __STRP_TSR_H__
 #define __STRP_TSR_H__
 
-#include "../contraction/ctr_comm.h"
 #include "../scaling/scale_tsr.h"
 #include "../summation/sum_tsr.h"
-#include "../shared/util.h"
+#include "../contraction/ctr_comm.h"
+#include "../mapping/mapping.h"
 
 namespace CTF_int {
   class strp_tsr {
@@ -166,6 +166,32 @@ namespace CTF_int {
       strp_ctr(ctr *other);
       strp_ctr(){}
   };
+
+  /**
+   * \brief build stack required for stripping out diagonals of tensor
+   * \param[in] order number of dimensions of this tensor
+   * \param[in] order_tot number of dimensions invovled in contraction/sum
+   * \param[in] idx_map the index mapping for this contraction/sum
+   * \param[in] vrt_sz size of virtual block
+   * \param[in] edge_map mapping of each dimension
+   * \param[in] topology the tensor is mapped to
+   * \param[in] sr semiring to be given  to all stpr objs
+   * \param[in,out] blk_edge_len edge lengths of local block after strip
+   * \param[in,out] blk_sz size of local sub-block block after strip
+   * \param[out] stpr class that recursively strips tensor
+   * \return 1 if tensor needs to be stripped, 0 if not
+   */
+  int strip_diag(int                 order,
+                 int                 order_tot,
+                 int const *              idx_map,
+                 int64_t            vrt_sz,
+                 mapping const *          edge_map,
+                 topology const *         topo,
+                 semiring const &         sr,
+                 int *                    blk_edge_len,
+                 int64_t *                blk_sz,
+                 strp_tsr **       stpr);
+
 }
 
 #endif // __STRP_TSR_H__

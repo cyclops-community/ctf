@@ -6,6 +6,21 @@
 #include "../tensor/untyped_semiring.h"
 
 namespace CTF_int {
+
+  /**
+   * \brief untyped internal class for doubly-typed univariate function
+   */
+  class univar_function {
+    public:
+      /**
+       * \brief apply function f to value stored at a
+       * \param[in] a pointer to operand that will be cast to type by extending class
+       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       */
+      virtual void apply_f(char const * a, char * b) { assert(0); }
+  };
+
+
   class tsum {
     public:
       char * A; 
@@ -101,6 +116,7 @@ namespace CTF_int {
       ~seq_tsr_sum(){ CTF_free(edge_len_A), CTF_free(edge_len_B), 
                       CTF_free(sym_A), CTF_free(sym_B); };
       seq_tsr_sum(){}
+
   };
 
   /**

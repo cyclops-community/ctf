@@ -2,22 +2,10 @@
 #define __INT_SUMMATION_H__
 
 #include "assert.h"
+#include "sum_tsr.h"
 
 namespace CTF_int {
   class tensor; 
-
-  /**
-   * \brief untyped internal class for doubly-typed univariate function
-   */
-  class univar_function {
-    public:
-      /**
-       * \brief apply function f to value stored at a
-       * \param[in] a pointer to operand that will be cast to type by extending class
-       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
-       */
-      virtual void apply_f(char const * a, char * b) { assert(0); }
-  };
 
 
   /**
@@ -78,6 +66,34 @@ namespace CTF_int {
       /** \brief predicts execution time in seconds using performance models */
       double estimate_time();
    
+      /**
+       * \brief finds and return all summation indices which can be folded into
+       *    dgemm, for which they must (1) not break symmetry (2) belong to 
+       *    exactly two of (A,B).
+       * \param[in] type contraction specification
+       * \param[out] num_fold number of indices that can be folded
+       * \param[out] fold_idx indices that can be folded
+       */
+      void get_fold_indices(int *                   num_fold,
+                            int **                  fold_idx);
+    
+      /**
+       * \brief determines whether this summation can be folded
+       * \return whether we can fold this summation
+       */
+      int can_fold();
+
+
+
+      /**
+       * \brief find ordering of indices of tensor to reduce to DAXPY
+       *
+       * \param[out] new_ordering_A the new ordering for indices of A
+       * \param[out] new_ordering_B the new ordering for indices of B
+       */
+      void get_len_ordering(
+                                            int **      new_ordering_A,
+                                            int **      new_ordering_B);
   };
 }
 

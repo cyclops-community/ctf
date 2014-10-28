@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = summation sym_seq_sum_ref sym_seq_sum_cust sym_seq_sum_inner sum_tsr 
+OBJS = summation.o sym_seq_sum_ref.o sym_seq_sum_cust.o sym_seq_sum_inner.o sum_tsr.o 
 
 ctf: $(OBJS) 
 

@@ -9,7 +9,7 @@ namespace CTF_int {
                     int const *                 edge_len,
                     int const *                 new_edge_len,
                     int * const *               permutation,
-                    pair                        pairs,
+                    char *                      pairs,
                     int64_t *                   new_num_pair,
                     semiring                    sr){
     TAU_FSTART(permute_keys);
@@ -92,7 +92,7 @@ namespace CTF_int {
                       int const *                 edge_len,
                       int const *                 new_edge_len,
                       int * const *               permutation,
-                      pair *                      pairs,
+                      char *                      pairs,
                       semiring                    sr){
     TAU_FSTART(depermute_keys);
   #ifdef USE_OMP
@@ -173,8 +173,8 @@ namespace CTF_int {
                    int const *        virt_dim,
                    int *              phase_rank,
                    char const *      vdata,
-                   semiring const & sr,
-                   pair *  vpairs){
+                   char *  vpairs,
+                   semiring const & sr){
     int i, imax, act_lda, idx_offset, act_max, buf_offset;
     int64_t p;
     int * idx, * virt_rank, * edge_lda;  
@@ -268,11 +268,11 @@ namespace CTF_int {
                      int const *              virt_phase,
                      int const *              bucket_lda,
                      int const *              edge_len,
-                     pair const *  mapped_data,
-                     semiring const & sr,
+                     char const *  mapped_data,
                      int64_t *               bucket_counts,
                      int64_t *               bucket_off,
-                     pair *        bucket_data);
+                     char *        bucket_data,
+                     semiring const & sr){
 
 
     int64_t i, j, loc;
@@ -383,9 +383,9 @@ namespace CTF_int {
                       int64_t                num_pair,
                       int const *             virt_phase,
                       int const *             edge_len,
-                      pair const * mapped_data,
-                      semiring const & sr,
-                      pair *       bucket_data){
+                      char const * mapped_data,
+                      char *       bucket_data,
+                      semiring const & sr){
     int64_t i, j, loc;
     int64_t * virt_counts, * virt_prefix, * virt_lda;
     key k;
@@ -526,10 +526,10 @@ namespace CTF_int {
                  int const *      phase,
                  int const *      virt_dim,
                  int *            phase_rank,
-                 semiring const & sr,
                  char *          vdata,
-                 pair *pairs,
-                 char             rw){
+                 char *pairs,
+                 char             rw,
+                 semiring const & sr){
     int64_t i, imax, act_lda;
     int64_t idx_offset, act_max, buf_offset, pr_offset, p;
     int64_t * idx, * virt_rank, * edge_lda;  
@@ -661,9 +661,9 @@ namespace CTF_int {
 
   void wr_pairs_layout(int                order,
                        int                np,
-                       int64_t           inwrite,
-                       dtype              alpha,  
-                       dtype              beta,  
+                       int64_t            inwrite,
+                       char const *       alpha,  
+                       char const *       beta,  
                        char               rw,
                        int                num_virt,
                        int const *        sym,
@@ -673,10 +673,10 @@ namespace CTF_int {
                        int const *        virt_phase,
                        int *              virt_phys_rank,
                        int const *        bucket_lda,
-                       semiring const & sr,
-                       pair *  wr_pairs,
+                       char *  wr_pairs,
                        char *            rw_data,
-                       CommData         glb_comm){
+                       CommData         glb_comm,
+                       semiring const & sr){
     int64_t i, new_num_pair, nwrite, swp;
     int64_t * bucket_counts, * recv_counts;
     int64_t * recv_displs, * send_displs;
@@ -892,10 +892,10 @@ namespace CTF_int {
                       int const *         virt_dim,
                       int const *         virt_phase,
                       int *               virt_phase_rank,
-                      semiring const & sr,
                       int64_t *           nread,
                       char const *       data,
-                      pair **  pairs){
+                      char **  pairs,
+                      semiring const & sr){
     int64_t i;
     int * prepadding;
     tkv_pair<dtype> * dpairs;

@@ -22,7 +22,7 @@ namespace CTF_int {
                     int const *                 edge_len,
                     int const *                 new_edge_len,
                     int * const *               permutation,
-                    pair *                      pairs,
+                    char *                      pairs,
                     int64_t *                   new_num_pair,
                     semiring                    sr);
 
@@ -40,7 +40,7 @@ namespace CTF_int {
                       int const *                 edge_len,
                       int const *                 new_edge_len,
                       int * const *               permutation,
-                      pair *                      pairs,
+                      char *                      pairs,
                       semiring                    sr);
 
   /**
@@ -54,8 +54,8 @@ namespace CTF_int {
    * \param[in] virt_dim virtual phase in each dimension
    * \param[in] phase_rank physical phase rank multiplied by virtual phase
    * \param[in] vdata array of input values
-   * \param[in] sr semiring defining data type of array
    * \param[out] vpairs pairs of keys and inputted values
+   * \param[in] sr semiring defining data type of array
    */
   void assign_keys(int           order,
                    int64_t     size,
@@ -66,8 +66,8 @@ namespace CTF_int {
                    int const *        virt_dim,
                    int *              phase_rank,
                    char const *      vdata,
-                   semiring const & sr,
-                   pair *  vpairs);
+                   char *  vpairs,
+                   semiring const & sr);
 
 
   /**
@@ -80,10 +80,10 @@ namespace CTF_int {
    * \param[in] bucket_lda iterator hop along each bucket dim
    * \param[in] edge_len padded edge lengths of tensor
    * \param[in] mapped_data set of sparse key-value pairs
-   * \param[in] sr semiring context defining values
    * \param[out] bucket_counts how many keys belong to each processor
    * \param[out] bucket_offsets prefix sum of bucket_counts
    * \param[out] bucket_data mapped_data reordered by bucket
+   * \param[in] sr semiring context defining values
    */
   void bucket_by_pe( int                order,
                      int64_t           num_pair,
@@ -92,11 +92,11 @@ namespace CTF_int {
                      int const *              virt_phase,
                      int const *              bucket_lda,
                      int const *              edge_len,
-                     pair const *  mapped_data,
-                     semiring const & sr,
+                     char const *  mapped_data,
                      int64_t *               bucket_counts,
                      int64_t *               bucket_off,
-                     pair *        bucket_data);
+                     char *        bucket_data,
+                     semiring const & sr);
   /**
    * \brief buckets key value pairs by block/virtual-processor
    * \param[in] order number of tensor dims
@@ -105,17 +105,17 @@ namespace CTF_int {
    * \param[in] virt_phase factor of phase due to local blocking
    * \param[in] edge_len padded edge lengths of tensor
    * \param[in] mapped_data set of sparse key-value pairs
-   * \param[in] sr semiring context defining values
    * \param[out] bucket_data mapped_data reordered by bucket
+   * \param[in] sr semiring context defining values
    */
   void bucket_by_virt(int                     order,
                       int                     num_virt,
                       int64_t                num_pair,
                       int const *             virt_phase,
                       int const *             edge_len,
-                      pair const * mapped_data,
-                      semiring const & sr,
-                      pair *       bucket_data);
+                      char const * mapped_data,
+                      char *       bucket_data,
+                      semiring const & sr);
 
   /**
    * \brief read or write pairs from / to tensor
@@ -128,10 +128,10 @@ namespace CTF_int {
    * \param[in] phase total phase in each dimension
    * \param[in] virt_dim virtualization in each dimension
    * \param[in] phase_rank virtualized rank in total phase
-   * \param[in] sr semiring context defining values
    * \param[in,out] vdata data to read from or write to
    * \param[in,out] pairs pairs to read or write
    * \param[in] rw whether to read 'r' or write 'w'
+   * \param[in] sr semiring context defining values
    */
   void readwrite(int              order,
                  int64_t          size,
@@ -143,10 +143,10 @@ namespace CTF_int {
                  int const *      phase,
                  int const *      virt_dim,
                  int *            phase_rank,
-                 semiring const & sr,
                  char *          vdata,
-                 pair *pairs,
-                 char             rw);
+                 char *pairs,
+                 char             rw,
+                 semiring const & sr);
 
 
   /**
@@ -165,10 +165,10 @@ namespace CTF_int {
    * \param[in] virt_phase virtualization in each dimension
    * \param[in] virt_phase_rank virtualized rank in total phase
    * \param[in] bucket_lda prefix sum of the processor grid
-   * \param[in] sr semiring context defining values
    * \param[in,out] wr_pairs pairs to read or write
    * \param[in,out] rw_data data to read from or write to
    * \param[in] glb_comm the global communicator
+   * \param[in] sr semiring context defining values
    */
   void wr_pairs_layout(int                order,
                        int                np,
@@ -184,10 +184,10 @@ namespace CTF_int {
                        int const *        virt_phase,
                        int *              virt_phys_rank,
                        int const *        bucket_lda,
-                       semiring const & sr,
-                       pair *  wr_pairs,
+                       char *  wr_pairs,
                        char *            rw_data,
-                       CommData         glb_comm);
+                       CommData         glb_comm,
+                       semiring const & sr);
 
   /**
    * \brief read tensor pairs local to processor
@@ -202,10 +202,10 @@ namespace CTF_int {
    * \param[in] virt_phase total phase in each dimension
    * \param[in] virt_phase_rank virtualized rank in total phase
    * \param[in] bucket_lda prefix sum of the processor grid
-   * \param[in] sr semiring context defining values
    * \param[out] nread number of local pairs read
    * \param[in] tensor data data to read from
    * \param[out] pairs local pairs read
+   * \param[in] sr semiring context defining values
    */
   void read_loc_pairs(int                 order,
                       int64_t            nval,
@@ -216,10 +216,10 @@ namespace CTF_int {
                       int const *         virt_dim,
                       int const *         virt_phase,
                       int *               virt_phase_rank,
-                      semiring const & sr,
                       int64_t *           nread,
                       char const *       data,
-                      pair **  pairs);
+                      char **  pairs,
+                      semiring const & sr);
 
 
 }

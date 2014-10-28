@@ -7,7 +7,8 @@
 
 namespace CTF_int {
 
-  struct CommData;
+  class CommData;
+  class tensor;
 
   enum map_type {
     NOT_MAPPED,
@@ -29,14 +30,14 @@ namespace CTF_int {
        *
        * \return int phase
        */
-      int calc_phase();
+      int calc_phase() const;
       
       /**
        * \brief compute the physical phase of a mapping
        *
        * \return int physical phase
        */
-      int calc_phys_phase();
+      int calc_phys_phase() const;
       
       /**
        * \brief compute the physical rank of a mapping
@@ -44,7 +45,7 @@ namespace CTF_int {
        * \param topo topology
        * \return int physical rank
        */
-      int calc_phys_rank(topology const * topo);
+      int calc_phys_rank(topology const * topo) const;
 
       /** \brief resets mapping to NOT_MAPPED */
       void clear();
@@ -108,6 +109,39 @@ namespace CTF_int {
                  int const *    comm_idx,
                  int            fill,
                  mapping *      tsr_edge_map);
+
+  /**
+   * \brief checks mapping in preparation for tensors scale, summ or contract
+   * \param[in] tsr handle to tensor 
+   * \param[in] idx_map is the mapping of tensor to global indices
+   * \return whether the self mapping is consistent
+  */
+  int check_self_mapping(tensor const * tsr,
+                         int const *      idx_map);
+
+  /**
+   * \brief create virtual mapping for idx_maps that have repeating indices
+   * \param[in] tsr tensor handle
+   * \param[in] idx_map mapping of tensor indices to contraction map
+   */
+  int map_self_indices(tensor const * tsr,
+                       int const* idx_map);
+
+
+  /**
+   * \brief adjust a mapping to maintan symmetry
+   * \param[in] tsr_order is the number of dimensions of the tensor
+   * \param[in] tsr_sym_table the symmetry table of a tensor
+   * \param[in,out] tsr_edge_map is the mapping
+   * \return CTF::SUCCESS if mapping successful, CTF::NEGATIVE if not, 
+   *     CTF::ERROR if err'ed out
+   */
+  int map_symtsr(int    tsr_order,
+                 int const *    tsr_sym_table,
+                 mapping *    tsr_edge_map);
+
+  
+
 
 }
 

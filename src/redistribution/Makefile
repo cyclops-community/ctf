@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = redist.o sparse_rw.o pad.o
+OBJS = redist.o sparse_rw.o pad.o folding.o
 
 ctf: $(OBJS) 
 
