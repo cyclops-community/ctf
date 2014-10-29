@@ -27,6 +27,13 @@ namespace CTF_int {
       int const * idx_A;
       /** \brief indices of output */
       int const * idx_B;
+ 
+      /** \brief whether there is a elementwise custom function */
+      bool is_custom;
+
+      /** \brief function to execute on elementwise elements */
+      univar_function func;
+
 
       /**
        * \brief constructor definining summation with C's mul and add ops
@@ -94,6 +101,34 @@ namespace CTF_int {
       void get_len_ordering(
                                             int **      new_ordering_A,
                                             int **      new_ordering_B);
+    private:
+      /**
+       * \brief constructs function pointer to sum tensors A and B, B = B*beta+alpha*A
+       * \param[in] inner_stride local daxpy stride
+       * \return tsum summation class pointer to run
+      */
+      tsum * construct_sum(int inner_stride);
+
+      /**
+       * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
+       *        performs all necessary symmetric permutations removes/returns A/B to home buffer
+       * \param[in] run_diag if 1 run diagonal sum
+       */
+      int home_sum_tsr(bool run_diag);
+
+      /**
+       * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
+       *        performs all necessary symmetric permutations
+       * \param[in] run_diag if 1 run diagonal sum
+       */
+      int sym_sum_tsr(bool run_diag);
+
+      /**
+       * \brief PDAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
+       * \param[in] run_diag if 1 run diagonal sum
+       */
+      int sum_tensors(bool run_diag);
+
   };
 }
 

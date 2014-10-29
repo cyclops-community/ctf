@@ -21,10 +21,10 @@ namespace CTF_int {
       /** \brief indices of A */
       int const * idx_map;
       
-      /** \brief whether there is a pairwise custom function */
+      /** \brief whether there is a elementwise custom function */
       bool is_custom;
 
-      /** \brief function to execute on pairwise elements */
+      /** \brief function to execute on elementwise elements */
       endomorphism func;
 
       /**

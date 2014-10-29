@@ -4,6 +4,7 @@
 #define __SCL_TSR_H__
 
 #include "../tensor/untyped_semiring.h"
+#include "sym_seq_scl.h"
 
 namespace CTF_int {
   class scl {
