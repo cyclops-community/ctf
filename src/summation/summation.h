@@ -35,6 +35,9 @@ namespace CTF_int {
       univar_function func;
 
 
+      /** \brief copy constructor \param[in] other object to copy */
+      summation(summation const & other);
+
       /**
        * \brief constructor definining summation with C's mul and add ops
        * \param[in] A left operand tensor

@@ -24,9 +24,11 @@ namespace CTF_int {
   class tsum {
     public:
       char * A; 
-      char * alpha;
+      semiring sr_A;
+      char const * alpha;
       char * B; 
-      char * beta;
+      semiring sr_B;
+      char const * beta;
       void * buffer;
 
       virtual void run() {};

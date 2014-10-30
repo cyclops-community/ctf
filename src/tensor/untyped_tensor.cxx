@@ -726,6 +726,7 @@ namespace CTF_int {
     
     if (tsr->has_zero_edge_len) return SUCCESS;
     TAU_FSTART(write_pairs);
+    tsr->unfold();
     tsr->set_padding();
 
     if (tsr->is_mapped){
@@ -798,6 +799,7 @@ namespace CTF_int {
       *num_pair = 0;
       return SUCCESS;
     }
+    tsr->unfold();
     tsr->set_padding();
 
 
