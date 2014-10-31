@@ -59,6 +59,8 @@ namespace CTF_int {
                    void (*mul_)(char const * a,
                                 char const * b,
                                 char       * c),
+                   void (*addinv_)(char const * a,
+                                char       * b),
                    void (*gemm_)(char         tA,
                                  char         tB,
                                  int          m,
@@ -85,6 +87,7 @@ namespace CTF_int {
     mulid = (char*)CTF_alloc(el_size);
     memcpy(mulid,mulid_,el_size);
     add = add_;
+    addinv = addinv_;
     mul = mul_;
     gemm = gemm_;
     axpy = axpy_;

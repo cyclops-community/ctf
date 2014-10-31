@@ -132,6 +132,18 @@ namespace CTF_int {
        */
       int sum_tensors(bool run_diag);
 
+      /**
+       * \brief unfolds a broken symmetry in a summation by defining new tensors
+       * \param[out] new_sum new summations specification (new tsrss)
+       * \return 3*idx+tsr_type if finds broken sym, -1 otherwise
+       */
+      int unfold_broken_sym(summation ** new_sum);
+
+      /**
+       * \brief checks the edge lengths specfied for this sum match
+       *          throws error if not
+       */
+      void check_consistency();
   };
 }
 

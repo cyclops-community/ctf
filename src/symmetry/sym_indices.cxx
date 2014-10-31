@@ -1,6 +1,7 @@
+/** Written by Devin Matthews */
+
 #ifndef __SYM_INDICES_HXX__
 #define __SYM_INDICES_HXX__
-
 
 struct index_locator_
 {
@@ -70,7 +71,7 @@ int relativeSign(const T& s1, const T& s2)
 }
 
 template <typename T>
-double align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
+int align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
                                int order_B, T& idx_B, const int* sym_B)
 {
     int fact = 1;
@@ -183,11 +184,11 @@ double align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
     //    std::cout << std::endl;
     //}
 
-    return (double)fact;
+    return fact;
 }
 
 template <typename T>
-double align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
+int align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
                                int order_B, T& idx_B, const int* sym_B,
                                int order_C, T& idx_C, const int* sym_C)
 {
@@ -387,11 +388,11 @@ double align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
     //    std::cout << std::endl;
     //}
 
-    return (double)fact;
+    return fact;
 }
 
 template <typename T>
-double overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
+int overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
                            int order_B, const T& idx_B, const int* sym_B,
                            int order_C, const T& idx_C, const int* sym_C)
 {
@@ -428,14 +429,14 @@ double overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
         }
     }
 
-    return (double)fact;
+    return fact;
 }
 
 template <typename T>
-double overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
+int overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
                            int order_B, const T& idx_B, const int* sym_B)
 {
-    double fact;
+    int fact;
     int ninarow;
     fact = 1.0;
 
@@ -463,6 +464,29 @@ double overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
               for (;ninarow > 1;ninarow--) fact *= ninarow;
         }
     }
-    return (double)fact;
+    return fact;
 }
+
+
+template int align_symmetric_indices<char*>(int order_A, char*& idx_A, const int* sym_A,
+                               int order_B, char*& idx_B, const int* sym_B);
+
+template int align_symmetric_indices<char*>(int order_A, char*& idx_A, const int* sym_A,
+                               int order_B, char*& idx_B, const int* sym_B,
+                               int order_C, char*& idx_C, const int* sym_C);
+
+
+template int overcounting_factor<char*>(int order_A, const char*& idx_A, const int* sym_A,
+                           int order_B, const char*& idx_B, const int* sym_B,
+                           int order_C, const char*& idx_C, const int* sym_C);
+
+
+template int overcounting_factor<char*>(int order_A, const char*& idx_A, const int* sym_A,
+                           int order_B, const char*& idx_B, const int* sym_B,
+                           int order_C, const char*& idx_C, const int* sym_C);
+
+template int overcounting_factor<char*>(int order_A, const char*& idx_A, const int* sym_A,
+                           int order_B, const char*& idx_B, const int* sym_B);
+
+
 #endif

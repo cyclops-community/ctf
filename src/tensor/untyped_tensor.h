@@ -434,7 +434,7 @@ namespace CTF_int {
       /**
        * \brief permutes the data of a tensor to its new layout
        * \param[in] old_dist previous distribution to remap data from
-        */
+       */
       int redistribute(distribution const & old_dist);
                       /*int const *  old_offsets = NULL,
                        int * const * old_permutation = NULL,
@@ -446,9 +446,24 @@ namespace CTF_int {
         * \param[in] num_phys_dims number of physical processor grid dimensions
         * \param[in] phys_comm dimensional communicators
         */
-        int map_tensor_rem(int     num_phys_dims,
-                           CommData  *  phys_comm,
-                           int     fill = 0);
+      int map_tensor_rem(int     num_phys_dims,
+                         CommData  *  phys_comm,
+                         int     fill = 0);
+
+      /**
+       * \brief extracts the diagonal of a tensor if the index map specifies to do so
+       * \param[in] idx_map index map of tensor for this operation
+       * \param[in] rw if 1 this writes to the diagonal, if 0 it reads the diagonal
+       * \param[in,out] new_tsrw if rw=1 this will be output as new tensor
+                                if rw=0 this should be input as the tensor of the extracted diagonal 
+       * \param[out] idx_map_new if rw=1 this will be the new index map
+       */
+      int extract_diag(int const *  idx_map,
+                               int     rw,
+                               tensor *& new_tsr,
+                               int ** idx_map_new);
+
+
   };
 }
 

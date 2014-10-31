@@ -39,6 +39,11 @@ namespace CTF {
   }
 
   template <typename dtype>
+  dtype default_addinv(dtype a){
+    return -a;
+  }
+
+  template <typename dtype>
   dtype default_mul(dtype a, dtype b){
     return a*b;
   }
@@ -50,6 +55,7 @@ namespace CTF {
       dtype mulid;
       MPI_Op addmop;
       dtype (*fadd)(dtype a, dtype b);
+      dtype (*faddinv)(dtype a);
       dtype (*fmul)(dtype a, dtype b);
       void (*gemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
       void (*axpy)(int,dtype,dtype const*,int,dtype*,int);
@@ -79,6 +85,7 @@ namespace CTF {
              dtype  mulid_,
              MPI_Op addmop_=MPI_SUM,
              dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
+             dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
              dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
              void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&CTF_int::default_gemm<dtype>,
              void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&CTF_int::default_axpy<dtype>,
@@ -87,6 +94,7 @@ namespace CTF {
       mulid = mulid_;
       addmop = addmop_;
       fadd = fadd_;
+      faddinv = faddinv_;
       fmul = fmul_;
       gemm = gemm_;
       axpy = axpy_;
@@ -101,6 +109,7 @@ namespace CTF {
       addid = addid_;
       addmop = MPI_SUM;
       fadd = &default_add<dtype>;
+      faddinv = &default_addinv<dtype>;
       fmul = &default_mul<dtype>;
       gemm = &CTF_int::default_gemm<dtype>;
       axpy = &CTF_int::default_axpy<dtype>;
@@ -119,6 +128,7 @@ namespace CTF {
       addid = addid_;
       addmop = addmop_;
       fadd = fadd_;
+      faddinv = &default_addinv<dtype>;
       fmul = &default_mul<dtype>;
       gemm = &CTF_int::default_gemm<dtype>;
       axpy = &CTF_int::default_axpy<dtype>;

@@ -55,6 +55,10 @@ namespace CTF_int {
       /** \brief MPI datatype */
       MPI_Datatype mdtype;
 
+      /** \brief b = -a */
+      void (*addinv)(char const * a, 
+                     char * b);
+
       /** \brief c = a+b */
       void (*add)(char const * a, 
                   char const * b,
@@ -126,6 +130,8 @@ namespace CTF_int {
                    void (*mul )(char const * a,
                                 char const * b,
                                 char       * c),
+                   void (*addinv)(char const * a,
+                                char  * b) = NULL,
                    void (*gemm)(char         tA,
                                 char         tB,
                                 int          m,

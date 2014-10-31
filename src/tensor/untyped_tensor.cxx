@@ -517,7 +517,7 @@ namespace CTF_int {
       odst = distribution(rbuffer);
       CTF_free(rbuffer);
     } else
-      std::fill(sub_buffer, sub_buffer + odst.size, 0.0);
+      sr.set(sub_buffer, sr.addid, odst.size);
     *sub_buffer_ = sub_buffer;
 
   }
@@ -1160,6 +1160,59 @@ namespace CTF_int {
     CTF_free(comm_idx);
     return stat;
   }
+
+  int tensor::extract_diag(int const *  idx_map,
+                           int     rw,
+                           tensor *& new_tsr,
+                           int ** idx_map_new){
+    int i, j, k, * edge_len, * sym, * ex_idx_map, * diag_idx_map;
+    for (i=0; i<this->order; i++){
+      for (j=i+1; j<this->order; j++){
+        if (idx_map[i] == idx_map[j]){
+          CTF_alloc_ptr(sizeof(int)*this->order-1, (void**)&edge_len);
+          CTF_alloc_ptr(sizeof(int)*this->order-1, (void**)&sym);
+          CTF_alloc_ptr(sizeof(int)*this->order,   (void**)idx_map_new);
+          CTF_alloc_ptr(sizeof(int)*this->order,   (void**)&ex_idx_map);
+          CTF_alloc_ptr(sizeof(int)*this->order-1, (void**)&diag_idx_map);
+          for (k=0; k<this->order; k++){
+            if (k<j){
+              ex_idx_map[k]       = k;
+              diag_idx_map[k]    = k;
+              edge_len[k]        = this->pad_edge_len[k]-this->padding[k];
+              (*idx_map_new)[k]  = idx_map[k];
+              if (k==j-1){
+                sym[k] = NS;
+              } else 
+                sym[k] = this->sym[k];
+            } else if (k>j) {
+              ex_idx_map[k]       = k-1;
+              diag_idx_map[k-1]   = k-1;
+              edge_len[k-1]       = this->pad_edge_len[k]-this->padding[k];
+              sym[k-1]            = this->sym[k];
+              (*idx_map_new)[k-1] = idx_map[k];
+            } else {
+              ex_idx_map[k] = i;
+            }
+          }
+          if (rw){
+            new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld);
+            summation sum = summation(this, ex_idx_map, sr.mulid, new_tsr, diag_idx_map, sr.addid);
+            sum.execute();
+          } else {
+            summation sum = summation(new_tsr, diag_idx_map, sr.mulid, this, ex_idx_map, sr.addid);
+            sum.execute();
+          }
+          CTF_free(edge_len), CTF_free(sym), CTF_free(ex_idx_map), CTF_free(diag_idx_map);
+          return SUCCESS;
+        }
+      }
+    }
+    return NEGATIVE;
+  }
+                                      
+
+
+
 
 }
 
