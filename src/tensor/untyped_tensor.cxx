@@ -167,6 +167,12 @@ namespace CTF_int {
       this->edge_map[i].has_child  = 0;
       this->edge_map[i].np         = 1;
       if (this->sym[i] != NS) {
+        if (this->sym[i] == AS && !sr.is_ring){ 
+          if (wrld->rank == 0){
+            printf("CTF ERROR: It is illegal to define antisymmetric tensor must be defined on a ring, yet no additive inverse was provided for this semiring (see semiring constructor), aborting.\n");
+          }
+          ABORT;
+        }
         this->sym_table[(i+1)+i*order] = 1;
         this->sym_table[(i+1)*order+i] = 1;
       }
@@ -1211,7 +1217,60 @@ namespace CTF_int {
   }
                                       
 
+  int tensor::zero_out_padding(){
+    int i, num_virt, idx_lyr;
+    int64_t np;
+    int * virt_phase, * virt_phys_rank, * phys_phase;
+    mapping * map;
 
+    TAU_FSTART(zero_out_padding);
+
+    if (this->has_zero_edge_len){
+      return SUCCESS;
+    }
+    this->unfold();
+    this->set_padding();
+
+    if (!this->is_mapped){
+      return SUCCESS;
+    } else {
+      np = this->size;
+
+      CTF_alloc_ptr(sizeof(int)*this->order, (void**)&virt_phase);
+      CTF_alloc_ptr(sizeof(int)*this->order, (void**)&phys_phase);
+      CTF_alloc_ptr(sizeof(int)*this->order, (void**)&virt_phys_rank);
+
+
+      num_virt = 1;
+      idx_lyr = wrld->rank;
+      for (i=0; i<this->order; i++){
+        /* Calcute rank and phase arrays */
+        map               = this->edge_map + i;
+        phys_phase[i]     = map->calc_phase();
+        virt_phase[i]     = phys_phase[i]/map->calc_phys_phase();
+        virt_phys_rank[i] = map->calc_phys_rank(topo)*virt_phase[i];
+        num_virt          = num_virt*virt_phase[i];
+
+        if (map->type == PHYSICAL_MAP)
+          idx_lyr -= topo->lda[map->cdt]
+                                  *virt_phys_rank[i]/virt_phase[i];
+      }
+      if (idx_lyr == 0){
+        zero_padding(this->order, np, num_virt,
+                     this->pad_edge_len, this->sym, this->padding,
+                     phys_phase, virt_phase, virt_phys_rank, this->data, sr); 
+      } else {
+        std::fill(this->data, this->data+np, 0.0);
+      }
+      CTF_free(virt_phase);
+      CTF_free(phys_phase);
+      CTF_free(virt_phys_rank);
+    }
+    TAU_FSTOP(zero_out_padding);
+
+    return SUCCESS;
+
+  }
 
 
 }

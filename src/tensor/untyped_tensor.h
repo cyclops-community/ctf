@@ -174,6 +174,11 @@ namespace CTF_int {
       int set_zero();
 
       /**
+       * \brief sets padded portion of tensor to zero (this should be maintained internally)
+       */
+      int zero_out_padding();
+
+      /**
        * \brief displays mapping information
        * \param[in] stream output log (e.g. stdout)
        */

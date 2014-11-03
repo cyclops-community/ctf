@@ -46,6 +46,8 @@ namespace CTF_int {
     public: 
       /** \brief size of each element of semiring in bytes */
       int el_size;
+      /** \brief true if an additive inverse is provided */
+      bool is_ring;
       /** \brief identity element for addition i.e. 0 */
       char * addid;
       /** \brief identity element for multiplication i.e. 1 */

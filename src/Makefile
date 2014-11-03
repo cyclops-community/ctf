@@ -2,7 +2,7 @@ include ../config.mk
 
 ctf: subdirs
 
-SUBDIRS = interface shared tensor scaling summation contraction mapping redistribution test bench studies
+SUBDIRS = interface shared tensor symmetry mapping redistribution scaling summation contraction test bench studies
      
 .PHONY: subdirs $(SUBDIRS)
      

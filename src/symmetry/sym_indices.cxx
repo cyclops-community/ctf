@@ -3,6 +3,9 @@
 #ifndef __SYM_INDICES_HXX__
 #define __SYM_INDICES_HXX__
 
+#include "../interface/common.h"
+#include "../interface/tensor.h"
+
 struct index_locator_
 {
     int sort;
@@ -476,17 +479,12 @@ template int align_symmetric_indices<char*>(int order_A, char*& idx_A, const int
                                int order_C, char*& idx_C, const int* sym_C);
 
 
-template int overcounting_factor<char*>(int order_A, const char*& idx_A, const int* sym_A,
-                           int order_B, const char*& idx_B, const int* sym_B,
-                           int order_C, const char*& idx_C, const int* sym_C);
+template int overcounting_factor<char*>(int order_A, char * const & idx_A, const int* sym_A,
+                           int order_B, char * const & idx_B, const int* sym_B,
+                           int order_C, char * const & idx_C, const int* sym_C);
 
-
-template int overcounting_factor<char*>(int order_A, const char*& idx_A, const int* sym_A,
-                           int order_B, const char*& idx_B, const int* sym_B,
-                           int order_C, const char*& idx_C, const int* sym_C);
-
-template int overcounting_factor<char*>(int order_A, const char*& idx_A, const int* sym_A,
-                           int order_B, const char*& idx_B, const int* sym_B);
+template int overcounting_factor<char*>(int order_A, char * const & idx_A, const int* sym_A,
+                           int order_B, char * const & idx_B, const int* sym_B);
 
 
 #endif

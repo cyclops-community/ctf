@@ -1,4 +1,5 @@
 #include "symmetrization.h"
+#include "../shared/util.h"
 
 namespace CTF_int {
 
@@ -7,7 +8,7 @@ namespace CTF_int {
                     bool is_C){
     int i, is, j, sym_dim, scal_diag, num_sy, num_sy_neg, ctid;
     int * idx_map_A, * idx_map_B;
-    double rev_sign;
+    int rev_sign;
 
     if (sym_tsr == nonsym_tsr) return;
 
@@ -15,14 +16,14 @@ namespace CTF_int {
 
     sym_dim = -1;
     is = -1;
-    rev_sign = 1.0;
+    rev_sign = 1;
     scal_diag = 0;
     num_sy=0;
     num_sy_neg=0;
     for (i=0; i<sym_tsr->order; i++){
       if (sym_tsr->sym[i] != nonsym_tsr->sym[i]){
         is = i;
-        if (sym_tsr->sym[i] == AS) rev_sign = -1.0;
+        if (sym_tsr->sym[i] == AS) rev_sign = -1;
         if (sym_tsr->sym[i] == SY){
           scal_diag = 1;
         }
@@ -47,7 +48,7 @@ namespace CTF_int {
     nonsym_tsr->set_padding();
     copy_mapping(sym_tsr->order, sym_tsr->edge_map, nonsym_tsr->edge_map);
     nonsym_tsr->is_mapped = 1;
-    nonsym_tsr->itopo   = sym_tsr->itopo;
+    nonsym_tsr->topo   = sym_tsr->topo;
     nonsym_tsr->set_padding();
 
     if (sym_dim == -1) {
@@ -64,13 +65,13 @@ namespace CTF_int {
       strcpy(spf,"desymmetrize_");
       strcat(spf,sym_tsr->name);
       CTF::Timer t_pf(spf);
-      if (global_comm.rank == 0) 
+      if (sym_tsr->wrld->rank == 0) 
         VPRINTF(1,"Desymmetrizing %s\n", sym_tsr->name);
       t_pf.start();
     }
 
     CTF_mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr.el_size, (void**)&nonsym_tsr->data);
-    nonsym_tsr->sr.set(nonsym_tsr->data, nonsym_tsr->size, nonsym_tsr->sr.addid);
+    nonsym_tsr->sr.set(nonsym_tsr->data, nonsym_tsr->sr.addid, nonsym_tsr->size);
 
     CTF_alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
     CTF_alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
@@ -83,7 +84,7 @@ namespace CTF_int {
     if (!is_C){
       tensor * ctsr = sym_tsr;
       if (scal_diag && num_sy+num_sy_neg==1){
-        ctsr = new tensor(stsr);
+        ctsr = new tensor(sym_tsr);
         ctsr->sym[is] = SH;
         ctsr->zero_out_padding();
         ctsr->sym[is] = SY;
@@ -236,7 +237,7 @@ namespace CTF_int {
       }
     }
     if (sym_dim == -1) {
-      sym_tsr->itopo    = nonsym_tsr->itopo;
+      sym_tsr->topo    = nonsym_tsr->topo;
       sym_tsr->is_mapped    = 1;
       copy_mapping(nonsym_tsr->order, nonsym_tsr->edge_map, sym_tsr->edge_map);
       sym_tsr->set_padding();

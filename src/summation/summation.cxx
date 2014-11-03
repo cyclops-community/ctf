@@ -571,12 +571,12 @@ namespace CTF_int {
   }
 
   int summation::sym_sum_tsr(bool run_diag){
-    int stat, sidx, i, nst_B, * new_idx_map;
+    int sidx, i, nst_B, * new_idx_map;
     int * map_A, * map_B;
     int ** dstack_map_B;
     tensor * tnsr_A, * tnsr_B, * new_tsr, ** dstack_tsr_B;
     std::vector<summation> perm_types;
-    std::vector< char * > signs;
+    std::vector<int> signs;
     char const * dbeta;
   //#if (DEBUG >= 1 || VERBOSE >= 1)
   //  print_sum(type,alpha_,beta);
@@ -625,12 +625,14 @@ namespace CTF_int {
       map_B = new_idx_map;
     }
 
+    summation newsum = summation(*this);
+    newsum.A = tnsr_A;
+    newsum.B = tnsr_B;
     if (tnsr_A == tnsr_B){
       new_tsr = new tensor(tnsr_A);
-      summation newsum = summation(*this);
       newsum.A = new_tsr;
       newsum.B = tnsr_B;
-      newsum.sym_sum_tsr(run_diag);
+      return newsum.sym_sum_tsr(run_diag);
       
       /*clone_tensor(ntid_A, 1, &new_tid);
       new_type = *type;
@@ -639,6 +641,7 @@ namespace CTF_int {
       del_tsr(new_tid);
       return stat;*/
     }
+    
 /*    new_type.tid_A = ntid_A;
     new_type.tid_B = ntid_B;
     new_type.idx_map_A = map_A;
@@ -700,47 +703,57 @@ namespace CTF_int {
           DPRINTF(1,"Performing index desymmetrization\n");
         desymmetrize(tnsr_A, unfold_sum->A, 0);
         unfold_sum->B = tnsr_B;
-        unfold_sum.sym_sum_tr(run_diag);/
+        unfold_sum->sym_sum_tsr(run_diag);
 //        sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
-        if (ntid_A != unfold_type.tid_A){
+        if (tnsr_A != unfold_sum->A){
           unfold_sum->A->unfold();
-          ntsr_A->pull_alias(unfold_sum->A);
+          tnsr_A->pull_alias(unfold_sum->A);
           delete unfold_sum->A;
         }
       } else {
-        get_sym_perms(&new_type, alpha, perm_types, signs);
+        //get_sym_perms(&new_type, alpha, perm_types, signs);
+        get_sym_perms(newsum, perm_types, signs);
         if (A->wrld->cdt.rank == 0)
           DPRINTF(1,"Performing %d summation permutations\n", 
                   (int)perm_types.size());
         dbeta = beta;
+        char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
         for (i=0; i<(int)perm_types.size(); i++){
-          sum_tensors(signs[i], dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
-                      perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);
-          dbeta = 1.0;
+          if (signs[i] == 1)
+            B->sr.copy(new_alpha, alpha);
+          else
+            tnsr_B->sr.addinv(alpha, new_alpha);
+          perm_types[i].alpha = new_alpha;
+          perm_types[i].beta = dbeta;
+          perm_types[i].execute();
+          /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
+                      perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
+          dbeta = newsum.B->sr.addid;
         }
-        for (i=0; i<(int)perm_types.size(); i++){
+/*        for (i=0; i<(int)perm_types.size(); i++){
           free_type(&perm_types[i]);
-        }
+        }*/
         perm_types.clear();
         signs.clear();
       }
-      CTF_free(unfold_type.idx_map_A);
-      CTF_free(unfold_type.idx_map_B);
     } else {
-      sum_tensors(alpha, beta, new_type.tid_A, new_type.tid_B, new_type.idx_map_A, 
-                  new_type.idx_map_B, ftsr, felm, run_diag);
+      newsum.sum_tensors(run_diag);
+/*      sum_tensors(alpha, beta, new_type.tid_A, new_type.tid_B, new_type.idx_map_A, 
+                  new_type.idx_map_B, ftsr, felm, run_diag);*/
     }
-    if (ntid_A != type->tid_A) del_tsr(ntid_A);
+    if (tnsr_A != A) delete tnsr_A;
     for (i=nst_B-1; i>=0; i--){
-      extract_diag(dstack_tid_B[i], dstack_map_B[i], 0, &ntid_B, &new_idx_map);
-      del_tsr(ntid_B);
-      ntid_B = dstack_tid_B[i];
+//      extract_diag(dstack_tid_B[i], dstack_map_B[i], 0, &ntid_B, &new_idx_map);
+      dstack_tsr_B[i]->extract_diag(dstack_map_B[i], 0, tnsr_B, &new_idx_map);
+      //del_tsr(ntid_B);
+      delete tnsr_B;
+      tnsr_B = dstack_tsr_B[i];
     }
-    ASSERT(ntid_B == type->tid_B);
+    ASSERT(tnsr_B == B);
     CTF_free(map_A);
     CTF_free(map_B);
     CTF_free(dstack_map_B);
-    CTF_free(dstack_tid_B);
+    CTF_free(dstack_tsr_B);
 
     return SUCCESS;
   }

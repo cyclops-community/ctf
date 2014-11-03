@@ -3,6 +3,8 @@
 
 #include "assert.h"
 #include "../tensor/untyped_tensor.h"
+#include "../summation/summation.h"
+#include "../contraction/contraction.h"
 
 namespace CTF_int {
   /**
@@ -36,7 +38,7 @@ namespace CTF_int {
                      int const *  sym,
                      int *        nperm,
                      int **       perm,
-                     double *     sign){
+                     double *     sign);
 
   /**
    * \brief orders the summation indices of one tensor 
@@ -51,8 +53,8 @@ namespace CTF_int {
    */
   void order_perm(summation const & sum,
                                       int *                 idx_arr,
-                                      int const             off_A,
-                                      int const             off_B,
+                                      int              off_A,
+                                      int              off_B,
                                       int &               add_sign,
                                       int &                 mod);
 
@@ -117,8 +119,8 @@ namespace CTF_int {
    * \param[out] signs sign of each summation
    */
   void get_sym_perms(summation const & sum,
-                                         std::vector<summation>&     perms,
-                                         std::vector<int>&              signs);
+                               std::vector<summation>&     perms,
+                               std::vector<int>&              signs);
 
   /**
    * \brief finds all permutations of acontraction 

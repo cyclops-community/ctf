@@ -60,7 +60,6 @@ namespace CTF {
       void (*gemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
       void (*axpy)(int,dtype,dtype const*,int,dtype*,int);
       void (*scal)(int,dtype,dtype*,int);
-    public:
     /** 
      * \brief default constructor valid for only certain types:
      *         bool, int, unsigned int, int64_t, uint64_t,
