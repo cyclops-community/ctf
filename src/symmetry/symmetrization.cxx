@@ -1,4 +1,5 @@
 #include "symmetrization.h"
+#include "../tensor/untyped_tensor.h"
 #include "../shared/util.h"
 
 namespace CTF_int {
@@ -93,16 +94,25 @@ namespace CTF_int {
         if (i==-1) continue;
         idx_map_A[sym_dim] = sym_dim+i+1;
         idx_map_A[sym_dim+i+1] = sym_dim;
-        summation csum = summation(sym_tsr, idx_map_A, rev_sign,
-                                nonsym_tsr, idx_map_B, 1.0);
-        csum.execute():
+        char * ksign;
+        summation csum;
+        if (rev_sign == -1){
+          ksign = (char*)malloc(nonsym_tsr->sr.el_size);
+          nonsym_tsr->sr.addinv(nonsym_tsr->sr.mulid, ksign);
+          csum = summation(sym_tsr, idx_map_A, ksign,
+                                  nonsym_tsr, idx_map_B, nonsym_tsr->sr.mulid);
+        } else
+          csum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr.mulid,
+                                  nonsym_tsr, idx_map_B, nonsym_tsr->sr.mulid);
+        csum.execute();
+        if (rev_sign == -1) free(ksign);
         idx_map_A[sym_dim] = sym_dim;
         idx_map_A[sym_dim+i+1] = sym_dim+i+1;
       }
       if (scal_diag && num_sy+num_sy_neg==1) delete ctsr;
     }
 
-    summation ssum = summation(sym_tsr, idx_map_A, 1.0, nonsym_tsr, idx_map_B, 1.0);
+    summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr.mulid, nonsym_tsr, idx_map_B, nonsym_tsr->sr.mulid);
     ssum.execute();
 //    sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
     

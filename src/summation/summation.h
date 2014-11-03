@@ -34,6 +34,8 @@ namespace CTF_int {
       /** \brief function to execute on elementwise elements */
       univar_function func;
 
+      /** \brief lazy constructor */
+      summation(){};
 
       /** \brief copy constructor \param[in] other object to copy */
       summation(summation const & other);
