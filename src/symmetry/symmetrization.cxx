@@ -121,6 +121,8 @@ namespace CTF_int {
 
     /* Do not diagonal rescaling since sum has beta=0 and overwrites diagonal */
     if (num_sy+num_sy_neg>1){
+      assert(0); //FIXME: zero_out_padding instead, fractional rescaling factor seems problematic?
+#if 0
   //    print_tsr(stdout, nonsym_tid);
       if (!is_C && scal_diag){
         for (i=-num_sy_neg-1; i<num_sy; i++){
@@ -144,7 +146,9 @@ namespace CTF_int {
           }*/
   /*        printf("tid %d before scale\n", nonsym_tid);
           print_tsr(stdout, nonsym_tid);*/
-          scaling sscl = scaling(nonsym_tsr, idx_map_A, (double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg));
+          char * scalf = (char*)malloc(nonsym_tsr->sr.el_size);
+          nonsym_tsr->sr.copy(scalf, nonsym_tsr->sr.addid);
+          scaling sscl = scaling(nonsym_tsr, idx_map_A, ((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg));
           sscl.execute();
   /*        printf("tid %d after scale\n", nonsym_tid);
           print_tsr(stdout, nonsym_tid);*/
@@ -152,6 +156,7 @@ namespace CTF_int {
         }
       } 
   //    print_tsr(stdout, nonsym_tid);
+#endif
     }
     CTF_free(idx_map_A);
     CTF_free(idx_map_B);  
@@ -190,7 +195,7 @@ namespace CTF_int {
       char spf[80];
       strcpy(spf,"desymmetrize_");
       strcat(spf,sym_tsr->name);
-      CTF_Timer t_pf(spf);
+      CTF::Timer t_pf(spf);
       t_pf.stop();
     }
 
@@ -202,7 +207,7 @@ namespace CTF_int {
                   tensor * nonsym_tsr){
     int i, j, is, sym_dim, scal_diag, num_sy, num_sy_neg;
     int * idx_map_A, * idx_map_B;
-    double rev_sign;
+    int rev_sign;
 
     TAU_FSTART(symmetrize);
     
@@ -210,22 +215,22 @@ namespace CTF_int {
       char spf[80];
       strcpy(spf,"symmetrize_");
       strcat(spf,nonsym_tsr->name);
-      CTF_Timer t_pf(spf);
-      if (global_comm.rank == 0) 
+      CTF::Timer t_pf(spf);
+      if (sym_tsr->wrld->rank == 0) 
         VPRINTF(1,"Symmetrizing %s\n", nonsym_tsr->name);
       t_pf.start();
     }
 
     sym_dim = -1;
     is = -1;
-    rev_sign = 1.0;
+    rev_sign = 1;
     scal_diag = 0;
     num_sy=0;
     num_sy_neg=0;
     for (i=0; i<sym_tsr->order; i++){
       if (sym_tsr->sym[i] != nonsym_tsr->sym[i]){
         is = i;
-        if (sym_tsr->sym[i] == AS) rev_sign = -1.0;
+        if (sym_tsr->sym[i] == AS) rev_sign = -1;
         if (sym_tsr->sym[i] == SY){
           scal_diag = 1;
         }
@@ -257,7 +262,7 @@ namespace CTF_int {
       return;
     }
 
-    sym_tsr->sr.set(sym_tsr->data, sym_tsr->size, sym_tsr->sr.addid);
+    sym_tsr->sr.set(sym_tsr->data, sym_tsr->sr.addid, sym_tsr->size);
     CTF_alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
     CTF_alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
 
@@ -271,9 +276,19 @@ namespace CTF_int {
       idx_map_A[sym_dim] = sym_dim+i+1;
       idx_map_A[sym_dim+i+1] = sym_dim;
   //    printf("symmetrizing\n");
-      summation csum = summation(nonsym_tsr, idx_map_A, rev_sign,
-                                    sym_tsr, idx_map_B, 1.0);
-      csum.execute();
+/*      summation csum = summation(nonsym_tsr, idx_map_A, rev_sign,
+                                    sym_tsr, idx_map_B, 1.0);*/
+        summation csum;
+        if (rev_sign == -1){
+          char * ksign = (char*)malloc(nonsym_tsr->sr.el_size);
+          nonsym_tsr->sr.addinv(nonsym_tsr->sr.mulid, ksign);
+          csum = summation(nonsym_tsr, idx_map_A, ksign,
+                                  sym_tsr, idx_map_B, nonsym_tsr->sr.mulid);
+        } else
+          csum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr.mulid,
+                                  sym_tsr, idx_map_B, nonsym_tsr->sr.mulid);
+        csum.execute();
+
   //    print_tsr(stdout, sym_tid);
       idx_map_A[sym_dim] = sym_dim;
       idx_map_A[sym_dim+i+1] = sym_dim+i+1;
@@ -292,11 +307,13 @@ namespace CTF_int {
       }*/
     }
     
-    summation ssum = summation(nonsym_tsr, idx_map_A, 1.0, sym_tsr, idx_map_B, 1.0);
+    summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr.mulid, sym_tsr, idx_map_B, nonsym_tsr->sr.mulid);
     ssum.execute();
       
 
     if (num_sy+num_sy_neg > 1){
+      assert(0); //FIXME: use zero_out_padding?
+#if 0
       if (scal_diag){
      //   printf("symmetrizing diagonal=%d\n",num_sy);
         for (i=-num_sy_neg-1; i<num_sy; i++){
@@ -315,16 +332,17 @@ namespace CTF_int {
           if (ret != CTF_SUCCESS) ABORT;
         }
       }
+#endif
     }
 
     CTF_free(idx_map_A);
     CTF_free(idx_map_B);
 
-    if (tsr_sym->profile) {
+    if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"symmetrize_");
-      strcat(spf,tsr_sym->name);
-      CTF_Timer t_pf(spf);
+      strcat(spf,sym_tsr->name);
+      CTF::Timer t_pf(spf);
       t_pf.stop();
     }
 
