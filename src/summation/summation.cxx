@@ -14,11 +14,18 @@ namespace CTF_int {
 
   using namespace CTF;
 
+  summation::~summation(){
+    if (idx_A != NULL) free(idx_A);
+    if (idx_B != NULL) free(idx_B);
+  }
+
   summation::summation(summation const & other){
     A= other.A;
-    idx_A= other.idx_A;
+    idx_A = (int*)malloc(sizeof(int)*other.A->order);
+    memcpy(idx_A, other.idx_A, sizeof(int)*other.A->order);
     B= other.B;
-    idx_B= other.idx_B;
+    idx_B = (int*)malloc(sizeof(int)*other.B->order);
+    memcpy(idx_B, other.idx_B, sizeof(int)*other.B->order);
     if (other.is_custom){
       func = other.func;
       is_custom = 1;
@@ -35,10 +42,12 @@ namespace CTF_int {
                 int const * idx_B_,
                 char const * beta_){
     A = A_;
-    idx_A = idx_A_;
+    idx_A = (int*)malloc(sizeof(int)*A->order);
+    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
     alpha = alpha_;
     B = B_;
-    idx_B = idx_B_;
+    idx_B = (int*)malloc(sizeof(int)*B->order);
+    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
     beta = beta_;
     is_custom = 0;
   }
@@ -49,9 +58,11 @@ namespace CTF_int {
                 int const * idx_B_,
                 univar_function func_){
     A = A_;
-    idx_A = idx_A_;
+    idx_A = (int*)malloc(sizeof(int)*A->order);
+    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
     B = B_;
-    idx_B = idx_B_;
+    idx_B = (int*)malloc(sizeof(int)*B->order);
+    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
     func = func_;
     is_custom = 1;
   }
@@ -1086,23 +1097,17 @@ namespace CTF_int {
   }
 
 
-  template<typename dtype>
-  int dist_tensor<dtype>::is_equal_type(CTF_sum_type_t const * type_A,
-                                        CTF_sum_type_t const * type_B){
+  int summation::is_equal(summation const & os){
     int i;
-    tensor<dtype> * tsr_A, * tsr_B;
 
-    if (type_A->tid_A != type_B->tid_A) return 0;
-    if (type_A->tid_B != type_B->tid_B) return 0;
-    
-    tsr_A = tensors[type_A->tid_A];
-    tsr_B = tensors[type_A->tid_B];
+    if (A != os.A) return 0;
+    if (B != os.B) return 0;
 
-    for (i=0; i<tsr_A->ndim; i++){
-      if (type_A->idx_map_A[i] != type_B->idx_map_A[i]) return 0;
+    for (i=0; i<A->ndim; i++){
+      if (idx_A[i] != os.idx_A[i]) return 0;
     }
-    for (i=0; i<tsr_B->ndim; i++){
-      if (type_A->idx_map_B[i] != type_B->idx_map_B[i]) return 0;
+    for (i=0; i<B->ndim; i++){
+      if (idx_B[i] != os.idx_B[i]) return 0;
     }
     return 1;
   }

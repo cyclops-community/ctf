@@ -245,28 +245,19 @@ namespace CTF_int {
     *new_ordering_C = ordering_C;
   }
 
-  template<typename dtype>
-  int dist_tensor<dtype>::is_equal_type(CTF_ctr_type_t const * type_A,
-                                        CTF_ctr_type_t const * type_B){
-    int i;
-    tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
-
-    if (type_A->tid_A != type_B->tid_A) return 0;
-    if (type_A->tid_B != type_B->tid_B) return 0;
-    if (type_A->tid_C != type_B->tid_C) return 0;
+  int contraction::is_equal(contracton const & os){
+    if (this->A != os.A) return 0;
+    if (this->B != os.B) return 0;
+    if (this->C != os.C) return 0;
     
-    tsr_A = tensors[type_A->tid_A];
-    tsr_B = tensors[type_A->tid_B];
-    tsr_C = tensors[type_A->tid_C];
-
-    for (i=0; i<tsr_A->ndim; i++){
-      if (type_A->idx_map_A[i] != type_B->idx_map_A[i]) return 0;
+    for (i=0; i<A->ndim; i++){
+      if (idx_A[i] != os.idx_A[i]) return 0;
     }
-    for (i=0; i<tsr_B->ndim; i++){
-      if (type_A->idx_map_B[i] != type_B->idx_map_B[i]) return 0;
+    for (i=0; i<B->ndim; i++){
+      if (idx_B[i] != os.idx_B[i]) return 0;
     }
-    for (i=0; i<tsr_C->ndim; i++){
-      if (type_A->idx_map_C[i] != type_B->idx_map_C[i]) return 0;
+    for (i=0; i<C->ndim; i++){
+      if (idx_C[i] != os.idx_C[i]) return 0;
     }
     return 1;
   }

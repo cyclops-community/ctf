@@ -25,11 +25,11 @@ namespace CTF_int {
       char const * beta;
     
       /** \brief indices of left operand */
-      int const * idx_A;
+      int * idx_A;
       /** \brief indices of right operand */
-      int const * idx_B;
+      int * idx_B;
       /** \brief indices of output */
-      int const * idx_C;
+      int * idx_C;
 
       /**
        * \brief constructor definining contraction with C's mul and add ops
@@ -126,6 +126,11 @@ namespace CTF_int {
                 int **      new_ordering_A,
                 int **      new_ordering_B,
                 int **      new_ordering_C);
+      /**
+       * \brief returns 1 if contractions have same tensors and index map
+       * \param[in] os contraction object to compare this with
+       */
+      int is_equal(contraction const & os);
   };
 }
 

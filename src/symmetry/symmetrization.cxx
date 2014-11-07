@@ -1,13 +1,14 @@
 #include "symmetrization.h"
 #include "../tensor/untyped_tensor.h"
 #include "../shared/util.h"
+#include "sym_indices.h"
 
 namespace CTF_int {
 
   void desymmetrize(tensor * sym_tsr,
                     tensor * nonsym_tsr,
                     bool is_C){
-    int i, is, j, sym_dim, scal_diag, num_sy, num_sy_neg, ctid;
+    int i, is, j, sym_dim, scal_diag, num_sy, num_sy_neg;
     int * idx_map_A, * idx_map_B;
     int rev_sign;
 
@@ -360,7 +361,7 @@ namespace CTF_int {
     int * pm;
     double sgn;
 
-    LIBT_ASSERT(sym[0] != NS);
+    ASSERT(sym[0] != NS);
     CTF_alloc_ptr(sizeof(int)*ndim, (void**)&pm);
 
     np=0;
@@ -391,10 +392,10 @@ namespace CTF_int {
     *sign = sgn;
   }
 
-  void order_perm(summation const & sum,
+  void order_perm(summation & sum,
                                       int *                 idx_arr,
-                                      int const             off_A,
-                                      int const             off_B,
+                                      int              off_A,
+                                      int              off_B,
                                       int &               add_sign,
                                       int &                 mod){
 
@@ -403,24 +404,24 @@ namespace CTF_int {
     int  iA, jA, iB, jB, iiB, broken, tmp;
 
     //find all symmetries in A
-    for (iA=0; iA<tsr_A->ndim; iA++){
-      if (tsr_A->sym[iA] != NS){
+    for (iA=0; iA<sum.A->order; iA++){
+      if (sum.A->sym[iA] != NS){
         jA=iA;
-        iB = idx_arr[2*idx_map_A[iA]+off_B];
-        while (tsr_A->sym[jA] != NS){
+        iB = idx_arr[2*sum.idx_A[iA]+off_B];
+        while (sum.A->sym[jA] != NS){
           broken = 0;
           jA++;
-          jB = idx_arr[2*idx_map_A[jA]+off_B];
+          jB = idx_arr[2*sum.idx_A[jA]+off_B];
           if ((iB == -1) ^ (jB == -1)) broken = 1;
          /* if (iB != -1 && jB != -1) {
-            if (tsr_B->sym[iB] != tsr_A->sym[iA]) broken = 1;
+            if (sum.B->sym[iB] != sum.A->sym[iA]) broken = 1;
           }*/
           if (iB != -1 && jB != -1) {
-          /* Do this because iB,jB can be in reversed order */
-          for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
-            LIBT_ASSERT(iiB >= 0 && iiB <= tsr_B->ndim);
-            if (tsr_B->sym[iiB] == NS) broken = 1;
-          }
+            /* Do this because iB,jB can be in reversed order */
+            for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
+              ASSERT(iiB >= 0 && iiB <= sum.B->order);
+              if (sum.B->sym[iiB] == NS) broken = 1;
+            }
           }
           
 
@@ -428,13 +429,13 @@ namespace CTF_int {
           } */
           //if the symmetry is preserved, make sure index map is ordered
           if (!broken){
-            if (idx_map_A[iA] > idx_map_A[jA]){
-              idx_arr[2*idx_map_A[iA]+off_A] = jA;
-              idx_arr[2*idx_map_A[jA]+off_A] = iA;
-              tmp                          = idx_map_A[iA];
-              idx_map_A[iA] = idx_map_A[jA];
-              idx_map_A[jA] = tmp;
-              if (tsr_A->sym[iA] == AS) add_sign *= -1.0;
+            if (sum.idx_A[iA] > sum.idx_A[jA]){
+              idx_arr[2*sum.idx_A[iA]+off_A] = jA;
+              idx_arr[2*sum.idx_A[jA]+off_A] = iA;
+              tmp                          = sum.idx_A[iA];
+              sum.idx_A[iA] = sum.idx_A[jA];
+              sum.idx_A[jA] = tmp;
+              if (sum.A->sym[iA] == AS) add_sign *= -1.0;
               mod = 1;
             } 
           }
@@ -443,7 +444,7 @@ namespace CTF_int {
     }
   }
 
-  void order_perm(contraction const & ctr
+  void order_perm(contraction const & ctr,
                   int *                 idx_arr,
                   int             off_A,
                   int             off_B,
@@ -454,39 +455,39 @@ namespace CTF_int {
     int  iA, jA, iB, iC, jB, jC, iiB, iiC, broken, tmp;
 
     //find all symmetries in A
-    for (iA=0; iA<tsr_A->ndim; iA++){
-      if (tsr_A->sym[iA] != NS){
+    for (iA=0; iA<ctr.A->order; iA++){
+      if (ctr.A->sym[iA] != NS){
         jA=iA;
-        iB = idx_arr[3*idx_map_A[iA]+off_B];
-        iC = idx_arr[3*idx_map_A[iA]+off_C];
-        while (tsr_A->sym[jA] != NS){
+        iB = idx_arr[3*ctr.idx_A[iA]+off_B];
+        iC = idx_arr[3*ctr.idx_A[iA]+off_C];
+        while (ctr.A->sym[jA] != NS){
           broken = 0;
           jA++;
-          jB = idx_arr[3*idx_map_A[jA]+off_B];
+          jB = idx_arr[3*ctr.idx_A[jA]+off_B];
           //if (iB == jB) broken = 1;
           if (iB != -1 && jB != -1){
             for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
-              if (tsr_B->sym[iiB] ==  NS) broken = 1;
+              if (ctr.B->sym[iiB] ==  NS) broken = 1;
             }
           } 
           if ((iB == -1) ^ (jB == -1)) broken = 1;
-          jC = idx_arr[3*idx_map_A[jA]+off_C];
+          jC = idx_arr[3*ctr.idx_A[jA]+off_C];
           //if (iC == jC) broken = 1;
           if (iC != -1 && jC != -1){
             for (iiC=MIN(iC,jC); iiC<MAX(iC,jC); iiC++){
-              if (tsr_C->sym[iiC] == NS) broken = 1;
+              if (ctr.C->sym[iiC] == NS) broken = 1;
             }
           } 
           if ((iC == -1) ^ (jC == -1)) broken = 1;
           //if the symmetry is preserved, make sure index map is ordered
           if (!broken){
-            if (idx_map_A[iA] > idx_map_A[jA]){
-              idx_arr[3*idx_map_A[iA]+off_A] = jA;
-              idx_arr[3*idx_map_A[jA]+off_A] = iA;
-              tmp                          = idx_map_A[iA];
-              idx_map_A[iA] = idx_map_A[jA];
-              idx_map_A[jA] = tmp;
-              if (tsr_A->sym[iA] == AS) add_sign *= -1.0;
+            if (ctr.idx_A[iA] > ctr.idx_A[jA]){
+              idx_arr[3*ctr.idx_A[iA]+off_A] = jA;
+              idx_arr[3*ctr.idx_A[jA]+off_A] = iA;
+              tmp                          = ctr.idx_A[iA];
+              ctr.idx_A[iA] = ctr.idx_A[jA];
+              ctr.idx_A[jA] = tmp;
+              if (ctr.A->sym[iA] == AS) add_sign *= -1.0;
               mod = 1;
             } 
           }
@@ -502,36 +503,32 @@ namespace CTF_int {
 
     int mod, num_tot, i;
     int * idx_arr;
-    dtype add_sign;
-    CTF_sum_type_t norm_ord_perm;
-    tensor<dtype> * tsr_A, * tsr_B;
-    
+    int add_sign;
+    tensor * tsr_A, * tsr_B;
 
     add_sign = new_sign;
-    copy_type(new_perm, &norm_ord_perm);
+    summation norm_ord_perm = summation(new_perm);
     
-    tsr_A = tensors[norm_ord_perm.tid_A];
-    tsr_B = tensors[norm_ord_perm.tid_B];
+    tsr_A = new_perm.A;
+    tsr_B = new_perm.B;
     
-    inv_idx(tsr_A->ndim, norm_ord_perm.idx_map_A, NULL,
-            tsr_B->ndim, norm_ord_perm.idx_map_B, NULL,
+    inv_idx(tsr_A->order, norm_ord_perm.idx_A,
+            tsr_B->order, norm_ord_perm.idx_B,
             &num_tot, &idx_arr);
     //keep permuting until we get to normal order (no permutations left)
     do {
       mod = 0;
-      order_perm(tsr_A, tsr_B, idx_arr, 0, 1,
-                 norm_ord_perm.idx_map_A, norm_ord_perm.idx_map_B,
+      order_perm(norm_ord_perm, idx_arr, 0, 1,
                  add_sign, mod);
-      order_perm(tsr_B, tsr_A, idx_arr, 1, 0,
-                 norm_ord_perm.idx_map_B, norm_ord_perm.idx_map_A,
+      order_perm(norm_ord_perm, idx_arr, 1, 0,
                  add_sign, mod);
     } while (mod);
-    add_sign = add_sign*align_symmetric_indices(tsr_A->ndim, norm_ord_perm.idx_map_A, tsr_A->sym,
-                                                tsr_B->ndim, norm_ord_perm.idx_map_B, tsr_B->sym);
+    add_sign = add_sign*align_symmetric_indices(tsr_A->order, norm_ord_perm.idx_A, tsr_A->sym,
+                                                tsr_B->order, norm_ord_perm.idx_B, tsr_B->sym);
 
+    // check if this summation is equivalent to one of the other permutations
     for (i=0; i<(int)perms.size(); i++){
-      if (is_equal_type(&perms[i], &norm_ord_perm)){
-        free_type(&norm_ord_perm);
+      if (perms[i].is_equal(norm_ord_perm)){
         CTF_free(idx_arr);
         return;
       }
@@ -547,169 +544,158 @@ namespace CTF_int {
                                 int                     new_sign){
     int mod, num_tot, i;
     int * idx_arr;
-    dtype add_sign;
-    CTF_ctr_type_t norm_ord_perm;
-    tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
-    
+    int add_sign;
+    tensor * tsr_A, * tsr_B, * tsr_C;
+
+    tsr_A = new_perm.A;
+    tsr_B = new_perm.B;
+    tsr_C = new_perm.C;
 
     add_sign = new_sign;
-    copy_type(new_perm, &norm_ord_perm);
+    contraction norm_ord_perm = contraction(new_perm);
     
-    tsr_A = tensors[norm_ord_perm.tid_A];
-    tsr_B = tensors[norm_ord_perm.tid_B];
-    tsr_C = tensors[norm_ord_perm.tid_C];
-    
-    inv_idx(tsr_A->ndim, norm_ord_perm.idx_map_A, NULL,
-            tsr_B->ndim, norm_ord_perm.idx_map_B, NULL,
-            tsr_C->ndim, norm_ord_perm.idx_map_C, NULL,
+    inv_idx(tsr_A->order, norm_ord_perm.idx_A,
+            tsr_B->order, norm_ord_perm.idx_B,
+            tsr_C->order, norm_ord_perm.idx_C,
             &num_tot, &idx_arr);
     //keep permuting until we get to normal order (no permutations left)
     do {
       mod = 0;
-      order_perm(tsr_A, tsr_B, tsr_C, idx_arr, 0, 1, 2, 
-                 norm_ord_perm.idx_map_A, norm_ord_perm.idx_map_B,
-                 norm_ord_perm.idx_map_C, add_sign, mod);
-      order_perm(tsr_B, tsr_A, tsr_C, idx_arr, 1, 0, 2, 
-                 norm_ord_perm.idx_map_B, norm_ord_perm.idx_map_A,
-                 norm_ord_perm.idx_map_C, add_sign, mod);
-      order_perm(tsr_C, tsr_B, tsr_A, idx_arr, 2, 1, 0, 
-                 norm_ord_perm.idx_map_C, norm_ord_perm.idx_map_B,
-                 norm_ord_perm.idx_map_A, add_sign, mod);
+      order_perm(norm_ord_perm, idx_arr, 0, 1, 2, 
+                 add_sign, mod);
+      order_perm(norm_ord_perm, idx_arr, 1, 0, 2, 
+                 add_sign, mod);
+      order_perm(norm_ord_perm, idx_arr, 2, 1, 0, 
+                 add_sign, mod);
     } while (mod);
-    add_sign *= align_symmetric_indices(tsr_A->ndim,
-                                        norm_ord_perm.idx_map_A,
+    add_sign *= align_symmetric_indices(tsr_A->order,
+                                        norm_ord_perm.idx_A,
                                         tsr_A->sym,
-                                        tsr_B->ndim,
-                                        norm_ord_perm.idx_map_B,
+                                        tsr_B->order,
+                                        norm_ord_perm.idx_B,
                                         tsr_B->sym,
-                                        tsr_C->ndim,
-                                        norm_ord_perm.idx_map_C,
+                                        tsr_C->order,
+                                        norm_ord_perm.idx_C,
                                         tsr_C->sym);
 
     for (i=0; i<(int)perms.size(); i++){
-      if (is_equal_type(&perms[i], &norm_ord_perm)){
-        free_type(&norm_ord_perm);
+      if (perms[i].is_equal(norm_ord_perm)){
+        CTF_free(idx_arr);
         return;
       }
     }
     perms.push_back(norm_ord_perm);
     signs.push_back(add_sign);
+    CTF_free(idx_arr);
   }
 
   void get_sym_perms(summation const & sum,
                                          std::vector<summation>&     perms,
                                          std::vector<int>&              signs){
     int i, j, k, tmp;
-    CTF_sum_type_t new_type;
-    dtype sign;
-    tensor<dtype> * tsr_A, * tsr_B;
-    tsr_A = tensors[type->tid_A];
-    tsr_B = tensors[type->tid_B];
+    int sign;
+    tensor * tsr_A, * tsr_B;
+    tsr_A = sum.A;
+    tsr_B = sum.B;
 
-    copy_type(type, &new_type);
-    add_sym_perm(perms, signs, &new_type, alpha);
+    summation new_type = summation(sum);
+    add_sym_perm(perms, signs, new_type, 1);
 
-    for (i=0; i<tsr_A->ndim; i++){
+    for (i=0; i<tsr_A->order; i++){
       j=i;
       while (tsr_A->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          free_type(&new_type);
-          copy_type(&perms[k], &new_type);
+          new_type = summation(perms[k]);
           sign = signs[k];
-          if (tsr_A->sym[j-1] == AS) sign *= -1.0;
-          tmp                    = new_type.idx_map_A[i];
-          new_type.idx_map_A[i]  = new_type.idx_map_A[j];
-          new_type.idx_map_A[j]  = tmp;
-          add_sym_perm(perms, signs, &new_type, sign);
+          if (tsr_A->sym[j-1] == AS) sign *= -1;
+          tmp                    = new_type.idx_A[i];
+          new_type.idx_A[i]  = new_type.idx_A[j];
+          new_type.idx_A[j]  = tmp;
+          add_sym_perm(perms, signs, new_type, sign);
         }
       }
     }
-    for (i=0; i<tsr_B->ndim; i++){
+    for (i=0; i<tsr_B->order; i++){
       j=i;
       while (tsr_B->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          free_type(&new_type);
-          copy_type(&perms[k], &new_type);
+          new_type = summation(perms[k]);
           sign = signs[k];
-          if (tsr_B->sym[j-1] == AS) sign *= -1.0;
-          tmp                    = new_type.idx_map_B[i];
-          new_type.idx_map_B[i]  = new_type.idx_map_B[j];
-          new_type.idx_map_B[j]  = tmp;
-          add_sym_perm(perms, signs, &new_type, sign);
+          if (tsr_B->sym[j-1] == AS) sign *= -1;
+          tmp                    = new_type.idx_B[i];
+          new_type.idx_B[i]  = new_type.idx_B[j];
+          new_type.idx_B[j]  = tmp;
+          add_sym_perm(perms, signs, new_type, sign);
         }
       }
     }
-    free_type(&new_type);
   }
 
-  void get_sym_perms(summation const & tsum,
-                     std::vector<summation>&     perms,
+  void get_sym_perms(contraction const & ctr,
+                     std::vector<contraction>&     perms,
                      std::vector<int>&              signs){
   //  dtype * scl_alpha_C;
   //  int ** scl_idx_maps_C;
   //  nscl_C = 0;
-  //  CTF_alloc_ptr(sizeof(dtype)*ndim_C, (void**)&scl_alpha_C);
-  //  CTF_alloc_ptr(sizeof(int*)*ndim_C, (void**)&scl_idx_maps_C);
+  //  CTF_alloc_ptr(sizeof(dtype)*order_C, (void**)&scl_alpha_C);
+  //  CTF_alloc_ptr(sizeof(int*)*order_C, (void**)&scl_idx_maps_C);
 
     int i, j, k, tmp;
-    CTF_ctr_type_t new_type;
-    dtype sign;
-    tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
-    tsr_A = tensors[type->tid_A];
-    tsr_B = tensors[type->tid_B];
-    tsr_C = tensors[type->tid_C];
+    int sign;
+    tensor * tsr_A, * tsr_B, * tsr_C;
+    tsr_A = ctr.A;
+    tsr_B = ctr.B;
+    tsr_C = ctr.C;
 
-    copy_type(type, &new_type);
-    add_sym_perm(perms, signs, &new_type, alpha);
+    contraction new_type = contraction(ctr);
+     
+    add_sym_perm(perms, signs, new_type, 1);
 
-    for (i=0; i<tsr_A->ndim; i++){
+    for (i=0; i<tsr_A->order; i++){
       j=i;
       while (tsr_A->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          free_type(&new_type);
-          copy_type(&perms[k], &new_type);
+          new_type = contraction(perms[k]);
           sign = signs[k];
-          if (tsr_A->sym[j-1] == AS) sign *= -1.0;
-          tmp                    = new_type.idx_map_A[i];
-          new_type.idx_map_A[i]  = new_type.idx_map_A[j];
-          new_type.idx_map_A[j]  = tmp;
-          add_sym_perm(perms, signs, &new_type, sign);
+          if (tsr_A->sym[j-1] == AS) sign *= -1;
+          tmp                    = new_type.idx_A[i];
+          new_type.idx_A[i]  = new_type.idx_A[j];
+          new_type.idx_A[j]  = tmp;
+          add_sym_perm(perms, signs, new_type, sign);
         }
       }
     }
-    for (i=0; i<tsr_B->ndim; i++){
+    for (i=0; i<tsr_B->order; i++){
       j=i;
       while (tsr_B->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          free_type(&new_type);
-          copy_type(&perms[k], &new_type);
+          new_type = contraction(perms[k]);
           sign = signs[k];
-          if (tsr_B->sym[j-1] == AS) sign *= -1.0;
-          tmp                    = new_type.idx_map_B[i];
-          new_type.idx_map_B[i]  = new_type.idx_map_B[j];
-          new_type.idx_map_B[j]  = tmp;
-          add_sym_perm(perms, signs, &new_type, sign);
+          if (tsr_B->sym[j-1] == AS) sign *= -1;
+          tmp                    = new_type.idx_B[i];
+          new_type.idx_B[i]  = new_type.idx_B[j];
+          new_type.idx_B[j]  = tmp;
+          add_sym_perm(perms, signs, new_type, sign);
         }
       }
     }
     
-    for (i=0; i<tsr_C->ndim; i++){
+    for (i=0; i<tsr_C->order; i++){
       j=i;
       while (tsr_C->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          free_type(&new_type);
-          copy_type(&perms[k], &new_type);
+          new_type = contraction(perms[k]);
           sign = signs[k];
-          if (tsr_C->sym[j-1] == AS) sign *= -1.0;
-          tmp                    = new_type.idx_map_C[i];
-          new_type.idx_map_C[i]  = new_type.idx_map_C[j];
-          new_type.idx_map_C[j]  = tmp;
-          add_sym_perm(perms, signs, &new_type, sign);
+          if (tsr_C->sym[j-1] == AS) sign *= -1;
+          tmp                    = new_type.idx_C[i];
+          new_type.idx_C[i]  = new_type.idx_C[j];
+          new_type.idx_C[j]  = tmp;
+          add_sym_perm(perms, signs, new_type, sign);
         }
       }
     }

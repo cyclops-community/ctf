@@ -49,9 +49,9 @@ namespace CTF_int {
    * \param[in] off_A offset of A in inverted index map
    * \param[in] off_B offset of B in inverted index map
    * \param[in,out] add_sign sign of contraction
-   * \param[in,out] mod 1 if permutation done
+   * \param[in,out] mod 1 if sum is permuted
    */
-  void order_perm(summation const & sum,
+  void order_perm(summation & sum,
                                       int *                 idx_arr,
                                       int              off_A,
                                       int              off_B,
@@ -111,7 +111,7 @@ namespace CTF_int {
 
 
   /**
-   * \brief finds all permutations of asummation 
+   * \brief finds all permutations of a summation 
    *        that must be done for a broken symmetry
    *
    * \param[in] sum summation specification
@@ -123,7 +123,7 @@ namespace CTF_int {
                                std::vector<int>&              signs);
 
   /**
-   * \brief finds all permutations of acontraction 
+   * \brief finds all permutations of a contraction 
    *        that must be done for a broken symmetry
    *
    * \param[in] type contraction specification
@@ -131,8 +131,8 @@ namespace CTF_int {
    * \param[out] perms the permuted contraction specifications
    * \param[out] signs sign of each contraction
    */
-  void get_sym_perms(summation const & tsum,
-                     std::vector<summation>&     perms,
+  void get_sym_perms(contraction const & ctr,
+                     std::vector<contraction>&     perms,
                      std::vector<int>&              signs);
 
 

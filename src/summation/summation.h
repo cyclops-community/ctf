@@ -24,9 +24,9 @@ namespace CTF_int {
       char const * beta;
     
       /** \brief indices of left operand */
-      int const * idx_A;
+      int * idx_A;
       /** \brief indices of output */
-      int const * idx_B;
+      int * idx_B;
  
       /** \brief whether there is a elementwise custom function */
       bool is_custom;
@@ -35,7 +35,10 @@ namespace CTF_int {
       univar_function func;
 
       /** \brief lazy constructor */
-      summation(){};
+      summation(){ idx_A = NULL; idx_B = NULL; };
+      
+      /** \brief destructor */
+      ~summation();
 
       /** \brief copy constructor \param[in] other object to copy */
       summation(summation const & other);
@@ -106,6 +109,13 @@ namespace CTF_int {
       void get_len_ordering(
                                             int **      new_ordering_A,
                                             int **      new_ordering_B);
+  
+      /**
+       * \brief returns 1 if summations have same tensors and index map
+       * \param[in] os summation object to compare this with
+       */
+      int is_equal(summation const & os);
+
     private:
       /**
        * \brief constructs function pointer to sum tensors A and B, B = B*beta+alpha*A
