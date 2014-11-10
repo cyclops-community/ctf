@@ -56,8 +56,8 @@ namespace CTF_int {
    * \param map_B second map
    * return true if mapping is exactly the same, false otherwise 
    */
-  int comp_dim_map(mapping const *  map_A,
-                   mapping const *  map_B);
+  int comp_dim_map(mapping const * map_A,
+                   mapping const * map_B);
 
   /**
    * \brief copies mapping A to B
@@ -65,9 +65,9 @@ namespace CTF_int {
    * \param[in] mapping_A mapping to copy from 
    * \param[in,out] mapping_B mapping to copy to
    */
-  void copy_mapping(int              order,
-                    mapping const *  mapping_A,
-                    mapping *        mapping_B);
+  void copy_mapping(int             order,
+                    mapping const * mapping_A,
+                    mapping *       mapping_B);
 
   /**
    * \brief copies mapping A to B
@@ -78,13 +78,13 @@ namespace CTF_int {
    * \param[in] idx_B index mapping of B
    * \param[in,out] mapping_B mapping to copy to
    */
-  int copy_mapping(int          order_A,
-                   int          order_B,
-                   int const *    idx_A,
-                   mapping const *  mapping_A,
-                   int const *    idx_B,
-                   mapping *    mapping_B,
-                   int          make_virt = 1);
+  int copy_mapping(int             order_A,
+                   int             order_B,
+                   int const *     idx_A,
+                   mapping const * mapping_A,
+                   int const *     idx_B,
+                   mapping *       mapping_B,
+                   int             make_virt = 1);
 
 
   /**
@@ -100,15 +100,15 @@ namespace CTF_int {
    * \return CTF_SUCCESS if mapping successful, CTF_NEGATIVE if not, 
    *     CTF_ERROR if err'ed out
    */
-  int map_tensor(int            num_phys_dims,
-                 int            tsr_order,
-                 int const *    tsr_edge_len,
-                 int const *    tsr_sym_table,
-                 int *          restricted,
-                 CommData  *  phys_comm,
-                 int const *    comm_idx,
-                 int            fill,
-                 mapping *      tsr_edge_map);
+  int map_tensor(int         num_phys_dims,
+                 int         tsr_order,
+                 int const * tsr_edge_len,
+                 int const * tsr_sym_table,
+                 int *       restricted,
+                 CommData  * phys_comm,
+                 int const * comm_idx,
+                 int         fill,
+                 mapping *   tsr_edge_map);
 
   /**
    * \brief checks mapping in preparation for tensors scale, summ or contract
@@ -117,7 +117,7 @@ namespace CTF_int {
    * \return whether the self mapping is consistent
   */
   int check_self_mapping(tensor const * tsr,
-                         int const *      idx_map);
+                         int const *    idx_map);
 
   /**
    * \brief create virtual mapping for idx_maps that have repeating indices
@@ -125,7 +125,7 @@ namespace CTF_int {
    * \param[in] idx_map mapping of tensor indices to contraction map
    */
   int map_self_indices(tensor const * tsr,
-                       int const* idx_map);
+                       int const *    idx_map);
 
 
   /**
@@ -136,9 +136,9 @@ namespace CTF_int {
    * \return CTF::SUCCESS if mapping successful, CTF::NEGATIVE if not, 
    *     CTF::ERROR if err'ed out
    */
-  int map_symtsr(int    tsr_order,
-                 int const *    tsr_sym_table,
-                 mapping *    tsr_edge_map);
+  int map_symtsr(int         tsr_order,
+                 int const * tsr_sym_table,
+                 mapping *   tsr_edge_map);
 
   
 

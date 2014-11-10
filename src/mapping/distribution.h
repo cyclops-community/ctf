@@ -3,7 +3,7 @@
 #ifndef __INT_DISTRIBUTION_H__
 #define __INT_DISTRIBUTION_H__
 
-
+#include "mapping.h"
 
 namespace CTF_int {
 
@@ -16,14 +16,14 @@ namespace CTF_int {
   // \brief data distribution object used for redistribution
   class distribution {
     public:
-      int order;
-      int * phase;
-      int * virt_phase;
-      int * pe_lda;
-      int * pad_edge_len;
-      int * padding;
-      int * perank;
-      int is_cyclic;
+      int     order;
+      int *   phase;
+      int *   virt_phase;
+      int *   pe_lda;
+      int *   pad_edge_len;
+      int *   padding;
+      int *   perank;
+      int     is_cyclic;
       int64_t size;
 
       distribution();
@@ -61,13 +61,13 @@ namespace CTF_int {
    * \param[out] vrt_edge_len edge lengths of virtual block
    * \param[out] blk_edge_len edge lengths of local block
    */
-  void calc_dim(int         order,
-                int64_t    size,
-                int const *       edge_len,
-                mapping const *   edge_map,
-                int64_t *         vrt_sz,
-                int *             vrt_edge_len,
-                int *             blk_edge_len);
+  void calc_dim(int             order,
+                int64_t         size,
+                int const *     edge_len,
+                mapping const * edge_map,
+                int64_t *       vrt_sz,
+                int *           vrt_edge_len,
+                int *           blk_edge_len);
 }
 
 #endif

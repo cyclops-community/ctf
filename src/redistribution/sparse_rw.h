@@ -17,14 +17,14 @@ namespace CTF_int {
    * \param[in,out] pairs the keys and values as pairs
    * \param[out] new_num_pair number of new pairs, since pairs are ignored if perm[i][j] == -1
    */
-  void permute_keys(int                         order,
-                    int                         num_pair,
-                    int const *                 edge_len,
-                    int const *                 new_edge_len,
-                    int * const *               permutation,
-                    char *                      pairs,
-                    int64_t *                   new_num_pair,
-                    semiring                    sr);
+  void permute_keys(int              order,
+                    int              num_pair,
+                    int const *      edge_len,
+                    int const *      new_edge_len,
+                    int * const *    permutation,
+                    char *           pairs,
+                    int64_t *        new_num_pair,
+                    semiring const & sr);
 
   /**
    * \brief depermutes keys (apply P^T)
@@ -35,13 +35,13 @@ namespace CTF_int {
    * \param[in] permutation permutation to apply to keys of each pair
    * \param[in,out] pairs the keys and values as pairs
    */
-  void depermute_keys(int                         order,
-                      int                         num_pair,
-                      int const *                 edge_len,
-                      int const *                 new_edge_len,
-                      int * const *               permutation,
-                      char *                      pairs,
-                      semiring                    sr);
+  void depermute_keys(int              order,
+                      int              num_pair,
+                      int const *      edge_len,
+                      int const *      new_edge_len,
+                      int * const *    permutation,
+                      char *           pairs,
+                      semiring const & sr);
 
   /**
    * \brief assigns keys to an array of values
@@ -57,16 +57,16 @@ namespace CTF_int {
    * \param[out] vpairs pairs of keys and inputted values
    * \param[in] sr semiring defining data type of array
    */
-  void assign_keys(int           order,
-                   int64_t     size,
-                   int           nvirt,
-                   int const *        edge_len,
-                   int const *        sym,
-                   int const *        phase,
-                   int const *        virt_dim,
-                   int *              phase_rank,
-                   char const *      vdata,
-                   char *  vpairs,
+  void assign_keys(int              order,
+                   int64_t          size,
+                   int              nvirt,
+                   int const *      edge_len,
+                   int const *      sym,
+                   int const *      phase,
+                   int const *      virt_dim,
+                   int *            phase_rank,
+                   char const *     vdata,
+                   char *           vpairs,
                    semiring const & sr);
 
 
@@ -85,18 +85,19 @@ namespace CTF_int {
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr semiring context defining values
    */
-  void bucket_by_pe( int                order,
-                     int64_t           num_pair,
-                     int                 np,
-                     int const *              phase,
-                     int const *              virt_phase,
-                     int const *              bucket_lda,
-                     int const *              edge_len,
-                     char const *  mapped_data,
-                     int64_t *               bucket_counts,
-                     int64_t *               bucket_off,
-                     char *        bucket_data,
+  void bucket_by_pe( int              order,
+                     int64_t          num_pair,
+                     int              np,
+                     int const *      phase,
+                     int const *      virt_phase,
+                     int const *      bucket_lda,
+                     int const *      edge_len,
+                     char const *     mapped_data,
+                     int64_t *        bucket_counts,
+                     int64_t *        bucket_off,
+                     char *           bucket_data,
                      semiring const & sr);
+
   /**
    * \brief buckets key value pairs by block/virtual-processor
    * \param[in] order number of tensor dims
@@ -108,13 +109,13 @@ namespace CTF_int {
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr semiring context defining values
    */
-  void bucket_by_virt(int                     order,
-                      int                     num_virt,
-                      int64_t                num_pair,
-                      int const *             virt_phase,
-                      int const *             edge_len,
-                      char const * mapped_data,
-                      char *       bucket_data,
+  void bucket_by_virt(int              order,
+                      int              num_virt,
+                      int64_t          num_pair,
+                      int const *      virt_phase,
+                      int const *      edge_len,
+                      char const *     mapped_data,
+                      char *           bucket_data,
                       semiring const & sr);
 
   /**
@@ -137,14 +138,14 @@ namespace CTF_int {
                  int64_t          size,
                  char const *     alpha,
                  char const *     beta,
-                 int         nvirt,
+                 int              nvirt,
                  int const *      edge_len,
                  int const *      sym,
                  int const *      phase,
                  int const *      virt_dim,
                  int *            phase_rank,
-                 char *          vdata,
-                 char *pairs,
+                 char *           vdata,
+                 char             *pairs,
                  char             rw,
                  semiring const & sr);
 
@@ -170,22 +171,22 @@ namespace CTF_int {
    * \param[in] glb_comm the global communicator
    * \param[in] sr semiring context defining values
    */
-  void wr_pairs_layout(int                order,
-                       int                np,
-                       int64_t           inwrite,
-                       char const *       alpha,  
-                       char const *       beta,  
-                       char               rw,
-                       int                num_virt,
-                       int const *        sym,
-                       int const *        edge_len,
-                       int const *        padding,
-                       int const *        phys_phase,
-                       int const *        virt_phase,
-                       int *              virt_phys_rank,
-                       int const *        bucket_lda,
-                       char *  wr_pairs,
-                       char *            rw_data,
+  void wr_pairs_layout(int              order,
+                       int              np,
+                       int64_t          inwrite,
+                       char const *     alpha,
+                       char const *     beta,
+                       char             rw,
+                       int              num_virt,
+                       int const *      sym,
+                       int const *      edge_len,
+                       int const *      padding,
+                       int const *      phys_phase,
+                       int const *      virt_phase,
+                       int *            virt_phys_rank,
+                       int const *      bucket_lda,
+                       char *           wr_pairs,
+                       char *           rw_data,
                        CommData         glb_comm,
                        semiring const & sr);
 
@@ -207,18 +208,18 @@ namespace CTF_int {
    * \param[out] pairs local pairs read
    * \param[in] sr semiring context defining values
    */
-  void read_loc_pairs(int                 order,
-                      int64_t            nval,
-                      int                 num_virt,
-                      int const *         sym,
-                      int const *         edge_len,
-                      int const *         padding,
-                      int const *         virt_dim,
-                      int const *         virt_phase,
-                      int *               virt_phase_rank,
-                      int64_t *           nread,
-                      char const *       data,
-                      char **  pairs,
+  void read_loc_pairs(int              order,
+                      int64_t          nval,
+                      int              num_virt,
+                      int const *      sym,
+                      int const *      edge_len,
+                      int const *      padding,
+                      int const *      virt_dim,
+                      int const *      virt_phase,
+                      int *            virt_phase_rank,
+                      int64_t *        nread,
+                      char const *     data,
+                      char **          pairs,
                       semiring const & sr);
 
 

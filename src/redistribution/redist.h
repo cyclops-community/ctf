@@ -4,6 +4,7 @@
 #define __INT_REDIST_H__
 
 #include "../tensor/untyped_semiring.h"
+#include "../mapping/distribution.h"
 
 namespace CTF_int {
   /**
@@ -16,13 +17,13 @@ namespace CTF_int {
    * \param[in] sr semiring defining data
    * \param[in] ord_glb_comm communicator on which to redistribute
    */
-  void padded_reshuffle(int const * sym,
-                       distribution const & old_dist,
-                       distribution const & new_dist,
-                       char *      tsr_data,
-                       char **     tsr_cyclic_data,
-                       semiring    sr,
-                       CommData  ord_glb_comm);
+  void padded_reshuffle(int const *          sym,
+                        distribution const & old_dist,
+                        distribution const & new_dist,
+                        char *               tsr_data,
+                        char **              tsr_cyclic_data,
+                        semiring             sr,
+                        CommData             ord_glb_comm);
 
   /**
    * \brief Goes from any set of phases to any new set of phases 
@@ -44,16 +45,17 @@ namespace CTF_int {
    * \param[in] alpha scaling tensor for new data
    * \param[in] beta scaling tensor for original data
    */
-  void cyclic_reshuffle(int const * sym,
-                       distribution const & old_dist,
-                       distribution const & new_dist,
-                       char **     tsr_data,
-                       char **     tsr_cyclic_data,
-                       semiring    sr,
-                       CommData    ord_glb_comm,
-                       bool        reuse_buffers,
-                       char const *       alpha,
-                       char const *       beta);
+  void cyclic_reshuffle(int const *          sym,
+                        distribution const & old_dist,
+                        distribution const & new_dist,
+                        char **              tsr_data,
+                        char **              tsr_cyclic_data,
+                        semiring             sr,
+                        CommData             ord_glb_comm,
+                        bool                 reuse_buffers,
+                        char const *         alpha,
+                        char const *         beta);
+
   /**
    * \brief Reshuffle elements by block given the global phases stay the same
    * \param[in] old_dist starting data distrubtion
@@ -65,11 +67,10 @@ namespace CTF_int {
    */
   void block_reshuffle(distribution const & old_dist,
                        distribution const & new_dist,
-                       char **     tsr_data,
-                       char **     tsr_cyclic_data,
-                       semiring    sr,
-                       CommData   glb_comm);
-
+                       char **              tsr_data,
+                       char **              tsr_cyclic_data,
+                       semiring             sr,
+                       CommData             glb_comm);
 
   /**
    * \brief determines if tensor can be permuted by block
@@ -78,10 +79,9 @@ namespace CTF_int {
    * \param[in] map new mapping for each edge length
    * \return 1 if block reshuffle allowed, 0 if not
    */
-  int can_block_reshuffle(int         order,
-                          int const *      old_phase,
-                          mapping const *  map);
-
+  int can_block_reshuffle(int             order,
+                          int const *     old_phase,
+                          mapping const * map);
 }
 
 #endif

@@ -1,5 +1,7 @@
+/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "../tensor/untyped_tensor.h"
+#include "../shared/util.h"
 
 namespace CTF_int {
 
@@ -25,23 +27,23 @@ namespace CTF_int {
     order = tsr->order;
     size = tsr->size;
  
-    for (j=0; j<tsr->order; j++){
+    for (int j=0; j<tsr->order; j++){
       mapping * map = tsr->edge_map + j;
       phase[j] = map->calc_phase();
-      rank[j] = map->calc_phys_rank(topo);
-      virt_dim[j] = phase[j]/map->calc_phys_phase();
-      if (!is_inner && map->type == PHYSICAL_MAP)
-        pe_lda[j] = topo->lda[map->cdt];
+      perank[j] = map->calc_phys_rank(tsr->topo);
+      virt_phase[j] = phase[j]/map->calc_phys_phase();
+      if (map->type == PHYSICAL_MAP)
+        pe_lda[j] = tsr->topo->lda[map->cdt];
       else
         pe_lda[j] = 0;
     }
     memcpy(pad_edge_len, tsr->pad_edge_len, sizeof(int)*tsr->order);
-    CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)old_padding);
+    CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)padding);
     memcpy(padding, tsr->padding, sizeof(int)*tsr->order);
     is_cyclic = tsr->is_cyclic;
   }
 
-  void distribution::distribution(char const * buffer){
+  distribution::distribution(char const * buffer){
     int buffer_ptr = 0;
 
     order = ((int*)(buffer+buffer_ptr))[0];

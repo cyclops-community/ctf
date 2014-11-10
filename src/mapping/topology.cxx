@@ -1,4 +1,7 @@
+/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+
 #include "topology.h"
+#include "../shared/util.h"
 
 #ifdef BGQ
 #include "mpix.h"
@@ -7,70 +10,73 @@
 namespace CTF_int {
 
   topology::topology(){
-    order = 0;
-    lens = NULL;
-    lda = NULL;
+    order        = 0;
+    lens         = NULL;
+    lda          = NULL;
     is_activated = false;
-    dim_comm = NULL;
+    dim_comm     = NULL;
   }
   
   topology::~topology(){
     CTF_free(lens);
     CTF_free(lda);
-    for (int i=0; i<order; i++){
-      FREE_CDT(dim_comm[i]);
-    }
     CTF_free(dim_comm);
   }
 
   topology::topology(topology const & other){
     order = other.order;
 
-    lens = (int*)CTF_alloc(order*sizeof(int));
+    lens     = (int*)CTF_alloc(order*sizeof(int));
     memcpy(lens, other.lens, order*sizeof(int));
 
-    lda  = (int*)CTF_alloc(order*sizeof(int));
-    memcpy(ldas, other.lda, order*sizeof(int));
+    lda      = (int*)CTF_alloc(order*sizeof(int));
+    memcpy(lda, other.lda, order*sizeof(int));
 
-    dim_comm  = (int*)CTF_alloc(order*sizeof(CommData));
-    memcpy(dim_comm, other.dim_comm, CommData*sizeof(int));
+    dim_comm = (CommData*)CTF_alloc(order*sizeof(CommData));
+    memcpy(dim_comm, other.dim_comm, order*sizeof(CommData));
 
     is_activated = other.is_activated;
   }
 
-  topology::topology(int order_, 
-                     int const * lens_, 
-                     CommData cdt,
-                     bool activate){
-    order = order_;
-    lens = (int*)CTF_alloc(order_*sizeof(int));
-    lda  = (int*)CTF_alloc(order_*sizeof(int));
-    dim_comm  = (int*)CTF_alloc(order_*sizeof(CommData));
+  topology::topology(int         order_,
+                     int const * lens_,
+                     CommData    cdt,
+                     bool        activate){
+    glb_comm     = cdt;
+    order        = order_;
+    lens         = (int*)CTF_alloc(order_*sizeof(int));
+    lda          = (int*)CTF_alloc(order_*sizeof(int));
+    dim_comm     = (CommData*)CTF_alloc(order_*sizeof(CommData));
     is_activated = false;
     
-    int stride = 1, int cut = 0;
-    for (i=0; i<order; i++){
+    int stride = 1, cut = 0;
+    int rank = glb_comm.rank;
+    for (int i=0; i<order; i++){
       lda[i] = stride;
-      SETUP_SUB_COMM_SHELL(cdt, dim_comm[i],
-                     ((rank/stride)%lens[order-i-1]),
-                     (((rank/(stride*lens[order-i-1]))*stride)+cut),
-                     lens[order-i-1]);
+      dim_comm[i] = CommData(((rank/stride)%lens[order-i-1]),
+                             (((rank/(stride*lens[order-i-1]))*stride)+cut),
+                             lens[order-i-1]);
+//      SETUP_SUB_COMM_SHELL(cdt, dim_comm[i],
       stride*=lens[order-i-1];
       cut = (rank - (rank/stride)*stride);
     }
     this->activate();
   }
 
-  void int_topology::activate(){
-    for (int i=0; i<order; i++){
-    
-    }
+  void topology::activate(){
+    if (!is_activated){
+      for (int i=0; i<order; i++){
+        dim_comm[i].activate(glb_comm.cm);
+      }
+    } 
+    is_activated = true;
   }
 
   topology * get_phys_topo(CommData glb_comm,
                            TOPOLOGY mach){
-    int np = glb_comm.np
+    int np = glb_comm.np;
     int * dl;
+    int * dim_len;
     topology * topo;
     if (mach == NO_TOPOLOGY){
       dl = (int*)CTF_alloc(sizeof(int));
@@ -81,14 +87,13 @@ namespace CTF_int {
     }
     if (mach == TOPOLOGY_GENERIC){
       int order;
-      int * dim_len;
       factorize(np, &order, &dim_len);
       topo = new topology(order, dim_len, glb_comm, 1);
       CTF_free(dim_len);
       return topo;
     } else if (mach == TOPOLOGY_BGQ) {
       dl = (int*)CTF_alloc((7)*sizeof(int));
-      *dim_len = dl;
+      dim_len = dl;
       #ifdef BGQ
       if (np >= 512){
         int i, dim;
@@ -121,7 +126,6 @@ namespace CTF_int {
       #else
       {
         int order;
-        int * dim_len;
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
         CTF_free(dim_len);
@@ -130,7 +134,6 @@ namespace CTF_int {
       #endif
     } else if (mach == TOPOLOGY_BGP) {
       int order;
-      int * dim_len;
       if (1<<(int)log2(np) != np){
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
@@ -228,7 +231,7 @@ namespace CTF_int {
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
         CTF_free(dim_len);
-        return;
+        return topo;
       }
       order = MIN((int)log2(np),8);
       if (order > 0)
@@ -367,40 +370,48 @@ namespace CTF_int {
       topo = new topology(order, dim_len, glb_comm, 1);
       CTF_free(dim_len);
       return topo;
+    } else {
+      int order;
+      dim_len = (int*)CTF_alloc((log2(np)+1)*sizeof(int));
+      factorize(np, &order, &dim_len);
+      topo = new topology(order, dim_len, glb_comm, 1);
+      CTF_free(dim_len);
+      return topo;
     }
   }
 
-  std::vector<topology> peel_torus(topology const & topo, 
+  std::vector<topology> peel_torus(topology const & topo,
                                    CommData         glb_comm){
     std::vector<topology> topos;
     topos.push_back(topo);
     
-    if (topo.order <= 1) return;
+    if (topo.order <= 1) return topos;
     
     int * new_lens = (int*)malloc(sizeof(int)*topo.order-1);
 
-    for (int i=0; i<order-1; i++){
+    for (int i=0; i<topo.order-1; i++){
       for (int j=0; j<i; j++){
-        lens[j] = topo.lens[j];
+        new_lens[j] = topo.lens[j];
       }
-      lens[i] = topo.lens[i]+topo.lens[i+1];
-      for (int j=i+2; j<order; j++){
-        lens[j-1] = topo.lens[j];
+      new_lens[i] = topo.lens[i]+topo.lens[i+1];
+      for (int j=i+2; j<topo.order; j++){
+        new_lens[j-1] = topo.lens[j];
       }
     }
-    topology new_topo = topology(order-1, lens, glb_comm);
+    topology new_topo = topology(topo.order-1, new_lens, glb_comm);
     topos.push_back(new_topo);
     for (int i=0; i<(int)topos.size(); i++){
       std::vector<topology> more_topos = peel_torus(topos[i], glb_comm);
       for (int j=0; j<(int)more_topos.size(); j++){
         if (find_topology(more_topos[j], topos) == -1)
-          push_back(topos, more_topos[j]);
+          topos.push_back(more_topos[j]);
       }
     }
+    return topos;
   }
     
-  int find_topology(topology const &              topo, 
-                    std::vector<topology> const   topovec){
+  int find_topology(topology const &              topo,
+                    std::vector<topology> &       topovec){
     int i, j, found;
     std::vector<topology>::iterator iter;
     
@@ -419,17 +430,15 @@ namespace CTF_int {
     return -1;  
   }
 
-  int get_best_topo(uint64_t   nvirt,
-          int        topo,
-          CommData      global_comm,
-          uint64_t   bcomm_vol = 0,
-          uint64_t   bmemuse = 0){
-
-      uint64_t gnvirt, nv, gcomm_vol, gmemuse, bv;
+  int get_best_topo(int64_t  nvirt,
+                    int      topo,
+                    CommData global_comm,
+                    int64_t  bcomm_vol,
+                    int64_t  bmemuse){
+      int64_t gnvirt, nv, gcomm_vol, gmemuse, bv;
       int btopo, gtopo;
       nv = nvirt;
-      ALLREDUCE(&nv, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
-
+      MPI_Allreduce(&nv, &gnvirt, 1, MPI_INT64_T, MPI_MIN, global_comm.cm);
       ASSERT(gnvirt <= nvirt);
 
       nv = bcomm_vol;
@@ -438,19 +447,19 @@ namespace CTF_int {
         btopo = topo;
       } else {
         btopo = INT_MAX;
-        nv = UINT64_MAX;
-        bv = UINT64_MAX;
+        nv    = INT64_MAX;
+        bv    = INT64_MAX;
       }
-      ALLREDUCE(&nv, &gcomm_vol, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
+      MPI_Allreduce(&nv, &gcomm_vol, 1, MPI_INT64_T, MPI_MIN, global_comm.cm);
       if (bcomm_vol != gcomm_vol){
         btopo = INT_MAX;
-        bv = UINT64_MAX;
+        bv    = INT64_MAX;
       }
-      ALLREDUCE(&bv, &gmemuse, 1, MPI_UNSIGNED_LONG_LONG, MPI_MIN, global_comm);
+      MPI_Allreduce(&bv, &gmemuse, 1, MPI_INT64_T, MPI_MIN, global_comm.cm);
       if (bmemuse != gmemuse){
         btopo = INT_MAX;
       }
-      ALLREDUCE(&btopo, &gtopo, 1, MPI_INT, MPI_MIN, global_comm);
+      MPI_Allreduce(&btopo, &gtopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
       /*printf("nvirt = " PRIu64 " bcomm_vol = " PRIu64 " bmemuse = " PRIu64 " topo = %d\n",
         nvirt, bcomm_vol, bmemuse, topo);
       printf("gnvirt = " PRIu64 " gcomm_vol = " PRIu64 " gmemuse = " PRIu64 " bv = " PRIu64 " nv = " PRIu64 " gtopo = %d\n",

@@ -30,8 +30,16 @@ namespace CTF_int {
     alive = 1;
   }
 
-  CommData::CommData(int rank_, int color, CommData parent){
+  CommData::CommData(int rank_, int color_, int np_){
+    rank  = rank_;
+    color = color_;
+    np    = np_;
+    alive = 0;
+  }
+
+  CommData::CommData(int rank_, int color_, CommData parent){
     rank = rank_;
+    color = color_;
     MPI_Comm_split(parent.cm, rank_, color, &cm);
     MPI_Comm_size(cm, &np);
     alive = 1;

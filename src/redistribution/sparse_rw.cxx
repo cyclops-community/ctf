@@ -1,17 +1,17 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#include "sort.h"
+#include "sparse_rw.h"
 #include "../shared/util.h"
 
 namespace CTF_int {
-  void permute_keys(int                         order,
-                    int                         num_pair,
-                    int const *                 edge_len,
-                    int const *                 new_edge_len,
-                    int * const *               permutation,
-                    char *                      pairs,
-                    int64_t *                   new_num_pair,
-                    semiring                    sr){
+  void permute_keys(int              order,
+                    int              num_pair,
+                    int const *      edge_len,
+                    int const *      new_edge_len,
+                    int * const *    permutation,
+                    char *           pairs_buf,
+                    int64_t *        new_num_pair,
+                    semiring const & sr){
     TAU_FSTART(permute_keys);
   #ifdef USE_OMP
     int mntd = omp_get_max_threads();
@@ -37,11 +37,16 @@ namespace CTF_int {
       tstart = tnum_pair * tid + MIN(tid, num_pair % ntd);
       if (tid < num_pair % ntd) tnum_pair++;
 
-      std::vector< tkv_pair<dtype> > my_pairs;
+      //std::vector< tkv_pair<dtype> > my_pairs;
+      //allocate buffer of same size of pairs, 
+      //FIXME: not all space may be used, so a smaller buffer is possible
+      char my_pairs_buf[sr.pair_size()*tnum_pair];
+      PairIterator my_pairs(&sr, my_pairs_buf);
+      PairIterator pairs(&sr, pairs_buf);
       cnum_pair = 0;
 
       for (i=tstart; i<tstart+tnum_pair; i++){
-        wkey = pairs[i].k;
+        wkey = pairs[i].k();
         lda = 1;
         knew = 0;
         outside = 0;
@@ -60,11 +65,12 @@ namespace CTF_int {
           wkey = wkey/edge_len[j];
         }
         if (!outside){
-          tkv_pair<dtype> tkp;
-          tkp.k = knew;
-          tkp.d = pairs[i].d;
+          char tkp[sr.pair_size()];
+          //tkp.k = knew;
+          //tkp.d = pairs[i].d;
+          sr.set_pair(tkp, knew, pairs[i].d());
+          my_pairs[cnum_pair].write(tkp);
           cnum_pair++;
-          my_pairs.push_back(tkp);
         }
       }
       counts[tid] = cnum_pair;
@@ -76,8 +82,7 @@ namespace CTF_int {
         for (i=0; i<tid; i++){
           pfx += counts[i];
         }
-        std::copy(my_pairs.begin(),my_pairs.begin()+cnum_pair,pairs+pfx);
-        my_pairs.clear();
+        pairs[pfx].write(my_pairs,cnum_pair);
       }
     } 
     *new_num_pair = 0;
@@ -87,13 +92,13 @@ namespace CTF_int {
     TAU_FSTOP(permute_keys);
   }
 
-  void depermute_keys(int                         order,
-                      int                         num_pair,
-                      int const *                 edge_len,
-                      int const *                 new_edge_len,
-                      int * const *               permutation,
-                      char *                      pairs,
-                      semiring                    sr){
+  void depermute_keys(int           order,
+                      int           num_pair,
+                      int const *   edge_len,
+                      int const *   new_edge_len,
+                      int * const * permutation,
+                      char *        pairs_buf,
+                      semiring      sr){
     TAU_FSTART(depermute_keys);
   #ifdef USE_OMP
     int mntd = omp_get_max_threads();
@@ -133,10 +138,13 @@ namespace CTF_int {
       tstart = tnum_pair * tid + MIN(tid, num_pair % ntd);
       if (tid < num_pair % ntd) tnum_pair++;
 
-      std::vector< tkv_pair<dtype> > my_pairs;
+      char my_pairs_buf[sr.pair_size()*tnum_pair];
+
+      PairIterator my_pairs(&sr, my_pairs_buf);
+      PairIterator pairs(&sr, pairs_buf);
 
       for (i=tstart; i<tstart+tnum_pair; i++){
-        wkey = pairs[i].k;
+        wkey = pairs[i].k();
         lda = 1;
         knew = 0;
         for (j=0; j<order; j++){
@@ -150,7 +158,7 @@ namespace CTF_int {
           lda *= edge_len[j];
           wkey = wkey/new_edge_len[j];
         }
-        pairs[i].k = knew;
+        pairs[i].write_key(knew);
       }
     }
     for (int d=0; d<order; d++){
@@ -164,27 +172,24 @@ namespace CTF_int {
 
 
 
-  void assign_keys(int           order,
-                   int64_t     size,
-                   int           nvirt,
-                   int const *        edge_len,
-                   int const *        sym,
-                   int const *        phase,
-                   int const *        virt_dim,
-                   int *              phase_rank,
-                   char const *      vdata,
-                   char *  vpairs,
+  void assign_keys(int              order,
+                   int64_t          size,
+                   int              nvirt,
+                   int const *      edge_len,
+                   int const *      sym,
+                   int const *      phase,
+                   int const *      virt_dim,
+                   int *            phase_rank,
+                   char const *     vdata,
+                   char *           vpairs,
                    semiring const & sr){
     int i, imax, act_lda, idx_offset, act_max, buf_offset;
     int64_t p;
     int * idx, * virt_rank, * edge_lda;  
-    dtype const * data;
-    tkv_pair<dtype> * pairs;
     if (order == 0){
       ASSERT(size <= 1);
       if (size == 1){
-        vpairs[0].k = 0;
-        vpairs[0].d = vdata[0];
+        sr.set_pair(vpairs, 0, vdata);
       }
       return;
     }
@@ -201,8 +206,8 @@ namespace CTF_int {
       edge_lda[i] = edge_lda[i-1]*edge_len[i-1];
     }
     for (p=0;;p++){
-      data = vdata + p*(size/nvirt);
-      pairs = vpairs + p*(size/nvirt);
+      char const * data = vdata + sr.el_size*p*(size/nvirt);
+      PairIterator pairs = PairIterator(&sr, vpairs + p*(size/nvirt));
 
       idx_offset = 0, buf_offset = 0;
       for (act_lda=1; act_lda<order; act_lda++){
@@ -222,8 +227,8 @@ namespace CTF_int {
             printf("exceeded how much I was supposed to read read " PRId64 "/" PRId64 "\n", p*(size/nvirt)+buf_offset+i,size);
             ABORT;
           }
-          pairs[buf_offset+i].k = idx_offset+i*phase[0]+phase_rank[0];
-          pairs[buf_offset+i].d = data[buf_offset+i];
+          pairs[buf_offset+i].write_key(idx_offset+i*phase[0]+phase_rank[0]);
+          pairs[buf_offset+i].write_val(data+(buf_offset+i)*sr.el_size);
         }
         buf_offset += imax;
         /* Increment indices and set up offsets */
@@ -261,31 +266,18 @@ namespace CTF_int {
     TAU_FSTOP(assign_keys);
   }
  
-  void bucket_by_pe( int                order,
-                     int64_t           num_pair,
-                     int64_t                 np,
-                     int const *              phase,
-                     int const *              virt_phase,
-                     int const *              bucket_lda,
-                     int const *              edge_len,
-                     char const *  mapped_data,
-                     int64_t *               bucket_counts,
-                     int64_t *               bucket_off,
-                     char *        bucket_data,
-                     semiring const & sr){
-
-
-    int64_t i, j, loc;
-  //  int * inv_edge_len, * inv_virt_phase;
-    key k;
-
-  /*  CTF_alloc_ptr(order*sizeof(int), (void**)&inv_edge_len);
-    CTF_alloc_ptr(order*sizeof(int), (void**)&inv_virt_phase);
-
-
-    for (i=0; i<order; i++){
-      inv_edge_len[i]
-    }*/
+  void bucket_by_pe(int              order,
+                    int64_t          num_pair,
+                    int64_t          np,
+                    int const *      phase,
+                    int const *      virt_phase,
+                    int const *      bucket_lda,
+                    int const *      edge_len,
+                    char const *     mapped_data_buf,
+                    int64_t *        bucket_counts,
+                    int64_t *        bucket_off,
+                    char *           bucket_data_buf,
+                    semiring const & sr){
 
     memset(bucket_counts, 0, sizeof(int64_t)*np); 
   #ifdef USE_OMP
@@ -295,17 +287,19 @@ namespace CTF_int {
     memset(sub_counts, 0, np*sizeof(int64_t)*omp_get_max_threads());
   #endif
 
+    ConstPairIterator mapped_data = ConstPairIterator(&sr, mapped_data_buf);
+    PairIterator bucket_data = PairIterator(&sr, bucket_data_buf);
 
     TAU_FSTART(bucket_by_pe_count);
     /* Calculate counts */
   #ifdef USE_OMP
     #pragma omp parallel for schedule(static,256) private(i, j, loc, k)
   #endif
-    for (i=0; i<num_pair; i++){
-      k = mapped_data[i].k;
-      loc = 0;
+    for (int64_t i=0; i<num_pair; i++){
+      int64_t k = mapped_data[i].k();
+      int64_t loc = 0;
   //    int tmp_arr[order];
-      for (j=0; j<order; j++){
+      for (int j=0; j<order; j++){
   /*      tmp_arr[j] = (k%edge_len[j])%phase[j];
         tmp_arr[j] = tmp_arr[j]/virt_phase[j];
         tmp_arr[j] = tmp_arr[j]*bucket_lda[j];*/
@@ -325,8 +319,8 @@ namespace CTF_int {
     TAU_FSTOP(bucket_by_pe_count);
 
   #ifdef USE_OMP
-    for (j=0; j<omp_get_max_threads(); j++){
-      for (i=0; i<np; i++){
+    for (int j=0; j<omp_get_max_threads(); j++){
+      for (int64_t i=0; i<np; i++){
         bucket_counts[i] = sub_counts[j*np+i] + bucket_counts[i];
       }
     }
@@ -334,15 +328,15 @@ namespace CTF_int {
 
     /* Prefix sum to get offsets */
     bucket_off[0] = 0;
-    for (i=1; i<np; i++){
+    for (int64_t i=1; i<np; i++){
       bucket_off[i] = bucket_counts[i-1] + bucket_off[i-1];
     }
     
     /* reset counts */
   #ifdef USE_OMP
     memset(sub_offs, 0, sizeof(int64_t)*np);
-    for (i=1; i<omp_get_max_threads(); i++){
-      for (j=0; j<np; j++){
+    for (int i=1; i<omp_get_max_threads(); i++){
+      for (int64_t j=0; j<np; j++){
         sub_offs[j+i*np]=sub_counts[j+(i-1)*np]+sub_offs[j+(i-1)*np];
       }
     }
@@ -355,19 +349,18 @@ namespace CTF_int {
   #ifdef USE_OMP
     #pragma omp parallel for schedule(static,256) private(i, j, loc, k)
   #endif
-    for (i=0; i<num_pair; i++){
-      k = mapped_data[i].k;
-      loc = 0;
-      for (j=0; j<order; j++){
+    for (int64_t i=0; i<num_pair; i++){
+      int64_t k = mapped_data[i].k();
+      int64_t loc = 0;
+      for (int j=0; j<order; j++){
         loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
         k = k/edge_len[j];
       }
   #ifdef USE_OMP
-      bucket_data[bucket_off[loc] + sub_offs[loc+omp_get_thread_num()*np]] 
-          = mapped_data[i];
+      bucket_data[bucket_off[loc] + sub_offs[loc+omp_get_thread_num()*np]].write(mapped_data[i]);
       sub_offs[loc+omp_get_thread_num()*np]++;
   #else
-      bucket_data[bucket_off[loc] + bucket_counts[loc]] = mapped_data[i];
+      bucket_data[bucket_off[loc] + bucket_counts[loc]].write(mapped_data[i]);
       bucket_counts[loc]++;
   #endif
     }
@@ -378,27 +371,25 @@ namespace CTF_int {
     TAU_FSTOP(bucket_by_pe_move);
   }
   
-  void bucket_by_virt(int                     order,
-                      int                     num_virt,
-                      int64_t                num_pair,
-                      int const *             virt_phase,
-                      int const *             edge_len,
-                      char const * mapped_data,
-                      char *       bucket_data,
+  void bucket_by_virt(int              order,
+                      int              num_virt,
+                      int64_t          num_pair,
+                      int const *      virt_phase,
+                      int const *      edge_len,
+                      char const *     mapped_data_buf,
+                      char *           bucket_data_buf,
                       semiring const & sr){
-    int64_t i, j, loc;
     int64_t * virt_counts, * virt_prefix, * virt_lda;
-    key k;
     TAU_FSTART(bucket_by_virt);
     
     CTF_alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_counts);
     CTF_alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_prefix);
-    CTF_alloc_ptr(order*sizeof(int64_t), (void**)&virt_lda);
+    CTF_alloc_ptr(order*sizeof(int64_t),    (void**)&virt_lda);
    
    
     if (order > 0){
       virt_lda[0] = 1;
-      for (i=1; i<order; i++){
+      for (int i=1; i<order; i++){
         ASSERT(virt_phase[i] > 0);
         virt_lda[i] = virt_phase[i-1]*virt_lda[i-1];
       }
@@ -412,15 +403,18 @@ namespace CTF_int {
     memset(sub_counts, 0, num_virt*sizeof(int64_t)*omp_get_max_threads());
   #endif
 
+    ConstPairIterator mapped_data = ConstPairIterator(&sr, mapped_data_buf);
+    PairIterator bucket_data = PairIterator(&sr, bucket_data_buf);
+
     /* bucket data */
   #ifdef USE_OMP
     TAU_FSTART(bucket_by_virt_omp_cnt);
     #pragma omp parallel for schedule(static) private(j, loc, k, i)
-    for (i=0; i<num_pair; i++){
-      k = mapped_data[i].k;
-      loc = 0;
+    for (int64_t i=0; i<num_pair; i++){
+      int64_t k = mapped_data[i].k();
+      int64_t loc = 0;
       //#pragma unroll
-      for (j=0; j<order; j++){
+      for (int j=0; j<order; j++){
         loc += (k%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
@@ -430,43 +424,42 @@ namespace CTF_int {
     }
     TAU_FSTOP(bucket_by_virt_omp_cnt);
     TAU_FSTART(bucket_by_virt_assemble_offsets);
-    for (j=0; j<omp_get_max_threads(); j++){
-      for (i=0; i<num_virt; i++){
+    for (int j=0; j<omp_get_max_threads(); j++){
+      for (int64_t i=0; i<num_virt; i++){
         virt_counts[i] = sub_counts[j*num_virt+i] + virt_counts[i];
       }
     }
     virt_prefix[0] = 0;
-    for (i=1; i<num_virt; i++){
+    for (int64_t i=1; i<num_virt; i++){
       virt_prefix[i] = virt_prefix[i-1] + virt_counts[i-1];
     }
 
     memset(sub_offs, 0, sizeof(int64_t)*num_virt);
-    for (i=1; i<omp_get_max_threads(); i++){
-      for (j=0; j<num_virt; j++){
+    for (int i=1; i<omp_get_max_threads(); i++){
+      for (int64_t j=0; j<num_virt; j++){
         sub_offs[j+i*num_virt]=sub_counts[j+(i-1)*num_virt]+sub_offs[j+(i-1)*num_virt];
       }
     }
     TAU_FSTOP(bucket_by_virt_assemble_offsets);
     TAU_FSTART(bucket_by_virt_move);
     #pragma omp parallel for schedule(static) private(j, loc, k, i)
-    for (i=0; i<num_pair; i++){
-      k = mapped_data[i].k;
-      loc = 0;
+    for (int64_t i=0; i<num_pair; i++){
+      int64_t k = mapped_data[i].k();
+      int64_t loc = 0;
       //#pragma unroll
-      for (j=0; j<order; j++){
+      for (int j=0; j<order; j++){
         loc += (k%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
-      bucket_data[virt_prefix[loc] + sub_offs[loc+omp_get_thread_num()*num_virt]] 
-      = mapped_data[i];
+      bucket_data[virt_prefix[loc] + sub_offs[loc+omp_get_thread_num()*num_virt]].write(mapped_data[i]);
       sub_offs[loc+omp_get_thread_num()*num_virt]++;
     }
     TAU_FSTOP(bucket_by_virt_move);
   #else
-    for (i=0; i<num_pair; i++){
-      k = mapped_data[i].k;
-      loc = 0;
-      for (j=0; j<order; j++){
+    for (int64_t i=0; i<num_pair; i++){
+      int64_t k = mapped_data[i].k();
+      int64_t loc = 0;
+      for (int j=0; j<order; j++){
         loc += (k%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
@@ -474,19 +467,19 @@ namespace CTF_int {
     }
 
     virt_prefix[0] = 0;
-    for (i=1; i<num_virt; i++){
+    for (int64_t i=1; i<num_virt; i++){
       virt_prefix[i] = virt_prefix[i-1] + virt_counts[i-1];
     }
     memset(virt_counts, 0, sizeof(int64_t)*num_virt); 
 
-    for (i=0; i<num_pair; i++){
-      k = mapped_data[i].k;
-      loc = 0;
-      for (j=0; j<order; j++){
+    for (int64_t i=0; i<num_pair; i++){
+      int64_t k = mapped_data[i].k();
+      int64_t loc = 0;
+      for (int j=0; j<order; j++){
         loc += (k%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
-      bucket_data[virt_prefix[loc] + virt_counts[loc]] = mapped_data[i];
+      bucket_data[virt_prefix[loc] + virt_counts[loc]].write(mapped_data[i]);
       virt_counts[loc]++;
     }
   #endif
@@ -495,9 +488,10 @@ namespace CTF_int {
   #ifdef USE_OMP
     #pragma omp parallel for
   #endif
-    for (i=0; i<num_virt; i++){
-      std::sort(bucket_data+virt_prefix[i],
-          bucket_data+(virt_prefix[i]+virt_counts[i]));
+    for (int64_t i=0; i<num_virt; i++){
+      /*std::sort(bucket_data+virt_prefix[i],
+          bucket_data+(virt_prefix[i]+virt_counts[i]));*/
+      bucket_data[virt_prefix[i]].sort(virt_counts[i]);
     }
     TAU_FSTOP(bucket_by_virt_sort);
   #if DEBUG >= 1
@@ -520,35 +514,38 @@ namespace CTF_int {
                  int64_t          size,
                  char const *     alpha,
                  char const *     beta,
-                 int         nvirt,
+                 int              nvirt,
                  int const *      edge_len,
                  int const *      sym,
                  int const *      phase,
                  int const *      virt_dim,
                  int *            phase_rank,
-                 char *          vdata,
-                 char *pairs,
+                 char *           vdata,
+                 char *           pairs_buf,
                  char             rw,
                  semiring const & sr){
-    int64_t i, imax, act_lda;
+    int act_lda;
     int64_t idx_offset, act_max, buf_offset, pr_offset, p;
     int64_t * idx, * virt_rank, * edge_lda;  
-    char * data;
     
+    PairIterator pairs = PairIterator(&sr, pairs_buf);
+
     if (order == 0){
       if (size > 0){
         if (size > 1){
-          for (i=1; i<size; i++){
+          for (int64_t i=1; i<size; i++){
             //check for write conflicts
-            ASSERT(pairs[i].k == 0 || pairs[i].d != pairs[0].d);
+            //FIXME this makes sense how again?
+            ASSERT(pairs[i].k() == 0 || pairs[i].d() != pairs[0].d());
           }
         }
     //    printf("size = " PRId64 "\n",size);
     //    ASSERT(size == 1);
         if (rw == 'r'){
-          pairs[0].d = vdata[0];
+          pairs[0].write_val(vdata);
         } else {
-          vdata[0] = pairs[0].d;
+          //vdata[0] = pairs[0].d;
+          pairs[0].read_val(vdata);
         }
       }
       return;
@@ -560,60 +557,91 @@ namespace CTF_int {
     
     memset(virt_rank, 0, sizeof(int64_t)*order);
     edge_lda[0] = 1;
-    for (i=1; i<order; i++){
+    for (int i=1; i<order; i++){
       edge_lda[i] = edge_lda[i-1]*edge_len[i-1];
     }
 
     pr_offset = 0;
     buf_offset = 0;
-    data = vdata;// + buf_offset;
+    char * data = vdata;// + buf_offset;
 
     for (p=0;;p++){
-      data = data + buf_offset;
+      data = data + sr.el_size*buf_offset;
       idx_offset = 0, buf_offset = 0;
-      for (act_lda=1; act_lda<order; act_lda++){
+      for (int act_lda=1; act_lda<order; act_lda++){
         idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
       } 
      
       memset(idx, 0, order*sizeof(int64_t));
-      imax = edge_len[0]/phase[0];
+      int64_t imax = edge_len[0]/phase[0];
       for (;;){
         if (sym[0] != NS)
           imax = idx[1]+1;
         /* Increment virtual bucket */
-        for (i=0; i<imax;){// i++){
+        for (int64_t i=0; i<imax;){// i++){
           if (pr_offset >= size)
             break;
           else {
-            if (pairs[pr_offset].k == (key)(idx_offset
-                  +i*phase[0]+phase_rank[0])){
+            if (pairs[pr_offset].k() == idx_offset +i*phase[0]+phase_rank[0]){
               if (rw == 'r'){
-                if (beta == 0.0)
-                  pairs[pr_offset].d = alpha*data[buf_offset+i];
-                else
+                if (alpha == NULL){
+                  pairs[pr_offset].write_val(data+sizeof(int64_t)*(buf_offset+i));
+/*                if (sr.isbeta == 0.0){
+                  char wval[sr.pair_size()];
+                  sr.mul(alpha,data + sr.el_size*(buf_offset+i), wval);
+                  pairs[pr_offset].write_val(wval);*/
+                } else {
                 /* should it be the opposite? No, because 'pairs' was passed in and 'data' is being added to pairs, so data is operand, gets alpha. */
-                  pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
+                  //pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
+                  char wval[sr.pair_size()];
+                  sr.mul(alpha, data + sr.el_size*(buf_offset+i), wval);
+                  char wval2[sr.pair_size()];
+                  sr.mul(beta,  pairs[pr_offset].d(), wval2);
+                  sr.add(wval, wval2, wval);
+                  pairs[pr_offset].write_val(wval);
+                }
               } else {
                 ASSERT(rw =='w');
-                data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
+                //data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
+                if (alpha == NULL)
+                  pairs[pr_offset].read_val(data+sr.el_size*(buf_offset+i));
+                else {
+                  char wval[sr.pair_size()];
+                  sr.mul(beta, data + sr.el_size*(buf_offset+i), wval);
+                  char wval2[sr.pair_size()];
+                  sr.mul(alpha,  pairs[pr_offset].d(), wval2);
+                  sr.add(wval, wval2, wval);
+                  sr.copy(data + sr.el_size*(buf_offset+i), wval);
+                }
               }
               pr_offset++;
               //Check for write conflicts
               //Fixed: allow and handle them!
-              while (pr_offset < size && pairs[pr_offset].k == pairs[pr_offset-1].k){
+              while (pr_offset < size && pairs[pr_offset].k() == pairs[pr_offset-1].k()){
   //              printf("found overlapped write of key %ld and value %lf\n", pairs[pr_offset].k, pairs[pr_offset].d);
                 if (rw == 'r'){
-                  pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
+//                  pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
+                  char wval[sr.pair_size()];
+                  sr.mul(alpha, data + sr.el_size*(buf_offset+i), wval);
+                  char wval2[sr.pair_size()];
+                  sr.mul(beta,  pairs[pr_offset].d(), wval2);
+                  sr.add(wval, wval2, wval);
+                  pairs[pr_offset].write_val(wval);
                 } else {
                   //data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
-                  data[(int64_t)buf_offset+i] += alpha*pairs[pr_offset].d;
+                  char wval[sr.pair_size()];
+                  sr.mul(alpha,  pairs[pr_offset].d(), wval);
+                  char wval2[sr.pair_size()];
+                  sr.copy(wval2, data + ((int64_t)buf_offset+i)*sr.el_size);
+                  sr.add(wval, wval2, wval);
+                  sr.copy(data + sr.el_size*(buf_offset+i), wval);
                 }
   //              printf("rw = %c found overlapped write and set value to %lf\n", rw, data[(int64_t)buf_offset+i]);
                 pr_offset++;
               }
             } else {
               i++;
-  /*          DEBUG_PRINTF("%d key[%d] %d not matched with %d\n", 
+  /*          DEBUG_PRINTF("%d key[%d] %d not matched with %d\n",
                             (int)pairs[pr_offset-1].k,
                             pr_offset, (int)pairs[pr_offset].k,
                             (idx_offset+i*phase[0]+phase_rank[0]));*/
@@ -659,22 +687,22 @@ namespace CTF_int {
     CTF_free(edge_lda);
   }
 
-  void wr_pairs_layout(int                order,
-                       int                np,
-                       int64_t            inwrite,
-                       char const *       alpha,  
-                       char const *       beta,  
-                       char               rw,
-                       int                num_virt,
-                       int const *        sym,
-                       int const *        edge_len,
-                       int const *        padding,
-                       int const *        phys_phase,
-                       int const *        virt_phase,
-                       int *              virt_phys_rank,
-                       int const *        bucket_lda,
-                       char *  wr_pairs,
-                       char *            rw_data,
+  void wr_pairs_layout(int              order,
+                       int              np,
+                       int64_t          inwrite,
+                       char const *     alpha,
+                       char const *     beta,
+                       char             rw,
+                       int              num_virt,
+                       int const *      sym,
+                       int const *      edge_len,
+                       int const *      padding,
+                       int const *      phys_phase,
+                       int const *      virt_phase,
+                       int *            virt_phys_rank,
+                       int const *      bucket_lda,
+                       char *           wr_pairs,
+                       char *           rw_data,
                        CommData         glb_comm,
                        semiring const & sr){
     int64_t i, new_num_pair, nwrite, swp;
@@ -761,9 +789,9 @@ namespace CTF_int {
     CTF_free(depad_edge_len);
 
     /* Figure out which processor the value in a packed layout, lies for each key */
-    bucket_by_pe(order, nwrite, np, 
-                 phys_phase, virt_phase, bucket_lda, 
-                 edge_len, swap_data, bucket_counts, 
+    bucket_by_pe(order, nwrite, np,
+                 phys_phase, virt_phase, bucket_lda,
+                 edge_len, swap_data, bucket_counts,
                  send_displs, buf_data);
 
     /* Exchange send counts */
@@ -796,7 +824,7 @@ namespace CTF_int {
                     swap_data, recv_counts, recv_displs, glb_comm);
     
 
-    /*printf("[%d] old_num_pair = %d new_num_pair = %d\n", 
+    /*printf("[%d] old_num_pair = %d new_num_pair = %d\n",
                   glb_comm->rank, nwrite, new_num_pair);*/
 
     if (new_num_pair > nwrite){
@@ -806,7 +834,7 @@ namespace CTF_int {
 
     /* Figure out what virtual bucket each key belongs to. Bucket
        and sort them accordingly */
-    bucket_by_virt(order, num_virt, new_num_pair, virt_phase, 
+    bucket_by_virt(order, num_virt, new_num_pair, virt_phase,
                        edge_len, swap_data, buf_data);
 
     /* Write or read the values corresponding to the keys */
@@ -824,8 +852,8 @@ namespace CTF_int {
       std::sort(buf_data, buf_data+new_num_pair);
       /* Search for the keys in the order in which we received the keys */
       for (i=0; i<new_num_pair; i++){
-        el_loc = std::lower_bound(buf_data, 
-                                  buf_data+new_num_pair, 
+        el_loc = std::lower_bound(buf_data,
+                                  buf_data+new_num_pair,
                                   swap_data[i]);
   #if (DEBUG>=5)
         if (el_loc < buf_data || el_loc >= buf_data+new_num_pair){

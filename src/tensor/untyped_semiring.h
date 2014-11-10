@@ -57,6 +57,9 @@ namespace CTF_int {
       /** \brief MPI datatype */
       MPI_Datatype mdtype;
 
+      /** \brief gets pair size el_size plus the key size */
+      int pair_size() const { return el_size + sizeof(int64_t); }
+
       /** \brief b = -a */
       void (*addinv)(char const * a, 
                      char * b);
@@ -160,21 +163,136 @@ namespace CTF_int {
       ~semiring();
       
       /** \brief returns true if semiring elements a and b are equal */
-      bool isequal(char const * a, char const * b);
+      bool isequal(char const * a, char const * b) const;
       
       /** \brief copies element b to element a */
-      void copy(char * a, char const * b);
+      void copy(char * a, char const * b) const;
       
       /** \brief copies n elements from array b to array a */
-      void copy(char * a, char const * b, int64_t n);
+      void copy(char * a, char const * b, int64_t n) const;
+      
+      /** \brief copies pair b to element a */
+      void copy_pair(char * a, char const * b) const;
+      
+      /** \brief copies n pair from array b to array a */
+      void copy_pairs(char * a, char const * b, int64_t n) const;
 
       /** \brief sets n elements of array a to value b */
-      void set(char * a, char const * b, int64_t n);
+      void set(char * a, char const * b, int64_t n) const;
       
+      /** \brief sets 1 elements of pair a to value and key */
+      void set_pair(char * a, int64_t key, char const * vb) const;
+
       /** \brief sets n elements of array of pairs a to value b */
-      void set_pairs(char * a, char const * b, int64_t n);
+      void set_pairs(char * a, char const * b, int64_t n) const;
+      
+      /** \brief gets key from pair */
+      int64_t get_key(char const * a) const;
+      
+      /** \brief gets pair to value from pair */
+      char const * get_value(char const * a) const;
   };
 
+  class ConstPairIterator {
+    public:
+      semiring const * sr;
+      char const * ptr;
+
+      /** \brief constructor for iterator of constant buffer of pairs */    
+      ConstPairIterator(semiring const * sr_, char const * ptr_);
+
+      /** \brief indexing moves by \param[in] n pairs */
+      ConstPairIterator operator[](int n) const;
+
+      /** \brief returns key of pair at head of ptr */
+      int64_t k() const;
+    
+      /** \brief returns value of pair at head of ptr */
+      char const * d() const;
+    
+      /** 
+       * \brief sets data to what this operator points to
+       * \param[in,out] buf data to set 
+       * \param[in] n number of pairs to set
+       */
+      void read(char * buf, int64_t n=1) const;
+      
+      /** 
+       * \brief sets value to the value pointed by the iterator
+       * \param[in,out] buf pair to set
+       */
+      void read_val(char * buf) const;
+  };
+
+
+  class PairIterator {
+    public:
+      semiring const * sr;
+      char * ptr;
+    
+      /** \brief constructor for iterator of buffer of pairs */    
+      PairIterator(semiring const * sr_, char * ptr_);
+
+      /** \brief indexing moves by \param[in] n pairs */
+      PairIterator operator[](int n) const;
+
+      /** \brief returns key of pair at head of ptr */
+      int64_t k() const;
+    
+      /** \brief returns value of pair at head of ptr */
+      char const * d() const;
+    
+      /** 
+       * \brief sets external data to what this operator points to
+       * \param[in,out] buf data to set 
+       * \param[in] n number of pairs to set
+       */
+      void read(char * buf, int64_t n=1) const;
+      
+      /** 
+       * \brief sets external value to the value pointed by the iterator
+       * \param[in,out] buf pair to set
+       */
+      void read_val(char * buf) const;
+
+      /** 
+       * \brief sets internal pairs to provided data
+       * \param[in] buf provided data to copy from
+       * \param[in] n number of pairs to set
+       */
+      void write(char const * buf, int64_t n=1);
+
+      /** 
+       * \brief sets internal pairs to data from another iterator
+       * \param[in] iter to copy from
+       * \param[in] n number of pairs to set
+       */
+      void write(PairIterator const iter, int64_t n=1);
+
+      /** 
+       * \brief sets internal pairs to data from another iterator
+       * \param[in] iter to copy from
+       * \param[in] n number of pairs to set
+       */
+      void write(ConstPairIterator const iter, int64_t n=1);
+
+      /** 
+       * \brief sets value of head pair to what is in buf
+       * \param[in] buf value to read into iterator head
+       */
+      void write_val(char const * buf);
+
+      /** 
+       * \brief sets key of head pair to key
+       * \param[in] key to set
+       */
+      void write_key(int64_t key);
+
+      /**
+       * \brief sorts set of pairs using std::sort 
+       */
+      void sort(int64_t n);
+  };
 
   void sgemm(char           tA,
              char           tB,

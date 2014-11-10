@@ -1,5 +1,9 @@
+/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
+
+#define MAX_PHASE 16384
 
 #include "mapping.h"
+#include "../shared/util.h"
 
 namespace CTF_int {
   int mapping::calc_phase() const {
@@ -92,9 +96,9 @@ namespace CTF_int {
     }
 
     if (map_A->type == PHYSICAL_MAP){
-      if (map_B->type != PHYSICAL_MAP || 
-        map_B->cdt != map_A->cdt ||
-        map_B->np != map_A->np){
+      if (map_B->type != PHYSICAL_MAP ||
+          map_B->cdt  != map_A->cdt ||
+          map_B->np   != map_A->np){
   /*      DEBUG_PRINTF("failed confirmation here [%d %d %d] != [%d] [%d] [%d]\n",
          map_A->type, map_A->cdt, map_A->np,
          map_B->type, map_B->cdt, map_B->np);*/
@@ -134,27 +138,27 @@ namespace CTF_int {
     for (i=0; i<order; i++){
       if (mapping_A[i].has_child){
         CTF_alloc_ptr(sizeof(mapping), (void**)&mapping_B[i].child);
-        mapping_B[i].child->has_child   = 0;
-        mapping_B[i].child->np    = 1;
-        mapping_B[i].child->type    = NOT_MAPPED;
+        mapping_B[i].child->has_child = 0;
+        mapping_B[i].child->np        = 1;
+        mapping_B[i].child->type      = NOT_MAPPED;
         copy_mapping(1, mapping_A[i].child, mapping_B[i].child);
       }
     }
   }
 
-  int copy_mapping(int          order_A,
-                   int          order_B,
-                   int const *    idx_A,
-                   mapping const *  mapping_A,
-                   int const *    idx_B,
-                   mapping *    mapping_B,
-                   int          make_virt = 1){
+  int copy_mapping(int             order_A,
+                   int             order_B,
+                   int const *     idx_A,
+                   mapping const * mapping_A,
+                   int const *     idx_B,
+                   mapping *       mapping_B,
+                   int             make_virt){
     int i, order_tot, iA, iB;
     int * idx_arr;
 
 
-    inv_idx(order_A, idx_A, mapping_A,
-            order_B, idx_B, mapping_B,
+    inv_idx(order_A, idx_A, 
+            order_B, idx_B, 
             &order_tot, &idx_arr);
 
     for (i=0; i<order_tot; i++){
@@ -173,31 +177,31 @@ namespace CTF_int {
       }
     }
     CTF_free(idx_arr);
-    return CTF_SUCCESS;
+    return CTF::SUCCESS;
   }
 
-  int map_tensor(int            num_phys_dims,
-                 int            tsr_order,
-                 int const *    tsr_edge_len,
-                 int const *    tsr_sym_table,
-                 int *          restricted,
-                 CommData  *  phys_comm,
-                 int const *    comm_idx,
-                 int            fill,
-                 mapping *      tsr_edge_map){
+  int map_tensor(int         num_phys_dims,
+                 int         tsr_order,
+                 int const * tsr_edge_len,
+                 int const * tsr_sym_table,
+                 int *       restricted,
+                 CommData  * phys_comm,
+                 int const * comm_idx,
+                 int         fill,
+                 mapping *   tsr_edge_map){
     int i,j,max_dim,max_len,phase,ret;
     mapping * map;
 
     /* Make sure the starting mappings are consistent among symmetries */
     ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
-    if (ret!=CTF_SUCCESS) return ret;
+    if (ret!=CTF::SUCCESS) return ret;
 
     /* Assign physical dimensions */
     for (i=0; i<num_phys_dims; i++){
       max_len = -1;
       max_dim = -1;
       for (j=0; j<tsr_order; j++){
-        if (tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j) > max_len) {
+        if (tsr_edge_len[j]/tsr_edge_map[j].calc_phys_phase() > max_len) {
           /* if tsr dimension can be mapped */
           if (!restricted[j]){
             /* if tensor dimension not mapped ot physical dimension or
@@ -207,14 +211,14 @@ namespace CTF_int {
                 (fill && ((comm_idx == NULL && tsr_edge_map[j].cdt == i-1) ||
                 (comm_idx != NULL && tsr_edge_map[j].cdt == comm_idx[i]-1)))){
               max_dim = j;  
-              max_len = tsr_edge_len[j]/calc_phys_phase(tsr_edge_map+j);
+              max_len = tsr_edge_len[j]/tsr_edge_map[j].calc_phys_phase();
             }
           } 
         }
       }
       if (max_dim == -1){
         if (fill){
-          return CTF_NEGATIVE;
+          return CTF::NEGATIVE;
         }
         break;
       }
@@ -228,7 +232,7 @@ namespace CTF_int {
           if (phys_comm[i].np != map->np){
             phase     = lcm(map->np, phys_comm[i].np);
             if ((phase < map->np || phase < phys_comm[i].np) || phase >= MAX_PHASE)
-              return CTF_NEGATIVE;
+              return CTF::NEGATIVE;
             if (phase/phys_comm[i].np != 1){
               map->has_child  = 1;
               map->child    = (mapping*)CTF_alloc(sizeof(mapping));
@@ -251,7 +255,7 @@ namespace CTF_int {
       if (!fill)
         restricted[max_dim] = 1;
       ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
-      if (ret!=CTF_SUCCESS) return ret;
+      if (ret!=CTF::SUCCESS) return ret;
     }
     for (i=0; i<tsr_order; i++){
       if (tsr_edge_map[i].type == NOT_MAPPED){
@@ -260,7 +264,7 @@ namespace CTF_int {
         tsr_edge_map[i].has_child   = 0;
       }
     }
-    return CTF_SUCCESS;
+    return CTF::SUCCESS;
   }
 
   
@@ -268,7 +272,6 @@ namespace CTF_int {
                          int const *      idx_map){
     int i, j, pass, iR, max_idx;
     int * idx_arr;
-    tensor<dtype> * tsr;
     mapping * map1, * map2;
 
 
@@ -351,10 +354,9 @@ namespace CTF_int {
   }
 
   int map_self_indices(tensor const * tsr,
-                       int const* idx_map){
+                       int const *    idx_map){
     int iR, max_idx, i, ret, npp;
     int * idx_arr, * stable;
-    tensor<dtype> * tsr;
 
     
     max_idx = -1;
@@ -390,17 +392,17 @@ namespace CTF_int {
 
     if (!npp){
       ret = map_symtsr(tsr->order, stable, tsr->edge_map);
-      if (ret!=CTF_SUCCESS) return ret;
+      if (ret!=CTF::SUCCESS) return ret;
     }
 
     CTF_free(idx_arr);
     CTF_free(stable);
-    return CTF_SUCCESS;
+    return CTF::SUCCESS;
   }
 
-  int map_symtsr(int    tsr_order,
-                 int const *    tsr_sym_table,
-                 mapping *    tsr_edge_map){
+  int map_symtsr(int         tsr_order,
+                 int const * tsr_sym_table,
+                 mapping *   tsr_edge_map){
     int i,j,phase,adj,loop,sym_phase,lcm_phase;
     mapping * sym_map, * map;
 
@@ -412,22 +414,22 @@ namespace CTF_int {
   #ifndef MAXLOOP
   #define MAXLOOP 20
   #endif
-      if (loop >= MAXLOOP) return CTF_NEGATIVE;
+      if (loop >= MAXLOOP) return CTF::NEGATIVE;
       loop++;
       for (i=0; i<tsr_order; i++){
         if (tsr_edge_map[i].type != NOT_MAPPED){
           map   = &tsr_edge_map[i];
-          phase   = calc_phase(map);
+          phase   = map->calc_phase();
           for (j=0; j<tsr_order; j++){
             if (i!=j && tsr_sym_table[i*tsr_order+j] == 1){
               sym_map   = &(tsr_edge_map[j]);
-              sym_phase   = calc_phase(sym_map);
+              sym_phase   = sym_map->calc_phase();
               /* Check if symmetric phase inconsitent */
               if (sym_phase != phase) adj = 1;
               else continue;
               lcm_phase   = lcm(sym_phase, phase);
               if ((lcm_phase < sym_phase || lcm_phase < phase) || lcm_phase >= MAX_PHASE)
-                return CTF_NEGATIVE;
+                return CTF::NEGATIVE;
               /* Adjust phase of symmetric (j) dimension */
               if (sym_map->type == NOT_MAPPED){
                 sym_map->type     = VIRTUAL_MAP;
@@ -468,7 +470,7 @@ namespace CTF_int {
         }
       }
     }
-    return CTF_SUCCESS;
+    return CTF::SUCCESS;
   }
 
 

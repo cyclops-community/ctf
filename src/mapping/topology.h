@@ -13,37 +13,39 @@ namespace CTF_int {
   /* \brief mesh/torus topology configuration */
   class topology {
     public:
-    int order;
-    int * lens;
-    int * lda;
-    bool is_activated;
-    CommData * dim_comm;
+      int        order;
+      int *      lens;
+      int *      lda;
+      bool       is_activated;
+      CommData * dim_comm;
+      CommData   glb_comm;
 
-    topology();
-    ~topology();
+      topology();
+      ~topology();
 
-    /** 
-     * \brief copy constructor
-     * \param[in] other topology to copy
-     */
-    topology(topology const & other);
+      /** 
+       * \brief copy constructor
+       * \param[in] other topology to copy
+       */
+      topology(topology const & other);
 
-    /**
-     * \brief constructs torus topology 
-     * \param[in] order_ number of torus dimensions
-     * \param[in] lens_ lengths of torus dimensions
-     * \param[in] cdt communicator for whole torus 
-     * \param[in] activate whether to create MPI_Comms
-     */
-    topology(int order_, 
-             int const * lens_, 
-             CommData cdt,
-             bool activate=false);
-   
-    /* \brief create MPI communicators */ 
-    void activate();
-    /* \breif free MPI communicators */
-    void deactivate();
+      /**
+       * \brief constructs torus topology 
+       * \param[in] order_ number of torus dimensions
+       * \param[in] lens_ lengths of torus dimensions
+       * \param[in] cdt communicator for whole torus 
+       * \param[in] activate whether to create MPI_Comms
+       */
+      topology(int         order_,
+               int const * lens_,
+               CommData    cdt,
+               bool        activate=false);
+     
+      /* \brief create (split off) MPI communicators, re-entrant */ 
+      void activate();
+
+      /* \breif free MPI communicators, re-entrant */
+      void deactivate();
   };
 
   /**
@@ -53,15 +55,15 @@ namespace CTF_int {
    * \param[out] order dimension of torus
    * \param[out] dim_len torus lengths of topology
    */
-  topology get_phys_topo(CommData glb_comm,
-                         TOPOLOGY mach);
+  topology * get_phys_topo(CommData glb_comm,
+                           TOPOLOGY mach);
 
    /**
    * \brief folds specified topology into all configurations of lesser dimensionality
    * \param[in] topo topology to fold
    * \param[in] glb_comm  global communicator
    */
-  std::vector<topology> peel_torus(topology const & topo, 
+  std::vector<topology> peel_torus(topology const & topo,
                                    CommData         glb_comm);
 
   /**
@@ -70,8 +72,8 @@ namespace CTF_int {
    * \param[in] topovec vector of existing parameters
    * \return -1 if not found, otherwise index of first found topology
    */
-  int find_topology(topology const &              topo, 
-                    std::vector<topology>         topovec);
+  int find_topology(topology const &        topo,
+                    std::vector<topology> & topovec);
 
  
   /**
@@ -81,11 +83,11 @@ namespace CTF_int {
    * \param[in] globla_comm is the global communicator
    * return virtualization factor
    */
-   int get_best_topo(uint64_t  nvirt,
-          int       topo,
-          CommData      global_comm,
-          uint64_t   bcomm_vol = 0,
-          uint64_t   bmemuse = 0);
+   int get_best_topo(int64_t  nvirt,
+                     int      topo,
+                     CommData global_comm,
+                     int64_t  bcomm_vol=0,
+                     int64_t  bmemuse=0);
    
 }
 
