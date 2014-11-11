@@ -701,43 +701,44 @@ namespace CTF_int {
                        int const *      virt_phase,
                        int *            virt_phys_rank,
                        int const *      bucket_lda,
-                       char *           wr_pairs,
+                       char *           wr_pairs_buf,
                        char *           rw_data,
                        CommData         glb_comm,
                        semiring const & sr){
-    int64_t i, new_num_pair, nwrite, swp;
+    int64_t new_num_pair, nwrite, swp;
     int64_t * bucket_counts, * recv_counts;
     int64_t * recv_displs, * send_displs;
     int * depadding, * depad_edge_len;
     int * ckey;
     int j, is_out, sign, is_perm;
-    tkv_pair<dtype> * swap_data, * buf_data, * el_loc;
+    char * swap_datab, * buf_datab;
 
 
-    CTF_alloc_ptr(inwrite*sizeof(tkv_pair<dtype>),      (void**)&buf_data);
-    CTF_alloc_ptr(inwrite*sizeof(tkv_pair<dtype>),      (void**)&swap_data);
-    CTF_alloc_ptr(np*sizeof(int64_t),                  (void**)&bucket_counts);
-    CTF_alloc_ptr(np*sizeof(int64_t),                  (void**)&recv_counts);
-    CTF_alloc_ptr(np*sizeof(int64_t),                  (void**)&send_displs);
-    CTF_alloc_ptr(np*sizeof(int64_t),                  (void**)&recv_displs);
+    CTF_alloc_ptr(inwrite*sr.pair_size(), (void**)&buf_datab);
+    CTF_alloc_ptr(inwrite*sr.pair_size(), (void**)&swap_datab);
+    CTF_alloc_ptr(np*sizeof(int64_t),     (void**)&bucket_counts);
+    CTF_alloc_ptr(np*sizeof(int64_t),     (void**)&recv_counts);
+    CTF_alloc_ptr(np*sizeof(int64_t),     (void**)&send_displs);
+    CTF_alloc_ptr(np*sizeof(int64_t),     (void**)&recv_displs);
+
+    PairIterator buf_data  = PairIterator(&sr, buf_datab);
+    PairIterator swap_data = PairIterator(&sr, swap_datab);
+    PairIterator wr_pairs  = PairIterator(&sr, wr_pairs_buf);
 
     TAU_FSTART(wr_pairs_layout);
 
     /* Copy out the input data, do not touch that array */
   //  memcpy(swap_data, wr_pairs, nwrite*sizeof(tkv_pair<dtype>));
     CTF_alloc_ptr(order*sizeof(int), (void**)&depad_edge_len);
-    for (i=0; i<order; i++){
+    for (int i=0; i<order; i++){
       depad_edge_len[i] = edge_len[i] - padding[i];
     } 
     TAU_FSTART(check_key_ranges);
-    nwrite = 0;
-    std::vector<int64_t> changed_key_indices;
-    std::vector< tkv_pair<dtype> > new_changed_pairs;
-    std::vector<double> changed_key_scale;
 
-    CTF_alloc_ptr(order*sizeof(int), (void**)&ckey);
-    for (i=0; i<inwrite; i++){
-      conv_idx(order, depad_edge_len, wr_pairs[i].k, ckey);
+    //calculate the number of keys that need to be vchanged first
+    nchanged = 0;
+    for (int64_t i=0; i<inwrite; i++){
+      conv_idx(order, depad_edge_len, wr_pairs[i].k(), ckey);
       is_out = 0;
       sign = 1;
       is_perm = 1;
@@ -764,8 +765,57 @@ namespace CTF_int {
         }
       } 
       if (!is_out){
-        conv_idx(order, depad_edge_len, ckey, &(swap_data[nwrite].k));
-        swap_data[nwrite].d = ((double)sign)*wr_pairs[i].d;
+        int64_t skey;
+        conv_idx(order, depad_edge_len, ckey, &skey);
+        if (rw == 'r' && skey != wr_pairs[i].k()){
+          nchanged++;
+        }
+      } else if (rw == 'r'){
+        nchanged++;
+      } 
+    }
+
+    nwrite = 0;
+
+    int64_t * changed_key_indices;
+    char * new_changed_pairs;
+    int * changed_key_scale;
+    
+    CTF_alloc_ptr(nchanged*sizeof(int64_t), (void**)&changed_key_indices);
+    CTF_alloc_ptr(nchanged*sr.pair_size(),  (void**)&new_changed_pairs);
+    CTF_alloc_ptr(nchanged*sizeof(int),     (void**)&changed_key_scale);
+
+    CTF_alloc_ptr(order*sizeof(int), (void**)&ckey);
+    for (int64_t i=0; i<inwrite; i++){
+      conv_idx(order, depad_edge_len, wr_pairs[i].k(), ckey);
+      is_out = 0;
+      sign = 1;
+      is_perm = 1;
+      while (is_perm && !is_out){
+        is_perm = 0;
+        for (j=0; j<order-1; j++){
+          if ((sym[j] == SH || sym[j] == AS) && ckey[j] == ckey[j+1]){
+            is_out = 1;
+            break;
+          } else if (sym[j] != NS && ckey[j] > ckey[j+1]){
+            swp       = ckey[j];
+            ckey[j]   = ckey[j+1];
+            ckey[j+1] = swp;
+            if (sym[j] == AS){
+              sign     *= -1;
+            }
+            is_perm = 1;
+          }/* else if (sym[j] == AS && ckey[j] > ckey[j+1]){
+            swp       = ckey[j];
+            ckey[j]   = ckey[j+1];
+            ckey[j+1] = swp;
+            is_perm = 1;
+          } */
+        }
+      } 
+      if (!is_out){
+        conv_idx(order, depad_edge_len, ckey, &(swap_data[nwrite].k()));
+        swap_data[nwrite].d = ((double)sign)*wr_pairs[i].d();
         if (rw == 'r' && swap_data[nwrite].k != wr_pairs[i].k){
           /*printf("the %lldth key has been set from %lld to %lld\n",
                    i, wr_pairs[i].k, swap_data[nwrite].k);*/
