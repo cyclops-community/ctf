@@ -17,13 +17,13 @@ namespace CTF_int {
    * \param[in] semiring defines sizeo of each pair
    * \param[in] offsets (default NULL, none applied), offsets keys
    */
-  void pad_key(int           order,
-               int64_t      num_pair,
-               int const *        edge_len,
-               int const *        padding,
-               char *  pairs,
+  void pad_key(int              order,
+               int64_t          num_pair,
+               int const *      edge_len,
+               int const *      padding,
+               PairIterator     pairs,
                semiring const & sr,
-               int const *        offsets = NULL);
+               int const *      offsets = NULL);
 
   /**
    * \brief retrieves the unpadded pairs
@@ -38,15 +38,15 @@ namespace CTF_int {
    * \param[out] new_num_pair number of unpadded pairs
    * \param[in] semiring defines sizeo of each pair
    */
-  void depad_tsr(int                 order,
-                 int64_t            num_pair,
-                 int const *              edge_len,
-                 int const *              sym,
-                 int const *              padding,
-                 int const *              prepadding,
-                 char const *  pairs,
-                 char *        new_pairs,
-                  int64_t *                new_num_pair,
+  void depad_tsr(int              order,
+                 int64_t          num_pair,
+                 int const *      edge_len,
+                 int const *      sym,
+                 int const *      padding,
+                 int const *      prepadding,
+                 char const *     pairs,
+                 char *           new_pairs,
+                 int64_t *        new_num_pair,
                  semiring const & sr);
 
   /**
@@ -64,17 +64,17 @@ namespace CTF_int {
    * \param[out] new_size number of new padded pairs
    * \param[in] semiring defines sizeo of each pair
    */
-  void pad_tsr(int                 order,
-               int64_t            size,
-               int const *              edge_len,
-               int const *              sym,
-               int const *              padding,
-               int const *              phys_phase,
-               int *                    virt_phys_rank,
-               int const *              virt_phase,
-               char const *  old_data,
-               char **       new_pairs,
-               int64_t *                new_size,
+  void pad_tsr(int              order,
+               int64_t          size,
+               int const *      edge_len,
+               int const *      sym,
+               int const *      padding,
+               int const *      phys_phase,
+               int *            virt_phys_rank,
+               int const *      virt_phase,
+               char const *     old_data,
+               char **          new_pairs,
+               int64_t *        new_size,
                semiring const & sr);
   
   /**
@@ -91,16 +91,16 @@ namespace CTF_int {
    * \param[in,out] vdata array of all local data
    * \param[in] semiring defines sizeo of each pair
    */
-  void zero_padding( int           ndim,
-                     int64_t      size,
-                     int           nvirt,
-                     int const *        edge_len,
-                     int const *        sym,
-                     int const *        padding,
-                     int const *        phase,
-                     int const *        virt_dim,
-                     int const *        cphase_rank,
-                     char *            vdata,
+  void zero_padding( int              ndim,
+                     int64_t          size,
+                     int              nvirt,
+                     int const *      edge_len,
+                     int const *      sym,
+                     int const *      padding,
+                     int const *      phase,
+                     int const *      virt_dim,
+                     int const *      cphase_rank,
+                     char *           vdata,
                      semiring const & sr);
 }
 

@@ -85,18 +85,18 @@ namespace CTF_int {
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr semiring context defining values
    */
-  void bucket_by_pe( int              order,
-                     int64_t          num_pair,
-                     int              np,
-                     int const *      phase,
-                     int const *      virt_phase,
-                     int const *      bucket_lda,
-                     int const *      edge_len,
-                     char const *     mapped_data,
-                     int64_t *        bucket_counts,
-                     int64_t *        bucket_off,
-                     char *           bucket_data,
-                     semiring const & sr);
+  void bucket_by_pe( int               order,
+                     int64_t           num_pair,
+                     int               np,
+                     int const *       phase,
+                     int const *       virt_phase,
+                     int const *       bucket_lda,
+                     int const *       edge_len,
+                     ConstPairIterator mapped_data,
+                     int64_t *         bucket_counts,
+                     int64_t *         bucket_off,
+                     PairIterator      bucket_data,
+                     semiring const &  sr);
 
   /**
    * \brief buckets key value pairs by block/virtual-processor
@@ -109,14 +109,14 @@ namespace CTF_int {
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr semiring context defining values
    */
-  void bucket_by_virt(int              order,
-                      int              num_virt,
-                      int64_t          num_pair,
-                      int const *      virt_phase,
-                      int const *      edge_len,
-                      char const *     mapped_data,
-                      char *           bucket_data,
-                      semiring const & sr);
+  void bucket_by_virt(int               order,
+                      int               num_virt,
+                      int64_t           num_pair,
+                      int const *       virt_phase,
+                      int const *       edge_len,
+                      ConstPairIterator mapped_data,
+                      PairIterator      bucket_data,
+                      semiring const &  sr);
 
   /**
    * \brief read or write pairs from / to tensor

@@ -1,5 +1,5 @@
 #!/bin/bash
-#configure script adapted from Aquarius software (https://github.com/devinamatthews/aquarius)
+#configure script adapted from Aquarius software (https://github.cxxom/devinamatthews/aquarius)
 
 
 function usage
@@ -24,7 +24,7 @@ function usage
 function testlink
 {
   status=1
-  cat > .test.c <<EOF
+  cat > .test.cxx <<EOF
 #ifdef __cplusplus
   extern "C" 
 #endif
@@ -32,14 +32,14 @@ function testlink
   int main(){ $2(); return 0; }
 EOF
   if [ $3 -eq 1 ]; then
-    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c $1 $LDFLAGS  2>&1 )
+    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $1 $LDFLAGS  2>&1 )
   else
-    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c $1 $LDFLAGS  > /dev/null 2>&1
+    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $1 $LDFLAGS  > /dev/null 2>&1
   fi
   if [ -x a.out ]; then
     status=0
   fi
-  rm -f .test.c a.out
+  rm -f .test.cxx a.out
   return $status
 }
 
@@ -49,25 +49,25 @@ EOF
 function testcompiler
 {
   status=1
-  cat > .test.c <<EOF
+  cat > .test.cxx <<EOF
   int main(){ return 0; }
 EOF
   if [ $1 -eq 1 ]; then
-    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c $LDFLAGS  2>&1 )
+    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $LDFLAGS  2>&1 )
   else
-    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c $LDFLAGS  > /dev/null 2>&1
+    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $LDFLAGS  > /dev/null 2>&1
   fi
   if [ -x a.out ]; then
     status=0
   fi
-  rm -f .test.c a.out
+  rm -f .test.cxx a.out
   return $status
 }
 
 function testopenmp
 {
   status=1
-  cat > .test.c <<EOF
+  cat > .test.cxx <<EOF
   #include "omp.h"
   int main(){ 
     int i;
@@ -80,11 +80,11 @@ function testopenmp
     return j; 
   }
 EOF
-  $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.c  $LDFLAGS > /dev/null 2>&1
+  $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx  $LDFLAGS > /dev/null 2>&1
   if [ -x a.out ]; then
     status=0
   fi
-  rm -f .test.c a.out
+  rm -f .test.cxx a.out
   return $status
 
 }
@@ -121,6 +121,10 @@ function realcompiler
             echo 'Cray compilers are not supported.'
             exit 1
             compiler=cray
+            ;;
+        *clang*)
+            echo 'Using Clang/LLVM compiler.'
+            compiler=clang
             ;;
         *)
             echo 'Could not determine underlying C/C++ compilers.'

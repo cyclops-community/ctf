@@ -278,15 +278,15 @@ namespace CTF_int {
           this->clear_mapping();
           this->set_padding();
           memset(restricted, 0, this->order*sizeof(int));
-          map_success = map_tensor(wrld->topovec[i].order, this->order, this->pad_edge_len,
+          map_success = map_tensor(wrld->topovec[i]->order, this->order, this->pad_edge_len,
                                    this->sym_table, restricted,
-                                   wrld->topovec[i].dim_comm, NULL, 0,
+                                   wrld->topovec[i]->dim_comm, NULL, 0,
                                    this->edge_map);
           if (map_success == ERROR) {
             ASSERT(0);
             return ERROR;
           } else if (map_success == SUCCESS){
-            this->topo = &wrld->topovec[i];
+            this->topo = wrld->topovec[i];
             this->set_padding();
             memuse = (int64_t)this->size;
 
@@ -322,13 +322,13 @@ namespace CTF_int {
         memset(restricted, 0, this->order*sizeof(int));
         this->clear_mapping();
         this->set_padding();
-        map_success = map_tensor(wrld->topovec[btopo].order, this->order,
+        map_success = map_tensor(wrld->topovec[btopo]->order, this->order,
                                  this->pad_edge_len, this->sym_table, restricted,
-                                 wrld->topovec[btopo].dim_comm, NULL, 0,
+                                 wrld->topovec[btopo]->dim_comm, NULL, 0,
                                  this->edge_map);
         ASSERT(map_success == SUCCESS);
 
-        this->topo = &wrld->topovec[btopo];
+        this->topo = wrld->topovec[btopo];
 
         CTF_free(restricted);
 

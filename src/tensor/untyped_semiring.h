@@ -193,10 +193,15 @@ namespace CTF_int {
       char const * get_value(char const * a) const;
   };
 
+  class PairIterator;
+
   class ConstPairIterator {
     public:
       semiring const * sr;
       char const * ptr;
+      
+      /** \brief conversion constructor for iterator to constant buffer of pairs */    
+      ConstPairIterator(PairIterator const & pi);
 
       /** \brief constructor for iterator of constant buffer of pairs */    
       ConstPairIterator(semiring const * sr_, char const * ptr_);

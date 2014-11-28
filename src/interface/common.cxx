@@ -89,13 +89,13 @@ namespace CTF_int {
     return 2.*tot_sz*log2((double)np)*COST_NETWBW+2.*log2((double)np)*COST_LATENCY;
   }
 
-  void CommData::all_to_allv(void *           send_buffer, 
-                       int64_t const * send_counts,
-                       int64_t const * send_displs,
-                       int64_t          datum_size,
-                       void *           recv_buffer, 
-                       int64_t const * recv_counts,
-                       int64_t const * recv_displs){
+  void CommData::all_to_allv(void *          send_buffer,
+                             int64_t const * send_counts,
+                             int64_t const * send_displs,
+                             int64_t         datum_size,
+                             void *          recv_buffer,
+                             int64_t const * recv_counts,
+                             int64_t const * recv_displs){
     int num_nnz_trgt = 0;
     int num_nnz_recv = 0;
     for (int p=0; p<np; p++){
@@ -156,11 +156,11 @@ namespace CTF_int {
       switch (datum_size){
         case 4:
           MPI_Alltoallv(send_buffer, i32_send_counts, i32_send_displs, MPI_FLOAT,
-                      recv_buffer, i32_recv_counts, i32_recv_displs, MPI_FLOAT, cm);
+                        recv_buffer, i32_recv_counts, i32_recv_displs, MPI_FLOAT, cm);
           break;
         case 8:
           MPI_Alltoallv(send_buffer, i32_send_counts, i32_send_displs, MPI_DOUBLE,
-                      recv_buffer, i32_recv_counts, i32_recv_displs, MPI_DOUBLE, cm);
+                        recv_buffer, i32_recv_counts, i32_recv_displs, MPI_DOUBLE, cm);
           break;
         case 16:
           MPI_Alltoallv(send_buffer, i32_send_counts, i32_send_displs, MPI_DOUBLE_COMPLEX,

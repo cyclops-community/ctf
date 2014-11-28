@@ -23,13 +23,13 @@ namespace CTF {
       /** \brief number of processors */
       int np;
       /** \brief derived topologies */
-      std::vector<CTF_int::topology> topovec;
+      std::vector< CTF_int::topology* > topovec;
       /** \brief whether the world has been initialized */
       bool initialized;
       /** \brief communicator data for MPI comm defining this world */
       CTF_int::CommData cdt;
       /** \brief main torus topology corresponding to the world */
-      CTF_int::topology phys_topology;
+      CTF_int::topology * phys_topology;
 
 
       /**

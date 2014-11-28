@@ -172,6 +172,10 @@ namespace CTF_int {
   char const * semiring::get_value(char const * a) const {
     return a+sizeof(int64_t);
   }
+      
+  ConstPairIterator::ConstPairIterator(PairIterator const & pi){
+    sr=pi.sr; ptr=pi.ptr; 
+  }
 
   ConstPairIterator::ConstPairIterator(semiring const * sr_, char const * ptr_){ 
     sr=sr_; ptr=ptr_; 

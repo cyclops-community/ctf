@@ -15,12 +15,12 @@
 #include <limits.h>
 #include "mpi.h"
 
-int CTF_alloc_ptr(int64_t len, void ** const ptr);
-int CTF_mst_alloc_ptr(int64_t len, void ** const ptr);
+int  CTF_alloc_ptr(int64_t len, void ** const ptr);
+int  CTF_mst_alloc_ptr(int64_t len, void ** const ptr);
 void * CTF_alloc(int64_t len);
 void * CTF_mst_alloc(int64_t len);
-int CTF_free(void * ptr, int const tid);
-int CTF_free(void * ptr);
+int  CTF_free(void * ptr, int const tid);
+int  CTF_free(void * ptr);
 
 
 namespace CTF {
@@ -126,21 +126,6 @@ namespace CTF_int {
   void ccscal(int n, std::complex<float> dA, std::complex<float> * dX, int incX);
 
   void czscal(int n, std::complex<double> dA, std::complex<double> * dX, int incX);
-
-  void conv_idx(int          order,
-                int const *  lens,
-                int64_t      idx,
-                int **       idx_arr);
-
-  void conv_idx(int          order,
-                int const *  lens,
-                int64_t      idx,
-                int *        idx_arr);
-
-  void conv_idx(int          order,
-                int const *  lens,
-                int const *  idx_arr,
-                int64_t *    idx);
 
 
   class CommData {

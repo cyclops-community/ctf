@@ -80,7 +80,7 @@ namespace CTF {
                         int             argc,
                         const char * const *  argv){
     cdt = CommData(global_context);
-    phys_topology = topology(order, dim_len, cdt, 1);
+    phys_topology = new topology(order, dim_len, cdt, 1);
     topovec = peel_torus(phys_topology, cdt);
 
     return initialize(argc, argv);

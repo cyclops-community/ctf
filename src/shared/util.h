@@ -609,6 +609,22 @@ namespace CTF_int {
     }
   }
 
+  void cvrt_idx(int         order,
+                int const * lens,
+                int64_t     idx,
+                int **      idx_arr);
+
+  void cvrt_idx(int         order,
+                int const * lens,
+                int64_t     idx,
+                int *       idx_arr);
+
+  void cvrt_idx(int         order,
+                int const * lens,
+                int const * idx_arr,
+                int64_t *   idx);
+
+
   template <> inline
   void cxgemm<double>(const char transa,  const char transb,
               const int m,        const int n,

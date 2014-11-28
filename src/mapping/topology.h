@@ -63,8 +63,8 @@ namespace CTF_int {
    * \param[in] topo topology to fold
    * \param[in] glb_comm  global communicator
    */
-  std::vector<topology> peel_torus(topology const & topo,
-                                   CommData         glb_comm);
+  std::vector< topology* > peel_torus(topology const * topo,
+                                      CommData         glb_comm);
 
   /**
    * \brief searches for an equivalent topology in avector of topologies
@@ -72,8 +72,8 @@ namespace CTF_int {
    * \param[in] topovec vector of existing parameters
    * \return -1 if not found, otherwise index of first found topology
    */
-  int find_topology(topology const &        topo,
-                    std::vector<topology> & topovec);
+  int find_topology(topology const *           topo,
+                    std::vector< topology* > & topovec);
 
  
   /**

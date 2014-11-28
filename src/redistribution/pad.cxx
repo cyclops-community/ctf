@@ -2,12 +2,12 @@
 #include "pad.h"
 
 namespace CTF_int {
-  void pad_key(int           order,
-               int64_t      num_pair,
+  void pad_key(int                order,
+               int64_t            num_pair,
                int const *        edge_len,
                int const *        padding,
-               char *  pairs,
-               semiring const & sr,
+               PairIterator       pairs,
+               semiring const &   sr,
                int const *        offsets = NULL){
     int64_t i, j, lda;
     key knew, k;
@@ -47,17 +47,16 @@ namespace CTF_int {
 
   }
 
-  void depad_tsr(int                 order,
-                 int64_t            num_pair,
-                 int const *              edge_len,
-                 int const *              sym,
-                 int const *              padding,
-                 int const *              prepadding,
-                 char const *  pairs,
-                 char *        new_pairs,
-                 int64_t *                new_num_pair,
+  void depad_tsr(int              order,
+                 int64_t          num_pair,
+                 int const *      edge_len,
+                 int const *      sym,
+                 int const *      padding,
+                 int const *      prepadding,
+                 char const *     pairs,
+                 char *           new_pairs,
+                 int64_t *        new_num_pair,
                  semiring const & sr){
-
     TAU_FSTART(depad_tsr);
 #ifdef USE_OMP
     int64_t num_ins;
@@ -199,17 +198,17 @@ namespace CTF_int {
   }
 
 
-  void pad_tsr(int                 order,
-                 int64_t            size,
-                 int const *              edge_len,
-                 int const *              sym,
-                 int const *              padding,
-                 int const *              phys_phase,
-                 int *                    virt_phys_rank,
-                 int const *              virt_phase,
-                 char const *  old_data,
-                 char **       new_pairs,
-                 int64_t *                new_size,
+  void pad_tsr(int                order,
+                 int64_t          size,
+                 int const *      edge_len,
+                 int const *      sym,
+                 int const *      padding,
+                 int const *      phys_phase,
+                 int *            virt_phys_rank,
+                 int const *      virt_phase,
+                 char const *     old_data,
+                 char **          new_pairs,
+                 int64_t *        new_size,
                  semiring const & sr){
     int i, imax, act_lda;
     int64_t new_el, pad_el;
@@ -358,17 +357,17 @@ namespace CTF_int {
 
   }
 
-  void zero_padding( int           ndim,
-                     int64_t      size,
-                     int           nvirt,
-                     int const *        edge_len,
-                     int const *        sym,
-                     int const *        padding,
-                     int const *        phase,
-                     int const *        virt_dim,
-                     int const *        cphase_rank,
-                     char *            vdata,
-                     semiring const & sr){
+  void zero_padding(int              ndim,
+                    int64_t          size,
+                    int              nvirt,
+                    int const *      edge_len,
+                    int const *      sym,
+                    int const *      padding,
+                    int const *      phase,
+                    int const *      virt_dim,
+                    int const *      cphase_rank,
+                    char *           vdata,
+                    semiring const & sr){
 
     if (ndim == 0) return;
     TAU_FSTART(zero_padding);

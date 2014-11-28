@@ -435,7 +435,7 @@ void factorize(int n, int *nfactor, int **factor){
   }
 }
 
-int conv_idx(int const  order,
+int cvrt_idx(int const  order,
              char const *  cidx,
              int **     iidx){
   int i, j, n;
@@ -460,7 +460,7 @@ int conv_idx(int const  order,
   return n;
 }
 
-int  conv_idx(int const         order_A,
+int  cvrt_idx(int const         order_A,
               char const *         cidx_A,
               int **            iidx_A,
               int const         order_B,
@@ -471,7 +471,7 @@ int  conv_idx(int const         order_A,
 
   *iidx_B = (int*)CTF_alloc(sizeof(int)*order_B);
 
-  n = conv_idx(order_A, cidx_A, iidx_A);
+  n = cvrt_idx(order_A, cidx_A, iidx_A);
   for (i=0; i<order_B; i++){
     c = cidx_B[i];
     for (j=0; j<order_A; j++){
@@ -497,7 +497,7 @@ int  conv_idx(int const         order_A,
 }
 
 
-int  conv_idx(int const         order_A,
+int  cvrt_idx(int const         order_A,
               char const *         cidx_A,
               int **            iidx_A,
               int const         order_B,
@@ -511,7 +511,7 @@ int  conv_idx(int const         order_A,
 
   *iidx_C = (int*)CTF_alloc(sizeof(int)*order_C);
 
-  n = conv_idx(order_A, cidx_A, iidx_A,
+  n = cvrt_idx(order_A, cidx_A, iidx_A,
                order_B, cidx_B, iidx_B);
 
   for (i=0; i<order_C; i++){
@@ -546,10 +546,10 @@ int  conv_idx(int const         order_A,
   return n;
 }
 
-void conv_idx(int          order,
-              int const *  lens,
+void cvrt_idx(int         order,
+              int const * lens,
               int64_t     idx,
-              int *        idx_arr){
+              int *       idx_arr){
   int i;
   int64_t cidx = idx;
   for (i=0; i<order; i++){
@@ -558,17 +558,17 @@ void conv_idx(int          order,
   }
 }
 
-void conv_idx(int          order,
-              int const *  lens,
+void cvrt_idx(int         order,
+              int const * lens,
               int64_t     idx,
-              int **       idx_arr){
+              int **      idx_arr){
   (*idx_arr) = (int*)CTF_alloc(order*sizeof(int));
-  conv_idx(order, lens, idx, *idx_arr);
+  cvrt_idx(order, lens, idx, *idx_arr);
 }
 
-void conv_idx(int          order,
-              int const *  lens,
-              int const *  idx_arr,
+void cvrt_idx(int         order,
+              int const * lens,
+              int const * idx_arr,
               int64_t *   idx){
   int i;
   int64_t lda = 1;
