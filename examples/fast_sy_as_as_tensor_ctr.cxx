@@ -361,10 +361,10 @@ int fast_tensor_ctr(int        n,
   for (i=0; i<t+v; i++){
     len_B[i] = n;
     sym_B[i] = NS;
-    if (i<t)
-      idx_B[i] = 'a'+s+i;
+    if (i<v)
+      idx_B[i] = 'a'+(s+t)+i;
     else
-      idx_B[i] = 'a'+(s+t)+(i-t);
+      idx_B[i] = 'a'+s+(i-v);
   }
   for (i=0; i<s+t; i++){
     len_C[i] = n;
@@ -455,14 +455,19 @@ int fast_tensor_ctr(int        n,
     idx_Z[i] = idx_Z[s+t-1]+(i-s-t+1);
   }
 
-  C[idx_C]+=sign(s*t+s*v+t*v)*Z_mults[idx_Z];
+  for (int j=0; j<2; j++)
+    printf("idx_Z[%d]=%c,idx_C[%d]=%c\n",j,idx_Z[j],j,idx_C[j]);
+  //C[idx_C]+=sign(s*t+s*v+t*v)*Z_mults[idx_Z];
+  C[idx_C]+=sign(s*t+s*v)*Z_mults[idx_Z];
 
   CTF_Tensor V(s+t, len_C, sym_C, ctf, "V");
   for (int r=0; r<v; r++){
     for (int p=std::max(v-t-r,0); p<=v-r; p++){
       for (int q=std::max(v-s-r,0); q<=v-p-r; q++){
         double prefact = (double)(choose(v,r)*choose(v-r,p)*choose(v-p-r,q)*pow(n,v-p-q-r));
-        double sgn_V = sign(s*t+(p+q)*v+p*q);
+//        double sgn_V = sign(s*t+(p+q)*v+p*q);
+        double sgn_V = sign(s*t+v*(t+p+r)+p*q+(q+r)*(t+1));
+//+(p+q)*v+p*q);
         prefact*= sgn_V;
   
         char idx_kr[r];
@@ -506,9 +511,12 @@ int fast_tensor_ctr(int        n,
         chi(idx_C, s+t, t+v-q-r, &nvBperms, &idx_VBtvqr);
         for (i=0; i<nvBperms; i++){
           char idx_VBB[t+v];
-          memcpy(idx_VBB, idx_VBtvqr[i], (t+v-q-r)*sizeof(char));
+          /*memcpy(idx_VBB, idx_VBtvqr[i], (t+v-q-r)*sizeof(char));
           memcpy(idx_VBB+t+v-q-r, idx_kr, r*sizeof(char));
-          memcpy(idx_VBB+t+v-q, idx_kq, q*sizeof(char));
+          memcpy(idx_VBB+t+v-q, idx_kq, q*sizeof(char));*/
+          memcpy(idx_VBB, idx_kr, r*sizeof(char));
+          memcpy(idx_VBB+r, idx_kq, q*sizeof(char));
+          memcpy(idx_VBB+r+q, idx_VBtvqr[i], (t+v-q-r)*sizeof(char));
           /*for (i=0; i<t+v; i++){
             printf("index %d of B is %c\n",i, idx_VBB[i]);
           }
@@ -539,17 +547,22 @@ int fast_tensor_ctr(int        n,
     char idx_UB[t+v];
     memcpy(idx_U, idx_kr, sizeof(char)*r);
     memcpy(idx_UA, idx_kr, sizeof(char)*r);
-    memcpy(idx_UB, idx_kr, sizeof(char)*r);
+    memcpy(idx_UB+t+v-r, idx_kr, sizeof(char)*r);
     int npermU;
     char ** idxj, ** idxl;
     chi(idx_C, s+t-2*r, s-r, t-r, &npermU, &idxj, &idxl);
     memcpy(idx_U+r,idx_C,s+t-2*r);
     for (int i=0; i<npermU; i++){
       memcpy(idx_UA+r,idxj[i],s-r);
-      memcpy(idx_UB+r,idxl[i],t-r);
+      memcpy(idx_UB+v,idxl[i],t-r);
       memcpy(idx_UA+s, idx_kv, sizeof(char)*v);
-      memcpy(idx_UB+t, idx_kv, sizeof(char)*v);
+      //memcpy(idx_UB+t, idx_kv, sizeof(char)*v);
+      memcpy(idx_UB, idx_kv, sizeof(char)*v);
 //      double sgnU = sign(parity(idxj[i], idxl[i], idx_C, s-r, t-r));
+      for (int j=0; j<1; j++)
+        printf("idx_U[%d]=%c,idx_UA[%d]=%c,idx_UB[%d]=%c\n",j,idx_U[j],j,idx_UA[j],j,idx_UB[j]);
+      //for (int j=1; j<2; j++)
+        //printf("idx_UA[%d]=%c,idx_UB[%d]=%c\n",j,idx_UA[j],j,idx_UB[j]);
       U[idx_U] += A[idx_UA]*B[idx_UB];
     }
     int npermW1;
@@ -564,7 +577,7 @@ int fast_tensor_ctr(int        n,
         memcpy(idx_U,idxr[i],r);
         memcpy(idx_U+r,idxh[i],s+t-2*r);
         //W[idx_C] += sgn1*sign(parity(idxr[i], idxh[i],idxh1[j], r,s+t-2*r))*U[idx_U];
-        W[idx_C] += sign(s*t)*U[idx_U];
+        W[idx_C] -= U[idx_U];
       }
     }
   }
