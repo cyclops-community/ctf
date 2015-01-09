@@ -455,8 +455,6 @@ int fast_tensor_ctr(int        n,
     idx_Z[i] = idx_Z[s+t-1]+(i-s-t+1);
   }
 
-  for (int j=0; j<2; j++)
-    printf("idx_Z[%d]=%c,idx_C[%d]=%c\n",j,idx_Z[j],j,idx_C[j]);
   //C[idx_C]+=sign(s*t+s*v+t*v)*Z_mults[idx_Z];
   C[idx_C]+=sign(s*t+s*v)*Z_mults[idx_Z];
 
@@ -559,10 +557,6 @@ int fast_tensor_ctr(int        n,
       //memcpy(idx_UB+t, idx_kv, sizeof(char)*v);
       memcpy(idx_UB, idx_kv, sizeof(char)*v);
 //      double sgnU = sign(parity(idxj[i], idxl[i], idx_C, s-r, t-r));
-      for (int j=0; j<1; j++)
-        printf("idx_U[%d]=%c,idx_UA[%d]=%c,idx_UB[%d]=%c\n",j,idx_U[j],j,idx_UA[j],j,idx_UB[j]);
-      //for (int j=1; j<2; j++)
-        //printf("idx_UA[%d]=%c,idx_UB[%d]=%c\n",j,idx_UA[j],j,idx_UB[j]);
       U[idx_U] += A[idx_UA]*B[idx_UB];
     }
     int npermW1;
