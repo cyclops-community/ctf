@@ -53,9 +53,10 @@ int sym_seq_sum_ref( dtype const        alpha,
       for (idx=0; idx<idx_max; idx++){
         imin = 0, imax = INT_MAX;
 
-        GET_MIN_MAX(A,0,2);
+//        GET_MIN_MAX(A,0,2);
         GET_MIN_MAX(B,1,2);
 
+        if (rev_idx_map[2*idx+1] == -1) imax = imin+1;
         idx_glb[idx]++;
         if (idx_glb[idx] >= imax){
                 idx_glb[idx] = imin;
@@ -66,13 +67,13 @@ int sym_seq_sum_ref( dtype const        alpha,
       }
       if (idx == idx_max) break;
 
-      CHECK_SYM(A);
-      if (!sym_pass) continue;
+ //     CHECK_SYM(A);
+   //   if (!sym_pass) continue;
       CHECK_SYM(B);
       if (!sym_pass) continue;
       
-      if (ndim_A > 0)
-        RESET_IDX(A);
+//      if (ndim_A > 0)
+  //      RESET_IDX(A);
       if (ndim_B > 0)
         RESET_IDX(B);
     }
