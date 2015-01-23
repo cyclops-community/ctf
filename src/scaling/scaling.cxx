@@ -96,7 +96,7 @@ namespace CTF_int {
       for (itopo=tsr->wrld->cdt.rank; itopo<(int)tsr->wrld->topovec.size(); itopo+=tsr->wrld->cdt.np){
         ntsr->clear_mapping();
         ntsr->set_padding();
-        ntsr->topo = &tsr->wrld->topovec[itopo];
+        ntsr->topo = tsr->wrld->topovec[itopo];
         ret = map_self_indices(ntsr, idx_map);
         if (ret!=SUCCESS) continue;
         ret = ntsr->map_tensor_rem(ntsr->topo->order,
@@ -144,7 +144,7 @@ namespace CTF_int {
       ntsr->clear_mapping();
       ntsr->set_padding();
       ntsr->is_cyclic = 1;
-      ntsr->topo = &tsr->wrld->topovec[btopo];
+      ntsr->topo = tsr->wrld->topovec[btopo];
       ret = map_self_indices(ntsr, idx_map);
       if (ret!=SUCCESS) ABORT;
       ret = ntsr->map_tensor_rem(ntsr->topo->order,

@@ -14,9 +14,9 @@ namespace CTF_int {
    * \param perm permutation array
    * \param arr array to permute
    */
-  void permute(int const    order,
-               int const *  perm,
-               int *        arr);
+  void permute(int         order,
+               int const * perm,
+               int *       arr);
 
   /**
    * \brief permutes a permutation array 
@@ -26,7 +26,7 @@ namespace CTF_int {
    * \param perm permutation array
    * \param arr permutation array to permute
    */
-  void permute_target(int const   order,
+  void permute_target(int         order,
                       int const * perm,
                       int *       arr);
 
@@ -40,12 +40,12 @@ namespace CTF_int {
    * \param[in] dir which way are we going?
    * \param[in] sr semiring defining element size
    */
-  void nosym_transpose(int          order,
-                       int const *        new_order,
-                       int const *        edge_len,
-                       char *            data,
-                       int          dir,
-                       semiring const &    sr);
+  void nosym_transpose(int              order,
+                       int const *      new_order,
+                       int const *      edge_len,
+                       char *           data,
+                       int              dir,
+                       semiring const & sr);
 
   /**
    * \brief transposes a non-symmetric (folded) tensor internal kernel
@@ -60,15 +60,15 @@ namespace CTF_int {
    * \param[out] chunk_size chunk sizes of tranposed data
    * \param[in] sr semiring defining element size
    */
-  void nosym_transpose(int const          order,
-                       int const *        new_order,
-                       int const *        edge_len,
-                       char const *       data,
-                       int const          dir,
-                       int const          max_ntd,
-                       char **            tswap_data,
-                       int *              chunk_size,
-                       semiring const &   sr);
+  void nosym_transpose(int              order,
+                       int const *      new_order,
+                       int const *      edge_len,
+                       char const *     data,
+                       int              dir,
+                       int              max_ntd,
+                       char **          tswap_data,
+                       int *            chunk_size,
+                       semiring const & sr);
 
 }
 #endif

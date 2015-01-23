@@ -735,7 +735,7 @@ namespace CTF_int {
     //calculate the number of keys that need to be vchanged first
     int64_t nchanged = 0;
     for (int64_t i=0; i<inwrite; i++){
-      cvrt_idx(order, depad_edge_len, wr_pairs[i].k(), ckey);
+      cvrt_idx(order, depad_edge_len, wr_pairs[i].k(), &ckey);
       is_out = 0;
       sign = 1;
       is_perm = 1;
@@ -992,49 +992,60 @@ namespace CTF_int {
 
   }
 
-  void read_loc_pairs(int                 order,
-                      int64_t            nval,
-                      int                 num_virt,
-                      int const *         sym,
-                      int const *         edge_len,
-                      int const *         padding,
-                      int const *         virt_dim,
-                      int const *         virt_phase,
-                      int *               virt_phase_rank,
-                      int64_t *           nread,
-                      char const *       data,
-                      char **  pairs,
+  void read_loc_pairs(int              order,
+                      int64_t          nval,
+                      int              num_virt,
+                      int const *      sym,
+                      int const *      edge_len,
+                      int const *      padding,
+                      int const *      virt_dim,
+                      int const *      virt_phase,
+                      int *            virt_phase_rank,
+                      int64_t *        nread,
+                      char const *     data,
+                      char **          pairs,
                       semiring const & sr){
     int64_t i;
     int * prepadding;
-    tkv_pair<dtype> * dpairs;
-    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&dpairs);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&prepadding);
+    char * dpairsb;
+    CTF_alloc_ptr(sr.pair_size()*nval, (void**)&dpairsb);
+    CTF_alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
     memset(prepadding, 0, sizeof(int)*order);
     /* Iterate through packed layout and form key value pairs */
-    assign_keys(order,             nval,           num_virt,
-                edge_len,         sym,
-                virt_phase,       virt_dim,       virt_phase_rank,
-                data,             dpairs);
+    assign_keys(order,
+                nval,
+                num_virt,
+                edge_len,
+                sym,
+                virt_phase,
+                virt_dim,
+                virt_phase_rank,
+                data,
+                dpairsb,
+                sr);
 
     /* If we need to unpad */
     int64_t new_num_pair;
-    int * depadding, * pad_len;
-    tkv_pair<dtype> * new_pairs;
-    CTF_alloc_ptr(sizeof(tkv_pair<dtype>)*nval, (void**)&new_pairs);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&depadding);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&pad_len);
+    int * depadding;
+    int * pad_len;
+    char * new_pairsb;
+    CTF_alloc_ptr(sr.pair_size()*nval, (void**)&new_pairsb);
+   
+    PairIterator new_pairs = PairIterator(&sr, new_pairsb); 
+
+    CTF_alloc_ptr(sizeof(int)*order,   (void**)&depadding);
+    CTF_alloc_ptr(sizeof(int)*order,   (void**)&pad_len);
 
     for (i=0; i<order; i++){
       pad_len[i] = edge_len[i]-padding[i];
     }
     /* Get rid of any padded values */
     depad_tsr(order, nval, pad_len, sym, padding, prepadding,
-              dpairs, new_pairs, &new_num_pair);
+              dpairsb, new_pairsb, &new_num_pair, sr);
 
-    CTF_free(dpairs);
-    if (nval == 0) CTF_free(new_pairs);
-    *pairs = new_pairs;
+    CTF_free(dpairsb);
+    if (nval == 0) CTF_free(new_pairsb);
+    *pairs = new_pairsb;
     *nread = new_num_pair;
 
     for (i=0; i<order; i++){
@@ -1042,7 +1053,7 @@ namespace CTF_int {
     }
     
     /* Adjust keys to remove padding */
-    pad_key(order, new_num_pair, edge_len, depadding, new_pairs);
+    pad_key(order, new_num_pair, edge_len, depadding, new_pairs, sr);
     CTF_free((void*)pad_len);
     CTF_free((void*)depadding);
     CTF_free(prepadding);

@@ -7,7 +7,6 @@
 namespace CTF_int {
   class tensor; 
 
-
   /**
    * \brief class for execution distributed summation of tensors
    */
@@ -53,11 +52,11 @@ namespace CTF_int {
        * \param[in] beta scaling factor of ouput 
                       C[idx_B] = beta*B[idx_B] + alpha * A[idx_A]
        */
-      summation(tensor * A, 
-                int const * idx_A,
-                char const * alpha, 
-                tensor * B, 
-                int const * idx_B,
+      summation(tensor *     A,
+                int const *  idx_A,
+                char const * alpha,
+                tensor *     B,
+                int const *  idx_B,
                 char const * beta);
      
       /**
@@ -69,10 +68,10 @@ namespace CTF_int {
        * \param[in] func custom elementwise function 
                       func(A[idx_A],&B[idx_B])
        */
-      summation(tensor * A, 
-                int const * idx_A,
-                tensor * B, 
-                int const * idx_B,
+      summation(tensor *        A,
+                int const *     idx_A,
+                tensor *        B,
+                int const *     idx_B,
                 univar_function func);
 
       /** \brief run summation  */
@@ -83,14 +82,14 @@ namespace CTF_int {
    
       /**
        * \brief finds and return all summation indices which can be folded into
-       *    dgemm, for which they must (1) not break symmetry (2) belong to 
+       *    dgemm,for which they must (1) not break symmetry (2) belong to 
        *    exactly two of (A,B).
        * \param[in] type contraction specification
        * \param[out] num_fold number of indices that can be folded
        * \param[out] fold_idx indices that can be folded
        */
-      void get_fold_indices(int *                   num_fold,
-                            int **                  fold_idx);
+      void get_fold_indices(int *  num_fold,
+                            int ** fold_idx);
     
       /**
        * \brief determines whether this summation can be folded
@@ -106,9 +105,8 @@ namespace CTF_int {
        * \param[out] new_ordering_A the new ordering for indices of A
        * \param[out] new_ordering_B the new ordering for indices of B
        */
-      void get_len_ordering(
-                                            int **      new_ordering_A,
-                                            int **      new_ordering_B);
+      void get_len_ordering(int ** new_ordering_A,
+                            int ** new_ordering_B);
   
       /**
        * \brief returns 1 if summations have same tensors and index map
@@ -118,7 +116,7 @@ namespace CTF_int {
 
     private:
       /**
-       * \brief constructs function pointer to sum tensors A and B, B = B*beta+alpha*A
+       * \brief constructs function pointer to sum tensors A and B,B = B*beta+alpha*A
        * \param[in] inner_stride local daxpy stride
        * \return tsum summation class pointer to run
       */
@@ -147,7 +145,7 @@ namespace CTF_int {
       /**
        * \brief unfolds a broken symmetry in a summation by defining new tensors
        * \param[out] new_sum new summations specification (new tsrss)
-       * \return 3*idx+tsr_type if finds broken sym, -1 otherwise
+       * \return 3*idx+tsr_type if finds broken sym,-1 otherwise
        */
       int unfold_broken_sym(summation ** new_sum);
 

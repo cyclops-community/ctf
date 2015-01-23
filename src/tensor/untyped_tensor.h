@@ -12,6 +12,7 @@ namespace CTF_int {
 
   class tensor;
 
+#if 0
   /** \brief defines tensor contraction operands and indices */
   typedef struct ctr_type {
     tensor * tsr_A;
@@ -29,7 +30,7 @@ namespace CTF_int {
     int * idx_map_A; /* map indices of tensor A to sum */
     int * idx_map_B; /* map indices of tensor B to sum */
   } sum_type_t;
-
+#endif
 
 
   /** \brief internal distributed tensor class */

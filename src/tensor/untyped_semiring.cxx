@@ -2,11 +2,139 @@
 #include "../shared/util.h"
 #include "untyped_tensor.h"
 #include "untyped_semiring.h"
+#include "cblas.h"
 
 namespace CTF_int {
 
+  void sgemm(char           tA,
+             char           tB,
+             int            m,
+             int            n,
+             int            k,
+             float          alpha,
+             float  const * A,
+             float  const * B,
+             float          beta,
+             float  *       C){
+    int lda_A, lda_B, lda_C;
+    CBLAS_TRANSPOSE ctA;
+    CBLAS_TRANSPOSE ctB;
+    lda_C = m;
+    if (tA == 'n' || tA == 'N'){
+      lda_A = m;
+      ctA = CblasNoTrans;
+    } else {
+      lda_A = k;
+      ctA = CblasTrans;
+    }
+    if (tB == 'n' || tB == 'N'){
+      lda_B = k;
+      ctB = CblasNoTrans;
+    } else {
+      lda_B = n;
+      ctB = CblasTrans;
+    }
+    cblas_sgemm(CblasColMajor,ctA,ctB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
+  }
+
+
+  void dgemm(char           tA,
+             char           tB,
+             int            m,
+             int            n,
+             int            k,
+             double         alpha,
+             double const * A,
+             double const * B,
+             double         beta,
+             double *       C){
+    int lda_A, lda_B, lda_C;
+    CBLAS_TRANSPOSE ctA;
+    CBLAS_TRANSPOSE ctB;
+    lda_C = m;
+    if (tA == 'n' || tA == 'N'){
+      lda_A = m;
+      ctA = CblasNoTrans;
+    } else {
+      lda_A = k;
+      ctA = CblasTrans;
+    }
+    if (tB == 'n' || tB == 'N'){
+      lda_B = k;
+      ctB = CblasNoTrans;
+    } else {
+      lda_B = n;
+      ctB = CblasTrans;
+    }
+    cblas_dgemm(CblasColMajor,ctA,ctB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
+  }
+
+  void cgemm(char                        tA,
+             char                        tB,
+             int                         m,
+             int                         n,
+             int                         k,
+             std::complex<float>         alpha,
+             std::complex<float> const * A,
+             std::complex<float> const * B,
+             std::complex<float>         beta,
+             std::complex<float> *       C){
+    int lda_A, lda_B, lda_C;
+    CBLAS_TRANSPOSE ctA;
+    CBLAS_TRANSPOSE ctB;
+    lda_C = m;
+    if (tA == 'n' || tA == 'N'){
+      lda_A = m;
+      ctA = CblasNoTrans;
+    } else {
+      lda_A = k;
+      ctA = CblasTrans;
+    }
+    if (tB == 'n' || tB == 'N'){
+      lda_B = k;
+      ctB = CblasNoTrans;
+    } else {
+      lda_B = n;
+      ctB = CblasTrans;
+    }
+    cblas_cgemm(CblasColMajor,ctA,ctB,m,n,k,&alpha,A,lda_A,B,lda_B,&beta,C,lda_C);
+  }
+
+
+  void zgemm(char                         tA,
+             char                         tB,
+             int                          m,
+             int                          n,
+             int                          k,
+             std::complex<double>         alpha,
+             std::complex<double> const * A,
+             std::complex<double> const * B,
+             std::complex<double>         beta,
+             std::complex<double> *       C){
+    int lda_A, lda_B, lda_C;
+    CBLAS_TRANSPOSE ctA;
+    CBLAS_TRANSPOSE ctB;
+    lda_C = m;
+    if (tA == 'n' || tA == 'N'){
+      lda_A = m;
+      ctA = CblasNoTrans;
+    } else {
+      lda_A = k;
+      ctA = CblasTrans;
+    }
+    if (tB == 'n' || tB == 'N'){
+      lda_B = k;
+      ctB = CblasNoTrans;
+    } else {
+      lda_B = n;
+      ctB = CblasTrans;
+    }
+    cblas_zgemm(CblasColMajor,ctA,ctB,m,n,k,&alpha,A,lda_A,B,lda_B,&beta,C,lda_C);
+  }
+
+/*
   template <typename dtype>
-  void dgemm(char          tA,
+  void tgemm(char          tA,
              char          tB,
              int           m,
              int           n,
@@ -30,7 +158,7 @@ namespace CTF_int {
     }
     cxgemm<dtype>(tA,tB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
   }
-
+*/
 /*  typedef sgemm template <> dgemm<float>;
   typedef dgemm template <> dgemm<double>;
   typedef cgemm template <> dgemm< std::complex<float> >;
@@ -123,6 +251,28 @@ namespace CTF_int {
   
   void semiring::copy_pairs(char * a, char const * b, int64_t n) const {
     memcpy(a, b, pair_size()*n);
+  }
+
+
+  void semiring::copy(int64_t n, char const * a, int64_t lda_a, char * b, int64_t lda_b) const {
+    switch (el_size) {
+      case 4:
+        cblas_scopy(n, (float const*)a, lda_a, (float*)b, lda_b);
+        break;
+      case 8:
+        cblas_dcopy(n, (double const*)a, lda_a, (double*)b, lda_b);
+        break;
+      case 16:
+        cblas_zcopy(n, (std::complex<double> const*)a, lda_a, (std::complex<double>*)b, lda_b);
+        break;
+      default:
+        #pragma omp parallel for
+        for (int i=0; i<n; i++){
+          b[lda_a*i] = a[lda_b*i];
+        }
+        break;
+    }
+
   }
 
   void semiring::set(char * a, char const * b, int64_t n) const {

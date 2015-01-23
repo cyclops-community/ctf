@@ -2,6 +2,7 @@
 #define __INT_SEMIRING_H__
 
 #include "../interface/common.h"
+#include "cblas.h"
 
 namespace CTF_int {
 
@@ -170,6 +171,9 @@ namespace CTF_int {
       
       /** \brief copies n elements from array b to array a */
       void copy(char * a, char const * b, int64_t n) const;
+      
+      /** \brief copies n elements TO array b with increlement lda_a FROM array a with inremeent lda_b */
+      void copy(int64_t n, char const * a, int64_t lda_a, char * b, int64_t lda_b) const;
       
       /** \brief copies pair b to element a */
       void copy_pair(char * a, char const * b) const;
@@ -465,7 +469,7 @@ namespace CTF_int {
                     int           incX,
                     float *       Y,
                     int           incY){
-    csaxpy(n,alpha,X,incX,Y,incY);
+    cblas_saxpy(n,alpha,X,incX,Y,incY);
   }
 
   template <>
@@ -476,7 +480,7 @@ namespace CTF_int {
                     int            incX,
                     double *       Y,
                     int            incY){
-    cdaxpy(n,alpha,X,incX,Y,incY);
+    cblas_daxpy(n,alpha,X,incX,Y,incY);
   }
 
   template <>
@@ -487,7 +491,7 @@ namespace CTF_int {
                     int                         incX,
                     std::complex<float> *       Y,
                     int                         incY){
-    ccaxpy(n,alpha,X,incX,Y,incY);
+    cblas_caxpy(n,&alpha,X,incX,Y,incY);
   }
 
   template <>
@@ -498,7 +502,7 @@ namespace CTF_int {
                     int                          incX,
                     std::complex<double> *       Y,
                     int                          incY){
-    czaxpy(n,alpha,X,incX,Y,incY);
+    cblas_zaxpy(n,&alpha,X,incX,Y,incY);
   }
 
   template <typename dtype>
@@ -513,25 +517,26 @@ namespace CTF_int {
 
   template <>
   void default_scal<float>(int n, float alpha, float * X, int incX){
-    csscal(n,alpha,X,incX);
+    cblas_sscal(n,alpha,X,incX);
   }
 
   template <>
   void default_scal<double>(int n, double alpha, double * X, int incX){
-    cdscal(n,alpha,X,incX);
+    cblas_dscal(n,alpha,X,incX);
   }
 
   template <>
   void default_scal< std::complex<float> >
       (int n, std::complex<float> alpha, std::complex<float> * X, int incX){
-    ccscal(n,alpha,X,incX);
+    cblas_cscal(n,&alpha,X,incX);
   }
 
   template <>
   void default_scal< std::complex<double> >
       (int n, std::complex<double> alpha, std::complex<double> * X, int incX){
-    czscal(n,alpha,X,incX);
+    cblas_zscal(n,&alpha,X,incX);
   }
+
   template <typename dtype, dtype (*func)(dtype const a, dtype const b)>
   void detypedfunc(char const * a,
                    char const * b,

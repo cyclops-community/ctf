@@ -6,171 +6,225 @@
 #include "assert.h"
 #include "util.h"
 #include "../../include/ctf.hpp"
+#include "cblas.h"
 
 
 
 
-#if (defined BGP || defined BGQ)
-#define UTIL_ZGEMM      zgemm
-#define UTIL_DGEMM      dgemm
-#define UTIL_DAXPY      daxpy
-#define UTIL_ZAXPY      zaxpy
-#define UTIL_DCOPY      dcopy
-#define UTIL_ZCOPY      zcopy
-#define UTIL_DSCAL      dscal
-#define UTIL_ZSCAL      zscal
-#define UTIL_DDOT       ddot
-#else
-#define UTIL_ZGEMM      zgemm_
-#define UTIL_DGEMM      dgemm_
-#define UTIL_DAXPY      daxpy_
-#define UTIL_ZAXPY      zaxpy_
-#define UTIL_DCOPY      dcopy_
-#define UTIL_ZCOPY      zcopy_
-#define UTIL_DSCAL      dscal_
-#define UTIL_ZSCAL      zscal_
-#define UTIL_DDOT       ddot_
-#endif
-
-#ifdef USE_JAG
-extern "C"
-void jag_zgemm( char *, char *,
-                int *,  int *,
-                int *,  double *,
-                double *,       int *,
-                double *,       int *,
-                double *,       double *,
-                                int *);
-
-#endif
-
-extern "C"
-void UTIL_DGEMM(const char *,   const char *,
-                const int *,    const int *,
-                const int *,    const double *,
-                const double *, const int *,
-                const double *, const int *,
-                const double *, double *,
-                                const int *);
-
-extern "C"
-void UTIL_ZGEMM(const char *,   const char *,
-                const int *,    const int *,
-                const int *,    const std::complex<double> *,
-                const std::complex<double> *,   const int *,
-                const std::complex<double> *,   const int *,
-                const std::complex<double> *,   std::complex<double> *,
-                                const int *);
-
-
-extern "C"
-void UTIL_DAXPY(const int * n,          double * dA,
-                const double * dX,      const int * incX,
-                double * dY,            const int * incY);
-
-extern "C"
-void UTIL_ZAXPY(const int * n,                          std::complex<double> * dA,
-                const std::complex<double> * dX,        const int * incX,
-                std::complex<double> * dY,              const int * incY);
-
-extern "C"
-void UTIL_DCOPY(const int * n,
-                const double * dX,      const int * incX,
-                double * dY,            const int * incY);
-
-extern "C"
-void UTIL_ZCOPY(const int * n,
-                const std::complex<double> * dX,        const int * incX,
-                std::complex<double> * dY,              const int * incY);
-
-
-extern "C"
-void UTIL_DSCAL(const int *n,           double *dA,
-                double * dX,      const int *incX);
-
-extern "C"
-void UTIL_ZSCAL(const int *n,           std::complex<double> *dA,
-                std::complex<double> * dX,      const int *incX);
-
-extern "C"
-double UTIL_DDOT(const int * n,         const double * dX,      
-                 const int * incX,      const double * dY,      
-                 const int * incY);
-
-void cdgemm(const char transa,  const char transb,
-            const int m,        const int n,
-            const int k,        const double a,
-            const double * A,   const int lda,
-            const double * B,   const int ldb,
-            const double b,     double * C,
-                                const int ldc){
-  UTIL_DGEMM(&transa, &transb, &m, &n, &k, &a, A,
-             &lda, B, &ldb, &b, C, &ldc);
-}
-
-void czgemm(const char transa,  const char transb,
-            const int m,        const int n,
-            const int k,        const std::complex<double> a,
-            const std::complex<double> * A,     const int lda,
-            const std::complex<double> * B,     const int ldb,
-            const std::complex<double> b,       std::complex<double> * C,
-                                const int ldc){
-#ifdef USE_JAG
-  jag_zgemm((char*)&transa, (char*)&transb, (int*)&m, (int*)&n, (int*)&k, (double*)&a, (double*)A,
-             (int*)&lda, (double*)B, (int*)&ldb, (double*)&b, (double*)C, (int*)&ldc);
-#else
-  UTIL_ZGEMM(&transa, &transb, &m, &n, &k, &a, A,
-             &lda, B, &ldb, &b, C, &ldc);
-#endif
-}
-
-void czaxpy(const int n,        
-            std::complex<double> dA,
-            const std::complex<double> * dX,
-            const int incX,
-            std::complex<double> * dY,
-            const int incY){
-  UTIL_ZAXPY(&n, &dA, dX, &incX, dY, &incY);
-}
-
-
-void cdaxpy(const int n,        double dA,
-            const double * dX,  const int incX,
-            double * dY,        const int incY){
-  UTIL_DAXPY(&n, &dA, dX, &incX, dY, &incY);
-}
-
-void czcopy(const int n,
-            const std::complex<double> * dX,
-            const int incX,
-            std::complex<double> * dY,
-            const int incY){
-  UTIL_ZCOPY(&n, dX, &incX, dY, &incY);
-}
-
-
-void cdcopy(const int n,
-            const double * dX,  const int incX,
-            double * dY,        const int incY){
-  UTIL_DCOPY(&n, dX, &incX, dY, &incY);
-}
-
-void cdscal(const int n,        double dA,
-            double * dX,  const int incX){
-  UTIL_DSCAL(&n, &dA, dX, &incX);
-}
-
-void czscal(const int n,        std::complex<double> dA,
-            std::complex<double> * dX,  const int incX){
-  UTIL_ZSCAL(&n, &dA, dX, &incX);
-}
-
-
-double cddot(const int n,       const double *dX,
-             const int incX,    const double *dY,
-             const int incY){
-  return UTIL_DDOT(&n, dX, &incX, dY, &incY);
-}
+//#if (defined BGP || defined BGQ)
+//#define UTIL_SGEMM sgemm
+//#define UTIL_DGEMM dgemm
+//#define UTIL_ZGEMM zgemm
+//#define UTIL_SAXPY saxpy
+//#define UTIL_DAXPY daxpy
+//#define UTIL_ZAXPY zaxpy
+//#define UTIL_SCOPY scopy
+//#define UTIL_DCOPY dcopy
+//#define UTIL_ZCOPY zcopy
+//#define UTIL_SSCAL sscal
+//#define UTIL_DSCAL dscal
+//#define UTIL_ZSCAL zscal
+//#define UTIL_DDOT  ddot
+//#else
+//#define UTIL_SGEMM sgemm_
+//#define UTIL_DGEMM dgemm_
+//#define UTIL_ZGEMM zgemm_
+//#define UTIL_SAXPY saxpy_
+//#define UTIL_DAXPY daxpy_
+//#define UTIL_ZAXPY zaxpy_
+//#define UTIL_SCOPY scopy_
+//#define UTIL_DCOPY dcopy_
+//#define UTIL_ZCOPY zcopy_
+//#define UTIL_SSCAL sscal_
+//#define UTIL_DSCAL dscal_
+//#define UTIL_ZSCAL zscal_
+//#define UTIL_DDOT  ddot_
+//#endif
+//
+//#ifdef USE_JAG
+//extern "C"
+//void jag_zgemm( char *,   char      *,
+//                int *,    int       *,
+//                int *,    double    *,
+//                double *, int       *,
+//                double *, int       *,
+//                double *, double    *,
+//                                int *);
+//
+//#endif
+//
+//extern "C"
+//void UTIL_SGEMM(const char *,  const char *,
+//                const int *,   const int *,
+//                const int *,   const float *,
+//                const float *, const int *,
+//                const float *, const int *,
+//                const float *, float *,
+//                                const int *);
+//
+//
+//extern "C"
+//void UTIL_DGEMM(const char *,   const char *,
+//                const int *,    const int *,
+//                const int *,    const double *,
+//                const double *, const int *,
+//                const double *, const int *,
+//                const double *, double *,
+//                                const int *);
+//
+//extern "C"
+//void UTIL_ZGEMM(const char *,                 const char *,
+//                const int *,                  const int *,
+//                const int *,                  const std::complex<double> *,
+//                const std::complex<double> *, const int *,
+//                const std::complex<double> *, const int *,
+//                const std::complex<double> *, std::complex<double> *,
+//                                const int *);
+//
+//extern "C"
+//void UTIL_SAXPY(const int * n,    float * dA,
+//                const float * dX, const int * incX,
+//                float * dY,       const int * incY);
+//
+//extern "C"
+//void UTIL_DAXPY(const int * n,     double * dA,
+//                const double * dX, const int * incX,
+//                double * dY,       const int * incY);
+//
+//extern "C"
+//void UTIL_ZAXPY(const int * n,                   std::complex<double> * dA,
+//                const std::complex<double> * dX, const int * incX,
+//                std::complex<double> * dY,       const int * incY);
+//
+//extern "C"
+//void UTIL_SCOPY(const int * n,
+//                const float * dX, const int * incX,
+//                float * dY,       const int * incY);
+//
+//extern "C"
+//void UTIL_DCOPY(const int * n,
+//                const double * dX, const int * incX,
+//                double * dY,       const int * incY);
+//
+//extern "C"
+//void UTIL_ZCOPY(const int * n,
+//                const std::complex<double> * dX, const int * incX,
+//                std::complex<double> * dY,       const int * incY);
+//
+//extern "C"
+//void UTIL_SSCAL(const int *n, float *dA,
+//                float * dX,   const int *incX);
+//
+//extern "C"
+//void UTIL_DSCAL(const int *n, double *dA,
+//                double * dX,  const int *incX);
+//
+//extern "C"
+//void UTIL_ZSCAL(const int *n,              std::complex<double> *dA,
+//                std::complex<double> * dX, const int *incX);
+//
+//extern "C"
+//double UTIL_DDOT(const int * n,    const double * dX,
+//                 const int * incX, const double * dY,
+//                 const int * incY);
+//
+//void csgemm(const char transa, const char transb,
+//            const int m,       const int n,
+//            const int k,       const float a,
+//            const float * A,   const int lda,
+//            const float * B,   const int ldb,
+//            const float b,     float * C,
+//                                const int ldc){
+//  UTIL_SGEMM(&transa, &transb, &m, &n, &k, &a, A,
+//             &lda, B, &ldb, &b, C, &ldc);
+//}
+//
+//void cdgemm(const char transa, const char transb,
+//            const int m,       const int n,
+//            const int k,       const double a,
+//            const double * A,  const int lda,
+//            const double * B,  const int ldb,
+//            const double b,    double * C,
+//                                const int ldc){
+//  UTIL_DGEMM(&transa, &transb, &m, &n, &k, &a, A,
+//             &lda, B, &ldb, &b, C, &ldc);
+//}
+//
+//void czgemm(const char transa,              const char transb,
+//            const int m,                    const int n,
+//            const int k,                    const std::complex<double> a,
+//            const std::complex<double> * A, const int lda,
+//            const std::complex<double> * B, const int ldb,
+//            const std::complex<double> b,   std::complex<double> * C,
+//                                const int ldc){
+//#ifdef USE_JAG
+//  jag_zgemm((char*)&transa, (char*)&transb, (int*)&m, (int*)&n, (int*)&k, (double*)&a, (double*)A,
+//             (int*)&lda, (double*)B, (int*)&ldb, (double*)&b, (double*)C, (int*)&ldc);
+//#else
+//  UTIL_ZGEMM(&transa, &transb, &m, &n, &k, &a, A,
+//             &lda, B, &ldb, &b, C, &ldc);
+//#endif
+//}
+//
+//void csaxpy(const int n,       float  dA,
+//            const float  * dX, const int incX,
+//            float  * dY,       const int incY){
+//  UTIL_SAXPY(&n, &dA, dX, &incX, dY, &incY);
+//}
+//
+//
+//void cdaxpy(const int n,       double dA,
+//            const double * dX, const int incX,
+//            double * dY,       const int incY){
+//  UTIL_DAXPY(&n, &dA, dX, &incX, dY, &incY);
+//}
+//
+//void czaxpy(const int n,
+//            std::complex<double>         dA,
+//            const std::complex<double> * dX,
+//            const int                    incX,
+//            std::complex<double> *       dY,
+//            const int                    incY){
+//  UTIL_ZAXPY(&n, &dA, dX, &incX, dY, &incY);
+//}
+//
+//void cscopy(const int n,
+//            const float  * dX,  const int incX,
+//            float  * dY,        const int incY){
+//  UTIL_DCOPY(&n, dX, &incX, dY, &incY);
+//}
+//
+//void cdcopy(const int n,
+//            const double * dX,  const int incX,
+//            double * dY,        const int incY){
+//  UTIL_DCOPY(&n, dX, &incX, dY, &incY);
+//}
+//
+//void czcopy(const int                    n,
+//            const std::complex<double> * dX,
+//            const int                    incX,
+//            std::complex<double> *       dY,
+//            const int                    incY){
+//  UTIL_ZCOPY(&n, dX, &incX, dY, &incY);
+//}
+//
+//
+//void cdscal(const int n,        double dA,
+//            double * dX,  const int incX){
+//  UTIL_DSCAL(&n, &dA, dX, &incX);
+//}
+//
+//void czscal(const int n,        std::complex<double> dA,
+//            std::complex<double> * dX,  const int incX){
+//  UTIL_ZSCAL(&n, &dA, dX, &incX);
+//}
+//
+//
+//double cddot(const int n,       const double *dX,
+//             const int incX,    const double *dY,
+//             const int incY){
+//  return UTIL_DDOT(&n, dX, &incX, dY, &incY);
+//}
 
 
 /**

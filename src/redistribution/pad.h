@@ -44,8 +44,8 @@ namespace CTF_int {
                  int const *      sym,
                  int const *      padding,
                  int const *      prepadding,
-                 char const *     pairs,
-                 char *           new_pairs,
+                 char const *     pairsb,
+                 char *           new_pairsb,
                  int64_t *        new_num_pair,
                  semiring const & sr);
 
@@ -79,7 +79,7 @@ namespace CTF_int {
   
   /**
    * \brief sets to zero all values in padded region of tensor
-   * \param[in] ndim tensor dimension
+   * \param[in] order tensor dimension
    * \param[in] size number of values
    * \param[in] nvirt total virtualization factor
    * \param[in] edge_len tensor edge lengths with padding
@@ -91,7 +91,7 @@ namespace CTF_int {
    * \param[in,out] vdata array of all local data
    * \param[in] semiring defines sizeo of each pair
    */
-  void zero_padding( int              ndim,
+  void zero_padding( int              order,
                      int64_t          size,
                      int              nvirt,
                      int const *      edge_len,

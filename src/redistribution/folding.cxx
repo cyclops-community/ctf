@@ -1,7 +1,8 @@
 #include "folding.h"
+#include "../shared/util.h"
 
 namespace CTF_int {
-  void permute(int const    order,
+  void permute(int          order,
                int const *  perm,
                int *        arr){
     int i;
@@ -18,7 +19,7 @@ namespace CTF_int {
     CTF_free(swap);
   }
 
-  void permute_target(int const   order,
+  void permute_target(int         order,
                       int const * perm,
                       int *       arr){
     int i;
@@ -35,14 +36,14 @@ namespace CTF_int {
     CTF_free(swap);
   }
 
-  void nosym_transpose(int const          order,
-                       int const *        new_order,
-                       int const *        edge_len,
-                       char *             data,
-                       int const          dir,
-                       semiring const &   sr);
+  void nosym_transpose(int              order,
+                       int const *      new_order,
+                       int const *      edge_len,
+                       char *           data,
+                       int              dir,
+                       semiring const & sr){
     int * chunk_size;
-    dtype ** tswap_data;
+    char ** tswap_data;
 
     TAU_FSTART(nosym_transpose);
     if (order == 0){
@@ -51,14 +52,14 @@ namespace CTF_int {
     }
   #ifdef USE_OMP
     int max_ntd = MIN(16,omp_get_max_threads());
-    CTF_alloc_ptr(max_ntd*sizeof(dtype*), (void**)&tswap_data);
-    CTF_alloc_ptr(max_ntd*sizeof(int), (void**)&chunk_size);
+    CTF_alloc_ptr(max_ntd*sizeof(char*), (void**)&tswap_data);
+    CTF_alloc_ptr(max_ntd*sizeof(int),   (void**)&chunk_size);
   #else
     int max_ntd=1;
-    CTF_alloc_ptr(sizeof(dtype*), (void**)&tswap_data);
-    CTF_alloc_ptr(sizeof(int), (void**)&chunk_size);
+    CTF_alloc_ptr(sizeof(char*), (void**)&tswap_data);
+    CTF_alloc_ptr(sizeof(int),   (void**)&chunk_size);
   #endif
-    nosym_transpose(order, new_order, edge_len, data, dir, max_ntd, tswap_data, chunk_size);
+    nosym_transpose(order, new_order, edge_len, data, dir, max_ntd, tswap_data, chunk_size, sr);
   #ifdef USE_OMP
     #pragma omp parallel num_threads(max_ntd)
   #endif
@@ -71,11 +72,11 @@ namespace CTF_int {
   #endif
       int thread_chunk_size = chunk_size[tid];
       int i;
-      dtype * swap_data = tswap_data[tid];
+      char * swap_data = tswap_data[tid];
       int toff = 0;
       for (i=0; i<tid; i++) toff += chunk_size[i];
       if (thread_chunk_size > 0){
-        memcpy(data+toff,swap_data,sizeof(dtype)*thread_chunk_size);
+        memcpy(data+sr.el_size*(toff),swap_data,sr.el_size*thread_chunk_size);
       }
     }
     for (int i=0; i<max_ntd; i++) {
@@ -90,15 +91,15 @@ namespace CTF_int {
   }
 
 
-  void nosym_transpose(int const          order,
-                       int const *        new_order,
-                       int const *        edge_len,
-                       char const *       data,
-                       int const          dir,
-                       int const          max_ntd,
-                       char **            tswap_data,
-                       int *              chunk_size,
-                       semiring const &   sr){
+  void nosym_transpose(int              order,
+                       int const *      new_order,
+                       int const *      edge_len,
+                       char const *     data,
+                       int              dir,
+                       int              max_ntd,
+                       char **          tswap_data,
+                       int *            chunk_size,
+                       semiring const & sr){
     int64_t local_size;
     int64_t j, last_dim;
     int64_t * lda, * new_lda;
@@ -132,7 +133,7 @@ namespace CTF_int {
       int64_t tidx_off;
       int64_t thread_chunk_size;
       int64_t * idx;
-      dtype * swap_data;
+      char * swap_data;
       CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
       memset(idx, 0, order*sizeof(int64_t));
 
@@ -170,21 +171,21 @@ namespace CTF_int {
         chunk_size[tid] = thread_chunk_size;
         if (thread_chunk_size <= 0) 
           printf("ERRORR thread_chunk_size = " PRId64 ", tid = " PRId64 ", local_size = " PRId64 "\n", thread_chunk_size, tid, local_size);
-        CTF_alloc_ptr(thread_chunk_size*sizeof(dtype), (void**)&tswap_data[tid]);
+        CTF_alloc_ptr(thread_chunk_size*sr.el_size, (void**)&tswap_data[tid]);
         swap_data = tswap_data[tid];
         for (;;){
           if (last_dim != 0){
             if (dir)
-              cxcopy(edge_len[0], data+off_old, lda[0], swap_data+off_new-toff_new, new_lda[0]);
+              sr.copy(edge_len[0], data+sr.el_size*(off_old), lda[0], swap_data+sr.el_size*(off_new-toff_new), new_lda[0]);
             else
-              cxcopy(edge_len[0], data+off_new, new_lda[0], swap_data+off_old-toff_old, lda[0]);
+              sr.copy(edge_len[0], data+sr.el_size*(off_new), new_lda[0], swap_data+sr.el_size*(off_old-toff_old), lda[0]);
 
             idx[0] = 0;
           } else {
             if (dir)
-              cxcopy(last_max-tidx_off, data+off_old, lda[0], swap_data+off_new-toff_new, new_lda[0]);
+              sr.copy(last_max-tidx_off, data+sr.el_size*(off_old), lda[0], swap_data+sr.el_size*(off_new-toff_new), new_lda[0]);
             else
-              cxcopy(last_max-tidx_off, data+off_new, new_lda[0], swap_data+off_old-toff_old, lda[0]);
+              sr.copy(last_max-tidx_off, data+sr.el_size*(off_new), new_lda[0], swap_data+sr.el_size*(off_old-toff_old), lda[0]);
 
             idx[0] = tidx_off;
           } 
