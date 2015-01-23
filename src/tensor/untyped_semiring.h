@@ -297,6 +297,11 @@ namespace CTF_int {
        * \brief sorts set of pairs using std::sort 
        */
       void sort(int64_t n);
+      
+      /**
+       * \brief searches for pair op via std::lower_bound
+       */
+      int64_t lower_bound(int64_t n, ConstPairIterator op);
   };
 
   void sgemm(char           tA,

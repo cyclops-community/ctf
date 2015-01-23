@@ -897,72 +897,94 @@ namespace CTF_int {
                        edge_len, swap_data, buf_data, sr);
 
     /* Write or read the values corresponding to the keys */
-    readwrite(order,       new_num_pair,   alpha,
-              beta,       num_virt,       edge_len,   
-              sym,        phys_phase,     virt_phase,
-              virt_phys_rank,     
-              rw_data,    buf_data,       rw);
+    readwrite(order,
+              new_num_pair,
+              alpha,
+              beta,
+              num_virt,
+              edge_len,
+              sym,
+              phys_phase,
+              virt_phase,
+              virt_phys_rank,
+              rw_data,
+              buf_datab,
+              rw,
+              sr);
 
     /* If we want to read the keys, we must return them to where they
        were requested */
     if (rw == 'r'){
       CTF_alloc_ptr(order*sizeof(int), (void**)&depadding);
       /* Sort the key-value pairs we determine*/
-      std::sort(buf_data, buf_data+new_num_pair);
+      //std::sort(buf_data, buf_data+new_num_pair);
+      buf_data.sort(new_num_pair);
       /* Search for the keys in the order in which we received the keys */
-      for (i=0; i<new_num_pair; i++){
-        el_loc = std::lower_bound(buf_data,
+      for (int64_t i=0; i<new_num_pair; i++){
+        /*el_loc = std::lower_bound(buf_data,
                                   buf_data+new_num_pair,
-                                  swap_data[i]);
+                                  swap_data[i]);*/
+        int64_t el_loc = buf_data.lower_bound(new_num_pair, swap_data[i]);
   #if (DEBUG>=5)
-        if (el_loc < buf_data || el_loc >= buf_data+new_num_pair){
-          DEBUG_PRINTF("swap_data[%d].k = %d, not found\n", i, (int)swap_data[i].k);
+        ///if (el_loc < buf_data || el_loc >= buf_data+new_num_pair){
+        if (el_loc < 0 || el_loc >= new_num_pair){
+          DEBUG_PRINTF("swap_data[%d].k = %d, not found\n", i, (int)swap_data[i].k());
           ASSERT(0);
         }
   #endif
-        swap_data[i].d = el_loc->d;
+        swap_data[i].write_val(buf_data[el_loc].d());
       }
     
       /* Inverse the transpose we did above to get the keys back to requestors */
       //ALL_TO_ALLV(swap_data, recv_counts, recv_displs, MPI_CHAR,
       //            buf_data, bucket_counts, send_displs, MPI_CHAR, glb_comm);
-      CTF_all_to_allv(swap_data, recv_counts, recv_displs, sizeof(tkv_pair<dtype>),
-                      buf_data, bucket_counts, send_displs, glb_comm);
+      glb_comm.all_to_allv(swap_data.ptr, recv_counts, recv_displs, sr.pair_size(),
+                      buf_data.ptr, bucket_counts, send_displs);
       
 
       /* unpad the keys if necesary */
-      for (i=0; i<order; i++){
+      for (int i=0; i<order; i++){
         depadding[i] = -padding[i];
       } 
-      pad_key(order, nwrite, edge_len, depadding, buf_data);
+      pad_key(order, nwrite, edge_len, depadding, buf_data, sr);
 
       /* Sort the pairs that were sent out, now with correct values */
-      std::sort(buf_data, buf_data+nwrite);
+//      std::sort(buf_data, buf_data+nwrite);
+      buf_data.sort(nwrite);
       /* Search for the keys in the same order they were requested */
       j=0;
-      for (i=0; i<inwrite; i++){
-        if (j<(int64_t)changed_key_indices.size() && changed_key_indices[j] == i){
-          if (changed_key_scale[j] == 0.0){
-            wr_pairs[i].d= 0.0;
+      for (int64_t i=0; i<inwrite; i++){
+        if (j<(int64_t)nchanged && changed_key_indices[j] == i){
+          if (changed_key_scale[j] == 0){
+            wr_pairs.write(sr.addid);
           } else {
-            el_loc = std::lower_bound(buf_data, buf_data+nwrite, new_changed_pairs[j]);
-            wr_pairs[i].d = changed_key_scale[j]*el_loc[0].d;
+            //el_loc = std::lower_bound(buf_data, buf_data+nwrite, new_changed_pairs[j]);
+            //wr_pairs[i].d = changed_key_scale[j]*el_loc[0].d;
+            int64_t el_loc = buf_data.lower_bound(nwrite, ConstPairIterator(&sr, new_changed_pairs+j*sr.pair_size()));
+            if (changed_key_scale[j] == -1){
+              char aspr[sr.el_size];
+              sr.addinv(buf_data[el_loc].ptr, aspr);
+              wr_pairs[i].write_val(aspr);
+            } else
+              wr_pairs[i].write_val(buf_data[el_loc].d());
           }
           j++;
         } else {
-          el_loc = std::lower_bound(buf_data, buf_data+nwrite, wr_pairs[i]);
-          wr_pairs[i].d = el_loc[0].d;
+          int64_t el_loc = buf_data.lower_bound(nwrite, wr_pairs[i]);
+//          el_loc = std::lower_bound(buf_data, buf_data+nwrite, wr_pairs[i]);
+          wr_pairs[i].write_val(buf_data[el_loc].d());
         }
       }
-      changed_key_indices.clear();
+      //FIXME: free here?
+      /*changed_key_indices.clear();
       changed_key_scale.clear();
-      new_changed_pairs.clear();
+      new_changed_pairs.clear();*/
       CTF_free(depadding);
     }
     TAU_FSTOP(wr_pairs_layout);
 
-    CTF_free(swap_data);
-    CTF_free(buf_data);
+    CTF_free(swap_datab);
+    CTF_free(buf_datab);
     CTF_free((void*)bucket_counts);
     CTF_free((void*)recv_counts);
     CTF_free((void*)send_displs);

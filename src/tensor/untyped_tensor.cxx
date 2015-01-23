@@ -569,14 +569,15 @@ namespace CTF_int {
           toffset_B[i] = -offsets_B[i];
           padding_B[i] = ends_B[i]-offsets_B[i]-tsr_B->lens[i];
         }
+        PairIterator pblk_data_B = PairIterator(&sr, blk_data_B);
         pad_key(tsr_B->order, blk_sz_B, tsr_B->lens, 
-                padding_B, blk_data_B, sr, toffset_B);
+                padding_B, pblk_data_B, sr, toffset_B);
         for (i=0; i<tsr_A->order; i++){
           toffset_A[i] = ends_A[i] - offsets_A[i];
           padding_A[i] = tsr_A->lens[i] - toffset_A[i];
         }
         pad_key(tsr_A->order, blk_sz_B, toffset_A, 
-                padding_A, blk_data_B, sr, offsets_A);
+                padding_A, pblk_data_B, sr, offsets_A);
       }
       tsr_A->write(blk_sz_B, sr.mulid, sr.addid, blk_data_B, 'r');  
       all_data_A = blk_data_B;
@@ -605,14 +606,15 @@ namespace CTF_int {
         toffset_A[i] = -offsets_A[i];
         padding_A[i] = ends_A[i]-offsets_A[i]-tsr_A->lens[i];
       }
+      PairIterator pblk_data_A = PairIterator(&sr, blk_data_A);
       pad_key(tsr_A->order, blk_sz_A, tsr_A->lens, 
-              padding_A, blk_data_A, sr, toffset_A);
+              padding_A, pblk_data_A, sr, toffset_A);
       for (i=0; i<tsr_B->order; i++){
         toffset_B[i] = ends_B[i] - offsets_B[i];
         padding_B[i] = tsr_B->lens[i] - toffset_B[i];
       }
       pad_key(tsr_B->order, blk_sz_A, toffset_B, 
-              padding_B, blk_data_A, sr, offsets_B);
+              padding_B, pblk_data_A, sr, offsets_B);
     }
     tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');  
 
