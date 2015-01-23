@@ -1616,66 +1616,74 @@ void dist_tensor<dtype>::desymmetrize(int const sym_tid,
   felm.func_ptr=NULL;
   
 
-  if (!is_C){
-    ctid = sym_tid;
-    if (scal_diag && num_sy+num_sy_neg==1){
-      clone_tensor(sym_tid, 1, &ctid);
-      tensors[ctid]->sym[is] = SH;
-      zero_out_padding(ctid);
-      tensors[ctid]->sym[is] = SY;
-    } 
-    for (i=-num_sy_neg-1; i<num_sy; i++){
-      if (i==-1) continue;
-      idx_map_A[sym_dim] = sym_dim+i+1;
-      idx_map_A[sym_dim+i+1] = sym_dim;
-      sum_tensors(rev_sign, 1.0, ctid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
-      idx_map_A[sym_dim] = sym_dim;
-      idx_map_A[sym_dim+i+1] = sym_dim+i+1;
-    }
-    if (scal_diag && num_sy+num_sy_neg==1) del_tsr(ctid);
-  }
-
-  sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
-  
-//  print_tsr(stdout, nonsym_tid);
-
-
-  /* Do not diagonal rescaling since sum has beta=0 and overwrites diagonal */
-  if (num_sy+num_sy_neg>1){
-//    print_tsr(stdout, nonsym_tid);
-    if (!is_C && scal_diag){
+  if (scal_diag){
+    //FIXME: this is not robust when doing e.g. {SY, SY, SY, NS} -> {SY, NS, SY, NS}
+    if (!is_C){
+      ctid = sym_tid;
+      if (scal_diag && num_sy+num_sy_neg==1){
+        clone_tensor(sym_tid, 1, &ctid);
+        tensors[ctid]->sym[is] = SH;
+        zero_out_padding(ctid);
+        tensors[ctid]->sym[is] = SY;
+      } 
       for (i=-num_sy_neg-1; i<num_sy; i++){
         if (i==-1) continue;
-        for (j=0; j<tsr_sym->ndim; j++){
-          if (j==sym_dim+i+1){
-            if (j>sym_dim)
-              idx_map_A[j] = sym_dim;
-            else
-              idx_map_A[j] = sym_dim-1;
-          } else if (j<sym_dim+i+1) {
-            idx_map_A[j] = j;
-          } else {
-            idx_map_A[j] = j-1;
-          }
-        }
-/*        idx_map_A[sym_dim+i+1] = sym_dim-num_sy_neg;
-        idx_map_A[sym_dim] = sym_dim-num_sy_neg;
-        for (j=MAX(sym_dim+i+2,sym_dim+1); j<tsr_sym->ndim; j++){
-          idx_map_A[j] = j-1;
-        }*/
-        fseq_tsr_scl<dtype> fss;
-        fss.func_ptr=sym_seq_scl_ref<dtype>;
-        fseq_elm_scl<dtype> fselm;
-        fselm.func_ptr=NULL;
-/*        printf("tid %d before scale\n", nonsym_tid);
-        print_tsr(stdout, nonsym_tid);*/
-        int ret = scale_tsr(((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg), nonsym_tid, idx_map_A, fss, fselm);
-/*        printf("tid %d after scale\n", nonsym_tid);
-        print_tsr(stdout, nonsym_tid);*/
-        if (ret != DIST_TENSOR_SUCCESS) ABORT;
+        idx_map_A[sym_dim] = sym_dim+i+1;
+        idx_map_A[sym_dim+i+1] = sym_dim;
+        sum_tensors(rev_sign, 1.0, ctid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
+        idx_map_A[sym_dim] = sym_dim;
+        idx_map_A[sym_dim+i+1] = sym_dim+i+1;
       }
-    } 
-//    print_tsr(stdout, nonsym_tid);
+      if (scal_diag && num_sy+num_sy_neg==1) del_tsr(ctid);
+    }
+
+    sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
+    
+  //  print_tsr(stdout, nonsym_tid);
+
+
+    /* Do not diagonal rescaling since sum has beta=0 and overwrites diagonal */
+    if (num_sy+num_sy_neg>1){
+  //    print_tsr(stdout, nonsym_tid);
+      if (!is_C && scal_diag){
+        for (i=-num_sy_neg-1; i<num_sy; i++){
+          if (i==-1) continue;
+          for (j=0; j<tsr_sym->ndim; j++){
+            if (j==sym_dim+i+1){
+              if (j>sym_dim)
+                idx_map_A[j] = sym_dim;
+              else
+                idx_map_A[j] = sym_dim-1;
+            } else if (j<sym_dim+i+1) {
+              idx_map_A[j] = j;
+            } else {
+              idx_map_A[j] = j-1;
+            }
+          }
+  /*        idx_map_A[sym_dim+i+1] = sym_dim-num_sy_neg;
+          idx_map_A[sym_dim] = sym_dim-num_sy_neg;
+          for (j=MAX(sym_dim+i+2,sym_dim+1); j<tsr_sym->ndim; j++){
+            idx_map_A[j] = j-1;
+          }*/
+          fseq_tsr_scl<dtype> fss;
+          fss.func_ptr=sym_seq_scl_ref<dtype>;
+          fseq_elm_scl<dtype> fselm;
+          fselm.func_ptr=NULL;
+  /*        printf("tid %d before scale\n", nonsym_tid);
+          print_tsr(stdout, nonsym_tid);*/
+          int ret = scale_tsr(((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg), nonsym_tid, idx_map_A, fss, fselm);
+  /*        printf("tid %d after scale\n", nonsym_tid);
+          print_tsr(stdout, nonsym_tid);*/
+          if (ret != DIST_TENSOR_SUCCESS) ABORT;
+        }
+      } 
+  //    print_tsr(stdout, nonsym_tid);
+    }
+  } else {
+    if (is_C)
+      sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
+    else
+      sym_sum_tsr(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm, 0);
   }
   CTF_free(idx_map_A);
   CTF_free(idx_map_B);  
@@ -1806,58 +1814,62 @@ void dist_tensor<dtype>::symmetrize(int const sym_tid, int const nonsym_tid){
   felm.func_ptr=NULL;
  
 //  print_tsr(stdout, nonsym_tid);
-  
-  for (i=-num_sy_neg-1; i<num_sy; i++){
-    if (i==-1) continue;
-    idx_map_A[sym_dim] = sym_dim+i+1;
-    idx_map_A[sym_dim+i+1] = sym_dim;
-//    printf("symmetrizing\n");
-    sum_tensors(rev_sign, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
-//    print_tsr(stdout, sym_tid);
-    idx_map_A[sym_dim] = sym_dim;
-    idx_map_A[sym_dim+i+1] = sym_dim+i+1;
-  }
-  if (scal_diag && num_sy+num_sy_neg == 1) {
-/*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
-      tensors[sym_tid]->sym[sym_dim+i+1] = SH;
-      zero_out_padding(sym_tid);
-      tensors[sym_tid]->sym[sym_dim+i+1] = SY;
-    }*/
-    tensors[sym_tid]->sym[is] = SH;
-    zero_out_padding(sym_tid);
-    tensors[sym_tid]->sym[is] = SY;
-/*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
-      tensors[sym_tid]->sym[sym_dim+i+1] = SY;
-    }*/
-  }
-  
-  sum_tensors(1.0, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
-    
 
-  if (num_sy+num_sy_neg > 1){
-    if (scal_diag){
-   //   printf("symmetrizing diagonal=%d\n",num_sy);
-      for (i=-num_sy_neg-1; i<num_sy; i++){
-        if (i==-1) continue;
-        idx_map_B[sym_dim+i+1] = sym_dim-num_sy_neg;
-        idx_map_B[sym_dim] = sym_dim-num_sy_neg;
-        for (j=MAX(sym_dim+i+2,sym_dim+1); j<tsr_sym->ndim; j++){
-          idx_map_B[j] = j-i-num_sy_neg-1;
+  if (scal_diag) {  
+    //FIXME: this is not robust when doing e.g. {SY, SY, SY, NS} -> {SY, NS, SY, NS}
+    for (i=-num_sy_neg-1; i<num_sy; i++){
+      if (i==-1) continue;
+      idx_map_A[sym_dim] = sym_dim+i+1;
+      idx_map_A[sym_dim+i+1] = sym_dim;
+  //    printf("symmetrizing\n");
+      sum_tensors(rev_sign, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
+  //    print_tsr(stdout, sym_tid);
+      idx_map_A[sym_dim] = sym_dim;
+      idx_map_A[sym_dim+i+1] = sym_dim+i+1;
+    }
+    if (scal_diag && num_sy+num_sy_neg == 1) {
+  /*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
+        tensors[sym_tid]->sym[sym_dim+i+1] = SH;
+        zero_out_padding(sym_tid);
+        tensors[sym_tid]->sym[sym_dim+i+1] = SY;
+      }*/
+      tensors[sym_tid]->sym[is] = SH;
+      zero_out_padding(sym_tid);
+      tensors[sym_tid]->sym[is] = SY;
+  /*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
+        tensors[sym_tid]->sym[sym_dim+i+1] = SY;
+      }*/
+    }
+    
+    sum_tensors(1.0, 1.0, nonsym_tid, sym_tid, idx_map_A, idx_map_B, fs, felm);
+      
+
+    if (num_sy+num_sy_neg > 1){
+      if (scal_diag){
+     //   printf("symmetrizing diagonal=%d\n",num_sy);
+        for (i=-num_sy_neg-1; i<num_sy; i++){
+          if (i==-1) continue;
+          idx_map_B[sym_dim+i+1] = sym_dim-num_sy_neg;
+          idx_map_B[sym_dim] = sym_dim-num_sy_neg;
+          for (j=MAX(sym_dim+i+2,sym_dim+1); j<tsr_sym->ndim; j++){
+            idx_map_B[j] = j-i-num_sy_neg-1;
+          }
+          fseq_tsr_scl<dtype> fss;
+          fss.func_ptr=sym_seq_scl_ref<dtype>;
+          fseq_elm_scl<dtype> fselm;
+          fselm.func_ptr=NULL;
+          /*printf("tid %d before scale\n", nonsym_tid);
+          print_tsr(stdout, sym_tid);*/
+          int ret = scale_tsr(((double)(num_sy-i-1.))/(num_sy-i), sym_tid,
+  idx_map_B, fss, fselm);
+  /*        printf("tid %d after scale\n", sym_tid);
+          print_tsr(stdout, sym_tid);*/
+          if (ret != DIST_TENSOR_SUCCESS) ABORT;
         }
-        fseq_tsr_scl<dtype> fss;
-        fss.func_ptr=sym_seq_scl_ref<dtype>;
-        fseq_elm_scl<dtype> fselm;
-        fselm.func_ptr=NULL;
-        /*printf("tid %d before scale\n", nonsym_tid);
-        print_tsr(stdout, sym_tid);*/
-        int ret = scale_tsr(((double)(num_sy-i-1.))/(num_sy-i), sym_tid,
-idx_map_B, fss, fselm);
-/*        printf("tid %d after scale\n", sym_tid);
-        print_tsr(stdout, sym_tid);*/
-        if (ret != DIST_TENSOR_SUCCESS) ABORT;
       }
     }
-  }
+  } else
+    sym_sum_tsr(1.0, 1.0, nonsym_tid,sym_tid, idx_map_A, idx_map_B, fs, felm, 0);
 
   CTF_free(idx_map_A);
   CTF_free(idx_map_B);
