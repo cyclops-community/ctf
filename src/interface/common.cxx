@@ -176,4 +176,120 @@ namespace CTF_int {
       CTF_free(i32_recv_displs);
     }
   }
+
+
+  template <typename type>
+  int conv_idx(int          order,
+               type const * cidx,
+               int **       iidx){
+    int i, j, n;
+    type c;
+
+    *iidx = (int*)CTF_alloc(sizeof(int)*order);
+
+    n = 0;
+    for (i=0; i<order; i++){
+      c = cidx[i];
+      for (j=0; j<i; j++){
+        if (c == cidx[j]){
+          (*iidx)[i] = (*iidx)[j];
+          break;
+        }
+      }
+      if (j==i){
+        (*iidx)[i] = n;
+        n++;
+      }
+    }
+    return n;
+  }
+
+  template <typename type>
+  int conv_idx(int          order_A,
+               type const * cidx_A,
+               int **       iidx_A,
+               int          order_B,
+               type const * cidx_B,
+               int **       iidx_B){
+    int i, j, n;
+    type c;
+
+    *iidx_B = (int*)CTF_alloc(sizeof(int)*order_B);
+
+    n = conv_idx(order_A, cidx_A, iidx_A);
+    for (i=0; i<order_B; i++){
+      c = cidx_B[i];
+      for (j=0; j<order_A; j++){
+        if (c == cidx_A[j]){
+          (*iidx_B)[i] = (*iidx_A)[j];
+          break;
+        }
+      }
+      if (j==order_A){
+        for (j=0; j<i; j++){
+          if (c == cidx_B[j]){
+            (*iidx_B)[i] = (*iidx_B)[j];
+            break;
+          }
+        }
+        if (j==i){
+          (*iidx_B)[i] = n;
+          n++;
+        }
+      }
+    }
+    return n;
+  }
+
+
+  template <typename type>
+  int conv_idx(int          order_A,
+               type const * cidx_A,
+               int **       iidx_A,
+               int          order_B,
+               type const * cidx_B,
+               int **       iidx_B,
+               int          order_C,
+               type const * cidx_C,
+               int **       iidx_C){
+    int i, j, n;
+    type c;
+
+    *iidx_C = (int*)CTF_alloc(sizeof(int)*order_C);
+
+    n = conv_idx(order_A, cidx_A, iidx_A,
+                 order_B, cidx_B, iidx_B);
+
+    for (i=0; i<order_C; i++){
+      c = cidx_C[i];
+      for (j=0; j<order_B; j++){
+        if (c == cidx_B[j]){
+          (*iidx_C)[i] = (*iidx_B)[j];
+          break;
+        }
+      }
+      if (j==order_B){
+        for (j=0; j<order_A; j++){
+          if (c == cidx_A[j]){
+            (*iidx_C)[i] = (*iidx_A)[j];
+            break;
+          }
+        }
+        if (j==order_A){
+          for (j=0; j<i; j++){
+            if (c == cidx_C[j]){
+              (*iidx_C)[i] = (*iidx_C)[j];
+              break;
+            }
+          }
+          if (j==i){
+            (*iidx_C)[i] = n;
+            n++;
+          }
+        }
+      }
+    }
+    return n;
+  }
+
 }

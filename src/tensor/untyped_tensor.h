@@ -46,14 +46,14 @@ namespace CTF_int {
        * \param[in] name_an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      void init(semiring sr,
-                int order,
-                int const * edge_len,
-                int const * sym,
+      void init(semiring     sr,
+                int          order,
+                int const *  edge_len,
+                int const *  sym,
                 CTF::World * wrld,
-                bool alloc_data,
+                bool         alloc_data,
                 char const * name,
-                bool profile);
+                bool         profile);
     public:
       /** \brief distributed processor context on which tensor is defined */
       CTF::World * wrld;
@@ -137,14 +137,14 @@ namespace CTF_int {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      tensor(semiring sr,
-             int order,
-             int const * edge_len,
-             int const * sym,
+      tensor(semiring     sr,
+             int          order,
+             int const *  edge_len,
+             int const *  sym,
              CTF::World * wrld,
-             bool alloc_data = false,
-             char const * name = NULL,
-             bool profile = 1);
+             bool         alloc_data=false,
+             char const * name=NULL,
+             bool         profile=1);
 
       /**
        * \brief compute the cyclic phase of each tensor dimension
@@ -220,11 +220,11 @@ namespace CTF_int {
        * \param[in] mapped_data pairs to write
        * \param[in] rw weather to read (r) or write (w)
        */
-       int write(int64_t                  num_pair,
-                       char const *             alpha,
-                       char const *             beta,
-                       char *             mapped_data,
-                       char const rw = 'w');
+       int write(int64_t      num_pair,
+                 char const * alpha,
+                 char const * beta,
+                 char *       mapped_data,
+                 char const   rw='w');
 
       /**
        * \brief read tensor data with <key, value> pairs where key is the
@@ -235,10 +235,10 @@ namespace CTF_int {
        * \param[in] beta scaling factor of old value
        * \param[in] mapped_data pairs to write
        */
-      int read(int64_t                 num_pair,
-                      char const *            alpha,
-                      char const *            beta,
-                      char * const            mapped_data);
+      int read(int64_t      num_pair,
+               char const * alpha,
+               char const * beta,
+               char * const mapped_data);
 
       /**
        * \brief read tensor data with <key, value> pairs where key is the
@@ -246,8 +246,8 @@ namespace CTF_int {
        * \param[in] num_pair number of pairs to read
        * \param[in,out] mapped_data pairs to read
        */
-      int read(int64_t                 num_pair,
-                      char * const            mapped_data);
+      int read(int64_t      num_pair,
+               char * const mapped_data);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -255,8 +255,8 @@ namespace CTF_int {
        * \param[out] num_pair number of values read
        * \param[in,out] mapped_data values read (allocated by library)
        */
-      int allread(int64_t *  num_pair,
-                         char **    all_data);
+      int allread(int64_t * num_pair,
+                  char **   all_data);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -264,8 +264,8 @@ namespace CTF_int {
        * \param[out] num_pair number of values read
        * \param[in,out] preallocated mapped_data values read
        */
-      int allread(int64_t *  num_pair,
-                         char *     all_data);
+      int allread(int64_t * num_pair,
+                  char *    all_data);
 
        /**
        * \brief cuts out a slice (block) of this tensor = B
@@ -278,13 +278,13 @@ namespace CTF_int {
        * \param[in] ends top right corner of block of A
        * \param[in] alpha scaling factor of tensor A
        */
-      void slice(int const *    offsets_B,
-                 int const *    ends_B,
-                 char const *   beta,
-                 tensor  *      A,
-                 int const *    offsets_A,
-                 int const *    ends_A,
-                 char const *   alpha);
+      void slice(int const *  offsets_B,
+                 int const *  ends_B,
+                 char const * beta,
+                 tensor  *    A,
+                 int const *  offsets_A,
+                 int const *  ends_A,
+                 char const * alpha);
      
       /* Same as above, except tid_B lives on dt_other_B */
 /*      int slice_tensor(int            tid_A,
@@ -307,19 +307,19 @@ namespace CTF_int {
        * \param[in] permutation_B mappings for each dimension of B (this) indices
        * \param[in] alpha scaling factor for current values of B
        */
-      int permute(tensor *               A,
-                         int * const *          permutation_A,
-                         char const *           alpha,
-                         int * const *          permutation_B,
-                         char const *           beta);
+      int permute(tensor *      A,
+                  int * const * permutation_A,
+                  char const *  alpha,
+                  int * const * permutation_B,
+                  char const *  beta);
 
       /**
        * \brief read tensor data pairs local to processor. 
        * \param[out] num_pair number of values read
        * \param[out] mapped_data values read
        */
-      int read_local(int64_t *           num_pair,
-                            char **             mapped_data);
+      int read_local(int64_t * num_pair,
+                     char **   mapped_data);
 
       /** 
        * \brief copy A into this (B). Realloc if necessary 
@@ -382,7 +382,8 @@ namespace CTF_int {
                            int &          bw_mirror_rank,
                            int &          fw_mirror_rank,
                            distribution & odst,
-                           char **       sub_buffer_);
+                           char **        sub_buffer_);
+
       /**
         * \brief accumulates this tensor to a tensor object defined on a different world
         * \param[in] tsr_sub tensor on a subcomm of this world
@@ -392,6 +393,7 @@ namespace CTF_int {
       void add_to_subworld(tensor *     tsr_sub,
                            char const * alpha,
                            char const * beta);
+
       /**
         * \brief accumulates this tensor from a tensor object defined on a different world
         * \param[in] tsr_sub id of tensor on a subcomm of this CTF inst
@@ -420,11 +422,11 @@ namespace CTF_int {
        * \param[out] all_fdim number of dimensions including unfolded dimensions
        * \param[out] all_flen edge lengths including unfolded dimensions
        */
-      void fold(int       nfold,
-                int const *     fold_idx,
-                int const *     idx_map,
-                int *           all_fdim,
-                int **          all_flen);
+      void fold(int         nfold,
+                int const * fold_idx,
+                int const * idx_map,
+                int *       all_fdim,
+                int **      all_flen);
 
       /**
         * \brief pulls data from an tensor with an aliased buffer
@@ -452,9 +454,9 @@ namespace CTF_int {
         * \param[in] num_phys_dims number of physical processor grid dimensions
         * \param[in] phys_comm dimensional communicators
         */
-      int map_tensor_rem(int     num_phys_dims,
-                         CommData  *  phys_comm,
-                         int     fill = 0);
+      int map_tensor_rem(int        num_phys_dims,
+                         CommData * phys_comm,
+                         int        fill=0);
 
       /**
        * \brief extracts the diagonal of a tensor if the index map specifies to do so
@@ -464,12 +466,10 @@ namespace CTF_int {
                                 if rw=0 this should be input as the tensor of the extracted diagonal 
        * \param[out] idx_map_new if rw=1 this will be the new index map
        */
-      int extract_diag(int const *  idx_map,
-                               int     rw,
-                               tensor *& new_tsr,
-                               int ** idx_map_new);
-
-
+      int extract_diag(int const * idx_map,
+                       int         rw,
+                       tensor *&   new_tsr,
+                       int **      idx_map_new);
   };
 }
 

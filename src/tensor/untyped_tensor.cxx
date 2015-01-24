@@ -19,14 +19,14 @@ namespace CTF_int {
     order=-1;
   }
 
-  tensor::tensor(semiring sr,
-                 int order,
-                 int const * edge_len,
-                 int const * sym,
-                 World * wrld,
-                 bool alloc_data,
+  tensor::tensor(semiring     sr,
+                 int          order,
+                 int const *  edge_len,
+                 int const *  sym,
+                 World *      wrld,
+                 bool         alloc_data,
                  char const * name,
-                 bool profile){
+                 bool         profile){
     this->init(sr,order,edge_len,sym,wrld,alloc_data,name,profile);
   }
 
@@ -116,14 +116,14 @@ namespace CTF_int {
 
   }
 
-  void tensor::init(semiring sr,
-                    int order,
-                    int const * edge_len,
-                    int const * sym,
-                    World * wrld_,
-                    bool alloc_data,
+  void tensor::init(semiring     sr,
+                    int          order,
+                    int const *  edge_len,
+                    int const *  sym,
+                    World *      wrld_,
+                    bool         alloc_data,
                     char const * name,
-                    bool profile){
+                    bool         profile){
     CTF_alloc_ptr(order*sizeof(int), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int));
 
@@ -131,7 +131,7 @@ namespace CTF_int {
     this->sr                 = sr;
     this->is_scp_padded      = 0;
     this->is_mapped          = 0;
-    this->topo           = NULL;
+    this->topo               = NULL;
     //this->is_alloced         = 1;
     this->is_cyclic          = 1;
     this->size               = 0;
@@ -141,7 +141,7 @@ namespace CTF_int {
     this->is_home            = 0;
     this->has_home           = 0;
     this->profile            = profile;
-    if (name != NULL){
+    if (name                != NULL){
       this->name             = name;
     } else
       this->name             = NULL;
@@ -396,11 +396,11 @@ namespace CTF_int {
     *data_ = data;
   }
 
-  int tensor::permute(tensor *               A,
-                       int * const *          permutation_A,
-                       char const *           alpha,
-                       int * const *          permutation_B,
-                       char const *           beta){
+  int tensor::permute(tensor *      A,
+                      int * const * permutation_A,
+                      char const *  alpha,
+                      int * const * permutation_B,
+                      char const *  beta){
     int64_t sz_A, blk_sz_A, sz_B, blk_sz_B;
     char * all_data_A;
     char * all_data_B;
@@ -452,7 +452,7 @@ namespace CTF_int {
                                int &          bw_mirror_rank,
                                int &          fw_mirror_rank,
                                distribution & odst,
-                               char **       sub_buffer_){
+                               char **        sub_buffer_){
     int is_sub = 0;
     if (order == 0) is_sub = 1;
     int tot_sub;
@@ -527,13 +527,13 @@ namespace CTF_int {
     *sub_buffer_ = sub_buffer;
 
   }
-  void tensor::slice(int const *    offsets_B,
-             int const *    ends_B,
-             char const *   beta,
-             tensor * A,
-             int const *    offsets_A,
-             int const *    ends_A,
-             char const *   alpha){
+  void tensor::slice(int const *  offsets_B,
+                     int const *  ends_B,
+                     char const * beta,
+                     tensor *     A,
+                     int const *  offsets_A,
+                     int const *  ends_A,
+                     char const * alpha){
       
     int64_t i, sz_A, blk_sz_A, sz_B, blk_sz_B;
     char * all_data_A, * blk_data_A;
@@ -627,8 +627,8 @@ namespace CTF_int {
   }
  
   void tensor::add_to_subworld(tensor *     tsr_sub,
-                           char const * alpha,
-                           char const * beta){
+                               char const * alpha,
+                               char const * beta){
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
@@ -671,8 +671,8 @@ namespace CTF_int {
   }
  
   void tensor::add_from_subworld(tensor *     tsr_sub,
-                           char const * alpha,
-                           char const * beta){
+                                 char const * alpha,
+                                 char const * beta){
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
@@ -701,11 +701,11 @@ namespace CTF_int {
 
   }
 
-  int tensor::write(int64_t                  num_pair,
-                   char const *             alpha,
-                   char const *             beta,
-                   char *              mapped_data,
-                   char const rw){
+  int tensor::write(int64_t      num_pair,
+                    char const * alpha,
+                    char const * beta,
+                    char *       mapped_data,
+                    char const   rw){
     int i, num_virt;
     int * phys_phase, * virt_phase, * bucket_lda;
     int * virt_phys_rank;
@@ -791,8 +791,8 @@ namespace CTF_int {
   }
 
 
-  int tensor::read_local(int64_t *           num_pair,
-                        char **             mapped_data){
+  int tensor::read_local(int64_t * num_pair,
+                         char **   mapped_data){
     int i, num_virt, idx_lyr;
     int64_t np;
     int * virt_phase, * virt_phys_rank, * phys_phase;
@@ -892,11 +892,11 @@ namespace CTF_int {
     this->is_folded = 0;
   }
 
-  void tensor::fold(int       nfold,
-                int const *     fold_idx,
-                int const *     idx_map,
-                int *           all_fdim,
-                int **          all_flen){
+  void tensor::fold(int         nfold,
+                    int const * fold_idx,
+                    int const * idx_map,
+                    int *       all_fdim,
+                    int **      all_flen){
     int i, j, k, fdim, allfold_dim, is_fold, fold_dim;
     int * sub_edge_len, * fold_edge_len, * all_edge_len, * dim_order;
     int * fold_sym;
@@ -1118,9 +1118,9 @@ namespace CTF_int {
 
   }
 
-  int tensor::map_tensor_rem(int     num_phys_dims,
-                     CommData  *  phys_comm,
-                     int     fill){
+  int tensor::map_tensor_rem(int        num_phys_dims,
+                             CommData * phys_comm,
+                             int        fill){
     int i, num_sub_phys_dims, stat;
     int * restricted, * phys_mapped, * comm_idx;
     CommData  * sub_phys_comm;
@@ -1169,10 +1169,10 @@ namespace CTF_int {
     return stat;
   }
 
-  int tensor::extract_diag(int const *  idx_map,
-                           int     rw,
-                           tensor *& new_tsr,
-                           int ** idx_map_new){
+  int tensor::extract_diag(int const * idx_map,
+                           int         rw,
+                           tensor *&   new_tsr,
+                           int **      idx_map_new){
     int i, j, k, * edge_len, * sym, * ex_idx_map, * diag_idx_map;
     for (i=0; i<this->order; i++){
       for (j=i+1; j<this->order; j++){

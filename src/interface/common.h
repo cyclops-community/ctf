@@ -34,25 +34,28 @@ namespace CTF {
 
   enum { SUCCESS, ERROR, NEGATIVE };
 
+  template <typename type=char>
   int conv_idx(int          order,
-               char const * cidx,
+               type const * cidx,
                int **       iidx);
 
+  template <typename type=char>
   int conv_idx(int          order_A,
-               char const * cidx_A,
+               type const * cidx_A,
                int **       iidx_A,
                int          order_B,
-               char const * cidx_B,
+               type const * cidx_B,
                int **       iidx_B);
 
+  template <typename type=char>
   int conv_idx(int          order_A,
-               char const * cidx_A,
+               type const * cidx_A,
                int **       iidx_A,
                int          order_B,
-               char const * cidx_B,
+               type const * cidx_B,
                int **       iidx_B,
                int          order_C,
-               char const * cidx_C,
+               type const * cidx_C,
                int **       iidx_C);
 
 

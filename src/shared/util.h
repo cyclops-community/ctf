@@ -608,7 +608,7 @@ namespace CTF_int {
       }
     }
   }
-
+  
   void cvrt_idx(int         order,
                 int const * lens,
                 int64_t     idx,

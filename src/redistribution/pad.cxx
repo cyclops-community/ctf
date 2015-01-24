@@ -148,7 +148,7 @@ namespace CTF_int {
             }
           }
           if (j==order){
-            new_pairs[pre_ins_t[tid]] = pairs[i];
+            new_pairs[pre_ins_t[tid]].write(pairs[i]);
             pre_ins_t[tid]++;
           }
         }

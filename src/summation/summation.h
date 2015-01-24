@@ -96,6 +96,13 @@ namespace CTF_int {
        * \return whether we can fold this summation
        */
       int can_fold();
+ 
+      /**
+       * \brief fold tensors into matrices for summation
+       * \return inner stride (daxpy size)
+       */
+      int map_fold();
+
 
 
 
@@ -154,6 +161,19 @@ namespace CTF_int {
        *          throws error if not
        */
       void check_consistency();
+
+
+      /**
+       * \brief checks whether mapping of tensors to topology is valid for this summation 
+       * \return 1 if valid 0 if not
+      */
+      int check_mapping();
+
+      /**
+       * \brief find best possible mapping for summation and redistribute tensors to this mapping
+       * \return SUCCESS if valid mapping found, ERROR if not enough memory or another issue
+       */
+      int map();
   };
 }
 
