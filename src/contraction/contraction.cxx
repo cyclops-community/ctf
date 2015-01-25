@@ -1,4 +1,5 @@
 #include "contraction.h"
+#include "../redistribution/folding.h"
 
 namespace CTF_int {
 

@@ -103,9 +103,6 @@ namespace CTF_int {
        */
       int map_fold();
 
-
-
-
       /**
        * \brief find ordering of indices of tensor to reduce to DAXPY
        *
@@ -127,7 +124,7 @@ namespace CTF_int {
        * \param[in] inner_stride local daxpy stride
        * \return tsum summation class pointer to run
       */
-      tsum * construct_sum(int inner_stride);
+      tsum * construct_sum(int inner_stride=-1);
 
       /**
        * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).

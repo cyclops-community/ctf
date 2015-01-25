@@ -9,6 +9,7 @@
 #include "sum_tsr.h"
 #include "../symmetry/sym_indices.h"
 #include "../symmetry/symmetrization.h"
+#include "../redistribution/folding.h"
 
 namespace CTF_int {
 
@@ -218,44 +219,39 @@ namespace CTF_int {
   #endif
    
     //for type order 1 to 3 
-    get_len_ordering(&fold_type, &fnew_ord_A, &fnew_ord_B); 
+    get_len_ordering(&fnew_ord_A, &fnew_ord_B); 
 
 
 
-    permute_target(ftsr_A->order, fnew_ord_A, tsr_A->inner_ordering);
-    permute_target(ftsr_B->order, fnew_ord_B, tsr_B->inner_ordering);
+    permute_target(ftsr_A->order, fnew_ord_A, A->inner_ordering);
+    permute_target(ftsr_B->order, fnew_ord_B, B->inner_ordering);
     
 
-    nvirt_A = calc_nvirt(tsr_A);
+    nvirt_A = A->calc_nvirt();
     for (i=0; i<nvirt_A; i++){
-      nosym_transpose<dtype>(all_fdim_A, tsr_A->inner_ordering, all_flen_A, 
-                             tsr_A->data + i*(tsr_A->size/nvirt_A), 1);
+      nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A, 
+                      A->data + i*(A->size/nvirt_A), 1, A->sr);
     }
-    nvirt_B = calc_nvirt(tsr_B);
+    nvirt_B = B->calc_nvirt();
     for (i=0; i<nvirt_B; i++){
-      nosym_transpose<dtype>(all_fdim_B, tsr_B->inner_ordering, all_flen_B, 
-                             tsr_B->data + i*(tsr_B->size/nvirt_B), 1);
+      nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B, 
+                      B->data + i*(B->size/nvirt_B), 1, B->sr);
     }
 
     inr_stride = 1;
     for (i=0; i<ftsr_A->order; i++){
-      inr_stride *= ftsr_A->edge_len[i];
+      inr_stride *= ftsr_A->pad_edge_len[i];
     }
-
-    *inner_stride = inr_stride; 
 
     CTF_free(fidx_map_A);
     CTF_free(fidx_map_B);
-    CTF_free(fold_type.idx_map_A);
-    CTF_free(fold_type.idx_map_B);
     CTF_free(fnew_ord_A);
     CTF_free(fnew_ord_B);
     CTF_free(all_flen_A);
     CTF_free(all_flen_B);
     CTF_free(fold_idx);
 
-    return SUCCESS;
-
+    return inr_stride; 
   }
 
   void summation::get_len_ordering(int ** new_ordering_A,
@@ -882,7 +878,7 @@ namespace CTF_int {
     int ** dstack_map_B;
     tensor * tnsr_A, * tnsr_B, * new_tsr, ** dstack_tsr_B;
 //    tsum<dtype> * sumf;
-    tsum sumf;
+    tsum * sumf;
     //check_sum(tid_A, tid_B, idx_map_A, idx_map_B);
     //FIXME: hmm all of the below already takes place in sym_sum
     check_consistency();
@@ -916,7 +912,7 @@ namespace CTF_int {
     CTF_alloc_ptr(sizeof(int)*A->order,  (void**)&map_A);
     CTF_alloc_ptr(sizeof(int)*B->order,  (void**)&map_B);
     CTF_alloc_ptr(sizeof(int*)*B->order, (void**)&dstack_map_B);
-    CTF_alloc_ptr(sizeof(tensor*)*tnsr_B->order, (void**)&dstack_tsr_B);
+    CTF_alloc_ptr(sizeof(tensor*)*B->order, (void**)&dstack_tsr_B);
     tnsr_A = A;
     tnsr_B = B;
     memcpy(map_A, idx_A, tnsr_A->order*sizeof(int));
@@ -939,8 +935,8 @@ namespace CTF_int {
     newsum.A = tnsr_A;
     newsum.B = tnsr_B;
     if (tnsr_A == tnsr_B){
-      tensor nnew_tsr = tensor(tnsr_A);
-      newsum.A = &nnew_tsr;
+      tensor * nnew_tsr = new tensor(tnsr_A);
+      newsum.A = nnew_tsr;
       newsum.B = tnsr_B;
     } else{ 
      //FIXME: remove the below, sum_tensors should never be called without sym_sum
@@ -951,6 +947,11 @@ namespace CTF_int {
                                         map_B,
                                         tnsr_B->sym);
       ASSERT(sign == 1);
+/*        if (sign == -1){
+          char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
+          tnsr_B->sr.addinv(alpha, new_alpha);
+          alpha = new_alpha;
+        }*/
 
   #if VERIFY
       int64_t nsA, nsB;
@@ -991,24 +992,24 @@ namespace CTF_int {
   #endif
       }
       /* Construct the tensor algorithm we would like to use */
-      ASSERT(check_sum_mapping());
+      ASSERT(check_mapping());
   #if FOLD_TSR
       if (is_custom == false && can_fold()){
         int inner_stride;
         TAU_FSTART(map_fold);
-        stat = map_fold(&type, &inner_stride);
+        inner_stride = map_fold();
         TAU_FSTOP(map_fold);
-        if (stat == SUCCESS){
-          sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
-                                ftsr, felm, inner_stride);
-        } else
-          return ERROR;
+        sumf = newsum.construct_sum(inner_stride);
+        /*alpha, beta, ntid_A, map_A, ntid_B, map_B,
+                              ftsr, felm, inner_stride);*/
       } else
-        sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
-                             ftsr, felm);
+        sumf = newsum.construct_sum();
+        /*sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
+                             ftsr, felm);*/
   #else
-      sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
-                           ftsr, felm);
+      sumf = newsum.construct_sum();
+      /*sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
+                           ftsr, felm);*/
   #endif
       /*TAU_FSTART(zero_sum_padding);
       stat = zero_out_padding(ntid_A);
@@ -1034,7 +1035,7 @@ namespace CTF_int {
       sumf->run();
       TAU_FSTOP(sum_func);
   #ifndef SEQ
-      stat = zero_out_padding(ntid_B);
+      stat = tnsr_B->zero_out_padding();
   #endif
 
   #if VERIFY
@@ -1073,19 +1074,19 @@ namespace CTF_int {
   #endif
 
       delete sumf;
-      if (ntid_A != tid_A) del_tsr(ntid_A);
+      if (tnsr_A != A) delete tnsr_A;
       for (int i=nst_B-1; i>=0; i--){
-        int ret = extract_diag(dstack_tid_B[i], dstack_map_B[i], 0, &ntid_B, &new_idx_map);
+        int ret = dstack_tsr_B[i]->extract_diag(dstack_map_B[i], 0, tnsr_B, &new_idx_map);
         ASSERT(ret == SUCCESS);
-        del_tsr(ntid_B);
-        ntid_B = dstack_tid_B[i];
+        delete tnsr_B;
+        tnsr_B = dstack_tsr_B[i];
       }
-      ASSERT(ntid_B == tid_B);
+      ASSERT(tnsr_B == B);
     }
     CTF_free(map_A);
     CTF_free(map_B);
     CTF_free(dstack_map_B);
-    CTF_free(dstack_tid_B);
+    CTF_free(dstack_tsr_B);
 
     TAU_FSTOP(sum_tensors);
     return SUCCESS;
@@ -1095,7 +1096,7 @@ namespace CTF_int {
     int sidx, i, num_tot, iA, iA2, iB;
     int * idx_arr;
 
-    sumation * new_sum;
+    summation * new_sum;
    
     if (nnew_sum != NULL){
       new_sum = new summation(*this);
@@ -1170,7 +1171,6 @@ namespace CTF_int {
   void summation::check_consistency(){
     int i, num_tot, len;
     int iA, iB;
-    int order_A, order_B;
     int * idx_arr;
        
     inv_idx(A->order, idx_A,
@@ -1185,17 +1185,16 @@ namespace CTF_int {
         len = A->lens[iA];
       }
       if (len != -1 && iB != -1 && len != B->lens[iB]){
-        if (global_comm.rank == 0){
+        if (A->wrld->cdt.rank == 0){
           printf("i = %d Error in sum call: The %dth edge length (%d) of tensor %s does not",
-                  i, iA, len, tsr_A->name);
+                  i, iA, len, A->name);
           printf("match the %dth edge length (%d) of tensor %s.\n",
-                  iB, B->lens[iB], tsr_B->name);
+                  iB, B->lens[iB], B->name);
         }
         ABORT;
       }
     }
     CTF_free(idx_arr);
-    return SUCCESS;
 
   }
 
@@ -1206,10 +1205,10 @@ namespace CTF_int {
     if (A != os.A) return 0;
     if (B != os.B) return 0;
 
-    for (i=0; i<A->ndim; i++){
+    for (i=0; i<A->order; i++){
       if (idx_A[i] != os.idx_A[i]) return 0;
     }
-    for (i=0; i<B->ndim; i++){
+    for (i=0; i<B->order; i++){
       if (idx_B[i] != os.idx_B[i]) return 0;
     }
     return 1;
@@ -1297,334 +1296,334 @@ namespace CTF_int {
 
     return pass;
   }
-}
 
-int summation::map(){
-  int i, ret, num_sum, num_tot, need_remap;
-  int was_cyclic_A, was_cyclic_B, need_remap_A, need_remap_B;
+  int summation::map(){
+    int i, ret, num_sum, num_tot, need_remap;
+    int was_cyclic_A, was_cyclic_B, need_remap_A, need_remap_B;
 
-  int d, old_topo_A, old_topo_B;
-  int64_t old_size_A, old_size_B;
-  int * idx_arr, * idx_sum;
-  mapping * old_map_A, * old_map_B;
-  int * old_phase_A, * old_rank_A, * old_virt_dim_A, * old_pe_lda_A, 
-      * old_padding_A, * old_edge_len_A;
-  int * old_phase_B, * old_rank_B, * old_virt_dim_B, * old_pe_lda_B, 
-      * old_padding_B, * old_edge_len_B;
-//  uint64_t nvirt, tnvirt, bnvirt;
-  int btopo;
-  int gtopo;
-  tensor<dtype> * tsr_A, * tsr_B;
-  tsr_A = tensors[tid_A];
-  tsr_B = tensors[tid_B];
-  
-  TAU_FSTART(map_tensor_pair);
+    int d, old_topo_A, old_topo_B;
+    int64_t old_size_A, old_size_B;
+    int * idx_arr, * idx_sum;
+    mapping * old_map_A, * old_map_B;
+    int * old_phase_A, * old_rank_A, * old_virt_dim_A, * old_pe_lda_A, 
+        * old_padding_A, * old_edge_len_A;
+    int * old_phase_B, * old_rank_B, * old_virt_dim_B, * old_pe_lda_B, 
+        * old_padding_B, * old_edge_len_B;
+  //  uint64_t nvirt, tnvirt, bnvirt;
+    int btopo;
+    int gtopo;
+    tensor<dtype> * tsr_A, * tsr_B;
+    tsr_A = tensors[tid_A];
+    tsr_B = tensors[tid_B];
+    
+    TAU_FSTART(map_tensor_pair);
 
-  inv_idx(tsr_A->order, idx_map_A, tsr_A->edge_map,
-          tsr_B->order, idx_map_B, tsr_B->edge_map,
-          &num_tot, &idx_arr);
+    inv_idx(tsr_A->order, idx_map_A, tsr_A->edge_map,
+            tsr_B->order, idx_map_B, tsr_B->edge_map,
+            &num_tot, &idx_arr);
 
-  CTF_alloc_ptr(sizeof(int)*num_tot, (void**)&idx_sum);
-  
-  num_sum = 0;
-  for (i=0; i<num_tot; i++){
-    if (idx_arr[2*i] != -1 && idx_arr[2*i+1] != -1){
-      idx_sum[num_sum] = i;
-      num_sum++;
+    CTF_alloc_ptr(sizeof(int)*num_tot, (void**)&idx_sum);
+    
+    num_sum = 0;
+    for (i=0; i<num_tot; i++){
+      if (idx_arr[2*i] != -1 && idx_arr[2*i+1] != -1){
+        idx_sum[num_sum] = i;
+        num_sum++;
+      }
     }
-  }
-#if DEBUG >= 2
-  if (global_comm.rank == 0)
-    printf("Initial mappings:\n");
-  print_map(stdout, tid_A);
-  print_map(stdout, tid_B);
-#endif
+  #if DEBUG >= 2
+    if (global_comm.rank == 0)
+      printf("Initial mappings:\n");
+    print_map(stdout, tid_A);
+    print_map(stdout, tid_B);
+  #endif
 
-  unmap_inner(tsr_A);
-  unmap_inner(tsr_B);
-  set_padding(tsr_A);
-  set_padding(tsr_B);
-  save_mapping(tsr_A, &old_phase_A, &old_rank_A, &old_virt_dim_A, &old_pe_lda_A, 
-               &old_size_A, &was_cyclic_A, &old_padding_A, &old_edge_len_A, &topovec[tsr_A->itopo]);  
-  save_mapping(tsr_B, &old_phase_B, &old_rank_B, &old_virt_dim_B, &old_pe_lda_B, 
-               &old_size_B, &was_cyclic_B, &old_padding_B, &old_edge_len_B, &topovec[tsr_B->itopo]);  
-  old_topo_A = tsr_A->itopo;
-  old_topo_B = tsr_B->itopo;
-  CTF_alloc_ptr(sizeof(mapping)*tsr_A->order,         (void**)&old_map_A);
-  CTF_alloc_ptr(sizeof(mapping)*tsr_B->order,         (void**)&old_map_B);
-  for (i=0; i<tsr_A->order; i++){
-    old_map_A[i].type         = NOT_MAPPED;
-    old_map_A[i].has_child    = 0;
-    old_map_A[i].np           = 1;
-  }
-  for (i=0; i<tsr_B->order; i++){
-    old_map_B[i].type         = NOT_MAPPED;
-    old_map_B[i].has_child    = 0;
-    old_map_B[i].np           = 1;
-  }
-  copy_mapping(tsr_A->order, tsr_A->edge_map, old_map_A);
-  copy_mapping(tsr_B->order, tsr_B->edge_map, old_map_B);
-//  bnvirt = 0;  
-  btopo = -1;
-  uint64_t size;
-  uint64_t min_size = UINT64_MAX;
-  /* Attempt to map to all possible permutations of processor topology */
-  for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
-//  for (i=global_comm.rank*topovec.size(); i<2*(int)topovec.size(); i++){
+    unmap_inner(tsr_A);
+    unmap_inner(tsr_B);
+    set_padding(tsr_A);
+    set_padding(tsr_B);
+    save_mapping(tsr_A, &old_phase_A, &old_rank_A, &old_virt_dim_A, &old_pe_lda_A, 
+                 &old_size_A, &was_cyclic_A, &old_padding_A, &old_edge_len_A, &topovec[tsr_A->itopo]);  
+    save_mapping(tsr_B, &old_phase_B, &old_rank_B, &old_virt_dim_B, &old_pe_lda_B, 
+                 &old_size_B, &was_cyclic_B, &old_padding_B, &old_edge_len_B, &topovec[tsr_B->itopo]);  
+    old_topo_A = tsr_A->itopo;
+    old_topo_B = tsr_B->itopo;
+    CTF_alloc_ptr(sizeof(mapping)*tsr_A->order,         (void**)&old_map_A);
+    CTF_alloc_ptr(sizeof(mapping)*tsr_B->order,         (void**)&old_map_B);
+    for (i=0; i<tsr_A->order; i++){
+      old_map_A[i].type         = NOT_MAPPED;
+      old_map_A[i].has_child    = 0;
+      old_map_A[i].np           = 1;
+    }
+    for (i=0; i<tsr_B->order; i++){
+      old_map_B[i].type         = NOT_MAPPED;
+      old_map_B[i].has_child    = 0;
+      old_map_B[i].np           = 1;
+    }
+    copy_mapping(tsr_A->order, tsr_A->edge_map, old_map_A);
+    copy_mapping(tsr_B->order, tsr_B->edge_map, old_map_B);
+  //  bnvirt = 0;  
+    btopo = -1;
+    uint64_t size;
+    uint64_t min_size = UINT64_MAX;
+    /* Attempt to map to all possible permutations of processor topology */
+    for (i=global_comm.rank; i<2*(int)topovec.size(); i+=global_comm.np){
+  //  for (i=global_comm.rank*topovec.size(); i<2*(int)topovec.size(); i++){
+      clear_mapping(tsr_A);
+      clear_mapping(tsr_B);
+      set_padding(tsr_A);
+      set_padding(tsr_B);
+
+      tsr_A->itopo = i/2;
+      tsr_B->itopo = i/2;
+      tsr_A->is_mapped = 1;
+      tsr_B->is_mapped = 1;
+
+      if (i%2 == 0){
+        ret = map_self_indices(tid_A, idx_map_A);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+      } else {
+        ret = map_self_indices(tid_B, idx_map_B);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+      }
+      ret = map_sum_indices(idx_arr, idx_sum, num_tot, num_sum, 
+                            tid_A, tid_B, &topovec[tsr_A->itopo], 2);
+      if (ret == CTF_NEGATIVE) continue;
+      else if (ret != SUCCESS){
+        return ret;
+      }
+      if (i%2 == 0){
+        ret = map_self_indices(tid_A, idx_map_A);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+      } else {
+        ret = map_self_indices(tid_B, idx_map_B);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+      }
+
+      if (i%2 == 0){
+        ret = map_self_indices(tid_A, idx_map_A);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+        ret = map_tensor_rem(topovec[tsr_A->itopo].order, 
+                             topovec[tsr_A->itopo].dim_comm, tsr_A);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+        copy_mapping(tsr_A->order, tsr_B->order,
+                     idx_map_A, tsr_A->edge_map, 
+                     idx_map_B, tsr_B->edge_map,0);
+        ret = map_tensor_rem(topovec[tsr_B->itopo].order, 
+                             topovec[tsr_B->itopo].dim_comm, tsr_B);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+      } else {
+        ret = map_self_indices(tid_B, idx_map_B);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+        ret = map_tensor_rem(topovec[tsr_B->itopo].order, 
+                             topovec[tsr_B->itopo].dim_comm, tsr_B);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+        copy_mapping(tsr_B->order, tsr_A->order,
+                     idx_map_B, tsr_B->edge_map, 
+                     idx_map_A, tsr_A->edge_map,0);
+        ret = map_tensor_rem(topovec[tsr_A->itopo].order, 
+                             topovec[tsr_A->itopo].dim_comm, tsr_A);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+      }
+      if (i%2 == 0){
+        ret = map_self_indices(tid_B, idx_map_B);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+      } else {
+        ret = map_self_indices(tid_A, idx_map_A);
+        if (ret == CTF_NEGATIVE) continue;
+        else if (ret != SUCCESS) return ret;
+      }
+
+  /*    ret = map_symtsr(tsr_A->order, tsr_A->sym_table, tsr_A->edge_map);
+      ret = map_symtsr(tsr_B->order, tsr_B->sym_table, tsr_B->edge_map);
+      if (ret!=SUCCESS) return ret;
+      return SUCCESS;*/
+
+  #if DEBUG >= 3  
+      print_map(stdout, tid_A,0);
+      print_map(stdout, tid_B,0);
+  #endif
+      if (!check_sum_mapping(tid_A, idx_map_A, tid_B, idx_map_B)) continue;
+      set_padding(tsr_A);
+      set_padding(tsr_B);
+      size = tsr_A->size + tsr_B->size;
+
+      need_remap_A = 0;
+      need_remap_B = 0;
+
+      if (tsr_A->itopo == old_topo_A){
+        for (d=0; d<tsr_A->order; d++){
+          if (!comp_dim_map(&tsr_A->edge_map[d],&old_map_A[d]))
+            need_remap_A = 1;
+        }
+      } else
+        need_remap_A = 1;
+      if (need_remap_A){
+        if (can_block_reshuffle(tsr_A->order, old_phase_A, tsr_A->edge_map)){
+          size += tsr_A->size*log2(global_comm.np);
+        } else {
+          size += 5.*tsr_A->size*log2(global_comm.np);
+        }
+      }
+      if (tsr_B->itopo == old_topo_B){
+        for (d=0; d<tsr_B->order; d++){
+          if (!comp_dim_map(&tsr_B->edge_map[d],&old_map_B[d]))
+            need_remap_B = 1;
+        }
+      } else
+        need_remap_B = 1;
+      if (need_remap_B){
+        if (can_block_reshuffle(tsr_B->order, old_phase_B, tsr_B->edge_map)){
+          size += tsr_B->size*log2(global_comm.np);
+        } else {
+          size += 5.*tsr_B->size*log2(global_comm.np);
+        }
+      }
+
+      /*nvirt = (uint64_t)calc_nvirt(tsr_A);
+      tnvirt = nvirt*(uint64_t)calc_nvirt(tsr_B);
+      if (tnvirt < nvirt) nvirt = UINT64_MAX;
+      else nvirt = tnvirt;
+      if (btopo == -1 || nvirt < bnvirt ) {
+        bnvirt = nvirt;
+        btopo = i;      
+      }*/
+      if (btopo == -1 || size < min_size){
+        min_size = size;
+        btopo = i;      
+      }
+    }
+    if (btopo == -1)
+      min_size = UINT64_MAX;
+    /* pick lower dimensional mappings, if equivalent */
+    gtopo = get_best_topo(min_size, btopo, global_comm);
+    TAU_FSTOP(map_tensor_pair);
+    if (gtopo == -1){
+      printf("ERROR: Failed to map pair!\n");
+      ABORT;
+      return ERROR;
+    }
+    
     clear_mapping(tsr_A);
     clear_mapping(tsr_B);
     set_padding(tsr_A);
     set_padding(tsr_B);
 
-    tsr_A->itopo = i/2;
-    tsr_B->itopo = i/2;
-    tsr_A->is_mapped = 1;
-    tsr_B->is_mapped = 1;
-
-    if (i%2 == 0){
+    tsr_A->itopo = gtopo/2;
+    tsr_B->itopo = gtopo/2;
+      
+    if (gtopo%2 == 0){
       ret = map_self_indices(tid_A, idx_map_A);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
+      ASSERT(ret == SUCCESS);
     } else {
       ret = map_self_indices(tid_B, idx_map_B);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
+      ASSERT(ret == SUCCESS);
     }
     ret = map_sum_indices(idx_arr, idx_sum, num_tot, num_sum, 
                           tid_A, tid_B, &topovec[tsr_A->itopo], 2);
-    if (ret == CTF_NEGATIVE) continue;
-    else if (ret != SUCCESS){
-      return ret;
-    }
-    if (i%2 == 0){
-      ret = map_self_indices(tid_A, idx_map_A);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
-    } else {
-      ret = map_self_indices(tid_B, idx_map_B);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
-    }
+    ASSERT(ret == SUCCESS);
 
-    if (i%2 == 0){
+    if (gtopo%2 == 0){
       ret = map_self_indices(tid_A, idx_map_A);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
+      ASSERT(ret == SUCCESS);
       ret = map_tensor_rem(topovec[tsr_A->itopo].order, 
                            topovec[tsr_A->itopo].dim_comm, tsr_A);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
+      ASSERT(ret == SUCCESS);
       copy_mapping(tsr_A->order, tsr_B->order,
                    idx_map_A, tsr_A->edge_map, 
                    idx_map_B, tsr_B->edge_map,0);
       ret = map_tensor_rem(topovec[tsr_B->itopo].order, 
                            topovec[tsr_B->itopo].dim_comm, tsr_B);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
+      ASSERT(ret == SUCCESS);
     } else {
       ret = map_self_indices(tid_B, idx_map_B);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
+      ASSERT(ret == SUCCESS);
       ret = map_tensor_rem(topovec[tsr_B->itopo].order, 
                            topovec[tsr_B->itopo].dim_comm, tsr_B);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
+      ASSERT(ret == SUCCESS);
       copy_mapping(tsr_B->order, tsr_A->order,
                    idx_map_B, tsr_B->edge_map, 
                    idx_map_A, tsr_A->edge_map,0);
       ret = map_tensor_rem(topovec[tsr_A->itopo].order, 
                            topovec[tsr_A->itopo].dim_comm, tsr_A);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
-    }
-    if (i%2 == 0){
-      ret = map_self_indices(tid_B, idx_map_B);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
-    } else {
-      ret = map_self_indices(tid_A, idx_map_A);
-      if (ret == CTF_NEGATIVE) continue;
-      else if (ret != SUCCESS) return ret;
+      ASSERT(ret == SUCCESS);
     }
 
-/*    ret = map_symtsr(tsr_A->order, tsr_A->sym_table, tsr_A->edge_map);
-    ret = map_symtsr(tsr_B->order, tsr_B->sym_table, tsr_B->edge_map);
-    if (ret!=SUCCESS) return ret;
-    return SUCCESS;*/
+    tsr_A->is_mapped = 1;
+    tsr_B->is_mapped = 1;
 
-#if DEBUG >= 3  
-    print_map(stdout, tid_A,0);
-    print_map(stdout, tid_B,0);
-#endif
-    if (!check_sum_mapping(tid_A, idx_map_A, tid_B, idx_map_B)) continue;
+
     set_padding(tsr_A);
     set_padding(tsr_B);
-    size = tsr_A->size + tsr_B->size;
+  #if DEBUG >= 2
+    if (global_comm.rank == 0)
+      printf("New mappings:\n");
+    print_map(stdout, tid_A);
+    print_map(stdout, tid_B);
+  #endif
 
-    need_remap_A = 0;
-    need_remap_B = 0;
-
+    TAU_FSTART(redistribute_for_sum);
+   
+    tsr_A->is_cyclic = 1;
+    tsr_B->is_cyclic = 1;
+    need_remap = 0;
     if (tsr_A->itopo == old_topo_A){
       for (d=0; d<tsr_A->order; d++){
         if (!comp_dim_map(&tsr_A->edge_map[d],&old_map_A[d]))
-          need_remap_A = 1;
+          need_remap = 1;
       }
     } else
-      need_remap_A = 1;
-    if (need_remap_A){
-      if (can_block_reshuffle(tsr_A->order, old_phase_A, tsr_A->edge_map)){
-        size += tsr_A->size*log2(global_comm.np);
-      } else {
-        size += 5.*tsr_A->size*log2(global_comm.np);
-      }
-    }
+      need_remap = 1;
+    if (need_remap)
+      remap_tensor(tid_A, tsr_A, &topovec[tsr_A->itopo], old_size_A, old_phase_A, old_rank_A, old_virt_dim_A, 
+                   old_pe_lda_A, was_cyclic_A, old_padding_A, old_edge_len_A, global_comm);   
+    need_remap = 0;
     if (tsr_B->itopo == old_topo_B){
       for (d=0; d<tsr_B->order; d++){
         if (!comp_dim_map(&tsr_B->edge_map[d],&old_map_B[d]))
-          need_remap_B = 1;
+          need_remap = 1;
       }
     } else
-      need_remap_B = 1;
-    if (need_remap_B){
-      if (can_block_reshuffle(tsr_B->order, old_phase_B, tsr_B->edge_map)){
-        size += tsr_B->size*log2(global_comm.np);
-      } else {
-        size += 5.*tsr_B->size*log2(global_comm.np);
-      }
+      need_remap = 1;
+    if (need_remap)
+      remap_tensor(tid_B, tsr_B, &topovec[tsr_B->itopo], old_size_B, old_phase_B, old_rank_B, old_virt_dim_B, 
+                   old_pe_lda_B, was_cyclic_B, old_padding_B, old_edge_len_B, global_comm);   
+
+    TAU_FSTOP(redistribute_for_sum);
+    CTF_free(idx_sum);
+    CTF_free(old_phase_A);
+    CTF_free(old_rank_A);
+    CTF_free(old_virt_dim_A);
+    CTF_free(old_pe_lda_A);
+    CTF_free(old_padding_A);
+    CTF_free(old_edge_len_A);
+    CTF_free(old_phase_B);
+    CTF_free(old_rank_B);
+    CTF_free(old_virt_dim_B);
+    CTF_free(old_pe_lda_B);
+    CTF_free(old_padding_B);
+    CTF_free(old_edge_len_B);
+    CTF_free(idx_arr);
+    for (i=0; i<tsr_A->order; i++){
+      clear_mapping(old_map_A+i);
     }
-
-    /*nvirt = (uint64_t)calc_nvirt(tsr_A);
-    tnvirt = nvirt*(uint64_t)calc_nvirt(tsr_B);
-    if (tnvirt < nvirt) nvirt = UINT64_MAX;
-    else nvirt = tnvirt;
-    if (btopo == -1 || nvirt < bnvirt ) {
-      bnvirt = nvirt;
-      btopo = i;      
-    }*/
-    if (btopo == -1 || size < min_size){
-      min_size = size;
-      btopo = i;      
+    for (i=0; i<tsr_B->order; i++){
+      clear_mapping(old_map_B+i);
     }
+    CTF_free(old_map_A);
+    CTF_free(old_map_B);
+
+    return SUCCESS;
   }
-  if (btopo == -1)
-    min_size = UINT64_MAX;
-  /* pick lower dimensional mappings, if equivalent */
-  gtopo = get_best_topo(min_size, btopo, global_comm);
-  TAU_FSTOP(map_tensor_pair);
-  if (gtopo == -1){
-    printf("ERROR: Failed to map pair!\n");
-    ABORT;
-    return ERROR;
-  }
-  
-  clear_mapping(tsr_A);
-  clear_mapping(tsr_B);
-  set_padding(tsr_A);
-  set_padding(tsr_B);
-
-  tsr_A->itopo = gtopo/2;
-  tsr_B->itopo = gtopo/2;
-    
-  if (gtopo%2 == 0){
-    ret = map_self_indices(tid_A, idx_map_A);
-    ASSERT(ret == SUCCESS);
-  } else {
-    ret = map_self_indices(tid_B, idx_map_B);
-    ASSERT(ret == SUCCESS);
-  }
-  ret = map_sum_indices(idx_arr, idx_sum, num_tot, num_sum, 
-                        tid_A, tid_B, &topovec[tsr_A->itopo], 2);
-  ASSERT(ret == SUCCESS);
-
-  if (gtopo%2 == 0){
-    ret = map_self_indices(tid_A, idx_map_A);
-    ASSERT(ret == SUCCESS);
-    ret = map_tensor_rem(topovec[tsr_A->itopo].order, 
-                         topovec[tsr_A->itopo].dim_comm, tsr_A);
-    ASSERT(ret == SUCCESS);
-    copy_mapping(tsr_A->order, tsr_B->order,
-                 idx_map_A, tsr_A->edge_map, 
-                 idx_map_B, tsr_B->edge_map,0);
-    ret = map_tensor_rem(topovec[tsr_B->itopo].order, 
-                         topovec[tsr_B->itopo].dim_comm, tsr_B);
-    ASSERT(ret == SUCCESS);
-  } else {
-    ret = map_self_indices(tid_B, idx_map_B);
-    ASSERT(ret == SUCCESS);
-    ret = map_tensor_rem(topovec[tsr_B->itopo].order, 
-                         topovec[tsr_B->itopo].dim_comm, tsr_B);
-    ASSERT(ret == SUCCESS);
-    copy_mapping(tsr_B->order, tsr_A->order,
-                 idx_map_B, tsr_B->edge_map, 
-                 idx_map_A, tsr_A->edge_map,0);
-    ret = map_tensor_rem(topovec[tsr_A->itopo].order, 
-                         topovec[tsr_A->itopo].dim_comm, tsr_A);
-    ASSERT(ret == SUCCESS);
-  }
-
-  tsr_A->is_mapped = 1;
-  tsr_B->is_mapped = 1;
-
-
-  set_padding(tsr_A);
-  set_padding(tsr_B);
-#if DEBUG >= 2
-  if (global_comm.rank == 0)
-    printf("New mappings:\n");
-  print_map(stdout, tid_A);
-  print_map(stdout, tid_B);
-#endif
-
-  TAU_FSTART(redistribute_for_sum);
- 
-  tsr_A->is_cyclic = 1;
-  tsr_B->is_cyclic = 1;
-  need_remap = 0;
-  if (tsr_A->itopo == old_topo_A){
-    for (d=0; d<tsr_A->order; d++){
-      if (!comp_dim_map(&tsr_A->edge_map[d],&old_map_A[d]))
-        need_remap = 1;
-    }
-  } else
-    need_remap = 1;
-  if (need_remap)
-    remap_tensor(tid_A, tsr_A, &topovec[tsr_A->itopo], old_size_A, old_phase_A, old_rank_A, old_virt_dim_A, 
-                 old_pe_lda_A, was_cyclic_A, old_padding_A, old_edge_len_A, global_comm);   
-  need_remap = 0;
-  if (tsr_B->itopo == old_topo_B){
-    for (d=0; d<tsr_B->order; d++){
-      if (!comp_dim_map(&tsr_B->edge_map[d],&old_map_B[d]))
-        need_remap = 1;
-    }
-  } else
-    need_remap = 1;
-  if (need_remap)
-    remap_tensor(tid_B, tsr_B, &topovec[tsr_B->itopo], old_size_B, old_phase_B, old_rank_B, old_virt_dim_B, 
-                 old_pe_lda_B, was_cyclic_B, old_padding_B, old_edge_len_B, global_comm);   
-
-  TAU_FSTOP(redistribute_for_sum);
-  CTF_free(idx_sum);
-  CTF_free(old_phase_A);
-  CTF_free(old_rank_A);
-  CTF_free(old_virt_dim_A);
-  CTF_free(old_pe_lda_A);
-  CTF_free(old_padding_A);
-  CTF_free(old_edge_len_A);
-  CTF_free(old_phase_B);
-  CTF_free(old_rank_B);
-  CTF_free(old_virt_dim_B);
-  CTF_free(old_pe_lda_B);
-  CTF_free(old_padding_B);
-  CTF_free(old_edge_len_B);
-  CTF_free(idx_arr);
-  for (i=0; i<tsr_A->order; i++){
-    clear_mapping(old_map_A+i);
-  }
-  for (i=0; i<tsr_B->order; i++){
-    clear_mapping(old_map_B+i);
-  }
-  CTF_free(old_map_A);
-  CTF_free(old_map_B);
-
-  return SUCCESS;
 }
