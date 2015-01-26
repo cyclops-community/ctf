@@ -23,13 +23,13 @@ namespace CTF_int {
 
   class tsum {
     public:
-      char * A; 
-      semiring sr_A;
+      char *       A;
+      semiring     sr_A;
       char const * alpha;
-      char * B; 
-      semiring sr_B;
+      char *       B;
+      semiring     sr_B;
       char const * beta;
-      void * buffer;
+      void *       buffer;
 
       virtual void run() {};
       virtual int64_t mem_fp() { return 0; };
@@ -45,13 +45,13 @@ namespace CTF_int {
       /* Class to be called on sub-blocks */
       tsum * rec_tsum;
 
-      int num_dim;
-      int * virt_dim;
-      int order_A;
-      int64_t blk_sz_A;
+      int         num_dim;
+      int *       virt_dim;
+      int         order_A;
+      int64_t     blk_sz_A;
       int const * idx_map_A;
-      int order_B;
-      int64_t blk_sz_B;
+      int         order_B;
+      int64_t     blk_sz_B;
       int const * idx_map_B;
       
       void run();
@@ -70,8 +70,8 @@ namespace CTF_int {
       int ncdt_A; /* number of processor dimensions to replicate A along */
       int ncdt_B; /* number of processor dimensions to replicate B along */
 
-      CommData *   cdt_A;
-      CommData *   cdt_B;
+      CommData * cdt_A;
+      CommData * cdt_B;
       /* Class to be called on sub-blocks */
       tsum * rec_tsum;
       
@@ -86,14 +86,14 @@ namespace CTF_int {
 
   class seq_tsr_sum : public tsum {
     public:
-      int order_A;
-      int * edge_len_A;
+      int         order_A;
+      int *       edge_len_A;
       int const * idx_map_A;
-      int * sym_A;
-      int order_B;
-      int * edge_len_B;
+      int *       sym_A;
+      int         order_B;
+      int *       edge_len_B;
       int const * idx_map_B;
-      int * sym_B;
+      int *       sym_B;
       //fseq_tsr_sum func_ptr;
 
       int is_inner;
@@ -130,12 +130,12 @@ namespace CTF_int {
    * \param[out] order_tot number of total dimensions
    * \param[out] idx_arr 2*order_tot index array
    */
-  void inv_idx(int const          order_A,
-               int const *        idx_A,
-               int const          order_B,
-               int const *        idx_B,
-               int *              order_tot,
-               int **             idx_arr);
+  void inv_idx(int         order_A,
+               int const * idx_A,
+               int         order_B,
+               int const * idx_B,
+               int *       order_tot,
+               int **      idx_arr);
 
 }
 

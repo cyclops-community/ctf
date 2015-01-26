@@ -6,6 +6,16 @@
 #include "../shared/util.h"
 
 namespace CTF_int {
+  mapping::mapping(){
+    type = NOT_MAPPED;
+    has_child = 0;
+    np = 1;
+  }
+  
+  mapping::~mapping(){
+    clear();
+  }
+
   int mapping::calc_phase() const {
     int phase;
     if (this->type == NOT_MAPPED){
@@ -77,8 +87,6 @@ namespace CTF_int {
     this->np = 1;
     this->has_child = 0;
   }
-
-
 
   int comp_dim_map(mapping const *  map_A,
                    mapping const *  map_B){

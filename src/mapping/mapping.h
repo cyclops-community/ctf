@@ -25,6 +25,12 @@ namespace CTF_int {
       int has_child;
       mapping * child;
 
+      /** \brief constructor */
+      mapping();
+
+      /** \brief destructor */
+      ~mapping();
+
       /**
        * \brief compute the phase of a mapping
        *

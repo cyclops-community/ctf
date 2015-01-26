@@ -3,6 +3,7 @@
 
 #include "assert.h"
 #include "sum_tsr.h"
+#include "../mapping/topology.h"
 
 namespace CTF_int {
   class tensor; 
@@ -165,6 +166,14 @@ namespace CTF_int {
        * \return 1 if valid 0 if not
       */
       int check_mapping();
+
+      /**
+       * \brief map the indices which are common in a sum
+       *
+       * \param topo topology to map to
+       * \return status corresponding to mapping success or failure
+       */
+      int map_sum_indices(topology const * topo);
 
       /**
        * \brief find best possible mapping for summation and redistribute tensors to this mapping

@@ -106,7 +106,7 @@ namespace CTF {
       /**
        * \brief get total flop count over all counters in comm
        */
-      int64_t  count(MPI_Comm comm = MPI_COMM_SELF);
+      int64_t count(MPI_Comm comm = MPI_COMM_SELF);
 
   };
 
