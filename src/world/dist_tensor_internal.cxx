@@ -1483,76 +1483,6 @@ int dist_tensor<dtype>::print_sum(CTF_sum_type_t const * stype,
 
 template<typename dtype>
 int dist_tensor<dtype>::check_contraction(CTF_ctr_type_t const * type){
-  int i, num_tot, len;
-  int iA, iB, iC;
-  int order_A, order_B, order_C;
-  int * len_A, * len_B, * len_C;
-  int * sym_A, * sym_B, * sym_C;
-  int * idx_arr;
-  
-  tensor<dtype> * tsr_A, * tsr_B, * tsr_C;
-
-  tsr_A = tensors[type->tid_A];
-  tsr_B = tensors[type->tid_B];
-  tsr_C = tensors[type->tid_C];
-    
-
-  get_tsr_info(type->tid_A, &order_A, &len_A, &sym_A);
-  get_tsr_info(type->tid_B, &order_B, &len_B, &sym_B);
-  get_tsr_info(type->tid_C, &order_C, &len_C, &sym_C);
-  
-  inv_idx(tsr_A->order, type->idx_map_A, tsr_A->edge_map,
-          tsr_B->order, type->idx_map_B, tsr_B->edge_map,
-          tsr_C->order, type->idx_map_C, tsr_C->edge_map,
-          &num_tot, &idx_arr);
-
-  for (i=0; i<num_tot; i++){
-    len = -1;
-    iA = idx_arr[3*i+0];
-    iB = idx_arr[3*i+1];
-    iC = idx_arr[3*i+2];
-    if (iA != -1){
-      len = len_A[iA];
-    }
-    if (len != -1 && iB != -1 && len != len_B[iB]){
-      if (global_comm.rank == 0){
-        printf("Error in contraction call: The %dth edge length of tensor %d does not",
-                iA, type->tid_A);
-        printf("match the %dth edge length of tensor %d.\n",
-                iB, type->tid_B);
-      }
-      ABORT;
-    }
-    if (len != -1 && iC != -1 && len != len_C[iC]){
-      if (global_comm.rank == 0){
-        printf("Error in contraction call: The %dth edge length of tensor %d (%d) does not",
-                iA, type->tid_A, len);
-        printf("match the %dth edge length of tensor %d (%d).\n",
-                iC, type->tid_C, len_C[iC]);
-      }
-      ABORT;
-    }
-    if (iB != -1){
-      len = len_B[iB];
-    }
-    if (len != -1 && iC != -1 && len != len_C[iC]){
-      if (global_comm.rank == 0){
-        printf("Error in contraction call: The %dth edge length of tensor %d does not",
-                iB, type->tid_B);
-        printf("match the %dth edge length of tensor %d.\n",
-                iC, type->tid_C);
-      }
-      ABORT;
-    }
-  }
-  CTF_free(len_A);
-  CTF_free(len_B);
-  CTF_free(len_C);
-  CTF_free(sym_A);
-  CTF_free(sym_B);
-  CTF_free(sym_C);
-  CTF_free(idx_arr);
-  return CTF_SUCCESS;
 }
 
 /**
@@ -1623,31 +1553,6 @@ int dist_tensor<dtype>::check_sum(int const   tid_A,
 
 template<typename dtype>
 void dist_tensor<dtype>::contract_mst(){
-  std::list<mem_transfer> tfs = CTF_contract_mst();
-  if (tfs.size() > 0 && get_global_comm().rank == 0){
-    DPRINTF(1,"CTF Warning: contracting memory stack\n");
-  }
-  std::list<mem_transfer>::iterator it;
-  int i;
-  int j = 0;
-  for (it=tfs.begin(); it!=tfs.end(); it++){
-    j++;
-    for (i=0; i<(int)tensors.size(); i++){
-      if (tensors[i]->data == (dtype*)it->old_ptr){
-        tensors[i]->data = (dtype*)it->new_ptr;
-        break;
-      }
-    }
-    if (i == (int)tensors.size()){
-      printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
-      ASSERT(0);
-    }
-    for (i=0; i<(int)tensors.size(); i++){
-      if (tensors[i]->data == (dtype*)it->old_ptr){
-        tensors[i]->data = (dtype*)it->new_ptr;
-      }
-    }
-  }
 
 }
 

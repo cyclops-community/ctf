@@ -3,10 +3,10 @@
 
 #include "assert.h"
 #include "sum_tsr.h"
-#include "../mapping/topology.h"
 
 namespace CTF_int {
   class tensor; 
+  class topology; 
 
   /**
    * \brief class for execution distributed summation of tensors
@@ -27,11 +27,9 @@ namespace CTF_int {
       int * idx_A;
       /** \brief indices of output */
       int * idx_B;
- 
       /** \brief whether there is a elementwise custom function */
       bool is_custom;
-
-      /** \brief function to execute on elementwise elements */
+      /** \brief function to execute on elements */
       univar_function func;
 
       /** \brief lazy constructor */
@@ -82,6 +80,12 @@ namespace CTF_int {
       double estimate_time();
    
       /**
+       * \brief returns 1 if summations have same tensors and index map
+       * \param[in] os summation object to compare this with
+       */
+      int is_equal(summation const & os);
+    private:
+      /**
        * \brief finds and return all summation indices which can be folded into
        *    dgemm,for which they must (1) not break symmetry (2) belong to 
        *    exactly two of (A,B).
@@ -113,13 +117,7 @@ namespace CTF_int {
       void get_len_ordering(int ** new_ordering_A,
                             int ** new_ordering_B);
   
-      /**
-       * \brief returns 1 if summations have same tensors and index map
-       * \param[in] os summation object to compare this with
-       */
-      int is_equal(summation const & os);
 
-    private:
       /**
        * \brief constructs function pointer to sum tensors A and B,B = B*beta+alpha*A
        * \param[in] inner_stride local daxpy stride

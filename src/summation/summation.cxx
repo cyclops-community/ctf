@@ -69,6 +69,16 @@ namespace CTF_int {
     is_custom = 1;
   }
 
+  void summation::execute(){
+    int stat = home_sum_tsr(0);
+    assert(stat == SUCCESS); 
+  }
+  
+  double summation::estimate_time(){
+    assert(0); //FIXME
+    return 0.0;
+  }
+
   void summation::get_fold_indices(int *  num_fold,
                                    int ** fold_idx){
     int i, in, num_tot, nfold, broken;

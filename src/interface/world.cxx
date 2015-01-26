@@ -167,7 +167,34 @@ namespace CTF {
     return SUCCESS;
   }
 
+/*
+  void World::contract_mst(){
+    std::list<mem_transfer> tfs = CTF_contract_mst();
+    if (tfs.size() > 0 && get_global_comm().rank == 0){
+      DPRINTF(1,"CTF Warning: contracting memory stack\n");
+    }
+    std::list<mem_transfer>::iterator it;
+    int i;
+    int j = 0;
+    for (it=tfs.begin(); it!=tfs.end(); it++){
+      j++;
+      for (i=0; i<(int)tensors.size(); i++){
+        if (tensors[i]->data == (dtype*)it->old_ptr){
+          tensors[i]->data = (dtype*)it->new_ptr;
+          break;
+        }
+      }
+      if (i == (int)tensors.size()){
+        printf("CTF ERROR: pointer %d on mst is not tensor data, aborting\n",j);
+        ASSERT(0);
+      }
+      for (i=0; i<(int)tensors.size(); i++){
+        if (tensors[i]->data == (dtype*)it->old_ptr){
+          tensors[i]->data = (dtype*)it->new_ptr;
+        }
+      }
 
+  }*/
 
 
 }

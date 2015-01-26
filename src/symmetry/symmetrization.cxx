@@ -7,7 +7,7 @@ namespace CTF_int {
 
   void desymmetrize(tensor * sym_tsr,
                     tensor * nonsym_tsr,
-                    bool is_C){
+                    bool     is_C){
     int i, is, j, sym_dim, scal_diag, num_sy, num_sy_neg;
     int * idx_map_A, * idx_map_B;
     int rev_sign;
@@ -165,10 +165,10 @@ namespace CTF_int {
   /*  switch (sym_tsr->edge_map[sym_dim].type){
       case NOT_MAPPED:
         ASSERT(sym_tsr->edge_map[sym_dim+1].type == NOT_MAPPED);
-        rw_smtr<dtype>(sym_tsr->order, sym_tsr->edge_len, 1.0, 0, 
+        rw_smtr<dtype>(sym_tsr->order, sym_tsr->edge_len, 1.0, 0,
            sym_tsr->sym, nonsym_tsr->sym,
            sym_tsr->data, nonsym_tsr->data);
-        rw_smtr<dtype>(sym_tsr->order, sym_tsr->edge_len, rev_sign, 1, 
+        rw_smtr<dtype>(sym_tsr->order, sym_tsr->edge_len, rev_sign, 1,
            sym_tsr->sym, nonsym_tsr->sym,
            sym_tsr->data, nonsym_tsr->data);
         break;
@@ -352,11 +352,11 @@ namespace CTF_int {
   }
 
 
-  void cmp_sym_perms(int          ndim,
-                     int const *  sym,
-                     int *        nperm,
-                     int **       perm,
-                     double *     sign){
+  void cmp_sym_perms(int         ndim,
+                     int const * sym,
+                     int *       nperm,
+                     int **      perm,
+                     double *    sign){
     int i, np;
     int * pm;
     double sgn;
@@ -393,14 +393,11 @@ namespace CTF_int {
   }
 
   void order_perm(summation & sum,
-                                      int *                 idx_arr,
-                                      int              off_A,
-                                      int              off_B,
-                                      int &               add_sign,
-                                      int &                 mod){
-
-
-
+                  int *       idx_arr,
+                  int         off_A,
+                  int         off_B,
+                  int &       add_sign,
+                  int &       mod){
     int  iA, jA, iB, jB, iiB, broken, tmp;
 
     //find all symmetries in A
@@ -445,12 +442,12 @@ namespace CTF_int {
   }
 
   void order_perm(contraction const & ctr,
-                  int *                 idx_arr,
-                  int             off_A,
-                  int             off_B,
-                  int             off_C,
+                  int *               idx_arr,
+                  int                 off_A,
+                  int                 off_B,
+                  int                 off_C,
                   int &               add_sign,
-                  int &                 mod){
+                  int &               mod){
 
     int  iA, jA, iB, iC, jB, jC, iiB, iiC, broken, tmp;
 
@@ -496,10 +493,10 @@ namespace CTF_int {
     }
   }
 
-  void add_sym_perm(std::vector<summation>&    perms,
-                                        std::vector<int>&             signs, 
-                                        summation const &          new_perm,
-                                        int                     new_sign){
+  void add_sym_perm(std::vector<summation>& perms,
+                    std::vector<int>&       signs,
+                    summation const &       new_perm,
+                    int                     new_sign){
 
     int mod, num_tot, i;
     int * idx_arr;
@@ -538,10 +535,10 @@ namespace CTF_int {
     CTF_free(idx_arr);
   }
 
-  void add_sym_perm(std::vector<contraction>&    perms,
-                                std::vector<int>&             signs, 
-                                contraction const &          new_perm,
-                                int                     new_sign){
+  void add_sym_perm(std::vector<contraction>& perms,
+                    std::vector<int>&         signs,
+                    contraction const &       new_perm,
+                    int                       new_sign){
     int mod, num_tot, i;
     int * idx_arr;
     int add_sign;
@@ -561,11 +558,11 @@ namespace CTF_int {
     //keep permuting until we get to normal order (no permutations left)
     do {
       mod = 0;
-      order_perm(norm_ord_perm, idx_arr, 0, 1, 2, 
+      order_perm(norm_ord_perm, idx_arr, 0, 1, 2,
                  add_sign, mod);
-      order_perm(norm_ord_perm, idx_arr, 1, 0, 2, 
+      order_perm(norm_ord_perm, idx_arr, 1, 0, 2,
                  add_sign, mod);
-      order_perm(norm_ord_perm, idx_arr, 2, 1, 0, 
+      order_perm(norm_ord_perm, idx_arr, 2, 1, 0,
                  add_sign, mod);
     } while (mod);
     add_sign *= align_symmetric_indices(tsr_A->order,
@@ -589,9 +586,9 @@ namespace CTF_int {
     CTF_free(idx_arr);
   }
 
-  void get_sym_perms(summation const & sum,
-                                         std::vector<summation>&     perms,
-                                         std::vector<int>&              signs){
+  void get_sym_perms(summation const &       sum,
+                     std::vector<summation>& perms,
+                     std::vector<int>&       signs){
     int i, j, k, tmp;
     int sign;
     tensor * tsr_A, * tsr_B;
@@ -633,9 +630,9 @@ namespace CTF_int {
     }
   }
 
-  void get_sym_perms(contraction const & ctr,
-                     std::vector<contraction>&     perms,
-                     std::vector<int>&              signs){
+  void get_sym_perms(contraction const &       ctr,
+                     std::vector<contraction>& perms,
+                     std::vector<int>&         signs){
   //  dtype * scl_alpha_C;
   //  int ** scl_idx_maps_C;
   //  nscl_C = 0;

@@ -84,5 +84,5 @@ namespace CTF_int {
                       int const *        sym_C,
                       int const *        idx_map_C,
                       iparam const *     prm);
-
 }
+#endif

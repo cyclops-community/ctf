@@ -39,28 +39,6 @@ do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
   do{                                           \
    assert(0); } while (0)
 
-template<typename dtype>
-dtype get_zero(){
-  ABORT;
-}
-template<typename dtype>
-dtype get_one(){
-  ABORT;
-}
-
-
-template<> inline
-double get_zero<double>() { return 0.0; }
-
-template<> inline
-std::complex<double> get_zero< std::complex<double> >() { return std::complex<double>(0.0,0.0); }
-
-template<> inline
-double get_one<double>() { return 1.0; }
-
-template<> inline
-std::complex<double> get_one< std::complex<double> >() { return std::complex<double>(1.0,0.0); }
-
 int initialized = 0;
 cublasHandle_t cuhandle;
 
@@ -83,53 +61,36 @@ void offload_exit(){
   }
 }
 
-
-/**
- * \brief allocates offload device pointer
- * \param[in] size number of elements to create for buffer
- */
 template <typename dtype>
-offload_ptr<dtype>::offload_ptr(int64_t size_){
+offload_ptr<dtype>::offload_ptr(int el_size_, int64_t size_){
+  el_size = el_size_;
   size = size_;
-  cudaError_t err = cudaMalloc((void**)&dev_ptr, size_*sizeof(dtype));
+  cudaError_t err = cudaMalloc((void**)&dev_ptr, size_*el_size);
   ASSERT(err == cudaSuccess);
 }
 
-/**
- * \brief deallocates offload device pointer
- */
-template <typename dtype>
-offload_ptr<dtype>::~offload_ptr(){
+offload_ptr::~offload_ptr(){
   cudaError_t err = cudaFree(dev_ptr);
   ASSERT(err == cudaSuccess);
 }
 
-/**
- * \brief downloads all data from device pointer to host pointer
- * \param[in,out] host_ptr preallocated host buffer to download to
- */
-template <typename dtype>
-void offload_ptr<dtype>::download(dtype * host_ptr){
+void offload_ptr::download(dtype * host_ptr){
   TAU_FSTART(cuda_download);
-  cudaError_t err = cudaMemcpy(host_ptr, dev_ptr, size*sizeof(dtype),
+  cudaError_t err = cudaMemcpy(host_ptr, dev_ptr, size*el_size,
                                cudaMemcpyDeviceToHost);
   TAU_FSTOP(cuda_download);
   ASSERT(err == cudaSuccess);
 }
-/**
- * \brief uploads all data to device pointer from host pointer
- * \param[in] host_ptr preallocated host buffer to upload from
- */
-template <typename dtype>
-void offload_ptr<dtype>::upload(dtype const * host_ptr){
+
+void offload_ptr<dtype>::upload(char const * host_ptr){
   TAU_FSTART(cuda_upload);
-  cudaError_t err = cudaMemcpy(dev_ptr, host_ptr, size*sizeof(dtype),
+  cudaError_t err = cudaMemcpy(dev_ptr, host_ptr, size*el_size,
                                cudaMemcpyHostToDevice);
   TAU_FSTOP(cuda_upload);
   ASSERT(err == cudaSuccess);
 }
 
-
+/*
 template <typename dtype>
 __global__ void gset_zero(dtype *arr, int64_t size, dtype val) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -139,16 +100,12 @@ __global__ void gset_zero(dtype *arr, int64_t size, dtype val) {
   }
 }
 
-/**
- * \brief set array to 0
- */
-template <typename dtype>
 void offload_ptr<dtype>::set_zero(){
   int blockSize = 256;
   int numBlocks = (size + blockSize - 1) / (size);
   gset_zero<<<blockSize, numBlocks>>>(dev_ptr, size, get_zero<dtype>());
 }
-
+*/
 
 void host_pinned_alloc(void ** ptr, int64_t size){
   cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
@@ -160,11 +117,7 @@ void host_pinned_free(void * ptr){
   ASSERT(err == cudaSuccess);
 }
 
-/**
- * \brief performs an offloaded gemm using device pointer of objects
- *        specialized instantization to double
- */
-template <typename dtype>
+/*template <typename dtype>
 void offload_gemm(char                  tA,
                   char                  tB,
                   int                   m,
@@ -210,11 +163,6 @@ void offload_gemm(char                                  tA,
                   std::complex<double>                  beta,
                   offload_ptr< std::complex<double> > & C,
                   int                                   lda_C);
-
-/**
- * \brief performs an offloaded gemm using device pointer of objects
- *        specialized instantization to double
- */
 template <>
 void offload_gemm<double>(char                  tA,
                           char                  tB,
@@ -267,11 +215,9 @@ void offload_gemm<double>(char                  tA,
   
   ASSERT(status == CUBLAS_STATUS_SUCCESS);
 }
+*/
 
-/**
- * \brief performs an offloaded gemm using device pointer of objects
- *        specialized instantization to complex<double>
- */
+/*
 template <>
 void offload_gemm< std::complex<double> >(
                          char                                  tA,
@@ -337,7 +283,5 @@ void offload_gemm< std::complex<double> >(
   ASSERT(status == CUBLAS_STATUS_SUCCESS);
   assert(status == CUBLAS_STATUS_SUCCESS);
 }
-
-template class offload_ptr<double>;
-template class offload_ptr< std::complex<double> >;
+*/
 #endif

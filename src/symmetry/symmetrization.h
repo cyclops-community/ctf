@@ -15,7 +15,7 @@ namespace CTF_int {
    */
   void desymmetrize(tensor * sym_tsr,
                     tensor * nonsym_tsr,
-                    bool is_C);
+                    bool     is_C);
 
   /**
    * \brief folds the data of a tensor
@@ -34,11 +34,11 @@ namespace CTF_int {
    * \param[out] perm the permutation
    * \param[out] sign sign of each permutation
    */
-  void cmp_sym_perms(int          ndim,
-                     int const *  sym,
-                     int *        nperm,
-                     int **       perm,
-                     double *     sign);
+  void cmp_sym_perms(int         ndim,
+                     int const * sym,
+                     int *       nperm,
+                     int **      perm,
+                     double *    sign);
 
   /**
    * \brief orders the summation indices of one tensor 
@@ -52,11 +52,11 @@ namespace CTF_int {
    * \param[in,out] mod 1 if sum is permuted
    */
   void order_perm(summation & sum,
-                                      int *                 idx_arr,
-                                      int              off_A,
-                                      int              off_B,
-                                      int &               add_sign,
-                                      int &                 mod);
+                  int *       idx_arr,
+                  int         off_A,
+                  int         off_B,
+                  int &       add_sign,
+                  int &       mod);
 
   /**
    * \brief orders the contraction indices of one tensor 
@@ -71,12 +71,12 @@ namespace CTF_int {
    * \param[in,out] mod 1 if permutation done
    */
   void order_perm(contraction & ctr,
-                  int *                 idx_arr,
-                  int             off_A,
-                  int             off_B,
-                  int             off_C,
-                  int &               add_sign,
-                  int &                 mod);
+                  int *         idx_arr,
+                  int           off_A,
+                  int           off_B,
+                  int           off_C,
+                  int &         add_sign,
+                  int &         mod);
 
 
   /**
@@ -88,10 +88,10 @@ namespace CTF_int {
    * \param[in] new_perm summation signature
    * \param[in] new_sign alpha
    */
-  void add_sym_perm(std::vector<summation>&    perms,
-                                        std::vector<int>&             signs, 
-                                        summation const &          new_perm,
-                                        int                     new_sign);
+  void add_sym_perm(std::vector<summation>& perms,
+                    std::vector<int>&       signs,
+                    summation const &       new_perm,
+                    int                     new_sign);
 
   /**
    * \brief puts a contraction map into a nice ordering according to preserved
@@ -102,10 +102,10 @@ namespace CTF_int {
    * \param[in] new_perm contraction signature
    * \param[in] new_sign alpha
    */
-  void add_sym_perm(std::vector<contraction>&    perms,
-                                        std::vector<int>&             signs, 
-                                        contraction const &          new_perm,
-                                        int                     new_sign);
+  void add_sym_perm(std::vector<contraction>& perms,
+                    std::vector<int>&         signs,
+                    contraction const &       new_perm,
+                    int                       new_sign);
 
 
 
@@ -118,9 +118,9 @@ namespace CTF_int {
    * \param[out] perms the permuted summation specifications
    * \param[out] signs sign of each summation
    */
-  void get_sym_perms(summation const & sum,
-                               std::vector<summation>&     perms,
-                               std::vector<int>&              signs);
+  void get_sym_perms(summation const &       sum,
+                     std::vector<summation>& perms,
+                     std::vector<int>&       signs);
 
   /**
    * \brief finds all permutations of a contraction 
@@ -131,9 +131,9 @@ namespace CTF_int {
    * \param[out] perms the permuted contraction specifications
    * \param[out] signs sign of each contraction
    */
-  void get_sym_perms(contraction const & ctr,
-                     std::vector<contraction>&     perms,
-                     std::vector<int>&              signs);
+  void get_sym_perms(contraction const &       ctr,
+                     std::vector<contraction>& perms,
+                     std::vector<int>&         signs);
 
 
 
