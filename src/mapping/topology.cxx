@@ -467,4 +467,134 @@ namespace CTF_int {
 
       return gtopo;
   }
+  void extract_free_comms(topology const * topo,
+                          int              order_A,
+                          mapping const *  edge_map_A,
+                          int              order_B,
+                          mapping const *  edge_map_B,
+                          int &            num_sub_phys_dims,
+                          CommData *  *    psub_phys_comm,
+                          int **           pcomm_idx){
+    int i;
+    int phys_mapped[topo->order];
+    CommData *   sub_phys_comm;
+    int * comm_idx;
+    mapping const * map;
+    memset(phys_mapped, 0, topo->order*sizeof(int));  
+    
+    num_sub_phys_dims = 0;
+
+    for (i=0; i<order_A; i++){
+      map = &edge_map_A[i];
+      while (map->type == PHYSICAL_MAP){
+        phys_mapped[map->cdt] = 1;
+        if (map->has_child) map = map->child;
+        else break;
+      } 
+    }
+    for (i=0; i<order_B; i++){
+      map = &edge_map_B[i];
+      while (map->type == PHYSICAL_MAP){
+        phys_mapped[map->cdt] = 1;
+        if (map->has_child) map = map->child;
+        else break;
+      } 
+    }
+
+    num_sub_phys_dims = 0;
+    for (i=0; i<topo->order; i++){
+      if (phys_mapped[i] == 0){
+        num_sub_phys_dims++;
+      }
+    }
+    CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData), (void**)&sub_phys_comm);
+    CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
+    num_sub_phys_dims = 0;
+    for (i=0; i<topo->order; i++){
+      if (phys_mapped[i] == 0){
+        sub_phys_comm[num_sub_phys_dims] = topo->dim_comm[i];
+        comm_idx[num_sub_phys_dims] = i;
+        num_sub_phys_dims++;
+      }
+    }
+    *pcomm_idx = comm_idx;
+    *psub_phys_comm = sub_phys_comm;
+
+  }
+
+  int can_morph(topology const * topo_keep, 
+                topology const * topo_change){
+    int i, j, lda;
+    lda = 1;
+    j = 0;
+    for (i=0; i<topo_keep->order; i++){
+      lda *= topo_keep->dim_comm[i].np;
+      if (lda == topo_change->dim_comm[j].np){
+        j++;
+        lda = 1;
+      } else if (lda > topo_change->dim_comm[j].np){
+        return 0;
+      }
+    }
+    return 1;
+  }
+
+  void morph_topo(topology const * new_topo,
+                  topology const * old_topo,
+                  int              order,
+                  mapping *        edge_map){
+    int i,j,old_lda,new_np;
+    mapping * old_map, * new_map, * new_rec_map;
+
+    for (i=0; i<order; i++){
+      if (edge_map[i].type == PHYSICAL_MAP){
+        old_map = &edge_map[i];
+        CTF_alloc_ptr(sizeof(mapping), (void**)&new_map);
+        new_rec_map = new_map;
+        for (;;){
+          old_lda = old_topo->lda[old_map->cdt];
+          new_np = 1;
+          do {
+            for (j=0; j<new_topo->order; j++){
+              if (new_topo->lda[j] == old_lda) break;
+            } 
+            ASSERT(j!=new_topo->order);
+            new_rec_map->type   = PHYSICAL_MAP;
+            new_rec_map->cdt    = j;
+            new_rec_map->np     = new_topo->dim_comm[j].np;
+            new_np    *= new_rec_map->np;
+            if (new_np<old_map->np) {
+              old_lda = old_lda * new_rec_map->np;
+              new_rec_map->has_child = 1;
+              CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
+              new_rec_map = new_rec_map->child;
+            }
+          } while (new_np<old_map->np);
+
+          if (old_map->has_child){
+            if (old_map->child->type == VIRTUAL_MAP){
+              new_rec_map->has_child = 1;
+              CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
+              new_rec_map->child->type  = VIRTUAL_MAP;
+              new_rec_map->child->np    = old_map->child->np;
+              new_rec_map->child->has_child   = 0;
+              break;
+            } else {
+              new_rec_map->has_child = 1;
+              CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
+              new_rec_map = new_rec_map->child;
+              old_map = old_map->child;
+              //continue
+            }
+          } else {
+            new_rec_map->has_child = 0;
+            break;
+          }
+        }
+        edge_map[i].clear();      
+        edge_map[i] = *new_map;
+        CTF_free(new_map);
+      }
+    }
+  }
 }

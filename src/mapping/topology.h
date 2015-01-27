@@ -6,7 +6,7 @@
 #include "../interface/common.h"
 
 namespace CTF_int {
-
+  class mapping;
   enum TOPOLOGY { TOPOLOGY_GENERIC, TOPOLOGY_BGP, TOPOLOGY_BGQ,
                   TOPOLOGY_8D, NO_TOPOLOGY };
 
@@ -89,6 +89,48 @@ namespace CTF_int {
                      int64_t  bcomm_vol=0,
                      int64_t  bmemuse=0);
    
+
+  /**
+   * \brief extracts the set of physical dimensions still available for mapping
+   * \param[in] topo topology
+   * \param[in] order_A dimension of A
+   * \param[in] edge_map_A mapping of A
+   * \param[in] order_B dimension of B
+   * \param[in] edge_map_B mapping of B
+   * \param[out] num_sub_phys_dims number of free torus dimensions
+   * \param[out] sub_phys_comm the torus dimensions
+   * \param[out] comm_idx index of the free torus dimensions in the origin topology
+   */
+  void extract_free_comms(topology const *  topo,
+                          int               order_A,
+                          mapping const *   edge_map_A,
+                          int               order_B,
+                          mapping const *   edge_map_B,
+                          int &             num_sub_phys_dims,
+                          CommData *  *     psub_phys_comm,
+                          int **            pcomm_idx);
+
+
+  /**
+   * \brief determines if two topologies are compatible with each other
+   * \param topo_keep topology to keep (larger dimension)
+   * \param topo_change topology to change (smaller dimension)
+   * \return true if its possible to change
+   */
+  int can_morph(topology const * topo_keep,
+                topology const * topo_change);
+
+  /**
+   * \brief morphs a tensor topology into another
+   * \param[in] new_topo topology to change to
+   * \param[in] old_topo topology we are changing from
+   * \param[in] order number of tensor dimensions
+   * \param[in,out] edge_map mapping whose topology mapping we are changing
+   */
+  void morph_topo(topology const * new_topo,
+                  topology const * old_topo,
+                  int              order,
+                  mapping *        edge_map);
 }
 
 #endif

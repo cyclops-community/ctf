@@ -112,9 +112,6 @@ namespace CTF_int {
        */
       void calc_fold_nmk( int const *    ordering_A,
                           int const *    ordering_B,
-                          tensor const * tsr_A,
-                          tensor const * tsr_B,
-                          tensor const * tsr_C,
                           iparam *       inner_prm);
 
 
@@ -239,20 +236,20 @@ namespace CTF_int {
        * \brief maps tensors to topology 
        *        with certain tensor ordering e.g. BCA
        *
-       * \param itopo topology index
+       * \param topo topology to map to 
        * \param order order of tensors (BCA, ACB, ABC, etc.)
        * \param idx_ctr buffer for contraction index storage
        * \param idx_extra buffer for extra index storage
        * \param idx_no_ctr buffer for non-contracted index storage
        * \param idx_weigh buffer for weigh index storage
        */
-      int map_to_topology(int   itopo,
-                          int   order,
-                          int * idx_arr,
-                          int * idx_ctr,
-                          int * idx_extra,
-                          int * idx_no_ctr,
-                          int * idx_weigh);
+      int map_to_topology(topology * topo,
+                          int        order,
+                          int *      idx_arr,
+                          int *      idx_ctr,
+                          int *      idx_extra,
+                          int *      idx_no_ctr,
+                          int *      idx_weigh);
 
       /**
        * \brief attempts to remap 3 tensors to the same topology if possible

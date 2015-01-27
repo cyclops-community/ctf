@@ -147,6 +147,15 @@ namespace CTF_int {
                  mapping *   tsr_edge_map);
 
   
+  /**
+   * \brief stretch virtualization by a factor
+   * \param[in] order number of maps to stretch
+   * \param[in] stretch_factor factor to strech by
+   * \param[in] maps mappings along each dimension to stretch
+   */
+  int stretch_virt(int       order,
+                   int       stretch_factor,
+                   mapping * maps);
 
 
 }

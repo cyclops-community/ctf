@@ -334,11 +334,11 @@ namespace CTF_int{
    * \param[out] order_tot number of total dimensions
    * \param[out] idx_arr 3*order_tot index array
    */
-  void inv_idx(int const          order_A,
+  void inv_idx(int                order_A,
                int const *        idx_A,
-               int const          order_B,
+               int                order_B,
                int const *        idx_B,
-               int const          order_C,
+               int                order_C,
                int const *        idx_C,
                int *              order_tot,
                int **             idx_arr);

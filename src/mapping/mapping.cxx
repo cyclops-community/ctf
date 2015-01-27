@@ -51,13 +51,6 @@ namespace CTF_int {
     return phase;
   }
 
-
-  /**
-   * \brief compute the physical rank of a mapping
-   *
-   * \param topo topology
-   * \return int physical rank
-   */
   int mapping::calc_phys_rank(topology const * topo) const {
     int rank, phase;
     if (this->type == NOT_MAPPED){
@@ -480,6 +473,33 @@ namespace CTF_int {
     }
     return CTF::SUCCESS;
   }
+
+  int stretch_virt(int       order,
+                   int       stretch_factor,
+                   mapping * maps){
+    int i;
+    mapping * map;
+    for (i=0; i<order; i++){
+      map = &maps[i];
+      while (map->has_child) map = map->child;
+      if (map->type == PHYSICAL_MAP){
+        if (map->has_child){
+          map->has_child    = 1;
+          map->child    = (mapping*)CTF_alloc(sizeof(mapping));
+          map->child->type  = VIRTUAL_MAP;
+          map->child->np    = stretch_factor;
+          map->child->has_child   = 0;
+        }
+      } else if (map->type == VIRTUAL_MAP){
+        map->np = map->np * stretch_factor;
+      } else {
+        map->type = VIRTUAL_MAP;
+        map->np   = stretch_factor;
+      }
+    }
+    return CTF::SUCCESS;
+  }
+
 
 
 
