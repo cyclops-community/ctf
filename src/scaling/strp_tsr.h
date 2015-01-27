@@ -11,14 +11,14 @@
 namespace CTF_int {
   class strp_tsr {
     public: 
-      int alloced;
-      int order;
-      int64_t blk_sz;
-      int * edge_len;
-      int * strip_dim;
-      int * strip_idx;
-      char * A;
-      char * buffer;
+      int      alloced;
+      int      order;
+      int64_t  blk_sz;
+      int *    edge_len;
+      int *    strip_dim;
+      int *    strip_idx;
+      char *   A;
+      char *   buffer;
       semiring sr_A;
       
       /**
@@ -181,16 +181,16 @@ namespace CTF_int {
    * \param[out] stpr class that recursively strips tensor
    * \return 1 if tensor needs to be stripped, 0 if not
    */
-  int strip_diag(int                 order,
-                 int                 order_tot,
-                 int const *              idx_map,
-                 int64_t            vrt_sz,
-                 mapping const *          edge_map,
-                 topology const *         topo,
-                 semiring const &         sr,
-                 int *                    blk_edge_len,
-                 int64_t *                blk_sz,
-                 strp_tsr **       stpr);
+  int strip_diag(int              order,
+                 int              order_tot,
+                 int const *      idx_map,
+                 int64_t          vrt_sz,
+                 mapping const *  edge_map,
+                 topology const * topo,
+                 semiring const & sr,
+                 int *            blk_edge_len,
+                 int64_t *        blk_sz,
+                 strp_tsr **      stpr);
 
 }
 

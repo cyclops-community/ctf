@@ -25,15 +25,15 @@ namespace CTF_int {
    * \brief copies scl object
    */
   scl_virt::scl_virt(scl * other) : scl(other) {
-    scl_virt * o   = (scl_virt*)other;
-    rec_scl       = o->rec_scl->clone();
-    num_dim       = o->num_dim;
-    virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
+    scl_virt * o = (scl_virt*)other;
+    rec_scl      = o->rec_scl->clone();
+    num_dim      = o->num_dim;
+    virt_dim     = (int*)CTF_alloc(sizeof(int)*num_dim);
     memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
-    order_A        = o->order_A;
-    blk_sz_A      = o->blk_sz_A;
-    idx_map_A     = o->idx_map_A;
+    order_A      = o->order_A;
+    blk_sz_A     = o->blk_sz_A;
+    idx_map_A    = o->idx_map_A;
   }
 
   /**
@@ -75,17 +75,17 @@ namespace CTF_int {
     ilda_A = lda_A + order_A;
     
 
-  #define SET_LDA_X(__X)                                                  \
-  do {                                                                    \
-    nb_##__X = 1;                                                         \
-    for (i=0; i<order_##__X; i++){                                 \
-      lda_##__X[i] = nb_##__X;                                            \
-      nb_##__X = nb_##__X*virt_dim[idx_map_##__X[i]];     \
-    }                                                                     \
-    memset(ilda_##__X, 0, num_dim*sizeof(int));                   \
-    for (i=0; i<order_##__X; i++){                                 \
-      ilda_##__X[idx_map_##__X[i]] += lda_##__X[i];                       \
-    }                                                                     \
+  #define SET_LDA_X(__X)                              \
+  do {                                                \
+    nb_##__X = 1;                                     \
+    for (i=0; i<order_##__X; i++){                    \
+      lda_##__X[i] = nb_##__X;                        \
+      nb_##__X = nb_##__X*virt_dim[idx_map_##__X[i]]; \
+    }                                                 \
+    memset(ilda_##__X, 0, num_dim*sizeof(int));       \
+    for (i=0; i<order_##__X; i++){                    \
+      ilda_##__X[idx_map_##__X[i]] += lda_##__X[i];   \
+    }                                                 \
   } while (0)
     SET_LDA_X(A);
   #undef SET_LDA_X
@@ -126,13 +126,13 @@ namespace CTF_int {
   seq_tsr_scl::seq_tsr_scl(scl * other) : scl(other) {
     seq_tsr_scl * o = (seq_tsr_scl*)other;
     
-    order          = o->order;
-    idx_map       = o->idx_map;
-    sym           = o->sym;
-    edge_len      = (int*)CTF_alloc(sizeof(int)*order);
+    order           = o->order;
+    idx_map         = o->idx_map;
+    sym             = o->sym;
+    edge_len        = (int*)CTF_alloc(sizeof(int)*order);
     memcpy(edge_len, o->edge_len, sizeof(int)*order);
-    is_custom = o->is_custom;
-    func = o->func;
+    is_custom       = o->is_custom;
+    func            = o->func;
   }
 
   scl * seq_tsr_scl::clone() {

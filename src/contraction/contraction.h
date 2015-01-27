@@ -259,14 +259,15 @@ namespace CTF_int {
       /**
        * \brief find best possible mapping for contraction and redistribute tensors to this mapping
        * \param[out] ctrf contraction class to run
+       * \param[in] do_remap whether to redistribute tensors
        * \return SUCCESS if valid mapping found, ERROR if not enough memory or another issue
        */
-      int map(ctr ** ctrf);
+      int map(ctr ** ctrf, bool do_remap=1);
  
       /**
         * \brief contracts tensors alpha*A*B+beta*C -> C.
         * \param[in] is_inner whether the tensors have two levels of blocking
-        *                     0->no blocking 1->inner_blocking 2->folding
+        *                     0->no blocking 1->folding
         * \param[in] inner_params parameters for inner contraction
         * \param[out] nvirt_all total virtualization factor
         * \param[in] is_used whether this ctr pointer will actually be run
@@ -274,7 +275,7 @@ namespace CTF_int {
         */
       ctr * construct_ctr(int            is_inner=0,
                           iparam const * inner_params=NULL,
-                          int *          nvirt_C=NULL,
+                          int *          nvirt_all=NULL,
                           int            is_used=1);
 
       /**
@@ -296,6 +297,67 @@ namespace CTF_int {
        */
       int home_contract();
   };
+
+
+  /**
+   * \brief sets up a ctr_2d_general (2D SUMMA) level where A is not communicated
+   *        function will be called with A/B/C permuted depending on desired alg
+   *
+   * \param[in] is_used whether this ctr will actually be run
+   * \param[in] global_comm comm for this CTF instance
+   * \param[in] i index in the total index map currently worked on
+   * \param[in,out] virt_dim virtual processor grid lengths
+   * \param[out] cg_edge_len edge lengths of ctr_2d_gen object to set
+   * \param[in,out] total_iter the total number of ctr_2d_gen iterations
+   * \param[in] A A tensor
+   * \param[in] i_A the index in A to which index i corresponds
+   * \param[out] cg_cdt_A the communicator for A to be set for ctr_2d_gen
+   * \param[out] cg_ctr_lda_A parameter of ctr_2d_gen corresponding to upper lda for lda_cpy
+   * \param[out] cg_ctr_sub_lda_A parameter of ctr_2d_gen corresponding to lower lda for lda_cpy
+   * \param[out] cg_move_A tells ctr_2d_gen whether A should be communicated
+   * \param[in,out] blk_len_A lengths of local A piece after this ctr_2d_gen level
+   * \param[in,out] blk_sz_A size of local A piece after this ctr_2d_gen level
+   * \param[in] virt_blk_edge_len_A edge lengths of virtual blocks of A
+   * \param[in] load_phase_A tells the offloader how often A buffer changes for ctr_2d_gen
+   *
+   * ... the other parameters are specified the same as for _A but this time for _B and _C
+   */
+  int  ctr_2d_gen_build(int                        is_used,
+                        CommData                   global_comm,
+                        int                        i,
+                        int *                      virt_dim,
+                        int &                      cg_edge_len,
+                        int &                      total_iter,
+                        tensor *                   A,
+                        int                        i_A,
+                        CommData &                 cg_cdt_A,
+                        int64_t &                  cg_ctr_lda_A,
+                        int64_t &                  cg_ctr_sub_lda_A,
+                        bool &                     cg_move_A,
+                        int *                      blk_len_A,
+                        int64_t &                  blk_sz_A,
+                        int const *                virt_blk_len_A,
+                        int &                      load_phase_A,
+                        tensor *                   B,
+                        int                        i_B,
+                        CommData &                 cg_cdt_B,
+                        int64_t &                  cg_ctr_lda_B,
+                        int64_t &                  cg_ctr_sub_lda_B,
+                        bool &                     cg_move_B,
+                        int *                      blk_len_B,
+                        int64_t &                  blk_sz_B,
+                        int const *                virt_blk_len_B,
+                        int &                      load_phase_B,
+                        tensor *                   C,
+                        int                        i_C,
+                        CommData &                 cg_cdt_C,
+                        int64_t &                  cg_ctr_lda_C,
+                        int64_t &                  cg_ctr_sub_lda_C,
+                        bool &                     cg_move_C,
+                        int *                      blk_len_C,
+                        int64_t &                  blk_sz_C,
+                        int const *                virt_blk_len_C,
+                        int &                      load_phase_C);
 }
 
 #endif

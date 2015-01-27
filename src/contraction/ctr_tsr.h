@@ -6,7 +6,7 @@
 #include "ctr_comm.h"
 #include "../shared/util.h"
 namespace CTF_int {
-  class ctr_virt {
+  class ctr_virt : public ctr {
     public: 
       ctr * rec_ctr;
       int num_dim;

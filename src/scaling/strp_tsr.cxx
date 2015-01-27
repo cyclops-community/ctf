@@ -6,14 +6,14 @@
 namespace CTF_int {
 
   strp_tsr::strp_tsr(strp_tsr * o) {
-    alloced       = o->alloced;
-    order          = o->order;
-    blk_sz        = o->blk_sz;
-    edge_len      = o->edge_len;
-    strip_dim     = o->strip_dim;
-    strip_idx     = o->strip_idx;
-    A             = o->A;
-    buffer = NULL;
+    alloced   = o->alloced;
+    order     = o->order;
+    blk_sz    = o->blk_sz;
+    edge_len  = o->edge_len;
+    strip_dim = o->strip_dim;
+    strip_idx = o->strip_idx;
+    A         = o->A;
+    buffer    = NULL;
   }
 
   strp_tsr* strp_tsr::clone(){
@@ -107,12 +107,12 @@ namespace CTF_int {
   }
 
   strp_sum::strp_sum(tsum * other) : tsum(other) {
-    strp_sum * o   = (strp_sum*)other;
-    rec_tsum      = o->rec_tsum->clone();
-    rec_strp_A    = o->rec_strp_A->clone();
-    rec_strp_B    = o->rec_strp_B->clone();
-    strip_A       = o->strip_A;
-    strip_B       = o->strip_B;
+    strp_sum * o = (strp_sum*)other;
+    rec_tsum     = o->rec_tsum->clone();
+    rec_strp_A   = o->rec_strp_A->clone();
+    rec_strp_B   = o->rec_strp_B->clone();
+    strip_A      = o->strip_A;
+    strip_B      = o->strip_B;
   }
 
   tsum* strp_sum::clone() {
@@ -164,14 +164,14 @@ namespace CTF_int {
   }
 
   strp_ctr::strp_ctr(ctr * other) : ctr(other) {
-    strp_ctr * o   = (strp_ctr*)other;
-    rec_ctr       = o->rec_ctr->clone();
-    rec_strp_A    = o->rec_strp_A->clone();
-    rec_strp_B    = o->rec_strp_B->clone();
-    rec_strp_C    = o->rec_strp_C->clone();
-    strip_A       = o->strip_A;
-    strip_B       = o->strip_B;
-    strip_C       = o->strip_C;
+    strp_ctr * o = (strp_ctr*)other;
+    rec_ctr      = o->rec_ctr->clone();
+    rec_strp_A   = o->rec_strp_A->clone();
+    rec_strp_B   = o->rec_strp_B->clone();
+    rec_strp_C   = o->rec_strp_C->clone();
+    strip_A      = o->strip_A;
+    strip_B      = o->strip_B;
+    strip_C      = o->strip_C;
   }
 
   ctr* strp_ctr::clone() {
@@ -253,7 +253,6 @@ namespace CTF_int {
   void strp_scl::run(){
     char * bA;
 
-
     rec_strp->A = this->A;
     rec_strp->run(0);
     bA = rec_strp->buffer;
@@ -272,16 +271,16 @@ namespace CTF_int {
     rec_strp->run(1);
   }
 
-  int strip_diag(int                 order,
-                 int                 order_tot,
-                 int const *              idx_map,
-                 int64_t            vrt_sz,
-                 mapping const *          edge_map,
-                 topology const *         topo,
-                 semiring const &         sr,
-                 int *                    blk_edge_len,
-                 int64_t *                blk_sz,
-                 strp_tsr **       stpr){
+  int strip_diag(int              order,
+                 int              order_tot,
+                 int const *      idx_map,
+                 int64_t          vrt_sz,
+                 mapping const *  edge_map,
+                 topology const * topo,
+                 semiring const & sr,
+                 int *            blk_edge_len,
+                 int64_t *        blk_sz,
+                 strp_tsr **      stpr){
     int64_t i;
     int need_strip;
     int * pmap, * edge_len, * sdim, * sidx;
@@ -336,16 +335,16 @@ namespace CTF_int {
       *blk_sz = (*blk_sz) / sdim[i];
     }
 
-    stripper->alloced     = 0;
-    stripper->order        = order;
-    stripper->edge_len    = edge_len;
-    stripper->strip_dim   = sdim;
-    stripper->strip_idx   = sidx;
-    stripper->buffer      = NULL;
-    stripper->blk_sz      = vrt_sz;
-    stripper->sr_A        = sr;
+    stripper->alloced   = 0;
+    stripper->order     = order;
+    stripper->edge_len  = edge_len;
+    stripper->strip_dim = sdim;
+    stripper->strip_idx = sidx;
+    stripper->buffer    = NULL;
+    stripper->blk_sz    = vrt_sz;
+    stripper->sr_A      = sr;
 
-    *stpr = stripper;
+    *stpr               = stripper;
 
     CTF_free(pmap);
 

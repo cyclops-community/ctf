@@ -744,14 +744,14 @@ namespace CTF_int {
       map_B = new_idx_map;
     }
 
-    summation newsum = summation(*this);
-    newsum.A = tnsr_A;
-    newsum.B = tnsr_B;
+    summation new_sum = summation(*this);
+    new_sum.A = tnsr_A;
+    new_sum.B = tnsr_B;
     if (tnsr_A == tnsr_B){
       tensor nnew_tsr = tensor(tnsr_A);
-      newsum.A = &nnew_tsr;
-      newsum.B = tnsr_B;
-      return newsum.sym_sum_tsr(run_diag);
+      new_sum.A = &nnew_tsr;
+      new_sum.B = tnsr_B;
+      return new_sum.sym_sum_tsr(run_diag);
       
       /*clone_tensor(ntid_A, 1, &new_tid);
       new_type = *type;
@@ -802,12 +802,12 @@ namespace CTF_int {
     }
 
 
-    if (unfold_broken_sym(NULL) != -1){
+    if (new_sum.unfold_broken_sym(NULL) != -1){
       if (A->wrld->cdt.rank == 0)
         DPRINTF(1,"Contraction index is broken\n");
 
       summation * unfold_sum;
-      sidx = unfold_broken_sym(&unfold_sum);
+      sidx = new_sum.unfold_broken_sym(&unfold_sum);
       int sy;
       sy = 0;
       for (i=0; i<A->order; i++){
@@ -831,7 +831,7 @@ namespace CTF_int {
         }
       } else {
         //get_sym_perms(&new_type, alpha, perm_types, signs);
-        get_sym_perms(newsum, perm_types, signs);
+        get_sym_perms(new_sum, perm_types, signs);
         if (A->wrld->cdt.rank == 0)
           DPRINTF(1,"Performing %d summation permutations\n",
                   (int)perm_types.size());
@@ -844,10 +844,10 @@ namespace CTF_int {
             tnsr_B->sr.addinv(alpha, new_alpha);
           perm_types[i].alpha = new_alpha;
           perm_types[i].beta = dbeta;
-          perm_types[i].execute();
+          perm_types[i].sum_tensors(run_diag);
           /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                       perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
-          dbeta = newsum.B->sr.addid;
+          dbeta = new_sum.B->sr.addid;
         }
 /*        for (i=0; i<(int)perm_types.size(); i++){
           free_type(&perm_types[i]);
@@ -856,7 +856,7 @@ namespace CTF_int {
         signs.clear();
       }
     } else {
-      newsum.sum_tensors(run_diag);
+      new_sum.sum_tensors(run_diag);
 /*      sum_tensors(alpha, beta, new_type.tid_A, new_type.tid_B, new_type.idx_map_A,
                   new_type.idx_map_B, ftsr, felm, run_diag);*/
     }
@@ -942,13 +942,13 @@ namespace CTF_int {
       tnsr_B = new_tsr;
       map_B = new_idx_map;
     }
-    summation newsum = summation(*this);
-    newsum.A = tnsr_A;
-    newsum.B = tnsr_B;
+    summation new_sum = summation(*this);
+    new_sum.A = tnsr_A;
+    new_sum.B = tnsr_B;
     if (tnsr_A == tnsr_B){
       tensor * nnew_tsr = new tensor(tnsr_A);
-      newsum.A = nnew_tsr;
-      newsum.B = tnsr_B;
+      new_sum.A = nnew_tsr;
+      new_sum.B = tnsr_B;
     } else{ 
      //FIXME: remove the below, sum_tensors should never be called without sym_sum
      int sign = align_symmetric_indices(tnsr_A->order,
@@ -1010,15 +1010,15 @@ namespace CTF_int {
         TAU_FSTART(map_fold);
         inner_stride = map_fold();
         TAU_FSTOP(map_fold);
-        sumf = newsum.construct_sum(inner_stride);
+        sumf = new_sum.construct_sum(inner_stride);
         /*alpha, beta, ntid_A, map_A, ntid_B, map_B,
                               ftsr, felm, inner_stride);*/
       } else
-        sumf = newsum.construct_sum();
+        sumf = new_sum.construct_sum();
         /*sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
                              ftsr, felm);*/
   #else
-      sumf = newsum.construct_sum();
+      sumf = new_sum.construct_sum();
       /*sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
                            ftsr, felm);*/
   #endif

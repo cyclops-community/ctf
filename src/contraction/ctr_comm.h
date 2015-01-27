@@ -38,7 +38,7 @@ namespace CTF_int{
       int el_size_A;
       int el_size_B;
       semiring sr_C;
-      char * beta;
+      char const * beta;
       int num_lyr; /* number of copies of this matrix being computed on */
       int idx_lyr; /* the index of this copy */
 
@@ -164,7 +164,7 @@ namespace CTF_int{
     /*  int lda_A;
       int lda_B;
       int lda_C;*/
-      char * alpha;
+      char const * alpha;
       int n;
       int m;
       int k;
@@ -282,7 +282,7 @@ namespace CTF_int{
 
   class seq_tsr_ctr : public ctr {
     public:
-      char * alpha;
+      char const * alpha;
       int order_A;
       int * edge_len_A;
       int const * idx_map_A;

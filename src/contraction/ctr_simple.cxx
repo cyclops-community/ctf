@@ -21,7 +21,7 @@ namespace CTF_int {
     sr_A = other->sr_A;
     sr_B = other->sr_B;
     sr_C = other->sr_C;
-    eta = other->beta;
+    beta = other->beta;
     num_lyr = other->num_lyr;
     idx_lyr = other->idx_lyr;
     buffer = NULL;

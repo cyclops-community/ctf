@@ -62,6 +62,24 @@ namespace CTF {
 }
 
 namespace CTF_int {
+  //latency time per message
+  #define COST_LATENCY (1.e-6)
+  //memory bandwidth: time per per byte
+  #define COST_MEMBW (1.e-9)
+  //network bandwidth: time per byte
+  #define COST_NETWBW (5.e-10)
+  //flop cost: time per flop
+  #define COST_FLOP (2.e-11)
+  //flop cost: time per flop
+  #define COST_OFFLOADBW (5.e-10)
+  //max total virtualization factor for mappings
+  #define MAX_NVIRT 256
+  //min total virtualization factor for mappings 
+  // (would be useful if explicit blockwise threading was enabled, which is not currently)
+  #ifndef MIN_NVIRT
+  #define MIN_NVIRT 1
+  #endif
+
 
   int64_t total_flop_count = 0;
 

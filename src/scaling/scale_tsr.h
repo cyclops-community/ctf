@@ -77,10 +77,10 @@ namespace CTF_int {
    * \param[out] order_tot number of total dimensions
    * \param[out] idx_arr 2*order_tot index array
    */
-  void inv_idx(int const          order_A,
-               int const *        idx_A,
-               int *              order_tot,
-               int **             idx_arr);
+  void inv_idx(int         order_A,
+               int const * idx_A,
+               int *       order_tot,
+               int **      idx_arr);
 
 }
 #endif // __SCL_TSR_H__
