@@ -4,16 +4,9 @@
 #include "ctr_comm.h"
 
 namespace CTF_int {
-  /**
-   * \brief deallocates generic ctr object
-   */
   ctr::~ctr(){
-    if (buffer != NULL) CTF_free(buffer);
   }
 
-  /**
-   * \brief copies generic ctr object
-   */
   ctr::ctr(ctr * other){
     A = other->A;
     B = other->B;
@@ -24,17 +17,10 @@ namespace CTF_int {
     beta = other->beta;
     num_lyr = other->num_lyr;
     idx_lyr = other->idx_lyr;
-    buffer = NULL;
   }
 
-  /**
-   * \brief deallocates ctr_dgemm object
-   */
   ctr_dgemm::~ctr_dgemm() { }
 
-  /**
-   * \brief copies ctr object
-   */
   ctr_dgemm::ctr_dgemm(ctr * other) : ctr(other) {
     ctr_dgemm * o = (ctr_dgemm*)other;
     n = o->n;
@@ -44,45 +30,26 @@ namespace CTF_int {
     transp_A = o->transp_A;
     transp_B = o->transp_B;
   }
-  /**
-   * \brief copies ctr object
-   */
   ctr * ctr_dgemm::clone() {
     return new ctr_dgemm(this);
   }
 
 
-  /**
-   * \brief returns the number of bytes of buffer space
-     we need 
-   * \return bytes needed
-   */
   int64_t ctr_dgemm::mem_fp(){
     return 0;
   }
 
 
-  /**
-   * \brief returns the number of bytes this kernel will send per processor
-   * \return bytes sent
-   */
   double ctr_dgemm::est_time_fp(int nlyr) {
     /* FIXME make cost proper, for now return sizes of each submatrix scaled by .2 */
     ASSERT(0);
     return n*m+m*k+n*k;
   }
 
-  /**
-   * \brief returns the number of bytes send by each proc recursively 
-   * \return bytes needed for recursive contraction
-   */
   double ctr_dgemm::est_time_rec(int nlyr) {
     return est_time_fp(nlyr);
   }
-
-  /**
-   * \brief a wrapper for zgemm
-   */
+/*
   template<> inline
   void ctr_dgemm< std::complex<double> >::run(){
     const int lda_A = transp_A == 'n' ? m : k;
@@ -105,9 +72,6 @@ namespace CTF_int {
     }
   }
 
-  /**
-   * \brief a wrapper for dgemm
-   */
   void ctr_dgemm::run(){
     const int lda_A = transp_A == 'n' ? m : k;
     const int lda_B = transp_B == 'n' ? k : n;
@@ -127,18 +91,12 @@ namespace CTF_int {
              this->C,
              lda_C);
     }
-  }
+  }*/
 
-  /**
-   * \brief deallocates ctr_lyr object
-   */
   ctr_lyr::~ctr_lyr() {
     delete rec_ctr;
   }
 
-  /**
-   * \brief copies ctr object
-   */
   ctr_lyr::ctr_lyr(ctr * other) : ctr(other) {
     ctr_lyr * o = (ctr_lyr*)other;
     rec_ctr = o->rec_ctr->clone();
@@ -155,27 +113,15 @@ namespace CTF_int {
   }
 
 
-  /**
-   * \brief returns the number of bytes of buffer space
-     we need 
-   * \return bytes needed
-   */
   int64_t ctr_lyr::mem_fp(){
     return 0;
   }
 
-  /**
-   * \brief returns the number of bytes of buffer space we need recursively 
-   * \return bytes needed for recursive contraction
-   */
   int64_t ctr_lyr::mem_rec() {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
 
-  /**
-   * \brief performs replication along a dimension, generates 2.5D algs
-   */
   void ctr_lyr::run(){
     rec_ctr->A            = this->A;
     rec_ctr->B            = this->B;
@@ -193,10 +139,6 @@ namespace CTF_int {
 
   }
 
-
-  /**
-   * \brief deallocates ctr_replicate object
-   */
   ctr_replicate::~ctr_replicate() {
     delete rec_ctr;
     for (int i=0; i<ncdt_A; i++){
@@ -216,9 +158,6 @@ namespace CTF_int {
       CTF_free(cdt_C);
   }
 
-  /**
-   * \brief copies ctr object
-   */
   ctr_replicate::ctr_replicate(ctr * other) : ctr(other) {
     ctr_replicate * o = (ctr_replicate*)other;
     rec_ctr = o->rec_ctr->clone();
@@ -230,16 +169,10 @@ namespace CTF_int {
     ncdt_C = o->ncdt_C;
   }
 
-  /**
-   * \brief copies ctr object
-   */
   ctr * ctr_replicate::clone() {
     return new ctr_replicate(this);
   }
 
-  /**
-   * \brief print ctr object
-   */
   void ctr_replicate::print() {
     int i;
     printf("ctr_replicate: \n");
@@ -261,10 +194,6 @@ namespace CTF_int {
     rec_ctr->print();
   }
 
-  /**
-   * \brief returns the number of bytes this kernel will send per processor
-   * \return bytes needed
-   */
   double ctr_replicate::est_time_fp(int nlyr){
     int i;
     double tot_sz;
@@ -284,35 +213,18 @@ namespace CTF_int {
     return tot_sz;
   }
 
-  /**
-   * \brief returns the number of bytes send by each proc recursively 
-   * \return bytes needed for recursive contraction
-   */
   double ctr_replicate::est_time_rec(int nlyr) {
     return rec_ctr->est_time_rec(nlyr) + est_time_fp(nlyr);
   }
 
-  /**
-   * \brief returns the number of bytes of buffer space
-     we need 
-   * \return bytes needed
-   */
   int64_t ctr_replicate::mem_fp(){
     return 0;
   }
 
-  /**
-   * \brief returns the number of bytes of buffer space we need recursively 
-   * \return bytes needed for recursive contraction
-   */
-  int64_t ctr_replicate::mem_rec() {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
 
-  /**
-   * \brief performs replication along a dimension, generates 2.5D algs
-   */
   void ctr_replicate::run(){
     int arank, brank, crank, i;
 

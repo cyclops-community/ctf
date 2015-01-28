@@ -5,9 +5,6 @@
 #include <climits>
 
 namespace CTF_int {
-  /**
-   * \brief deallocs ctr_2d_general object
-   */
   ctr_2d_general::~ctr_2d_general() {
     if (move_A) FREE_CDT(cdt_A);
     if (move_B) FREE_CDT(cdt_B);
@@ -16,9 +13,6 @@ namespace CTF_int {
       delete rec_ctr;
   }
 
-  /**
-   * \brief copies ctr object
-   */
   ctr_2d_general::ctr_2d_general(ctr * other) : ctr(other) {
     ctr_2d_general * o = (ctr_2d_general*)other;
     rec_ctr = o->rec_ctr->clone();
@@ -40,9 +34,6 @@ namespace CTF_int {
 #endif
   }
 
-  /**
-   * \brief print ctr object
-   */
   void ctr_2d_general::print() {
     printf("ctr_2d_general: edge_len = %d\n", edge_len);
     printf("move_A = %d, ctr_lda_A = " PRId64 ", ctr_sub_lda_A = " PRId64 "\n",
@@ -63,27 +54,10 @@ namespace CTF_int {
     rec_ctr->print();
   }
 
-
-
-  /**
-   * \brief copies ctr object
-   */
   ctr * ctr_2d_general::clone() {
     return new ctr_2d_general(this);
   }
 
-  /**
-   * \brief determines buffer and block sizes needed for ctr_2d_general
-   *
-   * \param[out] b_A block size of A if its communicated, 0 otherwise
-   * \param[out] b_B block size of A if its communicated, 0 otherwise
-   * \param[out] b_C block size of A if its communicated, 0 otherwise
-   * \param[out] b_A total size of A if its communicated, 0 otherwise
-   * \param[out] b_B total size of B if its communicated, 0 otherwise
-   * \param[out] b_C total size of C if its communicated, 0 otherwise
-   * \param[out] db contraction block size = min(b_A,b_B,b_C)
-   * \param[out] aux_size size of auxillary buffer needed 
-   */
   void ctr_2d_general::find_bsizes(int64_t & b_A,
                                    int64_t & b_B,
                                    int64_t & b_C,
@@ -98,13 +72,13 @@ namespace CTF_int {
     if (move_A){
       np_A        = cdt_A.np;
       b_A         = edge_len/np_A;
-      s_A         = cdt_A.estimate_bcast_time(el_size_A*ctr_lda_A*ctr_sub_lda_A);
+      s_A         = cdt_A.estimate_bcast_time(sr_A.el_size*ctr_lda_A*ctr_sub_lda_A);
       db          = MIN(b_A, db);
     } 
     if (move_B){
       np_B        = cdt_B.np;
       b_B         = edge_len/np_B;
-      s_B         = cdt_B.estimate_bcast_time(el_size_B*ctr_lda_B*ctr_sub_lda_B);
+      s_B         = cdt_B.estimate_bcast_time(sr_B.el_size*ctr_lda_B*ctr_sub_lda_B);
       db          = MIN(b_B, db);
     }
     if (move_C){
@@ -114,22 +88,15 @@ namespace CTF_int {
       db          = MIN(b_C, db);
     }
 
-    aux_size = db*MAX(move_A*el_size_A*s_A, MAX(move_B*el_size_B*s_B, move_C*sr_C.el_size*s_C));
+    aux_size = db*MAX(move_A*sr_A.el_size*s_A, MAX(move_B*sr_B.el_size*s_B, move_C*sr_C.el_size*s_C));
   }
 
-  /**
-   * \brief returns the number of bytes this kernel will send per processor
-   * \return bytes sent
-   */
   double ctr_2d_general::est_time_fp(int nlyr) {
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size);
     return ((s_A+s_B+s_C)*(double)db*edge_len/db)/MIN(nlyr,edge_len);
   }
-  /**
-   * \brief returns the number of bytes send by each proc recursively 
-   * \return bytes needed for recursive contraction
-   */
+
   double ctr_2d_general::est_time_rec(int nlyr) {
     int64_t db;
     db = int64_t_max;
@@ -142,30 +109,16 @@ namespace CTF_int {
     return (edge_len/db)*rec_ctr->est_time_rec(1) + est_time_fp(nlyr);
   }
 
-  /**
-   * \brief returns the number of bytes of buffer space
-     we need 
-   * \return bytes needed
-   */
   int64_t ctr_2d_general::mem_fp() {
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size);
-    return el_size_A*s_A*db+el_size_B*s_B*db+sr_C.el_size*s_C*db+aux_size;
+    return sr_A.el_size*s_A*db+sr_B.el_size*s_B*db+sr_C.el_size*s_C*db+aux_size;
   }
 
-  /**
-   * \brief returns the number of bytes of buffer space we need recursively 
-   * \return bytes needed for recursive contraction
-   */
   int64_t ctr_2d_general::mem_rec() {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
-  /**
-   * \brief Basically doing SUMMA, except assumes equal block size on
-   *  each processor. Performs rank-b updates 
-   *  where b is the smallest blocking factor among A and B or A and C or B and C. 
-   */
   void ctr_2d_general::run() {
     int owner_A, owner_B, owner_C,  alloced, ret;
     int64_t ib, c_A, c_B, c_C;
@@ -190,15 +143,15 @@ namespace CTF_int {
     
 #ifdef OFFLOAD
     if (alloc_host_buf){
-      host_pinned_alloc((void**)&buf_A, s_A*db*el_size_A);
-      host_pinned_alloc((void**)&buf_B, s_B*db*el_size_B);
+      host_pinned_alloc((void**)&buf_A, s_A*db*sr_A.el_size);
+      host_pinned_alloc((void**)&buf_B, s_B*db*sr_B.el_size);
       host_pinned_alloc((void**)&buf_C, s_C*db*sr_C.el_size);
 #endif
     if (0){
     } else {
-      ret = CTF_mst_alloc_ptr(s_A*db*el_size_A, (void**)&buf_A);
+      ret = CTF_mst_alloc_ptr(s_A*db*sr_A.el_size, (void**)&buf_A);
       ASSERT(ret==0);
-      ret = CTF_mst_alloc_ptr(s_B*db*el_size_B, (void**)&buf_B);
+      ret = CTF_mst_alloc_ptr(s_B*db*sr_B.el_size, (void**)&buf_B);
       LIBT_BSSERT(ret==0);
       ret = CTF_mst_alloc_ptr(s_C*db*sr_C.el_size, (void**)&buf_C);
       LIBT_CSSERT(ret==0);
@@ -215,22 +168,22 @@ namespace CTF_int {
             op_A = this->A;
           } else {
             op_A = buf_A;
-            lda_cpy(el_size_A,
+            lda_cpy(sr_A.el_size,
                     ctr_sub_lda_A*c_A, ctr_lda_A,
                     ctr_sub_lda_A*b_A, ctr_sub_lda_A*c_A, 
-                    this->A+el_size_A*(ib%b_A)*ctr_sub_lda_A, op_A);
+                    this->A+sr_A.el_size*(ib%b_A)*ctr_sub_lda_A, op_A);
           }
         } else
           op_A = buf_A;
-        POST_BCAST(op_A, c_A*s_A*el_size_A, COMM_CHAR_T, owner_A, cdt_A, 0);
+        POST_BCAST(op_A, c_A*s_A*sr_A.el_size, COMM_CHAR_T, owner_A, cdt_A, 0);
         if (c_A < db){ /* If the required A block is cut between 2 procs */
           if (rank_A == owner_A+1)
-            lda_cpy(el_size_A,
+            lda_cpy(sr_A.el_size,
                     ctr_sub_lda_A*(db-c_A), ctr_lda_A,
                     ctr_sub_lda_A*b_A, ctr_sub_lda_A*(db-c_A), 
                     this->A, buf_aux);
-          POST_BCAST(buf_aux, s_A*(db-c_A)*el_size_A, COMM_CHAR_T, owner_A+1, cdt_A, 0);
-          coalesce_bwd(el_size_A,
+          POST_BCAST(buf_aux, s_A*(db-c_A)*sr_A.el_size, COMM_CHAR_T, owner_A+1, cdt_A, 0);
+          coalesce_bwd(sr_A.el_size,
                        buf_A, 
                        buf_aux, 
                        ctr_sub_lda_A*db, 
@@ -243,13 +196,13 @@ namespace CTF_int {
           op_A = this->A;
         else {
           if (false && ctr_lda_A == 1)
-            op_A = this->A+el_size_A*ib*ctr_sub_lda_A;
+            op_A = this->A+sr_A.el_size*ib*ctr_sub_lda_A;
           else {
             op_A = buf_A;
-            lda_cpy(el_size_A,
+            lda_cpy(sr_A.el_size,
                     ctr_sub_lda_A, ctr_lda_A,
                     ctr_sub_lda_A*edge_len, ctr_sub_lda_A,
-                    this->A+el_size_A*ib*ctr_sub_lda_A, buf_A);
+                    this->A+sr_A.el_size*ib*ctr_sub_lda_A, buf_A);
           }      
         }
       }
@@ -261,22 +214,22 @@ namespace CTF_int {
             op_B = this->B;
           } else {
             op_B = buf_B;
-            lda_cpy(el_size_B,
+            lda_cpy(sr_B.el_size,
                     ctr_sub_lda_B*c_B, ctr_lda_B,
                     ctr_sub_lda_B*b_B, ctr_sub_lda_B*c_B, 
-                    this->B+el_size_B*(ib%b_B)*ctr_sub_lda_B, op_B);
+                    this->B+sr_B.el_size*(ib%b_B)*ctr_sub_lda_B, op_B);
           }
         } else 
           op_B = buf_B;
-        POST_BCAST(op_B, c_B*s_B*el_size_B, COMM_CHAR_T, owner_B, cdt_B, 0);
+        POST_BCAST(op_B, c_B*s_B*sr_B.el_size, COMM_CHAR_T, owner_B, cdt_B, 0);
         if (c_B < db){ /* If the required B block is cut between 2 procs */
           if (rank_B == owner_B+1)
-            lda_cpy(el_size_B,
+            lda_cpy(sr_B.el_size,
                     ctr_sub_lda_B*(db-c_B), ctr_lda_B,
                     ctr_sub_lda_B*b_B, ctr_sub_lda_B*(db-c_B), 
                     this->B, buf_aux);
-          POST_BCAST(buf_aux, s_B*(db-c_B)*el_size_B, COMM_CHAR_T, owner_B+1, cdt_B, 0);
-          coalesce_bwd(el_size_B,
+          POST_BCAST(buf_aux, s_B*(db-c_B)*sr_B.el_size, COMM_CHAR_T, owner_B+1, cdt_B, 0);
+          coalesce_bwd(sr_B.el_size,
                        buf_B, 
                        buf_aux, 
                        ctr_sub_lda_B*db, 
@@ -289,13 +242,13 @@ namespace CTF_int {
           op_B = this->B;
         else {
           if (false && ctr_lda_B == 1){
-            op_B = this->B+el_size_B*ib*ctr_sub_lda_B;
+            op_B = this->B+sr_B.el_size*ib*ctr_sub_lda_B;
           } else {
             op_B = buf_B;
-            lda_cpy(el_size_B,
+            lda_cpy(sr_B.el_size,
                     ctr_sub_lda_B, ctr_lda_B,
                     ctr_sub_lda_B*edge_len, ctr_sub_lda_B,
-                    this->B+el_size_B*ib*ctr_sub_lda_B, buf_B);
+                    this->B+sr_B.el_size*ib*ctr_sub_lda_B, buf_B);
           }      
         }
       }
@@ -307,7 +260,7 @@ namespace CTF_int {
           op_C = this->C;
         else {
           if (false && ctr_lda_C == 1) 
-            op_C = this->C+el_size_A*ib*ctr_sub_lda_C;
+            op_C = this->C+sr_A.el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
             rec_ctr->beta = sr_C.addid;

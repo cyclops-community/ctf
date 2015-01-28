@@ -3,10 +3,8 @@
 #ifndef __CTR_COMM_H__
 #define __CTR_COMM_H__
 
-//#include "../shared/comm.h"
-//#include "../shared/util.h"
-#include "../shared/offload.h"
 #include "../tensor/untyped_semiring.h"
+#include "ctr_offload.h"
 
 namespace CTF_int{
 
@@ -35,8 +33,8 @@ namespace CTF_int{
       char * A; /* m by k */
       char * B; /* k by n */
       char * C; /* m by n */
-      int el_size_A;
-      int el_size_B;
+      semiring sr_A;
+      semiring sr_B;
       semiring sr_C;
       char const * beta;
       int num_lyr; /* number of copies of this matrix being computed on */
@@ -50,8 +48,14 @@ namespace CTF_int{
       virtual double est_time_rec(int nlyr) { return est_time_fp(nlyr); };
       virtual ctr * clone() { return NULL; };
       
+      /**
+       * \brief deallocates generic ctr object
+       */
       virtual ~ctr();
     
+      /**
+       * \brief copies generic ctr object
+       */
       ctr(ctr * other);
       ctr(){ idx_lyr = 0; num_lyr = 1; }
   };
@@ -72,9 +76,26 @@ namespace CTF_int{
       ctr * rec_ctr;
       
       void run();
+      /**
+       * \brief returns the number of bytes of buffer space
+       *  we need 
+       * \return bytes needed
+       */
       int64_t mem_fp();
+      /**
+       * \brief returns the number of bytes need by each processor in this kernel and its recursive calls
+       * \return bytes needed for recursive contraction
+       */
       int64_t mem_rec();
+      /**
+       * \brief returns the execution time the local part this kernel is estimated to take
+       * \return time in sec
+       */
       double est_time_fp(int nlyr);
+      /**
+       * \brief returns the execution time this kernel and its recursive calls are estimated to take
+       * \return time in sec
+       */
       double est_time_rec(int nlyr);
       void print();
       ctr * clone();
@@ -82,78 +103,6 @@ namespace CTF_int{
       ctr_replicate(ctr * other);
       ~ctr_replicate();
       ctr_replicate(){}
-  };
-
-  class ctr_2d_general : public ctr {
-    public: 
-      int edge_len;
-
-      int64_t ctr_lda_A; /* local lda_A of contraction dimension 'k' */
-      int64_t ctr_sub_lda_A; /* elements per local lda_A 
-                            of contraction dimension 'k' */
-      int64_t ctr_lda_B; /* local lda_B of contraction dimension 'k' */
-      int64_t ctr_sub_lda_B; /* elements per local lda_B 
-                            of contraction dimension 'k' */
-      int64_t ctr_lda_C; /* local lda_C of contraction dimension 'k' */
-      int64_t ctr_sub_lda_C; /* elements per local lda_C 
-                            of contraction dimension 'k' */
-  #ifdef OFFLOAD
-      bool alloc_host_buf;
-  #endif
-
-      bool move_A;
-      bool move_B;
-      bool move_C;
-
-      CommData cdt_A;
-      CommData cdt_B;
-      CommData cdt_C;
-      /* Class to be called on sub-blocks */
-      ctr * rec_ctr;
-      
-      void print();
-      void run();
-      int64_t mem_fp();
-      int64_t mem_rec();
-      double est_time_fp(int nlyr);
-      double est_time_rec(int nlyr);
-      ctr * clone();
-      void find_bsizes(int64_t & b_A,
-                       int64_t & b_B,
-                       int64_t & b_C,
-                       int64_t & s_A,
-                       int64_t & s_B,
-                       int64_t & s_C,
-                       int64_t & db,
-                       int64_t & aux_size);
-      ctr_2d_general(ctr * other);
-      ~ctr_2d_general();
-      ctr_2d_general(){ move_A=0; move_B=0; move_C=0; }
-  };
-
-  class ctr_2d_rect_bcast : public ctr {
-    public: 
-      int k;
-      int64_t ctr_lda_A; /* local lda_A of contraction dimension 'k' */
-      int64_t ctr_sub_lda_A; /* elements per local lda_A 
-                            of contraction dimension 'k' */
-      int64_t ctr_lda_B; /* local lda_B of contraction dimension 'k' */
-      int64_t ctr_sub_lda_B; /* elements per local lda_B 
-                            of contraction dimension 'k' */
-      CommData *   cdt_x;
-      CommData *   cdt_y;
-      /* Class to be called on sub-blocks */
-      ctr * rec_ctr;
-      
-      void print() {};
-      void run();
-      int64_t mem_fp();
-      int64_t mem_rec();
-      ctr * clone();
-
-      ctr_2d_rect_bcast(ctr * other);
-      ~ctr_2d_rect_bcast();
-      ctr_2d_rect_bcast(){}
   };
 
   /* Assume LDA equal to dim */
@@ -181,6 +130,9 @@ namespace CTF_int{
       ctr_dgemm(){}
   };
 
+  /**
+   * \brief performs replication along a dimension, generates 2.5D algs
+   */
   class ctr_lyr : public ctr {
     public: 
       /* Class to be called on sub-blocks */
@@ -199,78 +151,6 @@ namespace CTF_int{
       ~ctr_lyr();
       ctr_lyr(){}
   };
-
-  #ifdef OFFLOAD
-  class ctr_offload : public ctr {
-    public: 
-      /* Class to be called on sub-blocks */
-      ctr * rec_ctr;
-      int64_t size_A;
-      int64_t size_B;
-      int64_t size_C;
-      int iter_counter;
-      int total_iter;
-      int upload_phase_A;
-      int upload_phase_B;
-      int download_phase_C;
-      offload_ptr * ptr_A;
-      offload_ptr * ptr_B;
-      offload_ptr * ptr_C;
-      
-      /**
-       * \brief print ctr object
-       */
-      void print();
-
-      /**
-       * \brief performs replication along a dimension, generates 2.5D algs
-       */
-      void run();
-
-      /**
-       * \brief returns the number of bytes of buffer space
-         we need 
-       * \return bytes needed
-       */
-      int64_t mem_fp();
-
-      /**
-       * \brief returns the number of bytes of buffer space we need recursively 
-       * \return bytes needed for recursive contraction
-       */
-      int64_t mem_rec();
-
-      /**
-       * \brief returns the number of bytes this kernel will send per processor
-       * \return bytes needed
-       */
-      double est_time_fp(int nlyr);
-
-
-      /**
-       * \brief returns the number of bytes send by each proc recursively 
-       * \return bytes needed for recursive contraction
-       */
-      double est_time_rec(int nlyr);
-
-      /**
-       * \brief copies ctr object
-       */
-      ctr * clone();
-
-      /**
-       * \brief copies ctr object
-       */
-      ctr_offload(ctr * other);
-
-      /**
-       * \brief deallocates ctr_offload object
-       */
-      ~ctr_offload();
-      ctr_offload(){ iter_counter = 0; ptr_A = NULL; ptr_B = NULL; ptr_C = NULL; }
-  };
-  #endif
-
   struct iparam {
     int n;
     int m;

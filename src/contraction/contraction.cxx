@@ -3019,7 +3019,6 @@ namespace CTF_int {
     C->unfold();
     if (A->has_zero_edge_len || B->has_zero_edge_len
         || C->has_zero_edge_len){
-      tensor* C = C;
       if (!is_custom && !C->sr.isequal(beta,C->sr.mulid) && !C->has_zero_edge_len){ 
         int * new_idx_C; 
         int num_diag = 0;
@@ -3239,15 +3238,6 @@ namespace CTF_int {
   #else
     int ret;
     int was_home_A, was_home_B, was_home_C;
-    int was_cyclic_C;
-    int64_t old_size_C;
-    int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
-    int * old_padding_C, * old_edge_len_C;
-    tensor * A, * B, * C;
-    tensor * tnsr_A, * tnsr_B, * tnsr_C;
-    A = A;
-    B = B;
-    C = C;
     A->unfold();
     B->unfold();
     C->unfold();
@@ -3255,31 +3245,28 @@ namespace CTF_int {
     if (A->has_zero_edge_len || 
         B->has_zero_edge_len || 
         C->has_zero_edge_len){
-      if (beta != 1.0 && !C->has_zero_edge_len){ 
+      if (!is_custom && !C->sr.isequal(beta,C->sr.mulid) && !C->has_zero_edge_len){ 
         int * new_idx_C; 
         int num_diag = 0;
         new_idx_C = (int*)CTF_alloc(sizeof(int)*C->order);
         for (int i=0; i<C->order; i++){
           new_idx_C[i]=i-num_diag;
           for (int j=0; j<i; j++){
-            if (sidx_C[i] == sidx_C[j]){
+            if (idx_C[i] == idx_C[j]){
               new_idx_C[i]=new_idx_C[j];
               num_diag++;
               break;
             }
           }
         }
-        fseq_tsr_scl fs;
-        fs.func_ptr=sym_seq_scl_ref;
-        fseq_elm_scl felm;
-        felm.func_ptr = NULL;
-        scale_tsr(beta, stype->tid_C, new_idx_C, fs, felm); 
+        scaling scl = scaling(C, new_idx_C, beta);
+        scl.execute();
         CTF_free(new_idx_C);
       }
       return SUCCESS;
     }
 
-    contract_mst();
+    //contract_mst();
 
     //if (stype->tid_A == stype->tid_B || stype->tid_A == stype->tid_C){
     /*if (stype->tid_A == stype->tid_C){
@@ -3298,119 +3285,115 @@ namespace CTF_int {
       return ret;
     }*/ 
 
-    CTF_ctr_type_t ntype = *stype;
+    //CTF_ctr_type_t ntype = *stype;
+    contraction new_ctr = contraction(*this);;
 
     was_home_A = A->is_home;
     was_home_B = B->is_home;
     was_home_C = C->is_home;
 
     if (was_home_A){
-      clone_tensor(stype->tid_A, 0, &ntype.tid_A, 0);
-      tnsr_A = tensors[ntype.tid_A];
-      tnsr_A->data = A->data;
-      tnsr_A->home_buffer = A->home_buffer;
-      tnsr_A->is_home = 1;
-      tnsr_A->is_mapped = 1;
-      tnsr_A->itopo = A->itopo;
-      copy_mapping(A->order, A->edge_map, tnsr_A->edge_map);
-      tnsr_A->set_padding();
+//      clone_tensor(stype->tid_A, 0, &ntype.tid_A, 0);
+      new_ctr.A = new tensor(A, 0, 0); //tensors[ntype.tid_A];
+      new_ctr.A = new_ctr.A;
+      new_ctr.A->data = A->data;
+      new_ctr.A->home_buffer = A->home_buffer;
+      new_ctr.A->is_home = 1;
+      new_ctr.A->is_mapped = 1;
+      new_ctr.A->topo = A->topo;
+      copy_mapping(A->order, A->edge_map, new_ctr.A->edge_map);
+      new_ctr.A->set_padding();
     }     
     if (was_home_B){
-      if (stype->tid_A == stype->tid_B){
-        ntype.tid_B = ntype.tid_A;
-        tnsr_B = tensors[ntype.tid_B];
+      if (A == B){ //stype->tid_A == stype->tid_B){
+        new_ctr.B = new_ctr.A; //tensors[ntype.tid_B];
       } else {
-        clone_tensor(stype->tid_B, 0, &ntype.tid_B, 0);
-        tnsr_B = tensors[ntype.tid_B];
-        tnsr_B->data = B->data;
-        tnsr_B->home_buffer = B->home_buffer;
-        tnsr_B->is_home = 1;
-        tnsr_B->is_mapped = 1;
-        tnsr_B->itopo = B->itopo;
-        copy_mapping(B->order, B->edge_map, tnsr_B->edge_map);
-        tnsr_B->set_padding();
+        new_ctr.B = new tensor(B, 0, 0); //tensors[ntype.tid_A];
+/*        clone_tensor(stype->tid_B, 0, &ntype.tid_B, 0);
+        new_ctr.B = tensors[ntype.tid_B];*/
+        new_ctr.B->data = B->data;
+        new_ctr.B->home_buffer = B->home_buffer;
+        new_ctr.B->is_home = 1;
+        new_ctr.B->is_mapped = 1;
+        new_ctr.B->topo = B->topo;
+        copy_mapping(B->order, B->edge_map, new_ctr.B->edge_map);
+        new_ctr.B->set_padding();
       }
     }
     if (was_home_C){
-      if (stype->tid_C == stype->tid_A){
-        ntype.tid_C = ntype.tid_A;
-        tnsr_C = tensors[ntype.tid_C];
-      } else if (stype->tid_C == stype->tid_B){
-        ntype.tid_C = ntype.tid_B;
-        tnsr_C = tensors[ntype.tid_C];
+      if (C == A){ //stype->tid_C == stype->tid_A){
+        new_ctr.C = new_ctr.A; //tensors[ntype.tid_C];
+      } else if (C == B){ //stype->tid_C == stype->tid_B){
+        new_ctr.C = new_ctr.B; //tensors[ntype.tid_C];
       } else {
-        clone_tensor(stype->tid_C, 0, &ntype.tid_C, 0);
-        tnsr_C = tensors[ntype.tid_C];
-        tnsr_C->data = C->data;
-        tnsr_C->home_buffer = C->home_buffer;
-        tnsr_C->is_home = 1;
-        tnsr_C->is_mapped = 1;
-        tnsr_C->itopo = C->itopo;
-        copy_mapping(C->order, C->edge_map, tnsr_C->edge_map);
-        tnsr_C->set_padding();
+        new_ctr.C = new tensor(C, 0, 0); //tensors[ntype.tid_C];
+        /*clone_tensor(stype->tid_C, 0, &ntype.tid_C, 0);
+        new_ctr.C = tensors[ntype.tid_C];*/
+        new_ctr.C->data = C->data;
+        new_ctr.C->home_buffer = C->home_buffer;
+        new_ctr.C->is_home = 1;
+        new_ctr.C->is_mapped = 1;
+        new_ctr.C->topo = C->topo;
+        copy_mapping(C->order, C->edge_map, new_ctr.C->edge_map);
+        new_ctr.C->set_padding();
       }
     }
 
-    ret = sym_contract(&ntype, ftsr, felm, alpha, beta);
+    ret = new_ctr.sym_contract();//&ntype, ftsr, felm, alpha, beta);
     if (ret!= SUCCESS) return ret;
-    if (was_home_A) tnsr_A->unfold();
-    if (was_home_B && stype->tid_A != stype->tid_B) tnsr_B->unfold();
-    if (was_home_C) tnsr_C->unfold();
+    if (was_home_A) new_ctr.A->unfold();
+    if (was_home_B && A != B) new_ctr.B->unfold();
+    if (was_home_C) new_ctr.C->unfold();
 
-    if (was_home_C && !tnsr_C->is_home){
-      if (global_comm.rank == 0)
+    if (was_home_C && !new_ctr.C->is_home){
+      if (C->wrld->rank == 0)
         DPRINTF(2,"Migrating tensor %d back to home\n", stype->tid_C);
-      save_mapping(tnsr_C,
+      distribution dC = distribution(new_ctr.C);
+/*      save_mapping(new_ctr.C,
                    &old_phase_C, &old_rank_C,
                    &old_virt_dim_C, &old_pe_lda_C,
                    &old_size_C,
                    &was_cyclic_C, &old_padding_C,
-                   &old_edge_len_C, &topovec[tnsr_C->itopo]);
-      C->data = tnsr_C->data;
+                   &old_edge_len_C, &topovec[new_ctr.C->itopo]);*/
+      C->data = new_ctr.C->data;
       C->is_home = 0;
       TAU_FSTART(redistribute_for_ctr_home);
-      remap_tensor(stype->tid_C, C, C->topo, old_size_C,
+      C->redistribute(dC);
+/*      remap_tensor(stype->tid_C, C, C->topo, old_size_C,
                    old_phase_C, old_rank_C, old_virt_dim_C,
                    old_pe_lda_C, was_cyclic_C,
-                   old_padding_C, old_edge_len_C, global_comm);
+                   old_padding_C, old_edge_len_C, global_comm);*/
       TAU_FSTOP(redistribute_for_ctr_home);
-      memcpy(C->home_buffer, C->data, C->size*sizeof(dtype));
+      memcpy(C->home_buffer, C->data, C->size*C->sr.el_size);
       CTF_free(C->data);
       C->data = C->home_buffer;
       C->is_home = 1;
-      tnsr_C->is_data_aliased = 1;
-      del_tsr(ntype.tid_C);
-      CTF_free(old_phase_C);
-      CTF_free(old_rank_C);
-      CTF_free(old_virt_dim_C);
-      CTF_free(old_pe_lda_C);
-      CTF_free(old_padding_C);
-      CTF_free(old_edge_len_C);
+      new_ctr.C->is_data_aliased = 1;
+      delete new_ctr.C;
     } else if (was_home_C) {
-  /*    C->itopo = tnsr_C->itopo;
-      copy_mapping(C->order, tnsr_C->edge_map, C->edge_map);
+  /*    C->itopo = new_ctr.C->itopo;
+      copy_mapping(C->order, new_ctr.C->edge_map, C->edge_map);
       C->set_padding();*/
-      ASSERT(tnsr_C->data == C->data);
-      tnsr_C->is_data_aliased = 1;
-      del_tsr(ntype.tid_C);
+      ASSERT(new_ctr.C->data == C->data);
+      new_ctr.C->is_data_aliased = 1;
+      delete new_ctr.C;
     }
-    if (ntype.tid_A != ntype.tid_C){
-      if (was_home_A && !tnsr_A->is_home){
-        tnsr_A->has_home = 0;
-        del_tsr(ntype.tid_A);
+    if (new_ctr.A != new_ctr.C){ //ntype.tid_A != ntype.tid_C){
+      if (was_home_A && !new_ctr.A->is_home){
+        new_ctr.A->has_home = 0;
+        delete new_ctr.A;
       } else if (was_home_A) {
-        tnsr_A->is_data_aliased = 1;
-        del_tsr(ntype.tid_A);
+        new_ctr.A->is_data_aliased = 1;
+        delete new_ctr.A;
       }
     }
-    if (ntype.tid_B != ntype.tid_A &&
-        ntype.tid_B != ntype.tid_C){
-      if (was_home_B && stype->tid_A != stype->tid_B && !nB->is_home){
-        nB->has_home = 0;
-        del_tsr(ntype.tid_B);
-      } else if (was_home_B && stype->tid_A != stype->tid_B) {
-        nB->is_data_aliased = 1;
-        del_tsr(ntype.tid_B);
+    if (new_ctr.B != new_ctr.A && new_ctr.B != new_ctr.C){
+      if (was_home_B && A != B && !new_ctr.B->is_home){
+        new_ctr.B->has_home = 0;
+        delete new_ctr.B;
+      } else if (was_home_B && A != B) {
+        new_ctr.B->is_data_aliased = 1;
+        delete new_ctr.B;
       }
     }
     return SUCCESS;
