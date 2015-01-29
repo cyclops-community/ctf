@@ -1,5 +1,7 @@
 
 #include "../interface/common.h"
+#include "../interface/timer.h"
+#include "../summation/summation.h"
 #include "untyped_tensor.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"

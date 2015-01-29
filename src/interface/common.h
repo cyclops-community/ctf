@@ -14,16 +14,22 @@
 #include <iostream>
 #include <limits.h>
 #include "mpi.h"
-
-int  CTF_alloc_ptr(int64_t len, void ** const ptr);
-int  CTF_mst_alloc_ptr(int64_t len, void ** const ptr);
-void * CTF_alloc(int64_t len);
-void * CTF_mst_alloc(int64_t len);
-int  CTF_free(void * ptr, int const tid);
-int  CTF_free(void * ptr);
-
-
 namespace CTF {
+
+  /**
+   * labels corresponding to symmetry of each tensor dimension
+   * NS = 0 - nonsymmetric
+   * SY = 1 - symmetric
+   * AS = 2 - antisymmetric
+   * SH = 3 - symmetric hollow
+   */
+  #if (!defined NS && !defined SY && !defined SH)
+  #define NS 0
+  #define SY 1
+  #define AS 2
+  #define SH 3
+  #endif
+
 
   /**
    * \brief reduction types for tensor data
@@ -61,6 +67,7 @@ namespace CTF {
 
 }
 
+
 namespace CTF_int {
   //latency time per message
   #define COST_LATENCY (1.e-6)
@@ -79,8 +86,6 @@ namespace CTF_int {
   #ifndef MIN_NVIRT
   #define MIN_NVIRT 1
   #endif
-
-
 
   void flops_add(int64_t n);
 
@@ -219,6 +224,60 @@ namespace CTF_int {
                        int64_t const * recv_displs);
 
   };
+
+  #ifndef ENABLE_ASSERT
+  #ifdef DEBUG
+  #define ENABLE_ASSERT 1
+  #else
+  #define ENABLE_ASSERT 0
+  #endif
+  #endif
+
+  #ifndef ASSERT
+  #if ENABLE_ASSERT
+  #define ASSERT(...)                \
+  do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
+  #else
+  #define ASSERT(...) do {} while(0 && (__VA_ARGS__))
+  #endif
+  #endif
+
+
 }
+
+/*
+int  CTF_alloc_ptr(int64_t len, void ** const ptr);
+int  CTF_mst_alloc_ptr(int64_t len, void ** const ptr);
+void * CTF_alloc(int64_t len);
+void * CTF_mst_alloc(int64_t len);
+int  CTF_free(void * ptr, int const tid);
+int  CTF_free(void * ptr);
+*/
+
+inline int CTF_alloc_ptr(int64_t len, void ** const ptr){
+  int pm = posix_memalign(ptr, 16, len);
+  if (pm) return CTF::ERROR;
+  else return CTF::SUCCESS;
+}
+
+inline int CTF_mst_alloc_ptr(int64_t len, void ** const ptr){
+  return CTF_alloc_ptr(len, ptr);
+}
+inline void * CTF_alloc(int64_t len){
+  void * ptr;
+  int pm = posix_memalign(&ptr, 16, len);
+  if (pm){ ASSERT(0); return NULL; }
+  else return ptr;
+}
+inline void * CTF_mst_alloc(int64_t len){
+  return CTF_alloc(len);
+}
+inline void CTF_free(void * ptr, int const tid){
+  free(ptr);
+}
+inline void CTF_free(void * ptr){
+  free(ptr);
+}
+
 
 #endif

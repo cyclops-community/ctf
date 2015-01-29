@@ -4,6 +4,8 @@
 
 #include "mapping.h"
 #include "../shared/util.h"
+#include "../tensor/untyped_tensor.h"
+#include "../summation/sum_tsr.h"
 
 namespace CTF_int {
   mapping::mapping(){

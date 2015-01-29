@@ -1,6 +1,7 @@
 #include "symmetrization.h"
 #include "../tensor/untyped_tensor.h"
 #include "../shared/util.h"
+#include "../interface/timer.h"
 #include "sym_indices.h"
 
 namespace CTF_int {

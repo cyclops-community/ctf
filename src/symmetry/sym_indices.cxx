@@ -4,7 +4,6 @@
 #define __SYM_INDICES_HXX__
 
 #include "../interface/common.h"
-#include "../interface/tensor.h"
 
 struct index_locator_
 {

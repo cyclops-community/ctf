@@ -9,6 +9,7 @@ namespace CTF_int {
 
   class tensor;
 
+  inline
   int get_distribution_size(int order){
     return sizeof(int)*2 + sizeof(int64_t) + order*sizeof(int)*6;
   }

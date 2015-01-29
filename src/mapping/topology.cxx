@@ -2,6 +2,7 @@
 
 #include "topology.h"
 #include "../shared/util.h"
+#include "../mapping/mapping.h"
 
 #ifdef BGQ
 #include "mpix.h"

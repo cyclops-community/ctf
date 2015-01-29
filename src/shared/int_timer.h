@@ -1,7 +1,6 @@
 #ifndef __INT_TIMER_H__
 #define __INT_TIMER_H__
 
-#include "../../include/ctf.hpp"
 /**
  * \defgroup timer Timing and cost measurement
  * @{

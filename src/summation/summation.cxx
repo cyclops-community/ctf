@@ -11,6 +11,7 @@
 #include "../symmetry/symmetrization.h"
 #include "../redistribution/folding.h"
 #include "../redistribution/redist.h"
+#include "../scaling/scaling.h"
 
 namespace CTF_int {
 

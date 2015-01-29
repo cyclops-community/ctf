@@ -5,7 +5,6 @@
 #include "string.h"
 #include "assert.h"
 #include "util.h"
-#include "../../include/ctf.hpp"
 #include "cblas.h"
 
 
