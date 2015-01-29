@@ -62,11 +62,13 @@ namespace CTF {
    */
   class Timer_epoch{
     private:
+#ifdef PROFILE
       Timer * tmr_inner;
       Timer * tmr_outer;
-      std::vector<Function_timer> saved_function_timers;
       double save_excl_time;
       double save_complete_time; 
+#endif
+      std::vector<Function_timer> saved_function_timers;
     public:
       char const * name;
       //create epoch called name

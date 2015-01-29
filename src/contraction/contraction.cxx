@@ -9,6 +9,7 @@
 #include "sym_seq_ctr.h"
 #include "ctr_tsr.h"
 #include "ctr_comm.h"
+#include "ctr_2d_general.h"
 #include "../symmetry/sym_indices.h"
 #include "../symmetry/symmetrization.h"
 #include "../redistribution/folding.h"

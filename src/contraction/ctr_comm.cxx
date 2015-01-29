@@ -2,6 +2,7 @@
 
 #include "../shared/util.h"
 #include "ctr_comm.h"
+#include "sym_seq_ctr.h"
 
 namespace CTF_int {
   ctr::~ctr(){
@@ -126,33 +127,37 @@ namespace CTF_int {
     rec_ctr->A            = this->A;
     rec_ctr->B            = this->B;
     rec_ctr->C            = this->C;
-    rec_ctr->beta         = cdt.rank > 0 ? 0.0 : this->beta;
+    if (cdt.rank != 0)
+      rec_ctr->beta = sr_C.addid;
+    else
+      rec_ctr->beta = this->beta; 
     rec_ctr->num_lyr      = cdt.np;
     rec_ctr->idx_lyr      = cdt.rank;
 
     rec_ctr->run();
     
     /* FIXME: unnecessary except for current DCMF wrapper */
-    COMM_BARRIER(cdt);
+    //COMM_BARRIER(cdt);
     /* FIXME Won't work for single precision */
-    ALLREDUCE(MPI_IN_PLACE, this->C, sz_C*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt);
+    //ALLREDUCE(MPI_IN_PLACE, this->C, sz_C*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt);
+    MPI_Allreduce(MPI_IN_PLACE, this->C, sz_C, sr_C.mdtype, sr_C.addmop, cdt.cm);
 
   }
 
   ctr_replicate::~ctr_replicate() {
     delete rec_ctr;
     for (int i=0; i<ncdt_A; i++){
-      FREE_CDT(cdt_A[i]);
+      cdt_A[i].deactivate();
     }
     if (ncdt_A > 0)
       CTF_free(cdt_A);
     for (int i=0; i<ncdt_B; i++){
-      FREE_CDT(cdt_B[i]);
+      cdt_B[i].deactivate();
     }
     if (ncdt_B > 0)
       CTF_free(cdt_B);
     for (int i=0; i<ncdt_C; i++){
-      FREE_CDT(cdt_C[i]);
+      cdt_C[i].deactivate();
     }
     if (ncdt_C > 0)
       CTF_free(cdt_C);
@@ -221,6 +226,7 @@ namespace CTF_int {
     return 0;
   }
 
+  int64_t ctr_replicate::mem_rec(){
     return rec_ctr->mem_rec() + mem_fp();
   }
 
@@ -231,11 +237,13 @@ namespace CTF_int {
     arank = 0, brank = 0, crank = 0;
     for (i=0; i<ncdt_A; i++){
       arank += cdt_A[i].rank;
-      POST_BCAST(this->A, size_A*sr_A.el_size, COMM_CHAR_T, 0, cdt_A[i], 0);
+//      POST_BCAST(this->A, size_A*sr_A.el_size, COMM_CHAR_T, 0, cdt_A[i], 0);
+      MPI_Bcast(this->A, size_A*sr_A.el_size, MPI_CHAR, 0, cdt_A[i].cm);
     }
     for (i=0; i<ncdt_B; i++){
       brank += cdt_B[i].rank;
-      POST_BCAST(this->B, size_B*sr_B.el_size, COMM_CHAR_T, 0, cdt_B[i], 0);
+//      POST_BCAST(this->B, size_B*sr_B.el_size, COMM_CHAR_T, 0, cdt_B[i], 0);
+      MPI_Bcast(this->B, size_B*sr_B.el_size, MPI_CHAR, 0, cdt_B[i].cm);
     }
     for (i=0; i<ncdt_C; i++){
       crank += cdt_C[i].rank;
@@ -243,22 +251,25 @@ namespace CTF_int {
     if (crank != 0) this->sr_C.set(this->C, this->sr_C.addid, size_C);
     else {
       for (i=0; i<size_C; i++){
-        this->C[i] = this->beta * this->C[i];
+        sr_C.mul(this->beta, this->C+i*sr_C.el_size, this->C+i*sr_C.el_size);
       }
     }
 
     rec_ctr->A            = this->A;
     rec_ctr->B            = this->B;
     rec_ctr->C            = this->C;
-    rec_ctr->beta         = crank != 0 ? 0.0 : 1.0;
+    if (crank != 0)
+      rec_ctr->beta = sr_C.addid;
+    else
+      rec_ctr->beta = sr_C.mulid; 
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
 
     rec_ctr->run();
     
     for (i=0; i<ncdt_C; i++){
-      /* FIXME Won't work for single precision */
-      ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype, sr_C.addmop, cdt_C[i]);
+      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype, sr_C.addmop, cdt_C[i]);
+      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype, sr_C.addmop, cdt_C[i].cm);
     }
 
     if (arank != 0){
@@ -304,19 +315,17 @@ namespace CTF_int {
     edge_len_B    = (int*)CTF_alloc(sizeof(int)*order_B);
     memcpy(edge_len_B, o->edge_len_B, sizeof(int)*order_B);
 
-    order_C        = o->order_C;
-    idx_map_C     = o->idx_map_C;
-    sym_C         = (int*)CTF_alloc(sizeof(int)*order_C);
+    order_C      = o->order_C;
+    idx_map_C    = o->idx_map_C;
+    sym_C        = (int*)CTF_alloc(sizeof(int)*order_C);
     memcpy(sym_C, o->sym_C, sizeof(int)*order_C);
-    edge_len_C    = (int*)CTF_alloc(sizeof(int)*order_C);
+    edge_len_C   = (int*)CTF_alloc(sizeof(int)*order_C);
     memcpy(edge_len_C, o->edge_len_C, sizeof(int)*order_C);
 
-    is_inner      = o->is_inner;
-    inner_params  = o->inner_params;
-    is_custom     = o->is_custom;
-    custom_params = o->custom_params;
-    
-    func_ptr = o->func_ptr;
+    is_inner     = o->is_inner;
+    inner_params = o->inner_params;
+    is_custom    = o->is_custom;
+    func         = o->func;
   }
 
   ctr * seq_tsr_ctr::clone() {
@@ -330,9 +339,9 @@ namespace CTF_int {
     uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A);
     uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B);
     uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C);
-    if (is_inner) size_A *= inner_params.m*inner_params.k*el_size;
-    if (is_inner) size_B *= inner_params.n*inner_params.k*el_size;
-    if (is_inner) size_C *= inner_params.m*inner_params.n*el_size;
+    if (is_inner) size_A *= inner_params.m*inner_params.k*sr_A.el_size;
+    if (is_inner) size_B *= inner_params.n*inner_params.k*sr_B.el_size;
+    if (is_inner) size_C *= inner_params.m*inner_params.n*sr_C.el_size;
    
     ASSERT(size_A > 0);
     ASSERT(size_B > 0);
@@ -367,71 +376,68 @@ namespace CTF_int {
   void seq_tsr_ctr::run(){
     if (is_custom){
       ASSERT(is_inner == 0);
-      sym_seq_ctr_cust(
-                      this->alpha,
-                      this->A,
-                      order_A,
-                      edge_len_A,
-                      edge_len_A,
-                      sym_A,
-                      idx_map_A,
-                      this->B,
-                      order_B,
-                      edge_len_B,
-                      edge_len_B,
-                      sym_B,
-                      idx_map_B,
-                      this->beta,
-                      this->C,
-                      order_C,
-                      edge_len_C,
-                      edge_len_C,
-                      sym_C,
-                      idx_map_C,
-                      &custom_params);
+      sym_seq_ctr_cust(this->A,
+                       sr_A,
+                       order_A,
+                       edge_len_A,
+                       sym_A,
+                       idx_map_A,
+                       this->B,
+                       sr_B,
+                       order_B,
+                       edge_len_B,
+                       sym_B,
+                       idx_map_B,
+                       this->C,
+                       sr_C,
+                       order_C,
+                       edge_len_C,
+                       sym_C,
+                       idx_map_C,
+                       func);
     } else if (is_inner){
       sym_seq_ctr_inr(this->alpha,
                       this->A,
+                      sr_A,
                       order_A,
-                      edge_len_A,
                       edge_len_A,
                       sym_A,
                       idx_map_A,
                       this->B,
+                      sr_B,
                       order_B,
-                      edge_len_B,
                       edge_len_B,
                       sym_B,
                       idx_map_B,
                       this->beta,
                       this->C,
+                      sr_C,
                       order_C,
-                      edge_len_C,
                       edge_len_C,
                       sym_C,
                       idx_map_C,
                       &inner_params);
     } else {
-      func_ptr.func_ptr(this->alpha,
-                        this->A,
-                        order_A,
-                        edge_len_A,
-                        edge_len_A,
-                        sym_A,
-                        idx_map_A,
-                        this->B,
-                        order_B,
-                        edge_len_B,
-                        edge_len_B,
-                        sym_B,
-                        idx_map_B,
-                        this->beta,
-                        this->C,
-                        order_C,
-                        edge_len_C,
-                        edge_len_C,
-                        sym_C,
-                        idx_map_C);
+      sym_seq_ctr_ref(this->alpha,
+                      this->A,
+                      sr_A,
+                      order_A,
+                      edge_len_A,
+                      sym_A,
+                      idx_map_A,
+                      this->B,
+                      sr_B,
+                      order_B,
+                      edge_len_B,
+                      sym_B,
+                      idx_map_B,
+                      this->beta,
+                      this->C,
+                      sr_C,
+                      order_C,
+                      edge_len_C,
+                      sym_C,
+                      idx_map_C);
     }
   }
 

@@ -108,14 +108,14 @@ namespace CTF_int {
     int64_t i, off_A, off_B, off_C;
     int nb_A, nb_B, nb_C, alloced, ret; 
 
-    if (this->buffer != NULL){    
+    /*if (this->buffer != NULL){    
       alloced = 0;
       idx_arr = (int*)this->buffer;
-    } else {
+    } else {*/
       alloced = 1;
       ret = CTF_alloc_ptr(mem_fp(), (void**)&idx_arr);
       ASSERT(ret==0);
-    }
+//    }
 
     
     lda_A = idx_arr + VIRT_NTD*num_dim;
@@ -188,7 +188,10 @@ namespace CTF_int {
             tid_rec_ctr->A        = this->A + off_A*blk_sz_A;
             tid_rec_ctr->B        = this->B + off_B*blk_sz_B;
             tid_rec_ctr->C        = this->C + off_C*blk_sz_C;
-            tid_rec_ctr->beta     = beta_arr[off_C]>0 ? 1.0 : this->beta;
+            if (beta_arr[off_C]>0)
+              rec_ctr->beta = sr_B.mulid;
+            else
+              rec_ctr->beta = this->beta; 
             beta_arr[off_C]       = 1;
             tid_rec_ctr->run();
           }
@@ -214,7 +217,6 @@ namespace CTF_int {
     }
     if (alloced){
       CTF_free(idx_arr);
-      this->buffer = NULL;
     }
     CTF_free(beta_arr);
     TAU_FSTOP(ctr_virt);

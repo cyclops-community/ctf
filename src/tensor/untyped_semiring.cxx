@@ -254,26 +254,66 @@ namespace CTF_int {
   }
 
 
-  void semiring::copy(int64_t n, char const * a, int64_t lda_a, char * b, int64_t lda_b) const {
+  void semiring::copy(int64_t n, char const * a, int64_t inc_a, char * b, int64_t inc_b) const {
     switch (el_size) {
       case 4:
-        cblas_scopy(n, (float const*)a, lda_a, (float*)b, lda_b);
+        cblas_scopy(n, (float const*)a, inc_a, (float*)b, inc_b);
         break;
       case 8:
-        cblas_dcopy(n, (double const*)a, lda_a, (double*)b, lda_b);
+        cblas_dcopy(n, (double const*)a, inc_a, (double*)b, inc_b);
         break;
       case 16:
-        cblas_zcopy(n, (std::complex<double> const*)a, lda_a, (std::complex<double>*)b, lda_b);
+        cblas_zcopy(n, (std::complex<double> const*)a, inc_a, (std::complex<double>*)b, inc_b);
         break;
       default:
         #pragma omp parallel for
         for (int i=0; i<n; i++){
-          b[lda_a*i] = a[lda_b*i];
+          b[inc_a*i] = a[inc_b*i];
         }
         break;
     }
-
   }
+
+  void semiring::copy(int64_t      m,
+                      int64_t      n,
+                      char const * a,
+                      int64_t      lda_a,
+                      char *       b,
+                      int64_t      lda_b) const {
+    if (lda_a == m && lda_b == n){
+      memcpy(b,a,el_size*m*n);
+    } else {
+      for (int i=0; i<n; i++){
+        memcpy(b+el_size*lda_b*i,a+el_size*lda_a*i,m*el_size);
+      }
+    }
+  }
+ 
+  void semiring::copy(int64_t      m,
+                      int64_t      n,
+                      char const * a,
+                      int64_t      lda_a,
+                      char const * alpha,
+                      char *       b,
+                      int64_t      lda_b,
+                      char const * beta) const {
+    if (!isequal(beta, mulid)){
+      if (lda_b == m)
+        scal(m*n, beta, b, 1);
+      else {
+        for (int i=0; i<n; i++){
+          scal(m, beta, b+i*lda_b*el_size, 1);
+        }
+      }
+    }
+    if (lda_a == m && lda_b == n){
+      axpy(m*n, alpha, a, 1, b, 1);
+    } else {
+      for (int i=0; i<n; i++){
+        axpy(m, alpha, a+el_size*lda_a*i, 1, b+el_size*lda_b*i, 1);
+      }
+    }
+  }           
 
   void semiring::set(char * a, char const * b, int64_t n) const {
     switch (el_size) {

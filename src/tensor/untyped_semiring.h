@@ -124,7 +124,10 @@ namespace CTF_int {
        * \param[in] addmop addition operation to pass to MPI reductions
        * \param[in] add function pointer to add c=a+b on semiring
        * \param[in] mul function pointer to multiply c=a*b on semiring
+       * \param[in] addinv function pointer to additive inverse b=-a
        * \param[in] gemm function pointer to multiply blocks C, A, and B on semiring
+       * \param[in] axpy function pointer to add A to B on semiring
+       * \param[in] scal function pointer to scale A on semiring
        */
       semiring(    int          el_size, 
                    char const * addid,
@@ -137,7 +140,7 @@ namespace CTF_int {
                                 char const * b,
                                 char       * c),
                    void (*addinv)(char const * a,
-                                char  * b) = NULL,
+                                  char  * b)=NULL,
                    void (*gemm)(char         tA,
                                 char         tB,
                                 int          m,
@@ -172,8 +175,26 @@ namespace CTF_int {
       /** \brief copies n elements from array b to array a */
       void copy(char * a, char const * b, int64_t n) const;
       
-      /** \brief copies n elements TO array b with increlement lda_a FROM array a with inremeent lda_b */
-      void copy(int64_t n, char const * a, int64_t lda_a, char * b, int64_t lda_b) const;
+      /** \brief copies n elements TO array b with increment inc_a FROM array a with increment inc_b */
+      void copy(int64_t n, char const * a, int64_t inc_a, char * b, int64_t inc_b) const;
+      
+      /** \brief copies m-by-n submatrix from a with lda_a to b with lda_b  */
+      void copy(int64_t      m,
+                int64_t      n,
+                char const * a,
+                int64_t      lda_a,
+                char *       b,
+                int64_t      lda_b) const;
+      
+      /** \brief copies m-by-n submatrix from a with lda_a and scaling alpha to b with lda_b and scaling by 1 */
+      void copy(int64_t      m,
+                int64_t      n,
+                char const * a,
+                int64_t      lda_a,
+                char const * alpha,
+                char *       b,
+                int64_t      lda_b,
+                char const * beta) const;
       
       /** \brief copies pair b to element a */
       void copy_pair(char * a, char const * b) const;

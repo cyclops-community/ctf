@@ -95,18 +95,5 @@ namespace CTF_int{
       ~ctr_2d_general();
       ctr_2d_general(){ move_A=0; move_B=0; move_C=0; }
   };
-      
-      void print();
-      void run();
-      int64_t mem_fp();
-      int64_t mem_rec();
-      ctr * clone();
-
-      ctr_2d_rect_bcast(ctr * other);
-      ~ctr_2d_rect_bcast();
-      ctr_2d_rect_bcast(){}
-  };
-
-
 }
 #endif

@@ -32,6 +32,10 @@ namespace CTF_int {
       void *       buffer;
 
       virtual void run() {};
+      /**
+       * \brief returns the number of bytes of buffer space needed
+       * \return bytes needed
+       */
       virtual int64_t mem_fp() { return 0; };
       virtual tsum * clone() { return NULL; };
       
@@ -57,12 +61,19 @@ namespace CTF_int {
       void run();
       int64_t mem_fp();
       tsum * clone();
-      
+
+      /**
+       * \brief iterates over the dense virtualization block grid and contracts
+       */
       tsum_virt(tsum * other);
       ~tsum_virt();
       tsum_virt(){}
   };
 
+
+  /**
+   * \brief performs replication along a dimension, generates 2.5D algs
+   */
   class tsum_replicate : public tsum {
     public: 
       int64_t size_A; /* size of A blocks */

@@ -9,15 +9,15 @@
 namespace CTF_int{
   int sym_seq_ctr_ref(char const * alpha,
                       char const * A,
+                      semiring     sr_A,
                       int          order_A,
                       int const *  edge_len_A,
-                      int const *  _lda_A,
                       int const *  sym_A,
                       int const *  idx_map_A,
                       char const * B,
+                      semiring     sr_B,
                       int          order_B,
                       int const *  edge_len_B,
-                      int const *  _lda_B,
                       int const *  sym_B,
                       int const *  idx_map_B,
                       char const * beta,
@@ -25,7 +25,6 @@ namespace CTF_int{
                       semiring     sr_C,
                       int          order_C,
                       int const *  edge_len_C,
-                      int const *  _lda_C,
                       int const *  sym_C,
                       int const *  idx_map_C){
     TAU_FSTART(sym_seq_ctr_ref);
@@ -65,7 +64,7 @@ namespace CTF_int{
       //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
       if (sym_pass){
         char tmp[sr_C.el_size];
-        sr_C.mul(A+idx_A*sr_C.el_size, B+idx_B*sr_C.el_size, tmp);
+        sr_C.mul(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, tmp);
         sr_C.mul(tmp, alpha, tmp);
         sr_C.add(tmp, C+idx_C*sr_C.el_size, C+idx_C*sr_C.el_size);
         CTF_FLOPS_ADD(3);
@@ -119,21 +118,18 @@ namespace CTF_int{
                        semiring       sr_A,
                        int            order_A,
                        int const *    edge_len_A,
-                       int const *    _lda_A,
                        int const *    sym_A,
                        int const *    idx_map_A,
                        char const *   B,
                        semiring       sr_B,
                        int            order_B,
                        int const *    edge_len_B,
-                       int const *    _lda_B,
                        int const *    sym_B,
                        int const *    idx_map_B,
                        char *         C,
                        semiring       sr_C,
                        int            order_C,
                        int const *    edge_len_C,
-                       int const *    _lda_C,
                        int const *    sym_C,
                        int const *    idx_map_C,
                        bivar_function func){
@@ -227,14 +223,12 @@ namespace CTF_int{
                       semiring       sr_A,
                       int            order_A,
                       int const *    edge_len_A,
-                      int const *    _lda_A,
                       int const *    sym_A,
                       int const *    idx_map_A,
                       char const *   B,
                       semiring       sr_B,
                       int            order_B,
                       int const *    edge_len_B,
-                      int const *    _lda_B,
                       int const *    sym_B,
                       int const *    idx_map_B,
                       char const *   beta,
@@ -242,7 +236,6 @@ namespace CTF_int{
                       semiring       sr_C,
                       int            order_C,
                       int const *    edge_len_C,
-                      int const *    _lda_C,
                       int const *    sym_C,
                       int const *    idx_map_C,
                       iparam const * prm){

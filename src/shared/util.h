@@ -282,8 +282,8 @@ namespace CTF_int {
 
   #ifdef COMM_TIME
   //ugly and scope limited, but whatever.
-  #define INIT_COMM_TIME                          \
-    volatile double __commTime =0.0, __commTimeDelta;     \
+  #define INIT_COMM_TIME                              \
+    volatile double __commTime =0.0, __commTimeDelta; \
     volatile double __critTime =0.0, __critTimeDelta;
 
   #define COMM_TIME_START()                       \
@@ -319,11 +319,11 @@ namespace CTF_int {
   }while(0)
 
 
-  void __CM(const int     end,
-            const CommData *cdt,
-            const int     p,
-            const int     iter,
-            const int     myRank);
+  void __CM(int              end,
+            const CommData * cdt,
+            int              p,
+            int              iter,
+            int              myRank);
   #else
   #define __CM(...)
   #define INIT_COMM_TIME
@@ -346,7 +346,7 @@ namespace CTF_int {
       CTF_mst(int64_t size);
       ~CTF_mst();
 
-      void alloc(int const len);
+      void alloc(int       len);
 
 
   }*/
@@ -362,70 +362,10 @@ namespace CTF_int {
   void CTF_mem_create();
   void CTF_mst_create(int64_t size);
   void CTF_mem_exit(int rank);
-  template <typename dtype>
-  void cxgemm(const char transa,  const char transb,
-              const int m,        const int n,
-              const int k,        const dtype a,
-              const dtype * A,    const int lda,
-              const dtype * B,    const int ldb,
-              const dtype b,      dtype * C,
-                                  const int ldc);
-  void cdcopy(const int n,
-              const double * dX,  const int incX,
-              double * dY,        const int incY);
 
-  void czcopy(const int n,
-              const std::complex<double> * dX,    const int incX,
-              std::complex<double> * dY,          const int incY);
-  template <typename dtype>
-  void cxaxpy(const int n,        dtype dA,
-              const dtype * dX,   const int incX,
-              dtype * dY, const int incY);
+  int64_t sy_packed_size(int order, const int* len, const int* sym);
 
-  template <typename dtype>
-  void cxcopy(const int n,
-              const dtype * dX,   const int incX,
-              dtype * dY, const int incY);
-
-  template <typename dtype>
-  void cxscal(const int n, dtype dA,
-              dtype * dX,  const int incX);
-
-  double cddot(const int n,       const double *dX,
-               const int incX,    const double *dY,
-               const int incY);
-
-
-  template<typename dtype>
-  void transp(const int size,  const int lda_i, const int lda_o,
-              const dtype *A, dtype *B);
-
-  template<typename dtype>
-  void coalesce_bwd(dtype         *B,
-                    dtype const   *B_aux,
-                    int const     k,
-                    int const     n,
-                    int const     kb);
-
-  /* Copies submatrix to submatrix */
-  template<typename dtype>
-  void lda_cpy(const int nrow,  const int ncol,
-               const int lda_A, const int lda_B,
-               const dtype *A,        dtype *B);
-
-  template<typename dtype>
-  void lda_cpy(const int nrow,  const int ncol,
-               const int lda_A, const int lda_B,
-               const dtype *A,        dtype *B,
-               const dtype a,  const dtype b);
-
-  void print_matrix(double *M, int n, int m);
-
-  //double util_dabs(double x);
-
-  int64_t sy_packed_size(const int order, const int* len, const int* sym);
-
-  int64_t packed_size(const int order, const int* len, const int* sym);
+  int64_t packed_size(int order, const int* len, const int* sym);
 
 
   /*
@@ -463,24 +403,13 @@ namespace CTF_int {
    * \param[in] A matrix to read from
    * \param[in,out] B matrix to write to
    */
-  template<typename dtype>
-  void lda_cpy(int nrow,  int ncol,
-               int lda_A, int lda_B,
-               const dtype *A,        dtype *B){
-    if (lda_A == nrow && lda_B == nrow){
-      memcpy(B,A,nrow*ncol*sizeof(dtype));
-    } else {
-      int i;
-      for (i=0; i<ncol; i++){
-        memcpy(B+lda_B*i,A+lda_A*i,nrow*sizeof(dtype));
-      }
-    }
-  }
-
-  void lda_cpy(int el_size,
-               int nrow,  int ncol,
-               int lda_A, int lda_B,
-               const char * A, char * B){
+  void lda_cpy(int          el_size,
+               int          nrow,
+               int          ncol,
+               int          lda_A,
+               int          lda_B,
+               const char * A,
+               char *       B){
     if (lda_A == nrow && lda_B == nrow){
       memcpy(B,A,el_size*nrow*ncol);
     } else {
@@ -492,78 +421,19 @@ namespace CTF_int {
   }
 
   /**
-   * \brief Copies submatrix to submatrix with scaling (column-major)
-   * \param[in] nrow number of rows
-   * \param[in] ncol number of columns
-   * \param[in] lda_A lda along rows for A
-   * \param[in] lda_B lda along rows for B
-   * \param[in] A matrix to read from
-   * \param[in,out] B matrix to write to
-   * \param[in] a factor to scale A
-   * \param[in] b factor to scale B
-   */
-  template<typename dtype>
-  void lda_cpy(const int nrow,  const int ncol,
-               const int lda_A, const int lda_B,
-               const dtype *A,        dtype *B,
-               const dtype a,  const dtype b){
-    int i,j;
-    if (lda_A == nrow && lda_B == nrow){
-      for (j=0; j<nrow*ncol; j++){
-        B[j] = B[j]*b + A[j]*a;
-      }
-    } else {
-      for (i=0; i<ncol; i++){
-        for (j=0; j<nrow; j++){
-          B[lda_B*i + j] = B[lda_B*i + j]*b + A[lda_A*i + j]*a;
-        }
-      }
-    }
-  }
-
-  void sfill(int          el_size, 
-             char *       target_start, 
-             char *       target_end, 
-             char const * value){
-    switch (el_size){
-      case 4:
-        std::fill((float*)target_start, 
-                  (float*)target_end,
-                  ((float*)value)[0]);
-        break;
-      case 8:
-        std::fill((double*)target_start, 
-                  (double*)target_end,
-                  ((double*)value)[0]);
-        break;
-      case 16:
-        std::fill((std::complex<double>*)target_start, 
-                  (std::complex<double>*)target_end,
-                  ((std::complex<double>*)value)[0]);
-        break;
-
-      default:
-        int64_t n = (target_start-target_end)/el_size;
-        for (int i=0; i<n; i++){
-          memcpy(target_start+i*el_size,value,el_size);
-        }
-        break;
-    }
-  } 
-
-  /**
    * \brief we receive a contiguous buffer kb-by-n B and (k-kb)-by-n B_aux
    * which is the block below.
    * To get a k-by-n buffer, we need to combine this buffer with our original
    * block. Since we are working with column-major ordering we need to interleave
    * the blocks. Thats what this function does.
+   * \param[in] el_size element size
    * \param[in,out] B the buffer to coalesce into
    * \param[in] B_aux the second buffer to coalesce from
    * \param[in] k the total number of rows
    * \param[in] n the number of columns
    * \param[in] kb the number of rows in a B originally
    */
-  template<typename dtype>
+/*  template<typename dtype>
   void coalesce_bwd(dtype         *B,
                     dtype const   *B_aux,
                     int           k,
@@ -574,7 +444,7 @@ namespace CTF_int {
       memcpy(B+i*k+kb, B_aux+i*(k-kb), (k-kb)*sizeof(dtype));
       if (i>0) memcpy(B+i*k, B+i*kb, kb*sizeof(dtype));
     }
-  }
+  }*/
   void coalesce_bwd(int           el_size,
                     char         *B,
                     char const   *B_aux,
@@ -588,27 +458,6 @@ namespace CTF_int {
     }
   }
 
-
-
-  /* Copies submatrix to submatrix */
-  template<typename dtype>
-  void transp(const int size,  const int lda_i, const int lda_o,
-              const dtype *A, dtype *B){
-    if (lda_i == 1){
-      memcpy(B,A,size*sizeof(dtype));
-    }
-    int i,j,o;
-    ASSERT(size%lda_o == 0);
-    ASSERT(lda_o%lda_i == 0);
-    for (o=0; o<size/lda_o; o++){
-      for (j=0; j<lda_i; j++){
-        for (i=0; i<lda_o/lda_i; i++){
-          B[o*lda_o + j*lda_o/lda_i + i] = A[o*lda_o+j+i*lda_i];
-        }
-      }
-    }
-  }
-  
   void cvrt_idx(int         order,
                 int const * lens,
                 int64_t     idx,

@@ -5,9 +5,6 @@
 #include "sym_seq_sum.h"
 
 namespace CTF_int {
-  /**
-   * \brief copies generic tsum object
-   */
   tsum::tsum(tsum * other){
     A      = other->A;
     alpha  = other->alpha;
@@ -18,17 +15,11 @@ namespace CTF_int {
     buffer = NULL;
   }
 
-  /**
-   * \brief deallocates tsum_virt object
-   */
   tsum_virt::~tsum_virt() {
     CTF_free(virt_dim);
     delete rec_tsum;
   }
 
-  /**
-   * \brief copies tsum object
-   */
   tsum_virt::tsum_virt(tsum * other) : tsum(other) {
     tsum_virt * o = (tsum_virt*)other;
     rec_tsum      = o->rec_tsum->clone();
@@ -45,26 +36,14 @@ namespace CTF_int {
     idx_map_B     = o->idx_map_B;
   }
 
-  /**
-   * \brief copies tsum object
-   */
   tsum * tsum_virt::clone() {
     return new tsum_virt(this);
   }
 
-
-  /**
-   * \brief returns the number of bytes of buffer space
-     we need
-   * \return bytes needed
-   */
   int64_t tsum_virt::mem_fp(){
     return (order_A+order_B+3*num_dim)*sizeof(int);
   }
 
-  /**
-   * \brief iterates over the dense virtualization block grid and contracts
-   */
   void tsum_virt::run(){
     int * idx_arr, * lda_A, * lda_B, * beta_arr;
     int * ilda_A, * ilda_B;
@@ -143,10 +122,6 @@ namespace CTF_int {
   }
 
 
-
-  /**
-   * \brief deallocates tsum_replicate object
-   */
   tsum_replicate::~tsum_replicate() {
     delete rec_tsum;
     for (int i=0; i<ncdt_A; i++){
@@ -161,9 +136,6 @@ namespace CTF_int {
       CTF_free(cdt_B);
   }
 
-  /**
-   * \brief copies tsum object
-   */
   tsum_replicate::tsum_replicate(tsum * other) : tsum(other) {
     tsum_replicate * o = (tsum_replicate*)other;
     rec_tsum = o->rec_tsum->clone();
@@ -173,26 +145,14 @@ namespace CTF_int {
     ncdt_B = o->ncdt_B;
   }
 
-  /**
-   * \brief copies tsum object
-   */
   tsum * tsum_replicate::clone() {
     return new tsum_replicate(this);
   }
 
-  /**
-   * \brief returns the number of bytes of buffer space
-     we need 
-   * \return bytes needed
-   */
   int64_t tsum_replicate::mem_fp(){
     return 0;
   }
 
-
-  /**
-   * \brief performs replication along a dimension, generates 2.5D algs
-   */
   void tsum_replicate::run(){
     int brank, i;
 
@@ -222,7 +182,6 @@ namespace CTF_int {
       /* FIXME Won't work for single precision */
       MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B.mdtype, sr_B.addmop, cdt_B[i].cm);
     }
-
 
   }
 

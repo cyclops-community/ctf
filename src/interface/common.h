@@ -90,7 +90,7 @@ namespace CTF_int {
   int64_t get_flops(){
     return total_flop_count;
   }
-
+/*
   void csgemm(char transa,      char transb,
               int m,            int n,
               int k,            float a,
@@ -140,6 +140,7 @@ namespace CTF_int {
               const std::complex<double> * dX,  int incX,
               std::complex<double> * dY,        int incY);
 
+
   void csscal(int n, float dA, float * dX, int incX);
 
   void cdscal(int n, double dA, double * dX, int incX);
@@ -147,7 +148,7 @@ namespace CTF_int {
   void ccscal(int n, std::complex<float> dA, std::complex<float> * dX, int incX);
 
   void czscal(int n, std::complex<double> dA, std::complex<double> * dX, int incX);
-
+*/
 
   class CommData {
     public:
