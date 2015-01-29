@@ -81,15 +81,10 @@ namespace CTF_int {
   #endif
 
 
-  int64_t total_flop_count = 0;
 
-  void flops_add(int64_t n){
-    total_flop_count+=n;
-  }
+  void flops_add(int64_t n);
 
-  int64_t get_flops(){
-    return total_flop_count;
-  }
+  int64_t get_flops();
 /*
   void csgemm(char transa,      char transb,
               int m,            int n,

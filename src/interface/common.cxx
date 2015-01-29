@@ -5,6 +5,15 @@
 
 namespace CTF_int {
 
+  int64_t total_flop_count = 0;
+
+  void flops_add(int64_t n){
+    total_flop_count+=n;
+  }
+
+  int64_t get_flops(){
+    return total_flop_count;
+  }
 
   CommData::CommData(){}
   CommData::~CommData(){

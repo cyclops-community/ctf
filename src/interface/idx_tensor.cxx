@@ -1,7 +1,6 @@
 /*Copyright (c) 2013, Edgar Solomonik, all rights reserved.*/
 
 #include "common.h"
-#include "expression.h"
 #include "schedule.h"
 
 namespace CTF {

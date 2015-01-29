@@ -1,7 +1,6 @@
 #ifndef __EXPRESSION_H__
 #define __EXPRESSION_H__
 
-#include "tensor.h"
 #include <map>
 #include <set>
 
@@ -11,6 +10,7 @@
  */
 
 namespace CTF {
+  template <typename dtype> class Tensor;
 
   template <typename dtype> class Term;
   template <typename dtype> class Sum_Term;
@@ -393,6 +393,7 @@ namespace CTF {
    */
 
 }
-
+#include "idx_tensor.cxx"
+#include "term.cxx"
 
 #endif

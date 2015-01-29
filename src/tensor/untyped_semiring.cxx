@@ -557,5 +557,6 @@ namespace CTF_int {
         return std::lower_bound(keys, keys+n, op.k())-keys;
     }
   }
+
 }
 
