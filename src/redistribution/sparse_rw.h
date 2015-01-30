@@ -35,13 +35,13 @@ namespace CTF_int {
    * \param[in] permutation permutation to apply to keys of each pair
    * \param[in,out] pairs the keys and values as pairs
    */
-  void depermute_keys(int              order,
-                      int              num_pair,
-                      int const *      edge_len,
-                      int const *      new_edge_len,
-                      int * const *    permutation,
-                      char *           pairs,
-                      semiring const & sr);
+  void depermute_keys(int           order,
+                      int           num_pair,
+                      int const *   edge_len,
+                      int const *   new_edge_len,
+                      int * const * permutation,
+                      char *        pairs,
+                      semiring      sr);
 
   /**
    * \brief assigns keys to an array of values
@@ -87,7 +87,7 @@ namespace CTF_int {
    */
   void bucket_by_pe( int               order,
                      int64_t           num_pair,
-                     int               np,
+                     int64_t           np,
                      int const *       phase,
                      int const *       virt_phase,
                      int const *       bucket_lda,

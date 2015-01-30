@@ -220,8 +220,8 @@ namespace CTF_int {
     fold_sum.A = A->rec_tsr;
     fold_sum.B = B->rec_tsr;
 
-    conv_idx<int>(ftsr_A->order, fidx_map_A, &fold_sum.idx_A,
-                  ftsr_B->order, fidx_map_B, &fold_sum.idx_B);
+    CTF::conv_idx<int>(ftsr_A->order, fidx_map_A, &fold_sum.idx_A,
+                       ftsr_B->order, fidx_map_B, &fold_sum.idx_B);
 
   #if DEBUG>=2
     if (global_comm.rank == 0){

@@ -586,9 +586,6 @@ namespace CTF {
        */
       ~Tensor();
   };
-
-
-
 }
 
 #include "tensor.cxx"

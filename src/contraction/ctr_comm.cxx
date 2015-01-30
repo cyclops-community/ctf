@@ -20,7 +20,7 @@ namespace CTF_int {
     idx_lyr = other->idx_lyr;
   }
 
-  ctr_dgemm::~ctr_dgemm() { }
+/*  ctr_dgemm::~ctr_dgemm() { }
 
   ctr_dgemm::ctr_dgemm(ctr * other) : ctr(other) {
     ctr_dgemm * o = (ctr_dgemm*)other;
@@ -42,14 +42,14 @@ namespace CTF_int {
 
 
   double ctr_dgemm::est_time_fp(int nlyr) {
-    /* FIXME make cost proper, for now return sizes of each submatrix scaled by .2 */
+    // FIXME make cost proper, for now return sizes of each submatrix scaled by .2 
     ASSERT(0);
     return n*m+m*k+n*k;
   }
 
   double ctr_dgemm::est_time_rec(int nlyr) {
     return est_time_fp(nlyr);
-  }
+  }*/
 /*
   template<> inline
   void ctr_dgemm< std::complex<double> >::run(){

@@ -402,9 +402,9 @@ namespace CTF_int {
     fold_ctr.B = fB; 
     fold_ctr.C = fC; 
 
-    conv_idx(fA->order, fidx_A, &fold_ctr.idx_A,
-             fB->order, fidx_B, &fold_ctr.idx_B,
-             fC->order, fidx_C, &fold_ctr.idx_C);
+    CTF::conv_idx<int>(fA->order, fidx_A, &fold_ctr.idx_A,
+                       fB->order, fidx_B, &fold_ctr.idx_B,
+                       fC->order, fidx_C, &fold_ctr.idx_C);
 
   #if DEBUG>=2
     if (global_comm.rank == 0){

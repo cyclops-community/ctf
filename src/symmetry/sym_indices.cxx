@@ -470,20 +470,19 @@ int overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
 }
 
 
-template int align_symmetric_indices<char*>(int order_A, char*& idx_A, const int* sym_A,
-                               int order_B, char*& idx_B, const int* sym_B);
+template int align_symmetric_indices<int*>(int order_A, int*& idx_A, const int* sym_A,
+                               int order_B, int*& idx_B, const int* sym_B);
 
-template int align_symmetric_indices<char*>(int order_A, char*& idx_A, const int* sym_A,
-                               int order_B, char*& idx_B, const int* sym_B,
-                               int order_C, char*& idx_C, const int* sym_C);
+template int align_symmetric_indices<int*>(int order_A, int*& idx_A, const int* sym_A,
+                               int order_B, int*& idx_B, const int* sym_B,
+                               int order_C, int*& idx_C, const int* sym_C);
 
+template int overcounting_factor<int*>(int order_A, int * const & idx_A, const int* sym_A,
+                           int order_B, int * const & idx_B, const int* sym_B,
+                           int order_C, int * const & idx_C, const int* sym_C);
 
-template int overcounting_factor<char*>(int order_A, char * const & idx_A, const int* sym_A,
-                           int order_B, char * const & idx_B, const int* sym_B,
-                           int order_C, char * const & idx_C, const int* sym_C);
-
-template int overcounting_factor<char*>(int order_A, char * const & idx_A, const int* sym_A,
-                           int order_B, char * const & idx_B, const int* sym_B);
+template int overcounting_factor<int*>(int order_A, int * const & idx_A, const int* sym_A,
+                           int order_B, int * const & idx_B, const int* sym_B);
 
 
 #endif

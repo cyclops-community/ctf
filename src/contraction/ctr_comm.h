@@ -106,13 +106,10 @@ namespace CTF_int{
   };
 
   /* Assume LDA equal to dim */
-  class ctr_dgemm : public ctr {
+/*  class ctr_dgemm : public ctr {
     public: 
       char transp_A;
       char transp_B;
-    /*  int lda_A;
-      int lda_B;
-      int lda_C;*/
       char const * alpha;
       int n;
       int m;
@@ -128,7 +125,7 @@ namespace CTF_int{
       ctr_dgemm(ctr * other);
       ~ctr_dgemm();
       ctr_dgemm(){}
-  };
+  };*/
 
   /**
    * \brief performs replication along a dimension, generates 2.5D algs

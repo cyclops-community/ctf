@@ -21,6 +21,24 @@ namespace CTF_int {
     order=-1;
   }
 
+  tensor::~tensor(){
+    if (order != -1){
+      unfold();
+      cfree(sym);
+      cfree(lens);
+      cfree(pad_edge_len);
+      cfree(padding);
+      cfree(scp_padding);
+      cfree(sym_table);
+      for (int i=0; i<order; i++){
+        edge_map[i].clear();
+      }
+      cfree(edge_map);
+      if (is_home) free(home_buffer);
+      else free(data);
+    }
+  }
+
   tensor::tensor(semiring     sr,
                  int          order,
                  int const *  edge_len,

@@ -442,13 +442,13 @@ namespace CTF_int {
     }
   }
 
-  void order_perm(contraction const & ctr,
-                  int *               idx_arr,
-                  int                 off_A,
-                  int                 off_B,
-                  int                 off_C,
-                  int &               add_sign,
-                  int &               mod){
+  void order_perm(contraction & ctr,
+                  int *         idx_arr,
+                  int           off_A,
+                  int           off_B,
+                  int           off_C,
+                  int &         add_sign,
+                  int &         mod){
 
     int  iA, jA, iB, iC, jB, jC, iiB, iiC, broken, tmp;
 
