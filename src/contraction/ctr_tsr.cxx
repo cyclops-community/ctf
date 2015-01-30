@@ -17,7 +17,7 @@ namespace CTF_int {
    * \brief deallocates ctr_virt object
    */
   ctr_virt::~ctr_virt() {
-    CTF_free(virt_dim);
+    CTF_int::cfree(virt_dim);
     delete rec_ctr;
   }
 
@@ -28,7 +28,7 @@ namespace CTF_int {
     ctr_virt * o   = (ctr_virt*)other;
     rec_ctr       = o->rec_ctr->clone();
     num_dim       = o->num_dim;
-    virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
+    virt_dim      = (int*)CTF_int::alloc(sizeof(int)*num_dim);
     memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
     order_A        = o->order_A;
@@ -113,7 +113,7 @@ namespace CTF_int {
       idx_arr = (int*)this->buffer;
     } else {*/
       alloced = 1;
-      ret = CTF_alloc_ptr(mem_fp(), (void**)&idx_arr);
+      ret = CTF_int::alloc_ptr(mem_fp(), (void**)&idx_arr);
       ASSERT(ret==0);
 //    }
 
@@ -143,7 +143,7 @@ namespace CTF_int {
   #undef SET_LDA_X
    
     /* dynammically determined size */ 
-    beta_arr = (int*)CTF_alloc(sizeof(int)*nb_C);
+    beta_arr = (int*)CTF_int::alloc(sizeof(int)*nb_C);
     memset(beta_arr, 0, nb_C*sizeof(int));
   #if (VIRT_NTD>1)
   #pragma omp parallel private(off_A,off_B,off_C,tidx_arr,i) 
@@ -216,9 +216,9 @@ namespace CTF_int {
       }
     }
     if (alloced){
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
     }
-    CTF_free(beta_arr);
+    CTF_int::cfree(beta_arr);
     TAU_FSTOP(ctr_virt);
   }
 

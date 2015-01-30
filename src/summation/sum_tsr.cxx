@@ -16,7 +16,7 @@ namespace CTF_int {
   }
 
   tsum_virt::~tsum_virt() {
-    CTF_free(virt_dim);
+    CTF_int::cfree(virt_dim);
     delete rec_tsum;
   }
 
@@ -24,7 +24,7 @@ namespace CTF_int {
     tsum_virt * o = (tsum_virt*)other;
     rec_tsum      = o->rec_tsum->clone();
     num_dim       = o->num_dim;
-    virt_dim      = (int*)CTF_alloc(sizeof(int)*num_dim);
+    virt_dim      = (int*)CTF_int::alloc(sizeof(int)*num_dim);
     memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
     order_A       = o->order_A;
@@ -56,7 +56,7 @@ namespace CTF_int {
       idx_arr = (int*)this->buffer;
     } else {
       alloced = 1;
-      ret = CTF_alloc_ptr(mem_fp(), (void**)&idx_arr);
+      ret = CTF_int::alloc_ptr(mem_fp(), (void**)&idx_arr);
       ASSERT(ret==0);
     }
     
@@ -83,7 +83,7 @@ namespace CTF_int {
   #undef SET_LDA_X
     
     /* dynammically determined size */ 
-    beta_arr = (int*)CTF_alloc(sizeof(int)*nb_B);
+    beta_arr = (int*)CTF_int::alloc(sizeof(int)*nb_B);
    
     memset(idx_arr, 0, num_dim*sizeof(int));
     memset(beta_arr, 0, nb_B*sizeof(int));
@@ -115,9 +115,9 @@ namespace CTF_int {
       if (i==num_dim) break;
     }
     if (alloced){
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
     }
-    CTF_free(beta_arr);
+    CTF_int::cfree(beta_arr);
     TAU_FSTOP(sum_virt);
   }
 
@@ -128,12 +128,12 @@ namespace CTF_int {
       cdt_A[i].deactivate();
     }
     if (ncdt_A > 0)
-      CTF_free(cdt_A);
+      CTF_int::cfree(cdt_A);
     for (int i=0; i<ncdt_B; i++){
       cdt_B[i].deactivate();
     }
     if (ncdt_B > 0)
-      CTF_free(cdt_B);
+      CTF_int::cfree(cdt_B);
   }
 
   tsum_replicate::tsum_replicate(tsum * other) : tsum(other) {
@@ -192,13 +192,13 @@ namespace CTF_int {
     order_A    = o->order_A;
     idx_map_A  = o->idx_map_A;
     sym_A      = o->sym_A;
-    edge_len_A = (int*)CTF_alloc(sizeof(int)*order_A);
+    edge_len_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
     memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
 
     order_B    = o->order_B;
     idx_map_B  = o->idx_map_B;
     sym_B      = o->sym_B;
-    edge_len_B = (int*)CTF_alloc(sizeof(int)*order_B);
+    edge_len_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(edge_len_B, o->edge_len_B, sizeof(int)*order_B);
     
     is_inner   = o->is_inner;
@@ -295,7 +295,7 @@ namespace CTF_int {
     }
     dim_max++;
     *order_tot = dim_max;
-    *idx_arr = (int*)CTF_alloc(sizeof(int)*2*dim_max);
+    *idx_arr = (int*)CTF_int::alloc(sizeof(int)*2*dim_max);
     std::fill((*idx_arr), (*idx_arr)+2*dim_max, -1);  
 
     for (i=0; i<order_A; i++){

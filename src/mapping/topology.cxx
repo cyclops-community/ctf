@@ -19,21 +19,21 @@ namespace CTF_int {
   }
   
   topology::~topology(){
-    CTF_free(lens);
-    CTF_free(lda);
-    CTF_free(dim_comm);
+    CTF_int::cfree(lens);
+    CTF_int::cfree(lda);
+    CTF_int::cfree(dim_comm);
   }
 
   topology::topology(topology const & other){
     order        = other.order;
 
-    lens         = (int*)CTF_alloc(order*sizeof(int));
+    lens         = (int*)CTF_int::alloc(order*sizeof(int));
     memcpy(lens, other.lens, order*sizeof(int));
 
-    lda          = (int*)CTF_alloc(order*sizeof(int));
+    lda          = (int*)CTF_int::alloc(order*sizeof(int));
     memcpy(lda, other.lda, order*sizeof(int));
 
-    dim_comm     = (CommData*)CTF_alloc(order*sizeof(CommData));
+    dim_comm     = (CommData*)CTF_int::alloc(order*sizeof(CommData));
     memcpy(dim_comm, other.dim_comm, order*sizeof(CommData));
 
     is_activated = other.is_activated;
@@ -45,9 +45,9 @@ namespace CTF_int {
                      bool        activate){
     glb_comm     = cdt;
     order        = order_;
-    lens         = (int*)CTF_alloc(order_*sizeof(int));
-    lda          = (int*)CTF_alloc(order_*sizeof(int));
-    dim_comm     = (CommData*)CTF_alloc(order_*sizeof(CommData));
+    lens         = (int*)CTF_int::alloc(order_*sizeof(int));
+    lda          = (int*)CTF_int::alloc(order_*sizeof(int));
+    dim_comm     = (CommData*)CTF_int::alloc(order_*sizeof(CommData));
     is_activated = false;
     
     int stride = 1, cut = 0;
@@ -80,20 +80,20 @@ namespace CTF_int {
     int * dim_len;
     topology * topo;
     if (mach == NO_TOPOLOGY){
-      dl = (int*)CTF_alloc(sizeof(int));
+      dl = (int*)CTF_int::alloc(sizeof(int));
       dl[0] = np;
       topo = new topology(1, dl, glb_comm, 1);
-      CTF_free(dl);
+      CTF_int::cfree(dl);
       return topo;
     }
     if (mach == TOPOLOGY_GENERIC){
       int order;
       factorize(np, &order, &dim_len);
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_free(dim_len);
+      CTF_int::cfree(dim_len);
       return topo;
     } else if (mach == TOPOLOGY_BGQ) {
-      dl = (int*)CTF_alloc((7)*sizeof(int));
+      dl = (int*)CTF_int::alloc((7)*sizeof(int));
       dim_len = dl;
       #ifdef BGQ
       if (np >= 512){
@@ -101,7 +101,7 @@ namespace CTF_int {
         MPIX_Hardware_t hw;
         MPIX_Hardware(&hw);
 
-        int * topo_dims = (int*)CTF_alloc(7*sizeof(int));
+        int * topo_dims = (int*)CTF_int::alloc(7*sizeof(int));
         topo_dims[0] = hw.Size[0];
         topo_dims[1] = hw.Size[1];
         topo_dims[2] = hw.Size[2];
@@ -121,7 +121,7 @@ namespace CTF_int {
           }
         }
         topo = new topology(dim, topo_dims, glb_comm, 1);
-        CTF_free(topo_dims);
+        CTF_int::cfree(topo_dims);
         return topo;
       } else 
       #else
@@ -129,7 +129,7 @@ namespace CTF_int {
         int order;
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
-        CTF_free(dim_len);
+        CTF_int::cfree(dim_len);
         return topo;
       }
       #endif
@@ -138,14 +138,14 @@ namespace CTF_int {
       if (1<<(int)log2(np) != np){
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
-        CTF_free(dim_len);
+        CTF_int::cfree(dim_len);
         return topo;
       }
       if ((int)log2(np) == 0) order = 0;
       else if ((int)log2(np) <= 2) order = 1;
       else if ((int)log2(np) <= 4) order = 2;
       else order = 3;
-      dim_len = (int*)CTF_alloc((order)*sizeof(int));
+      dim_len = (int*)CTF_int::alloc((order)*sizeof(int));
       switch ((int)log2(np)){
         case 0:
           break;
@@ -223,7 +223,7 @@ namespace CTF_int {
           break;
       }
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_free(dim_len);
+      CTF_int::cfree(dim_len);
       return topo;
     } else if (mach == TOPOLOGY_8D) {
       int order;
@@ -231,12 +231,12 @@ namespace CTF_int {
       if (1<<(int)log2(np) != np){
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
-        CTF_free(dim_len);
+        CTF_int::cfree(dim_len);
         return topo;
       }
       order = MIN((int)log2(np),8);
       if (order > 0)
-        dim_len = (int*)CTF_alloc((order)*sizeof(int));
+        dim_len = (int*)CTF_int::alloc((order)*sizeof(int));
       else dim_len = NULL;
       switch ((int)log2(np)){
         case 0:
@@ -369,14 +369,14 @@ namespace CTF_int {
 
       }
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_free(dim_len);
+      CTF_int::cfree(dim_len);
       return topo;
     } else {
       int order;
-      dim_len = (int*)CTF_alloc((log2(np)+1)*sizeof(int));
+      dim_len = (int*)CTF_int::alloc((log2(np)+1)*sizeof(int));
       factorize(np, &order, &dim_len);
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_free(dim_len);
+      CTF_int::cfree(dim_len);
       return topo;
     }
   }
@@ -508,8 +508,8 @@ namespace CTF_int {
         num_sub_phys_dims++;
       }
     }
-    CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData), (void**)&sub_phys_comm);
-    CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
+    CTF_int::alloc_ptr(num_sub_phys_dims*sizeof(CommData), (void**)&sub_phys_comm);
+    CTF_int::alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
     num_sub_phys_dims = 0;
     for (i=0; i<topo->order; i++){
       if (phys_mapped[i] == 0){
@@ -550,7 +550,7 @@ namespace CTF_int {
     for (i=0; i<order; i++){
       if (edge_map[i].type == PHYSICAL_MAP){
         old_map = &edge_map[i];
-        CTF_alloc_ptr(sizeof(mapping), (void**)&new_map);
+        CTF_int::alloc_ptr(sizeof(mapping), (void**)&new_map);
         new_rec_map = new_map;
         for (;;){
           old_lda = old_topo->lda[old_map->cdt];
@@ -567,7 +567,7 @@ namespace CTF_int {
             if (new_np<old_map->np) {
               old_lda = old_lda * new_rec_map->np;
               new_rec_map->has_child = 1;
-              CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
+              CTF_int::alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
               new_rec_map = new_rec_map->child;
             }
           } while (new_np<old_map->np);
@@ -575,14 +575,14 @@ namespace CTF_int {
           if (old_map->has_child){
             if (old_map->child->type == VIRTUAL_MAP){
               new_rec_map->has_child = 1;
-              CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
+              CTF_int::alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
               new_rec_map->child->type  = VIRTUAL_MAP;
               new_rec_map->child->np    = old_map->child->np;
               new_rec_map->child->has_child   = 0;
               break;
             } else {
               new_rec_map->has_child = 1;
-              CTF_alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
+              CTF_int::alloc_ptr(sizeof(mapping), (void**)&new_rec_map->child);
               new_rec_map = new_rec_map->child;
               old_map = old_map->child;
               //continue
@@ -594,7 +594,7 @@ namespace CTF_int {
         }
         edge_map[i].clear();      
         edge_map[i] = *new_map;
-        CTF_free(new_map);
+        CTF_int::cfree(new_map);
       }
     }
   }

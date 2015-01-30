@@ -154,7 +154,7 @@ int dist_tensor<dtype>::load_matrix
   int myprow, mypcol, i, j;
   int brow, bcol, has_el, nrep, mbrow, mbcol;
   topology * topo;
-  tensor<dtype> * tsr = (tensor<dtype>*)CTF_alloc(sizeof(tensor<dtype>));
+  tensor<dtype> * tsr = (tensor<dtype>*)CTF_int::alloc(sizeof(tensor<dtype>));
   ctxt = DESC[1];
   dnrow = DESC[2];
   dncol = DESC[3];
@@ -219,10 +219,10 @@ int dist_tensor<dtype>::load_matrix
   tsr->is_cyclic = 0;
   tsr->is_folded = 0;
   tsr->is_scp_padded = 1;
-  tsr->padding = (int*)CTF_alloc(sizeof(int)*2);
+  tsr->padding = (int*)CTF_int::alloc(sizeof(int)*2);
   tsr->padding[0] = 0;
   tsr->padding[1] = 0;
-  tsr->scp_padding = (int*)CTF_alloc(sizeof(int)*2);
+  tsr->scp_padding = (int*)CTF_int::alloc(sizeof(int)*2);
   tsr->scp_padding[0] = 0;
   tsr->scp_padding[1] = 0;
 
@@ -242,7 +242,7 @@ int dist_tensor<dtype>::load_matrix
   tsr->size = (((int64_t)nrow*(int64_t)ncol)*nrep)/global_comm.np;
   ASSERT(tsr->size == brow*bcol);
   if (need_free == NULL){
-    CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
+    CTF_int::alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
     if (mbrow*mbcol == 0){
       std::fill(tsr->data, tsr->data+tsr->size, get_zero<dtype>());
     } else {
@@ -250,7 +250,7 @@ int dist_tensor<dtype>::load_matrix
     }
   } else {
     if (mbrow*mbcol == 0){
-      CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
+      CTF_int::alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
       std::fill(tsr->data, tsr->data+tsr->size, get_zero<dtype>());
     } else {
       tsr->data = DATA;
@@ -258,7 +258,7 @@ int dist_tensor<dtype>::load_matrix
   }
   if (need_free != NULL && mbrow*mbcol != 0 && 
       (tsr->scp_padding[0] != 0 || tsr->scp_padding[1] != 0)){
-    CTF_alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
+    CTF_int::alloc_ptr(tsr->size*sizeof(dtype), (void**)&tsr->data);
     std::fill(tsr->data, tsr->data+tsr->size, get_zero<dtype>());
     for (i=0; i<bcol-tsr->scp_padding[1]; i++){
       for (j=0; j<brow-tsr->scp_padding[0]; j++){
@@ -267,13 +267,13 @@ int dist_tensor<dtype>::load_matrix
     }
   }
   tsr->order = 2;
-  tsr->edge_len = (int*)CTF_alloc(sizeof(int)*2);
-  tsr->sym = (int*)CTF_alloc(sizeof(int)*2);
-  tsr->sym_table = (int*)CTF_alloc(4*sizeof(int));
+  tsr->edge_len = (int*)CTF_int::alloc(sizeof(int)*2);
+  tsr->sym = (int*)CTF_int::alloc(sizeof(int)*2);
+  tsr->sym_table = (int*)CTF_int::alloc(4*sizeof(int));
   for (i=0; i<4; i++){
     tsr->sym_table[i] = 0;
   }
-  tsr->edge_map  = (mapping*)CTF_alloc(sizeof(mapping)*2);
+  tsr->edge_map  = (mapping*)CTF_int::alloc(sizeof(mapping)*2);
 
   tsr->edge_len[0] = nrow;
   tsr->edge_len[1] = ncol;
@@ -387,10 +387,10 @@ int dist_tensor<dtype>::load_matrix
       printf("WARNING: Creating new topology with nrep = %d, itopo = %lu!\n", nrep, topovec.size());*/
     CommData  * phys_comm; 
     if (nrep > 1 && nrow > 1 && ncol > 1){
-      phys_comm = (CommData*)CTF_alloc(3*sizeof(CommData));
+      phys_comm = (CommData*)CTF_int::alloc(3*sizeof(CommData));
     }
     else
-      phys_comm = (CommData*)CTF_alloc(2*sizeof(CommData));
+      phys_comm = (CommData*)CTF_int::alloc(2*sizeof(CommData));
     if (nrep > 1 && nrow > 1 && ncol > 1){
       int irep = (global_comm.rank - myprow - mypcol*nprow*nrep)/nprow;
       int srep = mypcol*nprow+myprow;
@@ -480,9 +480,9 @@ int dist_tensor<dtype>
   ct.tid_B = tid_B;
   ct.tid_C = tid_C;
 
-  ct.idx_map_A = (int*)CTF_alloc(sizeof(int)*2);
-  ct.idx_map_B = (int*)CTF_alloc(sizeof(int)*2);
-  ct.idx_map_C = (int*)CTF_alloc(sizeof(int)*2);
+  ct.idx_map_A = (int*)CTF_int::alloc(sizeof(int)*2);
+  ct.idx_map_B = (int*)CTF_int::alloc(sizeof(int)*2);
+  ct.idx_map_C = (int*)CTF_int::alloc(sizeof(int)*2);
   ct.idx_map_C[0] = 1;
   ct.idx_map_C[1] = 2;
   herm_A = 0;

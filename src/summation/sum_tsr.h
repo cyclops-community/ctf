@@ -39,7 +39,7 @@ namespace CTF_int {
       virtual int64_t mem_fp() { return 0; };
       virtual tsum * clone() { return NULL; };
       
-      virtual ~tsum(){ if (buffer != NULL) CTF_free(buffer); }
+      virtual ~tsum(){ if (buffer != NULL) CTF_int::cfree(buffer); }
       tsum(tsum * other);
       tsum(){ buffer = NULL; }
   };
@@ -126,8 +126,8 @@ namespace CTF_int {
        * \param[in] other object to copy
        */
       seq_tsr_sum(tsum * other);
-      ~seq_tsr_sum(){ CTF_free(edge_len_A), CTF_free(edge_len_B), 
-                      CTF_free(sym_A), CTF_free(sym_B); };
+      ~seq_tsr_sum(){ CTF_int::cfree(edge_len_A), CTF_int::cfree(edge_len_B), 
+                      CTF_int::cfree(sym_A), CTF_int::cfree(sym_B); };
       seq_tsr_sum(){}
 
   };

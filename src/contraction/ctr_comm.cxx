@@ -150,17 +150,17 @@ namespace CTF_int {
       cdt_A[i].deactivate();
     }
     if (ncdt_A > 0)
-      CTF_free(cdt_A);
+      CTF_int::cfree(cdt_A);
     for (int i=0; i<ncdt_B; i++){
       cdt_B[i].deactivate();
     }
     if (ncdt_B > 0)
-      CTF_free(cdt_B);
+      CTF_int::cfree(cdt_B);
     for (int i=0; i<ncdt_C; i++){
       cdt_C[i].deactivate();
     }
     if (ncdt_C > 0)
-      CTF_free(cdt_C);
+      CTF_int::cfree(cdt_C);
   }
 
   ctr_replicate::ctr_replicate(ctr * other) : ctr(other) {
@@ -303,23 +303,23 @@ namespace CTF_int {
     
     order_A        = o->order_A;
     idx_map_A     = o->idx_map_A;
-    sym_A         = (int*)CTF_alloc(sizeof(int)*order_A);
+    sym_A         = (int*)CTF_int::alloc(sizeof(int)*order_A);
     memcpy(sym_A, o->sym_A, sizeof(int)*order_A);
-    edge_len_A    = (int*)CTF_alloc(sizeof(int)*order_A);
+    edge_len_A    = (int*)CTF_int::alloc(sizeof(int)*order_A);
     memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
 
     order_B        = o->order_B;
     idx_map_B     = o->idx_map_B;
-    sym_B         = (int*)CTF_alloc(sizeof(int)*order_B);
+    sym_B         = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(sym_B, o->sym_B, sizeof(int)*order_B);
-    edge_len_B    = (int*)CTF_alloc(sizeof(int)*order_B);
+    edge_len_B    = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(edge_len_B, o->edge_len_B, sizeof(int)*order_B);
 
     order_C      = o->order_C;
     idx_map_C    = o->idx_map_C;
-    sym_C        = (int*)CTF_alloc(sizeof(int)*order_C);
+    sym_C        = (int*)CTF_int::alloc(sizeof(int)*order_C);
     memcpy(sym_C, o->sym_C, sizeof(int)*order_C);
-    edge_len_C   = (int*)CTF_alloc(sizeof(int)*order_C);
+    edge_len_C   = (int*)CTF_int::alloc(sizeof(int)*order_C);
     memcpy(edge_len_C, o->edge_len_C, sizeof(int)*order_C);
 
     is_inner     = o->is_inner;
@@ -365,7 +365,7 @@ namespace CTF_int {
       else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
     }
     ASSERT(flops >= 0.0);
-    CTF_free(rev_idx_map);
+    CTF_int::cfree(rev_idx_map);
     return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
   }
 
@@ -463,7 +463,7 @@ namespace CTF_int {
     }
     dim_max++;
     *order_tot = dim_max;
-    *idx_arr = (int*)CTF_alloc(sizeof(int)*3*dim_max);
+    *idx_arr = (int*)CTF_int::alloc(sizeof(int)*3*dim_max);
     std::fill((*idx_arr), (*idx_arr)+3*dim_max, -1);  
 
     for (i=0; i<order_A; i++){

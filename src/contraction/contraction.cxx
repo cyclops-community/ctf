@@ -148,7 +148,7 @@ namespace CTF_int {
     }
     /* This gets set later */
     prm.sz_C = 0;
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
     *inner_prm = prm;  
   }
 
@@ -161,7 +161,7 @@ namespace CTF_int {
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    CTF_alloc_ptr(num_tot*sizeof(int), (void**)&idx);
+    CTF_int::alloc_ptr(num_tot*sizeof(int), (void**)&idx);
 
     for (i=0; i<num_tot; i++){
       idx[i] = 1;
@@ -260,7 +260,7 @@ namespace CTF_int {
     }
     *num_fold = nfold;
     *fold_idx = idx;
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
 
   }
 
@@ -282,7 +282,7 @@ namespace CTF_int {
       }
     }
     get_fold_indices(&nfold, &fold_idx);
-    CTF_free(fold_idx);
+    CTF_int::cfree(fold_idx);
     /* FIXME: 1 folded index is good enough for now, in the future model */
     return nfold > 0;
   }
@@ -296,9 +296,9 @@ namespace CTF_int {
     int idx_no_ctr_A, idx_no_ctr_B;
     int * ordering_A, * ordering_B, * ordering_C, * idx_arr;
     
-    CTF_alloc_ptr(sizeof(int)*A->order, (void**)&ordering_A);
-    CTF_alloc_ptr(sizeof(int)*B->order, (void**)&ordering_B);
-    CTF_alloc_ptr(sizeof(int)*C->order, (void**)&ordering_C);
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&ordering_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&ordering_B);
+    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&ordering_C);
 
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -332,7 +332,7 @@ namespace CTF_int {
         }
       }
     }
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
     *new_ordering_A = ordering_A;
     *new_ordering_B = ordering_B;
     *new_ordering_C = ordering_C;
@@ -350,14 +350,14 @@ namespace CTF_int {
 
     get_fold_indices(&nfold, &fold_idx);
     if (nfold == 0) {
-      CTF_free(fold_idx);
+      CTF_int::cfree(fold_idx);
       assert(0); //return ERROR;
     }
 
     /* overestimate this space to not bother with it later */
-    CTF_alloc_ptr(nfold*sizeof(int), (void**)&fidx_A);
-    CTF_alloc_ptr(nfold*sizeof(int), (void**)&fidx_B);
-    CTF_alloc_ptr(nfold*sizeof(int), (void**)&fidx_C);
+    CTF_int::alloc_ptr(nfold*sizeof(int), (void**)&fidx_A);
+    CTF_int::alloc_ptr(nfold*sizeof(int), (void**)&fidx_B);
+    CTF_int::alloc_ptr(nfold*sizeof(int), (void**)&fidx_C);
 
     A->fold(nfold, fold_idx, idx_A,
             &all_fdim_A, &all_flen_A);
@@ -448,16 +448,16 @@ namespace CTF_int {
     iprm.tA = 'T';
     iprm.tB = 'N';
 
-    CTF_free(fidx_A);
-    CTF_free(fidx_B);
-    CTF_free(fidx_C);
-    CTF_free(fnew_ord_A);
-    CTF_free(fnew_ord_B);
-    CTF_free(fnew_ord_C);
-    CTF_free(all_flen_A);
-    CTF_free(all_flen_B);
-    CTF_free(all_flen_C);
-    CTF_free(fold_idx);
+    CTF_int::cfree(fidx_A);
+    CTF_int::cfree(fidx_B);
+    CTF_int::cfree(fidx_C);
+    CTF_int::cfree(fnew_ord_A);
+    CTF_int::cfree(fnew_ord_B);
+    CTF_int::cfree(fnew_ord_C);
+    CTF_int::cfree(all_flen_A);
+    CTF_int::cfree(all_flen_B);
+    CTF_int::cfree(all_flen_C);
+    CTF_int::cfree(fold_idx);
 
     return iprm;
   }
@@ -474,6 +474,7 @@ namespace CTF_int {
       nB = new tensor(B, 0, 0);
       nC = new tensor(C, 0, 0);
       nctr = new contraction(nA, idx_A, nB, idx_B, alpha, nC, idx_C, beta);
+      *new_contraction = nctr;
     }
 
     inv_idx(A->order, idx_A,
@@ -489,14 +490,14 @@ namespace CTF_int {
               idx_A[i+1] != idx_B[idx_arr[3*iA+1]+1]){
             if (new_contraction != NULL)
               nA->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i;
           }
         } else {
           if (idx_arr[3*idx_A[i+1]+1] != -1){
             if (new_contraction != NULL)
               nA->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i;
           }       
         }
@@ -505,14 +506,14 @@ namespace CTF_int {
               idx_A[i+1] != idx_C[idx_arr[3*iA+2]+1]){
             if (new_contraction != NULL)
               nA->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i;
           }
         } else {
           if (idx_arr[3*idx_A[i+1]+2] != -1){
             if (new_contraction != NULL)
               nA->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i;
           }       
         }
@@ -528,14 +529,14 @@ namespace CTF_int {
               idx_B[i+1] != idx_A[idx_arr[3*iB+0]+1]){
             if (new_contraction != NULL)
               nB->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i+1;
           }
         } else {
           if (idx_arr[3*idx_B[i+1]+0] != -1){
             if (new_contraction != NULL)
               nB->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i+1;
           }       
         }
@@ -544,14 +545,14 @@ namespace CTF_int {
               idx_B[i+1] != idx_C[idx_arr[3*iB+2]+1]){
             if (new_contraction != NULL)
               nB->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i+1;
           }
         } else {
           if (idx_arr[3*idx_B[i+1]+2] != -1){
             if (new_contraction != NULL)
               nB->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i+1;
           }       
         }
@@ -585,13 +586,13 @@ namespace CTF_int {
                 idx_C[i+1] != idx_B[idx_arr[3*iC+1]+1]){
               if (new_contraction != NULL)
                 nC->sym[i] = NS;
-              CTF_free(idx_arr); 
+              CTF_int::cfree(idx_arr); 
               return 3*i+2;
             }
           } else if (idx_arr[3*idx_C[i+1]+1] != -1){
             if (new_contraction != NULL)
               nC->sym[i] = NS;
-            CTF_free(idx_arr); 
+            CTF_int::cfree(idx_arr); 
             return 3*i+2;
           }       
           if (idx_arr[3*iC+0] != -1){
@@ -599,14 +600,14 @@ namespace CTF_int {
                 idx_C[i+1] != idx_A[idx_arr[3*iC+0]+1]){
               if (new_contraction != NULL)
                 nC->sym[i] = NS;
-              CTF_free(idx_arr); 
+              CTF_int::cfree(idx_arr); 
               return 3*i+2;
             }
           } else if (idx_arr[3*iC+0] == -1){
             if (idx_arr[3*idx_C[i+1]] != -1){
               if (new_contraction != NULL)
                 nC->sym[i] = NS;
-              CTF_free(idx_arr); 
+              CTF_int::cfree(idx_arr); 
               return 3*i+2;
             }       
           }
@@ -621,7 +622,7 @@ namespace CTF_int {
             idx_arr[3*iA2+2] == -1){
           if (new_contraction != NULL)
             nA->sym[i] = NS;
-          CTF_free(idx_arr); 
+          CTF_int::cfree(idx_arr); 
           return 3*i;
         }
       }
@@ -634,13 +635,13 @@ namespace CTF_int {
             idx_arr[3*iB2+2] == -1){
           if (new_contraction != NULL)
             nB->sym[i] = NS;
-          CTF_free(idx_arr); 
+          CTF_int::cfree(idx_arr); 
           return 3*i+1;
         }
       }
     }
 
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
     return -1;
   }
 
@@ -693,7 +694,7 @@ namespace CTF_int {
         ABORT;
       }
     }
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
   }
 
     
@@ -730,8 +731,8 @@ namespace CTF_int {
     }
 
     topo_order = A->topo->order;
-    CTF_alloc_ptr(sizeof(int)*topo_order, (void**)&phys_mismatched);
-    CTF_alloc_ptr(sizeof(int)*topo_order, (void**)&phys_mapped);
+    CTF_int::alloc_ptr(sizeof(int)*topo_order, (void**)&phys_mismatched);
+    CTF_int::alloc_ptr(sizeof(int)*topo_order, (void**)&phys_mapped);
     memset(phys_mismatched, 0, sizeof(int)*topo_order);
     memset(phys_mapped, 0, sizeof(int)*topo_order);
 
@@ -928,9 +929,9 @@ namespace CTF_int {
     }
 
 
-    CTF_free(idx_arr);
-    CTF_free(phys_mismatched);
-    CTF_free(phys_mapped);
+    CTF_int::cfree(idx_arr);
+    CTF_int::cfree(phys_mismatched);
+    CTF_int::cfree(phys_mapped);
     return pass;
   }
 
@@ -961,10 +962,10 @@ namespace CTF_int {
           C->edge_map[iC].type == PHYSICAL_MAP)
         return NEGATIVE; 
     }  
-    CTF_alloc_ptr(tsr_order*sizeof(int),                (void**)&restricted);
-    CTF_alloc_ptr(tsr_order*sizeof(int),                (void**)&tsr_edge_len);
-    CTF_alloc_ptr(tsr_order*tsr_order*sizeof(int),       (void**)&tsr_sym_table);
-    CTF_alloc_ptr(tsr_order*sizeof(mapping),            (void**)&weigh_map);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int),                (void**)&restricted);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int),                (void**)&tsr_edge_len);
+    CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int),       (void**)&tsr_sym_table);
+    CTF_int::alloc_ptr(tsr_order*sizeof(mapping),            (void**)&weigh_map);
 
     memset(tsr_sym_table, 0, tsr_order*tsr_order*sizeof(int));
     memset(restricted, 0, tsr_order*sizeof(int));
@@ -1047,15 +1048,15 @@ namespace CTF_int {
         copy_mapping(1, &weigh_map[i], &C->edge_map[iC]);
       }
     }
-    CTF_free(restricted);
-    CTF_free(tsr_edge_len);
-    CTF_free(tsr_sym_table);
+    CTF_int::cfree(restricted);
+    CTF_int::cfree(tsr_edge_len);
+    CTF_int::cfree(tsr_sym_table);
     for (i=0; i<num_weigh; i++){
       weigh_map[i].clear();
     }
-    CTF_free(weigh_map);
-    CTF_free(sub_phys_comm);
-    CTF_free(comm_idx);
+    CTF_int::cfree(weigh_map);
+    CTF_int::cfree(sub_phys_comm);
+    CTF_int::cfree(comm_idx);
 
     TAU_FSTOP(map_weigh_indices);
     return stat;
@@ -1076,10 +1077,10 @@ namespace CTF_int {
 
     tsr_order = num_ctr*2;
 
-    CTF_alloc_ptr(tsr_order*sizeof(int),                (void**)&restricted);
-    CTF_alloc_ptr(tsr_order*sizeof(int),                (void**)&tsr_edge_len);
-    CTF_alloc_ptr(tsr_order*tsr_order*sizeof(int),       (void**)&tsr_sym_table);
-    CTF_alloc_ptr(tsr_order*sizeof(mapping),            (void**)&ctr_map);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int),                (void**)&restricted);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int),                (void**)&tsr_edge_len);
+    CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int),       (void**)&tsr_sym_table);
+    CTF_int::alloc_ptr(tsr_order*sizeof(mapping),            (void**)&ctr_map);
 
     memset(tsr_sym_table, 0, tsr_order*tsr_order*sizeof(int));
     memset(restricted, 0, tsr_order*sizeof(int));
@@ -1183,15 +1184,15 @@ namespace CTF_int {
         copy_mapping(1, &ctr_map[2*i+1], &B->edge_map[iB]);
       }
     }
-    CTF_free(restricted);
-    CTF_free(tsr_edge_len);
-    CTF_free(tsr_sym_table);
+    CTF_int::cfree(restricted);
+    CTF_int::cfree(tsr_edge_len);
+    CTF_int::cfree(tsr_sym_table);
     for (i=0; i<2*num_ctr; i++){
       ctr_map[i].clear();
     }
-    CTF_free(ctr_map);
-    CTF_free(sub_phys_comm);
-    CTF_free(comm_idx);
+    CTF_int::cfree(ctr_map);
+    CTF_int::cfree(sub_phys_comm);
+    CTF_int::cfree(comm_idx);
 
     TAU_FSTOP(map_ctr_indices);
     return stat;
@@ -1417,11 +1418,11 @@ namespace CTF_int {
     /* Map the weigh indices of A, B, and C*/
     ret = map_weigh_indices(idx_arr, idx_weigh, num_tot, num_weigh, topo);
     if (ret == NEGATIVE) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return ERROR;
     }
 
@@ -1429,49 +1430,49 @@ namespace CTF_int {
     /* Map the contraction indices of A and B */
     ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo);
     if (ret == NEGATIVE) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return ERROR;
     }
 
 
   /*  ret = map_self_indices(tA, tidx_A);
     if (ret == NEGATIVE) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return ERROR;
     }
     ret = map_self_indices(tB, tidx_B);
     if (ret == NEGATIVE) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return ERROR;
     }
     ret = map_self_indices(tC, tidx_C);
     if (ret == NEGATIVE) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return ERROR;
     }*/
     ret = map_extra_indices(idx_arr, idx_extra, num_extra);
     if (ret == NEGATIVE) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return ERROR;
     }
 
@@ -1479,7 +1480,7 @@ namespace CTF_int {
     /* Map C or equivalently, the non-contraction indices of A and B */
     ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo);
     if (ret == NEGATIVE){
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
@@ -1495,7 +1496,7 @@ namespace CTF_int {
     /* Do it again to make sure everything is properly mapped. FIXME: loop */
     ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo);
     if (ret == NEGATIVE){
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
@@ -1503,7 +1504,7 @@ namespace CTF_int {
     }
     ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo);
     if (ret == NEGATIVE){
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
       return NEGATIVE;
     }
     if (ret == ERROR) {
@@ -1522,7 +1523,7 @@ namespace CTF_int {
     ret = map_symtsr(tC->order, tC->sym_table, tC->edge_map);
     if (ret!=SUCCESS) return ret;
     
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
 
     return SUCCESS;
 
@@ -1621,14 +1622,14 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
 
-    CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_no_ctr);
-    CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_extra);
-    CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_weigh);
-    CTF_alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_ctr);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_no_ctr);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_extra);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_weigh);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_ctr);
   #if BEST_VOL
-    CTF_alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
-    CTF_alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
-    CTF_alloc_ptr(sizeof(int)*C->order,     (void**)&virt_blk_len_C);
+    CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int)*C->order,     (void**)&virt_blk_len_C);
   #endif
     
     mapping * old_map_A = new mapping[A->order];
@@ -1671,15 +1672,15 @@ namespace CTF_int {
                    &old_size_C, &was_cyclic_C, &old_padding_C,
                    &old_edge_len_C, C->topo);*/
     } else {
-      CTF_alloc_ptr(sizeof(int)*A->order, (void**)&old_phase_A);
+      CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&old_phase_A);
       for (j=0; j<A->order; j++){
         old_phase_A[j]   = A->edge_map[j].calc_phase();
       }
-      CTF_alloc_ptr(sizeof(int)*B->order, (void**)&old_phase_B);
+      CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&old_phase_B);
       for (j=0; j<B->order; j++){
         old_phase_B[j]   = B->edge_map[j].calc_phase();
       }
-      CTF_alloc_ptr(sizeof(int)*C->order, (void**)&old_phase_C);
+      CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&old_phase_C);
       for (j=0; j<C->order; j++){
         old_phase_C[j]   = C->edge_map[j].calc_phase();
       }
@@ -1949,23 +1950,23 @@ namespace CTF_int {
     C->set_padding();
     
     if (!do_remap || ttopo == INT_MAX || ttopo == -1){
-      CTF_free((void*)idx_arr);
-      CTF_free((void*)idx_no_ctr);
-      CTF_free((void*)idx_ctr);
-      CTF_free((void*)idx_extra);
-      CTF_free((void*)idx_weigh);
-      CTF_free(old_phase_A);
-      CTF_free(old_phase_B);
-      CTF_free(old_phase_C);
+      CTF_int::cfree((void*)idx_arr);
+      CTF_int::cfree((void*)idx_no_ctr);
+      CTF_int::cfree((void*)idx_ctr);
+      CTF_int::cfree((void*)idx_extra);
+      CTF_int::cfree((void*)idx_weigh);
+      CTF_int::cfree(old_phase_A);
+      CTF_int::cfree(old_phase_B);
+      CTF_int::cfree(old_phase_C);
       for (i=0; i<A->order; i++)
         old_map_A[i].clear();
       for (i=0; i<B->order; i++)
         old_map_B[i].clear();
       for (i=0; i<C->order; i++)
         old_map_C[i].clear();
-      CTF_free(old_map_A);
-      CTF_free(old_map_B);
-      CTF_free(old_map_C);
+      CTF_int::cfree(old_map_A);
+      CTF_int::cfree(old_map_B);
+      CTF_int::cfree(old_map_C);
 
       TAU_FSTOP(map_tensors);
       if (ttopo == INT_MAX || ttopo == -1){
@@ -2127,9 +2128,9 @@ namespace CTF_int {
     (*ctrf)->B    = B->data;
     (*ctrf)->C    = C->data;
 
-    CTF_free( old_phase_A );
-    CTF_free( old_phase_B );
-    CTF_free( old_phase_C );
+    CTF_int::cfree( old_phase_A );
+    CTF_int::cfree( old_phase_B );
+    CTF_int::cfree( old_phase_C );
     
     for (i=0; i<A->order; i++)
       old_map_A[i].clear();
@@ -2137,15 +2138,15 @@ namespace CTF_int {
       old_map_B[i].clear();
     for (i=0; i<C->order; i++)
       old_map_C[i].clear();
-    CTF_free(old_map_A);
-    CTF_free(old_map_B);
-    CTF_free(old_map_C);
+    CTF_int::cfree(old_map_A);
+    CTF_int::cfree(old_map_B);
+    CTF_int::cfree(old_map_C);
 
-    CTF_free((void*)idx_arr);
-    CTF_free((void*)idx_no_ctr);
-    CTF_free((void*)idx_ctr);
-    CTF_free((void*)idx_extra);
-    CTF_free((void*)idx_weigh);
+    CTF_int::cfree((void*)idx_arr);
+    CTF_int::cfree((void*)idx_no_ctr);
+    CTF_int::cfree((void*)idx_ctr);
+    CTF_int::cfree((void*)idx_extra);
+    CTF_int::cfree((void*)idx_weigh);
     
 
     return SUCCESS;
@@ -2180,15 +2181,15 @@ namespace CTF_int {
 
     nphys_dim = A->topo->order;
 
-    CTF_alloc_ptr(sizeof(int)*A->order, (void**)&virt_blk_len_A);
-    CTF_alloc_ptr(sizeof(int)*B->order, (void**)&virt_blk_len_B);
-    CTF_alloc_ptr(sizeof(int)*C->order, (void**)&virt_blk_len_C);
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&virt_blk_len_C);
 
-    CTF_alloc_ptr(sizeof(int)*A->order, (void**)&blk_len_A);
-    CTF_alloc_ptr(sizeof(int)*B->order, (void**)&blk_len_B);
-    CTF_alloc_ptr(sizeof(int)*C->order, (void**)&blk_len_C);
-    CTF_alloc_ptr(sizeof(int)*num_tot, (void**)&virt_dim);
-    CTF_alloc_ptr(sizeof(int)*nphys_dim*3, (void**)&phys_mapped);
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&blk_len_C);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot, (void**)&virt_dim);
+    CTF_int::alloc_ptr(sizeof(int)*nphys_dim*3, (void**)&phys_mapped);
     memset(phys_mapped, 0, sizeof(int)*nphys_dim*3);
 
 
@@ -2330,11 +2331,11 @@ namespace CTF_int {
         }
       }
       if (rctr->ncdt_A > 0)
-        CTF_alloc_ptr(sizeof(CommData)*rctr->ncdt_A, (void**)&rctr->cdt_A);
+        CTF_int::alloc_ptr(sizeof(CommData)*rctr->ncdt_A, (void**)&rctr->cdt_A);
       if (rctr->ncdt_B > 0)
-        CTF_alloc_ptr(sizeof(CommData)*rctr->ncdt_B, (void**)&rctr->cdt_B);
+        CTF_int::alloc_ptr(sizeof(CommData)*rctr->ncdt_B, (void**)&rctr->cdt_B);
       if (rctr->ncdt_C > 0)
-        CTF_alloc_ptr(sizeof(CommData)*rctr->ncdt_C, (void**)&rctr->cdt_C);
+        CTF_int::alloc_ptr(sizeof(CommData)*rctr->ncdt_C, (void**)&rctr->cdt_C);
       rctr->ncdt_A = 0;
       rctr->ncdt_B = 0;
       rctr->ncdt_C = 0;
@@ -2555,11 +2556,11 @@ namespace CTF_int {
     ASSERT(blk_sz_C >= vrt_sz_C);
       
     int * new_sym_A, * new_sym_B, * new_sym_C;
-    CTF_alloc_ptr(sizeof(int)*A->order, (void**)&new_sym_A);
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&new_sym_A);
     memcpy(new_sym_A, A->sym, sizeof(int)*A->order);
-    CTF_alloc_ptr(sizeof(int)*B->order, (void**)&new_sym_B);
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&new_sym_B);
     memcpy(new_sym_B, B->sym, sizeof(int)*B->order);
-    CTF_alloc_ptr(sizeof(int)*C->order, (void**)&new_sym_C);
+    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&new_sym_C);
     memcpy(new_sym_C, C->sym, sizeof(int)*C->order);
 
   #ifdef OFFLOAD
@@ -2616,7 +2617,7 @@ namespace CTF_int {
       ctrv->blk_sz_C  = vrt_sz_C;
       ctrv->idx_map_C = idx_C;
     } else
-      CTF_free(virt_dim);
+      CTF_int::cfree(virt_dim);
 
     seq_tsr_ctr * ctrseq = new seq_tsr_ctr;
     if (is_top) {
@@ -2742,11 +2743,11 @@ namespace CTF_int {
 
     }*/
 
-    CTF_free(idx_arr);
-    CTF_free(blk_len_A);
-    CTF_free(blk_len_B);
-    CTF_free(blk_len_C);
-    CTF_free(phys_mapped);
+    CTF_int::cfree(idx_arr);
+    CTF_int::cfree(blk_len_A);
+    CTF_int::cfree(blk_len_B);
+    CTF_int::cfree(blk_len_C);
+    CTF_int::cfree(phys_mapped);
     TAU_FSTOP(construct_contraction);
     return hctr;
   }
@@ -2760,7 +2761,7 @@ namespace CTF_int {
       if (!is_custom && !C->sr.isequal(beta,C->sr.mulid) && !C->has_zero_edge_len){ 
         int * new_idx_C; 
         int num_diag = 0;
-        new_idx_C = (int*)CTF_alloc(sizeof(int)*C->order);
+        new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);
         for (int i=0; i<C->order; i++){
           new_idx_C[i]=i-num_diag;
           for (int j=0; j<i; j++){
@@ -2773,7 +2774,7 @@ namespace CTF_int {
         }
         scaling scl = scaling(C, new_idx_C, beta);
         scl.execute();
-        CTF_free(new_idx_C);
+        CTF_int::cfree(new_idx_C);
       }
       return SUCCESS;
     }
@@ -2944,7 +2945,7 @@ namespace CTF_int {
     DEBUG_PRINTF("packed size of C is " PRId64 " (should be " PRId64 ")\n", nC,
       sy_packed_size(order_C, edge_len_C, sym_C));
 
-    pup_C = (dtype*)CTF_alloc(nC*sizeof(dtype));
+    pup_C = (dtype*)CTF_int::alloc(nC*sizeof(dtype));
 
     cpy_sym_ctr(alpha,
           uA, order_A, edge_len_A, edge_len_A, sym_A, idx_A,
@@ -3023,7 +3024,7 @@ namespace CTF_int {
       if (!is_custom && !C->sr.isequal(beta,C->sr.mulid) && !C->has_zero_edge_len){ 
         int * new_idx_C; 
         int num_diag = 0;
-        new_idx_C = (int*)CTF_alloc(sizeof(int)*C->order);
+        new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);
         for (int i=0; i<C->order; i++){
           new_idx_C[i]=i-num_diag;
           for (int j=0; j<i; j++){
@@ -3036,15 +3037,15 @@ namespace CTF_int {
         }
         scaling scl = scaling(C, new_idx_C, beta);
         scl.execute();
-        CTF_free(new_idx_C);
+        CTF_int::cfree(new_idx_C);
       }
       return SUCCESS;
     }
-    CTF_alloc_ptr(sizeof(int)*A->order,          (void**)&map_A);
-    CTF_alloc_ptr(sizeof(int)*B->order,          (void**)&map_B);
-    CTF_alloc_ptr(sizeof(int)*C->order,          (void**)&map_C);
-    CTF_alloc_ptr(sizeof(int*)*C->order,         (void**)&dstack_map_C);
-    CTF_alloc_ptr(sizeof(tensor*)*C->order,      (void**)&dstack_tsr_C);
+    CTF_int::alloc_ptr(sizeof(int)*A->order,          (void**)&map_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order,          (void**)&map_B);
+    CTF_int::alloc_ptr(sizeof(int)*C->order,          (void**)&map_C);
+    CTF_int::alloc_ptr(sizeof(int*)*C->order,         (void**)&dstack_map_C);
+    CTF_int::alloc_ptr(sizeof(tensor*)*C->order,      (void**)&dstack_tsr_C);
     memcpy(map_A, idx_A, A->order*sizeof(int));
     memcpy(map_B, idx_B, B->order*sizeof(int));
     memcpy(map_C, idx_C, C->order*sizeof(int));
@@ -3056,13 +3057,13 @@ namespace CTF_int {
     tensor * new_tsr;
     while (tnsr_A->extract_diag(map_A, 1, new_tsr, &new_idx) == SUCCESS){
       if (new_tsr != A) delete new_tsr;
-      CTF_free(map_A);
+      CTF_int::cfree(map_A);
       tnsr_A = new_tsr;
       map_A = new_idx;
     }
     while (tnsr_B->extract_diag(map_B, 1, new_tsr, &new_idx) == SUCCESS){
       if (new_tsr != B) delete new_tsr;
-      CTF_free(map_B);
+      CTF_int::cfree(map_B);
       tnsr_B = new_tsr;
       map_B = new_idx;
     }
@@ -3165,7 +3166,7 @@ namespace CTF_int {
         for (i=0; i<C->order; i++){
           if (C->sym[i] == SY) sy = 1;
         }
-        CTF_free(sym);
+        CTF_int::cfree(sym);
         if (sy && unfold_ctr->map(&ctrf, 0) == SUCCESS){
   #endif
           if (tnsr_A == tnsr_B){
@@ -3224,11 +3225,11 @@ namespace CTF_int {
       ASSERT(tnsr_C == C);
     }
 
-    CTF_free(map_A);
-    CTF_free(map_B);
-    CTF_free(map_C);
-    CTF_free(dstack_map_C);
-    CTF_free(dstack_tsr_C);
+    CTF_int::cfree(map_A);
+    CTF_int::cfree(map_B);
+    CTF_int::cfree(map_C);
+    CTF_int::cfree(dstack_map_C);
+    CTF_int::cfree(dstack_tsr_C);
 
     return stat;
   }
@@ -3249,7 +3250,7 @@ namespace CTF_int {
       if (!is_custom && !C->sr.isequal(beta,C->sr.mulid) && !C->has_zero_edge_len){ 
         int * new_idx_C; 
         int num_diag = 0;
-        new_idx_C = (int*)CTF_alloc(sizeof(int)*C->order);
+        new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);
         for (int i=0; i<C->order; i++){
           new_idx_C[i]=i-num_diag;
           for (int j=0; j<i; j++){
@@ -3262,12 +3263,12 @@ namespace CTF_int {
         }
         scaling scl = scaling(C, new_idx_C, beta);
         scl.execute();
-        CTF_free(new_idx_C);
+        CTF_int::cfree(new_idx_C);
       }
       return SUCCESS;
     }
 
-    //contract_mst();
+    CTF_int::contract_mst();
 
     //if (stype->tid_A == stype->tid_B || stype->tid_A == stype->tid_C){
     /*if (stype->tid_A == stype->tid_C){
@@ -3366,7 +3367,7 @@ namespace CTF_int {
                    old_padding_C, old_edge_len_C, global_comm);*/
       TAU_FSTOP(redistribute_for_ctr_home);
       memcpy(C->home_buffer, C->data, C->size*C->sr.el_size);
-      CTF_free(C->data);
+      CTF_int::cfree(C->data);
       C->data = C->home_buffer;
       C->is_home = 1;
       new_ctr.C->is_data_aliased = 1;

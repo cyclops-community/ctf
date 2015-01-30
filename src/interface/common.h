@@ -242,18 +242,15 @@ namespace CTF_int {
   #endif
   #endif
 
-
+  int  alloc_ptr(int64_t len, void ** const ptr);
+  int  mst_alloc_ptr(int64_t len, void ** const ptr);
+  void * alloc(int64_t len);
+  void * mst_alloc(int64_t len);
+  int cfree(void * ptr, int const tid);
+  int cfree(void * ptr);
 }
 
 /*
-int  CTF_alloc_ptr(int64_t len, void ** const ptr);
-int  CTF_mst_alloc_ptr(int64_t len, void ** const ptr);
-void * CTF_alloc(int64_t len);
-void * CTF_mst_alloc(int64_t len);
-int  CTF_free(void * ptr, int const tid);
-int  CTF_free(void * ptr);
-*/
-
 inline int CTF_alloc_ptr(int64_t len, void ** const ptr){
   int pm = posix_memalign(ptr, 16, len);
   if (pm) return CTF::ERROR;
@@ -272,12 +269,12 @@ inline void * CTF_alloc(int64_t len){
 inline void * CTF_mst_alloc(int64_t len){
   return CTF_alloc(len);
 }
-inline void CTF_free(void * ptr, int const tid){
+inline void CTF_int::cfree(void * ptr, int const tid){
   free(ptr);
 }
-inline void CTF_free(void * ptr){
+inline void CTF_int::cfree(void * ptr){
   free(ptr);
 }
-
+*/
 
 #endif

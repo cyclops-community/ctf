@@ -140,10 +140,10 @@ namespace CTF_int {
       int * i32_recv_counts, * i32_recv_displs;
 
       
-      CTF_mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_counts);
-      CTF_mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_displs);
-      CTF_mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_counts);
-      CTF_mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_displs);
+      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_counts);
+      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_displs);
+      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_counts);
+      CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_displs);
 
       for (int p=0; p<np; p++){
         i32_send_counts[p] = send_counts[p];
@@ -168,10 +168,10 @@ namespace CTF_int {
           ABORT;
           break;
       }
-      CTF_free(i32_send_counts);
-      CTF_free(i32_send_displs);
-      CTF_free(i32_recv_counts);
-      CTF_free(i32_recv_displs);
+      CTF_int::cfree(i32_send_counts);
+      CTF_int::cfree(i32_send_displs);
+      CTF_int::cfree(i32_recv_counts);
+      CTF_int::cfree(i32_recv_displs);
     }
   }
 
@@ -183,7 +183,7 @@ namespace CTF_int {
     int i, j, n;
     type c;
 
-    *iidx = (int*)CTF_alloc(sizeof(int)*order);
+    *iidx = (int*)CTF_int::alloc(sizeof(int)*order);
 
     n = 0;
     for (i=0; i<order; i++){
@@ -212,7 +212,7 @@ namespace CTF_int {
     int i, j, n;
     type c;
 
-    *iidx_B = (int*)CTF_alloc(sizeof(int)*order_B);
+    *iidx_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
 
     n = conv_idx(order_A, cidx_A, iidx_A);
     for (i=0; i<order_B; i++){
@@ -253,7 +253,7 @@ namespace CTF_int {
     int i, j, n;
     type c;
 
-    *iidx_C = (int*)CTF_alloc(sizeof(int)*order_C);
+    *iidx_C = (int*)CTF_int::alloc(sizeof(int)*order_C);
 
     n = conv_idx(order_A, cidx_A, iidx_A,
                  order_B, cidx_B, iidx_B);

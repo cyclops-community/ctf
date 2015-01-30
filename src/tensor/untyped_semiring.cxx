@@ -168,9 +168,9 @@ namespace CTF_int {
 
   semiring::semiring(semiring const & other){
     el_size = other.el_size;
-    addid = (char*)CTF_alloc(el_size);
+    addid = (char*)CTF_int::alloc(el_size);
     memcpy(addid,other.addid,el_size);
-    mulid = (char*)CTF_alloc(el_size);
+    mulid = (char*)CTF_int::alloc(el_size);
     memcpy(mulid,other.mulid,el_size);
     add = other.add;
     mul = other.mul;
@@ -211,9 +211,9 @@ namespace CTF_int {
                                 char const * X,
                                 int          incX)){
     el_size = el_size_;
-    addid = (char*)CTF_alloc(el_size);
+    addid = (char*)CTF_int::alloc(el_size);
     memcpy(addid,addid_,el_size);
-    mulid = (char*)CTF_alloc(el_size);
+    mulid = (char*)CTF_int::alloc(el_size);
     memcpy(mulid,mulid_,el_size);
     add = add_;
     addinv = addinv_;

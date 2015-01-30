@@ -97,7 +97,7 @@ namespace CTF_int {
       for (it=old_mst.begin(); it!=old_mst.end(); it++){
         mem_transfer t;
         t.old_ptr = it->ptr;
-        t.new_ptr = CTF_mst_alloc(it->len);
+        t.new_ptr = mst_alloc(it->len);
         if (t.old_ptr != t.new_ptr){
           if ((int64_t)((char*)t.old_ptr - (char*)t.new_ptr) < it->len){
             for (i=0; i<it->len; i+=CPY_BUFFER_SIZE){
@@ -186,10 +186,10 @@ namespace CTF_int {
   }
 
   /**
-   * \brief frees buffer CTF_allocated on stack
+   * \brief frees buffer allocated on stack
    * \param[in] ptr pointer to buffer on stack
    */
-  int CTF_mst_free(void * ptr){
+  int mst_free(void * ptr){
     ASSERT((int64_t)((char*)ptr-(char*)mst_buffer)<mst_buffer_size);
     
     std::list<mem_loc>::iterator it;
@@ -220,13 +220,13 @@ namespace CTF_int {
   }
 
   /**
-   * \brief CTF_mst_alloc abstraction
+   * \brief mst_alloc abstraction
    * \param[in] len number of bytes
-   * \param[in,out] ptr pointer to set to new CTF_allocation address
+   * \param[in,out] ptr pointer to set to new allocation address
    */
-  int CTF_mst_alloc_ptr(int64_t const len, void ** const ptr){
+  int mst_alloc_ptr(int64_t const len, void ** const ptr){
     if (mst_buffer_size == 0)
-      return CTF_alloc_ptr(len, ptr);
+      return alloc_ptr(len, ptr);
     else {
       int64_t plen, off;
       off = len % MST_ALIGN_BYTES;
@@ -247,30 +247,30 @@ namespace CTF_int {
       } else {
         DPRINTF(2,"Exceeded mst buffer size (" PRId64 "), current ptr is " PRId64 ", composed of %d items of size " PRId64 "\n",
                 mst_buffer_size, mst_buffer_ptr, (int)mst.size(), mst_buffer_used);
-        CTF_alloc_ptr(len, ptr);
+        alloc_ptr(len, ptr);
       }
       return CTF::SUCCESS;
     }
   }
 
   /**
-   * \brief CTF_mst_alloc CTF_allocates buffer on the specialized memory stack
+   * \brief mst_alloc allocates buffer on the specialized memory stack
    * \param[in] len number of bytes
    */
-  void * CTF_mst_alloc(int64_t const len){
+  void * mst_alloc(int64_t const len){
     void * ptr;
-    int ret = CTF_mst_alloc_ptr(len, &ptr);
+    int ret = mst_alloc_ptr(len, &ptr);
     ASSERT(ret == CTF::SUCCESS);
     return ptr;
   }
 
 
   /**
-   * \brief CTF_alloc abstraction
+   * \brief alloc abstraction
    * \param[in] len number of bytes
-   * \param[in,out] ptr pointer to set to new CTF_allocation address
+   * \param[in,out] ptr pointer to set to new allocation address
    */
-  int CTF_alloc_ptr(int64_t const len_, void ** const ptr){
+  int alloc_ptr(int64_t const len_, void ** const ptr){
     int64_t len = MAX(4,len_);
     int pm = posix_memalign(ptr, ALIGN_BYTES, len);
   #ifndef PRODUCTION
@@ -292,7 +292,7 @@ namespace CTF_int {
   //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
   #endif
     if (pm){
-      printf("CTF CTF::ERROR: posix memalign returned an error, " PRId64 " memory CTF_alloced on this process, wanted to CTF_alloc " PRId64 " more\n",
+      printf("CTF CTF::ERROR: posix memalign returned an error, " PRId64 " memory alloced on this process, wanted to alloc " PRId64 " more\n",
               mem_used[0], len);
     }
     ASSERT(pm == 0);
@@ -301,18 +301,18 @@ namespace CTF_int {
   }
 
   /**
-   * \brief CTF_alloc abstraction
+   * \brief alloc abstraction
    * \param[in] len number of bytes
    */
-  void * CTF_alloc(int64_t const len){
+  void * alloc(int64_t const len){
     void * ptr;
-    int ret = CTF_alloc_ptr(len, &ptr);
+    int ret = alloc_ptr(len, &ptr);
     ASSERT(ret == CTF::SUCCESS);
     return ptr;
   }
 
   /**
-   * \brief stops tracking memory CTF_allocated by CTF, so user doesn't have to call free
+   * \brief stops tracking memory allocated by CTF, so user doesn't have to call free
    * \param[in,out] ptr pointer to set to address to free
    */
   int untag_mem(void * ptr){
@@ -349,10 +349,10 @@ namespace CTF_int {
    * \param[in,out] ptr pointer to set to address to free
    * \param[in] tid thread id from whose stack pointer needs to be freed
    */
-  int CTF_free(void * ptr, int const tid){
+  int cfree(void * ptr, int const tid){
     if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
         (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
-      return CTF_mst_free(ptr);
+      return mst_free(ptr);
     }
   #ifndef PRODUCTION
     int len, found;
@@ -384,9 +384,9 @@ namespace CTF_int {
    * \brief free abstraction (conditional (no error if not found))
    * \param[in,out] ptr pointer to set to address to free
    */
-  int CTF_free_cond(void * ptr){
+  int cfree_cond(void * ptr){
   //#ifdef PRODUCTION
-    return CTF::SUCCESS; //FIXME This function is not to be trusted due to potential CTF_allocations of 0 bytes!!!@
+    return CTF::SUCCESS; //FIXME This function is not to be trusted due to potential allocations of 0 bytes!!!@
   //#endif
     int ret, tid, i;
   #ifdef USE_OMP
@@ -396,11 +396,11 @@ namespace CTF_int {
     tid = 0;
   #endif
 
-    ret = CTF_free(ptr, tid);
+    ret = cfree(ptr, tid);
     if (ret == CTF::NEGATIVE){
       if (tid == 0){
         for (i=1; i<max_threads; i++){
-          ret = CTF_free(ptr, i);
+          ret = cfree(ptr, i);
           if (ret == CTF::SUCCESS){
             return CTF::SUCCESS;
             break;
@@ -416,10 +416,10 @@ namespace CTF_int {
    * \brief free abstraction
    * \param[in,out] ptr pointer to set to address to free
    */
-  int CTF_free(void * ptr){
+  int cfree(void * ptr){
     if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
         (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
-      return CTF_mst_free(ptr);
+      return mst_free(ptr);
     }
   #ifdef PRODUCTION
     free(ptr);  
@@ -434,7 +434,7 @@ namespace CTF_int {
   #endif
 
 
-    ret = CTF_free(ptr, tid);
+    ret = cfree(ptr, tid);
     if (ret == CTF::NEGATIVE){
       if (tid != 0 || max_threads == 1){
         printf("CTF CTF::ERROR: Invalid free of pointer %p by thread %d\n", ptr, tid);
@@ -442,7 +442,7 @@ namespace CTF_int {
         return CTF::ERROR;
       } else {
         for (i=1; i<max_threads; i++){
-          ret = CTF_free(ptr, i);
+          ret = cfree(ptr, i);
           if (ret == CTF::SUCCESS){
             return CTF::SUCCESS;
             break;

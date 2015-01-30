@@ -17,7 +17,7 @@ namespace CTF_int {
    * \brief deallocates scl_virt object
    */
   scl_virt::~scl_virt() {
-    CTF_free(virt_dim);
+    CTF_int::cfree(virt_dim);
     delete rec_scl;
   }
 
@@ -28,7 +28,7 @@ namespace CTF_int {
     scl_virt * o = (scl_virt*)other;
     rec_scl      = o->rec_scl->clone();
     num_dim      = o->num_dim;
-    virt_dim     = (int*)CTF_alloc(sizeof(int)*num_dim);
+    virt_dim     = (int*)CTF_int::alloc(sizeof(int)*num_dim);
     memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
     order_A      = o->order_A;
@@ -67,7 +67,7 @@ namespace CTF_int {
       idx_arr = (int*)this->buffer;
     } else {
       alloced = 1;
-      ret = CTF_alloc_ptr(mem_fp(), (void**)&idx_arr);
+      ret = CTF_int::alloc_ptr(mem_fp(), (void**)&idx_arr);
       ASSERT(ret==0);
     }
     
@@ -117,7 +117,7 @@ namespace CTF_int {
       if (i==num_dim) break;
     }
     if (alloced){
-      CTF_free(idx_arr);
+      CTF_int::cfree(idx_arr);
     }
     TAU_FSTOP(scl_virt);
   }
@@ -129,7 +129,7 @@ namespace CTF_int {
     order           = o->order;
     idx_map         = o->idx_map;
     sym             = o->sym;
-    edge_len        = (int*)CTF_alloc(sizeof(int)*order);
+    edge_len        = (int*)CTF_int::alloc(sizeof(int)*order);
     memcpy(edge_len, o->edge_len, sizeof(int)*order);
     is_custom       = o->is_custom;
     func            = o->func;

@@ -55,7 +55,7 @@ namespace CTF{
     int i;
     if (rank == 0){
       fprintf(output, "%s", name);
-      char * space = (char*)CTF_alloc(MAX_NAME_LENGTH-strlen(name)+1);
+      char * space = (char*)CTF_int::alloc(MAX_NAME_LENGTH-strlen(name)+1);
       for (i=0; i<MAX_NAME_LENGTH-(int)strlen(name); i++){
         space[i] = ' ';
       }
@@ -71,7 +71,7 @@ namespace CTF{
               ((int)(1000.*(total_excl_time)/np))%1000,
               (int)(100.*(total_excl_time)/complete_time),
               ((int)(10000.*(total_excl_time)/complete_time))%100);
-      CTF_free(space);
+      CTF_int::cfree(space);
     } 
   }
 
@@ -266,12 +266,12 @@ namespace CTF{
   #endif
   }
 
-  void CTF_set_main_args(int argc, const char * const * argv){
+  void set_main_args(int argc, const char * const * argv){
     main_argv = argv;
     main_argc = argc;
   }
 
-  void CTF_set_context(MPI_Comm ctxt){
+  void set_context(MPI_Comm ctxt){
     if (!set_contxt)
       comm = ctxt;
     set_contxt = 1;

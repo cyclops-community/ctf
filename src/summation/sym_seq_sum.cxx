@@ -30,12 +30,12 @@ namespace CTF_int {
             order_B,       idx_map_B,
             &idx_max,     &rev_idx_map);
 
-    dlen_A = (int*)CTF_alloc(sizeof(int)*order_A);
-    dlen_B = (int*)CTF_alloc(sizeof(int)*order_B);
+    dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
+    dlen_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
     memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
 
-    idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
+    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
 
     if (sr_B.isequal(beta, sr_B.mulid)){
       memset(idx_glb, 0, sizeof(int)*idx_max);
@@ -117,10 +117,10 @@ namespace CTF_int {
       if (order_B > 0)
         RESET_IDX(B);
     }
-    CTF_free(dlen_A);
-    CTF_free(dlen_B);
-    CTF_free(idx_glb);
-    CTF_free(rev_idx_map);
+    CTF_int::cfree(dlen_A);
+    CTF_int::cfree(dlen_B);
+    CTF_int::cfree(idx_glb);
+    CTF_int::cfree(rev_idx_map);
     TAU_FSTOP(sym_seq_sum_ref);
     return 0;
   }
@@ -150,12 +150,12 @@ namespace CTF_int {
             order_B,       idx_map_B,
             &idx_max,     &rev_idx_map);
 
-    dlen_A = (int*)CTF_alloc(sizeof(int)*order_A);
-    dlen_B = (int*)CTF_alloc(sizeof(int)*order_B);
+    dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
+    dlen_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
     memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
 
-    idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
+    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
 
 
     /* Scale B immediately. FIXME: wrong for iterators over subset of B */
@@ -251,10 +251,10 @@ namespace CTF_int {
       if (order_B > 0)
         RESET_IDX(B);
     }
-    CTF_free(dlen_A);
-    CTF_free(dlen_B);
-    CTF_free(idx_glb);
-    CTF_free(rev_idx_map);
+    CTF_int::cfree(dlen_A);
+    CTF_int::cfree(dlen_B);
+    CTF_int::cfree(idx_glb);
+    CTF_int::cfree(rev_idx_map);
     TAU_FSTOP(sym_seq_sum_inr);
     return 0;
   }
@@ -282,12 +282,12 @@ namespace CTF_int {
             order_B,       idx_map_B,
             &idx_max,     &rev_idx_map);
 
-    dlen_A = (int*)CTF_alloc(sizeof(int)*order_A);
-    dlen_B = (int*)CTF_alloc(sizeof(int)*order_B);
+    dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
+    dlen_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
     memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
 
-    idx_glb = (int*)CTF_alloc(sizeof(int)*idx_max);
+    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
     memset(idx_glb, 0, sizeof(int)*idx_max);
 
 
@@ -335,10 +335,10 @@ namespace CTF_int {
       if (order_B > 0)
         RESET_IDX(B);
     }
-    CTF_free(dlen_A);
-    CTF_free(dlen_B);
-    CTF_free(idx_glb);
-    CTF_free(rev_idx_map);
+    CTF_int::cfree(dlen_A);
+    CTF_int::cfree(dlen_B);
+    CTF_int::cfree(idx_glb);
+    CTF_int::cfree(rev_idx_map);
     TAU_FSTOP(sym_seq_sum_cust);
     return 0;
   }

@@ -108,13 +108,13 @@ namespace CTF_int {
   #endif
     int64_t counts[mntd];
     std::fill(counts,counts+mntd,0);
-    int ** depermutation = (int**)CTF_alloc(order*sizeof(int*));
+    int ** depermutation = (int**)CTF_int::alloc(order*sizeof(int*));
     TAU_FSTART(form_depermutation);
     for (int d=0; d<order; d++){
       if (permutation[d] == NULL){
         depermutation[d] = NULL;
       } else {
-        depermutation[d] = (int*)CTF_alloc(new_edge_len[d]*sizeof(int));
+        depermutation[d] = (int*)CTF_int::alloc(new_edge_len[d]*sizeof(int));
         std::fill(depermutation[d],depermutation[d]+new_edge_len[d], -1);
         for (int i=0; i<edge_len[d]; i++){
           depermutation[d][permutation[d][i]] = i;
@@ -164,9 +164,9 @@ namespace CTF_int {
     }
     for (int d=0; d<order; d++){
       if (permutation[d] != NULL)
-        CTF_free(depermutation[d]);
+        CTF_int::cfree(depermutation[d]);
     }
-    CTF_free(depermutation);
+    CTF_int::cfree(depermutation);
 
     TAU_FSTOP(depermute_keys);
   }
@@ -196,9 +196,9 @@ namespace CTF_int {
     }
 
     TAU_FSTART(assign_keys);
-    CTF_alloc_ptr(order*sizeof(int), (void**)&idx);
-    CTF_alloc_ptr(order*sizeof(int), (void**)&virt_rank);
-    CTF_alloc_ptr(order*sizeof(int), (void**)&edge_lda);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&edge_lda);
     
     memset(virt_rank, 0, sizeof(int)*order);
     
@@ -261,9 +261,9 @@ namespace CTF_int {
       if (act_lda >= order) break;
     }
     ASSERT(buf_offset == size/nvirt);
-    CTF_free(idx);
-    CTF_free(virt_rank);
-    CTF_free(edge_lda);
+    CTF_int::cfree(idx);
+    CTF_int::cfree(virt_rank);
+    CTF_int::cfree(edge_lda);
     TAU_FSTOP(assign_keys);
   }
  
@@ -283,8 +283,8 @@ namespace CTF_int {
     memset(bucket_counts, 0, sizeof(int64_t)*np); 
   #ifdef USE_OMP
     int64_t * sub_counts, * sub_offs;
-    CTF_alloc_ptr(np*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_counts);
-    CTF_alloc_ptr(np*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_offs);
+    CTF_int::alloc_ptr(np*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_counts);
+    CTF_int::alloc_ptr(np*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_offs);
     memset(sub_counts, 0, np*sizeof(int64_t)*omp_get_max_threads());
   #endif
 
@@ -292,7 +292,7 @@ namespace CTF_int {
     TAU_FSTART(bucket_by_pe_count);
     /* Calculate counts */
   #ifdef USE_OMP
-    #pragma omp parallel for schedule(static,256) private(i, j, loc, k)
+    #pragma omp parallel for schedule(static,256) 
   #endif
     for (int64_t i=0; i<num_pair; i++){
       int64_t k = mapped_data[i].k();
@@ -346,7 +346,7 @@ namespace CTF_int {
     /* bucket data */
     TAU_FSTART(bucket_by_pe_move);
   #ifdef USE_OMP
-    #pragma omp parallel for schedule(static,256) private(i, j, loc, k)
+    #pragma omp parallel for schedule(static,256) 
   #endif
     for (int64_t i=0; i<num_pair; i++){
       int64_t k = mapped_data[i].k();
@@ -364,8 +364,8 @@ namespace CTF_int {
   #endif
     }
   #ifdef USE_OMP
-    CTF_free(sub_counts);
-    CTF_free(sub_offs);
+    CTF_int::cfree(sub_counts);
+    CTF_int::cfree(sub_offs);
   #endif
     TAU_FSTOP(bucket_by_pe_move);
   }
@@ -381,9 +381,9 @@ namespace CTF_int {
     int64_t * virt_counts, * virt_prefix, * virt_lda;
     TAU_FSTART(bucket_by_virt);
     
-    CTF_alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_counts);
-    CTF_alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_prefix);
-    CTF_alloc_ptr(order*sizeof(int64_t),    (void**)&virt_lda);
+    CTF_int::alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_counts);
+    CTF_int::alloc_ptr(num_virt*sizeof(int64_t), (void**)&virt_prefix);
+    CTF_int::alloc_ptr(order*sizeof(int64_t),    (void**)&virt_lda);
    
    
     if (order > 0){
@@ -397,8 +397,8 @@ namespace CTF_int {
     memset(virt_counts, 0, sizeof(int64_t)*num_virt); 
   #ifdef USE_OMP
     int64_t * sub_counts, * sub_offs;
-    CTF_alloc_ptr(num_virt*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_counts);
-    CTF_alloc_ptr(num_virt*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_offs);
+    CTF_int::alloc_ptr(num_virt*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_counts);
+    CTF_int::alloc_ptr(num_virt*sizeof(int64_t)*omp_get_max_threads(), (void**)&sub_offs);
     memset(sub_counts, 0, num_virt*sizeof(int64_t)*omp_get_max_threads());
   #endif
 
@@ -406,7 +406,7 @@ namespace CTF_int {
     /* bucket data */
   #ifdef USE_OMP
     TAU_FSTART(bucket_by_virt_omp_cnt);
-    #pragma omp parallel for schedule(static) private(j, loc, k, i)
+    #pragma omp parallel for schedule(static) 
     for (int64_t i=0; i<num_pair; i++){
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
@@ -439,7 +439,7 @@ namespace CTF_int {
     }
     TAU_FSTOP(bucket_by_virt_assemble_offsets);
     TAU_FSTART(bucket_by_virt_move);
-    #pragma omp parallel for schedule(static) private(j, loc, k, i)
+    #pragma omp parallel for schedule(static)
     for (int64_t i=0; i<num_pair; i++){
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
@@ -498,12 +498,12 @@ namespace CTF_int {
     }*/
   #endif
   #ifdef USE_OMP
-    CTF_free(sub_counts);
-    CTF_free(sub_offs);
+    CTF_int::cfree(sub_counts);
+    CTF_int::cfree(sub_offs);
   #endif
-    CTF_free(virt_prefix);
-    CTF_free(virt_counts);
-    CTF_free(virt_lda);
+    CTF_int::cfree(virt_prefix);
+    CTF_int::cfree(virt_counts);
+    CTF_int::cfree(virt_lda);
     TAU_FSTOP(bucket_by_virt);
   }
 
@@ -548,9 +548,9 @@ namespace CTF_int {
       return;
     }
     TAU_FSTART(readwrite);
-    CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
-    CTF_alloc_ptr(order*sizeof(int64_t), (void**)&virt_rank);
-    CTF_alloc_ptr(order*sizeof(int64_t), (void**)&edge_lda);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&idx);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&virt_rank);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&edge_lda);
     
     memset(virt_rank, 0, sizeof(int64_t)*order);
     edge_lda[0] = 1;
@@ -679,9 +679,9 @@ namespace CTF_int {
     TAU_FSTOP(readwrite);
     //printf("pr_offset = " PRId64 "/" PRId64 "\n",pr_offset,size);
     ASSERT(pr_offset == size);
-    CTF_free(idx);
-    CTF_free(virt_rank);
-    CTF_free(edge_lda);
+    CTF_int::cfree(idx);
+    CTF_int::cfree(virt_rank);
+    CTF_int::cfree(edge_lda);
   }
 
   void wr_pairs_layout(int              order,
@@ -711,12 +711,12 @@ namespace CTF_int {
     char * swap_datab, * buf_datab;
 
 
-    CTF_alloc_ptr(inwrite*sr.pair_size(), (void**)&buf_datab);
-    CTF_alloc_ptr(inwrite*sr.pair_size(), (void**)&swap_datab);
-    CTF_alloc_ptr(np*sizeof(int64_t),     (void**)&bucket_counts);
-    CTF_alloc_ptr(np*sizeof(int64_t),     (void**)&recv_counts);
-    CTF_alloc_ptr(np*sizeof(int64_t),     (void**)&send_displs);
-    CTF_alloc_ptr(np*sizeof(int64_t),     (void**)&recv_displs);
+    CTF_int::alloc_ptr(inwrite*sr.pair_size(), (void**)&buf_datab);
+    CTF_int::alloc_ptr(inwrite*sr.pair_size(), (void**)&swap_datab);
+    CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&bucket_counts);
+    CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&recv_counts);
+    CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&send_displs);
+    CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&recv_displs);
 
     PairIterator buf_data  = PairIterator(&sr, buf_datab);
     PairIterator swap_data = PairIterator(&sr, swap_datab);
@@ -726,7 +726,7 @@ namespace CTF_int {
 
     /* Copy out the input data, do not touch that array */
   //  memcpy(swap_data, wr_pairs, nwrite*sizeof(tkv_pair<dtype>));
-    CTF_alloc_ptr(order*sizeof(int), (void**)&depad_edge_len);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&depad_edge_len);
     for (int i=0; i<order; i++){
       depad_edge_len[i] = edge_len[i] - padding[i];
     } 
@@ -778,11 +778,11 @@ namespace CTF_int {
     char * new_changed_pairs;
     int * changed_key_scale;
     
-    CTF_alloc_ptr(nchanged*sizeof(int64_t), (void**)&changed_key_indices);
-    CTF_alloc_ptr(nchanged*sr.pair_size(),  (void**)&new_changed_pairs);
-    CTF_alloc_ptr(nchanged*sizeof(int),     (void**)&changed_key_scale);
+    CTF_int::alloc_ptr(nchanged*sizeof(int64_t), (void**)&changed_key_indices);
+    CTF_int::alloc_ptr(nchanged*sr.pair_size(),  (void**)&new_changed_pairs);
+    CTF_int::alloc_ptr(nchanged*sizeof(int),     (void**)&changed_key_scale);
 
-    CTF_alloc_ptr(order*sizeof(int), (void**)&ckey);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&ckey);
     nchanged = 0;
     for (int64_t i=0; i<inwrite; i++){
       cvrt_idx(order, depad_edge_len, wr_pairs[i].k(), ckey);
@@ -838,12 +838,12 @@ namespace CTF_int {
         nchanged++;
       } 
     }
-    CTF_free(ckey);
+    CTF_int::cfree(ckey);
     TAU_FSTOP(check_key_ranges);
 
     /* If the packed tensor is padded, pad keys */
     pad_key(order, nwrite, depad_edge_len, padding, swap_data, sr);
-    CTF_free(depad_edge_len);
+    CTF_int::cfree(depad_edge_len);
 
     /* Figure out which processor the value in a packed layout, lies for each key */
     bucket_by_pe(order, nwrite, np,
@@ -870,8 +870,8 @@ namespace CTF_int {
     }*/
 
     if (new_num_pair > nwrite){
-      CTF_free(swap_datab);
-      CTF_alloc_ptr(sr.pair_size()*new_num_pair, (void**)&swap_datab);
+      CTF_int::cfree(swap_datab);
+      CTF_int::alloc_ptr(sr.pair_size()*new_num_pair, (void**)&swap_datab);
       swap_data = PairIterator(&sr, swap_datab);
     }
 
@@ -886,8 +886,8 @@ namespace CTF_int {
                   glb_comm->rank, nwrite, new_num_pair);*/
 
     if (new_num_pair > nwrite){
-      CTF_free(buf_datab);
-      CTF_alloc_ptr(sr.pair_size()*new_num_pair, (void**)&buf_datab);
+      CTF_int::cfree(buf_datab);
+      CTF_int::alloc_ptr(sr.pair_size()*new_num_pair, (void**)&buf_datab);
       buf_data = PairIterator(&sr, buf_datab);
     }
 
@@ -915,7 +915,7 @@ namespace CTF_int {
     /* If we want to read the keys, we must return them to where they
        were requested */
     if (rw == 'r'){
-      CTF_alloc_ptr(order*sizeof(int), (void**)&depadding);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&depadding);
       /* Sort the key-value pairs we determine*/
       //std::sort(buf_data, buf_data+new_num_pair);
       buf_data.sort(new_num_pair);
@@ -979,16 +979,16 @@ namespace CTF_int {
       /*changed_key_indices.clear();
       changed_key_scale.clear();
       new_changed_pairs.clear();*/
-      CTF_free(depadding);
+      CTF_int::cfree(depadding);
     }
     TAU_FSTOP(wr_pairs_layout);
 
-    CTF_free(swap_datab);
-    CTF_free(buf_datab);
-    CTF_free((void*)bucket_counts);
-    CTF_free((void*)recv_counts);
-    CTF_free((void*)send_displs);
-    CTF_free((void*)recv_displs);
+    CTF_int::cfree(swap_datab);
+    CTF_int::cfree(buf_datab);
+    CTF_int::cfree((void*)bucket_counts);
+    CTF_int::cfree((void*)recv_counts);
+    CTF_int::cfree((void*)send_displs);
+    CTF_int::cfree((void*)recv_displs);
 
   }
 
@@ -1008,8 +1008,8 @@ namespace CTF_int {
     int64_t i;
     int * prepadding;
     char * dpairsb;
-    CTF_alloc_ptr(sr.pair_size()*nval, (void**)&dpairsb);
-    CTF_alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
+    CTF_int::alloc_ptr(sr.pair_size()*nval, (void**)&dpairsb);
+    CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
     memset(prepadding, 0, sizeof(int)*order);
     /* Iterate through packed layout and form key value pairs */
     assign_keys(order,
@@ -1029,12 +1029,12 @@ namespace CTF_int {
     int * depadding;
     int * pad_len;
     char * new_pairsb;
-    CTF_alloc_ptr(sr.pair_size()*nval, (void**)&new_pairsb);
+    CTF_int::alloc_ptr(sr.pair_size()*nval, (void**)&new_pairsb);
    
     PairIterator new_pairs = PairIterator(&sr, new_pairsb); 
 
-    CTF_alloc_ptr(sizeof(int)*order,   (void**)&depadding);
-    CTF_alloc_ptr(sizeof(int)*order,   (void**)&pad_len);
+    CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&depadding);
+    CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&pad_len);
 
     for (i=0; i<order; i++){
       pad_len[i] = edge_len[i]-padding[i];
@@ -1043,8 +1043,8 @@ namespace CTF_int {
     depad_tsr(order, nval, pad_len, sym, padding, prepadding,
               dpairsb, new_pairsb, &new_num_pair, sr);
 
-    CTF_free(dpairsb);
-    if (nval == 0) CTF_free(new_pairsb);
+    CTF_int::cfree(dpairsb);
+    if (nval == 0) CTF_int::cfree(new_pairsb);
     *pairs = new_pairsb;
     *nread = new_num_pair;
 
@@ -1054,9 +1054,9 @@ namespace CTF_int {
     
     /* Adjust keys to remove padding */
     pad_key(order, new_num_pair, edge_len, depadding, new_pairs, sr);
-    CTF_free((void*)pad_len);
-    CTF_free((void*)depadding);
-    CTF_free(prepadding);
+    CTF_int::cfree((void*)pad_len);
+    CTF_int::cfree((void*)depadding);
+    CTF_int::cfree(prepadding);
   }
 
 }

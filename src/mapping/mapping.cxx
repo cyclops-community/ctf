@@ -140,7 +140,7 @@ namespace CTF_int {
     memcpy(mapping_B, mapping_A, sizeof(mapping)*order);
     for (i=0; i<order; i++){
       if (mapping_A[i].has_child){
-        CTF_alloc_ptr(sizeof(mapping), (void**)&mapping_B[i].child);
+        CTF_int::alloc_ptr(sizeof(mapping), (void**)&mapping_B[i].child);
         mapping_B[i].child->has_child = 0;
         mapping_B[i].child->np        = 1;
         mapping_B[i].child->type      = NOT_MAPPED;
@@ -179,7 +179,7 @@ namespace CTF_int {
         copy_mapping(1, mapping_A+iA, mapping_B+iB);
       }
     }
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
     return CTF::SUCCESS;
   }
 
@@ -238,7 +238,7 @@ namespace CTF_int {
               return CTF::NEGATIVE;
             if (phase/phys_comm[i].np != 1){
               map->has_child  = 1;
-              map->child    = (mapping*)CTF_alloc(sizeof(mapping));
+              map->child    = (mapping*)CTF_int::alloc(sizeof(mapping));
               map->child->type  = VIRTUAL_MAP;
               map->child->np  = phase/phys_comm[i].np;
               map->child->has_child = 0;
@@ -246,7 +246,7 @@ namespace CTF_int {
           }
         } else if (map->type == PHYSICAL_MAP){
           if (map->has_child != 1)
-            map->child  = (mapping*)CTF_alloc(sizeof(mapping));
+            map->child  = (mapping*)CTF_int::alloc(sizeof(mapping));
           map->has_child  = 1;
           map             = map->child;
           map->has_child  = 0;
@@ -284,7 +284,7 @@ namespace CTF_int {
     }
     max_idx++;
 
-    CTF_alloc_ptr(sizeof(int)*max_idx, (void**)&idx_arr);
+    CTF_int::alloc_ptr(sizeof(int)*max_idx, (void**)&idx_arr);
     std::fill(idx_arr, idx_arr+max_idx, -1);
 
     pass = 1;
@@ -352,7 +352,7 @@ namespace CTF_int {
         idx_arr[idx_map[i]] = i;
       }
     }
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
     return pass;
   }
 
@@ -369,8 +369,8 @@ namespace CTF_int {
     max_idx++;
 
 
-    CTF_alloc_ptr(sizeof(int)*max_idx, (void**)&idx_arr);
-    CTF_alloc_ptr(sizeof(int)*tsr->order*tsr->order, (void**)&stable);
+    CTF_int::alloc_ptr(sizeof(int)*max_idx, (void**)&idx_arr);
+    CTF_int::alloc_ptr(sizeof(int)*tsr->order*tsr->order, (void**)&stable);
     memcpy(stable, tsr->sym_table, sizeof(int)*tsr->order*tsr->order);
 
     std::fill(idx_arr, idx_arr+max_idx, -1);
@@ -398,8 +398,8 @@ namespace CTF_int {
       if (ret!=CTF::SUCCESS) return ret;
     }
 
-    CTF_free(idx_arr);
-    CTF_free(stable);
+    CTF_int::cfree(idx_arr);
+    CTF_int::cfree(stable);
     return CTF::SUCCESS;
   }
 
@@ -445,7 +445,7 @@ namespace CTF_int {
                 } else {
                   ASSERT(sym_map->type == PHYSICAL_MAP);
                   if (!sym_map->has_child)
-                    sym_map->child    = (mapping*)CTF_alloc(sizeof(mapping));
+                    sym_map->child    = (mapping*)CTF_int::alloc(sizeof(mapping));
                   sym_map->has_child  = 1;
                   sym_map->child->type    = VIRTUAL_MAP;
                   sym_map->child->np    = lcm_phase/sym_phase;
@@ -460,7 +460,7 @@ namespace CTF_int {
                   map->np = map->np*(lcm_phase/phase);
                 } else {
                   if (!map->has_child)
-                    map->child    = (mapping*)CTF_alloc(sizeof(mapping));
+                    map->child    = (mapping*)CTF_int::alloc(sizeof(mapping));
                   ASSERT(map->type == PHYSICAL_MAP);
                   map->has_child    = 1;
                   map->child->type  = VIRTUAL_MAP;
@@ -487,7 +487,7 @@ namespace CTF_int {
       if (map->type == PHYSICAL_MAP){
         if (map->has_child){
           map->has_child    = 1;
-          map->child    = (mapping*)CTF_alloc(sizeof(mapping));
+          map->child    = (mapping*)CTF_int::alloc(sizeof(mapping));
           map->child->type  = VIRTUAL_MAP;
           map->child->np    = stretch_factor;
           map->child->has_child   = 0;

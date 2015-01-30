@@ -17,12 +17,12 @@ namespace CTF_int {
   }
 
   distribution::distribution(tensor const * tsr){
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&phase);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&pad_edge_len);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&padding);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&perank);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phase);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pad_edge_len);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&padding);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&perank);
    
     order = tsr->order;
     size = tsr->size;
@@ -38,7 +38,7 @@ namespace CTF_int {
         pe_lda[j] = 0;
     }
     memcpy(pad_edge_len, tsr->pad_edge_len, sizeof(int)*tsr->order);
-    CTF_alloc_ptr(sizeof(int)*tsr->order, (void**)padding);
+    CTF_int::alloc_ptr(sizeof(int)*tsr->order, (void**)padding);
     memcpy(padding, tsr->padding, sizeof(int)*tsr->order);
     is_cyclic = tsr->is_cyclic;
   }
@@ -49,12 +49,12 @@ namespace CTF_int {
     order = ((int*)(buffer+buffer_ptr))[0];
     buffer_ptr += sizeof(int);
 
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&phase);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&pad_edge_len);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&padding);
-    CTF_alloc_ptr(sizeof(int)*order, (void**)&perank);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phase);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pad_edge_len);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&padding);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&perank);
 
     is_cyclic = ((int*)(buffer+buffer_ptr))[0];
     buffer_ptr += sizeof(int);
@@ -88,7 +88,7 @@ namespace CTF_int {
     
     bufsz = get_distribution_size(order);
 
-    CTF_alloc_ptr(bufsz, (void**)&buffer);
+    CTF_int::alloc_ptr(bufsz, (void**)&buffer);
 
     int buffer_ptr = 0;
 
@@ -121,12 +121,12 @@ namespace CTF_int {
   void distribution::free_data(){
     if (order != -1){
 
-      CTF_free(phase);
-      CTF_free(virt_phase);
-      CTF_free(pe_lda);
-      CTF_free(pad_edge_len);
-      CTF_free(padding);
-      CTF_free(perank);
+      CTF_int::cfree(phase);
+      CTF_int::cfree(virt_phase);
+      CTF_int::cfree(pe_lda);
+      CTF_int::cfree(pad_edge_len);
+      CTF_int::cfree(padding);
+      CTF_int::cfree(perank);
     }
     order = -1;
   }

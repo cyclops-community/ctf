@@ -132,7 +132,7 @@ namespace CTF_int {
     int order, * sym;
     dt->get_tsr_info(tensor_id, &order, edge_len, &sym);
     CTF_untag_mem(edge_len);
-    CTF_free(sym);
+    CTF_int::cfree(sym);
     return SUCCESS;
   }
       
@@ -887,7 +887,7 @@ namespace CTF_int {
     std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
     for (i=0; i<tensors->size(); i++){
       dt->del_tsr(i);
-  //    CTF_free((*tensors)[i]);
+  //    CTF_int::cfree((*tensors)[i]);
     }
     tensors->clear();
     return SUCCESS;
@@ -914,7 +914,7 @@ namespace CTF_int {
       delete dt;
       initialized = 0;
       CTF_mem_exit(rank);
-      if (CTF_get_num_instances() == 0){
+      if (CTF_int::get_num_instances() == 0){
   #ifdef OFFLOAD
         offload_exit();
   #endif
@@ -966,7 +966,7 @@ namespace CTF_int {
     fs.is_offloadable=1;
   #endif
     std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
-    CTF_alloc_ptr(3*sizeof(int), (void**)&need_free);
+    CTF_int::alloc_ptr(3*sizeof(int), (void**)&need_free);
     ret = dt->pgemm(TRANSA, TRANSB, M, N, K, ALPHA, A, IA, JA, DESCA,
                     B, IB, JB, DESCB,
                     BETA, C, IC, JC, DESCC, &ct, &fs, need_free);
@@ -1018,7 +1018,7 @@ namespace CTF_int {
                      &old_padding_C, &old_edge_len_C, 
                      dt->get_topo(tsr_nC->itopo));
         if (need_free[2])
-          CTF_free(tsr_oC->data);
+          CTF_int::cfree(tsr_oC->data);
         tsr_oC->data = tsr_nC->data;
         remap_tensor(otid_C, tsr_oC, dt->get_topo(tsr_oC->itopo), old_size_C,
                      old_phase_C, old_rank_C, old_virt_dim_C,
@@ -1026,14 +1026,14 @@ namespace CTF_int {
                      old_padding_C, old_edge_len_C, global_comm);
       } else{
         if (need_free[2])
-                CTF_free(tsr_oC->data);
+                CTF_int::cfree(tsr_oC->data);
         tsr_oC->data = tsr_nC->data;
       }
       /* If this process owns any data */
       if (!need_free[2]){
         memcpy(C,tsr_oC->data,tsr_oC->size*sizeof(dtype));
       } else
-        CTF_free(tsr_oC->data);
+        CTF_int::cfree(tsr_oC->data);
       if (need_free[0])
         dt->del_tsr(otid_A);
       if (need_free[1])
@@ -1048,11 +1048,11 @@ namespace CTF_int {
   #endif
     if ((*tensors)[otid_A]->scp_padding[0] != 0 ||
         (*tensors)[otid_A]->scp_padding[1] != 0){
-      CTF_free((*tensors)[otid_A]->data);
+      CTF_int::cfree((*tensors)[otid_A]->data);
     }
     if ((*tensors)[otid_B]->scp_padding[0] != 0 ||
         (*tensors)[otid_B]->scp_padding[1] != 0){
-      CTF_free((*tensors)[otid_B]->data);
+      CTF_int::cfree((*tensors)[otid_B]->data);
     }
     if ((*tensors)[otid_C]->scp_padding[0] != 0 ||
         (*tensors)[otid_C]->scp_padding[1] != 0){
@@ -1065,7 +1065,7 @@ namespace CTF_int {
             = (*tensors)[otid_C]->data[i*brow+j];
         }
       }
-      CTF_free((*tensors)[otid_C]->data);
+      CTF_int::cfree((*tensors)[otid_C]->data);
     }
     (*tensors)[otid_A]->is_data_aliased = 1;
     (*tensors)[otid_B]->is_data_aliased = 1;
@@ -1073,10 +1073,10 @@ namespace CTF_int {
     dt->del_tsr(otid_A);
     dt->del_tsr(otid_B);
     dt->del_tsr(otid_C);
-    CTF_free(ct.idx_map_A);
-    CTF_free(ct.idx_map_B);
-    CTF_free(ct.idx_map_C);
-    CTF_free(need_free);
+    CTF_int::cfree(ct.idx_map_A);
+    CTF_int::cfree(ct.idx_map_B);
+    CTF_int::cfree(ct.idx_map_C);
+    CTF_int::cfree(need_free);
     return SUCCESS;
   }
 
@@ -1098,7 +1098,7 @@ namespace CTF_int {
     std::vector< tensor<dtype>* > * tensors = dt->get_tensors();
     tensor<dtype> * stsr = (*tensors)[stid];
     tensor<dtype> * tsr = (*tensors)[*tid];
-    CTF_free(stsr->data);
+    CTF_int::cfree(stsr->data);
     stsr->is_data_aliased = 1;
     tsr->is_matrix = 1;
     tsr->slay = stid;
@@ -1128,7 +1128,7 @@ namespace CTF_int {
     
   //  ASSERT(tsr->is_matrix);
 
-    CTF_alloc_ptr(sizeof(dtype)*tsr->size, (void**)&stsr->data);
+    CTF_int::alloc_ptr(sizeof(dtype)*tsr->size, (void**)&stsr->data);
     memcpy(stsr->data, tsr->data, sizeof(dtype)*tsr->size);
     remap_tensor(tsr->slay, stsr, dt->get_topo(stsr->itopo), old_size,
                  old_phase, old_rank, old_virt_dim,
@@ -1136,7 +1136,7 @@ namespace CTF_int {
                  old_padding, old_edge_len, global_comm);
     if (data!=NULL)
       memcpy(data, stsr->data, stsr->size*sizeof(dtype));  
-    CTF_free(stsr->data);
+    CTF_int::cfree(stsr->data);
     return SUCCESS;
   }
   /**
@@ -1159,9 +1159,9 @@ namespace CTF_int {
     ct.tid_B = tid_B;
     ct.tid_C = tid_C;
 
-    ct.idx_map_A = (int*)CTF_alloc(sizeof(int)*2);
-    ct.idx_map_B = (int*)CTF_alloc(sizeof(int)*2);
-    ct.idx_map_C = (int*)CTF_alloc(sizeof(int)*2);
+    ct.idx_map_A = (int*)CTF_int::alloc(sizeof(int)*2);
+    ct.idx_map_B = (int*)CTF_int::alloc(sizeof(int)*2);
+    ct.idx_map_C = (int*)CTF_int::alloc(sizeof(int)*2);
     ct.idx_map_C[0] = 1;
     ct.idx_map_C[1] = 2;
     herm_A = 0;
@@ -1195,9 +1195,9 @@ namespace CTF_int {
     else
       fs.func_ptr = &gemm_ctr<dtype,0,0>;
     ret = this->contract(&ct, fs, ALPHA, BETA);
-    CTF_free(ct.idx_map_A);
-    CTF_free(ct.idx_map_B);
-    CTF_free(ct.idx_map_C);
+    CTF_int::cfree(ct.idx_map_A);
+    CTF_int::cfree(ct.idx_map_B);
+    CTF_int::cfree(ct.idx_map_C);
     return ret;
   };
 

@@ -2,7 +2,9 @@
 #define __PMPI_H__
 
 #include "mpi.h"
-void CTF_set_context(MPI_Comm ctxt);
+namespace CTF {
+  void set_context(MPI_Comm);
+}
 
 #ifdef PMPI
 #define MPI_Bcast(...)                                            \

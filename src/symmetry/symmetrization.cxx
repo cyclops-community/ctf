@@ -73,11 +73,11 @@ namespace CTF_int {
       t_pf.start();
     }
 
-    CTF_mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr.el_size, (void**)&nonsym_tsr->data);
+    CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr.el_size, (void**)&nonsym_tsr->data);
     nonsym_tsr->sr.set(nonsym_tsr->data, nonsym_tsr->sr.addid, nonsym_tsr->size);
 
-    CTF_alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
-    CTF_alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
+    CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
+    CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
 
     for (i=0; i<sym_tsr->order; i++){
       idx_map_A[i] = i;
@@ -160,8 +160,8 @@ namespace CTF_int {
   //    print_tsr(stdout, nonsym_tid);
 #endif
     }
-    CTF_free(idx_map_A);
-    CTF_free(idx_map_B);  
+    CTF_int::cfree(idx_map_A);
+    CTF_int::cfree(idx_map_B);  
 
   /*  switch (sym_tsr->edge_map[sym_dim].type){
       case NOT_MAPPED:
@@ -265,8 +265,8 @@ namespace CTF_int {
     }
 
     sym_tsr->sr.set(sym_tsr->data, sym_tsr->sr.addid, sym_tsr->size);
-    CTF_alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
-    CTF_alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
+    CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
+    CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
 
     for (i=0; i<sym_tsr->order; i++){
       idx_map_A[i] = i;
@@ -337,8 +337,8 @@ namespace CTF_int {
 #endif
     }
 
-    CTF_free(idx_map_A);
-    CTF_free(idx_map_B);
+    CTF_int::cfree(idx_map_A);
+    CTF_int::cfree(idx_map_B);
 
     if (sym_tsr->profile) {
       char spf[80];
@@ -363,7 +363,7 @@ namespace CTF_int {
     double sgn;
 
     ASSERT(sym[0] != NS);
-    CTF_alloc_ptr(sizeof(int)*ndim, (void**)&pm);
+    CTF_int::alloc_ptr(sizeof(int)*ndim, (void**)&pm);
 
     np=0;
     sgn=1.0;
@@ -527,13 +527,13 @@ namespace CTF_int {
     // check if this summation is equivalent to one of the other permutations
     for (i=0; i<(int)perms.size(); i++){
       if (perms[i].is_equal(norm_ord_perm)){
-        CTF_free(idx_arr);
+        CTF_int::cfree(idx_arr);
         return;
       }
     }
     perms.push_back(norm_ord_perm);
     signs.push_back(add_sign);
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
   }
 
   void add_sym_perm(std::vector<contraction>& perms,
@@ -578,13 +578,13 @@ namespace CTF_int {
 
     for (i=0; i<(int)perms.size(); i++){
       if (perms[i].is_equal(norm_ord_perm)){
-        CTF_free(idx_arr);
+        CTF_int::cfree(idx_arr);
         return;
       }
     }
     perms.push_back(norm_ord_perm);
     signs.push_back(add_sign);
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
   }
 
   void get_sym_perms(summation const &       sum,
@@ -637,8 +637,8 @@ namespace CTF_int {
   //  dtype * scl_alpha_C;
   //  int ** scl_idx_maps_C;
   //  nscl_C = 0;
-  //  CTF_alloc_ptr(sizeof(dtype)*order_C, (void**)&scl_alpha_C);
-  //  CTF_alloc_ptr(sizeof(int*)*order_C, (void**)&scl_idx_maps_C);
+  //  CTF_int::alloc_ptr(sizeof(dtype)*order_C, (void**)&scl_alpha_C);
+  //  CTF_int::alloc_ptr(sizeof(int*)*order_C, (void**)&scl_idx_maps_C);
 
     int i, j, k, tmp;
     int sign;

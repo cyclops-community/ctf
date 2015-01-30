@@ -83,9 +83,9 @@ namespace CTF_int {
     inv_idx(ntsr->order, idx_map, 
             &order_tot, &idx_arr);
 
-    CTF_alloc_ptr(sizeof(int)*ntsr->order, (void**)&blk_len);
-    CTF_alloc_ptr(sizeof(int)*ntsr->order, (void**)&virt_blk_len);
-    CTF_alloc_ptr(sizeof(int)*order_tot, (void**)&virt_dim);
+    CTF_int::alloc_ptr(sizeof(int)*ntsr->order, (void**)&blk_len);
+    CTF_int::alloc_ptr(sizeof(int)*ntsr->order, (void**)&virt_blk_len);
+    CTF_int::alloc_ptr(sizeof(int)*order_tot, (void**)&virt_dim);
 
     bool saved_map = false;
 
@@ -216,7 +216,7 @@ namespace CTF_int {
       sclv->blk_sz_A  = vrt_sz;
       sclv->idx_map_A = idx_map;
       sclv->buffer  = NULL;
-    } else CTF_free(virt_dim);
+    } else CTF_int::cfree(virt_dim);
 
     seq_tsr_scl * sclseq = new seq_tsr_scl;
     sclseq->sr_A = tsr->sr;
@@ -240,8 +240,8 @@ namespace CTF_int {
 
     hscl->A   = ntsr->data;
 
-    CTF_free(idx_arr);
-    CTF_free(blk_len);
+    CTF_int::cfree(idx_arr);
+    CTF_int::cfree(blk_len);
 
     hscl->run();
     delete hscl;
@@ -267,7 +267,7 @@ namespace CTF_int {
       tsr->redistribute(old_dst);
       TAU_FSTOP(redistribute_for_scale_home);
       memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr.el_size);
-      CTF_free(tsr->data);
+      CTF_int::cfree(tsr->data);
       tsr->data = tsr->home_buffer;
       tsr->is_home = 1;
       ntsr->is_data_aliased = 1;

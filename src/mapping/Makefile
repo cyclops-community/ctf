@@ -4,7 +4,10 @@ OBJS = mapping.o distribution.o topology.o
 
 ctf: $(OBJS) 
 
-$(OBJS): %.o: %.cxx %.h
+#%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
+HDRS = ../interface/common.h ../mapping/mapping.h ../shared/util.h ../summation/sum_tsr.h ../tensor/untyped_tensor.h 
+
+$(OBJS): %.o: %.cxx *.h $(HDRS)
 	$(FCXX) -c $<
 
 

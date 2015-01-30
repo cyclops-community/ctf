@@ -7,9 +7,9 @@ namespace CTF_int {
   uint64_t proc_bytes_used();
   uint64_t proc_bytes_total();
   uint64_t proc_bytes_available();
-  void CTF_set_memcap(double cap);
-  void CTF_set_mem_size(int64_t size);
-  int CTF_get_num_instances();
+  void set_memcap(double cap);
+  void set_mem_size(int64_t size);
+  int get_num_instances();
 }
 
 

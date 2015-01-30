@@ -56,13 +56,13 @@ namespace CTF {
     ret = CTF_int::tensor::read_local(npair, &pairs);
     assert(ret == SUCCESS);
     /* FIXME: careful with alloc */
-    *global_idx = (int64_t*)CTF_alloc((*npair)*sizeof(int64_t));
-    *data = (dtype*)CTF_alloc((*npair)*sizeof(dtype));
+    *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
+    *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
     for (i=0; i<(*npair); i++){
       (*global_idx)[i] = pairs[i].k;
       (*data)[i] = pairs[i].d;
     }
-    CTF_free(pairs);
+    CTF_int::cfree(pairs);
   }
 
   template<typename dtype>
@@ -78,7 +78,7 @@ namespace CTF {
                            dtype *          data) const {
     int ret, i;
     Pair< dtype > * pairs;
-    pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
+    pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
     }
@@ -87,7 +87,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
     }
-    CTF_free(pairs);
+    CTF_int::cfree(pairs);
   }
 
   template<typename dtype>
@@ -103,14 +103,14 @@ namespace CTF {
                             dtype const *    data) {
     int ret, i;
     Pair< dtype > * pairs;
-    pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
+    pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
     }
     ret = CTF_int::tensor::write(npair, pairs);
     assert(ret == SUCCESS);
-    CTF_free(pairs);
+    CTF_int::cfree(pairs);
   }
 
   template<typename dtype>
@@ -128,14 +128,14 @@ namespace CTF {
                             dtype const *    data) {
     int ret, i;
     Pair< dtype > * pairs;
-    pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
+    pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
     }
     ret = CTF_int::tensor::write(npair, &alpha, &beta, pairs);
     assert(ret == SUCCESS);
-    CTF_free(pairs);
+    CTF_int::cfree(pairs);
   }
 
   template<typename dtype>
@@ -155,7 +155,7 @@ namespace CTF {
                            dtype *         data) const{
     int ret, i;
     Pair< dtype > * pairs;
-    pairs = (Pair< dtype >*)CTF_alloc(npair*sizeof(Pair< dtype >));
+    pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
@@ -165,7 +165,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
     }
-    CTF_free(pairs);
+    CTF_int::cfree(pairs);
   }
 
   template<typename dtype>
@@ -318,10 +318,10 @@ namespace CTF {
     
     slice(offsets, ends, beta, A, offsets_A, ends_A, alpha);
 
-    CTF_free(offsets);
-    CTF_free(ends);
-    CTF_free(offsets_A);
-    CTF_free(ends_A);
+    CTF_int::cfree(offsets);
+    CTF_int::cfree(ends);
+    CTF_int::cfree(offsets_A);
+    CTF_int::cfree(ends_A);
   }
 
   template<typename dtype>
@@ -343,8 +343,8 @@ namespace CTF {
                                      int const *  ends,
                                      World *      owrld) const {
     int i;
-    int * new_lens = (int*)CTF_alloc(sizeof(int)*order);
-    int * new_sym = (int*)CTF_alloc(sizeof(int)*order);
+    int * new_lens = (int*)CTF_int::alloc(sizeof(int)*order);
+    int * new_sym = (int*)CTF_int::alloc(sizeof(int)*order);
     for (i=0; i<order; i++){
       assert(ends[i] - offsets[i] > 0 && 
                   offsets[i] >= 0 && 
@@ -362,8 +362,8 @@ namespace CTF {
     Tensor<dtype> new_tsr(order, new_lens, new_sym, *owrld);
     std::fill(new_sym, new_sym+order, 0);
     new_tsr.slice(new_sym, new_lens, 0.0, *this, offsets, ends, 1.0);
-    CTF_free(new_lens);
-    CTF_free(new_sym);
+    CTF_int::cfree(new_lens);
+    CTF_int::cfree(new_sym);
     return new_tsr;
   }
 
@@ -379,8 +379,8 @@ namespace CTF {
     
     Tensor tsr = slice(offsets, ends, owrld);
 
-    CTF_free(offsets);
-    CTF_free(ends);
+    CTF_int::cfree(offsets);
+    CTF_int::cfree(ends);
 
     return tsr;
   }
@@ -433,9 +433,9 @@ namespace CTF {
       = CTF_int::contraction(A, idx_map_A, B, idx_map_B, alpha, 
                                            this, idx_map_C, beta);
     ctr.execute();
-    CTF_free(idx_map_A);
-    CTF_free(idx_map_B);
-    CTF_free(idx_map_C);
+    CTF_int::cfree(idx_map_A);
+    CTF_int::cfree(idx_map_B);
+    CTF_int::cfree(idx_map_C);
   }
 
   template<typename dtype>
@@ -458,9 +458,9 @@ namespace CTF {
                                            this, idx_map_C, fseq);
     ctr.execute();
 
-    CTF_free(idx_map_A);
-    CTF_free(idx_map_B);
-    CTF_free(idx_map_C);
+    CTF_int::cfree(idx_map_A);
+    CTF_int::cfree(idx_map_B);
+    CTF_int::cfree(idx_map_C);
   }
 
 
@@ -480,8 +480,8 @@ namespace CTF {
 
     sum.execute();
 
-    CTF_free(idx_map_A);
-    CTF_free(idx_map_B);
+    CTF_int::cfree(idx_map_A);
+    CTF_int::cfree(idx_map_B);
   }
 
   template<typename dtype>
@@ -498,8 +498,8 @@ namespace CTF {
       = CTF_int::summation(A, idx_map_A, this, idx_map_B, fseq);
 
     sum.execute();
-    CTF_free(idx_map_A);
-    CTF_free(idx_map_B);
+    CTF_int::cfree(idx_map_A);
+    CTF_int::cfree(idx_map_B);
   }
 
   template<typename dtype>
@@ -509,7 +509,7 @@ namespace CTF {
     conv_idx(order, idx_A, &idx_map_A);
     CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, alpha);
     scl.execute();
-    CTF_free(idx_map_A);
+    CTF_int::cfree(idx_map_A);
   }
 
 
@@ -520,7 +520,7 @@ namespace CTF {
     conv_idx(order, idx_A, &idx_map_A);
     CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, fseq);
     scl.execute();
-    CTF_free(idx_map_A);
+    CTF_int::cfree(idx_map_A);
   }
 
   template<typename dtype>
@@ -578,10 +578,10 @@ namespace CTF {
     name = A.name;
 
     if (sym != NULL)
-      CTF_free(sym);
+      CTF_int::cfree(sym);
     if (len != NULL)
-      CTF_free(len);
-      //CTF_free(len);
+      CTF_int::cfree(len);
+      //CTF_int::cfree(len);
     ret = CTF_int::tensor::info(&A, &order, &len, &sym);
     assert(ret == SUCCESS);
 

@@ -7,7 +7,9 @@
  *//**
  * \brief local process walltime measurement
  */
-void CTF_set_main_args(int argc, const char * const * argv);
+namespace CTF {
+  void set_main_args(int argc, const char * const * argv);
+}
 
 #ifdef PROFILE
 #define TAU
@@ -23,7 +25,7 @@ void CTF_set_main_args(int argc, const char * const * argv);
 #define TAU_PROFILE_TIMER(ARG1, ARG2, ARG3, ARG4)                 
 
 #define TAU_PROFILE_INIT(argc, argv)                              \
-  CTF_set_main_args(argc, argv);
+  CTF::set_main_args(argc, argv);
 
 #define TAU_PROFILE_SET_NODE(ARG)
 
@@ -34,8 +36,8 @@ void CTF_set_main_args(int argc, const char * const * argv);
  __CTF_Timer##ARG.stop();
 
 #define TAU_PROFILE_SET_CONTEXT(ARG)                              \
-  if (ARG==0) CTF_set_context(MPI_COMM_WORLD);                    \
-  else CTF_set_context((MPI_Comm)ARG);
+  if (ARG==0) CTF::set_context(MPI_COMM_WORLD);                    \
+  else CTF::set_context((MPI_Comm)ARG);
 #endif
 
 

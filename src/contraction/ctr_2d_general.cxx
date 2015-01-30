@@ -146,14 +146,14 @@ namespace CTF_int {
 #endif
     if (0){
     } else {
-      ret = CTF_mst_alloc_ptr(s_A*db*sr_A.el_size, (void**)&buf_A);
+      ret = CTF_int::mst_alloc_ptr(s_A*db*sr_A.el_size, (void**)&buf_A);
       ASSERT(ret==0);
-      ret = CTF_mst_alloc_ptr(s_B*db*sr_B.el_size, (void**)&buf_B);
+      ret = CTF_int::mst_alloc_ptr(s_B*db*sr_B.el_size, (void**)&buf_B);
       ASSERT(ret==0);
-      ret = CTF_mst_alloc_ptr(s_C*db*sr_C.el_size, (void**)&buf_C);
+      ret = CTF_int::mst_alloc_ptr(s_C*db*sr_C.el_size, (void**)&buf_C);
       ASSERT(ret==0);
     }
-    ret = CTF_mst_alloc_ptr(aux_size, (void**)&buf_aux);
+    ret = CTF_int::mst_alloc_ptr(aux_size, (void**)&buf_aux);
     ASSERT(ret==0);
 
     for (ib=this->idx_lyr*db; ib<edge_len; ib+=db*this->num_lyr){
@@ -303,9 +303,9 @@ namespace CTF_int {
 #endif
     if (0){
     } else {
-      CTF_free(buf_A);
-      CTF_free(buf_B);
-      CTF_free(buf_C);
+      CTF_int::cfree(buf_A);
+      CTF_int::cfree(buf_B);
+      CTF_int::cfree(buf_C);
     }
     TAU_FSTOP(ctr_2d_general);
   }

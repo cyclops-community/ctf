@@ -88,7 +88,7 @@ namespace CTF_int {
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             &num_tot, &idx_arr);
-    CTF_alloc_ptr(num_tot*sizeof(int), (void**)&idx);
+    CTF_int::alloc_ptr(num_tot*sizeof(int), (void**)&idx);
 
     for (i=0; i<num_tot; i++){
       idx[i] = 1;
@@ -148,7 +148,7 @@ namespace CTF_int {
     }
     *num_fold = nfold;
     *fold_idx = idx;
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
   }
 
   int summation::can_fold(){
@@ -164,7 +164,7 @@ namespace CTF_int {
       }
     }
     get_fold_indices(&nfold, &fold_idx);
-    CTF_free(fold_idx);
+    CTF_int::cfree(fold_idx);
     /* FIXME: 1 folded index is good enough for now, in the future model */
     return nfold > 0;
   }
@@ -181,13 +181,13 @@ namespace CTF_int {
 
     get_fold_indices(&nfold, &fold_idx);
     if (nfold == 0){
-      CTF_free(fold_idx);
+      CTF_int::cfree(fold_idx);
       return ERROR;
     }
 
     /* overestimate this space to not bother with it later */
-    CTF_alloc_ptr(nfold*sizeof(int), (void**)&fidx_map_A);
-    CTF_alloc_ptr(nfold*sizeof(int), (void**)&fidx_map_B);
+    CTF_int::alloc_ptr(nfold*sizeof(int), (void**)&fidx_map_A);
+    CTF_int::alloc_ptr(nfold*sizeof(int), (void**)&fidx_map_B);
 
 
     A->fold(nfold, fold_idx, idx_A, 
@@ -255,13 +255,13 @@ namespace CTF_int {
       inr_stride *= ftsr_A->pad_edge_len[i];
     }
 
-    CTF_free(fidx_map_A);
-    CTF_free(fidx_map_B);
-    CTF_free(fnew_ord_A);
-    CTF_free(fnew_ord_B);
-    CTF_free(all_flen_A);
-    CTF_free(all_flen_B);
-    CTF_free(fold_idx);
+    CTF_int::cfree(fidx_map_A);
+    CTF_int::cfree(fidx_map_B);
+    CTF_int::cfree(fnew_ord_A);
+    CTF_int::cfree(fnew_ord_B);
+    CTF_int::cfree(all_flen_A);
+    CTF_int::cfree(all_flen_B);
+    CTF_int::cfree(fold_idx);
 
     return inr_stride; 
   }
@@ -271,8 +271,8 @@ namespace CTF_int {
     int i, num_tot;
     int * ordering_A, * ordering_B, * idx_arr;
     
-    CTF_alloc_ptr(sizeof(int)*A->order, (void**)&ordering_A);
-    CTF_alloc_ptr(sizeof(int)*B->order, (void**)&ordering_B);
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&ordering_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&ordering_B);
 
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -281,7 +281,7 @@ namespace CTF_int {
       ordering_A[i] = idx_arr[2*i];
       ordering_B[i] = idx_arr[2*i+1];
     }
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
     *new_ordering_A = ordering_A;
     *new_ordering_B = ordering_B;
   }
@@ -304,12 +304,12 @@ namespace CTF_int {
 
     nphys_dim = A->topo->order;
 
-    CTF_alloc_ptr(sizeof(int)*A->order,    (void**)&blk_len_A);
-    CTF_alloc_ptr(sizeof(int)*B->order,    (void**)&blk_len_B);
-    CTF_alloc_ptr(sizeof(int)*A->order,    (void**)&virt_blk_len_A);
-    CTF_alloc_ptr(sizeof(int)*B->order,    (void**)&virt_blk_len_B);
-    CTF_alloc_ptr(sizeof(int)*order_tot,   (void**)&virt_dim);
-    CTF_alloc_ptr(sizeof(int)*nphys_dim*2, (void**)&phys_mapped);
+    CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int)*order_tot,   (void**)&virt_dim);
+    CTF_int::alloc_ptr(sizeof(int)*nphys_dim*2, (void**)&phys_mapped);
     memset(phys_mapped, 0, sizeof(int)*nphys_dim*2);
 
 
@@ -430,9 +430,9 @@ namespace CTF_int {
         }
       }
       if (rtsum->ncdt_A > 0)
-        CTF_alloc_ptr(sizeof(CommData)*rtsum->ncdt_A, (void**)&rtsum->cdt_A);
+        CTF_int::alloc_ptr(sizeof(CommData)*rtsum->ncdt_A, (void**)&rtsum->cdt_A);
       if (rtsum->ncdt_B > 0)
-        CTF_alloc_ptr(sizeof(CommData)*rtsum->ncdt_B, (void**)&rtsum->cdt_B);
+        CTF_int::alloc_ptr(sizeof(CommData)*rtsum->ncdt_B, (void**)&rtsum->cdt_B);
       rtsum->ncdt_A = 0;
       rtsum->ncdt_B = 0;
       for (i=0; i<nphys_dim; i++){
@@ -453,9 +453,9 @@ namespace CTF_int {
     }
 
     int * new_sym_A, * new_sym_B;
-    CTF_alloc_ptr(sizeof(int)*A->order, (void**)&new_sym_A);
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&new_sym_A);
     memcpy(new_sym_A, A->sym, sizeof(int)*A->order);
-    CTF_alloc_ptr(sizeof(int)*B->order, (void**)&new_sym_B);
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&new_sym_B);
     memcpy(new_sym_B, B->sym, sizeof(int)*B->order);
 
     /* Multiply over virtual sub-blocks */
@@ -480,7 +480,7 @@ namespace CTF_int {
       tsumv->blk_sz_B  = vrt_sz_B;
       tsumv->idx_map_B = idx_B;
       tsumv->buffer    = NULL;
-    } else CTF_free(virt_dim);
+    } else CTF_int::cfree(virt_dim);
 
     seq_tsr_sum * tsumseq = new seq_tsr_sum;
     tsumseq->sr_A = A->sr;
@@ -559,10 +559,10 @@ namespace CTF_int {
     htsum->A = A->data;
     htsum->B = B->data;
 
-    CTF_free(idx_arr);
-    CTF_free(blk_len_A);
-    CTF_free(blk_len_B);
-    CTF_free(phys_mapped);
+    CTF_int::cfree(idx_arr);
+    CTF_int::cfree(blk_len_A);
+    CTF_int::cfree(blk_len_B);
+    CTF_int::cfree(phys_mapped);
 
     return htsum;
   }
@@ -572,7 +572,7 @@ namespace CTF_int {
     tensor * tnsr_A, * tnsr_B;
     summation osum = summation(*this);
    
-    CTF_contract_mst();
+    CTF_int::contract_mst();
 
   #ifndef HOME_CONTRACT
     #ifdef USE_SYM_SUM
@@ -663,7 +663,7 @@ namespace CTF_int {
       B->redistribute(odst);
       TAU_FSTOP(redistribute_for_sum_home);
       memcpy(B->home_buffer, B->data, B->size*B->sr.el_size);
-      CTF_free(B->data);
+      CTF_int::cfree(B->data);
       B->data = B->home_buffer;
       B->is_home = 1;
       tnsr_B->is_data_aliased = 1;
@@ -724,15 +724,15 @@ namespace CTF_int {
     }
     tnsr_A = A;
     tnsr_B = B;
-    CTF_alloc_ptr(sizeof(int)*tnsr_A->order,     (void**)&map_A);
-    CTF_alloc_ptr(sizeof(int)*tnsr_B->order,     (void**)&map_B);
-    CTF_alloc_ptr(sizeof(int*)*tnsr_B->order,    (void**)&dstack_map_B);
-    CTF_alloc_ptr(sizeof(tensor*)*tnsr_B->order, (void**)&dstack_tsr_B);
+    CTF_int::alloc_ptr(sizeof(int)*tnsr_A->order,     (void**)&map_A);
+    CTF_int::alloc_ptr(sizeof(int)*tnsr_B->order,     (void**)&map_B);
+    CTF_int::alloc_ptr(sizeof(int*)*tnsr_B->order,    (void**)&dstack_map_B);
+    CTF_int::alloc_ptr(sizeof(tensor*)*tnsr_B->order, (void**)&dstack_tsr_B);
     memcpy(map_A, idx_A, tnsr_A->order*sizeof(int));
     memcpy(map_B, idx_B, tnsr_B->order*sizeof(int));
     while (!run_diag && tnsr_A->extract_diag(map_A, 1, new_tsr, &new_idx_map) == SUCCESS){
       if (tnsr_A != A) delete tnsr_A;
-      CTF_free(map_A);
+      CTF_int::cfree(map_A);
       tnsr_A = new_tsr;
       map_A = new_idx_map;
     }
@@ -870,10 +870,10 @@ namespace CTF_int {
       tnsr_B = dstack_tsr_B[i];
     }
     ASSERT(tnsr_B == B);
-    CTF_free(map_A);
-    CTF_free(map_B);
-    CTF_free(dstack_map_B);
-    CTF_free(dstack_tsr_B);
+    CTF_int::cfree(map_A);
+    CTF_int::cfree(map_B);
+    CTF_int::cfree(dstack_map_B);
+    CTF_int::cfree(dstack_tsr_B);
 
     return SUCCESS;
   }
@@ -921,17 +921,17 @@ namespace CTF_int {
 
 
     //FIXME: remove all of the below, sum_tensors should never be called without sym_sum
-    CTF_alloc_ptr(sizeof(int)*A->order,  (void**)&map_A);
-    CTF_alloc_ptr(sizeof(int)*B->order,  (void**)&map_B);
-    CTF_alloc_ptr(sizeof(int*)*B->order, (void**)&dstack_map_B);
-    CTF_alloc_ptr(sizeof(tensor*)*B->order, (void**)&dstack_tsr_B);
+    CTF_int::alloc_ptr(sizeof(int)*A->order,  (void**)&map_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order,  (void**)&map_B);
+    CTF_int::alloc_ptr(sizeof(int*)*B->order, (void**)&dstack_map_B);
+    CTF_int::alloc_ptr(sizeof(tensor*)*B->order, (void**)&dstack_tsr_B);
     tnsr_A = A;
     tnsr_B = B;
     memcpy(map_A, idx_A, tnsr_A->order*sizeof(int));
     memcpy(map_B, idx_B, tnsr_B->order*sizeof(int));
     while (!run_diag && tnsr_A->extract_diag(map_A, 1, new_tsr, &new_idx_map) == SUCCESS){
       if (tnsr_A != A) delete tnsr_A;
-      CTF_free(map_A);
+      CTF_int::cfree(map_A);
       tnsr_A = new_tsr;
       map_A = new_idx_map;
     }
@@ -1079,10 +1079,10 @@ namespace CTF_int {
         }
         assert(fabs(sB[i] - uB[i]) < 1.E-6);
       }
-      CTF_free(uA);
-      CTF_free(uB);
-      CTF_free(sA);
-      CTF_free(sB);
+      CTF_int::cfree(uA);
+      CTF_int::cfree(uB);
+      CTF_int::cfree(sA);
+      CTF_int::cfree(sB);
   #endif
 
       delete sumf;
@@ -1095,10 +1095,10 @@ namespace CTF_int {
       }
       ASSERT(tnsr_B == B);
     }
-    CTF_free(map_A);
-    CTF_free(map_B);
-    CTF_free(dstack_map_B);
-    CTF_free(dstack_tsr_B);
+    CTF_int::cfree(map_A);
+    CTF_int::cfree(map_B);
+    CTF_int::cfree(dstack_map_B);
+    CTF_int::cfree(dstack_tsr_B);
 
     TAU_FSTOP(sum_tensors);
     return SUCCESS;
@@ -1176,7 +1176,7 @@ namespace CTF_int {
         new_sum->B->sym[sidx/2] = NS;
       }
     }
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
     return sidx;
   }
 
@@ -1206,7 +1206,7 @@ namespace CTF_int {
         ABORT;
       }
     }
-    CTF_free(idx_arr);
+    CTF_int::cfree(idx_arr);
 
   }
 
@@ -1248,7 +1248,7 @@ namespace CTF_int {
       return 0;
     }
     
-    CTF_alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
+    CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
     memset(phys_map, 0, sizeof(int)*A->topo->order);
 
     inv_idx(A->order, idx_A,
@@ -1301,8 +1301,8 @@ namespace CTF_int {
       }
     }*/
 
-    CTF_free(phys_map);
-    CTF_free(idx_arr);
+    CTF_int::cfree(phys_map);
+    CTF_int::cfree(idx_arr);
 
     TAU_FSTOP(check_sum_mapping);
 
@@ -1323,7 +1323,7 @@ namespace CTF_int {
             B->order, idx_B,
             &num_tot, &idx_arr);
 
-    CTF_alloc_ptr(sizeof(int)*num_tot, (void**)&idx_sum);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot, (void**)&idx_sum);
     
     num_sum = 0;
     for (i=0; i<num_tot; i++){
@@ -1336,10 +1336,10 @@ namespace CTF_int {
     tsr_order = num_sum;
 
 
-    CTF_alloc_ptr(tsr_order*sizeof(int),           (void**)&restricted);
-    CTF_alloc_ptr(tsr_order*sizeof(int),           (void**)&tsr_edge_len);
-    CTF_alloc_ptr(tsr_order*tsr_order*sizeof(int), (void**)&tsr_sym_table);
-    CTF_alloc_ptr(tsr_order*sizeof(mapping),       (void**)&sum_map);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int),           (void**)&restricted);
+    CTF_int::alloc_ptr(tsr_order*sizeof(int),           (void**)&tsr_edge_len);
+    CTF_int::alloc_ptr(tsr_order*tsr_order*sizeof(int), (void**)&tsr_sym_table);
+    CTF_int::alloc_ptr(tsr_order*sizeof(mapping),       (void**)&sum_map);
 
     memset(tsr_sym_table, 0, tsr_order*tsr_order*sizeof(int));
     memset(restricted, 0, tsr_order*sizeof(int));
@@ -1419,15 +1419,15 @@ namespace CTF_int {
         copy_mapping(1, &sum_map[i], &B->edge_map[iB]);
       }
     }
-    CTF_free(restricted);
-    CTF_free(tsr_edge_len);
-    CTF_free(tsr_sym_table);
+    CTF_int::cfree(restricted);
+    CTF_int::cfree(tsr_edge_len);
+    CTF_int::cfree(tsr_sym_table);
     for (i=0; i<num_sum; i++){
       sum_map[i].clear();
     }
-    CTF_free(sum_map);
-    CTF_free(idx_sum);
-    CTF_free(idx_arr);
+    CTF_int::cfree(sum_map);
+    CTF_int::cfree(idx_sum);
+    CTF_int::cfree(idx_arr);
 
     TAU_FSTOP(map_sum_indices);
     return stat;

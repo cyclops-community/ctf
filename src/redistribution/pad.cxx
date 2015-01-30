@@ -64,8 +64,8 @@ namespace CTF_int {
 #ifdef USE_OMP
     int64_t num_ins;
     int ntd = omp_get_max_threads();
-    int64_t * num_ins_t = (int64_t*)CTF_alloc(sizeof(int64_t)*ntd);
-    int64_t * pre_ins_t = (int64_t*)CTF_alloc(sizeof(int64_t)*ntd);
+    int64_t * num_ins_t = (int64_t*)CTF_int::alloc(sizeof(int64_t)*ntd);
+    int64_t * pre_ins_t = (int64_t*)CTF_int::alloc(sizeof(int64_t)*ntd);
 
     TAU_FSTART(depad_tsr_cnt);
     #pragma omp parallel
@@ -158,14 +158,14 @@ namespace CTF_int {
     num_ins = pre_ins_t[ntd-1];
 
     *new_num_pair = num_ins;
-    CTF_free(pre_ins_t);
-    CTF_free(num_ins_t);
+    CTF_int::cfree(pre_ins_t);
+    CTF_int::cfree(num_ins_t);
 #else
     int64_t i, j, num_ins;
     int64_t * kparts;
     int64_t k;
 
-    CTF_alloc_ptr(sizeof(int64_t)*order, (void**)&kparts);
+    CTF_int::alloc_ptr(sizeof(int64_t)*order, (void**)&kparts);
 
     num_ins = 0;
     for (i=0; i<num_pair; i++){
@@ -194,7 +194,7 @@ namespace CTF_int {
       }
     }
     *new_num_pair = num_ins;
-    CTF_free(kparts);
+    CTF_int::cfree(kparts);
 
 #endif
     TAU_FSTOP(depad_tsr);
@@ -217,7 +217,7 @@ namespace CTF_int {
     int64_t new_el, pad_el;
     int pad_max, virt_lda, outside, offset, edge_lda;
     int * idx;  
-    CTF_alloc_ptr(order*sizeof(int), (void**)&idx);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
     char * padded_pairsb;
     
     pad_el = 0;
@@ -250,7 +250,7 @@ namespace CTF_int {
       }
       if (act_lda == order) break;
     }
-    CTF_alloc_ptr(pad_el*(sizeof(int64_t)+sr.el_size), (void**)&padded_pairsb);
+    CTF_int::alloc_ptr(pad_el*(sizeof(int64_t)+sr.el_size), (void**)&padded_pairsb);
     PairIterator padded_pairs = PairIterator(&sr, padded_pairsb);
     new_el   = 0;
     offset   = 0;
@@ -350,7 +350,7 @@ namespace CTF_int {
       if (act_lda == order) break;
       
     }
-    CTF_free(idx);
+    CTF_int::cfree(idx);
     DEBUG_PRINTF("order = %d new_el=" PRId64 ", size = " PRId64 ", pad_el = " PRId64 "\n", order, new_el, size, pad_el);
     ASSERT(new_el + size == pad_el);
     memcpy(padded_pairs[new_el].ptr, old_data,  size*(sizeof(int64_t)+sr.el_size));
@@ -382,10 +382,10 @@ namespace CTF_int {
       int * idx, * virt_rank, * phase_rank, * virt_len;
       char * data;
 
-      CTF_alloc_ptr(order*sizeof(int), (void**)&idx);
-      CTF_alloc_ptr(order*sizeof(int), (void**)&virt_rank);
-      CTF_alloc_ptr(order*sizeof(int), (void**)&phase_rank);
-      CTF_alloc_ptr(order*sizeof(int), (void**)&virt_len);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&phase_rank);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_len);
       for (int dim=0; dim<order; dim++){
         virt_len[dim] = edge_len[dim]/phase[dim];
       }
@@ -425,11 +425,11 @@ namespace CTF_int {
         st_index = st_chunk-vst*vrt_sz;
         end_index = end_chunk-(vend-1)*vrt_sz;
       
-        CTF_alloc_ptr(order*sizeof(int), (void**)&st_idx);
-        CTF_alloc_ptr(order*sizeof(int), (void**)&end_idx);
+        CTF_int::alloc_ptr(order*sizeof(int), (void**)&st_idx);
+        CTF_int::alloc_ptr(order*sizeof(int), (void**)&end_idx);
 
         int * ssym;
-        CTF_alloc_ptr(order*sizeof(int), (void**)&ssym);
+        CTF_int::alloc_ptr(order*sizeof(int), (void**)&ssym);
         for (int dim=0;dim<order;dim++){
           if (sym[dim] != NS) ssym[dim] = SY;
           else ssym[dim] = NS;
@@ -440,7 +440,7 @@ namespace CTF_int {
         calc_idx_arr(order, virt_len, ssym, st_index, st_idx);
         calc_idx_arr(order, virt_len, ssym, end_index, end_idx);
 
-        CTF_free(ssym);
+        CTF_int::cfree(ssym);
 
         if (st_idx[0] != 0){
           st_index -= st_idx[0];
@@ -449,7 +449,7 @@ namespace CTF_int {
         if (end_idx[0] != 0){
           end_index += virt_len[0]-end_idx[0];
         }
-        CTF_free(end_idx);
+        CTF_int::cfree(end_idx);
       }
       ASSERT(tid != ntd-1 || vend == nvirt);
       for (p=0; p<nvirt; p++){
@@ -542,11 +542,11 @@ namespace CTF_int {
         }
       }
       //ASSERT(buf_offset == size/nvirt);
-      CTF_free(idx);
-      CTF_free(virt_rank);
-      CTF_free(virt_len);
-      CTF_free(phase_rank);
-      if (st_idx != NULL) CTF_free(st_idx);
+      CTF_int::cfree(idx);
+      CTF_int::cfree(virt_rank);
+      CTF_int::cfree(virt_len);
+      CTF_int::cfree(phase_rank);
+      if (st_idx != NULL) CTF_int::cfree(st_idx);
     }
     TAU_FSTOP(zero_padding);
   }

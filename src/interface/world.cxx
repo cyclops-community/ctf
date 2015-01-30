@@ -91,8 +91,8 @@ namespace CTF {
     char * mst_size, * stack_size, * mem_size, * ppn;
     int rank = cdt.rank;  
 
-    CTF_mem_create();
-    if (CTF_get_num_instances() == 1){
+    CTF_int::mem_create();
+    if (CTF_int::get_num_instances() == 1){
       TAU_FSTART(CTF);
   #ifdef HPM
       HPM_Start("CTF");
@@ -100,8 +100,8 @@ namespace CTF {
   #ifdef OFFLOAD
       offload_init();
   #endif
-      CTF_set_context(cdt.cm);
-      CTF_set_main_args(argc, argv);
+      CTF::set_context(cdt.cm);
+      CTF::set_main_args(argc, argv);
 
   #ifdef USE_OMP
       char * ntd = getenv("OMP_NUM_THREADS");
@@ -123,7 +123,7 @@ namespace CTF {
   #ifdef USE_MST
         if (rank == 0)
           VPRINTF(1,"Creating stack of size " PRId64 "\n",1000*(int64_t)1E6);
-        CTF_mst_create(1000*(int64_t)1E6);
+        CTF_int::mst_create(1000*(int64_t)1E6);
   #else
         if (rank == 0){
           VPRINTF(1,"Running without stack, define CTF_STACK_SIZE environment variable to activate stack\n");
@@ -138,7 +138,7 @@ namespace CTF {
         if (rank == 0)
           printf("Creating stack of size " PRIu64 " due to CTF_STACK_SIZE enviroment variable\n",
                     imst_size);
-        CTF_mst_create(imst_size);
+        CTF_int::mst_create(imst_size);
       }
       mem_size = getenv("CTF_MEMORY_SIZE");
       if (mem_size != NULL){
@@ -146,7 +146,7 @@ namespace CTF {
         if (rank == 0)
           VPRINTF(1,"Memory size set to " PRIu64 " by CTF_MEMORY_SIZE environment variable\n",
                     imem_size);
-        CTF_set_mem_size(imem_size);
+        CTF_int::set_mem_size(imem_size);
       }
       ppn = getenv("CTF_PPN");
       if (ppn != NULL){
@@ -155,9 +155,9 @@ namespace CTF {
                     atoi(ppn));
         ASSERT(atoi(ppn)>=1);
   #ifdef BGQ
-        CTF_set_memcap(.75);
+        CTF_int::set_memcap(.75);
   #else
-        CTF_set_memcap(.75/atof(ppn));
+        CTF_int::set_memcap(.75/atof(ppn));
   #endif
       }
       if (rank == 0)
@@ -169,7 +169,7 @@ namespace CTF {
 
 /*
   void World::contract_mst(){
-    std::list<mem_transfer> tfs = CTF_contract_mst();
+    std::list<mem_transfer> tfs = CTF_int::contract_mst();
     if (tfs.size() > 0 && get_global_comm().rank == 0){
       DPRINTF(1,"CTF Warning: contracting memory stack\n");
     }

@@ -7,7 +7,7 @@ namespace CTF_int {
                int *        arr){
     int i;
     int * swap;
-    CTF_alloc_ptr(order*sizeof(int), (void**)&swap);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&swap);
 
     for (i=0; i<order; i++){
       swap[i] = arr[perm[i]];
@@ -16,7 +16,7 @@ namespace CTF_int {
       arr[i] = swap[i];
     }
 
-    CTF_free(swap);
+    CTF_int::cfree(swap);
   }
 
   void permute_target(int         order,
@@ -24,7 +24,7 @@ namespace CTF_int {
                       int *       arr){
     int i;
     int * swap;
-    CTF_alloc_ptr(order*sizeof(int), (void**)&swap);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&swap);
 
     for (i=0; i<order; i++){
       swap[i] = arr[perm[i]];
@@ -33,7 +33,7 @@ namespace CTF_int {
       arr[i] = swap[i];
     }
 
-    CTF_free(swap);
+    CTF_int::cfree(swap);
   }
 
   void nosym_transpose(int              order,
@@ -52,12 +52,12 @@ namespace CTF_int {
     }
   #ifdef USE_OMP
     int max_ntd = MIN(16,omp_get_max_threads());
-    CTF_alloc_ptr(max_ntd*sizeof(char*), (void**)&tswap_data);
-    CTF_alloc_ptr(max_ntd*sizeof(int),   (void**)&chunk_size);
+    CTF_int::alloc_ptr(max_ntd*sizeof(char*), (void**)&tswap_data);
+    CTF_int::alloc_ptr(max_ntd*sizeof(int),   (void**)&chunk_size);
   #else
     int max_ntd=1;
-    CTF_alloc_ptr(sizeof(char*), (void**)&tswap_data);
-    CTF_alloc_ptr(sizeof(int),   (void**)&chunk_size);
+    CTF_int::alloc_ptr(sizeof(char*), (void**)&tswap_data);
+    CTF_int::alloc_ptr(sizeof(int),   (void**)&chunk_size);
   #endif
     nosym_transpose(order, new_order, edge_len, data, dir, max_ntd, tswap_data, chunk_size, sr);
   #ifdef USE_OMP
@@ -82,11 +82,11 @@ namespace CTF_int {
     for (int i=0; i<max_ntd; i++) {
       int thread_chunk_size = chunk_size[i];
       if (thread_chunk_size > 0)
-        CTF_free(tswap_data[i],i);
+        CTF_int::cfree(tswap_data[i],i);
     }
 
-    CTF_free(tswap_data);
-    CTF_free(chunk_size);
+    CTF_int::cfree(tswap_data);
+    CTF_int::cfree(chunk_size);
     TAU_FSTOP(nosym_transpose);
   }
 
@@ -105,8 +105,8 @@ namespace CTF_int {
     int64_t * lda, * new_lda;
 
     TAU_FSTART(nosym_transpose_thr);
-    CTF_alloc_ptr(order*sizeof(int64_t), (void**)&lda);
-    CTF_alloc_ptr(order*sizeof(int64_t), (void**)&new_lda);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&lda);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&new_lda);
     
     if (dir){
       last_dim = new_order[order-1];
@@ -134,7 +134,7 @@ namespace CTF_int {
       int64_t thread_chunk_size;
       int64_t * idx;
       char * swap_data;
-      CTF_alloc_ptr(order*sizeof(int64_t), (void**)&idx);
+      CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&idx);
       memset(idx, 0, order*sizeof(int64_t));
 
   #ifdef USE_OMP
@@ -171,7 +171,7 @@ namespace CTF_int {
         chunk_size[tid] = thread_chunk_size;
         if (thread_chunk_size <= 0) 
           printf("ERRORR thread_chunk_size = " PRId64 ", tid = " PRId64 ", local_size = " PRId64 "\n", thread_chunk_size, tid, local_size);
-        CTF_alloc_ptr(thread_chunk_size*sr.el_size, (void**)&tswap_data[tid]);
+        CTF_int::alloc_ptr(thread_chunk_size*sr.el_size, (void**)&tswap_data[tid]);
         swap_data = tswap_data[tid];
         for (;;){
           if (last_dim != 0){
@@ -208,10 +208,10 @@ namespace CTF_int {
           if (i==order) break;
         }
       }
-      CTF_free(idx);
+      CTF_int::cfree(idx);
     }
-    CTF_free(lda);
-    CTF_free(new_lda);
+    CTF_int::cfree(lda);
+    CTF_int::cfree(new_lda);
     TAU_FSTOP(nosym_transpose_thr);
   }
 }

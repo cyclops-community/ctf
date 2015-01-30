@@ -40,12 +40,12 @@ namespace CTF_int {
         alloced = 0;
       } else {
         alloced = 1;
-        ret = CTF_alloc_ptr(mem_fp(), (void**)&this->buffer);
+        ret = CTF_int::alloc_ptr(mem_fp(), (void**)&this->buffer);
         ASSERT(ret==0);
       }
     } 
-    idx_arr = (int*)CTF_alloc(sizeof(int)*order);
-    lda = (int*)CTF_alloc(sizeof(int)*order);
+    idx_arr = (int*)CTF_int::alloc(sizeof(int)*order);
+    lda = (int*)CTF_int::alloc(sizeof(int)*order);
     memset(idx_arr, 0, sizeof(int)*order);
 
     ilda = 1, toff = 0;
@@ -82,18 +82,18 @@ namespace CTF_int {
 
     if (dir == 1) {
       if (alloced){
-        CTF_free(buffer);
+        CTF_int::cfree(buffer);
         buffer = NULL;
       }
     }
-    CTF_free(idx_arr);
-    CTF_free(lda);
+    CTF_int::cfree(idx_arr);
+    CTF_int::cfree(lda);
     TAU_FSTOP(strp_tsr);
   }
 
   void strp_tsr::free_exp(){
     if (alloced){
-      CTF_free(buffer);
+      CTF_int::cfree(buffer);
       buffer = NULL;
     }
   }
@@ -286,7 +286,7 @@ namespace CTF_int {
     int * pmap, * edge_len, * sdim, * sidx;
     strp_tsr * stripper;
 
-    CTF_alloc_ptr(order_tot*sizeof(int), (void**)&pmap);
+    CTF_int::alloc_ptr(order_tot*sizeof(int), (void**)&pmap);
 
     std::fill(pmap, pmap+order_tot, -1);
 
@@ -303,13 +303,13 @@ namespace CTF_int {
         need_strip = 1;
     }
     if (need_strip == 0) {
-      CTF_free(pmap);
+      CTF_int::cfree(pmap);
       return 0;
     }
 
-    CTF_alloc_ptr(order*sizeof(int), (void**)&edge_len);
-    CTF_alloc_ptr(order*sizeof(int), (void**)&sdim);
-    CTF_alloc_ptr(order*sizeof(int), (void**)&sidx);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&edge_len);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&sdim);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&sidx);
     stripper = new strp_tsr;
 
     std::fill(sdim, sdim+order, 1);
@@ -346,7 +346,7 @@ namespace CTF_int {
 
     *stpr               = stripper;
 
-    CTF_free(pmap);
+    CTF_int::cfree(pmap);
 
     return 1;
   }

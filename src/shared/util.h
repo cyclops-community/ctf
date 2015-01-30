@@ -45,15 +45,11 @@ namespace CTF_int {
   #endif
 
   #define CTF_COUNT_FLOPS
-
   #ifdef CTF_COUNT_FLOPS
-  #define CTF_FLOPS_ADD(n) CTF_flops_add(n)
+  #define CTF_FLOPS_ADD(n) CTF_int::flops_add(n)
   #else
   #define CTF_FLOPS_ADD(n) 
   #endif
-
-  void CTF_flops_add(int64_t n);
-  int64_t CTF_get_flops();
 
   //doesn't work with OpenMPI
   //volatile static int64_t mpi_int64_t = MPI_LONG_LONG_INT;
@@ -245,126 +241,38 @@ namespace CTF_int {
   #define TAU_FSTART(ARG)
   #define TAU_FSTOP(ARG)
   #endif
-
-  #if (defined(COMM_TIME))
-  #define INIT_IDLE_TIME                  \
-    volatile double __idleTime=0.0;       \
-    volatile double __idleTimeDelta=0.0;
-  #define INSTRUMENT_BARRIER(COMM)        do {    \
-    __idleTimeDelta = TIME_SEC();                 \
-    COMM_BARRIER(COMM);                           \
-    __idleTime += TIME_SEC() - __idleTimeDelta;   \
-    } while(0)
-  #define INSTRUMENT_GLOBAL_BARRIER(COMM) do {    \
-    __idleTimeDelta = TIME_SEC();                 \
-    GLOBAL_BARRIER(COMM);                         \
-    __idleTime += TIME_SEC() - __idleTimeDelta;   \
-    } while(0)
-  #define AVG_IDLE_TIME(cdt, p)                                   \
-  do{                                                             \
-    REDUCE((void*)&__idleTime, (void*)&__idleTimeDelta, 1,        \
-            COMM_DOUBLE_T, COMM_OP_SUM, 0, cdt);                  \
-    __idleTime = __idleTimeDelta/p;                               \
-  }while(0)
-  #define IDLE_TIME_PRINT_ITER(iter)                              \
-    do { printf("%lf seconds spent idle per iteration\n",         \
-        __idleTime/iter); } while(0)
-
-  #else
-  #define INSTRUMENT_BARRIER(COMM)
-  #define INSTRUMENT_GLOBAL_BARRIER(COMM)
-  #define INIT_IDLE_TIME
-  #define AVG_IDLE_TIME(cdt, p)
-  #define IDLE_TIME_PRINT_ITER(iter)
-  #endif
-
   #define TIME(STRING) TAU_PROFILE(STRING, " ", TAU_DEFAULT)
-
-  #ifdef COMM_TIME
-  //ugly and scope limited, but whatever.
-  #define INIT_COMM_TIME                              \
-    volatile double __commTime =0.0, __commTimeDelta; \
-    volatile double __critTime =0.0, __critTimeDelta;
-
-  #define COMM_TIME_START()                       \
-    do { __commTimeDelta = TIME_SEC(); } while(0)
-  #define COMM_TIME_END()                         \
-    do { __commTime += TIME_SEC() - __commTimeDelta; } while(0)
-  #define CRIT_TIME_START()                       \
-    do {                                          \
-      __commTimeDelta = TIME_SEC();               \
-      __critTimeDelta = TIME_SEC();               \
-    } while(0)
-  #define CRIT_TIME_END()                         \
-    do {                                          \
-      __commTime += TIME_SEC() - __commTimeDelta; \
-      __critTime += TIME_SEC() - __critTimeDelta; \
-    } while(0)
-  #define COMM_TIME_PRINT()                       \
-    do { printf("%lf seconds spent doing communication\n", __commTime); } while(0)
-  #define COMM_TIME_PRINT_ITER(iter)                              \
-    do { printf("%lf seconds spent doing communication per iteration\n", __commTime/iter); } while(0)
-  #define CRIT_TIME_PRINT_ITER(iter)                              \
-    do { printf("%lf seconds spent doing communication along critical path per iteration\n", __critTime/iter); \
-    } while(0)
-  #define AVG_COMM_TIME(cdt, p)                                                           \
-  do{                                                                                     \
-    REDUCE((void*)&__commTime, (void*)&__commTimeDelta, 1, COMM_DOUBLE_T, COMM_OP_SUM, 0, cdt);           \
-    __commTime = __commTimeDelta/p;                                                       \
-  }while(0)
-  #define SUM_CRIT_TIME(cdt, p)                                                           \
-  do{                                                                                     \
-    REDUCE((void*)&__critTime, (void*)&__critTimeDelta, 1, COMM_DOUBLE_T, COMM_OP_SUM, 0, cdt);           \
-    __critTime = __critTimeDelta;                                                 \
-  }while(0)
-
-
-  void __CM(int              end,
-            const CommData * cdt,
-            int              p,
-            int              iter,
-            int              myRank);
-  #else
-  #define __CM(...)
-  #define INIT_COMM_TIME
-  #define COMM_TIME_START()
-  #define COMM_TIME_END()
-  #define COMM_TIME_PRINT()
-  #define COMM_TIME_PRINT_ITER(iter)
-  #define AVG_COMM_TIME(cdt, p)
-  #define CRIT_TIME_START()
-  #define CRIT_TIME_END()
-  #define CRIT_TIME_PRINT_ITER(iter)
-  #define SUM_CRIT_TIME(cdt, p)
-  #endif
-
   #define MST_ALIGN_BYTES ALIGN_BYTES
-
-  /*class CTF_mst {
-
-    public:
-      CTF_mst(int64_t size);
-      ~CTF_mst();
-
-      void alloc(int       len);
-
-
-  }*/
 
   struct mem_transfer {
     void * old_ptr;
     void * new_ptr;
   };
 
-  std::list<mem_transfer> CTF_contract_mst();
-  int CTF_untag_mem(void * ptr);
-  int CTF_free_cond(void * ptr);
-  void CTF_mem_create();
-  void CTF_mst_create(int64_t size);
-  void CTF_mem_exit(int rank);
+  std::list<mem_transfer> contract_mst();
+  int untag_mem(void * ptr);
+  int free_cond(void * ptr);
+  void mem_create();
+  void mst_create(int64_t size);
+  void mem_exit(int rank);
 
+  /**
+   * \brief computes the size of a tensor in SY (NOT HOLLOW) packed symmetric layout
+   * \param[in] order tensor dimension
+   * \param[in] len tensor edge _elngths
+   * \param[in] sym tensor symmetries
+   * \return size of tensor in packed layout
+   */
   int64_t sy_packed_size(int order, const int* len, const int* sym);
 
+
+  /**
+   * \brief computes the size of a tensor in packed symmetric (SY, SH, or AS) layout
+   * \param[in] order tensor dimension
+   * \param[in] len tensor edge _elngths
+   * \param[in] sym tensor symmetries
+   * \return size of tensor in packed layout
+   */
   int64_t packed_size(int order, const int* len, const int* sym);
 
 
@@ -374,13 +282,24 @@ namespace CTF_int {
    *          idx = n*(n-1)*...*(n-sg) / d*(d-1)*...
    *        therefore (idx*sg!)^(1/sg) >= n-sg
    *        or similarly in the SY case ... >= n
+   *
+   * \param[in] order number of dimensions in the tensor 
+   * \param[in] lens edge lengths 
+   * \param[in] sym symmetry
+   * \param[in] idx index in the global tensor, in packed format
+   * \param[out] idx_arr preallocated to size order, computed to correspond to idx
    */
   void calc_idx_arr(int         order,
                     int const * lens,
                     int const * sym,
                     int64_t     idx,
                     int *       idx_arr);
-
+  /**
+   * \brief computes the size of a tensor in packed symmetric layout
+   * \param[in] n a positive number
+   * \param[out] nfactor number of factors in n
+   * \param[out] factor array of length nfactor, corresponding to factorization of n
+   */
   void factorize(int n, int *nfactor, int **factor);
 
   inline
@@ -403,6 +322,7 @@ namespace CTF_int {
    * \param[in] A matrix to read from
    * \param[in,out] B matrix to write to
    */
+  inline
   void lda_cpy(int          el_size,
                int          nrow,
                int          ncol,
@@ -445,6 +365,7 @@ namespace CTF_int {
       if (i>0) memcpy(B+i*k, B+i*kb, kb*sizeof(dtype));
     }
   }*/
+  inline
   void coalesce_bwd(int           el_size,
                     char         *B,
                     char const   *B_aux,
