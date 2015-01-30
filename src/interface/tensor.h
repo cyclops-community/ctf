@@ -12,6 +12,7 @@ namespace CTF {
   template <typename dtype> class Idx_Tensor;
   template <typename dtype> class Sparse_Tensor;
 
+
   /**
    * \defgroup CTF CTF: C++ Tensor interface
    * @{

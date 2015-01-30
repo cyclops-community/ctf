@@ -168,6 +168,9 @@ namespace CTF_int {
       
       /** \brief returns true if semiring elements a and b are equal */
       bool isequal(char const * a, char const * b) const;
+    
+      /** \brief compute b=beta*b + alpha*a */
+      void acc(char * b, char const * beta, char const * a, char const * alpha) const;
       
       /** \brief copies element b to element a */
       void copy(char * a, char const * b) const;

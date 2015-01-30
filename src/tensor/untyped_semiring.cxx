@@ -237,6 +237,13 @@ namespace CTF_int {
     return iseq;
   }
       
+  void semiring::acc(char * b, char const * beta, char const * a, char const * alpha) const {
+    char tmp[el_size];
+    mul(b, beta, tmp);
+    mul(a, alpha, b);
+    add(b, tmp, b);
+  }
+
   void semiring::copy(char * a, char const * b) const {
     memcpy(a, b, el_size);
   }
