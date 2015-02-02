@@ -137,8 +137,8 @@ namespace CTF_int {
                                 char **              new_data,
                                 int                  forward,
                                 int * const *        bucket_offset,
-                                char *               alpha,
-                                char *               beta,
+                                char const *         alpha,
+                                char const *         beta,
                                 semiring const &     sr);
 
   /**
@@ -163,7 +163,11 @@ namespace CTF_int {
    */
   void cyclic_reshuffle(int const *          sym,
                         distribution const & old_dist,
+                        int const *          old_offsets,
+                        int * const *        old_permutation,
                         distribution const & new_dist,
+                        int const *          new_offsets,
+                        int * const *        new_permutation,
                         char **              tsr_data,
                         char **              tsr_cyclic_data,
                         semiring             sr,
@@ -183,8 +187,8 @@ namespace CTF_int {
    */
   void block_reshuffle(distribution const & old_dist,
                        distribution const & new_dist,
-                       char **              tsr_data,
-                       char **              tsr_cyclic_data,
+                       char *               tsr_data,
+                       char *&              tsr_cyclic_data,
                        semiring             sr,
                        CommData             glb_comm);
 

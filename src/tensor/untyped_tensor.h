@@ -443,11 +443,11 @@ namespace CTF_int {
        * \brief permutes the data of a tensor to its new layout
        * \param[in] old_dist previous distribution to remap data from
        */
-      int redistribute(distribution const & old_dist);
-                      /*int const *  old_offsets = NULL,
+      int redistribute(distribution const & old_dist,
+                       int const *  old_offsets = NULL,
                        int * const * old_permutation = NULL,
                        int const *  new_offsets = NULL,
-                       int * const * new_permutation = NULL);*/
+                       int * const * new_permutation = NULL);
 
       /**
         * \brief map the remainder of a tensor 

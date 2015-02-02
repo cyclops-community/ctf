@@ -18,7 +18,7 @@ namespace CTF {
   int64_t Flop_Counter::count(MPI_Comm comm){
     int64_t allf;
     int64_t myf = (CTF_int::get_flops() - start_count);
-    MPI_Allreduce(&myf,&allf,1,MPI_LONG_LONG_INT,MPI_SUM,comm);
+    MPI_Allreduce(&myf,&allf,1,MPI_INT64_T,MPI_SUM,comm);
     return allf;
   }
 }

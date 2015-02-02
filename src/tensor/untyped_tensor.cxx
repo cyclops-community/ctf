@@ -671,7 +671,7 @@ namespace CTF_int {
 
 /*    redistribute(sym, wrld->comm, idst, this->data, alpha, 
                                    odst, sub_buffer,      beta);*/
-    cyclic_reshuffle(sym, idst, odst, &this->data, &sub_buffer, sr, wrld->cdt, 1, alpha, beta);
+    cyclic_reshuffle(sym, idst, NULL, NULL, odst, NULL, NULL, &this->data, &sub_buffer, sr, wrld->cdt, 1, alpha, beta);
 
     MPI_Request req;
     if (fw_mirror_rank >= 0){
@@ -715,7 +715,7 @@ namespace CTF_int {
 
 /*    redistribute(sym, wrld->cdt, odst, sub_buffer,     alpha,
                                    idst, this->data,  beta);*/
-    cyclic_reshuffle(sym, idst, odst, &sub_buffer, &this->data, sr, wrld->cdt, 1, alpha, beta);
+    cyclic_reshuffle(sym, idst, NULL, NULL, odst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 1, alpha, beta);
     CTF_int::cfree(sub_buffer);
   #endif
 
@@ -1009,15 +1009,11 @@ namespace CTF_int {
     this->is_folded = 0;
   }
 
-  int tensor::redistribute(distribution const & old_dist){
-                      /*int const *  old_offsets = NULL,
-                       int * const * old_permutation = NULL,
-                       int const *  new_offsets = NULL,
-                       int * const * new_permutation = NULL);*/
-    int const *  old_offsets = NULL;
-    int * const * old_permutation = NULL;
-    int const *  new_offsets = NULL;
-    int * const * new_permutation = NULL;
+  int tensor::redistribute(distribution const & old_dist,
+                           int const *  old_offsets,
+                           int * const * old_permutation,
+                           int const *  new_offsets,
+                           int * const * new_permutation){
     int new_nvirt, can_block_shuffle;
     char * shuffled_data;
   #if VERIFY_REMAP
@@ -1078,9 +1074,9 @@ namespace CTF_int {
                        this->data,
                        shuffled_data,
                        wrld->cdt);*/
-      block_reshuffle(old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
+      block_reshuffle(old_dist, new_dist, this->data, shuffled_data, sr, wrld->cdt);
     } else {
-      cyclic_reshuffle(sym, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr.mulid, sr.addid);
+      cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr.mulid, sr.addid);
   //    CTF_int::alloc_ptr(sizeof(dtype)*this->size, (void**)&shuffled_data);
 /*      cyclic_reshuffle(this->order,
                        old_size,
