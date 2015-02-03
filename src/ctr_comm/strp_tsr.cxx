@@ -80,8 +80,8 @@ void strp_tsr<dtype>::run(int const dir){
     if (dir)
       memcpy(A+toff*blk_sz, buffer+boff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));
     else {
-  /*    printf("boff = %d, toff = %d blk_sz = "PRId64" mv_ez="PRId64"\n",boff,toff,blk_sz,
-              (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));*/
+      DPRINTF(3,"boff = %d, toff = %d blk_sz = " PRId64 " mv_ez=" PRId64 "\n",boff,toff,blk_sz,
+              (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));
       memcpy(buffer+boff*blk_sz, A+toff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz*sizeof(dtype));
     }
     boff += (edge_len[0]/strip_dim[0]);

@@ -321,6 +321,13 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
   ret = map_sum_indices(idx_arr, idx_sum, num_tot, num_sum, 
                         tid_A, tid_B, &topovec[tsr_A->itopo], 2);
   LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  if (gtopo%2 == 0){
+    ret = map_self_indices(tid_A, idx_map_A);
+    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  } else {
+    ret = map_self_indices(tid_B, idx_map_B);
+    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  }
 
   if (gtopo%2 == 0){
     ret = map_self_indices(tid_A, idx_map_A);
@@ -347,6 +354,14 @@ int dist_tensor<dtype>::map_tensor_pair( const int      tid_A,
                          topovec[tsr_A->itopo].dim_comm, tsr_A);
     LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
   }
+  if (gtopo%2 == 0){
+    ret = map_self_indices(tid_B, idx_map_B);
+    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  } else {
+    ret = map_self_indices(tid_A, idx_map_A);
+    LIBT_ASSERT(ret == DIST_TENSOR_SUCCESS);
+  }
+
 
   tsr_A->is_mapped = 1;
   tsr_B->is_mapped = 1;
