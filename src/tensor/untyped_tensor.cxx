@@ -23,7 +23,7 @@ namespace CTF_int {
 
   tensor::~tensor(){
     if (order != -1){
-      unfold();
+      ASSERT(!is_folded);
       cfree(sym);
       cfree(lens);
       cfree(pad_edge_len);
@@ -50,7 +50,7 @@ namespace CTF_int {
     this->init(sr,order,edge_len,sym,wrld,alloc_data,name,profile);
   }
 
-  tensor::tensor(tensor * other, bool copy, bool alloc_data){
+  tensor::tensor(tensor const * other, bool copy, bool alloc_data){
     
     this->init(other->sr, other->order, other->lens,
                other->sym, other->wrld, alloc_data, other->name,
@@ -60,7 +60,8 @@ namespace CTF_int {
 
     if (copy) {
       //FIXME: do not unfold
-      if (other->is_folded) other->unfold();
+//      if (other->is_folded) other->unfold();
+      ASSERT(!other->is_folded);
 
       if (other->is_mapped){
         CTF_int::alloc_ptr(other->size*sr.el_size, (void**)&this->data);
@@ -137,16 +138,13 @@ namespace CTF_int {
   }
 
   void tensor::init(semiring     sr,
-                    int          order,
+                    int          order_,
                     int const *  edge_len,
                     int const *  sym,
                     World *      wrld_,
                     bool         alloc_data,
                     char const * name,
                     bool         profile){
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
-    memset(this->padding, 0, order*sizeof(int));
-
     this->wrld               = wrld_;
     this->sr                 = sr;
     this->is_scp_padded      = 0;
@@ -168,7 +166,10 @@ namespace CTF_int {
 
 
     this->pairs    = NULL;
-    this->order     = order;
+    this->order    = order_;
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
+    memset(this->padding, 0, order*sizeof(int));
+
     this->lens = (int*)CTF_int::alloc(order*sizeof(int));
     memcpy(this->lens, edge_len, order*sizeof(int));
     this->pad_edge_len = (int*)CTF_int::alloc(order*sizeof(int));
@@ -204,7 +205,7 @@ namespace CTF_int {
     }
   }
 
-  int * tensor::calc_phase(){
+  int * tensor::calc_phase() const {
     mapping * map;
     int * phase;
     int i;
@@ -216,7 +217,7 @@ namespace CTF_int {
     return phase;  
   }
   
-  int tensor::calc_tot_phase(){
+  int tensor::calc_tot_phase() const {
     int i, tot_phase;
     int * phase = this->calc_phase();
     tot_phase = 1;
@@ -227,7 +228,7 @@ namespace CTF_int {
     return tot_phase;
   }
   
-  int64_t tensor::calc_nvirt(){
+  int64_t tensor::calc_nvirt() const {
     int j;
     int64_t nvirt, tnvirt;
     mapping * map;
@@ -399,7 +400,7 @@ namespace CTF_int {
     name = name_;
   }
 
-  char const * tensor::get_name(){
+  char const * tensor::get_name() const {
     return name;
   }
 
@@ -411,7 +412,7 @@ namespace CTF_int {
     profile = false;
   }
 
-  void tensor::get_raw_data(char ** data_, int64_t * size_) {
+  void tensor::get_raw_data(char ** data_, int64_t * size_) const {
     *size_ = size;
     *data_ = data;
   }
@@ -547,6 +548,7 @@ namespace CTF_int {
     *sub_buffer_ = sub_buffer;
 
   }
+
   void tensor::slice(int const *  offsets_B,
                      int const *  ends_B,
                      char const * beta,
@@ -754,7 +756,7 @@ namespace CTF_int {
     
     if (tsr->has_zero_edge_len) return SUCCESS;
     TAU_FSTART(write_pairs);
-    tsr->unfold();
+    ASSERT(!is_folded);
     tsr->set_padding();
 
     if (tsr->is_mapped){
@@ -812,11 +814,11 @@ namespace CTF_int {
 
 
   int tensor::read_local(int64_t * num_pair,
-                         char **   mapped_data){
+                         char **   mapped_data) const {
     int i, num_virt, idx_lyr;
     int64_t np;
     int * virt_phase, * virt_phys_rank, * phys_phase;
-    tensor * tsr;
+    tensor const * tsr;
     char * pairs;
     mapping * map;
 
@@ -827,8 +829,9 @@ namespace CTF_int {
       *num_pair = 0;
       return SUCCESS;
     }
-    tsr->unfold();
-    tsr->set_padding();
+    ASSERT(!tsr->is_folded);
+    ASSERT(tsr->is_mapped);
+//    tsr->set_padding();
 
 
     if (!tsr->is_mapped){
@@ -878,6 +881,46 @@ namespace CTF_int {
     }
     TAU_FSTOP(read_local_pairs);
 
+  }
+
+  int tensor::align(tensor const * B){
+    if (B==this) return SUCCESS;
+    ASSERT(!is_folded, !B->is_folded);
+    ASSERT(B->wrld == wrld);
+    ASSERT(B->order == order);
+    distribution old_dist = distribution(this); 
+    bool is_changed = false;
+    if (topo != B->topo) is_changed = true;
+    topo = B->topo;
+    for (int i=0; i<order; i++){
+      if (!comp_dim_map(edge_map+i, B->edge_map+i)){
+        edge_map[i].clear();
+        copy_mapping(1, B->edge_map+i, edge_map+i);
+        is_changed = true;
+      }
+    }
+    set_padding();
+    if (is_changed){
+      return redistribute(old_dist);
+    } else return SUCCESS;
+  }
+
+  int tensor::reduce(CTF::OP op, char * result) const {
+    ASSERT(is_mapped && is_folded);
+    switch (op){
+      case OP_SUM:
+        tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
+        int idx_A[order];
+        for (int i=0; i<order; i++){
+           idx_A[i] = i;
+        }
+        summation sm = summation(this, idx_A, sr.mulid, &sc, NULL, sr.addid);
+        sm.execute();
+        sr.copy(result, sc.data);
+        MPI_Bcast(result, sr.el_size, MPI_CHAR, 0, wrld->cdt.cm);
+        break;
+      case OP_SUMABS:
+    }
   }
 
   void tensor::unfold(){
@@ -1233,7 +1276,7 @@ namespace CTF_int {
     }
     return NEGATIVE;
   }
-                                      
+                                     
 
   int tensor::zero_out_padding(){
     int i, num_virt, idx_lyr;

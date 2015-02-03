@@ -164,7 +164,10 @@ namespace CTF_int {
   typedef cgemm template <> dgemm< std::complex<float> >;
   typedef zgemm template <> dgemm< std::complex<double> >;
 */
-  semiring::semiring(){}
+  semiring::semiring(){
+    addid = NULL;
+    mulid = NULL;
+  }
 
   semiring::semiring(semiring const & other){
     el_size = other.el_size;
@@ -224,8 +227,8 @@ namespace CTF_int {
   }
 
   semiring::~semiring(){
-    free(addid);
-    free(mulid);
+    if (addid != NULL) free(addid);
+    if (mulid != NULL) free(mulid);
   }
 
    

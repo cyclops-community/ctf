@@ -24,7 +24,7 @@ Idx_Tensor<dtype> * get_full_intm(Idx_Tensor<dtype>& A,
   }
   for (j=0; j<B.parent->order; j++){
     order_C++;
-    for (i=0; i<MAX(A.parent->order, B.parent->order); i++){
+    for (i=0; i<std::max(A.parent->order, B.parent->order); i++){
       if (i<j && B.idx_map[i] == B.idx_map[j]){
         order_C--;
         break;
@@ -44,7 +44,7 @@ Idx_Tensor<dtype> * get_full_intm(Idx_Tensor<dtype>& A,
     for (j=0; j<i && A.idx_map[i] != A.idx_map[j]; j++){}
     if (j!=i) break;
     idx_C[idx] = A.idx_map[i];
-    len_C[idx] = A.parent->len[i];
+    len_C[idx] = A.parent->lens[i];
     if (idx >= 1 && i >= 1 && idx_C[idx-1] == A.idx_map[i-1] && A.parent->sym[i-1] != NS){
       sym_C[idx-1] = A.parent->sym[i-1];
     }
@@ -74,7 +74,7 @@ Idx_Tensor<dtype> * get_full_intm(Idx_Tensor<dtype>& A,
       break;
     }
     idx_C[idx] = B.idx_map[j];
-    len_C[idx] = B.parent->len[j];
+    len_C[idx] = B.parent->lens[j];
     if (idx >= 1 && j >= 1 && idx_C[idx-1] == B.idx_map[j-1] && B.parent->sym[j-1] != NS){
       sym_C[idx-1] = B.parent->sym[j-1];
     }
@@ -82,7 +82,7 @@ Idx_Tensor<dtype> * get_full_intm(Idx_Tensor<dtype>& A,
     idx++;
   }
 
-  Tensor<dtype> * tsr_C = new Tensor<dtype>(order_C, len_C, sym_C, *(A.parent->world));
+  Tensor<dtype> * tsr_C = new Tensor<dtype>(order_C, len_C, sym_C, *(A.parent->wrld));
   Idx_Tensor<dtype> * out = new Idx_Tensor<dtype>(tsr_C, idx_C);
   out->is_intm = 1;
   free(sym_C);
@@ -206,7 +206,7 @@ Idx_Tensor<dtype> Sum_Term<dtype>::estimate_cost(int64_t & cost) const {
     tmp_ops.pop_back();
     Idx_Tensor<dtype> op_A = pop_A->estimate_cost(cost);
     Idx_Tensor<dtype> op_B = pop_B->estimate_cost(cost);
-    Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
+    Idx_Tensor<dtype> * intm = get_full_intm<dtype>(op_A, op_B);
     cost += intm->parent->estimate_cost(*(op_A.parent), op_A.idx_map,
                                     intm->idx_map);
     cost += intm->parent->estimate_cost(*(op_B.parent), op_B.idx_map,
@@ -458,7 +458,7 @@ int64_t Contract_Term<dtype>::estimate_cost(Idx_Tensor<dtype> output)const {
       tmp_ops.push_back(op_A.clone());
     } else {
       Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
-      cost += intm->parent->estimate_cost(
+      cost += intm->parent->estimate_time(
                                     *(op_A.parent), op_A.idx_map,
                                     *(op_B.parent), op_B.idx_map,
                                        intm->idx_map);
@@ -479,14 +479,14 @@ int64_t Contract_Term<dtype>::estimate_cost(Idx_Tensor<dtype> output)const {
     if (op_A.parent == NULL && op_B.parent == NULL){
       assert(0); //FIXME write scalar to whole tensor
     } else if (op_A.parent == NULL){
-      cost += output.parent->estimate_cost(*(op_B.parent), op_B.idx_map,
+      cost += output.parent->estimate_time(*(op_B.parent), op_B.idx_map,
                             output.idx_map);
     } else if (op_B.parent == NULL){
-      cost += output.parent->estimate_cost(
+      cost += output.parent->estimate_time(
                                 *(op_A.parent), op_A.idx_map,
                                  output.idx_map);
     } else {
-      cost += output.parent->estimate_cost(
+      cost += output.parent->estimate_time(
                                     *(op_A.parent), op_A.idx_map,
                                     *(op_B.parent), op_B.idx_map,
                                      output.idx_map);
@@ -516,7 +516,7 @@ Idx_Tensor<dtype> Contract_Term<dtype>::estimate_cost(int64_t & cost) const {
       tmp_ops.push_back(op_A.clone());
     } else {
       Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
-      cost += intm->parent->estimate_cost(
+      cost += intm->parent->estimate_time(
                                     *(op_A.parent), op_A.idx_map,
                                     *(op_B.parent), op_B.idx_map,
                                       intm->idx_map);

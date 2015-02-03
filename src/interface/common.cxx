@@ -141,9 +141,11 @@ namespace CTF_int {
   }
 
   CommData::CommData(){}
+
   CommData::~CommData(){
-    if (alive) MPI_Comm_free(&cm);
+    if (created) MPI_Comm_free(&cm);
     alive = 0;
+    created = 0;
   }
 
   CommData::CommData(MPI_Comm cm_){
@@ -151,13 +153,15 @@ namespace CTF_int {
     MPI_Comm_rank(cm, &rank);
     MPI_Comm_size(cm, &np);
     alive = 1;
+    created = 0;
   }
 
   CommData::CommData(int rank_, int color_, int np_){
-    rank  = rank_;
-    color = color_;
-    np    = np_;
-    alive = 0;
+    rank    = rank_;
+    color   = color_;
+    np      = np_;
+    alive   = 0;
+    created = 0;
   }
 
   CommData::CommData(int rank_, int color_, CommData parent){
@@ -165,12 +169,14 @@ namespace CTF_int {
     color = color_;
     MPI_Comm_split(parent.cm, rank_, color, &cm);
     MPI_Comm_size(cm, &np);
-    alive = 1;
+    alive   = 1;
+    created = 1;
   }
 
   void CommData::activate(MPI_Comm parent){
     if (!alive){
-      alive = 1;
+      alive   = 1;
+      created = 1;
       MPI_Comm_split(parent, rank, color, &cm);
       int np_;
       MPI_Comm_size(cm, &np_);
@@ -181,7 +187,8 @@ namespace CTF_int {
   void CommData::deactivate(){
     if (alive){
       alive = 0;
-      MPI_Comm_free(&cm);
+      if (created) MPI_Comm_free(&cm);
+      created = 0;
       int np_;
       MPI_Comm_size(cm, &np_);
       assert(np_ == np);

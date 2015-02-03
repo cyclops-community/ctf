@@ -125,7 +125,7 @@ namespace CTF_int {
        * \param[in] copy whether to copy mapping and data
        * \param[in] alloc_data whether th allocate data
        */
-      tensor(tensor * other, bool copy = 1, bool alloc_data = 1);
+      tensor(tensor const * other, bool copy = 1, bool alloc_data = 1);
 
       /**
        * \brief defines a tensor object with some mapping (if alloc_data)
@@ -150,19 +150,19 @@ namespace CTF_int {
        * \brief compute the cyclic phase of each tensor dimension
        * \return int * of cyclic phases
        */
-      int * calc_phase();
+      int * calc_phase() const;
 
       /**
        * \brief calculate the total number of blocks of the tensor
        * \return int total phase factor
        */
-      int calc_tot_phase();
+      int calc_tot_phase() const;
 
       /**
        * \brief calculate virtualization factor of tensor
        * return virtualization factor
        */
-      int64_t calc_nvirt();
+      int64_t calc_nvirt() const;
 
       /**
        * \brief sets padding and local size of a tensor given a mapping
@@ -195,7 +195,7 @@ namespace CTF_int {
        * \brief get the tensor name 
        * \return tensor name 
        */
-      char const * get_name();
+      char const * get_name() const;
 
       /** \brief turn on profiling */
       void profile_on();
@@ -208,7 +208,7 @@ namespace CTF_int {
        * \param[out] data raw local data in char * format
        * \param[out] size number of elements in data
        */
-      void get_raw_data(char ** data, int64_t * size);
+      void get_raw_data(char ** data, int64_t * size) const;
 
       /** 
        * \brief  Add tensor data new=alpha*new+beta*old
@@ -238,7 +238,7 @@ namespace CTF_int {
       int read(int64_t      num_pair,
                char const * alpha,
                char const * beta,
-               char * const mapped_data);
+               char * const mapped_data) const;
 
       /**
        * \brief read tensor data with <key, value> pairs where key is the
@@ -247,7 +247,7 @@ namespace CTF_int {
        * \param[in,out] mapped_data pairs to read
        */
       int read(int64_t      num_pair,
-               char * const mapped_data);
+               char * const mapped_data) const;
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -256,7 +256,7 @@ namespace CTF_int {
        * \param[in,out] mapped_data values read (allocated by library)
        */
       int allread(int64_t * num_pair,
-                  char **   all_data);
+                  char **   all_data) const;
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -265,7 +265,7 @@ namespace CTF_int {
        * \param[in,out] preallocated mapped_data values read
        */
       int allread(int64_t * num_pair,
-                  char *    all_data);
+                  char *    all_data) const;
 
        /**
        * \brief cuts out a slice (block) of this tensor = B
@@ -319,19 +319,19 @@ namespace CTF_int {
        * \param[out] mapped_data values read
        */
       int read_local(int64_t * num_pair,
-                     char **   mapped_data);
+                     char **   mapped_data) const;
 
       /** 
        * \brief copy A into this (B). Realloc if necessary 
        * \param[in] A tensor to copy
        */
-      int copy(tensor * A);
+      //int copy(tensor * A);
 
       /**
        * \brief align mapping of thisa tensor to that of B
        * \param[in] B tensor handle of B
        */
-      int align(tensor * B);
+      int align(tensor const * B);
 
       /* product will contain the dot prodiuct if tsr_A and tsr_B */
       //int dot_tensor(int tid_A, int tid_B, char *product);
@@ -341,7 +341,7 @@ namespace CTF_int {
        * \param[in] CTF::OP reduction operation to apply
        * \param[out] result result of reduction operation
        */
-      int reduce(CTF::OP op, char * result);
+      int reduce(CTF::OP op, char * result) const;
 
       /* map data of tid_A with the given function */
 /*      int map_tensor(int tid,
@@ -353,7 +353,8 @@ namespace CTF_int {
        * \param[in] n number of elements to fill
        * \param[in,out] data preallocated array of size at least n, in which to put the elements
        */
-      int get_max_abs(int n, char * data);
+      int get_max_abs(int n, char * data) const;
+
       /**
        * \brief prints tensor data to file using process 0
        * \param[in] fp file to print to e.g. stdout

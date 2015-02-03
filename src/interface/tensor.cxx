@@ -15,45 +15,46 @@ namespace CTF {
 
   template<typename dtype>
   Tensor<dtype>::Tensor(const Tensor<dtype> & A,
-                        World *               world_) 
-    : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile) { }
+                        World &               world_) 
+    : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, &A.wrld, 1, A.name, A.profile) { }
 
+/*  template<typename dtype>
+  Tensor<dtype>::Tensor(int          order,
+                        int const *  lens,
+                        int const *  sym,
+                        World &      wrld,
+                        char const * name,
+                        int const    profile)
+    : CTF_int::tensor(Semiring<dtype>(), order, lens, sym, &wrld, 1, name, profile) { }
+*/
   template<typename dtype>
-  Tensor<dtype>::Tensor(int                 order,
-                        int const *         lens,
-                        int const *         sym,
-                        World *             wrld,
-                        char const *        name,
-                        int const           profile)
-    : CTF_int::tensor(Semiring<dtype>(), order, lens, sym, wrld, 1, name, profile) { }
+  Tensor<dtype>::Tensor(int             order,
+                        int const *     len,
+                        int const *     sym,
+                        World &         world,
+                        Semiring<dtype> sr,
+                        char const *    name,
+                        int const       profile)
+    : CTF_int::tensor(sr, order, lens, sym, &wrld, 1, name, profile) {}
 
-  template<typename dtype>
-  Tensor<dtype>::Tensor(int                 order,
-                        int const *         len,
-                        int const *         sym,
-                        World *             world,
-                        Semiring<dtype>     sr,
-                        char const *        name,
-                        int const           profile)
-    : CTF_int::tensor(sr, order, lens, sym, wrld, 1, name, profile) {}
 
   template<typename dtype>
   Tensor<dtype>::~Tensor(){ }
 
   template<typename dtype>
-  dtype * Tensor<dtype>::get_raw_data(int64_t * size) {
+  dtype * Tensor<dtype>::get_raw_data(int64_t * size) const {
     dtype * data;
-    this->get_raw_data(&data, size);
+    tensor::get_raw_data((char**)&data, size);
     return data;
   }
 
   template<typename dtype>
-  void Tensor<dtype>::read_local(int64_t *   npair, 
-                                 int64_t **  global_idx, 
+  void Tensor<dtype>::read_local(int64_t *  npair,
+                                 int64_t ** global_idx,
                                  dtype **   data) const {
     Pair< dtype > * pairs;
     int ret, i;
-    ret = CTF_int::tensor::read_local(npair, &pairs);
+    ret = CTF_int::tensor::read_local(npair,(char**)&pairs);
     assert(ret == SUCCESS);
     /* FIXME: careful with alloc */
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
@@ -68,21 +69,21 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::read_local(int64_t *      npair,
                                  Pair<dtype> ** pairs) const {
-    int ret = CTF_int::tensor::read_local(npair, pairs);
+    int ret = CTF_int::tensor::read_local(npair, (char**)pairs);
     assert(ret == SUCCESS);
   }
 
   template<typename dtype>
-  void Tensor<dtype>::read(int64_t          npair, 
-                           int64_t const *  global_idx, 
-                           dtype *          data) const {
+  void Tensor<dtype>::read(int64_t         npair,
+                           int64_t const * global_idx,
+                           dtype *         data) const {
     int ret, i;
     Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
     }
-    ret = CTF_int::tensor::read(npair, pairs);
+    ret = CTF_int::tensor::read(npair, (char*)pairs);
     assert(ret == SUCCESS);
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
@@ -91,16 +92,16 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::read(int64_t          npair,
-                           Pair<dtype> *    pairs) const {
-    int ret = CTF_int::tensor::read(npair, pairs);
+  void Tensor<dtype>::read(int64_t       npair,
+                           Pair<dtype> * pairs) const {
+    int ret = CTF_int::tensor::read(npair, (char*)pairs);
     assert(ret == SUCCESS);
   }
 
   template<typename dtype>
-  void Tensor<dtype>::write(int64_t          npair, 
-                            int64_t const *  global_idx, 
-                            dtype const *    data) {
+  void Tensor<dtype>::write(int64_t         npair,
+                            int64_t const * global_idx,
+                            dtype const *   data) {
     int ret, i;
     Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
@@ -108,7 +109,7 @@ namespace CTF {
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
     }
-    ret = CTF_int::tensor::write(npair, pairs);
+    ret = CTF_int::tensor::write(npair, (char*)&sr.mulid, (char*)&sr.addid, (char*)pairs);
     assert(ret == SUCCESS);
     CTF_int::cfree(pairs);
   }
@@ -116,16 +117,16 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::write(int64_t             npair,
                             Pair<dtype> const * pairs) {
-    int ret = CTF_int::tensor::write(npair, 1.0, 0.0, pairs);
+    int ret = CTF_int::tensor::write(npair, 1.0, 0.0, (char const *)pairs);
     assert(ret == SUCCESS);
   }
 
   template<typename dtype>
-  void Tensor<dtype>::write(int64_t          npair, 
-                            dtype            alpha, 
-                            dtype            beta,
-                            int64_t const *  global_idx, 
-                            dtype const *    data) {
+  void Tensor<dtype>::write(int64_t         npair,
+                            dtype           alpha,
+                            dtype           beta,
+                            int64_t const * global_idx,
+                            dtype const *   data) {
     int ret, i;
     Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
@@ -133,7 +134,7 @@ namespace CTF {
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
     }
-    ret = CTF_int::tensor::write(npair, &alpha, &beta, pairs);
+    ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
     assert(ret == SUCCESS);
     CTF_int::cfree(pairs);
   }
@@ -143,15 +144,15 @@ namespace CTF {
                             dtype               alpha,
                             dtype               beta,
                             Pair<dtype> const * pairs) {
-    int ret = CTF_int::tensor::write(npair, &alpha, &beta, pairs);
+    int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char const *)pairs);
     assert(ret == SUCCESS);
   }
 
   template<typename dtype>
-  void Tensor<dtype>::read(int64_t         npair, 
-                           dtype           alpha, 
+  void Tensor<dtype>::read(int64_t         npair,
+                           dtype           alpha,
                            dtype           beta,
-                           int64_t const * global_idx, 
+                           int64_t const * global_idx,
                            dtype *         data) const{
     int ret, i;
     Pair< dtype > * pairs;
@@ -160,7 +161,7 @@ namespace CTF {
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
     }
-    ret = CTF_int::tensor::read(npair, &alpha, &beta, pairs);
+    ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
     assert(ret == SUCCESS);
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
@@ -173,7 +174,7 @@ namespace CTF {
                            dtype         alpha,
                            dtype         beta,
                            Pair<dtype> * pairs) const{
-    int ret = CTF_int::tensor::read(npair, &alpha, &beta, pairs);
+    int ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
     assert(ret == SUCCESS);
   }
 
@@ -221,12 +222,12 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::permute(dtype             beta,
-                              Tensor &          A,
-                              int * const *     perms_A,
-                              dtype             alpha){
-    int ret = CTF_int::tensor::permute(&A, perms_A, &alpha, 
-                                           NULL, &beta);
+  void Tensor<dtype>::permute(dtype         beta,
+                              Tensor &      A,
+                              int * const * perms_A,
+                              dtype         alpha){
+    int ret = CTF_int::tensor::permute(&A, perms_A, (char*)&alpha,
+                                           NULL, (char*)&beta);
     assert(ret == SUCCESS);
   }
 
@@ -235,45 +236,46 @@ namespace CTF {
                               dtype         beta,
                               Tensor &      A,
                               dtype         alpha){
-    int ret = CTF_int::tensor::permute(&A, NULL, &alpha,
-                                           perms_B, &beta);
+    int ret = CTF_int::tensor::permute(&A, NULL, (char*)&alpha,
+                                           perms_B, (char*)&beta);
     assert(ret == SUCCESS);
   }
   template<typename dtype>
   void Tensor<dtype>::add_to_subworld(
                            Tensor<dtype> * tsr,
-                           dtype alpha,
-                           dtype beta) const {
+                           dtype           alpha,
+                           dtype           beta) const {
     int ret;
     if (tsr == NULL)
-      ret = CTF_int::tensor::add_to_subworld(NULL, alpha, beta);
+      ret = CTF_int::tensor::add_to_subworld(NULL, (char*)&alpha, (char*)&beta);
     else
-      ret = CTF_int::tensor::add_to_subworld(&tsr->tid, alpha, beta);
+      ret = CTF_int::tensor::add_to_subworld(tsr, (char*)&alpha, (char*)&beta);
     assert(ret == SUCCESS);
   }
+ 
   template<typename dtype>
   void Tensor<dtype>::add_to_subworld(
                            Tensor<dtype> * tsr) const {
-    return add_to_subworld(tsr, sr.mulid, sr.mulid);
+    return add_to_subworld(tsr, (char*)&sr.mulid, (char*)&sr.mulid);
   }
 
   template<typename dtype>
   void Tensor<dtype>::add_from_subworld(
                            Tensor<dtype> * tsr,
-                           dtype alpha,
-                           dtype beta) const {
+                           dtype           alpha,
+                           dtype           beta) const {
     int ret;
     if (tsr == NULL)
-      ret = CTF_int::tensor::add_from_subworld(-1, NULL, &alpha, &beta);
+      ret = CTF_int::tensor::add_from_subworld(-1, NULL, (char*)&alpha, (char*)&beta);
     else
-      ret = CTF_int::tensor::add_from_subworld(tsr->tid, tsr->wrld, &alpha, &beta);
+      ret = CTF_int::tensor::add_from_subworld(tsr, tsr->wrld, (char*)&alpha, (char*)&beta);
     assert(ret == SUCCESS);
   }
 
   template<typename dtype>
   void Tensor<dtype>::add_from_subworld(
                            Tensor<dtype> * tsr) const {
-    return add_from_subworld(tsr, sr.mulid, sr.mulid);
+    return add_from_subworld(tsr, (char*)&sr.mulid, (char*)&sr.mulid);
   }
 
   template<typename dtype>
@@ -291,12 +293,12 @@ namespace CTF {
       assert(np_A != np_B);
       //FIXME: was reversed?
       ret = CTF_int::tensor::slice(
-                offsets, ends, beta, A,
-                offsets_A, ends_A, alpha);
+                offsets, ends, beta, &A,
+                offsets_A, ends_A, (char*)&alpha);
     } else {
       ret = CTF_int::tensor::slice(
-                offsets, ends, beta, A,
-                offsets_A, ends_A, alpha);
+                offsets, ends, beta, &A,
+                offsets_A, ends_A, (char*)&alpha);
     }
     assert(ret == SUCCESS);
   }
@@ -316,7 +318,7 @@ namespace CTF {
     conv_idx(A.order, A.len, corner_off_A, &offsets_A);
     conv_idx(A.order, A.len, corner_end_A, &ends_A);
     
-    slice(offsets, ends, beta, A, offsets_A, ends_A, alpha);
+    slice(offsets, ends, beta, &A, offsets_A, ends_A, (char*)&alpha);
 
     CTF_int::cfree(offsets);
     CTF_int::cfree(ends);
@@ -386,7 +388,7 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::align(const Tensor& A){
+  void Tensor<dtype>::align(const Tensor & A){
     if (A.wrld->cdt.cm != wrld->cdt.cm) {
       printf("ERROR: cannot align tensors on different CTF instances\n");
       assert(0);
@@ -407,20 +409,20 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::get_max_abs(int     n,
-                                  dtype * data){
+                                  dtype * data) const {
     int ret;
     ret = CTF_int::tensor::get_max_abs(n, data);
     assert(ret == SUCCESS);
   }
 
   template<typename dtype>
-  void Tensor<dtype>::contract(dtype                 alpha,
-                               const Tensor<dtype>&  A,
-                               const char *          idx_A,
-                               const Tensor<dtype>&  B,
-                               const char *          idx_B,
-                               dtype                 beta,
-                               const char *          idx_C){
+  void Tensor<dtype>::contract(dtype          alpha,
+                               Tensor<dtype>& A,
+                               const char *   idx_A,
+                               Tensor<dtype>& B,
+                               const char *   idx_B,
+                               dtype          beta,
+                               const char *   idx_C){
     int * idx_map_A;
     int * idx_map_B;
     int * idx_map_C;
@@ -430,8 +432,8 @@ namespace CTF {
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
-      = CTF_int::contraction(A, idx_map_A, B, idx_map_B, alpha, 
-                                           this, idx_map_C, beta);
+      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, (char*)&alpha,
+                                           this, idx_map_C, (char*)&beta);
     ctr.execute();
     CTF_int::cfree(idx_map_A);
     CTF_int::cfree(idx_map_B);
@@ -439,9 +441,9 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::contract(const Tensor<dtype>&  A,
+  void Tensor<dtype>::contract(Tensor<dtype>&        A,
                                const char *          idx_A,
-                               const Tensor<dtype>&  B,
+                               Tensor<dtype>&        B,
                                const char *          idx_B,
                                const char *          idx_C,
                                Bivar_Function<dtype> fseq){
@@ -454,7 +456,7 @@ namespace CTF {
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
-      = CTF_int::contraction(A, idx_map_A, B, idx_map_B, 
+      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B,
                                            this, idx_map_C, fseq);
     ctr.execute();
 
@@ -465,18 +467,18 @@ namespace CTF {
 
 
   template<typename dtype>
-  void Tensor<dtype>::sum(dtype                  alpha,
-                          const Tensor<dtype>&   A,
-                          const char *           idx_A,
-                          dtype                  beta,
-                          const char *           idx_B){
+  void Tensor<dtype>::sum(dtype          alpha,
+                          Tensor<dtype>& A,
+                          const char *   idx_A,
+                          dtype          beta,
+                          const char *   idx_B){
     int * idx_map_A, * idx_map_B;
     conv_idx(A.order, idx_A, &idx_map_A,
                order, idx_B, &idx_map_B);
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
 
     CTF_int::summation sum 
-      = CTF_int::summation(A, idx_map_A, alpha, this, idx_map_B, beta);
+      = CTF_int::summation(&A, idx_map_A, (char*)&alpha, this, idx_map_B, (char*)&beta);
 
     sum.execute();
 
@@ -485,7 +487,7 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::sum(const Tensor<dtype>&   A,
+  void Tensor<dtype>::sum(Tensor<dtype>&         A,
                           const char *           idx_A,
                           const char *           idx_B,
                           Univar_Function<dtype> fseq){
@@ -495,7 +497,7 @@ namespace CTF {
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     
     CTF_int::summation sum 
-      = CTF_int::summation(A, idx_map_A, this, idx_map_B, fseq);
+      = CTF_int::summation(&A, idx_map_A, this, idx_map_B, fseq);
 
     sum.execute();
     CTF_int::cfree(idx_map_A);
@@ -503,11 +505,11 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::scale(dtype                alpha, 
-                            const char *         idx_A){
+  void Tensor<dtype>::scale(dtype        alpha,
+                            const char * idx_A){
     int * idx_map_A;
     conv_idx(order, idx_A, &idx_map_A);
-    CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, alpha);
+    CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, (char*)&alpha);
     scl.execute();
     CTF_int::cfree(idx_map_A);
   }
@@ -534,31 +536,31 @@ namespace CTF {
  
   template<typename dtype>
   double Tensor<dtype>::estimate_time(
-                                    const Tensor<dtype>&     A,
-                                    const char *             idx_A,
-                                    const Tensor<dtype>&     B,
-                                    const char *             idx_B,
-                                    const char *             idx_C){
+                                    Tensor<dtype>& A,
+                                    const char *   idx_A,
+                                    Tensor<dtype>& B,
+                                    const char *   idx_B,
+                                    const char *   idx_C){
     int * idx_map_A, * idx_map_B, * idx_map_C;
     conv_idx(A.order, idx_A, &idx_map_A,
              B.order, idx_B, &idx_map_B,
              order, idx_C, &idx_map_C);
     CTF_int::contraction ctr
-      = CTF_int::contraction(A, idx_map_A, B, idx_map_B, 1.0, 
-                                           this, idx_map_C, 1.0);
+      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, (char*)&sr.mulid,
+                                           this, idx_map_C, (char*)&sr.addid);
     return ctr.estimate_time();
   }
     
   template<typename dtype>
   double Tensor<dtype>::estimate_time(
-                                    const Tensor<dtype>& A,
-                                    const char *         idx_A,
-                                    const char *         idx_B){
+                                    Tensor<dtype>& A,
+                                    const char *   idx_A,
+                                    const char *   idx_B){
     int * idx_map_A, * idx_map_B;
     conv_idx(A.order, idx_A, &idx_map_A,
              order, idx_B, &idx_map_B);
     CTF_int::summation sum 
-      = CTF_int::summation(A, idx_map_A, 1.0, this, idx_map_B, 1.0);
+      = CTF_int::summation(&A, idx_map_A, (char*)&sr.mulid, this, idx_map_B, (char*)&sr.addid);
 
     return sum.estimate_time();
     

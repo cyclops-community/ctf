@@ -89,7 +89,7 @@ namespace CTF {
   /**
    * \brief measures flops done in a code region
    */
-  class Flop_Counter{
+  class Flop_counter{
     public:
       int64_t  start_count;
 
@@ -97,8 +97,8 @@ namespace CTF {
       /**
        * \brief constructor, starts counter
        */
-      Flop_Counter();
-      ~Flop_Counter();
+      Flop_counter();
+      ~Flop_counter();
 
       /**
        * \brief restarts counter

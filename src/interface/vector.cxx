@@ -17,7 +17,7 @@ namespace CTF {
 
   template<typename dtype>
   Vector<dtype>::Vector(int                 len_,
-                        World *             world_,
+                        World &             world_,
                         char const *        name_,
                         int                 profile_) :
     Tensor<dtype>(1, int1(len_), int1(NS), world_, name_, profile_) {
@@ -26,7 +26,7 @@ namespace CTF {
 
   template<typename dtype>
   Vector<dtype>::Vector(int                 len_,
-                        World *             world_,
+                        World &             world_,
                         Semiring<dtype>     sr_,
                         char const *        name_,
                         int                 profile_) :

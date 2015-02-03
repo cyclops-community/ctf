@@ -1,53 +1,13 @@
 #ifndef __SEMIRING_H__
 #define __SEMIRING_H__
 
-#include "../tensor/untyped_semiring.h"
-
 namespace CTF {
-  /**
-   * \brief index-value pair used for tensor data input
-   */
-  template<typename dtype=double>
-  class Pair  {
-    public:
-      /** \brief key, global index [i1,i2,...] specified as i1+len[0]*i2+... */
-      int64_t k;
 
-      /** \brief tensor value associated with index */
-      dtype v;
-
-      /**
-       * \brief constructor builds pair
-       * \param[in] k_ key
-       * \param[in] v_ value
-       */
-      Pair(int64_t k_, dtype v_){
-        this->k = k_; 
-        v = v_;
-      }
-  };
-
-  template<typename dtype>
-  inline bool comp_pair(Pair<dtype> i,
-                        Pair<dtype> j) {
-    return (i.k<j.k);
-  }
-
-  template <typename dtype>
-  dtype default_add(dtype a, dtype b){
-    return a+b;
-  }
-
-  template <typename dtype>
-  dtype default_addinv(dtype a){
-    return -a;
-  }
 
   template <typename dtype>
   dtype default_mul(dtype a, dtype b){
     return a*b;
   }
-
 
   template<typename dtype>
   void default_gemm(char          tA,
@@ -264,27 +224,61 @@ namespace CTF {
   }
 
 
-  template <typename dtype=double> 
+  /**
+   * Semiring class defined by a datatype and addition and multiplicaton functions
+   *   addition must have an identity and be associative, does not need to be commutative
+   *   multiplications must have an identity and be distributive
+   *   define a Ring instead if an additive inverse is also available
+   */
+  template <typename dtype=double, is_ord=true> 
   class Semiring : public CTF_int::semiring {
     public:
-      dtype addid;
-      dtype mulid;
-      MPI_Op addmop;
+      dtype taddid;
+      dtype tmulid;
       dtype (*fadd)(dtype a, dtype b);
-      dtype (*faddinv)(dtype a);
       dtype (*fmul)(dtype a, dtype b);
+      dtype (*fmin)(dtype a, dtype b);
+      dtype (*fmax)(dtype a, dtype b);
       void (*gemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
       void (*axpy)(int,dtype,dtype const*,int,dtype*,int);
       void (*scal)(int,dtype,dtype*,int);
-    /** 
-     * \brief default constructor valid for only certain types:
-     *         bool, int, unsigned int, int64_t, uint64_t,
-     *         float, double, std::complex<float>, std::complex<double>
+
+    /**
+     * \brief constructor for semiring equipped with * and +
+     * \param[in] addid_ additive identity
+     * \param[in] mulid_ multiplicative identity
+     * \param[in] mdtype MPI Datatype to use in reductions
+     * \param[in] addmop_ MPI_Op operation for addition
+     * \param[in] fadd_ binary addition function
+     * \param[in] fmul_ binary multiplication function
+     * \param[in] gemm_ block matrix multiplication function
+     * \param[in] axpy_ vector sum function
+     * \param[in] scal_ vector scale function
      */
-    Semiring(){ 
-      printf("CTF ERROR: identity must be specified for custom tensor types, use of default constructor not allowed, aborting.\n");
-      assert(0);
+    Semiring(dtype        addid_,
+             dtype        mulid_,
+             MPI_Datatype mdtype_,
+             MPI_Op       addmop_,
+             dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
+             dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
+             dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
+             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
+             void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
+             void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
+             void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
+              : semiring(sizeof(dtype), false, mdtype_, addmop_) {
+      taddid  = addid_;
+      tmulid  = mulid_;
+      fadd    = fadd_;
+      faddinv = faddinv_;
+      fmul    = fmul_;
+      gemm    = gemm_;
+      axpy    = axpy_;
+      scal    = scal_;
     }
+
+
     /**
      * \brief constructor for semiring equipped with * and +
      * \param[in] addid_ additive identity
@@ -298,37 +292,37 @@ namespace CTF {
      */
     Semiring(dtype  addid_,
              dtype  mulid_,
-             MPI_Op addmop_=MPI_SUM,
              dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
              dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
              dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
+             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
              void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
              void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
-             void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>){
-      addid = addid_;
-      mulid = mulid_;
-      addmop = addmop_;
-      fadd = fadd_;
+             void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
+              : semiring(sizeof(dtype), false) {
+      taddid  = addid_;
+      tmulid  = mulid_;
+      fadd    = fadd_;
       faddinv = faddinv_;
-      fmul = fmul_;
-      gemm = gemm_;
-      axpy = axpy_;
-      scal = scal_;
+      fmul    = fmul_;
+      gemm    = gemm_;
+      axpy    = axpy_;
+      scal    = scal_;
     }
 
     /**
      * \brief constructor for semiring equipped with + only
      * \param[in] addid_ additive identity
      */
-    Semiring(dtype  addid_) {
-      addid = addid_;
-      addmop = MPI_SUM;
-      fadd = &default_add<dtype>;
+    Semiring(dtype addid_) : semiring(sizeof(dtype), false) {
+      taddid  = addid_;
+      fadd    = &default_add<dtype>;
       faddinv = &default_addinv<dtype>;
-      fmul = &default_mul<dtype>;
-      gemm = &default_gemm<dtype>;
-      axpy = &default_axpy<dtype>;
-      scal = &default_scal<dtype>;
+      fmul    = &default_mul<dtype>;
+      gemm    = &default_gemm<dtype>;
+      axpy    = &default_axpy<dtype>;
+      scal    = &default_scal<dtype>;
     }
 
     /**
@@ -340,43 +334,18 @@ namespace CTF {
     Semiring(dtype  addid_,
              MPI_Op addmop_,
              dtype (*fadd_)(dtype a, dtype b)){
-      addid = addid_;
-      addmop = addmop_;
-      fadd = fadd_;
+      addid   = addid_;
+      addmop  = addmop_;
+      fadd    = fadd_;
       faddinv = &default_addinv<dtype>;
-      fmul = &default_mul<dtype>;
-      gemm = &default_gemm<dtype>;
-      axpy = &default_axpy<dtype>;
-      scal = &default_scal<dtype>;
+      fmul    = &default_mul<dtype>; //FIXME: what if I want just an Abelian group with no mul operator?
+      gemm    = &default_gemm<dtype>;
+      axpy    = &default_axpy<dtype>;
+      scal    = &default_scal<dtype>;
     }
-
   };
-
-  // The following requires C++11 unfortunately...
-  template<>
-  Semiring<bool>::Semiring() : Semiring(false, true) {};
-  template<>
-  Semiring<int>::Semiring() : Semiring(0, 1) {};
-  template<>
-  Semiring<unsigned int>::Semiring() : Semiring(0, 1) {};
-  template<>
-  Semiring<int64_t>::Semiring() : Semiring(0, 1) {};
-  template<>
-  Semiring<uint64_t>::Semiring() : Semiring(0, 1) {};
-  template<>
-  Semiring<float>::Semiring() : Semiring(0.0, 1.0) {};
-  template<>
-  Semiring<double>::Semiring() : Semiring(0.0, 1.0) {};
-  template<>
-  Semiring< std::complex<float> >::Semiring() 
-    : Semiring(std::complex<float>(0.0,0.0), 
-               std::complex<float>(1.0,0.0)) {};
-  template<>
-  Semiring< std::complex<double> >::Semiring() 
-    : Semiring(std::complex<double>(0.0,0.0), 
-               std::complex<double>(1.0,0.0)) {};
-
 }
 
+#include "ring.h"
 
 #endif

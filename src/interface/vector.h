@@ -19,7 +19,7 @@ namespace CTF {
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */ 
       Vector(int             len,
-             World         * wrld,
+             World &         wrld,
              char const *    name = NULL,
              int             profile = 0);
 
@@ -32,7 +32,7 @@ namespace CTF {
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */ 
       Vector(int             len,
-             World         * world,
+             World &         world,
              Semiring<dtype> sr,
              char const *    name = NULL,
              int             profile = 0);

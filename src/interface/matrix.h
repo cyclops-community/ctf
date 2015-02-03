@@ -23,7 +23,7 @@ namespace CTF {
       Matrix(int          nrow, 
              int          ncol, 
              int          sym,
-             World      * wrld,
+             World &      wrld,
              char const * name = NULL,
              int          profile = 0);
 
@@ -40,7 +40,7 @@ namespace CTF {
       Matrix(int             nrow, 
              int             ncol, 
              int             sym,
-             World      *    wrld,
+             World &         wrld,
              Semiring<dtype> sr,
              char const *    name = NULL,
              int             profile = 0);

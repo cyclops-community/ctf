@@ -6,7 +6,7 @@
 namespace CTF {
 
   //template<typename dtype>
-  //Idx_Tensor<dtype> get_intermediate(Idx_Tensor<dtype>& A, 
+  //Idx_Tensor<dtype> get_intermediate(Idx_Tensor<dtype>& A,
   //                                        Idx_Tensor<dtype>& B){
   //  int * len_C, * sym_C;
   //  char * idx_C;
@@ -32,9 +32,9 @@ namespace CTF {
   //    }
   //  }
   //
-  //  idx_C = (char*)alloc(sizeof(char)*order_C);
-  //  sym_C = (int*)alloc(sizeof(int)*order_C);
-  //  len_C = (int*)alloc(sizeof(int)*order_C);
+  //  idx_C = (char*)CTF_int::alloc(sizeof(char)*order_C);
+  //  sym_C = (int*)CTF_int::alloc(sizeof(int)*order_C);
+  //  len_C = (int*)CTF_int::alloc(sizeof(int)*order_C);
   //  idx = 0;
   //  for (i=0; i<A.parent->order; i++){
   //    for (j=0; j<B.parent->order; j++){
@@ -78,14 +78,14 @@ namespace CTF {
   //}
 
   template<typename dtype>
-  Idx_Tensor<dtype>::Idx_Tensor(Tensor<dtype> *  parent_, 
-                                          const char *          idx_map_, 
-                                          int                   copy){
+  Idx_Tensor<dtype>::Idx_Tensor(Tensor<dtype> * parent_,
+                                const char *    idx_map_,
+                                int             copy){
     if (copy){
       parent = new Tensor<dtype>(*parent,1);
-      idx_map = (char*)alloc(parent->order*sizeof(char));
+      idx_map = (char*)CTF_int::alloc(parent_->order*sizeof(char));
     } else {
-      idx_map = (char*)alloc(parent_->order*sizeof(char));
+      idx_map = (char*)CTF_int::alloc(parent_->order*sizeof(char));
       parent        = parent_;
     }
     memcpy(idx_map, idx_map_, parent->order*sizeof(char));
@@ -95,7 +95,7 @@ namespace CTF {
 
   template<typename dtype>
   Idx_Tensor<dtype>::Idx_Tensor(
-      Idx_Tensor<dtype> const &  other,
+      Idx_Tensor<dtype> const & other,
       int                       copy,
       std::map<Tensor<dtype>*, Tensor<dtype>*>* remap) {
     if (other.parent == NULL){
@@ -117,7 +117,7 @@ namespace CTF {
         // leave parent as is - already correct
         is_intm = 0;
       }
-      idx_map = (char*)alloc(other.parent->order*sizeof(char));
+      idx_map = (char*)CTF_int::alloc(other.parent->order*sizeof(char));
       memcpy(idx_map, other.idx_map, parent->order*sizeof(char));
     }
     this->scale    = other.scale;
@@ -157,7 +157,7 @@ namespace CTF {
   template<typename dtype>
   World * Idx_Tensor<dtype>::where_am_i() const {
     if (parent == NULL) return NULL;
-    return parent->world;
+    return parent->wrld;
   }
 
   template<typename dtype>
@@ -244,10 +244,10 @@ namespace CTF {
     int64_t cost = 0;
     if (parent == NULL){
       Scalar<dtype> ts(this->scale, *(output.where_am_i()));
-      cost += output.parent->estimate_cost(ts, "",
+      cost += output.parent->estimate_time(ts, "",
                          output.idx_map);
     } else {
-      cost += output.parent->estimate_cost(*this->parent, idx_map,
+      cost += output.parent->estimate_time(*this->parent, idx_map,
                           output.idx_map);
     } 
     return cost;

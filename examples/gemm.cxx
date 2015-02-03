@@ -107,7 +107,7 @@ int  gemm(int const     m,
     for (i=0; i<np; i++){
       if (fabs((pairs_BC[i]-pairs_AB[i])/pairs_AB[i])>1.E-10){
         pass = 0;
-        printf("P[%d]: element "PRId64" is of (A*B)*C is %lf,",
+        printf("P[%d]: element " PRId64 " is of (A*B)*C is %lf,",
                 rank,indices_AB[i],pairs_AB[i]);
         printf("but for A*(B*C) it is %lf\n", pairs_BC[i]);
       }

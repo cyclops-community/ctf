@@ -28,7 +28,9 @@ namespace CTF {
       } else if (A == NULL || B == NULL) {
         return false;
       }
-      return A->tid < B->tid;
+      ASSERT(0);//FIXME
+      //return A->tid < B->tid;
+      return -1;
     }
   };
 
@@ -65,8 +67,8 @@ namespace CTF {
        * \param[in] copy if 1 then copy the parent tensor of B into a new tensor
        */
       Idx_Tensor(Idx_Tensor<dtype> const & B,
-                     int copy = 0,
-                     std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL);
+                 int copy = 0,
+                 std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL);
 
       Idx_Tensor();
       

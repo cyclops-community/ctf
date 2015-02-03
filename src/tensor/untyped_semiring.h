@@ -49,64 +49,15 @@ namespace CTF_int {
       int el_size;
       /** \brief true if an additive inverse is provided */
       bool is_ring;
-      /** \brief identity element for addition i.e. 0 */
-      char * addid;
-      /** \brief identity element for multiplication i.e. 1 */
-      char * mulid;
       /** \brief MPI addition operation */
       MPI_Op addmop;
       /** \brief MPI datatype */
       MPI_Datatype mdtype;
 
-      /** \brief gets pair size el_size plus the key size */
-      int pair_size() const { return el_size + sizeof(int64_t); }
-
-      /** \brief b = -a */
-      void (*addinv)(char const * a, 
-                     char * b);
-
-      /** \brief c = a+b */
-      void (*add)(char const * a, 
-                  char const * b,
-                  char *       c);
-      
-      /** \brief c = a*b */
-      void (*mul)(char const * a, 
-                  char const * b,
-                  char *       c);
-
-      /** \brief X["i"]=alpha*X["i"]; */
-      void (*scal)(int          n,
-                   char const * alpha,
-                   char const * X,
-                   int          incX);
-
-      /** \brief Y["i"]+=alpha*X["i"]; */
-      void (*axpy)(int          n,
-                   char const * alpha,
-                   char const * X,
-                   int          incX,
-                   char       * Y,
-                   int          incY);
-
-      /** \brief beta*C["ij"]=alpha*A^tA["ik"]*B^tB["kj"]; */
-      void (*gemm)(char         tA,
-                   char         tB,
-                   int          m,
-                   int          n,
-                   int          k,
-                   char const * alpha,
-                   char const * A,
-                   char const * B,
-                   char const * beta,
-                   char *       C);
-
-    public:
       /**
        * \brief default constructor
        */
       semiring();
-
 
       /**
        * \brief copy constructor
@@ -129,43 +80,63 @@ namespace CTF_int {
        * \param[in] axpy function pointer to add A to B on semiring
        * \param[in] scal function pointer to scale A on semiring
        */
-      semiring(    int          el_size, 
-                   char const * addid,
-                   char const * mulid,
-                   MPI_Op       addmop,
-                   void (*add )(char const * a,
-                                char const * b,
-                                char       * c),
-                   void (*mul )(char const * a,
-                                char const * b,
-                                char       * c),
-                   void (*addinv)(char const * a,
-                                  char  * b)=NULL,
-                   void (*gemm)(char         tA,
-                                char         tB,
-                                int          m,
-                                int          n,
-                                int          k,
-                                char const * alpha,
-                                char const * A,
-                                char const * B,
-                                char const * beta,
-                                char *       C)=NULL,
-                   void (*axpy)(int          n,
-                                char const * alpha,
-                                char const * X,
-                                int          incX,
-                                char       * Y,
-                                int          incY)=NULL,
-                   void (*scal)(int          n,
-                                char const * alpha,
-                                char const * X,
-                                int          incX)=NULL);
+      semiring(int          el_size, 
+               bool         is_ring,
+               MPI_Op       addmop,
+               MPI_Datatype mdtype);
+
       /**
        * \brief destructor frees addid and mulid
        */
       ~semiring();
       
+      /** \brief identity element for addition i.e. 0 */
+      virtual char const * addid() const;
+
+      /** \brief identity element for multiplication i.e. 1 */
+      virtual char const * mulid() const;
+
+      /** \brief gets pair size el_size plus the key size */
+      int pair_size() const { return el_size + sizeof(int64_t); }
+
+      /** \brief b = -a */
+      virtual void addinv(char const * a, char * b);
+
+      /** \brief c = a+b */
+      virtual void add(char const * a, 
+                       char const * b,
+                       char *       c);
+      
+      /** \brief c = a*b */
+      virtual void mul(char const * a, 
+                       char const * b,
+                       char *       c);
+
+      /** \brief X["i"]=alpha*X["i"]; */
+      virtual void scal(int          n,
+                        char const * alpha,
+                        char const * X,
+                        int          incX);
+
+      /** \brief Y["i"]+=alpha*X["i"]; */
+      virtual void axpy(int          n,
+                        char const * alpha,
+                        char const * X,
+                        int          incX,
+                        char       * Y,
+                        int          incY);
+
+      /** \brief beta*C["ij"]=alpha*A^tA["ik"]*B^tB["kj"]; */
+      virtual void gemm(char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C);
       /** \brief returns true if semiring elements a and b are equal */
       bool isequal(char const * a, char const * b) const;
     

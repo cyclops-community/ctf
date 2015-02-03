@@ -90,7 +90,7 @@ namespace CTF_int {
       int order;
       factorize(np, &order, &dim_len);
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_int::cfree(dim_len);
+      if (order>0) CTF_int::cfree(dim_len);
       return topo;
     } else if (mach == TOPOLOGY_BGQ) {
       dl = (int*)CTF_int::alloc((7)*sizeof(int));

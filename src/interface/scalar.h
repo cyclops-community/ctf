@@ -13,14 +13,14 @@ namespace CTF {
        * \brief constructor for a scalar
        * \param[in] world CTF world where the tensor will live
        */
-      Scalar(World * wrld);
+      Scalar(World & wrld);
 
       /**
        * \brief constructor for a scalar
        * \param[in] world CTF world where the tensor will live
        * \param[in] sr_ defines the tensor arithmetic for this tensor
        */
-      Scalar(World *         wrld,
+      Scalar(World &         wrld,
              Semiring<dtype> sr);
 
       /**
@@ -29,7 +29,7 @@ namespace CTF {
        * \param[in] world CTF world where the tensor will live
        */ 
       Scalar(dtype   val,
-             World * wrld);
+             World & wrld);
 
       /**
        * \brief returns scalar value

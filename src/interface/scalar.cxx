@@ -5,27 +5,26 @@ namespace CTF {
 
   
   template<typename dtype>
-  Scalar<dtype>::Scalar(World * world) :
+  Scalar<dtype>::Scalar(World & world) :
     Tensor<dtype>(0, NULL, NULL, world) {
     
   }
 
   template<typename dtype>
-  Scalar<dtype>::Scalar(World * world_, Semiring<dtype> sr_) :
+  Scalar<dtype>::Scalar(World & world_, Semiring<dtype> sr_) :
     Tensor<dtype>(0, NULL, NULL, world_, sr_) {
     
   }
 
   template<typename dtype>
-  Scalar<dtype>::Scalar(dtype          val,
-                        World             * world) :
+  Scalar<dtype>::Scalar(dtype   val,
+                        World & world) :
     Tensor<dtype>(0, NULL, NULL, world) {
     int64_t s; 
     dtype * arr;
 
-    if (world->cdt.rank == 0){
-      int ret = this->get_raw_data(&arr, &s); 
-      assert(ret == SUCCESS);
+    if (world.cdt.rank == 0){
+      arr = this->get_raw_data(&s); 
       arr[0] = val;
     }
   }
@@ -35,9 +34,7 @@ namespace CTF {
   dtype Scalar<dtype>::get_val(){
     int64_t s; 
     dtype * val;
-    int ret = this->get_raw_data(this->tid, &val, &s); 
-
-    assert(ret == SUCCESS);
+    val = this->get_raw_data(&s); 
 
     MPI_Bcast(val, sizeof(dtype), MPI_CHAR, 0, this->world->comm);
     return val[0];
@@ -48,8 +45,7 @@ namespace CTF {
     int64_t s; 
     dtype * arr;
     if (this->world->ctf->get_rank() == 0){
-      int ret = this->world->ctf->get_raw_data(this->tid, &arr, &s); 
-      assert(ret == SUCCESS);
+      arr = this->world->ctf->get_raw_data(&s); 
       arr[0] = val;
     }
   }

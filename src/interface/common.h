@@ -157,6 +157,7 @@ namespace CTF_int {
       int rank;
       int color;
       int alive;
+      int created;
 
       CommData();
       ~CommData();
