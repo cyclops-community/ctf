@@ -2,7 +2,7 @@
 #define __TENSOR_H__
 
 #include "functions.h"
-#include "semiring.h"
+#include "algstrct.h"
 #include "../tensor/untyped_tensor.h"
 #include "world.h"
 #include <vector>
@@ -17,6 +17,35 @@ namespace CTF {
    * \defgroup CTF CTF: C++ Tensor interface
    * @{
    */
+  /**
+   * \brief index-value pair used for tensor data input
+   */
+  template<typename dtype=double>
+  class Pair  {
+    public:
+      /** \brief key, global index [i1,i2,...] specified as i1+len[0]*i2+... */
+      int64_t k;
+
+      /** \brief tensor value associated with index */
+      dtype d;
+
+      /**
+       * \brief constructor builds pair
+       * \param[in] k_ key
+       * \param[in] d_ value
+       */
+      Pair(int64_t k_, dtype d_){
+        this->k = k_; 
+        d = d_;
+      }
+  };
+
+  template<typename dtype>
+  inline bool comp_pair(Pair<dtype> i,
+                        Pair<dtype> j) {
+    return (i.k<j.k);
+  }
+ 
 
   /**
    * \brief an instance of a tensor within a CTF world
@@ -24,7 +53,7 @@ namespace CTF {
   template <typename dtype=double>
   class Tensor : public CTF_int::tensor {
     public:
-      /** \brief templated semiring on which tensor elements and operations are defined */
+      /** \brief templated algstrct on which tensor elements and operations are defined */
       //Semiring<dtype> typed_ring;
 
       /**
@@ -41,7 +70,7 @@ namespace CTF {
              bool           copy = true);
 
       /**
-       * \brief defines tensor filled with zeros on the default semiring
+       * \brief defines tensor filled with zeros on the default algstrct
        * \param[in] order_ number of dimensions of tensor
        * \param[in] len_ edge lengths of tensor
        * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
@@ -58,7 +87,7 @@ namespace CTF {
 
 
       /**
-       * \brief defines a tensor filled with zeros on a specified semiring
+       * \brief defines a tensor filled with zeros on a specified algstrct
        * \param[in] order_ number of dimensions of tensor
        * \param[in] len_ edge lengths of tensor
        * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})

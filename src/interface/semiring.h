@@ -2,11 +2,97 @@
 #define __SEMIRING_H__
 
 namespace CTF {
-
-
   template <typename dtype>
   dtype default_mul(dtype a, dtype b){
     return a*b;
+  }
+
+  template <typename dtype>
+  void default_axpy(int           n,
+                    dtype         alpha,
+                    dtype const * X,
+                    int           incX,
+                    dtype *       Y,
+                    int           incY){
+    for (int i=0; i<n; i++){
+      Y[incY*i] += alpha*X[incX*i];
+    }
+  }
+
+  template <>
+  void default_axpy<float>
+                   (int           n,
+                    float         alpha,
+                    float const * X,
+                    int           incX,
+                    float *       Y,
+                    int           incY){
+    cblas_saxpy(n,alpha,X,incX,Y,incY);
+  }
+
+  template <>
+  void default_axpy<double>
+                   (int            n,
+                    double         alpha,
+                    double const * X,
+                    int            incX,
+                    double *       Y,
+                    int            incY){
+    cblas_daxpy(n,alpha,X,incX,Y,incY);
+  }
+
+  template <>
+  void default_axpy< std::complex<float> >
+                   (int                         n,
+                    std::complex<float>         alpha,
+                    std::complex<float> const * X,
+                    int                         incX,
+                    std::complex<float> *       Y,
+                    int                         incY){
+    cblas_caxpy(n,&alpha,X,incX,Y,incY);
+  }
+
+  template <>
+  void default_axpy< std::complex<double> >
+                   (int                          n,
+                    std::complex<double>         alpha,
+                    std::complex<double> const * X,
+                    int                          incX,
+                    std::complex<double> *       Y,
+                    int                          incY){
+    cblas_zaxpy(n,&alpha,X,incX,Y,incY);
+  }
+
+  template <typename dtype>
+  void default_scal(int           n,
+                    dtype         alpha,
+                    dtype *       X,
+                    int           incX){
+    for (int i=0; i<n; i++){
+      X[incX*i] *= alpha;
+    }
+  }
+
+  template <>
+  void default_scal<float>(int n, float alpha, float * X, int incX){
+    cblas_sscal(n,alpha,X,incX);
+  }
+
+  template <>
+  void default_scal<double>(int n, double alpha, double * X, int incX){
+    cblas_dscal(n,alpha,X,incX);
+  }
+
+  template <>
+  void default_scal< std::complex<float> >
+      (int n, std::complex<float> alpha, std::complex<float> * X, int incX){
+    cblas_cscal(n,&alpha,X,incX);
+  }
+
+  template <>
+  void default_scal< std::complex<double> >
+      (int n, std::complex<double> alpha, std::complex<double> * X, int incX){
+    cblas_zscal(n,&alpha,X,incX);
   }
 
   template<typename dtype>
@@ -106,94 +192,6 @@ namespace CTF {
     CTF_int::zgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
 
-  template <typename dtype>
-  void default_axpy(int           n,
-                    dtype         alpha,
-                    dtype const * X,
-                    int           incX,
-                    dtype *       Y,
-                    int           incY){
-    for (int i=0; i<n; i++){
-      Y[incY*i] += alpha*X[incX*i];
-    }
-  }
-
-  template <>
-  void default_axpy<float>
-                   (int           n,
-                    float         alpha,
-                    float const * X,
-                    int           incX,
-                    float *       Y,
-                    int           incY){
-    cblas_saxpy(n,alpha,X,incX,Y,incY);
-  }
-
-  template <>
-  void default_axpy<double>
-                   (int            n,
-                    double         alpha,
-                    double const * X,
-                    int            incX,
-                    double *       Y,
-                    int            incY){
-    cblas_daxpy(n,alpha,X,incX,Y,incY);
-  }
-
-  template <>
-  void default_axpy< std::complex<float> >
-                   (int                         n,
-                    std::complex<float>         alpha,
-                    std::complex<float> const * X,
-                    int                         incX,
-                    std::complex<float> *       Y,
-                    int                         incY){
-    cblas_caxpy(n,&alpha,X,incX,Y,incY);
-  }
-
-  template <>
-  void default_axpy< std::complex<double> >
-                   (int                          n,
-                    std::complex<double>         alpha,
-                    std::complex<double> const * X,
-                    int                          incX,
-                    std::complex<double> *       Y,
-                    int                          incY){
-    cblas_zaxpy(n,&alpha,X,incX,Y,incY);
-  }
-
-  template <typename dtype>
-  void default_scal(int           n,
-                    dtype         alpha,
-                    dtype *       X,
-                    int           incX){
-    for (int i=0; i<n; i++){
-      X[incX*i] *= alpha;
-    }
-  }
-
-  template <>
-  void default_scal<float>(int n, float alpha, float * X, int incX){
-    cblas_sscal(n,alpha,X,incX);
-  }
-
-  template <>
-  void default_scal<double>(int n, double alpha, double * X, int incX){
-    cblas_dscal(n,alpha,X,incX);
-  }
-
-  template <>
-  void default_scal< std::complex<float> >
-      (int n, std::complex<float> alpha, std::complex<float> * X, int incX){
-    cblas_cscal(n,&alpha,X,incX);
-  }
-
-  template <>
-  void default_scal< std::complex<double> >
-      (int n, std::complex<double> alpha, std::complex<double> * X, int incX){
-    cblas_zscal(n,&alpha,X,incX);
-  }
-
   template <typename dtype, dtype (*func)(dtype const a, dtype const b)>
   void detypedfunc(char const * a,
                    char const * b,
@@ -227,125 +225,119 @@ namespace CTF {
   /**
    * Semiring class defined by a datatype and addition and multiplicaton functions
    *   addition must have an identity and be associative, does not need to be commutative
-   *   multiplications must have an identity and be distributive
+   *   multiplications must have an identity as well as be distributive and associative
    *   define a Ring instead if an additive inverse is also available
    */
   template <typename dtype=double, is_ord=true> 
-  class Semiring : public CTF_int::semiring {
+  class Semiring : public Monoid {
     public:
-      dtype taddid;
       dtype tmulid;
-      dtype (*fadd)(dtype a, dtype b);
+      void (*fscal)(int,dtype,dtype*,int);
+      void (*faxpy)(int,dtype,dtype const*,int,dtype*,int);
       dtype (*fmul)(dtype a, dtype b);
-      dtype (*fmin)(dtype a, dtype b);
-      dtype (*fmax)(dtype a, dtype b);
       void (*gemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
-      void (*axpy)(int,dtype,dtype const*,int,dtype*,int);
-      void (*scal)(int,dtype,dtype*,int);
 
-    /**
-     * \brief constructor for semiring equipped with * and +
-     * \param[in] addid_ additive identity
-     * \param[in] mulid_ multiplicative identity
-     * \param[in] mdtype MPI Datatype to use in reductions
-     * \param[in] addmop_ MPI_Op operation for addition
-     * \param[in] fadd_ binary addition function
-     * \param[in] fmul_ binary multiplication function
-     * \param[in] gemm_ block matrix multiplication function
-     * \param[in] axpy_ vector sum function
-     * \param[in] scal_ vector scale function
-     */
-    Semiring(dtype        addid_,
-             dtype        mulid_,
-             MPI_Datatype mdtype_,
-             MPI_Op       addmop_,
-             dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
-             dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
-             dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
-             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
-             void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
-             void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
-             void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
-              : semiring(sizeof(dtype), false, mdtype_, addmop_) {
-      taddid  = addid_;
-      tmulid  = mulid_;
-      fadd    = fadd_;
-      faddinv = faddinv_;
-      fmul    = fmul_;
-      gemm    = gemm_;
-      axpy    = axpy_;
-      scal    = scal_;
-    }
-
-
-    /**
-     * \brief constructor for semiring equipped with * and +
-     * \param[in] addid_ additive identity
-     * \param[in] mulid_ multiplicative identity
-     * \param[in] addmop_ MPI_Op operation for addition
-     * \param[in] fadd_ binary addition function
-     * \param[in] fmul_ binary multiplication function
-     * \param[in] gemm_ block matrix multiplication function
-     * \param[in] axpy_ vector sum function
-     * \param[in] scal_ vector scale function
-     */
-    Semiring(dtype  addid_,
-             dtype  mulid_,
-             dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
-             dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
-             dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
-             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
-             void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
-             void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
-             void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
-              : semiring(sizeof(dtype), false) {
-      taddid  = addid_;
-      tmulid  = mulid_;
-      fadd    = fadd_;
-      faddinv = faddinv_;
-      fmul    = fmul_;
-      gemm    = gemm_;
-      axpy    = axpy_;
-      scal    = scal_;
-    }
-
-    /**
-     * \brief constructor for semiring equipped with + only
-     * \param[in] addid_ additive identity
-     */
-    Semiring(dtype addid_) : semiring(sizeof(dtype), false) {
-      taddid  = addid_;
-      fadd    = &default_add<dtype>;
-      faddinv = &default_addinv<dtype>;
-      fmul    = &default_mul<dtype>;
-      gemm    = &default_gemm<dtype>;
-      axpy    = &default_axpy<dtype>;
-      scal    = &default_scal<dtype>;
-    }
-
-    /**
-     * \brief constructor for semiring equipped with + only
-     * \param[in] addid_ additive identity
-     * \param[in] addmop_ MPI_Op operation for addition
-     * \param[in] fadd_ binary addition function
-     */
-    Semiring(dtype  addid_,
-             MPI_Op addmop_,
-             dtype (*fadd_)(dtype a, dtype b)){
-      addid   = addid_;
-      addmop  = addmop_;
-      fadd    = fadd_;
-      faddinv = &default_addinv<dtype>;
-      fmul    = &default_mul<dtype>; //FIXME: what if I want just an Abelian group with no mul operator?
-      gemm    = &default_gemm<dtype>;
-      axpy    = &default_axpy<dtype>;
-      scal    = &default_scal<dtype>;
-    }
+      /**
+       * \brief constructor for algstrct equipped with * and +
+       * \param[in] addid_ additive identity
+       * \param[in] mulid_ multiplicative identity
+       * \param[in] mdtype MPI Datatype to use in reductions
+       * \param[in] addmop_ MPI_Op operation for addition
+       * \param[in] fadd_ binary addition function
+       * \param[in] fmul_ binary multiplication function
+       * \param[in] gemm_ block matrix multiplication function
+       * \param[in] axpy_ vector sum function
+       * \param[in] scal_ vector scale function
+       */
+      Semiring(dtype        addid_,
+               dtype        mulid_,
+               MPI_Datatype mdtype_,
+               MPI_Op       addmop_,
+               dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
+               dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
+               dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
+               dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+               dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
+               void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
+               void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
+               void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
+                : algstrct(sizeof(dtype), false, mdtype_, addmop_) {
+        taddid  = addid_;
+        tmulid  = mulid_;
+        fadd    = fadd_;
+        faddinv = faddinv_;
+        fmul    = fmul_;
+        gemm    = gemm_;
+        axpy    = axpy_;
+        scal    = scal_;
+      }
+  
+  
+      /**
+       * \brief constructor for algstrct equipped with * and +
+       * \param[in] addid_ additive identity
+       * \param[in] mulid_ multiplicative identity
+       * \param[in] addmop_ MPI_Op operation for addition
+       * \param[in] fadd_ binary addition function
+       * \param[in] fmul_ binary multiplication function
+       * \param[in] gemm_ block matrix multiplication function
+       * \param[in] axpy_ vector sum function
+       * \param[in] scal_ vector scale function
+       */
+      Semiring(dtype  addid_,
+               dtype  mulid_,
+               dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
+               dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
+               dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
+               dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+               dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
+               void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
+               void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
+               void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
+                : algstrct(sizeof(dtype), false) {
+        taddid  = addid_;
+        tmulid  = mulid_;
+        fadd    = fadd_;
+        faddinv = faddinv_;
+        fmul    = fmul_;
+        gemm    = gemm_;
+        axpy    = axpy_;
+        scal    = scal_;
+      }
+  
+      /**
+       * \brief constructor for algstrct equipped with + only
+       * \param[in] addid_ additive identity
+       */
+      Semiring(dtype addid_) : algstrct(sizeof(dtype), false) {
+        taddid  = addid_;
+        fadd    = &default_add<dtype>;
+        faddinv = &default_addinv<dtype>;
+        fmul    = &default_mul<dtype>;
+        gemm    = &default_gemm<dtype>;
+        axpy    = &default_axpy<dtype>;
+        scal    = &default_scal<dtype>;
+      }
+  
+      /**
+       * \brief constructor for algstrct equipped with + only
+       * \param[in] addid_ additive identity
+       * \param[in] addmop_ MPI_Op operation for addition
+       * \param[in] fadd_ binary addition function
+       */
+      Semiring(dtype  addid_,
+               MPI_Op addmop_,
+               dtype (*fadd_)(dtype a, dtype b)){
+        addid   = addid_;
+        addmop  = addmop_;
+        fadd    = fadd_;
+        faddinv = &default_addinv<dtype>;
+        fmul    = &default_mul<dtype>; //FIXME: what if I want just an Abelian group with no mul operator?
+        gemm    = &default_gemm<dtype>;
+        axpy    = &default_axpy<dtype>;
+        scal    = &default_scal<dtype>;
+      }
   };
 }
-
 #include "ring.h"
-
 #endif

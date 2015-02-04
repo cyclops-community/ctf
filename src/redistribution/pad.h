@@ -3,7 +3,7 @@
 #ifndef __INT_PAD_H__
 #define __INT_PAD_H__
 
-#include "../tensor/untyped_semiring.h"
+#include "../tensor/algstrct.h"
 
 namespace CTF_int {
  
@@ -14,7 +14,7 @@ namespace CTF_int {
    * \param[in] edge_len tensor edge lengths
    * \param[in] padding padding of tensor (included in edge_len)
    * \param[in,out] pairs set of pairs which to pad
-   * \param[in] semiring defines sizeo of each pair
+   * \param[in] algstrct defines sizeo of each pair
    * \param[in] offsets (default NULL, none applied), offsets keys
    */
   void pad_key(int              order,
@@ -22,7 +22,7 @@ namespace CTF_int {
                int const *      edge_len,
                int const *      padding,
                PairIterator     pairs,
-               semiring const & sr,
+               algstrct const & sr,
                int const *      offsets = NULL);
 
   /**
@@ -36,7 +36,7 @@ namespace CTF_int {
    * \param[in] pairs padded array of pairs
    * \param[out] new_pairs unpadded pairs
    * \param[out] new_num_pair number of unpadded pairs
-   * \param[in] semiring defines sizeo of each pair
+   * \param[in] algstrct defines sizeo of each pair
    */
   void depad_tsr(int              order,
                  int64_t          num_pair,
@@ -47,7 +47,7 @@ namespace CTF_int {
                  char const *     pairsb,
                  char *           new_pairsb,
                  int64_t *        new_num_pair,
-                 semiring const & sr);
+                 algstrct const & sr);
 
   /**
    * \brief pads a tensor
@@ -62,7 +62,7 @@ namespace CTF_int {
    * \param[in] old_data array of input pairs
    * \param[out] new_pairs padded pairs
    * \param[out] new_size number of new padded pairs
-   * \param[in] semiring defines sizeo of each pair
+   * \param[in] algstrct defines sizeo of each pair
    */
   void pad_tsr(int              order,
                int64_t          size,
@@ -75,7 +75,7 @@ namespace CTF_int {
                char const *     old_data,
                char **          new_pairs,
                int64_t *        new_size,
-               semiring const & sr);
+               algstrct const & sr);
   
   /**
    * \brief sets to zero all values in padded region of tensor
@@ -89,7 +89,7 @@ namespace CTF_int {
    * \param[in] virt_dim virtual phase in each dimension
    * \param[in] phase_rank physical phase rank multiplied by virtual phase
    * \param[in,out] vdata array of all local data
-   * \param[in] semiring defines sizeo of each pair
+   * \param[in] algstrct defines sizeo of each pair
    */
   void zero_padding( int              order,
                      int64_t          size,
@@ -101,7 +101,7 @@ namespace CTF_int {
                      int const *      virt_dim,
                      int const *      cphase_rank,
                      char *           vdata,
-                     semiring const & sr);
+                     algstrct const & sr);
 }
 
 #endif

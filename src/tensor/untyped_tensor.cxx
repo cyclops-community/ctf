@@ -39,7 +39,7 @@ namespace CTF_int {
     }
   }
 
-  tensor::tensor(semiring     sr,
+  tensor::tensor(algstrct     sr,
                  int          order,
                  int const *  edge_len,
                  int const *  sym,
@@ -137,7 +137,7 @@ namespace CTF_int {
 
   }
 
-  void tensor::init(semiring     sr,
+  void tensor::init(algstrct     sr,
                     int          order_,
                     int const *  edge_len,
                     int const *  sym,
@@ -188,12 +188,13 @@ namespace CTF_int {
       this->edge_map[i].has_child  = 0;
       this->edge_map[i].np         = 1;
       if (this->sym[i] != NS) {
-        if (this->sym[i] == AS && !sr.is_ring){ 
+        //FIXME: keep track of capabilities of algberaic structure and add more robust property checking
+/*        if (this->sym[i] == AS && !sr.is_ring){ 
           if (wrld->rank == 0){
-            printf("CTF ERROR: It is illegal to define antisymmetric tensor must be defined on a ring, yet no additive inverse was provided for this semiring (see semiring constructor), aborting.\n");
+            printf("CTF ERROR: It is illegal to define antisymmetric tensor must be defined on a ring, yet no additive inverse was provided for this algstrct (see algstrct constructor), aborting.\n");
           }
           ABORT;
-        }
+        }*/
         this->sym_table[(i+1)+i*order] = 1;
         this->sym_table[(i+1)*order+i] = 1;
       }

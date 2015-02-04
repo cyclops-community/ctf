@@ -3,7 +3,7 @@
 #ifndef __INT_SORT_H__
 #define __INT_SORT_H__
 
-#include "../tensor/untyped_semiring.h"
+#include "../tensor/algstrct.h"
 
 namespace CTF_int {
 
@@ -24,7 +24,7 @@ namespace CTF_int {
                     int * const *    permutation,
                     char *           pairs,
                     int64_t *        new_num_pair,
-                    semiring const & sr);
+                    algstrct const & sr);
 
   /**
    * \brief depermutes keys (apply P^T)
@@ -41,7 +41,7 @@ namespace CTF_int {
                       int const *   new_edge_len,
                       int * const * permutation,
                       char *        pairs,
-                      semiring      sr);
+                      algstrct      sr);
 
   /**
    * \brief assigns keys to an array of values
@@ -55,7 +55,7 @@ namespace CTF_int {
    * \param[in] phase_rank physical phase rank multiplied by virtual phase
    * \param[in] vdata array of input values
    * \param[out] vpairs pairs of keys and inputted values
-   * \param[in] sr semiring defining data type of array
+   * \param[in] sr algstrct defining data type of array
    */
   void assign_keys(int              order,
                    int64_t          size,
@@ -67,7 +67,7 @@ namespace CTF_int {
                    int *            phase_rank,
                    char const *     vdata,
                    char *           vpairs,
-                   semiring const & sr);
+                   algstrct const & sr);
 
 
   /**
@@ -83,7 +83,7 @@ namespace CTF_int {
    * \param[out] bucket_counts how many keys belong to each processor
    * \param[out] bucket_offsets prefix sum of bucket_counts
    * \param[out] bucket_data mapped_data reordered by bucket
-   * \param[in] sr semiring context defining values
+   * \param[in] sr algstrct context defining values
    */
   void bucket_by_pe( int               order,
                      int64_t           num_pair,
@@ -96,7 +96,7 @@ namespace CTF_int {
                      int64_t *         bucket_counts,
                      int64_t *         bucket_off,
                      PairIterator      bucket_data,
-                     semiring const &  sr);
+                     algstrct const &  sr);
 
   /**
    * \brief buckets key value pairs by block/virtual-processor
@@ -107,7 +107,7 @@ namespace CTF_int {
    * \param[in] edge_len padded edge lengths of tensor
    * \param[in] mapped_data set of sparse key-value pairs
    * \param[out] bucket_data mapped_data reordered by bucket
-   * \param[in] sr semiring context defining values
+   * \param[in] sr algstrct context defining values
    */
   void bucket_by_virt(int               order,
                       int               num_virt,
@@ -116,7 +116,7 @@ namespace CTF_int {
                       int const *       edge_len,
                       ConstPairIterator mapped_data,
                       PairIterator      bucket_data,
-                      semiring const &  sr);
+                      algstrct const &  sr);
 
   /**
    * \brief read or write pairs from / to tensor
@@ -132,7 +132,7 @@ namespace CTF_int {
    * \param[in,out] vdata data to read from or write to
    * \param[in,out] pairs pairs to read or write
    * \param[in] rw whether to read 'r' or write 'w'
-   * \param[in] sr semiring context defining values
+   * \param[in] sr algstrct context defining values
    */
   void readwrite(int              order,
                  int64_t          size,
@@ -147,7 +147,7 @@ namespace CTF_int {
                  char *           vdata,
                  char             *pairs,
                  char             rw,
-                 semiring const & sr);
+                 algstrct const & sr);
 
 
   /**
@@ -169,7 +169,7 @@ namespace CTF_int {
    * \param[in,out] wr_pairs pairs to read or write
    * \param[in,out] rw_data data to read from or write to
    * \param[in] glb_comm the global communicator
-   * \param[in] sr semiring context defining values
+   * \param[in] sr algstrct context defining values
    */
   void wr_pairs_layout(int              order,
                        int              np,
@@ -188,7 +188,7 @@ namespace CTF_int {
                        char *           wr_pairs,
                        char *           rw_data,
                        CommData         glb_comm,
-                       semiring const & sr);
+                       algstrct const & sr);
 
   /**
    * \brief read tensor pairs local to processor
@@ -206,7 +206,7 @@ namespace CTF_int {
    * \param[out] nread number of local pairs read
    * \param[in] tensor data data to read from
    * \param[out] pairs local pairs read
-   * \param[in] sr semiring context defining values
+   * \param[in] sr algstrct context defining values
    */
   void read_loc_pairs(int              order,
                       int64_t          nval,
@@ -220,7 +220,7 @@ namespace CTF_int {
                       int64_t *        nread,
                       char const *     data,
                       char **          pairs,
-                      semiring const & sr);
+                      algstrct const & sr);
 
 
 }

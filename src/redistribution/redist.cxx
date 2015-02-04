@@ -10,7 +10,7 @@ namespace CTF_int {
                         distribution const & new_dist,
                         char *               tsr_data,
                         char **              tsr_cyclic_data,
-                        semiring             sr,
+                        algstrct             sr,
                         CommData             ord_glb_comm){
     int old_num_virt, new_num_virt, numPes;
     int64_t new_nval, swp_nval;
@@ -432,7 +432,7 @@ namespace CTF_int {
                                 int * const *        bucket_offset,
                                 char const *         alpha,
                                 char const *         beta,
-                                semiring const &     sr){
+                                algstrct const &     sr){
     bool is_copy = false;
     if (sr.isequal(sr.mulid, alpha) && sr.isequal(sr.addid, beta)) is_copy = true;
     if (old_dist.order == 0){
@@ -883,7 +883,7 @@ namespace CTF_int {
                         int * const *        new_permutation,
                         char **              ptr_tsr_data,
                         char **              ptr_tsr_cyclic_data,
-                        semiring             sr,
+                        algstrct             sr,
                         CommData             ord_glb_comm,
                         bool                 reuse_buffers,
                         char const *         alpha,
@@ -1309,7 +1309,7 @@ namespace CTF_int {
                        distribution const & new_dist,
                        char *               tsr_data,
                        char *&              tsr_cyclic_data,
-                       semiring             sr,
+                       algstrct             sr,
                        CommData             glb_comm){
     int i, idx_lyr_new, idx_lyr_old, blk_idx, prc_idx, loc_idx;
     int num_old_virt, num_new_virt;

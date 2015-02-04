@@ -277,7 +277,7 @@ namespace CTF_int {
                  int64_t          vrt_sz,
                  mapping const *  edge_map,
                  topology const * topo,
-                 semiring const & sr,
+                 algstrct const & sr,
                  int *            blk_edge_len,
                  int64_t *        blk_sz,
                  strp_tsr **      stpr){

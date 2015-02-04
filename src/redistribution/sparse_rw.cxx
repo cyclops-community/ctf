@@ -12,7 +12,7 @@ namespace CTF_int {
                     int * const *    permutation,
                     char *           pairs_buf,
                     int64_t *        new_num_pair,
-                    semiring const & sr){
+                    algstrct const & sr){
     TAU_FSTART(permute_keys);
   #ifdef USE_OMP
     int mntd = omp_get_max_threads();
@@ -99,7 +99,7 @@ namespace CTF_int {
                       int const *   new_edge_len,
                       int * const * permutation,
                       char *        pairs_buf,
-                      semiring      sr){
+                      algstrct      sr){
     TAU_FSTART(depermute_keys);
   #ifdef USE_OMP
     int mntd = omp_get_max_threads();
@@ -183,7 +183,7 @@ namespace CTF_int {
                    int *            phase_rank,
                    char const *     vdata,
                    char *           vpairs,
-                   semiring const & sr){
+                   algstrct const & sr){
     int i, imax, act_lda, idx_offset, act_max, buf_offset;
     int64_t p;
     int * idx, * virt_rank, * edge_lda;  
@@ -278,7 +278,7 @@ namespace CTF_int {
                     int64_t *         bucket_counts,
                     int64_t *         bucket_off,
                     PairIterator      bucket_data,
-                    semiring const &  sr){
+                    algstrct const &  sr){
 
     memset(bucket_counts, 0, sizeof(int64_t)*np); 
   #ifdef USE_OMP
@@ -377,7 +377,7 @@ namespace CTF_int {
                       int const *       edge_len,
                       ConstPairIterator mapped_data,
                       PairIterator      bucket_data,
-                      semiring const &  sr){
+                      algstrct const &  sr){
     int64_t * virt_counts, * virt_prefix, * virt_lda;
     TAU_FSTART(bucket_by_virt);
     
@@ -520,7 +520,7 @@ namespace CTF_int {
                  char *           vdata,
                  char *           pairs_buf,
                  char             rw,
-                 semiring const & sr){
+                 algstrct const & sr){
     int act_lda;
     int64_t idx_offset, act_max, buf_offset, pr_offset, p;
     int64_t * idx, * virt_rank, * edge_lda;  
@@ -701,7 +701,7 @@ namespace CTF_int {
                        char *           wr_pairs_buf,
                        char *           rw_data,
                        CommData         glb_comm,
-                       semiring const & sr){
+                       algstrct const & sr){
     int64_t new_num_pair, nwrite, swp;
     int64_t * bucket_counts, * recv_counts;
     int64_t * recv_displs, * send_displs;
@@ -1004,7 +1004,7 @@ namespace CTF_int {
                       int64_t *        nread,
                       char const *     data,
                       char **          pairs,
-                      semiring const & sr){
+                      algstrct const & sr){
     int64_t i;
     int * prepadding;
     char * dpairsb;

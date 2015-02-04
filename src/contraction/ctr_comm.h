@@ -3,7 +3,7 @@
 #ifndef __CTR_COMM_H__
 #define __CTR_COMM_H__
 
-#include "../tensor/untyped_semiring.h"
+#include "../tensor/algstrct.h"
 #include "ctr_offload.h"
 
 namespace CTF_int{
@@ -33,9 +33,9 @@ namespace CTF_int{
       char * A; /* m by k */
       char * B; /* k by n */
       char * C; /* m by n */
-      semiring sr_A;
-      semiring sr_B;
-      semiring sr_C;
+      algstrct sr_A;
+      algstrct sr_B;
+      algstrct sr_C;
       char const * beta;
       int num_lyr; /* number of copies of this matrix being computed on */
       int idx_lyr; /* the index of this copy */

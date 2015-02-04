@@ -3,7 +3,7 @@
 #ifndef __INT_FOLDING_H__
 #define __INT_FOLDING_H__
 
-#include "../tensor/untyped_semiring.h"
+#include "../tensor/algstrct.h"
 
 namespace CTF_int {
  
@@ -38,14 +38,14 @@ namespace CTF_int {
    * \param[in] edge_len original edge lengths
    * \param[in,out] data data tp transpose
    * \param[in] dir which way are we going?
-   * \param[in] sr semiring defining element size
+   * \param[in] sr algstrct defining element size
    */
   void nosym_transpose(int              order,
                        int const *      new_order,
                        int const *      edge_len,
                        char *           data,
                        int              dir,
-                       semiring const & sr);
+                       algstrct const & sr);
 
   /**
    * \brief transposes a non-symmetric (folded) tensor internal kernel
@@ -58,7 +58,7 @@ namespace CTF_int {
    * \param[in] max_ntd how many threads to use
    * \param[out] tswap_data tranposed data
    * \param[out] chunk_size chunk sizes of tranposed data
-   * \param[in] sr semiring defining element size
+   * \param[in] sr algstrct defining element size
    */
   void nosym_transpose(int              order,
                        int const *      new_order,
@@ -68,7 +68,7 @@ namespace CTF_int {
                        int              max_ntd,
                        char **          tswap_data,
                        int *            chunk_size,
-                       semiring const & sr);
+                       algstrct const & sr);
 
 }
 #endif

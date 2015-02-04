@@ -3,32 +3,25 @@
 
 namespace CTF {
 
-  template <typename dtype>
-  dtype default_addinv(dtype a){
-    return -a;
-  }
-
   /**
    * Semiring class defined by a datatype and addition and multiplicaton functions
    *   addition must have an identity, inverse, and be associative, does not need to be commutative
    *   multiplications must have an identity and be distributive
    */
-  template <typename dtype=double>
-  class Ring : public Semiring<dtype> {
-    dtype (*faddinv)(dtype a);
-
+  template <typename dtype=double, bool is_ord=true>
+  class Ring : public Semiring<dtype, is_ord>, public Group<dtype, is_ord> {
     /** 
      * \brief default constructor valid for only certain types:
      *         bool, int, unsigned int, int64_t, uint64_t,
      *         float, double, std::complex<float>, std::complex<double>
      */
-    Ring(){ 
+    /*Ring(){ 
       printf("CTF ERROR: at least the additive identity must be specified for rings of custom tensor types, use of default constructor not allowed, aborting.\n");
       assert(0);
-    }
+    }*/
 
     /**
-     * \brief constructor for semiring equipped with * and +
+     * \brief constructor for algstrct equipped with * and +
      * \param[in] addid_ additive identity
      * \param[in] mulid_ multiplicative identity
      * \param[in] mdtype MPI Datatype to use in reductions
@@ -59,7 +52,7 @@ namespace CTF {
 
 
     /**
-     * \brief constructor for semiring equipped with * and +
+     * \brief constructor for algstrct equipped with * and +
      * \param[in] addid_ additive identity
      * \param[in] mulid_ multiplicative identity
      * \param[in] addmop_ MPI_Op operation for addition
@@ -87,7 +80,7 @@ namespace CTF {
 
 
     /**
-     * \brief constructor for semiring equipped with + only
+     * \brief constructor for algstrct equipped with + only
      * \param[in] addid_ additive identity
      */
     Semiring(dtype addid_) : Semiring<dtype>(addid_) {

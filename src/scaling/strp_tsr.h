@@ -19,7 +19,7 @@ namespace CTF_int {
       int *    strip_idx;
       char *   A;
       char *   buffer;
-      semiring sr_A;
+      algstrct sr_A;
       
       /**
        * \brief strips out part of tensor to be operated on
@@ -175,7 +175,7 @@ namespace CTF_int {
    * \param[in] vrt_sz size of virtual block
    * \param[in] edge_map mapping of each dimension
    * \param[in] topology the tensor is mapped to
-   * \param[in] sr semiring to be given  to all stpr objs
+   * \param[in] sr algstrct to be given  to all stpr objs
    * \param[in,out] blk_edge_len edge lengths of local block after strip
    * \param[in,out] blk_sz size of local sub-block block after strip
    * \param[out] stpr class that recursively strips tensor
@@ -187,7 +187,7 @@ namespace CTF_int {
                  int64_t          vrt_sz,
                  mapping const *  edge_map,
                  topology const * topo,
-                 semiring const & sr,
+                 algstrct const & sr,
                  int *            blk_edge_len,
                  int64_t *        blk_sz,
                  strp_tsr **      stpr);

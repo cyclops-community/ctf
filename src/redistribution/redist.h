@@ -3,7 +3,7 @@
 #ifndef __INT_REDIST_H__
 #define __INT_REDIST_H__
 
-#include "../tensor/untyped_semiring.h"
+#include "../tensor/algstrct.h"
 #include "../mapping/distribution.h"
 
 namespace CTF_int {
@@ -14,7 +14,7 @@ namespace CTF_int {
    * \param[in] new_dist target data distrubtion
    * \param[in] tsr_data starting data buffer
    * \param[out] tsr_cyclic_data target data buffer
-   * \param[in] sr semiring defining data
+   * \param[in] sr algstrct defining data
    * \param[in] ord_glb_comm communicator on which to redistribute
    */
   void padded_reshuffle(int const *          sym,
@@ -22,7 +22,7 @@ namespace CTF_int {
                         distribution const & new_dist,
                         char *               tsr_data,
                         char **              tsr_cyclic_data,
-                        semiring             sr,
+                        algstrct             sr,
                         CommData             ord_glb_comm);
 
   /**
@@ -116,7 +116,7 @@ namespace CTF_int {
    * \param[in,out] new_data buffers to fill with data to send to each process and virtual bucket
    * \param[in] forward is 0 on the receiving side and reverses the role of all the previous parameters
    * \param[in] bucket_offset offsets for target index for each dimension
-   * \param[in] sr semiring defining elements and ops
+   * \param[in] sr algstrct defining elements and ops
    */
   void pad_cyclic_pup_virt_buff(int const *          sym,
                                 distribution const & old_dist,
@@ -139,7 +139,7 @@ namespace CTF_int {
                                 int * const *        bucket_offset,
                                 char const *         alpha,
                                 char const *         beta,
-                                semiring const &     sr);
+                                algstrct const &     sr);
 
   /**
    * \brief Goes from any set of phases to any new set of phases 
@@ -152,7 +152,7 @@ namespace CTF_int {
    * \param[in] new_permutation permutation array for each edge length (no perm if NULL)
    * \param[in] tsr_data starting data buffer
    * \param[out] tsr_cyclic_data target data buffer
-   * \param[in] sr semiring defining data
+   * \param[in] sr algstrct defining data
    * \param[in] ord_glb_comm communicator on which to redistribute
    * \param[in] reuse_buffers if 1: ptr_tsr_cyclic_data is allocated dynamically and ptr_tsr_data 
    *                                 is overwritten with intermediate data
@@ -170,7 +170,7 @@ namespace CTF_int {
                         int * const *        new_permutation,
                         char **              tsr_data,
                         char **              tsr_cyclic_data,
-                        semiring             sr,
+                        algstrct             sr,
                         CommData             ord_glb_comm,
                         bool                 reuse_buffers,
                         char const *         alpha,
@@ -182,14 +182,14 @@ namespace CTF_int {
    * \param[in] new_dist target data distrubtion
    * \param[in] tsr_data starting data buffer
    * \param[out] tsr_cyclic_data target data buffer
-   * \param[in] sr semiring defining data
+   * \param[in] sr algstrct defining data
    * \param[in] glb_comm communicator on which to redistribute
    */
   void block_reshuffle(distribution const & old_dist,
                        distribution const & new_dist,
                        char *               tsr_data,
                        char *&              tsr_cyclic_data,
-                       semiring             sr,
+                       algstrct             sr,
                        CommData             glb_comm);
 
   /**

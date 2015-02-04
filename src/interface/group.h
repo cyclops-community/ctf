@@ -1,68 +1,56 @@
 #ifndef __GROUP_H__
 #define __GROUP_H__
 
-#include "../tensor/untyped_semiring.h"
+#include "../tensor/algstrct.h"
 
 namespace CTF {
-  /**
-   * \brief index-value pair used for tensor data input
-   */
-  template<typename dtype=double>
-  class Pair  {
-    public:
-      /** \brief key, global index [i1,i2,...] specified as i1+len[0]*i2+... */
-      int64_t k;
-
-      /** \brief tensor value associated with index */
-      dtype d;
-
-      /**
-       * \brief constructor builds pair
-       * \param[in] k_ key
-       * \param[in] d_ value
-       */
-      Pair(int64_t k_, dtype d_){
-        this->k = k_; 
-        d = d_;
-      }
-  };
-
-  template<typename dtype>
-  inline bool comp_pair(Pair<dtype> i,
-                        Pair<dtype> j) {
-    return (i.k<j.k);
-  }
-
+  
   template <typename dtype>
-  dtype default_add(dtype a, dtype b){
-    return a+b;
+  dtype default_addinv(dtype a){
+    return -a;
   }
+
+  /**
+   * Group class defined by a datatype and an addition function
+   *   addition must have an identity and be associative, does not need to be commutative
+   *   define a Semiring/Ring instead if a multiplication
+   */
+  template <typename dtype=double, bool is_ord=true> 
+  class Group : public Monoid<dtype, is_ord> {
+    public:
+      dtype (*faddinv)(dtype a);
+      
+      Group(dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+            dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
+              : Monoid(fmin_, fmax_) {
+        faddinv = &default_addinv<dtype>;
+      } 
+
+      Group(dtype taddid_,
+            dtype (*fadd_)(dtype a, dtype b),
+            dtype (*faddinv_)(dtype a, dtype b),
+            dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+            dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
+              : Monoid(taddid_, fadd_, fmin_, fmax_) {
+        faddinv = faddinv_;
+      }
  
-  template <typename dtype, bool is_ord>
-  inline typename std::enable_if<std::is_same<is_ord, 1>::value, dtype>::type
-  default_min(dtype a, dtype b){
-    return a>b ? b : a;
-  }
-  
-  template <typename dtype, bool is_ord>
-  inline typename std::enable_if<std::is_same<is_ord, 0>::value, dtype>::type
-  default_max(dtype a, dtype b){
-    assert(0);
-    return a;
-  
-}
-  template <typename dtype, bool is_ord>
-  inline typename std::enable_if<std::is_same<is_ord, 0>::value, dtype>::type
-  default_min(dtype a, dtype b){
-    assert(0);
-    return a;
-  }
-  
-  template <typename dtype, bool is_ord>
-  inline typename std::enable_if<std::is_same<is_ord, 1>::value, dtype>::type
-  default_max(dtype a, dtype b){
-    return b>a ? b : a;
+      Group(dtype taddid_,
+            dtype (*fadd_)(dtype a, dtype b),
+            dtype (*faddinv_)(dtype a, dtype b),
+            void (*fxpy_)(int, dtype const *, dtype *),
+            MPI_Op addmop_,
+            dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+            dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
+              : Monoid(taddid_, fadd_, fxpy_, addmop_, fmin_, fmax_) {
+        faddinv = faddinv_;
+      }
+
+      void addinv(char const * a, char * b) const {
+        ((dtype*)b)[0] = faddinv(((dtype*)a)[0]);
+      }
   }
 
 }
-#include "semiring.h"
+#include "algstrct.h"
+#endif

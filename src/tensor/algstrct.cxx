@@ -1,7 +1,7 @@
 /*Copyright (c) 2014, Edgar Solomonik, all rights reserved.*/
 #include "../shared/util.h"
 #include "untyped_tensor.h"
-#include "untyped_semiring.h"
+#include "untyped_algstrct.h"
 #include "cblas.h"
 
 namespace CTF_int {
@@ -164,12 +164,12 @@ namespace CTF_int {
   typedef cgemm template <> dgemm< std::complex<float> >;
   typedef zgemm template <> dgemm< std::complex<double> >;
 */
-  semiring::semiring(){
+  algstrct::algstrct(){
     addid = NULL;
     mulid = NULL;
   }
 
-  semiring::semiring(semiring const & other){
+  algstrct::algstrct(algstrct const & other){
     el_size = other.el_size;
     addid = (char*)CTF_int::alloc(el_size);
     memcpy(addid,other.addid,el_size);
@@ -180,7 +180,7 @@ namespace CTF_int {
     gemm = other.gemm;
   }
 
-  semiring::semiring(
+  algstrct::algstrct(
                    int          el_size_, 
                    char const * addid_,
                    char const * mulid_,
@@ -226,13 +226,18 @@ namespace CTF_int {
     scal = scal_;
   }
 
-  semiring::~semiring(){
+  algstrct::~algstrct(){
     if (addid != NULL) free(addid);
     if (mulid != NULL) free(mulid);
   }
 
+  MPI_Op algstrct::mop() const {
+    printf("CTF ERROR: now addition MPI_Op present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
    
-  bool semiring::isequal(char const * a, char const * b) const {
+  bool algstrct::isequal(char const * a, char const * b) const {
     bool iseq = true;
     for (int i=0; i<el_size; i++) {
       if (a[i] != b[i]) iseq = false;
@@ -240,31 +245,31 @@ namespace CTF_int {
     return iseq;
   }
       
-  void semiring::acc(char * b, char const * beta, char const * a, char const * alpha) const {
+  void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {
     char tmp[el_size];
     mul(b, beta, tmp);
     mul(a, alpha, b);
     add(b, tmp, b);
   }
 
-  void semiring::copy(char * a, char const * b) const {
+  void algstrct::copy(char * a, char const * b) const {
     memcpy(a, b, el_size);
   }
   
-  void semiring::copy_pair(char * a, char const * b) const {
+  void algstrct::copy_pair(char * a, char const * b) const {
     memcpy(a, b, pair_size());
   }
       
-  void semiring::copy(char * a, char const * b, int64_t n) const {
+  void algstrct::copy(char * a, char const * b, int64_t n) const {
     memcpy(a, b, el_size*n);
   }
   
-  void semiring::copy_pairs(char * a, char const * b, int64_t n) const {
+  void algstrct::copy_pairs(char * a, char const * b, int64_t n) const {
     memcpy(a, b, pair_size()*n);
   }
 
 
-  void semiring::copy(int64_t n, char const * a, int64_t inc_a, char * b, int64_t inc_b) const {
+  void algstrct::copy(int64_t n, char const * a, int64_t inc_a, char * b, int64_t inc_b) const {
     switch (el_size) {
       case 4:
         cblas_scopy(n, (float const*)a, inc_a, (float*)b, inc_b);
@@ -284,7 +289,7 @@ namespace CTF_int {
     }
   }
 
-  void semiring::copy(int64_t      m,
+  void algstrct::copy(int64_t      m,
                       int64_t      n,
                       char const * a,
                       int64_t      lda_a,
@@ -299,7 +304,7 @@ namespace CTF_int {
     }
   }
  
-  void semiring::copy(int64_t      m,
+  void algstrct::copy(int64_t      m,
                       int64_t      n,
                       char const * a,
                       int64_t      lda_a,
@@ -325,7 +330,7 @@ namespace CTF_int {
     }
   }           
 
-  void semiring::set(char * a, char const * b, int64_t n) const {
+  void algstrct::set(char * a, char const * b, int64_t n) const {
     switch (el_size) {
       case 4: {
           float * ia = (float*)a;
@@ -354,22 +359,22 @@ namespace CTF_int {
     }
   }
 
-  void semiring::set_pair(char * a, int64_t key, char const * vb) const {
+  void algstrct::set_pair(char * a, int64_t key, char const * vb) const {
     memcpy(a, &key, sizeof(int64_t));
     memcpy(a+sizeof(int64_t), &vb, el_size);
   }
 
-  void semiring::set_pairs(char * a, char const * b, int64_t n) const {
+  void algstrct::set_pairs(char * a, char const * b, int64_t n) const {
     for (int i=0; i<n; i++) {
       memcpy(a + n*(sizeof(int64_t)+el_size), b, el_size);
     }
   }
  
-  int64_t semiring::get_key(char const * a) const {
+  int64_t algstrct::get_key(char const * a) const {
     return (int64_t)*a;
   }
      
-  char const * semiring::get_value(char const * a) const {
+  char const * algstrct::get_value(char const * a) const {
     return a+sizeof(int64_t);
   }
       
@@ -377,7 +382,7 @@ namespace CTF_int {
     sr=pi.sr; ptr=pi.ptr; 
   }
 
-  ConstPairIterator::ConstPairIterator(semiring const * sr_, char const * ptr_){ 
+  ConstPairIterator::ConstPairIterator(algstrct const * sr_, char const * ptr_){ 
     sr=sr_; ptr=ptr_; 
   }
 
@@ -401,7 +406,7 @@ namespace CTF_int {
     memcpy(buf, ptr+sizeof(int64_t), sr->el_size);
   }
   
-  PairIterator::PairIterator(semiring const * sr_, char * ptr_){
+  PairIterator::PairIterator(algstrct const * sr_, char * ptr_){
     sr=sr_;
     ptr=ptr_;
   }

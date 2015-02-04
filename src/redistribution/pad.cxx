@@ -8,7 +8,7 @@ namespace CTF_int {
                int const *      edge_len,
                int const *      padding,
                PairIterator     pairs,
-               semiring const & sr,
+               algstrct const & sr,
                int const *      offsets){
     int64_t i, j, lda;
     int64_t knew, k;
@@ -57,7 +57,7 @@ namespace CTF_int {
                  char const *     pairsb,
                  char *           new_pairsb,
                  int64_t *        new_num_pair,
-                 semiring const & sr){
+                 algstrct const & sr){
     TAU_FSTART(depad_tsr);
     ConstPairIterator pairs = ConstPairIterator(&sr, pairsb);
     PairIterator new_pairs = PairIterator(&sr, new_pairsb);
@@ -212,7 +212,7 @@ namespace CTF_int {
                char const *     old_data,
                char **          new_pairs,
                int64_t *        new_size,
-               semiring const & sr){
+               algstrct const & sr){
     int i, imax, act_lda;
     int64_t new_el, pad_el;
     int pad_max, virt_lda, outside, offset, edge_lda;
@@ -368,7 +368,7 @@ namespace CTF_int {
                     int const *      virt_dim,
                     int const *      cphase_rank,
                     char *           vdata,
-                    semiring const & sr){
+                    algstrct const & sr){
 
     if (order == 0) return;
     TAU_FSTART(zero_padding);

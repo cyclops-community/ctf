@@ -3,7 +3,7 @@
 #ifndef __SUM_TSR_H__
 #define __SUM_TSR_H__
 
-#include "../tensor/untyped_semiring.h"
+#include "../tensor/algstrct.h"
 
 namespace CTF_int {
 
@@ -24,10 +24,10 @@ namespace CTF_int {
   class tsum {
     public:
       char *       A;
-      semiring     sr_A;
+      algstrct     sr_A;
       char const * alpha;
       char *       B;
-      semiring     sr_B;
+      algstrct     sr_B;
       char const * beta;
       void *       buffer;
 

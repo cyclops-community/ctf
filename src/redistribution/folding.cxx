@@ -41,7 +41,7 @@ namespace CTF_int {
                        int const *      edge_len,
                        char *           data,
                        int              dir,
-                       semiring const & sr){
+                       algstrct const & sr){
     int * chunk_size;
     char ** tswap_data;
 
@@ -99,7 +99,7 @@ namespace CTF_int {
                        int              max_ntd,
                        char **          tswap_data,
                        int *            chunk_size,
-                       semiring const & sr){
+                       algstrct const & sr){
     int64_t local_size;
     int64_t j, last_dim;
     int64_t * lda, * new_lda;

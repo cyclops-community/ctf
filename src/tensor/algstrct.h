@@ -5,91 +5,54 @@
 #include "cblas.h"
 
 namespace CTF_int {
-
-#if 0
   /**
-   * \brief char * -based index-value pair used for tensor data input
+   * \brief algstrct (algebraic structure) defines the elementwise operations computed 
+   *         in each tensor contraction, virtual classes defined in derived typed classes or algstrctcpy
    */
-  class pair {
+  class algstrct {
     public: 
-      int64_t k;
-
-      /**
-       * \brief tensor value of this key-value pair is a char *
-       */
-      char * v;
-
-      pair() {}
-
-      /**
-       * \brief compares key to other pair to determine which index appears first
-       * \param[in] other pair to compare with
-       * \return true if this key smaller than other's key
-       */
-      bool operator< (const pair& other) const{
-        return k < other.k;
-      }
-  /*  bool operator==(const pair& other) const{
-        return (k == other.k && d == other.d);
-      }
-      bool operator!=(const pair& other) const{
-        return !(*this == other);
-      }*/
-      virtual int size() { assert(0); }
-  };
-#endif
-
-  /**
-   * \brief semirings defined the elementwise operations computed 
-   *         in each tensor contraction
-   */
-  class semiring {
-    public: 
-      /** \brief size of each element of semiring in bytes */
+      /** \brief size of each element of algstrct in bytes */
       int el_size;
-      /** \brief true if an additive inverse is provided */
-      bool is_ring;
-      /** \brief MPI addition operation */
-      MPI_Op addmop;
-      /** \brief MPI datatype */
-      MPI_Datatype mdtype;
 
       /**
        * \brief default constructor
        */
-      semiring();
+      algstrct();
 
       /**
        * \brief copy constructor
-       * \param[in] other another semiring to copy from
+       * \param[in] other another algstrct to copy from
        */
-      semiring(semiring const &other);
+      //algstrct(algstrct const &other);
 
       /**
-       * \brief constructor creates semiring with all parameters
-       * \param[in] el_size number of bytes in each element in the semiring set
+       * \brief constructor creates algstrct with all parameters
+       * \param[in] el_size number of bytes in each element in the algstrct set
        * \param[in] addid additive identity element 
-       *              (e.g. 0.0 for the (+,*) semiring over doubles)
+       *              (e.g. 0.0 for the (+,*) algstrct over doubles)
        * \param[in] mulid multiplicative identity element 
-       *              (e.g. 1.0 for the (+,*) semiring over doubles)
+       *              (e.g. 1.0 for the (+,*) algstrct over doubles)
        * \param[in] addmop addition operation to pass to MPI reductions
-       * \param[in] add function pointer to add c=a+b on semiring
-       * \param[in] mul function pointer to multiply c=a*b on semiring
+       * \param[in] add function pointer to add c=a+b on algstrct
+       * \param[in] mul function pointer to multiply c=a*b on algstrct
        * \param[in] addinv function pointer to additive inverse b=-a
-       * \param[in] gemm function pointer to multiply blocks C, A, and B on semiring
-       * \param[in] axpy function pointer to add A to B on semiring
-       * \param[in] scal function pointer to scale A on semiring
+       * \param[in] gemm function pointer to multiply blocks C, A, and B on algstrct
+       * \param[in] axpy function pointer to add A to B on algstrct
+       * \param[in] scal function pointer to scale A on algstrct
        */
-      semiring(int          el_size, 
-               bool         is_ring,
-               MPI_Op       addmop,
-               MPI_Datatype mdtype);
+      algstrct(int el_size);
 
       /**
-       * \brief destructor frees addid and mulid
+       * \brief destructor
        */
-      ~semiring();
-      
+      ~algstrct();
+
+      /** \brief MPI addition operation for reductions */
+      virtual MPI_Op addmop() const;
+
+      /** \brief MPI datatype (only used in reductions) */
+      virtual MPI_Datatype mdtype() const;
+
       /** \brief identity element for addition i.e. 0 */
       virtual char const * addid() const;
 
@@ -100,23 +63,33 @@ namespace CTF_int {
       int pair_size() const { return el_size + sizeof(int64_t); }
 
       /** \brief b = -a */
-      virtual void addinv(char const * a, char * b);
+      virtual void addinv(char const * a, char * b) const;
 
       /** \brief c = a+b */
       virtual void add(char const * a, 
                        char const * b,
-                       char *       c);
+                       char *       c) const;
       
       /** \brief c = a*b */
       virtual void mul(char const * a, 
                        char const * b,
-                       char *       c);
+                       char *       c) const;
+
+      /** \brief c = min(a,b) */
+      virtual void min(char const * a, 
+                       char const * b,
+                       char *       c) const;
+
+      /** \brief c = max(a,b) */
+      virtual void max(char const * a, 
+                       char const * b,
+                       char *       c) const;
 
       /** \brief X["i"]=alpha*X["i"]; */
       virtual void scal(int          n,
                         char const * alpha,
                         char const * X,
-                        int          incX);
+                        int          incX) const;
 
       /** \brief Y["i"]+=alpha*X["i"]; */
       virtual void axpy(int          n,
@@ -124,7 +97,7 @@ namespace CTF_int {
                         char const * X,
                         int          incX,
                         char       * Y,
-                        int          incY);
+                        int          incY) const;
 
       /** \brief beta*C["ij"]=alpha*A^tA["ik"]*B^tB["kj"]; */
       virtual void gemm(char         tA,
@@ -136,8 +109,9 @@ namespace CTF_int {
                         char const * A,
                         char const * B,
                         char const * beta,
-                        char *       C);
-      /** \brief returns true if semiring elements a and b are equal */
+                        char *       C) const;
+
+      /** \brief returns true if algstrct elements a and b are equal */
       bool isequal(char const * a, char const * b) const;
     
       /** \brief compute b=beta*b + alpha*a */
@@ -196,14 +170,14 @@ namespace CTF_int {
 
   class ConstPairIterator {
     public:
-      semiring const * sr;
+      algstrct const * sr;
       char const * ptr;
       
       /** \brief conversion constructor for iterator to constant buffer of pairs */    
       ConstPairIterator(PairIterator const & pi);
 
       /** \brief constructor for iterator of constant buffer of pairs */    
-      ConstPairIterator(semiring const * sr_, char const * ptr_);
+      ConstPairIterator(algstrct const * sr_, char const * ptr_);
 
       /** \brief indexing moves by \param[in] n pairs */
       ConstPairIterator operator[](int n) const;
@@ -231,11 +205,11 @@ namespace CTF_int {
 
   class PairIterator {
     public:
-      semiring const * sr;
+      algstrct const * sr;
       char * ptr;
     
       /** \brief constructor for iterator of buffer of pairs */    
-      PairIterator(semiring const * sr_, char * ptr_);
+      PairIterator(algstrct const * sr_, char * ptr_);
 
       /** \brief indexing moves by \param[in] n pairs */
       PairIterator operator[](int n) const;

@@ -1,7 +1,7 @@
 #ifndef __SYM_SEQ_SCL_H__
 #define __SYM_SEQ_SCL_H__
 
-#include "../tensor/untyped_semiring.h"
+#include "../tensor/algstrct.h"
 
 namespace CTF_int {
   /**
@@ -21,7 +21,7 @@ namespace CTF_int {
    * \brief performs symmetric scaling using custom func
    */
   int sym_seq_scl_cust(char *               A,
-                       semiring const &     sr_A,
+                       algstrct const &     sr_A,
                        int const            order_A,
                        int const *          edge_len_A,
                        int const *          _lda_A,
@@ -29,11 +29,11 @@ namespace CTF_int {
                        int const *          idx_map_A,
                        endomorphism        func);
   /**
-   * \brief performs symmetric scaling using semiring sr_A
+   * \brief performs symmetric scaling using algstrct sr_A
    */
   int sym_seq_scl_ref(char const * alpha,
                       char *       A,
-                      semiring const &  sr_A,
+                      algstrct const &  sr_A,
                       int          order_A,
                       int const *  edge_len_A,
                       int const *  _lda_A,

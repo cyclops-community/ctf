@@ -6,7 +6,7 @@
 #include "../mapping/mapping.h"
 #include "../mapping/distribution.h"
 #include "../interface/world.h"
-#include "untyped_semiring.h"
+#include "algstrct.h"
 
 namespace CTF_int {
 
@@ -46,7 +46,7 @@ namespace CTF_int {
        * \param[in] name_an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      void init(semiring     sr,
+      void init(algstrct     sr,
                 int          order,
                 int const *  edge_len,
                 int const *  sym,
@@ -57,8 +57,8 @@ namespace CTF_int {
     public:
       /** \brief distributed processor context on which tensor is defined */
       CTF::World * wrld;
-      /** \brief semiring on which tensor elements and operations are defined */
-      semiring sr;
+      /** \brief algstrct on which tensor elements and operations are defined */
+      algstrct sr;
       /** \brief symmetries among tensor dimensions */
       int * sym;
       /** \brief number of tensor dimensions */
@@ -137,7 +137,7 @@ namespace CTF_int {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      tensor(semiring     sr,
+      tensor(algstrct     sr,
              int          order,
              int const *  edge_len,
              int const *  sym,
