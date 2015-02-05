@@ -418,6 +418,7 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
   for (int i=0; i<(int)operands.size(); i++){
     tmp_ops.push_back(operands[i]->clone());
   }
+  dtype tscale = this->scale;
   while (tmp_ops.size() > 1){
     tCTF_Term<dtype> * pop_A = tmp_ops.back();
     tmp_ops.pop_back();
@@ -433,15 +434,17 @@ tCTF_Idx_Tensor<dtype> tCTF_Contract_Term<dtype>::execute() const {
       tmp_ops.push_back(op_A.clone());
     } else {
       tCTF_Idx_Tensor<dtype> * intm = get_full_intm(op_A, op_B);
-      intm->parent->contract(this->scale*op_A.scale*op_B.scale, 
+      intm->parent->contract(tscale*op_A.scale*op_B.scale, 
                                     *(op_A.parent), op_A.idx_map,
                                     *(op_B.parent), op_B.idx_map,
                               intm->scale,         intm->idx_map);
+      tscale = 1.0;
       tmp_ops.push_back(intm);
     }
     delete pop_A;
     delete pop_B;
-  } 
+  }
+  tmp_ops[0]->scale *= tscale; 
   tCTF_Idx_Tensor<dtype> rtsr = tmp_ops[0]->execute();
   delete tmp_ops[0];
   tmp_ops.clear();
