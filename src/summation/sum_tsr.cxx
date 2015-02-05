@@ -93,9 +93,9 @@ namespace CTF_int {
     for (;;){
       rec_tsum->A = this->A + off_A*blk_sz_A*this->sr_A.el_size;
       rec_tsum->B = this->B + off_B*blk_sz_B*this->sr_B.el_size;
-//        sr_B.copy(rec_tsum->beta, sr_B.mulid);
+//        sr_B.copy(rec_tsum->beta, sr_B.mulid());
       if (beta_arr[off_B]>0)
-        rec_tsum->beta = sr_B.mulid;
+        rec_tsum->beta = sr_B.mulid();
       else
         rec_tsum->beta = this->beta; 
 //        sr_B.copy(rec_tsum->beta, this->beta);
@@ -166,13 +166,13 @@ namespace CTF_int {
     for (i=0; i<ncdt_B; i++){
       brank += cdt_B[i].rank;
     }
-    if (brank != 0) sr_B.set(this->B, sr_B.addid, size_B);
+    if (brank != 0) sr_B.set(this->B, sr_B.addid(), size_B);
 
     rec_tsum->A           = this->A;
     rec_tsum->B           = this->B;
     rec_tsum->alpha       = this->alpha;
     if (brank != 0)
-      rec_tsum->beta = sr_B.addid;
+      rec_tsum->beta = sr_B.addid();
     else
       rec_tsum->beta = this->beta; 
 
@@ -180,7 +180,7 @@ namespace CTF_int {
     
     for (i=0; i<ncdt_B; i++){
       /* FIXME Won't work for single precision */
-      MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B.mdtype, sr_B.addmop, cdt_B[i].cm);
+      MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B.mdtype(), sr_B.addmop(), cdt_B[i].cm);
     }
 
   }
@@ -230,20 +230,21 @@ namespace CTF_int {
   void seq_tsr_sum::run(){
     if (is_custom){
       ASSERT(is_inner == 0);
-      sym_seq_sum_cust(
-                      this->A,
-                      this->sr_A,
-                      order_A,
-                      edge_len_A,
-                      sym_A,
-                      idx_map_A,
-                      this->B,
-                      this->sr_B,
-                      order_B,
-                      edge_len_B,
-                      sym_B,
-                      idx_map_B,
-                      func);
+      sym_seq_sum_cust(this->alpha,
+                       this->A,
+                       this->sr_A,
+                       order_A,
+                       edge_len_A,
+                       sym_A,
+                       idx_map_A,
+                       this->beta,
+                       this->B,
+                       this->sr_B,
+                       order_B,
+                       edge_len_B,
+                       sym_B,
+                       idx_map_B,
+                       func);
     } else if (is_inner){
       sym_seq_sum_inr(this->alpha,
                       this->A,

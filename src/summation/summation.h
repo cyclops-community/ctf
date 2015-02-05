@@ -20,7 +20,7 @@ namespace CTF_int {
 
       /** \brief scaling of A */
       char const * alpha;
-      /** \biref scaling of existing B */
+      /** \brief scaling of existing B */
       char const * beta;
     
       /** \brief indices of left operand */
@@ -45,10 +45,10 @@ namespace CTF_int {
        * \brief constructor definining summation with C's mul and add ops
        * \param[in] A left operand tensor
        * \param[in] idx_A indices of left operand
-       * \param[in] alpha scaling factor alpha * A[idx_A];
+       * \param[in] alpha scaling factor alpha * A[idx_A]; (can be NULL)
        * \param[in] B ouput operand tensor
        * \param[in] idx_B indices of right operand
-       * \param[in] beta scaling factor of ouput 
+       * \param[in] beta scaling factor of ouput (can be NULL)
                       C[idx_B] = beta*B[idx_B] + alpha * A[idx_A]
        */
       summation(tensor *     A,
@@ -62,15 +62,20 @@ namespace CTF_int {
        * \brief constructor definining summation with custom function
        * \param[in] A left operand tensor
        * \param[in] idx_A indices of left operand
+       * \param[in] alpha scaling factor alpha * A[idx_A]; (can be NULL)
        * \param[in] B ouput operand tensor
        * \param[in] idx_B indices of right operand
        * \param[in] func custom elementwise function 
                       func(A[idx_A],&B[idx_B])
+       * \param[in] beta scaling factor of ouput (can be NULL)
+                      C[idx_B] = beta*B[idx_B] + alpha * A[idx_A]
        */
       summation(tensor *        A,
                 int const *     idx_A,
+                char const *    alpha,
                 tensor *        B,
                 int const *     idx_B,
+                char const *    beta,
                 univar_function func);
 
       /** \brief run summation  */

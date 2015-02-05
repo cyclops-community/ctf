@@ -33,7 +33,8 @@ namespace CTF_int {
   /**
    * \brief performs symmetric contraction with custom elementwise function
    */
-  int sym_seq_ctr_cust(char const *   A,
+  int sym_seq_ctr_cust(char const *   alpha,
+                       char const *   A,
                        algstrct       sr_A,
                        int            order_A,
                        int const *    edge_len_A,
@@ -45,6 +46,7 @@ namespace CTF_int {
                        int const *    edge_len_B,
                        int const *    sym_B,
                        int const *    idx_map_B,
+                       char const *   beta,
                        char *         C,
                        algstrct       sr_C,
                        int            order_C,

@@ -32,10 +32,9 @@ namespace CTF_int {
     if (other.is_custom){
       func      = other.func;
       is_custom = 1;
-    } else {
-      alpha = other.alpha;
-      beta  = other.beta;
-    }
+    } else is_custom = 0; 
+    alpha = other.alpha;
+    beta  = other.beta;
   }
 
   summation::summation(tensor *     A_,
@@ -57,15 +56,19 @@ namespace CTF_int {
  
   summation::summation(tensor *        A_,
                        int const *     idx_A_,
+                       char const *    alpha_,
                        tensor *        B_,
                        int const *     idx_B_,
+                       char const *    beta_,
                        univar_function func_){
     A         = A_;
     idx_A     = (int*)malloc(sizeof(int)*A->order);
     memcpy(idx_A, idx_A_, sizeof(int)*A->order);
+    alpha     = alpha_;
     B         = B_;
     idx_B     = (int*)malloc(sizeof(int)*B->order);
     memcpy(idx_B, idx_B_, sizeof(int)*B->order);
+    beta      = beta_;
     func      = func_;
     is_custom = 1;
   }
@@ -552,9 +555,9 @@ namespace CTF_int {
     } else {
       tsumseq->is_inner   = 1;
       tsumseq->inr_stride = inner_stride;
-      htsum->alpha        = alpha;
-      htsum->beta         = beta;
     }
+    htsum->alpha        = alpha;
+    htsum->beta         = beta;
 
     htsum->A = A->data;
     htsum->B = B->data;
@@ -585,7 +588,7 @@ namespace CTF_int {
   #else
     if (A->has_zero_edge_len || 
         B->has_zero_edge_len){
-      if (!is_custom && !B->sr.isequal(beta,B->sr.mulid) && !B->has_zero_edge_len){ 
+      if (!B->sr.isequal(beta,B->sr.mulid()) && !B->has_zero_edge_len){ 
         int sub_idx_map_B[B->order];
         int sm_idx=0;
         for (int i=0; i<B->order; i++){
@@ -703,7 +706,7 @@ namespace CTF_int {
   //#endif
     check_consistency();
     if (A->has_zero_edge_len || B->has_zero_edge_len){
-      if (!is_custom && !B->sr.isequal(beta, B->sr.mulid) && !B->has_zero_edge_len){ 
+      if (!B->sr.isequal(beta, B->sr.mulid()) && !B->has_zero_edge_len){ 
         int sub_idx_map_B[B->order];
         int sm_idx=0;
         for (int i=0; i<B->order; i++){
@@ -782,24 +785,21 @@ namespace CTF_int {
                                      tnsr_B->sym);
 
     if (ocfact != 1 || sign != 1){
-      if (is_custom) //PANIC
-        ABORT; //FIXME!
-      else {
-        if (ocfact != 1){
-          char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
-          tnsr_B->sr.copy(new_alpha, tnsr_B->sr.addid);
-          
-          for (int i=0; i<ocfact; i++){
-            tnsr_B->sr.add(new_alpha, alpha, new_alpha);
-          }
-          alpha = new_alpha;
+      if (ocfact != 1){
+        char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
+        tnsr_B->sr.copy(new_alpha, tnsr_B->sr.addid());
+        
+        for (int i=0; i<ocfact; i++){
+          tnsr_B->sr.add(new_alpha, alpha, new_alpha);
         }
-        if (sign == -1){
-          char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
-          tnsr_B->sr.addinv(alpha, new_alpha);
-          alpha = new_alpha;
-        }
+        alpha = new_alpha;
       }
+      if (sign == -1){
+        char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
+        tnsr_B->sr.addinv(alpha, new_alpha);
+        alpha = new_alpha;
+      }
+      //FIXME: free new_alpha
     }
 
 
@@ -848,7 +848,7 @@ namespace CTF_int {
           perm_types[i].sum_tensors(run_diag);
           /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                       perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
-          dbeta = new_sum.B->sr.addid;
+          dbeta = new_sum.B->sr.addid();
         }
 /*        for (i=0; i<(int)perm_types.size(); i++){
           free_type(&perm_types[i]);
@@ -895,7 +895,7 @@ namespace CTF_int {
     //FIXME: hmm all of the below already takes place in sym_sum
     check_consistency();
     if (A->has_zero_edge_len || B->has_zero_edge_len){
-      if (!is_custom && !B->sr.isequal(beta,B->sr.mulid) && !B->has_zero_edge_len){ 
+      if (!B->sr.isequal(beta,B->sr.mulid()) && !B->has_zero_edge_len){ 
     /*    fseq_scl<dtype> fs;
         fs.func_ptr=sym_seq_scl_ref<dtype>;
         fseq_elm_scl<dtype> felm;
@@ -965,7 +965,7 @@ namespace CTF_int {
           alpha = new_alpha;
         }*/
 
-  #if VERIFY
+  #if 0 //VERIFY
       int64_t nsA, nsB;
       int64_t nA, nB;
       dtype * sA, * sB;
@@ -1050,7 +1050,7 @@ namespace CTF_int {
       stat = tnsr_B->zero_out_padding();
   #endif
 
-  #if VERIFY
+  #if 0 //VERIFY
       stat = allread_tsr(ntid_A, &nA, &uA);
       assert(stat == SUCCESS);
       stat = get_info(ntid_A, &order_A, &edge_len_A, &sym_A);

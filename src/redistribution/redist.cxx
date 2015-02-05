@@ -67,14 +67,14 @@ namespace CTF_int {
 
     alloc_ptr(swp_nval*sr.el_size, (void**)&tsr_new_data);
 
-    sr.set(tsr_new_data, sr.addid, swp_nval);
+    sr.set(tsr_new_data, sr.addid(), swp_nval);
 
 
     wr_pairs_layout(old_dist.order,
                     numPes,
                     new_nval,
-                    sr.mulid,
-                    sr.addid,
+                    sr.mulid(),
+                    sr.addid(),
                     'w',
                     new_num_virt,
                     sym,
@@ -434,7 +434,7 @@ namespace CTF_int {
                                 char const *         beta,
                                 algstrct const &     sr){
     bool is_copy = false;
-    if (sr.isequal(sr.mulid, alpha) && sr.isequal(sr.addid, beta)) is_copy = true;
+    if (sr.isequal(sr.mulid(), alpha) && sr.isequal(sr.addid(), beta)) is_copy = true;
     if (old_dist.order == 0){
       if (forward)
         sr.copy(new_data[0], old_data);
@@ -909,12 +909,12 @@ namespace CTF_int {
       if (ord_glb_comm.rank == 0){
         sr.acc(tsr_cyclic_data, beta, tsr_data, alpha);
       } else {
-        sr.copy(tsr_cyclic_data, sr.addid);
+        sr.copy(tsr_cyclic_data, sr.addid());
       }
       *ptr_tsr_cyclic_data = tsr_cyclic_data;
     }
     
-    ASSERT(!reuse_buffers || sr.isequal(beta, sr.addid));
+    ASSERT(!reuse_buffers || sr.isequal(beta, sr.addid()));
 
     TAU_FSTART(cyclic_reshuffle);
       np = ord_glb_comm.np;
@@ -1079,8 +1079,8 @@ namespace CTF_int {
                                    new_data,
                                    1,
                                    bucket_offset, 
-                                   sr.mulid,
-                                   sr.addid,
+                                   sr.mulid(),
+                                   sr.addid(),
                                    sr);
           cfree(new_data);
         } else {
@@ -1105,7 +1105,7 @@ namespace CTF_int {
                                tsr_data, recv_counts, recv_displs);
       TAU_FSTOP(ALL_TO_ALL_V);
 
-      sr.set(tsr_cyclic_data, sr.addid, swp_nval);
+      sr.set(tsr_cyclic_data, sr.addid(), swp_nval);
       TAU_FSTART(unpack_virt_buf);
       /* Deserialize data into correctly ordered virtual sub blocks */
       if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
@@ -1151,8 +1151,8 @@ namespace CTF_int {
                                    new_data,
                                    0,
                                    bucket_offset, 
-                                   sr.mulid,
-                                   sr.addid,
+                                   sr.mulid(),
+                                   sr.addid(),
                                    sr);
           for (int dim = 0;dim < order;dim++){
             cfree(bucket_offset[dim]);
@@ -1202,8 +1202,8 @@ namespace CTF_int {
                                  new_data,
                                  1,
                                  bucket_offset, 
-                                 sr.mulid,
-                                 sr.addid,
+                                 sr.mulid(),
+                                 sr.addid(),
                                  sr);
         cfree(new_data);
       }
@@ -1324,7 +1324,7 @@ namespace CTF_int {
       if (glb_comm.rank == 0){
         sr.copy(tsr_cyclic_data,  tsr_data);
       } else {
-        sr.copy(tsr_cyclic_data, sr.addid);
+        sr.copy(tsr_cyclic_data, sr.addid());
       }
     }
 
@@ -1420,9 +1420,9 @@ namespace CTF_int {
       MPI_Waitall(num_new_virt, reqs, MPI_STATUSES_IGNORE);
     } else if (idx_lyr_old == 0){
       MPI_Waitall(num_old_virt, reqs+num_new_virt, MPI_STATUSES_IGNORE);
-      sr.set(tsr_cyclic_data, sr.addid, new_dist.size);
+      sr.set(tsr_cyclic_data, sr.addid(), new_dist.size);
     } else {
-      sr.set(tsr_cyclic_data, sr.addid, new_dist.size);
+      sr.set(tsr_cyclic_data, sr.addid(), new_dist.size);
     }
 
     cfree(idx);

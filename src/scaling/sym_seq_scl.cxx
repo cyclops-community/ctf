@@ -6,10 +6,10 @@
 #include "sym_seq_scl.h"
 
 namespace CTF_int {
-  void inv_idx(int const          order_A,
-               int const *        idx_A,
-               int *              order_tot,
-               int **             idx_arr){
+  void inv_idx(int const   order_A,
+               int const * idx_A,
+               int *       order_tot,
+               int **      idx_arr){
     int i, dim_max;
 
     dim_max = -1;
@@ -27,14 +27,14 @@ namespace CTF_int {
   }
 
 
-  int sym_seq_scl_ref(char const * alpha,
-                      char *       A,
-                      algstrct const &  sr_A,
-                      int          order_A,
-                      int const *  edge_len_A,
-                      int const *  _lda_A,
-                      int const *  sym_A,
-                      int const *  idx_map_A){
+  int sym_seq_scl_ref(char const *     alpha,
+                      char *           A,
+                      algstrct const & sr_A,
+                      int              order_A,
+                      int const *      edge_len_A,
+                      int const *      _lda_A,
+                      int const *      sym_A,
+                      int const *      idx_map_A){
     TAU_FSTART(sym_seq_sum_ref);
     int idx, i, idx_max, imin, imax, idx_A, iA, j, k;
     int off_idx, off_lda, sym_pass;
@@ -92,14 +92,15 @@ namespace CTF_int {
   }
 
 
-  int sym_seq_scl_cust(char *               A,
-                       algstrct const &     sr_A,
-                       int const            order_A,
-                       int const *          edge_len_A,
-                       int const *          _lda_A,
-                       int const *          sym_A,
-                       int const *          idx_map_A,
-                       endomorphism        func){
+  int sym_seq_scl_cust(char const *     alpha,
+                       char *           A,
+                       algstrct const & sr_A,
+                       int const        order_A,
+                       int const *      edge_len_A,
+                       int const *      _lda_A,
+                       int const *      sym_A,
+                       int const *      idx_map_A,
+                       endomorphism     func){
     TAU_FSTART(sym_seq_sum_cust)
     int idx, i, idx_max, imin, imax, idx_A, iA, j, k;
     int off_idx, off_lda, sym_pass;
@@ -121,6 +122,8 @@ namespace CTF_int {
     for (;;){
       if (sym_pass){
         func.apply_f(A+idx_A*sr_A.el_size);
+        if (alpha != NULL)
+          sr_A.mul(A+idx_A*sr_A.el_size, alpha, A+idx_A*sr_A.el_size);
         CTF_FLOPS_ADD(1);
       }
 

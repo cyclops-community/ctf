@@ -14,6 +14,11 @@ namespace CTF_int {
       /** \brief size of each element of algstrct in bytes */
       int el_size;
 
+      /** \brief b = \max(a,addinv(a)) */
+      void (*abs)(char const * a, 
+                  char *       b);
+
+
       /** \brief gets pair size el_size plus the key size */
       int pair_size() const { return el_size + sizeof(int64_t); }
 
@@ -21,7 +26,7 @@ namespace CTF_int {
       /**
        * \brief default constructor
        */
-      //algstrct();
+      algstrct(){};
 
       /**
        * \brief copy constructor
@@ -214,7 +219,7 @@ namespace CTF_int {
       void (*fscal)(int          n,
                     char const * alpha,
                     char const * X,
-                    int          incX) const;
+                    int          incX);
       void scal(int          n,
                 char const * alpha,
                 char const * X,
@@ -257,7 +262,7 @@ namespace CTF_int {
                 char *       C) const;
 
       algstrctcpy(algstrct const & other);
-  }
+  };
 
   class PairIterator;
 

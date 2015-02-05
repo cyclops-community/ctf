@@ -143,10 +143,10 @@ namespace CTF_int {
 
   void seq_tsr_scl::run(){
     if (is_custom)
-      sym_seq_scl_cust(this->A,
+      sym_seq_scl_cust(alpha,
+                       this->A,
                        sr_A,
                        order,
-                       edge_len,
                        edge_len,
                        sym,
                        idx_map,
@@ -156,7 +156,6 @@ namespace CTF_int {
                       this->A,
                       sr_A,
                       order,
-                      edge_len,
                       edge_len,
                       sym,
                       idx_map);

@@ -286,13 +286,13 @@ namespace CTF_int {
         if (outside == -1){
           for (i=0; i<pad_max-imax; i++){
             padded_pairs[new_el+i].write_key(offset + (imax+i)*phys_phase[0]);
-            padded_pairs[new_el+i].write_val(sr.addid);
+            padded_pairs[new_el+i].write_val(sr.addid());
           }
           new_el+=pad_max-imax;
         }  else {
           for (i=0; i<pad_max; i++){
             padded_pairs[new_el+i].write_key(offset + i*phys_phase[0]);
-            padded_pairs[new_el+i].write_val(sr.addid);
+            padded_pairs[new_el+i].write_val(sr.addid());
           }
           new_el += pad_max;
         }
@@ -501,7 +501,7 @@ namespace CTF_int {
     //          std::fill(data+buf_offset, data+buf_offset+plen0, 0.0);
               //for (int64_t j=buf_offset; j<buf_offset+plen0; j++){
               //}
-              sr.set(data+buf_offset*sr.el_size, sr.addid, plen0);
+              sr.set(data+buf_offset*sr.el_size, sr.addid(), plen0);
             } else {
               int s1 = MIN(plen0-is_sh_pad0,len0);
     /*          if (sym[0] == SH) s1 = MIN(s1, len0-1);*/
@@ -509,7 +509,7 @@ namespace CTF_int {
               //for (int64_t j=buf_offset+s1; j<buf_offset+plen0; j++){
               //  data[j] = 0.0;
               //}
-              sr.set(data+(buf_offset+s1)*sr.el_size, sr.addid, plen0);
+              sr.set(data+(buf_offset+s1)*sr.el_size, sr.addid(), plen0);
             }
             buf_offset+=plen0;
             if (p == vend-1 && buf_offset >= end_index) break;

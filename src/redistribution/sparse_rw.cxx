@@ -956,7 +956,7 @@ namespace CTF_int {
       for (int64_t i=0; i<inwrite; i++){
         if (j<(int64_t)nchanged && changed_key_indices[j] == i){
           if (changed_key_scale[j] == 0){
-            wr_pairs.write(sr.addid);
+            wr_pairs.write(sr.addid());
           } else {
             //el_loc = std::lower_bound(buf_data, buf_data+nwrite, new_changed_pairs[j]);
             //wr_pairs[i].d = changed_key_scale[j]*el_loc[0].d;

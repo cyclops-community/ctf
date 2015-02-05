@@ -51,10 +51,10 @@ namespace CTF_int {
        * \param[in] idx_A indices of left operand
        * \param[in] B right operand tensor
        * \param[in] idx_B indices of right operand
-       * \param[in] alpha scaling factor alpha * A[idx_A] * B[idx_B];
+       * \param[in] alpha scaling factor (can be NULL) alpha * A[idx_A] * B[idx_B];
        * \param[in] C ouput operand tensor
        * \param[in] idx_C indices of right operand
-       * \param[in] beta scaling factor of ouput 
+       * \param[in] beta scaling factor of output (can be NULL)
                       C[idx_C] = beta*C[idx_C] 
                                 + alpha * A[idx_A] * B[idx_B];
        */
@@ -73,8 +73,12 @@ namespace CTF_int {
        * \param[in] idx_A indices of left operand
        * \param[in] B right operand tensor
        * \param[in] idx_B indices of right operand
+       * \param[in] alpha scaling factor (can be NULL) alpha * A[idx_A] * B[idx_B];
        * \param[in] C ouput operand tensor
        * \param[in] idx_C indices of right operand
+       * \param[in] beta scaling factor of output (can be NULL)
+                      C[idx_C] = beta*C[idx_C] 
+                                + alpha * A[idx_A] * B[idx_B];
        * \param[in] func custom elementwise function 
                       func(A[idx_A],B[idx_B],&C[idx_C])
        */
@@ -82,8 +86,10 @@ namespace CTF_int {
                   int const *    idx_A,
                   tensor *       B,
                   int const *    idx_B,
+                  char const *   alpha,
                   tensor *       C,
                   int const *    idx_C,
+                  char const *   beta,
                   bivar_function func);
 
       /** \brief run contraction */

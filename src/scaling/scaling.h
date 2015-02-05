@@ -34,8 +34,8 @@ namespace CTF_int {
        * \param[in] alpha scaling factor alpha * A[idx_map];
                       A[idx_map] = alpha * A[idx_map]
        */
-      scaling(tensor * A, 
-              int const * idx_map,
+      scaling(tensor *     A,
+              int const *  idx_map,
               char const * alpha);
      
       /**
@@ -44,9 +44,10 @@ namespace CTF_int {
        * \param[in] idx_map indices of left operand
                       func(&A[idx_map])
        */
-      scaling(tensor * A, 
-              int const * idx_map,
-              endomorphism func);
+      scaling(tensor *     A,
+              int const *  idx_map,
+              endomorphism func,
+              char const * alpha=NULL);
 
       /** \brief run scaling  \return whether success or error */
       int execute();

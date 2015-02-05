@@ -341,7 +341,7 @@ namespace CTF_int {
        * \param[in] CTF::OP reduction operation to apply
        * \param[out] result result of reduction operation
        */
-      int reduce(CTF::OP op, char * result) const;
+      int reduce(CTF::OP op, char * result);
 
       /* map data of tid_A with the given function */
 /*      int map_tensor(int tid,

@@ -50,10 +50,9 @@ namespace CTF_int{
 
 
     /* Scale C immediately. FIXME: wrong for iterators over subset of C */
-    if (sr_C.isequal(beta, sr_C.mulid)){
+    if (!sr_C.isequal(beta, sr_C.mulid())){
       sz = sy_packed_size(order_C, edge_len_C, sym_C);
       for (i=0; i<sz; i++){
-  //      C[i] = C[i]*beta;
         sr_C.mul(C+i*sr_C.el_size, beta, 
                  C+i*sr_C.el_size);
       }
@@ -63,11 +62,24 @@ namespace CTF_int{
     for (;;){
       //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
       if (sym_pass){
-        char tmp[sr_C.el_size];
-        sr_C.mul(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, tmp);
-        sr_C.mul(tmp, alpha, tmp);
-        sr_C.add(tmp, C+idx_C*sr_C.el_size, C+idx_C*sr_C.el_size);
-        CTF_FLOPS_ADD(3);
+        if (alpha == NULL && beta == NULL){
+          sr_C.mul(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, 
+                   C+idx_C*sr_C.el_size);
+          CTF_FLOPS_ADD(1);
+        } else  if (alpha == NULL){
+          char tmp[sr_C.el_size];
+          sr_C.mul(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, 
+                   tmp);
+          sr_C.add(tmp, C+idx_C*sr_C.el_size, C+idx_C*sr_C.el_size);
+          CTF_FLOPS_ADD(2);
+        } else {
+          char tmp[sr_C.el_size];
+          sr_C.mul(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, 
+                   tmp);
+          sr_C.mul(tmp, alpha, tmp);
+          sr_C.add(tmp, C+idx_C*sr_C.el_size, C+idx_C*sr_C.el_size);
+          CTF_FLOPS_ADD(3);
+        }
       }
       //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 
@@ -114,7 +126,8 @@ namespace CTF_int{
     return 0;
   }
 
-  int sym_seq_ctr_cust(char const *   A,
+  int sym_seq_ctr_cust(char const *   alpha,
+                       char const *   A,
                        algstrct       sr_A,
                        int            order_A,
                        int const *    edge_len_A,
@@ -126,6 +139,7 @@ namespace CTF_int{
                        int const *    edge_len_B,
                        int const *    sym_B,
                        int const *    idx_map_B,
+                       char const *   beta,
                        char *         C,
                        algstrct       sr_C,
                        int            order_C,
@@ -162,15 +176,37 @@ namespace CTF_int{
         C[i] = C[i]*beta;
       }
     }*/
+    if (!sr_C.isequal(beta, sr_C.mulid())){
+      sz = sy_packed_size(order_C, edge_len_C, sym_C);
+      for (i=0; i<sz; i++){
+        sr_C.mul(C+i*sr_C.el_size, beta, 
+                 C+i*sr_C.el_size);
+      }
+    }
 
     idx_A = 0, idx_B = 0, idx_C = 0;
     sym_pass = 1;
     for (;;){
       //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
       if (sym_pass){
-        func.apply_f(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, 
-                     C+idx_C*sr_C.el_size);
-        CTF_FLOPS_ADD(3);
+        if (alpha == NULL && beta == NULL){
+          func.apply_f(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, 
+                       C+idx_C*sr_C.el_size);
+          CTF_FLOPS_ADD(1);
+        } else  if (alpha == NULL){
+          char tmp[sr_C.el_size];
+          func.apply_f(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, 
+                       tmp);
+          sr_C.add(tmp, C+idx_C*sr_C.el_size, C+idx_C*sr_C.el_size);
+          CTF_FLOPS_ADD(2);
+        } else {
+          char tmp[sr_C.el_size];
+          func.apply_f(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size, 
+                       tmp);
+          sr_C.mul(tmp, alpha, tmp);
+          sr_C.add(tmp, C+idx_C*sr_C.el_size, C+idx_C*sr_C.el_size);
+          CTF_FLOPS_ADD(3);
+        }
       }
       //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 
@@ -267,7 +303,7 @@ namespace CTF_int{
 
     /* Scale C immediately. FIXME: wrong for iterators over subset of C */
   #ifndef OFFLOAD
-    if (sr_C.isequal(beta, sr_C.mulid)){
+    if (!sr_C.isequal(beta, sr_C.mulid())){
       CTF_FLOPS_ADD(prm->sz_C);
   /*    for (i=0; i<prm->sz_C; i++){
         C[i] = C[i]*beta;
@@ -287,12 +323,12 @@ namespace CTF_int{
   //      if (prm->m*prm->n*prm->k > 1000){
         offload_gemm<dtype>(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
                             A+idx_A*stride_A*sr_A.el_size, prm->k,
-                            B+idx_B*stride_B*sr_B.el_size, prm->k, sr_C.mulid,
+                            B+idx_B*stride_B*sr_B.el_size, prm->k, sr_C.mulid(),
                             C+idx_C*stride_C*sr_C.el_size, prm->m);
   #else
         sr_C.gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
                   A+idx_A*stride_A*sr_A.el_size, 
-                  B+idx_B*stride_B*sr_B.el_size, sr_C.mulid,
+                  B+idx_B*stride_B*sr_B.el_size, sr_C.mulid(),
                   C+idx_C*stride_C*sr_C.el_size);
   #endif
         TAU_FSTOP(gemm);

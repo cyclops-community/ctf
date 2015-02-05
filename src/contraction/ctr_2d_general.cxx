@@ -246,7 +246,7 @@ namespace CTF_int {
       }
       if (move_C){
         op_C = buf_C;
-        rec_ctr->beta = sr_C.addid;
+        rec_ctr->beta = sr_C.addid();
       } else {
         if (ctr_sub_lda_C == 0)
           op_C = this->C;
@@ -255,7 +255,7 @@ namespace CTF_int {
             op_C = this->C+sr_A.el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
-            rec_ctr->beta = sr_C.addid;
+            rec_ctr->beta = sr_C.addid();
           }
         }
       } 
@@ -269,12 +269,12 @@ namespace CTF_int {
 
       if (move_C){
         /* FIXME: Wont work for single precsion */
-        MPI_Allreduce(MPI_IN_PLACE, op_C, db*s_C, sr_C.mdtype, sr_C.addmop, cdt_C.cm);
+        MPI_Allreduce(MPI_IN_PLACE, op_C, db*s_C, sr_C.mdtype(), sr_C.addmop(), cdt_C.cm);
         owner_C   = ib / b_C;
         c_C       = MIN(((owner_C+1)*b_C-ib), db);
         if (rank_C == owner_C){
           sr_C.copy(ctr_sub_lda_C*c_C, ctr_lda_C,
-                    op_C, ctr_sub_lda_C*db, sr_C.mulid,
+                    op_C, ctr_sub_lda_C*db, sr_C.mulid(),
                     this->C+sr_C.el_size*(ib%b_C)*ctr_sub_lda_C, 
                     ctr_sub_lda_C*b_C, this->beta);
         }
@@ -282,17 +282,17 @@ namespace CTF_int {
           if (rank_C == owner_C+1)
             sr_C.copy(ctr_sub_lda_C*(db-c_C), ctr_lda_C,
                       op_C+sr_C.el_size*ctr_sub_lda_C*c_C,
-                      ctr_sub_lda_C*db, sr_C.mulid,
+                      ctr_sub_lda_C*db, sr_C.mulid(),
                       this->C, ctr_sub_lda_C*b_C, this->beta);
         }
       } else {
         if (ctr_sub_lda_C != 0)
           sr_C.copy(ctr_sub_lda_C, ctr_lda_C,
-                    buf_C, ctr_sub_lda_C, sr_C.mulid, 
+                    buf_C, ctr_sub_lda_C, sr_C.mulid(), 
                     this->C+sr_C.el_size*ib*ctr_sub_lda_C, 
                     ctr_sub_lda_C*edge_len, this->beta);
       }
-      rec_ctr->beta = sr_C.mulid;
+      rec_ctr->beta = sr_C.mulid();
     }
     /* FIXME: reuse that */
 #ifdef OFFLOAD

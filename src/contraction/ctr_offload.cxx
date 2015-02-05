@@ -78,7 +78,7 @@ namespace CTF_int {
       if (iter_counter % upload_phase_B == 0) 
         ptr_B->upload(this->B);
     }
-    if (this->beta != sr_C.mulid){
+    if (this->beta != sr_C.mulid()){
       ASSERT(iter_counter % download_phase_C == 0);
       //FIXME daxpy 
       CTF_FLOPS_ADD(size_C);

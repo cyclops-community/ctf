@@ -128,7 +128,7 @@ namespace CTF_int {
     rec_ctr->B            = this->B;
     rec_ctr->C            = this->C;
     if (cdt.rank != 0)
-      rec_ctr->beta = sr_C.addid;
+      rec_ctr->beta = sr_C.addid();
     else
       rec_ctr->beta = this->beta; 
     rec_ctr->num_lyr      = cdt.np;
@@ -140,7 +140,7 @@ namespace CTF_int {
     //COMM_BARRIER(cdt);
     /* FIXME Won't work for single precision */
     //ALLREDUCE(MPI_IN_PLACE, this->C, sz_C*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt);
-    MPI_Allreduce(MPI_IN_PLACE, this->C, sz_C, sr_C.mdtype, sr_C.addmop, cdt.cm);
+    MPI_Allreduce(MPI_IN_PLACE, this->C, sz_C, sr_C.mdtype(), sr_C.addmop(), cdt.cm);
 
   }
 
@@ -248,7 +248,7 @@ namespace CTF_int {
     for (i=0; i<ncdt_C; i++){
       crank += cdt_C[i].rank;
     }
-    if (crank != 0) this->sr_C.set(this->C, this->sr_C.addid, size_C);
+    if (crank != 0) this->sr_C.set(this->C, this->sr_C.addid(), size_C);
     else {
       for (i=0; i<size_C; i++){
         sr_C.mul(this->beta, this->C+i*sr_C.el_size, this->C+i*sr_C.el_size);
@@ -259,24 +259,24 @@ namespace CTF_int {
     rec_ctr->B            = this->B;
     rec_ctr->C            = this->C;
     if (crank != 0)
-      rec_ctr->beta = sr_C.addid;
+      rec_ctr->beta = sr_C.addid();
     else
-      rec_ctr->beta = sr_C.mulid; 
+      rec_ctr->beta = sr_C.mulid(); 
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
 
     rec_ctr->run();
     
     for (i=0; i<ncdt_C; i++){
-      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype, sr_C.addmop, cdt_C[i]);
-      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype, sr_C.addmop, cdt_C[i].cm);
+      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype(), sr_C.addmop(), cdt_C[i]);
+      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype(), sr_C.addmop(), cdt_C[i].cm);
     }
 
     if (arank != 0){
-      this->sr_A.set(this->A, this->sr_A.addid, size_A);
+      this->sr_A.set(this->A, this->sr_A.addid(), size_A);
     }
     if (brank != 0){
-      this->sr_B.set(this->B, this->sr_B.addid, size_B);
+      this->sr_B.set(this->B, this->sr_B.addid(), size_B);
     }
   }
 
@@ -376,7 +376,8 @@ namespace CTF_int {
   void seq_tsr_ctr::run(){
     if (is_custom){
       ASSERT(is_inner == 0);
-      sym_seq_ctr_cust(this->A,
+      sym_seq_ctr_cust(this->alpha,
+                       this->A,
                        sr_A,
                        order_A,
                        edge_len_A,
@@ -388,6 +389,7 @@ namespace CTF_int {
                        edge_len_B,
                        sym_B,
                        idx_map_B,
+                       this->beta,
                        this->C,
                        sr_C,
                        order_C,

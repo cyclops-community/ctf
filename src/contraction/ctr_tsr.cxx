@@ -189,7 +189,7 @@ namespace CTF_int {
             tid_rec_ctr->B        = this->B + off_B*blk_sz_B;
             tid_rec_ctr->C        = this->C + off_C*blk_sz_C;
             if (beta_arr[off_C]>0)
-              rec_ctr->beta = sr_B.mulid;
+              rec_ctr->beta = sr_B.mulid();
             else
               rec_ctr->beta = this->beta; 
             beta_arr[off_C]       = 1;

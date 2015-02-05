@@ -11,9 +11,9 @@ namespace CTF_int {
 
   using namespace CTF;
 
-  scaling::scaling(tensor * A_, 
-              int const * idx_map_,
-              char const * alpha_){
+  scaling::scaling(tensor *     A_,
+                   int const *  idx_map_,
+                   char const * alpha_){
     A = A_;
     idx_map = idx_map_;
     alpha = alpha_;
@@ -22,10 +22,12 @@ namespace CTF_int {
 
   
   scaling::scaling(tensor * A_, 
-              int const * idx_map_,
-              endomorphism func_){
+                   int const * idx_map_,
+                   endomorphism func_,
+                   char const * alpha_){
     A = A_;
     idx_map = idx_map_;
+    alpha = alpha_;
     func = func_;
     is_custom = 1;
   }
@@ -226,17 +228,17 @@ namespace CTF_int {
     } else {
       *rec_scl = sclseq;
     }
+    sclseq->alpha       = alpha;
     if (is_custom){
-      sclseq->func        = func;
-      sclseq->is_custom   = 1;
+      sclseq->func      = func;
+      sclseq->is_custom = 1;
     } else {
-      sclseq->alpha       = alpha;
-      sclseq->is_custom   = 0;
+      sclseq->is_custom = 0;
     }
-    sclseq->order         = ntsr->order;
-    sclseq->idx_map       = idx_map;
-    sclseq->edge_len      = virt_blk_len;
-    sclseq->sym           = ntsr->sym;
+    sclseq->order       = ntsr->order;
+    sclseq->idx_map     = idx_map;
+    sclseq->edge_len    = virt_blk_len;
+    sclseq->sym         = ntsr->sym;
 
     hscl->A   = ntsr->data;
 

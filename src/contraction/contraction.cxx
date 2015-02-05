@@ -40,10 +40,9 @@ namespace CTF_int {
     if (other.is_custom){
       func      = other.func;
       is_custom = 1;
-    } else {
-      alpha = other.alpha;
-      beta  = other.beta;
-    }
+    } else is_custom = 0;
+    alpha = other.alpha;
+    beta  = other.beta;
   }
 
   contraction::contraction(tensor *     A_,
@@ -72,8 +71,10 @@ namespace CTF_int {
                            int const *    idx_A_,
                            tensor *       B_,
                            int const *    idx_B_,
+                           char const *   alpha_,
                            tensor *       C_,
                            int const *    idx_C_,
+                           char const *   beta_,
                            bivar_function func_){
     A         = A_;
     idx_A     = (int*)malloc(sizeof(int)*A->order);
@@ -81,10 +82,12 @@ namespace CTF_int {
     B         = B_;
     idx_B     = (int*)malloc(sizeof(int)*B->order);
     memcpy(idx_B, idx_B_, sizeof(int)*B->order);
+    alpha     = alpha_;
     C         = C_;
     idx_C     = (int*)malloc(sizeof(int)*C->order);
     memcpy(idx_C, idx_C_, sizeof(int)*C->order);
     func      = func_;
+    beta      = beta_;
     is_custom = 1;
   }
 
@@ -2695,10 +2698,9 @@ namespace CTF_int {
         }
       }
     }
-    ctrseq->is_custom = is_custom;
+    ctrseq->is_custom  = is_custom;
+    ctrseq->alpha      = alpha;
     if (is_custom){
-      ctrseq->alpha    = alpha;
-    } else {
       ctrseq->func     = func;
     }
     ctrseq->order_A    = A->order;
@@ -2758,7 +2760,7 @@ namespace CTF_int {
 
     if (A->has_zero_edge_len || B->has_zero_edge_len
         || C->has_zero_edge_len){
-      if (!is_custom && !C->sr.isequal(beta,C->sr.mulid) && !C->has_zero_edge_len){ 
+      if (!C->sr.isequal(beta,C->sr.mulid()) && !C->has_zero_edge_len){ 
         int * new_idx_C; 
         int num_diag = 0;
         new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);
@@ -2801,7 +2803,7 @@ namespace CTF_int {
   #endif
 
     TAU_FSTART(contract);
-  #if VERIFY
+  #if 0 //VERIFY
     int64_t nsA, nsB;
     int64_t nA, nB, nC, up_nC;
     dtype * sA, * sB, * ans_C;
@@ -2914,7 +2916,7 @@ namespace CTF_int {
     }
 
 
-  #if VERIFY
+  #if 0 //VERIFY
     stat = allread_tsr(type->tid_A, &nA, &uA);
     assert(stat == SUCCESS);
     stat = get_tsr_info(type->tid_A, &order_A, &edge_len_A, &sym_A);
@@ -3021,7 +3023,7 @@ namespace CTF_int {
     C->unfold();
     if (A->has_zero_edge_len || B->has_zero_edge_len
         || C->has_zero_edge_len){
-      if (!is_custom && !C->sr.isequal(beta,C->sr.mulid) && !C->has_zero_edge_len){ 
+      if (!C->sr.isequal(beta,C->sr.mulid()) && !C->has_zero_edge_len){ 
         int * new_idx_C; 
         int num_diag = 0;
         new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);
@@ -3124,24 +3126,21 @@ namespace CTF_int {
                                        tnsr_C->sym);
 
       if (ocfact != 1 || sign != 1){
-        if (is_custom) //PANIC
-          ABORT; //FIXME!
-        else {
-          if (ocfact != 1){
-            char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
-            tnsr_B->sr.copy(new_alpha, tnsr_B->sr.addid);
-            
-            for (int i=0; i<ocfact; i++){
-              tnsr_B->sr.add(new_alpha, alpha, new_alpha);
-            }
-            alpha = new_alpha;
+        if (ocfact != 1){
+          char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
+          tnsr_B->sr.copy(new_alpha, tnsr_B->sr.addid());
+          
+          for (int i=0; i<ocfact; i++){
+            tnsr_B->sr.add(new_alpha, alpha, new_alpha);
           }
-          if (sign == -1){
-            char * new_alpha = (char*)malloc(tnsr_C->sr.el_size);
-            tnsr_C->sr.addinv(alpha, new_alpha);
-            alpha = new_alpha;
-          }
+          alpha = new_alpha;
         }
+        if (sign == -1){
+          char * new_alpha = (char*)malloc(tnsr_C->sr.el_size);
+          tnsr_C->sr.addinv(alpha, new_alpha);
+          alpha = new_alpha;
+        }
+        //FIXME free new_alpha
       }
 
 
@@ -3207,7 +3206,7 @@ namespace CTF_int {
             perm_types[i].alpha = new_alpha;
             perm_types[i].beta = dbeta;
             stat = perm_types[i].contract();
-            dbeta = new_ctr.C->sr.addid;
+            dbeta = new_ctr.C->sr.addid();
           }
           perm_types.clear();
           signs.clear();
@@ -3247,7 +3246,7 @@ namespace CTF_int {
     if (A->has_zero_edge_len || 
         B->has_zero_edge_len || 
         C->has_zero_edge_len){
-      if (!is_custom && !C->sr.isequal(beta,C->sr.mulid) && !C->has_zero_edge_len){ 
+      if (!C->sr.isequal(beta,C->sr.mulid()) && !C->has_zero_edge_len){ 
         int * new_idx_C; 
         int num_diag = 0;
         new_idx_C = (int*)CTF_int::alloc(sizeof(int)*C->order);

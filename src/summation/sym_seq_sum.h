@@ -25,14 +25,16 @@ namespace CTF_int {
   /**
    * \brief performs symmetric summation with custom elementwise function
    */
-  int sym_seq_sum_cust(char const *    A,
+  int sym_seq_sum_cust(char const *    alpha,
+                       char const *    A,
                        algstrct        sr_A,
                        int             order_A,
                        int const *     edge_len_A,
                        int const *     sym_A,
                        int const *     idx_map_A,
+                       char const *    beta,
                        char *          B,
-                       algstrct        isB,
+                       algstrct        sr_B,
                        int             order_B,
                        int const *     edge_len_B,
                        int const *     sym_B,

@@ -12,12 +12,17 @@ namespace CTF_int {
    */
   class univar_function {
     public:
+      void (*f)(char const *, char *);
+
       /**
        * \brief apply function f to value stored at a
        * \param[in] a pointer to operand that will be cast to type by extending class
        * \param[in,out] result &f(*a) of applying f on value of (different type) on a
        */
-      virtual void apply_f(char const * a, char * b) { assert(0); }
+      virtual void apply_f(char const * a, char * b) { f(a,b); }
+
+      univar_function(void (*f_)(char const *, char *)) { f=f_; }
+      univar_function() { }
   };
 
 

@@ -10,6 +10,12 @@ namespace CTF {
     return -a;
   }
 
+  template <typename dtype, dtype (*fmax)(dtype a, dtype b), dtype (*faddinv)(dtype a, dtype b)>
+  void fabs(char const * a, char * b) {
+    dtype inva = faddinv(((dtype*)a)[0]);
+    ((dtype*)b)[0] = fmax(a,inva);
+  }
+
   /**
    * Group class defined by a datatype and an addition function
    *   addition must have an identity and be associative, does not need to be commutative
@@ -33,6 +39,7 @@ namespace CTF {
             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
               : Monoid(taddid_, fadd_, fmin_, fmax_) {
         faddinv = faddinv_;
+        abs = fabs<dtype, fmax_, faddinv_>;
       }
  
       Group(dtype taddid_,
@@ -44,6 +51,7 @@ namespace CTF {
             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
               : Monoid(taddid_, fadd_, fxpy_, addmop_, fmin_, fmax_) {
         faddinv = faddinv_;
+        abs = fabs<dtype, fmax_, faddinv_>;
       }
 
       void addinv(char const * a, char * b) const {
