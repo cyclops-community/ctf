@@ -2,7 +2,7 @@
 #define __TENSOR_H__
 
 #include "functions.h"
-#include "algstrct.h"
+#include "set.h"
 #include "../tensor/untyped_tensor.h"
 #include "world.h"
 #include <vector>

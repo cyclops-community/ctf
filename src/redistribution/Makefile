@@ -5,7 +5,7 @@ OBJS = redist.o sparse_rw.o pad.o folding.o
 ctf: $(OBJS) 
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../mapping/distribution.h ../shared/util.h ../tensor/untyped_semiring.h
+HDRS = ../mapping/distribution.h ../shared/util.h ../tensor/algstrct.h
 
 $(OBJS): %.o: %.cxx *.h $(HDRS)
 	$(FCXX) -c $<

@@ -8,7 +8,7 @@ HDRS =
 ctf: $(OBJS) 
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../contraction/contraction.h ../interface/common.h ../mapping/topology.h ../scaling/scaling.h ../shared/memcontrol.h ../shared/util.h ../summation/summation.h ../tensor/untyped_semiring.h ../tensor/untyped_tensor.h 
+HDRS = ../contraction/contraction.h ../interface/common.h ../mapping/topology.h ../scaling/scaling.h ../shared/memcontrol.h ../shared/util.h ../summation/summation.h ../tensor/algstrct.h ../tensor/untyped_tensor.h 
 
 $(OBJS): %.o: %.cxx *.h  $(HDRS)
 	$(FCXX) -c $<

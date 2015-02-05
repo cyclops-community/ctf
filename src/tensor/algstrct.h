@@ -14,10 +14,14 @@ namespace CTF_int {
       /** \brief size of each element of algstrct in bytes */
       int el_size;
 
+      /** \brief gets pair size el_size plus the key size */
+      int pair_size() const { return el_size + sizeof(int64_t); }
+
+
       /**
        * \brief default constructor
        */
-      algstrct();
+      //algstrct();
 
       /**
        * \brief copy constructor
@@ -28,18 +32,7 @@ namespace CTF_int {
       /**
        * \brief constructor creates algstrct with all parameters
        * \param[in] el_size number of bytes in each element in the algstrct set
-       * \param[in] addid additive identity element 
-       *              (e.g. 0.0 for the (+,*) algstrct over doubles)
-       * \param[in] mulid multiplicative identity element 
-       *              (e.g. 1.0 for the (+,*) algstrct over doubles)
-       * \param[in] addmop addition operation to pass to MPI reductions
-       * \param[in] add function pointer to add c=a+b on algstrct
-       * \param[in] mul function pointer to multiply c=a*b on algstrct
-       * \param[in] addinv function pointer to additive inverse b=-a
-       * \param[in] gemm function pointer to multiply blocks C, A, and B on algstrct
-       * \param[in] axpy function pointer to add A to B on algstrct
-       * \param[in] scal function pointer to scale A on algstrct
-       */
+             */
       algstrct(int el_size);
 
       /**
@@ -59,9 +52,6 @@ namespace CTF_int {
       /** \brief identity element for multiplication i.e. 1 */
       virtual char const * mulid() const;
 
-      /** \brief gets pair size el_size plus the key size */
-      int pair_size() const { return el_size + sizeof(int64_t); }
-
       /** \brief b = -a */
       virtual void addinv(char const * a, char * b) const;
 
@@ -78,18 +68,18 @@ namespace CTF_int {
       /** \brief c = min(a,b) */
       virtual void min(char const * a, 
                        char const * b,
-                       char *       c) const;
+                       char *       c)  const {} //FIXME
 
       /** \brief c = max(a,b) */
       virtual void max(char const * a, 
                        char const * b,
-                       char *       c) const;
+                       char *       c)  const {} //FIXME
 
       /** \brief X["i"]=alpha*X["i"]; */
       virtual void scal(int          n,
                         char const * alpha,
                         char const * X,
-                        int          incX) const;
+                        int          incX)  const {} //FIXME
 
       /** \brief Y["i"]+=alpha*X["i"]; */
       virtual void axpy(int          n,
@@ -97,7 +87,7 @@ namespace CTF_int {
                         char const * X,
                         int          incX,
                         char       * Y,
-                        int          incY) const;
+                        int          incY)  const {} //FIXME
 
       /** \brief beta*C["ij"]=alpha*A^tA["ik"]*B^tB["kj"]; */
       virtual void gemm(char         tA,
@@ -109,7 +99,7 @@ namespace CTF_int {
                         char const * A,
                         char const * B,
                         char const * beta,
-                        char *       C) const;
+                        char *       C)  const {} //FIXME
 
       /** \brief returns true if algstrct elements a and b are equal */
       bool isequal(char const * a, char const * b) const;
@@ -165,6 +155,109 @@ namespace CTF_int {
       /** \brief gets pair to value from pair */
       char const * get_value(char const * a) const;
   };
+
+  class algstrctcpy : public algstrct {
+
+      /** \brief MPI addition operation for reductions */
+      MPI_Op taddmop;
+      MPI_Op addmop() const;
+
+      /** \brief MPI datatype (only used in reductions) */
+      MPI_Datatype tmdtype;
+      MPI_Datatype mdtype() const;
+
+      /** \brief identity element for addition i.e. 0 */
+      char const * taddid;
+      char const * addid() const;
+
+      /** \brief identity element for multiplication i.e. 1 */
+      char const * tmulid;
+      char const * mulid() const;
+
+      /** \brief b = -a */
+      void (*faddinv)(char const * a, char * b);
+      void addinv(char const * a, char * b) const;
+
+      /** \brief c = a+b */
+      void (*fadd)(char const * a, 
+                   char const * b,
+                   char *       c);
+      void add(char const * a, 
+               char const * b,
+               char *       c) const;
+      
+      /** \brief c = a*b */
+      void (*fmul)(char const * a, 
+                   char const * b,
+                   char *       c);
+      void mul(char const * a, 
+               char const * b,
+               char *       c) const;
+
+      /** \brief c = min(a,b) */
+      void (*fmin)(char const * a, 
+                   char const * b,
+                   char *       c);
+      void min(char const * a, 
+               char const * b,
+               char *       c) const;
+
+      /** \brief c = max(a,b) */
+      void (*fmax)(char const * a, 
+                   char const * b,
+                   char *       c);
+      void max(char const * a, 
+               char const * b,
+               char *       c) const;
+
+      /** \brief X["i"]=alpha*X["i"]; */
+      void (*fscal)(int          n,
+                    char const * alpha,
+                    char const * X,
+                    int          incX) const;
+      void scal(int          n,
+                char const * alpha,
+                char const * X,
+                int          incX) const;
+
+      /** \brief Y["i"]+=alpha*X["i"]; */
+      void (*faxpy)(int          n,
+                    char const * alpha,
+                    char const * X,
+                    int          incX,
+                    char       * Y,
+                    int          incY);
+      void axpy(int          n,
+                char const * alpha,
+                char const * X,
+                int          incX,
+                char       * Y,
+                int          incY) const;
+
+      /** \brief beta*C["ij"]=alpha*A^tA["ik"]*B^tB["kj"]; */
+      void (*fgemm)(char         tA,
+                    char         tB,
+                    int          m,
+                    int          n,
+                    int          k,
+                    char const * alpha,
+                    char const * A,
+                    char const * B,
+                    char const * beta,
+                    char *       C);
+      void gemm(char         tA,
+                char         tB,
+                int          m,
+                int          n,
+                int          k,
+                char const * alpha,
+                char const * A,
+                char const * B,
+                char const * beta,
+                char *       C) const;
+
+      algstrctcpy(algstrct const & other);
+  }
 
   class PairIterator;
 

@@ -164,9 +164,8 @@ namespace CTF_int {
   typedef cgemm template <> dgemm< std::complex<float> >;
   typedef zgemm template <> dgemm< std::complex<double> >;
 */
-  algstrct::algstrct(){
-    addid = NULL;
-    mulid = NULL;
+  algstrct::algstrct(int el_size_){
+    el_size = el_size;
   }
 
   algstrct::algstrct(algstrct const & other){
@@ -179,8 +178,20 @@ namespace CTF_int {
     mul = other.mul;
     gemm = other.gemm;
   }
-
-  algstrct::algstrct(
+  /**
+    * \param[in] addid additive identity element 
+    *              (e.g. 0.0 for the (+,*) algstrct over doubles)
+    * \param[in] mulid multiplicative identity element 
+    *              (e.g. 1.0 for the (+,*) algstrct over doubles)
+    * \param[in] addmop addition operation to pass to MPI reductions
+    * \param[in] add function pointer to add c=a+b on algstrct
+    * \param[in] mul function pointer to multiply c=a*b on algstrct
+    * \param[in] addinv function pointer to additive inverse b=-a
+    * \param[in] gemm function pointer to multiply blocks C, A, and B on algstrct
+    * \param[in] axpy function pointer to add A to B on algstrct
+    * \param[in] scal function pointer to scale A on algstrct
+    */
+  /*algstrct::algstrct(
                    int          el_size_, 
                    char const * addid_,
                    char const * mulid_,
@@ -224,18 +235,47 @@ namespace CTF_int {
     gemm = gemm_;
     axpy = axpy_;
     scal = scal_;
-  }
+  }*/
 
   algstrct::~algstrct(){
-    if (addid != NULL) free(addid);
-    if (mulid != NULL) free(mulid);
+    //if (addid != NULL) free(addid);
+    //if (mulid != NULL) free(mulid);
   }
 
-  MPI_Op algstrct::mop() const {
-    printf("CTF ERROR: now addition MPI_Op present for this algebraic structure\n");
+  virtual MPI_Op algstrct::addmop() const {
+    printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
     ASSERT(0);
   }
 
+  virtual MPI_Datatype algstrct::mdtype() const {
+    printf("CTF ERROR: no MPI_Datatype present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  virtual char const * algstrct::addid() const {
+    printf("CTF ERROR: no addition identity present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  virtual char const * algstrct::mulid() const {
+    printf("CTF ERROR: no multiplicative identity present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  virtual char const * algstrct::mulid() const {
+    printf("CTF ERROR: no multiplicative identity present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  virtual void algstrct::addinv(char const * a, char * b) const {
+    printf("CTF ERROR: no additive inverse present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  virtual void algstrct::add(char const * a, char const * b, char * c) const {
+    printf("CTF ERROR: addition operation present for this algebraic structure\n");
+    ASSERT(0);
+  }
    
   bool algstrct::isequal(char const * a, char const * b) const {
     bool iseq = true;
