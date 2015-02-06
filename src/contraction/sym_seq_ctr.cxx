@@ -177,7 +177,7 @@ namespace CTF_int{
       }
     }*/
     if (!sr_C.isequal(beta, sr_C.mulid())){
-      sz = sy_packed_size(order_C, edge_len_C, sym_C);
+      int64_t sz = sy_packed_size(order_C, edge_len_C, sym_C);
       for (i=0; i<sz; i++){
         sr_C.mul(C+i*sr_C.el_size, beta, 
                  C+i*sr_C.el_size);

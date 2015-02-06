@@ -60,5 +60,5 @@ namespace CTF {
   }
 
 }
-#include "algstrct.h"
+#include "semiring.h"
 #endif

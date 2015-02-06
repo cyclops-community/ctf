@@ -14,8 +14,8 @@ namespace CTF_int {
       sym_pass = 1;                                                        \
       for (;;){                                                            \
         if (sym_pass){                                                     \
-          sr_B.scal(inr_stride, beta, B+idx_B*inr_stride*sr_B.el_size, 1); \
-          CTF_FLOPS_ADD(2*inr_stride);                                     \
+          sr_B.mul(beta, B+idx_B*sr_B.el_size, B+idx_B*sr_B.el_size);      \
+          CTF_FLOPS_ADD(1);                                                \
         }                                                                  \
         for (idx=0; idx<idx_max; idx++){                                   \
           imin = 0, imax = INT_MAX;                                        \
@@ -35,7 +35,38 @@ namespace CTF_int {
         if (order_B > 0)                                                   \
           RESET_IDX(B);                                                    \
       }                                                                    \
-    } while (0)                                                            \
+    } } while (0)
+
+
+  #define SCAL_B_inr do {                                                  \
+    if (sr_B.isequal(beta, sr_B.mulid())){                                 \
+      memset(idx_glb, 0, sizeof(int)*idx_max);                             \
+      idx_A = 0, idx_B = 0;                                                \
+      sym_pass = 1;                                                        \
+      for (;;){                                                            \
+        if (sym_pass){                                                     \
+          sr_B.scal(inr_stride, beta, B+idx_B*inr_stride*sr_B.el_size, 1); \
+          CTF_FLOPS_ADD(inr_stride);                                       \
+        }                                                                  \
+        for (idx=0; idx<idx_max; idx++){                                   \
+          imin = 0, imax = INT_MAX;                                        \
+          GET_MIN_MAX(B,1,2);                                              \
+          if (rev_idx_map[2*idx+1] == -1) imax = imin+1;                   \
+          idx_glb[idx]++;                                                  \
+          if (idx_glb[idx] >= imax){                                       \
+             idx_glb[idx] = imin;                                          \
+          }                                                                \
+          if (idx_glb[idx] != imin) {                                      \
+             break;                                                        \
+          }                                                                \
+        }                                                                  \
+        if (idx == idx_max) break;                                         \
+        CHECK_SYM(B);                                                      \
+        if (!sym_pass) continue;                                           \
+        if (order_B > 0)                                                   \
+          RESET_IDX(B);                                                    \
+      }                                                                    \
+    } } while (0)
 
   int sym_seq_sum_ref( char const * alpha,
                        char const * A,
@@ -83,7 +114,7 @@ namespace CTF_int {
           sr_B.add(tmp, B+sr_B.el_size*idx_B, B+sr_B.el_size*idx_B);
           CTF_FLOPS_ADD(2);
         } else {
-          sr_B.add(A+sr_A.el_size*idx_A, B+sr_B.el_size*idx_B, alpha);
+          sr_B.add(A+sr_A.el_size*idx_A, B+sr_B.el_size*idx_B, B+sr_B.el_size*idx_B);
           CTF_FLOPS_ADD(1);
         }
       }
@@ -157,8 +188,7 @@ namespace CTF_int {
 
     idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
 
-    if (beta != NULL)
-      SCAL_B;
+    SCAL_B_inr;
 
     memset(idx_glb, 0, sizeof(int)*idx_max);
    
@@ -248,8 +278,7 @@ namespace CTF_int {
     idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
     memset(idx_glb, 0, sizeof(int)*idx_max);
 
-    if (beta != NULL)
-      SCAL_B;
+    SCAL_B;
 
     idx_A = 0, idx_B = 0;
     sym_pass = 1;

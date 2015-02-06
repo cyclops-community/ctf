@@ -4,30 +4,31 @@
 #include "../tensor/algstrct.h"
 
 namespace CTF {
+  //C++14, nasty
   template <typename dtype, bool is_ord>
-  inline typename std::enable_if<std::is_same<is_ord, true>::value, dtype>::type
+  inline typename std::enable_if<is_ord, dtype>::type
   default_min(dtype a, dtype b){
     return a>b ? b : a;
   }
   
   template <typename dtype, bool is_ord>
-  inline typename std::enable_if<std::is_same<is_ord, false>::value, dtype>::type
-  default_max(dtype a, dtype b){
-    pritnf("CTF ERROR: cannot compute a max unless the set is ordered");
+  inline typename std::enable_if<!is_ord, dtype>::type
+  default_min(dtype a, dtype b){
+    printf("CTF ERROR: cannot compute a max unless the set is ordered");
     assert(0);
     return a;
-  
-}
+  }
+
   template <typename dtype, bool is_ord>
-  inline typename std::enable_if<std::is_same<is_ord, true>::value, dtype>::type
-  default_min(dtype a, dtype b){
+  inline typename std::enable_if<is_ord, dtype>::type
+  default_max(dtype a, dtype b){
     return b>a ? b : a;
   }
   
   template <typename dtype, bool is_ord>
-  inline typename std::enable_if<std::is_same<is_ord, false>::value, dtype>::type
+  inline typename std::enable_if<!is_ord, dtype>::type
   default_max(dtype a, dtype b){
-    pritnf("CTF ERROR: cannot compute a min unless the set is ordered");
+    printf("CTF ERROR: cannot compute a min unless the set is ordered");
     assert(0);
     return a;
   }
@@ -60,7 +61,7 @@ namespace CTF {
         ((dtype*)c)[0] = fmax(((dtype*)a)[0],((dtype*)b)[0]);
       }
 
-  }
+  };
 }
 #include "monoid.h"
 #endif

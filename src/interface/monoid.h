@@ -6,110 +6,97 @@ namespace CTF {
   dtype default_add(dtype a, dtype b){
     return a+b;
   }
-
-  template <typename dtype>
-  void default_xpy(void * X,
-                   void * Y,
-                   int    n){
-    for (int i=0; i<n; i++){
-      ((dtype*)Y)[i] = ((dtype const *)X)[i] + ((dtype*)Y)[i];
-    }
+  
+  template <typename dtype, void (*fxpy)(int, dtype const *, dtype *)>
+  void default_mxpy(void * X,
+                    void * Y,
+                    int    n){
+    fxpy(n, (dtype const*)X, (dtype *)Y);
   }
 
+
   template <typename dtype, void (*fadd)(dtype, dtype)>
-  void get_fxpy(int           n
-                dtype const * X,
-                dtype *       Y){
+  void default_afxpy(int           n,
+                     dtype const * X,
+                     dtype *       Y){
     for (int i=0; i<n; i++){
       Y[i] = fadd(X[i],Y[i]);
     }
   }
 
-  template <typename dtype, void (*fxpy)(int, dtype const *, dtype *)>
+  template <typename dtype>
+  void default_fxpy(int           n,
+                    dtype const * X,
+                    dtype *       Y){
+    for (int i=0; i<n; i++){
+      Y[i] = X[i] + Y[i];
+    }
+  }
+
+/*  template <typename dtype, void (*fxpy)(int, dtype const *, dtype *)>
   void default_mopfun(void * X,
                       void * Y,
                       int    n){
     fxpy(n, (dtype const *)X, (dtype *)Y);
-  }
+  }*/
 
   template <typename dtype>
   MPI_Datatype get_default_mdtype(){
-    switch (dtype) {
-      case char:
-        return MPI_CHAR;
-        break;
-      case bool:
-        return MPI_BOOL;
-        break;
-      case int:
-        eturn MPI_INT;
-        break;
-      case int64_t:
-        return MPI_INT64_T;
-        break;
-      case unsigned int:
-        return MPI_UNSIGHED;
-        break;
-      case uint64_t:
-        return MPI_UINT64_T;
-        break;
-      case float:
-        return MPI_FLOAT;
-        break;
-      case double:
-        return MPI_DOUBLE;
-        break;
-      case long double:
-        return MPI_LONG_DOUBLE;
-        break;
-      case std::complex<float>:
-        return MPI_COMPLEX;
-        break;
-      case std::complex<double>:
-        return MPI_DOUBLE_COMPLEX;
-        break;
-      default:
-        MPI_Datatype newtype;
-        MPI_Type_contiguous(sizeof(dtype), MPI_CHAR, &newtype);
-        return newtype;
-        break;
-    }
+    MPI_Datatype newtype;
+    MPI_Type_contiguous(sizeof(dtype), MPI_CHAR, &newtype);
+    return newtype;
   }
+  template <>
+  MPI_Datatype get_default_mdtype<char>(){ return MPI_CHAR; }
+  template <>
+  MPI_Datatype get_default_mdtype<bool>(){ return MPI_C_BOOL; }
+  template <>
+  MPI_Datatype get_default_mdtype<int>(){ return MPI_INT; }
+  template <>
+  MPI_Datatype get_default_mdtype<int64_t>(){ return MPI_INT64_T; }
+  template <>
+  MPI_Datatype get_default_mdtype<unsigned int>(){ return MPI_UNSIGNED; }
+  template <>
+  MPI_Datatype get_default_mdtype<uint64_t>(){ return MPI_UINT64_T; }
+  template <>
+  MPI_Datatype get_default_mdtype<float>(){ return MPI_FLOAT; }
+  template <>
+  MPI_Datatype get_default_mdtype<double>(){ return MPI_DOUBLE; }
+  template <>
+  MPI_Datatype get_default_mdtype<long double>(){ return MPI_LONG_DOUBLE; }
+  template <>
+  MPI_Datatype get_default_mdtype< std::complex<float> >(){ return MPI_COMPLEX; }
+  template <>
+  MPI_Datatype get_default_mdtype< std::complex<double> >(){ return MPI_DOUBLE_COMPLEX; }
 
   template <typename dtype>
-  MPI_Datatype get_default_addop(){
-    switch (dtype) {
-      case char:
-      case bool:
-      case int:
-      case int64_t:
-      case unsigned int:
-      case uint64_t:
-      case float:
-      case double:
-      case long double:
-      case std::complex<float>:
-      case std::complex<double>:
-        return MPI_SUM;
-        break;
-      default:
-        //FIXME: assumes + operator commutes
-        MPI_Op newop;
-        MPI_Op_create(&default_xpy<dtype>, 1, &newop);
-        return newop;
-        break;
-    }
+  MPI_Op get_default_maddop(){
+    //FIXME: assumes + operator commutes
+    MPI_Op newop;
+    MPI_Op_create(&default_afxpy<dtype,default_add<dtype>>, 1, &newop);
+    return newop;
   }
 
+  //c++ sucks...
+  template <> MPI_Op get_default_maddop<char>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop<bool>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop<int>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop<int64_t>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop<unsigned int>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop<uint64_t>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop<float>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop<double>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop<long double>(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop< std::complex<float> >(){ return MPI_SUM; }
+  template <> MPI_Op get_default_maddop< std::complex<double> >(){ return MPI_SUM; }
+  
   template <typename dtype, void (*fxpy)(int, dtype const *, dtype *)>
-  MPI_Datatype get_maddop(){
-      //FIXME: assumes + operator commutes
-      MPI_Op newop;
-      MPI_Op_create(&default_fxpy<dtype, fxpy>, 1, &newop);
-      return newop;
-    }
+  MPI_Op get_maddop(){
+    //FIXME: assumes + operator commutes
+    MPI_Op newop;
+    MPI_Op_create(&default_mxpy<dtype, fxpy>, 1, &newop);
+    return newop;
   }
-
 
   /**
    * Monoid class defined by a datatype (Set) and an addition function
@@ -128,11 +115,11 @@ namespace CTF {
       
       Monoid(dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
              dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Set(fmin_, fmax_) {
+              : Set<dtype, is_ord>(fmin_, fmax_) {
         taddid  = (dtype)0;
         fadd    = &default_add<dtype>;
-        fxpy    = &default_xpy<dtype>;
-        taddmop = get_default_mop<dtype>();
+        fxpy    = &default_fxpy<dtype>;
+        taddmop = get_default_maddop<dtype>();
         tmdtype = get_default_mdtype<dtype>();
       } 
  
@@ -140,12 +127,12 @@ namespace CTF {
              dtype (*fadd_)(dtype a, dtype b),
              dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
              dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Set(fmin_, fmax_) {
+              : Set<dtype, is_ord>(fmin_, fmax_) {
         taddid  = taddid_;
         fadd    = fadd_;
-        fxpy    = get_fxpy<dtype,fadd>;
-        taddmop = get_maddop<dtype,fxpy>();
-        tmdtype = get_default_mdtype();
+        fxpy    = &default_afxpy<dtype,fadd_>;
+        taddmop = get_maddop<dtype,&default_afxpy<dtype,fadd_>>();
+        tmdtype = get_default_mdtype<dtype>();
       }
  
       Monoid(dtype taddid_,
@@ -154,12 +141,12 @@ namespace CTF {
              MPI_Op addmop_,
              dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
              dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Set(fmin_, fmax_) {
+              : Set<dtype, is_ord>(fmin_, fmax_) {
         taddid  = taddid_;
         fadd    = fadd_;
         fxpy    = fxpy_;
-        taddmop = taddmop_;
-        tmdtype = get_default_mdtype();
+        taddmop = addmop_;
+        tmdtype = get_default_mdtype<dtype>();
       }
 
       void add(char const * a, 
@@ -192,7 +179,7 @@ namespace CTF {
         fxpy(n, X, Y);
       }
 
-  }
+  };
 }
 
 #include "group.h"
