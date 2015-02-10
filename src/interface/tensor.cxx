@@ -28,14 +28,14 @@ namespace CTF {
     : CTF_int::tensor(Semiring<dtype>(), order, lens, sym, &wrld, 1, name, profile) { }
 */
   template<typename dtype>
-  Tensor<dtype>::Tensor(int             order,
-                        int const *     len,
-                        int const *     sym,
-                        World &         world,
-                        Semiring<dtype> sr,
-                        char const *    name,
-                        int const       profile)
-    : CTF_int::tensor(sr, order, lens, sym, &wrld, 1, name, profile) {}
+  Tensor<dtype>::Tensor(int          order,
+                        int const *  len,
+                        int const *  sym,
+                        World &      world,
+                        Set<dtype>   sr,
+                        char const * name,
+                        int const    profile)
+    : CTF_int::tensor(sr, order, lens, sym, &world, 1, name, profile) {}
 
 
   template<typename dtype>
@@ -393,7 +393,7 @@ namespace CTF {
       printf("ERROR: cannot align tensors on different CTF instances\n");
       assert(0);
     }
-    int ret = CTF_int::tensor::align(A);
+    int ret = CTF_int::tensor::align(&A);
     assert(ret == SUCCESS);
   }
 

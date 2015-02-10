@@ -63,14 +63,14 @@ namespace CTF {
     cblas_zaxpy(n,&alpha,X,incX,Y,incY);
   }
 
-
+/*
   template <typename dtype, void (*faxpy)(int,dtype,dtype const*,int,dtype*,int), dtype mulid>
   void fxpy_from_faxpy(int           n,
                        dtype const * X,
                        dtype *       Y){ 
     faxpy(n, mulid, X, 1, Y, 1);
   }
-
+*/
 
   template <typename dtype>
   void default_scal(int           n,
@@ -201,7 +201,7 @@ namespace CTF {
     CTF_int::zgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
 
-  template <typename dtype, dtype (*func)(dtype const a, dtype const b)>
+/*  template <typename dtype, dtype (*func)(dtype const a, dtype const b)>
   void detypedfunc(char const * a,
                    char const * b,
                    char *       c){
@@ -229,13 +229,13 @@ namespace CTF {
             ((dtype const *)beta)[0],
              (dtype       *)C);
   }
-
+*/
 
   /**
-   * Semiring class defined by a datatype and addition and multiplicaton functions
+   * Semiring is a Monoid with an addition multiplicaton function
    *   addition must have an identity and be associative, does not need to be commutative
    *   multiplications must have an identity as well as be distributive and associative
-   *   define a Ring instead if an additive inverse is also available
+   *   special case (parent) of a Ring (which also has an additive inverse)
    */
   template <typename dtype=double, bool is_ord=true> 
   class Semiring : public Monoid<dtype, is_ord> {
@@ -244,40 +244,36 @@ namespace CTF {
       void (*fscal)(int,dtype,dtype*,int);
       void (*faxpy)(int,dtype,dtype const*,int,dtype*,int);
       dtype (*fmul)(dtype a, dtype b);
-      void (*gemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
+      void (*fgemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
 
+       // \param[in] mdtype MPI Datatype to use in reductions
       /**
        * \brief constructor for algstrct equipped with * and +
        * \param[in] addid_ additive identity
-       * \param[in] mulid_ multiplicative identity
-       * \param[in] mdtype MPI Datatype to use in reductions
-       * \param[in] addmop_ MPI_Op operation for addition
        * \param[in] fadd_ binary addition function
+       * \param[in] addmop_ MPI_Op operation for addition
+       * \param[in] mulid_ multiplicative identity
        * \param[in] fmul_ binary multiplication function
        * \param[in] gemm_ block matrix multiplication function
        * \param[in] axpy_ vector sum function
        * \param[in] scal_ vector scale function
        */
       Semiring(dtype        addid_,
-               dtype        mulid_,
-               MPI_Datatype mdtype_,
+               dtype (*fadd_)(dtype a, dtype b),
                MPI_Op       addmop_,
-               dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
-               dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
-               dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-               dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
-               void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
-               void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
-               void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
-                : Monoid<dtype, is_ord>(addid_, fadd_, fxpy_from_faxpy<dtype,axpy_,mulid_>, addmop_, fmin_, fmax_) {
+               dtype        mulid_,
+               dtype (*fmul_)(dtype a, dtype b),
+               void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
+               void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
+               void (*scal_)(int,dtype,dtype*,int)=NULL) 
+                : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) {
         tmulid = mulid_;
         fmul   = fmul_;
-        gemm   = gemm_;
+        fgemm  = gemm_;
         faxpy  = axpy_;
         fscal  = scal_;
       }
 
-  
       /**
        * \brief constructor for algstrct equipped with * and +
        * \param[in] addid_ additive identity
@@ -289,7 +285,7 @@ namespace CTF {
        * \param[in] axpy_ vector sum function
        * \param[in] scal_ vector scale function
        */
-      Semiring(dtype  addid_,
+/*      Semiring(dtype  addid_,
                dtype  mulid_,
                dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
                dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
@@ -304,18 +300,81 @@ namespace CTF {
         gemm   = gemm_;
         faxpy  = axpy_;
         fscal  = scal_;
-      }
+      }*/
   
       /**
        * \brief constructor for algstrct equipped with + only
-       * \param[in] addid_ additive identity
        */
-      Semiring(dtype addid_) : Monoid<dtype,is_ord>() {
-        fmul  = &default_mul<dtype>;
-        gemm  = &default_gemm<dtype>;
-        faxpy = &default_axpy<dtype>;
-        fscal = &default_scal<dtype>;
+      Semiring() : Monoid<dtype,is_ord>() {
+        tmulid = (dtype)1;
+        fmul   = &default_mul<dtype>;
+        gemm   = &default_gemm<dtype>;
+        faxpy  = &default_axpy<dtype>;
+        fscal  = &default_scal<dtype>;
       }
+
+
+      /** \brief X["i"]=alpha*X["i"]; */
+      void scal(int          n,
+                char const * alpha,
+                char const * X,
+                int          incX)  const {
+        if (fscal != NULL) fscal(n, alpha, X, incX);
+        else {
+          dtype const a = ((dtype*)alpha)[0];
+          dtype * dX    = (dtype*) X;
+          for (int64_t i=0; i<n; i++){
+            dX[i] = fmul(alpha,dX[i]);
+          }
+        }
+      }
+
+      /** \brief Y["i"]+=alpha*X["i"]; */
+      void axpy(int          n,
+                char const * alpha,
+                char const * X,
+                int          incX,
+                char       * Y,
+                int          incY)  const {
+        if (faxpy != NULL) faxpy(n, alpha, X, incX, Y, incY);
+        else {
+          dtype const a    = ((dtype*)alpha)[0];
+          dtype const * dX = (dtype*) X;
+          dtype * dY       = (dtype*) Y;
+          for (int64_t i=0; i<n; i++){
+            dY[i] = fadd(fmul(alpha,dX[i]), dY[i]);
+          }
+        }
+      }
+
+      /** \brief beta*C["ij"]=alpha*A^tA["ik"]*B^tB["kj"]; */
+      void gemm(char         tA,
+                char         tB,
+                int          m,
+                int          n,
+                int          k,
+                char const * alpha,
+                char const * A,
+                char const * B,
+                char const * beta,
+                char *       C)  const {
+        if (fgemm != NULL) fgemm(tA, tB, m, n, k, alpha, A, B, beta, C);
+        else {
+          dtype const a    = ((dtype*)alpha)[0];
+          dtype const b    = ((dtype*)beta)[0];
+          dtype const * dA = (dtype*) A;
+          dtype const * dB = (dtype*) B;
+          dtype * dC       = (dtype*) C;
+          if (!this->isequal(&b, this->mulid())){
+            scal(m*n, beta, C, 1);
+          }   
+          for (int64_t i=0; i<n; i++){
+            dC[i] = fadd(fmul(alpha,fmul(dA[i],dB[i])), dC[i]);
+          }
+        } 
+      }
+
+
   
       /**
        * \brief constructor for algstrct equipped with + only ---- now Monoid

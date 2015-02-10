@@ -10,38 +10,36 @@ namespace CTF {
     return -a;
   }
 
-  template <typename dtype, dtype (*fmax)(dtype a, dtype b), dtype (*faddinv)(dtype a, dtype b)>
-  void fabs(char const * a, char * b) {
-    dtype inva = faddinv(((dtype*)a)[0]);
-    ((dtype*)b)[0] = fmax(a,inva);
+  template <typename dtype, bool is_ord>
+  inline typename std::enable_if<is_ord, dtype>::type
+  default_abs(dtype a){
+    dtype b = default_addinv<dtype>(a);
+    return a>=b ? a : b;
+  }
+  
+  template <typename dtype, bool is_ord>
+  inline typename std::enable_if<!is_ord, dtype>::type
+  default_abs(dtype a){
+    printf("CTF ERROR: cannot compute abs unless the set is ordered");
+    assert(0);
+    return a;
   }
 
+
   /**
-   * Group class defined by a datatype and an addition function
-   *   addition must have an identity and be associative, does not need to be commutative
-   *   define a Semiring/Ring instead if a multiplication
+   * Group is a Monoid with operator '-' defined
+   *   special case (parent) of a ring
    */
   template <typename dtype=double, bool is_ord=true> 
   class Group : public Monoid<dtype, is_ord> {
     public:
-      dtype (*faddinv)(dtype a);
-      
-      Group(dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-            dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Monoid<dtype, is_ord>(fmin_, fmax_) {
-        faddinv = &default_addinv<dtype>;
-      } 
+      Group() : Monoid<dtype, is_ord>() { } 
 
       Group(dtype taddid_,
             dtype (*fadd_)(dtype a, dtype b),
-            dtype (*faddinv_)(dtype a, dtype b),
-            dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-            dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Monoid<dtype, is_ord>(taddid_, fadd_, fmin_, fmax_) {
-        faddinv = faddinv_;
-        abs = fabs<dtype, fmax_, faddinv_>;
-      }
- 
+            MPI_Op addmop_)
+              : Monoid<dtype, is_ord>(taddid_, fadd_, addmop_) { }
+ /*
       Group(dtype taddid_,
             dtype (*fadd_)(dtype a, dtype b),
             dtype (*faddinv_)(dtype a, dtype b),
@@ -52,8 +50,9 @@ namespace CTF {
               : Monoid<dtype, is_ord>(taddid_, fadd_, fxpy_, addmop_, fmin_, fmax_) {
         faddinv = faddinv_;
         abs = fabs<dtype, fmax_, faddinv_>;
-      }
-      Group(dtype taddid_,
+      }*/
+
+/*      Group(dtype taddid_,
             dtype (*fadd_)(dtype a, dtype b),
             dtype (*faddinv_)(dtype a, dtype b),
             void (*fxpy_)(int, dtype const *, dtype *),
@@ -63,10 +62,10 @@ namespace CTF {
         faddinv = faddinv_;
         abs = fabs<dtype, fmax_, faddinv_>;
       }
-
+*/
 
       void addinv(char const * a, char * b) const {
-        ((dtype*)b)[0] = faddinv(((dtype*)a)[0]);
+        ((dtype*)b)[0] = -((dtype*)a)[0];
       }
   };
 

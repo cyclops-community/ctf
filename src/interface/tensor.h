@@ -96,13 +96,13 @@ namespace CTF {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */
-      Tensor(int             order,
-             int const *     len,
-             int const *     sym,
-             World &         wrld,
-             Semiring<dtype> sr = Ring<dtype>(),
-             char const *    name = NULL,
-             int             profile = 0);
+      Tensor(int          order,
+             int const *  len,
+             int const *  sym,
+             World &      wrld,
+             Set<dtype>   sr=Ring<dtype>(),
+             char const * name=NULL,
+             int          profile=0);
 
       
       /**

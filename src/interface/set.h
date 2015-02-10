@@ -33,32 +33,25 @@ namespace CTF {
     return a;
   }
 
+
   /**
    * Set class defined by a datatype and a min/max function (if it is partially ordered i.e. is_ord=true)
    */
   template <typename dtype=double, bool is_ord=true> 
-  class Set : CTF_int::algstrct {
+  class Set : public CTF_int::algstrct {
     public:
-      dtype (*fmin)(dtype a, dtype b);
-      dtype (*fmax)(dtype a, dtype b);
-
-      Set(dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-          dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-            : algstrct(sizeof(dtype)) {
-        fmin = fmin_;
-        fmax = fmax_;
-      }
+      Set() : algstrct(sizeof(dtype)) { }
 
       void min(char const * a, 
                char const * b,
                char *       c){
-        ((dtype*)c)[0] = fmin(((dtype*)a)[0],((dtype*)b)[0]);
+        ((dtype*)c)[0] = default_min<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
       }
 
       void max(char const * a, 
                char const * b,
                char *       c){
-        ((dtype*)c)[0] = fmax(((dtype*)a)[0],((dtype*)b)[0]);
+        ((dtype*)c)[0] = default_max<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
       }
 
   };

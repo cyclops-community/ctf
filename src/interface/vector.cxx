@@ -14,7 +14,7 @@ namespace CTF {
       return i;
     }
   };
-
+/*
   template<typename dtype>
   Vector<dtype>::Vector(int                 len_,
                         World &             world_,
@@ -23,14 +23,14 @@ namespace CTF {
     Tensor<dtype>(1, int1(len_), int1(NS), world_, name_, profile_) {
     len = len_;
   }
-
+*/
   template<typename dtype>
-  Vector<dtype>::Vector(int                 len_,
-                        World &             world_,
-                        Semiring<dtype>     sr_,
-                        char const *        name_,
-                        int                 profile_) :
-    Tensor<dtype>(1, int1(len_), int1(NS), sr_, world_, name_, profile_) {
+  Vector<dtype>::Vector(int          len_,
+                        World &      world_,
+                        Set<dtype>   sr_,
+                        char const * name_,
+                        int          profile_)
+   : Tensor<dtype>(1, int1(len_), int1(NS), sr_, world_, name_, profile_) {
     len = len_;
   }
 

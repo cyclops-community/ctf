@@ -14,16 +14,6 @@ namespace CTF {
     fxpy(n, (dtype const*)X, (dtype *)Y);
   }
 
-
-  template <typename dtype, void (*fadd)(dtype, dtype)>
-  void default_afxpy(int           n,
-                     dtype const * X,
-                     dtype *       Y){
-    for (int i=0; i<n; i++){
-      Y[i] = fadd(X[i],Y[i]);
-    }
-  }
-
   template <typename dtype>
   void default_fxpy(int           n,
                     dtype const * X,
@@ -73,7 +63,7 @@ namespace CTF {
   MPI_Op get_default_maddop(){
     //FIXME: assumes + operator commutes
     MPI_Op newop;
-    MPI_Op_create(&default_afxpy<dtype,default_add<dtype>>, 1, &newop);
+    MPI_Op_create(&default_mxpy<dtype,default_fxpy<dtype>>, 1, &newop);
     return newop;
   }
 
@@ -99,35 +89,28 @@ namespace CTF {
   }
 
   /**
-   * Monoid class defined by a datatype (Set) and an addition function
+   * A Monoid is a Set equipped with a binary addition operator '+' or a custom function
    *   addition must have an identity and be associative, does not need to be commutative
-   *   define a Group if there is an additive inverse and Semiring/Ring instead if there is 
-   *   a multiplication
+   *   special case (parent) of a semiring, group, and ring
    */
   template <typename dtype=double, bool is_ord=true> 
   class Monoid : public Set<dtype, is_ord> {
     public:
       dtype taddid;
       dtype (*fadd)(dtype a, dtype b);
-      void (*fxpy)(int, dtype const *, dtype *);
       MPI_Datatype tmdtype;
       MPI_Op       taddmop;
       
-      Monoid(dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Set<dtype, is_ord>(fmin_, fmax_) {
+      Monoid() : Set<dtype, is_ord>() {
         taddid  = (dtype)0;
         fadd    = &default_add<dtype>;
-        fxpy    = &default_fxpy<dtype>;
         taddmop = get_default_maddop<dtype>();
         tmdtype = get_default_mdtype<dtype>();
       } 
- 
+/* 
       Monoid(dtype taddid_,
-             dtype (*fadd_)(dtype a, dtype b),
-             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Set<dtype, is_ord>(fmin_, fmax_) {
+             dtype (*fadd_)(dtype a, dtype b))
+              : Set<dtype, is_ord>() {
         taddid  = taddid_;
         fadd    = fadd_;
         fxpy    = &default_afxpy<dtype,fadd_>;
@@ -137,27 +120,21 @@ namespace CTF {
   
       Monoid(dtype taddid_,
              dtype (*fadd_)(dtype a, dtype b),
-             void (*fxpy_)(int, dtype const *, dtype *),
-             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
+             void (*fxpy_)(int, dtype const *, dtype *)){
               : Set<dtype, is_ord>(fmin_, fmax_) {
         taddid  = taddid_;
         fadd    = fadd_;
         fxpy    = fxpy_;
         taddmop = get_maddop<dtype,fxpy_>();
         tmdtype = get_default_mdtype<dtype>();
-      }
+      }*/
 
       Monoid(dtype taddid_,
              dtype (*fadd_)(dtype a, dtype b),
-             void (*fxpy_)(int, dtype const *, dtype *),
-             MPI_Op addmop_,
-             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Set<dtype, is_ord>(fmin_, fmax_) {
+             MPI_Op addmop_)
+              : Set<dtype, is_ord>() {
         taddid  = taddid_;
         fadd    = fadd_;
-        fxpy    = fxpy_;
         taddmop = addmop_;
         tmdtype = get_default_mdtype<dtype>();
       }
@@ -187,9 +164,13 @@ namespace CTF {
                 char       * Y,
                 int          incY) const {
         // FIXME: need arbitrary incX and incY? some assert on alpha?
-        ASSERT(incX == 1);
+        /*ASSERT(incX == 1);
         ASSERT(incY == 1);
-        fxpy(n, X, Y);
+        fxpy(n, X, Y);*/
+        ASSERT(alpha == NULL);
+        for (int64_t i=0; i<n; i++){
+          add(((dtype*)X)+i*incX,((dtype*)Y)+i*incY,((dtype*)Y)+i*incY);
+        }
       }
 
   };
