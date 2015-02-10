@@ -28,7 +28,7 @@ namespace CTF {
       
       Group(dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Monoid(fmin_, fmax_) {
+              : Monoid<dtype, is_ord>(fmin_, fmax_) {
         faddinv = &default_addinv<dtype>;
       } 
 
@@ -37,7 +37,7 @@ namespace CTF {
             dtype (*faddinv_)(dtype a, dtype b),
             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Monoid(taddid_, fadd_, fmin_, fmax_) {
+              : Monoid<dtype, is_ord>(taddid_, fadd_, fmin_, fmax_) {
         faddinv = faddinv_;
         abs = fabs<dtype, fmax_, faddinv_>;
       }
@@ -49,15 +49,26 @@ namespace CTF {
             MPI_Op addmop_,
             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Monoid(taddid_, fadd_, fxpy_, addmop_, fmin_, fmax_) {
+              : Monoid<dtype, is_ord>(taddid_, fadd_, fxpy_, addmop_, fmin_, fmax_) {
+        faddinv = faddinv_;
+        abs = fabs<dtype, fmax_, faddinv_>;
+      }
+      Group(dtype taddid_,
+            dtype (*fadd_)(dtype a, dtype b),
+            dtype (*faddinv_)(dtype a, dtype b),
+            void (*fxpy_)(int, dtype const *, dtype *),
+            dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+            dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
+              : Monoid<dtype, is_ord>(taddid_, fadd_, fxpy_, fmin_, fmax_) {
         faddinv = faddinv_;
         abs = fabs<dtype, fmax_, faddinv_>;
       }
 
+
       void addinv(char const * a, char * b) const {
         ((dtype*)b)[0] = faddinv(((dtype*)a)[0]);
       }
-  }
+  };
 
 }
 #include "semiring.h"

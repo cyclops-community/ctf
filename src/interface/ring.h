@@ -10,15 +10,14 @@ namespace CTF {
    */
   template <typename dtype=double, bool is_ord=true>
   class Ring : public Semiring<dtype, is_ord>, public Group<dtype, is_ord> {
+    public:
     /** 
      * \brief default constructor valid for only certain types:
      *         bool, int, unsigned int, int64_t, uint64_t,
      *         float, double, std::complex<float>, std::complex<double>
      */
-    /*Ring(){ 
-      printf("CTF ERROR: at least the additive identity must be specified for rings of custom tensor types, use of default constructor not allowed, aborting.\n");
-      assert(0);
-    }*/
+    Ring() : Semiring<dtype, is_ord>(), Group<dtype, is_ord>() { 
+    }
 
     /**
      * \brief constructor for algstrct equipped with * and +
@@ -39,16 +38,14 @@ namespace CTF {
          dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
          dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
          dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
-         dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype>,
-         dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype>,
+         dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+         dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
          void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
          void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
          void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
-          : Semiring<dtype>(addid_, mulid_, mdtype_, addmop_, fadd_, fmul_, 
-                            fmin_, fmax_, gemm_, axpy_, scal_){
-      faddinv = faddinv_;
-      is_ring = true;
-    }
+          : Semiring<dtype,is_ord>(addid_, mulid_, mdtype_, addmop_, fadd_, fmul_, 
+                                   fmin_, fmax_, gemm_, axpy_, scal_), 
+            Group<dtype,is_ord>(addid_, fadd_, faddinv_, fxpy_from_faxpy<dtype,axpy_,addid_>,addmop_,fmin_,fmax_) { }
 
 
     /**
@@ -67,30 +64,29 @@ namespace CTF {
          dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
          dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
          dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
-         dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype>,
-         dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype>,
+         dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+         dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
          void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
          void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
          void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
-          : Semiring<dtype>(addid_, mulid_, fadd_, fmul_, 
-                            fmin_, fmax_, gemm_, axpy_, scal_) {
-      faddinv = faddinv_;
-      is_ring = true;
-    }
+          : Semiring<dtype,is_ord>(addid_, mulid_, fadd_, fmul_, 
+                                   fmin_, fmax_, gemm_, axpy_, scal_) , 
+            Group<dtype,is_ord>(addid_, fadd_, faddinv_, fxpy_from_faxpy<dtype,axpy_,addid_>,fmin_,fmax_) { }
+
 
 
     /**
      * \brief constructor for algstrct equipped with + only
      * \param[in] addid_ additive identity
      */
-    Semiring(dtype addid_) : Semiring<dtype>(addid_) {
+    /*Semiring(dtype addid_) : Semiring<dtype>(addid_) {
       faddinv = &default_addinv<dtype>;
       is_ring = true;
-    }
-  }
+    }*/
+  };
   // The following requires C++11 unfortunately...
   template<>
-  Ring<bool>::Ring() : Ring(false, true) {};
+  Ring<bool,1>::Ring() : Ring(false, true) {};
   template<>
   Ring<int>::Ring() : Ring(0, 1) {};
   template<>

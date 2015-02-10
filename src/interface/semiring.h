@@ -63,6 +63,15 @@ namespace CTF {
     cblas_zaxpy(n,&alpha,X,incX,Y,incY);
   }
 
+
+  template <typename dtype, void (*faxpy)(int,dtype,dtype const*,int,dtype*,int), dtype mulid>
+  void fxpy_from_faxpy(int           n,
+                       dtype const * X,
+                       dtype *       Y){ 
+    faxpy(n, mulid, X, 1, Y, 1);
+  }
+
+
   template <typename dtype>
   void default_scal(int           n,
                     dtype         alpha,
@@ -228,8 +237,8 @@ namespace CTF {
    *   multiplications must have an identity as well as be distributive and associative
    *   define a Ring instead if an additive inverse is also available
    */
-  template <typename dtype=double, is_ord=true> 
-  class Semiring : public Monoid {
+  template <typename dtype=double, bool is_ord=true> 
+  class Semiring : public Monoid<dtype, is_ord> {
     public:
       dtype tmulid;
       void (*fscal)(int,dtype,dtype*,int);
@@ -254,24 +263,20 @@ namespace CTF {
                MPI_Datatype mdtype_,
                MPI_Op       addmop_,
                dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
-               dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
                dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
                dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
                dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
                void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
                void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
                void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
-                : algstrct(sizeof(dtype), false, mdtype_, addmop_) {
-        taddid  = addid_;
-        tmulid  = mulid_;
-        fadd    = fadd_;
-        faddinv = faddinv_;
-        fmul    = fmul_;
-        gemm    = gemm_;
-        axpy    = axpy_;
-        scal    = scal_;
+                : Monoid<dtype, is_ord>(addid_, fadd_, fxpy_from_faxpy<dtype,axpy_,mulid_>, addmop_, fmin_, fmax_) {
+        tmulid = mulid_;
+        fmul   = fmul_;
+        gemm   = gemm_;
+        faxpy  = axpy_;
+        fscal  = scal_;
       }
-  
+
   
       /**
        * \brief constructor for algstrct equipped with * and +
@@ -287,45 +292,38 @@ namespace CTF {
       Semiring(dtype  addid_,
                dtype  mulid_,
                dtype (*fadd_)(dtype a, dtype b)=&default_add<dtype>,
-               dtype (*faddinv_)(dtype a)=&default_addinv<dtype>,
                dtype (*fmul_)(dtype a, dtype b)=&default_mul<dtype>,
                dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
                dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>,
                void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=&default_gemm<dtype>,
                void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=&default_axpy<dtype>,
                void (*scal_)(int,dtype,dtype*,int)=&default_scal<dtype>) 
-                : algstrct(sizeof(dtype), false) {
-        taddid  = addid_;
-        tmulid  = mulid_;
-        fadd    = fadd_;
-        faddinv = faddinv_;
-        fmul    = fmul_;
-        gemm    = gemm_;
-        axpy    = axpy_;
-        scal    = scal_;
+                : Monoid<dtype, is_ord>(addid_, fadd_, fxpy_from_faxpy<dtype,axpy_,mulid_>, fmin_, fmax_) {
+        tmulid = mulid_;
+        fmul   = fmul_;
+        gemm   = gemm_;
+        faxpy  = axpy_;
+        fscal  = scal_;
       }
   
       /**
        * \brief constructor for algstrct equipped with + only
        * \param[in] addid_ additive identity
        */
-      Semiring(dtype addid_) : algstrct(sizeof(dtype), false) {
-        taddid  = addid_;
-        fadd    = &default_add<dtype>;
-        faddinv = &default_addinv<dtype>;
-        fmul    = &default_mul<dtype>;
-        gemm    = &default_gemm<dtype>;
-        axpy    = &default_axpy<dtype>;
-        scal    = &default_scal<dtype>;
+      Semiring(dtype addid_) : Monoid<dtype,is_ord>() {
+        fmul  = &default_mul<dtype>;
+        gemm  = &default_gemm<dtype>;
+        faxpy = &default_axpy<dtype>;
+        fscal = &default_scal<dtype>;
       }
   
       /**
-       * \brief constructor for algstrct equipped with + only
+       * \brief constructor for algstrct equipped with + only ---- now Monoid
        * \param[in] addid_ additive identity
        * \param[in] addmop_ MPI_Op operation for addition
        * \param[in] fadd_ binary addition function
        */
-      Semiring(dtype  addid_,
+      /*Semiring(dtype  addid_,
                MPI_Op addmop_,
                dtype (*fadd_)(dtype a, dtype b)){
         addid   = addid_;
@@ -336,7 +334,7 @@ namespace CTF {
         gemm    = &default_gemm<dtype>;
         axpy    = &default_axpy<dtype>;
         scal    = &default_scal<dtype>;
-      }
+      }*/
   };
 }
 #include "ring.h"

@@ -90,8 +90,8 @@ namespace CTF {
   template <> MPI_Op get_default_maddop< std::complex<float> >(){ return MPI_SUM; }
   template <> MPI_Op get_default_maddop< std::complex<double> >(){ return MPI_SUM; }
   
-  template <typename dtype, void (*fxpy)(int, dtype const *, dtype *)>
-  MPI_Op get_maddop(){
+  template <typename dtype>
+  MPI_Op get_maddop(void (*fxpy)(int, dtype const *, dtype *)){
     //FIXME: assumes + operator commutes
     MPI_Op newop;
     MPI_Op_create(&default_mxpy<dtype, fxpy>, 1, &newop);
@@ -134,7 +134,20 @@ namespace CTF {
         taddmop = get_maddop<dtype,&default_afxpy<dtype,fadd_>>();
         tmdtype = get_default_mdtype<dtype>();
       }
- 
+  
+      Monoid(dtype taddid_,
+             dtype (*fadd_)(dtype a, dtype b),
+             void (*fxpy_)(int, dtype const *, dtype *),
+             dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
+             dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
+              : Set<dtype, is_ord>(fmin_, fmax_) {
+        taddid  = taddid_;
+        fadd    = fadd_;
+        fxpy    = fxpy_;
+        taddmop = get_maddop<dtype,fxpy_>();
+        tmdtype = get_default_mdtype<dtype>();
+      }
+
       Monoid(dtype taddid_,
              dtype (*fadd_)(dtype a, dtype b),
              void (*fxpy_)(int, dtype const *, dtype *),

@@ -109,7 +109,7 @@ namespace CTF {
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
     }
-    ret = CTF_int::tensor::write(npair, (char*)&sr.mulid, (char*)&sr.addid, (char*)pairs);
+    ret = CTF_int::tensor::write(npair, sr.mulid(), sr.addid(), (char*)pairs);
     assert(ret == SUCCESS);
     CTF_int::cfree(pairs);
   }
@@ -256,7 +256,7 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::add_to_subworld(
                            Tensor<dtype> * tsr) const {
-    return add_to_subworld(tsr, (char*)&sr.mulid, (char*)&sr.mulid);
+    return add_to_subworld(tsr, sr.mulid(), sr.mulid());
   }
 
   template<typename dtype>
@@ -275,7 +275,7 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::add_from_subworld(
                            Tensor<dtype> * tsr) const {
-    return add_from_subworld(tsr, (char*)&sr.mulid, (char*)&sr.mulid);
+    return add_from_subworld(tsr, sr.mulid(), sr.mulid());
   }
 
   template<typename dtype>
@@ -546,8 +546,8 @@ namespace CTF {
              B.order, idx_B, &idx_map_B,
              order, idx_C, &idx_map_C);
     CTF_int::contraction ctr
-      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, (char*)&sr.mulid,
-                                           this, idx_map_C, (char*)&sr.addid);
+      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, sr.mulid(),
+                                           this, idx_map_C, sr.addid());
     return ctr.estimate_time();
   }
     
@@ -560,7 +560,7 @@ namespace CTF {
     conv_idx(A.order, idx_A, &idx_map_A,
              order, idx_B, &idx_map_B);
     CTF_int::summation sum 
-      = CTF_int::summation(&A, idx_map_A, (char*)&sr.mulid, this, idx_map_B, (char*)&sr.addid);
+      = CTF_int::summation(&A, idx_map_A, sr.mulid(), this, idx_map_B, sr.addid());
 
     return sum.estimate_time();
     
