@@ -18,7 +18,6 @@ namespace CTF_int {
       void (*abs)(char const * a, 
                   char *       b);
 
-
       /** \brief gets pair size el_size plus the key size */
       int pair_size() const { return el_size + sizeof(int64_t); }
 

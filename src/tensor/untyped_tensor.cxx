@@ -2,6 +2,7 @@
 #include "../interface/common.h"
 #include "../interface/timer.h"
 #include "../summation/summation.h"
+#include "../contraction/contraction.h"
 #include "untyped_tensor.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
@@ -906,37 +907,55 @@ namespace CTF_int {
     } else return SUCCESS;
   }
 
-  int tensor::reduce(CTF::OP op, char * result) {
+  int tensor::reduce_sum(char * result) {
+    return reduce_sum(result, sr);
+  }
+
+  int tensor::reduce_sum(char * result, algstrct sr_other) {
     ASSERT(is_mapped && is_folded);
-    switch (op){
-      case OP_SUM: {
-        tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
-        int idx_A[order];
-        for (int i=0; i<order; i++){
-           idx_A[i] = i;
-        }
-        summation sm = summation(this, idx_A, sr.mulid(), &sc, NULL, sr.addid());
-        sm.execute();
-        sr.copy(result, sc.data);
-        MPI_Bcast(result, sr.el_size, MPI_CHAR, 0, wrld->cdt.cm);
-      } break;
-      case OP_SUMABS: {
-//        algstrctcpy sr_sumabs = algstrctcpy(sr);
-//        sr_sumabs.fadd = &(sr.addabs); 
-        univar_function func = univar_function(sr.abs);
-        tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
-        int idx_A[order];
-        for (int i=0; i<order; i++){
-           idx_A[i] = i;
-        }
-        summation sm = summation(this, idx_A, sr.mulid(), &sc, NULL, sr.addid(), func);
-        sm.execute();
-        sr.copy(result, sc.data);
-        MPI_Bcast(result, sr.el_size, MPI_CHAR, 0, wrld->cdt.cm);
-       
-      } break;
-      
+    tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
+    int idx_A[order];
+    for (int i=0; i<order; i++){
+       idx_A[i] = i;
     }
+    summation sm = summation(this, idx_A, sr.mulid(), &sc, NULL, sr_other.addid());
+    sm.execute();
+    sr.copy(result, sc.data);
+    MPI_Bcast(result, sr_other.el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    return SUCCESS;
+  }
+
+  int tensor::reduce_sumabs(char * result) {
+    return reduce_sumabs(result, sr);
+  }
+
+  int tensor::reduce_sumabs(char * result, algstrct sr_other) {
+    ASSERT(is_mapped && is_folded);
+    univar_function func = univar_function(sr.abs);
+    tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
+    int idx_A[order];
+    for (int i=0; i<order; i++){
+       idx_A[i] = i;
+    }
+    summation sm = summation(this, idx_A, sr.mulid(), &sc, NULL, sr_other.addid(), func);
+    sm.execute();
+    sr.copy(result, sc.data);
+    MPI_Bcast(result, sr.el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    return SUCCESS;
+  }
+
+  int tensor::reduce_sumsq(char * result) {
+    ASSERT(is_mapped && is_folded);
+    tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
+    int idx_A[order];
+    for (int i=0; i<order; i++){
+       idx_A[i] = i;
+    }
+    contraction ctr = contraction(this, idx_A, this, idx_A, sr.mulid(), &sc, NULL, sr.addid());
+    ctr.execute();
+    sr.copy(result, sc.data);
+    MPI_Bcast(result, sr.el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    return SUCCESS;
   }
 
   void tensor::unfold(){

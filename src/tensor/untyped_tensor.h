@@ -337,11 +337,37 @@ namespace CTF_int {
       //int dot_tensor(int tid_A, int tid_B, char *product);
 
       /**
-       * \brief Performs an elementwise reduction on a tensor 
-       * \param[in] CTF::OP reduction operation to apply
+       * \brief Performs an elementwise summation reduction on a tensor 
        * \param[out] result result of reduction operation
        */
-      int reduce(CTF::OP op, char * result);
+      int reduce_sum(char * result);
+ 
+      /**
+       * \brief Performs an elementwise summation reduction on a tensor with summation defined by sr_other
+       * \param[out] result result of reduction operation
+       * \param[in] sr_other an algebraic structure (at least a monoid) defining the summation operation
+       */
+      int reduce_sum(char * result, algstrct sr_other);
+
+      /**
+       * \brief Performs an elementwise absolute value summation reduction on a tensor 
+       * \param[out] result result of reduction operation
+       */
+      int reduce_sumabs(char * result);
+
+      /**
+       * \brief Performs an elementwise absolute value summation reduction on a tensor 
+       * \param[out] result result of reduction operation
+       * \param[in] sr_other an algebraic structure (at least a monoid) defining the summation operation
+       */
+      int reduce_sumabs(char * result, algstrct sr_other) ;
+
+
+      /**
+       * \brief computes the sum of squares of the elements
+       * \param[out] result result of reduction operation
+       */
+      int reduce_sumsq(char * result);
 
       /* map data of tid_A with the given function */
 /*      int map_tensor(int tid,
