@@ -22,7 +22,7 @@ namespace CTF_int {
                int const *      edge_len,
                int const *      padding,
                PairIterator     pairs,
-               algstrct const & sr,
+               algstrct const * sr,
                int const *      offsets = NULL);
 
   /**
@@ -47,7 +47,7 @@ namespace CTF_int {
                  char const *     pairsb,
                  char *           new_pairsb,
                  int64_t *        new_num_pair,
-                 algstrct const & sr);
+                 algstrct const * sr);
 
   /**
    * \brief pads a tensor
@@ -75,7 +75,7 @@ namespace CTF_int {
                char const *     old_data,
                char **          new_pairs,
                int64_t *        new_size,
-               algstrct const & sr);
+               algstrct const * sr);
   
   /**
    * \brief sets to zero all values in padded region of tensor
@@ -101,7 +101,7 @@ namespace CTF_int {
                      int const *      virt_dim,
                      int const *      cphase_rank,
                      char *           vdata,
-                     algstrct const & sr);
+                     algstrct const * sr);
 }
 
 #endif

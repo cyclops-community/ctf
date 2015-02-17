@@ -45,7 +45,7 @@ namespace CTF_int {
                        int const *      edge_len,
                        char *           data,
                        int              dir,
-                       algstrct const & sr);
+                       algstrct const * sr);
 
   /**
    * \brief transposes a non-symmetric (folded) tensor internal kernel
@@ -68,7 +68,7 @@ namespace CTF_int {
                        int              max_ntd,
                        char **          tswap_data,
                        int *            chunk_size,
-                       algstrct const & sr);
+                       algstrct const * sr);
 
 }
 #endif

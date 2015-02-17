@@ -165,7 +165,7 @@ namespace CTF_int {
   typedef zgemm template <> dgemm< std::complex<double> >;
 */
   algstrct::algstrct(int el_size_){
-    el_size = el_size;
+    el_size = el_size_;
   }
 
   /*algstrct::algstrct(algstrct const & other){
@@ -245,22 +245,27 @@ namespace CTF_int {
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
     ASSERT(0);
+    return MPI_SUM;
   }
 
   MPI_Datatype algstrct::mdtype() const {
     printf("CTF ERROR: no MPI_Datatype present for this algebraic structure\n");
     ASSERT(0);
+    return MPI_CHAR;
   }
 
   char const * algstrct::addid() const {
-//    printf("CTF ERROR: no addition identity present for this algebraic structure\n");
-//    ASSERT(0);
+    printf("CTF ERROR: no addition identity present for this algebraic structure\n");
+    {
+      ASSERT(0);
+    }
+    assert(0);
     return NULL;
   }
 
   char const * algstrct::mulid() const {
-//    printf("CTF ERROR: no multiplicative identity present for this algebraic structure\n");
-//    ASSERT(0);
+    printf("CTF ERROR: no multiplicative identity present for this algebraic structure\n");
+    ASSERT(0);
     return NULL;
   }
 
@@ -273,19 +278,63 @@ namespace CTF_int {
     printf("CTF ERROR: addition operation present for this algebraic structure\n");
     ASSERT(0);
   }
-/*
-  void algstrct::addabs(char const * a, char const * b, char * c) const {
-    add(max(a,addinv(a)),max(b,addinv(b));  
+
+  void algstrct::mul(char const * a, char const * b, char * c) const {
+    printf("CTF ERROR: multiplication operation present for this algebraic structure\n");
+    ASSERT(0);
   }
-  
-  void algstrct::abs(char const * a, 
-                     char *       b) const {
-    char inva[el_size];
-    addinv(a, inva);
-    max(a,inva,b);
-  }*/
 
+  void algstrct::min(char const * a, char const * b, char * c) const {
+    printf("CTF ERROR: min operation present for this algebraic structure\n");
+    ASSERT(0);
+  }
 
+  void algstrct::max(char const * a, char const * b, char * c) const {
+    printf("CTF ERROR: max operation present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  void algstrct::min(char * c) const {
+    printf("CTF ERROR: min limit not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  void algstrct::max(char * c) const {
+    printf("CTF ERROR: max limit not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  void algstrct::scal(int          n,
+                      char const * alpha,
+                      char       * X,
+                      int          incX)  const {
+    printf("CTF ERROR: scal not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  void algstrct::axpy(int          n,
+                      char const * alpha,
+                      char const * X,
+                      int          incX,
+                      char       * Y,
+                      int          incY)  const {
+    printf("CTF ERROR: axpy not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+   void algstrct::gemm(char         tA,
+                       char         tB,
+                       int          m,
+                       int          n,
+                       int          k,
+                       char const * alpha,
+                       char const * A,
+                       char const * B,
+                       char const * beta,
+                       char *       C)  const {
+    printf("CTF ERROR: gemm not present for this algebraic structure\n");
+    ASSERT(0);
+  }
  
   bool algstrct::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;

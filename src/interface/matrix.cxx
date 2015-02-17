@@ -19,13 +19,13 @@ namespace CTF {
   };
 
   template<typename dtype>
-  Matrix<dtype>::Matrix(int          nrow_,
-                        int          ncol_,
-                        int          sym_,
-                        World &      world_,
-                        Set<dtype>   sr_,
-                        char const * name_,
-                        int          profile_)
+  Matrix<dtype>::Matrix(int                nrow_,
+                        int                ncol_,
+                        int                sym_,
+                        World &            world_,
+                        Set<dtype> const & sr_,
+                        char const *       name_,
+                        int                profile_)
     : Tensor<dtype>(2, int2(nrow_, ncol_), int2(sym_, NS), 
                         world_, sr_, name_, profile_) {
     nrow = nrow_;

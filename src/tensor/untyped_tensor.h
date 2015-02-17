@@ -12,33 +12,11 @@ namespace CTF_int {
 
   class tensor;
 
-#if 0
-  /** \brief defines tensor contraction operands and indices */
-  typedef struct ctr_type {
-    tensor * tsr_A;
-    tensor * tsr_B;
-    tensor * tsr_C;
-    int * idx_map_A; /* map indices of tensor A to contraction */
-    int * idx_map_B; /* map indices of tensor B to contraction */
-    int * idx_map_C; /* map indices of tensor C to contraction */
-  } ctr_type_t;
-
-  /** \brief defines tensor summation operands and indices */
-  typedef struct sum_type {
-    tensor * tsr_A;
-    tensor * tsr_B;
-    int * idx_map_A; /* map indices of tensor A to sum */
-    int * idx_map_B; /* map indices of tensor B to sum */
-  } sum_type_t;
-#endif
-
-
   /** \brief internal distributed tensor class */
   class tensor {
     protected:
       /**
        * \brief initializes tensor data
-       * \param[in] sr defines the tensor arithmetic for this tensor
        * \param[in] order number of dimensions of tensor
        * \param[in] edge_len edge lengths of tensor
        * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
@@ -46,19 +24,18 @@ namespace CTF_int {
        * \param[in] name_an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      void init(algstrct     sr,
-                int          order,
-                int const *  edge_len,
-                int const *  sym,
-                CTF::World * wrld,
-                bool         alloc_data,
-                char const * name,
-                bool         profile);
+      void init(int              order,
+                int const *      edge_len,
+                int const *      sym,
+                CTF::World *     wrld,
+                bool             alloc_data,
+                char const *     name,
+                bool             profile);
     public:
       /** \brief distributed processor context on which tensor is defined */
       CTF::World * wrld;
       /** \brief algstrct on which tensor elements and operations are defined */
-      algstrct sr;
+      algstrct * sr;
       /** \brief symmetries among tensor dimensions */
       int * sym;
       /** \brief number of tensor dimensions */
@@ -70,7 +47,7 @@ namespace CTF_int {
       /** \brief padding along each edge length (less than distribution phase) */
       int * padding;
       /** \brief name given to tensor */
-      char const * name;
+      char * name;
       /** \brief whether tensor data has additional padding */
       int is_scp_padded;
       /** \brief additional padding, may be greater than ScaLAPACK phase */
@@ -137,14 +114,14 @@ namespace CTF_int {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      tensor(algstrct     sr,
-             int          order,
-             int const *  edge_len,
-             int const *  sym,
-             CTF::World * wrld,
-             bool         alloc_data=false,
-             char const * name=NULL,
-             bool         profile=1);
+      tensor(algstrct const * sr,
+             int              order,
+             int const *      edge_len,
+             int const *      sym,
+             CTF::World *     wrld,
+             bool             alloc_data=false,
+             char const *     name=NULL,
+             bool             profile=1);
 
       /**
        * \brief compute the cyclic phase of each tensor dimension
@@ -347,7 +324,7 @@ namespace CTF_int {
        * \param[out] result result of reduction operation
        * \param[in] sr_other an algebraic structure (at least a monoid) defining the summation operation
        */
-      int reduce_sum(char * result, algstrct sr_other);
+      int reduce_sum(char * result, algstrct const * sr_other);
 
       /**
        * \brief Performs an elementwise absolute value summation reduction on a tensor 
@@ -360,7 +337,7 @@ namespace CTF_int {
        * \param[out] result result of reduction operation
        * \param[in] sr_other an algebraic structure (at least a monoid) defining the summation operation
        */
-      int reduce_sumabs(char * result, algstrct sr_other) ;
+      int reduce_sumabs(char * result, algstrct const * sr_other) ;
 
 
       /**

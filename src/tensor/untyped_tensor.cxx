@@ -18,9 +18,9 @@ namespace CTF_int {
 
   static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
-  tensor::tensor(){
+  /*tensor::tensor(){
     order=-1;
-  }
+  }*/
 
   tensor::~tensor(){
     if (order != -1){
@@ -40,20 +40,21 @@ namespace CTF_int {
     }
   }
 
-  tensor::tensor(algstrct     sr,
-                 int          order,
-                 int const *  edge_len,
-                 int const *  sym,
-                 World *      wrld,
-                 bool         alloc_data,
-                 char const * name,
-                 bool         profile){
-    this->init(sr,order,edge_len,sym,wrld,alloc_data,name,profile);
+  tensor::tensor(algstrct const * sr_,
+                 int              order,
+                 int const *      edge_len,
+                 int const *      sym,
+                 World *          wrld,
+                 bool             alloc_data,
+                 char const *     name,
+                 bool             profile){
+    sr = sr_->clone();
+    this->init(order,edge_len,sym,wrld,alloc_data,name,profile);
   }
 
   tensor::tensor(tensor const * other, bool copy, bool alloc_data){
-    
-    this->init(other->sr, other->order, other->lens,
+    sr = other->sr->clone();
+    this->init(other->order, other->lens,
                other->sym, other->wrld, alloc_data, other->name,
                other->profile);
   
@@ -65,7 +66,7 @@ namespace CTF_int {
       ASSERT(!other->is_folded);
 
       if (other->is_mapped){
-        CTF_int::alloc_ptr(other->size*sr.el_size, (void**)&this->data);
+        CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
     #ifdef HOME_CONTRACT
         if (other->has_home){
           if (this->has_home && 
@@ -92,21 +93,21 @@ namespace CTF_int {
         }
         this->home_size = other->home_size;
     #endif
-        memcpy(this->data, other->data, sr.el_size*other->size);
+        memcpy(this->data, other->data, sr->el_size*other->size);
       } else {
         if (this->is_mapped){
           CTF_int::cfree(this->data);
-          CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr.el_size), 
+          CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
                          (void**)&this->pairs);
         } else {
           if (this->size < other->size || this->size > 2*other->size){
             CTF_int::cfree(this->pairs);
-            CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr.el_size), 
+            CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
                              (void**)&this->pairs);
           }
         }
         memcpy(this->pairs, other->pairs, 
-               (sizeof(int64_t)+sr.el_size)*other->size);
+               (sizeof(int64_t)+sr->el_size)*other->size);
       } 
       if (this->is_folded){
         delete this->rec_tsr;
@@ -138,20 +139,19 @@ namespace CTF_int {
 
   }
 
-  void tensor::init(algstrct     sr,
-                    int          order_,
-                    int const *  edge_len,
-                    int const *  sym,
-                    World *      wrld_,
-                    bool         alloc_data,
-                    char const * name,
-                    bool         profile){
+  void tensor::init(int              order_,
+                    int const *      edge_len,
+                    int const *      sym,
+                    World *          wrld_,
+                    bool             alloc_data,
+                    char const *     name_,
+                    bool             profile){
+    char const * c = sr->addid();
+    char const * d = sr->mulid();
     this->wrld               = wrld_;
-    this->sr                 = sr;
     this->is_scp_padded      = 0;
     this->is_mapped          = 0;
     this->topo               = NULL;
-    //this->is_alloced         = 1;
     this->is_cyclic          = 1;
     this->size               = 0;
     this->is_folded          = 0;
@@ -160,11 +160,18 @@ namespace CTF_int {
     this->is_home            = 0;
     this->has_home           = 0;
     this->profile            = profile;
-    if (name                != NULL){
-      this->name             = name;
-    } else
-      this->name             = NULL;
-
+    if (name_ != NULL){
+      this->name = (char*)alloc(strlen(name_)+1);
+      strcpy(this->name, name_);
+    } else {
+      this->name = (char*)alloc(7);
+      for (int i=0; i<4; i++){
+        this->name[i] = 'A'+(rand()%26);
+      }
+      this->name[4] = '0'+order/10;
+      this->name[5] = '0'+order%10;
+      this->name[6] = '\0';
+    }
 
     this->pairs    = NULL;
     this->order    = order_;
@@ -190,7 +197,7 @@ namespace CTF_int {
       this->edge_map[i].np         = 1;
       if (this->sym[i] != NS) {
         //FIXME: keep track of capabilities of algberaic structure and add more robust property checking
-/*        if (this->sym[i] == AS && !sr.is_ring){ 
+/*        if (this->sym[i] == AS && !sr->is_ring){ 
           if (wrld->rank == 0){
             printf("CTF ERROR: It is illegal to define antisymmetric tensor must be defined on a ring, yet no additive inverse was provided for this algstrct (see algstrct constructor), aborting.\n");
           }
@@ -286,10 +293,10 @@ namespace CTF_int {
     int64_t memuse, bmemuse;
 
     if (this->is_mapped){
-      sr.set(this->data, sr.addid(), this->size);
+      sr->set(this->data, sr->addid(), this->size);
     } else {
       if (this->pairs != NULL){
-        sr.set(this->pairs, sr.addid(), this->size);
+        sr->set(this->pairs, sr->addid(), this->size);
       } else {
         CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&restricted);
   //      memset(restricted, 0, this->order*sizeof(int));
@@ -368,20 +375,20 @@ namespace CTF_int {
           //this->has_home = 0;
   /*        if (wrld->rank == 0)
             DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
-          CTF_int::alloc_ptr(this->home_size*sr.el_size, (void**)&this->home_buffer);
+          CTF_int::alloc_ptr(this->home_size*sr->el_size, (void**)&this->home_buffer);
           this->data = this->home_buffer;
         } else {
-          CTF_int::alloc_ptr(this->size*sr.el_size, (void**)&this->data);
+          CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);
         }
 #else
-        CTF_int::mst_alloc_ptr(this->size*sr.el_size, (void**)&this->data);
+        CTF_int::mst_alloc_ptr(this->size*sr->el_size, (void**)&this->data);
 #endif
 #if DEBUG >= 2
         if (wrld->rank == 0)
           printf("New tensor defined:\n");
         this->print_map(stdout);
 #endif
-        sr.set(this->data, sr.addid(), this->size);
+        sr->set(this->data, sr->addid(), this->size);
       }
     }
     return SUCCESS;
@@ -399,7 +406,9 @@ namespace CTF_int {
   }
    
   void tensor::set_name(char const * name_){
-    name = name_;
+    free(name);
+    this->name = (char*)alloc(strlen(name_)+1);
+    strcpy(this->name, name_);
   }
 
   char const * tensor::get_name() const {
@@ -444,7 +453,7 @@ namespace CTF_int {
         //permute all_data_B
         permute_keys(tsr_B->order, sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, &blk_sz_B, sr);
       }
-      ret = tsr_A->write(blk_sz_B, sr.mulid(), sr.addid(), all_data_B, 'r');  
+      ret = tsr_A->write(blk_sz_B, sr->mulid(), sr->addid(), all_data_B, 'r');  
       if (blk_sz_B > 0)
         depermute_keys(tsr_B->order, blk_sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, sr);
       all_data_A = all_data_B;
@@ -521,13 +530,13 @@ namespace CTF_int {
 
     MPI_Request req1, req2;
 
-    char * sub_buffer = (char*)CTF_int::mst_alloc(sr.el_size*odst.size);
+    char * sub_buffer = (char*)CTF_int::mst_alloc(sr->el_size*odst.size);
 
     char * rbuffer;
     if (bw_mirror_rank >= 0){
       rbuffer = (char*)CTF_int::alloc(buf_sz);
       MPI_Irecv(rbuffer, buf_sz, MPI_CHAR, bw_mirror_rank, 0, greater_world->comm, &req1);
-      MPI_Irecv(sub_buffer, odst.size*sr.el_size, MPI_CHAR, bw_mirror_rank, 1, greater_world->comm, &req2);
+      MPI_Irecv(sub_buffer, odst.size*sr->el_size, MPI_CHAR, bw_mirror_rank, 1, greater_world->comm, &req2);
     } 
     if (fw_mirror_rank >= 0){
       char * sbuffer;
@@ -536,7 +545,7 @@ namespace CTF_int {
       ndstr.serialize(&sbuffer, &bsz);
       ASSERT(bsz == buf_sz);
       MPI_Send(sbuffer, buf_sz, MPI_CHAR, fw_mirror_rank, 0, greater_world->comm);
-      MPI_Send(this->data, odst.size*sr.el_size, MPI_CHAR, fw_mirror_rank, 1, greater_world->comm);
+      MPI_Send(this->data, odst.size*sr->el_size, MPI_CHAR, fw_mirror_rank, 1, greater_world->comm);
       CTF_int::cfree(sbuffer);
     }
     if (bw_mirror_rank >= 0){
@@ -546,7 +555,7 @@ namespace CTF_int {
       odst = distribution(rbuffer);
       CTF_int::cfree(rbuffer);
     } else
-      sr.set(sub_buffer, sr.addid(), odst.size);
+      sr->set(sub_buffer, sr->addid(), odst.size);
     *sub_buffer_ = sub_buffer;
 
   }
@@ -579,7 +588,7 @@ namespace CTF_int {
       } else {
         tsr_B->read_local(&sz_B, &all_data_B);
 
-        CTF_int::alloc_ptr((sizeof(int64_t)+tsr_B->sr.el_size)*sz_B, (void**)&blk_data_B);
+        CTF_int::alloc_ptr((sizeof(int64_t)+tsr_B->sr->el_size)*sz_B, (void**)&blk_data_B);
 
         for (i=0; i<tsr_B->order; i++){
           padding_B[i] = tsr_B->lens[i] - ends_B[i];
@@ -593,7 +602,7 @@ namespace CTF_int {
           toffset_B[i] = -offsets_B[i];
           padding_B[i] = ends_B[i]-offsets_B[i]-tsr_B->lens[i];
         }
-        PairIterator pblk_data_B = PairIterator(&sr, blk_data_B);
+        PairIterator pblk_data_B = PairIterator(sr, blk_data_B);
         pad_key(tsr_B->order, blk_sz_B, tsr_B->lens, 
                 padding_B, pblk_data_B, sr, toffset_B);
         for (i=0; i<tsr_A->order; i++){
@@ -603,7 +612,7 @@ namespace CTF_int {
         pad_key(tsr_A->order, blk_sz_B, toffset_A, 
                 padding_A, pblk_data_B, sr, offsets_A);
       }
-      tsr_A->write(blk_sz_B, sr.mulid(), sr.addid(), blk_data_B, 'r');  
+      tsr_A->write(blk_sz_B, sr->mulid(), sr->addid(), blk_data_B, 'r');  
       all_data_A = blk_data_B;
       sz_A = blk_sz_B;
     } else {
@@ -615,7 +624,7 @@ namespace CTF_int {
       blk_sz_A = 0;
       blk_data_A = NULL;
     } else {
-      CTF_int::alloc_ptr((sizeof(int64_t)+tsr_A->sr.el_size)*sz_A, (void**)&blk_data_A);
+      CTF_int::alloc_ptr((sizeof(int64_t)+tsr_A->sr->el_size)*sz_A, (void**)&blk_data_A);
 
       for (i=0; i<tsr_A->order; i++){
         padding_A[i] = tsr_A->lens[i] - ends_A[i];
@@ -630,7 +639,7 @@ namespace CTF_int {
         toffset_A[i] = -offsets_A[i];
         padding_A[i] = ends_A[i]-offsets_A[i]-tsr_A->lens[i];
       }
-      PairIterator pblk_data_A = PairIterator(&sr, blk_data_A);
+      PairIterator pblk_data_A = PairIterator(sr, blk_data_A);
       pad_key(tsr_A->order, blk_sz_A, tsr_A->lens, 
               padding_A, pblk_data_A, sr, toffset_A);
       for (i=0; i<tsr_B->order; i++){
@@ -680,11 +689,11 @@ namespace CTF_int {
     MPI_Request req;
     if (fw_mirror_rank >= 0){
       ASSERT(tsr_sub != NULL);
-      MPI_Irecv(tsr_sub->data, odst.size*sr.el_size, MPI_CHAR, fw_mirror_rank, 0, wrld->cdt.cm, &req);
+      MPI_Irecv(tsr_sub->data, odst.size*sr->el_size, MPI_CHAR, fw_mirror_rank, 0, wrld->cdt.cm, &req);
     }
    
     if (bw_mirror_rank >= 0)
-      MPI_Send(sub_buffer, odst.size*sr.el_size, MPI_CHAR, bw_mirror_rank, 0, wrld->cdt.cm);
+      MPI_Send(sub_buffer, odst.size*sr->el_size, MPI_CHAR, bw_mirror_rank, 0, wrld->cdt.cm);
     if (fw_mirror_rank >= 0){
       MPI_Status stat;
       MPI_Wait(&req, &stat);
@@ -742,15 +751,7 @@ namespace CTF_int {
         printf("Writing data to tensor %d\n", tensor_id);
       else
         printf("Reading data from tensor %d\n", tensor_id);*/
-      print_map(stdout, tensor_id, 0);
-    }
-    int64_t total_tsr_size = 1;
-    for (i=0; i<order; i++){
-      total_tsr_size *= lens[i];
-    }
-    for (i=0; i<num_pair; i++){
-      ASSERT(mapped_data[i].k >= 0);
-      ASSERT(mapped_data[i].k < total_tsr_size);
+      this->print_map(stdout);
     }
   #endif
 
@@ -762,10 +763,10 @@ namespace CTF_int {
     tsr->set_padding();
 
     if (tsr->is_mapped){
-      CTF_int::alloc_ptr(tsr->order*sizeof(int),     (void**)&phys_phase);
-      CTF_int::alloc_ptr(tsr->order*sizeof(int),     (void**)&virt_phys_rank);
-      CTF_int::alloc_ptr(tsr->order*sizeof(int),     (void**)&bucket_lda);
-      CTF_int::alloc_ptr(tsr->order*sizeof(int),     (void**)&virt_phase);
+      CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&phys_phase);
+      CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&virt_phys_rank);
+      CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&bucket_lda);
+      CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&virt_phase);
       num_virt = 1;
       /* Setup rank/phase arrays, given current mapping */
       for (i=0; i<tsr->order; i++){
@@ -911,17 +912,17 @@ namespace CTF_int {
     return reduce_sum(result, sr);
   }
 
-  int tensor::reduce_sum(char * result, algstrct sr_other) {
+  int tensor::reduce_sum(char * result, algstrct const * sr_other) {
     ASSERT(is_mapped && is_folded);
     tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
        idx_A[i] = i;
     }
-    summation sm = summation(this, idx_A, sr.mulid(), &sc, NULL, sr_other.addid());
+    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->addid());
     sm.execute();
-    sr.copy(result, sc.data);
-    MPI_Bcast(result, sr_other.el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    sr->copy(result, sc.data);
+    MPI_Bcast(result, sr_other->el_size, MPI_CHAR, 0, wrld->cdt.cm);
     return SUCCESS;
   }
 
@@ -929,18 +930,18 @@ namespace CTF_int {
     return reduce_sumabs(result, sr);
   }
 
-  int tensor::reduce_sumabs(char * result, algstrct sr_other) {
+  int tensor::reduce_sumabs(char * result, algstrct const * sr_other) {
     ASSERT(is_mapped && is_folded);
-    univar_function func = univar_function(sr.abs);
+    univar_function func = univar_function(sr->abs);
     tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
        idx_A[i] = i;
     }
-    summation sm = summation(this, idx_A, sr.mulid(), &sc, NULL, sr_other.addid(), func);
+    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->addid(), func);
     sm.execute();
-    sr.copy(result, sc.data);
-    MPI_Bcast(result, sr.el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    sr->copy(result, sc.data);
+    MPI_Bcast(result, sr->el_size, MPI_CHAR, 0, wrld->cdt.cm);
     return SUCCESS;
   }
 
@@ -951,10 +952,10 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
        idx_A[i] = i;
     }
-    contraction ctr = contraction(this, idx_A, this, idx_A, sr.mulid(), &sc, NULL, sr.addid());
+    contraction ctr = contraction(this, idx_A, this, idx_A, sr->mulid(), &sc, NULL, sr->addid());
     ctr.execute();
-    sr.copy(result, sc.data);
-    MPI_Bcast(result, sr.el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    sr->copy(result, sc.data);
+    MPI_Bcast(result, sr->el_size, MPI_CHAR, 0, wrld->cdt.cm);
     return SUCCESS;
   }
 
@@ -1092,14 +1093,13 @@ namespace CTF_int {
                            int * const * old_permutation,
                            int const *  new_offsets,
                            int * const * new_permutation){
-    int new_nvirt, can_block_shuffle;
+    int can_block_shuffle;
     char * shuffled_data;
   #if VERIFY_REMAP
     char * shuffled_data_corr;
   #endif
 
     distribution new_dist = distribution(this);
-    new_nvirt = 1;  
   #ifdef USE_BLOCK_RESHUFFLE
     can_block_shuffle = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
   #else
@@ -1114,8 +1114,8 @@ namespace CTF_int {
     if (this->is_home){    
       if (wrld->cdt.rank == 0)
         DPRINTF(2,"Tensor %s leaving home\n", name);
-      this->data = (char*)CTF_int::mst_alloc(old_dist.size*sr.el_size);
-      memcpy(this->data, this->home_buffer, old_dist.size*sr.el_size);
+      this->data = (char*)CTF_int::mst_alloc(old_dist.size*sr->el_size);
+      memcpy(this->data, this->home_buffer, old_dist.size*sr->el_size);
       this->is_home = 0;
     }
   #endif
@@ -1154,7 +1154,7 @@ namespace CTF_int {
                        wrld->cdt);*/
       block_reshuffle(old_dist, new_dist, this->data, shuffled_data, sr, wrld->cdt);
     } else {
-      cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr.mulid(), sr.addid());
+      cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
   //    CTF_int::alloc_ptr(sizeof(dtype)*this->size, (void**)&shuffled_data);
 /*      cyclic_reshuffle(this->order,
                        old_size,
@@ -1298,10 +1298,10 @@ namespace CTF_int {
           }
           if (rw){
             new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld);
-            summation sum = summation(this, ex_idx_map, sr.mulid(), new_tsr, diag_idx_map, sr.addid());
+            summation sum = summation(this, ex_idx_map, sr->mulid(), new_tsr, diag_idx_map, sr->addid());
             sum.execute();
           } else {
-            summation sum = summation(new_tsr, diag_idx_map, sr.mulid(), this, ex_idx_map, sr.addid());
+            summation sum = summation(new_tsr, diag_idx_map, sr->mulid(), this, ex_idx_map, sr->addid());
             sum.execute();
           }
           CTF_int::cfree(edge_len), CTF_int::cfree(sym), CTF_int::cfree(ex_idx_map), CTF_int::cfree(diag_idx_map);

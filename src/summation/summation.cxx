@@ -588,7 +588,7 @@ namespace CTF_int {
   #else
     if (A->has_zero_edge_len || 
         B->has_zero_edge_len){
-      if (!B->sr.isequal(beta,B->sr.mulid()) && !B->has_zero_edge_len){ 
+      if (!B->sr->isequal(beta,B->sr->mulid()) && !B->has_zero_edge_len){ 
         int sub_idx_map_B[B->order];
         int sm_idx=0;
         for (int i=0; i<B->order; i++){
@@ -665,7 +665,7 @@ namespace CTF_int {
       TAU_FSTART(redistribute_for_sum_home);
       B->redistribute(odst);
       TAU_FSTOP(redistribute_for_sum_home);
-      memcpy(B->home_buffer, B->data, B->size*B->sr.el_size);
+      memcpy(B->home_buffer, B->data, B->size*B->sr->el_size);
       CTF_int::cfree(B->data);
       B->data = B->home_buffer;
       B->is_home = 1;
@@ -706,7 +706,7 @@ namespace CTF_int {
   //#endif
     check_consistency();
     if (A->has_zero_edge_len || B->has_zero_edge_len){
-      if (!B->sr.isequal(beta, B->sr.mulid()) && !B->has_zero_edge_len){ 
+      if (!B->sr->isequal(beta, B->sr->mulid()) && !B->has_zero_edge_len){ 
         int sub_idx_map_B[B->order];
         int sm_idx=0;
         for (int i=0; i<B->order; i++){
@@ -786,17 +786,17 @@ namespace CTF_int {
 
     if (ocfact != 1 || sign != 1){
       if (ocfact != 1){
-        char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
-        tnsr_B->sr.copy(new_alpha, tnsr_B->sr.addid());
+        char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
+        tnsr_B->sr->copy(new_alpha, tnsr_B->sr->addid());
         
         for (int i=0; i<ocfact; i++){
-          tnsr_B->sr.add(new_alpha, alpha, new_alpha);
+          tnsr_B->sr->add(new_alpha, alpha, new_alpha);
         }
         alpha = new_alpha;
       }
       if (sign == -1){
-        char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
-        tnsr_B->sr.addinv(alpha, new_alpha);
+        char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
+        tnsr_B->sr->addinv(alpha, new_alpha);
         alpha = new_alpha;
       }
       //FIXME: free new_alpha
@@ -837,18 +837,18 @@ namespace CTF_int {
           DPRINTF(1,"Performing %d summation permutations\n",
                   (int)perm_types.size());
         dbeta = beta;
-        char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
+        char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
         for (i=0; i<(int)perm_types.size(); i++){
           if (signs[i] == 1)
-            B->sr.copy(new_alpha, alpha);
+            B->sr->copy(new_alpha, alpha);
           else
-            tnsr_B->sr.addinv(alpha, new_alpha);
+            tnsr_B->sr->addinv(alpha, new_alpha);
           perm_types[i].alpha = new_alpha;
           perm_types[i].beta = dbeta;
           perm_types[i].sum_tensors(run_diag);
           /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                       perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
-          dbeta = new_sum.B->sr.addid();
+          dbeta = new_sum.B->sr->addid();
         }
 /*        for (i=0; i<(int)perm_types.size(); i++){
           free_type(&perm_types[i]);
@@ -895,7 +895,7 @@ namespace CTF_int {
     //FIXME: hmm all of the below already takes place in sym_sum
     check_consistency();
     if (A->has_zero_edge_len || B->has_zero_edge_len){
-      if (!B->sr.isequal(beta,B->sr.mulid()) && !B->has_zero_edge_len){ 
+      if (!B->sr->isequal(beta,B->sr->mulid()) && !B->has_zero_edge_len){ 
     /*    fseq_scl<dtype> fs;
         fs.func_ptr=sym_seq_scl_ref<dtype>;
         fseq_elm_scl<dtype> felm;
@@ -960,8 +960,8 @@ namespace CTF_int {
                                         tnsr_B->sym);
       ASSERT(sign == 1);
 /*        if (sign == -1){
-          char * new_alpha = (char*)malloc(tnsr_B->sr.el_size);
-          tnsr_B->sr.addinv(alpha, new_alpha);
+          char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
+          tnsr_B->sr->addinv(alpha, new_alpha);
           alpha = new_alpha;
         }*/
 

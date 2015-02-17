@@ -103,7 +103,7 @@ namespace CTF_int {
    /*   for (i=0; i<num_dim; i++){
         for (j=0; j<num_dim; j++){
           if (i!=j && idx_arr[i] != idx_arr[j] && idx_map[i] */
-      rec_scl->A = this->A + off_A*blk_sz_A*sr_A.el_size;
+      rec_scl->A = this->A + off_A*blk_sz_A*sr_A->el_size;
       rec_scl->run();
 
       for (i=0; i<num_dim; i++){

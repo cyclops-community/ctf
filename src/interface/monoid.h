@@ -22,14 +22,6 @@ namespace CTF {
       Y[i] = X[i] + Y[i];
     }
   }
-
-/*  template <typename dtype, void (*fxpy)(int, dtype const *, dtype *)>
-  void default_mopfun(void * X,
-                      void * Y,
-                      int    n){
-    fxpy(n, (dtype const *)X, (dtype *)Y);
-  }*/
-
   template <typename dtype>
   MPI_Datatype get_default_mdtype(){
     MPI_Datatype newtype;
@@ -100,34 +92,23 @@ namespace CTF {
       dtype (*fadd)(dtype a, dtype b);
       MPI_Datatype tmdtype;
       MPI_Op       taddmop;
+
+      Monoid(Monoid const & other) : Set<dtype, is_ord>(other) {
+        this->taddid  = other.taddid;
+        this->fadd    = other.fadd;
+        this->tmdtype = other.tmdtype;
+        this->taddmop = other.taddmop;
+      }
       
+      virtual CTF_int::algstrct * clone() const {
+        return new Monoid<dtype, is_ord>(*this);
+      }
       Monoid() : Set<dtype, is_ord>() {
         taddid  = (dtype)0;
         fadd    = &default_add<dtype>;
         taddmop = get_default_maddop<dtype>();
         tmdtype = get_default_mdtype<dtype>();
       } 
-/* 
-      Monoid(dtype taddid_,
-             dtype (*fadd_)(dtype a, dtype b))
-              : Set<dtype, is_ord>() {
-        taddid  = taddid_;
-        fadd    = fadd_;
-        fxpy    = &default_afxpy<dtype,fadd_>;
-        taddmop = get_maddop<dtype,&default_afxpy<dtype,fadd_>>();
-        tmdtype = get_default_mdtype<dtype>();
-      }
-  
-      Monoid(dtype taddid_,
-             dtype (*fadd_)(dtype a, dtype b),
-             void (*fxpy_)(int, dtype const *, dtype *)){
-              : Set<dtype, is_ord>(fmin_, fmax_) {
-        taddid  = taddid_;
-        fadd    = fadd_;
-        fxpy    = fxpy_;
-        taddmop = get_maddop<dtype,fxpy_>();
-        tmdtype = get_default_mdtype<dtype>();
-      }*/
 
       Monoid(dtype taddid_,
              dtype (*fadd_)(dtype a, dtype b),
@@ -163,13 +144,9 @@ namespace CTF {
                 int          incX,
                 char       * Y,
                 int          incY) const {
-        // FIXME: need arbitrary incX and incY? some assert on alpha?
-        /*ASSERT(incX == 1);
-        ASSERT(incY == 1);
-        fxpy(n, X, Y);*/
         ASSERT(alpha == NULL);
         for (int64_t i=0; i<n; i++){
-          add(((dtype*)X)+i*incX,((dtype*)Y)+i*incY,((dtype*)Y)+i*incY);
+          add(X+sizeof(dtype)*i*incX,Y+sizeof(dtype)*i*incY,Y+sizeof(dtype)*i*incY);
         }
       }
 

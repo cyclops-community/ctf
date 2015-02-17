@@ -14,7 +14,7 @@ namespace CTF {
                                       Tensor<dtype> *      parent_){
     parent        = parent_;
     indices       = indices_;
-    scale         = parent_->sr.mulid;
+    scale         = parent_->sr->mulid;
   }
 
   template<typename dtype>
@@ -23,7 +23,7 @@ namespace CTF {
                                       Tensor<dtype> *      parent_){
     parent        = parent_;
     indices       = std::vector<int64_t>(indices_,indices_+n);
-    scale         = parent_->sr.mulid;
+    scale         = parent_->sr->mulid;
   }
 
   template<typename dtype>
@@ -36,29 +36,29 @@ namespace CTF {
   // C++ overload special-cases of above method
   template<typename dtype>
   void Sparse_Tensor<dtype>::operator=(std::vector<dtype> values){
-    write(parent->sr.mulid, &values[0], parent->sr.addid);
+    write(parent->sr->mulid, &values[0], parent->sr->addid);
   }
   template<typename dtype>
   void Sparse_Tensor<dtype>::operator=(dtype* values){
-    write(parent->sr.mulid, values, parent->sr.addid);
+    write(parent->sr->mulid, values, parent->sr->addid);
   }
 
   template<typename dtype>
   void Sparse_Tensor<dtype>::operator+=(std::vector<dtype> values){
-    write(parent->sr.mulid, &values[0], parent->sr.mulid);
+    write(parent->sr->mulid, &values[0], parent->sr->mulid);
   }
   template<typename dtype>
   void Sparse_Tensor<dtype>::operator+=(dtype* values){
-    write(parent->sr.mulid, values, parent->sr.mulid);
+    write(parent->sr->mulid, values, parent->sr->mulid);
   }
 
   template<typename dtype>
   void Sparse_Tensor<dtype>::operator-=(std::vector<dtype> values){
-    write(-parent->sr.mulid, &values[0], parent->sr.mulid);
+    write(-parent->sr->mulid, &values[0], parent->sr->mulid);
   }
   template<typename dtype>
   void Sparse_Tensor<dtype>::operator-=(dtype* values){
-    write(-parent->sr.mulid, values, parent->sr.mulid);
+    write(-parent->sr->mulid, values, parent->sr->mulid);
   }
 
 
@@ -71,14 +71,14 @@ namespace CTF {
   template<typename dtype>
   Sparse_Tensor<dtype>::operator std::vector<dtype>(){
     std::vector<dtype> values(indices.size());
-    read(parent->sr.mulid, &values[0], parent->sr.addid);
+    read(parent->sr->mulid, &values[0], parent->sr->addid);
     return values;
   }
 
   template<typename dtype>
   Sparse_Tensor<dtype>::operator dtype*(){
     dtype * values = (dtype*)malloc(sizeof(dtype)*indices.size());
-    read(parent->sr.mulid, values, parent->sr.addid);
+    read(parent->sr->mulid, values, parent->sr->addid);
     return values;
   }
 }

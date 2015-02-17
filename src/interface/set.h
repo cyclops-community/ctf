@@ -33,25 +33,39 @@ namespace CTF {
     return a;
   }
 
-
   /**
    * Set class defined by a datatype and a min/max function (if it is partially ordered i.e. is_ord=true)
+   * FIXME: currently assumes min and max are given by numeric_limits (custom min/max not allowed)
    */
   template <typename dtype=double, bool is_ord=true> 
   class Set : public CTF_int::algstrct {
     public:
-      Set() : algstrct(sizeof(dtype)) { }
+      Set(Set const & other) : CTF_int::algstrct(other) {}
+
+      virtual CTF_int::algstrct * clone() const {
+        return new Set<dtype, is_ord>(*this);
+      }
+
+      Set() : CTF_int::algstrct(sizeof(dtype)){ }
 
       void min(char const * a, 
                char const * b,
-               char *       c){
+               char *       c) const {
         ((dtype*)c)[0] = default_min<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
       }
 
       void max(char const * a, 
                char const * b,
-               char *       c){
+               char *       c) const {
         ((dtype*)c)[0] = default_max<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
+      }
+
+      void min(char * c) const {
+        ((dtype*)c)[0] = std::numeric_limits<dtype>::min();
+      }
+
+      void max(char * c) const {
+        ((dtype*)c)[0] = std::numeric_limits<dtype>::max();
       }
 
   };

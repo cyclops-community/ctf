@@ -22,7 +22,7 @@ namespace CTF_int {
                         distribution const & new_dist,
                         char *               tsr_data,
                         char **              tsr_cyclic_data,
-                        algstrct             sr,
+                        algstrct const *     sr,
                         CommData             ord_glb_comm);
 
   /**
@@ -139,7 +139,7 @@ namespace CTF_int {
                                 int * const *        bucket_offset,
                                 char const *         alpha,
                                 char const *         beta,
-                                algstrct const &     sr);
+                                algstrct const *     sr);
 
   /**
    * \brief Goes from any set of phases to any new set of phases 
@@ -170,7 +170,7 @@ namespace CTF_int {
                         int * const *        new_permutation,
                         char **              tsr_data,
                         char **              tsr_cyclic_data,
-                        algstrct             sr,
+                        algstrct const *     sr,
                         CommData             ord_glb_comm,
                         bool                 reuse_buffers,
                         char const *         alpha,
@@ -189,7 +189,7 @@ namespace CTF_int {
                        distribution const & new_dist,
                        char *               tsr_data,
                        char *&              tsr_cyclic_data,
-                       algstrct             sr,
+                       algstrct const *     sr,
                        CommData             glb_comm);
 
   /**

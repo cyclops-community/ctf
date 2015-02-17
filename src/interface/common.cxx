@@ -140,6 +140,38 @@ namespace CTF_int {
     return total_flop_count;
   }
 
+  void handler() {
+  #if (!BGP && !BGQ && !HOPPER)
+    int i, size;
+    void *array[26];
+
+    // get void*'s for all entries on the stack
+    size = backtrace(array, 25);
+
+    // print out all the frames to stderr
+    backtrace_symbols(array, size);
+    char syscom[256*size];
+    for (i=1; i<size; ++i)
+    {
+      char buf[256];
+      char buf2[256];
+      int bufsize = 256;
+      int sz = readlink("/proc/self/exe", buf, bufsize);
+      buf[sz] = '\0';
+      sprintf(buf2,"addr2line %p -e %s", array[i], buf);
+      if (i==1)
+        strcpy(syscom,buf2);
+      else
+        strcat(syscom,buf2);
+
+    }
+    int *iiarr = NULL;
+    iiarr[0]++;
+    assert(system(syscom)==0);
+    printf("%d",iiarr[0]);
+  #endif
+  }
+
   CommData::CommData(){}
 
   CommData::~CommData(){

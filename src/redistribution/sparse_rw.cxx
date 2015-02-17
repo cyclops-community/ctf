@@ -12,7 +12,7 @@ namespace CTF_int {
                     int * const *    permutation,
                     char *           pairs_buf,
                     int64_t *        new_num_pair,
-                    algstrct const & sr){
+                    algstrct const * sr){
     TAU_FSTART(permute_keys);
   #ifdef USE_OMP
     int mntd = omp_get_max_threads();
@@ -41,9 +41,9 @@ namespace CTF_int {
       //std::vector< tkv_pair<dtype> > my_pairs;
       //allocate buffer of same size of pairs, 
       //FIXME: not all space may be used, so a smaller buffer is possible
-      char my_pairs_buf[sr.pair_size()*tnum_pair];
-      PairIterator my_pairs(&sr, my_pairs_buf);
-      PairIterator pairs(&sr, pairs_buf);
+      char my_pairs_buf[sr->pair_size()*tnum_pair];
+      PairIterator my_pairs(sr, my_pairs_buf);
+      PairIterator pairs(sr, pairs_buf);
       cnum_pair = 0;
 
       for (i=tstart; i<tstart+tnum_pair; i++){
@@ -66,10 +66,10 @@ namespace CTF_int {
           wkey = wkey/edge_len[j];
         }
         if (!outside){
-          char tkp[sr.pair_size()];
+          char tkp[sr->pair_size()];
           //tkp.k = knew;
           //tkp.d = pairs[i].d;
-          sr.set_pair(tkp, knew, pairs[i].d());
+          sr->set_pair(tkp, knew, pairs[i].d());
           my_pairs[cnum_pair].write(tkp);
           cnum_pair++;
         }
@@ -93,13 +93,13 @@ namespace CTF_int {
     TAU_FSTOP(permute_keys);
   }
 
-  void depermute_keys(int           order,
-                      int           num_pair,
-                      int const *   edge_len,
-                      int const *   new_edge_len,
-                      int * const * permutation,
-                      char *        pairs_buf,
-                      algstrct      sr){
+  void depermute_keys(int              order,
+                      int              num_pair,
+                      int const *      edge_len,
+                      int const *      new_edge_len,
+                      int * const *    permutation,
+                      char *           pairs_buf,
+                      algstrct const * sr){
     TAU_FSTART(depermute_keys);
   #ifdef USE_OMP
     int mntd = omp_get_max_threads();
@@ -139,10 +139,10 @@ namespace CTF_int {
       tstart = tnum_pair * tid + MIN(tid, num_pair % ntd);
       if (tid < num_pair % ntd) tnum_pair++;
 
-      char my_pairs_buf[sr.pair_size()*tnum_pair];
+      char my_pairs_buf[sr->pair_size()*tnum_pair];
 
-      PairIterator my_pairs(&sr, my_pairs_buf);
-      PairIterator pairs(&sr, pairs_buf);
+      PairIterator my_pairs(sr, my_pairs_buf);
+      PairIterator pairs(sr, pairs_buf);
 
       for (i=tstart; i<tstart+tnum_pair; i++){
         wkey = pairs[i].k();
@@ -183,14 +183,14 @@ namespace CTF_int {
                    int *            phase_rank,
                    char const *     vdata,
                    char *           vpairs,
-                   algstrct const & sr){
+                   algstrct const * sr){
     int i, imax, act_lda, idx_offset, act_max, buf_offset;
     int64_t p;
     int * idx, * virt_rank, * edge_lda;  
     if (order == 0){
       ASSERT(size <= 1);
       if (size == 1){
-        sr.set_pair(vpairs, 0, vdata);
+        sr->set_pair(vpairs, 0, vdata);
       }
       return;
     }
@@ -207,8 +207,8 @@ namespace CTF_int {
       edge_lda[i] = edge_lda[i-1]*edge_len[i-1];
     }
     for (p=0;;p++){
-      char const * data = vdata + sr.el_size*p*(size/nvirt);
-      PairIterator pairs = PairIterator(&sr, vpairs + p*(size/nvirt));
+      char const * data = vdata + sr->el_size*p*(size/nvirt);
+      PairIterator pairs = PairIterator(sr, vpairs + p*(size/nvirt));
 
       idx_offset = 0, buf_offset = 0;
       for (act_lda=1; act_lda<order; act_lda++){
@@ -229,7 +229,7 @@ namespace CTF_int {
             ABORT;
           }
           pairs[buf_offset+i].write_key(idx_offset+i*phase[0]+phase_rank[0]);
-          pairs[buf_offset+i].write_val(data+(buf_offset+i)*sr.el_size);
+          pairs[buf_offset+i].write_val(data+(buf_offset+i)*sr->el_size);
         }
         buf_offset += imax;
         /* Increment indices and set up offsets */
@@ -278,7 +278,7 @@ namespace CTF_int {
                     int64_t *         bucket_counts,
                     int64_t *         bucket_off,
                     PairIterator      bucket_data,
-                    algstrct const &  sr){
+                    algstrct const *  sr){
 
     memset(bucket_counts, 0, sizeof(int64_t)*np); 
   #ifdef USE_OMP
@@ -377,7 +377,7 @@ namespace CTF_int {
                       int const *       edge_len,
                       ConstPairIterator mapped_data,
                       PairIterator      bucket_data,
-                      algstrct const &  sr){
+                      algstrct const *  sr){
     int64_t * virt_counts, * virt_prefix, * virt_lda;
     TAU_FSTART(bucket_by_virt);
     
@@ -520,12 +520,12 @@ namespace CTF_int {
                  char *           vdata,
                  char *           pairs_buf,
                  char             rw,
-                 algstrct const & sr){
+                 algstrct const * sr){
     int act_lda;
     int64_t idx_offset, act_max, buf_offset, pr_offset, p;
     int64_t * idx, * virt_rank, * edge_lda;  
     
-    PairIterator pairs = PairIterator(&sr, pairs_buf);
+    PairIterator pairs = PairIterator(sr, pairs_buf);
 
     if (order == 0){
       if (size > 0){
@@ -563,7 +563,7 @@ namespace CTF_int {
     char * data = vdata;// + buf_offset;
 
     for (p=0;;p++){
-      data = data + sr.el_size*buf_offset;
+      data = data + sr->el_size*buf_offset;
       idx_offset = 0, buf_offset = 0;
       for (int act_lda=1; act_lda<order; act_lda++){
         idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
@@ -583,32 +583,32 @@ namespace CTF_int {
               if (rw == 'r'){
                 if (alpha == NULL){
                   pairs[pr_offset].write_val(data+sizeof(int64_t)*(buf_offset+i));
-/*                if (sr.isbeta == 0.0){
-                  char wval[sr.pair_size()];
-                  sr.mul(alpha,data + sr.el_size*(buf_offset+i), wval);
+/*                if (sr->isbeta == 0.0){
+                  char wval[sr->pair_size()];
+                  sr->mul(alpha,data + sr->el_size*(buf_offset+i), wval);
                   pairs[pr_offset].write_val(wval);*/
                 } else {
                 /* should it be the opposite? No, because 'pairs' was passed in and 'data' is being added to pairs, so data is operand, gets alpha. */
                   //pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
-                  char wval[sr.pair_size()];
-                  sr.mul(alpha, data + sr.el_size*(buf_offset+i), wval);
-                  char wval2[sr.pair_size()];
-                  sr.mul(beta,  pairs[pr_offset].d(), wval2);
-                  sr.add(wval, wval2, wval);
+                  char wval[sr->pair_size()];
+                  sr->mul(alpha, data + sr->el_size*(buf_offset+i), wval);
+                  char wval2[sr->pair_size()];
+                  sr->mul(beta,  pairs[pr_offset].d(), wval2);
+                  sr->add(wval, wval2, wval);
                   pairs[pr_offset].write_val(wval);
                 }
               } else {
                 ASSERT(rw =='w');
                 //data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
                 if (alpha == NULL)
-                  pairs[pr_offset].read_val(data+sr.el_size*(buf_offset+i));
+                  pairs[pr_offset].read_val(data+sr->el_size*(buf_offset+i));
                 else {
-                  char wval[sr.pair_size()];
-                  sr.mul(beta, data + sr.el_size*(buf_offset+i), wval);
-                  char wval2[sr.pair_size()];
-                  sr.mul(alpha,  pairs[pr_offset].d(), wval2);
-                  sr.add(wval, wval2, wval);
-                  sr.copy(data + sr.el_size*(buf_offset+i), wval);
+                  char wval[sr->pair_size()];
+                  sr->mul(beta, data + sr->el_size*(buf_offset+i), wval);
+                  char wval2[sr->pair_size()];
+                  sr->mul(alpha,  pairs[pr_offset].d(), wval2);
+                  sr->add(wval, wval2, wval);
+                  sr->copy(data + sr->el_size*(buf_offset+i), wval);
                 }
               }
               pr_offset++;
@@ -618,20 +618,20 @@ namespace CTF_int {
   //              printf("found overlapped write of key %ld and value %lf\n", pairs[pr_offset].k, pairs[pr_offset].d);
                 if (rw == 'r'){
 //                  pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
-                  char wval[sr.pair_size()];
-                  sr.mul(alpha, data + sr.el_size*(buf_offset+i), wval);
-                  char wval2[sr.pair_size()];
-                  sr.mul(beta,  pairs[pr_offset].d(), wval2);
-                  sr.add(wval, wval2, wval);
+                  char wval[sr->pair_size()];
+                  sr->mul(alpha, data + sr->el_size*(buf_offset+i), wval);
+                  char wval2[sr->pair_size()];
+                  sr->mul(beta,  pairs[pr_offset].d(), wval2);
+                  sr->add(wval, wval2, wval);
                   pairs[pr_offset].write_val(wval);
                 } else {
                   //data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
-                  char wval[sr.pair_size()];
-                  sr.mul(alpha,  pairs[pr_offset].d(), wval);
-                  char wval2[sr.pair_size()];
-                  sr.copy(wval2, data + ((int64_t)buf_offset+i)*sr.el_size);
-                  sr.add(wval, wval2, wval);
-                  sr.copy(data + sr.el_size*(buf_offset+i), wval);
+                  char wval[sr->pair_size()];
+                  sr->mul(alpha,  pairs[pr_offset].d(), wval);
+                  char wval2[sr->pair_size()];
+                  sr->copy(wval2, data + ((int64_t)buf_offset+i)*sr->el_size);
+                  sr->add(wval, wval2, wval);
+                  sr->copy(data + sr->el_size*(buf_offset+i), wval);
                 }
   //              printf("rw = %c found overlapped write and set value to %lf\n", rw, data[(int64_t)buf_offset+i]);
                 pr_offset++;
@@ -701,7 +701,7 @@ namespace CTF_int {
                        char *           wr_pairs_buf,
                        char *           rw_data,
                        CommData         glb_comm,
-                       algstrct const & sr){
+                       algstrct const * sr){
     int64_t new_num_pair, nwrite, swp;
     int64_t * bucket_counts, * recv_counts;
     int64_t * recv_displs, * send_displs;
@@ -711,17 +711,29 @@ namespace CTF_int {
     char * swap_datab, * buf_datab;
 
 
-    CTF_int::alloc_ptr(inwrite*sr.pair_size(), (void**)&buf_datab);
-    CTF_int::alloc_ptr(inwrite*sr.pair_size(), (void**)&swap_datab);
+    CTF_int::alloc_ptr(inwrite*sr->pair_size(), (void**)&buf_datab);
+    CTF_int::alloc_ptr(inwrite*sr->pair_size(), (void**)&swap_datab);
     CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&bucket_counts);
     CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&recv_counts);
     CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&send_displs);
     CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&recv_displs);
 
-    PairIterator buf_data  = PairIterator(&sr, buf_datab);
-    PairIterator swap_data = PairIterator(&sr, swap_datab);
-    PairIterator wr_pairs  = PairIterator(&sr, wr_pairs_buf);
+    PairIterator buf_data  = PairIterator(sr, buf_datab);
+    PairIterator swap_data = PairIterator(sr, swap_datab);
+    PairIterator wr_pairs  = PairIterator(sr, wr_pairs_buf);
 
+
+  #if DEBUG >= 1
+    int64_t total_tsr_size = 1;
+    for (int i=0; i<order; i++){
+      total_tsr_size *= edge_len[i];
+    }
+
+    for (int64_t i=0; i<np; i++){
+      ASSERT(wr_pairs[i].k() >= 0);
+      ASSERT(wr_pairs[i].k() < total_tsr_size);
+    }
+  #endif
     TAU_FSTART(wr_pairs_layout);
 
     /* Copy out the input data, do not touch that array */
@@ -779,7 +791,7 @@ namespace CTF_int {
     int * changed_key_scale;
     
     CTF_int::alloc_ptr(nchanged*sizeof(int64_t), (void**)&changed_key_indices);
-    CTF_int::alloc_ptr(nchanged*sr.pair_size(),  (void**)&new_changed_pairs);
+    CTF_int::alloc_ptr(nchanged*sr->pair_size(),  (void**)&new_changed_pairs);
     CTF_int::alloc_ptr(nchanged*sizeof(int),     (void**)&changed_key_scale);
 
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&ckey);
@@ -818,22 +830,22 @@ namespace CTF_int {
         if (sign == 1)
           swap_data[nwrite].write_val(wr_pairs[i].d());
         else {
-          char ainv[sr.el_size];
-          sr.addinv(wr_pairs[i].d(), ainv);
+          char ainv[sr->el_size];
+          sr->addinv(wr_pairs[i].d(), ainv);
           swap_data[nwrite].write_val(ainv);
         }
         if (rw == 'r' && swap_data[nwrite].k() != wr_pairs[i].k()){
           /*printf("the %lldth key has been set from %lld to %lld\n",
                    i, wr_pairs[i].k, swap_data[nwrite].k);*/
           changed_key_indices[nchanged]= i;
-          swap_data[nwrite].read(new_changed_pairs+nchanged*sr.pair_size());
+          swap_data[nwrite].read(new_changed_pairs+nchanged*sr->pair_size());
           changed_key_scale[nchanged] = sign;
           nchanged++;
         }
         nwrite++;
       } else if (rw == 'r'){
         changed_key_indices[nchanged] = i;
-        wr_pairs[i].read(new_changed_pairs+nchanged*sr.pair_size());
+        wr_pairs[i].read(new_changed_pairs+nchanged*sr->pair_size());
         changed_key_scale[nchanged] = 0;
         nchanged++;
       } 
@@ -871,14 +883,14 @@ namespace CTF_int {
 
     if (new_num_pair > nwrite){
       CTF_int::cfree(swap_datab);
-      CTF_int::alloc_ptr(sr.pair_size()*new_num_pair, (void**)&swap_datab);
-      swap_data = PairIterator(&sr, swap_datab);
+      CTF_int::alloc_ptr(sr->pair_size()*new_num_pair, (void**)&swap_datab);
+      swap_data = PairIterator(sr, swap_datab);
     }
 
     /* Exchange data according to counts/offsets */
     //ALL_TO_ALLV(buf_data, bucket_counts, send_displs, MPI_CHAR,
     //            swap_data, recv_counts, recv_displs, MPI_CHAR, glb_comm);
-    glb_comm.all_to_allv(buf_data.ptr, bucket_counts, send_displs, sr.pair_size(),
+    glb_comm.all_to_allv(buf_data.ptr, bucket_counts, send_displs, sr->pair_size(),
                     swap_data.ptr, recv_counts, recv_displs);
     
 
@@ -887,8 +899,8 @@ namespace CTF_int {
 
     if (new_num_pair > nwrite){
       CTF_int::cfree(buf_datab);
-      CTF_int::alloc_ptr(sr.pair_size()*new_num_pair, (void**)&buf_datab);
-      buf_data = PairIterator(&sr, buf_datab);
+      CTF_int::alloc_ptr(sr->pair_size()*new_num_pair, (void**)&buf_datab);
+      buf_data = PairIterator(sr, buf_datab);
     }
 
     /* Figure out what virtual bucket each key belongs to. Bucket
@@ -938,7 +950,7 @@ namespace CTF_int {
       /* Inverse the transpose we did above to get the keys back to requestors */
       //ALL_TO_ALLV(swap_data, recv_counts, recv_displs, MPI_CHAR,
       //            buf_data, bucket_counts, send_displs, MPI_CHAR, glb_comm);
-      glb_comm.all_to_allv(swap_data.ptr, recv_counts, recv_displs, sr.pair_size(),
+      glb_comm.all_to_allv(swap_data.ptr, recv_counts, recv_displs, sr->pair_size(),
                       buf_data.ptr, bucket_counts, send_displs);
       
 
@@ -956,14 +968,14 @@ namespace CTF_int {
       for (int64_t i=0; i<inwrite; i++){
         if (j<(int64_t)nchanged && changed_key_indices[j] == i){
           if (changed_key_scale[j] == 0){
-            wr_pairs.write(sr.addid());
+            wr_pairs.write(sr->addid());
           } else {
             //el_loc = std::lower_bound(buf_data, buf_data+nwrite, new_changed_pairs[j]);
             //wr_pairs[i].d = changed_key_scale[j]*el_loc[0].d;
-            int64_t el_loc = buf_data.lower_bound(nwrite, ConstPairIterator(&sr, new_changed_pairs+j*sr.pair_size()));
+            int64_t el_loc = buf_data.lower_bound(nwrite, ConstPairIterator(sr, new_changed_pairs+j*sr->pair_size()));
             if (changed_key_scale[j] == -1){
-              char aspr[sr.el_size];
-              sr.addinv(buf_data[el_loc].ptr, aspr);
+              char aspr[sr->el_size];
+              sr->addinv(buf_data[el_loc].ptr, aspr);
               wr_pairs[i].write_val(aspr);
             } else
               wr_pairs[i].write_val(buf_data[el_loc].d());
@@ -1004,11 +1016,11 @@ namespace CTF_int {
                       int64_t *        nread,
                       char const *     data,
                       char **          pairs,
-                      algstrct const & sr){
+                      algstrct const * sr){
     int64_t i;
     int * prepadding;
     char * dpairsb;
-    CTF_int::alloc_ptr(sr.pair_size()*nval, (void**)&dpairsb);
+    CTF_int::alloc_ptr(sr->pair_size()*nval, (void**)&dpairsb);
     CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
     memset(prepadding, 0, sizeof(int)*order);
     /* Iterate through packed layout and form key value pairs */
@@ -1029,9 +1041,9 @@ namespace CTF_int {
     int * depadding;
     int * pad_len;
     char * new_pairsb;
-    CTF_int::alloc_ptr(sr.pair_size()*nval, (void**)&new_pairsb);
+    CTF_int::alloc_ptr(sr->pair_size()*nval, (void**)&new_pairsb);
    
-    PairIterator new_pairs = PairIterator(&sr, new_pairsb); 
+    PairIterator new_pairs = PairIterator(sr, new_pairsb); 
 
     CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&depadding);
     CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&pad_len);

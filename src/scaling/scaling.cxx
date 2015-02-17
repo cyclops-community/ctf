@@ -62,7 +62,7 @@ namespace CTF_int {
       printf("\n");
       printf("Old mapping for tensor %s\n",tsr->name);
     }
-    itsr->print_map(stdout);
+    tsr->print_map(stdout);
   #endif
    
   #ifdef HOME_CONTRACT 
@@ -89,10 +89,8 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*ntsr->order, (void**)&virt_blk_len);
     CTF_int::alloc_ptr(sizeof(int)*order_tot, (void**)&virt_dim);
 
-    bool saved_map = false;
 
     if (!check_self_mapping(ntsr, idx_map)){
-      saved_map = true;
       old_dst = distribution(ntsr);
       bmemuse = UINT64_MAX;
       for (itopo=tsr->wrld->cdt.rank; itopo<(int)tsr->wrld->topovec.size(); itopo+=tsr->wrld->cdt.np){
@@ -157,7 +155,7 @@ namespace CTF_int {
       ntsr->set_padding();
   #if DEBUG >=1
       if (tsr->wrld->cdt.rank == 0){
-        printf("New mapping for tensor %s\n",ntsr);
+        printf("New mapping for tensor %s\n",ntsr->name);
       }
       ntsr->print_map(stdout);
   #endif
@@ -249,13 +247,11 @@ namespace CTF_int {
     delete hscl;
     
 
-    saved_map = false;
 
   #ifdef HOME_CONTRACT
     if (was_home && !ntsr->is_home){
-      saved_map = true;
       if (tsr->wrld->cdt.rank == 0)
-        DPRINTF(2,"Migrating tensor %s back to home\n", tsr);
+        DPRINTF(2,"Migrating tensor %s back to home\n", tsr->name);
       old_dst = distribution(ntsr);
 /*      save_mapping(ntsr,
                    &old_phase, &old_rank, 
@@ -268,7 +264,7 @@ namespace CTF_int {
       TAU_FSTART(redistribute_for_scale_home);
       tsr->redistribute(old_dst);
       TAU_FSTOP(redistribute_for_scale_home);
-      memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr.el_size);
+      memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr->el_size);
       CTF_int::cfree(tsr->data);
       tsr->data = tsr->home_buffer;
       tsr->is_home = 1;
@@ -288,7 +284,7 @@ namespace CTF_int {
 
   #if DEBUG>=1
     if (tsr->wrld->cdt.rank == 0)
-      printf("Done scaling tensor %s.\n", tsr);
+      printf("Done scaling tensor %s.\n", tsr->name);
   #endif
 
     return SUCCESS;

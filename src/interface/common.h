@@ -33,10 +33,9 @@ namespace CTF {
 
   /**
    * \brief reduction types for tensor data
+   *        deprecated types: OP_NORM1=OP_SUMABS, OP_NORM2=call norm2(), OP_NORM_INFTY=OP_MAXABS
    */
-  enum OP { OP_SUM, OP_SUMABS,
-            OP_NORM1, OP_NORM2, OP_NORM_INFTY,
-            OP_MAX, OP_MIN, OP_MAXABS, OP_MINABS};
+  enum OP { OP_SUM, OP_SUMABS, OP_SUMSQ, OP_MAX, OP_MIN, OP_MAXABS, OP_MINABS};
 
   enum { SUCCESS, ERROR, NEGATIVE };
 
@@ -234,10 +233,12 @@ namespace CTF_int {
   #endif
   #endif
 
+  void handler();
+
   #ifndef ASSERT
   #if ENABLE_ASSERT
   #define ASSERT(...)                \
-  do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
+  do { if (!(__VA_ARGS__)) CTF_int::handler(); assert(__VA_ARGS__); } while (0)
   #else
   #define ASSERT(...) do {} while(0 && (__VA_ARGS__))
   #endif

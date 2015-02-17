@@ -96,13 +96,13 @@ namespace CTF {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */
-      Tensor(int          order,
-             int const *  len,
-             int const *  sym,
-             World &      wrld,
-             Set<dtype>   sr=Ring<dtype>(),
-             char const * name=NULL,
-             int          profile=0);
+      Tensor(int                order,
+             int const *        len,
+             int const *        sym,
+             World &            wrld,
+             Set<dtype> const & sr=Ring<dtype>(),
+             char const *       name=NULL,
+             int                profile=0);
 
       
       /**
@@ -489,12 +489,12 @@ namespace CTF {
       /**
        * \brief computes the entrywise 1-norm of the tensor
        */    
-      dtype norm1(){ return reduce(OP_NORM1); };
+      dtype norm1(){ return reduce(OP_SUMABS); };
 
       /**
-       * \brief computes the frobenius norm of the tensor
+       * \brief computes the frobenius norm of the tensor (needs sqrt()!)
        */    
-      dtype norm2(){ return reduce(OP_NORM2); };
+      dtype norm2(){ return sqrt(reduce(OP_SUMSQ)); };
 
       /**
        * \brief finds the max absolute value element of the tensor

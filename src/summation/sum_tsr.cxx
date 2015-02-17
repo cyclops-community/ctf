@@ -91,14 +91,14 @@ namespace CTF_int {
     rec_tsum->alpha = this->alpha;
     rec_tsum->beta = this->beta;
     for (;;){
-      rec_tsum->A = this->A + off_A*blk_sz_A*this->sr_A.el_size;
-      rec_tsum->B = this->B + off_B*blk_sz_B*this->sr_B.el_size;
-//        sr_B.copy(rec_tsum->beta, sr_B.mulid());
+      rec_tsum->A = this->A + off_A*blk_sz_A*this->sr_A->el_size;
+      rec_tsum->B = this->B + off_B*blk_sz_B*this->sr_B->el_size;
+//        sr_B->copy(rec_tsum->beta, sr_B->mulid());
       if (beta_arr[off_B]>0)
-        rec_tsum->beta = sr_B.mulid();
+        rec_tsum->beta = sr_B->mulid();
       else
         rec_tsum->beta = this->beta; 
-//        sr_B.copy(rec_tsum->beta, this->beta);
+//        sr_B->copy(rec_tsum->beta, this->beta);
       beta_arr[off_B] = 1;
       rec_tsum->run();
 
@@ -157,7 +157,7 @@ namespace CTF_int {
     int brank, i;
 
     for (i=0; i<ncdt_A; i++){
-      MPI_Bcast(this->A, size_A*sr_A.el_size, MPI_CHAR, 0, cdt_A[i].cm);
+      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i].cm);
     }
    /* for (i=0; i<ncdt_B; i++){
       POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i], 0);
@@ -166,13 +166,13 @@ namespace CTF_int {
     for (i=0; i<ncdt_B; i++){
       brank += cdt_B[i].rank;
     }
-    if (brank != 0) sr_B.set(this->B, sr_B.addid(), size_B);
+    if (brank != 0) sr_B->set(this->B, sr_B->addid(), size_B);
 
     rec_tsum->A           = this->A;
     rec_tsum->B           = this->B;
     rec_tsum->alpha       = this->alpha;
     if (brank != 0)
-      rec_tsum->beta = sr_B.addid();
+      rec_tsum->beta = sr_B->addid();
     else
       rec_tsum->beta = this->beta; 
 
@@ -180,7 +180,7 @@ namespace CTF_int {
     
     for (i=0; i<ncdt_B; i++){
       /* FIXME Won't work for single precision */
-      MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B.mdtype(), sr_B.addmop(), cdt_B[i].cm);
+      MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i].cm);
     }
 
   }

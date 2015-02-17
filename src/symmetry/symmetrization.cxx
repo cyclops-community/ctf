@@ -73,8 +73,8 @@ namespace CTF_int {
       t_pf.start();
     }
 
-    CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr.el_size, (void**)&nonsym_tsr->data);
-    nonsym_tsr->sr.set(nonsym_tsr->data, nonsym_tsr->sr.addid(), nonsym_tsr->size);
+    CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr->el_size, (void**)&nonsym_tsr->data);
+    nonsym_tsr->sr->set(nonsym_tsr->data, nonsym_tsr->sr->addid(), nonsym_tsr->size);
 
     CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
     CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
@@ -99,13 +99,13 @@ namespace CTF_int {
         char * ksign;
         summation csum;
         if (rev_sign == -1){
-          ksign = (char*)malloc(nonsym_tsr->sr.el_size);
-          nonsym_tsr->sr.addinv(nonsym_tsr->sr.mulid(), ksign);
+          ksign = (char*)malloc(nonsym_tsr->sr->el_size);
+          nonsym_tsr->sr->addinv(nonsym_tsr->sr->mulid(), ksign);
           csum = summation(sym_tsr, idx_map_A, ksign,
-                                  nonsym_tsr, idx_map_B, nonsym_tsr->sr.mulid());
+                                  nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
         } else
-          csum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr.mulid(),
-                                  nonsym_tsr, idx_map_B, nonsym_tsr->sr.mulid());
+          csum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(),
+                                  nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
         csum.execute();
         if (rev_sign == -1) free(ksign);
         idx_map_A[sym_dim] = sym_dim;
@@ -114,7 +114,7 @@ namespace CTF_int {
       if (scal_diag && num_sy+num_sy_neg==1) delete ctsr;
     }
 
-    summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr.mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr.mulid());
+    summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
     ssum.execute();
 //    sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
     
@@ -148,8 +148,8 @@ namespace CTF_int {
           }*/
   /*        printf("tid %d before scale\n", nonsym_tid);
           print_tsr(stdout, nonsym_tid);*/
-          char * scalf = (char*)malloc(nonsym_tsr->sr.el_size);
-          nonsym_tsr->sr.copy(scalf, nonsym_tsr->sr.addid());
+          char * scalf = (char*)malloc(nonsym_tsr->sr->el_size);
+          nonsym_tsr->sr->copy(scalf, nonsym_tsr->sr->addid());
           scaling sscl = scaling(nonsym_tsr, idx_map_A, ((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg));
           sscl.execute();
   /*        printf("tid %d after scale\n", nonsym_tid);
@@ -264,7 +264,7 @@ namespace CTF_int {
       return;
     }
 
-    sym_tsr->sr.set(sym_tsr->data, sym_tsr->sr.addid(), sym_tsr->size);
+    sym_tsr->sr->set(sym_tsr->data, sym_tsr->sr->addid(), sym_tsr->size);
     CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
     CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
 
@@ -282,13 +282,13 @@ namespace CTF_int {
                                     sym_tsr, idx_map_B, 1.0);*/
         summation csum;
         if (rev_sign == -1){
-          char * ksign = (char*)malloc(nonsym_tsr->sr.el_size);
-          nonsym_tsr->sr.addinv(nonsym_tsr->sr.mulid(), ksign);
+          char * ksign = (char*)malloc(nonsym_tsr->sr->el_size);
+          nonsym_tsr->sr->addinv(nonsym_tsr->sr->mulid(), ksign);
           csum = summation(nonsym_tsr, idx_map_A, ksign,
-                                  sym_tsr, idx_map_B, nonsym_tsr->sr.mulid());
+                                  sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
         } else
-          csum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr.mulid(),
-                                  sym_tsr, idx_map_B, nonsym_tsr->sr.mulid());
+          csum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(),
+                                  sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
         csum.execute();
 
   //    print_tsr(stdout, sym_tid);
@@ -309,7 +309,7 @@ namespace CTF_int {
       }*/
     }
     
-    summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr.mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr.mulid());
+    summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
     ssum.execute();
       
 

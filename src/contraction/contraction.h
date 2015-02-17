@@ -302,6 +302,9 @@ namespace CTF_int {
        * \return completion status
        */
       int home_contract();
+
+      /** \brief print contraction details */
+      void print();
   };
 
 

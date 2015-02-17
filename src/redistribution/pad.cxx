@@ -8,7 +8,7 @@ namespace CTF_int {
                int const *      edge_len,
                int const *      padding,
                PairIterator     pairs,
-               algstrct const & sr,
+               algstrct const * sr,
                int const *      offsets){
     int64_t i, j, lda;
     int64_t knew, k;
@@ -57,10 +57,10 @@ namespace CTF_int {
                  char const *     pairsb,
                  char *           new_pairsb,
                  int64_t *        new_num_pair,
-                 algstrct const & sr){
+                 algstrct const * sr){
     TAU_FSTART(depad_tsr);
-    ConstPairIterator pairs = ConstPairIterator(&sr, pairsb);
-    PairIterator new_pairs = PairIterator(&sr, new_pairsb);
+    ConstPairIterator pairs = ConstPairIterator(sr, pairsb);
+    PairIterator new_pairs = PairIterator(sr, new_pairsb);
 #ifdef USE_OMP
     int64_t num_ins;
     int ntd = omp_get_max_threads();
@@ -212,7 +212,7 @@ namespace CTF_int {
                char const *     old_data,
                char **          new_pairs,
                int64_t *        new_size,
-               algstrct const & sr){
+               algstrct const * sr){
     int i, imax, act_lda;
     int64_t new_el, pad_el;
     int pad_max, virt_lda, outside, offset, edge_lda;
@@ -250,8 +250,8 @@ namespace CTF_int {
       }
       if (act_lda == order) break;
     }
-    CTF_int::alloc_ptr(pad_el*(sizeof(int64_t)+sr.el_size), (void**)&padded_pairsb);
-    PairIterator padded_pairs = PairIterator(&sr, padded_pairsb);
+    CTF_int::alloc_ptr(pad_el*(sizeof(int64_t)+sr->el_size), (void**)&padded_pairsb);
+    PairIterator padded_pairs = PairIterator(sr, padded_pairsb);
     new_el   = 0;
     offset   = 0;
     outside  = -1;
@@ -286,13 +286,13 @@ namespace CTF_int {
         if (outside == -1){
           for (i=0; i<pad_max-imax; i++){
             padded_pairs[new_el+i].write_key(offset + (imax+i)*phys_phase[0]);
-            padded_pairs[new_el+i].write_val(sr.addid());
+            padded_pairs[new_el+i].write_val(sr->addid());
           }
           new_el+=pad_max-imax;
         }  else {
           for (i=0; i<pad_max; i++){
             padded_pairs[new_el+i].write_key(offset + i*phys_phase[0]);
-            padded_pairs[new_el+i].write_val(sr.addid());
+            padded_pairs[new_el+i].write_val(sr->addid());
           }
           new_el += pad_max;
         }
@@ -353,7 +353,7 @@ namespace CTF_int {
     CTF_int::cfree(idx);
     DEBUG_PRINTF("order = %d new_el=" PRId64 ", size = " PRId64 ", pad_el = " PRId64 "\n", order, new_el, size, pad_el);
     ASSERT(new_el + size == pad_el);
-    memcpy(padded_pairs[new_el].ptr, old_data,  size*(sizeof(int64_t)+sr.el_size));
+    memcpy(padded_pairs[new_el].ptr, old_data,  size*(sizeof(int64_t)+sr->el_size));
     *new_pairs = padded_pairsb;
     *new_size = pad_el;
   }
@@ -368,7 +368,7 @@ namespace CTF_int {
                     int const *      virt_dim,
                     int const *      cphase_rank,
                     char *           vdata,
-                    algstrct const & sr){
+                    algstrct const * sr){
 
     if (order == 0) return;
     TAU_FSTART(zero_padding);
@@ -462,7 +462,7 @@ namespace CTF_int {
           int pad0 = (padding[0]+phase_rank[0])/phase[0];
           int len0 = virt_len[0]-pad0;
           int plen0 = virt_len[0];
-          data = vdata + sr.el_size*p*(size/nvirt);
+          data = vdata + sr->el_size*p*(size/nvirt);
 
           if (p==vst && st_index != 0){
             idx[0] = 0;
@@ -501,7 +501,7 @@ namespace CTF_int {
     //          std::fill(data+buf_offset, data+buf_offset+plen0, 0.0);
               //for (int64_t j=buf_offset; j<buf_offset+plen0; j++){
               //}
-              sr.set(data+buf_offset*sr.el_size, sr.addid(), plen0);
+              sr->set(data+buf_offset*sr->el_size, sr->addid(), plen0);
             } else {
               int s1 = MIN(plen0-is_sh_pad0,len0);
     /*          if (sym[0] == SH) s1 = MIN(s1, len0-1);*/
@@ -509,7 +509,7 @@ namespace CTF_int {
               //for (int64_t j=buf_offset+s1; j<buf_offset+plen0; j++){
               //  data[j] = 0.0;
               //}
-              sr.set(data+(buf_offset+s1)*sr.el_size, sr.addid(), plen0);
+              sr->set(data+(buf_offset+s1)*sr->el_size, sr->addid(), plen0);
             }
             buf_offset+=plen0;
             if (p == vend-1 && buf_offset >= end_index) break;

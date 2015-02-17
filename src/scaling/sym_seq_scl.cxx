@@ -29,10 +29,9 @@ namespace CTF_int {
 
   int sym_seq_scl_ref(char const *     alpha,
                       char *           A,
-                      algstrct const & sr_A,
+                      algstrct const * sr_A,
                       int              order_A,
                       int const *      edge_len_A,
-                      int const *      _lda_A,
                       int const *      sym_A,
                       int const *      idx_map_A){
     TAU_FSTART(sym_seq_sum_ref);
@@ -56,7 +55,7 @@ namespace CTF_int {
     for (;;){
       if (sym_pass){
         //A[idx_A] = alpha*A[idx_A];
-        sr_A.mul(A+idx_A*sr_A.el_size, alpha, A+idx_A*sr_A.el_size);
+        sr_A->mul(A+idx_A*sr_A->el_size, alpha, A+idx_A*sr_A->el_size);
         CTF_FLOPS_ADD(1);
       }
 
@@ -94,10 +93,9 @@ namespace CTF_int {
 
   int sym_seq_scl_cust(char const *     alpha,
                        char *           A,
-                       algstrct const & sr_A,
+                       algstrct const * sr_A,
                        int const        order_A,
                        int const *      edge_len_A,
-                       int const *      _lda_A,
                        int const *      sym_A,
                        int const *      idx_map_A,
                        endomorphism     func){
@@ -121,9 +119,9 @@ namespace CTF_int {
     sym_pass = 1;
     for (;;){
       if (sym_pass){
-        func.apply_f(A+idx_A*sr_A.el_size);
+        func.apply_f(A+idx_A*sr_A->el_size);
         if (alpha != NULL)
-          sr_A.mul(A+idx_A*sr_A.el_size, alpha, A+idx_A*sr_A.el_size);
+          sr_A->mul(A+idx_A*sr_A->el_size, alpha, A+idx_A*sr_A->el_size);
         CTF_FLOPS_ADD(1);
       }
 

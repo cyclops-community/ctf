@@ -128,7 +128,7 @@ namespace CTF_int {
     rec_ctr->B            = this->B;
     rec_ctr->C            = this->C;
     if (cdt.rank != 0)
-      rec_ctr->beta = sr_C.addid();
+      rec_ctr->beta = sr_C->addid();
     else
       rec_ctr->beta = this->beta; 
     rec_ctr->num_lyr      = cdt.np;
@@ -140,7 +140,7 @@ namespace CTF_int {
     //COMM_BARRIER(cdt);
     /* FIXME Won't work for single precision */
     //ALLREDUCE(MPI_IN_PLACE, this->C, sz_C*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt);
-    MPI_Allreduce(MPI_IN_PLACE, this->C, sz_C, sr_C.mdtype(), sr_C.addmop(), cdt.cm);
+    MPI_Allreduce(MPI_IN_PLACE, this->C, sz_C, sr_C->mdtype(), sr_C->addmop(), cdt.cm);
 
   }
 
@@ -205,15 +205,15 @@ namespace CTF_int {
     tot_sz = 0.0;
     for (i=0; i<ncdt_A; i++){
       ASSERT(cdt_A[i].np > 0);
-      tot_sz += cdt_A[i].estimate_bcast_time(size_A*sr_A.el_size);
+      tot_sz += cdt_A[i].estimate_bcast_time(size_A*sr_A->el_size);
     }
     for (i=0; i<ncdt_B; i++){
       ASSERT(cdt_B[i].np > 0);
-      tot_sz += cdt_B[i].estimate_bcast_time(size_B*sr_B.el_size);
+      tot_sz += cdt_B[i].estimate_bcast_time(size_B*sr_B->el_size);
     }
     for (i=0; i<ncdt_C; i++){
       ASSERT(cdt_C[i].np > 0);
-      tot_sz += cdt_C[i].estimate_allred_time(size_C*sr_C.el_size);
+      tot_sz += cdt_C[i].estimate_allred_time(size_C*sr_C->el_size);
     }
     return tot_sz;
   }
@@ -237,21 +237,21 @@ namespace CTF_int {
     arank = 0, brank = 0, crank = 0;
     for (i=0; i<ncdt_A; i++){
       arank += cdt_A[i].rank;
-//      POST_BCAST(this->A, size_A*sr_A.el_size, COMM_CHAR_T, 0, cdt_A[i], 0);
-      MPI_Bcast(this->A, size_A*sr_A.el_size, MPI_CHAR, 0, cdt_A[i].cm);
+//      POST_BCAST(this->A, size_A*sr_A->el_size, COMM_CHAR_T, 0, cdt_A[i], 0);
+      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i].cm);
     }
     for (i=0; i<ncdt_B; i++){
       brank += cdt_B[i].rank;
-//      POST_BCAST(this->B, size_B*sr_B.el_size, COMM_CHAR_T, 0, cdt_B[i], 0);
-      MPI_Bcast(this->B, size_B*sr_B.el_size, MPI_CHAR, 0, cdt_B[i].cm);
+//      POST_BCAST(this->B, size_B*sr_B->el_size, COMM_CHAR_T, 0, cdt_B[i], 0);
+      MPI_Bcast(this->B, size_B*sr_B->el_size, MPI_CHAR, 0, cdt_B[i].cm);
     }
     for (i=0; i<ncdt_C; i++){
       crank += cdt_C[i].rank;
     }
-    if (crank != 0) this->sr_C.set(this->C, this->sr_C.addid(), size_C);
+    if (crank != 0) this->sr_C->set(this->C, this->sr_C->addid(), size_C);
     else {
       for (i=0; i<size_C; i++){
-        sr_C.mul(this->beta, this->C+i*sr_C.el_size, this->C+i*sr_C.el_size);
+        sr_C->mul(this->beta, this->C+i*sr_C->el_size, this->C+i*sr_C->el_size);
       }
     }
 
@@ -259,24 +259,24 @@ namespace CTF_int {
     rec_ctr->B            = this->B;
     rec_ctr->C            = this->C;
     if (crank != 0)
-      rec_ctr->beta = sr_C.addid();
+      rec_ctr->beta = sr_C->addid();
     else
-      rec_ctr->beta = sr_C.mulid(); 
+      rec_ctr->beta = sr_C->mulid(); 
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
 
     rec_ctr->run();
     
     for (i=0; i<ncdt_C; i++){
-      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype(), sr_C.addmop(), cdt_C[i]);
-      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C.mdtype(), sr_C.addmop(), cdt_C[i].cm);
+      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]);
+      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i].cm);
     }
 
     if (arank != 0){
-      this->sr_A.set(this->A, this->sr_A.addid(), size_A);
+      this->sr_A->set(this->A, this->sr_A->addid(), size_A);
     }
     if (brank != 0){
-      this->sr_B.set(this->B, this->sr_B.addid(), size_B);
+      this->sr_B->set(this->B, this->sr_B->addid(), size_B);
     }
   }
 
@@ -339,9 +339,9 @@ namespace CTF_int {
     uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A);
     uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B);
     uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C);
-    if (is_inner) size_A *= inner_params.m*inner_params.k*sr_A.el_size;
-    if (is_inner) size_B *= inner_params.n*inner_params.k*sr_B.el_size;
-    if (is_inner) size_C *= inner_params.m*inner_params.n*sr_C.el_size;
+    if (is_inner) size_A *= inner_params.m*inner_params.k*sr_A->el_size;
+    if (is_inner) size_B *= inner_params.n*inner_params.k*sr_B->el_size;
+    if (is_inner) size_C *= inner_params.m*inner_params.n*sr_C->el_size;
    
     ASSERT(size_A > 0);
     ASSERT(size_B > 0);

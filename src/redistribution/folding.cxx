@@ -41,7 +41,7 @@ namespace CTF_int {
                        int const *      edge_len,
                        char *           data,
                        int              dir,
-                       algstrct const & sr){
+                       algstrct const * sr){
     int * chunk_size;
     char ** tswap_data;
 
@@ -76,7 +76,7 @@ namespace CTF_int {
       int toff = 0;
       for (i=0; i<tid; i++) toff += chunk_size[i];
       if (thread_chunk_size > 0){
-        memcpy(data+sr.el_size*(toff),swap_data,sr.el_size*thread_chunk_size);
+        memcpy(data+sr->el_size*(toff),swap_data,sr->el_size*thread_chunk_size);
       }
     }
     for (int i=0; i<max_ntd; i++) {
@@ -99,7 +99,7 @@ namespace CTF_int {
                        int              max_ntd,
                        char **          tswap_data,
                        int *            chunk_size,
-                       algstrct const & sr){
+                       algstrct const * sr){
     int64_t local_size;
     int64_t j, last_dim;
     int64_t * lda, * new_lda;
@@ -171,21 +171,21 @@ namespace CTF_int {
         chunk_size[tid] = thread_chunk_size;
         if (thread_chunk_size <= 0) 
           printf("ERRORR thread_chunk_size = " PRId64 ", tid = " PRId64 ", local_size = " PRId64 "\n", thread_chunk_size, tid, local_size);
-        CTF_int::alloc_ptr(thread_chunk_size*sr.el_size, (void**)&tswap_data[tid]);
+        CTF_int::alloc_ptr(thread_chunk_size*sr->el_size, (void**)&tswap_data[tid]);
         swap_data = tswap_data[tid];
         for (;;){
           if (last_dim != 0){
             if (dir)
-              sr.copy(edge_len[0], data+sr.el_size*(off_old), lda[0], swap_data+sr.el_size*(off_new-toff_new), new_lda[0]);
+              sr->copy(edge_len[0], data+sr->el_size*(off_old), lda[0], swap_data+sr->el_size*(off_new-toff_new), new_lda[0]);
             else
-              sr.copy(edge_len[0], data+sr.el_size*(off_new), new_lda[0], swap_data+sr.el_size*(off_old-toff_old), lda[0]);
+              sr->copy(edge_len[0], data+sr->el_size*(off_new), new_lda[0], swap_data+sr->el_size*(off_old-toff_old), lda[0]);
 
             idx[0] = 0;
           } else {
             if (dir)
-              sr.copy(last_max-tidx_off, data+sr.el_size*(off_old), lda[0], swap_data+sr.el_size*(off_new-toff_new), new_lda[0]);
+              sr->copy(last_max-tidx_off, data+sr->el_size*(off_old), lda[0], swap_data+sr->el_size*(off_new-toff_new), new_lda[0]);
             else
-              sr.copy(last_max-tidx_off, data+sr.el_size*(off_new), new_lda[0], swap_data+sr.el_size*(off_old-toff_old), lda[0]);
+              sr->copy(last_max-tidx_off, data+sr->el_size*(off_new), new_lda[0], swap_data+sr->el_size*(off_old-toff_old), lda[0]);
 
             idx[0] = tidx_off;
           } 

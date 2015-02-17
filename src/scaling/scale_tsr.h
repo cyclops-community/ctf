@@ -10,7 +10,7 @@ namespace CTF_int {
   class scl {
     public:
       char * A; 
-      algstrct sr_A;
+      algstrct const * sr_A;
       char const * alpha;
       void * buffer;
 

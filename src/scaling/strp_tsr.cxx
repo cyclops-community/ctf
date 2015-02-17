@@ -27,7 +27,7 @@ namespace CTF_int {
     for (i=0; i<order; i++){
       sub_sz = sub_sz * edge_len[i] / strip_dim[i];
     }
-    return sub_sz*sr_A.el_size;
+    return sub_sz*sr_A->el_size;
   }
 
   void strp_tsr::run(int const dir){
@@ -60,11 +60,11 @@ namespace CTF_int {
     boff = 0;
     for (;;){
       if (dir)
-        sr_A.copy(A+toff*blk_sz, buffer+boff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz);
+        sr_A->copy(A+toff*blk_sz, buffer+boff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz);
       else {
     /*    printf("boff = %d, toff = %d blk_sz = " PRId64 " mv_ez=" PRId64 "\n",boff,toff,blk_sz,
-                (edge_len[0]/strip_dim[0])*blk_sz*sr_A.el_size);*/
-        sr_A.copy(buffer+boff*blk_sz, A+toff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz);
+                (edge_len[0]/strip_dim[0])*blk_sz*sr_A->el_size);*/
+        sr_A->copy(buffer+boff*blk_sz, A+toff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz);
       }
       boff += (edge_len[0]/strip_dim[0]);
 
@@ -277,7 +277,7 @@ namespace CTF_int {
                  int64_t          vrt_sz,
                  mapping const *  edge_map,
                  topology const * topo,
-                 algstrct const & sr,
+                 algstrct const * sr,
                  int *            blk_edge_len,
                  int64_t *        blk_sz,
                  strp_tsr **      stpr){

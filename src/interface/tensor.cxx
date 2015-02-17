@@ -28,14 +28,14 @@ namespace CTF {
     : CTF_int::tensor(Semiring<dtype>(), order, lens, sym, &wrld, 1, name, profile) { }
 */
   template<typename dtype>
-  Tensor<dtype>::Tensor(int          order,
-                        int const *  len,
-                        int const *  sym,
-                        World &      world,
-                        Set<dtype>   sr,
-                        char const * name,
-                        int const    profile)
-    : CTF_int::tensor(sr, order, lens, sym, &world, 1, name, profile) {}
+  Tensor<dtype>::Tensor(int                order,
+                        int const *        len,
+                        int const *        sym,
+                        World &            world,
+                        Set<dtype> const & sr,
+                        char const *       name,
+                        int const          profile)
+    : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {}
 
 
   template<typename dtype>
@@ -109,7 +109,7 @@ namespace CTF {
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
     }
-    ret = CTF_int::tensor::write(npair, sr.mulid(), sr.addid(), (char*)pairs);
+    ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), (char*)pairs);
     assert(ret == SUCCESS);
     CTF_int::cfree(pairs);
   }
@@ -256,7 +256,7 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::add_to_subworld(
                            Tensor<dtype> * tsr) const {
-    return add_to_subworld(tsr, sr.mulid(), sr.mulid());
+    return add_to_subworld(tsr, sr->mulid(), sr->mulid());
   }
 
   template<typename dtype>
@@ -275,7 +275,7 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::add_from_subworld(
                            Tensor<dtype> * tsr) const {
-    return add_from_subworld(tsr, sr.mulid(), sr.mulid());
+    return add_from_subworld(tsr, sr->mulid(), sr->mulid());
   }
 
   template<typename dtype>
@@ -363,7 +363,7 @@ namespace CTF {
     }
     Tensor<dtype> new_tsr(order, new_lens, new_sym, *owrld);
     std::fill(new_sym, new_sym+order, 0);
-    new_tsr.slice(new_sym, new_lens, 0.0, *this, offsets, ends, 1.0);
+    new_tsr->slice(new_sym, new_lens, 0.0, *this, offsets, ends, 1.0);
     CTF_int::cfree(new_lens);
     CTF_int::cfree(new_sym);
     return new_tsr;
@@ -401,8 +401,49 @@ namespace CTF {
   dtype Tensor<dtype>::reduce(OP op){
     int ret;
     dtype ans;
-    ans = 0.0;
-    ret = CTF_int::tensor::reduce(op, &ans);
+    switch (op) {
+      case OP_SUM:
+        ret = reduce_sum((char*)&ans);
+        break;
+      case OP_SUMABS:
+        ret = reduce_sumabs((char*)&ans);
+        break;
+      case OP_SUMSQ:
+        ret = reduce_sumsq((char*)&ans);
+        break;
+      case OP_MAX:
+        {
+          dtype minval;
+          sr->min((char*)&minval);
+          Monoid<dtype, 1> mmax = Monoid<dtype, 1>(minval, default_max<dtype, 1>, MPI_MAX);
+          ret = reduce_sum((char*)&ans, &mmax);
+        }
+        break;
+      case OP_MIN:
+        {
+          dtype maxval;
+          sr->max((char*)&maxval);
+          Monoid<dtype, 1> mmin = Monoid<dtype, 1>(maxval, default_min<dtype, 1>, MPI_MIN);
+          ret = reduce_sum((char*)&ans, &mmin);
+        }
+        break;
+      case OP_MAXABS:
+        {
+          dtype minval;
+          sr->min((char*)&minval);
+          Monoid<dtype, 1> mmax = Monoid<dtype, 1>(minval, default_max<dtype, 1>, MPI_MAX);
+          ret = reduce_sumabs((char*)&ans, &mmax);
+        }
+        break;
+      case OP_MINABS:
+        {
+          dtype maxval;
+          sr->max((char*)&maxval);
+          Monoid<dtype, 1> mmin = Monoid<dtype, 1>(maxval, default_min<dtype, 1>, MPI_MIN);
+          ret = reduce_sumabs((char*)&ans, &mmin);
+        }
+        break;
+    }
     assert(ret == SUCCESS);
     return ans;
   }
@@ -546,8 +587,8 @@ namespace CTF {
              B.order, idx_B, &idx_map_B,
              order, idx_C, &idx_map_C);
     CTF_int::contraction ctr
-      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, sr.mulid(),
-                                           this, idx_map_C, sr.addid());
+      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, sr->mulid(),
+                                           this, idx_map_C, sr->addid());
     return ctr.estimate_time();
   }
     
@@ -560,7 +601,7 @@ namespace CTF {
     conv_idx(A.order, idx_A, &idx_map_A,
              order, idx_B, &idx_map_B);
     CTF_int::summation sum 
-      = CTF_int::summation(&A, idx_map_A, sr.mulid(), this, idx_map_B, sr.addid());
+      = CTF_int::summation(&A, idx_map_A, sr->mulid(), this, idx_map_B, sr->addid());
 
     return sum.estimate_time();
     

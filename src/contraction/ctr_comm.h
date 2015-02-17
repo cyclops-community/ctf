@@ -33,9 +33,9 @@ namespace CTF_int{
       char * A; /* m by k */
       char * B; /* k by n */
       char * C; /* m by n */
-      algstrct sr_A;
-      algstrct sr_B;
-      algstrct sr_C;
+      algstrct const * sr_A;
+      algstrct const * sr_B;
+      algstrct const * sr_C;
       char const * beta;
       int num_lyr; /* number of copies of this matrix being computed on */
       int idx_lyr; /* the index of this copy */

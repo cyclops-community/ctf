@@ -10,7 +10,7 @@ namespace CTF_int {
                         distribution const & new_dist,
                         char *               tsr_data,
                         char **              tsr_cyclic_data,
-                        algstrct             sr,
+                        algstrct const *     sr,
                         CommData             ord_glb_comm){
     int old_num_virt, new_num_virt, numPes;
     int64_t new_nval, swp_nval;
@@ -55,26 +55,25 @@ namespace CTF_int {
       sub_edge_len[i] = new_dist.pad_edge_len[i] / new_dist.phase[i];
     }
     if (ord_glb_comm.rank == 0){
-      DPRINTF(1,"Tensor %d now has virtualization factor of %d\n",tid,new_num_virt);
+      DPRINTF(1,"Tensor now has virtualization factor of %d\n",new_num_virt);
     }
     swp_nval = new_num_virt*sy_packed_size(old_dist.order, sub_edge_len, sym);
     if (ord_glb_comm.rank == 0){
-      DPRINTF(1,"Tensor %d is of size " PRId64 ", has factor of %lf growth due to padding\n", 
-      
-            tid, swp_nval,
+      DPRINTF(1,"Tensor is of size " PRId64 ", has factor of %lf growth due to padding\n", 
+            swp_nval,
             ord_glb_comm.np*(swp_nval/(double)old_size));
     }
 
-    alloc_ptr(swp_nval*sr.el_size, (void**)&tsr_new_data);
+    alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_new_data);
 
-    sr.set(tsr_new_data, sr.addid(), swp_nval);
+    sr->set(tsr_new_data, sr->addid(), swp_nval);
 
 
     wr_pairs_layout(old_dist.order,
                     numPes,
                     new_nval,
-                    sr.mulid(),
-                    sr.addid(),
+                    sr->mulid(),
+                    sr->addid(),
                     'w',
                     new_num_virt,
                     sym,
@@ -432,17 +431,17 @@ namespace CTF_int {
                                 int * const *        bucket_offset,
                                 char const *         alpha,
                                 char const *         beta,
-                                algstrct const &     sr){
+                                algstrct const *     sr){
     bool is_copy = false;
-    if (sr.isequal(sr.mulid(), alpha) && sr.isequal(sr.addid(), beta)) is_copy = true;
+    if (sr->isequal(sr->mulid(), alpha) && sr->isequal(sr->addid(), beta)) is_copy = true;
     if (old_dist.order == 0){
       if (forward)
-        sr.copy(new_data[0], old_data);
+        sr->copy(new_data[0], old_data);
       else {
         if (is_copy)
-          sr.copy(old_data, new_data[0]);
+          sr->copy(old_data, new_data[0]);
         else
-          sr.acc(old_data, beta, new_data[0], alpha);
+          sr->acc(old_data, beta, new_data[0], alpha);
       }
       return;
     }
@@ -701,7 +700,7 @@ namespace CTF_int {
               //printf("[%d] bucket = %d offset = %ld\n", rank, bucket, offset);
               //printf("[%d] count[bucket] = %d, nbucket = %d\n", rank, count[bucket]++, nbucket);
               //std::cout << old_data[offset] << "\n";
-              sr.copy(new_data[bucket]+sr.el_size*(count[bucket]++), old_data+ sr.el_size*offset);
+              sr->copy(new_data[bucket]+sr->el_size*(count[bucket]++), old_data+ sr->el_size*offset);
               //std::cout << "new_data[bucket][count[bucket]++]" << new_data[bucket][count[bucket]-1] << "\n";
   #endif
               offset += old_virt_nelem;
@@ -719,8 +718,8 @@ namespace CTF_int {
               thread_store[offset] = tid;
   #else
               if (is_copy) 
-                sr.copy(old_data+ sr.el_size*offset, new_data[bucket]+sr.el_size*(count[bucket]++));
-              else sr.acc(old_data+ sr.el_size*offset, beta, new_data[bucket]+sr.el_size*(count[bucket]++), alpha);
+                sr->copy(old_data+ sr->el_size*offset, new_data[bucket]+sr->el_size*(count[bucket]++));
+              else sr->acc(old_data+ sr->el_size*offset, beta, new_data[bucket]+sr->el_size*(count[bucket]++), alpha);
 //              old_data[offset] = beta*old_data[offset] + alpha*new_data[bucket][count[bucket]++];
   #endif
               offset += old_virt_nelem;
@@ -794,8 +793,8 @@ namespace CTF_int {
   #if DEBUG >= 1
     bool pass = true;
     for (int i = 0;i < nbucket-1;i++){
-      if (count[i] != (int64_t)((new_data[i+1]-new_data[i])/sr.el_size)){
-        printf("rank = %d count %d should have been %d is %d\n", rank, i, (int)((new_data[i+1]-new_data[i])/sr.el_size), count[i]);
+      if (count[i] != (int64_t)((new_data[i+1]-new_data[i])/sr->el_size)){
+        printf("rank = %d count %d should have been %d is %d\n", rank, i, (int)((new_data[i+1]-new_data[i])/sr->el_size), count[i]);
         pass = false;
       }
     }
@@ -817,8 +816,8 @@ namespace CTF_int {
         par_virt_counts[thread][bckt] = par_tmp - par_virt_counts[thread][bckt];
       }
   #if DEBUG >= 1
-      if (bckt < nbucket-1 && par_tmp != (new_data[bckt+1]-new_data[bckt])/sr.el_size){
-        printf("rank = %d count for bucket %d is %d should have been %ld\n",rank,bckt,par_tmp,(int64_t)(new_data[bckt+1]-new_data[bckt])/sr.el_size);
+      if (bckt < nbucket-1 && par_tmp != (new_data[bckt+1]-new_data[bckt])/sr->el_size){
+        printf("rank = %d count for bucket %d is %d should have been %ld\n",rank,bckt,par_tmp,(int64_t)(new_data[bckt+1]-new_data[bckt])/sr->el_size);
         ABORT;
       }
   #endif
@@ -835,7 +834,7 @@ namespace CTF_int {
           if (bucket_store[i] != -1){
             int64_t pc = par_virt_counts[thread_store[i]][bucket_store[i]];
             int64_t ct = count_store[i]+pc;
-            sr.copy(new_data[bucket_store[i]]+ct*sr.el_size, old_data+i*sr.el_size);
+            sr->copy(new_data[bucket_store[i]]+ct*sr->el_size, old_data+i*sr->el_size);
           }
         }
       } else {
@@ -845,7 +844,7 @@ namespace CTF_int {
             if (bucket_store[i] != -1){
               int64_t pc = par_virt_counts[thread_store[i]][bucket_store[i]];
               int64_t ct = count_store[i]+pc;
-              sr.copy(old_data+i*sr.el_size, new_data[bucket_store[i]]+ct*sr.el_size);
+              sr->copy(old_data+i*sr->el_size, new_data[bucket_store[i]]+ct*sr->el_size);
             }
           }
         } else {
@@ -854,7 +853,7 @@ namespace CTF_int {
             if (bucket_store[i] != -1){
               int64_t pc = par_virt_counts[thread_store[i]][bucket_store[i]];
               int64_t ct = count_store[i]+pc;
-              sr.acc(old_data+i*sr.el_size, beta, new_data[bucket_store[i]]+ct*sr.el_size, alpha);
+              sr->acc(old_data+i*sr->el_size, beta, new_data[bucket_store[i]]+ct*sr->el_size, alpha);
             }
           }
         }
@@ -883,14 +882,13 @@ namespace CTF_int {
                         int * const *        new_permutation,
                         char **              ptr_tsr_data,
                         char **              ptr_tsr_cyclic_data,
-                        algstrct             sr,
+                        algstrct const *     sr,
                         CommData             ord_glb_comm,
                         bool                 reuse_buffers,
                         char const *         alpha,
                         char const *         beta){
     int i, nbuf, np, old_nvirt, new_nvirt, old_np, new_np, idx_lyr;
     int64_t vbs_old, vbs_new;
-    int64_t hvbs_old, hvbs_new;
     int64_t swp_nval;
     int * hsym;
     int64_t * send_counts, * recv_counts;
@@ -905,16 +903,16 @@ namespace CTF_int {
     char * tsr_data = *ptr_tsr_data;
     char * tsr_cyclic_data = *ptr_tsr_cyclic_data;
     if (order == 0){
-      alloc_ptr(sizeof(sr.el_size), (void**)&tsr_cyclic_data);
+      alloc_ptr(sizeof(sr->el_size), (void**)&tsr_cyclic_data);
       if (ord_glb_comm.rank == 0){
-        sr.acc(tsr_cyclic_data, beta, tsr_data, alpha);
+        sr->acc(tsr_cyclic_data, beta, tsr_data, alpha);
       } else {
-        sr.copy(tsr_cyclic_data, sr.addid());
+        sr->copy(tsr_cyclic_data, sr->addid());
       }
       *ptr_tsr_cyclic_data = tsr_cyclic_data;
     }
     
-    ASSERT(!reuse_buffers || sr.isequal(beta, sr.addid()));
+    ASSERT(!reuse_buffers || sr->isequal(beta, sr->addid()));
 
     TAU_FSTART(cyclic_reshuffle);
       np = ord_glb_comm.np;
@@ -1043,13 +1041,11 @@ namespace CTF_int {
     for (i=1; i<order; i++){
       hsym[i-1] = sym[i];
     }
-    hvbs_old = sy_packed_size(order-1, old_sub_edge_len+1, hsym);
-    hvbs_new = sy_packed_size(order-1, new_sub_edge_len+1, hsym);
     swp_nval = new_nvirt*sy_packed_size(order, new_sub_edge_len, sym);
     vbs_new = swp_nval/new_nvirt;
 
     if (reuse_buffers){
-      mst_alloc_ptr(MAX(old_dist.size,swp_nval)*sr.el_size, (void**)&tsr_cyclic_data);
+      mst_alloc_ptr(MAX(old_dist.size,swp_nval)*sr->el_size, (void**)&tsr_cyclic_data);
 
       TAU_FSTART(pack_virt_buf);
       if (idx_lyr == 0){
@@ -1079,8 +1075,8 @@ namespace CTF_int {
                                    new_data,
                                    1,
                                    bucket_offset, 
-                                   sr.mulid(),
-                                   sr.addid(),
+                                   sr->mulid(),
+                                   sr->addid(),
                                    sr);
           cfree(new_data);
         } else {
@@ -1096,16 +1092,16 @@ namespace CTF_int {
 
       if (swp_nval > old_dist.size){
         cfree(tsr_data);
-        mst_alloc_ptr(swp_nval*sr.el_size, (void**)&tsr_data);
+        mst_alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_data);
       }
 
       /* Communicate data */
       TAU_FSTART(ALL_TO_ALL_V);
-      ord_glb_comm.all_to_allv(tsr_cyclic_data, send_counts, send_displs, sr.el_size,
+      ord_glb_comm.all_to_allv(tsr_cyclic_data, send_counts, send_displs, sr->el_size,
                                tsr_data, recv_counts, recv_displs);
       TAU_FSTOP(ALL_TO_ALL_V);
 
-      sr.set(tsr_cyclic_data, sr.addid(), swp_nval);
+      sr->set(tsr_cyclic_data, sr->addid(), swp_nval);
       TAU_FSTART(unpack_virt_buf);
       /* Deserialize data into correctly ordered virtual sub blocks */
       if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
@@ -1151,8 +1147,8 @@ namespace CTF_int {
                                    new_data,
                                    0,
                                    bucket_offset, 
-                                   sr.mulid(),
-                                   sr.addid(),
+                                   sr->mulid(),
+                                   sr->addid(),
                                    sr);
           for (int dim = 0;dim < order;dim++){
             cfree(bucket_offset[dim]);
@@ -1171,8 +1167,8 @@ namespace CTF_int {
       *ptr_tsr_data = tsr_data;
     } else {
       char * send_buffer, * recv_buffer;
-      mst_alloc_ptr(old_dist.size*sr.el_size, (void**)&send_buffer);
-      mst_alloc_ptr(swp_nval*sr.el_size, (void**)&recv_buffer);
+      mst_alloc_ptr(old_dist.size*sr->el_size, (void**)&send_buffer);
+      mst_alloc_ptr(swp_nval*sr->el_size, (void**)&recv_buffer);
 
       ASSERT(old_dist.is_cyclic&&new_dist.is_cyclic);
       TAU_FSTART(pack_virt_buf);
@@ -1202,8 +1198,8 @@ namespace CTF_int {
                                  new_data,
                                  1,
                                  bucket_offset, 
-                                 sr.mulid(),
-                                 sr.addid(),
+                                 sr->mulid(),
+                                 sr->addid(),
                                  sr);
         cfree(new_data);
       }
@@ -1215,7 +1211,7 @@ namespace CTF_int {
       TAU_FSTOP(pack_virt_buf);
 
       /* Communicate data */
-      ord_glb_comm.all_to_allv(send_buffer, send_counts, send_displs, sr.el_size,
+      ord_glb_comm.all_to_allv(send_buffer, send_counts, send_displs, sr->el_size,
                                recv_buffer, recv_counts, recv_displs);
       cfree(send_buffer);
 
@@ -1309,7 +1305,7 @@ namespace CTF_int {
                        distribution const & new_dist,
                        char *               tsr_data,
                        char *&              tsr_cyclic_data,
-                       algstrct             sr,
+                       algstrct const *     sr,
                        CommData             glb_comm){
     int i, idx_lyr_new, idx_lyr_old, blk_idx, prc_idx, loc_idx;
     int num_old_virt, num_new_virt;
@@ -1320,17 +1316,17 @@ namespace CTF_int {
     int order = old_dist.order; 
 
     if (order == 0){
-      alloc_ptr(sr.el_size*new_dist.size, (void**)&tsr_cyclic_data);
+      alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
       if (glb_comm.rank == 0){
-        sr.copy(tsr_cyclic_data,  tsr_data);
+        sr->copy(tsr_cyclic_data,  tsr_data);
       } else {
-        sr.copy(tsr_cyclic_data, sr.addid());
+        sr->copy(tsr_cyclic_data, sr->addid());
       }
     }
 
     TAU_FSTART(block_reshuffle);
 
-    mst_alloc_ptr(sr.el_size*new_dist.size, (void**)&tsr_cyclic_data);
+    mst_alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
     alloc_ptr(sizeof(int)*order, (void**)&idx);
     alloc_ptr(sizeof(int)*order, (void**)&old_loc_lda);
     alloc_ptr(sizeof(int)*order, (void**)&new_loc_lda);
@@ -1374,7 +1370,7 @@ namespace CTF_int {
         }
         DPRINTF(4,"proc %d receiving blk %d (loc %d, size " PRId64 ") from proc %d\n", 
                 glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx);
-        MPI_Irecv(tsr_cyclic_data+sr.el_size*loc_idx*blk_sz, blk_sz*sr.el_size, 
+        MPI_Irecv(tsr_cyclic_data+sr->el_size*loc_idx*blk_sz, blk_sz*sr->el_size, 
                   MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+loc_idx);
         for (i=0; i<order; i++){
           idx[i]++;
@@ -1401,7 +1397,7 @@ namespace CTF_int {
         }
         DPRINTF(4,"proc %d sending blk %d (loc %d) to proc %d\n", 
                 glb_comm.rank, blk_idx, loc_idx, prc_idx);
-        MPI_Isend(tsr_data+sr.el_size*loc_idx*blk_sz, blk_sz*sr.el_size, 
+        MPI_Isend(tsr_data+sr->el_size*loc_idx*blk_sz, blk_sz*sr->el_size, 
                   MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
         for (i=0; i<order; i++){
           idx[i]++;
@@ -1420,9 +1416,9 @@ namespace CTF_int {
       MPI_Waitall(num_new_virt, reqs, MPI_STATUSES_IGNORE);
     } else if (idx_lyr_old == 0){
       MPI_Waitall(num_old_virt, reqs+num_new_virt, MPI_STATUSES_IGNORE);
-      sr.set(tsr_cyclic_data, sr.addid(), new_dist.size);
+      sr->set(tsr_cyclic_data, sr->addid(), new_dist.size);
     } else {
-      sr.set(tsr_cyclic_data, sr.addid(), new_dist.size);
+      sr->set(tsr_cyclic_data, sr->addid(), new_dist.size);
     }
 
     cfree(idx);

@@ -3,23 +3,17 @@
 
 namespace CTF {
 
-  
   template<typename dtype>
-  Scalar<dtype>::Scalar(World & world) :
-    Tensor<dtype>(0, NULL, NULL, world) {
-    
-  }
-
-  template<typename dtype>
-  Scalar<dtype>::Scalar(World & world_, Semiring<dtype> sr_) :
+  Scalar<dtype>::Scalar(World & world_, Set<dtype> const & sr_) :
     Tensor<dtype>(0, NULL, NULL, world_, sr_) {
     
   }
 
   template<typename dtype>
-  Scalar<dtype>::Scalar(dtype   val,
-                        World & world) :
-    Tensor<dtype>(0, NULL, NULL, world) {
+  Scalar<dtype>::Scalar(dtype                   val,
+                        World &                 world,
+                        Set<dtype> const & sr_) :
+    Tensor<dtype>(0, NULL, NULL, world, sr_) {
     int64_t s; 
     dtype * arr;
 

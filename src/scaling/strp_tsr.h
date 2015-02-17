@@ -11,15 +11,15 @@
 namespace CTF_int {
   class strp_tsr {
     public: 
-      int      alloced;
-      int      order;
-      int64_t  blk_sz;
-      int *    edge_len;
-      int *    strip_dim;
-      int *    strip_idx;
-      char *   A;
-      char *   buffer;
-      algstrct sr_A;
+      int              alloced;
+      int              order;
+      int64_t          blk_sz;
+      int *            edge_len;
+      int *            strip_dim;
+      int *            strip_idx;
+      char *           A;
+      char *           buffer;
+      algstrct const * sr_A;
       
       /**
        * \brief strips out part of tensor to be operated on
@@ -187,7 +187,7 @@ namespace CTF_int {
                  int64_t          vrt_sz,
                  mapping const *  edge_map,
                  topology const * topo,
-                 algstrct const & sr,
+                 algstrct const * sr,
                  int *            blk_edge_len,
                  int64_t *        blk_sz,
                  strp_tsr **      stpr);

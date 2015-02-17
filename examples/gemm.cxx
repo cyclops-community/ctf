@@ -37,9 +37,10 @@ int  gemm(int const     m,
 #endif
   
   //* Creates distributed tensors initialized with zeros
-  CTF_Matrix A(m, k, sym, dw);
-  CTF_Matrix B(k, n, sym, dw);
-  CTF_Matrix C(m, n, NS,  dw);
+  CTF::Ring<double> sr = CTF::Ring<double>();
+  CTF_Matrix A = CTF_Matrix(m, k, sym, dw, sr);
+  CTF_Matrix B = CTF_Matrix(k, n, sym, dw);
+  CTF_Matrix C = CTF_Matrix(m, n, NS,  dw);
 
   srand48(13*rank);
   //* Writes noise to local data based on global index

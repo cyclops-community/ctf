@@ -8,13 +8,13 @@
 namespace CTF_int {
 
   #define SCAL_B do {                                                      \
-    if (sr_B.isequal(beta, sr_B.mulid())){                                 \
+    if (sr_B->isequal(beta, sr_B->mulid())){                                 \
       memset(idx_glb, 0, sizeof(int)*idx_max);                             \
       idx_A = 0, idx_B = 0;                                                \
       sym_pass = 1;                                                        \
       for (;;){                                                            \
         if (sym_pass){                                                     \
-          sr_B.mul(beta, B+idx_B*sr_B.el_size, B+idx_B*sr_B.el_size);      \
+          sr_B->mul(beta, B+idx_B*sr_B->el_size, B+idx_B*sr_B->el_size);      \
           CTF_FLOPS_ADD(1);                                                \
         }                                                                  \
         for (idx=0; idx<idx_max; idx++){                                   \
@@ -39,13 +39,13 @@ namespace CTF_int {
 
 
   #define SCAL_B_inr do {                                                  \
-    if (sr_B.isequal(beta, sr_B.mulid())){                                 \
+    if (sr_B->isequal(beta, sr_B->mulid())){                                 \
       memset(idx_glb, 0, sizeof(int)*idx_max);                             \
       idx_A = 0, idx_B = 0;                                                \
       sym_pass = 1;                                                        \
       for (;;){                                                            \
         if (sym_pass){                                                     \
-          sr_B.scal(inr_stride, beta, B+idx_B*inr_stride*sr_B.el_size, 1); \
+          sr_B->scal(inr_stride, beta, B+idx_B*inr_stride*sr_B->el_size, 1); \
           CTF_FLOPS_ADD(inr_stride);                                       \
         }                                                                  \
         for (idx=0; idx<idx_max; idx++){                                   \
@@ -68,20 +68,20 @@ namespace CTF_int {
       }                                                                    \
     } } while (0)
 
-  int sym_seq_sum_ref( char const * alpha,
-                       char const * A,
-                       algstrct     sr_A,
-                       int          order_A,
-                       int const *  edge_len_A,
-                       int const *  sym_A,
-                       int const *  idx_map_A,
-                       char const * beta,
-                       char *       B,
-                       algstrct     sr_B,
-                       int          order_B,
-                       int const *  edge_len_B,
-                       int const *  sym_B,
-                       int const *  idx_map_B){
+  int sym_seq_sum_ref( char const *     alpha,
+                       char const *     A,
+                       algstrct const * sr_A,
+                       int              order_A,
+                       int const *      edge_len_A,
+                       int const *      sym_A,
+                       int const *      idx_map_A,
+                       char const *     beta,
+                       char *           B,
+                       algstrct const * sr_B,
+                       int              order_B,
+                       int const *      edge_len_B,
+                       int const *      sym_B,
+                       int const *      idx_map_B){
     TAU_FSTART(sym_seq_sum_ref);
     int idx, i, idx_max, imin, imax, idx_A, idx_B, iA, iB, j, k;
     int off_idx, off_lda, sym_pass;
@@ -109,12 +109,12 @@ namespace CTF_int {
     /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
                 idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
         if (alpha != NULL){
-          char tmp[sr_B.el_size];
-          sr_B.mul(A+sr_A.el_size*idx_A, alpha, tmp);
-          sr_B.add(tmp, B+sr_B.el_size*idx_B, B+sr_B.el_size*idx_B);
+          char tmp[sr_B->el_size];
+          sr_B->mul(A+sr_A->el_size*idx_A, alpha, tmp);
+          sr_B->add(tmp, B+sr_B->el_size*idx_B, B+sr_B->el_size*idx_B);
           CTF_FLOPS_ADD(2);
         } else {
-          sr_B.add(A+sr_A.el_size*idx_A, B+sr_B.el_size*idx_B, B+sr_B.el_size*idx_B);
+          sr_B->add(A+sr_A->el_size*idx_A, B+sr_B->el_size*idx_B, B+sr_B->el_size*idx_B);
           CTF_FLOPS_ADD(1);
         }
       }
@@ -156,21 +156,21 @@ namespace CTF_int {
     return 0;
   }
 
-  int sym_seq_sum_inr( char const * alpha,
-                       char const * A,
-                       algstrct     sr_A,
-                       int          order_A,
-                       int const *  edge_len_A,
-                       int const *  sym_A,
-                       int const *  idx_map_A,
-                       char const * beta,
-                       char *       B,
-                       algstrct     sr_B,
-                       int          order_B,
-                       int const *  edge_len_B,
-                       int const *  sym_B,
-                       int const *  idx_map_B,
-                       int          inr_stride){
+  int sym_seq_sum_inr( char const *     alpha,
+                       char const *     A,
+                       algstrct const * sr_A,
+                       int              order_A,
+                       int const *      edge_len_A,
+                       int const *      sym_A,
+                       int const *      idx_map_A,
+                       char const *     beta,
+                       char *           B,
+                       algstrct const * sr_B,
+                       int              order_B,
+                       int const *      edge_len_B,
+                       int const *      sym_B,
+                       int const *      idx_map_B,
+                       int              inr_stride){
     TAU_FSTART(sym_seq_sum_inr);
     int idx, i, idx_max, imin, imax, idx_A, idx_B, iA, iB, j, k;
     int off_idx, off_lda, sym_pass;
@@ -204,7 +204,7 @@ namespace CTF_int {
           CTF_FLOPS_ADD(2*inr_stride);
         }*/
         //cxaxpy<dtype>(inr_stride, alpha, A+idx_A*inr_stride, 1, B+idx_B*inr_stride, 1); 
-        sr_B.axpy(inr_stride, alpha, A+sr_A.el_size*idx_A*inr_stride, 1, B+sr_B.el_size*idx_B*inr_stride, 1); 
+        sr_B->axpy(inr_stride, alpha, A+sr_A->el_size*idx_A*inr_stride, 1, B+sr_B->el_size*idx_B*inr_stride, 1); 
         CTF_FLOPS_ADD(2*inr_stride);
       }
 
@@ -245,21 +245,21 @@ namespace CTF_int {
     return 0;
   }
 
-  int sym_seq_sum_cust(char const *    alpha,
-                       char const *    A,
-                       algstrct        sr_A,
-                       int             order_A,
-                       int const *     edge_len_A,
-                       int const *     sym_A,
-                       int const *     idx_map_A,
-                       char const *    beta,
-                       char *          B,
-                       algstrct        sr_B,
-                       int             order_B,
-                       int const *     edge_len_B,
-                       int const *     sym_B,
-                       int const *     idx_map_B,
-                       univar_function func){
+  int sym_seq_sum_cust(char const *     alpha,
+                       char const *     A,
+                       algstrct const * sr_A,
+                       int              order_A,
+                       int const *      edge_len_A,
+                       int const *      sym_A,
+                       int const *      idx_map_A,
+                       char const *     beta,
+                       char *           B,
+                       algstrct const * sr_B,
+                       int              order_B,
+                       int const *      edge_len_B,
+                       int const *      sym_B,
+                       int const *      idx_map_B,
+                       univar_function  func){
     TAU_FSTART(sym_seq_sum_cust);
     int idx, i, idx_max, imin, imax, idx_A, idx_B, iA, iB, j, k;
     int off_idx, off_lda, sym_pass;
@@ -285,12 +285,12 @@ namespace CTF_int {
     for (;;){
       if (sym_pass){
         if (alpha != NULL){
-          char tmp[sr_B.el_size];
-          func.apply_f(A+idx_A*sr_A.el_size, tmp);
-          sr_B.add(B+idx_B*sr_B.el_size, tmp, B+sr_B.el_size*idx_B);
+          char tmp[sr_B->el_size];
+          func.apply_f(A+idx_A*sr_A->el_size, tmp);
+          sr_B->add(B+idx_B*sr_B->el_size, tmp, B+sr_B->el_size*idx_B);
           CTF_FLOPS_ADD(2);
         } else {
-          func.apply_f(A+idx_A*sr_A.el_size, B+idx_B*sr_B.el_size);
+          func.apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size);
           CTF_FLOPS_ADD(1);
         }
       }

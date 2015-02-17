@@ -39,6 +39,12 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=true> 
   class Group : public Monoid<dtype, is_ord> {
     public:
+      Group(Group const & other) : Monoid<dtype, is_ord>(other) { }
+
+      virtual CTF_int::algstrct * clone() const {
+        return new Group<dtype, is_ord>(*this);
+      }
+
       Group() : Monoid<dtype, is_ord>() { 
         abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
       } 
@@ -49,30 +55,6 @@ namespace CTF {
               : Monoid<dtype, is_ord>(taddid_, fadd_, addmop_) { 
         abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
       }
- /*
-      Group(dtype taddid_,
-            dtype (*fadd_)(dtype a, dtype b),
-            dtype (*faddinv_)(dtype a, dtype b),
-            void (*fxpy_)(int, dtype const *, dtype *),
-            MPI_Op addmop_,
-            dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-            dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Monoid<dtype, is_ord>(taddid_, fadd_, fxpy_, addmop_, fmin_, fmax_) {
-        faddinv = faddinv_;
-        abs = fabs<dtype, fmax_, faddinv_>;
-      }*/
-
-/*      Group(dtype taddid_,
-            dtype (*fadd_)(dtype a, dtype b),
-            dtype (*faddinv_)(dtype a, dtype b),
-            void (*fxpy_)(int, dtype const *, dtype *),
-            dtype (*fmin_)(dtype a, dtype b)=&default_min<dtype,is_ord>,
-            dtype (*fmax_)(dtype a, dtype b)=&default_max<dtype,is_ord>)
-              : Monoid<dtype, is_ord>(taddid_, fadd_, fxpy_, fmin_, fmax_) {
-        faddinv = faddinv_;
-        abs = fabs<dtype, fmax_, faddinv_>;
-      }
-*/
 
       void addinv(char const * a, char * b) const {
         ((dtype*)b)[0] = -((dtype*)a)[0];

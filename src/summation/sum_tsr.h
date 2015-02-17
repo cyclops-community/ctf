@@ -28,13 +28,13 @@ namespace CTF_int {
 
   class tsum {
     public:
-      char *       A;
-      algstrct     sr_A;
-      char const * alpha;
-      char *       B;
-      algstrct     sr_B;
-      char const * beta;
-      void *       buffer;
+      char *           A;
+      algstrct const * sr_A;
+      char const *     alpha;
+      char *           B;
+      algstrct const * sr_B;
+      char const *     beta;
+      void *           buffer;
 
       virtual void run() {};
       /**

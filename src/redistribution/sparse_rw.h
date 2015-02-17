@@ -24,7 +24,7 @@ namespace CTF_int {
                     int * const *    permutation,
                     char *           pairs,
                     int64_t *        new_num_pair,
-                    algstrct const & sr);
+                    algstrct const * sr);
 
   /**
    * \brief depermutes keys (apply P^T)
@@ -35,13 +35,13 @@ namespace CTF_int {
    * \param[in] permutation permutation to apply to keys of each pair
    * \param[in,out] pairs the keys and values as pairs
    */
-  void depermute_keys(int           order,
-                      int           num_pair,
-                      int const *   edge_len,
-                      int const *   new_edge_len,
-                      int * const * permutation,
-                      char *        pairs,
-                      algstrct      sr);
+  void depermute_keys(int              order,
+                      int              num_pair,
+                      int const *      edge_len,
+                      int const *      new_edge_len,
+                      int * const *    permutation,
+                      char *           pairs,
+                      algstrct const * sr);
 
   /**
    * \brief assigns keys to an array of values
@@ -67,7 +67,7 @@ namespace CTF_int {
                    int *            phase_rank,
                    char const *     vdata,
                    char *           vpairs,
-                   algstrct const & sr);
+                   algstrct const * sr);
 
 
   /**
@@ -96,7 +96,7 @@ namespace CTF_int {
                      int64_t *         bucket_counts,
                      int64_t *         bucket_off,
                      PairIterator      bucket_data,
-                     algstrct const &  sr);
+                     algstrct const *  sr);
 
   /**
    * \brief buckets key value pairs by block/virtual-processor
@@ -116,7 +116,7 @@ namespace CTF_int {
                       int const *       edge_len,
                       ConstPairIterator mapped_data,
                       PairIterator      bucket_data,
-                      algstrct const &  sr);
+                      algstrct const *  sr);
 
   /**
    * \brief read or write pairs from / to tensor
@@ -147,7 +147,7 @@ namespace CTF_int {
                  char *           vdata,
                  char             *pairs,
                  char             rw,
-                 algstrct const & sr);
+                 algstrct const * sr);
 
 
   /**
@@ -188,7 +188,7 @@ namespace CTF_int {
                        char *           wr_pairs,
                        char *           rw_data,
                        CommData         glb_comm,
-                       algstrct const & sr);
+                       algstrct const * sr);
 
   /**
    * \brief read tensor pairs local to processor
@@ -220,7 +220,7 @@ namespace CTF_int {
                       int64_t *        nread,
                       char const *     data,
                       char **          pairs,
-                      algstrct const & sr);
+                      algstrct const * sr);
 
 
 }

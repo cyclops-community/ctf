@@ -22,18 +22,18 @@ namespace CTF_int {
    */
   int sym_seq_scl_cust(char const *     alpha,
                        char *           A,
-                       algstrct const & sr_A,
+                       algstrct const * sr_A,
                        int const        order_A,
                        int const *      edge_len_A,
                        int const *      sym_A,
                        int const *      idx_map_A,
                        endomorphism     func);
   /**
-   * \brief performs symmetric scaling using algstrct sr_A
+   * \brief performs symmetric scaling using algstrct const * sr_A
    */
   int sym_seq_scl_ref(char const *     alpha,
                       char *           A,
-                      algstrct const & sr_A,
+                      algstrct const * sr_A,
                       int              order_A,
                       int const *      edge_len_A,
                       int const *      sym_A,
