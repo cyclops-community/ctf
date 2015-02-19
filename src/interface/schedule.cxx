@@ -4,16 +4,16 @@ namespace CTF {
 
   ScheduleBase* global_schedule;
 
-  template<typename dtype>
-  void Schedule<dtype>::record() {
+  template<typename dtype, bool is_ord>
+  void Schedule<dtype, is_ord>::record() {
     global_schedule = this;
   }
 
-  template<typename dtype>
-  inline void Schedule<dtype>::schedule_op_successors(TensorOperation<dtype>* op) {
+  template<typename dtype, bool is_ord>
+  inline void Schedule<dtype, is_ord>::schedule_op_successors(TensorOperation<dtype, is_ord>* op) {
     assert(op->dependency_left == 0);
 
-    typename std::vector<TensorOperation<dtype>* >::iterator it;
+    typename std::vector<TensorOperation<dtype, is_ord>* >::iterator it;
     for (it=op->successors.begin(); it!=op->successors.end(); it++) {
       (*it)->dependency_left--;
       assert((*it)->dependency_left >= 0);
@@ -23,8 +23,8 @@ namespace CTF {
     }
   }
 
-  template<typename dtype>
-  bool tensor_op_cost_greater(TensorOperation<dtype>* A, TensorOperation<dtype>* B) {
+  template<typename dtype, bool is_ord>
+  bool tensor_op_cost_greater(TensorOperation<dtype, is_ord>* A, TensorOperation<dtype, is_ord>* B) {
     return A->estimate_cost() > B->estimate_cost();
     //return A->successors.size() > B->successors.size();
   }
@@ -32,21 +32,21 @@ namespace CTF {
   /**
    * \brief Data structure containing what each partition is going to do.
    */
-  template<typename dtype>
+  template<typename dtype, bool is_ord>
   struct PartitionOps {
     int color;
     World * world;
 
-    std::vector<TensorOperation<dtype>*> ops;  // operations to execute
-    std::set<Tensor<dtype>*, tensor_tid_less<dtype> > local_tensors; // all local tensors used
-    std::map<Tensor<dtype>*, Tensor<dtype>*> remap; // mapping from global tensor -> local tensor
+    std::vector<TensorOperation<dtype, is_ord>*> ops;  // operations to execute
+    std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> > local_tensors; // all local tensors used
+    std::map<Tensor<dtype, is_ord>*, Tensor<dtype, is_ord>*> remap; // mapping from global tensor -> local tensor
 
-    std::set<Tensor<dtype>*, tensor_tid_less<dtype> > global_tensors; // all referenced tensors stored as global tensors
-    std::set<Tensor<dtype>*, tensor_tid_less<dtype> > output_tensors; // tensors to be written back out, stored as global tensors
+    std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> > global_tensors; // all referenced tensors stored as global tensors
+    std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> > output_tensors; // tensors to be written back out, stored as global tensors
   };
 
-  template<typename dtype>
-  ScheduleTimer Schedule<dtype>::partition_and_execute() {
+  template<typename dtype, bool is_ord>
+  ScheduleTimer Schedule<dtype, is_ord>::partition_and_execute() {
     ScheduleTimer schedule_timer;
     schedule_timer.total_time = MPI_Wtime();
 
@@ -55,14 +55,14 @@ namespace CTF {
     MPI_Comm_size(world->comm, &size);
 
     // Partition operations into worlds, and do split
-    std::vector<PartitionOps<dtype> > comm_ops; // operations for each subcomm
+    std::vector<PartitionOps<dtype, is_ord> > comm_ops; // operations for each subcomm
     int max_colors = size <= ready_tasks.size()? size : ready_tasks.size();
     if (partitions > 0 && max_colors > partitions) {
       max_colors = partitions;
     }
 
     // Sort tasks by descending runtime
-    std::sort(ready_tasks.begin(), ready_tasks.end(), tensor_op_cost_greater<dtype>);
+    std::sort(ready_tasks.begin(), ready_tasks.end(), tensor_op_cost_greater<dtype, is_ord>);
 
     // Maximum load imbalance algorithm:
     // Keep attempting to add the next available task until either reached max_colors
@@ -120,7 +120,7 @@ namespace CTF {
     if (rank == 0) {
       std::cout << "Maxparts " << max_colors << ", start " << max_starting_task <<
           ", tasks " << max_num_tasks << " // ";
-      typename std::deque<TensorOperation<dtype>*>::iterator ready_tasks_iter;
+      typename std::deque<TensorOperation<dtype, is_ord>*>::iterator ready_tasks_iter;
       for (ready_tasks_iter=ready_tasks.begin();ready_tasks_iter!=ready_tasks.end();ready_tasks_iter++) {
         std::cout << (*ready_tasks_iter)->name() << "(" << (*ready_tasks_iter)->estimate_cost() << ") ";
       }
@@ -128,7 +128,7 @@ namespace CTF {
     }
 
     for (int color=0; color<max_num_tasks; color++) {
-      comm_ops.push_back(PartitionOps<dtype>());
+      comm_ops.push_back(PartitionOps<dtype, is_ord>());
       comm_ops[color].color = color;
       if (color == my_color) {
         comm_ops[color].world = new World(my_comm);
@@ -142,11 +142,11 @@ namespace CTF {
       ready_tasks.erase(ready_tasks.begin() + max_starting_task);
     }
 
-    typename std::vector<PartitionOps<dtype> >::iterator comm_op_iter;
+    typename std::vector<PartitionOps<dtype, is_ord> >::iterator comm_op_iter;
     // Initialize local data structures
     for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
       // gather required tensors
-      typename std::vector<TensorOperation<dtype>*>::iterator op_iter;
+      typename std::vector<TensorOperation<dtype, is_ord>*>::iterator op_iter;
       for (op_iter=comm_op_iter->ops.begin(); op_iter!=comm_op_iter->ops.end(); op_iter++) {
         assert(*op_iter != NULL);
         (*op_iter)->get_inputs(&comm_op_iter->global_tensors);
@@ -158,11 +158,11 @@ namespace CTF {
     // Create and communicate tensors to subworlds
     schedule_timer.comm_down_time = MPI_Wtime();
     for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
-      typename std::set<Tensor<dtype>*, tensor_tid_less<dtype> >::iterator global_tensor_iter;
+      typename std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >::iterator global_tensor_iter;
       for (global_tensor_iter=comm_op_iter->global_tensors.begin(); global_tensor_iter!=comm_op_iter->global_tensors.end(); global_tensor_iter++) {
-        Tensor<dtype>* local_clone;
+        Tensor<dtype, is_ord>* local_clone;
         if (comm_op_iter->world != NULL) {
-          local_clone = new Tensor<dtype>(*(*global_tensor_iter), *comm_op_iter->world);
+          local_clone = new Tensor<dtype, is_ord>(*(*global_tensor_iter), *comm_op_iter->world);
         } else {
           local_clone = NULL;
         }
@@ -170,7 +170,7 @@ namespace CTF {
         comm_op_iter->remap[*global_tensor_iter] = local_clone;
         (*global_tensor_iter)->add_to_subworld(local_clone, 1, 0);
       }
-      typename std::set<Tensor<dtype>*, tensor_tid_less<dtype> >::iterator output_tensor_iter;
+      typename std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >::iterator output_tensor_iter;
       for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {
         assert(comm_op_iter->remap.find(*output_tensor_iter) != comm_op_iter->remap.end());
       }
@@ -181,7 +181,7 @@ namespace CTF {
     MPI_Barrier(world->comm);
     schedule_timer.exec_time = MPI_Wtime();
     if (comm_ops.size() > my_color) {
-      typename std::vector<TensorOperation<dtype>*>::iterator op_iter;
+      typename std::vector<TensorOperation<dtype, is_ord>*>::iterator op_iter;
       for (op_iter=comm_ops[my_color].ops.begin(); op_iter!=comm_ops[my_color].ops.end(); op_iter++) {
         (*op_iter)->execute(&comm_ops[my_color].remap);
       }
@@ -203,7 +203,7 @@ namespace CTF {
     // Communicate results back into global
     schedule_timer.comm_up_time = MPI_Wtime();
     for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
-      typename std::set<Tensor<dtype>*, tensor_tid_less<dtype> >::iterator output_tensor_iter;
+      typename std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >::iterator output_tensor_iter;
       for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {
         (*output_tensor_iter)->add_from_subworld(comm_op_iter->remap[*output_tensor_iter], 1, 0);
       }
@@ -212,7 +212,7 @@ namespace CTF {
 
     // Clean up local tensors & world
     if (comm_ops.size() > my_color) {
-      typename std::set<Tensor<dtype>*, tensor_tid_less<dtype> >::iterator local_tensor_iter;
+      typename std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >::iterator local_tensor_iter;
       for (local_tensor_iter=comm_ops[my_color].local_tensors.begin(); local_tensor_iter!=comm_ops[my_color].local_tensors.end(); local_tensor_iter++) {
         delete *local_tensor_iter;
       }
@@ -221,7 +221,7 @@ namespace CTF {
 
     // Update ready tasks
     for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
-      typename std::vector<TensorOperation<dtype>*>::iterator op_iter;
+      typename std::vector<TensorOperation<dtype, is_ord>*>::iterator op_iter;
       for (op_iter=comm_op_iter->ops.begin(); op_iter!=comm_op_iter->ops.end(); op_iter++) {
         schedule_op_successors(*op_iter);
       }
@@ -233,10 +233,10 @@ namespace CTF {
 
   /*
   // The dead simple scheduler
-  template<typename dtype>
-  void Schedule<dtype>::partition_and_execute() {
+  template<typename dtype, bool is_ord>
+  void Schedule<dtype, is_ord>::partition_and_execute() {
     while (ready_tasks.size() >= 1) {
-      TensorOperation<dtype>* op = ready_tasks.front();
+      TensorOperation<dtype, is_ord>* op = ready_tasks.front();
       ready_tasks.pop_front();
       op->execute();
       schedule_op_successors(op);
@@ -244,13 +244,13 @@ namespace CTF {
   }
   */
 
-  template<typename dtype>
-  ScheduleTimer Schedule<dtype>::execute() {
+  template<typename dtype, bool is_ord>
+  ScheduleTimer Schedule<dtype, is_ord>::execute() {
     ScheduleTimer schedule_timer;
 
     global_schedule = NULL;
 
-    typename std::deque<TensorOperation<dtype>*>::iterator it;
+    typename std::deque<TensorOperation<dtype, is_ord>*>::iterator it;
 
     // Initialize all tasks & initial ready queue
     for (it = steps_original.begin(); it != steps_original.end(); it++) {
@@ -280,29 +280,29 @@ namespace CTF {
     return schedule_timer;
   }
 
-  template<typename dtype>
-  void Schedule<dtype>::add_operation_typed(TensorOperation<dtype>* op) {
+  template<typename dtype, bool is_ord>
+  void Schedule<dtype, is_ord>::add_operation_typed(TensorOperation<dtype, is_ord>* op) {
     steps_original.push_back(op);
 
-    std::set<Tensor<dtype>*, tensor_tid_less<dtype> > op_lhs_set;
+    std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> > op_lhs_set;
     op->get_outputs(&op_lhs_set);
     assert(op_lhs_set.size() == 1); // limited case to make this a bit easier
-    Tensor<dtype>* op_lhs = *op_lhs_set.begin();
+    Tensor<dtype, is_ord>* op_lhs = *op_lhs_set.begin();
 
-    std::set<Tensor<dtype>*, tensor_tid_less<dtype> > op_deps;
+    std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> > op_deps;
     op->get_inputs(&op_deps);
 
-    typename std::set<Tensor<dtype>*, tensor_tid_less<dtype> >::iterator deps_iter;
+    typename std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >::iterator deps_iter;
     for (deps_iter = op_deps.begin(); deps_iter != op_deps.end(); deps_iter++) {
-      Tensor<dtype>* dep = *deps_iter;
-      typename std::map<Tensor<dtype>*, TensorOperation<dtype>*>::iterator dep_loc = latest_write.find(dep);
-      TensorOperation<dtype>* dep_op;
+      Tensor<dtype, is_ord>* dep = *deps_iter;
+      typename std::map<Tensor<dtype, is_ord>*, TensorOperation<dtype, is_ord>*>::iterator dep_loc = latest_write.find(dep);
+      TensorOperation<dtype, is_ord>* dep_op;
       if (dep_loc != latest_write.end()) {
         dep_op = dep_loc->second;
       } else {
         // create dummy operation to serve as a root dependency
         // TODO: this can be optimized away
-        dep_op = new TensorOperation<dtype>(TENSOR_OP_NONE, NULL, NULL);
+        dep_op = new TensorOperation<dtype, is_ord>(TENSOR_OP_NONE, NULL, NULL);
         latest_write[dep] = dep_op;
         root_tasks.push_back(dep_op);
         steps_original.push_back(dep_op);
@@ -312,12 +312,12 @@ namespace CTF {
       dep_op->reads.push_back(op);
       op->dependency_count++;
     }
-    typename std::map<Tensor<dtype>*, TensorOperation<dtype>*>::iterator prev_loc = latest_write.find(op_lhs);
+    typename std::map<Tensor<dtype, is_ord>*, TensorOperation<dtype, is_ord>*>::iterator prev_loc = latest_write.find(op_lhs);
     if (prev_loc != latest_write.end()) {
       // if there was a previous write, add its dependencies to my dependencies
       // to ensure that I don't clobber values that a ready dependency needs
-      std::vector<TensorOperation<dtype>*>* prev_reads = &(prev_loc->second->reads);
-      typename std::vector<TensorOperation<dtype>*>::iterator prev_iter;
+      std::vector<TensorOperation<dtype, is_ord>*>* prev_reads = &(prev_loc->second->reads);
+      typename std::vector<TensorOperation<dtype, is_ord>*>::iterator prev_iter;
       for (prev_iter = prev_reads->begin(); prev_iter != prev_reads->end(); prev_iter++) {
         if (*prev_iter != op) {
           (*prev_iter)->successors.push_back(op);
@@ -329,22 +329,22 @@ namespace CTF {
     latest_write[op_lhs] = op;
   }
 
-  template<typename dtype>
-  void Schedule<dtype>::add_operation(TensorOperationBase* op) {
-    TensorOperation<dtype>* op_typed = dynamic_cast<TensorOperation<dtype>* >(op);
+  template<typename dtype, bool is_ord>
+  void Schedule<dtype, is_ord>::add_operation(TensorOperationBase* op) {
+    TensorOperation<dtype, is_ord>* op_typed = dynamic_cast<TensorOperation<dtype, is_ord>* >(op);
     assert(op_typed != NULL);
     add_operation_typed(op_typed);
   }
 
-  template<typename dtype>
-  void TensorOperation<dtype>::execute(std::map<Tensor<dtype>*, Tensor<dtype>*>* remap) {
+  template<typename dtype, bool is_ord>
+  void TensorOperation<dtype, is_ord>::execute(std::map<Tensor<dtype, is_ord>*, Tensor<dtype, is_ord>*>* remap) {
     assert(global_schedule == NULL);  // ensure this isn't going into a record()
 
-    Idx_Tensor<dtype>* remapped_lhs = lhs;
-    const Term<dtype>* remapped_rhs = rhs;
+    Idx_Tensor<dtype, is_ord>* remapped_lhs = lhs;
+    const Term<dtype, is_ord>* remapped_rhs = rhs;
 
     if (remap != NULL) {
-      remapped_lhs = dynamic_cast<Idx_Tensor<dtype>* >(remapped_lhs->clone(remap));
+      remapped_lhs = dynamic_cast<Idx_Tensor<dtype, is_ord>* >(remapped_lhs->clone(remap));
       assert(remapped_lhs != NULL);
       remapped_rhs = remapped_rhs->clone(remap);
     }
@@ -370,15 +370,15 @@ namespace CTF {
     }
   }
 
-  template<typename dtype>
-  void TensorOperation<dtype>::get_outputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* outputs_set) const {
+  template<typename dtype, bool is_ord>
+  void TensorOperation<dtype, is_ord>::get_outputs(std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >* outputs_set) const {
     assert(lhs->parent);
     assert(outputs_set != NULL);
     outputs_set->insert(lhs->parent);
   }
 
-  template<typename dtype>
-  void TensorOperation<dtype>::get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const {
+  template<typename dtype, bool is_ord>
+  void TensorOperation<dtype, is_ord>::get_inputs(std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >* inputs_set) const {
     rhs->get_inputs(inputs_set);
 
     switch (op) {
@@ -396,8 +396,8 @@ namespace CTF {
     }
   }
 
-  template<typename dtype>
-  int64_t  TensorOperation<dtype>::estimate_cost() {
+  template<typename dtype, bool is_ord>
+  int64_t  TensorOperation<dtype, is_ord>::estimate_cost() {
     if (cached_estimated_cost == 0) {
       assert(rhs != NULL);
       assert(lhs != NULL);

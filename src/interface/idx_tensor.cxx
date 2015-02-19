@@ -5,9 +5,9 @@
 
 namespace CTF {
 
-  //template<typename dtype>
-  //Idx_Tensor<dtype> get_intermediate(Idx_Tensor<dtype>& A,
-  //                                        Idx_Tensor<dtype>& B){
+  //template<typename dtype, bool is_ord>
+  //Idx_Tensor<dtype, is_ord> get_intermediate(Idx_Tensor<dtype, is_ord>& A,
+  //                                        Idx_Tensor<dtype, is_ord>& B){
   //  int * len_C, * sym_C;
   //  char * idx_C;
   //  int order_C, i, j, idx;
@@ -69,20 +69,20 @@ namespace CTF {
   //    }
   //  }
   //
-  //  Tensor<dtype> * tsr_C = new Tensor<dtype>(order_C, len_C, sym_C, *(A.parent->world));
-  //  Idx_Tensor<dtype> out(tsr_C, idx_C);
+  //  Tensor<dtype, is_ord> * tsr_C = new Tensor<dtype, is_ord>(order_C, len_C, sym_C, *(A.parent->world));
+  //  Idx_Tensor<dtype, is_ord> out(tsr_C, idx_C);
   //  out.is_intm = 1;
   //  free(sym_C);
   //  free(len_C);
   //  return out;
   //}
 
-  template<typename dtype>
-  Idx_Tensor<dtype>::Idx_Tensor(Tensor<dtype> * parent_,
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord>::Idx_Tensor(Tensor<dtype, is_ord> * parent_,
                                 const char *    idx_map_,
                                 int             copy){
     if (copy){
-      parent = new Tensor<dtype>(*parent,1);
+      parent = new Tensor<dtype, is_ord>(*parent,1);
       idx_map = (char*)CTF_int::alloc(parent_->order*sizeof(char));
     } else {
       idx_map = (char*)CTF_int::alloc(parent_->order*sizeof(char));
@@ -93,11 +93,11 @@ namespace CTF {
     this->scale    = 1.0;
   }
 
-  template<typename dtype>
-  Idx_Tensor<dtype>::Idx_Tensor(
-      Idx_Tensor<dtype> const & other,
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord>::Idx_Tensor(
+      Idx_Tensor<dtype, is_ord> const & other,
       int                       copy,
-      std::map<Tensor<dtype>*, Tensor<dtype>*>* remap) {
+      std::map<Tensor<dtype, is_ord>*, Tensor<dtype, is_ord>*>* remap) {
     if (other.parent == NULL){
       parent        = NULL;
       idx_map       = NULL;
@@ -105,13 +105,13 @@ namespace CTF {
     } else {
       parent = other.parent;
       if (remap != NULL) {
-        typename std::map<Tensor<dtype>*, Tensor<dtype>*>::iterator it = remap->find(parent);
+        typename std::map<Tensor<dtype, is_ord>*, Tensor<dtype, is_ord>*>::iterator it = remap->find(parent);
         assert(it != remap->end()); // assume a remapping will be complete
         parent = it->second;
       }
 
       if (copy || other.is_intm){
-        parent = new Tensor<dtype>(*parent,1);
+        parent = new Tensor<dtype, is_ord>(*parent,1);
         is_intm = 1;
       } else {
         // leave parent as is - already correct
@@ -123,24 +123,24 @@ namespace CTF {
     this->scale    = other.scale;
   }
 
-  template<typename dtype>
-  Idx_Tensor<dtype>::Idx_Tensor(){
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord>::Idx_Tensor(){
     parent        = NULL;
     idx_map       = NULL;
     is_intm       = 0;
     this->scale    = 1.0;
   }
 
-  template<typename dtype>
-  Idx_Tensor<dtype>::Idx_Tensor(dtype val){
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord>::Idx_Tensor(dtype val){
     parent        = NULL;
     idx_map       = NULL;
     is_intm       = 0;
     this->scale   = val;
   }
 
-  template<typename dtype>
-  Idx_Tensor<dtype>::~Idx_Tensor(){
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord>::~Idx_Tensor(){
     if (is_intm) { 
       delete parent;
       is_intm = 0;
@@ -149,19 +149,19 @@ namespace CTF {
     idx_map = NULL;
   }
 
-  template<typename dtype>
-  Term<dtype> * Idx_Tensor<dtype>::clone(std::map<Tensor<dtype>*, Tensor<dtype>*>* remap) const {
-    return new Idx_Tensor<dtype>(*this, 0, remap);
+  template<typename dtype, bool is_ord>
+  Term<dtype, is_ord> * Idx_Tensor<dtype, is_ord>::clone(std::map<Tensor<dtype, is_ord>*, Tensor<dtype, is_ord>*>* remap) const {
+    return new Idx_Tensor<dtype, is_ord>(*this, 0, remap);
   }
 
-  template<typename dtype>
-  World * Idx_Tensor<dtype>::where_am_i() const {
+  template<typename dtype, bool is_ord>
+  World * Idx_Tensor<dtype, is_ord>::where_am_i() const {
     if (parent == NULL) return NULL;
     return parent->wrld;
   }
 
-  template<typename dtype>
-  void Idx_Tensor<dtype>::operator=(Idx_Tensor<dtype> const & B){
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator=(Idx_Tensor<dtype, is_ord> const & B){
     if (global_schedule != NULL) {
       std::cout << "op= tensor" << std::endl;
       assert(false);
@@ -172,11 +172,11 @@ namespace CTF {
     }
   }
 
-  template<typename dtype>
-  void Idx_Tensor<dtype>::operator=(Term<dtype> const & B){
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator=(Term<dtype, is_ord> const & B){
     if (global_schedule != NULL) {
       global_schedule->add_operation(
-          new TensorOperation<dtype>(TENSOR_OP_SET, new Idx_Tensor(*this), B.clone()));
+          new TensorOperation<dtype, is_ord>(TENSOR_OP_SET, new Idx_Tensor(*this), B.clone()));
     } else {
       this->scale = 0.0;
       B.execute(*this);
@@ -184,11 +184,11 @@ namespace CTF {
     }
   }
 
-  template<typename dtype>
-  void Idx_Tensor<dtype>::operator+=(Term<dtype> const & B){
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator+=(Term<dtype, is_ord> const & B){
     if (global_schedule != NULL) {
       global_schedule->add_operation(
-          new TensorOperation<dtype>(TENSOR_OP_SUM, new Idx_Tensor(*this), B.clone()));
+          new TensorOperation<dtype, is_ord>(TENSOR_OP_SUM, new Idx_Tensor(*this), B.clone()));
     } else {
       //this->scale = 1.0;
       B.execute(*this);
@@ -196,13 +196,13 @@ namespace CTF {
     }
   }
 
-  template<typename dtype>
-  void Idx_Tensor<dtype>::operator-=(Term<dtype> const & B){
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator-=(Term<dtype, is_ord> const & B){
     if (global_schedule != NULL) {
       global_schedule->add_operation(
-          new TensorOperation<dtype>(TENSOR_OP_SUBTRACT, new Idx_Tensor(*this), B.clone()));
+          new TensorOperation<dtype, is_ord>(TENSOR_OP_SUBTRACT, new Idx_Tensor(*this), B.clone()));
     } else {
-      Term<dtype> * Bcpy = B.clone();
+      Term<dtype, is_ord> * Bcpy = B.clone();
       Bcpy->scale *= -1.0;
       Bcpy->execute(*this);
       this->scale = 1.0;
@@ -210,22 +210,22 @@ namespace CTF {
     }
   }
 
-  template<typename dtype>
-  void Idx_Tensor<dtype>::operator*=(Term<dtype> const & B){
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator*=(Term<dtype, is_ord> const & B){
     if (global_schedule != NULL) {
       global_schedule->add_operation(
-          new TensorOperation<dtype>(TENSOR_OP_MULTIPLY, new Idx_Tensor(*this), B.clone()));
+          new TensorOperation<dtype, is_ord>(TENSOR_OP_MULTIPLY, new Idx_Tensor(*this), B.clone()));
     } else {
-      Contract_Term<dtype> ctrm = (*this)*B;
+      Contract_Term<dtype, is_ord> ctrm = (*this)*B;
       *this = ctrm;
     }
   }
 
-  template<typename dtype>
-  void Idx_Tensor<dtype>::execute(Idx_Tensor<dtype> output) const {
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::execute(Idx_Tensor<dtype, is_ord> output) const {
     if (parent == NULL){
       output.scale *= this->scale;
-      Scalar<dtype> ts(this->scale, *(output.where_am_i()));
+      Scalar<dtype, is_ord> ts(this->scale, *(output.where_am_i()));
       output.parent->sum(1.0, ts, "",
                          output.scale, output.idx_map);
     } else {
@@ -234,16 +234,16 @@ namespace CTF {
     } 
   }
 
-  template<typename dtype>
-  Idx_Tensor<dtype> Idx_Tensor<dtype>::execute() const {
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord> Idx_Tensor<dtype, is_ord>::execute() const {
     return *this;
   }
 
-  template<typename dtype>
-  int64_t Idx_Tensor<dtype>::estimate_cost(Idx_Tensor<dtype> output) const {
+  template<typename dtype, bool is_ord>
+  int64_t Idx_Tensor<dtype, is_ord>::estimate_cost(Idx_Tensor<dtype, is_ord> output) const {
     int64_t cost = 0;
     if (parent == NULL){
-      Scalar<dtype> ts(this->scale, *(output.where_am_i()));
+      Scalar<dtype, is_ord> ts(this->scale, *(output.where_am_i()));
       cost += output.parent->estimate_time(ts, "",
                          output.idx_map);
     } else {
@@ -253,38 +253,38 @@ namespace CTF {
     return cost;
   }
 
-  template<typename dtype>
-  Idx_Tensor<dtype> Idx_Tensor<dtype>::estimate_cost(int64_t & cost) const {
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord> Idx_Tensor<dtype, is_ord>::estimate_cost(int64_t & cost) const {
     return *this;
   }
 
-  template<typename dtype>
-  void Idx_Tensor<dtype>::get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const {
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::get_inputs(std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >* inputs_set) const {
     if (parent) {
       inputs_set->insert(parent);
     }
   }
 
-  /*template<typename dtype>
-  void Idx_Tensor<dtype>::operator=(dtype B){
-    *this=(Scalar<dtype>(B,*(this->parent->world))[""]);
+  /*template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator=(dtype B){
+    *this=(Scalar<dtype, is_ord>(B,*(this->parent->world))[""]);
   }
-  template<typename dtype>
-  void Idx_Tensor<dtype>::operator+=(dtype B){
-    *this+=(Scalar<dtype>(B,*(this->parent->world))[""]);
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator+=(dtype B){
+    *this+=(Scalar<dtype, is_ord>(B,*(this->parent->world))[""]);
   }
-  template<typename dtype>
-  void Idx_Tensor<dtype>::operator-=(dtype B){
-    *this-=(Scalar<dtype>(B,*(this->parent->world))[""]);
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator-=(dtype B){
+    *this-=(Scalar<dtype, is_ord>(B,*(this->parent->world))[""]);
   }
-  template<typename dtype>
-  void Idx_Tensor<dtype>::operator*=(dtype B){
-    *this*=(Scalar<dtype>(B,*(this->parent->world))[""]);
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::operator*=(dtype B){
+    *this*=(Scalar<dtype, is_ord>(B,*(this->parent->world))[""]);
   }*/
 
   /*
-  template<typename dtype>
-  Idx_Tensor<dtype> Idx_Tensor<dtype>::operator+(Idx_Tensor<dtype> tsr){
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord> Idx_Tensor<dtype, is_ord>::operator+(Idx_Tensor<dtype, is_ord> tsr){
     if (has_contract || has_sum){
       *NBR = (*NBR)-tsr;
       return *this;
@@ -294,8 +294,8 @@ namespace CTF {
     return *this;
   }
 
-  template<typename dtype>
-  Idx_Tensor<dtype> Idx_Tensor<dtype>::operator-(Idx_Tensor<dtype> tsr){
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord> Idx_Tensor<dtype, is_ord>::operator-(Idx_Tensor<dtype, is_ord> tsr){
     if (has_contract || has_sum){
       *NBR = (*NBR)-tsr;
       return *this;
@@ -310,8 +310,8 @@ namespace CTF {
     return *this;
   }
 
-  template<typename dtype>
-  Idx_Tensor<dtype> Idx_Tensor<dtype>::operator*(double  scl){
+  template<typename dtype, bool is_ord>
+  Idx_Tensor<dtype, is_ord> Idx_Tensor<dtype, is_ord>::operator*(double  scl){
     if (has_contract){
       *NBR =(*NBR)*scl;
       return *this;
@@ -326,8 +326,8 @@ namespace CTF {
   }*/
 
   /*
-  template<typename dtype>
-  void Idx_Tensor<dtype>::run(Idx_Tensor<dtype>* output, dtype  beta){
+  template<typename dtype, bool is_ord>
+  void Idx_Tensor<dtype, is_ord>::run(Idx_Tensor<dtype, is_ord>* output, dtype  beta){
     dtype  alpha;
     if (has_scale) alpha = scale;
     else alpha = 1.0;
@@ -354,7 +354,7 @@ namespace CTF {
       }
     } else {
       if (has_sum){
-        Tensor<dtype> tcpy(*(this->parent),1);
+        Tensor<dtype, is_ord> tcpy(*(this->parent),1);
         Idx_Tensor itsr(&tcpy, idx_map);
         NBR->run(&itsr, alpha);
         output->parent->sum(1.0, tcpy, idx_map, beta, output->idx_map);

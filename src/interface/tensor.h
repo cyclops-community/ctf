@@ -50,7 +50,7 @@ namespace CTF {
   /**
    * \brief an instance of a tensor within a CTF world
    */
-  template <typename dtype=double>
+  template <typename dtype=double, bool is_ord=true>
   class Tensor : public CTF_int::tensor {
     public:
       /** \brief templated algstrct on which tensor elements and operations are defined */
@@ -77,14 +77,15 @@ namespace CTF {
        * \param[in] wrld_ a world for the tensor to live in
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] sr_ defines the tensor arithmetic for this tensor
        */
-      /*Tensor(int          dim,
-             int const *  len,
-             int const *  sym,
-             World &      wrld,
-             char const * name = NULL,
-             int          profile = 0);*/
-
+      Tensor(int                       dim,
+             int const *               len,
+             int const *               sym,
+             World &                   wrld,
+             char const *              name=NULL,
+             int                       profile=0,
+             Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>());
 
       /**
        * \brief defines a tensor filled with zeros on a specified algstrct
@@ -96,14 +97,13 @@ namespace CTF {
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */
-      Tensor(int                order,
-             int const *        len,
-             int const *        sym,
-             World &            wrld,
-             Set<dtype> const & sr=Ring<dtype>(),
-             char const *       name=NULL,
-             int                profile=0);
-
+      Tensor(int                       order,
+             int const *               len,
+             int const *               sym,
+             World &                   wrld,
+             Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>(),
+             char const *              name=NULL,
+             int                       profile=0);
       
       /**
        * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
@@ -437,7 +437,7 @@ namespace CTF {
        * \param[in] alpha scaling factor for this tensor (default 1.0)
        * \param[in] beta scaling factor for tensor tsr (default 1.0)
        */
-      void add_to_subworld(Tensor<dtype> * tsr,
+      void add_to_subworld(Tensor<dtype, is_ord> * tsr,
                            dtype           alpha,
                            dtype           beta) const;
      /**
@@ -446,7 +446,7 @@ namespace CTF {
        *             but on a different world/MPI_comm
        */
 
-      void add_to_subworld(Tensor<dtype> * tsr) const;
+      void add_to_subworld(Tensor<dtype, is_ord> * tsr) const;
       
       /**
        * \brief accumulates this tensor from a tensor object defined on a different world
@@ -455,7 +455,7 @@ namespace CTF {
        * \param[in] alpha scaling factor for tensor tsr (default 1.0)
        * \param[in] beta scaling factor for this tensor (default 1.0)
        */
-      void add_from_subworld(Tensor<dtype> * tsr,
+      void add_from_subworld(Tensor<dtype, is_ord> * tsr,
                              dtype           alpha,
                              dtype           beta) const;
       /**
@@ -463,7 +463,7 @@ namespace CTF {
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
        *             but on a different world/MPI_comm
        */
-      void add_from_subworld(Tensor<dtype> * tsr) const;
+      void add_from_subworld(Tensor<dtype, is_ord> * tsr) const;
       
 
       /**
@@ -582,7 +582,7 @@ namespace CTF {
       /**
        * \brief sets the tensor
        */
-      void operator=(Tensor<dtype> A);
+      void operator=(Tensor<dtype, is_ord> A);
       
       /**
        * \brief associated an index map with the tensor for future operation
@@ -609,7 +609,7 @@ namespace CTF {
        * \param[in] A tensor to compare against
        * \param[in] cutoff do not print values of absolute value smaller than this
        */
-      void compare(const Tensor<dtype>& A, FILE * fp = stdout, double cutoff = -1.0) const;
+      void compare(const Tensor<dtype, is_ord>& A, FILE * fp = stdout, double cutoff = -1.0) const;
 
       /**
        * \brief frees CTF tensor

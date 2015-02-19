@@ -5,11 +5,11 @@ namespace CTF {
   /**
    * \brief a sparse subset of a tensor 
    */
-  template<typename dtype=double>
+  template<typename dtype=double, bool is_ord=true>
   class Sparse_Tensor {
     public:
       /** \brief dense tensor whose subset this sparse tensor is of */
-      Tensor<dtype> * parent;
+      Tensor<dtype, is_ord> * parent;
       /** \brief indices of the sparse elements of this tensor */
       std::vector<int64_t > indices;
       /** \brief scaling factor by which to scale the tensor elements */
@@ -26,7 +26,7 @@ namespace CTF {
        * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
        */
       Sparse_Tensor(std::vector<int64_t > indices,
-                    Tensor<dtype> *       parent);
+                    Tensor<dtype, is_ord> *       parent);
 
       /**
        * \brief initialize a tensor which corresponds to a set of indices 
@@ -36,7 +36,7 @@ namespace CTF {
        */
       Sparse_Tensor(int64_t         n,
                     int64_t       * indices,
-                    Tensor<dtype> * parent);
+                    Tensor<dtype, is_ord> * parent);
 
       /**
        * \brief set the sparse set of indices on the parent tensor to values
@@ -50,9 +50,9 @@ namespace CTF {
                  dtype   beta); 
 
       // C++ overload special-cases of above method
-      void operator=(std::vector<dtype> values); 
-      void operator+=(std::vector<dtype> values); 
-      void operator-=(std::vector<dtype> values); 
+      void operator=(std::vector<dtype, is_ord> values); 
+      void operator+=(std::vector<dtype, is_ord> values); 
+      void operator-=(std::vector<dtype, is_ord> values); 
       void operator=(dtype * values); 
       void operator+=(dtype * values); 
       void operator-=(dtype * values); 
@@ -69,7 +69,7 @@ namespace CTF {
                 dtype   beta); 
 
       // C++ overload special-cases of above method
-      operator std::vector<dtype>();
+      operator std::vector<dtype, is_ord>();
       operator dtype*();
   };
 }

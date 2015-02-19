@@ -3,17 +3,17 @@
 
 namespace CTF {
 
-  template<typename dtype>
-  Scalar<dtype>::Scalar(World & world_, Set<dtype> const & sr_) :
-    Tensor<dtype>(0, NULL, NULL, world_, sr_) {
+  template<typename dtype, bool is_ord>
+  Scalar<dtype, is_ord>::Scalar(World & world_, Set<dtype> const & sr_) :
+    Tensor<dtype, is_ord>(0, NULL, NULL, world_, sr_) {
     
   }
 
-  template<typename dtype>
-  Scalar<dtype>::Scalar(dtype                   val,
-                        World &                 world,
-                        Set<dtype> const & sr_) :
-    Tensor<dtype>(0, NULL, NULL, world, sr_) {
+  template<typename dtype, bool is_ord>
+  Scalar<dtype, is_ord>::Scalar(dtype              val,
+                                World &            world,
+                                Set<dtype> const & sr_)
+     : Tensor<dtype, is_ord>(0, NULL, NULL, world, sr_) {
     int64_t s; 
     dtype * arr;
 
@@ -24,8 +24,8 @@ namespace CTF {
   }
       
 
-  template<typename dtype>
-  dtype Scalar<dtype>::get_val(){
+  template<typename dtype, bool is_ord>
+  dtype Scalar<dtype, is_ord>::get_val(){
     int64_t s; 
     dtype * val;
     val = this->get_raw_data(&s); 
@@ -34,8 +34,8 @@ namespace CTF {
     return val[0];
   }
 
-  template<typename dtype>
-  void Scalar<dtype>::set_val(dtype const val){
+  template<typename dtype, bool is_ord>
+  void Scalar<dtype, is_ord>::set_val(dtype const val){
     int64_t s; 
     dtype * arr;
     if (this->world->ctf->get_rank() == 0){

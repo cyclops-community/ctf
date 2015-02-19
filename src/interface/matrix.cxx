@@ -18,20 +18,34 @@ namespace CTF {
     }
   };
 
-  template<typename dtype>
-  Matrix<dtype>::Matrix(int                nrow_,
-                        int                ncol_,
-                        int                sym_,
-                        World &            world_,
-                        Set<dtype> const & sr_,
-                        char const *       name_,
-                        int                profile_)
-    : Tensor<dtype>(2, int2(nrow_, ncol_), int2(sym_, NS), 
-                        world_, sr_, name_, profile_) {
+  template<typename dtype, bool is_ord>
+  Matrix<dtype, is_ord>::Matrix(int                       nrow_,
+                                int                       ncol_,
+                                int                       sym_,
+                                World &                   world_,
+                                char const *              name_,
+                                int                       profile_,
+                                Set<dtype,is_ord> const & sr_)
+    : Tensor<dtype,is_ord>(2, int2(nrow_, ncol_), int2(sym_, NS), 
+                           world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
     sym = sym_;
   }
 
+  template<typename dtype, bool is_ord>
+  Matrix<dtype, is_ord>::Matrix(int                       nrow_,
+                                int                       ncol_,
+                                int                       sym_,
+                                World &                   world_,
+                                Set<dtype,is_ord> const & sr_,
+                                char const *              name_,
+                                int                       profile_)
+    : Tensor<dtype,is_ord>(2, int2(nrow_, ncol_), int2(sym_, NS), 
+                           world_, Ring<dtype,is_ord>(), name_, profile_) {
+    nrow = nrow_;
+    ncol = ncol_;
+    sym = sym_;
+  }
 
 }

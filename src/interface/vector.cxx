@@ -15,14 +15,26 @@ namespace CTF {
     }
   };
 
-  template<typename dtype>
-  Vector<dtype>::Vector(int                len_,
-                        World &            world_,
-                        Set<dtype> const * sr_,
-                        char const *       name_,
-                        int                profile_)
-   : Tensor<dtype>(1, int1(len_), int1(NS), sr_, world_, name_, profile_) {
+  template<typename dtype, bool is_ord>
+  Vector<dtype, is_ord>::Vector(int                       len_,
+                                World &                   world_,
+                                Set<dtype,is_ord> const & sr_,
+                                char const *              name_,
+                                int                       profile_)
+   : Tensor<dtype,is_ord>(1, int1(len_), int1(NS), sr_, world_, name_, profile_) {
     len = len_;
   }
+
+  template<typename dtype, bool is_ord>
+  Vector<dtype, is_ord>::Vector(int                       len_,
+                                World &                   world_,
+                                char const *              name_,
+                                int                       profile_,
+                                Set<dtype,is_ord> const & sr_)
+   : Tensor<dtype,is_ord>(1, int1(len_), int1(NS), sr_, world_, name_, profile_) {
+    len = len_;
+  }
+
+
 
 }

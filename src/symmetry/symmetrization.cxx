@@ -106,7 +106,7 @@ namespace CTF_int {
           ksign = mksign;
          } else
           ksign = nonsym_tsr->sr->mulid();
-        summation csum = summation(sym_tsr, idx_map_A, ksign,
+        summation csum = summation(ctsr, idx_map_A, ksign,
                                    nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
 
         csum.sum_tensors(0);

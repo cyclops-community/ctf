@@ -729,7 +729,7 @@ namespace CTF_int {
       total_tsr_size *= edge_len[i];
     }
 
-    for (int64_t i=0; i<np; i++){
+    for (int64_t i=0; i<inwrite; i++){
       ASSERT(wr_pairs[i].k() >= 0);
       ASSERT(wr_pairs[i].k() < total_tsr_size);
     }

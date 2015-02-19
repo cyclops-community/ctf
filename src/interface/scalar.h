@@ -5,8 +5,8 @@ namespace CTF {
   /**
    * \brief Scalar class which encapsulates a 0D tensor 
    */
-  template<typename dtype=double> 
-  class Scalar : public Tensor<dtype> {
+  template <typename dtype=double, bool is_ord=true>
+  class Scalar : public Tensor<dtype, is_ord> {
     public:
       /**
        * \brief constructor for a scalar

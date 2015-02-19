@@ -29,15 +29,15 @@ namespace CTF {
    * to run it. Also provides methods to get a list of inputs and outputs, as well
    * as successor and dependency information used in scheduling.
    */
-  template<typename dtype>
+  template<typename dtype, bool is_ord>
   class TensorOperation : public TensorOperationBase {
   public:
     /**
      * \brief Constructor, create the tensor operation lhs op= rhs
      */
     TensorOperation(TensorOperationTypes op,
-        Idx_Tensor<dtype>* lhs,
-        const Term<dtype>* rhs) :
+        Idx_Tensor<dtype, is_ord>* lhs,
+        const Term<dtype, is_ord>* rhs) :
           dependency_count(0),
           op(op),
           lhs(lhs),
@@ -47,19 +47,19 @@ namespace CTF {
     /**
      * \brief appends the tensors this writes to to the input set
      */
-    void get_outputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* outputs_set) const;
+    void get_outputs(std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >* outputs_set) const;
 
     /**
      * \brief appends the tensors this depends on (reads from, including the output
      * if a previous value is required) to the input set
      */
-    void get_inputs(std::set<Tensor<dtype>*, tensor_tid_less<dtype> >* inputs_set) const;
+    void get_inputs(std::set<Tensor<dtype, is_ord>*, tensor_tid_less<dtype, is_ord> >* inputs_set) const;
 
     /**
      * \brief runs this operation, but does NOT handle dependency scheduling
      * optionally takes a remapping of tensors
      */
-    void execute(std::map<Tensor<dtype>*, Tensor<dtype>*>* remap = NULL);
+    void execute(std::map<Tensor<dtype, is_ord>*, Tensor<dtype, is_ord>*>* remap = NULL);
 
     /**
      *\brief provides an estimated runtime cost
@@ -76,8 +76,8 @@ namespace CTF {
     // Number of dependencies I have
     int dependency_count;
     // List of all successors - operations that depend on me
-    std::vector<TensorOperation<dtype>* > successors;
-    std::vector<TensorOperation<dtype>* > reads;
+    std::vector<TensorOperation<dtype, is_ord>* > successors;
+    std::vector<TensorOperation<dtype, is_ord>* > reads;
 
     /**
      * Schedule Execution Variables
@@ -93,8 +93,8 @@ namespace CTF {
 
   protected:
     TensorOperationTypes op;
-    Idx_Tensor<dtype>* lhs;
-    const Term<dtype>* rhs;
+    Idx_Tensor<dtype, is_ord>* lhs;
+    const Term<dtype, is_ord>* rhs;
 
     int64_t  cached_estimated_cost;
   };
@@ -133,7 +133,7 @@ namespace CTF {
     }
   };
 
-  template<typename dtype>
+  template<typename dtype, bool is_ord>
   class Schedule : public ScheduleBase {
   public:
     /**
@@ -164,14 +164,14 @@ namespace CTF {
     /**
      * \brief Call when a tensor op finishes, this adds newly enabled ops to the ready queue
      */
-    inline void schedule_op_successors(TensorOperation<dtype>* op);
+    inline void schedule_op_successors(TensorOperation<dtype, is_ord>* op);
 
     /**
      * \brief Adds a tensor operation to this schedule.
      * THIS IS CALL ORDER DEPENDENT - operations will *appear* to execute
      * sequentially in the order they were added.
      */
-    void add_operation_typed(TensorOperation<dtype>* op);
+    void add_operation_typed(TensorOperation<dtype, is_ord>* op);
     void add_operation(TensorOperationBase* op);
 
     /**
@@ -213,19 +213,19 @@ namespace CTF {
      * Schedule Recording Variables
      */
     // Tasks with no dependencies, which can be executed at the start
-    std::deque<TensorOperation<dtype>*> root_tasks;
+    std::deque<TensorOperation<dtype, is_ord>*> root_tasks;
 
     // For debugging purposes - the steps in the original input order
-    std::deque<TensorOperation<dtype>*> steps_original;
+    std::deque<TensorOperation<dtype, is_ord>*> steps_original;
 
     // Last operation writing to the key tensor
-    std::map<Tensor<dtype>*, TensorOperation<dtype>*> latest_write;
+    std::map<Tensor<dtype, is_ord>*, TensorOperation<dtype, is_ord>*> latest_write;
 
     /**
      * Schedule Execution Variables
      */
     // Ready queue of tasks with all dependencies satisfied
-    std::deque<TensorOperation<dtype>*> ready_tasks;
+    std::deque<TensorOperation<dtype, is_ord>*> ready_tasks;
 
     /**
      * Testing variables
