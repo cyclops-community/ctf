@@ -172,7 +172,10 @@ namespace CTF_int {
   #endif
   }
 
-  CommData::CommData(){}
+  CommData::CommData(){
+    alive = 0;
+    created = 0;
+  }
 
   CommData::~CommData(){
     if (created) MPI_Comm_free(&cm);

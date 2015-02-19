@@ -23,20 +23,24 @@ namespace CTF_int {
   }*/
 
   tensor::~tensor(){
+    VPRINTF(1,"Deleted order %d tensor %s\n",order,name);
     if (order != -1){
-      ASSERT(!is_folded);
+      cfree(name);
       cfree(sym);
       cfree(lens);
       cfree(pad_edge_len);
       cfree(padding);
-      cfree(scp_padding);
+      if (is_scp_padded)
+        cfree(scp_padding);
       cfree(sym_table);
       for (int i=0; i<order; i++){
         edge_map[i].clear();
       }
       cfree(edge_map);
-      if (is_home) free(home_buffer);
-      else free(data);
+      if (!is_data_aliased){
+        if (is_home) free(home_buffer);
+        else free(data);
+      }
     }
   }
 
@@ -48,15 +52,18 @@ namespace CTF_int {
                  bool             alloc_data,
                  char const *     name,
                  bool             profile){
-    sr = sr_->clone();
-    this->init(order,edge_len,sym,wrld,alloc_data,name,profile);
+    this->init(sr_, order,edge_len,sym,wrld,alloc_data,name,profile);
   }
 
   tensor::tensor(tensor const * other, bool copy, bool alloc_data){
-    sr = other->sr->clone();
-    this->init(other->order, other->lens,
-               other->sym, other->wrld, alloc_data, other->name,
+    char * nname = (char*)alloc(strlen(other->name) + 2);
+    char d[] = "\'";
+    strcpy(nname, other->name);
+    strcat(nname, d);
+    this->init(other->sr, other->order, other->lens,
+               other->sym, other->wrld, alloc_data, nname,
                other->profile);
+    cfree(nname);
   
     this->has_zero_edge_len = other->has_zero_edge_len;
 
@@ -139,42 +146,43 @@ namespace CTF_int {
 
   }
 
-  void tensor::init(int              order_,
+  void tensor::init(algstrct const * sr_,
+                    int              order_,
                     int const *      edge_len,
                     int const *      sym,
                     World *          wrld_,
                     bool             alloc_data,
                     char const *     name_,
                     bool             profile){
-    char const * c = sr->addid();
-    char const * d = sr->mulid();
-    this->wrld               = wrld_;
-    this->is_scp_padded      = 0;
-    this->is_mapped          = 0;
-    this->topo               = NULL;
-    this->is_cyclic          = 1;
-    this->size               = 0;
-    this->is_folded          = 0;
-    this->is_data_aliased    = 0;
-    this->has_zero_edge_len  = 0;
-    this->is_home            = 0;
-    this->has_home           = 0;
-    this->profile            = profile;
+    this->sr                = sr_->clone();
+    this->order             = order_;
+    this->wrld              = wrld_;
+    this->is_scp_padded     = 0;
+    this->is_mapped         = 0;
+    this->topo              = NULL;
+    this->is_cyclic         = 1;
+    this->size              = 0;
+    this->is_folded         = 0;
+    this->is_data_aliased   = 0;
+    this->has_zero_edge_len = 0;
+    this->is_home           = 0;
+    this->has_home          = 0;
+    this->profile           = profile;
     if (name_ != NULL){
       this->name = (char*)alloc(strlen(name_)+1);
       strcpy(this->name, name_);
     } else {
-      this->name = (char*)alloc(7);
+      this->name = (char*)alloc(7*sizeof(char));
       for (int i=0; i<4; i++){
         this->name[i] = 'A'+(rand()%26);
       }
-      this->name[4] = '0'+order/10;
-      this->name[5] = '0'+order%10;
+      this->name[4] = '0'+(order_/10);
+      this->name[5] = '0'+(order_%10);
       this->name[6] = '\0';
     }
+    VPRINTF(1,"Created order %d tensor %s\n",order,name);
 
     this->pairs    = NULL;
-    this->order    = order_;
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int));
 
@@ -902,8 +910,8 @@ namespace CTF_int {
         is_changed = true;
       }
     }
-    set_padding();
     if (is_changed){
+      set_padding();
       return redistribute(old_dist);
     } else return SUCCESS;
   }

@@ -37,7 +37,7 @@ namespace CTF_int {
       bivar_function func;
 
       /** \brief lazy constructor */
-      contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; };
+      contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; };
       
       /** \brief destructor */
       ~contraction();
@@ -58,14 +58,14 @@ namespace CTF_int {
                       C[idx_C] = beta*C[idx_C] 
                                 + alpha * A[idx_A] * B[idx_B];
        */
-      contraction(tensor *     A,
+      /*contraction(tensor *     A,
                   int const *  idx_A,
                   tensor *     B,
                   int const *  idx_B,
                   char const * alpha,
                   tensor *     C,
                   int const *  idx_C,
-                  char const * beta);
+                  char const * beta);*/
      
       /**
        * \brief constructor definining contraction with custom function
@@ -82,15 +82,15 @@ namespace CTF_int {
        * \param[in] func custom elementwise function 
                       func(A[idx_A],B[idx_B],&C[idx_C])
        */
-      contraction(tensor *       A,
-                  int const *    idx_A,
-                  tensor *       B,
-                  int const *    idx_B,
-                  char const *   alpha,
-                  tensor *       C,
-                  int const *    idx_C,
-                  char const *   beta,
-                  bivar_function func);
+      contraction(tensor *         A,
+                  int const *      idx_A,
+                  tensor *         B,
+                  int const *      idx_B,
+                  char const *     alpha,
+                  tensor *         C,
+                  int const *      idx_C,
+                  char const *     beta,
+                  bivar_function * func=NULL);
 
       /** \brief run contraction */
       void execute();

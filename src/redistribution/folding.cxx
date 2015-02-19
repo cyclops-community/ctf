@@ -175,9 +175,9 @@ namespace CTF_int {
         swap_data = tswap_data[tid];
         for (;;){
           if (last_dim != 0){
-            if (dir)
+            if (dir) {
               sr->copy(edge_len[0], data+sr->el_size*(off_old), lda[0], swap_data+sr->el_size*(off_new-toff_new), new_lda[0]);
-            else
+            } else
               sr->copy(edge_len[0], data+sr->el_size*(off_new), new_lda[0], swap_data+sr->el_size*(off_old-toff_old), lda[0]);
 
             idx[0] = 0;

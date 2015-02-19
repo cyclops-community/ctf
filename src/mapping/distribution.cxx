@@ -6,6 +6,7 @@
 namespace CTF_int {
 
   distribution::distribution(){
+    order = -1;
     /*phase = NULL;
     virt_phase = NULL;
     pe_lda = NULL;
@@ -17,6 +18,7 @@ namespace CTF_int {
   }
 
   distribution::distribution(tensor const * tsr){
+    order = tsr->order;
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
@@ -24,7 +26,6 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&padding);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&perank);
    
-    order = tsr->order;
     size = tsr->size;
  
     for (int j=0; j<tsr->order; j++){
@@ -120,7 +121,6 @@ namespace CTF_int {
 
   void distribution::free_data(){
     if (order != -1){
-
       CTF_int::cfree(phase);
       CTF_int::cfree(virt_phase);
       CTF_int::cfree(pe_lda);

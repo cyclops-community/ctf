@@ -17,6 +17,7 @@ namespace CTF_int {
     protected:
       /**
        * \brief initializes tensor data
+       * \param[in] sr defines the tensor arithmetic for this tensor
        * \param[in] order number of dimensions of tensor
        * \param[in] edge_len edge lengths of tensor
        * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
@@ -24,7 +25,8 @@ namespace CTF_int {
        * \param[in] name_an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
-      void init(int              order,
+      void init(algstrct const * sr,
+                int              order,
                 int const *      edge_len,
                 int const *      sym,
                 CTF::World *     wrld,

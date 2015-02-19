@@ -509,7 +509,7 @@ namespace CTF_int {
               //for (int64_t j=buf_offset+s1; j<buf_offset+plen0; j++){
               //  data[j] = 0.0;
               //}
-              sr->set(data+(buf_offset+s1)*sr->el_size, sr->addid(), plen0);
+              sr->set(data+(buf_offset+s1)*sr->el_size, sr->addid(), plen0-s1);
             }
             buf_offset+=plen0;
             if (p == vend-1 && buf_offset >= end_index) break;

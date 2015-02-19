@@ -44,38 +44,16 @@ namespace CTF_int {
     alpha = other.alpha;
     beta  = other.beta;
   }
-
-  contraction::contraction(tensor *     A_,
-                           int const *  idx_A_,
-                           tensor *     B_,
-                           int const *  idx_B_,
-                           char const * alpha_,
-                           tensor *     C_,
-                           int const *  idx_C_,
-                           char const * beta_){
-    A         = A_;
-    idx_A     = (int*)malloc(sizeof(int)*A->order);
-    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
-    B         = B_;
-    idx_B     = (int*)malloc(sizeof(int)*B->order);
-    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
-    alpha     = alpha_;
-    C         = C_;
-    idx_C     = (int*)malloc(sizeof(int)*C->order);
-    memcpy(idx_C, idx_C_, sizeof(int)*C->order);
-    beta      = beta_;
-    is_custom = 0;
-  }
  
-  contraction::contraction(tensor *       A_,
-                           int const *    idx_A_,
-                           tensor *       B_,
-                           int const *    idx_B_,
-                           char const *   alpha_,
-                           tensor *       C_,
-                           int const *    idx_C_,
-                           char const *   beta_,
-                           bivar_function func_){
+  contraction::contraction(tensor *         A_,
+                           int const *      idx_A_,
+                           tensor *         B_,
+                           int const *      idx_B_,
+                           char const *     alpha_,
+                           tensor *         C_,
+                           int const *      idx_C_,
+                           char const *     beta_,
+                           bivar_function * func_){
     A         = A_;
     idx_A     = (int*)malloc(sizeof(int)*A->order);
     memcpy(idx_A, idx_A_, sizeof(int)*A->order);
@@ -86,9 +64,12 @@ namespace CTF_int {
     C         = C_;
     idx_C     = (int*)malloc(sizeof(int)*C->order);
     memcpy(idx_C, idx_C_, sizeof(int)*C->order);
-    func      = func_;
+    if (func_ == NULL) is_custom = 0;
+    else { 
+      is_custom = 1;
+      func      = *func_;
+    }
     beta      = beta_;
-    is_custom = 1;
   }
 
   void contraction::execute(){
@@ -1056,7 +1037,8 @@ namespace CTF_int {
       weigh_map[i].clear();
     }
     CTF_int::cfree(weigh_map);
-    CTF_int::cfree(sub_phys_comm);
+    if (num_sub_phys_dims > 0)
+      CTF_int::cfree(sub_phys_comm);
     CTF_int::cfree(comm_idx);
 
     TAU_FSTOP(map_weigh_indices);
@@ -1959,7 +1941,10 @@ namespace CTF_int {
       CTF_int::cfree(old_phase_A);
       CTF_int::cfree(old_phase_B);
       CTF_int::cfree(old_phase_C);
-      for (i=0; i<A->order; i++)
+      delete [] old_map_A;
+      delete [] old_map_B;
+      delete [] old_map_C;
+/*      for (i=0; i<A->order; i++)
         old_map_A[i].clear();
       for (i=0; i<B->order; i++)
         old_map_B[i].clear();
@@ -1968,7 +1953,7 @@ namespace CTF_int {
       CTF_int::cfree(old_map_A);
       CTF_int::cfree(old_map_B);
       CTF_int::cfree(old_map_C);
-
+*/
       TAU_FSTOP(map_tensors);
       if (ttopo == INT_MAX || ttopo == -1){
         printf("ERROR: Failed to map contraction!\n");
@@ -2218,6 +2203,7 @@ namespace CTF_int {
 
     is_top = 1;
     if (sA || sB || sC){
+      ASSERT(0);//this is always done via sum now
       if (global_comm.rank == 0)
         DPRINTF(1,"Stripping tensor\n");
       strp_ctr * sctr = new strp_ctr;
@@ -2308,6 +2294,9 @@ namespace CTF_int {
       rctr->cdt_A = NULL;
       rctr->cdt_B = NULL;
       rctr->cdt_C = NULL;
+      rctr->sr_A = A->sr;
+      rctr->sr_B = B->sr;
+      rctr->sr_C = C->sr;
       for (i=0; i<nphys_dim; i++){
         if (phys_mapped[3*i+0] == 0 &&
             phys_mapped[3*i+1] == 0 &&
@@ -2505,6 +2494,9 @@ namespace CTF_int {
                                       virt_blk_len_B,
                                       upload_phase_B);
         }
+        ctr_gen->sr_A = A->sr;
+        ctr_gen->sr_B = B->sr;
+        ctr_gen->sr_C = C->sr;
         if (is_built){
           if (is_top){
             hctr = ctr_gen;
@@ -2605,22 +2597,28 @@ namespace CTF_int {
         *rec_ctr = ctrv;
       }
       rec_ctr = &ctrv->rec_ctr;
+      ctrv->sr_A = A->sr;
+      ctrv->sr_B = B->sr;
+      ctrv->sr_C = C->sr;
 
       ctrv->num_dim   = num_tot;
       ctrv->virt_dim  = virt_dim;
-      ctrv->order_A  = A->order;
+      ctrv->order_A   = A->order;
       ctrv->blk_sz_A  = vrt_sz_A;
       ctrv->idx_map_A = idx_A;
-      ctrv->order_B  = B->order;
+      ctrv->order_B   = B->order;
       ctrv->blk_sz_B  = vrt_sz_B;
       ctrv->idx_map_B = idx_B;
-      ctrv->order_C  = C->order;
+      ctrv->order_C   = C->order;
       ctrv->blk_sz_C  = vrt_sz_C;
       ctrv->idx_map_C = idx_C;
     } else
       CTF_int::cfree(virt_dim);
 
     seq_tsr_ctr * ctrseq = new seq_tsr_ctr;
+    ctrseq->sr_A = A->sr;
+    ctrseq->sr_B = B->sr;
+    ctrseq->sr_C = C->sr;
     if (is_top) {
       hctr = ctrseq;
       hctr->idx_lyr = 0;
@@ -2714,7 +2712,8 @@ namespace CTF_int {
     ctrseq->edge_len_C = virt_blk_len_C;
     ctrseq->sym_C      = new_sym_C;
 
-    hctr->beta = beta;
+    hctr->beta = this->beta;
+    C->sr->isequal(hctr->beta, C->sr->mulid());
     hctr->A    = A->data;
     hctr->B    = B->data;
     hctr->C    = C->data;
@@ -2870,13 +2869,8 @@ namespace CTF_int {
       TAU_FSTART(map_fold);
       prm = map_fold();
       TAU_FSTOP(map_fold);
-      if (stat == ERROR){
-        return ERROR;
-      }
-      if (stat == SUCCESS){
-        delete ctrf;
-        ctrf = construct_ctr(1, &prm);
-      }
+      delete ctrf;
+      ctrf = construct_ctr(1, &prm);
     } 
   #endif
   #if DEBUG >=2
@@ -3011,7 +3005,6 @@ namespace CTF_int {
     char const * dbeta;
     ctr * ctrf;
     tensor * tnsr_A, * tnsr_B, * tnsr_C;
-    contraction new_ctr;
   
     this->check_consistency();
   
@@ -3076,12 +3069,10 @@ namespace CTF_int {
       tnsr_C = new_tsr;
       map_C = new_idx;
     }
-    new_ctr.A = tnsr_A;
-    new_ctr.B = tnsr_B;
-    new_ctr.C = tnsr_C;
-    new_ctr.idx_A = map_A;
-    new_ctr.idx_B = map_B;
-    new_ctr.idx_C = map_C;
+    bivar_function * fptr;
+    if (is_custom) fptr = &func;
+    else fptr = NULL;
+    contraction new_ctr = contraction(tnsr_A, map_A, tnsr_B, map_B, alpha, tnsr_C, map_C, beta, fptr);
 
     tnsr_A->unfold();
     tnsr_B->unfold();

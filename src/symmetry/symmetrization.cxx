@@ -51,18 +51,20 @@ namespace CTF_int {
     nonsym_tsr->set_padding();
     copy_mapping(sym_tsr->order, sym_tsr->edge_map, nonsym_tsr->edge_map);
     nonsym_tsr->is_mapped = 1;
-    nonsym_tsr->topo   = sym_tsr->topo;
+    nonsym_tsr->topo      = sym_tsr->topo;
     nonsym_tsr->set_padding();
 
     if (sym_dim == -1) {
-      nonsym_tsr->size    = sym_tsr->size;
-      nonsym_tsr->data    = sym_tsr->data;
-      nonsym_tsr->home_buffer    = sym_tsr->home_buffer;
-      nonsym_tsr->is_home    = sym_tsr->is_home;
+      nonsym_tsr->size            = sym_tsr->size;
+      nonsym_tsr->data            = sym_tsr->data;
+      nonsym_tsr->home_buffer     = sym_tsr->home_buffer;
+      nonsym_tsr->is_home         = sym_tsr->is_home;
       nonsym_tsr->is_data_aliased = 1;
       TAU_FSTOP(desymmetrize);
       return;
     }
+    if (sym_tsr->wrld->rank == 0) 
+      VPRINTF(1,"Desymmetrizing %s\n", sym_tsr->name);
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"desymmetrize_");
@@ -96,18 +98,19 @@ namespace CTF_int {
         if (i==-1) continue;
         idx_map_A[sym_dim] = sym_dim+i+1;
         idx_map_A[sym_dim+i+1] = sym_dim;
-        char * ksign;
-        summation csum;
+        char * mksign = NULL;
+        char const * ksign;
         if (rev_sign == -1){
-          ksign = (char*)malloc(nonsym_tsr->sr->el_size);
-          nonsym_tsr->sr->addinv(nonsym_tsr->sr->mulid(), ksign);
-          csum = summation(sym_tsr, idx_map_A, ksign,
-                                  nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-        } else
-          csum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(),
-                                  nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-        csum.execute();
-        if (rev_sign == -1) free(ksign);
+          mksign = (char*)alloc(nonsym_tsr->sr->el_size);
+          nonsym_tsr->sr->addinv(nonsym_tsr->sr->mulid(), mksign);
+          ksign = mksign;
+         } else
+          ksign = nonsym_tsr->sr->mulid();
+        summation csum = summation(sym_tsr, idx_map_A, ksign,
+                                   nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+
+        csum.sum_tensors(0);
+        if (rev_sign == -1) free(mksign);
         idx_map_A[sym_dim] = sym_dim;
         idx_map_A[sym_dim+i+1] = sym_dim+i+1;
       }
@@ -115,7 +118,7 @@ namespace CTF_int {
     }
 
     summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-    ssum.execute();
+    ssum.sum_tensors(0);
 //    sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
     
   //  print_tsr(stdout, nonsym_tid);
@@ -289,7 +292,7 @@ namespace CTF_int {
         } else
           csum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(),
                                   sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-        csum.execute();
+        csum.sum_tensors(0);
 
   //    print_tsr(stdout, sym_tid);
       idx_map_A[sym_dim] = sym_dim;
@@ -310,7 +313,7 @@ namespace CTF_int {
     }
     
     summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-    ssum.execute();
+    ssum.sum_tensors(0);
       
 
     if (num_sy+num_sy_neg > 1){

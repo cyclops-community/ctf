@@ -89,6 +89,16 @@ namespace CTF_int {
        * \param[in] os summation object to compare this with
        */
       int is_equal(summation const & os);
+
+
+      /**
+       * \brief PDAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
+       * Treats symmetric as lower triangular
+       * \param[in] run_diag if 1 run diagonal sum
+       */
+      int sum_tensors(bool run_diag);
+
+
     private:
       /**
        * \brief finds and return all summation indices which can be folded into
@@ -143,12 +153,6 @@ namespace CTF_int {
        * \param[in] run_diag if 1 run diagonal sum
        */
       int sym_sum_tsr(bool run_diag);
-
-      /**
-       * \brief PDAXPY: a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
-       * \param[in] run_diag if 1 run diagonal sum
-       */
-      int sum_tensors(bool run_diag);
 
       /**
        * \brief unfolds a broken symmetry in a summation by defining new tensors
