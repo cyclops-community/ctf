@@ -38,11 +38,9 @@ namespace CTF {
                                 int                       ncol_,
                                 int                       sym_,
                                 World &                   world_,
-                                Set<dtype,is_ord> const & sr_,
-                                char const *              name_,
-                                int                       profile_)
+                                Set<dtype,is_ord> const & sr_)
     : Tensor<dtype,is_ord>(2, int2(nrow_, ncol_), int2(sym_, NS), 
-                           world_, Ring<dtype,is_ord>(), name_, profile_) {
+                           world_, Ring<dtype,is_ord>(), NULL, 0) {
     nrow = nrow_;
     ncol = ncol_;
     sym = sym_;

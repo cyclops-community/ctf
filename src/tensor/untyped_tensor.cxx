@@ -294,6 +294,12 @@ namespace CTF_int {
     CTF_int::cfree(new_phase);
   }
 
+  int tensor::set(char const * val) {
+    sr->set(this->data, sr->addid(), this->size);
+    return zero_out_padding();
+  }
+
+
   int tensor::set_zero() {
     int * restricted;
     int i, map_success, btopo;

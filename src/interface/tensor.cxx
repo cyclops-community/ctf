@@ -2,6 +2,7 @@
 
 #include "../interface/common.h"
 #include "world.h"
+#include "expression.h"
 
 namespace CTF {
 
@@ -10,12 +11,12 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(const Tensor<dtype, is_ord>& A,
-                                bool                 copy) 
+                                bool                         copy)
     : CTF_int::tensor(&A, copy) { }
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(const Tensor<dtype, is_ord> & A,
-                        World &               world_) 
+                                World &                       world_)
     : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, &A.wrld, 1, A.name, A.profile) { }
 
 
@@ -461,13 +462,13 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::contract(dtype          alpha,
+  void Tensor<dtype, is_ord>::contract(dtype                  alpha,
                                        Tensor<dtype, is_ord>& A,
-                                       const char *   idx_A,
+                                       const char *           idx_A,
                                        Tensor<dtype, is_ord>& B,
-                                       const char *   idx_B,
-                                       dtype          beta,
-                                       const char *   idx_C){
+                                       const char *           idx_B,
+                                       dtype                  beta,
+                                       const char *           idx_C){
     int * idx_map_A;
     int * idx_map_B;
     int * idx_map_C;
@@ -486,12 +487,12 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::contract(Tensor<dtype, is_ord>&        A,
-                                       const char *          idx_A,
-                                       Tensor<dtype, is_ord>&        B,
-                                       const char *          idx_B,
-                                       const char *          idx_C,
-                                       Bivar_Function<dtype> fseq){
+  void Tensor<dtype, is_ord>::contract(Tensor<dtype, is_ord>& A,
+                                       const char *           idx_A,
+                                       Tensor<dtype, is_ord>& B,
+                                       const char *           idx_B,
+                                       const char *           idx_C,
+                                       Bivar_Function<dtype>  fseq){
     int * idx_map_A;
     int * idx_map_B;
     int * idx_map_C;
@@ -512,11 +513,11 @@ namespace CTF {
 
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::sum(dtype          alpha,
+  void Tensor<dtype, is_ord>::sum(dtype                  alpha,
                                   Tensor<dtype, is_ord>& A,
-                                  const char *   idx_A,
-                                  dtype          beta,
-                                  const char *   idx_B){
+                                  const char *           idx_A,
+                                  dtype                  beta,
+                                  const char *           idx_B){
     int * idx_map_A, * idx_map_B;
     conv_idx(A.order, idx_A, &idx_map_A,
                order, idx_B, &idx_map_B);
@@ -532,7 +533,7 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::sum(Tensor<dtype, is_ord>&         A,
+  void Tensor<dtype, is_ord>::sum(Tensor<dtype, is_ord>& A,
                                   const char *           idx_A,
                                   const char *           idx_B,
                                   Univar_Function<dtype> fseq){
@@ -572,10 +573,12 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>& Tensor<dtype, is_ord>::operator=(dtype val){
-    int64_t size;
+    set(&val);
+/*    int64_t size;
     dtype* raw = get_raw_data(&size);
     //FIXME: Uuuuh, padding?
-    std::fill(raw, raw+size, val);
+    ASSERT(0);
+    std::fill(raw, raw+size, val);*/
     return *this;
   }
  
@@ -589,7 +592,7 @@ namespace CTF {
     int * idx_map_A, * idx_map_B, * idx_map_C;
     conv_idx(A.order, idx_A, &idx_map_A,
              B.order, idx_B, &idx_map_B,
-             order, idx_C, &idx_map_C);
+               order, idx_C, &idx_map_C);
     CTF_int::contraction ctr
       = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, sr->mulid(),
                                            this, idx_map_C, sr->addid());
@@ -603,7 +606,7 @@ namespace CTF {
                                     const char *   idx_B){
     int * idx_map_A, * idx_map_B;
     conv_idx(A.order, idx_A, &idx_map_A,
-             order, idx_B, &idx_map_B);
+               order, idx_B, &idx_map_B);
     CTF_int::summation sum 
       = CTF_int::summation(&A, idx_map_A, sr->mulid(), this, idx_map_B, sr->addid());
 
@@ -642,8 +645,8 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  Idx_Tensor<dtype> Tensor<dtype, is_ord>::operator[](const char * idx_map_){
-    Idx_Tensor<dtype> idxtsr(this, idx_map_);
+  Idx_Tensor Tensor<dtype, is_ord>::operator[](const char * idx_map_){
+    Idx_Tensor idxtsr(this, idx_map_);
     return idxtsr;
   }
 

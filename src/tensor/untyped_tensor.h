@@ -154,6 +154,11 @@ namespace CTF_int {
       int set_zero();
 
       /**
+       * \brief sets tensor data to val
+       */
+      int set(char const * val);
+
+      /**
        * \brief sets padded portion of tensor to zero (this should be maintained internally)
        */
       int zero_out_padding();

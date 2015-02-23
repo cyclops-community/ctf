@@ -26,9 +26,7 @@ namespace CTF {
              int                       ncol,
              int                       sym,
              World &                   wrld,
-             Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>(),
-             char const *              name=NULL,
-             int                       profile=0);
+             Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>());
 
       /**
        * \brief constructor for a matrix
@@ -44,7 +42,7 @@ namespace CTF {
              int                       ncol,
              int                       sym,
              World &                   wrld,
-             char const *              name=NULL,
+             char const *              name,
              int                       profile=0,
              Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>());
 

@@ -7,7 +7,7 @@
 
 namespace CTF {
 
-  template <typename dtype> class Idx_Tensor;
+  class Idx_Tensor;
 
   /**
    * \brief custom scalar function on tensor: e.g. A["ij"] = f(A["ij"])
@@ -31,7 +31,7 @@ namespace CTF {
        * \param[in] A operand tensor with pre-defined indices 
        * \return f(A)
       */
-      Idx_Tensor<dtype> operator()(Idx_Tensor<dtype> const & A);
+      Idx_Tensor operator()(Idx_Tensor const & A);
 
       /**
        * \brief apply function f to value stored at a
@@ -65,7 +65,7 @@ namespace CTF {
        * \param[in] A operand tensor with pre-defined indices 
        * return f(A) output tensor 
        */
-      Idx_Tensor<dtype_B> operator()(Idx_Tensor<dtype_A> const  & A);
+      Idx_Tensor operator()(Idx_Tensor const  & A);
       
       /**
        * \brief apply function f to value stored at a
@@ -106,8 +106,8 @@ namespace CTF {
        * \param[in] B right operand tensor with pre-defined indices
        * \return C output tensor
       */
-      Idx_Tensor<dtype_C> operator()(Idx_Tensor<dtype_A> const  & A, 
-                                     Idx_Tensor<dtype_B> const  & B);
+      Idx_Tensor operator()(Idx_Tensor const  & A, 
+                            Idx_Tensor const  & B);
       
       /**
        * \brief apply function f to values stored at a and b
