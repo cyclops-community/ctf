@@ -119,9 +119,10 @@ namespace CTF_int {
 
     summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
     ssum.sum_tensors(0);
-//    sum_tensors(1.0, 1.0, sym_tid, nonsym_tid, idx_map_A, idx_map_B, fs, felm);
-    
-  //  print_tsr(stdout, nonsym_tid);
+    /*printf("SYM %s\n",sym_tsr->name);
+    sym_tsr->print();
+    printf("NONSYM %s\n",sym_tsr->name);
+    nonsym_tsr->print();*/
 
 
     /* Do not diagonal rescaling since sum has beta=0 and overwrites diagonal */

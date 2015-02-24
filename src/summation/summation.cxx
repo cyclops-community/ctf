@@ -278,10 +278,7 @@ namespace CTF_int {
   #endif
    
     //for type order 1 to 3 
-    get_len_ordering(&fnew_ord_A, &fnew_ord_B); 
-
-
-
+    fold_sum.get_len_ordering(&fnew_ord_A, &fnew_ord_B); 
     permute_target(ftsr_A->order, fnew_ord_A, A->inner_ordering);
     permute_target(ftsr_B->order, fnew_ord_B, B->inner_ordering);
     
@@ -289,12 +286,12 @@ namespace CTF_int {
     nvirt_A = A->calc_nvirt();
     for (i=0; i<nvirt_A; i++){
       nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A, 
-                      A->data + i*(A->size/nvirt_A), 1, A->sr);
+                      A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
     }
     nvirt_B = B->calc_nvirt();
     for (i=0; i<nvirt_B; i++){
       nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B, 
-                      B->data + i*(B->size/nvirt_B), 1, B->sr);
+                      B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
     }
 
     inr_stride = 1;
@@ -595,10 +592,8 @@ namespace CTF_int {
     tsumseq->sym_B      = new_sym_B;
     tsumseq->is_custom  = is_custom;
     if (is_custom){
+      tsumseq->is_inner = 0;
       tsumseq->func     = func;
-    } else {
-      tsumseq->is_inner   = 1;
-      tsumseq->inr_stride = inner_stride;
     }
     htsum->alpha        = alpha;
     htsum->beta         = beta;

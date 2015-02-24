@@ -1136,6 +1136,7 @@ namespace CTF_int {
     this->is_folded      = 1;
     this->rec_tsr        = fold_tsr;
     this->inner_ordering = dim_order;
+    for (int h=0; h<allfold_dim; h++)
 
     *all_fdim = allfold_dim;
     *all_flen = all_edge_len;

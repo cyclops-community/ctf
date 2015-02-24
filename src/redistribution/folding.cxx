@@ -107,7 +107,6 @@ namespace CTF_int {
     TAU_FSTART(nosym_transpose_thr);
     CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&lda);
     CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&new_lda);
-    
     if (dir){
       last_dim = new_order[order-1];
     } else {
@@ -119,6 +118,7 @@ namespace CTF_int {
     for (j=1; j<order; j++){
       lda[j] = lda[j-1]*edge_len[j-1];
     }
+
     local_size = lda[order-1]*edge_len[order-1];
     new_lda[new_order[0]] = 1;
     for (j=1; j<order; j++){
