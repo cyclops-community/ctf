@@ -101,7 +101,7 @@ namespace CTF {
              int const *               len,
              int const *               sym,
              World &                   wrld,
-             Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>(),
+             Set<dtype,is_ord> const & sr,
              char const *              name=NULL,
              int                       profile=0);
       

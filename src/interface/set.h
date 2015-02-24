@@ -2,8 +2,8 @@
 #define __SET_H__
 
 #include "../tensor/algstrct.h"
-#include <stdint.h>
-#include <inttypes.h>
+//#include <stdint.h>
+#//include <inttypes.h>
 
 namespace CTF {
   //C++14, nasty
@@ -98,7 +98,7 @@ namespace CTF {
 
   template <>  
   void Set<int64_t>::print(char const * a, FILE * fp) const {
-    fprintf(fp,PRId64,((int64_t*)a)[0]);
+    fprintf(fp,"%lld",((int64_t*)a)[0]);
   }
 
   template <>  
