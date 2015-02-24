@@ -20,13 +20,14 @@ int test_dft(int64_t const  n,
   std::complex<double> imag(0,1);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-  cCTF_Matrix DFT(n, n, SY, wrld, "DFT", 1);
-  cCTF_Matrix IDFT(n, n, SY, wrld, "IDFT", 0);
+  cCTF_Matrix DFT(n, n, NS, wrld, "DFT", 1);
+  cCTF_Matrix IDFT(n, n, NS, wrld, "IDFT", 0);
 
   DFT.read_local(&np, &idx, &data);
 
   for (i=0; i<np; i++){
     data[i] = exp(-2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
+  //  printf("[%lld][%lld] (%20.14E,%20.14E)\n",i%n,i/n,data[i].real(),data[i].imag());
   }
   DFT.write(np, idx, data);
   //DFT.print(stdout);
@@ -52,7 +53,7 @@ int test_dft(int64_t const  n,
   int pass = 1;
   //DFT.print(stdout);
   for (i=0; i<np; i++){
-    //printf("data[" PRId64 "] = %lf\n",idx[i],data[i].real());
+    //printf("data[%lld] = %lf\n",idx[i],data[i].real());
     if (idx[i]/n == idx[i]%n){
       if (fabs(data[i].real() - 1.)>=1.E-9)
         pass = 0;

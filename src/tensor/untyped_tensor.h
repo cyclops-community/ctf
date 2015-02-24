@@ -370,7 +370,7 @@ namespace CTF_int {
        * \param[in] fp file to print to e.g. stdout
        * \param[in] cutoff do not print values of absolute value smaller than this
        */
-      void print(FILE * fp = stdout, double cutoff = -1.0) const;
+      void print(FILE * fp = stdout, char const * cutoff = NULL) const;
 
       /**
        * \brief prints two sets of tensor data side-by-side to file using process 0

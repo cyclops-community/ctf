@@ -2,6 +2,8 @@
 #define __SET_H__
 
 #include "../tensor/algstrct.h"
+#include <stdint.h>
+#include <inttypes.h>
 
 namespace CTF {
   //C++14, nasty
@@ -75,7 +77,46 @@ namespace CTF {
       void cast_double(double d, char * c) const {
         ((dtype*)c)[0] = (dtype)d;
       }
+
+      void print(char const * a, FILE * fp=stdout) const {
+    printf("HERE\n");
+        for (int i=0; i<el_size; i++){
+          fprintf(fp,"%x",a[i]);
+        }
+      }
   };
+
+  template <>  
+  void Set<float>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"%20.14E",((float*)a)[0]);
+  }
+
+  template <>  
+  void Set<double>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"%20.14E",((double*)a)[0]);
+  }
+
+  template <>  
+  void Set<int64_t>::print(char const * a, FILE * fp) const {
+    fprintf(fp,PRId64,((int64_t*)a)[0]);
+  }
+
+  template <>  
+  void Set<int>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"%d",((int*)a)[0]);
+  }
+
+  template <>  
+  void Set< std::complex<float>,false >::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(%20.14E,%20.14E)",((std::complex<float>*)a)[0].real(),((std::complex<float>*)a)[0].imag());
+  }
+
+  template <>  
+  void Set< std::complex<double>,false >::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(%20.14E,%20.14E)",((std::complex<double>*)a)[0].real(),((std::complex<double>*)a)[0].imag());
+  }
+
+
 }
 #include "monoid.h"
 #endif

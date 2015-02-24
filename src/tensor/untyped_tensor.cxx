@@ -973,6 +973,74 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  void tensor::print(FILE * fp, char const * cutoff) const {
+    int64_t my_sz, tot_sz =0;
+    int * recvcnts, * displs, * idx_arr;
+    char * pmy_data, * pall_data;
+    int64_t k;
+
+    print_map(fp);
+
+    my_sz = 0;
+    read_local(&my_sz, &pmy_data);
+    PairIterator my_data = PairIterator(sr,pmy_data);
+
+    if (wrld->rank == 0){
+      alloc_ptr(wrld->np*sizeof(int), (void**)&recvcnts);
+      alloc_ptr(wrld->np*sizeof(int), (void**)&displs);
+      alloc_ptr(order*sizeof(int), (void**)&idx_arr);
+    }
+
+    MPI_Gather(&my_sz, 1, MPI_INT, recvcnts, 1, MPI_INT, 0, wrld->cdt.cm);
+
+    if (wrld->rank == 0){
+      for (int i=0; i<wrld->np; i++){
+        recvcnts[i] *= sr->pair_size();
+      }
+      displs[0] = 0;
+      for (int i=1; i<wrld->np; i++){
+        displs[i] = displs[i-1] + recvcnts[i-1];
+      }
+      tot_sz = (displs[wrld->np-1] + recvcnts[wrld->np-1])/sr->pair_size();
+      alloc_ptr(tot_sz*sr->pair_size(), (void**)&pall_data);
+    }
+
+    if (my_sz == 0) pmy_data = NULL;
+    MPI_Gatherv(pmy_data, my_sz*sr->pair_size(), MPI_CHAR, 
+               pall_data, recvcnts, displs, MPI_CHAR, 0, wrld->cdt.cm);
+    PairIterator all_data = PairIterator(sr,pall_data);
+    printf("my_Sz = %lld tot_sz=%lld\n",my_sz,tot_sz);
+    if (wrld->rank == 0){
+//      all_data.sort(tot_sz);
+      for (int64_t i=0; i<tot_sz; i++){
+        if (cutoff != NULL){
+          char absval[sr->el_size];
+          sr->abs(all_data[i].d(),absval);
+          sr->max(absval, cutoff, absval);
+          if(sr->isequal(absval, cutoff)) continue;
+        }
+        k = all_data[i].k();
+        for (int j=0; j<order; j++){
+            //idx_arr[order-j-1] = k%lens[j];
+            idx_arr[j] = k%lens[j];
+          k = k/lens[j];
+        }
+        for (int j=0; j<order; j++){
+          fprintf(fp,"[%d]",idx_arr[j]);
+        }
+        fprintf(fp," <");
+        sr->print(all_data[i].d());
+        fprintf(fp,"> %lld\n",all_data[i].k());
+      }
+      cfree(recvcnts);
+      cfree(displs);
+      cfree(idx_arr);
+      if (pmy_data != NULL) cfree(pmy_data);
+      cfree(pall_data);
+    }
+
+  }
+
   void tensor::unfold(){
     int i, j, nvirt, allfold_dim;
     int * all_edge_len, * sub_edge_len;

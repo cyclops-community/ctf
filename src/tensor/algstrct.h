@@ -98,6 +98,9 @@ namespace CTF_int {
       /** \brief c = &d */
       virtual void cast_double(double d, char * c) const;
 
+      /** \brief prints the value */
+      virtual void print(char const * a, FILE * fp=stdout) const;
+
       /** \brief X["i"]=alpha*X["i"]; */
       virtual void scal(int          n,
                         char const * alpha,

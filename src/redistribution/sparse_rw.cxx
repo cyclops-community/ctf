@@ -1035,6 +1035,10 @@ namespace CTF_int {
                 data,
                 dpairsb,
                 sr);
+/*    for (i=0; i<nval; i++){
+      printf("\nX[%lld] ", ((int64_t*)(dpairsb+i*sr->pair_size()))[0]);
+      sr->print(dpairsb+i*sr->pair_size()+sizeof(int64_t));
+    }*/
 
     /* If we need to unpad */
     int64_t new_num_pair;
@@ -1054,6 +1058,7 @@ namespace CTF_int {
     /* Get rid of any padded values */
     depad_tsr(order, nval, pad_len, sym, padding, prepadding,
               dpairsb, new_pairsb, &new_num_pair, sr);
+
 
     CTF_int::cfree(dpairsb);
     if (nval == 0) CTF_int::cfree(new_pairsb);

@@ -283,15 +283,13 @@ namespace CTF_int {
   //    printf("symmetrizing\n");
 /*      summation csum = summation(nonsym_tsr, idx_map_A, rev_sign,
                                     sym_tsr, idx_map_B, 1.0);*/
-        summation csum;
-        if (rev_sign == -1){
-          char * ksign = (char*)malloc(nonsym_tsr->sr->el_size);
+        char * ksign = (char*)malloc(nonsym_tsr->sr->el_size);
+        if (rev_sign == -1)
           nonsym_tsr->sr->addinv(nonsym_tsr->sr->mulid(), ksign);
-          csum = summation(nonsym_tsr, idx_map_A, ksign,
-                                  sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-        } else
-          csum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(),
-                                  sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+        else
+          nonsym_tsr->sr->copy(ksign, nonsym_tsr->sr->mulid());
+        summation csum(nonsym_tsr, idx_map_A, ksign,
+                          sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
         csum.sum_tensors(0);
 
   //    print_tsr(stdout, sym_tid);

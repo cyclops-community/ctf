@@ -217,8 +217,13 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::print(FILE* fp, double cutoff) const{
-    CTF_int::tensor::print(fp, cutoff);
+  void Tensor<dtype, is_ord>::print(FILE* fp, dtype cutoff) const{
+    CTF_int::tensor::print(fp, (char *)&cutoff);
+  }
+
+  template<typename dtype, bool is_ord>
+  void Tensor<dtype, is_ord>::print(FILE* fp) const{
+    CTF_int::tensor::print(fp, NULL);
   }
 
   template<typename dtype, bool is_ord>

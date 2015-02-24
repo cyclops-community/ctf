@@ -305,6 +305,12 @@ namespace CTF_int {
   }
 
 
+  void algstrct::print(char const * a, FILE * fp) const {
+    for (int i=0; i<el_size; i++){
+      fprintf(fp,"%x",a[i]);
+    }
+  }
+
   void algstrct::min(char * c) const {
     printf("CTF ERROR: min limit not present for this algebraic structure\n");
     ASSERT(0);
@@ -502,7 +508,7 @@ namespace CTF_int {
   }
 
   int64_t ConstPairIterator::k() const {
-    return (int64_t)*ptr;
+    return ((int64_t*)ptr)[0];
   }
 
   char const * ConstPairIterator::d() const {
@@ -527,7 +533,7 @@ namespace CTF_int {
   }
 
   int64_t PairIterator::k() const {
-    return (int64_t)*ptr;
+    return ((int64_t*)ptr)[0];
   }
 
   char const * PairIterator::d() const {
