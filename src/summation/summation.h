@@ -57,6 +57,12 @@ namespace CTF_int {
                 tensor *     B,
                 int const *  idx_B,
                 char const * beta);
+      summation(tensor *     A,
+                char const * idx_A,
+                char const * alpha,
+                tensor *     B,
+                char const * idx_B,
+                char const * beta);
      
       /**
        * \brief constructor definining summation with custom function
@@ -75,6 +81,13 @@ namespace CTF_int {
                 char const *    alpha,
                 tensor *        B,
                 int const *     idx_B,
+                char const *    beta,
+                univar_function func);
+      summation(tensor *        A,
+                char const *    idx_A,
+                char const *    alpha,
+                tensor *        B,
+                char const *    idx_B,
                 char const *    beta,
                 univar_function func);
 

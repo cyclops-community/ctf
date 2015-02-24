@@ -15,23 +15,53 @@ namespace CTF_int {
                    int const *  idx_map_,
                    char const * alpha_){
     A = A_;
-    idx_map = idx_map_;
     alpha = alpha_;
     is_custom = 0;
+    
+    idx_map = (int*)malloc(sizeof(int)*A->order);
+    memcpy(idx_map, idx_map_, sizeof(int)*A->order);
   }
 
-  
+  scaling::scaling(tensor *     A_,
+                   char const * cidx_map,
+                   char const * alpha_){
+    A = A_;
+    alpha = alpha_;
+    is_custom = 0;
+    
+    idx_map = (int*)malloc(sizeof(int)*A->order);
+    conv_idx(A->order, cidx_map, &idx_map);
+  }
+
   scaling::scaling(tensor * A_, 
                    int const * idx_map_,
                    endomorphism func_,
                    char const * alpha_){
     A = A_;
-    idx_map = idx_map_;
     alpha = alpha_;
     func = func_;
     is_custom = 1;
+    
+    idx_map = (int*)malloc(sizeof(int)*A->order);
+    memcpy(idx_map, idx_map_, sizeof(int)*A->order);
   }
 
+  scaling::scaling(tensor * A_, 
+                   char const * cidx_map,
+                   endomorphism func_,
+                   char const * alpha_){
+    A = A_;
+    alpha = alpha_;
+    func = func_;
+    is_custom = 1;
+    
+    idx_map = (int*)malloc(sizeof(int)*A->order);
+    conv_idx(A->order, cidx_map, &idx_map);
+  }
+
+  scaling::~scaling(){
+    free(idx_map);
+  }
 
   int scaling::execute(){
     int st, is_top, order_tot, iA,  ret, itopo, btopo;

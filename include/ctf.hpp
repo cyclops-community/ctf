@@ -17,7 +17,7 @@
 #define CTF_VERSION 110
 
 #include "../src/interface/tensor.h"
-#include "../src/interface/expression.h"
+#include "../src/interface/idx_tensor.h"
 #include "../src/interface/timer.h"
 
 

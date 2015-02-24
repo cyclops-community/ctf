@@ -19,7 +19,7 @@ namespace CTF_int {
       char const * alpha;
     
       /** \brief indices of A */
-      int const * idx_map;
+      int * idx_map;
       
       /** \brief whether there is a elementwise custom function */
       bool is_custom;
@@ -37,7 +37,10 @@ namespace CTF_int {
       scaling(tensor *     A,
               int const *  idx_map,
               char const * alpha);
-     
+      scaling(tensor *     A,
+              char const * idx_map,
+              char const * alpha);
+
       /**
        * \brief constructor definining scaling with custom function
        * \param[in] A left operand tensor
@@ -48,6 +51,13 @@ namespace CTF_int {
               int const *  idx_map,
               endomorphism func,
               char const * alpha=NULL);
+      scaling(tensor *     A,
+              char const * idx_map,
+              endomorphism func,
+              char const * alpha=NULL);
+
+      /** \brief destructor */
+      ~scaling();
 
       /** \brief run scaling  \return whether success or error */
       int execute();

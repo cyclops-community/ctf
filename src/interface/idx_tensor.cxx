@@ -82,17 +82,21 @@ namespace CTF {
 
   Idx_Tensor::Idx_Tensor(CTF_int::tensor * parent_,
                          const char *      idx_map_,
-                         int               copy) : Term(parent->sr) {
+                         int               copy) : Term(parent_->sr) {
+    idx_map = (char*)CTF_int::alloc(parent_->order*sizeof(char));
     if (copy){
       parent = new CTF_int::tensor(parent,1);
-      idx_map = (char*)CTF_int::alloc(parent_->order*sizeof(char));
     } else {
-      idx_map = (char*)CTF_int::alloc(parent_->order*sizeof(char));
       parent        = parent_;
     }
     memcpy(idx_map, idx_map_, parent->order*sizeof(char));
     is_intm       = 0;
-    sr->copy(scale,sr->mulid());
+  }
+
+  Idx_Tensor::Idx_Tensor(algstrct const * sr) : Term(sr) {
+    idx_map = NULL;
+    parent  = NULL;
+    is_intm = 0;
   }
 
   Idx_Tensor::Idx_Tensor(Idx_Tensor const & other,
@@ -216,19 +220,14 @@ namespace CTF {
 
   void Idx_Tensor::execute(Idx_Tensor output) const {
     if (parent == NULL){
-      int * idx_map_A;
-      conv_idx(output.parent->order, output.idx_map, &idx_map_A);
       output.sr->mul(output.scale, scale, output.scale);
       CTF_int::tensor ts(output.sr, 0, NULL, NULL, output.where_am_i(), true, NULL, 0);
       summation s(&ts, NULL, output.sr->mulid(), 
-                  output.parent, idx_map_A, output.scale);
+                  output.parent, output.idx_map, output.scale);
       s.execute();
     } else {
-      int * idx_map_A, * idx_map_B;
-      conv_idx(output.parent->order,        idx_map, &idx_map_A,
-                      parent->order, output.idx_map, &idx_map_B);
-      summation s(this->parent, idx_map_A, scale,
-                  output.parent, idx_map_B, output.scale);
+      summation s(this->parent, idx_map, scale,
+                  output.parent, output.idx_map, output.scale);
       s.execute();
 //      output.parent->sum(scale, *this->parent, idx_map,
   //                       output.scale, output.idx_map);
@@ -241,19 +240,14 @@ namespace CTF {
 
   double Idx_Tensor::estimate_time(Idx_Tensor output) const {
     if (parent == NULL){
-      int * idx_map_A;
-      conv_idx(output.parent->order, output.idx_map, &idx_map_A);
       CTF_int::tensor ts(output.sr, 0, NULL, NULL, output.where_am_i(), true, NULL, 0);
       summation s(&ts, NULL, output.sr->mulid(), 
-                  output.parent, idx_map_A, output.scale);
+                  output.parent, output.idx_map, output.scale);
       return s.estimate_time();
       ts.set(output.scale);
     } else {
-      int * idx_map_A, * idx_map_B;
-      conv_idx(output.parent->order,        idx_map, &idx_map_A,
-                      parent->order, output.idx_map, &idx_map_B);
-      summation s(this->parent, idx_map_A, scale,
-                  output.parent, idx_map_B, output.scale);
+      summation s(this->parent, idx_map, scale,
+                  output.parent, output.idx_map, output.scale);
       return s.estimate_time();
     } 
   }

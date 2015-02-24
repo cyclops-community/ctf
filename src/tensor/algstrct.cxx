@@ -294,6 +294,17 @@ namespace CTF_int {
     ASSERT(0);
   }
 
+  void algstrct::cast_int(int64_t i, char * c) const {
+    printf("CTF ERROR: integer scaling not possible for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  void algstrct::cast_double(double d, char * c) const {
+    printf("CTF ERROR: double scaling not possible for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+
   void algstrct::min(char * c) const {
     printf("CTF ERROR: min limit not present for this algebraic structure\n");
     ASSERT(0);

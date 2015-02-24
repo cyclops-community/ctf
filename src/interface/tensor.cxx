@@ -2,7 +2,7 @@
 
 #include "../interface/common.h"
 #include "world.h"
-#include "expression.h"
+#include "idx_tensor.h"
 
 namespace CTF {
 
@@ -469,21 +469,11 @@ namespace CTF {
                                        const char *           idx_B,
                                        dtype                  beta,
                                        const char *           idx_C){
-    int * idx_map_A;
-    int * idx_map_B;
-    int * idx_map_C;
-    conv_idx(A.order, idx_A, &idx_map_A,
-             B.order, idx_B, &idx_map_B,
-               order, idx_C, &idx_map_C);
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
-      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, (char*)&alpha,
-                                           this, idx_map_C, (char*)&beta);
+      = CTF_int::contraction(&A, idx_A, &B, idx_B, (char*)&alpha, this, idx_C, (char*)&beta);
     ctr.execute();
-    CTF_int::cfree(idx_map_A);
-    CTF_int::cfree(idx_map_B);
-    CTF_int::cfree(idx_map_C);
   }
 
   template<typename dtype, bool is_ord>
@@ -493,22 +483,11 @@ namespace CTF {
                                        const char *           idx_B,
                                        const char *           idx_C,
                                        Bivar_Function<dtype>  fseq){
-    int * idx_map_A;
-    int * idx_map_B;
-    int * idx_map_C;
-    conv_idx(A.order, idx_A, &idx_map_A,
-             B.order, idx_B, &idx_map_B,
-               order, idx_C, &idx_map_C);
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
-      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B,
-                                           this, idx_map_C, fseq);
+      = CTF_int::contraction(&A, idx_A, &B, idx_B, this, idx_C, fseq);
     ctr.execute();
-
-    CTF_int::cfree(idx_map_A);
-    CTF_int::cfree(idx_map_B);
-    CTF_int::cfree(idx_map_C);
   }
 
 
@@ -518,18 +497,13 @@ namespace CTF {
                                   const char *           idx_A,
                                   dtype                  beta,
                                   const char *           idx_B){
-    int * idx_map_A, * idx_map_B;
-    conv_idx(A.order, idx_A, &idx_map_A,
-               order, idx_B, &idx_map_B);
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
 
     CTF_int::summation sum 
-      = CTF_int::summation(&A, idx_map_A, (char*)&alpha, this, idx_map_B, (char*)&beta);
+      = CTF_int::summation(&A, idx_A, (char*)&alpha, this, idx_B, (char*)&beta);
 
     sum.execute();
 
-    CTF_int::cfree(idx_map_A);
-    CTF_int::cfree(idx_map_B);
   }
 
   template<typename dtype, bool is_ord>
@@ -537,38 +511,26 @@ namespace CTF {
                                   const char *           idx_A,
                                   const char *           idx_B,
                                   Univar_Function<dtype> fseq){
-    int * idx_map_A, * idx_map_B;
-    conv_idx(A.order, idx_A, &idx_map_A,
-               order, idx_B, &idx_map_B);
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     
-    CTF_int::summation sum 
-      = CTF_int::summation(&A, idx_map_A, this, idx_map_B, fseq);
+    CTF_int::summation sum = CTF_int::summation(&A, idx_A, this, idx_B, fseq);
 
     sum.execute();
-    CTF_int::cfree(idx_map_A);
-    CTF_int::cfree(idx_map_B);
   }
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::scale(dtype        alpha,
                                     const char * idx_A){
-    int * idx_map_A;
-    conv_idx(order, idx_A, &idx_map_A);
-    CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, (char*)&alpha);
+    CTF_int::scaling scl = CTF_int::scaling(this, idx_A, (char*)&alpha);
     scl.execute();
-    CTF_int::cfree(idx_map_A);
   }
 
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::scale(const char *         idx_A,
                                     Endomorphism<dtype>  fseq){
-    int * idx_map_A;
-    conv_idx(order, idx_A, &idx_map_A);
-    CTF_int::scaling scl = CTF_int::scaling(this, idx_map_A, fseq);
+    CTF_int::scaling scl = CTF_int::scaling(this, idx_A, fseq);
     scl.execute();
-    CTF_int::cfree(idx_map_A);
   }
 
   template<typename dtype, bool is_ord>
@@ -589,13 +551,8 @@ namespace CTF {
                                     Tensor<dtype, is_ord>& B,
                                     const char *   idx_B,
                                     const char *   idx_C){
-    int * idx_map_A, * idx_map_B, * idx_map_C;
-    conv_idx(A.order, idx_A, &idx_map_A,
-             B.order, idx_B, &idx_map_B,
-               order, idx_C, &idx_map_C);
     CTF_int::contraction ctr
-      = CTF_int::contraction(&A, idx_map_A, &B, idx_map_B, sr->mulid(),
-                                           this, idx_map_C, sr->addid());
+      = CTF_int::contraction(&A, idx_A, &B, idx_B, sr->mulid(), this, idx_C, sr->addid());
     return ctr.estimate_time();
   }
     
@@ -604,11 +561,7 @@ namespace CTF {
                                     Tensor<dtype, is_ord>& A,
                                     const char *   idx_A,
                                     const char *   idx_B){
-    int * idx_map_A, * idx_map_B;
-    conv_idx(A.order, idx_A, &idx_map_A,
-               order, idx_B, &idx_map_B);
-    CTF_int::summation sum 
-      = CTF_int::summation(&A, idx_map_A, sr->mulid(), this, idx_map_B, sr->addid());
+    CTF_int::summation sum = CTF_int::summation(&A, idx_A, sr->mulid(), this, idx_B, sr->addid());
 
     return sum.estimate_time();
     

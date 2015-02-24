@@ -44,15 +44,36 @@ namespace CTF_int {
                        int const *  idx_B_,
                        char const * beta_){
     A         = A_;
-    idx_A     = (int*)malloc(sizeof(int)*A->order);
-    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
     alpha     = alpha_;
     B         = B_;
-    idx_B     = (int*)malloc(sizeof(int)*B->order);
-    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
     beta      = beta_;
     is_custom = 0;
+
+    idx_A     = (int*)malloc(sizeof(int)*A->order);
+    idx_B     = (int*)malloc(sizeof(int)*B->order);
+
+    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
+    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
   }
+
+  summation::summation(tensor *     A_,
+                       char const * cidx_A,
+                       char const * alpha_,
+                       tensor *     B_,
+                       char const * cidx_B,
+                       char const * beta_){
+    A         = A_;
+    alpha     = alpha_;
+    B         = B_;
+    beta      = beta_;
+    is_custom = 0;
+    
+    idx_A     = (int*)malloc(sizeof(int)*A->order);
+    idx_B     = (int*)malloc(sizeof(int)*B->order);
+
+    conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
+  }
+
  
   summation::summation(tensor *        A_,
                        int const *     idx_A_,
@@ -62,15 +83,38 @@ namespace CTF_int {
                        char const *    beta_,
                        univar_function func_){
     A         = A_;
-    idx_A     = (int*)malloc(sizeof(int)*A->order);
-    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
     alpha     = alpha_;
     B         = B_;
-    idx_B     = (int*)malloc(sizeof(int)*B->order);
-    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
     beta      = beta_;
     func      = func_;
     is_custom = 1;
+
+    idx_A     = (int*)malloc(sizeof(int)*A->order);
+    idx_B     = (int*)malloc(sizeof(int)*B->order);
+
+    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
+    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
+  }
+
+ 
+  summation::summation(tensor *        A_,
+                       char const *    cidx_A,
+                       char const *    alpha_,
+                       tensor *        B_,
+                       char const *    cidx_B,
+                       char const *    beta_,
+                       univar_function func_){
+    A         = A_;
+    alpha     = alpha_;
+    B         = B_;
+    beta      = beta_;
+    func      = func_;
+    is_custom = 1;
+
+    idx_A     = (int*)malloc(sizeof(int)*A->order);
+    idx_B     = (int*)malloc(sizeof(int)*B->order);
+
+    conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
   }
 
   void summation::execute(){

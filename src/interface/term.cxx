@@ -3,6 +3,8 @@
 #include "common.h"
 #include "idx_tensor.h"
 #include "../tensor/algstrct.h"
+#include "../summation/summation.h"
+#include "../contraction/contraction.h"
 
 using namespace CTF;
 
@@ -145,14 +147,28 @@ namespace CTF_int {
     return trm;
   }
 
-/*
-  Contract_Term Term::operator*(dtype scl) const {
-    Contract_Term trm;
-    Idx_Tensor iscl(scl);
-    trm.operands.push_back(this->clone());
-    trm.operands.push_back(iscl.clone());
+  void Term::operator=(Term const & B){ execute() = B; }
+  void Term::operator=(CTF::Idx_Tensor const & B){ execute() = B; }
+  void Term::operator+=(Term const & B){ execute() += B; }
+  void Term::operator-=(Term const & B){ execute() -= B; }
+  void Term::operator*=(Term const & B){ execute() *= B; }
+
+ 
+
+
+  Contract_Term Term::operator*(int64_t scl) const {
+    Idx_Tensor iscl(sr);
+    sr->cast_int(scl, iscl.scale);
+    Contract_Term trm(this->clone(),iscl.clone());
     return trm;
-  }*/
+  }
+
+  Contract_Term Term::operator*(double scl) const {
+    Idx_Tensor iscl(sr);
+    sr->cast_double(scl, iscl.scale);
+    Contract_Term trm(this->clone(),iscl.clone());
+    return trm;
+  }
 
   //functions spectific to Sum_Term
 
@@ -211,10 +227,12 @@ namespace CTF_int {
       Idx_Tensor op_A = pop_A->estimate_time(cost);
       Idx_Tensor op_B = pop_B->estimate_time(cost);
       Idx_Tensor * intm = get_full_intm(op_A, op_B);
-      cost += intm->parent->estimate_time(op_A.parent, op_A.idx_map,
-                                      intm->idx_map);
-      cost += intm->parent->estimate_time(op_B.parent, op_B.idx_map,
-                                      intm->idx_map);
+      summation s1(op_A.parent, op_A.idx_map, op_A.scale, 
+                   intm->parent, intm->idx_map, intm->scale);
+      cost += s1.estimate_time();
+      summation s2(op_B.parent, op_B.idx_map, op_B.scale, 
+                   intm->parent, intm->idx_map, intm->scale);
+      cost += s2.estimate_time();
       tmp_ops.push_back(intm);
       delete pop_A;
       delete pop_B;
@@ -236,13 +254,11 @@ namespace CTF_int {
       cost += tmp_ops[i]->estimate_time(output);
     }
     Idx_Tensor itsr = tmp_ops.back()->estimate_time(cost);
-    cost += output.parent->estimate_time( *(itsr.parent), itsr.idx_map,
-                         output.idx_map); 
+    summation s(itsr.parent, itsr.idx_map, itsr.scale, output.parent, output.idx_map, output.scale);
+    cost += s.estimate_time();
     tmp_ops.clear();
     return cost;
   }
-
-
 
   Idx_Tensor Sum_Term::execute() const {
     std::vector< Term* > tmp_ops;
@@ -257,10 +273,13 @@ namespace CTF_int {
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
       Idx_Tensor * intm = get_full_intm(op_A, op_B);
-      intm->parent->sum(op_A.scale, op_A.parent, op_A.idx_map,
-                       intm->scale,               intm->idx_map);
-      intm->parent->sum(op_B.scale, op_B.parent, op_B.idx_map,
-                       intm->scale,               intm->idx_map);
+      summation s1(op_A.parent, op_A.idx_map, op_A.scale, 
+                   intm->parent, intm->idx_map, intm->scale);
+      s1.execute();
+      //a little sloopy but intm->scale should always be 1 here
+      summation s2(op_B.parent, op_B.idx_map, op_B.scale, 
+                   intm->parent, intm->idx_map, intm->scale);
+      s2.execute();
       tmp_ops.push_back(intm);
       delete pop_A;
       delete pop_B;
@@ -277,11 +296,11 @@ namespace CTF_int {
     std::vector< Term* > tmp_ops = operands;
     for (int i=0; i<((int)tmp_ops.size())-1; i++){
       tmp_ops[i]->execute(output);
-      sr.cop(output.scale, sr->mulid());
+      sr->copy(output.scale, sr->mulid());
     }
     Idx_Tensor itsr = tmp_ops.back()->execute();
-    output.parent->sum(itsr.scale, *(itsr.parent), itsr.idx_map,
-                        output.scale, output.idx_map); 
+    summation s(itsr.parent, itsr.idx_map, itsr.scale, output.parent, output.idx_map, output.scale);
+    s.execute();
   }
 
 
@@ -332,7 +351,7 @@ namespace CTF_int {
 
   Contract_Term::Contract_Term(
       Contract_Term const & other,
-      std::map<tensor*, tensor*>* remap){
+      std::map<tensor*, tensor*>* remap) : Term(other.sr) {
     sr->copy(this->scale, other.scale);
     for (int i=0; i<(int)other.operands.size(); i++){
       Term * t = other.operands[i]->clone(remap);
@@ -358,6 +377,8 @@ namespace CTF_int {
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
     }
+    char tscale[sr->el_size];
+    sr->copy(tscale, this->scale);
     while (tmp_ops.size() > 2){
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
@@ -366,17 +387,20 @@ namespace CTF_int {
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
       if (op_A.parent == NULL) {
-        op_B.scale *= op_A.scale;
+        sr->mul(op_A.scale, op_B.scale, op_B.scale);
         tmp_ops.push_back(op_B.clone());
       } else if (op_B.parent == NULL) {
-        op_A.scale *= op_B.scale;
+        sr->mul(op_A.scale, op_B.scale, op_B.scale);
         tmp_ops.push_back(op_A.clone());
       } else {
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        intm->parent->contract(this->scale*op_A.scale*op_B.scale, 
-                                      op_A.parent, op_A.idx_map,
-                                      op_B.parent, op_B.idx_map,
-                                intm->scale,         intm->idx_map);
+        sr->mul(tscale, op_A.scale, tscale);
+        sr->mul(tscale, op_B.scale, tscale);
+        contraction c(op_A.parent, op_A.idx_map,
+                      op_B.parent, op_B.idx_map, tscale,
+                      intm->parent, intm->idx_map, intm->scale);
+        c.execute(); 
+        sr->copy(tscale, sr->mulid());
         tmp_ops.push_back(intm);
       }
       delete pop_A;
@@ -390,22 +414,26 @@ namespace CTF_int {
       tmp_ops.pop_back();
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
-      
+      char tscale[sr->el_size];
+      sr->copy(tscale, this->scale);
+      sr->mul(tscale, op_A.scale, tscale);
+      sr->mul(tscale, op_B.scale, tscale);
+
       if (op_A.parent == NULL && op_B.parent == NULL){
         assert(0); //FIXME write scalar to whole tensor
       } else if (op_A.parent == NULL){
-        output.parent->sum(this->scale*op_A.scale*op_B.scale, 
-                                  op_B.parent, op_B.idx_map,
-                           output.scale,        output.idx_map);
+        summation s(op_B.parent, op_B.idx_map, tscale,
+                    output.parent, output.idx_map, output.scale);
+        s.execute();
       } else if (op_B.parent == NULL){
-        output.parent->sum(this->scale*op_A.scale*op_B.scale, 
-                                  op_A.parent, op_A.idx_map,
-                           output.scale,        output.idx_map);
+        summation s(op_A.parent, op_A.idx_map, tscale,
+                    output.parent, output.idx_map, output.scale);
+        s.execute();
       } else {
-        output.parent->contract(this->scale*op_A.scale*op_B.scale, 
-                                      op_A.parent, op_A.idx_map,
-                                      op_B.parent, op_B.idx_map,
-                               output.scale,        output.idx_map);
+        contraction c(op_A.parent, op_A.idx_map,
+                      op_B.parent, op_B.idx_map, tscale,
+                      output.parent, output.idx_map, output.scale);
+        c.execute();
       }
       delete pop_A;
       delete pop_B;
@@ -418,6 +446,8 @@ namespace CTF_int {
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
     }
+    char tscale[sr->el_size];
+    sr->copy(tscale, this->scale);
     while (tmp_ops.size() > 1){
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
@@ -433,10 +463,13 @@ namespace CTF_int {
         tmp_ops.push_back(op_A.clone());
       } else {
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        intm->parent->contract(this->scale*op_A.scale*op_B.scale, 
-                                      op_A.parent, op_A.idx_map,
-                                      op_B.parent, op_B.idx_map,
-                                intm->scale,         intm->idx_map);
+        sr->mul(tscale, op_A.scale, tscale);
+        sr->mul(tscale, op_B.scale, tscale);
+        contraction c(op_A.parent, op_A.idx_map,
+                      op_B.parent, op_B.idx_map, tscale,
+                      intm->parent, intm->idx_map, intm->scale);
+        c.execute(); 
+        sr->copy(tscale, sr->mulid());
         tmp_ops.push_back(intm);
       }
       delete pop_A;
@@ -468,10 +501,10 @@ namespace CTF_int {
         tmp_ops.push_back(op_A.clone());
       } else {
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        cost += intm->parent->estimate_time(
-                                      *(op_A.parent), op_A.idx_map,
-                                      *(op_B.parent), op_B.idx_map,
-                                         intm->idx_map);
+        contraction c(op_A.parent, op_A.idx_map,
+                      op_B.parent, op_B.idx_map, this->scale, 
+                      intm->parent, intm->idx_map, intm->scale);
+        cost += c.estimate_time();
         tmp_ops.push_back(intm);
       }
       delete pop_A;
@@ -489,17 +522,18 @@ namespace CTF_int {
       if (op_A.parent == NULL && op_B.parent == NULL){
         assert(0); //FIXME write scalar to whole tensor
       } else if (op_A.parent == NULL){
-        cost += output.parent->estimate_time(*(op_B.parent), op_B.idx_map,
-                              output.idx_map);
+        summation s(op_B.parent, op_B.idx_map, this->scale,
+                    output.parent, output.idx_map, output.scale);
+        cost += s.estimate_time();
       } else if (op_B.parent == NULL){
-        cost += output.parent->estimate_time(
-                                  *(op_A.parent), op_A.idx_map,
-                                   output.idx_map);
+        summation s(op_A.parent, op_A.idx_map, this->scale,
+                    output.parent, output.idx_map, output.scale);
+        cost += s.estimate_time();
       } else {
-        cost += output.parent->estimate_time(
-                                      *(op_A.parent), op_A.idx_map,
-                                      *(op_B.parent), op_B.idx_map,
-                                       output.idx_map);
+        contraction c(op_A.parent, op_A.idx_map,
+                      op_B.parent, op_B.idx_map, this->scale,
+                      output.parent, output.idx_map, output.scale);
+        cost += c.estimate_time();
       }
       delete pop_A;
       delete pop_B;
@@ -526,10 +560,11 @@ namespace CTF_int {
         tmp_ops.push_back(op_A.clone());
       } else {
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        cost += intm->parent->estimate_time(
-                                      *(op_A.parent), op_A.idx_map,
-                                      *(op_B.parent), op_B.idx_map,
-                                        intm->idx_map);
+        contraction c(op_A.parent, op_A.idx_map,
+                      op_B.parent, op_B.idx_map, this->scale, 
+                      intm->parent, intm->idx_map, intm->scale);
+        cost += c.estimate_time();
+
         tmp_ops.push_back(intm);
       }
       delete pop_A;

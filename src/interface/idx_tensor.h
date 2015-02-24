@@ -42,10 +42,12 @@ namespace CTF {
                  int                                           copy=0,
                  std::map<CTF_int::tensor*, CTF_int::tensor*>* remap=NULL);
 
-      /*Idx_Tensor();
-      
-      Idx_Tensor(char const * val);*/
-      
+      /**
+       * \brief constructor for scalar
+       * \param[in] sr ring/semiring
+       */
+      Idx_Tensor(CTF_int::algstrct const * sr);
+ 
       ~Idx_Tensor();
       
       /**
@@ -124,7 +126,6 @@ namespace CTF {
        */
       World * where_am_i() const;
   };
-
 }
 
 #endif

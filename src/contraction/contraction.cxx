@@ -54,22 +54,49 @@ namespace CTF_int {
                            int const *      idx_C_,
                            char const *     beta_,
                            bivar_function * func_){
-    A         = A_;
-    idx_A     = (int*)malloc(sizeof(int)*A->order);
-    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
-    B         = B_;
-    idx_B     = (int*)malloc(sizeof(int)*B->order);
-    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
-    alpha     = alpha_;
-    C         = C_;
-    idx_C     = (int*)malloc(sizeof(int)*C->order);
-    memcpy(idx_C, idx_C_, sizeof(int)*C->order);
+    A = A_;
+    B = B_;
+    C = C_;
     if (func_ == NULL) is_custom = 0;
     else { 
       is_custom = 1;
       func      = *func_;
     }
-    beta      = beta_;
+    alpha = alpha_;
+    beta  = beta_;
+    
+    idx_A = (int*)malloc(sizeof(int)*A->order);
+    idx_B = (int*)malloc(sizeof(int)*B->order);
+    idx_C = (int*)malloc(sizeof(int)*C->order);
+    memcpy(idx_A, idx_A_, sizeof(int)*A->order);
+    memcpy(idx_B, idx_B_, sizeof(int)*B->order);
+    memcpy(idx_C, idx_C_, sizeof(int)*C->order);
+  }
+ 
+  contraction::contraction(tensor *         A_,
+                           char const *     cidx_A,
+                           tensor *         B_,
+                           char const *     cidx_B,
+                           char const *     alpha_,
+                           tensor *         C_,
+                           char const *     cidx_C,
+                           char const *     beta_,
+                           bivar_function * func_){
+    A = A_;
+    B = B_;
+    C = C_;
+    if (func_ == NULL) is_custom = 0;
+    else { 
+      is_custom = 1;
+      func      = *func_;
+    }
+    alpha = alpha_;
+    beta  = beta_;
+    
+    idx_A = (int*)malloc(sizeof(int)*A->order);
+    idx_B = (int*)malloc(sizeof(int)*B->order);
+    idx_C = (int*)malloc(sizeof(int)*C->order);
+    conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B, C->order, cidx_C, &idx_C);
   }
 
   void contraction::execute(){

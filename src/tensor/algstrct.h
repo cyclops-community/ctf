@@ -92,6 +92,11 @@ namespace CTF_int {
       /** \brief c = maximum possible value */
       virtual void max(char * c)  const;
 
+      /** \brief c = &i */
+      virtual void cast_int(int64_t i, char * c) const;
+
+      /** \brief c = &d */
+      virtual void cast_double(double d, char * c) const;
 
       /** \brief X["i"]=alpha*X["i"]; */
       virtual void scal(int          n,

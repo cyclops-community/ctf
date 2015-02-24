@@ -68,6 +68,13 @@ namespace CTF {
         ((dtype*)c)[0] = std::numeric_limits<dtype>::max();
       }
 
+      void cast_int(int64_t i, char * c) const {
+        ((dtype*)c)[0] = (dtype)i;
+      }
+
+      void cast_double(double d, char * c) const {
+        ((dtype*)c)[0] = (dtype)d;
+      }
   };
 }
 #include "monoid.h"

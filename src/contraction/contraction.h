@@ -91,6 +91,16 @@ namespace CTF_int {
                   int const *      idx_C,
                   char const *     beta,
                   bivar_function * func=NULL);
+      contraction(tensor *         A,
+                  char const *     idx_A,
+                  tensor *         B,
+                  char const *     idx_B,
+                  char const *     alpha,
+                  tensor *         C,
+                  char const *     idx_C,
+                  char const *     beta,
+                  bivar_function * func=NULL);
+
 
       /** \brief run contraction */
       void execute();

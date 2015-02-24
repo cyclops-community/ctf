@@ -11,6 +11,8 @@
  */
 namespace CTF {
   class Idx_Tensor;
+  template<typename dtype>
+  class Idx_Scalar;
 }
 
 namespace CTF_int {
@@ -107,17 +109,18 @@ namespace CTF_int {
        * \brief A = B, compute any operations on operand B and set
        * \param[in] B tensor on the right hand side
        */
-      void operator=(Term const & B);// { execute() = B; };
-      void operator=(CTF::Idx_Tensor const & B);// { execute() = B; };
-      void operator+=(Term const & B);// { execute() += B; };
-      void operator-=(Term const & B);// { execute() -= B; };
-      void operator*=(Term const & B);// { execute() *= B; };
+      void operator=(Term const & B);
+      void operator=(CTF::Idx_Tensor const & B);
+      void operator+=(Term const & B);
+      void operator-=(Term const & B);
+      void operator*=(Term const & B);
 
       /**
        * \brief multiples by a constant
        * \param[in] scl scaling factor to multiply term by
        */
-      Contract_Term operator*(char const * scl) const;
+      Contract_Term operator*(int64_t scl) const;
+      Contract_Term operator*(double scl) const;
 
       /**
        * \brief figures out what world this term lives on
@@ -205,10 +208,6 @@ namespace CTF_int {
        */
       CTF::World * where_am_i() const;
   };
- static
-  Contract_Term operator*(double d, Term const & tsr);/*{
-    return (tsr*d);
-  }*/
 
   /**
    * \brief An experession representing a contraction of a set of tensors contained in operands 
@@ -279,6 +278,18 @@ namespace CTF_int {
        */
       CTF::World * where_am_i() const;
   };
+
+
+  //FIXME: what if noncommutative?
+  inline CTF_int::Contract_Term operator*(double const & d, CTF_int::Term const & tsr){
+    return (tsr*d);
+  }
+
+  //FIXME: what if noncommutative?
+  inline CTF_int::Contract_Term operator*(int64_t const & i, CTF_int::Term const & tsr){
+    return (tsr*i);
+  }
+
   /**
    * @}
    */
