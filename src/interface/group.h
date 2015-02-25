@@ -29,7 +29,7 @@ namespace CTF {
   template <typename dtype, dtype (*abs)(dtype)>
   void char_abs(char const * a,
                 char * b){
-    ((dtype*)a)[0]=abs(((dtype const*)a)[0]);
+    ((dtype*)b)[0]=abs(((dtype const*)a)[0]);
   }
 
   /**
@@ -46,7 +46,7 @@ namespace CTF {
       }
 
       Group() : Monoid<dtype, is_ord>() { 
-        abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
+        this->abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
       } 
 
       Group(dtype taddid_,

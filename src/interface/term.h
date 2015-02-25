@@ -11,8 +11,6 @@
  */
 namespace CTF {
   class Idx_Tensor;
-  template<typename dtype>
-  class Idx_Scalar;
 }
 
 namespace CTF_int {
@@ -92,45 +90,66 @@ namespace CTF_int {
        * \param[in] A term to multiply by
        */
       Contract_Term operator*(Term const & A) const;
-      
-      /**
-       * \brief constructs a new term by addition of two terms
-       * \param[in] A term to add to output
-       */
-      Sum_Term operator+(Term const & A) const;
-      
-      /**
-       * \brief constructs a new term by subtracting term A
-       * \param[in] A subtracted term
-       */
-      Sum_Term operator-(Term const & A) const;
-      
-      /**
-       * \brief A = B, compute any operations on operand B and set
-       * \param[in] B tensor on the right hand side
-       */
-      void operator=(Term const & B);
-      void operator=(CTF::Idx_Tensor const & B);
-      void operator+=(Term const & B);
-      void operator-=(Term const & B);
-      void operator*=(Term const & B);
-
       /**
        * \brief multiples by a constant
        * \param[in] scl scaling factor to multiply term by
        */
       Contract_Term operator*(int64_t scl) const;
       Contract_Term operator*(double scl) const;
+      
+      /**
+       * \brief constructs a new term by addition of two terms
+       * \param[in] A term to add to output
+       */
+      Sum_Term operator+(Term const & A) const;
+      Sum_Term operator+(double scl) const;
+      Sum_Term operator+(int64_t scl) const;
+      
+      /**
+       * \brief constructs a new term by subtracting term A
+       * \param[in] A subtracted term
+       */
+      Sum_Term operator-(Term const & A) const;
+      Sum_Term operator-(double scl) const;
+      Sum_Term operator-(int64_t scl) const;
+      
+      /**
+       * \brief A = B, compute any operations on operand B and set
+       * \param[in] B tensor on the right hand side
+       */
+      void operator=(CTF::Idx_Tensor const & B);
+      void operator=(Term const & B);
+      void operator+=(Term const & B);
+      void operator-=(Term const & B);
+      void operator*=(Term const & B);
 
+      void operator=(double scl);
+      void operator+=(double scl);
+      void operator-=(double scl);
+      void operator*=(double scl);
+
+      void operator=(int64_t scl);
+      void operator+=(int64_t scl);
+      void operator-=(int64_t scl);
+      void operator*=(int64_t scl);
       /**
        * \brief figures out what world this term lives on
        */
       virtual CTF::World * where_am_i() const = 0;
 
       /**
-       * \brief casts into a double if dimension of evaluated expression is 0
+       * \brief cast to double (works only if tensor type is castable to double)
+       *        allows a scalar output
        */
-      operator char const *() const;
+      operator double() const;
+ 
+      /**
+       * \brief cast to int64_t (works only if tensor type is castable to int64_t)
+       *        allows a scalar output
+       */     
+      operator int64_t() const;
+
+
   };
 
   class Sum_Term : public Term {

@@ -6,9 +6,9 @@
 
 namespace CTF {
 
-  template<typename dtype, bool is_ord>
+/*  template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor() : CTF_int::tensor() { }
-
+*/
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(const Tensor<dtype, is_ord>& A,
                                 bool                         copy)
@@ -574,12 +574,9 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::operator=(Tensor<dtype, is_ord> A){
-    int ret;  
 
-//    FIXME: delete current data
-
-    ret = init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
-    assert(ret == SUCCESS);
+    free_self();
+    init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
 /*
     sr = A.sr;
     world = A.wrld;

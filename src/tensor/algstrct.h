@@ -98,6 +98,12 @@ namespace CTF_int {
       /** \brief c = &d */
       virtual void cast_double(double d, char * c) const;
 
+      /** \brief return (int64_t)*c */
+      virtual int64_t cast_to_int(char const * c) const;
+
+      /** \brief return (double)*c */
+      virtual double cast_to_double(char const * c) const;
+
       /** \brief prints the value */
       virtual void print(char const * a, FILE * fp=stdout) const;
 

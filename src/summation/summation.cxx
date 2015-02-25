@@ -674,7 +674,7 @@ namespace CTF_int {
       tnsr_B->topo        = B->topo;
       copy_mapping(B->order, B->edge_map, tnsr_B->edge_map);
       tnsr_B->set_padding();
-      osum.B              = tnsr_A;
+      osum.B              = tnsr_B;
     }
   #if DEBUG >= 1
     if (A->wrld->cdt.rank == 0)

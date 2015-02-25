@@ -304,6 +304,17 @@ namespace CTF_int {
     ASSERT(0);
   }
 
+  double algstrct::cast_to_double(char const * c) const {
+    printf("CTF ERROR: double cast not possible for this algebraic structure\n");
+    ASSERT(0);
+    return 0.0;
+  }
+
+  int64_t algstrct::cast_to_int(char const * c) const {
+    printf("CTF ERROR: int cast not possible for this algebraic structure\n");
+    ASSERT(0);
+    return 0;
+  }
 
   void algstrct::print(char const * a, FILE * fp) const {
     for (int i=0; i<el_size; i++){

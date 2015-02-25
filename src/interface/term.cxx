@@ -147,28 +147,61 @@ namespace CTF_int {
     return trm;
   }
 
-  void Term::operator=(Term const & B){ execute() = B; }
   void Term::operator=(CTF::Idx_Tensor const & B){ execute() = B; }
+  void Term::operator=(Term const & B){ execute() = B; }
   void Term::operator+=(Term const & B){ execute() += B; }
   void Term::operator-=(Term const & B){ execute() -= B; }
   void Term::operator*=(Term const & B){ execute() *= B; }
 
- 
+  void Term::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
+  void Term::operator+=(double scl){ execute() += Idx_Tensor(sr,scl); }
+  void Term::operator-=(double scl){ execute() -= Idx_Tensor(sr,scl); }
+  void Term::operator*=(double scl){ execute() *= Idx_Tensor(sr,scl); }
 
+  void Term::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
+  void Term::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
+  void Term::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
+  void Term::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
 
   Contract_Term Term::operator*(int64_t scl) const {
-    Idx_Tensor iscl(sr);
-    sr->cast_int(scl, iscl.scale);
+    Idx_Tensor iscl(sr, scl);
     Contract_Term trm(this->clone(),iscl.clone());
     return trm;
   }
 
   Contract_Term Term::operator*(double scl) const {
-    Idx_Tensor iscl(sr);
-    sr->cast_double(scl, iscl.scale);
+    Idx_Tensor iscl(sr, scl);
     Contract_Term trm(this->clone(),iscl.clone());
     return trm;
   }
+
+  Term::operator double () const {
+    int64_t s;
+    CTF_int::tensor ts(sr, 0, NULL, NULL, where_am_i(), true, NULL, 0);
+    Idx_Tensor iscl(&ts,"");
+    execute(iscl);
+    char val[sr->el_size];
+    char * datap;
+    iscl.parent->get_raw_data(&datap,&s); 
+    memcpy(val, datap, sr->el_size);
+    MPI_Bcast(val, sr->el_size, MPI_CHAR, 0, where_am_i()->comm);
+    return sr->cast_to_double(val);
+  }
+
+  Term::operator int64_t () const {
+    int64_t s;
+    CTF_int::tensor ts(sr, 0, NULL, NULL, where_am_i(), true, NULL, 0);
+    Idx_Tensor iscl(&ts,"");
+    execute(iscl);
+    char val[sr->el_size];
+    char * datap;
+    iscl.parent->get_raw_data(&datap,&s); 
+    memcpy(val, datap, sr->el_size);
+    MPI_Bcast(val, sr->el_size, MPI_CHAR, 0, where_am_i()->comm);
+    return sr->cast_to_int(val);
+  }
+
+
 
   //functions spectific to Sum_Term
 

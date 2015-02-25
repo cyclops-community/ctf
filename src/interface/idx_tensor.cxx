@@ -99,6 +99,20 @@ namespace CTF {
     is_intm = 0;
   }
 
+  Idx_Tensor::Idx_Tensor(algstrct const * sr, double scl) : Term(sr) {
+    idx_map = NULL;
+    parent  = NULL;
+    is_intm = 0;
+    sr->cast_double(scl, scale);
+  }
+
+  Idx_Tensor::Idx_Tensor(algstrct const * sr, int64_t scl) : Term(sr) {
+    idx_map = NULL;
+    parent  = NULL;
+    is_intm = 0;
+    sr->cast_int(scl, scale);
+  }
+
   Idx_Tensor::Idx_Tensor(Idx_Tensor const & other,
                          int                copy,
       std::map<CTF_int::tensor*, CTF_int::tensor*>* remap) : Term(other.sr) {
@@ -134,11 +148,12 @@ namespace CTF {
     sr->copy(scale,sr->mulid());
   }
 
-  Idx_Tensor::Idx_Tensor(char const * val){
-    parent        = NULL;
-    idx_map       = NULL;
-    is_intm       = 0;
-    sr->copy(scale,val);
+  Idx_Tensor::Idx_Tensor(double val) : Term(NULL) {
+    parent  = NULL;
+    idx_map = NULL;
+    is_intm = 0;
+    scale   = (char*)alloc(sizeof(double));
+    sr->copy(scale,(char const*)&val);
   }*/
 
   Idx_Tensor::~Idx_Tensor(){
@@ -181,6 +196,9 @@ namespace CTF {
       sr->copy(scale,sr->mulid());
     }
   }
+
+  void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
 
   void Idx_Tensor::operator+=(Term const & B){
     if (global_schedule != NULL) {

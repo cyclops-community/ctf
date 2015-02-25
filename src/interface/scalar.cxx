@@ -27,11 +27,12 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   dtype Scalar<dtype, is_ord>::get_val(){
     int64_t s; 
-    dtype * val;
-    val = this->get_raw_data(&s); 
-
-    MPI_Bcast(val, sizeof(dtype), MPI_CHAR, 0, this->world->comm);
-    return val[0];
+    dtype * datap;
+    dtype val;
+    datap = this->get_raw_data(&s); 
+    memcpy(&val, datap, sizeof(dtype));
+    MPI_Bcast((char *)&val, sizeof(dtype), MPI_CHAR, 0, this->wrld->comm);
+    return val;
   }
 
   template<typename dtype, bool is_ord>

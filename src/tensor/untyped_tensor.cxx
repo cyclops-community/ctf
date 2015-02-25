@@ -22,7 +22,7 @@ namespace CTF_int {
     order=-1;
   }*/
 
-  tensor::~tensor(){
+  void tensor::free_self(){
     VPRINTF(1,"Deleted order %d tensor %s\n",order,name);
     if (order != -1){
       cfree(name);
@@ -41,7 +41,12 @@ namespace CTF_int {
         if (is_home) free(home_buffer);
         else free(data);
       }
+      order = -1;
     }
+  }
+
+  tensor::~tensor(){
+    free_self();
   }
 
   tensor::tensor(algstrct const * sr_,
@@ -927,7 +932,7 @@ namespace CTF_int {
   }
 
   int tensor::reduce_sum(char * result, algstrct const * sr_other) {
-    ASSERT(is_mapped && is_folded);
+    ASSERT(is_mapped && !is_folded);
     tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
@@ -945,7 +950,7 @@ namespace CTF_int {
   }
 
   int tensor::reduce_sumabs(char * result, algstrct const * sr_other) {
-    ASSERT(is_mapped && is_folded);
+    ASSERT(is_mapped && !is_folded);
     univar_function func = univar_function(sr->abs);
     tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
     int idx_A[order];
@@ -960,7 +965,7 @@ namespace CTF_int {
   }
 
   int tensor::reduce_sumsq(char * result) {
-    ASSERT(is_mapped && is_folded);
+    ASSERT(is_mapped && !is_folded);
     tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
@@ -983,7 +988,7 @@ namespace CTF_int {
 
     my_sz = 0;
     read_local(&my_sz, &pmy_data);
-    PairIterator my_data = PairIterator(sr,pmy_data);
+    //PairIterator my_data = PairIterator(sr,pmy_data);
 
     if (wrld->rank == 0){
       alloc_ptr(wrld->np*sizeof(int), (void**)&recvcnts);

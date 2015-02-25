@@ -23,6 +23,7 @@ namespace CTF_int {
 
       univar_function(void (*f_)(char const *, char *)) { f=f_; }
       univar_function() { }
+      univar_function(univar_function const & other) { f = other.f; }
   };
 
 

@@ -18,7 +18,9 @@ namespace CTF {
        *         bool, int, unsigned int, int64_t, uint64_t,
        *         float, double, std::complex<float>, std::complex<double>
        */
-      Ring() : Semiring<dtype, is_ord>() { }
+      Ring() : Semiring<dtype, is_ord>() { 
+        this->abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
+      }
 
       virtual CTF_int::algstrct * clone() const {
         return new Ring<dtype, is_ord>(*this);
@@ -43,7 +45,9 @@ namespace CTF {
            void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
            void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
            void (*scal_)(int,dtype,dtype*,int)=NULL)
-            : Semiring<dtype,is_ord>(addid_, fadd_, mulid_, addmop_, fmul_, gemm_, axpy_, scal_) {}
+            : Semiring<dtype,is_ord>(addid_, fadd_, mulid_, addmop_, fmul_, gemm_, axpy_, scal_) {
+          abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
+        }
 
 
         void addinv(char const * a, char * b) const {

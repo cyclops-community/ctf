@@ -95,8 +95,13 @@ namespace CTF_int {
       /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
 
-      tensor();
+//      tensor();
+
+      /** \brief class free self */
       ~tensor();
+
+      /** \brief destructor */
+      void free_self();
 
       /**
        * \brief creates tensor copy, unfolds other if other is folded

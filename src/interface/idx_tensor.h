@@ -47,9 +47,16 @@ namespace CTF {
        * \param[in] sr ring/semiring
        */
       Idx_Tensor(CTF_int::algstrct const * sr);
- 
+      Idx_Tensor(CTF_int::algstrct const * sr, double scl);
+      Idx_Tensor(CTF_int::algstrct const * sr, int64_t scl);
       ~Idx_Tensor();
       
+      /**
+       * \brief constructor for scalar
+       * \param[in] val double value
+       */
+      //Idx_Tensor(double val);
+
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
@@ -87,6 +94,8 @@ namespace CTF {
        */
       void operator=(CTF_int::Term const & B);
       void operator=(Idx_Tensor const & B);
+      void operator=(double scl);
+      void operator=(int64_t scl);
 
       /**
        * \brief A += B, compute any operations on operand B and add

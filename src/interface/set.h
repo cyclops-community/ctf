@@ -3,7 +3,7 @@
 
 #include "../tensor/algstrct.h"
 //#include <stdint.h>
-#//include <inttypes.h>
+#include <inttypes.h>
 
 namespace CTF {
   //C++14, nasty
@@ -70,16 +70,23 @@ namespace CTF {
         ((dtype*)c)[0] = std::numeric_limits<dtype>::max();
       }
 
-      void cast_int(int64_t i, char * c) const {
-        ((dtype*)c)[0] = (dtype)i;
-      }
-
       void cast_double(double d, char * c) const {
         ((dtype*)c)[0] = (dtype)d;
       }
 
+      void cast_int(int64_t i, char * c) const {
+        ((dtype*)c)[0] = (dtype)i;
+      }
+
+      double cast_to_double(char const * c) const {
+        return (double)(((dtype*)c)[0]);
+      }
+
+      int64_t cast_to_int(char const * c) const {
+        return (int64_t)(((dtype*)c)[0]);
+      }
+
       void print(char const * a, FILE * fp=stdout) const {
-    printf("HERE\n");
         for (int i=0; i<el_size; i++){
           fprintf(fp,"%x",a[i]);
         }
@@ -98,7 +105,7 @@ namespace CTF {
 
   template <>  
   void Set<int64_t>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"%lld",((int64_t*)a)[0]);
+    fprintf(fp,"%ld",((int64_t*)a)[0]);
   }
 
   template <>  

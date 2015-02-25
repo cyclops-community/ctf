@@ -3,7 +3,7 @@
   * @{ 
   * \defgroup scalar
   * @{ 
-  * \brief Basic functionality test for CTF_Scalar type and tensors with a zero edge length
+  * \brief Basic functionality test for CTF::Scalar<> type and tensors with a zero edge length
   */
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <ctf.hpp>
 
-int scalar(CTF_World    &dw){
+int scalar(CTF::World    &dw){
   int rank, num_pes, pass;
   int64_t np, * indices;
   double val, * pairs;
@@ -24,7 +24,7 @@ int scalar(CTF_World    &dw){
 
   pass = 1;
 
-  CTF_Scalar A(dw);
+  CTF::Scalar<> A(dw);
 
   A.read_local(&np,&indices,&pairs);
   pass -=!(np<=1);
@@ -50,14 +50,14 @@ int scalar(CTF_World    &dw){
   val = A;
   pass -=(val != 4.2);
   
-  CTF_Scalar B(4.3, dw);
+  CTF::Scalar<> B(4.3, dw);
   pass -=(4.3 != (double)B);
 
   B=A;
   pass -=(4.2 != (double)B);
 
   int n = 7;
-  CTF_Matrix C(n,n,AS,dw);
+  CTF::Matrix<> C(n,n,AS,dw);
 
   C["ij"]=A[""];
   
@@ -65,33 +65,33 @@ int scalar(CTF_World    &dw){
   val = C["ij"];
   
 /*  if (C.sym == AS){
-    pass-= !( fabs(C.reduce(CTF_OP_SUM)-n*(n-1)*2.1)<1.E-10);
+    pass-= !( fabs(C.reduce(CTF::OP_SUM)-n*(n-1)*2.1)<1.E-10);
     printf("C sum is %lf, abs sum is %lf, C[\"ij\"]=%lf expectd %lf\n",
-            C.reduce(CTF_OP_SUM), C.reduce(CTF_OP_SUMABS), val, n*(n-1)*4.2);
+            C.reduce(CTF::OP_SUM), C.reduce(CTF::OP_SUMABS), val, n*(n-1)*4.2);
   } else { 
     printf("C sum is %lf, abs sum is %lf, C[\"ij\"]=%lf expectd %lf\n",
-            C.reduce(CTF_OP_SUM), C.reduce(CTF_OP_SUMABS), val, n*n*4.2);
+            C.reduce(CTF::OP_SUM), C.reduce(CTF::OP_SUMABS), val, n*n*4.2);
   }*/
-  pass-= !( fabs(C.reduce(CTF_OP_SUMABS)-n*(n-1)*4.2)<1.E-10);
+  pass-= !( fabs(C.reduce(CTF::OP_SUMABS)-n*(n-1)*4.2)<1.E-10);
   
   C["ij"]=13.1;
 
 
-  pass-= !( fabs(C.reduce(CTF_OP_SUMABS)-n*(n-1)*13.1)<1.E-10);
+  pass-= !( fabs(C.reduce(CTF::OP_SUMABS)-n*(n-1)*13.1)<1.E-10);
   int sizeN4[4] = {n,0,n,n};
   int shapeN4[4] = {NS,NS,SY,NS};
-  CTF_Matrix E(n,n,NS,dw);
-  CTF_Tensor D(4, sizeN4, shapeN4, dw);
+  CTF::Matrix<> E(n,n,NS,dw);
+  CTF::Tensor<> D(4, sizeN4, shapeN4, dw);
   
   E["ij"]=13.1;
 
   E["ii"]=D["klij"]*E["ki"];
   
-  pass-= !( fabs(E.reduce(CTF_OP_SUMABS)-0)>1.E-10);
+  pass-= !( fabs(E.reduce(CTF::OP_SUMABS)-0)>1.E-10);
   
   E["ij"]=D["klij"]*E["ki"];
 
-  pass-= !( fabs(E.reduce(CTF_OP_SUMABS)-0)<1.E-10);
+  pass-= !( fabs(E.reduce(CTF::OP_SUMABS)-0)<1.E-10);
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
@@ -128,7 +128,7 @@ int main(int argc, char ** argv){
 
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    CTF::World dw(MPI_COMM_WORLD, argc, argv);
     int pass = scalar(dw);
     assert(pass>0);
   }

@@ -69,5 +69,9 @@ class tCTF_Idx_Tensor : CTF::Idx_Tensor { };
 typedef CTF::Timer        CTF_Timer;
 typedef CTF::Flop_counter CTF_Flop_Counter;
 typedef CTF::Timer        CTF_Timer;
+
+//deprecated
+//enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SUMSQ, CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS};
+
 #endif
 
