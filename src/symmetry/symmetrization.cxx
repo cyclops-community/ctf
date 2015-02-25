@@ -606,13 +606,13 @@ namespace CTF_int {
       while (tsr_A->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          new_type = summation(perms[k]);
+          summation new_type1 = summation(perms[k]);
           sign = signs[k];
           if (tsr_A->sym[j-1] == AS) sign *= -1;
-          tmp                    = new_type.idx_A[i];
-          new_type.idx_A[i]  = new_type.idx_A[j];
-          new_type.idx_A[j]  = tmp;
-          add_sym_perm(perms, signs, new_type, sign);
+          tmp                = new_type1.idx_A[i];
+          new_type1.idx_A[i]  = new_type1.idx_A[j];
+          new_type1.idx_A[j]  = tmp;
+          add_sym_perm(perms, signs, new_type1, sign);
         }
       }
     }
@@ -621,13 +621,13 @@ namespace CTF_int {
       while (tsr_B->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          new_type = summation(perms[k]);
+          summation new_type2 = summation(perms[k]);
           sign = signs[k];
           if (tsr_B->sym[j-1] == AS) sign *= -1;
-          tmp                    = new_type.idx_B[i];
-          new_type.idx_B[i]  = new_type.idx_B[j];
-          new_type.idx_B[j]  = tmp;
-          add_sym_perm(perms, signs, new_type, sign);
+          tmp                    = new_type2.idx_B[i];
+          new_type2.idx_B[i]  = new_type2.idx_B[j];
+          new_type2.idx_B[j]  = tmp;
+          add_sym_perm(perms, signs, new_type2, sign);
         }
       }
     }

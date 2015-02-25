@@ -616,6 +616,60 @@ namespace CTF_int {
    
     CTF_int::contract_mst();
 
+    // FIXME: if custom function, we currently don't know whether its odd, even or neither, so unpack everything
+    if (is_custom){
+      bool is_nonsym=true;
+      for (int i=0; i<A->order; i++){
+        if (A->sym[i] != NS){
+          is_nonsym = false;
+        }
+      }
+      if (!is_nonsym){
+        int sym_A[A->order];
+        std::fill(sym_A, sym_A+A->order, NS);
+        int idx_A[A->order];
+        for (int i=0; i<A->order; i++){
+          idx_A[i] = i;
+        }
+        tensor tA(A->sr, A->order, A->lens, sym_A, A->wrld, 1);
+        tA.is_home = 0;
+        summation st(A, idx_A, A->sr->mulid(), &tA, idx_A, A->sr->mulid());
+        st.execute();
+        summation stme(*this);
+        stme.A = &tA;
+        stme.execute();
+        return SUCCESS;
+      }
+    }
+    if (is_custom){
+      bool is_nonsym=true;
+      for (int i=0; i<B->order; i++){
+        if (B->sym[i] != NS){
+          is_nonsym = false;
+        }
+      }
+      if (!is_nonsym){
+        int sym_B[B->order];
+        std::fill(sym_B, sym_B+B->order, NS);
+        int idx_B[B->order];
+        for (int i=0; i<B->order; i++){
+          idx_B[i] = i;
+        }
+        tensor tB(B->sr, B->order, B->lens, sym_B, B->wrld, 1);
+        tB.is_home = 0;
+        if (!B->sr->isequal(B->sr->addid(), beta)){
+          summation st(B, idx_B, B->sr->mulid(), &tB, idx_B, B->sr->mulid());
+          st.execute();
+        }
+        summation stme(*this);
+        stme.B = &tB;
+        stme.execute();
+        summation stme2(&tB, idx_B, B->sr->mulid(), B, idx_B, B->sr->addid());
+        stme2.execute();
+        return SUCCESS;
+      }
+    }
+
   #ifndef HOME_CONTRACT
     #ifdef USE_SYM_SUM
       ret = sym_sum_tsr(run_diag);
@@ -896,6 +950,7 @@ namespace CTF_int {
         signs.clear();
       }
     } else {
+      new_sum.alpha = alpha;
       new_sum.sum_tensors(run_diag);
 /*      sum_tensors(alpha, beta, new_type.tid_A, new_type.tid_B, new_type.idx_map_A,
                   new_type.idx_map_B, ftsr, felm, run_diag);*/
@@ -1489,7 +1544,6 @@ namespace CTF_int {
     if (global_comm.rank == 0)
       printf("Initial mappings:\n");
     A->print_map(stdout);
-    B->print_map(stdout);
   #endif
 
     //FIXME: try to avoid unfolding immediately, as its not always necessary

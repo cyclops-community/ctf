@@ -262,7 +262,6 @@ namespace CTF {
       summation s(&ts, NULL, output.sr->mulid(), 
                   output.parent, output.idx_map, output.scale);
       return s.estimate_time();
-      ts.set(output.scale);
     } else {
       summation s(this->parent, idx_map, scale,
                   output.parent, output.idx_map, output.scale);

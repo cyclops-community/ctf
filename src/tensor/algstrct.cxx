@@ -691,13 +691,14 @@ namespace CTF_int {
       case 32:
         return std::lower_bound((CompPair<32>*)ptr,((CompPair<32>*)ptr)+n, ((CompPair<32>*)op.ptr)[0]) - (CompPair<32>*)ptr;
         break;
-      default:
+      default: {
         int64_t keys[n];
         #pragma omp parallel
         for (int64_t i=0; i<n; i++){
           keys[i] = (*this)[i].k();
         }
         return std::lower_bound(keys, keys+n, op.k())-keys;
+        } break;
     }
   }
 

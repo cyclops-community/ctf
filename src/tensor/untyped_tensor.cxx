@@ -1014,7 +1014,6 @@ namespace CTF_int {
     MPI_Gatherv(pmy_data, my_sz*sr->pair_size(), MPI_CHAR, 
                pall_data, recvcnts, displs, MPI_CHAR, 0, wrld->cdt.cm);
     PairIterator all_data = PairIterator(sr,pall_data);
-    printf("my_Sz = %lld tot_sz=%lld\n",my_sz,tot_sz);
     if (wrld->rank == 0){
 //      all_data.sort(tot_sz);
       for (int64_t i=0; i<tot_sz; i++){
@@ -1035,7 +1034,7 @@ namespace CTF_int {
         }
         fprintf(fp," <");
         sr->print(all_data[i].d());
-        fprintf(fp,"> %lld\n",all_data[i].k());
+        fprintf(fp,"> %ld\n",all_data[i].k());
       }
       cfree(recvcnts);
       cfree(displs);

@@ -29,36 +29,48 @@ int scalar(CTF::World    &dw){
   A.read_local(&np,&indices,&pairs);
   pass -=!(np<=1);
  
+  A.print();
   if (np>0){
     pass -=!(indices[0] == 0);
-    pass -=!(pairs[0] == 0.0);
+  assert(pass);
+    pass -=!(std::abs(pairs[0]) < 1.E-9);
+  assert(pass);
     pairs[0] = 4.2;  
   } 
   A.write(np,indices,pairs);
   free(indices);
   free(pairs);
   //A = 4.2;
+  A.print();
   A.read_local(&np,&indices,&pairs);
+  printf("np=%ld\n",np);
   pass -= !(np<=1);
+  assert(pass);
  
   if (np>0){
     pass -=(indices[0] != 0);
-    pass -=(pairs[0] != 4.2);
+  assert(pass);
+    pass -=!(pairs[0]-4.2 < 1.E-9);
+  assert(pass);
   } 
   free(indices);
   free(pairs);
   val = A;
-  pass -=(val != 4.2);
+  pass -=!(val-4.2 < 1.E-9);
+  assert(pass);
   
   CTF::Scalar<> B(4.3, dw);
-  pass -=(4.3 != (double)B);
+  pass -=!((double)B-4.3 < 1.E-9);
+  assert(pass);
 
   B=A;
-  pass -=(4.2 != (double)B);
+  pass -=!((double)B-4.2 < 1.E-9);
+  assert(pass);
 
   int n = 7;
   CTF::Matrix<> C(n,n,AS,dw);
 
+  //FIXME: this is nonsense! should result in zero tensor
   C["ij"]=A[""];
   
 
@@ -72,12 +84,20 @@ int scalar(CTF::World    &dw){
     printf("C sum is %lf, abs sum is %lf, C[\"ij\"]=%lf expectd %lf\n",
             C.reduce(CTF::OP_SUM), C.reduce(CTF::OP_SUMABS), val, n*n*4.2);
   }*/
-  pass-= !( fabs(C.reduce(CTF::OP_SUMABS)-n*(n-1)*4.2)<1.E-10);
-  
+  printf("%lf, %lf\n",C.reduce(CTF::OP_SUMABS),n*(n-1)*4.2);
+  pass-= !( fabs(C.reduce(CTF::OP_SUMABS)-n*(n-1)*4.2)<1.E-8);
+  assert(pass);
+
+  printf("NOW\n"); 
+ 
   C["ij"]=13.1;
 
+  printf("NOT NOW\n"); 
+  C.print();
 
+  printf("%lf, %lf\n",C.reduce(CTF::OP_SUMABS),n*(n-1)*13.1);
   pass-= !( fabs(C.reduce(CTF::OP_SUMABS)-n*(n-1)*13.1)<1.E-10);
+  assert(pass);
   int sizeN4[4] = {n,0,n,n};
   int shapeN4[4] = {NS,NS,SY,NS};
   CTF::Matrix<> E(n,n,NS,dw);
@@ -88,10 +108,12 @@ int scalar(CTF::World    &dw){
   E["ii"]=D["klij"]*E["ki"];
   
   pass-= !( fabs(E.reduce(CTF::OP_SUMABS)-0)>1.E-10);
+  assert(pass);
   
   E["ij"]=D["klij"]*E["ki"];
 
   pass-= !( fabs(E.reduce(CTF::OP_SUMABS)-0)<1.E-10);
+  assert(pass);
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
