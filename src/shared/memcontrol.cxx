@@ -568,7 +568,7 @@ namespace CTF_int {
     uint64_t pages = (uint64_t)sysconf(_SC_PHYS_PAGES);
     uint64_t page_size = (uint64_t)sysconf(_SC_PAGE_SIZE);
     if (mem_size != 0)
-      return MIN(pages * page_size, mem_size);
+      return MIN((int64_t)(pages * page_size), (int64_t)mem_size);
     else
       return pages * page_size;
   #endif

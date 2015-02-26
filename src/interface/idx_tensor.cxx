@@ -158,7 +158,6 @@ namespace CTF {
 
   Idx_Tensor::~Idx_Tensor(){
     if (is_intm) { 
-      free(scale);
       delete parent;
       is_intm = 0;
     }

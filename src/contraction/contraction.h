@@ -201,40 +201,6 @@ namespace CTF_int {
                             int              num_weigh,
                             topology const * topo);
 
-    /**
-       * \brief map the indices over which we will be contracting
-       *
-       * \param idx_arr array of index mappings of size order*3 that
-       *        lists the indices (or -1) of A,B,C 
-       *        corresponding to every global index
-       * \param idx_ctr specification of which indices are being contracted
-       * \param num_tot total number of indices
-       * \param num_ctr number of indices being contracted over
-       * \param topo topology to map to
-       */
-      int map_ctr_indices(int const *      idx_arr,
-                          int const *      idx_ctr,
-                          int              num_tot,
-                          int              num_ctr,
-                          topology const * topo);
-
-      /**
-       * \brief map the indices over which we will not be contracting
-       *
-       * \param idx_arr array of index mappings of size order*3 that
-       *        lists the indices (or -1) of A,B,C 
-       *        corresponding to every global index
-       * \param idx_noctr specification of which indices are not being contracted
-       * \param num_tot total number of indices
-       * \param num_noctr number of indices not being contracted over
-       * \param topo topology to map to
-       */
-      int map_no_ctr_indices(int const *              idx_arr,
-                             int const *              idx_no_ctr,
-                             int                      num_tot,
-                             int                      num_no_ctr,
-                             topology const *         topo);
-
       /**
        * \brief map the indices which are indexed only for A or B or C
        *

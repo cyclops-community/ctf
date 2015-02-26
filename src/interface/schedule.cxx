@@ -54,7 +54,7 @@ namespace CTF {
 
     // Partition operations into worlds, and do split
     std::vector<PartitionOps > comm_ops; // operations for each subcomm
-    int max_colors = size <= ready_tasks.size()? size : ready_tasks.size();
+    int max_colors = size <= (int64_t)ready_tasks.size()? size : ready_tasks.size();
     if (partitions > 0 && max_colors > partitions) {
       max_colors = partitions;
     }
@@ -71,11 +71,11 @@ namespace CTF {
     int max_num_tasks = 0;
     int max_cost = 0;
     // Try to find the longest sequence of tasks that aren't too imbalanced
-    for (int starting_task=0; starting_task<ready_tasks.size(); starting_task++) {
+    for (int starting_task=0; starting_task<(int64_t)ready_tasks.size(); starting_task++) {
       double  sum_cost = 0;
       double  min_cost = 0;
       int num_tasks = 0;
-      for (int i=starting_task; i<ready_tasks.size(); i++) {
+      for (int i=starting_task; i<(int64_t)ready_tasks.size(); i++) {
         double  this_cost = ready_tasks[i]->estimate_time();
         if (min_cost == 0 || this_cost < min_cost) {
           min_cost = this_cost;
@@ -178,7 +178,7 @@ namespace CTF {
     // Run my tasks
     MPI_Barrier(world->comm);
     schedule_timer.exec_time = MPI_Wtime();
-    if (comm_ops.size() > my_color) {
+    if ((int64_t)comm_ops.size() > my_color) {
       typename std::vector<TensorOperation*>::iterator op_iter;
       for (op_iter=comm_ops[my_color].ops.begin(); op_iter!=comm_ops[my_color].ops.end(); op_iter++) {
         (*op_iter)->execute(&comm_ops[my_color].remap);
@@ -209,7 +209,7 @@ namespace CTF {
     schedule_timer.comm_up_time = MPI_Wtime() - schedule_timer.comm_up_time;
 
     // Clean up local tensors & world
-    if (comm_ops.size() > my_color) {
+    if ((int64_t)comm_ops.size() > my_color) {
       typename std::set<tensor*, tensor_tid_less >::iterator local_tensor_iter;
       for (local_tensor_iter=comm_ops[my_color].local_tensors.begin(); local_tensor_iter!=comm_ops[my_color].local_tensors.end(); local_tensor_iter++) {
         delete *local_tensor_iter;

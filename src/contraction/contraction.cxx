@@ -830,7 +830,7 @@ namespace CTF_int {
           if (iC == -1){
             if (iB == -1){
               if (iA != -1) {
-                map = &A->edge_map[iA];
+                map = &pA->edge_map[iA];
                 for (;;){
                   if (map->type == PHYSICAL_MAP){
                     if (phys_mapped[map->cdt] == 1){
@@ -861,8 +861,8 @@ namespace CTF_int {
             } else { 
               /* Confirm that the phases of A and B 
                  over which we are contracting are the same */
-              ph_A = A->edge_map[iA].calc_phase();
-              ph_B = B->edge_map[iB].calc_phase();
+              ph_A = pA->edge_map[iA].calc_phase();
+              ph_B = pB->edge_map[iB].calc_phase();
 
               if (ph_A != ph_B){
                 //if (global_comm.rank == 0) 
@@ -1071,13 +1071,25 @@ namespace CTF_int {
     TAU_FSTOP(map_weigh_indices);
     return stat;
   }
-
-  int contraction::
-      map_ctr_indices(int const *      idx_arr,
-                      int const *      idx_ctr,
-                      int              num_tot,
-                      int              num_ctr,
-                      topology const * topo){
+  /**
+   * \brief map the indices over which we will be contracting
+   *
+   * \param idx_arr array of index mappings of size order*3 that
+   *        lists the indices (or -1) of A,B,C 
+   *        corresponding to every global index
+   * \param idx_ctr specification of which indices are being contracted
+   * \param num_tot total number of indices
+   * \param num_ctr number of indices being contracted over
+   * \param topo topology to map to
+   */
+  static int
+  map_ctr_indices(int const *      idx_arr,
+                  int const *      idx_ctr,
+                  int              num_tot,
+                  int              num_ctr,
+                  topology const * topo,
+                  tensor *         A,
+                  tensor *         B){
     int tsr_order, ictr, iA, iB, i, j, jctr, jX, stat, num_sub_phys_dims;
     int * tsr_edge_len, * tsr_sym_table, * restricted, * comm_idx;
     CommData  * sub_phys_comm;
@@ -1208,12 +1220,26 @@ namespace CTF_int {
     return stat;
   }
 
-  int contraction::
-      map_no_ctr_indices(int const *              idx_arr,
-                         int const *              idx_no_ctr,
-                         int                      num_tot,
-                         int                      num_no_ctr,
-                         topology const *         topo){
+  /**
+   * \brief map the indices over which we will not be contracting
+   *
+   * \param idx_arr array of index mappings of size order*3 that
+   *        lists the indices (or -1) of A,B,C 
+   *        corresponding to every global index
+   * \param idx_noctr specification of which indices are not being contracted
+   * \param num_tot total number of indices
+   * \param num_noctr number of indices not being contracted over
+   * \param topo topology to map to
+   */
+  static int
+  map_no_ctr_indices(int const *      idx_arr,
+                     int const *      idx_no_ctr,
+                     int              num_tot,
+                     int              num_no_ctr,
+                     topology const * topo,
+                     tensor *         A,
+                     tensor *         B,
+                     tensor *         C){
     int stat, i, inoctr, iA, iB, iC;
 
     TAU_FSTART(map_noctr_indices);
@@ -1438,7 +1464,7 @@ namespace CTF_int {
 
     
     /* Map the contraction indices of A and B */
-    ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo);
+    ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo, tA, tB);
     if (ret == NEGATIVE) {
       CTF_int::cfree(idx_arr);
       return NEGATIVE;
@@ -1488,7 +1514,7 @@ namespace CTF_int {
 
 
     /* Map C or equivalently, the non-contraction indices of A and B */
-    ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo);
+    ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo, tA, tB, tC);
     if (ret == NEGATIVE){
       CTF_int::cfree(idx_arr);
       return NEGATIVE;
@@ -1504,7 +1530,7 @@ namespace CTF_int {
     if (ret!=SUCCESS) return ret;
 
     /* Do it again to make sure everything is properly mapped. FIXME: loop */
-    ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo);
+    ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo, tA ,tB);
     if (ret == NEGATIVE){
       CTF_int::cfree(idx_arr);
       return NEGATIVE;
@@ -1512,7 +1538,7 @@ namespace CTF_int {
     if (ret == ERROR) {
       return ERROR;
     }
-    ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo);
+    ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo, tA, tB, tC);
     if (ret == NEGATIVE){
       CTF_int::cfree(idx_arr);
       return NEGATIVE;
@@ -2805,6 +2831,7 @@ namespace CTF_int {
       }
       return SUCCESS;
     }
+    //FIXME: create these tensors without home
     if (A == B || A == C){
       tensor * new_tsr = new tensor(A);
       contraction new_ctr = contraction(*this);

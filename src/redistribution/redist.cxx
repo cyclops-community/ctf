@@ -794,7 +794,7 @@ namespace CTF_int {
     bool pass = true;
     for (int i = 0;i < nbucket-1;i++){
       if (count[i] != (int64_t)((new_data[i+1]-new_data[i])/sr->el_size)){
-        printf("rank = %d count %d should have been %d is %d\n", rank, i, (int)((new_data[i+1]-new_data[i])/sr->el_size), count[i]);
+        printf("rank = %d count %d should have been %d is %ld\n", rank, i, (int)((new_data[i+1]-new_data[i])/sr->el_size), count[i]);
         pass = false;
       }
     }

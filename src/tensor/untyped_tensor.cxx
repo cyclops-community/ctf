@@ -141,9 +141,9 @@ namespace CTF_int {
       memcpy(this->padding, other->padding, sizeof(int)*other->order);
       memcpy(this->sym, other->sym, sizeof(int)*other->order);
       memcpy(this->sym_table, other->sym_table, sizeof(int)*other->order*other->order);
-      this->is_mapped      = other->is_mapped;
-      this->is_cyclic      = other->is_cyclic;
-      this->topo       = other->topo;
+      this->is_mapped = other->is_mapped;
+      this->is_cyclic = other->is_cyclic;
+      this->topo      = other->topo;
       if (other->is_mapped)
         copy_mapping(other->order, other->edge_map, this->edge_map);
       this->size = other->size;

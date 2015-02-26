@@ -85,7 +85,7 @@ namespace CTF_int {
       idx++;
     }
 
-    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld);
+    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     out->is_intm = 1;
     free(sym_C);

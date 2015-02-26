@@ -79,12 +79,17 @@ namespace CTF {
       }
 
       double cast_to_double(char const * c) const {
-        return (double)(((dtype*)c)[0]);
+        printf("CTF ERROR: double cast not possible for this algebraic structure\n");
+        ASSERT(0);
+        return 0.0;
       }
 
       int64_t cast_to_int(char const * c) const {
-        return (int64_t)(((dtype*)c)[0]);
+        printf("CTF ERROR: int cast not possible for this algebraic structure\n");
+        ASSERT(0);
+        return 0;
       }
+
 
       void print(char const * a, FILE * fp=stdout) const {
         for (int i=0; i<el_size; i++){
@@ -92,6 +97,58 @@ namespace CTF {
         }
       }
   };
+
+
+  template <>  
+  double Set<float>::cast_to_double(char const * c) const {
+    return (double)(((float*)c)[0]);
+  }
+
+  template <>  
+  double Set<double>::cast_to_double(char const * c) const {
+    return ((double*)c)[0];
+  }
+
+  template <>  
+  double Set<int>::cast_to_double(char const * c) const {
+    return (double)(((int*)c)[0]);
+  }
+
+  template <>  
+  double Set<uint64_t>::cast_to_double(char const * c) const {
+    return (double)(((uint64_t*)c)[0]);
+  }
+  
+  template <>  
+  double Set<int64_t>::cast_to_double(char const * c) const {
+    return (double)(((int64_t*)c)[0]);
+  }
+
+
+  template <>  
+  int64_t Set<int64_t>::cast_to_int(char const * c) const {
+    return ((int64_t*)c)[0];
+  }
+  
+  template <>  
+  int64_t Set<int>::cast_to_int(char const * c) const {
+    return (int64_t)(((int*)c)[0]);
+  }
+
+  template <>  
+  int64_t Set<unsigned int>::cast_to_int(char const * c) const {
+    return (int64_t)(((unsigned int*)c)[0]);
+  }
+
+  template <>  
+  int64_t Set<uint64_t>::cast_to_int(char const * c) const {
+    return (int64_t)(((uint64_t*)c)[0]);
+  }
+  
+  template <>  
+  int64_t Set<bool>::cast_to_int(char const * c) const {
+    return (int64_t)(((bool*)c)[0]);
+  }
 
   template <>  
   void Set<float>::print(char const * a, FILE * fp) const {
