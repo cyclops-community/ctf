@@ -20,9 +20,7 @@ namespace CTF {
        */ 
       Vector(int                       len,
              World &                   world,
-             Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>(),
-             char const *              name=NULL,
-             int                       profile=0);
+             Set<dtype,is_ord> const & sr);
 
       /**
        * \brief constructor for a vector

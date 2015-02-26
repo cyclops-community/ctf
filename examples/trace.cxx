@@ -66,13 +66,13 @@ int trace(int const     n,
   C4["ij"] = B["ia"]*C["ab"]*D["bc"]*A["cj"];
 
   DIAG["i"] = C1["ii"];
-  tr1 = DIAG.reduce(CTF_OP_SUM);
+  tr1 = DIAG.reduce(CTF::OP_SUM);
   DIAG["i"] = C2["ii"];
-  tr2 = DIAG.reduce(CTF_OP_SUM);
+  tr2 = DIAG.reduce(CTF::OP_SUM);
   DIAG["i"] = C3["ii"];
-  tr3 = DIAG.reduce(CTF_OP_SUM);
+  tr3 = DIAG.reduce(CTF::OP_SUM);
   DIAG["i"] = C4["ii"];
-  tr4 = DIAG.reduce(CTF_OP_SUM);
+  tr4 = DIAG.reduce(CTF::OP_SUM);
  
   int pass = 1; 
   if (rank == 0){

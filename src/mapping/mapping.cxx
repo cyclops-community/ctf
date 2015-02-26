@@ -272,7 +272,7 @@ namespace CTF_int {
 
   
   int check_self_mapping(tensor const * tsr,
-                         int const *      idx_map){
+                         int const *    idx_map){
     int i, j, pass, iR, max_idx;
     int * idx_arr;
     mapping * map1, * map2;

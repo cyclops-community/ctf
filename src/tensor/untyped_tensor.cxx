@@ -838,12 +838,12 @@ namespace CTF_int {
                    char const * alpha,
                    char const * beta,
                    char * const mapped_data){
-    write(num_pair, alpha, beta, (char*)mapped_data, 'r');
+    return write(num_pair, alpha, beta, (char*)mapped_data, 'r');
   }
 
   int tensor::read(int64_t      num_pair,
                    char * const mapped_data){
-    write(num_pair, NULL, NULL, (char*)mapped_data, 'r');
+    return write(num_pair, NULL, NULL, (char*)mapped_data, 'r');
   }
 
 
@@ -1399,10 +1399,10 @@ namespace CTF_int {
           if (rw){
             new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld);
             summation sum = summation(this, ex_idx_map, sr->mulid(), new_tsr, diag_idx_map, sr->addid());
-            sum.execute();
+            sum.execute(1);
           } else {
             summation sum = summation(new_tsr, diag_idx_map, sr->mulid(), this, ex_idx_map, sr->addid());
-            sum.execute();
+            sum.execute(1);
           }
           CTF_int::cfree(edge_len), CTF_int::cfree(sym), CTF_int::cfree(ex_idx_map), CTF_int::cfree(diag_idx_map);
           return SUCCESS;

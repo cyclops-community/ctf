@@ -91,8 +91,10 @@ namespace CTF_int {
                 char const *    beta,
                 univar_function func);
 
-      /** \brief run summation  */
-      void execute();
+      /** \brief run summation  
+        * \param[in] run_diag if true runs diagonal iterators (otherwise calls itself with run_diag=true later
+        */
+      void execute(bool run_diag=false);
       
       /** \brief predicts execution time in seconds using performance models */
       double estimate_time();

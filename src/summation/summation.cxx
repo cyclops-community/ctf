@@ -117,8 +117,8 @@ namespace CTF_int {
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
   }
 
-  void summation::execute(){
-    int stat = home_sum_tsr(0);
+  void summation::execute(bool run_diag){
+    int stat = home_sum_tsr(run_diag);
     assert(stat == SUCCESS); 
   }
   
