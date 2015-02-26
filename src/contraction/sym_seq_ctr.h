@@ -53,7 +53,7 @@ namespace CTF_int {
                        int const *      edge_len_C,
                        int const *      sym_C,
                        int const *      idx_map_C,
-                       bivar_function   func);
+                       bivar_function * func);
 
 
   /**

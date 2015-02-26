@@ -834,6 +834,19 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  int tensor::read(int64_t      num_pair,
+                   char const * alpha,
+                   char const * beta,
+                   char * const mapped_data){
+    write(num_pair, alpha, beta, (char*)mapped_data, 'r');
+  }
+
+  int tensor::read(int64_t      num_pair,
+                   char * const mapped_data){
+    write(num_pair, NULL, NULL, (char*)mapped_data, 'r');
+  }
+
+
 
   int tensor::read_local(int64_t * num_pair,
                          char **   mapped_data) const {

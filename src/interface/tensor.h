@@ -124,7 +124,7 @@ namespace CTF {
        */
       void read(int64_t          npair,
                 int64_t const *  global_idx,
-                dtype *          data) const;
+                dtype *          data);
       
       /**
        * \brief gives the values associated with any set of indices
@@ -132,7 +132,7 @@ namespace CTF {
        * \param[in,out] pairs a prealloced pointer to key-value pairs
        */
       void read(int64_t       npair,
-                Pair<dtype> * pairs) const;
+                Pair<dtype> * pairs);
       
       /**
        * \brief sparse read: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
@@ -146,7 +146,7 @@ namespace CTF {
                 dtype            alpha,
                 dtype            beta,
                 int64_t  const * global_idx,
-                dtype *          data) const;
+                dtype *          data);
 
       /**
        * \brief sparse read: pairs[i].d = alpha*A[pairs[i].k]+beta*pairs[i].d
@@ -158,7 +158,7 @@ namespace CTF {
       void read(int64_t       npair,
                 dtype         alpha,
                 dtype         beta,
-                Pair<dtype> * pairs) const;
+                Pair<dtype> * pairs);
      
 
       /**
@@ -227,18 +227,22 @@ namespace CTF {
                     char const * idx_C);
 
       /**
-       * \brief contracts computes fseq(A[idx_A],B[idx_B],C[idx_C])
+       * \brief contracts computes C[idx_C] = beta*C[idx_C] fseq(alpha*A[idx_A],B[idx_B])
+       * \param[in] alpha A*B scaling factor
        * \param[in] A first operand tensor
        * \param[in] idx_A indices of A in contraction, e.g. "ik" -> A_{ik}
        * \param[in] B second operand tensor
        * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
+       * \param[in] beta C scaling factor
        * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
        * \param[in] fseq sequential operation to execute, default is multiply-add
        */
-      void contract(Tensor &              A,
+      void contract(dtype                 alpha,
+                    Tensor &              A,
                     char const *          idx_A,
                     Tensor &              B,
                     char const *          idx_B,
+                    dtype                 beta,
                     char const *          idx_C,
                     Bivar_Function<dtype> fseq);
 
@@ -255,20 +259,24 @@ namespace CTF {
                char const * idx_A,
                dtype        beta,
                char const * idx_B);
-      
+
       /**
-       * \brief  computes fseq(alpha,A[idx_A],beta*B[idx_B])
+       * \brief sums B[idx_B] = beta*B[idx_B] + fseq(alpha*A[idx_A])
+       * \param[in] alpha A scaling factor
        * \param[in] A first operand tensor
        * \param[in] idx_A indices of A in sum, e.g. "ij" -> A_{ij}
+       * \param[in] beta B scaling factor
        * \param[in] idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
        * \param[in] fseq sequential operation to execute, default is multiply-add
        */
-      void sum(Tensor &               A,
-               char const *           idx_A,
-               char const *           idx_B,
+      void sum(dtype        alpha,
+               Tensor &     A,
+               char const * idx_A,
+               dtype        beta,
+               char const * idx_B,
                Univar_Function<dtype> fseq);
-      
-      /**
+
+     /**
        * \brief scales A[idx_A] = alpha*A[idx_A]
        * \param[in] alpha A scaling factor
        * \param[in] idx_A indices of A (this tensor), e.g. "ij" -> A_{ij}
@@ -277,13 +285,13 @@ namespace CTF {
                  char const * idx_A);
 
       /**
-       * \brief computes fseq(alpha,A[idx_A])
+       * \brief scales A[idx_A] = fseq(alpha*A[idx_A])
+       * \param[in] alpha A scaling factor
        * \param[in] idx_A indices of A (this tensor), e.g. "ij" -> A_{ij}
-       * \param[in] fseq sequential operation to execute, default is multiply-add
        */
-      void scale(char const *        idx_A,
+      void scale(dtype               alpha,
+                 char const *        idx_A,
                  Endomorphism<dtype> fseq);
-
 
       /**
        * \brief estimate the time of a contraction C[idx_C] = A[idx_A]*B[idx_B]

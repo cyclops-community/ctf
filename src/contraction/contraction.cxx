@@ -60,7 +60,7 @@ namespace CTF_int {
     if (func_ == NULL) is_custom = 0;
     else { 
       is_custom = 1;
-      func      = *func_;
+      func = func_;
     }
     alpha = alpha_;
     beta  = beta_;
@@ -88,7 +88,7 @@ namespace CTF_int {
     if (func_ == NULL) is_custom = 0;
     else { 
       is_custom = 1;
-      func      = *func_;
+      func = func_;
     }
     alpha = alpha_;
     beta  = beta_;
@@ -3124,7 +3124,7 @@ namespace CTF_int {
       map_C = new_idx;
     }
     bivar_function * fptr;
-    if (is_custom) fptr = &func;
+    if (is_custom) fptr = func;
     else fptr = NULL;
     contraction new_ctr = contraction(tnsr_A, map_A, tnsr_B, map_B, alpha, tnsr_C, map_C, beta, fptr);
 

@@ -18,8 +18,11 @@
 #include <ctf.hpp>
 #include "../src/shared/util.h"
 
-void divide(double const alpha, double const a, double const b, double & c){
+/*void divide(double const alpha, double const a, double const b, double & c){
   c+=alpha*(a/b);
+}*/
+double divide(double a, double b){
+  return a/b;
 }
 
 int weight_4D(int const    n,
@@ -58,14 +61,13 @@ int weight_4D(int const    n,
 
   C["ijkl"] = A["ijkl"]*B["klij"];
 
-  CTF_fctr fctr;
-  fctr.func_ptr = &divide;
+  CTF::Bivar_Function<> fctr(&divide);
 
   C.contract(1.0, C, "ijkl", B, "klij", 0.0, "ijkl", fctr);
 
   post_pairs_C = (double*)malloc(np_A*sizeof(double));
   C.read(np_A, indices_A, post_pairs_C);
-  
+
   int pass = 1; 
   for (i=0; i<np_A; i++){
     if (fabs(pairs_A[i]) > 1.E-10 &&

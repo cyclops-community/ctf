@@ -34,7 +34,7 @@ namespace CTF_int {
       /** \brief whether there is a elementwise custom function */
       bool is_custom;
       /** \brief function to execute on elements */
-      bivar_function func;
+      bivar_function * func;
 
       /** \brief lazy constructor */
       contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; };

@@ -178,7 +178,7 @@ namespace CTF_int{
       iparam inner_params;
       
       int is_custom;
-      bivar_function func; // custom_params;
+      bivar_function * func; // custom_params;
       
       /**
        * \brief wraps user sequential function signature

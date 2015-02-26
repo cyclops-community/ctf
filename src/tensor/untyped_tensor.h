@@ -227,7 +227,7 @@ namespace CTF_int {
       int read(int64_t      num_pair,
                char const * alpha,
                char const * beta,
-               char * const mapped_data) const;
+               char * const mapped_data);
 
       /**
        * \brief read tensor data with <key, value> pairs where key is the
@@ -236,7 +236,7 @@ namespace CTF_int {
        * \param[in,out] mapped_data pairs to read
        */
       int read(int64_t      num_pair,
-               char * const mapped_data) const;
+               char * const mapped_data);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).

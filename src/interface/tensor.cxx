@@ -3,6 +3,7 @@
 #include "../interface/common.h"
 #include "world.h"
 #include "idx_tensor.h"
+#include "../tensor/untyped_tensor.h"
 
 namespace CTF {
 
@@ -81,8 +82,9 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::read(int64_t         npair,
                                    int64_t const * global_idx,
-                                   dtype *         data) const {
-    int ret, i;
+                                   dtype *         data){
+    int ret;
+    int64_t i;
     Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
@@ -98,7 +100,7 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::read(int64_t       npair,
-                                   Pair<dtype> * pairs) const {
+                                   Pair<dtype> * pairs){
     int ret = CTF_int::tensor::read(npair, (char*)pairs);
     assert(ret == SUCCESS);
   }
@@ -158,7 +160,7 @@ namespace CTF {
                                    dtype           alpha,
                                    dtype           beta,
                                    int64_t const * global_idx,
-                                   dtype *         data) const{
+                                   dtype *         data){
     int ret, i;
     Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
@@ -178,7 +180,7 @@ namespace CTF {
   void Tensor<dtype, is_ord>::read(int64_t       npair,
                                    dtype         alpha,
                                    dtype         beta,
-                                   Pair<dtype> * pairs) const{
+                                   Pair<dtype> * pairs){
     int ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
     assert(ret == SUCCESS);
   }
@@ -482,16 +484,18 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::contract(Tensor<dtype, is_ord>& A,
+  void Tensor<dtype, is_ord>::contract(dtype                  alpha,
+                                       Tensor<dtype, is_ord>& A,
                                        const char *           idx_A,
                                        Tensor<dtype, is_ord>& B,
                                        const char *           idx_B,
+                                       dtype                  beta,
                                        const char *           idx_C,
                                        Bivar_Function<dtype>  fseq){
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
-      = CTF_int::contraction(&A, idx_A, &B, idx_B, this, idx_C, fseq);
+      = CTF_int::contraction(&A, idx_A, &B, idx_B, (char const *)&alpha, this, idx_C, (char const *)&beta, &fseq);
     ctr.execute();
   }
 
@@ -512,13 +516,15 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::sum(Tensor<dtype, is_ord>& A,
+  void Tensor<dtype, is_ord>::sum(dtype                  alpha,
+                                  Tensor<dtype, is_ord>& A,
                                   const char *           idx_A,
+                                  dtype                  beta,
                                   const char *           idx_B,
                                   Univar_Function<dtype> fseq){
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     
-    CTF_int::summation sum = CTF_int::summation(&A, idx_A, this, idx_B, fseq);
+    CTF_int::summation sum = CTF_int::summation(&A, idx_A, (char const *)&alpha, this, idx_B, (char const *)&beta &fseq);
 
     sum.execute();
   }
@@ -532,9 +538,10 @@ namespace CTF {
 
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::scale(const char *         idx_A,
-                                    Endomorphism<dtype>  fseq){
-    CTF_int::scaling scl = CTF_int::scaling(this, idx_A, fseq);
+  void Tensor<dtype, is_ord>::scale(dtype               alpha,
+                                    const char *        idx_A,
+                                    Endomorphism<dtype> fseq){
+    CTF_int::scaling scl = CTF_int::scaling(this, idx_A, (char const *)&alpha, fseq);
     scl.execute();
   }
 

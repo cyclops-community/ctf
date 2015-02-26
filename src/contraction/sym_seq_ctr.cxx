@@ -146,7 +146,7 @@ namespace CTF_int{
                        int const *      edge_len_C,
                        int const *      sym_C,
                        int const *      idx_map_C,
-                       bivar_function   func){
+                       bivar_function * func){
     TAU_FSTART(sym_seq_ctr_cust);
     int idx, i, idx_max, imin, imax, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
     int off_idx, off_lda, sym_pass;
@@ -190,19 +190,19 @@ namespace CTF_int{
       //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
       if (sym_pass){
         if (alpha == NULL && beta == NULL){
-          func.apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
-                       C+idx_C*sr_C->el_size);
+          func->apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
+                        C+idx_C*sr_C->el_size);
           CTF_FLOPS_ADD(1);
         } else  if (alpha == NULL){
           char tmp[sr_C->el_size];
-          func.apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
-                       tmp);
+          func->apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
+                        tmp);
           sr_C->add(tmp, C+idx_C*sr_C->el_size, C+idx_C*sr_C->el_size);
           CTF_FLOPS_ADD(2);
         } else {
           char tmp[sr_C->el_size];
-          func.apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
-                       tmp);
+          func->apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
+                        tmp);
           sr_C->mul(tmp, alpha, tmp);
           sr_C->add(tmp, C+idx_C*sr_C->el_size, C+idx_C*sr_C->el_size);
           CTF_FLOPS_ADD(3);

@@ -22,16 +22,16 @@ namespace CTF {
      
       /**
        * \brief constructor takes function pointer
-       * \param[in] f scalar function: (type) -> (type)
+       * \param[in] f_ scalar function: (type) -> (type)
        */
-      Endomorphism(dtype (*f)(dtype));
+      Endomorphism(dtype (*f_)(dtype)){ f = f_; }
 
       /** 
        * \brief evaluate A=f(A) 
        * \param[in] A operand tensor with pre-defined indices 
        * \return f(A)
       */
-      Idx_Tensor operator()(Idx_Tensor const & A);
+      //Idx_Tensor operator()(Idx_Tensor const & A);
 
       /**
        * \brief apply function f to value stored at a
@@ -55,17 +55,16 @@ namespace CTF {
       
       /**
        * \brief constructor takes function pointers to compute B=f(A));
-       * \param[in] f linear function (type_A)->(type_B)
-       * \param[in] fadd associative addition function (type_B,type_B)->(type_B)
+       * \param[in] f_ linear function (type_A)->(type_B)
        */
-      Univar_Function(dtype_B (*f)(dtype_A));
+      Univar_Function(dtype_B (*f_)(dtype_A)){ f_ = f; }
 
       /** 
        * \brief evaluate B=f(A) 
        * \param[in] A operand tensor with pre-defined indices 
        * return f(A) output tensor 
        */
-      Idx_Tensor operator()(Idx_Tensor const  & A);
+      //Idx_Tensor operator()(Idx_Tensor const  & A);
       
       /**
        * \brief apply function f to value stored at a
@@ -90,10 +89,9 @@ namespace CTF {
      
       /**
        * \brief constructor takes function pointers to compute C=f(A,B);
-       * \param[in] f bilinear function (type_A,type_B)->(type_C)
-       * \param[in] fadd associative addition function (type_B,type_B)->(type_B)
+       * \param[in] f_ bilinear function (type_A,type_B)->(type_C)
        */
-      Bivar_Function(dtype_C (*f)(dtype_A, dtype_B));
+      Bivar_Function(dtype_C (*f_)(dtype_A, dtype_B)){ f=f_; }
 
       /**
        * \brief default constructor sets function pointer to NULL
@@ -106,8 +104,8 @@ namespace CTF {
        * \param[in] B right operand tensor with pre-defined indices
        * \return C output tensor
       */
-      Idx_Tensor operator()(Idx_Tensor const  & A, 
-                            Idx_Tensor const  & B);
+      //Idx_Tensor operator()(Idx_Tensor const  & A, 
+      //                      Idx_Tensor const  & B);
       
       /**
        * \brief apply function f to values stored at a and b
