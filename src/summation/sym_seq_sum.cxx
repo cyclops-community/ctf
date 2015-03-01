@@ -8,7 +8,7 @@
 namespace CTF_int {
 
   #define SCAL_B do {                                                      \
-    if (sr_B->isequal(beta, sr_B->mulid())){                                 \
+    if (!sr_B->isequal(beta, sr_B->mulid())){                                 \
       memset(idx_glb, 0, sizeof(int)*idx_max);                             \
       idx_A = 0, idx_B = 0;                                                \
       sym_pass = 1;                                                        \
@@ -39,7 +39,7 @@ namespace CTF_int {
 
 
   #define SCAL_B_inr do {                                                  \
-    if (sr_B->isequal(beta, sr_B->mulid())){                                 \
+    if (!sr_B->isequal(beta, sr_B->mulid())){                                 \
       memset(idx_glb, 0, sizeof(int)*idx_max);                             \
       idx_A = 0, idx_B = 0;                                                \
       sym_pass = 1;                                                        \

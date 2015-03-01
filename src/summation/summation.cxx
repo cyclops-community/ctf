@@ -223,7 +223,6 @@ namespace CTF_int {
     int * fnew_ord_A, * fnew_ord_B;
     int * all_flen_A, * all_flen_B;
     tensor * ftsr_A, * ftsr_B;
-    summation fold_sum;
     int inr_stride;
 
     get_fold_indices(&nfold, &fold_idx);
@@ -264,17 +263,18 @@ namespace CTF_int {
     ftsr_A = A->rec_tsr;
     ftsr_B = B->rec_tsr;
 
-    fold_sum.A = A->rec_tsr;
-    fold_sum.B = B->rec_tsr;
+    int * sidx_A, * sidx_B;
+    CTF::conv_idx<int>(ftsr_A->order, fidx_map_A, &sidx_A,
+                       ftsr_B->order, fidx_map_B, &sidx_B);
 
-    CTF::conv_idx<int>(ftsr_A->order, fidx_map_A, &fold_sum.idx_A,
-                       ftsr_B->order, fidx_map_B, &fold_sum.idx_B);
-
+    summation fold_sum = summation(A->rec_tsr, sidx_A, alpha, B, sidx_B, beta);
+    free(sidx_A);
+    free(sidx_B);
   #if DEBUG>=2
-    if (global_comm.rank == 0){
+    if (A->wrld->rank == 0){
       printf("Folded summation type:\n");
     }
-    //fold_sum.print();//print_sum(&fold_type,0.0,0.0);
+    fold_sum.print();//print_sum(&fold_type,0.0,0.0);
   #endif
    
     //for type order 1 to 3 
@@ -844,6 +844,8 @@ namespace CTF_int {
     summation new_sum = summation(*this);
     new_sum.A = tnsr_A;
     new_sum.B = tnsr_B;
+    memcpy(new_sum.idx_A, map_A, sizeof(int)*tnsr_A->order);
+    memcpy(new_sum.idx_B, map_B, sizeof(int)*tnsr_B->order);
     if (tnsr_A == tnsr_B){
       tensor nnew_tsr = tensor(tnsr_A);
       new_sum.A = &nnew_tsr;
@@ -1125,14 +1127,14 @@ namespace CTF_int {
       TAU_FSTOP(zero_sum_padding);*/
       DEBUG_PRINTF("[%d] performing tensor sum\n", A->wrld->cdt.rank);
   #if DEBUG >=3
-      if (A->wrld->cdt.rank == 0){
+      /*if (A->wrld->cdt.rank == 0){
         for (int i=0; i<tensors[ntid_A]->order; i++){
           printf("padding[%d] = %d\n",i, tensors[ntid_A]->padding[i]);
         }
         for (int i=0; i<tensors[ntid_B]->order; i++){
           printf("padding[%d] = %d\n",i, tensors[ntid_B]->padding[i]);
         }
-      }
+      }*/
   #endif
 
       TAU_FSTART(sum_func);
@@ -1332,12 +1334,11 @@ namespace CTF_int {
     if (B->is_mapped == 0) pass = 0;
     
     
-    if (A->is_folded == 1) pass = 0;
-    if (B->is_folded == 1) pass = 0;
     
     if (A->topo != B->topo) pass = 0;
 
     if (pass==0){
+      DPRINTF(4,"failed confirmation here\n");
       TAU_FSTOP(check_sum_mapping);
       return 0;
     }
@@ -1541,7 +1542,7 @@ namespace CTF_int {
    
     TAU_FSTART(map_tensor_pair);
   #if DEBUG >= 2
-    if (global_comm.rank == 0)
+    if (wrld->rank == 0)
       printf("Initial mappings:\n");
     A->print_map(stdout);
   #endif
@@ -1799,4 +1800,53 @@ namespace CTF_int {
 
     return SUCCESS;
   }
+
+  void summation::print(){
+    int i,j,max,ex_A, ex_B;
+    max = A->order+B->order;
+    CommData global_comm = A->wrld->cdt;
+    MPI_Barrier(global_comm.cm);
+    if (global_comm.rank == 0){
+      printf("Summing Tensor %s into %s\n", A->name, B->name);
+      if (alpha != NULL){
+        printf("alpha is "); 
+        A->sr->print(alpha);
+        printf("\nbeta is "); 
+        B->sr->print(beta);
+        printf("\n");
+      }
+      printf("Summation index table:\n");
+      printf("     A     B\n");
+      for (i=0; i<max; i++){
+        ex_A=0;
+        ex_B=0;
+        printf("%d:   ",i);
+        for (j=0; j<A->order; j++){
+          if (idx_A[j] == i){
+            ex_A++;
+            if (A->sym[j] != NS)
+              printf("%d' ",j);
+            else
+              printf("%d  ",j);
+          }
+        }
+        if (ex_A == 0)
+          printf("      ");
+        if (ex_A == 1)
+          printf("   ");
+        for (j=0; j<B->order; j++){
+          if (idx_B[j] == i){
+            ex_B=1;
+            if (B->sym[j] != NS)
+              printf("%d' ",j);
+            else
+              printf("%d  ",j);
+          }
+        }
+        printf("\n");
+        if (ex_A + ex_B== 0) break;
+      }
+    }
+  }
+
 }

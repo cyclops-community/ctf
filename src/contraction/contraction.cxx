@@ -422,7 +422,7 @@ namespace CTF_int {
     if (global_comm.rank == 0){
       printf("Folded contraction type:\n");
     }
-    fold_ctr.print(0.0,0.0);
+    fold_ctr.print();
   #endif
     
     //for type order 1 to 3 
@@ -1630,7 +1630,7 @@ namespace CTF_int {
   }
 
   int contraction::map(ctr ** ctrf, bool do_remap){
-    int num_tot, i, ret, j, need_remap, d;
+    int num_tot, ret, j, need_remap, d;
     int need_remap_A, need_remap_B, need_remap_C;
     uint64_t memuse;//, bmemuse;
     double est_time, best_time;
@@ -1684,9 +1684,9 @@ namespace CTF_int {
     #if DEBUG >= 2
       if (global_comm.rank == 0)
         printf("Initial mappings:\n");
-      print_map(stdout, type->tid_A);
-      print_map(stdout, type->tid_B);
-      print_map(stdout, type->tid_C);
+      A->print_map();
+      B->print_map();
+      C->print_map();
     #endif
       A->unfold();
       B->unfold();
@@ -1784,9 +1784,9 @@ namespace CTF_int {
         C->topo = topo_i;
   #if DEBUG >= 3
         printf("\nTest mappings:\n");
-        print_map(stdout, type->tid_A, 0);
-        print_map(stdout, type->tid_B, 0);
-        print_map(stdout, type->tid_C, 0);
+        A->print_map(stdout, 0);
+        B->print_map(stdout, 0);
+        C->print_map(stdout, 0);
   #endif
         
         if (check_mapping() == 0) continue;
@@ -1910,7 +1910,7 @@ namespace CTF_int {
         ASSERT(est_time > 0.0);
 
         if ((uint64_t)memuse >= proc_bytes_available()){
-          DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
+          DPRINTF(2,"Not enough memory available for topo %d with order %d\n", t, j);
           delete sctr;
           continue;
         } 
@@ -1945,7 +1945,7 @@ namespace CTF_int {
       }
     }
   #if DEBUG>=3
-    COMM_BARRIER(global_comm);
+    MPI_Barrier(A->wrld->comm);
   #endif
   /*#if BEST_VOL
     ALLREDUCE(&bnvirt, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, global_comm);
@@ -2102,9 +2102,9 @@ namespace CTF_int {
     #if DEBUG >= 2
       if (global_comm.rank == 0)
         printf("New mappings:\n");
-      print_map(stdout, type->tid_A);
-      print_map(stdout, type->tid_B);
-      print_map(stdout, type->tid_C);
+      A->print_map(stdout);
+      B->print_map(stdout);
+      C->print_map(stdout);
     #endif
      
          
@@ -2171,11 +2171,11 @@ namespace CTF_int {
     CTF_int::cfree( old_phase_B );
     CTF_int::cfree( old_phase_C );
     
-    for (i=0; i<A->order; i++)
+    for (int i=0; i<A->order; i++)
       old_map_A[i].clear();
-    for (i=0; i<B->order; i++)
+    for (int i=0; i<B->order; i++)
       old_map_B[i].clear();
-    for (i=0; i<C->order; i++)
+    for (int i=0; i<C->order; i++)
       old_map_C[i].clear();
     CTF_int::cfree(old_map_A);
     CTF_int::cfree(old_map_B);
@@ -2902,9 +2902,9 @@ namespace CTF_int {
   #if DEBUG >= 2
       if (global_comm.rank == 0)
         printf("Keeping mappings:\n");
-      print_map(stdout, type->tid_A);
-      print_map(stdout, type->tid_B);
-      print_map(stdout, type->tid_C);
+      A->print_map(stdout);
+      B->print_map(stdout);
+      C->print_map(stdout);
   #endif
       ctrf = construct_ctr();
   #ifdef VERBOSE

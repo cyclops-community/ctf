@@ -124,8 +124,8 @@ namespace CTF_int {
 
   #ifdef DEBUG
     #ifndef DPRINTF
-    #define DPRINTF(i,...) \
-      do { if (i<=DEBUG) { LOC; printf(__VA_ARGS__); } } while (0)
+    #define DPRINTF(__icx,...) \
+      do { if (__icx<=DEBUG) { LOC; printf(__VA_ARGS__); } } while (0)
     #endif
     #ifndef DEBUG_PRINTF
     #define DEBUG_PRINTF(...) \

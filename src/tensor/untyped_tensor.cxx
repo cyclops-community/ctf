@@ -413,8 +413,8 @@ namespace CTF_int {
     return SUCCESS;
   }
 
-  void tensor::print_map(FILE * stream) const {
-
+  void tensor::print_map(FILE * stream, bool allcall) const {
+    if (!allcall || wrld->rank == 0){
       printf("CTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
         int tp = edge_map[dim].calc_phase();
@@ -422,6 +422,7 @@ namespace CTF_int {
         int vp = tp/pp;
         printf("CTF: %2s %5d %5d %5d %5d\n", SY_strings[sym[dim]], lens[dim], tp, pp, vp);
       }
+    }
   }
    
   void tensor::set_name(char const * name_){
@@ -1397,7 +1398,7 @@ namespace CTF_int {
             }
           }
           if (rw){
-            new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld);
+            new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld, 1);
             summation sum = summation(this, ex_idx_map, sr->mulid(), new_tsr, diag_idx_map, sr->addid());
             sum.execute(1);
           } else {

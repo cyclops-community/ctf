@@ -171,8 +171,9 @@ namespace CTF_int {
       /**
        * \brief displays mapping information
        * \param[in] stream output log (e.g. stdout)
+       * \param[in] allcall (if 1 print only with proc 0)
        */
-      void print_map(FILE * stream) const;
+      void print_map(FILE * stream=stdout, bool allcall=1) const;
 
       /**
        * \brief set the tensor name 

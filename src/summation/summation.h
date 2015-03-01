@@ -33,7 +33,7 @@ namespace CTF_int {
       univar_function func;
 
       /** \brief lazy constructor */
-      summation(){ idx_A = NULL; idx_B = NULL; };
+//      summation(){ idx_A = NULL; idx_B = NULL; alpha=NULL; beta=NULL; is_custom=0; };
       
       /** \brief destructor */
       ~summation();
@@ -113,6 +113,8 @@ namespace CTF_int {
        */
       int sum_tensors(bool run_diag);
 
+      /** \brief print contraction details */
+      void print();
 
     private:
       /**
