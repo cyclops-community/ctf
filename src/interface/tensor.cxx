@@ -298,21 +298,20 @@ namespace CTF {
                                     int const *    offsets_A,
                                     int const *    ends_A,
                                     dtype          alpha){
-    int ret, np_A, np_B;
+    int np_A, np_B;
     if (A.wrld->comm != wrld->comm){
       MPI_Comm_size(A.wrld->comm, &np_A);
       MPI_Comm_size(wrld->comm,   &np_B);
       assert(np_A != np_B);
       //FIXME: was reversed?
-      ret = CTF_int::tensor::slice(
-                offsets, ends, beta, &A,
-                offsets_A, ends_A, (char*)&alpha);
+      CTF_int::tensor::slice(
+          offsets, ends, (char*)&beta, (Tensor *)&A,
+          offsets_A, ends_A, (char*)&alpha);
     } else {
-      ret = CTF_int::tensor::slice(
-                offsets, ends, beta, &A,
-                offsets_A, ends_A, (char*)&alpha);
+      CTF_int::tensor::slice(
+          offsets, ends, (char*)&beta, (Tensor *)&A,
+          offsets_A, ends_A, (char*)&alpha);
     }
-    assert(ret == SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -373,9 +372,14 @@ namespace CTF {
       } else new_sym[i] = NS;
       new_lens[i] = ends[i] - offsets[i];
     }
-    Tensor<dtype, is_ord> new_tsr(order, new_lens, new_sym, *owrld);
+    //FIXME: could discard sr qualifiers
+    Tensor<dtype, is_ord> new_tsr(order, new_lens, new_sym, *owrld, *(Set<dtype,is_ord>*)sr);
+//   Tensor<dtype, is_ord> new_tsr = tensor(sr, order, new_lens, new_sym, owrld, 1);
     std::fill(new_sym, new_sym+order, 0);
-    new_tsr->slice(new_sym, new_lens, 0.0, *this, offsets, ends, 1.0);
+    new_tsr.slice(new_sym, new_lens, *(dtype*)sr->addid(), *this, offsets, ends, *(dtype*)sr->mulid());
+/*    new_tsr.slice(
+        new_sym, new_lens, sr->addid(), this,
+        offsets, ends, sr->mulid());*/
     CTF_int::cfree(new_lens);
     CTF_int::cfree(new_sym);
     return new_tsr;
