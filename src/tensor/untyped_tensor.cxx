@@ -679,6 +679,7 @@ namespace CTF_int {
     CTF_int::cfree(toffset_B);
   }
  
+#define USE_SLICE_FOR_SUBWORLD
   void tensor::add_to_subworld(tensor *     tsr_sub,
                                char const * alpha,
                                char const * beta){
@@ -686,13 +687,14 @@ namespace CTF_int {
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
     if (tsr_sub == NULL){
-      CommData *   cdt = (CommData*)CTF_int::alloc(sizeof(CommData));
-      SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
-      World dt_self = World(cdt, 0, NULL, 0);
+//      CommData * cdt = new CommData(MPI_COMM_SELF);
+    // (CommData*)CTF_int::alloc(sizeof(CommData));
+    //  SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
+      World dt_self = World(MPI_COMM_SELF);
       tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self);
-      slice(offsets, offsets, alpha, this, stsr, NULL, NULL, beta);
+      stsr.slice(NULL, NULL, beta, this, offsets, offsets, alpha);
     } else {
-      slice(offsets, lens, alpha, this, tsr_sub, offsets, lens, beta);
+      tsr_sub->slice(offsets, lens, beta, this, offsets, lens, alpha);
     }
   #else
     int fw_mirror_rank, bw_mirror_rank;
@@ -730,13 +732,11 @@ namespace CTF_int {
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
     if (tsr_sub == NULL){
-      CommData *   cdt = (CommData*)CTF_int::alloc(sizeof(CommData));
-      SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
-      World dt_self = World(cdt, 0, NULL, 0);
+      World dt_self = World(MPI_COMM_SELF);
       tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self);
-      stsr->slice(NULL, NULL, alpha, this, tsr_sub, offsets, offsets, beta);
+      stsr.slice(NULL, NULL, alpha, this, offsets, offsets, beta);
     } else {
-      tsr_sub->slice(offsets, lens, alpha, this, tsr_sub, offsets, lens, beta);
+      tsr_sub->slice(offsets, lens, alpha, this, offsets, lens, beta);
     }
   #else
     int fw_mirror_rank, bw_mirror_rank;

@@ -120,12 +120,13 @@ namespace CTF_int {
 
 
   Term::Term(algstrct const * sr_){
-    sr = sr_;
+    sr = sr_->clone();
     scale = (char*)malloc(sr->el_size);
     sr->copy(scale,sr->mulid());
   }
   
   Term::~Term(){
+    delete sr;
     free(scale);
   }
 

@@ -41,7 +41,7 @@ namespace CTF_int {
   class Term {
     public:
       char * scale;
-      algstrct const * sr;
+      algstrct * sr;
      
       Term(algstrct const * sr);
 
