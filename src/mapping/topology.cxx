@@ -19,6 +19,7 @@ namespace CTF_int {
   }
   
   topology::~topology(){
+    deactivate();
     CTF_int::cfree(lens);
     CTF_int::cfree(lda);
     CTF_int::cfree(dim_comm);
@@ -49,7 +50,9 @@ namespace CTF_int {
     lda          = (int*)CTF_int::alloc(order_*sizeof(int));
     dim_comm     = (CommData*)CTF_int::alloc(order_*sizeof(CommData));
     is_activated = false;
-    
+   
+    memcpy(lens, lens_, order_*sizeof(int));
+ 
     int stride = 1, cut = 0;
     int rank = glb_comm.rank;
     for (int i=0; i<order; i++){
@@ -61,7 +64,8 @@ namespace CTF_int {
       stride*=lens[order-i-1];
       cut = (rank - (rank/stride)*stride);
     }
-    this->activate();
+    if (activate)
+      this->activate();
   }
 
   void topology::activate(){
@@ -71,6 +75,15 @@ namespace CTF_int {
       }
     } 
     is_activated = true;
+  }
+
+  void topology::deactivate(){
+    if (is_activated){
+      for (int i=0; i<order; i++){
+        dim_comm[i].deactivate();
+      }
+    } 
+    is_activated = false;
   }
 
   topology * get_phys_topo(CommData glb_comm,
@@ -384,10 +397,10 @@ namespace CTF_int {
   std::vector< topology* > peel_torus(topology const * topo,
                                       CommData         glb_comm){
     std::vector< topology* > topos;
-    topos.push_back(new topology(*topo));
     
     if (topo->order <= 1) return topos;
     
+    topos.push_back(new topology(*topo));
     int * new_lens = (int*)malloc(sizeof(int)*topo->order-1);
 
     for (int i=0; i<topo->order-1; i++){
@@ -401,7 +414,7 @@ namespace CTF_int {
     }
     topology*  new_topo = new topology(topo->order-1, new_lens, glb_comm);
     topos.push_back(new_topo);
-    for (int i=0; i<(int)topos.size(); i++){
+    for (int i=1; i<(int)topos.size(); i++){
       std::vector< topology* > more_topos = peel_torus(topos[i], glb_comm);
       for (int j=0; j<(int)more_topos.size(); j++){
         if (find_topology(more_topos[j], topos) == -1)
@@ -417,7 +430,7 @@ namespace CTF_int {
     std::vector< topology* >::iterator iter;
     
     found = -1;
-    for (j=0, iter=topovec.begin(); iter<topovec.end(); iter++, j++){
+    for (j=0, iter=topovec.begin(); iter!=topovec.end(); iter++, j++){
       if ((*iter)->order == topo->order){
         found = j;
         for (i=0; i<(*iter)->order; i++) {

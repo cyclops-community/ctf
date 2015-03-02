@@ -161,6 +161,9 @@ namespace CTF_int {
       CommData();
       ~CommData();
 
+      /** \brief copy constructor sets created to zero */
+      CommData(CommData const & other);
+
       /**
        * \brief create active communicator wrapper
        * \param[in] cm MPI_Comm defining this wrapper

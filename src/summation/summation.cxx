@@ -474,22 +474,22 @@ namespace CTF_int {
         }
       }
       if (rtsum->ncdt_A > 0)
-        CTF_int::alloc_ptr(sizeof(CommData)*rtsum->ncdt_A, (void**)&rtsum->cdt_A);
+        CTF_int::alloc_ptr(sizeof(CommData*)*rtsum->ncdt_A, (void**)&rtsum->cdt_A);
       if (rtsum->ncdt_B > 0)
-        CTF_int::alloc_ptr(sizeof(CommData)*rtsum->ncdt_B, (void**)&rtsum->cdt_B);
+        CTF_int::alloc_ptr(sizeof(CommData*)*rtsum->ncdt_B, (void**)&rtsum->cdt_B);
       rtsum->ncdt_A = 0;
       rtsum->ncdt_B = 0;
       for (i=0; i<nphys_dim; i++){
         if (phys_mapped[2*i+0] == 0 && phys_mapped[2*i+1] == 1){
-          rtsum->cdt_A[rtsum->ncdt_A] = A->topo->dim_comm[i];
-          if (rtsum->cdt_A[rtsum->ncdt_A].alive == 0)
-            rtsum->cdt_A[rtsum->ncdt_A].activate(A->wrld->comm);
+          rtsum->cdt_A[rtsum->ncdt_A] = &A->topo->dim_comm[i];
+/*          if (rtsum->cdt_A[rtsum->ncdt_A].alive == 0)
+            rtsum->cdt_A[rtsum->ncdt_A].activate(A->wrld->comm);*/
           rtsum->ncdt_A++;
         }
         if (phys_mapped[2*i+1] == 0 && phys_mapped[2*i+0] == 1){
-          rtsum->cdt_B[rtsum->ncdt_B] = B->topo->dim_comm[i];
-          if (rtsum->cdt_B[rtsum->ncdt_B].alive == 0)
-            rtsum->cdt_B[rtsum->ncdt_B].activate(B->wrld->comm);
+          rtsum->cdt_B[rtsum->ncdt_B] = &B->topo->dim_comm[i];
+/*          if (rtsum->cdt_B[rtsum->ncdt_B].alive == 0)
+            rtsum->cdt_B[rtsum->ncdt_B].activate(B->wrld->comm);*/
           rtsum->ncdt_B++;
         }
       }
@@ -1139,8 +1139,9 @@ namespace CTF_int {
 
       TAU_FSTART(sum_func);
       /* Invoke the contraction algorithm */
-
+      A->topo->activate();
       sumf->run();
+      A->topo->deactivate();
       TAU_FSTOP(sum_func);
   #ifndef SEQ
       stat = tnsr_B->zero_out_padding();

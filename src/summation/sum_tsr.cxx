@@ -124,14 +124,14 @@ namespace CTF_int {
 
   tsum_replicate::~tsum_replicate() {
     delete rec_tsum;
-    for (int i=0; i<ncdt_A; i++){
-      cdt_A[i].deactivate();
-    }
+/*    for (int i=0; i<ncdt_A; i++){
+      cdt_A[i]->deactivate();
+    }*/
     if (ncdt_A > 0)
       CTF_int::cfree(cdt_A);
-    for (int i=0; i<ncdt_B; i++){
-      cdt_B[i].deactivate();
-    }
+/*    for (int i=0; i<ncdt_B; i++){
+      cdt_B[i]->deactivate();
+    }*/
     if (ncdt_B > 0)
       CTF_int::cfree(cdt_B);
   }
@@ -157,14 +157,14 @@ namespace CTF_int {
     int brank, i;
 
     for (i=0; i<ncdt_A; i++){
-      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i].cm);
+      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i]->cm);
     }
    /* for (i=0; i<ncdt_B; i++){
-      POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i], 0);
+      POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i]-> 0);
     }*/
     brank = 0;
     for (i=0; i<ncdt_B; i++){
-      brank += cdt_B[i].rank;
+      brank += cdt_B[i]->rank;
     }
     if (brank != 0) sr_B->set(this->B, sr_B->addid(), size_B);
 
@@ -180,7 +180,7 @@ namespace CTF_int {
     
     for (i=0; i<ncdt_B; i++){
       /* FIXME Won't work for single precision */
-      MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i].cm);
+      MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i]->cm);
     }
 
   }

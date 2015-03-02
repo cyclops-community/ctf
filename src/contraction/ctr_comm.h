@@ -69,9 +69,9 @@ namespace CTF_int{
       int64_t size_B; /* size of B blocks */
       int64_t size_C; /* size of C blocks */
 
-      CommData *   cdt_A;
-      CommData *   cdt_B;
-      CommData *   cdt_C;
+      CommData ** cdt_A;
+      CommData ** cdt_B;
+      CommData ** cdt_C;
       /* Class to be called on sub-blocks */
       ctr * rec_ctr;
       
@@ -135,7 +135,7 @@ namespace CTF_int{
       /* Class to be called on sub-blocks */
       ctr * rec_ctr;
       int k;
-      CommData cdt;
+      CommData * cdt;
       int64_t sz_C;
       
       void print() {};

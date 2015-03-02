@@ -377,6 +377,8 @@ namespace CTF_int {
     C->fold(nfold, fold_idx, idx_C,
             &all_fdim_C, &all_flen_C);
 
+//    printf("rec tsr C order is %d\n",C->rec_tsr->order);
+
     nf = 0;
     for (i=0; i<A->order; i++){
       for (j=0; j<nfold; j++){
@@ -1707,20 +1709,21 @@ namespace CTF_int {
       save_mapping(C, &old_phase_C, &old_rank_C, &old_virt_dim_C, &old_pe_lda_C,
                    &old_size_C, &was_cyclic_C, &old_padding_C,
                    &old_edge_len_C, C->topo);*/
-    } else {
-      CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&old_phase_A);
-      for (j=0; j<A->order; j++){
-        old_phase_A[j]   = A->edge_map[j].calc_phase();
-      }
-      CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&old_phase_B);
-      for (j=0; j<B->order; j++){
-        old_phase_B[j]   = B->edge_map[j].calc_phase();
-      }
-      CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&old_phase_C);
-      for (j=0; j<C->order; j++){
-        old_phase_C[j]   = C->edge_map[j].calc_phase();
-      }
+    //} else {
     }
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&old_phase_A);
+    for (j=0; j<A->order; j++){
+      old_phase_A[j]   = A->edge_map[j].calc_phase();
+    }
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&old_phase_B);
+    for (j=0; j<B->order; j++){
+      old_phase_B[j]   = B->edge_map[j].calc_phase();
+    }
+    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&old_phase_C);
+    for (j=0; j<C->order; j++){
+      old_phase_C[j]   = C->edge_map[j].calc_phase();
+    }
+    //}
     btopo = -1;
     best_time = DBL_MAX;
     //bmemuse = UINT64_MAX;
@@ -1838,7 +1841,7 @@ namespace CTF_int {
         est_time = sctr->est_time_rec(sctr->num_lyr);
         //sctr->print();
   #if DEBUG >= 3
-        printf("mapping passed contr est_time = %lf sec\n", est_time);
+        printf("mapping passed contr est_time = %E sec\n", est_time);
   #endif 
         ASSERT(est_time > 0.0);
         memuse = 0;
@@ -1905,7 +1908,7 @@ namespace CTF_int {
         }
         memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
   #if DEBUG >= 3
-        printf("total (with redistribution) est_time = %lf\n", est_time);
+        printf("total (with redistribution) est_time = %E\n", est_time);
   #endif
         ASSERT(est_time > 0.0);
 
@@ -1971,13 +1974,15 @@ namespace CTF_int {
   #endif
   #endif*/
     double gbest_time;
+    printf("ALR\n");
     MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
     if (best_time != gbest_time){
       btopo = INT_MAX;
     }
     int ttopo;
     MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
-    
+
+
     A->clear_mapping();
     B->clear_mapping();
     C->clear_mapping();
@@ -2059,7 +2064,7 @@ namespace CTF_int {
   //  else if (global_comm.rank == 0) printf("Mapping successful estimated execution time = %lf sec\n",best_time);
   #endif
     ASSERT(check_mapping());
-
+  
 
     nvirt_all = -1;
     old_nvirt_all = -2;
@@ -2374,11 +2379,11 @@ namespace CTF_int {
         }
       }
       if (rctr->ncdt_A > 0)
-        CTF_int::alloc_ptr(sizeof(CommData)*rctr->ncdt_A, (void**)&rctr->cdt_A);
+        CTF_int::alloc_ptr(sizeof(CommData*)*rctr->ncdt_A, (void**)&rctr->cdt_A);
       if (rctr->ncdt_B > 0)
-        CTF_int::alloc_ptr(sizeof(CommData)*rctr->ncdt_B, (void**)&rctr->cdt_B);
+        CTF_int::alloc_ptr(sizeof(CommData*)*rctr->ncdt_B, (void**)&rctr->cdt_B);
       if (rctr->ncdt_C > 0)
-        CTF_int::alloc_ptr(sizeof(CommData)*rctr->ncdt_C, (void**)&rctr->cdt_C);
+        CTF_int::alloc_ptr(sizeof(CommData*)*rctr->ncdt_C, (void**)&rctr->cdt_C);
       rctr->ncdt_A = 0;
       rctr->ncdt_B = 0;
       rctr->ncdt_C = 0;
@@ -2387,21 +2392,21 @@ namespace CTF_int {
               phys_mapped[3*i+1] == 0 &&
               phys_mapped[3*i+2] == 0)){
           if (phys_mapped[3*i+0] == 0){
-            rctr->cdt_A[rctr->ncdt_A] = A->topo->dim_comm[i];
-            if (is_used && rctr->cdt_A[rctr->ncdt_A].alive == 0)
-              rctr->cdt_A[rctr->ncdt_A].activate(global_comm.cm);
+            rctr->cdt_A[rctr->ncdt_A] = &A->topo->dim_comm[i];
+        /*    if (is_used && rctr->cdt_A[rctr->ncdt_A].alive == 0)
+              rctr->cdt_A[rctr->ncdt_A].activate(global_comm.cm);*/
             rctr->ncdt_A++;
           }
           if (phys_mapped[3*i+1] == 0){
-            rctr->cdt_B[rctr->ncdt_B] = B->topo->dim_comm[i];
-            if (is_used && rctr->cdt_B[rctr->ncdt_B].alive == 0)
-              rctr->cdt_B[rctr->ncdt_B].activate(global_comm.cm);
+            rctr->cdt_B[rctr->ncdt_B] = &B->topo->dim_comm[i];
+/*            if (is_used && rctr->cdt_B[rctr->ncdt_B].alive == 0)
+              rctr->cdt_B[rctr->ncdt_B].activate(global_comm.cm);*/
             rctr->ncdt_B++;
           }
           if (phys_mapped[3*i+2] == 0){
-            rctr->cdt_C[rctr->ncdt_C] = C->topo->dim_comm[i];
-            if (is_used && rctr->cdt_C[rctr->ncdt_C].alive == 0)
-              rctr->cdt_C[rctr->ncdt_C].activate(global_comm.cm);
+            rctr->cdt_C[rctr->ncdt_C] = &C->topo->dim_comm[i];
+/*            if (is_used && rctr->cdt_C[rctr->ncdt_C].alive == 0)
+              rctr->cdt_C[rctr->ncdt_C].activate(global_comm.cm);*/
             rctr->ncdt_C++;
           }
         }
@@ -2910,7 +2915,7 @@ namespace CTF_int {
   #ifdef VERBOSE
       if (global_comm.rank == 0){
         uint64_t memuse = ctrf->mem_rec();
-        DPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
+        DPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
                 (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
       }
   #endif
@@ -2951,7 +2956,9 @@ namespace CTF_int {
   //  stat = zero_out_padding(type->tid_B);
     TAU_FSTART(ctr_func);
     /* Invoke the contraction algorithm */
+    A->topo->activate();
     ctrf->run();
+    A->topo->deactivate();
 
     TAU_FSTOP(ctr_func);
   #ifndef SEQ
@@ -3455,7 +3462,7 @@ namespace CTF_int {
                         int &                      total_iter,
                         tensor *                   A,
                         int                        i_A,
-                        CommData &                 cg_cdt_A,
+                        CommData *&                cg_cdt_A,
                         int64_t &                  cg_ctr_lda_A,
                         int64_t &                  cg_ctr_sub_lda_A,
                         bool &                     cg_move_A,
@@ -3465,7 +3472,7 @@ namespace CTF_int {
                         int &                      load_phase_A,
                         tensor *                   B,
                         int                        i_B,
-                        CommData &                 cg_cdt_B,
+                        CommData *&                cg_cdt_B,
                         int64_t &                  cg_ctr_lda_B,
                         int64_t &                  cg_ctr_sub_lda_B,
                         bool &                     cg_move_B,
@@ -3475,7 +3482,7 @@ namespace CTF_int {
                         int &                      load_phase_B,
                         tensor *                   C,
                         int                        i_C,
-                        CommData &                 cg_cdt_C,
+                        CommData *&                cg_cdt_C,
                         int64_t &                  cg_ctr_lda_C,
                         int64_t &                  cg_ctr_sub_lda_C,
                         bool &                     cg_move_C,
@@ -3502,18 +3509,18 @@ namespace CTF_int {
         cg_edge_len = 1;
         if (B->edge_map[i_B].type == PHYSICAL_MAP){
           cg_edge_len = lcm(cg_edge_len, B->edge_map[i_B].np);
-          cg_cdt_B = B->topo->dim_comm[B->edge_map[i_B].cdt];
-          if (is_used && cg_cdt_B.alive == 0)
-            cg_cdt_B.activate(global_comm.cm);
+          cg_cdt_B = &B->topo->dim_comm[B->edge_map[i_B].cdt];
+          /*if (is_used && cg_cdt_B.alive == 0)
+            cg_cdt_B.activate(global_comm.cm);*/
           nstep = B->edge_map[i_B].np;
           cg_move_B = 1;
         } else
           cg_move_B = 0;
         if (C->edge_map[i_C].type == PHYSICAL_MAP){
           cg_edge_len = lcm(cg_edge_len, C->edge_map[i_C].np);
-          cg_cdt_C = C->topo->dim_comm[C->edge_map[i_C].cdt];
-          if (is_used && cg_cdt_C.alive == 0)
-            cg_cdt_C.activate(global_comm.cm);
+          cg_cdt_C = &C->topo->dim_comm[C->edge_map[i_C].cdt];
+          /*if (is_used && cg_cdt_C.alive == 0)
+            cg_cdt_C.activate(global_comm.cm);*/
           nstep = MAX(nstep, C->edge_map[i_C].np);
           cg_move_C = 1;
         } else

@@ -87,8 +87,8 @@ namespace CTF_int {
       int ncdt_A; /* number of processor dimensions to replicate A along */
       int ncdt_B; /* number of processor dimensions to replicate B along */
 
-      CommData * cdt_A;
-      CommData * cdt_B;
+      CommData ** cdt_A;
+      CommData ** cdt_B;
       /* Class to be called on sub-blocks */
       tsum * rec_tsum;
       

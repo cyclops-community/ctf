@@ -308,7 +308,7 @@ namespace CTF_int {
   int tensor::set_zero() {
     int * restricted;
     int i, map_success, btopo;
-    int64_t nvirt, bnvirt;
+//    int64_t nvirt, bnvirt;
     int64_t memuse, bmemuse;
 
     if (this->is_mapped){
@@ -321,8 +321,9 @@ namespace CTF_int {
   //      memset(restricted, 0, this->order*sizeof(int));
 
         /* Map the tensor if necessary */
-        bnvirt = UINT64_MAX, btopo = -1;
-        bmemuse = UINT64_MAX;
+    //    bnvirt = INT64_MAX;, 
+        btopo = -1;
+        bmemuse = INT64_MAX;
         for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
           this->clear_mapping();
           this->set_padding();
@@ -344,20 +345,21 @@ namespace CTF_int {
               continue;
             }
 
-            nvirt = (int64_t)this->calc_nvirt();
-            ASSERT(nvirt != 0);
-            if (btopo == -1 || nvirt < bnvirt){
-              bnvirt = nvirt;
+//            nvirt = (int64_t)this->calc_nvirt();
+//            ASSERT(nvirt != 0);
+            if (btopo == -1){// || nvirt < bnvirt){
+//              bnvirt = nvirt;
               btopo = i;
               bmemuse = memuse;
-            } else if (nvirt == bnvirt && memuse < bmemuse){
+            } else if (memuse < bmemuse){
               btopo = i;
               bmemuse = memuse;
             }
           }
         }
+        printf("rank = %d, btopo = %d\n", wrld->rank,btopo);
         if (btopo == -1)
-          bnvirt = UINT64_MAX;
+          bmemuse = INT64_MAX;
         /* pick lower dimensional mappings, if equivalent */
         ///btopo = get_best_topo(bnvirt, btopo, wrld->cdt, 0, bmemuse);
         btopo = get_best_topo(bmemuse, btopo, wrld->cdt);
@@ -1154,7 +1156,7 @@ namespace CTF_int {
     this->is_folded      = 1;
     this->rec_tsr        = fold_tsr;
     this->inner_ordering = dim_order;
-    for (int h=0; h<allfold_dim; h++)
+//    for (int h=0; h<allfold_dim; h++)
 
     *all_fdim = allfold_dim;
     *all_flen = all_edge_len;

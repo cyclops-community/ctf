@@ -6,9 +6,9 @@
 
 namespace CTF_int {
   ctr_2d_general::~ctr_2d_general() {
-    if (move_A) cdt_A.deactivate();
-    if (move_B) cdt_B.deactivate();
-    if (move_C) cdt_C.deactivate();
+    /*if (move_A) cdt_A->deactivate();
+    if (move_B) cdt_B->deactivate();
+    if (move_C) cdt_C->deactivate();*/
     if (rec_ctr != NULL)
       delete rec_ctr;
   }
@@ -38,13 +38,13 @@ namespace CTF_int {
     printf("ctr_2d_general: edge_len = %d\n", edge_len);
     printf("move_A = %d, ctr_lda_A = " PRId64 ", ctr_sub_lda_A = " PRId64 "\n",
             move_A, ctr_lda_A, ctr_sub_lda_A);
-    if (move_A) printf("cdt_A length = %d\n",cdt_A.np);
+    if (move_A) printf("cdt_A length = %d\n",cdt_A->np);
     printf("move_B = %d, ctr_lda_B = " PRId64 ", ctr_sub_lda_B = " PRId64 "\n",
             move_B, ctr_lda_B, ctr_sub_lda_B);
-    if (move_B) printf("cdt_B length = %d\n",cdt_B.np);
+    if (move_B) printf("cdt_B length = %d\n",cdt_B->np);
     printf("move_C = %d, ctr_lda_C = " PRId64 ", ctr_sub_lda_C = " PRId64 "\n",
             move_C, ctr_lda_C, ctr_sub_lda_C);
-    if (move_C) printf("cdt_C length = %d\n",cdt_C.np);
+    if (move_C) printf("cdt_C length = %d\n",cdt_C->np);
 #ifdef OFFLOAD
     if (alloc_host_buf)
       printf("alloc_host_buf is true\n");
@@ -70,18 +70,18 @@ namespace CTF_int {
     s_A = 0, s_B = 0, s_C = 0;
     b_A = 0, b_B = 0, b_C = 0;
     if (move_A){
-      b_A         = edge_len/cdt_A.np;
-      s_A         = cdt_A.estimate_bcast_time(sr_A->el_size*ctr_lda_A*ctr_sub_lda_A);
+      b_A         = edge_len/cdt_A->np;
+      s_A         = cdt_A->estimate_bcast_time(sr_A->el_size*ctr_lda_A*ctr_sub_lda_A);
       db          = MIN(b_A, db);
     } 
     if (move_B){
-      b_B         = edge_len/cdt_B.np;
-      s_B         = cdt_B.estimate_bcast_time(sr_B->el_size*ctr_lda_B*ctr_sub_lda_B);
+      b_B         = edge_len/cdt_B->np;
+      s_B         = cdt_B->estimate_bcast_time(sr_B->el_size*ctr_lda_B*ctr_sub_lda_B);
       db          = MIN(b_B, db);
     }
     if (move_C){
-      b_C         = edge_len/cdt_C.np;
-      s_C         = cdt_C.estimate_allred_time(sr_C->el_size*ctr_lda_C*ctr_sub_lda_C);
+      b_C         = edge_len/cdt_C->np;
+      s_C         = cdt_C->estimate_allred_time(sr_C->el_size*ctr_lda_C*ctr_sub_lda_C);
       db          = MIN(b_C, db);
     }
 
@@ -98,11 +98,11 @@ namespace CTF_int {
     int64_t db;
     db = int64_t_max;
     if (move_A)
-      db          = MIN(db,edge_len/cdt_A.np);
+      db          = MIN(db,edge_len/cdt_A->np);
     if (move_B)
-      db          = MIN(db,edge_len/cdt_B.np);
+      db          = MIN(db,edge_len/cdt_B->np);
     if (move_C)
-      db          = MIN(db,edge_len/cdt_C.np);
+      db          = MIN(db,edge_len/cdt_C->np);
     return (edge_len/db)*rec_ctr->est_time_rec(1) + est_time_fp(nlyr);
   }
 
@@ -123,9 +123,9 @@ namespace CTF_int {
     char * op_A, * op_B, * op_C; 
     int rank_A, rank_B, rank_C;
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
-    rank_A = cdt_A.rank;
-    rank_B = cdt_B.rank;
-    rank_C = cdt_C.rank;
+    rank_A = cdt_A->rank;
+    rank_B = cdt_B->rank;
+    rank_C = cdt_C->rank;
     
     TAU_FSTART(ctr_2d_general);
 
@@ -172,13 +172,13 @@ namespace CTF_int {
         } else
           op_A = buf_A;
         //POST_BCAST(op_A, c_A*s_A*sr_A->el_size, MPI_CHAR, owner_A, cdt_A);
-        MPI_Bcast(op_A, c_A*s_A*sr_A->el_size, MPI_CHAR, owner_A, cdt_A.cm);
+        MPI_Bcast(op_A, c_A*s_A*sr_A->el_size, MPI_CHAR, owner_A, cdt_A->cm);
         if (c_A < db){ /* If the required A block is cut between 2 procs */
           if (rank_A == owner_A+1)
             sr_A->copy(ctr_sub_lda_A*(db-c_A), ctr_lda_A,
                       this->A, ctr_sub_lda_A*b_A, 
                       buf_aux, ctr_sub_lda_A*(db-c_A));
-          MPI_Bcast(buf_aux, s_A*(db-c_A)*sr_A->el_size, MPI_CHAR, owner_A+1, cdt_A.cm);
+          MPI_Bcast(buf_aux, s_A*(db-c_A)*sr_A->el_size, MPI_CHAR, owner_A+1, cdt_A->cm);
           coalesce_bwd(sr_A->el_size,
                        buf_A, 
                        buf_aux, 
@@ -215,13 +215,13 @@ namespace CTF_int {
           }
         } else 
           op_B = buf_B;
-        MPI_Bcast(op_B, c_B*s_B*sr_B->el_size, MPI_CHAR, owner_B, cdt_B.cm);
+        MPI_Bcast(op_B, c_B*s_B*sr_B->el_size, MPI_CHAR, owner_B, cdt_B->cm);
         if (c_B < db){ /* If the required B block is cut between 2 procs */
           if (rank_B == owner_B+1)
             sr_B->copy(ctr_sub_lda_B*(db-c_B), ctr_lda_B,
                       this->B, ctr_sub_lda_B*b_B, 
                       buf_aux, ctr_sub_lda_B*(db-c_B)); 
-          MPI_Bcast(buf_aux, s_B*(db-c_B)*sr_B->el_size, MPI_CHAR, owner_B+1, cdt_B.cm);
+          MPI_Bcast(buf_aux, s_B*(db-c_B)*sr_B->el_size, MPI_CHAR, owner_B+1, cdt_B->cm);
           coalesce_bwd(sr_B->el_size,
                        buf_B, 
                        buf_aux, 
@@ -269,7 +269,7 @@ namespace CTF_int {
 
       if (move_C){
         /* FIXME: Wont work for single precsion */
-        MPI_Allreduce(MPI_IN_PLACE, op_C, db*s_C, sr_C->mdtype(), sr_C->addmop(), cdt_C.cm);
+        MPI_Allreduce(MPI_IN_PLACE, op_C, db*s_C, sr_C->mdtype(), sr_C->addmop(), cdt_C->cm);
         owner_C   = ib / b_C;
         c_C       = MIN(((owner_C+1)*b_C-ib), db);
         if (rank_C == owner_C){

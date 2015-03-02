@@ -24,7 +24,7 @@ void slice_gemm(int const   n,
                 CTF_Tensor &C){
   int rank, num_pes, cnum_pes, ri, rj, rk, ni, nj, nk, div;
   MPI_Comm pcomm, ccomm;
-  pcomm = C.world->comm;
+  pcomm = C.wrld->comm;
   
   MPI_Comm_rank(pcomm, &rank);
   MPI_Comm_size(pcomm, &num_pes);

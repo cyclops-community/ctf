@@ -127,12 +127,12 @@ namespace CTF_int {
     rec_ctr->A            = this->A;
     rec_ctr->B            = this->B;
     rec_ctr->C            = this->C;
-    if (cdt.rank != 0)
+    if (cdt->rank != 0)
       rec_ctr->beta = sr_C->addid();
     else
       rec_ctr->beta = this->beta; 
-    rec_ctr->num_lyr      = cdt.np;
-    rec_ctr->idx_lyr      = cdt.rank;
+    rec_ctr->num_lyr      = cdt->np;
+    rec_ctr->idx_lyr      = cdt->rank;
 
     rec_ctr->run();
     
@@ -140,25 +140,25 @@ namespace CTF_int {
     //COMM_BARRIER(cdt);
     /* FIXME Won't work for single precision */
     //ALLREDUCE(MPI_IN_PLACE, this->C, sz_C*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt);
-    MPI_Allreduce(MPI_IN_PLACE, this->C, sz_C, sr_C->mdtype(), sr_C->addmop(), cdt.cm);
+    MPI_Allreduce(MPI_IN_PLACE, this->C, sz_C, sr_C->mdtype(), sr_C->addmop(), cdt->cm);
 
   }
 
   ctr_replicate::~ctr_replicate() {
     delete rec_ctr;
-    for (int i=0; i<ncdt_A; i++){
-      cdt_A[i].deactivate();
-    }
+/*    for (int i=0; i<ncdt_A; i++){
+      cdt_A[i]->deactivate();
+    }*/
     if (ncdt_A > 0)
       CTF_int::cfree(cdt_A);
-    for (int i=0; i<ncdt_B; i++){
-      cdt_B[i].deactivate();
-    }
+/*    for (int i=0; i<ncdt_B; i++){
+      cdt_B[i]->deactivate();
+    }*/
     if (ncdt_B > 0)
       CTF_int::cfree(cdt_B);
-    for (int i=0; i<ncdt_C; i++){
-      cdt_C[i].deactivate();
-    }
+/*    for (int i=0; i<ncdt_C; i++){
+      cdt_C[i]->deactivate();
+    }*/
     if (ncdt_C > 0)
       CTF_int::cfree(cdt_C);
   }
@@ -184,17 +184,17 @@ namespace CTF_int {
     printf("cdt_A = %p, size_A = " PRId64 ", ncdt_A = %d\n",
             cdt_A, size_A, ncdt_A);
     for (i=0; i<ncdt_A; i++){
-      printf("cdt_A[%d] length = %d\n",i,cdt_A[i].np);
+      printf("cdt_A[%d] length = %d\n",i,cdt_A[i]->np);
     }
     printf("cdt_B = %p, size_B = " PRId64 ", ncdt_B = %d\n",
             cdt_B, size_B, ncdt_B);
     for (i=0; i<ncdt_B; i++){
-      printf("cdt_B[%d] length = %d\n",i,cdt_B[i].np);
+      printf("cdt_B[%d] length = %d\n",i,cdt_B[i]->np);
     }
     printf("cdt_C = %p, size_C = " PRId64 ", ncdt_C = %d\n",
             cdt_C, size_C, ncdt_C);
     for (i=0; i<ncdt_C; i++){
-      printf("cdt_C[%d] length = %d\n",i,cdt_C[i].np);
+      printf("cdt_C[%d] length = %d\n",i,cdt_C[i]->np);
     }
     rec_ctr->print();
   }
@@ -204,16 +204,16 @@ namespace CTF_int {
     double tot_sz;
     tot_sz = 0.0;
     for (i=0; i<ncdt_A; i++){
-      ASSERT(cdt_A[i].np > 0);
-      tot_sz += cdt_A[i].estimate_bcast_time(size_A*sr_A->el_size);
+      ASSERT(cdt_A[i]->np > 0);
+      tot_sz += cdt_A[i]->estimate_bcast_time(size_A*sr_A->el_size);
     }
     for (i=0; i<ncdt_B; i++){
-      ASSERT(cdt_B[i].np > 0);
-      tot_sz += cdt_B[i].estimate_bcast_time(size_B*sr_B->el_size);
+      ASSERT(cdt_B[i]->np > 0);
+      tot_sz += cdt_B[i]->estimate_bcast_time(size_B*sr_B->el_size);
     }
     for (i=0; i<ncdt_C; i++){
-      ASSERT(cdt_C[i].np > 0);
-      tot_sz += cdt_C[i].estimate_allred_time(size_C*sr_C->el_size);
+      ASSERT(cdt_C[i]->np > 0);
+      tot_sz += cdt_C[i]->estimate_allred_time(size_C*sr_C->el_size);
     }
     return tot_sz;
   }
@@ -236,17 +236,17 @@ namespace CTF_int {
 
     arank = 0, brank = 0, crank = 0;
     for (i=0; i<ncdt_A; i++){
-      arank += cdt_A[i].rank;
-//      POST_BCAST(this->A, size_A*sr_A->el_size, COMM_CHAR_T, 0, cdt_A[i], 0);
-      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i].cm);
+      arank += cdt_A[i]->rank;
+//      POST_BCAST(this->A, size_A*sr_A->el_size, COMM_CHAR_T, 0, cdt_A[i]-> 0);
+      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i]->cm);
     }
     for (i=0; i<ncdt_B; i++){
-      brank += cdt_B[i].rank;
-//      POST_BCAST(this->B, size_B*sr_B->el_size, COMM_CHAR_T, 0, cdt_B[i], 0);
-      MPI_Bcast(this->B, size_B*sr_B->el_size, MPI_CHAR, 0, cdt_B[i].cm);
+      brank += cdt_B[i]->rank;
+//      POST_BCAST(this->B, size_B*sr_B->el_size, COMM_CHAR_T, 0, cdt_B[i]-> 0);
+      MPI_Bcast(this->B, size_B*sr_B->el_size, MPI_CHAR, 0, cdt_B[i]->cm);
     }
     for (i=0; i<ncdt_C; i++){
-      crank += cdt_C[i].rank;
+      crank += cdt_C[i]->rank;
     }
     if (crank != 0) this->sr_C->set(this->C, this->sr_C->addid(), size_C);
     else {
@@ -268,8 +268,8 @@ namespace CTF_int {
     rec_ctr->run();
     
     for (i=0; i<ncdt_C; i++){
-      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]);
-      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i].cm);
+      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
+      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->cm);
     }
 
     if (arank != 0){

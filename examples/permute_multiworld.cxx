@@ -25,8 +25,8 @@ int permute_multiworld(int         n,
                        int         sym,
                        CTF_World & dw){
   int np, rank, nprow, npcol, rrow, rcol, nrow, ncol, pass;
-  long_int i, nvals, row_pfx, col_pfx;
-  long_int * indices;
+  int64_t i, nvals, row_pfx, col_pfx;
+  int64_t * indices;
   double * data;
   int * perm_row, * perm_col;
   int ** perms;

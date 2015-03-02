@@ -26,9 +26,9 @@ namespace CTF_int{
       bool move_B;
       bool move_C;
 
-      CommData cdt_A;
-      CommData cdt_B;
-      CommData cdt_C;
+      CommData * cdt_A;
+      CommData * cdt_B;
+      CommData * cdt_C;
       /* Class to be called on sub-blocks */
       ctr * rec_ctr;
       

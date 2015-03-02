@@ -167,7 +167,7 @@ namespace CTF_int {
     }
     int *iiarr = NULL;
     iiarr[0]++;
-    assert(system(syscom)==0);
+    ASSERT(system(syscom)==0);
     printf("%d",iiarr[0]);
   #endif
   }
@@ -178,8 +178,15 @@ namespace CTF_int {
   }
 
   CommData::~CommData(){
-    if (created) MPI_Comm_free(&cm);
-    alive = 0;
+    deactivate();
+  }
+
+  CommData::CommData(CommData const & other){
+    cm      = other.cm;
+    alive   = other.alive;
+    rank    = other.rank;
+    np      = other.np;
+    color   = other.color;
     created = 0;
   }
 
@@ -202,6 +209,7 @@ namespace CTF_int {
   CommData::CommData(int rank_, int color_, CommData parent){
     rank = rank_;
     color = color_;
+    ASSERT(parent.alive);
     MPI_Comm_split(parent.cm, rank_, color, &cm);
     MPI_Comm_size(cm, &np);
     alive   = 1;
@@ -212,10 +220,10 @@ namespace CTF_int {
     if (!alive){
       alive   = 1;
       created = 1;
-      MPI_Comm_split(parent, rank, color, &cm);
+      MPI_Comm_split(parent, color, rank, &cm);
       int np_;
       MPI_Comm_size(cm, &np_);
-      assert(np_ == np);
+      ASSERT(np_ == np);
     }
   }
 
@@ -224,9 +232,6 @@ namespace CTF_int {
       alive = 0;
       if (created) MPI_Comm_free(&cm);
       created = 0;
-      int np_;
-      MPI_Comm_size(cm, &np_);
-      assert(np_ == np);
     }
   }
      
