@@ -31,6 +31,10 @@ namespace CTF_int {
       /** \brief destructor */
       ~mapping();
 
+      /** \brief copy constructor */
+      mapping(mapping const & other);
+      mapping & operator=(mapping const & other);
+  
       /**
        * \brief compute the phase of a mapping
        *

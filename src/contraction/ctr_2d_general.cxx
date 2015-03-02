@@ -67,22 +67,21 @@ namespace CTF_int {
                                    int64_t & db,
                                    int64_t & aux_size){
     db = int64_t_max;
-    s_A = 0, s_B = 0, s_C = 0;
     b_A = 0, b_B = 0, b_C = 0;
+    s_A = ctr_sub_lda_A*ctr_lda_A;
+    s_B = ctr_sub_lda_B*ctr_lda_B;
+    s_C = ctr_lda_C*ctr_sub_lda_C;
     if (move_A){
-      b_A         = edge_len/cdt_A->np;
-      s_A         = cdt_A->estimate_bcast_time(sr_A->el_size*ctr_lda_A*ctr_sub_lda_A);
-      db          = MIN(b_A, db);
+      b_A = edge_len/cdt_A->np;
+      db  = MIN(b_A, db);
     } 
     if (move_B){
-      b_B         = edge_len/cdt_B->np;
-      s_B         = cdt_B->estimate_bcast_time(sr_B->el_size*ctr_lda_B*ctr_sub_lda_B);
-      db          = MIN(b_B, db);
+      b_B = edge_len/cdt_B->np;
+      db  = MIN(b_B, db);
     }
     if (move_C){
-      b_C         = edge_len/cdt_C->np;
-      s_C         = cdt_C->estimate_allred_time(sr_C->el_size*ctr_lda_C*ctr_sub_lda_C);
-      db          = MIN(b_C, db);
+      b_C = edge_len/cdt_C->np;
+      db  = MIN(b_C, db);
     }
 
     aux_size = db*MAX(move_A*sr_A->el_size*s_A, MAX(move_B*sr_B->el_size*s_B, move_C*sr_C->el_size*s_C));
@@ -91,7 +90,14 @@ namespace CTF_int {
   double ctr_2d_general::est_time_fp(int nlyr) {
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size);
-    return ((s_A+s_B+s_C)*(double)db*edge_len/db)/MIN(nlyr,edge_len);
+    double est_bcast_time = 0.0;
+    if (move_A)
+      est_bcast_time += cdt_A->estimate_bcast_time(sr_A->el_size*s_A);
+    if (move_B)
+      est_bcast_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B);
+    if (move_C)
+      est_bcast_time += cdt_C->estimate_bcast_time(sr_C->el_size*s_C);
+    return (est_bcast_time*(double)db*edge_len/db)/MIN(nlyr,edge_len);
   }
 
   double ctr_2d_general::est_time_rec(int nlyr) {
@@ -123,9 +129,9 @@ namespace CTF_int {
     char * op_A, * op_B, * op_C; 
     int rank_A, rank_B, rank_C;
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
-    rank_A = cdt_A->rank;
-    rank_B = cdt_B->rank;
-    rank_C = cdt_C->rank;
+    if (move_A) rank_A = cdt_A->rank;
+    if (move_B) rank_B = cdt_B->rank;
+    if (move_C) rank_C = cdt_C->rank;
     
     TAU_FSTART(ctr_2d_general);
 

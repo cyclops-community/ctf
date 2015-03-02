@@ -172,10 +172,10 @@ namespace CTF_int {
   #endif
   }
 
-  CommData::CommData(){
+/*  CommData::CommData(){
     alive = 0;
     created = 0;
-  }
+  }*/
 
   CommData::~CommData(){
     deactivate();
@@ -210,7 +210,7 @@ namespace CTF_int {
     rank = rank_;
     color = color_;
     ASSERT(parent.alive);
-    MPI_Comm_split(parent.cm, rank_, color, &cm);
+    MPI_Comm_split(parent.cm, color, rank_, &cm);
     MPI_Comm_size(cm, &np);
     alive   = 1;
     created = 1;

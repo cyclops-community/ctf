@@ -987,11 +987,11 @@ namespace CTF_int {
       compute_bucket_offsets( old_dist,
                               new_dist,
                               real_edge_len,
-                              old_phys_dim,
+                              old_phys_edge_len,
                               old_virt_lda,
                               old_offsets,
                               old_permutation,
-                              new_phys_dim,
+                              new_phys_edge_len,
                               new_virt_lda,
                               1,
                               old_nvirt,
@@ -1053,7 +1053,7 @@ namespace CTF_int {
           char **new_data; alloc_ptr(sizeof(char*)*np*new_nvirt, (void**)&new_data);
           for (int64_t p = 0,b = 0;p < np;p++){
             for (int v = 0;v < new_nvirt;v++,b++)
-              new_data[b] = tsr_cyclic_data+send_displs[p]+svirt_displs[b];
+              new_data[b] = tsr_cyclic_data+sr->el_size*(send_displs[p]+svirt_displs[b]);
           }
 
           pad_cyclic_pup_virt_buff(sym,
@@ -1112,21 +1112,22 @@ namespace CTF_int {
           for (int64_t p = 0,b = 0;p < np;p++)
           {
             for (int v = 0;v < new_nvirt;v++,b++)
-                new_data[b] = tsr_data+recv_displs[p]+rvirt_displs[b];
+                new_data[b] = tsr_data+(recv_displs[p]+rvirt_displs[b])*sr->el_size;
           }
-          compute_bucket_offsets( new_dist,
-                                  old_dist,
-                                  real_edge_len,
-                                  new_phys_dim,
-                                  new_virt_lda,
-                                  new_offsets,
-                                  new_permutation,
-                                  old_phys_dim,
-                                  old_virt_lda,
-                                  0,
-                                  new_nvirt,
-                                  old_nvirt,
-                                  new_virt_edge_len);
+          bucket_offset = 
+            compute_bucket_offsets( new_dist,
+                                    old_dist,
+                                    real_edge_len,
+                                    new_phys_edge_len,
+                                    new_virt_lda,
+                                    new_offsets,
+                                    new_permutation,
+                                    old_phys_edge_len,
+                                    old_virt_lda,
+                                    0,
+                                    new_nvirt,
+                                    old_nvirt,
+                                    new_virt_edge_len);
 
           pad_cyclic_pup_virt_buff(sym,
                                    new_dist, 
@@ -1228,11 +1229,11 @@ namespace CTF_int {
           compute_bucket_offsets( new_dist,
                                   old_dist,
                                   real_edge_len,
-                                  new_phys_dim,
+                                  new_phys_edge_len,
                                   new_virt_lda,
                                   new_offsets,
                                   new_permutation,
-                                  old_phys_dim,
+                                  old_phys_edge_len,
                                   old_virt_lda,
                                   0,
                                   new_nvirt,

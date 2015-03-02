@@ -20,7 +20,7 @@ namespace CTF_int {
       CommData * dim_comm;
       CommData   glb_comm;
 
-      topology();
+      //topology();
       ~topology();
 
       /** 

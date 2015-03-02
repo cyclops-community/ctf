@@ -7,7 +7,8 @@
 
 volatile static int64_t int64_t_max = INT64_MAX;
 
-
+#include <inttypes.h>
+/*
 #if (defined(__X86_64__) || defined(__IA64__) || defined(__amd64__) || \
      defined(__ppc64__) || defined(_ARCH_PPC) || defined(BGQ) || defined(BGP))
 #define PRId64 "%ld"
@@ -16,9 +17,8 @@ volatile static int64_t int64_t_max = INT64_MAX;
 #define PRId64 "%lld"
 #define PRIu64 "%llu"
 //#else
-//#include <inttypes.h>
 #endif
-
+*/
 #include "int_timer.h"
 #include "pmpi.h"
 

@@ -10,7 +10,7 @@ using namespace CTF_int;
 namespace CTF {
 
   World::World(int            argc,
-               char * const * argv)  {
+               char * const * argv) : cdt(MPI_COMM_WORLD) {
     MPI_Comm comm = MPI_COMM_WORLD;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
@@ -27,8 +27,8 @@ namespace CTF {
 
 
   World::World(MPI_Comm       comm_,
-                int            argc,
-                char * const * argv)  {
+               int            argc,
+               char * const * argv)  : cdt(comm_) {
     comm = comm_;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
@@ -45,10 +45,10 @@ namespace CTF {
 
 
   World::World(int             order, 
-                                int const *     lens, 
-                                MPI_Comm        comm_,
-                                int             argc,
-                                char * const *  argv) {
+               int const *     lens, 
+               MPI_Comm        comm_,
+               int             argc,
+               char * const *  argv) : cdt(comm_) {
     comm = comm_;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
@@ -65,7 +65,6 @@ namespace CTF {
                   TOPOLOGY        mach,
                   int             argc,
                   const char * const *  argv){
-    cdt = CommData(global_context);
     phys_topology = get_phys_topo(cdt, mach);
     topovec = peel_torus(phys_topology, cdt);
     
@@ -79,7 +78,6 @@ namespace CTF {
                         int const *     dim_len,
                         int             argc,
                         const char * const *  argv){
-    cdt = CommData(global_context);
     phys_topology = new topology(order, dim_len, cdt, 1);
     topovec = peel_torus(phys_topology, cdt);
 

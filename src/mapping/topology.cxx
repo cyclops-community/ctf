@@ -9,14 +9,14 @@
 #endif
 
 namespace CTF_int {
-
+/*
   topology::topology(){
     order        = 0;
     lens         = NULL;
     lda          = NULL;
     is_activated = false;
     dim_comm     = NULL;
-  }
+  }*/
   
   topology::~topology(){
     deactivate();
@@ -25,7 +25,7 @@ namespace CTF_int {
     CTF_int::cfree(dim_comm);
   }
 
-  topology::topology(topology const & other){
+  topology::topology(topology const & other) : glb_comm(other.glb_comm) {
     order        = other.order;
 
     lens         = (int*)CTF_int::alloc(order*sizeof(int));
@@ -43,8 +43,7 @@ namespace CTF_int {
   topology::topology(int         order_,
                      int const * lens_,
                      CommData    cdt,
-                     bool        activate){
-    glb_comm     = cdt;
+                     bool        activate) : glb_comm(cdt) {
     order        = order_;
     lens         = (int*)CTF_int::alloc(order_*sizeof(int));
     lda          = (int*)CTF_int::alloc(order_*sizeof(int));
@@ -397,10 +396,10 @@ namespace CTF_int {
   std::vector< topology* > peel_torus(topology const * topo,
                                       CommData         glb_comm){
     std::vector< topology* > topos;
+    topos.push_back(new topology(*topo));
     
     if (topo->order <= 1) return topos;
     
-    topos.push_back(new topology(*topo));
     int * new_lens = (int*)malloc(sizeof(int)*topo->order-1);
 
     for (int i=0; i<topo->order-1; i++){

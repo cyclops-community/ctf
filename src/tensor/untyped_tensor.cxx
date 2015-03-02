@@ -33,10 +33,7 @@ namespace CTF_int {
       if (is_scp_padded)
         cfree(scp_padding);
       cfree(sym_table);
-      for (int i=0; i<order; i++){
-        edge_map[i].clear();
-      }
-      cfree(edge_map);
+      delete [] edge_map;
       if (!is_data_aliased){
         if (is_home) free(home_buffer);
         else free(data);
@@ -200,7 +197,7 @@ namespace CTF_int {
   
     this->sym_table = (int*)CTF_int::alloc(order*order*sizeof(int));
     memset(this->sym_table, 0, order*order*sizeof(int));
-    this->edge_map  = (mapping*)CTF_int::alloc(sizeof(mapping)*order);
+    this->edge_map  = new mapping[order];
 
     /* initialize map array and symmetry table */
     for (int i=0; i<order; i++){
@@ -355,9 +352,9 @@ namespace CTF_int {
               btopo = i;
               bmemuse = memuse;
             }
-          }
+          } else
+            DPRINTF(3,"Unsuccessful in map_tensor() in set_zero()\n");
         }
-        printf("rank = %d, btopo = %d\n", wrld->rank,btopo);
         if (btopo == -1)
           bmemuse = INT64_MAX;
         /* pick lower dimensional mappings, if equivalent */

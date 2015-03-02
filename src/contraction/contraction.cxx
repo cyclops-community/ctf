@@ -1644,7 +1644,7 @@ namespace CTF_int {
     int * old_phase_A, * old_phase_B, * old_phase_C;
     topology * old_topo_A, * old_topo_B, * old_topo_C;
     ctr * sctr;
-    distribution dA, dB, dC;
+    distribution * dA, * dB, * dC;
 
     ASSERT(A->wrld == B->wrld && B->wrld == C->wrld);
     World * wrld = A->wrld;
@@ -1697,9 +1697,9 @@ namespace CTF_int {
       B->set_padding();
       C->set_padding();
       /* Save the current mappings of A, B, C */
-      dA = distribution(A);
-      dB = distribution(B);
-      dC = distribution(C);
+      dA = new distribution(A);
+      dB = new distribution(B);
+      dC = new distribution(C);
       /*save_mapping(A, &old_phase_A, &old_rank_A, &old_virt_dim_A, &old_pe_lda_A,
                    &old_size_A, &was_cyclic_A, &old_padding_A,
                    &old_edge_len_A, A->topo);
@@ -1974,7 +1974,6 @@ namespace CTF_int {
   #endif
   #endif*/
     double gbest_time;
-    printf("ALR\n");
     MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
     if (best_time != gbest_time){
       btopo = INT_MAX;
@@ -2144,7 +2143,7 @@ namespace CTF_int {
     } else
       need_remap = 1;
     if (need_remap)
-      A->redistribute(dA);
+      A->redistribute(*dA);
     need_remap = 0;
     if (B->topo == old_topo_B){
       for (d=0; d<B->order; d++){
@@ -2154,7 +2153,7 @@ namespace CTF_int {
     } else
       need_remap = 1;
     if (need_remap)
-      A->redistribute(dB);
+      B->redistribute(*dB);
     need_remap = 0;
     if (C->topo == old_topo_C){
       for (d=0; d<C->order; d++){
@@ -2164,7 +2163,7 @@ namespace CTF_int {
     } else
       need_remap = 1;
     if (need_remap)
-      A->redistribute(dC);
+      C->redistribute(*dC);
                    
     TAU_FSTOP(redistribute_for_contraction);
     
@@ -2176,15 +2175,9 @@ namespace CTF_int {
     CTF_int::cfree( old_phase_B );
     CTF_int::cfree( old_phase_C );
     
-    for (int i=0; i<A->order; i++)
-      old_map_A[i].clear();
-    for (int i=0; i<B->order; i++)
-      old_map_B[i].clear();
-    for (int i=0; i<C->order; i++)
-      old_map_C[i].clear();
-    CTF_int::cfree(old_map_A);
-    CTF_int::cfree(old_map_B);
-    CTF_int::cfree(old_map_C);
+    delete [] old_map_A;
+    delete [] old_map_B;
+    delete [] old_map_C;
 
     CTF_int::cfree((void*)idx_arr);
     CTF_int::cfree((void*)idx_no_ctr);
@@ -2192,6 +2185,9 @@ namespace CTF_int {
     CTF_int::cfree((void*)idx_extra);
     CTF_int::cfree((void*)idx_weigh);
     
+    delete dA;
+    delete dB;
+    delete dC;
 
     return SUCCESS;
   }

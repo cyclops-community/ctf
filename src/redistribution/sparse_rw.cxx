@@ -208,7 +208,7 @@ namespace CTF_int {
     }
     for (p=0;;p++){
       char const * data = vdata + sr->el_size*p*(size/nvirt);
-      PairIterator pairs = PairIterator(sr, vpairs + p*(size/nvirt));
+      PairIterator pairs = PairIterator(sr, vpairs + sr->pair_size()*p*(size/nvirt));
 
       idx_offset = 0, buf_offset = 0;
       for (act_lda=1; act_lda<order; act_lda++){
@@ -221,11 +221,11 @@ namespace CTF_int {
       for (;;){
         if (sym[0] != NS)
           imax = idx[1]+1;
-              /* Increment virtual bucket */
-              for (i=0; i<imax; i++){
+          /* Increment virtual bucket */
+        for (i=0; i<imax; i++){
           ASSERT(buf_offset+i<size);
           if (p*(size/nvirt) + buf_offset + i >= size){ 
-            printf("exceeded how much I was supposed to read read " PRId64 "/" PRId64 "\n", p*(size/nvirt)+buf_offset+i,size);
+            printf("exceeded how much I was supposed to read %ld/%ld\n", p*(size/nvirt)+buf_offset+i,size);
             ABORT;
           }
           pairs[buf_offset+i].write_key(idx_offset+i*phase[0]+phase_rank[0]);
@@ -565,7 +565,7 @@ namespace CTF_int {
     for (p=0;;p++){
       data = data + sr->el_size*buf_offset;
       idx_offset = 0, buf_offset = 0;
-      for (int act_lda=1; act_lda<order; act_lda++){
+      for (act_lda=1; act_lda<order; act_lda++){
         idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
       } 
      

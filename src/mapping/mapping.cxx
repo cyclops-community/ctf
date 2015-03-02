@@ -9,14 +9,32 @@
 
 namespace CTF_int {
   mapping::mapping(){
-    type = NOT_MAPPED;
+    type      = NOT_MAPPED;
     has_child = 0;
-    np = 1;
+    np        = 1;
   }
   
   mapping::~mapping(){
     clear();
   }
+
+  mapping::mapping(mapping const & other){
+    type      = other.type;
+    has_child = other.has_child;
+    np        = other.np;
+    cdt       = other.cdt;
+    if (has_child) child = new mapping(*other.child);
+  }
+
+  mapping & mapping::operator=(mapping const & other){
+    type      = other.type;
+    has_child = other.has_child;
+    np        = other.np;
+    cdt       = other.cdt;
+    if (has_child) child = new mapping(*other.child);
+    return *this;
+  }
+
 
   int mapping::calc_phase() const {
     int phase;
@@ -136,8 +154,9 @@ namespace CTF_int {
     int i;
     for (i=0; i<order; i++){
       mapping_B[i].clear();
+      mapping_B[i] = mapping(mapping_A[i]);
     }
-    memcpy(mapping_B, mapping_A, sizeof(mapping)*order);
+/*    memcpy(mapping_B, mapping_A, sizeof(mapping)*order);
     for (i=0; i<order; i++){
       if (mapping_A[i].has_child){
         CTF_int::alloc_ptr(sizeof(mapping), (void**)&mapping_B[i].child);
@@ -146,7 +165,7 @@ namespace CTF_int {
         mapping_B[i].child->type      = NOT_MAPPED;
         copy_mapping(1, mapping_A[i].child, mapping_B[i].child);
       }
-    }
+    }*/
   }
 
   int copy_mapping(int             order_A,
@@ -237,24 +256,24 @@ namespace CTF_int {
             if ((phase < map->np || phase < phys_comm[i].np) || phase >= MAX_PHASE)
               return CTF::NEGATIVE;
             if (phase/phys_comm[i].np != 1){
-              map->has_child  = 1;
-              map->child    = (mapping*)CTF_int::alloc(sizeof(mapping));
-              map->child->type  = VIRTUAL_MAP;
-              map->child->np  = phase/phys_comm[i].np;
+              map->has_child        = 1;
+              map->child            = new mapping();
+              map->child->type      = VIRTUAL_MAP;
+              map->child->np        = phase/phys_comm[i].np;
               map->child->has_child = 0;
             }
           }
         } else if (map->type == PHYSICAL_MAP){
           if (map->has_child != 1)
-            map->child  = (mapping*)CTF_int::alloc(sizeof(mapping));
+            map->child  = new mapping();
           map->has_child  = 1;
           map             = map->child;
           map->has_child  = 0;
         }
       }
-      map->type     = PHYSICAL_MAP;
-      map->np     = phys_comm[i].np;
-      map->cdt    = (comm_idx == NULL) ? i : comm_idx[i];
+      map->type = PHYSICAL_MAP;
+      map->np   = phys_comm[i].np;
+      map->cdt  = (comm_idx == NULL) ? i : comm_idx[i];
       if (!fill)
         restricted[max_dim] = 1;
       ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
@@ -262,9 +281,9 @@ namespace CTF_int {
     }
     for (i=0; i<tsr_order; i++){
       if (tsr_edge_map[i].type == NOT_MAPPED){
-        tsr_edge_map[i].type        = VIRTUAL_MAP;
-        tsr_edge_map[i].np          = 1;
-        tsr_edge_map[i].has_child   = 0;
+        tsr_edge_map[i].type      = VIRTUAL_MAP;
+        tsr_edge_map[i].np        = 1;
+        tsr_edge_map[i].has_child = 0;
       }
     }
     return CTF::SUCCESS;
@@ -385,8 +404,8 @@ namespace CTF_int {
       //  ASSERT(tsr->edge_map[iR].type != PHYSICAL_MAP);
         if (tsr->edge_map[iR].type == NOT_MAPPED){
           npp = 1;
-          tsr->edge_map[iR].type = VIRTUAL_MAP;
-          tsr->edge_map[iR].np = 1;
+          tsr->edge_map[iR].type      = VIRTUAL_MAP;
+          tsr->edge_map[iR].np        = 1;
           tsr->edge_map[iR].has_child = 0;
         }
       }
@@ -445,11 +464,10 @@ namespace CTF_int {
                 } else {
                   ASSERT(sym_map->type == PHYSICAL_MAP);
                   if (!sym_map->has_child)
-                    sym_map->child    = (mapping*)CTF_int::alloc(sizeof(mapping));
-                  sym_map->has_child  = 1;
-                  sym_map->child->type    = VIRTUAL_MAP;
-                  sym_map->child->np    = lcm_phase/sym_phase;
-
+                    sym_map->child    = new mapping();
+                  sym_map->has_child        = 1;
+                  sym_map->child->type      = VIRTUAL_MAP;
+                  sym_map->child->np        = lcm_phase/sym_phase;
                   sym_map->child->has_child = 0;
                 }
               }
@@ -460,11 +478,11 @@ namespace CTF_int {
                   map->np = map->np*(lcm_phase/phase);
                 } else {
                   if (!map->has_child)
-                    map->child    = (mapping*)CTF_int::alloc(sizeof(mapping));
+                    map->child = new mapping();
                   ASSERT(map->type == PHYSICAL_MAP);
-                  map->has_child    = 1;
-                  map->child->type  = VIRTUAL_MAP;
-                  map->child->np    = lcm_phase/phase;
+                  map->has_child        = 1;
+                  map->child->type      = VIRTUAL_MAP;
+                  map->child->np        = lcm_phase/phase;
                   map->child->has_child = 0;
                 }
               }
@@ -487,7 +505,7 @@ namespace CTF_int {
       if (map->type == PHYSICAL_MAP){
         if (map->has_child){
           map->has_child    = 1;
-          map->child    = (mapping*)CTF_int::alloc(sizeof(mapping));
+          map->child    = new mapping();
           map->child->type  = VIRTUAL_MAP;
           map->child->np    = stretch_factor;
           map->child->has_child   = 0;
