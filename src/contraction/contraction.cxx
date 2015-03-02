@@ -93,9 +93,6 @@ namespace CTF_int {
     alpha = alpha_;
     beta  = beta_;
     
-    idx_A = (int*)malloc(sizeof(int)*A->order);
-    idx_B = (int*)malloc(sizeof(int)*B->order);
-    idx_C = (int*)malloc(sizeof(int)*C->order);
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B, C->order, cidx_C, &idx_C);
   }
 
@@ -1066,8 +1063,8 @@ namespace CTF_int {
       weigh_map[i].clear();
     }
     CTF_int::cfree(weigh_map);
-    if (num_sub_phys_dims > 0)
-      CTF_int::cfree(sub_phys_comm);
+    //if (num_sub_phys_dims > 0)
+    CTF_int::cfree(sub_phys_comm);
     CTF_int::cfree(comm_idx);
 
     TAU_FSTOP(map_weigh_indices);

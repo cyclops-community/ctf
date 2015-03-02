@@ -39,6 +39,7 @@ namespace CTF_int {
         else free(data);
       }
       order = -1;
+      delete sr;
     }
   }
 

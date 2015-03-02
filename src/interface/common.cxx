@@ -190,6 +190,17 @@ namespace CTF_int {
     created = 0;
   }
 
+  CommData& CommData::operator=(CommData const & other){
+    cm      = other.cm;
+    alive   = other.alive;
+    rank    = other.rank;
+    np      = other.np;
+    color   = other.color;
+    created = 0;
+    return *this;
+  }
+
+
   CommData::CommData(MPI_Comm cm_){
     cm = cm_;
     MPI_Comm_rank(cm, &rank);

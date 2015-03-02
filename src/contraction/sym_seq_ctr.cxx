@@ -52,9 +52,13 @@ namespace CTF_int{
     /* Scale C immediately. FIXME: wrong for iterators over subset of C */
     if (!sr_C->isequal(beta, sr_C->mulid())){
       sz = sy_packed_size(order_C, edge_len_C, sym_C);
-      for (i=0; i<sz; i++){
-        sr_C->mul(C+i*sr_C->el_size, beta, 
-                 C+i*sr_C->el_size);
+      if (sr_C->isequal(beta, sr_C->addid())){
+        sr_C->set(C, sr_C->addid(), sz);
+      } else {
+        for (i=0; i<sz; i++){
+          sr_C->mul(C+i*sr_C->el_size, beta, 
+                    C+i*sr_C->el_size);
+        }
       }
     }
     idx_A = 0, idx_B = 0, idx_C = 0;
@@ -178,9 +182,13 @@ namespace CTF_int{
     }*/
     if (!sr_C->isequal(beta, sr_C->mulid())){
       int64_t sz = sy_packed_size(order_C, edge_len_C, sym_C);
-      for (i=0; i<sz; i++){
-        sr_C->mul(C+i*sr_C->el_size, beta, 
-                 C+i*sr_C->el_size);
+      if (sr_C->isequal(beta, sr_C->addid())){
+        sr_C->set(C, sr_C->addid(), sz);
+      } else {
+        for (i=0; i<sz; i++){
+          sr_C->mul(C+i*sr_C->el_size, beta, 
+                    C+i*sr_C->el_size);
+        }
       }
     }
 
@@ -308,7 +316,11 @@ namespace CTF_int{
   /*    for (i=0; i<prm->sz_C; i++){
         C[i] = C[i]*beta;
       }*/
-      sr_C->scal(prm->sz_C, beta, C, 1);
+      if (sr_C->isequal(beta, sr_C->addid())){
+        sr_C->set(C, sr_C->addid(), prm->sz_C);
+      } else {
+        sr_C->scal(prm->sz_C, beta, C, 1);
+      }
     }
   #endif
     idx_A = 0, idx_B = 0, idx_C = 0;

@@ -3,7 +3,7 @@ include ../../config.mk
 OBJS = contraction.o sym_seq_ctr.o ctr_offload.o ctr_comm.o ctr_tsr.o ctr_2d_general.o
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../interface/functions.h ../mapping/distribution.h ../mapping/mapping.h ../redistribution/folding.h ../redistribution/redist.h ../scaling/strp_tsr.h ../shared/iter_tsr.h ../shared/memcontrol.h ../shared/offload.h ../shared/util.h ../symmetry/sym_indices.h ../symmetry/symmetrization.h ../tensor/algstrct.h ../tensor/untyped_tensor.h 
+HDRS = ../../Makefile ../../config.mk  ../interface/functions.h ../mapping/distribution.h ../mapping/mapping.h ../redistribution/folding.h ../redistribution/redist.h ../scaling/strp_tsr.h ../shared/iter_tsr.h ../shared/memcontrol.h ../shared/offload.h ../shared/util.h ../symmetry/sym_indices.h ../symmetry/symmetrization.h ../tensor/algstrct.h ../tensor/untyped_tensor.h 
 
 ctf: $(OBJS) 
 

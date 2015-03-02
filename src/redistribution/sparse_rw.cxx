@@ -742,12 +742,13 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
       depad_edge_len[i] = edge_len[i] - padding[i];
     } 
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&ckey);
     TAU_FSTART(check_key_ranges);
 
     //calculate the number of keys that need to be vchanged first
     int64_t nchanged = 0;
     for (int64_t i=0; i<inwrite; i++){
-      cvrt_idx(order, depad_edge_len, wr_pairs[i].k(), &ckey);
+      cvrt_idx(order, depad_edge_len, wr_pairs[i].k(), ckey);
       is_out = 0;
       sign = 1;
       is_perm = 1;
@@ -794,7 +795,6 @@ namespace CTF_int {
     CTF_int::alloc_ptr(nchanged*sr->pair_size(),  (void**)&new_changed_pairs);
     CTF_int::alloc_ptr(nchanged*sizeof(int),     (void**)&changed_key_scale);
 
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&ckey);
     nchanged = 0;
     for (int64_t i=0; i<inwrite; i++){
       cvrt_idx(order, depad_edge_len, wr_pairs[i].k(), ckey);
@@ -987,12 +987,12 @@ namespace CTF_int {
           wr_pairs[i].write_val(buf_data[el_loc].d());
         }
       }
-      //FIXME: free here?
-      /*changed_key_indices.clear();
-      changed_key_scale.clear();
-      new_changed_pairs.clear();*/
       CTF_int::cfree(depadding);
     }
+    //FIXME: free here?
+    cfree(changed_key_indices);
+    cfree(changed_key_scale);
+    cfree(new_changed_pairs);
     TAU_FSTOP(wr_pairs_layout);
 
     CTF_int::cfree(swap_datab);

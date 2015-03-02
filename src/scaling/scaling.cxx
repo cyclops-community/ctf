@@ -29,7 +29,6 @@ namespace CTF_int {
     alpha = alpha_;
     is_custom = 0;
     
-    idx_map = (int*)malloc(sizeof(int)*A->order);
     conv_idx(A->order, cidx_map, &idx_map);
   }
 
@@ -55,7 +54,6 @@ namespace CTF_int {
     func = func_;
     is_custom = 1;
     
-    idx_map = (int*)malloc(sizeof(int)*A->order);
     conv_idx(A->order, cidx_map, &idx_map);
   }
 

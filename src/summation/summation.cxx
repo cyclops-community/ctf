@@ -68,9 +68,6 @@ namespace CTF_int {
     beta      = beta_;
     is_custom = 0;
     
-    idx_A     = (int*)malloc(sizeof(int)*A->order);
-    idx_B     = (int*)malloc(sizeof(int)*B->order);
-
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
   }
 
@@ -110,9 +107,6 @@ namespace CTF_int {
     beta      = beta_;
     func      = func_;
     is_custom = 1;
-
-    idx_A     = (int*)malloc(sizeof(int)*A->order);
-    idx_B     = (int*)malloc(sizeof(int)*B->order);
 
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
   }

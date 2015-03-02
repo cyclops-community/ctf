@@ -34,8 +34,10 @@ namespace CTF_int {
     lda          = (int*)CTF_int::alloc(order*sizeof(int));
     memcpy(lda, other.lda, order*sizeof(int));
 
-    dim_comm     = (CommData*)CTF_int::alloc(order*sizeof(CommData));
-    memcpy(dim_comm, other.dim_comm, order*sizeof(CommData));
+    dim_comm = (CommData*)CTF_int::alloc(order*sizeof(CommData));
+    for (int i=0; i<order; i++){
+      dim_comm[i] = CommData(other.dim_comm[i]);
+    }
 
     is_activated = other.is_activated;
   }
@@ -412,13 +414,17 @@ namespace CTF_int {
       }
     }
     topology*  new_topo = new topology(topo->order-1, new_lens, glb_comm);
+    free(new_lens);
     topos.push_back(new_topo);
     for (int i=1; i<(int)topos.size(); i++){
       std::vector< topology* > more_topos = peel_torus(topos[i], glb_comm);
       for (int j=0; j<(int)more_topos.size(); j++){
         if (find_topology(more_topos[j], topos) == -1)
           topos.push_back(more_topos[j]);
+        else
+          delete more_topos[j];
       }
+      more_topos.clear();
     }
     return topos;
   }

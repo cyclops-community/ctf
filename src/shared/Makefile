@@ -4,7 +4,7 @@ include ../../config.mk
 OBJS = util.o memcontrol.o int_timer.o
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../interface/common.h ../interface/timer.h
+HDRS = ../../Makefile ../../config.mk  ../interface/common.h ../interface/timer.h
 
 NVCC_OBJS = offload.o
 

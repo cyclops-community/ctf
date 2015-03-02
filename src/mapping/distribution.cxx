@@ -39,7 +39,6 @@ namespace CTF_int {
         pe_lda[j] = 0;
     }
     memcpy(pad_edge_len, tsr->pad_edge_len, sizeof(int)*tsr->order);
-    CTF_int::alloc_ptr(sizeof(int)*tsr->order, (void**)&padding);
     memcpy(padding, tsr->padding, sizeof(int)*tsr->order);
     is_cyclic = tsr->is_cyclic;
   }

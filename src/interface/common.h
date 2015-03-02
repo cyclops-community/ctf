@@ -163,6 +163,7 @@ namespace CTF_int {
 
       /** \brief copy constructor sets created to zero */
       CommData(CommData const & other);
+      CommData& operator=(CommData const & other);
 
       /**
        * \brief create active communicator wrapper

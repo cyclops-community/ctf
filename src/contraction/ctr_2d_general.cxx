@@ -312,6 +312,7 @@ namespace CTF_int {
       CTF_int::cfree(buf_A);
       CTF_int::cfree(buf_B);
       CTF_int::cfree(buf_C);
+      CTF_int::cfree(buf_aux);
     }
     TAU_FSTOP(ctr_2d_general);
   }

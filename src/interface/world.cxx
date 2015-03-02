@@ -56,6 +56,11 @@ namespace CTF {
   }
 
   World::~World(){
+    for (int i=0; i<(int)topovec.size(); i++){
+      delete topovec[i];
+    }
+    topovec.clear();
+    delete phys_topology;
   }
 
 
