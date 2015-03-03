@@ -11,7 +11,7 @@ namespace CTF {
 
   World::World(int            argc,
                char * const * argv) : cdt(MPI_COMM_WORLD) {
-    MPI_Comm comm = MPI_COMM_WORLD;
+    comm = MPI_COMM_WORLD;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
 #ifdef BGQ

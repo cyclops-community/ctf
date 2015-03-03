@@ -7,17 +7,17 @@
 
 namespace CTF {
 
-/*  template<typename dtype, bool is_ord>
-  Tensor<dtype, is_ord>::Tensor() : CTF_int::tensor() { }
-*/
   template<typename dtype, bool is_ord>
-  Tensor<dtype, is_ord>::Tensor(const Tensor<dtype, is_ord>& A,
-                                bool                         copy)
+  Tensor<dtype, is_ord>::Tensor() : CTF_int::tensor() { }
+
+  template<typename dtype, bool is_ord>
+  Tensor<dtype, is_ord>::Tensor(tensor const & A,
+                                bool           copy)
     : CTF_int::tensor(&A, copy) { }
 
   template<typename dtype, bool is_ord>
-  Tensor<dtype, is_ord>::Tensor(const Tensor<dtype, is_ord> & A,
-                                World &                       world_)
+  Tensor<dtype, is_ord>::Tensor(tensor const & A,
+                                World &        world_)
     : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, &A.wrld, 1, A.name, A.profile) { }
 
 

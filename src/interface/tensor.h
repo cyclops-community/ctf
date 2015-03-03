@@ -66,8 +66,16 @@ namespace CTF {
        * \param[in] A tensor to copy
        * \param[in] copy whether to copy the data of A into the new tensor
        */
-      Tensor(Tensor const & A,
+      Tensor(tensor const & A,
              bool           copy = true);
+      
+      /**
+       * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
+       * \param[in] A tensor whose characteristics to copy
+       * \param[in] world_ a world for the tensor we are creating to live in, can be different from A
+       */
+      Tensor(tensor const & A,
+             World &        wrld);
 
       /**
        * \brief defines tensor filled with zeros on the default algstrct
@@ -104,14 +112,6 @@ namespace CTF {
              Set<dtype,is_ord> const & sr,
              char const *              name=NULL,
              int                       profile=0);
-      
-      /**
-       * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
-       * \param[in] A tensor whose characteristics to copy
-       * \param[in] world_ a world for the tensor we are creating to live in, can be different from A
-       */
-      Tensor(Tensor const & A,
-             World &        wrld);
 
       /**
        * \brief gives the values associated with any set of indices

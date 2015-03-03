@@ -95,7 +95,7 @@ namespace CTF_int {
       /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
 
-//      tensor();
+      tensor();
 
       /** \brief class free self */
       ~tensor();

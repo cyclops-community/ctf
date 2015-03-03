@@ -18,9 +18,9 @@ namespace CTF_int {
 
   static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
-  /*tensor::tensor(){
+  tensor::tensor(){
     order=-1;
-  }*/
+  }
 
   void tensor::free_self(){
     if (order != -1){
@@ -85,7 +85,7 @@ namespace CTF_int {
             CTF_int::cfree(this->home_buffer);
           }*/
           this->home_size = other->home_size;
-          this->home_buffer = (char*)CTF_int::alloc(other->home_size);
+          this->home_buffer = (char*)CTF_int::alloc(other->home_size*sr->el_size);
           if (other->is_home){
             this->is_home = 1;
             this->data = this->home_buffer;

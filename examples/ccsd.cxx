@@ -25,21 +25,21 @@ void divide(double const alpha, double const a, double const b, double & c){
 class Integrals {
   public:
   CTF_World * dw;
-  CTF_Tensor aa;
-  CTF_Tensor ii;
-  CTF_Tensor ab;
-  CTF_Tensor ai;
-  CTF_Tensor ia;
-  CTF_Tensor ij;
-  CTF_Tensor abcd;
-  CTF_Tensor abci;
-  CTF_Tensor aibc;
-  CTF_Tensor aibj;
-  CTF_Tensor abij;
-  CTF_Tensor ijab;
-  CTF_Tensor aijk;
-  CTF_Tensor ijak;
-  CTF_Tensor ijkl;
+  CTF_Tensor * aa;
+  CTF_Tensor * ii;
+  CTF_Tensor * ab;
+  CTF_Tensor * ai;
+  CTF_Tensor * ia;
+  CTF_Tensor * ij;
+  CTF_Tensor * abcd;
+  CTF_Tensor * abci;
+  CTF_Tensor * aibc;
+  CTF_Tensor * aibj;
+  CTF_Tensor * abij;
+  CTF_Tensor * ijab;
+  CTF_Tensor * aijk;
+  CTF_Tensor * ijak;
+  CTF_Tensor * ijkl;
 
   Integrals(int no, int nv, CTF_World &dw_){
     int shapeASAS[] = {AS,NS,AS,NS};
@@ -58,33 +58,33 @@ class Integrals {
     
     dw = &dw_;
     
-    aa = CTF_Vector(nv,dw_);
-    ii = CTF_Vector(no,dw_);
+    aa = new CTF_Vector(nv,dw_);
+    ii = new CTF_Vector(no,dw_);
     
-    ab = CTF_Matrix(nv,nv,AS,dw_,"Vab",1);
-    ai = CTF_Matrix(nv,no,NS,dw_,"Vai",1);
-    ia = CTF_Matrix(no,nv,NS,dw_,"Via",1);
-    ij = CTF_Matrix(no,no,AS,dw_,"Vij",1);
+    ab = new CTF_Matrix(nv,nv,AS,dw_,"Vab",1);
+    ai = new CTF_Matrix(nv,no,NS,dw_,"Vai",1);
+    ia = new CTF_Matrix(no,nv,NS,dw_,"Via",1);
+    ij = new CTF_Matrix(no,no,AS,dw_,"Vij",1);
 
-    abcd = CTF_Tensor(4,vvvv,shapeASAS,dw_,"Vabcd",1);
-    abci = CTF_Tensor(4,vvvo,shapeASNS,dw_,"Vabci",1);
-    aibc = CTF_Tensor(4,vovv,shapeNSAS,dw_,"Vaibc",1);
-    aibj = CTF_Tensor(4,vovo,shapeNSNS,dw_,"Vaibj",1);
-    abij = CTF_Tensor(4,vvoo,shapeASAS,dw_,"Vabij",1);
-    ijab = CTF_Tensor(4,oovv,shapeASAS,dw_,"Vijab",1);
-    aijk = CTF_Tensor(4,vooo,shapeNSAS,dw_,"Vaijk",1);
-    ijak = CTF_Tensor(4,oovo,shapeASNS,dw_,"Vijak",1);
-    ijkl = CTF_Tensor(4,oooo,shapeASAS,dw_,"Vijkl",1);
+    abcd = new CTF_Tensor(4,vvvv,shapeASAS,dw_,"Vabcd",1);
+    abci = new CTF_Tensor(4,vvvo,shapeASNS,dw_,"Vabci",1);
+    aibc = new CTF_Tensor(4,vovv,shapeNSAS,dw_,"Vaibc",1);
+    aibj = new CTF_Tensor(4,vovo,shapeNSNS,dw_,"Vaibj",1);
+    abij = new CTF_Tensor(4,vvoo,shapeASAS,dw_,"Vabij",1);
+    ijab = new CTF_Tensor(4,oovv,shapeASAS,dw_,"Vijab",1);
+    aijk = new CTF_Tensor(4,vooo,shapeNSAS,dw_,"Vaijk",1);
+    ijak = new CTF_Tensor(4,oovo,shapeASNS,dw_,"Vijak",1);
+    ijkl = new CTF_Tensor(4,oooo,shapeASAS,dw_,"Vijkl",1);
   }
 
   void fill_rand(){
     int i, rank;
-    long_int j, sz, * indices;
+    int64_t j, sz, * indices;
     double * values;
     
-    CTF_Tensor * tarr[] =  {&aa, &ii, &ab, &ai, &ia, &ij, 
-                            &abcd, &abci, &aibc, &aibj, 
-                            &abij, &ijab, &aijk, &ijak, &ijkl};
+    CTF_Tensor * tarr[] =  {aa, ii, ab, ai, ia, ij, 
+                            abcd, abci, aibc, aibj, 
+                            abij, ijab, aijk, ijak, ijkl};
     MPI_Comm comm = dw->comm;
     MPI_Comm_rank(comm, &rank);
 
@@ -99,7 +99,7 @@ class Integrals {
     }
   }
   
-  tCTF_Idx_Tensor<double> operator[](char const * idx_map_){
+  CTF_Idx_Tensor operator[](char const * idx_map_){
     int i, lenm, no, nv;
     lenm = strlen(idx_map_);
     char new_idx_map[lenm+1];
@@ -116,32 +116,32 @@ class Integrals {
       }
     }
 //    printf("indices %s are %s\n",idx_map_,new_idx_map);
-    if (0 == strcmp("a",new_idx_map)) return aa[idx_map_];
-    if (0 == strcmp("i",new_idx_map)) return ii[idx_map_];
-    if (0 == strcmp("ab",new_idx_map)) return ab[idx_map_];
-    if (0 == strcmp("ai",new_idx_map)) return ai[idx_map_];
-    if (0 == strcmp("ia",new_idx_map)) return ia[idx_map_];
-    if (0 == strcmp("ij",new_idx_map)) return ij[idx_map_];
-    if (0 == strcmp("abcd",new_idx_map)) return abcd[idx_map_];
-    if (0 == strcmp("abci",new_idx_map)) return abci[idx_map_];
-    if (0 == strcmp("aibc",new_idx_map)) return aibc[idx_map_];
-    if (0 == strcmp("aibj",new_idx_map)) return aibj[idx_map_];
-    if (0 == strcmp("abij",new_idx_map)) return abij[idx_map_];
-    if (0 == strcmp("ijab",new_idx_map)) return ijab[idx_map_];
-    if (0 == strcmp("aijk",new_idx_map)) return aijk[idx_map_];
-    if (0 == strcmp("ijak",new_idx_map)) return ijak[idx_map_];
-    if (0 == strcmp("ijkl",new_idx_map)) return ijkl[idx_map_];
+    if (0 == strcmp("a",new_idx_map)) return (*aa)[idx_map_];
+    if (0 == strcmp("i",new_idx_map)) return (*ii)[idx_map_];
+    if (0 == strcmp("ab",new_idx_map)) return (*ab)[idx_map_];
+    if (0 == strcmp("ai",new_idx_map)) return (*ai)[idx_map_];
+    if (0 == strcmp("ia",new_idx_map)) return (*ia)[idx_map_];
+    if (0 == strcmp("ij",new_idx_map)) return (*ij)[idx_map_];
+    if (0 == strcmp("abcd",new_idx_map)) return (*abcd)[idx_map_];
+    if (0 == strcmp("abci",new_idx_map)) return (*abci)[idx_map_];
+    if (0 == strcmp("aibc",new_idx_map)) return (*aibc)[idx_map_];
+    if (0 == strcmp("aibj",new_idx_map)) return (*aibj)[idx_map_];
+    if (0 == strcmp("abij",new_idx_map)) return (*abij)[idx_map_];
+    if (0 == strcmp("ijab",new_idx_map)) return (*ijab)[idx_map_];
+    if (0 == strcmp("aijk",new_idx_map)) return (*aijk)[idx_map_];
+    if (0 == strcmp("ijak",new_idx_map)) return (*ijak)[idx_map_];
+    if (0 == strcmp("ijkl",new_idx_map)) return (*ijkl)[idx_map_];
     printf("Invalid integral indices\n");
-    ABORT;
+    assert(0);
 //shut up compiler
-    return aa[idx_map_];
+    return (*aa)[idx_map_];
   }
 };
 
 class Amplitudes {
   public:
-  CTF_Tensor ai;
-  CTF_Tensor abij;
+  CTF_Tensor * ai;
+  CTF_Tensor * abij;
   CTF_World * dw;
 
   Amplitudes(int no, int nv, CTF_World &dw_){
@@ -149,22 +149,22 @@ class Amplitudes {
     int shapeASAS[] = {AS,NS,AS,NS};
     int vvoo[]      = {nv,nv,no,no};
 
-    ai = CTF_Matrix(nv,no,NS,dw_,"Tai",1);
+    ai = new CTF_Matrix(nv,no,NS,dw_,"Tai",1);
 
-    abij = CTF_Tensor(4,vvoo,shapeASAS,dw_,"Tabij",1);
+    abij = new CTF_Tensor(4,vvoo,shapeASAS,dw_,"Tabij",1);
   }
 
-  tCTF_Idx_Tensor<double> operator[](char const * idx_map_){
-    if (strlen(idx_map_) == 4) return abij[idx_map_];
-    else return ai[idx_map_];
+  CTF_Idx_Tensor operator[](char const * idx_map_){
+    if (strlen(idx_map_) == 4) return (*abij)[idx_map_];
+    else return (*ai)[idx_map_];
   }
   
   void fill_rand(){
     int i, rank;
-    long_int j, sz, * indices;
+    int64_t j, sz, * indices;
     double * values;
     
-    CTF_Tensor * tarr[] =  {&ai, &abij};
+    CTF_Tensor * tarr[] =  {ai, abij};
     MPI_Comm comm = dw->comm;
     MPI_Comm_rank(comm, &rank);
 
@@ -269,12 +269,10 @@ void ccsd(Integrals   &V,
   tCTF_ScheduleTimer schedule_time = sched.execute();
 #endif
 
-  CTF_fctr fctr;
-  fctr.func_ptr = &divide;
 
-  CTF_Tensor Dai(2, V.ai.len, V.ai.sym, *V.dw);
+  CTF_Tensor Dai(2, V.ai->lens, V.ai->sym, *V.dw);
   int sh_sym[4] = {SH, NS, SH, NS};
-  CTF_Tensor Dabij(4, V.abij.len, sh_sym, *V.dw);
+  CTF_Tensor Dabij(4, V.abij->lens, sh_sym, *V.dw);
   Dai["ai"] += V["i"];
   Dai["ai"] -= V["a"];
  
@@ -284,10 +282,12 @@ void ccsd(Integrals   &V,
   Dabij["abij"] -= V["b"];
 
 
+  /*CTF_fctr fctr;
+  fctr.func_ptr = &divide;
 
   T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
-
+*/
 #ifdef SCHEDULE_CCSD
   if (rank == 0) {
     printf("Schedule comm down: %lf\n", schedule_time.comm_down_time);
@@ -353,13 +353,13 @@ int main(int argc, char ** argv){
         ccsd(V,T,sched_nparts);
         if (rank == 0)
           printf("(%d nodes) Completed %dth CCSD iteration in time = %lf, |T| is %lf\n",
-              np, i, MPI_Wtime()-d, T.ai.norm2()+T.abij.norm2());
+              np, i, MPI_Wtime()-d, T.ai->norm2()+T.abij->norm2());
         else {
-          T.ai.norm2();
-          T.abij.norm2();
+          T.ai->norm2();
+          T.abij->norm2();
         }
-        T["ai"] = (1./T.ai.norm2())*T["ai"];
-        T["abij"] = (1./T.abij.norm2())*T["abij"];
+        T["ai"] = (1./T.ai->norm2())*T["ai"];
+        T["abij"] = (1./T.abij->norm2())*T["abij"];
       }
     }
   }
