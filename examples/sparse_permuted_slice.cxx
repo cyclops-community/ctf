@@ -32,8 +32,8 @@ int sparse_permuted_slice(int         n,
                           int         sym,
                           CTF_World & dw){
   int np, rank, pass, bi;
-  long_int i, j, nvals;
-  long_int * indices;
+  int64_t i, j, nvals;
+  int64_t * indices;
   double * data;
   int * perm;
   int ** perms;

@@ -16,9 +16,9 @@
 #include <algorithm>
 #include <ctf.hpp>
 
-void slice_gemm(int const   n,
-                int const   m,
-                int const   k,
+void slice_gemm(int         n,
+                int         m,
+                int         k,
                 CTF_Tensor &A,
                 CTF_Tensor &B,
                 CTF_Tensor &C){
@@ -30,7 +30,7 @@ void slice_gemm(int const   n,
   MPI_Comm_size(pcomm, &num_pes);
 
   if (num_pes == 1){
-    C["ij"] = A["ik"]*B["kj"];
+    C["ij"] += 1.0*A["ik"]*B["kj"];
   } else {
     for (div=2; num_pes%div!=0; div++){}
      
@@ -108,7 +108,7 @@ int test_slice_gemm(int const n,
   free(pairs);
   free(indices);
 
-  C_ans["ij"] = A["ik"]*B["kj"];
+  C_ans["ij"] += 1.0*A["ik"]*B["kj"];
   
 //  C_ans.print(stdout);
   

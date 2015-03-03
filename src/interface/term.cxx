@@ -424,7 +424,7 @@ namespace CTF_int {
         sr->mul(op_A.scale, op_B.scale, op_B.scale);
         tmp_ops.push_back(op_B.clone());
       } else if (op_B.parent == NULL) {
-        sr->mul(op_A.scale, op_B.scale, op_B.scale);
+        sr->mul(op_A.scale, op_B.scale, op_A.scale);
         tmp_ops.push_back(op_A.clone());
       } else {
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
@@ -493,7 +493,7 @@ namespace CTF_int {
         sr->mul(op_B.scale, op_A.scale, op_B.scale);
         tmp_ops.push_back(op_B.clone());
       } else if (op_B.parent == NULL) {
-        sr->mul(op_B.scale, op_A.scale, op_B.scale);
+        sr->mul(op_B.scale, op_A.scale, op_A.scale);
         tmp_ops.push_back(op_A.clone());
       } else {
         Idx_Tensor * intm = get_full_intm(op_A, op_B);

@@ -489,12 +489,12 @@ namespace CTF_int {
 
   void algstrct::set_pair(char * a, int64_t key, char const * vb) const {
     memcpy(a, &key, sizeof(int64_t));
-    memcpy(a+sizeof(int64_t), &vb, el_size);
+    memcpy(a+sizeof(int64_t), vb, el_size);
   }
 
   void algstrct::set_pairs(char * a, char const * b, int64_t n) const {
     for (int i=0; i<n; i++) {
-      memcpy(a + n*(sizeof(int64_t)+el_size), b, el_size);
+      memcpy(a + i*(sizeof(int64_t)+el_size), b, (sizeof(int64_t)+el_size));
     }
   }
  

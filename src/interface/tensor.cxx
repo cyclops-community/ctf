@@ -255,38 +255,34 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::add_to_subworld(
                                      Tensor<dtype, is_ord> * tsr,
-                                     dtype           alpha,
-                                     dtype           beta) const {
-    int ret;
+                                     dtype                   alpha,
+                                     dtype                   beta){
     if (tsr == NULL)
-      ret = CTF_int::tensor::add_to_subworld(NULL, (char*)&alpha, (char*)&beta);
+      CTF_int::tensor::add_to_subworld(NULL, (char*)&alpha, (char*)&beta);
     else
-      ret = CTF_int::tensor::add_to_subworld(tsr, (char*)&alpha, (char*)&beta);
-    assert(ret == SUCCESS);
+      CTF_int::tensor::add_to_subworld(tsr, (char*)&alpha, (char*)&beta);
   }
  
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::add_to_subworld(
-                           Tensor<dtype, is_ord> * tsr) const {
+                           Tensor<dtype, is_ord> * tsr){
     return add_to_subworld(tsr, sr->mulid(), sr->mulid());
   }
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::add_from_subworld(
                                  Tensor<dtype, is_ord> * tsr,
-                                 dtype           alpha,
-                                 dtype           beta) const {
-    int ret;
+                                 dtype                   alpha,
+                                 dtype                   beta){
     if (tsr == NULL)
-      ret = CTF_int::tensor::add_from_subworld(-1, NULL, (char*)&alpha, (char*)&beta);
+      CTF_int::tensor::add_from_subworld(NULL, (char*)&alpha, (char*)&beta);
     else
-      ret = CTF_int::tensor::add_from_subworld(tsr, tsr->wrld, (char*)&alpha, (char*)&beta);
-    assert(ret == SUCCESS);
+      CTF_int::tensor::add_from_subworld(tsr, (char*)&alpha, (char*)&beta);
   }
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::add_from_subworld(
-                           Tensor<dtype, is_ord> * tsr) const {
+                           Tensor<dtype, is_ord> * tsr){
     return add_from_subworld(tsr, sr->mulid(), sr->mulid());
   }
 

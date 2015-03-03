@@ -133,8 +133,9 @@ int permute_multiworld(int         n,
   } else {
     CTF_Matrix B(nrow, ncol, Bsym, id_world);
     B.write(nvals,indices,data);
-
+    B.print();
     A.permute(1.0, B, perms, 1.0);
+    A.print();
   }
 
   if (nvals > 0){
@@ -146,7 +147,7 @@ int permute_multiworld(int         n,
 
   pass = 1;
   for (i=0; i<nvals; i++){
-    if (data[i] != (double)(n*n-indices[i])){
+    if (abs(data[i] - (double)(n*n-indices[i])) >= 1.E-9){
       pass = 0;
     }
   }

@@ -37,7 +37,7 @@ namespace CTF_int {
       bivar_function * func;
 
       /** \brief lazy constructor */
-      contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; };
+      contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; alpha=NULL; beta=NULL; };
       
       /** \brief destructor */
       ~contraction();

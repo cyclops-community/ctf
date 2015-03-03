@@ -3603,6 +3603,14 @@ namespace CTF_int {
     MPI_Barrier(global_comm.cm);
     if (global_comm.rank == 0){
       printf("Contracting Tensor %s with %s into %s\n", A->name, B->name, C->name);
+      if (alpha != NULL){
+        printf("alpha is "); 
+        A->sr->print(alpha);
+        printf("\nbeta is "); 
+        B->sr->print(beta);
+        printf("\n");
+      }
+
       printf("Contraction index table:\n");
       printf("     A     B     C\n");
       for (i=0; i<max; i++){

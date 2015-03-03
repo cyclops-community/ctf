@@ -418,7 +418,7 @@ namespace CTF_int {
         * \param[in] alpha scaling factor for this tensor
         * \param[in] beta scaling factor for tensor tsr
         */
-      void add_from_subworld(tensor *     tid_sub,
+      void add_from_subworld(tensor *     tsr_sub,
                              char const * alpha,
                              char const * beta);
 

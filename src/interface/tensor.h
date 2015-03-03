@@ -446,15 +446,15 @@ namespace CTF {
        * \param[in] beta scaling factor for tensor tsr (default 1.0)
        */
       void add_to_subworld(Tensor<dtype, is_ord> * tsr,
-                           dtype           alpha,
-                           dtype           beta) const;
+                           dtype                   alpha,
+                           dtype                   beta);
      /**
        * \brief accumulates this tensor to a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
        *             but on a different world/MPI_comm
        */
 
-      void add_to_subworld(Tensor<dtype, is_ord> * tsr) const;
+      void add_to_subworld(Tensor<dtype, is_ord> * tsr);
       
       /**
        * \brief accumulates this tensor from a tensor object defined on a different world
@@ -464,14 +464,14 @@ namespace CTF {
        * \param[in] beta scaling factor for this tensor (default 1.0)
        */
       void add_from_subworld(Tensor<dtype, is_ord> * tsr,
-                             dtype           alpha,
-                             dtype           beta) const;
+                             dtype                   alpha,
+                             dtype                   beta);
       /**
        * \brief accumulates this tensor from a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
        *             but on a different world/MPI_comm
        */
-      void add_from_subworld(Tensor<dtype, is_ord> * tsr) const;
+      void add_from_subworld(Tensor<dtype, is_ord> * tsr);
       
 
       /**
