@@ -975,7 +975,7 @@ namespace CTF_int {
             int64_t el_loc = buf_data.lower_bound(nwrite, ConstPairIterator(sr, new_changed_pairs+j*sr->pair_size()));
             if (changed_key_scale[j] == -1){
               char aspr[sr->el_size];
-              sr->addinv(buf_data[el_loc].ptr, aspr);
+              sr->addinv(buf_data[el_loc].d(), aspr);
               wr_pairs[i].write_val(aspr);
             } else
               wr_pairs[i].write_val(buf_data[el_loc].d());

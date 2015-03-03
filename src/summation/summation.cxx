@@ -261,7 +261,7 @@ namespace CTF_int {
     CTF::conv_idx<int>(ftsr_A->order, fidx_map_A, &sidx_A,
                        ftsr_B->order, fidx_map_B, &sidx_B);
 
-    summation fold_sum = summation(A->rec_tsr, sidx_A, alpha, B, sidx_B, beta);
+    summation fold_sum = summation(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
     free(sidx_A);
     free(sidx_B);
   #if DEBUG>=2

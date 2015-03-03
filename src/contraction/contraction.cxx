@@ -3213,7 +3213,7 @@ namespace CTF_int {
         if (sy && unfold_ctr->map(&ctrf, 0) == SUCCESS){
   #endif
           if (tnsr_A == tnsr_B){
-            tnsr_A = new tensor(*tnsr_B);
+            tnsr_A = new tensor(tnsr_B);
           }
           desymmetrize(tnsr_A, unfold_ctr->A, 0);
           desymmetrize(tnsr_B, unfold_ctr->B, 0);

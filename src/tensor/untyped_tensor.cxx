@@ -23,8 +23,8 @@ namespace CTF_int {
   }*/
 
   void tensor::free_self(){
-    VPRINTF(1,"Deleted order %d tensor %s\n",order,name);
     if (order != -1){
+      VPRINTF(1,"Deleted order %d tensor %s\n",order,name);
       cfree(name);
       cfree(sym);
       cfree(lens);
@@ -491,10 +491,10 @@ namespace CTF_int {
         permute_keys(tsr_A->order, sz_A, tsr_A->lens, tsr_B->lens, permutation_A, all_data_A, &blk_sz_A, sr);
       }
     }
-    printf("alpha: "); tsr_B->sr->print(alpha);
+    /*printf("alpha: "); tsr_B->sr->print(alpha);
     printf(" beta: "); tsr_B->sr->print(beta);
     printf(", writing first value is "); tsr_B->sr->print(all_data_A+sizeof(int64_t));
-    printf("\n");
+    printf("\n");*/
     ret = tsr_B->write(blk_sz_A, alpha, beta, all_data_A, 'w');  
 
     if (blk_sz_A > 0)
@@ -672,8 +672,8 @@ namespace CTF_int {
       pad_key(tsr_B->order, blk_sz_A, toffset_B, 
               padding_B, pblk_data_A, sr, offsets_B);
     }
-    printf("alpha is "); tsr_B->sr->print(alpha); printf("\n");
-    printf("beta is "); tsr_B->sr->print(beta); printf("\n");
+    /*printf("alpha is "); tsr_B->sr->print(alpha); printf("\n");
+    printf("beta is "); tsr_B->sr->print(beta); printf("\n");*/
     tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');  
 
     if (tsr_A->order != 0 && !tsr_A->has_zero_edge_len)
@@ -1003,6 +1003,8 @@ namespace CTF_int {
     char * pmy_data, * pall_data;
     int64_t k;
 
+    if (wrld->rank == 0)
+      printf("Printing tensor %s\n",name);
     print_map(fp);
 
     my_sz = 0;
