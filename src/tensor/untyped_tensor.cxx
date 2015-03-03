@@ -24,7 +24,8 @@ namespace CTF_int {
 
   void tensor::free_self(){
     if (order != -1){
-      VPRINTF(1,"Deleted order %d tensor %s\n",order,name);
+      if (wrld->rank == 0) VPRINTF(1,"Deleted order %d tensor %s\n",order,name);
+      if (is_folded) unfold();
       cfree(name);
       cfree(sym);
       cfree(lens);
@@ -35,8 +36,9 @@ namespace CTF_int {
       cfree(sym_table);
       delete [] edge_map;
       if (!is_data_aliased){
-        if (is_home) free(home_buffer);
+        if (is_home) cfree(home_buffer);
         else free(data);
+        if (has_home && !is_home) cfree(home_buffer);
       }
       order = -1;
       delete sr;
@@ -64,7 +66,7 @@ namespace CTF_int {
     strcpy(nname, other->name);
     strcat(nname, d);
     this->init(other->sr, other->order, other->lens,
-               other->sym, other->wrld, alloc_data, nname,
+               other->sym, other->wrld, (copy & !alloc_data), nname,
                other->profile);
     cfree(nname);
   
@@ -76,32 +78,33 @@ namespace CTF_int {
       ASSERT(!other->is_folded);
 
       if (other->is_mapped){
-        CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
     #ifdef HOME_CONTRACT
         if (other->has_home){
-          if (this->has_home && 
+/*          if (this->has_home && 
               (!this->is_home && this->home_size != other->home_size)){ 
             CTF_int::cfree(this->home_buffer);
-          }
+          }*/
+          this->home_size = other->home_size;
+          this->home_buffer = (char*)CTF_int::alloc(other->home_size);
           if (other->is_home){
-            this->home_buffer = this->data;
             this->is_home = 1;
+            this->data = this->home_buffer;
           } else {
-            if (this->is_home || this->home_size != other->home_size){ 
-              this->home_buffer = (char*)CTF_int::alloc(other->home_size);
-            }
+            /*if (this->is_home || this->home_size != other->home_size){ 
+            }*/
             this->is_home = 0;
             memcpy(this->home_buffer, other->home_buffer, other->home_size);
+            CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
           }
           this->has_home = 1;
         } else {
-          if (this->has_home && !this->is_home){
+          CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+/*          if (this->has_home && !this->is_home){
             CTF_int::cfree(this->home_buffer);
-          }
+          }*/
           this->has_home = 0;
           this->is_home = 0;
         }
-        this->home_size = other->home_size;
     #endif
         memcpy(this->data, other->data, sr->el_size*other->size);
       } else {
@@ -183,7 +186,8 @@ namespace CTF_int {
       this->name[5] = '0'+(order_%10);
       this->name[6] = '\0';
     }
-    VPRINTF(1,"Created order %d tensor %s\n",order,name);
+    if (wrld->rank == 0)
+      VPRINTF(1,"Created order %d tensor %s\n",order,name);
 
     this->pairs    = NULL;
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
@@ -503,13 +507,14 @@ namespace CTF_int {
     return ret;
   }
 
-  void tensor::orient_subworld(CTF::World *   greater_world,
-                               int &          bw_mirror_rank,
-                               int &          fw_mirror_rank,
-                               distribution & odst,
-                               char **        sub_buffer_){
+  void tensor::orient_subworld(CTF::World *    greater_world,
+                               int &           bw_mirror_rank,
+                               int &           fw_mirror_rank,
+                               distribution *& odst,
+                               char **         sub_buffer_){
     int is_sub = 0;
-    if (order == 0) is_sub = 1;
+    //FIXME: assumes order 0 dummy, what if we run this on actual order 0 tensor?
+    if (order != 0) is_sub = 1;
     int tot_sub;
     MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, greater_world->comm);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
@@ -519,7 +524,7 @@ namespace CTF_int {
     int sub_root_rank = 0;
     int buf_sz = get_distribution_size(order);
     char * buffer;
-    if (order == 0 && wrld->rank == 0){
+    if (order != 0 && wrld->rank == 0){
       MPI_Allreduce(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
       ASSERT(sub_root_rank == greater_world->rank);
       distribution dstrib = distribution(this);
@@ -532,13 +537,13 @@ namespace CTF_int {
       MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
       MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
     }
-    odst = distribution(buffer);
+    odst = new distribution(buffer);
     CTF_int::cfree(buffer);
 
     bw_mirror_rank = -1;
     fw_mirror_rank = -1;
     MPI_Request req;
-    if (order == 0){
+    if (order != 0){
       fw_mirror_rank = wrld->rank;
       MPI_Isend(&(greater_world->rank), 1, MPI_INT, wrld->rank, 13, greater_world->comm, &req);
     }
@@ -553,13 +558,13 @@ namespace CTF_int {
 
     MPI_Request req1, req2;
 
-    char * sub_buffer = (char*)CTF_int::mst_alloc(sr->el_size*odst.size);
+    char * sub_buffer = (char*)CTF_int::mst_alloc(sr->el_size*odst->size);
 
     char * rbuffer;
     if (bw_mirror_rank >= 0){
       rbuffer = (char*)CTF_int::alloc(buf_sz);
       MPI_Irecv(rbuffer, buf_sz, MPI_CHAR, bw_mirror_rank, 0, greater_world->comm, &req1);
-      MPI_Irecv(sub_buffer, odst.size*sr->el_size, MPI_CHAR, bw_mirror_rank, 1, greater_world->comm, &req2);
+      MPI_Irecv(sub_buffer, odst->size*sr->el_size, MPI_CHAR, bw_mirror_rank, 1, greater_world->comm, &req2);
     } 
     if (fw_mirror_rank >= 0){
       char * sbuffer;
@@ -568,17 +573,18 @@ namespace CTF_int {
       ndstr.serialize(&sbuffer, &bsz);
       ASSERT(bsz == buf_sz);
       MPI_Send(sbuffer, buf_sz, MPI_CHAR, fw_mirror_rank, 0, greater_world->comm);
-      MPI_Send(this->data, odst.size*sr->el_size, MPI_CHAR, fw_mirror_rank, 1, greater_world->comm);
+      MPI_Send(this->data, odst->size*sr->el_size, MPI_CHAR, fw_mirror_rank, 1, greater_world->comm);
       CTF_int::cfree(sbuffer);
     }
     if (bw_mirror_rank >= 0){
       MPI_Status stat;
       MPI_Wait(&req1, &stat);
       MPI_Wait(&req2, &stat);
-      odst = distribution(rbuffer);
+      delete odst;
+      odst = new distribution(rbuffer);
       CTF_int::cfree(rbuffer);
     } else
-      sr->set(sub_buffer, sr->addid(), odst.size);
+      sr->set(sub_buffer, sr->addid(), odst->size);
     *sub_buffer_ = sub_buffer;
 
   }
@@ -703,7 +709,7 @@ namespace CTF_int {
     }
   #else
     int fw_mirror_rank, bw_mirror_rank;
-    distribution odst;
+    distribution * odst;
     char * sub_buffer;
     tsr_sub->orient_subworld(wrld, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
@@ -711,16 +717,16 @@ namespace CTF_int {
 
 /*    redistribute(sym, wrld->comm, idst, this->data, alpha, 
                                    odst, sub_buffer,      beta);*/
-    cyclic_reshuffle(sym, idst, NULL, NULL, odst, NULL, NULL, &this->data, &sub_buffer, sr, wrld->cdt, 1, alpha, beta);
+    cyclic_reshuffle(sym, idst, NULL, NULL, *odst, NULL, NULL, &this->data, &sub_buffer, sr, wrld->cdt, 1, alpha, beta);
 
     MPI_Request req;
     if (fw_mirror_rank >= 0){
       ASSERT(tsr_sub != NULL);
-      MPI_Irecv(tsr_sub->data, odst.size*sr->el_size, MPI_CHAR, fw_mirror_rank, 0, wrld->cdt.cm, &req);
+      MPI_Irecv(tsr_sub->data, odst->size*sr->el_size, MPI_CHAR, fw_mirror_rank, 0, wrld->cdt.cm, &req);
     }
    
     if (bw_mirror_rank >= 0)
-      MPI_Send(sub_buffer, odst.size*sr->el_size, MPI_CHAR, bw_mirror_rank, 0, wrld->cdt.cm);
+      MPI_Send(sub_buffer, odst->size*sr->el_size, MPI_CHAR, bw_mirror_rank, 0, wrld->cdt.cm);
     if (fw_mirror_rank >= 0){
       MPI_Status stat;
       MPI_Wait(&req, &stat);
@@ -739,13 +745,13 @@ namespace CTF_int {
     if (tsr_sub == NULL){
       World dt_self = World(MPI_COMM_SELF);
       tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self);
-      stsr.slice(NULL, NULL, alpha, this, offsets, offsets, beta);
+      slice(offsets, offsets, beta, &stsr, NULL, NULL, alpha);
     } else {
-      tsr_sub->slice(offsets, lens, alpha, this, offsets, lens, beta);
+      slice(offsets, lens, alpha, tsr_sub, offsets, lens, beta);
     }
   #else
     int fw_mirror_rank, bw_mirror_rank;
-    distribution odst;
+    distribution * odst;
     char * sub_buffer;
     tsr_sub->orient_subworld(wrld, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
     
@@ -753,7 +759,7 @@ namespace CTF_int {
 
 /*    redistribute(sym, wrld->cdt, odst, sub_buffer,     alpha,
                                    idst, this->data,  beta);*/
-    cyclic_reshuffle(sym, idst, NULL, NULL, odst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 1, alpha, beta);
+    cyclic_reshuffle(sym, idst, NULL, NULL, *odst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 1, alpha, beta);
     CTF_int::cfree(sub_buffer);
   #endif
 

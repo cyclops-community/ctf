@@ -395,11 +395,11 @@ namespace CTF_int {
        * \param[out] distribution mapping of data on output defined on oriented subworld
        * \param[out] sub_buffer_ allocated buffer of received data on oriented subworld
       */
-      void orient_subworld(CTF::World *   greater_world,
-                           int &          bw_mirror_rank,
-                           int &          fw_mirror_rank,
-                           distribution & odst,
-                           char **        sub_buffer_);
+      void orient_subworld(CTF::World *    greater_world,
+                           int &           bw_mirror_rank,
+                           int &           fw_mirror_rank,
+                           distribution *& odst,
+                           char **         sub_buffer_);
 
       /**
         * \brief accumulates this tensor to a tensor object defined on a different world

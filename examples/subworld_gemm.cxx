@@ -28,9 +28,9 @@ int test_subworld_gemm(int n,
   int64_t * indices;
   
   
-  CTF_Matrix C(m, n, NS, dw);
-  CTF_Matrix C_ans(m, n, NS, dw);
-  CTF_Matrix A(m, k, NS, dw);
+  CTF_Matrix C(m, n, NS, dw, "C");
+  CTF_Matrix C_ans(m, n, NS, dw, "C_ans");
+  CTF_Matrix A(m, k, NS, dw, "A");
   CTF_Matrix B(k, n, NS, dw);
   
   MPI_Comm pcomm = dw.comm;
@@ -64,9 +64,9 @@ int test_subworld_gemm(int n,
   
   C_ans["ij"] = ((double)div)*A["ik"]*B["kj"];
 
-  CTF_Matrix subA(m, k, NS, sworld);
+  CTF_Matrix subA(m, k, NS, sworld, "subA");
   CTF_Matrix subB(k, n, NS, sworld);
-  CTF_Matrix subC(m, n, NS, sworld);
+  CTF_Matrix subC(m, n, NS, sworld, "subC");
 
   for (int c=0; c<num_pes/cnum_pes; c++){
     if (c==color){
@@ -81,6 +81,7 @@ int test_subworld_gemm(int n,
   if (rank < cnum_pes*div)
     subC["ij"] = subA["ik"]*subB["kj"];
 
+
   for (int c=0; c<num_pes/cnum_pes; c++){
     if (c==color){
       C.add_from_subworld(&subC, 1.0, 1.0);
@@ -88,7 +89,6 @@ int test_subworld_gemm(int n,
       C.add_from_subworld(NULL, 1.0, 1.0);
     }    
   }
-  
 
   C_ans["ij"] -= C["ij"];
 
