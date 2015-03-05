@@ -18,7 +18,7 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(tensor const & A,
                                 World &        world_)
-    : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, &A.wrld, 1, A.name, A.profile) { }
+    : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile) { }
 
 
   template<typename dtype, bool is_ord>
@@ -43,6 +43,11 @@ namespace CTF {
                                 int const                 profile)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {}
 
+  template<typename dtype, bool is_ord>
+  Idx_Tensor Tensor<dtype, is_ord>::operator[](const char * idx_map_){
+    Idx_Tensor idxtsr(this, idx_map_);
+    return idxtsr;
+  }
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::~Tensor(){ }
@@ -604,12 +609,6 @@ namespace CTF {
 
     ret = CTF_int::tensor::copy(A.tid, tid);
     assert(ret == SUCCESS);*/
-  }
-
-  template<typename dtype, bool is_ord>
-  Idx_Tensor Tensor<dtype, is_ord>::operator[](const char * idx_map_){
-    Idx_Tensor idxtsr(this, idx_map_);
-    return idxtsr;
   }
 
 

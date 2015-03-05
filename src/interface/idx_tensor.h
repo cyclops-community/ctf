@@ -135,6 +135,17 @@ namespace CTF {
        */
       World * where_am_i() const;
   };
+
+  void operator-=(double & d, CTF_int::Term const & tsr);
+
+  void operator+=(double & d, CTF_int::Term const & tsr);
+
+  void operator-=(int64_t & d, CTF_int::Term const & tsr);
+
+  void operator+=(int64_t & d, CTF_int::Term const & tsr);
+
+
+
 }
 
 #endif

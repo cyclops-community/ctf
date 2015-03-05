@@ -8,9 +8,11 @@
 #include "../interface/world.h"
 #include "algstrct.h"
 
-namespace CTF_int {
+namespace CTF {
+  class Idx_Tensor;
+}
 
-  class tensor;
+namespace CTF_int {
 
   /** \brief internal distributed tensor class */
   class tensor {
@@ -94,7 +96,13 @@ namespace CTF_int {
       bool is_home;
       /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
-
+      
+      /**
+       * \brief associated an index map with the tensor for future operation
+       * \param[in] idx_map_ index assignment for this tensor
+       */
+      CTF::Idx_Tensor operator[](char const * idx_map);
+ 
       tensor();
 
       /** \brief class free self */

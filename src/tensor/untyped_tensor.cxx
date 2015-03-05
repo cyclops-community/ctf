@@ -1,6 +1,7 @@
 
 #include "../interface/common.h"
 #include "../interface/timer.h"
+#include "../interface/idx_tensor.h"
 #include "../summation/summation.h"
 #include "../contraction/contraction.h"
 #include "untyped_tensor.h"
@@ -17,6 +18,11 @@ using namespace CTF;
 namespace CTF_int {
 
   static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
+
+  Idx_Tensor tensor::operator[](const char * idx_map_){
+    Idx_Tensor idxtsr(this, idx_map_);
+    return idxtsr;
+  }
 
   tensor::tensor(){
     order=-1;

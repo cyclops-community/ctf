@@ -100,14 +100,14 @@ namespace CTF {
   }
 
   Idx_Tensor::Idx_Tensor(algstrct const * sr, double scl) : Term(sr) {
-    idx_map = NULL;
+    idx_map = "";
     parent  = NULL;
     is_intm = 0;
     sr->cast_double(scl, scale);
   }
 
   Idx_Tensor::Idx_Tensor(algstrct const * sr, int64_t scl) : Term(sr) {
-    idx_map = NULL;
+    idx_map = "";
     parent  = NULL;
     is_intm = 0;
     sr->cast_int(scl, scale);
@@ -373,4 +373,31 @@ namespace CTF {
   //  if (!is_perm)
   //    delete this;
   }*/
+
+  void operator-=(double & d, CTF_int::Term const & tsr){
+    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
+    ts[""] -= tsr;
+    d = (double)ts[""];
+  }
+
+
+  void operator+=(double & d, CTF_int::Term const & tsr){
+    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
+    ts[""] += tsr;
+    d = (double)ts[""];
+  }
+
+  void operator-=(int64_t & d, CTF_int::Term const & tsr){
+    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
+    ts[""] -= tsr;
+    d = (int64_t)ts[""];
+  }
+
+  void operator+=(int64_t & d, CTF_int::Term const & tsr){
+    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
+    ts[""] += tsr;
+    d = (int64_t)ts[""];
+  }
+
+
 }

@@ -112,7 +112,13 @@ namespace CTF {
              Set<dtype,is_ord> const & sr,
              char const *              name=NULL,
              int                       profile=0);
-
+      
+      /**
+       * \brief associated an index map with the tensor for future operation
+       * \param[in] idx_map_ index assignment for this tensor
+       */
+      Idx_Tensor operator[](char const * idx_map);
+ 
       /**
        * \brief gives the values associated with any set of indices
        * The sparse data is defined in coordinate format. The tensor index (i,j,k,l) of a tensor with edge lengths
@@ -591,13 +597,7 @@ namespace CTF {
        * \brief sets the tensor
        */
       void operator=(Tensor<dtype, is_ord> A);
-      
-      /**
-       * \brief associated an index map with the tensor for future operation
-       * \param[in] idx_map_ index assignment for this tensor
-       */
-      Idx_Tensor operator[](char const * idx_map);
-      
+     
       /**
        * \brief gives handle to sparse index subset of tensors
        * \param[in] indices, vector of indices to sparse tensor
