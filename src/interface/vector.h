@@ -36,6 +36,7 @@ namespace CTF {
              Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>());
 
 
+      Vector<dtype,is_ord> & operator=(const Vector<dtype,is_ord> & A);
   };
 }
 #include "vector.cxx"

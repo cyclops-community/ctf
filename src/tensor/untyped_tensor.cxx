@@ -933,8 +933,68 @@ namespace CTF_int {
       return SUCCESS;
     }
     TAU_FSTOP(read_local_pairs);
-
   }
+
+  PairIterator tensor::read_all_pairs(int64_t * num_pair){
+    int numPes;
+    int * nXs;
+    int nval, n, i;
+    int * pXs;
+    char * my_pairs, * all_pairs;
+
+    numPes = wrld->np;
+    if (has_zero_edge_len){
+      *num_pair = 0;
+      return PairIterator(sr, NULL);
+    }
+
+    alloc_ptr(numPes*sizeof(int), (void**)&nXs);
+    alloc_ptr(numPes*sizeof(int), (void**)&pXs);
+    pXs[0] = 0;
+
+    int64_t ntt = 0;
+    my_pairs = NULL;
+    read_local(&ntt, &my_pairs);
+    n = (int)ntt;
+    n*=sr->pair_size();
+    MPI_Allgather(&n, 1, MPI_INT, nXs, 1, MPI_INT, wrld->comm);
+    for (i=1; i<numPes; i++){
+      pXs[i] = pXs[i-1]+nXs[i-1];
+    }
+    nval = pXs[numPes-1] + nXs[numPes-1];
+    alloc_ptr(nval, (void**)&all_pairs);
+    MPI_Allgatherv(my_pairs, n, MPI_CHAR,
+                   all_pairs, nXs, pXs, MPI_CHAR, wrld->comm);
+    nval = nval/sr->pair_size();
+
+    PairIterator ipr(sr, all_pairs);
+    ipr.sort(nval);
+    if (n>0)
+      cfree(my_pairs);
+    *num_pair = nval;
+    return ipr; 
+  }
+
+  int tensor::allread(int64_t * num_pair,
+                      char **   all_data){
+    PairIterator ipr = read_all_pairs(num_pair);
+    char * ball_data = (char*)malloc(sr->el_size*(*num_pair));
+    for (int64_t i=0; i<*num_pair; i++){
+      ipr[i].read(ball_data+i*sr->el_size);
+    }
+    *all_data = ball_data;
+    return SUCCESS;
+  }
+
+  int tensor::allread(int64_t * num_pair,
+                      char *    all_data){
+    PairIterator ipr = read_all_pairs(num_pair);
+    for (int64_t i=0; i<*num_pair; i++){
+      ipr[i].read(all_data+i*sr->el_size);
+    }
+    return SUCCESS;
+  }
+
 
   int tensor::align(tensor const * B){
     if (B==this) return SUCCESS;

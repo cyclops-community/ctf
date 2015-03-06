@@ -727,6 +727,7 @@ namespace CTF_int {
   #if DEBUG >= 1
     if (A->wrld->cdt.rank == 0)
       printf("Start head sum:\n");
+    print();
   #endif
     
     #ifdef USE_SYM_SUM

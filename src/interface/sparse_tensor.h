@@ -1,7 +1,8 @@
-#ifndef __TENSOR_H__
-#define __TENSOR_H__
+#ifndef __SPARSE_TENSOR_H__
+#define __SPARSE_TENSOR_H__
 
 namespace CTF {
+  
   /**
    * \brief a sparse subset of a tensor 
    */
@@ -25,8 +26,8 @@ namespace CTF {
        * \param[in] indices a vector of global indices to tensor values
        * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
        */
-      Sparse_Tensor(std::vector<int64_t > indices,
-                    Tensor<dtype, is_ord> *       parent);
+      Sparse_Tensor(std::vector<int64_t >   indices,
+                    Tensor<dtype, is_ord> * parent);
 
       /**
        * \brief initialize a tensor which corresponds to a set of indices 
@@ -34,8 +35,8 @@ namespace CTF {
        * \param[in] indices an array of global indices to tensor values
        * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
        */
-      Sparse_Tensor(int64_t         n,
-                    int64_t       * indices,
+      Sparse_Tensor(int64_t                 n,
+                    int64_t       *         indices,
                     Tensor<dtype, is_ord> * parent);
 
       /**
@@ -50,9 +51,9 @@ namespace CTF {
                  dtype   beta); 
 
       // C++ overload special-cases of above method
-      void operator=(std::vector<dtype, is_ord> values); 
-      void operator+=(std::vector<dtype, is_ord> values); 
-      void operator-=(std::vector<dtype, is_ord> values); 
+      void operator=(std::vector<dtype> values); 
+      void operator+=(std::vector<dtype> values); 
+      void operator-=(std::vector<dtype> values); 
       void operator=(dtype * values); 
       void operator+=(dtype * values); 
       void operator-=(dtype * values); 
@@ -69,9 +70,10 @@ namespace CTF {
                 dtype   beta); 
 
       // C++ overload special-cases of above method
-      operator std::vector<dtype, is_ord>();
+      operator std::vector<dtype>();
       operator dtype*();
   };
 }
+
 #include "sparse_tensor.cxx"
 #endif

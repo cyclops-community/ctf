@@ -94,7 +94,7 @@ namespace CTF {
   }
 
   Idx_Tensor::Idx_Tensor(algstrct const * sr) : Term(sr) {
-    idx_map = NULL;
+    idx_map = "";
     parent  = NULL;
     is_intm = 0;
   }
@@ -118,7 +118,7 @@ namespace CTF {
       std::map<CTF_int::tensor*, CTF_int::tensor*>* remap) : Term(other.sr) {
     if (other.parent == NULL){
       parent  = NULL;
-      idx_map = NULL;
+      idx_map = "";
       is_intm = 0;
     } else {
       parent = other.parent;
@@ -161,7 +161,7 @@ namespace CTF {
       delete parent;
       is_intm = 0;
     }
-    if (idx_map != NULL)  free(idx_map);
+    if (parent != NULL)  free(idx_map);
     idx_map = NULL;
   }
 
@@ -237,9 +237,13 @@ namespace CTF {
 
   void Idx_Tensor::execute(Idx_Tensor output) const {
     if (parent == NULL){
-      output.sr->mul(output.scale, scale, output.scale);
+//      output.sr->mul(output.scale, scale, output.scale);
       CTF_int::tensor ts(output.sr, 0, NULL, NULL, output.where_am_i(), true, NULL, 0);
-      summation s(&ts, NULL, output.sr->mulid(), 
+      char * data;
+      int64_t sz;
+      ts.get_raw_data(&data, &sz);
+      if (ts.wrld->rank == 0) ts.sr->copy(data, scale);
+      summation s(&ts, NULL, ts.sr->mulid(), 
                   output.parent, output.idx_map, output.scale);
       s.execute();
     } else {
@@ -373,31 +377,5 @@ namespace CTF {
   //  if (!is_perm)
   //    delete this;
   }*/
-
-  void operator-=(double & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] -= tsr;
-    d = (double)ts[""];
-  }
-
-
-  void operator+=(double & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d = (double)ts[""];
-  }
-
-  void operator-=(int64_t & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] -= tsr;
-    d = (int64_t)ts[""];
-  }
-
-  void operator+=(int64_t & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d = (int64_t)ts[""];
-  }
-
 
 }

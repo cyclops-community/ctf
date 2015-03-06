@@ -184,36 +184,6 @@ namespace CTF_int {
       */
       int check_mapping();
 
-
-      /**
-       * \brief map the indices over which we will be weighing
-       *
-       * \param idx_arr array of index mappings of size order*3 that
-       *        lists the indices (or -1) of A,B,C corresponding to every global index
-       * \param idx_weigh specification of which indices are being contracted
-       * \param num_tot total number of indices
-       * \param num_weigh number of indices being contracted over
-       * \param topo topology to map to
-       */
-      int map_weigh_indices(int const *      idx_arr,
-                            int const *      idx_weigh,
-                            int              num_tot,
-                            int              num_weigh,
-                            topology const * topo);
-
-      /**
-       * \brief map the indices which are indexed only for A or B or C
-       *
-       * \param idx_arr array of index mappings of size order*3 that
-       *        lists the indices (or -1) of A,B,C 
-       *        corresponding to every global index
-       * \param idx_extra specification of which indices are not being contracted
-       * \param num_extra number of indices not being contracted over
-       */
-      int map_extra_indices(int const * idx_arr,
-                            int const * idx_extra,
-                            int         num_extra);
-
       /**
        * \brief maps tensors to topology 
        *        with certain tensor ordering e.g. BCA
@@ -226,12 +196,12 @@ namespace CTF_int {
        * \param idx_weigh buffer for weigh index storage
        */
       int map_to_topology(topology * topo,
-                          int        order,
-                          int *      idx_arr,
+                          int        order);
+/*                          int *      idx_arr,
                           int *      idx_ctr,
                           int *      idx_extra,
                           int *      idx_no_ctr,
-                          int *      idx_weigh);
+                          int *      idx_weigh);*/
 
       /**
        * \brief attempts to remap 3 tensors to the same topology if possible

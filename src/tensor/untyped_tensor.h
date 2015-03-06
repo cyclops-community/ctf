@@ -35,7 +35,15 @@ namespace CTF_int {
                 bool             alloc_data,
                 char const *     name,
                 bool             profile);
+      /**
+       * \brief read all pairs with each processor (packed)
+       * \param[out] num_pair number of values read
+       * return pair iterator with allocated all pairs read 
+       */
+      PairIterator read_all_pairs(int64_t * num_pair);
+
     public:
+
       /** \brief distributed processor context on which tensor is defined */
       CTF::World * wrld;
       /** \brief algstrct on which tensor elements and operations are defined */
@@ -254,7 +262,7 @@ namespace CTF_int {
        * \param[in,out] mapped_data values read (allocated by library)
        */
       int allread(int64_t * num_pair,
-                  char **   all_data) const;
+                  char **   all_data);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -263,7 +271,7 @@ namespace CTF_int {
        * \param[in,out] preallocated mapped_data values read
        */
       int allread(int64_t * num_pair,
-                  char *    all_data) const;
+                  char *    all_data);
 
        /**
        * \brief cuts out a slice (block) of this tensor = B

@@ -943,12 +943,25 @@ namespace CTF_int {
     return pass;
   }
 
-  int contraction::
+  /**
+   * \brief map the indices over which we will be weighing
+   *
+   * \param idx_arr array of index mappings of size order*3 that
+   *        lists the indices (or -1) of A,B,C corresponding to every global index
+   * \param idx_weigh specification of which indices are being contracted
+   * \param num_tot total number of indices
+   * \param num_weigh number of indices being contracted over
+   * \param topo topology to map to
+   */
+  static int
       map_weigh_indices(int const *      idx_arr,
                         int const *      idx_weigh,
                         int              num_tot,
                         int              num_weigh,
-                        topology const * topo){
+                        topology const * topo,
+                        tensor *         A,
+                        tensor *         B,
+                        tensor *         C){
     int tsr_order, iweigh, iA, iB, iC, i, j, k, jX, stat, num_sub_phys_dims;
     int * tsr_edge_len, * tsr_sym_table, * restricted, * comm_idx;
     CommData  * sub_phys_comm;
@@ -1313,10 +1326,13 @@ namespace CTF_int {
    * \param idx_extra specification of which indices are not being contracted
    * \param num_extra number of indices not being contracted over
    */
-  int contraction::
+  static int
       map_extra_indices(int const * idx_arr,
                         int const * idx_extra,
-                        int         num_extra){
+                        int         num_extra,
+                        tensor *    A,
+                        tensor *    B,
+                        tensor *    C){
     int i, iA, iB, iC, iextra;
 
 
@@ -1362,14 +1378,15 @@ namespace CTF_int {
 
   int contraction::
       map_to_topology(topology * topo,
-                      int        order,
-                      int *      idx_arr,
-                      int *      idx_ctr,
+                      int        order){
+      /*                int *      idx_ctr,
                       int *      idx_extra,
                       int *      idx_no_ctr,
-                      int *      idx_weigh){
+                      int *      idx_weigh){*/
     int num_tot, num_ctr, num_no_ctr, num_weigh, num_extra, i, ret;
     int const * tidx_A, * tidx_B, * tidx_C;
+    int * idx_arr, * idx_extra, * idx_no_ctr, * idx_weigh, * idx_ctr;
+
     tensor * tA, * tB, * tC;
     switch (order){
       case 0:
@@ -1429,6 +1446,11 @@ namespace CTF_int {
             tB->order, tidx_B,
             tC->order, tidx_C,
             &num_tot, &idx_arr);
+
+    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_no_ctr);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_extra);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_weigh);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_ctr);
     num_ctr = 0, num_no_ctr = 0, num_extra = 0, num_weigh = 0;
     for (i=0; i<num_tot; i++){
       if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
@@ -1451,117 +1473,121 @@ namespace CTF_int {
     tC->topo = topo;
     
     /* Map the weigh indices of A, B, and C*/
-    ret = map_weigh_indices(idx_arr, idx_weigh, num_tot, num_weigh, topo);
-    if (ret == NEGATIVE) {
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      CTF_int::cfree(idx_arr);
-      return ERROR;
-    }
+    ret = map_weigh_indices(idx_arr, idx_weigh, num_tot, num_weigh, topo, tA, tB, tC);
+    int stat;
+    do {
+      if (ret == NEGATIVE) {
+        stat = ret;
+        break;
+      }
+      if (ret == ERROR) {
+        stat = ret;
+        break;
+      }
 
-    
-    /* Map the contraction indices of A and B */
-    ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo, tA, tB);
-    if (ret == NEGATIVE) {
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      CTF_int::cfree(idx_arr);
-      return ERROR;
-    }
-
-
-  /*  ret = map_self_indices(tA, tidx_A);
-    if (ret == NEGATIVE) {
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      CTF_int::cfree(idx_arr);
-      return ERROR;
-    }
-    ret = map_self_indices(tB, tidx_B);
-    if (ret == NEGATIVE) {
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      CTF_int::cfree(idx_arr);
-      return ERROR;
-    }
-    ret = map_self_indices(tC, tidx_C);
-    if (ret == NEGATIVE) {
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      CTF_int::cfree(idx_arr);
-      return ERROR;
-    }*/
-    ret = map_extra_indices(idx_arr, idx_extra, num_extra);
-    if (ret == NEGATIVE) {
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      CTF_int::cfree(idx_arr);
-      return ERROR;
-    }
+      
+      /* Map the contraction indices of A and B */
+      ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo, tA, tB);
+      if (ret == NEGATIVE) {
+        stat = ret;
+        break;
+      }
+      if (ret == ERROR) {
+        stat = ret;
+        break;
+      }
 
 
-    /* Map C or equivalently, the non-contraction indices of A and B */
-    ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo, tA, tB, tC);
-    if (ret == NEGATIVE){
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      return ERROR;
-    }
-    ret = map_symtsr(tA->order, tA->sym_table, tA->edge_map);
-    if (ret!=SUCCESS) return ret;
-    ret = map_symtsr(tB->order, tB->sym_table, tB->edge_map);
-    if (ret!=SUCCESS) return ret;
-    ret = map_symtsr(tC->order, tC->sym_table, tC->edge_map);
-    if (ret!=SUCCESS) return ret;
+    /*  ret = map_self_indices(tA, tidx_A);
+      if (ret == NEGATIVE) {
+        CTF_int::cfree(idx_arr);
+        return NEGATIVE;
+      }
+      if (ret == ERROR) {
+        CTF_int::cfree(idx_arr);
+        return ERROR;
+      }
+      ret = map_self_indices(tB, tidx_B);
+      if (ret == NEGATIVE) {
+        CTF_int::cfree(idx_arr);
+        return NEGATIVE;
+      }
+      if (ret == ERROR) {
+        CTF_int::cfree(idx_arr);
+        return ERROR;
+      }
+      ret = map_self_indices(tC, tidx_C);
+      if (ret == NEGATIVE) {
+        CTF_int::cfree(idx_arr);
+        return NEGATIVE;
+      }
+      if (ret == ERROR) {
+        CTF_int::cfree(idx_arr);
+        return ERROR;
+      }*/
+      ret = map_extra_indices(idx_arr, idx_extra, num_extra, tA, tB, tC);
+      if (ret == NEGATIVE) {
+        stat = ret;
+        break;
+      }
+      if (ret == ERROR) {
+        stat = ret;
+        break;
+      }
 
-    /* Do it again to make sure everything is properly mapped. FIXME: loop */
-    ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo, tA ,tB);
-    if (ret == NEGATIVE){
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      return ERROR;
-    }
-    ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo, tA, tB, tC);
-    if (ret == NEGATIVE){
-      CTF_int::cfree(idx_arr);
-      return NEGATIVE;
-    }
-    if (ret == ERROR) {
-      return ERROR;
-    }
 
-    /*ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr,
-                              tA, tB, topo);*/
-    /* Map C or equivalently, the non-contraction indices of A and B */
-    /*ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr,
-                                  tA, tB, tC, topo);*/
-    ret = map_symtsr(tA->order, tA->sym_table, tA->edge_map);
-    if (ret!=SUCCESS) return ret;
-    ret = map_symtsr(tB->order, tB->sym_table, tB->edge_map);
-    if (ret!=SUCCESS) return ret;
-    ret = map_symtsr(tC->order, tC->sym_table, tC->edge_map);
-    if (ret!=SUCCESS) return ret;
-    
-    CTF_int::cfree(idx_arr);
+      /* Map C or equivalently, the non-contraction indices of A and B */
+      ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo, tA, tB, tC);
+      if (ret == NEGATIVE){
+        stat = ret;
+        break;
+      }
+      if (ret == ERROR) {
+        return ERROR;
+      }
+      ret = map_symtsr(tA->order, tA->sym_table, tA->edge_map);
+      if (ret!=SUCCESS) return ret;
+      ret = map_symtsr(tB->order, tB->sym_table, tB->edge_map);
+      if (ret!=SUCCESS) return ret;
+      ret = map_symtsr(tC->order, tC->sym_table, tC->edge_map);
+      if (ret!=SUCCESS) return ret;
 
-    return SUCCESS;
+      /* Do it again to make sure everything is properly mapped. FIXME: loop */
+      ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr, topo, tA ,tB);
+      if (ret == NEGATIVE){
+        stat = ret;
+        break;
+      }
+      if (ret == ERROR) {
+        return ERROR;
+      }
+      ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr, topo, tA, tB, tC);
+      if (ret == NEGATIVE){
+        stat = ret;
+        break;
+      }
+      if (ret == ERROR) {
+        return ERROR;
+      }
 
+      /*ret = map_ctr_indices(idx_arr, idx_ctr, num_tot, num_ctr,
+                                tA, tB, topo);*/
+      /* Map C or equivalently, the non-contraction indices of A and B */
+      /*ret = map_no_ctr_indices(idx_arr, idx_no_ctr, num_tot, num_no_ctr,
+                                    tA, tB, tC, topo);*/
+      ret = map_symtsr(tA->order, tA->sym_table, tA->edge_map);
+      if (ret!=SUCCESS) return ret;
+      ret = map_symtsr(tB->order, tB->sym_table, tB->edge_map);
+      if (ret!=SUCCESS) return ret;
+      ret = map_symtsr(tC->order, tC->sym_table, tC->edge_map);
+      if (ret!=SUCCESS) return ret;
+      
+
+      stat = SUCCESS;
+    } while(0);
+
+    cfree(idx_arr); cfree(idx_extra); cfree(idx_no_ctr); cfree(idx_weigh);
+    return stat;
   }
 
   int contraction::try_topo_morph(){
@@ -1629,7 +1655,7 @@ namespace CTF_int {
   }
 
   int contraction::map(ctr ** ctrf, bool do_remap){
-    int num_tot, ret, j, need_remap, d;
+    int ret, j, need_remap, d;
     int need_remap_A, need_remap_B, need_remap_C;
     uint64_t memuse;//, bmemuse;
     double est_time, best_time;
@@ -1637,7 +1663,7 @@ namespace CTF_int {
     int old_nvirt_all;
     int nvirt_all;
     int64_t nvirt;
-    int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
+    //int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
     int * old_phase_A, * old_phase_B, * old_phase_C;
     topology * old_topo_A, * old_topo_B, * old_topo_C;
     ctr * sctr;
@@ -1652,15 +1678,6 @@ namespace CTF_int {
     old_topo_C = NULL;
 
     TAU_FSTART(map_tensors);
-    inv_idx(A->order, idx_A,
-            B->order, idx_B,
-            C->order, idx_C,
-            &num_tot, &idx_arr);
-
-    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_no_ctr);
-    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_extra);
-    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_weigh);
-    CTF_int::alloc_ptr(sizeof(int)*num_tot,         (void**)&idx_ctr);
   #if BEST_VOL
     CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
@@ -1763,8 +1780,7 @@ namespace CTF_int {
         } else topo_i = wrld->topovec[t-3];
       
 
-        ret = map_to_topology(topo_i, j,
-                              idx_arr, idx_ctr, idx_extra, idx_no_ctr, idx_weigh);
+        ret = map_to_topology(topo_i, j);
         
 
         if (ret == ERROR) {
@@ -1987,11 +2003,6 @@ namespace CTF_int {
     C->set_padding();
     
     if (!do_remap || ttopo == INT_MAX || ttopo == -1){
-      CTF_int::cfree((void*)idx_arr);
-      CTF_int::cfree((void*)idx_no_ctr);
-      CTF_int::cfree((void*)idx_ctr);
-      CTF_int::cfree((void*)idx_extra);
-      CTF_int::cfree((void*)idx_weigh);
       CTF_int::cfree(old_phase_A);
       CTF_int::cfree(old_phase_B);
       CTF_int::cfree(old_phase_C);
@@ -2042,8 +2053,7 @@ namespace CTF_int {
     B->topo = topo_g;
     C->topo = topo_g;
     
-    ret = map_to_topology(topo_g, j_g,
-                          idx_arr, idx_ctr, idx_extra, idx_no_ctr, idx_weigh);
+    ret = map_to_topology(topo_g, j_g);
 
 
     if (ret == NEGATIVE || ret == ERROR) {
@@ -2083,8 +2093,7 @@ namespace CTF_int {
         B->topo = topo_g;
         C->topo = topo_g;
 
-          ret = map_to_topology(topo_g, j_g,
-                                idx_arr, idx_ctr, idx_extra, idx_no_ctr, idx_weigh);
+          ret = map_to_topology(topo_g, j_g);
           A->is_mapped = 1;
           B->is_mapped = 1;
           C->is_mapped = 1;
@@ -2176,11 +2185,6 @@ namespace CTF_int {
     delete [] old_map_B;
     delete [] old_map_C;
 
-    CTF_int::cfree((void*)idx_arr);
-    CTF_int::cfree((void*)idx_no_ctr);
-    CTF_int::cfree((void*)idx_ctr);
-    CTF_int::cfree((void*)idx_extra);
-    CTF_int::cfree((void*)idx_weigh);
     
     delete dA;
     delete dB;

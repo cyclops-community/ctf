@@ -47,7 +47,7 @@ namespace CTF {
              Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>());
 
 
-
+      Matrix<dtype,is_ord> & operator=(const Matrix<dtype,is_ord> & A);
   };
 }
 #include "matrix.cxx"

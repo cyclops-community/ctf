@@ -4,81 +4,82 @@
 
 namespace CTF {
 
-  template<typename dtype>
-  Sparse_Tensor<dtype>::Sparse_Tensor(){
+  template<typename dtype, bool is_ord>
+  Sparse_Tensor<dtype,is_ord>::Sparse_Tensor(){
     parent = NULL;
   }
 
-  template<typename dtype>
-  Sparse_Tensor<dtype>::Sparse_Tensor(std::vector<int64_t> indices_,
-                                      Tensor<dtype> *      parent_){
-    parent        = parent_;
-    indices       = indices_;
-    scale         = parent_->sr->mulid;
+  template<typename dtype, bool is_ord>
+  Sparse_Tensor<dtype,is_ord>::Sparse_Tensor(std::vector<int64_t>   indices_,
+                                             Tensor<dtype,is_ord> * parent_){
+    parent  = parent_;
+    indices = indices_;
+    scale   = *(dtype*)parent_->sr->mulid();
   }
 
-  template<typename dtype>
-  Sparse_Tensor<dtype>::Sparse_Tensor(int64_t              n,
-                                      int64_t *            indices_,
-                                      Tensor<dtype> *      parent_){
-    parent        = parent_;
-    indices       = std::vector<int64_t>(indices_,indices_+n);
-    scale         = parent_->sr->mulid;
+  template<typename dtype, bool is_ord>
+  Sparse_Tensor<dtype,is_ord>::Sparse_Tensor(int64_t                n,
+                                             int64_t *              indices_,
+                                             Tensor<dtype,is_ord> * parent_){
+    parent  = parent_;
+    indices = std::vector<int64_t>(indices_,indices_+n);
+    scale   = *(dtype*)parent_->sr->mulid();
   }
 
-  template<typename dtype>
-  void Sparse_Tensor<dtype>::write(dtype    alpha, 
-                                   dtype *  values,
-                                   dtype    beta){
+  template<typename dtype, bool is_ord>
+  void Sparse_Tensor<dtype,is_ord>::write(dtype   alpha,
+                                          dtype * values,
+                                          dtype   beta){
     parent->write(indices.size(),alpha,beta,&indices[0],&values[0]);
   }
 
   // C++ overload special-cases of above method
-  template<typename dtype>
-  void Sparse_Tensor<dtype>::operator=(std::vector<dtype> values){
-    write(parent->sr->mulid, &values[0], parent->sr->addid);
+  template<typename dtype, bool is_ord>
+  void Sparse_Tensor<dtype,is_ord>::operator=(std::vector<dtype> values){
+    write(*(dtype const*)parent->sr->mulid(), &values[0], *(dtype const*)parent->sr->addid());
   }
-  template<typename dtype>
-  void Sparse_Tensor<dtype>::operator=(dtype* values){
-    write(parent->sr->mulid, values, parent->sr->addid);
-  }
-
-  template<typename dtype>
-  void Sparse_Tensor<dtype>::operator+=(std::vector<dtype> values){
-    write(parent->sr->mulid, &values[0], parent->sr->mulid);
-  }
-  template<typename dtype>
-  void Sparse_Tensor<dtype>::operator+=(dtype* values){
-    write(parent->sr->mulid, values, parent->sr->mulid);
+  template<typename dtype, bool is_ord>
+  void Sparse_Tensor<dtype,is_ord>::operator=(dtype* values){
+    write(*(dtype const*)parent->sr->mulid(), values, *(dtype const*)parent->sr->addid());
   }
 
-  template<typename dtype>
-  void Sparse_Tensor<dtype>::operator-=(std::vector<dtype> values){
-    write(-parent->sr->mulid, &values[0], parent->sr->mulid);
-  }
-  template<typename dtype>
-  void Sparse_Tensor<dtype>::operator-=(dtype* values){
-    write(-parent->sr->mulid, values, parent->sr->mulid);
+  template<typename dtype, bool is_ord>
+  void Sparse_Tensor<dtype,is_ord>::operator+=(std::vector<dtype> values){
+    write(*(dtype const*)parent->sr->mulid(), &values[0], *(dtype const*)parent->sr->mulid());
   }
 
+  template<typename dtype, bool is_ord>
+  void Sparse_Tensor<dtype,is_ord>::operator+=(dtype* values){
+    write(*(dtype const*)parent->sr->mulid(), values, *(dtype const*)parent->sr->mulid());
+  }
 
-  template<typename dtype>
-  void Sparse_Tensor<dtype>::read(dtype   alpha, 
-                                  dtype * values,
-                                  dtype   beta){
+  template<typename dtype, bool is_ord>
+  void Sparse_Tensor<dtype,is_ord>::operator-=(std::vector<dtype> values){
+    write(-*(dtype const*)parent->sr->mulid(), &values[0], *(dtype const*)parent->sr->mulid());
+  }
+
+  template<typename dtype, bool is_ord>
+  void Sparse_Tensor<dtype,is_ord>::operator-=(dtype* values){
+    write(-*(dtype const*)parent->sr->mulid(), values, *(dtype const*)parent->sr->mulid());
+  }
+
+  template<typename dtype, bool is_ord>
+  void Sparse_Tensor<dtype,is_ord>::read(dtype   alpha, 
+                                         dtype * values,
+                                         dtype   beta){
     parent->read(indices.size(),alpha,beta,&indices[0],values);
   }
-  template<typename dtype>
-  Sparse_Tensor<dtype>::operator std::vector<dtype>(){
+  template<typename dtype, bool is_ord>
+  Sparse_Tensor<dtype,is_ord>::operator std::vector<dtype>(){
     std::vector<dtype> values(indices.size());
-    read(parent->sr->mulid, &values[0], parent->sr->addid);
+    read(parent->sr->mulid(), &values[0], parent->sr->addid());
     return values;
   }
 
-  template<typename dtype>
-  Sparse_Tensor<dtype>::operator dtype*(){
+  template<typename dtype, bool is_ord>
+  Sparse_Tensor<dtype,is_ord>::operator dtype*(){
     dtype * values = (dtype*)malloc(sizeof(dtype)*indices.size());
-    read(parent->sr->mulid, values, parent->sr->addid);
+    read(parent->sr->mulid(), values, parent->sr->addid());
     return values;
   }
 }

@@ -33,6 +33,13 @@ namespace CTF {
     len = len_;
   }
 
+ 
+  template<typename dtype, bool is_ord>
+  Vector<dtype,is_ord> & Vector<dtype,is_ord>::operator=(const Vector<dtype,is_ord> & A){
+    CTF_int::tensor::free_self();
+    CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
+    return *this;
+  }
 
 
 }

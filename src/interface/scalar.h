@@ -41,6 +41,7 @@ namespace CTF {
        */
       operator dtype() { return get_val(); }
 
+      Scalar<dtype,is_ord> & operator=(const Scalar<dtype,is_ord> & A);
 
   };
 

@@ -65,7 +65,6 @@ int trace(int const     n,
   C3["ij"] = C["ia"]*D["ab"]*A["bc"]*B["cj"];
   C4["ij"] = B["ia"]*C["ab"]*D["bc"]*A["cj"];
 
-  C1.print();
 
   DIAG["i"] = C1["ii"];
   tr1 = DIAG.reduce(CTF::OP_SUM);

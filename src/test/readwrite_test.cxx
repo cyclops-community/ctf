@@ -51,7 +51,7 @@ int readwrite_test(int const    n,
 
   A_NS[indices]+=vals;
 
-  sum = A_NS.reduce(CTF_OP_SUM);
+  sum = A_NS.reduce(CTF::OP_SUM);
 
   if (abs(sum-n*(n+1.)/2.)>1.E-10){
     pass = 0;
@@ -64,7 +64,7 @@ int readwrite_test(int const    n,
   
   A_SY[indices]+=vals;
 
-  sum = A_SY.reduce(CTF_OP_SUM);
+  sum = A_SY.reduce(CTF::OP_SUM);
 
 
   if (abs(sum-n*(n+1.)/2.)>1.E-10){
@@ -79,7 +79,7 @@ int readwrite_test(int const    n,
 
   A_AS[indices]+=vals;
 
-  sum = A_AS.reduce(CTF_OP_SUM);
+  sum = A_AS.reduce(CTF::OP_SUM);
 
   if (sum != 0.0){
     pass = 0;
@@ -92,7 +92,7 @@ int readwrite_test(int const    n,
   
   A_SH[indices]+=vals;
 
-  sum = A_SH.reduce(CTF_OP_SUM);
+  sum = A_SH.reduce(CTF::OP_SUM);
 
   if (sum != 0.0){
     pass = 0;

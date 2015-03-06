@@ -29,7 +29,6 @@ int scalar(CTF::World    &dw){
   A.read_local(&np,&indices,&pairs);
   pass -=!(np<=1);
  
-  A.print();
   if (np>0){
     pass -=!(indices[0] == 0);
   assert(pass);
@@ -41,7 +40,6 @@ int scalar(CTF::World    &dw){
   free(indices);
   free(pairs);
   //A = 4.2;
-  A.print();
   A.read_local(&np,&indices,&pairs);
   printf("np=%ld\n",np);
   pass -= !(np<=1);
@@ -68,6 +66,7 @@ int scalar(CTF::World    &dw){
   assert(pass);
 
   int n = 7;
+#if 0 //does not make sense to set AS matrix to scalar
   CTF::Matrix<> C(n,n,AS,dw);
 
   //FIXME: this is nonsense! should result in zero tensor
@@ -98,12 +97,14 @@ int scalar(CTF::World    &dw){
   printf("%lf, %lf\n",C.reduce(CTF::OP_SUMABS),n*(n-1)*13.1);
   pass-= !( fabs(C.reduce(CTF::OP_SUMABS)-n*(n-1)*13.1)<1.E-10);
   assert(pass);
+#endif
   int sizeN4[4] = {n,0,n,n};
   int shapeN4[4] = {NS,NS,SY,NS};
   CTF::Matrix<> E(n,n,NS,dw);
   CTF::Tensor<> D(4, sizeN4, shapeN4, dw);
   
   E["ij"]=13.1;
+
 
   E["ii"]=D["klij"]*E["ki"];
   

@@ -192,17 +192,17 @@ namespace CTF {
 
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::read_all(int64_t * npair, dtype ** vals) const {
+  void Tensor<dtype, is_ord>::read_all(int64_t * npair, dtype ** vals){
     int ret;
-    ret = CTF_int::tensor::allread(npair, vals);
+    ret = CTF_int::tensor::allread(npair, ((char**)vals));
     assert(ret == SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
-  int64_t Tensor<dtype, is_ord>::read_all(dtype * vals) const {
+  int64_t Tensor<dtype, is_ord>::read_all(dtype * vals){
     int ret;
     int64_t npair;
-    ret = CTF_int::tensor::allread(&npair, vals);
+    ret = CTF_int::tensor::allread(&npair, (char*)vals);
     assert(ret == SUCCESS);
     return npair;
   }
@@ -288,7 +288,7 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::add_from_subworld(
                            Tensor<dtype, is_ord> * tsr){
-    return add_from_subworld(tsr, sr->mulid(), sr->mulid());
+    return CTF_int::tensor::add_from_subworld(tsr, sr->mulid(), sr->mulid());
   }
 
   template<typename dtype, bool is_ord>
@@ -585,10 +585,11 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::operator=(Tensor<dtype, is_ord> A){
+  Tensor<dtype, is_ord>& Tensor<dtype, is_ord>::operator=(Tensor<dtype, is_ord> A){
 
     free_self();
     init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
+    return *this;
 /*
     sr = A.sr;
     world = A.wrld;
@@ -613,8 +614,8 @@ namespace CTF {
 
 
   template<typename dtype, bool is_ord>
-  Sparse_Tensor<dtype> Tensor<dtype, is_ord>::operator[](std::vector<int64_t> indices){
-    Sparse_Tensor<dtype> stsr(indices,this);
+  Sparse_Tensor<dtype, is_ord> Tensor<dtype, is_ord>::operator[](std::vector<int64_t> indices){
+    Sparse_Tensor<dtype, is_ord> stsr(indices,this);
     return stsr;
   }
 

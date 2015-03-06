@@ -10,8 +10,9 @@
 namespace CTF {
 
   class Idx_Tensor;
-  template <typename dtype> class Sparse_Tensor;
 
+  template <typename dtype, bool is_ord>
+  class Sparse_Tensor;
 
   /**
    * \defgroup CTF CTF: C++ Tensor interface
@@ -553,13 +554,13 @@ namespace CTF {
        * \param[out] data pointer to the data of the entire tensor
        */
       void read_all(int64_t  * npair,
-                    dtype **   data) const;
+                    dtype **   data);
       
       /**
        * \brief collects the entire tensor data on each process (not memory scalable)
        * \param[in,out] preallocated data pointer to the data of the entire tensor
        */
-      int64_t read_all(dtype * data) const;
+      int64_t read_all(dtype * data);
 
       /**
        * \brief obtains a small number of the biggest elements of the 
@@ -591,18 +592,18 @@ namespace CTF {
       /**
        * \brief sets all values in the tensor to val
        */
-      Tensor& operator=(dtype val);
+      Tensor<dtype, is_ord>& operator=(dtype val);
       
       /**
        * \brief sets the tensor
        */
-      void operator=(Tensor<dtype, is_ord> A);
+      Tensor<dtype, is_ord>& operator=(const Tensor<dtype, is_ord> A);
      
       /**
        * \brief gives handle to sparse index subset of tensors
        * \param[in] indices, vector of indices to sparse tensor
        */
-      Sparse_Tensor<dtype> operator[](std::vector<int64_t> indices);
+      Sparse_Tensor<dtype,is_ord> operator[](std::vector<int64_t> indices);
       
       /**
        * \brief prints tensor data to file using process 0
