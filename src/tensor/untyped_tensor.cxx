@@ -980,7 +980,7 @@ namespace CTF_int {
     PairIterator ipr = read_all_pairs(num_pair);
     char * ball_data = (char*)malloc(sr->el_size*(*num_pair));
     for (int64_t i=0; i<*num_pair; i++){
-      ipr[i].read(ball_data+i*sr->el_size);
+      ipr[i].read_val(ball_data+i*sr->el_size);
     }
     *all_data = ball_data;
     return SUCCESS;
@@ -990,7 +990,7 @@ namespace CTF_int {
                       char *    all_data){
     PairIterator ipr = read_all_pairs(num_pair);
     for (int64_t i=0; i<*num_pair; i++){
-      ipr[i].read(all_data+i*sr->el_size);
+      ipr[i].read_val(all_data+i*sr->el_size);
     }
     return SUCCESS;
   }

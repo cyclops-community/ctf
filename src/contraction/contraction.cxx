@@ -1657,7 +1657,7 @@ namespace CTF_int {
   int contraction::map(ctr ** ctrf, bool do_remap){
     int ret, j, need_remap, d;
     int need_remap_A, need_remap_B, need_remap_C;
-    uint64_t memuse;//, bmemuse;
+    int64_t memuse;//, bmemuse;
     double est_time, best_time;
     int btopo;
     int old_nvirt_all;
@@ -1869,15 +1869,15 @@ namespace CTF_int {
         } else
           need_remap_A = 1;
         if (need_remap_A) {
-          nvirt = (uint64_t)A->calc_nvirt();
+          nvirt = (int64_t)A->calc_nvirt();
           est_time += global_comm.estimate_alltoallv_time(A->sr->el_size*A->size);
           if (can_block_reshuffle(A->order, old_phase_A, A->edge_map)){
-            memuse = MAX(memuse,(uint64_t)A->sr->el_size*A->size);
+            memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size);
           } else {
             est_time += 5.*COST_MEMBW*A->sr->el_size*A->size+global_comm.estimate_alltoall_time(nvirt);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*A->sr->el_size*A->size;
-            memuse = MAX(memuse,(uint64_t)A->sr->el_size*A->size*2.5);
+            memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*2.5);
           }
         } else
           memuse = 0;
@@ -1889,15 +1889,15 @@ namespace CTF_int {
         } else
           need_remap_B = 1;
         if (need_remap_B) {
-          nvirt = (uint64_t)B->calc_nvirt();
+          nvirt = (int64_t)B->calc_nvirt();
           est_time += global_comm.estimate_alltoallv_time(B->sr->el_size*B->size);
           if (can_block_reshuffle(B->order, old_phase_B, B->edge_map)){
-            memuse = MAX(memuse,(uint64_t)B->sr->el_size*B->size);
+            memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size);
           } else {
             est_time += 5.*COST_MEMBW*B->sr->el_size*B->size+global_comm.estimate_alltoall_time(nvirt);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*B->sr->el_size*B->size;
-            memuse = MAX(memuse,(uint64_t)B->sr->el_size*B->size*2.5);
+            memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*2.5);
           }
         }
         if (topo_i == old_topo_C){
@@ -1908,36 +1908,36 @@ namespace CTF_int {
         } else
           need_remap_C = 1;
         if (need_remap_C) {
-          nvirt = (uint64_t)C->calc_nvirt();
+          nvirt = (int64_t)C->calc_nvirt();
           est_time += global_comm.estimate_alltoallv_time(B->sr->el_size*B->size);
           if (can_block_reshuffle(C->order, old_phase_C, C->edge_map)){
-            memuse = MAX(memuse,(uint64_t)C->sr->el_size*C->size);
+            memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size);
           } else {
             est_time += 5.*COST_MEMBW*C->sr->el_size*C->size+global_comm.estimate_alltoall_time(nvirt);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*C->sr->el_size*C->size;
-            memuse = MAX(memuse,(uint64_t)C->sr->el_size*C->size*2.5);
+            memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*2.5);
           }
         }
-        memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
+        memuse = MAX((int64_t)sctr->mem_rec(), memuse);
   #if DEBUG >= 3
         printf("total (with redistribution) est_time = %E\n", est_time);
   #endif
         ASSERT(est_time > 0.0);
 
-        if ((uint64_t)memuse >= proc_bytes_available()){
+        if ((int64_t)memuse >= proc_bytes_available()){
           DPRINTF(2,"Not enough memory available for topo %d with order %d\n", t, j);
           delete sctr;
           continue;
         } 
 
         /* be careful about overflow */
-  /*      nvirt = (uint64_t)A->calc_nvirt();
-        tnvirt = nvirt*(uint64_t)B->calc_nvirt();
+  /*      nvirt = (int64_t)A->calc_nvirt();
+        tnvirt = nvirt*(int64_t)B->calc_nvirt();
         if (tnvirt < nvirt) nvirt = UINT64_MAX;
         else {
           nvirt = tnvirt;
-          tnvirt = nvirt*(uint64_t)C->calc_nvirt();
+          tnvirt = nvirt*(int64_t)C->calc_nvirt();
           if (tnvirt < nvirt) nvirt = UINT64_MAX;
           else nvirt = tnvirt;
         }*/
@@ -1975,7 +1975,7 @@ namespace CTF_int {
       bnvirt = UINT64_MAX;
       btopo = INT_MAX;
     }
-    DEBUG_PRINTF("bnvirt = " PRIu64 "\n", (uint64_t)bnvirt);
+    DEBUG_PRINTF("bnvirt = " PRIu64 "\n", (int64_t)bnvirt);
     // pick lower dimensional mappings, if equivalent 
   #if BEST_COMM
     if (bnvirt >= ALLOW_NVIRT)
@@ -2119,7 +2119,7 @@ namespace CTF_int {
      
          
       //FIXME: adhoc? 
-      memuse = MAX((uint64_t)(*ctrf)->mem_rec(), (uint64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
+      memuse = MAX((int64_t)(*ctrf)->mem_rec(), (uint64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
   #if DEBUG >= 1
     if (global_comm.rank == 0)
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
@@ -2911,7 +2911,7 @@ namespace CTF_int {
       ctrf = construct_ctr();
   #ifdef VERBOSE
       if (global_comm.rank == 0){
-        uint64_t memuse = ctrf->mem_rec();
+        int64_t memuse = ctrf->mem_rec();
         DPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
                 (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
       }
@@ -2980,12 +2980,12 @@ namespace CTF_int {
 
     if (nsA != nA) { printf("nsA = " PRId64 ", nA = " PRId64 "\n",nsA,nA); ABORT; }
     if (nsB != nB) { printf("nsB = " PRId64 ", nB = " PRId64 "\n",nsB,nB); ABORT; }
-    for (i=0; (uint64_t)i<nA; i++){
+    for (i=0; (int64_t)i<nA; i++){
       if (fabs(uA[i] - sA[i]) > 1.E-6){
         printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
       }
     }
-    for (i=0; (uint64_t)i<nB; i++){
+    for (i=0; (int64_t)i<nB; i++){
       if (fabs(uB[i] - sB[i]) > 1.E-6){
         printf("B[%d] = %lf, sB[%d] = %lf\n", i, uB[i], i, sB[i]);
       }
@@ -3022,7 +3022,7 @@ namespace CTF_int {
           sym_C, 1, &sym_tmp, &up_ans_C);
     punpack_tsr(up_ans_C, order_C, edge_len_C,
           sym_C, 0, &sym_tmp, &pup_C);
-    for (i=0; (uint64_t)i<nC; i++){
+    for (i=0; (int64_t)i<nC; i++){
       assert(fabs(pup_C[i] - ans_C[i]) < 1.E-6);
     }
     pass = 1;

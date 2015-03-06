@@ -74,7 +74,7 @@ namespace CTF {
       (*global_idx)[i] = pairs[i].k;
       (*data)[i] = pairs[i].d;
     }
-    CTF_int::cfree(pairs);
+    if (pairs != NULL) CTF_int::cfree(pairs);
   }
 
   template<typename dtype, bool is_ord>

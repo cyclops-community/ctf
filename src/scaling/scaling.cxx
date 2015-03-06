@@ -64,11 +64,11 @@ namespace CTF_int {
   int scaling::execute(){
     int st, is_top, order_tot, iA,  ret, itopo, btopo;
     int64_t blk_sz, vrt_sz;
-    distribution old_dst;
+    distribution * old_dst = NULL;
     int * virt_dim, * idx_arr;
     int * virt_blk_len, * blk_len;
-    uint64_t nvirt, bnvirt;
-    uint64_t memuse, bmemuse;
+    int64_t nvirt, bnvirt;
+    int64_t memuse, bmemuse;
     mapping * map;
     tensor * tsr, * ntsr;
     strp_tsr * str;
@@ -117,10 +117,10 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*ntsr->order, (void**)&virt_blk_len);
     CTF_int::alloc_ptr(sizeof(int)*order_tot, (void**)&virt_dim);
 
-
+    btopo = -1;
     if (!check_self_mapping(ntsr, idx_map)){
-      old_dst = distribution(ntsr);
-      bmemuse = UINT64_MAX;
+      old_dst = new distribution(ntsr);
+      bmemuse = INT64_MAX;
       for (itopo=tsr->wrld->cdt.rank; itopo<(int)tsr->wrld->topovec.size(); itopo+=tsr->wrld->cdt.np){
         ntsr->clear_mapping();
         ntsr->set_padding();
@@ -154,8 +154,8 @@ namespace CTF_int {
         }
       }
       if (btopo == -1){
-        bnvirt = UINT64_MAX;
-        bmemuse = UINT64_MAX;
+        bnvirt = INT64_MAX;
+        bmemuse = INT64_MAX;
       }
       /* pick lower dimensional mappings, if equivalent */
       if (bnvirt >= ALLOW_NVIRT)
@@ -188,7 +188,7 @@ namespace CTF_int {
       ntsr->print_map(stdout);
   #endif
       TAU_FSTART(redistribute_for_scale);
-      ntsr->redistribute(old_dst);
+      ntsr->redistribute(*old_dst);
       TAU_FSTOP(redistribute_for_scale);
     }
 
@@ -255,6 +255,7 @@ namespace CTF_int {
       *rec_scl = sclseq;
     }
     sclseq->alpha       = alpha;
+    hscl->alpha         = alpha;
     if (is_custom){
       sclseq->func      = func;
       sclseq->is_custom = 1;
@@ -280,7 +281,8 @@ namespace CTF_int {
     if (was_home && !ntsr->is_home){
       if (tsr->wrld->cdt.rank == 0)
         DPRINTF(2,"Migrating tensor %s back to home\n", tsr->name);
-      old_dst = distribution(ntsr);
+      if (old_dst != NULL) delete old_dst;
+      old_dst = new distribution(ntsr);
 /*      save_mapping(ntsr,
                    &old_phase, &old_rank, 
                    &old_virt_dim, &old_pe_lda, 
@@ -290,7 +292,7 @@ namespace CTF_int {
       tsr->data = ntsr->data;
       tsr->is_home = 0;
       TAU_FSTART(redistribute_for_scale_home);
-      tsr->redistribute(old_dst);
+      tsr->redistribute(*old_dst);
       TAU_FSTOP(redistribute_for_scale_home);
       memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr->el_size);
       CTF_int::cfree(tsr->data);
@@ -310,6 +312,7 @@ namespace CTF_int {
     }
   #endif
 
+   if (old_dst != NULL) delete old_dst;
   #if DEBUG>=1
     if (tsr->wrld->cdt.rank == 0)
       printf("Done scaling tensor %s.\n", tsr->name);

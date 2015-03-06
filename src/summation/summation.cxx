@@ -747,7 +747,7 @@ namespace CTF_int {
     if (was_home_B && !tnsr_B->is_home){
       if (A->wrld->cdt.rank == 0)
         DPRINTF(2,"Migrating tensor %s back to home\n", B->name);
-      distribution odst = distribution(tnsr_B);
+      distribution odst(tnsr_B);
       B->data = tnsr_B->data;
       B->is_home = 0;
       TAU_FSTART(redistribute_for_sum_home);
@@ -1549,8 +1549,8 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
 
-    distribution dA = distribution(A);
-    distribution dB = distribution(B);
+    distribution dA(A);
+    distribution dB(B);
     old_topo_A = A->topo;
     old_topo_B = B->topo;
     mapping * old_map_A = new mapping[A->order];
@@ -1558,8 +1558,8 @@ namespace CTF_int {
     copy_mapping(A->order, A->edge_map, old_map_A);
     copy_mapping(B->order, B->edge_map, old_map_B);
     btopo = -1;
-    uint64_t size;
-    uint64_t min_size = UINT64_MAX;
+    int64_t size;
+    int64_t min_size = INT64_MAX;
     /* Attempt to map to all possible permutations of processor topology */
     for (i=A->wrld->cdt.rank; i<2*(int)A->wrld->topovec.size(); i+=A->wrld->cdt.np){
   //  for (i=global_comm.rank*topovec.size(); i<2*(int)topovec.size(); i++){
@@ -1698,7 +1698,7 @@ namespace CTF_int {
       }
     }
     if (btopo == -1)
-      min_size = UINT64_MAX;
+      min_size = INT64_MAX;
     /* pick lower dimensional mappings, if equivalent */
     gtopo = get_best_topo(min_size, btopo, wrld->cdt);
     TAU_FSTOP(map_tensor_pair);
