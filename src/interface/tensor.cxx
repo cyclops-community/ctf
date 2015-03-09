@@ -210,7 +210,6 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::set_name(char const * name_) {
-    name = name_;
     CTF_int::tensor::set_name(name_);
   }
 
