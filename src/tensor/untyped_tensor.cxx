@@ -412,9 +412,9 @@ namespace CTF_int {
 #else
         CTF_int::mst_alloc_ptr(this->size*sr->el_size, (void**)&this->data);
 #endif
-#if DEBUG >= 2
+#if DEBUG > 2
         if (wrld->rank == 0)
-          printf("New tensor defined:\n");
+          printf("New tensor %s defined:\n",name);
         this->print_map(stdout);
 #endif
         sr->set(this->data, sr->addid(), this->size);

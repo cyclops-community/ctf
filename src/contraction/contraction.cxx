@@ -97,6 +97,11 @@ namespace CTF_int {
   }
 
   void contraction::execute(){
+#if DEBUG >= 2
+    if (A->wrld->cdt.rank == 0) printf("Contraction::execute (head):\n");
+    print();
+#endif
+    
     int stat = home_contract();
     assert(stat == SUCCESS); 
   }
@@ -2109,7 +2114,7 @@ namespace CTF_int {
       B->set_padding();
       C->set_padding();
       *ctrf = construct_ctr();
-    #if DEBUG >= 2
+    #if DEBUG > 2
       if (global_comm.rank == 0)
         printf("New mappings:\n");
       A->print_map(stdout);
@@ -2901,7 +2906,7 @@ namespace CTF_int {
       }
     } else {
       /* Construct the tensor algorithm we would like to use */
-  #if DEBUG >= 2
+  #if DEBUG > 2
       if (global_comm.rank == 0)
         printf("Keeping mappings:\n");
       A->print_map(stdout);
@@ -3151,45 +3156,52 @@ namespace CTF_int {
     } else {
 
       int sign = align_symmetric_indices(tnsr_A->order,
-                                         map_A,
+                                         new_ctr.idx_A,
                                          tnsr_A->sym,
                                          tnsr_B->order,
-                                         map_B,
+                                         new_ctr.idx_B,
                                          tnsr_B->sym,
                                          tnsr_C->order,
-                                         map_C,
+                                         new_ctr.idx_C,
                                          tnsr_C->sym);
 
       /*
        * Apply a factor of n! for each set of n symmetric indices which are contracted over
        */
       int ocfact = overcounting_factor(tnsr_A->order,
-                                       map_A,
+                                       new_ctr.idx_A,
                                        tnsr_A->sym,
                                        tnsr_B->order,
-                                       map_B,
+                                       new_ctr.idx_B,
                                        tnsr_B->sym,
                                        tnsr_C->order,
-                                       map_C,
+                                       new_ctr.idx_C,
                                        tnsr_C->sym);
-
-      if (ocfact != 1 || sign != 1){
-        if (ocfact != 1){
-          char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
-          tnsr_B->sr->copy(new_alpha, tnsr_B->sr->addid());
-          
-          for (int i=0; i<ocfact; i++){
-            tnsr_B->sr->add(new_alpha, alpha, new_alpha);
-          }
-          alpha = new_alpha;
-        }
+      char const * align_alpha = alpha;
+      if (sign != 1){
+        char * u_align_alpha = (char*)malloc(tnsr_C->sr->el_size);
         if (sign == -1){
-          char * new_alpha = (char*)malloc(tnsr_C->sr->el_size);
-          tnsr_C->sr->addinv(alpha, new_alpha);
-          alpha = new_alpha;
+          tnsr_C->sr->addinv(alpha, u_align_alpha);
+//          alpha = new_alpha;
         }
+        align_alpha = u_align_alpha;
         //FIXME free new_alpha
       }
+
+      char const * oc_align_alpha = align_alpha;
+      if (ocfact != 1){
+        char * u_oc_align_alpha = (char*)malloc(tnsr_C->sr->el_size);
+        if (ocfact != 1){
+          tnsr_B->sr->copy(u_oc_align_alpha, tnsr_B->sr->addid());
+          
+          for (int i=0; i<ocfact; i++){
+            tnsr_B->sr->add(u_oc_align_alpha, align_alpha, u_oc_align_alpha);
+          }
+//          alpha = new_alpha;
+        }
+        oc_align_alpha = u_oc_align_alpha;
+      }
+      //new_ctr.alpha = alpha;
 
 
       //std::cout << alpha << ' ' << alignfact << ' ' << ocfact << std::endl;
@@ -3224,6 +3236,7 @@ namespace CTF_int {
           desymmetrize(tnsr_C, unfold_ctr->C, 1);
           if (global_comm.rank == 0)
             DPRINTF(1,"Performing index desymmetrization\n");
+          unfold_ctr->alpha = align_alpha;
           stat = unfold_ctr->sym_contract();
           symmetrize(tnsr_C, unfold_ctr->C);
           if (tnsr_A != unfold_ctr->A){
@@ -3248,18 +3261,21 @@ namespace CTF_int {
           char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
           for (i=0; i<(int)perm_types.size(); i++){
             if (signs[i] == 1)
-              C->sr->copy(new_alpha, alpha);
-            else
-              tnsr_C->sr->addinv(alpha, new_alpha);
+              C->sr->copy(new_alpha, oc_align_alpha);
+            else {
+              ASSERT(signs[i]==-1);
+              tnsr_C->sr->addinv(oc_align_alpha, new_alpha);
+            }
             perm_types[i].alpha = new_alpha;
             perm_types[i].beta = dbeta;
             stat = perm_types[i].contract();
-            dbeta = new_ctr.C->sr->addid();
+            dbeta = new_ctr.C->sr->mulid();
           }
           perm_types.clear();
           signs.clear();
         }
       } else {
+        new_ctr.alpha = oc_align_alpha;
         stat = new_ctr.contract();
       }
       if (tnsr_A != A) delete tnsr_A;

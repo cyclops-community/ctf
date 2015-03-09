@@ -54,6 +54,7 @@ int diag_ctr(int const    n,
   }
   mA["ai"] = A["aiai"];
   tr -= mA["ai"];
+
   if (fabs(tr) > 1.E-10)
     pass = 0;
   if (pass){

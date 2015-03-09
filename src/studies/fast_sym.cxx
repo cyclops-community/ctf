@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <ctf.hpp>
 
+#define USE_SYM_SUM 1
+
 int fast_sym(int const     n,
              CTF_World    &ctf){
   int rank, i, num_pes;
@@ -27,10 +29,10 @@ int fast_sym(int const     n,
   int len3[] = {n,n,n};
   int YYN[] = {SY,SY,NS};
 
-  CTF_Matrix A(n, n, SH, ctf);
-  CTF_Matrix B(n, n, SH, ctf);
-  CTF_Matrix C(n, n, SH, ctf);
-  CTF_Matrix C_ans(n, n, SH, ctf);
+  CTF_Matrix A(n, n, SH, ctf, "A");
+  CTF_Matrix B(n, n, SH, ctf, "B");
+  CTF_Matrix C(n, n, SH, ctf,"C");
+  CTF_Matrix C_ans(n, n, SH, ctf, "C_ans");
   
   //CTF_Tensor A_rep(3, len3, YYN, ctf);
   //CTF_Tensor B_rep(3, len3, YYN, ctf);
@@ -64,7 +66,6 @@ int fast_sym(int const     n,
     free(values);
   }
   C_ans["ij"] = A["ik"]*B["kj"];
-
 #ifdef USE_SYM_SUM
   A_rep["ijk"] += A["ij"];
   B_rep["ijk"] += B["ij"];

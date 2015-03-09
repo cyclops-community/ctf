@@ -41,7 +41,6 @@ int scalar(CTF::World    &dw){
   free(pairs);
   //A = 4.2;
   A.read_local(&np,&indices,&pairs);
-  printf("np=%ld\n",np);
   pass -= !(np<=1);
   assert(pass);
  

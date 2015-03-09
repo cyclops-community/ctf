@@ -16,6 +16,8 @@
 #include <algorithm>
 #include <ctf.hpp>
 
+#define USE_SYM_SUM 1
+
 int fast_sym_4D(int const     n,
                 CTF_World    &ctf){
   int rank, i, num_pes;
@@ -75,8 +77,19 @@ int fast_sym_4D(int const     n,
   Bs["ilb"] += B["iklb"];
   C["ijab"] -= ((double)n)*A["ijal"]*B["ijlb"];
   C["ijab"] -= Cs["iab"];
+  //std::cout << "C norm " << C.norm2() << "\n";
+  //C.print();
   C["ijab"] -= As["ial"]*B["ijlb"];
+  //C["ijab"] -= A["ijal"]*Bs["jlb"];
   C["ijab"] -= A["ijal"]*Bs["jlb"];
+  /*int64_t sz;
+  double const * data = C.get_raw_data(&sz);
+  //for (int64_t i=0; i<n*(n-1)*(n-2); i++){
+  for (int64_t i=0; i<sz; i++){
+    printf("C[%ld] = %lf\n", i, data[i]);
+  }
+  std::cout << "after C norm " << C.norm2() << "\n";
+  std::cout << "after C norm1 " << C.norm1() << "\n";*/
 #else
   A_rep["ijkal"] += A["ijal"];
   A_rep["ijkal"] += A["ikal"];
@@ -112,9 +125,9 @@ int fast_sym_4D(int const     n,
     printf("C:\n");
     C.print();
   }
-  CTF_Matrix Diff(n, n, SY, ctf);
+  CTF_Tensor Diff(4, len4, HNNN, ctf);
   Diff["ijab"] = C["ijab"]-C_ans["ijab"];
-  double nrm = sqrt(Diff["ij"]*Diff["ij"]);
+  double nrm = Diff.norm2();
   int pass = (nrm <=1.E-10);
   
   if (rank == 0){

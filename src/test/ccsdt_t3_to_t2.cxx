@@ -16,6 +16,8 @@
 #include <ctf.hpp>
 #include "../src/shared/util.h"
 
+#define USE_SYM_SUM
+
 int ccsdt_t3_to_t2(int const     n,
                    int const     m,
                    CTF_World    &dw){
@@ -48,7 +50,7 @@ int ccsdt_t3_to_t2(int const     n,
   CTF_Tensor AS_A(4, nnnm, shapeTS4, dw, "A", 1);
   CTF_Tensor AS_B(6, mmmnnn, shapeAS6, dw, "B", 1);
   CTF_Tensor HS_B(6, mmmnnn, shapeHS6, dw);
-  CTF_Tensor AS_C(4, mmnn, shapeAS4, dw, "C", 1);
+  CTF_Tensor AS_C(4, mmnn, shapeAS4, dw, "AS_C", 1);
   CTF_Tensor NS_A(4, nnnm, shapeNS4, dw);
   CTF_Tensor NS_B(6, mmmnnn, shapeTS6, dw);
   CTF_Tensor NS_C(4, mmnn, shapeTS4, dw);
@@ -73,7 +75,7 @@ int ccsdt_t3_to_t2(int const     n,
   AS_C.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
   AS_C[std::vector<int64_t>(indices,indices+np)]=pairs;
-  
+ 
 
 #ifdef USE_SYM_SUM
   NS_A["abij"] = AS_A["abij"];
@@ -99,7 +101,13 @@ int ccsdt_t3_to_t2(int const     n,
   NS_B["kjiabc"] -= HS_B["ijkabc"];
   NS_C["abij"] += AS_C["abij"];
 #endif
-  
+ 
+  /*printf("norm of AS_A %lf\n", AS_A.norm2());
+  printf("norm of NS_A %lf\n", NS_A.norm2());
+  printf("norm of AS_B %lf\n", AS_B.norm2());
+  printf("norm of NS_B %lf\n", NS_B.norm2());
+  printf("norm of AS_C %lf\n", AS_C.norm2());
+  printf("norm of NS_C %lf\n", NS_C.norm2());*/
   
   AS_C["abij"] += 0.5*AS_A["mnje"]*AS_B["abeimn"];
   

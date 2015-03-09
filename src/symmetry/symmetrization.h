@@ -44,39 +44,56 @@ namespace CTF_int {
    * \brief orders the summation indices of one tensor 
    *        that don't break summation symmetries
    *
-   * \param[in,out] sum summation data (tensors and maps)
+   * \param[in] tsr_A
+   * \param[in] tsr_B
    * \param[in] idx_arr inverted summation index map
    * \param[in] off_A offset of A in inverted index map
    * \param[in] off_B offset of B in inverted index map
+   * \param[in] idx_map_A index map of A
+   * \param[in] idx_map_B index map of B
    * \param[in,out] add_sign sign of contraction
    * \param[in,out] mod 1 if sum is permuted
    */
-  void order_perm(summation & sum,
-                  int *       idx_arr,
-                  int         off_A,
-                  int         off_B,
-                  int &       add_sign,
-                  int &       mod);
+  void order_perm(tensor const * A,
+                  tensor const * B,
+                  int *          idx_arr,
+                  int            off_A,
+                  int            off_B,
+                  int *          idx_A,
+                  int *          idx_B,
+                  int &          add_sign,
+                  int &          mod);
 
   /**
    * \brief orders the contraction indices of one tensor 
    *        that don't break contraction symmetries
    *
    * \param[in,out] ctr contraction object with tensors and index maps
+   * \param[in] tsr_A
+   * \param[in] tsr_B
+   * \param[in] tsr_C
    * \param[in] idx_arr inverted contraction index map
    * \param[in] off_A offset of A in inverted index map
    * \param[in] off_B offset of B in inverted index map
    * \param[in] off_C offset of C in inverted index map
+   * \param[in] idx_map_A index map of A
+   * \param[in] idx_map_B index map of B
+   * \param[in] idx_map_C index map of C
    * \param[in,out] add_sign sign of contraction
    * \param[in,out] mod 1 if permutation done
    */
-  void order_perm(contraction & ctr,
-                  int *         idx_arr,
-                  int           off_A,
-                  int           off_B,
-                  int           off_C,
-                  int &         add_sign,
-                  int &         mod);
+  void order_perm(tensor const * A,
+                  tensor const * B,
+                  tensor const * C,
+                  int *          idx_arr,
+                  int            off_A,
+                  int            off_B,
+                  int            off_C,
+                  int *          idx_A,
+                  int *          idx_B,
+                  int *          idx_C,
+                  int &          add_sign,
+                  int &          mod);
 
 
   /**

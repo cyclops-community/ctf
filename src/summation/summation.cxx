@@ -627,6 +627,7 @@ namespace CTF_int {
         }
         tensor tA(A->sr, A->order, A->lens, sym_A, A->wrld, 1);
         tA.is_home = 0;
+        tA.has_home = 0;
         summation st(A, idx_A, A->sr->mulid(), &tA, idx_A, A->sr->mulid());
         st.execute();
         summation stme(*this);
@@ -727,7 +728,6 @@ namespace CTF_int {
   #if DEBUG >= 1
     if (A->wrld->cdt.rank == 0)
       printf("Start head sum:\n");
-    print();
   #endif
     
     #ifdef USE_SYM_SUM
@@ -741,7 +741,7 @@ namespace CTF_int {
   #endif
 
     if (ret!= SUCCESS) return ret;
-    if (was_home_A) tnsr_A->unfold(); //FIXME: set_padding?
+    //if (was_home_A) tnsr_A->unfold(); //FIXME: set_padding?
     if (was_home_B) tnsr_B->unfold();
 
     if (was_home_B && !tnsr_B->is_home){
@@ -862,16 +862,16 @@ namespace CTF_int {
 
     //FIXME: make these typefree...
     int sign = align_symmetric_indices(tnsr_A->order,
-                                       map_A,
+                                       new_sum.idx_A,
                                        tnsr_A->sym,
                                        tnsr_B->order,
-                                       map_B,
+                                       new_sum.idx_B,
                                        tnsr_B->sym);
     int ocfact = overcounting_factor(tnsr_A->order,
-                                     map_A,
+                                     new_sum.idx_A,
                                      tnsr_A->sym,
                                      tnsr_B->order,
-                                     map_B,
+                                     new_sum.idx_B,
                                      tnsr_B->sym);
 
     if (ocfact != 1 || sign != 1){
@@ -938,7 +938,7 @@ namespace CTF_int {
           perm_types[i].sum_tensors(run_diag);
           /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                       perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
-          dbeta = new_sum.B->sr->addid();
+          dbeta = new_sum.B->sr->mulid();
         }
 /*        for (i=0; i<(int)perm_types.size(); i++){
           free_type(&perm_types[i]);
@@ -1044,11 +1044,16 @@ namespace CTF_int {
     } else{ 
      //FIXME: remove the below, sum_tensors should never be called without sym_sum
      int sign = align_symmetric_indices(tnsr_A->order,
-                                        map_A,
+                                        new_sum.idx_A,
                                         tnsr_A->sym,
                                         tnsr_B->order,
-                                        map_B,
+                                        new_sum.idx_B,
                                         tnsr_B->sym);
+
+      #if DEBUG >= 1
+        new_sum.print();
+      #endif
+
       ASSERT(sign == 1);
 /*        if (sign == -1){
           char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
@@ -1086,12 +1091,12 @@ namespace CTF_int {
           return ERROR;
         }
       } else {
-  #if DEBUG >= 2
+  #if DEBUG > 2
         if (A->wrld->cdt.rank == 0){
           printf("Keeping mappings:\n");
         }
-       // print_map(stdout, ntid_A);
-       // print_map(stdout, ntid_B);
+        A->print_map(stdout);
+        B->print_map(stdout);
   #endif
       }
       /* Construct the tensor algorithm we would like to use */
@@ -1758,7 +1763,7 @@ namespace CTF_int {
 
     A->set_padding();
     B->set_padding();
-  #if DEBUG >= 2
+  #if DEBUG > 2
     if (wrld->cdt.rank == 0)
       printf("New mappings:\n");
     A->print_map(stdout);

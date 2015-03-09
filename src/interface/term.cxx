@@ -617,27 +617,27 @@ namespace CTF_int {
 
   void operator-=(double & d, CTF_int::Term const & tsr){
     CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] -= tsr;
-    d = (double)ts[""];
+    ts[""] += tsr;
+    d -= (double)ts[""];
   }
 
 
   void operator+=(double & d, CTF_int::Term const & tsr){
     CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
     ts[""] += tsr;
-    d = (double)ts[""];
+    d += (double)ts[""];
   }
 
   void operator-=(int64_t & d, CTF_int::Term const & tsr){
     CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] -= tsr;
-    d = (int64_t)ts[""];
+    ts[""] += tsr;
+    d -= (int64_t)ts[""];
   }
 
   void operator+=(int64_t & d, CTF_int::Term const & tsr){
     CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
     ts[""] += tsr;
-    d = (int64_t)ts[""];
+    d += (int64_t)ts[""];
   }
 
 

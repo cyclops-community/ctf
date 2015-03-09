@@ -45,6 +45,7 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   Idx_Tensor Tensor<dtype, is_ord>::operator[](const char * idx_map_){
+    ASSERT(strlen(idx_map_)==order);
     Idx_Tensor idxtsr(this, idx_map_);
     return idxtsr;
   }

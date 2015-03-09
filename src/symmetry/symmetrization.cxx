@@ -407,32 +407,35 @@ namespace CTF_int {
     *sign = sgn;
   }
 
-  void order_perm(summation & sum,
-                  int *       idx_arr,
-                  int         off_A,
-                  int         off_B,
-                  int &       add_sign,
-                  int &       mod){
+  void order_perm(tensor const * A,
+                  tensor const * B,
+                  int *          idx_arr,
+                  int            off_A,
+                  int            off_B,
+                  int *          idx_A,
+                  int *          idx_B,
+                  int &          add_sign,
+                  int &          mod){
     int  iA, jA, iB, jB, iiB, broken, tmp;
 
     //find all symmetries in A
-    for (iA=0; iA<sum.A->order; iA++){
-      if (sum.A->sym[iA] != NS){
+    for (iA=0; iA<A->order; iA++){
+      if (A->sym[iA] != NS){
         jA=iA;
-        iB = idx_arr[2*sum.idx_A[iA]+off_B];
-        while (sum.A->sym[jA] != NS){
+        iB = idx_arr[2*idx_A[iA]+off_B];
+        while (A->sym[jA] != NS){
           broken = 0;
           jA++;
-          jB = idx_arr[2*sum.idx_A[jA]+off_B];
+          jB = idx_arr[2*idx_A[jA]+off_B];
           if ((iB == -1) ^ (jB == -1)) broken = 1;
          /* if (iB != -1 && jB != -1) {
-            if (sum.B->sym[iB] != sum.A->sym[iA]) broken = 1;
+            if (B->sym[iB] != A->sym[iA]) broken = 1;
           }*/
           if (iB != -1 && jB != -1) {
             /* Do this because iB,jB can be in reversed order */
             for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
-              ASSERT(iiB >= 0 && iiB <= sum.B->order);
-              if (sum.B->sym[iiB] == NS) broken = 1;
+              ASSERT(iiB >= 0 && iiB <= B->order);
+              if (B->sym[iiB] == NS) broken = 1;
             }
           }
           
@@ -441,13 +444,13 @@ namespace CTF_int {
           } */
           //if the symmetry is preserved, make sure index map is ordered
           if (!broken){
-            if (sum.idx_A[iA] > sum.idx_A[jA]){
-              idx_arr[2*sum.idx_A[iA]+off_A] = jA;
-              idx_arr[2*sum.idx_A[jA]+off_A] = iA;
-              tmp                          = sum.idx_A[iA];
-              sum.idx_A[iA] = sum.idx_A[jA];
-              sum.idx_A[jA] = tmp;
-              if (sum.A->sym[iA] == AS) add_sign *= -1.0;
+            if (idx_A[iA] > idx_A[jA]){
+              idx_arr[2*idx_A[iA]+off_A] = jA;
+              idx_arr[2*idx_A[jA]+off_A] = iA;
+              tmp                          = idx_A[iA];
+              idx_A[iA] = idx_A[jA];
+              idx_A[jA] = tmp;
+              if (A->sym[iA] == AS) add_sign *= -1.0;
               mod = 1;
             } 
           }
@@ -456,50 +459,55 @@ namespace CTF_int {
     }
   }
 
-  void order_perm(contraction & ctr,
-                  int *         idx_arr,
-                  int           off_A,
-                  int           off_B,
-                  int           off_C,
-                  int &         add_sign,
-                  int &         mod){
+  void order_perm(tensor const * A,
+                  tensor const * B,
+                  tensor const * C,
+                  int *          idx_arr,
+                  int            off_A,
+                  int            off_B,
+                  int            off_C,
+                  int *          idx_A,
+                  int *          idx_B,
+                  int *          idx_C,
+                  int &          add_sign,
+                  int &          mod){
 
     int  iA, jA, iB, iC, jB, jC, iiB, iiC, broken, tmp;
 
     //find all symmetries in A
-    for (iA=0; iA<ctr.A->order; iA++){
-      if (ctr.A->sym[iA] != NS){
+    for (iA=0; iA<A->order; iA++){
+      if (A->sym[iA] != NS){
         jA=iA;
-        iB = idx_arr[3*ctr.idx_A[iA]+off_B];
-        iC = idx_arr[3*ctr.idx_A[iA]+off_C];
-        while (ctr.A->sym[jA] != NS){
+        iB = idx_arr[3*idx_A[iA]+off_B];
+        iC = idx_arr[3*idx_A[iA]+off_C];
+        while (A->sym[jA] != NS){
           broken = 0;
           jA++;
-          jB = idx_arr[3*ctr.idx_A[jA]+off_B];
+          jB = idx_arr[3*idx_A[jA]+off_B];
           //if (iB == jB) broken = 1;
           if (iB != -1 && jB != -1){
             for (iiB=MIN(iB,jB); iiB<MAX(iB,jB); iiB++){
-              if (ctr.B->sym[iiB] ==  NS) broken = 1;
+              if (B->sym[iiB] ==  NS) broken = 1;
             }
           } 
           if ((iB == -1) ^ (jB == -1)) broken = 1;
-          jC = idx_arr[3*ctr.idx_A[jA]+off_C];
+          jC = idx_arr[3*idx_A[jA]+off_C];
           //if (iC == jC) broken = 1;
           if (iC != -1 && jC != -1){
             for (iiC=MIN(iC,jC); iiC<MAX(iC,jC); iiC++){
-              if (ctr.C->sym[iiC] == NS) broken = 1;
+              if (C->sym[iiC] == NS) broken = 1;
             }
           } 
           if ((iC == -1) ^ (jC == -1)) broken = 1;
           //if the symmetry is preserved, make sure index map is ordered
           if (!broken){
-            if (ctr.idx_A[iA] > ctr.idx_A[jA]){
-              idx_arr[3*ctr.idx_A[iA]+off_A] = jA;
-              idx_arr[3*ctr.idx_A[jA]+off_A] = iA;
-              tmp                          = ctr.idx_A[iA];
-              ctr.idx_A[iA] = ctr.idx_A[jA];
-              ctr.idx_A[jA] = tmp;
-              if (ctr.A->sym[iA] == AS) add_sign *= -1.0;
+            if (idx_A[iA] > idx_A[jA]){
+              idx_arr[3*idx_A[iA]+off_A] = jA;
+              idx_arr[3*idx_A[jA]+off_A] = iA;
+              tmp                          = idx_A[iA];
+              idx_A[iA] = idx_A[jA];
+              idx_A[jA] = tmp;
+              if (A->sym[iA] == AS) add_sign *= -1.0;
               mod = 1;
             } 
           }
@@ -519,7 +527,7 @@ namespace CTF_int {
     tensor * tsr_A, * tsr_B;
 
     add_sign = new_sign;
-    summation norm_ord_perm = summation(new_perm);
+    summation norm_ord_perm(new_perm);
     
     tsr_A = new_perm.A;
     tsr_B = new_perm.B;
@@ -530,9 +538,11 @@ namespace CTF_int {
     //keep permuting until we get to normal order (no permutations left)
     do {
       mod = 0;
-      order_perm(norm_ord_perm, idx_arr, 0, 1,
+      order_perm(tsr_A, tsr_B, idx_arr, 0, 1,
+                 norm_ord_perm.idx_A, norm_ord_perm.idx_B,
                  add_sign, mod);
-      order_perm(norm_ord_perm, idx_arr, 1, 0,
+      order_perm(tsr_B, tsr_A, idx_arr, 1, 0,
+                 norm_ord_perm.idx_B, norm_ord_perm.idx_A,
                  add_sign, mod);
     } while (mod);
     add_sign = add_sign*align_symmetric_indices(tsr_A->order, norm_ord_perm.idx_A, tsr_A->sym,
@@ -564,7 +574,7 @@ namespace CTF_int {
     tsr_C = new_perm.C;
 
     add_sign = new_sign;
-    contraction norm_ord_perm = contraction(new_perm);
+    contraction norm_ord_perm(new_perm);
     
     inv_idx(tsr_A->order, norm_ord_perm.idx_A,
             tsr_B->order, norm_ord_perm.idx_B,
@@ -573,11 +583,14 @@ namespace CTF_int {
     //keep permuting until we get to normal order (no permutations left)
     do {
       mod = 0;
-      order_perm(norm_ord_perm, idx_arr, 0, 1, 2,
+      order_perm(tsr_A, tsr_B, tsr_C, idx_arr, 0, 1, 2,
+                 norm_ord_perm.idx_A, norm_ord_perm.idx_B, norm_ord_perm.idx_C,
                  add_sign, mod);
-      order_perm(norm_ord_perm, idx_arr, 1, 0, 2,
+      order_perm(tsr_B, tsr_A, tsr_C, idx_arr, 1, 0, 2,
+                 norm_ord_perm.idx_B, norm_ord_perm.idx_A, norm_ord_perm.idx_C,
                  add_sign, mod);
-      order_perm(norm_ord_perm, idx_arr, 2, 1, 0,
+      order_perm(tsr_C, tsr_B, tsr_A, idx_arr, 2, 1, 0,
+                 norm_ord_perm.idx_C, norm_ord_perm.idx_B, norm_ord_perm.idx_A,
                  add_sign, mod);
     } while (mod);
     add_sign *= align_symmetric_indices(tsr_A->order,
@@ -610,7 +623,7 @@ namespace CTF_int {
     tsr_A = sum.A;
     tsr_B = sum.B;
 
-    summation new_type = summation(sum);
+    summation new_type(sum);
     add_sym_perm(perms, signs, new_type, 1);
 
     for (i=0; i<tsr_A->order; i++){
@@ -618,10 +631,10 @@ namespace CTF_int {
       while (tsr_A->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          summation new_type1 = summation(perms[k]);
+          summation new_type1(perms[k]);
           sign = signs[k];
           if (tsr_A->sym[j-1] == AS) sign *= -1;
-          tmp                = new_type1.idx_A[i];
+          tmp                 = new_type1.idx_A[i];
           new_type1.idx_A[i]  = new_type1.idx_A[j];
           new_type1.idx_A[j]  = tmp;
           add_sym_perm(perms, signs, new_type1, sign);
@@ -633,12 +646,12 @@ namespace CTF_int {
       while (tsr_B->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          summation new_type2 = summation(perms[k]);
+          summation new_type2(perms[k]);
           sign = signs[k];
           if (tsr_B->sym[j-1] == AS) sign *= -1;
-          tmp                    = new_type2.idx_B[i];
-          new_type2.idx_B[i]  = new_type2.idx_B[j];
-          new_type2.idx_B[j]  = tmp;
+          tmp                = new_type2.idx_B[i];
+          new_type2.idx_B[i] = new_type2.idx_B[j];
+          new_type2.idx_B[j] = tmp;
           add_sym_perm(perms, signs, new_type2, sign);
         }
       }
