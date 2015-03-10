@@ -1315,7 +1315,7 @@ namespace CTF_int {
     }
 
 #if VERIFY_REMAP
-    padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data_corr, sr, wlrd->cdt);
+    padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data_corr, sr, wrld->cdt);
 #endif
 
     if (can_block_shuffle){
@@ -1367,12 +1367,15 @@ namespace CTF_int {
 
   #if VERIFY_REMAP
     bool abortt = false;
-    for (j=0; j<this->size; j++){
-      if (this->data[j] != shuffled_data_corr[j]){
-        printf("data element %d/" PRId64 " not received correctly on process %d\n",
+    for (int64_t j=0; j<this->size; j++){
+      if (!sr->isequal(this->data+j*sr->el_size, shuffled_data_corr+j*sr->el_size)){
+        printf("data element %ld/%ld not received correctly on process %d\n",
                 j, this->size, wrld->cdt.rank);
-        printf("element received was %.3E, correct %.3E\n", 
-                GET_REAL(this->data[j]), GET_REAL(shuffled_data_corr[j]));
+        printf("element received was ");
+        sr->print(this->data+j*sr->el_size);
+        printf(", correct "); 
+        sr->print(shuffled_data_corr+j*sr->el_size);
+        printf("\n"); 
         abortt = true;
       }
     }
