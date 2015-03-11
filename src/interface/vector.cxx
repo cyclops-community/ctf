@@ -18,7 +18,7 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   Vector<dtype, is_ord>::Vector(int                       len_,
                                 World &                   world_,
-                                Set<dtype,is_ord> const & sr_)
+                                CTF_int::algstrct const & sr_)
    : Tensor<dtype,is_ord>(1, int1(len_), int1(NS), world_, sr_, NULL, 0) {
     len = len_;
   }
@@ -28,7 +28,7 @@ namespace CTF {
                                 World &                   world_,
                                 char const *              name_,
                                 int                       profile_,
-                                Set<dtype,is_ord> const & sr_)
+                                CTF_int::algstrct const & sr_)
    : Tensor<dtype,is_ord>(1, int1(len_), int1(NS), world_, sr_, name_, profile_) {
     len = len_;
   }

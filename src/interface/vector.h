@@ -20,7 +20,7 @@ namespace CTF {
        */ 
       Vector(int                       len,
              World &                   world,
-             Set<dtype,is_ord> const & sr);
+             CTF_int::algstrct const & sr);
 
       /**
        * \brief constructor for a vector
@@ -33,7 +33,7 @@ namespace CTF {
              World &                   world,
              char const *              name=NULL,
              int                       profile=0,
-             Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>());
+             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
 
 
       Vector<dtype,is_ord> & operator=(const Vector<dtype,is_ord> & A);

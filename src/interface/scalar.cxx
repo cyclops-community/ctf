@@ -4,15 +4,15 @@
 namespace CTF {
 
   template<typename dtype, bool is_ord>
-  Scalar<dtype, is_ord>::Scalar(World & world_, Set<dtype> const & sr_) :
+  Scalar<dtype, is_ord>::Scalar(World & world_, CTF_int::algstrct const & sr_) :
     Tensor<dtype, is_ord>(0, NULL, NULL, world_, sr_) {
     
   }
 
   template<typename dtype, bool is_ord>
-  Scalar<dtype, is_ord>::Scalar(dtype              val,
-                                World &            world,
-                                Set<dtype> const & sr_)
+  Scalar<dtype, is_ord>::Scalar(dtype                     val,
+                                World &                   world,
+                                CTF_int::algstrct const & sr_)
      : Tensor<dtype, is_ord>(0, NULL, NULL, world, sr_) {
     int64_t s; 
     dtype * arr;

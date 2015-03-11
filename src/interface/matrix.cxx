@@ -25,7 +25,7 @@ namespace CTF {
                                 World &                   world_,
                                 char const *              name_,
                                 int                       profile_,
-                                Set<dtype,is_ord> const & sr_)
+                                CTF_int::algstrct const & sr_)
     : Tensor<dtype,is_ord>(2, int2(nrow_, ncol_), int2(sym_, NS), 
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
@@ -38,7 +38,7 @@ namespace CTF {
                                 int                       ncol_,
                                 int                       sym_,
                                 World &                   world_,
-                                Set<dtype,is_ord> const & sr_)
+                                CTF_int::algstrct const & sr_)
     : Tensor<dtype,is_ord>(2, int2(nrow_, ncol_), int2(sym_, NS), 
                            world_, Ring<dtype,is_ord>(), NULL, 0) {
     nrow = nrow_;

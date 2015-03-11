@@ -13,8 +13,8 @@ namespace CTF {
        * \param[in] world CTF world where the tensor will live
        * \param[in] sr defines the tensor arithmetic for this tensor
        */
-      Scalar(World &            wrld,
-             Set<dtype> const & sr=Ring<dtype>());
+      Scalar(World &                   wrld,
+             CTF_int::algstrct const & sr=Ring<dtype>());
 
       /**
        * \brief constructor for a scalar with predefined value
@@ -22,9 +22,9 @@ namespace CTF {
        * \param[in] world CTF world where the tensor will live
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
-      Scalar(dtype              val,
-             World &            wrld,
-             Set<dtype> const & sr=Ring<dtype>());
+      Scalar(dtype                     val,
+             World &                   wrld,
+             CTF_int::algstrct const & sr=Ring<dtype>());
 
       /**
        * \brief returns scalar value
