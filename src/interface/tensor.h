@@ -94,7 +94,7 @@ namespace CTF {
              World &                   wrld,
              char const *              name=NULL,
              int                       profile=0,
-             Set<dtype,is_ord> const & sr=Ring<dtype,is_ord>());
+             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
 
       /**
        * \brief defines a tensor filled with zeros on a specified algstrct
@@ -110,7 +110,7 @@ namespace CTF {
              int const *               len,
              int const *               sym,
              World &                   wrld,
-             Set<dtype,is_ord> const & sr,
+             CTF_int::algstrct const & sr,
              char const *              name=NULL,
              int                       profile=0);
       

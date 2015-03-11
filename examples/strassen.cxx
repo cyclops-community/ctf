@@ -177,9 +177,7 @@ int strassen(int const     n,
   } else {
 
     CTF_Tensor A21 = A.slice(off_10, end_21);
-    
     CTF_Tensor A11 = A.slice(off_00, end_11);
-    
     CTF_Tensor A12(2,snhalf,sym_ns,dw);
     if (sym == SY){
       A12["ij"] = A21["ji"];

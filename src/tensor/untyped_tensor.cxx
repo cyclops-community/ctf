@@ -72,91 +72,96 @@ namespace CTF_int {
     strcpy(nname, other->name);
     strcat(nname, d);
     this->init(other->sr, other->order, other->lens,
-               other->sym, other->wrld, (copy & !alloc_data), nname,
+               other->sym, other->wrld, (!copy & alloc_data), nname,
                other->profile);
     cfree(nname);
   
     this->has_zero_edge_len = other->has_zero_edge_len;
 
     if (copy) {
-      //FIXME: do not unfold
-//      if (other->is_folded) other->unfold();
-      ASSERT(!other->is_folded);
-
-      if (other->is_mapped){
-    #ifdef HOME_CONTRACT
-        if (other->has_home){
-/*          if (this->has_home && 
-              (!this->is_home && this->home_size != other->home_size)){ 
-            CTF_int::cfree(this->home_buffer);
-          }*/
-          this->home_size = other->home_size;
-          this->home_buffer = (char*)CTF_int::alloc(other->home_size*sr->el_size);
-          if (other->is_home){
-            this->is_home = 1;
-            this->data = this->home_buffer;
-          } else {
-            /*if (this->is_home || this->home_size != other->home_size){ 
-            }*/
-            this->is_home = 0;
-            memcpy(this->home_buffer, other->home_buffer, other->home_size);
-            CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
-          }
-          this->has_home = 1;
-        } else {
-          CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
-/*          if (this->has_home && !this->is_home){
-            CTF_int::cfree(this->home_buffer);
-          }*/
-          this->has_home = 0;
-          this->is_home = 0;
-        }
-    #else
-        CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
-    #endif
-        memcpy(this->data, other->data, sr->el_size*other->size);
-      } else {
-        if (this->is_mapped){
-          CTF_int::cfree(this->data);
-          CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
-                         (void**)&this->pairs);
-        } else {
-          if (this->size < other->size || this->size > 2*other->size){
-            CTF_int::cfree(this->pairs);
-            CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
-                             (void**)&this->pairs);
-          }
-        }
-        memcpy(this->pairs, other->pairs, 
-               (sizeof(int64_t)+sr->el_size)*other->size);
-      } 
-      if (this->is_folded){
-        delete this->rec_tsr;
-      }
-      this->is_folded = other->is_folded;
-      if (other->is_folded){
-        tensor * itsr = other->rec_tsr;
-        tensor * rtsr = new tensor(itsr->sr, itsr->order, itsr->lens, itsr->sym, itsr->wrld, 0);
-        CTF_int::alloc_ptr(sizeof(int)*other->order, 
-                         (void**)&this->inner_ordering);
-        for (int i=0; i<other->order; i++){
-          this->inner_ordering[i] = other->inner_ordering[i];
-        }
-        this->rec_tsr = rtsr;
-      }
-
-      this->order = other->order;
-      memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int)*other->order);
-      memcpy(this->padding, other->padding, sizeof(int)*other->order);
-      memcpy(this->sym, other->sym, sizeof(int)*other->order);
-      memcpy(this->sym_table, other->sym_table, sizeof(int)*other->order*other->order);
-      this->is_mapped = other->is_mapped;
-      this->is_cyclic = other->is_cyclic;
-      this->topo      = other->topo;
-      if (other->is_mapped)
-        copy_mapping(other->order, other->edge_map, this->edge_map);
-      this->size = other->size;
+      copy_tensor_data(other);
     }
+
+  }
+
+  void tensor::copy_tensor_data(tensor const * other){
+    //FIXME: do not unfold
+//      if (other->is_folded) other->unfold();
+    ASSERT(!other->is_folded);
+
+    if (other->is_mapped){
+  #ifdef HOME_CONTRACT
+      if (other->has_home){
+/*          if (this->has_home && 
+            (!this->is_home && this->home_size != other->home_size)){ 
+          CTF_int::cfree(this->home_buffer);
+        }*/
+        this->home_size = other->home_size;
+        this->home_buffer = (char*)CTF_int::alloc(other->home_size*sr->el_size);
+        if (other->is_home){
+          this->is_home = 1;
+          this->data = this->home_buffer;
+        } else {
+          /*if (this->is_home || this->home_size != other->home_size){ 
+          }*/
+          this->is_home = 0;
+          memcpy(this->home_buffer, other->home_buffer, other->home_size);
+          CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+        }
+        this->has_home = 1;
+      } else {
+        CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+/*          if (this->has_home && !this->is_home){
+          CTF_int::cfree(this->home_buffer);
+        }*/
+        this->has_home = 0;
+        this->is_home = 0;
+      }
+  #else
+      CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+  #endif
+      memcpy(this->data, other->data, sr->el_size*other->size);
+    } else {
+      if (this->is_mapped){
+        CTF_int::cfree(this->data);
+        CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
+                       (void**)&this->pairs);
+      } else {
+        if (this->size < other->size || this->size > 2*other->size){
+          CTF_int::cfree(this->pairs);
+          CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
+                           (void**)&this->pairs);
+        }
+      }
+      memcpy(this->pairs, other->pairs, 
+             (sizeof(int64_t)+sr->el_size)*other->size);
+    } 
+    if (this->is_folded){
+      delete this->rec_tsr;
+    }
+    this->is_folded = other->is_folded;
+    if (other->is_folded){
+      tensor * itsr = other->rec_tsr;
+      tensor * rtsr = new tensor(itsr->sr, itsr->order, itsr->lens, itsr->sym, itsr->wrld, 0);
+      CTF_int::alloc_ptr(sizeof(int)*other->order, 
+                       (void**)&this->inner_ordering);
+      for (int i=0; i<other->order; i++){
+        this->inner_ordering[i] = other->inner_ordering[i];
+      }
+      this->rec_tsr = rtsr;
+    }
+
+    this->order = other->order;
+    memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int)*other->order);
+    memcpy(this->padding, other->padding, sizeof(int)*other->order);
+    memcpy(this->sym, other->sym, sizeof(int)*other->order);
+    memcpy(this->sym_table, other->sym_table, sizeof(int)*other->order*other->order);
+    this->is_mapped = other->is_mapped;
+    this->is_cyclic = other->is_cyclic;
+    this->topo      = other->topo;
+    if (other->is_mapped)
+      copy_mapping(other->order, other->edge_map, this->edge_map);
+    this->size = other->size;
 
   }
 
@@ -655,8 +660,7 @@ namespace CTF_int {
     } else {
       tsr_A->read_local(&sz_A, &all_data_A);
     }
-    
-
+   
     if (tsr_A->order == 0 || tsr_A->has_zero_edge_len){
       blk_sz_A = 0;
       blk_data_A = NULL;
@@ -686,10 +690,11 @@ namespace CTF_int {
       pad_key(tsr_B->order, blk_sz_A, toffset_B, 
               padding_B, pblk_data_A, sr, offsets_B);
     }
-    /*printf("alpha is "); tsr_B->sr->print(alpha); printf("\n");
-    printf("beta is "); tsr_B->sr->print(beta); printf("\n");*/
+/*    printf("alpha is "); tsr_B->sr->print(alpha); printf("\n");
+    printf("beta is "); tsr_B->sr->print(beta); printf("\n");
+    printf("writing B blk_sz_A = %ld key =%ld\n",blk_sz_A,*(int64_t*)blk_data_A);
+    tsr_B->sr->print(blk_data_A+sizeof(int64_t));*/
     tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');  
-
     if (tsr_A->order != 0 && !tsr_A->has_zero_edge_len)
       CTF_int::cfree(blk_data_A);
     CTF_int::cfree(padding_A);

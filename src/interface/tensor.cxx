@@ -28,7 +28,7 @@ namespace CTF {
                                 World &                   world,
                                 char const *              name,
                                 int const                 profile,
-                                Set<dtype,is_ord> const & sr)
+                                CTF_int::algstrct const & sr)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {}
 
 
@@ -38,7 +38,7 @@ namespace CTF {
                                 int const *               len,
                                 int const *               sym,
                                 World &                   world,
-                                Set<dtype,is_ord> const & sr,
+                                CTF_int::algstrct const & sr,
                                 char const *              name,
                                 int const                 profile)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {}
@@ -374,7 +374,7 @@ namespace CTF {
       new_lens[i] = ends[i] - offsets[i];
     }
     //FIXME: could discard sr qualifiers
-    Tensor<dtype, is_ord> new_tsr(order, new_lens, new_sym, *owrld, *(Set<dtype,is_ord>*)sr);
+    Tensor<dtype, is_ord> new_tsr(order, new_lens, new_sym, *owrld, *sr);
 //   Tensor<dtype, is_ord> new_tsr = tensor(sr, order, new_lens, new_sym, owrld, 1);
     std::fill(new_sym, new_sym+order, 0);
     new_tsr.slice(new_sym, new_lens, *(dtype*)sr->addid(), *this, offsets, ends, *(dtype*)sr->mulid());
@@ -589,6 +589,7 @@ namespace CTF {
 
     free_self();
     init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
+    copy_tensor_data(&A);
     return *this;
 /*
     sr = A.sr;

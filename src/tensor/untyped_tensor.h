@@ -42,6 +42,11 @@ namespace CTF_int {
        */
       PairIterator read_all_pairs(int64_t * num_pair);
 
+      /** 
+       * \brief copies all tensor data from other
+       * \param[in] other tensor to copy from
+       */
+      void copy_tensor_data(tensor const * other);
     public:
 
       /** \brief distributed processor context on which tensor is defined */
