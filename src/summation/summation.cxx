@@ -610,6 +610,8 @@ namespace CTF_int {
    
     CTF_int::contract_mst();
 
+    A->unfold();
+    B->unfold();
     // FIXME: if custom function, we currently don't know whether its odd, even or neither, so unpack everything
     if (is_custom){
       bool is_nonsym=true;
@@ -741,8 +743,10 @@ namespace CTF_int {
   #endif
 
     if (ret!= SUCCESS) return ret;
-    //if (was_home_A) tnsr_A->unfold(); //FIXME: set_padding?
+    if (was_home_A) tnsr_A->unfold(); 
+    else A->unfold();
     if (was_home_B) tnsr_B->unfold();
+    else B->unfold();
 
     if (was_home_B && !tnsr_B->is_home){
       if (A->wrld->cdt.rank == 0)
@@ -793,6 +797,9 @@ namespace CTF_int {
   //  print_sum(type,alpha_,beta);
   //#endif
     check_consistency();
+
+    A->unfold();
+    B->unfold();
     if (A->has_zero_edge_len || B->has_zero_edge_len){
       if (!B->sr->isequal(beta, B->sr->mulid()) && !B->has_zero_edge_len){ 
         int sub_idx_map_B[B->order];
@@ -985,6 +992,8 @@ namespace CTF_int {
     //check_sum(tid_A, tid_B, idx_map_A, idx_map_B);
     //FIXME: hmm all of the below already takes place in sym_sum
     check_consistency();
+    A->unfold();
+    B->unfold();
     if (A->has_zero_edge_len || B->has_zero_edge_len){
       if (!B->sr->isequal(beta,B->sr->mulid()) && !B->has_zero_edge_len){ 
     /*    fseq_scl<dtype> fs;

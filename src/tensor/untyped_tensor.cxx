@@ -111,6 +111,8 @@ namespace CTF_int {
           this->has_home = 0;
           this->is_home = 0;
         }
+    #else
+        CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
     #endif
         memcpy(this->data, other->data, sr->el_size*other->size);
       } else {
@@ -884,6 +886,8 @@ namespace CTF_int {
     }
     ASSERT(!tsr->is_folded);
     ASSERT(tsr->is_mapped);
+    tensor * tsr2 = (tensor *)tsr;
+
 //    tsr->set_padding();
 
 

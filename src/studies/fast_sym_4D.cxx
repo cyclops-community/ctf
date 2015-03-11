@@ -65,6 +65,24 @@ int fast_sym_4D(int const     n,
     free(indices);
     free(values);
   }
+
+  
+/*  std::cout << "start C =As*B"<< "\n";
+  C["ijab"] = As["ial"]*B["ijlb"];
+  C.print(stdout, .000000001);
+  int64_t sz;
+  double const * data = C.get_raw_data(&sz);
+  //for (int64_t i=0; i<n*(n-1)*(n-2); i++){
+  for (int64_t i=0; i<sz; i++){
+    if (std::abs(data[i] ) > .0000000001)
+      printf("C[%ld] = %lf\n", i, data[i]);
+  }
+  std::cout << "C norm " << C.norm2() << "\n";
+  C["ijab"]=0.;
+  assert(0);
+*/
+
+
   C_ans["ijab"] = A["ikal"]*B["kjlb"];
 
 #ifdef USE_SYM_SUM

@@ -3299,7 +3299,7 @@ namespace CTF_int {
 
   int contraction::home_contract(){
   #ifndef HOME_CONTRACT
-    return sym_contract(stype, ftsr, felm, alpha, beta);
+    return sym_contract();
   #else
     int ret;
     int was_home_A, was_home_B, was_home_C;

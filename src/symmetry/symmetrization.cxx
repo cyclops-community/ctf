@@ -348,8 +348,8 @@ namespace CTF_int {
         }
       }
     } else {
-        summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-        ssum.execute();
+      summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+      ssum.execute();
     }
     CTF_int::cfree(idx_map_A);
     CTF_int::cfree(idx_map_B);
