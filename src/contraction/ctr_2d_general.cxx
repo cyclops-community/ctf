@@ -36,13 +36,13 @@ namespace CTF_int {
 
   void ctr_2d_general::print() {
     printf("ctr_2d_general: edge_len = %d\n", edge_len);
-    printf("move_A = %d, ctr_lda_A = " PRId64 ", ctr_sub_lda_A = " PRId64 "\n",
+    printf("move_A = %d, ctr_lda_A = %ld, ctr_sub_lda_A = %ld\n",
             move_A, ctr_lda_A, ctr_sub_lda_A);
     if (move_A) printf("cdt_A length = %d\n",cdt_A->np);
-    printf("move_B = %d, ctr_lda_B = " PRId64 ", ctr_sub_lda_B = " PRId64 "\n",
+    printf("move_B = %d, ctr_lda_B = %ld, ctr_sub_lda_B = %ld\n",
             move_B, ctr_lda_B, ctr_sub_lda_B);
     if (move_B) printf("cdt_B length = %d\n",cdt_B->np);
-    printf("move_C = %d, ctr_lda_C = " PRId64 ", ctr_sub_lda_C = " PRId64 "\n",
+    printf("move_C = %d, ctr_lda_C = %ld, ctr_sub_lda_C = %ld\n",
             move_C, ctr_lda_C, ctr_sub_lda_C);
     if (move_C) printf("cdt_C length = %d\n",cdt_C->np);
 #ifdef OFFLOAD

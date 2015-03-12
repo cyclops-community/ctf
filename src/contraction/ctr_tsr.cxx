@@ -57,7 +57,7 @@ namespace CTF_int {
   void ctr_virt::print() {
     int i;
     printf("ctr_virt:\n");
-    printf("blk_sz_A = " PRId64 ", blk_sz_B = " PRId64 ", blk_sz_C = " PRId64 "\n",
+    printf("blk_sz_A = %ld, blk_sz_B = %ld, blk_sz_C = %ld\n",
             blk_sz_A, blk_sz_B, blk_sz_C);
     for (i=0; i<num_dim; i++){
       printf("virt_dim[%d] = %d\n", i, virt_dim[i]);
@@ -185,9 +185,9 @@ namespace CTF_int {
         off_A = 0, off_B = 0, off_C = 0;
         for (;;){
           if (off_C >= start_off && off_C < end_off) {
-            tid_rec_ctr->A        = this->A + off_A*blk_sz_A;
-            tid_rec_ctr->B        = this->B + off_B*blk_sz_B;
-            tid_rec_ctr->C        = this->C + off_C*blk_sz_C;
+            tid_rec_ctr->A        = this->A + off_A*blk_sz_A*sr_A->el_size;
+            tid_rec_ctr->B        = this->B + off_B*blk_sz_B*sr_A->el_size;
+            tid_rec_ctr->C        = this->C + off_C*blk_sz_C*sr_A->el_size;
             if (beta_arr[off_C]>0)
               rec_ctr->beta = sr_B->mulid();
             else

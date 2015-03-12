@@ -59,7 +59,7 @@ namespace CTF_int {
     }
     swp_nval = new_num_virt*sy_packed_size(old_dist.order, sub_edge_len, sym);
     if (ord_glb_comm.rank == 0){
-      DPRINTF(1,"Tensor is of size " PRId64 ", has factor of %lf growth due to padding\n", 
+      DPRINTF(1,"Tensor is of size %ld, has factor of %lf growth due to padding\n", 
             swp_nval,
             ord_glb_comm.np*(swp_nval/(double)old_size));
     }
@@ -697,11 +697,14 @@ namespace CTF_int {
               count_store[offset]  = count[bucket]++;
               thread_store[offset] = tid;
   #else
-              //printf("[%d] bucket = %d offset = %ld\n", rank, bucket, offset);
-              //printf("[%d] count[bucket] = %d, nbucket = %d\n", rank, count[bucket]++, nbucket);
-              //std::cout << old_data[offset] << "\n";
+/*              printf("[%d] bucket = %d offset = %ld\n", rank, bucket, offset);
+              printf("[%d] count[bucket] = %d, nbucket = %d\n", rank, count[bucket]+1, nbucket);
+              std::cout << "old_data[offset]=";
+              sr->print(old_data+ sr->el_size*offset);*/
               sr->copy(new_data[bucket]+sr->el_size*(count[bucket]++), old_data+ sr->el_size*offset);
-              //std::cout << "new_data[bucket][count[bucket]++]" << new_data[bucket][count[bucket]-1] << "\n";
+/*              std::cout << "\nnew_data[bucket][count[bucket]++]=";
+              sr->print(new_data[bucket]+sr->el_size*(count[bucket]-1));
+              std::cout << "\n";*/
   #endif
               offset += old_virt_nelem;
             }
