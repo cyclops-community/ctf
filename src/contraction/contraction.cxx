@@ -2967,6 +2967,8 @@ namespace CTF_int {
     if (C->is_cyclic)
       stat = C->zero_out_padding();
   #endif
+    A->unfold();
+    B->unfold();
     if (A->wrld->rank == 0){
       DPRINTF(1, "Contraction permutation completed in %lf sec.\n",MPI_Wtime()-dtt);
     }

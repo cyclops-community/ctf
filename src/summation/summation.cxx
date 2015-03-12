@@ -1155,6 +1155,8 @@ namespace CTF_int {
   #ifndef SEQ
       stat = tnsr_B->zero_out_padding();
   #endif
+      tnsr_A->unfold();
+      tnsr_B->unfold();
 
   #if 0 //VERIFY
       stat = allread_tsr(ntid_A, &nA, &uA);
