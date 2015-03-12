@@ -1321,6 +1321,7 @@ namespace CTF_int {
 
     if (order == 0){
       alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
+
       if (glb_comm.rank == 0){
         sr->copy(tsr_cyclic_data,  tsr_data);
       } else {
@@ -1372,7 +1373,7 @@ namespace CTF_int {
           blk_idx += ( idx[i] + new_dist.perank[i]*new_dist.virt_phase[i])                 *phase_lda[i];
           prc_idx += ((idx[i] + new_dist.perank[i]*new_dist.virt_phase[i])/old_dist.virt_phase[i])*old_dist.pe_lda[i];
         }
-        DPRINTF(4,"proc %d receiving blk %d (loc %d, size " PRId64 ") from proc %d\n", 
+        DPRINTF(3,"proc %d receiving blk %d (loc %d, size %ld) from proc %d\n", 
                 glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx);
         MPI_Irecv(tsr_cyclic_data+sr->el_size*loc_idx*blk_sz, blk_sz*sr->el_size, 
                   MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+loc_idx);
@@ -1399,8 +1400,8 @@ namespace CTF_int {
           blk_idx += ( idx[i] + old_dist.perank[i]*old_dist.virt_phase[i])                 *phase_lda[i];
           prc_idx += ((idx[i] + old_dist.perank[i]*old_dist.virt_phase[i])/new_dist.virt_phase[i])*new_dist.pe_lda[i];
         }
-        DPRINTF(4,"proc %d sending blk %d (loc %d) to proc %d\n", 
-                glb_comm.rank, blk_idx, loc_idx, prc_idx);
+        DPRINTF(3,"proc %d sending blk %d (loc %d size %ld) to proc %d el_size = %d\n", 
+                glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx, sr->el_size);
         MPI_Isend(tsr_data+sr->el_size*loc_idx*blk_sz, blk_sz*sr->el_size, 
                   MPI_CHAR, prc_idx, blk_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
         for (i=0; i<order; i++){

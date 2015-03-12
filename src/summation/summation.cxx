@@ -1563,6 +1563,7 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
 
+
     distribution dA(A);
     distribution dB(B);
     old_topo_A = A->topo;
@@ -1739,6 +1740,13 @@ namespace CTF_int {
     }
     ret = map_sum_indices(A->topo);
     ASSERT(ret == SUCCESS);
+    if (gtopo%2 == 0){
+      ret = map_self_indices(A, idx_A);
+      ASSERT(ret == SUCCESS);
+    } else {
+      ret = map_self_indices(B, idx_B);
+      ASSERT(ret == SUCCESS);
+    }
 
     if (gtopo%2 == 0){
       ret = map_self_indices(A, idx_A);
@@ -1765,6 +1773,14 @@ namespace CTF_int {
                               A->topo->dim_comm);
       ASSERT(ret == SUCCESS);
     }
+    if (gtopo%2 == 0){
+      ret = map_self_indices(A, idx_A);
+      ASSERT(ret == SUCCESS);
+    } else {
+      ret = map_self_indices(B, idx_B);
+      ASSERT(ret == SUCCESS);
+    }
+
 
     A->is_mapped = 1;
     B->is_mapped = 1;

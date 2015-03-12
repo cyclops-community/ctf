@@ -1288,6 +1288,7 @@ namespace CTF_int {
     char * shuffled_data_corr;
   #endif
 
+
     distribution new_dist = distribution(this);
   #ifdef USE_BLOCK_RESHUFFLE
     can_block_shuffle = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
@@ -1390,6 +1391,7 @@ namespace CTF_int {
     }
     if (abortt) ABORT;
     CTF_int::cfree(shuffled_data_corr);
+
 
   #endif
     if (this->profile) {

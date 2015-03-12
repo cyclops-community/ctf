@@ -62,7 +62,6 @@ int  gemm_4D(int const    n,
   for (i=0; i<niter; i++){
     C["ijkl"] += (.3*i)*A["ijmn"]*B["mnkl"];
   }
-  C.print();
   time = MPI_Wtime()- t;
   if (rank == 0){
     double nd = (double)n;
