@@ -71,6 +71,7 @@ namespace CTF_int {
     char d[] = "\'";
     strcpy(nname, other->name);
     strcat(nname, d);
+    DPRINTF(1,"Cloning tensor %s into %s copy=%d alloc_data=%d\n",other->name, nname,copy, alloc_data);
     this->init(other->sr, other->order, other->lens,
                other->sym, other->wrld, (!copy & alloc_data), nname,
                other->profile);
@@ -1287,7 +1288,6 @@ namespace CTF_int {
   #if VERIFY_REMAP
     char * shuffled_data_corr;
   #endif
-
 
     distribution new_dist = distribution(this);
   #ifdef USE_BLOCK_RESHUFFLE
