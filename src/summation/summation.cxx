@@ -261,7 +261,7 @@ namespace CTF_int {
     CTF::conv_idx<int>(ftsr_A->order, fidx_map_A, &sidx_A,
                        ftsr_B->order, fidx_map_B, &sidx_B);
 
-    summation fold_sum = summation(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
+    summation fold_sum(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
     free(sidx_A);
     free(sidx_B);
   #if DEBUG>=2
@@ -942,6 +942,7 @@ namespace CTF_int {
             tnsr_B->sr->addinv(alpha, new_alpha);
           perm_types[i].alpha = new_alpha;
           perm_types[i].beta = dbeta;
+          perm_types[i].A->zero_out_padding();
           perm_types[i].sum_tensors(run_diag);
           /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                       perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
@@ -1152,9 +1153,6 @@ namespace CTF_int {
       sumf->run();
       A->topo->deactivate();
       TAU_FSTOP(sum_func);
-  #ifndef SEQ
-      stat = tnsr_B->zero_out_padding();
-  #endif
       tnsr_A->unfold();
       tnsr_B->unfold();
 
@@ -1203,6 +1201,9 @@ namespace CTF_int {
       }
       ASSERT(tnsr_B == B);
     }
+  //#ifndef SEQ
+    stat = B->zero_out_padding();
+  //#endif
     CTF_int::cfree(map_A);
     CTF_int::cfree(map_B);
     CTF_int::cfree(dstack_map_B);
@@ -1564,7 +1565,6 @@ namespace CTF_int {
     B->unfold();
     A->set_padding();
     B->set_padding();
-
 
     distribution dA(A);
     distribution dB(B);

@@ -1168,7 +1168,7 @@ namespace CTF_int {
       nvirt = this->calc_nvirt();
       for (i=0; i<nvirt; i++){
         nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
-                               this->data + i*(this->size/nvirt), 0, sr);
+                               this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
       }
       delete this->rec_tsr;
       CTF_int::cfree(this->inner_ordering);
@@ -1177,6 +1177,8 @@ namespace CTF_int {
 
     }  
     this->is_folded = 0;
+    //maybe not necessary
+    set_padding();
   }
 
   void tensor::fold(int         nfold,

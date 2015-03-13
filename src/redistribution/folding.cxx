@@ -186,7 +186,12 @@ namespace CTF_int {
               sr->copy(last_max-tidx_off, data+sr->el_size*(off_old), lda[0], swap_data+sr->el_size*(off_new-toff_new), new_lda[0]);
             else
               sr->copy(last_max-tidx_off, data+sr->el_size*(off_new), new_lda[0], swap_data+sr->el_size*(off_old-toff_old), lda[0]);
-
+/*            printf("Wrote following values from");
+            for (int asi=0; asi<lda[0]; asi++){
+              printf("\n %ld to %ld\n",(off_new)+asi,(off_old-toff_old)+asi*lda[0]);
+              sr->print(data+sr->el_size*(off_new+asi*lda[0]));
+            }
+            printf("\n");*/
             idx[0] = tidx_off;
           } 
 

@@ -47,12 +47,12 @@ int ccsdt_t3_to_t2(int const     n,
   int mmmnnn[] = {m,m,m,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor AS_A(4, nnnm, shapeTS4, dw, "A", 1);
-  CTF_Tensor AS_B(6, mmmnnn, shapeAS6, dw, "B", 1);
+  CTF_Tensor AS_A(4, nnnm, shapeTS4, dw, "AS_A", 1);
+  CTF_Tensor AS_B(6, mmmnnn, shapeAS6, dw, "AS_B", 1);
   CTF_Tensor HS_B(6, mmmnnn, shapeHS6, dw);
   CTF_Tensor AS_C(4, mmnn, shapeAS4, dw, "AS_C", 1);
-  CTF_Tensor NS_A(4, nnnm, shapeNS4, dw);
-  CTF_Tensor NS_B(6, mmmnnn, shapeTS6, dw);
+  CTF_Tensor NS_A(4, nnnm, shapeNS4, dw, "NS_A", 1);
+  CTF_Tensor NS_B(6, mmmnnn, shapeTS6, dw, "NS_B", 1);
   CTF_Tensor NS_C(4, mmnn, shapeTS4, dw);
 
 #if DEBUG  >= 1

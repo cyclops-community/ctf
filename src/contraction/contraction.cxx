@@ -358,7 +358,6 @@ namespace CTF_int {
     int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
     int * all_flen_A, * all_flen_B, * all_flen_C;
     tensor * fA, * fB, * fC;
-    contraction fold_ctr;
     iparam iprm;
 
     get_fold_indices(&nfold, &fold_idx);
@@ -412,15 +411,21 @@ namespace CTF_int {
     fA = A->rec_tsr;
     fB = B->rec_tsr;
     fC = C->rec_tsr;
-
+/*
     fold_ctr.A = fA; 
     fold_ctr.B = fB; 
-    fold_ctr.C = fC; 
+    fold_ctr.C = fC; */
 
-    CTF::conv_idx<int>(fA->order, fidx_A, &fold_ctr.idx_A,
-                       fB->order, fidx_B, &fold_ctr.idx_B,
-                       fC->order, fidx_C, &fold_ctr.idx_C);
+    int * sidx_A, * sidx_B, * sidx_C;
+    CTF::conv_idx<int>(fA->order, fidx_A, &sidx_A,
+                       fB->order, fidx_B, &sidx_B,
+                       fC->order, fidx_C, &sidx_C);
 
+    contraction fold_ctr(fA, sidx_A, fB, sidx_B, alpha, fC, sidx_C, beta);
+
+    free(sidx_A);
+    free(sidx_B);
+    free(sidx_C);
   #if DEBUG>=2
     CommData global_comm = A->wrld->cdt;
     if (global_comm.rank == 0){
