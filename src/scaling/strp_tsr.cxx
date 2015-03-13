@@ -60,11 +60,11 @@ namespace CTF_int {
     boff = 0;
     for (;;){
       if (dir)
-        sr_A->copy(A+toff*blk_sz, buffer+boff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz);
+        sr_A->copy(A+sr_A->el_size*toff*blk_sz, buffer+sr_A->el_size*boff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz);
       else {
     /*    printf("boff = %d, toff = %d blk_sz = " PRId64 " mv_ez=" PRId64 "\n",boff,toff,blk_sz,
                 (edge_len[0]/strip_dim[0])*blk_sz*sr_A->el_size);*/
-        sr_A->copy(buffer+boff*blk_sz, A+toff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz);
+        sr_A->copy(buffer+sr_A->el_size*boff*blk_sz, A+sr_A->el_size*toff*blk_sz, (edge_len[0]/strip_dim[0])*blk_sz);
       }
       boff += (edge_len[0]/strip_dim[0]);
 

@@ -30,7 +30,7 @@ namespace CTF_int {
 
   void tensor::free_self(){
     if (order != -1){
-      if (wrld->rank == 0) VPRINTF(1,"Deleted order %d tensor %s\n",order,name);
+      if (wrld->rank == 0) DPRINTF(1,"Deleted order %d tensor %s\n",order,name);
       if (is_folded) unfold();
       cfree(name);
       cfree(sym);
@@ -201,7 +201,7 @@ namespace CTF_int {
       this->name[6] = '\0';
     }
     if (wrld->rank == 0)
-      VPRINTF(1,"Created order %d tensor %s\n",order,name);
+      DPRINTF(1,"Created order %d tensor %s\n",order,name);
 
     this->pairs    = NULL;
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
@@ -309,7 +309,9 @@ namespace CTF_int {
       sub_edge_len[i] = this->pad_edge_len[i]/new_phase[i];
     }
     this->size = calc_nvirt()*sy_packed_size(this->order, sub_edge_len, this->sym);
-    
+   
+    //NEW: I think its always true
+    is_mapped = 1; 
 
     CTF_int::cfree(sub_edge_len);
     CTF_int::cfree(new_phase);
@@ -324,7 +326,7 @@ namespace CTF_int {
   int tensor::set_zero() {
     int * restricted;
     int i, map_success, btopo;
-//    int64_t nvirt, bnvirt;
+    int64_t nvirt, bnvirt;
     int64_t memuse, bmemuse;
 
     if (this->is_mapped){
@@ -337,7 +339,7 @@ namespace CTF_int {
   //      memset(restricted, 0, this->order*sizeof(int));
 
         /* Map the tensor if necessary */
-    //    bnvirt = INT64_MAX;, 
+        bnvirt = INT64_MAX;
         btopo = -1;
         bmemuse = INT64_MAX;
         for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
@@ -361,10 +363,11 @@ namespace CTF_int {
               continue;
             }
 
-//            nvirt = (int64_t)this->calc_nvirt();
-//            ASSERT(nvirt != 0);
-            if (btopo == -1){// || nvirt < bnvirt){
-//              bnvirt = nvirt;
+            nvirt = (int64_t)this->calc_nvirt();
+            ASSERT(nvirt != 0);
+            //for consistency with old code compare nvirt, but might b et better to discard
+            if (btopo == -1 || nvirt < bnvirt){
+              bnvirt = nvirt;
               btopo = i;
               bmemuse = memuse;
             } else if (memuse < bmemuse){
@@ -528,17 +531,19 @@ namespace CTF_int {
                                char **         sub_buffer_){
     int is_sub = 0;
     //FIXME: assumes order 0 dummy, what if we run this on actual order 0 tensor?
-    if (order != 0) is_sub = 1;
+    if (order != -1) is_sub = 1;
     int tot_sub;
     MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, greater_world->comm);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
     //this should in most sane cases ensure that a unique subcomm is involved
-    if (order == 0) ASSERT(tot_sub == wrld->np);
+    if (order != -1) ASSERT(tot_sub == wrld->np);
+    int aorder;
+    MPI_Allreduce(&order, &aorder, 1, MPI_INT, MPI_MAX, greater_world->comm);
 
     int sub_root_rank = 0;
-    int buf_sz = get_distribution_size(order);
+    int buf_sz = get_distribution_size(aorder);
     char * buffer;
-    if (order != 0 && wrld->rank == 0){
+    if (order >= 0 && wrld->rank == 0){
       MPI_Allreduce(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
       ASSERT(sub_root_rank == greater_world->rank);
       distribution dstrib = distribution(this);
@@ -549,6 +554,7 @@ namespace CTF_int {
     } else {
       buffer = (char*)CTF_int::alloc(buf_sz);
       MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
+      printf("broadcasting %d from rank %d, collecting %d\n",buf_sz,sub_root_rank,greater_world->rank);
       MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
     }
     odst = new distribution(buffer);
@@ -557,7 +563,7 @@ namespace CTF_int {
     bw_mirror_rank = -1;
     fw_mirror_rank = -1;
     MPI_Request req;
-    if (order != 0){
+    if (order >= 0){
       fw_mirror_rank = wrld->rank;
       MPI_Isend(&(greater_world->rank), 1, MPI_INT, wrld->rank, 13, greater_world->comm, &req);
     }
@@ -704,14 +710,14 @@ namespace CTF_int {
     CTF_int::cfree(toffset_B);
   }
  
-#define USE_SLICE_FOR_SUBWORLD
+//#define USE_SLICE_FOR_SUBWORLD
   void tensor::add_to_subworld(tensor *     tsr_sub,
                                char const * alpha,
                                char const * beta){
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
-    if (tsr_sub == NULL){
+    if (tsr_sub->order == -1){ // == NULL){
 //      CommData * cdt = new CommData(MPI_COMM_SELF);
     // (CommData*)CTF_int::alloc(sizeof(CommData));
     //  SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
@@ -731,7 +737,7 @@ namespace CTF_int {
 
 /*    redistribute(sym, wrld->comm, idst, this->data, alpha, 
                                    odst, sub_buffer,      beta);*/
-    cyclic_reshuffle(sym, idst, NULL, NULL, *odst, NULL, NULL, &this->data, &sub_buffer, sr, wrld->cdt, 1, alpha, beta);
+    cyclic_reshuffle(sym, idst, NULL, NULL, *odst, NULL, NULL, &this->data, &sub_buffer, sr, wrld->cdt, 0, alpha, beta);
 
     MPI_Request req;
     if (fw_mirror_rank >= 0){
@@ -756,7 +762,7 @@ namespace CTF_int {
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
-    if (tsr_sub == NULL){
+    if (tsr_sub->order == -1){ // == NULL){
       World dt_self = World(MPI_COMM_SELF);
       tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self);
       slice(offsets, offsets, beta, &stsr, NULL, NULL, alpha);
@@ -773,7 +779,7 @@ namespace CTF_int {
 
 /*    redistribute(sym, wrld->cdt, odst, sub_buffer,     alpha,
                                    idst, this->data,  beta);*/
-    cyclic_reshuffle(sym, idst, NULL, NULL, *odst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 1, alpha, beta);
+    cyclic_reshuffle(sym, *odst, NULL, NULL, idst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 0, alpha, beta);
     CTF_int::cfree(sub_buffer);
   #endif
 
@@ -1169,7 +1175,7 @@ namespace CTF_int {
       nvirt = this->calc_nvirt();
       for (i=0; i<nvirt; i++){
         nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
-                               this->data + i*(this->size/nvirt), 0, sr);
+                               this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
       }
       delete this->rec_tsr;
       CTF_int::cfree(this->inner_ordering);
@@ -1178,6 +1184,8 @@ namespace CTF_int {
 
     }  
     this->is_folded = 0;
+    //maybe not necessary
+    set_padding();
   }
 
   void tensor::fold(int         nfold,

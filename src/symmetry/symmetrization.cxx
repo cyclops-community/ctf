@@ -112,6 +112,7 @@ namespace CTF_int {
                                      nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
 
           csum.sum_tensors(0);
+          nonsym_tsr->print();
           if (rev_sign == -1) free(mksign);
           idx_map_A[sym_dim] = sym_dim;
           idx_map_A[sym_dim+i+1] = sym_dim+i+1;
@@ -156,7 +157,9 @@ namespace CTF_int {
             char * scalf = (char*)malloc(nonsym_tsr->sr->el_size);
             nonsym_tsr->sr->cast_double(((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg), scalf);
             scaling sscl(nonsym_tsr, idx_map_A, scalf);
+            nonsym_tsr->print();
             sscl.execute();
+            nonsym_tsr->print();
     /*        printf("tid %d after scale\n", nonsym_tid);
             print_tsr(stdout, nonsym_tid);*/
   //          if (ret != CTF_SUCCESS) ABORT;

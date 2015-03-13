@@ -261,7 +261,7 @@ namespace CTF_int {
     CTF::conv_idx<int>(ftsr_A->order, fidx_map_A, &sidx_A,
                        ftsr_B->order, fidx_map_B, &sidx_B);
 
-    summation fold_sum = summation(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
+    summation fold_sum(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
     free(sidx_A);
     free(sidx_B);
   #if DEBUG>=2
@@ -919,6 +919,7 @@ namespace CTF_int {
         if (A->wrld->cdt.rank == 0)
           DPRINTF(1,"Performing index desymmetrization\n");
         desymmetrize(tnsr_A, unfold_sum->A, 0);
+        unfold_sum->A->print();
         unfold_sum->B = tnsr_B;
         unfold_sum->sym_sum_tsr(run_diag);
 //        sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
@@ -942,6 +943,7 @@ namespace CTF_int {
             tnsr_B->sr->addinv(alpha, new_alpha);
           perm_types[i].alpha = new_alpha;
           perm_types[i].beta = dbeta;
+          perm_types[i].A->zero_out_padding();
           perm_types[i].sum_tensors(run_diag);
           /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                       perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
@@ -1146,17 +1148,30 @@ namespace CTF_int {
       }*/
   #endif
 
+  #if DEBUG >= 2
+      if (tnsr_B->wrld->rank==0)
+        sumf->print();
+  #endif
       TAU_FSTART(sum_func);
       /* Invoke the contraction algorithm */
       A->topo->activate();
+      tnsr_A->print();
+      MPI_Barrier(tnsr_B->wrld->comm);
       sumf->run();
+      tnsr_B->unfold();
+      tnsr_B->print();
+      MPI_Barrier(tnsr_B->wrld->comm);
+      if (tnsr_B->wrld->rank==1){
+      for (int i=0; i<tnsr_B->size; i++){
+        printf("[%d] %dth element  ",tnsr_B->wrld->rank,i);
+        tnsr_B->sr->print(tnsr_B->data+i*tnsr_B->sr->el_size);
+        printf("\n");
+      }
+      }
       A->topo->deactivate();
-      TAU_FSTOP(sum_func);
-  #ifndef SEQ
-      stat = tnsr_B->zero_out_padding();
-  #endif
       tnsr_A->unfold();
       tnsr_B->unfold();
+      TAU_FSTOP(sum_func);
 
   #if 0 //VERIFY
       stat = allread_tsr(ntid_A, &nA, &uA);
@@ -1203,6 +1218,9 @@ namespace CTF_int {
       }
       ASSERT(tnsr_B == B);
     }
+  //#ifndef SEQ
+    //stat = B->zero_out_padding();
+  //#endif
     CTF_int::cfree(map_A);
     CTF_int::cfree(map_B);
     CTF_int::cfree(dstack_map_B);
@@ -1565,7 +1583,6 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
 
-
     distribution dA(A);
     distribution dB(B);
     old_topo_A = A->topo;
@@ -1776,10 +1793,10 @@ namespace CTF_int {
       ASSERT(ret == SUCCESS);
     }
     if (gtopo%2 == 0){
-      ret = map_self_indices(A, idx_A);
+      ret = map_self_indices(B, idx_B);
       ASSERT(ret == SUCCESS);
     } else {
-      ret = map_self_indices(B, idx_B);
+      ret = map_self_indices(A, idx_A);
       ASSERT(ret == SUCCESS);
     }
 
