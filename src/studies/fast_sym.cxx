@@ -65,12 +65,14 @@ int fast_sym(int const     n,
     free(indices);
     free(values);
   }
-  C_ans["ij"] = A["ik"]*B["kj"];
+  C_ans["ij"] += A["ik"]*B["kj"];
 #ifdef USE_SYM_SUM
   A_rep["ijk"] += A["ij"];
   B_rep["ijk"] += B["ij"];
   Z["ijk"] += A_rep["ijk"]*B_rep["ijk"];
+  Z.print();
   C["ij"] += Z["ijk"];
+  C.print();
   Cs["i"] += A["ik"]*B["ik"];
   As["i"] += A["ik"];
   Bs["i"] += B["ik"];

@@ -721,8 +721,9 @@ namespace CTF_int {
               thread_store[offset] = tid;
   #else
               if (is_copy) 
-                sr->copy(old_data+ sr->el_size*offset, new_data[bucket]+sr->el_size*(count[bucket]++));
-              else sr->acc(old_data+ sr->el_size*offset, beta, new_data[bucket]+sr->el_size*(count[bucket]++), alpha);
+                sr->copy(old_data+sr->el_size*offset,       new_data[bucket]+sr->el_size*(count[bucket]++));
+              else 
+                sr->acc( old_data+sr->el_size*offset, beta, new_data[bucket]+sr->el_size*(count[bucket]++), alpha);
 //              old_data[offset] = beta*old_data[offset] + alpha*new_data[bucket][count[bucket]++];
   #endif
               offset += old_virt_nelem;
@@ -1180,7 +1181,7 @@ namespace CTF_int {
         char **new_data; alloc_ptr(sizeof(char*)*np*new_nvirt, (void**)&new_data);
         for (int64_t p = 0,b = 0;p < np;p++){
           for (int v = 0;v < new_nvirt;v++,b++)
-            new_data[b] = send_buffer+send_displs[p]+svirt_displs[b];
+            new_data[b] = send_buffer+sr->el_size*(send_displs[p]+svirt_displs[b]);
         }
 
         pad_cyclic_pup_virt_buff(sym,
@@ -1225,7 +1226,7 @@ namespace CTF_int {
         char **new_data; alloc_ptr(sizeof(char*)*np*new_nvirt, (void**)&new_data);
         for (int64_t p = 0,b = 0;p < np;p++){
           for (int v = 0;v < new_nvirt;v++,b++)
-            new_data[b] = recv_buffer+recv_displs[p]+rvirt_displs[b];
+            new_data[b] = recv_buffer+sr->el_size*(recv_displs[p]+rvirt_displs[b]);
         }
 
         bucket_offset =

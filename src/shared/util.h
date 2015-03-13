@@ -28,13 +28,13 @@ namespace CTF_int {
   #define REDIST 0
   //#define VERIFY 0
   #define VERIFY_REMAP 1
-  #define FOLD_TSR 1
+  #define FOLD_TSR 0
   #define PERFORM_DESYM 1
   #define ALLOW_NVIRT 1024
   #define DIAG_RESCALE
   #define USE_SYM_SUM
-  #define HOME_CONTRACT
-  #define USE_BLOCK_RESHUFFLE
+//  #define HOME_CONTRACT
+//  #define USE_BLOCK_RESHUFFLE
 
 
   #ifndef __APPLE__

@@ -38,6 +38,7 @@ namespace CTF_int {
       void *           buffer;
 
       virtual void run() {};
+      virtual void print() {};
       /**
        * \brief returns the number of bytes of buffer space needed
        * \return bytes needed
@@ -65,6 +66,7 @@ namespace CTF_int {
       int const * idx_map_B;
       
       void run();
+      void print();
       int64_t mem_fp();
       tsum * clone();
 
@@ -93,6 +95,7 @@ namespace CTF_int {
       tsum * rec_tsum;
       
       void run();
+      void print();
       int64_t mem_fp();
       tsum * clone();
 

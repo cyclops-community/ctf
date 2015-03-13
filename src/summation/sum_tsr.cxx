@@ -40,6 +40,17 @@ namespace CTF_int {
     return new tsum_virt(this);
   }
 
+  void tsum_virt::print(){
+    int i;
+    printf("tsum_virt:\n");
+    printf("blk_sz_A = %ld, blk_sz_B = %ld\n",
+            blk_sz_A, blk_sz_B);
+    for (i=0; i<num_dim; i++){
+      printf("virt_dim[%d] = %d\n", i, virt_dim[i]);
+    }
+    rec_tsum->print();
+  }
+
   int64_t tsum_virt::mem_fp(){
     return (order_A+order_B+3*num_dim)*sizeof(int);
   }
@@ -121,6 +132,22 @@ namespace CTF_int {
     TAU_FSTOP(sum_virt);
   }
 
+  void tsum_replicate::print(){
+    int i;
+    printf("tsum_replicate: \n");
+    printf("cdt_A = %p, size_A = %ld, ncdt_A = %d\n",
+            cdt_A, size_A, ncdt_A);
+    for (i=0; i<ncdt_A; i++){
+      printf("cdt_A[%d] length = %d\n",i,cdt_A[i]->np);
+    }
+    printf("cdt_B = %p, size_B = %ld, ncdt_B = %d\n",
+            cdt_B, size_B, ncdt_B);
+    for (i=0; i<ncdt_B; i++){
+      printf("cdt_B[%d] length = %d\n",i,cdt_B[i]->np);
+    }
+
+    rec_tsum->print();
+  }
 
   tsum_replicate::~tsum_replicate() {
     delete rec_tsum;
@@ -179,7 +206,6 @@ namespace CTF_int {
     rec_tsum->run();
     
     for (i=0; i<ncdt_B; i++){
-      /* FIXME Won't work for single precision */
       MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i]->cm);
     }
 

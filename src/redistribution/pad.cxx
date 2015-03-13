@@ -541,7 +541,7 @@ namespace CTF_int {
             break;
         }
       }
-      //ASSERT(buf_offset == size/nvirt);
+      ASSERT(buf_offset == size/nvirt);
       CTF_int::cfree(idx);
       CTF_int::cfree(virt_rank);
       CTF_int::cfree(virt_len);

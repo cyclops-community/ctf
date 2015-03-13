@@ -3232,7 +3232,6 @@ namespace CTF_int {
         for (i=0; i<C->order; i++){
           if (C->sym[i] == SY) sy = 1;
         }
-        CTF_int::cfree(sym);
         if (sy && unfold_ctr->map(&ctrf, 0) == SUCCESS){
   #endif
           if (tnsr_A == tnsr_B){

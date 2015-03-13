@@ -243,8 +243,10 @@ namespace CTF {
                                       Tensor &      A,
                                       int * const * perms_A,
                                       dtype         alpha){
+    tensor t = tensor();
+    t.sr = sr->clone();
     int ret = CTF_int::tensor::permute(&A, perms_A, (char*)&alpha,
-                                           NULL, (char*)&beta);
+                                           &t, (char*)&beta);
     assert(ret == SUCCESS);
   }
 
@@ -253,7 +255,9 @@ namespace CTF {
                                       dtype         beta,
                                       Tensor &      A,
                                       dtype         alpha){
-    int ret = CTF_int::tensor::permute(&A, NULL, (char*)&alpha,
+    tensor t = tensor();
+    t.sr = sr->clone();
+    int ret = CTF_int::tensor::permute(&A, &t, (char*)&alpha,
                                            perms_B, (char*)&beta);
     assert(ret == SUCCESS);
   }
@@ -262,9 +266,11 @@ namespace CTF {
                                      Tensor<dtype, is_ord> * tsr,
                                      dtype                   alpha,
                                      dtype                   beta){
-    if (tsr == NULL)
-      CTF_int::tensor::add_to_subworld(NULL, (char*)&alpha, (char*)&beta);
-    else
+    if (tsr == NULL){
+      tensor t = tensor();
+      t.sr = sr->clone();
+      CTF_int::tensor::add_to_subworld(&t, (char*)&alpha, (char*)&beta);
+    } else
       CTF_int::tensor::add_to_subworld(tsr, (char*)&alpha, (char*)&beta);
   }
  
@@ -279,16 +285,23 @@ namespace CTF {
                                  Tensor<dtype, is_ord> * tsr,
                                  dtype                   alpha,
                                  dtype                   beta){
-    if (tsr == NULL)
-      CTF_int::tensor::add_from_subworld(NULL, (char*)&alpha, (char*)&beta);
-    else
+    if (tsr == NULL){
+      tensor t = tensor();
+      t.sr = sr->clone();
+      CTF_int::tensor::add_from_subworld(&t, (char*)&alpha, (char*)&beta);
+    } else
       CTF_int::tensor::add_from_subworld(tsr, (char*)&alpha, (char*)&beta);
   }
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::add_from_subworld(
                            Tensor<dtype, is_ord> * tsr){
-    return CTF_int::tensor::add_from_subworld(tsr, sr->mulid(), sr->mulid());
+    if (tsr == NULL){
+      tensor t = tensor();
+      t.sr = sr->clone();
+      return CTF_int::tensor::add_from_subworld(&t, sr->mulid(), sr->mulid());
+    } else
+      return CTF_int::tensor::add_from_subworld(tsr, sr->mulid(), sr->mulid());
   }
 
   template<typename dtype, bool is_ord>
