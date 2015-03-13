@@ -15,18 +15,12 @@
 #include "../src/dist_tensor/cyclopstf.hpp"
 
 /**
- * labels corresponding to symmetry of each tensor dimension
+ * labels corresponding to symmetry of each tensor dimension CTF_SYM
  * NS = 0 - nonsymmetric
  * SY = 1 - symmetric
  * AS = 2 - antisymmetric
  * SH = 3 - symmetric hollow
  */
-#if (!defined NS && !defined SY && !defined SH)
-#define NS 0
-#define SY 1
-#define AS 2
-#define SH 3
-#endif
 
 typedef long_int int64_t;
 

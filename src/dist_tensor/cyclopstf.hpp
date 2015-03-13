@@ -38,12 +38,8 @@ enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS,
  * AS = 2 - antisymmetric
  * SH = 3 - symmetric hollow
  */
-#if (!defined NS && !defined SY && !defined SH)
-#define NS 0
-#define SY 1
-#define AS 2
-#define SH 3
-#endif
+enum CTF_SYM { NS, SY, AS, SH };
+
 typedef int64_t long_int;
 typedef long_int key;
 
