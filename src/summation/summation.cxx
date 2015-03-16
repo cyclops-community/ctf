@@ -919,7 +919,6 @@ namespace CTF_int {
         if (A->wrld->cdt.rank == 0)
           DPRINTF(1,"Performing index desymmetrization\n");
         desymmetrize(tnsr_A, unfold_sum->A, 0);
-        unfold_sum->A->print();
         unfold_sum->B = tnsr_B;
         unfold_sum->sym_sum_tsr(run_diag);
 //        sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
@@ -1093,10 +1092,10 @@ namespace CTF_int {
   #if REDIST
       if (1) {
   #else
-      if (check_mapping() == 0) {
+      if (new_sum.check_mapping() == 0) {
   #endif
         /* remap if necessary */
-        stat = map();
+        stat = new_sum.map();
         if (stat == ERROR) {
           printf("Failed to map tensors to physical grid\n");
           return ERROR;
@@ -1106,17 +1105,17 @@ namespace CTF_int {
         if (A->wrld->cdt.rank == 0){
           printf("Keeping mappings:\n");
         }
-        A->print_map(stdout);
-        B->print_map(stdout);
+        tnsr_A->print_map(stdout);
+        tnsr_B->print_map(stdout);
   #endif
       }
       /* Construct the tensor algorithm we would like to use */
-      ASSERT(check_mapping());
+      ASSERT(new_sum.check_mapping());
   #if FOLD_TSR
-      if (is_custom == false && can_fold()){
+      if (is_custom == false && new_sum.can_fold()){
         int inner_stride;
         TAU_FSTART(map_fold);
-        inner_stride = map_fold();
+        inner_stride = new_sum.map_fold();
         TAU_FSTOP(map_fold);
         sumf = new_sum.construct_sum(inner_stride);
         /*alpha, beta, ntid_A, map_A, ntid_B, map_B,
@@ -1151,14 +1150,15 @@ namespace CTF_int {
   #if DEBUG >= 2
       if (tnsr_B->wrld->rank==0)
         sumf->print();
+      tnsr_A->print_map();
+      tnsr_B->print_map();
   #endif
       TAU_FSTART(sum_func);
       /* Invoke the contraction algorithm */
-      A->topo->activate();
-      tnsr_A->print();
+      tnsr_A->topo->activate();
       MPI_Barrier(tnsr_B->wrld->comm);
       sumf->run();
-      tnsr_B->unfold();
+      /*tnsr_B->unfold();
       tnsr_B->print();
       MPI_Barrier(tnsr_B->wrld->comm);
       if (tnsr_B->wrld->rank==1){
@@ -1167,10 +1167,13 @@ namespace CTF_int {
         tnsr_B->sr->print(tnsr_B->data+i*tnsr_B->sr->el_size);
         printf("\n");
       }
-      }
-      A->topo->deactivate();
+      }*/
+      tnsr_A->topo->deactivate();
       tnsr_A->unfold();
       tnsr_B->unfold();
+#ifndef SEQ
+      stat = tnsr_B->zero_out_padding();
+#endif
       TAU_FSTOP(sum_func);
 
   #if 0 //VERIFY
@@ -1354,7 +1357,7 @@ namespace CTF_int {
 
   int summation::check_mapping(){
     int i, pass, order_tot, iA, iB;
-    int * idx_arr, * phys_map;
+    int * idx_arr; //, * phys_map;
     mapping * map;
 
     TAU_FSTART(check_sum_mapping);
@@ -1364,6 +1367,8 @@ namespace CTF_int {
     if (B->is_mapped == 0) pass = 0;
     
     
+  if (A->is_folded == 1) pass = 0;
+  if (B->is_folded == 1) pass = 0;
     
     if (A->topo != B->topo) pass = 0;
 
@@ -1373,8 +1378,8 @@ namespace CTF_int {
       return 0;
     }
     
-    CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
-    memset(phys_map, 0, sizeof(int)*A->topo->order);
+    //CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
+    //memset(phys_map, 0, sizeof(int)*A->topo->order);
 
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -1396,7 +1401,7 @@ namespace CTF_int {
           DPRINTF(4,"failed confirmation here i=%d\n",i);
         }
       }
-      if (iA != -1) {
+      /*if (iA != -1) {
         map = &A->edge_map[iA];
         if (map->type == PHYSICAL_MAP)
           phys_map[map->cdt] = 1;
@@ -1415,7 +1420,7 @@ namespace CTF_int {
           if (map->type == PHYSICAL_MAP)
             phys_map[map->cdt] = 1;
         }
-      }
+      }*/
     }
     /* Ensure that something is mapped to each dimension, since replciation
        does not make sense in sum for all tensors */
@@ -1426,7 +1431,7 @@ namespace CTF_int {
       }
     }*/
 
-    CTF_int::cfree(phys_map);
+    //CTF_int::cfree(phys_map);
     CTF_int::cfree(idx_arr);
 
     TAU_FSTOP(check_sum_mapping);
@@ -1749,6 +1754,9 @@ namespace CTF_int {
 
     A->topo = wrld->topovec[gtopo/2];
     B->topo = wrld->topovec[gtopo/2];
+
+    A->is_mapped = 1;
+    B->is_mapped = 1;
       
     if (gtopo%2 == 0){
       ret = map_self_indices(A, idx_A);
@@ -1800,10 +1808,7 @@ namespace CTF_int {
       ASSERT(ret == SUCCESS);
     }
 
-
-    A->is_mapped = 1;
-    B->is_mapped = 1;
-
+    ASSERT(check_mapping());
 
     A->set_padding();
     B->set_padding();

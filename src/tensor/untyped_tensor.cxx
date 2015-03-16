@@ -435,6 +435,7 @@ namespace CTF_int {
 
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
+      printf("printing mapping of %s\n",name);
       printf("CTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
         int tp = edge_map[dim].calc_phase();
@@ -553,7 +554,6 @@ namespace CTF_int {
     } else {
       buffer = (char*)CTF_int::alloc(buf_sz);
       MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
-      printf("broadcasting %d from rank %d, collecting %d\n",buf_sz,sub_root_rank,greater_world->rank);
       MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
     }
     odst = new distribution(buffer);

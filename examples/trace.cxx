@@ -75,8 +75,6 @@ int trace(int const     n,
   tr3 = DIAG.reduce(CTF::OP_SUM);
   DIAG["i"] = C4["ii"];
   tr4 = DIAG.reduce(CTF::OP_SUM);
-  C4.print();
-  DIAG.print();
  
   int pass = 1; 
   if (rank == 0){

@@ -2956,9 +2956,11 @@ namespace CTF_int {
         (double)proc_bytes_available());
     }
   #endif
-  /*  print_map(stdout, type->tid_A);
-    print_map(stdout, type->tid_B);
-    print_map(stdout, type->tid_C);*/
+  #if DEBUG >=2
+    A->print_map();
+    B->print_map();
+    C->print_map();
+  #endif
   //  stat = zero_out_padding(type->tid_A);
   //  stat = zero_out_padding(type->tid_B);
     TAU_FSTART(ctr_func);
