@@ -79,8 +79,8 @@ int trace(int const     n,
   int pass = 1; 
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-    printf("tr(ABCD)=%lf, tr(DABC)=%lf, tr(CDAB)=%lf, tr(BCDA)=%lf\n",
-            tr1, tr2, tr3, tr4);
+    /*printf("tr(ABCD)=%lf, tr(DABC)=%lf, tr(CDAB)=%lf, tr(BCDA)=%lf\n",
+            tr1, tr2, tr3, tr4);*/
     if (fabs(tr1-tr2)/tr1>1.E-10 || fabs(tr2-tr3)/tr2>1.E-10 || fabs(tr3-tr4)/tr3>1.E-10){
       pass = 0;
     }

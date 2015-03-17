@@ -2081,7 +2081,7 @@ namespace CTF_int {
   #endif
     ASSERT(check_mapping());
   
-
+#if 0
     nvirt_all = -1;
     old_nvirt_all = -2;
     while (nvirt_all < MIN_NVIRT){
@@ -2115,6 +2115,7 @@ namespace CTF_int {
           stretch_virt(C->order, 2, C->edge_map);
         }
       }
+#endif
       A->set_padding();
       B->set_padding();
       C->set_padding();

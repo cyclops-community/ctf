@@ -441,11 +441,21 @@ namespace CTF_int {
                       int64_t      lda_b,
                       char const * beta) const {
     if (!isequal(beta, mulid())){
-      if (lda_b == m)
-        scal(m*n, beta, b, 1);
-      else {
-        for (int i=0; i<n; i++){
-          scal(m, beta, b+i*lda_b*el_size, 1);
+      if (isequal(beta, addid())){
+        if (lda_b == 1)
+          set(b, addid(), m*n);
+        else {
+          for (int i=0; i<n; i++){
+            set(b+i*lda_b*el_size, addid(), m);
+          }
+        }
+      } else {
+        if (lda_b == m)
+          scal(m*n, beta, b, 1);
+        else {
+          for (int i=0; i<n; i++){
+            scal(m, beta, b+i*lda_b*el_size, 1);
+          }
         }
       }
     }

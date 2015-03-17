@@ -63,6 +63,7 @@ int readall_test(int const    n,
 
   assert(ns == n*n*m*m);
   
+
   pass = 1;
   if (rank == 0){
     for (i=0; i<ns; i++){

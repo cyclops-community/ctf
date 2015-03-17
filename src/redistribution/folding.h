@@ -67,7 +67,7 @@ namespace CTF_int {
                        int              dir,
                        int              max_ntd,
                        char **          tswap_data,
-                       int *            chunk_size,
+                       int64_t *        chunk_size,
                        algstrct const * sr);
 
 }

@@ -180,8 +180,8 @@ int main(int argc, char ** argv){
 
   if (getCmdOption(input_str, input_str+in_num, "-n")){
     n = atoi(getCmdOption(input_str, input_str+in_num, "-n"));
-    if (n < 0) n = 5;
-  } else n = 5;
+    if (n < 0) n = 6;
+  } else n = 6;
 
   {
     CTF_World dw(MPI_COMM_WORLD, argc, argv);

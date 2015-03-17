@@ -42,7 +42,7 @@ namespace CTF_int {
                        char *           data,
                        int              dir,
                        algstrct const * sr){
-    int * chunk_size;
+    int64_t * chunk_size;
     char ** tswap_data;
 
     TAU_FSTART(nosym_transpose);
@@ -52,12 +52,13 @@ namespace CTF_int {
     }
   #ifdef USE_OMP
     int max_ntd = MIN(16,omp_get_max_threads());
-    CTF_int::alloc_ptr(max_ntd*sizeof(char*), (void**)&tswap_data);
-    CTF_int::alloc_ptr(max_ntd*sizeof(int),   (void**)&chunk_size);
+    CTF_int::alloc_ptr(max_ntd*sizeof(char*),   (void**)&tswap_data);
+    CTF_int::alloc_ptr(max_ntd*sizeof(int64_t), (void**)&chunk_size);
+    std::fill(chunk_size, chunk_size+max_ntd, 0);
   #else
     int max_ntd=1;
-    CTF_int::alloc_ptr(sizeof(char*), (void**)&tswap_data);
-    CTF_int::alloc_ptr(sizeof(int),   (void**)&chunk_size);
+    CTF_int::alloc_ptr(sizeof(char*),   (void**)&tswap_data);
+    CTF_int::alloc_ptr(sizeof(int64_t), (void**)&chunk_size);
   #endif
     nosym_transpose(order, new_order, edge_len, data, dir, max_ntd, tswap_data, chunk_size, sr);
   #ifdef USE_OMP
@@ -98,7 +99,7 @@ namespace CTF_int {
                        int              dir,
                        int              max_ntd,
                        char **          tswap_data,
-                       int *            chunk_size,
+                       int64_t *        chunk_size,
                        algstrct const * sr){
     int64_t local_size;
     int64_t j, last_dim;

@@ -226,9 +226,9 @@ namespace CTF {
        * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
        */
       void contract(dtype        alpha,
-                    Tensor &     A,
+                    CTF_int::tensor &     A,
                     char const * idx_A,
-                    Tensor &     B,
+                    CTF_int::tensor &     B,
                     char const * idx_B,
                     dtype        beta,
                     char const * idx_C);
@@ -245,9 +245,9 @@ namespace CTF {
        * \param[in] fseq sequential operation to execute, default is multiply-add
        */
       void contract(dtype                 alpha,
-                    Tensor &              A,
+                    CTF_int::tensor &              A,
                     char const *          idx_A,
-                    Tensor &              B,
+                    CTF_int::tensor &              B,
                     char const *          idx_B,
                     dtype                 beta,
                     char const *          idx_C,
@@ -262,7 +262,7 @@ namespace CTF {
        * \param[in] idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
        */
       void sum(dtype        alpha,
-               Tensor &     A,
+               CTF_int::tensor &     A,
                char const * idx_A,
                dtype        beta,
                char const * idx_B);
@@ -277,7 +277,7 @@ namespace CTF {
        * \param[in] fseq sequential operation to execute, default is multiply-add
        */
       void sum(dtype        alpha,
-               Tensor &     A,
+               CTF_int::tensor &     A,
                char const * idx_A,
                dtype        beta,
                char const * idx_B,
@@ -309,9 +309,9 @@ namespace CTF {
        * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
        * \return time in seconds, at the moment not at all precise
        */
-      double estimate_time(Tensor &     A,
+      double estimate_time(CTF_int::tensor &     A,
                            char const * idx_A,
-                           Tensor &     B,
+                           CTF_int::tensor &     B,
                            char const * idx_B,
                            char const * idx_C);
       
@@ -322,7 +322,7 @@ namespace CTF {
        * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
        * \return time in seconds, at the moment not at all precise
        */
-      double estimate_time(Tensor &     A,
+      double estimate_time(CTF_int::tensor &     A,
                            char const * idx_A,
                            char const * idx_B);
 
@@ -332,8 +332,8 @@ namespace CTF {
        * \param[in] ends top right corner of block
        * \return new tensor corresponding to requested slice
        */
-      Tensor slice(int const * offsets,
-                   int const * ends) const;
+      Tensor<dtype, is_ord> slice(int const * offsets,
+                                  int const * ends) const;
       
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
@@ -341,8 +341,8 @@ namespace CTF {
        * \param[in] corner_end bottom right corner of block
        * \return new tensor corresponding to requested slice
       */
-      Tensor slice(int64_t corner_off,
-                   int64_t corner_end) const;
+      Tensor<dtype, is_ord> slice(int64_t corner_off,
+                                  int64_t corner_end) const;
       
       /**
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
@@ -352,9 +352,9 @@ namespace CTF {
        * \return new tensor corresponding to requested slice which lives on
        *          oworld
        */
-      Tensor slice(int const * offsets,
-                   int const * ends,
-                   World *     oworld) const;
+      Tensor<dtype, is_ord> slice(int const * offsets,
+                                  int const * ends,
+                                  World *     oworld) const;
 
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
@@ -364,9 +364,9 @@ namespace CTF {
        * \return new tensor corresponding to requested slice which lives on
        *          oworld
        */
-      Tensor slice(int64_t corner_off,
-                   int64_t corner_end,
-                   World * oworld) const;
+      Tensor<dtype, is_ord> slice(int64_t corner_off,
+                                  int64_t corner_end,
+                                  World * oworld) const;
       
       
       /**
@@ -383,7 +383,7 @@ namespace CTF {
       void slice(int const *    offsets,
                  int const *    ends,
                  dtype          beta,
-                 Tensor const & A,
+                 CTF_int::tensor const & A,
                  int const *    offsets_A,
                  int const *    ends_A,
                  dtype          alpha);
@@ -402,7 +402,7 @@ namespace CTF {
       void slice(int64_t        corner_off,
                  int64_t        corner_end,
                  dtype          beta,
-                 Tensor const & A,
+                 CTF_int::tensor const & A,
                  int64_t        corner_off_A,
                  int64_t        corner_end_A,
                  dtype          alpha);
@@ -422,7 +422,7 @@ namespace CTF {
        * \param[in] alpha scaling factor for A tensor
        */
       void permute(dtype         beta,
-                   Tensor &      A,
+                   CTF_int::tensor &      A,
                    int * const * perms_A,
                    dtype         alpha);
 
@@ -442,7 +442,7 @@ namespace CTF {
        */
       void permute(int * const * perms_B,
                    dtype         beta,
-                   Tensor &      A,
+                   CTF_int::tensor &      A,
                    dtype         alpha);
       
      /**
@@ -485,7 +485,7 @@ namespace CTF {
        * \brief aligns data mapping with tensor A
        * \param[in] A align with this tensor
        */
-      void align(Tensor const & A);
+      void align(CTF_int::tensor const & A);
 
       /**
        * \brief performs a reduction on the tensor

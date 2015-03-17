@@ -192,12 +192,12 @@ int main(int argc, char ** argv){
 
   if (getCmdOption(input_str, input_str+in_num, "-n")){
     n = atoi(getCmdOption(input_str, input_str+in_num, "-n"));
-    if (n < 0) n = 4;
-  } else n = 4;
+    if (n < 0) n = 6;
+  } else n = 6;
   if (getCmdOption(input_str, input_str+in_num, "-m")){
     m = atoi(getCmdOption(input_str, input_str+in_num, "-m"));
-    if (m < 0) m = 6;
-  } else m = 6;
+    if (m < 0) m = 7;
+  } else m = 7;
 
   if (getCmdOption(input_str, input_str+in_num, "-niter")){
     niter = atoi(getCmdOption(input_str, input_str+in_num, "-niter"));

@@ -436,7 +436,11 @@ namespace CTF_int {
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
       printf("printing mapping of %s\n",name);
-      printf("CTF: sym  len  tphs  pphs  vphs\n");
+      printf("mapped to order %d topology with dims:",topo->order);
+      for (int dim=0; dim<topo->order; dim++){
+        printf(" %d ",topo->lens[dim]);
+      }
+      printf("\nCTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
         int tp = edge_map[dim].calc_phase();
         int pp = edge_map[dim].calc_phys_phase();

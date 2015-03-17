@@ -183,6 +183,7 @@ namespace CTF_int {
                        int * const *        bucket_offset){
     int64_t *  all_virt_counts;
 
+    int act_omp_ntd;
   #ifdef USE_OMP
     int64_t vbs = sy_packed_size(old_dist.order, old_virt_edge_len, sym);
     int max_ntd = omp_get_max_threads();
@@ -349,9 +350,13 @@ namespace CTF_int {
         cfree(old_virt_idx);
         cfree(virt_rank);
         cfree(spad);
+#pragma omp master
+        {
+          act_omp_ntd = omp_ntd;
+        }
         }
   #ifdef USE_OMP
-        for (int j=1; j<max_ntd; j++){
+        for (int j=1; j<act_omp_ntd; j++){
           for (int64_t i=0; i<nbuf; i++){
             all_virt_counts[i] += all_virt_counts[i+nbuf*j];
           }
@@ -907,13 +912,19 @@ namespace CTF_int {
     char * tsr_data = *ptr_tsr_data;
     char * tsr_cyclic_data = *ptr_tsr_cyclic_data;
     if (order == 0){
-      alloc_ptr(sizeof(sr->el_size), (void**)&tsr_cyclic_data);
+      bool is_copy = false;
+      if (sr->isequal(sr->mulid(), alpha) && sr->isequal(sr->addid(), beta)) is_copy = true;
+      alloc_ptr(sr->el_size, (void**)&tsr_cyclic_data);
       if (ord_glb_comm.rank == 0){
-        sr->acc(tsr_cyclic_data, beta, tsr_data, alpha);
+        if (is_copy)
+          sr->copy(tsr_cyclic_data, tsr_data);
+        else
+          sr->acc(tsr_cyclic_data, beta, tsr_data, alpha);
       } else {
         sr->copy(tsr_cyclic_data, sr->addid());
       }
       *ptr_tsr_cyclic_data = tsr_cyclic_data;
+      return;
     }
     
     ASSERT(!reuse_buffers || sr->isequal(beta, sr->addid()));

@@ -61,6 +61,19 @@ namespace CTF {
     }
     topovec.clear();
     delete phys_topology;
+
+    initialized = 0;
+    mem_exit(rank);
+    if (get_num_instances() == 0){
+#ifdef OFFLOAD
+      offload_exit();
+#endif
+#ifdef HPM
+      HPM_Stop("CTF");
+#endif
+      TAU_FSTOP(CTF);
+    }
+
   }
 
 

@@ -1,7 +1,6 @@
 
 #include "pad.h"
 #include "../shared/util.h"
-
 namespace CTF_int {
   void pad_key(int              order,
                int64_t          num_pair,
@@ -63,10 +62,13 @@ namespace CTF_int {
     PairIterator new_pairs = PairIterator(sr, new_pairsb);
 #ifdef USE_OMP
     int64_t num_ins;
-    int ntd = omp_get_max_threads();
-    int64_t * num_ins_t = (int64_t*)CTF_int::alloc(sizeof(int64_t)*ntd);
-    int64_t * pre_ins_t = (int64_t*)CTF_int::alloc(sizeof(int64_t)*ntd);
+    int mntd = omp_get_max_threads();
+    int64_t * num_ins_t = (int64_t*)CTF_int::alloc(sizeof(int64_t)*mntd);
+    int64_t * pre_ins_t = (int64_t*)CTF_int::alloc(sizeof(int64_t)*mntd);
 
+    std::fill(num_ins_t, num_ins_t+mntd, 0);
+
+    int act_ntd;
     TAU_FSTART(depad_tsr_cnt);
     #pragma omp parallel
     {
@@ -74,6 +76,11 @@ namespace CTF_int {
       int64_t k;
       int64_t kparts[order];
       tid = omp_get_thread_num();
+      int ntd = omp_get_num_threads();
+      #pragma master 
+      {
+        act_ntd = omp_get_num_threads();
+      }
 
       st = (num_pair/ntd)*tid;
       if (tid == ntd-1)
@@ -110,7 +117,7 @@ namespace CTF_int {
     TAU_FSTOP(depad_tsr_cnt);
 
     pre_ins_t[0] = 0;
-    for (int j=1; j<ntd; j++){
+    for (int j=1; j<mntd; j++){
       pre_ins_t[j] = num_ins_t[j-1] + pre_ins_t[j-1];
     }
 
@@ -121,7 +128,12 @@ namespace CTF_int {
       int64_t k;
       int64_t kparts[order];
       tid = omp_get_thread_num();
+      int ntd = omp_get_num_threads();
 
+      #pragma master 
+      {
+        assert(act_ntd == ntd);
+      }
       st = (num_pair/ntd)*tid;
       if (tid == ntd-1)
         end = num_pair;
@@ -155,7 +167,7 @@ namespace CTF_int {
       }
     }
     TAU_FSTOP(depad_tsr_move);
-    num_ins = pre_ins_t[ntd-1];
+    num_ins = pre_ins_t[act_ntd-1];
 
     *new_num_pair = num_ins;
     CTF_int::cfree(pre_ins_t);
