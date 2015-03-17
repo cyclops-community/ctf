@@ -1339,6 +1339,7 @@ namespace CTF_int {
       } else {
         sr->copy(tsr_cyclic_data, sr->addid());
       }
+      return;
     }
 
     TAU_FSTART(block_reshuffle);

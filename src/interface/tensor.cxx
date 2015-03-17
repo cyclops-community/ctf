@@ -270,6 +270,7 @@ namespace CTF {
       tensor t = tensor();
       t.sr = sr->clone();
       CTF_int::tensor::add_to_subworld(&t, (char*)&alpha, (char*)&beta);
+      delete t.sr;
     } else
       CTF_int::tensor::add_to_subworld(tsr, (char*)&alpha, (char*)&beta);
   }
@@ -289,6 +290,7 @@ namespace CTF {
       tensor t = tensor();
       t.sr = sr->clone();
       CTF_int::tensor::add_from_subworld(&t, (char*)&alpha, (char*)&beta);
+      delete t.sr;
     } else
       CTF_int::tensor::add_from_subworld(tsr, (char*)&alpha, (char*)&beta);
   }
@@ -299,9 +301,10 @@ namespace CTF {
     if (tsr == NULL){
       tensor t = tensor();
       t.sr = sr->clone();
-      return CTF_int::tensor::add_from_subworld(&t, sr->mulid(), sr->mulid());
+      CTF_int::tensor::add_from_subworld(&t, sr->mulid(), sr->mulid());
+      delete t.sr;
     } else
-      return CTF_int::tensor::add_from_subworld(tsr, sr->mulid(), sr->mulid());
+      CTF_int::tensor::add_from_subworld(tsr, sr->mulid(), sr->mulid());
   }
 
   template<typename dtype, bool is_ord>
