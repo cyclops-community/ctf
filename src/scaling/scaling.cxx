@@ -18,7 +18,7 @@ namespace CTF_int {
     alpha = alpha_;
     is_custom = 0;
     
-    idx_map = (int*)malloc(sizeof(int)*A->order);
+    idx_map = (int*)alloc(sizeof(int)*A->order);
     memcpy(idx_map, idx_map_, sizeof(int)*A->order);
   }
 
@@ -41,7 +41,7 @@ namespace CTF_int {
     func = func_;
     is_custom = 1;
     
-    idx_map = (int*)malloc(sizeof(int)*A->order);
+    idx_map = (int*)alloc(sizeof(int)*A->order);
     memcpy(idx_map, idx_map_, sizeof(int)*A->order);
   }
 
@@ -58,7 +58,7 @@ namespace CTF_int {
   }
 
   scaling::~scaling(){
-    free(idx_map);
+    cfree(idx_map);
   }
 
   int scaling::execute(){

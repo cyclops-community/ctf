@@ -43,7 +43,10 @@ namespace CTF_int {
       delete [] edge_map;
       if (!is_data_aliased){
         if (is_home) cfree(home_buffer);
-        else free(data);
+        else { 
+          if (data != NULL)
+            cfree(data);
+        }
         if (has_home && !is_home) cfree(home_buffer);
       }
       order = -1;
@@ -80,7 +83,7 @@ namespace CTF_int {
 
     if (copy) {
       copy_tensor_data(other);
-    }
+    } else data = NULL;
 
   }
 
@@ -451,7 +454,7 @@ namespace CTF_int {
   }
    
   void tensor::set_name(char const * name_){
-    free(name);
+    cfree(name);
     this->name = (char*)alloc(strlen(name_)+1);
     strcpy(this->name, name_);
   }
@@ -754,6 +757,7 @@ namespace CTF_int {
       MPI_Status stat;
       MPI_Wait(&req, &stat);
     }
+    delete odst;
     CTF_int::cfree(sub_buffer);
   #endif
 
@@ -783,6 +787,7 @@ namespace CTF_int {
 /*    redistribute(sym, wrld->cdt, odst, sub_buffer,     alpha,
                                    idst, this->data,  beta);*/
     cyclic_reshuffle(sym, *odst, NULL, NULL, idst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 0, alpha, beta);
+    delete odst;
     CTF_int::cfree(sub_buffer);
   #endif
 
@@ -985,6 +990,8 @@ namespace CTF_int {
     MPI_Allgatherv(my_pairs, n, MPI_CHAR,
                    all_pairs, nXs, pXs, MPI_CHAR, wrld->comm);
     nval = nval/sr->pair_size();
+    cfree(nXs);
+    cfree(pXs);
 
     PairIterator ipr(sr, all_pairs);
     ipr.sort(nval);
@@ -997,10 +1004,11 @@ namespace CTF_int {
   int tensor::allread(int64_t * num_pair,
                       char **   all_data){
     PairIterator ipr = read_all_pairs(num_pair);
-    char * ball_data = (char*)malloc(sr->el_size*(*num_pair));
+    char * ball_data = (char*)alloc(sr->el_size*(*num_pair));
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(ball_data+i*sr->el_size);
     }
+    cfree(ipr.ptr);
     *all_data = ball_data;
     return SUCCESS;
   }
@@ -1180,6 +1188,7 @@ namespace CTF_int {
         nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
                                this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
       }
+      this->rec_tsr->is_data_aliased=1;
       delete this->rec_tsr;
       CTF_int::cfree(this->inner_ordering);
       CTF_int::cfree(all_edge_len);

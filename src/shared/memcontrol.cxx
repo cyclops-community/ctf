@@ -225,6 +225,8 @@ namespace CTF_int {
    * \param[in,out] ptr pointer to set to new allocation address
    */
   int mst_alloc_ptr(int64_t const len, void ** const ptr){
+    int pm = posix_memalign(ptr, ALIGN_BYTES, len);
+#if 0
     if (mst_buffer_size == 0)
       return alloc_ptr(len, ptr);
     else {
@@ -251,6 +253,8 @@ namespace CTF_int {
       }
       return CTF::SUCCESS;
     }
+#endif
+    return CTF::SUCCESS;
   }
 
   /**
@@ -273,6 +277,7 @@ namespace CTF_int {
   int alloc_ptr(int64_t const len_, void ** const ptr){
     int64_t len = MAX(4,len_);
     int pm = posix_memalign(ptr, ALIGN_BYTES, len);
+#if 0
   #ifndef PRODUCTION
     int tid;
   #ifdef USE_OMP
@@ -296,6 +301,7 @@ namespace CTF_int {
               mem_used[0], len);
     }
     ASSERT(pm == 0);
+#endif
     return CTF::SUCCESS;
 
   }
@@ -316,7 +322,7 @@ namespace CTF_int {
    * \param[in,out] ptr pointer to set to address to free
    */
   int untag_mem(void * ptr){
-  #ifndef PRODUCTION
+  #if 0 //ndef PRODUCTION
     int64_t len;
     int found;
     std::list<mem_loc> * mem_stack;
@@ -350,6 +356,8 @@ namespace CTF_int {
    * \param[in] tid thread id from whose stack pointer needs to be freed
    */
   int cfree(void * ptr, int const tid){
+    free(ptr);
+#if 0
     if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
         (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
       return mst_free(ptr);
@@ -377,6 +385,7 @@ namespace CTF_int {
   #endif
     //printf("mem_used down to " PRId64 " stack to %d\n",mem_used,mem_stack->size());
     free(ptr);
+#endif
     return CTF::SUCCESS;
   }
 
@@ -416,6 +425,11 @@ namespace CTF_int {
    * \brief free abstraction
    * \param[in,out] ptr pointer to set to address to free
    */
+  int cfree(void * ptr){ 
+    free(ptr);
+    return CTF::SUCCESS;
+  }
+#if 0
   int cfree(void * ptr){
     if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
         (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
@@ -459,6 +473,7 @@ namespace CTF_int {
     return CTF::SUCCESS;
 
   }
+#endif
 
 
   int get_num_instances(){

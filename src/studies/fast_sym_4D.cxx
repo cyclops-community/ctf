@@ -16,7 +16,6 @@
 #include <algorithm>
 #include <ctf.hpp>
 
-#define USE_SYM_SUM 1
 
 int fast_sym_4D(int const     n,
                 CTF_World    &ctf){

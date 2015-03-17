@@ -33,8 +33,8 @@ namespace CTF_int {
   #define ALLOW_NVIRT 1024
   #define DIAG_RESCALE
   #define USE_SYM_SUM
-//  #define HOME_CONTRACT
-//  #define USE_BLOCK_RESHUFFLE
+  #define HOME_CONTRACT
+  #define USE_BLOCK_RESHUFFLE
 
 
   #ifndef __APPLE__

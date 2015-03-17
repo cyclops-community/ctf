@@ -112,7 +112,7 @@ namespace CTF_int {
                                      nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
 
           csum.sum_tensors(0);
-          if (rev_sign == -1) free(mksign);
+          if (rev_sign == -1) cfree(mksign);
           idx_map_A[sym_dim] = sym_dim;
           idx_map_A[sym_dim+i+1] = sym_dim+i+1;
         }
@@ -153,10 +153,11 @@ namespace CTF_int {
             }*/
     /*        printf("tid %d before scale\n", nonsym_tid);
             print_tsr(stdout, nonsym_tid);*/
-            char * scalf = (char*)malloc(nonsym_tsr->sr->el_size);
+            char * scalf = (char*)alloc(nonsym_tsr->sr->el_size);
             nonsym_tsr->sr->cast_double(((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg), scalf);
             scaling sscl(nonsym_tsr, idx_map_A, scalf);
             sscl.execute();
+            cfree(scalf);
     /*        printf("tid %d after scale\n", nonsym_tid);
             print_tsr(stdout, nonsym_tid);*/
   //          if (ret != CTF_SUCCESS) ABORT;
@@ -291,7 +292,7 @@ namespace CTF_int {
       //    printf("symmetrizing\n");
     /*      summation csum = summation(nonsym_tsr, idx_map_A, rev_sign,
                                         sym_tsr, idx_map_B, 1.0);*/
-            char * ksign = (char*)malloc(nonsym_tsr->sr->el_size);
+            char * ksign = (char*)alloc(nonsym_tsr->sr->el_size);
             if (rev_sign == -1)
               nonsym_tsr->sr->addinv(nonsym_tsr->sr->mulid(), ksign);
             else
@@ -335,7 +336,7 @@ namespace CTF_int {
               }
               /*printf("tid %d before scale\n", nonsym_tid);
               print_tsr(stdout, sym_tid);*/
-              char * scalf = (char*)malloc(nonsym_tsr->sr->el_size);
+              char * scalf = (char*)alloc(nonsym_tsr->sr->el_size);
               nonsym_tsr->sr->cast_double(((double)(num_sy-i-1.))/(num_sy-i), scalf);
               scaling sscl = scaling(sym_tsr, idx_map_B, scalf);
               sscl.execute();

@@ -601,7 +601,7 @@ namespace CTF {
   Tensor<dtype, is_ord>& Tensor<dtype, is_ord>::operator=(Tensor<dtype, is_ord> A){
 
     free_self();
-    init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
+    init(A.sr, A.order, A.lens, A.sym, A.wrld, 0, A.name, A.profile);
     copy_tensor_data(&A);
     return *this;
 /*

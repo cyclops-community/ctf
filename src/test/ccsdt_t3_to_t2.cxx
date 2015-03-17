@@ -16,7 +16,6 @@
 #include <ctf.hpp>
 #include "../src/shared/util.h"
 
-#define USE_SYM_SUM
 
 int ccsdt_t3_to_t2(int const     n,
                    int const     m,

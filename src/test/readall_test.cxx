@@ -71,6 +71,7 @@ int readall_test(int const    n,
         pass = 0;
     }
   }
+  free(vs);
 
   if (pass){
     if (rank == 0)
