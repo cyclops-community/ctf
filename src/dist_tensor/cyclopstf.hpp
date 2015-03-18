@@ -43,7 +43,6 @@ enum CTF_SYM { NS, SY, AS, SH };
 typedef int64_t long_int;
 typedef long_int key;
 
-static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
 template<typename dtype>
 struct tkv_pair {

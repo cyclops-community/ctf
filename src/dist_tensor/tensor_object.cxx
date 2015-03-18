@@ -1,5 +1,6 @@
 
 
+static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
 template<typename dtype>
 void tensor<dtype>::print_map(FILE * stream) const{
