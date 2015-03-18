@@ -4,6 +4,7 @@
 #define __SYM_INDICES_HXX__
 
 #include "../interface/common.h"
+#include "sym_indices.h"
 
 struct index_locator_
 {
@@ -36,42 +37,6 @@ struct index_locator_
         return this->idx == idx;
     }
 };
-
-template<typename RAIterator>
-int relativeSign(RAIterator s1b, RAIterator s1e, RAIterator s2b, RAIterator s2e)
-{
-    int sz = s1e-s1b;
-    assert(sz == (int)(s2e-s2b));
-    int i, k;
-    int sign = 1;
-    std::vector<bool> seen(sz);
-
-    for (i = 0;i < sz;i++) seen[i] = false;
-
-    for (i = 0;i < sz;i++)
-    {
-        if (seen[i]) continue;
-        int j = i;
-        while (true)
-        {
-            for (k = 0;k < sz && (!(*(s1b+k) == *(s2b+j)) || seen[k]);k++);
-            assert(k < sz);
-            j = k;
-            seen[j] = true;
-            if (j == i) break;
-            sign = -sign;
-        }
-    }
-
-    return sign;
-}
-
-template<typename T>
-int relativeSign(const T& s1, const T& s2)
-{
-    return relativeSign(s1.begin(), s1.end(), s2.begin(), s2.end());
-}
-
 template <typename T>
 int align_symmetric_indices(int order_A, T& idx_A, const int* sym_A,
                                int order_B, T& idx_B, const int* sym_B)
@@ -483,6 +448,22 @@ template int overcounting_factor<int*>(int order_A, int * const & idx_A, const i
 
 template int overcounting_factor<int*>(int order_A, int * const & idx_A, const int* sym_A,
                            int order_B, int * const & idx_B, const int* sym_B);
+
+
+template int align_symmetric_indices<std::string>(int order_A, std::string& idx_A, const int* sym_A,
+                               int order_B, std::string& idx_B, const int* sym_B);
+
+template int align_symmetric_indices<std::string>(int order_A, std::string& idx_A, const int* sym_A,
+                               int order_B, std::string& idx_B, const int* sym_B,
+                               int order_C, std::string& idx_C, const int* sym_C);
+
+template int overcounting_factor<std::string>(int order_A, std::string const & idx_A, const int* sym_A,
+                           int order_B, std::string const & idx_B, const int* sym_B,
+                           int order_C, std::string const & idx_C, const int* sym_C);
+
+template int overcounting_factor<std::string>(int order_A, std::string const & idx_A, const int* sym_A,
+                           int order_B, std::string const & idx_B, const int* sym_B);
+
 
 
 #endif

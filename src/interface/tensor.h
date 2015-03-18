@@ -39,6 +39,21 @@ namespace CTF {
         this->k = k_; 
         d = d_;
       }
+      
+      /**
+       * \brief default constructor
+       */
+      Pair(){
+        k=0;
+        d=0; //(not possible if type has no zero!)
+      }
+
+      /**
+       * \brief determines pair ordering
+       */
+      bool operator<(Pair<dtype> other) const {
+        return k<other.k;
+      }
   };
 
   template<typename dtype>
@@ -54,9 +69,6 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=true>
   class Tensor : public CTF_int::tensor {
     public:
-      /** \brief templated algstrct on which tensor elements and operations are defined */
-      //Semiring<dtype> typed_ring;
-
       /**
        * \brief default constructor
        */
@@ -225,13 +237,13 @@ namespace CTF {
        * \param[in] beta C scaling factor
        * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
        */
-      void contract(dtype        alpha,
-                    CTF_int::tensor &     A,
-                    char const * idx_A,
-                    CTF_int::tensor &     B,
-                    char const * idx_B,
-                    dtype        beta,
-                    char const * idx_C);
+      void contract(dtype             alpha,
+                    CTF_int::tensor & A,
+                    char const *      idx_A,
+                    CTF_int::tensor & B,
+                    char const *      idx_B,
+                    dtype             beta,
+                    char const *      idx_C);
 
       /**
        * \brief contracts computes C[idx_C] = beta*C[idx_C] fseq(alpha*A[idx_A],B[idx_B])
@@ -245,9 +257,9 @@ namespace CTF {
        * \param[in] fseq sequential operation to execute, default is multiply-add
        */
       void contract(dtype                 alpha,
-                    CTF_int::tensor &              A,
+                    CTF_int::tensor &     A,
                     char const *          idx_A,
-                    CTF_int::tensor &              B,
+                    CTF_int::tensor &     B,
                     char const *          idx_B,
                     dtype                 beta,
                     char const *          idx_C,
@@ -261,11 +273,11 @@ namespace CTF {
        * \param[in] beta B scaling factor
        * \param[in] idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
        */
-      void sum(dtype        alpha,
-               CTF_int::tensor &     A,
-               char const * idx_A,
-               dtype        beta,
-               char const * idx_B);
+      void sum(dtype             alpha,
+               CTF_int::tensor & A,
+               char const *      idx_A,
+               dtype             beta,
+               char const *      idx_B);
 
       /**
        * \brief sums B[idx_B] = beta*B[idx_B] + fseq(alpha*A[idx_A])
@@ -276,11 +288,11 @@ namespace CTF {
        * \param[in] idx_B indices of B (this tensor), e.g. "ij" -> B_{ij}
        * \param[in] fseq sequential operation to execute, default is multiply-add
        */
-      void sum(dtype        alpha,
-               CTF_int::tensor &     A,
-               char const * idx_A,
-               dtype        beta,
-               char const * idx_B,
+      void sum(dtype                  alpha,
+               CTF_int::tensor &      A,
+               char const *           idx_A,
+               dtype                  beta,
+               char const *           idx_B,
                Univar_Function<dtype> fseq);
 
      /**
@@ -309,11 +321,11 @@ namespace CTF {
        * \param[in] idx_C indices of C (this tensor),  e.g. "ij" -> C_{ij}
        * \return time in seconds, at the moment not at all precise
        */
-      double estimate_time(CTF_int::tensor &     A,
-                           char const * idx_A,
-                           CTF_int::tensor &     B,
-                           char const * idx_B,
-                           char const * idx_C);
+      double estimate_time(CTF_int::tensor & A,
+                           char const *      idx_A,
+                           CTF_int::tensor & B,
+                           char const *      idx_B,
+                           char const *      idx_C);
       
       /**
        * \brief estimate the time of a sum B[idx_B] = A[idx_A]
@@ -322,9 +334,9 @@ namespace CTF {
        * \param[in] idx_B indices of B in contraction, e.g. "kj" -> B_{kj}
        * \return time in seconds, at the moment not at all precise
        */
-      double estimate_time(CTF_int::tensor &     A,
-                           char const * idx_A,
-                           char const * idx_B);
+      double estimate_time(CTF_int::tensor & A,
+                           char const *      idx_A,
+                           char const *      idx_B);
 
       /**
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
@@ -380,13 +392,13 @@ namespace CTF {
        * \param[in] ends top right corner of block of A
        * \param[in] alpha scaling factor of tensor A
        */
-      void slice(int const *    offsets,
-                 int const *    ends,
-                 dtype          beta,
+      void slice(int const *             offsets,
+                 int const *             ends,
+                 dtype                   beta,
                  CTF_int::tensor const & A,
-                 int const *    offsets_A,
-                 int const *    ends_A,
-                 dtype          alpha);
+                 int const *             offsets_A,
+                 int const *             ends_A,
+                 dtype                   alpha);
 
       /**
        * \brief cuts out a slice (block) of this tensor = B
@@ -399,13 +411,13 @@ namespace CTF {
        * \param[in] corner_end bottom right corner of block of A
        * \param[in] alpha scaling factor of tensor A
        */
-      void slice(int64_t        corner_off,
-                 int64_t        corner_end,
-                 dtype          beta,
+      void slice(int64_t                 corner_off,
+                 int64_t                 corner_end,
+                 dtype                   beta,
                  CTF_int::tensor const & A,
-                 int64_t        corner_off_A,
-                 int64_t        corner_end_A,
-                 dtype          alpha);
+                 int64_t                 corner_off_A,
+                 int64_t                 corner_end_A,
+                 dtype                   alpha);
 
       /**
        * \brief Apply permutation to matrix, potentially extracting a slice
@@ -421,10 +433,10 @@ namespace CTF {
                               (A must then be smaller than B)
        * \param[in] alpha scaling factor for A tensor
        */
-      void permute(dtype         beta,
-                   CTF_int::tensor &      A,
-                   int * const * perms_A,
-                   dtype         alpha);
+      void permute(dtype             beta,
+                   CTF_int::tensor & A,
+                   int * const *     perms_A,
+                   dtype             alpha);
 
       /**
        * \brief Apply permutation to matrix, potentially extracting a slice
@@ -440,10 +452,10 @@ namespace CTF {
                       the same World or a superset of the World on which B lives
        * \param[in] alpha scaling factor for A tensor
        */
-      void permute(int * const * perms_B,
-                   dtype         beta,
-                   CTF_int::tensor &      A,
-                   dtype         alpha);
+      void permute(int * const *     perms_B,
+                   dtype             beta,
+                   CTF_int::tensor & A,
+                   dtype             alpha);
       
      /**
        * \brief accumulates this tensor to a tensor object defined on a different world
@@ -619,7 +631,7 @@ namespace CTF {
        * \param[in] A tensor to compare against
        * \param[in] cutoff do not print values of absolute value smaller than this
        */
-      void compare(const Tensor<dtype, is_ord>& A, FILE * fp = stdout, double cutoff = -1.0) const;
+      void compare(const Tensor<dtype, is_ord>& A, FILE * fp = stdout, double cutoff = -1.0);
 
       /**
        * \brief frees CTF tensor

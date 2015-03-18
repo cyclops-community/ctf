@@ -100,83 +100,83 @@ namespace CTF {
 
 
   template <>  
-  double Set<float>::cast_to_double(char const * c) const {
+  inline double Set<float>::cast_to_double(char const * c) const {
     return (double)(((float*)c)[0]);
   }
 
   template <>  
-  double Set<double>::cast_to_double(char const * c) const {
+  inline double Set<double>::cast_to_double(char const * c) const {
     return ((double*)c)[0];
   }
 
   template <>  
-  double Set<int>::cast_to_double(char const * c) const {
+  inline double Set<int>::cast_to_double(char const * c) const {
     return (double)(((int*)c)[0]);
   }
 
   template <>  
-  double Set<uint64_t>::cast_to_double(char const * c) const {
+  inline double Set<uint64_t>::cast_to_double(char const * c) const {
     return (double)(((uint64_t*)c)[0]);
   }
   
   template <>  
-  double Set<int64_t>::cast_to_double(char const * c) const {
+  inline double Set<int64_t>::cast_to_double(char const * c) const {
     return (double)(((int64_t*)c)[0]);
   }
 
 
   template <>  
-  int64_t Set<int64_t>::cast_to_int(char const * c) const {
+  inline int64_t Set<int64_t>::cast_to_int(char const * c) const {
     return ((int64_t*)c)[0];
   }
   
   template <>  
-  int64_t Set<int>::cast_to_int(char const * c) const {
+  inline int64_t Set<int>::cast_to_int(char const * c) const {
     return (int64_t)(((int*)c)[0]);
   }
 
   template <>  
-  int64_t Set<unsigned int>::cast_to_int(char const * c) const {
+  inline int64_t Set<unsigned int>::cast_to_int(char const * c) const {
     return (int64_t)(((unsigned int*)c)[0]);
   }
 
   template <>  
-  int64_t Set<uint64_t>::cast_to_int(char const * c) const {
+  inline int64_t Set<uint64_t>::cast_to_int(char const * c) const {
     return (int64_t)(((uint64_t*)c)[0]);
   }
   
   template <>  
-  int64_t Set<bool>::cast_to_int(char const * c) const {
+  inline int64_t Set<bool>::cast_to_int(char const * c) const {
     return (int64_t)(((bool*)c)[0]);
   }
 
   template <>  
-  void Set<float>::print(char const * a, FILE * fp) const {
+  inline void Set<float>::print(char const * a, FILE * fp) const {
     fprintf(fp,"%20.14E",((float*)a)[0]);
   }
 
   template <>  
-  void Set<double>::print(char const * a, FILE * fp) const {
+  inline void Set<double>::print(char const * a, FILE * fp) const {
     fprintf(fp,"%20.14E",((double*)a)[0]);
   }
 
   template <>  
-  void Set<int64_t>::print(char const * a, FILE * fp) const {
+  inline void Set<int64_t>::print(char const * a, FILE * fp) const {
     fprintf(fp,"%ld",((int64_t*)a)[0]);
   }
 
   template <>  
-  void Set<int>::print(char const * a, FILE * fp) const {
+  inline void Set<int>::print(char const * a, FILE * fp) const {
     fprintf(fp,"%d",((int*)a)[0]);
   }
 
   template <>  
-  void Set< std::complex<float>,false >::print(char const * a, FILE * fp) const {
+  inline void Set< std::complex<float>,false >::print(char const * a, FILE * fp) const {
     fprintf(fp,"(%20.14E,%20.14E)",((std::complex<float>*)a)[0].real(),((std::complex<float>*)a)[0].imag());
   }
 
   template <>  
-  void Set< std::complex<double>,false >::print(char const * a, FILE * fp) const {
+  inline void Set< std::complex<double>,false >::print(char const * a, FILE * fp) const {
     fprintf(fp,"(%20.14E,%20.14E)",((std::complex<double>*)a)[0].real(),((std::complex<double>*)a)[0].imag());
   }
 

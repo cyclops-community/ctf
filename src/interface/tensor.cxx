@@ -130,7 +130,7 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::write(int64_t             npair,
                                     Pair<dtype> const * pairs) {
-    int ret = CTF_int::tensor::write(npair, 1.0, 0.0, (char const *)pairs);
+    int ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), (char *)pairs);
     assert(ret == SUCCESS);
   }
 
@@ -157,7 +157,7 @@ namespace CTF {
                                     dtype               alpha,
                                     dtype               beta,
                                     Pair<dtype> const * pairs) {
-    int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char const *)pairs);
+    int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char *)pairs);
     assert(ret == SUCCESS);
   }
 
@@ -234,8 +234,8 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::compare(const Tensor<dtype, is_ord>& A, FILE* fp, double cutoff) const{
-    CTF_int::tensor::compare(fp, &A, cutoff);
+  void Tensor<dtype, is_ord>::compare(const Tensor<dtype, is_ord>& A, FILE* fp, double cutoff){
+    CTF_int::tensor::compare(&A, fp, (char const *)&cutoff);
   }
 
   template<typename dtype, bool is_ord>
@@ -568,7 +568,7 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>& Tensor<dtype, is_ord>::operator=(dtype val){
-    set(&val);
+    set((char const*)&val);
 /*    int64_t size;
     dtype* raw = get_raw_data(&size);
     //FIXME: Uuuuh, padding?

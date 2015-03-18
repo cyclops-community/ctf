@@ -255,18 +255,20 @@ namespace CTF_int {
   }
 
   char const * algstrct::addid() const {
-    printf("CTF ERROR: no addition identity present for this algebraic structure\n");
+    return NULL;
+    /*printf("CTF ERROR: no addition identity present for this algebraic structure\n");
     {
       ASSERT(0);
     }
     assert(0);
-    return NULL;
+    return NULL;*/
   }
 
   char const * algstrct::mulid() const {
-    printf("CTF ERROR: no multiplicative identity present for this algebraic structure\n");
-    ASSERT(0);
     return NULL;
+/*    printf("CTF ERROR: no multiplicative identity present for this algebraic structure\n");
+    ASSERT(0);
+    return NULL;*/
   }
 
   void algstrct::addinv(char const * a, char * b) const {

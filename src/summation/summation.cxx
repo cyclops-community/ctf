@@ -1868,9 +1868,11 @@ namespace CTF_int {
       printf("Summing Tensor %s into %s\n", A->name, B->name);
       if (alpha != NULL){
         printf("alpha is "); 
-        A->sr->print(alpha);
+        if (beta != NULL) A->sr->print(alpha);
+        printf("null"); 
         printf("\nbeta is "); 
-        B->sr->print(beta);
+        if (beta != NULL) B->sr->print(beta);
+        printf("null"); 
         printf("\n");
       }
       printf("Summation index table:\n");

@@ -73,6 +73,10 @@ namespace CTF {
       char const * name;
       //create epoch called name
       Timer_epoch(char const * name_);
+
+      ~Timer_epoch(){
+        saved_function_timers.clear();
+      }
       
       //clears timers and begins epoch
       void begin();

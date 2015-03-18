@@ -1075,7 +1075,7 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
        idx_A[i] = i;
     }
-    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->addid(), func);
+    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->mulid(), func);
     sm.execute();
     sr->copy(result, sc.data);
     MPI_Bcast(result, sr->el_size, MPI_CHAR, 0, wrld->cdt.cm);
@@ -1161,6 +1161,99 @@ namespace CTF_int {
       cfree(idx_arr);
       if (pmy_data != NULL) cfree(pmy_data);
       cfree(pall_data);
+    }
+
+  }
+
+  void tensor::compare(const tensor * A, FILE * fp, char const * cutoff){
+    int i, j;
+    int64_t my_sz, tot_sz =0, my_sz_B;
+    int * recvcnts, * displs, * idx_arr;
+    char * my_data_A;
+    char * my_data_B;
+    char * all_data_A;
+    char * all_data_B;
+    int64_t k;
+
+    tensor * B = this;
+    
+    B->align(A);
+
+    A->print_map(stdout, 1);
+    B->print_map(stdout, 1);
+
+    my_sz = 0;
+    A->read_local(&my_sz, &my_data_A);
+    my_sz_B = 0;
+    B->read_local(&my_sz_B, &my_data_B);
+    assert(my_sz == my_sz_B);
+
+    CommData const & global_comm = A->wrld->cdt;
+
+    if (global_comm.rank == 0){
+      alloc_ptr(global_comm.np*sizeof(int), (void**)&recvcnts);
+      alloc_ptr(global_comm.np*sizeof(int), (void**)&displs);
+      alloc_ptr(A->order*sizeof(int), (void**)&idx_arr);
+    }
+
+
+    MPI_Gather(&my_sz, 1, MPI_INT, recvcnts, 1, MPI_INT, 0, global_comm.cm);
+
+    if (global_comm.rank == 0){
+      for (i=0; i<global_comm.np; i++){
+        recvcnts[i] *= A->sr->pair_size();
+      }
+      displs[0] = 0;
+      for (i=1; i<global_comm.np; i++){
+        displs[i] = displs[i-1] + recvcnts[i-1];
+      }
+      tot_sz = (displs[global_comm.np-1]
+                      + recvcnts[global_comm.np-1])/A->sr->pair_size();
+      alloc_ptr(tot_sz*A->sr->pair_size(), (void**)&all_data_A);
+      alloc_ptr(tot_sz*A->sr->pair_size(), (void**)&all_data_B);
+    }
+
+    if (my_sz == 0) my_data_A = my_data_B = NULL;
+    MPI_Gatherv(my_data_A, my_sz*A->sr->pair_size(), MPI_CHAR,
+                all_data_A, recvcnts, displs, MPI_CHAR, 0, global_comm.cm);
+    MPI_Gatherv(my_data_B, my_sz*A->sr->pair_size(), MPI_CHAR,
+                all_data_B, recvcnts, displs, MPI_CHAR, 0, global_comm.cm);
+
+    PairIterator pall_data_A(A->sr, all_data_A);
+    PairIterator pall_data_B(B->sr, all_data_B);
+
+    if (global_comm.rank == 0){
+      pall_data_A.sort(tot_sz);
+      pall_data_B.sort(tot_sz);
+      for (i=0; i<tot_sz; i++){
+        char aA[A->sr->el_size];
+        char aB[B->sr->el_size];
+        A->sr->abs(pall_data_A[i].d(), aA);
+        A->sr->min(aA, cutoff, aA);
+        B->sr->abs(pall_data_B[i].d(), aB);
+        B->sr->min(aB, cutoff, aB);
+        
+        if (A->sr->isequal(aA, cutoff) || B->sr->isequal(aB,cutoff)){
+          k = pall_data_A[i].k();
+          for (j=0; j<A->order; j++){
+            idx_arr[j] = k%A->lens[j];
+            k = k/A->lens[j];
+          }
+          for (j=0; j<A->order; j++){
+            fprintf(fp,"[%d]",idx_arr[j]);
+          }
+          fprintf(fp," <");
+          A->sr->print(pall_data_A[i].d(),fp);
+          fprintf(fp,">,<");
+          A->sr->print(pall_data_B[i].d(),fp);
+          fprintf(fp,">\n");
+        }
+      }
+      cfree(recvcnts);
+      cfree(displs);
+      cfree(idx_arr);
+      cfree(all_data_A);
+      cfree(all_data_B);
     }
 
   }

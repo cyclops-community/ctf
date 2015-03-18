@@ -20,7 +20,7 @@ namespace CTF {
   }
 
   template <>
-  void default_axpy<float>
+  inline void default_axpy<float>
                    (int           n,
                     float         alpha,
                     float const * X,
@@ -31,7 +31,7 @@ namespace CTF {
   }
 
   template <>
-  void default_axpy<double>
+  inline void default_axpy<double>
                    (int            n,
                     double         alpha,
                     double const * X,
@@ -42,7 +42,7 @@ namespace CTF {
   }
 
   template <>
-  void default_axpy< std::complex<float> >
+  inline void default_axpy< std::complex<float> >
                    (int                         n,
                     std::complex<float>         alpha,
                     std::complex<float> const * X,
@@ -53,7 +53,7 @@ namespace CTF {
   }
 
   template <>
-  void default_axpy< std::complex<double> >
+  inline void default_axpy< std::complex<double> >
                    (int                          n,
                     std::complex<double>         alpha,
                     std::complex<double> const * X,
@@ -74,23 +74,23 @@ namespace CTF {
   }
 
   template <>
-  void default_scal<float>(int n, float alpha, float * X, int incX){
+  inline void default_scal<float>(int n, float alpha, float * X, int incX){
     cblas_sscal(n,alpha,X,incX);
   }
 
   template <>
-  void default_scal<double>(int n, double alpha, double * X, int incX){
+  inline void default_scal<double>(int n, double alpha, double * X, int incX){
     cblas_dscal(n,alpha,X,incX);
   }
 
   template <>
-  void default_scal< std::complex<float> >
+  inline void default_scal< std::complex<float> >
       (int n, std::complex<float> alpha, std::complex<float> * X, int incX){
     cblas_cscal(n,&alpha,X,incX);
   }
 
   template <>
-  void default_scal< std::complex<double> >
+  inline void default_scal< std::complex<double> >
       (int n, std::complex<double> alpha, std::complex<double> * X, int incX){
     cblas_zscal(n,&alpha,X,incX);
   }
@@ -133,7 +133,7 @@ namespace CTF {
   }
 
   template<>
-  void default_gemm<float>
+  inline void default_gemm<float>
             (char           tA,
              char           tB,
              int            m,
@@ -148,7 +148,7 @@ namespace CTF {
   }
 
   template<>
-  void default_gemm<double>
+  inline void default_gemm<double>
             (char           tA,
              char           tB,
              int            m,
@@ -163,7 +163,7 @@ namespace CTF {
   }
 
   template<>
-  void default_gemm< std::complex<float> >
+  inline void default_gemm< std::complex<float> >
             (char                        tA,
              char                        tB,
              int                         m,
@@ -178,7 +178,7 @@ namespace CTF {
   }
 
   template<>
-  void default_gemm< std::complex<double> >
+  inline void default_gemm< std::complex<double> >
             (char                         tA,
              char                         tB,
              int                          m,

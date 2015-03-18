@@ -288,7 +288,7 @@ namespace CTF_int {
       if (sym_pass){
         if (alpha != NULL){
           char tmp[sr_B->el_size];
-          sr_B->mul(A+sr_A->el_size*idx_A, alpha, tmp);
+          sr_A->mul(A+sr_A->el_size*idx_A, alpha, tmp);
           func.apply_f(tmp, tmp);
           sr_B->add(B+idx_B*sr_B->el_size, tmp, B+sr_B->el_size*idx_B);
           CTF_FLOPS_ADD(2);

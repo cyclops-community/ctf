@@ -303,7 +303,7 @@ namespace CTF{
     function_timers = saved_function_timers;
     excl_time = save_excl_time;
     tmr_outer->stop();
-    delete tmr_inner;
+    //delete tmr_inner;
     delete tmr_outer;
   #endif
   }
