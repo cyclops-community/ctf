@@ -183,8 +183,8 @@ namespace CTF_int {
                        int * const *        bucket_offset){
     int64_t *  all_virt_counts;
 
-    int act_omp_ntd;
   #ifdef USE_OMP
+    int act_omp_ntd;
     int64_t vbs = sy_packed_size(old_dist.order, old_virt_edge_len, sym);
     int max_ntd = omp_get_max_threads();
     max_ntd = MAX(1,MIN(max_ntd,vbs/nbuf));
@@ -350,10 +350,12 @@ namespace CTF_int {
         cfree(old_virt_idx);
         cfree(virt_rank);
         cfree(spad);
+#ifdef USE_OMP
 #pragma omp master
         {
           act_omp_ntd = omp_ntd;
         }
+#endif
         }
   #ifdef USE_OMP
         for (int j=1; j<act_omp_ntd; j++){

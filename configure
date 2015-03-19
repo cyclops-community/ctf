@@ -141,7 +141,7 @@ function defaultflags
     case $compiler in
         intel)
             if [ "x$AR"        = "x" ]; then AR='xiar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-openmp -g -O3'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-openmp -O3 -ipo -std=c++11'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
@@ -149,7 +149,7 @@ function defaultflags
             ;;
         gnu)
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -g -O3'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -O3 -std=c++11'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall -Wno-comment -Wno-sign-compare'; fi
@@ -159,7 +159,7 @@ function defaultflags
             echo 'No default flags known for given compilers. Make sure that you have set the'
             echo 'appropriate compiler flags manually.'
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -g -O2'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -O2'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
@@ -340,7 +340,12 @@ else
     echo 'BLAS works, without underscores.'
   else
     if [ "x$BLASLIBS" = "x" ]; then
-      if testlink -lblas dgemm_ 0; then
+      if [ "$compiler" = "intel" ] &&  testlink -mkl dgemm_ 0 ; then
+        UNDERSCORE=1
+        echo
+        echo '  WARNING: BLAS libirary was not specified, using -mkl.'
+        BLASLIBS=-mkl
+      elif testlink -lblas dgemm_ 0; then
         UNDERSCORE=1
         echo
         echo '  WARNING: BLAS libirary was not specified, using -lblas (with underscores).'
@@ -407,7 +412,7 @@ BLAS_LIBS   = $SCALAPACKLIBS $BLASLIBS
 LDFLAGS     = $LDFLAGS
 INCLUDES    = $INCLUDES
 
-DEFS        = $DEFS -DCTF_COMPLEX
+DEFS        = $DEFS 
 
 #uncomment below to enable performance profiling
 #DEFS       += -DPROFILE -DPMPI
