@@ -142,6 +142,21 @@ namespace CTF_int {
                                 algstrct const *     sr);
 
   /**
+   * \brief reorder local buffer so that elements are in ordered according to where they
+   *        are in the global tensor (interleave virtual blocks)
+   * \param[in] sym symmetry relations between tensor dimensions
+   * \param[in] dist starting data distrubtion
+   * \param[in] tsr_data_in starting data buffer
+   * \param[out] tsr_data_out target data buffer
+   * \param[in] sr algstrct defining data
+   */
+  void order_globally(int const *          sym,
+                      distribution const & dist,
+                      char const *         tsr_data_in,
+                      char *               tsr_data_out,
+                      algstrct const *     sr);
+
+  /**
    * \brief Goes from any set of phases to any new set of phases 
    * \param[in] sym symmetry relations between tensor dimensions
    * \param[in] old_dist starting data distrubtion

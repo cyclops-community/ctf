@@ -206,7 +206,8 @@ namespace CTF_int {
   #pragma omp parallel num_threads(max_ntd)
         {
         int imax, act_max, skip;
-        int start_ldim, end_ldim, i_st, vc, dim;
+        int start_ldim, end_ldim;
+        int i_st, vc, dim;
         int64_t *  virt_counts;
         int * old_virt_idx, * virt_rank;
         int * idx;
@@ -214,14 +215,40 @@ namespace CTF_int {
         int64_t *  idx_offs;
         int * spad;
         int last_len = old_dist.pad_edge_len[old_dist.order-1]/old_dist.phase[old_dist.order-1]+1;
-        int omp_ntd, omp_tid;
-        omp_ntd = omp_get_num_threads();
-        omp_tid = omp_get_thread_num();
-        virt_counts = all_virt_counts+np*omp_tid;
-        start_ldim = (last_len/omp_ntd)*omp_tid;
-        start_ldim += MIN(omp_tid,last_len%omp_ntd);
-        end_ldim = (last_len/omp_ntd)*(omp_tid+1);
-        end_ldim += MIN(omp_tid+1,last_len%omp_ntd);
+        int ntd, tid;
+        ntd = omp_get_num_threads();
+        tid = omp_get_thread_num();
+/*
+        int lidx_st[old_dist.order];
+        int lidx_end[old_dist.order];
+        if (old_dist.order > 1){
+          int64_t loc_upsize = packed_size(old_dist.order-1, old_virt_edge_len+1, sym+1);
+          int64_t chnk = loc_upsize/ntd;
+          int64_t loc_idx_st = chnk*tid + MIN(tid,loc_upsize%ntd);
+          int64_t loc_idx_end = loc_idx_st+chnk+(tid<(loc_upsize%ntd));
+          //calculate global indices along each dimension corresponding to partition
+      //    printf("loc_idx_st = %ld, loc_idx_end = %ld\n",loc_idx_st,loc_idx_end);
+          calc_idx_arr(old_dist.order-1, len+1, sym+1, loc_idx_st, lidx_st+1);
+          calc_idx_arr(old_dist.order-1, len+1, sym+1, loc_idx_end, lidx_end+1);
+          lidx_st[0] = 0;
+          //FIXME: wrong but evidently not used
+          lidx_end[0] = 0
+        } else {
+          //FIXME the below means redistribution of a vector is non-threaded
+          if (tid == 0){
+            lidx_st[0] = 0;
+            lidx_end[0] = ends[0];
+          } else {
+            lidx_st[0] = 0;
+            lidx_end[0] = 0;
+          }
+        }*/
+
+        virt_counts = all_virt_counts+np*tid;
+        start_ldim = (last_len/ntd)*tid;
+        start_ldim += MIN(tid,last_len%ntd);
+        end_ldim = (last_len/ntd)*(tid+1);
+        end_ldim += MIN(tid+1,last_len%ntd);
   #else
         {
         int imax, act_max, skip;
@@ -353,7 +380,7 @@ namespace CTF_int {
 #ifdef USE_OMP
 #pragma omp master
         {
-          act_omp_ntd = omp_ntd;
+          act_omp_ntd = ntd;
         }
 #endif
         }
@@ -518,15 +545,16 @@ namespace CTF_int {
     int gidx_st[old_dist.order];
     int gidx_end[old_dist.order];
     if (old_dist.order > 1){
-      int64_t all_size = packed_size(old_dist.order-1, len+1, sym+1);
+      int64_t all_size = packed_size(old_dist.order, len, sym);
       int64_t chnk = all_size/ntd;
       int64_t glb_idx_st = chnk*tid + MIN(tid,all_size%ntd);
       int64_t glb_idx_end = glb_idx_st+chnk+(tid<(all_size%ntd));
       //calculate global indices along each dimension corresponding to partition
-  //    printf("glb_idx_st = %ld, glb_idx_end = %ld\n",glb_idx_st,glb_idx_end);
-      calc_idx_arr(old_dist.order-1, len+1, sym+1, glb_idx_st, gidx_st+1);
-      calc_idx_arr(old_dist.order-1, len+1, sym+1, glb_idx_end, gidx_end+1);
+//      printf("glb_idx_st = %ld, glb_idx_end = %ld\n",glb_idx_st,glb_idx_end);
+      calc_idx_arr(old_dist.order, len, sym, glb_idx_st,  gidx_st);
+      calc_idx_arr(old_dist.order, len, sym, glb_idx_end, gidx_end);
       gidx_st[0] = 0;
+      //FIXME: wrong but evidently not used
       gidx_end[0] = 0;
   #if DEBUG >= 1
       if (ntd == 1){
@@ -883,7 +911,13 @@ namespace CTF_int {
 
   }
 
-
+  void order_globally(int const *          sym,
+                      distribution const & dist,
+                      char const *         tsr_data_in,
+                      char *               tsr_data_out,
+                      algstrct const *     sr){
+    
+  }
 
   void cyclic_reshuffle(int const *          sym,
                         distribution const & old_dist,
