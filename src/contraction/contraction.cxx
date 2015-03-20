@@ -1884,7 +1884,7 @@ namespace CTF_int {
           if (can_block_reshuffle(A->order, old_phase_A, A->edge_map)){
             memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size);
           } else {
-            est_time += 5.*COST_MEMBW*A->sr->el_size*A->size+global_comm.estimate_alltoall_time(nvirt);
+            est_time += 5.*COST_MEMBW*A->sr->el_size*A->size+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*A->sr->el_size*A->size;
             memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*2.5);
@@ -1904,7 +1904,7 @@ namespace CTF_int {
           if (can_block_reshuffle(B->order, old_phase_B, B->edge_map)){
             memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size);
           } else {
-            est_time += 5.*COST_MEMBW*B->sr->el_size*B->size+global_comm.estimate_alltoall_time(nvirt);
+            est_time += 5.*COST_MEMBW*B->sr->el_size*B->size+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*B->sr->el_size*B->size;
             memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*2.5);
@@ -1923,7 +1923,7 @@ namespace CTF_int {
           if (can_block_reshuffle(C->order, old_phase_C, C->edge_map)){
             memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size);
           } else {
-            est_time += 5.*COST_MEMBW*C->sr->el_size*C->size+global_comm.estimate_alltoall_time(nvirt);
+            est_time += 5.*COST_MEMBW*C->sr->el_size*C->size+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*C->sr->el_size*C->size;
             memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*2.5);
