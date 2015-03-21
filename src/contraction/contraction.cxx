@@ -22,20 +22,20 @@ namespace CTF_int {
   using namespace CTF;
 
   contraction::~contraction(){
-    if (idx_A != NULL) free(idx_A);
-    if (idx_B != NULL) free(idx_B);
-    if (idx_C != NULL) free(idx_C);
+    if (idx_A != NULL) cfree(idx_A);
+    if (idx_B != NULL) cfree(idx_B);
+    if (idx_C != NULL) cfree(idx_C);
   }
 
   contraction::contraction(contraction const & other){
     A     = other.A;
-    idx_A = (int*)malloc(sizeof(int)*other.A->order);
+    idx_A = (int*)alloc(sizeof(int)*other.A->order);
     memcpy(idx_A, other.idx_A, sizeof(int)*other.A->order);
     B     = other.B;
-    idx_B = (int*)malloc(sizeof(int)*other.B->order);
+    idx_B = (int*)alloc(sizeof(int)*other.B->order);
     memcpy(idx_B, other.idx_B, sizeof(int)*other.B->order);
     C     = other.C;
-    idx_C = (int*)malloc(sizeof(int)*other.C->order);
+    idx_C = (int*)alloc(sizeof(int)*other.C->order);
     memcpy(idx_C, other.idx_C, sizeof(int)*other.C->order);
     if (other.is_custom){
       func      = other.func;
@@ -65,9 +65,9 @@ namespace CTF_int {
     alpha = alpha_;
     beta  = beta_;
     
-    idx_A = (int*)malloc(sizeof(int)*A->order);
-    idx_B = (int*)malloc(sizeof(int)*B->order);
-    idx_C = (int*)malloc(sizeof(int)*C->order);
+    idx_A = (int*)alloc(sizeof(int)*A->order);
+    idx_B = (int*)alloc(sizeof(int)*B->order);
+    idx_C = (int*)alloc(sizeof(int)*C->order);
     memcpy(idx_A, idx_A_, sizeof(int)*A->order);
     memcpy(idx_B, idx_B_, sizeof(int)*B->order);
     memcpy(idx_C, idx_C_, sizeof(int)*C->order);
@@ -1596,7 +1596,7 @@ namespace CTF_int {
       stat = SUCCESS;
     } while(0);
 
-    cfree(idx_arr); cfree(idx_extra); cfree(idx_no_ctr); cfree(idx_weigh);
+    cfree(idx_arr); cfree(idx_ctr); cfree(idx_extra); cfree(idx_no_ctr); cfree(idx_weigh);
     return stat;
   }
 
@@ -1884,7 +1884,7 @@ namespace CTF_int {
           if (can_block_reshuffle(A->order, old_phase_A, A->edge_map)){
             memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size);
           } else {
-            est_time += 5.*COST_MEMBW*A->sr->el_size*A->size+global_comm.estimate_alltoall_time(nvirt);
+            est_time += 5.*COST_MEMBW*A->sr->el_size*A->size+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*A->sr->el_size*A->size;
             memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*2.5);
@@ -1904,7 +1904,7 @@ namespace CTF_int {
           if (can_block_reshuffle(B->order, old_phase_B, B->edge_map)){
             memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size);
           } else {
-            est_time += 5.*COST_MEMBW*B->sr->el_size*B->size+global_comm.estimate_alltoall_time(nvirt);
+            est_time += 5.*COST_MEMBW*B->sr->el_size*B->size+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*B->sr->el_size*B->size;
             memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*2.5);
@@ -1923,7 +1923,7 @@ namespace CTF_int {
           if (can_block_reshuffle(C->order, old_phase_C, C->edge_map)){
             memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size);
           } else {
-            est_time += 5.*COST_MEMBW*C->sr->el_size*C->size+global_comm.estimate_alltoall_time(nvirt);
+            est_time += 5.*COST_MEMBW*C->sr->el_size*C->size+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*C->sr->el_size*C->size;
             memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*2.5);
@@ -2081,7 +2081,7 @@ namespace CTF_int {
   #endif
     ASSERT(check_mapping());
   
-
+#if 0
     nvirt_all = -1;
     old_nvirt_all = -2;
     while (nvirt_all < MIN_NVIRT){
@@ -2115,6 +2115,7 @@ namespace CTF_int {
           stretch_virt(C->order, 2, C->edge_map);
         }
       }
+#endif
       A->set_padding();
       B->set_padding();
       C->set_padding();
@@ -2956,9 +2957,11 @@ namespace CTF_int {
         (double)proc_bytes_available());
     }
   #endif
-  /*  print_map(stdout, type->tid_A);
-    print_map(stdout, type->tid_B);
-    print_map(stdout, type->tid_C);*/
+  #if DEBUG >=2
+    A->print_map();
+    B->print_map();
+    C->print_map();
+  #endif
   //  stat = zero_out_padding(type->tid_A);
   //  stat = zero_out_padding(type->tid_B);
     TAU_FSTART(ctr_func);
@@ -3186,7 +3189,7 @@ namespace CTF_int {
                                        tnsr_C->sym);
       char const * align_alpha = alpha;
       if (sign != 1){
-        char * u_align_alpha = (char*)malloc(tnsr_C->sr->el_size);
+        char * u_align_alpha = (char*)alloc(tnsr_C->sr->el_size);
         if (sign == -1){
           tnsr_C->sr->addinv(alpha, u_align_alpha);
 //          alpha = new_alpha;
@@ -3195,18 +3198,17 @@ namespace CTF_int {
         //FIXME free new_alpha
       }
 
-      char const * oc_align_alpha = align_alpha;
+      char * oc_align_alpha = (char*)alloc(tnsr_C->sr->el_size);
+      tnsr_C->sr->copy(oc_align_alpha, align_alpha);
       if (ocfact != 1){
-        char * u_oc_align_alpha = (char*)malloc(tnsr_C->sr->el_size);
         if (ocfact != 1){
-          tnsr_B->sr->copy(u_oc_align_alpha, tnsr_B->sr->addid());
+          tnsr_B->sr->copy(oc_align_alpha, tnsr_B->sr->addid());
           
           for (int i=0; i<ocfact; i++){
-            tnsr_B->sr->add(u_oc_align_alpha, align_alpha, u_oc_align_alpha);
+            tnsr_B->sr->add(oc_align_alpha, align_alpha, oc_align_alpha);
           }
 //          alpha = new_alpha;
         }
-        oc_align_alpha = u_oc_align_alpha;
       }
       //new_ctr.alpha = alpha;
 
@@ -3264,7 +3266,7 @@ namespace CTF_int {
           get_sym_perms(new_ctr, perm_types, signs);
                         //&nscl_C, &scl_maps_C, &scl_alpha_C);
           dbeta = beta;
-          char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
+          char * new_alpha = (char*)alloc(tnsr_B->sr->el_size);
           for (i=0; i<(int)perm_types.size(); i++){
             if (signs[i] == 1)
               C->sr->copy(new_alpha, oc_align_alpha);
@@ -3280,6 +3282,7 @@ namespace CTF_int {
           perm_types.clear();
           signs.clear();
         }
+        delete unfold_ctr;
       } else {
         new_ctr.alpha = oc_align_alpha;
         stat = new_ctr.contract();
@@ -3292,6 +3295,7 @@ namespace CTF_int {
         tnsr_C = dstack_tsr_C[i];
       }
       ASSERT(tnsr_C == C);
+      CTF_int::cfree(oc_align_alpha);
     }
 
     CTF_int::cfree(map_A);

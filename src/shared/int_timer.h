@@ -17,10 +17,10 @@ namespace CTF {
 
 #ifdef TAU
 #define TAU_FSTART(ARG)                                           \
-  do { CTF_Timer t(#ARG); t.start(); } while (0);
+  do { CTF::Timer t(#ARG); t.start(); } while (0);
 
 #define TAU_FSTOP(ARG)                                            \
-  do { CTF_Timer t(#ARG); t.stop(); } while (0);
+  do { CTF::Timer t(#ARG); t.stop(); } while (0);
 
 #define TAU_PROFILE_TIMER(ARG1, ARG2, ARG3, ARG4)                 
 
@@ -30,10 +30,10 @@ namespace CTF {
 #define TAU_PROFILE_SET_NODE(ARG)
 
 #define TAU_PROFILE_START(ARG)                                    \
-  CTF_Timer __CTF_Timer##ARG(#ARG);
+  CTF::Timer __CTF::Timer##ARG(#ARG);
 
 #define TAU_PROFILE_STOP(ARG)                                     \
- __CTF_Timer##ARG.stop();
+ __CTF::Timer##ARG.stop();
 
 #define TAU_PROFILE_SET_CONTEXT(ARG)                              \
   if (ARG==0) CTF::set_context(MPI_COMM_WORLD);                    \

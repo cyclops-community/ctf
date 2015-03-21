@@ -61,6 +61,19 @@ namespace CTF {
     }
     topovec.clear();
     delete phys_topology;
+
+    initialized = 0;
+    mem_exit(rank);
+    if (get_num_instances() == 0){
+#ifdef OFFLOAD
+      offload_exit();
+#endif
+#ifdef HPM
+      HPM_Stop("CTF");
+#endif
+      TAU_FSTOP(CTF);
+    }
+
   }
 
 
@@ -123,16 +136,17 @@ namespace CTF {
       mst_size = getenv("CTF_MST_SIZE");
       stack_size = getenv("CTF_STACK_SIZE");
       if (mst_size == NULL && stack_size == NULL){
-  #ifdef USE_MST
+  #if 0 //def USE_MST
         if (rank == 0)
           VPRINTF(1,"Creating stack of size " PRId64 "\n",1000*(int64_t)1E6);
         CTF_int::mst_create(1000*(int64_t)1E6);
   #else
         if (rank == 0){
-          VPRINTF(1,"Running without stack, define CTF_STACK_SIZE environment variable to activate stack\n");
+//          VPRINTF(1,"Running without stack, define CTF_STACK_SIZE environment variable to activate stack\n");
         }
   #endif
       } else {
+#if 0
         uint64_t imst_size = 0 ;
         if (mst_size != NULL) 
           imst_size = strtoull(mst_size,NULL,0);
@@ -142,6 +156,7 @@ namespace CTF {
           printf("Creating stack of size " PRIu64 " due to CTF_STACK_SIZE enviroment variable\n",
                     imst_size);
         CTF_int::mst_create(imst_size);
+#endif
       }
       mem_size = getenv("CTF_MEMORY_SIZE");
       if (mem_size != NULL){

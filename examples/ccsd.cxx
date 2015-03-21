@@ -17,8 +17,12 @@
 #include <ctf.hpp>
 #include "../src/shared/util.h"
 
+double divide(double a, double b){
+  return a/b;
+}
+
 void divide(double const alpha, double const a, double const b, double & c){
-  if (fabs(b) > 0.0);
+  if (fabs(b) > 0.0)
     c+=alpha*(a/b);
 }
 
@@ -282,12 +286,10 @@ void ccsd(Integrals   &V,
   Dabij["abij"] -= V["b"];
 
 
-  /*CTF_fctr fctr;
-  fctr.func_ptr = &divide;
+  CTF::Bivar_Function<> fctr(&divide);
 
-  T.ai.contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
-  T.abij.contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
-*/
+  T.ai->contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
+  T.abij->contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
 #ifdef SCHEDULE_CCSD
   if (rank == 0) {
     printf("Schedule comm down: %lf\n", schedule_time.comm_down_time);

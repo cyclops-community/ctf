@@ -112,8 +112,7 @@ namespace CTF_int {
                                      nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
 
           csum.sum_tensors(0);
-          nonsym_tsr->print();
-          if (rev_sign == -1) free(mksign);
+          if (rev_sign == -1) cfree(mksign);
           idx_map_A[sym_dim] = sym_dim;
           idx_map_A[sym_dim+i+1] = sym_dim+i+1;
         }
@@ -154,12 +153,11 @@ namespace CTF_int {
             }*/
     /*        printf("tid %d before scale\n", nonsym_tid);
             print_tsr(stdout, nonsym_tid);*/
-            char * scalf = (char*)malloc(nonsym_tsr->sr->el_size);
+            char * scalf = (char*)alloc(nonsym_tsr->sr->el_size);
             nonsym_tsr->sr->cast_double(((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg), scalf);
             scaling sscl(nonsym_tsr, idx_map_A, scalf);
-            nonsym_tsr->print();
             sscl.execute();
-            nonsym_tsr->print();
+            cfree(scalf);
     /*        printf("tid %d after scale\n", nonsym_tid);
             print_tsr(stdout, nonsym_tid);*/
   //          if (ret != CTF_SUCCESS) ABORT;
@@ -230,10 +228,10 @@ namespace CTF_int {
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"symmetrize_");
-      strcat(spf,nonsym_tsr->name);
+      strcat(spf,sym_tsr->name);
       CTF::Timer t_pf(spf);
       if (sym_tsr->wrld->rank == 0) 
-        VPRINTF(1,"Symmetrizing %s\n", nonsym_tsr->name);
+        VPRINTF(1,"Symmetrizing %s\n", sym_tsr->name);
       t_pf.start();
     }
 
@@ -274,89 +272,87 @@ namespace CTF_int {
       sym_tsr->set_padding();
       sym_tsr->size     = nonsym_tsr->size;
       sym_tsr->data     = nonsym_tsr->data;
-      TAU_FSTOP(symmetrize);
-      return;
-    }
-
-    sym_tsr->sr->set(sym_tsr->data, sym_tsr->sr->addid(), sym_tsr->size);
-    CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
-    CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
-
-    for (i=0; i<sym_tsr->order; i++){
-      idx_map_A[i] = i;
-      idx_map_B[i] = i;
-    }
-    
-    if (scal_diag){
-      //FIXME: this is not robust when doing e.g. {SY, SY, SY, NS} -> {SY, NS, SY, NS}
-      for (i=-num_sy_neg-1; i<num_sy; i++){
-        if (i==-1) continue;
-        idx_map_A[sym_dim] = sym_dim+i+1;
-        idx_map_A[sym_dim+i+1] = sym_dim;
-    //    printf("symmetrizing\n");
-  /*      summation csum = summation(nonsym_tsr, idx_map_A, rev_sign,
-                                      sym_tsr, idx_map_B, 1.0);*/
-          char * ksign = (char*)malloc(nonsym_tsr->sr->el_size);
-          if (rev_sign == -1)
-            nonsym_tsr->sr->addinv(nonsym_tsr->sr->mulid(), ksign);
-          else
-            nonsym_tsr->sr->copy(ksign, nonsym_tsr->sr->mulid());
-          summation csum(nonsym_tsr, idx_map_A, ksign,
-                            sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-          csum.sum_tensors(0);
-
-    //    print_tsr(stdout, sym_tid);
-        idx_map_A[sym_dim] = sym_dim;
-        idx_map_A[sym_dim+i+1] = sym_dim+i+1;
-      }
-      if (scal_diag && num_sy+num_sy_neg == 1) {
-    /*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
-          tensors[sym_tid]->sym[sym_dim+i+1] = SH;
-          zero_out_padding(sym_tid);
-          tensors[sym_tid]->sym[sym_dim+i+1] = SY;
-        }*/
-        sym_tsr->sym[is] = SH;
-        sym_tsr->zero_out_padding();
-        sym_tsr->sym[is] = SY;
-    /*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
-          tensors[sym_tid]->sym[sym_dim+i+1] = SY;
-        }*/
+    } else {
+  
+      sym_tsr->sr->set(sym_tsr->data, sym_tsr->sr->addid(), sym_tsr->size);
+      CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
+      CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
+  
+      for (i=0; i<sym_tsr->order; i++){
+        idx_map_A[i] = i;
+        idx_map_B[i] = i;
       }
       
-      summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-      ssum.sum_tensors(0);
+      if (scal_diag){
+        //FIXME: this is not robust when doing e.g. {SY, SY, SY, NS} -> {SY, NS, SY, NS}
+        for (i=-num_sy_neg-1; i<num_sy; i++){
+          if (i==-1) continue;
+          idx_map_A[sym_dim] = sym_dim+i+1;
+          idx_map_A[sym_dim+i+1] = sym_dim;
+      //    printf("symmetrizing\n");
+    /*      summation csum = summation(nonsym_tsr, idx_map_A, rev_sign,
+                                        sym_tsr, idx_map_B, 1.0);*/
+            char * ksign = (char*)alloc(nonsym_tsr->sr->el_size);
+            if (rev_sign == -1)
+              nonsym_tsr->sr->addinv(nonsym_tsr->sr->mulid(), ksign);
+            else
+              nonsym_tsr->sr->copy(ksign, nonsym_tsr->sr->mulid());
+            summation csum(nonsym_tsr, idx_map_A, ksign,
+                              sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+            csum.sum_tensors(0);
+  
+      //    print_tsr(stdout, sym_tid);
+          idx_map_A[sym_dim] = sym_dim;
+          idx_map_A[sym_dim+i+1] = sym_dim+i+1;
+        }
+        if (scal_diag && num_sy+num_sy_neg == 1) {
+      /*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
+            tensors[sym_tid]->sym[sym_dim+i+1] = SH;
+            zero_out_padding(sym_tid);
+            tensors[sym_tid]->sym[sym_dim+i+1] = SY;
+          }*/
+          sym_tsr->sym[is] = SH;
+          sym_tsr->zero_out_padding();
+          sym_tsr->sym[is] = SY;
+      /*    for (i=-num_sy_neg-1; i<num_sy-1; i++){
+            tensors[sym_tid]->sym[sym_dim+i+1] = SY;
+          }*/
+        }
         
-
-      if (num_sy+num_sy_neg > 1){
-        //assert(0); //FIXME: use zero_out_padding?
-        if (scal_diag){
-       //   printf("symmetrizing diagonal=%d\n",num_sy);
-          for (i=-num_sy_neg-1; i<num_sy; i++){
-            if (i==-1) continue;
-            idx_map_B[sym_dim+i+1] = sym_dim-num_sy_neg;
-            idx_map_B[sym_dim] = sym_dim-num_sy_neg;
-            for (j=MAX(sym_dim+i+2,sym_dim+1); j<sym_tsr->order; j++){
-              idx_map_B[j] = j-i-num_sy_neg-1;
+        summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+        ssum.sum_tensors(0);
+          
+  
+        if (num_sy+num_sy_neg > 1){
+          //assert(0); //FIXME: use zero_out_padding?
+          if (scal_diag){
+         //   printf("symmetrizing diagonal=%d\n",num_sy);
+            for (i=-num_sy_neg-1; i<num_sy; i++){
+              if (i==-1) continue;
+              idx_map_B[sym_dim+i+1] = sym_dim-num_sy_neg;
+              idx_map_B[sym_dim] = sym_dim-num_sy_neg;
+              for (j=MAX(sym_dim+i+2,sym_dim+1); j<sym_tsr->order; j++){
+                idx_map_B[j] = j-i-num_sy_neg-1;
+              }
+              /*printf("tid %d before scale\n", nonsym_tid);
+              print_tsr(stdout, sym_tid);*/
+              char * scalf = (char*)alloc(nonsym_tsr->sr->el_size);
+              nonsym_tsr->sr->cast_double(((double)(num_sy-i-1.))/(num_sy-i), scalf);
+              scaling sscl = scaling(sym_tsr, idx_map_B, scalf);
+              sscl.execute();
+      /*        printf("tid %d after scale\n", sym_tid);
+              print_tsr(stdout, sym_tid);*/
+              //if (ret != CTF_SUCCESS) ABORT;
             }
-            /*printf("tid %d before scale\n", nonsym_tid);
-            print_tsr(stdout, sym_tid);*/
-            char * scalf = (char*)malloc(nonsym_tsr->sr->el_size);
-            nonsym_tsr->sr->cast_double(((double)(num_sy-i-1.))/(num_sy-i), scalf);
-            scaling sscl = scaling(sym_tsr, idx_map_B, scalf);
-            sscl.execute();
-    /*        printf("tid %d after scale\n", sym_tid);
-            print_tsr(stdout, sym_tid);*/
-            //if (ret != CTF_SUCCESS) ABORT;
           }
         }
+      } else {
+        summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+        ssum.execute();
       }
-    } else {
-      summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-      ssum.execute();
+      CTF_int::cfree(idx_map_A);
+      CTF_int::cfree(idx_map_B);
     }
-    CTF_int::cfree(idx_map_A);
-    CTF_int::cfree(idx_map_B);
-
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"symmetrize_");

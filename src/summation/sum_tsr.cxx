@@ -199,7 +199,7 @@ namespace CTF_int {
     rec_tsum->B           = this->B;
     rec_tsum->alpha       = this->alpha;
     if (brank != 0)
-      rec_tsum->beta = sr_B->addid();
+      rec_tsum->beta = sr_B->mulid();
     else
       rec_tsum->beta = this->beta; 
 

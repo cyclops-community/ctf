@@ -27,14 +27,14 @@ namespace CTF_int {
   /* Force redistributions always by setting to 1 */
   #define REDIST 0
   //#define VERIFY 0
-  #define VERIFY_REMAP 1
-  #define FOLD_TSR 0
+  #define VERIFY_REMAP 0
+  #define FOLD_TSR 1
   #define PERFORM_DESYM 1
   #define ALLOW_NVIRT 1024
   #define DIAG_RESCALE
   #define USE_SYM_SUM
-//  #define HOME_CONTRACT
-//  #define USE_BLOCK_RESHUFFLE
+  #define HOME_CONTRACT
+  #define USE_BLOCK_RESHUFFLE
 
 
   #ifndef __APPLE__
@@ -330,22 +330,6 @@ namespace CTF_int {
       if (i>0) memcpy(B+el_size*i*k, B+el_size*i*kb, kb*el_size);
     }
   }
-
-  void cvrt_idx(int         order,
-                int const * lens,
-                int64_t     idx,
-                int **      idx_arr);
-
-  void cvrt_idx(int         order,
-                int const * lens,
-                int64_t     idx,
-                int *       idx_arr);
-
-  void cvrt_idx(int         order,
-                int const * lens,
-                int const * idx_arr,
-                int64_t *   idx);
-
 }
 #endif
 

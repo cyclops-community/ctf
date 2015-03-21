@@ -29,27 +29,27 @@ namespace CTF {
     return newtype;
   }
   template <>
-  MPI_Datatype get_default_mdtype<char>(){ return MPI_CHAR; }
+  inline MPI_Datatype get_default_mdtype<char>(){ return MPI_CHAR; }
   template <>
-  MPI_Datatype get_default_mdtype<bool>(){ return MPI_C_BOOL; }
+  inline MPI_Datatype get_default_mdtype<bool>(){ return MPI_C_BOOL; }
   template <>
-  MPI_Datatype get_default_mdtype<int>(){ return MPI_INT; }
+  inline MPI_Datatype get_default_mdtype<int>(){ return MPI_INT; }
   template <>
-  MPI_Datatype get_default_mdtype<int64_t>(){ return MPI_INT64_T; }
+  inline MPI_Datatype get_default_mdtype<int64_t>(){ return MPI_INT64_T; }
   template <>
-  MPI_Datatype get_default_mdtype<unsigned int>(){ return MPI_UNSIGNED; }
+  inline MPI_Datatype get_default_mdtype<unsigned int>(){ return MPI_UNSIGNED; }
   template <>
-  MPI_Datatype get_default_mdtype<uint64_t>(){ return MPI_UINT64_T; }
+  inline MPI_Datatype get_default_mdtype<uint64_t>(){ return MPI_UINT64_T; }
   template <>
-  MPI_Datatype get_default_mdtype<float>(){ return MPI_FLOAT; }
+  inline MPI_Datatype get_default_mdtype<float>(){ return MPI_FLOAT; }
   template <>
-  MPI_Datatype get_default_mdtype<double>(){ return MPI_DOUBLE; }
+  inline MPI_Datatype get_default_mdtype<double>(){ return MPI_DOUBLE; }
   template <>
-  MPI_Datatype get_default_mdtype<long double>(){ return MPI_LONG_DOUBLE; }
+  inline MPI_Datatype get_default_mdtype<long double>(){ return MPI_LONG_DOUBLE; }
   template <>
-  MPI_Datatype get_default_mdtype< std::complex<float> >(){ return MPI_COMPLEX; }
+  inline MPI_Datatype get_default_mdtype< std::complex<float> >(){ return MPI_COMPLEX; }
   template <>
-  MPI_Datatype get_default_mdtype< std::complex<double> >(){ return MPI_DOUBLE_COMPLEX; }
+  inline MPI_Datatype get_default_mdtype< std::complex<double> >(){ return MPI_DOUBLE_COMPLEX; }
 
   template <typename dtype>
   MPI_Op get_default_maddop(){
@@ -60,17 +60,17 @@ namespace CTF {
   }
 
   //c++ sucks...
-  template <> MPI_Op get_default_maddop<char>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop<bool>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop<int>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop<int64_t>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop<unsigned int>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop<uint64_t>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop<float>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop<double>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop<long double>(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop< std::complex<float> >(){ return MPI_SUM; }
-  template <> MPI_Op get_default_maddop< std::complex<double> >(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<char>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<bool>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<int>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<int64_t>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<unsigned int>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<uint64_t>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<float>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<double>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop<long double>(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop< std::complex<float> >(){ return MPI_SUM; }
+  template <> inline MPI_Op get_default_maddop< std::complex<double> >(){ return MPI_SUM; }
   
   template <typename dtype>
   MPI_Op get_maddop(void (*fxpy)(int, dtype const *, dtype *)){

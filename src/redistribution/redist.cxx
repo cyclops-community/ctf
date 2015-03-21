@@ -121,7 +121,8 @@ namespace CTF_int {
       int pidx = 0;
       for (int vr = 0;vr < old_dist.virt_phase[dim];vr++){
         for (int vidx = 0;vidx < old_virt_edge_len[dim];vidx++,pidx++){
-          int64_t _gidx = ((int64_t)vidx*old_dist.phase[dim]/old_dist.virt_phase[dim]+old_dist.perank[dim])*old_dist.virt_phase[dim]+vr;
+          int64_t _gidx = (int64_t)vidx*old_dist.phase[dim]+old_dist.perank[dim]*old_dist.virt_phase[dim]+(int64_t)vr;
+          //int64_t _gidx = (vr*old_virt_edge_len[dim]+(int64_t)vidx)*old_dist.phase[dim]/old_dist.virt_phase[dim]+old_dist.perank[dim];
           int64_t gidx;
           if (_gidx > len[dim] || (old_offsets != NULL && _gidx < old_offsets[dim])){
             gidx = -1;
@@ -133,18 +134,22 @@ namespace CTF_int {
             }
           }
           if (gidx != -1){
+            //int phys_rank = gidx%(new_dist.phase[dim]/new_dist.virt_phase[dim]);
             int total_rank = gidx%new_dist.phase[dim];
             int phys_rank = total_rank/new_dist.virt_phase[dim];
             if (forward){
-              int virt_rank = total_rank%new_dist.virt_phase[dim];
-              bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim])*new_virt_np+
-                             virt_rank*new_virt_lda[dim];
+              //int virt_rank = total_rank%new_dist.virt_phase[dim];
+              //int virt_rank = gidx/(new_phys_edge_len[dim]*new_dist.phase[dim]/new_dist.virt_phase[dim]);
+              //bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim])*new_virt_np+
+              //               virt_rank*new_virt_lda[dim];
+              bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim]);
               //printf("f %d - %d %d %d - %d - %d %d %d - %d\n", dim, vr, vidx, pidx, gidx, total_rank,
               //    phys_rank, virt_rank, bucket_offset[dim][pidx]);
             }
             else{
-              bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim])*old_virt_np+
-                             vr*old_virt_lda[dim];
+              //bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim])*old_virt_np+
+              //               vr*old_virt_lda[dim];
+              bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim]);
               //printf("r %d - %d %d %d - %d - %d %d - %d\n", dim, vr, vidx, pidx, gidx, total_rank,
               //    phys_rank, bucket_offset[dim][pidx]);
             }
@@ -166,45 +171,43 @@ namespace CTF_int {
   void calc_cnt_displs(int const *          sym,
                        distribution const & old_dist,
                        distribution const & new_dist,
-                       int                  nbuf,
                        int                  new_nvirt,
                        int                  np,
                        int const *          old_virt_edge_len,
                        int const *          new_virt_lda,
-                       int const *          buf_lda,
                        int64_t *            send_counts,
                        int64_t *            recv_counts,
                        int64_t *            send_displs,
                        int64_t *            recv_displs,
-                       int64_t *            svirt_displs,
-                       int64_t *            rvirt_displs,
                        CommData             ord_glb_comm,
                        int                  idx_lyr,
                        int * const *        bucket_offset){
     int64_t *  all_virt_counts;
 
   #ifdef USE_OMP
+    int act_omp_ntd;
     int64_t vbs = sy_packed_size(old_dist.order, old_virt_edge_len, sym);
     int max_ntd = omp_get_max_threads();
-    max_ntd = MAX(1,MIN(max_ntd,vbs/nbuf));
+    max_ntd = MAX(1,MIN(max_ntd,vbs/np));
   #else
     int max_ntd = 1;
   #endif
     
-    mst_alloc_ptr(nbuf*sizeof(int64_t)*max_ntd, (void**)&all_virt_counts);
+    mst_alloc_ptr(np*sizeof(int64_t)*max_ntd, (void**)&all_virt_counts);
 
 
     /* Count how many elements need to go to each new virtual bucket */
     if (idx_lyr==0){
       if (old_dist.order == 0){
-        memset(all_virt_counts, 0, nbuf*sizeof(int64_t));
+        memset(all_virt_counts, 0, np*sizeof(int64_t));
         all_virt_counts[0]++;
       } else {
   #ifdef USE_OMP
   #pragma omp parallel num_threads(max_ntd)
         {
         int imax, act_max, skip;
-        int start_ldim, end_ldim, i_st, vc, dim;
+        int start_ldim, end_ldim;
+        int i_st, vc, dim;
         int64_t *  virt_counts;
         int * old_virt_idx, * virt_rank;
         int * idx;
@@ -212,14 +215,40 @@ namespace CTF_int {
         int64_t *  idx_offs;
         int * spad;
         int last_len = old_dist.pad_edge_len[old_dist.order-1]/old_dist.phase[old_dist.order-1]+1;
-        int omp_ntd, omp_tid;
-        omp_ntd = omp_get_num_threads();
-        omp_tid = omp_get_thread_num();
-        virt_counts = all_virt_counts+nbuf*omp_tid;
-        start_ldim = (last_len/omp_ntd)*omp_tid;
-        start_ldim += MIN(omp_tid,last_len%omp_ntd);
-        end_ldim = (last_len/omp_ntd)*(omp_tid+1);
-        end_ldim += MIN(omp_tid+1,last_len%omp_ntd);
+        int ntd, tid;
+        ntd = omp_get_num_threads();
+        tid = omp_get_thread_num();
+/*
+        int lidx_st[old_dist.order];
+        int lidx_end[old_dist.order];
+        if (old_dist.order > 1){
+          int64_t loc_upsize = packed_size(old_dist.order-1, old_virt_edge_len+1, sym+1);
+          int64_t chnk = loc_upsize/ntd;
+          int64_t loc_idx_st = chnk*tid + MIN(tid,loc_upsize%ntd);
+          int64_t loc_idx_end = loc_idx_st+chnk+(tid<(loc_upsize%ntd));
+          //calculate global indices along each dimension corresponding to partition
+      //    printf("loc_idx_st = %ld, loc_idx_end = %ld\n",loc_idx_st,loc_idx_end);
+          calc_idx_arr(old_dist.order-1, len+1, sym+1, loc_idx_st, lidx_st+1);
+          calc_idx_arr(old_dist.order-1, len+1, sym+1, loc_idx_end, lidx_end+1);
+          lidx_st[0] = 0;
+          //FIXME: wrong but evidently not used
+          lidx_end[0] = 0
+        } else {
+          //FIXME the below means redistribution of a vector is non-threaded
+          if (tid == 0){
+            lidx_st[0] = 0;
+            lidx_end[0] = ends[0];
+          } else {
+            lidx_st[0] = 0;
+            lidx_end[0] = 0;
+          }
+        }*/
+
+        virt_counts = all_virt_counts+np*tid;
+        start_ldim = (last_len/ntd)*tid;
+        start_ldim += MIN(tid,last_len%ntd);
+        end_ldim = (last_len/ntd)*(tid+1);
+        end_ldim += MIN(tid+1,last_len%ntd);
   #else
         {
         int imax, act_max, skip;
@@ -240,7 +269,7 @@ namespace CTF_int {
         alloc_ptr(old_dist.order*sizeof(int64_t), (void**)&old_virt_idx);
         alloc_ptr(old_dist.order*sizeof(int64_t), (void**)&virt_rank);
         alloc_ptr(old_dist.order*sizeof(int), (void**)&spad);
-        memset(virt_counts, 0, nbuf*sizeof(int64_t));
+        memset(virt_counts, 0, np*sizeof(int64_t));
         memset(old_virt_idx, 0, old_dist.order*sizeof(int64_t));
         /* virt_rank = physical_rank*num_virtual_ranks + virtual_rank */
         for (int i=0; i<old_dist.order; i++){ 
@@ -282,8 +311,7 @@ namespace CTF_int {
               }
             }
           }
-          /* determine how many elements belong to each virtual processor */
-          /* Iterate over a block corresponding to a virtual rank */
+          /* determine how many elements belong to each processor */
           /* (INNER LOOP) */
           if (!skip){
             for (;;){
@@ -349,25 +377,32 @@ namespace CTF_int {
         cfree(old_virt_idx);
         cfree(virt_rank);
         cfree(spad);
+#ifdef USE_OMP
+#pragma omp master
+        {
+          act_omp_ntd = ntd;
+        }
+#endif
         }
   #ifdef USE_OMP
-        for (int j=1; j<max_ntd; j++){
-          for (int64_t i=0; i<nbuf; i++){
-            all_virt_counts[i] += all_virt_counts[i+nbuf*j];
+        for (int j=1; j<act_omp_ntd; j++){
+          for (int64_t i=0; i<np; i++){
+            all_virt_counts[i] += all_virt_counts[i+np*j];
           }
         }
   #endif
       }
     } else
-      memset(all_virt_counts, 0, sizeof(int64_t)*nbuf);
+      memset(all_virt_counts, 0, sizeof(int64_t)*np);
 
     int tmp1, tmp2;
     int64_t *  virt_counts = all_virt_counts;
 
-    memset(send_counts, 0, np*sizeof(int64_t));
+    memcpy(send_counts, all_virt_counts, np*sizeof(int64_t));
+//    memset(send_counts, 0, np*sizeof(int64_t));
 
     /* Calculate All-to-all processor grid offsets from the virtual bucket counts */
-    if (old_dist.order == 0){
+/*    if (old_dist.order == 0){
    //   send_counts[0] = virt_counts[0];
       memset(svirt_displs, 0, np*sizeof(int64_t));
     } else {
@@ -378,7 +413,7 @@ namespace CTF_int {
           svirt_displs[i*new_nvirt+j] = virt_counts[i*new_nvirt+j];
         }
       }
-    }
+    }*/
 
     /* Exchange counts */
     MPI_Alltoall(send_counts, 1, MPI_INT64_T, 
@@ -393,7 +428,7 @@ namespace CTF_int {
     }
 
     /* Calculate displacements for virt buckets in each message */
-    for (int i=0; i<np; i++){
+/*    for (int i=0; i<np; i++){
       tmp2 = svirt_displs[i*new_nvirt];
       svirt_displs[i*new_nvirt] = 0;
       for (int j=1; j<new_nvirt; j++){
@@ -401,11 +436,11 @@ namespace CTF_int {
         svirt_displs[i*new_nvirt+j] = svirt_displs[i*new_nvirt+j-1]+tmp2;
         tmp2 = tmp1;
       }
-    }
+    }*/
 
     /* Exchange displacements for virt buckets */
-    MPI_Alltoall(svirt_displs, new_nvirt, MPI_INT64_T, 
-                 rvirt_displs, new_nvirt, MPI_INT64_T, ord_glb_comm.cm);
+/*    MPI_Alltoall(svirt_displs, new_nvirt, MPI_INT64_T, 
+                 rvirt_displs, new_nvirt, MPI_INT64_T, ord_glb_comm.cm);*/
     
     cfree(all_virt_counts);
   }
@@ -452,7 +487,7 @@ namespace CTF_int {
     int new_virt_np = 1;
     for (int dim = 0;dim < old_dist.order;dim++) new_virt_np *= new_dist.virt_phase[dim];
     
-    int nbucket = total_np*(forward ? new_virt_np : old_virt_np);
+    int nbucket = total_np; //*(forward ? new_virt_np : old_virt_np);
 
   #if DEBUG >= 1
     int rank;
@@ -510,15 +545,16 @@ namespace CTF_int {
     int gidx_st[old_dist.order];
     int gidx_end[old_dist.order];
     if (old_dist.order > 1){
-      int64_t all_size = packed_size(old_dist.order-1, len+1, sym+1);
+      int64_t all_size = packed_size(old_dist.order, len, sym);
       int64_t chnk = all_size/ntd;
       int64_t glb_idx_st = chnk*tid + MIN(tid,all_size%ntd);
       int64_t glb_idx_end = glb_idx_st+chnk+(tid<(all_size%ntd));
       //calculate global indices along each dimension corresponding to partition
-  //    printf("glb_idx_st = %ld, glb_idx_end = %ld\n",glb_idx_st,glb_idx_end);
-      calc_idx_arr(old_dist.order-1, len+1, sym+1, glb_idx_st, gidx_st+1);
-      calc_idx_arr(old_dist.order-1, len+1, sym+1, glb_idx_end, gidx_end+1);
+//      printf("glb_idx_st = %ld, glb_idx_end = %ld\n",glb_idx_st,glb_idx_end);
+      calc_idx_arr(old_dist.order, len, sym, glb_idx_st,  gidx_st);
+      calc_idx_arr(old_dist.order, len, sym, glb_idx_end, gidx_end);
       gidx_st[0] = 0;
+      //FIXME: wrong but evidently not used
       gidx_end[0] = 0;
   #if DEBUG >= 1
       if (ntd == 1){
@@ -875,7 +911,13 @@ namespace CTF_int {
 
   }
 
-
+  void order_globally(int const *          sym,
+                      distribution const & dist,
+                      char const *         tsr_data_in,
+                      char *               tsr_data_out,
+                      algstrct const *     sr){
+    
+  }
 
   void cyclic_reshuffle(int const *          sym,
                         distribution const & old_dist,
@@ -891,14 +933,14 @@ namespace CTF_int {
                         bool                 reuse_buffers,
                         char const *         alpha,
                         char const *         beta){
-    int i, nbuf, np, old_nvirt, new_nvirt, old_np, new_np, idx_lyr;
+    int i, np, old_nvirt, new_nvirt, old_np, new_np, idx_lyr;
     int64_t vbs_old, vbs_new;
     int64_t swp_nval;
     int * hsym;
     int64_t * send_counts, * recv_counts;
-    int * idx, * buf_lda;
+    int * idx;
     int64_t * idx_offs;
-    int64_t * svirt_displs, * rvirt_displs, * send_displs;
+    int64_t  * send_displs;
     int64_t * recv_displs;
     int * new_virt_lda, * old_virt_lda;
     int * old_sub_edge_len, * new_sub_edge_len;
@@ -907,13 +949,19 @@ namespace CTF_int {
     char * tsr_data = *ptr_tsr_data;
     char * tsr_cyclic_data = *ptr_tsr_cyclic_data;
     if (order == 0){
-      alloc_ptr(sizeof(sr->el_size), (void**)&tsr_cyclic_data);
+      bool is_copy = false;
+      if (sr->isequal(sr->mulid(), alpha) && sr->isequal(sr->addid(), beta)) is_copy = true;
+      alloc_ptr(sr->el_size, (void**)&tsr_cyclic_data);
       if (ord_glb_comm.rank == 0){
-        sr->acc(tsr_cyclic_data, beta, tsr_data, alpha);
+        if (is_copy)
+          sr->copy(tsr_cyclic_data, tsr_data);
+        else
+          sr->acc(tsr_cyclic_data, beta, tsr_data, alpha);
       } else {
         sr->copy(tsr_cyclic_data, sr->addid());
       }
       *ptr_tsr_cyclic_data = tsr_cyclic_data;
+      return;
     }
     
     ASSERT(!reuse_buffers || sr->isequal(beta, sr->addid()));
@@ -926,19 +974,16 @@ namespace CTF_int {
     alloc_ptr(order*sizeof(int64_t), (void**)&idx_offs);
     alloc_ptr(order*sizeof(int),     (void**)&old_virt_lda);
     alloc_ptr(order*sizeof(int),     (void**)&new_virt_lda);
-    alloc_ptr(order*sizeof(int),     (void**)&buf_lda);
 
-    nbuf = 1;
     new_nvirt = 1;
     old_nvirt = 1;
     old_np = 1;
     new_np = 1;
     idx_lyr = ord_glb_comm.rank;
     for (i=0; i<order; i++) {
-      buf_lda[i] = nbuf;
       new_virt_lda[i] = new_nvirt;
       old_virt_lda[i] = old_nvirt;
-      nbuf = nbuf*new_dist.phase[i];
+   //   nbuf = nbuf*new_dist.phase[i];
       /*printf("is_new_pad = %d\n", is_new_pad);
       if (is_new_pad)
         printf("new_dist.padding[%d] = %d\n", i, new_dist.padding[i]);
@@ -952,12 +997,9 @@ namespace CTF_int {
       idx_lyr -= old_dist.perank[i]*old_dist.pe_lda[i];
     }
     vbs_old = old_dist.size/old_nvirt;
-    nbuf = np*new_nvirt;
 
     mst_alloc_ptr(np*sizeof(int64_t),   (void**)&recv_counts);
     mst_alloc_ptr(np*sizeof(int64_t),   (void**)&send_counts);
-    mst_alloc_ptr(nbuf*sizeof(int64_t), (void**)&rvirt_displs);
-    mst_alloc_ptr(nbuf*sizeof(int64_t), (void**)&svirt_displs);
     mst_alloc_ptr(np*sizeof(int64_t),   (void**)&send_displs);
     mst_alloc_ptr(np*sizeof(int64_t),   (void**)&recv_displs);
     alloc_ptr(order*sizeof(int), (void**)&old_sub_edge_len);
@@ -1009,18 +1051,14 @@ namespace CTF_int {
     calc_cnt_displs(sym,
                     old_dist,
                     new_dist,
-                    nbuf,
                     new_nvirt,
                     np,
                     old_virt_edge_len,
                     new_virt_lda,
-                    buf_lda,
                     send_counts,    
                     recv_counts,
                     send_displs,
                     recv_displs,    
-                    svirt_displs,
-                    rvirt_displs,
                     ord_glb_comm, 
                     idx_lyr,
                     bucket_offset);
@@ -1054,10 +1092,9 @@ namespace CTF_int {
       TAU_FSTART(pack_virt_buf);
       if (idx_lyr == 0){
         if (old_dist.is_cyclic&&new_dist.is_cyclic) {
-          char **new_data; alloc_ptr(sizeof(char*)*np*new_nvirt, (void**)&new_data);
-          for (int64_t p = 0,b = 0;p < np;p++){
-            for (int v = 0;v < new_nvirt;v++,b++)
-              new_data[b] = tsr_cyclic_data+sr->el_size*(send_displs[p]+svirt_displs[b]);
+          char **new_data; alloc_ptr(sizeof(char*)*np, (void**)&new_data);
+          for (int64_t p = 0;p < np;p++){
+            new_data[p] = tsr_cyclic_data+sr->el_size*send_displs[p];
           }
 
           pad_cyclic_pup_virt_buff(sym,
@@ -1112,11 +1149,9 @@ namespace CTF_int {
 
         if (old_dist.is_cyclic&&new_dist.is_cyclic)
         {
-          char **new_data; alloc_ptr(sizeof(char*)*np*new_nvirt, (void**)&new_data);
-          for (int64_t p = 0,b = 0;p < np;p++)
-          {
-            for (int v = 0;v < new_nvirt;v++,b++)
-                new_data[b] = tsr_data+(recv_displs[p]+rvirt_displs[b])*sr->el_size;
+          char **new_data; alloc_ptr(sizeof(char*)*np, (void**)&new_data);
+          for (int64_t p = 0;p < np;p++){
+            new_data[p] = tsr_data+recv_displs[p]*sr->el_size;
           }
           bucket_offset = 
             compute_bucket_offsets( new_dist,
@@ -1178,10 +1213,9 @@ namespace CTF_int {
       ASSERT(old_dist.is_cyclic&&new_dist.is_cyclic);
       TAU_FSTART(pack_virt_buf);
       if (idx_lyr == 0){
-        char **new_data; alloc_ptr(sizeof(char*)*np*new_nvirt, (void**)&new_data);
-        for (int64_t p = 0,b = 0;p < np;p++){
-          for (int v = 0;v < new_nvirt;v++,b++)
-            new_data[b] = send_buffer+sr->el_size*(send_displs[p]+svirt_displs[b]);
+        char **new_data; alloc_ptr(sizeof(char*)*np, (void**)&new_data);
+        for (int64_t p = 0;p < np;p++){
+          new_data[p] = send_buffer+sr->el_size*send_displs[p];
         }
 
         pad_cyclic_pup_virt_buff(sym,
@@ -1223,10 +1257,9 @@ namespace CTF_int {
       TAU_FSTART(unpack_virt_buf);
       /* Deserialize data into correctly ordered virtual sub blocks */
       if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
-        char **new_data; alloc_ptr(sizeof(char*)*np*new_nvirt, (void**)&new_data);
-        for (int64_t p = 0,b = 0;p < np;p++){
-          for (int v = 0;v < new_nvirt;v++,b++)
-            new_data[b] = recv_buffer+sr->el_size*(recv_displs[p]+rvirt_displs[b]);
+        char **new_data; alloc_ptr(sizeof(char*)*np, (void**)&new_data);
+        for (int64_t p = 0;p < np;p++){
+          new_data[p] = recv_buffer+sr->el_size*recv_displs[p];
         }
 
         bucket_offset =
@@ -1288,11 +1321,8 @@ namespace CTF_int {
     cfree(idx_offs);
     cfree(old_virt_lda);
     cfree(new_virt_lda);
-    cfree(buf_lda);
     cfree(recv_counts);
     cfree(send_counts);
-    cfree(rvirt_displs);
-    cfree(svirt_displs);
     cfree(send_displs);
     cfree(recv_displs);
     cfree(old_sub_edge_len);
@@ -1328,6 +1358,7 @@ namespace CTF_int {
       } else {
         sr->copy(tsr_cyclic_data, sr->addid());
       }
+      return;
     }
 
     TAU_FSTART(block_reshuffle);

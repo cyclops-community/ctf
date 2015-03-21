@@ -43,7 +43,10 @@ namespace CTF_int {
       delete [] edge_map;
       if (!is_data_aliased){
         if (is_home) cfree(home_buffer);
-        else free(data);
+        else { 
+          if (data != NULL)
+            cfree(data);
+        }
         if (has_home && !is_home) cfree(home_buffer);
       }
       order = -1;
@@ -81,7 +84,7 @@ namespace CTF_int {
 
     if (copy) {
       copy_tensor_data(other);
-    }
+    } else data = NULL;
 
   }
 
@@ -436,7 +439,12 @@ namespace CTF_int {
 
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
-      printf("CTF: sym  len  tphs  pphs  vphs\n");
+      printf("printing mapping of %s\n",name);
+      printf("mapped to order %d topology with dims:",topo->order);
+      for (int dim=0; dim<topo->order; dim++){
+        printf(" %d ",topo->lens[dim]);
+      }
+      printf("\nCTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
         int tp = edge_map[dim].calc_phase();
         int pp = edge_map[dim].calc_phys_phase();
@@ -447,7 +455,7 @@ namespace CTF_int {
   }
    
   void tensor::set_name(char const * name_){
-    free(name);
+    cfree(name);
     this->name = (char*)alloc(strlen(name_)+1);
     strcpy(this->name, name_);
   }
@@ -554,7 +562,6 @@ namespace CTF_int {
     } else {
       buffer = (char*)CTF_int::alloc(buf_sz);
       MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
-      printf("broadcasting %d from rank %d, collecting %d\n",buf_sz,sub_root_rank,greater_world->rank);
       MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
     }
     odst = new distribution(buffer);
@@ -751,6 +758,7 @@ namespace CTF_int {
       MPI_Status stat;
       MPI_Wait(&req, &stat);
     }
+    delete odst;
     CTF_int::cfree(sub_buffer);
   #endif
 
@@ -780,6 +788,7 @@ namespace CTF_int {
 /*    redistribute(sym, wrld->cdt, odst, sub_buffer,     alpha,
                                    idst, this->data,  beta);*/
     cyclic_reshuffle(sym, *odst, NULL, NULL, idst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 0, alpha, beta);
+    delete odst;
     CTF_int::cfree(sub_buffer);
   #endif
 
@@ -982,6 +991,8 @@ namespace CTF_int {
     MPI_Allgatherv(my_pairs, n, MPI_CHAR,
                    all_pairs, nXs, pXs, MPI_CHAR, wrld->comm);
     nval = nval/sr->pair_size();
+    cfree(nXs);
+    cfree(pXs);
 
     PairIterator ipr(sr, all_pairs);
     ipr.sort(nval);
@@ -994,10 +1005,11 @@ namespace CTF_int {
   int tensor::allread(int64_t * num_pair,
                       char **   all_data){
     PairIterator ipr = read_all_pairs(num_pair);
-    char * ball_data = (char*)malloc(sr->el_size*(*num_pair));
+    char * ball_data = (char*)alloc(sr->el_size*(*num_pair));
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(ball_data+i*sr->el_size);
     }
+    cfree(ipr.ptr);
     *all_data = ball_data;
     return SUCCESS;
   }
@@ -1064,7 +1076,7 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
        idx_A[i] = i;
     }
-    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->addid(), func);
+    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->mulid(), func);
     sm.execute();
     sr->copy(result, sc.data);
     MPI_Bcast(result, sr->el_size, MPI_CHAR, 0, wrld->cdt.cm);
@@ -1154,6 +1166,99 @@ namespace CTF_int {
 
   }
 
+  void tensor::compare(const tensor * A, FILE * fp, char const * cutoff){
+    int i, j;
+    int64_t my_sz, tot_sz =0, my_sz_B;
+    int * recvcnts, * displs, * idx_arr;
+    char * my_data_A;
+    char * my_data_B;
+    char * all_data_A;
+    char * all_data_B;
+    int64_t k;
+
+    tensor * B = this;
+    
+    B->align(A);
+
+    A->print_map(stdout, 1);
+    B->print_map(stdout, 1);
+
+    my_sz = 0;
+    A->read_local(&my_sz, &my_data_A);
+    my_sz_B = 0;
+    B->read_local(&my_sz_B, &my_data_B);
+    assert(my_sz == my_sz_B);
+
+    CommData const & global_comm = A->wrld->cdt;
+
+    if (global_comm.rank == 0){
+      alloc_ptr(global_comm.np*sizeof(int), (void**)&recvcnts);
+      alloc_ptr(global_comm.np*sizeof(int), (void**)&displs);
+      alloc_ptr(A->order*sizeof(int), (void**)&idx_arr);
+    }
+
+
+    MPI_Gather(&my_sz, 1, MPI_INT, recvcnts, 1, MPI_INT, 0, global_comm.cm);
+
+    if (global_comm.rank == 0){
+      for (i=0; i<global_comm.np; i++){
+        recvcnts[i] *= A->sr->pair_size();
+      }
+      displs[0] = 0;
+      for (i=1; i<global_comm.np; i++){
+        displs[i] = displs[i-1] + recvcnts[i-1];
+      }
+      tot_sz = (displs[global_comm.np-1]
+                      + recvcnts[global_comm.np-1])/A->sr->pair_size();
+      alloc_ptr(tot_sz*A->sr->pair_size(), (void**)&all_data_A);
+      alloc_ptr(tot_sz*A->sr->pair_size(), (void**)&all_data_B);
+    }
+
+    if (my_sz == 0) my_data_A = my_data_B = NULL;
+    MPI_Gatherv(my_data_A, my_sz*A->sr->pair_size(), MPI_CHAR,
+                all_data_A, recvcnts, displs, MPI_CHAR, 0, global_comm.cm);
+    MPI_Gatherv(my_data_B, my_sz*A->sr->pair_size(), MPI_CHAR,
+                all_data_B, recvcnts, displs, MPI_CHAR, 0, global_comm.cm);
+
+    PairIterator pall_data_A(A->sr, all_data_A);
+    PairIterator pall_data_B(B->sr, all_data_B);
+
+    if (global_comm.rank == 0){
+      pall_data_A.sort(tot_sz);
+      pall_data_B.sort(tot_sz);
+      for (i=0; i<tot_sz; i++){
+        char aA[A->sr->el_size];
+        char aB[B->sr->el_size];
+        A->sr->abs(pall_data_A[i].d(), aA);
+        A->sr->min(aA, cutoff, aA);
+        B->sr->abs(pall_data_B[i].d(), aB);
+        B->sr->min(aB, cutoff, aB);
+        
+        if (A->sr->isequal(aA, cutoff) || B->sr->isequal(aB,cutoff)){
+          k = pall_data_A[i].k();
+          for (j=0; j<A->order; j++){
+            idx_arr[j] = k%A->lens[j];
+            k = k/A->lens[j];
+          }
+          for (j=0; j<A->order; j++){
+            fprintf(fp,"[%d]",idx_arr[j]);
+          }
+          fprintf(fp," <");
+          A->sr->print(pall_data_A[i].d(),fp);
+          fprintf(fp,">,<");
+          A->sr->print(pall_data_B[i].d(),fp);
+          fprintf(fp,">\n");
+        }
+      }
+      cfree(recvcnts);
+      cfree(displs);
+      cfree(idx_arr);
+      cfree(all_data_A);
+      cfree(all_data_B);
+    }
+
+  }
+
   void tensor::unfold(){
     int i, j, nvirt, allfold_dim;
     int * all_edge_len, * sub_edge_len;
@@ -1177,6 +1282,7 @@ namespace CTF_int {
         nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
                                this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
       }
+      this->rec_tsr->is_data_aliased=1;
       delete this->rec_tsr;
       CTF_int::cfree(this->inner_ordering);
       CTF_int::cfree(all_edge_len);

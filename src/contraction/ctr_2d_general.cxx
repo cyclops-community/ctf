@@ -221,6 +221,7 @@ namespace CTF_int {
           }
         } else 
           op_B = buf_B;
+//        printf("c_B = %ld, s_B = %ld, d_B = %ld, b_B = %ld\n", c_B, s_B,db, b_B);
         MPI_Bcast(op_B, c_B*s_B*sr_B->el_size, MPI_CHAR, owner_B, cdt_B->cm);
         if (c_B < db){ /* If the required B block is cut between 2 procs */
           if (rank_B == owner_B+1)
@@ -258,7 +259,7 @@ namespace CTF_int {
           op_C = this->C;
         else {
           if (false && ctr_lda_C == 1) 
-            op_C = this->C+sr_A->el_size*ib*ctr_sub_lda_C;
+            op_C = this->C+sr_C->el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
             rec_ctr->beta = sr_C->addid();

@@ -408,7 +408,7 @@ namespace CTF_int {
       for (int j=0; j<i; j++){
         new_lens[j] = topo->lens[j];
       }
-      new_lens[i] = topo->lens[i]+topo->lens[i+1];
+      new_lens[i] = topo->lens[i]*topo->lens[i+1];
       for (int j=i+2; j<topo->order; j++){
         new_lens[j-1] = topo->lens[j];
       }

@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <ctf.hpp>
 
-#define USE_SYM_SUM 1
 
 int fast_sym(int const     n,
              CTF_World    &ctf){
@@ -31,18 +30,18 @@ int fast_sym(int const     n,
 
   CTF_Matrix A(n, n, SH, ctf, "A");
   CTF_Matrix B(n, n, SH, ctf, "B");
-  CTF_Matrix C(n, n, SH, ctf,"C");
+  CTF_Matrix C(n, n, SH, ctf, "C");
   CTF_Matrix C_ans(n, n, SH, ctf, "C_ans");
   
   //CTF_Tensor A_rep(3, len3, YYN, ctf);
   //CTF_Tensor B_rep(3, len3, YYN, ctf);
   //CTF_Tensor Z(3, len3, YYN, ctf);
-  CTF_Tensor A_rep(3, len3, YYN, ctf);
-  CTF_Tensor B_rep(3, len3, YYN, ctf);
-  CTF_Tensor Z(3, len3, YYN, ctf);
-  CTF_Vector As(n, ctf);
-  CTF_Vector Bs(n, ctf);
-  CTF_Vector Cs(n, ctf);
+  CTF_Tensor A_rep(3, len3, YYN, ctf, "B_rep");
+  CTF_Tensor B_rep(3, len3, YYN, ctf, "A_rep");
+  CTF_Tensor Z(3, len3, YYN, ctf, "Z");
+  CTF_Vector As(n, ctf, "As");
+  CTF_Vector Bs(n, ctf, "Bs");
+  CTF_Vector Cs(n, ctf, "Cs");
 
   {
     int64_t * indices;
@@ -65,14 +64,12 @@ int fast_sym(int const     n,
     free(indices);
     free(values);
   }
-  C_ans["ij"] += A["ik"]*B["kj"];
+  C_ans["ij"] = A["ik"]*B["kj"];
 #ifdef USE_SYM_SUM
   A_rep["ijk"] += A["ij"];
   B_rep["ijk"] += B["ij"];
   Z["ijk"] += A_rep["ijk"]*B_rep["ijk"];
-  Z.print();
   C["ij"] += Z["ijk"];
-  C.print();
   Cs["i"] += A["ik"]*B["ik"];
   As["i"] += A["ik"];
   Bs["i"] += B["ik"];
@@ -106,19 +103,21 @@ int fast_sym(int const     n,
 #endif
 
   if (n<8){
-    printf("A:\n");
+    if (rank == 0) printf("A:\n");
     A.print();
-    printf("B:\n");
+    if (rank == 0) printf("B:\n");
     B.print();
-    printf("C_ans:\n");
+    if (rank == 0) printf("C_ans:\n");
     C_ans.print();
-    printf("C:\n");
+    if (rank == 0) printf("C:\n");
     C.print();
   }
-  CTF_Matrix Diff(n, n, SY, ctf);
-  Diff["ij"] = C["ij"]-C_ans["ij"];
+  CTF_Matrix Diff(n, n, SY, ctf, "Diff");
+  Diff["ij"] += C["ij"];
+  Diff["ij"] -= C_ans["ij"];
   double nrm = sqrt(Diff["ij"]*Diff["ij"]);
   int pass = (nrm <=1.E-10);
+  if (nrm > 1.E-10 && rank == 0) printf("nrm = %lf\n",nrm);
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);

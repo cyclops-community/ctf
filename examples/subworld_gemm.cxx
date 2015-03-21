@@ -100,6 +100,7 @@ int test_subworld_gemm(int n,
     else
       printf("{ GEMM on subworlds } FAILED, error norm = %E\n",err);
   }
+  MPI_Comm_free(&ccomm);
   return err<1.E-9;
 } 
 

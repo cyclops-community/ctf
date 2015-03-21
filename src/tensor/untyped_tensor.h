@@ -401,11 +401,11 @@ namespace CTF_int {
 
       /**
        * \brief prints two sets of tensor data side-by-side to file using process 0
-       * \param[in] fp file to print to e.g. stdout
        * \param[in] A tensor to compare against
+       * \param[in] fp file to print to e.g. stdout
        * \param[in] cutoff do not print values of absolute value smaller than this
        */
-      void compare(const tensor * A, FILE * fp = stdout, double cutoff = -1.0) const;
+      void compare(const tensor * A, FILE * fp, char const * cutoff);
 
       /**
        * \brief maps data from this world (subcomm) to the correct order of processors with

@@ -18,16 +18,16 @@ namespace CTF_int {
   using namespace CTF;
 
   summation::~summation(){
-    if (idx_A != NULL) free(idx_A);
-    if (idx_B != NULL) free(idx_B);
+    if (idx_A != NULL) cfree(idx_A);
+    if (idx_B != NULL) cfree(idx_B);
   }
 
   summation::summation(summation const & other){
     A     = other.A;
-    idx_A = (int*)malloc(sizeof(int)*other.A->order);
+    idx_A = (int*)alloc(sizeof(int)*other.A->order);
     memcpy(idx_A, other.idx_A, sizeof(int)*other.A->order);
     B     = other.B;
-    idx_B = (int*)malloc(sizeof(int)*other.B->order);
+    idx_B = (int*)alloc(sizeof(int)*other.B->order);
     memcpy(idx_B, other.idx_B, sizeof(int)*other.B->order);
     if (other.is_custom){
       func      = other.func;
@@ -49,8 +49,8 @@ namespace CTF_int {
     beta      = beta_;
     is_custom = 0;
 
-    idx_A     = (int*)malloc(sizeof(int)*A->order);
-    idx_B     = (int*)malloc(sizeof(int)*B->order);
+    idx_A     = (int*)alloc(sizeof(int)*A->order);
+    idx_B     = (int*)alloc(sizeof(int)*B->order);
 
     memcpy(idx_A, idx_A_, sizeof(int)*A->order);
     memcpy(idx_B, idx_B_, sizeof(int)*B->order);
@@ -86,8 +86,8 @@ namespace CTF_int {
     func      = func_;
     is_custom = 1;
 
-    idx_A     = (int*)malloc(sizeof(int)*A->order);
-    idx_B     = (int*)malloc(sizeof(int)*B->order);
+    idx_A     = (int*)alloc(sizeof(int)*A->order);
+    idx_B     = (int*)alloc(sizeof(int)*B->order);
 
     memcpy(idx_A, idx_A_, sizeof(int)*A->order);
     memcpy(idx_B, idx_B_, sizeof(int)*B->order);
@@ -262,8 +262,8 @@ namespace CTF_int {
                        ftsr_B->order, fidx_map_B, &sidx_B);
 
     summation fold_sum(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
-    free(sidx_A);
-    free(sidx_B);
+    cfree(sidx_A);
+    cfree(sidx_B);
   #if DEBUG>=2
     if (A->wrld->rank == 0){
       printf("Folded summation type:\n");
@@ -701,6 +701,7 @@ namespace CTF_int {
       tensor * cpy_tsr_A = new tensor(A);
       osum.A = cpy_tsr_A;
       osum.execute();
+      delete cpy_tsr_A;
       return SUCCESS;
     }
     was_home_A = A->is_home;
@@ -822,6 +823,7 @@ namespace CTF_int {
     }
     tnsr_A = A;
     tnsr_B = B;
+    char * new_alpha = (char*)alloc(tnsr_B->sr->el_size);
     CTF_int::alloc_ptr(sizeof(int)*tnsr_A->order,     (void**)&map_A);
     CTF_int::alloc_ptr(sizeof(int)*tnsr_B->order,     (void**)&map_B);
     CTF_int::alloc_ptr(sizeof(int*)*tnsr_B->order,    (void**)&dstack_map_B);
@@ -852,7 +854,7 @@ namespace CTF_int {
       tensor nnew_tsr = tensor(tnsr_A);
       new_sum.A = &nnew_tsr;
       new_sum.B = tnsr_B;
-      return new_sum.sym_sum_tsr(run_diag);
+      new_sum.sym_sum_tsr(run_diag);
       
       /*clone_tensor(ntid_A, 1, &new_tid);
       new_type = *type;
@@ -860,106 +862,110 @@ namespace CTF_int {
       stat = sym_sum_tsr(alpha_, beta, &new_type, ftsr, felm, run_diag);
       del_tsr(new_tid);
       return stat;*/
-    }
-    
-/*    new_type.tid_A = ntid_A;
-    new_type.tid_B = ntid_B;
-    new_type.idx_map_A = map_A;
-    new_type.idx_map_B = map_B;*/
-
-    //FIXME: make these typefree...
-    int sign = align_symmetric_indices(tnsr_A->order,
+    } else {
+      
+  /*    new_type.tid_A = ntid_A;
+      new_type.tid_B = ntid_B;
+      new_type.idx_map_A = map_A;
+      new_type.idx_map_B = map_B;*/
+  
+      //FIXME: make these typefree...
+      int sign = align_symmetric_indices(tnsr_A->order,
+                                         new_sum.idx_A,
+                                         tnsr_A->sym,
+                                         tnsr_B->order,
+                                         new_sum.idx_B,
+                                         tnsr_B->sym);
+      int ocfact = overcounting_factor(tnsr_A->order,
                                        new_sum.idx_A,
                                        tnsr_A->sym,
                                        tnsr_B->order,
                                        new_sum.idx_B,
                                        tnsr_B->sym);
-    int ocfact = overcounting_factor(tnsr_A->order,
-                                     new_sum.idx_A,
-                                     tnsr_A->sym,
-                                     tnsr_B->order,
-                                     new_sum.idx_B,
-                                     tnsr_B->sym);
-
-    if (ocfact != 1 || sign != 1){
-      if (ocfact != 1){
-        char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
-        tnsr_B->sr->copy(new_alpha, tnsr_B->sr->addid());
-        
-        for (int i=0; i<ocfact; i++){
-          tnsr_B->sr->add(new_alpha, alpha, new_alpha);
+  
+      if (ocfact != 1 || sign != 1){
+        if (ocfact != 1){
+          tnsr_B->sr->copy(new_alpha, tnsr_B->sr->addid());
+          
+          for (int i=0; i<ocfact; i++){
+            tnsr_B->sr->add(new_alpha, alpha, new_alpha);
+          }
+          alpha = new_alpha;
         }
-        alpha = new_alpha;
+        if (sign == -1){
+          tnsr_B->sr->addinv(alpha, new_alpha);
+          alpha = new_alpha;
+        }
       }
-      if (sign == -1){
-        char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
-        tnsr_B->sr->addinv(alpha, new_alpha);
-        alpha = new_alpha;
-      }
-      //FIXME: free new_alpha
-    }
-
-
-    if (new_sum.unfold_broken_sym(NULL) != -1){
-      if (A->wrld->cdt.rank == 0)
-        DPRINTF(1,"Contraction index is broken\n");
-
-      summation * unfold_sum;
-      sidx = new_sum.unfold_broken_sym(&unfold_sum);
-      int sy;
-      sy = 0;
-      for (i=0; i<A->order; i++){
-        if (A->sym[i] == SY) sy = 1;
-      }
-      for (i=0; i<B->order; i++){
-        if (B->sym[i] == SY) sy = 1;
-      }
-      if (sy && sidx%2 == 0){/* && map_tensors(&unfold_type,
-                            ftsr, felm, alpha, beta, &ctrf, 0) == SUCCESS){*/
+  
+  
+      if (new_sum.unfold_broken_sym(NULL) != -1){
         if (A->wrld->cdt.rank == 0)
-          DPRINTF(1,"Performing index desymmetrization\n");
-        desymmetrize(tnsr_A, unfold_sum->A, 0);
-        unfold_sum->A->print();
-        unfold_sum->B = tnsr_B;
-        unfold_sum->sym_sum_tsr(run_diag);
-//        sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
-        if (tnsr_A != unfold_sum->A){
-          unfold_sum->A->unfold();
-          tnsr_A->pull_alias(unfold_sum->A);
-          delete unfold_sum->A;
+          DPRINTF(1,"Contraction index is broken\n");
+  
+        summation * unfold_sum;
+        sidx = new_sum.unfold_broken_sym(&unfold_sum);
+        int sy;
+        sy = 0;
+        for (i=0; i<A->order; i++){
+          if (A->sym[i] == SY) sy = 1;
         }
+        for (i=0; i<B->order; i++){
+          if (B->sym[i] == SY) sy = 1;
+        }
+        if (sy && sidx%2 == 0){
+          if (A->wrld->cdt.rank == 0)
+            DPRINTF(1,"Performing index desymmetrization\n");
+          desymmetrize(tnsr_A, unfold_sum->A, 0);
+          unfold_sum->B = tnsr_B;
+          unfold_sum->sym_sum_tsr(run_diag);
+  //        sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
+          if (tnsr_A != unfold_sum->A){
+            unfold_sum->A->unfold();
+            tnsr_A->pull_alias(unfold_sum->A);
+            delete unfold_sum->A;
+          }
+        } else {
+          //FIXME: unfold B?
+          if (sidx != -1 && sidx%2 == 1){
+            delete unfold_sum->B;
+          } else if (sidx != -1 && sidx%2 == 0){
+            delete unfold_sum->A;
+          }
+          //get_sym_perms(&new_type, alpha, perm_types, signs);
+          get_sym_perms(new_sum, perm_types, signs);
+          if (A->wrld->cdt.rank == 0)
+            DPRINTF(1,"Performing %d summation permutations\n",
+                    (int)perm_types.size());
+          dbeta = beta;
+          char * new_alpha = (char*)alloc(tnsr_B->sr->el_size);
+          for (i=0; i<(int)perm_types.size(); i++){
+            if (signs[i] == 1)
+              B->sr->copy(new_alpha, alpha);
+            else
+              tnsr_B->sr->addinv(alpha, new_alpha);
+            perm_types[i].alpha = new_alpha;
+            perm_types[i].beta = dbeta;
+            perm_types[i].A->zero_out_padding();
+            perm_types[i].sum_tensors(run_diag);
+            /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
+                        perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
+            dbeta = new_sum.B->sr->mulid();
+          }
+          cfree(new_alpha);
+  /*        for (i=0; i<(int)perm_types.size(); i++){
+            free_type(&perm_types[i]);
+          }*/
+          perm_types.clear();
+          signs.clear();
+        }
+        delete unfold_sum;
       } else {
-        //get_sym_perms(&new_type, alpha, perm_types, signs);
-        get_sym_perms(new_sum, perm_types, signs);
-        if (A->wrld->cdt.rank == 0)
-          DPRINTF(1,"Performing %d summation permutations\n",
-                  (int)perm_types.size());
-        dbeta = beta;
-        char * new_alpha = (char*)malloc(tnsr_B->sr->el_size);
-        for (i=0; i<(int)perm_types.size(); i++){
-          if (signs[i] == 1)
-            B->sr->copy(new_alpha, alpha);
-          else
-            tnsr_B->sr->addinv(alpha, new_alpha);
-          perm_types[i].alpha = new_alpha;
-          perm_types[i].beta = dbeta;
-          perm_types[i].A->zero_out_padding();
-          perm_types[i].sum_tensors(run_diag);
-          /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
-                      perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
-          dbeta = new_sum.B->sr->mulid();
-        }
-/*        for (i=0; i<(int)perm_types.size(); i++){
-          free_type(&perm_types[i]);
-        }*/
-        perm_types.clear();
-        signs.clear();
+        new_sum.alpha = alpha;
+        new_sum.sum_tensors(run_diag);
+  /*      sum_tensors(alpha, beta, new_type.tid_A, new_type.tid_B, new_type.idx_map_A,
+                    new_type.idx_map_B, ftsr, felm, run_diag);*/
       }
-    } else {
-      new_sum.alpha = alpha;
-      new_sum.sum_tensors(run_diag);
-/*      sum_tensors(alpha, beta, new_type.tid_A, new_type.tid_B, new_type.idx_map_A,
-                  new_type.idx_map_B, ftsr, felm, run_diag);*/
     }
     if (tnsr_A != A) delete tnsr_A;
     for (i=nst_B-1; i>=0; i--){
@@ -970,6 +976,7 @@ namespace CTF_int {
       tnsr_B = dstack_tsr_B[i];
     }
     ASSERT(tnsr_B == B);
+    CTF_int::cfree(new_alpha);
     CTF_int::cfree(map_A);
     CTF_int::cfree(map_B);
     CTF_int::cfree(dstack_map_B);
@@ -1093,10 +1100,10 @@ namespace CTF_int {
   #if REDIST
       if (1) {
   #else
-      if (check_mapping() == 0) {
+      if (new_sum.check_mapping() == 0) {
   #endif
         /* remap if necessary */
-        stat = map();
+        stat = new_sum.map();
         if (stat == ERROR) {
           printf("Failed to map tensors to physical grid\n");
           return ERROR;
@@ -1106,17 +1113,17 @@ namespace CTF_int {
         if (A->wrld->cdt.rank == 0){
           printf("Keeping mappings:\n");
         }
-        A->print_map(stdout);
-        B->print_map(stdout);
+        tnsr_A->print_map(stdout);
+        tnsr_B->print_map(stdout);
   #endif
       }
       /* Construct the tensor algorithm we would like to use */
-      ASSERT(check_mapping());
+      ASSERT(new_sum.check_mapping());
   #if FOLD_TSR
-      if (is_custom == false && can_fold()){
+      if (is_custom == false && new_sum.can_fold()){
         int inner_stride;
         TAU_FSTART(map_fold);
-        inner_stride = map_fold();
+        inner_stride = new_sum.map_fold();
         TAU_FSTOP(map_fold);
         sumf = new_sum.construct_sum(inner_stride);
         /*alpha, beta, ntid_A, map_A, ntid_B, map_B,
@@ -1151,14 +1158,15 @@ namespace CTF_int {
   #if DEBUG >= 2
       if (tnsr_B->wrld->rank==0)
         sumf->print();
+      tnsr_A->print_map();
+      tnsr_B->print_map();
   #endif
       TAU_FSTART(sum_func);
       /* Invoke the contraction algorithm */
-      A->topo->activate();
-      tnsr_A->print();
+      tnsr_A->topo->activate();
       MPI_Barrier(tnsr_B->wrld->comm);
       sumf->run();
-      tnsr_B->unfold();
+      /*tnsr_B->unfold();
       tnsr_B->print();
       MPI_Barrier(tnsr_B->wrld->comm);
       if (tnsr_B->wrld->rank==1){
@@ -1167,10 +1175,13 @@ namespace CTF_int {
         tnsr_B->sr->print(tnsr_B->data+i*tnsr_B->sr->el_size);
         printf("\n");
       }
-      }
-      A->topo->deactivate();
+      }*/
+      tnsr_A->topo->deactivate();
       tnsr_A->unfold();
       tnsr_B->unfold();
+#ifndef SEQ
+      stat = tnsr_B->zero_out_padding();
+#endif
       TAU_FSTOP(sum_func);
 
   #if 0 //VERIFY
@@ -1354,7 +1365,7 @@ namespace CTF_int {
 
   int summation::check_mapping(){
     int i, pass, order_tot, iA, iB;
-    int * idx_arr, * phys_map;
+    int * idx_arr; //, * phys_map;
     mapping * map;
 
     TAU_FSTART(check_sum_mapping);
@@ -1364,6 +1375,8 @@ namespace CTF_int {
     if (B->is_mapped == 0) pass = 0;
     
     
+  if (A->is_folded == 1) pass = 0;
+  if (B->is_folded == 1) pass = 0;
     
     if (A->topo != B->topo) pass = 0;
 
@@ -1373,8 +1386,8 @@ namespace CTF_int {
       return 0;
     }
     
-    CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
-    memset(phys_map, 0, sizeof(int)*A->topo->order);
+    //CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
+    //memset(phys_map, 0, sizeof(int)*A->topo->order);
 
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -1396,7 +1409,7 @@ namespace CTF_int {
           DPRINTF(4,"failed confirmation here i=%d\n",i);
         }
       }
-      if (iA != -1) {
+      /*if (iA != -1) {
         map = &A->edge_map[iA];
         if (map->type == PHYSICAL_MAP)
           phys_map[map->cdt] = 1;
@@ -1415,7 +1428,7 @@ namespace CTF_int {
           if (map->type == PHYSICAL_MAP)
             phys_map[map->cdt] = 1;
         }
-      }
+      }*/
     }
     /* Ensure that something is mapped to each dimension, since replciation
        does not make sense in sum for all tensors */
@@ -1426,7 +1439,7 @@ namespace CTF_int {
       }
     }*/
 
-    CTF_int::cfree(phys_map);
+    //CTF_int::cfree(phys_map);
     CTF_int::cfree(idx_arr);
 
     TAU_FSTOP(check_sum_mapping);
@@ -1749,6 +1762,9 @@ namespace CTF_int {
 
     A->topo = wrld->topovec[gtopo/2];
     B->topo = wrld->topovec[gtopo/2];
+
+    A->is_mapped = 1;
+    B->is_mapped = 1;
       
     if (gtopo%2 == 0){
       ret = map_self_indices(A, idx_A);
@@ -1800,10 +1816,7 @@ namespace CTF_int {
       ASSERT(ret == SUCCESS);
     }
 
-
-    A->is_mapped = 1;
-    B->is_mapped = 1;
-
+    ASSERT(check_mapping());
 
     A->set_padding();
     B->set_padding();
@@ -1855,9 +1868,11 @@ namespace CTF_int {
       printf("Summing Tensor %s into %s\n", A->name, B->name);
       if (alpha != NULL){
         printf("alpha is "); 
-        A->sr->print(alpha);
+        if (beta != NULL) A->sr->print(alpha);
+        printf("null"); 
         printf("\nbeta is "); 
-        B->sr->print(beta);
+        if (beta != NULL) B->sr->print(beta);
+        printf("null"); 
         printf("\n");
       }
       printf("Summation index table:\n");

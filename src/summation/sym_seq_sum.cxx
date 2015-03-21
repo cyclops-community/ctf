@@ -108,7 +108,7 @@ namespace CTF_int {
       if (sym_pass){
     /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
                 idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
-        printf("adding to %d ",idx_B); sr_B->print(B+sr_B->el_size*idx_B); printf("\n");
+//        printf("adding to %d ",idx_B); sr_B->print(B+sr_B->el_size*idx_B); printf("\n");
         if (alpha != NULL){
           char tmp[sr_B->el_size];
           sr_B->mul(A+sr_A->el_size*idx_A, alpha, tmp);
@@ -118,7 +118,7 @@ namespace CTF_int {
           sr_B->add(A+sr_A->el_size*idx_A, B+sr_B->el_size*idx_B, B+sr_B->el_size*idx_B);
           CTF_FLOPS_ADD(1);
         }
-        printf("computed %d ",idx_B); sr_B->print(B+sr_B->el_size*idx_B); printf("\n");
+//        printf("computed %d ",idx_B); sr_B->print(B+sr_B->el_size*idx_B); printf("\n");
       }
 
       for (idx=0; idx<idx_max; idx++){
@@ -288,7 +288,7 @@ namespace CTF_int {
       if (sym_pass){
         if (alpha != NULL){
           char tmp[sr_B->el_size];
-          sr_B->mul(A+sr_A->el_size*idx_A, alpha, tmp);
+          sr_A->mul(A+sr_A->el_size*idx_A, alpha, tmp);
           func.apply_f(tmp, tmp);
           sr_B->add(B+idx_B*sr_B->el_size, tmp, B+sr_B->el_size*idx_B);
           CTF_FLOPS_ADD(2);

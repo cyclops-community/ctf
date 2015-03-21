@@ -155,38 +155,4 @@ namespace CTF_int {
       *nfactor = nf;
     }
   }
-
-  void cvrt_idx(int         order,
-                int const * lens,
-                int64_t     idx,
-                int *       idx_arr){
-    int i;
-    int64_t cidx = idx;
-    for (i=0; i<order; i++){
-      idx_arr[i] = cidx%lens[i];
-      cidx = cidx/lens[i];
-    }
-  }
-
-  void cvrt_idx(int         order,
-                int const * lens,
-                int64_t     idx,
-                int **      idx_arr){
-    (*idx_arr) = (int*)CTF_int::alloc(order*sizeof(int));
-    cvrt_idx(order, lens, idx, *idx_arr);
-  }
-
-  void cvrt_idx(int         order,
-                int const * lens,
-                int const * idx_arr,
-                int64_t *   idx){
-    int i;
-    int64_t lda = 1;
-    *idx = 0;
-    for (i=0; i<order; i++){
-      (*idx) += idx_arr[i]*lda;
-      lda *= lens[i];
-    }
-
-  }
 }

@@ -75,6 +75,7 @@ void slice_gemm(int         n,
     int end_11[2] = {m/ni, n/nj};
     
     C.slice(off_ij, end_ij, 1.0, cC, off_00, end_11, 1.0);
+    MPI_Comm_free(&ccomm);
   }
 }
 
