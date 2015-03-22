@@ -94,20 +94,20 @@ namespace CTF {
   }
 
   Idx_Tensor::Idx_Tensor(algstrct const * sr) : Term(sr) {
-    idx_map = "";
+    idx_map = NULL;
     parent  = NULL;
     is_intm = 0;
   }
 
   Idx_Tensor::Idx_Tensor(algstrct const * sr, double scl) : Term(sr) {
-    idx_map = "";
+    idx_map = NULL;
     parent  = NULL;
     is_intm = 0;
     sr->cast_double(scl, scale);
   }
 
   Idx_Tensor::Idx_Tensor(algstrct const * sr, int64_t scl) : Term(sr) {
-    idx_map = "";
+    idx_map = NULL;
     parent  = NULL;
     is_intm = 0;
     sr->cast_int(scl, scale);
@@ -118,7 +118,7 @@ namespace CTF {
       std::map<CTF_int::tensor*, CTF_int::tensor*>* remap) : Term(other.sr) {
     if (other.parent == NULL){
       parent  = NULL;
-      idx_map = "";
+      idx_map = NULL;
       is_intm = 0;
     } else {
       parent = other.parent;

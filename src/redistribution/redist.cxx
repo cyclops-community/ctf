@@ -395,8 +395,8 @@ namespace CTF_int {
     } else
       memset(all_virt_counts, 0, sizeof(int64_t)*np);
 
-    int tmp1, tmp2;
-    int64_t *  virt_counts = all_virt_counts;
+    //int tmp1, tmp2;
+    //int64_t *  virt_counts = all_virt_counts;
 
     memcpy(send_counts, all_virt_counts, np*sizeof(int64_t));
 //    memset(send_counts, 0, np*sizeof(int64_t));

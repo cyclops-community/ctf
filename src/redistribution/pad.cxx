@@ -77,7 +77,7 @@ namespace CTF_int {
       int64_t kparts[order];
       tid = omp_get_thread_num();
       int ntd = omp_get_num_threads();
-      #pragma master 
+      #pragma omp master 
       {
         act_ntd = omp_get_num_threads();
       }
@@ -130,7 +130,7 @@ namespace CTF_int {
       tid = omp_get_thread_num();
       int ntd = omp_get_num_threads();
 
-      #pragma master 
+      #pragma omp master 
       {
         assert(act_ntd == ntd);
       }

@@ -1,6 +1,6 @@
 include config.mk
 
-all: lib/libctf.a
+all: ./lib/libctf.a
 
 EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weight_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice \
@@ -17,7 +17,8 @@ EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(STUDIES)
 
 .PHONY: executables
 executables: $(EXECUTABLES)
-$(EXECUTABLES): lib/libctf.a
+$(EXECUTABLES): ./lib/libctf.a
+
 
 .PHONY: examples
 examples: $(EXAMPLES)
@@ -39,12 +40,8 @@ studies: $(STUDIES)
 $(STUDIES):
 	$(MAKE) $@ -C src/studies
 
-lib/libctf.a: objs 
-	$(AR) -crs $@ src/*/*.o
-
-.PHONY: objs
-objs: src/*/*
-	$(MAKE) ctf -C src
+lib/libctf.a: src/* src/*/* 
+	$(MAKE) ctf -C src; $(AR) -crs $@ src/*/*.o
 	
 clean: clean_bin clean_lib
 	$(MAKE) $@ -C src

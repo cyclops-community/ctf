@@ -42,6 +42,8 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=true> 
   class Set : public CTF_int::algstrct {
     public:
+      ~Set() {}
+
       Set(Set const & other) : CTF_int::algstrct(other) {}
 
       virtual CTF_int::algstrct * clone() const {

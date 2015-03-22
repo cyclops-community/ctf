@@ -1197,7 +1197,7 @@ namespace CTF_int {
 
       if (nsA != nA) { printf("nsA = " PRId64 ", nA = " PRId64 "\n",nsA,nA); ABORT; }
       if (nsB != nB) { printf("nsB = " PRId64 ", nB = " PRId64 "\n",nsB,nB); ABORT; }
-      for (i=0; (uint64_t)i<nA; i++){
+      for (i=0; (int64_t)i<nA; i++){
         if (fabs(uA[i] - sA[i]) > 1.E-6){
           printf("A[i] = %lf, sA[i] = %lf\n", uA[i], sA[i]);
         }
@@ -1207,7 +1207,7 @@ namespace CTF_int {
                   beta, sB, order_B, edge_len_B, edge_len_B, sym_B, map_B);
       assert(stat == SUCCESS);
 
-      for (i=0; (uint64_t)i<nB; i++){
+      for (i=0; (int64_t)i<nB; i++){
         if (fabs(uB[i] - sB[i]) > 1.E-6){
           printf("B[%d] = %lf, sB[%d] = %lf\n", i, uB[i], i, sB[i]);
         }
@@ -1366,7 +1366,7 @@ namespace CTF_int {
   int summation::check_mapping(){
     int i, pass, order_tot, iA, iB;
     int * idx_arr; //, * phys_map;
-    mapping * map;
+    //mapping * map;
 
     TAU_FSTART(check_sum_mapping);
     pass = 1;
@@ -1375,8 +1375,8 @@ namespace CTF_int {
     if (B->is_mapped == 0) pass = 0;
     
     
-  if (A->is_folded == 1) pass = 0;
-  if (B->is_folded == 1) pass = 0;
+    if (A->is_folded == 1) pass = 0;
+    if (B->is_folded == 1) pass = 0;
     
     if (A->topo != B->topo) pass = 0;
 
@@ -1731,8 +1731,8 @@ namespace CTF_int {
         }
       }
 
-      /*nvirt = (uint64_t)calc_nvirt(A);
-      tnvirt = nvirt*(uint64_t)calc_nvirt(B);
+      /*nvirt = (int64_t)calc_nvirt(A);
+      tnvirt = nvirt*(int64_t)calc_nvirt(B);
       if (tnvirt < nvirt) nvirt = UINT64_MAX;
       else nvirt = tnvirt;
       if (btopo == -1 || nvirt < bnvirt ) {

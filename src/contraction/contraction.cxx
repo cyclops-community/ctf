@@ -1670,8 +1670,6 @@ namespace CTF_int {
     int64_t memuse;//, bmemuse;
     double est_time, best_time;
     int btopo;
-    int old_nvirt_all;
-    int nvirt_all;
     int64_t nvirt;
     //int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
     int * old_phase_A, * old_phase_B, * old_phase_C;
@@ -1818,9 +1816,9 @@ namespace CTF_int {
         if (check_mapping() == 0) continue;
         est_time = 0.0;
         
+  #if 0
         nvirt_all = -1;
         old_nvirt_all = -2;
-  #if 0
         while (nvirt_all < MIN_NVIRT){
           old_nvirt_all = nvirt_all;
           A->set_padding();
@@ -2130,7 +2128,7 @@ namespace CTF_int {
      
          
       //FIXME: adhoc? 
-      memuse = MAX((int64_t)(*ctrf)->mem_rec(), (uint64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
+      memuse = MAX((int64_t)(*ctrf)->mem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
   #if DEBUG >= 1
     if (global_comm.rank == 0)
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",

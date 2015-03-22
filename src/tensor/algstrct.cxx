@@ -237,10 +237,10 @@ namespace CTF_int {
     scal = scal_;
   }*/
 
-  algstrct::~algstrct(){
+  //algstrct::~algstrct(){
     //if (addid != NULL) free(addid);
     //if (mulid != NULL) free(mulid);
-  }
+  //}
 
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
@@ -651,6 +651,7 @@ namespace CTF_int {
         std::sort((CompPair<32>*)ptr,((CompPair<32>*)ptr)+n);
         break;
       default:
+        //Causes a bogus uninitialized variable warning with GNU
         CompPtrPair ptr_pairs[n];
         #pragma omp parallel
         for (int64_t i=0; i<n; i++){
@@ -668,6 +669,7 @@ namespace CTF_int {
                  swap_buffer+ptr_pairs[i].idx*(sizeof(int64_t)+sr->el_size),
                  sizeof(int64_t)+sr->el_size);
         }
+        break;
     }
   }
 

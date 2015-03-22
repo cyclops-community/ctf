@@ -906,7 +906,6 @@ namespace CTF_int {
     }
     ASSERT(!tsr->is_folded);
     ASSERT(tsr->is_mapped);
-    tensor * tsr2 = (tensor *)tsr;
 
 //    tsr->set_padding();
 

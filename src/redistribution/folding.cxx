@@ -171,7 +171,7 @@ namespace CTF_int {
       if (last_max != 0 && tidx_off != last_max && (order != 1 || tid == 0)){
         chunk_size[tid] = thread_chunk_size;
         if (thread_chunk_size <= 0) 
-          printf("ERRORR thread_chunk_size = " PRId64 ", tid = " PRId64 ", local_size = " PRId64 "\n", thread_chunk_size, tid, local_size);
+          printf("ERRORR thread_chunk_size = %ld, tid = %ld, local_size = %ld\n", thread_chunk_size, tid, local_size);
         CTF_int::alloc_ptr(thread_chunk_size*sr->el_size, (void**)&tswap_data[tid]);
         swap_data = tswap_data[tid];
         for (;;){

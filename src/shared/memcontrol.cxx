@@ -170,14 +170,14 @@ namespace CTF_int {
       for (int i=0; i<max_threads; i++){
         if (mem_used[i] > 0){
           if (rank == 0){
-            printf("Warning: memory leak in CTF on thread %d, " PRId64 " bytes of memory in use at termination",
+            printf("Warning: memory leak in CTF on thread %d, %ld bytes of memory in use at termination",
                     i, mem_used[i]);
             printf(" in %zu unfreed items\n",
                     mem_stacks[i].size());
           }
         }
         if (mst.size() > 0){
-          printf("Warning: %zu items not deallocated from custom stack, consuming " PRId64 " bytes of memory\n",
+          printf("Warning: %zu items not deallocated from custom stack, consuming %ld bytes of memory\n",
                   mst.size(), mst_buffer_ptr);
         }
       }
@@ -226,6 +226,7 @@ namespace CTF_int {
    */
   int mst_alloc_ptr(int64_t const len, void ** const ptr){
     int pm = posix_memalign(ptr, ALIGN_BYTES, len);
+    ASSERT(pm);
 #if 0
     if (mst_buffer_size == 0)
       return alloc_ptr(len, ptr);
@@ -277,6 +278,7 @@ namespace CTF_int {
   int alloc_ptr(int64_t const len_, void ** const ptr){
     int64_t len = MAX(4,len_);
     int pm = posix_memalign(ptr, ALIGN_BYTES, len);
+    ASSERT(pm);
 #if 0
   #ifndef PRODUCTION
     int tid;
@@ -483,16 +485,16 @@ namespace CTF_int {
   /**
    * \brief gives total memory used on this MPI process 
    */
-  uint64_t proc_bytes_used(){
+  int64_t proc_bytes_used(){
     /*struct mallinfo info;
     info = mallinfo();
-    return (uint64_t)(info.usmblks + info.uordblks + info.hblkhd);*/
-    uint64_t ms = 0;
+    return (int64_t)(info.usmblks + info.uordblks + info.hblkhd);*/
+    int64_t ms = 0;
     int i;
     for (i=0; i<max_threads; i++){
       ms += mem_used[i];
     }
-    return ms + mst_buffer_used;// + (uint64_t)mst_buffer_size;
+    return ms + mst_buffer_used;// + (int64_t)mst_buffer_size;
   }
 
   #ifdef BGQ
@@ -500,8 +502,8 @@ namespace CTF_int {
   /**
    * \brief gives total memory size per MPI process 
    */
-  uint64_t proc_bytes_total() {
-    uint64_t total;
+  int64_t proc_bytes_total() {
+    int64_t total;
     int node_config;
 
     Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &total);
@@ -515,8 +517,8 @@ namespace CTF_int {
   /**
    * \brief gives total memory available on this MPI process 
    */
-  uint64_t proc_bytes_available(){
-    uint64_t mem_avail;
+  int64_t proc_bytes_available(){
+    int64_t mem_avail;
     Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail); 
     mem_avail*= memcap;
     mem_avail += mst_buffer_size-mst_buffer_used;
@@ -533,13 +535,13 @@ namespace CTF_int {
   /**
    * \brief gives total memory size per MPI process 
    */
-  uint64_t proc_bytes_total() {
-    uint64_t total;
+  int64_t proc_bytes_total() {
+    int64_t total;
     int node_config;
     _BGP_Personality_t personality;
 
     Kernel_GetPersonality(&personality, sizeof(personality));
-    total = (uint64_t)BGP_Personality_DDRSizeMB(&personality);
+    total = (int64_t)BGP_Personality_DDRSizeMB(&personality);
 
     node_config  = BGP_Personality_processConfig(&personality);
     if (node_config == _BGP_PERS_PROCESSCONFIG_VNM) total /= 4;
@@ -552,7 +554,7 @@ namespace CTF_int {
   /**
    * \brief gives total memory available on this MPI process 
    */
-  uint64_t proc_bytes_available(){
+  int64_t proc_bytes_available(){
     return memcap*proc_bytes_total() - proc_bytes_used();
   }
 
@@ -562,17 +564,17 @@ namespace CTF_int {
   /**
    * \brief gives total memory size per MPI process 
    */
-  uint64_t proc_bytes_available(){
+  int64_t proc_bytes_available(){
   /*  struct mallinfo info;
     info = mallinfo();
-    return (uint64_t)info.fordblks;*/
+    return (int64_t)info.fordblks;*/
     return memcap*proc_bytes_total() - proc_bytes_used();
   }
 
   /**
    * \brief gives total memory available on this MPI process 
    */
-  uint64_t proc_bytes_total(){
+  int64_t proc_bytes_total(){
   #ifdef __MACH__
     int mib[] = {CTL_HW,HW_MEMSIZE};
     int64_t mem;
@@ -580,8 +582,8 @@ namespace CTF_int {
     sysctl(mib, 2, &mem, &len, NULL, 0);
     return mem;
   #else
-    uint64_t pages = (uint64_t)sysconf(_SC_PHYS_PAGES);
-    uint64_t page_size = (uint64_t)sysconf(_SC_PAGE_SIZE);
+    int64_t pages = (int64_t)sysconf(_SC_PHYS_PAGES);
+    int64_t page_size = (int64_t)sysconf(_SC_PAGE_SIZE);
     if (mem_size != 0)
       return MIN((int64_t)(pages * page_size), (int64_t)mem_size);
     else
