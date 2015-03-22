@@ -133,9 +133,7 @@ int permute_multiworld(int         n,
   } else {
     CTF_Matrix B(nrow, ncol, Bsym, id_world);
     B.write(nvals,indices,data);
-    B.print();
     A.permute(1.0, B, perms, 1.0);
-    A.print();
   }
 
   if (nvals > 0){

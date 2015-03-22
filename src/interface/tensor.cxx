@@ -243,10 +243,8 @@ namespace CTF {
                                       tensor &      A,
                                       int * const * perms_A,
                                       dtype         alpha){
-    tensor t = tensor();
-    t.sr = sr->clone();
     int ret = CTF_int::tensor::permute(&A, perms_A, (char*)&alpha,
-                                           &t, (char*)&beta);
+                                       NULL, (char*)&beta);
     assert(ret == SUCCESS);
   }
 
@@ -255,10 +253,8 @@ namespace CTF {
                                       dtype         beta,
                                       tensor &      A,
                                       dtype         alpha){
-    tensor t = tensor();
-    t.sr = sr->clone();
-    int ret = CTF_int::tensor::permute(&A, &t, (char*)&alpha,
-                                           perms_B, (char*)&beta);
+    int ret = CTF_int::tensor::permute(&A, NULL, (char*)&alpha,
+                                       perms_B, (char*)&beta);
     assert(ret == SUCCESS);
   }
   template<typename dtype, bool is_ord>
