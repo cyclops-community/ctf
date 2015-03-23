@@ -1,25 +1,16 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
-/** \addtogroup examples 
+/** \addtogroup studies
   * @{ 
   * \defgroup fast_sym 
   * @{ 
   * \brief A clever way to multiply symmetric matrices
   */
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <vector>
-#include <algorithm>
 #include <ctf.hpp>
 
+using namespace CTF;
 
 int fast_sym(int const     n,
-             CTF_World    &ctf){
+             World    &ctf){
   int rank, i, num_pes;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -28,20 +19,20 @@ int fast_sym(int const     n,
   int len3[] = {n,n,n};
   int YYN[] = {SY,SY,NS};
 
-  CTF_Matrix A(n, n, SH, ctf, "A");
-  CTF_Matrix B(n, n, SH, ctf, "B");
-  CTF_Matrix C(n, n, SH, ctf, "C");
-  CTF_Matrix C_ans(n, n, SH, ctf, "C_ans");
+  Matrix<> A(n, n, SH, ctf, "A");
+  Matrix<> B(n, n, SH, ctf, "B");
+  Matrix<> C(n, n, SH, ctf, "C");
+  Matrix<> C_ans(n, n, SH, ctf, "C_ans");
   
-  //CTF_Tensor A_rep(3, len3, YYN, ctf);
-  //CTF_Tensor B_rep(3, len3, YYN, ctf);
-  //CTF_Tensor Z(3, len3, YYN, ctf);
-  CTF_Tensor A_rep(3, len3, YYN, ctf, "B_rep");
-  CTF_Tensor B_rep(3, len3, YYN, ctf, "A_rep");
-  CTF_Tensor Z(3, len3, YYN, ctf, "Z");
-  CTF_Vector As(n, ctf, "As");
-  CTF_Vector Bs(n, ctf, "Bs");
-  CTF_Vector Cs(n, ctf, "Cs");
+  //Tensor<> A_rep(3, len3, YYN, ctf);
+  //Tensor<> B_rep(3, len3, YYN, ctf);
+  //Tensor<> Z(3, len3, YYN, ctf);
+  Tensor<> A_rep(3, len3, YYN, ctf, "B_rep");
+  Tensor<> B_rep(3, len3, YYN, ctf, "A_rep");
+  Tensor<> Z(3, len3, YYN, ctf, "Z");
+  Vector<> As(n, ctf, "As");
+  Vector<> Bs(n, ctf, "Bs");
+  Vector<> Cs(n, ctf, "Cs");
 
   {
     int64_t * indices;
@@ -65,7 +56,6 @@ int fast_sym(int const     n,
     free(values);
   }
   C_ans["ij"] = A["ik"]*B["kj"];
-#ifdef USE_SYM_SUM
   A_rep["ijk"] += A["ij"];
   B_rep["ijk"] += B["ij"];
   Z["ijk"] += A_rep["ijk"]*B_rep["ijk"];
@@ -77,8 +67,7 @@ int fast_sym(int const     n,
   C["ij"] -= Cs["i"];
   C["ij"] -= As["i"]*B["ij"];
   C["ij"] -= A["ij"]*Bs["j"];
-#else
-  A_rep["ijk"] += A["ij"];
+  /*A_rep["ijk"] += A["ij"];
   A_rep["ijk"] += A["ik"];
   A_rep["ijk"] += A["jk"];
   B_rep["ijk"] += B["ij"];
@@ -99,8 +88,7 @@ int fast_sym(int const     n,
   C["ij"] -= Cs["i"];
   C["ij"] -= Cs["j"];
   C["ij"] -= As["i"]*B["ij"];
-  C["ij"] -= A["ij"]*Bs["j"];
-#endif
+  C["ij"] -= A["ij"]*Bs["j"];*/
 
   if (n<8){
     if (rank == 0) printf("A:\n");
@@ -112,7 +100,7 @@ int fast_sym(int const     n,
     if (rank == 0) printf("C:\n");
     C.print();
   }
-  CTF_Matrix Diff(n, n, SY, ctf, "Diff");
+  Matrix<> Diff(n, n, SY, ctf, "Diff");
   Diff["ij"] += C["ij"];
   Diff["ij"] -= C_ans["ij"];
   double nrm = sqrt(Diff["ij"]*Diff["ij"]);
@@ -155,7 +143,7 @@ int main(int argc, char ** argv){
   } else n = 13;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     if (rank == 0){
       printf("Computing C_(ij) = A_(ik)*B_(kj)\n");
     }

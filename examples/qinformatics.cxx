@@ -6,14 +6,9 @@
   * \brief high-order nonsymmetric contractions
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
+
 #include <ctf.hpp>
+using namespace CTF;
 
 char* getCmdOption(char ** begin,
                    char ** end,
@@ -37,7 +32,7 @@ int main(int argc, char ** argv){
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
     
-  CTF_World dw(argc, argv);
+  World dw(argc, argv);
 
   if (getCmdOption(input_str, input_str+in_num, "-d")){
     d = atoi(getCmdOption(input_str, input_str+in_num, "-d"));
@@ -48,7 +43,7 @@ int main(int argc, char ** argv){
   L = 15;
 
   {
-    CTF_Matrix h(d*d, d*d, NS, dw);
+    Matrix<> h(d*d, d*d, NS, dw);
     h.read_local(&npair, &indices, &pairs);
     for (int i=0; i<npair; i++) {
       srand48(indices[i]*23);
@@ -65,7 +60,7 @@ int main(int argc, char ** argv){
       for (int i=0; i<L/2; i++) size[i] = d*d;
       size[L/2] = d;
       for (int i=0; i<L/2+1; i++) shape[i] = NS;
-      CTF_Tensor v_in(L/2+1, size, shape, dw);
+      Tensor<> v_in(L/2+1, size, shape, dw);
     
       double t_io_start = MPI_Wtime();
 
@@ -77,13 +72,13 @@ int main(int argc, char ** argv){
       v_in.write(npair, indices, pairs);
       free(pairs);
       free(indices);
-      CTF_Tensor v_out(L/2+1, size, shape, dw);
+      Tensor<> v_out(L/2+1, size, shape, dw);
       
       double t_io_end = MPI_Wtime();
 
       double t_start = MPI_Wtime();
 
-      CTF_Timer_epoch ep("folded contractions set 1");
+      Timer_<>epoch ep("folded contractions set 1");
       ep.begin();
 
       v_out["acegikmo"] =  h["ax"]*v_in["xcegikmo"];
@@ -119,19 +114,19 @@ int main(int argc, char ** argv){
       size[0] = d;
       for (int i=0; i<L/2; i++) size[i+1] = d*d;
       for (int i=0; i<L/2+1; i++) shape[i] = NS;
-      CTF_Tensor v_in(L/2+1, size, shape, dw);
+      Tensor<> v_in(L/2+1, size, shape, dw);
       
       double t_io_start = MPI_Wtime();
       v_in.write(npair, indices, pairs);
       free(pairs);
       free(indices);
-      CTF_Tensor v_out(L/2+1, size, shape, dw);
+      Tensor<> v_out(L/2+1, size, shape, dw);
       v_out.write(onpair, oindices, opairs);
       double t_io_end = MPI_Wtime();
 
       double t_start = MPI_Wtime();
 
-      CTF_Timer_epoch ep("folded contractions set 1");
+      Timer_<>epoch ep("folded contractions set 1");
       ep.begin();
    
       v_out["abdfhjln"] += h["bx"]*v_in["axdfhjln"];
@@ -166,8 +161,8 @@ int main(int argc, char ** argv){
 
     for (int i=0; i<L; i++) size[i] = d;
     for (int i=0; i<L; i++) shape[i] = NS;
-    CTF_Tensor v_in(L, size, shape, dw);
-    CTF_Tensor h(4, size, shape, dw);
+    Tensor<> v_in(L, size, shape, dw);
+    Tensor<> h(4, size, shape, dw);
     double t_io_start = MPI_Wtime();
     v_in.read_local(&npair, &indices, &pairs);
     for (int i=0; i<npair; i++) {
@@ -185,13 +180,13 @@ int main(int argc, char ** argv){
     h.write(npair, indices, pairs);
     free(pairs);
     free(indices);
-    CTF_Tensor v_out(L, size, shape, dw);
+    Tensor<> v_out(L, size, shape, dw);
 
     double t_io_end = MPI_Wtime();
 
     double t_start = MPI_Wtime();
 
-    CTF_Timer_epoch ep("contractions");
+    Timer_<>epoch ep("contractions");
     ep.begin();
 
     v_out["abcdefghijklmno"] = h["abxy"]*v_in["xycdefghijklmno"];

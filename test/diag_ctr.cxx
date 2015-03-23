@@ -6,22 +6,13 @@
   * @{ 
   * \brief Summation along tensor diagonals
   */
-
-#include <stdio.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
 
-int diag_ctr(int const    n,
-             int const    m,
-             CTF_World   &dw){
+using namespace CTF;
+
+int diag_ctr(int     n,
+             int     m,
+             World & dw){
   int rank, i, num_pes, pass;
   int64_t np;
   double * pairs;
@@ -35,12 +26,12 @@ int diag_ctr(int const    n,
   int sizeN4[] = {n,m,n,m};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor A(4, sizeN4, shapeN4, dw);
+  Tensor<> A(4, sizeN4, shapeN4, dw);
 
   srand48(13*rank);
 
-  CTF_Matrix mA(n,m,NS,dw);
-  CTF_Matrix mB(n,m,NS,dw);
+  Matrix<> mA(n,m,NS,dw);
+  Matrix<> mB(n,m,NS,dw);
   A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write(np, indices, pairs);
@@ -84,7 +75,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, n, m;
-  int const in_num = argc;
+  int in_num = argc;
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -101,10 +92,8 @@ int main(int argc, char ** argv){
     if (m < 0) m = 7;
   } else m = 7;
 
-
-
   {
-    CTF_World dw(argc, argv);
+    World dw(argc, argv);
     diag_ctr(n, m, dw);
   }
 

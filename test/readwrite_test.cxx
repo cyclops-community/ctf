@@ -6,19 +6,13 @@
   * \brief Tests how writes to diagonals are handled for various tensors
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
+
+using namespace CTF;
 
 
-int readwrite_test(int const    n,
-                   CTF_World   &dw){
+int readwrite_test(int n,
+                   World   &dw){
   int rank, i, num_pes, pass;
   double sum;
   
@@ -32,10 +26,10 @@ int readwrite_test(int const    n,
   int sizeN4[] = {n,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor A_NS(4, sizeN4, shape_NS4, dw);
-  CTF_Tensor A_SY(4, sizeN4, shape_SY4, dw);
-  CTF_Tensor A_SH(4, sizeN4, shape_SH4, dw);
-  CTF_Tensor A_AS(4, sizeN4, shape_AS4, dw);
+  Tensor<> A_NS(4, sizeN4, shape_NS4, dw);
+  Tensor<> A_SY(4, sizeN4, shape_SY4, dw);
+  Tensor<> A_SH(4, sizeN4, shape_SH4, dw);
+  Tensor<> A_AS(4, sizeN4, shape_AS4, dw);
 
   std::vector<int64_t> indices;
   std::vector<double> vals;
@@ -123,7 +117,7 @@ int readwrite_test(int const    n,
 #endif
   }
 
-  CTF_Tensor B_SY(4, sizeN4, shape_SY4, dw);
+  Tensor<> B_SY(4, sizeN4, shape_SY4, dw);
   
 /*  B_SY["ijkl"]=A_SY["ijkl"];
   sum = A_SY["ijkl"]*B_SY["ijkl"];*/
@@ -167,7 +161,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, n;
-  int const in_num = argc;
+  int in_num = argc;
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -181,7 +175,7 @@ int main(int argc, char ** argv){
 
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0) printf("Testing reading and writing functions in CTF\n");
     readwrite_test(n, dw);

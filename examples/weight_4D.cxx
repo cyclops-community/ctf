@@ -7,27 +7,16 @@
   * \brief tests custom element-wise functions by implementing division elementwise on 4D tensors
   */
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
+using namespace CTF;
 
-/*void divide(double const alpha, double const a, double const b, double & c){
-  c+=alpha*(a/b);
-}*/
 double divide(double a, double b){
   return a/b;
 }
 
 int weight_4D(int const    n,
               int const    sym,
-              CTF_World   &dw){
+              World   &dw){
   int rank, i, num_pes;
   int64_t np, np_A;
   double * pairs, * post_pairs_C, * pairs_A;
@@ -40,9 +29,9 @@ int weight_4D(int const    n,
   int sizeN4[] = {n,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor A(4, sizeN4, shapeN4, dw);
-  CTF_Tensor B(4, sizeN4, shapeN4, dw);
-  CTF_Tensor C(4, sizeN4, shapeN4, dw);
+  Tensor<> A(4, sizeN4, shapeN4, dw);
+  Tensor<> B(4, sizeN4, shapeN4, dw);
+  Tensor<> C(4, sizeN4, shapeN4, dw);
 
   srand48(13*rank);
   A.read_local(&np_A, &indices_A, &pairs_A);
@@ -121,7 +110,7 @@ int main(int argc, char ** argv){
 
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
       printf("Computing C_ijkl = A_ijkl*B_kilj\n");

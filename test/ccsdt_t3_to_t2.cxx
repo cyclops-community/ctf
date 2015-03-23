@@ -6,20 +6,13 @@
   * \brief A symmetric contraction from CCSDT compared with the explicitly permuted nonsymmetric form
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
 
+using namespace CTF;
 
-int ccsdt_t3_to_t2(int const     n,
-                   int const     m,
-                   CTF_World    &dw){
+int ccsdt_t3_to_t2(int     n,
+                   int     m,
+                   World & dw){
 
   int rank, i, num_pes;
   int64_t np;
@@ -46,13 +39,13 @@ int ccsdt_t3_to_t2(int const     n,
   int mmmnnn[] = {m,m,m,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor AS_A(4, nnnm, shapeTS4, dw, "AS_A", 1);
-  CTF_Tensor AS_B(6, mmmnnn, shapeAS6, dw, "AS_B", 1);
-  CTF_Tensor HS_B(6, mmmnnn, shapeHS6, dw);
-  CTF_Tensor AS_C(4, mmnn, shapeAS4, dw, "AS_C", 1);
-  CTF_Tensor NS_A(4, nnnm, shapeNS4, dw, "NS_A", 1);
-  CTF_Tensor NS_B(6, mmmnnn, shapeTS6, dw, "NS_B", 1);
-  CTF_Tensor NS_C(4, mmnn, shapeTS4, dw);
+  Tensor<> AS_A(4, nnnm, shapeTS4, dw, "AS_A", 1);
+  Tensor<> AS_B(6, mmmnnn, shapeAS6, dw, "AS_B", 1);
+  Tensor<> HS_B(6, mmmnnn, shapeHS6, dw);
+  Tensor<> AS_C(4, mmnn, shapeAS4, dw, "AS_C", 1);
+  Tensor<> NS_A(4, nnnm, shapeNS4, dw, "NS_A", 1);
+  Tensor<> NS_B(6, mmmnnn, shapeTS6, dw, "NS_B", 1);
+  Tensor<> NS_C(4, mmnn, shapeTS4, dw);
 
 #if DEBUG  >= 1
   if (rank == 0)
@@ -76,15 +69,14 @@ int ccsdt_t3_to_t2(int const     n,
   AS_C[std::vector<int64_t>(indices,indices+np)]=pairs;
  
 
-#ifdef USE_SYM_SUM
   NS_A["abij"] = AS_A["abij"];
   NS_B["abcijk"] = AS_B["abcijk"];
 /*  printf("norm of NS_B is %lf of AS_B is %lf, should be same\n",
-         NS_B.reduce(CTF_OP_SQNRM2), AS_B.reduce(CTF_OP_SQNRM2));*/
+         NS_B.reduce(OP_SQN<>RM2), AS_B.reduce(OP_SQN<>RM2));*/
   NS_C.write(np, indices, pairs);
   /*printf("norm of NS_C is %lf of AS_C is %lf, should be same\n",
-         NS_C.reduce(CTF_OP_SQNRM2), AS_C.reduce(CTF_OP_SQNRM2));*/
-#else
+         NS_C.reduce(OP_SQN<>RM2), AS_C.reduce(OP_SQN<>RM2));*/
+#if 0
   NS_A["abij"] -= AS_A["baij"];
   NS_A["abij"] += AS_A["abij"];
 
@@ -139,7 +131,7 @@ int ccsdt_t3_to_t2(int const     n,
   if (rank == 0) printf("norm of AS_C = %lf NS_C = %lf\n", nrm_AS, nrm_NS);
 #endif
   NS_C["abij"] -= AS_C["abij"];
-#ifndef USE_SYM_SUM
+#if 0 
   NS_C["abij"] += AS_C["abji"];
 #endif
   
@@ -182,7 +174,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, niter, n, m;
-  int const in_num = argc;
+  int in_num = argc;
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -206,7 +198,7 @@ int main(int argc, char ** argv){
 
 
   {
-    CTF_World dw(argc, argv);
+    World dw(argc, argv);
     int pass = ccsdt_t3_to_t2(n, m, dw);
     assert(pass);
   }

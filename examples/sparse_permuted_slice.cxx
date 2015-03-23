@@ -6,20 +6,8 @@
   * \brief Randomly permuted block write of symmetric matrices from matrix on COMM_SELF to symmetric matrix on COMM_WORLD
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <stdint.h>
-#include <algorithm>
 #include <ctf.hpp>
-
-#ifndef MIN
-#define MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
-#endif
-
+using namespace CTF;
 /**
  * \brief tests sparse remote global write via permute function
  * \param[in] n dimension of global matrix
@@ -30,7 +18,7 @@
 int sparse_permuted_slice(int         n,
                           int         b,
                           int         sym,
-                          CTF_World & dw){
+                          World & dw){
   int np, rank, pass, bi;
   int64_t i, j, nvals;
   int64_t * indices;
@@ -64,11 +52,11 @@ int sparse_permuted_slice(int         n,
     }
   }
   
-  CTF_Matrix A(n, n, sym, dw, "A");
+  Matrix<> A(n, n, sym, dw, "A");
   
-  CTF_World id_world(MPI_COMM_SELF);
+  World id_world(MPI_COMM_SELF);
 
-  CTF_Matrix B(bi, bi, sym, id_world, "B");
+  Matrix<> B(bi, bi, sym, id_world, "B");
 
   B.read_local(&nvals, &indices, &data);
 
@@ -101,8 +89,8 @@ int sparse_permuted_slice(int         n,
   int symm[3] = {sym,NS,NS};
   int lens_B3[3] = {bi,bi,1};
 
-  CTF_Tensor A_rep(3, lens_Arep, symm, dw, "A_rep");
-  CTF_Tensor B3(3, lens_B3, symm, id_world, "B3");
+  Tensor<> A_rep(3, lens_Arep, symm, dw, "A_rep");
+  Tensor<> B3(3, lens_B3, symm, id_world, "B3");
 
   B3["ijk"] = B["ij"];
 
@@ -118,7 +106,7 @@ int sparse_permuted_slice(int         n,
   // Writeinto a 3D tensor to avoid overlapped writes 
   A_rep.permute(1.0, B3, perms_rep, 1.0);
   // Retrieve the data I wrote from B3 into A_rep back into callback_B3
-  CTF_Tensor callback_B3(3, lens_B3, symm, id_world, "cB3");
+  Tensor<> callback_B3(3, lens_B3, symm, id_world, "cB3");
   callback_B3.permute(perms_rep, 1.0, A_rep, 1.0);
  
 
@@ -138,7 +126,7 @@ int sparse_permuted_slice(int         n,
 
   // Check that if we sum over the replicated dimension we get the same thing 
   // as in the original sparse write
-  CTF_Matrix ERR(n, n, sym, dw);
+  Matrix<> ERR(n, n, sym, dw);
   ERR["ij"] = A_rep["ijk"] - A["ij"];
 
   pass = ERR.norm2() < 1.E-10;
@@ -186,7 +174,7 @@ int main(int argc, char ** argv){
   } else b = 16;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     int pass;    
     if (rank == 0){
       printf("Testing nonsymmetric multiworld permutation with n=%d\n",n);

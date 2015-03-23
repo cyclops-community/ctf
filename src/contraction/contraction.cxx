@@ -3121,13 +3121,13 @@ namespace CTF_int {
     
     tensor * new_tsr;
     while (tnsr_A->extract_diag(map_A, 1, new_tsr, &new_idx) == SUCCESS){
-      if (new_tsr != A) delete new_tsr;
+      if (tnsr_A != A) delete tnsr_A;
       CTF_int::cfree(map_A);
       tnsr_A = new_tsr;
       map_A = new_idx;
     }
     while (tnsr_B->extract_diag(map_B, 1, new_tsr, &new_idx) == SUCCESS){
-      if (new_tsr != B) delete new_tsr;
+      if (tnsr_B != B) delete tnsr_B;
       CTF_int::cfree(map_B);
       tnsr_B = new_tsr;
       map_B = new_idx;

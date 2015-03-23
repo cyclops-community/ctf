@@ -6,20 +6,13 @@
   * \brief Folded matrix multiplication on 4D tensors
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
+using namespace CTF;
 
 int  gemm_4D(int const    n,
              int const    sym,
              int const    niter,
-             CTF_World   &dw){
+             World   &dw){
   int rank, i, num_pes;
   int64_t np;
   double * pairs, * pairs_AB, * pairs_BC;
@@ -33,9 +26,9 @@ int  gemm_4D(int const    n,
   int sizeN4[] = {n,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor A(4, sizeN4, shapeN4, dw);
-  CTF_Tensor B(4, sizeN4, shapeN4, dw);
-  CTF_Tensor C(4, sizeN4, shapeN4, dw);
+  Tensor<> A(4, sizeN4, shapeN4, dw);
+  Tensor<> B(4, sizeN4, shapeN4, dw);
+  Tensor<> C(4, sizeN4, shapeN4, dw);
 
   srand48(13*rank);
   //* Writes noise to local data based on global index
@@ -76,7 +69,7 @@ int  gemm_4D(int const    n,
 #endif
   
   /* verify D=(A*B)*C = A*(B*C) */
-  CTF_Tensor D(4, sizeN4, shapeN4, dw);
+  Tensor<> D(4, sizeN4, shapeN4, dw);
   
   D["ijkl"] = A["ijmn"]*B["mnkl"];
   D["ijkl"] = D["ijmn"]*C["mnkl"];
@@ -140,7 +133,7 @@ int main(int argc, char ** argv){
 
 
   {
-    CTF_World dw(argc, argv);
+    World dw(argc, argv);
 
     if (rank == 0){
       printf("Computing C_ijkl = A_ijmn*B_klmn\n");

@@ -6,17 +6,11 @@
   * \brief tests trace over diagonal of Matrices
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
+using namespace CTF;
 
 int trace(int const     n,
-          CTF_World    &dw){
+          World    &dw){
   int rank, i, num_pes;
   int64_t np;
   double * pairs;
@@ -26,15 +20,15 @@ int trace(int const     n,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);
 
-  CTF_Matrix A(n, n, NS, dw);
-  CTF_Matrix B(n, n, NS, dw);
-  CTF_Matrix C(n, n, NS, dw);
-  CTF_Matrix D(n, n, NS, dw);
-  CTF_Matrix C1(n, n, NS, dw);
-  CTF_Matrix C2(n, n, NS, dw);
-  CTF_Matrix C3(n, n, NS, dw);
-  CTF_Matrix C4(n, n, NS, dw);
-  CTF_Vector DIAG(n, dw);
+  Matrix<> A(n, n, NS, dw);
+  Matrix<> B(n, n, NS, dw);
+  Matrix<> C(n, n, NS, dw);
+  Matrix<> D(n, n, NS, dw);
+  Matrix<> C1(n, n, NS, dw);
+  Matrix<> C2(n, n, NS, dw);
+  Matrix<> C3(n, n, NS, dw);
+  Matrix<> C4(n, n, NS, dw);
+  Vector<> DIAG(n, dw);
 
   srand48(13*rank);
 
@@ -124,7 +118,7 @@ int main(int argc, char ** argv){
 
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     if (rank == 0){
       printf("Checking trace calculation n = %d, p = %d:\n",n,np);
     }

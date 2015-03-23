@@ -7,45 +7,34 @@
   * \brief A Coupled Cluster Singles and Doubles contraction code extracted from Aquarius
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
+using namespace CTF;
 
 double divide(double a, double b){
   return a/b;
 }
 
-void divide(double const alpha, double const a, double const b, double & c){
-  if (fabs(b) > 0.0)
-    c+=alpha*(a/b);
-}
 
 class Integrals {
   public:
-  CTF_World * dw;
-  CTF_Tensor * aa;
-  CTF_Tensor * ii;
-  CTF_Tensor * ab;
-  CTF_Tensor * ai;
-  CTF_Tensor * ia;
-  CTF_Tensor * ij;
-  CTF_Tensor * abcd;
-  CTF_Tensor * abci;
-  CTF_Tensor * aibc;
-  CTF_Tensor * aibj;
-  CTF_Tensor * abij;
-  CTF_Tensor * ijab;
-  CTF_Tensor * aijk;
-  CTF_Tensor * ijak;
-  CTF_Tensor * ijkl;
+  World * dw;
+  Tensor<> * aa;
+  Tensor<> * ii;
+  Tensor<> * ab;
+  Tensor<> * ai;
+  Tensor<> * ia;
+  Tensor<> * ij;
+  Tensor<> * abcd;
+  Tensor<> * abci;
+  Tensor<> * aibc;
+  Tensor<> * aibj;
+  Tensor<> * abij;
+  Tensor<> * ijab;
+  Tensor<> * aijk;
+  Tensor<> * ijak;
+  Tensor<> * ijkl;
 
-  Integrals(int no, int nv, CTF_World &dw_){
+  Integrals(int no, int nv, World &dw_){
     int shapeASAS[] = {AS,NS,AS,NS};
     int shapeASNS[] = {AS,NS,NS,NS};
     int shapeNSNS[] = {NS,NS,NS,NS};
@@ -70,15 +59,15 @@ class Integrals {
     ia = new CTF_Matrix(no,nv,NS,dw_,"Via",1);
     ij = new CTF_Matrix(no,no,AS,dw_,"Vij",1);
 
-    abcd = new CTF_Tensor(4,vvvv,shapeASAS,dw_,"Vabcd",1);
-    abci = new CTF_Tensor(4,vvvo,shapeASNS,dw_,"Vabci",1);
-    aibc = new CTF_Tensor(4,vovv,shapeNSAS,dw_,"Vaibc",1);
-    aibj = new CTF_Tensor(4,vovo,shapeNSNS,dw_,"Vaibj",1);
-    abij = new CTF_Tensor(4,vvoo,shapeASAS,dw_,"Vabij",1);
-    ijab = new CTF_Tensor(4,oovv,shapeASAS,dw_,"Vijab",1);
-    aijk = new CTF_Tensor(4,vooo,shapeNSAS,dw_,"Vaijk",1);
-    ijak = new CTF_Tensor(4,oovo,shapeASNS,dw_,"Vijak",1);
-    ijkl = new CTF_Tensor(4,oooo,shapeASAS,dw_,"Vijkl",1);
+    abcd = new Tensor<>(4,vvvv,shapeASAS,dw_,"Vabcd",1);
+    abci = new Tensor<>(4,vvvo,shapeASNS,dw_,"Vabci",1);
+    aibc = new Tensor<>(4,vovv,shapeNSAS,dw_,"Vaibc",1);
+    aibj = new Tensor<>(4,vovo,shapeNSNS,dw_,"Vaibj",1);
+    abij = new Tensor<>(4,vvoo,shapeASAS,dw_,"Vabij",1);
+    ijab = new Tensor<>(4,oovv,shapeASAS,dw_,"Vijab",1);
+    aijk = new Tensor<>(4,vooo,shapeNSAS,dw_,"Vaijk",1);
+    ijak = new Tensor<>(4,oovo,shapeASNS,dw_,"Vijak",1);
+    ijkl = new Tensor<>(4,oooo,shapeASAS,dw_,"Vijkl",1);
   }
 
   void fill_rand(){
@@ -86,7 +75,7 @@ class Integrals {
     int64_t j, sz, * indices;
     double * values;
     
-    CTF_Tensor * tarr[] =  {aa, ii, ab, ai, ia, ij, 
+    Tensor<> * tarr[] =  {aa, ii, ab, ai, ia, ij, 
                             abcd, abci, aibc, aibj, 
                             abij, ijab, aijk, ijak, ijkl};
     MPI_Comm comm = dw->comm;
@@ -103,7 +92,7 @@ class Integrals {
     }
   }
   
-  CTF_Idx_Tensor operator[](char const * idx_map_){
+  Idx_Tensor operator[](char const * idx_map_){
     int i, lenm, no, nv;
     lenm = strlen(idx_map_);
     char new_idx_map[lenm+1];
@@ -144,21 +133,21 @@ class Integrals {
 
 class Amplitudes {
   public:
-  CTF_Tensor * ai;
-  CTF_Tensor * abij;
-  CTF_World * dw;
+  Tensor<> * ai;
+  Tensor<> * abij;
+  World * dw;
 
-  Amplitudes(int no, int nv, CTF_World &dw_){
+  Amplitudes(int no, int nv, World &dw_){
     dw = &dw_;
     int shapeASAS[] = {AS,NS,AS,NS};
     int vvoo[]      = {nv,nv,no,no};
 
     ai = new CTF_Matrix(nv,no,NS,dw_,"Tai",1);
 
-    abij = new CTF_Tensor(4,vvoo,shapeASAS,dw_,"Tabij",1);
+    abij = new Tensor<>(4,vvoo,shapeASAS,dw_,"Tabij",1);
   }
 
-  CTF_Idx_Tensor operator[](char const * idx_map_){
+  Idx_Tensor operator[](char const * idx_map_){
     if (strlen(idx_map_) == 4) return (*abij)[idx_map_];
     else return (*ai)[idx_map_];
   }
@@ -168,7 +157,7 @@ class Amplitudes {
     int64_t j, sz, * indices;
     double * values;
     
-    CTF_Tensor * tarr[] =  {ai, abij};
+    Tensor<> * tarr[] =  {ai, abij};
     MPI_Comm comm = dw->comm;
     MPI_Comm_rank(comm, &rank);
 
@@ -195,55 +184,55 @@ void ccsd(Integrals   &V,
   sched.record();
 #endif
 
-  CTF_Tensor T21 = CTF_Tensor(T.abij);
+  Tensor<> T21 = Tensor<>(T.abij);
   T21["abij"] += .5*T["ai"]*T["bj"];
 
-  CTF_Tensor tFme(*V["me"].parent);
-  CTF_Idx_Tensor Fme(&tFme,"me");
+  Tensor<> tFme(*V["me"].parent);
+  Idx_Tensor Fme(&tFme,"me");
   Fme += V["me"];
   Fme += V["mnef"]*T["fn"];
   
-  CTF_Tensor tFae(*V["ae"].parent);
-  CTF_Idx_Tensor Fae(&tFae,"ae");
+  Tensor<> tFae(*V["ae"].parent);
+  Idx_Tensor Fae(&tFae,"ae");
   Fae += V["ae"];
   Fae -= Fme*T["am"];
   Fae -=.5*V["mnef"]*T["afmn"];
   Fae += V["anef"]*T["fn"];
 
-  CTF_Tensor tFmi(*V["mi"].parent);
-  CTF_Idx_Tensor Fmi(&tFmi,"mi");
+  Tensor<> tFmi(*V["mi"].parent);
+  Idx_Tensor Fmi(&tFmi,"mi");
   Fmi += V["mi"];
   Fmi += Fme*T["ei"];
   Fmi += .5*V["mnef"]*T["efin"];
   Fmi += V["mnfi"]*T["fn"];
 
-  CTF_Tensor tWmnei(*V["mnei"].parent);
-  CTF_Idx_Tensor Wmnei(&tWmnei,"mnei");
+  Tensor<> tWmnei(*V["mnei"].parent);
+  Idx_Tensor Wmnei(&tWmnei,"mnei");
   Wmnei += V["mnei"];
   Wmnei += V["mnei"];
   Wmnei += V["mnef"]*T["fi"];
   
-  CTF_Tensor tWmnij(*V["mnij"].parent);
-  CTF_Idx_Tensor Wmnij(&tWmnij,"mnij");
+  Tensor<> tWmnij(*V["mnij"].parent);
+  Idx_Tensor Wmnij(&tWmnij,"mnij");
   Wmnij += V["mnij"];
   Wmnij -= V["mnei"]*T["ej"];
   Wmnij += V["mnef"]*T21["efij"];
 
-  CTF_Tensor tWamei(*V["amei"].parent);
-  CTF_Idx_Tensor Wamei(&tWamei,"amei");
+  Tensor<> tWamei(*V["amei"].parent);
+  Idx_Tensor Wamei(&tWamei,"amei");
   Wamei += V["amei"];
   Wamei -= Wmnei*T["an"];
   Wamei += V["amef"]*T["fi"];
   Wamei += .5*V["mnef"]*T["afin"];
   
-  CTF_Tensor tWamij(*V["amij"].parent);
-  CTF_Idx_Tensor Wamij(&tWamij,"amij");
+  Tensor<> tWamij(*V["amij"].parent);
+  Idx_Tensor Wamij(&tWamij,"amij");
   Wamij += V["amij"];
   Wamij += V["amei"]*T["ej"];
   Wamij += V["amef"]*T["efij"];
 
-  CTF_Tensor tZai(*V["ai"].parent);
-  CTF_Idx_Tensor Zai(&tZai,"ai");
+  Tensor<> tZai(*V["ai"].parent);
+  Idx_Tensor Zai(&tZai,"ai");
   Zai += V["ai"];
   Zai -= Fmi*T["am"]; 
   Zai += V["ae"]*T["ei"]; 
@@ -252,8 +241,8 @@ void ccsd(Integrals   &V,
   Zai += .5*V["amef"]*T21["efim"];
   Zai -= .5*Wmnei*T21["eamn"];
   
-  CTF_Tensor tZabij(*V["abij"].parent);
-  CTF_Idx_Tensor Zabij(&tZabij,"abij");
+  Tensor<> tZabij(*V["abij"].parent);
+  Idx_Tensor Zabij(&tZabij,"abij");
   Zabij += V["abij"];
   Zabij += V["abei"]*T["ej"];
   Zabij += Wamei*T["ebmj"];
@@ -274,9 +263,9 @@ void ccsd(Integrals   &V,
 #endif
 
 
-  CTF_Tensor Dai(2, V.ai->lens, V.ai->sym, *V.dw);
+  Tensor<> Dai(2, V.ai->lens, V.ai->sym, *V.dw);
   int sh_sym[4] = {SH, NS, SH, NS};
-  CTF_Tensor Dabij(4, V.abij->lens, sh_sym, *V.dw);
+  Tensor<> Dabij(4, V.abij->lens, sh_sym, *V.dw);
   Dai["ai"] += V["i"];
   Dai["ai"] -= V["a"];
  
@@ -286,7 +275,7 @@ void ccsd(Integrals   &V,
   Dabij["abij"] -= V["b"];
 
 
-  CTF::Bivar_Function<> fctr(&divide);
+  Bivar_Function<> fctr(&divide);
 
   T.ai->contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij->contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
@@ -344,7 +333,7 @@ int main(int argc, char ** argv){
   } else sched_nparts = 0;
 
   {
-    CTF_World dw(argc, argv);
+    World dw(argc, argv);
     {
       Integrals V(no, nv, dw);
       V.fill_rand();

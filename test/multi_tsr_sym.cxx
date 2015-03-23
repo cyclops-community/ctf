@@ -6,19 +6,13 @@
   * \brief Matrix multiplication
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
 
-int multi_tsr_sym(int         m,
-                  int         n,
-                  CTF_World  &dw){
+using namespace CTF;
+
+int multi_tsr_sym(int     m,
+                  int     n,
+                  World & dw){
   int rank, i, num_pes;
   int64_t np;
   double * pairs;
@@ -34,10 +28,10 @@ int multi_tsr_sym(int         m,
 #endif
   
   //* Creates distributed tensors initialized with zeros
-  CTF_Matrix A(n, m, NS, dw);
-  CTF_Matrix C_NS(n, n, NS, dw);
-  CTF_Matrix C_SY(n, n, SY, dw);
-  CTF_Matrix diff(n, n, NS, dw);
+  Matrix<> A(n, m, NS, dw);
+  Matrix<> C_NS(n, n, NS, dw);
+  Matrix<> C_SY(n, n, SY, dw);
+  Matrix<> diff(n, n, NS, dw);
 
   srand48(13*rank);
   //* Writes noise to local data based on global index
@@ -77,7 +71,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, n, m, pass;
-  int const in_num = argc;
+  int in_num = argc;
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -94,7 +88,7 @@ int main(int argc, char ** argv){
   } else m = 7;
   
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
 
     pass =multi_tsr_sym(m, n, dw);
     assert(pass);

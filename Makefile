@@ -6,11 +6,12 @@ EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weight_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice 
 
 TESTS = test_suite pgemm_test nonsq_pgemm_test diag_sym sym3 readwrite_test \
-        ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test
+        ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test 
 
 BENCHMARKS = nonsq_pgemm_bench bench_contraction bench_nosym_transp
 
-STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D
+STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
+          fast_tensor_ctr fast_sy_as_as_tensor_ctr fast_as_as_sy_tensor_ctr
 
 EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(STUDIES)
 
@@ -39,7 +40,7 @@ studies: $(STUDIES)
 $(STUDIES):
 	$(MAKE) $@ -C studies
 
-lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile 
+lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
 	$(MAKE) ctf -C src; $(AR) -crs $@ src/*/*.o
 	
 clean: clean_bin clean_lib

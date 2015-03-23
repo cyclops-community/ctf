@@ -5,14 +5,9 @@
   * @{ 
   * \brief Basic functionality test for CTF::Scalar<> type and tensors with a zero edge length
   */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
+
 #include <ctf.hpp>
+using namespace CTF;
 
 int scalar(CTF::World    &dw){
   int rank, num_pes, pass;

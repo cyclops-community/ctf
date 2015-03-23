@@ -138,7 +138,7 @@ namespace CTF {
       if (mst_size == NULL && stack_size == NULL){
   #if 0 //def USE_MST
         if (rank == 0)
-          VPRINTF(1,"Creating stack of size " PRId64 "\n",1000*(int64_t)1E6);
+          VPRINTF(1,"Creating stack of size %ld\n",1000*(int64_t)1E6);
         CTF_int::mst_create(1000*(int64_t)1E6);
   #else
         if (rank == 0){
@@ -147,22 +147,22 @@ namespace CTF {
   #endif
       } else {
 #if 0
-        uint64_t imst_size = 0 ;
+        int64_t imst_size = 0 ;
         if (mst_size != NULL) 
           imst_size = strtoull(mst_size,NULL,0);
         if (stack_size != NULL)
           imst_size = MAX(imst_size,strtoull(stack_size,NULL,0));
         if (rank == 0)
-          printf("Creating stack of size " PRIu64 " due to CTF_STACK_SIZE enviroment variable\n",
+          printf("Creating stack of size %ld due to CTF_STACK_SIZE enviroment variable\n",
                     imst_size);
         CTF_int::mst_create(imst_size);
 #endif
       }
       mem_size = getenv("CTF_MEMORY_SIZE");
       if (mem_size != NULL){
-        uint64_t imem_size = strtoull(mem_size,NULL,0);
+        int64_t imem_size = strtoull(mem_size,NULL,0);
         if (rank == 0)
-          VPRINTF(1,"Memory size set to " PRIu64 " by CTF_MEMORY_SIZE environment variable\n",
+          VPRINTF(1,"Memory size set to %ld by CTF_MEMORY_SIZE environment variable\n",
                     imem_size);
         CTF_int::set_mem_size(imem_size);
       }
@@ -179,7 +179,7 @@ namespace CTF {
   #endif
       }
       if (rank == 0)
-        VPRINTF(1,"Total amount of memory available to process 0 is " PRIu64 "\n", proc_bytes_available());
+        VPRINTF(1,"Total amount of memory available to process 0 is %ld\n", proc_bytes_available());
     } 
     initialized = 1;
     return SUCCESS;

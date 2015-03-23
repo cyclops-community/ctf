@@ -363,7 +363,7 @@ namespace CTF_int {
       
     }
     CTF_int::cfree(idx);
-    DEBUG_PRINTF("order = %d new_el=" PRId64 ", size = " PRId64 ", pad_el = " PRId64 "\n", order, new_el, size, pad_el);
+    DEBUG_PRINTF("order = %d new_el=%ld, size = %ld, pad_el = %ld\n", order, new_el, size, pad_el);
     ASSERT(new_el + size == pad_el);
     memcpy(padded_pairs[new_el].ptr, old_data,  size*(sizeof(int64_t)+sr->el_size));
     *new_pairs = padded_pairsb;
@@ -553,7 +553,6 @@ namespace CTF_int {
             break;
         }
       }
-      ASSERT(buf_offset == size/nvirt);
       CTF_int::cfree(idx);
       CTF_int::cfree(virt_rank);
       CTF_int::cfree(virt_len);

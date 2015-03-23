@@ -1,24 +1,16 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
-/** \addtogroup examples 
+/** \addtogroup studies
   * @{ 
   * \defgroup fast_sym_4D
   * @{ 
   * \brief A clever way to multiply symmetric matrices of nonsymmetric matricers
   */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <vector>
-#include <algorithm>
 #include <ctf.hpp>
 
+using namespace CTF;
 
 int fast_sym_4D(int const     n,
-                CTF_World    &ctf){
+                World    &ctf){
   int rank, i, num_pes;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -31,17 +23,17 @@ int fast_sym_4D(int const     n,
   int HNNN[] = {SH,NS,NS,NS};
   int YYNNN[] = {SY,SY,NS,NS,NS};
 
-  CTF_Tensor A(4, len4, HNNN, ctf);
-  CTF_Tensor B(4, len4, HNNN, ctf);
-  CTF_Tensor C(4, len4, HNNN, ctf);
-  CTF_Tensor C_ans(4, len4, HNNN, ctf);
+  Tensor<> A(4, len4, HNNN, ctf);
+  Tensor<> B(4, len4, HNNN, ctf);
+  Tensor<> C(4, len4, HNNN, ctf);
+  Tensor<> C_ans(4, len4, HNNN, ctf);
   
-  CTF_Tensor A_rep(5, len5, YYNNN, ctf);
-  CTF_Tensor B_rep(5, len5, YYNNN, ctf);
-  CTF_Tensor Z(5, len5, YYNNN, ctf);
-  CTF_Tensor As(3, len3, NNN, ctf);
-  CTF_Tensor Bs(3, len3, NNN, ctf);
-  CTF_Tensor Cs(3, len3, NNN, ctf);
+  Tensor<> A_rep(5, len5, YYNNN, ctf);
+  Tensor<> B_rep(5, len5, YYNNN, ctf);
+  Tensor<> Z(5, len5, YYNNN, ctf);
+  Tensor<> As(3, len3, NNN, ctf);
+  Tensor<> Bs(3, len3, NNN, ctf);
+  Tensor<> Cs(3, len3, NNN, ctf);
 
   {
     int64_t * indices;
@@ -65,26 +57,9 @@ int fast_sym_4D(int const     n,
     free(values);
   }
 
-  
-/*  std::cout << "start C =As*B"<< "\n";
-  C["ijab"] = As["ial"]*B["ijlb"];
-  C.print(stdout, .000000001);
-  int64_t sz;
-  double const * data = C.get_raw_data(&sz);
-  //for (int64_t i=0; i<n*(n-1)*(n-2); i++){
-  for (int64_t i=0; i<sz; i++){
-    if (std::abs(data[i] ) > .0000000001)
-      printf("C[%ld] = %lf\n", i, data[i]);
-  }
-  std::cout << "C norm " << C.norm2() << "\n";
-  C["ijab"]=0.;
-  assert(0);
-*/
-
 
   C_ans["ijab"] = A["ikal"]*B["kjlb"];
 
-#ifdef USE_SYM_SUM
   A_rep["ijkal"] += A["ijal"];
   B_rep["ijklb"] += B["ijlb"];
   Z["ijkab"] += A_rep["ijkal"]*B_rep["ijklb"];
@@ -94,20 +69,9 @@ int fast_sym_4D(int const     n,
   Bs["ilb"] += B["iklb"];
   C["ijab"] -= ((double)n)*A["ijal"]*B["ijlb"];
   C["ijab"] -= Cs["iab"];
-  //std::cout << "C norm " << C.norm2() << "\n";
-  //C.print();
   C["ijab"] -= As["ial"]*B["ijlb"];
-  //C["ijab"] -= A["ijal"]*Bs["jlb"];
   C["ijab"] -= A["ijal"]*Bs["jlb"];
-  /*int64_t sz;
-  double const * data = C.get_raw_data(&sz);
-  //for (int64_t i=0; i<n*(n-1)*(n-2); i++){
-  for (int64_t i=0; i<sz; i++){
-    printf("C[%ld] = %lf\n", i, data[i]);
-  }
-  std::cout << "after C norm " << C.norm2() << "\n";
-  std::cout << "after C norm1 " << C.norm1() << "\n";*/
-#else
+/*
   A_rep["ijkal"] += A["ijal"];
   A_rep["ijkal"] += A["ikal"];
   A_rep["ijkal"] += A["jkal"];
@@ -129,8 +93,7 @@ int fast_sym_4D(int const     n,
   C["ijab"] -= Cs["iab"];
   C["ijab"] -= Cs["jab"];
   C["ijab"] -= As["ial"]*B["ijlb"];
-  C["ijab"] -= A["ijal"]*Bs["jlb"];
-#endif
+  C["ijab"] -= A["ijal"]*Bs["jlb"];*/
 
   if (n<4){
     printf("A:\n");
@@ -142,7 +105,7 @@ int fast_sym_4D(int const     n,
     printf("C:\n");
     C.print();
   }
-  CTF_Tensor Diff(4, len4, HNNN, ctf);
+  Tensor<> Diff(4, len4, HNNN, ctf);
   Diff["ijab"] = C["ijab"]-C_ans["ijab"];
   double nrm = Diff.norm2();
   int pass = (nrm <=1.E-10);
@@ -183,7 +146,7 @@ int main(int argc, char ** argv){
   } else n = 6;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     if (rank == 0){
       printf("Computing C_(ij)ab = A_(ik)al*B_(kj)lb\n");
     }

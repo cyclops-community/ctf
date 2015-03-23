@@ -1,17 +1,11 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <vector>
-#include <algorithm>
 #include <ctf.hpp>
 
+using namespace CTF;
+
 int fast_diagram(int const     n,
-                CTF_World    &ctf){
+                World    &ctf){
   int rank, i, num_pes;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -26,20 +20,20 @@ int fast_diagram(int const     n,
   int SNNN[] = {SH,NS,NS,NS};
   //int AANNN[] = {AS,AS,NS,NS,NS};
 
-  CTF_Tensor T(4, len4, SNNN, ctf);
-  CTF_Tensor V(4, len4, SNNN, ctf);
+  Tensor<> T(4, len4, SNNN, ctf);
+  Tensor<> V(4, len4, SNNN, ctf);
 
-  CTF_Tensor W(4, len4, SNNN, ctf);
-  CTF_Tensor W_ans(4, len4, SNNN, ctf);
+  Tensor<> W(4, len4, SNNN, ctf);
+  Tensor<> W_ans(4, len4, SNNN, ctf);
 
-  CTF_Tensor Z_AS(4, len4, ANNN, ctf);
-  CTF_Tensor Z_SH(4, len4, SNNN, ctf);
-  CTF_Tensor Z_NS(4, len4, NNNN, ctf);
-  CTF_Tensor Z_D(3, len3, NNN, ctf);
+  Tensor<> Z_AS(4, len4, ANNN, ctf);
+  Tensor<> Z_SH(4, len4, SNNN, ctf);
+  Tensor<> Z_NS(4, len4, NNNN, ctf);
+  Tensor<> Z_D(3, len3, NNN, ctf);
   
 
-  CTF_Tensor Ts(3, len3, NNN, ctf);
-  CTF_Tensor Zs(3, len3, NNN, ctf);
+  Tensor<> Ts(3, len3, NNN, ctf);
+  Tensor<> Zs(3, len3, NNN, ctf);
 
   {
     int64_t * indices;
@@ -65,7 +59,7 @@ int fast_diagram(int const     n,
   Z_NS["afin"] = T["aeim"]*V["efmn"];
 //  Z_NS.print(stdout);
   W_ans["abij"] = Z_NS["afin"]*T["fbnj"];
-  W_ans.print(stdout);
+//  W_ans.print(stdout);
  
 //  Z_AS.print(stdout);
   Z_AS["afin"] = T["aeim"]*V["efmn"];
@@ -79,7 +73,7 @@ int fast_diagram(int const     n,
   //Z_AS["ebmj"] = V["efmn"]*T["fbnj"];
 //  W["abij"] = T["aeim"]*Z_AS["ebmj"];
 //  W["abij"] -= W_ans["abij"];
-  W.print(stdout);
+//  W.print(stdout);
 //  Ts["eim"] = T["feim"];
 //  Zs["ain"] = Ts["eim"]*V["eamn"];
 //  W.print(stdout);
@@ -126,7 +120,7 @@ int main(int argc, char ** argv){
   } else n = 5;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     if (rank == 0){
       printf("Computing W^(ab)_ij=sum_(efmn)T^(ae)_im*V^(ef)_mn*T^(fb)_nj\n");
     }

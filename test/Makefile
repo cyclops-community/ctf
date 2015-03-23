@@ -16,7 +16,7 @@ else
 	@echo 'cannot build $@ without ScaLAPACK';
 endif
 
-../bin/%: %.cxx ../lib/libctf.a
+../bin/%: %.cxx ../lib/libctf.a ../examples/*.cxx *.cxx Makefile ../Makefile 
 	$(FCXX) $< -o $@ -I../include/ -L../lib -lctf $(LIBS)
 
 clean: 

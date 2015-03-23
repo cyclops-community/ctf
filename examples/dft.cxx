@@ -1,18 +1,16 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#include <ctf.hpp>
-#include <assert.h>
-#include <stdlib.h>
-
 /** \addtogroup examples 
   * @{ 
   * \addtogroup DFT
   * @{ 
   */
 
+#include <ctf.hpp>
+using namespace CTF;
   
-int test_dft(int64_t const  n,
-             cCTF_World    &wrld){
+int test_dft(int64_t n,
+             World   &wrld){
   int numPes, myRank;
   int64_t  np, i;
   int64_t * idx;
@@ -20,8 +18,8 @@ int test_dft(int64_t const  n,
   std::complex<double> imag(0,1);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-  cCTF_Matrix DFT(n, n, SY, wrld, "DFT", 1);
-  cCTF_Matrix IDFT(n, n, SY, wrld, "IDFT", 0);
+  Matrix < std::complex<double>, false >DFT(n, n, SY, wrld, "DFT", 1);
+  Matrix < std::complex<double>, false  >IDFT(n, n, SY, wrld, "IDFT", 0);
 
   DFT.read_local(&np, &idx, &data);
 
@@ -100,7 +98,7 @@ int main(int argc, char ** argv){
 
 
   {
-    cCTF_World dw(argc, argv);
+    World dw(argc, argv);
     int pass = test_dft(n, dw);
     assert(pass);
   }

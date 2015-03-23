@@ -6,22 +6,15 @@
   * \brief Performs recursive parallel matrix multiplication using the slice interface to extract blocks
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <stdint.h>
-#include <algorithm>
 #include <ctf.hpp>
+using namespace CTF;
 
 void slice_gemm(int         n,
                 int         m,
                 int         k,
-                CTF_Tensor &A,
-                CTF_Tensor &B,
-                CTF_Tensor &C){
+                Tensor<> &A,
+                Tensor<> &B,
+                Tensor<> &C){
   int rank, num_pes, cnum_pes, ri, rj, rk, ni, nj, nk, div;
   MPI_Comm pcomm, ccomm;
   pcomm = C.wrld->comm;
@@ -37,7 +30,7 @@ void slice_gemm(int         n,
     cnum_pes = num_pes / div;
   
     MPI_Comm_split(pcomm, rank/cnum_pes, rank%cnum_pes, &ccomm);
-    CTF_World cdw(ccomm);
+    World cdw(ccomm);
 
     ri = 0;
     rj = 0;
@@ -65,9 +58,9 @@ void slice_gemm(int         n,
     int end_ik[2] = {ri * m/ni + m/ni, rk * k/nk + k/nk};
     int off_kj[2] = {rk * k/nk,        rj * n/nj};
     int end_kj[2] = {rk * k/nk + k/nk, rj * n/nj + n/nj};
-    CTF_Tensor cA = A.slice(off_ik, end_ik, &cdw);
-    CTF_Tensor cB = B.slice(off_kj, end_kj, &cdw);
-    CTF_Matrix cC(m/ni, n/nj, NS, cdw);
+    Tensor<> cA = A.slice(off_ik, end_ik, &cdw);
+    Tensor<> cB = B.slice(off_kj, end_kj, &cdw);
+    Matrix<> cC(m/ni, n/nj, NS, cdw);
 
     slice_gemm(n/nj, m/ni, k/nk, cA, cB, cC);
 
@@ -82,16 +75,16 @@ void slice_gemm(int         n,
 int test_slice_gemm(int const n,
                     int const m,
                     int const k,
-                    CTF_World &dw){
+                    World &dw){
   int rank, num_pes;
   int64_t i, np;
   double * pairs, err;
   int64_t * indices;
   
-  CTF_Matrix C(m, n, NS, dw);
-  CTF_Matrix C_ans(m, n, NS, dw);
-  CTF_Matrix A(m, k, NS, dw);
-  CTF_Matrix B(k, n, NS, dw);
+  Matrix<> C(m, n, NS, dw);
+  Matrix<> C_ans(m, n, NS, dw);
+  Matrix<> A(m, k, NS, dw);
+  Matrix<> B(k, n, NS, dw);
   
   MPI_Comm pcomm = dw.comm;
   MPI_Comm_rank(pcomm, &rank);
@@ -165,7 +158,7 @@ int main(int argc, char ** argv){
   } else k = 512;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     int pass;    
     if (rank == 0){
       printf("Non-symmetric: NS = NS*NS test_slice_gemm:\n");

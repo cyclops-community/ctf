@@ -6,22 +6,15 @@
   * \brief Matrix multiplication
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
+using namespace CTF;
 
 int gemm(int      m,
          int      n,
          int      k,
          int      sym,
          int      niter,
-         CTF_World    &dw){
+         World    &dw){
   int rank, i, num_pes;
   int64_t np;
   double * pairs, * pairs_AB, * pairs_BC;
@@ -37,10 +30,9 @@ int gemm(int      m,
 #endif
   
   //* Creates distributed tensors initialized with zeros
-  CTF::Ring<double> sr = CTF::Ring<double>();
-  CTF_Matrix A = CTF_Matrix(m, k, sym, dw, sr);
-  CTF_Matrix B = CTF_Matrix(k, n, sym, dw);
-  CTF_Matrix C = CTF_Matrix(m, n, NS,  dw);
+  Matrix<> A = Matrix<>(m, k, sym, dw);
+  Matrix<> B = Matrix<>(k, n, sym, dw);
+  Matrix<> C = Matrix<>(m, n, NS,  dw);
 
   srand48(13*rank);
   //* Writes noise to local data based on global index
@@ -65,7 +57,7 @@ int gemm(int      m,
 #ifndef TEST_SUITE
   double t;
 
-  CTF_Flop_Counter f = CTF_Flop_Counter();
+  Flop_counter f = Flop_counter();
   t = MPI_Wtime();
   for (i=0; i<niter; i++){
     C["ij"] += A["ik"]*B["kj"];
@@ -82,13 +74,13 @@ int gemm(int      m,
   int pass = 1;
   if (m==n && n==k){ 
     /* verify D=(A*B)*C = A*(B*C) */
-    CTF_Matrix D(m, n, NS, dw);
-    CTF_Matrix E(m, n, NS, dw);
+    Matrix<> D(m, n, NS, dw);
+    Matrix<> E(m, n, NS, dw);
     if (0 && num_pes > 1){
       MPI_Comm halbcomm;
       MPI_Comm_split(dw.comm, rank%2, rank/2, &halbcomm);
-      CTF_World hdw(halbcomm);
-      CTF_Matrix hB(n, n, NS, hdw);
+      World hdw(halbcomm);
+      Matrix<> hB(n, n, NS, hdw);
       hB["ij"] += B["ij"];
       assert(hB.norm2()>1.E-6);
     
@@ -168,11 +160,11 @@ int main(int argc, char ** argv){
   } else niter = 5;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
 
-    CTF_Scalar ts(1.0,dw);
-    CTF_Idx_Tensor its(&ts,"");
-    CTF_Idx_Tensor tts(its); 
+    Scalar<> ts(1.0,dw);
+    Idx_Tensor its(&ts,"");
+    Idx_Tensor tts(its); 
     tts.operator*(its);
 
     int pass;    

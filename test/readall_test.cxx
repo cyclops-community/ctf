@@ -7,21 +7,13 @@
   * \brief Summation along tensor diagonals
   */
 
-#include <stdio.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
 
-int readall_test(int const    n,
-                 int const    m,
-                 CTF_World   &dw){
+using namespace CTF;
+
+int readall_test(int   n,
+                 int   m,
+                 World &dw){
   int rank, i, num_pes, pass;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -32,14 +24,14 @@ int readall_test(int const    n,
   int sizeN4[] = {n,m,n,m};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor A(4, sizeN4, shapeN4, dw);
+  Tensor<> A(4, sizeN4, shapeN4, dw);
 
   std::vector<double> vals;
   std::vector<int64_t> inds;
   if (rank == 0){
-    CTF_World sw(MPI_COMM_SELF);
+    World sw(MPI_COMM_SELF);
     
-    CTF_Tensor sA(4, sizeN4, shapeN4, sw);
+    Tensor<> sA(4, sizeN4, shapeN4, sw);
 
     
     if (rank == 0){ 
@@ -100,7 +92,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, n, m;
-  int const in_num = argc;
+  int in_num = argc;
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -120,7 +112,7 @@ int main(int argc, char ** argv){
 
 
   {
-    CTF_World dw(argc, argv);
+    World dw(argc, argv);
     readall_test(n, m, dw);
   }
 

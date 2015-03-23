@@ -1,39 +1,29 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <vector>
 #include <numeric>
 #include <ctf.hpp>
 
 #define TEST_SUITE
-#include "../../examples/weight_4D.cxx"
-#include "sym3.cxx"
-#include "../../examples/gemm.cxx"
-#include "../../examples/gemm_4D.cxx"
-#include "../../examples/scalar.cxx"
-#include "../../examples/trace.cxx"
+#include "../examples/weight_4D.cxx"
+#include "../examples/gemm.cxx"
+#include "../examples/gemm_4D.cxx"
+#include "../examples/scalar.cxx"
+#include "../examples/trace.cxx"
 #include "diag_sym.cxx"
 #include "diag_ctr.cxx"
-#ifdef CTF_COMPLEX
-#include "../../examples/dft.cxx"
-#include "../../examples/dft_3D.cxx"
-#endif
+#include "../examples/dft.cxx"
+#include "../examples/dft_3D.cxx"
 #include "../studies/fast_sym.cxx"
 #include "../studies/fast_sym_4D.cxx"
 #include "ccsdt_t3_to_t2.cxx"
-#include "../../examples/strassen.cxx"
-#include "../../examples/slice_gemm.cxx"
+#include "../examples/strassen.cxx"
+#include "../examples/slice_gemm.cxx"
 #include "readwrite_test.cxx"
 #include "readall_test.cxx"
-#include "../../examples/subworld_gemm.cxx"
+#include "../examples/subworld_gemm.cxx"
 #include "multi_tsr_sym.cxx"
 
+using namespace CTF;
 
 char* getCmdOption(char ** begin,
                    char ** end,
@@ -48,7 +38,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, n;
-  int const in_num = argc;
+  int in_num = argc;
   char ** input_str = argv;
 
   MPI_Init(&argc, &argv);
@@ -67,7 +57,7 @@ int main(int argc, char ** argv){
   std::vector<int> pass;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0)
       printf("Testing non-symmetric: NS = NS*NS weight with n = %d:\n",n);
@@ -121,12 +111,6 @@ int main(int argc, char ** argv){
       printf("Testing symmetric-hollow: SH = SH*SH 4D gemm with n = %d:\n",n);
     pass.push_back(gemm_4D(n, SH, 1, dw));
 
-#ifndef USE_SYM_SUM
-    if (rank == 0)
-      printf("Testing a CCSDT 6D=4D*4D contraction with n = %d:\n",n);
-    pass.push_back(sym3(n, dw));
-#endif
-    
     if (rank == 0)
       printf("Testing scalar operations\n");
     pass.push_back(scalar(dw));
@@ -171,7 +155,7 @@ int main(int argc, char ** argv){
   if (rank == 0)
       printf("Testing readall test with n = %d m = %d:\n",n,n*n);
     pass.push_back(readall_test(n, n*n, dw));
-#if 0//def USE_SYM
+#if 0
     if (rank == 0)
       printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);
     pass.push_back(strassen(n*n, AS, dw));
@@ -185,11 +169,6 @@ int main(int argc, char ** argv){
       pass.push_back(test_slice_gemm(16, 32, 8, dw));
     }
 #endif
-
-  }
-#ifdef CTF_COMPLEX
-  {
-    cCTF_World dw(MPI_COMM_WORLD, argc, argv);
     if (rank == 0)
       printf("Testing 1D DFT with n = %d:\n",n*n);
     pass.push_back(test_dft(n*n, dw));
@@ -198,7 +177,6 @@ int main(int argc, char ** argv){
     pass.push_back(test_dft_3D(n, dw));
 
   }
-#endif
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)
     printf("Testing completed, %d/%zu tests passed\n", num_pass, pass.size());

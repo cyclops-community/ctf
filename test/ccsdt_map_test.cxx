@@ -5,19 +5,12 @@
   * @{ 
   * \brief A symmetric contraction from CCSDT compared with the explicitly permuted nonsymmetric form
   */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
 
-int ccsdt_map_test(int const     n,
-                   CTF_World    &dw){
+using namespace CTF;
+
+int ccsdt_map_test(int   n,
+                   World &dw){
 
   int rank, num_pes;
   
@@ -31,9 +24,9 @@ int ccsdt_map_test(int const     n,
   int nnnn[] = {n,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  CTF_Tensor W(4, nnnn, shapeNS4, dw, "W", 1);
-  CTF_Tensor T(4, nnnn, shapeNS4, dw, "T", 1);
-  CTF_Tensor Z(6, nnnnnn, shapeNS6, dw, "Z", 1);
+  Tensor<> W(4, nnnn, shapeNS4, dw, "W", 1);
+  Tensor<> T(4, nnnn, shapeNS4, dw, "T", 1);
+  Tensor<> Z(6, nnnnnn, shapeNS6, dw, "Z", 1);
 
   Z["hijmno"] += W["hijk"]*T["kmno"];
 
@@ -73,7 +66,7 @@ int main(int argc, char ** argv){
 
 
   {
-    CTF_World dw(argc, argv);
+    World dw(argc, argv);
     int pass = ccsdt_map_test(n, dw);
     assert(pass);
   }
