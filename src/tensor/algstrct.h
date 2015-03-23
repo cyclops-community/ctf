@@ -42,14 +42,13 @@ namespace CTF_int {
       /**
        * \brief destructor
        */
-      ~algstrct();
+      virtual ~algstrct()=0;
 
       /**
        * \brief ''copy constructor''
        */
-      virtual algstrct * clone() const {
-        return new algstrct(el_size);
-      }
+      virtual algstrct * clone() const = 0;
+//        return new algstrct(el_size);
 
       /** \brief MPI addition operation for reductions */
       virtual MPI_Op addmop() const;
@@ -299,6 +298,9 @@ namespace CTF_int {
       int64_t lower_bound(int64_t n, ConstPairIterator op);
   };
 
+  //http://stackoverflow.com/questions/630950/pure-virtual-destructor-in-c
+  inline algstrct::~algstrct(){}
+
   void sgemm(char           tA,
              char           tB,
              int            m,
@@ -344,5 +346,6 @@ namespace CTF_int {
              std::complex<double> *       C);
 
 }
+
 
 #endif

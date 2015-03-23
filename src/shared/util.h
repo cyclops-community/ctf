@@ -55,18 +55,18 @@ namespace CTF_int {
   //volatile static int64_t mpi_int64_t = MPI_LONG_LONG_INT;
   #ifdef _SC_PHYS_PAGES
   inline
-  uint64_t getTotalSystemMemory()
+  int64_t getTotalSystemMemory()
   {
-    uint64_t pages = (uint64_t)sysconf(_SC_PHYS_PAGES);
-    uint64_t page_size = (uint64_t)sysconf(_SC_PAGE_SIZE);
+    int64_t pages = (int64_t)sysconf(_SC_PHYS_PAGES);
+    int64_t page_size = (int64_t)sysconf(_SC_PAGE_SIZE);
     return pages * page_size;
   }
   #else
   inline
-  uint64_t getTotalSystemMemory()
+  int64_t getTotalSystemMemory()
   {
     //Assume system memory is 1 GB
-    return ((uint64_t)1)<<30;
+    return ((int64_t)1)<<30;
   }
   #endif
 
