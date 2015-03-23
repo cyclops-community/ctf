@@ -9,7 +9,7 @@ EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weight_4D subworld_gemm \
 TESTS = test_suite pgemm_test nonsq_pgemm_test diag_sym sym3 readwrite_test \
         ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test
 
-BENCHMARKS = nonsq_pgemm_bench bench_contraction
+BENCHMARKS = nonsq_pgemm_bench bench_contraction bench_nosym_transp
 
 STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D
 

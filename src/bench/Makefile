@@ -1,7 +1,7 @@
 include ../../config.mk
 
 SCALA_BENCHMARKS = nonsq_pgemm_bench 
-BENCHMARKS = bench_contraction
+BENCHMARKS = bench_contraction bench_nosym_transp
 
 .PHONY: $(BENCHMARKS)
 $(BENCHMARKS): %:  ../../bin/%

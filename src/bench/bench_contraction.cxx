@@ -1,9 +1,9 @@
 /** Copyright (c) 2011, Edgar Solomonik, all rights reserved.
-  * \addtogroup examples 
+  * \addtogroup benchmarks
   * @{ 
-  * \addtogroup CCSDT_T3_to_T2
+  * \addtogroup bench_contractions
   * @{ 
-  * \brief A symmetric contraction from CCSDT compared with the explicitly permuted nonsymmetric form
+  * \brief Benchmarks arbitrary NS contraction
   */
 
 #include <stdio.h>
