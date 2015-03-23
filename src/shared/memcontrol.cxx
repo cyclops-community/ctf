@@ -226,7 +226,7 @@ namespace CTF_int {
    */
   int mst_alloc_ptr(int64_t const len, void ** const ptr){
     int pm = posix_memalign(ptr, ALIGN_BYTES, len);
-    ASSERT(pm);
+    ASSERT(pm==0);
 #if 0
     if (mst_buffer_size == 0)
       return alloc_ptr(len, ptr);
@@ -278,7 +278,7 @@ namespace CTF_int {
   int alloc_ptr(int64_t const len_, void ** const ptr){
     int64_t len = MAX(4,len_);
     int pm = posix_memalign(ptr, ALIGN_BYTES, len);
-    ASSERT(pm);
+    ASSERT(pm==0);
 #if 0
   #ifndef PRODUCTION
     int tid;

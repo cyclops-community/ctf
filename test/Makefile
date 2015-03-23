@@ -1,4 +1,4 @@
-include ../../config.mk
+include ../config.mk
 
 TESTS = test_suite diag_sym sym3 readwrite_test \
         ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test
@@ -6,18 +6,18 @@ TESTS = test_suite diag_sym sym3 readwrite_test \
 SCALA_TESTS = pgemm_test nonsq_pgemm_test 
 
 .PHONY: $(TESTS)
-$(TESTS): %:  ../../bin/%
+$(TESTS): %:  ../bin/%
 
 .PHONY: $(SCALA_TESTS)
 $(SCALA_TESTS): %:  
 ifneq (,$(findstring DUSE_SCALAPACK,$(DEFS))) 
-	$(MAKE) ../../bin/$@
+	$(MAKE) ../bin/$@
 else
 	@echo 'cannot build $@ without ScaLAPACK';
 endif
 
-../../bin/%: %.cxx ../../lib/libctf.a
-	$(FCXX) $< -o $@ -I../../include/ -L../../lib -lctf $(LIBS)
+../bin/%: %.cxx ../lib/libctf.a
+	$(FCXX) $< -o $@ -I../include/ -L../lib -lctf $(LIBS)
 
 clean: 
 	rm -f $(OBJS) 

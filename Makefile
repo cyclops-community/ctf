@@ -27,19 +27,19 @@ $(EXAMPLES):
 .PHONY: tests
 tests: $(TESTS)
 $(TESTS):
-	$(MAKE) $@ -C src/test
+	$(MAKE) $@ -C test
 
 .PHONY: bench
 bench: $(BENCHMARKS)
 $(BENCHMARKS):
-	$(MAKE) $@ -C src/bench
+	$(MAKE) $@ -C bench
 
 .PHONY: studies
 studies: $(STUDIES)
 $(STUDIES):
-	$(MAKE) $@ -C src/studies
+	$(MAKE) $@ -C studies
 
-lib/libctf.a: src/* src/*/* 
+lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile 
 	$(MAKE) ctf -C src; $(AR) -crs $@ src/*/*.o
 	
 clean: clean_bin clean_lib
