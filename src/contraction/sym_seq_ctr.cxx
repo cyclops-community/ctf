@@ -216,7 +216,6 @@ namespace CTF_int{
           CTF_FLOPS_ADD(3);
         }
       }
-      //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
 
       for (idx=0; idx<idx_max; idx++){
         imin = 0, imax = INT_MAX;
@@ -347,7 +346,7 @@ namespace CTF_int{
         // count n^2 FLOPS too
         CTF_FLOPS_ADD((2 * (int64_t)prm->n * (int64_t)prm->m * (int64_t)(prm->k+1)));
       }
-      //printf("[%lf] <- [%lf]*[%lf]\n",C[idx_C],A[idx_A],B[idx_B]);
+      //printf("[%ld] <- [%ld]*[%ld] (%d <- %d, %d)\n",idx_C,idx_A,idx_B,stride_C,stride_A,stride_B);
 
       for (idx=0; idx<idx_max; idx++){
         imin = 0, imax = INT_MAX;
