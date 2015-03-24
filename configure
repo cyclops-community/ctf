@@ -345,7 +345,7 @@ fi
 # Check that compiler works without error
 #
 echo -n 'Checking availability of C++11... '
-if testcpp11 1; then
+if testcpp11 0; then
   echo 'successful.'
 else
   CXX="$CXX -std=c++0x"
