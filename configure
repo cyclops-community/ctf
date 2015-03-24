@@ -25,7 +25,7 @@ function testlink
 {
   status=1
   cat > .test.cxx <<EOF
-#ifdef __cplusplus
+#if __cplusplus
   extern "C" 
 #endif
   void $2();
@@ -66,13 +66,11 @@ EOF
 
 #Usage: 'testcpp11 $1' where 
 # $1 - 0 if no printouts, 1 if verbose
- #<= 199711L
-
 function testcpp11
 {
   status=1
   cat > .test.cxx <<EOF
-#ifndef __cplusplus  
+#if __cplusplus <= 199711L
 #error This library needs at least a C++11 compliant compiler
 #endif
   int main(){ return 0; }
