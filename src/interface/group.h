@@ -33,7 +33,7 @@ namespace CTF {
   }
 
   /**
-   * Group is a Monoid with operator '-' defined
+   * \brief Group is a Monoid with operator '-' defined
    *   special case (parent) of a ring
    */
   template <typename dtype=double, bool is_ord=true> 

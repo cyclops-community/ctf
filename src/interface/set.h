@@ -36,8 +36,8 @@ namespace CTF {
   }
 
   /**
-   * Set class defined by a datatype and a min/max function (if it is partially ordered i.e. is_ord=true)
-   * FIXME: currently assumes min and max are given by numeric_limits (custom min/max not allowed)
+   * \brief Set class defined by a datatype and a min/max function (if it is partially ordered i.e. is_ord=true)
+   *         currently assumes min and max are given by numeric_limits (custom min/max not allowed)
    */
   template <typename dtype=double, bool is_ord=true> 
   class Set : public CTF_int::algstrct {

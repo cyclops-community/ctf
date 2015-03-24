@@ -193,7 +193,7 @@ namespace CTF {
   }
 
   /**
-   * Semiring is a Monoid with an addition multiplicaton function
+   * \brief Semiring is a Monoid with an addition multiplicaton function
    *   addition must have an identity and be associative, does not need to be commutative
    *   multiplications must have an identity as well as be distributive and associative
    *   special case (parent) of a Ring (which also has an additive inverse)

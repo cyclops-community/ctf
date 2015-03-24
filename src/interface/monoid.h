@@ -81,7 +81,7 @@ namespace CTF {
   }
 
   /**
-   * A Monoid is a Set equipped with a binary addition operator '+' or a custom function
+   * \brief A Monoid is a Set equipped with a binary addition operator '+' or a custom function
    *   addition must have an identity and be associative, does not need to be commutative
    *   special case (parent) of a semiring, group, and ring
    */

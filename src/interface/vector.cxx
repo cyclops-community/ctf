@@ -1,6 +1,6 @@
 #include "common.h"
 
-namespace CTF {
+namespace CTF_int {
 
   struct int1
   {
@@ -14,12 +14,14 @@ namespace CTF {
       return i;
     }
   };
+}
+namespace CTF {
 
   template<typename dtype, bool is_ord>
   Vector<dtype, is_ord>::Vector(int                       len_,
                                 World &                   world_,
                                 CTF_int::algstrct const & sr_)
-   : Tensor<dtype,is_ord>(1, int1(len_), int1(NS), world_, sr_, NULL, 0) {
+   : Tensor<dtype,is_ord>(1, CTF_int::int1(len_), CTF_int::int1(NS), world_, sr_, NULL, 0) {
     len = len_;
   }
 
@@ -29,7 +31,7 @@ namespace CTF {
                                 char const *              name_,
                                 int                       profile_,
                                 CTF_int::algstrct const & sr_)
-   : Tensor<dtype,is_ord>(1, int1(len_), int1(NS), world_, sr_, name_, profile_) {
+   : Tensor<dtype,is_ord>(1, CTF_int::int1(len_), CTF_int::int1(NS), world_, sr_, name_, profile_) {
     len = len_;
   }
 

@@ -1,9 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "common.h"
-
-namespace CTF {
-
+namespace CTF_int{
   struct int2
   {
     int i[2];
@@ -17,7 +15,10 @@ namespace CTF {
       return i;
     }
   };
+}
 
+
+namespace CTF {
   template<typename dtype, bool is_ord>
   Matrix<dtype, is_ord>::Matrix(int                       nrow_,
                                 int                       ncol_,
@@ -26,7 +27,7 @@ namespace CTF {
                                 char const *              name_,
                                 int                       profile_,
                                 CTF_int::algstrct const & sr_)
-    : Tensor<dtype,is_ord>(2, int2(nrow_, ncol_), int2(sym_, NS), 
+    : Tensor<dtype,is_ord>(2, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
@@ -39,7 +40,7 @@ namespace CTF {
                                 int                       sym_,
                                 World &                   world_,
                                 CTF_int::algstrct const & sr_)
-    : Tensor<dtype,is_ord>(2, int2(nrow_, ncol_), int2(sym_, NS), 
+    : Tensor<dtype,is_ord>(2, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
                            world_, Ring<dtype,is_ord>(), NULL, 0) {
     nrow = nrow_;
     ncol = ncol_;

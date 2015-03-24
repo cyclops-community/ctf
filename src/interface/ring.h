@@ -5,7 +5,7 @@
 namespace CTF {
 
   /**
-   * Semiring class defined by a datatype and addition and multiplicaton functions
+   * \brief Ring class defined by a datatype and addition and multiplicaton functions
    *   addition must have an identity, inverse, and be associative, does not need to be commutative
    *   multiplications must have an identity and be distributive
    */
