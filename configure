@@ -53,9 +53,32 @@ function testcompiler
   int main(){ return 0; }
 EOF
   if [ $1 -eq 1 ]; then
-    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $LDFLAGS  2>&1 )
+    ( set -x; $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx  2>&1 )
   else
-    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $LDFLAGS  > /dev/null 2>&1
+    $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cxx a.out
+  return $status
+}
+
+#Usage: 'testcpp11 $1' where 
+# $1 - 0 if no printouts, 1 if verbose
+function testcpp11
+{
+  status=1
+  cat > .test.cxx <<EOF
+#if __cplusplus <= 199711L
+  #error This library needs at least a C++11 compliant compiler
+#endif
+  int main(){ return 0; }
+EOF
+  if [ $1 -eq 1 ]; then
+    ( set -x; $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx $LDFLAGS  2>&1 )
+  else
+    $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx $LDFLAGS  > /dev/null 2>&1
   fi
   if [ -x a.out ]; then
     status=0
@@ -80,7 +103,7 @@ function testopenmp
     return j; 
   }
 EOF
-  $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx  $LDFLAGS > /dev/null 2>&1
+  $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LDFLAGS > /dev/null 2>&1
   if [ -x a.out ]; then
     status=0
   fi
@@ -141,15 +164,16 @@ function defaultflags
     case $compiler in
         intel)
             if [ "x$AR"        = "x" ]; then AR='xiar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-openmp -O3 -ipo -std=c++11'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-openmp -O3 -ipo'; fi
+            if [ "x$LDFLAGS"  = "x" ]; then CXXFLAGS='-mkl=parallel'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
             PASS_TO_LINKER='-Wl,'
             ;;
-        gnu)
+        gnu | clang)
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -O3 -std=c++11'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -O3'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall -Wno-comment -Wno-sign-compare'; fi
@@ -227,7 +251,7 @@ if [ "$NERSC_HOST" = "carver" ]; then
         fi
     fi
     
-    CXX=mpiCC
+    CXX="mpiCC -std=c++11"
     realcompiler
     defaultflags
     DEFS="$DEFS -DCARVER"
@@ -237,7 +261,7 @@ elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     echo 'Hostname recognized as a NERSC machine.'
     host=nersc
     
-    CXX=CC
+    CXX="CC -std=c++11"
     realcompiler
     defaultflags
     DEFS="$DEFS -D`echo $NERSC_HOST | tr a-z A-Z`"
@@ -278,7 +302,7 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
 elif (hostname | grep 'titan'); then
     host=titan
     
-    CXX=CC
+    CXX="CC -std=c++11"
     realcompiler
     defaultflags
     NVCC='nvcc -ccbin gcc -m64'
@@ -305,7 +329,7 @@ fi
 #
 # Check that compiler works without error
 #
-echo -n 'Checking compiler and flags... '
+echo -n 'Checking compiler (CXX)... '
 if testcompiler 0; then
   echo 'successful.'
 else
@@ -315,6 +339,24 @@ else
   echo
   exit 1
 fi
+
+
+#
+# Check that compiler works without error
+#
+echo -n 'Checking flags (CXXFLAGS)... '
+ODEFS=$DEFS
+DEFS="$DEFS $CXXFLAGS"
+if testcompiler 0; then
+  echo 'successful.'
+else
+  echo 'FAILED! error below:'
+  echo
+  testcompiler 1
+  echo
+  exit 1
+fi
+
 #
 # Check if OpenMP is provided
 #
@@ -326,6 +368,7 @@ else
   DEFS="$DEFS -DOMP_OFF"
 fi
   
+DEFS=$ODEFS
 
 #
 # Determine BLAS/LAPACK naming convention
@@ -385,17 +428,17 @@ else
   PDGEMM=pdgemm
 fi
 
-echo -n 'Checking whether ScaLAPACK is provided... '
-if testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 0; then
-  echo 'SCALAPACK found.'
-  DEFS="$DEFS -DUSE_SCALAPACK"
-else
-  echo
-  echo '  ScaLAPACK not found, a couple of the tests/benchmarks will not build, build error below:'
-  echo
-  testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 1
-  echo
-fi
+#echo -n 'Checking whether ScaLAPACK is provided... '
+#if testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 0; then
+#  echo 'SCALAPACK found.'
+#  DEFS="$DEFS -DUSE_SCALAPACK"
+#else
+#  echo
+#  echo '  ScaLAPACK not found, a couple of the tests/benchmarks will not build, build error below:'
+#  echo
+#  testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 1
+#  echo
+#fi
 
 echo -n 'Checking whether NVCC (cuda) is provided... '
 if [ "x$NVCC" = "x" ]; then
@@ -416,8 +459,10 @@ DEFS        = $DEFS
 
 #uncomment below to enable performance profiling
 #DEFS       += -DPROFILE -DPMPI
-#uncomment below to enable debugging
-#DEFS       += -DDEBUG=1 -DVERBOSE=1
+#uncomment below to enable verbosity (1 for basic contraction information)
+#DEFS       += -DVERBOSE=1
+#uncomment to set debug level and dump information about mapping and internal CTF actions
+#DEFS       += -DDEBUG=1
 
 AR          = $AR
 
