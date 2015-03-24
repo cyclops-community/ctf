@@ -66,12 +66,14 @@ EOF
 
 #Usage: 'testcpp11 $1' where 
 # $1 - 0 if no printouts, 1 if verbose
+ #<= 199711L
+
 function testcpp11
 {
   status=1
   cat > .test.cxx <<EOF
-#if __cplusplus <= 199711L
-  #error This library needs at least a C++11 compliant compiler
+#ifndef __cplusplus  
+#error This library needs at least a C++11 compliant compiler
 #endif
   int main(){ return 0; }
 EOF
@@ -250,7 +252,7 @@ if [ "$NERSC_HOST" = "carver" ]; then
         fi
     fi
     
-    CXX="mpiCC -std=c++11"
+    CXX="mpiCC -std=c++0x"
     realcompiler
     defaultflags
     DEFS="$DEFS -DCARVER"
@@ -260,7 +262,7 @@ elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     echo 'Hostname recognized as a NERSC machine.'
     host=nersc
     BLASLIBS="-mkl=parallel"   
-    CXX="CC -std=c++11"
+    CXX="CC -std=c++0x"
     realcompiler
     defaultflags
     DEFS="$DEFS -D`echo $NERSC_HOST | tr a-z A-Z`"
@@ -301,7 +303,7 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
 elif (hostname | grep 'titan'); then
     host=titan
     
-    CXX="CC -std=c++11"
+    CXX="CC -std=c++0x"
     realcompiler
     defaultflags
     NVCC='nvcc -ccbin gcc -m64'
@@ -343,12 +345,12 @@ fi
 # Check that compiler works without error
 #
 echo -n 'Checking availability of C++11... '
-if testcpp11 0; then
+if testcpp11 1; then
   echo 'successful.'
 else
-  CXX="$CXX -std=c++11"
+  CXX="$CXX -std=c++0x"
   if testcpp11 0; then
-    echo 'successful (tacking on -std=c++11).'
+    echo 'successful (tacking on -std=c++0x).'
   else
     echo 'FAILED! error below:'
     echo
