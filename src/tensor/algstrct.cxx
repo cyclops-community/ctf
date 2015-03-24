@@ -1,8 +1,8 @@
 /*Copyright (c) 2014, Edgar Solomonik, all rights reserved.*/
 #include "../shared/util.h"
+#include "../shared/blas_symbs.h"
 #include "untyped_tensor.h"
 #include "algstrct.h"
-#include "cblas.h"
 
 namespace CTF_int {
 
@@ -17,24 +17,18 @@ namespace CTF_int {
              float          beta,
              float  *       C){
     int lda_A, lda_B, lda_C;
-    CBLAS_TRANSPOSE ctA;
-    CBLAS_TRANSPOSE ctB;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
       lda_A = m;
-      ctA = CblasNoTrans;
     } else {
       lda_A = k;
-      ctA = CblasTrans;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
-      ctB = CblasNoTrans;
     } else {
       lda_B = n;
-      ctB = CblasTrans;
     }
-    cblas_sgemm(CblasColMajor,ctA,ctB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
+    SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
   }
 
 
@@ -49,24 +43,18 @@ namespace CTF_int {
              double         beta,
              double *       C){
     int lda_A, lda_B, lda_C;
-    CBLAS_TRANSPOSE ctA;
-    CBLAS_TRANSPOSE ctB;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
       lda_A = m;
-      ctA = CblasNoTrans;
     } else {
       lda_A = k;
-      ctA = CblasTrans;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
-      ctB = CblasNoTrans;
     } else {
       lda_B = n;
-      ctB = CblasTrans;
     }
-    cblas_dgemm(CblasColMajor,ctA,ctB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
+    DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
   }
 
   void cgemm(char                        tA,
@@ -80,24 +68,18 @@ namespace CTF_int {
              std::complex<float>         beta,
              std::complex<float> *       C){
     int lda_A, lda_B, lda_C;
-    CBLAS_TRANSPOSE ctA;
-    CBLAS_TRANSPOSE ctB;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
       lda_A = m;
-      ctA = CblasNoTrans;
     } else {
       lda_A = k;
-      ctA = CblasTrans;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
-      ctB = CblasNoTrans;
     } else {
       lda_B = n;
-      ctB = CblasTrans;
     }
-    cblas_cgemm(CblasColMajor,ctA,ctB,m,n,k,&alpha,A,lda_A,B,lda_B,&beta,C,lda_C);
+    CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
   }
 
 
@@ -112,39 +94,6 @@ namespace CTF_int {
              std::complex<double>         beta,
              std::complex<double> *       C){
     int lda_A, lda_B, lda_C;
-    CBLAS_TRANSPOSE ctA;
-    CBLAS_TRANSPOSE ctB;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda_A = m;
-      ctA = CblasNoTrans;
-    } else {
-      lda_A = k;
-      ctA = CblasTrans;
-    }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-      ctB = CblasNoTrans;
-    } else {
-      lda_B = n;
-      ctB = CblasTrans;
-    }
-    cblas_zgemm(CblasColMajor,ctA,ctB,m,n,k,&alpha,A,lda_A,B,lda_B,&beta,C,lda_C);
-  }
-
-/*
-  template <typename dtype>
-  void tgemm(char          tA,
-             char          tB,
-             int           m,
-             int           n,
-             int           k,
-             dtype         alpha,
-             dtype const * A,
-             dtype const * B,
-             dtype         beta,
-             dtype *       C){
-    int lda_A, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
       lda_A = m;
@@ -156,91 +105,11 @@ namespace CTF_int {
     } else {
       lda_B = n;
     }
-    cxgemm<dtype>(tA,tB,m,n,k,alpha,A,lda_A,B,lda_B,beta,C,lda_C);
+    ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
   }
-*/
-/*  typedef sgemm template <> dgemm<float>;
-  typedef dgemm template <> dgemm<double>;
-  typedef cgemm template <> dgemm< std::complex<float> >;
-  typedef zgemm template <> dgemm< std::complex<double> >;
-*/
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
   }
-
-  /*algstrct::algstrct(algstrct const & other){
-    el_size = other.el_size;
-    addid = (char*)CTF_int::alloc(el_size);
-    memcpy(addid,other.addid,el_size);
-    mulid = (char*)CTF_int::alloc(el_size);
-    memcpy(mulid,other.mulid,el_size);
-    add = other.add;
-    mul = other.mul;
-    gemm = other.gemm;
-  }*/
-  /**
-    * \param[in] addid additive identity element 
-    *              (e.g. 0.0 for the (+,*) algstrct over doubles)
-    * \param[in] mulid multiplicative identity element 
-    *              (e.g. 1.0 for the (+,*) algstrct over doubles)
-    * \param[in] addmop addition operation to pass to MPI reductions
-    * \param[in] add function pointer to add c=a+b on algstrct
-    * \param[in] mul function pointer to multiply c=a*b on algstrct
-    * \param[in] addinv function pointer to additive inverse b=-a
-    * \param[in] gemm function pointer to multiply blocks C, A, and B on algstrct
-    * \param[in] axpy function pointer to add A to B on algstrct
-    * \param[in] scal function pointer to scale A on algstrct
-    */
-  /*algstrct::algstrct(
-                   int          el_size_, 
-                   char const * addid_,
-                   char const * mulid_,
-                   MPI_Op       addmop_,
-                   void (*add_)(char const * a,
-                                char const * b,
-                                char       * c),
-                   void (*mul_)(char const * a,
-                                char const * b,
-                                char       * c),
-                   void (*addinv_)(char const * a,
-                                char       * b),
-                   void (*gemm_)(char         tA,
-                                 char         tB,
-                                 int          m,
-                                 int          n,
-                                 int          k,
-                                 char const * alpha,
-                                 char const * A,
-                                 char const * B,
-                                 char const * beta,
-                                 char *       C),
-                   void (*axpy_)(int          n,
-                                char const * alpha,
-                                char const * X,
-                                int          incX,
-                                char       * Y,
-                                int          incY),
-                   void (*scal_)(int          n,
-                                char const * alpha,
-                                char const * X,
-                                int          incX)){
-    el_size = el_size_;
-    addid = (char*)CTF_int::alloc(el_size);
-    memcpy(addid,addid_,el_size);
-    mulid = (char*)CTF_int::alloc(el_size);
-    memcpy(mulid,mulid_,el_size);
-    add = add_;
-    addinv = addinv_;
-    mul = mul_;
-    gemm = gemm_;
-    axpy = axpy_;
-    scal = scal_;
-  }*/
-
-  //algstrct::~algstrct(){
-    //if (addid != NULL) free(addid);
-    //if (mulid != NULL) free(mulid);
-  //}
 
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
@@ -256,19 +125,10 @@ namespace CTF_int {
 
   char const * algstrct::addid() const {
     return NULL;
-    /*printf("CTF ERROR: no addition identity present for this algebraic structure\n");
-    {
-      ASSERT(0);
-    }
-    assert(0);
-    return NULL;*/
   }
 
   char const * algstrct::mulid() const {
     return NULL;
-/*    printf("CTF ERROR: no multiplicative identity present for this algebraic structure\n");
-    ASSERT(0);
-    return NULL;*/
   }
 
   void algstrct::addinv(char const * a, char * b) const {
@@ -399,16 +259,16 @@ namespace CTF_int {
   }
 
 
-  void algstrct::copy(int64_t n, char const * a, int64_t inc_a, char * b, int64_t inc_b) const {
+  void algstrct::copy(int n, char const * a, int inc_a, char * b, int inc_b) const {
     switch (el_size) {
       case 4:
-        cblas_scopy(n, (float const*)a, inc_a, (float*)b, inc_b);
+        SCOPY(&n, (float const*)a, &inc_a, (float*)b, &inc_b);
         break;
       case 8:
-        cblas_dcopy(n, (double const*)a, inc_a, (double*)b, inc_b);
+        DCOPY(&n, (double const*)a, &inc_a, (double*)b, &inc_b);
         break;
       case 16:
-        cblas_zcopy(n, (std::complex<double> const*)a, inc_a, (std::complex<double>*)b, inc_b);
+        ZCOPY(&n, (std::complex<double> const*)a, &inc_a, (std::complex<double>*)b, &inc_b);
         break;
       default:
         #pragma omp parallel for

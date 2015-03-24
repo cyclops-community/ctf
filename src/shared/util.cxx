@@ -5,7 +5,6 @@
 #include "string.h"
 #include "assert.h"
 #include "util.h"
-#include "cblas.h"
 
 namespace CTF_int {
   int64_t sy_packed_size(const int order, const int* len, const int* sym){

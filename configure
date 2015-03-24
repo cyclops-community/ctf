@@ -165,7 +165,6 @@ function defaultflags
         intel)
             if [ "x$AR"        = "x" ]; then AR='xiar'; fi
             if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-openmp -O3 -ipo'; fi
-            if [ "x$LDFLAGS"  = "x" ]; then CXXFLAGS='-mkl=parallel'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
@@ -260,7 +259,7 @@ if [ "$NERSC_HOST" = "carver" ]; then
 elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     echo 'Hostname recognized as a NERSC machine.'
     host=nersc
-    
+    BLASLIBS="-mkl=parallel"   
     CXX="CC -std=c++11"
     realcompiler
     defaultflags
@@ -340,6 +339,25 @@ else
   exit 1
 fi
 
+#
+# Check that compiler works without error
+#
+echo -n 'Checking availability of C++11... '
+if testcpp11 0; then
+  echo 'successful.'
+else
+  CXX="$CXX -std=c++11"
+  if testcpp11 0; then
+    echo 'successful (tacking on -std=c++11).'
+  else
+    echo 'FAILED! error below:'
+    echo
+    testcompiler 1
+    echo
+    exit 1
+  fi
+fi
+
 
 #
 # Check that compiler works without error
@@ -385,18 +403,15 @@ else
     if [ "x$BLASLIBS" = "x" ]; then
       if [ "$compiler" = "intel" ] &&  testlink -mkl dgemm_ 0 ; then
         UNDERSCORE=1
-        echo
-        echo '  WARNING: BLAS libirary was not specified, using -mkl.'
+        echo 'BLAS library was not specified, using -mkl.'
         BLASLIBS=-mkl
       elif testlink -lblas dgemm_ 0; then
         UNDERSCORE=1
-        echo
-        echo '  WARNING: BLAS libirary was not specified, using -lblas (with underscores).'
+        echo 'BLAS library was not specified, using -lblas (with underscores).'
         BLASLIBS=-lblas
       elif testlink -lblas dgemm 0; then
         UNDERSCORE=0
-        echo
-        echo '  WARNING: BLAS libirary was not specified, using -lblas (without underscores).'
+        echo 'BLAS library was not specified, using -lblas (without underscores).'
         BLASLIBS=-lblas
       else
         UNDERSCORE=1

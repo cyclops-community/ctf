@@ -2,7 +2,6 @@
 #define __INT_SEMIRING_H__
 
 #include "../interface/common.h"
-#include "cblas.h"
 
 namespace CTF_int {
   /**
@@ -145,7 +144,7 @@ namespace CTF_int {
       void copy(char * a, char const * b, int64_t n) const;
       
       /** \brief copies n elements TO array b with increment inc_a FROM array a with increment inc_b */
-      void copy(int64_t n, char const * a, int64_t inc_a, char * b, int64_t inc_b) const;
+      void copy(int n, char const * a, int inc_a, char * b, int inc_b) const;
       
       /** \brief copies m-by-n submatrix from a with lda_a to b with lda_b  */
       void copy(int64_t      m,

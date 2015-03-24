@@ -68,6 +68,7 @@ namespace CTF {
 
 
 namespace CTF_int {
+  
   //latency time per message
   #define COST_LATENCY (1.e-6)
   //memory bandwidth: time per per byte

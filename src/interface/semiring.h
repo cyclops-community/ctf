@@ -1,6 +1,8 @@
 #ifndef __SEMIRING_H__
 #define __SEMIRING_H__
 
+#include "../shared/blas_symbs.h"
+
 namespace CTF {
   template <typename dtype>
   dtype default_mul(dtype a, dtype b){
@@ -27,7 +29,7 @@ namespace CTF {
                     int           incX,
                     float *       Y,
                     int           incY){
-    cblas_saxpy(n,alpha,X,incX,Y,incY);
+    SAXPY(&n,&alpha,X,&incX,Y,&incY);
   }
 
   template <>
@@ -38,7 +40,7 @@ namespace CTF {
                     int            incX,
                     double *       Y,
                     int            incY){
-    cblas_daxpy(n,alpha,X,incX,Y,incY);
+    DAXPY(&n,&alpha,X,&incX,Y,&incY);
   }
 
   template <>
@@ -49,7 +51,7 @@ namespace CTF {
                     int                         incX,
                     std::complex<float> *       Y,
                     int                         incY){
-    cblas_caxpy(n,&alpha,X,incX,Y,incY);
+    CAXPY(&n,&alpha,X,&incX,Y,&incY);
   }
 
   template <>
@@ -60,7 +62,7 @@ namespace CTF {
                     int                          incX,
                     std::complex<double> *       Y,
                     int                          incY){
-    cblas_zaxpy(n,&alpha,X,incX,Y,incY);
+    ZAXPY(&n,&alpha,X,&incX,Y,&incY);
   }
 
   template <typename dtype>
@@ -75,24 +77,24 @@ namespace CTF {
 
   template <>
   inline void default_scal<float>(int n, float alpha, float * X, int incX){
-    cblas_sscal(n,alpha,X,incX);
+    SSCAL(&n,&alpha,X,&incX);
   }
 
   template <>
   inline void default_scal<double>(int n, double alpha, double * X, int incX){
-    cblas_dscal(n,alpha,X,incX);
+    DSCAL(&n,&alpha,X,&incX);
   }
 
   template <>
   inline void default_scal< std::complex<float> >
       (int n, std::complex<float> alpha, std::complex<float> * X, int incX){
-    cblas_cscal(n,&alpha,X,incX);
+    CSCAL(&n,&alpha,X,&incX);
   }
 
   template <>
   inline void default_scal< std::complex<double> >
       (int n, std::complex<double> alpha, std::complex<double> * X, int incX){
-    cblas_zscal(n,&alpha,X,incX);
+    ZSCAL(&n,&alpha,X,&incX);
   }
 
   template<typename dtype>
