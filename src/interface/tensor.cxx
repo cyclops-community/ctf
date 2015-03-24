@@ -563,6 +563,16 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
+  dtype * Tensor<dtype, is_ord>::read(char const *          idx,
+                                      Idx_Partition const & prl,
+                                      Idx_Partition const & blk,
+                                      bool                  unpack){
+    return (dtype*)CTF_int::tensor::read(idx, prl, blk, unpack);
+  }
+
+
+
+  template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>& Tensor<dtype, is_ord>::operator=(dtype val){
     set((char const*)&val);
 /*    int64_t size;

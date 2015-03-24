@@ -887,6 +887,74 @@ namespace CTF_int {
     return write(num_pair, NULL, NULL, (char*)mapped_data, 'r');
   }
 
+  char * tensor::read(char const *          idx,
+                      Idx_Partition const & prl,
+                      Idx_Partition const & blk,
+                      bool                  unpack){
+    if (unpack){
+      for (int i=0; i<order; i++){
+        if (sym[i] != NS){
+          int new_sym[order];
+          std::fill(new_sym, new_sym+order, NS);
+          tensor tsr(sr, order, lens, new_sym, wrld, true);
+          tsr[idx] += (*this)[idx];
+          return tsr.read(idx, prl, blk, unpack);
+        }
+      }
+    }
+    topology top(prl.part.order, prl.part.lens, wrld->cdt);
+    int itopo = find_topology(&top, wrld->topovec);
+    assert(itopo != -1);
+    topology * new_topo = wrld->topovec[itopo];
+
+    distribution st_dist(this);
+    tensor tsr_ali(this, 0, 0);
+
+    tsr_ali.topo = wrld->topovec[itopo];
+    for (int i=0; i<order; i++){
+      mapping * map = tsr_ali.edge_map+i;
+      for (int j=0; j<prl.part.order; j++){
+        if (map->type != NOT_MAPPED){
+          map->has_child = 1;
+          map->child = new mapping();
+          map = map->child;
+        }
+        if (idx[i] == prl.idx[j]){
+          map->type = PHYSICAL_MAP;
+          map->np = prl.part.lens[j];
+          map->cdt = j;
+        }
+      }
+      for (int j=0; j<blk.part.order; j++){
+        if (map->type != NOT_MAPPED){
+          assert(map->type == PHYSICAL_MAP);
+          map->has_child = 1;
+          map->child = new mapping();
+          map = map->child;
+        }
+        if (idx[i] == blk.idx[j]){
+          map->type = VIRTUAL_MAP;
+          map->np = blk.part.lens[j];
+        }
+      }
+    }
+    tsr_ali.set_padding();
+    int * idx_A;
+    conv_idx(tsr_ali.order, idx, &idx_A);
+    if (!check_self_mapping(&tsr_ali, idx_A)){
+      if (wrld->rank == 0)
+        printf("CTF ERROR: invalid distribution in read() call, aborting.\n");
+      ASSERT(0);
+      assert(0);
+    }
+    tsr_ali.data = (char*)alloc(tsr_ali.size*sizeof(sr->el_size));
+    tsr_ali.has_home = 0;
+    tsr_ali.redistribute(st_dist);
+    tsr_ali.is_data_aliased = 1;
+    return tsr_ali.data;
+
+  }
+
 
 
   int tensor::read_local(int64_t * num_pair,

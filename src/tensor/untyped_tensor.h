@@ -6,6 +6,7 @@
 #include "../mapping/mapping.h"
 #include "../mapping/distribution.h"
 #include "../interface/world.h"
+#include "../interface/partition.h"
 #include "algstrct.h"
 
 namespace CTF {
@@ -250,6 +251,19 @@ namespace CTF_int {
                char const * alpha,
                char const * beta,
                char * const mapped_data);
+
+      /**
+       * \brief returns local data of tensor with parallel distribution prl and local blocking blk
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       * \param[in] unpack whether to unpack from symmetric layout
+       * \return local piece of data of tensor in this distribution
+       */
+      char * read(char const *               idx,
+                  CTF::Idx_Partition const & prl,
+                  CTF::Idx_Partition const & blk,
+                  bool                       unpack);
 
       /**
        * \brief read tensor data with <key, value> pairs where key is the

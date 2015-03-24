@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = common.o  flop_counter.o world.o idx_tensor.o term.o schedule.o semiring.o
+OBJS = common.o  flop_counter.o world.o idx_tensor.o term.o schedule.o semiring.o partition.o
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
 HDRS = ../../Makefile ../../config.mk 

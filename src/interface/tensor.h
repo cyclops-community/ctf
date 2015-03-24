@@ -5,6 +5,7 @@
 #include "set.h"
 #include "../tensor/untyped_tensor.h"
 #include "world.h"
+#include "partition.h"
 #include <vector>
 
 namespace CTF {
@@ -125,7 +126,32 @@ namespace CTF {
              CTF_int::algstrct const & sr,
              char const *              name=NULL,
              int                       profile=0);
-      
+
+      /**
+       * \brief defines tensor filled with zeros on the default algstrct on a user-specified distributed layout
+       * \param[in] order_ number of dimensions of tensor
+       * \param[in] len_ edge lengths of tensor
+       * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld_ a world for the tensor to live in
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       * \param[in] name_ an optionary name for the tensor
+       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       */
+      Tensor(int                       dim,
+             int const *               len,
+             int const *               sym,
+             World &                   wrld,
+             char const *              idx,
+             Idx_Partition const &     prl,
+             Idx_Partition const &     blk=Idx_Partition(),
+             char const *              name=NULL,
+             int                       profile=0,
+             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
+
+
       /**
        * \brief associated an index map with the tensor for future operation
        * \param[in] idx_map_ index assignment for this tensor
@@ -312,6 +338,34 @@ namespace CTF {
                  char const *        idx_A,
                  Endomorphism<dtype> fseq);
 
+      /**
+       * \brief returns local data of tensor with parallel distribution prl and local blocking blk
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       * \param[in] unpack whether to unpack from symmetric layout
+       * \return local piece of data of tensor in this distribution
+       */
+      dtype * read(char const *          idx,
+                   Idx_Partition const & prl,
+                   Idx_Partition const & blk=Idx_Partition(),
+                   bool                  unpack=true);
+
+      /**
+       * \brief writes data to tensor from parallel distribution prl and local blocking blk
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] data to write from this distribution
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       * \param[in] unpack whether written data is unpacked from symmetric layout
+       */
+      void write(char const *          idx,
+                 dtype const *         data,
+                 Idx_Partition const & prl,
+                 Idx_Partition const & blk=Idx_Partition(),
+                 bool                  unpack=true);
+
+ 
       /**
        * \brief estimate the time of a contraction C[idx_C] = A[idx_A]*B[idx_B]
        * \param[in] A first operand tensor
