@@ -40,7 +40,7 @@ namespace CTF {
   }
 
   Idx_Partition::Idx_Partition(Partition const & part_, char const * idx_){
-    part = Partition(part);
+    part = part_;
     idx = idx_;
   }
 }

@@ -126,6 +126,7 @@ namespace CTF_int {
           int64_t gidx;
           if (_gidx > len[dim] || (old_offsets != NULL && _gidx < old_offsets[dim])){
             gidx = -1;
+//            printf("_gidx=%ld, len[%d]=%d, vidx=%d, vr=%d, old_phase=%d, old_perank =%d, old_virt_phase=%d\n",_gidx,dim,len[dim],vidx,vr,old_dist.phase[dim], old_dist.perank[dim[,old_dist.virt_phase[dim]);
           } else {
             if (old_permutation == NULL || old_permutation[dim] == NULL){
               gidx = _gidx;

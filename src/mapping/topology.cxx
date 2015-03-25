@@ -58,11 +58,11 @@ namespace CTF_int {
     int rank = glb_comm.rank;
     for (int i=0; i<order; i++){
       lda[i] = stride;
-      dim_comm[i] = CommData(((rank/stride)%lens[order-i-1]),
-                             (((rank/(stride*lens[order-i-1]))*stride)+cut),
-                             lens[order-i-1]);
+      dim_comm[i] = CommData(((rank/stride)%lens[i]),
+                             (((rank/(stride*lens[i]))*stride)+cut),
+                             lens[i]);
 //      SETUP_SUB_COMM_SHELL(cdt, dim_comm[i],
-      stride*=lens[order-i-1];
+      stride*=lens[i];
       cut = (rank - (rank/stride)*stride);
     }
     if (activate)
@@ -395,6 +395,46 @@ namespace CTF_int {
     }
   }
 
+  std::vector< topology* > peel_perm_torus(topology * phys_topology,
+                                           CommData   cdt){
+    std::vector<topology*> topovec;
+    std::vector<topology*> perm_vec;
+    perm_vec.push_back(phys_topology);
+    bool changed;
+    do {
+      changed = false;
+      for (int i=0; i<(int)perm_vec.size(); i++){
+        for (int j=0; j<perm_vec[i]->order; j++){
+          if (perm_vec[i]->lens[j] != 2){
+            for (int k=0; k<perm_vec[i]->order; k++){
+              if (j!=k && perm_vec[i]->lens[j] != perm_vec[i]->lens[k]){
+                int new_lens[perm_vec[i]->order];
+                memcpy(new_lens,perm_vec[i]->lens,perm_vec[i]->order*sizeof(int));
+                new_lens[j] = perm_vec[i]->lens[k];
+                new_lens[k] = perm_vec[i]->lens[j];
+                topology * new_topo = new topology(perm_vec[i]->order, new_lens, cdt);
+                if (find_topology(new_topo, perm_vec) == -1){
+                  perm_vec.push_back(new_topo);
+                  changed=true;
+                } else delete new_topo;
+              }
+            }
+          }
+        }
+      }
+    } while (changed);
+    topovec = peel_torus(perm_vec[0], cdt);
+    for (int i=1; i<(int)perm_vec.size(); i++){
+      std::vector<topology*> temp_vec = peel_torus(perm_vec[i], cdt);
+      for (int j=0; j<(int)temp_vec.size(); j++){
+        if (find_topology(temp_vec[j], topovec) == -1){
+          topovec.push_back(temp_vec[j]);
+        } else delete temp_vec[j];
+      }
+    }
+    return topovec;
+  }
+
   std::vector< topology* > peel_torus(topology const * topo,
                                       CommData         glb_comm){
     std::vector< topology* > topos;
@@ -412,10 +452,10 @@ namespace CTF_int {
       for (int j=i+2; j<topo->order; j++){
         new_lens[j-1] = topo->lens[j];
       }
+      topology*  new_topo = new topology(topo->order-1, new_lens, glb_comm);
+      topos.push_back(new_topo);
     }
-    topology*  new_topo = new topology(topo->order-1, new_lens, glb_comm);
     free(new_lens);
-    topos.push_back(new_topo);
     for (int i=1; i<(int)topos.size(); i++){
       std::vector< topology* > more_topos = peel_torus(topos[i], glb_comm);
       for (int j=0; j<(int)more_topos.size(); j++){
@@ -439,7 +479,7 @@ namespace CTF_int {
       if ((*iter)->order == topo->order){
         found = j;
         for (i=0; i<(*iter)->order; i++) {
-          if ((*iter)->dim_comm[i].np != topo->dim_comm[i].np){
+          if ((*iter)->lens[i] != topo->lens[i]){
             found = -1;
           }
         }

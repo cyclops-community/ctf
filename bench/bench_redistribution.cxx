@@ -158,6 +158,13 @@ int main(int argc, char ** argv){
   prl2_ord = strlen(prl2_idx);
   blk1_ord = strlen(blk1_idx);
   blk2_ord = strlen(blk2_idx);
+
+  if (rank==0){
+    printf("Redistributing order %d tensor with all dims %d and idx %s from order %d proc grid with dims %ld and idx %s, to order %d proc grid with dims %ld and idx %s\n", order, n, idx, prl1_ord, prl1, prl1_idx, prl2_ord, prl2, prl2_idx);
+    printf("Initial blocking order %d dims %ld and idx %s, to final blocking order %d dims %ld and idx %s\n", blk1_ord, blk1, blk1_idx, blk2_ord, blk2, blk2_idx);
+  }
+
+
   lens = (int*)malloc(order*sizeof(int));
   for (int i=0; i<order; i++){
     lens[i] = n;
@@ -167,20 +174,50 @@ int main(int argc, char ** argv){
     prl1_lens[prl1_ord-i-1] = prl1%phase;
     prl1 = prl1/phase;
   }
+  if (rank == 0){ 
+    printf("start topology:");
+    for (int i=0; i<prl1_ord; i++){
+      printf(" %d", prl1_lens[i]);
+    }
+    printf("\n");
+  }
   prl2_lens = (int*)malloc(prl2_ord*sizeof(int));
   for (int i=0; i<prl2_ord; i++){
     prl2_lens[prl2_ord-i-1] = prl2%phase;
     prl2 = prl2/phase;
   }
+  if (rank == 0){ 
+    printf("end topology:");
+    for (int i=0; i<prl2_ord; i++){
+      printf(" %d", prl2_lens[i]);
+    }
+    printf("\n");
+  }
+
   blk1_lens = (int*)malloc(blk1_ord*sizeof(int));
   for (int i=0; i<blk1_ord; i++){
     blk1_lens[blk1_ord-i-1] = blk1%phase;
     blk1 = blk1/phase;
   }
+  if (rank == 0){ 
+    printf("start blocking:");
+    for (int i=0; i<blk1_ord; i++){
+      printf(" %d", blk1_lens[i]);
+    }
+    printf("\n");
+  }
+
   blk2_lens = (int*)malloc(blk2_ord*sizeof(int));
   for (int i=0; i<blk2_ord; i++){
     blk2_lens[blk2_ord-i-1] = blk2%phase;
     blk2 = blk2/phase;
+  }
+  if (rank == 0){ 
+    printf("end blocking:");
+    for (int i=0; i<blk2_ord; i++){
+      printf(" %d", blk2_lens[i]);
+    }
+    printf("\n");
   }
 
 

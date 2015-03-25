@@ -48,6 +48,17 @@ namespace CTF_int {
        * \param[in] other tensor to copy from
        */
       void copy_tensor_data(tensor const * other);
+
+      /** 
+       * \brief set edge mappings as specified
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       */
+      void set_distribution(char const *               idx,
+                            CTF::Idx_Partition const & prl,
+                            CTF::Idx_Partition const & blk);
+
     public:
 
       /** \brief distributed processor context on which tensor is defined */

@@ -58,6 +58,13 @@ namespace CTF_int {
   topology * get_phys_topo(CommData glb_comm,
                            TOPOLOGY mach);
 
+ /**
+   * \brief folds specified topology and all of its permutations into all configurations of lesser dimensionality
+   * \param[in] phys_topology topology to fold
+   * \param[in] cdt  global communicator
+   */
+  std::vector< topology* > peel_perm_torus(topology * phys_topology,
+                                           CommData   cdt);
    /**
    * \brief folds specified topology into all configurations of lesser dimensionality
    * \param[in] topo topology to fold

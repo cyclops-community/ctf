@@ -84,20 +84,21 @@ namespace CTF {
                   int             argc,
                   const char * const *  argv){
     phys_topology = get_phys_topo(cdt, mach);
-    topovec = peel_torus(phys_topology, cdt);
+    topovec = peel_perm_torus(phys_topology, cdt);
     
     return initialize(argc, argv);
   }
 
-  int World::init(MPI_Comm const  global_context,
-                        int             rank, 
-                        int             np, 
-                        int             order, 
-                        int const *     dim_len,
-                        int             argc,
-                        const char * const *  argv){
+  int World::init(MPI_Comm const       global_context,
+                  int                  rank,
+                  int                  np,
+                  int                  order,
+                  int const *          dim_len,
+                  int                  argc,
+                  const char * const * argv){
     phys_topology = new topology(order, dim_len, cdt, 1);
-    topovec = peel_torus(phys_topology, cdt);
+    topovec = peel_perm_torus(phys_topology, cdt);
+
 
     return initialize(argc, argv);
   }

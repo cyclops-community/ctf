@@ -32,6 +32,7 @@ namespace CTF_int {
       mapping * map = tsr->edge_map + j;
       phase[j] = map->calc_phase();
       perank[j] = map->calc_phys_rank(tsr->topo);
+      ASSERT(perank[j] <= phase[j]);
       virt_phase[j] = phase[j]/map->calc_phys_phase();
       if (map->type == PHYSICAL_MAP)
         pe_lda[j] = tsr->topo->lda[map->cdt];

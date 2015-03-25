@@ -887,32 +887,25 @@ namespace CTF_int {
     return write(num_pair, NULL, NULL, (char*)mapped_data, 'r');
   }
 
-  char * tensor::read(char const *          idx,
-                      Idx_Partition const & prl,
-                      Idx_Partition const & blk,
-                      bool                  unpack){
-    if (unpack){
-      for (int i=0; i<order; i++){
-        if (sym[i] != NS){
-          int new_sym[order];
-          std::fill(new_sym, new_sym+order, NS);
-          tensor tsr(sr, order, lens, new_sym, wrld, true);
-          tsr[idx] += (*this)[idx];
-          return tsr.read(idx, prl, blk, unpack);
-        }
-      }
-    }
+  void tensor::set_distribution(char const *          idx,
+                                Idx_Partition const & prl,
+                                Idx_Partition const & blk){
     topology top(prl.part.order, prl.part.lens, wrld->cdt);
     int itopo = find_topology(&top, wrld->topovec);
-    assert(itopo != -1);
+    if (wrld->rank == 0){
+      for (int i=0; i<wrld->topovec.size(); i++){
+        if (wrld->topovec[i]->order == 2){
+          printf("topo %d lens %d %d\n", i, wrld->topovec[i]->lens[0], wrld->topovec[i]->lens[1]);
+        }
+      }
+      printf("lens %d %d\n", top.lens[0], top.lens[1]);
+    }
+    ASSERT(itopo != -1);
     topology * new_topo = wrld->topovec[itopo];
 
-    distribution st_dist(this);
-    tensor tsr_ali(this, 0, 0);
-
-    tsr_ali.topo = wrld->topovec[itopo];
+    this->topo = wrld->topovec[itopo];
     for (int i=0; i<order; i++){
-      mapping * map = tsr_ali.edge_map+i;
+      mapping * map = this->edge_map+i;
       for (int j=0; j<prl.part.order; j++){
         if (map->type != NOT_MAPPED){
           map->has_child = 1;
@@ -938,17 +931,41 @@ namespace CTF_int {
         }
       }
     }
-    tsr_ali.set_padding();
+    this->set_padding();
     int * idx_A;
-    conv_idx(tsr_ali.order, idx, &idx_A);
-    if (!check_self_mapping(&tsr_ali, idx_A)){
+    conv_idx(this->order, idx, &idx_A);
+    if (!check_self_mapping(this, idx_A)){
       if (wrld->rank == 0)
         printf("CTF ERROR: invalid distribution in read() call, aborting.\n");
       ASSERT(0);
       assert(0);
     }
-    tsr_ali.data = (char*)alloc(tsr_ali.size*sizeof(sr->el_size));
+
+  }
+
+
+  char * tensor::read(char const *          idx,
+                      Idx_Partition const & prl,
+                      Idx_Partition const & blk,
+                      bool                  unpack){
+    if (unpack){
+      for (int i=0; i<order; i++){
+        if (sym[i] != NS){
+          int new_sym[order];
+          std::fill(new_sym, new_sym+order, NS);
+          tensor tsr(sr, order, lens, new_sym, wrld, true);
+          tsr[idx] += (*this)[idx];
+          return tsr.read(idx, prl, blk, unpack);
+        }
+      }
+    }
+    distribution st_dist(this);
+    tensor tsr_ali(this, 0, 0);
+    tsr_ali.set_distribution(idx, prl, blk);
+    tsr_ali.data = (char*)alloc(size*sr->el_size);
     tsr_ali.has_home = 0;
+    print_map();
+    tsr_ali.print_map();
     tsr_ali.redistribute(st_dist);
     tsr_ali.is_data_aliased = 1;
     return tsr_ali.data;
