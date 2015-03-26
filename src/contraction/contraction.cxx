@@ -2942,7 +2942,7 @@ namespace CTF_int {
     if (global_comm.rank == 0)
       ctrf->print();
   #endif
-  #if DEBUG >=1
+  #ifdef DEBUG
     double dtt = MPI_Wtime();
     if (global_comm.rank == 0){
       DPRINTF(1,"[%d] performing contraction\n",

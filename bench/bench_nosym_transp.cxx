@@ -76,7 +76,7 @@ void bench_nosym_transp(int          n,
     memcpy(data2+Nt*ti, data+Nt*ti, Nt*sizeof(double));
   }
   t_cpy = MPI_Wtime()-t_cpy_st;
-  printf("single-threaded memcpy %ld bandwidth is %lf sec %lf GB/sec\n",
+  printf("multi-threaded memcpy %ld bandwidth is %lf sec %lf GB/sec\n",
           N, t_cpy, 1.E-9*N*sizeof(double)/t_cpy);
   free(data2);
 

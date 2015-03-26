@@ -892,15 +892,16 @@ namespace CTF_int {
                                 Idx_Partition const & blk){
     topology top(prl.part.order, prl.part.lens, wrld->cdt);
     int itopo = find_topology(&top, wrld->topovec);
-    if (wrld->rank == 0){
+/*    if (wrld->rank == 0){
       for (int i=0; i<wrld->topovec.size(); i++){
         if (wrld->topovec[i]->order == 2){
           printf("topo %d lens %d %d\n", i, wrld->topovec[i]->lens[0], wrld->topovec[i]->lens[1]);
         }
       }
       printf("lens %d %d\n", top.lens[0], top.lens[1]);
-    }
+    }*/
     ASSERT(itopo != -1);
+    assert(itopo != -1);
     topology * new_topo = wrld->topovec[itopo];
 
     this->topo = wrld->topovec[itopo];
@@ -964,8 +965,6 @@ namespace CTF_int {
     tsr_ali.set_distribution(idx, prl, blk);
     tsr_ali.data = (char*)alloc(size*sr->el_size);
     tsr_ali.has_home = 0;
-    print_map();
-    tsr_ali.print_map();
     tsr_ali.redistribute(st_dist);
     tsr_ali.is_data_aliased = 1;
     return tsr_ali.data;
@@ -983,7 +982,6 @@ namespace CTF_int {
     char * pairs;
     mapping * map;
 
-    TAU_FSTART(read_local_pairs);
 
     tsr = this;
     if (tsr->has_zero_edge_len){
@@ -1001,6 +999,7 @@ namespace CTF_int {
       *mapped_data = tsr->pairs;
       return SUCCESS;
     } else {
+      TAU_FSTART(read_local_pairs);
       np = tsr->size;
 
       CTF_int::alloc_ptr(sizeof(int)*tsr->order, (void**)&virt_phase);
@@ -1041,7 +1040,6 @@ namespace CTF_int {
       TAU_FSTOP(read_local_pairs);
       return SUCCESS;
     }
-    TAU_FSTOP(read_local_pairs);
   }
 
   PairIterator tensor::read_all_pairs(int64_t * num_pair){

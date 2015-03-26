@@ -63,7 +63,7 @@ void bench_redistribution(int          niter,
 
   if (rank == 0)
     printf("Performed %d redistributions in %lf time/iter %lf mem GB/sec\n",
-            niter, (end_time-st_time)/niter, 2*N*1.E-9/((end_time-st_time)/niter));
+            niter, (end_time-st_time)/niter, (2*N*1.E-9/((end_time-st_time)/niter))/num_pes);
 } 
 
 char* getCmdOption(char ** begin,

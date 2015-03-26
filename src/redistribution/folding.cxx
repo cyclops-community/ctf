@@ -71,17 +71,17 @@ namespace CTF_int {
   #else
       tid = 0;
   #endif
-      int thread_chunk_size = chunk_size[tid];
+      int64_t thread_chunk_size = chunk_size[tid];
       int i;
       char * swap_data = tswap_data[tid];
-      int toff = 0;
+      int64_t toff = 0;
       for (i=0; i<tid; i++) toff += chunk_size[i];
       if (thread_chunk_size > 0){
         memcpy(data+sr->el_size*(toff),swap_data,sr->el_size*thread_chunk_size);
       }
     }
     for (int i=0; i<max_ntd; i++) {
-      int thread_chunk_size = chunk_size[i];
+      int64_t thread_chunk_size = chunk_size[i];
       if (thread_chunk_size > 0)
         CTF_int::cfree(tswap_data[i],i);
     }

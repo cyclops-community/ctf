@@ -16,10 +16,7 @@ namespace CTF_int {
     k = 1;
     tmp = 1;
     size = 1;
-    if (order > 0)
-      mp = len[0];
-    else
-      mp = 1;
+    mp = len[0];
     for (i = 0;i < order;i++){
       tmp = (tmp * mp) / k;
       k++;
