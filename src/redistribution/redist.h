@@ -145,13 +145,20 @@ namespace CTF_int {
    * \brief reorder local buffer so that elements are in ordered according to where they
    *        are in the global tensor (interleave virtual blocks)
    * \param[in] sym symmetry relations between tensor dimensions
-   * \param[in] dist starting data distrubtion
+   * \param[in] virt_edge_len dimensions of each block
+   * \param[in] virt_phase prefix sum of virtual blocks
+   * \param[in] vbs size of virtual blocks
+   * \param[in] if 1 then go to global layout, if 0 than from
    * \param[in] tsr_data_in starting data buffer
    * \param[out] tsr_data_out target data buffer
    * \param[in] sr algstrct defining data
    */
   void order_globally(int const *          sym,
                       distribution const & dist,
+                      int const *          virt_edge_len,
+                      int const *          virt_phase_lda,
+                      int64_t              vbs,
+                      int                  dir,
                       char const *         tsr_data_in,
                       char *               tsr_data_out,
                       algstrct const *     sr);
@@ -190,6 +197,21 @@ namespace CTF_int {
                         bool                 reuse_buffers,
                         char const *         alpha,
                         char const *         beta);
+
+  void glb_cyclic_reshuffle(int const *          sym,
+                            distribution const & old_dist,
+                            int const *          old_offsets,
+                            int * const *        old_permutation,
+                            distribution const & new_dist,
+                            int const *          new_offsets,
+                            int * const *        new_permutation,
+                            char **              ptr_tsr_data,
+                            char **              ptr_tsr_cyclic_data,
+                            algstrct const *     sr,
+                            CommData             ord_glb_comm,
+                            bool                 reuse_buffers,
+                            char const *         alpha,
+                            char const *         beta);
 
   /**
    * \brief Reshuffle elements by block given the global phases stay the same
