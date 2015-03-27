@@ -1510,15 +1510,15 @@ namespace CTF_int {
       strcpy(spf,"redistribute_");
       strcat(spf,this->name);
       if (wrld->cdt.rank == 0){
-  #if DEBUG >=1
-        if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",this->name);
-        else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",this->name);
-        this->print_map(stdout);
-  #endif
+        Timer t_pf(spf);
+        t_pf.start();
       }
-      Timer t_pf(spf);
-      t_pf.start();
     }
+  #if DEBUG >=1
+    if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",this->name);
+    else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",this->name);
+    this->print_map(stdout);
+#endif
 
 #if VERIFY_REMAP
     padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data_corr, sr, wrld->cdt);

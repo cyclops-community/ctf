@@ -1407,8 +1407,8 @@ namespace CTF_int {
       std::fill(idx, idx+order, 0);
 
       for (;;){
-        int64_t glb_ord_offset = 0;
-        int64_t blk_ord_offset = 0;
+        int64_t glb_ord_offset = virt_idx[0];
+        int64_t blk_ord_offset = virt_idx[0]*vbs;
         for (int idim=1; idim<order; idim++){
           //calculate offset within virtual block
           int64_t dim_offset = sy_packed_offset(idim, virt_edge_len, idx, sym);
@@ -1417,20 +1417,43 @@ namespace CTF_int {
           blk_ord_offset += virt_idx[idim]*virt_phase_lda[idim]*vbs;
           //when the virtual blocks are interleaved according to global order, this is a part of the
           // offset and needs to be scaled by all smaller virtualization factors
-          glb_ord_offset += dim_offset*virt_phase_lda[idim];
+          glb_ord_offset += dim_offset*virt_phase_lda[idim]*dist.virt_phase[idim];
           //an dditional offset is needed for the global ordering, if this is not the first virtual 
           // block along this dimension, in which case we must offset according to all elements in
           // smaller virtual block with the same idim and greater indices
           if (virt_idx[idim] > 0){
             idx[idim]++;
             int64_t glb_vrt_offset = sy_packed_offset(idim, virt_edge_len, idx, sym);
-            glb_ord_offset += glb_vrt_offset*virt_idx[idim];
+            glb_ord_offset += (glb_vrt_offset-dim_offset)*virt_phase_lda[idim]*virt_idx[idim];
+            idx[idim]--;
           }
         }
         
         int n = virt_edge_len[0];
-        if (sym[0] != NS) n = idx[1];
-
+        if (sym[0] != NS) n = idx[1]+1;
+        int _rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
+        if (_rank == 0){
+          printf("blk_ord_offset = %ld, glb_ord_offset = %ld\n",blk_ord_offset,glb_ord_offset);
+          for (int _i=0; _i<order; _i++){
+            printf("idx[%d] = %d virt_idx[%d]=%d\n",_i,idx[_i],_i,virt_idx[_i]);
+          }
+          for (int _i=0; _i<n; _i++){
+            if (dir){
+              printf("Writing [%ld] ",blk_ord_offset+_i);
+              sr->print(tsr_data_in+sr->el_size*(blk_ord_offset+_i));
+              printf(" to [%ld] ", glb_ord_offset+_i*dist.virt_phase[0]);
+              sr->print(tsr_data_out+sr->el_size*(glb_ord_offset+_i*dist.virt_phase[0]));
+              printf("\n");
+            } else {
+              printf("Writing [%ld] ", glb_ord_offset+_i*dist.virt_phase[0]);
+              sr->print(tsr_data_in+sr->el_size*(glb_ord_offset+_i*dist.virt_phase[0]));
+              printf(" to [%ld] ",blk_ord_offset+_i);
+              sr->print(tsr_data_out+sr->el_size*(blk_ord_offset+_i));
+              printf("\n");
+            }
+          }
+        }
         if (dir){
           sr->copy(n, tsr_data_in+sr->el_size*blk_ord_offset, 1, tsr_data_out+sr->el_size*glb_ord_offset, dist.virt_phase[0]);
         } else {
@@ -1444,12 +1467,12 @@ namespace CTF_int {
             exit = true;
             finish = true;
           } else {
-            idx[dim]++;
-            if (idx[dim] == virt_edge_len[dim] || (sym[dim] != NS && idx[dim] == idx[dim+1])){
+            if (idx[dim] == virt_edge_len[dim]-1 || (sym[dim] != NS && idx[dim] == idx[dim+1])){
               idx[dim] = 0;
               dim++;
               exit = false;
             } else {
+              idx[dim]++;
               exit = true;
             }
           }
@@ -1464,12 +1487,12 @@ namespace CTF_int {
           exit = true;
           finish = true;
         } else {
-          virt_idx[dim]++;
-          if (virt_idx[dim] == dist.virt_phase[dim]){
+          if (virt_idx[dim] == dist.virt_phase[dim]-1){
             virt_idx[dim] = 0;
             dim++;
             exit = false;
           } else {
+            virt_idx[dim]++;
             exit = true;
           }
         }
@@ -1699,10 +1722,6 @@ namespace CTF_int {
     TAU_FSTOP(pack_virt_buf);
 
     if (reuse_buffers){
-      if (swp_nval > old_dist.size){
-        cfree(tsr_data);
-        mst_alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_data);
-      }
       recv_buffer = tsr_cyclic_data;
       send_buffer = tsr_data;
     }
@@ -1713,8 +1732,13 @@ namespace CTF_int {
                              recv_buffer, recv_counts, recv_displs);
     TAU_FSTOP(ALL_TO_ALL_V);
 
-    if (reuse_buffers)
-      sr->set(tsr_cyclic_data, sr->addid(), swp_nval);
+    if (reuse_buffers){
+      if (swp_nval > old_dist.size){
+        cfree(tsr_data);
+        mst_alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_data);
+      }
+      sr->set(tsr_data, sr->addid(), swp_nval);
+    }
     TAU_FSTART(unpack_virt_buf);
     /* Deserialize data into correctly ordered virtual sub blocks */
     if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
@@ -1972,6 +1996,26 @@ namespace CTF_int {
 
     TAU_FSTART(pack_virt_buf);
     if (idx_lyr == 0){
+      /*char new1[old_dist.size*sr->el_size];
+      char new2[old_dist.size*sr->el_size];
+      std::fill((double*)new1, ((double*)new1)+old_dist.size, 0.0);
+      std::fill((double*)new2, ((double*)new2)+old_dist.size, 0.0);
+      order_globally(sym, old_dist, old_virt_edge_len, old_virt_lda, vbs_old, 1, tsr_data, new1, sr);
+      order_globally(sym, old_dist, old_virt_edge_len, old_virt_lda, vbs_old, 0, new1, new2, sr);
+      
+      if (ord_glb_comm.rank == 0){
+        for (int64_t i=0; i<old_dist.size; i++){
+          if (!sr->isequal(new2+i*sr->el_size, tsr_data +i*sr->el_size)){
+            printf("tsr_data[%ld] was ",i);
+            sr->print(tsr_data +i*sr->el_size);
+            printf(" became ");
+            sr->print(new2+i*sr->el_size);
+            printf("\n");
+          }
+        }
+      }*/
+      
+
       char **new_data; alloc_ptr(sizeof(char*)*np, (void**)&new_data);
       if (reuse_buffers){
         for (int64_t p = 0;p < np;p++){

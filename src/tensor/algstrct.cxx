@@ -273,7 +273,7 @@ namespace CTF_int {
       default:
         #pragma omp parallel for
         for (int i=0; i<n; i++){
-          b[inc_a*i] = a[inc_b*i];
+          copy(b+el_size*inc_a*i, a+el_size*inc_b*i);
         }
         break;
     }
