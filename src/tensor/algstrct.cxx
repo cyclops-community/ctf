@@ -28,7 +28,7 @@ namespace CTF_int {
     } else {
       lda_B = n;
     }
-    SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
   }
 
 
@@ -54,7 +54,7 @@ namespace CTF_int {
     } else {
       lda_B = n;
     }
-    DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
   }
 
   void cgemm(char                        tA,
@@ -79,7 +79,7 @@ namespace CTF_int {
     } else {
       lda_B = n;
     }
-    CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
   }
 
 
@@ -105,7 +105,7 @@ namespace CTF_int {
     } else {
       lda_B = n;
     }
-    ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
   }
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
@@ -262,13 +262,13 @@ namespace CTF_int {
   void algstrct::copy(int n, char const * a, int inc_a, char * b, int inc_b) const {
     switch (el_size) {
       case 4:
-        SCOPY(&n, (float const*)a, &inc_a, (float*)b, &inc_b);
+        CTF_BLAS::SCOPY(&n, (float const*)a, &inc_a, (float*)b, &inc_b);
         break;
       case 8:
-        DCOPY(&n, (double const*)a, &inc_a, (double*)b, &inc_b);
+        CTF_BLAS::DCOPY(&n, (double const*)a, &inc_a, (double*)b, &inc_b);
         break;
       case 16:
-        ZCOPY(&n, (std::complex<double> const*)a, &inc_a, (std::complex<double>*)b, &inc_b);
+        CTF_BLAS::ZCOPY(&n, (std::complex<double> const*)a, &inc_a, (std::complex<double>*)b, &inc_b);
         break;
       default:
         #pragma omp parallel for

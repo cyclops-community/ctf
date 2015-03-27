@@ -1384,7 +1384,7 @@ namespace CTF_int {
         iidx++;
         offset *= iidx;
       } while (i<=dim && sym[dim-i] != NS);
-      return (offset/i)*sy_packed_size(dim-i,len,sym);
+      return (offset/i)*sy_packed_size(dim-i+1,len,sym);
 
     }
   }
@@ -1445,12 +1445,11 @@ namespace CTF_int {
             finish = true;
           } else {
             idx[dim]++;
-            if (idx[dim] == virt_edge_len[dim]-1 || (sym[dim] != NS && idx[dim] == idx[dim+1])){
+            if (idx[dim] == virt_edge_len[dim] || (sym[dim] != NS && idx[dim] == idx[dim+1])){
               idx[dim] = 0;
               dim++;
               exit = false;
             } else {
-              idx[dim]++;
               exit = true;
             }
           }
@@ -1464,15 +1463,15 @@ namespace CTF_int {
         if (dim==order){
           exit = true;
           finish = true;
-        }
-        virt_idx[dim]++;
-        if (virt_idx[dim] == dist.virt_phase[dim]-1){
-          virt_idx[dim] = 0;
-          dim++;
-          exit = false;
         } else {
           virt_idx[dim]++;
-          exit = true;
+          if (virt_idx[dim] == dist.virt_phase[dim]){
+            virt_idx[dim] = 0;
+            dim++;
+            exit = false;
+          } else {
+            exit = true;
+          }
         }
       } while (!exit);
       if (finish) break;

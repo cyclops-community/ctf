@@ -35,148 +35,150 @@
 #define ZCOPY zcopy
 #endif
 
-extern "C"
-void SGEMM(const char *,
-           const char *,
-           const int *,
-           const int *,
-           const int *,
-           const float *,
-           const float *,
-           const int *,
-           const float *,
-           const int *,
-           const float *,
-           float *,
-           const int *);
+namespace CTF_BLAS {
+
+  extern "C"
+  void SGEMM(const char *,
+             const char *,
+             const int *,
+             const int *,
+             const int *,
+             const float *,
+             const float *,
+             const int *,
+             const float *,
+             const int *,
+             const float *,
+             float *,
+             const int *);
 
 
-extern "C"
-void DGEMM(const char *,
-           const char *,
-           const int *,
-           const int *,
-           const int *,
-           const double *,
-           const double *,
-           const int *,
-           const double *,
-           const int *,
-           const double *,
-           double *,
-           const int *);
+  extern "C"
+  void DGEMM(const char *,
+             const char *,
+             const int *,
+             const int *,
+             const int *,
+             const double *,
+             const double *,
+             const int *,
+             const double *,
+             const int *,
+             const double *,
+             double *,
+             const int *);
 
 
-extern "C"
-void CGEMM(const char *,
-           const char *,
-           const int *,
-           const int *,
-           const int *,
-           const std::complex<float> *,
-           const std::complex<float> *,
-           const int *,
-           const std::complex<float> *,
-           const int *,
-           const std::complex<float> *,
-           std::complex<float> *,
-           const int *);
+  extern "C"
+  void CGEMM(const char *,
+             const char *,
+             const int *,
+             const int *,
+             const int *,
+             const std::complex<float> *,
+             const std::complex<float> *,
+             const int *,
+             const std::complex<float> *,
+             const int *,
+             const std::complex<float> *,
+             std::complex<float> *,
+             const int *);
 
-extern "C"
-void ZGEMM(const char *,
-           const char *,
-           const int *,
-           const int *,
-           const int *,
-           const std::complex<double> *,
-           const std::complex<double> *,
-           const int *,
-           const std::complex<double> *,
-           const int *,
-           const std::complex<double> *,
-           std::complex<double> *,
-           const int *);
-
-
-extern "C"
-void SAXPY(const int *   n,
-           float *       dA,
-           const float * dX,
-           const int *   incX,
-           float *       dY,
-           const int *   incY);
+  extern "C"
+  void ZGEMM(const char *,
+             const char *,
+             const int *,
+             const int *,
+             const int *,
+             const std::complex<double> *,
+             const std::complex<double> *,
+             const int *,
+             const std::complex<double> *,
+             const int *,
+             const std::complex<double> *,
+             std::complex<double> *,
+             const int *);
 
 
-extern "C"
-void DAXPY(const int *    n,
-           double *       dA,
-           const double * dX,
-           const int *    incX,
-           double *       dY,
-           const int *    incY);
-
-extern "C"
-void CAXPY(const int *                 n,
-           std::complex<float> *       dA,
-           const std::complex<float> * dX,
-           const int *                 incX,
-           std::complex<float> *       dY,
-           const int *                 incY);
-
-extern "C"
-void ZAXPY(const int *                  n,
-           std::complex<double> *       dA,
-           const std::complex<double> * dX,
-           const int *                  incX,
-           std::complex<double> *       dY,
-           const int *                  incY);
-
-extern "C"
-void SCOPY(const int *   n,
-           const float * dX,
-           const int *   incX,
-           float *       dY,
-           const int *   incY);
+  extern "C"
+  void SAXPY(const int *   n,
+             float *       dA,
+             const float * dX,
+             const int *   incX,
+             float *       dY,
+             const int *   incY);
 
 
-extern "C"
-void DCOPY(const int *    n,
-           const double * dX,
-           const int *    incX,
-           double *       dY,
-           const int *    incY);
+  extern "C"
+  void DAXPY(const int *    n,
+             double *       dA,
+             const double * dX,
+             const int *    incX,
+             double *       dY,
+             const int *    incY);
+
+  extern "C"
+  void CAXPY(const int *                 n,
+             std::complex<float> *       dA,
+             const std::complex<float> * dX,
+             const int *                 incX,
+             std::complex<float> *       dY,
+             const int *                 incY);
+
+  extern "C"
+  void ZAXPY(const int *                  n,
+             std::complex<double> *       dA,
+             const std::complex<double> * dX,
+             const int *                  incX,
+             std::complex<double> *       dY,
+             const int *                  incY);
+
+  extern "C"
+  void SCOPY(const int *   n,
+             const float * dX,
+             const int *   incX,
+             float *       dY,
+             const int *   incY);
 
 
-extern "C"
-void ZCOPY(const int *                  n,
-           const std::complex<double> * dX,
-           const int *                  incX,
-           std::complex<double> *       dY,
-           const int *                  incY);
-
-extern "C"
-void SSCAL(const int * n,
-           float *     dA,
-           float *     dX,
-           const int * incX);
-
-extern "C"
-void DSCAL(const int * n,
-           double *    dA,
-           double *    dX,
-           const int * incX);
-
-extern "C"
-void CSCAL(const int *           n,
-           std::complex<float> * dA,
-           std::complex<float> * dX,
-           const int *           incX);
-
-extern "C"
-void ZSCAL(const int *            n,
-           std::complex<double> * dA,
-           std::complex<double> * dX,
-           const int *            incX);
+  extern "C"
+  void DCOPY(const int *    n,
+             const double * dX,
+             const int *    incX,
+             double *       dY,
+             const int *    incY);
 
 
+  extern "C"
+  void ZCOPY(const int *                  n,
+             const std::complex<double> * dX,
+             const int *                  incX,
+             std::complex<double> *       dY,
+             const int *                  incY);
+
+  extern "C"
+  void SSCAL(const int * n,
+             float *     dA,
+             float *     dX,
+             const int * incX);
+
+  extern "C"
+  void DSCAL(const int * n,
+             double *    dA,
+             double *    dX,
+             const int * incX);
+
+  extern "C"
+  void CSCAL(const int *           n,
+             std::complex<float> * dA,
+             std::complex<float> * dX,
+             const int *           incX);
+
+  extern "C"
+  void ZSCAL(const int *            n,
+             std::complex<double> * dA,
+             std::complex<double> * dX,
+             const int *            incX);
+
+}
 #endif

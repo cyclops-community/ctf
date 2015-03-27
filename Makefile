@@ -40,7 +40,7 @@ studies: $(STUDIES)
 $(STUDIES):
 	$(MAKE) $@ -C studies
 
-lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
+lib/libctf.a: src/*/*.o src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
 	$(MAKE) ctf -C src; $(AR) -crs $@ src/*/*.o
 	
 clean: clean_bin clean_lib
