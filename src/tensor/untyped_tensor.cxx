@@ -915,7 +915,7 @@ namespace CTF_int {
         }
         if (idx[i] == prl.idx[j]){
           map->type = PHYSICAL_MAP;
-          map->np = prl.part.lens[j];
+          map->np = top.dim_comm[j].np;
           map->cdt = j;
         }
       }
@@ -928,7 +928,7 @@ namespace CTF_int {
         }
         if (idx[i] == blk.idx[j]){
           map->type = VIRTUAL_MAP;
-          map->np = blk.part.lens[j];
+          map->np = top.dim_comm[j].np;
         }
       }
     }

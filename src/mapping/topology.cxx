@@ -52,7 +52,11 @@ namespace CTF_int {
     dim_comm     = (CommData*)CTF_int::alloc(order_*sizeof(CommData));
     is_activated = false;
    
-    memcpy(lens, lens_, order_*sizeof(int));
+//    memcpy(lens, lens_, order_*sizeof(int));
+    //reverse FIXME: this is assumed somewhere...
+    for (int i=0; i<order; i++){
+      lens[i] = lens_[order-i-1];
+    }
  
     int stride = 1, cut = 0;
     int rank = glb_comm.rank;
