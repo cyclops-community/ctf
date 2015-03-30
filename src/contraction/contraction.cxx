@@ -1806,7 +1806,7 @@ namespace CTF_int {
         A->topo = topo_i;
         B->topo = topo_i;
         C->topo = topo_i;
-  #if DEBUG >= 3
+  #if DEBUG >= 4
         printf("\nTest mappings:\n");
         A->print_map(stdout, 0);
         B->print_map(stdout, 0);
@@ -1861,7 +1861,7 @@ namespace CTF_int {
        
         est_time = sctr->est_time_rec(sctr->num_lyr);
         //sctr->print();
-  #if DEBUG >= 3
+  #if DEBUG >= 4
         printf("mapping passed contr est_time = %E sec\n", est_time);
   #endif 
         ASSERT(est_time > 0.0);
@@ -1928,7 +1928,7 @@ namespace CTF_int {
           }
         }
         memuse = MAX((int64_t)sctr->mem_rec(), memuse);
-  #if DEBUG >= 3
+  #if DEBUG >= 4
         printf("total (with redistribution) est_time = %E\n", est_time);
   #endif
         ASSERT(est_time > 0.0);

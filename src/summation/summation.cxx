@@ -1588,6 +1588,7 @@ namespace CTF_int {
     if (wrld->rank == 0)
       printf("Initial mappings:\n");
     A->print_map(stdout);
+    B->print_map(stdout);
   #endif
 
     //FIXME: try to avoid unfolding immediately, as its not always necessary
@@ -1595,6 +1596,7 @@ namespace CTF_int {
     B->unfold();
     A->set_padding();
     B->set_padding();
+
 
     distribution dA(A);
     distribution dB(B);
@@ -1690,7 +1692,7 @@ namespace CTF_int {
       if (ret!=SUCCESS) return ret;
       return SUCCESS;*/
 
-  #if DEBUG >= 3  
+  #if DEBUG >= 4
       A->print_map(stdout,0);
       B->print_map(stdout,0);
   #endif

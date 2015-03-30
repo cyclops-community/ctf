@@ -65,14 +65,14 @@ namespace CTF_int {
       return;
     }
     if (sym_tsr->wrld->rank == 0) 
-      VPRINTF(1,"Desymmetrizing %s\n", sym_tsr->name);
+      VPRINTF(2,"Desymmetrizing %s\n", sym_tsr->name);
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"desymmetrize_");
       strcat(spf,sym_tsr->name);
       CTF::Timer t_pf(spf);
       if (sym_tsr->wrld->rank == 0) 
-        VPRINTF(1,"Desymmetrizing %s\n", sym_tsr->name);
+        VPRINTF(2,"Desymmetrizing %s\n", sym_tsr->name);
       t_pf.start();
     }
 
@@ -231,7 +231,7 @@ namespace CTF_int {
       strcat(spf,sym_tsr->name);
       CTF::Timer t_pf(spf);
       if (sym_tsr->wrld->rank == 0) 
-        VPRINTF(1,"Symmetrizing %s\n", sym_tsr->name);
+        VPRINTF(2,"Symmetrizing %s\n", sym_tsr->name);
       t_pf.start();
     }
 

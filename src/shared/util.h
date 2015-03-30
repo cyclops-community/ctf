@@ -27,14 +27,14 @@ namespace CTF_int {
   /* Force redistributions always by setting to 1 */
   #define REDIST 0
   //#define VERIFY 0
-  #define VERIFY_REMAP 1
+  #define VERIFY_REMAP 0
   #define FOLD_TSR 1
   #define PERFORM_DESYM 1
   #define ALLOW_NVIRT 1024
   #define DIAG_RESCALE
   #define USE_SYM_SUM
   #define HOME_CONTRACT
-//  #define USE_BLOCK_RESHUFFLE
+  #define USE_BLOCK_RESHUFFLE
 
 
   #ifndef __APPLE__
@@ -327,7 +327,15 @@ namespace CTF_int {
     int i;
     for (i=n-1; i>=0; i--){
       memcpy(B+el_size*(i*k+kb), B_aux+el_size*(i*(k-kb)), (k-kb)*el_size);
-      if (i>0) memcpy(B+el_size*i*k, B+el_size*i*kb, kb*el_size);
+      if (i>0){
+        if (k-kb>=kb){
+          memcpy(B+el_size*i*k, B+el_size*i*kb, kb*el_size);
+        } else {
+          for (int j=0; j<kb; j+=k-kb){
+            memcpy(B+el_size*(i*k+j), B+el_size*i*(kb+j), std::min(k-kb,kb-j)*el_size);
+          }
+        }
+      }
     }
   }
 }
