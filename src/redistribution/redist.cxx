@@ -654,6 +654,9 @@ namespace CTF_int {
     }
   #endif
 
+    ASSERT(old_permutation == NULL);
+    int rep_phase0 = lcm(old_phys_dim[0],new_phys_dim[0])/old_phys_dim[0];
+
     bool done = false;
     for (;!done;){
       int64_t bucket0 = 0;
@@ -717,6 +720,32 @@ namespace CTF_int {
       if (!outside0){
         int gidx_min = MAX(zero_len_toff,offs[0]);
         int gidx_max = (sym[0] == NS ? ends[0] : (sym[0] == SY ? gidx[1]+1 : gidx[1]));
+
+        int idx0 = MAX(0,(gidx_min-gidx[0])/old_phys_dim[0]);
+        int vidx0 = idx0%old_dist.virt_phase[0];
+        int idx1 = MAX(0,(gidx_max-gidx[0])/old_phys_dim[0]);
+        int lencp = MIN(rep_phase0,idx1-idx0);
+        ASSERT(is_copy);
+        if (forward){
+          for (int ia=0; ia<lencp; ia++){
+            int64_t bucket = bucket0+bucket_offset[0][((vidx0+ia)%old_dist.virt_phase[0])+idx[0]];
+            sr->copy((idx1-idx0)/rep_phase0, 
+                     new_data[bucket]+sr->el_size*count[bucket], 1,
+                     old_data+ sr->el_size*idx0, rep_phase0);
+            count[bucket]+=(idx1-idx0)/rep_phase0;
+            idx0++;
+          }
+        } else {
+          for (int ia=0; ia<lencp; ia++){
+            int64_t bucket = bucket0+bucket_offset[0][((vidx0+ia)%old_dist.virt_phase[0])+idx[0]];
+            sr->copy((idx1-idx0)/rep_phase0, 
+                     old_data+ sr->el_size*idx0, rep_phase0,
+                     new_data[bucket]+sr->el_size*count[bucket], 1);
+            count[bucket]+=(idx1-idx0)/rep_phase0;
+            idx0++;
+          }
+        }
+/*
         gidx_max = MIN(gidx_max, len_zero_max);
         int64_t moffset = offset;
         for (idx[0] = idx_st;idx[0] < idx_max;idx[0]++){
@@ -736,14 +765,14 @@ namespace CTF_int {
               count_store[moffset]  = count[bucket]++;
               thread_store[moffset] = tid;
   #else
-/*              printf("[%d] bucket = %d offset = %ld\n", rank, bucket, offset);
-              printf("[%d] count[bucket] = %d, nbucket = %d\n", rank, count[bucket]+1, nbucket);
-              std::cout << "old_data[offset]=";
-              sr->print(old_data+ sr->el_size*offset);*/
+//              printf("[%d] bucket = %d offset = %ld\n", rank, bucket, offset);
+  //            printf("[%d] count[bucket] = %d, nbucket = %d\n", rank, count[bucket]+1, nbucket);
+    //          std::cout << "old_data[offset]=";
+      //        sr->print(old_data+ sr->el_size*offset);
               sr->copy(new_data[bucket]+sr->el_size*(count[bucket]++), old_data+ sr->el_size*moffset);
-/*              std::cout << "\nnew_data[bucket][count[bucket]++]=";
-              sr->print(new_data[bucket]+sr->el_size*(count[bucket]-1));
-              std::cout << "\n";*/
+//              std::cout << "\nnew_data[bucket][count[bucket]++]=";
+  //            sr->print(new_data[bucket]+sr->el_size*(count[bucket]-1));
+    //          std::cout << "\n";
   #endif
               moffset++;
             }
@@ -771,6 +800,7 @@ namespace CTF_int {
           gidx[0] += old_phys_dim[0]*old_dist.virt_phase[0];
         }
         gidx[0] -= idx_max*old_phys_dim[0]*old_dist.virt_phase[0];
+      */
       }
       offset += idx_max*old_dist.virt_phase[0];
        
