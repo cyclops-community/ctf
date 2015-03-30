@@ -1742,11 +1742,11 @@ namespace CTF_int {
         cfree(tsr_data);
         mst_alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_data);
       }
-      sr->set(tsr_data, sr->addid(), swp_nval);
     }
     TAU_FSTART(unpack_virt_buf);
     /* Deserialize data into correctly ordered virtual sub blocks */
     if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
+      sr->set(tsr_data, sr->addid(), swp_nval);
       char **new_data; alloc_ptr(sizeof(char*)*np, (void**)&new_data);
       for (int64_t p = 0;p < np;p++){
         new_data[p] = recv_buffer+recv_displs[p]*sr->el_size;
@@ -1794,6 +1794,8 @@ namespace CTF_int {
       }
       cfree(bucket_offset);
       cfree(new_data);
+    } else {
+      sr->set(tsr_cyclic_data, sr->addid(), swp_nval);
     }
     TAU_FSTOP(unpack_virt_buf);
 
@@ -2001,7 +2003,7 @@ namespace CTF_int {
 
     TAU_FSTART(pack_virt_buf);
     if (idx_lyr == 0){
-      char new1[old_dist.size*sr->el_size];
+      /*char new1[old_dist.size*sr->el_size];
       char new2[old_dist.size*sr->el_size];
       sr->set(new1, sr->addid(), old_dist.size);
       sr->set(new2, sr->addid(), old_dist.size);
@@ -2023,7 +2025,7 @@ namespace CTF_int {
             ASSERT(0);
           }
         }
-      }
+      }*/
       
 
       char **new_data; alloc_ptr(sizeof(char*)*np, (void**)&new_data);
