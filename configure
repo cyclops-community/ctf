@@ -261,6 +261,7 @@ elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     host=nersc
     BLASLIBS="-mkl=parallel"   
     CXX="CC -std=c++0x"
+    LDFGLAGS="-lpthread"
     realcompiler
     defaultflags
     DEFS="$DEFS -D`echo $NERSC_HOST | tr a-z A-Z`"
@@ -343,19 +344,27 @@ fi
 # Check that compiler works without error
 #
 echo -n 'Checking availability of C++11... '
+
 if testcpp11 0; then
   echo 'successful.'
 else
-  CXX="$CXX -std=c++0x"
-  if testcpp11 0; then
-    echo 'successful (tacking on -std=c++0x).'
+  if ["$NERSC_HOST" = "edison" ]; then
+    echo 'FAILED! error below, try using module load gcc/4.8.2:'
+    echo
+    testcpp11 1
+    echo
   else
-    echo 'FAILED! error below:'
-    echo
-    testcompiler 1
-    echo
-    exit 1
+    CXX="$CXX -std=c++0x"
+    if testcpp11 0; then
+      echo 'successful (tacking on -std=c++0x).'
+    else
+      echo 'FAILED! error below:'
+      echo
+      testcpp11 1
+      echo
+    fi
   fi
+  exit 1
 fi
 
 
