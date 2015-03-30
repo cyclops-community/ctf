@@ -1400,6 +1400,7 @@ namespace CTF_int {
                       char const *         tsr_data_in,
                       char *               tsr_data_out,
                       algstrct const *     sr){
+    TAU_FSTART(order_globally);
     int order = dist.order;
     int * virt_idx = (int*)alloc(order*sizeof(int));
     int * idx = (int*)alloc(order*sizeof(int));
@@ -1504,6 +1505,7 @@ namespace CTF_int {
       } while (!exit);
       if (finish) break;
     }
+    TAU_FSTOP(order_globally);
   }
 
   void glb_cyclic_reshuffle(int const *          sym,

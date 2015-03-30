@@ -920,15 +920,16 @@ namespace CTF_int {
         }
       }
       for (int j=0; j<blk.part.order; j++){
-        if (map->type != NOT_MAPPED){
-          assert(map->type == PHYSICAL_MAP);
-          map->has_child = 1;
-          map->child = new mapping();
-          map = map->child;
-        }
+        mapping * map1 = map;
         if (idx[i] == blk.idx[j]){
-          map->type = VIRTUAL_MAP;
-          map->np = top.dim_comm[j].np;
+          if (map1->type != NOT_MAPPED){
+            assert(map1->type == PHYSICAL_MAP);
+            map1->has_child = 1;
+            map1->child = new mapping();
+            map1 = map1->child;
+          }
+          map1->type = VIRTUAL_MAP;
+          map1->np = top.dim_comm[j].np;
         }
       }
     }
