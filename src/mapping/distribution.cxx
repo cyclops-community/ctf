@@ -21,6 +21,7 @@ namespace CTF_int {
     order = tsr->order;
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phys_phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pad_edge_len);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&padding);
@@ -33,7 +34,8 @@ namespace CTF_int {
       phase[j] = map->calc_phase();
       perank[j] = map->calc_phys_rank(tsr->topo);
       ASSERT(perank[j] <= phase[j]);
-      virt_phase[j] = phase[j]/map->calc_phys_phase();
+      phys_phase[j] = map->calc_phys_phase();
+      virt_phase[j] = phase[j]/phys_phase[j];
       if (map->type == PHYSICAL_MAP)
         pe_lda[j] = tsr->topo->lda[map->cdt];
       else
@@ -52,6 +54,7 @@ namespace CTF_int {
 
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&virt_phase);
+    CTF_int::alloc_ptr(sizeof(int)*order, (void**)&phys_phase);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pe_lda);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&pad_edge_len);
     CTF_int::alloc_ptr(sizeof(int)*order, (void**)&padding);
@@ -64,6 +67,8 @@ namespace CTF_int {
     memcpy(phase, (int*)(buffer+buffer_ptr), sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy(virt_phase, (int*)(buffer+buffer_ptr), sizeof(int)*order);
+    buffer_ptr += sizeof(int)*order;
+    memcpy(phys_phase, (int*)(buffer+buffer_ptr), sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy(pe_lda, (int*)(buffer+buffer_ptr), sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
@@ -103,6 +108,8 @@ namespace CTF_int {
     buffer_ptr += sizeof(int)*order;
     memcpy((int*)(buffer+buffer_ptr), virt_phase, sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
+    memcpy((int*)(buffer+buffer_ptr), phys_phase, sizeof(int)*order);
+    buffer_ptr += sizeof(int)*order;
     memcpy((int*)(buffer+buffer_ptr), pe_lda, sizeof(int)*order);
     buffer_ptr += sizeof(int)*order;
     memcpy((int*)(buffer+buffer_ptr), pad_edge_len, sizeof(int)*order);
@@ -123,6 +130,7 @@ namespace CTF_int {
     if (order != -1){
       CTF_int::cfree(phase);
       CTF_int::cfree(virt_phase);
+      CTF_int::cfree(phys_phase);
       CTF_int::cfree(pe_lda);
       CTF_int::cfree(pad_edge_len);
       CTF_int::cfree(padding);

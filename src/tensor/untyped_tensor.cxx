@@ -800,7 +800,7 @@ namespace CTF_int {
                     char *       mapped_data,
                     char const   rw){
     int i, num_virt;
-    int * phys_phase, * virt_phase, * bucket_lda;
+    int * phase, * phys_phase, * virt_phase, * bucket_lda;
     int * virt_phys_rank;
     mapping * map;
     tensor * tsr;
@@ -823,6 +823,7 @@ namespace CTF_int {
     tsr->set_padding();
 
     if (tsr->is_mapped){
+      CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&phase);
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&phys_phase);
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&virt_phys_rank);
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&bucket_lda);
@@ -831,10 +832,11 @@ namespace CTF_int {
       /* Setup rank/phase arrays, given current mapping */
       for (i=0; i<tsr->order; i++){
         map               = tsr->edge_map + i;
-        phys_phase[i]     = map->calc_phase();
-        virt_phase[i]     = phys_phase[i]/map->calc_phys_phase();
-        virt_phys_rank[i] = map->calc_phys_rank(tsr->topo)
-                            *virt_phase[i];
+        phase[i]          = map->calc_phase();
+        phys_phase[i]     = map->calc_phys_phase();
+        virt_phase[i]     = phase[i]/phys_phase[i];
+        virt_phys_rank[i] = map->calc_phys_rank(tsr->topo);
+                            //*virt_phase[i];
         num_virt          = num_virt*virt_phase[i];
         if (map->type == PHYSICAL_MAP)
           bucket_lda[i] = tsr->topo->lda[map->cdt];
@@ -852,6 +854,7 @@ namespace CTF_int {
                       tsr->sym,
                       tsr->pad_edge_len,
                       tsr->padding,
+                      phase,
                       phys_phase,
                       virt_phase,
                       virt_phys_rank,
@@ -861,6 +864,7 @@ namespace CTF_int {
                       wrld->cdt,
                       sr);
 
+      CTF_int::cfree(phase);
       CTF_int::cfree(phys_phase);
       CTF_int::cfree(virt_phys_rank);
       CTF_int::cfree(bucket_lda);
@@ -978,7 +982,7 @@ namespace CTF_int {
                          char **   mapped_data) const {
     int i, num_virt, idx_lyr;
     int64_t np;
-    int * virt_phase, * virt_phys_rank, * phys_phase;
+    int * virt_phase, * virt_phys_rank, * phys_phase, * phase;
     tensor const * tsr;
     char * pairs;
     mapping * map;
@@ -1005,6 +1009,7 @@ namespace CTF_int {
 
       CTF_int::alloc_ptr(sizeof(int)*tsr->order, (void**)&virt_phase);
       CTF_int::alloc_ptr(sizeof(int)*tsr->order, (void**)&phys_phase);
+      CTF_int::alloc_ptr(sizeof(int)*tsr->order, (void**)&phase);
       CTF_int::alloc_ptr(sizeof(int)*tsr->order, (void**)&virt_phys_rank);
 
 
@@ -1013,19 +1018,20 @@ namespace CTF_int {
       for (i=0; i<tsr->order; i++){
         /* Calcute rank and phase arrays */
         map               = tsr->edge_map + i;
-        phys_phase[i]     = map->calc_phase();
-        virt_phase[i]     = phys_phase[i]/map->calc_phys_phase();
-        virt_phys_rank[i] = map->calc_phys_rank(tsr->topo)*virt_phase[i];
+        phase[i]          = map->calc_phase();
+        phys_phase[i]     = map->calc_phys_phase();
+        virt_phase[i]     = phase[i]/phys_phase[i];
+        virt_phys_rank[i] = map->calc_phys_rank(tsr->topo);//*virt_phase[i];
         num_virt          = num_virt*virt_phase[i];
 
         if (map->type == PHYSICAL_MAP)
           idx_lyr -= tsr->topo->lda[map->cdt]
-                                  *virt_phys_rank[i]/virt_phase[i];
+                                  *virt_phys_rank[i];
       }
       if (idx_lyr == 0){
         read_loc_pairs(tsr->order, np, num_virt,
                        tsr->sym, tsr->pad_edge_len, tsr->padding,
-                       virt_phase, phys_phase, virt_phys_rank, num_pair,
+                       phase, phys_phase, virt_phase, virt_phys_rank, num_pair,
                        tsr->data, &pairs, sr); 
         *mapped_data = pairs;
       } else {
@@ -1036,6 +1042,7 @@ namespace CTF_int {
 
       CTF_int::cfree((void*)virt_phase);
       CTF_int::cfree((void*)phys_phase);
+      CTF_int::cfree((void*)phase);
       CTF_int::cfree((void*)virt_phys_rank);
 
       TAU_FSTOP(read_local_pairs);
@@ -1741,7 +1748,7 @@ namespace CTF_int {
 
         if (map->type == PHYSICAL_MAP)
           idx_lyr -= topo->lda[map->cdt]
-                                  *virt_phys_rank[i]/virt_phase[i];
+                                  *virt_phys_rank[i];
       }
       if (idx_lyr == 0){
         zero_padding(this->order, np, num_virt,

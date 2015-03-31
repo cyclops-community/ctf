@@ -50,7 +50,8 @@ namespace CTF_int {
    * \param[in] nvirt total virtualization factor
    * \param[in] edge_len tensor edge lengths
    * \param[in] sym symmetries of tensor
-   * \param[in] phase phase of the tensor on virtualized processor grid
+   * \param[in] phase total phase of the tensor on virtualized processor grid
+   * \param[in] phase physical phase of the tensor
    * \param[in] virt_dim virtual phase in each dimension
    * \param[in] phase_rank physical phase rank multiplied by virtual phase
    * \param[in] vdata array of input values
@@ -63,6 +64,7 @@ namespace CTF_int {
                    int const *      edge_len,
                    int const *      sym,
                    int const *      phase,
+                   int const *      phys_phase,
                    int const *      virt_dim,
                    int *            phase_rank,
                    char const *     vdata,
@@ -75,7 +77,7 @@ namespace CTF_int {
    * \param[in] order number of tensor dims
    * \param[in] num_pairs numbers of values being written
    * \param[in] np number of processor buckets
-   * \param[in] phase total distribution phase
+   * \param[in] phys_phase physical distribution phase
    * \param[in] virt_phase factor of phase due to local blocking
    * \param[in] bucket_lda iterator hop along each bucket dim
    * \param[in] edge_len padded edge lengths of tensor
@@ -88,7 +90,7 @@ namespace CTF_int {
   void bucket_by_pe( int               order,
                      int64_t           num_pair,
                      int64_t           np,
-                     int const *       phase,
+                     int const *       phys_phase,
                      int const *       virt_phase,
                      int const *       bucket_lda,
                      int const *       edge_len,
@@ -103,6 +105,7 @@ namespace CTF_int {
    * \param[in] order number of tensor dims
    * \param[in] num_virt number of local blocks
    * \param[in] num_pair numbers of values being written
+   * \param[in] phys_phase physical distribution phase
    * \param[in] virt_phase factor of phase due to local blocking
    * \param[in] edge_len padded edge lengths of tensor
    * \param[in] mapped_data set of sparse key-value pairs
@@ -112,6 +115,7 @@ namespace CTF_int {
   void bucket_by_virt(int               order,
                       int               num_virt,
                       int64_t           num_pair,
+                      int const *       phys_phase,
                       int const *       virt_phase,
                       int const *       edge_len,
                       ConstPairIterator mapped_data,
@@ -127,6 +131,8 @@ namespace CTF_int {
    * \param[in] edge_len tensor edge lengths
    * \param[in] sym symmetries of tensor
    * \param[in] phase total phase in each dimension
+   * \param[in] phys_phase physical distribution phase
+   * \param[in] virt_phase factor of phase due to local blocking
    * \param[in] virt_dim virtualization in each dimension
    * \param[in] phase_rank virtualized rank in total phase
    * \param[in,out] vdata data to read from or write to
@@ -142,6 +148,7 @@ namespace CTF_int {
                  int const *      edge_len,
                  int const *      sym,
                  int const *      phase,
+                 int const *      phys_phase,
                  int const *      virt_dim,
                  int *            phase_rank,
                  char *           vdata,
@@ -162,9 +169,10 @@ namespace CTF_int {
    * \param[in] sym symmetries of tensor
    * \param[in] edge_len tensor edge lengths
    * \param[in] padding padding of tensor
-   * \param[in] phys_phase total phase in each dimension
+   * \param[in] phase total phase in each dimension
+   * \param[in] phys_phase physical phase in each dimension
    * \param[in] virt_phase virtualization in each dimension
-   * \param[in] virt_phase_rank virtualized rank in total phase
+   * \param[in] phase_rank virtualized rank in total phase
    * \param[in] bucket_lda prefix sum of the processor grid
    * \param[in,out] wr_pairs pairs to read or write
    * \param[in,out] rw_data data to read from or write to
@@ -181,6 +189,7 @@ namespace CTF_int {
                        int const *      sym,
                        int const *      edge_len,
                        int const *      padding,
+                       int const *      phase,
                        int const *      phys_phase,
                        int const *      virt_phase,
                        int *            virt_phys_rank,
@@ -200,8 +209,8 @@ namespace CTF_int {
    * \param[in] edge_len tensor edge lengths
    * \param[in] padding padding of tensor
    * \param[in] virt_dim virtualization in each dimension
-   * \param[in] virt_phase total phase in each dimension
-   * \param[in] virt_phase_rank virtualized rank in total phase
+   * \param[in] phase total phase in each dimension
+   * \param[in] phase_rank virtualized rank in total phase
    * \param[in] bucket_lda prefix sum of the processor grid
    * \param[out] nread number of local pairs read
    * \param[in] tensor data data to read from
@@ -214,9 +223,10 @@ namespace CTF_int {
                       int const *      sym,
                       int const *      edge_len,
                       int const *      padding,
-                      int const *      virt_dim,
+                      int const *      phase,
+                      int const *      phys_phase,
                       int const *      virt_phase,
-                      int *            virt_phase_rank,
+                      int *            phase_rank,
                       int64_t *        nread,
                       char const *     data,
                       char **          pairs,

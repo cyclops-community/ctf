@@ -33,14 +33,14 @@ namespace CTF_int {
     for (int i=0; i<old_dist.order; i++){
       old_num_virt = old_num_virt*old_dist.virt_phase[i];
       new_num_virt = new_num_virt*new_dist.virt_phase[i];
-      virt_phase_rank[i] = new_dist.perank[i]*new_dist.virt_phase[i];
-      old_virt_phase_rank[i] = old_dist.perank[i]*old_dist.virt_phase[i];
+      virt_phase_rank[i] = new_dist.perank[i];//*new_dist.virt_phase[i];
+      old_virt_phase_rank[i] = old_dist.perank[i];//*old_dist.virt_phase[i];
       idx_lyr -= old_dist.perank[i]*old_dist.pe_lda[i];
     }
     if (idx_lyr == 0 ){
       read_loc_pairs(old_dist.order, old_dist.size, old_num_virt, sym,
-                     old_dist.pad_edge_len, old_dist.padding, old_dist.virt_phase,
-                     old_dist.phase, old_virt_phase_rank, &new_nval, tsr_data,
+                     old_dist.pad_edge_len, old_dist.padding, old_dist.phase, old_dist.phys_phase,
+                     old_dist.virt_phase, old_virt_phase_rank, &new_nval, tsr_data,
                      &pairs, sr);
     } else {
       new_nval = 0;
@@ -80,6 +80,7 @@ namespace CTF_int {
                     new_dist.pad_edge_len,
                     new_dist.padding,
                     new_dist.phase,
+                    new_dist.phys_phase,
                     new_dist.virt_phase,
                     virt_phase_rank,
                     new_dist.pe_lda,
@@ -119,9 +120,9 @@ namespace CTF_int {
     for (int dim = 0;dim < old_dist.order;dim++){
       alloc_ptr(sizeof(int)*old_phys_edge_len[dim], (void**)&bucket_offset[dim]);
       int pidx = 0;
-      for (int vr = 0;vr < old_dist.virt_phase[dim];vr++){
-        for (int vidx = 0;vidx < old_virt_edge_len[dim];vidx++,pidx++){
-          int64_t _gidx = (int64_t)vidx*old_dist.phase[dim]+old_dist.perank[dim]*old_dist.virt_phase[dim]+(int64_t)vr;
+      for (int vidx = 0;vidx < old_virt_edge_len[dim];vidx++){
+        for (int vr = 0;vr < old_dist.virt_phase[dim];vr++,pidx++){
+          int64_t _gidx = (int64_t)vidx*old_dist.phase[dim]+old_dist.perank[dim]+(int64_t)vr*old_dist.phys_phase[dim];
           //int64_t _gidx = (vr*old_virt_edge_len[dim]+(int64_t)vidx)*old_dist.phase[dim]/old_dist.virt_phase[dim]+old_dist.perank[dim];
           int64_t gidx;
           if (_gidx > len[dim] || (old_offsets != NULL && _gidx < old_offsets[dim])){
@@ -136,8 +137,9 @@ namespace CTF_int {
           }
           if (gidx != -1){
             //int phys_rank = gidx%(new_dist.phase[dim]/new_dist.virt_phase[dim]);
-            int total_rank = gidx%new_dist.phase[dim];
-            int phys_rank = total_rank/new_dist.virt_phase[dim];
+//            int total_rank = gidx%new_dist.phase[dim];
+//            int phys_rank = total_rank/new_dist.virt_phase[dim];
+            int phys_rank = gidx%new_dist.phys_phase[dim];
             if (forward){
               //int virt_rank = total_rank%new_dist.virt_phase[dim];
               //int virt_rank = gidx/(new_phys_edge_len[dim]*new_dist.phase[dim]/new_dist.virt_phase[dim]);
@@ -307,7 +309,7 @@ namespace CTF_int {
               if (idx[dim] >= imax)
                 skip = 1;
               else  {
-                idx_offs[dim] = bucket_offset[dim][old_virt_idx[dim]*old_virt_edge_len[dim]+idx[dim]];
+                idx_offs[dim] = bucket_offset[dim][old_virt_idx[dim]+idx[dim]*old_dist.virt_phase[dim]];
                 idx_offset += idx_offs[dim];
               }
             }
@@ -330,7 +332,7 @@ namespace CTF_int {
               
               /* Increment virtual bucket */
               for (int i=i_st; i<imax; i++){
-                vc = bucket_offset[0][old_virt_idx[0]*old_virt_edge_len[0]+i];
+                vc = bucket_offset[0][old_virt_idx[0]+i*old_dist.virt_phase[0]];
                 virt_counts[idx_offset+vc]++;
               }
               /* Increment indices and set up offsets */
@@ -351,7 +353,7 @@ namespace CTF_int {
                   if (sym[dim-1] != NS) idx[dim] = idx[dim-1]+spad[dim-1];
                 }
                 idx_offset -= idx_offs[dim];
-                idx_offs[dim] = bucket_offset[dim][old_virt_idx[dim]*old_virt_edge_len[dim]+idx[dim]];
+                idx_offs[dim] = bucket_offset[dim][old_virt_idx[dim]+idx[dim]*old_dist.virt_phase[dim]];
                 idx_offset += idx_offs[dim];
                 if (ended)
                   break;
@@ -596,7 +598,7 @@ namespace CTF_int {
     int *gidx; alloc_ptr(sizeof(int)*old_dist.order, (void**)&gidx);
     memset(gidx, 0, sizeof(int)*old_dist.order);
     for (int dim = 0;dim < old_dist.order;dim++){
-      gidx[dim] = old_dist.perank[dim]*old_dist.virt_phase[dim];
+      gidx[dim] = old_dist.perank[dim];
     }
 
     int64_t *virt_offset; alloc_ptr(sizeof(int64_t)*old_dist.order, (void**)&virt_offset);
@@ -623,8 +625,8 @@ namespace CTF_int {
 
   #ifdef USE_OMP
     for (int dim=old_dist.order-1; dim>=0; dim--){
-      int64_t iist = MAX(0,(gidx_st[dim]-old_dist.perank[dim]*old_dist.virt_phase[dim]));
-      int64_t ist = iist/(old_phys_dim[dim]*old_dist.virt_phase[dim]);
+      int64_t iist = MAX(0,(gidx_st[dim]-old_dist.perank[dim]));
+      int64_t ist = iist/old_dist.phase[dim];//(old_phys_dim[dim]*old_dist.virt_phase[dim]);
       if (sym[dim] != NS) ist = MIN(ist,idx[dim+1]);
       int plen[old_dist.order];
       memcpy(plen,old_virt_edge_len,old_dist.order*sizeof(int));
@@ -633,7 +635,7 @@ namespace CTF_int {
         plen[idim] = ist;
         idim--;
       } while (idim >= 0 && sym[idim] != NS);
-      gidx[dim] += ist*old_phys_dim[dim]*old_dist.virt_phase[dim];
+      gidx[dim] += ist*old_dist.phase[dim];//old_phys_dim[dim]*old_dist.virt_phase[dim];
       idx[dim] = ist;
       idx_acc[dim] = sy_packed_size(dim+1, plen, sym);
       offset += idx_acc[dim]; 
@@ -643,11 +645,11 @@ namespace CTF_int {
 
       if (gidx[dim] > gidx_st[dim]) break;
 
-      int64_t vst = iist-ist*old_phys_dim[dim]*old_dist.virt_phase[dim];
+      int64_t vst = iist-ist*old_dist.phase[dim];//*old_phys_dim[dim]*old_dist.virt_phase[dim];
       if (vst > 0 ){
         vst = MIN(old_dist.virt_phase[dim]-1,vst);
-        gidx[dim] += vst;
-        virt_offset[dim] = vst*old_virt_edge_len[dim];
+        gidx[dim] += vst*old_dist.phys_phase[dim];
+        virt_offset[dim] = vst;
         offset += vst*old_virt_lda[dim];
       } else vst = 0;
       if (gidx[dim] > gidx_st[dim]) break;
@@ -656,6 +658,16 @@ namespace CTF_int {
 
     ASSERT(old_permutation == NULL);
     int rep_phase0 = lcm(old_phys_dim[0],new_phys_dim[0])/old_phys_dim[0];
+  #if DEBUG >=2
+    if (rank == 0)
+      printf("rep_phase0 = %d\n",rep_phase0);
+    for (int id=0; id<rep_phase0; id++){
+      for (int jd=0; jd<(old_phys_edge_len[0]-id)/rep_phase0; jd++){
+        printf("bucket_offset[%d] = %d\n",id+jd*rep_phase0,bucket_offset[0][id+jd*rep_phase0]);
+        ASSERT(bucket_offset[0][id+jd*rep_phase0] == bucket_offset[0][id] || bucket_offset[0][id+jd*rep_phase0] == -1);
+      }      
+    }
+  #endif
 
     bool done = false;
     for (;!done;){
@@ -697,8 +709,8 @@ namespace CTF_int {
 
       if (!outside0){
         for (int dim = 1;dim < old_dist.order;dim++){
-          if (bucket_offset[dim][virt_offset[dim]+idx[dim]] == -1) outside0 = true;
-          bucket0 += bucket_offset[dim][virt_offset[dim]+idx[dim]];
+          if (bucket_offset[dim][virt_offset[dim]+idx[dim]*old_dist.virt_phase[dim]] == -1) outside0 = true;
+          bucket0 += bucket_offset[dim][virt_offset[dim]+idx[dim]*old_dist.virt_phase[dim]];
         }
       }
 
@@ -720,28 +732,33 @@ namespace CTF_int {
       if (!outside0){
         int gidx_min = MAX(zero_len_toff,offs[0]);
         int gidx_max = (sym[0] == NS ? ends[0] : (sym[0] == SY ? gidx[1]+1 : gidx[1]));
+        gidx_max = MIN(gidx_max, len_zero_max);
 
         int idx0 = MAX(0,(gidx_min-gidx[0])/old_phys_dim[0]);
         int vidx0 = idx0%old_dist.virt_phase[0];
-        int idx1 = MAX(0,(gidx_max-gidx[0])/old_phys_dim[0]);
+        int idx1 = MAX(0,(gidx_max-gidx[0]+old_phys_dim[0]-1)/old_phys_dim[0]);
         int lencp = MIN(rep_phase0,idx1-idx0);
         ASSERT(is_copy);
         if (forward){
           for (int ia=0; ia<lencp; ia++){
-            int64_t bucket = bucket0+bucket_offset[0][((vidx0+ia)%old_dist.virt_phase[0])+idx[0]];
-            sr->copy((idx1-idx0)/rep_phase0, 
-                     new_data[bucket]+sr->el_size*count[bucket], 1,
-                     old_data+ sr->el_size*idx0, rep_phase0);
-            count[bucket]+=(idx1-idx0)/rep_phase0;
+            int64_t bucket = bucket0+bucket_offset[0][idx0];//((vidx0+ia)%old_dist.virt_phase[0])*old_virt_edge_len[0]+idx0/old_dist.virt_phase[0]];
+            sr->copy((idx1-idx0+rep_phase0-1)/rep_phase0, 
+                     old_data+ sr->el_size*(offset+idx0), rep_phase0,
+                     new_data[bucket]+sr->el_size*count[bucket], 1);
+            count[bucket]+=(idx1-idx0+rep_phase0-1)/rep_phase0;
+#if DEBUG>=1
+            printf("[%d] gidx[0]=%d,gidx_min=%d,idx0=%d,gidx_max=%d,idx1=%d,bucket=%d,len=%d\n",rank,gidx[0],gidx_min,idx0,gidx_max,idx1,bucket,(idx1-idx0+rep_phase0-1)/rep_phase0);
             idx0++;
+#endif
           }
         } else {
           for (int ia=0; ia<lencp; ia++){
-            int64_t bucket = bucket0+bucket_offset[0][((vidx0+ia)%old_dist.virt_phase[0])+idx[0]];
-            sr->copy((idx1-idx0)/rep_phase0, 
-                     old_data+ sr->el_size*idx0, rep_phase0,
-                     new_data[bucket]+sr->el_size*count[bucket], 1);
-            count[bucket]+=(idx1-idx0)/rep_phase0;
+            int64_t bucket = bucket0+bucket_offset[0][idx0];//((vidx0+ia)%old_dist.virt_phase[0])*old_virt_edge_len[0]+idx0/old_dist.virt_phase[0]];
+            sr->copy((idx1-idx0+rep_phase0-1)/rep_phase0, 
+                     new_data[bucket]+sr->el_size*count[bucket], 1,
+                     old_data+ sr->el_size*(offset+idx0), rep_phase0);
+            count[bucket]+=(idx1-idx0+rep_phase0-1)/rep_phase0;
+            //printf("-r- gidx[0]=%d,gidx_min=%d,idx0=%d,gidx_max=%d,idx1=%d,bucket=%d,len=%d\n",gidx[0],gidx_min,idx0,gidx_max,idx1,bucket,(idx1-idx0+rep_phase0-1)/rep_phase0);
             idx0++;
           }
         }
@@ -811,14 +828,14 @@ namespace CTF_int {
       /* Adjust outer indices */
       if (!done){
         for (int dim = 1;dim < old_dist.order;dim++){
-          virt_offset[dim] += old_virt_edge_len[dim];
-          gidx[dim]++;
+          virt_offset[dim] += 1; //old_virt_edge_len[dim];
+          gidx[dim]+=old_dist.phys_phase[dim];
 
-          if (virt_offset[dim] == old_dist.virt_phase[dim]*old_virt_edge_len[dim]){
-            gidx[dim] -= old_dist.virt_phase[dim];
+          if (virt_offset[dim] == old_dist.virt_phase[dim]){
+            gidx[dim] -= old_dist.phase[dim];
             virt_offset[dim] = 0;
 
-            gidx[dim] -= idx[dim]*old_phys_dim[dim]*old_dist.virt_phase[dim];
+            gidx[dim] -= idx[dim]*old_dist.phase[dim];//phys_dim[dim]*old_dist.virt_phase[dim];
             idx[dim]++;
 
             if (idx[dim] == (sym[dim] == NS ? old_virt_edge_len[dim] : idx[dim+1]+1)){
@@ -829,7 +846,7 @@ namespace CTF_int {
               if (dim == old_dist.order-1) done = true;
             }
             else{
-              gidx[dim] += idx[dim]*old_phys_dim[dim]*old_dist.virt_phase[dim];
+              gidx[dim] += idx[dim]*old_dist.phase[dim];//old_phys_dim[dim]*old_dist.virt_phase[dim];
               break;
             }
           }
@@ -1082,7 +1099,7 @@ namespace CTF_int {
     int *gidx; alloc_ptr(sizeof(int)*old_dist.order, (void**)&gidx);
     memset(gidx, 0, sizeof(int)*old_dist.order);
     for (int dim = 0;dim < old_dist.order;dim++){
-      gidx[dim] = old_dist.perank[dim]*old_dist.virt_phase[dim];
+      gidx[dim] = old_dist.perank[dim];
     }
 
     int64_t *virt_offset; alloc_ptr(sizeof(int64_t)*old_dist.order, (void**)&virt_offset);
@@ -1109,8 +1126,8 @@ namespace CTF_int {
 
   #ifdef USE_OMP
     for (int dim=old_dist.order-1; dim>=0; dim--){
-      int64_t iist = MAX(0,(gidx_st[dim]-old_dist.perank[dim]*old_dist.virt_phase[dim]));
-      int64_t ist = iist/(old_phys_dim[dim]*old_dist.virt_phase[dim]);
+      int64_t iist = MAX(0,(gidx_st[dim]-old_dist.perank[dim]));
+      int64_t ist = iist/old_dist.phase[dim];//(old_phys_dim[dim]*old_dist.virt_phase[dim]);
       if (sym[dim] != NS) ist = MIN(ist,idx[dim+1]);
       int plen[old_dist.order];
       memcpy(plen,old_virt_edge_len,old_dist.order*sizeof(int));
@@ -1119,7 +1136,8 @@ namespace CTF_int {
         plen[idim] = ist;
         idim--;
       } while (idim >= 0 && sym[idim] != NS);
-      gidx[dim] += ist*old_phys_dim[dim]*old_dist.virt_phase[dim];
+      //gidx[dim] += ist*old_phys_dim[dim]*old_dist.virt_phase[dim];
+      gidx[dim] += ist*old_dist.phase[dim];//old_phys_dim[dim]*old_dist.virt_phase[dim];
       idx[dim] = ist;
       idx_acc[dim] = sy_packed_size(dim+1, plen, sym);
       offset += idx_acc[dim]; 
@@ -1129,11 +1147,11 @@ namespace CTF_int {
 
       if (gidx[dim] > gidx_st[dim]) break;
 
-      int64_t vst = iist-ist*old_phys_dim[dim]*old_dist.virt_phase[dim];
+      int64_t vst = iist-ist*old_dist.phase[dim];//*old_phys_dim[dim]*old_dist.virt_phase[dim];
       if (vst > 0 ){
-        vst = MIN(old_dist.virt_phase[dim]-1,vst);
-        gidx[dim] += vst;
-        virt_offset[dim] = vst*old_virt_edge_len[dim];
+        vst = MIN(old_dist.virt_phase[dim]-1,vst/old_dist.phys_phase[dim]);
+        gidx[dim] += vst*old_dist.phys_phase[dim];
+        virt_offset[dim] = vst;
         offset += vst*old_virt_lda[dim];
       } else vst = 0;
       if (gidx[dim] > gidx_st[dim]) break;
@@ -1180,8 +1198,8 @@ namespace CTF_int {
 
       if (!outside0){
         for (int dim = 1;dim < old_dist.order;dim++){
-          if (bucket_offset[dim][virt_offset[dim]+idx[dim]] == -1) outside0 = true;
-          bucket0 += bucket_offset[dim][virt_offset[dim]+idx[dim]];
+          if (bucket_offset[dim][virt_offset[dim]+idx[dim]*old_dist.virt_phase[dim]] == -1) outside0 = true;
+          bucket0 += bucket_offset[dim][virt_offset[dim]+idx[dim]*old_dist.virt_phase[dim]];
         }
       }
 
@@ -1205,17 +1223,17 @@ namespace CTF_int {
         int gidx_max = (sym[0] == NS ? ends[0] : (sym[0] == SY ? gidx[1]+1 : gidx[1]));
         gidx_max = MIN(gidx_max, len_zero_max);
         for (idx[0] = idx_st;idx[0] < idx_max;idx[0]++){
-          int virt_min = MAX(0,MIN(old_dist.virt_phase[0],gidx_min-gidx[0]));
-          int virt_max = MAX(0,MIN(old_dist.virt_phase[0],gidx_max-gidx[0]));
+          int virt_min = MAX(0,MIN(old_dist.virt_phase[0],(gidx_min-gidx[0])/old_dist.phys_phase[0]));
+          int virt_max = MAX(0,MIN(old_dist.virt_phase[0],(gidx_max-gidx[0])/old_dist.phys_phase[0]));
 
           offset += old_virt_nelem*virt_min;
           if (forward){
             ASSERT(is_copy);
-            for (virt_offset[0] = virt_min*old_virt_edge_len[0];
-                 virt_offset[0] < virt_max*old_virt_edge_len[0];
-                 virt_offset[0] += old_virt_edge_len[0])
+            for (virt_offset[0] = virt_min;
+                 virt_offset[0] < virt_max;
+                 virt_offset[0] ++)
             {
-              int64_t bucket = bucket0+bucket_offset[0][virt_offset[0]+idx[0]];
+              int64_t bucket = bucket0+bucket_offset[0][virt_offset[0]+idx[0]*old_dist.virt_phase[0]];
   #ifdef USE_OMP
               bucket_store[offset] = bucket;
               count_store[offset]  = count[bucket]++;
@@ -1234,11 +1252,11 @@ namespace CTF_int {
             }
           }
           else{
-            for (virt_offset[0] = virt_min*old_virt_edge_len[0];
-                 virt_offset[0] < virt_max*old_virt_edge_len[0];
-                 virt_offset[0] += old_virt_edge_len[0])
+            for (virt_offset[0] = virt_min;
+                 virt_offset[0] < virt_max;
+                 virt_offset[0] ++)
             {
-              int64_t bucket = bucket0+bucket_offset[0][virt_offset[0]+idx[0]];
+              int64_t bucket = bucket0+bucket_offset[0][virt_offset[0]+idx[0]*old_dist.virt_phase[0]];
   #ifdef USE_OMP
               bucket_store[offset] = bucket;
               count_store[offset]  = count[bucket]++;
@@ -1256,11 +1274,11 @@ namespace CTF_int {
 
           offset++;
           offset -= old_virt_nelem*virt_max;
-          gidx[0] += old_phys_dim[0]*old_dist.virt_phase[0];
+          gidx[0] += old_dist.phase[0];//old_phys_dim[0]*old_dist.virt_phase[0];
         }
 
         offset -= idx_max;
-        gidx[0] -= idx_max*old_phys_dim[0]*old_dist.virt_phase[0];
+        gidx[0] -= idx_max*old_dist.phase[0];//old_phys_dim[0]*old_dist.virt_phase[0];
       }
        
       idx_acc[0] = idx_max;
@@ -1274,19 +1292,18 @@ namespace CTF_int {
         for (int dim = 1;dim < old_dist.order;dim++){
           offset += old_virt_lda[dim];
     
-          virt_offset[dim] += old_virt_edge_len[dim];
-          gidx[dim]++;
-
-          if (virt_offset[dim] == old_dist.virt_phase[dim]*old_virt_edge_len[dim]){
+          virt_offset[dim] ++;//= old_virt_edge_len[dim];
+          gidx[dim]+=old_dist.phys_phase[dim];
+          if (virt_offset[dim] == old_dist.virt_phase[dim]){
             offset -= old_virt_lda[dim]*old_dist.virt_phase[dim];
-            gidx[dim] -= old_dist.virt_phase[dim];
+            gidx[dim] -= old_dist.phase[dim];
             virt_offset[dim] = 0;
 
             offset += idx_acc[dim-1];
             idx_acc[dim] += idx_acc[dim-1];
             idx_acc[dim-1] = 0;
 
-            gidx[dim] -= idx[dim]*old_phys_dim[dim]*old_dist.virt_phase[dim];
+            gidx[dim] -= idx[dim]*old_dist.phase[dim];//phys_dim[dim]*old_dist.virt_phase[dim];
             idx[dim]++;
 
             if (idx[dim] == (sym[dim] == NS ? old_virt_edge_len[dim] : idx[dim+1]+1)){
@@ -1298,7 +1315,8 @@ namespace CTF_int {
               if (dim == old_dist.order-1) done = true;
             }
             else{
-              gidx[dim] += idx[dim]*old_phys_dim[dim]*old_dist.virt_phase[dim];
+              //gidx[dim] += idx[dim]*old_phys_dim[dim]*old_dist.virt_phase[dim];
+              gidx[dim] += idx[dim]*old_dist.phase[dim];//old_phys_dim[dim]*old_dist.virt_phase[dim];
               break;
             }
           }
@@ -1628,18 +1646,12 @@ namespace CTF_int {
     
     int *real_edge_len; alloc_ptr(sizeof(int)*order, (void**)&real_edge_len);
     for (i=0; i<order; i++) real_edge_len[i] = old_dist.pad_edge_len[i]-old_dist.padding[i];
-    
-    int *old_phys_dim; alloc_ptr(sizeof(int)*order, (void**)&old_phys_dim);
-    for (i=0; i<order; i++) old_phys_dim[i] = old_dist.phase[i]/old_dist.virt_phase[i];
-
-    int *new_phys_dim; alloc_ptr(sizeof(int)*order, (void**)&new_phys_dim);
-    for (i=0; i<order; i++) new_phys_dim[i] = new_dist.phase[i]/new_dist.virt_phase[i];
-    
+   
     int *old_phys_edge_len; alloc_ptr(sizeof(int)*order, (void**)&old_phys_edge_len);
-    for (int dim = 0;dim < order;dim++) old_phys_edge_len[dim] = (real_edge_len[dim]+old_dist.padding[dim])/old_phys_dim[dim];
+    for (int dim = 0;dim < order;dim++) old_phys_edge_len[dim] = (real_edge_len[dim]+old_dist.padding[dim])/old_dist.phys_phase[dim];
 
     int *new_phys_edge_len; alloc_ptr(sizeof(int)*order, (void**)&new_phys_edge_len);
-    for (int dim = 0;dim < order;dim++) new_phys_edge_len[dim] = (real_edge_len[dim]+new_dist.padding[dim])/new_phys_dim[dim];
+    for (int dim = 0;dim < order;dim++) new_phys_edge_len[dim] = (real_edge_len[dim]+new_dist.padding[dim])/new_dist.phys_phase[dim];
 
     int *old_virt_edge_len; alloc_ptr(sizeof(int)*order, (void**)&old_virt_edge_len);
     for (int dim = 0;dim < order;dim++) old_virt_edge_len[dim] = old_phys_edge_len[dim]/old_dist.virt_phase[dim];
@@ -1721,7 +1733,6 @@ namespace CTF_int {
     TAU_FSTART(pack_virt_buf);
     if (idx_lyr == 0){
       order_globally(sym, old_dist, old_virt_edge_len, old_virt_lda, vbs_old, 1, tsr_data, tsr_cyclic_data, sr);
-
       char **new_data; alloc_ptr(sizeof(char*)*np, (void**)&new_data);
       for (int64_t p = 0;p < np;p++){
         new_data[p] = tsr_data+sr->el_size*send_displs[p];
@@ -1731,14 +1742,14 @@ namespace CTF_int {
                   old_dist, 
                   new_dist, 
                   real_edge_len,
-                  old_phys_dim,
+                  old_dist.phys_phase,
                   old_phys_edge_len,
                   old_virt_edge_len,
                   vbs_old,
                   old_offsets,
                   old_permutation,
                   np,
-                  new_phys_dim,
+                  new_dist.phys_phase,
                   new_phys_edge_len,
                   new_virt_edge_len,
                   vbs_new,  
@@ -1798,18 +1809,19 @@ namespace CTF_int {
                                 old_nvirt,
                                 new_virt_edge_len);
 
+
       glb_ord_pup(sym,
                   new_dist, 
                   old_dist, 
                   real_edge_len,
-                  new_phys_dim,
+                  new_dist.phys_phase,
                   new_phys_edge_len,
                   new_virt_edge_len,
                   vbs_new,
                   new_offsets,
                   new_permutation,
                   np,
-                  old_phys_dim,
+                  old_dist.phys_phase,
                   old_phys_edge_len,
                   old_virt_edge_len,
                   vbs_old,  
@@ -1820,6 +1832,8 @@ namespace CTF_int {
                   alpha,
                   beta,
                   sr);
+
+
       order_globally(sym, new_dist, new_virt_edge_len, new_virt_lda, vbs_new, 0, tsr_data, tsr_cyclic_data, sr);
       for (int dim = 0;dim < order;dim++){
         cfree(bucket_offset[dim]);
@@ -1835,8 +1849,6 @@ namespace CTF_int {
     *ptr_tsr_data = tsr_data;
 
     cfree(real_edge_len);
-    cfree(old_phys_dim);
-    cfree(new_phys_dim);
     cfree(hsym);
     cfree(idx);
     cfree(idx_offs);

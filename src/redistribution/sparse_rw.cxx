@@ -181,6 +181,7 @@ namespace CTF_int {
                    int const *      edge_len,
                    int const *      sym,
                    int const *      phase,
+                   int const *      phys_phase,
                    int const *      virt_dim,
                    int *            phase_rank,
                    char const *     vdata,
@@ -252,11 +253,11 @@ namespace CTF_int {
         if (act_lda >= order) break;
       }
       for (act_lda=0; act_lda < order; act_lda++){
-        phase_rank[act_lda] -= virt_rank[act_lda];
+        phase_rank[act_lda] -= virt_rank[act_lda]*phys_phase[act_lda];
         virt_rank[act_lda]++;
         if (virt_rank[act_lda] >= virt_dim[act_lda])
           virt_rank[act_lda] = 0;
-        phase_rank[act_lda] += virt_rank[act_lda];
+        phase_rank[act_lda] += virt_rank[act_lda]*phys_phase[act_lda];
         if (virt_rank[act_lda] > 0)
           break;
       }
@@ -272,7 +273,7 @@ namespace CTF_int {
   void bucket_by_pe(int               order,
                     int64_t           num_pair,
                     int64_t           np,
-                    int const *       phase,
+                    int const *       phys_phase,
                     int const *       virt_phase,
                     int const *       bucket_lda,
                     int const *       edge_len,
@@ -304,7 +305,7 @@ namespace CTF_int {
   /*      tmp_arr[j] = (k%edge_len[j])%phase[j];
         tmp_arr[j] = tmp_arr[j]/virt_phase[j];
         tmp_arr[j] = tmp_arr[j]*bucket_lda[j];*/
-        loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
+        loc += (k%phys_phase[j])*bucket_lda[j];
         k = k/edge_len[j];
       }
   /*    for (j=0; j<order; j++){
@@ -354,7 +355,7 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += ((k%phase[j])/virt_phase[j])*bucket_lda[j];
+        loc += (k%phys_phase[j])*bucket_lda[j];
         k = k/edge_len[j];
       }
   #ifdef USE_OMP
@@ -375,6 +376,7 @@ namespace CTF_int {
   void bucket_by_virt(int               order,
                       int               num_virt,
                       int64_t           num_pair,
+                      int const *       phys_phase,
                       int const *       virt_phase,
                       int const *       edge_len,
                       ConstPairIterator mapped_data,
@@ -414,7 +416,7 @@ namespace CTF_int {
       int64_t loc = 0;
       //#pragma unroll
       for (int j=0; j<order; j++){
-        loc += (k%virt_phase[j])*virt_lda[j];
+        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       
@@ -447,7 +449,7 @@ namespace CTF_int {
       int64_t loc = 0;
       //#pragma unroll
       for (int j=0; j<order; j++){
-        loc += (k%virt_phase[j])*virt_lda[j];
+        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       bucket_data[virt_prefix[loc] + sub_offs[loc+omp_get_thread_num()*num_virt]].write(mapped_data[i]);
@@ -459,7 +461,7 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += (k%virt_phase[j])*virt_lda[j];
+        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       virt_counts[loc]++;
@@ -475,7 +477,7 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += (k%virt_phase[j])*virt_lda[j];
+        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       bucket_data[virt_prefix[loc] + virt_counts[loc]].write(mapped_data[i]);
@@ -517,6 +519,7 @@ namespace CTF_int {
                  int const *      edge_len,
                  int const *      sym,
                  int const *      phase,
+                 int const *      phys_phase,
                  int const *      virt_dim,
                  int *            phase_rank,
                  char *           vdata,
@@ -668,11 +671,11 @@ namespace CTF_int {
         if (act_lda == order) break;
       }
       for (act_lda=0; act_lda < order; act_lda++){
-        phase_rank[act_lda] -= virt_rank[act_lda];
+        phase_rank[act_lda] -= virt_rank[act_lda]*phys_phase[act_lda];
         virt_rank[act_lda]++;
         if (virt_rank[act_lda] >= virt_dim[act_lda])
           virt_rank[act_lda] = 0;
-        phase_rank[act_lda] += virt_rank[act_lda];
+        phase_rank[act_lda] += virt_rank[act_lda]*phys_phase[act_lda];
         if (virt_rank[act_lda] > 0)
           break;
       }
@@ -696,6 +699,7 @@ namespace CTF_int {
                        int const *      sym,
                        int const *      edge_len,
                        int const *      padding,
+                       int const *      phase,
                        int const *      phys_phase,
                        int const *      virt_phase,
                        int *            virt_phys_rank,
@@ -907,7 +911,7 @@ namespace CTF_int {
 
     /* Figure out what virtual bucket each key belongs to. Bucket
        and sort them accordingly */
-    bucket_by_virt(order, num_virt, new_num_pair, virt_phase,
+    bucket_by_virt(order, num_virt, new_num_pair, phys_phase, virt_phase,
                        edge_len, swap_data, buf_data, sr);
 
     /* Write or read the values corresponding to the keys */
@@ -918,6 +922,7 @@ namespace CTF_int {
               num_virt,
               edge_len,
               sym,
+              phase,
               phys_phase,
               virt_phase,
               virt_phys_rank,
@@ -1012,9 +1017,10 @@ namespace CTF_int {
                       int const *      sym,
                       int const *      edge_len,
                       int const *      padding,
-                      int const *      virt_dim,
+                      int const *      phase,
+                      int const *      phys_phase,
                       int const *      virt_phase,
-                      int *            virt_phase_rank,
+                      int *            phase_rank,
                       int64_t *        nread,
                       char const *     data,
                       char **          pairs,
@@ -1031,9 +1037,10 @@ namespace CTF_int {
                 num_virt,
                 edge_len,
                 sym,
+                phase,
+                phys_phase,
                 virt_phase,
-                virt_dim,
-                virt_phase_rank,
+                phase_rank,
                 data,
                 dpairsb,
                 sr);

@@ -11,7 +11,7 @@ namespace CTF_int {
 
   inline
   int get_distribution_size(int order){
-    return sizeof(int)*2 + sizeof(int64_t) + order*sizeof(int)*6;
+    return sizeof(int)*2 + sizeof(int64_t) + order*sizeof(int)*7;
   }
 
   // \brief data distribution object used for redistribution
@@ -20,6 +20,7 @@ namespace CTF_int {
       int     order;
       int *   phase;
       int *   virt_phase;
+      int *   phys_phase;
       int *   pe_lda;
       int *   pad_edge_len;
       int *   padding;
