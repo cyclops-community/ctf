@@ -74,7 +74,6 @@ namespace CTF_int{
        * \param[out] b_A total size of A if its communicated, 0 otherwise
        * \param[out] b_B total size of B if its communicated, 0 otherwise
        * \param[out] b_C total size of C if its communicated, 0 otherwise
-       * \param[out] db contraction block size = min(b_A,b_B,b_C)
        * \param[out] aux_size size of auxillary buffer needed 
        */
       void find_bsizes(int64_t & b_A,
@@ -83,7 +82,6 @@ namespace CTF_int{
                        int64_t & s_A,
                        int64_t & s_B,
                        int64_t & s_C,
-                       int64_t & db,
                        int64_t & aux_size);
       /**
        * \brief copies ctr object

@@ -3529,20 +3529,20 @@ namespace CTF_int {
       } else {
         cg_edge_len = 1;
         if (B->edge_map[i_B].type == PHYSICAL_MAP){
-          cg_edge_len = lcm(cg_edge_len, B->edge_map[i_B].np);
+          cg_edge_len = lcm(cg_edge_len, B->edge_map[i_B].calc_phase());
           cg_cdt_B = &B->topo->dim_comm[B->edge_map[i_B].cdt];
           /*if (is_used && cg_cdt_B.alive == 0)
             cg_cdt_B.activate(global_comm.cm);*/
-          nstep = B->edge_map[i_B].np;
+          nstep = B->edge_map[i_B].calc_phase();
           cg_move_B = 1;
         } else
           cg_move_B = 0;
         if (C->edge_map[i_C].type == PHYSICAL_MAP){
-          cg_edge_len = lcm(cg_edge_len, C->edge_map[i_C].np);
+          cg_edge_len = lcm(cg_edge_len, C->edge_map[i_C].calc_phase());
           cg_cdt_C = &C->topo->dim_comm[C->edge_map[i_C].cdt];
           /*if (is_used && cg_cdt_C.alive == 0)
             cg_cdt_C.activate(global_comm.cm);*/
-          nstep = MAX(nstep, C->edge_map[i_C].np);
+          nstep = MAX(nstep, C->edge_map[i_C].calc_phase());
           cg_move_C = 1;
         } else
           cg_move_C = 0;

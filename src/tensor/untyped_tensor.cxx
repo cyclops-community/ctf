@@ -1549,6 +1549,7 @@ namespace CTF_int {
       block_reshuffle(old_dist, new_dist, this->data, shuffled_data, sr, wrld->cdt);
     } else {
       cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
+//    padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data, sr, wrld->cdt);
       //glb_cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
   //    CTF_int::alloc_ptr(sizeof(dtype)*this->size, (void**)&shuffled_data);
 /*      cyclic_reshuffle(this->order,
@@ -1715,7 +1716,7 @@ namespace CTF_int {
   int tensor::zero_out_padding(){
     int i, num_virt, idx_lyr;
     int64_t np;
-    int * virt_phase, * virt_phys_rank, * phys_phase;
+    int * virt_phase, * virt_phys_rank, * phys_phase, * phase;
     mapping * map;
 
     TAU_FSTART(zero_out_padding);
@@ -1733,6 +1734,7 @@ namespace CTF_int {
 
       CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&virt_phase);
       CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&phys_phase);
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&phase);
       CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&virt_phys_rank);
 
 
@@ -1741,9 +1743,10 @@ namespace CTF_int {
       for (i=0; i<this->order; i++){
         /* Calcute rank and phase arrays */
         map               = this->edge_map + i;
-        phys_phase[i]     = map->calc_phase();
-        virt_phase[i]     = phys_phase[i]/map->calc_phys_phase();
-        virt_phys_rank[i] = map->calc_phys_rank(topo)*virt_phase[i];
+        phase[i]          = map->calc_phase();
+        phys_phase[i]     = map->calc_phys_phase();
+        virt_phase[i]     = phase[i]/phys_phase[i];
+        virt_phys_rank[i] = map->calc_phys_rank(topo);
         num_virt          = num_virt*virt_phase[i];
 
         if (map->type == PHYSICAL_MAP)
@@ -1753,12 +1756,13 @@ namespace CTF_int {
       if (idx_lyr == 0){
         zero_padding(this->order, np, num_virt,
                      this->pad_edge_len, this->sym, this->padding,
-                     phys_phase, virt_phase, virt_phys_rank, this->data, sr); 
+                     phase, phys_phase, virt_phase, virt_phys_rank, this->data, sr); 
       } else {
         std::fill(this->data, this->data+np, 0.0);
       }
       CTF_int::cfree(virt_phase);
       CTF_int::cfree(phys_phase);
+      CTF_int::cfree(phase);
       CTF_int::cfree(virt_phys_rank);
     }
     TAU_FSTOP(zero_out_padding);

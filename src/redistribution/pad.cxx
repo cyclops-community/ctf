@@ -211,7 +211,7 @@ namespace CTF_int {
 #endif
     TAU_FSTOP(depad_tsr);
   }
-
+/*
 
   void pad_tsr(int              order,
                int64_t          size,
@@ -219,7 +219,7 @@ namespace CTF_int {
                int const *      sym,
                int const *      padding,
                int const *      phys_phase,
-               int *            virt_phys_rank,
+               int *            phase_rank,
                int const *      virt_phase,
                char const *     old_data,
                char **          new_pairs,
@@ -255,10 +255,10 @@ namespace CTF_int {
   
       }
       for (act_lda=0; act_lda<order; act_lda++){
-        virt_phys_rank[act_lda]++;
-        if (virt_phys_rank[act_lda]%virt_phase[act_lda]==0)
-          virt_phys_rank[act_lda] -= virt_phase[act_lda];
-        if (virt_phys_rank[act_lda]%virt_phase[act_lda]!=0) break;      
+        phase_rank[act_lda]++;
+        if (phase_rank[act_lda]%virt_phase[act_lda]==0)
+          phase_rank[act_lda] -= virt_phase[act_lda];
+        if (phase_rank[act_lda]%virt_phase[act_lda]!=0) break;      
       }
       if (act_lda == order) break;
     }
@@ -269,7 +269,7 @@ namespace CTF_int {
     outside  = -1;
     virt_lda = 1;
     for (i=0; i<order; i++){
-      offset += virt_phys_rank[i]*virt_lda;
+      offset += phase_rank[i]*virt_lda;
       virt_lda*=(edge_len[i]+padding[i]);
     }
   
@@ -279,19 +279,19 @@ namespace CTF_int {
         if (sym[0] != NS){
           if (idx[1] < edge_len[0]/phys_phase[0]) {
             imax = idx[1];
-            if (sym[0] != SY && virt_phys_rank[0] < virt_phys_rank[1])
+            if (sym[0] != SY && phase_rank[0] < phase_rank[1])
               imax++;
-            if (sym[0] == SY && virt_phys_rank[0] <= virt_phys_rank[1])
+            if (sym[0] == SY && phase_rank[0] <= phase_rank[1])
               imax++;
           } else {
             imax = edge_len[0]/phys_phase[0];
-            if (virt_phys_rank[0] < edge_len[0]%phys_phase[0])
+            if (phase_rank[0] < edge_len[0]%phys_phase[0])
               imax++;
           }
           pad_max = idx[1]+1;
         } else {
           imax = edge_len[0]/phys_phase[0];
-          if (virt_phys_rank[0] < edge_len[0]%phys_phase[0])
+          if (phase_rank[0] < edge_len[0]%phys_phase[0])
             imax++;
           pad_max = (edge_len[0]+padding[0])/phys_phase[0];
         }
@@ -316,7 +316,7 @@ namespace CTF_int {
           imax = (edge_len[act_lda]+padding[act_lda])/phys_phase[act_lda];
           if (sym[act_lda] != NS && idx[act_lda+1]+1 <= imax){
             imax = idx[act_lda+1]+1;
-        //    if (virt_phys_rank[act_lda] < virt_phys_rank[sym[act_lda]])
+        //    if (phase_rank[act_lda] < phase_rank[sym[act_lda]])
         //      imax++;
           } 
           if (idx[act_lda] >= imax)
@@ -324,7 +324,7 @@ namespace CTF_int {
           offset += idx[act_lda]*edge_lda*phys_phase[act_lda];
           if (idx[act_lda] > edge_len[act_lda]/phys_phase[act_lda] ||
               (idx[act_lda] == edge_len[act_lda]/phys_phase[act_lda] &&
-              (edge_len[act_lda]%phys_phase[act_lda] <= virt_phys_rank[act_lda]))){
+              (edge_len[act_lda]%phys_phase[act_lda] <= phase_rank[act_lda]))){
             if (outside < act_lda)
               outside = act_lda;
           } else {
@@ -333,12 +333,12 @@ namespace CTF_int {
           }
           if (sym[act_lda] != NS && idx[act_lda] == idx[act_lda+1]){
             if (sym[act_lda] != SY && 
-                virt_phys_rank[act_lda] >= virt_phys_rank[act_lda+1]){
+                phase_rank[act_lda] >= phase_rank[act_lda+1]){
               if (outside < act_lda)
                 outside = act_lda;
             } 
             if (sym[act_lda] == SY && 
-                virt_phys_rank[act_lda] > virt_phys_rank[act_lda+1]){
+                phase_rank[act_lda] > phase_rank[act_lda+1]){
               if (outside < act_lda)
                 outside = act_lda;
             } 
@@ -351,12 +351,12 @@ namespace CTF_int {
       }
       virt_lda = 1;
       for (act_lda=0; act_lda<order; act_lda++){
-        offset -= virt_phys_rank[act_lda]*virt_lda;
-        virt_phys_rank[act_lda]++;
-        if (virt_phys_rank[act_lda]%virt_phase[act_lda]==0)
-          virt_phys_rank[act_lda] -= virt_phase[act_lda];
-        offset += virt_phys_rank[act_lda]*virt_lda;
-        if (virt_phys_rank[act_lda]%virt_phase[act_lda]!=0) break;      
+        offset -= phase_rank[act_lda]*virt_lda;
+        phase_rank[act_lda]++;
+        if (phase_rank[act_lda]%virt_phase[act_lda]==0)
+          phase_rank[act_lda] -= virt_phase[act_lda];
+        offset += phase_rank[act_lda]*virt_lda;
+        if (phase_rank[act_lda]%virt_phase[act_lda]!=0) break;      
         virt_lda*=(edge_len[act_lda]+padding[act_lda]);
       }
       if (act_lda == order) break;
@@ -369,7 +369,7 @@ namespace CTF_int {
     *new_pairs = padded_pairsb;
     *new_size = pad_el;
   }
-
+*/
   void zero_padding(int              order,
                     int64_t          size,
                     int              nvirt,
@@ -377,7 +377,8 @@ namespace CTF_int {
                     int const *      sym,
                     int const *      padding,
                     int const *      phase,
-                    int const *      virt_dim,
+                    int const *      phys_phase,
+                    int const *      virt_phase,
                     int const *      cphase_rank,
                     char *           vdata,
                     algstrct const * sr){
@@ -544,11 +545,11 @@ namespace CTF_int {
           }
         }
         for (act_lda=0; act_lda < order; act_lda++){
-          phase_rank[act_lda] -= virt_rank[act_lda];
+          phase_rank[act_lda] -= virt_rank[act_lda]*phys_phase[act_lda];
           virt_rank[act_lda]++;
-          if (virt_rank[act_lda] >= virt_dim[act_lda])
+          if (virt_rank[act_lda] >= virt_phase[act_lda])
             virt_rank[act_lda] = 0;
-          phase_rank[act_lda] += virt_rank[act_lda];
+          phase_rank[act_lda] += virt_rank[act_lda]*phys_phase[act_lda];
           if (virt_rank[act_lda] > 0)
             break;
         }

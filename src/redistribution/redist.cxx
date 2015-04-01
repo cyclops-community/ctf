@@ -123,7 +123,6 @@ namespace CTF_int {
       for (int vidx = 0;vidx < old_virt_edge_len[dim];vidx++){
         for (int vr = 0;vr < old_dist.virt_phase[dim];vr++,pidx++){
           int64_t _gidx = (int64_t)vidx*old_dist.phase[dim]+old_dist.perank[dim]+(int64_t)vr*old_dist.phys_phase[dim];
-          //int64_t _gidx = (vr*old_virt_edge_len[dim]+(int64_t)vidx)*old_dist.phase[dim]/old_dist.virt_phase[dim]+old_dist.perank[dim];
           int64_t gidx;
           if (_gidx > len[dim] || (old_offsets != NULL && _gidx < old_offsets[dim])){
             gidx = -1;
@@ -136,22 +135,13 @@ namespace CTF_int {
             }
           }
           if (gidx != -1){
-            //int phys_rank = gidx%(new_dist.phase[dim]/new_dist.virt_phase[dim]);
-//            int total_rank = gidx%new_dist.phase[dim];
-//            int phys_rank = total_rank/new_dist.virt_phase[dim];
             int phys_rank = gidx%new_dist.phys_phase[dim];
             if (forward){
-              //int virt_rank = total_rank%new_dist.virt_phase[dim];
-              //int virt_rank = gidx/(new_phys_edge_len[dim]*new_dist.phase[dim]/new_dist.virt_phase[dim]);
-              //bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim])*new_virt_np+
-              //               virt_rank*new_virt_lda[dim];
               bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim]);
               //printf("f %d - %d %d %d - %d - %d %d %d - %d\n", dim, vr, vidx, pidx, gidx, total_rank,
               //    phys_rank, virt_rank, bucket_offset[dim][pidx]);
             }
             else{
-              //bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim])*old_virt_np+
-              //               vr*old_virt_lda[dim];
               bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim]);
               //printf("r %d - %d %d %d - %d - %d %d - %d\n", dim, vr, vidx, pidx, gidx, total_rank,
               //    phys_rank, bucket_offset[dim][pidx]);
@@ -167,8 +157,6 @@ namespace CTF_int {
 
     return bucket_offset;
   }
-
-
 
 
   void calc_cnt_displs(int const *          sym,
@@ -274,9 +262,9 @@ namespace CTF_int {
         alloc_ptr(old_dist.order*sizeof(int), (void**)&spad);
         memset(virt_counts, 0, np*sizeof(int64_t));
         memset(old_virt_idx, 0, old_dist.order*sizeof(int64_t));
-        /* virt_rank = physical_rank*num_virtual_ranks + virtual_rank */
+        /* virt_rank = physical_rank + virtual_rank*num_phys_ranks */
         for (int i=0; i<old_dist.order; i++){ 
-          virt_rank[i] = old_dist.perank[i]*old_dist.virt_phase[i]; 
+          virt_rank[i] = old_dist.perank[i]; 
         }
         for (;;){
           memset(idx, 0, old_dist.order*sizeof(int64_t));
@@ -367,8 +355,7 @@ namespace CTF_int {
             if (old_virt_idx[dim] >= old_dist.virt_phase[dim])
               old_virt_idx[dim] = 0;
 
-            virt_rank[dim] = old_dist.perank[dim]*old_dist.virt_phase[dim]
-                                 +old_virt_idx[dim];
+            virt_rank[dim] = old_dist.perank[dim]+old_virt_idx[dim]*old_dist.phys_phase[dim];
     
             if (old_virt_idx[dim] > 0)
               break;  
@@ -1224,7 +1211,8 @@ namespace CTF_int {
         gidx_max = MIN(gidx_max, len_zero_max);
         for (idx[0] = idx_st;idx[0] < idx_max;idx[0]++){
           int virt_min = MAX(0,MIN(old_dist.virt_phase[0],(gidx_min-gidx[0])/old_dist.phys_phase[0]));
-          int virt_max = MAX(0,MIN(old_dist.virt_phase[0],(gidx_max-gidx[0])/old_dist.phys_phase[0]));
+          //int virt_min = MAX(0,MIN(old_dist.virt_phase[0],(gidx_min-gidx[0]+old_dist.phys_phase[0]-1)/old_dist.phys_phase[0]));
+          int virt_max = MAX(0,MIN(old_dist.virt_phase[0],(gidx_max-gidx[0]+old_dist.phys_phase[0]-1)/old_dist.phys_phase[0]));
 
           offset += old_virt_nelem*virt_min;
           if (forward){
@@ -2275,8 +2263,8 @@ namespace CTF_int {
         prc_idx = 0;
         for (i=0; i<order; i++){
           loc_idx += idx[i]*new_loc_lda[i];
-          blk_idx += ( idx[i] + new_dist.perank[i]*new_dist.virt_phase[i])                 *phase_lda[i];
-          prc_idx += ((idx[i] + new_dist.perank[i]*new_dist.virt_phase[i])/old_dist.virt_phase[i])*old_dist.pe_lda[i];
+          blk_idx += ( idx[i]*new_dist.phys_phase[i] + new_dist.perank[i])*phase_lda[i];
+          prc_idx += ((idx[i]*new_dist.phys_phase[i] + new_dist.perank[i])%old_dist.phys_phase[i])*old_dist.pe_lda[i];
         }
         DPRINTF(3,"proc %d receiving blk %d (loc %d, size %ld) from proc %d\n", 
                 glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx);
@@ -2302,8 +2290,8 @@ namespace CTF_int {
         prc_idx = 0;
         for (i=0; i<order; i++){
           loc_idx += idx[i]*old_loc_lda[i];
-          blk_idx += ( idx[i] + old_dist.perank[i]*old_dist.virt_phase[i])                 *phase_lda[i];
-          prc_idx += ((idx[i] + old_dist.perank[i]*old_dist.virt_phase[i])/new_dist.virt_phase[i])*new_dist.pe_lda[i];
+          blk_idx += ( idx[i]*old_dist.phys_phase[i] + old_dist.perank[i])*phase_lda[i];
+          prc_idx += ((idx[i]*old_dist.phys_phase[i] + old_dist.perank[i])%new_dist.phys_phase[i])*new_dist.pe_lda[i];
         }
         DPRINTF(3,"proc %d sending blk %d (loc %d size %ld) to proc %d el_size = %d\n", 
                 glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx, sr->el_size);

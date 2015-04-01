@@ -57,26 +57,26 @@ namespace CTF_int {
    * \param[in] sym symmetries of tensor
    * \param[in] padding padding of tensor (included in edge_len)
    * \param[in] phys_phase phase of the tensor on virtualized processor grid
-   * \param[in] virt_phase_rank physical phase rank multiplied by virtual phase
+   * \param[in] phase_rank physical phase rank multiplied by virtual phase
    * \param[in] virt_phase virtual phase in each dimension
    * \param[in] old_data array of input pairs
    * \param[out] new_pairs padded pairs
    * \param[out] new_size number of new padded pairs
    * \param[in] algstrct defines sizeo of each pair
    */
-  void pad_tsr(int              order,
+/*  void pad_tsr(int              order,
                int64_t          size,
                int const *      edge_len,
                int const *      sym,
                int const *      padding,
                int const *      phys_phase,
-               int *            virt_phys_rank,
+               int *            phase_rank,
                int const *      virt_phase,
                char const *     old_data,
                char **          new_pairs,
                int64_t *        new_size,
                algstrct const * sr);
-  
+  */
   /**
    * \brief sets to zero all values in padded region of tensor
    * \param[in] order tensor dimension
@@ -86,8 +86,9 @@ namespace CTF_int {
    * \param[in] sym symmetries of tensor
    * \param[in] padding how much of the edge lengths is padding
    * \param[in] phase phase of the tensor on virtualized processor grid
-   * \param[in] virt_dim virtual phase in each dimension
-   * \param[in] phase_rank physical phase rank multiplied by virtual phase
+   * \param[in] phys_phase phase of the tensor on virtualized processor grid
+   * \param[in] virt_phase virtual phase in each dimension
+   * \param[in] phase_rank physical phase rank 
    * \param[in,out] vdata array of all local data
    * \param[in] algstrct defines sizeo of each pair
    */
@@ -98,7 +99,8 @@ namespace CTF_int {
                      int const *      sym,
                      int const *      padding,
                      int const *      phase,
-                     int const *      virt_dim,
+                     int const *      phys_phase,
+                     int const *      virt_phase,
                      int const *      cphase_rank,
                      char *           vdata,
                      algstrct const * sr);

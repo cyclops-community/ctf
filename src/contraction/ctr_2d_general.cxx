@@ -64,32 +64,27 @@ namespace CTF_int {
                                    int64_t & s_A,
                                    int64_t & s_B,
                                    int64_t & s_C,
-                                   int64_t & db,
                                    int64_t & aux_size){
-    db = int64_t_max;
     b_A = 0, b_B = 0, b_C = 0;
     s_A = ctr_sub_lda_A*ctr_lda_A;
     s_B = ctr_sub_lda_B*ctr_lda_B;
     s_C = ctr_lda_C*ctr_sub_lda_C;
     if (move_A){
       b_A = edge_len/cdt_A->np;
-      db  = MIN(b_A, db);
     } 
     if (move_B){
       b_B = edge_len/cdt_B->np;
-      db  = MIN(b_B, db);
     }
     if (move_C){
       b_C = edge_len/cdt_C->np;
-      db  = MIN(b_C, db);
     }
 
-    aux_size = db*MAX(move_A*sr_A->el_size*s_A, MAX(move_B*sr_B->el_size*s_B, move_C*sr_C->el_size*s_C));
+    aux_size = MAX(move_A*sr_A->el_size*s_A, MAX(move_B*sr_B->el_size*s_B, move_C*sr_C->el_size*s_C));
   }
 
   double ctr_2d_general::est_time_fp(int nlyr) {
-    int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
-    find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size);
+    int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
+    find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     double est_bcast_time = 0.0;
     if (move_A)
       est_bcast_time += cdt_A->estimate_bcast_time(sr_A->el_size*s_A);
@@ -97,25 +92,17 @@ namespace CTF_int {
       est_bcast_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B);
     if (move_C)
       est_bcast_time += cdt_C->estimate_bcast_time(sr_C->el_size*s_C);
-    return (est_bcast_time*(double)db*edge_len/db)/MIN(nlyr,edge_len);
+    return (est_bcast_time*(double)edge_len)/MIN(nlyr,edge_len);
   }
 
   double ctr_2d_general::est_time_rec(int nlyr) {
-    int64_t db;
-    db = int64_t_max;
-    if (move_A)
-      db          = MIN(db,edge_len/cdt_A->np);
-    if (move_B)
-      db          = MIN(db,edge_len/cdt_B->np);
-    if (move_C)
-      db          = MIN(db,edge_len/cdt_C->np);
-    return (edge_len/db)*rec_ctr->est_time_rec(1) + est_time_fp(nlyr);
+    return edge_len*rec_ctr->est_time_rec(1) + est_time_fp(nlyr);
   }
 
   int64_t ctr_2d_general::mem_fp() {
-    int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
-    find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size);
-    return sr_A->el_size*s_A*db+sr_B->el_size*s_B*db+sr_C->el_size*s_C*db+aux_size;
+    int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
+    find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
+    return sr_A->el_size*s_A+sr_B->el_size*s_B+sr_C->el_size*s_C+aux_size;
   }
 
   int64_t ctr_2d_general::mem_rec() {
@@ -124,11 +111,11 @@ namespace CTF_int {
 
   void ctr_2d_general::run() {
     int owner_A, owner_B, owner_C, ret;
-    int64_t ib, c_A, c_B, c_C;
+    int64_t ib;
     char * buf_A, * buf_B, * buf_C, * buf_aux; 
     char * op_A, * op_B, * op_C; 
     int rank_A, rank_B, rank_C;
-    int64_t b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size;
+    int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
     if (move_A) rank_A = cdt_A->rank;
     if (move_B) rank_B = cdt_B->rank;
     if (move_C) rank_C = cdt_C->rank;
@@ -142,57 +129,41 @@ namespace CTF_int {
     rec_ctr->num_lyr      = 1;
     rec_ctr->idx_lyr      = 0;
     
-    find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, db, aux_size);
+    find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     
 #ifdef OFFLOAD
     if (alloc_host_buf){
-      host_pinned_alloc((void**)&buf_A, s_A*db*sr_A->el_size);
-      host_pinned_alloc((void**)&buf_B, s_B*db*sr_B->el_size);
-      host_pinned_alloc((void**)&buf_C, s_C*db*sr_C->el_size);
+      host_pinned_alloc((void**)&buf_A, s_A*sr_A->el_size);
+      host_pinned_alloc((void**)&buf_B, s_B*sr_B->el_size);
+      host_pinned_alloc((void**)&buf_C, s_C*sr_C->el_size);
 #endif
     if (0){
     } else {
-      ret = CTF_int::mst_alloc_ptr(s_A*db*sr_A->el_size, (void**)&buf_A);
+      ret = CTF_int::mst_alloc_ptr(s_A*sr_A->el_size, (void**)&buf_A);
       ASSERT(ret==0);
-      ret = CTF_int::mst_alloc_ptr(s_B*db*sr_B->el_size, (void**)&buf_B);
+      ret = CTF_int::mst_alloc_ptr(s_B*sr_B->el_size, (void**)&buf_B);
       ASSERT(ret==0);
-      ret = CTF_int::mst_alloc_ptr(s_C*db*sr_C->el_size, (void**)&buf_C);
+      ret = CTF_int::mst_alloc_ptr(s_C*sr_C->el_size, (void**)&buf_C);
       ASSERT(ret==0);
     }
     ret = CTF_int::mst_alloc_ptr(aux_size, (void**)&buf_aux);
     ASSERT(ret==0);
 
-    for (ib=this->idx_lyr*db; ib<edge_len; ib+=db*this->num_lyr){
+    for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
       if (move_A){
-        owner_A   = ib / b_A;
-        c_A       = MIN(((owner_A+1)*b_A-ib), db);
+        owner_A   = ib % cdt_A->np;
         if (rank_A == owner_A){
-          if (c_A == b_A){
+          if (b_A == 1){
             op_A = this->A;
           } else {
             op_A = buf_A;
-            sr_A->copy(ctr_sub_lda_A*c_A, ctr_lda_A, 
-                      this->A+sr_A->el_size*(ib%b_A)*ctr_sub_lda_A, ctr_sub_lda_A*b_A, 
-                      op_A, ctr_sub_lda_A*c_A);
+            sr_A->copy(ctr_sub_lda_A, ctr_lda_A, 
+                       this->A+sr_A->el_size*(ib/cdt_A->np)*ctr_sub_lda_A, ctr_sub_lda_A*b_A, 
+                       op_A, ctr_sub_lda_A);
           }
         } else
           op_A = buf_A;
-        //POST_BCAST(op_A, c_A*s_A*sr_A->el_size, MPI_CHAR, owner_A, cdt_A);
-        MPI_Bcast(op_A, c_A*s_A*sr_A->el_size, MPI_CHAR, owner_A, cdt_A->cm);
-        if (c_A < db){ /* If the required A block is cut between 2 procs */
-          if (rank_A == owner_A+1)
-            sr_A->copy(ctr_sub_lda_A*(db-c_A), ctr_lda_A,
-                      this->A, ctr_sub_lda_A*b_A, 
-                      buf_aux, ctr_sub_lda_A*(db-c_A));
-          MPI_Bcast(buf_aux, s_A*(db-c_A)*sr_A->el_size, MPI_CHAR, owner_A+1, cdt_A->cm);
-          coalesce_bwd(sr_A->el_size,
-                       buf_A, 
-                       buf_aux, 
-                       ctr_sub_lda_A*db, 
-                       ctr_lda_A, 
-                       ctr_sub_lda_A*c_A);
-          op_A = buf_A;
-        }
+        MPI_Bcast(op_A, s_A*sr_A->el_size, MPI_CHAR, owner_A, cdt_A->cm);
       } else {
         if (ctr_sub_lda_A == 0)
           op_A = this->A;
@@ -202,41 +173,26 @@ namespace CTF_int {
           else {
             op_A = buf_A;
             sr_A->copy(ctr_sub_lda_A, ctr_lda_A,
-                      this->A+sr_A->el_size*ib*ctr_sub_lda_A, ctr_sub_lda_A*edge_len, 
-                      buf_A, ctr_sub_lda_A);
+                       this->A+sr_A->el_size*ib*ctr_sub_lda_A, ctr_sub_lda_A*edge_len, 
+                       buf_A, ctr_sub_lda_A);
           }      
         }
       }
       if (move_B){
-        owner_B   = ib / b_B;
-        c_B       = MIN(((owner_B+1)*b_B-ib), db);
+        owner_B   = ib % cdt_B->np;
         if (rank_B == owner_B){
-          if (c_B == b_B){
+          if (b_B == 1){
             op_B = this->B;
           } else {
             op_B = buf_B;
-            sr_B->copy(ctr_sub_lda_B*c_B, ctr_lda_B,
-                      this->B+sr_B->el_size*(ib%b_B)*ctr_sub_lda_B, ctr_sub_lda_B*b_B, 
-                      op_B, ctr_sub_lda_B*c_B);
+            sr_B->copy(ctr_sub_lda_B, ctr_lda_B,
+                       this->B+sr_B->el_size*(ib/cdt_B->np)*ctr_sub_lda_B, ctr_sub_lda_B*b_B, 
+                       op_B, ctr_sub_lda_B);
           }
         } else 
           op_B = buf_B;
 //        printf("c_B = %ld, s_B = %ld, d_B = %ld, b_B = %ld\n", c_B, s_B,db, b_B);
-        MPI_Bcast(op_B, c_B*s_B*sr_B->el_size, MPI_CHAR, owner_B, cdt_B->cm);
-        if (c_B < db){ /* If the required B block is cut between 2 procs */
-          if (rank_B == owner_B+1)
-            sr_B->copy(ctr_sub_lda_B*(db-c_B), ctr_lda_B,
-                      this->B, ctr_sub_lda_B*b_B, 
-                      buf_aux, ctr_sub_lda_B*(db-c_B)); 
-          MPI_Bcast(buf_aux, s_B*(db-c_B)*sr_B->el_size, MPI_CHAR, owner_B+1, cdt_B->cm);
-          coalesce_bwd(sr_B->el_size,
-                       buf_B, 
-                       buf_aux, 
-                       ctr_sub_lda_B*db, 
-                       ctr_lda_B, 
-                       ctr_sub_lda_B*c_B);
-          op_B = buf_B;
-        }
+        MPI_Bcast(op_B, s_B*sr_B->el_size, MPI_CHAR, owner_B, cdt_B->cm);
       } else {
         if (ctr_sub_lda_B == 0)
           op_B = this->B;
@@ -246,8 +202,8 @@ namespace CTF_int {
           } else {
             op_B = buf_B;
             sr_B->copy(ctr_sub_lda_B, ctr_lda_B,
-                      this->B+sr_B->el_size*ib*ctr_sub_lda_B, ctr_sub_lda_B*edge_len, 
-                      buf_B, ctr_sub_lda_B);
+                       this->B+sr_B->el_size*ib*ctr_sub_lda_B, ctr_sub_lda_B*edge_len, 
+                       buf_B, ctr_sub_lda_B);
           }      
         }
       }
@@ -276,28 +232,20 @@ namespace CTF_int {
 
       if (move_C){
         /* FIXME: Wont work for single precsion */
-        MPI_Allreduce(MPI_IN_PLACE, op_C, db*s_C, sr_C->mdtype(), sr_C->addmop(), cdt_C->cm);
-        owner_C   = ib / b_C;
-        c_C       = MIN(((owner_C+1)*b_C-ib), db);
+        MPI_Allreduce(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), cdt_C->cm);
+        owner_C   = ib % cdt_C->np;
         if (rank_C == owner_C){
-          sr_C->copy(ctr_sub_lda_C*c_C, ctr_lda_C,
-                    op_C, ctr_sub_lda_C*db, sr_C->mulid(),
-                    this->C+sr_C->el_size*(ib%b_C)*ctr_sub_lda_C, 
-                    ctr_sub_lda_C*b_C, this->beta);
-        }
-        if (c_C < db){ /* If the required B block is cut between 2 procs */
-          if (rank_C == owner_C+1)
-            sr_C->copy(ctr_sub_lda_C*(db-c_C), ctr_lda_C,
-                      op_C+sr_C->el_size*ctr_sub_lda_C*c_C,
-                      ctr_sub_lda_C*db, sr_C->mulid(),
-                      this->C, ctr_sub_lda_C*b_C, this->beta);
+          sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
+                     op_C, ctr_sub_lda_C, sr_C->mulid(),
+                     this->C+sr_C->el_size*(ib/cdt_C->np)*ctr_sub_lda_C, 
+                     ctr_sub_lda_C*b_C, this->beta);
         }
       } else {
         if (ctr_sub_lda_C != 0)
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
-                    buf_C, ctr_sub_lda_C, sr_C->mulid(), 
-                    this->C+sr_C->el_size*ib*ctr_sub_lda_C, 
-                    ctr_sub_lda_C*edge_len, this->beta);
+                     buf_C, ctr_sub_lda_C, sr_C->mulid(), 
+                     this->C+sr_C->el_size*ib*ctr_sub_lda_C, 
+                     ctr_sub_lda_C*edge_len, this->beta);
       }
       rec_ctr->beta = sr_C->mulid();
     }
