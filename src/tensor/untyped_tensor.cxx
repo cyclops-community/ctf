@@ -11,6 +11,8 @@
 #include "../redistribution/pad.h"
 #include "../redistribution/folding.h"
 #include "../redistribution/redist.h"
+#include "../redistribution/cyclic_reshuffle.h"
+#include "../redistribution/glb_cyclic_reshuffle.h"
 
 
 using namespace CTF;

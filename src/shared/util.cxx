@@ -72,7 +72,7 @@ namespace CTF_int {
   void calc_idx_arr(int         order,
                     int const * lens,
                     int const * sym,
-                    int64_t    idx,
+                    int64_t     idx,
                     int *       idx_arr){
     int64_t idx_rem = idx;
     memset(idx_arr, 0, order*sizeof(int));
@@ -116,6 +116,56 @@ namespace CTF_int {
     }
     ASSERT(idx_rem == 0);
   }
+
+
+  void sy_calc_idx_arr(int         order,
+                       int const * lens,
+                       int const * sym,
+                       int64_t     idx,
+                       int *       idx_arr){
+    int64_t idx_rem = idx;
+    memset(idx_arr, 0, order*sizeof(int));
+    for (int dim=order-1; dim>=0; dim--){
+      if (idx_rem == 0) break;
+      if (dim == 0 || sym[dim-1] == NS){
+        int64_t lda = sy_packed_size(dim, lens, sym);
+        idx_arr[dim] = idx_rem/lda;
+        idx_rem -= idx_arr[dim]*lda;
+      } else {
+        int plen[dim+1];
+        memcpy(plen, lens, (dim+1)*sizeof(int));
+        int sg = 2;
+        int fsg = 2;
+        while (dim >= sg && sym[dim-sg] != NS) { sg++; fsg*=sg; }
+        int64_t lda = sy_packed_size(dim-sg+1, lens, sym);
+        double fsg_idx = (((double)idx_rem)*fsg)/lda;
+        int kidx = (int)pow(fsg_idx,1./sg);
+        //if (sym[dim-1] != SY) 
+        kidx += sg+1;
+        int mkidx = kidx;
+  #if DEBUG >= 1
+        for (int idim=dim-sg+1; idim<=dim; idim++){
+          plen[idim] = mkidx+1;
+        }
+        int64_t smidx = sy_packed_size(dim+1, plen, sym);
+        ASSERT(smidx > idx_rem);
+  #endif
+        int64_t midx = 0;
+        for (; mkidx >= 0; mkidx--){
+          for (int idim=dim-sg+1; idim<=dim; idim++){
+            plen[idim] = mkidx;
+          }
+          midx = sy_packed_size(dim+1, plen, sym);
+          if (midx <= idx_rem) break;
+        }
+        if (midx == 0) mkidx = 0;
+        idx_arr[dim] = mkidx;
+        idx_rem -= midx;
+      }
+    }
+    ASSERT(idx_rem == 0);
+  }
+
 
   void factorize(int n, int *nfactor, int **factor){
     int tmp, nf, i;

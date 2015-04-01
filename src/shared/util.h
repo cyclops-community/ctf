@@ -246,6 +246,14 @@ namespace CTF_int {
                     int const * sym,
                     int64_t     idx,
                     int *       idx_arr);
+
+  /** \brief same as above except assumes sym only NS or SY **/
+  void sy_calc_idx_arr(int         order,
+                       int const * lens,
+                       int const * sym,
+                       int64_t     idx,
+                       int *       idx_arr);
+
   /**
    * \brief computes the size of a tensor in packed symmetric layout
    * \param[in] n a positive number
