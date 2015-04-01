@@ -158,7 +158,7 @@ namespace CTF_int {
                       int const *          virt_edge_len,
                       int const *          virt_phase_lda,
                       int64_t              vbs,
-                      int                  dir,
+                      bool                 dir,
                       char const *         tsr_data_in,
                       char *               tsr_data_out,
                       algstrct const *     sr);

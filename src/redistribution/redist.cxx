@@ -735,8 +735,8 @@ namespace CTF_int {
             count[bucket]+=(idx1-idx0+rep_phase0-1)/rep_phase0;
 #if DEBUG>=1
             printf("[%d] gidx[0]=%d,gidx_min=%d,idx0=%d,gidx_max=%d,idx1=%d,bucket=%d,len=%d\n",rank,gidx[0],gidx_min,idx0,gidx_max,idx1,bucket,(idx1-idx0+rep_phase0-1)/rep_phase0);
-            idx0++;
 #endif
+            idx0++;
           }
         } else {
           for (int ia=0; ia<lencp; ia++){
@@ -1407,14 +1407,14 @@ namespace CTF_int {
   }
 
   static inline
-  int64_t sy_packed_offset(int dim, int const * len, int const * idx, int const * sym){
-    if (idx[dim] == 0) return 0;
+  int64_t sy_packed_offset(int dim, int const * len, int idx, int const * sym){
+    if (idx == 0) return 0;
     if (sym[dim-1] == NS){
-      return sy_packed_size(dim, len, sym)*idx[dim];
+      return sy_packed_size(dim, len, sym)*idx;
     } else {
       int i=1;
       int ii=1;
-      int iidx = idx[dim];
+      int iidx = idx;
       int64_t offset = iidx;
       do {
         i++;
@@ -1427,16 +1427,112 @@ namespace CTF_int {
     }
   }
 
+  template <int idim>
+  void ord_glb(int const *          sym,
+               distribution const & dist,
+               int const *          virt_edge_len,
+               int const *          virt_phase_lda,
+               int64_t              vbs,
+               bool                 dir,
+               char const *         tsr_data_in,
+               char *               tsr_data_out,
+               algstrct const *     sr,
+               int                  prev_idx=0,
+               int64_t              glb_ord_offset=0,
+               int64_t              blk_ord_offset=0){
+   
+    int imax=virt_edge_len[idim];
+    if (sym[idim] != NS) imax = prev_idx+1;
+    int vp_stride = virt_phase_lda[idim]*dist.virt_phase[idim];
+    for (int i=0; i<imax; i++){
+      int64_t dim_offset = sy_packed_offset(idim, virt_edge_len, i, sym);
+      int64_t i_blk_ord_offset = blk_ord_offset + dim_offset;
+      int64_t i_glb_ord_offset = glb_ord_offset + dim_offset*vp_stride;
+      for (int v=0; v<dist.virt_phase[idim]; v++){
+        int64_t iv_blk_ord_offset = i_blk_ord_offset + v*virt_phase_lda[idim]*vbs;
+        int64_t iv_glb_ord_offset = i_glb_ord_offset;
+        if (v>0){
+          int64_t glb_vrt_offset = sy_packed_offset(idim, virt_edge_len, i+1, sym);
+          iv_glb_ord_offset += (glb_vrt_offset-dim_offset)*virt_phase_lda[idim]*v;
+        }
+        ord_glb<idim-1>(sym, dist, virt_edge_len, virt_phase_lda, vbs, dir, tsr_data_in, tsr_data_out, sr, i, iv_glb_ord_offset, iv_blk_ord_offset);
+      }
+    }
+  }
+  template <>
+  inline void ord_glb<0>(int const *          sym,
+                         distribution const & dist,
+                         int const *          virt_edge_len,
+                         int const *          virt_phase_lda,
+                         int64_t              vbs,
+                         bool                 dir,
+                         char const *         tsr_data_in,
+                         char *               tsr_data_out,
+                         algstrct const *     sr,
+                         int                  prev_idx,
+                         int64_t              glb_ord_offset,
+                         int64_t              blk_ord_offset){
+    int imax=virt_edge_len[0];
+    if (sym[0] != NS) imax = prev_idx+1;
+    for (int v=0; v<dist.virt_phase[0]; v++){
+      if (dir){
+        sr->copy(imax, tsr_data_in  + sr->el_size*(blk_ord_offset+v*vbs), 1, 
+                       tsr_data_out + sr->el_size*(glb_ord_offset+v), dist.virt_phase[0]);
+      } else {
+        sr->copy(imax, tsr_data_in  + sr->el_size*(glb_ord_offset+v), dist.virt_phase[0], 
+                       tsr_data_out + sr->el_size*(blk_ord_offset+v*vbs), 1);
+      }
+    }
+  }
+
+  template 
+  void ord_glb<7>(int const *          sym,
+                  distribution const & dist,
+                  int const *          virt_edge_len,
+                  int const *          virt_phase_lda,
+                  int64_t              vbs,
+                  bool                 dir,
+                  char const *         tsr_data_in,
+                  char *               tsr_data_out,
+                  algstrct const *     sr,
+                  int                  prev_idx,
+                  int64_t              glb_ord_offset,
+                  int64_t              blk_ord_offset);
+
+
+
+#define CASE_ORD_GLB(n)                                                                      \
+  case n:                                                                                    \
+    ord_glb<n-1>(sym,dist,virt_edge_len,virt_phase_lda,vbs,dir,tsr_data_in,tsr_data_out,sr); \
+    break;                                                   
+
   void order_globally(int const *          sym,
                       distribution const & dist,
                       int const *          virt_edge_len,
                       int const *          virt_phase_lda,
                       int64_t              vbs,
-                      int                  dir,
+                      bool                 dir,
                       char const *         tsr_data_in,
                       char *               tsr_data_out,
                       algstrct const *     sr){
     TAU_FSTART(order_globally);
+    if (dist.order <= 8){
+      switch (dist.order){
+        CASE_ORD_GLB(1)
+        CASE_ORD_GLB(2)
+        CASE_ORD_GLB(3)
+        CASE_ORD_GLB(4)
+        CASE_ORD_GLB(5)
+        CASE_ORD_GLB(6)
+        CASE_ORD_GLB(7)
+        CASE_ORD_GLB(8)
+        default:
+          assert(0);
+          break;
+      }
+      TAU_FSTOP(order_globally);
+      return;
+    }
     int order = dist.order;
     int * virt_idx = (int*)alloc(order*sizeof(int));
     int * idx = (int*)alloc(order*sizeof(int));
@@ -1452,7 +1548,7 @@ namespace CTF_int {
         int64_t blk_ord_offset = virt_idx[0]*vbs;
         for (int idim=1; idim<order; idim++){
           //calculate offset within virtual block
-          int64_t dim_offset = sy_packed_offset(idim, virt_edge_len, idx, sym);
+          int64_t dim_offset = sy_packed_offset(idim, virt_edge_len, idx[idim], sym);
           //when each virtual block is stored contiguously, this is the offset within the glock
           blk_ord_offset += dim_offset;
           blk_ord_offset += virt_idx[idim]*virt_phase_lda[idim]*vbs;
@@ -1465,10 +1561,8 @@ namespace CTF_int {
         //if (_rank == 0)
         //  printf("idim = %d, idx[idim] = %d blk_ord_offset = %ld glb_ord_offset = %ld\n",idim,idx[idim],blk_ord_offset,glb_ord_offset);
           if (virt_idx[idim] > 0){
-            idx[idim]++;
-            int64_t glb_vrt_offset = sy_packed_offset(idim, virt_edge_len, idx, sym);
+            int64_t glb_vrt_offset = sy_packed_offset(idim, virt_edge_len, idx[idim]+1, sym);
             glb_ord_offset += (glb_vrt_offset-dim_offset)*virt_phase_lda[idim]*virt_idx[idim];
-            idx[idim]--;
        // if (_rank == 0)
         //  printf("idim = %d virt add glb_ord_offset = %ld\n",idim,glb_ord_offset);
           }
@@ -1541,6 +1635,8 @@ namespace CTF_int {
       } while (!exit);
       if (finish) break;
     }
+    cfree(idx);
+    cfree(virt_idx);
     TAU_FSTOP(order_globally);
   }
 
@@ -2119,6 +2215,8 @@ namespace CTF_int {
 
     if (reuse_buffers)
       sr->set(tsr_cyclic_data, sr->addid(), swp_nval);
+    else
+      cfree(send_buffer);
     TAU_FSTART(unpack_virt_buf);
     /* Deserialize data into correctly ordered virtual sub blocks */
     if (recv_displs[ord_glb_comm.np-1] + recv_counts[ord_glb_comm.np-1] > 0){
@@ -2171,6 +2269,7 @@ namespace CTF_int {
     }
     TAU_FSTOP(unpack_virt_buf);
 
+    if (!reuse_buffers) cfree(recv_buffer);
     *ptr_tsr_cyclic_data = tsr_cyclic_data;
     *ptr_tsr_data = tsr_data;
 

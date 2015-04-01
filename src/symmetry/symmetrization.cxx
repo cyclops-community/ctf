@@ -300,6 +300,7 @@ namespace CTF_int {
             summation csum(nonsym_tsr, idx_map_A, ksign,
                               sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
             csum.sum_tensors(0);
+            cfree(ksign);
   
       //    print_tsr(stdout, sym_tid);
           idx_map_A[sym_dim] = sym_dim;

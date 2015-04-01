@@ -271,7 +271,9 @@ namespace CTF_int {
         CTF_BLAS::ZCOPY(&n, (std::complex<double> const*)a, &inc_a, (std::complex<double>*)b, &inc_b);
         break;
       default:
+#ifdef USE_OMP
         #pragma omp parallel for
+#endif
         for (int i=0; i<n; i++){
           copy(b+el_size*inc_a*i, a+el_size*inc_b*i);
         }
@@ -513,7 +515,9 @@ namespace CTF_int {
       default:
         //Causes a bogus uninitialized variable warning with GNU
         CompPtrPair ptr_pairs[n];
-        #pragma omp parallel
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
         for (int64_t i=0; i<n; i++){
           ptr_pairs[i].key = *(int64_t*)(ptr+i*(sizeof(int64_t)+sr->el_size));
           ptr_pairs[i].idx = i;
@@ -523,7 +527,9 @@ namespace CTF_int {
     
         memcpy(swap_buffer, ptr, (sizeof(int64_t)+sr->el_size)*n);
         
-        #pragma omp parallel
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
         for (int64_t i=0; i<n; i++){
           memcpy(ptr+i*(sizeof(int64_t)+sr->el_size), 
                  swap_buffer+ptr_pairs[i].idx*(sizeof(int64_t)+sr->el_size),
@@ -567,7 +573,9 @@ namespace CTF_int {
         break;
       default: {
         int64_t keys[n];
-        #pragma omp parallel
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
         for (int64_t i=0; i<n; i++){
           keys[i] = (*this)[i].k();
         }
