@@ -304,7 +304,7 @@ void calc_cnt_displs_old(int const          ndim,
                               tmp1,tmp2,skip) num_threads (max_ntd)
       {
       int start_ldim, end_ldim, i_st, vc;
-      int * virt_counts;
+      long_int * virt_counts;
       int * old_virt_idx, * virt_rank;
       int * idx;
       long_int * idx_offs;
@@ -322,7 +322,7 @@ void calc_cnt_displs_old(int const          ndim,
 #else
       {
       int start_ldim, end_ldim, i_st, vc;
-      int * virt_counts;
+      long_int * virt_counts;
       long_int * old_virt_idx, * virt_rank;
       long_int * idx;
       long_int * idx_offs;
@@ -488,7 +488,7 @@ void calc_cnt_displs_old(int const          ndim,
     }
   } else
     memset(all_virt_counts, 0, sizeof(long_int)*nbuf);
-  int * virt_counts = all_virt_counts;
+  long_int * virt_counts = all_virt_counts;
   long_int * idx;
   long_int * idx_offs;
 
