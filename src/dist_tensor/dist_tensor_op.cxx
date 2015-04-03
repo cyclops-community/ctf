@@ -1402,7 +1402,7 @@ ctr<dtype> * dist_tensor<dtype>::
           *rec_ctr = ctr_gen;
         }
         if (bottom_ctr_gen == NULL)
-          bottom_ctr_gen == ctr_gen;
+          bottom_ctr_gen = ctr_gen;
         rec_ctr = &ctr_gen->rec_ctr;
       } else {
         ctr_gen->rec_ctr = NULL;
