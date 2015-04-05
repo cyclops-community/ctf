@@ -91,6 +91,95 @@ namespace CTF_int {
     TAU_FSTOP(nosym_transpose);
   }
 
+#define CACHELINE 16
+
+  template <int idim>
+  void nosym_transpose_opt(int const *      new_order,
+                           int const *      edge_len,
+                           char const *     data,
+                           char *           swap_data,
+                           int              dir,
+                           int              idx_new_lda1,
+                           int64_t *        chunk_size,
+                           int64_t const *  lda,
+                           int64_t const *  new_lda,
+                           int64_t          off_old,
+                           int64_t          off_new,
+                           int              i_new_lda1,
+                           algstrct const * sr){
+    if (idim == idx_new_lda1){
+      for (int i=0; i<edge_len[idim]; i+=CACHELINE){
+        nosym_transpose_opt<idim-1>(new_order, edge_len, data, swap_data, dir, idx_new_lda1, chunk_size, lda, new_lda, off_old+i*lda[idim], off_new+i, i, sr);
+      }
+    } else {
+      for (int i=0; i<edge_len[idim]; i++){
+        nosym_transpose_opt<idim-1>(new_order, edge_len, data, swap_data, dir, idx_new_lda1, chunk_size, lda, new_lda, off_old+i*lda[idim], off_new+i*new_lda[idim], i_new_lda1, sr);
+      }
+    }
+  }
+
+  template <> 
+  inline void nosym_transpose_opt<0>(int const *      new_order,
+                                     int const *      edge_len,
+                                     char const *     data,
+                                     char *           swap_data,
+                                     int              dir,
+                                     int              idx_new_lda1,
+                                     int64_t *        chunk_size,
+                                     int64_t const *  lda,
+                                     int64_t const *  new_lda,
+                                     int64_t          off_old,
+                                     int64_t          off_new,
+                                     int              i_new_lda1,
+                                     algstrct const * sr){
+    //FIXME: prealloc?
+    char buf[sr->el_size*CACHELINE*CACHELINE];
+
+    if (dir) {
+      int new_lda1_n = std::min(edge_len[idx_new_lda1]-i_new_lda1*CACHELINE,CACHELINE);
+      for (int i=0; i<edge_len[0]-CACHELINE+1; i+=CACHELINE){
+        for (int j=0; j<new_lda1_n; j++){
+          sr->copy(CACHELINE, data+sr->el_size*(off_old+j*lda[idx_new_lda1]+i), 1, buf, 1);
+        }
+        for (int j=0; j<CACHELINE; j++){
+          sr->copy(new_lda1_n, buf, CACHELINE, swap_data+sr->el_size*(off_new+(i+j)*new_lda[0]), 1);
+        }
+      }
+      int lda1_n = edge_len[0]%CACHELINE;
+      for (int j=0; j<new_lda1_n; j++){
+        sr->copy(lda1_n, data+sr->el_size*(off_old+j)*lda[idx_new_lda1]+edge_len[0]-lda1_n, 1, buf, 1);
+      }
+      for (int j=0; j<lda1_n; j++){
+        sr->copy(new_lda1_n, buf, lda1_n, swap_data+sr->el_size*(off_new+(edge_len[0]-lda1_n+j)*new_lda[0]), 1);
+      }
+    } else {
+      int new_lda1_n = std::max(edge_len[idx_new_lda1]-i_new_lda1*CACHELINE,CACHELINE);
+      for (int i=0; i<edge_len[0]; i+=CACHELINE){
+        int lda1_n = std::max(edge_len[0]-i*CACHELINE,CACHELINE);
+        for (int j=0; j<lda1_n; j++){
+          sr->copy(new_lda1_n, data+sr->el_size*(off_new+j*new_lda[0]+i), 1, buf, 1);
+        }
+        for (int j=0; j<new_lda1_n; j++){
+          sr->copy(lda1_n, buf, new_lda1_n, swap_data+sr->el_size*(off_old+(i+j)*lda[idx_new_lda1]), 1);
+        }
+      }
+    }
+  }
+
+  template
+  void nosym_transpose_opt<8>(int const *      new_order,
+                              int const *      edge_len,
+                              char const *     data,
+                              char *           swap_data,
+                              int              dir,
+                              int              idx_new_lda1,
+                              int64_t *        chunk_size,
+                              int64_t const *  lda,
+                              int64_t const *  new_lda,
+                              int64_t          off_old,
+                              int64_t          off_new,
+                              int              i_new_lda1,
+                              algstrct const * sr);
 
   void nosym_transpose(int              order,
                        int const *      new_order,
@@ -125,6 +214,24 @@ namespace CTF_int {
     for (j=1; j<order; j++){
       new_lda[new_order[j]] = new_lda[new_order[j-1]]*edge_len[new_order[j-1]];
     }
+/*
+    if (order <= 8){
+      int idx_new_lda1 = -1;
+      for (int i=0; i<order; i++){
+        if(new_order[i] == 0){
+          idx_new_lda1 = i;
+          break;
+        }
+      }
+      switch (order){
+        case 1:
+        nosym_transpose_opt<0>(new_order,edge_len,data,tswap_data[0],dir,idx_new_lda1,&local_size,lda,new_lda,0,0,0,sr);
+        break;
+      }
+    }
+*/
+
+
     ASSERT(local_size == new_lda[new_order[order-1]]*edge_len[new_order[order-1]]);
   #ifdef USE_OMP
     #pragma omp parallel num_threads(max_ntd)
@@ -220,5 +327,6 @@ namespace CTF_int {
     CTF_int::cfree(new_lda);
     TAU_FSTOP(nosym_transpose_thr);
   }
-}
 
+
+}
