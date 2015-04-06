@@ -71,13 +71,11 @@ namespace CTF_int {
                        algstrct const * sr);
 
   template <int idim>
-  void nosym_transpose_opt(int const *      new_order,
-                           int const *      edge_len,
+  void nosym_transpose_opt(int const *      edge_len,
                            char const *     data,
                            char *           swap_data,
                            int              dir,
-                           int              idx_new_lda1,
-                           int64_t *        chunk_size,
+                           int              idim_new_lda1,
                            int64_t const *  lda,
                            int64_t const *  new_lda,
                            int64_t          off_old,

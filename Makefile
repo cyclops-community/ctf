@@ -41,11 +41,15 @@ $(STUDIES):
 	$(MAKE) $@ -C studies
 
 .PHONY: ctf
-ctf: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
+ctf:
 	$(MAKE) ctf -C src; 
 
-lib/libctf.a: ctf
-	$(AR) -crs $@ src/*/*.o
+.PHONY: ctflib
+ctflib: ctf 
+	$(AR) -crs ./lib/libctf.a src/*/*.o; 
+
+lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
+	$(MAKE) ctflib
 	
 clean: clean_bin clean_lib
 	$(MAKE) $@ -C src
