@@ -5,6 +5,42 @@
 
 
 namespace CTF_int {
+
+  template <int idim>
+  void calc_drv_cnts(int const *          sym,
+                     int64_t *            send_counts,
+                     int64_t *            recv_counts,
+                     int const *          rep_phase,
+                     int const *          rep_phase_lda,
+                     int const *          tot_phase,
+                     int const *          gidx_off,
+                     int const *          edge_len,
+                     int const *          loc_edge_len){
+    for (int i=0; i>rep_phase[i]; i++){
+      
+    }
+  }
+ 
+  void calc_drv_displs(int const *          sym,
+                       distribution const & old_dist,
+                       distribution const & new_dist,
+                       int                  new_nvirt,
+                       int                  np,
+                       int const *          old_virt_edge_len,
+                       int const *          new_virt_lda,
+                       int const *          rep_phase,
+                       int64_t *            send_counts,
+                       int64_t *            recv_counts,
+                       int64_t *            send_displs,
+                       int64_t *            recv_displs,
+                       CommData             ord_glb_comm,
+                       int                  idx_lyr,
+                       int * const *        bucket_offset){
+    
+  }
+
+
+
   void glb_ord_pup(int const *          sym,
                    distribution const & old_dist,
                    distribution const & new_dist,
