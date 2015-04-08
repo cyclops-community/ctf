@@ -1535,49 +1535,12 @@ namespace CTF_int {
 #endif
 
     if (can_block_shuffle){
-/*      block_reshuffle( this->order,
-                       old_phase,
-                       old_size,
-                       old_virt_dim,
-                       old_rank,
-                       old_pe_lda,
-                       this->size,
-                       new_virt_dim,
-                       new_rank,
-                       new_pe_lda,
-                       this->data,
-                       shuffled_data,
-                       wrld->cdt);*/
       block_reshuffle(old_dist, new_dist, this->data, shuffled_data, sr, wrld->cdt);
     } else {
       //cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
 //    padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data, sr, wrld->cdt);
       glb_cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
   //    CTF_int::alloc_ptr(sizeof(dtype)*this->size, (void**)&shuffled_data);
-/*      cyclic_reshuffle(this->order,
-                       old_size,
-                       old_edge_len,
-                       this->sym,
-                       old_phase,
-                       old_rank,
-                       old_pe_lda,
-                       old_padding,
-                       old_offsets,
-                       old_permutation,
-                       this->edge_len,
-                       new_phase,
-                       new_rank,
-                       new_pe_lda,
-                       this->padding,
-                       new_offsets,
-                       new_permutation,
-                       old_virt_dim,
-                       new_virt_dim,
-                       &this->data,
-                       &shuffled_data,
-                       wrld->cdt,
-                       was_cyclic,
-                       this->is_cyclic, 1, get_one<dtype>(), get_zero<dtype>());*/
     }
 
     CTF_int::cfree((void*)this->data);

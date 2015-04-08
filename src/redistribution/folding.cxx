@@ -2,6 +2,11 @@
 #include "../shared/util.h"
 
 namespace CTF_int {
+
+#ifndef USE_OMP
+//#define OPT_NOSYM_TR
+#endif
+
   void permute(int          order,
                int const *  perm,
                int *        arr){
@@ -96,7 +101,7 @@ namespace CTF_int {
     TAU_FSTOP(nosym_transpose);
   }
 
-#ifndef USE_OMP
+#ifdef OPT_NOSYM_TR
 #define CACHELINE 8
 
   template <int idim>
@@ -323,6 +328,7 @@ namespace CTF_int {
       }
     }
   }
+
   template
   void nosym_transpose_opt<8>(int const *      edge_len,
                               char const *     data,
@@ -372,7 +378,7 @@ namespace CTF_int {
       new_lda[new_order[j]] = new_lda[new_order[j-1]]*edge_len[new_order[j-1]];
     }
     ASSERT(local_size == new_lda[new_order[order-1]]*edge_len[new_order[order-1]]);
-#ifndef USE_OMP
+#if NOSYM_TR_OPT 
     if (order <= 8){
       int idim_new_lda1 = new_order[0];
       CTF_int::alloc_ptr(local_size*sr->el_size, (void**)&tswap_data[0]);

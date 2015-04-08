@@ -348,7 +348,7 @@ echo -n 'Checking availability of C++11... '
 if testcpp11 0; then
   echo 'successful.'
 else
-  if ["$NERSC_HOST" = "edison" ]; then
+  if [ "$NERSC_HOST" = "edison" ]; then
     echo 'FAILED! error below, try using module load gcc/4.8.2:'
     echo
     testcpp11 1
