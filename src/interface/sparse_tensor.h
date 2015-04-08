@@ -2,7 +2,11 @@
 #define __SPARSE_TENSOR_H__
 
 namespace CTF {
-  
+  /**
+   * \defgroup CTF CTF Tensor
+   * \addtogroup CTF
+   * @{
+   */
   /**
    * \brief a sparse subset of a tensor 
    */
@@ -73,6 +77,9 @@ namespace CTF {
       operator std::vector<dtype>();
       operator dtype*();
   };
+  /**
+   * @}
+   */
 }
 
 #include "sparse_tensor.cxx"

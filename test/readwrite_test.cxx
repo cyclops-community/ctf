@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup readwrite_test
+  * \defgroup readwrite_test readwrite_test
   * @{ 
   * \brief Tests how writes to diagonals are handled for various tensors
   */
@@ -185,5 +185,8 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
-
+/**
+ * @}
+ * @}
+ */
 #endif

@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup studies
   * @{ 
-  * \defgroup fast_sym 
+  * \defgroup fast_sym  fast_sym 
   * @{ 
   * \brief A clever way to multiply symmetric matrices
   */

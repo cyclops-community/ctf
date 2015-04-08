@@ -205,10 +205,10 @@ namespace CTF_int {
         mst_buffer_used = mst_buffer_used - it->len;
         mst.erase(it);
       } else {
-        printf("CTF CTF::ERROR: Invalid mst free of pointer %p\n", ptr);
+        printf("CTF CTF_int::ERROR: Invalid mst free of pointer %p\n", ptr);
   //      free(ptr);
         ABORT;
-        return CTF::ERROR;
+        return CTF_int::ERROR;
       }
     }
     if (mst.size() > 0)
@@ -216,7 +216,7 @@ namespace CTF_int {
     else
       mst_buffer_ptr = 0;
     //printf("freed block, mst_buffer_ptr = " PRId64 "\n", mst_buffer_ptr);
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
   /**
@@ -252,10 +252,10 @@ namespace CTF_int {
                 mst_buffer_size, mst_buffer_ptr, (int)mst.size(), mst_buffer_used);
         alloc_ptr(len, ptr);
       }
-      return CTF::SUCCESS;
+      return CTF_int::SUCCESS;
     }
 #endif
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
   /**
@@ -265,7 +265,7 @@ namespace CTF_int {
   void * mst_alloc(int64_t const len){
     void * ptr;
     int ret = mst_alloc_ptr(len, &ptr);
-    ASSERT(ret == CTF::SUCCESS);
+    ASSERT(ret == CTF_int::SUCCESS);
     return ptr;
   }
 
@@ -299,12 +299,12 @@ namespace CTF_int {
   //  printf("pushed pointer %p to stack %d\n", *ptr, tid);
   #endif
     if (pm){
-      printf("CTF CTF::ERROR: posix memalign returned an error, " PRId64 " memory alloced on this process, wanted to alloc " PRId64 " more\n",
+      printf("CTF CTF_int::ERROR: posix memalign returned an error, " PRId64 " memory alloced on this process, wanted to alloc " PRId64 " more\n",
               mem_used[0], len);
     }
     ASSERT(pm == 0);
 #endif
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
 
   }
 
@@ -315,7 +315,7 @@ namespace CTF_int {
   void * alloc(int64_t const len){
     void * ptr;
     int ret = alloc_ptr(len, &ptr);
-    ASSERT(ret == CTF::SUCCESS);
+    ASSERT(ret == CTF_int::SUCCESS);
     return ptr;
   }
 
@@ -342,13 +342,13 @@ namespace CTF_int {
       }
     }
     if (!found){
-      printf("CTF CTF::ERROR: failed memory untag\n");
+      printf("CTF CTF_int::ERROR: failed memory untag\n");
       ABORT;
-      return CTF::ERROR;
+      return CTF_int::ERROR;
     }
     mem_used[0] -= len;
   #endif
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
     
@@ -381,14 +381,14 @@ namespace CTF_int {
       }
     }
     if (!found){
-      return CTF::NEGATIVE;
+      return CTF_int::NEGATIVE;
     }
     mem_used[tid] -= len;
   #endif
     //printf("mem_used down to " PRId64 " stack to %d\n",mem_used,mem_stack->size());
     free(ptr);
 #endif
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
   /**
@@ -397,7 +397,7 @@ namespace CTF_int {
    */
   int cfree_cond(void * ptr){
   //#ifdef PRODUCTION
-    return CTF::SUCCESS; //FIXME This function is not to be trusted due to potential allocations of 0 bytes!!!@
+    return CTF_int::SUCCESS; //FIXME This function is not to be trusted due to potential allocations of 0 bytes!!!@
   //#endif
     int ret, tid, i;
   #ifdef USE_OMP
@@ -408,19 +408,19 @@ namespace CTF_int {
   #endif
 
     ret = cfree(ptr, tid);
-    if (ret == CTF::NEGATIVE){
+    if (ret == CTF_int::NEGATIVE){
       if (tid == 0){
         for (i=1; i<max_threads; i++){
           ret = cfree(ptr, i);
-          if (ret == CTF::SUCCESS){
-            return CTF::SUCCESS;
+          if (ret == CTF_int::SUCCESS){
+            return CTF_int::SUCCESS;
             break;
           }
         }
       }
     }
-  //  if (ret == CTF::NEGATIVE) free(ptr);
-    return CTF::SUCCESS;
+  //  if (ret == CTF_int::NEGATIVE) free(ptr);
+    return CTF_int::SUCCESS;
   }
 
   /**
@@ -429,7 +429,7 @@ namespace CTF_int {
    */
   int cfree(void * ptr){ 
     free(ptr);
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 #if 0
   int cfree(void * ptr){
@@ -439,7 +439,7 @@ namespace CTF_int {
     }
   #ifdef PRODUCTION
     free(ptr);  
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   #else
     int ret, tid, i;
   #ifdef USE_OMP
@@ -451,28 +451,28 @@ namespace CTF_int {
 
 
     ret = cfree(ptr, tid);
-    if (ret == CTF::NEGATIVE){
+    if (ret == CTF_int::NEGATIVE){
       if (tid != 0 || max_threads == 1){
-        printf("CTF CTF::ERROR: Invalid free of pointer %p by thread %d\n", ptr, tid);
+        printf("CTF CTF_int::ERROR: Invalid free of pointer %p by thread %d\n", ptr, tid);
         ABORT;
-        return CTF::ERROR;
+        return CTF_int::ERROR;
       } else {
         for (i=1; i<max_threads; i++){
           ret = cfree(ptr, i);
-          if (ret == CTF::SUCCESS){
-            return CTF::SUCCESS;
+          if (ret == CTF_int::SUCCESS){
+            return CTF_int::SUCCESS;
             break;
           }
         }
         if (i==max_threads){
-          printf("CTF CTF::ERROR: Invalid free of pointer %p by zeroth thread\n", ptr);
+          printf("CTF CTF_int::ERROR: Invalid free of pointer %p by zeroth thread\n", ptr);
           ABORT;
-          return CTF::ERROR;
+          return CTF_int::ERROR;
         }
       }
     }
   #endif
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
 
   }
 #endif

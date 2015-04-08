@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup slice_gemm
+  * \defgroup slice_gemm slice_gemm
   * @{ 
   * \brief Performs recursive parallel matrix multiplication using the slice interface to extract blocks
   */

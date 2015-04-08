@@ -1,7 +1,8 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
-/** \addtogroup examples 
+/** \defgroup examples 
   * @{ 
-  * \defgroup gemm
+  * \brief Example codes using CTF
+  * \defgroup GEMM GEMM
   * @{ 
   * \brief Matrix multiplication
   */

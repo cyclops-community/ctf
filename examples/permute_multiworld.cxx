@@ -2,7 +2,7 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup permute_multiworld
+  * \defgroup permute_multiworld permute_multiworld
   * @{ 
   * \brief tests permute function between different worlds
   */

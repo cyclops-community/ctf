@@ -2,7 +2,7 @@
 #include "../shared/blas_symbs.h"
 
 
-namespace CTF {
+namespace CTF_int {
   template <>
   void default_axpy<float>
                    (int           n,

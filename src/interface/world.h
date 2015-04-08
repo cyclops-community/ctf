@@ -4,14 +4,15 @@
 #include "common.h"
 #include "../mapping/topology.h"
 
-/**
- * \defgroup CTF CTF: C++ World interface
- * @{
- */
-
 namespace CTF {
-
   /**
+   * \defgroup World CTF World interface
+   * \addtogroup World 
+   * @{
+   */
+
+
+    /**
    * \brief an instance of the CTF library (world) on a MPI communicator
    */
   class World {
@@ -122,9 +123,9 @@ namespace CTF {
 
   };
 
+  /**
+   * @}
+   */
 }
 
-/**
- * @}
- */
 #endif

@@ -1,7 +1,6 @@
-/*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup gemm_4D
+  * \defgroup GEMM_4D GEMM_4D
   * @{ 
   * \brief Folded matrix multiplication on 4D tensors
   */

@@ -1,16 +1,19 @@
 #ifndef __INT_TIMER_H__
 #define __INT_TIMER_H__
 
+namespace CTF {
 /**
  * \defgroup timer Timing and cost measurement
+ * \addtogroup timer
  * @{
- *//**
- * \brief local process walltime measurement
  */
-namespace CTF {
   void set_main_args(int argc, const char * const * argv);
-}
 
+/**
+ * @}
+ */
+
+}
 #ifdef PROFILE
 #define TAU
 #endif

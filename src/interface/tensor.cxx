@@ -96,7 +96,7 @@ namespace CTF {
     Pair< dtype > * pairs;
     int ret, i;
     ret = CTF_int::tensor::read_local(npair,(char**)&pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
     /* FIXME: careful with alloc */
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
@@ -111,7 +111,7 @@ namespace CTF {
   void Tensor<dtype, is_ord>::read_local(int64_t *      npair,
                                          Pair<dtype> ** pairs) const {
     int ret = CTF_int::tensor::read_local(npair, (char**)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -126,7 +126,7 @@ namespace CTF {
       pairs[i].k = global_idx[i];
     }
     ret = CTF_int::tensor::read(npair, (char*)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
     }
@@ -137,7 +137,7 @@ namespace CTF {
   void Tensor<dtype, is_ord>::read(int64_t       npair,
                                    Pair<dtype> * pairs){
     int ret = CTF_int::tensor::read(npair, (char*)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -152,7 +152,7 @@ namespace CTF {
       pairs[i].d = data[i];
     }
     ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), (char*)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
     CTF_int::cfree(pairs);
   }
 
@@ -160,7 +160,7 @@ namespace CTF {
   void Tensor<dtype, is_ord>::write(int64_t             npair,
                                     Pair<dtype> const * pairs) {
     int ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), (char *)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -177,7 +177,7 @@ namespace CTF {
       pairs[i].d = data[i];
     }
     ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
     CTF_int::cfree(pairs);
   }
 
@@ -187,7 +187,7 @@ namespace CTF {
                                     dtype               beta,
                                     Pair<dtype> const * pairs) {
     int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char *)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -204,7 +204,7 @@ namespace CTF {
       pairs[i].d = data[i];
     }
     ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
     }
@@ -217,7 +217,7 @@ namespace CTF {
                                    dtype         beta,
                                    Pair<dtype> * pairs){
     int ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
 
@@ -225,7 +225,7 @@ namespace CTF {
   void Tensor<dtype, is_ord>::read_all(int64_t * npair, dtype ** vals){
     int ret;
     ret = CTF_int::tensor::allread(npair, ((char**)vals));
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -233,7 +233,7 @@ namespace CTF {
     int ret;
     int64_t npair;
     ret = CTF_int::tensor::allread(&npair, (char*)vals);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
     return npair;
   }
 
@@ -268,13 +268,13 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::permute(dtype         beta,
-                                      tensor &      A,
-                                      int * const * perms_A,
-                                      dtype         alpha){
+  void Tensor<dtype, is_ord>::permute(dtype             beta,
+                                      CTF_int::tensor & A,
+                                      int * const *     perms_A,
+                                      dtype             alpha){
     int ret = CTF_int::tensor::permute(&A, perms_A, (char*)&alpha,
                                        NULL, (char*)&beta);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -284,7 +284,7 @@ namespace CTF {
                                       dtype         alpha){
     int ret = CTF_int::tensor::permute(&A, NULL, (char*)&alpha,
                                        perms_B, (char*)&beta);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::add_to_subworld(
@@ -452,7 +452,7 @@ namespace CTF {
       assert(0);
     }
     int ret = CTF_int::tensor::align(&A);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -473,7 +473,7 @@ namespace CTF {
         {
           dtype minval;
           sr->min((char*)&minval);
-          Monoid<dtype, 1> mmax = Monoid<dtype, 1>(minval, default_max<dtype, 1>, MPI_MAX);
+          Monoid<dtype, 1> mmax = Monoid<dtype, 1>(minval, CTF_int::default_max<dtype, 1>, MPI_MAX);
           ret = reduce_sum((char*)&ans, &mmax);
         }
         break;
@@ -481,7 +481,7 @@ namespace CTF {
         {
           dtype maxval;
           sr->max((char*)&maxval);
-          Monoid<dtype, 1> mmin = Monoid<dtype, 1>(maxval, default_min<dtype, 1>, MPI_MIN);
+          Monoid<dtype, 1> mmin = Monoid<dtype, 1>(maxval, CTF_int::default_min<dtype, 1>, MPI_MIN);
           ret = reduce_sum((char*)&ans, &mmin);
         }
         break;
@@ -489,7 +489,7 @@ namespace CTF {
         {
           dtype minval;
           sr->min((char*)&minval);
-          Monoid<dtype, 1> mmax = Monoid<dtype, 1>(minval, default_max<dtype, 1>, MPI_MAX);
+          Monoid<dtype, 1> mmax = Monoid<dtype, 1>(minval, CTF_int::default_max<dtype, 1>, MPI_MAX);
           ret = reduce_sumabs((char*)&ans, &mmax);
         }
         break;
@@ -497,12 +497,12 @@ namespace CTF {
         {
           dtype maxval;
           sr->max((char*)&maxval);
-          Monoid<dtype, 1> mmin = Monoid<dtype, 1>(maxval, default_min<dtype, 1>, MPI_MIN);
+          Monoid<dtype, 1> mmin = Monoid<dtype, 1>(maxval, CTF_int::default_min<dtype, 1>, MPI_MIN);
           ret = reduce_sumabs((char*)&ans, &mmin);
         }
         break;
     }
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
     return ans;
   }
 
@@ -511,7 +511,7 @@ namespace CTF {
                                   dtype * data) const {
     int ret;
     ret = CTF_int::tensor::get_max_abs(n, data);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
@@ -653,15 +653,15 @@ namespace CTF {
       CTF_int::cfree(len);
       //CTF_int::cfree(len);
     ret = CTF_int::tensor::info(&A, &order, &len, &sym);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
 
     ret = CTF_int::tensor::define(sr, order, len, sym, &tid, 1, name, name != NULL);
-    assert(ret == SUCCESS);
+    assert(ret == CTF_int::SUCCESS);
 
     //printf("Set tensor %d to be the same as %d\n", tid, A.tid);
 
     ret = CTF_int::tensor::copy(A.tid, tid);
-    assert(ret == SUCCESS);*/
+    assert(ret == CTF_int::SUCCESS);*/
   }
 
 

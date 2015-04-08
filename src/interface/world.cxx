@@ -183,7 +183,7 @@ namespace CTF {
         VPRINTF(1,"Total amount of memory available to process 0 is %ld\n", proc_bytes_available());
     } 
     initialized = 1;
-    return SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
 /*

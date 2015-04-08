@@ -1,6 +1,6 @@
 include ../config.mk
 
-EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weight_4D subworld_gemm \
+EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice \
            qinformatics 
 

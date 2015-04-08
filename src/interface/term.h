@@ -5,15 +5,16 @@
 #include <set>
 #include "../tensor/untyped_tensor.h"
 
-/**
- * \defgroup expression Tensor expression compiler
- * @{
- */
 namespace CTF {
   class Idx_Tensor;
 }
 
 namespace CTF_int {
+  /**
+   * \defgroup expression Tensor expression compiler
+   * \addtogroup expression
+   * @{
+   */
   class Sum_Term;
   class Contract_Term;
 
@@ -318,10 +319,10 @@ namespace CTF_int {
   void operator+=(int64_t & d, CTF_int::Term const & tsr);
 
 
+/**
+ * @}
+ */
 
-  /**
-   * @}
-   */
 }
 
 #endif

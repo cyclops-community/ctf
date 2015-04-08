@@ -417,7 +417,7 @@ namespace CTF_int {
     fold_ctr.C = fC; */
 
     int * sidx_A, * sidx_B, * sidx_C;
-    CTF::conv_idx<int>(fA->order, fidx_A, &sidx_A,
+    CTF_int::conv_idx<int>(fA->order, fidx_A, &sidx_A,
                        fB->order, fidx_B, &sidx_B,
                        fC->order, fidx_C, &sidx_C);
 

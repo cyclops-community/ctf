@@ -3,11 +3,11 @@
 
 #include "term.h"
 
-/**
- * \defgroup expression Tensor expression compiler
- * @{
- */
 namespace CTF {
+  /**
+   * \addtogroup expression
+   * @{
+   */
   /**
    * \brief a tensor with an index map associated with it (necessary for overloaded operators)
    */
@@ -37,6 +37,7 @@ namespace CTF {
        * \brief copy constructor
        * \param[in] B tensor to copy
        * \param[in] copy if 1 then copy the parent tensor of B into a new tensor
+       * \param[in] remap redistribution dependency map
        */
       Idx_Tensor(Idx_Tensor const &                            B,
                  int                                           copy=0,
@@ -136,7 +137,10 @@ namespace CTF {
       World * where_am_i() const;
   };
 
-
+  /**
+   * @}
+   */
 }
+
 
 #endif

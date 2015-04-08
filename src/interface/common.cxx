@@ -3,7 +3,7 @@
 #include "common.h"
 #include "../shared/util.h"
 
-namespace CTF {
+namespace CTF_int {
 
   template <typename type>
   int conv_idx(int          order,
@@ -126,9 +126,6 @@ namespace CTF {
   template int conv_idx<int>(int, int const *, int **, int, int const *, int **, int, int const *, int **);
   template int conv_idx<char>(int, char const *, int **, int, char const *, int **, int, char const *, int **);
 
-}
-
-namespace CTF_int {
 
   int64_t total_flop_count = 0;
 

@@ -908,7 +908,6 @@ namespace CTF_int {
     }*/
     ASSERT(itopo != -1);
     assert(itopo != -1);
-    topology * new_topo = wrld->topovec[itopo];
 
     this->topo = wrld->topovec[itopo];
     for (int i=0; i<order; i++){
@@ -1190,7 +1189,8 @@ namespace CTF_int {
   }
 
   void tensor::print(FILE * fp, char const * cutoff) const {
-    int64_t my_sz, tot_sz =0;
+    int my_sz;
+    int64_t imy_sz, tot_sz =0;
     int * recvcnts, * displs, * idx_arr;
     char * pmy_data, * pall_data;
     int64_t k;
@@ -1199,8 +1199,9 @@ namespace CTF_int {
       printf("Printing tensor %s\n",name);
     print_map(fp);
 
-    my_sz = 0;
-    read_local(&my_sz, &pmy_data);
+    imy_sz = 0;
+    read_local(&imy_sz, &pmy_data);
+    my_sz = imy_sz;
     //PairIterator my_data = PairIterator(sr,pmy_data);
 
     if (wrld->rank == 0){
@@ -1208,6 +1209,7 @@ namespace CTF_int {
       alloc_ptr(wrld->np*sizeof(int), (void**)&displs);
       alloc_ptr(order*sizeof(int), (void**)&idx_arr);
     }
+    recvcnts = NULL;
 
     MPI_Gather(&my_sz, 1, MPI_INT, recvcnts, 1, MPI_INT, 0, wrld->cdt.cm);
 
@@ -1221,6 +1223,9 @@ namespace CTF_int {
       }
       tot_sz = (displs[wrld->np-1] + recvcnts[wrld->np-1])/sr->pair_size();
       alloc_ptr(tot_sz*sr->pair_size(), (void**)&pall_data);
+    } else {
+      pall_data = NULL;
+      displs = NULL;
     }
 
     if (my_sz == 0) pmy_data = NULL;
@@ -1260,7 +1265,8 @@ namespace CTF_int {
 
   void tensor::compare(const tensor * A, FILE * fp, char const * cutoff){
     int i, j;
-    int64_t my_sz, tot_sz =0, my_sz_B;
+    int my_sz;
+    int64_t imy_sz, tot_sz =0, my_sz_B;
     int * recvcnts, * displs, * idx_arr;
     char * my_data_A;
     char * my_data_B;
@@ -1275,8 +1281,9 @@ namespace CTF_int {
     A->print_map(stdout, 1);
     B->print_map(stdout, 1);
 
-    my_sz = 0;
-    A->read_local(&my_sz, &my_data_A);
+    imy_sz = 0;
+    A->read_local(&imy_sz, &my_data_A);
+    my_sz = imy_sz;
     my_sz_B = 0;
     B->read_local(&my_sz_B, &my_data_B);
     assert(my_sz == my_sz_B);
@@ -1288,6 +1295,7 @@ namespace CTF_int {
       alloc_ptr(global_comm.np*sizeof(int), (void**)&displs);
       alloc_ptr(A->order*sizeof(int), (void**)&idx_arr);
     }
+    recvcnts = NULL;
 
 
     MPI_Gather(&my_sz, 1, MPI_INT, recvcnts, 1, MPI_INT, 0, global_comm.cm);
@@ -1304,6 +1312,9 @@ namespace CTF_int {
                       + recvcnts[global_comm.np-1])/A->sr->pair_size();
       alloc_ptr(tot_sz*A->sr->pair_size(), (void**)&all_data_A);
       alloc_ptr(tot_sz*A->sr->pair_size(), (void**)&all_data_B);
+    } else {
+      all_data_A = NULL;
+      all_data_B = NULL;
     }
 
     if (my_sz == 0) my_data_A = my_data_B = NULL;

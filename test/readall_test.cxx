@@ -2,7 +2,7 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup readall_test 
+  * \defgroup readall_test readall_test
   * @{ 
   * \brief Summation along tensor diagonals
   */
@@ -119,9 +119,9 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+#endif
 /**
  * @} 
  * @}
  */
 
-#endif

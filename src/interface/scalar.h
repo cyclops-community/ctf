@@ -3,6 +3,10 @@
 namespace CTF {
 
   /**
+   * \addtogroup CTF
+   * @{
+   **/
+  /**
    * \brief Scalar class which encapsulates a 0D tensor 
    */
   template <typename dtype=double, bool is_ord=true>
@@ -45,6 +49,9 @@ namespace CTF {
 
   };
 
+  /**
+   * @}
+   */
 }
 #include "scalar.cxx"
 #endif

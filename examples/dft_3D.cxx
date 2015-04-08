@@ -2,8 +2,9 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \addtogroup DFT_3D
+  * \defgroup DFT_3D DFT_3D
   * @{ 
+  * \brief 3D Discrete Fourier Transform by tensor contractions
   */
 
 

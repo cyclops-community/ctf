@@ -5,6 +5,10 @@
 namespace CTF {
 
   /**
+   * \addtogroup algstrct 
+   * @{
+   */
+  /**
    * \brief Ring class defined by a datatype and addition and multiplicaton functions
    *   addition must have an identity, inverse, and be associative, does not need to be commutative
    *   multiplications must have an identity and be distributive
@@ -19,7 +23,7 @@ namespace CTF {
        *         float, double, std::complex<float>, std::complex<double>
        */
       Ring() : Semiring<dtype, is_ord>() { 
-        this->abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
+        this->abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
       }
 
       virtual CTF_int::algstrct * clone() const {
@@ -46,7 +50,7 @@ namespace CTF {
            void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
            void (*scal_)(int,dtype,dtype*,int)=NULL)
             : Semiring<dtype,is_ord>(addid_, fadd_, mulid_, addmop_, fmul_, gemm_, axpy_, scal_) {
-          abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
+          abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
         }
 
 
@@ -55,6 +59,9 @@ namespace CTF {
         }
 
   };
+  /**
+   * @}
+   */
 }
 
   #endif

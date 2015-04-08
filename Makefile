@@ -2,7 +2,7 @@ include config.mk
 
 all: ./lib/libctf.a
 
-EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weight_4D subworld_gemm \
+EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice 
 
 TESTS = test_suite pgemm_test nonsq_pgemm_test diag_sym sym3 readwrite_test \

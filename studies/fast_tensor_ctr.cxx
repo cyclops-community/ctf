@@ -1,7 +1,7 @@
 /*Copyright (c) 2014, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup studies
   * @{ 
-  * \defgroup fast_tensor_ctr 
+  * \defgroup fast_tensor_ctr  fast_tensor_ctr 
   * @{ 
   * \brief A clever way to multiply symmetric tensors
   */

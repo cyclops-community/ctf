@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup scalar
+  * \defgroup scalar scalar
   * @{ 
   * \brief Basic functionality test for CTF::Scalar<> type and tensors with a zero edge length
   */
@@ -154,3 +154,7 @@ int main(int argc, char ** argv){
   return 0;
 }
 #endif
+/**
+ * @} 
+ * @}
+ */

@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup subworld_gemm
+  * \defgroup subworld_gemm subworld_gemm
   * @{ 
   * \brief Performs recursive parallel matrix multiplication using the slice interface to extract blocks
   */
@@ -148,5 +148,9 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+/**
+ * @} 
+ * @}
+ */
 #endif
 

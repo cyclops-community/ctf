@@ -4,6 +4,10 @@
 namespace CTF {
 
   /**
+   * \addtogroup CTF
+   * @{
+   **/
+  /**
    * \brief Vector class which encapsulates a 1D tensor 
    */
   template <typename dtype=double, bool is_ord=true>
@@ -37,6 +41,9 @@ namespace CTF {
 
 
       Vector<dtype,is_ord> & operator=(const Vector<dtype,is_ord> & A);
+  /**
+   * @}
+   */
   };
 }
 #include "vector.cxx"

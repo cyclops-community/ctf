@@ -3,8 +3,8 @@
 
 #include "../tensor/algstrct.h"
 
-namespace CTF {
-  
+namespace CTF_int {
+ 
   template <typename dtype>
   dtype default_addinv(dtype a){
     return -a;
@@ -31,7 +31,12 @@ namespace CTF {
                 char * b){
     ((dtype*)b)[0]=abs(((dtype const*)a)[0]);
   }
-
+}
+namespace CTF {
+  /**
+   * \addtogroup algstrct 
+   * @{
+   **/
   /**
    * \brief Group is a Monoid with operator '-' defined
    *   special case (parent) of a ring
@@ -46,14 +51,14 @@ namespace CTF {
       }
 
       Group() : Monoid<dtype, is_ord>() { 
-        this->abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
+        this->abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
       } 
 
       Group(dtype taddid_,
             dtype (*fadd_)(dtype a, dtype b),
             MPI_Op addmop_)
               : Monoid<dtype, is_ord>(taddid_, fadd_, addmop_) { 
-        abs = &char_abs< dtype, default_abs<dtype, is_ord> >;
+        abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
       }
 
       void addinv(char const * a, char * b) const {
@@ -61,6 +66,9 @@ namespace CTF {
       }
   };
 
+  /**
+   * @}
+   */
 }
 #include "semiring.h"
 #endif

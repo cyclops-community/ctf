@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup studies
   * @{ 
-  * \defgroup fast_sym_4D
+  * \defgroup fast_sym_4D fast_sym_4D
   * @{ 
   * \brief A clever way to multiply symmetric matrices of nonsymmetric matricers
   */

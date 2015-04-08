@@ -2,7 +2,7 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup Strassen
+  * \defgroup Strassen Strassen's algorithm
   * @{ 
   * \brief Strassen's algorithm using the slice interface to extract blocks
   */

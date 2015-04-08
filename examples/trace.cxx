@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup trace
+  * \defgroup trace trace
   * @{ 
   * \brief tests trace over diagonal of Matrices
   */

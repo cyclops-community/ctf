@@ -1,7 +1,7 @@
 #ifndef __MONOID_H__
 #define __MONOID_H__
 
-namespace CTF {
+namespace CTF_int {
   template <typename dtype>
   dtype default_add(dtype a, dtype b){
     return a+b;
@@ -79,7 +79,13 @@ namespace CTF {
     MPI_Op_create(&default_mxpy<dtype, fxpy>, 1, &newop);
     return newop;
   }
+}
 
+namespace CTF {
+  /**
+   * \addtogroup algstrct 
+   * @{
+   **/
   /**
    * \brief A Monoid is a Set equipped with a binary addition operator '+' or a custom function
    *   addition must have an identity and be associative, does not need to be commutative
@@ -105,9 +111,9 @@ namespace CTF {
       }
       Monoid() : Set<dtype, is_ord>() {
         taddid  = (dtype)0;
-        fadd    = &default_add<dtype>;
-        taddmop = get_default_maddop<dtype>();
-        tmdtype = get_default_mdtype<dtype>();
+        fadd    = &CTF_int::default_add<dtype>;
+        taddmop = CTF_int::get_default_maddop<dtype>();
+        tmdtype = CTF_int::get_default_mdtype<dtype>();
       } 
 
       Monoid(dtype taddid_,
@@ -117,7 +123,7 @@ namespace CTF {
         taddid  = taddid_;
         fadd    = fadd_;
         taddmop = addmop_;
-        tmdtype = get_default_mdtype<dtype>();
+        tmdtype = CTF_int::get_default_mdtype<dtype>();
       }
 
       void add(char const * a, 
@@ -151,6 +157,9 @@ namespace CTF {
       }
 
   };
+  /**
+   * @}
+   */
 }
 
 #include "group.h"

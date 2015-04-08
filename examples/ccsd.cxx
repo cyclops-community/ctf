@@ -2,7 +2,7 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup CCSD 
+  * \defgroup CCSD CCSD
   * @{ 
   * \brief A Coupled Cluster Singles and Doubles contraction code extracted from Aquarius
   */

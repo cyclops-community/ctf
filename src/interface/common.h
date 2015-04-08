@@ -14,7 +14,12 @@
 #include <iostream>
 #include <limits.h>
 #include "mpi.h"
+
 namespace CTF {
+  /**
+   * \addtogroup CTF 
+   * @{
+   */
 
   /**
    * labels corresponding to symmetry of each tensor dimension
@@ -37,6 +42,14 @@ namespace CTF {
    */
   enum OP { OP_SUM, OP_SUMABS, OP_SUMSQ, OP_MAX, OP_MIN, OP_MAXABS, OP_MINABS};
 
+  /**
+   * @}
+   */
+}
+
+
+namespace CTF_int {
+  
   enum { SUCCESS, ERROR, NEGATIVE };
 
   template <typename type=char>
@@ -64,11 +77,6 @@ namespace CTF {
                int **       iidx_C);
 
 
-}
-
-
-namespace CTF_int {
-  
   //latency time per message
   #define COST_LATENCY (1.e-6)
   //memory bandwidth: time per per byte

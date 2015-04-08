@@ -2,6 +2,10 @@
 #define __MATRIX_H__
 
 namespace CTF {
+  /**
+   * \addtogroup CTF
+   * @{
+   */
 
   /**
    * \brief Matrix class which encapsulates a 2D tensor 
@@ -49,6 +53,9 @@ namespace CTF {
 
       Matrix<dtype,is_ord> & operator=(const Matrix<dtype,is_ord> & A);
   };
+  /**
+   * @}
+   */
 }
 #include "matrix.cxx"
 #endif

@@ -199,7 +199,7 @@ namespace CTF_int {
       }
     }
     CTF_int::cfree(idx_arr);
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
   int map_tensor(int         num_phys_dims,
@@ -216,7 +216,7 @@ namespace CTF_int {
 
     /* Make sure the starting mappings are consistent among symmetries */
     ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
-    if (ret!=CTF::SUCCESS) return ret;
+    if (ret!=CTF_int::SUCCESS) return ret;
 
     /* Assign physical dimensions */
     for (i=0; i<num_phys_dims; i++){
@@ -240,7 +240,7 @@ namespace CTF_int {
       }
       if (max_dim == -1){
         if (fill){
-          return CTF::NEGATIVE;
+          return CTF_int::NEGATIVE;
         }
         break;
       }
@@ -254,7 +254,7 @@ namespace CTF_int {
           if (phys_comm[i].np != map->np){
             phase     = lcm(map->np, phys_comm[i].np);
             if ((phase < map->np || phase < phys_comm[i].np) || phase >= MAX_PHASE)
-              return CTF::NEGATIVE;
+              return CTF_int::NEGATIVE;
             if (phase/phys_comm[i].np != 1){
               map->has_child        = 1;
               map->child            = new mapping();
@@ -277,7 +277,7 @@ namespace CTF_int {
       if (!fill)
         restricted[max_dim] = 1;
       ret = map_symtsr(tsr_order, tsr_sym_table, tsr_edge_map);
-      if (ret!=CTF::SUCCESS) return ret;
+      if (ret!=CTF_int::SUCCESS) return ret;
     }
     for (i=0; i<tsr_order; i++){
       if (tsr_edge_map[i].type == NOT_MAPPED){
@@ -286,7 +286,7 @@ namespace CTF_int {
         tsr_edge_map[i].has_child = 0;
       }
     }
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
   
@@ -414,12 +414,12 @@ namespace CTF_int {
 
     if (!npp){
       ret = map_symtsr(tsr->order, stable, tsr->edge_map);
-      if (ret!=CTF::SUCCESS) return ret;
+      if (ret!=CTF_int::SUCCESS) return ret;
     }
 
     CTF_int::cfree(idx_arr);
     CTF_int::cfree(stable);
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
   int map_symtsr(int         tsr_order,
@@ -436,7 +436,7 @@ namespace CTF_int {
   #ifndef MAXLOOP
   #define MAXLOOP 20
   #endif
-      if (loop >= MAXLOOP) return CTF::NEGATIVE;
+      if (loop >= MAXLOOP) return CTF_int::NEGATIVE;
       loop++;
       for (i=0; i<tsr_order; i++){
         if (tsr_edge_map[i].type != NOT_MAPPED){
@@ -451,7 +451,7 @@ namespace CTF_int {
               else continue;
               lcm_phase   = lcm(sym_phase, phase);
               if ((lcm_phase < sym_phase || lcm_phase < phase) || lcm_phase >= MAX_PHASE)
-                return CTF::NEGATIVE;
+                return CTF_int::NEGATIVE;
               /* Adjust phase of symmetric (j) dimension */
               if (sym_map->type == NOT_MAPPED){
                 sym_map->type     = VIRTUAL_MAP;
@@ -491,7 +491,7 @@ namespace CTF_int {
         }
       }
     }
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
   int stretch_virt(int       order,
@@ -517,7 +517,7 @@ namespace CTF_int {
         map->np   = stretch_factor;
       }
     }
-    return CTF::SUCCESS;
+    return CTF_int::SUCCESS;
   }
 
 

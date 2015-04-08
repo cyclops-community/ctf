@@ -5,7 +5,7 @@
 //#include <stdint.h>
 #include <inttypes.h>
 
-namespace CTF {
+namespace CTF_int {
   //C++14, nasty
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<is_ord, dtype>::type
@@ -34,6 +34,14 @@ namespace CTF {
     assert(0);
     return a;
   }
+}
+
+namespace CTF {
+  /**
+   * \defgroup algstrct Algebraic Structures
+   * \addtogroup algstrct 
+   * @{
+   */
 
   /**
    * \brief Set class defined by a datatype and a min/max function (if it is partially ordered i.e. is_ord=true)
@@ -55,13 +63,13 @@ namespace CTF {
       void min(char const * a, 
                char const * b,
                char *       c) const {
-        ((dtype*)c)[0] = default_min<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
+        ((dtype*)c)[0] = CTF_int::default_min<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
       }
 
       void max(char const * a, 
                char const * b,
                char *       c) const {
-        ((dtype*)c)[0] = default_max<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
+        ((dtype*)c)[0] = CTF_int::default_max<dtype,is_ord>(((dtype*)a)[0],((dtype*)b)[0]);
       }
 
       void min(char * c) const {
@@ -183,6 +191,9 @@ namespace CTF {
   }
 
 
+  /**
+   * @}
+   */
 }
 #include "monoid.h"
 #endif

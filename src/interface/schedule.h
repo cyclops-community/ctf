@@ -7,7 +7,7 @@
 namespace CTF {
 
   /**
-   * \defgroup scheduler Dynamic scheduler.
+   * \defgroup scheduler Dynamic scheduler
    * @{
    */
   enum TensorOperationTypes {

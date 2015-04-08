@@ -16,7 +16,8 @@ namespace CTF {
   class Sparse_Tensor;
 
   /**
-   * \defgroup CTF CTF: C++ Tensor interface
+   * \defgroup CTF CTF Tensor
+   * \addtogroup CTF
    * @{
    */
   /**
@@ -692,6 +693,9 @@ namespace CTF {
        */
       ~Tensor();
   };
+  /**
+   * @}
+   */
 }
 
 #include "tensor.cxx"
@@ -700,8 +704,5 @@ namespace CTF {
 #include "scalar.h"
 #include "sparse_tensor.h"
 
-/**
- * @}
- */
 
 #endif

@@ -4,7 +4,7 @@
 #include <ctf.hpp>
 
 #define TEST_SUITE
-#include "../examples/weight_4D.cxx"
+#include "../examples/weigh_4D.cxx"
 #include "../examples/gemm.cxx"
 #include "../examples/gemm_4D.cxx"
 #include "../examples/scalar.cxx"
@@ -60,20 +60,20 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0)
-      printf("Testing non-symmetric: NS = NS*NS weight with n = %d:\n",n);
-    pass.push_back(weight_4D(n, NS, dw));
+      printf("Testing non-symmetric: NS = NS*NS weigh with n = %d:\n",n);
+    pass.push_back(weigh_4D(n, NS, dw));
 
     if (rank == 0)
-      printf("Testing symmetric: SY = SY*SY weight with n = %d:\n",n);
-    pass.push_back(weight_4D(n, SY, dw));
+      printf("Testing symmetric: SY = SY*SY weigh with n = %d:\n",n);
+    pass.push_back(weigh_4D(n, SY, dw));
 
     if (rank == 0)
-      printf("Testing (anti-)skew-symmetric: AS = AS*AS weight with n = %d:\n",n);
-    pass.push_back(weight_4D(n, AS, dw));
+      printf("Testing (anti-)skew-symmetric: AS = AS*AS weigh with n = %d:\n",n);
+    pass.push_back(weigh_4D(n, AS, dw));
 
     if (rank == 0)
-      printf("Testing symmetric-hollow: SH = SH*SH weight with n = %d:\n",n);
-    pass.push_back(weight_4D(n, SH, dw));
+      printf("Testing symmetric-hollow: SH = SH*SH weigh with n = %d:\n",n);
+    pass.push_back(weigh_4D(n, SH, dw));
 
     if (rank == 0)
       printf("Testing CCSDT T3->T2 with n= %d, m = %d:\n",n,n+1);

@@ -2,8 +2,9 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \addtogroup DFT
+  * \defgroup DFT 
   * @{ 
+  * \brief Discrete Fourier Transform by matrix multiplication
   */
 
 #include <ctf.hpp>

@@ -5,8 +5,15 @@
 #include "../summation/summation.h"
 #include "../contraction/contraction.h"
 
+
 namespace CTF {
 
+/**
+ * @defgroup CTF_func CTF functions
+ * \brief user-defined function interface
+ * @addtogroup CTF_func
+ * @{
+ */
   class Idx_Tensor;
 
   /**
@@ -118,6 +125,9 @@ namespace CTF {
       }
   };
 
+/**
+ * @}
+ */
 }
 
 #endif

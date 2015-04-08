@@ -2,7 +2,7 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup weight_4D
+  * \defgroup weigh_4D weigh_5D
   * @{ 
   * \brief tests custom element-wise functions by implementing division elementwise on 4D tensors
   */
@@ -14,7 +14,7 @@ double divide(double a, double b){
   return a/b;
 }
 
-int weight_4D(int const    n,
+int weigh_4D(int const    n,
               int const    sym,
               World   &dw){
   int rank, i, num_pes;
@@ -114,17 +114,17 @@ int main(int argc, char ** argv){
 
     if (rank == 0){
       printf("Computing C_ijkl = A_ijkl*B_kilj\n");
-      printf("Non-symmetric: NS = NS*NS weight:\n");
+      printf("Non-symmetric: NS = NS*NS weigh:\n");
     }
-    weight_4D(n, NS, dw);
+    weigh_4D(n, NS, dw);
     if (rank == 0){
-      printf("Symmetric: SY = SY*SY weight:\n");
+      printf("Symmetric: SY = SY*SY weigh:\n");
     }
-    weight_4D(n, SY, dw);
+    weigh_4D(n, SY, dw);
     if (rank == 0){
-      printf("(Anti-)Skew-symmetric: AS = AS*AS weight:\n");
+      printf("(Anti-)Skew-symmetric: AS = AS*AS weigh:\n");
     }
-    weight_4D(n, AS, dw);
+    weigh_4D(n, AS, dw);
   }
 
 

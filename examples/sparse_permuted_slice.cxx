@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup slice_gemm
+  * \defgroup sparse_permuted_slice sparse_permuted_slice
   * @{ 
   * \brief Randomly permuted block write of symmetric matrices from matrix on COMM_SELF to symmetric matrix on COMM_WORLD
   */

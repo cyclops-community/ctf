@@ -2,7 +2,7 @@
 #define __SEMIRING_H__
 
 
-namespace CTF {
+namespace CTF_int {
   template <typename dtype>
   dtype default_mul(dtype a, dtype b){
     return a*b;
@@ -176,6 +176,13 @@ namespace CTF {
              std::complex<double> *       C){
     CTF_int::zgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
+}
+
+namespace CTF {
+  /**
+   * \addtogroup algstrct 
+   * @{
+   */
 
   /**
    * \brief Semiring is a Monoid with an addition multiplicaton function
@@ -236,10 +243,10 @@ namespace CTF {
        */
       Semiring() : Monoid<dtype,is_ord>() {
         tmulid = (dtype)1;
-        fmul   = &default_mul<dtype>;
-        fgemm  = &default_gemm<dtype>;
-        faxpy  = &default_axpy<dtype>;
-        fscal  = &default_scal<dtype>;
+        fmul   = &CTF_int::default_mul<dtype>;
+        fgemm  = &CTF_int::default_gemm<dtype>;
+        faxpy  = &CTF_int::default_axpy<dtype>;
+        fscal  = &CTF_int::default_scal<dtype>;
       }
 
       void mul(char const * a, 
@@ -313,6 +320,10 @@ namespace CTF {
       }
 
   };
+
+  /**
+   * @}
+   */
 }
 #include "ring.h"
 #endif

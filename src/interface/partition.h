@@ -1,13 +1,14 @@
 #ifndef __PARTITION_H__
 #define __PARTITION_H__
 
-/**
- * \defgroup CTF CTF: C++ Partition/Decomposition interface
- * @{
- */
 
 namespace CTF {
 
+  /**
+   * \defgroup CTF_part Partition/Decomposition interface
+   * \addtogroup CTF_part
+   * @{
+   */
   class Idx_Partition;
 
   class Partition {
@@ -32,9 +33,9 @@ namespace CTF {
       Idx_Partition(Partition const & part, char const * idx);
   };
 
-}
-
 /**
  * @}
  */
+}
+
 #endif

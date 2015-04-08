@@ -3,15 +3,19 @@
 
 #include "common.h"
 
-namespace CTF {
 
-  /**
-   * \defgroup timer Timing and cost measurement
-   * @{
-   */
+namespace CTF {
+/**
+ * \defgroup timer Timing and cost measurement
+ * \addtogroup timer
+ * @{
+ */
 
   #define MAX_NAME_LENGTH 53
       
+  /**
+   * \brief times a specific symbol
+   */
   class Function_timer{
     public:
       char name[MAX_NAME_LENGTH];
@@ -45,7 +49,7 @@ namespace CTF {
     public:
       char const * timer_name;
       int index;
-      int exited;
+      nt exited;
       int original;
     
     public:
@@ -116,11 +120,11 @@ namespace CTF {
 
   };
 
-}
-
 /**
  * @}
  */
+}
+
 
 #endif
 

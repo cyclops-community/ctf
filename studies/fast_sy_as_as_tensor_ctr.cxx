@@ -1,7 +1,7 @@
 /*Copyright (c) 2014, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup studies
   * @{ 
-  * \defgroup SY=AS*AS
+  * \defgroup fastsyasas Symmetry preserving algorithm for SY<-AS*AS
   * @{ 
   * \brief A clever way to multiply symmetric tensors
   */

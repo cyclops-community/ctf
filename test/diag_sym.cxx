@@ -2,7 +2,7 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup diag_sym 
+  * \defgroup diag_sym diag_sym 
   * @{ 
   * \brief Summation along tensor diagonals
   */

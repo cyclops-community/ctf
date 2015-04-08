@@ -258,7 +258,7 @@ namespace CTF_int {
     ftsr_B = B->rec_tsr;
 
     int * sidx_A, * sidx_B;
-    CTF::conv_idx<int>(ftsr_A->order, fidx_map_A, &sidx_A,
+    CTF_int::conv_idx<int>(ftsr_A->order, fidx_map_A, &sidx_A,
                        ftsr_B->order, fidx_map_B, &sidx_B);
 
     summation fold_sum(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
