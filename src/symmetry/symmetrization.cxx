@@ -5,6 +5,8 @@
 #include "sym_indices.h"
 #include "../scaling/scaling.h"
 
+using namespace CTF;
+
 namespace CTF_int {
 
   void desymmetrize(tensor * sym_tsr,

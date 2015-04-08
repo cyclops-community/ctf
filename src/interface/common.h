@@ -15,25 +15,20 @@
 #include <limits.h>
 #include "mpi.h"
 
+/**
+ * labels corresponding to symmetry of each tensor dimension
+ * NS = 0 - nonsymmetric
+ * SY = 1 - symmetric
+ * AS = 2 - antisymmetric
+ * SH = 3 - symmetric hollow
+ */
+enum SYM : int { NS, SY, AS, SH };
+
 namespace CTF {
   /**
    * \addtogroup CTF 
    * @{
    */
-
-  /**
-   * labels corresponding to symmetry of each tensor dimension
-   * NS = 0 - nonsymmetric
-   * SY = 1 - symmetric
-   * AS = 2 - antisymmetric
-   * SH = 3 - symmetric hollow
-   */
-  #if (!defined NS && !defined SY && !defined SH)
-  #define NS 0
-  #define SY 1
-  #define AS 2
-  #define SH 3
-  #endif
 
 
   /**

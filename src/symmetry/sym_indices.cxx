@@ -1,10 +1,9 @@
 /** Written by Devin Matthews */
 
-#ifndef __SYM_INDICES_HXX__
-#define __SYM_INDICES_HXX__
-
 #include "../interface/common.h"
 #include "sym_indices.h"
+
+using namespace CTF;
 
 struct index_locator_
 {
@@ -466,4 +465,3 @@ template int overcounting_factor<std::string>(int order_A, std::string const & i
 
 
 
-#endif

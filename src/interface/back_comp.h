@@ -71,6 +71,7 @@ using tkv_pair = CTF::Pair<dtype>;
 typedef tkv_pair<double> kv_pair;
 typedef tkv_pair< std::complex<double> > ckv_pair;
 
+
 //deprecated
 //enum CTF_OP { CTF_OP_SUM, CTF_OP_SUMABS, CTF_OP_SUMSQ, CTF_OP_MAX, CTF_OP_MIN, CTF_OP_MAXABS, CTF_OP_MINABS};
 
