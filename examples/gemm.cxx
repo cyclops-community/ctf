@@ -1,27 +1,21 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
-/** \addtogroup examples 
+/** \defgroup examples 
   * @{ 
-  * \defgroup gemm
+  * \brief Example codes using CTF
+  * \defgroup GEMM GEMM
   * @{ 
   * \brief Matrix multiplication
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
 #include <ctf.hpp>
-#include "../src/shared/util.h"
+using namespace CTF;
 
-int  gemm(int const     m,
-          int const     n,
-          int const     k,
-          int const     sym,
-          int const     niter,
-          CTF_World    &dw){
+int gemm(int      m,
+         int      n,
+         int      k,
+         int      sym,
+         int      niter,
+         World    &dw){
   int rank, i, num_pes;
   int64_t np;
   double * pairs, * pairs_AB, * pairs_BC;
@@ -37,9 +31,9 @@ int  gemm(int const     m,
 #endif
   
   //* Creates distributed tensors initialized with zeros
-  CTF_Matrix A(m, k, sym, dw);
-  CTF_Matrix B(k, n, sym, dw);
-  CTF_Matrix C(m, n, NS,  dw);
+  Matrix<> A = Matrix<>(m, k, sym, dw);
+  Matrix<> B = Matrix<>(k, n, sym, dw);
+  Matrix<> C = Matrix<>(m, n, NS,  dw);
 
   srand48(13*rank);
   //* Writes noise to local data based on global index
@@ -64,7 +58,7 @@ int  gemm(int const     m,
 #ifndef TEST_SUITE
   double t;
 
-  CTF_Flop_Counter f = CTF_Flop_Counter();
+  Flop_counter f = Flop_counter();
   t = MPI_Wtime();
   for (i=0; i<niter; i++){
     C["ij"] += A["ik"]*B["kj"];
@@ -81,13 +75,13 @@ int  gemm(int const     m,
   int pass = 1;
   if (m==n && n==k){ 
     /* verify D=(A*B)*C = A*(B*C) */
-    CTF_Matrix D(m, n, NS, dw);
-    CTF_Matrix E(m, n, NS, dw);
+    Matrix<> D(m, n, NS, dw);
+    Matrix<> E(m, n, NS, dw);
     if (0 && num_pes > 1){
       MPI_Comm halbcomm;
       MPI_Comm_split(dw.comm, rank%2, rank/2, &halbcomm);
-      CTF_World hdw(halbcomm);
-      CTF_Matrix hB(n, n, NS, hdw);
+      World hdw(halbcomm);
+      Matrix<> hB(n, n, NS, hdw);
       hB["ij"] += B["ij"];
       assert(hB.norm2()>1.E-6);
     
@@ -105,9 +99,9 @@ int  gemm(int const     m,
     D.read_local(&np, &indices_BC, &pairs_BC);
     E.read_local(&np, &indices_AB, &pairs_AB);
     for (i=0; i<np; i++){
-      if (fabs((pairs_BC[i]-pairs_AB[i])/pairs_AB[i])>1.E-10){
+      if (fabs((pairs_BC[i]-pairs_AB[i])/pairs_AB[i])>1.E-8){
         pass = 0;
-        printf("P[%d]: element "PRId64" is of (A*B)*C is %lf,",
+        printf("P[%d]: element %ld is of (A*B)*C is %lf,",
                 rank,indices_AB[i],pairs_AB[i]);
         printf("but for A*(B*C) it is %lf\n", pairs_BC[i]);
       }
@@ -141,7 +135,7 @@ char* getCmdOption(char ** begin,
 }
 
 int main(int argc, char ** argv){
-  int rank, np, niter, n, m, k, pass;
+  int rank, np, niter, n, m, k;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -167,11 +161,11 @@ int main(int argc, char ** argv){
   } else niter = 5;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
 
-    CTF_Scalar ts(1.0,dw);
-    CTF_Idx_Tensor its(&ts,"");
-    CTF_Idx_Tensor tts(its); 
+    Scalar<> ts(1.0,dw);
+    Idx_Tensor its(&ts,"");
+    Idx_Tensor tts(its); 
     tts.operator*(its);
 
     int pass;    

@@ -1,18 +1,17 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#include <ctf.hpp>
-#include <assert.h>
-#include <stdlib.h>
-
 /** \addtogroup examples 
   * @{ 
-  * \addtogroup DFT
+  * \defgroup DFT 
   * @{ 
+  * \brief Discrete Fourier Transform by matrix multiplication
   */
 
+#include <ctf.hpp>
+using namespace CTF;
   
-int test_dft(int64_t const  n,
-             cCTF_World    &wrld){
+int test_dft(int64_t n,
+             World   &wrld){
   int numPes, myRank;
   int64_t  np, i;
   int64_t * idx;
@@ -20,13 +19,14 @@ int test_dft(int64_t const  n,
   std::complex<double> imag(0,1);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-  cCTF_Matrix DFT(n, n, SY, wrld, "DFT", 1);
-  cCTF_Matrix IDFT(n, n, SY, wrld, "IDFT", 0);
+  Matrix < std::complex<double>, false >DFT(n, n, SY, wrld, "DFT", 1);
+  Matrix < std::complex<double>, false  >IDFT(n, n, SY, wrld, "IDFT", 0);
 
   DFT.read_local(&np, &idx, &data);
 
   for (i=0; i<np; i++){
     data[i] = exp(-2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
+  //  printf("[%lld][%lld] (%20.14E,%20.14E)\n",i%n,i/n,data[i].real(),data[i].imag());
   }
   DFT.write(np, idx, data);
   //DFT.print(stdout);
@@ -52,7 +52,7 @@ int test_dft(int64_t const  n,
   int pass = 1;
   //DFT.print(stdout);
   for (i=0; i<np; i++){
-    //printf("data["PRId64"] = %lf\n",idx[i],data[i].real());
+    //printf("data[%lld] = %lf\n",idx[i],data[i].real());
     if (idx[i]/n == idx[i]%n){
       if (fabs(data[i].real() - 1.)>=1.E-9)
         pass = 0;
@@ -84,7 +84,7 @@ int test_dft(int64_t const  n,
  * \brief Forms N-by-N DFT matrix A and inverse-dft iA and checks A*iA=I
  */
 int main(int argc, char ** argv){
-  int myRank, numPes, logn;
+  int logn;
   int64_t n;
   
   MPI_Init(&argc, &argv);
@@ -99,7 +99,7 @@ int main(int argc, char ** argv){
 
 
   {
-    cCTF_World dw(argc, argv);
+    World dw(argc, argv);
     int pass = test_dft(n, dw);
     assert(pass);
   }

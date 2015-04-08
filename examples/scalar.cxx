@@ -1,20 +1,15 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup scalar
+  * \defgroup scalar scalar
   * @{ 
-  * \brief Basic functionality test for CTF_Scalar type and tensors with a zero edge length
+  * \brief Basic functionality test for CTF::Scalar<> type and tensors with a zero edge length
   */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <algorithm>
-#include <ctf.hpp>
 
-int scalar(CTF_World    &dw){
+#include <ctf.hpp>
+using namespace CTF;
+
+int scalar(CTF::World    &dw){
   int rank, num_pes, pass;
   int64_t np, * indices;
   double val, * pairs;
@@ -24,14 +19,16 @@ int scalar(CTF_World    &dw){
 
   pass = 1;
 
-  CTF_Scalar A(dw);
+  CTF::Scalar<> A(dw);
 
   A.read_local(&np,&indices,&pairs);
   pass -=!(np<=1);
  
   if (np>0){
     pass -=!(indices[0] == 0);
-    pass -=!(pairs[0] == 0.0);
+  assert(pass);
+    pass -=!(std::abs(pairs[0]) < 1.E-9);
+  assert(pass);
     pairs[0] = 4.2;  
   } 
   A.write(np,indices,pairs);
@@ -40,58 +37,78 @@ int scalar(CTF_World    &dw){
   //A = 4.2;
   A.read_local(&np,&indices,&pairs);
   pass -= !(np<=1);
+  assert(pass);
  
   if (np>0){
     pass -=(indices[0] != 0);
-    pass -=(pairs[0] != 4.2);
+  assert(pass);
+    pass -=!(pairs[0]-4.2 < 1.E-9);
+  assert(pass);
   } 
   free(indices);
   free(pairs);
   val = A;
-  pass -=(val != 4.2);
+  pass -=!(val-4.2 < 1.E-9);
+  assert(pass);
   
-  CTF_Scalar B(4.3, dw);
-  pass -=(4.3 != (double)B);
+  CTF::Scalar<> B(4.3, dw);
+  pass -=!((double)B-4.3 < 1.E-9);
+  assert(pass);
 
   B=A;
-  pass -=(4.2 != (double)B);
+  pass -=!((double)B-4.2 < 1.E-9);
+  assert(pass);
 
   int n = 7;
-  CTF_Matrix C(n,n,AS,dw);
+#if 0 //does not make sense to set AS matrix to scalar
+  CTF::Matrix<> C(n,n,AS,dw);
 
+  //FIXME: this is nonsense! should result in zero tensor
   C["ij"]=A[""];
   
 
   val = C["ij"];
   
 /*  if (C.sym == AS){
-    pass-= !( fabs(C.reduce(CTF_OP_SUM)-n*(n-1)*2.1)<1.E-10);
+    pass-= !( fabs(C.reduce(CTF::OP_SUM)-n*(n-1)*2.1)<1.E-10);
     printf("C sum is %lf, abs sum is %lf, C[\"ij\"]=%lf expectd %lf\n",
-            C.reduce(CTF_OP_SUM), C.reduce(CTF_OP_SUMABS), val, n*(n-1)*4.2);
+            C.reduce(CTF::OP_SUM), C.reduce(CTF::OP_SUMABS), val, n*(n-1)*4.2);
   } else { 
     printf("C sum is %lf, abs sum is %lf, C[\"ij\"]=%lf expectd %lf\n",
-            C.reduce(CTF_OP_SUM), C.reduce(CTF_OP_SUMABS), val, n*n*4.2);
+            C.reduce(CTF::OP_SUM), C.reduce(CTF::OP_SUMABS), val, n*n*4.2);
   }*/
-  pass-= !( fabs(C.reduce(CTF_OP_SUMABS)-n*(n-1)*4.2)<1.E-10);
-  
+  printf("%lf, %lf\n",C.reduce(CTF::OP_SUMABS),n*(n-1)*4.2);
+  pass-= !( fabs(C.reduce(CTF::OP_SUMABS)-n*(n-1)*4.2)<1.E-8);
+  assert(pass);
+
+  printf("NOW\n"); 
+ 
   C["ij"]=13.1;
 
+  printf("NOT NOW\n"); 
+  C.print();
 
-  pass-= !( fabs(C.reduce(CTF_OP_SUMABS)-n*(n-1)*13.1)<1.E-10);
+  printf("%lf, %lf\n",C.reduce(CTF::OP_SUMABS),n*(n-1)*13.1);
+  pass-= !( fabs(C.reduce(CTF::OP_SUMABS)-n*(n-1)*13.1)<1.E-10);
+  assert(pass);
+#endif
   int sizeN4[4] = {n,0,n,n};
   int shapeN4[4] = {NS,NS,SY,NS};
-  CTF_Matrix E(n,n,NS,dw);
-  CTF_Tensor D(4, sizeN4, shapeN4, dw);
+  CTF::Matrix<> E(n,n,NS,dw);
+  CTF::Tensor<> D(4, sizeN4, shapeN4, dw);
   
   E["ij"]=13.1;
 
+
   E["ii"]=D["klij"]*E["ki"];
   
-  pass-= !( fabs(E.reduce(CTF_OP_SUMABS)-0)>1.E-10);
+  pass-= !( fabs(E.reduce(CTF::OP_SUMABS)-0)>1.E-10);
+  assert(pass);
   
   E["ij"]=D["klij"]*E["ki"];
 
-  pass-= !( fabs(E.reduce(CTF_OP_SUMABS)-0)<1.E-10);
+  pass-= !( fabs(E.reduce(CTF::OP_SUMABS)-0)<1.E-10);
+  assert(pass);
   
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
@@ -122,16 +139,13 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np;
-  int const in_num = argc;
-  char ** input_str = argv;
-
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
 
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    CTF::World dw(MPI_COMM_WORLD, argc, argv);
     int pass = scalar(dw);
     assert(pass>0);
   }
@@ -140,3 +154,7 @@ int main(int argc, char ** argv){
   return 0;
 }
 #endif
+/**
+ * @} 
+ * @}
+ */

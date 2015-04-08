@@ -1,0 +1,504 @@
+#!/bin/bash
+#configure script adapted from Aquarius software (https://github.cxxom/devinamatthews/aquarius)
+
+
+function usage
+{
+  echo -e 'Usage: configure [options]'
+  echo
+  echo -e '\t--blas=libs       Specify the linker options and/or libraries needed to link'
+  echo -e '\t                  the BLAS. If not specified, common BLAS libraries will be searched for.'
+  echo
+  echo -e '\t--scalapack=libs  Specify the linker options and/or libraries needed to link'
+  echo -e '\t                  the ScaLAPACK libraries. Necessary only for a couple of non-critical tests.'
+  echo
+  echo -e 'Additionally, the variables CXX, AR, NVCC, CXXFLAGS, NVCCFLAGS, LDFLAGS, WARNFLAGS, and INCLUDES'
+  echo -e 'can be set on the command line, e.g. ./configure CXX=g++ CXXFLAGS="-fopenmp -O2 -g".'
+  echo
+}
+
+#Usage: 'testlink $1 $2 $3' where 
+# $1 - library link line
+# $2 - symbol (function)
+# $3 - 0 if no printouts, 1 if verbose
+function testlink
+{
+  status=1
+  cat > .test.cxx <<EOF
+#if __cplusplus
+  extern "C" 
+#endif
+  void $2();
+  int main(){ $2(); return 0; }
+EOF
+  if [ $3 -eq 1 ]; then
+    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $1 $LDFLAGS  2>&1 )
+  else
+    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $1 $LDFLAGS  > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cxx a.out
+  return $status
+}
+
+
+#Usage: 'testcompiler $1' where 
+# $1 - 0 if no printouts, 1 if verbose
+function testcompiler
+{
+  status=1
+  cat > .test.cxx <<EOF
+  int main(){ return 0; }
+EOF
+  if [ $1 -eq 1 ]; then
+    ( set -x; $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx  2>&1 )
+  else
+    $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cxx a.out
+  return $status
+}
+
+#Usage: 'testcpp11 $1' where 
+# $1 - 0 if no printouts, 1 if verbose
+function testcpp11
+{
+  status=1
+  cat > .test.cxx <<EOF
+#if __cplusplus <= 199711L
+#error This library needs at least a C++11 compliant compiler
+#endif
+  int main(){ return 0; }
+EOF
+  if [ $1 -eq 1 ]; then
+    ( set -x; $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx $LDFLAGS  2>&1 )
+  else
+    $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx $LDFLAGS  > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cxx a.out
+  return $status
+}
+
+function testopenmp
+{
+  status=1
+  cat > .test.cxx <<EOF
+  #include "omp.h"
+  int main(){ 
+    int i;
+    int j = 0;
+    omp_set_num_threads(1);
+    #pragma omp for
+    for (i=0; i<10; i++){
+      j+=i;
+    } 
+    return j; 
+  }
+EOF
+  $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LDFLAGS > /dev/null 2>&1
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cxx a.out
+  return $status
+
+}
+
+function realcompiler
+{
+    echo -n 'Checking compiler type/version... '
+    if $CXX --version > /dev/null 2>&1; then
+        version=`$CXX --version 2>&1 | tr '\n' ' '`
+    elif $CXX -V > /dev/null 2>&1; then
+        version=`$CXX -V 2>&1 | tr '\n' ' '`
+    else
+        $CXX --version
+        $CXX -V 
+        echo 'Could not determine underlying C/C++ compilers.'
+        exit 1
+    fi
+
+    case $version in
+        *Intel*)
+            echo 'Using Intel compilers.'
+            compiler=intel
+            ;;
+        *Portland*)
+            echo 'Portland Group compilers are not supported.'
+            exit 1
+            compiler=pgi
+            ;;
+        *Free\ Software*)
+            echo 'Using GNU compilers.'
+            compiler=gnu
+            ;;
+        *Cray*)
+            echo 'Cray compilers are not supported.'
+            exit 1
+            compiler=cray
+            ;;
+        *clang*)
+            echo 'Using Clang/LLVM compiler.'
+            compiler=clang
+            ;;
+        *)
+            echo 'Could not determine underlying C/C++ compilers.'
+            exit 1
+            ;;
+    esac
+}
+
+function defaultflags
+{
+    #
+    # Set default compiler flags
+    #
+    case $compiler in
+        intel)
+            if [ "x$AR"        = "x" ]; then AR='xiar'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-openmp -O3 -ipo'; fi
+            if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
+            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
+            if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
+            PASS_TO_LINKER='-Wl,'
+            ;;
+        gnu | clang)
+            if [ "x$AR"        = "x" ]; then AR='ar'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -O3'; fi
+            if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
+            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
+            if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
+            PASS_TO_LINKER='-Wl,'
+            ;;
+        *)
+            echo 'No default flags known for given compilers. Make sure that you have set the'
+            echo 'appropriate compiler flags manually.'
+            if [ "x$AR"        = "x" ]; then AR='ar'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -O3'; fi
+            if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
+            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
+            if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
+            PASS_TO_LINKER='-Wl,'
+            ;;
+    esac
+   }
+
+PARAMS=$0
+for PARAM in "$@"
+do
+  PARAMS="${PARAMS} '${PARAM}'"
+done
+echo $PARAMS > how-did-i-configure
+#echo $0 $* > how-did-i-configure
+
+#
+# Parse command-line arguments
+#
+depstype=normal
+while [ "x$1" != "x" ]; do
+  case $1 in
+    --blas=*)
+      BLASLIBS="${1#--blas=}"
+      ;;
+    --scalapack=*)
+      SCALAPACKLIBS="${1#--scalapack=}"
+      ;;
+    --help)
+      usage
+      exit 0
+      ;;
+    CXX=*|\
+    NVCC=*|\
+    AR=*|\
+    CXXFLAGS=*|\
+    NVCCFLAGS=*|\
+    LDFLAGS=*|\
+    WARNFLAGS=*|\
+    INCLUDES=*)
+      eval "${1%%=*}=\"${1#*=}\""
+      ;;
+    *)
+      echo "WARNING: Unknown option \"$1\"."
+      usage
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+#
+# Check for known supercomputer host names
+#
+echo -n 'Checking hostname... '
+if [ "$NERSC_HOST" = "carver" ]; then
+    echo 'Hostname recognized as a NERSC machine.'
+    host=nersc
+    
+    if [ "x$BLASLIBS" = "x" ]; then
+        if [ "x$MKL" = "x" -o "x$MKL_ILP64" = "x" ]; then
+            echo 'MKL module not loaded and no alternative specified.'
+            echo 'Do "module load mkl" or use the --blas option.'
+            exit 1
+        fi
+    fi
+    
+    CXX="mpiCC -std=c++0x"
+    realcompiler
+    defaultflags
+    DEFS="$DEFS -DCARVER"
+    
+    
+elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
+    echo 'Hostname recognized as a NERSC machine.'
+    host=nersc
+    BLASLIBS="-mkl=parallel"   
+    CXX="CC -std=c++0x"
+    LDFGLAGS="-lpthread"
+    realcompiler
+    defaultflags
+    DEFS="$DEFS -D`echo $NERSC_HOST | tr a-z A-Z`"
+    
+    
+elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
+  echo 'Hostname recognized as a BG/P machine.'
+  
+  host=bgp
+  BLASLIBS='-lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread'
+  BGP_ESSL='/soft/apps/ESSL-4.4.1-0'
+  LDFLAGS="-L$BGP_ESSL/lib \
+             -L/bgsys/ibm_compilers/sles10/prod/opt/ibmcmp/xlf/bg/11.1/bglib/ \
+             -L/soft/apps/ibmcmp/xlsmp/bg/1.7/bglib \
+             -L/soft/apps/ibmcmp/xlf/bg/11.1/bglib"
+  INCLUDES="-I$BGP_ESSL/include -I/bgsys/drivers/ppcfloor/arch/include"
+  AR='ar'
+  CXX=mpixlcxx_r
+  CXXFLAGS='-qsmp=omp -qnoipa -g -O3'
+  DEFS='-DBGP -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
+  WARNFLAGS='-Wall'
+  
+elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
+  echo 'Hostname recognized as a BG/Q machine.'
+ 
+  host=bgq
+  SCALAPACKLIBS="-L/soft/libraries/alcf/current/xl/SCALAPACK/lib/ -lscalapack"
+  BLASLIBS="-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -llapack -lgfortran -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r -lm -Wl,--allow-multiple-definition"
+  BGQ_ESSL='/soft/libraries/essl/current'
+  LDFLAGS="-L$BGQ_ESSL/lib64 -L$IBM_MAIN_DIR/xlf/bg/14.1/bglib64/ -L$IBM_MAIN_DIR/xlsmp/bg/3.1/bglib64/ -L$IBM_MAIN_DIR/xlmass/bg/7.3/bglib64/"
+  INCLUDES="-I$BGQ_ESSL/include"
+  AR='ar'
+  CXX=mpixlcxx_r
+  CXXFLAGS='-qsmp=omp -g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport'
+  DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
+  WARNFLAGS=''
+
+elif (hostname | grep 'titan'); then
+    host=titan
+    
+    CXX="CC -std=c++0x"
+    realcompiler
+    defaultflags
+    NVCC='nvcc -ccbin gcc -m64'
+    LDFLAGS='$(LDFLAGS) -lcuda -lcudart -lcublas'
+ 
+else
+  #
+  # Check for other common architectures (just Linux for now)
+  #
+  host=linux
+  echo 'Hostname not recognized, assuming generic Linux host.'
+
+  #
+  # Check for compiler used by MPI
+  #
+  if [ "x$CXX" = "x" ]; then
+    CXX=mpicxx
+  fi
+  
+  realcompiler
+  defaultflags
+fi
+
+#
+# Check that compiler works without error
+#
+echo -n 'Checking compiler (CXX)... '
+if testcompiler 0; then
+  echo 'successful.'
+else
+  echo 'FAILED! error below:'
+  echo
+  testcompiler 1
+  echo
+  exit 1
+fi
+
+#
+# Check that compiler works without error
+#
+echo -n 'Checking availability of C++11... '
+
+if testcpp11 0; then
+  echo 'successful.'
+else
+  if [ "$NERSC_HOST" = "edison" ]; then
+    echo 'FAILED! error below, try using module load gcc/4.8.2:'
+    echo
+    testcpp11 1
+    echo
+    exit 1
+  else
+    CXX="$CXX -std=c++0x"
+    if testcpp11 0; then
+      echo 'successful (tacking on -std=c++0x).'
+    else
+      echo 'FAILED! error below:'
+      echo
+      testcpp11 1
+      echo
+      exit 1
+    fi
+  fi
+fi
+
+
+#
+# Check that compiler works without error
+#
+echo -n 'Checking flags (CXXFLAGS)... '
+ODEFS=$DEFS
+DEFS="$DEFS $CXXFLAGS"
+if testcompiler 0; then
+  echo 'successful.'
+else
+  echo 'FAILED! error below:'
+  echo
+  testcompiler 1
+  echo
+  exit 1
+fi
+
+#
+# Check if OpenMP is provided
+#
+echo -n 'Checking if OpenMP is provided... '
+if testopenmp; then
+  echo 'OpenMP works.'
+else
+  echo 'Unable to compile OpenMP test program, will build without OpenMP, to enable OpenMP please provide e.g. CXXFLAGS=-fopenmp.'
+  DEFS="$DEFS -DOMP_OFF"
+fi
+  
+DEFS=$ODEFS
+
+#
+# Determine BLAS/LAPACK naming convention
+#
+echo -n 'Checking whether BLAS works... '
+if testlink "$BLASLIBS" dgemm_ 0; then
+  UNDERSCORE=1
+  echo 'BLAS works, with underscores.'
+else
+  if testlink "$BLASLIBS" dgemm 0; then
+    UNDERSCORE= 0
+    echo 'BLAS works, without underscores.'
+  else
+    if [ "x$BLASLIBS" = "x" ]; then
+      if [ "$compiler" = "intel" ] &&  testlink -mkl dgemm_ 0 ; then
+        UNDERSCORE=1
+        echo 'BLAS library was not specified, using -mkl.'
+        BLASLIBS=-mkl
+      elif testlink -lblas dgemm_ 0; then
+        UNDERSCORE=1
+        echo 'BLAS library was not specified, using -lblas (with underscores).'
+        BLASLIBS=-lblas
+      elif testlink -lblas dgemm 0; then
+        UNDERSCORE=0
+        echo 'BLAS library was not specified, using -lblas (without underscores).'
+        BLASLIBS=-lblas
+      else
+        UNDERSCORE=1
+        echo
+        echo '  WARNING: BLAS libirary was not specified, executables will not build,'
+        echo '  please specify correct --blas and/or LDFLAGS (run ./configure --help to see all options),'
+        echo '  CTF library can still build (via make).'
+      fi
+    else 
+      UNDERSCORE=1
+      echo
+      echo '  WARNING: Unable to link with specified BLAS library, build error below:'
+      echo
+      testlink "$BLASLIBS" dgemm_ 1
+      echo
+      echo '  please specify correct --blas and/or LDFLAGS (run ./configure --help to see all options),'
+      echo '  CTF library can still build (via 'make'), but none of the executables will.'
+    fi
+  fi
+fi
+
+DEFS="$DEFS -DFTN_UNDERSCORE=$UNDERSCORE"
+
+if [ $UNDERSCORE = 1 ] ; then
+  DGEMM=dgemm_
+  PDGEMM=pdgemm_
+else
+  DGEMM=dgemm
+  PDGEMM=pdgemm
+fi
+
+#echo -n 'Checking whether ScaLAPACK is provided... '
+#if testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 0; then
+#  echo 'SCALAPACK found.'
+#  DEFS="$DEFS -DUSE_SCALAPACK"
+#else
+#  echo
+#  echo '  ScaLAPACK not found, a couple of the tests/benchmarks will not build, build error below:'
+#  echo
+#  testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 1
+#  echo
+#fi
+
+echo -n 'Checking whether NVCC (cuda) is provided... '
+if [ "x$NVCC" = "x" ]; then
+  NVCC="$CXX -x c -c"
+  echo 'NVCC is not provided, cuda will not be used.'
+else
+  DEFS="$DEFS -DOFFLOAD -DUSE_CUDA"
+  echo 'NVCC provided and cuda will be used.'
+fi
+
+cat > config.mk <<EOF
+BLAS_LIBS   = $SCALAPACKLIBS $BLASLIBS
+
+LDFLAGS     = $LDFLAGS
+INCLUDES    = $INCLUDES
+
+DEFS        = $DEFS 
+
+#uncomment below to enable performance profiling
+#DEFS       += -DPROFILE -DPMPI
+#uncomment below to enable verbosity (1 for basic contraction information)
+#DEFS       += -DVERBOSE=1
+#uncomment to set debug level and dump information about mapping and internal CTF actions
+#DEFS       += -DDEBUG=1
+
+AR          = $AR
+
+CXX         = $CXX
+CXXFLAGS    = $CXXFLAGS $WARNFLAGS 
+
+FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS)
+LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
+
+OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS)
+
+EOF
+
+echo 'Configure was successful.'

@@ -2,18 +2,18 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \addtogroup DFT_3D
+  * \defgroup DFT_3D DFT_3D
   * @{ 
+  * \brief 3D Discrete Fourier Transform by tensor contractions
   */
 
 
 #include <ctf.hpp>
-#include <assert.h>
-#include <stdlib.h>
+using namespace CTF;
 
 
-int test_dft_3D(int const     n,
-                cCTF_World    &wrld){
+int test_dft_3D(int     n,
+                World & wrld){
   int myRank, numPes;
   int i, j;
   int64_t  np;
@@ -27,9 +27,9 @@ int test_dft_3D(int const     n,
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-  cCTF_Matrix DFT(n, n, SY, wrld);
-  cCTF_Matrix IDFT(n, n, SY, wrld);
-  cCTF_Tensor MESH(3, len, sym, wrld);
+  Matrix < std::complex<double>, false >DFT(n, n, SY, wrld);
+  Matrix < std::complex<double>, false >IDFT(n, n, SY, wrld);
+  Tensor < std::complex<double>, false >MESH(3, len, sym, wrld);
 
   DFT.read_local(&np, &idx, &data);
 
@@ -112,7 +112,7 @@ int main(int argc, char ** argv){
   n = 1<<logn;
 
   {
-    cCTF_World dw(argc, argv);
+    World dw(argc, argv);
     int pass = test_dft_3D(n, dw);
     assert(pass);
   }

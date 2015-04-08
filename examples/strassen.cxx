@@ -2,24 +2,17 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup Strassen
+  * \defgroup Strassen Strassen's algorithm
   * @{ 
   * \brief Strassen's algorithm using the slice interface to extract blocks
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <stdint.h>
-#include <algorithm>
 #include <ctf.hpp>
+using namespace CTF;
 
 int strassen(int const     n,
              int const     sym,
-             CTF_World    &dw){
+             World    &dw){
   int rank, i, num_pes, cnum_pes;
   int64_t np;
   double * pairs, err;
@@ -39,7 +32,7 @@ int strassen(int const     n,
     cnum_pes = 1;
     ccomm = dw.comm;
   }
-  CTF_World cdw(ccomm);
+  World cdw(ccomm);
 
 #ifndef TEST_SUITE
   if (rank == 0)
@@ -47,17 +40,17 @@ int strassen(int const     n,
             n,num_pes);
 #endif
   
-  CTF_Matrix A(n, n, sym, dw);
-  CTF_Matrix B(n, n, sym, dw);
-  CTF_Matrix C(n, n, NS,  dw);
-  CTF_Matrix Cs(n, n, NS,  dw);
-  CTF_Matrix M1(n/2, n/2, NS,  dw);
-  CTF_Matrix M2(n/2, n/2, NS,  dw);
-  CTF_Matrix M3(n/2, n/2, NS,  dw);
-  CTF_Matrix M4(n/2, n/2, NS,  dw);
-  CTF_Matrix M5(n/2, n/2, NS,  dw);
-  CTF_Matrix M6(n/2, n/2, NS,  dw);
-  CTF_Matrix M7(n/2, n/2, NS,  dw);
+  Matrix<> A(n, n, sym, dw);
+  Matrix<> B(n, n, sym, dw);
+  Matrix<> C(n, n, NS,  dw);
+  Matrix<> Cs(n, n, NS,  dw);
+  Matrix<> M1(n/2, n/2, NS,  dw);
+  Matrix<> M2(n/2, n/2, NS,  dw);
+  Matrix<> M3(n/2, n/2, NS,  dw);
+  Matrix<> M4(n/2, n/2, NS,  dw);
+  Matrix<> M5(n/2, n/2, NS,  dw);
+  Matrix<> M6(n/2, n/2, NS,  dw);
+  Matrix<> M7(n/2, n/2, NS,  dw);
 
   srand48(13*rank);
   A.read_local(&np, &indices, &pairs);
@@ -97,11 +90,11 @@ int strassen(int const     n,
     int end_ik[2] = {ri * n/2 + n/2, rk * n/2 + n/2};
     int off_kj[2] = {rk * n/2, rj * n/2};
     int end_kj[2] = {rk * n/2 + n/2, rj * n/2 + n/2};*/
-    CTF_Matrix cA(n/2, n/2, NS, cdw);
-    CTF_Matrix cB(n/2, n/2, NS, cdw);
-    CTF_Matrix cC(n/2, n/2, NS, cdw);
+    Matrix<> cA(n/2, n/2, NS, cdw);
+    Matrix<> cB(n/2, n/2, NS, cdw);
+    Matrix<> cC(n/2, n/2, NS, cdw);
 
-    CTF_Tensor dummy(0, NULL, NULL, cdw);
+    Tensor<> dummy(0, NULL, NULL, cdw);
 
     switch (rank/cnum_pes){
       case 0: //M1
@@ -176,11 +169,9 @@ int strassen(int const     n,
     }
   } else {
 
-    CTF_Tensor A21 = A.slice(off_10, end_21);
-    
-    CTF_Tensor A11 = A.slice(off_00, end_11);
-    
-    CTF_Tensor A12(2,snhalf,sym_ns,dw);
+    Tensor<> A21 = A.slice(off_10, end_21);
+    Tensor<> A11 = A.slice(off_00, end_11);
+    Tensor<> A12(2,snhalf,sym_ns,dw);
     if (sym == SY){
       A12["ij"] = A21["ji"];
     }
@@ -190,12 +181,12 @@ int strassen(int const     n,
     if (sym == NS){
       A12 = A.slice(off_01, end_12);
     }
-    CTF_Tensor A22 = A.slice(off_11, end_22);
+    Tensor<> A22 = A.slice(off_11, end_22);
     
-    CTF_Tensor B11 = B.slice(off_00, end_11);
-    CTF_Tensor B21 = B.slice(off_10, end_21);
+    Tensor<> B11 = B.slice(off_00, end_11);
+    Tensor<> B21 = B.slice(off_10, end_21);
     
-    CTF_Tensor B12(2,snhalf,sym_ns,dw);
+    Tensor<> B12(2,snhalf,sym_ns,dw);
     if (sym == SY){
       B12["ij"] = B21["ji"];
     }
@@ -205,7 +196,7 @@ int strassen(int const     n,
     if (sym == NS){
       B12 = B.slice(off_01, end_12);
     }
-    CTF_Tensor B22 = B.slice(off_11, end_22);
+    Tensor<> B22 = B.slice(off_11, end_22);
 
     M1["ij"] = (A11["ik"]+A22["ik"])*(B22["kj"]+B11["kj"]);
     M6["ij"] = (A21["ik"]-A11["ik"])*(B11["kj"]+B12["kj"]);
@@ -262,7 +253,7 @@ char* getCmdOption(char ** begin,
 }
 
 int main(int argc, char ** argv){
-  int rank, np, n,  pass;
+  int rank, np, n;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -276,7 +267,7 @@ int main(int argc, char ** argv){
   } else n = 256;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     int pass;    
     if (rank == 0){
       printf("Non-symmetric: NS = NS*NS strassen:\n");

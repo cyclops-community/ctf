@@ -1,37 +1,30 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup subworld_gemm
+  * \defgroup subworld_gemm subworld_gemm
   * @{ 
   * \brief Performs recursive parallel matrix multiplication using the slice interface to extract blocks
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <stdint.h>
-#include <algorithm>
 #include <ctf.hpp>
+using namespace CTF;
 
 
 int test_subworld_gemm(int n,
                        int m,
                        int k,
                        int div_,
-                       CTF_World &dw){
+                       World &dw){
   int rank, num_pes;
   int64_t i, np;
   double * pairs, err;
   int64_t * indices;
   
   
-  CTF_Matrix C(m, n, NS, dw);
-  CTF_Matrix C_ans(m, n, NS, dw);
-  CTF_Matrix A(m, k, NS, dw);
-  CTF_Matrix B(k, n, NS, dw);
+  Matrix<> C(m, n, NS, dw, "C");
+  Matrix<> C_ans(m, n, NS, dw, "C_ans");
+  Matrix<> A(m, k, NS, dw, "A");
+  Matrix<> B(k, n, NS, dw);
   
   MPI_Comm pcomm = dw.comm;
   MPI_Comm_rank(pcomm, &rank);
@@ -60,13 +53,13 @@ int test_subworld_gemm(int n,
    
   MPI_Comm ccomm; 
   MPI_Comm_split(pcomm, color, crank, &ccomm);
-  CTF_World sworld(ccomm);
+  World sworld(ccomm);
   
   C_ans["ij"] = ((double)div)*A["ik"]*B["kj"];
 
-  CTF_Matrix subA(m, k, NS, sworld);
-  CTF_Matrix subB(k, n, NS, sworld);
-  CTF_Matrix subC(m, n, NS, sworld);
+  Matrix<> subA(m, k, NS, sworld, "subA");
+  Matrix<> subB(k, n, NS, sworld);
+  Matrix<> subC(m, n, NS, sworld, "subC");
 
   for (int c=0; c<num_pes/cnum_pes; c++){
     if (c==color){
@@ -81,6 +74,7 @@ int test_subworld_gemm(int n,
   if (rank < cnum_pes*div)
     subC["ij"] = subA["ik"]*subB["kj"];
 
+
   for (int c=0; c<num_pes/cnum_pes; c++){
     if (c==color){
       C.add_from_subworld(&subC, 1.0, 1.0);
@@ -88,7 +82,6 @@ int test_subworld_gemm(int n,
       C.add_from_subworld(NULL, 1.0, 1.0);
     }    
   }
-  
 
   C_ans["ij"] -= C["ij"];
 
@@ -100,6 +93,7 @@ int test_subworld_gemm(int n,
     else
       printf("{ GEMM on subworlds } FAILED, error norm = %E\n",err);
   }
+  MPI_Comm_free(&ccomm);
   return err<1.E-9;
 } 
 
@@ -116,7 +110,7 @@ char* getCmdOption(char ** begin,
 }
 
 int main(int argc, char ** argv){
-  int rank, np, niter, n, m, k, pass, div;
+  int rank, np, n, m, k, div;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -142,7 +136,7 @@ int main(int argc, char ** argv){
   } else div = 2;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     int pass;    
     if (rank == 0){
       printf("Non-symmetric: NS = NS*NS test_subworld_gemm:\n");
@@ -154,5 +148,9 @@ int main(int argc, char ** argv){
   MPI_Finalize();
   return 0;
 }
+/**
+ * @} 
+ * @}
+ */
 #endif
 

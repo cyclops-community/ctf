@@ -2,31 +2,20 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup permute_multiworld
+  * \defgroup permute_multiworld permute_multiworld
   * @{ 
   * \brief tests permute function between different worlds
   */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <math.h>
-#include <assert.h>
-#include <stdint.h>
-#include <algorithm>
 #include <ctf.hpp>
-
-#ifndef MIN
-#define MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
-#endif
+using namespace CTF;
 
 int permute_multiworld(int         n,
                        int         sym,
-                       CTF_World & dw){
+                       World & dw){
   int np, rank, nprow, npcol, rrow, rcol, nrow, ncol, pass;
-  long_int i, nvals, row_pfx, col_pfx;
-  long_int * indices;
+  int64_t i, nvals, row_pfx, col_pfx;
+  int64_t * indices;
   double * data;
   int * perm_row, * perm_col;
   int ** perms;
@@ -47,11 +36,11 @@ int permute_multiworld(int         n,
 
   nrow = n/nprow;
   row_pfx = nrow*rrow;
-  row_pfx += MIN(n%nprow, rrow);
+  row_pfx += std::min(n%nprow, rrow);
   if (rrow < n%nprow) nrow++;
   ncol = n/npcol;
   col_pfx = ncol*rcol;
-  col_pfx += MIN(n%npcol, rcol);
+  col_pfx += std::min(n%npcol, rcol);
   if (rcol < n%npcol) ncol++;
 
   perms = (int**)malloc(sizeof(int*)*2);
@@ -68,7 +57,7 @@ int permute_multiworld(int         n,
     perm_col[i] = col_pfx+i;
   }
   
-  CTF_Matrix A(n, n, sym, dw);
+  Matrix<> A(n, n, sym, dw);
   A.read_local(&nvals, &indices, &data);
 
   for (i=0; i<nvals; i++){
@@ -79,18 +68,18 @@ int permute_multiworld(int         n,
   free(indices);
   free(data);
 
-  CTF_World id_world(MPI_COMM_SELF);
+  World id_world(MPI_COMM_SELF);
 
   int Bsym;
   if (rrow == rcol) Bsym = sym;
   else Bsym = NS;
 
   if (sym != NS && rrow > rcol){
-    CTF_Scalar B(id_world);
+    Scalar<> B(id_world);
     B.permute(perms, 1.0, A, 1.0);
     nvals = 0;
   } else {
-    CTF_Matrix B(nrow, ncol, Bsym, id_world);
+    Matrix<> B(nrow, ncol, Bsym, id_world);
 
     B.permute(perms, 1.0, A, 1.0);
    
@@ -127,13 +116,12 @@ int permute_multiworld(int         n,
   A["ij"] = 0.0;
     
   if (sym != NS && rrow > rcol){
-    CTF_Scalar B(id_world);
+    Scalar<> B(id_world);
     A.permute(1.0, B, perms, 1.0);
     nvals = 0;
   } else {
-    CTF_Matrix B(nrow, ncol, Bsym, id_world);
+    Matrix<> B(nrow, ncol, Bsym, id_world);
     B.write(nvals,indices,data);
-
     A.permute(1.0, B, perms, 1.0);
   }
 
@@ -146,7 +134,7 @@ int permute_multiworld(int         n,
 
   pass = 1;
   for (i=0; i<nvals; i++){
-    if (data[i] != (double)(n*n-indices[i])){
+    if (abs(data[i] - (double)(n*n-indices[i])) >= 1.E-9){
       pass = 0;
     }
   }
@@ -177,7 +165,7 @@ char* getCmdOption(char ** begin,
 }
 
 int main(int argc, char ** argv){
-  int rank, np, niter, n, pass;
+  int rank, np, n;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -191,7 +179,7 @@ int main(int argc, char ** argv){
   } else n = 256;
 
   {
-    CTF_World dw(MPI_COMM_WORLD, argc, argv);
+    World dw(MPI_COMM_WORLD, argc, argv);
     int pass;    
     if (rank == 0){
       printf("Testing nonsymmetric multiworld permutation with n=%d\n",n);

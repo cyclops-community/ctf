@@ -1,68 +1,85 @@
-# Cyclops Tensor Framework
-#
-# see README for more detailed instructions
-#
-# type make to build library
-# type make examples to build all examples
-# type make <example_name>
-#   where <example_name> can be one of
-#     gemm gemm_4D dft dft_3D trace sym3 ccsd_t3_to_t2 weight_4D sdtrassen
+include config.mk
 
-ifdef __APPLE__
-  ON_MAC = 1
-endif
+all: ./lib/libctf.a
 
-HNAME	:= $(shell hostname | cut -d . -f 1)
+EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
+           permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice 
+
+TESTS = test_suite pgemm_test nonsq_pgemm_test diag_sym sym3 readwrite_test \
+        ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test 
+
+BENCHMARKS = nonsq_pgemm_bench bench_contraction bench_nosym_transp bench_redistribution
+
+STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
+          fast_tensor_ctr fast_sy_as_as_tensor_ctr fast_as_as_sy_tensor_ctr
+
+EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(STUDIES)
+
+.PHONY: executables
+executables: $(EXECUTABLES)
+$(EXECUTABLES): ./lib/libctf.a
+
 
 .PHONY: examples
-all $(MAKECMDGOALS): 
-	@if [ ! -f src/make/make.in ] ;  then \
-	  echo top_dir=`pwd` > src/make/make.in; \
-	fi; \
-	if [ ! -f config.mk ] ;  then \
-    if [ $(ON_MAC) ]; then \
-      echo 'Machine recognized as a MAC'; \
-      cp mkfiles/config.mk.linux config.mk; \
-    else \
-      if [ $(shell hostname | grep 'edison' ) ] ;  then \
-        echo 'Hostname recognized as Edison, using pre-made config.mk file'; \
-        cp mkfiles/config.mk.edison config.mk;   \
-      else \
-        if [ $(shell hostname | grep 'hopper' ) ] ;  then \
-          echo 'Hostname recognized as Hopper, using pre-made config.mk file'; \
-          cp mkfiles/config.mk.hopper config.mk;   \
-				else \
-					if [ $(shell hostname | grep 'titan' ) ] ;  then \
-						echo 'Hostname recognized as Titan, using pre-made config.mk file'; \
-						cp mkfiles/config.mk.titan config.mk;   \
-	else \
-	  if [ $(shell hostname | grep 'cvrsvc' ) ] ;  then \
-	    echo 'Hostname recognized as Carver, using pre-made config.mk file'; \
-	    cp mkfiles/config.mk.carver config.mk;   \
-	  else \
-	    if [ $(shell hostname | grep 'surveyor\|intrepid\|challenger\|udawn' ) ] ;  then \
-	      echo 'Hostname recognized as a BG/P machine, using pre-made config.mk file'; \
-	      cp mkfiles/config.mk.bgp config.mk;   \
-	    else \
-	      if [ $(shell hostname | grep 'ls[0-9]*.tacc.utexas.edu' ) ] ;  then \
-		cp mkfiles/config.mk.lonestar config.mk;   \
-	      else \
-		if [ $(shell hostname | grep 'vesta\|mira\|cetus\|seq' ) ] ;  then \
-		  cp mkfiles/config.mk.bgq config.mk;   \
-		else \
-		  echo 'Hostname not recognized: assuming linux, specialize config.mk if necessary'; \
-		  cp mkfiles/config.mk.linux config.mk;   \
-		fi; \
-	      	fi; \
-	    	fi; \
-	    fi; \
-	  fi; \
-	fi; \
-      fi; \
-    fi; \
-  fi; \
-  cd src/make; \
-  $(MAKE) $@;
+examples: $(EXAMPLES)
+$(EXAMPLES):
+	$(MAKE) $@ -C examples
+
+.PHONY: tests
+tests: $(TESTS)
+$(TESTS):
+	$(MAKE) $@ -C test
+
+.PHONY: bench
+bench: $(BENCHMARKS)
+$(BENCHMARKS):
+	$(MAKE) $@ -C bench
+
+.PHONY: studies
+studies: $(STUDIES)
+$(STUDIES):
+	$(MAKE) $@ -C studies
+
+.PHONY: ctf
+ctf:
+	$(MAKE) ctf -C src; 
+
+.PHONY: ctflib
+ctflib: ctf 
+	$(AR) -crs ./lib/libctf.a src/*/*.o; 
+
+lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
+	$(MAKE) ctflib
+	
+clean: clean_bin clean_lib
+	$(MAKE) $@ -C src
 
 
+test: test_suite
+	./bin/test_suite
 
+test2: test_suite
+	mpirun -np 2 ./bin/test_suite
+
+test3: test_suite
+	mpirun -np 3 ./bin/test_suite
+
+test4: test_suite
+	mpirun -np 4 ./bin/test_suite
+
+test6: test_suite
+	mpirun -np 6 ./bin/test_suite
+
+test7: test_suite
+	mpirun -np 7 ./bin/test_suite
+
+test8: test_suite
+	mpirun -np 8 ./bin/test_suite
+
+clean_bin:
+	for comp in $(EXECUTABLES) ; do \
+		rm -f ./bin/$$comp ; \
+	done 
+
+clean_lib:
+	rm -f ./lib/libctf.a
