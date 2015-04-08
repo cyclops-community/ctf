@@ -144,7 +144,7 @@ namespace CTF_int {
              double const * B,
              double         beta,
              double *       C){
-    CTF_int::dgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
+    CTF_int::cidgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
 
   template<>

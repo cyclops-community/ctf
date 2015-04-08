@@ -32,16 +32,16 @@ namespace CTF_int {
   }
 
 
-  void dgemm(char           tA,
-             char           tB,
-             int            m,
-             int            n,
-             int            k,
-             double         alpha,
-             double const * A,
-             double const * B,
-             double         beta,
-             double *       C){
+  void cidgemm(char           tA,
+               char           tB,
+               int            m,
+               int            n,
+               int            k,
+               double         alpha,
+               double const * A,
+               double const * B,
+               double         beta,
+               double *       C){
     int lda_A, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){

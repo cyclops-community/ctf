@@ -342,7 +342,7 @@ namespace CTF_int {
                      new_data[bucket]+sr->el_size*count[bucket], 1);
             count[bucket]+=(idx1-idx0+rep_phase0-1)/rep_phase0;
 #if DEBUG>=1
-            printf("[%d] gidx[0]=%d,gidx_min=%d,idx0=%d,gidx_max=%d,idx1=%d,bucket=%d,len=%d\n",rank,gidx[0],gidx_min,idx0,gidx_max,idx1,bucket,(idx1-idx0+rep_phase0-1)/rep_phase0);
+          //  printf("[%d] gidx[0]=%d,gidx_min=%d,idx0=%d,gidx_max=%d,idx1=%d,bucket=%d,len=%d\n",rank,gidx[0],gidx_min,idx0,gidx_max,idx1,bucket,(idx1-idx0+rep_phase0-1)/rep_phase0);
 #endif
             idx0++;
           }
