@@ -78,7 +78,7 @@ int main(int argc, char ** argv){
 
       double t_start = MPI_Wtime();
 
-      Timer_<>epoch ep("folded contractions set 1");
+      Timer_epoch ep("folded contractions set 1");
       ep.begin();
 
       v_out["acegikmo"] =  h["ax"]*v_in["xcegikmo"];
@@ -126,7 +126,7 @@ int main(int argc, char ** argv){
 
       double t_start = MPI_Wtime();
 
-      Timer_<>epoch ep("folded contractions set 1");
+      Timer_epoch ep("folded contractions set 1");
       ep.begin();
    
       v_out["abdfhjln"] += h["bx"]*v_in["axdfhjln"];
@@ -186,7 +186,7 @@ int main(int argc, char ** argv){
 
     double t_start = MPI_Wtime();
 
-    Timer_<>epoch ep("contractions");
+    Timer_epoch ep("contractions");
     ep.begin();
 
     v_out["abcdefghijklmno"] = h["abxy"]*v_in["xycdefghijklmno"];

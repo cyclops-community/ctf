@@ -49,7 +49,7 @@ namespace CTF {
     public:
       char const * timer_name;
       int index;
-      nt exited;
+      int exited;
       int original;
     
     public:
