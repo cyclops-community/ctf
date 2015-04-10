@@ -378,7 +378,7 @@ namespace CTF_int {
       new_lda[new_order[j]] = new_lda[new_order[j-1]]*edge_len[new_order[j-1]];
     }
     ASSERT(local_size == new_lda[new_order[order-1]]*edge_len[new_order[order-1]]);
-#if NOSYM_TR_OPT 
+#if OPT_NOSYM_TR 
     if (order <= 8){
       int idim_new_lda1 = new_order[0];
       CTF_int::alloc_ptr(local_size*sr->el_size, (void**)&tswap_data[0]);
