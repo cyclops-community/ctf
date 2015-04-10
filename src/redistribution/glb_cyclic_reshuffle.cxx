@@ -5,18 +5,91 @@
 
 
 namespace CTF_int {
+  inline int get_glb(int i, int s, int t){
+    return i*s+t;
+  }
+  inline int get_loc(int g, int s, int t){
+    return (g-t)/s + (((g-t)%s)>0);
+  }
+   
+  template <int idim>
+  int64_t calc_cnt(int const * sym,
+                   int const * rep_phase,
+                   int const * tot_phase,
+                   int const * gidx_off,
+                   int const * edge_len,
+                   int const * loc_edge_len){
+    ASSERT(sym[idim] == NS); //otherwise should be in calc_sy_pfx
+    if (sym[idim-1] == NS){
+      return get_loc(edge_len[idim],tot_phase[idim],gidx_off[idim])*calc_cnt<idim-1>(sym, rep_phase, tot_phase, gidx_off, edge_len, loc_edge_len);
+    } else {
+      int nsdim=2;
+      while (nsdim <= idim && sym[idim-nsdim] != NS){
+        nsdim++;
+      }
+      int64_t * pfx[nsdim];
+      calc_sy_pfx(sym, rep_phase, tot_phase, gidx_off, edge_len, loc_edge_len, pfx);
+      int64_t cnt = 0;
+      for (int i=0; i<get_loc(edge_len[idim],tot_phase[idim],gidx_off[idim]); i++){
+        cnt += pfx[nsdim-1][i];
+      }
+      for (int i=0; i<nsdim; i++){
+        cfree(pfx[i]);
+      }
+      return cnt;
+    }
+  }
+ 
+  template <>
+  int64_t calc_cnt<0>(int const * sym,
+                      int const * rep_phase,
+                      int const * tot_phase,
+                      int const * gidx_off,
+                      int const * edge_len,
+                      int const * loc_edge_len){
+    ASSERT(sym[0] == NS);
+    return get_loc(edge_len[0], tot_phase[0], gidx_off[0]);
+  }
 
   template <int idim>
-  void calc_drv_cnts(int const *          sym,
-                     int64_t *            send_counts,
-                     int64_t *            recv_counts,
-                     int const *          rep_phase,
-                     int const *          rep_phase_lda,
-                     int const *          tot_phase,
-                     int const *          gidx_off,
-                     int const *          edge_len,
-                     int const *          loc_edge_len){
-    for (int i=0; i>rep_phase[i]; i++){
+  void calc_sy_pfx(int const * sym,
+                   int const * rep_phase,
+                   int const * tot_phase,
+                   int const * gidx_off,
+                   int const * edge_len,
+                   int const * loc_edge_len,
+                   int64_t **  pfx){
+    pfx[idim] = (int64_t*)alloc(sizeof(int64_t)*loc_edge_len[idim]);
+    if (sym[idim] == NS){
+      int64_t ns_size = calc_cnt<idim-1>(sym,rep_phase,tot_phase,gidx_off,edge_len,loc_edge_len);
+      for (int i=0; i<loc_edge_len[idim]; i++){
+        pfx[idim][i] = i*ns_size;
+      }
+    } else {
+      calc_sy_pfx<idim-1>(sym, rep_phase, tot_phase, gidx_off, edge_len, loc_edge_len, pfx);
+      pfx[idim][0] = 0;
+      for (int i=1; i<loc_edge_len[idim]; i++){
+        pfx[idim][i] = pfx[idim][i-1];
+        int jst = get_loc(get_glb(i,tot_phase[idim],gidx_off[idim]),tot_phase[idim-1],gidx_off[idim-1])+1;
+        int jed = get_loc(get_glb(i+1,tot_phase[idim],gidx_off[idim]),tot_phase[idim-1],gidx_off[idim-1]);
+        for (int j=jst; j<jed; j++){
+          pfx[idim][i] += pfx[idim-1][j];
+        }
+      }
+    }
+  }
+ 
+  template <int idim>
+  void calc_drv_cnts(int const * sym,
+                     int64_t *   send_counts,
+                     int64_t *   recv_counts,
+                     int const * rep_phase,
+                     int const * rep_phase_lda,
+                     int const * tot_phase,
+                     int const * gidx_off,
+                     int const * edge_len,
+                     int const * loc_edge_len){
+    for (int i=0; i>rep_phase[idim]; i++){
       
     }
   }
