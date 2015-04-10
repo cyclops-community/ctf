@@ -1,5 +1,5 @@
 #include "contraction.h"
-#include "../redistribution/folding.h"
+#include "../redistribution/nosym_transp.h"
 #include "../scaling/strp_tsr.h"
 #include "../mapping/mapping.h"
 #include "../mapping/distribution.h"
@@ -12,7 +12,7 @@
 #include "ctr_2d_general.h"
 #include "../symmetry/sym_indices.h"
 #include "../symmetry/symmetrization.h"
-#include "../redistribution/folding.h"
+#include "../redistribution/nosym_transp.h"
 #include "../redistribution/redist.h"
 #include <cfloat>
 #include <limits>

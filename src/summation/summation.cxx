@@ -9,7 +9,7 @@
 #include "sum_tsr.h"
 #include "../symmetry/sym_indices.h"
 #include "../symmetry/symmetrization.h"
-#include "../redistribution/folding.h"
+#include "../redistribution/nosym_transp.h"
 #include "../redistribution/redist.h"
 #include "../scaling/scaling.h"
 

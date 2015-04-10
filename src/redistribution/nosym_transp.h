@@ -1,35 +1,11 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __INT_FOLDING_H__
-#define __INT_FOLDING_H__
+#ifndef __NOSYM_TRANSP_H__
+#define __NOSYM_TRANSP_H__
 
 #include "../tensor/algstrct.h"
 
 namespace CTF_int {
- 
-  /**
-   * \brief permute an array
-   *
-   * \param order number of elements
-   * \param perm permutation array
-   * \param arr array to permute
-   */
-  void permute(int         order,
-               int const * perm,
-               int *       arr);
-
-  /**
-   * \brief permutes a permutation array 
-   *
-   * \param order number of elements in perm
-   * \param order_perm number of elements in arr
-   * \param perm permutation array
-   * \param arr permutation array to permute
-   */
-  void permute_target(int         order,
-                      int const * perm,
-                      int *       arr);
-
   /**
    * \brief transposes a non-symmetric (folded) tensor
    *
@@ -70,17 +46,5 @@ namespace CTF_int {
                        int64_t *        chunk_size,
                        algstrct const * sr);
 
-  template <int idim>
-  void nosym_transpose_opt(int const *      edge_len,
-                           char const *     data,
-                           char *           swap_data,
-                           int              dir,
-                           int              idim_new_lda1,
-                           int64_t const *  lda,
-                           int64_t const *  new_lda,
-                           int64_t          off_old,
-                           int64_t          off_new,
-                           int              i_new_lda1,
-                           algstrct const * sr);
 }
 #endif

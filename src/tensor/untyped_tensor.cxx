@@ -9,7 +9,7 @@
 #include "../shared/memcontrol.h"
 #include "../redistribution/sparse_rw.h"
 #include "../redistribution/pad.h"
-#include "../redistribution/folding.h"
+#include "../redistribution/nosym_transp.h"
 #include "../redistribution/redist.h"
 #include "../redistribution/cyclic_reshuffle.h"
 #include "../redistribution/glb_cyclic_reshuffle.h"

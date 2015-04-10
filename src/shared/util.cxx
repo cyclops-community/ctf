@@ -201,4 +201,39 @@ namespace CTF_int {
       *nfactor = nf;
     }
   }
+
+  void permute(int          order,
+               int const *  perm,
+               int *        arr){
+    int i;
+    int * swap;
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&swap);
+
+    for (i=0; i<order; i++){
+      swap[i] = arr[perm[i]];
+    }
+    for (i=0; i<order; i++){
+      arr[i] = swap[i];
+    }
+
+    CTF_int::cfree(swap);
+  }
+
+  void permute_target(int         order,
+                      int const * perm,
+                      int *       arr){
+    int i;
+    int * swap;
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&swap);
+
+    for (i=0; i<order; i++){
+      swap[i] = arr[perm[i]];
+    }
+    for (i=0; i<order; i++){
+      arr[i] = swap[i];
+    }
+
+    CTF_int::cfree(swap);
+  }
+
 }

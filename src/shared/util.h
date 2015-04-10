@@ -347,6 +347,32 @@ namespace CTF_int {
       }
     }
   }
+ 
+  /**
+   * \brief permute an array
+   *
+   * \param order number of elements
+   * \param perm permutation array
+   * \param arr array to permute
+   */
+  void permute(int         order,
+               int const * perm,
+               int *       arr);
+
+  /**
+   * \brief permutes a permutation array 
+   *
+   * \param order number of elements in perm
+   * \param order_perm number of elements in arr
+   * \param perm permutation array
+   * \param arr permutation array to permute
+   */
+  void permute_target(int         order,
+                      int const * perm,
+                      int *       arr);
+
+
+
 }
 #endif
 

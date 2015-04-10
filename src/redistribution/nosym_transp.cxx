@@ -1,132 +1,54 @@
-#include "folding.h"
+#include "nosym_transp.h"
 #include "../shared/util.h"
 
 namespace CTF_int {
 
-#ifndef USE_OMP
 //#define OPT_NOSYM_TR
-#endif
-
-  void permute(int          order,
-               int const *  perm,
-               int *        arr){
-    int i;
-    int * swap;
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&swap);
-
-    for (i=0; i<order; i++){
-      swap[i] = arr[perm[i]];
-    }
-    for (i=0; i<order; i++){
-      arr[i] = swap[i];
-    }
-
-    CTF_int::cfree(swap);
-  }
-
-  void permute_target(int         order,
-                      int const * perm,
-                      int *       arr){
-    int i;
-    int * swap;
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&swap);
-
-    for (i=0; i<order; i++){
-      swap[i] = arr[perm[i]];
-    }
-    for (i=0; i<order; i++){
-      arr[i] = swap[i];
-    }
-
-    CTF_int::cfree(swap);
-  }
-
-  void nosym_transpose(int              order,
-                       int const *      new_order,
-                       int const *      edge_len,
-                       char *           data,
-                       int              dir,
-                       algstrct const * sr){
-    int64_t * chunk_size;
-    char ** tswap_data;
-
-    TAU_FSTART(nosym_transpose);
-    if (order == 0){
-      TAU_FSTOP(nosym_transpose);
-      return;
-    }
-  #ifdef USE_OMP
-    int max_ntd = MIN(16,omp_get_max_threads());
-    CTF_int::alloc_ptr(max_ntd*sizeof(char*),   (void**)&tswap_data);
-    CTF_int::alloc_ptr(max_ntd*sizeof(int64_t), (void**)&chunk_size);
-    std::fill(chunk_size, chunk_size+max_ntd, 0);
-  #else
-    int max_ntd=1;
-    CTF_int::alloc_ptr(sizeof(char*),   (void**)&tswap_data);
-    CTF_int::alloc_ptr(sizeof(int64_t), (void**)&chunk_size);
-    /*printf("transposing");
-    for (int id=0; id<order; id++){
-      printf(" new_order[%d]=%d",id,new_order[id]);
-    }
-    printf("\n");*/
-  #endif
-    nosym_transpose(order, new_order, edge_len, data, dir, max_ntd, tswap_data, chunk_size, sr);
-  #ifdef USE_OMP
-    #pragma omp parallel num_threads(max_ntd)
-  #endif
-    {
-      int tid;
-  #ifdef USE_OMP
-      tid = omp_get_thread_num();
-  #else
-      tid = 0;
-  #endif
-      int64_t thread_chunk_size = chunk_size[tid];
-      int i;
-      char * swap_data = tswap_data[tid];
-      int64_t toff = 0;
-      for (i=0; i<tid; i++) toff += chunk_size[i];
-      if (thread_chunk_size > 0){
-        memcpy(data+sr->el_size*(toff),swap_data,sr->el_size*thread_chunk_size);
-      }
-    }
-    for (int i=0; i<max_ntd; i++) {
-      int64_t thread_chunk_size = chunk_size[i];
-      if (thread_chunk_size > 0)
-        CTF_int::cfree(tswap_data[i],i);
-    }
-
-    CTF_int::cfree(tswap_data);
-    CTF_int::cfree(chunk_size);
-    TAU_FSTOP(nosym_transpose);
-  }
+//#define CL_BLOCK
 
 #ifdef OPT_NOSYM_TR
-#define CACHELINE 8
+#ifndef CL_BLOCK
+
 
   template <int idim>
-  void nosym_transpose_opt(int const *      edge_len,
+  void nosym_transpose_tmp(int const *      edge_len,
                            char const *     data,
                            char *           swap_data,
-                           int              dir,
-                           int              idim_new_lda1,
                            int64_t const *  lda,
                            int64_t const *  new_lda,
                            int64_t          off_old,
                            int64_t          off_new,
-                           int              i_new_lda1,
                            algstrct const * sr){
-    if (idim == idim_new_lda1){
-      for (int i=0; i<edge_len[idim]; i+=CACHELINE){
-        nosym_transpose_opt<idim-1>(edge_len, data, swap_data, dir, idim_new_lda1, lda, new_lda, off_old+i*lda[idim], off_new+i, i, sr);
-      }
-    } else {
-      for (int i=0; i<edge_len[idim]; i++){
-        nosym_transpose_opt<idim-1>(edge_len, data, swap_data, dir, idim_new_lda1, lda, new_lda, off_old+i*lda[idim], off_new+i*new_lda[idim], i_new_lda1, sr);
-      }
+    for (int i=0; i<edge_len[idim]; i++){
+      nosym_transpose_tmp<idim-1>(edge_len, data, swap_data, lda, new_lda, off_old+i*lda[idim], off_new+i*new_lda[idim], sr);
     }
   }
 
+  template <> 
+  inline void nosym_transpose_tmp<0>(int const *      edge_len,
+                                     char const *     data,
+                                     char *           swap_data,
+                                     int64_t const *  lda,
+                                     int64_t const *  new_lda,
+                                     int64_t          off_old,
+                                     int64_t          off_new,
+                                     algstrct const * sr){
+    sr->copy(edge_len[0], data+sr->el_size*off_old, lda[0], swap_data+sr->el_size*off_new, new_lda[0]);
+  }
+
+  template
+  void nosym_transpose_tmp<8>(int const *      edge_len,
+                              char const *     data,
+                              char *           swap_data,
+                              int64_t const *  lda,
+                              int64_t const *  new_lda,
+                              int64_t          off_old,
+                              int64_t          off_new,
+                              algstrct const * sr);
+
+
+#else
+  #define CACHELINE 8
   template <typename dtyp, bool dir>
   void nosym_transpose_inr(int const *             edge_len,
                            dtyp const * __restrict data,
@@ -234,6 +156,30 @@ namespace CTF_int {
                            int64_t                   off_new,
                            int                       i_new_lda1);
 
+  template <int idim>
+  void nosym_transpose_opt(int const *      edge_len,
+                           char const *     data,
+                           char *           swap_data,
+                           int              dir,
+                           int              idim_new_lda1,
+                           int64_t const *  lda,
+                           int64_t const *  new_lda,
+                           int64_t          off_old,
+                           int64_t          off_new,
+                           int              i_new_lda1,
+                           algstrct const * sr){
+    if (idim == idim_new_lda1){
+      for (int i=0; i<edge_len[idim]; i+=CACHELINE){
+        nosym_transpose_opt<idim-1>(edge_len, data, swap_data, dir, idim_new_lda1, lda, new_lda, off_old+i*lda[idim], off_new+i, i, sr);
+      }
+    } else {
+      for (int i=0; i<edge_len[idim]; i++){
+        nosym_transpose_opt<idim-1>(edge_len, data, swap_data, dir, idim_new_lda1, lda, new_lda, off_old+i*lda[idim], off_new+i*new_lda[idim], i_new_lda1, sr);
+      }
+    }
+  }
+
+
 
 
   template <> 
@@ -329,6 +275,7 @@ namespace CTF_int {
     }
   }
 
+
   template
   void nosym_transpose_opt<8>(int const *      edge_len,
                               char const *     data,
@@ -343,6 +290,70 @@ namespace CTF_int {
                               algstrct const * sr);
 
 #endif
+#endif
+
+
+
+
+  void nosym_transpose(int              order,
+                       int const *      new_order,
+                       int const *      edge_len,
+                       char *           data,
+                       int              dir,
+                       algstrct const * sr){
+    int64_t * chunk_size;
+    char ** tswap_data;
+
+    TAU_FSTART(nosym_transpose);
+    if (order == 0){
+      TAU_FSTOP(nosym_transpose);
+      return;
+    }
+  #ifdef USE_OMP
+    int max_ntd = MIN(16,omp_get_max_threads());
+    CTF_int::alloc_ptr(max_ntd*sizeof(char*),   (void**)&tswap_data);
+    CTF_int::alloc_ptr(max_ntd*sizeof(int64_t), (void**)&chunk_size);
+    std::fill(chunk_size, chunk_size+max_ntd, 0);
+  #else
+    int max_ntd=1;
+    CTF_int::alloc_ptr(sizeof(char*),   (void**)&tswap_data);
+    CTF_int::alloc_ptr(sizeof(int64_t), (void**)&chunk_size);
+    /*printf("transposing");
+    for (int id=0; id<order; id++){
+      printf(" new_order[%d]=%d",id,new_order[id]);
+    }
+    printf("\n");*/
+  #endif
+    nosym_transpose(order, new_order, edge_len, data, dir, max_ntd, tswap_data, chunk_size, sr);
+  #ifdef USE_OMP
+    #pragma omp parallel num_threads(max_ntd)
+  #endif
+    {
+      int tid;
+  #ifdef USE_OMP
+      tid = omp_get_thread_num();
+  #else
+      tid = 0;
+  #endif
+      int64_t thread_chunk_size = chunk_size[tid];
+      int i;
+      char * swap_data = tswap_data[tid];
+      int64_t toff = 0;
+      for (i=0; i<tid; i++) toff += chunk_size[i];
+      if (thread_chunk_size > 0){
+        memcpy(data+sr->el_size*(toff),swap_data,sr->el_size*thread_chunk_size);
+      }
+    }
+    for (int i=0; i<max_ntd; i++) {
+      int64_t thread_chunk_size = chunk_size[i];
+      if (thread_chunk_size > 0)
+        CTF_int::cfree(tswap_data[i],i);
+    }
+
+    CTF_int::cfree(tswap_data);
+    CTF_int::cfree(chunk_size);
+    TAU_FSTOP(nosym_transpose);
+  }
 
   void nosym_transpose(int              order,
                        int const *      new_order,
@@ -378,15 +389,23 @@ namespace CTF_int {
       new_lda[new_order[j]] = new_lda[new_order[j-1]]*edge_len[new_order[j-1]];
     }
     ASSERT(local_size == new_lda[new_order[order-1]]*edge_len[new_order[order-1]]);
-#if OPT_NOSYM_TR 
+#ifdef OPT_NOSYM_TR 
     if (order <= 8){
       int idim_new_lda1 = new_order[0];
       CTF_int::alloc_ptr(local_size*sr->el_size, (void**)&tswap_data[0]);
       chunk_size[0] = local_size;
+#ifdef CL_BLOCK 
 #define CASE_NTO(i) \
         case i: \
           nosym_transpose_opt<i-1>(edge_len,data,tswap_data[0],dir,idim_new_lda1,lda,new_lda,0,0,0,sr); \
         break;
+#else 
+#define CASE_NTO(i) \
+        case i: \
+          if (dir) nosym_transpose_tmp<i-1>(edge_len,data,tswap_data[0],lda,new_lda,0,0,sr); \
+          else nosym_transpose_tmp<i-1>(edge_len,data,tswap_data[0],new_lda,lda,0,0,sr); \
+        break;
+#endif
       switch (order){
         CASE_NTO(1);
         CASE_NTO(2);
