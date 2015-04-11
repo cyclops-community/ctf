@@ -946,7 +946,7 @@ namespace CTF_int {
               tnsr_B->sr->addinv(alpha, new_alpha);
             perm_types[i].alpha = new_alpha;
             perm_types[i].beta = dbeta;
-            perm_types[i].A->zero_out_padding();
+            //perm_types[i].A->zero_out_padding();
             perm_types[i].sum_tensors(run_diag);
             /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
                         perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/

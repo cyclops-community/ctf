@@ -3,10 +3,11 @@
 
 #include "../tensor/algstrct.h"
 //#include <stdint.h>
+#include <limits>
 #include <inttypes.h>
 
 namespace CTF_int {
-  //C++14, nasty
+  //C++14 support needed for these std::enable_if
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<is_ord, dtype>::type
   default_min(dtype a, dtype b){

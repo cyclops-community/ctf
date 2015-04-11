@@ -70,10 +70,31 @@ function testcpp11
 {
   status=1
   cat > .test.cxx <<EOF
-#if __cplusplus <= 199711L
-#error This library needs at least a C++11 compliant compiler
-#endif
-  int main(){ return 0; }
+  #include <type_traits>
+
+  template <typename a> 
+  class b {
+    public:
+    a s;
+    b(a s_){ s=s_; }
+  };
+  template <typename a> 
+  using tb = b<a>;
+
+  int f(int k){
+    tb<int> r = b<int>(k);
+    return r.s;
+  }
+
+  template <typename a, bool b>
+  inline typename std::enable_if<b, a>::type testmin(a x, a y){
+    return x>y ? y : x;
+  }
+  template <typename a, bool b>
+  inline typename std::enable_if<!b, a>::type testmin(a x, a y){
+    return x;
+  }
+  int main(){ return testmin<int,1>(f(7),3)-testmin<int,0>(3,4); }
 EOF
   if [ $1 -eq 1 ]; then
     ( set -x; $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx $LDFLAGS  2>&1 )
