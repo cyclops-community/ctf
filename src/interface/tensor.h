@@ -619,15 +619,19 @@ namespace CTF {
        * \brief collects the entire tensor data on each process (not memory scalable)
        * \param[out] npair number of values in the tensor
        * \param[out] data pointer to the data of the entire tensor
+       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
        */
       void read_all(int64_t  * npair,
-                    dtype **   data);
+                    dtype **   data,
+                    bool       unpack=false);
       
       /**
        * \brief collects the entire tensor data on each process (not memory scalable)
        * \param[in,out] preallocated data pointer to the data of the entire tensor
+       * \param[in,out] preallocated data pointer to the data of the entire tensor
+       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
        */
-      int64_t read_all(dtype * data);
+      int64_t read_all(dtype * data, bool unpack=false);
 
       /**
        * \brief obtains a small number of the biggest elements of the 

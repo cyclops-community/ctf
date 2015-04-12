@@ -1051,7 +1051,7 @@ namespace CTF_int {
     }
   }
 
-  PairIterator tensor::read_all_pairs(int64_t * num_pair){
+  PairIterator tensor::read_all_pairs(int64_t * num_pair, bool unpack){
     int numPes;
     int * nXs;
     int nval, n, i;
@@ -1063,7 +1063,29 @@ namespace CTF_int {
       *num_pair = 0;
       return PairIterator(sr, NULL);
     }
-
+    //unpack symmetry
+    if (unpack){
+      bool is_nonsym=true;
+      for (int i=0; i<order; i++){
+        if (sym[i] != NS){
+          is_nonsym = false;
+        }
+      }
+      if (!is_nonsym){
+        int sym_A[order];
+        std::fill(sym_A, sym_A+order, NS);
+        int idx_A[order];
+        for (int i=0; i<order; i++){
+          idx_A[i] = i;
+        }
+        tensor tA(sr, order, lens, sym_A, wrld, 1);
+        tA.is_home = 0;
+        tA.has_home = 0;
+        summation st(this, idx_A, sr->mulid(), &tA, idx_A, sr->mulid());
+        st.execute();
+        return tA.read_all_pairs(num_pair, false);
+      }
+    }
     alloc_ptr(numPes*sizeof(int), (void**)&nXs);
     alloc_ptr(numPes*sizeof(int), (void**)&pXs);
     pXs[0] = 0;
@@ -1094,8 +1116,9 @@ namespace CTF_int {
   }
 
   int tensor::allread(int64_t * num_pair,
-                      char **   all_data){
-    PairIterator ipr = read_all_pairs(num_pair);
+                      char **   all_data,
+                      bool      unpack){
+    PairIterator ipr = read_all_pairs(num_pair, unpack);
     char * ball_data = (char*)alloc(sr->el_size*(*num_pair));
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(ball_data+i*sr->el_size);
@@ -1106,8 +1129,9 @@ namespace CTF_int {
   }
 
   int tensor::allread(int64_t * num_pair,
-                      char *    all_data){
-    PairIterator ipr = read_all_pairs(num_pair);
+                      char *    all_data,
+                      bool      unpack){
+    PairIterator ipr = read_all_pairs(num_pair, unpack);
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(all_data+i*sr->el_size);
     }

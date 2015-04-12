@@ -622,21 +622,30 @@ namespace CTF_int {
               while (pr_offset < size && pairs[pr_offset].k() == pairs[pr_offset-1].k()){
   //              printf("found overlapped write of key %ld and value %lf\n", pairs[pr_offset].k, pairs[pr_offset].d);
                 if (rw == 'r'){
+                  if (alpha == NULL){
+                    pairs[pr_offset].write_val(data + sr->el_size*(buf_offset+i));
+                  } else {
 //                  pairs[pr_offset].d = alpha*data[buf_offset+i]+beta*pairs[pr_offset].d;
-                  char wval[sr->pair_size()];
-                  sr->mul(alpha, data + sr->el_size*(buf_offset+i), wval);
-                  char wval2[sr->pair_size()];
-                  sr->mul(beta,  pairs[pr_offset].d(), wval2);
-                  sr->add(wval, wval2, wval);
-                  pairs[pr_offset].write_val(wval);
+                    char wval[sr->pair_size()];
+                    sr->mul(alpha, data + sr->el_size*(buf_offset+i), wval);
+                    char wval2[sr->pair_size()];
+                    sr->mul(beta,  pairs[pr_offset].d(), wval2);
+                    sr->add(wval, wval2, wval);
+                    pairs[pr_offset].write_val(wval);
+                  }
                 } else {
+                  //FIXME: may be problematic if someone writes entries of a symmetric tensor redundantly
+                  if (alpha == NULL){
+                    sr->add(data + (buf_offset+i)*sr->el_size, 
+                            pairs[pr_offset].d(),
+                            data + (buf_offset+i)*sr->el_size);
+                  } else {
                   //data[(int64_t)buf_offset+i] = beta*data[(int64_t)buf_offset+i]+alpha*pairs[pr_offset].d;
-                  char wval[sr->pair_size()];
-                  sr->mul(alpha,  pairs[pr_offset].d(), wval);
-                  char wval2[sr->pair_size()];
-                  sr->copy(wval2, data + ((int64_t)buf_offset+i)*sr->el_size);
-                  sr->add(wval, wval2, wval);
-                  sr->copy(data + sr->el_size*(buf_offset+i), wval);
+                    char wval[sr->pair_size()];
+                    sr->mul(alpha,  pairs[pr_offset].d(), wval);
+                    sr->add(wval, data + sr->el_size*(buf_offset+i), wval);
+                    sr->copy(data + sr->el_size*(buf_offset+i), wval);
+                  }
                 }
   //              printf("rw = %c found overlapped write and set value to %lf\n", rw, data[(int64_t)buf_offset+i]);
                 pr_offset++;

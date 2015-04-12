@@ -222,17 +222,17 @@ namespace CTF {
 
 
   template<typename dtype, bool is_ord>
-  void Tensor<dtype, is_ord>::read_all(int64_t * npair, dtype ** vals){
+  void Tensor<dtype, is_ord>::read_all(int64_t * npair, dtype ** vals, bool unpack){
     int ret;
-    ret = CTF_int::tensor::allread(npair, ((char**)vals));
+    ret = CTF_int::tensor::allread(npair, ((char**)vals), unpack);
     assert(ret == CTF_int::SUCCESS);
   }
 
   template<typename dtype, bool is_ord>
-  int64_t Tensor<dtype, is_ord>::read_all(dtype * vals){
+  int64_t Tensor<dtype, is_ord>::read_all(dtype * vals, bool unpack){
     int ret;
     int64_t npair;
-    ret = CTF_int::tensor::allread(&npair, (char*)vals);
+    ret = CTF_int::tensor::allread(&npair, (char*)vals, unpack);
     assert(ret == CTF_int::SUCCESS);
     return npair;
   }

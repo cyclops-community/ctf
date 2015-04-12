@@ -41,7 +41,7 @@ namespace CTF_int {
        * \param[out] num_pair number of values read
        * return pair iterator with allocated all pairs read 
        */
-      PairIterator read_all_pairs(int64_t * num_pair);
+      PairIterator read_all_pairs(int64_t * num_pair, bool unpack);
 
       /** 
        * \brief copies all tensor data from other
@@ -290,18 +290,22 @@ namespace CTF_int {
        *         WARNING: will use an 'unscalable' amount of memory. 
        * \param[out] num_pair number of values read
        * \param[in,out] mapped_data values read (allocated by library)
+       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
        */
       int allread(int64_t * num_pair,
-                  char **   all_data);
+                  char **   all_data,
+                  bool      unpack);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
        *         WARNING: will use an 'unscalable' amount of memory. 
        * \param[out] num_pair number of values read
        * \param[in,out] preallocated mapped_data values read
+       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
        */
       int allread(int64_t * num_pair,
-                  char *    all_data);
+                  char *    all_data,
+                  bool      unpack);
 
        /**
        * \brief cuts out a slice (block) of this tensor = B
