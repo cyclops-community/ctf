@@ -2,7 +2,7 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup weigh_4D weigh_5D
+  * \defgroup weigh_4D weigh_4D
   * @{ 
   * \brief tests custom element-wise functions by implementing division elementwise on 4D tensors
   */

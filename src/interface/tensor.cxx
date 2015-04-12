@@ -570,7 +570,7 @@ namespace CTF {
                                   Univar_Function<dtype> fseq){
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     
-    CTF_int::summation sum = CTF_int::summation(&A, idx_A, (char const *)&alpha, this, idx_B, (char const *)&beta &fseq);
+    CTF_int::summation sum = CTF_int::summation(&A, idx_A, (char const *)&alpha, this, idx_B, (char const *)&beta, fseq);
 
     sum.execute();
   }
