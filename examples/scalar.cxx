@@ -99,13 +99,21 @@ int scalar(CTF::World    &dw){
   
   E["ij"]=13.1;
 
+  int sizeN2[2] = {n,n};
+  CTF::Tensor<> E2(2,sizeN2,shapeN4,dw);
 
+  E2=13.1;
+  E["ij"]-=E2["ij"];
+  assert(E.norm2() <1.E-6);
+
+  E["ij"]=13.1;
   E["ii"]=D["klij"]*E["ki"];
   
   pass-= !( fabs(E.reduce(CTF::OP_SUMABS)-0)>1.E-10);
   assert(pass);
   
   E["ij"]=D["klij"]*E["ki"];
+
 
   pass-= !( fabs(E.reduce(CTF::OP_SUMABS)-0)<1.E-10);
   assert(pass);

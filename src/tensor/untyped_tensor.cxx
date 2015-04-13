@@ -323,7 +323,7 @@ namespace CTF_int {
   }
 
   int tensor::set(char const * val) {
-    sr->set(this->data, sr->addid(), this->size);
+    sr->set(this->data, val, this->size);
     return zero_out_padding();
   }
 
@@ -1232,8 +1232,8 @@ namespace CTF_int {
       alloc_ptr(wrld->np*sizeof(int), (void**)&recvcnts);
       alloc_ptr(wrld->np*sizeof(int), (void**)&displs);
       alloc_ptr(order*sizeof(int), (void**)&idx_arr);
-    }
-    recvcnts = NULL;
+    } else
+      recvcnts = NULL;
 
     MPI_Gather(&my_sz, 1, MPI_INT, recvcnts, 1, MPI_INT, 0, wrld->cdt.cm);
 
