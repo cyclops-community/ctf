@@ -9,7 +9,9 @@ namespace CTF_int {
     return i*s+t;
   }
   inline int get_loc(int g, int s, int t){
-    return (g-t)/s + (((g-t)%s)>0);
+    //round down, dowwwwwn
+    if (t>g) return -1;
+    else return (g-t)/s;
   }
    
   template <int idim>
@@ -21,18 +23,11 @@ namespace CTF_int {
                    int const * loc_edge_len){
     ASSERT(sym[idim] == NS); //otherwise should be in calc_sy_pfx
     if (sym[idim-1] == NS){
-      return get_loc(edge_len[idim],sphase[idim],gidx_off[idim])*calc_cnt<idim-1>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
+      return (get_loc(edge_len[idim]-1,sphase[idim],gidx_off[idim])+1)*calc_cnt<idim-1>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
     } else {
-      /*int nsdim=2;
-      while (nsdim <= idim && sym[idim-nsdim] != NS){
-        nsdim++;
-      }*/
       int64_t * pfx = calc_sy_pfx<idim>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
-    //  int64_t cnt = pfx[get_loc(edge_len[idim],sphase[idim],gidx_off[idim])-1];
-  //    printf("cnt = %ld\n", cnt);
       int64_t cnt = 0;
-      for (int i=0; i<get_loc(edge_len[idim],sphase[idim],gidx_off[idim]); i++){
-        printf("pfx[%d] = %d\n", i, pfx[i]);
+      for (int i=0; i<=get_loc(edge_len[idim]-1,sphase[idim],gidx_off[idim]); i++){
         cnt += pfx[i];
       }
       cfree(pfx);
@@ -48,7 +43,7 @@ namespace CTF_int {
                       int const * edge_len,
                       int const * loc_edge_len){
     ASSERT(sym[0] == NS);
-    return get_loc(edge_len[0], sphase[0], gidx_off[0]);
+    return get_loc(edge_len[0]-1, sphase[0], gidx_off[0])+1;
   }
 
   template <int idim>
@@ -66,7 +61,7 @@ namespace CTF_int {
       }
     } else {
       int64_t * pfx_m1 = calc_sy_pfx<idim-1>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
-      /*for (int i=0; i<loc_edge_len[idim]; i++){
+      for (int i=0; i<loc_edge_len[idim]; i++){
         int jst;
         if (i>0){
           pfx[i] = pfx[i-1];
@@ -75,17 +70,9 @@ namespace CTF_int {
           pfx[i] = 0;
           jst = 0;
         }
-        int jed = get_loc(get_glb(i,sphase[idim],gidx_off[idim]),sphase[idim-1],gidx_off[idim-1])+1;
-        for (int j=jst; j<jed; j++){
-          pfx[i] += pfx_m1[j];
-        }
-      }*/
-      for (int i=0; i<loc_edge_len[idim]; i++){
-        if (i>0) pfx[i] = pfx[i-1];
-        else pfx[i] = 0;
-        int jst = get_loc(get_glb(i,sphase[idim],gidx_off[idim]),sphase[idim-1],gidx_off[idim-1]);
-        int jed = get_loc(get_glb(i+1,sphase[idim],gidx_off[idim]),sphase[idim-1],gidx_off[idim-1]);
-        for (int j=jst; j<jed; j++){
+        int jed = get_loc(get_glb(i,sphase[idim],gidx_off[idim]),sphase[idim-1],gidx_off[idim-1]);
+        for (int j=jst; j<=jed; j++){
+          //printf("idim = %d j=%d loc_edge[idim] = %d loc_Edge[idim-1]=%d\n",idim,j,loc_edge_len[idim],loc_edge_len[idim-1]);
           pfx[i] += pfx_m1[j];
         }
       }
@@ -103,7 +90,7 @@ namespace CTF_int {
                            int const * loc_edge_len){
     int64_t * pfx= (int64_t*)alloc(sizeof(int64_t)*loc_edge_len[1]);
     for (int i=0; i<loc_edge_len[1]; i++){
-      pfx[i] = get_loc(get_glb(i+1,sphase[1],gidx_off[1]),sphase[0],gidx_off[0]);
+      pfx[i] = get_loc(get_glb(i,sphase[1],gidx_off[1]),sphase[0],gidx_off[0])+1;
     }
     return pfx;
   }
@@ -137,11 +124,8 @@ namespace CTF_int {
                         int       * gidx_off,
                         int const * edge_len,
                         int const * loc_edge_len){
-    printf("HERE %d\n", rep_phase[0]);
     for (int i=0; i<rep_phase[0]; i++, gidx_off[0]+=phys_phase[0]){
-      //counts[i] = cal_cnt<order-1>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
       SWITCH_ORD_CALL_RET(counts[i], calc_cnt, order-1, sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len)
-      printf("countd[%d] = %ld\n",i,counts[i]);
     }
     gidx_off[0] -= phys_phase[0]*rep_phase[0];
   }
@@ -203,8 +187,8 @@ namespace CTF_int {
         sphase[i]         = lcm(old_dist.phys_phase[i],new_dist.phys_phase[i]);
         rep_phase[i]      = sphase[i] / old_dist.phys_phase[i];
         gidx_off[i]       = old_dist.perank[i];
-        printf("rep_phase[%d] = %d, sphase = %d lda = %d, gidx = %d\n",i,rep_phase[i], sphase[i], rep_phase_lda[i], gidx_off[i]);
         nrep             *= rep_phase[i];
+        //printf("rep_phase[%d] = %d, sphase = %d lda = %d, gidx = %d\n",i,rep_phase[i], sphase[i], rep_phase_lda[i], gidx_off[i]);
       }
       int64_t * rep_counts = (int64_t*)alloc(nrep*sizeof(int64_t));
       ASSERT(order>0);
@@ -1236,16 +1220,16 @@ namespace CTF_int {
       }
     }
     if (!is_AS){
-    int64_t send_counts2[np];
-    calc_drv_displs(sym, real_edge_len, old_phys_edge_len, old_dist, new_dist, send_counts2, ord_glb_comm, idx_lyr);
-    
-    TAU_FSTOP(calc_cnt_displs);
-    bool is_same = true;
-    for (i=0; i<np; i++){
-      printf("[%d] send_counts[%d] = %ld send_counts2[%d] = %ld\n", ord_glb_comm.rank, i, send_counts[i], i, send_counts2[i]);
-      if (send_counts[i] != send_counts2[i]) is_same = false;
-    }
-    assert(is_same);
+      int64_t send_counts2[np];
+      calc_drv_displs(sym, real_edge_len, old_phys_edge_len, old_dist, new_dist, send_counts2, ord_glb_comm, idx_lyr);
+      
+      TAU_FSTOP(calc_cnt_displs);
+      bool is_same = true;
+      /*for (i=0; i<np; i++){
+        printf("[%d] send_counts[%d] = %ld send_counts2[%d] = %ld\n", ord_glb_comm.rank, i, send_counts[i], i, send_counts2[i]);
+        if (send_counts[i] != send_counts2[i]) is_same = false;
+      }*/
+      assert(is_same);
     }
     /*for (i=0; i<np; i++){
       printf("[%d] send_counts[%d] = %d recv_counts[%d] = %d\n", ord_glb_comm.rank, i, send_counts[i], i, recv_counts[i]);
