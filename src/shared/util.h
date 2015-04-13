@@ -37,6 +37,37 @@ namespace CTF_int {
   #define HOME_CONTRACT
   #define USE_BLOCK_RESHUFFLE
 
+  #define MAX_ORD 8
+  #define LOOP_MAX_ORD(F,...) \
+    F(0,__VA_ARGS__) F(1,__VA_ARGS__) F(2,__VA_ARGS__) F(3,__VA_ARGS__) \
+    F(4,__VA_ARGS__) F(5,__VA_ARGS__) F(6,__VA_ARGS__) F(7,__VA_ARGS__) 
+
+  #define ORD_CASE(ord,F,...) \
+    case ord: \
+      F<ord>(__VA_ARGS__); \
+      break;
+
+  #define ORD_CASE_RET(ord,R,F,...) \
+    case ord: \
+      R = F<ord>(__VA_ARGS__); \
+      break;
+
+  #define SWITCH_ORD_CALL(F,act_ord,...) \
+    switch (act_ord){ \
+      LOOP_MAX_ORD(ORD_CASE,F,__VA_ARGS__) \
+      default: \
+        assert(0); \
+        break; \
+    }
+
+  #define SWITCH_ORD_CALL_RET(R,F,act_ord,...) \
+    switch (act_ord){ \
+      LOOP_MAX_ORD(ORD_CASE_RET,R,F,__VA_ARGS__) \
+      default: \
+        assert(0); \
+        break; \
+    }
+
 
   #ifndef __APPLE__
   #ifndef OMP_OFF
