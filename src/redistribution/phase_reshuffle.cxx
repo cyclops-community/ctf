@@ -3,6 +3,7 @@
 #include "phase_reshuffle.h"
 #include "glb_cyclic_reshuffle.h"
 #include "../shared/util.h"
+#include "nosym_transp.h"
 
 namespace CTF_int {
   //correct for SY
@@ -177,6 +178,7 @@ namespace CTF_int {
                        int64_t *            counts,
                        CommData             ord_glb_comm,
                        int                  idx_lyr){
+    TAU_FSTART(calc_drv_displs);
     int * rep_phase, * gidx_off, * sphase;
     int * rep_phase_lda;
     int * new_loc_edge_len;
@@ -209,6 +211,7 @@ namespace CTF_int {
       cfree(gidx_off);
       cfree(rep_counts);
     }
+    TAU_FSTOP(calc_drv_displs);
   }
 
   template <int idim>
@@ -363,6 +366,7 @@ namespace CTF_int {
       *ptr_tsr_new_data = tsr_new_data;
       return;
     }
+    TAU_FSTART(phase_reshuffle);
 
     int * old_virt_lda, * new_virt_lda;
     alloc_ptr(order*sizeof(int),     (void**)&old_virt_lda);
@@ -459,10 +463,11 @@ namespace CTF_int {
       memcpy(save_counts, send_counts, sizeof(int64_t)*ord_glb_comm.np); 
 #endif
       std::fill(send_counts, send_counts+ord_glb_comm.np, 0);
-
+      TAU_FSTART(redist_bucket);
       SWITCH_ORD_CALL(redist_bucket, order-1, sym, old_dist.phys_phase, old_dist.perank, edge_len, old_virt_edge_len,
                       old_dist.virt_phase, old_virt_lda, old_virt_nelem, bucket_offset, 
                       old_rep_phase0, 1, aux_buf, buckets, send_counts, sr);
+      TAU_FSTOP(redist_bucket);
       cfree(buckets);
 
 #if DEBUG>= 1
@@ -549,9 +554,11 @@ namespace CTF_int {
 #endif
       std::fill(recv_counts, recv_counts+ord_glb_comm.np, 0);
 
+      TAU_FSTART(redist_debucket);
       SWITCH_ORD_CALL(redist_bucket, order-1, sym, new_dist.phys_phase, new_dist.perank, edge_len, new_virt_edge_len,
                       new_dist.virt_phase, new_virt_lda, new_virt_nelem, bucket_offset, 
                       new_rep_phase0, 0, aux_buf, buckets, recv_counts, sr);
+      TAU_FSTOP(redist_debucket);
 
       cfree(buckets);
 #if DEBUG >= 1
@@ -574,6 +581,24 @@ namespace CTF_int {
         }
         *ptr_tsr_new_data = recv_buffer;
         cfree(aux_buf);
+        /*int tr_order=1;
+        int * nontriv_dims = (int*)alloc(sizeof(int)*(order+1));
+        int * transp_lens = (int*)alloc(sizeof(int)*(order+1));
+        int * new_ordering = (int*)alloc(sizeof(int)*(order+1));
+        transp_lens[0] = new_virt_nelem/new_dist.virt_phase[0];
+        new_ordering[0] = 1;
+        new_ordering[1] = 0;
+        for (int i=0; i<order; i++){
+          if (new_dist.virt_phase[i] > 0){
+            transp_lens[tr_order] = new_dist.virt_phase[i];
+            if (tr_order>1){
+              new_ordering[tr_order]=tr_order;
+            }
+            tr_order++;
+          }
+        }
+        nosym_transpose(tr_order, new_ordering, transp_lens, aux_buf, 0, sr);
+        *ptr_tsr_new_data = aux_buf; cfree(recv_buffer);*/
         TAU_FSTOP(phreshuffle_posttranspose);
       } else {
         *ptr_tsr_new_data = aux_buf;
@@ -583,6 +608,7 @@ namespace CTF_int {
       sr->set(recv_buffer, sr->addid(), new_dist.size);
       *ptr_tsr_new_data = recv_buffer;
     }
+    TAU_FSTOP(phase_reshuffle);
   }
 }
 
