@@ -5,6 +5,8 @@
 #include "../shared/util.h"
 #include "nosym_transp.h"
 
+//#define TRANSP_DIM1
+
 namespace CTF_int {
   //correct for SY
   inline int get_glb(int i, int s, int t){
@@ -246,15 +248,27 @@ namespace CTF_int {
       nsym = 1;
       while (iidim>=0 && sym[iidim] != NS){ nsym++; iidim--; }
       if (iidim+1 == 0){
+#ifdef TRANSP_DIM1
         sub_data_stride = virt_dim[0];
+#else
+        sub_data_stride = 1;
+#endif
       } else {
+#ifdef TRANSP_DIM1
         sub_data_stride = sy_packed_size(iidim+1, virt_edge_len, sym)*virt_dim[0];
+#else
+        sub_data_stride = sy_packed_size(iidim+1, virt_edge_len, sym);
+#endif
       }
       data_stride = 0;
       
     } else {
       nsym = 0;
+#ifdef TRANSP_DIM1
       data_stride = sy_packed_size(idim, virt_edge_len, sym)*virt_dim[0];
+#else
+      data_stride = sy_packed_size(idim, virt_edge_len, sym);
+#endif
     }
     
     for (int i=0, iv=0; iv <= ivmax; i++){
@@ -304,31 +318,59 @@ namespace CTF_int {
     } else
       ivmax = get_loc(edge_len[0]-1, phys_phase[0], perank[0]) + 1;
 
-    if (data_to_buckets){
-      for (int i=0; i<rep_phase0; i++){
-        int bucket = bucket_off + bucket_offset[0][i];
-        int n = (ivmax-i+rep_phase0-1)/rep_phase0;
-        //printf("ivmax = %d bucket_off = %d, bucket = %d, counts[bucket] = %ld, n= %d data_off = %ld, rep_phase=%d\n",
-          //      ivmax, bucket_off, bucket, counts[bucket], n, data_off, rep_phase0);
-        if (n>0){
-          sr->copy(n,
-                   data + sr->el_size*(data_off+i), rep_phase0, 
-                   buckets[bucket] + sr->el_size*counts[bucket], 1);
-          counts[bucket] += n;
+#ifndef TRANSP_DIM1
+    if (virt_dim[0] == 1)
+#endif
+    {
+      if (data_to_buckets){
+        for (int i=0; i<rep_phase0; i++){
+          int bucket = bucket_off + bucket_offset[0][i];
+          int n = (ivmax-i+rep_phase0-1)/rep_phase0;
+          //printf("ivmax = %d bucket_off = %d, bucket = %d, counts[bucket] = %ld, n= %d data_off = %ld, rep_phase=%d\n",
+            //      ivmax, bucket_off, bucket, counts[bucket], n, data_off, rep_phase0);
+          if (n>0){
+            sr->copy(n,
+                     data + sr->el_size*(data_off+i), rep_phase0, 
+                     buckets[bucket] + sr->el_size*counts[bucket], 1);
+            counts[bucket] += n;
+          }
         }
-      }
-    } else {
-      for (int i=0; i<rep_phase0; i++){
-        int bucket = bucket_off + bucket_offset[0][i];
-        int n = (ivmax-i+rep_phase0-1)/rep_phase0;
-        if (n>0){
-          sr->copy(n,
-                   buckets[bucket] + sr->el_size*counts[bucket], 1,
-                   data + sr->el_size*(data_off+i), rep_phase0);
-          counts[bucket] += n;
+      } else {
+        for (int i=0; i<rep_phase0; i++){
+          int bucket = bucket_off + bucket_offset[0][i];
+          int n = (ivmax-i+rep_phase0-1)/rep_phase0;
+          if (n>0){
+            sr->copy(n,
+                     buckets[bucket] + sr->el_size*counts[bucket], 1,
+                     data + sr->el_size*(data_off+i), rep_phase0);
+            counts[bucket] += n;
+          }
         }
       }
     }
+#ifndef TRANSP_DIM1
+    else {
+      if (data_to_buckets){
+        for (int i=0, iv=0; iv < ivmax; i++){
+          for (int v=0; v<virt_dim[0] && iv < ivmax; v++, iv++){
+            int bucket = bucket_off + bucket_offset[0][iv];
+            sr->copy(buckets[bucket] + sr->el_size*counts[bucket],
+                     data + sr->el_size*(data_off+i+v*virt_nelem)); 
+            counts[bucket]++;
+          }
+        }
+      } else {
+        for (int i=0, iv=0; iv < ivmax; i++){
+          for (int v=0; v<virt_dim[0] && iv < ivmax; v++, iv++){
+            int bucket = bucket_off + bucket_offset[0][iv];
+            sr->copy(data + sr->el_size*(data_off+i+v*virt_nelem), 
+                     buckets[bucket] + sr->el_size*counts[bucket]);
+            counts[bucket]++;
+          }
+        }
+      }
+    }
+#endif
   }
 
 
@@ -372,10 +414,17 @@ namespace CTF_int {
     alloc_ptr(order*sizeof(int),     (void**)&old_virt_lda);
     alloc_ptr(order*sizeof(int),     (void**)&new_virt_lda);
 
-    int new_nvirt=1, old_nvirt=1;
+    new_virt_lda[0] = 1;
+    old_virt_lda[0] = 1;
+
     int old_idx_lyr = ord_glb_comm.rank - old_dist.perank[0]*old_dist.pe_lda[0];
     int new_idx_lyr = ord_glb_comm.rank - new_dist.perank[0]*new_dist.pe_lda[0];
+#ifdef TRANSP_DIM1
     //Ignore virt phase along first dim
+    int new_nvirt=1, old_nvirt=1;
+#else
+    int new_nvirt=new_dist.virt_phase[0], old_nvirt=old_dist.virt_phase[0];
+#endif
     for (int i=1; i<order; i++) {
       new_virt_lda[i] = new_nvirt;
       old_virt_lda[i] = old_nvirt;
@@ -415,6 +464,7 @@ namespace CTF_int {
     if (old_idx_lyr == 0){
       char * aux_buf; alloc_ptr(sr->el_size*old_dist.size, (void**)&aux_buf);
 
+#ifdef TRANSP_DIM1
       if (old_dist.virt_phase[0] != 1){
         //transpose so that innermost dimension of all locally data is in contiguous global order
         TAU_FSTART(phreshuffle_pretranspose);
@@ -435,6 +485,11 @@ namespace CTF_int {
         aux_buf = tsr_data;
         tsr_data = tmp;
       }
+#else
+      char * tmp = aux_buf;
+      aux_buf = tsr_data;
+      tsr_data = tmp;
+#endif
 
       int old_rep_phase0 = lcm(old_dist.phys_phase[0], new_dist.phys_phase[0])/old_dist.phys_phase[0];
 
@@ -474,12 +529,16 @@ namespace CTF_int {
       bool pass = true;
       for (int i=0; i<ord_glb_comm.np; i++){
   //      if (ord_glb_comm.rank == 1)
-          //printf("[%d] send_counts[%d] = %ld, redist_bucket counts[%d] = %ld\n", ord_glb_comm.rank, i, save_counts[i], i, send_counts[i]);
         if (save_counts[i] != send_counts[i]) pass = false;
       }
+      if (!pass){
+        for (int i=0; i<ord_glb_comm.np; i++){
+          printf("[%d] send_counts[%d] = %ld, redist_bucket counts[%d] = %ld\n", ord_glb_comm.rank, i, save_counts[i], i, send_counts[i]);
+        }
+      }
+      assert(pass);
 #endif
 #if 0
-      assert(pass);
       int off = 0;
       for (int i=0; i<ord_glb_comm.np; i++){
         for (int j=0; j<send_counts[i]; j++, off++){
@@ -566,9 +625,15 @@ namespace CTF_int {
       for (int i=0; i<ord_glb_comm.np; i++){
         if (save_counts[i] != recv_counts[i]) pass = false;
       }
+      if (!pass){
+        for (int i=0; i<ord_glb_comm.np; i++){
+          printf("[%d] recv_counts[%d] = %ld, redist_bucket counts[%d] = %ld\n", ord_glb_comm.rank, i, save_counts[i], i, recv_counts[i]);
+        }
+      }
       assert(pass);
 #endif
 
+#ifdef TRANSP_DIM1
       if (new_dist.virt_phase[0] != 1){
         //transpose so that innermost dimension of all locally data is in contiguous global order
         TAU_FSTART(phreshuffle_posttranspose);
@@ -604,6 +669,10 @@ namespace CTF_int {
         *ptr_tsr_new_data = aux_buf;
         cfree(recv_buffer);
       }
+#else
+      *ptr_tsr_new_data = aux_buf;
+      cfree(recv_buffer);
+#endif
     } else {
       sr->set(recv_buffer, sr->addid(), new_dist.size);
       *ptr_tsr_new_data = recv_buffer;
