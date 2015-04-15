@@ -501,7 +501,7 @@ namespace CTF_int {
                    int64_t const *             counts,
                    algstrct const *            sr,
                    int64_t const *             put_displs,
-                   MPI_Win &                   win,
+                   foMPI_Win &                 win,
                    int                         bucket_off){
     for (int r=0; r<rep_phase[idim]; r++){
       int rec_bucket_off = bucket_off+bucket_offset[idim][r];
@@ -517,12 +517,12 @@ namespace CTF_int {
                    int64_t const *             counts,
                    algstrct const *            sr,
                    int64_t const *             put_displs,
-                   MPI_Win &                   win,
+                   foMPI_Win &                 win,
                    int                         bucket_off){
     for (int r=0; r<rep_phase[0]; r++){
       if (bucket_offset[0][r] != -1){
         int rec_bucket_off = bucket_off + bucket_offset[0][r];
-        MPI_Put(buckets[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), rec_bucket_off, put_displs[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), win);
+        foMPI_Put(buckets[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), rec_bucket_off, put_displs[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), win);
       }
     }
   }
@@ -545,7 +545,7 @@ namespace CTF_int {
                          char ** __restrict__ buckets,
                          int64_t *            counts,
                          int64_t const *      put_displs,
-                         MPI_Win &            win,
+                         foMPI_Win &          win,
                          algstrct const *     sr,
                          int64_t              data_off=0,
                          int                  bucket_off=0,
@@ -590,7 +590,7 @@ namespace CTF_int {
                          char ** __restrict__ buckets,
                          int64_t *            counts,
                          int64_t const *      put_displs,
-                         MPI_Win &             win,
+                         foMPI_Win &             win,
                          algstrct const *     sr,
                          int64_t              data_off,
                          int                  bucket_off,
@@ -688,10 +688,10 @@ namespace CTF_int {
     mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
 
     MPI_Alltoall(recv_displs, 1, MPI_INT64_T, put_displs, 1, MPI_INT64_T, ord_glb_comm.cm);
-    MPI_Win win;
-    int suc = MPI_Win_create(recv_buffer, new_dist.size*sr->el_size, sr->el_size, MPI_INFO_NULL, ord_glb_comm.cm, &win);
+    foMPI_Win win;
+    int suc = foMPI_Win_create(recv_buffer, new_dist.size*sr->el_size, sr->el_size, MPI_INFO_NULL, ord_glb_comm.cm, &win);
     assert(suc == MPI_SUCCESS);
-    MPI_Win_fence(0, win);
+    foMPI_Win_fence(0, win);
 #endif
 
     if (old_idx_lyr == 0){
@@ -816,7 +816,7 @@ namespace CTF_int {
     TAU_FSTOP(ALL_TO_ALL_V);
 #else
     TAU_FSTART(redist_fence);
-    MPI_Win_fence(0, win);
+    foMPI_Win_fence(0, win);
     TAU_FSTOP(redist_fence);
 #endif
 

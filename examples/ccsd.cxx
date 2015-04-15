@@ -311,7 +311,7 @@ int main(int argc, char ** argv){
   int const in_num = argc;
   char ** input_str = argv;
 
-  MPI_Init(&argc, &argv);
+  foMPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
 
@@ -355,7 +355,7 @@ int main(int argc, char ** argv){
     }
   }
 
-  MPI_Finalize();
+  foMPI_Finalize();
   return 0;
 }
 /**

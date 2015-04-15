@@ -21,6 +21,7 @@ volatile static int64_t int64_t_max = INT64_MAX;
 */
 #include "int_timer.h"
 #include "pmpi.h"
+#include "fompi.h"
 
 
 namespace CTF_int {

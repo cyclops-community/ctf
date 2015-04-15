@@ -42,7 +42,12 @@ int main(int argc, char ** argv){
   char ** input_str = argv;
 
   int nt;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &nt);
+  //MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &nt);
+#ifdef USE_FOMPI
+  foMPI_Init(&argc, &argv);
+#else
+  MPI_Init(&argc, &argv);
+#endif
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
 
@@ -183,7 +188,7 @@ int main(int argc, char ** argv){
     printf("Testing completed, %d/%zu tests passed\n", num_pass, pass.size());
 
 
-  MPI_Finalize();
+  foMPI_Finalize();
   return 0;
 }
 

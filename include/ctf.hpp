@@ -11,6 +11,7 @@
 #include <deque>
 #include <complex>
 #include <assert.h>
+#include "fompi.h"
 
 #define CTF_VERSION 120
 
