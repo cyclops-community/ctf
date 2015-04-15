@@ -1607,8 +1607,10 @@ namespace CTF_int {
       char spf[80];
       strcpy(spf,"redistribute_");
       strcat(spf,this->name);
-      Timer t_pf(spf);
-      t_pf.stop();
+      if (wrld->cdt.rank == 0){
+        Timer t_pf(spf);
+        t_pf.stop();
+      }
     }
 
     return SUCCESS;
