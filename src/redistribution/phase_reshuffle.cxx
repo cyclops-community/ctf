@@ -6,9 +6,9 @@
 #include "nosym_transp.h"
 
 //#define TRANSP_DIM1
-#ifndef USE_OMP
+//#ifndef USE_OMP
 #define REDIST_PUT
-#endif
+//#endif
 #ifndef ROR_MIN_LOOP
 #define ROR_MIN_LOOP 0
 #endif
@@ -564,57 +564,13 @@ namespace CTF_int {
       int rec_bucket_off = bucket_off + bucket_offset[idim][r];
       for (int iv=r; iv<=ivmax; iv+=rep_phase[idim]){
         int64_t rec_data_off = data_off + data_offset[idim][iv];
-        redist_bucket_ror_put<idim-1>(sym, phys_phase, perank, edge_len, virt_edge_len, virt_dim, virt_lda, virt_nelem, bucket_offset, data_offset, rep_phase, data_to_buckets, data, buckets, counts, put_displs, win, sr, rec_data_off, rec_bucket_off, iv);
-      }
-    }
-  }
-
-  template <>
-  void redist_bucket_ror_put<ROR_MIN_LOOP+1>
-                        (int const *          sym,
-                         int const *          phys_phase,
-                         int const *          perank,
-                         int const *          edge_len,
-                         int const *          virt_edge_len,
-                         int const *          virt_dim,
-                         int const *          virt_lda,
-                         int64_t              virt_nelem,
-                         int * const *        bucket_offset,
-                         int64_t * const *    data_offset,
-                         int const *          rep_phase,
-                         bool                 data_to_buckets,
-                         char * __restrict__  data,
-                         char ** __restrict__ buckets,
-                         int64_t *            counts,
-                         int64_t const *      put_displs,
-                         MPI_Win &            win,
-                         algstrct const *     sr,
-                         int64_t              data_off,
-                         int                  bucket_off,
-                         int                  prev_idx){
-    int idim = ROR_MIN_LOOP+1;
-    int ivmax;
-    if (sym[idim] != NS){
-      ivmax = get_loc(get_glb(prev_idx, phys_phase[idim+1], perank[idim+1]),
-                                        phys_phase[idim  ], perank[idim  ]);
-    } else
-      ivmax = get_loc(edge_len[idim]-1, phys_phase[idim], perank[idim]);
-
-#ifdef USE_OMP 
-    #pragma omp parallel for
-#endif
-    for (int r=0; r<rep_phase[idim]; r++){
-      int rec_bucket_off = bucket_off + bucket_offset[idim][r];
-      for (int iv=r; iv<=ivmax; iv+=rep_phase[idim]){
-        int64_t rec_data_off = data_off + data_offset[idim][iv];
-        redist_bucket<ROR_MIN_LOOP>(sym, phys_phase, perank, edge_len, virt_edge_len, virt_dim, virt_lda, virt_nelem, bucket_offset, data_offset, rep_phase[0], data_to_buckets, data, buckets, counts, sr, rec_data_off, rec_bucket_off, iv);
+        redist_bucket_ror<idim-1>(sym, phys_phase, perank, edge_len, virt_edge_len, virt_dim, virt_lda, virt_nelem, bucket_offset, data_offset, rep_phase, data_to_buckets, data, buckets, counts, sr, rec_data_off, rec_bucket_off, iv);
       }
       if (bucket_offset[idim][r] != -1){
-        put_buckets<ROR_MIN_LOOP>(rep_phase, bucket_offset, buckets, counts, sr, put_displs, win, rec_bucket_off);
+        put_buckets<idim-1>(rep_phase, bucket_offset, buckets, counts, sr, put_displs, win, rec_bucket_off);
       }
     }
   }
-
 
   template <>
   void redist_bucket_ror_put<ROR_MIN_LOOP>
@@ -654,17 +610,6 @@ namespace CTF_int {
 
     char * tsr_data = *ptr_tsr_data;
     char * tsr_new_data = *ptr_tsr_new_data;
-#if 0
-    char * tsr_data_cpy = (char*)alloc(sr->el_size*old_dist.size);
-    char * tsr_data2;
-    memcpy(tsr_data_cpy, tsr_data, sr->el_size*old_dist.size);
-    int sysym[order];
-    for (int i=0; i<order; i++){
-      if (sym[i] == NS) sysym[i] = NS;
-      else sysym[i] = SY;
-    }
-    char * corr_bucket_data = glb_cyclic_reshuffle(sysym, old_dist, NULL, NULL, new_dist, NULL, NULL, &tsr_data_cpy, &tsr_data2, sr, ord_glb_comm, 1, sr->mulid(), sr->addid());
-#endif
 
     if (order == 0){
       alloc_ptr(sr->el_size, (void**)&tsr_new_data);
@@ -742,11 +687,11 @@ namespace CTF_int {
     char * recv_buffer;
     mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
 
+    MPI_Alltoall(recv_displs, 1, MPI_INT64_T, put_displs, 1, MPI_INT64_T, ord_glb_comm.cm);
     MPI_Win win;
     int suc = MPI_Win_create(recv_buffer, new_dist.size*sr->el_size, sr->el_size, MPI_INFO_NULL, ord_glb_comm.cm, &win);
     assert(suc == MPI_SUCCESS);
     MPI_Win_fence(0, win);
-    MPI_Alltoall(recv_displs, 1, MPI_INT64_T, put_displs, 1, MPI_INT64_T, ord_glb_comm.cm);
 #endif
 
     if (old_idx_lyr == 0){
@@ -763,11 +708,6 @@ namespace CTF_int {
           }
         }
         TAU_FSTOP(phreshuffle_pretranspose);
-        //FIXME don't need
-#if 0
-        char * auxx_buf; alloc_ptr(sr->el_size*old_dist.size, (void**)&auxx_buf);
-        tsr_data = auxx_buf;
-#endif
       } else {
         char * tmp = aux_buf;
         aux_buf = tsr_data;
@@ -801,7 +741,13 @@ namespace CTF_int {
 #endif
       std::fill(send_counts, send_counts+ord_glb_comm.np, 0);
       TAU_FSTART(redist_bucket);
-      if (order-1 > ROR_MIN_LOOP){
+/*#if (defined(REDIST_PUT) && defined(USE_OMP))
+      int prov;
+      MPI_Query_thread(&prov);
+      if (order-1 > ROR_MIN_LOOP && prov == MPI_THREAD_MULTIPLE)
+#else*/
+      if (order-1 > ROR_MIN_LOOP)
+      {
 #ifdef REDIST_PUT
         SWITCH_ORD_CALL(redist_bucket_ror_put, order-1, sym, old_dist.phys_phase, old_dist.perank, edge_len, old_virt_edge_len,
                         old_dist.virt_phase, old_virt_lda, old_virt_nelem, bucket_offset, data_offset,
@@ -888,20 +834,6 @@ namespace CTF_int {
       int ** bucket_offset; alloc_ptr(sizeof(int*)*order, (void**)&bucket_offset);
       int64_t ** data_offset; alloc_ptr(sizeof(int64_t*)*order, (void**)&data_offset);
       precompute_offsets(new_dist, old_dist, sym, edge_len, new_phys_edge_len, new_virt_edge_len, new_dist.virt_phase, new_virt_lda, new_virt_nelem, bucket_offset, data_offset);
-      /*int ** bucket_offset = 
-        compute_bucket_offsets(new_dist,
-                               old_dist,
-                               edge_len,
-                               new_phys_edge_len,
-                               new_virt_lda,
-                               NULL,
-                               NULL,
-                               old_phys_edge_len,
-                               old_virt_lda,
-                               1,
-                               new_nvirt,
-                               old_nvirt,
-                               new_virt_edge_len);*/
       char ** buckets = (char**)alloc(sizeof(char**)*ord_glb_comm.np);
 
       buckets[0] = recv_buffer;

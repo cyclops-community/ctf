@@ -8,7 +8,6 @@
 using namespace CTF_int;
 
 namespace CTF {
-
   World::World(int            argc,
                char * const * argv) : cdt(MPI_COMM_WORLD) {
     comm = MPI_COMM_WORLD;

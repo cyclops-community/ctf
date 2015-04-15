@@ -41,7 +41,8 @@ int main(int argc, char ** argv){
   int in_num = argc;
   char ** input_str = argv;
 
-  MPI_Init(&argc, &argv);
+  int nt;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &nt);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
 
