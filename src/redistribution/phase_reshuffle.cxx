@@ -6,6 +6,9 @@
 #include "nosym_transp.h"
 
 //#define TRANSP_DIM1
+#ifndef ROR_MIN_LOOP
+#define ROR_MIN_LOOP 0
+#endif
 
 namespace CTF_int {
   //correct for SY
@@ -216,6 +219,95 @@ namespace CTF_int {
     TAU_FSTOP(calc_drv_displs);
   }
 
+
+  void precompute_offsets(distribution const & old_dist,
+                          distribution const & new_dist,
+                          int const *          sym,
+                          int const *          len,
+                          int const *          phys_edge_len,
+                          int const *          virt_edge_len,
+                          int const *          virt_dim,
+                          int const *          virt_lda,
+                          int64_t              virt_nelem,
+                          int **               bucket_offset,
+                          int64_t **           data_offset){
+    TAU_FSTART(precompute_offsets);
+    
+    for (int dim = 0;dim < old_dist.order;dim++){
+      alloc_ptr(sizeof(int)*phys_edge_len[dim], (void**)&bucket_offset[dim]);
+      alloc_ptr(sizeof(int64_t)*phys_edge_len[dim], (void**)&data_offset[dim]);
+
+      int nsym;
+      int pidx = 0;
+      int64_t data_stride, sub_data_stride;
+
+      if (dim > 0 && sym[dim-1] != NS){
+        int jdim=dim-2;
+        nsym = 1;
+        while (jdim>=0 && sym[jdim] != NS){ nsym++; jdim--; }
+        if (jdim+1 == 0){
+  #ifdef TRANSP_DIM1
+          sub_data_stride = virt_dim[0];
+  #else
+          sub_data_stride = 1;
+  #endif
+        } else {
+  #ifdef TRANSP_DIM1
+          sub_data_stride = sy_packed_size(jdim+1, virt_edge_len, sym)*virt_dim[0];
+  #else
+          sub_data_stride = sy_packed_size(jdim+1, virt_edge_len, sym);
+  #endif
+        }
+        data_stride = 0;
+      } else {
+        nsym = 0;
+        if (dim == 0) data_stride = 1;
+        else {
+    #ifdef TRANSP_DIM1
+          data_stride = sy_packed_size(dim, virt_edge_len, sym)*virt_dim[0];
+    #else
+          data_stride = sy_packed_size(dim, virt_edge_len, sym);
+    #endif
+        }
+      }
+
+      int64_t data_off =0; 
+
+      for (int vidx = 0;vidx < virt_edge_len[dim];vidx++){
+        int64_t rec_data_off = data_off;
+        if (dim > 0 && sym[dim-1] != NS){
+          data_stride = (vidx+1)*sub_data_stride;
+          for (int j=1; j<nsym; j++){
+            data_stride = (data_stride*(vidx+j+1))/(j+1);
+          }
+        }
+        data_off += data_stride;
+        for (int vr = 0;vr < old_dist.virt_phase[dim];vr++,pidx++){
+          data_offset[dim][pidx] = rec_data_off;
+          rec_data_off += virt_lda[dim]*virt_nelem; 
+
+          int64_t _gidx = (int64_t)vidx*old_dist.phase[dim]+old_dist.perank[dim]+(int64_t)vr*old_dist.phys_phase[dim];
+          int64_t gidx;
+          if (_gidx > len[dim]){
+            gidx = -1;
+          } else {
+            gidx = _gidx;
+          }
+          if (gidx != -1){
+            int phys_rank = gidx%new_dist.phys_phase[dim];
+            bucket_offset[dim][pidx] = phys_rank*MAX(1,new_dist.pe_lda[dim]);
+          } else {
+            bucket_offset[dim][pidx] = -1;
+          }
+        }
+      }
+    }
+
+    TAU_FSTOP(precompute_offsets);
+
+  }
+
+
   template <int idim>
   void redist_bucket(int const *          sym,
                      int const *          phys_phase,
@@ -226,6 +318,7 @@ namespace CTF_int {
                      int const *          virt_lda,
                      int64_t              virt_nelem,
                      int * const *        bucket_offset,
+                     int64_t * const *    data_offset,
                      int                  rep_phase0,
                      bool                 data_to_buckets,
                      char * __restrict__  data,
@@ -235,59 +328,17 @@ namespace CTF_int {
                      int64_t              data_off,
                      int                  bucket_off,
                      int                  prev_idx){
-    int64_t data_stride, sub_data_stride;
-    int nsym, ivmax;
+    int ivmax;
     if (sym[idim] != NS){
       ivmax = get_loc(get_glb(prev_idx, phys_phase[idim+1], perank[idim+1]),
                                         phys_phase[idim  ], perank[idim  ]);
     } else
       ivmax = get_loc(edge_len[idim]-1, phys_phase[idim], perank[idim]);
-
-    if (sym[idim-1] != NS){
-      int iidim=idim-2;
-      nsym = 1;
-      while (iidim>=0 && sym[iidim] != NS){ nsym++; iidim--; }
-      if (iidim+1 == 0){
-#ifdef TRANSP_DIM1
-        sub_data_stride = virt_dim[0];
-#else
-        sub_data_stride = 1;
-#endif
-      } else {
-#ifdef TRANSP_DIM1
-        sub_data_stride = sy_packed_size(iidim+1, virt_edge_len, sym)*virt_dim[0];
-#else
-        sub_data_stride = sy_packed_size(iidim+1, virt_edge_len, sym);
-#endif
-      }
-      data_stride = 0;
-      
-    } else {
-      nsym = 0;
-#ifdef TRANSP_DIM1
-      data_stride = sy_packed_size(idim, virt_edge_len, sym)*virt_dim[0];
-#else
-      data_stride = sy_packed_size(idim, virt_edge_len, sym);
-#endif
-    }
     
-    for (int i=0, iv=0; iv <= ivmax; i++){
-      int64_t rec_data_off = data_off;
-      for (int v=0; v<virt_dim[idim] && iv <= ivmax; v++, iv++){
-        int64_t rec_bucket_off = bucket_off + bucket_offset[idim][iv];
-        //printf("idim = %d iv = %d/%d v=%d rec_bucket_off = %ld rec_data_off = %ld data_stride = %ld virt_stride=%ld\n", idim, iv, ivmax+1, v, rec_bucket_off, rec_data_off, data_stride, virt_lda[idim]*virt_nelem);
-        redist_bucket<idim-1>(sym, phys_phase, perank, edge_len, virt_edge_len, virt_dim, virt_lda, virt_nelem, bucket_offset, rep_phase0, data_to_buckets, data, buckets, counts, sr, rec_data_off, rec_bucket_off, iv);
-        rec_data_off += virt_lda[idim]*virt_nelem; 
-      }
-      //FIXME: we could potentially precompute these strides
-      if (sym[idim-1] != NS){
-        data_stride = (i+1)*sub_data_stride;
-        for (int j=1; j<nsym; j++){
-          data_stride = (data_stride*(i+j+1))/(j+1);
-        }
-        //printf("idim = %d nsym = %d, i = %d, incremeneted by %ld\n", idim, nsym, i, data_stride);
-      }
-      data_off += data_stride;
+    for (int iv=0; iv <= ivmax; iv++){
+      int rec_bucket_off   = bucket_off + bucket_offset[idim][iv];
+      int64_t rec_data_off = data_off   + data_offset[idim][iv];
+      redist_bucket<idim-1>(sym, phys_phase, perank, edge_len, virt_edge_len, virt_dim, virt_lda, virt_nelem, bucket_offset, data_offset, rep_phase0, data_to_buckets, data, buckets, counts, sr, rec_data_off, rec_bucket_off, iv);
     }
   }
 
@@ -302,6 +353,7 @@ namespace CTF_int {
                         int const *          virt_lda,
                         int64_t              virt_nelem,
                         int * const *        bucket_offset,
+                        int64_t * const *    data_offset,
                         int                  rep_phase0,
                         bool                 data_to_buckets,
                         char * __restrict__  data,
@@ -371,6 +423,68 @@ namespace CTF_int {
       }
     }
 #endif
+  }
+
+  template <int idim>
+  void redist_bucket_ror(int const *          sym,
+                         int const *          phys_phase,
+                         int const *          perank,
+                         int const *          edge_len,
+                         int const *          virt_edge_len,
+                         int const *          virt_dim,
+                         int const *          virt_lda,
+                         int64_t              virt_nelem,
+                         int * const *        bucket_offset,
+                         int64_t * const *    data_offset,
+                         int const *          rep_phase,
+                         bool                 data_to_buckets,
+                         char * __restrict__  data,
+                         char ** __restrict__ buckets,
+                         int64_t *            counts,
+                         algstrct const *     sr,
+                         int64_t              data_off=0,
+                         int                  bucket_off=0,
+                         int                  prev_idx=0){
+    int ivmax;
+    if (sym[idim] != NS){
+      ivmax = get_loc(get_glb(prev_idx, phys_phase[idim+1], perank[idim+1]),
+                                        phys_phase[idim  ], perank[idim  ]);
+    } else
+      ivmax = get_loc(edge_len[idim]-1, phys_phase[idim], perank[idim]);
+    
+    for (int r=0; r < rep_phase[idim]; r++){
+      for (int iv=r; iv <= ivmax; iv+= rep_phase[idim]){
+        int rec_bucket_off   = bucket_off + bucket_offset[idim][iv];
+        int64_t rec_data_off = data_off   + data_offset[idim][iv];
+        redist_bucket_ror<idim-1>(sym, phys_phase, perank, edge_len, virt_edge_len, virt_dim, virt_lda, virt_nelem, bucket_offset, data_offset, rep_phase, data_to_buckets, data, buckets, counts, sr, rec_data_off, rec_bucket_off, iv);
+      }
+      //FIXME MPI Put the data to where it wants to go
+    }
+  }
+
+  template <>
+  void redist_bucket_ror<ROR_MIN_LOOP>
+                        (int const *          sym,
+                         int const *          phys_phase,
+                         int const *          perank,
+                         int const *          edge_len,
+                         int const *          virt_edge_len,
+                         int const *          virt_dim,
+                         int const *          virt_lda,
+                         int64_t              virt_nelem,
+                         int * const *        bucket_offset,
+                         int64_t * const *    data_offset,
+                         int const *          rep_phase,
+                         bool                 data_to_buckets,
+                         char * __restrict__  data,
+                         char ** __restrict__ buckets,
+                         int64_t *            counts,
+                         algstrct const *     sr,
+                         int64_t              data_off,
+                         int                  bucket_off,
+                         int                  prev_idx){
+    redist_bucket<ROR_MIN_LOOP>(sym, phys_phase, perank, edge_len, edge_len, virt_dim, virt_lda, virt_nelem, bucket_offset, data_offset, rep_phase[0], data_to_buckets, data, buckets, counts, sr, data_off, bucket_off, prev_idx);
+
   }
 
 
@@ -491,22 +605,16 @@ namespace CTF_int {
       tsr_data = tmp;
 #endif
 
-      int old_rep_phase0 = lcm(old_dist.phys_phase[0], new_dist.phys_phase[0])/old_dist.phys_phase[0];
+      int * old_rep_phase; alloc_ptr(sizeof(int)*order, (void**)&old_rep_phase);
+      for (int i=0; i<order; i++){
+        old_rep_phase[i] = lcm(old_dist.phys_phase[i], new_dist.phys_phase[i])/old_dist.phys_phase[i];
+      }
 
-      int ** bucket_offset = 
-        compute_bucket_offsets(old_dist,
-                               new_dist,
-                               edge_len,
-                               old_phys_edge_len,
-                               old_virt_lda,
-                               NULL,
-                               NULL,
-                               new_phys_edge_len,
-                               new_virt_lda,
-                               1,
-                               old_nvirt,
-                               new_nvirt,
-                               old_virt_edge_len);
+      int ** bucket_offset; alloc_ptr(sizeof(int*)*order, (void**)&bucket_offset);
+      int64_t ** data_offset; alloc_ptr(sizeof(int64_t*)*order, (void**)&data_offset);
+
+      precompute_offsets(old_dist, new_dist, sym, edge_len, old_phys_edge_len, old_virt_edge_len, old_dist.virt_phase, old_virt_lda, old_virt_nelem, bucket_offset, data_offset);
+
       char ** buckets = (char**)alloc(sizeof(char**)*ord_glb_comm.np);
 
       buckets[0] = tsr_data;
@@ -519,9 +627,15 @@ namespace CTF_int {
 #endif
       std::fill(send_counts, send_counts+ord_glb_comm.np, 0);
       TAU_FSTART(redist_bucket);
-      SWITCH_ORD_CALL(redist_bucket, order-1, sym, old_dist.phys_phase, old_dist.perank, edge_len, old_virt_edge_len,
-                      old_dist.virt_phase, old_virt_lda, old_virt_nelem, bucket_offset, 
-                      old_rep_phase0, 1, aux_buf, buckets, send_counts, sr);
+      if (order-1 > ROR_MIN_LOOP){
+        SWITCH_ORD_CALL(redist_bucket_ror, order-1, sym, old_dist.phys_phase, old_dist.perank, edge_len, old_virt_edge_len,
+                        old_dist.virt_phase, old_virt_lda, old_virt_nelem, bucket_offset, data_offset,
+                        old_rep_phase, 1, aux_buf, buckets, send_counts, sr);
+      } else {
+        SWITCH_ORD_CALL(redist_bucket, order-1, sym, old_dist.phys_phase, old_dist.perank, edge_len, old_virt_edge_len,
+                        old_dist.virt_phase, old_virt_lda, old_virt_nelem, bucket_offset, data_offset,
+                        old_rep_phase[0], 1, aux_buf, buckets, send_counts, sr);
+      }
       TAU_FSTOP(redist_bucket);
       cfree(buckets);
 
@@ -582,9 +696,15 @@ namespace CTF_int {
       char * aux_buf; alloc_ptr(sr->el_size*new_dist.size, (void**)&aux_buf);
       sr->set(aux_buf, sr->addid(), new_dist.size);
 
-      int new_rep_phase0 = lcm(new_dist.phys_phase[0], old_dist.phys_phase[0])/new_dist.phys_phase[0];
+      int * new_rep_phase; alloc_ptr(sizeof(int)*order, (void**)&new_rep_phase);
+      for (int i=0; i<order; i++){
+        new_rep_phase[i] = lcm(new_dist.phys_phase[i], old_dist.phys_phase[i])/new_dist.phys_phase[i];
+      }
 
-      int ** bucket_offset = 
+      int ** bucket_offset; alloc_ptr(sizeof(int*)*order, (void**)&bucket_offset);
+      int64_t ** data_offset; alloc_ptr(sizeof(int64_t*)*order, (void**)&data_offset);
+      precompute_offsets(new_dist, old_dist, sym, edge_len, new_phys_edge_len, new_virt_edge_len, new_dist.virt_phase, new_virt_lda, new_virt_nelem, bucket_offset, data_offset);
+      /*int ** bucket_offset = 
         compute_bucket_offsets(new_dist,
                                old_dist,
                                edge_len,
@@ -597,7 +717,7 @@ namespace CTF_int {
                                1,
                                new_nvirt,
                                old_nvirt,
-                               new_virt_edge_len);
+                               new_virt_edge_len);*/
       char ** buckets = (char**)alloc(sizeof(char**)*ord_glb_comm.np);
 
       buckets[0] = recv_buffer;
@@ -614,9 +734,15 @@ namespace CTF_int {
       std::fill(recv_counts, recv_counts+ord_glb_comm.np, 0);
 
       TAU_FSTART(redist_debucket);
-      SWITCH_ORD_CALL(redist_bucket, order-1, sym, new_dist.phys_phase, new_dist.perank, edge_len, new_virt_edge_len,
-                      new_dist.virt_phase, new_virt_lda, new_virt_nelem, bucket_offset, 
-                      new_rep_phase0, 0, aux_buf, buckets, recv_counts, sr);
+      if (order-1 > ROR_MIN_LOOP){
+        SWITCH_ORD_CALL(redist_bucket_ror, order-1, sym, new_dist.phys_phase, new_dist.perank, edge_len, new_virt_edge_len,
+                        new_dist.virt_phase, new_virt_lda, new_virt_nelem, bucket_offset, data_offset,
+                        new_rep_phase, 0, aux_buf, buckets, recv_counts, sr);
+      } else {
+        SWITCH_ORD_CALL(redist_bucket, order-1, sym, new_dist.phys_phase, new_dist.perank, edge_len, new_virt_edge_len,
+                        new_dist.virt_phase, new_virt_lda, new_virt_nelem, bucket_offset, data_offset,
+                        new_rep_phase[0], 0, aux_buf, buckets, recv_counts, sr);
+      }
       TAU_FSTOP(redist_debucket);
 
       cfree(buckets);

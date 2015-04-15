@@ -82,6 +82,7 @@ namespace CTF_int {
                      int const *          virt_lda,
                      int64_t              virt_nelem,
                      int * const *        bucket_offset,
+                     int64_t * const *    data_offset,
                      int                  rep_phase0,
                      bool                 data_to_buckets,
                      char * __restrict__  data,
