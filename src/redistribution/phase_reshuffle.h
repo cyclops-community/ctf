@@ -58,10 +58,11 @@ namespace CTF_int {
                              int const *     new_pe_lda,
                              int const *     old_phys_phase,
                              int const *     new_phys_phase,
-                             int64_t const * rep_counts,
+                             int64_t const * old_counts,
                              int64_t *       counts,
                              int             coff=0,
-                             int             roff=0);
+                             int             roff=0,
+                             int             dir=1);
 
   void calc_drv_displs(int const *          sym,
                        int const *          edge_len,
@@ -69,7 +70,6 @@ namespace CTF_int {
                        distribution const & old_dist,
                        distribution const & new_dist,
                        int64_t *            counts,
-                       CommData             ord_glb_comm,
                        int                  idx_lyr);
 
   template <int idim>
@@ -77,13 +77,10 @@ namespace CTF_int {
                      int const *          phys_phase,
                      int const *          perank,
                      int const *          edge_len,
-                     int const *          virt_edge_len,
-                     int const *          virt_dim,
-                     int const *          virt_lda,
-                     int64_t              virt_nelem,
                      int * const *        bucket_offset,
                      int64_t * const *    data_offset,
                      int                  rep_phase0,
+                     int                  virt_dim0,
                      bool                 data_to_buckets,
                      char * __restrict__  data,
                      char ** __restrict__ buckets,

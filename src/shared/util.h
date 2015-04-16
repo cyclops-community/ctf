@@ -28,14 +28,14 @@ namespace CTF_int {
   /* Force redistributions always by setting to 1 */
   #define REDIST 0
   //#define VERIFY 0
-//  #define VERIFY_REMAP 1
+  #define VERIFY_REMAP 0
   #define FOLD_TSR 1
   #define PERFORM_DESYM 1
   #define ALLOW_NVIRT 1024
   #define DIAG_RESCALE
   #define USE_SYM_SUM
   #define HOME_CONTRACT
-//  #define USE_BLOCK_RESHUFFLE
+  #define USE_BLOCK_RESHUFFLE
 
   #define MAX_ORD 8
   #define LOOP_MAX_ORD(F,...) \
