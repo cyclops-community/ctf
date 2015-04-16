@@ -88,7 +88,7 @@ namespace CTF_int {
           pfx[i] = 0;
           jst = 0;
         }
-        int jed = get_loc(get_glb(i,sphase[idim],gidx_off[idim]),sphase[idim-1],gidx_off[idim-1]);
+        int jed = get_loc(std::min(edge_len[idim]-1,get_glb(i,sphase[idim],gidx_off[idim])),sphase[idim-1],gidx_off[idim-1]);
         for (int j=jst; j<=jed; j++){
           //printf("idim = %d j=%d loc_edge[idim] = %d loc_Edge[idim-1]=%d\n",idim,j,loc_edge_len[idim],loc_edge_len[idim-1]);
           pfx[i] += pfx_m1[j];
@@ -222,6 +222,7 @@ namespace CTF_int {
       cfree(sphase);
       cfree(gidx_off);
       cfree(rep_counts);
+      cfree(new_loc_edge_len);
     }
     TAU_FSTOP(calc_drv_displs);
   }
@@ -749,6 +750,7 @@ namespace CTF_int {
         sr->copy(tsr_new_data, sr->addid());
       }
       *ptr_tsr_new_data = tsr_new_data;
+      cfree(tsr_data);
       return;
     }
     TAU_FSTART(phase_reshuffle);
@@ -906,6 +908,8 @@ namespace CTF_int {
                       old_dist.virt_phase, old_virt_lda, old_virt_nelem, send_bucket_offset, send_data_offset,
                       old_rep_phase, old_rep_phase_lda, old_rep_idx, 0, send_reqs, ord_glb_comm.cm,
                       1, aux_buf, buckets, send_counts, sr);
+      cfree(old_rep_phase_lda);
+      cfree(old_rep_idx);
 #else
       if (order-1 > ROR_MIN_LOOP)
       {
@@ -963,8 +967,15 @@ namespace CTF_int {
       }
       assert(pass);
 #endif      
-      if (aux_buf != *ptr_tsr_data)
-        cfree(aux_buf);
+      //if (aux_buf != *ptr_tsr_data)
+      cfree(aux_buf);
+      for (int i=0; i<order; i++){
+        cfree(send_bucket_offset[i]);
+        cfree(send_data_offset[i]);
+      }
+      cfree(send_bucket_offset);
+      cfree(send_data_offset);
+
     }
 #ifndef IREDIST
 #ifndef REDIST_PUT
@@ -976,6 +987,7 @@ namespace CTF_int {
     ord_glb_comm.all_to_allv(tsr_data, send_counts, send_displs, sr->el_size,
                              recv_buffer, recv_counts, recv_displs);
     TAU_FSTOP(ALL_TO_ALL_V);
+    cfree(send_displs);
 #else
     TAU_FSTART(redist_fence);
     MPI_Win_fence(0, win);
@@ -983,6 +995,7 @@ namespace CTF_int {
 #endif
 #endif
 
+    cfree(send_counts);
 
     if (new_idx_lyr == 0){
       char * aux_buf; alloc_ptr(sr->el_size*new_dist.size, (void**)&aux_buf);
@@ -1016,6 +1029,8 @@ namespace CTF_int {
                       new_dist.virt_phase, new_virt_lda, new_virt_nelem, recv_bucket_offset, recv_data_offset,
                       new_rep_phase, new_rep_phase_lda, new_rep_idx, 0, recv_reqs, ord_glb_comm.cm,
                       0, aux_buf, buckets, recv_counts, sr);
+      cfree(new_rep_phase_lda);
+      cfree(new_rep_idx);
 #else
 
       if (order-1 > ROR_MIN_LOOP){
@@ -1088,6 +1103,26 @@ namespace CTF_int {
       *ptr_tsr_new_data = recv_buffer;
     }
     //printf("[%d] reached final barrier %d\n",ord_glb_comm.rank, MTAG);
+#ifdef IREDIST
+    cfree(recv_reqs);
+    cfree(send_reqs);
+#endif
+    for (int i=0; i<order; i++){
+      cfree(recv_bucket_offset[i]);
+      cfree(recv_data_offset[i]);
+    }
+    cfree(recv_bucket_offset);
+    cfree(recv_data_offset);
+    cfree(old_virt_lda);
+    cfree(new_virt_lda);
+    cfree(recv_counts);
+    cfree(recv_displs);
+    cfree(old_phys_edge_len);
+    cfree(new_phys_edge_len);
+    cfree(old_virt_edge_len);
+    cfree(new_virt_edge_len);
+    cfree(old_rep_phase);
+    cfree(new_rep_phase);
     TAU_FSTART(barrier_after_phase_reshuffle);
     MPI_Barrier(ord_glb_comm.cm);
     TAU_FSTOP(barrier_after_phase_reshuffle);
