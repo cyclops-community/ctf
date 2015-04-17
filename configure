@@ -515,7 +515,7 @@ AR          = $AR
 CXX         = $CXX
 CXXFLAGS    = $CXXFLAGS $WARNFLAGS 
 
-FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS)
+FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS) \$(INCLUDES)
 LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
 
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS)
