@@ -286,7 +286,7 @@ namespace CTF_int {
           }
         }
         data_off += data_stride;
-        for (int vr = 0;vr < old_dist.virt_phase[dim];vr++,pidx++){
+        for (int vr = 0;vr < old_dist.virt_phase[dim] && pidx<std::max(rep_phase[dim],phys_edge_len[dim]) ;vr++,pidx++){
 
           data_offset[dim][pidx] = rec_data_off;
           rec_data_off += virt_lda[dim]*virt_nelem; 
