@@ -55,15 +55,41 @@ void bench_redistribution(int          niter,
   
   Tensor<> A(order, lens, sym, dw, idx, prl1[prl1_idx], blk1[blk1_idx], "A", 1);
 
-  double st_time = MPI_Wtime();
-  for (int i=0; i<niter; i++){
-    double * data = A.read(idx, prl2[prl2_idx], blk2[blk2_idx]);
-  }
-  double end_time = MPI_Wtime();
+  double t = 0.0;
+  double t_min;
+  double t_max;
 
+  double btime;
+  MPI_Barrier(MPI_COMM_WORLD);
+  btime = MPI_Wtime();
+  MPI_Barrier(MPI_COMM_WORLD);
+  btime -= MPI_Wtime();
+    
+  double * data1 = A.read(idx, prl2[prl2_idx], blk2[blk2_idx]);
+  free(data1);
+ 
+  for (int i=0; i<niter; i++){
+    double t_st = MPI_Wtime();
+    double * data = A.read(idx, prl2[prl2_idx], blk2[blk2_idx]);
+    MPI_Barrier(MPI_COMM_WORLD);
+    t += MPI_Wtime() - t_st - btime;
+    if (i==0){
+      t_min = t;
+      t_max = t;
+    } else {
+      t_min = std::min(MPI_Wtime() - t_st, t_min);
+      t_max = std::max(MPI_Wtime() - t_st, t_max);
+    }
+    free(data);
+  }
+ 
   if (rank == 0)
+    printf("Performed %d redistributions sec/iter: average = %lf (average effective bandwidth, N/(t*p) = %lf GB/s), range = [%lf, %lf]\n",
+            niter, t/niter, 1.E-9*N*sizeof(double)/(num_pes*t/niter), t_min, t_max);
+
+/*  if (rank == 0)
     printf("Performed %d redistributions in %lf time/iter %lf mem GB/sec\n",
-            niter, (end_time-st_time)/niter, (2*N*1.E-9/((end_time-st_time)/niter))/num_pes);
+            niter, (end_time-st_time)/niter, (2*N*1.E-9/((end_time-st_time)/niter))/num_pes);*/
 } 
 
 char* getCmdOption(char ** begin,
