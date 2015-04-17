@@ -6,10 +6,10 @@
 #include "nosym_transp.h"
 
 #define MTAG 777
-//#define ROR
+#define ROR
 #ifdef ROR
   //#define IREDIST
-  //#define REDIST_PUT
+  #define REDIST_PUT
   #ifndef ROR_MIN_LOOP
   #define ROR_MIN_LOOP 0
   #endif
@@ -531,7 +531,7 @@ namespace CTF_int {
                    int64_t const *             counts,
                    algstrct const *            sr,
                    int64_t const *             put_displs,
-                   MPI_Win &                   win,
+                   CTF_Win &                   win,
                    int                         bucket_off,
                    int                         pe_off){
     for (int r=0; r<rep_phase[idim]; r++){
@@ -550,7 +550,7 @@ namespace CTF_int {
                    int64_t const *             counts,
                    algstrct const *            sr,
                    int64_t const *             put_displs,
-                   MPI_Win &                   win,
+                   CTF_Win &                   win,
                    int                         bucket_off,
                    int                         pe_off){
     for (int r=0; r<rep_phase[0]; r++){
@@ -576,7 +576,7 @@ namespace CTF_int {
                          char ** __restrict__ buckets,
                          int64_t *            counts,
                          int64_t const *      put_displs,
-                         MPI_Win &            win,
+                         CTF_Win &            win,
                          algstrct const *     sr,
                          int64_t              data_off=0,
                          int                  bucket_off=0,
@@ -612,7 +612,7 @@ namespace CTF_int {
                          char ** __restrict__ buckets,
                          int64_t *            counts,
                          int64_t const *      put_displs,
-                         MPI_Win &            win,
+                         CTF_Win &            win,
                          algstrct const *     sr,
                          int64_t              data_off,
                          int                  bucket_off,
@@ -638,7 +638,7 @@ namespace CTF_int {
 #endif
 #ifdef  REDIST_PUT
                          int64_t const *      put_displs,
-                         MPI_Win &            win,
+                         CTF_Win &            win,
 #endif
                          bool                 data_to_buckets,
                          char * __restrict__  data,
@@ -700,7 +700,7 @@ namespace CTF_int {
 #endif
 #ifdef  REDIST_PUT
                          int64_t const *      put_displs,
-                         MPI_Win &            win,
+                         CTF_Win &            win,
 #endif
                          bool                 data_to_buckets,
                          char * __restrict__  data,
@@ -877,7 +877,7 @@ namespace CTF_int {
     char * recv_buffer;
     mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
 
-    MPI_Win win;
+    CTF_Win win;
     int suc = MPI_Win_create(recv_buffer, new_dist.size*sr->el_size, sr->el_size, MPI_INFO_NULL, ord_glb_comm.cm, &win);
     assert(suc == MPI_SUCCESS);
     MPI_Win_fence(0, win);
