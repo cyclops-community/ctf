@@ -935,7 +935,7 @@ namespace CTF_int {
             map1 = map1->child;
           }
           map1->type = VIRTUAL_MAP;
-          map1->np = top.dim_comm[j].np;
+          map1->np = blk.part.lens[j];
         }
       }
     }
@@ -968,9 +968,14 @@ namespace CTF_int {
       }
     }
     distribution st_dist(this);
-    tensor tsr_ali(this, 0, 0);
+    tensor tsr_ali(this, 1, 1);
+#if DEBUG>=1
+    if (wrld->rank == 0)
+      printf("Redistributing via read() starting from distribution:\n");
+    tsr_ali.print_map();
+#endif
+    tsr_ali.clear_mapping();
     tsr_ali.set_distribution(idx, prl, blk);
-    tsr_ali.data = (char*)alloc(size*sr->el_size);
     tsr_ali.has_home = 0;
     tsr_ali.redistribute(st_dist);
     tsr_ali.is_data_aliased = 1;
@@ -1561,8 +1566,10 @@ namespace CTF_int {
       }
     }
   #if DEBUG >=1
-    if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",this->name);
-    else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",this->name);
+    if (wrld->cdt.rank == 0){
+      if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle to mapping\n",this->name);
+      else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle to mapping\n",this->name);
+    }
     this->print_map(stdout);
 #endif
 
