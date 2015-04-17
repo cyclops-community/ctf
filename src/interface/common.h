@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <iostream>
 #include <limits.h>
+
+#include "../shared/fompi_wrapper.h"
 #include "mpi.h"
 
 /**

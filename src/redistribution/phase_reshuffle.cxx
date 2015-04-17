@@ -6,7 +6,7 @@
 #include "nosym_transp.h"
 
 #define MTAG 777
-#define ROR
+//#define ROR
 #ifdef ROR
   //#define IREDIST
   //#define REDIST_PUT
@@ -149,42 +149,39 @@ namespace CTF_int {
 
   template <int idim>
   void calc_cnt_from_rep_cnt(int const *     rep_phase,
-                             int const *     rep_phase_lda,
-                             int const *     rank,
-                             int const *     new_pe_lda,
-                             int const *     old_phys_phase,
-                             int const *     new_phys_phase,
+                             int * const *   pe_offset,
+                             int * const *   bucket_offset,
                              int64_t const * old_counts,
                              int64_t *       counts,
-                             int             coff,
-                             int             roff,
+                             int             bucket_off,
+                             int             pe_off,
                              int             dir){
     for (int i=0; i<rep_phase[idim]; i++){
-      calc_cnt_from_rep_cnt<idim-1>(rep_phase, rep_phase_lda, rank, new_pe_lda, old_phys_phase, new_phys_phase, old_counts, counts,
-                                    coff+new_pe_lda[idim]*((rank[idim]+i*old_phys_phase[idim])%new_phys_phase[idim]),
-                                    roff+rep_phase_lda[idim]*i, dir);
+      int rec_bucket_off = bucket_off+bucket_offset[idim][i];
+      int rec_pe_off = pe_off+pe_offset[idim][i];
+      calc_cnt_from_rep_cnt<idim-1>(rep_phase, pe_offset, bucket_offset, old_counts, counts, rec_bucket_off, rec_pe_off, dir);
+//                                    coff+new_pe_lda[idim]*((rank[idim]+i*old_phys_phase[idim])%new_phys_phase[idim]),
+  //                                  roff+rep_phase_lda[idim]*i, dir);
     }
   }
 
   template <>
-  void calc_cnt_from_rep_cnt<0>(int const *     rep_phase,
-                                int const *     rep_phase_lda,
-                                int const *     rank,
-                                int const *     new_pe_lda,
-                                int const *     old_phys_phase,
-                                int const *     new_phys_phase,
-                                int64_t const * old_counts,
-                                int64_t *       counts,
-                                int             coff,
-                                int             roff,
-                                int             dir){
+  void calc_cnt_from_rep_cnt<0>
+                            (int const *     rep_phase,
+                             int * const *   pe_offset,
+                             int * const *   bucket_offset,
+                             int64_t const * old_counts,
+                             int64_t *       counts,
+                             int             bucket_off,
+                             int             pe_off,
+                             int             dir){
     if (dir){
       for (int i=0; i<rep_phase[0]; i++){
-        counts[coff+new_pe_lda[0]*((rank[0]+i*old_phys_phase[0])%new_phys_phase[0])] = old_counts[roff + i];
+        counts[pe_off+pe_offset[0][i]] = old_counts[bucket_off+i];
       }
     } else {
       for (int i=0; i<rep_phase[0]; i++){
-        counts[roff + i] = old_counts[coff+new_pe_lda[0]*((rank[0]+i*old_phys_phase[0])%new_phys_phase[0])];
+        counts[bucket_off+i] = old_counts[pe_off+pe_offset[0][i]];
       }
 
     }
@@ -209,6 +206,7 @@ namespace CTF_int {
       new_loc_edge_len      = (int*)alloc(order*sizeof(int));
       int nrep = 1;
       for (int i=0; i<order; i++){
+        //FIXME: computed elsewhere already
         rep_phase_lda[i]  = nrep;
         sphase[i]         = lcm(old_dist.phys_phase[i],new_dist.phys_phase[i]);
         rep_phase[i]      = sphase[i] / old_dist.phys_phase[i];
@@ -436,9 +434,9 @@ namespace CTF_int {
                  MPI_Comm         cm,
                  char *           buffer,
                  algstrct const * sr,
-                 int              bucket_off=0,
-                 int              pe_off=0,
-                 int              dir=0){
+                 int              bucket_off,
+                 int              pe_off,
+                 int              dir){
     for (int r=0; r<rep_phase[idim]; r++){
       int rec_bucket_off = bucket_off+bucket_offset[idim][r];
       int rec_pe_off = pe_off+pe_offset[idim][r];
@@ -461,7 +459,7 @@ namespace CTF_int {
                  int              pe_off,
                  int              dir){
     for (int r=0; r<rep_phase[0]; r++){
-      int bucket = bucket_off+bucket_offset[0][r];
+      int bucket = bucket_off+r;
       int pe = pe_off+pe_offset[0][r];
       if (dir)
         MPI_Irecv(buffer+displs[bucket]*sr->el_size, counts[bucket], sr->mdtype(), pe, MTAG, cm, reqs+bucket);
@@ -539,7 +537,7 @@ namespace CTF_int {
     for (int r=0; r<rep_phase[idim]; r++){
       int rec_bucket_off = bucket_off+bucket_offset[idim][r];
       int rec_pe_off = pe_off+pe_offset[idim][r];
-      put_buckets<idim-1>(rep_phase, bucket_offset, buckets, counts, sr, put_displs, win, rec_bucket_off, rec_pe_off);
+      put_buckets<idim-1>(rep_phase, pe_offset, bucket_offset, buckets, counts, sr, put_displs, win, rec_bucket_off, rec_pe_off);
     }
   }
 
@@ -802,15 +800,19 @@ namespace CTF_int {
 
     int nold_rep = 1;
     int * old_rep_phase; alloc_ptr(sizeof(int)*order, (void**)&old_rep_phase);
+    int * old_rep_phase_lda; alloc_ptr(sizeof(int)*order, (void**)&old_rep_phase_lda);
     for (int i=0; i<order; i++){
       old_rep_phase[i] = lcm(old_dist.phys_phase[i], new_dist.phys_phase[i])/old_dist.phys_phase[i];
+      old_rep_phase_lda[i] = nold_rep;
       nold_rep *= old_rep_phase[i];
     }
 
     int nnew_rep = 1;
     int * new_rep_phase; alloc_ptr(sizeof(int)*order, (void**)&new_rep_phase);
+    int * new_rep_phase_lda; alloc_ptr(sizeof(int)*order, (void**)&new_rep_phase_lda);
     for (int i=0; i<order; i++){
       new_rep_phase[i] = lcm(new_dist.phys_phase[i], old_dist.phys_phase[i])/new_dist.phys_phase[i];
+      new_rep_phase_lda[i] = nnew_rep;
       nnew_rep *= new_rep_phase[i];
     }
     
@@ -848,10 +850,9 @@ namespace CTF_int {
 
     precompute_offsets(old_dist, new_dist, sym, edge_len, old_rep_phase, old_phys_edge_len, old_virt_edge_len, old_dist.virt_phase, old_virt_lda, old_virt_nelem, send_pe_offset, send_bucket_offset, send_data_offset);
 
-
 #ifdef IREDIST
     if (new_idx_lyr == 0)
-      SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, ord_glb_comm.cm, recv_buffer, sr);
+      SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, ord_glb_comm.cm, recv_buffer, sr, 0, 0, 1);
 #endif
 #ifndef IREDIST
 #ifndef REDIST_PUT
@@ -861,16 +862,15 @@ namespace CTF_int {
       send_displs[i] = send_displs[i-1] + send_counts[i-1];
     }
 #else
-
-    int64_t * all_get_displs = (int64_t*)alloc(sizeof(int64_t)*ord_glb_comm.np);
-    SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, rep_phase, rep_phase_lda, old_dist.perank, new_dist.pe_lda, old_dist.phys_phase, new_dist.phys_phase, counts, all_get_displs);
+    int64_t * all_recv_displs = (int64_t*)alloc(sizeof(int64_t)*ord_glb_comm.np);
+    SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, new_rep_phase, recv_pe_offset, recv_bucket_offset, recv_displs, all_recv_displs, 0, 0, 1);
 
     int64_t * all_put_displs = (int64_t*)alloc(sizeof(int64_t)*ord_glb_comm.np);
-    MPI_Alltoall(all_get_displs, 1, MPI_INT64_T, all_put_displs, 1, MPI_INT64_T, ord_glb_comm.cm);
-    cfree(all_get_displs);
+    MPI_Alltoall(all_recv_displs, 1, MPI_INT64_T, all_put_displs, 1, MPI_INT64_T, ord_glb_comm.cm);
+    cfree(all_recv_displs);
 
     int64_t * put_displs = (int64_t*)alloc(sizeof(int64_t)*nold_rep);
-    SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, rep_phase, rep_phase_lda, new_dist.perank, old_dist.pe_lda, new_dist.phys_phase, old_dist.phys_phase, all_put_displs, put_displs);
+    SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, old_rep_phase, send_pe_offset, send_bucket_offset, all_put_displs, put_displs, 0, 0, 0);
 
     cfree(all_put_displs);
 
@@ -1001,6 +1001,9 @@ namespace CTF_int {
                       new_rep_phase, new_rep_idx, new_dist.virt_phase[0],
 #ifdef IREDIST
                       recv_reqs, ord_glb_comm.cm,
+#endif
+#ifdef  REDIST_PUT
+                      NULL, win,
 #endif
                       0, aux_buf, buckets, recv_counts, sr);
       cfree(new_rep_idx);

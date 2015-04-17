@@ -51,19 +51,6 @@ namespace CTF_int {
                      int const * edge_len,
                      int const * loc_edge_len);
 
-  template <int idim>
-  void calc_cnt_from_rep_cnt(int const *     rep_phase,
-                             int const *     rep_phase_lda,
-                             int const *     rank,
-                             int const *     new_pe_lda,
-                             int const *     old_phys_phase,
-                             int const *     new_phys_phase,
-                             int64_t const * old_counts,
-                             int64_t *       counts,
-                             int             coff=0,
-                             int             roff=0,
-                             int             dir=1);
-
   void calc_drv_displs(int const *          sym,
                        int const *          edge_len,
                        int const *          loc_edge_len,
