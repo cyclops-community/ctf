@@ -6,15 +6,15 @@
 #include "nosym_transp.h"
 
 #define MTAG 777
-//#define WAITANY
+#define WAITANY
 #define ROR
 #ifdef ROR
   #ifndef ROR_MIN_LOOP
   #define ROR_MIN_LOOP 0
-//  #define IREDIST
-  #define REDIST_PUT
+  #define IREDIST
+  //#define REDIST_PUT
   #ifdef IREDIST
-    #ifdef IREDST_PUT
+    #ifdef REDIST_PUT
       #define PUT_NOTIFY
     #endif
   #endif
@@ -436,6 +436,93 @@ namespace CTF_int {
 
   }
 
+
+  void redist_bucket_r0(int const *          sym,
+                        int const *          phys_phase,
+                        int const *          perank,
+                        int const *          edge_len,
+                        int * const *        bucket_offset,
+                        int64_t * const *    data_offset,
+                        int                  rep_phase0,
+                        int                  rep_idx0,
+                        int                  virt_dim0,
+                        bool                 data_to_buckets,
+                        char * __restrict__  data,
+                        char ** __restrict__ buckets,
+                        int64_t *            counts,
+                        algstrct const *     sr,
+                        int64_t              data_off,
+                        int                  bucket_off,
+                        int                  prev_idx){
+    int ivmax;
+    if (sym[0] != NS){
+      ivmax = get_loc(get_glb(prev_idx, phys_phase[1], perank[1]),
+                                        phys_phase[0], perank[0]) + 1;
+    } else
+      ivmax = get_loc(edge_len[0]-1, phys_phase[0], perank[0]) + 1;
+    //printf("ivmax = %d, rep_phase0 = %d data_off = %ld\n",ivmax, rep_phase0, data_off);
+    if (virt_dim0 == 1){
+      if (data_to_buckets){
+        int i=rep_idx0;
+        {
+          int n = (ivmax-i+rep_phase0-1)/rep_phase0;
+          if (n>0){
+            int bucket = bucket_off + bucket_offset[0][i];
+            //printf("ivmax = %d bucket_off = %d, bucket = %d, counts[bucket] = %ld, n= %d data_off = %ld, rep_phase=%d\n",
+         //          ivmax, bucket_off, bucket, counts[bucket], n, data_off, rep_phase0);
+            sr->copy(n,
+                     data + sr->el_size*(data_off+i), rep_phase0, 
+                     buckets[bucket] + sr->el_size*counts[bucket], 1);
+            counts[bucket] += n;
+          }
+        }
+      } else {
+        int i=rep_idx0;
+        {
+          int n = (ivmax-i+rep_phase0-1)/rep_phase0;
+          if (n>0){
+            int bucket = bucket_off + bucket_offset[0][i];
+            sr->copy(n,
+                     buckets[bucket] + sr->el_size*counts[bucket], 1,
+                     data + sr->el_size*(data_off+i), rep_phase0);
+            counts[bucket] += n;
+          }
+        }
+      }
+    } else {
+      if (data_to_buckets){
+        for (int iv=rep_idx0; iv < ivmax; iv+=rep_phase0){
+          int bucket = bucket_off + bucket_offset[0][iv];
+          sr->copy(buckets[bucket] + sr->el_size*counts[bucket],
+                   data + sr->el_size*(data_off+data_offset[0][iv]));//i+v*virt_nelem)); 
+          counts[bucket]++;
+        }
+      } else {
+        for (int iv=rep_idx0; iv < ivmax; iv+=rep_phase0){
+          int bucket = bucket_off + bucket_offset[0][iv];
+          sr->copy(data + sr->el_size*(data_off+data_offset[0][iv]),//+i+v*virt_nelem), 
+                   buckets[bucket] + sr->el_size*counts[bucket]);
+          counts[bucket]++;
+        }
+      }
+    }
+    /*else {
+      for (int i=0; i<rep_phase0; i++){
+        int n = (ivmax-i+rep_phase0-1)/rep_phase0;
+        if (n>0){
+          int bucket = bucket_off + bucket_offset[0][i];
+          sr->copy(n,
+                   buckets[bucket] + sr->el_size*counts[bucket], 1,
+                   data + sr->el_size*(data_off+i), rep_phase0);
+          counts[bucket] += n;
+         }
+       }
+     }*/
+
+  }
+
+
+
   template <int idim>
   void isendrecv(int * const *    pe_offset,
                  int * const *    bucket_offset,
@@ -531,7 +618,10 @@ namespace CTF_int {
                          int64_t              data_off,
                          int                  bucket_off,
                          int                  prev_idx){
-    redist_bucket<ROR_MIN_LOOP>(sym, phys_phase, perank, edge_len, bucket_offset, data_offset, rep_phase[0], virt_dim0, data_to_buckets, data, buckets, counts, sr, data_off, bucket_off, prev_idx);
+    if (rep_idx[0] == -1)
+      redist_bucket<ROR_MIN_LOOP>(sym, phys_phase, perank, edge_len, bucket_offset, data_offset, rep_phase[0], virt_dim0, data_to_buckets, data, buckets, counts, sr, data_off, bucket_off, prev_idx);
+    else
+      redist_bucket_r0(sym, phys_phase, perank, edge_len, bucket_offset, data_offset, rep_phase[0], rep_idx[0], virt_dim0, data_to_buckets, data, buckets, counts, sr, data_off, bucket_off, prev_idx);
   }
 
 #ifdef REDIST_PUT
@@ -680,6 +770,7 @@ namespace CTF_int {
       for (int r=0; r<rep_phase[idim]; r++){
         int rep_idx2[order];
         memcpy(rep_idx2, rep_idx, sizeof(int)*order);
+        rep_idx[0] = -1;
         rep_idx2[idim] = r;
         int rec_bucket_off = bucket_off + bucket_offset[idim][r];
         int rec_pe_off = pe_off + pe_offset[idim][r];
@@ -870,19 +961,18 @@ namespace CTF_int {
     precompute_offsets(old_dist, new_dist, sym, edge_len, old_rep_phase, old_phys_edge_len, old_virt_edge_len, old_dist.virt_phase, old_virt_lda, old_virt_nelem, send_pe_offset, send_bucket_offset, send_data_offset);
 
 #ifdef IREDIST
-#ifndef PUT_NOTIFY
+#ifndef REDIST_PUT
     if (new_idx_lyr == 0)
       SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, ord_glb_comm.cm, recv_buffer, sr, 0, 0, 1);
 #endif
 #endif
-#ifndef IREDIST
-#ifndef REDIST_PUT
+#if !defined(IREDIST) && !defined(REDIST_PUT)
     int64_t * send_displs = (int64_t*)alloc(sizeof(int64_t)*nold_rep);
     send_displs[0] = 0;
     for (int i=1; i<nold_rep; i++){
       send_displs[i] = send_displs[i-1] + send_counts[i-1];
     }
-#else
+#elif defined(REDIST_PUT)
     int64_t * all_recv_displs = (int64_t*)alloc(sizeof(int64_t)*ord_glb_comm.np);
     SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, new_rep_phase, recv_pe_offset, recv_bucket_offset, recv_displs, all_recv_displs, 0, 0, 1);
 
@@ -895,14 +985,15 @@ namespace CTF_int {
 
     cfree(all_put_displs);
 
+#ifndef PUT_NOTIFY
     char * recv_buffer;
     mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
+#endif
 
     CTF_Win win;
     int suc = MPI_Win_create(recv_buffer, new_dist.size*sr->el_size, sr->el_size, MPI_INFO_NULL, ord_glb_comm.cm, &win);
     assert(suc == MPI_SUCCESS);
     MPI_Win_fence(0, win);
-#endif
 #endif
 
     if (old_idx_lyr == 0){
@@ -957,6 +1048,7 @@ namespace CTF_int {
 #endif
       cfree(aux_buf);
     }
+#ifndef WAITANY
 #ifndef IREDIST
 #ifndef REDIST_PUT
     char * recv_buffer;
@@ -993,6 +1085,7 @@ namespace CTF_int {
 #endif
     cfree(tsr_data);
 #endif
+#endif
     cfree(send_counts);
 
     if (new_idx_lyr == 0){
@@ -1016,39 +1109,46 @@ namespace CTF_int {
 
       TAU_FSTART(redist_debucket);
 
-#ifdef ROR
-      int * new_rep_idx; alloc_ptr(sizeof(int)*order, (void**)&new_rep_idx);
-      memset(new_rep_idx, 0, sizeof(int)*order);
-#endif
 #ifdef WAITANY
       for (int nb=0; nb<nnew_rep; nb++){
-        int source;
-#ifdef PUT_NOTIFY
+        //int source;
+/*#ifdef PUT_NOTIFY
         foMPI_Request req;
         foMPI_Wait(&req, MPY_ANY_TAG);
         source = req.source;
-#else
-        MPI_Request req;
-        MPI_Waitany(&req, &source, cm);
-#endif
-        int bucket_off = 0;
+#else*/
+        MPI_Status stat;
+        int bucket_off;
+        int ret = MPI_Waitany(nnew_rep, recv_reqs, &bucket_off, &stat);
+        ASSERT(ret== MPI_SUCCESS);
+        ASSERT(bucket_off != MPI_UNDEFINED);
+        //source = stat.source;
+//#endif
         int rep_idx[order];
+        int iboff=bucket_off;
         for (int i=0; i<order; i++){
-          //FIXME: lame
-          int pe_offi = ((source/old_dist.pe_lda[i])%old_dist.phys_phase[i])*old_dist.pe_lda[i];
-          int pidx;
-          for (int j=0; j<rep_phase[j]; j++){
-            if (pe_offi == pe_offset[i][j]) pidx=j;
+/*          //FIXME: lame
+          int pe_offi = ((source/MAX(1,old_dist.pe_lda[i]))%old_dist.phys_phase[i])*MAX(1,old_dist.pe_lda[i]);
+          int pidx = -1;
+          for (int j=0; j<new_rep_phase[i]; j++){
+            printf("source = %d i = %d pe_offi=%d recv_pe_offset[i][%d]=%d\n",source,i,pe_offi,j,recv_pe_offset[i][j]);
+            if (pe_offi == recv_pe_offset[i][j]) pidx=j;
           }
-          int rep_idx[i] = pidx;
-          bucket_off += bucket_offset[i][pidx];
+          ASSERT(pidx!=-1);
+          rep_idx[i] = pidx;
+          bucket_off += recv_bucket_offset[i][pidx];*/
+          rep_idx[i] = iboff%new_rep_phase[order-i-1];
+          iboff = iboff/new_rep_phase[order-i-1];
         }
         
-        SWITCH_ORD_CALL(redist_bucket_ror, order-1, sym, phys_phase, perank, edge_len, bucket_offset, data_offset, rep_phase, rep_idx, virt_dim0, data_to_buckets, data, buckets, counts, sr, 0, bucket_off, 0)
+        SWITCH_ORD_CALL(redist_bucket_ror, order-1, sym, new_dist.phys_phase, new_dist.perank, edge_len, recv_bucket_offset, recv_data_offset, new_rep_phase, rep_idx, new_dist.virt_phase[0], 0, aux_buf, buckets, recv_counts, sr, 0, bucket_off, 0)
         
       }
 #else
   #ifdef ROR
+      int * new_rep_idx; alloc_ptr(sizeof(int)*order, (void**)&new_rep_idx);
+      memset(new_rep_idx, 0, sizeof(int)*order);
+      new_rep_idx[0] = -1;
       SWITCH_ORD_CALL(redist_bucket_isr, order-1, order, sym, new_dist.phys_phase, new_dist.perank, edge_len, recv_pe_offset, recv_bucket_offset, recv_data_offset,
                       new_rep_phase, new_rep_idx, new_dist.virt_phase[0],
 #ifdef IREDIST
