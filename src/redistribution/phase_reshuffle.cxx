@@ -6,13 +6,25 @@
 #include "nosym_transp.h"
 
 #define MTAG 777
+//#define WAITANY
 #define ROR
 #ifdef ROR
-  //#define IREDIST
-  #define REDIST_PUT
   #ifndef ROR_MIN_LOOP
   #define ROR_MIN_LOOP 0
+//  #define IREDIST
+  #define REDIST_PUT
+  #ifdef IREDIST
+    #ifdef IREDST_PUT
+      #define PUT_NOTIFY
+    #endif
   #endif
+  #endif
+#endif
+
+#ifdef PUT_NOTIFY
+typedef foMPI_Request CTF_Request;
+#else
+typedef MPI_Request CTF_Request;
 #endif
 
 
@@ -556,7 +568,11 @@ namespace CTF_int {
     for (int r=0; r<rep_phase[0]; r++){
       int rec_pe_off = pe_off + pe_offset[0][r];
       int rec_bucket_off = bucket_off + bucket_offset[0][r];
+#ifdef PUT_NOTIFY
+      MPI_Put_notify(buckets[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), rec_pe_off, put_displs[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), win, MTAG);
+#else
       MPI_Put(buckets[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), rec_pe_off, put_displs[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), win);
+#endif
     }
   }
 /*
@@ -618,7 +634,6 @@ namespace CTF_int {
                          int                  bucket_off,
                          int                  prev_idx){ }*/
 #endif
-
 
   template <int idim>
   void redist_bucket_isr(int                  order,
@@ -695,7 +710,7 @@ namespace CTF_int {
                          int *                rep_idx,
                          int                  virt_dim0,
 #ifdef IREDIST
-                         MPI_Request *        rep_reqs,
+                         CTF_Request *        rep_reqs,
                          MPI_Comm             cm,
 #endif
 #ifdef  REDIST_PUT
@@ -709,14 +724,17 @@ namespace CTF_int {
                          algstrct const *     sr,
                          int                  bucket_off,
                          int                  pe_off){
+#ifndef WAITANY
 #ifdef IREDIST
     if (!data_to_buckets){
       MPI_Waitall(rep_phase[0], rep_reqs+bucket_off, MPI_STATUSES_IGNORE);
     }
 #endif
+#endif
     SWITCH_ORD_CALL(redist_bucket_ror, order-1, sym, phys_phase, perank, edge_len, bucket_offset, data_offset, rep_phase, rep_idx, virt_dim0, data_to_buckets, data, buckets, counts, sr, 0, bucket_off, 0)
     if (data_to_buckets){
 #ifdef IREDIST
+#ifndef PUT_NOTIFY
       for (int r=0; r<rep_phase[0]; r++){
         int bucket = bucket_off + bucket_offset[0][r];
         int pe = pe_off + pe_offset[0][r];
@@ -727,6 +745,7 @@ namespace CTF_int {
         int flag;
         MPI_Testall(bucket_off, rep_reqs, &flag, MPI_STATUSES_IGNORE);
       }
+#endif
 #endif
 #ifdef  REDIST_PUT
       put_buckets<0>(rep_phase, pe_offset, bucket_offset, buckets, counts, sr, put_displs, win, bucket_off, pe_off);
@@ -826,8 +845,8 @@ namespace CTF_int {
     int64_t * recv_displs = (int64_t*)alloc(sizeof(int64_t)*nnew_rep);
 
 #ifdef IREDIST
-    MPI_Request * recv_reqs = (MPI_Request*)alloc(sizeof(MPI_Request)*nnew_rep);
-    MPI_Request * send_reqs = (MPI_Request*)alloc(sizeof(MPI_Request)*nold_rep);
+    CTF_Request * recv_reqs = (CTF_Request*)alloc(sizeof(CTF_Request)*nnew_rep);
+    CTF_Request * send_reqs = (CTF_Request*)alloc(sizeof(CTF_Request)*nold_rep);
     char * recv_buffer;
     mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
 #endif
@@ -851,8 +870,10 @@ namespace CTF_int {
     precompute_offsets(old_dist, new_dist, sym, edge_len, old_rep_phase, old_phys_edge_len, old_virt_edge_len, old_dist.virt_phase, old_virt_lda, old_virt_nelem, send_pe_offset, send_bucket_offset, send_data_offset);
 
 #ifdef IREDIST
+#ifndef PUT_NOTIFY
     if (new_idx_lyr == 0)
       SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, ord_glb_comm.cm, recv_buffer, sr, 0, 0, 1);
+#endif
 #endif
 #ifndef IREDIST
 #ifndef REDIST_PUT
@@ -944,7 +965,7 @@ namespace CTF_int {
     /* Communicate data */
     TAU_FSTART(COMM_RESHUFFLE);
 
-    MPI_Request * reqs = (MPI_Request*)alloc(sizeof(MPI_Request)*(nnew_rep+nold_rep));
+    CTF_Request * reqs = (CTF_Request*)alloc(sizeof(CTF_Request)*(nnew_rep+nold_rep));
     int nrecv = 0;
     if (new_idx_lyr == 0){
       nrecv = nnew_rep;
@@ -994,9 +1015,40 @@ namespace CTF_int {
       std::fill(recv_counts, recv_counts+nnew_rep, 0);
 
       TAU_FSTART(redist_debucket);
+
 #ifdef ROR
       int * new_rep_idx; alloc_ptr(sizeof(int)*order, (void**)&new_rep_idx);
       memset(new_rep_idx, 0, sizeof(int)*order);
+#endif
+#ifdef WAITANY
+      for (int nb=0; nb<nnew_rep; nb++){
+        int source;
+#ifdef PUT_NOTIFY
+        foMPI_Request req;
+        foMPI_Wait(&req, MPY_ANY_TAG);
+        source = req.source;
+#else
+        MPI_Request req;
+        MPI_Waitany(&req, &source, cm);
+#endif
+        int bucket_off = 0;
+        int rep_idx[order];
+        for (int i=0; i<order; i++){
+          //FIXME: lame
+          int pe_offi = ((source/old_dist.pe_lda[i])%old_dist.phys_phase[i])*old_dist.pe_lda[i];
+          int pidx;
+          for (int j=0; j<rep_phase[j]; j++){
+            if (pe_offi == pe_offset[i][j]) pidx=j;
+          }
+          int rep_idx[i] = pidx;
+          bucket_off += bucket_offset[i][pidx];
+        }
+        
+        SWITCH_ORD_CALL(redist_bucket_ror, order-1, sym, phys_phase, perank, edge_len, bucket_offset, data_offset, rep_phase, rep_idx, virt_dim0, data_to_buckets, data, buckets, counts, sr, 0, bucket_off, 0)
+        
+      }
+#else
+  #ifdef ROR
       SWITCH_ORD_CALL(redist_bucket_isr, order-1, order, sym, new_dist.phys_phase, new_dist.perank, edge_len, recv_pe_offset, recv_bucket_offset, recv_data_offset,
                       new_rep_phase, new_rep_idx, new_dist.virt_phase[0],
 #ifdef IREDIST
@@ -1007,10 +1059,11 @@ namespace CTF_int {
 #endif
                       0, aux_buf, buckets, recv_counts, sr);
       cfree(new_rep_idx);
-#else
+  #else
       SWITCH_ORD_CALL(redist_bucket, order-1, sym, new_dist.phys_phase, new_dist.perank, edge_len,
                       recv_bucket_offset, recv_data_offset,
                       new_rep_phase[0], new_dist.virt_phase[0], 0, aux_buf, buckets, recv_counts, sr);
+  #endif
 #endif
       TAU_FSTOP(redist_debucket);
       cfree(buckets);
