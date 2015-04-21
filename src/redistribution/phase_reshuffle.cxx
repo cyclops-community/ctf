@@ -1139,9 +1139,11 @@ namespace CTF_int {
           bucket_off += recv_bucket_offset[i][pidx];*/
           rep_idx[i] = iboff%new_rep_phase[order-i-1];
           iboff = iboff/new_rep_phase[order-i-1];
+          printf("rep_idx[%d]=%d\n",i,rep_idx[i]);
         }
         
         SWITCH_ORD_CALL(redist_bucket_ror, order-1, sym, new_dist.phys_phase, new_dist.perank, edge_len, recv_bucket_offset, recv_data_offset, new_rep_phase, rep_idx, new_dist.virt_phase[0], 0, aux_buf, buckets, recv_counts, sr, 0, bucket_off, 0)
+        printf("recv_counts[%d]=%d, saved_counts[%d]=%d\n",bucket_off,recv_counts[bucket_off],bucket_off,save_counts[bucket_off]);
         
       }
 #else
