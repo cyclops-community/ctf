@@ -12,7 +12,7 @@
   #ifndef ROR_MIN_LOOP
   #define ROR_MIN_LOOP 0
   #define IREDIST
-  //#define REDIST_PUT
+  #define REDIST_PUT
   #ifdef IREDIST
     #ifdef REDIST_PUT
       #define PUT_NOTIFY
@@ -529,8 +529,12 @@ namespace CTF_int {
                  int const *      rep_phase,
                  int64_t const *  counts,
                  int64_t const *  displs,
-                 MPI_Request *    reqs,
+                 CTF_Request *    reqs,
+#ifdef PUT_NOTIFY
+                 foMPI_Win &      cm,
+#else
                  MPI_Comm         cm,
+#endif
                  char *           buffer,
                  algstrct const * sr,
                  int              bucket_off,
@@ -550,8 +554,12 @@ namespace CTF_int {
                  int const *      rep_phase,
                  int64_t const *  counts,
                  int64_t const *  displs,
-                 MPI_Request *    reqs,
+                 CTF_Request *    reqs,
+#ifdef PUT_NOTIFY
+                 foMPI_Win &      cm,
+#else
                  MPI_Comm         cm,
+#endif
                  char *           buffer,
                  algstrct const * sr,
                  int              bucket_off,
@@ -560,10 +568,15 @@ namespace CTF_int {
     for (int r=0; r<rep_phase[0]; r++){
       int bucket = bucket_off+r;
       int pe = pe_off+pe_offset[0][r];
+#ifdef PUT_NOTIFY
+      ASSERT(dir);
+      foMPI_Notify_init(cm, pe, MTAG, counts[bucket], reqs+bucket);
+#else
       if (dir)
         MPI_Irecv(buffer+displs[bucket]*sr->el_size, counts[bucket], sr->mdtype(), pe, MTAG, cm, reqs+bucket);
       else
         MPI_Isend(buffer+displs[bucket]*sr->el_size, counts[bucket], sr->mdtype(), pe, MTAG, cm, reqs+bucket);
+#endif
     }
   }
 
@@ -659,7 +672,7 @@ namespace CTF_int {
       int rec_pe_off = pe_off + pe_offset[0][r];
       int rec_bucket_off = bucket_off + bucket_offset[0][r];
 #ifdef PUT_NOTIFY
-      MPI_Put_notify(buckets[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), rec_pe_off, put_displs[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), win, MTAG);
+      foMPI_Put_notify(buckets[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), rec_pe_off, put_displs[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), win, MTAG);
 #else
       MPI_Put(buckets[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), rec_pe_off, put_displs[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), win);
 #endif
@@ -738,7 +751,7 @@ namespace CTF_int {
                          int *                rep_idx,
                          int                  virt_dim0,
 #ifdef IREDIST
-                         MPI_Request *        rep_reqs,
+                         CTF_Request *        rep_reqs,
                          MPI_Comm             cm,
 #endif
 #ifdef  REDIST_PUT
@@ -938,8 +951,6 @@ namespace CTF_int {
 #ifdef IREDIST
     CTF_Request * recv_reqs = (CTF_Request*)alloc(sizeof(CTF_Request)*nnew_rep);
     CTF_Request * send_reqs = (CTF_Request*)alloc(sizeof(CTF_Request)*nold_rep);
-    char * recv_buffer;
-    mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
 #endif
 
     for (int i=0; i<nnew_rep; i++){
@@ -960,12 +971,6 @@ namespace CTF_int {
 
     precompute_offsets(old_dist, new_dist, sym, edge_len, old_rep_phase, old_phys_edge_len, old_virt_edge_len, old_dist.virt_phase, old_virt_lda, old_virt_nelem, send_pe_offset, send_bucket_offset, send_data_offset);
 
-#ifdef IREDIST
-#ifndef REDIST_PUT
-    if (new_idx_lyr == 0)
-      SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, ord_glb_comm.cm, recv_buffer, sr, 0, 0, 1);
-#endif
-#endif
 #if !defined(IREDIST) && !defined(REDIST_PUT)
     int64_t * send_displs = (int64_t*)alloc(sizeof(int64_t)*nold_rep);
     send_displs[0] = 0;
@@ -985,16 +990,29 @@ namespace CTF_int {
 
     cfree(all_put_displs);
 
-#ifndef PUT_NOTIFY
     char * recv_buffer;
     mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
-#endif
 
     CTF_Win win;
     int suc = MPI_Win_create(recv_buffer, new_dist.size*sr->el_size, sr->el_size, MPI_INFO_NULL, ord_glb_comm.cm, &win);
     assert(suc == MPI_SUCCESS);
+#ifndef USE_FOMPI
     MPI_Win_fence(0, win);
 #endif
+#endif
+
+#ifdef IREDIST
+#ifdef REDIST_PUT
+    if (new_idx_lyr == 0)
+      SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, win, recv_buffer, sr, 0, 0, 1);
+#else
+    char * recv_buffer;
+    mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
+    if (new_idx_lyr == 0)
+      SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, ord_glb_comm.cm, recv_buffer, sr, 0, 0, 1);
+#endif
+#endif
+
 
     if (old_idx_lyr == 0){
       char * aux_buf; alloc_ptr(sr->el_size*old_dist.size, (void**)&aux_buf);
@@ -1189,8 +1207,8 @@ namespace CTF_int {
     }
     //printf("[%d] reached final barrier %d\n",ord_glb_comm.rank, MTAG);
 #ifdef IREDIST
-    cfree(recv_reqs);
-    cfree(send_reqs);
+    CTF_int::cfree(recv_reqs);
+    CTF_int::cfree(send_reqs);
 #endif
     for (int i=0; i<order; i++){
       cfree(recv_pe_offset[i]);

@@ -10,6 +10,7 @@ typedef foMPI_Win CTF_Win;
 #define MPI_Win_fence(...) foMPI_Win_fence(__VA_ARGS__)
 #define MPI_Win_free(...) foMPI_Win_free(__VA_ARGS__)
 #define MPI_Put(...) foMPI_Put(__VA_ARGS__)
+#define MPI_Waitany(...) foMPI_Waitany(__VA_ARGS__)
 #else
 #include "mpi.h"
 typedef MPI_Win CTF_Win;
