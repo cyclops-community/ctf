@@ -467,7 +467,7 @@ namespace CTF_int {
         {
           int n = (ivmax-i+rep_phase0-1)/rep_phase0;
           if (n>0){
-            int bucket = bucket_off + bucket_offset[0][i];
+            int bucket = bucket_off;
             //printf("ivmax = %d bucket_off = %d, bucket = %d, counts[bucket] = %ld, n= %d data_off = %ld, rep_phase=%d\n",
          //          ivmax, bucket_off, bucket, counts[bucket], n, data_off, rep_phase0);
             sr->copy(n,
@@ -481,7 +481,7 @@ namespace CTF_int {
         {
           int n = (ivmax-i+rep_phase0-1)/rep_phase0;
           if (n>0){
-            int bucket = bucket_off + bucket_offset[0][i];
+            int bucket = bucket_off;
             sr->copy(n,
                      buckets[bucket] + sr->el_size*counts[bucket], 1,
                      data + sr->el_size*(data_off+i), rep_phase0);
@@ -492,14 +492,14 @@ namespace CTF_int {
     } else {
       if (data_to_buckets){
         for (int iv=rep_idx0; iv < ivmax; iv+=rep_phase0){
-          int bucket = bucket_off + bucket_offset[0][iv];
+          int bucket = bucket_off;
           sr->copy(buckets[bucket] + sr->el_size*counts[bucket],
                    data + sr->el_size*(data_off+data_offset[0][iv]));//i+v*virt_nelem)); 
           counts[bucket]++;
         }
       } else {
         for (int iv=rep_idx0; iv < ivmax; iv+=rep_phase0){
-          int bucket = bucket_off + bucket_offset[0][iv];
+          int bucket = bucket_off;
           sr->copy(data + sr->el_size*(data_off+data_offset[0][iv]),//+i+v*virt_nelem), 
                    buckets[bucket] + sr->el_size*counts[bucket]);
           counts[bucket]++;
@@ -1016,6 +1016,7 @@ namespace CTF_int {
 #ifdef ROR
       int * old_rep_idx; alloc_ptr(sizeof(int)*order, (void**)&old_rep_idx);
       memset(old_rep_idx, 0, sizeof(int)*order);
+      old_rep_idx[0]=-1;
       SWITCH_ORD_CALL(redist_bucket_isr, order-1, order, sym, old_dist.phys_phase, old_dist.perank, edge_len, send_pe_offset, send_bucket_offset, send_data_offset,
                       old_rep_phase, old_rep_idx, old_dist.virt_phase[0],
 #ifdef IREDIST
@@ -1137,13 +1138,12 @@ namespace CTF_int {
           ASSERT(pidx!=-1);
           rep_idx[i] = pidx;
           bucket_off += recv_bucket_offset[i][pidx];*/
-          rep_idx[i] = iboff%new_rep_phase[order-i-1];
-          iboff = iboff/new_rep_phase[order-i-1];
-          printf("rep_idx[%d]=%d\n",i,rep_idx[i]);
+          rep_idx[i] = iboff%new_rep_phase[i];
+          iboff = iboff/new_rep_phase[i];
         }
         
         SWITCH_ORD_CALL(redist_bucket_ror, order-1, sym, new_dist.phys_phase, new_dist.perank, edge_len, recv_bucket_offset, recv_data_offset, new_rep_phase, rep_idx, new_dist.virt_phase[0], 0, aux_buf, buckets, recv_counts, sr, 0, bucket_off, 0)
-        printf("recv_counts[%d]=%d, saved_counts[%d]=%d\n",bucket_off,recv_counts[bucket_off],bucket_off,save_counts[bucket_off]);
+        //printf("recv_counts[%d]=%d, saved_counts[%d]=%d\n",bucket_off,recv_counts[bucket_off],bucket_off,save_counts[bucket_off]);
         
       }
 #else
