@@ -94,12 +94,19 @@ namespace CTF_int {
         int jst;
         if (i>0){
           pfx[i] = pfx[i-1];
-          jst = get_loc(get_glb(i-1,sphase[idim],gidx_off[idim]),sphase[idim-1],gidx_off[idim-1])+1;
+          if (sym[idim-1] == SY)
+            jst = get_loc(get_glb(i-1,sphase[idim],gidx_off[idim]),sphase[idim-1],gidx_off[idim-1])+1;
+          else
+            jst = get_loc(get_glb(i-1,sphase[idim],gidx_off[idim])-1,sphase[idim-1],gidx_off[idim-1])+1;
         } else {
           pfx[i] = 0;
           jst = 0;
         }
-        int jed = get_loc(std::min(edge_len[idim]-1,get_glb(i,sphase[idim],gidx_off[idim])),sphase[idim-1],gidx_off[idim-1]);
+        int jed;
+        if (sym[idim-1] == SY)
+          jed = get_loc(std::min(edge_len[idim]-1,get_glb(i,sphase[idim],gidx_off[idim])),sphase[idim-1],gidx_off[idim-1]);
+        else
+          jed = get_loc(std::min(edge_len[idim]-1,get_glb(i,sphase[idim],gidx_off[idim]))-1,sphase[idim-1],gidx_off[idim-1]);
         for (int j=jst; j<=jed; j++){
           //printf("idim = %d j=%d loc_edge[idim] = %d loc_Edge[idim-1]=%d\n",idim,j,loc_edge_len[idim],loc_edge_len[idim-1]);
           pfx[i] += pfx_m1[j];
@@ -118,8 +125,15 @@ namespace CTF_int {
                            int const * edge_len,
                            int const * loc_edge_len){
     int64_t * pfx= (int64_t*)alloc(sizeof(int64_t)*loc_edge_len[1]);
-    for (int i=0; i<loc_edge_len[1]; i++){
-      pfx[i] = get_loc(get_glb(i,sphase[1],gidx_off[1]),sphase[0],gidx_off[0])+1;
+    if (sym[0] == SY){
+      for (int i=0; i<loc_edge_len[1]; i++){
+        pfx[i] = get_loc(get_glb(i,sphase[1],gidx_off[1]),sphase[0],gidx_off[0])+1;
+      }
+    } else {
+      ASSERT(sym[0] != NS);
+      for (int i=0; i<loc_edge_len[1]; i++){
+        pfx[i] = get_loc(get_glb(i,sphase[1],gidx_off[1])-1,sphase[0],gidx_off[0])+1;
+      }
     }
     return pfx;
   }
@@ -336,8 +350,11 @@ namespace CTF_int {
                      int                  bucket_off,
                      int                  prev_idx){
     int ivmax;
-    if (sym[idim] != NS){
+    if (sym[idim] == SY){
       ivmax = get_loc(get_glb(prev_idx, phys_phase[idim+1], perank[idim+1]),
+                                        phys_phase[idim  ], perank[idim  ]);
+    } else if (sym[idim] != NS) {
+      ivmax = get_loc(get_glb(prev_idx, phys_phase[idim+1], perank[idim+1])-1,
                                         phys_phase[idim  ], perank[idim  ]);
     } else
       ivmax = get_loc(edge_len[idim]-1, phys_phase[idim], perank[idim]);
@@ -368,8 +385,11 @@ namespace CTF_int {
                         int                  bucket_off,
                         int                  prev_idx){
     int ivmax;
-    if (sym[0] != NS){
+    if (sym[0] == SY){
       ivmax = get_loc(get_glb(prev_idx, phys_phase[1], perank[1]),
+                                        phys_phase[0], perank[0]) + 1;
+    } else if (sym[0] != NS) {
+      ivmax = get_loc(get_glb(prev_idx, phys_phase[1], perank[1]) - 1,
                                         phys_phase[0], perank[0]) + 1;
     } else
       ivmax = get_loc(edge_len[0]-1, phys_phase[0], perank[0]) + 1;
@@ -455,8 +475,11 @@ namespace CTF_int {
                         int                  bucket_off,
                         int                  prev_idx){
     int ivmax;
-    if (sym[0] != NS){
+    if (sym[0] == SY){
       ivmax = get_loc(get_glb(prev_idx, phys_phase[1], perank[1]),
+                                        phys_phase[0], perank[0]) + 1;
+    } else if (sym[0] != NS) {
+      ivmax = get_loc(get_glb(prev_idx, phys_phase[1], perank[1]) - 1,
                                         phys_phase[0], perank[0]) + 1;
     } else
       ivmax = get_loc(edge_len[0]-1, phys_phase[0], perank[0]) + 1;
@@ -601,8 +624,11 @@ namespace CTF_int {
                          int                  bucket_off=0,
                          int                  prev_idx=0){
     int ivmax;
-    if (sym[idim] != NS){
+    if (sym[idim] == SY){
       ivmax = get_loc(get_glb(prev_idx, phys_phase[idim+1], perank[idim+1]),
+                                        phys_phase[idim  ], perank[idim  ]);
+    } else if (sym[idim] != NS) {
+      ivmax = get_loc(get_glb(prev_idx, phys_phase[idim+1], perank[idim+1])-1,
                                         phys_phase[idim  ], perank[idim  ]);
     } else
       ivmax = get_loc(edge_len[idim]-1, phys_phase[idim], perank[idim]);
@@ -672,7 +698,6 @@ namespace CTF_int {
     for (int r=0; r<rep_phase[0]; r++){
       int rec_pe_off = pe_off + pe_offset[0][r];
       int rec_bucket_off = bucket_off + bucket_offset[0][r];
-      foMPI_Win_flush_all(win);
 #ifdef PUT_NOTIFY
       foMPI_Put_notify(buckets[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), rec_pe_off, put_displs[rec_bucket_off], counts[rec_bucket_off], sr->mdtype(), win, MTAG);
 #else
