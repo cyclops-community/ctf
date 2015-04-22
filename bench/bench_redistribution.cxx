@@ -6,6 +6,13 @@
   * \brief Benchmarks arbitrary NS redistribution
   */
 
+//#include <boost/math/distributions/normal.hpp>
+//
+//boost::math::normal dist(0.0, 1.0);
+//
+//// 95% of distribution is below q:
+//double q = quantile(dist, 0.95);
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

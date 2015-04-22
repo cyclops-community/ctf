@@ -1,6 +1,6 @@
 include ../../config.mk
 
-OBJS = redist.o sparse_rw.o pad.o nosym_transp.o cyclic_reshuffle.o glb_cyclic_reshuffle.o phase_reshuffle.o
+OBJS = redist.o sparse_rw.o pad.o nosym_transp.o cyclic_reshuffle.o glb_cyclic_reshuffle.o dgtog_redist.o dgtog_calc_cnt.o
 
 ctf: $(OBJS) 
 

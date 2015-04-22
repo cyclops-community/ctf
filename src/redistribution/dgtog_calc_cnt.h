@@ -1,22 +1,13 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __PHASE_RESHUFFLE_H__
-#define __PHASE_RESHUFFLE_H__
+#ifndef __DGTOG_CALC_CNT_H__
+#define __DGTOG_CALC_CNT_H__
 
 #include "../tensor/algstrct.h"
 #include "../mapping/distribution.h"
 #include "redist.h"
 
 namespace CTF_int {
-  void phase_reshuffle(int const *          sym,
-                       int const *          edge_len,
-                       distribution const & old_dist,
-                       distribution const & new_dist,
-                       char **              ptr_tsr_data,
-                       char **              ptr_tsr_new_data,
-                       algstrct const *     sr,
-                       CommData             ord_glb_comm);
-
   /**
    * \brief computes the cardinality of the set of elements of a tensor of order idim+1 that are owned by processor index gidx_off in a distribution with dimensions sphase
    */
@@ -53,19 +44,30 @@ namespace CTF_int {
 
   void calc_drv_displs(int const *          sym,
                        int const *          edge_len,
-                       int const *          loc_edge_len,
                        distribution const & old_dist,
                        distribution const & new_dist,
                        int64_t *            counts,
                        int                  idx_lyr);
 
+
+  void precompute_offsets(distribution const & old_dist,
+                          distribution const & new_dist,
+                          int const *          sym,
+                          int const *          len,
+                          int const *          rep_phase,
+                          int const *          phys_edge_len,
+                          int const *          virt_edge_len,
+                          int const *          virt_dim,
+                          int const *          virt_lda,
+                          int64_t              virt_nelem,
+                          int **               pe_offset,
+                          int **               bucket_offset,
+                          int64_t **           data_offset,
+                          int **               ivmax_pre);
   template <int idim>
-  void redist_bucket(int const *          sym,
-                     int const *          phys_phase,
-                     int const *          perank,
-                     int const *          edge_len,
-                     int * const *        bucket_offset,
+  void redist_bucket(int * const *        bucket_offset,
                      int64_t * const *    data_offset,
+                     int * const *        ivmax_pre,
                      int                  rep_phase0,
                      int                  virt_dim0,
                      bool                 data_to_buckets,

@@ -347,7 +347,7 @@ namespace CTF_int {
     for (int i=0; i<max_ntd; i++) {
       int64_t thread_chunk_size = chunk_size[i];
       if (thread_chunk_size > 0)
-        CTF_int::cfree(tswap_data[i],i);
+        CTF_int::cfree(tswap_data[i]);
     }
 
     CTF_int::cfree(tswap_data);

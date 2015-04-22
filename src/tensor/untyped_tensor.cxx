@@ -13,7 +13,7 @@
 #include "../redistribution/redist.h"
 #include "../redistribution/cyclic_reshuffle.h"
 #include "../redistribution/glb_cyclic_reshuffle.h"
-#include "../redistribution/phase_reshuffle.h"
+#include "../redistribution/dgtog_redist.h"
 
 
 using namespace CTF;
@@ -1581,7 +1581,7 @@ namespace CTF_int {
       block_reshuffle(old_dist, new_dist, this->data, shuffled_data, sr, wrld->cdt);
       CTF_int::cfree((void*)this->data);
     } else {
-      phase_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
+      dgtog_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
       //glb_cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
       //cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
       //CTF_int::cfree((void*)this->data);

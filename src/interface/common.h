@@ -31,7 +31,7 @@ namespace CTF {
    * \addtogroup CTF 
    * @{
    */
-
+  extern int DGTOG_SWITCH;
 
   /**
    * \brief reduction types for tensor data
@@ -199,7 +199,7 @@ namespace CTF_int {
   int  mst_alloc_ptr(int64_t len, void ** const ptr);
   void * alloc(int64_t len);
   void * mst_alloc(int64_t len);
-  int cfree(void * ptr, int const tid);
+//  int cfree(void * ptr, int const tid);
   int cfree(void * ptr);
 
 

@@ -3,6 +3,10 @@
 #include "common.h"
 #include "../shared/util.h"
 
+namespace CTF {
+  int DGTOG_SWITCH = 1;
+}
+
 namespace CTF_int {
 
   template <typename type>
