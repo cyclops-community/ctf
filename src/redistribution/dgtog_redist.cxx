@@ -45,6 +45,7 @@ namespace CTF_redist_ror_isr_any {
 #ifdef USE_FOMPI
 namespace CTF_redist_ror_put_any {
   #define ROR
+  #define IREDIST
   #define PUTREDIST
   #define WAITANY
   #define PUT_NOTIFY
@@ -52,6 +53,7 @@ namespace CTF_redist_ror_put_any {
   #undef PUT_NOTIFY
   #undef WAITANY
   #undef PUTREDIST
+  #undef IREDIST
   #undef ROR
 }
 #endif

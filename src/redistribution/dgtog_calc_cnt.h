@@ -49,6 +49,15 @@ namespace CTF_int {
                        int64_t *            counts,
                        int                  idx_lyr);
 
+  template <int idim>
+  void calc_cnt_from_rep_cnt(int const *     rep_phase,
+                             int * const *   pe_offset,
+                             int * const *   bucket_offset,
+                             int64_t const * old_counts,
+                             int64_t *       counts,
+                             int             bucket_off,
+                             int             pe_off,
+                             int             dir);
 
   void precompute_offsets(distribution const & old_dist,
                           distribution const & new_dist,
