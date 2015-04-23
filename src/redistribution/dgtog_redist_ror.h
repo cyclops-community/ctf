@@ -5,6 +5,7 @@ using namespace CTF_int;
 
 #ifdef PUT_NOTIFY
 typedef foMPI_Request CTF_Request;
+#define MPI_Waitany(...) foMPI_Waitany(__VA_ARGS__)
 #else
 typedef MPI_Request CTF_Request;
 #endif
@@ -114,7 +115,7 @@ void redist_bucket_ror<0>
     CTF_int::redist_bucket_r0(bucket_offset, data_offset, ivmax_pre, rep_phase[0], rep_idx[0], virt_dim0, data_to_buckets, data, buckets, counts, sr, data_off, bucket_off, prev_idx);
 }
 
-#ifdef REDIST_PUT
+#ifdef PUTREDIST
 template <int idim>
 void put_buckets(int const *                 rep_phase,
                  int * const *               pe_offset,
@@ -170,7 +171,7 @@ void redist_bucket_isr(int                  order,
                        CTF_Request *        rep_reqs,
                        MPI_Comm             cm,
 #endif
-#ifdef  REDIST_PUT
+#ifdef  PUTREDIST
                        int64_t const *      put_displs,
                        CTF_Win &            win,
 #endif
@@ -188,7 +189,7 @@ void redist_bucket_isr(int                  order,
 #ifdef IREDIST
                               rep_reqs, cm, 
 #endif
-#ifdef  REDIST_PUT
+#ifdef  PUTREDIST
                               put_displs, win,
 #endif
                               data_to_buckets, data, buckets, counts, sr, rec_bucket_off, rec_pe_off);
@@ -207,7 +208,7 @@ void redist_bucket_isr(int                  order,
 #ifdef IREDIST
                                 rep_reqs, cm, 
 #endif
-#ifdef  REDIST_PUT
+#ifdef  PUTREDIST
                                 put_displs, win,
 #endif
                                 data_to_buckets, data, buckets, counts, sr, rec_bucket_off, rec_pe_off);
@@ -230,7 +231,7 @@ void redist_bucket_isr<0>
                        CTF_Request *        rep_reqs,
                        MPI_Comm             cm,
 #endif
-#ifdef  REDIST_PUT
+#ifdef  PUTREDIST
                        int64_t const *      put_displs,
                        CTF_Win &            win,
 #endif
@@ -264,7 +265,7 @@ void redist_bucket_isr<0>
     }
 #endif
 #endif
-#ifdef  REDIST_PUT
+#ifdef  PUTREDIST
     put_buckets<0>(rep_phase, pe_offset, bucket_offset, buckets, counts, sr, put_displs, win, bucket_off, pe_off);
 #endif
   }
@@ -386,13 +387,13 @@ void dgtog_reshuffle(int const *          sym,
 
   precompute_offsets(old_dist, new_dist, sym, edge_len, old_rep_phase, old_phys_edge_len, old_virt_edge_len, old_dist.virt_phase, old_virt_lda, old_virt_nelem, send_pe_offset, send_bucket_offset, send_data_offset, send_ivmax_pre);
 
-#if !defined(IREDIST) && !defined(REDIST_PUT)
+#if !defined(IREDIST) && !defined(PUTREDIST)
   int64_t * send_displs = (int64_t*)alloc(sizeof(int64_t)*nold_rep);
   send_displs[0] = 0;
   for (int i=1; i<nold_rep; i++){
     send_displs[i] = send_displs[i-1] + send_counts[i-1];
   }
-#elif defined(REDIST_PUT)
+#elif defined(PUTREDIST)
   int64_t * all_recv_displs = (int64_t*)alloc(sizeof(int64_t)*ord_glb_comm.np);
   SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, new_rep_phase, recv_pe_offset, recv_bucket_offset, recv_displs, all_recv_displs, 0, 0, 1);
 
@@ -417,7 +418,7 @@ void dgtog_reshuffle(int const *          sym,
 #endif
 
 #ifdef IREDIST
-#ifdef REDIST_PUT
+#ifdef PUTREDIST
   if (new_idx_lyr == 0)
     SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, win, recv_buffer, sr, 0, 0, 1);
 #else
@@ -455,7 +456,7 @@ void dgtog_reshuffle(int const *          sym,
 #ifdef IREDIST
                     send_reqs, ord_glb_comm.cm,
 #endif
-#ifdef REDIST_PUT
+#ifdef PUTREDIST
                     put_displs, win,
 #endif
                     1, aux_buf, buckets, send_counts, sr);
@@ -483,7 +484,7 @@ void dgtog_reshuffle(int const *          sym,
   }
 #ifndef WAITANY
 #ifndef IREDIST
-#ifndef REDIST_PUT
+#ifndef PUTREDIST
   char * recv_buffer;
   mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
 
@@ -596,7 +597,7 @@ void dgtog_reshuffle(int const *          sym,
 #ifdef IREDIST
                     recv_reqs, ord_glb_comm.cm,
 #endif
-#ifdef  REDIST_PUT
+#ifdef  PUTREDIST
                     NULL, win,
 #endif
                     0, aux_buf, buckets, recv_counts, sr);
