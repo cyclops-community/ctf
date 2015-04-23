@@ -553,9 +553,9 @@ void dgtog_reshuffle(int const *          sym,
 #else*/
       MPI_Status stat;
       int bucket_off;
-      int ret = MPI_Waitany(nnew_rep, recv_reqs, &bucket_off, &stat);
+      MPI_Waitany(nnew_rep, recv_reqs, &bucket_off, &stat);
 //        foMPI_Start(recv_reqs+bucket_off);
-      ASSERT(ret== MPI_SUCCESS);
+//      ASSERT(ret== MPI_SUCCESS);
       ASSERT(bucket_off != MPI_UNDEFINED);
       ASSERT(bucket_off >= 0 && bucket_off <nnew_rep);
       ASSERT(recv_counts[bucket_off] == 0);
