@@ -643,6 +643,15 @@ namespace CTF {
        */
       void get_max_abs(int     n,
                        dtype * data) const;
+  
+      /**
+       * \brief fills local unique tensor elements to random values in the range [min,max]
+       *        works only for certain values of 'dtype', e.g. uses drand48() for dtype=double
+       *        does not produce a reproducible result across different numbers of processors
+       * \param[in] rmin minimum random value
+       * \param[in] rmax maximum random value
+       */
+      void fill_random(dtype rmin, dtype rmax);
 
       /**
        * \brief turns on profiling for tensor

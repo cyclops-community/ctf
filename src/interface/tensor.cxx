@@ -508,11 +508,27 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::get_max_abs(int     n,
-                                  dtype * data) const {
+                                          dtype * data) const {
     int ret;
     ret = CTF_int::tensor::get_max_abs(n, data);
     assert(ret == CTF_int::SUCCESS);
   }
+
+  template<typename dtype, bool is_ord>
+  void Tensor<dtype, is_ord>::fill_random(dtype rmin, dtype rmax){
+    if (wrld->rank == 0) 
+      printf("CTF ERROR: fill_random(rmin, rmax) not available for the type of tensor %s\n",tsr->name);
+    assert(0);
+  }
+
+  template<>
+  void Tensor<double, 1>::fill_random(double rmin, double rmax){
+    for (int64_t i=0; i<size; i++){
+      data[i] = drand48()*(rmax-rmin)+rmin;
+    }
+    zero_out_padding();
+  }
+
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::contract(dtype            alpha,

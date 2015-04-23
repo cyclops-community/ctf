@@ -21,6 +21,8 @@
 #include <assert.h>
 #include <algorithm>
 #include <ctf.hpp>
+#include <iostream>
+#include <fstream>
 #include "../src/shared/util.h"
 
 using namespace CTF;
@@ -62,6 +64,8 @@ void bench_redistribution(int          niter,
   
   Tensor<> A(order, lens, sym, dw, idx, prl1[prl1_idx], blk1[blk1_idx], "A", 1);
 
+  A.fill_random(-.5, .5);
+
   double t = 0.0;
   double t_min;
   double t_max;
@@ -72,28 +76,94 @@ void bench_redistribution(int          niter,
   MPI_Barrier(MPI_COMM_WORLD);
   btime -= MPI_Wtime();
     
-  double * data1 = A.read(idx, prl2[prl2_idx], blk2[blk2_idx]);
-  free(data1);
- 
-  for (int i=0; i<niter; i++){
-    double t_st = MPI_Wtime();
-    double * data = A.read(idx, prl2[prl2_idx], blk2[blk2_idx]);
-    MPI_Barrier(MPI_COMM_WORLD);
-    t += MPI_Wtime() - t_st - btime;
-    if (i==0){
-      t_min = t;
-      t_max = t;
-    } else {
-      t_min = std::min(MPI_Wtime() - t_st, t_min);
-      t_max = std::max(MPI_Wtime() - t_st, t_max);
-    }
-    free(data);
+  double * data_ref = A.read(idx, prl2[prl2_idx], blk2[blk2_idx]);
+
+#ifdef USE_FOMPI
+  int N_DGTOG = 6;
+#else
+  int N_DGTOG = 5;
+#endif
+
+  std::ofstream f;
+  if (rank == 0){
+    char fname[1000];
+    sprintf(fname, "bench_redist.p%d.o%d.N%d.pst-%s.vst-%s.ped-%s.ved-%s.dat", num_pes, order, lens[0], prl1_idx, blk1_idx, prl2_idx, blk2_idx);
+    f.open(fname);
   }
  
-  if (rank == 0)
-    printf("Performed %d redistributions sec/iter: average = %lf (average effective bandwidth, N/(t*p) = %lf GB/s), range = [%lf, %lf]\n",
-            niter, t/niter, 1.E-9*N*sizeof(double)/(num_pes*t/niter), t_min, t_max);
+  std::vector<double> times[N_DGTOG];
+  for (int D=0; D<N_DGTOG; D++){
+    DGTOG_SWITCH = D;
+    char const * str_name;
+    switch (D){
+      case 0:
+        str_name = "NAIVE";
+        break;
+      case 1:
+        str_name = "ROR";
+        break;
+      case 2:
+        str_name = "ROR_ISR";
+        break;
+      case 3:
+        str_name = "ROR_PUT";
+        break;
+      case 4:
+        str_name = "ROR_ISR_ANY";
+        break;
+      case 5:
+        str_name = "ROR_PUT_ANY";
+        break;
+    }
+    if (rank == 0) printf("Testing redistribution via kernel %s\n", str_name);
 
+    double * data = A.read(idx, prl2[prl2_idx], blk2[blk2_idx]);
+    int pass = 1;
+    for (int64_t j=0; j<N/num_pes; j++){
+      if (data[j] != data_ref[j]){ 
+        pass = 0;
+        printf("[%d] Incorrect! data[%ld] = %lf instead of %lf\n",rank,j, data[j],data_ref[j]);
+      }
+    }
+    free(data);
+    MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    if (pass){
+      if (rank == 0) printf("Correctness test passed.\n");
+      MPI_Barrier(MPI_COMM_WORLD);
+      Timer_epoch te(str_name);
+      te.begin();
+      for (int i=0; i<niter; i++){
+        double t_st = MPI_Wtime();
+        double * data = A.read(idx, prl2[prl2_idx], blk2[blk2_idx]);
+        MPI_Barrier(MPI_COMM_WORLD);
+        times[D].push_back(MPI_Wtime() - t_st - btime);
+        free(data);
+      }
+      te.end();
+      std::sort(&times[D][0], &times[D][0]+niter);
+      if (rank == 0){
+        printf("Performed %d redistributions via kernel %s sec/iter: median = %lf (median effective end-to-end bandwidth, N/(t*p) = %lf GB/s), range = [%lf, %lf]\n",
+                niter, str_name, times[D][niter/2], 1.E-9*N*sizeof(double)/(num_pes*times[D][niter/2]), times[D][0], times[D][niter-1]);
+        f << str_name << " ";
+        for (int i=0; i<niter; i++){
+          f << times[D][i] << " ";
+        }
+        f << "\n";
+      }
+    }
+  }
+  if (rank == 0){
+    printf("Data line kernel * [min, median max]:\n");
+    for (int D=0; D<N_DGTOG; D++){
+      printf("%lf %lf %lf ", times[D][0], times[D][niter/2], times[D][niter-1]);
+    }
+    printf("\n");
+  }
+  if (rank == 0){
+    f.close();
+  }
+
+  free(data_ref); 
 /*  if (rank == 0)
     printf("Performed %d redistributions in %lf time/iter %lf mem GB/sec\n",
             niter, (end_time-st_time)/niter, (2*N*1.E-9/((end_time-st_time)/niter))/num_pes);*/
