@@ -18,7 +18,7 @@ namespace CTF_int {
       virtual int64_t mem_fp() { return 0; };
       virtual scl * clone() { return NULL; };
       
-      virtual ~scl(){ if (buffer != NULL) CTF_int::cfree(buffer); }
+      virtual ~scl(){ if (buffer != NULL) CTF_int::cdealloc(buffer); }
       scl(scl * other);
       scl(){ buffer = NULL; }
   };
@@ -64,7 +64,7 @@ namespace CTF_int {
        * \param[in] other object to copy
        */
       seq_tsr_scl(scl * other);
-      ~seq_tsr_scl(){ CTF_int::cfree(edge_len); };
+      ~seq_tsr_scl(){ CTF_int::cdealloc(edge_len); };
       seq_tsr_scl(){}
   };
 

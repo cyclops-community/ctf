@@ -17,7 +17,7 @@ namespace CTF_int {
    * \brief deallocates ctr_virt object
    */
   ctr_virt::~ctr_virt() {
-    CTF_int::cfree(virt_dim);
+    CTF_int::cdealloc(virt_dim);
     delete rec_ctr;
   }
 
@@ -216,9 +216,9 @@ namespace CTF_int {
       }
     }
     if (alloced){
-      CTF_int::cfree(idx_arr);
+      CTF_int::cdealloc(idx_arr);
     }
-    CTF_int::cfree(beta_arr);
+    CTF_int::cdealloc(beta_arr);
     TAU_FSTOP(ctr_virt);
   }
 

@@ -91,11 +91,11 @@ namespace CTF_int {
                   
     *tsr_cyclic_data = tsr_new_data;
 
-    cfree(old_virt_phase_rank);
+    cdealloc(old_virt_phase_rank);
     if (pairs != NULL)
-      cfree(pairs);
-    cfree(virt_phase_rank);
-    cfree(sub_edge_len);
+      cdealloc(pairs);
+    cdealloc(virt_phase_rank);
+    cdealloc(sub_edge_len);
     TAU_FSTOP(padded_reshuffle);
   }
 
@@ -362,11 +362,11 @@ namespace CTF_int {
           }
           if (dim == old_dist.order) break;
         }
-        cfree(idx);
-        cfree(idx_offs);
-        cfree(old_virt_idx);
-        cfree(virt_rank);
-        cfree(spad);
+        cdealloc(idx);
+        cdealloc(idx_offs);
+        cdealloc(old_virt_idx);
+        cdealloc(virt_rank);
+        cdealloc(spad);
 #ifdef USE_OMP
 #pragma omp master
         {
@@ -432,7 +432,7 @@ namespace CTF_int {
 /*    MPI_Alltoall(svirt_displs, new_nvirt, MPI_INT64_T, 
                  rvirt_displs, new_nvirt, MPI_INT64_T, ord_glb_comm.cm);*/
     
-    cfree(all_virt_counts);
+    cdealloc(all_virt_counts);
   }
 
 
@@ -559,11 +559,11 @@ namespace CTF_int {
       sr->set(tsr_cyclic_data, sr->addid(), new_dist.size);
     }
 
-    cfree(idx);
-    cfree(old_loc_lda);
-    cfree(new_loc_lda);
-    cfree(phase_lda);
-    cfree(reqs);
+    cdealloc(idx);
+    cdealloc(old_loc_lda);
+    cdealloc(new_loc_lda);
+    cdealloc(phase_lda);
+    cdealloc(reqs);
 
     TAU_FSTOP(block_reshuffle);
 

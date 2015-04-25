@@ -198,7 +198,7 @@ namespace CTF_int {
         copy_mapping(1, mapping_A+iA, mapping_B+iB);
       }
     }
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(idx_arr);
     return CTF_int::SUCCESS;
   }
 
@@ -371,7 +371,7 @@ namespace CTF_int {
         idx_arr[idx_map[i]] = i;
       }
     }
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(idx_arr);
     return pass;
   }
 
@@ -417,8 +417,8 @@ namespace CTF_int {
       if (ret!=CTF_int::SUCCESS) return ret;
     }
 
-    CTF_int::cfree(idx_arr);
-    CTF_int::cfree(stable);
+    CTF_int::cdealloc(idx_arr);
+    CTF_int::cdealloc(stable);
     return CTF_int::SUCCESS;
   }
 

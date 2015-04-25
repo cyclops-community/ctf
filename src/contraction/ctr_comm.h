@@ -195,8 +195,8 @@ namespace CTF_int{
        * \param[in] other object to clone
        */
       seq_tsr_ctr(ctr * other);
-      ~seq_tsr_ctr(){ CTF_int::cfree(edge_len_A), CTF_int::cfree(edge_len_B), CTF_int::cfree(edge_len_C), 
-                      CTF_int::cfree(sym_A), CTF_int::cfree(sym_B), CTF_int::cfree(sym_C); }
+      ~seq_tsr_ctr(){ CTF_int::cdealloc(edge_len_A), CTF_int::cdealloc(edge_len_B), CTF_int::cdealloc(edge_len_C), 
+                      CTF_int::cdealloc(sym_A), CTF_int::cdealloc(sym_B), CTF_int::cdealloc(sym_C); }
       seq_tsr_ctr(){}
   };
 

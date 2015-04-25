@@ -18,8 +18,8 @@ namespace CTF_int {
   using namespace CTF;
 
   summation::~summation(){
-    if (idx_A != NULL) cfree(idx_A);
-    if (idx_B != NULL) cfree(idx_B);
+    if (idx_A != NULL) cdealloc(idx_A);
+    if (idx_B != NULL) cdealloc(idx_B);
   }
 
   summation::summation(summation const & other){
@@ -189,7 +189,7 @@ namespace CTF_int {
     }
     *num_fold = nfold;
     *fold_idx = idx;
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(idx_arr);
   }
 
   int summation::can_fold(){
@@ -205,7 +205,7 @@ namespace CTF_int {
       }
     }
     get_fold_indices(&nfold, &fold_idx);
-    CTF_int::cfree(fold_idx);
+    CTF_int::cdealloc(fold_idx);
     /* FIXME: 1 folded index is good enough for now, in the future model */
     return nfold > 0;
   }
@@ -221,7 +221,7 @@ namespace CTF_int {
 
     get_fold_indices(&nfold, &fold_idx);
     if (nfold == 0){
-      CTF_int::cfree(fold_idx);
+      CTF_int::cdealloc(fold_idx);
       return ERROR;
     }
 
@@ -262,8 +262,8 @@ namespace CTF_int {
                        ftsr_B->order, fidx_map_B, &sidx_B);
 
     summation fold_sum(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
-    cfree(sidx_A);
-    cfree(sidx_B);
+    cdealloc(sidx_A);
+    cdealloc(sidx_B);
   #if DEBUG>=2
     if (A->wrld->rank == 0){
       printf("Folded summation type:\n");
@@ -293,13 +293,13 @@ namespace CTF_int {
       inr_stride *= ftsr_A->pad_edge_len[i];
     }
 
-    CTF_int::cfree(fidx_map_A);
-    CTF_int::cfree(fidx_map_B);
-    CTF_int::cfree(fnew_ord_A);
-    CTF_int::cfree(fnew_ord_B);
-    CTF_int::cfree(all_flen_A);
-    CTF_int::cfree(all_flen_B);
-    CTF_int::cfree(fold_idx);
+    CTF_int::cdealloc(fidx_map_A);
+    CTF_int::cdealloc(fidx_map_B);
+    CTF_int::cdealloc(fnew_ord_A);
+    CTF_int::cdealloc(fnew_ord_B);
+    CTF_int::cdealloc(all_flen_A);
+    CTF_int::cdealloc(all_flen_B);
+    CTF_int::cdealloc(fold_idx);
 
     return inr_stride; 
   }
@@ -319,7 +319,7 @@ namespace CTF_int {
       ordering_A[i] = idx_arr[2*i];
       ordering_B[i] = idx_arr[2*i+1];
     }
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(idx_arr);
     *new_ordering_A = ordering_A;
     *new_ordering_B = ordering_B;
   }
@@ -518,7 +518,7 @@ namespace CTF_int {
       tsumv->blk_sz_B  = vrt_sz_B;
       tsumv->idx_map_B = idx_B;
       tsumv->buffer    = NULL;
-    } else CTF_int::cfree(virt_dim);
+    } else CTF_int::cdealloc(virt_dim);
 
     seq_tsr_sum * tsumseq = new seq_tsr_sum;
     tsumseq->sr_A = A->sr;
@@ -595,10 +595,10 @@ namespace CTF_int {
     htsum->A = A->data;
     htsum->B = B->data;
 
-    CTF_int::cfree(idx_arr);
-    CTF_int::cfree(blk_len_A);
-    CTF_int::cfree(blk_len_B);
-    CTF_int::cfree(phys_mapped);
+    CTF_int::cdealloc(idx_arr);
+    CTF_int::cdealloc(blk_len_A);
+    CTF_int::cdealloc(blk_len_B);
+    CTF_int::cdealloc(phys_mapped);
 
     return htsum;
   }
@@ -759,7 +759,7 @@ namespace CTF_int {
       B->redistribute(odst);
       TAU_FSTOP(redistribute_for_sum_home);
       memcpy(B->home_buffer, B->data, B->size*B->sr->el_size);
-      CTF_int::cfree(B->data);
+      CTF_int::cdealloc(B->data);
       B->data = B->home_buffer;
       B->is_home = 1;
       tnsr_B->is_data_aliased = 1;
@@ -832,7 +832,7 @@ namespace CTF_int {
     memcpy(map_B, idx_B, tnsr_B->order*sizeof(int));
     while (!run_diag && tnsr_A->extract_diag(map_A, 1, new_tsr, &new_idx_map) == SUCCESS){
       if (tnsr_A != A) delete tnsr_A;
-      CTF_int::cfree(map_A);
+      CTF_int::cdealloc(map_A);
       tnsr_A = new_tsr;
       map_A = new_idx_map;
     }
@@ -952,7 +952,7 @@ namespace CTF_int {
                         perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
             dbeta = new_sum.B->sr->mulid();
           }
-          cfree(new_alpha);
+          cdealloc(new_alpha);
   /*        for (i=0; i<(int)perm_types.size(); i++){
             free_type(&perm_types[i]);
           }*/
@@ -976,11 +976,11 @@ namespace CTF_int {
       tnsr_B = dstack_tsr_B[i];
     }
     ASSERT(tnsr_B == B);
-    CTF_int::cfree(new_alpha);
-    CTF_int::cfree(map_A);
-    CTF_int::cfree(map_B);
-    CTF_int::cfree(dstack_map_B);
-    CTF_int::cfree(dstack_tsr_B);
+    CTF_int::cdealloc(new_alpha);
+    CTF_int::cdealloc(map_A);
+    CTF_int::cdealloc(map_B);
+    CTF_int::cdealloc(dstack_map_B);
+    CTF_int::cdealloc(dstack_tsr_B);
 
     return SUCCESS;
   }
@@ -1040,7 +1040,7 @@ namespace CTF_int {
     memcpy(map_B, idx_B, tnsr_B->order*sizeof(int));
     while (!run_diag && tnsr_A->extract_diag(map_A, 1, new_tsr, &new_idx_map) == SUCCESS){
       if (tnsr_A != A) delete tnsr_A;
-      CTF_int::cfree(map_A);
+      CTF_int::cdealloc(map_A);
       tnsr_A = new_tsr;
       map_A = new_idx_map;
     }
@@ -1213,10 +1213,10 @@ namespace CTF_int {
         }
         assert(fabs(sB[i] - uB[i]) < 1.E-6);
       }
-      CTF_int::cfree(uA);
-      CTF_int::cfree(uB);
-      CTF_int::cfree(sA);
-      CTF_int::cfree(sB);
+      CTF_int::cdealloc(uA);
+      CTF_int::cdealloc(uB);
+      CTF_int::cdealloc(sA);
+      CTF_int::cdealloc(sB);
   #endif
 
       delete sumf;
@@ -1232,10 +1232,10 @@ namespace CTF_int {
   //#ifndef SEQ
     //stat = B->zero_out_padding();
   //#endif
-    CTF_int::cfree(map_A);
-    CTF_int::cfree(map_B);
-    CTF_int::cfree(dstack_map_B);
-    CTF_int::cfree(dstack_tsr_B);
+    CTF_int::cdealloc(map_A);
+    CTF_int::cdealloc(map_B);
+    CTF_int::cdealloc(dstack_map_B);
+    CTF_int::cdealloc(dstack_tsr_B);
 
     TAU_FSTOP(sum_tensors);
     return SUCCESS;
@@ -1313,7 +1313,7 @@ namespace CTF_int {
         new_sum->B->sym[sidx/2] = NS;
       }
     }
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(idx_arr);
     return sidx;
   }
 
@@ -1343,7 +1343,7 @@ namespace CTF_int {
         ABORT;
       }
     }
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(idx_arr);
 
   }
 
@@ -1439,8 +1439,8 @@ namespace CTF_int {
       }
     }*/
 
-    //CTF_int::cfree(phys_map);
-    CTF_int::cfree(idx_arr);
+    //CTF_int::cdealloc(phys_map);
+    CTF_int::cdealloc(idx_arr);
 
     TAU_FSTOP(check_sum_mapping);
 
@@ -1557,15 +1557,15 @@ namespace CTF_int {
         copy_mapping(1, &sum_map[i], &B->edge_map[iB]);
       }
     }
-    CTF_int::cfree(restricted);
-    CTF_int::cfree(tsr_edge_len);
-    CTF_int::cfree(tsr_sym_table);
+    CTF_int::cdealloc(restricted);
+    CTF_int::cdealloc(tsr_edge_len);
+    CTF_int::cdealloc(tsr_sym_table);
     for (i=0; i<num_sum; i++){
       sum_map[i].clear();
     }
-    CTF_int::cfree(sum_map);
-    CTF_int::cfree(idx_sum);
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(sum_map);
+    CTF_int::cdealloc(idx_sum);
+    CTF_int::cdealloc(idx_arr);
 
     TAU_FSTOP(map_sum_indices);
     return stat;

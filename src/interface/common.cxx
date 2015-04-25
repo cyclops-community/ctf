@@ -348,10 +348,10 @@ namespace CTF_int {
           ABORT;
           break;
       }
-      CTF_int::cfree(i32_send_counts);
-      CTF_int::cfree(i32_send_displs);
-      CTF_int::cfree(i32_recv_counts);
-      CTF_int::cfree(i32_recv_displs);
+      CTF_int::cdealloc(i32_send_counts);
+      CTF_int::cdealloc(i32_send_displs);
+      CTF_int::cdealloc(i32_recv_counts);
+      CTF_int::cdealloc(i32_recv_displs);
     }
   }
 

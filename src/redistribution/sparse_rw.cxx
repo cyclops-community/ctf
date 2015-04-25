@@ -166,9 +166,9 @@ namespace CTF_int {
     }
     for (int d=0; d<order; d++){
       if (permutation[d] != NULL)
-        CTF_int::cfree(depermutation[d]);
+        CTF_int::cdealloc(depermutation[d]);
     }
-    CTF_int::cfree(depermutation);
+    CTF_int::cdealloc(depermutation);
 
     TAU_FSTOP(depermute_keys);
   }
@@ -264,9 +264,9 @@ namespace CTF_int {
       if (act_lda >= order) break;
     }
     ASSERT(buf_offset == size/nvirt);
-    CTF_int::cfree(idx);
-    CTF_int::cfree(virt_rank);
-    CTF_int::cfree(edge_lda);
+    CTF_int::cdealloc(idx);
+    CTF_int::cdealloc(virt_rank);
+    CTF_int::cdealloc(edge_lda);
     TAU_FSTOP(assign_keys);
   }
  
@@ -367,8 +367,8 @@ namespace CTF_int {
   #endif
     }
   #ifdef USE_OMP
-    CTF_int::cfree(sub_counts);
-    CTF_int::cfree(sub_offs);
+    CTF_int::cdealloc(sub_counts);
+    CTF_int::cdealloc(sub_offs);
   #endif
     TAU_FSTOP(bucket_by_pe_move);
   }
@@ -502,12 +502,12 @@ namespace CTF_int {
     }*/
   #endif
   #ifdef USE_OMP
-    CTF_int::cfree(sub_counts);
-    CTF_int::cfree(sub_offs);
+    CTF_int::cdealloc(sub_counts);
+    CTF_int::cdealloc(sub_offs);
   #endif
-    CTF_int::cfree(virt_prefix);
-    CTF_int::cfree(virt_counts);
-    CTF_int::cfree(virt_lda);
+    CTF_int::cdealloc(virt_prefix);
+    CTF_int::cdealloc(virt_counts);
+    CTF_int::cdealloc(virt_lda);
     TAU_FSTOP(bucket_by_virt);
   }
 
@@ -693,9 +693,9 @@ namespace CTF_int {
     TAU_FSTOP(readwrite);
     //printf("pr_offset = " PRId64 "/" PRId64 "\n",pr_offset,size);
     ASSERT(pr_offset == size);
-    CTF_int::cfree(idx);
-    CTF_int::cfree(virt_rank);
-    CTF_int::cfree(edge_lda);
+    CTF_int::cdealloc(idx);
+    CTF_int::cdealloc(virt_rank);
+    CTF_int::cdealloc(edge_lda);
   }
 
   void wr_pairs_layout(int              order,
@@ -865,12 +865,12 @@ namespace CTF_int {
         nchanged++;
       } 
     }
-    CTF_int::cfree(ckey);
+    CTF_int::cdealloc(ckey);
     TAU_FSTOP(check_key_ranges);
 
     /* If the packed tensor is padded, pad keys */
     pad_key(order, nwrite, depad_edge_len, padding, swap_data, sr);
-    CTF_int::cfree(depad_edge_len);
+    CTF_int::cdealloc(depad_edge_len);
 
     /* Figure out which processor the value in a packed layout, lies for each key */
     bucket_by_pe(order, nwrite, np,
@@ -897,7 +897,7 @@ namespace CTF_int {
     }*/
 
     if (new_num_pair > nwrite){
-      CTF_int::cfree(swap_datab);
+      CTF_int::cdealloc(swap_datab);
       CTF_int::alloc_ptr(sr->pair_size()*new_num_pair, (void**)&swap_datab);
       swap_data = PairIterator(sr, swap_datab);
     }
@@ -913,7 +913,7 @@ namespace CTF_int {
                   glb_comm->rank, nwrite, new_num_pair);*/
 
     if (new_num_pair > nwrite){
-      CTF_int::cfree(buf_datab);
+      CTF_int::cdealloc(buf_datab);
       CTF_int::alloc_ptr(sr->pair_size()*new_num_pair, (void**)&buf_datab);
       buf_data = PairIterator(sr, buf_datab);
     }
@@ -1003,20 +1003,20 @@ namespace CTF_int {
           wr_pairs[i].write_val(buf_data[el_loc].d());
         }
       }
-      CTF_int::cfree(depadding);
+      CTF_int::cdealloc(depadding);
     }
     //FIXME: free here?
-    cfree(changed_key_indices);
-    cfree(changed_key_scale);
-    cfree(new_changed_pairs);
+    cdealloc(changed_key_indices);
+    cdealloc(changed_key_scale);
+    cdealloc(new_changed_pairs);
     TAU_FSTOP(wr_pairs_layout);
 
-    CTF_int::cfree(swap_datab);
-    CTF_int::cfree(buf_datab);
-    CTF_int::cfree((void*)bucket_counts);
-    CTF_int::cfree((void*)recv_counts);
-    CTF_int::cfree((void*)send_displs);
-    CTF_int::cfree((void*)recv_displs);
+    CTF_int::cdealloc(swap_datab);
+    CTF_int::cdealloc(buf_datab);
+    CTF_int::cdealloc((void*)bucket_counts);
+    CTF_int::cdealloc((void*)recv_counts);
+    CTF_int::cdealloc((void*)send_displs);
+    CTF_int::cdealloc((void*)recv_displs);
 
   }
 
@@ -1077,8 +1077,8 @@ namespace CTF_int {
     depad_tsr(order, nval, pad_len, sym, padding, prepadding,
               dpairsb, new_pairsb, &new_num_pair, sr);
 
-    CTF_int::cfree(dpairsb);
-    if (nval == 0) CTF_int::cfree(new_pairsb);
+    CTF_int::cdealloc(dpairsb);
+    if (nval == 0) CTF_int::cdealloc(new_pairsb);
     *pairs = new_pairsb;
     *nread = new_num_pair;
 
@@ -1088,9 +1088,9 @@ namespace CTF_int {
     
     /* Adjust keys to remove padding */
     pad_key(order, new_num_pair, edge_len, depadding, new_pairs, sr);
-    CTF_int::cfree((void*)pad_len);
-    CTF_int::cfree((void*)depadding);
-    CTF_int::cfree(prepadding);
+    CTF_int::cdealloc((void*)pad_len);
+    CTF_int::cdealloc((void*)depadding);
+    CTF_int::cdealloc(prepadding);
   }
 
 }

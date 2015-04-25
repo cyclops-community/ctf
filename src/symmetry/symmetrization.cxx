@@ -114,7 +114,7 @@ namespace CTF_int {
                                      nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
 
           csum.sum_tensors(0);
-          if (rev_sign == -1) cfree(mksign);
+          if (rev_sign == -1) cdealloc(mksign);
           idx_map_A[sym_dim] = sym_dim;
           idx_map_A[sym_dim+i+1] = sym_dim+i+1;
         }
@@ -159,7 +159,7 @@ namespace CTF_int {
             nonsym_tsr->sr->cast_double(((double)(num_sy+num_sy_neg-1.))/(num_sy+num_sy_neg), scalf);
             scaling sscl(nonsym_tsr, idx_map_A, scalf);
             sscl.execute();
-            cfree(scalf);
+            cdealloc(scalf);
     /*        printf("tid %d after scale\n", nonsym_tid);
             print_tsr(stdout, nonsym_tid);*/
   //          if (ret != CTF_SUCCESS) ABORT;
@@ -174,8 +174,8 @@ namespace CTF_int {
       else
         ssum.execute();
     }
-    CTF_int::cfree(idx_map_A);
-    CTF_int::cfree(idx_map_B);  
+    CTF_int::cdealloc(idx_map_A);
+    CTF_int::cdealloc(idx_map_B);  
 
   /*  switch (sym_tsr->edge_map[sym_dim].type){
       case NOT_MAPPED:
@@ -302,7 +302,7 @@ namespace CTF_int {
             summation csum(nonsym_tsr, idx_map_A, ksign,
                               sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
             csum.sum_tensors(0);
-            cfree(ksign);
+            cdealloc(ksign);
   
       //    print_tsr(stdout, sym_tid);
           idx_map_A[sym_dim] = sym_dim;
@@ -353,8 +353,8 @@ namespace CTF_int {
         summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
         ssum.execute();
       }
-      CTF_int::cfree(idx_map_A);
-      CTF_int::cfree(idx_map_B);
+      CTF_int::cdealloc(idx_map_A);
+      CTF_int::cdealloc(idx_map_B);
     }
     if (sym_tsr->profile) {
       char spf[80];
@@ -553,13 +553,13 @@ namespace CTF_int {
     // check if this summation is equivalent to one of the other permutations
     for (i=0; i<(int)perms.size(); i++){
       if (perms[i].is_equal(norm_ord_perm)){
-        CTF_int::cfree(idx_arr);
+        CTF_int::cdealloc(idx_arr);
         return;
       }
     }
     perms.push_back(norm_ord_perm);
     signs.push_back(add_sign);
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(idx_arr);
   }
 
   void add_sym_perm(std::vector<contraction>& perms,
@@ -607,13 +607,13 @@ namespace CTF_int {
 
     for (i=0; i<(int)perms.size(); i++){
       if (perms[i].is_equal(norm_ord_perm)){
-        CTF_int::cfree(idx_arr);
+        CTF_int::cdealloc(idx_arr);
         return;
       }
     }
     perms.push_back(norm_ord_perm);
     signs.push_back(add_sign);
-    CTF_int::cfree(idx_arr);
+    CTF_int::cdealloc(idx_arr);
   }
 
   void get_sym_perms(summation const &       sum,

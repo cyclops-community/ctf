@@ -150,17 +150,17 @@ namespace CTF_int {
       cdt_A[i]->deactivate();
     }*/
     if (ncdt_A > 0)
-      CTF_int::cfree(cdt_A);
+      CTF_int::cdealloc(cdt_A);
 /*    for (int i=0; i<ncdt_B; i++){
       cdt_B[i]->deactivate();
     }*/
     if (ncdt_B > 0)
-      CTF_int::cfree(cdt_B);
+      CTF_int::cdealloc(cdt_B);
 /*    for (int i=0; i<ncdt_C; i++){
       cdt_C[i]->deactivate();
     }*/
     if (ncdt_C > 0)
-      CTF_int::cfree(cdt_C);
+      CTF_int::cdealloc(cdt_C);
   }
 
   ctr_replicate::ctr_replicate(ctr * other) : ctr(other) {
@@ -365,7 +365,7 @@ namespace CTF_int {
       else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
     }
     ASSERT(flops >= 0.0);
-    CTF_int::cfree(rev_idx_map);
+    CTF_int::cdealloc(rev_idx_map);
     return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
   }
 

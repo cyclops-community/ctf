@@ -16,7 +16,7 @@ namespace CTF_int {
   }
 
   tsum_virt::~tsum_virt() {
-    CTF_int::cfree(virt_dim);
+    CTF_int::cdealloc(virt_dim);
     delete rec_tsum;
   }
 
@@ -126,9 +126,9 @@ namespace CTF_int {
       if (i==num_dim) break;
     }
     if (alloced){
-      CTF_int::cfree(idx_arr);
+      CTF_int::cdealloc(idx_arr);
     }
-    CTF_int::cfree(beta_arr);
+    CTF_int::cdealloc(beta_arr);
     TAU_FSTOP(sum_virt);
   }
 
@@ -155,12 +155,12 @@ namespace CTF_int {
       cdt_A[i]->deactivate();
     }*/
     if (ncdt_A > 0)
-      CTF_int::cfree(cdt_A);
+      CTF_int::cdealloc(cdt_A);
 /*    for (int i=0; i<ncdt_B; i++){
       cdt_B[i]->deactivate();
     }*/
     if (ncdt_B > 0)
-      CTF_int::cfree(cdt_B);
+      CTF_int::cdealloc(cdt_B);
   }
 
   tsum_replicate::tsum_replicate(tsum * other) : tsum(other) {

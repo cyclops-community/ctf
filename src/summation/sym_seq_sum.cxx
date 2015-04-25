@@ -150,10 +150,10 @@ namespace CTF_int {
       if (order_B > 0)
         RESET_IDX(B);
     }
-    CTF_int::cfree(dlen_A);
-    CTF_int::cfree(dlen_B);
-    CTF_int::cfree(idx_glb);
-    CTF_int::cfree(rev_idx_map);
+    CTF_int::cdealloc(dlen_A);
+    CTF_int::cdealloc(dlen_B);
+    CTF_int::cdealloc(idx_glb);
+    CTF_int::cdealloc(rev_idx_map);
     TAU_FSTOP(sym_seq_sum_ref);
     return 0;
   }
@@ -239,10 +239,10 @@ namespace CTF_int {
       if (order_B > 0)
         RESET_IDX(B);
     }
-    CTF_int::cfree(dlen_A);
-    CTF_int::cfree(dlen_B);
-    CTF_int::cfree(idx_glb);
-    CTF_int::cfree(rev_idx_map);
+    CTF_int::cdealloc(dlen_A);
+    CTF_int::cdealloc(dlen_B);
+    CTF_int::cdealloc(idx_glb);
+    CTF_int::cdealloc(rev_idx_map);
     TAU_FSTOP(sym_seq_sum_inr);
     return 0;
   }
@@ -327,10 +327,10 @@ namespace CTF_int {
       if (order_B > 0)
         RESET_IDX(B);
     }
-    CTF_int::cfree(dlen_A);
-    CTF_int::cfree(dlen_B);
-    CTF_int::cfree(idx_glb);
-    CTF_int::cfree(rev_idx_map);
+    CTF_int::cdealloc(dlen_A);
+    CTF_int::cdealloc(dlen_B);
+    CTF_int::cdealloc(idx_glb);
+    CTF_int::cdealloc(rev_idx_map);
     TAU_FSTOP(sym_seq_sum_cust);
     return 0;
   }

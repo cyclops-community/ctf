@@ -34,22 +34,22 @@ namespace CTF_int {
     if (order != -1){
       if (wrld->rank == 0) DPRINTF(1,"Deleted order %d tensor %s\n",order,name);
       if (is_folded) unfold();
-      cfree(name);
-      cfree(sym);
-      cfree(lens);
-      cfree(pad_edge_len);
-      cfree(padding);
+      cdealloc(name);
+      cdealloc(sym);
+      cdealloc(lens);
+      cdealloc(pad_edge_len);
+      cdealloc(padding);
       if (is_scp_padded)
-        cfree(scp_padding);
-      cfree(sym_table);
+        cdealloc(scp_padding);
+      cdealloc(sym_table);
       delete [] edge_map;
       if (!is_data_aliased){
-        if (is_home) cfree(home_buffer);
+        if (is_home) cdealloc(home_buffer);
         else { 
           if (data != NULL)
-            cfree(data);
+            cdealloc(data);
         }
-        if (has_home && !is_home) cfree(home_buffer);
+        if (has_home && !is_home) cdealloc(home_buffer);
       }
       order = -1;
       delete sr;
@@ -80,7 +80,7 @@ namespace CTF_int {
     this->init(other->sr, other->order, other->lens,
                other->sym, other->wrld, (!copy & alloc_data), nname,
                other->profile);
-    cfree(nname);
+    cdealloc(nname);
   
     this->has_zero_edge_len = other->has_zero_edge_len;
 
@@ -100,7 +100,7 @@ namespace CTF_int {
       if (other->has_home){
 /*          if (this->has_home && 
             (!this->is_home && this->home_size != other->home_size)){ 
-          CTF_int::cfree(this->home_buffer);
+          CTF_int::cdealloc(this->home_buffer);
         }*/
         this->home_size = other->home_size;
         this->home_buffer = (char*)CTF_int::alloc(other->home_size*sr->el_size);
@@ -118,7 +118,7 @@ namespace CTF_int {
       } else {
         CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
 /*          if (this->has_home && !this->is_home){
-          CTF_int::cfree(this->home_buffer);
+          CTF_int::cdealloc(this->home_buffer);
         }*/
         this->has_home = 0;
         this->is_home = 0;
@@ -129,12 +129,12 @@ namespace CTF_int {
       memcpy(this->data, other->data, sr->el_size*other->size);
     } else {
       if (this->is_mapped){
-        CTF_int::cfree(this->data);
+        CTF_int::cdealloc(this->data);
         CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
                        (void**)&this->pairs);
       } else {
         if (this->size < other->size || this->size > 2*other->size){
-          CTF_int::cfree(this->pairs);
+          CTF_int::cdealloc(this->pairs);
           CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
                            (void**)&this->pairs);
         }
@@ -267,7 +267,7 @@ namespace CTF_int {
     for (i=0 ; i<this->order; i++){
       tot_phase *= phase[i];
     }
-    CTF_int::cfree(phase);
+    CTF_int::cdealloc(phase);
     return tot_phase;
   }
   
@@ -318,8 +318,8 @@ namespace CTF_int {
     //NEW: I think its always true
     is_mapped = 1; 
 
-    CTF_int::cfree(sub_edge_len);
-    CTF_int::cfree(new_phase);
+    CTF_int::cdealloc(sub_edge_len);
+    CTF_int::cdealloc(new_phase);
   }
 
   int tensor::set(char const * val) {
@@ -405,7 +405,7 @@ namespace CTF_int {
 
         this->topo = wrld->topovec[btopo];
 
-        CTF_int::cfree(restricted);
+        CTF_int::cdealloc(restricted);
 
         this->is_mapped = 1;
         this->set_padding();
@@ -457,7 +457,7 @@ namespace CTF_int {
   }
    
   void tensor::set_name(char const * name_){
-    cfree(name);
+    cdealloc(name);
     this->name = (char*)alloc(strlen(name_)+1);
     strcpy(this->name, name_);
   }
@@ -529,7 +529,7 @@ namespace CTF_int {
     ret = tsr_B->write(blk_sz_A, alpha, beta, all_data_A, 'w');  
 
     if (blk_sz_A > 0)
-      CTF_int::cfree(all_data_A);
+      CTF_int::cdealloc(all_data_A);
 
     return ret;
   }
@@ -567,7 +567,7 @@ namespace CTF_int {
       MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
     }
     odst = new distribution(buffer);
-    CTF_int::cfree(buffer);
+    CTF_int::cdealloc(buffer);
 
     bw_mirror_rank = -1;
     fw_mirror_rank = -1;
@@ -603,7 +603,7 @@ namespace CTF_int {
       ASSERT(bsz == buf_sz);
       MPI_Send(sbuffer, buf_sz, MPI_CHAR, fw_mirror_rank, 0, greater_world->comm);
       MPI_Send(this->data, odst->size*sr->el_size, MPI_CHAR, fw_mirror_rank, 1, greater_world->comm);
-      CTF_int::cfree(sbuffer);
+      CTF_int::cdealloc(sbuffer);
     }
     if (bw_mirror_rank >= 0){
       MPI_Status stat;
@@ -611,7 +611,7 @@ namespace CTF_int {
       MPI_Wait(&req2, &stat);
       delete odst;
       odst = new distribution(rbuffer);
-      CTF_int::cfree(rbuffer);
+      CTF_int::cdealloc(rbuffer);
     } else
       sr->set(sub_buffer, sr->addid(), odst->size);
     *sub_buffer_ = sub_buffer;
@@ -654,7 +654,7 @@ namespace CTF_int {
         depad_tsr(tsr_B->order, sz_B, ends_B, tsr_B->sym, padding_B, offsets_B,
                   all_data_B, blk_data_B, &blk_sz_B, sr);
         if (sz_B > 0)
-          CTF_int::cfree(all_data_B);
+          CTF_int::cdealloc(all_data_B);
 
         for (i=0; i<tsr_B->order; i++){
           toffset_B[i] = -offsets_B[i];
@@ -689,7 +689,7 @@ namespace CTF_int {
       depad_tsr(tsr_A->order, sz_A, ends_A, tsr_A->sym, padding_A, offsets_A,
                 all_data_A, blk_data_A, &blk_sz_A, sr);
       if (sz_A > 0)
-        CTF_int::cfree(all_data_A);
+        CTF_int::cdealloc(all_data_A);
 
 
       for (i=0; i<tsr_A->order; i++){
@@ -712,11 +712,11 @@ namespace CTF_int {
     tsr_B->sr->print(blk_data_A+sizeof(int64_t));*/
     tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');  
     if (tsr_A->order != 0 && !tsr_A->has_zero_edge_len)
-      CTF_int::cfree(blk_data_A);
-    CTF_int::cfree(padding_A);
-    CTF_int::cfree(padding_B);
-    CTF_int::cfree(toffset_A);
-    CTF_int::cfree(toffset_B);
+      CTF_int::cdealloc(blk_data_A);
+    CTF_int::cdealloc(padding_A);
+    CTF_int::cdealloc(padding_B);
+    CTF_int::cdealloc(toffset_A);
+    CTF_int::cdealloc(toffset_B);
   }
  
 //#define USE_SLICE_FOR_SUBWORLD
@@ -761,7 +761,7 @@ namespace CTF_int {
       MPI_Wait(&req, &stat);
     }
     delete odst;
-    CTF_int::cfree(sub_buffer);
+    CTF_int::cdealloc(sub_buffer);
   #endif
 
   }
@@ -791,7 +791,7 @@ namespace CTF_int {
                                    idst, this->data,  beta);*/
     cyclic_reshuffle(sym, *odst, NULL, NULL, idst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 0, alpha, beta);
     delete odst;
-    CTF_int::cfree(sub_buffer);
+    CTF_int::cdealloc(sub_buffer);
   #endif
 
   }
@@ -866,11 +866,11 @@ namespace CTF_int {
                       wrld->cdt,
                       sr);
 
-      CTF_int::cfree(phase);
-      CTF_int::cfree(phys_phase);
-      CTF_int::cfree(virt_phys_rank);
-      CTF_int::cfree(bucket_lda);
-      CTF_int::cfree(virt_phase);
+      CTF_int::cdealloc(phase);
+      CTF_int::cdealloc(phys_phase);
+      CTF_int::cdealloc(virt_phys_rank);
+      CTF_int::cdealloc(bucket_lda);
+      CTF_int::cdealloc(virt_phase);
 
     } else {
       DEBUG_PRINTF("SHOULD NOT BE HERE, ALWAYS MAP ME\n");
@@ -1041,10 +1041,10 @@ namespace CTF_int {
       }
 
 
-      CTF_int::cfree((void*)virt_phase);
-      CTF_int::cfree((void*)phys_phase);
-      CTF_int::cfree((void*)phase);
-      CTF_int::cfree((void*)virt_phys_rank);
+      CTF_int::cdealloc((void*)virt_phase);
+      CTF_int::cdealloc((void*)phys_phase);
+      CTF_int::cdealloc((void*)phase);
+      CTF_int::cdealloc((void*)virt_phys_rank);
 
       TAU_FSTOP(read_local_pairs);
       return SUCCESS;
@@ -1104,13 +1104,13 @@ namespace CTF_int {
     MPI_Allgatherv(my_pairs, n, MPI_CHAR,
                    all_pairs, nXs, pXs, MPI_CHAR, wrld->comm);
     nval = nval/sr->pair_size();
-    cfree(nXs);
-    cfree(pXs);
+    cdealloc(nXs);
+    cdealloc(pXs);
 
     PairIterator ipr(sr, all_pairs);
     ipr.sort(nval);
     if (n>0)
-      cfree(my_pairs);
+      cdealloc(my_pairs);
     *num_pair = nval;
     return ipr; 
   }
@@ -1123,7 +1123,7 @@ namespace CTF_int {
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(ball_data+i*sr->el_size);
     }
-    cfree(ipr.ptr);
+    cdealloc(ipr.ptr);
     *all_data = ball_data;
     return SUCCESS;
   }
@@ -1278,11 +1278,11 @@ namespace CTF_int {
         sr->print(all_data[i].d());
         fprintf(fp,"> %ld\n",all_data[i].k());
       }
-      cfree(recvcnts);
-      cfree(displs);
-      cfree(idx_arr);
-      if (pmy_data != NULL) cfree(pmy_data);
-      cfree(pall_data);
+      cdealloc(recvcnts);
+      cdealloc(displs);
+      cdealloc(idx_arr);
+      if (pmy_data != NULL) cdealloc(pmy_data);
+      cdealloc(pall_data);
     }
 
   }
@@ -1377,11 +1377,11 @@ namespace CTF_int {
           fprintf(fp,">\n");
         }
       }
-      cfree(recvcnts);
-      cfree(displs);
-      cfree(idx_arr);
-      cfree(all_data_A);
-      cfree(all_data_B);
+      cdealloc(recvcnts);
+      cdealloc(displs);
+      cdealloc(idx_arr);
+      cdealloc(all_data_A);
+      cdealloc(all_data_B);
     }
 
   }
@@ -1411,9 +1411,9 @@ namespace CTF_int {
       }
       this->rec_tsr->is_data_aliased=1;
       delete this->rec_tsr;
-      CTF_int::cfree(this->inner_ordering);
-      CTF_int::cfree(all_edge_len);
-      CTF_int::cfree(sub_edge_len);
+      CTF_int::cdealloc(this->inner_ordering);
+      CTF_int::cdealloc(all_edge_len);
+      CTF_int::cdealloc(sub_edge_len);
 
     }  
     this->is_folded = 0;
@@ -1489,10 +1489,10 @@ namespace CTF_int {
     *all_fdim = allfold_dim;
     *all_flen = all_edge_len;
 
-    CTF_int::cfree(fold_edge_len);
-    CTF_int::cfree(fold_sym);
+    CTF_int::cdealloc(fold_edge_len);
+    CTF_int::cdealloc(fold_sym);
     
-    CTF_int::cfree(sub_edge_len);
+    CTF_int::cdealloc(sub_edge_len);
 
   }
   
@@ -1578,7 +1578,7 @@ namespace CTF_int {
   //    CTF_int::alloc_ptr(sizeof(dtype)*this->size, (void**)&shuffled_data);
     }
 
-    CTF_int::cfree((void*)this->data);
+    CTF_int::cdealloc((void*)this->data);
     this->data = shuffled_data;
 
   #if VERIFY_REMAP
@@ -1596,7 +1596,7 @@ namespace CTF_int {
       }
     }
     if (abortt) ABORT;
-    CTF_int::cfree(shuffled_data_corr);
+    CTF_int::cdealloc(shuffled_data_corr);
 
 
   #endif
@@ -1658,10 +1658,10 @@ namespace CTF_int {
                       restricted,   sub_phys_comm,
                       comm_idx,     fill,
                       this->edge_map);
-    CTF_int::cfree(restricted);
-    CTF_int::cfree(phys_mapped);
-    CTF_int::cfree(sub_phys_comm);
-    CTF_int::cfree(comm_idx);
+    CTF_int::cdealloc(restricted);
+    CTF_int::cdealloc(phys_mapped);
+    CTF_int::cdealloc(sub_phys_comm);
+    CTF_int::cdealloc(comm_idx);
     return stat;
   }
 
@@ -1706,7 +1706,7 @@ namespace CTF_int {
             summation sum = summation(new_tsr, diag_idx_map, sr->mulid(), this, ex_idx_map, sr->addid());
             sum.execute(1);
           }
-          CTF_int::cfree(edge_len), CTF_int::cfree(sym), CTF_int::cfree(ex_idx_map), CTF_int::cfree(diag_idx_map);
+          CTF_int::cdealloc(edge_len), CTF_int::cdealloc(sym), CTF_int::cdealloc(ex_idx_map), CTF_int::cdealloc(diag_idx_map);
           return SUCCESS;
         }
       }
@@ -1762,10 +1762,10 @@ namespace CTF_int {
       } else {
         std::fill(this->data, this->data+np, 0.0);
       }
-      CTF_int::cfree(virt_phase);
-      CTF_int::cfree(phys_phase);
-      CTF_int::cfree(phase);
-      CTF_int::cfree(virt_phys_rank);
+      CTF_int::cdealloc(virt_phase);
+      CTF_int::cdealloc(phys_phase);
+      CTF_int::cdealloc(phase);
+      CTF_int::cdealloc(virt_phys_rank);
     }
     TAU_FSTOP(zero_out_padding);
 

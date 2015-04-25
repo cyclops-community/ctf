@@ -58,7 +58,7 @@ namespace CTF_int {
   }
 
   scaling::~scaling(){
-    cfree(idx_map);
+    cdealloc(idx_map);
   }
 
   int scaling::execute(){
@@ -238,7 +238,7 @@ namespace CTF_int {
       sclv->blk_sz_A  = vrt_sz;
       sclv->idx_map_A = idx_map;
       sclv->buffer  = NULL;
-    } else CTF_int::cfree(virt_dim);
+    } else CTF_int::cdealloc(virt_dim);
 
     seq_tsr_scl * sclseq = new seq_tsr_scl;
     sclseq->sr_A = tsr->sr;
@@ -263,8 +263,8 @@ namespace CTF_int {
 
     hscl->A   = ntsr->data;
 
-    CTF_int::cfree(idx_arr);
-    CTF_int::cfree(blk_len);
+    CTF_int::cdealloc(idx_arr);
+    CTF_int::cdealloc(blk_len);
 
     hscl->run();
     delete hscl;
@@ -289,7 +289,7 @@ namespace CTF_int {
       tsr->redistribute(*old_dst);
       TAU_FSTOP(redistribute_for_scale_home);
       memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr->el_size);
-      CTF_int::cfree(tsr->data);
+      CTF_int::cdealloc(tsr->data);
       tsr->data = tsr->home_buffer;
       tsr->is_home = 1;
       ntsr->is_data_aliased = 1;

@@ -104,7 +104,7 @@ namespace CTF {
       (*global_idx)[i] = pairs[i].k;
       (*data)[i] = pairs[i].d;
     }
-    if (pairs != NULL) CTF_int::cfree(pairs);
+    if (pairs != NULL) CTF_int::cdealloc(pairs);
   }
 
   template<typename dtype, bool is_ord>
@@ -130,7 +130,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
     }
-    CTF_int::cfree(pairs);
+    CTF_int::cdealloc(pairs);
   }
 
   template<typename dtype, bool is_ord>
@@ -153,7 +153,7 @@ namespace CTF {
     }
     ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), (char*)pairs);
     assert(ret == CTF_int::SUCCESS);
-    CTF_int::cfree(pairs);
+    CTF_int::cdealloc(pairs);
   }
 
   template<typename dtype, bool is_ord>
@@ -178,7 +178,7 @@ namespace CTF {
     }
     ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
     assert(ret == CTF_int::SUCCESS);
-    CTF_int::cfree(pairs);
+    CTF_int::cdealloc(pairs);
   }
 
   template<typename dtype, bool is_ord>
@@ -208,7 +208,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
     }
-    CTF_int::cfree(pairs);
+    CTF_int::cdealloc(pairs);
   }
 
   template<typename dtype, bool is_ord>
@@ -373,10 +373,10 @@ namespace CTF {
     
     slice(offsets, ends, beta, &A, offsets_A, ends_A, (char*)&alpha);
 
-    CTF_int::cfree(offsets);
-    CTF_int::cfree(ends);
-    CTF_int::cfree(offsets_A);
-    CTF_int::cfree(ends_A);
+    CTF_int::cdealloc(offsets);
+    CTF_int::cdealloc(ends);
+    CTF_int::cdealloc(offsets_A);
+    CTF_int::cdealloc(ends_A);
   }
 
   template<typename dtype, bool is_ord>
@@ -422,8 +422,8 @@ namespace CTF {
 /*    new_tsr.slice(
         new_sym, new_lens, sr->addid(), this,
         offsets, ends, sr->mulid());*/
-    CTF_int::cfree(new_lens);
-    CTF_int::cfree(new_sym);
+    CTF_int::cdealloc(new_lens);
+    CTF_int::cdealloc(new_sym);
     return new_tsr;
   }
 
@@ -439,8 +439,8 @@ namespace CTF {
     
     Tensor tsr = slice(offsets, ends, owrld);
 
-    CTF_int::cfree(offsets);
-    CTF_int::cfree(ends);
+    CTF_int::cdealloc(offsets);
+    CTF_int::cdealloc(ends);
 
     return tsr;
   }
@@ -648,10 +648,10 @@ namespace CTF {
     name = A.name;
 
     if (sym != NULL)
-      CTF_int::cfree(sym);
+      CTF_int::cdealloc(sym);
     if (len != NULL)
-      CTF_int::cfree(len);
-      //CTF_int::cfree(len);
+      CTF_int::cdealloc(len);
+      //CTF_int::cdealloc(len);
     ret = CTF_int::tensor::info(&A, &order, &len, &sym);
     assert(ret == CTF_int::SUCCESS);
 

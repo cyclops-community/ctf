@@ -347,11 +347,11 @@ namespace CTF_int {
     for (int i=0; i<max_ntd; i++) {
       int64_t thread_chunk_size = chunk_size[i];
       if (thread_chunk_size > 0)
-        CTF_int::cfree(tswap_data[i],i);
+        CTF_int::cdealloc(tswap_data[i],i);
     }
 
-    CTF_int::cfree(tswap_data);
-    CTF_int::cfree(chunk_size);
+    CTF_int::cdealloc(tswap_data);
+    CTF_int::cdealloc(chunk_size);
     TAU_FSTOP(nosym_transpose);
   }
 
@@ -424,8 +424,8 @@ namespace CTF_int {
         sr->print(tswap_data[0]+ii*sr->el_size);
       }
       printf("\n");*/
-      CTF_int::cfree(lda);
-      CTF_int::cfree(new_lda);
+      CTF_int::cdealloc(lda);
+      CTF_int::cdealloc(new_lda);
       TAU_FSTOP(nosym_transpose_thr);
       return;
     }
@@ -520,10 +520,10 @@ namespace CTF_int {
           if (i==order) break;
         }
       }
-      CTF_int::cfree(idx);
+      CTF_int::cdealloc(idx);
     }
-    CTF_int::cfree(lda);
-    CTF_int::cfree(new_lda);
+    CTF_int::cdealloc(lda);
+    CTF_int::cdealloc(new_lda);
     TAU_FSTOP(nosym_transpose_thr);
   }
 

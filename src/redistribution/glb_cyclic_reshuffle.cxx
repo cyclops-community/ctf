@@ -34,7 +34,7 @@ namespace CTF_int {
         cnt += pfx[nsdim-1][i];
       }
       for (int i=0; i<nsdim; i++){
-        cfree(pfx[i]);
+        cdealloc(pfx[i]);
       }
       return cnt;
     }
@@ -526,12 +526,12 @@ namespace CTF_int {
         if (old_dist.order <= 1) done = true;
       }
     }
-    cfree(gidx);
-    cfree(idx_acc);
-    cfree(virt_acc);
-    cfree(idx);
-    cfree(virt_offset);
-    cfree(old_virt_lda);
+    cdealloc(gidx);
+    cdealloc(idx_acc);
+    cdealloc(virt_acc);
+    cdealloc(idx);
+    cdealloc(virt_offset);
+    cdealloc(old_virt_lda);
 
   #ifndef USSSE_OMP
   #if DEBUG >= 1
@@ -545,11 +545,11 @@ namespace CTF_int {
     if (!pass) ABORT;
   #endif
   #endif
-    cfree(offs);
-    cfree(ends);
+    cdealloc(offs);
+    cdealloc(ends);
    
   #ifndef USSSE_OMP
-    cfree(count);
+    cdealloc(count);
     TAU_FSTOP(cyclic_pup_bucket);
   #else
     par_virt_counts[tid] = count;
@@ -606,12 +606,12 @@ namespace CTF_int {
     }
     TAU_FSTOP(cyclic_pup_move);
     for (int t=0; t<max_ntd; t++){
-      cfree(par_virt_counts[t]);
+      cdealloc(par_virt_counts[t]);
     }
-    cfree(par_virt_counts);
-    cfree(count_store);
-    cfree(bucket_store);
-    cfree(thread_store);
+    cdealloc(par_virt_counts);
+    cdealloc(count_store);
+    cdealloc(bucket_store);
+    cdealloc(thread_store);
   #endif
 
   }
@@ -977,8 +977,8 @@ namespace CTF_int {
       } while (!exit);
       if (finish) break;
     }
-    cfree(idx);
-    cfree(virt_idx);
+    cdealloc(idx);
+    cdealloc(virt_idx);
     TAU_FSTOP(order_globally);
   }
 
@@ -1183,12 +1183,12 @@ namespace CTF_int {
                   sr->mulid(),
                   sr->addid(),
                   sr);
-      cfree(new_data);
+      cdealloc(new_data);
     }
     for (int dim = 0;dim < order;dim++){
-      cfree(bucket_offset[dim]);
+      cdealloc(bucket_offset[dim]);
     }
-    cfree(bucket_offset);
+    cdealloc(bucket_offset);
 
     TAU_FSTOP(pack_virt_buf);
 
@@ -1205,7 +1205,7 @@ namespace CTF_int {
 
     if (reuse_buffers){
       if (swp_nval > old_dist.size){
-        cfree(tsr_data);
+        cdealloc(tsr_data);
         mst_alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_data);
       }
     }
@@ -1259,10 +1259,10 @@ namespace CTF_int {
 
       order_globally(sym, new_dist, new_virt_edge_len, new_virt_lda, vbs_new, 0, tsr_data, tsr_cyclic_data, sr);
       for (int dim = 0;dim < order;dim++){
-        cfree(bucket_offset[dim]);
+        cdealloc(bucket_offset[dim]);
       }
-      cfree(bucket_offset);
-      cfree(new_data);
+      cdealloc(bucket_offset);
+      cdealloc(new_data);
     } else {
       sr->set(tsr_cyclic_data, sr->addid(), swp_nval);
     }
@@ -1271,22 +1271,22 @@ namespace CTF_int {
     *ptr_tsr_cyclic_data = tsr_cyclic_data;
     *ptr_tsr_data = tsr_data;
 
-    cfree(real_edge_len);
-    cfree(hsym);
-    cfree(idx);
-    cfree(idx_offs);
-    cfree(old_virt_lda);
-    cfree(new_virt_lda);
-    cfree(recv_counts);
-    cfree(send_counts);
-    cfree(send_displs);
-    cfree(recv_displs);
-    cfree(old_sub_edge_len);
-    cfree(new_sub_edge_len);
-    cfree(new_virt_edge_len);
-    cfree(old_virt_edge_len);
-    cfree(new_phys_edge_len);
-    cfree(old_phys_edge_len);
+    cdealloc(real_edge_len);
+    cdealloc(hsym);
+    cdealloc(idx);
+    cdealloc(idx_offs);
+    cdealloc(old_virt_lda);
+    cdealloc(new_virt_lda);
+    cdealloc(recv_counts);
+    cdealloc(send_counts);
+    cdealloc(send_displs);
+    cdealloc(recv_displs);
+    cdealloc(old_sub_edge_len);
+    cdealloc(new_sub_edge_len);
+    cdealloc(new_virt_edge_len);
+    cdealloc(old_virt_edge_len);
+    cdealloc(new_phys_edge_len);
+    cdealloc(old_phys_edge_len);
 
     TAU_FSTOP(cyclic_reshuffle);
 
