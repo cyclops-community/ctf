@@ -275,7 +275,7 @@ namespace CTF_int {
         #pragma omp parallel for
 #endif
         for (int i=0; i<n; i++){
-          copy(b+el_size*inc_a*i, a+el_size*inc_b*i);
+          copy(b+el_size*inc_b*i, a+el_size*inc_a*i);
         }
         break;
     }

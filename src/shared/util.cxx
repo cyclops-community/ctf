@@ -216,7 +216,7 @@ namespace CTF_int {
       arr[i] = swap[i];
     }
 
-    CTF_int::cfree(swap);
+    CTF_int::cdealloc(swap);
   }
 
   void permute_target(int         order,
@@ -233,7 +233,7 @@ namespace CTF_int {
       arr[i] = swap[i];
     }
 
-    CTF_int::cfree(swap);
+    CTF_int::cdealloc(swap);
   }
 
 }

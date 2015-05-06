@@ -56,6 +56,66 @@ namespace CTF {
       bool operator<(Pair<dtype> other) const {
         return k<other.k;
       }
+
+      /**
+       * \brief cast tightly packed character array to array of Pairs, needed to handle alignment
+       * \param[in,out] arr char array stored as [k1, d1, k2, d2, ..., kn, dn], deleted if copied
+       * \param[in] n number of pairs in array
+       * \return array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)]
+       */
+      static Pair<dtype> * cast_char_arr(char * arr, int64_t n){
+        if (sizeof(Pair<dtype>) == sizeof(int64_t)+sizeof(dtype)){
+          return (Pair<dtype>*)arr;
+        } else {
+          Pair<dtype> * prs = (Pair<dtype>*)CTF_int::alloc(sizeof(Pair<dtype>)*n);
+          for (int64_t i=0; i<n; i++){
+            prs[i].k = (int64_t*)(arr+i*(sizeof(int64_t)+sizeof(dtype)))[0];
+            prs[i].d = (dtype*)(arr+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype)))[0];
+          }
+          CTF_int::cdealloc(arr);
+          return prs;
+        }
+      }
+
+      /**
+       * \brief cast array of Pairs to tightly packed character array, needed to handle alignment
+       * \param[in,out] array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)], deleted if copied
+       * \param[in] n number of pairs in array
+       * \return arr char array stored as [k1, d1, k2, d2, ..., kn, dn]
+       */
+      static char * cast_to_char_arr(Pair<dtype> * arr, int64_t n){
+        if (sizeof(Pair<dtype>) == sizeof(int64_t)+sizeof(dtype)){
+          return (char*)arr;
+        } else {
+          char * prs = (char*)CTF_int::alloc((sizeof(dtype)+sizeof(int64_t))*n);
+          for (int64_t i=0; i<n; i++){
+            (int64_t*)(prs+i*(sizeof(int64_t)+sizeof(dtype)))[0] = arr[i].k;
+            (dtype*)(prs+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype)))[0] = arr[i].d;
+          }
+          CTF_int::cdealloc(arr);
+          return prs;
+        }
+      }
+
+      /**
+       * \brief(same as above except doesn't delete arr) cast array of Pairs to tightly packed character array, needed to handle alignment
+       * \param[in] array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)]
+       * \param[in] n number of pairs in array
+       * \return arr char array stored as [k1, d1, k2, d2, ..., kn, dn]
+       */
+      static char * scast_to_char_arr(Pair<dtype> const * arr, int64_t n){
+        if (sizeof(Pair<dtype>) == sizeof(int64_t)+sizeof(dtype)){
+          return (char*)arr;
+        } else {
+          char * prs = (char*)CTF_int::alloc((sizeof(dtype)+sizeof(int64_t))*n);
+          for (int64_t i=0; i<n; i++){
+            (int64_t*)(prs+i*(sizeof(int64_t)+sizeof(dtype)))[0] = arr[i].k;
+            (dtype*)(prs+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype)))[0] = arr[i].d;
+          }
+          return prs;
+        }
+      }
+
   };
 
   template<typename dtype>

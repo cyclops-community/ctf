@@ -83,9 +83,9 @@ namespace CTF_int {
       if (order_A > 0)
         RESET_IDX(A);
     }
-    CTF_int::cfree(dlen_A);
-    CTF_int::cfree(idx_glb);
-    CTF_int::cfree(rev_idx_map);
+    CTF_int::cdealloc(dlen_A);
+    CTF_int::cdealloc(idx_glb);
+    CTF_int::cdealloc(rev_idx_map);
     TAU_FSTOP(sym_seq_sum_ref);
     return 0;
   }
@@ -149,8 +149,8 @@ namespace CTF_int {
       if (order_A > 0)
         RESET_IDX(A);
     }
-    CTF_int::cfree(dlen_A);
-    CTF_int::cfree(idx_glb);
+    CTF_int::cdealloc(dlen_A);
+    CTF_int::cdealloc(idx_glb);
     TAU_FSTOP(sym_seq_sum_cust);
     return 0;
   }

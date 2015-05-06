@@ -71,7 +71,7 @@ namespace CTF{
               ((int)(1000.*(total_excl_time)/np))%1000,
               (int)(100.*(total_excl_time)/complete_time),
               ((int)(10000.*(total_excl_time)/complete_time))%100);
-      CTF_int::cfree(space);
+      CTF_int::cdealloc(space);
     } 
   }
 

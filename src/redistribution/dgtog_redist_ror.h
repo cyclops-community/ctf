@@ -293,7 +293,7 @@ void dgtog_reshuffle(int const *          sym,
       sr->copy(tsr_new_data, sr->addid());
     }
     *ptr_tsr_new_data = tsr_new_data;
-    CTF_int::cfree(tsr_data);
+    CTF_int::cdealloc(tsr_data);
     return;
   }
   TAU_FSTART(dgtog_reshuffle);
@@ -399,12 +399,12 @@ void dgtog_reshuffle(int const *          sym,
 
   int64_t * all_put_displs = (int64_t*)alloc(sizeof(int64_t)*ord_glb_comm.np);
   MPI_Alltoall(all_recv_displs, 1, MPI_INT64_T, all_put_displs, 1, MPI_INT64_T, ord_glb_comm.cm);
-  CTF_int::cfree(all_recv_displs);
+  CTF_int::cdealloc(all_recv_displs);
 
   int64_t * put_displs = (int64_t*)alloc(sizeof(int64_t)*nold_rep);
   SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, old_rep_phase, send_pe_offset, send_bucket_offset, all_put_displs, put_displs, 0, 0, 0);
 
-  CTF_int::cfree(all_put_displs);
+  CTF_int::cdealloc(all_put_displs);
 
   char * recv_buffer;
   mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
@@ -460,13 +460,13 @@ void dgtog_reshuffle(int const *          sym,
                     put_displs, win,
 #endif
                     1, aux_buf, buckets, send_counts, sr);
-    CTF_int::cfree(old_rep_idx);
+    CTF_int::cdealloc(old_rep_idx);
 #else
     SWITCH_ORD_CALL(redist_bucket, order-1, send_bucket_offset, send_data_offset,
                     send_ivmax_pre, old_rep_phase[0], old_dist.virt_phase[0], 1, aux_buf, buckets, send_counts, sr);
 #endif
     TAU_FSTOP(redist_bucket);
-    CTF_int::cfree(buckets);
+    CTF_int::cdealloc(buckets);
 
 #if DEBUG>= 1
     bool pass = true;
@@ -480,7 +480,7 @@ void dgtog_reshuffle(int const *          sym,
     }
     ASSERT(pass);
 #endif
-    CTF_int::cfree(aux_buf);
+    CTF_int::cdealloc(aux_buf);
   }
 #ifndef WAITANY
 #ifndef IREDIST
@@ -509,18 +509,18 @@ void dgtog_reshuffle(int const *          sym,
   //ord_glb_comm.all_to_allv(tsr_data, send_counts, send_displs, sr->el_size,
   //                         recv_buffer, recv_counts, recv_displs);
   TAU_FSTOP(COMM_RESHUFFLE);
-  CTF_int::cfree(send_displs);
+  CTF_int::cdealloc(send_displs);
 #else
-  CTF_int::cfree(put_displs);
+  CTF_int::cdealloc(put_displs);
   TAU_FSTART(redist_fence);
   MPI_Win_fence(0, win);
   TAU_FSTOP(redist_fence);
   MPI_Win_free(&win);
 #endif
-  CTF_int::cfree(tsr_data);
+  CTF_int::cdealloc(tsr_data);
 #endif
 #endif
-  CTF_int::cfree(send_counts);
+  CTF_int::cdealloc(send_counts);
 
   if (new_idx_lyr == 0){
     char * aux_buf; alloc_ptr(sr->el_size*new_dist.size, (void**)&aux_buf);
@@ -601,7 +601,7 @@ void dgtog_reshuffle(int const *          sym,
                     NULL, win,
 #endif
                     0, aux_buf, buckets, recv_counts, sr);
-    CTF_int::cfree(new_rep_idx);
+    CTF_int::cdealloc(new_rep_idx);
 #else
     SWITCH_ORD_CALL(redist_bucket, order-1,
                     recv_bucket_offset, recv_data_offset, recv_ivmax_pre,
@@ -609,7 +609,7 @@ void dgtog_reshuffle(int const *          sym,
 #endif
 #endif
     TAU_FSTOP(redist_debucket);
-    CTF_int::cfree(buckets);
+    CTF_int::cdealloc(buckets);
 #if DEBUG >= 1
     bool pass = true;
     for (int i=0; i<nnew_rep; i++){
@@ -623,7 +623,7 @@ void dgtog_reshuffle(int const *          sym,
     ASSERT(pass);
 #endif
     *ptr_tsr_new_data = aux_buf;
-    CTF_int::cfree(recv_buffer);
+    CTF_int::cdealloc(recv_buffer);
   } else {
     sr->set(recv_buffer, sr->addid(), new_dist.size);
     *ptr_tsr_new_data = recv_buffer;
@@ -631,41 +631,41 @@ void dgtog_reshuffle(int const *          sym,
   //printf("[%d] reached final barrier %d\n",ord_glb_comm.rank, MTAG);
 #ifdef IREDIST
 
-  CTF_int::cfree(recv_reqs);
-  CTF_int::cfree(send_reqs);
+  CTF_int::cdealloc(recv_reqs);
+  CTF_int::cdealloc(send_reqs);
 #endif
   for (int i=0; i<order; i++){
-    CTF_int::cfree(recv_pe_offset[i]);
-    CTF_int::cfree(recv_bucket_offset[i]);
-    CTF_int::cfree(recv_data_offset[i]);
-    CTF_int::cfree(recv_ivmax_pre[i]);
+    CTF_int::cdealloc(recv_pe_offset[i]);
+    CTF_int::cdealloc(recv_bucket_offset[i]);
+    CTF_int::cdealloc(recv_data_offset[i]);
+    CTF_int::cdealloc(recv_ivmax_pre[i]);
   }
-  CTF_int::cfree(recv_pe_offset);
-  CTF_int::cfree(recv_bucket_offset);
-  CTF_int::cfree(recv_data_offset);
-  CTF_int::cfree(recv_ivmax_pre);
+  CTF_int::cdealloc(recv_pe_offset);
+  CTF_int::cdealloc(recv_bucket_offset);
+  CTF_int::cdealloc(recv_data_offset);
+  CTF_int::cdealloc(recv_ivmax_pre);
 
   for (int i=0; i<order; i++){
-    CTF_int::cfree(send_pe_offset[i]);
-    CTF_int::cfree(send_bucket_offset[i]);
-    CTF_int::cfree(send_data_offset[i]);
-    CTF_int::cfree(send_ivmax_pre[i]);
+    CTF_int::cdealloc(send_pe_offset[i]);
+    CTF_int::cdealloc(send_bucket_offset[i]);
+    CTF_int::cdealloc(send_data_offset[i]);
+    CTF_int::cdealloc(send_ivmax_pre[i]);
   }
-  CTF_int::cfree(send_pe_offset);
-  CTF_int::cfree(send_bucket_offset);
-  CTF_int::cfree(send_data_offset);
-  CTF_int::cfree(send_ivmax_pre);
+  CTF_int::cdealloc(send_pe_offset);
+  CTF_int::cdealloc(send_bucket_offset);
+  CTF_int::cdealloc(send_data_offset);
+  CTF_int::cdealloc(send_ivmax_pre);
 
-  CTF_int::cfree(old_virt_lda);
-  CTF_int::cfree(new_virt_lda);
-  CTF_int::cfree(recv_counts);
-  CTF_int::cfree(recv_displs);
-  CTF_int::cfree(old_phys_edge_len);
-  CTF_int::cfree(new_phys_edge_len);
-  CTF_int::cfree(old_virt_edge_len);
-  CTF_int::cfree(new_virt_edge_len);
-  CTF_int::cfree(old_rep_phase);
-  CTF_int::cfree(new_rep_phase);
+  CTF_int::cdealloc(old_virt_lda);
+  CTF_int::cdealloc(new_virt_lda);
+  CTF_int::cdealloc(recv_counts);
+  CTF_int::cdealloc(recv_displs);
+  CTF_int::cdealloc(old_phys_edge_len);
+  CTF_int::cdealloc(new_phys_edge_len);
+  CTF_int::cdealloc(old_virt_edge_len);
+  CTF_int::cdealloc(new_virt_edge_len);
+  CTF_int::cdealloc(old_rep_phase);
+  CTF_int::cdealloc(new_rep_phase);
 #ifdef IREDIST
 #ifdef PUT_NOTIFY
   foMPI_Win_flush_all(win);
@@ -675,7 +675,7 @@ void dgtog_reshuffle(int const *          sym,
   MPI_Barrier(ord_glb_comm.cm);
   TAU_FSTOP(barrier_after_dgtog_reshuffle);
 #endif
-  CTF_int::cfree(tsr_data);
+  CTF_int::cdealloc(tsr_data);
 #endif
   TAU_FSTOP(dgtog_reshuffle);
 }

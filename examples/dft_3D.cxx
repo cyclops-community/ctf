@@ -18,8 +18,8 @@ int test_dft_3D(int     n,
   int i, j;
   int64_t  np;
   int64_t * idx;
-  std::complex<double> * data;
-  std::complex<double> imag(0,1);
+  std::complex<long double> * data;
+  std::complex<long double> imag(0,1);
   
   int len[] = {n,n,n};
   int sym[] = {NS,NS,NS};
@@ -27,14 +27,16 @@ int test_dft_3D(int     n,
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-  Matrix < std::complex<double>, false >DFT(n, n, SY, wrld);
-  Matrix < std::complex<double>, false >IDFT(n, n, SY, wrld);
-  Tensor < std::complex<double>, false >MESH(3, len, sym, wrld);
+  CTF::Ring< std::complex<long double>, false > ldr;
+
+  Matrix < std::complex<long double>, false >DFT(n, n, SY, wrld, ldr);
+  Matrix < std::complex<long double>, false >IDFT(n, n, SY, wrld, ldr);
+  Tensor < std::complex<long double>, false >MESH(3, len, sym, wrld, ldr);
 
   DFT.read_local(&np, &idx, &data);
 
   for (i=0; i<np; i++){
-    data[i] = (1./n)*exp(-2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
+    data[i] = ((long double)1./n)*exp(-2.*(idx[i]/n)*(idx[i]%n)*((long double)M_PI/n)*imag);
   }
   DFT.write(np, idx, data);
   //DFT.print(stdout);
@@ -44,7 +46,7 @@ int test_dft_3D(int     n,
   IDFT.read_local(&np, &idx, &data);
 
   for (i=0; i<np; i++){
-    data[i] = (1./n)*exp(2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
+    data[i] = ((long double)1./n)*exp(2.*(idx[i]/n)*(idx[i]%n)*((long double)M_PI/n)*imag);
   }
   IDFT.write(np, idx, data);
   //IDFT.print(stdout);
@@ -54,7 +56,7 @@ int test_dft_3D(int     n,
   MESH.read_local(&np, &idx, &data);
   for (i=0; i<np; i++){
     for (j=0; j<n; j++){
-      data[i] += exp(imag*((-2.*M_PI*(j/(double)(n)))
+      data[i] += exp(imag*(long double)((-2.*M_PI*(j/(double)(n)))
                       *((idx[i]%n) + ((idx[i]/n)%n) +(idx[i]/(n*n)))));
     }
   }
@@ -105,9 +107,9 @@ int main(int argc, char ** argv){
 
   if (argc > 1){
     logn = atoi(argv[1]);
-    if (logn<0) logn = 5;
+    if (logn<0) logn = 3;
   } else {
-    logn = 5;
+    logn = 3;
   }
   n = 1<<logn;
 

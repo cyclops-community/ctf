@@ -170,8 +170,8 @@ namespace CTF_int {
     num_ins = pre_ins_t[act_ntd-1];
 
     *new_num_pair = num_ins;
-    CTF_int::cfree(pre_ins_t);
-    CTF_int::cfree(num_ins_t);
+    CTF_int::cdealloc(pre_ins_t);
+    CTF_int::cdealloc(num_ins_t);
 #else
     int64_t i, j, num_ins;
     int64_t * kparts;
@@ -206,7 +206,7 @@ namespace CTF_int {
       }
     }
     *new_num_pair = num_ins;
-    CTF_int::cfree(kparts);
+    CTF_int::cdealloc(kparts);
 
 #endif
     TAU_FSTOP(depad_tsr);
@@ -362,7 +362,7 @@ namespace CTF_int {
       if (act_lda == order) break;
       
     }
-    CTF_int::cfree(idx);
+    CTF_int::cdealloc(idx);
     DEBUG_PRINTF("order = %d new_el=%ld, size = %ld, pad_el = %ld\n", order, new_el, size, pad_el);
     ASSERT(new_el + size == pad_el);
     memcpy(padded_pairs[new_el].ptr, old_data,  size*(sizeof(int64_t)+sr->el_size));
@@ -453,7 +453,7 @@ namespace CTF_int {
         calc_idx_arr(order, virt_len, ssym, st_index, st_idx);
         calc_idx_arr(order, virt_len, ssym, end_index, end_idx);
 
-        CTF_int::cfree(ssym);
+        CTF_int::cdealloc(ssym);
 
         if (st_idx[0] != 0){
           st_index -= st_idx[0];
@@ -462,7 +462,7 @@ namespace CTF_int {
         if (end_idx[0] != 0){
           end_index += virt_len[0]-end_idx[0];
         }
-        CTF_int::cfree(end_idx);
+        CTF_int::cdealloc(end_idx);
       }
       ASSERT(tid != ntd-1 || vend == nvirt);
       for (p=0; p<nvirt; p++){
@@ -554,11 +554,11 @@ namespace CTF_int {
             break;
         }
       }
-      CTF_int::cfree(idx);
-      CTF_int::cfree(virt_rank);
-      CTF_int::cfree(virt_len);
-      CTF_int::cfree(phase_rank);
-      if (st_idx != NULL) CTF_int::cfree(st_idx);
+      CTF_int::cdealloc(idx);
+      CTF_int::cdealloc(virt_rank);
+      CTF_int::cdealloc(virt_len);
+      CTF_int::cdealloc(phase_rank);
+      if (st_idx != NULL) CTF_int::cdealloc(st_idx);
     }
     TAU_FSTOP(zero_padding);
   }

@@ -20,9 +20,9 @@ namespace CTF_int {
   
   topology::~topology(){
     deactivate();
-    CTF_int::cfree(lens);
-    CTF_int::cfree(lda);
-    CTF_int::cfree(dim_comm);
+    CTF_int::cdealloc(lens);
+    CTF_int::cdealloc(lda);
+    CTF_int::cdealloc(dim_comm);
   }
 
   topology::topology(topology const & other) : glb_comm(other.glb_comm) {
@@ -101,14 +101,14 @@ namespace CTF_int {
       dl = (int*)CTF_int::alloc(sizeof(int));
       dl[0] = np;
       topo = new topology(1, dl, glb_comm, 1);
-      CTF_int::cfree(dl);
+      CTF_int::cdealloc(dl);
       return topo;
     }
     if (mach == TOPOLOGY_GENERIC){
       int order;
       factorize(np, &order, &dim_len);
       topo = new topology(order, dim_len, glb_comm, 1);
-      if (order>0) CTF_int::cfree(dim_len);
+      if (order>0) CTF_int::cdealloc(dim_len);
       return topo;
     } else if (mach == TOPOLOGY_BGQ) {
       dl = (int*)CTF_int::alloc((7)*sizeof(int));
@@ -139,7 +139,7 @@ namespace CTF_int {
           }
         }
         topo = new topology(dim, topo_dims, glb_comm, 1);
-        CTF_int::cfree(topo_dims);
+        CTF_int::cdealloc(topo_dims);
         return topo;
       } else 
       #else
@@ -147,7 +147,7 @@ namespace CTF_int {
         int order;
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
-        CTF_int::cfree(dim_len);
+        CTF_int::cdealloc(dim_len);
         return topo;
       }
       #endif
@@ -156,7 +156,7 @@ namespace CTF_int {
       if (1<<(int)log2(np) != np){
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
-        CTF_int::cfree(dim_len);
+        CTF_int::cdealloc(dim_len);
         return topo;
       }
       if ((int)log2(np) == 0) order = 0;
@@ -241,7 +241,7 @@ namespace CTF_int {
           break;
       }
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_int::cfree(dim_len);
+      CTF_int::cdealloc(dim_len);
       return topo;
     } else if (mach == TOPOLOGY_8D) {
       int order;
@@ -249,7 +249,7 @@ namespace CTF_int {
       if (1<<(int)log2(np) != np){
         factorize(np, &order, &dim_len);
         topo = new topology(order, dim_len, glb_comm, 1);
-        CTF_int::cfree(dim_len);
+        CTF_int::cdealloc(dim_len);
         return topo;
       }
       order = MIN((int)log2(np),8);
@@ -387,14 +387,14 @@ namespace CTF_int {
 
       }
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_int::cfree(dim_len);
+      CTF_int::cdealloc(dim_len);
       return topo;
     } else {
       int order;
       dim_len = (int*)CTF_int::alloc((log2(np)+1)*sizeof(int));
       factorize(np, &order, &dim_len);
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_int::cfree(dim_len);
+      CTF_int::cdealloc(dim_len);
       return topo;
     }
   }
@@ -656,7 +656,7 @@ namespace CTF_int {
         }
         edge_map[i].clear();      
         edge_map[i] = *new_map;
-        CTF_int::cfree(new_map);
+        CTF_int::cdealloc(new_map);
       }
     }
   }

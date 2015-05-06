@@ -357,7 +357,7 @@ namespace CTF_int {
    * \param[in,out] ptr pointer to set to address to free
    * \param[in] tid thread id from whose stack pointer needs to be freed
    */
-  int cfree(void * ptr, int const tid){
+  int cdealloc(void * ptr, int const tid){
     free(ptr);
 #if 0
     if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
@@ -395,7 +395,7 @@ namespace CTF_int {
    * \brief free abstraction (conditional (no error if not found))
    * \param[in,out] ptr pointer to set to address to free
    */
-  int cfree_cond(void * ptr){
+  int cdealloc_cond(void * ptr){
   //#ifdef PRODUCTION
     return CTF_int::SUCCESS; //FIXME This function is not to be trusted due to potential allocations of 0 bytes!!!@
   //#endif
@@ -407,11 +407,11 @@ namespace CTF_int {
     tid = 0;
   #endif
 
-    ret = cfree(ptr, tid);
+    ret = cdealloc(ptr, tid);
     if (ret == CTF_int::NEGATIVE){
       if (tid == 0){
         for (i=1; i<max_threads; i++){
-          ret = cfree(ptr, i);
+          ret = cdealloc(ptr, i);
           if (ret == CTF_int::SUCCESS){
             return CTF_int::SUCCESS;
             break;
@@ -427,12 +427,12 @@ namespace CTF_int {
    * \brief free abstraction
    * \param[in,out] ptr pointer to set to address to free
    */
-  int cfree(void * ptr){ 
+  int cdealloc(void * ptr){ 
     free(ptr);
     return CTF_int::SUCCESS;
   }
 #if 0
-  int cfree(void * ptr){
+  int cdealloc(void * ptr){
     if ((int64_t)((char*)ptr-(char*)mst_buffer) < mst_buffer_size && 
         (int64_t)((char*)ptr-(char*)mst_buffer) >= 0){
       return mst_free(ptr);
@@ -450,7 +450,7 @@ namespace CTF_int {
   #endif
 
 
-    ret = cfree(ptr, tid);
+    ret = cdealloc(ptr, tid);
     if (ret == CTF_int::NEGATIVE){
       if (tid != 0 || max_threads == 1){
         printf("CTF CTF_int::ERROR: Invalid free of pointer %p by thread %d\n", ptr, tid);
@@ -458,7 +458,7 @@ namespace CTF_int {
         return CTF_int::ERROR;
       } else {
         for (i=1; i<max_threads; i++){
-          ret = cfree(ptr, i);
+          ret = cdealloc(ptr, i);
           if (ret == CTF_int::SUCCESS){
             return CTF_int::SUCCESS;
             break;

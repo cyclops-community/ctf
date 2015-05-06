@@ -82,18 +82,18 @@ namespace CTF_int {
 
     if (dir == 1) {
       if (alloced){
-        CTF_int::cfree(buffer);
+        CTF_int::cdealloc(buffer);
         buffer = NULL;
       }
     }
-    CTF_int::cfree(idx_arr);
-    CTF_int::cfree(lda);
+    CTF_int::cdealloc(idx_arr);
+    CTF_int::cdealloc(lda);
     TAU_FSTOP(strp_tsr);
   }
 
   void strp_tsr::free_exp(){
     if (alloced){
-      CTF_int::cfree(buffer);
+      CTF_int::cdealloc(buffer);
       buffer = NULL;
     }
   }
@@ -303,7 +303,7 @@ namespace CTF_int {
         need_strip = 1;
     }
     if (need_strip == 0) {
-      CTF_int::cfree(pmap);
+      CTF_int::cdealloc(pmap);
       return 0;
     }
 
@@ -346,7 +346,7 @@ namespace CTF_int {
 
     *stpr               = stripper;
 
-    CTF_int::cfree(pmap);
+    CTF_int::cdealloc(pmap);
 
     return 1;
   }

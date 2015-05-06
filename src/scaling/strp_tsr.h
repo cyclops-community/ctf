@@ -48,7 +48,7 @@ namespace CTF_int {
        * \brief copies strp_tsr object
        */
       strp_tsr(strp_tsr * o);
-      ~strp_tsr(){ if (buffer != NULL) CTF_int::cfree(buffer); CTF_int::cfree(edge_len); CTF_int::cfree(strip_dim); CTF_int::cfree(strip_idx);}
+      ~strp_tsr(){ if (buffer != NULL) CTF_int::cdealloc(buffer); CTF_int::cdealloc(edge_len); CTF_int::cdealloc(strip_dim); CTF_int::cdealloc(strip_idx);}
       strp_tsr(){ buffer = NULL; }
   };
 

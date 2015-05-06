@@ -261,10 +261,10 @@ namespace CTF_int {
 #endif
     if (0){
     } else {
-      CTF_int::cfree(buf_A);
-      CTF_int::cfree(buf_B);
-      CTF_int::cfree(buf_C);
-      CTF_int::cfree(buf_aux);
+      CTF_int::cdealloc(buf_A);
+      CTF_int::cdealloc(buf_B);
+      CTF_int::cdealloc(buf_C);
+      CTF_int::cdealloc(buf_aux);
     }
     TAU_FSTOP(ctr_2d_general);
   }

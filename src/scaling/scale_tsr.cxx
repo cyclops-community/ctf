@@ -17,7 +17,7 @@ namespace CTF_int {
    * \brief deallocates scl_virt object
    */
   scl_virt::~scl_virt() {
-    CTF_int::cfree(virt_dim);
+    CTF_int::cdealloc(virt_dim);
     delete rec_scl;
   }
 
@@ -117,7 +117,7 @@ namespace CTF_int {
       if (i==num_dim) break;
     }
     if (alloced){
-      CTF_int::cfree(idx_arr);
+      CTF_int::cdealloc(idx_arr);
     }
     TAU_FSTOP(scl_virt);
   }

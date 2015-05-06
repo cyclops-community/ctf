@@ -93,24 +93,28 @@ namespace CTF {
   void Tensor<dtype, is_ord>::read_local(int64_t *  npair,
                                          int64_t ** global_idx,
                                          dtype **   data) const {
-    Pair< dtype > * pairs;
+    char * cpairs;
     int ret, i;
-    ret = CTF_int::tensor::read_local(npair,(char**)&pairs);
+    ret = CTF_int::tensor::read_local(npair,&cpairs);
     assert(ret == CTF_int::SUCCESS);
     /* FIXME: careful with alloc */
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
+    CTF_int::PairIterator pairs(sr, cpairs);
     for (i=0; i<(*npair); i++){
-      (*global_idx)[i] = pairs[i].k;
-      (*data)[i] = pairs[i].d;
+      (*global_idx)[i] = pairs[i].k();
+      pairs[i].read_val((char*)((*data)+i));
     }
-    if (pairs != NULL) CTF_int::cfree(pairs);
+    if (cpairs != NULL) CTF_int::cdealloc(cpairs);
   }
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::read_local(int64_t *      npair,
                                          Pair<dtype> ** pairs) const {
-    int ret = CTF_int::tensor::read_local(npair, (char**)pairs);
+    //FIXME raises mem consumption
+    char * cpairs; 
+    int ret = CTF_int::tensor::read_local(npair, &cpairs);
+    *pairs = cast_char_arr(cpairs, *npair);
     assert(ret == CTF_int::SUCCESS);
   }
 
@@ -120,23 +124,38 @@ namespace CTF {
                                    dtype *         data){
     int ret;
     int64_t i;
-    Pair< dtype > * pairs;
+    /*Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
+    }*/
+    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
+    CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
+    for (i=0; i<npair; i++){
+      pairs[i].write_key(global_idx[i]);
     }
-    ret = CTF_int::tensor::read(npair, (char*)pairs);
+    ret = CTF_int::tensor::read(npair, cpairs);
     assert(ret == CTF_int::SUCCESS);
     for (i=0; i<npair; i++){
-      data[i] = pairs[i].d;
+      pairs[i].read_val((char*)(data+i));
     }
-    CTF_int::cfree(pairs);
+    CTF_int::cdealloc(cpairs);
   }
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::read(int64_t       npair,
                                    Pair<dtype> * pairs){
-    int ret = CTF_int::tensor::read(npair, (char*)pairs);
+    //FIXME raises mem consumption
+    char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
+    int ret = CTF_int::tensor::read(npair, cpairs);
+    if (cpairs != (char*)pairs){
+      PairIterator ipairs = PairIterator(sr, cpairs);
+      for (int64_t i=0; i<npair; i++){
+        pairs[i].k = ipairs[i].k();
+        ipairs[i].read_val((char*)&(pairs[i].d));
+      }
+      CTF_int::cdealloc(cpairs);
+    }
     assert(ret == CTF_int::SUCCESS);
   }
 
@@ -145,22 +164,33 @@ namespace CTF {
                                     int64_t const * global_idx,
                                     dtype const *   data) {
     int ret, i;
-    Pair< dtype > * pairs;
+    /*Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
+    }*/
+    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
+    CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
+    for (i=0; i<npair; i++){
+      pairs[i].write_key(global_idx[i]);
+      pairs[i].write_val((char*)&(data[i]));
     }
-    ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), (char*)pairs);
+    ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), cpairs);
     assert(ret == CTF_int::SUCCESS);
-    CTF_int::cfree(pairs);
+    CTF_int::cdealloc(cpairs);
   }
 
   template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::write(int64_t             npair,
                                     Pair<dtype> const * pairs) {
-    int ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), (char *)pairs);
+
+    //FIXME raises mem consumption
+    char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
+    int ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), cpairs);
     assert(ret == CTF_int::SUCCESS);
+    if (cpairs != (char*)pairs)
+      CTF_int::cdealloc(cpairs);
   }
 
   template<typename dtype, bool is_ord>
@@ -170,15 +200,21 @@ namespace CTF {
                                     int64_t const * global_idx,
                                     dtype const *   data) {
     int ret, i;
-    Pair< dtype > * pairs;
+    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
+    CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
+    for (i=0; i<npair; i++){
+      pairs[i].write_key(global_idx[i]);
+      pairs[i].write_val((char*)&(data[i]));
+    }
+    /*Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
-    }
-    ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
+    }*/
+    ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
     assert(ret == CTF_int::SUCCESS);
-    CTF_int::cfree(pairs);
+    CTF_int::cdealloc(cpairs);
   }
 
   template<typename dtype, bool is_ord>
@@ -186,7 +222,10 @@ namespace CTF {
                                     dtype               alpha,
                                     dtype               beta,
                                     Pair<dtype> const * pairs) {
-    int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char *)pairs);
+    char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
+
+    int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
+    if (cpairs != (char*)pairs) CTF_int::dealloc(cpairs);
     assert(ret == CTF_int::SUCCESS);
   }
 
@@ -197,18 +236,19 @@ namespace CTF {
                                    int64_t const * global_idx,
                                    dtype *         data){
     int ret, i;
-    Pair< dtype > * pairs;
-    pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
+    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size()):
+    CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
-      pairs[i].k = global_idx[i];
-      pairs[i].d = data[i];
+      pairs[i].write_key(global_idx[i]);
+      pairs[i].write_val(data[i]);
     }
-    ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
+    ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
     assert(ret == CTF_int::SUCCESS);
+    CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
-      data[i] = pairs[i].d;
+      pairs[i].read_val((char*)((*data)+i));
     }
-    CTF_int::cfree(pairs);
+    CTF_int::cdealloc(pairs);
   }
 
   template<typename dtype, bool is_ord>
@@ -216,7 +256,16 @@ namespace CTF {
                                    dtype         alpha,
                                    dtype         beta,
                                    Pair<dtype> * pairs){
-    int ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, (char*)pairs);
+    char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
+    int ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
+    if (cpairs != (char*)pairs){
+      CTF_int::PairIterator ipairs = CTF_int::PairIterator(sr, cpairs);
+      for (int64_t i=0; i<npair; i++){
+        pairs[i].k = ipairs[i].k();
+        ipairs[i].read_val((char*)&(pairs[i].d));
+      }
+      CTF_int::cdealloc(cpairs);
+    }
     assert(ret == CTF_int::SUCCESS);
   }
 
@@ -373,10 +422,10 @@ namespace CTF {
     
     slice(offsets, ends, beta, &A, offsets_A, ends_A, (char*)&alpha);
 
-    CTF_int::cfree(offsets);
-    CTF_int::cfree(ends);
-    CTF_int::cfree(offsets_A);
-    CTF_int::cfree(ends_A);
+    CTF_int::cdealloc(offsets);
+    CTF_int::cdealloc(ends);
+    CTF_int::cdealloc(offsets_A);
+    CTF_int::cdealloc(ends_A);
   }
 
   template<typename dtype, bool is_ord>
@@ -422,8 +471,8 @@ namespace CTF {
 /*    new_tsr.slice(
         new_sym, new_lens, sr->addid(), this,
         offsets, ends, sr->mulid());*/
-    CTF_int::cfree(new_lens);
-    CTF_int::cfree(new_sym);
+    CTF_int::cdealloc(new_lens);
+    CTF_int::cdealloc(new_sym);
     return new_tsr;
   }
 
@@ -439,8 +488,8 @@ namespace CTF {
     
     Tensor tsr = slice(offsets, ends, owrld);
 
-    CTF_int::cfree(offsets);
-    CTF_int::cfree(ends);
+    CTF_int::cdealloc(offsets);
+    CTF_int::cdealloc(ends);
 
     return tsr;
   }
@@ -664,10 +713,10 @@ namespace CTF {
     name = A.name;
 
     if (sym != NULL)
-      CTF_int::cfree(sym);
+      CTF_int::cdealloc(sym);
     if (len != NULL)
-      CTF_int::cfree(len);
-      //CTF_int::cfree(len);
+      CTF_int::cdealloc(len);
+      //CTF_int::cdealloc(len);
     ret = CTF_int::tensor::info(&A, &order, &len, &sym);
     assert(ret == CTF_int::SUCCESS);
 

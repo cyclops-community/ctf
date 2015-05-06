@@ -128,13 +128,13 @@ namespace CTF_int {
 
   void distribution::free_data(){
     if (order != -1){
-      CTF_int::cfree(phase);
-      CTF_int::cfree(virt_phase);
-      CTF_int::cfree(phys_phase);
-      CTF_int::cfree(pe_lda);
-      CTF_int::cfree(pad_edge_len);
-      CTF_int::cfree(padding);
-      CTF_int::cfree(perank);
+      CTF_int::cdealloc(phase);
+      CTF_int::cdealloc(virt_phase);
+      CTF_int::cdealloc(phys_phase);
+      CTF_int::cdealloc(pe_lda);
+      CTF_int::cdealloc(pad_edge_len);
+      CTF_int::cdealloc(padding);
+      CTF_int::cdealloc(perank);
     }
     order = -1;
   }
