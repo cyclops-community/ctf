@@ -8,16 +8,17 @@ namespace CTF_int {
   }
   
   template <typename dtype, void (*fxpy)(int, dtype const *, dtype *)>
-  void default_mxpy(void * X,
-                    void * Y,
-                    int    n){
-    fxpy(n, (dtype const*)X, (dtype *)Y);
+  void default_mxpy(void *         X,
+                    void *         Y,
+                    int *          n,
+                    MPI_Datatype * d){
+    fxpy(*n, (dtype const*)X, (dtype *)Y);
   }
 
   template <typename dtype>
-  void default_fxpy(int           n,
-                    dtype const * X,
-                    dtype *       Y){
+  void default_fxpy(int            n,
+                    dtype const *  X,
+                    dtype *        Y){
     for (int i=0; i<n; i++){
       Y[i] = X[i] + Y[i];
     }
@@ -55,7 +56,8 @@ namespace CTF_int {
   MPI_Op get_default_maddop(){
     //FIXME: assumes + operator commutes
     MPI_Op newop;
-    MPI_Op_create(&default_mxpy<dtype,default_fxpy<dtype>>, 1, &newop);
+//    default_mxpy<dtype,default_fxpy<dtype>>(NULL, NULL, 0);
+    MPI_Op_create(&default_mxpy< dtype, default_fxpy<dtype> >, 1, &newop);
     return newop;
   }
 
