@@ -69,8 +69,8 @@ namespace CTF {
         } else {
           Pair<dtype> * prs = (Pair<dtype>*)CTF_int::alloc(sizeof(Pair<dtype>)*n);
           for (int64_t i=0; i<n; i++){
-            prs[i].k = (int64_t*)(arr+i*(sizeof(int64_t)+sizeof(dtype)))[0];
-            prs[i].d = (dtype*)(arr+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype)))[0];
+            prs[i].k = ((int64_t*)(arr+i*(sizeof(int64_t)+sizeof(dtype))))[0];
+            prs[i].d = ((dtype*)(arr+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype))))[0];
           }
           CTF_int::cdealloc(arr);
           return prs;
@@ -89,8 +89,8 @@ namespace CTF {
         } else {
           char * prs = (char*)CTF_int::alloc((sizeof(dtype)+sizeof(int64_t))*n);
           for (int64_t i=0; i<n; i++){
-            (int64_t*)(prs+i*(sizeof(int64_t)+sizeof(dtype)))[0] = arr[i].k;
-            (dtype*)(prs+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype)))[0] = arr[i].d;
+            ((int64_t*)(prs+i*(sizeof(int64_t)+sizeof(dtype))))[0] = arr[i].k;
+            ((dtype*)(prs+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype))))[0] = arr[i].d;
           }
           CTF_int::cdealloc(arr);
           return prs;
@@ -109,8 +109,8 @@ namespace CTF {
         } else {
           char * prs = (char*)CTF_int::alloc((sizeof(dtype)+sizeof(int64_t))*n);
           for (int64_t i=0; i<n; i++){
-            (int64_t*)(prs+i*(sizeof(int64_t)+sizeof(dtype)))[0] = arr[i].k;
-            (dtype*)(prs+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype)))[0] = arr[i].d;
+            ((int64_t*)(prs+i*(sizeof(int64_t)+sizeof(dtype))))[0] = arr[i].k;
+            ((dtype*)(prs+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype))))[0] = arr[i].d;
           }
           return prs;
         }
