@@ -174,7 +174,7 @@ namespace CTF_int {
   void tensor::init(algstrct const * sr_,
                     int              order_,
                     int const *      edge_len,
-                    int const *      sym,
+                    int const *      sym_,
                     World *          wrld_,
                     bool             alloc_data,
                     char const *     name_,
@@ -217,7 +217,10 @@ namespace CTF_int {
     this->pad_edge_len = (int*)CTF_int::alloc(order*sizeof(int));
     memcpy(this->pad_edge_len, lens, order*sizeof(int));
     this->sym      = (int*)CTF_int::alloc(order*sizeof(int));
-    memcpy(this->sym, sym, order*sizeof(int));
+    if (sym_ == NULL)
+      std::fill(this->sym, this->sym+order, NS);
+    else
+      memcpy(this->sym, sym_, order*sizeof(int));
   
     this->sym_table = (int*)CTF_int::alloc(order*order*sizeof(int));
     memset(this->sym_table, 0, order*order*sizeof(int));
@@ -1772,7 +1775,46 @@ namespace CTF_int {
     return SUCCESS;
 
   }
-
+  
+  void tensor::repack(int const * new_sym){
+    bool has_chng=false, less_sym=false, more_sym=false;
+    for (int i=0; i<order; i++){
+      if (sym[i] != new_sym[i]){
+        has_chng = true;
+        if (sym[i] == NS){
+          assert(!less_sym); 
+          more_sym = true;
+        }
+        if (new_sym[i] == NS){
+          assert(!more_sym); 
+          less_sym = true;
+        }
+      }
+    }  
+    if (!has_chng) return;
+    if (less_sym){
+      tensor tcpy(this, true, true);
+      memcpy(sym, new_sym, order*sizeof(int));
+      int idx[order];
+      for (int j=0; j<order; j++){
+        idx[j] = j;
+      }
+      summation ts(&tcpy, idx, sr->mulid(), this, idx, sr->addid());
+      ts.execute();
+    } else if (more_sym){
+      tensor tcpy(this, true, true);
+      memcpy(sym, new_sym, order*sizeof(int));
+      int idx[order];
+      for (int j=0; j<order; j++){
+        idx[j] = j;
+      }
+      summation ts(&tcpy, idx, sr->mulid(), this, idx, sr->addid());
+      ts.sum_tensors(true);
+    } else {
+      memcpy(sym, new_sym, order*sizeof(int));
+      zero_out_padding();
+    }
+  }
 
 }
 

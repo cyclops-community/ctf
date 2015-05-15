@@ -189,6 +189,22 @@ namespace CTF {
              int                       profile=0);
 
       /**
+       * \brief defines a nonsymmetric tensor filled with zeros on a specified algstrct
+       * \param[in] order_ number of dimensions of tensor
+       * \param[in] len_ edge lengths of tensor
+       * \param[in] world_ a world for the tensor to live in
+       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       * \param[in] name_ an optionary name for the tensor
+       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       */
+      Tensor(int                       order,
+             int const *               len,
+             World &                   wrld,
+             CTF_int::algstrct const & sr=Ring<dtype,is_ord>(),
+             char const *              name=NULL,
+             int                       profile=0);
+
+      /**
        * \brief defines tensor filled with zeros on the default algstrct on a user-specified distributed layout
        * \param[in] order_ number of dimensions of tensor
        * \param[in] len_ edge lengths of tensor

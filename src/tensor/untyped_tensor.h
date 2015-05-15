@@ -537,6 +537,15 @@ namespace CTF_int {
                        int         rw,
                        tensor *&   new_tsr,
                        int **      idx_map_new);
+
+      /**
+       * \brief repacks the tensor to a different symmetry 
+       *        (assumes existing data contains the symmetry and keeps only values with indices in increasing order)
+       * WARN: LIMITATION: new_sym must cause unidirectional structural changes, i.e. {NS,NS}->{SY,NS} OK, {SY,NS}->{NS,NS} OK, {NS,NS,SY,NS}->{SY,NS,NS,NS} NOT OK!
+       * \param[in] new_sym new symmetry array (replaces this->sym)
+       */
+      void repack(int const * new_sym);
+
   };
 }
 

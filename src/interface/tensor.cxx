@@ -47,6 +47,16 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(int                       order,
                                 int const *               len,
+                                World &                   world,
+                                CTF_int::algstrct const & sr,
+                                char const *              name,
+                                int const                 profile)
+    : CTF_int::tensor(&sr, order, len, NULL, &world, 1, name, profile) {}
+
+
+  template<typename dtype, bool is_ord>
+  Tensor<dtype, is_ord>::Tensor(int                       order,
+                                int const *               len,
                                 int const *               sym,
                                 World &                   world,
                                 char const *              idx,
