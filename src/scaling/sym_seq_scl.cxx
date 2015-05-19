@@ -35,10 +35,11 @@ namespace CTF_int {
                       int const *      sym_A,
                       int const *      idx_map_A){
     TAU_FSTART(sym_seq_sum_ref);
-    int idx, i, idx_max, imin, imax, idx_A, iA, j, k;
-    int off_idx, off_lda, sym_pass;
+    int idx, i, idx_max, imin, imax, iA, j, k;
+    int off_idx, sym_pass;
     int * idx_glb, * rev_idx_map;
     int * dlen_A;
+    int64_t idx_A, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             &idx_max,     &rev_idx_map);
@@ -100,10 +101,11 @@ namespace CTF_int {
                        int const *      idx_map_A,
                        endomorphism     func){
     TAU_FSTART(sym_seq_sum_cust)
-    int idx, i, idx_max, imin, imax, idx_A, iA, j, k;
-    int off_idx, off_lda, sym_pass;
+    int idx, i, idx_max, imin, imax, iA, j, k;
+    int off_idx, sym_pass;
     int * idx_glb, * rev_idx_map;
     int * dlen_A;
+    int64_t idx_A, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             &idx_max,     &rev_idx_map);

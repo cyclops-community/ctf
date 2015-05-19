@@ -389,9 +389,9 @@ namespace CTF_int {
     #pragma omp parallel
     #endif
     {
-      int i, act_lda, act_max, buf_offset, curr_idx, sym_idx;
+      int i, act_lda, act_max, curr_idx, sym_idx;
       int is_outside;
-      int64_t p;
+      int64_t p, buf_offset;
       int * idx, * virt_rank, * phase_rank, * virt_len;
       char * data;
 

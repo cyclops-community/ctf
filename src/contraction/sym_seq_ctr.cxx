@@ -28,10 +28,11 @@ namespace CTF_int{
                       int const *      sym_C,
                       int const *      idx_map_C){
     TAU_FSTART(sym_seq_ctr_ref);
-    int idx, i, idx_max, imin, imax, sz, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
-    int off_idx, off_lda, sym_pass;
+    int idx, i, idx_max, imin, imax, sz, iA, iB, iC, j, k;
+    int off_idx, sym_pass;
     int * idx_glb, * rev_idx_map;
     int * dlen_A, * dlen_B, * dlen_C;
+    int64_t idx_A, idx_B, idx_C, off_lda;
 
     inv_idx(order_A,  idx_map_A,
             order_B,  idx_map_B,
@@ -152,11 +153,12 @@ namespace CTF_int{
                        int const *      idx_map_C,
                        bivar_function * func){
     TAU_FSTART(sym_seq_ctr_cust);
-    int idx, i, idx_max, imin, imax, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
-    int off_idx, off_lda, sym_pass;
+    int idx, i, idx_max, imin, imax, iA, iB, iC, j, k;
+    int off_idx, sym_pass;
     int * idx_glb, * rev_idx_map;
     int * dlen_A, * dlen_B, * dlen_C;
     //int64_t sz;
+    int64_t idx_A, idx_B, idx_C, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
@@ -283,10 +285,11 @@ namespace CTF_int{
                       int const *      idx_map_C,
                       iparam const *   prm){
     TAU_FSTART(sym_seq_ctr_inner);
-    int idx, i, idx_max, imin, imax, idx_A, idx_B, idx_C, iA, iB, iC, j, k;
-    int off_idx, off_lda, sym_pass, stride_A, stride_B, stride_C;
+    int idx, i, idx_max, imin, imax, iA, iB, iC, j, k;
+    int off_idx, sym_pass, stride_A, stride_B, stride_C;
     int * idx_glb, * rev_idx_map;
     int * dlen_A, * dlen_B, * dlen_C;
+    int64_t idx_A, idx_B, idx_C, off_lda;
 
     stride_A = prm->m*prm->k;
     stride_B = prm->k*prm->n;

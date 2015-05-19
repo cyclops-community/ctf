@@ -76,7 +76,9 @@ namespace CTF_int {
     char d[] = "\'";
     strcpy(nname, other->name);
     strcat(nname, d);
-    DPRINTF(1,"Cloning tensor %s into %s copy=%d alloc_data=%d\n",other->name, nname,copy, alloc_data);
+    if (other->wrld->rank == 0) {
+      DPRINTF(1,"Cloning tensor %s into %s copy=%d alloc_data=%d\n",other->name, nname,copy, alloc_data);
+    }
     this->init(other->sr, other->order, other->lens,
                other->sym, other->wrld, (!copy & alloc_data), nname,
                other->profile);
@@ -168,6 +170,10 @@ namespace CTF_int {
     if (other->is_mapped)
       copy_mapping(other->order, other->edge_map, this->edge_map);
     this->size = other->size;
+#if DEBUG>= 1
+    if (wrld->rank == 0)
+      printf("New tensor %s copied from %s of size %ld elms (%ld bytes):\n",name, other->name, this->size,this->size*sr->el_size);
+#endif
 
   }
 
@@ -431,9 +437,9 @@ namespace CTF_int {
 #else
         CTF_int::mst_alloc_ptr(this->size*sr->el_size, (void**)&this->data);
 #endif
-#if DEBUG > 2
+#if DEBUG >= 2
         if (wrld->rank == 0)
-          printf("New tensor %s defined:\n",name);
+          printf("New tensor %s defined of size %ld elms (%ld bytes):\n",name, this->size,this->size*sr->el_size);
         this->print_map(stdout);
 #endif
         sr->set(this->data, sr->addid(), this->size);
@@ -1563,10 +1569,12 @@ namespace CTF_int {
       }
     }
   #if DEBUG >=1
-    if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",this->name);
-    else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",this->name);
+    if (wrld->cdt.rank == 0){
+      if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle\n",this->name);
+      else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle\n",this->name);
+    }
     this->print_map(stdout);
-#endif
+  #endif
 
 #if VERIFY_REMAP
     padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data_corr, sr, wrld->cdt);
