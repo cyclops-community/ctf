@@ -49,9 +49,9 @@ int multi_tsr_sym(int     m,
   double err = diff.norm2();
   if (rank == 0){
     if (err < 1.E-6)
-      printf("{ A[\"ik\"]*A[\"jk\"] = C_NS[\"ij\"] = C_AS[\"ij\"] passed.\n");
+      printf("{ A[\"ik\"]*A[\"jk\"] = C_NS[\"ij\"] = C_AS[\"ij\"] } passed.\n");
     else 
-      printf("{ A[\"ik\"]*A[\"jk\"] = C_NS[\"ij\"] = C_AS[\"ij\"] failed!\n");
+      printf("{ A[\"ik\"]*A[\"jk\"] = C_NS[\"ij\"] = C_AS[\"ij\"] } failed!\n");
   }
 
   return err < 1.E-6;

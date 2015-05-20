@@ -67,10 +67,10 @@ int readall_test(int   n,
 
   if (pass){
     if (rank == 0)
-      printf("{sum(ai)A[\"aiai\"]=sum(ai)mA[\"ai\"]} passed \n");
+      printf("{ sum(ai)A[\"aiai\"]=sum(ai)mA[\"ai\"] } passed \n");
   } else {
     if (rank == 0)
-      printf("{sum(ai)A[\"aiai\"]=sum(ai)mA[\"ai\"]} failed \n");
+      printf("{ sum(ai)A[\"aiai\"]=sum(ai)mA[\"ai\"] } failed \n");
   }
   
 

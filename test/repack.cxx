@@ -47,7 +47,7 @@ int repack(int     n,
     pass = 0;
   
   if (!pass)
-    printf("{NS -> SY repack} failed \n");
+    printf("{ NS -> SY repack } failed \n");
   else {
     Tensor<> Anur(As, shapeN4);
     Tensor<> Asur(As, shapeN4);
@@ -60,11 +60,11 @@ int repack(int     n,
     if (norm < 1.E-6){
       pass = 1;
       if (rank == 0)
-        printf("{NS -> SY -> NS repack} passed \n");
+        printf("{ NS -> SY -> NS repack } passed \n");
     } else {
       pass = 0;
       if (rank == 0)
-        printf("{SY -> NS repack} failed \n");
+        printf("{ SY -> NS repack } failed \n");
     }
 
   }
