@@ -38,19 +38,25 @@ int sy_times_ns(int     n,
 
   A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  A.write(np, indices, pairs);
+//  A.write(np, indices, pairs);
   free(pairs);
   free(indices);
   B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  B.write(np, indices, pairs);
+//  B.write(np, indices, pairs);
+  free(pairs);
+  free(indices);
+  C.read_local(&np, &indices, &pairs);
+  for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
+  C.write(np, indices, pairs);
   free(pairs);
   free(indices);
 
   An["ij"] = A["ij"];
+  Cn["ij"] = C["ij"];
 
-  C["ij"] = A["ij"]*B["ijkl"];
-  Cn["ij"] = An["ij"]*B["ijkl"];
+  C["ij"] += A["ij"]*B["ijkl"];
+  Cn["ij"] += An["ij"]*B["ijkl"];
   Cn["ji"] += An["ij"]*B["ijkl"];
 
 
