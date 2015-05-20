@@ -1307,10 +1307,16 @@ namespace CTF_int {
     if (nnew_sum != NULL && sidx != -1){
       if(sidx%2 == 0){
         new_sum->A = new tensor(A, 0, 0);
-        new_sum->A->sym[sidx/2] = NS;
+        int nA_sym[A->order];
+        memcpy(nA_sym, new_sum->A->sym, sizeof(int)*new_sum->A->order);
+        nA_sym[sidx/2] = NS;
+        new_sum->A->set_sym(nA_sym);
       } else {
         new_sum->B = new tensor(B, 0, 0);
-        new_sum->B->sym[sidx/2] = NS;
+        int nB_sym[B->order];
+        memcpy(nB_sym, new_sum->B->sym, sizeof(int)*new_sum->B->order);
+        nB_sym[sidx/2] = NS;
+        new_sum->B->set_sym(nB_sym);
       }
     }
     CTF_int::cdealloc(idx_arr);

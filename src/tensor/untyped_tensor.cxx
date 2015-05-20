@@ -91,6 +91,56 @@ namespace CTF_int {
     } else data = NULL;
 
   }
+ 
+  tensor::tensor(tensor * other, int const * new_sym){
+    char * nname = (char*)alloc(strlen(other->name) + 2);
+    char d[] = "\'";
+    strcpy(nname, other->name);
+    strcat(nname, d);
+    if (other->wrld->rank == 0) {
+      DPRINTF(1,"Repacking tensor %s into %s\n",other->name);
+    }
+
+    bool has_chng=false, less_sym=false, more_sym=false;
+    for (int i=0; i<other->order; i++){
+      if (other->sym[i] != new_sym[i]){
+        has_chng = true;
+        if (other->sym[i] == NS){
+          assert(!less_sym); 
+          more_sym = true;
+        }
+        if (new_sym[i] == NS){
+          assert(!more_sym); 
+          less_sym = true;
+        }
+      }
+    }
+  
+    this->has_zero_edge_len = other->has_zero_edge_len;
+
+  
+    if (!less_sym && !more_sym){
+      this->init(other->sr, other->order, other->lens,
+                 new_sym, other->wrld, 0, nname,
+                 other->profile);
+      copy_tensor_data(other);
+      if (has_chng)
+        zero_out_padding();
+    } else {
+      this->init(other->sr, other->order, other->lens,
+                 new_sym, other->wrld, 1, nname,
+                 other->profile);
+      int idx[order];
+      for (int j=0; j<order; j++){
+        idx[j] = j;
+      }
+      summation ts(other, idx, sr->mulid(), this, idx, sr->addid());
+      ts.sum_tensors(true);
+    }
+    cdealloc(nname);
+  }
+
+
 
   void tensor::copy_tensor_data(tensor const * other){
     //FIXME: do not unfold
@@ -163,7 +213,6 @@ namespace CTF_int {
     memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int)*other->order);
     memcpy(this->padding, other->padding, sizeof(int)*other->order);
     memcpy(this->sym, other->sym, sizeof(int)*other->order);
-    memcpy(this->sym_table, other->sym_table, sizeof(int)*other->order*other->order);
     this->is_mapped = other->is_mapped;
     this->is_cyclic = other->is_cyclic;
     this->topo      = other->topo;
@@ -223,13 +272,8 @@ namespace CTF_int {
     this->pad_edge_len = (int*)CTF_int::alloc(order*sizeof(int));
     memcpy(this->pad_edge_len, lens, order*sizeof(int));
     this->sym      = (int*)CTF_int::alloc(order*sizeof(int));
-    if (sym_ == NULL)
-      std::fill(this->sym, this->sym+order, NS);
-    else
-      memcpy(this->sym, sym_, order*sizeof(int));
-  
-    this->sym_table = (int*)CTF_int::alloc(order*order*sizeof(int));
-    memset(this->sym_table, 0, order*order*sizeof(int));
+    sym_table = (int*)CTF_int::alloc(order*order*sizeof(int));
+    this->set_sym (sym_);
     this->edge_map  = new mapping[order];
 
     /* initialize map array and symmetry table */
@@ -238,17 +282,17 @@ namespace CTF_int {
       this->edge_map[i].type       = NOT_MAPPED;
       this->edge_map[i].has_child  = 0;
       this->edge_map[i].np         = 1;
-      if (this->sym[i] != NS) {
+      /*if (this->sym[i] != NS) {
         //FIXME: keep track of capabilities of algberaic structure and add more robust property checking
-/*        if (this->sym[i] == AS && !sr->is_ring){ 
+        if (this->sym[i] == AS && !sr->is_ring){ 
           if (wrld->rank == 0){
             printf("CTF ERROR: It is illegal to define antisymmetric tensor must be defined on a ring, yet no additive inverse was provided for this algstrct (see algstrct constructor), aborting.\n");
           }
           ABORT;
-        }*/
+        }
         this->sym_table[(i+1)+i*order] = 1;
         this->sym_table[(i+1)*order+i] = 1;
-      }
+      }*/
     }
     /* Set tensor data to zero. */
     if (alloc_data){
@@ -451,9 +495,11 @@ namespace CTF_int {
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
       printf("printing mapping of %s\n",name);
-      printf("mapped to order %d topology with dims:",topo->order);
-      for (int dim=0; dim<topo->order; dim++){
-        printf(" %d ",topo->lens[dim]);
+      if (topo != NULL){
+        printf("mapped to order %d topology with dims:",topo->order);
+        for (int dim=0; dim<topo->order; dim++){
+          printf(" %d ",topo->lens[dim]);
+        }
       }
       printf("\nCTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
@@ -1783,46 +1829,20 @@ namespace CTF_int {
     return SUCCESS;
 
   }
-  
-  void tensor::repack(int const * new_sym){
-    bool has_chng=false, less_sym=false, more_sym=false;
+ 
+  void tensor::set_sym(int const * sym_){
+    if (sym_ == NULL)
+      std::fill(this->sym, this->sym+order, NS);
+    else
+      memcpy(this->sym, sym_, order*sizeof(int));
+ 
+    memset(sym_table, 0, order*order*sizeof(int));
     for (int i=0; i<order; i++){
-      if (sym[i] != new_sym[i]){
-        has_chng = true;
-        if (sym[i] == NS){
-          assert(!less_sym); 
-          more_sym = true;
-        }
-        if (new_sym[i] == NS){
-          assert(!more_sym); 
-          less_sym = true;
-        }
+      if (this->sym[i] != NS) {
+        sym_table[(i+1)+i*order] = 1;
+        sym_table[(i+1)*order+i] = 1;
       }
-    }  
-    if (!has_chng) return;
-    if (less_sym){
-      tensor tcpy(this, true, true);
-      memcpy(sym, new_sym, order*sizeof(int));
-      int idx[order];
-      for (int j=0; j<order; j++){
-        idx[j] = j;
-      }
-      summation ts(&tcpy, idx, sr->mulid(), this, idx, sr->addid());
-      ts.execute();
-    } else if (more_sym){
-      tensor tcpy(this, true, true);
-      memcpy(sym, new_sym, order*sizeof(int));
-      int idx[order];
-      for (int j=0; j<order; j++){
-        idx[j] = j;
-      }
-      summation ts(&tcpy, idx, sr->mulid(), this, idx, sr->addid());
-      ts.sum_tensors(true);
-    } else {
-      memcpy(sym, new_sym, order*sizeof(int));
-      zero_out_padding();
     }
   }
-
 }
 

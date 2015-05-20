@@ -285,7 +285,7 @@ namespace CTF_int {
         idx_map_B[i] = i;
       }
       
-      if (scal_diag){
+      if (0){//scal_diag){
         //FIXME: this is not robust when doing e.g. {SY, SY, SY, NS} -> {SY, NS, SY, NS}
         for (i=-num_sy_neg-1; i<num_sy; i++){
           if (i==-1) continue;

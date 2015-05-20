@@ -22,6 +22,8 @@
 #include "readall_test.cxx"
 #include "../examples/subworld_gemm.cxx"
 #include "multi_tsr_sym.cxx"
+#include "repack.cxx"
+#include "sy_times_ns.cxx"
 
 using namespace CTF;
 
@@ -152,9 +154,17 @@ int main(int argc, char ** argv){
       printf("Testing diagonal write with n = %d:\n",n);
     pass.push_back(readwrite_test(n, dw));
     
-  if (rank == 0)
+    if (rank == 0)
       printf("Testing readall test with n = %d m = %d:\n",n,n*n);
     pass.push_back(readall_test(n, n*n, dw));
+    
+    if (rank == 0)
+      printf("Testing repack with n = %d:\n",n);
+    pass.push_back(repack(n,dw));
+    
+    if (rank == 0)
+      printf("Testing SY times NS with n = %d:\n",n);
+    pass.push_back(sy_times_ns(n,dw));
 #if 0
     if (rank == 0)
       printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);

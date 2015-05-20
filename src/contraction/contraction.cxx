@@ -507,21 +507,28 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
 
+    int nA_sym[A->order];
+    if (new_contraction != NULL)
+      memcpy(nA_sym, nA->sym, sizeof(int)*nA->order);
     for (i=0; i<A->order; i++){
       if (A->sym[i] != NS){
         iA = idx_A[i];
         if (idx_arr[3*iA+1] != -1){
           if (B->sym[idx_arr[3*iA+1]] == NS ||
               idx_A[i+1] != idx_B[idx_arr[3*iA+1]+1]){
-            if (new_contraction != NULL)
-              nA->sym[i] = NS;
+            if (new_contraction != NULL){
+              nA_sym[i] = NS;
+              nA->set_sym(nA_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i;
           }
         } else {
           if (idx_arr[3*idx_A[i+1]+1] != -1){
-            if (new_contraction != NULL)
-              nA->sym[i] = NS;
+            if (new_contraction != NULL){
+              nA_sym[i] = NS;
+              nA->set_sym(nA_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i;
           }       
@@ -529,15 +536,19 @@ namespace CTF_int {
         if (idx_arr[3*iA+2] != -1){
           if (C->sym[idx_arr[3*iA+2]] == NS ||
               idx_A[i+1] != idx_C[idx_arr[3*iA+2]+1]){
-            if (new_contraction != NULL)
-              nA->sym[i] = NS;
+            if (new_contraction != NULL){
+              nA_sym[i] = NS;
+              nA->set_sym(nA_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i;
           }
         } else {
           if (idx_arr[3*idx_A[i+1]+2] != -1){
-            if (new_contraction != NULL)
-              nA->sym[i] = NS;
+            if (new_contraction != NULL){
+              nA_sym[i] = NS;
+              nA->set_sym(nA_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i;
           }       
@@ -546,21 +557,28 @@ namespace CTF_int {
     }
 
    
+    int nB_sym[B->order];
+    if (new_contraction != NULL)
+      memcpy(nB_sym, nB->sym, sizeof(int)*nB->order);
     for (i=0; i<B->order; i++){
       if (B->sym[i] != NS){
         iB = idx_B[i];
         if (idx_arr[3*iB+0] != -1){
           if (A->sym[idx_arr[3*iB+0]] == NS ||
               idx_B[i+1] != idx_A[idx_arr[3*iB+0]+1]){
-            if (new_contraction != NULL)
-              nB->sym[i] = NS;
+            if (new_contraction != NULL){
+              nB_sym[i] = NS;
+              nB->set_sym(nB_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i+1;
           }
         } else {
           if (idx_arr[3*idx_B[i+1]+0] != -1){
-            if (new_contraction != NULL)
-              nB->sym[i] = NS;
+            if (new_contraction != NULL){
+              nB_sym[i] = NS;
+              nB->set_sym(nB_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i+1;
           }       
@@ -568,15 +586,19 @@ namespace CTF_int {
         if (idx_arr[3*iB+2] != -1){
           if (C->sym[idx_arr[3*iB+2]] == NS || 
               idx_B[i+1] != idx_C[idx_arr[3*iB+2]+1]){
-            if (new_contraction != NULL)
-              nB->sym[i] = NS;
+            if (new_contraction != NULL){
+              nB_sym[i] = NS;
+              nB->set_sym(nB_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i+1;
           }
         } else {
           if (idx_arr[3*idx_B[i+1]+2] != -1){
-            if (new_contraction != NULL)
-              nB->sym[i] = NS;
+            if (new_contraction != NULL){
+              nB_sym[i] = NS;
+              nB->set_sym(nB_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i+1;
           }       
@@ -603,35 +625,46 @@ namespace CTF_int {
       }
     }
     if (!is_preserv){
+      int nC_sym[C->order];
+      if (new_contraction != NULL)
+        memcpy(nC_sym, nC->sym, sizeof(int)*nC->order);
       for (i=0; i<C->order; i++){
         if (C->sym[i] != NS){
           iC = idx_C[i];
           if (idx_arr[3*iC+1] != -1){
             if (B->sym[idx_arr[3*iC+1]] == NS ||
                 idx_C[i+1] != idx_B[idx_arr[3*iC+1]+1]){
-              if (new_contraction != NULL)
-                nC->sym[i] = NS;
+              if (new_contraction != NULL){
+                nC_sym[i] = NS;
+                nC->set_sym(nC_sym);
+              }
               CTF_int::cdealloc(idx_arr); 
               return 3*i+2;
             }
           } else if (idx_arr[3*idx_C[i+1]+1] != -1){
-            if (new_contraction != NULL)
-              nC->sym[i] = NS;
+            if (new_contraction != NULL){
+              nC_sym[i] = NS;
+              nC->set_sym(nC_sym);
+            }
             CTF_int::cdealloc(idx_arr); 
             return 3*i+2;
           }       
           if (idx_arr[3*iC+0] != -1){
             if (A->sym[idx_arr[3*iC+0]] == NS ||
                 idx_C[i+1] != idx_A[idx_arr[3*iC+0]+1]){
-              if (new_contraction != NULL)
-                nC->sym[i] = NS;
+              if (new_contraction != NULL){
+                nC_sym[i] = NS;
+                nC->set_sym(nC_sym);
+              }
               CTF_int::cdealloc(idx_arr); 
               return 3*i+2;
             }
           } else if (idx_arr[3*iC+0] == -1){
             if (idx_arr[3*idx_C[i+1]] != -1){
-              if (new_contraction != NULL)
-                nC->sym[i] = NS;
+              if (new_contraction != NULL){
+                nC_sym[i] = NS;
+                nC->set_sym(nC_sym);
+              }
               CTF_int::cdealloc(idx_arr); 
               return 3*i+2;
             }       
@@ -645,8 +678,10 @@ namespace CTF_int {
         iA2 = idx_A[i+1];
         if (idx_arr[3*iA+2] == -1 &&
             idx_arr[3*iA2+2] == -1){
-          if (new_contraction != NULL)
-            nA->sym[i] = NS;
+          if (new_contraction != NULL){
+            nA_sym[i] = NS;
+            nA->set_sym(nA_sym);
+          }
           CTF_int::cdealloc(idx_arr); 
           return 3*i;
         }
@@ -658,8 +693,10 @@ namespace CTF_int {
         iB2 = idx_B[i+1];
         if (idx_arr[3*iB+2] == -1 &&
             idx_arr[3*iB2+2] == -1){
-          if (new_contraction != NULL)
-            nB->sym[i] = NS;
+          if (new_contraction != NULL){
+            nB_sym[i] = NS;
+            nB->set_sym(nB_sym);
+          }
           CTF_int::cdealloc(idx_arr); 
           return 3*i+1;
         }
@@ -1487,8 +1524,10 @@ namespace CTF_int {
     tC->topo = topo;
     
     /* Map the weigh indices of A, B, and C*/
-    ret = map_weigh_indices(idx_arr, idx_weigh, num_tot, num_weigh, topo, tA, tB, tC);
+
+
     int stat;
+    ret = map_weigh_indices(idx_arr, idx_weigh, num_tot, num_weigh, topo, tA, tB, tC);
     do {
       if (ret == NEGATIVE) {
         stat = ret;

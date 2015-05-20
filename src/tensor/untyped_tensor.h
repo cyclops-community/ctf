@@ -135,15 +135,6 @@ namespace CTF_int {
 
       /** \brief destructor */
       void free_self();
-
-      /**
-       * \brief creates tensor copy, unfolds other if other is folded
-       * \param[in] other tensor to copy
-       * \param[in] copy whether to copy mapping and data
-       * \param[in] alloc_data whether th allocate data
-       */
-      tensor(tensor const * other, bool copy = 1, bool alloc_data = 1);
-
       /**
        * \brief defines a tensor object with some mapping (if alloc_data)
        * \param[in] sr defines the tensor arithmetic for this tensor
@@ -162,6 +153,23 @@ namespace CTF_int {
              bool             alloc_data=false,
              char const *     name=NULL,
              bool             profile=1);
+
+      /**
+       * \brief creates tensor copy, unfolds other if other is folded
+       * \param[in] other tensor to copy
+       * \param[in] copy whether to copy mapping and data
+       * \param[in] alloc_data whether th allocate data
+       */
+      tensor(tensor const * other, bool copy = 1, bool alloc_data = 1);
+
+      /**
+       * \brief repacks the tensor other to a different symmetry 
+       *        (assumes existing data contains the symmetry and keeps only values with indices in increasing order)
+       * WARN: LIMITATION: new_sym must cause unidirectional structural changes, i.e. {NS,NS}->{SY,NS} OK, {SY,NS}->{NS,NS} OK, {NS,NS,SY,NS}->{SY,NS,NS,NS} NOT OK!
+       * \param[in] other tensor to copy
+       * \param[in] new_sym new symmetry array (replaces this->sym)
+       */
+      tensor(tensor * other, int const * new_sym);
 
       /**
        * \brief compute the cyclic phase of each tensor dimension
@@ -538,14 +546,10 @@ namespace CTF_int {
                        tensor *&   new_tsr,
                        int **      idx_map_new);
 
-      /**
-       * \brief repacks the tensor to a different symmetry 
-       *        (assumes existing data contains the symmetry and keeps only values with indices in increasing order)
-       * WARN: LIMITATION: new_sym must cause unidirectional structural changes, i.e. {NS,NS}->{SY,NS} OK, {SY,NS}->{NS,NS} OK, {NS,NS,SY,NS}->{SY,NS,NS,NS} NOT OK!
-       * \param[in] new_sym new symmetry array (replaces this->sym)
-       */
-      void repack(int const * new_sym);
-
+      /** \brief sets symmetry, WARNING: for internal use only !!!!
+        * \param[in] sym
+        */
+      void set_sym(int const * sym); 
   };
 }
 

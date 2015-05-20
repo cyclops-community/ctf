@@ -137,22 +137,6 @@ namespace CTF {
       Tensor();
 
       /**
-       * \brief copies a tensor (setting data to zero or copying A)
-       * \param[in] A tensor to copy
-       * \param[in] copy whether to copy the data of A into the new tensor
-       */
-      Tensor(tensor const & A,
-             bool           copy = true);
-      
-      /**
-       * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
-       * \param[in] A tensor whose characteristics to copy
-       * \param[in] world_ a world for the tensor we are creating to live in, can be different from A
-       */
-      Tensor(tensor const & A,
-             World &        wrld);
-
-      /**
        * \brief defines tensor filled with zeros on the default algstrct
        * \param[in] order_ number of dimensions of tensor
        * \param[in] len_ edge lengths of tensor
@@ -203,6 +187,35 @@ namespace CTF {
              CTF_int::algstrct const & sr=Ring<dtype,is_ord>(),
              char const *              name=NULL,
              int                       profile=0);
+
+
+      /**
+       * \brief copies a tensor (setting data to zero or copying A)
+       * \param[in] A tensor to copy
+       * \param[in] copy whether to copy the data of A into the new tensor
+       */
+      Tensor(tensor const & A,
+             bool           copy = true);
+
+      /**
+       * \brief repacks the tensor other to a different symmetry 
+       *        (assumes existing data contains the symmetry and keeps only values with indices in increasing order)
+       * WARN: LIMITATION: new_sym must cause unidirectional structural changes, i.e. {NS,NS}->{SY,NS} OK, {SY,NS}->{NS,NS} OK, {NS,NS,SY,NS}->{SY,NS,NS,NS} NOT OK!
+       * \param[in] A tensor to copy
+       * \param[in] new_sym new symmetry array (replaces this->sym)
+       */
+      Tensor(tensor &    A,
+             int const * new_sym);
+      
+      /**
+       * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
+       * \param[in] A tensor whose characteristics to copy
+       * \param[in] world_ a world for the tensor we are creating to live in, can be different from A
+       */
+      Tensor(tensor const & A,
+             World &        wrld);
+
+
 
       /**
        * \brief defines tensor filled with zeros on the default algstrct on a user-specified distributed layout
