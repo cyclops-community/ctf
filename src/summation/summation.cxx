@@ -913,7 +913,9 @@ namespace CTF_int {
         for (i=0; i<B->order; i++){
           if (B->sym[i] == SY) sy = 1;
         }
-        if (sy && sidx%2 == 0){
+        int sidx2 = unfold_sum->unfold_broken_sym(NULL);
+        //if (sy && sidx%2 == 0){
+        if (sidx%2 == 0 && (sy || sidx2 != -1)){
           if (A->wrld->cdt.rank == 0)
             DPRINTF(1,"Performing index desymmetrization\n");
           desymmetrize(tnsr_A, unfold_sum->A, 0);
