@@ -122,6 +122,10 @@ namespace CTF_int {
         summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
         ssum.sum_tensors(0);
       }
+      /*printf("DESYMMETRIZED:\n");
+      sym_tsr->print();
+      printf("TO:\n");
+      nonsym_tsr->print();*/
 
       /*printf("SYM %s\n",sym_tsr->name);
       sym_tsr->print();

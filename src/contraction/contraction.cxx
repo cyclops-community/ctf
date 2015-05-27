@@ -3296,7 +3296,7 @@ namespace CTF_int {
             DPRINTF(1,"Performing index desymmetrization\n");
           unfold_ctr->alpha = align_alpha;
           stat = unfold_ctr->sym_contract();
-          if (tnsr_C->data != unfold_ctr->C->data && !tnsr_C->sr->isequal(tnsr_C->sr->mulid(), unfold_ctr->beta)){
+          if (!unfold_ctr->C->is_data_aliased && !tnsr_C->sr->isequal(tnsr_C->sr->mulid(), unfold_ctr->beta)){
             int sidx_C[tnsr_C->order];
             for (int iis=0; iis<tnsr_C->order; iis++){
               sidx_C[iis] = iis;
