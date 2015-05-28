@@ -1310,6 +1310,7 @@ namespace CTF_int {
         iA = idx_A[i];
         if (idx_arr[2*iA+1] != -1){
           if (B->sym[idx_arr[2*iA+1]] == NS ||
+              (B->sym[idx_arr[2*iA+1]] == AS ^ A->sym[i] == AS) ||
               idx_arr[2*idx_A[i+1]+1] == -1 ||
               idx_A[i+1] != idx_B[idx_arr[2*iA+1]+1]){
             sidx = 2*i;
@@ -1327,6 +1328,7 @@ namespace CTF_int {
           iB = idx_B[i];
           if (idx_arr[2*iB+0] != -1){
             if (A->sym[idx_arr[2*iB+0]] == NS ||
+                (A->sym[idx_arr[2*iB+0]] == AS ^ B->sym[i] == AS) ||
                 idx_arr[2*idx_B[i+1]+0] == -1 ||
                 idx_B[i+1] != idx_A[idx_arr[2*iB+0]+1]){
               sidx = 2*i+1;

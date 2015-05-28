@@ -110,6 +110,7 @@ namespace CTF {
 
 
       bool isequal(char const * a, char const * b) const {
+        if (a == NULL && b == NULL) return true;
         return ((dtype*)a)[0] == ((dtype*)b)[0];
       }
   };
