@@ -210,6 +210,13 @@ namespace CTF_int {
       int zero_out_padding();
 
       /**
+       * \brief scales each element by 1/(number of entries equivalent to it after permutation of indices for which sym_mask is 1)
+       * \param[in] identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
+       */
+      void scale_diagonals(int const * sym_mask);
+
+
+      /**
        * \brief displays mapping information
        * \param[in] stream output log (e.g. stdout)
        * \param[in] allcall (if 1 print only with proc 0)

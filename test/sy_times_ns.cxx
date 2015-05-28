@@ -67,11 +67,11 @@ int sy_times_ns(int     n,
   if (norm < 1.E-10){
     pass = 1;
     if (rank == 0)
-      printf("{ C[\(ij)\"]=A[\"(ij)\"]*B[\"ijkl\"] } passed \n");
+      printf("{ C[\"(ij)\"]=A[\"(ij)\"]*B[\"ijkl\"] } passed \n");
   } else {
     pass = 0;
     if (rank == 0)
-      printf("{ C[\(ij)\"]=A[\"(ij)\"]*B[\"ijkl\"] } failed \n");
+      printf("{ C[\"(ij)\"]=A[\"(ij)\"]*B[\"ijkl\"] } failed \n");
   }
   return pass;
 } 

@@ -1833,6 +1833,59 @@ namespace CTF_int {
 
   }
  
+  void tensor::scale_diagonals(int const * sym_mask){
+    int i, num_virt, idx_lyr;
+    int64_t np;
+    int * virt_phase, * virt_phys_rank, * phys_phase, * phase;
+    mapping * map;
+
+    TAU_FSTART(scale_diagonals);
+
+    this->unfold();
+    this->set_padding();
+
+
+    if (!this->is_mapped){
+      ASSERT(0);
+    } else {
+      np = this->size;
+
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&virt_phase);
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&phys_phase);
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&phase);
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&virt_phys_rank);
+
+
+      num_virt = 1;
+      idx_lyr = wrld->rank;
+      for (i=0; i<this->order; i++){
+        /* Calcute rank and phase arrays */
+        map               = this->edge_map + i;
+        phase[i]          = map->calc_phase();
+        phys_phase[i]     = map->calc_phys_phase();
+        virt_phase[i]     = phase[i]/phys_phase[i];
+        virt_phys_rank[i] = map->calc_phys_rank(topo);
+        num_virt          = num_virt*virt_phase[i];
+
+        if (map->type == PHYSICAL_MAP)
+          idx_lyr -= topo->lda[map->cdt]
+                                  *virt_phys_rank[i];
+      }
+      if (idx_lyr == 0){
+        scal_diag(this->order, np, num_virt,
+                  this->pad_edge_len, this->sym, this->padding,
+                  phase, phys_phase, virt_phase, virt_phys_rank, this->data, sr, sym_mask); 
+      } /*else {
+        std::fill(this->data, this->data+np, 0.0);
+      }*/
+      CTF_int::cdealloc(virt_phase);
+      CTF_int::cdealloc(phys_phase);
+      CTF_int::cdealloc(phase);
+      CTF_int::cdealloc(virt_phys_rank);
+    }
+    TAU_FSTOP(scale_diagonals);
+  }
+
   void tensor::set_sym(int const * sym_){
     if (sym_ == NULL)
       std::fill(this->sym, this->sym+order, NS);
@@ -1847,5 +1900,6 @@ namespace CTF_int {
       }
     }
   }
+
 }
 

@@ -514,7 +514,7 @@ namespace CTF_int {
       if (A->sym[i] != NS){
         iA = idx_A[i];
         if (idx_arr[3*iA+1] != -1){
-          if (B->sym[idx_arr[3*iA+1]] == NS ||
+          if (B->sym[idx_arr[3*iA+1]] != A->sym[i] ||
               idx_A[i+1] != idx_B[idx_arr[3*iA+1]+1]){
             if (new_contraction != NULL){
               nA_sym[i] = NS;
@@ -534,7 +534,7 @@ namespace CTF_int {
           }       
         }
         if (idx_arr[3*iA+2] != -1){
-          if (C->sym[idx_arr[3*iA+2]] == NS ||
+          if (C->sym[idx_arr[3*iA+2]] != A->sym[i] ||
               idx_A[i+1] != idx_C[idx_arr[3*iA+2]+1]){
             if (new_contraction != NULL){
               nA_sym[i] = NS;
@@ -564,7 +564,7 @@ namespace CTF_int {
       if (B->sym[i] != NS){
         iB = idx_B[i];
         if (idx_arr[3*iB+0] != -1){
-          if (A->sym[idx_arr[3*iB+0]] == NS ||
+          if (A->sym[idx_arr[3*iB+0]] != B->sym[i] ||
               idx_B[i+1] != idx_A[idx_arr[3*iB+0]+1]){
             if (new_contraction != NULL){
               nB_sym[i] = NS;
@@ -584,7 +584,7 @@ namespace CTF_int {
           }       
         }
         if (idx_arr[3*iB+2] != -1){
-          if (C->sym[idx_arr[3*iB+2]] == NS || 
+          if (C->sym[idx_arr[3*iB+2]] != B->sym[i] || 
               idx_B[i+1] != idx_C[idx_arr[3*iB+2]+1]){
             if (new_contraction != NULL){
               nB_sym[i] = NS;
@@ -632,7 +632,7 @@ namespace CTF_int {
         if (C->sym[i] != NS){
           iC = idx_C[i];
           if (idx_arr[3*iC+1] != -1){
-            if (B->sym[idx_arr[3*iC+1]] == NS ||
+            if (B->sym[idx_arr[3*iC+1]] != C->sym[i] ||
                 idx_C[i+1] != idx_B[idx_arr[3*iC+1]+1]){
               if (new_contraction != NULL){
                 nC_sym[i] = NS;
@@ -650,7 +650,7 @@ namespace CTF_int {
             return 3*i+2;
           }       
           if (idx_arr[3*iC+0] != -1){
-            if (A->sym[idx_arr[3*iC+0]] == NS ||
+            if (A->sym[idx_arr[3*iC+0]] != C->sym[i] ||
                 idx_C[i+1] != idx_A[idx_arr[3*iC+0]+1]){
               if (new_contraction != NULL){
                 nC_sym[i] = NS;
@@ -672,37 +672,6 @@ namespace CTF_int {
         }
       }
     }
-    for (i=0; i<A->order; i++){
-      if (A->sym[i] == SY){
-        iA = idx_A[i];
-        iA2 = idx_A[i+1];
-        if (idx_arr[3*iA+2] == -1 &&
-            idx_arr[3*iA2+2] == -1){
-          if (new_contraction != NULL){
-            nA_sym[i] = NS;
-            nA->set_sym(nA_sym);
-          }
-          CTF_int::cdealloc(idx_arr); 
-          return 3*i;
-        }
-      }
-    }
-    for (i=0; i<B->order; i++){
-      if (B->sym[i] == SY){
-        iB = idx_B[i];
-        iB2 = idx_B[i+1];
-        if (idx_arr[3*iB+2] == -1 &&
-            idx_arr[3*iB2+2] == -1){
-          if (new_contraction != NULL){
-            nB_sym[i] = NS;
-            nB->set_sym(nB_sym);
-          }
-          CTF_int::cdealloc(idx_arr); 
-          return 3*i+1;
-        }
-      }
-    }
-
     CTF_int::cdealloc(idx_arr);
     return -1;
   }
@@ -2829,7 +2798,6 @@ namespace CTF_int {
     ctrseq->sym_C      = new_sym_C;
 
     hctr->beta = this->beta;
-    C->sr->isequal(hctr->beta, C->sr->mulid());
     hctr->A    = A->data;
     hctr->B    = B->data;
     hctr->C    = C->data;
@@ -2918,6 +2886,8 @@ namespace CTF_int {
   #endif
 
     TAU_FSTART(contract);
+
+    prescale_operands();
   #if 0 //VERIFY
     int64_t nsA, nsB;
     int64_t nA, nB, nC, up_nC;
@@ -3271,9 +3241,8 @@ namespace CTF_int {
 
         contraction * unfold_ctr;
         new_ctr.unfold_broken_sym(&unfold_ctr);
-  #if PERFORM_DESYM
         if (unfold_ctr->map(&ctrf, 0) == SUCCESS){
-  #else
+/*  #else
         int sy = 0;
         for (i=0; i<A->order; i++){
           if (A->sym[i] == SY) sy = 1;
@@ -3284,8 +3253,8 @@ namespace CTF_int {
         for (i=0; i<C->order; i++){
           if (C->sym[i] == SY) sy = 1;
         }
-        if (sy && unfold_ctr->map(&ctrf, 0) == SUCCESS){
-  #endif
+        if (sy && unfold_ctr->map(&ctrf, 0) == SUCCESS)
+  #endifi*/
           if (tnsr_A == tnsr_B){
             tnsr_A = new tensor(tnsr_B);
           }
@@ -3684,6 +3653,182 @@ namespace CTF_int {
     return 1;
   }
 
+  bool contraction::need_prescale_operands(){
+    int num_tot, * idx_arr;
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    tensor * T, * V;
+    int fT, fV;
+    int * idx_T, * idx_V;
+    if (A->size <= B->size){ 
+      T = A;
+      V = B;
+      fT = 0;
+      fV = 1;
+      idx_T = idx_A;
+      idx_V = idx_B;
+    } else {
+      T = B;
+      V = A;
+      fT = 1;
+      fV = 0;
+      idx_T = idx_B;
+      idx_V = idx_A;
+    }
+    for (int iT=0; iT<T->order; iT++){
+      int i = idx_T[iT];
+      int iV = idx_arr[3*i+fV];
+      int iiV = iV;
+      int iiC = idx_arr[3*i+2];
+      ASSERT(iT == idx_arr[3*i+fT]);
+      int npres = 0;
+      while (T->sym[iT+npres] == SY && iiC == -1 &&
+              ( (iV == -1 && iiV == -1) || 
+                (iV != -1 && iiV != -1 && V->sym[iiV] == SY)
+              )
+            ){
+        npres++;
+        int ii = idx_T[iT+npres];
+        iiV = idx_arr[3*ii+fV];
+        iiC = idx_arr[3*ii+2];
+      }
+      if (T->sym[iT+npres] == NS){ 
+        if (iiC == -1 &&
+            ( (iV == -1 && iiV == -1) || 
+              (iV != -1 && iiV != -1 && V->sym[iiV] == NS)
+            ) )
+          npres++;
+      }
+      
+      if (npres > 1)
+        return true;
+    }
+
+    for (int iV=0; iV<V->order; iV++){
+      int i = idx_V[iV];
+      int iiT = idx_arr[3*i+fT];
+      int iiC = idx_arr[3*i+2];
+      ASSERT(iV == idx_arr[3*i+fV]);
+      int npres = 0;
+      while (V->sym[iV+npres] == SY && iiC == -1 && iiT == -1){
+        npres++;
+        int ii = idx_V[iV+npres];
+        iiT = idx_arr[3*ii+fT];
+        iiC = idx_arr[3*i+2];
+      }
+      if (V->sym[iV+npres] == NS && iiC == -1 && iiT == -1){
+        npres++;
+      }
+      if (npres > 1)
+        return true;
+    }
+    return false;
+  }
+
+  void contraction::prescale_operands(){
+    int num_tot, * idx_arr;
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    tensor * T, * V;
+    int fT, fV;
+    int * idx_T, * idx_V;
+    if (A->size <= B->size){ 
+      T = A;
+      V = B;
+      fT = 0;
+      fV = 1;
+      idx_T = idx_A;
+      idx_V = idx_B;
+    } else {
+      T = B;
+      V = A;
+      fT = 1;
+      fV = 0;
+      idx_T = idx_B;
+      idx_V = idx_A;
+    }
+    for (int iT=0; iT<T->order; iT++){
+      int i = idx_T[iT];
+      int iV = idx_arr[3*i+fV];
+      int iiV = iV;
+      int iiC = idx_arr[3*i+2];
+      ASSERT(iT == idx_arr[3*i+fT]);
+      int npres = 0;
+      while (T->sym[iT+npres] == SY && iiC == -1 &&
+              ( (iV == -1 && iiV == -1) || 
+                (iV != -1 && iiV != -1 && V->sym[iiV] == SY)
+              )
+            ){
+        npres++;
+        int ii = idx_T[iT+npres];
+        iiV = idx_arr[3*ii+fV];
+        iiC = idx_arr[3*ii+2];
+      }
+      if (T->sym[iT+npres] == NS){ 
+        if (iiC == -1 &&
+            ( (iV == -1 && iiV == -1) || 
+              (iV != -1 && iiV != -1 && V->sym[iiV] == NS)
+            ) )
+          npres++;
+      }
+      
+      if (npres > 1){
+        int sym_mask[T->order];
+        std::fill(sym_mask, sym_mask+T->order, 0);
+        std::fill(sym_mask+iT, sym_mask+iT+npres, 1);
+        /*for (int k=0; k<T->order; k++){
+          printf("sym_mask[%d]=%d\n",k,sym_mask[k]);
+        }*/
+        
+        if (T->is_home){
+          if (T->wrld->cdt.rank == 0)
+            DPRINTF(2,"Tensor %s leaving home\n", T->name);
+          T->data = (char*)CTF_int::mst_alloc(T->size*T->sr->el_size);
+          memcpy(T->data, T->home_buffer, T->size*T->sr->el_size);
+          T->is_home = 0;
+        }
+        T->scale_diagonals(sym_mask);
+      }
+      iT += std::max(npres-1, 0);
+    }
+
+    for (int iV=0; iV<V->order; iV++){
+      int i = idx_V[iV];
+      int iiT = idx_arr[3*i+fT];
+      int iiC = idx_arr[3*i+2];
+      ASSERT(iV == idx_arr[3*i+fV]);
+      int npres = 0;
+      while (V->sym[iV+npres] == SY && iiC == -1 && iiT == -1){
+        npres++;
+        int ii = idx_V[iV+npres];
+        iiT = idx_arr[3*ii+fT];
+        iiC = idx_arr[3*i+2];
+      }
+      if (V->sym[iV+npres] == NS && iiC == -1 && iiT == -1){
+        npres++;
+      }
+      if (V->is_home){
+        if (V->wrld->cdt.rank == 0)
+          DPRINTF(2,"Vensor %s leaving home\n", V->name);
+        V->data = (char*)CTF_int::mst_alloc(V->size*V->sr->el_size);
+        memcpy(V->data, V->home_buffer, V->size*V->sr->el_size);
+        V->is_home = 0;
+      }
+
+      if (npres > 1){
+        int sym_mask[V->order];
+        std::fill(sym_mask, sym_mask+V->order, 0);
+        std::fill(sym_mask+iV, sym_mask+iV+npres, 1);
+        V->scale_diagonals(sym_mask);
+      }
+      iV += std::max(npres-1, 0);
+    }
+  }
+
   void contraction::print(){
     int i,j,max,ex_A, ex_B,ex_C;
     max = A->order+B->order+C->order;
@@ -3700,7 +3845,7 @@ namespace CTF_int {
       }
 
       printf("Contraction index table:\n");
-      printf("     A     B     C\n");
+      printf("     A      B      C\n");
       for (i=0; i<max; i++){
         ex_A=0;
         ex_B=0;
@@ -3710,47 +3855,47 @@ namespace CTF_int {
           if (idx_A[j] == i){
             ex_A++;
             if (A->sym[j] == SY)
-              printf("%dY ",j);
+              printf("%dSY ",j);
             else if (A->sym[j] == SH)
-              printf("%dH ",j);
+              printf("%dSH ",j);
             else if (A->sym[j] == AS)
-              printf("%dS ",j);
+              printf("%dAS ",j);
             else
-              printf("%d  ",j);
+              printf("%d   ",j);
           }
         }
         if (ex_A == 0)
-          printf("      ");
+          printf("       ");
         if (ex_A == 1)
-          printf("   ");
+          printf("    ");
         for (j=0; j<B->order; j++){
           if (idx_B[j] == i){
             ex_B=1;
             if (B->sym[j] == SY)
-              printf("%dY ",j);
+              printf("%dSY ",j);
             else if (B->sym[j] == SH)
-              printf("%dH ",j);
+              printf("%dSH ",j);
             else if (B->sym[j] == AS)
-              printf("%dS ",j);
+              printf("%dAS ",j);
             else
-              printf("%d  ",j);
+              printf("%d   ",j);
           }
         }
         if (ex_B == 0)
-          printf("      ");
+          printf("       ");
         if (ex_B == 1)
-          printf("   ");
+          printf("    ");
         for (j=0; j<C->order; j++){
           if (idx_C[j] == i){
             ex_C=1;
             if (C->sym[j] == SY)
-              printf("%dY ",j);
+              printf("%dSY ",j);
             else if (C->sym[j] == SH)
-              printf("%dH ",j);
+              printf("%dSH ",j);
             else if (C->sym[j] == AS)
-              printf("%dS ",j);
+              printf("%dAS ",j);
             else
-              printf("%d ",j);
+              printf("%d  ",j);
           }
         }
         printf("\n");

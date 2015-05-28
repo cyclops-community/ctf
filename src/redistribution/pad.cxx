@@ -562,4 +562,200 @@ namespace CTF_int {
     }
     TAU_FSTOP(zero_padding);
   }
+
+  void scal_diag(int              order,
+                 int64_t          size,
+                 int              nvirt,
+                 int const *      edge_len,
+                 int const *      sym,
+                 int const *      padding,
+                 int const *      phase,
+                 int const *      phys_phase,
+                 int const *      virt_phase,
+                 int const *      cphase_rank,
+                 char *           vdata,
+                 algstrct const * sr,
+                 int const *      sym_mask){
+    TAU_FSTART(scal_diag);
+    #ifdef USE_OMP
+    #pragma omp parallel
+    #endif
+    {
+      int i, act_lda, act_max, curr_idx, sym_idx;
+      int perm_factor;
+      int64_t p, buf_offset;
+      int * idx, * virt_rank, * phase_rank, * virt_len;
+      char * data;
+
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&phase_rank);
+      CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_len);
+      for (int dim=0; dim<order; dim++){
+        virt_len[dim] = edge_len[dim]/phase[dim];
+      }
+
+      memcpy(phase_rank, cphase_rank, order*sizeof(int));
+      memset(virt_rank, 0, sizeof(int)*order);
+
+      int tid, ntd, vst, vend;
+    #ifdef USE_OMP
+      tid = omp_get_thread_num();
+      ntd = omp_get_num_threads();
+    #else
+      tid = 0;
+      ntd = 1;
+    #endif
+
+      int * st_idx=NULL, * end_idx; 
+      int64_t st_index = 0;
+      int64_t end_index = size/nvirt;
+
+      if (ntd <= nvirt){
+        vst = (nvirt/ntd)*tid;
+        vst += MIN(nvirt%ntd,tid);
+        vend = vst+(nvirt/ntd);
+        if (tid < nvirt % ntd) vend++;
+      } else {
+        int64_t vrt_sz = size/nvirt;
+        int64_t chunk = size/ntd;
+        int64_t st_chunk = chunk*tid + MIN(tid,size%ntd);
+        int64_t end_chunk = st_chunk+chunk;
+        if (tid<(size%ntd))
+          end_chunk++;
+        vst = st_chunk/vrt_sz;
+        vend = end_chunk/vrt_sz;
+        if ((end_chunk%vrt_sz) > 0) vend++;
+        
+        st_index = st_chunk-vst*vrt_sz;
+        end_index = end_chunk-(vend-1)*vrt_sz;
+      
+        CTF_int::alloc_ptr(order*sizeof(int), (void**)&st_idx);
+        CTF_int::alloc_ptr(order*sizeof(int), (void**)&end_idx);
+
+        int * ssym;
+        CTF_int::alloc_ptr(order*sizeof(int), (void**)&ssym);
+        for (int dim=0;dim<order;dim++){
+          if (sym[dim] != NS) ssym[dim] = SY;
+          else ssym[dim] = NS;
+        }
+      
+        //calculate index with all indices, to properly load balance with symmetry
+        //then clip the first index to avoid logic inside the inner loop
+        calc_idx_arr(order, virt_len, ssym, st_index, st_idx);
+        calc_idx_arr(order, virt_len, ssym, end_index, end_idx);
+
+        CTF_int::cdealloc(ssym);
+
+        if (st_idx[0] != 0){
+          st_index -= st_idx[0];
+          st_idx[0] = 0;
+        }
+        if (end_idx[0] != 0){
+          end_index += virt_len[0]-end_idx[0];
+        }
+        CTF_int::cdealloc(end_idx);
+      }
+      ASSERT(tid != ntd-1 || vend == nvirt);
+      for (p=0; p<nvirt; p++){
+        if (p>=vst && p<vend){
+          int is_sh_pad0 = 0;
+          if (((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]) ||
+              ( sym[0] == SY                  && phase_rank[0] >  phase_rank[1]) ) {
+            is_sh_pad0 = 1;
+          }
+          int pad0 = (padding[0]+phase_rank[0])/phase[0];
+          int len0 = virt_len[0]-pad0;
+          int plen0 = virt_len[0];
+          data = vdata + sr->el_size*p*(size/nvirt);
+
+          if (p==vst && st_index != 0){
+            idx[0] = 0;
+            memcpy(idx+1,st_idx+1,(order-1)*sizeof(int));
+            buf_offset = st_index;
+          } else {
+            buf_offset = 0;
+            memset(idx, 0, order*sizeof(int));
+          }
+          
+          for (;;){
+            if (sym[0] != NS) plen0 = idx[1]+1;
+            perm_factor = 1;
+            for (i=1; i<order; i++){
+              if (sym_mask[i] == 1){
+                int curr_idx_i = idx[i]*phase[i]+phase_rank[i];
+                int iperm = 1;
+                for (int j=i+1; j<order; j++){
+                  if (sym_mask[j] == 1){
+                    int curr_idx_j = idx[j]*phase[j]+phase_rank[j];
+                    if (curr_idx_i == curr_idx_j) iperm++;
+                  }
+                }
+                perm_factor *= iperm;
+              } 
+            }
+            if (sym_mask[0] == 0){
+              if (perm_factor != 1){
+                char scal_fact[sr->el_size];
+                sr->cast_double(1./perm_factor, scal_fact);
+                sr->scal(plen0, scal_fact,data+buf_offset*sr->el_size, 1);
+              }
+            } else {
+              
+              if (perm_factor != 1){
+                char scal_fact[sr->el_size];
+                sr->cast_double(1./perm_factor, scal_fact);
+                sr->scal(idx[1]+1, scal_fact,data+buf_offset*sr->el_size, 1);
+              }
+              int curr_idx_0 = idx[1]*phase[0]+phase_rank[0];
+              int iperm = 1;
+              for (int j=1; j<order; j++){
+                if (sym_mask[j] == 1){
+                  int curr_idx_j = idx[j]*phase[j]+phase_rank[j];
+                  if (curr_idx_0 == curr_idx_j) iperm++;
+                }
+              }
+              char scal_fact2[sr->el_size];
+              sr->cast_double(1./iperm, scal_fact2);
+              sr->scal(1, scal_fact2, data+(buf_offset+idx[1])*sr->el_size, 1);
+            }
+            buf_offset+=plen0;
+            if (p == vend-1 && buf_offset >= end_index) break;
+            /* Increment indices and set up offsets */
+            for (i=1; i < order; i++){
+              idx[i]++;
+              act_max = virt_len[i];
+              if (sym[i] != NS){
+    //            sym_idx   = idx[i+1]*phase[i+1]+phase_rank[i+1];
+    //            act_max   = MIN(act_max,((sym_idx-phase_rank[i])/phase[i]+1));
+                act_max = MIN(act_max,idx[i+1]+1);
+              }
+              if (idx[i] >= act_max)
+                idx[i] = 0;
+              ASSERT(edge_len[i]%phase[i] == 0);
+              if (idx[i] > 0)
+                break;
+            }
+            if (i >= order) break;
+          }
+        }
+        for (act_lda=0; act_lda < order; act_lda++){
+          phase_rank[act_lda] -= virt_rank[act_lda]*phys_phase[act_lda];
+          virt_rank[act_lda]++;
+          if (virt_rank[act_lda] >= virt_phase[act_lda])
+            virt_rank[act_lda] = 0;
+          phase_rank[act_lda] += virt_rank[act_lda]*phys_phase[act_lda];
+          if (virt_rank[act_lda] > 0)
+            break;
+        }
+      }
+      CTF_int::cdealloc(idx);
+      CTF_int::cdealloc(virt_rank);
+      CTF_int::cdealloc(virt_len);
+      CTF_int::cdealloc(phase_rank);
+      if (st_idx != NULL) CTF_int::cdealloc(st_idx);
+    }
+    TAU_FSTOP(scal_diag);
+  }
+
 }

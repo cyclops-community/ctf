@@ -112,6 +112,10 @@ namespace CTF_int {
   }
 
   void summation::execute(bool run_diag){
+#if DEBUG >= 2
+    if (A->wrld->cdt.rank == 0) printf("Summation::execute (head):\n");
+    print();
+#endif
     int stat = home_sum_tsr(run_diag);
     assert(stat == SUCCESS); 
   }
@@ -899,13 +903,13 @@ namespace CTF_int {
         }
       }
   
-      if (A->sym[0] == SY && B->sym[0] == AS){
+      /*if (A->sym[0] == SY && B->sym[0] == AS){
         print();
         ASSERT(0); 
-      }
+      }*/
       if (new_sum.unfold_broken_sym(NULL) != -1){
         if (A->wrld->cdt.rank == 0)
-          DPRINTF(1,"Contraction index is broken\n");
+          DPRINTF(1, "Permutational symmetry is broken\n");
   
         summation * unfold_sum;
         sidx = new_sum.unfold_broken_sym(&unfold_sum);
@@ -1339,6 +1343,7 @@ namespace CTF_int {
         }
       }
     }
+    //if we have e.g. b[""] = A["ij"] with SY A, symmetry preserved bu t need to account for diagonal, this just unpacks (FIXME: suboptimal)
     if (sidx == -1){
       for (i=0; i<A->order; i++){
         if (A->sym[i] == SY){

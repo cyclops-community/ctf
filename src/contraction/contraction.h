@@ -249,6 +249,16 @@ namespace CTF_int {
        */
       int home_contract();
 
+      /**
+       * \brief applies scaling factor to diagonals for symmetric groups that are contracted over
+       */
+      void prescale_operands();
+
+      /**
+       * \brief returns true if prescale_operands has real work to do
+       */
+      bool need_prescale_operands();
+
       /** \brief print contraction details */
       void print();
   };
