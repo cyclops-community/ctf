@@ -3709,8 +3709,12 @@ namespace CTF_int {
         for (j=0; j<A->order; j++){
           if (idx_A[j] == i){
             ex_A++;
-            if (A->sym[j] != NS)
-              printf("%d' ",j);
+            if (A->sym[j] == SY)
+              printf("%dY ",j);
+            else if (A->sym[j] == SH)
+              printf("%dH ",j);
+            else if (A->sym[j] == AS)
+              printf("%dS ",j);
             else
               printf("%d  ",j);
           }
@@ -3722,8 +3726,12 @@ namespace CTF_int {
         for (j=0; j<B->order; j++){
           if (idx_B[j] == i){
             ex_B=1;
-            if (B->sym[j] != NS)
-              printf("%d' ",j);
+            if (B->sym[j] == SY)
+              printf("%dY ",j);
+            else if (B->sym[j] == SH)
+              printf("%dH ",j);
+            else if (B->sym[j] == AS)
+              printf("%dS ",j);
             else
               printf("%d  ",j);
           }
@@ -3735,8 +3743,12 @@ namespace CTF_int {
         for (j=0; j<C->order; j++){
           if (idx_C[j] == i){
             ex_C=1;
-            if (C->sym[j] != NS)
-              printf("%d' ",j);
+            if (C->sym[j] == SY)
+              printf("%dY ",j);
+            else if (C->sym[j] == SH)
+              printf("%dH ",j);
+            else if (C->sym[j] == AS)
+              printf("%dS ",j);
             else
               printf("%d ",j);
           }

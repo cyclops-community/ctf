@@ -899,7 +899,10 @@ namespace CTF_int {
         }
       }
   
-  
+      if (A->sym[0] == SY && B->sym[0] == AS){
+        print();
+        ASSERT(0); 
+      }
       if (new_sum.unfold_broken_sym(NULL) != -1){
         if (A->wrld->cdt.rank == 0)
           DPRINTF(1,"Contraction index is broken\n");
@@ -1937,8 +1940,12 @@ namespace CTF_int {
         for (j=0; j<A->order; j++){
           if (idx_A[j] == i){
             ex_A++;
-            if (A->sym[j] != NS)
-              printf("%d' ",j);
+            if (A->sym[j] == SY)
+              printf("%dY ",j);
+            else if (A->sym[j] == SH)
+              printf("%dH ",j);
+            else if (A->sym[j] == AS)
+              printf("%dS ",j);
             else
               printf("%d  ",j);
           }
@@ -1950,8 +1957,12 @@ namespace CTF_int {
         for (j=0; j<B->order; j++){
           if (idx_B[j] == i){
             ex_B=1;
-            if (B->sym[j] != NS)
-              printf("%d' ",j);
+            if (B->sym[j] == SY)
+              printf("%dY ",j);
+            else if (B->sym[j] == SH)
+              printf("%dH ",j);
+            else if (B->sym[j] == AS)
+              printf("%dS ",j);
             else
               printf("%d  ",j);
           }

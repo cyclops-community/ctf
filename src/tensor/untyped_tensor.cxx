@@ -104,6 +104,9 @@ namespace CTF_int {
     bool has_chng=false, less_sym=false, more_sym=false;
     for (int i=0; i<other->order; i++){
       if (other->sym[i] != new_sym[i]){
+        if (other->wrld->rank == 0) {
+          DPRINTF(1,"sym[%d] was %d now %d\n",i,other->sym[i],new_sym[i]);
+        }
         has_chng = true;
         if (other->sym[i] == NS){
           assert(!less_sym); 
