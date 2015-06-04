@@ -799,9 +799,9 @@ namespace CTF_int {
     std::vector<summation> perm_types;
     std::vector<int> signs;
     char const * dbeta;
-  //#if (DEBUG >= 1 || VERBOSE >= 1)
-  //  print_sum(type,alpha_,beta);
-  //#endif
+  #if (DEBUG >= 2 || VERBOSE >= 1)
+    print();
+  #endif
     check_consistency();
 
     A->unfold();
@@ -915,20 +915,16 @@ namespace CTF_int {
         sidx = new_sum.unfold_broken_sym(&unfold_sum);
         int sy;
         sy = 0;
-        for (i=0; i<A->order; i++){
-          if (A->sym[i] == SY) sy = 1;
-        }
-        for (i=0; i<B->order; i++){
-          if (B->sym[i] == SY) sy = 1;
-        }
         int sidx2 = unfold_sum->unfold_broken_sym(NULL);
+        if (sidx%2 == 0 && (A->sym[sidx/2] == SY || unfold_sum->A->sym[sidx/2] == SY)) sy = 1;
+        if (sidx%2 == 1 && (B->sym[sidx/2] == SY || unfold_sum->B->sym[sidx/2] == SY)) sy = 1;
         //if (sy && sidx%2 == 0){
         if (sidx2 != -1 || 
             (sy && (sidx%2 == 0  || !tnsr_B->sr->isequal(new_sum.beta, tnsr_B->sr->addid())))){
           if (sidx%2 == 0){
             if (unfold_sum->A->sym[sidx/2] == NS){
               if (A->wrld->cdt.rank == 0)
-                DPRINTF(1,"Performing operand desymmetrization for summation\n");
+                DPRINTF(1,"Performing operand desymmetrization for summation of A idx=%d\n",sidx/2);
               desymmetrize(tnsr_A, unfold_sum->A, 0);
             } else {
               if (A->wrld->cdt.rank == 0)
