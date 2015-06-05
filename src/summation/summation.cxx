@@ -112,6 +112,10 @@ namespace CTF_int {
   }
 
   void summation::execute(bool run_diag){
+#if DEBUG >= 2
+    if (A->wrld->cdt.rank == 0) printf("Summation::execute (head):\n");
+    print();
+#endif
     int stat = home_sum_tsr(run_diag);
     assert(stat == SUCCESS); 
   }
@@ -147,6 +151,7 @@ namespace CTF_int {
             (iB != -1 && inB - iB != in-i) ||
             (iB != -1 && A->sym[inA] != B->sym[inB])){
           broken = 1;
+          //printf("index in = %d inA = %d inB = %d is broken symA = %d symB = %d\n",in, inA, inB, A->sym[inA], B->sym[inB]);
         }
         inA++;
       } while (A->sym[inA-1] != NS);
@@ -794,9 +799,9 @@ namespace CTF_int {
     std::vector<summation> perm_types;
     std::vector<int> signs;
     char const * dbeta;
-  //#if (DEBUG >= 1 || VERBOSE >= 1)
-  //  print_sum(type,alpha_,beta);
-  //#endif
+  #if (DEBUG >= 2 || VERBOSE >= 1)
+    print();
+  #endif
     check_consistency();
 
     A->unfold();
@@ -898,35 +903,68 @@ namespace CTF_int {
         }
       }
   
-  
+      /*if (A->sym[0] == SY && B->sym[0] == AS){
+        print();
+        ASSERT(0); 
+      }*/
       if (new_sum.unfold_broken_sym(NULL) != -1){
         if (A->wrld->cdt.rank == 0)
-          DPRINTF(1,"Contraction index is broken\n");
+          DPRINTF(1, "Permutational symmetry is broken\n");
   
         summation * unfold_sum;
         sidx = new_sum.unfold_broken_sym(&unfold_sum);
         int sy;
         sy = 0;
-        for (i=0; i<A->order; i++){
-          if (A->sym[i] == SY) sy = 1;
-        }
-        for (i=0; i<B->order; i++){
-          if (B->sym[i] == SY) sy = 1;
-        }
-        if (sy && sidx%2 == 0){
-          if (A->wrld->cdt.rank == 0)
-            DPRINTF(1,"Performing index desymmetrization\n");
-          desymmetrize(tnsr_A, unfold_sum->A, 0);
-          unfold_sum->B = tnsr_B;
-          unfold_sum->sym_sum_tsr(run_diag);
-  //        sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
-          if (tnsr_A != unfold_sum->A){
-            unfold_sum->A->unfold();
-            tnsr_A->pull_alias(unfold_sum->A);
-            delete unfold_sum->A;
+        int sidx2 = unfold_sum->unfold_broken_sym(NULL);
+        if (sidx%2 == 0 && (A->sym[sidx/2] == SY || unfold_sum->A->sym[sidx/2] == SY)) sy = 1;
+        if (sidx%2 == 1 && (B->sym[sidx/2] == SY || unfold_sum->B->sym[sidx/2] == SY)) sy = 1;
+        //if (sy && sidx%2 == 0){
+        if (sidx2 != -1 || 
+            (sy && (sidx%2 == 0  || !tnsr_B->sr->isequal(new_sum.beta, tnsr_B->sr->addid())))){
+          if (sidx%2 == 0){
+            if (unfold_sum->A->sym[sidx/2] == NS){
+              if (A->wrld->cdt.rank == 0)
+                DPRINTF(1,"Performing operand desymmetrization for summation of A idx=%d\n",sidx/2);
+              desymmetrize(tnsr_A, unfold_sum->A, 0);
+            } else {
+              if (A->wrld->cdt.rank == 0)
+                DPRINTF(1,"Performing operand symmetrization for summation\n");
+              symmetrize(unfold_sum->A, tnsr_A);
+            }
+            //unfold_sum->B = tnsr_B;
+            unfold_sum->sym_sum_tsr(run_diag);
+    //        sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
+            if (tnsr_A != unfold_sum->A){
+              unfold_sum->A->unfold();
+              tnsr_A->pull_alias(unfold_sum->A);
+              delete unfold_sum->A;
+            }
+          } else {
+            //unfold_sum->A = tnsr_A;
+            if (A->wrld->cdt.rank == 0)
+              DPRINTF(1,"Performing product desymmetrization for summation\n");
+            desymmetrize(tnsr_B, unfold_sum->B, 1);
+            unfold_sum->sym_sum_tsr(run_diag);
+            if (A->wrld->cdt.rank == 0)
+              DPRINTF(1,"Performing product symmetrization for summation\n");
+            if (tnsr_B->data != unfold_sum->B->data && !tnsr_B->sr->isequal(tnsr_B->sr->mulid(), unfold_sum->beta)){
+              int sidx_B[tnsr_B->order];
+              for (int iis=0; iis<tnsr_B->order; iis++){
+                sidx_B[iis] = iis;
+              }
+              scaling sscl = scaling(tnsr_B, sidx_B, unfold_sum->beta);
+              sscl.execute();
+            }
+            symmetrize(tnsr_B, unfold_sum->B);
+
+    //        sym_sum_tsr(alpha, beta, &unfold_type, ftsr, felm, run_diag);
+            if (tnsr_B != unfold_sum->B){
+              unfold_sum->B->unfold();
+              tnsr_B->pull_alias(unfold_sum->B);
+              delete unfold_sum->B;
+            }
           }
         } else {
-          //FIXME: unfold B?
           if (sidx != -1 && sidx%2 == 1){
             delete unfold_sum->B;
           } else if (sidx != -1 && sidx%2 == 0){
@@ -1128,8 +1166,14 @@ namespace CTF_int {
         sumf = new_sum.construct_sum(inner_stride);
         /*alpha, beta, ntid_A, map_A, ntid_B, map_B,
                               ftsr, felm, inner_stride);*/
-      } else
+      } else{
+  #if DEBUG >= 1
+        if (A->wrld->cdt.rank == 0){
+          printf("Could not fold summation, is_custom = %d, new_sum.can_fold = %d\n", is_custom, new_sum.can_fold());
+        }
+  #endif
         sumf = new_sum.construct_sum();
+      }
         /*sumf = construct_sum(alpha, beta, ntid_A, map_A, ntid_B, map_B,
                              ftsr, felm);*/
   #else
@@ -1244,7 +1288,7 @@ namespace CTF_int {
   int summation::unfold_broken_sym(summation ** nnew_sum){
     int sidx, i, num_tot, iA, iA2, iB;
     int * idx_arr;
-
+    int bsym = NS;
     summation * new_sum;
    
     if (nnew_sum != NULL){
@@ -1262,6 +1306,7 @@ namespace CTF_int {
         iA = idx_A[i];
         if (idx_arr[2*iA+1] != -1){
           if (B->sym[idx_arr[2*iA+1]] == NS ||
+              (B->sym[idx_arr[2*iA+1]] == AS ^ A->sym[i] == AS) ||
               idx_arr[2*idx_A[i+1]+1] == -1 ||
               idx_A[i+1] != idx_B[idx_arr[2*iA+1]+1]){
             sidx = 2*i;
@@ -1279,9 +1324,14 @@ namespace CTF_int {
           iB = idx_B[i];
           if (idx_arr[2*iB+0] != -1){
             if (A->sym[idx_arr[2*iB+0]] == NS ||
+                (A->sym[idx_arr[2*iB+0]] == AS ^ B->sym[i] == AS) ||
                 idx_arr[2*idx_B[i+1]+0] == -1 ||
                 idx_B[i+1] != idx_A[idx_arr[2*iB+0]+1]){
               sidx = 2*i+1;
+              break;
+            } else if (A->sym[idx_arr[2*iB+0]] == NS){
+              sidx = 2*i;
+              bsym = B->sym[i];
               break;
             }
           } else if (idx_arr[2*idx_B[i+1]+0] != -1){
@@ -1291,6 +1341,7 @@ namespace CTF_int {
         }
       }
     }
+    //if we have e.g. b[""] = A["ij"] with SY A, symmetry preserved bu t need to account for diagonal, this just unpacks (FIXME: suboptimal)
     if (sidx == -1){
       for (i=0; i<A->order; i++){
         if (A->sym[i] == SY){
@@ -1307,10 +1358,16 @@ namespace CTF_int {
     if (nnew_sum != NULL && sidx != -1){
       if(sidx%2 == 0){
         new_sum->A = new tensor(A, 0, 0);
-        new_sum->A->sym[sidx/2] = NS;
+        int nA_sym[A->order];
+        memcpy(nA_sym, new_sum->A->sym, sizeof(int)*new_sum->A->order);
+        nA_sym[sidx/2] = bsym;
+        new_sum->A->set_sym(nA_sym);
       } else {
         new_sum->B = new tensor(B, 0, 0);
-        new_sum->B->sym[sidx/2] = NS;
+        int nB_sym[B->order];
+        memcpy(nB_sym, new_sum->B->sym, sizeof(int)*new_sum->B->order);
+        nB_sym[sidx/2] = NS;
+        new_sum->B->set_sym(nB_sym);
       }
     }
     CTF_int::cdealloc(idx_arr);
@@ -1886,8 +1943,12 @@ namespace CTF_int {
         for (j=0; j<A->order; j++){
           if (idx_A[j] == i){
             ex_A++;
-            if (A->sym[j] != NS)
-              printf("%d' ",j);
+            if (A->sym[j] == SY)
+              printf("%dY ",j);
+            else if (A->sym[j] == SH)
+              printf("%dH ",j);
+            else if (A->sym[j] == AS)
+              printf("%dS ",j);
             else
               printf("%d  ",j);
           }
@@ -1899,8 +1960,12 @@ namespace CTF_int {
         for (j=0; j<B->order; j++){
           if (idx_B[j] == i){
             ex_B=1;
-            if (B->sym[j] != NS)
-              printf("%d' ",j);
+            if (B->sym[j] == SY)
+              printf("%dY ",j);
+            else if (B->sym[j] == SH)
+              printf("%dH ",j);
+            else if (B->sym[j] == AS)
+              printf("%dS ",j);
             else
               printf("%d  ",j);
           }

@@ -390,8 +390,8 @@ int overcounting_factor(int order_A, const T& idx_A, const int* sym_A,
             idx_A[i] != idx_B[j]) ninarow--;
 
         if (ninarow >= 2){
-          if (sym_A[i-ninarow+1]!=SY) 
-            for (;ninarow > 1;ninarow--) fact *= ninarow;
+          //if (sym_A[i-ninarow+1]!=SY) 
+          for (;ninarow > 1;ninarow--) fact *= ninarow;
         }
     }
 

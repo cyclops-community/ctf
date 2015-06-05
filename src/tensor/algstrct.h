@@ -132,7 +132,7 @@ namespace CTF_int {
                         char *       C)  const;
 
       /** \brief returns true if algstrct elements a and b are equal */
-      bool isequal(char const * a, char const * b) const;
+      virtual bool isequal(char const * a, char const * b) const;
     
       /** \brief compute b=beta*b + alpha*a */
       void acc(char * b, char const * beta, char const * a, char const * alpha) const;

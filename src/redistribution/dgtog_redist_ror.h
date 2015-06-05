@@ -182,6 +182,37 @@ void redist_bucket_isr(int                  order,
                        algstrct const *     sr,
                        int                  bucket_off=0,
                        int                  pe_off=0){
+#ifdef USE_OMP
+  int tothi_rep_phase = 1;
+  for (int id=1; id<=idim; id++){
+    tothi_rep_phase *= rep_phase[id];
+  }
+  #pragma omp parallel for
+  for (int t=0; t<tothi_rep_phase; t++){
+    int rep_idx2[order];
+    memcpy(rep_idx2, rep_idx, sizeof(int)*order);
+    rep_idx[0] = -1;
+    int rec_bucket_off = bucket_off;
+    int rec_pe_off = pe_off;
+    int tleft = t;
+    for (int id=1; id<=idim; id++){
+      int r = tleft%rep_phase[id];
+      tleft = tleft / rep_phase[id];
+      rep_idx2[id] = r;
+      rec_bucket_off += bucket_offset[id][r];
+      rec_pe_off += pe_offset[id][r];
+    }
+    redist_bucket_isr<0>(order, pe_offset, bucket_offset, data_offset, ivmax_pre, rep_phase, rep_idx2, virt_dim0,
+#ifdef IREDIST
+                         rep_reqs, cm, 
+#endif
+#ifdef  PUTREDIST
+                         put_displs, win,
+#endif
+                         data_to_buckets, data, buckets, counts, sr, rec_bucket_off, rec_pe_off);
+
+  }
+#else
   if (rep_phase[idim] == 1){
     int rec_bucket_off = bucket_off + bucket_offset[idim][0];
     int rec_pe_off = pe_off + pe_offset[idim][0];
@@ -194,9 +225,6 @@ void redist_bucket_isr(int                  order,
 #endif
                               data_to_buckets, data, buckets, counts, sr, rec_bucket_off, rec_pe_off);
   } else {
-#ifdef USE_OMP
-    #pragma omp parallel for
-#endif
     for (int r=0; r<rep_phase[idim]; r++){
       int rep_idx2[order];
       memcpy(rep_idx2, rep_idx, sizeof(int)*order);
@@ -214,6 +242,7 @@ void redist_bucket_isr(int                  order,
                                 data_to_buckets, data, buckets, counts, sr, rec_bucket_off, rec_pe_off);
     }    
   }
+#endif
 }
 
 
@@ -272,6 +301,8 @@ void redist_bucket_isr<0>
 }
 #endif
 
+
+ 
 void dgtog_reshuffle(int const *          sym,
                      int const *          edge_len,
                      distribution const & old_dist,
@@ -395,14 +426,14 @@ void dgtog_reshuffle(int const *          sym,
   }
 #elif defined(PUTREDIST)
   int64_t * all_recv_displs = (int64_t*)alloc(sizeof(int64_t)*ord_glb_comm.np);
-  SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, new_rep_phase, recv_pe_offset, recv_bucket_offset, recv_displs, all_recv_displs, 0, 0, 1);
+  SWITCH_ORD_CALL(CTF_int::calc_cnt_from_rep_cnt, order-1, new_rep_phase, recv_pe_offset, recv_bucket_offset, recv_displs, all_recv_displs, 0, 0, 1);
 
   int64_t * all_put_displs = (int64_t*)alloc(sizeof(int64_t)*ord_glb_comm.np);
   MPI_Alltoall(all_recv_displs, 1, MPI_INT64_T, all_put_displs, 1, MPI_INT64_T, ord_glb_comm.cm);
   CTF_int::cdealloc(all_recv_displs);
 
   int64_t * put_displs = (int64_t*)alloc(sizeof(int64_t)*nold_rep);
-  SWITCH_ORD_CALL(calc_cnt_from_rep_cnt, order-1, old_rep_phase, send_pe_offset, send_bucket_offset, all_put_displs, put_displs, 0, 0, 0);
+  SWITCH_ORD_CALL(CTF_int::calc_cnt_from_rep_cnt, order-1, old_rep_phase, send_pe_offset, send_bucket_offset, all_put_displs, put_displs, 0, 0, 0);
 
   CTF_int::cdealloc(all_put_displs);
 

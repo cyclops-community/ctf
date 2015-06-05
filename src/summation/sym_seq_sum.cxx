@@ -83,10 +83,11 @@ namespace CTF_int {
                        int const *      sym_B,
                        int const *      idx_map_B){
     TAU_FSTART(sym_seq_sum_ref);
-    int idx, i, idx_max, imin, imax, idx_A, idx_B, iA, iB, j, k;
-    int off_idx, off_lda, sym_pass;
+    int idx, i, idx_max, imin, imax, iA, iB, j, k;
+    int off_idx, sym_pass;
     int * idx_glb, * rev_idx_map;
     int * dlen_A, * dlen_B;
+    int64_t idx_A, idx_B, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
@@ -174,10 +175,11 @@ namespace CTF_int {
                        int const *      idx_map_B,
                        int              inr_stride){
     TAU_FSTART(sym_seq_sum_inr);
-    int idx, i, idx_max, imin, imax, idx_A, idx_B, iA, iB, j, k;
-    int off_idx, off_lda, sym_pass;
+    int idx, i, idx_max, imin, imax, iA, iB, j, k;
+    int off_idx, sym_pass;
     int * idx_glb, * rev_idx_map;
     int * dlen_A, * dlen_B;
+    int64_t idx_A, idx_B, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
@@ -206,7 +208,7 @@ namespace CTF_int {
           CTF_FLOPS_ADD(2*inr_stride);
         }*/
         //cxaxpy<dtype>(inr_stride, alpha, A+idx_A*inr_stride, 1, B+idx_B*inr_stride, 1); 
-        sr_B->axpy(inr_stride, alpha, A+sr_A->el_size*idx_A*inr_stride, 1, B+sr_B->el_size*idx_B*inr_stride, 1); 
+        sr_B->axpy(inr_stride, alpha, A+idx_A*sr_A->el_size*inr_stride, 1, B+idx_B*sr_B->el_size*inr_stride, 1); 
         CTF_FLOPS_ADD(2*inr_stride);
       }
 
@@ -263,10 +265,11 @@ namespace CTF_int {
                        int const *      idx_map_B,
                        univar_function  func){
     TAU_FSTART(sym_seq_sum_cust);
-    int idx, i, idx_max, imin, imax, idx_A, idx_B, iA, iB, j, k;
-    int off_idx, off_lda, sym_pass;
+    int idx, i, idx_max, imin, imax, iA, iB, j, k;
+    int off_idx, sym_pass;
     int * idx_glb, * rev_idx_map;
     int * dlen_A, * dlen_B;
+    int64_t idx_A, idx_B, off_lda;
 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,

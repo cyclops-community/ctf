@@ -277,7 +277,15 @@ namespace CTF_int {
    */
   int alloc_ptr(int64_t const len_, void ** const ptr){
     int64_t len = MAX(4,len_);
-    int pm = posix_memalign(ptr, ALIGN_BYTES, len);
+/*#if DEBUG >= 2
+    if (len_ >= 1E8){
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      if (rank == 0)
+        printf("allocating block of size %ld bytes, padding %ld bytes\n", len, (int64_t)ALIGN_BYTES);
+    }
+#endif*/
+    int pm = posix_memalign(ptr, (int64_t)ALIGN_BYTES, len);
     ASSERT(pm==0);
 #if 0
   #ifndef PRODUCTION

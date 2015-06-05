@@ -77,6 +77,7 @@ namespace CTF_int {
                int64_t *        new_size,
                algstrct const * sr);
   */
+
   /**
    * \brief sets to zero all values in padded region of tensor
    * \param[in] order tensor dimension
@@ -104,6 +105,37 @@ namespace CTF_int {
                      int const *      cphase_rank,
                      char *           vdata,
                      algstrct const * sr);
+
+  /**
+   * \brief scales each element by 1/(number of entries equivalent to it after permutation of indices for which sym_mask is 1)
+   * \param[in] order tensor dimension
+   * \param[in] size number of values
+   * \param[in] nvirt total virtualization factor
+   * \param[in] edge_len tensor edge lengths with padding
+   * \param[in] sym symmetries of tensor
+   * \param[in] padding how much of the edge lengths is padding
+   * \param[in] phase phase of the tensor on virtualized processor grid
+   * \param[in] phys_phase phase of the tensor on virtualized processor grid
+   * \param[in] virt_phase virtual phase in each dimension
+   * \param[in] phase_rank physical phase rank 
+   * \param[in,out] vdata array of all local data
+   * \param[in] algstrct defines sizeo of each pair
+   * \param[in] identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
+*/
+  void scal_diag(int              order,
+                 int64_t          size,
+                 int              nvirt,
+                 int const *      edge_len,
+                 int const *      sym,
+                 int const *      padding,
+                 int const *      phase,
+                 int const *      phys_phase,
+                 int const *      virt_phase,
+                 int const *      cphase_rank,
+                 char *           vdata,
+                 algstrct const * sr,
+                 int const *      sym_mask);
+
 }
 
 #endif

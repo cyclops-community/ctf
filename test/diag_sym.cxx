@@ -56,7 +56,7 @@ int diag_sym(int     n,
   if (norm < 1.E-10){
     pass = 1;
     if (rank == 0)
-      printf("{(A[\"(ab)(ij)\"]=mA[\"ii\"]-mB[\"aa\"]=mA[\"jj\"]-mB[\"bb\"]} passed \n");
+      printf("{ (A[\"(ab)(ij)\"]=mA[\"ii\"]-mB[\"aa\"]=mA[\"jj\"]-mB[\"bb\"] } passed \n");
   } else {
     pass = 0;
     if (rank == 0)

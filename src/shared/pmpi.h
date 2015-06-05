@@ -68,13 +68,6 @@ namespace CTF {
               __t.start();                                        \
     PMPI_Waitall(__VA_ARGS__);                                    \
               __t.stop(); }
-//#ifndef USE_FOMPI
-//#define MPI_Waitany(...)                                          \
-//  { CTF::Timer __t("MPI_Waitany");                                 \
-//              __t.start();                                        \
-//    PMPI_Waitany(__VA_ARGS__);                                    \
-//              __t.stop(); }
-//#endif
 #define MPI_Barrier(...)                                          \
   { CTF::Timer __t("MPI_Barrier");                                 \
               __t.start();                                        \

@@ -119,10 +119,14 @@ namespace CTF_int {
           idx_map_A[sym_dim+i+1] = sym_dim+i+1;
         }
         if (scal_diag && num_sy+num_sy_neg==1) delete ctsr;
+        summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+        ssum.sum_tensors(0);
       }
+      /*printf("DESYMMETRIZED:\n");
+      sym_tsr->print();
+      printf("TO:\n");
+      nonsym_tsr->print();*/
 
-      summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-      ssum.sum_tensors(0);
       /*printf("SYM %s\n",sym_tsr->name);
       sym_tsr->print();
       printf("NONSYM %s\n",sym_tsr->name);
@@ -167,11 +171,11 @@ namespace CTF_int {
         } 
     //    print_tsr(stdout, nonsym_tid);
       }
-    } else { 
+    } else if (!is_C) { 
       summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-      if (is_C)
-        ssum.sum_tensors(0);
-      else
+      //if (is_C)
+      //  ssum.sum_tensors(0);
+      //else
         ssum.execute();
     }
     CTF_int::cdealloc(idx_map_A);
@@ -276,7 +280,7 @@ namespace CTF_int {
       sym_tsr->data     = nonsym_tsr->data;
     } else {
   
-      sym_tsr->sr->set(sym_tsr->data, sym_tsr->sr->addid(), sym_tsr->size);
+      //sym_tsr->sr->set(sym_tsr->data, sym_tsr->sr->addid(), sym_tsr->size);
       CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
       CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
   
@@ -285,7 +289,7 @@ namespace CTF_int {
         idx_map_B[i] = i;
       }
       
-      if (scal_diag){
+      if (0){
         //FIXME: this is not robust when doing e.g. {SY, SY, SY, NS} -> {SY, NS, SY, NS}
         for (i=-num_sy_neg-1; i<num_sy; i++){
           if (i==-1) continue;
@@ -350,8 +354,11 @@ namespace CTF_int {
           }
         }
       } else {
-        summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+        tensor sym_tsr2(sym_tsr,1,0);
+        summation ssum = summation(nonsym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), &sym_tsr2, idx_map_B, nonsym_tsr->sr->addid());
         ssum.execute();
+        summation ssum2 = summation(&sym_tsr2, idx_map_A, nonsym_tsr->sr->mulid(), sym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
+        ssum2.execute();
       }
       CTF_int::cdealloc(idx_map_A);
       CTF_int::cdealloc(idx_map_B);

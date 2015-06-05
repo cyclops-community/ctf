@@ -188,16 +188,28 @@ namespace CTF_int {
     }
   }
  
-  template 
-  void calc_cnt_from_rep_cnt<MAX_ORD>
-                            (int const *     rep_phase,
-                             int * const *   pe_offset,
-                             int * const *   bucket_offset,
-                             int64_t const * old_counts,
-                             int64_t *       counts,
-                             int             bucket_off,
-                             int             pe_off,
+
+#define INST_CALC_CNT_BEC_ICPC_SUCKS(X) \
+  template  \
+  void calc_cnt_from_rep_cnt<X> \
+                            (int const *     rep_phase, \
+                             int * const *   pe_offset, \
+                             int * const *   bucket_offset, \
+                             int64_t const * old_counts, \
+                             int64_t *       counts, \
+                             int             bucket_off, \
+                             int             pe_off, \
                              int             dir);
+
+
+  INST_CALC_CNT_BEC_ICPC_SUCKS(1)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(2)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(3)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(4)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(5)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(6)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(7)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(8)
 
   void calc_drv_displs(int const *          sym,
                        int const *          edge_len,

@@ -107,6 +107,12 @@ namespace CTF {
           fprintf(fp,"%x",a[i]);
         }
       }
+
+
+      bool isequal(char const * a, char const * b) const {
+        if (a == NULL && b == NULL) return true;
+        return ((dtype*)a)[0] == ((dtype*)b)[0];
+      }
   };
 
 
@@ -189,6 +195,11 @@ namespace CTF {
   template <>  
   inline void Set< std::complex<double>,false >::print(char const * a, FILE * fp) const {
     fprintf(fp,"(%20.14E,%20.14E)",((std::complex<double>*)a)[0].real(),((std::complex<double>*)a)[0].imag());
+  }
+
+  template <>  
+  inline void Set< std::complex<long double>,false >::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(%20.14LE,%20.14LE)",((std::complex<long double>*)a)[0].real(),((std::complex<long double>*)a)[0].imag());
   }
 
 

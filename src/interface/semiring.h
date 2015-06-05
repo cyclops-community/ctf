@@ -3,6 +3,8 @@
 
 
 namespace CTF_int {
+
+
   template <typename dtype>
   dtype default_mul(dtype a, dtype b){
     return a*b;
@@ -242,7 +244,7 @@ namespace CTF {
        * \brief constructor for algstrct equipped with + only
        */
       Semiring() : Monoid<dtype,is_ord>() {
-        tmulid = (dtype)1;
+        tmulid = dtype(1);
         fmul   = &CTF_int::default_mul<dtype>;
         fgemm  = &CTF_int::default_gemm<dtype>;
         faxpy  = &CTF_int::default_axpy<dtype>;

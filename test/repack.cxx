@@ -2,17 +2,17 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup diag_ctr diag_ctr
+  * \defgroup repack repack 
   * @{ 
-  * \brief Summation along tensor diagonals
+  * \brief Tests contraction of a symmetric index group with a nonsymmetric one
   */
+
 #include <ctf.hpp>
 
 using namespace CTF;
 
-int diag_ctr(int     n,
-             int     m,
-             World & dw){
+int repack(int     n,
+           World & dw){
   int rank, i, num_pes, pass;
   int64_t np;
   double * pairs;
@@ -23,40 +23,53 @@ int diag_ctr(int     n,
 
 
   int shapeN4[] = {NS,NS,NS,NS};
-  int sizeN4[] = {n,m,n,m};
+  int shapeS4[] = {NS,NS,SY,NS};
+  int sizeN4[] = {n,n,n,n};
 
   //* Creates distributed tensors initialized with zeros
-  Tensor<> A(4, sizeN4, shapeN4, dw);
+  Tensor<> An(4, sizeN4, shapeN4, dw);
+  Tensor<> As(4, sizeN4, shapeS4, dw);
 
-  srand48(13*rank);
-
-  Matrix<> mA(n,m,NS,dw);
-  Matrix<> mB(n,m,NS,dw);
-  A.read_local(&np, &indices, &pairs);
+  As.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
-  A.write(np, indices, pairs);
+  As.write(np, indices, pairs);
+  An.write(np, indices, pairs);
+
+  Tensor<> Anr(An, shapeS4);
+ 
+  Anr["ijkl"] -= As["ijkl"];
+
+  double norm = Anr.norm2();
+
+  if (norm < 1.E-6)
+    pass = 1;
+  else
+    pass = 0;
+  
+  if (!pass)
+    printf("{ NS -> SY repack } failed \n");
+  else {
+    Tensor<> Anur(As, shapeN4);
+    Tensor<> Asur(As, shapeN4);
+    Asur["ijkl"] = 0.0;
+    Asur.write(np, indices, pairs);
+    Anur["ijkl"] -= Asur["ijkl"];
+
+    norm = Anur.norm2();
+
+    if (norm < 1.E-6){
+      pass = 1;
+      if (rank == 0)
+        printf("{ NS -> SY -> NS repack } passed \n");
+    } else {
+      pass = 0;
+      if (rank == 0)
+        printf("{ SY -> NS repack } failed \n");
+    }
+
+  }
   free(pairs);
   free(indices);
-  pass = 1;
-  double tr = 0.0;
-  tr += A["aiai"];
-  if (fabs(tr) < 1.E-10){
-    pass = 0;
-  }
-  mA["ai"] = A["aiai"];
-  tr -= mA["ai"];
-
-  if (fabs(tr) > 1.E-10)
-    pass = 0;
-  if (pass){
-    if (rank == 0)
-      printf("{ sum(ai)A[\"aiai\"]=sum(ai)mA[\"ai\"] } passed \n");
-  } else {
-    if (rank == 0)
-      printf("{ sum(ai)A[\"aiai\"]=sum(ai)mA[\"ai\"] } failed \n");
-  }
-  
-
   return pass;
 } 
 
@@ -74,7 +87,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, n, m;
+  int rank, np, n;
   int in_num = argc;
   char ** input_str = argv;
 
@@ -87,14 +100,10 @@ int main(int argc, char ** argv){
     if (n < 0) n = 7;
   } else n = 7;
 
-  if (getCmdOption(input_str, input_str+in_num, "-m")){
-    m = atoi(getCmdOption(input_str, input_str+in_num, "-m"));
-    if (m < 0) m = 7;
-  } else m = 7;
 
   {
     World dw(argc, argv);
-    diag_ctr(n, m, dw);
+    repack(n, dw);
   }
 
   MPI_Finalize();
