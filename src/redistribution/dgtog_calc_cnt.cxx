@@ -100,12 +100,14 @@ namespace CTF_int {
                            int const * edge_len,
                            int const * loc_edge_len){
     int64_t * pfx= (int64_t*)alloc(sizeof(int64_t)*loc_edge_len[1]);
-    if (sym[0] == SY){
+    if (sym[0] == NS){
+      int64_t cnt = calc_cnt<0>(sym, rep_phase, sphase, gidx_off, edge_len, loc_edge_len);
+      std::fill(pfx, pfx+loc_edge_len[1], cnt);
+    } else if (sym[0] == SY){
       for (int i=0; i<loc_edge_len[1]; i++){
         pfx[i] = get_loc(get_glb(i,sphase[1],gidx_off[1]),sphase[0],gidx_off[0])+1;
       }
     } else {
-      ASSERT(sym[0] != NS);
       for (int i=0; i<loc_edge_len[1]; i++){
         pfx[i] = get_loc(get_glb(i,sphase[1],gidx_off[1])-1,sphase[0],gidx_off[0])+1;
       }
