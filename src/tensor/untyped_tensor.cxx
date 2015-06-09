@@ -1473,12 +1473,11 @@ namespace CTF_int {
         nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
                                this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
       }
+      CTF_int::cdealloc(all_edge_len);
+      CTF_int::cdealloc(sub_edge_len);
       this->rec_tsr->is_data_aliased=1;
       delete this->rec_tsr;
       CTF_int::cdealloc(this->inner_ordering);
-      CTF_int::cdealloc(all_edge_len);
-      CTF_int::cdealloc(sub_edge_len);
-
     }  
     this->is_folded = 0;
     //maybe not necessary

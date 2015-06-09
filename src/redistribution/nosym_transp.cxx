@@ -304,6 +304,12 @@ namespace CTF_int {
     int64_t * chunk_size;
     char ** tswap_data;
 
+    bool is_diff = false;
+    for (int i=0; i<order; i++){
+      if (new_order[i] != i) is_diff = true;
+    }
+    if (!is_diff) return;
+
     TAU_FSTART(nosym_transpose);
     if (order == 0){
       TAU_FSTOP(nosym_transpose);

@@ -338,6 +338,8 @@ int main(int argc, char ** argv){
       Integrals V(no, nv, dw);
       V.fill_rand();
       Amplitudes T(no, nv, dw);
+      Timer_epoch tccsd("CCSD");
+      tccsd.begin();
       for (i=0; i<niter; i++){
         T.fill_rand();
         double d = MPI_Wtime();
@@ -352,6 +354,7 @@ int main(int argc, char ** argv){
         T["ai"] = (1./T.ai->norm2())*T["ai"];
         T["abij"] = (1./T.abij->norm2())*T["abij"];
       }
+      tccsd.end();
     }
   }
 
