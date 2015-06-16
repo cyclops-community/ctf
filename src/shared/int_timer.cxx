@@ -27,7 +27,10 @@ namespace CTF{
   Function_timer::Function_timer(char const * name_, 
                                  double const start_time_,
                                  double const start_excl_time_){
-    snprintf(name, MAX_NAME_LENGTH, "%s", name_);
+    ASSERT(strlen(name_)+1 < MAX_NAME_LENGTH);
+    //name = (char*)CTF_int::alloc(strlen(name_)+1);
+    //snprintf(name, MAX_NAME_LENGTH, "%s", name_);
+    strcpy(name, name_);
     start_time = start_time_;
     start_excl_time = start_excl_time_;
     acc_time = 0.0;
@@ -35,6 +38,25 @@ namespace CTF{
     calls = 0;
   }
 
+/*
+  Function_timer::Function_timer(Function_timer const & other){
+    start_time = other.start_time;
+    start_excl_time = other.start_excl_time;
+    acc_time = other.acc_time;
+    calls = other.calls;
+    total_time = other.total_time;
+    total_excl_time = other.total_excl_time;
+    total_calls = other.total_calls;
+
+    name = (char*)CTF_int::alloc(strlen(other.name)+1);
+    strcpy(name, other.name);
+    
+  }
+  
+  Function_timer::~Function_timer(){
+    cdealloc(name);
+  }
+*/
   void Function_timer::compute_totals(MPI_Comm comm){ 
     PMPI_Allreduce(&acc_time, &total_time, 1, 
                   MPI_DOUBLE, MPI_SUM, comm);
@@ -79,12 +101,12 @@ namespace CTF{
     return strcmp(w1.name, w2.name)>0;
   }
 
-  std::vector<Function_timer> function_timers;
+  static std::vector<Function_timer> * function_timers = NULL;
 
   Timer::Timer(const char * name){
   #ifdef PROFILE
     int i;
-    if (function_timers.size() == 0) {
+    if (function_timers == NULL) {
       if (name[0] == 'M' && name[1] == 'P' && 
           name[2] == 'I' && name[3] == '_'){
         exited = 1;
@@ -94,20 +116,21 @@ namespace CTF{
       original = 1;
       index = 0;
       excl_time = 0.0;
-      function_timers.push_back(Function_timer(name, MPI_Wtime(), 0.0)); 
+      function_timers = new std::vector<Function_timer>();
+      function_timers->push_back(Function_timer(name, MPI_Wtime(), 0.0)); 
     } else {
-      for (i=0; i<(int)function_timers.size(); i++){
-        if (strcmp(function_timers[i].name, name) == 0){
-          /*function_timers[i].start_time = MPI_Wtime();
-          function_timers[i].start_excl_time = excl_time;*/
+      for (i=0; i<(int)function_timers->size(); i++){
+        if (strcmp((*function_timers)[i].name, name) == 0){
+          /*(*function_timers)[i].start_time = MPI_Wtime();
+          (*function_timers)[i].start_excl_time = excl_time;*/
           break;
         }
       }
       index = i;
       original = (index==0);
     }
-    if (index == (int)function_timers.size()) {
-      function_timers.push_back(Function_timer(name, MPI_Wtime(), excl_time)); 
+    if (index == (int)function_timers->size()) {
+      function_timers->push_back(Function_timer(name, MPI_Wtime(), excl_time)); 
     }
     timer_name = name;
     exited = 0;
@@ -117,8 +140,8 @@ namespace CTF{
   void Timer::start(){
   #ifdef PROFILE
     if (!exited){
-      function_timers[index].start_time = MPI_Wtime();
-      function_timers[index].start_excl_time = excl_time;
+      (*function_timers)[index].start_time = MPI_Wtime();
+      (*function_timers)[index].start_excl_time = excl_time;
     }
   #endif
   }
@@ -126,12 +149,12 @@ namespace CTF{
   void Timer::stop(){
   #ifdef PROFILE
     if (!exited){
-      double delta_time = MPI_Wtime() - function_timers[index].start_time;
-      function_timers[index].acc_time += delta_time;
-      function_timers[index].acc_excl_time += delta_time - 
-            (excl_time- function_timers[index].start_excl_time); 
-      excl_time = function_timers[index].start_excl_time + delta_time;
-      function_timers[index].calls++;
+      double delta_time = MPI_Wtime() - (*function_timers)[index].start_time;
+      (*function_timers)[index].acc_time += delta_time;
+      (*function_timers)[index].acc_excl_time += delta_time - 
+            (excl_time- (*function_timers)[index].start_excl_time); 
+      excl_time = (*function_timers)[index].start_excl_time + delta_time;
+      (*function_timers)[index].calls++;
       exit();
       exited = 1;
     }
@@ -140,15 +163,15 @@ namespace CTF{
 
   Timer::~Timer(){ }
 
-  void print_timers(char const * name){
+  static void print_timers(char const * name){
     int rank, np, i, j, len_symbols, nrecv_symbols;
 
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
 
 
-    char all_symbols[MAX_TOT_SYMBOLS_LEN];
-    char recv_symbols[MAX_TOT_SYMBOLS_LEN];
+    char * all_symbols = (char*)CTF_int::alloc(MAX_TOT_SYMBOLS_LEN);
+    char * recv_symbols = (char*)CTF_int::alloc(MAX_TOT_SYMBOLS_LEN);
     FILE * output = NULL;
 
     if (rank == 0){
@@ -197,9 +220,9 @@ namespace CTF{
 
     }
     len_symbols = 0;
-    for (i=0; i<(int)function_timers.size(); i++){
-      sprintf(all_symbols+len_symbols, "%s", function_timers[i].name);
-      len_symbols += strlen(function_timers[i].name)+1;
+    for (i=0; i<(int)function_timers->size(); i++){
+      sprintf(all_symbols+len_symbols, "%s", (*function_timers)[i].name);
+      len_symbols += strlen((*function_timers)[i].name)+1;
     }
     if (np > 1){
       for (int lp=1; lp<log2(np)+1; lp++){
@@ -235,17 +258,20 @@ namespace CTF{
     }
     ASSERT(len_symbols <= MAX_TOT_SYMBOLS_LEN);
 
-    std::sort(function_timers.begin(), function_timers.end(),comp_name);
-    for (i=0; i<(int)function_timers.size(); i++){
-      function_timers[i].compute_totals(comm);
+    std::sort(function_timers->begin(), function_timers->end(),comp_name);
+    for (i=0; i<(int)function_timers->size(); i++){
+      (*function_timers)[i].compute_totals(comm);
     }
-    std::sort(function_timers.begin(), function_timers.end());
-    complete_time = function_timers[0].total_time;
+    std::sort(function_timers->begin(), function_timers->end());
+    complete_time = (*function_timers)[0].total_time;
     if (rank == 0){
-      for (i=0; i<(int)function_timers.size(); i++){
-        function_timers[i].print(output,comm,rank,np);
+      for (i=0; i<(int)function_timers->size(); i++){
+        (*function_timers)[i].print(output,comm,rank,np);
       }
     }
+
+    cdealloc(recv_symbols);
+    cdealloc(all_symbols);
     
     /*  if (rank == 0){
       fclose(output);
@@ -257,11 +283,12 @@ namespace CTF{
   #ifdef PROFILE
     if (set_contxt && original && !exited) {
       if (comm != MPI_COMM_WORLD){
-        //function_timers.clear();
+        //function_timers->clear();
         return;
       }
       print_timers("all");  
-      function_timers.clear();
+      function_timers->clear();
+      function_timers = NULL;
     }
   #endif
   }
@@ -287,10 +314,10 @@ namespace CTF{
   #ifdef PROFILE
     tmr_outer = new Timer(name);
     tmr_outer->start();
-    saved_function_timers = function_timers;
+    saved_function_timers = *function_timers;
     save_excl_time = excl_time;
     excl_time = 0.0;
-    function_timers.clear();
+    function_timers->clear();
     tmr_inner = new Timer(name);
     tmr_inner->start();
   #endif
@@ -299,8 +326,8 @@ namespace CTF{
   void Timer_epoch::end(){
   #ifdef PROFILE
     tmr_inner->stop();
-    function_timers.clear();
-    function_timers = saved_function_timers;
+    function_timers->clear();
+    *function_timers = saved_function_timers;
     excl_time = save_excl_time;
     tmr_outer->stop();
     //delete tmr_inner;

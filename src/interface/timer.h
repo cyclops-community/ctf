@@ -33,6 +33,8 @@ namespace CTF {
       Function_timer(char const * name_, 
                      double const start_time_,
                      double const start_excl_time_);
+      //Function_timer(Function_timer const & other);
+      //~Function_timer();
       void compute_totals(MPI_Comm comm);
       bool operator<(Function_timer const & w) const ;
       void print(FILE *         output, 

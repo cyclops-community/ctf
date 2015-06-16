@@ -14,6 +14,6 @@ $(OBJS): %.o: %.cxx *.h  $(HDRS)
 	$(FCXX) -c $<
 
 clean: 
-	rm -f $(OBJS) 
+	rm -f *.o 
 
 

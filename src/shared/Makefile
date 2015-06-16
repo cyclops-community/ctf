@@ -17,5 +17,5 @@ $(NVCC_OBJS): %.o: %.cxx *.h
 	$(OFFLOAD_CXX) -c $<
 
 clean: 
-	rm -f $(OBJS) $(NVCC_OBJS)
+	rm -f *.o $(NVCC_OBJS)
 
