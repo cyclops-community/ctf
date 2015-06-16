@@ -326,7 +326,9 @@ namespace CTF{
   void Timer_epoch::end(){
   #ifdef PROFILE
     tmr_inner->stop();
-    function_timers->clear();
+    if (function_timers != NULL)
+      function_timers->clear();
+    function_timers = new std::vector<Function_timer>();
     *function_timers = saved_function_timers;
     excl_time = save_excl_time;
     tmr_outer->stop();
