@@ -1056,6 +1056,7 @@ namespace CTF_int {
     tsr = this;
     if (tsr->has_zero_edge_len){
       *num_pair = 0;
+      *mapped_data = NULL;
       return SUCCESS;
     }
     ASSERT(!tsr->is_folded);
