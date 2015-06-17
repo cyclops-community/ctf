@@ -323,7 +323,7 @@ namespace CTF_int {
         }
       }
     }
-    if (lda_a == m && lda_b == n){
+    if (lda_a == m && lda_b == m){
       axpy(m*n, alpha, a, 1, b, 1);
     } else {
       for (int i=0; i<n; i++){

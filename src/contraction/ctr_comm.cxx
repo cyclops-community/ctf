@@ -248,13 +248,15 @@ namespace CTF_int {
     for (i=0; i<ncdt_C; i++){
       crank += cdt_C[i]->rank;
     }
-    if (crank != 0) this->sr_C->set(this->C, this->sr_C->addid(), size_C);
-    else {
-      for (i=0; i<size_C; i++){
+//    if (crank != 0) this->sr_C->set(this->C, this->sr_C->addid(), size_C);
+//    else {
+    if (crank == 0 && !sr_C->isequal(this->beta, sr_C->mulid())){
+      sr_C->scal(size_C, this->beta, this->C, 1);
+/*      for (i=0; i<size_C; i++){
         sr_C->mul(this->beta, this->C+i*sr_C->el_size, this->C+i*sr_C->el_size);
-      }
+      }*/
     }
-
+//
     rec_ctr->A            = this->A;
     rec_ctr->B            = this->B;
     rec_ctr->C            = this->C;
@@ -267,6 +269,9 @@ namespace CTF_int {
 
     rec_ctr->run();
     
+    /*for (i=0; i<size_C; i++){
+      printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
+    }*/
     for (i=0; i<ncdt_C; i++){
       //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
       MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->cm);
@@ -374,6 +379,7 @@ namespace CTF_int {
   }
 
   void seq_tsr_ctr::run(){
+    ASSERT(idx_lyr == 0 && num_lyr == 1);
     if (is_custom){
       ASSERT(is_inner == 0);
       sym_seq_ctr_cust(this->alpha,

@@ -129,8 +129,25 @@ namespace CTF_int {
     ASSERT(!(move_A && move_B && move_C));
     
     rec_ctr->beta         = this->beta;
-    rec_ctr->num_lyr      = 1;
-    rec_ctr->idx_lyr      = 0;
+
+    int iidx_lyr, inum_lyr;
+    if (edge_len >= num_lyr && edge_len % num_lyr == 0){
+      inum_lyr         = num_lyr;
+      iidx_lyr         = idx_lyr;
+      rec_ctr->num_lyr = 1;
+      rec_ctr->idx_lyr = 0;
+    } else if (edge_len < num_lyr && num_lyr % edge_len == 0){
+      inum_lyr         = edge_len;
+      iidx_lyr         = idx_lyr%edge_len;
+      rec_ctr->num_lyr = num_lyr/edge_len;
+      rec_ctr->idx_lyr = idx_lyr/edge_len;
+    } else {
+      rec_ctr->num_lyr = num_lyr;
+      rec_ctr->idx_lyr = idx_lyr;
+      inum_lyr         = 1;
+      iidx_lyr         = 0;
+    }
+
     
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     
@@ -152,7 +169,8 @@ namespace CTF_int {
     ret = CTF_int::mst_alloc_ptr(aux_size, (void**)&buf_aux);
     ASSERT(ret==0);
 
-    for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
+    //for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
+    for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
       if (move_A){
         owner_A   = ib % cdt_A->np;
         if (rank_A == owner_A){
@@ -171,7 +189,7 @@ namespace CTF_int {
         if (ctr_sub_lda_A == 0)
           op_A = this->A;
         else {
-          if (false && ctr_lda_A == 1)
+          if (ctr_lda_A == 1)
             op_A = this->A+sr_A->el_size*ib*ctr_sub_lda_A;
           else {
             op_A = buf_A;
@@ -200,7 +218,7 @@ namespace CTF_int {
         if (ctr_sub_lda_B == 0)
           op_B = this->B;
         else {
-          if (false && ctr_lda_B == 1){
+          if (ctr_lda_B == 1){
             op_B = this->B+sr_B->el_size*ib*ctr_sub_lda_B;
           } else {
             op_B = buf_B;
@@ -217,7 +235,7 @@ namespace CTF_int {
         if (ctr_sub_lda_C == 0)
           op_C = this->C;
         else {
-          if (false && ctr_lda_C == 1) 
+          if (ctr_lda_C == 1) 
             op_C = this->C+sr_C->el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
@@ -233,6 +251,9 @@ namespace CTF_int {
 
       rec_ctr->run();
 
+      /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
+        printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
+      }*/
       if (move_C){
         /* FIXME: Wont work for single precsion */
         MPI_Allreduce(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), cdt_C->cm);
@@ -244,13 +265,17 @@ namespace CTF_int {
                      ctr_sub_lda_C*b_C, this->beta);
         }
       } else {
-        if (ctr_sub_lda_C != 0)
+        if (ctr_lda_C != 1 && ctr_sub_lda_C != 0)
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
                      buf_C, ctr_sub_lda_C, sr_C->mulid(), 
                      this->C+sr_C->el_size*ib*ctr_sub_lda_C, 
                      ctr_sub_lda_C*edge_len, this->beta);
+        if (ctr_sub_lda_C == 0)
+          rec_ctr->beta = sr_C->mulid();
       }
-      rec_ctr->beta = sr_C->mulid();
+/*      for (int i=0; i<ctr_sub_lda_C*ctr_lda_C*edge_len; i++){
+        printf("[%d] P%d C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)C)[i]);
+      }*/
     }
     /* FIXME: reuse that */
 #ifdef OFFLOAD
