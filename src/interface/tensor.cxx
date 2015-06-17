@@ -585,7 +585,7 @@ namespace CTF {
   }
 
   template<>
-  void Tensor<double, 1>::fill_random(double rmin, double rmax){
+  inline void Tensor<double, 1>::fill_random(double rmin, double rmax){
     for (int64_t i=0; i<size; i++){
       data[i] = drand48()*(rmax-rmin)+rmin;
     }
