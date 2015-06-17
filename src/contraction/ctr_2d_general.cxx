@@ -169,7 +169,8 @@ namespace CTF_int {
     ret = CTF_int::mst_alloc_ptr(aux_size, (void**)&buf_aux);
     ASSERT(ret==0);
 
-    for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
+    //for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
+    for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
       if (move_A){
         owner_A   = ib % cdt_A->np;
         if (rank_A == owner_A){
@@ -250,6 +251,9 @@ namespace CTF_int {
 
       rec_ctr->run();
 
+      /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
+        printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
+      }*/
       if (move_C){
         /* FIXME: Wont work for single precsion */
         MPI_Allreduce(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), cdt_C->cm);
@@ -269,6 +273,9 @@ namespace CTF_int {
         if (ctr_sub_lda_C == 0)
           rec_ctr->beta = sr_C->mulid();
       }
+/*      for (int i=0; i<ctr_sub_lda_C*ctr_lda_C*edge_len; i++){
+        printf("[%d] P%d C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)C)[i]);
+      }*/
     }
     /* FIXME: reuse that */
 #ifdef OFFLOAD

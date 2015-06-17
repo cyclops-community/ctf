@@ -328,8 +328,8 @@ namespace CTF_int{
     idx_A = 0, idx_B = 0, idx_C = 0;
     sym_pass = 1;
 
+   // int cntr=0;  
     for (;;){
-      //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
       if (sym_pass){
   //      C[idx_C] += alpha*A[idx_A]*B[idx_B];
         TAU_FSTART(gemm);
@@ -340,11 +340,16 @@ namespace CTF_int{
                             B+idx_B*stride_B*sr_B->el_size, prm->k, sr_C->mulid(),
                             C+idx_C*stride_C*sr_C->el_size, prm->m);
   #else
+        //printf("[%d] <- [%d]*[%d] (%d)\n",idx_C, idx_A, idx_B, cntr++);
         sr_C->gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
                   A+idx_A*stride_A*sr_A->el_size, 
                   B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
                   C+idx_C*stride_C*sr_C->el_size);
   #endif
+        /*printf("multiplying %lf by %lf and got %lf\n", 
+((double*)(A+idx_A*stride_A*sr_A->el_size))[0],
+((double*)(B+idx_B*stride_B*sr_B->el_size))[0],
+((double*)(C+idx_C*stride_C*sr_C->el_size))[0]);*/
         TAU_FSTOP(gemm);
         // count n^2 FLOPS too
         CTF_FLOPS_ADD((2 * (int64_t)prm->n * (int64_t)prm->m * (int64_t)(prm->k+1)));
