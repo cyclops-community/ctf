@@ -909,8 +909,6 @@ namespace CTF_int {
                     swap_data.ptr, recv_counts, recv_displs);
     
 
-    /*printf("[%d] old_num_pair = %d new_num_pair = %d\n",
-                  glb_comm->rank, nwrite, new_num_pair);*/
 
     if (new_num_pair > nwrite){
       CTF_int::cdealloc(buf_datab);

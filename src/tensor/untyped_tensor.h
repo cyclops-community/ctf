@@ -150,7 +150,7 @@ namespace CTF_int {
              int const *      edge_len,
              int const *      sym,
              CTF::World *     wrld,
-             bool             alloc_data=false,
+             bool             alloc_data=true,
              char const *     name=NULL,
              bool             profile=1);
 

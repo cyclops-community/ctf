@@ -790,7 +790,7 @@ namespace CTF_int {
     // (CommData*)CTF_int::alloc(sizeof(CommData));
     //  SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
       World dt_self = World(MPI_COMM_SELF);
-      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self);
+      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
       stsr.slice(NULL, NULL, beta, this, offsets, offsets, alpha);
     } else {
       tsr_sub->slice(offsets, lens, beta, this, offsets, lens, alpha);
@@ -833,7 +833,7 @@ namespace CTF_int {
     memset(offsets, 0, this->order*sizeof(int));
     if (tsr_sub->order == -1){ // == NULL){
       World dt_self = World(MPI_COMM_SELF);
-      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self);
+      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
       slice(offsets, offsets, beta, &stsr, NULL, NULL, alpha);
     } else {
       slice(offsets, lens, alpha, tsr_sub, offsets, lens, beta);
@@ -875,7 +875,6 @@ namespace CTF_int {
       this->print_map(stdout);
     }
   #endif
-
     tsr = this;
     
     if (tsr->has_zero_edge_len) return SUCCESS;
