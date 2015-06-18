@@ -368,19 +368,15 @@ void dgtog_reshuffle(int const *          sym,
 
   int nold_rep = 1;
   int * old_rep_phase; alloc_ptr(sizeof(int)*order, (void**)&old_rep_phase);
-  int * old_rep_phase_lda; alloc_ptr(sizeof(int)*order, (void**)&old_rep_phase_lda);
   for (int i=0; i<order; i++){
     old_rep_phase[i] = lcm(old_dist.phys_phase[i], new_dist.phys_phase[i])/old_dist.phys_phase[i];
-    old_rep_phase_lda[i] = nold_rep;
     nold_rep *= old_rep_phase[i];
   }
 
   int nnew_rep = 1;
   int * new_rep_phase; alloc_ptr(sizeof(int)*order, (void**)&new_rep_phase);
-  int * new_rep_phase_lda; alloc_ptr(sizeof(int)*order, (void**)&new_rep_phase_lda);
   for (int i=0; i<order; i++){
     new_rep_phase[i] = lcm(new_dist.phys_phase[i], old_dist.phys_phase[i])/new_dist.phys_phase[i];
-    new_rep_phase_lda[i] = nnew_rep;
     nnew_rep *= new_rep_phase[i];
   }
   
@@ -537,6 +533,7 @@ void dgtog_reshuffle(int const *          sym,
 //      MPI_Status * stat = (MPI_Status*)alloc(sizeof(MPI_Status)*(nrecv+nsent));
     MPI_Waitall(nrecv+nsent, reqs, MPI_STATUSES_IGNORE);
   } 
+  cdealloc(reqs);
   //ord_glb_comm.all_to_allv(tsr_data, send_counts, send_displs, sr->el_size,
   //                         recv_buffer, recv_counts, recv_displs);
   TAU_FSTOP(COMM_RESHUFFLE);

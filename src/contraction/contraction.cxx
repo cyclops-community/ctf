@@ -3827,6 +3827,7 @@ namespace CTF_int {
       }
       iV += std::max(npres-1, 0);
     }
+    cdealloc(idx_arr);
   }
 
   void contraction::print(){
