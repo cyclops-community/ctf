@@ -333,8 +333,8 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
   LDFLAGS="-L$BGQ_ESSL/lib64 -L$IBM_MAIN_DIR/xlf/bg/14.1/bglib64/ -L$IBM_MAIN_DIR/xlsmp/bg/3.1/bglib64/ -L$IBM_MAIN_DIR/xlmass/bg/7.3/bglib64/"
   INCLUDES="-I$BGQ_ESSL/include"
   AR='ar'
-  CXX=mpixlcxx_r
-  CXXFLAGS='-qsmp=omp -g -O3 -qarch=qp -qtune=qp -qsimd=auto -qhot=level=1 -qprefetch -qunroll=yes -qreport'
+  CXX=mpic++11
+  CXXFLAGS='-O3 -std=c++11 -fopenmp'
   DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
   WARNFLAGS=''
 
