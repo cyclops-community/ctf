@@ -327,10 +327,10 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
   echo 'Hostname recognized as a BG/Q machine.'
  
   host=bgq
-  SCALAPACKLIBS="-L/soft/libraries/alcf/current/xl/SCALAPACK/lib/ -lscalapack"
-  BLASLIBS="-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -llapack -lgfortran -lesslsmpbg -lxlsmp -lxlfmath -lxlf90_r -lm -Wl,--allow-multiple-definition"
   BGQ_ESSL='/soft/libraries/essl/current'
-  LDFLAGS="-L$BGQ_ESSL/lib64 -L$IBM_MAIN_DIR/xlf/bg/14.1/bglib64/ -L$IBM_MAIN_DIR/xlsmp/bg/3.1/bglib64/ -L$IBM_MAIN_DIR/xlmass/bg/7.3/bglib64/"
+  SCALAPACKLIBS="-L/soft/libraries/alcf/current/xl/SCALAPACK/lib/ -lscalapack"
+  BLASLIBS="-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -llapack -lgfortran -L${BGQ_ESSL}/lib64 -lesslsmpbg -L${IBM_MAIN_DIR}/xlsmp/bg/3.1/bglib64 -lxlsmp -L${IBM_MAIN_DIR}/xlf/bg/14.1/lib64 -lxlopt -lxlf90_r -lxlfmath -lxl -Wl,--allow-multiple-definition"
+  LDFLAGS=""
   INCLUDES="-I$BGQ_ESSL/include"
   AR='ar'
   CXX=mpic++11
