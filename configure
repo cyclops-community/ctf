@@ -307,7 +307,7 @@ elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     
     
 elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
-  echo 'Hostname recognized as a BG/P machine. (PLEASE USE CTF V1.0: git checkout v1.0)'
+  echo 'Hostname recognized as a BG/P machine. (PLEASE USE CTF v1.1: git checkout v1.1)'
   
   host=bgp
   BLASLIBS='-lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread'
@@ -325,7 +325,7 @@ elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
   
 elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
   echo 'Hostname recognized as a BG/Q machine (note: requires +mpiwrapper-bgclang in ~/.soft).'
-  echo 'FOR XLC SUPPORT, WHICH PERMITS THE USE OF THREADED ESSL AND IMPROVES PERFORMANCE BY UP TO 10X, PLEASE USE CTF V1.0: git checkout v1.0).'
+  echo 'FOR XLC SUPPORT, WHICH PERMITS THE USE OF THREADED ESSL AND IMPROVES PERFORMANCE BY UP TO 10X, PLEASE USE CTF v1.1: git checkout v1.1).'
  
   host=bgq
   BGQ_ESSL='/soft/libraries/essl/current'
