@@ -511,12 +511,12 @@ namespace CTF_int {
    * \brief gives total memory size per MPI process 
    */
   int64_t proc_bytes_total() {
-    int64_t total;
+    uint64_t total;
     int node_config;
 
     Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAP, &total);
     if (mem_size > 0){
-      return MIN(total,mem_size);
+      return MIN(total,uint64_t(mem_size));
     } else {
       return total;
     }
@@ -526,8 +526,8 @@ namespace CTF_int {
    * \brief gives total memory available on this MPI process 
    */
   int64_t proc_bytes_available(){
-    int64_t mem_avail;
-    Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail); 
+    uint64_t mem_avail;
+    Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail);
     mem_avail*= memcap;
     mem_avail += mst_buffer_size-mst_buffer_used;
   /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
