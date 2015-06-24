@@ -144,10 +144,12 @@ int main(int argc, char ** argv){
     pass.push_back(multi_tsr_sym(n^2,n, dw));
    
 #ifndef PROFILE 
+#ifndef BGQ
     if (rank == 0)
       printf("Testing gemm on subworld algorithm with n,m,k = %d div = 3:\n",n*n);
     pass.push_back(test_subworld_gemm(n*n, n*n, n*n, 3, dw));
-    
+#endif    
+
     if (rank == 0)
       printf("Testing non-symmetric Strassen's algorithm with n = %d:\n", n*n);
     pass.push_back(strassen(n*n, NS, dw));
@@ -175,11 +177,13 @@ int main(int argc, char ** argv){
     printf("Currently cannot do asymmetric Strassen's algorithm with n = %d:\n",n*n);
     pass.push_back(0);
 #endif
+#ifndef BGQ
     if (np == 1<<(int)log2(np)){
       if (rank == 0)
         printf("Testing non-symmetric sliced GEMM algorithm with (%d %d %d):\n",16,32,8);
       pass.push_back(test_slice_gemm(16, 32, 8, dw));
     }
+#endif    
 #endif
     if (rank == 0)
       printf("Testing 1D DFT with n = %d:\n",n*n);

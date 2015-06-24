@@ -142,7 +142,7 @@ namespace CTF_int {
         CTF_int::cdealloc(topo_dims);
         return topo;
       } else 
-      #else
+      #endif
       {
         int order;
         factorize(np, &order, &dim_len);
@@ -150,7 +150,6 @@ namespace CTF_int {
         CTF_int::cdealloc(dim_len);
         return topo;
       }
-      #endif
     } else if (mach == TOPOLOGY_BGP) {
       int order;
       if (1<<(int)log2(np) != np){

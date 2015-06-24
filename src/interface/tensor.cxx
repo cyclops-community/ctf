@@ -77,7 +77,7 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(tensor const & A,
                                 World &        world_)
-    : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, world_, 1, A.name, A.profile) { }
+    : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, &world_, 1, A.name, A.profile) { }
     //: CTF_int::tensor(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile) { }
 
   template<typename dtype, bool is_ord>

@@ -72,9 +72,9 @@ int test_dft_3D(int     n,
   int pass = 1;
   for (i=0; i<np; i++){
     if (idx[i]%n == (idx[i]/n)%n && idx[i]%n == idx[i]/(n*n)){
-      if (fabs(data[i].real() - 1.)>=1.E-9) pass = 0;
+      if (fabs((double)data[i].real() - 1.)>=1.E-9) pass = 0;
     } else {
-      if (fabs(data[i].real())>=1.E-9) pass = 0;
+      if (fabs((double)data[i].real())>=1.E-9) pass = 0;
     }
   }
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);

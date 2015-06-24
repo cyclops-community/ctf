@@ -307,7 +307,7 @@ elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     
     
 elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
-  echo 'Hostname recognized as a BG/P machine.'
+  echo 'Hostname recognized as a BG/P machine. (PLEASE USE CTF V1.0: git checkout v1.0)'
   
   host=bgp
   BLASLIBS='-lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread'
@@ -324,17 +324,18 @@ elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
   WARNFLAGS='-Wall'
   
 elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
-  echo 'Hostname recognized as a BG/Q machine.'
+  echo 'Hostname recognized as a BG/Q machine (note: requires +mpiwrapper-bgclang in ~/.soft).'
+  echo 'FOR XLC SUPPORT, WHICH PERMITS THE USE OF THREADED ESSL AND IMPROVES PERFORMANCE BY UP TO 10X, PLEASE USE CTF V1.0: git checkout v1.0).'
  
   host=bgq
   BGQ_ESSL='/soft/libraries/essl/current'
-  SCALAPACKLIBS="-L/soft/libraries/alcf/current/xl/SCALAPACK/lib/ -lscalapack"
-  BLASLIBS="-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -llapack -lgfortran -L${BGQ_ESSL}/lib64 -lesslsmpbg -L${IBM_MAIN_DIR}/xlsmp/bg/3.1/bglib64 -lxlsmp -L${IBM_MAIN_DIR}/xlf/bg/14.1/lib64 -lxlopt -lxlf90_r -lxlfmath -lxl -Wl,--allow-multiple-definition"
+  SCALAPACKLIBS=""
+  BLASLIBS="-L${BGQ_ESSL}/lib64 -lesslbg -L${IBM_MAIN_DIR}/xlf/bg/14.1/lib64 -lxlopt -lxlf90_r -lxlfmath -lxl -Wl,--allow-multiple-definition"
   LDFLAGS=""
   INCLUDES="-I$BGQ_ESSL/include"
   AR='ar'
   CXX=mpic++11
-  CXXFLAGS='-O3 -std=c++11 -fopenmp'
+  CXXFLAGS='-O3 -std=c++11 -DOMP_OFF'
   DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
   WARNFLAGS=''
 
