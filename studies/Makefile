@@ -5,8 +5,8 @@ STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D fast_tensor_ctr fast_sy_as_
 .PHONY: $(STUDIES)
 $(STUDIES): %:  ../bin/%
 
-../bin/%: %.cxx ../lib/libctf.a
-	$(FCXX) $< -o $@ -I../include/ -L../lib -lctf $(LIBS)
+../bin/%: $(SRCDIR)/%.cxx ../lib/libctf.a
+	$(FCXX) $< -o $@ -I$(SRCDIR)/../include/ -L../lib -lctf $(LIBS)
 
 clean: 
 	rm -f $(OBJS) 

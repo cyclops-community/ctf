@@ -15,8 +15,8 @@ else
 endif
 
 
-../bin/%: %.cxx ../lib/libctf.a
-	$(FCXX) $< -o $@ -I../include/ -L../lib -lctf $(LIBS)
+../bin/%: $(SRCDIR)/%.cxx ../lib/libctf.a
+	$(FCXX) $< -o $@ -I$(SRCDIR)/../include/ -L../lib -lctf $(LIBS)
 
 clean: 
 	rm -f $(OBJS) 

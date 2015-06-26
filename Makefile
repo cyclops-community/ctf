@@ -1,6 +1,9 @@
 include config.mk
 
-all: ./lib/libctf.a
+all: foo ./lib/libctf.a
+
+foo:
+	echo vpath $(VPATH)
 
 EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice 
@@ -48,7 +51,7 @@ ctf:
 ctflib: ctf 
 	$(AR) -crs ./lib/libctf.a src/*/*.o; 
 
-lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
+lib/libctf.a: $(SRCDIR)/src/*/*.cxx $(SRCDIR)/src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
 	$(MAKE) ctflib
 	
 clean: clean_bin clean_lib

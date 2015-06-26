@@ -3,11 +3,14 @@ include ../../config.mk
 OBJS = sym_indices.o symmetrization.o
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../../Makefile ../../config.mk  ../contraction/contraction.h ../interface/common.h ../interface/timer.h ../shared/util.h ../summation/summation.h ../tensor/untyped_tensor.h
+HDRS = ../../Makefile ../../config.mk  $(SRCDIR)/../contraction/contraction.h \
+		$(SRCDIR)/../interface/common.h $(SRCDIR)/../interface/timer.h \
+		$(SRCDIR)/../shared/util.h $(SRCDIR)/../summation/summation.h \
+		$(SRCDIR)/../tensor/untyped_tensor.h
 
 ctf: $(OBJS) 
 
-$(OBJS): %.o: %.cxx *.h $(HDRS)
+$(OBJS): %.o: $(SRCDIR)/%.cxx $(SRCDIR)/*.h $(HDRS)
 	$(FCXX) -c $<
 
 

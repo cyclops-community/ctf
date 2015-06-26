@@ -217,18 +217,35 @@ function check_if_apple
   status=1
   cat > .test.cxx <<EOF
 #if defined(__APPLE__)
-  int main(){  return 1; }
-#else
-  int main(){  return 0; }
+#error
 #endif
+  int main(){  return 0; }
 EOF
   $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $LDFLAGS  > /dev/null 2>&1
-  ./a.out;
-  status=$?
+  if [ -x a.out ]; then
+    status=0
+  fi
   rm -f .test.cxx a.out
   return $status
 }
 
+function link_makefiles
+{
+	local srcdir=$1
+	local builddir=$2
+	
+	if [ -f $srcdir/Makefile ]; then
+		mkdir -p $builddir
+		if [ ! -e $builddir/Makefile ]; then
+			ln -s $srcdir/Makefile $builddir/Makefile
+		fi
+		for subdir in `ls -1 $srcdir`; do
+			if [ -d $srcdir/$subdir ]; then
+				link_makefiles $srcdir/$subdir $builddir/$subdir
+			fi
+		done
+	fi
+}
 
 PARAMS=$0
 for PARAM in "$@"
@@ -526,6 +543,21 @@ else
   echo 'NVCC provided and cuda will be used.'
 fi
 
+#
+# Set up file structure for out-of-tree build
+#
+builddir=`pwd`
+srcdir=`dirname $0`
+if [[ $srcdir != /* ]]; then
+	srcdir=`cd $builddir/$srcdir;pwd`
+fi
+if [ $builddir != $srcdir ]; then
+	echo "Copying directory structure from $srcdir."
+	link_makefiles $srcdir $builddir
+fi
+mkdir -p lib
+mkdir -p bin
+
 cat > config.mk <<EOF
 BLAS_LIBS   = $SCALAPACKLIBS $BLASLIBS
 
@@ -550,6 +582,12 @@ FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS) \$(INCLUDES)
 LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
 
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
+
+BASE_BUILDDIR   = $builddir
+BASE_SRCDIR     = $srcdir
+
+BUILDDIR   = \$(shell pwd)
+SRCDIR     = \$(subst \$(BASE_BUILDDIR),\$(BASE_SRCDIR),\$(BUILDDIR))
 
 EOF
 

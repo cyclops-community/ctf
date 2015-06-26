@@ -5,12 +5,19 @@ OBJS = common.o  flop_counter.o world.o idx_tensor.o term.o schedule.o semiring.
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
 HDRS = ../../Makefile ../../config.mk 
 
-ctf: $(OBJS) 
+ctf: foo $(OBJS) 
+
+foo:
+	echo $(VPATH)
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../../Makefile ../../config.mk  ../contraction/contraction.h ../interface/common.h ../mapping/topology.h ../scaling/scaling.h ../shared/memcontrol.h ../shared/util.h ../summation/summation.h ../tensor/algstrct.h ../tensor/untyped_tensor.h 
+HDRS = ../../Makefile ../../config.mk  $(SRCDIR)/../contraction/contraction.h \
+		$(SRCDIR)/../interface/common.h $(SRCDIR)/../mapping/topology.h \
+		$(SRCDIR)/../scaling/scaling.h $(SRCDIR)/../shared/memcontrol.h \
+		$(SRCDIR)/../shared/util.h $(SRCDIR)/../summation/summation.h \
+		$(SRCDIR)/../tensor/algstrct.h $(SRCDIR)/../tensor/untyped_tensor.h 
 
-$(OBJS): %.o: %.cxx *.h  $(HDRS)
+$(OBJS): %.o: $(SRCDIR)/%.cxx $(SRCDIR)/*.h  $(HDRS)
 	$(FCXX) -c $<
 
 clean: 
