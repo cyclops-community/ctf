@@ -554,6 +554,9 @@ fi
 if [ $builddir != $srcdir ]; then
 	echo "Copying directory structure from $srcdir."
 	link_makefiles $srcdir $builddir
+	if [ ! -e include ]; then
+		ln -s $srcdir/include include
+	fi
 fi
 mkdir -p lib
 mkdir -p bin
