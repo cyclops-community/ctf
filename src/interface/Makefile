@@ -5,10 +5,7 @@ OBJS = common.o  flop_counter.o world.o idx_tensor.o term.o schedule.o semiring.
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
 HDRS = ../../Makefile ../../config.mk 
 
-ctf: foo $(OBJS) 
-
-foo:
-	echo $(VPATH)
+ctf: $(OBJS) 
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
 HDRS = ../../Makefile ../../config.mk  $(SRCDIR)/../contraction/contraction.h \
