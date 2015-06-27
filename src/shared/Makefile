@@ -1,21 +1,17 @@
-include ../../config.mk
-
-
-OBJS = util.o memcontrol.o int_timer.o
+LOBJS = util.o memcontrol.o int_timer.o
+OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../../Makefile ../../config.mk  ../interface/common.h ../interface/timer.h
+HDRS = ../../Makefile $(BDIR)/config.mk  ../interface/common.h ../interface/timer.h
 
-NVCC_OBJS = offload.o
+LNVCC_OBJS = offload.o
+LNVCC_OBJS = $(addprefix $(ODIR)/, $(LLNVCC_OBJS))
 
 ctf: $(OBJS) 
 
-$(OBJS): %.o: %.cxx *.h $(HDRS)
-	$(FCXX) -c $<
+$(OBJS): $(ODIR)/%.o: %.cxx *.h  $(HDRS)
+	$(FCXX) -c $< -o $@
 
-$(NVCC_OBJS): %.o: %.cxx *.h
-	$(OFFLOAD_CXX) -c $<
-
-clean: 
-	rm -f *.o $(NVCC_OBJS)
+$(NVCC_OBJS): $(ODIR)/%.o: %.cxx *.h
+	$(OFFLOAD_CXX) -c $< -o $@
 

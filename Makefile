@@ -1,6 +1,17 @@
-include config.mk
+BDIR=$(realpath  $(CTF_BUILD_DIR))
+ifeq (,${BDIR})
+  BDIR=$(shell pwd)
+endif
+export BDIR
+export ODIR=$(BDIR)/obj
+include $(BDIR)/config.mk
+export FCXX
+export LIBS
+export OFFLOAD_FCXX
 
-all: ./lib/libctf.a
+
+
+all: $(BDIR)/lib/libctf.a
 
 EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice 
@@ -17,7 +28,7 @@ EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(STUDIES)
 
 .PHONY: executables
 executables: $(EXECUTABLES)
-$(EXECUTABLES): ./lib/libctf.a
+$(EXECUTABLES): $(BDIR)/lib/libctf.a
 
 
 .PHONY: examples
@@ -46,40 +57,44 @@ ctf:
 
 .PHONY: ctflib
 ctflib: ctf 
-	$(AR) -crs ./lib/libctf.a src/*/*.o; 
+	$(AR) -crs $(BDIR)/lib/libctf.a $(ODIR)/*.o; 
 
-lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile config.mk
+$(BDIR)/lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
 	
-clean: clean_bin clean_lib
-	$(MAKE) $@ -C src
+clean: clean_bin clean_lib clean_obj
+#	$(MAKE) $@ -C src
 
 
 test: test_suite
-	./bin/test_suite
+	$(BDIR)/bin/test_suite
 
 test2: test_suite
-	mpirun -np 2 ./bin/test_suite
+	mpirun -np 2 $(BDIR)/bin/test_suite
 
 test3: test_suite
-	mpirun -np 3 ./bin/test_suite
+	mpirun -np 3 $(BDIR)/bin/test_suite
 
 test4: test_suite
-	mpirun -np 4 ./bin/test_suite
+	mpirun -np 4 $(BDIR)/bin/test_suite
 
 test6: test_suite
-	mpirun -np 6 ./bin/test_suite
+	mpirun -np 6 $(BDIR)/bin/test_suite
 
 test7: test_suite
-	mpirun -np 7 ./bin/test_suite
+	mpirun -np 7 $(BDIR)/bin/test_suite
 
 test8: test_suite
-	mpirun -np 8 ./bin/test_suite
+	mpirun -np 8 $(BDIR)/bin/test_suite
 
 clean_bin:
 	for comp in $(EXECUTABLES) ; do \
-		rm -f ./bin/$$comp ; \
+		rm -f $(BDIR)/bin/$$comp ; \
 	done 
 
 clean_lib:
-	rm -f ./lib/libctf.a
+	rm -f $(BDIR)/lib/libctf.a
+
+clean_obj:
+	rm -f src/*/*.o #DEPRECATED: objs no longer created here, but keep it clean in case of git pull
+	rm -f $(ODIR)/*.o 

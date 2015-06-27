@@ -1,15 +1,12 @@
-include ../config.mk
-
 EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice \
            qinformatics 
 
+.PHONY:
+$(EXAMPLES): %: $(BDIR)/bin/%
 
-#.PHONY: $(EXAMPLES)
-$(EXAMPLES): %:  ../bin/%
-
-../bin/%: %.cxx ../lib/libctf.a
-	$(FCXX) $< -o $@ -I../include/ -L../lib -lctf $(LIBS)
+$(BDIR)/bin/%: %.cxx $(BDIR)/lib/libctf.a Makefile ../Makefile 
+	$(FCXX) $< -o $@ -I../include/ -L$(BDIR)/lib -lctf $(LIBS)
 
 
 

@@ -1,5 +1,3 @@
-include ../config.mk
-
 ctf: subdirs
 
 SUBDIRS = interface shared tensor symmetry mapping redistribution scaling summation contraction

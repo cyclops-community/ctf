@@ -6,6 +6,8 @@ function usage
 {
   echo -e 'Usage: configure [options]'
   echo
+  echo -e '\t--build-dir=dir   Specify where to build object files, library, and executable (default is .)'
+  echo
   echo -e '\t--blas=libs       Specify the linker options and/or libraries needed to link'
   echo -e '\t                  the BLAS. If not specified, common BLAS libraries will be searched for.'
   echo
@@ -17,6 +19,11 @@ function usage
   echo
 }
 
+PARAMS=$0
+for PARAM in "$@"
+do
+  PARAMS="${PARAMS} '${PARAM}'"
+done
 #Usage: 'testlink $1 $2 $3' where 
 # $1 - library link line
 # $2 - symbol (function)
@@ -229,21 +236,15 @@ EOF
   return $status
 }
 
-
-PARAMS=$0
-for PARAM in "$@"
-do
-  PARAMS="${PARAMS} '${PARAM}'"
-done
-echo $PARAMS > how-did-i-configure
-#echo $0 $* > how-did-i-configure
-
 #
 # Parse command-line arguments
 #
 depstype=normal
 while [ "x$1" != "x" ]; do
   case $1 in
+    --build-dir=*)
+      BUILDDIR="${1#--build-dir=}"
+      ;;
     --blas=*)
       BLASLIBS="${1#--blas=}"
       ;;
@@ -272,6 +273,18 @@ while [ "x$1" != "x" ]; do
   esac
   shift
 done
+
+CTFDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+if [ "x$BUILDDIR" = "x" ]; then
+	if [ "x$CTFDIR" = `pwd` ]; then
+	  BUILDDIR='.'
+  else
+	  BUILDDIR=`pwd`
+  fi
+fi
+
+echo $PARAMS > $BUILDDIR/how-did-i-configure
+
 
 #
 # Check for known supercomputer host names
@@ -526,7 +539,12 @@ else
   echo 'NVCC provided and cuda will be used.'
 fi
 
-cat > config.mk <<EOF
+mkdir -p $BUILDDIR
+mkdir -p $BUILDDIR/lib
+mkdir -p $BUILDDIR/obj
+mkdir -p $BUILDDIR/bin
+
+cat > $BUILDDIR/config.mk <<EOF
 BLAS_LIBS   = $SCALAPACKLIBS $BLASLIBS
 
 LDFLAGS     = $LDFLAGS
@@ -550,7 +568,15 @@ FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS) \$(INCLUDES)
 LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
 
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
-
 EOF
 
+
+
+if [ "$BUILDDIR" != "." ] ; then
+cat > $BUILDDIR/Makefile <<EOF
+CTFDIR=$CTFDIR
+all %:
+	export CTF_BUILD_DIR=$BUILDDIR; cd \$(CTFDIR); make \$@;
+EOF
+fi
 echo 'Configure was successful.'
