@@ -570,8 +570,9 @@ LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
 EOF
 
-if [ ! -e $BUILDDIR/include ] ; then
-ln -s $CTFDIR/include $BUILDDIR/include
+if [ ! -f $BUILDDIR/include/ctf.hpp ] ; then
+mkdir -p $BUILDDIR/include
+sed -e "s/\.\.\/src/${CTFDIR//\//\\/}/g" $CTFDIR/include/ctf.hpp > $BUILDDIR/include/ctf.hpp
 fi
 
 if [ ! -e $BUILDDIR/Makefile ] ; then
