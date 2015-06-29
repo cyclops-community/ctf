@@ -5,6 +5,11 @@
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
 
+extern "C"
+{
+	void CTF_linked() {}
+}
+
 using namespace CTF_int;
 
 namespace CTF {
