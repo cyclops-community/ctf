@@ -224,14 +224,14 @@ function check_if_apple
   status=1
   cat > .test.cxx <<EOF
 #if defined(__APPLE__)
-  int main(){  return 1; }
-#else
-  int main(){  return 0; }
+#error
 #endif
+  int main(){  return 0; }
 EOF
   $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $LDFLAGS  > /dev/null 2>&1
-  ./a.out;
-  status=$?
+  if [ -x a.out ]; then
+    status=0
+  fi
   rm -f .test.cxx a.out
   return $status
 }
@@ -243,7 +243,7 @@ depstype=normal
 while [ "x$1" != "x" ]; do
   case $1 in
     --build-dir=*)
-      BUILDDIR="${1#--build-dir=}"
+      eval BUILDDIR="$(printf "%q" "${1#--build-dir=}")"
       ;;
     --blas=*)
       BLASLIBS="${1#--blas=}"
@@ -570,12 +570,15 @@ LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
 EOF
 
+if [ ! -e $BUILDDIR/include ] ; then
+ln -s $CTFDIR/include $BUILDDIR/include
+fi
 
-
-if [ "$BUILDDIR" != "." ] ; then
+if [ ! -e $BUILDDIR/Makefile ] ; then
 cat > $BUILDDIR/Makefile <<EOF
 CTFDIR=$CTFDIR
-all %:
+all: ctf
+%:
 	export CTF_BUILD_DIR=$BUILDDIR; cd \$(CTFDIR); make \$@;
 EOF
 fi
