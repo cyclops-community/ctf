@@ -572,7 +572,7 @@ EOF
 
 if [ ! -f $BUILDDIR/include/ctf.hpp ] ; then
 mkdir -p $BUILDDIR/include
-sed -e "s/\.\.\/src/${CTFDIR//\//\\/}/g" $CTFDIR/include/ctf.hpp > $BUILDDIR/include/ctf.hpp
+echo "#include \"$CTFDIR/include/ctf.hpp\"" > $BUILDDIR/include/ctf.hpp
 fi
 
 if [ ! -e $BUILDDIR/Makefile ] ; then
