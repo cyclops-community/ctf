@@ -2,7 +2,7 @@ A distributed memory library for efficient decomposition of tensors of arbitrary
 
 Full documentation is available at
 
-http://ctf.cs.berkeley.edu
+http://www.inf.ethz.ch/personal/edgar.solomonik/ctf
 
 Basic build process: ./configure; make; 
 
