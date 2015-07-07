@@ -484,7 +484,7 @@ namespace CTF_int {
   }
 
   int contraction::unfold_broken_sym(contraction ** new_contraction){
-    int i, num_tot, iA, iB, iC, iA2, iB2;
+    int i, num_tot, iA, iB, iC;
     int * idx_arr;
     tensor * nA, * nB, * nC;
    

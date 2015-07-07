@@ -163,7 +163,7 @@ namespace CTF{
 
   Timer::~Timer(){ }
 
-  static void print_timers(char const * name){
+  void print_timers(char const * name){
     int rank, np, i, j, len_symbols, nrecv_symbols;
 
     MPI_Comm_rank(comm, &rank);

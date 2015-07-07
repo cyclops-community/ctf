@@ -581,7 +581,7 @@ namespace CTF_int {
     #pragma omp parallel
     #endif
     {
-      int i, act_lda, act_max, curr_idx, sym_idx;
+      int i, act_lda, act_max;
       int perm_factor;
       int64_t p, buf_offset;
       int * idx, * virt_rank, * phase_rank, * virt_len;
@@ -659,13 +659,13 @@ namespace CTF_int {
       ASSERT(tid != ntd-1 || vend == nvirt);
       for (p=0; p<nvirt; p++){
         if (p>=vst && p<vend){
-          int is_sh_pad0 = 0;
+          /*int is_sh_pad0 = 0;
           if (((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]) ||
               ( sym[0] == SY                  && phase_rank[0] >  phase_rank[1]) ) {
             is_sh_pad0 = 1;
           }
-          int pad0 = (padding[0]+phase_rank[0])/phase[0];
           int len0 = virt_len[0]-pad0;
+          int pad0 = (padding[0]+phase_rank[0])/phase[0];*/
           int plen0 = virt_len[0];
           data = vdata + sr->el_size*p*(size/nvirt);
 

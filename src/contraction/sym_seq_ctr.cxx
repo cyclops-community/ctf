@@ -35,7 +35,7 @@ namespace CTF_int{
                         bivar_function * func,
                         int *            idx,
                         int const *      rev_idx_map){
-    int imax;
+    int imax=0;
     int rA = rev_idx_map[3*idim+0];
     int rB = rev_idx_map[3*idim+1];
     int rC = rev_idx_map[3*idim+2];
@@ -138,7 +138,7 @@ namespace CTF_int{
                         bivar_function * func,
                         int *            idx,
                         int const *      rev_idx_map){
-    int imax;
+    int imax=0;
     int rA = rev_idx_map[0];
     int rB = rev_idx_map[1];
     int rC = rev_idx_map[2];
@@ -324,7 +324,7 @@ namespace CTF_int{
     offsets_C = (uint64_t**)CTF_int::alloc(sizeof(uint64_t*)*tot_order);
 
     for (int idim=0; idim<tot_order; idim++){
-      int len;
+      int len=0;
 
       int rA = rev_idx_map[3*idim+0];
       int rB = rev_idx_map[3*idim+1];
