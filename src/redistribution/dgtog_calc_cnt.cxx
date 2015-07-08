@@ -2,6 +2,7 @@
 
 #include "dgtog_calc_cnt.h"
 #include "../shared/util.h"
+#include "../interface/common.h"
 
 namespace CTF_int {
   //correct for SY
@@ -34,7 +35,7 @@ namespace CTF_int {
       for (int i=0; i<=get_loc(edge_len[idim]-1,sphase[idim],gidx_off[idim]); i++){
         cnt += pfx[i];
       }
-      cfree(pfx);
+      cdealloc(pfx);
       return cnt;
     }
   }
@@ -87,7 +88,7 @@ namespace CTF_int {
           pfx[i] += pfx_m1[j];
         }
       }
-      cfree(pfx_m1);
+      cdealloc(pfx_m1);
     }
     return pfx;
   }
@@ -244,11 +245,11 @@ namespace CTF_int {
       assert(order>0);
       SWITCH_ORD_CALL(calc_drv_cnts, order-1, order, sym, counts, rep_phase, rep_phase_lda, sphase, old_dist.phys_phase, gidx_off, edge_len, new_loc_edge_len)
     
-      cfree(rep_phase);
-      cfree(rep_phase_lda);
-      cfree(sphase);
-      cfree(gidx_off);
-      cfree(new_loc_edge_len);
+      cdealloc(rep_phase);
+      cdealloc(rep_phase_lda);
+      cdealloc(sphase);
+      cdealloc(gidx_off);
+      cdealloc(new_loc_edge_len);
     }
     TAU_FSTOP(calc_drv_displs);
   }
