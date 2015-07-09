@@ -2943,7 +2943,7 @@ namespace CTF_int {
   #ifdef VERBOSE
       if (global_comm.rank == 0){
         int64_t memuse = ctrf->mem_rec();
-        DPRINTF(1,"Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
+        printf("Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
                 (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
       }
   #endif

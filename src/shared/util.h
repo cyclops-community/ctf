@@ -19,11 +19,28 @@ volatile static int64_t int64_t_max = INT64_MAX;
 //#else
 #endif
 */
+#ifdef CTF_DEBUG
+#define DEBUG CTF_DEBUG
+#endif
+
+#ifdef CTF_VERBOSE
+#define VERBOSE CTF_VERBOSE
+#endif
+
+#ifdef CTF_PROFILE
+#define PROFILE CTF_PROFILE
+#endif
+
+#ifdef CTF_PMPI
+#define PMPI CTF_PMPI
+#endif
+
 #include "int_timer.h"
 #include "pmpi.h"
 #include "fompi_wrapper.h"
 
 namespace CTF_int {
+
 
   //latency time per message
   #define COST_LATENCY (1.e-6)
