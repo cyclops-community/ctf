@@ -441,7 +441,7 @@ namespace CTF_int {
       delete pop_B;
     } 
     {
-      ASSERT(tmp_ops.size() == 2);
+      assert(tmp_ops.size() == 2);
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
       Term * pop_B = tmp_ops.back();
@@ -545,7 +545,7 @@ namespace CTF_int {
       delete pop_B;
     } 
     {
-      ASSERT(tmp_ops.size() == 2);
+      assert(tmp_ops.size() == 2);
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
       Term * pop_B = tmp_ops.back();

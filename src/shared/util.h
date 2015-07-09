@@ -21,9 +21,48 @@ volatile static int64_t int64_t_max = INT64_MAX;
 */
 #include "int_timer.h"
 #include "pmpi.h"
-
+#include "fompi_wrapper.h"
 
 namespace CTF_int {
+
+  //latency time per message
+  #define COST_LATENCY (1.e-6)
+  //memory bandwidth: time per per byte
+  #define COST_MEMBW (1.e-9)
+  //network bandwidth: time per byte
+  #define COST_NETWBW (5.e-10)
+  //flop cost: time per flop
+  #define COST_FLOP (2.e-11)
+  //flop cost: time per flop
+  #define COST_OFFLOADBW (5.e-10)
+  //max total virtualization factor for mappings
+  #define MAX_NVIRT 256
+  //min total virtualization factor for mappings 
+  // (would be useful if explicit blockwise threading was enabled, which is not currently)
+  #ifndef MIN_NVIRT
+  #define MIN_NVIRT 1
+  #endif
+
+  #ifndef ENABLE_ASSERT
+  #ifdef DEBUG
+  #define ENABLE_ASSERT 1
+  #else
+  #define ENABLE_ASSERT 0
+  #endif
+  #endif
+
+  void handler();
+
+  #ifndef ASSERT
+  #if ENABLE_ASSERT
+  #define ASSERT(...)                \
+  do { if (!(__VA_ARGS__)) CTF_int::handler(); assert(__VA_ARGS__); } while (0)
+  #else
+  #define ASSERT(...) do {} while(0 && (__VA_ARGS__))
+  #endif
+  #endif
+
+
 
   /* Force redistributions always by setting to 1 */
   #define REDIST 0

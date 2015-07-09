@@ -156,7 +156,7 @@ namespace CTF {
                 int          incX,
                 char       * Y,
                 int          incY) const {
-        ASSERT(alpha == NULL);
+        //assert(alpha == NULL);
         for (int64_t i=0; i<n; i++){
           add(X+sizeof(dtype)*i*incX,Y+sizeof(dtype)*i*incY,Y+sizeof(dtype)*i*incY);
         }

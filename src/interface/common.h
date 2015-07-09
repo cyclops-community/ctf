@@ -14,7 +14,6 @@
 #include <iostream>
 #include <limits.h>
 
-#include "../shared/fompi_wrapper.h"
 #include "mpi.h"
 
 /**
@@ -72,25 +71,6 @@ namespace CTF_int {
                int          order_C,
                type const * cidx_C,
                int **       iidx_C);
-
-
-  //latency time per message
-  #define COST_LATENCY (1.e-6)
-  //memory bandwidth: time per per byte
-  #define COST_MEMBW (1.e-9)
-  //network bandwidth: time per byte
-  #define COST_NETWBW (5.e-10)
-  //flop cost: time per flop
-  #define COST_FLOP (2.e-11)
-  //flop cost: time per flop
-  #define COST_OFFLOADBW (5.e-10)
-  //max total virtualization factor for mappings
-  #define MAX_NVIRT 256
-  //min total virtualization factor for mappings 
-  // (would be useful if explicit blockwise threading was enabled, which is not currently)
-  #ifndef MIN_NVIRT
-  #define MIN_NVIRT 1
-  #endif
 
   void flops_add(int64_t n);
 
@@ -175,25 +155,6 @@ namespace CTF_int {
                        int64_t const * recv_displs);
 
   };
-
-  #ifndef ENABLE_ASSERT
-  #ifdef DEBUG
-  #define ENABLE_ASSERT 1
-  #else
-  #define ENABLE_ASSERT 0
-  #endif
-  #endif
-
-  void handler();
-
-  #ifndef ASSERT
-  #if ENABLE_ASSERT
-  #define ASSERT(...)                \
-  do { if (!(__VA_ARGS__)) CTF_int::handler(); assert(__VA_ARGS__); } while (0)
-  #else
-  #define ASSERT(...) do {} while(0 && (__VA_ARGS__))
-  #endif
-  #endif
 
   int  alloc_ptr(int64_t len, void ** const ptr);
   int  mst_alloc_ptr(int64_t len, void ** const ptr);

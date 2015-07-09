@@ -55,19 +55,7 @@ namespace CTF {
                                 char const *              name,
                                 int const                 profile,
                                 CTF_int::algstrct const & sr_)
-    : CTF_int::tensor(&sr_, order, len, sym, &world, 0, name, profile) {
-    CTF_int::tensor::set_distribution(idx, prl, blk);
-    this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
-    this->sr->set(this->data, this->sr->addid(), this->size);
-#ifdef HOME_CONTRACT 
-    this->home_size = this->size;
-    this->is_home = 1;
-    this->has_home = 1;
-    this->home_buffer = this->data;
-#else
-    this->has_home = 0;
-#endif
-  }
+    : CTF_int::tensor(&sr_, order, len, sym, &world, name, profile) { }
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(tensor const & A,

@@ -29,7 +29,7 @@ namespace CTF_int {
       } else if (A == NULL || B == NULL) {
         return false;
       }
-      ASSERT(0);//FIXME
+      assert(0);//FIXME
       //return A->tid < B->tid;
       return -1;
     }

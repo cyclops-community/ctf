@@ -72,6 +72,31 @@ namespace CTF_int {
     this->init(sr_, order,edge_len,sym,wrld,alloc_data,name,profile);
   }
 
+  tensor::tensor(algstrct const *           sr,
+                 int                        order,
+                 int const *                edge_len,
+                 int const *                sym,
+                 CTF::World *               wrld,
+                 char const *               idx,
+                 CTF::Idx_Partition const & prl,
+                 CTF::Idx_Partition const & blk,
+                 char const *               name,
+                 bool                       profile){
+    this->init(sr, order,edge_len,sym,wrld,0,name,profile);
+    set_distribution(idx, prl, blk);
+    this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
+    this->sr->set(this->data, this->sr->addid(), this->size);
+#ifdef HOME_CONTRACT
+    this->home_size = this->size;
+    this->has_home = 1;
+    this->is_home = 1;
+    this->home_buffer = this->data;
+#else
+    this->has_home = 0;
+#endif
+
+  }
+
   tensor::tensor(tensor const * other, bool copy, bool alloc_data){
     char * nname = (char*)alloc(strlen(other->name) + 2);
     char d[] = "\'";
