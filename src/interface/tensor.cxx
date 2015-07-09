@@ -21,8 +21,6 @@ namespace CTF {
                                 CTF_int::algstrct const & sr)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {}
 
-
-
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(int                       order,
                                 int const *               len,
@@ -58,22 +56,27 @@ namespace CTF {
     : CTF_int::tensor(&sr_, order, len, sym, &world, name, profile) { }
 
   template<typename dtype, bool is_ord>
-  Tensor<dtype, is_ord>::Tensor(tensor const & A,
-                                bool           copy)
+  Tensor<dtype, is_ord>::Tensor(bool           copy,
+                                tensor const & A)
     : CTF_int::tensor(&A, copy) { }
+
+  template<typename dtype, bool is_ord>
+  Tensor<dtype, is_ord>::Tensor(Tensor<dtype, is_ord> const & A)
+    : CTF_int::tensor(&A, true) { }
+
+  template<typename dtype, bool is_ord>
+  Tensor<dtype, is_ord>::Tensor(tensor const & A)
+    : CTF_int::tensor(&A, true) { }
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(tensor const & A,
                                 World &        world_)
     : CTF_int::tensor(A.sr, A.order, A.lens, A.sym, &world_, 1, A.name, A.profile) { }
-    //: CTF_int::tensor(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile) { }
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(tensor &    A,
                                 int const * new_sym)
     : CTF_int::tensor(&A, new_sym){ }
-
-
 
   template<typename dtype, bool is_ord>
   Idx_Tensor Tensor<dtype, is_ord>::operator[](const char * idx_map_){

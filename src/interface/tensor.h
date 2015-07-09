@@ -188,14 +188,26 @@ namespace CTF {
              char const *              name=NULL,
              int                       profile=0);
 
+      /**
+       * \brief copies a tensor, copying the data of A
+       * \param[in] A tensor to copy
+       */
+      Tensor(Tensor<dtype, is_ord> const & A);
+
+      /**
+       * \brief copies a tensor, copying the data of A (same as above)
+       * \param[in] A tensor to copy
+       */
+      Tensor(tensor const & A);
+
 
       /**
        * \brief copies a tensor (setting data to zero or copying A)
-       * \param[in] A tensor to copy
        * \param[in] copy whether to copy the data of A into the new tensor
+       * \param[in] A tensor to copy
        */
-      Tensor(tensor const & A,
-             bool           copy = true);
+      Tensor(bool           copy,
+             tensor const & A);
 
       /**
        * \brief repacks the tensor other to a different symmetry 
