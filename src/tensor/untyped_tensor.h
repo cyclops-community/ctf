@@ -519,6 +519,15 @@ namespace CTF_int {
        */
       void unfold();
 
+
+      /**
+       * \brief estimate cost of potential transpose involved in undoing the folding of a local tensor block
+       * \return estimated time for transpose
+       */
+      double est_time_unfold();
+
+
+
       /**
        * \brief fold a tensor by putting the symmetry-preserved 
        *        portion in the leading dimensions of the tensor

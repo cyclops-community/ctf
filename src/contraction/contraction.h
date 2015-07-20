@@ -164,6 +164,13 @@ namespace CTF_int {
        * \return inner_prm parameters includng n,m,k
        */
       iparam map_fold();
+      
+      /**
+       * \brief estimates the time need to fold tensors for contraction
+       * \return estimated time for the transposes needed to fold contraction
+       */
+      double est_time_fold();
+
 
       /**
        * \brief unfolds a broken symmetry in a contraction by defining new tensors

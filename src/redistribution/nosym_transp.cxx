@@ -533,5 +533,35 @@ namespace CTF_int {
     TAU_FSTOP(nosym_transpose_thr);
   }
 
+  double est_time_transp(int              order,
+                         int const *      new_order,
+                         int const *      edge_len,
+                         int              dir,
+                         algstrct const * sr){
+    if (order == 0) return 0.0;
+    int64_t contig0 = 1;
+    for (int i=0; i<order; i++){
+      if (new_order[i] == i) contig0 *= edge_len[i];
+      else break;
+    } 
+
+    int64_t tot_sz = 1;
+    for (int i=0; i<order; i++){
+      tot_sz *= edge_len[i];
+    }
+    
+    //if nothing transpose then transpose gratis
+    if (contig0==tot_sz) return 0.0;
+
+    //if the number of elements copied in the innermost loop is small, add overhead to bandwidth cost of transpose, otherwise say its linear
+    //this model ignores cache-line size
+    if (contig0 < 10){
+      return 1.5*tot_sz*COST_MEMBW;
+    } else if (contig0 <= 100){
+      return 1.25*tot_sz*COST_MEMBW;
+    } else {
+      return tot_sz*COST_MEMBW;
+    }
+  }
 
 }

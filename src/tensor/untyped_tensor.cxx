@@ -1509,6 +1509,32 @@ namespace CTF_int {
     set_padding();
   }
 
+  double tensor::est_time_unfold(){
+    int i, j, allfold_dim;
+    int * all_edge_len, * sub_edge_len;
+    if (!this->is_folded) return 0.0;
+    double est_time;
+    CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
+    CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
+    calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
+             NULL, sub_edge_len, NULL);
+    allfold_dim = 0;
+    for (i=0; i<this->order; i++){
+      if (this->sym[i] == NS){
+        j=1;
+        while (i-j >= 0 && this->sym[i-j] != NS) j++;
+        all_edge_len[allfold_dim] = sy_packed_size(j, sub_edge_len+i-j+1,
+                                                   this->sym+i-j+1);
+        allfold_dim++;
+      }
+    }
+    est_time = this->calc_nvirt()*est_time_transp(allfold_dim, this->inner_ordering, all_edge_len, 0, sr);
+    CTF_int::cdealloc(all_edge_len);
+    CTF_int::cdealloc(sub_edge_len);
+    return est_time;
+  }
+
+
   void tensor::fold(int         nfold,
                     int const * fold_idx,
                     int const * idx_map,

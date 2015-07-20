@@ -22,6 +22,22 @@ namespace CTF_int {
                        char *           data,
                        int              dir,
                        algstrct const * sr);
+  /**
+   * \brief estimates time needed to transposes a non-symmetric (folded) tensor based on performance models
+   *
+   * \param[in] order dimension of tensor
+   * \param[in] new_order new ordering of dimensions
+   * \param[in] edge_len original edge lengths
+   * \param[in] dir which way are we going?
+   * \param[in] sr algstrct defining element size
+   * \return estimated time in seconds
+   */
+  double est_time_transp(int              order,
+                         int const *      new_order,
+                         int const *      edge_len,
+                         int              dir,
+                         algstrct const * sr);
+
 
   /**
    * \brief transposes a non-symmetric (folded) tensor internal kernel
