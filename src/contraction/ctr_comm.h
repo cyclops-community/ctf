@@ -155,6 +155,7 @@ namespace CTF_int{
     int64_t sz_C;
     char tA;
     char tB;
+    char tC;
   };
 
   class seq_tsr_ctr : public ctr {
