@@ -556,11 +556,11 @@ namespace CTF_int {
     //if the number of elements copied in the innermost loop is small, add overhead to bandwidth cost of transpose, otherwise say its linear
     //this model ignores cache-line size
     if (contig0 < 10){
-      return 1.5*tot_sz*COST_MEMBW;
+      return 2.*tot_sz*COST_MEMBW;
     } else if (contig0 <= 100){
-      return 1.25*tot_sz*COST_MEMBW;
+      return 1.5*tot_sz*COST_MEMBW;
     } else {
-      return tot_sz*COST_MEMBW;
+      return 1.2*tot_sz*COST_MEMBW;
     }
   }
 

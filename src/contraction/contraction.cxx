@@ -151,74 +151,6 @@ namespace CTF_int {
     }
   }
 
-/*  void get_perm(int             perm_order,
-                tensor *        A,
-                tensor *        B,
-                tensor *        C,
-                int const *     idx_A,
-                int const *     idx_B,
-                int const *     idx_C,
-                tensor **       tA,
-                tensor **       tB,
-                tensor **       tC,
-                int const **    tidx_A,
-                int const **    tidx_B,
-                int const **    tidx_C){
-    switch (perm_order){
-      case 0:
-        *tA = A;
-        *tB = B;
-        *tC = C;
-        *tidx_A = idx_A;
-        *tidx_B = idx_B;
-        *tidx_C = idx_C;
-        break;
-      case 1:
-        *tA = A;
-        *tB = C;
-        *tC = B;
-        *tidx_A = idx_A;
-        *tidx_B = idx_C;
-        *tidx_C = idx_B;
-        break;
-      case 2:
-        *tA = B;
-        *tB = A;
-        *tC = C;
-        *tidx_A = idx_B;
-        *tidx_B = idx_A;
-        *tidx_C = idx_C;
-        break;
-      case 3:
-        *tA = B;
-        *tB = C;
-        *tC = A;
-        *tidx_A = idx_B;
-        *tidx_B = idx_C;
-        *tidx_C = idx_A;
-        break;
-      case 4:
-        *tA = C;
-        *tB = A;
-        *tC = B;
-        *tidx_A = idx_C;
-        *tidx_B = idx_A;
-        *tidx_C = idx_B;
-        break;
-      case 5:
-        *tA = C;
-        *tB = B;
-        *tC = A;
-        *tidx_A = idx_C;
-        *tidx_B = idx_B;
-        *tidx_C = idx_A;
-        break;
-      default:
-        assert(0);
-        break;
-
-    }
-  }*/
 
   double contraction::estimate_time(){
     assert(0); //FIXME
@@ -641,7 +573,7 @@ namespace CTF_int {
       double time_est = 0.0;
       time_est += tA->calc_nvirt()*est_time_transp(tall_fdim_A, tAiord, tall_flen_A, 1, tA->sr);
       time_est += tB->calc_nvirt()*est_time_transp(tall_fdim_B, tBiord, tall_flen_B, 1, tB->sr);
-      time_est += tC->calc_nvirt()*est_time_transp(tall_fdim_C, tCiord, tall_flen_C, 1, tC->sr);
+      time_est += 2.*tC->calc_nvirt()*est_time_transp(tall_fdim_C, tCiord, tall_flen_C, 1, tC->sr);
       if (time_est <= btime){
         btime = time_est;
         bperm_order = iord;
@@ -2207,9 +2139,10 @@ namespace CTF_int {
             memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*2.5);
           }
         }
+        if (can_fold()) est_time += est_time_fold();
         memuse = MAX((int64_t)sctr->mem_rec(), memuse);
   #if DEBUG >= 4
-        printf("total (with redistribution) est_time = %E\n", est_time);
+        printf("total (with redistribution and transp) est_time = %E\n", est_time);
   #endif
         ASSERT(est_time > 0.0);
 
