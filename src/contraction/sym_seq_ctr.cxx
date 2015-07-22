@@ -33,8 +33,9 @@ namespace CTF_int{
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
                         bivar_function * func,
-                        int *            idx,
-                        int const *      rev_idx_map){
+                        int const *      idx,
+                        int const *      rev_idx_map,
+                        int              idx_max){
     int imax=0;
     int rA = rev_idx_map[3*idim+0];
     int rB = rev_idx_map[3*idim+1];
@@ -103,8 +104,29 @@ namespace CTF_int{
       } while (rrC>0 && sym_C[rrC-1] != NS && idx_map_C[rrC] < idim);
     }
 
-    for (idx[idim]=imin; idx[idim]<imax; idx[idim]++){
-      sym_seq_ctr_loop<idim-1>(alpha, A+offsets_A[idim][idx[idim]], sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B+offsets_B[idim][idx[idim]], sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C+offsets_C[idim][idx[idim]], sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, func, idx, rev_idx_map);
+    if (rC != -1){
+#ifdef USE_OMP    
+      #pragma omp parallel for
+#endif
+      for (int i=imin; i<imax; i++){
+#ifdef USE_OMP    
+//        #pragma omp parallel // idx also needs to be private, but it was already declared private in the outermost parallel region, if all threads are spawned there, one would not expect an issue...
+#endif
+        {
+          int nidx[idx_max];
+          memcpy(nidx, idx, idx_max*sizeof(int));
+          nidx[idim] = i;
+          sym_seq_ctr_loop<idim-1>(alpha, A+offsets_A[idim][nidx[idim]], sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B+offsets_B[idim][nidx[idim]], sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C+offsets_C[idim][nidx[idim]], sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, func, nidx, rev_idx_map, idx_max);
+        }
+      }
+    } else {
+      for (int i=imin; i<imax; i++){
+        int nidx[idx_max];
+        memcpy(nidx, idx, idx_max*sizeof(int));
+        nidx[idim] = i;
+        sym_seq_ctr_loop<idim-1>(alpha, A+offsets_A[idim][nidx[idim]], sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B+offsets_B[idim][nidx[idim]], sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C+offsets_C[idim][nidx[idim]], sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, func, nidx, rev_idx_map, idx_max);
+      }
+
     }
 //    idx[idim] = 0;
   }
@@ -136,8 +158,9 @@ namespace CTF_int{
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
                         bivar_function * func,
-                        int *            idx,
-                        int const *      rev_idx_map){
+                        int const *      idx,
+                        int const *      rev_idx_map,
+                        int              idx_max){
     int imax=0;
     int rA = rev_idx_map[0];
     int rB = rev_idx_map[1];
@@ -166,71 +189,164 @@ namespace CTF_int{
     if (rC > 0 && sym_C[rC-1] != NS)
       imin = std::max(imin,idx[idx_map_C[rC-1]]);
 
+/*    int tid, ntd;
+    tid = omp_get_thread_num();
+    ntd = omp_get_num_threads();
+    printf("-> %d/%d %d %d %d\n",tid,ntd,func==NULL, alpha==NULL,beta==NULL);*/
+
     if (func == NULL){
       if (alpha == NULL && beta == NULL){
-        for (int i=imin; i<imax; i++){
-          sr_C->mul(A+offsets_A[0][i],
-                    B+offsets_B[0][i], 
-                    C+offsets_C[0][i]);
+        if (rC != -1){
+#ifdef USE_OMP    
+          #pragma omp parallel for
+#endif
+          for (int i=imin; i<imax; i++){
+            sr_C->mul(A+offsets_A[0][i],
+                      B+offsets_B[0][i], 
+                      C+offsets_C[0][i]);
+          }
+        } else {
+          for (int i=imin; i<imax; i++){
+            sr_C->mul(A+offsets_A[0][i],
+                      B+offsets_B[0][i], 
+                      C+offsets_C[0][i]);
+          }
         }
         CTF_FLOPS_ADD(imax-imin);
       } else if (alpha == NULL){
-        for (int i=imin; i<imax; i++){
-          char tmp[sr_C->el_size];
-          sr_C->mul(A+offsets_A[0][i], 
-                    B+offsets_B[0][i], 
-                    tmp);
-          sr_C->add(tmp, 
-                    C+offsets_C[0][i], 
-                    C+offsets_C[0][i]);
+        if (rC != -1){
+#ifdef USE_OMP    
+          #pragma omp parallel for
+#endif
+          for (int i=imin; i<imax; i++){
+            char tmp[sr_C->el_size];
+            sr_C->mul(A+offsets_A[0][i], 
+                      B+offsets_B[0][i], 
+                      tmp);
+            sr_C->add(tmp, 
+                      C+offsets_C[0][i], 
+                      C+offsets_C[0][i]);
+          }
+        } else {
+          for (int i=imin; i<imax; i++){
+            char tmp[sr_C->el_size];
+            sr_C->mul(A+offsets_A[0][i], 
+                      B+offsets_B[0][i], 
+                      tmp);
+            sr_C->add(tmp, 
+                      C+offsets_C[0][i], 
+                      C+offsets_C[0][i]);
+          }
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       } else {
-        for (int i=imin; i<imax; i++){
-          char tmp[sr_C->el_size];
-          sr_C->mul(A+offsets_A[0][i], 
-                    B+offsets_B[0][i], 
-                    tmp);
-          sr_C->mul(tmp,
-                    alpha,
-                    tmp);
-          sr_C->add(tmp, 
-                    C+offsets_C[0][i], 
-                    C+offsets_C[0][i]);
+        if (rC != -1){
+#ifdef USE_OMP    
+          #pragma omp parallel for
+#endif
+          for (int i=imin; i<imax; i++){
+            char tmp[sr_C->el_size];
+            sr_C->mul(A+offsets_A[0][i], 
+                      B+offsets_B[0][i], 
+                      tmp);
+            sr_C->mul(tmp,
+                      alpha,
+                      tmp);
+            sr_C->add(tmp, 
+                      C+offsets_C[0][i], 
+                      C+offsets_C[0][i]);
+          }
+        } else {
+          for (int i=imin; i<imax; i++){
+            char tmp[sr_C->el_size];
+            sr_C->mul(A+offsets_A[0][i], 
+                      B+offsets_B[0][i], 
+                      tmp);
+            sr_C->mul(tmp,
+                      alpha,
+                      tmp);
+            sr_C->add(tmp, 
+                      C+offsets_C[0][i], 
+                      C+offsets_C[0][i]);
+          }
         }
         CTF_FLOPS_ADD(3*(imax-imin));
       }
     } else {
       if (alpha == NULL && beta == NULL){
-        for (int i=imin; i<imax; i++){
-          func->apply_f(A+offsets_A[0][i],
-                        B+offsets_B[0][i], 
-                        C+offsets_C[0][i]);
+        if (rC != -1){
+#ifdef USE_OMP    
+          #pragma omp parallel for
+#endif
+          for (int i=imin; i<imax; i++){
+            func->apply_f(A+offsets_A[0][i],
+                          B+offsets_B[0][i], 
+                          C+offsets_C[0][i]);
+          }
+        } else {
+          for (int i=imin; i<imax; i++){
+            func->apply_f(A+offsets_A[0][i],
+                          B+offsets_B[0][i], 
+                          C+offsets_C[0][i]);
+          }
         }
         CTF_FLOPS_ADD(imax-imin);
       } else if (alpha == NULL){
-        for (int i=imin; i<imax; i++){
-          char tmp[sr_C->el_size];
-          func->apply_f(A+offsets_A[0][i], 
-                        B+offsets_B[0][i], 
-                        tmp);
-          sr_C->add(tmp, 
-                    C+offsets_C[0][i], 
-                    C+offsets_C[0][i]);
+        if (rC != -1){
+#ifdef USE_OMP    
+          #pragma omp parallel for
+#endif
+          for (int i=imin; i<imax; i++){
+            char tmp[sr_C->el_size];
+            func->apply_f(A+offsets_A[0][i], 
+                          B+offsets_B[0][i], 
+                          tmp);
+            sr_C->add(tmp, 
+                      C+offsets_C[0][i], 
+                      C+offsets_C[0][i]);
+          }
+        } else {
+          for (int i=imin; i<imax; i++){
+            char tmp[sr_C->el_size];
+            func->apply_f(A+offsets_A[0][i], 
+                          B+offsets_B[0][i], 
+                          tmp);
+            sr_C->add(tmp, 
+                      C+offsets_C[0][i], 
+                      C+offsets_C[0][i]);
+          }
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       } else {
-        for (int i=imin; i<imax; i++){
-          char tmp[sr_C->el_size];
-          func->apply_f(A+offsets_A[0][i], 
-                        B+offsets_B[0][i], 
-                        tmp);
-          sr_C->mul(tmp,
-                    alpha,
-                    tmp);
-          sr_C->add(tmp, 
-                    C+offsets_C[0][i], 
-                    C+offsets_C[0][i]);
+        if (rC != -1){
+#ifdef USE_OMP    
+          #pragma omp parallel for
+#endif
+          for (int i=imin; i<imax; i++){
+            char tmp[sr_C->el_size];
+            func->apply_f(A+offsets_A[0][i], 
+                          B+offsets_B[0][i], 
+                          tmp);
+            sr_C->mul(tmp,
+                      alpha,
+                      tmp);
+            sr_C->add(tmp, 
+                      C+offsets_C[0][i], 
+                      C+offsets_C[0][i]);
+          }
+        } else {
+          for (int i=imin; i<imax; i++){
+            char tmp[sr_C->el_size];
+            func->apply_f(A+offsets_A[0][i], 
+                          B+offsets_B[0][i], 
+                          tmp);
+            sr_C->mul(tmp,
+                      alpha,
+                      tmp);
+            sr_C->add(tmp, 
+                      C+offsets_C[0][i], 
+                      C+offsets_C[0][i]);
+          }
         }
         CTF_FLOPS_ADD(3*(imax-imin));
       }
@@ -263,8 +379,9 @@ namespace CTF_int{
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
                         bivar_function * func,
-                        int *            idx,
-                        int const *      rev_idx_map);
+                        int const *      idx,
+                        int const *      rev_idx_map,
+                        int              idx_max);
 
 
   void compute_syoff(int         r,
@@ -370,7 +487,7 @@ namespace CTF_int{
     TAU_FSTART(sym_seq_ctr_ref);
     int idx, i, idx_max, imin, imax, sz, iA, iB, iC, j, k;
     int off_idx, sym_pass;
-    int * idx_glb, * rev_idx_map;
+    int * rev_idx_map;
     int * dlen_A, * dlen_B, * dlen_C;
     int64_t idx_A, idx_B, idx_C, off_lda;
 
@@ -407,8 +524,6 @@ namespace CTF_int{
     memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
     memcpy(dlen_C, edge_len_C, sizeof(int)*order_C);
 
-    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
-    memset(idx_glb, 0, sizeof(int)*idx_max);
 
 
     /* Scale C immediately. FIXME: wrong for iterators over subset of C */
@@ -429,7 +544,28 @@ namespace CTF_int{
       uint64_t ** offsets_B;
       uint64_t ** offsets_C;
       compute_syoffs(sr_A, order_A, edge_len_A, sym_A, idx_map_A, sr_B, order_B, edge_len_B, sym_B, idx_map_B, sr_C, order_C, edge_len_C, sym_C, idx_map_C, idx_max, rev_idx_map, offsets_A, offsets_B, offsets_C);
-      SWITCH_ORD_CALL(sym_seq_ctr_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C, sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, NULL, idx_glb, rev_idx_map);
+
+      //if we have something to parallelize without needing to replicate C
+      if (order_C > 0){
+#ifdef USE_OMP    
+        //#pragma omp parallel //firstprivate(A,B,C)
+#endif
+        {
+          int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+          memset(idx_glb, 0, sizeof(int)*idx_max);
+
+          SWITCH_ORD_CALL(sym_seq_ctr_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C, sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, NULL, idx_glb, rev_idx_map, idx_max);
+          cdealloc(idx_glb);
+        }
+      } else {
+        {
+          int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+          memset(idx_glb, 0, sizeof(int)*idx_max);
+
+          SWITCH_ORD_CALL(sym_seq_ctr_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C, sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, NULL, idx_glb, rev_idx_map, idx_max);
+          cdealloc(idx_glb);
+        }
+      }
       for (int l=0; l<idx_max; l++){
         cdealloc(offsets_A[l]);
         cdealloc(offsets_B[l]);
@@ -439,6 +575,9 @@ namespace CTF_int{
       cdealloc(offsets_B);
       cdealloc(offsets_C);
     } else {
+      int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+      memset(idx_glb, 0, sizeof(int)*idx_max);
+
       idx_A = 0, idx_B = 0, idx_C = 0;
       sym_pass = 1;
       for (;;){
@@ -499,11 +638,11 @@ namespace CTF_int{
         if (order_C > 0)
           RESET_IDX(C);
       }
+      CTF_int::cdealloc(idx_glb);
     }
     CTF_int::cdealloc(dlen_A);
     CTF_int::cdealloc(dlen_B);
     CTF_int::cdealloc(dlen_C);
-    CTF_int::cdealloc(idx_glb);
     CTF_int::cdealloc(rev_idx_map);
     TAU_FSTOP(sym_seq_ctr_ref);
     return 0;
