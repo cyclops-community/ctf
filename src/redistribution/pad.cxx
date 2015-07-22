@@ -1,6 +1,7 @@
 
 #include "pad.h"
 #include "../shared/util.h"
+
 namespace CTF_int {
   void pad_key(int              order,
                int64_t          num_pair,
@@ -659,6 +660,7 @@ namespace CTF_int {
       }
       ASSERT(tid != ntd-1 || vend == nvirt);
       for (p=0; p<nvirt; p++){
+        if (st_index == end_index) break;
         if (p>=vst && p<vend){
           /*int is_sh_pad0 = 0;
           if (((sym[0] == AS || sym[0] == SH) && phase_rank[0] >= phase_rank[1]) ||
