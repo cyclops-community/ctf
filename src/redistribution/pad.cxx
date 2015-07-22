@@ -652,7 +652,8 @@ namespace CTF_int {
           st_idx[0] = 0;
         }
         if (end_idx[0] != 0){
-          end_index += virt_len[0]-end_idx[0];
+          end_index -= end_idx[0];
+          end_idx[0] = 0;
         }
         CTF_int::cdealloc(end_idx);
       }
