@@ -107,7 +107,7 @@ namespace CTF_int {
       lstride_B=1; 
     } else {
       jstride_B=1; 
-      lstride_B=m; 
+      lstride_B=n; 
     }
     for (j=0; j<n; j++){
       for (i=0; i<m; i++){

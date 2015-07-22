@@ -719,7 +719,7 @@ namespace CTF_int{
                             C+idx_C*stride_C*sr_C->el_size, prm->m);
   #else
         //printf("[%d] <- [%d]*[%d] (%d)\n",idx_C, idx_A, idx_B, cntr++);
-//        printf("%c %c %c %d %d %d\n", prm->tC, prm->tA, prm->tB, prm->m, prm->n, prm->k);
+        //printf("%c %c %c %d %d %d\n", prm->tC, prm->tA, prm->tB, prm->m, prm->n, prm->k);
         if (prm->tC == 'N'){
           sr_C->gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
                     A+idx_A*stride_A*sr_A->el_size, 
@@ -727,8 +727,8 @@ namespace CTF_int{
                     C+idx_C*stride_C*sr_C->el_size);
         } else {
           sr_C->gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
-                    B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
-                    A+idx_A*stride_A*sr_A->el_size, 
+                    B+idx_B*stride_B*sr_B->el_size,
+                    A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(), 
                     C+idx_C*stride_C*sr_C->el_size);
 
         }

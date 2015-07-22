@@ -505,6 +505,10 @@ namespace CTF_int {
     //calc_fold_nmk(A, B, C, idx_A, idx_B, idx_C, *new_ordering_A, *new_ordering_B, &iprm);
     //return iprm;
   }
+/*
+  void contraction::get_fold_ctr(){
+
+  }*/
 
   iparam contraction::map_fold(){
     int i, j, nfold, nf, all_fdim_A, all_fdim_B, all_fdim_C;
@@ -642,7 +646,7 @@ namespace CTF_int {
       cdealloc(tBiord);
       cdealloc(tCiord);
     }
-    bperm_order = 1;
+    //bperm_order = 5;
     get_perm<tensor*>(bperm_order, A, B, C, 
                      tA, tB, tC);
     get_perm<tensor*>(bperm_order, fold_ctr.A, fold_ctr.B, fold_ctr.C, 
@@ -704,8 +708,8 @@ namespace CTF_int {
       case 3: // B C A
         //index order : 1. BC 2. AB 3. AC
         //C^T=B^T*A^T
-        iprm.tA = 'T';
-        iprm.tB = 'T';
+        iprm.tA = 'N';
+        iprm.tB = 'N';
         iprm.tC = 'T';
         break;
       case 4: // C A B
@@ -749,7 +753,6 @@ namespace CTF_int {
     int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
     int * all_flen_A, * all_flen_B, * all_flen_C;
     tensor * fA, * fB, * fC;
-    iparam iprm;
 
     get_fold_indices(&nfold, &fold_idx);
     if (nfold == 0) {
