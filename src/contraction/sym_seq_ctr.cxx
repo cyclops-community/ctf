@@ -106,11 +106,11 @@ namespace CTF_int{
 
     if (rC != -1){
 #ifdef USE_OMP    
-      #pragma omp parallel for
+      #pragma omp for
 #endif
       for (int i=imin; i<imax; i++){
 #ifdef USE_OMP    
-//        #pragma omp parallel // idx also needs to be private, but it was already declared private in the outermost parallel region, if all threads are spawned there, one would not expect an issue...
+        #pragma omp parallel 
 #endif
         {
           int nidx[idx_max];
@@ -196,157 +196,69 @@ namespace CTF_int{
 
     if (func == NULL){
       if (alpha == NULL && beta == NULL){
-        if (rC != -1){
-#ifdef USE_OMP    
-          #pragma omp parallel for
-#endif
-          for (int i=imin; i<imax; i++){
-            sr_C->mul(A+offsets_A[0][i],
-                      B+offsets_B[0][i], 
-                      C+offsets_C[0][i]);
-          }
-        } else {
-          for (int i=imin; i<imax; i++){
-            sr_C->mul(A+offsets_A[0][i],
-                      B+offsets_B[0][i], 
-                      C+offsets_C[0][i]);
-          }
+        for (int i=imin; i<imax; i++){
+          sr_C->mul(A+offsets_A[0][i],
+                    B+offsets_B[0][i], 
+                    C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(imax-imin);
       } else if (alpha == NULL){
-        if (rC != -1){
-#ifdef USE_OMP    
-          #pragma omp parallel for
-#endif
-          for (int i=imin; i<imax; i++){
-            char tmp[sr_C->el_size];
-            sr_C->mul(A+offsets_A[0][i], 
-                      B+offsets_B[0][i], 
-                      tmp);
-            sr_C->add(tmp, 
-                      C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
-          }
-        } else {
-          for (int i=imin; i<imax; i++){
-            char tmp[sr_C->el_size];
-            sr_C->mul(A+offsets_A[0][i], 
-                      B+offsets_B[0][i], 
-                      tmp);
-            sr_C->add(tmp, 
-                      C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
-          }
+        for (int i=imin; i<imax; i++){
+          char tmp[sr_C->el_size];
+          sr_C->mul(A+offsets_A[0][i], 
+                    B+offsets_B[0][i], 
+                    tmp);
+          sr_C->add(tmp, 
+                    C+offsets_C[0][i], 
+                    C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       } else {
-        if (rC != -1){
-#ifdef USE_OMP    
-          #pragma omp parallel for
-#endif
-          for (int i=imin; i<imax; i++){
-            char tmp[sr_C->el_size];
-            sr_C->mul(A+offsets_A[0][i], 
-                      B+offsets_B[0][i], 
-                      tmp);
-            sr_C->mul(tmp,
-                      alpha,
-                      tmp);
-            sr_C->add(tmp, 
-                      C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
-          }
-        } else {
-          for (int i=imin; i<imax; i++){
-            char tmp[sr_C->el_size];
-            sr_C->mul(A+offsets_A[0][i], 
-                      B+offsets_B[0][i], 
-                      tmp);
-            sr_C->mul(tmp,
-                      alpha,
-                      tmp);
-            sr_C->add(tmp, 
-                      C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
-          }
+        for (int i=imin; i<imax; i++){
+          char tmp[sr_C->el_size];
+          sr_C->mul(A+offsets_A[0][i], 
+                    B+offsets_B[0][i], 
+                    tmp);
+          sr_C->mul(tmp,
+                    alpha,
+                    tmp);
+          sr_C->add(tmp, 
+                    C+offsets_C[0][i], 
+                    C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(3*(imax-imin));
       }
     } else {
       if (alpha == NULL && beta == NULL){
-        if (rC != -1){
-#ifdef USE_OMP    
-          #pragma omp parallel for
-#endif
-          for (int i=imin; i<imax; i++){
-            func->apply_f(A+offsets_A[0][i],
-                          B+offsets_B[0][i], 
-                          C+offsets_C[0][i]);
-          }
-        } else {
-          for (int i=imin; i<imax; i++){
-            func->apply_f(A+offsets_A[0][i],
-                          B+offsets_B[0][i], 
-                          C+offsets_C[0][i]);
-          }
+        for (int i=imin; i<imax; i++){
+          func->apply_f(A+offsets_A[0][i],
+                        B+offsets_B[0][i], 
+                        C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(imax-imin);
       } else if (alpha == NULL){
-        if (rC != -1){
-#ifdef USE_OMP    
-          #pragma omp parallel for
-#endif
-          for (int i=imin; i<imax; i++){
-            char tmp[sr_C->el_size];
-            func->apply_f(A+offsets_A[0][i], 
-                          B+offsets_B[0][i], 
-                          tmp);
-            sr_C->add(tmp, 
-                      C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
-          }
-        } else {
-          for (int i=imin; i<imax; i++){
-            char tmp[sr_C->el_size];
-            func->apply_f(A+offsets_A[0][i], 
-                          B+offsets_B[0][i], 
-                          tmp);
-            sr_C->add(tmp, 
-                      C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
-          }
+        for (int i=imin; i<imax; i++){
+          char tmp[sr_C->el_size];
+          func->apply_f(A+offsets_A[0][i], 
+                        B+offsets_B[0][i], 
+                        tmp);
+          sr_C->add(tmp, 
+                    C+offsets_C[0][i], 
+                    C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       } else {
-        if (rC != -1){
-#ifdef USE_OMP    
-          #pragma omp parallel for
-#endif
-          for (int i=imin; i<imax; i++){
-            char tmp[sr_C->el_size];
-            func->apply_f(A+offsets_A[0][i], 
-                          B+offsets_B[0][i], 
-                          tmp);
-            sr_C->mul(tmp,
-                      alpha,
-                      tmp);
-            sr_C->add(tmp, 
-                      C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
-          }
-        } else {
-          for (int i=imin; i<imax; i++){
-            char tmp[sr_C->el_size];
-            func->apply_f(A+offsets_A[0][i], 
-                          B+offsets_B[0][i], 
-                          tmp);
-            sr_C->mul(tmp,
-                      alpha,
-                      tmp);
-            sr_C->add(tmp, 
-                      C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
-          }
+        for (int i=imin; i<imax; i++){
+          char tmp[sr_C->el_size];
+          func->apply_f(A+offsets_A[0][i], 
+                        B+offsets_B[0][i], 
+                        tmp);
+          sr_C->mul(tmp,
+                    alpha,
+                    tmp);
+          sr_C->add(tmp, 
+                    C+offsets_C[0][i], 
+                    C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(3*(imax-imin));
       }
@@ -546,9 +458,9 @@ namespace CTF_int{
       compute_syoffs(sr_A, order_A, edge_len_A, sym_A, idx_map_A, sr_B, order_B, edge_len_B, sym_B, idx_map_B, sr_C, order_C, edge_len_C, sym_C, idx_map_C, idx_max, rev_idx_map, offsets_A, offsets_B, offsets_C);
 
       //if we have something to parallelize without needing to replicate C
-      if (order_C > 0){
+      if (order_C > 1 || (order_C > 0 && idx_map_C[0] != 0)){
 #ifdef USE_OMP    
-        //#pragma omp parallel //firstprivate(A,B,C)
+        #pragma omp parallel
 #endif
         {
           int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
