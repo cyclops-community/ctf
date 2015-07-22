@@ -505,19 +505,18 @@ namespace CTF_int {
     //calc_fold_nmk(A, B, C, idx_A, idx_B, idx_C, *new_ordering_A, *new_ordering_B, &iprm);
     //return iprm;
   }
-/*
-  void contraction::get_fold_ctr(){
 
-  }*/
-
-  iparam contraction::map_fold(){
-    int i, j, nfold, nf, all_fdim_A, all_fdim_B, all_fdim_C;
-    int nvirt_A, nvirt_B, nvirt_C;
+  
+  void contraction::get_fold_ctr(contraction *& fold_ctr,
+                                 int &          all_fdim_A,
+                                 int &          all_fdim_B,
+                                 int &          all_fdim_C,
+                                 int *&         all_flen_A,
+                                 int *&         all_flen_B,
+                                 int *&         all_flen_C){
+    int i, j, nfold, nf;
     int * fold_idx, * fidx_A, * fidx_B, * fidx_C;
-    int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
-    int * all_flen_A, * all_flen_B, * all_flen_C;
     tensor * fA, * fB, * fC;
-    iparam iprm;
 
     get_fold_indices(&nfold, &fold_idx);
     if (nfold == 0) {
@@ -570,48 +569,53 @@ namespace CTF_int {
     fA = A->rec_tsr;
     fB = B->rec_tsr;
     fC = C->rec_tsr;
-/*
-    fold_ctr.A = fA; 
-    fold_ctr.B = fB; 
-    fold_ctr.C = fC; */
 
     int * sidx_A, * sidx_B, * sidx_C;
     CTF_int::conv_idx<int>(fA->order, fidx_A, &sidx_A,
-                       fB->order, fidx_B, &sidx_B,
-                       fC->order, fidx_C, &sidx_C);
+                           fB->order, fidx_B, &sidx_B,
+                           fC->order, fidx_C, &sidx_C);
 
-    contraction fold_ctr(fA, sidx_A, fB, sidx_B, alpha, fC, sidx_C, beta);
+    fold_ctr = new contraction(fA, sidx_A, fB, sidx_B, alpha, fC, sidx_C, beta);
 
-    free(sidx_A);
-    free(sidx_B);
-    free(sidx_C);
-  #if DEBUG>=2
-    CommData global_comm = A->wrld->cdt;
-    if (global_comm.rank == 0){
-      printf("Folded contraction type:\n");
-    }
-    fold_ctr.print();
-  #endif
-   
-    int bperm_order = -1;
-    double btime = DBL_MAX;
-    //iterate over permutations of {A,B,C}
+    CTF_int::cdealloc(sidx_A);
+    CTF_int::cdealloc(sidx_B);
+    CTF_int::cdealloc(sidx_C);
+
+    CTF_int::cdealloc(fidx_A);
+    CTF_int::cdealloc(fidx_B);
+    CTF_int::cdealloc(fidx_C);
+    CTF_int::cdealloc(fold_idx);
+  }
+
+  void contraction::select_ctr_perm(contraction const * fold_ctr,
+                                    int                 all_fdim_A,
+                                    int                 all_fdim_B,
+                                    int                 all_fdim_C,
+                                    int const *         all_flen_A,
+                                    int const *         all_flen_B,
+                                    int const *         all_flen_C,
+                                    int &               bperm_order,
+                                    double &            btime,
+                                    iparam &            iprm){
+    bperm_order = -1;
+    btime = DBL_MAX;
     int tall_fdim_A, tall_fdim_B, tall_fdim_C;
-    int * tall_flen_A, * tall_flen_B, * tall_flen_C;
+    int const * tall_flen_A, * tall_flen_B, * tall_flen_C;
     tensor * tA, * tB, * tC;
     tensor * tfA, * tfB, * tfC;
     int * tidx_A, * tidx_B, * tidx_C;
     int * tfnew_ord_A, * tfnew_ord_B, * tfnew_ord_C;
     int * tAiord, * tBiord, * tCiord;
 
+    //iterate over permutations of {A,B,C}
     for (int iord=0; iord<6; iord++){
       get_perm<tensor*>(iord, A, B, C, 
                        tA, tB, tC);
-      get_perm<tensor*>(iord, fold_ctr.A, fold_ctr.B, fold_ctr.C, 
+      get_perm<tensor*>(iord, fold_ctr->A, fold_ctr->B, fold_ctr->C, 
                        tfA, tfB, tfC);
-      get_perm<int*>(iord, fold_ctr.idx_A, fold_ctr.idx_B, fold_ctr.idx_C,
+      get_perm<int*>(iord, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C,
                            tidx_A, tidx_B, tidx_C);
-      get_perm<int*>(iord, all_flen_A, all_flen_B, all_flen_C,
+      get_perm<int const*>(iord, all_flen_A, all_flen_B, all_flen_C,
                            tall_flen_A, tall_flen_B, tall_flen_C);
       get_perm<int>(iord, all_fdim_A, all_fdim_B, all_fdim_C,
                           tall_fdim_A, tall_fdim_B, tall_fdim_C);
@@ -646,22 +650,95 @@ namespace CTF_int {
       cdealloc(tBiord);
       cdealloc(tCiord);
     }
-    //bperm_order = 5;
+
+    switch (bperm_order){
+      case 0: // A B C
+        //index order : 1. AB 2. AC 3. BC
+        iprm.tA = 'T';
+        iprm.tB = 'N';
+        iprm.tC = 'N';
+        break;
+      case 1: // A C B
+        //index order : 1. AC 2. AB 3. BC
+        iprm.tA = 'N';
+        iprm.tB = 'N';
+        iprm.tC = 'N';
+        //calc_fold_nmk(fold_ctr->A, fold_ctr->B, fold_ctr->C, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C, fnew_ord_A, fnew_ord_C, &iprm);
+        break;
+      case 2: // B A C
+        //index order : 1. AB 2. BC 3. AC
+        //C^T=B^T*A^T
+        iprm.tA = 'N';
+        iprm.tB = 'T';
+        iprm.tC = 'T';
+        break;
+      case 3: // B C A
+        //index order : 1. BC 2. AB 3. AC
+        //C^T=B^T*A^T
+        iprm.tA = 'N';
+        iprm.tB = 'N';
+        iprm.tC = 'T';
+        break;
+      case 4: // C A B
+        //index order : 1. CA 2. BC 3. AB
+        iprm.tA = 'N';
+        iprm.tB = 'T';
+        iprm.tC = 'N';
+        //calc_fold_nmk(fold_ctr->A, fold_ctr->B, fold_ctr->C, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C, fnew_ord_B, fnew_ord_C, &iprm);
+        break;
+      case 5: // C B A
+        //index order : 1. BC 2. AC 3. AB
+        //C^T=B^T*A^T
+        iprm.tA = 'T';
+        iprm.tB = 'N';
+        iprm.tC = 'T';
+        break;
+      default:
+        assert(0);
+        break;
+    }
+
+  }
+
+  iparam contraction::map_fold(){
+    int i, all_fdim_A, all_fdim_B, all_fdim_C;
+    int nvirt_A, nvirt_B, nvirt_C;
+    int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
+    int * all_flen_A, * all_flen_B, * all_flen_C;
+    iparam iprm;
+    contraction * fold_ctr;
+    int bperm_order = -1;
+    double btime = DBL_MAX;
+    int tall_fdim_A, tall_fdim_B, tall_fdim_C;
+    tensor * tA, * tB, * tC;
+    tensor * tfA, * tfB, * tfC;
+    int * tidx_A, * tidx_B, * tidx_C;
+
+    get_fold_ctr(fold_ctr, all_fdim_A, all_fdim_B, all_fdim_C,
+                           all_flen_A, all_flen_B, all_flen_C);
+
+  #if DEBUG>=2
+    CommData global_comm = A->wrld->cdt;
+    if (global_comm.rank == 0){
+      printf("Folded contraction type:\n");
+    }
+    fold_ctr->print();
+  #endif
+  
+    select_ctr_perm(fold_ctr, all_fdim_A, all_fdim_B, all_fdim_C,
+                              all_flen_A, all_flen_B, all_flen_C,
+                    bperm_order, btime, iprm);
     get_perm<tensor*>(bperm_order, A, B, C, 
                      tA, tB, tC);
-    get_perm<tensor*>(bperm_order, fold_ctr.A, fold_ctr.B, fold_ctr.C, 
+    get_perm<tensor*>(bperm_order, fold_ctr->A, fold_ctr->B, fold_ctr->C, 
                      tfA, tfB, tfC);
-    get_perm<int*>(bperm_order, fold_ctr.idx_A, fold_ctr.idx_B, fold_ctr.idx_C,
+    get_perm<int*>(bperm_order, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C,
                          tidx_A, tidx_B, tidx_C);
     get_perm<int>(bperm_order, all_fdim_A, all_fdim_B, all_fdim_C,
                         tall_fdim_A, tall_fdim_B, tall_fdim_C);
 
     get_len_ordering(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, 
                      &fnew_ord_A, &fnew_ord_B, &fnew_ord_C); 
-    //permute_target(fA->order, fnew_ord_A, cpy_A_inner_ordering);
-    //permute_target(fB->order, fnew_ord_B, cpy_B_inner_ordering);
-
-    //get nosym_transpose_estimate cost estimate an save best
 
     permute_target(tfA->order, fnew_ord_A, tA->inner_ordering);
     permute_target(tfB->order, fnew_ord_B, tB->inner_ordering);
@@ -684,182 +761,39 @@ namespace CTF_int {
                       C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
     }
 
-    switch (bperm_order){
-      case 0: // A B C
-        //index order : 1. AB 2. AC 3. BC
-        iprm.tA = 'T';
-        iprm.tB = 'N';
-        iprm.tC = 'N';
-        break;
-      case 1: // A C B
-        //index order : 1. AC 2. AB 3. BC
-        iprm.tA = 'N';
-        iprm.tB = 'N';
-        iprm.tC = 'N';
-        //calc_fold_nmk(fold_ctr.A, fold_ctr.B, fold_ctr.C, fold_ctr.idx_A, fold_ctr.idx_B, fold_ctr.idx_C, fnew_ord_A, fnew_ord_C, &iprm);
-        break;
-      case 2: // B A C
-        //index order : 1. AB 2. BC 3. AC
-        //C^T=B^T*A^T
-        iprm.tA = 'N';
-        iprm.tB = 'T';
-        iprm.tC = 'T';
-        break;
-      case 3: // B C A
-        //index order : 1. BC 2. AB 3. AC
-        //C^T=B^T*A^T
-        iprm.tA = 'N';
-        iprm.tB = 'N';
-        iprm.tC = 'T';
-        break;
-      case 4: // C A B
-        //index order : 1. CA 2. BC 3. AB
-        iprm.tA = 'N';
-        iprm.tB = 'T';
-        iprm.tC = 'N';
-        //calc_fold_nmk(fold_ctr.A, fold_ctr.B, fold_ctr.C, fold_ctr.idx_A, fold_ctr.idx_B, fold_ctr.idx_C, fnew_ord_B, fnew_ord_C, &iprm);
-        break;
-      case 5: // C B A
-        //index order : 1. BC 2. AC 3. AB
-        //C^T=B^T*A^T
-        iprm.tA = 'T';
-        iprm.tB = 'N';
-        iprm.tC = 'T';
-        break;
-      default:
-        assert(0);
-        break;
-    }
-
-
-    CTF_int::cdealloc(fidx_A);
-    CTF_int::cdealloc(fidx_B);
-    CTF_int::cdealloc(fidx_C);
     CTF_int::cdealloc(fnew_ord_A);
     CTF_int::cdealloc(fnew_ord_B);
     CTF_int::cdealloc(fnew_ord_C);
     CTF_int::cdealloc(all_flen_A);
     CTF_int::cdealloc(all_flen_B);
     CTF_int::cdealloc(all_flen_C);
-    CTF_int::cdealloc(fold_idx);
+    delete fold_ctr;
 
     return iprm;
   }
 
 
   double contraction::est_time_fold(){
-    int i, j, nfold, nf, all_fdim_A, all_fdim_B, all_fdim_C;
-    int * fold_idx, * fidx_A, * fidx_B, * fidx_C;
-    int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
+    int all_fdim_A, all_fdim_B, all_fdim_C;
     int * all_flen_A, * all_flen_B, * all_flen_C;
-    tensor * fA, * fB, * fC;
+    iparam iprm;
+    contraction * fold_ctr;
+    int bperm_order = -1;
+    double btime = DBL_MAX;
 
-    get_fold_indices(&nfold, &fold_idx);
-    if (nfold == 0) {
-      CTF_int::cdealloc(fold_idx);
-      assert(0); //return ERROR;
-    }
+    get_fold_ctr(fold_ctr, all_fdim_A, all_fdim_B, all_fdim_C,
+                           all_flen_A, all_flen_B, all_flen_C);
+ 
+    select_ctr_perm(fold_ctr, all_fdim_A, all_fdim_B, all_fdim_C,
+                              all_flen_A, all_flen_B, all_flen_C,
+                    bperm_order, btime, iprm);
 
-    /* overestimate this space to not bother with it later */
-    CTF_int::alloc_ptr(nfold*sizeof(int), (void**)&fidx_A);
-    CTF_int::alloc_ptr(nfold*sizeof(int), (void**)&fidx_B);
-    CTF_int::alloc_ptr(nfold*sizeof(int), (void**)&fidx_C);
-
-    A->fold(nfold, fold_idx, idx_A,
-            &all_fdim_A, &all_flen_A);
-    B->fold(nfold, fold_idx, idx_B,
-            &all_fdim_B, &all_flen_B);
-    C->fold(nfold, fold_idx, idx_C,
-            &all_fdim_C, &all_flen_C);
-
-//    printf("rec tsr C order is %d\n",C->rec_tsr->order);
-
-    nf = 0;
-    for (i=0; i<A->order; i++){
-      for (j=0; j<nfold; j++){
-        if (A->sym[i] == NS && idx_A[i] == fold_idx[j]){
-          fidx_A[nf] = j;
-          nf++;
-        }
-      }
-    }
-    nf = 0;
-    for (i=0; i<B->order; i++){
-      for (j=0; j<nfold; j++){
-        if (B->sym[i] == NS && idx_B[i] == fold_idx[j]){
-          fidx_B[nf] = j;
-          nf++;
-        }
-      }
-    }
-    nf = 0;
-    for (i=0; i<C->order; i++){
-      for (j=0; j<nfold; j++){
-        if (C->sym[i] == NS && idx_C[i] == fold_idx[j]){
-          fidx_C[nf] = j;
-          nf++;
-        }
-      }
-    }
-
-    fA = A->rec_tsr;
-    fB = B->rec_tsr;
-    fC = C->rec_tsr;
-/*
-    fold_ctr.A = fA; 
-    fold_ctr.B = fB; 
-    fold_ctr.C = fC; */
-
-    int * sidx_A, * sidx_B, * sidx_C;
-    CTF_int::conv_idx<int>(fA->order, fidx_A, &sidx_A,
-                       fB->order, fidx_B, &sidx_B,
-                       fC->order, fidx_C, &sidx_C);
-
-    contraction fold_ctr(fA, sidx_A, fB, sidx_B, alpha, fC, sidx_C, beta);
-
-    free(sidx_A);
-    free(sidx_B);
-    free(sidx_C);
-  #if DEBUG>=2
-    CommData global_comm = A->wrld->cdt;
-    if (global_comm.rank == 0){
-      printf("Folded contraction type:\n");
-    }
-    fold_ctr.print();
-  #endif
-    
-    //for type order 1 to 3 
-    get_len_ordering(fold_ctr.A, fold_ctr.B, fold_ctr.C, fold_ctr.idx_A, fold_ctr.idx_B, fold_ctr.idx_C, &fnew_ord_A, &fnew_ord_B, &fnew_ord_C); 
-    
-    //permute_target(fA->order, fnew_ord_A, cpy_A_inner_ordering);
-    //permute_target(fB->order, fnew_ord_B, cpy_B_inner_ordering);
-
-    //get nosym_transpose_estimate cost estimate an save best
-
-    permute_target(fA->order, fnew_ord_A, A->inner_ordering);
-    permute_target(fB->order, fnew_ord_B, B->inner_ordering);
-    permute_target(fC->order, fnew_ord_C, C->inner_ordering);
-    
-
-
-    double time_est = 0.0;
-
-    time_est += A->calc_nvirt()*est_time_transp(all_fdim_A, A->inner_ordering, all_flen_A, 1, A->sr);
-    time_est += B->calc_nvirt()*est_time_transp(all_fdim_B, B->inner_ordering, all_flen_B, 1, B->sr);
-    time_est += C->calc_nvirt()*est_time_transp(all_fdim_C, C->inner_ordering, all_flen_C, 1, C->sr);
-
-    CTF_int::cdealloc(fidx_A);
-    CTF_int::cdealloc(fidx_B);
-    CTF_int::cdealloc(fidx_C);
-    CTF_int::cdealloc(fnew_ord_A);
-    CTF_int::cdealloc(fnew_ord_B);
-    CTF_int::cdealloc(fnew_ord_C);
     CTF_int::cdealloc(all_flen_A);
     CTF_int::cdealloc(all_flen_B);
     CTF_int::cdealloc(all_flen_C);
-    CTF_int::cdealloc(fold_idx);
+    delete fold_ctr;
 
-    return time_est;
+    return btime;
   }
 
 

@@ -133,6 +133,49 @@ namespace CTF_int {
 
 
       /**
+       * \brief creates a contraction object which defines the local folded contractions
+       * \param[out] fold_ctr the contraction object created
+       * \param[out] all_fdim_A number of dimensions of A folded
+       * \param[out] all_fdim_B number of dimensions of B folded
+       * \param[out] all_fdim_C number of dimensions of C folded
+       * \param[out] all_flen_A lengths of dimensions of A folded
+       * \param[out] all_flen_B lengths of dimensions of B folded
+       * \param[out] all_flen_C lengths of dimensions of C folded
+       */
+      void get_fold_ctr(contraction *& fold_ctr,
+                        int &          all_fdim_A,
+                        int &          all_fdim_B,
+                        int &          all_fdim_C,
+                        int *&         all_flen_A,
+                        int *&         all_flen_B,
+                        int *&         all_flen_C);
+
+
+      /**
+       * \brief picks the dimension ordering which can be expressed as gemm and requires fewest/cheapest transpositions
+       * \param[in] fold_ctr the folded contraction object
+       * \param[in] all_fdim_A number of dimensions of A folded
+       * \param[in] all_fdim_B number of dimensions of B folded
+       * \param[in] all_fdim_C number of dimensions of C folded
+       * \param[in] all_flen_A lengths of dimensions of A folded
+       * \param[in] all_flen_B lengths of dimensions of B folded
+       * \param[in] all_flen_C lengths of dimensions of C folded
+       * \param[out] bperm_order in [0,5] corresponds to ordering of {A,B,C}
+       * \param[out] btime estimated execution time of the selected permutation
+       * \param[out] iprm the local paramaters associated with this perm
+       */
+      void select_ctr_perm(contraction const * fold_ctr,
+                           int                 all_fdim_A,
+                           int                 all_fdim_B,
+                           int                 all_fdim_C,
+                           int const *         all_flen_A,
+                           int const *         all_flen_B,
+                           int const *         all_flen_C,
+                           int &               bperm_order,
+                           double &            btime,
+                           iparam &            iprm);
+
+      /**
        * \brief folds tensors for contraction
        * \return inner_prm parameters includng n,m,k
        */
