@@ -724,6 +724,15 @@ namespace CTF_int {
     CTF_int::cdealloc(all_flen_B);
     CTF_int::cdealloc(all_flen_C);
     delete fold_ctr;
+    A->is_folded = 0; 
+    delete A->rec_tsr; 
+    cdealloc(A->inner_ordering); 
+    B->is_folded = 0; 
+    delete B->rec_tsr; 
+    cdealloc(B->inner_ordering); 
+    C->is_folded = 0; 
+    delete C->rec_tsr; 
+    cdealloc(C->inner_ordering); 
 
     return btime;
   }

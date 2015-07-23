@@ -6,6 +6,227 @@
 #include "sym_seq_sum.h"
 
 namespace CTF_int {
+  
+  template <int idim>
+  void sym_seq_sum_loop(char const *      alpha,
+                        char const *      A,
+                        algstrct const *  sr_A,
+                        int               order_A,
+                        int const *       edge_len_A,
+                        int const *       sym_A,
+                        int const *       idx_map_A,
+                        uint64_t *const*  offsets_A,
+                        char *            B,
+                        algstrct const *  sr_B,
+                        int               order_B,
+                        int const *       edge_len_B,
+                        int const *       sym_B,
+                        int const *       idx_map_B,
+                        uint64_t *const*  offsets_B,
+                        univar_function * func,
+                        int const *       idx,
+                        int const *       rev_idx_map,
+                        int               idx_max){
+    int imax=0;
+    int rA = rev_idx_map[2*idim+0];
+    int rB = rev_idx_map[2*idim+1];
+  
+    if (rA != -1)
+      imax = edge_len_A[rA];
+    else if (rB != -1)
+      imax = edge_len_B[rB];
+
+    if (rA != -1 && sym_A[rA] != NS){
+      int rrA = rA;
+      do {
+        if (idx_map_A[rrA+1] > idim)
+          imax = idx[idx_map_A[rrA+1]]+1;
+        rrA++;
+      } while (sym_A[rrA] != NS && idx_map_A[rrA] < idim);
+    }
+
+    if (rB != -1 && sym_B[rB] != NS){
+      int rrB = rB;
+      do {
+        if (idx_map_B[rrB+1] > idim)
+          imax = std::min(imax,idx[idx_map_B[rrB+1]]+1);
+        rrB++;
+      } while (sym_B[rrB] != NS && idx_map_B[rrB] < idim);
+    }
+
+    int imin = 0;
+
+    if (rA > 0 && sym_A[rA-1] != NS){
+      int rrA = rA;
+      do {
+        if (idx_map_A[rrA-1] > idim)
+          imin = idx[idx_map_A[rrA-1]];
+        rrA--;
+      } while (rrA>0 && sym_A[rrA-1] != NS && idx_map_A[rrA] < idim);
+    }
+
+    if (rB > 0 && sym_B[rB-1] != NS){
+      int rrB = rB;
+      do {
+        if (idx_map_B[rrB-1] > idim)
+          imin = std::max(imin,idx[idx_map_B[rrB-1]]);
+        rrB--;
+      } while (rrB>0 && sym_B[rrB-1] != NS && idx_map_B[rrB] < idim);
+    }
+
+    if (rB != -1){
+#ifdef USE_OMP    
+      #pragma omp for
+#endif
+      for (int i=imin; i<imax; i++){
+#ifdef USE_OMP    
+        #pragma omp parallel 
+#endif
+        {
+          int nidx[idx_max];
+          memcpy(nidx, idx, idx_max*sizeof(int));
+          nidx[idim] = i;
+          sym_seq_sum_loop<idim-1>(alpha, A+offsets_A[idim][nidx[idim]], sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B+offsets_B[idim][nidx[idim]], sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, func, nidx, rev_idx_map, idx_max);
+        }
+      }
+    } else {
+      for (int i=imin; i<imax; i++){
+        int nidx[idx_max];
+        memcpy(nidx, idx, idx_max*sizeof(int));
+        nidx[idim] = i;
+        sym_seq_sum_loop<idim-1>(alpha, A+offsets_A[idim][nidx[idim]], sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B+offsets_B[idim][nidx[idim]], sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, func, nidx, rev_idx_map, idx_max);
+      }
+
+    }
+//    idx[idim] = 0;
+  }
+
+
+  template <>
+  void sym_seq_sum_loop<0>
+                       (char const *      alpha,
+                        char const *      A,
+                        algstrct const *  sr_A,
+                        int               order_A,
+                        int const *       edge_len_A,
+                        int const *       sym_A,
+                        int const *       idx_map_A,
+                        uint64_t *const*  offsets_A,
+                        char *            B,
+                        algstrct const *  sr_B,
+                        int               order_B,
+                        int const *       edge_len_B,
+                        int const *       sym_B,
+                        int const *       idx_map_B,
+                        uint64_t *const*  offsets_B,
+                        univar_function * func,
+                        int const *       idx,
+                        int const *       rev_idx_map,
+                        int               idx_max){
+    int imax=0;
+    int rA = rev_idx_map[0];
+    int rB = rev_idx_map[1];
+  
+    if (rA != -1)
+      imax = edge_len_A[rA];
+    else if (rB != -1)
+      imax = edge_len_B[rB];
+
+    if (rA != -1 && sym_A[rA] != NS)
+      imax = idx[idx_map_A[rA+1]]+1;
+    if (rB != -1 && sym_B[rB] != NS)
+      imax = std::min(imax,idx[idx_map_B[rB+1]]+1);
+
+    int imin = 0;
+
+    if (rA > 0 && sym_A[rA-1] != NS)
+      imin = idx[idx_map_A[rA-1]];
+    if (rB > 0 && sym_B[rB-1] != NS)
+      imin = std::max(imin,idx[idx_map_B[rB-1]]);
+
+    if (func == NULL){
+      if (alpha == NULL){
+        for (int i=imin; i<imax; i++){
+          sr_B->add(A+offsets_A[0][i],
+                    B+offsets_B[0][i], 
+                    B+offsets_B[0][i]);
+        }
+        CTF_FLOPS_ADD(imax-imin);
+      } else {
+        for (int i=imin; i<imax; i++){
+          char tmp[sr_B->el_size];
+          sr_B->mul(A+offsets_A[0][i], 
+                    alpha,
+                    tmp);
+          sr_B->add(tmp, 
+                    B+offsets_B[0][i], 
+                    B+offsets_B[0][i]);
+        }
+        CTF_FLOPS_ADD(2*(imax-imin));
+      }
+    }//FIXME else?
+  }
+
+  template 
+  void sym_seq_sum_loop< MAX_ORD >
+                       (char const *      alpha,
+                        char const *      A,
+                        algstrct const *  sr_A,
+                        int               order_A,
+                        int const *       edge_len_A,
+                        int const *       sym_A,
+                        int const *       idx_map_A,
+                        uint64_t *const*  offsets_A,
+                        char *            B,
+                        algstrct const *  sr_B,
+                        int               order_B,
+                        int const *       edge_len_B,
+                        int const *       sym_B,
+                        int const *       idx_map_B,
+                        uint64_t *const*  offsets_B,
+                        univar_function * func,
+                        int const *       idx,
+                        int const *       rev_idx_map,
+                        int               idx_max);
+
+
+  void compute_syoffs(algstrct const * sr_A,
+                      int              order_A,
+                      int const *      edge_len_A,
+                      int const *      sym_A,
+                      int const *      idx_map_A,
+                      algstrct const * sr_B,
+                      int              order_B,
+                      int const *      edge_len_B,
+                      int const *      sym_B,
+                      int const *      idx_map_B,
+                      int              tot_order,
+                      int const *      rev_idx_map,
+                      uint64_t **&     offsets_A,
+                      uint64_t **&     offsets_B){
+    TAU_FSTART(compute_syoffs);
+    offsets_A = (uint64_t**)CTF_int::alloc(sizeof(uint64_t*)*tot_order);
+    offsets_B = (uint64_t**)CTF_int::alloc(sizeof(uint64_t*)*tot_order);
+
+    for (int idim=0; idim<tot_order; idim++){
+      int len=0;
+
+      int rA = rev_idx_map[2*idim+0];
+      int rB = rev_idx_map[2*idim+1];
+  
+      if (rA != -1)
+        len = edge_len_A[rA];
+      else if (rB != -1)
+        len = edge_len_B[rB];
+
+      offsets_A[idim] = (uint64_t*)CTF_int::alloc(sizeof(uint64_t)*len);
+      offsets_B[idim] = (uint64_t*)CTF_int::alloc(sizeof(uint64_t)*len);
+      compute_syoff(rA, len, sr_A, edge_len_A, sym_A, offsets_A[idim]);
+      compute_syoff(rB, len, sr_B, edge_len_B, sym_B, offsets_B[idim]);
+    }
+    TAU_FSTOP(compute_syoffs);
+  }
+
 
   #define SCAL_B do {                                                      \
     if (!sr_B->isequal(beta, sr_B->mulid())){                                 \
@@ -85,7 +306,7 @@ namespace CTF_int {
     TAU_FSTART(sym_seq_sum_ref);
     int idx, i, idx_max, imin, imax, iA, iB, j, k;
     int off_idx, sym_pass;
-    int * idx_glb, * rev_idx_map;
+    int * rev_idx_map;
     int * dlen_A, * dlen_B;
     int64_t idx_A, idx_B, off_lda;
 
@@ -93,63 +314,103 @@ namespace CTF_int {
             order_B,       idx_map_B,
             &idx_max,     &rev_idx_map);
 
+    bool rep_idx = false;
+    for (i=0; i<order_A; i++){
+      for (j=0; j<order_A; j++){
+        if (i!=j && idx_map_A[i] == idx_map_A[j]) rep_idx = true;
+      }
+    }
+    for (i=0; i<order_B; i++){
+      for (j=0; j<order_B; j++){
+        if (i!=j && idx_map_B[i] == idx_map_B[j]) rep_idx = true;
+      }
+    }
+
     dlen_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
     dlen_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(dlen_A, edge_len_A, sizeof(int)*order_A);
     memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
 
-    idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+    int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+    memset(idx_glb, 0, sizeof(int)*idx_max);
 
-    SCAL_B;
+    //FIXME do via scal()
+    TAU_FSTART(SCAL_B);
+    if (rep_idx)
+      SCAL_B;
+    else {
+      int64_t sz_B = sy_packed_size(order_B, edge_len_B, sym_B);
+      sr_B->scal(sz_B, beta, B, 1);
+    }
+    TAU_FSTOP(SCAL_B);
 
     memset(idx_glb, 0, sizeof(int)*idx_max);
-    idx_A = 0, idx_B = 0;
-    sym_pass = 1;
-    for (;;){
-      if (sym_pass){
-    /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
-                idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
+    if (!rep_idx && idx_max>0 && idx_max <= MAX_ORD){
+      uint64_t ** offsets_A;
+      uint64_t ** offsets_B;
+      compute_syoffs(sr_A, order_A, edge_len_A, sym_A, idx_map_A, sr_B, order_B, edge_len_B, sym_B, idx_map_B, idx_max, rev_idx_map, offsets_A, offsets_B);
+      if (order_B > 1 || (order_B > 0 && idx_map_B[0] != 0)){
+#ifdef USE_OMP    
+        #pragma omp parallel
+#endif
+        {
+          int * nidx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+          memset(nidx_glb, 0, sizeof(int)*idx_max);
+
+          SWITCH_ORD_CALL(sym_seq_sum_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, NULL, nidx_glb, rev_idx_map, idx_max);
+        }
+      } else {
+        SWITCH_ORD_CALL(sym_seq_sum_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, NULL, idx_glb, rev_idx_map, idx_max);
+      }
+    } else {
+      idx_A = 0, idx_B = 0;
+      sym_pass = 1;
+      for (;;){
+        if (sym_pass){
+      /*    printf("B[%d] = %lf*(A[%d]=%lf)+%lf*(B[%d]=%lf\n",
+                  idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
 //        printf("adding to %d ",idx_B); sr_B->print(B+sr_B->el_size*idx_B); printf("\n");
-        if (alpha != NULL){
-          char tmp[sr_B->el_size];
-          sr_B->mul(A+sr_A->el_size*idx_A, alpha, tmp);
-          sr_B->add(tmp, B+sr_B->el_size*idx_B, B+sr_B->el_size*idx_B);
-          CTF_FLOPS_ADD(2);
-        } else {
-          sr_B->add(A+sr_A->el_size*idx_A, B+sr_B->el_size*idx_B, B+sr_B->el_size*idx_B);
-          CTF_FLOPS_ADD(1);
-        }
+          if (alpha != NULL){
+            char tmp[sr_B->el_size];
+            sr_B->mul(A+sr_A->el_size*idx_A, alpha, tmp);
+            sr_B->add(tmp, B+sr_B->el_size*idx_B, B+sr_B->el_size*idx_B);
+            CTF_FLOPS_ADD(2);
+          } else {
+            sr_B->add(A+sr_A->el_size*idx_A, B+sr_B->el_size*idx_B, B+sr_B->el_size*idx_B);
+            CTF_FLOPS_ADD(1);
+          }
 //        printf("computed %d ",idx_B); sr_B->print(B+sr_B->el_size*idx_B); printf("\n");
-      }
-
-      for (idx=0; idx<idx_max; idx++){
-        imin = 0, imax = INT_MAX;
-
-        GET_MIN_MAX(A,0,2);
-        GET_MIN_MAX(B,1,2);
-
-        ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
-
-        idx_glb[idx]++;
-
-        if (idx_glb[idx] >= imax){
-          idx_glb[idx] = imin;
         }
-        if (idx_glb[idx] != imin) {
-          break;
-        }
-      }
-      if (idx == idx_max) break;
 
-      CHECK_SYM(A);
-      if (!sym_pass) continue;
-      CHECK_SYM(B);
-      if (!sym_pass) continue;
-      
-      if (order_A > 0)
-        RESET_IDX(A);
-      if (order_B > 0)
-        RESET_IDX(B);
+        for (idx=0; idx<idx_max; idx++){
+          imin = 0, imax = INT_MAX;
+
+          GET_MIN_MAX(A,0,2);
+          GET_MIN_MAX(B,1,2);
+
+          ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
+
+          idx_glb[idx]++;
+
+          if (idx_glb[idx] >= imax){
+            idx_glb[idx] = imin;
+          }
+          if (idx_glb[idx] != imin) {
+            break;
+          }
+        }
+        if (idx == idx_max) break;
+
+        CHECK_SYM(A);
+        if (!sym_pass) continue;
+        CHECK_SYM(B);
+        if (!sym_pass) continue;
+        
+        if (order_A > 0)
+          RESET_IDX(A);
+        if (order_B > 0)
+          RESET_IDX(B);
+      }
     }
     CTF_int::cdealloc(dlen_A);
     CTF_int::cdealloc(dlen_B);

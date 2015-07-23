@@ -135,10 +135,32 @@ namespace CTF_int {
       int can_fold();
  
       /**
+       * \brief creates a summation object which defines the local folded summations
+       * \param[out] fold_sum the summation object created
+       * \param[out] all_fdim_A number of dimensions of A folded
+       * \param[out] all_fdim_B number of dimensions of B folded
+       * \param[out] all_flen_A lengths of dimensions of A folded
+       * \param[out] all_flen_B lengths of dimensions of B folded
+       */
+      void get_fold_sum(summation *& fold_sum,
+                        int &        all_fdim_A,
+                        int &        all_fdim_B,
+                        int *&       all_flen_A,
+                        int *&       all_flen_B);
+
+
+      /**
        * \brief fold tensors into matrices for summation
        * \return inner stride (daxpy size)
        */
       int map_fold();
+
+      /**
+       * \brief estimates time it takes to transpose tensors in order to fold them
+       * \return time in seconds
+       */
+      double est_time_fold();
+
 
       /**
        * \brief find ordering of indices of tensor to reduce to DAXPY

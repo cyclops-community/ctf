@@ -1,6 +1,18 @@
 #ifndef __ITER_TSR_H__
 #define __ITER_TSR_H__
 
+#include "util.h"
+namespace CTF_int{
+  class algstrct;
+  //lives in contraction/sym_seq_ctr
+  void compute_syoff(int              r,
+                     int              len,
+                     algstrct const * sr,
+                     int const *      edge_len,
+                     int const *      sym,
+                     uint64_t *       offsets);
+}
+
 #define GET_MIN_MAX(__X,nr,wd)                                                  \
 do{                                                                             \
       i##__X = rev_idx_map[wd*idx+nr];                                          \

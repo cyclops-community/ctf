@@ -296,12 +296,12 @@ namespace CTF_int{
                         int              idx_max);
 
 
-  void compute_syoff(int         r,
-                     int         len,
+  void compute_syoff(int              r,
+                     int              len,
                      algstrct const * sr,
-                     int const * edge_len,
-                     int const * sym,
-                     uint64_t *  offsets){
+                     int const *      edge_len,
+                     int const *      sym,
+                     uint64_t *       offsets){
     if (r == -1){
       std::fill(offsets, offsets+len, 0);
     } else if (r == 0){

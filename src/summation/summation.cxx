@@ -214,20 +214,20 @@ namespace CTF_int {
     /* FIXME: 1 folded index is good enough for now, in the future model */
     return nfold > 0;
   }
-
-  int summation::map_fold(){
-    int i, j, nfold, nf, all_fdim_A, all_fdim_B;
-    int nvirt_A, nvirt_B;
+ 
+  void summation::get_fold_sum(summation *& fold_sum,
+                               int &        all_fdim_A,
+                               int &        all_fdim_B,
+                               int *&       all_flen_A,
+                               int *&       all_flen_B){
+    int i, j, nfold, nf;
     int * fold_idx, * fidx_map_A, * fidx_map_B;
-    int * fnew_ord_A, * fnew_ord_B;
-    int * all_flen_A, * all_flen_B;
     tensor * ftsr_A, * ftsr_B;
-    int inr_stride;
 
     get_fold_indices(&nfold, &fold_idx);
     if (nfold == 0){
       CTF_int::cdealloc(fold_idx);
-      return ERROR;
+      assert(0);
     }
 
     /* overestimate this space to not bother with it later */
@@ -266,20 +266,31 @@ namespace CTF_int {
     CTF_int::conv_idx<int>(ftsr_A->order, fidx_map_A, &sidx_A,
                        ftsr_B->order, fidx_map_B, &sidx_B);
 
-    summation fold_sum(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
+    fold_sum = new summation(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
     cdealloc(sidx_A);
     cdealloc(sidx_B);
+  }
+
+  int summation::map_fold(){
+    int i, all_fdim_A, all_fdim_B;
+    int nvirt_A, nvirt_B;
+    int * fnew_ord_A, * fnew_ord_B;
+    int * all_flen_A, * all_flen_B;
+    int inr_stride;
+
+    summation * fold_sum;
+    get_fold_sum(fold_sum, all_fdim_A, all_fdim_B, all_flen_A, all_flen_B);
   #if DEBUG>=2
     if (A->wrld->rank == 0){
       printf("Folded summation type:\n");
     }
-    fold_sum.print();//print_sum(&fold_type,0.0,0.0);
+    fold_sum->print();//print_sum(&fold_type,0.0,0.0);
   #endif
    
     //for type order 1 to 3 
-    fold_sum.get_len_ordering(&fnew_ord_A, &fnew_ord_B); 
-    permute_target(ftsr_A->order, fnew_ord_A, A->inner_ordering);
-    permute_target(ftsr_B->order, fnew_ord_B, B->inner_ordering);
+    fold_sum->get_len_ordering(&fnew_ord_A, &fnew_ord_B); 
+    permute_target(fold_sum->A->order, fnew_ord_A, A->inner_ordering);
+    permute_target(fold_sum->B->order, fnew_ord_B, B->inner_ordering);
     
 
     nvirt_A = A->calc_nvirt();
@@ -294,21 +305,51 @@ namespace CTF_int {
     }
 
     inr_stride = 1;
-    for (i=0; i<ftsr_A->order; i++){
-      inr_stride *= ftsr_A->pad_edge_len[i];
+    for (i=0; i<fold_sum->A->order; i++){
+      inr_stride *= fold_sum->A->pad_edge_len[i];
     }
 
-    CTF_int::cdealloc(fidx_map_A);
-    CTF_int::cdealloc(fidx_map_B);
     CTF_int::cdealloc(fnew_ord_A);
     CTF_int::cdealloc(fnew_ord_B);
     CTF_int::cdealloc(all_flen_A);
     CTF_int::cdealloc(all_flen_B);
-    CTF_int::cdealloc(fold_idx);
 
     return inr_stride; 
   }
 
+  double summation::est_time_fold(){
+    int all_fdim_A, all_fdim_B;
+    int * fnew_ord_A, * fnew_ord_B;
+    int * all_flen_A, * all_flen_B;
+    int * tAiord, * tBiord;
+
+    summation * fold_sum;
+    get_fold_sum(fold_sum, all_fdim_A, all_fdim_B, all_flen_A, all_flen_B);
+    fold_sum->get_len_ordering(&fnew_ord_A, &fnew_ord_B); 
+    CTF_int::alloc_ptr(all_fdim_A*sizeof(int), (void**)&tAiord);
+    CTF_int::alloc_ptr(all_fdim_B*sizeof(int), (void**)&tBiord);
+    memcpy(tAiord, A->inner_ordering, all_fdim_A*sizeof(int));
+    memcpy(tBiord, B->inner_ordering, all_fdim_B*sizeof(int));
+
+    permute_target(fold_sum->A->order, fnew_ord_A, tAiord);
+    permute_target(fold_sum->B->order, fnew_ord_B, tBiord);
+  
+    A->is_folded = 0; 
+    delete A->rec_tsr; 
+    cdealloc(A->inner_ordering); 
+    B->is_folded = 0; 
+    delete B->rec_tsr; 
+    cdealloc(B->inner_ordering); 
+
+    double esttime = 0.0;
+
+    esttime += A->calc_nvirt()*est_time_transp(all_fdim_A, tAiord, all_flen_A, 1, A->sr);
+    esttime += 2.*B->calc_nvirt()*est_time_transp(all_fdim_B, tBiord, all_flen_B, 1, B->sr);
+    return esttime;
+  }
+
+
+ 
   void summation::get_len_ordering(int ** new_ordering_A,
                                    int ** new_ordering_B){
     int num_tot;
@@ -1168,13 +1209,22 @@ namespace CTF_int {
       ASSERT(new_sum.check_mapping());
   #if FOLD_TSR
       if (is_custom == false && new_sum.can_fold()){
-        int inner_stride;
-        TAU_FSTART(map_fold);
-        inner_stride = new_sum.map_fold();
-        TAU_FSTOP(map_fold);
-        sumf = new_sum.construct_sum(inner_stride);
-        /*alpha, beta, ntid_A, map_A, ntid_B, map_B,
-                              ftsr, felm, inner_stride);*/
+        //FIXME bit of a guess, no?
+        double est_time_nofold = 4.*(A->size + B->size)*COST_MEMBW;
+        if (new_sum.est_time_fold() + (A->size + B->size)*COST_MEMBW < est_time_nofold){
+          /*if (A->wrld->cdt.rank == 0)
+            printf("Decided to fold\n");*/
+          int inner_stride;
+          TAU_FSTART(map_fold);
+          inner_stride = new_sum.map_fold();
+          TAU_FSTOP(map_fold);
+          sumf = new_sum.construct_sum(inner_stride);
+        } else {
+          /*if (A->wrld->cdt.rank == 0)
+            printf("Decided not to fold\n");*/
+        
+          sumf = new_sum.construct_sum();
+        }
       } else{
   #if DEBUG >= 1
         if (A->wrld->cdt.rank == 0){
