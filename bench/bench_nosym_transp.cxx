@@ -7,8 +7,11 @@
   */
 
 #include <ctf.hpp>
-#include "../src/redistribution/folding.h"
+#include "../src/redistribution/nosym_transp.h"
+#ifdef USE_OMP
 #include "omp.h"
+#endif
+#include <assert.h>
 
 using namespace CTF;
 
@@ -40,7 +43,7 @@ void bench_nosym_transp(int          n,
 
   double * data;
   int pm = posix_memalign((void**)&data, 16, N*sizeof(double));
-  ASSERT(pm==0);
+  assert(pm==0);
 
   srand48(7);
   for (int64_t i=0; i<N; i++){
@@ -59,7 +62,7 @@ void bench_nosym_transp(int          n,
 
   double * data2;
   pm = posix_memalign((void**)&data2, 16, N*sizeof(double));
-  ASSERT(pm==0);
+  assert(pm==0);
 
   double t_cpy_st = MPI_Wtime();
   memcpy(data2, data, N*sizeof(double));
@@ -67,6 +70,7 @@ void bench_nosym_transp(int          n,
   printf("single-threaded memcpy %ld bandwidth is %lf sec %lf GB/sec\n",
           N, t_cpy, 1.E-9*N*sizeof(double)/t_cpy);
 
+#ifdef USE_OMP
   t_cpy_st = MPI_Wtime();
   #pragma omp parallel
   {
@@ -78,6 +82,7 @@ void bench_nosym_transp(int          n,
   t_cpy = MPI_Wtime()-t_cpy_st;
   printf("multi-threaded memcpy %ld bandwidth is %lf sec %lf GB/sec\n",
           N, t_cpy, 1.E-9*N*sizeof(double)/t_cpy);
+#endif
   free(data2);
 
   double t_fwd = 0.0;

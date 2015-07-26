@@ -17,7 +17,7 @@ namespace CTF {
                                 int const *               sym,
                                 World &                   world,
                                 char const *              name,
-                                int const                 profile,
+                                bool                      profile,
                                 CTF_int::algstrct const & sr)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {}
 
@@ -28,7 +28,7 @@ namespace CTF {
                                 World &                   world,
                                 CTF_int::algstrct const & sr,
                                 char const *              name,
-                                int const                 profile)
+                                bool                      profile)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {}
 
 
@@ -38,7 +38,7 @@ namespace CTF {
                                 World &                   world,
                                 CTF_int::algstrct const & sr,
                                 char const *              name,
-                                int const                 profile)
+                                bool                      profile)
     : CTF_int::tensor(&sr, order, len, NULL, &world, 1, name, profile) {}
 
 
@@ -51,9 +51,9 @@ namespace CTF {
                                 Idx_Partition const &     prl,
                                 Idx_Partition const &     blk,
                                 char const *              name,
-                                int const                 profile,
+                                bool                      profile,
                                 CTF_int::algstrct const & sr_)
-    : CTF_int::tensor(&sr_, order, len, sym, &world, name, profile) { }
+    : CTF_int::tensor(&sr_, order, len, sym, &world, idx, prl, blk, name, profile) { }
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(bool           copy,

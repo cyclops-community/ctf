@@ -13,5 +13,5 @@ endif
 
 
 $(BDIR)/bin/%: %.cxx $(BDIR)/lib/libctf.a *.cxx Makefile ../Makefile 
-	$(FCXX) $< -o $@ -I../include/ -L../lib -lctf $(LIBS)
+	$(FCXX) $< -o $@ -I../include/ -L$(BDIR)/lib -lctf $(LIBS)
 

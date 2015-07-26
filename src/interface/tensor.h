@@ -151,7 +151,7 @@ namespace CTF {
              int const *               sym,
              World &                   wrld,
              char const *              name=NULL,
-             int                       profile=0,
+             bool                      profile=0,
              CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
 
       /**
@@ -170,7 +170,7 @@ namespace CTF {
              World &                   wrld,
              CTF_int::algstrct const & sr,
              char const *              name=NULL,
-             int                       profile=0);
+             bool                      profile=0);
 
       /**
        * \brief defines a nonsymmetric tensor filled with zeros on a specified algstrct
@@ -186,7 +186,7 @@ namespace CTF {
              World &                   wrld,
              CTF_int::algstrct const & sr=Ring<dtype,is_ord>(),
              char const *              name=NULL,
-             int                       profile=0);
+             bool                      profile=0);
 
       /**
        * \brief copies a tensor, copying the data of A
@@ -250,7 +250,7 @@ namespace CTF {
              Idx_Partition const &     prl,
              Idx_Partition const &     blk=Idx_Partition(),
              char const *              name=NULL,
-             int                       profile=0,
+             bool                      profile=0,
              CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
 
 

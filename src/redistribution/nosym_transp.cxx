@@ -9,6 +9,16 @@ namespace CTF_int {
 #ifdef OPT_NOSYM_TR
 #ifndef CL_BLOCK
 
+  /**
+   * \brief transposes a non-symmetric tensor
+   *
+   * \param[in] idim 'current' (nested) last index (dimension-1) of tensor
+   * \param[in] data buffer with starting data
+   * \param[in,out] swap_data buffer to fill with transposed data
+   * \param[in] lda array of strides for indices of starting data
+   * \param[in] new_lda array of strides for indices of transposed data
+   * \param[in] sr algstrct defining element size
+   */
 
   template <int idim>
   void nosym_transpose_tmp(int const *      edge_len,
