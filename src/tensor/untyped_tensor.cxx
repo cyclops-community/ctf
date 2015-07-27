@@ -1664,6 +1664,7 @@ namespace CTF_int {
       this->is_home = 0;
     }
   #endif
+  #ifdef PROF_REDIST
     if (this->profile) {
       char spf[80];
       strcpy(spf,"redistribute_");
@@ -1673,6 +1674,7 @@ namespace CTF_int {
         t_pf.start();
       }
     }
+  #endif
   #if DEBUG >=1
     if (wrld->cdt.rank == 0){
       if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle to mapping\n",this->name);
@@ -1718,6 +1720,7 @@ namespace CTF_int {
 
 
   #endif
+  #ifdef PROF_REDIST
     if (this->profile) {
       char spf[80];
       strcpy(spf,"redistribute_");
@@ -1727,6 +1730,7 @@ namespace CTF_int {
         t_pf.stop();
       }
     }
+  #endif
 
     return SUCCESS;
 

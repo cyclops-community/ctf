@@ -66,6 +66,7 @@ namespace CTF_int {
       TAU_FSTOP(desymmetrize);
       return;
     }
+    #ifdef PROF_SYM
     if (sym_tsr->wrld->rank == 0) 
       VPRINTF(2,"Desymmetrizing %s\n", sym_tsr->name);
     if (sym_tsr->profile) {
@@ -77,6 +78,7 @@ namespace CTF_int {
         VPRINTF(2,"Desymmetrizing %s\n", sym_tsr->name);
       t_pf.start();
     }
+    #endif
 
     CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr->el_size, (void**)&nonsym_tsr->data);
     nonsym_tsr->sr->set(nonsym_tsr->data, nonsym_tsr->sr->addid(), nonsym_tsr->size);
@@ -211,6 +213,7 @@ namespace CTF_int {
         }
         break;
     }*/
+    #ifdef PROF_SYM
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"desymmetrize_");
@@ -218,6 +221,7 @@ namespace CTF_int {
       CTF::Timer t_pf(spf);
       t_pf.stop();
     }
+    #endif
 
     TAU_FSTOP(desymmetrize);
 
@@ -231,6 +235,7 @@ namespace CTF_int {
 
     TAU_FSTART(symmetrize);
     
+    #ifdef PROF_SYM
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"symmetrize_");
@@ -240,6 +245,7 @@ namespace CTF_int {
         VPRINTF(2,"Symmetrizing %s\n", sym_tsr->name);
       t_pf.start();
     }
+    #endif
 
     sym_dim = -1;
     is = -1;
@@ -363,6 +369,7 @@ namespace CTF_int {
       CTF_int::cdealloc(idx_map_A);
       CTF_int::cdealloc(idx_map_B);
     }
+    #ifdef PROF_SYM
     if (sym_tsr->profile) {
       char spf[80];
       strcpy(spf,"symmetrize_");
@@ -370,6 +377,7 @@ namespace CTF_int {
       CTF::Timer t_pf(spf);
       t_pf.stop();
     }
+    #endif
 
 
     TAU_FSTOP(symmetrize);

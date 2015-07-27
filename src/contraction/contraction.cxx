@@ -1902,7 +1902,7 @@ namespace CTF_int {
     old_topo_B = NULL;
     old_topo_C = NULL;
 
-    TAU_FSTART(map_tensors);
+    TAU_FSTART(select_ctr_map);
   #if BEST_VOL
     CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
@@ -2008,12 +2008,13 @@ namespace CTF_int {
           }
         } else topo_i = wrld->topovec[t-3];
       
-
+        TAU_FSTART(map_ctr_to_topo);
         ret = map_to_topology(topo_i, j);
+        TAU_FSTOP(map_ctr_to_topo);
         
 
         if (ret == ERROR) {
-          TAU_FSTOP(map_tensors);
+          TAU_FSTOP(select_ctr_map);
           return ERROR;
         }
         if (ret == NEGATIVE){
@@ -2075,6 +2076,7 @@ namespace CTF_int {
           }
         }
   #endif
+        TAU_FSTART(est_ctr_map_time);
         A->set_padding();
         B->set_padding();
         C->set_padding();
@@ -2155,6 +2157,7 @@ namespace CTF_int {
   #endif
         ASSERT(est_time > 0.0);
 
+        TAU_FSTOP(est_ctr_map_time);
         if ((int64_t)memuse >= proc_bytes_available()){
           DPRINTF(2,"Not enough memory available for topo %d with order %d\n", t, j);
           delete sctr;
@@ -2190,6 +2193,7 @@ namespace CTF_int {
   #endif*/
       }
     }
+    TAU_FSTOP(select_ctr_map);
   #if DEBUG>=3
     MPI_Barrier(A->wrld->comm);
   #endif
@@ -2216,6 +2220,7 @@ namespace CTF_int {
     gtopo = get_best_topo(bnvirt, btopo, global_comm);
   #endif
   #endif*/
+    TAU_FSTART(all_select_ctr_map);
     double gbest_time;
     MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
     if (best_time != gbest_time){
@@ -2223,6 +2228,7 @@ namespace CTF_int {
     }
     int ttopo;
     MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
+    TAU_FSTOP(all_select_ctr_map);
 
 
     A->clear_mapping();
@@ -2249,7 +2255,6 @@ namespace CTF_int {
       CTF_int::cdealloc(old_map_B);
       CTF_int::cdealloc(old_map_C);
 */
-      TAU_FSTOP(map_tensors);
       if (ttopo == INT_MAX || ttopo == -1){
         printf("ERROR: Failed to map contraction!\n");
         //ABORT;
@@ -2293,7 +2298,6 @@ namespace CTF_int {
 
     if (ret == NEGATIVE || ret == ERROR) {
       printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
-      TAU_FSTOP(map_tensors);
       return ERROR;
     }
     A->is_mapped = 1;
@@ -2373,7 +2377,6 @@ namespace CTF_int {
       B->is_cyclic = 1;
       C->is_cyclic = 1;
     }
-    TAU_FSTOP(map_tensors);
     /* redistribute tensor data */
     TAU_FSTART(redistribute_for_contraction);
     need_remap = 0;
