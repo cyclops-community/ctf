@@ -581,6 +581,9 @@ namespace CTF_int {
       cdealloc(tAiord);
       cdealloc(tBiord);
       cdealloc(tCiord);
+      cdealloc(tfnew_ord_A);
+      cdealloc(tfnew_ord_B);
+      cdealloc(tfnew_ord_C);
     }
 
     switch (bperm_order){

@@ -264,7 +264,11 @@ namespace CTF_int {
 
     int * sidx_A, * sidx_B;
     CTF_int::conv_idx<int>(ftsr_A->order, fidx_map_A, &sidx_A,
-                       ftsr_B->order, fidx_map_B, &sidx_B);
+                           ftsr_B->order, fidx_map_B, &sidx_B);
+    
+    cdealloc(fidx_map_A);
+    cdealloc(fidx_map_B);
+    cdealloc(fold_idx);
 
     fold_sum = new summation(A->rec_tsr, sidx_A, alpha, B->rec_tsr, sidx_B, beta);
     cdealloc(sidx_A);
@@ -314,6 +318,8 @@ namespace CTF_int {
     CTF_int::cdealloc(all_flen_A);
     CTF_int::cdealloc(all_flen_B);
 
+    delete fold_sum;
+
     return inr_stride; 
   }
 
@@ -345,6 +351,15 @@ namespace CTF_int {
 
     esttime += A->calc_nvirt()*est_time_transp(all_fdim_A, tAiord, all_flen_A, 1, A->sr);
     esttime += 2.*B->calc_nvirt()*est_time_transp(all_fdim_B, tBiord, all_flen_B, 1, B->sr);
+
+    delete fold_sum;
+
+    cdealloc(all_flen_A);
+    cdealloc(all_flen_B);
+    cdealloc(tAiord);
+    cdealloc(tBiord);
+    cdealloc(fnew_ord_A);
+    cdealloc(fnew_ord_B);
     return esttime;
   }
 

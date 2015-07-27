@@ -358,10 +358,17 @@ namespace CTF_int {
           memset(nidx_glb, 0, sizeof(int)*idx_max);
 
           SWITCH_ORD_CALL(sym_seq_sum_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, NULL, nidx_glb, rev_idx_map, idx_max);
+          cdealloc(nidx_glb);
         }
       } else {
         SWITCH_ORD_CALL(sym_seq_sum_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, NULL, idx_glb, rev_idx_map, idx_max);
       }
+      for (int l=0; l<idx_max; l++){
+        cdealloc(offsets_A[l]);
+        cdealloc(offsets_B[l]);
+      }
+      cdealloc(offsets_A);
+      cdealloc(offsets_B);
     } else {
       idx_A = 0, idx_B = 0;
       sym_pass = 1;
