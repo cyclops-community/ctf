@@ -34,6 +34,19 @@ namespace CTF {
 
   template<typename dtype, bool is_ord>
   Tensor<dtype, is_ord>::Tensor(int                       order,
+                                bool                      is_sparse,
+                                int const *               len,
+                                int const *               sym,
+                                World &                   world,
+                                CTF_int::algstrct const & sr,
+                                char const *              name,
+                                bool                      profile)
+    : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile, is_sparse) {}
+
+
+
+  template<typename dtype, bool is_ord>
+  Tensor<dtype, is_ord>::Tensor(int                       order,
                                 int const *               len,
                                 World &                   world,
                                 CTF_int::algstrct const & sr,
@@ -709,7 +722,7 @@ namespace CTF {
   Tensor<dtype, is_ord>& Tensor<dtype, is_ord>::operator=(Tensor<dtype, is_ord> A){
 
     free_self();
-    init(A.sr, A.order, A.lens, A.sym, A.wrld, 0, A.name, A.profile);
+    init(A.sr, A.order, A.lens, A.sym, A.wrld, 0, A.name, A.profile, A.is_sparse);
     copy_tensor_data(&A);
     return *this;
 /*

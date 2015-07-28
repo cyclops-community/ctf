@@ -48,7 +48,7 @@ namespace CTF {
   template<typename dtype, bool is_ord>
   Scalar<dtype,is_ord> & Scalar<dtype,is_ord>::operator=(const Scalar<dtype,is_ord> & A){
     CTF_int::tensor::free_self();
-    CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
+    CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile, A.is_sparse);
     return *this;
   }
 

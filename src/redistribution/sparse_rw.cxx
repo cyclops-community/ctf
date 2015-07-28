@@ -716,7 +716,11 @@ namespace CTF_int {
                        char *           wr_pairs_buf,
                        char *           rw_data,
                        CommData         glb_comm,
-                       algstrct const * sr){
+                       algstrct const * sr,
+                       bool             is_sparse,
+                       int64_t          nnz_loc,
+                       char *&          pprs_new,
+                       int64_t &        nnz_loc_new){
     int64_t new_num_pair, nwrite, swp;
     int64_t * bucket_counts, * recv_counts;
     int64_t * recv_displs, * send_displs;
@@ -922,21 +926,31 @@ namespace CTF_int {
                        edge_len, swap_data, buf_data, sr);
 
     /* Write or read the values corresponding to the keys */
-    readwrite(order,
-              new_num_pair,
-              alpha,
-              beta,
-              num_virt,
-              edge_len,
-              sym,
-              phase,
-              phys_phase,
-              virt_phase,
-              virt_phys_rank,
-              rw_data,
-              buf_datab,
-              rw,
-              sr);
+    if (is_sparse){
+      if (rw == 'r'){
+        ConstPairIterator prs_tsr(sr, rw_data);
+        sp_read(sr, nnz_loc, prs_tsr, alpha, new_num_pair, buf_data, beta);
+      } else {
+        ConstPairIterator prs_tsr(sr, rw_data);
+        ConstPairIterator prs_write(sr, buf_data.ptr);
+        sp_write(sr, nnz_loc, prs_tsr, beta, new_num_pair, prs_write, alpha, nnz_loc_new, pprs_new);
+      }
+    } else 
+      readwrite(order,
+                new_num_pair,
+                alpha,
+                beta,
+                num_virt,
+                edge_len,
+                sym,
+                phase,
+                phys_phase,
+                virt_phase,
+                virt_phys_rank,
+                rw_data,
+                buf_datab,
+                rw,
+                sr);
 
     /* If we want to read the keys, we must return them to where they
        were requested */
@@ -1089,6 +1103,122 @@ namespace CTF_int {
     CTF_int::cdealloc((void*)pad_len);
     CTF_int::cdealloc((void*)depadding);
     CTF_int::cdealloc(prepadding);
+  }
+
+  void sp_read(algstrct const *  sr, 
+               int64_t           ntsr,
+               ConstPairIterator prs_tsr,
+               char const *      alpha,
+               int64_t           nread,
+               PairIterator      prs_read,
+               char const *      beta){
+    // each for loop iteration does one addition, o and r are also incremented within
+    // only incrementing r allows multiple reads of the same val
+    for (int64_t t=0,r=0; t<ntsr && r<nread; r++){
+      while (prs_tsr[t].k() != prs_read[r].k() && t<ntsr && r<nread){
+        if (prs_tsr[t].k() < prs_read[r].k())
+          t++;
+        else
+          r++;
+      }
+      // scale and add if match found
+      if (t<ntsr && r<nread){
+        char a[sr->el_size];
+        char b[sr->el_size];
+        char c[sr->el_size];
+        if (beta != NULL){
+          sr->mul(prs_read[r].d(), beta, a);
+        } else {
+          prs_read[r].read_val(a);
+        }
+        if (alpha != NULL){
+          sr->mul(prs_tsr[t].d(), alpha, b);
+        } else {
+          prs_tsr[t].read_val(b);
+        }
+        sr->add(a, b, c);
+        prs_read[r].write_val(c);
+      }
+    }
+  }
+             
+  void sp_write(algstrct const *  sr,
+                int64_t           ntsr,
+                ConstPairIterator prs_tsr,
+                char const *      beta,
+                int64_t           nwrite,
+                ConstPairIterator prs_write,
+                char const *      alpha,
+                int64_t &         nnew,
+                char *&           pprs_new){
+    // determine how many unique keys there are in prs_tsr and prs_Write
+    nnew = ntsr;
+    for (int64_t t=0,w=0; w<nwrite; w++){
+      while (w<nwrite){
+        if (t<ntsr && prs_tsr[t].k() < prs_write[w].k())
+          t++;
+        else if (t<ntsr && prs_tsr[t].k() == prs_write[w].k()){
+          t++;
+          w++;
+        } else {
+          if (w==0 || prs_write[w-1].k() != prs_write[w].k())
+            nnew++;
+          w++;
+        }
+      }
+    }
+    //printf("ntsr = %ld nwrite = %ld nnew = %ld\n",ntsr,nwrite,nnew); 
+    alloc_ptr(sr->pair_size()*nnew, (void**)&pprs_new);
+    PairIterator prs_new(sr, pprs_new);
+    // each for loop computes one new value of prs_new 
+    //    (multiple writes may contribute to it), 
+    //    t, w, and n are incremented within
+    // only incrementing r allows multiple writes of the same val
+    for (int64_t t=0,w=0,n=0; n<nnew; n++){
+      if (t<ntsr && prs_tsr[t].k() < prs_write[w].k()){
+        memcpy(prs_new[n].ptr, prs_tsr[t].ptr, sr->pair_size());
+        t++;
+      } else {
+        if (t>=ntsr || prs_tsr[t].k() > prs_write[w].k()){
+          memcpy(prs_new[n].ptr, prs_write[w].ptr, sr->pair_size());
+          if (alpha != NULL)
+            sr->mul(prs_new[n].d(), alpha, prs_new[n].d());
+          w++;
+        } else {
+          char a[sr->el_size];
+          char b[sr->el_size];
+          char c[sr->el_size];
+          if (alpha != NULL){
+            sr->mul(prs_write[w].d(), alpha, a);
+          } else {
+            prs_write[w].read_val(a);
+          }
+          if (beta != NULL){
+            sr->mul(prs_tsr[t].d(), beta, b);
+          } else {
+            prs_tsr[t].read_val(b);
+          }
+          sr->add(a, b, c);
+          prs_new[n].write_val(c);
+          ((int64_t*)(prs_new[n].ptr))[0] = prs_tsr[t].k();
+          t++;
+          w++;
+        }
+        // accumulate any repeated key writes
+        while (w < nwrite && prs_write[w].k() == prs_write[w-1].k()){
+          if (alpha != NULL){
+            char a[sr->el_size];
+            sr->mul(prs_write[w].d(), alpha, a);
+            sr->add(prs_new[n].d(), a, prs_new[n].d());
+          } else
+            sr->add(prs_new[n].d(), prs_write[w].d(), prs_new[n].d());
+          w++;
+        }
+      }
+      /*printf("%ldth value is ", n);
+      sr->print(prs_new[n].d());
+      printf("\n");*/
+    }
   }
 
 }

@@ -226,6 +226,11 @@ namespace CTF_int {
        * \return SUCCESS if valid mapping found, ERROR if not enough memory or another issue
        */
       int map();
+      
+      /**
+       * \brief performs a sum when one or both of the tensors are sparse
+       */
+      void sp_sum();
   };
 }
 

@@ -1,6 +1,6 @@
 EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice \
-           qinformatics 
+           qinformatics sptensor_sum
 
 .PHONY:
 $(EXAMPLES): %: $(BDIR)/bin/%

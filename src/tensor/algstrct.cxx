@@ -421,7 +421,7 @@ namespace CTF_int {
     return ((int64_t*)ptr)[0];
   }
 
-  char const * PairIterator::d() const {
+  char * PairIterator::d() const {
     return ptr+sizeof(int64_t);
   }
 

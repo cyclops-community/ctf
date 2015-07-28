@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __INT_TENSOR_H__
-#define __INT_TENSOR_H__
+#ifndef __UNTYPED_TENSOR_H__
+#define __UNTYPED_TENSOR_H__
 
 #include "../mapping/mapping.h"
 #include "../mapping/distribution.h"
@@ -27,6 +27,7 @@ namespace CTF_int {
        * \param[in] wrld a distributed context for the tensor to live in
        * \param[in] name_an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] is_sparse set to 1 to store only nontrivial tensor elements
        */
       void init(algstrct const * sr,
                 int              order,
@@ -35,7 +36,8 @@ namespace CTF_int {
                 CTF::World *     wrld,
                 bool             alloc_data,
                 char const *     name,
-                bool             profile);
+                bool             profile,
+                bool             is_sparse);
       /**
        * \brief read all pairs with each processor (packed)
        * \param[out] num_pair number of values read
@@ -107,10 +109,7 @@ namespace CTF_int {
       /** \brief if true tensor has a zero edge length, so is zero, which short-cuts stuff */
       bool has_zero_edge_len;
       /** \brief tensor data, either the data or the key-value pairs should exist at any given time */
-      union {
-        char * data;
-        char * pairs;
-      };
+      char * data;
       /** \brief whether the tensor has a home mapping/buffer */
       bool has_home;
       /** \brief buffer associated with home mapping of tensor, to which it is returned */
@@ -121,6 +120,12 @@ namespace CTF_int {
       bool is_home;
       /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
+      /** \brief whether only the non-zero elements of the tensor are stored */
+      bool is_sparse;
+      /** \brief number of local nonzero elements */
+      int64_t nnz_loc;
+      /** \brief maximum number of local nonzero elements over all procs*/
+      int64_t nnz_loc_max;
       
       /**
        * \brief associated an index map with the tensor for future operation
@@ -146,6 +151,7 @@ namespace CTF_int {
        * \param[in] alloc_data whether to allocate and set data to zero immediately
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] is_sparse set to 1 to store only nontrivial tensor elements
        */
       tensor(algstrct const * sr,
              int              order,
@@ -154,7 +160,8 @@ namespace CTF_int {
              CTF::World *     wrld,
              bool             alloc_data=true,
              char const *     name=NULL,
-             bool             profile=1);
+             bool             profile=1,
+             bool             is_sparse=0);
 
       /**
        * \brief defines a tensor object with some mapping (if alloc_data)
@@ -595,5 +602,5 @@ namespace CTF_int {
   };
 }
 
-#endif// __INT_TENSOR_H__
+#endif// __UNTYPED_TENSOR_H__
 

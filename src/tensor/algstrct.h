@@ -238,7 +238,7 @@ namespace CTF_int {
       int64_t k() const;
     
       /** \brief returns value of pair at head of ptr */
-      char const * d() const;
+      char * d() const;
     
       /** 
        * \brief sets external data to what this operator points to

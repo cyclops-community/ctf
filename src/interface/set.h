@@ -169,12 +169,12 @@ namespace CTF {
 
   template <>  
   inline void Set<float>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"%20.14E",((float*)a)[0]);
+    fprintf(fp,"%11.5E",((float*)a)[0]);
   }
 
   template <>  
   inline void Set<double>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"%20.14E",((double*)a)[0]);
+    fprintf(fp,"%11.5E",((double*)a)[0]);
   }
 
   template <>  
@@ -189,17 +189,17 @@ namespace CTF {
 
   template <>  
   inline void Set< std::complex<float>,false >::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(%20.14E,%20.14E)",((std::complex<float>*)a)[0].real(),((std::complex<float>*)a)[0].imag());
+    fprintf(fp,"(%11.5E,%11.5E)",((std::complex<float>*)a)[0].real(),((std::complex<float>*)a)[0].imag());
   }
 
   template <>  
   inline void Set< std::complex<double>,false >::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(%20.14E,%20.14E)",((std::complex<double>*)a)[0].real(),((std::complex<double>*)a)[0].imag());
+    fprintf(fp,"(%11.5E,%11.5E)",((std::complex<double>*)a)[0].real(),((std::complex<double>*)a)[0].imag());
   }
 
   template <>  
   inline void Set< std::complex<long double>,false >::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(%20.14LE,%20.14LE)",((std::complex<long double>*)a)[0].real(),((std::complex<long double>*)a)[0].imag());
+    fprintf(fp,"(%11.5LE,%11.5LE)",((std::complex<long double>*)a)[0].real(),((std::complex<long double>*)a)[0].imag());
   }
 
 

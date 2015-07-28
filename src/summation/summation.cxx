@@ -116,8 +116,12 @@ namespace CTF_int {
     if (A->wrld->cdt.rank == 0) printf("Summation::execute (head):\n");
     print();
 #endif
-    int stat = home_sum_tsr(run_diag);
-    assert(stat == SUCCESS); 
+    if (A->is_sparse || B->is_sparse){
+      sp_sum();
+    } else {
+      int stat = home_sum_tsr(run_diag);
+      assert(stat == SUCCESS); 
+    }
   }
   
   double summation::estimate_time(){
@@ -2048,6 +2052,60 @@ namespace CTF_int {
         if (ex_A + ex_B== 0) break;
       }
     }
+  }
+
+  void summation::sp_sum(){
+    int64_t num_pair;
+    char * mapped_data;
+    
+    bool is_idx_matched = true;
+    if (A->order != B->order)
+      is_idx_matched = false;
+    else {
+      for (int o=0; o<A->order; o++){
+        if (idx_A[o] != idx_B[o]){
+          is_idx_matched = false;
+        }
+      }
+    }
+
+    //read data from A    
+    A->read_local(&num_pair, &mapped_data);
+
+    if (!is_idx_matched){
+      int64_t lda_A[A->order];
+      int64_t lda_B[B->order];
+      lda_A[0] = 1;
+      for (int o=1; o<A->order; o++){
+        lda_A[o] = lda_A[o-1]*A->lens[o];
+      }
+      lda_B[0] = 1;
+      for (int o=1; o<B->order; o++){
+        lda_B[o] = lda_B[o-1]*B->lens[o];
+      }
+      PairIterator pi(A->sr, mapped_data);
+      #pragma omp parallel for
+      for (int i=0; i<num_pair; i++){
+        int64_t k = pi[i].k();
+        int64_t k_new = 0;
+        for (int o=0; o<A->order; o++){
+          int64_t kpart = (k/lda_A[o])%A->lens[o];
+          //FIXME: slow, but handles diagonal indexing, probably worth having separate versions
+          for (int q=0; q<B->order; q++){
+            if (idx_A[o] == idx_B[q]){
+              k_new += kpart*lda_B[q];
+            }
+          }
+        }
+        ((int64_t*)(pi[i].ptr))[0] = k_new;
+      }
+    }
+
+    //FIXME: when idx_A has indices idx_B does not, we need to reduce, which can be done partially here since the elements of A should be sorted
+    
+    B->write(num_pair, alpha, beta, mapped_data, 'w');
+    cdealloc(mapped_data);
+
   }
 
 }

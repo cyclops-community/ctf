@@ -69,6 +69,8 @@ namespace CTF_int {
     sr->set(tsr_new_data, sr->addid(), swp_nval);
 
 
+    int64_t ignrd;
+    char * aignrd;
     wr_pairs_layout(old_dist.order,
                     numPes,
                     new_nval,
@@ -87,7 +89,11 @@ namespace CTF_int {
                     pairs,
                     tsr_new_data,
                     ord_glb_comm,
-                    sr);
+                    sr,
+                    false,
+                    0,
+                    aignrd,
+                    ignrd);
                   
     *tsr_cyclic_data = tsr_new_data;
 
