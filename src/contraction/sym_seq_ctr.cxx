@@ -32,7 +32,7 @@ namespace CTF_int{
                         int const *      sym_C,
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
-                        bivar_function * func,
+                        bivar_function const * func,
                         int const *      idx,
                         int const *      rev_idx_map,
                         int              idx_max){
@@ -157,7 +157,7 @@ namespace CTF_int{
                         int const *      sym_C,
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
-                        bivar_function * func,
+                        bivar_function const * func,
                         int const *      idx,
                         int const *      rev_idx_map,
                         int              idx_max){
@@ -290,7 +290,7 @@ namespace CTF_int{
                         int const *      sym_C,
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
-                        bivar_function * func,
+                        bivar_function const * func,
                         int const *      idx,
                         int const *      rev_idx_map,
                         int              idx_max);
@@ -580,7 +580,7 @@ namespace CTF_int{
                        int const *      edge_len_C,
                        int const *      sym_C,
                        int const *      idx_map_C,
-                       bivar_function * func){
+                       bivar_function const * func){
     TAU_FSTART(sym_seq_ctr_cust);
     int idx, i, idx_max, imin, imax, iA, iB, iC, j, k;
     int off_idx, sym_pass;

@@ -19,7 +19,7 @@ namespace CTF_int{
        * \param[in] b pointer to second operand that will be cast to type by extending class
        * \param[in,out] result: c=&f(*a,*b) 
        */
-      virtual void apply_f(char const * a, char const * b, char * c) { assert(0); }
+      virtual void apply_f(char const * a, char const * b, char * c) const { assert(0); }
   };
 
 
@@ -179,7 +179,7 @@ namespace CTF_int{
       iparam inner_params;
       
       int is_custom;
-      bivar_function * func; // custom_params;
+      bivar_function const * func; // custom_params;
       
       /**
        * \brief wraps user sequential function signature

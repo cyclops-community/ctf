@@ -30,7 +30,7 @@ namespace CTF_int {
       /** \brief whether there is a elementwise custom function */
       bool is_custom;
       /** \brief function to execute on elements */
-      univar_function func;
+      univar_function const * func;
 
       /** \brief lazy constructor */
 //      summation(){ idx_A = NULL; idx_B = NULL; alpha=NULL; beta=NULL; is_custom=0; };
@@ -76,20 +76,20 @@ namespace CTF_int {
        * \param[in] beta scaling factor of ouput (can be NULL)
                       C[idx_B] = beta*B[idx_B] + alpha * A[idx_A]
        */
-      summation(tensor *        A,
-                int const *     idx_A,
-                char const *    alpha,
-                tensor *        B,
-                int const *     idx_B,
-                char const *    beta,
-                univar_function func);
-      summation(tensor *        A,
-                char const *    idx_A,
-                char const *    alpha,
-                tensor *        B,
-                char const *    idx_B,
-                char const *    beta,
-                univar_function func);
+      summation(tensor *                A,
+                int const *             idx_A,
+                char const *            alpha,
+                tensor *                B,
+                int const *             idx_B,
+                char const *            beta,
+                univar_function const * func);
+      summation(tensor *                A,
+                char const *            idx_A,
+                char const *            alpha,
+                tensor *                B,
+                char const *            idx_B,
+                char const *            beta,
+                univar_function const * func);
 
       /** \brief run summation  
         * \param[in] run_diag if true runs diagonal iterators (otherwise calls itself with run_diag=true later

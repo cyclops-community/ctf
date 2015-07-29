@@ -1389,7 +1389,7 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
        idx_A[i] = i;
     }
-    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->mulid(), func);
+    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->mulid(), &func);
     sm.execute();
     sr->copy(result, sc.data);
     MPI_Bcast(result, sr->el_size, MPI_CHAR, 0, wrld->cdt.cm);

@@ -45,15 +45,15 @@ namespace CTF_int {
     beta  = other.beta;
   }
  
-  contraction::contraction(tensor *         A_,
-                           int const *      idx_A_,
-                           tensor *         B_,
-                           int const *      idx_B_,
-                           char const *     alpha_,
-                           tensor *         C_,
-                           int const *      idx_C_,
-                           char const *     beta_,
-                           bivar_function * func_){
+  contraction::contraction(tensor *               A_,
+                           int const *            idx_A_,
+                           tensor *               B_,
+                           int const *            idx_B_,
+                           char const *           alpha_,
+                           tensor *               C_,
+                           int const *            idx_C_,
+                           char const *           beta_,
+                           bivar_function const * func_){
     A = A_;
     B = B_;
     C = C_;
@@ -73,15 +73,15 @@ namespace CTF_int {
     memcpy(idx_C, idx_C_, sizeof(int)*C->order);
   }
  
-  contraction::contraction(tensor *         A_,
-                           char const *     cidx_A,
-                           tensor *         B_,
-                           char const *     cidx_B,
-                           char const *     alpha_,
-                           tensor *         C_,
-                           char const *     cidx_C,
-                           char const *     beta_,
-                           bivar_function * func_){
+  contraction::contraction(tensor *               A_,
+                           char const *           cidx_A,
+                           tensor *               B_,
+                           char const *           cidx_B,
+                           char const *           alpha_,
+                           tensor *               C_,
+                           char const *           cidx_C,
+                           char const *           beta_,
+                           bivar_function const * func_){
     A = A_;
     B = B_;
     C = C_;
@@ -3374,7 +3374,7 @@ namespace CTF_int {
       tnsr_C = new_tsr;
       map_C = new_idx;
     }
-    bivar_function * fptr;
+    bivar_function const * fptr;
     if (is_custom) fptr = func;
     else fptr = NULL;
     contraction new_ctr = contraction(tnsr_A, map_A, tnsr_B, map_B, alpha, tnsr_C, map_C, beta, fptr);

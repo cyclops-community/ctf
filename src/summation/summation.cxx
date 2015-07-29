@@ -72,13 +72,13 @@ namespace CTF_int {
   }
 
  
-  summation::summation(tensor *        A_,
-                       int const *     idx_A_,
-                       char const *    alpha_,
-                       tensor *        B_,
-                       int const *     idx_B_,
-                       char const *    beta_,
-                       univar_function func_){
+  summation::summation(tensor *                A_,
+                       int const *             idx_A_,
+                       char const *            alpha_,
+                       tensor *                B_,
+                       int const *             idx_B_,
+                       char const *            beta_,
+                       univar_function const * func_){
     A         = A_;
     alpha     = alpha_;
     B         = B_;
@@ -94,13 +94,13 @@ namespace CTF_int {
   }
 
  
-  summation::summation(tensor *        A_,
-                       char const *    cidx_A,
-                       char const *    alpha_,
-                       tensor *        B_,
-                       char const *    cidx_B,
-                       char const *    beta_,
-                       univar_function func_){
+  summation::summation(tensor *                A_,
+                       char const *            cidx_A,
+                       char const *            alpha_,
+                       tensor *                B_,
+                       char const *            cidx_B,
+                       char const *            beta_,
+                       univar_function const * func_){
     A         = A_;
     alpha     = alpha_;
     B         = B_;
@@ -681,6 +681,31 @@ namespace CTF_int {
   int summation::home_sum_tsr(bool run_diag){
     int ret, was_home_A, was_home_B;
     tensor * tnsr_A, * tnsr_B;
+    // code below turns summations into scaling, but never seems to be invoked in AQ or test_suite, so commenting it out for now
+/*    if (A==B && !is_custom){
+      bool is_scal = true;
+      for (int i=0; i<A->order; i++){
+        if (idx_A[i] != idx_B[i]) is_scal = false;
+      }
+      if (is_scal){
+        if (alpha == NULL && beta == NULL){
+          scaling scl = scaling(A, idx_A, NULL);
+          scl.execute();
+        } else {
+          char nalpha[A->sr->el_size];
+          if (alpha == NULL) A->sr->copy(nalpha, A->sr->mulid());
+          else A->sr->copy(nalpha, alpha);
+
+          if (beta == NULL) A->sr->add(nalpha, A->sr->mulid(), nalpha);
+          else A->sr->add(nalpha, beta, nalpha);
+
+          scaling scl = scaling(A, idx_A, nalpha);
+          scl.execute();
+        }
+        return SUCCESS;
+      }
+    }*/
+
     summation osum = summation(*this);
    
     CTF_int::contract_mst();
@@ -2173,11 +2198,11 @@ namespace CTF_int {
 #endif
         for (int64_t i=0; i<num_pair; i++){
           if (alpha == NULL)
-            func.apply_f(pi[i].d(), pi_new[i].d());
+            func->apply_f(pi[i].d(), pi_new[i].d());
           else  {
             char tmp_A[A->sr->el_size];
             A->sr->mul(pi[i].d(), alpha, tmp_A);
-            func.apply_f(tmp_A, pi_new[i].d());
+            func->apply_f(tmp_A, pi_new[i].d());
           }
         }
         cdealloc(swap_data);

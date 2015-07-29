@@ -169,7 +169,7 @@ namespace CTF_int {
     
       // copy constructor
       Sum_Term(Sum_Term const & other,
-          std::map<tensor*, tensor*>* remap = NULL);
+               std::map<tensor*, tensor*>* remap = NULL);
 
       // dervied clone calls copy constructor
       Term* clone(std::map<tensor*, tensor*>* remap = NULL) const;

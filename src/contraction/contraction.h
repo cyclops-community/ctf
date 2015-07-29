@@ -34,7 +34,7 @@ namespace CTF_int {
       /** \brief whether there is a elementwise custom function */
       bool is_custom;
       /** \brief function to execute on elements */
-      bivar_function * func;
+      bivar_function const * func;
 
       /** \brief lazy constructor */
       contraction(){ idx_A = NULL; idx_B = NULL; idx_C=NULL; is_custom=0; alpha=NULL; beta=NULL; };
@@ -82,24 +82,24 @@ namespace CTF_int {
        * \param[in] func custom elementwise function 
                       func(A[idx_A],B[idx_B],&C[idx_C])
        */
-      contraction(tensor *         A,
-                  int const *      idx_A,
-                  tensor *         B,
-                  int const *      idx_B,
-                  char const *     alpha,
-                  tensor *         C,
-                  int const *      idx_C,
-                  char const *     beta,
-                  bivar_function * func=NULL);
-      contraction(tensor *         A,
-                  char const *     idx_A,
-                  tensor *         B,
-                  char const *     idx_B,
-                  char const *     alpha,
-                  tensor *         C,
-                  char const *     idx_C,
-                  char const *     beta,
-                  bivar_function * func=NULL);
+      contraction(tensor *               A,
+                  int const *            idx_A,
+                  tensor *               B,
+                  int const *            idx_B,
+                  char const *           alpha,
+                  tensor *               C,
+                  int const *            idx_C,
+                  char const *           beta,
+                  bivar_function const * func=NULL);
+      contraction(tensor *               A,
+                  char const *           idx_A,
+                  tensor *               B,
+                  char const *           idx_B,
+                  char const *           alpha,
+                  tensor *               C,
+                  char const *           idx_C,
+                  char const *           beta,
+                  bivar_function const * func=NULL);
 
 
       /** \brief run contraction */

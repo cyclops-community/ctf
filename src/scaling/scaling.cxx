@@ -32,10 +32,10 @@ namespace CTF_int {
     conv_idx(A->order, cidx_map, &idx_map);
   }
 
-  scaling::scaling(tensor * A_, 
-                   int const * idx_map_,
-                   endomorphism func_,
-                   char const * alpha_){
+  scaling::scaling(tensor *             A_,
+                   int const *          idx_map_,
+                   char const *         alpha_,
+                   endomorphism const * func_){
     A = A_;
     alpha = alpha_;
     func = func_;
@@ -45,10 +45,10 @@ namespace CTF_int {
     memcpy(idx_map, idx_map_, sizeof(int)*A->order);
   }
 
-  scaling::scaling(tensor * A_, 
-                   char const * cidx_map,
-                   endomorphism func_,
-                   char const * alpha_){
+  scaling::scaling(tensor *             A_,
+                   char const *         cidx_map,
+                   char const *         alpha_,
+                   endomorphism const * func_){
     A = A_;
     alpha = alpha_;
     func = func_;

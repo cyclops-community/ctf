@@ -7,6 +7,8 @@
 #include "sym_seq_scl.h"
 
 namespace CTF_int {
+
+
   class scl {
     public:
       char * A; 
@@ -52,7 +54,7 @@ namespace CTF_int {
       //fseq_tsr_scl func_ptr;
   
       int is_custom;
-      endomorphism func; //fseq_elm_scl custom_params;
+      endomorphism const * func; //fseq_elm_scl custom_params;
   
       void run();
       void print();

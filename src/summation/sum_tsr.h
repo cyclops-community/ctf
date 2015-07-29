@@ -19,7 +19,7 @@ namespace CTF_int {
        * \param[in] a pointer to operand that will be cast to type by extending class
        * \param[in,out] result &f(*a) of applying f on value of (different type) on a
        */
-      virtual void apply_f(char const * a, char * b) { f(a,b); }
+      virtual void apply_f(char const * a, char * b)const { f(a,b); }
 
       univar_function(void (*f_)(char const *, char *)) { f=f_; }
       univar_function() { }
@@ -120,7 +120,7 @@ namespace CTF_int {
       int inr_stride;
       
       int is_custom;
-      univar_function func; //fseq_elm_sum custom_params;
+      univar_function const * func; //fseq_elm_sum custom_params;
       
       /**
        * \brief wraps user sequential function signature

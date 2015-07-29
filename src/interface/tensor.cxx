@@ -700,7 +700,7 @@ namespace CTF {
   void Tensor<dtype, is_ord>::scale(dtype               alpha,
                                     const char *        idx_A,
                                     Endomorphism<dtype> fseq){
-    CTF_int::scaling scl = CTF_int::scaling(this, idx_A, (char const *)&alpha, fseq);
+    CTF_int::scaling scl = CTF_int::scaling(this, idx_A, &fseq, (char const *)&alpha);
     scl.execute();
   }
 
