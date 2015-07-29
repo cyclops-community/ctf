@@ -24,6 +24,8 @@
 #include "multi_tsr_sym.cxx"
 #include "repack.cxx"
 #include "sy_times_ns.cxx"
+#include "speye.cxx"
+#include "sptensor_sum.cxx"
 
 using namespace CTF;
 
@@ -169,6 +171,14 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing SY times NS with n = %d:\n",n);
     pass.push_back(sy_times_ns(n,dw));
+    
+    if (rank == 0)
+      printf("Testing sparse summation with n = %d:\n",n);
+    pass.push_back(sptensor_sum(n,dw));
+    
+    if (rank == 0)
+      printf("Testing sparse identity with n = %d order = %d:\n",n,11);
+    pass.push_back(speye(n,11,dw));
 #if 0
     if (rank == 0)
       printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);

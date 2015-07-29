@@ -60,7 +60,7 @@ int diag_sym(int     n,
   } else {
     pass = 0;
     if (rank == 0)
-      printf("{(A[\"(ab)(ij)\"]=mA[\"ii\"]-mB[\"aa\"]=mA[\"jj\"]-mB[\"bb\"]} failed \n");
+      printf("{ (A[\"(ab)(ij)\"]=mA[\"ii\"]-mB[\"aa\"]=mA[\"jj\"]-mB[\"bb\"] } failed \n");
   }
   return pass;
 } 

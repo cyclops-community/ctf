@@ -164,7 +164,7 @@ namespace CTF_int {
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       }
-    }//FIXME else?
+    } //FIXME else 
   }
 
   template 
@@ -558,13 +558,16 @@ namespace CTF_int {
     for (;;){
       if (sym_pass){
         if (alpha != NULL){
-          char tmp[sr_B->el_size];
-          sr_A->mul(A+sr_A->el_size*idx_A, alpha, tmp);
-          func.apply_f(tmp, tmp);
-          sr_B->add(B+idx_B*sr_B->el_size, tmp, B+sr_B->el_size*idx_B);
+          char tmp_A[sr_A->el_size];
+          char tmp_B[sr_B->el_size];
+          sr_A->mul(A+sr_A->el_size*idx_A, alpha, tmp_A);
+          func.apply_f(tmp_A, tmp_B);
+          sr_B->add(B+idx_B*sr_B->el_size, tmp_B, B+sr_B->el_size*idx_B);
           CTF_FLOPS_ADD(2);
         } else {
-          func.apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size);
+          char tmp_B[sr_B->el_size];
+          func.apply_f(A+idx_A*sr_A->el_size, tmp_B);
+          sr_B->add(B+idx_B*sr_B->el_size, tmp_B, B+idx_B*sr_B->el_size);
           CTF_FLOPS_ADD(1);
         }
       }

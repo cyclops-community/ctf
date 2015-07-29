@@ -67,6 +67,12 @@ int sptensor_sum(int     n,
     }
   }
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+  if (dw.rank == 0){
+    if (pass) 
+      printf("{ B[\"abij\"] += A[\"abij\"] with sparse, A, B } passed \n");
+    else
+      printf("{ B[\"abij\"] += A[\"abij\"] with sparse, A, B } failed\n");
+  }
   return pass;
 } 
 

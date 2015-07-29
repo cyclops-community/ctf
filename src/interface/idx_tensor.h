@@ -95,9 +95,17 @@ namespace CTF {
        */
       void operator=(CTF_int::Term const & B);
       void operator=(Idx_Tensor const & B);
-      void operator=(double scl);
-      void operator=(int64_t scl);
 
+
+      void operator=(double scl);
+      void operator+=(double scl);
+      void operator-=(double scl);
+      void operator*=(double scl);
+
+      void operator=(int64_t scl);
+      void operator+=(int64_t scl);
+      void operator-=(int64_t scl);
+      void operator*=(int64_t scl);
       /**
        * \brief A += B, compute any operations on operand B and add
        * \param[in] B tensor on the right hand side

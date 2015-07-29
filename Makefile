@@ -14,10 +14,11 @@ export OFFLOAD_FCXX
 all: $(BDIR)/lib/libctf.a
 
 EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
-           permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice qinformatics sptensor_sum
+           permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice qinformatics map_reduce
 
 TESTS = test_suite pgemm_test nonsq_pgemm_test diag_sym sym3 readwrite_test \
-        ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test  sy_times_ns repack
+        ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test  sy_times_ns repack \
+        sptensor_sum speye
 
 BENCHMARKS = nonsq_pgemm_bench bench_contraction bench_nosym_transp bench_redistribution
 

@@ -196,9 +196,6 @@ namespace CTF {
     }
   }
 
-  void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
-
   void Idx_Tensor::operator+=(Term const & B){
     if (global_schedule != NULL) {
       global_schedule->add_operation(
@@ -234,6 +231,19 @@ namespace CTF {
       *this = ctrm;
     }
   }
+
+
+  void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator+=(double scl){ execute() += Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator-=(double scl){ execute() -= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator*=(double scl){ execute() *= Idx_Tensor(sr,scl); }
+
+  void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
+
+
 
   void Idx_Tensor::execute(Idx_Tensor output) const {
     if (parent == NULL){

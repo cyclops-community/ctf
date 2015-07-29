@@ -117,7 +117,8 @@ namespace CTF_int {
     print();
 #endif
     if (A->is_sparse || B->is_sparse){
-      sp_sum();
+      int stat = sym_sum_tsr(run_diag);
+      assert(stat == SUCCESS); 
     } else {
       int stat = home_sum_tsr(run_diag);
       assert(stat == SUCCESS); 
@@ -893,6 +894,11 @@ namespace CTF_int {
         scaling scl = scaling(B, sub_idx_map_B, beta);
         scl.execute();
       }
+      return SUCCESS;
+    }
+    // If we have sparisity, use separate mechanism
+    if (A->is_sparse || B->is_sparse){
+      sp_sum();
       return SUCCESS;
     }
     tnsr_A = A;
@@ -2053,6 +2059,7 @@ namespace CTF_int {
       }
     }
   }
+              
 
   void summation::sp_sum(){
     int64_t num_pair;
@@ -2068,6 +2075,7 @@ namespace CTF_int {
         }
       }
     }
+
 
     //read data from A    
     A->read_local(&num_pair, &mapped_data);
@@ -2099,9 +2107,150 @@ namespace CTF_int {
         }
         ((int64_t*)(pi[i].ptr))[0] = k_new;
       }
-    }
 
-    //FIXME: when idx_A has indices idx_B does not, we need to reduce, which can be done partially here since the elements of A should be sorted
+      // when idx_A has indices idx_B does not, we need to reduce, which can be done partially here since the elements of A should be sorted
+      bool is_reduce = false;
+      for (int oA=0; oA<A->order; oA++){
+        bool inB = false;
+        for (int oB=0; oB<B->order; oB++){
+          if (idx_A[oA] == idx_B[oB]){
+            inB = true;
+          }
+        }
+        if (!inB) is_reduce = true;
+      }
+  
+      if (is_reduce && num_pair > 0){
+        pi.sort(num_pair);
+        int64_t nuniq=1;
+        for (int64_t i=1; i<num_pair; i++){
+          if (pi[i].k() != pi[i-1].k()) nuniq++;
+        }
+        if (nuniq != num_pair){
+          char * swap_data = mapped_data;
+          alloc_ptr(A->sr->pair_size()*nuniq, (void**)&mapped_data);
+          PairIterator pi_new(A->sr, mapped_data);
+          int64_t cp_st = 0;
+          int64_t acc_st = -1;
+          int64_t pfx = 0;
+          for (int64_t i=1; i<num_pair; i++){
+            if (pi[i].k() == pi[i-1].k()){
+              if (cp_st < i){ 
+                memcpy(pi_new[pfx].ptr, pi[cp_st].ptr, A->sr->pair_size()*(i-cp_st));
+                pfx += i-cp_st;
+              }
+              cp_st = i+1;
+
+              if (acc_st == -1) acc_st = i;
+            } else {
+              if (acc_st != -1){
+                for (int64_t j=acc_st; j<i; j++){
+                  A->sr->add(pi_new[pfx-1].d(), pi[j].d(), pi_new[pfx-1].d());
+                }
+              }
+              acc_st = -1;
+            }           
+          }
+          if (cp_st < num_pair)
+            memcpy(pi_new[pfx].ptr, pi[cp_st].ptr, A->sr->pair_size()*(num_pair-cp_st));
+          if (acc_st != -1){
+            for (int64_t j=acc_st; j<num_pair; j++){
+              A->sr->add(pi_new[pfx-1].d(), pi[j].d(), pi_new[pfx-1].d());
+            }
+          }
+          cdealloc(swap_data);
+          num_pair = nuniq;
+        }
+      }
+
+      // if applying custom function, apply immediately on reduced form
+      if (is_custom){
+        char * swap_data = mapped_data;
+        alloc_ptr(B->sr->pair_size()*num_pair, (void**)&mapped_data);
+        PairIterator pi_new(B->sr, mapped_data);
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<num_pair; i++){
+          if (alpha == NULL)
+            func.apply_f(pi[i].d(), pi_new[i].d());
+          else  {
+            char tmp_A[A->sr->el_size];
+            A->sr->mul(pi[i].d(), alpha, tmp_A);
+            func.apply_f(tmp_A, pi_new[i].d());
+          }
+        }
+        cdealloc(swap_data);
+        alpha = NULL;
+      }
+  
+      // when idx_B has indices idx_A does not, we need to map, which we do by replicating the key value pairs of B
+      // FIXME this is probably not most efficient, but not entirely stupid, as at least the set of replicated pairs is not expected to be bigger than B
+      int nmap_idx = 0;
+      int64_t map_idx_len[B->order];
+      int64_t map_idx_lda[B->order];
+      int map_idx_rev[B->order];
+      for (int oB=0; oB<B->order; oB++){
+        bool inA = false;
+        for (int oA=0; oA<A->order; oA++){
+          if (idx_A[oA] == idx_B[oB]){
+            inA = true;
+          }
+        }
+        if (!inA){ 
+          bool is_rep=false;
+          for (int ooB=0; ooB<oB; ooB++){
+            if (idx_B[ooB] == idx_B[oB]){
+              is_rep = true;
+              map_idx_lda[map_idx_rev[ooB]] += lda_B[oB];
+              break;
+            }
+          }
+          if (!is_rep){
+            map_idx_len[nmap_idx] = B->lens[oB];
+            map_idx_lda[nmap_idx] = lda_B[oB];
+            map_idx_rev[nmap_idx] = oB;
+            nmap_idx++;
+          }
+        }
+      }
+      if (nmap_idx > 0){
+        int64_t tot_rep=1;
+        for (int midx=0; midx<nmap_idx; midx++){
+          tot_rep *= map_idx_len[midx];
+        }
+        char * swap_data = mapped_data;
+        alloc_ptr(A->sr->pair_size()*num_pair*tot_rep, (void**)&mapped_data);
+        PairIterator pi_new(A->sr, mapped_data);
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<num_pair; i++){
+          for (int64_t r=0; r<tot_rep; r++){
+            memcpy(pi_new[i*tot_rep+r].ptr, pi[i].ptr, A->sr->pair_size());
+          }
+        }
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<num_pair; i++){
+          int64_t phase=1;
+          for (int midx=0; midx<nmap_idx; midx++){
+            int64_t stride=phase;
+            phase *= map_idx_len[midx];
+            for (int64_t r=0; r<tot_rep/phase; r++){
+              for (int64_t m=1; m<map_idx_len[midx]; m++){
+                for (int64_t s=0; s<stride; s++){
+                  ((int64_t*)(pi_new[i*tot_rep + r*phase + m*stride + s].ptr))[0] += m*map_idx_lda[midx];
+                }
+              }
+            }
+          }
+        }
+        cdealloc(swap_data);
+        num_pair *= tot_rep;
+      }
+    }
     
     B->write(num_pair, alpha, beta, mapped_data, 'w');
     cdealloc(mapped_data);
