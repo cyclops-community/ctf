@@ -211,7 +211,8 @@ namespace CTF_int {
       memcpy(this->data, other->data, sr->el_size*other->size);
     } else {
       ASSERT(this->is_sparse);
-      CTF_int::cdealloc(this->data);
+      if (data!=NULL)
+        CTF_int::cdealloc(this->data);
       CTF_int::alloc_ptr(other->nnz_loc*(sizeof(int64_t)+sr->el_size), 
                        (void**)&this->data);
       memcpy(this->data, other->data, 
@@ -242,6 +243,8 @@ namespace CTF_int {
     if (other->is_mapped)
       copy_mapping(other->order, other->edge_map, this->edge_map);
     this->size = other->size;
+    this->nnz_loc = other->nnz_loc;
+    this->nnz_loc_max = other->nnz_loc_max;
 #if DEBUG>= 1
     if (wrld->rank == 0)
       printf("New tensor %s copied from %s of size %ld elms (%ld bytes):\n",name, other->name, this->size,this->size*sr->el_size);
@@ -1082,6 +1085,89 @@ namespace CTF_int {
 
   }
 
+  int tensor::sparsify(char const * threshold,
+                       bool         take_abs){
+    if (is_sparse){
+      int64_t nnz_loc_new = 0;
+      PairIterator pi(sr, data);
+      if (threshold == NULL){
+        for (int64_t i=0; i<nnz_loc; i++){
+          if (!sr->isequal(pi[i].d(), sr->addid())){
+            nnz_loc_new++;
+          }
+        }
+      } else {
+        for (int64_t i=0; i<nnz_loc; i++){
+          char tmp[sr->el_size];
+          if (take_abs)
+            sr->abs(pi[i].d(), tmp);
+          else
+            memcpy(tmp, pi[i].d(), sr->el_size);
+          sr->max(threshold, tmp, tmp);
+          if (!sr->isequal(tmp,threshold))
+            nnz_loc_new++;
+        }
+      }
+      // if we don't have any actual zeros don't do anything
+      if (nnz_loc_new == nnz_loc) return SUCCESS;
+      alloc_ptr(nnz_loc_new*sr->pair_size(), (void**)&data);
+      PairIterator pi_new(sr, data);
+      nnz_loc_new = 0;
+      if (threshold == NULL){
+        for (int64_t i=0; i<nnz_loc; i++){
+          if (!sr->isequal(pi[i].d(), sr->addid())){
+            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
+            nnz_loc_new++;
+          }
+        }
+      } else {
+        for (int64_t i=0; i<nnz_loc; i++){
+          char tmp[sr->el_size];
+          if (take_abs)
+            sr->abs(pi[i].d(), tmp);
+          else
+            memcpy(tmp, pi[i].d(), sr->el_size);
+          sr->max(threshold, tmp, tmp);
+          if (!sr->isequal(tmp,threshold)){
+            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
+            nnz_loc_new++;
+          }
+        }
+      }
+      nnz_loc = nnz_loc_new;
+      //FIXME compute max nnz_loc?
+    } else {
+      ASSERT(!has_home || is_home);
+      char * all_pairs;
+      int64_t num_pairs;
+      //get all local pairs, including zero ones FIXME can be done faster
+      read_local(&num_pairs, &all_pairs);
+      //become sparse
+      is_sparse = true;
+      cdealloc(data);
+      data = NULL;
+      is_home = false;
+      has_home = false;
+      home_buffer = NULL;
+      nnz_loc = 0;
+      nnz_loc_max = 0;
+      //write old data as pairs to self FIXME can be done faster
+      write(num_pairs, sr->mulid(), sr->addid(), all_pairs);
+      //sparsify sparse->sparse
+      sparsify();
+    }
+    return SUCCESS;
+  }
+
+  int tensor::read_local_nnz(int64_t * num_pair,
+                             char **   mapped_data) const {
+    tensor tsr_cpy(this);
+    tsr_cpy.sparsify();
+    *mapped_data = tsr_cpy.data;
+    *num_pair = tsr_cpy.nnz_loc;
+    tsr_cpy.is_data_aliased = true;
+    return SUCCESS;
+  }
 
 
   int tensor::read_local(int64_t * num_pair,
@@ -1107,11 +1193,14 @@ namespace CTF_int {
 
 
     if (tsr->is_sparse){
+      char * nnz_data;
+      int64_t num_nnz;
+      read_local_nnz(&num_nnz, &nnz_data);
+      tensor dense_tsr(sr, order, lens, sym, wrld);
+      dense_tsr.write(num_nnz, sr->mulid(), sr->addid(), nnz_data);
+      cdealloc(nnz_data);
+      dense_tsr.read_local(num_pair, mapped_data);
       *num_pair = nnz_loc;
-      char * mdata;
-      CTF_int::alloc_ptr(sr->pair_size()*nnz_loc, (void**)&mdata);
-      memcpy(mdata, tsr->data, sr->pair_size()*nnz_loc);
-      *mapped_data = mdata;
       return SUCCESS;
     } else {
       TAU_FSTART(read_local_pairs);
@@ -1333,7 +1422,12 @@ namespace CTF_int {
     print_map(fp);
 
     imy_sz = 0;
-    read_local(&imy_sz, &pmy_data);
+    if (cutoff != NULL){
+      tensor tsr_cpy(this);
+      tsr_cpy.sparsify(cutoff);
+      tsr_cpy.read_local_nnz(&imy_sz, &pmy_data);
+    } else
+      read_local_nnz(&imy_sz, &pmy_data);
     my_sz = imy_sz;
     //PairIterator my_data = PairIterator(sr,pmy_data);
 
@@ -1368,12 +1462,12 @@ namespace CTF_int {
     if (wrld->rank == 0){
 //      all_data.sort(tot_sz);
       for (int64_t i=0; i<tot_sz; i++){
-        if (cutoff != NULL){
+        /*if (cutoff != NULL){
           char absval[sr->el_size];
           sr->abs(all_data[i].d(),absval);
           sr->max(absval, cutoff, absval);
           if(sr->isequal(absval, cutoff)) continue;
-        }
+        }*/
         k = all_data[i].k();
         for (int j=0; j<order; j++){
             //idx_arr[order-j-1] = k%lens[j];

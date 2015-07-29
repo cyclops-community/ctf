@@ -2078,7 +2078,7 @@ namespace CTF_int {
 
 
     //read data from A    
-    A->read_local(&num_pair, &mapped_data);
+    A->read_local_nnz(&num_pair, &mapped_data);
 
     if (!is_idx_matched){
       int64_t lda_A[A->order];

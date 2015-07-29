@@ -138,6 +138,36 @@ namespace CTF {
   }
 
   template<typename dtype, bool is_ord>
+  void Tensor<dtype, is_ord>::read_local_nnz(int64_t *  npair,
+                                         int64_t ** global_idx,
+                                         dtype **   data) const {
+    char * cpairs;
+    int ret, i;
+    ret = CTF_int::tensor::read_local_nnz(npair,&cpairs);
+    assert(ret == CTF_int::SUCCESS);
+    /* FIXME: careful with alloc */
+    *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
+    *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
+    CTF_int::PairIterator pairs(sr, cpairs);
+    for (i=0; i<(*npair); i++){
+      (*global_idx)[i] = pairs[i].k();
+      pairs[i].read_val((char*)((*data)+i));
+    }
+    if (cpairs != NULL) CTF_int::cdealloc(cpairs);
+  }
+
+  template<typename dtype, bool is_ord>
+  void Tensor<dtype, is_ord>::read_local_nnz(int64_t *      npair,
+                                         Pair<dtype> ** pairs) const {
+    //FIXME raises mem consumption
+    char * cpairs; 
+    int ret = CTF_int::tensor::read_local_nnz(npair, &cpairs);
+    *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair);
+    assert(ret == CTF_int::SUCCESS);
+  }
+
+
+  template<typename dtype, bool is_ord>
   void Tensor<dtype, is_ord>::read(int64_t         npair,
                                    int64_t const * global_idx,
                                    dtype *         data){

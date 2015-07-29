@@ -721,6 +721,8 @@ namespace CTF {
 
       /**
        * \brief gives the global indices and values associated with the local data
+       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with 
+       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
        * \param[out] npair number of local values
        * \param[out] global_idx index within global tensor of each data value
        * \param[out] data pointer to local values in the order of the indices
@@ -731,11 +733,32 @@ namespace CTF {
 
       /**
        * \brief gives the global indices and values associated with the local data
+       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with 
+       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
        * \param[out] npair number of local values
        * \param[out] pairs pointer to local key-value pairs
        */
       void read_local(int64_t  *     npair,
                       Pair<dtype> ** pairs) const;
+
+      /**
+       * \brief gives the global indices and nonzero values associated with the nonzero data
+       * \param[out] npair number of local values
+       * \param[out] global_idx index within global tensor of each data value
+       * \param[out] data pointer to local values in the order of the indices
+       */
+      void read_local_nnz(int64_t  *  npair,
+                          int64_t  ** global_idx,
+                          dtype **    data) const;
+
+      /**
+       * \brief gives the global indices and nonzero values associated with the nonzero data
+       * \param[out] npair number of local values
+       * \param[out] pairs pointer to local key-value pairs
+       */
+      void read_local_nnz(int64_t  *     npair,
+                          Pair<dtype> ** pairs) const;
+
 
       /**
        * \brief collects the entire tensor data on each process (not memory scalable)

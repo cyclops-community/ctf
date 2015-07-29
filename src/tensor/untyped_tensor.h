@@ -402,12 +402,32 @@ namespace CTF_int {
                   char const *  beta);
 
       /**
-       * \brief read tensor data pairs local to processor. 
+       * \brief reduce tensor to sparse format, storing only nonzero data, or data above a specified threshold.
+       *        makes dense tensors sparse.
+       *        cleans sparse tensors of any 'computed' zeros.
+       * \param[in] threshold all values smaller or equal to than this one will be removed/not stored (by default is NULL, meaning only zeros are removed, so same as threshold=additive identity)
+       * \param[in] take_abs whether to take absolute value when comparing to threshold
+       */
+      int sparsify(char const * threshold=NULL,
+                   bool         take_abs=true);
+
+      /**
+       * \brief read tensor data pairs local to processor including those with zero values
+       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with 
+       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
        * \param[out] num_pair number of values read
        * \param[out] mapped_data values read
        */
       int read_local(int64_t * num_pair,
                      char **   mapped_data) const;
+
+      /**
+       * \brief read tensor data pairs local to processor that have nonzero values
+       * \param[out] num_pair number of values read
+       * \param[out] mapped_data values read
+       */
+      int read_local_nnz(int64_t * num_pair,
+                         char **   mapped_data) const;
 
       /** 
        * \brief copy A into this (B). Realloc if necessary 

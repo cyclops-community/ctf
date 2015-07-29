@@ -30,6 +30,7 @@ int speye(int     n,
 
   A[idx_rep] = 1.0;
 
+
   double sum1 = A[idx_chg];
   double sum2 = A[idx_rep];
 
