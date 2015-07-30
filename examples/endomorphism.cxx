@@ -45,16 +45,18 @@ int endomorphism(int     n,
       if (fabs(fdbl(all_start_data[i])-all_end_data[i])>=1.E-6) pass =0;
     }
   } 
+  MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  if (pass){
+
+  }
+
   if (dw.rank == 0){
-    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     if (pass){
       printf("{ A[\"ijkl\"] = A[\"ijkl\"]^3 } passed\n");
     } else {
       printf("{ A[\"ijkl\"] = A[\"ijkl\"]^3 } failed\n");
     }
-  } else 
-    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-
+  } 
   free(all_start_data);
   free(all_end_data);
   
