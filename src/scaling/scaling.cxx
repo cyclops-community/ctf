@@ -92,6 +92,11 @@ namespace CTF_int {
     }
     tsr->print_map(stdout);
   #endif
+
+    if (A->is_sparse){
+      sp_scl();
+      return SUCCESS;
+    }
    
   #ifdef HOME_CONTRACT 
     int was_home = tsr->is_home;
@@ -316,5 +321,74 @@ namespace CTF_int {
 
   }
 
+  void scaling::sp_scl(){
+    bool has_rep_idx = false;
+    for (int i=0; i<A->order; i++){
+      for (int j=0; j<i; j++){
+        if (idx_map[i] == idx_map[j]) has_rep_idx = true;
+      }
+    }
 
+    PairIterator pi(A->sr, A->data);
+    // if applying custom function, apply immediately on reduced form
+    if (!has_rep_idx){
+      if (is_custom){
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<A->nnz_loc; i++){
+          if (alpha != NULL)
+            A->sr->mul(pi[i].d(), alpha, pi[i].d());
+          func->apply_f(pi[i].d());
+        }
+      } else {
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<A->nnz_loc; i++){
+          A->sr->mul(pi[i].d(), alpha, pi[i].d());
+        }
+      }
+    } else {
+      int nrep_idx=0;
+      int rep_inds[A->order];
+      for (int i=0; i<A->order; i++){
+        for (int j=0; j<A->order; j++){
+          if (i!=j && idx_map[i] == idx_map[j]){
+            rep_inds[nrep_idx] = i;
+            nrep_idx++;
+            break;
+          }
+        }
+      }
+
+      int64_t ldas[A->order];
+      ldas[0] = 1;
+      for (int i=1; i<A->order; i++){
+        ldas[i] = ldas[i-1]*A->lens[i-1];
+      }
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=0; i<A->nnz_loc; i++){
+        bool pass=true;
+        int64_t pkey[A->order];
+        for (int j=0; j<nrep_idx; j++){
+          pkey[rep_inds[j]] = (pi[i].k()/ldas[rep_inds[j]])%A->lens[rep_inds[j]];
+          for (int k=0; k<j; k++){
+            if (idx_map[rep_inds[j]] == idx_map[rep_inds[k]] &&
+                pkey[rep_inds[j]] != pkey[rep_inds[k]]){
+              pass=false;
+            }
+          }
+        }
+        if (pass){
+          if (alpha != NULL)
+            A->sr->mul(pi[i].d(), alpha, pi[i].d());
+          if (is_custom)
+            func->apply_f(pi[i].d());
+        }
+      }
+    }
+  }
 }

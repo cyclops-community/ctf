@@ -49,6 +49,8 @@ namespace CTF_int {
       virtual algstrct * clone() const = 0;
 //        return new algstrct(el_size);
 
+      virtual bool is_ordered() const = 0;
+
       /** \brief MPI addition operation for reductions */
       virtual MPI_Op addmop() const;
 
@@ -63,6 +65,9 @@ namespace CTF_int {
 
       /** \brief b = -a */
       virtual void addinv(char const * a, char * b) const;
+      
+      /** \brief b = -a, with checks for NULL and alloc as necessary */
+      virtual void safeaddinv(char const * a, char *& b) const;
 
       /** \brief c = a+b */
       virtual void add(char const * a, 
@@ -73,6 +78,11 @@ namespace CTF_int {
       virtual void mul(char const * a, 
                        char const * b,
                        char *       c) const;
+
+      /** \brief c = a*b, with NULL treated as mulid */
+      virtual void safemul(char const * a, 
+                           char const * b,
+                           char *&      c) const;
 
       /** \brief c = min(a,b) */
       virtual void min(char const * a, 
@@ -139,6 +149,9 @@ namespace CTF_int {
       
       /** \brief copies element b to element a */
       void copy(char * a, char const * b) const;
+      
+      /** \brief copies element b to element a, , with checks for NULL and alloc as necessary */
+      void safecopy(char *& a, char const * b) const;
       
       /** \brief copies n elements from array b to array a */
       void copy(char * a, char const * b, int64_t n) const;

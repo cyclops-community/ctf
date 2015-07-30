@@ -59,6 +59,8 @@ namespace CTF {
         return new Set<dtype, is_ord>(*this);
       }
 
+      bool is_ordered() const { return is_ord; }
+
       Set() : CTF_int::algstrct(sizeof(dtype)){ }
 
       void min(char const * a, 
@@ -82,11 +84,15 @@ namespace CTF {
       }
 
       void cast_double(double d, char * c) const {
-        ((dtype*)c)[0] = (dtype)d;
+        //((dtype*)c)[0] = (dtype)d;
+        printf("CTF ERROR: double cast not possible for this algebraic structure\n");
+        assert(0);
       }
 
       void cast_int(int64_t i, char * c) const {
-        ((dtype*)c)[0] = (dtype)i;
+        //((dtype*)c)[0] = (dtype)i;
+        printf("CTF ERROR: integer cast not possible for this algebraic structure\n");
+        assert(0);
       }
 
       double cast_to_double(char const * c) const {
@@ -111,10 +117,104 @@ namespace CTF {
 
       bool isequal(char const * a, char const * b) const {
         if (a == NULL && b == NULL) return true;
-        return ((dtype*)a)[0] == ((dtype*)b)[0];
+        for (int i=0; i<el_size; i++){
+          if (a[i] != b[i]) return false;
+        }
+        return true;
       }
   };
 
+  //FIXME do below with macros to shorten
+
+  template <>  
+  inline void Set<float>::cast_double(double d, char * c) const {
+    ((float*)c)[0] = (float)d;
+  }
+
+  template <>  
+  inline void Set<double>::cast_double(double d, char * c) const {
+    ((double*)c)[0] = d;
+  }
+
+  template <>  
+  inline void Set<long double>::cast_double(double d, char * c) const {
+    ((long double*)c)[0] = (long double)d;
+  }
+
+  template <>  
+  inline void Set<int>::cast_double(double d, char * c) const {
+    ((int*)c)[0] = (int)d;
+  }
+
+  template <>  
+  inline void Set<uint64_t>::cast_double(double d, char * c) const {
+    ((uint64_t*)c)[0] = (uint64_t)d;
+  }
+  
+  template <>  
+  inline void Set<int64_t>::cast_double(double d, char * c) const {
+    ((int64_t*)c)[0] = (int64_t)d;
+  }
+  
+  template <>  
+  inline void Set< std::complex<float>,false >::cast_double(double d, char * c) const {
+    ((std::complex<float>*)c)[0] = (std::complex<float>)d;
+  }
+ 
+  template <>  
+  inline void Set< std::complex<double>,false >::cast_double(double d, char * c) const {
+    ((std::complex<double>*)c)[0] = (std::complex<double>)d;
+  }
+
+  template <>  
+  inline void Set< std::complex<long double>,false >::cast_double(double d, char * c) const {
+    ((std::complex<long double>*)c)[0] = (std::complex<long double>)d;
+  }
+ 
+  template <>  
+  inline void Set<float>::cast_int(int64_t d, char * c) const {
+    ((float*)c)[0] = (float)d;
+  }
+
+  template <>  
+  inline void Set<double>::cast_int(int64_t d, char * c) const {
+    ((double*)c)[0] = (double)d;
+  }
+
+  template <>  
+  inline void Set<long double>::cast_int(int64_t d, char * c) const {
+    ((long double*)c)[0] = (long double)d;
+  }
+
+  template <>  
+  inline void Set<int>::cast_int(int64_t d, char * c) const {
+    ((int*)c)[0] = (int)d;
+  }
+
+  template <>  
+  inline void Set<uint64_t>::cast_int(int64_t d, char * c) const {
+    ((uint64_t*)c)[0] = (uint64_t)d;
+  }
+  
+  template <>  
+  inline void Set<int64_t>::cast_int(int64_t d, char * c) const {
+    ((int64_t*)c)[0] = (int64_t)d;
+  }
+ 
+  template <>  
+  inline void Set< std::complex<float>,false >::cast_int(int64_t d, char * c) const {
+    ((std::complex<float>*)c)[0] = (std::complex<float>)d;
+  }
+
+  template <>  
+  inline void Set< std::complex<double>,false >::cast_int(int64_t d, char * c) const {
+    ((std::complex<double>*)c)[0] = (std::complex<double>)d;
+  }
+
+  template <>  
+  inline void Set< std::complex<long double>,false >::cast_int(int64_t d, char * c) const {
+    ((std::complex<long double>*)c)[0] = (std::complex<long double>)d;
+  }
 
   template <>  
   inline double Set<float>::cast_to_double(char const * c) const {
@@ -201,6 +301,61 @@ namespace CTF {
   inline void Set< std::complex<long double>,false >::print(char const * a, FILE * fp) const {
     fprintf(fp,"(%11.5LE,%11.5LE)",((std::complex<long double>*)a)[0].real(),((std::complex<long double>*)a)[0].imag());
   }
+
+  template <>  
+  inline bool Set<float>::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return ((float*)a)[0] == ((float*)b)[0];
+  }
+
+  template <>  
+  inline bool Set<double>::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return ((double*)a)[0] == ((double*)b)[0];
+  }
+
+  template <>  
+  inline bool Set<int>::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return ((int*)a)[0] == ((int*)b)[0];
+  }
+
+  template <>  
+  inline bool Set<uint64_t>::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return ((uint64_t*)a)[0] == ((uint64_t*)b)[0];
+  }
+
+  template <>  
+  inline bool Set<int64_t>::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return ((int64_t*)a)[0] == ((int64_t*)b)[0];
+  }
+
+  template <>  
+  inline bool Set<long double>::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return ((long double*)a)[0] == ((long double*)b)[0];
+  }
+
+  template <>  
+  inline bool Set< std::complex<float>,false >::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return (( std::complex<float> *)a)[0] == (( std::complex<float> *)b)[0];
+  }
+
+  template <>  
+  inline bool Set< std::complex<double>,false >::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return (( std::complex<double> *)a)[0] == (( std::complex<double> *)b)[0];
+  }
+
+  template <>  
+  inline bool Set< std::complex<long double>,false >::isequal(char const * a, char const * b) const {
+    if (a == NULL && b == NULL) return true;
+    return (( std::complex<long double> *)a)[0] == (( std::complex<long double> *)b)[0];
+  }
+
 
 
   /**

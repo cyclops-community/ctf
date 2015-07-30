@@ -69,6 +69,10 @@ namespace CTF_int {
       /** \brief predicts execution time in seconds using performance models */
       double estimate_time();
     
+      /**
+       * \brief scales a sparse tensor
+       */
+      void sp_scl();
   };
 
 }

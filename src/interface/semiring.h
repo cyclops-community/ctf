@@ -256,6 +256,24 @@ namespace CTF {
                char *       c) const {
         ((dtype*)c)[0] = fmul(((dtype*)a)[0],((dtype*)b)[0]);
       }
+
+      void safemul(char const * a, 
+                   char const * b,
+                   char *&      c) const {
+        if (a == NULL && b == NULL){
+          if (c!=NULL) free(c);
+          c = NULL;
+        } else if (a == NULL) {
+          if (c==NULL) c = (char*)malloc(this->el_size);
+          memcpy(c,b,this->el_size);
+        } else if (b == NULL) {
+          if (c==NULL) c = (char*)malloc(this->el_size);
+          memcpy(c,b,this->el_size);
+        } else {
+          if (c==NULL) c = (char*)malloc(this->el_size);
+          ((dtype*)c)[0] = fmul(((dtype*)a)[0],((dtype*)b)[0]);
+        }
+      }
  
       char const * mulid() const {
         return (char const *)&tmulid;

@@ -61,6 +61,17 @@ namespace CTF {
         abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
       }
 
+      //treat NULL as mulid
+      void safeaddinv(char const * a, char *& b) const {
+        if (a == NULL){
+          printf("CTF ERROR: unfortunately currently cannot properly handle additive inverse for groups, since subtraction is done by scaling by the inverse of the multiplicative identity. A temporary work around may beto define a ring with some multiplicative identity and multiplication operator with the assumption that multiplication is always by the multiplicative identity or by its inverse.\n");
+          assert(0);
+        } else {
+          if (b==NULL) b = (char*)malloc(this->el_size);
+          ((dtype*)b)[0] = -((dtype*)a)[0];
+        }
+      }
+
       void addinv(char const * a, char * b) const {
         ((dtype*)b)[0] = -((dtype*)a)[0];
       }

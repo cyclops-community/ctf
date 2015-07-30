@@ -24,7 +24,7 @@ namespace CTF_int {
   Fun_Term::Fun_Term(
       Fun_Term const & other,
       std::map<tensor*, tensor*>* remap) : Term(other.sr) {
-    sr->copy(this->scale, other.scale);
+    sr->safecopy(this->scale, other.scale);
     A = other.A->clone(remap);
   }
 

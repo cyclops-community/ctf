@@ -131,9 +131,9 @@ namespace CTF_int {
     sym_pass = 1;
     for (;;){
       if (sym_pass){
-        func->apply_f(A+idx_A*sr_A->el_size);
         if (alpha != NULL)
           sr_A->mul(A+idx_A*sr_A->el_size, alpha, A+idx_A*sr_A->el_size);
+        func->apply_f(A+idx_A*sr_A->el_size);
         CTF_FLOPS_ADD(1);
       }
 
@@ -163,6 +163,7 @@ namespace CTF_int {
     }
     CTF_int::cdealloc(dlen_A);
     CTF_int::cdealloc(idx_glb);
+    CTF_int::cdealloc(rev_idx_map);
     TAU_FSTOP(sym_seq_sum_cust);
     return 0;
   }

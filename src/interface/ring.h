@@ -53,6 +53,16 @@ namespace CTF {
           abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
         }
 
+      //treat NULL as mulid
+      void safeaddinv(char const * a, char *& b) const {
+        if (b==NULL) b = (char*)malloc(this->el_size);
+        if (a == NULL){
+          
+          ((dtype*)b)[0] = -this->tmulid;
+        } else {
+          ((dtype*)b)[0] = -((dtype*)a)[0];
+        }
+      }
 
         void addinv(char const * a, char * b) const {
           ((dtype*)b)[0] = -((dtype*)a)[0];

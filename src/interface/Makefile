@@ -4,13 +4,10 @@ OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../../Makefile $(BDIR)/config.mk 
+HDRS = ../../Makefile $(BDIR)/config.mk  ../contraction/contraction.h ../../include/ctf.hpp ../interface/common.h ../mapping/topology.h ../scaling/scaling.h ../shared/blas_symbs.h ../shared/memcontrol.h ../shared/util.h ../summation/summation.h ../tensor/algstrct.h ../tensor/untyped_tensor.h 
 
 ctf: $(OBJS) 
-
-#%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq
-HDRS = ../../Makefile $(BDIR)/config.mk  ../contraction/contraction.h ../interface/common.h ../mapping/topology.h ../scaling/scaling.h ../shared/memcontrol.h ../shared/util.h ../summation/summation.h ../tensor/algstrct.h ../tensor/untyped_tensor.h 
-
+ 
 $(OBJS): $(ODIR)/%.o: %.cxx *.h  $(HDRS)
 	$(FCXX) -c $< -o $@
 

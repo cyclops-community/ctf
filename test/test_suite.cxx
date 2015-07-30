@@ -26,6 +26,9 @@
 #include "sy_times_ns.cxx"
 #include "speye.cxx"
 #include "sptensor_sum.cxx"
+#include "../examples/endomorphism.cxx"
+#include "../examples/endomorphism_cust.cxx"
+#include "../examples/endomorphism_cust_sp.cxx"
 
 using namespace CTF;
 
@@ -179,6 +182,16 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing sparse identity with n = %d order = %d:\n",n,11);
     pass.push_back(speye(n,11,dw));
+    
+    if (rank == 0)
+      printf("Testing endomorphism A_ijkl = A_ijkl^3 with n = %d:\n",n);
+    pass.push_back(endomorphism(n,dw));
+    if (rank == 0)
+      printf("Testing endomorphism with custom function on a monoid A_ijkl = f(A_ijkl) with n = %d:\n",n);
+    pass.push_back(endomorphism_cust(n,dw));
+    if (rank == 0)
+      printf("Testing endomorphism with custom function on a sparse set A_ijkl = f(A_ijkl) with n = %d:\n",n);
+    pass.push_back(endomorphism_cust_sp(n,dw));
 #if 0
     if (rank == 0)
       printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);

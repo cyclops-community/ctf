@@ -131,6 +131,11 @@ namespace CTF_int {
     return NULL;
   }
 
+  void algstrct::safeaddinv(char const * a, char *& b) const {
+    printf("CTF ERROR: no additive inverse present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
   void algstrct::addinv(char const * a, char * b) const {
     printf("CTF ERROR: no additive inverse present for this algebraic structure\n");
     ASSERT(0);
@@ -142,6 +147,11 @@ namespace CTF_int {
   }
 
   void algstrct::mul(char const * a, char const * b, char * c) const {
+    printf("CTF ERROR: multiplication operation present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  void algstrct::safemul(char const * a, char const * b, char *& c) const {
     printf("CTF ERROR: multiplication operation present for this algebraic structure\n");
     ASSERT(0);
   }
@@ -242,6 +252,15 @@ namespace CTF_int {
     add(b, tmp, b);
   }
 
+  void algstrct::safecopy(char *& a, char const * b) const {
+    if (b == NULL){
+      if (a != NULL) cdealloc(a);
+      a = NULL;
+    } else {
+      if (a == NULL) a = (char*)alloc(el_size); 
+      memcpy(a, b, el_size);
+    }
+  }
   void algstrct::copy(char * a, char const * b) const {
     memcpy(a, b, el_size);
   }

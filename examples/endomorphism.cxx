@@ -19,9 +19,9 @@ int endomorphism(int     n,
                  World & dw){
   
   int shapeN4[] = {NS,NS,NS,NS};
-  int sizeN4[] = {n,n,n,n};
+  int sizeN4[] = {n+1,n,n+2,n+3};
 
-  Tensor<> A(1, sizeN4, shapeN4, dw);
+  Tensor<> A(4, sizeN4, shapeN4, dw);
 
   A.fill_random(-.5, .5);
 
@@ -45,10 +45,7 @@ int endomorphism(int     n,
       if (fabs(fdbl(all_start_data[i])-all_end_data[i])>=1.E-6) pass =0;
     }
   } 
-  MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-  if (pass){
-
-  }
+  MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
 
   if (dw.rank == 0){
     if (pass){
@@ -57,6 +54,7 @@ int endomorphism(int     n,
       printf("{ A[\"ijkl\"] = A[\"ijkl\"]^3 } failed\n");
     }
   } 
+
   free(all_start_data);
   free(all_end_data);
   

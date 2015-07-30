@@ -1088,6 +1088,10 @@ namespace CTF_int {
   int tensor::sparsify(char const * threshold,
                        bool         take_abs){
     if (is_sparse){
+      if ((threshold == NULL && sr->addid() == NULL) ||
+          (threshold != NULL && !sr->is_ordered())){
+        return SUCCESS;
+      }
       int64_t nnz_loc_new = 0;
       PairIterator pi(sr, data);
       if (threshold == NULL){

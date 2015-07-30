@@ -2117,7 +2117,9 @@ namespace CTF_int {
         lda_B[o] = lda_B[o-1]*B->lens[o];
       }
       PairIterator pi(A->sr, mapped_data);
+#ifdef USE_OMP
       #pragma omp parallel for
+#endif
       for (int i=0; i<num_pair; i++){
         int64_t k = pi[i].k();
         int64_t k_new = 0;
