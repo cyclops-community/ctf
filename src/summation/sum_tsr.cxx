@@ -3,8 +3,13 @@
 #include "../shared/util.h"
 #include "sum_tsr.h"
 #include "sym_seq_sum.h"
+#include "../interface/fun_term.h"
 
 namespace CTF_int {
+  Fun_Term univar_function::operator()(Term const & A) const {
+    return Fun_Term(A.clone(), this);
+  }
+
   tsum::tsum(tsum * other){
     A      = other->A;
     alpha  = other->alpha;

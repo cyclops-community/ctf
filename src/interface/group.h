@@ -64,7 +64,7 @@ namespace CTF {
       //treat NULL as mulid
       void safeaddinv(char const * a, char *& b) const {
         if (a == NULL){
-          printf("CTF ERROR: unfortunately currently cannot properly handle additive inverse for groups, since subtraction is done by scaling by the inverse of the multiplicative identity. A temporary work around may beto define a ring with some multiplicative identity and multiplication operator with the assumption that multiplication is always by the multiplicative identity or by its inverse.\n");
+          printf("CTF ERROR: unfortunately additive inverse functionality for groups is currently limited, as it is done for rings via scaling by the inverse of the multiplicative identity, which groups don't have. Use the tensor addinv function rather than an indexed expression.\n");
           assert(0);
         } else {
           if (b==NULL) b = (char*)malloc(this->el_size);

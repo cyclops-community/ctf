@@ -1,5 +1,5 @@
 /*Copyright (c) 2013, Edgar Solomonik, all rights reserved.*/
-#include "cust_term.h"
+#include "fun_term.h"
 #include "common.h"
 #include "../tensor/algstrct.h"
 #include "../scaling/scaling.h"
@@ -7,8 +7,8 @@
 #include "idx_tensor.h"
 
 namespace CTF_int {
-  Fun_Term::Fun_Term(Term *                                  A_,
-                     univar_function * func_) : Term(A_->sr) {
+  Fun_Term::Fun_Term(Term *                  A_,
+                     univar_function const * func_) : Term(A_->sr) {
     A = A_;
     func = func_;
   }
@@ -25,6 +25,7 @@ namespace CTF_int {
       Fun_Term const & other,
       std::map<tensor*, tensor*>* remap) : Term(other.sr) {
     sr->safecopy(this->scale, other.scale);
+    func = other.func;
     A = other.A->clone(remap);
   }
 

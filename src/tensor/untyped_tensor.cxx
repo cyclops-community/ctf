@@ -521,7 +521,8 @@ namespace CTF_int {
           printf("New tensor %s defined of size %ld elms (%ld bytes):\n",name, this->size,this->size*sr->el_size);
         this->print_map(stdout);
         #endif
-        sr->set(this->data, sr->addid(), this->size);
+        if (sr->addid() != NULL)
+          sr->set(this->data, sr->addid(), this->size);
       }
     }
     return SUCCESS;
@@ -1969,7 +1970,8 @@ namespace CTF_int {
     this->unfold();
     this->set_padding();
 
-    if (!this->is_mapped){
+    if (!this->is_mapped || sr->addid() == NULL){
+      TAU_FSTOP(zero_out_padding);
       return SUCCESS;
     } else {
       np = this->size;
@@ -2064,6 +2066,21 @@ namespace CTF_int {
       CTF_int::cdealloc(virt_phys_rank);
     }
     TAU_FSTOP(scale_diagonals);
+  }
+
+  void tensor::addinv(){
+    if (is_sparse){
+      PairIterator pi(sr,data);
+      #pragma omp parallel for
+      for (int64_t i=0; i<nnz_loc; i++){
+        sr->addinv(pi[i].d(), pi[i].d());
+      }
+    } else {
+      #pragma omp parallel for
+      for (int64_t i=0; i<size; i++){
+        sr->addinv(data+i*sr->el_size,data+i*sr->el_size);
+      }
+    }
   }
 
   void tensor::set_sym(int const * sym_){

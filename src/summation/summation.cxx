@@ -1608,6 +1608,21 @@ namespace CTF_int {
     //CTF_int::cdealloc(phys_map);
     CTF_int::cdealloc(idx_arr);
 
+    //if we have don't have an additive id we can't replicate
+    if (B->sr->addid() == NULL){
+      int ndim_mapped = 0;
+      for (int j=0; j<B->order; j++){
+        mapping * map = &B->edge_map[j];
+        if (map->type == PHYSICAL_MAP) ndim_mapped++;
+        while (map->has_child) {
+          map = map->child;
+          if (map->type == PHYSICAL_MAP)
+            ndim_mapped++;
+        }
+        if (ndim_mapped < B->topo->order) pass = 0;
+      }
+    }
+       
     TAU_FSTOP(check_sum_mapping);
 
     return pass;
@@ -2034,15 +2049,13 @@ namespace CTF_int {
     MPI_Barrier(global_comm.cm);
     if (global_comm.rank == 0){
       printf("Summing Tensor %s into %s\n", A->name, B->name);
-      if (alpha != NULL){
-        printf("alpha is "); 
-        if (beta != NULL) A->sr->print(alpha);
-        printf("null"); 
-        printf("\nbeta is "); 
-        if (beta != NULL) B->sr->print(beta);
-        printf("null"); 
-        printf("\n");
-      }
+      printf("alpha is "); 
+      if (alpha != NULL) A->sr->print(alpha);
+      else printf("NULL");
+      printf("\nbeta is "); 
+      if (beta != NULL) B->sr->print(beta);
+      else printf("NULL"); 
+      printf("\n");
       printf("Summation index table:\n");
       printf("     A     B\n");
       for (i=0; i<max; i++){

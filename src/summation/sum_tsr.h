@@ -4,9 +4,9 @@
 #define __SUM_TSR_H__
 
 #include "../tensor/algstrct.h"
+#include "../interface/fun_term.h"
 
 namespace CTF_int {
-
   /**
    * \brief untyped internal class for doubly-typed univariate function
    */
@@ -20,10 +20,26 @@ namespace CTF_int {
        * \param[in,out] result &f(*a) of applying f on value of (different type) on a
        */
       virtual void apply_f(char const * a, char * b)const { f(a,b); }
+      
+      virtual void acc_f(char const * a, char * b, CTF_int::algstrct const * sr_B) const { 
+
+        char tb[sr_B->el_size];
+        f(a,tb);
+        sr_B->add(b, tb, b);
+      }
 
       univar_function(void (*f_)(char const *, char *)) { f=f_; }
       univar_function() { }
       univar_function(univar_function const & other) { f = other.f; }
+
+      /** 
+       * \brief evaluate B=f(A) 
+       * \param[in] A operand tensor with pre-defined indices 
+       * \return Fun_Term that evaluates f(A)
+      */
+      Fun_Term operator()(Term const & A) const;
+
+
   };
 
 

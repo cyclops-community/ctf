@@ -620,8 +620,9 @@ namespace CTF {
 
   template<>
   inline void Tensor<double, 1>::fill_random(double rmin, double rmax){
+    assert(!is_sparse);
     for (int64_t i=0; i<size; i++){
-      data[i] = drand48()*(rmax-rmin)+rmin;
+      ((double*)data)[i] = drand48()*(rmax-rmin)+rmin;
     }
     zero_out_padding();
   }

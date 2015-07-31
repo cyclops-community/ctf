@@ -47,7 +47,7 @@ namespace CTF {
   };
 
   /**
-   * \brief custom linear function on two tensors: 
+   * \brief custom function f : X -> Y to be applied to tensor elemetns: 
    *          e.g. B["ij"] = f(A["ij"])
    */
   template<typename dtype_B=double, typename dtype_A=dtype_B>
@@ -62,7 +62,7 @@ namespace CTF {
        * \brief constructor takes function pointers to compute B=f(A));
        * \param[in] f_ linear function (type_A)->(type_B)
        */
-      Univar_Function(dtype_B (*f_)(dtype_A)){ f_ = f; }
+      Univar_Function(dtype_B (*f_)(dtype_A)){ f = f_; }
 
       /** 
        * \brief evaluate B=f(A) 
@@ -77,8 +77,64 @@ namespace CTF {
        * \param[in,out] result &f(*a) of applying f on value of (different type) on a
        */
       void apply_f(char const * a, char * b) const { ((dtype_B*)b)[0]=f(((dtype_A*)a)[0]); }
+      
+      /**
+       * \brief compute b = b+f(a)
+       * \param[in] a pointer to operand that will be cast to dtype 
+       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       * \param[in] sr_B algebraic structure for b, needed to do add
+       */
+      void acc_f(char const * a, char * b, CTF_int::algstrct const * sr_B) const {
+        dtype_B tb=f(((dtype_A*)a)[0]); 
+        sr_B->add(b, (char const *)&tb, b);
+      }
 
   };
+
+
+  /**
+   * \brief custom function f : (X * Y) -> X applied on two tensors as summation: 
+   *          e.g. B["ij"] = f(A["ij"],B["ij"])
+   */
+  template<typename dtype_B=double, typename dtype_A=dtype_B>
+  class Univar_Accumulator : public CTF_int::univar_function {
+    public:
+      /**
+       * \brief function signature for element-wise multiplication, compute b=f(a)
+       */
+      void (*f)(dtype_A, dtype_B &);
+      
+      /**
+       * \brief constructor takes function pointers to compute B=f(A));
+       * \param[in] f_ linear function (type_A)->(type_B)
+       */
+      Univar_Accumulator(void (*f_)(dtype_A, dtype_B&)){ f = f_; }
+
+      /** 
+       * \brief evaluate B=f(A) 
+       * \param[in] A operand tensor with pre-defined indices 
+       * return f(A) output tensor 
+       */
+      //Idx_Tensor operator()(Idx_Tensor const  & A);
+      
+      /**
+       * \brief apply function f to value stored at a, for an accumulator, this is the same as acc_f below
+       * \param[in] a pointer to operand that will be cast to dtype 
+       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       */
+      void apply_f(char const * a, char * b) const { acc_f(a,b,NULL); }
+
+       /**
+       * \brief compute f(a,b)
+       * \param[in] a pointer to the accumulated operand 
+       * \param[in,out] value that is accumulated to
+       * \param[in] sr_B algebraic structure for b, here is ignored
+       */
+      void acc_f(char const * a, char * b, CTF_int::algstrct const * sr_B) const {
+        f(((dtype_A*)a)[0], ((dtype_B*)b)[0]);
+      }
+  };
+
 
   /**
    * \brief custom bilinear function on two tensors: 

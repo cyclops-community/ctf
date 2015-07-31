@@ -791,8 +791,9 @@ namespace CTF {
   
       /**
        * \brief fills local unique tensor elements to random values in the range [min,max]
-       *        works only for certain values of 'dtype', e.g. uses drand48() for dtype=double
+       *        currently only implemented for dense tensors of doubles using drand48()
        *        does not produce a reproducible result across different numbers of processors
+       *        user must seed (seeds should be different on different ranks, to get a random tensor)
        * \param[in] rmin minimum random value
        * \param[in] rmax maximum random value
        */

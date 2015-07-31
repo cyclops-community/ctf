@@ -2,7 +2,7 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup endomorphism endomorphism
+  * \defgroup univar_function univar_function
   * @{ 
   * \brief tests custom element-wise functions by implementing division elementwise on 4D tensors
   */
@@ -10,18 +10,19 @@
 #include <ctf.hpp>
 using namespace CTF;
 
-double fdbl(double a){
-  return a*a*a;
+double fquad(double a){
+  return a*a*a*a;
 }
 
-int endomorphism(int     n,
-                 World & dw){
+int univar_function(int     n,
+                    World & dw){
   
   int shapeN4[] = {NS,NS,NS,NS};
   int sizeN4[] = {n+1,n,n+2,n+3};
 
   Tensor<> A(4, sizeN4, shapeN4, dw);
 
+  srand48(dw.rank);
   A.fill_random(-.5, .5);
 
 
@@ -30,9 +31,9 @@ int endomorphism(int     n,
   A.read_all(&nall, &all_start_data);
 
 
-  CTF::Endomorphism<> endo(&fdbl);
-  // below is equivalent to A.scale(1.0, "ijkl", endo);
-  endo(A["ijkl"]);
+  CTF::Univar_Function<> ufun(&fquad);
+  // below is equivalent to A.scale(1.0, "ijkl", ufun);
+  .5*A["ijkl"]+=ufun(.5*A["ijkl"]);
 
   double * all_end_data;
   int64_t nall2;
@@ -41,7 +42,7 @@ int endomorphism(int     n,
   int pass = (nall == nall2);
   if (pass){
     for (int64_t i=0; i<nall; i++){
-      if (fabs(fdbl(all_start_data[i])-all_end_data[i])>=1.E-6) pass =0;
+      if (fabs(.5*all_start_data[i]+fquad(.5*all_start_data[i])-all_end_data[i])>=1.E-6) pass =0;
     }
   } 
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
@@ -93,9 +94,9 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
-      printf("Computing endomorphism A_ijkl = f(A_ijkl)\n");
+      printf("Computing univar_function A_ijkl = f(A_ijkl)\n");
     }
-    endomorphism(n, dw);
+    univar_function(n, dw);
   }
 
 

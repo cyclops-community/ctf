@@ -23,38 +23,6 @@ namespace CTF_int {
       Y[i] = X[i] + Y[i];
     }
   }
-  template <typename dtype>
-  MPI_Datatype get_default_mdtype(){
-    MPI_Datatype newtype;
-    MPI_Type_contiguous(sizeof(dtype), MPI_BYTE, &newtype);
-    //FIXME ehhh... leaks?
-    MPI_Type_commit(&newtype);
-    return newtype;
-  }
-  template <>
-  inline MPI_Datatype get_default_mdtype<char>(){ return MPI_CHAR; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<bool>(){ return MPI_C_BOOL; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<int>(){ return MPI_INT; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<int64_t>(){ return MPI_INT64_T; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<unsigned int>(){ return MPI_UNSIGNED; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<uint64_t>(){ return MPI_UINT64_T; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<float>(){ return MPI_FLOAT; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<double>(){ return MPI_DOUBLE; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<long double>(){ return MPI_LONG_DOUBLE; }
-  template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<float> >(){ return MPI_COMPLEX; }
-  template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<double> >(){ return MPI_DOUBLE_COMPLEX; }
-  template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(){ return MPI::LONG_DOUBLE_COMPLEX; }
 
   template <typename dtype>
   MPI_Op get_default_maddop(){
@@ -102,13 +70,11 @@ namespace CTF {
     public:
       dtype taddid;
       dtype (*fadd)(dtype a, dtype b);
-      MPI_Datatype tmdtype;
       MPI_Op       taddmop;
 
       Monoid(Monoid const & other) : Set<dtype, is_ord>(other) {
         this->taddid  = other.taddid;
         this->fadd    = other.fadd;
-        this->tmdtype = other.tmdtype;
         this->taddmop = other.taddmop;
       }
       
@@ -119,7 +85,6 @@ namespace CTF {
         taddid  = (dtype)0;
         fadd    = &CTF_int::default_add<dtype>;
         taddmop = CTF_int::get_default_maddop<dtype>();
-        tmdtype = CTF_int::get_default_mdtype<dtype>();
       } 
 
       Monoid(dtype taddid_,
@@ -129,7 +94,6 @@ namespace CTF {
         taddid  = taddid_;
         fadd    = fadd_;
         taddmop = addmop_;
-        tmdtype = CTF_int::get_default_mdtype<dtype>();
       }
 
       void add(char const * a, 
@@ -145,10 +109,7 @@ namespace CTF {
       MPI_Op addmop() const {
         return taddmop;        
       }
-      
-      MPI_Datatype mdtype() const {
-        return tmdtype;        
-      }
+
 
       void axpy(int          n,
                 char const * alpha,

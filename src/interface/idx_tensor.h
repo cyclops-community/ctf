@@ -109,6 +109,12 @@ namespace CTF {
        * \param[in] B tensor on the right hand side
        */
       void operator-=(CTF_int::Term const & B);
+
+      /**
+       * \brief negates term
+       */
+//      Idx_Tensor operator-() const;
+ 
       
       /**
        * \brief A -> A*B contract two tensors

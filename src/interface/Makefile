@@ -1,4 +1,4 @@
-LOBJS = common.o  flop_counter.o world.o idx_tensor.o term.o schedule.o semiring.o partition.o cust_term.o
+LOBJS = common.o  flop_counter.o world.o idx_tensor.o term.o schedule.o semiring.o partition.o fun_term.o
 
 OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 

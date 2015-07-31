@@ -207,6 +207,13 @@ namespace CTF {
     }
   }
 
+  /*Idx_Tensor Idx_Tensor::operator-() const {
+
+    Idx_Tensor trm(*this);
+    sr->safeaddinv(trm.scale,trm.scale);
+    return trm;
+  }*/
+
   void Idx_Tensor::operator-=(Term const & B){
     if (global_schedule != NULL) {
       global_schedule->add_operation(
@@ -214,8 +221,8 @@ namespace CTF {
     } else {
       Term * Bcpy = B.clone();
       char * ainv = NULL;
-      sr->safeaddinv(sr->mulid(),ainv);
-      sr->safemul(Bcpy->scale,ainv,Bcpy->scale);
+      B.sr->safeaddinv(B.sr->mulid(),ainv);
+      B.sr->safemul(Bcpy->scale,ainv,Bcpy->scale);
       Bcpy->execute(*this);
       sr->safecopy(scale,sr->mulid());
       delete Bcpy;

@@ -248,6 +248,8 @@ namespace CTF_int {
        */
       void scale_diagonals(int const * sym_mask);
 
+      // apply an additive inverse to all elements of the tensor
+      void addinv();
 
       /**
        * \brief displays mapping information
@@ -273,6 +275,7 @@ namespace CTF_int {
 
       /** \brief turn off profiling */
       void profile_off();
+
 
       /**
        * \brief get raw data pointer without copy WARNING: includes padding 

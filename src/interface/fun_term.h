@@ -11,10 +11,10 @@ namespace CTF_int {
   class Fun_Term : public Term{
     public:
       Term * A;
-      univar_function * func;
+      univar_function const * func;
 
-      Fun_Term(Term *            A,
-               univar_function * func);
+      Fun_Term(Term *                  A,
+               univar_function const * func);
 
       Fun_Term(Fun_Term const & other,
                std::map<tensor*, tensor*>* remap=NULL);

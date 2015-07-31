@@ -35,6 +35,39 @@ namespace CTF_int {
     assert(0);
     return a;
   }
+  template <typename dtype>
+  MPI_Datatype get_default_mdtype(){
+    MPI_Datatype newtype;
+    MPI_Type_contiguous(sizeof(dtype), MPI_BYTE, &newtype);
+    //FIXME ehhh... leaks?
+    MPI_Type_commit(&newtype);
+    return newtype;
+  }
+  template <>
+  inline MPI_Datatype get_default_mdtype<char>(){ return MPI_CHAR; }
+  template <>
+  inline MPI_Datatype get_default_mdtype<bool>(){ return MPI_C_BOOL; }
+  template <>
+  inline MPI_Datatype get_default_mdtype<int>(){ return MPI_INT; }
+  template <>
+  inline MPI_Datatype get_default_mdtype<int64_t>(){ return MPI_INT64_T; }
+  template <>
+  inline MPI_Datatype get_default_mdtype<unsigned int>(){ return MPI_UNSIGNED; }
+  template <>
+  inline MPI_Datatype get_default_mdtype<uint64_t>(){ return MPI_UINT64_T; }
+  template <>
+  inline MPI_Datatype get_default_mdtype<float>(){ return MPI_FLOAT; }
+  template <>
+  inline MPI_Datatype get_default_mdtype<double>(){ return MPI_DOUBLE; }
+  template <>
+  inline MPI_Datatype get_default_mdtype<long double>(){ return MPI_LONG_DOUBLE; }
+  template <>
+  inline MPI_Datatype get_default_mdtype< std::complex<float> >(){ return MPI_COMPLEX; }
+  template <>
+  inline MPI_Datatype get_default_mdtype< std::complex<double> >(){ return MPI_DOUBLE_COMPLEX; }
+  template <>
+  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(){ return MPI::LONG_DOUBLE_COMPLEX; }
+
 }
 
 namespace CTF {
@@ -51,9 +84,12 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=true> 
   class Set : public CTF_int::algstrct {
     public:
+      MPI_Datatype tmdtype;
       ~Set() {}
 
-      Set(Set const & other) : CTF_int::algstrct(other) {}
+      Set(Set const & other) : CTF_int::algstrct(other) {
+      this->tmdtype = other.tmdtype;
+      }
 
       virtual CTF_int::algstrct * clone() const {
         return new Set<dtype, is_ord>(*this);
@@ -61,7 +97,14 @@ namespace CTF {
 
       bool is_ordered() const { return is_ord; }
 
-      Set() : CTF_int::algstrct(sizeof(dtype)){ }
+      Set() : CTF_int::algstrct(sizeof(dtype)){ 
+        tmdtype = CTF_int::get_default_mdtype<dtype>();
+      }
+
+      
+      MPI_Datatype mdtype() const {
+        return tmdtype;        
+      }
 
       void min(char const * a, 
                char const * b,

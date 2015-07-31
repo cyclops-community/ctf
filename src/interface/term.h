@@ -111,6 +111,7 @@ namespace CTF_int {
        * \param[in] A subtracted term
        */
       Sum_Term operator-(Term const & A) const;
+      
       Sum_Term operator-(double scl) const;
       Sum_Term operator-(int64_t scl) const;
       
@@ -222,6 +223,12 @@ namespace CTF_int {
        * \param[in] A subtracted term
        */
       Sum_Term operator-(Term const & A) const;
+ 
+      /**
+       * \brief negates term
+       */
+//      Sum_Term operator-() const;
+
 
       /**
        * \brief figures out what world this term lives on
@@ -292,6 +299,11 @@ namespace CTF_int {
        * \param[in] A term to multiply by
        */
       Contract_Term operator*(Term const & A) const;
+ 
+      /**
+       * \brief negates term
+       */
+//      Contract_Term operator-() const;
 
       /**
        * \brief figures out what world this term lives on

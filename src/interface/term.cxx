@@ -166,6 +166,12 @@ namespace CTF_int {
   void Term::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
   void Term::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
   void Term::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
+/*
+  Contract_Term Contract_Term::operator-() const {
+    Contract_Term trm(*this);
+    sr->safeaddinv(trm.scale,trm.scale);
+    return trm;
+  }*/
 
   Contract_Term Term::operator*(int64_t scl) const {
     Idx_Tensor iscl(sr, scl);
@@ -242,7 +248,12 @@ namespace CTF_int {
     st.operands.push_back(A.clone());
     return st;
   }
-
+/*
+  Sum_Term Sum_Term::operator-() const {
+    Sum_Term trm(*this);
+    sr->safeaddinv(trm.scale,trm.scale);
+    return trm;
+  }*/
 
   Sum_Term Sum_Term::operator-(Term const & A) const {
     Sum_Term st(*this);

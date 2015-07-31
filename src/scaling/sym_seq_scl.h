@@ -19,9 +19,8 @@ namespace CTF_int {
       virtual void apply_f(char * a) const { assert(0); }
 
       /** 
-       * \brief evaluate A=f(A) 
+       * \brief apply f to A
        * \param[in] A operand tensor with pre-defined indices 
-       * \return f(A)
       */
       void operator()(Term const & A) const;
 
