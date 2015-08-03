@@ -35,7 +35,17 @@ namespace CTF {
     len = len_;
   }
 
- 
+  template<typename dtype, bool is_ord>
+  Vector<dtype, is_ord>::Vector(bool                      is_sparse,
+                                int                       len_,
+                                World &                   world_,
+                                char const *              name_,
+                                int                       profile_,
+                                CTF_int::algstrct const & sr_)
+   : Tensor<dtype,is_ord>(1, is_sparse, CTF_int::int1(len_), CTF_int::int1(NS), world_, sr_, name_, profile_) {
+    len = len_;
+  }
+
   template<typename dtype, bool is_ord>
   Vector<dtype,is_ord> & Vector<dtype,is_ord>::operator=(const Vector<dtype,is_ord> & A){
     CTF_int::tensor::free_self();

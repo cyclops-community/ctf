@@ -39,6 +39,14 @@ namespace CTF_int {
       */
       Fun_Term operator()(Term const & A) const;
 
+      /** 
+       * \brief evaluate B+=f(A)  or f(A,B) if accumulator
+       * \param[in] A operand tensor with pre-defined indices 
+       * \return Fun_Term that evaluates f(A)
+      */
+      void operator()(Term const & A, Term const & B) const;
+
+
 
   };
 

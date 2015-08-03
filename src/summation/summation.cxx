@@ -1079,9 +1079,9 @@ namespace CTF_int {
           char * new_alpha = (char*)alloc(tnsr_B->sr->el_size);
           for (i=0; i<(int)perm_types.size(); i++){
             if (signs[i] == 1)
-              B->sr->copy(new_alpha, alpha);
+              B->sr->safecopy(new_alpha, alpha);
             else
-              tnsr_B->sr->addinv(alpha, new_alpha);
+              tnsr_B->sr->safeaddinv(alpha, new_alpha);
             perm_types[i].alpha = new_alpha;
             perm_types[i].beta = dbeta;
             //perm_types[i].A->zero_out_padding();

@@ -4,10 +4,16 @@
 #include "sum_tsr.h"
 #include "sym_seq_sum.h"
 #include "../interface/fun_term.h"
+#include "../interface/idx_tensor.h"
 
 namespace CTF_int {
   Fun_Term univar_function::operator()(Term const & A) const {
     return Fun_Term(A.clone(), this);
+  }
+
+  void univar_function::operator()(Term const & A, Term const & B) const {
+    Fun_Term ft(A.clone(), this);
+    ft.execute(B.execute());
   }
 
   tsum::tsum(tsum * other){

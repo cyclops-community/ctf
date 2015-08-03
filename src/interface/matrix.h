@@ -50,6 +50,27 @@ namespace CTF {
              int                       profile=0,
              CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
 
+      /**
+       * \brief constructor for a matrix
+       * \param[in] is_sparse whether matrix should be treated as a sparse (tensor)
+       * \param[in] nrow_ number of matrix rows
+       * \param[in] ncol_ number of matrix columns
+       * \param[in] sym_ symmetry of matrix
+       * \param[in] world_ CTF world where the tensor will live
+       * \param[in] name_ an optionary name for the tensor
+       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       */ 
+      Matrix(bool                      is_sparse,
+             int                       nrow,
+             int                       ncol,
+             int                       sym,
+             World &                   wrld,
+             char const *              name,
+             int                       profile=0,
+             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
+
+
 
       Matrix<dtype,is_ord> & operator=(const Matrix<dtype,is_ord> & A);
   };

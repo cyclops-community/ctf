@@ -68,7 +68,17 @@ namespace CTF_int {
   template <>
   inline MPI_Datatype get_default_mdtype< std::complex<long double> >(){ return MPI::LONG_DOUBLE_COMPLEX; }
 
+  template <typename dtype>
+  constexpr bool get_default_is_ord(){
+    return false;
+  }
+  
+  template <>
+  constexpr bool get_default_is_ord<double>(){
+    return true;
+  }
 }
+
 
 namespace CTF {
   /**
@@ -81,7 +91,7 @@ namespace CTF {
    * \brief Set class defined by a datatype and a min/max function (if it is partially ordered i.e. is_ord=true)
    *         currently assumes min and max are given by numeric_limits (custom min/max not allowed)
    */
-  template <typename dtype=double, bool is_ord=true> 
+  template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()> 
   class Set : public CTF_int::algstrct {
     public:
       MPI_Datatype tmdtype;

@@ -8,60 +8,18 @@
   */
 
 #include <ctf.hpp>
+#include "moldynamics.h"
 using namespace CTF;
-
-class force {
-  public:
-  double fx;
-  double fy;
-
-  force operator-() const {
-    force fnew;
-    fnew.fx = -fx;
-    fnew.fy = -fy;
-    return fnew;
-  }
-  
-  force operator+(force const & fother) const {
-    force fnew;
-    fnew.fx = fx+fother.fx;
-    fnew.fy = fy+fother.fy;
-    return fnew;
-  }
-
-  force(){}
-
-  // additive identity
-  force(int){
-    fx = 0.0;
-    fy = 0.0;
-  }
-};
-
-struct particle {
-  double dx;
-  double dy;
-  double coeff;
-  int id;
-};
-
-void acc_force(force f, particle & p){
-  p.dx += f.fx*p.coeff;
-  p.dy += f.fy*p.coeff;
-}
 
 int univar_accumulator_cust(int     n,
                             World & dw){
   
-  int shape[] = {NS,NS};
-  int size[] = {n,n};
-
   Set<particle, false> sP = Set<particle, false>();
   Group<force, false> gF = Group<force, false>();
 
-  Tensor<particle> P(1, size, shape, dw, sP);
-  Tensor<force> F(2, size, shape, dw, gF);
-  Tensor<force> F2(2, size, shape, dw, gF);
+  Vector<particle,false> P(n, dw, sP);
+  Matrix<force,false> F (n, n, SH, dw, gF);
+  Matrix<force,false> F2(n, n, SH, dw, gF);
 
   particle * loc_parts;
   int64_t nloc;
@@ -95,17 +53,34 @@ int univar_accumulator_cust(int     n,
   //FIXME = does not work because it sets beta to addid :/
   F2["ij"] += F["ij"];
   F2["ij"] += F["ij"];
+
+  //below is the same as uacc(F2["ij"],P["i"]);
   P["i"] += uacc(F2["ij"]);
-  //FIXME = must invert tensors over groups via addinv() rather than - or -=, since these use the inverse of the multiplicative id
-  F.addinv();
-  P["i"] = uacc(F["ij"]);
-  P["i"] = uacc(F["ij"]);
 
   particle loc_parts_new[nloc];
   P.read(nloc, inds, loc_parts_new);
+  
+  //check that something changed
+  int pass = 1;
+  if (pass){
+    for (int64_t i=0; i<nloc; i++){
+      if (fabs(loc_parts[i].dx - loc_parts_new[i].dx)<1.E-6 &&
+          fabs(loc_parts[i].dy - loc_parts_new[i].dy)<1.E-6) pass = 0;
+    }
+  } 
+  MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+  if (!pass && dw.rank == 0){
+    printf("Test incorrect: application of uacc did not modify some value.\n");
+  }
+  
+  //FIXME = must invert tensors over groups via addinv() rather than - or -=, since these use the inverse of the multiplicative id
+  F.addinv();
+  uacc(F["ij"],P["i"]);
+  uacc(F["ij"],P["i"]);
+
+  P.read(nloc, inds, loc_parts_new);
   free(inds);
   
-  int pass = 1;
   if (pass){
     for (int64_t i=0; i<nloc; i++){
       if (fabs(loc_parts[i].dx - loc_parts_new[i].dx)>1.E-6 ||

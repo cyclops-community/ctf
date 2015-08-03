@@ -55,7 +55,7 @@ int endomorphism_cust_sp(int     n,
   int pass = 1;
   if (pass){
     for (int64_t i=0; i<nloc; i++){
-      if (strlen(loc_data[i].name) != loc_data[i].len_name) pass = 0;
+      if ((int)strlen(loc_data[i].name) != loc_data[i].len_name) pass = 0;
     }
   } 
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
