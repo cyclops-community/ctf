@@ -133,6 +133,8 @@ namespace CTF {
       void acc_f(char const * a, char * b, CTF_int::algstrct const * sr_B) const {
         f(((dtype_A*)a)[0], ((dtype_B*)b)[0]);
       }
+
+      bool is_accumulator() const { return true; }
   };
 
 

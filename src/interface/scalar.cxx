@@ -3,17 +3,17 @@
 
 namespace CTF {
 
-  template<typename dtype, bool is_ord>
-  Scalar<dtype, is_ord>::Scalar(World & world_, CTF_int::algstrct const & sr_) :
-    Tensor<dtype, is_ord>(0, NULL, NULL, world_, sr_) {
+  template<typename dtype>
+  Scalar<dtype>::Scalar(World & world_, CTF_int::algstrct const & sr_) :
+    Tensor<dtype>(0, NULL, NULL, world_, sr_) {
     
   }
 
-  template<typename dtype, bool is_ord>
-  Scalar<dtype, is_ord>::Scalar(dtype                     val,
+  template<typename dtype>
+  Scalar<dtype>::Scalar(dtype                     val,
                                 World &                   world,
                                 CTF_int::algstrct const & sr_)
-     : Tensor<dtype, is_ord>(0, NULL, NULL, world, sr_) {
+     : Tensor<dtype>(0, NULL, NULL, world, sr_) {
     int64_t s; 
     dtype * arr;
 
@@ -24,8 +24,8 @@ namespace CTF {
   }
       
 
-  template<typename dtype, bool is_ord>
-  dtype Scalar<dtype, is_ord>::get_val(){
+  template<typename dtype>
+  dtype Scalar<dtype>::get_val(){
     int64_t s; 
     dtype * datap;
     dtype val;
@@ -35,8 +35,8 @@ namespace CTF {
     return val;
   }
 
-  template<typename dtype, bool is_ord>
-  void Scalar<dtype, is_ord>::set_val(dtype const val){
+  template<typename dtype>
+  void Scalar<dtype>::set_val(dtype const val){
     int64_t s; 
     dtype * arr;
     if (this->world->ctf->get_rank() == 0){
@@ -45,8 +45,8 @@ namespace CTF {
     }
   }
    
-  template<typename dtype, bool is_ord>
-  Scalar<dtype,is_ord> & Scalar<dtype,is_ord>::operator=(const Scalar<dtype,is_ord> & A){
+  template<typename dtype>
+  Scalar<dtype> & Scalar<dtype>::operator=(const Scalar<dtype> & A){
     CTF_int::tensor::free_self();
     CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile, A.is_sparse);
     return *this;

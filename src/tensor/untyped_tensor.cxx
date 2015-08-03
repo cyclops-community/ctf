@@ -2071,12 +2071,16 @@ namespace CTF_int {
   void tensor::addinv(){
     if (is_sparse){
       PairIterator pi(sr,data);
+#ifdef USE_OMP
       #pragma omp parallel for
+#endif
       for (int64_t i=0; i<nnz_loc; i++){
         sr->addinv(pi[i].d(), pi[i].d());
       }
     } else {
+#ifdef USE_OMP
       #pragma omp parallel for
+#endif
       for (int64_t i=0; i<size; i++){
         sr->addinv(data+i*sr->el_size,data+i*sr->el_size);
       }

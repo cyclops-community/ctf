@@ -1,7 +1,7 @@
 EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice \
            qinformatics endomorphism endomorphism_cust endomorphism_cust_sp \
-           univar_function univar_accumulator_cust
+           univar_function univar_accumulator_cust univar_accumulator_cust_sp
 
 .PHONY:
 $(EXAMPLES): %: $(BDIR)/bin/%

@@ -12,7 +12,7 @@ namespace CTF {
 
   class Idx_Tensor;
 
-  template <typename dtype, bool is_ord>
+  template <typename dtype>
   class Sparse_Tensor;
 
   /**
@@ -128,7 +128,7 @@ namespace CTF {
   /**
    * \brief an instance of a tensor within a CTF world
    */
-  template <typename dtype=double, bool is_ord=true>
+  template <typename dtype=double>
   class Tensor : public CTF_int::tensor {
     public:
       /**
@@ -152,7 +152,7 @@ namespace CTF {
              World &                   wrld,
              char const *              name=NULL,
              bool                      profile=0,
-             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
+             CTF_int::algstrct const & sr=Ring<dtype>());
 
       /**
        * \brief defines a tensor filled with zeros on a specified algstrct
@@ -184,7 +184,7 @@ namespace CTF {
       Tensor(int                       order,
              int const *               len,
              World &                   wrld,
-             CTF_int::algstrct const & sr=Ring<dtype,is_ord>(),
+             CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
              bool                      profile=0);
 
@@ -204,7 +204,7 @@ namespace CTF {
              int const *               len,
              int const *               sym,
              World &                   wrld,
-             CTF_int::algstrct const & sr=Ring<dtype,is_ord>(),
+             CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
              bool                      profile=0);
 
@@ -213,7 +213,7 @@ namespace CTF {
        * \brief copies a tensor, copying the data of A
        * \param[in] A tensor to copy
        */
-      Tensor(Tensor<dtype, is_ord> const & A);
+      Tensor(Tensor<dtype> const & A);
 
       /**
        * \brief copies a tensor, copying the data of A (same as above)
@@ -272,7 +272,7 @@ namespace CTF {
              Idx_Partition const &     blk=Idx_Partition(),
              char const *              name=NULL,
              bool                      profile=0,
-             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
+             CTF_int::algstrct const & sr=Ring<dtype>());
 
 
       /**
@@ -521,8 +521,8 @@ namespace CTF {
        * \param[in] ends top right corner of block
        * \return new tensor corresponding to requested slice
        */
-      Tensor<dtype, is_ord> slice(int const * offsets,
-                                  int const * ends) const;
+      Tensor<dtype> slice(int const * offsets,
+                          int const * ends) const;
       
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
@@ -530,8 +530,8 @@ namespace CTF {
        * \param[in] corner_end bottom right corner of block
        * \return new tensor corresponding to requested slice
       */
-      Tensor<dtype, is_ord> slice(int64_t corner_off,
-                                  int64_t corner_end) const;
+      Tensor<dtype> slice(int64_t corner_off,
+                          int64_t corner_end) const;
       
       /**
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
@@ -541,9 +541,9 @@ namespace CTF {
        * \return new tensor corresponding to requested slice which lives on
        *          oworld
        */
-      Tensor<dtype, is_ord> slice(int const * offsets,
-                                  int const * ends,
-                                  World *     oworld) const;
+      Tensor<dtype> slice(int const * offsets,
+                          int const * ends,
+                          World *     oworld) const;
 
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
@@ -553,9 +553,9 @@ namespace CTF {
        * \return new tensor corresponding to requested slice which lives on
        *          oworld
        */
-      Tensor<dtype, is_ord> slice(int64_t corner_off,
-                                  int64_t corner_end,
-                                  World * oworld) const;
+      Tensor<dtype> slice(int64_t corner_off,
+                          int64_t corner_end,
+                          World * oworld) const;
       
       
       /**
@@ -641,7 +641,7 @@ namespace CTF {
        * \param[in] alpha scaling factor for this tensor (default 1.0)
        * \param[in] beta scaling factor for tensor tsr (default 1.0)
        */
-      void add_to_subworld(Tensor<dtype, is_ord> * tsr,
+      void add_to_subworld(Tensor<dtype> * tsr,
                            dtype                   alpha,
                            dtype                   beta);
      /**
@@ -650,7 +650,7 @@ namespace CTF {
        *             but on a different world/MPI_comm
        */
 
-      void add_to_subworld(Tensor<dtype, is_ord> * tsr);
+      void add_to_subworld(Tensor<dtype> * tsr);
       
       /**
        * \brief accumulates this tensor from a tensor object defined on a different world
@@ -659,7 +659,7 @@ namespace CTF {
        * \param[in] alpha scaling factor for tensor tsr (default 1.0)
        * \param[in] beta scaling factor for this tensor (default 1.0)
        */
-      void add_from_subworld(Tensor<dtype, is_ord> * tsr,
+      void add_from_subworld(Tensor<dtype> * tsr,
                              dtype                   alpha,
                              dtype                   beta);
       /**
@@ -667,7 +667,7 @@ namespace CTF {
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
        *             but on a different world/MPI_comm
        */
-      void add_from_subworld(Tensor<dtype, is_ord> * tsr);
+      void add_from_subworld(Tensor<dtype> * tsr);
       
 
       /**
@@ -818,18 +818,18 @@ namespace CTF {
       /**
        * \brief sets all values in the tensor to val
        */
-      Tensor<dtype, is_ord>& operator=(dtype val);
+      Tensor<dtype>& operator=(dtype val);
       
       /**
        * \brief sets the tensor
        */
-      Tensor<dtype, is_ord>& operator=(const Tensor<dtype, is_ord> A);
+      Tensor<dtype>& operator=(const Tensor<dtype> A);
      
       /**
        * \brief gives handle to sparse index subset of tensors
        * \param[in] indices, vector of indices to sparse tensor
        */
-      Sparse_Tensor<dtype,is_ord> operator[](std::vector<int64_t> indices);
+      Sparse_Tensor<dtype> operator[](std::vector<int64_t> indices);
       
       /**
        * \brief prints tensor data to file using process 0
@@ -845,7 +845,7 @@ namespace CTF {
        * \param[in] A tensor to compare against
        * \param[in] cutoff do not print values of absolute value smaller than this
        */
-      void compare(const Tensor<dtype, is_ord>& A, FILE * fp = stdout, double cutoff = -1.0);
+      void compare(const Tensor<dtype>& A, FILE * fp = stdout, double cutoff = -1.0);
 
       /**
        * \brief frees CTF tensor

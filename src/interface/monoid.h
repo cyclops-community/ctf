@@ -65,7 +65,7 @@ namespace CTF {
    *   addition must have an identity and be associative, does not need to be commutative
    *   special case (parent) of a semiring, group, and ring
    */
-  template <typename dtype=double, bool is_ord=true> 
+  template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()> 
   class Monoid : public Set<dtype, is_ord> {
     public:
       dtype taddid;

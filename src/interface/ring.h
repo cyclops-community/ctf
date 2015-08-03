@@ -13,7 +13,7 @@ namespace CTF {
    *   addition must have an identity, inverse, and be associative, does not need to be commutative
    *   multiplications must have an identity and be distributive
    */
-  template <typename dtype=double, bool is_ord=true>
+  template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()>
   class Ring : public Semiring<dtype, is_ord> {
     public:
       Ring(Ring const & other) : Semiring<dtype, is_ord>(other) { }

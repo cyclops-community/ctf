@@ -72,11 +72,23 @@ namespace CTF_int {
   constexpr bool get_default_is_ord(){
     return false;
   }
-  
-  template <>
-  constexpr bool get_default_is_ord<double>(){
-    return true;
-  }
+ 
+  #define INST_ORD_TYPE(dtype)                  \
+    template <>                                 \
+    constexpr bool get_default_is_ord<dtype>(){ \
+      return true;                              \
+    }
+
+  INST_ORD_TYPE(float)
+  INST_ORD_TYPE(double)
+  INST_ORD_TYPE(long double)
+  INST_ORD_TYPE(bool)
+  INST_ORD_TYPE(char)
+  INST_ORD_TYPE(int)
+  INST_ORD_TYPE(unsigned int)
+  INST_ORD_TYPE(int64_t)
+  INST_ORD_TYPE(uint64_t)
+
 }
 
 

@@ -19,8 +19,8 @@ int test_dft(int64_t n,
   std::complex<double> imag(0,1);
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-  Matrix < std::complex<double>, false >DFT(n, n, SY, wrld, "DFT", 1);
-  Matrix < std::complex<double>, false  >IDFT(n, n, SY, wrld, "IDFT", 0);
+  Matrix < std::complex<double> >DFT(n, n, SY, wrld, "DFT", 1);
+  Matrix < std::complex<double>  >IDFT(n, n, SY, wrld, "IDFT", 0);
 
   DFT.read_local(&np, &idx, &data);
 

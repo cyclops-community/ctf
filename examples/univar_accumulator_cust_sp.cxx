@@ -2,24 +2,24 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup univar_accumulator_cust univar_accumulator_cust
+  * \defgroup univar_accumulator_cust_sp univar_accumulator_cust_sp
   * @{ 
-  * \brief tests custom element-wise accumulator_custs by implementing division elementwise on 4D tensors
+  * \brief tests cust_spom element-wise accumulator_cust_sps by implementing division elementwise on 4D tensors
   */
 
 #include <ctf.hpp>
 #include "moldynamics.h"
 using namespace CTF;
 
-int univar_accumulator_cust(int     n,
-                            World & dw){
+int univar_accumulator_cust_sp(int     n,
+                               World & dw){
   
   Set<particle> sP = Set<particle>();
   Group<force> gF = Group<force>();
-
+  
   Vector<particle> P(n, dw, sP);
-  Matrix<force> F (n, n, AS, dw, gF);
-  Matrix<force> F2(n, n, AS, dw, gF);
+  Matrix<force> F (true, n, n, AS, dw, gF);
+  Matrix<force> F2(true, n, n, AS, dw, gF);
 
   particle * loc_parts;
   int64_t nloc;
@@ -36,17 +36,21 @@ int univar_accumulator_cust(int     n,
   }
   P.write(nloc, inds, loc_parts);
 
-  force * loc_frcs;
-  int64_t * finds;
-  int64_t nf;
-  F.read_local(&nf, &finds, &loc_frcs);
-  for (int64_t i=0; i<nf; i++){
-    loc_frcs[i].fx = drand48();
-    loc_frcs[i].fy = drand48();
+  particle * all_parts;
+  int64_t nall;
+  std::vector< Pair<force> > my_forces;
+  P.read_all(&nall, &all_parts);
+  for (int i=0; i<nloc; i++){
+    for (int j=0; j<nall; j++){
+      if (j != inds[i]){
+        if (get_distance(loc_parts[i], all_parts[j])){
+          my_forces.push_back( Pair<force>(inds[i]*n+j, get_force(loc_parts[i], all_parts[j])));
+        }
+      }
+    }
   }
-  F.write(nf, finds, loc_frcs);
-  free(loc_frcs);
-  free(finds);
+    
+  F.write(my_forces.size(), &my_forces[0]);
 
   CTF::Univar_Accumulator<particle,force> uacc(&acc_force);
 
@@ -134,9 +138,9 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
-      printf("Computing univar_accumulator_cust A_ijkl = f(A_ijkl)\n");
+      printf("Computing univar_accumulator_cust_sp A_ijkl = f(A_ijkl)\n");
     }
-    univar_accumulator_cust(n, dw);
+    univar_accumulator_cust_sp(n, dw);
   }
 
 

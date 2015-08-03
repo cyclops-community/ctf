@@ -1077,20 +1077,37 @@ namespace CTF_int {
                     (int)perm_types.size());
           dbeta = beta;
           char * new_alpha = (char*)alloc(tnsr_B->sr->el_size);
+
+          tensor * inv_tsr_A;
+          bool need_inv = false;
+          // if we have no multiplicative operator, must inverse sign manually
+          if (tnsr_B->sr->mulid() == NULL){
+            for (i=0; i<(int)perm_types.size(); i++){
+              need_inv = true;
+            }
+            if (need_inv){
+              inv_tsr_A = new tensor(tnsr_A);
+              inv_tsr_A->addinv();
+            }
+          }
           for (i=0; i<(int)perm_types.size(); i++){
-            if (signs[i] == 1)
-              B->sr->safecopy(new_alpha, alpha);
-            else
-              tnsr_B->sr->safeaddinv(alpha, new_alpha);
-            perm_types[i].alpha = new_alpha;
+            // if group apply additive inverse manually
+            if (signs[i] == -1 && need_inv){
+              perm_types[i].A = inv_tsr_A;
+            } else {
+              if (signs[i] == 1)
+                tnsr_B->sr->safecopy(new_alpha, alpha);
+              else 
+                tnsr_B->sr->safeaddinv(alpha, new_alpha);
+              perm_types[i].alpha = new_alpha;
+            }
             perm_types[i].beta = dbeta;
-            //perm_types[i].A->zero_out_padding();
             perm_types[i].sum_tensors(run_diag);
-            /*sum_tensors(new_alpha, dbeta, perm_types[i].tid_A, perm_types[i].tid_B,
-                        perm_types[i].idx_map_A, perm_types[i].idx_map_B, ftsr, felm, run_diag);*/
             dbeta = new_sum.B->sr->mulid();
           }
           cdealloc(new_alpha);
+          if (need_inv)
+            delete inv_tsr_A;
   /*        for (i=0; i<(int)perm_types.size(); i++){
             free_type(&perm_types[i]);
           }*/
@@ -2204,7 +2221,7 @@ namespace CTF_int {
       }
 
       // if applying custom function, apply immediately on reduced form
-      if (is_custom){
+      if (is_custom && !func->is_accumulator()){
         char * swap_data = mapped_data;
         alloc_ptr(B->sr->pair_size()*num_pair, (void**)&mapped_data);
         PairIterator pi_new(B->sr, mapped_data);

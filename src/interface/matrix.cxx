@@ -19,52 +19,70 @@ namespace CTF_int{
 
 
 namespace CTF {
-  template<typename dtype, bool is_ord>
-  Matrix<dtype, is_ord>::Matrix(int                       nrow_,
-                                int                       ncol_,
-                                int                       sym_,
-                                World &                   world_,
-                                char const *              name_,
-                                int                       profile_,
-                                CTF_int::algstrct const & sr_)
-    : Tensor<dtype,is_ord>(2, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
+  template<typename dtype>
+  Matrix<dtype>::Matrix(int                       nrow_,
+                        int                       ncol_,
+                        int                       sym_,
+                        World &                   world_,
+                        char const *              name_,
+                        int                       profile_,
+                        CTF_int::algstrct const & sr_)
+    : Tensor<dtype>(2, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
     sym = sym_;
   }
 
-  template<typename dtype, bool is_ord>
-  Matrix<dtype, is_ord>::Matrix(int                       nrow_,
-                                int                       ncol_,
-                                int                       sym_,
-                                World &                   world_,
-                                CTF_int::algstrct const & sr_)
-    : Tensor<dtype,is_ord>(2, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
+  template<typename dtype>
+  Matrix<dtype>::Matrix(int                       nrow_,
+                        int                       ncol_,
+                        int                       sym_,
+                        World &                   world_,
+                        CTF_int::algstrct const & sr_)
+    : Tensor<dtype>(2, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
                            world_, sr_, NULL, 0) {
     nrow = nrow_;
     ncol = ncol_;
     sym = sym_;
   }
  
-  template<typename dtype, bool is_ord>
-  Matrix<dtype, is_ord>::Matrix(bool                      is_sparse,
-                                int                       nrow_,
-                                int                       ncol_,
-                                int                       sym_,
-                                World &                   world_,
-                                char const *              name_,
-                                int                       profile_,
-                                CTF_int::algstrct const & sr_)
-    : Tensor<dtype,is_ord>(2, is_sparse, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
+  template<typename dtype>
+  Matrix<dtype>::Matrix(bool                      is_sparse,
+                        int                       nrow_,
+                        int                       ncol_,
+                        int                       sym_,
+                        World &                   world_,
+                        char const *              name_,
+                        int                       profile_,
+                        CTF_int::algstrct const & sr_)
+    : Tensor<dtype>(2, is_sparse, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
                            world_, sr_, name_, profile_) {
     nrow = nrow_;
     ncol = ncol_;
     sym = sym_;
   }
 
-  template<typename dtype, bool is_ord>
-  Matrix<dtype,is_ord> & Matrix<dtype,is_ord>::operator=(const Matrix<dtype,is_ord> & A){
+ 
+  template<typename dtype>
+  Matrix<dtype>::Matrix(bool                      is_sparse,
+                        int                       nrow_,
+                        int                       ncol_,
+                        int                       sym_,
+                        World &                   world_,
+                        CTF_int::algstrct const & sr_,
+                        char const *              name_,
+                        int                       profile_)
+    : Tensor<dtype>(2, is_sparse, CTF_int::int2(nrow_, ncol_), CTF_int::int2(sym_, NS), 
+                           world_, sr_, name_, profile_) {
+    nrow = nrow_;
+    ncol = ncol_;
+    sym = sym_;
+  }
+
+
+  template<typename dtype>
+  Matrix<dtype> & Matrix<dtype>::operator=(const Matrix<dtype> & A){
     CTF_int::tensor::free_self();
     CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
     return *this;

@@ -10,8 +10,8 @@ namespace CTF {
   /**
    * \brief Vector class which encapsulates a 1D tensor 
    */
-  template <typename dtype=double, bool is_ord=true>
-  class Vector : public Tensor<dtype, is_ord> {
+  template <typename dtype=double>
+  class Vector : public Tensor<dtype> {
     public:
       int len;
       /**
@@ -37,7 +37,7 @@ namespace CTF {
              World &                   world,
              char const *              name=NULL,
              int                       profile=0,
-             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
+             CTF_int::algstrct const & sr=Ring<dtype>());
 
       /**
        * \brief constructor for a vector
@@ -52,11 +52,11 @@ namespace CTF {
              World &                   world,
              char const *              name=NULL,
              int                       profile=0,
-             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
+             CTF_int::algstrct const & sr=Ring<dtype>());
 
 
 
-      Vector<dtype,is_ord> & operator=(const Vector<dtype,is_ord> & A);
+      Vector<dtype> & operator=(const Vector<dtype> & A);
   /**
    * @}
    */

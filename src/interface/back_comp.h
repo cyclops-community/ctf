@@ -40,10 +40,10 @@ typedef CTF::Matrix<>  CTF_Matrix;
 typedef CTF::Vector<>  CTF_Vector;
 typedef CTF::Scalar<>  CTF_Scalar;
 typedef CTF::Idx_Tensor  CTF_Idx_Tensor;
-typedef CTF::Tensor< std::complex<double>, 0 > cCTF_Tensor;
-typedef CTF::Matrix< std::complex<double>, 0 > cCTF_Matrix;
-typedef CTF::Vector< std::complex<double>, 0 > cCTF_Vector;
-typedef CTF::Scalar< std::complex<double>, 0 > cCTF_Scalar;
+typedef CTF::Tensor< std::complex<double> > cCTF_Tensor;
+typedef CTF::Matrix< std::complex<double> > cCTF_Matrix;
+typedef CTF::Vector< std::complex<double> > cCTF_Vector;
+typedef CTF::Scalar< std::complex<double> > cCTF_Scalar;
 typedef CTF::Idx_Tensor cCTF_Idx_Tensor;
 
 //this needs C++11, possible to do C++03 using struct

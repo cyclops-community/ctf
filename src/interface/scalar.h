@@ -9,8 +9,8 @@ namespace CTF {
   /**
    * \brief Scalar class which encapsulates a 0D tensor 
    */
-  template <typename dtype=double, bool is_ord=true>
-  class Scalar : public Tensor<dtype, is_ord> {
+  template <typename dtype=double>
+  class Scalar : public Tensor<dtype> {
     public:
       /**
        * \brief constructor for a scalar
@@ -45,7 +45,7 @@ namespace CTF {
        */
       operator dtype() { return get_val(); }
 
-      Scalar<dtype,is_ord> & operator=(const Scalar<dtype,is_ord> & A);
+      Scalar<dtype> & operator=(const Scalar<dtype> & A);
 
   };
 

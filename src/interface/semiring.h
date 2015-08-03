@@ -192,7 +192,7 @@ namespace CTF {
    *   multiplications must have an identity as well as be distributive and associative
    *   special case (parent) of a Ring (which also has an additive inverse)
    */
-  template <typename dtype=double, bool is_ord=true> 
+  template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()> 
   class Semiring : public Monoid<dtype, is_ord> {
     public:
       dtype tmulid;

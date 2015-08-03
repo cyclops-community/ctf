@@ -21,12 +21,20 @@ namespace CTF_int {
        */
       virtual void apply_f(char const * a, char * b)const { f(a,b); }
       
+      /**
+       * \brief compute b = b+f(a)
+       * \param[in] a pointer to operand that will be cast to dtype 
+       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       * \param[in] sr_B algebraic structure for b, needed to do add
+       */
       virtual void acc_f(char const * a, char * b, CTF_int::algstrct const * sr_B) const { 
 
         char tb[sr_B->el_size];
         f(a,tb);
         sr_B->add(b, tb, b);
       }
+
+      virtual bool is_accumulator() const { return false; };
 
       univar_function(void (*f_)(char const *, char *)) { f=f_; }
       univar_function() { }

@@ -41,5 +41,18 @@ void acc_force(force f, particle & p){
   p.dy += f.fy*p.coeff;
 }
 
+double get_distance(particle const & p, particle const & q){
+  return sqrt((p.dx-q.dx)*(p.dx-q.dx)+(p.dy-q.dy)*(p.dy-q.dy));
+}
+
+
+force get_force(particle const & p, particle const & q){
+  force f;
+  f.fx = (p.dx-q.dx)/std::pow(get_distance(p,q),3);
+  f.fy = (p.dy-q.dy)/std::pow(get_distance(p,q),3);
+  return f;
+}
+
+
 #endif
 

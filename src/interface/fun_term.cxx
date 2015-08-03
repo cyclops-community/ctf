@@ -38,13 +38,13 @@ namespace CTF_int {
   CTF::Idx_Tensor Fun_Term::execute() const {
     printf("Univar Function applications cannot currently be a part of a longer algebraic expression\n");
     assert(0); 
-    return CTF::Idx_Tensor(NULL, NULL);
+    return CTF::Idx_Tensor(NULL);
   }
  
   CTF::Idx_Tensor Fun_Term::estimate_time(double & cost) const {
     printf("Univar Function applications cannot currently be a part of a longer algebraic expression\n");
     assert(0); 
-    return CTF::Idx_Tensor(NULL, NULL);
+    return CTF::Idx_Tensor(NULL);
   }
   double Fun_Term::estimate_time(CTF::Idx_Tensor output) const{
     double cost = 0.0;
