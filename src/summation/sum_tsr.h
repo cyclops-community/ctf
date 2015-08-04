@@ -14,6 +14,8 @@ namespace CTF_int {
     public:
       void (*f)(char const *, char *);
 
+      bool is_distributive = true;
+
       /**
        * \brief apply function f to value stored at a
        * \param[in] a pointer to operand that will be cast to type by extending class
@@ -37,8 +39,9 @@ namespace CTF_int {
       virtual bool is_accumulator() const { return false; };
 
       univar_function(void (*f_)(char const *, char *)) { f=f_; }
+      univar_function(void (*f_)(char const *, char *), bool is_dist) { f=f_; is_distributive=is_dist; }
       univar_function() { }
-      univar_function(univar_function const & other) { f = other.f; }
+      univar_function(univar_function const & other) { f = other.f; is_distributive=other.is_distributive; }
 
       /** 
        * \brief evaluate B=f(A) 
@@ -69,8 +72,16 @@ namespace CTF_int {
       char const *     beta;
       void *           buffer;
 
+      bool    is_sparse_A;
+      int64_t nnz_A;
+      bool    is_sparse_B;
+      int64_t nnz_B;
+      int64_t new_nnz_B;
+      char *  new_B_buffer;
+      
       virtual void run() {};
       virtual void print() {};
+      virtual int64_t calc_new_nnz_B { return nnz_B; }; //if sparse
       /**
        * \brief returns the number of bytes of buffer space needed
        * \return bytes needed
@@ -91,10 +102,12 @@ namespace CTF_int {
       int         num_dim;
       int *       virt_dim;
       int         order_A;
-      int64_t     blk_sz_A;
+      int64_t     blk_sz_A; //if dense
+      int64_t *   blk_szs_A; //if sparse
       int const * idx_map_A;
       int         order_B;
-      int64_t     blk_sz_B;
+      int64_t     blk_sz_B; //if dense
+      int64_t *   blk_szs_B; //if sparse
       int const * idx_map_B;
       
       void run();
@@ -150,15 +163,16 @@ namespace CTF_int {
 
       int is_inner;
       int inr_stride;
-      
+
       int is_custom;
       univar_function const * func; //fseq_elm_sum custom_params;
-      
+
       /**
        * \brief wraps user sequential function signature
        */
       void run();
       void print();
+      int64_t calc_new_nnz_B();
       int64_t mem_fp();
       tsum * clone();
 
@@ -172,6 +186,7 @@ namespace CTF_int {
       seq_tsr_sum(){}
 
   };
+
 
   /**
    * \brief invert index map

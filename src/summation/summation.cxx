@@ -204,6 +204,9 @@ namespace CTF_int {
 
   int summation::can_fold(){
     int i, j, nfold, * fold_idx;
+    //FIXME: fold sparse tensors into CSR form
+    if (A->is_sparse || B->is_sparse)} return 0;
+
     for (i=0; i<A->order; i++){
       for (j=i+1; j<A->order; j++){
         if (idx_A[i] == idx_A[j]) return 0;
@@ -922,10 +925,10 @@ namespace CTF_int {
       return SUCCESS;
     }
     // If we have sparisity, use separate mechanism
-    if (A->is_sparse || B->is_sparse){
+    /*if (A->is_sparse || B->is_sparse){
       sp_sum();
       return SUCCESS;
-    }
+    }*/
     tnsr_A = A;
     tnsr_B = B;
     char * new_alpha = (char*)alloc(tnsr_B->sr->el_size);
@@ -990,7 +993,7 @@ namespace CTF_int {
   
       if (ocfact != 1 || sign != 1){
         if (ocfact != 1){
-          tnsr_B->sr->copy(new_alpha, tnsr_B->sr->addid());
+          tnsr_B->sr->safecopy(new_alpha, tnsr_B->sr->addid());
           
           for (int i=0; i<ocfact; i++){
             tnsr_B->sr->add(new_alpha, alpha, new_alpha);
@@ -998,7 +1001,7 @@ namespace CTF_int {
           alpha = new_alpha;
         }
         if (sign == -1){
-          tnsr_B->sr->addinv(alpha, new_alpha);
+          tnsr_B->sr->safeaddinv(alpha, new_alpha);
           alpha = new_alpha;
         }
       }

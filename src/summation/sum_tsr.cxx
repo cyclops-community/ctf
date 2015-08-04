@@ -17,13 +17,19 @@ namespace CTF_int {
   }
 
   tsum::tsum(tsum * other){
-    A      = other->A;
-    alpha  = other->alpha;
-    sr_A   = other->sr_A;
-    B      = other->B;
-    beta   = other->beta;
-    sr_B   = other->sr_B;
-    buffer = NULL;
+    A            = other->A;
+    alpha        = other->alpha;
+    sr_A         = other->sr_A;
+    B            = other->B;
+    beta         = other->beta;
+    sr_B         = other->sr_B;
+    buffer       = NULL;
+    is_sparse_A  = other->is_sparse_A;
+    nnz_A        = other->nnz_A;
+    is_sparse_B  = other->is_sparse_B;
+    nnz_B        = other->nnz_B;
+    new_nnz_B    = other->new_nnz_B;
+    new_B_buffer = other->new_B_buffer;
   }
 
   tsum_virt::~tsum_virt() {
@@ -38,13 +44,15 @@ namespace CTF_int {
     virt_dim      = (int*)CTF_int::alloc(sizeof(int)*num_dim);
     memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
 
-    order_A       = o->order_A;
-    blk_sz_A      = o->blk_sz_A;
-    idx_map_A     = o->idx_map_A;
+    order_A   = o->order_A;
+    blk_sz_A  = o->blk_sz_A;
+    blk_szs_A = o->blk_szs_A;
+    idx_map_A = o->idx_map_A;
 
-    order_B       = o->order_B;
-    blk_sz_B      = o->blk_sz_B;
-    idx_map_B     = o->idx_map_B;
+    order_B   = o->order_B;
+    blk_sz_B  = o->blk_sz_B;
+    blk_szs_B = o->blk_szs_B;
+    idx_map_B = o->idx_map_B;
   }
 
   tsum * tsum_virt::clone() {
@@ -106,6 +114,33 @@ namespace CTF_int {
     
     /* dynammically determined size */ 
     beta_arr = (int*)CTF_int::alloc(sizeof(int)*nb_B);
+    
+    int64_t * sp_offsets_A;
+    if (is_sparse_A){
+      sp_offsets_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_A);
+      sp_offsets_A[0] = 0;
+      for (int i=1; i<nb_A: i++){
+        sp_offsets_A[i] = sp_offsets_A[i-1]+blk_szs_A[i-1];
+      }      
+    }
+ 
+    int64_t * sp_offsets_B;
+    int64_t * new_sp_szs_B;
+    char ** buckets_B;
+    if (is_sparse_B){
+      sp_offsets_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_B);
+      new_sp_szs_B = blk_sz_B; //(int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_B);
+//      memcpy(new_sp_szs_B, blk_sz_B, sizeof(int64_t)*nb_B);
+      buckets_B = (char**)CTF_int::alloc(sizeof(char*)*nb_B);
+      for (int i=0; i<nb_B: i++){
+        if (i==0)
+          sp_offsets_B[0] = 0;
+        else
+          sp_offsets_B[i] = sp_offsets_B[i-1]+blk_szs_B[i-1];
+        bucket_B[i] = this->B + sp_offsets_B[i]*this->sr->el_size;
+      }      
+    }
+
    
     memset(idx_arr, 0, num_dim*sizeof(int));
     memset(beta_arr, 0, nb_B*sizeof(int));
@@ -113,16 +148,28 @@ namespace CTF_int {
     rec_tsum->alpha = this->alpha;
     rec_tsum->beta = this->beta;
     for (;;){
-      rec_tsum->A = this->A + off_A*blk_sz_A*this->sr_A->el_size;
-      rec_tsum->B = this->B + off_B*blk_sz_B*this->sr_B->el_size;
+      if (is_sparse_A){
+        rec_tsum->nnz_A = blk_szs_A[off_A];
+        rec_tsum->A = this->A + sp_offsets_A[off_A]*this->sr_A->el_size;
+      } else
+        rec_tsum->A = this->A + off_A*blk_sz_A*this->sr_A->el_size;
+      if (is_sparse_B){
+        rec_tsum->nnz_B = new_sp_szs_B[off_B];
+        rec_tsum->B = bucket_B[off_B];
+      } else
+        rec_tsum->B = this->B + off_B*blk_sz_B*this->sr_B->el_size;
 //        sr_B->copy(rec_tsum->beta, sr_B->mulid());
       if (beta_arr[off_B]>0)
         rec_tsum->beta = sr_B->mulid();
       else
         rec_tsum->beta = this->beta; 
-//        sr_B->copy(rec_tsum->beta, this->beta);
-      beta_arr[off_B] = 1;
       rec_tsum->run();
+      if (is_sparse_B){
+        new_sp_szs_B[off_B] = rec_tsum->new_nnz_B;
+        if (beta_arr[off_B] > 0) cdealloc(buckets_B[off_B]);
+        buckets_B[off_B] = rec_tsum->new_B_buffer;
+      }
+      beta_arr[off_B] = 1;
 
       for (i=0; i<num_dim; i++){
         off_A -= ilda_A[i]*idx_arr[i];
@@ -136,6 +183,23 @@ namespace CTF_int {
       }
       if (i==num_dim) break;
     }
+    if (this->is_sparse_B){
+      this->new_nnz_B = 0;
+      for (int i=0; i<nb_B; i++){
+        this->new_nnz_B += new_sp_szs_B[i];
+      }
+      new_B_buffer = (char*)alloc(this->new_nnz_B*this->sr_B->el_size);
+      int64_t pfx = 0;
+      for (int i=0; i<nb_B; i++){
+        memcpy(new_B_buffer+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->el_size);
+        if (beta_arr[i] > 0) cdealloc(buckets_B[i]);
+      }
+      //FIXME: how to pass B back generally
+      cdealloc(this->B);
+      cdealloc(buckets_B);
+    }
+    if (is_sparse_A) cdealloc(sp_offsets_A);
+    if (is_sparse_B) cdealloc(sp_offsets_B);
     if (alloced){
       CTF_int::cdealloc(idx_arr);
     }
@@ -194,12 +258,26 @@ namespace CTF_int {
   void tsum_replicate::run(){
     int brank, i;
 
+    if (is_sparse_A){
+      size_A = nnz_A;
+      for (i=0; i<ncdt_A; i++){
+        MPI_Bcast(size_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
+      }
+    }
+    if (is_sparse_B){
+      size_B = nnz_B;
+      for (i=0; i<ncdt_B; i++){
+        MPI_Bcast(size_B, 1, MPI_INT64_T, 0, cdt_B[i]->cm);
+      }
+    }
+
     for (i=0; i<ncdt_A; i++){
       MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i]->cm);
     }
    /* for (i=0; i<ncdt_B; i++){
       POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i]-> 0);
     }*/
+    ASSERT(ncdt_B == 0 || !is_sparse_B);
     brank = 0;
     for (i=0; i<ncdt_B; i++){
       brank += cdt_B[i]->rank;

@@ -1939,13 +1939,66 @@ namespace CTF_int {
               ex_idx_map[k] = i;
             }
           }
-          if (rw){
-            new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld, 1);
-            summation sum = summation(this, ex_idx_map, sr->mulid(), new_tsr, diag_idx_map, sr->addid());
-            sum.execute(1);
+          if (is_sparse){
+            PairIterator pi(sr, data);
+            int64_t lda_i=1, lda_j=1;
+            for (int ii=1; ii<i; ii++){
+              lda_i *= edge_len[i-1];
+            }
+            for (int jj=1; jj<i; jj++){
+              lda_j *= edge_len[j-1];
+            }
+            if (rw){
+              new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld, 1, name, 1, is_sparse);
+              int64_t nw = 0;
+              for (int p=0; p<nnz_loc; p++){
+                int64_t k = pi[p].k();
+                if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]) nw++;
+              }
+              char * pwdata = (char*)alloc(sr->pair_size()*nw);
+              PairIterator wdata(sr, pwdata);
+#ifdef USE_OMP
+              #pragma omp parallel for
+#endif
+              nw=0;
+              for (int p=0; p<num_pair; p++){
+                int64_t k = pi[p].k();
+                if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){ 
+                  int64_t k_new = (k%lda_j)+(k/(lda_j*lens[j])*lda_j);
+                  ((int64_t*)(wdata[i].ptr))[0] = k_new;
+                  wdata[i].write_val(pi[p].d())
+                  nw++;
+                }
+              }
+              new_tsr.write(nw, pwdata);
+              cdealloc(pwdata);
+            } else {
+              char * pwdata;
+              int64_t nw;
+              new_tsr.read_local_nnz(&nw, &pwdata);
+              PairIterator wdata(sr, pwdata);
+#ifdef USE_OMP
+              #pragma omp parallel for
+#endif
+              for (int p=0; p<nw; p++){
+                int64_t k = pi[p].k();
+                int64_t kpart = (k/lda_i)%lens[i];
+                int64_t k_new = (k%lda_j)+((k/lda_j)*lens[j]+kpart)*lda_j;
+                ((int64_t*)(wdata[i].ptr))[0] = k_new;
+              }
+              this->write(nw, pwdata);
+              cdealloc(pwdata);
+            }
           } else {
-            summation sum = summation(new_tsr, diag_idx_map, sr->mulid(), this, ex_idx_map, sr->addid());
-            sum.execute(1);
+            if (rw){
+          
+              new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld, 1, name, 1, is_sparse);
+              summation sum = summation(this, ex_idx_map, sr->mulid(), new_tsr, diag_idx_map, sr->addid());
+              sum.execute(1);
+            } else {
+              summation sum = summation(new_tsr, diag_idx_map, sr->mulid(), this, ex_idx_map, sr->addid());
+              sum.execute(1);
+            }
           }
           CTF_int::cdealloc(edge_len), CTF_int::cdealloc(sym), CTF_int::cdealloc(ex_idx_map), CTF_int::cdealloc(diag_idx_map);
           return SUCCESS;
