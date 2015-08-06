@@ -81,7 +81,7 @@ namespace CTF_int {
       
       virtual void run() {};
       virtual void print() {};
-      virtual int64_t calc_new_nnz_B { return nnz_B; }; //if sparse
+      virtual int64_t calc_new_nnz_B() { return nnz_B; } //if sparse
       /**
        * \brief returns the number of bytes of buffer space needed
        * \return bytes needed

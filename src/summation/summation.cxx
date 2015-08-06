@@ -205,7 +205,7 @@ namespace CTF_int {
   int summation::can_fold(){
     int i, j, nfold, * fold_idx;
     //FIXME: fold sparse tensors into CSR form
-    if (A->is_sparse || B->is_sparse)} return 0;
+    if (A->is_sparse || B->is_sparse) return 0;
 
     for (i=0; i<A->order; i++){
       for (j=i+1; j<A->order; j++){

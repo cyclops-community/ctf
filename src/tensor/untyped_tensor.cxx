@@ -1961,21 +1961,21 @@ namespace CTF_int {
               #pragma omp parallel for
 #endif
               nw=0;
-              for (int p=0; p<num_pair; p++){
+              for (int p=0; p<nnz_loc; p++){
                 int64_t k = pi[p].k();
                 if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){ 
                   int64_t k_new = (k%lda_j)+(k/(lda_j*lens[j])*lda_j);
                   ((int64_t*)(wdata[i].ptr))[0] = k_new;
-                  wdata[i].write_val(pi[p].d())
+                  wdata[i].write_val(pi[p].d());
                   nw++;
                 }
               }
-              new_tsr.write(nw, pwdata);
+              new_tsr->write(nw, sr->mulid(), sr->addid(), pwdata);
               cdealloc(pwdata);
             } else {
               char * pwdata;
               int64_t nw;
-              new_tsr.read_local_nnz(&nw, &pwdata);
+              new_tsr->read_local_nnz(&nw, &pwdata);
               PairIterator wdata(sr, pwdata);
 #ifdef USE_OMP
               #pragma omp parallel for
@@ -1986,7 +1986,7 @@ namespace CTF_int {
                 int64_t k_new = (k%lda_j)+((k/lda_j)*lens[j]+kpart)*lda_j;
                 ((int64_t*)(wdata[i].ptr))[0] = k_new;
               }
-              this->write(nw, pwdata);
+              this->write(nw, sr->mulid(), sr->addid(), pwdata);
               cdealloc(pwdata);
             }
           } else {
