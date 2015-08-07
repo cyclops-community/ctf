@@ -509,6 +509,32 @@ namespace CTF_int {
         }
       }
     }
+    bool need_perm = false;
+    if (A->is_sparse || B->is_sparse){
+      for (int i=0; i<A->order; i++){
+        if (idx_arr[2*idx_A[i]+1] != i) need_perm = true;
+      }
+    }
+    if (need_perm){
+      tsum_sp_permute * pmsum = new tsum_sp_permute;
+      pmsum->sr_A = A->sr;
+      pmsum->sr_B = B->sr;
+      pmsum->is_sparse_A = A->is_sparse;
+      pmsum->is_sparse_B = B->is_sparse;
+      pmsum->nnz_A = A->nnz_loc;
+      pmsum->nnz_B = B->nnz_loc;
+      if (is_top){
+        htsum = pmsum;
+        is_top = 0;
+      } else {
+        *rec_tsum = pmsum;
+      }
+      if (A->is_sparse){
+        pmsum->perm_A=true;
+      }
+      //FIXME: finish
+    }
+
     need_rep = 0;
     for (i=0; i<nphys_dim; i++){
       if (phys_mapped[2*i+0] == 0 ||
@@ -1223,6 +1249,7 @@ namespace CTF_int {
       tnsr_B = new_tsr;
       map_B = new_idx_map;
     }
+    // FIXME: if A has self indices and function is distributive, presum A first, otherwise if it is dense and B is sparse, sparsify A
     summation new_sum = summation(*this);
     new_sum.A = tnsr_A;
     new_sum.B = tnsr_B;

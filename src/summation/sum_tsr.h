@@ -72,6 +72,8 @@ namespace CTF_int {
       char const *     beta;
       void *           buffer;
 
+      int nvirt_A; /* number of A blocks */
+      int nvirt_B; /* number of B blocks */
       //if sparse
       bool      is_sparse_A;
       int64_t   nnz_A;
@@ -132,8 +134,6 @@ namespace CTF_int {
     public: 
       int64_t size_A; /* size of A blocks */
       int64_t size_B; /* size of B blocks */
-      int64_t nvirt_A; /* number of A blocks */
-      int64_t nvirt_B; /* number of B blocks */
       int ncdt_A; /* number of processor dimensions to replicate A along */
       int ncdt_B; /* number of processor dimensions to replicate B along */
 
@@ -187,6 +187,27 @@ namespace CTF_int {
                       CTF_int::cdealloc(sym_A), CTF_int::cdealloc(sym_B); };
       seq_tsr_sum(){}
 
+  };
+
+  class tsum_sp_permute : public tsum {
+    public:
+      tsum * rec_tsum;
+      bool perm_A; //if false perm_B
+      int order;
+      int * lens;
+      int * p;
+      int nmap_idx;
+      int64_t * map_idx_len;
+      int64_t * map_idx_lda;
+
+      void run();
+      void print();
+      int64_t mem_fp();
+      tsum * clone();
+
+      tsum_sp_permute(tsum * other);
+      ~tsum_sp_permute();
+      tsum_sp_permute(){}
   };
 
 

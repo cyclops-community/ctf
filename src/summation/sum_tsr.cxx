@@ -441,6 +441,215 @@ namespace CTF_int {
     }
   }
 
+  tsum_sp_permute::~tsum_sp_permute() {
+    cdealloc(p);
+  }
+
+  tsum_sp_permute::tsum_sp_permute(tsum * other) : tsum(other) {
+    tsum_sp_permute * o = (tsum_sp_permute*)other;
+    rec_tsum            = o->rec_tsum->clone();
+    perm_A              = o->perm_A;
+    order               = o->order;
+    nmap_idx            = o->nmap_idx;
+    p                   = (int*)CTF_int::alloc(sizeof(int)*order);
+    lens                = (int*)CTF_int::alloc(sizeof(int)*order);
+    map_idx_len        = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
+    map_idx_lda        = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
+    memcpy(p, o->p, sizeof(int)*order);
+    memcpy(lens, o->lens, sizeof(int)*order);
+    memcpy(map_idx_len, o->map_idx_len, sizeof(int64_t)*nmap_idx);
+    memcpy(map_idx_lda, o->map_idx_lda, sizeof(int64_t)*nmap_idx);
+  }
+
+
+  tsum * tsum_sp_permute::clone() {
+    return new tsum_sp_permute(this);
+  }
+
+  void tsum_sp_permute::print(){
+    printf("tsum_sp_permute:\n");
+    if (perm_A) printf("permuting A\n");
+    else        printf("permuting B\n");
+    rec_tsum->print();
+  }
+  
+  int64_t tsum_sp_permute::mem_fp(){
+    int64_t mem = 0;
+    if (perm_A) mem+=nnz_A*sr_A->pair_size();
+    else mem+=nnz_B*sr_B->pair_size();
+    if (nmap_idx > 0){
+      int64_t tot_rep=1;
+      for (int midx=0; midx<nmap_idx; midx++){
+        tot_rep *= map_idx_len[midx];
+      }
+      return (tot_rep+1)*mem;
+    } else return mem;
+  }
+
+  void tsum_sp_permute::run(){
+    char * buf;
+    CTF_int::alloc_ptr(nnz_A*sr_A->pair_size(), (void**)&buf);
+    if (perm_A){
+      memcpy(buf, A, nnz_A*sr_A->pair_size());
+      int64_t new_lda_A[order];
+      int64_t lda=1;
+      for (int i=0; i<order; i++){
+        //reduce over this index
+        if (p[i] == -1){
+          new_lda_A[p[i]] = 0;
+        } else {
+          new_lda_A[p[i]] = lda;
+          lda *= lens[i];
+        }
+      }
+      ConstPairIterator rA(sr_A, A);
+      PairIterator wA(sr_A, buf);
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=0; i<nnz_A; i++){
+        int64_t k = rA[i].k();
+        int64_t k_new = 0;
+        for (int j=0; j<order; j++){
+          k_new += (k%lens[j])*new_lda_A[j];
+          k = k/lens[j];
+        }
+        ((int64_t*)wA[i].ptr)[0] = k_new;
+        memcpy(wA[i].d(), rA[i].d(), sr_A->el_size);
+      }
+      
+      PairIterator mwA = wA;
+      for (int v=0; v<nvirt_A; v++){
+        mwA.sort(blk_szs_A[v]);
+        mwA = mwA[blk_szs_A[v]];
+      }
+
+      if (nmap_idx > 0){
+        int64_t tot_rep=1;
+        for (int midx=0; midx<nmap_idx; midx++){
+          tot_rep *= map_idx_len[midx];
+        }
+        char * swap_buf = buf;
+        alloc_ptr(sr_A->pair_size()*nnz_A*tot_rep, (void**)&buf);
+        PairIterator pi_new(sr_A, buf);
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<nnz_A; i++){
+          for (int64_t r=0; r<tot_rep; r++){
+            memcpy(pi_new[i*tot_rep+r].ptr, wA[i].ptr, sr_A->pair_size());
+          }
+        }
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<nnz_A; i++){
+          int64_t phase=1;
+          for (int midx=0; midx<nmap_idx; midx++){
+            int64_t stride=phase;
+            phase *= map_idx_len[midx];
+            for (int64_t r=0; r<tot_rep/phase; r++){
+              for (int64_t m=1; m<map_idx_len[midx]; m++){
+                for (int64_t s=0; s<stride; s++){
+                  ((int64_t*)(pi_new[i*tot_rep + r*phase + m*stride + s].ptr))[0] += m*map_idx_lda[midx];
+                }
+              }
+            }
+          }
+        }
+        cdealloc(swap_buf);
+        nnz_A *= tot_rep;
+        rec_tsum->nnz_A = nnz_A;
+        for (int v=0; v<nvirt_A; v++){
+          blk_szs_A[v] *= tot_rep;
+        }
+      }
+      rec_tsum->A = buf;
+    } else {
+      memcpy(buf, B, nnz_B*sr_B->pair_size());
+      int64_t new_lda_B[order];
+      int64_t lda=1;
+      for (int i=0; i<order; i++){
+        new_lda_B[p[i]] = lda;
+        lda *= lens[i];
+      }
+      ConstPairIterator rB(sr_B, B);
+      PairIterator wB(sr_B, buf);
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=0; i<nnz_B; i++){
+        int64_t k = rB[i].k();
+        int64_t k_new = 0;
+        for (int j=0; j<order; j++){
+          k_new += (k%lens[j])*new_lda_B[j];
+          k = k/lens[j];
+        }
+        ((int64_t*)wB[i].ptr)[0] = k_new;
+        memcpy(wB[i].d(), rB[i].d(), sr_B->el_size);
+      }
+
+      PairIterator mwB = wB;
+      for (int v=0; v<nvirt_B; v++){
+        mwB.sort(blk_szs_B[v]);
+        mwB = mwB[blk_szs_B[v]];
+      }
+
+      rec_tsum->B = buf;
+    }
+  
+
+    rec_tsum->run();
+
+    new_nnz_B = rec_tsum->new_nnz_B;
+    if (perm_A){
+      new_B = rec_tsum->B;
+      cdealloc(buf);
+    } else {
+      if (nnz_B == new_nnz_B){
+        new_B = B;
+      } else {
+        new_B = (char*)alloc(new_nnz_B*sr_B->pair_size());
+      }
+      int inv_p[order];
+      for (int i=0; i<order; i++){
+        inv_p[p[i]] = i;
+      }
+      int64_t new_lda_B[order];
+      int64_t lda=1;
+      for (int i=0; i<order; i++){
+        new_lda_B[inv_p[i]] = lda;
+        lda *= lens[i];
+      }
+      ConstPairIterator rB(sr_B, rec_tsum->new_B);
+      PairIterator wB(sr_B, new_B);
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=0; i<nnz_B; i++){
+        int64_t k = rB[i].k();
+        int64_t k_new = 0;
+        for (int j=0; j<order; j++){
+          k_new += (k%lens[j])*new_lda_B[j];
+          k = k/lens[j];
+        }
+        ((int64_t*)wB[i].ptr)[0] = k_new;
+        memcpy(wB[i].d(), rB[i].d(), sr_B->el_size);
+      }
+      PairIterator mwB = wB;
+      for (int v=0; v<nvirt_B; v++){
+        mwB.sort(blk_szs_B[v]);
+        mwB = mwB[blk_szs_B[v]];
+      }
+
+
+      if (buf != rec_tsum->new_B){
+        cdealloc(rec_tsum->new_B);
+      }
+      cdealloc(buf);
+    }
+  }
+
   void inv_idx(int                order_A,
                int const *        idx_A,
                int                order_B,
