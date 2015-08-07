@@ -524,6 +524,10 @@ namespace CTF_int {
       tsum_replicate * rtsum = new tsum_replicate;
       rtsum->sr_A = A->sr;
       rtsum->sr_B = B->sr;
+      rtsum->is_sparse_A = A->is_sparse;
+      rtsum->is_sparse_B = B->is_sparse;
+      rtsum->nnz_A = A->nnz_loc;
+      rtsum->nnz_B = B->nnz_loc;
       if (is_top){
         htsum = rtsum;
         is_top = 0;
@@ -579,6 +583,11 @@ namespace CTF_int {
       tsum_virt * tsumv = new tsum_virt;
       tsumv->sr_A = A->sr;
       tsumv->sr_B = B->sr;
+      tsumv->is_sparse_A = A->is_sparse;
+      tsumv->is_sparse_B = B->is_sparse;
+      tsumv->nnz_A = A->nnz_loc;
+      tsumv->nnz_B = B->nnz_loc;
+      tsumv->blk_szs_B = B->nnz_blk;
       if (is_top) {
         htsum = tsumv;
         is_top = 0;
@@ -601,6 +610,10 @@ namespace CTF_int {
     seq_tsr_sum * tsumseq = new seq_tsr_sum;
     tsumseq->sr_A = A->sr;
     tsumseq->sr_B = B->sr;
+    tsumseq->is_sparse_A = A->is_sparse;
+    tsumseq->is_sparse_B = B->is_sparse;
+    tsumseq->nnz_A = A->nnz_loc;
+    tsumseq->nnz_B = B->nnz_loc;
     if (inner_stride == -1){
       tsumseq->is_inner = 0;
     } else {
@@ -654,21 +667,21 @@ namespace CTF_int {
     } else {
       *rec_tsum = tsumseq;
     }
-    tsumseq->order_A    = A->order;
-    tsumseq->idx_map_A  = idx_A;
-    tsumseq->edge_len_A = virt_blk_len_A;
-    tsumseq->sym_A      = new_sym_A;
-    tsumseq->order_B    = B->order;
-    tsumseq->idx_map_B  = idx_B;
-    tsumseq->edge_len_B = virt_blk_len_B;
-    tsumseq->sym_B      = new_sym_B;
-    tsumseq->is_custom  = is_custom;
+    tsumseq->order_A     = A->order;
+    tsumseq->idx_map_A   = idx_A;
+    tsumseq->edge_len_A  = virt_blk_len_A;
+    tsumseq->sym_A       = new_sym_A;
+    tsumseq->order_B     = B->order;
+    tsumseq->idx_map_B   = idx_B;
+    tsumseq->edge_len_B  = virt_blk_len_B;
+    tsumseq->sym_B       = new_sym_B;
+    tsumseq->is_custom   = is_custom;
     if (is_custom){
-      tsumseq->is_inner = 0;
-      tsumseq->func     = func;
-    }
-    htsum->alpha        = alpha;
-    htsum->beta         = beta;
+      tsumseq->is_inner  = 0;
+      tsumseq->func      = func;
+    } else tsumseq->func = NULL;
+    htsum->alpha         = alpha;
+    htsum->beta          = beta;
 
     htsum->A = A->data;
     htsum->B = B->data;
@@ -1339,6 +1352,13 @@ namespace CTF_int {
       tnsr_A->topo->activate();
       MPI_Barrier(tnsr_B->wrld->comm);
       sumf->run();
+      if (B->is_sparse){
+        if (B->data != sumf->new_B){
+          cdealloc(B->data);
+          B->data = sumf->new_B;
+          B->nnz_loc = sumf->new_nnz_B;
+        }
+      }
       /*tnsr_B->unfold();
       tnsr_B->print();
       MPI_Barrier(tnsr_B->wrld->comm);

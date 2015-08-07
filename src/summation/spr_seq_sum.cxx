@@ -191,13 +191,12 @@ namespace CTF_int{
     //    t, w, and n are incremented within
     // only incrementing r allows multiple writes of the same val
     for (int64_t t=0,w=0,n=0; n<nnew; n++){
-      if (t<nB && prs_B[t].k() < prs_A[w].k()){
+      if (t<nB && (w==nA || prs_B[t].k() < prs_A[w].k())){
         memcpy(prs_new[n].ptr, prs_B[t].ptr, sr_B->pair_size());
         t++;
       } else {
         if (t>=nB || prs_B[t].k() > prs_A[w].k()){
           if (func == NULL){
-            ASSERT(sr_A==sr_B);
             memcpy(prs_new[n].ptr, prs_A[w].ptr, sr_A->pair_size());
             if (alpha != NULL)
               sr_A->mul(prs_new[n].d(), alpha, prs_new[n].d());

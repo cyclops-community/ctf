@@ -72,16 +72,19 @@ namespace CTF_int {
       char const *     beta;
       void *           buffer;
 
-      bool    is_sparse_A;
-      int64_t nnz_A;
-      bool    is_sparse_B;
-      int64_t nnz_B;
-      int64_t new_nnz_B;
-      char *  new_B_buffer;
+      //if sparse
+      bool      is_sparse_A;
+      int64_t   nnz_A;
+      int64_t * blk_szs_A;
+      bool      is_sparse_B;
+      int64_t   nnz_B;
+      int64_t * blk_szs_B;
+      int64_t   new_nnz_B;
+      char *    new_B;
       
       virtual void run() {};
       virtual void print() {};
-      virtual int64_t calc_new_nnz_B() { return nnz_B; } //if sparse
+//      virtual int64_t calc_new_nnz_B() { return nnz_B; } //if sparse
       /**
        * \brief returns the number of bytes of buffer space needed
        * \return bytes needed
@@ -103,11 +106,9 @@ namespace CTF_int {
       int *       virt_dim;
       int         order_A;
       int64_t     blk_sz_A; //if dense
-      int64_t *   blk_szs_A; //if sparse
       int const * idx_map_A;
       int         order_B;
       int64_t     blk_sz_B; //if dense
-      int64_t *   blk_szs_B; //if sparse
       int const * idx_map_B;
       
       void run();
@@ -131,6 +132,8 @@ namespace CTF_int {
     public: 
       int64_t size_A; /* size of A blocks */
       int64_t size_B; /* size of B blocks */
+      int64_t nvirt_A; /* number of A blocks */
+      int64_t nvirt_B; /* number of B blocks */
       int ncdt_A; /* number of processor dimensions to replicate A along */
       int ncdt_B; /* number of processor dimensions to replicate B along */
 
@@ -172,7 +175,6 @@ namespace CTF_int {
        */
       void run();
       void print();
-      int64_t calc_new_nnz_B();
       int64_t mem_fp();
       tsum * clone();
 

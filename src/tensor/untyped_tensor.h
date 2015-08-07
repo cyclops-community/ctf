@@ -125,7 +125,9 @@ namespace CTF_int {
       /** \brief number of local nonzero elements */
       int64_t nnz_loc;
       /** \brief maximum number of local nonzero elements over all procs*/
-      int64_t nnz_loc_max;
+      //int64_t nnz_loc_max;
+      /** \brief nonzero elements in each block owned locally */
+      int64_t * nnz_blk;
       
       /**
        * \brief associated an index map with the tensor for future operation

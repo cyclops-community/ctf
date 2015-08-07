@@ -33,6 +33,7 @@ int sptensor_sum(int     n,
     B.write(0, NULL, NULL);
   }
 
+  //A.print();
   //B.print();
 
   B["abij"] += A["abij"];

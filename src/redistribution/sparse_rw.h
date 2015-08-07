@@ -89,18 +89,18 @@ namespace CTF_int {
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr algstrct context defining values
    */
-  void bucket_by_pe( int               order,
-                     int64_t           num_pair,
-                     int64_t           np,
-                     int const *       phys_phase,
-                     int const *       virt_phase,
-                     int const *       bucket_lda,
-                     int const *       edge_len,
-                     ConstPairIterator mapped_data,
-                     int64_t *         bucket_counts,
-                     int64_t *         bucket_off,
-                     PairIterator      bucket_data,
-                     algstrct const *  sr);
+  void bucket_by_pe(int               order,
+                    int64_t           num_pair,
+                    int64_t           np,
+                    int const *       phys_phase,
+                    int const *       virt_phase,
+                    int const *       bucket_lda,
+                    int const *       edge_len,
+                    ConstPairIterator mapped_data,
+                    int64_t *         bucket_counts,
+                    int64_t *         bucket_off,
+                    PairIterator      bucket_data,
+                    algstrct const *  sr);
 
   /**
    * \brief buckets key value pairs by block/virtual-processor
@@ -114,15 +114,15 @@ namespace CTF_int {
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr algstrct context defining values
    */
-  void bucket_by_virt(int               order,
-                      int               num_virt,
-                      int64_t           num_pair,
-                      int const *       phys_phase,
-                      int const *       virt_phase,
-                      int const *       edge_len,
-                      ConstPairIterator mapped_data,
-                      PairIterator      bucket_data,
-                      algstrct const *  sr);
+  int64_t * bucket_by_virt(int               order,
+                           int               num_virt,
+                           int64_t           num_pair,
+                           int const *       phys_phase,
+                           int const *       virt_phase,
+                           int const *       edge_len,
+                           ConstPairIterator mapped_data,
+                           PairIterator      bucket_data,
+                           algstrct const *  sr);
 
   /**
    * \brief read or write pairs from / to tensor
@@ -200,14 +200,15 @@ namespace CTF_int {
                        int const *      virt_phase,
                        int *            virt_phys_rank,
                        int const *      bucket_lda,
-                       char *           wr_pairs,
+                       char *           wr_pairs_buf,
                        char *           rw_data,
                        CommData         glb_comm,
                        algstrct const * sr,
                        bool             is_sparse,
                        int64_t          nnz_loc,
+                       int64_t *        nnz_blk,
                        char *&          pprs_new,
-                       int64_t &        new_nnz_loc);
+                       int64_t &        nnz_loc_new);
 
 
   /**
@@ -278,14 +279,15 @@ namespace CTF_int {
    * \param[out] nnew number of elements in resulting set
    * \param[out] pprs_new char array containing the pairs of the resulting set
    */
-  void sp_write(algstrct const *  sr,
-                int64_t           ntsr,
-                ConstPairIterator prs_tsr,
+  void sp_write(int               num_virt,
+                algstrct const *  sr,
+                int64_t *         vntsr,
+                ConstPairIterator vprs_tsr,
                 char const *      beta,
-                int64_t           nwrite,
-                ConstPairIterator prs_write,
+                int64_t *         vnwrite,
+                ConstPairIterator vprs_write,
                 char const *      alpha,
-                int64_t &         nnew,
+                int64_t *         vnnew,
                 char *&           pprs_new);
 }
 #endif

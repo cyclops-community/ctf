@@ -3,6 +3,7 @@
 #include "../shared/util.h"
 #include "sum_tsr.h"
 #include "sym_seq_sum.h"
+#include "spr_seq_sum.h"
 #include "../interface/fun_term.h"
 #include "../interface/idx_tensor.h"
 
@@ -29,7 +30,7 @@ namespace CTF_int {
     is_sparse_B  = other->is_sparse_B;
     nnz_B        = other->nnz_B;
     new_nnz_B    = other->new_nnz_B;
-    new_B_buffer = other->new_B_buffer;
+    new_B        = other->new_B;
   }
 
   tsum_virt::~tsum_virt() {
@@ -129,7 +130,7 @@ namespace CTF_int {
     char ** buckets_B;
     if (is_sparse_B){
       sp_offsets_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_B);
-      *new_sp_szs_B = blk_sz_B; //(int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_B);
+      new_sp_szs_B = blk_szs_B; //(int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_B);
 //      memcpy(new_sp_szs_B, blk_sz_B, sizeof(int64_t)*nb_B);
       buckets_B = (char**)CTF_int::alloc(sizeof(char*)*nb_B);
       for (int i=0; i<nb_B; i++){
@@ -167,7 +168,7 @@ namespace CTF_int {
       if (is_sparse_B){
         new_sp_szs_B[off_B] = rec_tsum->new_nnz_B;
         if (beta_arr[off_B] > 0) cdealloc(buckets_B[off_B]);
-        buckets_B[off_B] = rec_tsum->new_B_buffer;
+        buckets_B[off_B] = rec_tsum->new_B;
       }
       beta_arr[off_B] = 1;
 
@@ -188,10 +189,10 @@ namespace CTF_int {
       for (int i=0; i<nb_B; i++){
         this->new_nnz_B += new_sp_szs_B[i];
       }
-      new_B_buffer = (char*)alloc(this->new_nnz_B*this->sr_B->el_size);
+      new_B = (char*)alloc(this->new_nnz_B*this->sr_B->el_size);
       int64_t pfx = 0;
       for (int i=0; i<nb_B; i++){
-        memcpy(new_B_buffer+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->el_size);
+        memcpy(new_B+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->el_size);
         if (beta_arr[i] > 0) cdealloc(buckets_B[i]);
       }
       //FIXME: how to pass B back generally
@@ -262,12 +263,16 @@ namespace CTF_int {
       size_A = nnz_A;
       for (i=0; i<ncdt_A; i++){
         MPI_Bcast(&size_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
+        MPI_Bcast(blk_szs_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
       }
     }
     if (is_sparse_B){
+      //FIXME: need to replicate blk_szs_B for this
+      assert(ncdt_B == 0);
       size_B = nnz_B;
       for (i=0; i<ncdt_B; i++){
         MPI_Bcast(&size_B, 1, MPI_INT64_T, 0, cdt_B[i]->cm);
+        MPI_Bcast(blk_szs_B, nvirt_B, MPI_INT64_T, 0, cdt_A[i]->cm);
       }
     }
 
@@ -284,9 +289,11 @@ namespace CTF_int {
     }
     if (brank != 0) sr_B->set(this->B, sr_B->addid(), size_B);
 
-    rec_tsum->A           = this->A;
-    rec_tsum->B           = this->B;
-    rec_tsum->alpha       = this->alpha;
+    rec_tsum->A         = this->A;
+    rec_tsum->blk_szs_A = this->blk_szs_A;
+    rec_tsum->B         = this->B;
+    rec_tsum->blk_szs_B = this->blk_szs_B;
+    rec_tsum->alpha     = this->alpha;
     if (brank != 0)
       rec_tsum->beta = sr_B->mulid();
     else
@@ -343,54 +350,94 @@ namespace CTF_int {
   int64_t seq_tsr_sum::mem_fp(){ return 0; }
 
   void seq_tsr_sum::run(){
-    if (is_custom){
-      ASSERT(is_inner == 0);
-      sym_seq_sum_cust(this->alpha,
-                       this->A,
-                       this->sr_A,
-                       order_A,
-                       edge_len_A,
-                       sym_A,
-                       idx_map_A,
-                       this->beta,
-                       this->B,
-                       this->sr_B,
-                       order_B,
-                       edge_len_B,
-                       sym_B,
-                       idx_map_B,
-                       func);
-    } else if (is_inner){
-      sym_seq_sum_inr(this->alpha,
+    if (is_sparse_A && !is_sparse_B){
+      spA_dnB_seq_sum(this->alpha,
                       this->A,
+                      this->nnz_A,
                       this->sr_A,
-                      order_A,
-                      edge_len_A,
-                      sym_A,
-                      idx_map_A,
                       this->beta,
                       this->B,
                       this->sr_B,
                       order_B,
                       edge_len_B,
                       sym_B,
-                      idx_map_B,
-                      inr_stride);
+                      func);
+    } else if (!is_sparse_A && is_sparse_B){
+      dnA_spB_seq_sum(this->alpha,
+                      this->A,
+                      this->sr_A,
+                      order_A,
+                      edge_len_A,
+                      sym_A,
+                      this->beta,
+                      this->B,
+                      this->nnz_B,
+                      this->new_B,
+                      this->new_nnz_B,
+                      this->sr_B,
+                      func);
+    } else if (is_sparse_A && is_sparse_B){
+      spA_spB_seq_sum(this->alpha,
+                      this->A,
+                      this->nnz_A,
+                      this->sr_A,
+                      this->beta,
+                      this->B,
+                      this->nnz_B,
+                      this->new_B,
+                      this->new_nnz_B,
+                      this->sr_B,
+                      func);
     } else {
-      sym_seq_sum_ref(this->alpha,
-                      this->A,
-                      this->sr_A,
-                      order_A,
-                      edge_len_A,
-                      sym_A,
-                      idx_map_A,
-                      this->beta,
-                      this->B,
-                      this->sr_B,
-                      order_B,
-                      edge_len_B,
-                      sym_B,
-                      idx_map_B);
+      if (is_custom){
+        ASSERT(is_inner == 0);
+        sym_seq_sum_cust(this->alpha,
+                         this->A,
+                         this->sr_A,
+                         order_A,
+                         edge_len_A,
+                         sym_A,
+                         idx_map_A,
+                         this->beta,
+                         this->B,
+                         this->sr_B,
+                         order_B,
+                         edge_len_B,
+                         sym_B,
+                         idx_map_B,
+                         func);
+      } else if (is_inner){
+        sym_seq_sum_inr(this->alpha,
+                        this->A,
+                        this->sr_A,
+                        order_A,
+                        edge_len_A,
+                        sym_A,
+                        idx_map_A,
+                        this->beta,
+                        this->B,
+                        this->sr_B,
+                        order_B,
+                        edge_len_B,
+                        sym_B,
+                        idx_map_B,
+                        inr_stride);
+      } else {
+        sym_seq_sum_ref(this->alpha,
+                        this->A,
+                        this->sr_A,
+                        order_A,
+                        edge_len_A,
+                        sym_A,
+                        idx_map_A,
+                        this->beta,
+                        this->B,
+                        this->sr_B,
+                        order_B,
+                        edge_len_B,
+                        sym_B,
+                        idx_map_B);
+      }
     }
   }
 

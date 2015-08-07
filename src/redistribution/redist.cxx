@@ -47,9 +47,9 @@ namespace CTF_int {
       pairs = NULL;
     }
 
-  #if DEBUG >= 1
+  /*#if DEBUG >= 1
     int64_t old_size = sy_packed_size(old_dist.order, new_dist.pad_edge_len, sym);
-  #endif
+  #endif*/
 
     for (int i=0; i<old_dist.order; i++){
       sub_edge_len[i] = new_dist.pad_edge_len[i] / new_dist.phase[i];
@@ -92,6 +92,7 @@ namespace CTF_int {
                     sr,
                     false,
                     0,
+                    NULL,
                     aignrd,
                     ignrd);
                   

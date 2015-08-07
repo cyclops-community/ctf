@@ -244,7 +244,7 @@ namespace CTF_int {
       copy_mapping(other->order, other->edge_map, this->edge_map);
     this->size = other->size;
     this->nnz_loc = other->nnz_loc;
-    this->nnz_loc_max = other->nnz_loc_max;
+    //this->nnz_loc_max = other->nnz_loc_max;
 #if DEBUG>= 1
     if (wrld->rank == 0)
       printf("New tensor %s copied from %s of size %ld elms (%ld bytes):\n",name, other->name, this->size,this->size*sr->el_size);
@@ -278,7 +278,7 @@ namespace CTF_int {
     this->is_sparse         = is_sparse_;
     this->data              = NULL;
     this->nnz_loc           = 0;
-    this->nnz_loc_max       = 0;
+//    this->nnz_loc_max       = 0;
     if (name_ != NULL){
       this->name = (char*)alloc(strlen(name_)+1);
       strcpy(this->name, name_);
@@ -325,7 +325,7 @@ namespace CTF_int {
       }*/
     }
     /* Set tensor data to zero. */
-    if (alloc_data && !is_sparse){
+    if (alloc_data){
       int ret = set_zero();
       ASSERT(ret == SUCCESS);
     }
@@ -375,9 +375,11 @@ namespace CTF_int {
     int j, pad, i;
     int * new_phase, * sub_edge_len;
     mapping * map;
+    //if (!is_mapped) return;
 
     CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&new_phase);
     CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&sub_edge_len);
+
 /*
     for (i=0; i<this->order; i++){
       this->edge_len[i] -= this->padding[i];
@@ -400,7 +402,7 @@ namespace CTF_int {
     this->size = calc_nvirt()*sy_packed_size(this->order, sub_edge_len, this->sym);
    
     //NEW: I think its always true
-    is_mapped = 1; 
+    //is_mapped = 1; 
 
     CTF_int::cdealloc(sub_edge_len);
     CTF_int::cdealloc(new_phase);
@@ -498,7 +500,10 @@ namespace CTF_int {
       this->set_padding();
 
      
-      if (!is_sparse){
+      if (is_sparse){
+        nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
+        std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
+      } else {
         #ifdef HOME_CONTRACT 
         if (this->order > 0){
           this->home_size = this->size; //MAX(1024+this->size, 1.20*this->size);
@@ -915,9 +920,9 @@ namespace CTF_int {
     if (tsr->has_zero_edge_len) return SUCCESS;
     TAU_FSTART(write_pairs);
     ASSERT(!is_folded);
-    tsr->set_padding();
 
     if (tsr->is_mapped){
+      tsr->set_padding();
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&phase);
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&phys_phase);
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&virt_phys_rank);
@@ -962,6 +967,7 @@ namespace CTF_int {
                       sr,
                       is_sparse,
                       nnz_loc,
+                      nnz_blk,
                       new_pairs,
                       nnz_loc_new);
       if (is_sparse && rw == 'w'){
@@ -1155,7 +1161,7 @@ namespace CTF_int {
       has_home = false;
       home_buffer = NULL;
       nnz_loc = 0;
-      nnz_loc_max = 0;
+      //nnz_loc_max = 0;
       //write old data as pairs to self FIXME can be done faster
       write(num_pairs, sr->mulid(), sr->addid(), all_pairs);
       //sparsify sparse->sparse
@@ -2017,7 +2023,7 @@ namespace CTF_int {
 
     TAU_FSTART(zero_out_padding);
 
-    if (this->has_zero_edge_len){
+    if (this->has_zero_edge_len || is_sparse){
       return SUCCESS;
     }
     this->unfold();
