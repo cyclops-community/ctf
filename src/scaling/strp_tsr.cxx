@@ -115,6 +115,8 @@ namespace CTF_int {
     strip_B      = o->strip_B;
   }
 
+  strp_sum::strp_sum(summation const * s) : tsum(s) { }
+
   tsum* strp_sum::clone() {
     return new strp_sum(this);
   }

@@ -7,6 +7,7 @@
 #include "../interface/fun_term.h"
 
 namespace CTF_int {
+  class summation;
   /**
    * \brief untyped internal class for doubly-typed univariate function
    */
@@ -72,15 +73,15 @@ namespace CTF_int {
       char const *     beta;
       void *           buffer;
 
-      int nvirt_A; /* number of A blocks */
-      int nvirt_B; /* number of B blocks */
-      //if sparse
+      //needed if sparse
       bool      is_sparse_A;
       int64_t   nnz_A;
-      int64_t * blk_szs_A;
+      int       nvirt_A;
+      int64_t * nnz_blk_A;
       bool      is_sparse_B;
       int64_t   nnz_B;
-      int64_t * blk_szs_B;
+      int       nvirt_B;
+      int64_t * nnz_blk_B;
       int64_t   new_nnz_B;
       char *    new_B;
       
@@ -92,11 +93,15 @@ namespace CTF_int {
        * \return bytes needed
        */
       virtual int64_t mem_fp() { return 0; };
+      virtual void set_nnz_blk_A(int64_t const * nnbA){
+        if (nnbA != NULL) memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
+      }
       virtual tsum * clone() { return NULL; };
       
       virtual ~tsum(){ if (buffer != NULL) CTF_int::cdealloc(buffer); }
       tsum(tsum * other);
       tsum(){ buffer = NULL; }
+      tsum(summation const * s);
   };
 
   class tsum_virt : public tsum {
@@ -116,6 +121,10 @@ namespace CTF_int {
       void run();
       void print();
       int64_t mem_fp();
+      void set_nnz_blk_A(int64_t const * nnbA){
+        tsum::set_nnz_blk_A(nnbA);
+        rec_tsum->set_nnz_blk_A(nnbA);
+      }
       tsum * clone();
 
       /**
@@ -124,6 +133,7 @@ namespace CTF_int {
       tsum_virt(tsum * other);
       ~tsum_virt();
       tsum_virt(){}
+      tsum_virt(summation const * s);
   };
 
 
@@ -146,10 +156,15 @@ namespace CTF_int {
       void print();
       int64_t mem_fp();
       tsum * clone();
+      void set_nnz_blk_A(int64_t const * nnbA){
+        tsum::set_nnz_blk_A(nnbA);
+        rec_tsum->set_nnz_blk_A(nnbA);
+      }
 
       tsum_replicate(tsum * other);
       ~tsum_replicate();
       tsum_replicate(){}
+      tsum_replicate(summation const * s);
   };
 
   class seq_tsr_sum : public tsum {
@@ -177,6 +192,9 @@ namespace CTF_int {
       void print();
       int64_t mem_fp();
       tsum * clone();
+      void set_nnz_blk_A(int64_t const * nnbA){
+        tsum::set_nnz_blk_A(nnbA);
+      }
 
       /**
        * \brief copies sum object
@@ -186,16 +204,13 @@ namespace CTF_int {
       ~seq_tsr_sum(){ CTF_int::cdealloc(edge_len_A), CTF_int::cdealloc(edge_len_B), 
                       CTF_int::cdealloc(sym_A), CTF_int::cdealloc(sym_B); };
       seq_tsr_sum(){}
+      seq_tsr_sum(summation const * s);
 
   };
 
-  class tsum_sp_permute : public tsum {
+  class tsum_sp_map : public tsum {
     public:
       tsum * rec_tsum;
-      bool perm_A; //if false perm_B
-      int order;
-      int * lens;
-      int * p;
       int nmap_idx;
       int64_t * map_idx_len;
       int64_t * map_idx_lda;
@@ -204,10 +219,39 @@ namespace CTF_int {
       void print();
       int64_t mem_fp();
       tsum * clone();
+      void set_nnz_blk_A(int64_t const * nnbA){
+        tsum::set_nnz_blk_A(nnbA);
+        rec_tsum->set_nnz_blk_A(nnbA);
+      }
+
+      tsum_sp_map(tsum * other);
+      ~tsum_sp_map();
+      tsum_sp_map(){}
+      tsum_sp_map(summation const * s);
+  };
+
+  class tsum_sp_permute : public tsum {
+    public:
+      tsum * rec_tsum;
+      bool perm_A; //if false perm_B
+      int order;
+      int * lens_new;
+      int * lens_old;
+      int * p;
+
+      void run();
+      void print();
+      int64_t mem_fp();
+      tsum * clone();
+      void set_nnz_blk_A(int64_t const * nnbA){
+        tsum::set_nnz_blk_A(nnbA);
+        rec_tsum->set_nnz_blk_A(nnbA);
+      }
 
       tsum_sp_permute(tsum * other);
       ~tsum_sp_permute();
       tsum_sp_permute(){}
+      tsum_sp_permute(summation const * s);
   };
 
 

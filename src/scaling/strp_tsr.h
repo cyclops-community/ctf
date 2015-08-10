@@ -9,6 +9,8 @@
 #include "../mapping/mapping.h"
 
 namespace CTF_int {
+  class summation;
+
   class strp_tsr {
     public: 
       int              alloced;
@@ -117,6 +119,7 @@ namespace CTF_int {
        */
       ~strp_sum();
       strp_sum(){}
+      strp_sum(summation const * s);
   };
 
   class strp_ctr : public ctr {

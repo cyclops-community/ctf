@@ -18,19 +18,60 @@ namespace CTF_int {
   }
 
   tsum::tsum(tsum * other){
-    A            = other->A;
-    alpha        = other->alpha;
-    sr_A         = other->sr_A;
-    B            = other->B;
-    beta         = other->beta;
-    sr_B         = other->sr_B;
-    buffer       = NULL;
-    is_sparse_A  = other->is_sparse_A;
-    nnz_A        = other->nnz_A;
-    is_sparse_B  = other->is_sparse_B;
-    nnz_B        = other->nnz_B;
-    new_nnz_B    = other->new_nnz_B;
-    new_B        = other->new_B;
+    A           = other->A;
+    sr_A        = other->sr_A;
+    alpha       = other->alpha;
+    B           = other->B;
+    beta        = other->beta;
+    sr_B        = other->sr_B;
+
+    buffer      = NULL;
+
+    is_sparse_A = other->is_sparse_A;
+    nnz_A       = other->nnz_A;
+    nvirt_A     = other->nvirt_A;
+    is_sparse_B = other->is_sparse_B;
+    nnz_B       = other->nnz_B;
+    nvirt_B     = other->nvirt_B;
+    new_nnz_B   = other->new_nnz_B;
+    new_B       = other->new_B;
+
+    //nnz_blk_B should be copied by pointer, they are the same pointer as in tensor object
+    nnz_blk_B   = other->nnz_blk_B;
+    //nnz_blk_A should be copied by value, since it needs to be potentially set in replicate and deallocated later
+    if (is_sparse_A){
+      nnz_blk_A   = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nvirt_A);
+      memcpy(nnz_blk_A, other->nnz_blk_A, sizeof(int64_t)*nvirt_A);
+    }
+  }
+  
+  tsum::tsum(summation const * s){
+    A           = s->A->data;
+    sr_A        = s->A->sr;
+    alpha       = s->alpha;
+
+    B           = s->B->data;
+    sr_B        = s->B->sr;
+    beta        = s->beta;
+
+    buffer      = NULL;
+
+    is_sparse_A = s->A->is_sparse;
+    nnz_A       = s->A->nnz_loc;
+    nvirt_A     = s->A->calc_nvirt();
+
+    is_sparse_B = s->B->is_sparse;
+    nnz_B       = s->B->nnz_loc;
+    nvirt_B     = s->B->calc_nvirt();
+
+    if (is_sparse_A){
+      nnz_blk_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nvirt_A);
+      memcpy(nnz_blk_A, s->A->nnz_blk, sizeof(int64_t)*nvirt_A);
+    }
+
+    nnz_blk_B   = s->B->nnz_blk;
+    new_nnz_B   = nnz_B;
+    new_B       = NULL;
   }
 
   tsum_virt::~tsum_virt() {
@@ -47,13 +88,20 @@ namespace CTF_int {
 
     order_A   = o->order_A;
     blk_sz_A  = o->blk_sz_A;
-    blk_szs_A = o->blk_szs_A;
+    nnz_blk_A = o->nnz_blk_A;
     idx_map_A = o->idx_map_A;
 
     order_B   = o->order_B;
     blk_sz_B  = o->blk_sz_B;
-    blk_szs_B = o->blk_szs_B;
+    nnz_blk_B = o->nnz_blk_B;
     idx_map_B = o->idx_map_B;
+  }
+
+  tsum_virt::tsum_virt(summation const * s) : tsum(s) {
+    order_A   = s->A->order;
+    idx_map_A = s->idx_A;
+    order_B   = s->B->order;
+    idx_map_B = s->idx_B;
   }
 
   tsum * tsum_virt::clone() {
@@ -121,7 +169,7 @@ namespace CTF_int {
       sp_offsets_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_A);
       sp_offsets_A[0] = 0;
       for (int i=1; i<nb_A; i++){
-        sp_offsets_A[i] = sp_offsets_A[i-1]+blk_szs_A[i-1];
+        sp_offsets_A[i] = sp_offsets_A[i-1]+nnz_blk_A[i-1];
       }      
     }
  
@@ -130,14 +178,14 @@ namespace CTF_int {
     char ** buckets_B;
     if (is_sparse_B){
       sp_offsets_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_B);
-      new_sp_szs_B = blk_szs_B; //(int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_B);
+      new_sp_szs_B = nnz_blk_B; //(int64_t*)CTF_int::alloc(sizeof(int64_t)*nb_B);
 //      memcpy(new_sp_szs_B, blk_sz_B, sizeof(int64_t)*nb_B);
       buckets_B = (char**)CTF_int::alloc(sizeof(char*)*nb_B);
       for (int i=0; i<nb_B; i++){
         if (i==0)
           sp_offsets_B[0] = 0;
         else
-          sp_offsets_B[i] = sp_offsets_B[i-1]+blk_szs_B[i-1];
+          sp_offsets_B[i] = sp_offsets_B[i-1]+nnz_blk_B[i-1];
         buckets_B[i] = this->B + sp_offsets_B[i]*this->sr_B->el_size;
       }      
     }
@@ -150,7 +198,7 @@ namespace CTF_int {
     rec_tsum->beta = this->beta;
     for (;;){
       if (is_sparse_A){
-        rec_tsum->nnz_A = blk_szs_A[off_A];
+        rec_tsum->nnz_A = nnz_blk_A[off_A];
         rec_tsum->A = this->A + sp_offsets_A[off_A]*this->sr_A->el_size;
       } else
         rec_tsum->A = this->A + off_A*blk_sz_A*this->sr_A->el_size;
@@ -248,6 +296,9 @@ namespace CTF_int {
     ncdt_B = o->ncdt_B;
   }
 
+
+  tsum_replicate::tsum_replicate(summation const * s) : tsum(s) {}
+
   tsum * tsum_replicate::clone() {
     return new tsum_replicate(this);
   }
@@ -263,16 +314,16 @@ namespace CTF_int {
       size_A = nnz_A;
       for (i=0; i<ncdt_A; i++){
         MPI_Bcast(&size_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
-        MPI_Bcast(blk_szs_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
+        MPI_Bcast(nnz_blk_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
       }
     }
     if (is_sparse_B){
-      //FIXME: need to replicate blk_szs_B for this
+      //FIXME: need to replicate nnz_blk_B for this
       assert(ncdt_B == 0);
       size_B = nnz_B;
       for (i=0; i<ncdt_B; i++){
         MPI_Bcast(&size_B, 1, MPI_INT64_T, 0, cdt_B[i]->cm);
-        MPI_Bcast(blk_szs_B, nvirt_B, MPI_INT64_T, 0, cdt_A[i]->cm);
+        MPI_Bcast(nnz_blk_B, nvirt_B, MPI_INT64_T, 0, cdt_A[i]->cm);
       }
     }
 
@@ -290,9 +341,9 @@ namespace CTF_int {
     if (brank != 0) sr_B->set(this->B, sr_B->addid(), size_B);
 
     rec_tsum->A         = this->A;
-    rec_tsum->blk_szs_A = this->blk_szs_A;
+    rec_tsum->nnz_blk_A = this->nnz_blk_A;
     rec_tsum->B         = this->B;
-    rec_tsum->blk_szs_B = this->blk_szs_B;
+    rec_tsum->nnz_blk_B = this->nnz_blk_B;
     rec_tsum->alpha     = this->alpha;
     if (brank != 0)
       rec_tsum->beta = sr_B->mulid();
@@ -328,6 +379,16 @@ namespace CTF_int {
 
     is_custom  = o->is_custom;
     func       = o->func;
+  }
+  
+  seq_tsr_sum::seq_tsr_sum(summation const * s) : tsum(s) {
+    order_A   = s->A->order;
+    sym_A     = s->A->sym;
+    idx_map_A = s->idx_A;
+    order_B   = s->B->order;
+    sym_B     = s->B->sym;
+    idx_map_B = s->idx_B;
+    is_custom = s->is_custom;
   }
 
   void seq_tsr_sum::print(){
@@ -441,26 +502,189 @@ namespace CTF_int {
     }
   }
 
-  tsum_sp_permute::~tsum_sp_permute() {
-    cdealloc(p);
+  tsum_sp_map::~tsum_sp_map() {
+    cdealloc(map_idx_len);
+    cdealloc(map_idx_lda);
   }
 
-  tsum_sp_permute::tsum_sp_permute(tsum * other) : tsum(other) {
-    tsum_sp_permute * o = (tsum_sp_permute*)other;
-    rec_tsum            = o->rec_tsum->clone();
-    perm_A              = o->perm_A;
-    order               = o->order;
-    nmap_idx            = o->nmap_idx;
-    p                   = (int*)CTF_int::alloc(sizeof(int)*order);
-    lens                = (int*)CTF_int::alloc(sizeof(int)*order);
-    map_idx_len        = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
-    map_idx_lda        = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
-    memcpy(p, o->p, sizeof(int)*order);
-    memcpy(lens, o->lens, sizeof(int)*order);
+
+  tsum_sp_map::tsum_sp_map(tsum * other) : tsum(other) {
+    tsum_sp_map * o = (tsum_sp_map*)other;
+    rec_tsum    = o->rec_tsum->clone();
+    nmap_idx    = o->nmap_idx;
+    map_idx_len = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
+    map_idx_lda = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
     memcpy(map_idx_len, o->map_idx_len, sizeof(int64_t)*nmap_idx);
     memcpy(map_idx_lda, o->map_idx_lda, sizeof(int64_t)*nmap_idx);
   }
 
+  tsum_sp_map::tsum_sp_map(summation const * s) : tsum(s) {
+    nmap_idx = 0;
+    map_idx_len = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
+    map_idx_lda = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
+    int map_idx_rev[s->B->order];
+
+    int64_t lda_B[s->B->order];
+    lda_B[0] = 1;
+    for (int o=1; o<s->B->order; o++){
+      if (s->B->is_sparse)
+        lda_B[o] = lda_B[o-1]*s->B->lens[o];
+      else
+        lda_B[o] = lda_B[o-1]*s->B->pad_edge_len[o]/s->B->edge_map[o].calc_phase();
+    }
+
+    for (int oB=0; oB<s->B->order; oB++){
+      bool inA = false;
+      for (int oA=0; oA<s->A->order; oA++){
+        if (s->idx_A[oA] == s->idx_B[oB]){
+          inA = true;
+        }
+      }
+      if (!inA){ 
+        bool is_rep=false;
+        for (int ooB=0; ooB<oB; ooB++){
+          if (s->idx_B[ooB] == s->idx_B[oB]){
+            is_rep = true;
+            map_idx_lda[map_idx_rev[ooB]] += lda_B[oB];
+            break;
+          }
+        }
+        if (!is_rep){
+          map_idx_len[nmap_idx] = s->B->lens[oB];
+          map_idx_lda[nmap_idx] = lda_B[oB];
+          map_idx_rev[nmap_idx] = oB;
+          nmap_idx++;
+        }
+      }
+    }
+  }
+
+  tsum * tsum_sp_map::clone() {
+    return new tsum_sp_map(this);
+  }
+
+  void tsum_sp_map::print(){
+    printf("tsum_sp_map:\n");
+    printf("namp_idx = %d\n",nmap_idx);
+    rec_tsum->print();
+  }
+  
+  int64_t tsum_sp_map::mem_fp(){
+    int64_t mem = nnz_A*this->sr_A->pair_size();
+    if (nmap_idx > 0){
+      int64_t tot_rep=1;
+      for (int midx=0; midx<nmap_idx; midx++){
+        tot_rep *= map_idx_len[midx];
+      }
+      return tot_rep*mem;
+    } else return mem;
+  }
+
+  void tsum_sp_map::run(){
+    int64_t tot_rep=1;
+    for (int midx=0; midx<nmap_idx; midx++){
+      tot_rep *= map_idx_len[midx];
+    }
+    PairIterator pi(this->sr_A, A);
+    char * buf;
+    alloc_ptr(this->sr_A->pair_size()*nnz_A*tot_rep, (void**)&buf);
+    PairIterator pi_new(this->sr_A, buf);
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nnz_A; i++){
+      for (int64_t r=0; r<tot_rep; r++){
+        memcpy(pi_new[i*tot_rep+r].ptr, pi[i].ptr, this->sr_A->pair_size());
+      }
+    }
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nnz_A; i++){
+      int64_t phase=1;
+      for (int midx=0; midx<nmap_idx; midx++){
+        int64_t stride=phase;
+        phase *= map_idx_len[midx];
+        for (int64_t r=0; r<tot_rep/phase; r++){
+          for (int64_t m=1; m<map_idx_len[midx]; m++){
+            for (int64_t s=0; s<stride; s++){
+              ((int64_t*)(pi_new[i*tot_rep + r*phase + m*stride + s].ptr))[0] += m*map_idx_lda[midx];
+            }
+          }
+        }
+      }
+    }
+    nnz_A *= tot_rep;
+    rec_tsum->nnz_A = nnz_A;
+    for (int v=0; v<nvirt_A; v++){
+      nnz_blk_A[v] *= tot_rep;
+    }
+    rec_tsum->set_nnz_blk_A(nnz_blk_A);
+    rec_tsum->run();
+    cdealloc(buf);
+  }
+
+  tsum_sp_permute::~tsum_sp_permute() {
+    cdealloc(p);
+    cdealloc(lens_new);
+    cdealloc(lens_old);
+  }
+
+  tsum_sp_permute::tsum_sp_permute(tsum * other) : tsum(other) {
+    tsum_sp_permute * o = (tsum_sp_permute*)other;
+    rec_tsum = o->rec_tsum->clone();
+    perm_A   = o->perm_A;
+    order    = o->order;
+    p        = (int*)CTF_int::alloc(sizeof(int)*order);
+    lens_old = (int*)CTF_int::alloc(sizeof(int)*order);
+    lens_new = (int*)CTF_int::alloc(sizeof(int)*order);
+    memcpy(p, o->p, sizeof(int)*order);
+    memcpy(lens_old, o->lens_old, sizeof(int)*order);
+    memcpy(lens_new, o->lens_new, sizeof(int)*order);
+  }
+
+  tsum_sp_permute::tsum_sp_permute(summation const * s) : tsum(s) {
+    tensor * X, * Y;
+    int const * idx_X, * idx_Y;
+    if (s->A->is_sparse){
+      perm_A = true;
+      X = s->A;
+      Y = s->B;
+      idx_X = s->idx_A;
+      idx_Y = s->idx_B;
+    } else {
+      perm_A=false;
+      X = s->B;
+      Y = s->A;
+      idx_X = s->idx_B;
+      idx_Y = s->idx_A;
+    }
+    order = X->order;
+
+    p           = (int*)CTF_int::alloc(sizeof(int)*order);
+    lens_old    = (int*)CTF_int::alloc(sizeof(int)*order);
+    lens_new    = (int*)CTF_int::alloc(sizeof(int)*order);
+
+    CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&lens_old);
+    memcpy(lens_old, X->lens, sizeof(int)*this->order);
+    CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&lens_new);
+    if (Y->is_sparse){
+      memcpy(lens_new, X->lens, sizeof(int)*this->order);
+    } else {
+      for (int i=0; i<this->order; i++){
+        lens_new[i] = X->pad_edge_len[i]/X->edge_map[i].calc_phase();
+      }
+    }
+    for (int i=0; i<this->order; i++){
+      p[i] = -1;
+      for (int j=0; j<Y->order; j++){
+        if (idx_X[i] == idx_Y[j]){
+          ASSERT(p[i] == -1); // no repeating indices allowed here!
+          p[i] = j;
+        }
+      }       
+    } 
+  }
 
   tsum * tsum_sp_permute::clone() {
     return new tsum_sp_permute(this);
@@ -477,13 +701,7 @@ namespace CTF_int {
     int64_t mem = 0;
     if (perm_A) mem+=nnz_A*sr_A->pair_size();
     else mem+=nnz_B*sr_B->pair_size();
-    if (nmap_idx > 0){
-      int64_t tot_rep=1;
-      for (int midx=0; midx<nmap_idx; midx++){
-        tot_rep *= map_idx_len[midx];
-      }
-      return (tot_rep+1)*mem;
-    } else return mem;
+    return mem;
   }
 
   void tsum_sp_permute::run(){
@@ -499,7 +717,7 @@ namespace CTF_int {
           new_lda_A[p[i]] = 0;
         } else {
           new_lda_A[p[i]] = lda;
-          lda *= lens[i];
+          lda *= lens_new[i];
         }
       }
       ConstPairIterator rA(sr_A, A);
@@ -511,8 +729,8 @@ namespace CTF_int {
         int64_t k = rA[i].k();
         int64_t k_new = 0;
         for (int j=0; j<order; j++){
-          k_new += (k%lens[j])*new_lda_A[j];
-          k = k/lens[j];
+          k_new += (k%lens_old[j])*new_lda_A[j];
+          k = k/lens_old[j];
         }
         ((int64_t*)wA[i].ptr)[0] = k_new;
         memcpy(wA[i].d(), rA[i].d(), sr_A->el_size);
@@ -520,49 +738,8 @@ namespace CTF_int {
       
       PairIterator mwA = wA;
       for (int v=0; v<nvirt_A; v++){
-        mwA.sort(blk_szs_A[v]);
-        mwA = mwA[blk_szs_A[v]];
-      }
-
-      if (nmap_idx > 0){
-        int64_t tot_rep=1;
-        for (int midx=0; midx<nmap_idx; midx++){
-          tot_rep *= map_idx_len[midx];
-        }
-        char * swap_buf = buf;
-        alloc_ptr(sr_A->pair_size()*nnz_A*tot_rep, (void**)&buf);
-        PairIterator pi_new(sr_A, buf);
-#ifdef USE_OMP
-        #pragma omp parallel for
-#endif
-        for (int64_t i=0; i<nnz_A; i++){
-          for (int64_t r=0; r<tot_rep; r++){
-            memcpy(pi_new[i*tot_rep+r].ptr, wA[i].ptr, sr_A->pair_size());
-          }
-        }
-#ifdef USE_OMP
-        #pragma omp parallel for
-#endif
-        for (int64_t i=0; i<nnz_A; i++){
-          int64_t phase=1;
-          for (int midx=0; midx<nmap_idx; midx++){
-            int64_t stride=phase;
-            phase *= map_idx_len[midx];
-            for (int64_t r=0; r<tot_rep/phase; r++){
-              for (int64_t m=1; m<map_idx_len[midx]; m++){
-                for (int64_t s=0; s<stride; s++){
-                  ((int64_t*)(pi_new[i*tot_rep + r*phase + m*stride + s].ptr))[0] += m*map_idx_lda[midx];
-                }
-              }
-            }
-          }
-        }
-        cdealloc(swap_buf);
-        nnz_A *= tot_rep;
-        rec_tsum->nnz_A = nnz_A;
-        for (int v=0; v<nvirt_A; v++){
-          blk_szs_A[v] *= tot_rep;
-        }
+        mwA.sort(nnz_blk_A[v]);
+        mwA = mwA[nnz_blk_A[v]];
       }
       rec_tsum->A = buf;
     } else {
@@ -571,7 +748,7 @@ namespace CTF_int {
       int64_t lda=1;
       for (int i=0; i<order; i++){
         new_lda_B[p[i]] = lda;
-        lda *= lens[i];
+        lda *= lens_new[i];
       }
       ConstPairIterator rB(sr_B, B);
       PairIterator wB(sr_B, buf);
@@ -582,8 +759,8 @@ namespace CTF_int {
         int64_t k = rB[i].k();
         int64_t k_new = 0;
         for (int j=0; j<order; j++){
-          k_new += (k%lens[j])*new_lda_B[j];
-          k = k/lens[j];
+          k_new += (k%lens_old[j])*new_lda_B[j];
+          k = k/lens_old[j];
         }
         ((int64_t*)wB[i].ptr)[0] = k_new;
         memcpy(wB[i].d(), rB[i].d(), sr_B->el_size);
@@ -591,13 +768,12 @@ namespace CTF_int {
 
       PairIterator mwB = wB;
       for (int v=0; v<nvirt_B; v++){
-        mwB.sort(blk_szs_B[v]);
-        mwB = mwB[blk_szs_B[v]];
+        mwB.sort(nnz_blk_B[v]);
+        mwB = mwB[nnz_blk_B[v]];
       }
 
       rec_tsum->B = buf;
     }
-  
 
     rec_tsum->run();
 
@@ -619,7 +795,7 @@ namespace CTF_int {
       int64_t lda=1;
       for (int i=0; i<order; i++){
         new_lda_B[inv_p[i]] = lda;
-        lda *= lens[i];
+        lda *= lens_old[i];
       }
       ConstPairIterator rB(sr_B, rec_tsum->new_B);
       PairIterator wB(sr_B, new_B);
@@ -630,16 +806,16 @@ namespace CTF_int {
         int64_t k = rB[i].k();
         int64_t k_new = 0;
         for (int j=0; j<order; j++){
-          k_new += (k%lens[j])*new_lda_B[j];
-          k = k/lens[j];
+          k_new += (k%lens_new[j])*new_lda_B[j];
+          k = k/lens_new[j];
         }
         ((int64_t*)wB[i].ptr)[0] = k_new;
         memcpy(wB[i].d(), rB[i].d(), sr_B->el_size);
       }
       PairIterator mwB = wB;
       for (int v=0; v<nvirt_B; v++){
-        mwB.sort(blk_szs_B[v]);
-        mwB = mwB[blk_szs_B[v]];
+        mwB.sort(nnz_blk_B[v]);
+        mwB = mwB[nnz_blk_B[v]];
       }
 
 

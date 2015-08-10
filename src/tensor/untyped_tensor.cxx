@@ -211,10 +211,12 @@ namespace CTF_int {
       memcpy(this->data, other->data, sr->el_size*other->size);
     } else {
       ASSERT(this->is_sparse);
-      if (data!=NULL)
-        CTF_int::cdealloc(this->data);
+      if (data!=NULL)    CTF_int::cdealloc(this->data);
+      if (nnz_blk!=NULL) CTF_int::cdealloc(this->nnz_blk);
       CTF_int::alloc_ptr(other->nnz_loc*(sizeof(int64_t)+sr->el_size), 
                        (void**)&this->data);
+      CTF_int::alloc_ptr(other->calc_nvirt()*sizeof(int64_t), (void**)&this->nnz_blk);
+      memcpy(this->nnz_blk, other->nnz_blk, other->calc_nvirt()*sizeof(int64_t));
       memcpy(this->data, other->data, 
              (sizeof(int64_t)+sr->el_size)*other->nnz_loc);
     } 
@@ -278,6 +280,7 @@ namespace CTF_int {
     this->is_sparse         = is_sparse_;
     this->data              = NULL;
     this->nnz_loc           = 0;
+    this->nnz_blk           = NULL;
 //    this->nnz_loc_max       = 0;
     if (name_ != NULL){
       this->name = (char*)alloc(strlen(name_)+1);
@@ -292,7 +295,7 @@ namespace CTF_int {
       this->name[6] = '\0';
     }
     if (wrld->rank == 0)
-      DPRINTF(1,"Created order %d tensor %s\n",order,name);
+      DPRINTF(1,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
 
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int));
@@ -1154,13 +1157,15 @@ namespace CTF_int {
       //get all local pairs, including zero ones FIXME can be done faster
       read_local(&num_pairs, &all_pairs);
       //become sparse
-      is_sparse = true;
       cdealloc(data);
       data = NULL;
       is_home = false;
       has_home = false;
       home_buffer = NULL;
+      clear_mapping();
+      is_sparse = true;
       nnz_loc = 0;
+      set_zero();
       //nnz_loc_max = 0;
       //write old data as pairs to self FIXME can be done faster
       write(num_pairs, sr->mulid(), sr->addid(), all_pairs);
@@ -1946,7 +1951,6 @@ namespace CTF_int {
             }
           }
           if (is_sparse){
-            PairIterator pi(sr, data);
             int64_t lda_i=1, lda_j=1;
             for (int ii=1; ii<i; ii++){
               lda_i *= edge_len[i-1];
@@ -1955,6 +1959,7 @@ namespace CTF_int {
               lda_j *= edge_len[j-1];
             }
             if (rw){
+              PairIterator pi(sr, data);
               new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld, 1, name, 1, is_sparse);
               int64_t nw = 0;
               for (int p=0; p<nnz_loc; p++){
@@ -1987,7 +1992,7 @@ namespace CTF_int {
               #pragma omp parallel for
 #endif
               for (int p=0; p<nw; p++){
-                int64_t k = pi[p].k();
+                int64_t k = wdata[p].k();
                 int64_t kpart = (k/lda_i)%lens[i];
                 int64_t k_new = (k%lda_j)+((k/lda_j)*lens[j]+kpart)*lda_j;
                 ((int64_t*)(wdata[i].ptr))[0] = k_new;

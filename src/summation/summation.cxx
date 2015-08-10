@@ -447,7 +447,7 @@ namespace CTF_int {
     if (sA || sB){
       if (A->wrld->cdt.rank == 0)
         DPRINTF(1,"Stripping tensor\n");
-      strp_sum * ssum = new strp_sum;
+      strp_sum * ssum = new strp_sum(this);
       ssum->sr_A = A->sr;
       ssum->sr_B = B->sr;
       htsum = ssum;
@@ -516,24 +516,38 @@ namespace CTF_int {
       }
     }
     if (need_perm){
-      tsum_sp_permute * pmsum = new tsum_sp_permute;
-      pmsum->sr_A = A->sr;
-      pmsum->sr_B = B->sr;
-      pmsum->is_sparse_A = A->is_sparse;
-      pmsum->is_sparse_B = B->is_sparse;
-      pmsum->nnz_A = A->nnz_loc;
-      pmsum->nnz_B = B->nnz_loc;
+      tsum_sp_permute * pmsum = new tsum_sp_permute(this);
       if (is_top){
         htsum = pmsum;
         is_top = 0;
       } else {
         *rec_tsum = pmsum;
       }
-      if (A->is_sparse){
-        pmsum->perm_A=true;
-      }
-      //FIXME: finish
+      rec_tsum = &pmsum->rec_tsum;
     }
+
+    bool need_sp_map = false;
+    if (A->is_sparse){
+      for (int i=0; i<A->order; i++){
+        bool found_match = false;
+        for (int j=0; j<B->order; j++){
+          if (idx_A[i] == idx_B[j]) found_match = true;
+        }
+        if (!found_match) need_sp_map = true;
+      }
+    }
+
+    if (need_sp_map){
+      tsum_sp_map * smsum = new tsum_sp_map(this);
+      if (is_top){
+        htsum = smsum;
+        is_top = 0;
+      } else {
+        *rec_tsum = smsum;
+      }
+      rec_tsum = &smsum->rec_tsum;
+    }
+
 
     need_rep = 0;
     for (i=0; i<nphys_dim; i++){
@@ -547,13 +561,13 @@ namespace CTF_int {
       if (A->wrld->cdt.rank == 0)
         DPRINTF(1,"Replicating tensor\n");
 
-      tsum_replicate * rtsum = new tsum_replicate;
-      rtsum->sr_A = A->sr;
+      tsum_replicate * rtsum = new tsum_replicate(this);
+/*      rtsum->sr_A = A->sr;
       rtsum->sr_B = B->sr;
       rtsum->is_sparse_A = A->is_sparse;
       rtsum->is_sparse_B = B->is_sparse;
       rtsum->nnz_A = A->nnz_loc;
-      rtsum->nnz_B = B->nnz_loc;
+      rtsum->nnz_B = B->nnz_loc;*/
       if (is_top){
         htsum = rtsum;
         is_top = 0;
@@ -606,14 +620,14 @@ namespace CTF_int {
 
     /* Multiply over virtual sub-blocks */
     if (nvirt > 1){
-      tsum_virt * tsumv = new tsum_virt;
-      tsumv->sr_A = A->sr;
+      tsum_virt * tsumv = new tsum_virt(this);
+/*      tsumv->sr_A = A->sr;
       tsumv->sr_B = B->sr;
       tsumv->is_sparse_A = A->is_sparse;
       tsumv->is_sparse_B = B->is_sparse;
       tsumv->nnz_A = A->nnz_loc;
       tsumv->nnz_B = B->nnz_loc;
-      tsumv->blk_szs_B = B->nnz_blk;
+      tsumv->nnz_blk_B = B->nnz_blk;*/
       if (is_top) {
         htsum = tsumv;
         is_top = 0;
@@ -624,22 +638,22 @@ namespace CTF_int {
 
       tsumv->num_dim   = order_tot;
       tsumv->virt_dim  = virt_dim;
-      tsumv->order_A   = A->order;
+//      tsumv->order_A   = A->order;
       tsumv->blk_sz_A  = vrt_sz_A;
-      tsumv->idx_map_A = idx_A;
-      tsumv->order_B   = B->order;
+//      tsumv->idx_map_A = idx_A;
+//      tsumv->order_B   = B->order;
       tsumv->blk_sz_B  = vrt_sz_B;
-      tsumv->idx_map_B = idx_B;
+//      tsumv->idx_map_B = idx_B;
       tsumv->buffer    = NULL;
     } else CTF_int::cdealloc(virt_dim);
 
-    seq_tsr_sum * tsumseq = new seq_tsr_sum;
-    tsumseq->sr_A = A->sr;
+    seq_tsr_sum * tsumseq = new seq_tsr_sum(this);
+/*    tsumseq->sr_A = A->sr;
     tsumseq->sr_B = B->sr;
     tsumseq->is_sparse_A = A->is_sparse;
     tsumseq->is_sparse_B = B->is_sparse;
     tsumseq->nnz_A = A->nnz_loc;
-    tsumseq->nnz_B = B->nnz_loc;
+    tsumseq->nnz_B = B->nnz_loc;*/
     if (inner_stride == -1){
       tsumseq->is_inner = 0;
     } else {
@@ -693,12 +707,12 @@ namespace CTF_int {
     } else {
       *rec_tsum = tsumseq;
     }
-    tsumseq->order_A     = A->order;
-    tsumseq->idx_map_A   = idx_A;
+//    tsumseq->order_A     = A->order;
+//    tsumseq->idx_map_A   = idx_A;
     tsumseq->edge_len_A  = virt_blk_len_A;
     tsumseq->sym_A       = new_sym_A;
-    tsumseq->order_B     = B->order;
-    tsumseq->idx_map_B   = idx_B;
+//    tsumseq->order_B     = B->order;
+//    tsumseq->idx_map_B   = idx_B;
     tsumseq->edge_len_B  = virt_blk_len_B;
     tsumseq->sym_B       = new_sym_B;
     tsumseq->is_custom   = is_custom;
@@ -706,11 +720,11 @@ namespace CTF_int {
       tsumseq->is_inner  = 0;
       tsumseq->func      = func;
     } else tsumseq->func = NULL;
-    htsum->alpha         = alpha;
-    htsum->beta          = beta;
+//    htsum->alpha         = alpha;
+//    htsum->beta          = beta;
 
-    htsum->A = A->data;
-    htsum->B = B->data;
+//    htsum->A = A->data;
+//    htsum->B = B->data;
 
     CTF_int::cdealloc(idx_arr);
     CTF_int::cdealloc(blk_len_A);
@@ -1249,6 +1263,15 @@ namespace CTF_int {
       tnsr_B = new_tsr;
       map_B = new_idx_map;
     }
+
+    if (!tnsr_A->is_sparse && tnsr_B->is_sparse){
+      tensor * stnsr_A = tnsr_A;
+      tnsr_A = new tensor(stnsr_A);
+      tnsr_A->sparsify(); 
+      if (A != stnsr_A) delete stnsr_A;
+
+    }
+
     // FIXME: if A has self indices and function is distributive, presum A first, otherwise if it is dense and B is sparse, sparsify A
     summation new_sum = summation(*this);
     new_sum.A = tnsr_A;
