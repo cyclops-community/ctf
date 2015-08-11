@@ -133,7 +133,7 @@ namespace CTF {
         }
       } else {
         if (rank == 0 && ntd != NULL){
-          VPRINTF(1,"Running with %d threads\n",omp_get_num_threads());
+          VPRINTF(1,"Running with %d threads\n",omp_get_max_threads());
         }
       }
   #endif
