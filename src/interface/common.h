@@ -177,5 +177,17 @@ namespace CTF_int {
                 int const * lens,
                 int const * idx_arr,
                 int64_t *   idx);
+
+  /**
+   * \brief gives a datatype for arbitrary datum_size, errors if exceeding 32-bits
+   *
+   * \param[in] count number of elements we want to communicate
+   * \param[in] datum_size element size
+   * \param[in] dt new datatype to pass to MPI routine
+   * \return whether the datatype is custom and needs to be freed
+   */
+  bool get_mpi_dt(int64_t count, int64_t datum_size, MPI_Datatype & dt);
+
+
 }
 #endif

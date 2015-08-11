@@ -311,12 +311,27 @@ namespace CTF_int {
 
   void tsum_replicate::run(){
     int brank, i;
-
+    char * buf = this->A;
+    printf("nnz_A = %ld\n",nnz_A);
     if (is_sparse_A){
       size_A = nnz_A;
       for (i=0; i<ncdt_A; i++){
         MPI_Bcast(&size_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
         MPI_Bcast(nnz_blk_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
+      }
+      int cnt;
+      MPI_Datatype md;
+      bool need_free = get_mpi_dt(size_A, sr_A->pair_size(), md);
+      
+      if (nnz_A != size_A) 
+        buf = (char*)alloc(sr_A->pair_size()*size_A);
+      for (i=0; i<ncdt_A; i++){
+        MPI_Bcast(buf, size_A, md, 0, cdt_A[i]->cm);
+      }
+      if (need_free) MPI_Type_free(&md);
+    } else {
+      for (i=0; i<ncdt_A; i++){
+        MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
       }
     }
     if (is_sparse_B){
@@ -329,9 +344,6 @@ namespace CTF_int {
       }
     }
 
-    for (i=0; i<ncdt_A; i++){
-      MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
-    }
    /* for (i=0; i<ncdt_B; i++){
       POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i]-> 0);
     }*/
@@ -342,9 +354,11 @@ namespace CTF_int {
     }
     if (brank != 0) sr_B->set(this->B, sr_B->addid(), size_B);
 
-    rec_tsum->A         = this->A;
     rec_tsum->set_nnz_blk_A(this->nnz_blk_A);;
+    rec_tsum->A         = buf;
+    rec_tsum->nnz_A     = size_A;
     rec_tsum->B         = this->B;
+    rec_tsum->nnz_B     = nnz_A;
     rec_tsum->nnz_blk_B = this->nnz_blk_B;
     rec_tsum->alpha     = this->alpha;
     if (brank != 0)
@@ -354,6 +368,10 @@ namespace CTF_int {
 
     rec_tsum->run();
     
+    new_nnz_B = rec_tsum->new_nnz_B;
+    printf("new_nnz_B = %ld\n",new_nnz_B);
+    if (buf != this->A) cdealloc(buf);
+
     for (i=0; i<ncdt_B; i++){
       MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i]->cm);
     }
@@ -590,6 +608,7 @@ namespace CTF_int {
     PairIterator pi(this->sr_A, A);
     char * buf;
     alloc_ptr(this->sr_A->pair_size()*nnz_A*tot_rep, (void**)&buf);
+    printf("pair size is %d, nnz is %ld\n",this->sr_A->pair_size(), nnz_A);
     PairIterator pi_new(this->sr_A, buf);
 #ifdef USE_OMP
     #pragma omp parallel for
