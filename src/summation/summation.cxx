@@ -527,11 +527,11 @@ namespace CTF_int {
     }
 
     bool need_sp_map = false;
-    if (A->is_sparse){
-      for (int i=0; i<A->order; i++){
+    if (A->is_sparse || B->is_sparse){
+      for (int i=0; i<B->order; i++){
         bool found_match = false;
-        for (int j=0; j<B->order; j++){
-          if (idx_A[i] == idx_B[j]) found_match = true;
+        for (int j=0; j<A->order; j++){
+          if (idx_B[i] == idx_A[j]) found_match = true;
         }
         if (!found_match) need_sp_map = true;
       }
@@ -619,7 +619,7 @@ namespace CTF_int {
     memcpy(new_sym_B, B->sym, sizeof(int)*B->order);
 
     /* Multiply over virtual sub-blocks */
-    if (nvirt > 1){
+    if (true){ //nvirt > 1){
       tsum_virt * tsumv = new tsum_virt(this);
 /*      tsumv->sr_A = A->sr;
       tsumv->sr_B = B->sr;
@@ -1402,11 +1402,15 @@ namespace CTF_int {
       tnsr_A->topo->activate();
       MPI_Barrier(tnsr_B->wrld->comm);
       sumf->run();
-      if (B->is_sparse){
-        if (B->data != sumf->new_B){
-          cdealloc(B->data);
-          B->data = sumf->new_B;
-          B->nnz_loc = sumf->new_nnz_B;
+      if (tnsr_B->is_sparse){
+        if (tnsr_B->data != sumf->new_B){
+          cdealloc(tnsr_B->data);
+          tnsr_B->data = sumf->new_B;
+          //tnsr_B->nnz_loc = sumf->new_nnz_B;
+          tnsr_B->nnz_loc = 0;
+          for (int i=0; i<tnsr_B->calc_nvirt(); i++){
+            tnsr_B->nnz_loc += tnsr_B->nnz_blk[i];
+          }
         }
       }
       /*tnsr_B->unfold();

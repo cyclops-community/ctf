@@ -112,7 +112,7 @@ namespace CTF_int {
     switch (act_ord){ \
       LOOP_MAX_ORD(ORD_CASE,F,__VA_ARGS__) \
       default: \
-        assert(0); \
+        ASSERT(0); \
         break; \
     }
 
@@ -120,7 +120,7 @@ namespace CTF_int {
     switch (act_ord){ \
       LOOP_MAX_ORD(ORD_CASE_RET,R,F,__VA_ARGS__) \
       default: \
-        assert(0); \
+        ASSERT(0); \
         break; \
     }
 

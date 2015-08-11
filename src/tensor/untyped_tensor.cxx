@@ -502,6 +502,8 @@ namespace CTF_int {
       this->is_mapped = 1;
       this->set_padding();
 
+        if (this->size > INT_MAX && wrld->rank == 0)
+          printf("CTF WARNING: Tensor %s is has local size %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
      
       if (is_sparse){
         nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
@@ -853,11 +855,11 @@ namespace CTF_int {
     MPI_Request req;
     if (fw_mirror_rank >= 0){
       ASSERT(tsr_sub != NULL);
-      MPI_Irecv(tsr_sub->data, odst->size*sr->el_size, MPI_CHAR, fw_mirror_rank, 0, wrld->cdt.cm, &req);
+      MPI_Irecv(tsr_sub->data, odst->size, tsr_sub->sr->mdtype(), fw_mirror_rank, 0, wrld->cdt.cm, &req);
     }
    
     if (bw_mirror_rank >= 0)
-      MPI_Send(sub_buffer, odst->size*sr->el_size, MPI_CHAR, bw_mirror_rank, 0, wrld->cdt.cm);
+      MPI_Send(sub_buffer, odst->size, sr->mdtype(), bw_mirror_rank, 0, wrld->cdt.cm);
     if (fw_mirror_rank >= 0){
       MPI_Status stat;
       MPI_Wait(&req, &stat);
@@ -1785,6 +1787,9 @@ namespace CTF_int {
       can_block_shuffle = 0;
     }
 
+    if (size > INT_MAX && wrld->cdt.rank == 0)
+      printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
+
   #ifdef HOME_CONTRACT
     if (this->is_home){    
       if (wrld->cdt.rank == 0)
@@ -1953,10 +1958,10 @@ namespace CTF_int {
           if (is_sparse){
             int64_t lda_i=1, lda_j=1;
             for (int ii=1; ii<i; ii++){
-              lda_i *= edge_len[i-1];
+              lda_i *= edge_len[ii-1];
             }
-            for (int jj=1; jj<i; jj++){
-              lda_j *= edge_len[j-1];
+            for (int jj=1; jj<j; jj++){
+              lda_j *= edge_len[jj-1];
             }
             if (rw){
               PairIterator pi(sr, data);
@@ -1976,9 +1981,10 @@ namespace CTF_int {
                 int64_t k = pi[p].k();
                 if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){ 
                   int64_t k_new = (k%lda_j)+(k/(lda_j*lens[j])*lda_j);
-                  ((int64_t*)(wdata[i].ptr))[0] = k_new;
-                  wdata[i].write_val(pi[p].d());
+                  ((int64_t*)(wdata[nw].ptr))[0] = k_new;
+                  wdata[nw].write_val(pi[p].d());
                   nw++;
+                  printf("k=%ld, k_new = %ld\n", k,k_new);
                 }
               }
               new_tsr->write(nw, sr->mulid(), sr->addid(), pwdata);

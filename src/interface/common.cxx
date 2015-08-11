@@ -297,14 +297,17 @@ namespace CTF_int {
     if (tot_max_displs >= INT32_MAX ||
         (datum_size != 4 && datum_size != 8 && datum_size != 16) ||
         (tot_frac_nnz <= .25 && tot_frac_nnz*np < 100)){
+      MPI_Datatype mdt;
+      MPI_Type_contiguous(datum_size, MPI_CHAR, &mdt);
+      MPI_Type_commit(&mdt);
       MPI_Request reqs[num_nnz_recv+num_nnz_trgt];
       MPI_Status stat[num_nnz_recv+num_nnz_trgt];
       int nnr = 0;
       for (int p=0; p<np; p++){
         if (recv_counts[p] != 0){
           MPI_Irecv(((char*)recv_buffer)+recv_displs[p]*datum_size, 
-                    datum_size*recv_counts[p], 
-                    MPI_CHAR, p, p, cm, reqs+nnr);
+                    recv_counts[p], 
+                    mdt, p, p, cm, reqs+nnr);
           nnr++;
         } 
       }
@@ -313,12 +316,13 @@ namespace CTF_int {
         int p = (lp+rank)%np;
         if (send_counts[p] != 0){
           MPI_Isend(((char*)send_buffer)+send_displs[p]*datum_size, 
-                    datum_size*send_counts[p], 
-                    MPI_CHAR, p, rank, cm, reqs+nnr+nns);
+                    send_counts[p], 
+                    mdt, p, rank, cm, reqs+nnr+nns);
           nns++;
         } 
       }
       MPI_Waitall(num_nnz_recv+num_nnz_trgt, reqs, stat);
+      MPI_Type_free(&mdt);
     } else {
       int * i32_send_counts, * i32_send_displs;
       int * i32_recv_counts, * i32_recv_displs;
@@ -346,7 +350,7 @@ namespace CTF_int {
           break;
         case 16:
           MPI_Alltoallv(send_buffer, i32_send_counts, i32_send_displs, MPI_DOUBLE_COMPLEX,
-                      recv_buffer, i32_recv_counts, i32_recv_displs, MPI_DOUBLE_COMPLEX, cm);
+                        recv_buffer, i32_recv_counts, i32_recv_displs, MPI_DOUBLE_COMPLEX, cm);
           break;
         default: 
           ABORT;

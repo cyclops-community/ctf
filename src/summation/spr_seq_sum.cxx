@@ -105,22 +105,40 @@ namespace CTF_int{
                        univar_function const * func){
  
     TAU_FSTART(spA_dnB_seq_sum);
-    int64_t sz_B = sy_packed_size(order_B, edge_len_B, sym_B);
-    if (!sr_B->isequal(beta, sr_B->mulid()))
-      sr_B->scal(sz_B, beta, B, 1);
+    if (order_B == 0){
+      if (!sr_B->isequal(beta, sr_B->mulid()))
+        sr_B->mul(beta, B, B);
+      ConstPairIterator pi(sr_A, A);
+      for (int64_t i=0; i<size_A; i++){
+        char tmp_buf[sr_A->el_size];
+        char const * tmp_ptr;
+        if (alpha != NULL){
+          sr_A->mul(alpha, pi[i].d(), tmp_buf);
+          tmp_ptr = tmp_buf;
+        } else tmp_ptr = pi[i].d();
+        if (func != NULL){
+          func->acc_f(tmp_ptr, B, sr_B); 
+        } else {
+          sr_B->add(tmp_ptr, B, B);
+        }
+      }
+    } else {
+      int64_t sz_B = sy_packed_size(order_B, edge_len_B, sym_B);
+      if (!sr_B->isequal(beta, sr_B->mulid()))
+        sr_B->scal(sz_B, beta, B, 1);
 
-    int64_t lda_B[order_B];
-    for (int i=0; i<order_B; i++){
-      if (i==0) lda_B[i] = 1;
-      else      lda_B[i] = lda_B[i-1]*edge_len_B[i-1];
+      int64_t lda_B[order_B];
+      for (int i=0; i<order_B; i++){
+        if (i==0) lda_B[i] = 1;
+        else      lda_B[i] = lda_B[i-1]*edge_len_B[i-1];
+      }
+
+      ASSERT(order_B<=MAX_ORD);
+
+      ConstPairIterator pA(sr_A, A);
+      int64_t idx = 0;
+      SWITCH_ORD_CALL(spA_dnB_seq_sum_loop, order_B-1, alpha, pA, size_A, sr_A, beta, B, sr_B, order_B, idx, edge_len_B, lda_B, sym_B, func);
     }
-
-    assert(order_B<=MAX_ORD);
-
-    ConstPairIterator pA(sr_A, A);
-    int64_t idx = 0;
-    SWITCH_ORD_CALL(spA_dnB_seq_sum_loop, order_B-1, alpha, pA, size_A, sr_A, beta, B, sr_B, order_B, idx, edge_len_B, lda_B, sym_B, func);
-
     TAU_FSTOP(spA_dnB_seq_sum);
   }
 
@@ -137,6 +155,7 @@ namespace CTF_int{
                        int64_t &               new_size_B,
                        algstrct const *        sr_B,
                        univar_function const * func){
+    printf("not implted\n");
     assert(0);
   }
 
@@ -183,7 +202,7 @@ namespace CTF_int{
         }
       }
     }
-    //printf("nB = %ld nA = %ld nnew = %ld\n",nB,nA,nnew); 
+    printf("nB = %ld nA = %ld nnew = %ld\n",nB,nA,nnew); 
     alloc_ptr(sr_B->pair_size()*nnew, (void**)&pprs_new);
     PairIterator prs_new(sr_B, pprs_new);
     // each for loop computes one new value of prs_new 

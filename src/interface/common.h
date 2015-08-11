@@ -146,11 +146,11 @@ namespace CTF_int {
        * \param[in] recv_counts number of datums to recv to each process
        * \param[in] recv_displs displacements of datum sets in sen_buffer
        */
-      void all_to_allv(void *           send_buffer, 
+      void all_to_allv(void *          send_buffer, 
                        int64_t const * send_counts,
                        int64_t const * send_displs,
-                       int64_t          datum_size,
-                       void *           recv_buffer, 
+                       int64_t         datum_size,
+                       void *          recv_buffer, 
                        int64_t const * recv_counts,
                        int64_t const * recv_displs);
 

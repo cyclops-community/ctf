@@ -184,7 +184,7 @@ namespace CTF_int {
           }
         } else
           op_A = buf_A;
-        MPI_Bcast(op_A, s_A*sr_A->el_size, MPI_CHAR, owner_A, cdt_A->cm);
+        MPI_Bcast(op_A, s_A, sr_A->mdtype(), owner_A, cdt_A->cm);
       } else {
         if (ctr_sub_lda_A == 0)
           op_A = this->A;
@@ -213,7 +213,7 @@ namespace CTF_int {
         } else 
           op_B = buf_B;
 //        printf("c_B = %ld, s_B = %ld, d_B = %ld, b_B = %ld\n", c_B, s_B,db, b_B);
-        MPI_Bcast(op_B, s_B*sr_B->el_size, MPI_CHAR, owner_B, cdt_B->cm);
+        MPI_Bcast(op_B, s_B, sr_B->mdtype(), owner_B, cdt_B->cm);
       } else {
         if (ctr_sub_lda_B == 0)
           op_B = this->B;

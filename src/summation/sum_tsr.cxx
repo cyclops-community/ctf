@@ -42,7 +42,7 @@ namespace CTF_int {
     if (is_sparse_A){
       nnz_blk_A   = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nvirt_A);
       memcpy(nnz_blk_A, other->nnz_blk_A, sizeof(int64_t)*nvirt_A);
-    }
+    } else nnz_blk_A = NULL;
   }
   
   tsum::tsum(summation const * s){
@@ -67,7 +67,7 @@ namespace CTF_int {
     if (is_sparse_A){
       nnz_blk_A = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nvirt_A);
       memcpy(nnz_blk_A, s->A->nnz_blk, sizeof(int64_t)*nvirt_A);
-    }
+    } else nnz_blk_A = NULL;
 
     nnz_blk_B   = s->B->nnz_blk;
     new_nnz_B   = nnz_B;
@@ -186,7 +186,7 @@ namespace CTF_int {
           sp_offsets_B[0] = 0;
         else
           sp_offsets_B[i] = sp_offsets_B[i-1]+nnz_blk_B[i-1];
-        buckets_B[i] = this->B + sp_offsets_B[i]*this->sr_B->el_size;
+        buckets_B[i] = this->B + sp_offsets_B[i]*this->sr_B->pair_size();
       }      
     }
 
@@ -199,7 +199,7 @@ namespace CTF_int {
     for (;;){
       if (is_sparse_A){
         rec_tsum->nnz_A = nnz_blk_A[off_A];
-        rec_tsum->A = this->A + sp_offsets_A[off_A]*this->sr_A->el_size;
+        rec_tsum->A = this->A + sp_offsets_A[off_A]*this->sr_A->pair_size();
       } else
         rec_tsum->A = this->A + off_A*blk_sz_A*this->sr_A->el_size;
       if (is_sparse_B){
@@ -212,6 +212,7 @@ namespace CTF_int {
         rec_tsum->beta = sr_B->mulid();
       else
         rec_tsum->beta = this->beta; 
+  
       rec_tsum->run();
       if (is_sparse_B){
         new_sp_szs_B[off_B] = rec_tsum->new_nnz_B;
@@ -237,14 +238,15 @@ namespace CTF_int {
       for (int i=0; i<nb_B; i++){
         this->new_nnz_B += new_sp_szs_B[i];
       }
-      new_B = (char*)alloc(this->new_nnz_B*this->sr_B->el_size);
+      new_B = (char*)alloc(this->new_nnz_B*this->sr_B->pair_size());
       int64_t pfx = 0;
       for (int i=0; i<nb_B; i++){
-        memcpy(new_B+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->el_size);
+        memcpy(new_B+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->pair_size());
+        pfx += new_sp_szs_B[i]*this->sr_B->pair_size();
         if (beta_arr[i] > 0) cdealloc(buckets_B[i]);
       }
       //FIXME: how to pass B back generally
-      cdealloc(this->B);
+      //cdealloc(this->B);
       cdealloc(buckets_B);
     }
     if (is_sparse_A) cdealloc(sp_offsets_A);
@@ -328,7 +330,7 @@ namespace CTF_int {
     }
 
     for (i=0; i<ncdt_A; i++){
-      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i]->cm);
+      MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
     }
    /* for (i=0; i<ncdt_B; i++){
       POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i]-> 0);
@@ -341,7 +343,7 @@ namespace CTF_int {
     if (brank != 0) sr_B->set(this->B, sr_B->addid(), size_B);
 
     rec_tsum->A         = this->A;
-    rec_tsum->nnz_blk_A = this->nnz_blk_A;
+    rec_tsum->set_nnz_blk_A(this->nnz_blk_A);;
     rec_tsum->B         = this->B;
     rec_tsum->nnz_blk_B = this->nnz_blk_B;
     rec_tsum->alpha     = this->alpha;
@@ -520,8 +522,8 @@ namespace CTF_int {
 
   tsum_sp_map::tsum_sp_map(summation const * s) : tsum(s) {
     nmap_idx = 0;
-    map_idx_len = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
-    map_idx_lda = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nmap_idx);
+    map_idx_len = (int64_t*)CTF_int::alloc(sizeof(int64_t)*s->B->order);
+    map_idx_lda = (int64_t*)CTF_int::alloc(sizeof(int64_t)*s->B->order);
     int map_idx_rev[s->B->order];
 
     int64_t lda_B[s->B->order];
@@ -616,11 +618,17 @@ namespace CTF_int {
     }
     nnz_A *= tot_rep;
     rec_tsum->nnz_A = nnz_A;
+    rec_tsum->A = buf;
+    rec_tsum->nnz_B = nnz_B;
+    rec_tsum->B = B;
     for (int v=0; v<nvirt_A; v++){
       nnz_blk_A[v] *= tot_rep;
     }
     rec_tsum->set_nnz_blk_A(nnz_blk_A);
     rec_tsum->run();
+    new_nnz_B = rec_tsum->new_nnz_B;
+    printf("new_nnz_B = %ld\n",new_nnz_B);
+    new_B = rec_tsum->new_B;
     cdealloc(buf);
   }
 
@@ -707,17 +715,18 @@ namespace CTF_int {
   void tsum_sp_permute::run(){
     char * buf;
     CTF_int::alloc_ptr(nnz_A*sr_A->pair_size(), (void**)&buf);
+
+    rec_tsum->A = buf;
+    rec_tsum->B = B;
     if (perm_A){
       memcpy(buf, A, nnz_A*sr_A->pair_size());
       int64_t new_lda_A[order];
+      memset(new_lda_A, 0, order*sizeof(int64_t));
       int64_t lda=1;
       for (int i=0; i<order; i++){
-        //reduce over this index
-        if (p[i] == -1){
-          new_lda_A[p[i]] = 0;
-        } else {
-          new_lda_A[p[i]] = lda;
-          lda *= lens_new[i];
+        for (int j=0; j<order; j++){
+          if (p[j] == i) new_lda_A[j] = lda;
+          lda *= lens_new[j];
         }
       }
       ConstPairIterator rA(sr_A, A);
@@ -775,9 +784,12 @@ namespace CTF_int {
       rec_tsum->B = buf;
     }
 
+    rec_tsum->nnz_A = nnz_A;
+    rec_tsum->nnz_B = nnz_B;
     rec_tsum->run();
 
     new_nnz_B = rec_tsum->new_nnz_B;
+    printf("new_nnz_B = %ld\n",new_nnz_B);
     if (perm_A){
       new_B = rec_tsum->B;
       cdealloc(buf);
