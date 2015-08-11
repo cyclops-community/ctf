@@ -238,12 +238,12 @@ namespace CTF_int {
     for (i=0; i<ncdt_A; i++){
       arank += cdt_A[i]->rank;
 //      POST_BCAST(this->A, size_A*sr_A->el_size, COMM_CHAR_T, 0, cdt_A[i]-> 0);
-      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i]->cm);
+      MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
     }
     for (i=0; i<ncdt_B; i++){
       brank += cdt_B[i]->rank;
 //      POST_BCAST(this->B, size_B*sr_B->el_size, COMM_CHAR_T, 0, cdt_B[i]-> 0);
-      MPI_Bcast(this->B, size_B*sr_B->el_size, MPI_CHAR, 0, cdt_B[i]->cm);
+      MPI_Bcast(this->B, size_B, sr_B->mdtype(), 0, cdt_B[i]->cm);
     }
     for (i=0; i<ncdt_C; i++){
       crank += cdt_C[i]->rank;

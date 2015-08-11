@@ -184,7 +184,7 @@ namespace CTF_int {
     int brank, i;
 
     for (i=0; i<ncdt_A; i++){
-      MPI_Bcast(this->A, size_A*sr_A->el_size, MPI_CHAR, 0, cdt_A[i]->cm);
+      MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
     }
    /* for (i=0; i<ncdt_B; i++){
       POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i]-> 0);

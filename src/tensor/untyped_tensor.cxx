@@ -835,11 +835,11 @@ namespace CTF_int {
     MPI_Request req;
     if (fw_mirror_rank >= 0){
       ASSERT(tsr_sub != NULL);
-      MPI_Irecv(tsr_sub->data, odst->size*sr->el_size, MPI_CHAR, fw_mirror_rank, 0, wrld->cdt.cm, &req);
+      MPI_Irecv(tsr_sub->data, odst->size, tsr_sub->sr->mdtype(), fw_mirror_rank, 0, wrld->cdt.cm, &req);
     }
    
     if (bw_mirror_rank >= 0)
-      MPI_Send(sub_buffer, odst->size*sr->el_size, MPI_CHAR, bw_mirror_rank, 0, wrld->cdt.cm);
+      MPI_Send(sub_buffer, odst->size, sr->mdtype(), bw_mirror_rank, 0, wrld->cdt.cm);
     if (fw_mirror_rank >= 0){
       MPI_Status stat;
       MPI_Wait(&req, &stat);
