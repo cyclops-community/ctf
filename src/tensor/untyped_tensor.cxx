@@ -492,6 +492,8 @@ namespace CTF_int {
         this->is_mapped = 1;
         this->set_padding();
 
+        if (this->size > INT_MAX && wrld->rank == 0)
+          printf("CTF WARNING: Tensor %s is has local size %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
      
 #ifdef HOME_CONTRACT 
         if (this->order > 0){
@@ -510,6 +512,7 @@ namespace CTF_int {
 #else
         CTF_int::mst_alloc_ptr(this->size*sr->el_size, (void**)&this->data);
 #endif
+
 #if DEBUG >= 2
         if (wrld->rank == 0)
           printf("New tensor %s defined of size %ld elms (%ld bytes):\n",name, this->size,this->size*sr->el_size);
@@ -1654,6 +1657,9 @@ namespace CTF_int {
         new_offsets != NULL || new_permutation != NULL){
       can_block_shuffle = 0;
     }
+
+    if (size > INT_MAX && wrld->cdt.rank == 0)
+      printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
 
   #ifdef HOME_CONTRACT
     if (this->is_home){    

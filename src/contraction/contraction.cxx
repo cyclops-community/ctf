@@ -2166,6 +2166,11 @@ namespace CTF_int {
           delete sctr;
           continue;
         } 
+        if (A->size > INT_MAX || B->size > INT_MAX || C->size > INT_MAX){
+          DPRINTF(2,"MPI does not handle enough bits for topo %d with order %d \n", t, j);
+          delete sctr;
+          continue;
+        }
 
         /* be careful about overflow */
   /*      nvirt = (int64_t)A->calc_nvirt();
