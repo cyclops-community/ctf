@@ -312,14 +312,18 @@ namespace CTF_int {
   void tsum_replicate::run(){
     int brank, i;
     char * buf = this->A;
+//    int64_t * save_nnz_blk_A = NULL;
     printf("nnz_A = %ld\n",nnz_A);
     if (is_sparse_A){
+      /*if (ncdt_A > 0){
+        save_nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
+        memcpy(save_nnz_blk_A,nnz_blk_A,sizeof(int64_t)*nvirt_A);
+      }*/
       size_A = nnz_A;
       for (i=0; i<ncdt_A; i++){
         MPI_Bcast(&size_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
         MPI_Bcast(nnz_blk_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
       }
-      int cnt;
       MPI_Datatype md;
       bool need_free = get_mpi_dt(size_A, sr_A->pair_size(), md);
       
@@ -369,12 +373,17 @@ namespace CTF_int {
     rec_tsum->run();
     
     new_nnz_B = rec_tsum->new_nnz_B;
+    new_B = rec_tsum->new_B;
     printf("new_nnz_B = %ld\n",new_nnz_B);
     if (buf != this->A) cdealloc(buf);
 
     for (i=0; i<ncdt_B; i++){
       MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i]->cm);
     }
+
+/*    if (save_nnz_blk_A != NULL){
+      memcpy(nnz_blk_A,save_nnz_blk_A,sizeof(int64_t)*nvirt_A);
+    }*/
 
   }
 
@@ -570,7 +579,7 @@ namespace CTF_int {
           }
         }
         if (!is_rep){
-          map_idx_len[nmap_idx] = s->B->lens[oB];
+          map_idx_len[nmap_idx] = s->B->lens[oB]/s->B->edge_map[oB].calc_phase() + (s->B->lens[oB]/s->B->edge_map[oB].calc_phase() > s->B->edge_map[oB].calc_phase());
           map_idx_lda[nmap_idx] = lda_B[oB];
           map_idx_rev[nmap_idx] = oB;
           nmap_idx++;
@@ -660,7 +669,7 @@ namespace CTF_int {
   tsum_sp_permute::tsum_sp_permute(tsum * other) : tsum(other) {
     tsum_sp_permute * o = (tsum_sp_permute*)other;
     rec_tsum = o->rec_tsum->clone();
-    perm_A   = o->perm_A;
+    A_or_B   = o->A_or_B;
     order    = o->order;
     p        = (int*)CTF_int::alloc(sizeof(int)*order);
     lens_old = (int*)CTF_int::alloc(sizeof(int)*order);
@@ -670,17 +679,15 @@ namespace CTF_int {
     memcpy(lens_new, o->lens_new, sizeof(int)*order);
   }
 
-  tsum_sp_permute::tsum_sp_permute(summation const * s) : tsum(s) {
+  tsum_sp_permute::tsum_sp_permute(summation const * s, bool A_or_B, int const * lens) : tsum(s) {
     tensor * X, * Y;
     int const * idx_X, * idx_Y;
-    if (s->A->is_sparse){
-      perm_A = true;
+    if (A_or_B){
       X = s->A;
       Y = s->B;
       idx_X = s->idx_A;
       idx_Y = s->idx_B;
     } else {
-      perm_A=false;
       X = s->B;
       Y = s->A;
       idx_X = s->idx_B;
@@ -693,15 +700,16 @@ namespace CTF_int {
     lens_new    = (int*)CTF_int::alloc(sizeof(int)*order);
 
     CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&lens_old);
-    memcpy(lens_old, X->lens, sizeof(int)*this->order);
+    memcpy(lens_old, lens, sizeof(int)*this->order);
     CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&lens_new);
-    if (Y->is_sparse){
-      memcpy(lens_new, X->lens, sizeof(int)*this->order);
-    } else {
-      for (int i=0; i<this->order; i++){
-        lens_new[i] = X->pad_edge_len[i]/X->edge_map[i].calc_phase();
-      }
+    memcpy(lens_new, lens, sizeof(int)*this->order);
+/*    for (int i=0; i<this->order; i++){
+      memcpy(lens_new, lens, sizeof(int)*this->order);
     }
+    if (Y->is_sparse){
+    } else {
+      lens_new[i] = X->pad_edge_len[i]/X->edge_map[i].calc_phase();
+    }*/
     for (int i=0; i<this->order; i++){
       p[i] = -1;
       for (int j=0; j<Y->order; j++){
@@ -719,14 +727,14 @@ namespace CTF_int {
 
   void tsum_sp_permute::print(){
     printf("tsum_sp_permute:\n");
-    if (perm_A) printf("permuting A\n");
+    if (A_or_B) printf("permuting A\n");
     else        printf("permuting B\n");
     rec_tsum->print();
   }
   
   int64_t tsum_sp_permute::mem_fp(){
     int64_t mem = 0;
-    if (perm_A) mem+=nnz_A*sr_A->pair_size();
+    if (A_or_B) mem+=nnz_A*sr_A->pair_size();
     else mem+=nnz_B*sr_B->pair_size();
     return mem;
   }
@@ -737,7 +745,7 @@ namespace CTF_int {
 
     rec_tsum->A = buf;
     rec_tsum->B = B;
-    if (perm_A){
+    if (A_or_B){
       memcpy(buf, A, nnz_A*sr_A->pair_size());
       int64_t new_lda_A[order];
       memset(new_lda_A, 0, order*sizeof(int64_t));
@@ -809,7 +817,7 @@ namespace CTF_int {
 
     new_nnz_B = rec_tsum->new_nnz_B;
     printf("new_nnz_B = %ld\n",new_nnz_B);
-    if (perm_A){
+    if (A_or_B){
       new_B = rec_tsum->B;
       cdealloc(buf);
     } else {
@@ -885,4 +893,154 @@ namespace CTF_int {
     }
   }
 
+  tsum_sp_pin_keys::~tsum_sp_pin_keys(){
+    cdealloc(divisor);
+    cdealloc(virt_dim);
+    delete rec_tsum;
+  }
+  
+  tsum_sp_pin_keys::tsum_sp_pin_keys(tsum * other) : tsum(other) {
+    tsum_sp_pin_keys * o = (tsum_sp_pin_keys*)other;
+
+    rec_tsum = o->rec_tsum->clone();
+    A_or_B   = o->A_or_B;
+    order    = o->order;
+    lens     = o->lens;
+    divisor  = (int*)CTF_int::alloc(sizeof(int)*order);
+    virt_dim = (int*)CTF_int::alloc(sizeof(int)*order);
+    memcpy(divisor, o->divisor, sizeof(int)*order);
+    memcpy(virt_dim, o->virt_dim, sizeof(int)*order);
+  }
+
+  tsum_sp_pin_keys::print(){
+    printf("tsum_sp_pin_keys:\n");
+    if (A_or_B) printf("transforming global keys of A to local keys\n");
+    else        printf("transforming global keys of B to local keys\n");
+    rec_tsum->print();
+  }
+
+  int64_t tsum_sp_pin_keys::mem_fp(){
+    return 3*order*sizeof(int);
+  }
+
+  tsum_sp_pin_keys::tsum_sp_pin_keys(summation const * s, bool A_or_B_) : tsum(s) {
+    tensor * X, * Y;
+    int const * idx_X, * idx_Y;
+    A_or_B = A_or_B_;
+    if (A_or_B){
+      X = s->A;
+      Y = s->B;
+      idx_X = s->idx_A;
+      idx_Y = s->idx_B;
+    } else {
+      X = s->B;
+      Y = s->A;
+      idx_X = s->idx_B;
+      idx_Y = s->idx_A;
+    }
+    order = X->order;
+    lens = X->lens;
+
+    divisor = (int*)CTF_int::alloc(sizeof(int)*order);
+    virt_dim = (int*)CTF_int::alloc(sizeof(int*)*order);
+
+    for (int i=0; i<order; i++){
+      divisor[i] = X->edge_map[i].calc_phase();
+      virt_dim[i] = divisor[i]/X->edge_map[i].calc_phys_phase();
+    }
+  }
+
+  void tsum_sp_pin_keys::run(){
+    char * X;
+//    char * buf;
+    algstrct const * sr;
+    int64_t nnz;
+    int64_t * nnz_blk;
+    int nvirt;
+    if (A_or_B){
+      X = this->A;
+      sr = this->sr_A;
+      nnz = this->nnz_A;
+    } else {
+      X = this->B;
+      sr = this->sr_B;
+      nnz = this->nnz_B;
+    }
+//    CTF_int::alloc_ptr(nnz*sr->pair_size(), (void**)&buf);
+//    memcpy(buf, X, nnz*sr->pair_size());
+
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&div_lens);
+    for (int64_t j=0; j<order; j++){
+      div_lens[j] = (lens[j]/divisor[j] + (lens[j]/divisor[j] > 0));
+    }
+
+    ConstPairIterator pi(sr, X);
+    PairIterator pi_new(sr, X);
+
+    for (int64_t i=0; i<nnz; i++){
+      int64_t key = pi[i].k();
+      int64_t new_key = 0;
+      int64_t lda = 1;
+      for (int64_t j=0; j<order; j++){
+        new_key += ((key%lens[j])/divisor[j])*lda;
+        lda *= div_lens[j];
+        key = key/lens[j];
+      }
+      ((int64_t*)pi_new[i].ptr)[0] = new_key;
+    }
+
+    if (A_or_B){
+      rec_tsum->A = X;
+      rec_tsum->B = B;
+    } else {
+      rec_tsum->A = A;
+      rec_tsum->B = X;
+    }
+    rec_tsum->nnz_A = nnz_A;
+    rec_tsum->nnz_B = nnz_B;
+    rec_tsum->run();
+
+    new_nnz_B = rec_tsum->new_nnz_B;
+    new_B = rec_tsum->new_B;
+
+    if (!A_or_B){
+      X = new_B;
+      nnz_blk = new_nnz_B;
+      nvirt = nvirt_B;
+    } else {
+      nnz_blk = new_nnz_A;
+      nvirt = nvirt_A;
+    }
+
+    int * virt_offset;
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_offset);
+    int64_t nnz_off = 0;
+    for (int v=0; v<nvirt; v++){
+      int vv;
+      for (int64_t j=0; j<order; j++){
+        virt_offset[j] = (vv%virt_dim[j])*(divisor[j]/virt_dim[j]);
+        vv/virt_dim[j];
+      }
+      ConstPairIterator vpi(sr, X+nnz_off*sr->pair_size());
+      PairIterator vpi_new(sr, X+nnz_off*sr->pair_size);
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=0; i<nnz_blk[v]; i++){
+        int64_t key = vpi[i].k();
+        int64_t new_key = 0;
+        int64_t lda = 1;
+        for (int64_t j=0; j<order; j++){
+          new_key += ((key%div_lens[j])*divisor[j]+virt_offset[j]*)*lda;
+          lda *= lens[j];
+          key = key/div_lens[j];
+        }
+        ((int64_t*)vpi_new[i].ptr)[0] = new_key;
+      }
+      nnz_off += nnz_blk[v]
+    }
+    cdealloc(virt_offset);
+    cdealloc(div_lens);
+
+  }
 }

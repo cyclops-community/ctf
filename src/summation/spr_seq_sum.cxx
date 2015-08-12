@@ -268,9 +268,9 @@ namespace CTF_int{
           w++;
         }
       }
-      /*printf("%ldth value is ", n);
-      sr->print(prs_new[n].d());
-      printf("\n");*/
+      printf("%ldth value is ", n);
+      sr_B->print(prs_new[n].d());
+      printf("\n");
     }
   }
 

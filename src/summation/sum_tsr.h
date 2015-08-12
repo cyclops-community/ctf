@@ -73,7 +73,6 @@ namespace CTF_int {
       char const *     beta;
       void *           buffer;
 
-      //needed if sparse
       bool      is_sparse_A;
       int64_t   nnz_A;
       int       nvirt_A;
@@ -93,11 +92,11 @@ namespace CTF_int {
        * \return bytes needed
        */
       virtual int64_t mem_fp() { return 0; };
+      virtual tsum * clone() { return NULL; };
+      
       virtual void set_nnz_blk_A(int64_t const * nnbA){
         if (nnbA != NULL) memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
       }
-      virtual tsum * clone() { return NULL; };
-      
       virtual ~tsum(){ if (buffer != NULL) CTF_int::cdealloc(buffer); }
       tsum(tsum * other);
       tsum(){ buffer = NULL; }
@@ -233,10 +232,10 @@ namespace CTF_int {
   class tsum_sp_permute : public tsum {
     public:
       tsum * rec_tsum;
-      bool perm_A; //if false perm_B
+      bool A_or_B; //if false perm_B
       int order;
       int * lens_new;
-      int * lens_old;
+      int * lens_old; // FIXME = lens_new?
       int * p;
 
       void run();
@@ -251,9 +250,32 @@ namespace CTF_int {
       tsum_sp_permute(tsum * other);
       ~tsum_sp_permute();
       tsum_sp_permute(){}
-      tsum_sp_permute(summation const * s);
+      tsum_sp_permute(summation const * s, bool A_or_B, int const * lens);
   };
 
+  class tsum_sp_pin_keys : public tsum {
+    public:
+      tsum * rec_tsum;
+      bool A_or_B;
+      int order;
+      int const * lens;
+      int * divisor;
+      int * virt_dim;
+
+      void run();
+      void print();
+      int64_t mem_fp();
+      tsum * clone();
+      void set_nnz_blk_A(int64_t const * nnbA){
+        tsum::set_nnz_blk_A(nnbA);
+        rec_tsum->set_nnz_blk_A(nnbA);
+      }
+
+      tsum_sp_pin_keys(tsum * other);
+      ~tsum_sp_pin_keys();
+      tsum_sp_pin_keys(summation const * s, bool A_or_B);
+
+  };
 
   /**
    * \brief invert index map

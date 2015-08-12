@@ -1412,6 +1412,7 @@ namespace CTF_int {
             tnsr_B->nnz_loc += tnsr_B->nnz_blk[i];
           }
         }
+        printf("tnsr_B->data = %p, nnz_loc = %ld\n", tnsr_B->data, tnsr_B->nnz_loc);
       }
       /*tnsr_B->unfold();
       tnsr_B->print();
