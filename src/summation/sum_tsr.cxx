@@ -679,9 +679,10 @@ namespace CTF_int {
     memcpy(lens_new, o->lens_new, sizeof(int)*order);
   }
 
-  tsum_sp_permute::tsum_sp_permute(summation const * s, bool A_or_B, int const * lens) : tsum(s) {
+  tsum_sp_permute::tsum_sp_permute(summation const * s, bool A_or_B_, int const * lens) : tsum(s) {
     tensor * X, * Y;
     int const * idx_X, * idx_Y;
+    A_or_B = A_or_B_;
     if (A_or_B){
       X = s->A;
       Y = s->B;
@@ -912,7 +913,11 @@ namespace CTF_int {
     memcpy(virt_dim, o->virt_dim, sizeof(int)*order);
   }
 
-  tsum_sp_pin_keys::print(){
+  tsum * tsum_sp_pin_keys::clone() {
+    return new tsum_sp_pin_keys(this);
+  }
+
+  void tsum_sp_pin_keys::print(){
     printf("tsum_sp_pin_keys:\n");
     if (A_or_B) printf("transforming global keys of A to local keys\n");
     else        printf("transforming global keys of B to local keys\n");
@@ -924,19 +929,12 @@ namespace CTF_int {
   }
 
   tsum_sp_pin_keys::tsum_sp_pin_keys(summation const * s, bool A_or_B_) : tsum(s) {
-    tensor * X, * Y;
-    int const * idx_X, * idx_Y;
+    tensor * X;
     A_or_B = A_or_B_;
     if (A_or_B){
       X = s->A;
-      Y = s->B;
-      idx_X = s->idx_A;
-      idx_Y = s->idx_B;
     } else {
       X = s->B;
-      Y = s->A;
-      idx_X = s->idx_B;
-      idx_Y = s->idx_A;
     }
     order = X->order;
     lens = X->lens;
@@ -969,6 +967,7 @@ namespace CTF_int {
 //    CTF_int::alloc_ptr(nnz*sr->pair_size(), (void**)&buf);
 //    memcpy(buf, X, nnz*sr->pair_size());
 
+    int * div_lens;
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&div_lens);
     for (int64_t j=0; j<order; j++){
       div_lens[j] = (lens[j]/divisor[j] + (lens[j]/divisor[j] > 0));
@@ -1005,24 +1004,24 @@ namespace CTF_int {
 
     if (!A_or_B){
       X = new_B;
-      nnz_blk = new_nnz_B;
+      nnz_blk = nnz_blk_B;
       nvirt = nvirt_B;
     } else {
-      nnz_blk = new_nnz_A;
       nvirt = nvirt_A;
+      nnz_blk = nnz_blk_A;
     }
 
     int * virt_offset;
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_offset);
     int64_t nnz_off = 0;
     for (int v=0; v<nvirt; v++){
-      int vv;
+      int vv=v;
       for (int64_t j=0; j<order; j++){
         virt_offset[j] = (vv%virt_dim[j])*(divisor[j]/virt_dim[j]);
-        vv/virt_dim[j];
+        vv=vv/virt_dim[j];
       }
       ConstPairIterator vpi(sr, X+nnz_off*sr->pair_size());
-      PairIterator vpi_new(sr, X+nnz_off*sr->pair_size);
+      PairIterator vpi_new(sr, X+nnz_off*sr->pair_size());
 #ifdef USE_OMP
       #pragma omp parallel for
 #endif
@@ -1031,13 +1030,13 @@ namespace CTF_int {
         int64_t new_key = 0;
         int64_t lda = 1;
         for (int64_t j=0; j<order; j++){
-          new_key += ((key%div_lens[j])*divisor[j]+virt_offset[j]*)*lda;
+          new_key += ((key%div_lens[j])*divisor[j]+virt_offset[j])*lda;
           lda *= lens[j];
           key = key/div_lens[j];
         }
         ((int64_t*)vpi_new[i].ptr)[0] = new_key;
       }
-      nnz_off += nnz_blk[v]
+      nnz_off += nnz_blk[v];
     }
     cdealloc(virt_offset);
     cdealloc(div_lens);
