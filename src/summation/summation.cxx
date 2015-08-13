@@ -514,19 +514,45 @@ namespace CTF_int {
       for (int i=0; i<A->order; i++){
         if (idx_arr[2*idx_A[i]+1] != i) need_perm = true;
       }
+      for (int i=0; i<B->order; i++){
+        if (idx_arr[2*idx_B[i]+1] != i) need_perm = true;
+      }
     }
     if (need_perm){
-      tsum_sp_permute * pmsum = new tsum_sp_permute(this);
-      if (is_top){
-        htsum = pmsum;
-        is_top = 0;
-      } else {
+      if (A->is_sparse){
+        tsum_sp_pin_keys * sksum = new tsum_sp_pin_keys(this, 1);
+        if (is_top){
+          htsum = sksum;
+          is_top = 0;
+        } else {
+          *rec_tsum = sksum;
+        }
+        rec_tsum = &sksum->rec_tsum;
+
+
+        tsum_sp_permute * pmsum = new tsum_sp_permute(this, 1, virt_blk_len_A);
         *rec_tsum = pmsum;
+        rec_tsum = &pmsum->rec_tsum;
       }
-      rec_tsum = &pmsum->rec_tsum;
+      if (B->is_sparse){
+        tsum_sp_pin_keys * sksum = new tsum_sp_pin_keys(this, 0);
+        if (is_top){
+          htsum = sksum;
+          is_top = 0;
+        } else {
+          *rec_tsum = sksum;
+        }
+        rec_tsum = &sksum->rec_tsum;
+
+
+        tsum_sp_permute * pmsum = new tsum_sp_permute(this, 0, virt_blk_len_B);
+        *rec_tsum = pmsum;
+        rec_tsum = &pmsum->rec_tsum;
+      }
+
     }
 
-    bool need_sp_map = false;
+/*    bool need_sp_map = false;
     if (A->is_sparse || B->is_sparse){
       for (int i=0; i<B->order; i++){
         bool found_match = false;
@@ -546,7 +572,7 @@ namespace CTF_int {
         *rec_tsum = smsum;
       }
       rec_tsum = &smsum->rec_tsum;
-    }
+    }*/
 
 
     need_rep = 0;

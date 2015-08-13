@@ -140,13 +140,13 @@ namespace CTF_int {
   }
 
 
-  void calc_dim(int         order,
-                int64_t    size,
-                int const *       edge_len,
-                mapping const *   edge_map,
-                int64_t *         vrt_sz,
-                int *             vrt_edge_len,
-                int *             blk_edge_len){
+  void calc_dim(int             order,
+                int64_t         size,
+                int const *     edge_len,
+                mapping const * edge_map,
+                int64_t *       vrt_sz,
+                int *           vrt_edge_len,
+                int *           blk_edge_len){
     int64_t vsz, i, cont;
     mapping const * map;
     vsz = size;
