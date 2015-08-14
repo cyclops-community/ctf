@@ -305,7 +305,9 @@ namespace CTF_int {
   /*      tmp_arr[j] = (k%edge_len[j])%phase[j];
         tmp_arr[j] = tmp_arr[j]/virt_phase[j];
         tmp_arr[j] = tmp_arr[j]*bucket_lda[j];*/
-        loc += (k%phys_phase[j])*bucket_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += (k%phys_phase[j])*bucket_lda[j];
+        loc += ((k%edge_len[j])%phys_phase[j])*bucket_lda[j];
         k = k/edge_len[j];
       }
   /*    for (j=0; j<order; j++){
@@ -355,7 +357,9 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += (k%phys_phase[j])*bucket_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += (k%phys_phase[j])*bucket_lda[j];
+        loc += ((k%edge_len[j])%phys_phase[j])*bucket_lda[j];
         k = k/edge_len[j];
       }
   #ifdef USE_OMP
@@ -416,7 +420,9 @@ namespace CTF_int {
       int64_t loc = 0;
       //#pragma unroll
       for (int j=0; j<order; j++){
-        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        loc += (((k%edge_len[j])/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       
@@ -449,7 +455,9 @@ namespace CTF_int {
       int64_t loc = 0;
       //#pragma unroll
       for (int j=0; j<order; j++){
-        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        loc += (((k%edge_len[j])/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       bucket_data[virt_prefix[loc] + sub_offs[loc+omp_get_thread_num()*num_virt]].write(mapped_data[i]);
@@ -461,7 +469,9 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        loc += (((k%edge_len[j])/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       virt_counts[loc]++;
@@ -477,7 +487,9 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        loc += (((k%edge_len[j])/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       bucket_data[virt_prefix[loc] + virt_counts[loc]].write(mapped_data[i]);
@@ -1265,7 +1277,7 @@ namespace CTF_int {
         }
         /*printf("%ldth value is ", n);
         sr->print(prs_new[n].d());
-        printf("\n");*/
+        printf(" with key %ld\n",prs_new[n].k());*/
       }
     }
   }

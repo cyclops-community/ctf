@@ -979,6 +979,11 @@ namespace CTF_int {
         this->nnz_loc = nnz_loc_new;
         if (tsr->data != NULL) cdealloc(tsr->data);
         tsr->data = new_pairs;
+/*        for (int64_t i=0; i<nnz_loc; i++){
+          printf("rank = %d, stores key %ld value %lf\n",wrld->rank, 
+                  ((int64_t*)(new_pairs+i*sr->pair_size()))[0],
+                  ((double*)(new_pairs+i*sr->pair_size()+sizeof(int64_t)))[0]);
+        }*/
       }
 
       CTF_int::cdealloc(phase);
@@ -1777,7 +1782,7 @@ namespace CTF_int {
   #endif
 
     distribution new_dist = distribution(this);
-    if (is_sparse) ASSERT(0); //can_block_reshuffle = 0;
+    if (is_sparse) can_block_shuffle = 0;
     else {
   #ifdef USE_BLOCK_RESHUFFLE
       can_block_shuffle = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
@@ -1829,7 +1834,21 @@ namespace CTF_int {
       block_reshuffle(old_dist, new_dist, this->data, shuffled_data, sr, wrld->cdt);
       CTF_int::cdealloc((void*)this->data);
     } else {
-      dgtog_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
+      if (is_sparse){
+        //padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data, sr, wrld->cdt);
+        char * old_data = this->data;
+        
+        this->data = NULL;
+        int64_t old_nnz = nnz_loc;
+        nnz_loc = 0;
+        cdealloc(nnz_blk);
+        nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
+        std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
+        this->write(old_nnz, sr->mulid(), sr->addid(), old_data);
+        shuffled_data = this->data;
+        cdealloc(old_data);
+      } else
+        dgtog_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
       //glb_cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
       //cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
       //CTF_int::cdealloc((void*)this->data);
@@ -1929,12 +1948,12 @@ namespace CTF_int {
                            int         rw,
                            tensor *&   new_tsr,
                            int **      idx_map_new){
-    int i, j, k, * edge_len, * sym, * ex_idx_map, * diag_idx_map;
+    int i, j, k, * edge_len, * nsym, * ex_idx_map, * diag_idx_map;
     for (i=0; i<this->order; i++){
       for (j=i+1; j<this->order; j++){
         if (idx_map[i] == idx_map[j]){
           CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&edge_len);
-          CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&sym);
+          CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&nsym);
           CTF_int::alloc_ptr(sizeof(int)*this->order,   (void**)idx_map_new);
           CTF_int::alloc_ptr(sizeof(int)*this->order,   (void**)&ex_idx_map);
           CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&diag_idx_map);
@@ -1945,14 +1964,14 @@ namespace CTF_int {
               edge_len[k]        = this->pad_edge_len[k]-this->padding[k];
               (*idx_map_new)[k]  = idx_map[k];
               if (k==j-1){
-                sym[k] = NS;
+                nsym[k] = NS;
               } else 
-                sym[k] = this->sym[k];
+                nsym[k] = this->sym[k];
             } else if (k>j) {
               ex_idx_map[k]       = k-1;
               diag_idx_map[k-1]   = k-1;
               edge_len[k-1]       = this->pad_edge_len[k]-this->padding[k];
-              sym[k-1]            = this->sym[k];
+              nsym[k-1]            = this->sym[k];
               (*idx_map_new)[k-1] = idx_map[k];
             } else {
               ex_idx_map[k] = i;
@@ -1961,14 +1980,14 @@ namespace CTF_int {
           if (is_sparse){
             int64_t lda_i=1, lda_j=1;
             for (int ii=1; ii<i; ii++){
-              lda_i *= edge_len[ii-1];
+              lda_i *= lens[ii-1];
             }
             for (int jj=1; jj<j; jj++){
-              lda_j *= edge_len[jj-1];
+              lda_j *= lens[jj-1];
             }
             if (rw){
               PairIterator pi(sr, data);
-              new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld, 1, name, 1, is_sparse);
+              new_tsr = new tensor(sr, this->order-1, edge_len, nsym, wrld, 1, name, 1, is_sparse);
               int64_t nw = 0;
               for (int p=0; p<nnz_loc; p++){
                 int64_t k = pi[p].k();
@@ -2003,7 +2022,8 @@ namespace CTF_int {
                 int64_t k = wdata[p].k();
                 int64_t kpart = (k/lda_i)%lens[i];
                 int64_t k_new = (k%lda_j)+((k/lda_j)*lens[j]+kpart)*lda_j;
-                ((int64_t*)(wdata[i].ptr))[0] = k_new;
+                ((int64_t*)(wdata[p].ptr))[0] = k_new;
+//                printf("k = %ld, k_new = %ld lda_i = %ld lda_j = %ld lens[0] = %d lens[1] = %d\n", k,k_new,lda_i,lda_j,lens[0],lens[1]);
               }
               this->write(nw, sr->mulid(), sr->addid(), pwdata);
               cdealloc(pwdata);
@@ -2011,7 +2031,7 @@ namespace CTF_int {
           } else {
             if (rw){
           
-              new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld, 1, name, 1, is_sparse);
+              new_tsr = new tensor(sr, this->order-1, edge_len, nsym, wrld, 1, name, 1, is_sparse);
               summation sum = summation(this, ex_idx_map, sr->mulid(), new_tsr, diag_idx_map, sr->addid());
               sum.execute(1);
             } else {
@@ -2019,7 +2039,7 @@ namespace CTF_int {
               sum.execute(1);
             }
           }
-          CTF_int::cdealloc(edge_len), CTF_int::cdealloc(sym), CTF_int::cdealloc(ex_idx_map), CTF_int::cdealloc(diag_idx_map);
+          CTF_int::cdealloc(edge_len), CTF_int::cdealloc(nsym), CTF_int::cdealloc(ex_idx_map), CTF_int::cdealloc(diag_idx_map);
           return SUCCESS;
         }
       }
