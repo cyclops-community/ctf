@@ -80,6 +80,7 @@ namespace CTF_int {
    * \param[in,out] new_size_B number of nonzero entries in output
    * \param[in] sr_B algebraic structure of left operand and output
    * \param[in] func function (or NULL) to apply to right operand
+   * \param[in] map_pfx how many times each element of A should be replicated
    */
   void spA_spB_seq_sum(char const *            alpha,
                        char const *            A,
@@ -91,7 +92,8 @@ namespace CTF_int {
                        char *&                 new_B,
                        int64_t &               new_size_B,
                        algstrct const *        sr_B,
-                       univar_function const * func);
+                       univar_function const * func,
+                       int64_t                 map_pfx);
 
 }
 #endif

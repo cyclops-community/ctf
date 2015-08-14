@@ -1777,14 +1777,17 @@ namespace CTF_int {
   #endif
 
     distribution new_dist = distribution(this);
+    if (is_sparse) ASSERT(0); //can_block_reshuffle = 0;
+    else {
   #ifdef USE_BLOCK_RESHUFFLE
-    can_block_shuffle = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
+      can_block_shuffle = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
   #else
-    can_block_shuffle = 0;
-  #endif
-    if (old_offsets != NULL || old_permutation != NULL ||
-        new_offsets != NULL || new_permutation != NULL){
       can_block_shuffle = 0;
+  #endif
+      if (old_offsets != NULL || old_permutation != NULL ||
+          new_offsets != NULL || new_permutation != NULL){
+        can_block_shuffle = 0;
+      }
     }
 
     if (size > INT_MAX && wrld->cdt.rank == 0)
@@ -1984,7 +1987,6 @@ namespace CTF_int {
                   ((int64_t*)(wdata[nw].ptr))[0] = k_new;
                   wdata[nw].write_val(pi[p].d());
                   nw++;
-                  printf("k=%ld, k_new = %ld\n", k,k_new);
                 }
               }
               new_tsr->write(nw, sr->mulid(), sr->addid(), pwdata);

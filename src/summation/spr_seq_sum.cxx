@@ -173,6 +173,7 @@ namespace CTF_int{
    * \param[out] nnew number of elements in resulting set
    * \param[out] pprs_new char array containing the pairs of the resulting set
    * \param[in] func NULL or pointer to a function to apply elementwise
+   * \param[in] map_pfx how many times each element of A should be replicated
    */
 
   void spspsum(algstrct const *        sr_A,
@@ -185,49 +186,61 @@ namespace CTF_int{
                char const *            alpha,
                int64_t &               nnew,
                char *&                 pprs_new,
-               univar_function const * func){
+               univar_function const * func,
+               int64_t                 map_pfx){
     // determine how many unique keys there are in prs_tsr and prs_Write
     nnew = nB;
-    for (int64_t t=0,w=0; w<nA; w++){
-      while (w<nA){
-        if (t<nB && prs_B[t].k() < prs_A[w].k())
+    for (int64_t t=0,ww=0; ww<nA*map_pfx; ww++){
+      while (ww<nA*map_pfx){
+        int64_t w = ww/map_pfx;
+        int64_t mw = ww%map_pfx;
+        if (t<nB && prs_B[t].k() < prs_A[w].k()*map_pfx+mw)
           t++;
-        else if (t<nB && prs_B[t].k() == prs_A[w].k()){
+        else if (t<nB && prs_B[t].k() == prs_A[w].k()*map_pfx+mw){
           t++;
-          w++;
+          ww++;
         } else {
-          if (w==0 || prs_A[w-1].k() != prs_A[w].k())
+          //ASSERT(map_pfx == 1);
+          if (map_pfx != 1 || ww==0 || prs_A[ww-1].k() != prs_A[ww].k())
             nnew++;
-          w++;
+          ww++; w=ww;
         }
       }
     }
-    printf("nB = %ld nA = %ld nnew = %ld\n",nB,nA,nnew); 
+//    printf("nB = %ld nA = %ld nnew = %ld\n",nB,nA,nnew); 
     alloc_ptr(sr_B->pair_size()*nnew, (void**)&pprs_new);
     PairIterator prs_new(sr_B, pprs_new);
     // each for loop computes one new value of prs_new 
     //    (multiple writes may contribute to it), 
     //    t, w, and n are incremented within
     // only incrementing r allows multiple writes of the same val
-    for (int64_t t=0,w=0,n=0; n<nnew; n++){
-      if (t<nB && (w==nA || prs_B[t].k() < prs_A[w].k())){
+    for (int64_t t=0,ww=0,n=0; n<nnew; n++){
+      int64_t w = ww/map_pfx;
+      int64_t mw = ww%map_pfx;
+      if (t<nB && (w==nA || prs_B[t].k() < prs_A[w].k()*map_pfx+mw)){
         memcpy(prs_new[n].ptr, prs_B[t].ptr, sr_B->pair_size());
         t++;
       } else {
-        if (t>=nB || prs_B[t].k() > prs_A[w].k()){
+        if (t>=nB || prs_B[t].k() > prs_A[w].k()*map_pfx+mw){
           if (func == NULL){
-            memcpy(prs_new[n].ptr, prs_A[w].ptr, sr_A->pair_size());
+            if (map_pfx == 1){
+              memcpy(prs_new[n].ptr, prs_A[w].ptr, sr_A->pair_size());
+            } else {
+              ((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k()*map_pfx+mw; 
+              prs_new[n].write_val(prs_A[w].d());
+            }
             if (alpha != NULL)
               sr_A->mul(prs_new[n].d(), alpha, prs_new[n].d());
           } else {
-            ((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k();
+            //((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k();
+            ((int64_t*)prs_new.ptr)[0] = prs_A[w].k()*map_pfx+mw; 
             if (alpha != NULL){
               char a[sr_A->el_size];
               sr_A->mul(prs_A[w].d(), alpha, a);
               func->apply_f(a, prs_new[n].d());
             }
           }
-          w++;
+          ww++;
         } else {
           char a[sr_A->el_size];
           char b[sr_B->el_size];
@@ -248,29 +261,29 @@ namespace CTF_int{
           prs_new[n].write_val(b);
           ((int64_t*)(prs_new[n].ptr))[0] = prs_B[t].k();
           t++;
-          w++;
+          ww++;
         }
         // accumulate any repeated key writes
-        while (w < nA && prs_A[w].k() == prs_A[w-1].k()){
+        while (map_pfx == 1 && ww > 0 && ww<nA && prs_A[ww].k() == prs_A[ww-1].k()){
           if (alpha != NULL){
             char a[sr_A->el_size];
-            sr_A->mul(prs_A[w].d(), alpha, a);
+            sr_A->mul(prs_A[ww].d(), alpha, a);
             if (func == NULL)
               sr_B->add(prs_new[n].d(), a, prs_new[n].d());
             else
               func->acc_f(a, prs_new[n].d(), sr_B);
           } else {
             if (func == NULL)
-              sr_B->add(prs_new[n].d(), prs_A[w].d(), prs_new[n].d());
+              sr_B->add(prs_new[n].d(), prs_A[ww].d(), prs_new[n].d());
             else
-              func->acc_f(prs_A[w].d(), prs_new[n].d(), sr_B);
+              func->acc_f(prs_A[ww].d(), prs_new[n].d(), sr_B);
           }
-          w++;
+          ww++; w=ww;
         }
       }
-      printf("%ldth value is ", n);
+      /*printf("%ldth value is ", n);
       sr_B->print(prs_new[n].d());
-      printf("\n");
+      printf(" with key %ld\n",prs_new[n].k());*/
     }
   }
 
@@ -285,10 +298,11 @@ namespace CTF_int{
                        char *&                 new_B,
                        int64_t &               new_size_B,
                        algstrct const *        sr_B,
-                       univar_function const * func){
+                       univar_function const * func,
+                       int64_t                 map_pfx){
       spspsum(sr_A, size_A, ConstPairIterator(sr_A, A), beta,
               sr_B, size_B, ConstPairIterator(sr_B, B),alpha,
-              new_size_B, new_B, func);
+              new_size_B, new_B, func, map_pfx);
   }
 
 }

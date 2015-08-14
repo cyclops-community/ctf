@@ -37,7 +37,7 @@ int sptensor_sum(int     n,
   //B.print();
 
   B["abij"] += A["abij"];
-  
+ 
   //B.print();
 
   int64_t * new_keys_B;

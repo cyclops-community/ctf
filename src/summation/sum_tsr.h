@@ -181,6 +181,8 @@ namespace CTF_int {
       int is_inner;
       int inr_stride;
 
+      int64_t map_pfx;
+
       int is_custom;
       univar_function const * func; //fseq_elm_sum custom_params;
 
@@ -261,6 +263,7 @@ namespace CTF_int {
       int const * lens;
       int * divisor;
       int * virt_dim;
+      int * phys_rank;
 
       void run();
       void print();

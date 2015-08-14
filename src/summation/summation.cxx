@@ -511,12 +511,13 @@ namespace CTF_int {
     }
     bool need_perm = false;
     if (A->is_sparse || B->is_sparse){
-      for (int i=0; i<A->order; i++){
+      need_perm = true;
+/*      for (int i=0; i<A->order; i++){
         if (idx_arr[2*idx_A[i]+1] != i) need_perm = true;
       }
       for (int i=0; i<B->order; i++){
         if (idx_arr[2*idx_B[i]+1] != i) need_perm = true;
-      }
+      }*/
     }
     if (need_perm){
       if (A->is_sparse){
@@ -1435,10 +1436,11 @@ namespace CTF_int {
           //tnsr_B->nnz_loc = sumf->new_nnz_B;
           tnsr_B->nnz_loc = 0;
           for (int i=0; i<tnsr_B->calc_nvirt(); i++){
+        //    printf("rec %p pin %p new_blk_nnz_B[%d] = %ld\n",sumf->nnz_blk_B,tnsr_B->nnz_blk,i,tnsr_B->nnz_blk[i]);
             tnsr_B->nnz_loc += tnsr_B->nnz_blk[i];
           }
         }
-        printf("tnsr_B->data = %p, nnz_loc = %ld\n", tnsr_B->data, tnsr_B->nnz_loc);
+        ASSERT(tnsr_B->nnz_loc == sumf->new_nnz_B);
       }
       /*tnsr_B->unfold();
       tnsr_B->print();

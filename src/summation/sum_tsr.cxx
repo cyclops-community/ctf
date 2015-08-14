@@ -313,7 +313,6 @@ namespace CTF_int {
     int brank, i;
     char * buf = this->A;
 //    int64_t * save_nnz_blk_A = NULL;
-    printf("nnz_A = %ld\n",nnz_A);
     if (is_sparse_A){
       /*if (ncdt_A > 0){
         save_nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
@@ -374,7 +373,7 @@ namespace CTF_int {
     
     new_nnz_B = rec_tsum->new_nnz_B;
     new_B = rec_tsum->new_B;
-    printf("new_nnz_B = %ld\n",new_nnz_B);
+    //printf("new_nnz_B = %ld\n",new_nnz_B);
     if (buf != this->A) cdealloc(buf);
 
     for (i=0; i<ncdt_B; i++){
@@ -405,6 +404,8 @@ namespace CTF_int {
     
     is_inner   = o->is_inner;
     inr_stride = o->inr_stride;
+    
+    map_pfx    = o->map_pfx;
 
     is_custom  = o->is_custom;
     func       = o->func;
@@ -418,6 +419,22 @@ namespace CTF_int {
     sym_B     = s->B->sym;
     idx_map_B = s->idx_B;
     is_custom = s->is_custom;
+
+    map_pfx = 1;
+   
+    //printf("A is sparse = %d, B is sparse = %d\n",  s->A->is_sparse, s->B->is_sparse);
+    if (s->A->is_sparse && s->B->is_sparse){
+      for (int i=0; i<s->B->order; i++){
+        bool mapped = true;
+        for (int j=0; j<s->A->order; j++){
+          if (s->idx_B[i] == s->idx_A[j]){
+            mapped = false;
+          }
+        }
+        if (mapped)
+          map_pfx *= s->B->pad_edge_len[i]/s->B->edge_map[i].calc_phase();
+      } 
+    }
   }
 
   void seq_tsr_sum::print(){
@@ -431,6 +448,7 @@ namespace CTF_int {
     }
     printf("is inner = %d\n", is_inner);
     if (is_inner) printf("inner stride = %d\n", inr_stride);
+    printf("map_pfx = %ld\n", map_pfx);
   }
 
   tsum * seq_tsr_sum::clone() {
@@ -477,7 +495,8 @@ namespace CTF_int {
                       this->new_B,
                       this->new_nnz_B,
                       this->sr_B,
-                      func);
+                      func,
+                      this->map_pfx);
     } else {
       if (is_custom){
         ASSERT(is_inner == 0);
@@ -617,7 +636,7 @@ namespace CTF_int {
     PairIterator pi(this->sr_A, A);
     char * buf;
     alloc_ptr(this->sr_A->pair_size()*nnz_A*tot_rep, (void**)&buf);
-    printf("pair size is %d, nnz is %ld\n",this->sr_A->pair_size(), nnz_A);
+    //printf("pair size is %d, nnz is %ld\n",this->sr_A->pair_size(), nnz_A);
     PairIterator pi_new(this->sr_A, buf);
 #ifdef USE_OMP
     #pragma omp parallel for
@@ -655,7 +674,6 @@ namespace CTF_int {
     rec_tsum->set_nnz_blk_A(nnz_blk_A);
     rec_tsum->run();
     new_nnz_B = rec_tsum->new_nnz_B;
-    printf("new_nnz_B = %ld\n",new_nnz_B);
     new_B = rec_tsum->new_B;
     cdealloc(buf);
   }
@@ -711,15 +729,42 @@ namespace CTF_int {
     } else {
       lens_new[i] = X->pad_edge_len[i]/X->edge_map[i].calc_phase();
     }*/
-    for (int i=0; i<this->order; i++){
-      p[i] = -1;
-      for (int j=0; j<Y->order; j++){
-        if (idx_X[i] == idx_Y[j]){
-          ASSERT(p[i] == -1); // no repeating indices allowed here!
-          p[i] = j;
+    if (A_or_B){
+      // if A then ignore 'reduced' indices
+      for (int i=0; i<this->order; i++){
+        p[i] = -1;
+        for (int j=0; j<Y->order; j++){
+          if (idx_X[i] == idx_Y[j]){
+            ASSERT(p[i] == -1); // no repeating indices allowed here!
+            p[i] = j;
+          }
+        }       
+      } 
+    } else {
+      // if B then put 'map' indices first
+      int nmap_idx = 0;
+      for (int i=0; i<this->order; i++){
+        bool mapped = true;
+        for (int j=0; j<Y->order; j++){
+          if (idx_X[i] == idx_Y[j]){
+            mapped = false;
+          }
         }
-      }       
-    } 
+        if (mapped) nmap_idx++;
+      } 
+
+      int nm = 0;
+      for (int i=0; i<this->order; i++){
+        p[i] = nm;
+        for (int j=0; j<Y->order; j++){
+          if (idx_X[i] == idx_Y[j]){
+            ASSERT(p[i] == nm); // no repeating indices allowed here!
+            p[i] = j+nmap_idx;
+          }
+        }
+        if (p[i] == nm) nm++;
+      } 
+    }
   }
 
   tsum * tsum_sp_permute::clone() {
@@ -742,19 +787,21 @@ namespace CTF_int {
 
   void tsum_sp_permute::run(){
     char * buf;
-    CTF_int::alloc_ptr(nnz_A*sr_A->pair_size(), (void**)&buf);
 
-    rec_tsum->A = buf;
-    rec_tsum->B = B;
     if (A_or_B){
+      CTF_int::alloc_ptr(nnz_A*sr_A->pair_size(), (void**)&buf);
+      rec_tsum->A = buf;
+      rec_tsum->B = B;
       memcpy(buf, A, nnz_A*sr_A->pair_size());
       int64_t new_lda_A[order];
       memset(new_lda_A, 0, order*sizeof(int64_t));
       int64_t lda=1;
       for (int i=0; i<order; i++){
         for (int j=0; j<order; j++){
-          if (p[j] == i) new_lda_A[j] = lda;
-          lda *= lens_new[j];
+          if (p[j] == i){ 
+            new_lda_A[j] = lda;
+            lda *= lens_new[j];
+          }
         }
       }
       ConstPairIterator rA(sr_A, A);
@@ -771,6 +818,7 @@ namespace CTF_int {
         }
         ((int64_t*)wA[i].ptr)[0] = k_new;
         memcpy(wA[i].d(), rA[i].d(), sr_A->el_size);
+        //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
       }
       
       PairIterator mwA = wA;
@@ -780,6 +828,9 @@ namespace CTF_int {
       }
       rec_tsum->A = buf;
     } else {
+      CTF_int::alloc_ptr(nnz_B*sr_B->pair_size(), (void**)&buf);
+      rec_tsum->A = A;
+      rec_tsum->B = buf;
       memcpy(buf, B, nnz_B*sr_B->pair_size());
       int64_t new_lda_B[order];
       int64_t lda=1;
@@ -817,9 +868,8 @@ namespace CTF_int {
     rec_tsum->run();
 
     new_nnz_B = rec_tsum->new_nnz_B;
-    printf("new_nnz_B = %ld\n",new_nnz_B);
     if (A_or_B){
-      new_B = rec_tsum->B;
+      new_B = rec_tsum->new_B;
       cdealloc(buf);
     } else {
       if (nnz_B == new_nnz_B){
@@ -842,7 +892,7 @@ namespace CTF_int {
 #ifdef USE_OMP
       #pragma omp parallel for
 #endif
-      for (int64_t i=0; i<nnz_B; i++){
+      for (int64_t i=0; i<new_nnz_B; i++){
         int64_t k = rB[i].k();
         int64_t k_new = 0;
         for (int j=0; j<order; j++){
@@ -851,6 +901,7 @@ namespace CTF_int {
         }
         ((int64_t*)wB[i].ptr)[0] = k_new;
         memcpy(wB[i].d(), rB[i].d(), sr_B->el_size);
+        //printf("value %lf old key %ld new key %ld\n",((double*)wB[i].d())[0], rB[i].k(), wB[i].k());
       }
       PairIterator mwB = wB;
       for (int v=0; v<nvirt_B; v++){
@@ -903,13 +954,15 @@ namespace CTF_int {
   tsum_sp_pin_keys::tsum_sp_pin_keys(tsum * other) : tsum(other) {
     tsum_sp_pin_keys * o = (tsum_sp_pin_keys*)other;
 
-    rec_tsum = o->rec_tsum->clone();
-    A_or_B   = o->A_or_B;
-    order    = o->order;
-    lens     = o->lens;
-    divisor  = (int*)CTF_int::alloc(sizeof(int)*order);
-    virt_dim = (int*)CTF_int::alloc(sizeof(int)*order);
+    rec_tsum  = o->rec_tsum->clone();
+    A_or_B    = o->A_or_B;
+    order     = o->order;
+    lens      = o->lens;
+    divisor   = (int*)CTF_int::alloc(sizeof(int)*order);
+    phys_rank = (int*)CTF_int::alloc(sizeof(int)*order);
+    virt_dim  = (int*)CTF_int::alloc(sizeof(int)*order);
     memcpy(divisor, o->divisor, sizeof(int)*order);
+    memcpy(phys_rank, o->phys_rank, sizeof(int)*order);
     memcpy(virt_dim, o->virt_dim, sizeof(int)*order);
   }
 
@@ -940,10 +993,12 @@ namespace CTF_int {
     lens = X->lens;
 
     divisor = (int*)CTF_int::alloc(sizeof(int)*order);
+    phys_rank = (int*)CTF_int::alloc(sizeof(int)*order);
     virt_dim = (int*)CTF_int::alloc(sizeof(int*)*order);
 
     for (int i=0; i<order; i++){
       divisor[i] = X->edge_map[i].calc_phase();
+      phys_rank[i] = X->edge_map[i].calc_phys_rank(X->topo);
       virt_dim[i] = divisor[i]/X->edge_map[i].calc_phys_phase();
     }
   }
@@ -970,7 +1025,7 @@ namespace CTF_int {
     int * div_lens;
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&div_lens);
     for (int64_t j=0; j<order; j++){
-      div_lens[j] = (lens[j]/divisor[j] + (lens[j]/divisor[j] > 0));
+      div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
     }
 
     ConstPairIterator pi(sr, X);
@@ -986,6 +1041,7 @@ namespace CTF_int {
         key = key/lens[j];
       }
       ((int64_t*)pi_new[i].ptr)[0] = new_key;
+        //printf("in key = %ld, new_key = %ld, val = %lf\n", pi[i].k(), new_key, ((double*)pi_new[i].d())[0]);
     }
 
     if (A_or_B){
@@ -1015,9 +1071,10 @@ namespace CTF_int {
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_offset);
     int64_t nnz_off = 0;
     for (int v=0; v<nvirt; v++){
+      //printf("%d %p new_B %p pin %p new_blk_nnz_B[%d] = %ld\n",A_or_B,this,new_B,nnz_blk,v,nnz_blk[v]);
       int vv=v;
       for (int64_t j=0; j<order; j++){
-        virt_offset[j] = (vv%virt_dim[j])*(divisor[j]/virt_dim[j]);
+        virt_offset[j] = (vv%virt_dim[j])*(divisor[j]/virt_dim[j])+phys_rank[j];
         vv=vv/virt_dim[j];
       }
       ConstPairIterator vpi(sr, X+nnz_off*sr->pair_size());
@@ -1034,6 +1091,7 @@ namespace CTF_int {
           lda *= lens[j];
           key = key/div_lens[j];
         }
+        //printf("key = %ld, new_key = %ld, val = %lf\n", vpi[i].k(), new_key, ((double*)vpi_new[i].d())[0]);
         ((int64_t*)vpi_new[i].ptr)[0] = new_key;
       }
       nnz_off += nnz_blk[v];
