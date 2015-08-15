@@ -43,7 +43,7 @@ int univar_accumulator_cust_sp(int     n,
   for (int i=0; i<nloc; i++){
     for (int j=0; j<nall; j++){
       if (j != inds[i]){
-        if (get_distance(loc_parts[i], all_parts[j])){
+        if (get_distance(loc_parts[i], all_parts[j])<.3){
           my_forces.push_back( Pair<force>(inds[i]*n+j, get_force(loc_parts[i], all_parts[j])));
         }
       }
@@ -65,14 +65,12 @@ int univar_accumulator_cust_sp(int     n,
   P.read(nloc, inds, loc_parts_new);
   
   //check that something changed
-  int pass = 1;
-  if (pass){
-    for (int64_t i=0; i<nloc; i++){
-      if (fabs(loc_parts[i].dx - loc_parts_new[i].dx)<1.E-6 &&
-          fabs(loc_parts[i].dy - loc_parts_new[i].dy)<1.E-6) pass = 0;
-    }
-  } 
-  MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+  int pass = 0;
+  for (int64_t i=0; i<nloc; i++){
+    if (fabs(loc_parts[i].dx - loc_parts_new[i].dx)>1.E-6 ||
+        fabs(loc_parts[i].dy - loc_parts_new[i].dy)>1.E-6) pass = 1;
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
   if (!pass && dw.rank == 0){
     printf("Test incorrect: application of uacc did not modify some value.\n");
   }

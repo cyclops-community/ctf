@@ -31,6 +31,7 @@
 #include "../examples/endomorphism_cust_sp.cxx"
 #include "../examples/univar_function.cxx"
 #include "../examples/univar_accumulator_cust.cxx"
+#include "../examples/univar_accumulator_cust_sp.cxx"
 
 using namespace CTF;
 
@@ -176,6 +177,29 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing SY times NS with n = %d:\n",n);
     pass.push_back(sy_times_ns(n,dw));
+
+#if 0
+    if (rank == 0)
+      printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);
+    pass.push_back(strassen(n*n, AS, dw));
+      if (rank == 0)
+    printf("Currently cannot do asymmetric Strassen's algorithm with n = %d:\n",n*n);
+    pass.push_back(0);
+#endif
+#ifndef BGQ
+    if (np == 1<<(int)log2(np)){
+      if (rank == 0)
+        printf("Testing non-symmetric sliced GEMM algorithm with (%d %d %d):\n",16,32,8);
+      pass.push_back(test_slice_gemm(16, 32, 8, dw));
+    }
+#endif    
+#endif
+    if (rank == 0)
+      printf("Testing 1D DFT with n = %d:\n",n*n);
+    pass.push_back(test_dft(n*n, dw));
+    if (rank == 0)
+      printf("Testing 3D DFT with n = %d:\n",n);
+    pass.push_back(test_dft_3D(n, dw));
     
     if (rank == 0)
       printf("Testing sparse summation with n = %d:\n",n);
@@ -205,29 +229,9 @@ int main(int argc, char ** argv){
       printf("Testing univar_accumulator_cust integrates forces to particles with n = %d:\n",n);
     pass.push_back(univar_accumulator_cust(n,dw));
 
-#if 0
     if (rank == 0)
-      printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);
-    pass.push_back(strassen(n*n, AS, dw));
-      if (rank == 0)
-    printf("Currently cannot do asymmetric Strassen's algorithm with n = %d:\n",n*n);
-    pass.push_back(0);
-#endif
-#ifndef BGQ
-    if (np == 1<<(int)log2(np)){
-      if (rank == 0)
-        printf("Testing non-symmetric sliced GEMM algorithm with (%d %d %d):\n",16,32,8);
-      pass.push_back(test_slice_gemm(16, 32, 8, dw));
-    }
-#endif    
-#endif
-    if (rank == 0)
-      printf("Testing 1D DFT with n = %d:\n",n*n);
-    pass.push_back(test_dft(n*n, dw));
-    if (rank == 0)
-      printf("Testing 3D DFT with n = %d:\n",n);
-    pass.push_back(test_dft_3D(n, dw));
-
+      printf("Testing univar_accumulator_cust_sp integrates sparse forces to particles with n = %d:\n",n);
+    pass.push_back(univar_accumulator_cust_sp(n,dw));
   }
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)

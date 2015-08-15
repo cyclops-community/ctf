@@ -1040,7 +1040,7 @@ namespace CTF_int {
 //      printf("rank = %d, in key = %ld,  val = %lf\n",  phys_rank[0], save_key,  ((double*)pi_new[i].d())[0]);
       for (int j=0; j<order; j++){
 //        printf("%d %ld %d\n",j,(key%lens[j])%divisor[j],phys_rank[j]);
-        ASSERT(((key%lens[j])%divisor[j]) == phys_rank[j]);
+        ASSERT(((key%lens[j])%(divisor[j]/virt_dim[j])) == phys_rank[j]);
         new_key += ((key%lens[j])/divisor[j])*lda;
         lda *= div_lens[j];
         key = key/lens[j];

@@ -69,7 +69,7 @@ namespace CTF_int{
         A = A[1];
         size_A--;
       }
-      B += sr_B->el_size;
+//      B += sr_B->el_size;
       idx_B++;
     }
   }
