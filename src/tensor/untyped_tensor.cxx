@@ -502,8 +502,8 @@ namespace CTF_int {
       this->is_mapped = 1;
       this->set_padding();
 
-        if (this->size > INT_MAX && wrld->rank == 0)
-          printf("CTF WARNING: Tensor %s is has local size %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
+      if (!is_sparse && this->size > INT_MAX && wrld->rank == 0)
+        printf("CTF WARNING: Tensor %s is has local size %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
      
       if (is_sparse){
         nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());

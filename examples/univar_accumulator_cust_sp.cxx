@@ -13,6 +13,7 @@ using namespace CTF;
 
 int univar_accumulator_cust_sp(int     n,
                                World & dw){
+  assert(n>1);
   
   Set<particle> sP = Set<particle>();
   Group<force> gF = Group<force>();
@@ -29,8 +30,14 @@ int univar_accumulator_cust_sp(int     n,
   srand48(dw.rank);
 
   for (int64_t i=0; i<nloc; i++){
-    loc_parts[i].dx = drand48();
-    loc_parts[i].dy = drand48();
+    //put first particle in middle, so its always within cutoff of all other particles
+    if (inds[i] == 0){
+      loc_parts[i].dx = .5;
+      loc_parts[i].dy = .5;
+    } else {
+      loc_parts[i].dx = drand48();
+      loc_parts[i].dy = drand48();
+    }
     loc_parts[i].coeff = .001*drand48();
     loc_parts[i].id = 777;
   }
@@ -43,7 +50,8 @@ int univar_accumulator_cust_sp(int     n,
   for (int i=0; i<nloc; i++){
     for (int j=0; j<nall; j++){
       if (j != inds[i]){
-        if (get_distance(loc_parts[i], all_parts[j])<.3){
+        //add force if distance within 1/sqrt(2)
+        if (get_distance(loc_parts[i], all_parts[j])<.708){
           my_forces.push_back( Pair<force>(inds[i]*n+j, get_force(loc_parts[i], all_parts[j])));
         }
       }

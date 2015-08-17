@@ -159,8 +159,8 @@ int main(int argc, char ** argv){
 #endif    
 
     if (rank == 0)
-      printf("Testing non-symmetric Strassen's algorithm with n = %d:\n", n*n);
-    pass.push_back(strassen(n*n, NS, dw));
+      printf("Testing non-symmetric Strassen's algorithm with n = %d:\n", 2*n*n);
+    pass.push_back(strassen(2*n*n, NS, dw));
     
     if (rank == 0)
       printf("Testing diagonal write with n = %d:\n",n);
