@@ -783,17 +783,12 @@ namespace CTF_int {
 
 
   tsum * summation::construct_sum(int inner_stride){
-    int i, iA, iB, order_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
-    int64_t blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
+    int i;
     int nphys_dim;
-    int * idx_arr, * phys_mapped;
-    int * virt_blk_len_A, * virt_blk_len_B;
-    int * blk_len_A, * blk_len_B;
-    tsum * htsum = NULL , ** rec_tsum = NULL;
+    int * phys_mapped;
+    tsum * htsum;
     mapping * map;
-    strp_tsr * str_A, * str_B;
 
-    is_top = 1;
     nphys_dim = A->topo->order;
 
     CTF_int::alloc_ptr(sizeof(int)*nphys_dim*2, (void**)&phys_mapped);
