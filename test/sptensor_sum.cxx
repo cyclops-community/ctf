@@ -67,6 +67,9 @@ int sptensor_sum(int     n,
         break;
     }
   }
+  free(new_keys_B);
+  free(new_vals_B);
+
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
   if (dw.rank == 0){
     if (pass) 

@@ -646,7 +646,7 @@ namespace CTF_int {
     memcpy(new_sym_B, B->sym, sizeof(int)*B->order);
 
     /* Multiply over virtual sub-blocks */
-    if (true){ //nvirt > 1){
+    if (nvirt > 1 || A->is_sparse || B->is_sparse){
       tsum_virt * tsumv = new tsum_virt(this);
 /*      tsumv->sr_A = A->sr;
       tsumv->sr_B = B->sr;
@@ -1211,6 +1211,8 @@ namespace CTF_int {
       dstack_tsr_B[i]->extract_diag(dstack_map_B[i], 0, tnsr_B, &new_idx_map);
       //del_tsr(ntid_B);
       delete tnsr_B;
+      cdealloc(dstack_map_B[i]);
+      cdealloc(new_idx_map);
       tnsr_B = dstack_tsr_B[i];
     }
     ASSERT(tnsr_B == B);

@@ -97,7 +97,7 @@ namespace CTF_int {
       virtual void set_nnz_blk_A(int64_t const * nnbA){
         if (nnbA != NULL) memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
       }
-      virtual ~tsum(){ if (buffer != NULL) CTF_int::cdealloc(buffer); }
+      virtual ~tsum();
       tsum(tsum * other);
       tsum(){ buffer = NULL; }
       tsum(summation const * s);

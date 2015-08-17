@@ -225,6 +225,7 @@ namespace CTF {
       B.sr->safemul(Bcpy->scale,ainv,Bcpy->scale);
       Bcpy->execute(*this);
       sr->safecopy(scale,sr->mulid());
+      if (ainv != NULL) cdealloc(ainv);
       delete Bcpy;
     }
   }

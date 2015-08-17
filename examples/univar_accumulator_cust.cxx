@@ -67,7 +67,7 @@ int univar_accumulator_cust(int     n,
       if (fabs(loc_parts[i].dx - loc_parts_new[i].dx)<1.E-6 &&
           fabs(loc_parts[i].dy - loc_parts_new[i].dy)<1.E-6) pass = 0;
     }
-  } 
+  }
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
   if (!pass && dw.rank == 0){
     printf("Test incorrect: application of uacc did not modify some value.\n");
@@ -87,6 +87,7 @@ int univar_accumulator_cust(int     n,
           fabs(loc_parts[i].dy - loc_parts_new[i].dy)>1.E-6) pass = 0;
     }
   } 
+  free(loc_parts);
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
 
   if (dw.rank == 0){

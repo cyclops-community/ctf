@@ -36,37 +36,38 @@ namespace CTF_int {
     return a;
   }
   template <typename dtype>
-  MPI_Datatype get_default_mdtype(){
+  MPI_Datatype get_default_mdtype(bool & is_custom){
     MPI_Datatype newtype;
     MPI_Type_contiguous(sizeof(dtype), MPI_BYTE, &newtype);
     //FIXME ehhh... leaks?
     MPI_Type_commit(&newtype);
+    is_custom = true;
     return newtype;
   }
   template <>
-  inline MPI_Datatype get_default_mdtype<char>(){ return MPI_CHAR; }
+  inline MPI_Datatype get_default_mdtype<char>(bool & is_custom){ is_custom=false; return MPI_CHAR; }
   template <>
-  inline MPI_Datatype get_default_mdtype<bool>(){ return MPI_C_BOOL; }
+  inline MPI_Datatype get_default_mdtype<bool>(bool & is_custom){ is_custom=false; return MPI_C_BOOL; }
   template <>
-  inline MPI_Datatype get_default_mdtype<int>(){ return MPI_INT; }
+  inline MPI_Datatype get_default_mdtype<int>(bool & is_custom){ is_custom=false; return MPI_INT; }
   template <>
-  inline MPI_Datatype get_default_mdtype<int64_t>(){ return MPI_INT64_T; }
+  inline MPI_Datatype get_default_mdtype<int64_t>(bool & is_custom){ is_custom=false; return MPI_INT64_T; }
   template <>
-  inline MPI_Datatype get_default_mdtype<unsigned int>(){ return MPI_UNSIGNED; }
+  inline MPI_Datatype get_default_mdtype<unsigned int>(bool & is_custom){ is_custom=false; return MPI_UNSIGNED; }
   template <>
-  inline MPI_Datatype get_default_mdtype<uint64_t>(){ return MPI_UINT64_T; }
+  inline MPI_Datatype get_default_mdtype<uint64_t>(bool & is_custom){ is_custom=false; return MPI_UINT64_T; }
   template <>
-  inline MPI_Datatype get_default_mdtype<float>(){ return MPI_FLOAT; }
+  inline MPI_Datatype get_default_mdtype<float>(bool & is_custom){ is_custom=false; return MPI_FLOAT; }
   template <>
-  inline MPI_Datatype get_default_mdtype<double>(){ return MPI_DOUBLE; }
+  inline MPI_Datatype get_default_mdtype<double>(bool & is_custom){ is_custom=false; return MPI_DOUBLE; }
   template <>
-  inline MPI_Datatype get_default_mdtype<long double>(){ return MPI_LONG_DOUBLE; }
+  inline MPI_Datatype get_default_mdtype<long double>(bool & is_custom){ is_custom=false; return MPI_LONG_DOUBLE; }
   template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<float> >(){ return MPI_COMPLEX; }
+  inline MPI_Datatype get_default_mdtype< std::complex<float> >(bool & is_custom){ is_custom=false; return MPI_COMPLEX; }
   template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<double> >(){ return MPI_DOUBLE_COMPLEX; }
+  inline MPI_Datatype get_default_mdtype< std::complex<double> >(bool & is_custom){ is_custom=false; return MPI_DOUBLE_COMPLEX; }
   template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(){ return MPI::LONG_DOUBLE_COMPLEX; }
+  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(bool & is_custom){ is_custom=false; return MPI::LONG_DOUBLE_COMPLEX; }
 
   template <typename dtype>
   constexpr bool get_default_is_ord(){
@@ -106,11 +107,19 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()> 
   class Set : public CTF_int::algstrct {
     public:
+      bool is_custom_mdtype;
       MPI_Datatype tmdtype;
-      ~Set() {}
+      ~Set(){
+        if (is_custom_mdtype) MPI_Type_free(&tmdtype);
+      }
 
       Set(Set const & other) : CTF_int::algstrct(other) {
-      this->tmdtype = other.tmdtype;
+        if (other.is_custom_mdtype){
+          tmdtype = CTF_int::get_default_mdtype<dtype>(is_custom_mdtype);
+        } else {
+          this->tmdtype = other.tmdtype;
+          is_custom_mdtype = false;
+        }
       }
 
       virtual CTF_int::algstrct * clone() const {
@@ -120,7 +129,7 @@ namespace CTF {
       bool is_ordered() const { return is_ord; }
 
       Set() : CTF_int::algstrct(sizeof(dtype)){ 
-        tmdtype = CTF_int::get_default_mdtype<dtype>();
+        tmdtype = CTF_int::get_default_mdtype<dtype>(is_custom_mdtype);
       }
 
       

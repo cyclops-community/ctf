@@ -91,6 +91,8 @@ int endomorphism_cust(int     n,
 
   free(indices);
   free(loc_data);
+  free(vals);
+  free(inds);
   
   return pass;
 } 

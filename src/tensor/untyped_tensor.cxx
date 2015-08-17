@@ -52,6 +52,7 @@ namespace CTF_int {
         }
         if (has_home && !is_home) cdealloc(home_buffer);
       }
+      if (is_sparse) cdealloc(nnz_blk);
       order = -1;
       delete sr;
     }
@@ -1176,6 +1177,7 @@ namespace CTF_int {
       //nnz_loc_max = 0;
       //write old data as pairs to self FIXME can be done faster
       write(num_pairs, sr->mulid(), sr->addid(), all_pairs);
+      cdealloc(all_pairs);
       //sparsify sparse->sparse
       sparsify();
     }
