@@ -193,7 +193,7 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::read(int64_t       npair,
-                                   Pair<dtype> * pairs){
+                           Pair<dtype> * pairs){
     //FIXME raises mem consumption
     char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
     int ret = CTF_int::tensor::read(npair, cpairs);
@@ -210,8 +210,8 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::write(int64_t         npair,
-                                    int64_t const * global_idx,
-                                    dtype const *   data) {
+                            int64_t const * global_idx,
+                            dtype const *   data) {
     int ret, i;
     /*Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
@@ -232,7 +232,7 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::write(int64_t             npair,
-                                    Pair<dtype> const * pairs) {
+                            Pair<dtype> const * pairs) {
 
     //FIXME raises mem consumption
     char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
@@ -244,10 +244,10 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::write(int64_t         npair,
-                                    dtype           alpha,
-                                    dtype           beta,
-                                    int64_t const * global_idx,
-                                    dtype const *   data) {
+                            dtype           alpha,
+                            dtype           beta,
+                            int64_t const * global_idx,
+                            dtype const *   data) {
     int ret, i;
     char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
     CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
@@ -268,9 +268,9 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::write(int64_t             npair,
-                                    dtype               alpha,
-                                    dtype               beta,
-                                    Pair<dtype> const * pairs) {
+                            dtype               alpha,
+                            dtype               beta,
+                            Pair<dtype> const * pairs) {
     char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
 
     int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
@@ -301,9 +301,9 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::read(int64_t       npair,
-                                   dtype         alpha,
-                                   dtype         beta,
-                                   Pair<dtype> * pairs){
+                           dtype         alpha,
+                           dtype         beta,
+                           Pair<dtype> * pairs){
     char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
     int ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
     if (cpairs != (char*)pairs){
@@ -366,9 +366,9 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::permute(dtype             beta,
-                                      CTF_int::tensor & A,
-                                      int * const *     perms_A,
-                                      dtype             alpha){
+                              CTF_int::tensor & A,
+                              int * const *     perms_A,
+                              dtype             alpha){
     int ret = CTF_int::tensor::permute(&A, perms_A, (char*)&alpha,
                                        NULL, (char*)&beta);
     assert(ret == CTF_int::SUCCESS);
@@ -376,9 +376,9 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::permute(int * const * perms_B,
-                                      dtype         beta,
-                                      tensor &      A,
-                                      dtype         alpha){
+                              dtype         beta,
+                              tensor &      A,
+                              dtype         alpha){
     int ret = CTF_int::tensor::permute(&A, NULL, (char*)&alpha,
                                        perms_B, (char*)&beta);
     assert(ret == CTF_int::SUCCESS);
@@ -431,12 +431,12 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::slice(int const *    offsets,
-                                    int const *    ends,
-                                    dtype          beta,
-                                    tensor const & A,
-                                    int const *    offsets_A,
-                                    int const *    ends_A,
-                                    dtype          alpha){
+                            int const *    ends,
+                            dtype          beta,
+                            tensor const & A,
+                            int const *    offsets_A,
+                            int const *    ends_A,
+                            dtype          alpha){
     int np_A, np_B;
     if (A.wrld->comm != wrld->comm){
       MPI_Comm_size(A.wrld->comm, &np_A);
@@ -455,12 +455,12 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::slice(int64_t        corner_off,
-                                    int64_t        corner_end,
-                                    dtype          beta,
-                                    tensor const & A,
-                                    int64_t        corner_off_A,
-                                    int64_t        corner_end_A,
-                                    dtype          alpha){
+                            int64_t        corner_end,
+                            dtype          beta,
+                            tensor const & A,
+                            int64_t        corner_off_A,
+                            int64_t        corner_end_A,
+                            dtype          alpha){
     int * offsets, * ends, * offsets_A, * ends_A;
    
     CTF_int::cvrt_idx(this->order, this->len, corner_off, &offsets);
@@ -478,22 +478,22 @@ namespace CTF {
 
   template<typename dtype>
   Tensor<dtype> Tensor<dtype>::slice(int const * offsets,
-                                                     int const * ends) const {
+                                     int const * ends) const {
 
     return slice(offsets, ends, wrld);
   }
 
   template<typename dtype>
   Tensor<dtype> Tensor<dtype>::slice(int64_t corner_off,
-                                                     int64_t corner_end) const {
+                                     int64_t corner_end) const {
 
     return slice(corner_off, corner_end, wrld);
   }
   
   template<typename dtype>
   Tensor<dtype> Tensor<dtype>::slice(int const *  offsets,
-                                                     int const *  ends,
-                                                     World *      owrld) const {
+                                     int const *  ends,
+                                     World *      owrld) const {
     int i;
     int * new_lens = (int*)CTF_int::alloc(sizeof(int)*order);
     int * new_sym = (int*)CTF_int::alloc(sizeof(int)*order);
@@ -526,8 +526,8 @@ namespace CTF {
 
   template<typename dtype>
   Tensor<dtype> Tensor<dtype>::slice(int64_t  corner_off,
-                                                     int64_t  corner_end,
-                                                     World *  owrld) const {
+                                     int64_t  corner_end,
+                                     World *  owrld) const {
 
     int * offsets, * ends;
    
@@ -605,7 +605,7 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::get_max_abs(int     n,
-                                          dtype * data) const {
+                                  dtype * data) const {
     int ret;
     ret = CTF_int::tensor::get_max_abs(n, data);
     assert(ret == CTF_int::SUCCESS);
@@ -630,12 +630,12 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::contract(dtype            alpha,
-                                       CTF_int::tensor& A,
-                                       const char *     idx_A,
-                                       CTF_int::tensor& B,
-                                       const char *     idx_B,
-                                       dtype            beta,
-                                       const char *     idx_C){
+                               CTF_int::tensor& A,
+                               const char *     idx_A,
+                               CTF_int::tensor& B,
+                               const char *     idx_B,
+                               dtype            beta,
+                               const char *     idx_C){
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
@@ -645,13 +645,13 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::contract(dtype                 alpha,
-                                       CTF_int::tensor&      A,
-                                       const char *          idx_A,
-                                       CTF_int::tensor&      B,
-                                       const char *          idx_B,
-                                       dtype                 beta,
-                                       const char *          idx_C,
-                                       Bivar_Function<dtype> fseq){
+                               CTF_int::tensor&      A,
+                               const char *          idx_A,
+                               CTF_int::tensor&      B,
+                               const char *          idx_B,
+                               dtype                 beta,
+                               const char *          idx_C,
+                               Bivar_Function<dtype> fseq){
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     assert(B.wrld->cdt.cm == wrld->cdt.cm);
     CTF_int::contraction ctr 
@@ -662,10 +662,10 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::sum(dtype            alpha,
-                                  CTF_int::tensor& A,
-                                  const char *     idx_A,
-                                  dtype            beta,
-                                  const char *     idx_B){
+                          CTF_int::tensor& A,
+                          const char *     idx_A,
+                          dtype            beta,
+                          const char *     idx_B){
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
 
     CTF_int::summation sum 
@@ -677,11 +677,11 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::sum(dtype                  alpha,
-                                  CTF_int::tensor&       A,
-                                  const char *           idx_A,
-                                  dtype                  beta,
-                                  const char *           idx_B,
-                                  Univar_Function<dtype> fseq){
+                          CTF_int::tensor&       A,
+                          const char *           idx_A,
+                          dtype                  beta,
+                          const char *           idx_B,
+                          Univar_Function<dtype> fseq){
     assert(A.wrld->cdt.cm == wrld->cdt.cm);
     
     CTF_int::summation sum = CTF_int::summation(&A, idx_A, (char const *)&alpha, this, idx_B, (char const *)&beta, fseq);
@@ -691,7 +691,7 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::scale(dtype        alpha,
-                                    const char * idx_A){
+                            const char * idx_A){
     CTF_int::scaling scl = CTF_int::scaling(this, idx_A, (char*)&alpha);
     scl.execute();
   }
@@ -699,17 +699,17 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::scale(dtype               alpha,
-                                    const char *        idx_A,
-                                    Endomorphism<dtype> fseq){
+                            const char *        idx_A,
+                            Endomorphism<dtype> fseq){
     CTF_int::scaling scl = CTF_int::scaling(this, idx_A, &fseq, (char const *)&alpha);
     scl.execute();
   }
 
   template<typename dtype>
   dtype * Tensor<dtype>::read(char const *          idx,
-                                      Idx_Partition const & prl,
-                                      Idx_Partition const & blk,
-                                      bool                  unpack){
+                              Idx_Partition const & prl,
+                              Idx_Partition const & blk,
+                              bool                  unpack){
     return (dtype*)CTF_int::tensor::read(idx, prl, blk, unpack);
   }
 

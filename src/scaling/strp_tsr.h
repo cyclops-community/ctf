@@ -166,7 +166,7 @@ namespace CTF_int {
        * \brief copies strp_ctr object
        */
       strp_ctr(ctr *other);
-      strp_ctr(){}
+      strp_ctr(contraction const * c) : ctr(c) {}
   };
 
   /**

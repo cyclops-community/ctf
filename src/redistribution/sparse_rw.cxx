@@ -596,11 +596,12 @@ namespace CTF_int {
           if (pr_offset >= size)
             break;
           else {
+            printf("pr_offset = %ld, k = %ld, idx = %ld\n",pr_offset,pairs[pr_offset].k(), idx_offset +i*phase[0]+phase_rank[0]);
             if (pairs[pr_offset].k() == idx_offset +i*phase[0]+phase_rank[0]){
               if (rw == 'r'){
                 if (alpha == NULL){
                   pairs[pr_offset].write_val(data+sr->el_size*(buf_offset+i));
-/*                if (sr->isbeta == 0.0){
+/*                if (sr->isbeta == 0.0)
                   char wval[sr->pair_size()];
                   sr->mul(alpha,data + sr->el_size*(buf_offset+i), wval);
                   pairs[pr_offset].write_val(wval);*/
@@ -632,6 +633,7 @@ namespace CTF_int {
               //Check for write conflicts
               //Fixed: allow and handle them!
               while (pr_offset < size && pairs[pr_offset].k() == pairs[pr_offset-1].k()){
+                  printf("HERE\n");
   //              printf("found overlapped write of key %ld and value %lf\n", pairs[pr_offset].k, pairs[pr_offset].d);
                 if (rw == 'r'){
                   if (alpha == NULL){
@@ -664,6 +666,7 @@ namespace CTF_int {
               }
             } else {
               i++;
+              printf("i=%ld, pr_offset = %ld\n", i, pr_offset);
   /*          DEBUG_PRINTF("%d key[%d] %d not matched with %d\n",
                             (int)pairs[pr_offset-1].k,
                             pr_offset, (int)pairs[pr_offset].k,
@@ -685,6 +688,10 @@ namespace CTF_int {
             idx[act_lda] = 0;
           idx_offset += (idx[act_lda]*phase[act_lda]+phase_rank[act_lda])
                         *edge_lda[act_lda];
+          printf("idx_offset = %ld pr_offset = %ld\n", idx_offset, pr_offset);
+          for (int z=0; z<4; z++){
+            printf("idx[%d] = %d\n", z, idx[z]);
+          }
           ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
           if (idx[act_lda] > 0)
             break;
@@ -703,7 +710,7 @@ namespace CTF_int {
       if (act_lda == order) break;
     }
     TAU_FSTOP(readwrite);
-    //printf("pr_offset = " PRId64 "/" PRId64 "\n",pr_offset,size);
+    printf("pr_offset = %ld / %ld \n",pr_offset,size);
     ASSERT(pr_offset == size);
     CTF_int::cdealloc(idx);
     CTF_int::cdealloc(virt_rank);

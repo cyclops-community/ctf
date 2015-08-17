@@ -3,27 +3,44 @@
 #include "../shared/util.h"
 #include "ctr_comm.h"
 #include "ctr_tsr.h"
+#include "contraction.h"
+#include "../tensor/untyped_tensor.h"
+#ifdef USE_OMP
+#include <omp.h>
+#endif
 
 namespace CTF_int {
 
-  #ifdef USE_OMP
-  #include <omp.h>
-  #endif
   #ifndef VIRT_NTD
   #define VIRT_NTD        1
   #endif
 
-  /**
-   * \brief deallocates ctr_virt object
-   */
+  ctr_virt::ctr_virt(contraction const * c,
+                     int                 num_tot,
+                     int *               virt_dim,
+                     int64_t             vrt_sz_A,
+                     int64_t             vrt_sz_B,
+                     int64_t             vrt_sz_C)
+      : ctr(c) {
+    this->num_dim   = num_tot;
+    this->virt_dim  = virt_dim;
+    this->order_A   = c->A->order;
+    this->blk_sz_A  = vrt_sz_A;
+    this->idx_map_A = c->idx_A;
+    this->order_B   = c->B->order;
+    this->blk_sz_B  = vrt_sz_B;
+    this->idx_map_B = c->idx_B;
+    this->order_C   = c->C->order;
+    this->blk_sz_C  = vrt_sz_C;
+    this->idx_map_C = c->idx_C;
+  }
+
+
   ctr_virt::~ctr_virt() {
     CTF_int::cdealloc(virt_dim);
     delete rec_ctr;
   }
 
-  /**
-   * \brief copies ctr object
-   */
   ctr_virt::ctr_virt(ctr * other) : ctr(other) {
     ctr_virt * o   = (ctr_virt*)other;
     rec_ctr       = o->rec_ctr->clone();
@@ -44,16 +61,10 @@ namespace CTF_int {
     idx_map_C     = o->idx_map_C;
   }
 
-  /**
-   * \brief copies ctr object
-   */
   ctr * ctr_virt::clone() {
     return new ctr_virt(this);
   }
 
-  /**
-   * \brief prints ctr object
-   */
   void ctr_virt::print() {
     int i;
     printf("ctr_virt:\n");
@@ -66,10 +77,6 @@ namespace CTF_int {
   }
 
 
-  /**
-   * \brief returns the number of bytes send by each proc recursively 
-   * \return bytes needed for recursive contraction
-   */
   double ctr_virt::est_time_rec(int nlyr) {
     /* FIXME: for now treat flops like comm, later make proper cost */
     int64_t nvirt = 1;
@@ -80,27 +87,15 @@ namespace CTF_int {
   }
 
 
-  /**
-   * \brief returns the number of bytes of buffer space
-     we need
-   * \return bytes needed
-   */
   int64_t ctr_virt::mem_fp(){
     return (order_A+order_B+order_C+(3+VIRT_NTD)*num_dim)*sizeof(int);
   }
 
-  /**
-   * \brief returns the number of bytes of buffer space we need recursively 
-   * \return bytes needed for recursive contraction
-   */
   int64_t ctr_virt::mem_rec() {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
 
-  /**
-   * \brief iterates over the dense virtualization block grid and contracts
-   */
   void ctr_virt::run(){
     TAU_FSTART(ctr_virt);
     int * idx_arr, * tidx_arr, * lda_A, * lda_B, * lda_C, * beta_arr;

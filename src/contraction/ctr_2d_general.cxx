@@ -1,10 +1,164 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "ctr_2d_general.h"
+#include "../tensor/untyped_tensor.h"
+#include "../mapping/mapping.h"
 #include "../shared/util.h"
 #include <climits>
 
 namespace CTF_int {
+
+  int  ctr_2d_gen_build(int                        is_used,
+                        CommData                   global_comm,
+                        int                        i,
+                        int *                      virt_dim,
+                        int &                      cg_edge_len,
+                        int &                      total_iter,
+                        tensor *                   A,
+                        int                        i_A,
+                        CommData *&                cg_cdt_A,
+                        int64_t &                  cg_ctr_lda_A,
+                        int64_t &                  cg_ctr_sub_lda_A,
+                        bool &                     cg_move_A,
+                        int *                      blk_len_A,
+                        int64_t &                  blk_sz_A,
+                        int const *                virt_blk_len_A,
+                        int &                      load_phase_A,
+                        tensor *                   B,
+                        int                        i_B,
+                        CommData *&                cg_cdt_B,
+                        int64_t &                  cg_ctr_lda_B,
+                        int64_t &                  cg_ctr_sub_lda_B,
+                        bool &                     cg_move_B,
+                        int *                      blk_len_B,
+                        int64_t &                  blk_sz_B,
+                        int const *                virt_blk_len_B,
+                        int &                      load_phase_B,
+                        tensor *                   C,
+                        int                        i_C,
+                        CommData *&                cg_cdt_C,
+                        int64_t &                  cg_ctr_lda_C,
+                        int64_t &                  cg_ctr_sub_lda_C,
+                        bool &                     cg_move_C,
+                        int *                      blk_len_C,
+                        int64_t &                  blk_sz_C,
+                        int const *                virt_blk_len_C,
+                        int &                      load_phase_C){
+    mapping * map;
+    int j;
+    int nstep = 1;
+    if (comp_dim_map(&C->edge_map[i_C], &B->edge_map[i_B])){
+      map = &B->edge_map[i_B];
+      while (map->has_child) map = map->child;
+      if (map->type == VIRTUAL_MAP){
+        virt_dim[i] = map->np;
+      }
+      return 0;
+    } else {
+      if (B->edge_map[i_B].type == VIRTUAL_MAP &&
+        C->edge_map[i_C].type == VIRTUAL_MAP){
+        virt_dim[i] = B->edge_map[i_B].np;
+        return 0;
+      } else {
+        cg_edge_len = 1;
+        if (B->edge_map[i_B].type == PHYSICAL_MAP){
+          cg_edge_len = lcm(cg_edge_len, B->edge_map[i_B].calc_phase());
+          cg_cdt_B = &B->topo->dim_comm[B->edge_map[i_B].cdt];
+          /*if (is_used && cg_cdt_B.alive == 0)
+            cg_cdt_B.activate(global_comm.cm);*/
+          nstep = B->edge_map[i_B].calc_phase();
+          cg_move_B = 1;
+        } else
+          cg_move_B = 0;
+        if (C->edge_map[i_C].type == PHYSICAL_MAP){
+          cg_edge_len = lcm(cg_edge_len, C->edge_map[i_C].calc_phase());
+          cg_cdt_C = &C->topo->dim_comm[C->edge_map[i_C].cdt];
+          /*if (is_used && cg_cdt_C.alive == 0)
+            cg_cdt_C.activate(global_comm.cm);*/
+          nstep = MAX(nstep, C->edge_map[i_C].calc_phase());
+          cg_move_C = 1;
+        } else
+          cg_move_C = 0;
+        cg_ctr_lda_A = 1;
+        cg_ctr_sub_lda_A = 0;
+        cg_move_A = 0;
+  
+  
+        /* Adjust the block lengths, since this algorithm will cut
+           the block into smaller ones of the min block length */
+        /* Determine the LDA of this dimension, based on virtualization */
+        cg_ctr_lda_B  = 1;
+        if (B->edge_map[i_B].type == PHYSICAL_MAP)
+          cg_ctr_sub_lda_B= blk_sz_B*B->edge_map[i_B].np/cg_edge_len;
+        else
+          cg_ctr_sub_lda_B= blk_sz_B/cg_edge_len;
+        for (j=i_B+1; j<B->order; j++) {
+          cg_ctr_sub_lda_B = (cg_ctr_sub_lda_B *
+                virt_blk_len_B[j]) / blk_len_B[j];
+          cg_ctr_lda_B = (cg_ctr_lda_B*blk_len_B[j])
+                /virt_blk_len_B[j];
+        }
+        cg_ctr_lda_C  = 1;
+        if (C->edge_map[i_C].type == PHYSICAL_MAP)
+          cg_ctr_sub_lda_C= blk_sz_C*C->edge_map[i_C].np/cg_edge_len;
+        else
+          cg_ctr_sub_lda_C= blk_sz_C/cg_edge_len;
+        for (j=i_C+1; j<C->order; j++) {
+          cg_ctr_sub_lda_C = (cg_ctr_sub_lda_C *
+                virt_blk_len_C[j]) / blk_len_C[j];
+          cg_ctr_lda_C = (cg_ctr_lda_C*blk_len_C[j])
+                /virt_blk_len_C[j];
+        }
+        if (B->edge_map[i_B].type != PHYSICAL_MAP){
+          blk_sz_B  = blk_sz_B / nstep;
+          blk_len_B[i_B] = blk_len_B[i_B] / nstep;
+        } else {
+          blk_sz_B  = blk_sz_B * B->edge_map[i_B].np / nstep;
+          blk_len_B[i_B] = blk_len_B[i_B] * B->edge_map[i_B].np / nstep;
+        }
+        if (C->edge_map[i_C].type != PHYSICAL_MAP){
+          blk_sz_C  = blk_sz_C / nstep;
+          blk_len_C[i_C] = blk_len_C[i_C] / nstep;
+        } else {
+          blk_sz_C  = blk_sz_C * C->edge_map[i_C].np / nstep;
+          blk_len_C[i_C] = blk_len_C[i_C] * C->edge_map[i_C].np / nstep;
+        }
+  
+        if (B->edge_map[i_B].has_child){
+          ASSERT(B->edge_map[i_B].child->type == VIRTUAL_MAP);
+          virt_dim[i] = B->edge_map[i_B].np*B->edge_map[i_B].child->np/nstep;
+        }
+        if (C->edge_map[i_C].has_child) {
+          ASSERT(C->edge_map[i_C].child->type == VIRTUAL_MAP);
+          virt_dim[i] = C->edge_map[i_C].np*C->edge_map[i_C].child->np/nstep;
+        }
+        if (C->edge_map[i_C].type == VIRTUAL_MAP){
+          virt_dim[i] = C->edge_map[i_C].np/nstep;
+        }
+        if (B->edge_map[i_B].type == VIRTUAL_MAP)
+          virt_dim[i] = B->edge_map[i_B].np/nstep;
+  #ifdef OFFLOAD
+        total_iter *= nstep;
+        if (cg_ctr_sub_lda_A == 0)
+          load_phase_A *= nstep;
+        else 
+          load_phase_A  = 1;
+        if (cg_ctr_sub_lda_B == 0)   
+          load_phase_B *= nstep;
+        else 
+          load_phase_B  = 1;
+        if (cg_ctr_sub_lda_C == 0) 
+          load_phase_C *= nstep;
+        else 
+          load_phase_C  = 1;
+  #endif
+      }
+    } 
+    return 1;
+  }
+
+
+
   ctr_2d_general::~ctr_2d_general() {
     /*if (move_A) cdt_A->deactivate();
     if (move_B) cdt_B->deactivate();

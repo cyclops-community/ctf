@@ -2449,11 +2449,12 @@ namespace CTF_int {
     int64_t nvirt;
     int64_t blk_sz_A, blk_sz_B, blk_sz_C;
     int64_t vrt_sz_A, vrt_sz_B, vrt_sz_C;
-    int sA, sB, sC, need_rep;
+    //int sA, sB, sC, 
+    bool need_rep;
     int * blk_len_A, * virt_blk_len_A, * blk_len_B;
     int * virt_blk_len_B, * blk_len_C, * virt_blk_len_C;
     int * idx_arr, * virt_dim, * phys_mapped;
-    strp_tsr * str_A, * str_B, * str_C;
+    //strp_tsr * str_A, * str_B, * str_C;
     mapping * map;
     ctr * hctr = NULL;
     ctr ** rec_ctr = NULL;
@@ -2492,8 +2493,9 @@ namespace CTF_int {
     calc_dim(C->order, blk_sz_C, C->pad_edge_len, C->edge_map,
              &vrt_sz_C, virt_blk_len_C, blk_len_C);
 
+    is_top = 1;
     /* Strip out the relevant part of the tensor if we are contracting over diagonal */
-    sA = strip_diag( A->order, num_tot, idx_A, vrt_sz_A,
+/*    sA = strip_diag( A->order, num_tot, idx_A, vrt_sz_A,
                      A->edge_map, A->topo, A->sr,
                      blk_len_A, &blk_sz_A, &str_A);
     sB = strip_diag( B->order, num_tot, idx_B, vrt_sz_B,
@@ -2503,15 +2505,12 @@ namespace CTF_int {
                      C->edge_map, C->topo, C->sr,
                      blk_len_C, &blk_sz_C, &str_C);
 
-    is_top = 1;
     if (sA || sB || sC){
       ASSERT(0);//this is always done via sum now
       if (global_comm.rank == 0)
         DPRINTF(1,"Stripping tensor\n");
       strp_ctr * sctr = new strp_ctr;
       hctr = sctr;
-      hctr->num_lyr = 1;
-      hctr->idx_lyr = 0;
       is_top = 0;
       rec_ctr = &sctr->rec_ctr;
 
@@ -2521,7 +2520,7 @@ namespace CTF_int {
       sctr->strip_A = sA;
       sctr->strip_B = sB;
       sctr->strip_C = sC;
-    }
+    }*/
 
     for (i=0; i<A->order; i++){
       map = &A->edge_map[i];
@@ -2575,7 +2574,7 @@ namespace CTF_int {
       if (global_comm.rank == 0)
         DPRINTF(1,"Replicating tensor\n");
 
-      ctr_replicate * rctr = new ctr_replicate;
+      ctr_replicate * rctr = new ctr_replicate(this, phys_mapped, blk_sz_A, blk_sz_B, blk_sz_C);
       if (is_top){
         hctr = rctr;
         is_top = 0;
@@ -2583,78 +2582,6 @@ namespace CTF_int {
         *rec_ctr = rctr;
       }
       rec_ctr = &rctr->rec_ctr;
-      hctr->idx_lyr = 0;
-      hctr->num_lyr = 1;
-      rctr->idx_lyr = 0;
-      rctr->num_lyr = 1;
-      rctr->ncdt_A = 0;
-      rctr->ncdt_B = 0;
-      rctr->ncdt_C = 0;
-      rctr->size_A = blk_sz_A;
-      rctr->size_B = blk_sz_B;
-      rctr->size_C = blk_sz_C;
-      rctr->cdt_A = NULL;
-      rctr->cdt_B = NULL;
-      rctr->cdt_C = NULL;
-      rctr->sr_A = A->sr;
-      rctr->sr_B = B->sr;
-      rctr->sr_C = C->sr;
-      for (i=0; i<nphys_dim; i++){
-        if (phys_mapped[3*i+0] == 0 &&
-            phys_mapped[3*i+1] == 0 &&
-            phys_mapped[3*i+2] == 0){
-  /*        printf("ERROR: ALL-TENSOR REPLICATION NO LONGER DONE\n");
-          ABORT;
-          ASSERT(rctr->num_lyr == 1);
-          hctr->idx_lyr = A->topo->dim_comm[i].rank;
-          hctr->num_lyr = A->topo->dim_comm[i]->np;
-          rctr->idx_lyr = A->topo->dim_comm[i].rank;
-          rctr->num_lyr = A->topo->dim_comm[i]->np;*/
-        } else {
-          if (phys_mapped[3*i+0] == 0){
-            rctr->ncdt_A++;
-          }
-          if (phys_mapped[3*i+1] == 0){
-            rctr->ncdt_B++;
-          }
-          if (phys_mapped[3*i+2] == 0){
-            rctr->ncdt_C++;
-          }
-        }
-      }
-      if (rctr->ncdt_A > 0)
-        CTF_int::alloc_ptr(sizeof(CommData*)*rctr->ncdt_A, (void**)&rctr->cdt_A);
-      if (rctr->ncdt_B > 0)
-        CTF_int::alloc_ptr(sizeof(CommData*)*rctr->ncdt_B, (void**)&rctr->cdt_B);
-      if (rctr->ncdt_C > 0)
-        CTF_int::alloc_ptr(sizeof(CommData*)*rctr->ncdt_C, (void**)&rctr->cdt_C);
-      rctr->ncdt_A = 0;
-      rctr->ncdt_B = 0;
-      rctr->ncdt_C = 0;
-      for (i=0; i<nphys_dim; i++){
-        if (!(phys_mapped[3*i+0] == 0 &&
-              phys_mapped[3*i+1] == 0 &&
-              phys_mapped[3*i+2] == 0)){
-          if (phys_mapped[3*i+0] == 0){
-            rctr->cdt_A[rctr->ncdt_A] = &A->topo->dim_comm[i];
-        /*    if (is_used && rctr->cdt_A[rctr->ncdt_A].alive == 0)
-              rctr->cdt_A[rctr->ncdt_A].activate(global_comm.cm);*/
-            rctr->ncdt_A++;
-          }
-          if (phys_mapped[3*i+1] == 0){
-            rctr->cdt_B[rctr->ncdt_B] = &B->topo->dim_comm[i];
-/*            if (is_used && rctr->cdt_B[rctr->ncdt_B].alive == 0)
-              rctr->cdt_B[rctr->ncdt_B].activate(global_comm.cm);*/
-            rctr->ncdt_B++;
-          }
-          if (phys_mapped[3*i+2] == 0){
-            rctr->cdt_C[rctr->ncdt_C] = &C->topo->dim_comm[i];
-/*            if (is_used && rctr->cdt_C[rctr->ncdt_C].alive == 0)
-              rctr->cdt_C[rctr->ncdt_C].activate(global_comm.cm);*/
-            rctr->ncdt_C++;
-          }
-        }
-      }
     }
 
   //#ifdef OFFLOAD
@@ -2677,7 +2604,7 @@ namespace CTF_int {
       if ((i_A != -1 && i_B != -1 && i_C == -1) ||
           (i_A != -1 && i_B == -1 && i_C != -1) ||
           (i_A == -1 && i_B != -1 && i_C != -1)) {
-        ctr_2d_general * ctr_gen = new ctr_2d_general;
+        ctr_2d_general * ctr_gen = new ctr_2d_general(this);
   #ifdef OFFLOAD
         ctr_gen->alloc_host_buf = false;
   #endif
@@ -2796,14 +2723,9 @@ namespace CTF_int {
                                       virt_blk_len_B,
                                       upload_phase_B);
         }
-        ctr_gen->sr_A = A->sr;
-        ctr_gen->sr_B = B->sr;
-        ctr_gen->sr_C = C->sr;
         if (is_built){
           if (is_top){
             hctr = ctr_gen;
-            hctr->idx_lyr = 0;
-            hctr->num_lyr = 1;
             is_top = 0;
           } else {
             *rec_ctr = ctr_gen;
@@ -2833,13 +2755,13 @@ namespace CTF_int {
             virt_dim[i] = map->np;
         }
       }
-      if (sA && i_A != -1){
+      /*if (sA && i_A != -1){
         nvirt = virt_dim[i]/str_A->strip_dim[i_A];
       } else if (sB && i_B != -1){
         nvirt = virt_dim[i]/str_B->strip_dim[i_B];
       } else if (sC && i_C != -1){
         nvirt = virt_dim[i]/str_C->strip_dim[i_C];
-      }
+      }*/
       
       nvirt = nvirt * virt_dim[i];
     }
@@ -2849,16 +2771,9 @@ namespace CTF_int {
     ASSERT(blk_sz_A >= vrt_sz_A);
     ASSERT(blk_sz_B >= vrt_sz_B);
     ASSERT(blk_sz_C >= vrt_sz_C);
-      
-    int * new_sym_A, * new_sym_B, * new_sym_C;
-    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&new_sym_A);
-    memcpy(new_sym_A, A->sym, sizeof(int)*A->order);
-    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&new_sym_B);
-    memcpy(new_sym_B, B->sym, sizeof(int)*B->order);
-    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&new_sym_C);
-    memcpy(new_sym_C, C->sym, sizeof(int)*C->order);
 
   #ifdef OFFLOAD
+    //FIXME: out of date
     if (ftsr.is_offloadable || is_inner > 0){
       if (bottom_ctr_gen != NULL)
         bottom_ctr_gen->alloc_host_buf = true;
@@ -2886,138 +2801,33 @@ namespace CTF_int {
     /* Multiply over virtual sub-blocks */
     if (nvirt > 1){
   #ifdef USE_VIRT_25D
+      ASSERT(0);
       ctr_virt_25d * ctrv = new ctr_virt_25d;
   #else
-      ctr_virt * ctrv = new ctr_virt;
+      ctr_virt * ctrv = new ctr_virt(this, num_tot, virt_dim, vrt_sz_A, vrt_sz_B, vrt_sz_C);
   #endif
       if (is_top) {
         hctr = ctrv;
-        hctr->idx_lyr = 0;
-        hctr->num_lyr = 1;
         is_top = 0;
       } else {
         *rec_ctr = ctrv;
       }
       rec_ctr = &ctrv->rec_ctr;
-      ctrv->sr_A = A->sr;
-      ctrv->sr_B = B->sr;
-      ctrv->sr_C = C->sr;
-
-      ctrv->num_dim   = num_tot;
-      ctrv->virt_dim  = virt_dim;
-      ctrv->order_A   = A->order;
-      ctrv->blk_sz_A  = vrt_sz_A;
-      ctrv->idx_map_A = idx_A;
-      ctrv->order_B   = B->order;
-      ctrv->blk_sz_B  = vrt_sz_B;
-      ctrv->idx_map_B = idx_B;
-      ctrv->order_C   = C->order;
-      ctrv->blk_sz_C  = vrt_sz_C;
-      ctrv->idx_map_C = idx_C;
     } else
       CTF_int::cdealloc(virt_dim);
 
-    seq_tsr_ctr * ctrseq = new seq_tsr_ctr;
-    ctrseq->sr_A = A->sr;
-    ctrseq->sr_B = B->sr;
-    ctrseq->sr_C = C->sr;
+    seq_tsr_ctr * ctrseq = new seq_tsr_ctr(this, is_inner, inner_params, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {
       hctr = ctrseq;
-      hctr->idx_lyr = 0;
-      hctr->num_lyr = 1;
       is_top = 0;
     } else {
       *rec_ctr = ctrseq;
     }
-    if (!is_inner){
-      ctrseq->is_inner  = 0;
-    } else if (is_inner == 1) {
-      if (global_comm.rank == 0){
-        DPRINTF(1,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
-          inner_params->m, inner_params->k);
-      }
 
-      ctrseq->is_inner    = 1;
-      ctrseq->inner_params  = *inner_params;
-      ctrseq->inner_params.sz_C = vrt_sz_C;
-      tensor * itsr;
-      itsr = A->rec_tsr;
-      for (i=0; i<itsr->order; i++){
-        j = A->inner_ordering[i];
-        for (k=0; k<A->order; k++){
-          if (A->sym[k] == NS) j--;
-          if (j<0) break;
-        }
-        j = k;
-        while (k>0 && A->sym[k-1] != NS){
-          k--;
-        }
-        for (; k<=j; k++){
-  /*        printf("inner_ordering[%d]=%d setting dim %d of A, to len %d from len %d\n",
-                  i, A->inner_ordering[i], k, 1, virt_blk_len_A[k]);*/
-          virt_blk_len_A[k] = 1;
-          new_sym_A[k] = NS;
-        }
-      }
-      itsr = B->rec_tsr;
-      for (i=0; i<itsr->order; i++){
-        j = B->inner_ordering[i];
-        for (k=0; k<B->order; k++){
-          if (B->sym[k] == NS) j--;
-          if (j<0) break;
-        }
-        j = k;
-        while (k>0 && B->sym[k-1] != NS){
-          k--;
-        }
-        for (; k<=j; k++){
-        /*  printf("inner_ordering[%d]=%d setting dim %d of B, to len %d from len %d\n",
-                  i, B->inner_ordering[i], k, 1, virt_blk_len_B[k]);*/
-          virt_blk_len_B[k] = 1;
-          new_sym_B[k] = NS;
-        }
-      }
-      itsr = C->rec_tsr;
-      for (i=0; i<itsr->order; i++){
-        j = C->inner_ordering[i];
-        for (k=0; k<C->order; k++){
-          if (C->sym[k] == NS) j--;
-          if (j<0) break;
-        }
-        j = k;
-        while (k>0 && C->sym[k-1] != NS){
-          k--;
-        }
-        for (; k<=j; k++){
-        /*  printf("inner_ordering[%d]=%d setting dim %d of C, to len %d from len %d\n",
-                  i, C->inner_ordering[i], k, 1, virt_blk_len_C[k]);*/
-          virt_blk_len_C[k] = 1;
-          new_sym_C[k] = NS;
-        }
-      }
-    }
-    ctrseq->is_custom  = is_custom;
-    ctrseq->alpha      = alpha;
-    if (is_custom){
-      ctrseq->func     = func;
-    }
-    ctrseq->order_A    = A->order;
-    ctrseq->idx_map_A  = idx_A;
-    ctrseq->edge_len_A = virt_blk_len_A;
-    ctrseq->sym_A      = new_sym_A;
-    ctrseq->order_B    = B->order;
-    ctrseq->idx_map_B  = idx_B;
-    ctrseq->edge_len_B = virt_blk_len_B;
-    ctrseq->sym_B      = new_sym_B;
-    ctrseq->order_C    = C->order;
-    ctrseq->idx_map_C  = idx_C;
-    ctrseq->edge_len_C = virt_blk_len_C;
-    ctrseq->sym_C      = new_sym_C;
-
-    hctr->beta = this->beta;
+/*    hctr->beta = this->beta;
     hctr->A    = A->data;
     hctr->B    = B->data;
-    hctr->C    = C->data;
+    hctr->C    = C->data;*/
   /*  if (global_comm.rank == 0){
       int64_t n,m,k;
       dtype old_flops;
@@ -3720,155 +3530,6 @@ namespace CTF_int {
   }
 
 
-
-  int  ctr_2d_gen_build(int                        is_used,
-                        CommData                   global_comm,
-                        int                        i,
-                        int *                      virt_dim,
-                        int &                      cg_edge_len,
-                        int &                      total_iter,
-                        tensor *                   A,
-                        int                        i_A,
-                        CommData *&                cg_cdt_A,
-                        int64_t &                  cg_ctr_lda_A,
-                        int64_t &                  cg_ctr_sub_lda_A,
-                        bool &                     cg_move_A,
-                        int *                      blk_len_A,
-                        int64_t &                  blk_sz_A,
-                        int const *                virt_blk_len_A,
-                        int &                      load_phase_A,
-                        tensor *                   B,
-                        int                        i_B,
-                        CommData *&                cg_cdt_B,
-                        int64_t &                  cg_ctr_lda_B,
-                        int64_t &                  cg_ctr_sub_lda_B,
-                        bool &                     cg_move_B,
-                        int *                      blk_len_B,
-                        int64_t &                  blk_sz_B,
-                        int const *                virt_blk_len_B,
-                        int &                      load_phase_B,
-                        tensor *                   C,
-                        int                        i_C,
-                        CommData *&                cg_cdt_C,
-                        int64_t &                  cg_ctr_lda_C,
-                        int64_t &                  cg_ctr_sub_lda_C,
-                        bool &                     cg_move_C,
-                        int *                      blk_len_C,
-                        int64_t &                  blk_sz_C,
-                        int const *                virt_blk_len_C,
-                        int &                      load_phase_C){
-    mapping * map;
-    int j;
-    int nstep = 1;
-    if (comp_dim_map(&C->edge_map[i_C], &B->edge_map[i_B])){
-      map = &B->edge_map[i_B];
-      while (map->has_child) map = map->child;
-      if (map->type == VIRTUAL_MAP){
-        virt_dim[i] = map->np;
-      }
-      return 0;
-    } else {
-      if (B->edge_map[i_B].type == VIRTUAL_MAP &&
-        C->edge_map[i_C].type == VIRTUAL_MAP){
-        virt_dim[i] = B->edge_map[i_B].np;
-        return 0;
-      } else {
-        cg_edge_len = 1;
-        if (B->edge_map[i_B].type == PHYSICAL_MAP){
-          cg_edge_len = lcm(cg_edge_len, B->edge_map[i_B].calc_phase());
-          cg_cdt_B = &B->topo->dim_comm[B->edge_map[i_B].cdt];
-          /*if (is_used && cg_cdt_B.alive == 0)
-            cg_cdt_B.activate(global_comm.cm);*/
-          nstep = B->edge_map[i_B].calc_phase();
-          cg_move_B = 1;
-        } else
-          cg_move_B = 0;
-        if (C->edge_map[i_C].type == PHYSICAL_MAP){
-          cg_edge_len = lcm(cg_edge_len, C->edge_map[i_C].calc_phase());
-          cg_cdt_C = &C->topo->dim_comm[C->edge_map[i_C].cdt];
-          /*if (is_used && cg_cdt_C.alive == 0)
-            cg_cdt_C.activate(global_comm.cm);*/
-          nstep = MAX(nstep, C->edge_map[i_C].calc_phase());
-          cg_move_C = 1;
-        } else
-          cg_move_C = 0;
-        cg_ctr_lda_A = 1;
-        cg_ctr_sub_lda_A = 0;
-        cg_move_A = 0;
-  
-  
-        /* Adjust the block lengths, since this algorithm will cut
-           the block into smaller ones of the min block length */
-        /* Determine the LDA of this dimension, based on virtualization */
-        cg_ctr_lda_B  = 1;
-        if (B->edge_map[i_B].type == PHYSICAL_MAP)
-          cg_ctr_sub_lda_B= blk_sz_B*B->edge_map[i_B].np/cg_edge_len;
-        else
-          cg_ctr_sub_lda_B= blk_sz_B/cg_edge_len;
-        for (j=i_B+1; j<B->order; j++) {
-          cg_ctr_sub_lda_B = (cg_ctr_sub_lda_B *
-                virt_blk_len_B[j]) / blk_len_B[j];
-          cg_ctr_lda_B = (cg_ctr_lda_B*blk_len_B[j])
-                /virt_blk_len_B[j];
-        }
-        cg_ctr_lda_C  = 1;
-        if (C->edge_map[i_C].type == PHYSICAL_MAP)
-          cg_ctr_sub_lda_C= blk_sz_C*C->edge_map[i_C].np/cg_edge_len;
-        else
-          cg_ctr_sub_lda_C= blk_sz_C/cg_edge_len;
-        for (j=i_C+1; j<C->order; j++) {
-          cg_ctr_sub_lda_C = (cg_ctr_sub_lda_C *
-                virt_blk_len_C[j]) / blk_len_C[j];
-          cg_ctr_lda_C = (cg_ctr_lda_C*blk_len_C[j])
-                /virt_blk_len_C[j];
-        }
-        if (B->edge_map[i_B].type != PHYSICAL_MAP){
-          blk_sz_B  = blk_sz_B / nstep;
-          blk_len_B[i_B] = blk_len_B[i_B] / nstep;
-        } else {
-          blk_sz_B  = blk_sz_B * B->edge_map[i_B].np / nstep;
-          blk_len_B[i_B] = blk_len_B[i_B] * B->edge_map[i_B].np / nstep;
-        }
-        if (C->edge_map[i_C].type != PHYSICAL_MAP){
-          blk_sz_C  = blk_sz_C / nstep;
-          blk_len_C[i_C] = blk_len_C[i_C] / nstep;
-        } else {
-          blk_sz_C  = blk_sz_C * C->edge_map[i_C].np / nstep;
-          blk_len_C[i_C] = blk_len_C[i_C] * C->edge_map[i_C].np / nstep;
-        }
-  
-        if (B->edge_map[i_B].has_child){
-          ASSERT(B->edge_map[i_B].child->type == VIRTUAL_MAP);
-          virt_dim[i] = B->edge_map[i_B].np*B->edge_map[i_B].child->np/nstep;
-        }
-        if (C->edge_map[i_C].has_child) {
-          ASSERT(C->edge_map[i_C].child->type == VIRTUAL_MAP);
-          virt_dim[i] = C->edge_map[i_C].np*C->edge_map[i_C].child->np/nstep;
-        }
-        if (C->edge_map[i_C].type == VIRTUAL_MAP){
-          virt_dim[i] = C->edge_map[i_C].np/nstep;
-        }
-        if (B->edge_map[i_B].type == VIRTUAL_MAP)
-          virt_dim[i] = B->edge_map[i_B].np/nstep;
-  #ifdef OFFLOAD
-        total_iter *= nstep;
-        if (cg_ctr_sub_lda_A == 0)
-          load_phase_A *= nstep;
-        else 
-          load_phase_A  = 1;
-        if (cg_ctr_sub_lda_B == 0)   
-          load_phase_B *= nstep;
-        else 
-          load_phase_B  = 1;
-        if (cg_ctr_sub_lda_C == 0) 
-          load_phase_C *= nstep;
-        else 
-          load_phase_C  = 1;
-  #endif
-      }
-    } 
-    return 1;
-  }
 
   bool contraction::need_prescale_operands(){
     int num_tot, * idx_arr;

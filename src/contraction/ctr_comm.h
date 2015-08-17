@@ -7,7 +7,8 @@
 #include "ctr_offload.h"
 
 namespace CTF_int{
-
+  class contraction;
+  
   /**
    * \brief untyped internal class for triply-typed bivariate function
    */
@@ -57,7 +58,11 @@ namespace CTF_int{
        * \brief copies generic ctr object
        */
       ctr(ctr * other);
-      ctr(){ idx_lyr = 0; num_lyr = 1; }
+      
+      /**
+       * \brief main constructor, defines variable based on contraction class
+       */
+      ctr(contraction const * c);
   };
 
   class ctr_replicate : public ctr {
@@ -102,7 +107,11 @@ namespace CTF_int{
 
       ctr_replicate(ctr * other);
       ~ctr_replicate();
-      ctr_replicate(){}
+      ctr_replicate(contraction const * c,
+                    int const *         phys_mapped,
+                    int64_t             blk_sz_A,
+                    int64_t             blk_sz_B,
+                    int64_t             blk_sz_C);
   };
 
   /* Assume LDA equal to dim */
@@ -127,27 +136,6 @@ namespace CTF_int{
       ctr_dgemm(){}
   };*/
 
-  /**
-   * \brief performs replication along a dimension, generates 2.5D algs
-   */
-  class ctr_lyr : public ctr {
-    public: 
-      /* Class to be called on sub-blocks */
-      ctr * rec_ctr;
-      int k;
-      CommData * cdt;
-      int64_t sz_C;
-      
-      void print() {};
-      void run();
-      int64_t mem_fp();
-      int64_t mem_rec();
-      ctr * clone();
-
-      ctr_lyr(ctr * other);
-      ~ctr_lyr();
-      ctr_lyr(){}
-  };
   struct iparam {
     int n;
     int m;
@@ -198,7 +186,13 @@ namespace CTF_int{
       seq_tsr_ctr(ctr * other);
       ~seq_tsr_ctr(){ CTF_int::cdealloc(edge_len_A), CTF_int::cdealloc(edge_len_B), CTF_int::cdealloc(edge_len_C), 
                       CTF_int::cdealloc(sym_A), CTF_int::cdealloc(sym_B), CTF_int::cdealloc(sym_C); }
-      seq_tsr_ctr(){}
+      seq_tsr_ctr(contraction const * c,
+                  bool                is_inner,
+                  iparam const *      inner_params,
+                  int *               virt_blk_len_A,
+                  int *               virt_blk_len_B,
+                  int *               virt_blk_len_C,
+                  int64_t             vrt_sz_C);
   };
 
   /**

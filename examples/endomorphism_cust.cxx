@@ -52,7 +52,7 @@ int endomorphism_cust(int     n,
 
   srand48(dw.rank);
   for (int64_t i=0; i<nvals; i++){
-    int str_len = drand48()*255;
+    int str_len = drand48()*250;
     std::fill(vals[i].name, vals[i].name+str_len, 'a');
     vals[i].name[str_len]='\0';
   }

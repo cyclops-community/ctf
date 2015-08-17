@@ -3,9 +3,19 @@
 #include "../shared/util.h"
 #include "ctr_comm.h"
 #include "sym_seq_ctr.h"
+#include "contraction.h"
 
 namespace CTF_int {
-  ctr::~ctr(){
+  ctr::ctr(contraction const * c){
+    A       = c->A->data;
+    B       = c->B->data;
+    C       = c->C->data;
+    sr_A    = c->A->sr;
+    sr_B    = c->B->sr;
+    sr_C    = c->C->sr;
+    beta    = c->beta;
+    idx_lyr = 0;
+    num_lyr = 1;
   }
 
   ctr::ctr(ctr * other){
@@ -20,6 +30,8 @@ namespace CTF_int {
     idx_lyr = other->idx_lyr;
   }
 
+  ctr::~ctr(){
+  }
 /*  ctr_dgemm::~ctr_dgemm() { }
 
   ctr_dgemm::ctr_dgemm(ctr * other) : ctr(other) {
@@ -94,56 +106,82 @@ namespace CTF_int {
     }
   }*/
 
-  ctr_lyr::~ctr_lyr() {
-    delete rec_ctr;
+
+  ctr_replicate::ctr_replicate(contraction const * c,
+                               int const *         phys_mapped,
+                               int64_t             blk_sz_A,
+                               int64_t             blk_sz_B,
+                               int64_t             blk_sz_C)
+       : ctr(c) {
+    int i;
+    int nphys_dim = c->A->topo->order;
+    this->ncdt_A = 0;
+    this->ncdt_B = 0;
+    this->ncdt_C = 0;
+    this->size_A = blk_sz_A;
+    this->size_B = blk_sz_B;
+    this->size_C = blk_sz_C;
+    this->cdt_A = NULL;
+    this->cdt_B = NULL;
+    this->cdt_C = NULL;
+    for (i=0; i<nphys_dim; i++){
+      if (phys_mapped[3*i+0] == 0 &&
+          phys_mapped[3*i+1] == 0 &&
+          phys_mapped[3*i+2] == 0){
+  /*      printf("ERROR: ALL-TENSOR REPLICATION NO LONGER DONE\n");
+        ABORT;
+        ASSERT(this->num_lyr == 1);
+        hctr->idx_lyr = A->topo->dim_comm[i].rank;
+        hctr->num_lyr = A->topo->dim_comm[i]->np;
+        this->idx_lyr = A->topo->dim_comm[i].rank;
+        this->num_lyr = A->topo->dim_comm[i]->np;*/
+      } else {
+        if (phys_mapped[3*i+0] == 0){
+          this->ncdt_A++;
+        }
+        if (phys_mapped[3*i+1] == 0){
+          this->ncdt_B++;
+        }
+        if (phys_mapped[3*i+2] == 0){
+          this->ncdt_C++;
+        }
+      }
+    }
+    if (this->ncdt_A > 0)
+      CTF_int::alloc_ptr(sizeof(CommData*)*this->ncdt_A, (void**)&this->cdt_A);
+    if (this->ncdt_B > 0)
+      CTF_int::alloc_ptr(sizeof(CommData*)*this->ncdt_B, (void**)&this->cdt_B);
+    if (this->ncdt_C > 0)
+      CTF_int::alloc_ptr(sizeof(CommData*)*this->ncdt_C, (void**)&this->cdt_C);
+    this->ncdt_A = 0;
+    this->ncdt_B = 0;
+    this->ncdt_C = 0;
+    for (i=0; i<nphys_dim; i++){
+      if (!(phys_mapped[3*i+0] == 0 &&
+          phys_mapped[3*i+1] == 0 &&
+          phys_mapped[3*i+2] == 0)){
+        if (phys_mapped[3*i+0] == 0){
+          this->cdt_A[this->ncdt_A] = &c->A->topo->dim_comm[i];
+        /*    if (is_used && this->cdt_A[this->ncdt_A].alive == 0)
+            this->cdt_A[this->ncdt_A].activate(global_comm.cm);*/
+          this->ncdt_A++;
+        }
+        if (phys_mapped[3*i+1] == 0){
+          this->cdt_B[this->ncdt_B] = &c->B->topo->dim_comm[i];
+  /*        if (is_used && this->cdt_B[this->ncdt_B].alive == 0)
+            this->cdt_B[this->ncdt_B].activate(global_comm.cm);*/
+          this->ncdt_B++;
+        }
+        if (phys_mapped[3*i+2] == 0){
+          this->cdt_C[this->ncdt_C] = &c->C->topo->dim_comm[i];
+  /*        if (is_used && this->cdt_C[this->ncdt_C].alive == 0)
+            this->cdt_C[this->ncdt_C].activate(global_comm.cm);*/
+          this->ncdt_C++;
+        }
+      }
+    }
   }
-
-  ctr_lyr::ctr_lyr(ctr * other) : ctr(other) {
-    ctr_lyr * o = (ctr_lyr*)other;
-    rec_ctr = o->rec_ctr->clone();
-    k = o->k;
-    cdt = o->cdt;
-    sz_C = o->sz_C;
-  }
-
-  /**
-   * \brief copies ctr object
-   */
-  ctr * ctr_lyr::clone() {
-    return new ctr_lyr(this);
-  }
-
-
-  int64_t ctr_lyr::mem_fp(){
-    return 0;
-  }
-
-  int64_t ctr_lyr::mem_rec() {
-    return rec_ctr->mem_rec() + mem_fp();
-  }
-
-
-  void ctr_lyr::run(){
-    rec_ctr->A            = this->A;
-    rec_ctr->B            = this->B;
-    rec_ctr->C            = this->C;
-    if (cdt->rank != 0)
-      rec_ctr->beta = sr_C->addid();
-    else
-      rec_ctr->beta = this->beta; 
-    rec_ctr->num_lyr      = cdt->np;
-    rec_ctr->idx_lyr      = cdt->rank;
-
-    rec_ctr->run();
-    
-    /* FIXME: unnecessary except for current DCMF wrapper */
-    //COMM_BARRIER(cdt);
-    /* FIXME Won't work for single precision */
-    //ALLREDUCE(MPI_IN_PLACE, this->C, sz_C*(sizeof(dtype)/sizeof(double)), MPI_DOUBLE, MPI_SUM, cdt);
-    MPI_Allreduce(MPI_IN_PLACE, this->C, sz_C, sr_C->mdtype(), sr_C->addmop(), cdt->cm);
-
-  }
-
+ 
   ctr_replicate::~ctr_replicate() {
     delete rec_ctr;
 /*    for (int i=0; i<ncdt_A; i++){
@@ -284,6 +322,113 @@ namespace CTF_int {
       this->sr_B->set(this->B, this->sr_B->addid(), size_B);
     }
   }
+
+  seq_tsr_ctr::seq_tsr_ctr(contraction const * c,
+                           bool                is_inner,
+                           iparam const *      inner_params,
+                           int *               virt_blk_len_A,
+                           int *               virt_blk_len_B,
+                           int *               virt_blk_len_C,
+                           int64_t             vrt_sz_C)
+        : ctr(c) {
+     
+    int i, j, k; 
+    int * new_sym_A, * new_sym_B, * new_sym_C;
+    CTF_int::alloc_ptr(sizeof(int)*c->A->order, (void**)&new_sym_A);
+    memcpy(new_sym_A, c->A->sym, sizeof(int)*c->A->order);
+    CTF_int::alloc_ptr(sizeof(int)*c->B->order, (void**)&new_sym_B);
+    memcpy(new_sym_B, c->B->sym, sizeof(int)*c->B->order);
+    CTF_int::alloc_ptr(sizeof(int)*c->C->order, (void**)&new_sym_C);
+    memcpy(new_sym_C, c->C->sym, sizeof(int)*c->C->order);
+
+    if (!is_inner){
+      this->is_inner  = 0;
+    } else if (is_inner == 1) {
+      if (c->A->wrld->cdt.rank == 0){
+        DPRINTF(1,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
+          inner_params->m, inner_params->k);
+      }
+
+      this->is_inner    = 1;
+      this->inner_params  = *inner_params;
+      this->inner_params.sz_C = vrt_sz_C;
+      tensor * itsr;
+      itsr = c->A->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->A->inner_ordering[i];
+        for (k=0; k<c->A->order; k++){
+          if (c->A->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->A->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+  /*        printf("inner_ordering[%d]=%d setting dim %d of A, to len %d from len %d\n",
+                  i, c->A->inner_ordering[i], k, 1, virt_blk_len_A[k]);*/
+          virt_blk_len_A[k] = 1;
+          new_sym_A[k] = NS;
+        }
+      }
+      itsr = c->B->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->B->inner_ordering[i];
+        for (k=0; k<c->B->order; k++){
+          if (c->B->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->B->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+        /*  printf("inner_ordering[%d]=%d setting dim %d of B, to len %d from len %d\n",
+                  i, c->B->inner_ordering[i], k, 1, virt_blk_len_B[k]);*/
+          virt_blk_len_B[k] = 1;
+          new_sym_B[k] = NS;
+        }
+      }
+      itsr = c->C->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->C->inner_ordering[i];
+        for (k=0; k<c->C->order; k++){
+          if (c->C->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->C->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+        /*  printf("inner_ordering[%d]=%d setting dim %d of C, to len %d from len %d\n",
+                  i, c->C->inner_ordering[i], k, 1, virt_blk_len_C[k]);*/
+          virt_blk_len_C[k] = 1;
+          new_sym_C[k] = NS;
+        }
+      }
+    }
+    this->is_custom  = c->is_custom;
+    this->alpha      = c->alpha;
+    if (is_custom){
+      this->func     = c->func;
+    }
+    this->order_A    = c->A->order;
+    this->idx_map_A  = c->idx_A;
+    this->edge_len_A = virt_blk_len_A;
+    this->sym_A      = new_sym_A;
+    this->order_B    = c->B->order;
+    this->idx_map_B  = c->idx_B;
+    this->edge_len_B = virt_blk_len_B;
+    this->sym_B      = new_sym_B;
+    this->order_C    = c->C->order;
+    this->idx_map_C  = c->idx_C;
+    this->edge_len_C = virt_blk_len_C;
+    this->sym_C      = new_sym_C;
+
+
+  }
+
 
   void seq_tsr_ctr::print(){
     int i;
