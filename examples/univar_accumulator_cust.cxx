@@ -48,8 +48,10 @@ int univar_accumulator_cust(int     n,
   free(loc_frcs);
   free(finds);
 
-  CTF::Univar_Accumulator<particle,force> uacc(&acc_force);
-
+  CTF::Univar_Accumulator<particle,force> uacc([](force f, particle & p){
+      p.dx += f.fx*p.coeff;
+      p.dy += f.fy*p.coeff;
+    });
   //FIXME = does not work because it sets beta to addid :/
   F2["ij"] += F["ij"];
   F2["ij"] += F["ij"];

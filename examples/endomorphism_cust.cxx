@@ -27,11 +27,6 @@ void mpi_cadd(void * a, void * b, int * len, MPI_Datatype * d){
   }
 }
 
-cust_type comp_len(cust_type a){
-  a.len_name = strlen(a.name);
-  return a;
-}
-
 int endomorphism_cust(int     n,
                       World & dw){
   
@@ -64,9 +59,14 @@ int endomorphism_cust(int     n,
  
   A.write(nvals, inds, vals);
 
-  CTF::Endomorphism<cust_type> endo(&comp_len);
+  CTF::Endomorphism<cust_type> endo(
+    [](cust_type a){
+      a.len_name = strlen(a.name);
+      return a;
+    });
   // below is equivalent to A.scale(NULL, "ijkl", endo);
   endo(A["ijkl"]);
+
 
   int64_t * indices;
   cust_type * loc_data;

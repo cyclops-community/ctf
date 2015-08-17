@@ -31,7 +31,8 @@ int univar_function(int     n,
   A.read_all(&nall, &all_start_data);
 
 
-  CTF::Univar_Function<> ufun(&fquad);
+  //CTF::Univar_Function<> ufun(&fquad);
+  CTF::Univar_Function<> ufun([](double a){ return a*a*a*a; });
   // below is equivalent to A.scale(1.0, "ijkl", ufun);
   .5*A["ijkl"]+=ufun(.5*A["ijkl"]);
 

@@ -25,14 +25,14 @@ namespace CTF {
       /**
        * \brief function signature for element-wise operation a=f(a)
        */
-      dtype (*f)(dtype);
+      //dtype (*f)(dtype);
+      std::function<dtype(dtype)> f;
      
       /**
        * \brief constructor takes function pointer
        * \param[in] f_ scalar function: (type) -> (type)
        */
-      Endomorphism(dtype (*f_)(dtype)){ f = f_; }
-
+      Endomorphism(std::function<dtype(dtype)> f_){ f = f_; }
       /**
        * \brief default constructor
        */
@@ -46,6 +46,7 @@ namespace CTF {
       void apply_f(char * a) const { ((dtype*)a)[0]=f(((dtype*)a)[0]); }
   };
 
+
   /**
    * \brief custom function f : X -> Y to be applied to tensor elemetns: 
    *          e.g. B["ij"] = f(A["ij"])
@@ -56,13 +57,14 @@ namespace CTF {
       /**
        * \brief function signature for element-wise multiplication, compute b=f(a)
        */
-      dtype_B (*f)(dtype_A);
+      //dtype_B (*f)(dtype_A);
+      std::function<dtype_B(dtype_A)> f;
       
       /**
        * \brief constructor takes function pointers to compute B=f(A));
        * \param[in] f_ linear function (type_A)->(type_B)
        */
-      Univar_Function(dtype_B (*f_)(dtype_A)){ f = f_; }
+      Univar_Function(std::function<dtype_B(dtype_A)> f_){ f = f_; }
 
       /** 
        * \brief evaluate B=f(A) 
@@ -102,13 +104,14 @@ namespace CTF {
       /**
        * \brief function signature for element-wise multiplication, compute b=f(a)
        */
-      void (*f)(dtype_A, dtype_B &);
+      //void (*f)(dtype_A, dtype_B &);
+      std::function<void(dtype_A, dtype_B &)> f;
       
       /**
        * \brief constructor takes function pointers to compute B=f(A));
        * \param[in] f_ linear function (type_A)->(type_B)
        */
-      Univar_Accumulator(void (*f_)(dtype_A, dtype_B&)){ f = f_; }
+      Univar_Accumulator(std::function<void(dtype_A, dtype_B &)> f_){ f = f_; }
 
       /** 
        * \brief evaluate B=f(A) 
@@ -148,13 +151,14 @@ namespace CTF {
       /**
        * \brief function signature for element-wise multiplication, compute C=f(A,B)
        */
-      dtype_C (*f)(dtype_A, dtype_B);
+      //dtype_C (*f)(dtype_A, dtype_B);
+      std::function<dtype_C (dtype_A, dtype_B)> f;
      
       /**
        * \brief constructor takes function pointers to compute C=f(A,B);
        * \param[in] f_ bilinear function (type_A,type_B)->(type_C)
        */
-      Bivar_Function(dtype_C (*f_)(dtype_A, dtype_B)){ f=f_; }
+      Bivar_Function(std::function<dtype_C (dtype_A, dtype_B)> f_){ f=f_; }
 
       /**
        * \brief default constructor sets function pointer to NULL

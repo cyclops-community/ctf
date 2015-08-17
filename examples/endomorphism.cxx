@@ -29,8 +29,9 @@ int endomorphism(int     n,
   int64_t nall;
   A.read_all(&nall, &all_start_data);
 
+  double scale = 1.0;
 
-  CTF::Endomorphism<> endo(&fdbl);
+  CTF::Endomorphism<double> endo([=](double d){ return scale*d*d*d; });
   // below is equivalent to A.scale(1.0, "ijkl", endo);
   endo(A["ijkl"]);
 
