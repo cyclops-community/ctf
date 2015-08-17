@@ -3,6 +3,7 @@
 
 #include "assert.h"
 #include "sum_tsr.h"
+#include "spsum_tsr.h"
 
 namespace CTF_int {
   class tensor; 
@@ -174,10 +175,28 @@ namespace CTF_int {
 
       /**
        * \brief constructs function pointer to sum tensors A and B,B = B*beta+alpha*A
-       * \param[in] inner_stride local daxpy stride
        * \return tsum summation class pointer to run
       */
       tsum * construct_sum(int inner_stride=-1);
+
+      /**
+       * \brief constructs function pointer to sum tensors A and B at least one of which is sparse,
+       *            B = B*beta+alpha*A
+       * \param[in] virt_dim dimensions of grid of blocks owned by each process
+       * \param[in] phys_mapped dimension 2*num_phys_dim, keeps track of which dimensions A and B are mapped to
+       * \return tspsum summation class pointer to run
+      */
+      tspsum * construct_sparse_sum(int const * phys_mapped);
+
+      /**
+       * \brief constructs function pointer to sum tensors A and B both of which are dense,
+       *            B = B*beta+alpha*A
+       * \param[in] phys_mapped dimension 2*num_phys_dim, keeps track of which dimensions A and B are mapped to
+       * \return tsum summation class pointer to run
+      */
+      tsum * construct_dense_sum(int         inner_stride,
+                                 int const * phys_mapped);
+
 
       /**
        * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).

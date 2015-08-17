@@ -1,4 +1,4 @@
-LOBJS = summation.o sym_seq_sum.o sum_tsr.o  spr_seq_sum.o
+LOBJS = summation.o sym_seq_sum.o sum_tsr.o  spr_seq_sum.o spsum_tsr.o
 OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq

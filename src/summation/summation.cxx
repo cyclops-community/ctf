@@ -6,7 +6,6 @@
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
 #include "sym_seq_sum.h"
-#include "sum_tsr.h"
 #include "../symmetry/sym_indices.h"
 #include "../symmetry/symmetrization.h"
 #include "../redistribution/nosym_transp.h"
@@ -402,11 +401,194 @@ namespace CTF_int {
     *new_ordering_B = ordering_B;
   }
 
-  tsum * summation::construct_sum(int inner_stride){
-    int nvirt, i, iA, iB, order_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
+
+  tspsum * summation::construct_sparse_sum(int const * phys_mapped){
+    int nvirt, i, iA, iB, order_tot, is_top, need_rep;
     int64_t blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
     int nphys_dim;
-    int * idx_arr, * virt_dim, * phys_mapped;
+    int * virt_dim;
+    int * idx_arr;
+    int * virt_blk_len_A, * virt_blk_len_B;
+    int * blk_len_A, * blk_len_B;
+    mapping * map;
+    tspsum * htsum = NULL , ** rec_tsum = NULL;
+
+    is_top = 1;
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            &order_tot, &idx_arr);
+
+    nphys_dim = A->topo->order;
+
+    CTF_int::alloc_ptr(sizeof(int)*order_tot,   (void**)&virt_dim);
+    CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&virt_blk_len_B);
+
+    /* Determine the block dimensions of each local subtensor */
+    blk_sz_A = A->size;
+    blk_sz_B = B->size;
+    calc_dim(A->order, blk_sz_A, A->pad_edge_len, A->edge_map,
+             &vrt_sz_A, virt_blk_len_A, blk_len_A);
+    calc_dim(B->order, blk_sz_B, B->pad_edge_len, B->edge_map,
+             &vrt_sz_B, virt_blk_len_B, blk_len_B);
+
+    nvirt = 1;
+    for (i=0; i<order_tot; i++){
+      iA = idx_arr[2*i];
+      iB = idx_arr[2*i+1];
+      if (iA != -1){
+        map = &A->edge_map[iA];
+        while (map->has_child) map = map->child;
+        if (map->type == VIRTUAL_MAP){
+          virt_dim[i] = map->np;
+        }
+        else virt_dim[i] = 1;
+      } else {
+        ASSERT(iB!=-1);
+        map = &B->edge_map[iB];
+        while (map->has_child) map = map->child;
+        if (map->type == VIRTUAL_MAP){
+          virt_dim[i] = map->np;
+        }
+        else virt_dim[i] = 1;
+      }
+      nvirt *= virt_dim[i];
+    }
+
+
+
+    if (A->is_sparse){
+      tspsum_pin_keys * sksum = new tspsum_pin_keys(this, 1);
+      if (is_top){
+        htsum = sksum;
+        is_top = 0;
+      } else {
+        *rec_tsum = sksum;
+      }
+      rec_tsum = &sksum->rec_tsum;
+
+
+      tspsum_permute * pmsum = new tspsum_permute(this, 1, virt_blk_len_A);
+      *rec_tsum = pmsum;
+      rec_tsum = &pmsum->rec_tsum;
+    }
+    if (B->is_sparse){
+      tspsum_pin_keys * sksum = new tspsum_pin_keys(this, 0);
+      if (is_top){
+        htsum = sksum;
+        is_top = 0;
+      } else {
+        *rec_tsum = sksum;
+      }
+      rec_tsum = &sksum->rec_tsum;
+
+
+      tspsum_permute * pmsum = new tspsum_permute(this, 0, virt_blk_len_B);
+      *rec_tsum = pmsum;
+      rec_tsum = &pmsum->rec_tsum;
+    }
+
+/*    bool need_sp_map = false;
+    if (A->is_sparse || B->is_sparse){
+      for (int i=0; i<B->order; i++){
+        bool found_match = false;
+        for (int j=0; j<A->order; j++){
+          if (idx_B[i] == idx_A[j]) found_match = true;
+        }
+        if (!found_match) need_sp_map = true;
+      }
+    }
+
+    if (need_sp_map){
+      tspsum_map * smsum = new tspsum_map(this);
+      if (is_top){
+        htsum = smsum;
+        is_top = 0;
+      } else {
+        *rec_tsum = smsum;
+      }
+      rec_tsum = &smsum->rec_tsum;
+    }*/
+
+
+    need_rep = 0;
+    for (i=0; i<nphys_dim; i++){
+      if (phys_mapped[2*i+0] == 0 ||
+          phys_mapped[2*i+1] == 0){
+        need_rep = 1;
+        break;
+      }
+    }
+
+    if (need_rep){
+/*      if (A->wrld->cdt.rank == 0)
+        DPRINTF(1,"Replicating tensor\n");*/
+
+      tspsum_replicate * rtsum = new tspsum_replicate(this, phys_mapped, blk_sz_A, blk_sz_B);
+
+      if (is_top){
+        htsum = rtsum;
+        is_top = 0;
+      } else {
+        *rec_tsum = rtsum;
+      }
+      rec_tsum      = &rtsum->rec_tsum;
+    }
+
+    /* Multiply over virtual sub-blocks */
+    tspsum_virt * tsumv = new tspsum_virt(this);
+    if (is_top) {
+      htsum = tsumv;
+      is_top = 0;
+    } else {
+      *rec_tsum = tsumv;
+    }
+    rec_tsum         = &tsumv->rec_tsum;
+
+    tsumv->num_dim   = order_tot;
+    tsumv->virt_dim  = virt_dim;
+    tsumv->blk_sz_A  = vrt_sz_A;
+    tsumv->blk_sz_B  = vrt_sz_B;
+
+    int * new_sym_A, * new_sym_B;
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&new_sym_A);
+    memcpy(new_sym_A, A->sym, sizeof(int)*A->order);
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&new_sym_B);
+    memcpy(new_sym_B, B->sym, sizeof(int)*B->order);
+
+    seq_tsr_spsum * tsumseq = new seq_tsr_spsum(this);
+    tsumseq->is_inner = 0;
+    tsumseq->edge_len_A  = virt_blk_len_A;
+    tsumseq->sym_A       = new_sym_A;
+    tsumseq->edge_len_B  = virt_blk_len_B;
+    tsumseq->sym_B       = new_sym_B;
+    tsumseq->is_custom   = is_custom;
+    if (is_custom){
+      tsumseq->is_inner  = 0;
+      tsumseq->func      = func;
+    } else tsumseq->func = NULL;
+
+    if (is_top) {
+      htsum = tsumseq;
+      is_top = 0;
+    } else {
+      *rec_tsum = tsumseq;
+    }
+
+    CTF_int::cdealloc(idx_arr);
+    CTF_int::cdealloc(blk_len_A);
+    CTF_int::cdealloc(blk_len_B);
+    return htsum;
+  }
+
+  tsum * summation::construct_dense_sum(int         inner_stride,
+                                        int const * phys_mapped){
+    int i, iA, iB, order_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
+    int64_t blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
+    int nphys_dim, nvirt;
+    int * idx_arr, * virt_dim;
     int * virt_blk_len_A, * virt_blk_len_B;
     int * blk_len_A, * blk_len_B;
     tsum * htsum = NULL , ** rec_tsum = NULL;
@@ -420,14 +602,11 @@ namespace CTF_int {
 
     nphys_dim = A->topo->order;
 
+    CTF_int::alloc_ptr(sizeof(int)*order_tot,   (void**)&virt_dim);
     CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&blk_len_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&blk_len_B);
     CTF_int::alloc_ptr(sizeof(int)*A->order,    (void**)&virt_blk_len_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order,    (void**)&virt_blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*order_tot,   (void**)&virt_dim);
-    CTF_int::alloc_ptr(sizeof(int)*nphys_dim*2, (void**)&phys_mapped);
-    memset(phys_mapped, 0, sizeof(int)*nphys_dim*2);
-
 
     /* Determine the block dimensions of each local subtensor */
     blk_sz_A = A->size;
@@ -436,7 +615,6 @@ namespace CTF_int {
              &vrt_sz_A, virt_blk_len_A, blk_len_A);
     calc_dim(B->order, blk_sz_B, B->pad_edge_len, B->edge_map,
              &vrt_sz_B, virt_blk_len_B, blk_len_B);
-
     /* Strip out the relevant part of the tensor if we are contracting over diagonal */
     sA = strip_diag(A->order, order_tot, idx_A, vrt_sz_A,
                            A->edge_map, A->topo, A->sr,
@@ -459,6 +637,7 @@ namespace CTF_int {
       ssum->strip_A = sA;
       ssum->strip_B = sB;
     }
+
 
     nvirt = 1;
     for (i=0; i<order_tot; i++){
@@ -485,97 +664,6 @@ namespace CTF_int {
       nvirt *= virt_dim[i];
     }
 
-    for (i=0; i<A->order; i++){
-      map = &A->edge_map[i];
-      if (map->type == PHYSICAL_MAP){
-        phys_mapped[2*map->cdt+0] = 1;
-      }
-      while (map->has_child) {
-        map = map->child;
-        if (map->type == PHYSICAL_MAP){
-          phys_mapped[2*map->cdt+0] = 1;
-        }
-      }
-    }
-    for (i=0; i<B->order; i++){
-      map = &B->edge_map[i];
-      if (map->type == PHYSICAL_MAP){
-        phys_mapped[2*map->cdt+1] = 1;
-      }
-      while (map->has_child) {
-        map = map->child;
-        if (map->type == PHYSICAL_MAP){
-          phys_mapped[2*map->cdt+1] = 1;
-        }
-      }
-    }
-    bool need_perm = false;
-    if (A->is_sparse || B->is_sparse){
-      need_perm = true;
-/*      for (int i=0; i<A->order; i++){
-        if (idx_arr[2*idx_A[i]+1] != i) need_perm = true;
-      }
-      for (int i=0; i<B->order; i++){
-        if (idx_arr[2*idx_B[i]+1] != i) need_perm = true;
-      }*/
-    }
-    if (need_perm){
-      if (A->is_sparse){
-        tsum_sp_pin_keys * sksum = new tsum_sp_pin_keys(this, 1);
-        if (is_top){
-          htsum = sksum;
-          is_top = 0;
-        } else {
-          *rec_tsum = sksum;
-        }
-        rec_tsum = &sksum->rec_tsum;
-
-
-        tsum_sp_permute * pmsum = new tsum_sp_permute(this, 1, virt_blk_len_A);
-        *rec_tsum = pmsum;
-        rec_tsum = &pmsum->rec_tsum;
-      }
-      if (B->is_sparse){
-        tsum_sp_pin_keys * sksum = new tsum_sp_pin_keys(this, 0);
-        if (is_top){
-          htsum = sksum;
-          is_top = 0;
-        } else {
-          *rec_tsum = sksum;
-        }
-        rec_tsum = &sksum->rec_tsum;
-
-
-        tsum_sp_permute * pmsum = new tsum_sp_permute(this, 0, virt_blk_len_B);
-        *rec_tsum = pmsum;
-        rec_tsum = &pmsum->rec_tsum;
-      }
-
-    }
-
-/*    bool need_sp_map = false;
-    if (A->is_sparse || B->is_sparse){
-      for (int i=0; i<B->order; i++){
-        bool found_match = false;
-        for (int j=0; j<A->order; j++){
-          if (idx_B[i] == idx_A[j]) found_match = true;
-        }
-        if (!found_match) need_sp_map = true;
-      }
-    }
-
-    if (need_sp_map){
-      tsum_sp_map * smsum = new tsum_sp_map(this);
-      if (is_top){
-        htsum = smsum;
-        is_top = 0;
-      } else {
-        *rec_tsum = smsum;
-      }
-      rec_tsum = &smsum->rec_tsum;
-    }*/
-
-
     need_rep = 0;
     for (i=0; i<nphys_dim; i++){
       if (phys_mapped[2*i+0] == 0 ||
@@ -584,17 +672,13 @@ namespace CTF_int {
         break;
       }
     }
-    if (need_rep){
-      if (A->wrld->cdt.rank == 0)
-        DPRINTF(1,"Replicating tensor\n");
 
-      tsum_replicate * rtsum = new tsum_replicate(this);
-/*      rtsum->sr_A = A->sr;
-      rtsum->sr_B = B->sr;
-      rtsum->is_sparse_A = A->is_sparse;
-      rtsum->is_sparse_B = B->is_sparse;
-      rtsum->nnz_A = A->nnz_loc;
-      rtsum->nnz_B = B->nnz_loc;*/
+    if (need_rep){
+/*      if (A->wrld->cdt.rank == 0)
+        DPRINTF(1,"Replicating tensor\n");*/
+
+      tsum_replicate * rtsum = new tsum_replicate(this, phys_mapped, blk_sz_A, blk_sz_B);
+
       if (is_top){
         htsum = rtsum;
         is_top = 0;
@@ -602,59 +686,11 @@ namespace CTF_int {
         *rec_tsum = rtsum;
       }
       rec_tsum      = &rtsum->rec_tsum;
-      rtsum->ncdt_A = 0;
-      rtsum->ncdt_B = 0;
-      rtsum->size_A = blk_sz_A;
-      rtsum->size_B = blk_sz_B;
-      rtsum->cdt_A  = NULL;
-      rtsum->cdt_B  = NULL;
-      for (i=0; i<nphys_dim; i++){
-        if (phys_mapped[2*i+0] == 0 && phys_mapped[2*i+1] == 1){
-          rtsum->ncdt_A++;
-        }
-        if (phys_mapped[2*i+1] == 0 && phys_mapped[2*i+0] == 1){
-          rtsum->ncdt_B++;
-        }
-      }
-      if (rtsum->ncdt_A > 0)
-        CTF_int::alloc_ptr(sizeof(CommData*)*rtsum->ncdt_A, (void**)&rtsum->cdt_A);
-      if (rtsum->ncdt_B > 0)
-        CTF_int::alloc_ptr(sizeof(CommData*)*rtsum->ncdt_B, (void**)&rtsum->cdt_B);
-      rtsum->ncdt_A = 0;
-      rtsum->ncdt_B = 0;
-      for (i=0; i<nphys_dim; i++){
-        if (phys_mapped[2*i+0] == 0 && phys_mapped[2*i+1] == 1){
-          rtsum->cdt_A[rtsum->ncdt_A] = &A->topo->dim_comm[i];
-/*          if (rtsum->cdt_A[rtsum->ncdt_A].alive == 0)
-            rtsum->cdt_A[rtsum->ncdt_A].activate(A->wrld->comm);*/
-          rtsum->ncdt_A++;
-        }
-        if (phys_mapped[2*i+1] == 0 && phys_mapped[2*i+0] == 1){
-          rtsum->cdt_B[rtsum->ncdt_B] = &B->topo->dim_comm[i];
-/*          if (rtsum->cdt_B[rtsum->ncdt_B].alive == 0)
-            rtsum->cdt_B[rtsum->ncdt_B].activate(B->wrld->comm);*/
-          rtsum->ncdt_B++;
-        }
-      }
-      ASSERT(rtsum->ncdt_A == 0 || rtsum->cdt_B == 0);
     }
 
-    int * new_sym_A, * new_sym_B;
-    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&new_sym_A);
-    memcpy(new_sym_A, A->sym, sizeof(int)*A->order);
-    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&new_sym_B);
-    memcpy(new_sym_B, B->sym, sizeof(int)*B->order);
-
     /* Multiply over virtual sub-blocks */
-    if (nvirt > 1 || A->is_sparse || B->is_sparse){
+    if (nvirt > 1){
       tsum_virt * tsumv = new tsum_virt(this);
-/*      tsumv->sr_A = A->sr;
-      tsumv->sr_B = B->sr;
-      tsumv->is_sparse_A = A->is_sparse;
-      tsumv->is_sparse_B = B->is_sparse;
-      tsumv->nnz_A = A->nnz_loc;
-      tsumv->nnz_B = B->nnz_loc;
-      tsumv->nnz_blk_B = B->nnz_blk;*/
       if (is_top) {
         htsum = tsumv;
         is_top = 0;
@@ -665,22 +701,16 @@ namespace CTF_int {
 
       tsumv->num_dim   = order_tot;
       tsumv->virt_dim  = virt_dim;
-//      tsumv->order_A   = A->order;
       tsumv->blk_sz_A  = vrt_sz_A;
-//      tsumv->idx_map_A = idx_A;
-//      tsumv->order_B   = B->order;
       tsumv->blk_sz_B  = vrt_sz_B;
-//      tsumv->idx_map_B = idx_B;
-      tsumv->buffer    = NULL;
     } else CTF_int::cdealloc(virt_dim);
+    int * new_sym_A, * new_sym_B;
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&new_sym_A);
+    memcpy(new_sym_A, A->sym, sizeof(int)*A->order);
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&new_sym_B);
+    memcpy(new_sym_B, B->sym, sizeof(int)*B->order);
 
     seq_tsr_sum * tsumseq = new seq_tsr_sum(this);
-/*    tsumseq->sr_A = A->sr;
-    tsumseq->sr_B = B->sr;
-    tsumseq->is_sparse_A = A->is_sparse;
-    tsumseq->is_sparse_B = B->is_sparse;
-    tsumseq->nnz_A = A->nnz_loc;
-    tsumseq->nnz_B = B->nnz_loc;*/
     if (inner_stride == -1){
       tsumseq->is_inner = 0;
     } else {
@@ -728,18 +758,8 @@ namespace CTF_int {
         }
       }
     }
-    if (is_top) {
-      htsum = tsumseq;
-      is_top = 0;
-    } else {
-      *rec_tsum = tsumseq;
-    }
-//    tsumseq->order_A     = A->order;
-//    tsumseq->idx_map_A   = idx_A;
     tsumseq->edge_len_A  = virt_blk_len_A;
     tsumseq->sym_A       = new_sym_A;
-//    tsumseq->order_B     = B->order;
-//    tsumseq->idx_map_B   = idx_B;
     tsumseq->edge_len_B  = virt_blk_len_B;
     tsumseq->sym_B       = new_sym_B;
     tsumseq->is_custom   = is_custom;
@@ -747,15 +767,70 @@ namespace CTF_int {
       tsumseq->is_inner  = 0;
       tsumseq->func      = func;
     } else tsumseq->func = NULL;
-//    htsum->alpha         = alpha;
-//    htsum->beta          = beta;
-
-//    htsum->A = A->data;
-//    htsum->B = B->data;
+    if (is_top) {
+      htsum = tsumseq;
+      is_top = 0;
+    } else {
+      *rec_tsum = tsumseq;
+    }
 
     CTF_int::cdealloc(idx_arr);
     CTF_int::cdealloc(blk_len_A);
     CTF_int::cdealloc(blk_len_B);
+    return htsum;
+
+  }
+
+
+  tsum * summation::construct_sum(int inner_stride){
+    int i, iA, iB, order_tot, is_top, sA, sB, need_rep, i_A, i_B, j, k;
+    int64_t blk_sz_A, blk_sz_B, vrt_sz_A, vrt_sz_B;
+    int nphys_dim;
+    int * idx_arr, * phys_mapped;
+    int * virt_blk_len_A, * virt_blk_len_B;
+    int * blk_len_A, * blk_len_B;
+    tsum * htsum = NULL , ** rec_tsum = NULL;
+    mapping * map;
+    strp_tsr * str_A, * str_B;
+
+    is_top = 1;
+    nphys_dim = A->topo->order;
+
+    CTF_int::alloc_ptr(sizeof(int)*nphys_dim*2, (void**)&phys_mapped);
+    memset(phys_mapped, 0, sizeof(int)*nphys_dim*2);
+
+
+
+    for (i=0; i<A->order; i++){
+      map = &A->edge_map[i];
+      if (map->type == PHYSICAL_MAP){
+        phys_mapped[2*map->cdt+0] = 1;
+      }
+      while (map->has_child) {
+        map = map->child;
+        if (map->type == PHYSICAL_MAP){
+          phys_mapped[2*map->cdt+0] = 1;
+        }
+      }
+    }
+    for (i=0; i<B->order; i++){
+      map = &B->edge_map[i];
+      if (map->type == PHYSICAL_MAP){
+        phys_mapped[2*map->cdt+1] = 1;
+      }
+      while (map->has_child) {
+        map = map->child;
+        if (map->type == PHYSICAL_MAP){
+          phys_mapped[2*map->cdt+1] = 1;
+        }
+      }
+    }
+    if (A->is_sparse || B->is_sparse){
+      htsum = construct_sparse_sum(phys_mapped);
+    } else {
+      htsum = construct_dense_sum(inner_stride, phys_mapped);
+    }
+
     CTF_int::cdealloc(phys_mapped);
 
     return htsum;
@@ -1432,17 +1507,18 @@ namespace CTF_int {
       MPI_Barrier(tnsr_B->wrld->comm);
       sumf->run();
       if (tnsr_B->is_sparse){
-        if (tnsr_B->data != sumf->new_B){
+        tspsum * spsumf = (tspsum*)sumf;
+        if (tnsr_B->data != spsumf->new_B){
           cdealloc(tnsr_B->data);
-          tnsr_B->data = sumf->new_B;
-          //tnsr_B->nnz_loc = sumf->new_nnz_B;
+          tnsr_B->data = spsumf->new_B;
+          //tnsr_B->nnz_loc = spsumf->new_nnz_B;
           tnsr_B->nnz_loc = 0;
           for (int i=0; i<tnsr_B->calc_nvirt(); i++){
-        //    printf("rec %p pin %p new_blk_nnz_B[%d] = %ld\n",sumf->nnz_blk_B,tnsr_B->nnz_blk,i,tnsr_B->nnz_blk[i]);
+        //    printf("rec %p pin %p new_blk_nnz_B[%d] = %ld\n",spsumf->nnz_blk_B,tnsr_B->nnz_blk,i,tnsr_B->nnz_blk[i]);
             tnsr_B->nnz_loc += tnsr_B->nnz_blk[i];
           }
         }
-        ASSERT(tnsr_B->nnz_loc == sumf->new_nnz_B);
+        ASSERT(tnsr_B->nnz_loc == spsumf->new_nnz_B);
       }
       /*tnsr_B->unfold();
       tnsr_B->print();

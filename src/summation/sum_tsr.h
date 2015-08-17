@@ -73,17 +73,6 @@ namespace CTF_int {
       char const *     beta;
       void *           buffer;
 
-      bool      is_sparse_A;
-      int64_t   nnz_A;
-      int       nvirt_A;
-      int64_t * nnz_blk_A;
-      bool      is_sparse_B;
-      int64_t   nnz_B;
-      int       nvirt_B;
-      int64_t * nnz_blk_B;
-      int64_t   new_nnz_B;
-      char *    new_B;
-      
       virtual void run() {};
       virtual void print() {};
 //      virtual int64_t calc_new_nnz_B() { return nnz_B; } //if sparse
@@ -93,13 +82,8 @@ namespace CTF_int {
        */
       virtual int64_t mem_fp() { return 0; };
       virtual tsum * clone() { return NULL; };
-      
-      virtual void set_nnz_blk_A(int64_t const * nnbA){
-        if (nnbA != NULL) memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
-      }
       virtual ~tsum();
       tsum(tsum * other);
-      tsum(){ buffer = NULL; }
       tsum(summation const * s);
   };
 
@@ -120,10 +104,6 @@ namespace CTF_int {
       void run();
       void print();
       int64_t mem_fp();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        tsum::set_nnz_blk_A(nnbA);
-        rec_tsum->set_nnz_blk_A(nnbA);
-      }
       tsum * clone();
 
       /**
@@ -131,7 +111,6 @@ namespace CTF_int {
        */
       tsum_virt(tsum * other);
       ~tsum_virt();
-      tsum_virt(){}
       tsum_virt(summation const * s);
   };
 
@@ -155,15 +134,13 @@ namespace CTF_int {
       void print();
       int64_t mem_fp();
       tsum * clone();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        tsum::set_nnz_blk_A(nnbA);
-        rec_tsum->set_nnz_blk_A(nnbA);
-      }
 
       tsum_replicate(tsum * other);
       ~tsum_replicate();
-      tsum_replicate(){}
-      tsum_replicate(summation const * s);
+      tsum_replicate(summation const * s,
+                     int const *       phys_mapped,
+                     int64_t           blk_sz_A,
+                     int64_t           blk_sz_B);
   };
 
   class seq_tsr_sum : public tsum {
@@ -193,9 +170,6 @@ namespace CTF_int {
       void print();
       int64_t mem_fp();
       tsum * clone();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        tsum::set_nnz_blk_A(nnbA);
-      }
 
       /**
        * \brief copies sum object
@@ -204,79 +178,7 @@ namespace CTF_int {
       seq_tsr_sum(tsum * other);
       ~seq_tsr_sum(){ CTF_int::cdealloc(edge_len_A), CTF_int::cdealloc(edge_len_B), 
                       CTF_int::cdealloc(sym_A), CTF_int::cdealloc(sym_B); };
-      seq_tsr_sum(){}
       seq_tsr_sum(summation const * s);
-
-  };
-
-  class tsum_sp_map : public tsum {
-    public:
-      tsum * rec_tsum;
-      int nmap_idx;
-      int64_t * map_idx_len;
-      int64_t * map_idx_lda;
-
-      void run();
-      void print();
-      int64_t mem_fp();
-      tsum * clone();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        tsum::set_nnz_blk_A(nnbA);
-        rec_tsum->set_nnz_blk_A(nnbA);
-      }
-
-      tsum_sp_map(tsum * other);
-      ~tsum_sp_map();
-      tsum_sp_map(){}
-      tsum_sp_map(summation const * s);
-  };
-
-  class tsum_sp_permute : public tsum {
-    public:
-      tsum * rec_tsum;
-      bool A_or_B; //if false perm_B
-      int order;
-      int * lens_new;
-      int * lens_old; // FIXME = lens_new?
-      int * p;
-
-      void run();
-      void print();
-      int64_t mem_fp();
-      tsum * clone();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        tsum::set_nnz_blk_A(nnbA);
-        rec_tsum->set_nnz_blk_A(nnbA);
-      }
-
-      tsum_sp_permute(tsum * other);
-      ~tsum_sp_permute();
-      tsum_sp_permute(){}
-      tsum_sp_permute(summation const * s, bool A_or_B, int const * lens);
-  };
-
-  class tsum_sp_pin_keys : public tsum {
-    public:
-      tsum * rec_tsum;
-      bool A_or_B;
-      int order;
-      int const * lens;
-      int * divisor;
-      int * virt_dim;
-      int * phys_rank;
-
-      void run();
-      void print();
-      int64_t mem_fp();
-      tsum * clone();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        tsum::set_nnz_blk_A(nnbA);
-        rec_tsum->set_nnz_blk_A(nnbA);
-      }
-
-      tsum_sp_pin_keys(tsum * other);
-      ~tsum_sp_pin_keys();
-      tsum_sp_pin_keys(summation const * s, bool A_or_B);
 
   };
 

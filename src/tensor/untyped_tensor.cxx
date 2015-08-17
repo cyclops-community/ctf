@@ -504,7 +504,7 @@ namespace CTF_int {
       this->set_padding();
 
       if (!is_sparse && this->size > INT_MAX && wrld->rank == 0)
-        printf("CTF WARNING: Tensor %s is has local size %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
+        printf("CTF WARNING: Tensor %s is has local size %ld, which is greater than INT_MAX=%d, so MPI could run into problems\n", name, size, INT_MAX);
      
       if (is_sparse){
         nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
@@ -1798,7 +1798,7 @@ namespace CTF_int {
     }
 
     if (size > INT_MAX && wrld->cdt.rank == 0)
-      printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
+      printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%d, so MPI could run into problems\n", name, size, INT_MAX);
 
   #ifdef HOME_CONTRACT
     if (this->is_home){    
@@ -1997,10 +1997,10 @@ namespace CTF_int {
               }
               char * pwdata = (char*)alloc(sr->pair_size()*nw);
               PairIterator wdata(sr, pwdata);
-#ifdef USE_OMP
-              #pragma omp parallel for
-#endif
               nw=0;
+#ifdef USE_OMP
+//              #pragma omp parallel for
+#endif
               for (int p=0; p<nnz_loc; p++){
                 int64_t k = pi[p].k();
                 if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){ 

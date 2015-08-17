@@ -118,7 +118,6 @@ namespace CTF_int {
        * \brief deconstructor
        */
       ~strp_sum();
-      strp_sum(){}
       strp_sum(summation const * s);
   };
 
