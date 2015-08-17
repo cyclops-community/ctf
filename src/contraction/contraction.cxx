@@ -2445,7 +2445,7 @@ namespace CTF_int {
                                    iparam const * inner_params,
                                    int *          nvirt_all,
                                    int            is_used){
-    int num_tot, i, i_A, i_B, i_C, is_top, j, nphys_dim,  k;
+    int num_tot, i, i_A, i_B, i_C, is_top, nphys_dim;
     int64_t nvirt;
     int64_t blk_sz_A, blk_sz_B, blk_sz_C;
     int64_t vrt_sz_A, vrt_sz_B, vrt_sz_C;

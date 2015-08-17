@@ -545,6 +545,8 @@ namespace CTF_int {
         char swap_buffer[(sizeof(int64_t)+sr->el_size)*n];
     
         memcpy(swap_buffer, ptr, (sizeof(int64_t)+sr->el_size)*n);
+
+        std::sort(ptr_pairs, ptr_pairs+n);
         
 #ifdef USE_OMP
         #pragma omp parallel for
