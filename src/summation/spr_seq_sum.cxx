@@ -103,7 +103,6 @@ namespace CTF_int{
                        int const *             edge_len_B,
                        int const *             sym_B,
                        univar_function const * func){
- 
     TAU_FSTART(spA_dnB_seq_sum);
     if (order_B == 0){
       if (!sr_B->isequal(beta, sr_B->mulid()))

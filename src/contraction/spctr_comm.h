@@ -36,6 +36,65 @@ namespace CTF_int{
       }
   };
 
+  class seq_tsr_spctr : public spctr {
+    public:
+      char const * alpha;
+      int         order_A;
+      int *       edge_len_A;
+      int const * idx_map_A;
+      int *       sym_A;
+
+      int         order_B;
+      int *       edge_len_B;
+      int const * idx_map_B;
+      int *       sym_B;
+      
+      int         order_C;
+      int *       edge_len_C;
+      int const * idx_map_C;
+      int *       sym_C;
+
+      int is_inner;
+      iparam inner_params;
+      
+      int is_custom;
+      bivar_function const * func; // custom_params;
+      
+
+      /**
+       * \brief wraps user sequential function signature
+       */
+      void run();
+      void print();
+      int64_t mem_fp();
+      spctr * clone();
+      void set_nnz_blk_A(int64_t const * nnbA){
+        spctr::set_nnz_blk_A(nnbA);
+      }
+      void set_nnz_blk_B(int64_t const * nnbB){
+        spctr::set_nnz_blk_B(nnbB);
+      }
+
+      /**
+       * \brief copies ctr object
+       * \param[in] other object to copy
+       */
+      seq_tsr_spctr(spctr * other);
+      ~seq_tsr_spctr(){ 
+        CTF_int::cdealloc(edge_len_A), CTF_int::cdealloc(edge_len_B), CTF_int::cdealloc(edge_len_C), 
+        CTF_int::cdealloc(sym_A), CTF_int::cdealloc(sym_B), CTF_int::cdealloc(sym_C); 
+      }
+
+      seq_tsr_spctr(contraction const * s,
+                    bool                is_inner,
+                    iparam const *      inner_params,
+                    int *               virt_blk_len_A,
+                    int *               virt_blk_len_B,
+                    int *               virt_blk_len_C,
+                    int64_t             vrt_sz_C);
+
+  };
+
 }
 
 #endif

@@ -19,7 +19,10 @@ int speye(int     n,
   char idx_chg[order+1];
   idx_chg[order]='\0';
   for (int i=0; i<order; i++){
-    shape[i] = NS;
+    if (i!=order-1)
+      shape[i] = SY;
+    else
+      shape[i] = NS;
     size[i] = n;
     idx_rep[i] = 'i';
     idx_chg[i] = 'i'+i;
@@ -29,6 +32,16 @@ int speye(int     n,
   Tensor<> A(order, true, size, shape, dw);
 
   A[idx_rep] = 1.0;
+  
+/*  if (order == 3){
+    int ns[] = {n,n,n};
+    int sy[] = {SY,SY,NS};
+    Tensor<> AA(3, ns, sy, dw);
+    AA.fill_random(0.0,1.0);
+    A["ijk"] += AA["ijk"];
+    AA["ijk"] += A["ijk"];
+    AA["ijk"] += A["ijk"];
+  }*/
 
   /*if (dw.rank == 0)
     printf("PRINTING\n");

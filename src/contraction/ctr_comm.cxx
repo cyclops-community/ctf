@@ -486,13 +486,13 @@ namespace CTF_int {
   int64_t seq_tsr_ctr::mem_fp(){ return 0; }
 
   double seq_tsr_ctr::est_time_fp(int nlyr){ 
-    uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A);
-    uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B);
-    uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C);
-    if (is_inner) size_A *= inner_params.m*inner_params.k*sr_A->el_size;
-    if (is_inner) size_B *= inner_params.n*inner_params.k*sr_B->el_size;
-    if (is_inner) size_C *= inner_params.m*inner_params.n*sr_C->el_size;
-   
+    uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
+    uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B)*sr_B->el_size;
+    uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C)*sr_C->el_size;
+    if (is_inner) size_A *= inner_params.m*inner_params.k;
+    if (is_inner) size_B *= inner_params.n*inner_params.k;
+    if (is_inner) size_C *= inner_params.m*inner_params.n;
+ 
     ASSERT(size_A > 0);
     ASSERT(size_B > 0);
     ASSERT(size_C > 0);
@@ -508,11 +508,12 @@ namespace CTF_int {
       flops *= inner_params.m;
       flops *= inner_params.n;
       flops *= inner_params.k;
-    }
-    for (int i=0; i<idx_max; i++){
-      if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
-      else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
-      else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
+    } else {
+      for (int i=0; i<idx_max; i++){
+        if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
+        else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
+        else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
+      }
     }
     ASSERT(flops >= 0.0);
     CTF_int::cdealloc(rev_idx_map);

@@ -277,9 +277,10 @@ namespace CTF_int {
 
 
   tspsum_replicate::tspsum_replicate(summation const * s,
-                                 int const *                 phys_mapped,
-                                 int64_t                     blk_sz_A,
-                                 int64_t blk_sz_B) : tspsum(s) {
+                                     int const *       phys_mapped,
+                                     int64_t           blk_sz_A,
+                                     int64_t           blk_sz_B)
+       : tspsum(s) {
     //FIXME: might be smarter to use virtual inheritance and not replicate all the code from tsum_replicdate
     int i;
     int nphys_dim = s->A->topo->order;
