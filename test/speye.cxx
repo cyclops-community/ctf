@@ -54,9 +54,9 @@ int speye(int     n,
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
   if (dw.rank == 0){
     if (pass) 
-      printf("{ A is sparse; A[\"iii\"]=1; sum(A) = range of i } passed \n");
+      printf("{ A is sparse; A[\"iii...\"]=1; sum(A) = range of i } passed \n");
     else
-      printf("{ A is sparse; A[\"iii\"]=1; sum(A) = range of i } failed \n");
+      printf("{ A is sparse; A[\"iii...\"]=1; sum(A) = range of i } failed \n");
   }
   return pass;
 } 

@@ -1,6 +1,6 @@
 /** \addtogroup examples 
   * @{ 
-  * \defgroup spmv spmv
+  * \defgroup spmm spmm
   * @{ 
   * \brief Multiplication of a random square sparse matrix by a vector
   */
@@ -8,14 +8,15 @@
 #include <ctf.hpp>
 using namespace CTF;
 
-int spmv(int     n,
+int spmm(int     n,
+         int     k,
          World & dw){
 
   Matrix<> spA(true,  n, n, NS, dw);
   Matrix<> dnA(false, n, n, NS, dw);
-  Vector<> b(n, dw);
-  Vector<> c1(n, dw);
-  Vector<> c2(n, dw);
+  Matrix<> b(n, k, NS, dw);
+  Matrix<> c1(n, k, NS, dw);
+  Matrix<> c2(n, k, NS, dw);
 
   b.fill_random(0.0,1.0);
   c1.fill_random(0.0,1.0);
@@ -31,11 +32,11 @@ int spmv(int     n,
   printf("sparse A\n");
   spA.print();*/
 
-  c2["i"] = c1["i"];
+  c2["ik"] = c1["ik"];
   
-  c1["i"] += dnA["ij"]*b["j"];
+  c1["ik"] += dnA["ij"]*b["jk"];
   
-  c2["i"] += spA["ij"]*b["j"];
+  c2["ik"] += spA["ij"]*b["jk"];
 
   /*printf("b\n");
   b.print();
@@ -46,15 +47,15 @@ int spmv(int     n,
 
   assert(c2.norm2() >= 1E-6);
 
-  c2["i"] -= c1["i"];
+  c2["ik"] -= c1["ik"];
 
   bool pass = c2.norm2() <= 1.E-6;
 
   if (dw.rank == 0){
     if (pass) 
-      printf("{ c[\"i\"] += A[\"ij\"]*b[\"j\"] with sparse, A } passed \n");
+      printf("{ c[\"ik\"] += A[\"ij\"]*b[\"jk\"] with sparse, A } passed \n");
     else
-      printf("{ c[\"i\"] += A[\"ij\"]*b[\"j\"] with sparse, A } failed \n");
+      printf("{ c[\"ik\"] += A[\"ij\"]*b[\"jk\"] with sparse, A } failed \n");
   }
   return pass;
 } 
@@ -73,7 +74,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, n, pass;
+  int rank, np, n, k, pass;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -86,14 +87,18 @@ int main(int argc, char ** argv){
     if (n < 0) n = 7;
   } else n = 7;
 
+  if (getCmdOption(input_str, input_str+in_num, "-k")){
+    k = atoi(getCmdOption(input_str, input_str+in_num, "-k"));
+    if (k < 0) k = 7;
+  } else k = 7;
 
   {
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Multiplying %d-by-%d sparse matrix by vector\n",n,n);
+      printf("Multiplying %d-by-%d sparse matrix by %d-by-%d dense matrix\n",n,n,n,k);
     }
-    pass = spmv(n, dw);
+    pass = spmm(n, k, dw);
     assert(pass);
   }
 
