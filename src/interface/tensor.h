@@ -633,6 +633,24 @@ namespace CTF {
                    dtype             beta,
                    CTF_int::tensor & A,
                    dtype             alpha);
+
+      /**
+       * \brief reduce tensor to sparse format, storing only nonzero data, or data above a specified threshold.
+       *        makes dense tensors sparse.
+       *        cleans sparse tensors of any 'computed' zeros.
+       */
+      void sparsify();
+
+      /**
+       * \brief reduce tensor to sparse format, storing only nonzero data, or data above a specified threshold.
+       *        makes dense tensors sparse.
+       *        cleans sparse tensors of any small values
+       * \param[in] threshold all values smaller or equal to than this one will be removed/not stored (by default is NULL, meaning only zeros are removed, so same as threshold=additive identity)
+       * \param[in] take_abs whether to take absolute value when comparing to threshold
+       */
+      void sparsify(dtype threshold,
+                    bool  take_abs=true);
+
       
      /**
        * \brief accumulates this tensor to a tensor object defined on a different world
@@ -642,8 +660,8 @@ namespace CTF {
        * \param[in] beta scaling factor for tensor tsr (default 1.0)
        */
       void add_to_subworld(Tensor<dtype> * tsr,
-                           dtype                   alpha,
-                           dtype                   beta);
+                           dtype           alpha,
+                           dtype           beta);
      /**
        * \brief accumulates this tensor to a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
@@ -660,8 +678,8 @@ namespace CTF {
        * \param[in] beta scaling factor for this tensor (default 1.0)
        */
       void add_from_subworld(Tensor<dtype> * tsr,
-                             dtype                   alpha,
-                             dtype                   beta);
+                             dtype           alpha,
+                             dtype           beta);
       /**
        * \brief accumulates this tensor from a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,

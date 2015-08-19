@@ -788,7 +788,7 @@ namespace CTF_int {
         memcpy(wA[i].d(), rA[i].d(), sr_A->el_size);
         //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
       }
-      
+     
       PairIterator mwA = wA;
       for (int v=0; v<nvirt_A; v++){
         mwA.sort(nnz_blk_A[v]);

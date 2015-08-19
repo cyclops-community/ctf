@@ -383,6 +383,20 @@ namespace CTF {
                                        perms_B, (char*)&beta);
     assert(ret == CTF_int::SUCCESS);
   }
+
+  template<typename dtype>
+  void Tensor<dtype>::sparsify(){
+    int ret = CTF_int::tensor::sparsify();
+    assert(ret == CTF_int::SUCCESS);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::sparsify(dtype threshold, bool take_abs){
+    int ret = CTF_int::tensor::sparsify((char*)&threshold, take_abs);
+    assert(ret == CTF_int::SUCCESS);
+  }
+
+
   template<typename dtype>
   void Tensor<dtype>::add_to_subworld(
                                      Tensor<dtype> * tsr,

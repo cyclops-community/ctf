@@ -51,25 +51,25 @@ namespace CTF_int{
       while (size_A > 0 && idx_B == A.k()){
         if (func == NULL){
           if (alpha == sr_A->mulid()){
-            sr_B->add(A.d(), B+i*sr_B->el_size, B+i*sr_B->el_size);
+            sr_B->add(A.d(), B, B);
           } else {
             char tmp[sr_A->el_size];
             sr_A->mul(A.d(), alpha, tmp);
-            sr_B->add(tmp, B+i*sr_B->el_size, B+i*sr_B->el_size);
+            sr_B->add(tmp, B, B);
           }
         } else {
           if (alpha == sr_A->mulid()){
-            func->acc_f(A.d(), B+i*sr_B->el_size, sr_B);
+            func->acc_f(A.d(), B, sr_B);
           } else {
             char tmp[sr_A->el_size];
             sr_A->mul(A.d(), alpha, tmp);
-            func->acc_f(tmp, B+i*sr_B->el_size, sr_B);
+            func->acc_f(tmp, B, sr_B);
           }
         }
         A = A[1];
         size_A--;
       }
-//      B += sr_B->el_size;
+      B += sr_B->el_size;
       idx_B++;
     }
   }

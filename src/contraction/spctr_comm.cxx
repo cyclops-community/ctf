@@ -3,6 +3,9 @@
 
 #include "../shared/util.h"
 #include "spctr_comm.h"
+#include "sp_seq_ctr.h"
+#include "contraction.h"
+#include "../tensor/untyped_tensor.h"
 
 namespace CTF_int {  
   spctr::spctr(contraction const * c)
@@ -73,15 +76,14 @@ namespace CTF_int {
 
 
   seq_tsr_spctr::seq_tsr_spctr(contraction const * c,
-                           bool                is_inner,
-                           iparam const *      inner_params,
-                           int *               virt_blk_len_A,
-                           int *               virt_blk_len_B,
-                           int *               virt_blk_len_C,
-                           int64_t             vrt_sz_C)
+                               bool                is_inner,
+                               iparam const *      inner_params,
+                               int *               virt_blk_len_A,
+                               int *               virt_blk_len_B,
+                               int *               virt_blk_len_C,
+                               int64_t             vrt_sz_C)
         : spctr(c) {
      
-    int i, j, k; 
     int * new_sym_A, * new_sym_B, * new_sym_C;
     CTF_int::alloc_ptr(sizeof(int)*c->A->order, (void**)&new_sym_A);
     memcpy(new_sym_A, c->A->sym, sizeof(int)*c->A->order);
@@ -96,6 +98,8 @@ namespace CTF_int {
     this->alpha      = c->alpha;
     if (is_custom){
       this->func     = c->func;
+    } else {
+      this->func     = NULL;
     }
     this->order_A    = c->A->order;
     this->idx_map_A  = c->idx_A;
@@ -179,9 +183,9 @@ namespace CTF_int {
     if (is_sparse_B) size_B = nnz_B*sr_B->pair_size();
     if (is_sparse_C) size_C = nnz_C*sr_C->pair_size();
    
-    ASSERT(size_A > 0);
+    /*ASSERT(size_A > 0);
     ASSERT(size_B > 0);
-    ASSERT(size_C > 0);
+    ASSERT(size_C > 0);*/
 
     int idx_max, * rev_idx_map; 
     inv_idx(order_A,       idx_map_A,
@@ -212,9 +216,9 @@ namespace CTF_int {
 
   void seq_tsr_spctr::run(){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
-    ASSERT(!C->is_sparse);
-    ASSERT(!B->is_sparse);
-    ASSERT( A->is_sparse);
+    ASSERT( is_sparse_A);
+    ASSERT(!is_sparse_B);
+    ASSERT(!is_sparse_C);
     ASSERT(is_inner == 0);
 
 

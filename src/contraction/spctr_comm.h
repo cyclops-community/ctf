@@ -74,6 +74,16 @@ namespace CTF_int{
       void set_nnz_blk_B(int64_t const * nnbB){
         spctr::set_nnz_blk_B(nnbB);
       }
+      /**
+       * \brief returns the execution time the local part this kernel is estimated to take
+       * \return time in sec
+       */
+      double est_time_fp(int nlyr);
+      /**
+       * \brief returns the execution time this kernel and its recursive calls are estimated to take
+       * \return time in sec
+       */
+      double est_time_rec(int nlyr);
 
       /**
        * \brief copies ctr object

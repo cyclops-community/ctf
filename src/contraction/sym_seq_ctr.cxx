@@ -397,7 +397,8 @@ namespace CTF_int{
                       int const *      sym_C,
                       int const *      idx_map_C){
     TAU_FSTART(sym_seq_ctr_ref);
-    int idx, i, idx_max, imin, imax, sz, iA, iB, iC, j, k;
+    int idx, i, idx_max, imin, imax, iA, iB, iC, j, k;
+    int64_t sz;
     int off_idx, sym_pass;
     int * rev_idx_map;
     int * dlen_A, * dlen_B, * dlen_C;

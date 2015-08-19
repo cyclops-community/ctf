@@ -126,7 +126,7 @@ namespace CTF_int {
     strcpy(nname, other->name);
     strcat(nname, d);
     if (other->wrld->rank == 0) {
-      DPRINTF(1,"Repacking tensor %s into %s\n",other->name);
+      DPRINTF(1,"Repacking tensor %s into %s\n",other->name,nname);
     }
 
     bool has_chng=false, less_sym=false, more_sym=false;
@@ -1112,22 +1112,34 @@ namespace CTF_int {
       }
       int64_t nnz_loc_new = 0;
       PairIterator pi(sr, data);
+      int64_t nnz_blk_old[calc_nvirt()];
+      memcpy(nnz_blk_old, nnz_blk, calc_nvirt()*sizeof(int64_t));
+      memset(nnz_blk, 0, calc_nvirt()*sizeof(int64_t));
       if (threshold == NULL){
-        for (int64_t i=0; i<nnz_loc; i++){
-          if (!sr->isequal(pi[i].d(), sr->addid())){
-            nnz_loc_new++;
+        int64_t i=0; 
+        for (int v=0; v<calc_nvirt(); v++){
+          for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
+            if (!sr->isequal(pi[i].d(), sr->addid())){
+              nnz_loc_new++;
+              nnz_blk[v]++;
+            }
           }
         }
       } else {
-        for (int64_t i=0; i<nnz_loc; i++){
-          char tmp[sr->el_size];
-          if (take_abs)
-            sr->abs(pi[i].d(), tmp);
-          else
-            memcpy(tmp, pi[i].d(), sr->el_size);
-          sr->max(threshold, tmp, tmp);
-          if (!sr->isequal(tmp,threshold))
-            nnz_loc_new++;
+        int64_t i=0; 
+        for (int v=0; v<calc_nvirt(); v++){
+          for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
+            char tmp[sr->el_size];
+            if (take_abs)
+              sr->abs(pi[i].d(), tmp);
+            else
+              memcpy(tmp, pi[i].d(), sr->el_size);
+            sr->max(threshold, tmp, tmp);
+            if (!sr->isequal(tmp,threshold)){
+              nnz_loc_new++;
+              nnz_blk[v]++;
+            }
+          }
         }
       }
       // if we don't have any actual zeros don't do anything
