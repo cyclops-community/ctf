@@ -456,9 +456,9 @@ namespace CTF_int {
     } 
     {
       assert(tmp_ops.size() == 2);
-      Term * pop_A = tmp_ops.back();
-      tmp_ops.pop_back();
       Term * pop_B = tmp_ops.back();
+      tmp_ops.pop_back();
+      Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
