@@ -1,9 +1,9 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __SPCTR_COMM_H__
-#define __SPCTR_COMM_H__
+#ifndef __SPCTR_TSR_H__
+#define __SPCTR_TSR_H__
 
-#include "ctr_comm.h"
+#include "ctr_tsr.h"
 
 namespace CTF_int{
 
@@ -103,6 +103,50 @@ namespace CTF_int{
                     int *               virt_blk_len_C,
                     int64_t             vrt_sz_C);
 
+  };
+
+  class spctr_virt : public spctr {
+    public: 
+      spctr * rec_ctr;
+      int num_dim;
+      int * virt_dim;
+      int order_A;
+      int64_t blk_sz_A;
+      int const * idx_map_A;
+      int order_B;
+      int64_t blk_sz_B;
+      int const * idx_map_B;
+      int order_C;
+      int64_t blk_sz_C;
+      int const * idx_map_C;
+      
+      void print();
+
+      /**
+       * \brief iterates over the dense virtualization block grid and contracts
+       */
+      void run();
+      int64_t mem_fp();
+      int64_t mem_rec();
+
+      double est_time_rec(int nlyr);
+      spctr * clone();
+    
+      /**
+       * \brief deallocates spctr_virt object
+       */
+      ~spctr_virt();
+
+      /**
+       * \brief copies spctr_virt object
+       */
+      spctr_virt(spctr *other);
+      spctr_virt(contraction const * c,
+                 int                 num_tot,
+                 int *               virt_dim,
+                 int64_t             vrt_sz_A,
+                 int64_t             vrt_sz_B,
+                 int64_t             vrt_sz_C);
   };
 
 }

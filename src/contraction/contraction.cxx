@@ -7,9 +7,8 @@
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
 #include "sym_seq_ctr.h"
-#include "spctr_comm.h"
+#include "spctr_tsr.h"
 #include "ctr_tsr.h"
-#include "ctr_comm.h"
 #include "ctr_2d_general.h"
 #include "../symmetry/sym_indices.h"
 #include "../symmetry/symmetrization.h"
@@ -2766,12 +2765,7 @@ namespace CTF_int {
 
     /* Multiply over virtual sub-blocks */
     if (nvirt > 1){
-  #ifdef USE_VIRT_25D
-      ASSERT(0);
-      ctr_virt_25d * ctrv = new ctr_virt_25d;
-  #else
       ctr_virt * ctrv = new ctr_virt(this, num_tot, virt_dim, vrt_sz_A, vrt_sz_B, vrt_sz_C);
-  #endif
       if (is_top) {
         hctr = ctrv;
         is_top = 0;
@@ -2831,12 +2825,13 @@ namespace CTF_int {
   ctr * contraction::construct_sparse_ctr(int *          nvirt_all,
                                           int            is_used,
                                           int const *    phys_mapped){
-    int num_tot, nphys_dim, is_top;
-    int * idx_arr;
+    int num_tot, i, i_A, i_B, i_C, nphys_dim, is_top, nvirt;
+    int * idx_arr, * virt_dim;
     int64_t blk_sz_A, blk_sz_B, blk_sz_C;
     int64_t vrt_sz_A, vrt_sz_B, vrt_sz_C;
     int * blk_len_A, * virt_blk_len_A, * blk_len_B;
     int * virt_blk_len_B, * blk_len_C, * virt_blk_len_C;
+    mapping * map;
     spctr * hctr = NULL;
     spctr ** rec_ctr = NULL;
     ASSERT(A->wrld == B->wrld && B->wrld == C->wrld);
@@ -2862,7 +2857,7 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&blk_len_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&blk_len_B);
     CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&blk_len_C);
-//    CTF_int::alloc_ptr(sizeof(int)*num_tot, (void**)&virt_dim);
+    CTF_int::alloc_ptr(sizeof(int)*num_tot, (void**)&virt_dim);
 
     /* Determine the block dimensions of each local subtensor */
     blk_sz_A = A->size;
@@ -2875,6 +2870,68 @@ namespace CTF_int {
     calc_dim(C->order, blk_sz_C, C->pad_edge_len, C->edge_map,
              &vrt_sz_C, virt_blk_len_C, blk_len_C);
 
+  //#ifdef OFFLOAD
+    int total_iter = 1;
+    int upload_phase_A = 1;
+    int upload_phase_B = 1;
+    int download_phase_C = 1;
+  //#endif
+    nvirt = 1;
+
+    //ctr_2d_general * bottom_ctr_gen = NULL;
+  /*  if (nvirt_all != NULL)
+      *nvirt_all = 1;*/
+    for (i=0; i<num_tot; i++){
+      virt_dim[i] = 1;
+      i_A = idx_arr[3*i+0];
+      i_B = idx_arr[3*i+1];
+      i_C = idx_arr[3*i+2];
+      if (i_A != -1){
+        map = &A->edge_map[i_A];
+        while (map->has_child) map = map->child;
+        if (map->type == VIRTUAL_MAP)
+          virt_dim[i] = map->np;
+      } else if (i_B != -1){
+        map = &B->edge_map[i_B];
+        while (map->has_child) map = map->child;
+        if (map->type == VIRTUAL_MAP)
+          virt_dim[i] = map->np;
+      } else if (i_C != -1){
+        map = &C->edge_map[i_C];
+        while (map->has_child) map = map->child;
+        if (map->type == VIRTUAL_MAP)
+          virt_dim[i] = map->np;
+      }
+      
+      /*if (sA && i_A != -1){
+        nvirt = virt_dim[i]/str_A->strip_dim[i_A];
+      } else if (sB && i_B != -1){
+        nvirt = virt_dim[i]/str_B->strip_dim[i_B];
+      } else if (sC && i_C != -1){
+        nvirt = virt_dim[i]/str_C->strip_dim[i_C];
+      }*/
+      
+      nvirt = nvirt * virt_dim[i];
+    }
+    if (nvirt_all != NULL)
+      *nvirt_all = nvirt;
+
+    ASSERT(blk_sz_A >= vrt_sz_A);
+    ASSERT(blk_sz_B >= vrt_sz_B);
+    ASSERT(blk_sz_C >= vrt_sz_C);
+
+    /* Multiply over virtual sub-blocks */
+    if (nvirt > 1){
+      spctr_virt * ctrv = new spctr_virt(this, num_tot, virt_dim, vrt_sz_A, vrt_sz_B, vrt_sz_C);
+      if (is_top) {
+        hctr = ctrv;
+        is_top = 0;
+      } else {
+        *rec_ctr = ctrv;
+      }
+      rec_ctr = &ctrv->rec_ctr;
+    } else
+      CTF_int::cdealloc(virt_dim);
 
     seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, false, NULL, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {

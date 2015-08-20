@@ -2,7 +2,7 @@
 #define __INT_CONTRACTION_H__
 
 #include "assert.h"
-#include "ctr_comm.h"
+#include "ctr_tsr.h"
 
 namespace CTF_int {
   class tensor; 
