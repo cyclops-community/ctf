@@ -173,10 +173,10 @@ namespace CTF_int {
   #endif
   }
 
-/*  CommData::CommData(){
+  CommData::CommData(){
     alive = 0;
     created = 0;
-  }*/
+  }
 
   CommData::~CommData(){
     deactivate();
@@ -242,7 +242,11 @@ namespace CTF_int {
   void CommData::deactivate(){
     if (alive){
       alive = 0;
-      if (created) MPI_Comm_free(&cm);
+      if (created){
+        int is_finalized;
+        MPI_Finalized(&is_finalized);
+        if (!is_finalized) MPI_Comm_free(&cm);
+      }
       created = 0;
     }
   }

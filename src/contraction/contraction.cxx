@@ -1899,7 +1899,7 @@ namespace CTF_int {
     ctr * sctr;
     distribution * dA, * dB, * dC;
 
-    ASSERT(A->wrld == B->wrld && B->wrld == C->wrld);
+    ASSERT(A->wrld->comm == B->wrld->comm && B->wrld->comm == C->wrld->comm);
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     
@@ -2461,7 +2461,7 @@ namespace CTF_int {
     mapping * map;
     ctr * hctr = NULL;
     ctr ** rec_ctr = NULL;
-    ASSERT(A->wrld == B->wrld && B->wrld == C->wrld);
+    ASSERT(A->wrld->comm == B->wrld->comm && B->wrld->comm == C->wrld->comm);
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
 

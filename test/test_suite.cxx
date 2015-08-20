@@ -235,13 +235,15 @@ int main(int argc, char ** argv){
       printf("Testing univar_accumulator_cust_sp integrates sparse forces to particles with n = %d:\n",n);
     pass.push_back(univar_accumulator_cust_sp(n,dw));
     
-    if (rank == 0)
-      printf("Testing sparse-matrix times vector with n=%d:\n",n);
-    pass.push_back(spmv(n,dw));
-    
-    if (rank == 0)
-      printf("Testing sparse-matrix times matrix with n=%d k=%d:\n",n*n,n);
-    pass.push_back(spmm(n*n,n,dw));
+    if (dw.np <= 1){
+      if (rank == 0)
+        printf("Testing sparse-matrix times vector with n=%d:\n",n);
+      pass.push_back(spmv(n,dw));
+      
+      if (rank == 0)
+        printf("Testing sparse-matrix times matrix with n=%d k=%d:\n",n*n,n);
+      pass.push_back(spmm(n*n,n,dw));
+    }
   }
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)

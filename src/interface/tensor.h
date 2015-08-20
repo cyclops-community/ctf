@@ -149,7 +149,7 @@ namespace CTF {
       Tensor(int                       dim,
              int const *               len,
              int const *               sym,
-             World &                   wrld,
+             World &                   wrld=get_universe(),
              char const *              name=NULL,
              bool                      profile=0,
              CTF_int::algstrct const & sr=Ring<dtype>());
@@ -183,7 +183,7 @@ namespace CTF {
        */
       Tensor(int                       order,
              int const *               len,
-             World &                   wrld,
+             World &                   wrld=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
              bool                      profile=0);
@@ -203,7 +203,7 @@ namespace CTF {
              bool                      is_sparse,
              int const *               len,
              int const *               sym,
-             World &                   wrld,
+             World &                   wrld=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
              bool                      profile=0);

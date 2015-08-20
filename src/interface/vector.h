@@ -34,7 +34,7 @@ namespace CTF {
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
        */ 
       Vector(int                       len,
-             World &                   world,
+             World &                   world=get_universe(),
              char const *              name=NULL,
              int                       profile=0,
              CTF_int::algstrct const & sr=Ring<dtype>());
@@ -49,7 +49,7 @@ namespace CTF {
        */ 
       Vector(bool                      is_sparse,
              int                       len,
-             World &                   world,
+             World &                   world=get_universe(),
              char const *              name=NULL,
              int                       profile=0,
              CTF_int::algstrct const & sr=Ring<dtype>());

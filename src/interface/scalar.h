@@ -17,7 +17,7 @@ namespace CTF {
        * \param[in] world CTF world where the tensor will live
        * \param[in] sr defines the tensor arithmetic for this tensor
        */
-      Scalar(World &                   wrld,
+      Scalar(World &                   wrld=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>());
 
       /**
@@ -27,7 +27,7 @@ namespace CTF {
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
       Scalar(dtype                     val,
-             World &                   wrld,
+             World &                   wrld=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>());
 
       /**

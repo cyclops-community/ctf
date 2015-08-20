@@ -85,7 +85,7 @@ namespace CTF_int {
       int alive;
       int created;
 
-      //CommData();
+      CommData();
       ~CommData();
 
       /** \brief copy constructor sets created to zero */
