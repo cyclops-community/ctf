@@ -523,5 +523,141 @@ namespace CTF_int {
     TAU_FSTOP(spctr_virt);
   }
 
+  spctr_pin_keys::~spctr_pin_keys(){
+    delete rec_ctr;
+    cdealloc(divisor);
+    cdealloc(virt_dim);
+    cdealloc(phys_rank);
+  }
+  
+  spctr_pin_keys::spctr_pin_keys(spctr * other) : spctr(other) {
+    spctr_pin_keys * o = (spctr_pin_keys*)other;
 
+    rec_ctr   = o->rec_ctr->clone();
+    AxBxC     = o->AxBxC;
+    order     = o->order;
+    lens      = o->lens;
+    divisor   = (int*)alloc(sizeof(int)*order);
+    phys_rank = (int*)alloc(sizeof(int)*order);
+    virt_dim  = (int*)alloc(sizeof(int)*order);
+    memcpy(divisor, o->divisor, sizeof(int)*order);
+    memcpy(phys_rank, o->phys_rank, sizeof(int)*order);
+    memcpy(virt_dim, o->virt_dim, sizeof(int)*order);
+  }
+
+  spctr * spctr_pin_keys::clone() {
+    return new spctr_pin_keys(this);
+  }
+
+  void spctr_pin_keys::print(){
+    printf("spctr_pin_keys:\n");
+    switch (AxBxC){ 
+      case 0:
+        printf("transforming global keys of A to local keys\n");
+        break;
+      case 1:
+        printf("transforming global keys of B to local keys\n");
+        break;
+      case 2:
+        printf("transforming global keys of C to local keys\n");
+        break;
+    }
+    rec_ctr->print();
+  }
+
+  int64_t spctr_pin_keys::mem_fp(){
+    return 3*order*sizeof(int);
+  }
+  
+  int64_t spctr_pin_keys::mem_rec(){
+    return mem_fp() + rec_ctr->mem_rec();
+  }
+
+  spctr_pin_keys::spctr_pin_keys(contraction const * s, int AxBxC_) : spctr(s) {
+    tensor * X;
+    AxBxC = AxBxC_;
+    switch (AxBxC){ 
+      case 0:
+        X = s->A;
+        break;
+      case 1:
+        X = s->B;
+        break;
+      case 2:
+        X = s->C;
+        break;
+    }
+
+    order = X->order;
+    lens = X->lens;
+
+    divisor = (int*)alloc(sizeof(int)*order);
+    phys_rank = (int*)alloc(sizeof(int)*order);
+    virt_dim = (int*)alloc(sizeof(int*)*order);
+
+    for (int i=0; i<order; i++){
+      divisor[i] = X->edge_map[i].calc_phase();
+      phys_rank[i] = X->edge_map[i].calc_phys_rank(X->topo);
+      virt_dim[i] = divisor[i]/X->edge_map[i].calc_phys_phase();
+    }
+  }
+
+  void spctr_pin_keys::run(){
+    char * X;
+    algstrct const * sr;
+    int64_t nnz;
+    int64_t * nnz_blk;
+    int nvirt;
+    switch (AxBxC){ 
+      case 0:
+        X = this->A;
+        sr = this->sr_A;
+        nnz = this->nnz_A;
+        break;
+      case 1:
+        X = this->B;
+        sr = this->sr_B;
+        nnz = this->nnz_B;
+        break;
+      case 2:
+        X = this->C;
+        sr = this->sr_C;
+        nnz = this->nnz_C;
+        break;
+    }
+
+/*    int * div_lens;
+    alloc_ptr(order*sizeof(int), (void**)&div_lens);
+    for (int j=0; j<order; j++){
+      div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
+//      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
+    }*/
+
+    ConstPairIterator pi(sr, X);
+    PairIterator pi_new(sr, X);
+
+    pi.pin(nnz, order, lens, divisor, pi_new);
+
+    rec_ctr->A = A;
+    rec_ctr->B = B;
+    rec_ctr->C = C;
+
+    rec_ctr->nnz_A = nnz_A;
+    rec_ctr->nnz_B = nnz_B;
+    rec_ctr->run();
+
+    new_nnz_C = rec_ctr->new_nnz_C;
+    new_C = rec_ctr->new_C;
+    switch (AxBxC){
+      case 1:
+        depin(sr_A, order, lens, divisor, nvirt_A, virt_dim, phys_rank, A, nnz_A, (int64_t*)nnz_blk_A, A, false);
+        break;
+      case 2:
+        depin(sr_B, order, lens, divisor, nvirt_B, virt_dim, phys_rank, B, nnz_B, (int64_t*)nnz_blk_B, B, false);
+        break;
+      case 3:
+        depin(sr_C, order, lens, divisor, nvirt_C, virt_dim, phys_rank, new_C, new_nnz_C, nnz_blk_C, new_C, true);
+        break;
+    }
+  }
 }
