@@ -373,7 +373,7 @@ namespace CTF_int {
     }
     if (brank != 0) sr_B->set(this->B, sr_B->addid(), size_B);
 
-    rec_tsum->set_nnz_blk_A(this->nnz_blk_A);;
+    rec_tsum->set_nnz_blk_A(this->nnz_blk_A);
     rec_tsum->A         = buf;
     rec_tsum->nnz_A     = size_A;
     rec_tsum->B         = this->B;

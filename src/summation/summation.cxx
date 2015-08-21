@@ -460,33 +460,45 @@ namespace CTF_int {
 
 
     if (A->is_sparse){
-      tspsum_pin_keys * sksum = new tspsum_pin_keys(this, 1);
-      if (is_top){
-        htsum = sksum;
-        is_top = 0;
-      } else {
-        *rec_tsum = sksum;
+      if (A->wrld->np > 1){
+        tspsum_pin_keys * sksum = new tspsum_pin_keys(this, 1);
+        if (is_top){
+          htsum = sksum;
+          is_top = 0;
+        } else {
+          *rec_tsum = sksum;
+        }
+        rec_tsum = &sksum->rec_tsum;
       }
-      rec_tsum = &sksum->rec_tsum;
-
 
       tspsum_permute * pmsum = new tspsum_permute(this, 1, virt_blk_len_A);
-      *rec_tsum = pmsum;
+      if (is_top){
+        htsum = pmsum;
+        is_top = 0;
+      } else {
+        *rec_tsum = pmsum;
+      }
       rec_tsum = &pmsum->rec_tsum;
     }
     if (B->is_sparse){
-      tspsum_pin_keys * sksum = new tspsum_pin_keys(this, 0);
-      if (is_top){
-        htsum = sksum;
-        is_top = 0;
-      } else {
-        *rec_tsum = sksum;
+      if (B->wrld->np > 1){
+        tspsum_pin_keys * sksum = new tspsum_pin_keys(this, 0);
+        if (is_top){
+          htsum = sksum;
+          is_top = 0;
+        } else {
+          *rec_tsum = sksum;
+        }
+        rec_tsum = &sksum->rec_tsum;
       }
-      rec_tsum = &sksum->rec_tsum;
-
 
       tspsum_permute * pmsum = new tspsum_permute(this, 0, virt_blk_len_B);
-      *rec_tsum = pmsum;
+      if (is_top){
+        htsum = pmsum;
+        is_top = 0;
+      } else {
+        *rec_tsum = pmsum;
+      }
       rec_tsum = &pmsum->rec_tsum;
     }
 

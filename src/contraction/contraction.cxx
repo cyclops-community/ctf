@@ -7,7 +7,7 @@
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
 #include "sym_seq_ctr.h"
-#include "spctr_tsr.h"
+#include "spctr_comm.h"
 #include "ctr_tsr.h"
 #include "ctr_2d_general.h"
 #include "../symmetry/sym_indices.h"
@@ -2864,6 +2864,67 @@ namespace CTF_int {
              &vrt_sz_B, virt_blk_len_B, blk_len_B);
     calc_dim(C->order, blk_sz_C, C->pad_edge_len, C->edge_map,
              &vrt_sz_C, virt_blk_len_C, blk_len_C);
+
+    if (A->is_sparse && A->wrld->np > 1){
+      spctr_pin_keys * skctr = new spctr_pin_keys(this, 0);
+      if (is_top){
+        hctr = skctr;
+        is_top = 0;
+      } else {
+        *rec_ctr = skctr;
+      }
+      rec_ctr = &skctr->rec_ctr;
+    }
+
+    if (B->is_sparse && B->wrld->np > 1){
+      spctr_pin_keys * skctr = new spctr_pin_keys(this, 1);
+      if (is_top){
+        hctr = skctr;
+        is_top = 0;
+      } else {
+        *rec_ctr = skctr;
+      }
+      rec_ctr = &skctr->rec_ctr;
+    }
+
+    if (C->is_sparse && C->wrld->np > 1){
+      spctr_pin_keys * skctr = new spctr_pin_keys(this, 1);
+      if (is_top){
+        hctr = skctr;
+        is_top = 0;
+      } else {
+        *rec_ctr = skctr;
+      }
+      rec_ctr = &skctr->rec_ctr;
+    }
+
+
+    bool need_rep = 0;
+    for (i=0; i<nphys_dim; i++){
+      if (phys_mapped[3*i+0] == 0 ||
+        phys_mapped[3*i+1] == 0 ||
+        phys_mapped[3*i+2] == 0){
+        /*ASSERT((phys_mapped[3*i+0] == 0 && phys_mapped[3*i+1] == 0) ||
+        (phys_mapped[3*i+0] == 0 && phys_mapped[3*i+2] == 0) ||
+        (phys_mapped[3*i+1] == 0 && phys_mapped[3*i+2] == 0));*/
+        need_rep = 1;
+        break;
+      }
+    }
+    if (need_rep){
+      if (global_comm.rank == 0)
+        DPRINTF(1,"Replicating tensor\n");
+
+      spctr_replicate * rctr = new spctr_replicate(this, phys_mapped, blk_sz_A, blk_sz_B, blk_sz_C);
+      if (is_top){
+        hctr = rctr;
+        is_top = 0;
+      } else {
+        *rec_ctr = rctr;
+      }
+      rec_ctr = &rctr->rec_ctr;
+    }
+
 
   //#ifdef OFFLOAD
     int total_iter = 1;
