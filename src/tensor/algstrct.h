@@ -233,6 +233,12 @@ namespace CTF_int {
        * \param[in,out] buf pair to set
        */
       void read_val(char * buf) const;
+
+      
+      /**
+       * \brief permutes keys of n pairs
+       */
+      void permute(int64_t n, int order, int const * old_lens, int64_t const * new_lda, PairIterator wA);
   };
 
 

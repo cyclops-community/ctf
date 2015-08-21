@@ -20,7 +20,7 @@ int speye(int     n,
   idx_chg[order]='\0';
   for (int i=0; i<order; i++){
     if (i!=order-1)
-      shape[i] = SY;
+      shape[i] = NS;
     else
       shape[i] = NS;
     size[i] = n;

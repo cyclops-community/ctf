@@ -249,8 +249,13 @@ namespace CTF_int {
     this->nnz_loc = other->nnz_loc;
     //this->nnz_loc_max = other->nnz_loc_max;
 #if DEBUG>= 1
-    if (wrld->rank == 0)
-      printf("New tensor %s copied from %s of size %ld elms (%ld bytes):\n",name, other->name, this->size,this->size*sr->el_size);
+    if (wrld->rank == 0){
+      if (is_sparse){
+        printf("New sparse tensor %s copied from %s of size %ld nonzeros (%ld bytes):\n",name, other->name, this->nnz_loc,this->nnz_loc*sr->el_size);
+      } else {
+        printf("New tensor %s copied from %s of size %ld elms (%ld bytes):\n",name, other->name, this->size,this->size*sr->el_size);
+      }
+    }
 #endif
 
   }
@@ -1979,6 +1984,7 @@ namespace CTF_int {
               (*idx_map_new)[k]  = idx_map[k];
               if (k==j-1){
                 nsym[k] = NS;
+                if (this->sym[k] == this->sym[j]) nsym[k] = this->sym[k];
               } else 
                 nsym[k] = this->sym[k];
             } else if (k>j) {

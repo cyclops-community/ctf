@@ -774,20 +774,7 @@ namespace CTF_int {
       }
       ConstPairIterator rA(sr_A, A);
       PairIterator wA(sr_A, buf);
-#ifdef USE_OMP
-      #pragma omp parallel for
-#endif
-      for (int64_t i=0; i<nnz_A; i++){
-        int64_t k = rA[i].k();
-        int64_t k_new = 0;
-        for (int j=0; j<order; j++){
-          k_new += (k%lens_old[j])*new_lda_A[j];
-          k = k/lens_old[j];
-        }
-        ((int64_t*)wA[i].ptr)[0] = k_new;
-        memcpy(wA[i].d(), rA[i].d(), sr_A->el_size);
-        //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
-      }
+      rA.permute(nnz_A, order, lens_old, new_lda_A, wA);
      
       PairIterator mwA = wA;
       for (int v=0; v<nvirt_A; v++){
@@ -808,19 +795,7 @@ namespace CTF_int {
       }
       ConstPairIterator rB(sr_B, B);
       PairIterator wB(sr_B, buf);
-#ifdef USE_OMP
-      #pragma omp parallel for
-#endif
-      for (int64_t i=0; i<nnz_B; i++){
-        int64_t k = rB[i].k();
-        int64_t k_new = 0;
-        for (int j=0; j<order; j++){
-          k_new += (k%lens_old[j])*new_lda_B[j];
-          k = k/lens_old[j];
-        }
-        ((int64_t*)wB[i].ptr)[0] = k_new;
-        memcpy(wB[i].d(), rB[i].d(), sr_B->el_size);
-      }
+      rB.permute(nnz_B, order, lens_old, new_lda_B, wB);
 
       PairIterator mwB = wB;
       for (int v=0; v<nvirt_B; v++){
@@ -857,20 +832,8 @@ namespace CTF_int {
       }
       ConstPairIterator rB(sr_B, rec_tsum->new_B);
       PairIterator wB(sr_B, new_B);
-#ifdef USE_OMP
-      #pragma omp parallel for
-#endif
-      for (int64_t i=0; i<new_nnz_B; i++){
-        int64_t k = rB[i].k();
-        int64_t k_new = 0;
-        for (int j=0; j<order; j++){
-          k_new += (k%lens_new[j])*new_lda_B[j];
-          k = k/lens_new[j];
-        }
-        ((int64_t*)wB[i].ptr)[0] = k_new;
-        memcpy(wB[i].d(), rB[i].d(), sr_B->el_size);
-        //printf("value %lf old key %ld new key %ld\n",((double*)wB[i].d())[0], rB[i].k(), wB[i].k());
-      }
+
+      rB.permute(new_nnz_B, order, lens_new, new_lda_B, wB);
       PairIterator mwB = wB;
       for (int v=0; v<nvirt_B; v++){
         mwB.sort(nnz_blk_B[v]);

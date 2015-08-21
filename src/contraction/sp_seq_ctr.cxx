@@ -104,10 +104,25 @@ namespace CTF_int{
         rrC--;
       } while (rrC>0 && sym_C[rrC-1] != NS && idx_map_C[rrC] < idim);
     }
+    int64_t key_offset = 0;
+    for (int i=0; i<order_A; i++){
+      if (i != rA){
+        key_offset += idx[idx_map_A[i]]*lda_A[i];
+      }
+    }
 
     //FIXME: if rC != -1 && rA == -1, thread
     for (int i=imin; i<imax; i++){
-      if (size_A == 0) break;
+/*      if (size_A != 0){
+        printf("lda_A[rA]=%ld\n",lda_A[rA]);
+        printf("A[0].k() == %ld\n",A[0].k());
+      }*/
+      if (size_A == 0 ||
+          (rA == -1 && A[0].k()!=key_offset) ||
+          (rA != -1 && (A[0].k()/lda_A[rA]/edge_len_A[rA])!=key_offset/lda_A[rA]/edge_len_A[rA])){ 
+        //printf("i = %d idim = %d breaking rA = %d k=%ld\n", i, idim, rA, A[0].k());
+        break;
+      }
       // if we should be iterating over A and the next sparse value of A does not match this iteration number
       // there will be no actual work to do in the inner iterations, so continue
       if (rA != -1 && (A[0].k()/lda_A[rA])%edge_len_A[rA] != i){
@@ -196,7 +211,6 @@ namespace CTF_int{
     tid = omp_get_thread_num();
     ntd = omp_get_num_threads();
     printf("-> %d/%d %d %d %d\n",tid,ntd,func==NULL, alpha==NULL,beta==NULL);*/
-
     if (rA == -1){
       if (func == NULL){
         if (alpha == NULL && beta == NULL){

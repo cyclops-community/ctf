@@ -35,7 +35,8 @@ int spmv(int     n,
   
   c1["i"] += dnA["ij"]*b["j"];
   
-  c2["i"] += spA["ij"]*b["j"];
+  c2["i"] += .5*spA["ij"]*b["j"];
+  c2["i"] += .5*b["j"]*spA["ij"];
 
   /*printf("b\n");
   b.print();

@@ -16,19 +16,19 @@ namespace CTF_int {
              float  const * B,
              float          beta,
              float  *       C){
-    int lda_A, lda_B, lda_C;
+    int lda, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
-      lda_A = m;
+      lda = m;
     } else {
-      lda_A = k;
+      lda = k;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
     } else {
       lda_B = n;
     }
-    CTF_BLAS::SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
 
 
@@ -42,19 +42,19 @@ namespace CTF_int {
                double const * B,
                double         beta,
                double *       C){
-    int lda_A, lda_B, lda_C;
+    int lda, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
-      lda_A = m;
+      lda = m;
     } else {
-      lda_A = k;
+      lda = k;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
     } else {
       lda_B = n;
     }
-    CTF_BLAS::DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
 
   void cgemm(char                        tA,
@@ -67,19 +67,19 @@ namespace CTF_int {
              std::complex<float> const * B,
              std::complex<float>         beta,
              std::complex<float> *       C){
-    int lda_A, lda_B, lda_C;
+    int lda, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
-      lda_A = m;
+      lda = m;
     } else {
-      lda_A = k;
+      lda = k;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
     } else {
       lda_B = n;
     }
-    CTF_BLAS::CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
 
 
@@ -93,19 +93,19 @@ namespace CTF_int {
              std::complex<double> const * B,
              std::complex<double>         beta,
              std::complex<double> *       C){
-    int lda_A, lda_B, lda_C;
+    int lda, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
-      lda_A = m;
+      lda = m;
     } else {
-      lda_A = k;
+      lda = k;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
     } else {
       lda_B = n;
     }
-    CTF_BLAS::ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
@@ -559,6 +559,27 @@ namespace CTF_int {
         break;
     }
   }
+
+  void ConstPairIterator::permute(int64_t n, int order, int const * old_lens, int64_t const * new_lda, PairIterator wA){
+    ConstPairIterator rA = * this;
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<n; i++){
+      int64_t k = rA[i].k();
+      int64_t k_new = 0;
+      for (int j=0; j<order; j++){
+        k_new += (k%old_lens[j])*new_lda[j];
+        k = k/old_lens[j];
+      }
+      ((int64_t*)wA[i].ptr)[0] = k_new;
+      memcpy(wA[i].d(), rA[i].d(), sr->el_size);
+      //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
+    }
+   
+
+  }
+
 
   int64_t PairIterator::lower_bound(int64_t n, ConstPairIterator op){
     switch (sr->el_size){

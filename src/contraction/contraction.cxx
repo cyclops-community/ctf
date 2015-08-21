@@ -37,10 +37,9 @@ namespace CTF_int {
     C     = other.C;
     idx_C = (int*)alloc(sizeof(int)*other.C->order);
     memcpy(idx_C, other.idx_C, sizeof(int)*other.C->order);
-    if (other.is_custom){
-      func      = other.func;
-      is_custom = 1;
-    } else is_custom = 0;
+    if (other.is_custom) is_custom = 1;
+    else is_custom = 0;
+    func      = other.func;
     alpha = other.alpha;
     beta  = other.beta;
   }
@@ -58,10 +57,8 @@ namespace CTF_int {
     B = B_;
     C = C_;
     if (func_ == NULL) is_custom = 0;
-    else { 
-      is_custom = 1;
-      func = func_;
-    }
+    else is_custom = 1;
+    func = func_;
     alpha = alpha_;
     beta  = beta_;
     
@@ -86,10 +83,8 @@ namespace CTF_int {
     B = B_;
     C = C_;
     if (func_ == NULL) is_custom = 0;
-    else { 
-      is_custom = 1;
-      func = func_;
-    }
+    else is_custom = 1;
+    func = func_;
     alpha = alpha_;
     beta  = beta_;
     
@@ -3052,6 +3047,68 @@ namespace CTF_int {
       delete new_tsr;
       return stat;
     }
+
+    ASSERT(!C->is_sparse);
+    if (B->is_sparse){
+      ASSERT(!A->is_sparse);
+      //FIXME ASSERT that commitative
+      contraction CBA(B,idx_B,A,idx_A,alpha,C,idx_C,beta,func);
+      CBA.contract();
+      return SUCCESS;
+    } 
+    if (A->is_sparse){
+      /*bool A_inds_ordered = true;
+      for (int i=1; i<A->order; i++){
+        if (idx_A[i] < idx_A[i-1]) A_inds_ordered = false;
+      }*/
+      int new_idx_A[A->order];
+      int new_idx_B[B->order];
+      int new_idx_C[C->order];
+
+      int num_tot, * idx_arr;
+      inv_idx(A->order, idx_A,
+              B->order, idx_B,
+              C->order, idx_C,
+              &num_tot, &idx_arr);
+      bool used[num_tot];
+      memset(used,0,sizeof(bool)*num_tot);
+      for (int i=0; i<num_tot; i++){
+        int la=-2;
+        int ila=-1;
+        for (int j=num_tot-1; j>=0; j--){
+          if (used[j] == 0 && idx_arr[3*j]>la){
+            ila = j;
+            la = idx_arr[3*j];
+          }
+        }
+        ASSERT(ila>=0);
+        used[ila] = 1;
+        if (idx_arr[3*ila] != -1) 
+          new_idx_A[idx_arr[3*ila]]=num_tot-i-1;
+        if (idx_arr[3*ila+1] != -1) 
+          new_idx_B[idx_arr[3*ila+1]]=num_tot-i-1;
+        if (idx_arr[3*ila+2] != -1) 
+          new_idx_C[idx_arr[3*ila+2]]=num_tot-i-1;
+      }
+      bool is_chngd = false;
+      for (int i=0; i<A->order; i++){
+        if (idx_A[i] != new_idx_A[i]) is_chngd=true;
+      }
+      for (int i=0; i<B->order; i++){
+        if (idx_B[i] != new_idx_B[i]) is_chngd=true;
+      }
+      for (int i=0; i<C->order; i++){
+        if (idx_C[i] != new_idx_C[i]) is_chngd=true;
+      }
+      if (is_chngd){
+        contraction CBA(A,new_idx_A,B,new_idx_B,alpha,C,new_idx_C,beta,func);
+        CBA.contract();
+        return SUCCESS;
+      }
+      
+    }
+
+
   #if DEBUG >= 1 //|| VERBOSE >= 1)
     if (global_comm.rank == 0)
       printf("Contraction permutation:\n");
@@ -3335,11 +3392,12 @@ namespace CTF_int {
       tnsr_C = new_tsr;
       map_C = new_idx;
     }
+
     bivar_function const * fptr;
     if (is_custom) fptr = func;
     else fptr = NULL;
-    contraction new_ctr = contraction(tnsr_A, map_A, tnsr_B, map_B, alpha, tnsr_C, map_C, beta, fptr);
 
+    contraction new_ctr = contraction(tnsr_A, map_A, tnsr_B, map_B, alpha, tnsr_C, map_C, beta, fptr);
     tnsr_A->unfold();
     tnsr_B->unfold();
     tnsr_C->unfold();
