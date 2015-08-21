@@ -131,7 +131,15 @@ namespace CTF_int{
 
       double est_time_rec(int nlyr);
       spctr * clone();
-    
+      void set_nnz_blk_A(int64_t const * nnbA){
+        spctr::set_nnz_blk_A(nnbA);
+        rec_ctr->set_nnz_blk_A(nnbA);
+      }
+      void set_nnz_blk_B(int64_t const * nnbB){
+        spctr::set_nnz_blk_B(nnbB);
+        rec_ctr->set_nnz_blk_B(nnbB);
+      }
+
       /**
        * \brief deallocates spctr_virt object
        */
@@ -147,6 +155,35 @@ namespace CTF_int{
                  int64_t             vrt_sz_A,
                  int64_t             vrt_sz_B,
                  int64_t             vrt_sz_C);
+  };
+
+  class spctr_pin_keys : public spctr {
+    public:
+      spctr * rec_ctr;
+      int AxBxC;
+      int order;
+      int const * lens;
+      int * divisor;
+      int * virt_dim;
+      int * phys_rank;
+
+      void run();
+      void print();
+      int64_t mem_fp();
+      int64_t mem_rec();
+      spctr * clone();
+      void set_nnz_blk_A(int64_t const * nnbA){
+        spctr::set_nnz_blk_A(nnbA);
+        rec_ctr->set_nnz_blk_A(nnbA);
+      }
+      void set_nnz_blk_B(int64_t const * nnbB){
+        spctr::set_nnz_blk_B(nnbB);
+        rec_ctr->set_nnz_blk_B(nnbB);
+      }
+      spctr_pin_keys(spctr * other);
+      ~spctr_pin_keys();
+      spctr_pin_keys(contraction const * s, int AxBxC);
+
   };
 
 }

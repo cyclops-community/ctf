@@ -580,6 +580,132 @@ namespace CTF_int {
 
   }
 
+  void ConstPairIterator::pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new){
+    ConstPairIterator pi = *this;
+    int * div_lens;
+    alloc_ptr(order*sizeof(int), (void**)&div_lens);
+    for (int j=0; j<order; j++){
+      div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
+//      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
+    }
+    for (int64_t i=0; i<n; i++){
+      int64_t key = pi[i].k();
+      int64_t new_key = 0;
+      int64_t lda = 1;
+//      printf("rank = %d, in key = %ld,  val = %lf\n",  phys_rank[0], save_key,  ((double*)pi_new[i].d())[0]);
+      for (int j=0; j<order; j++){
+//        printf("%d %ld %d\n",j,(key%lens[j])%divisor[j],phys_rank[j]);
+        //ASSERT(((key%lens[j])%(divisor[j]/virt_dim[j])) == phys_rank[j]);
+        new_key += ((key%lens[j])/divisor[j])*lda;
+        lda *= div_lens[j];
+        key = key/lens[j];
+      }
+      ((int64_t*)pi_new[i].ptr)[0] = new_key;
+    }
+    cdealloc(div_lens);
+
+  }
+
+  void depin(algstrct const * sr, int order, int const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding){
+
+    int * div_lens;
+    alloc_ptr(order*sizeof(int), (void**)&div_lens);
+    for (int j=0; j<order; j++){
+      div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
+//      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
+    }
+    if (check_padding){ 
+      check_padding = false;
+      for (int v=0; v<nvirt; v++){
+        int vv = v;
+        for (int j=0; j<order; j++){
+          int vo = (vv%virt_dim[j])*(divisor[j]/virt_dim[j])+phys_rank[j];
+          if (lens[j]%divisor[j] != 0 && vo >= lens[j]%divisor[j]){
+            check_padding = true;
+          }
+          vv=vv/virt_dim[j];
+        }
+      }
+    } 
+    int64_t * old_nnz_blk_B = nnz_blk;
+    if (check_padding){
+      //FIXME: uses a bit more memory then we will probably need, but probably worth not doing another round to count first
+      new_B = (char*)alloc(sr->pair_size()*new_nnz_B);
+      old_nnz_blk_B = (int64_t*)alloc(sizeof(int64_t)*nvirt);
+      memcpy(old_nnz_blk_B, nnz_blk, sizeof(int64_t)*nvirt);
+      memset(nnz_blk, 0, sizeof(int64_t)*nvirt);
+    }
+
+    int * virt_offset;
+    alloc_ptr(order*sizeof(int), (void**)&virt_offset);
+    int64_t nnz_off = 0;
+    if (check_padding)
+      new_nnz_B = 0;
+    for (int v=0; v<nvirt; v++){
+      //printf("%d %p new_B %p pin %p new_blk_nnz_B[%d] = %ld\n",A_or_B,this,new_B,nnz_blk,v,nnz_blk[v]);
+      int vv=v;
+      for (int j=0; j<order; j++){
+        virt_offset[j] = (vv%virt_dim[j])*(divisor[j]/virt_dim[j])+phys_rank[j];
+        vv=vv/virt_dim[j];
+      }
+
+      if (check_padding){ 
+        int64_t new_nnz_blk = 0;
+        ConstPairIterator vpi(sr, X+nnz_off*sr->pair_size());
+        PairIterator vpi_new(sr, new_B+new_nnz_B*sr->pair_size());
+        for (int64_t i=0; i<old_nnz_blk_B[v]; i++){
+          int64_t key = vpi[i].k();
+          int64_t new_key = 0;
+          int64_t lda = 1;
+          bool is_outside = false;
+          for (int j=0; j<order; j++){
+            //printf("%d %ld %ld %d\n",j,vpi[i].k(),((key%div_lens[j])*divisor[j]+virt_offset[j]),lens[j]);
+            if (((key%div_lens[j])*divisor[j]+virt_offset[j])>=lens[j]){
+              //printf("element is outside\n");
+              is_outside = true;
+            }
+            new_key += ((key%div_lens[j])*divisor[j]+virt_offset[j])*lda;
+            lda *= lens[j];
+            key = key/div_lens[j];
+          }
+          if (!is_outside){
+            //printf("key = %ld, new_key = %ld, val = %lf\n", vpi[i].k(), new_key, ((double*)vpi[i].d())[0]);
+            ((int64_t*)vpi_new[new_nnz_blk].ptr)[0] = new_key;
+            vpi_new[new_nnz_blk].write_val(vpi[i].d());
+            new_nnz_blk++;
+          }  
+        }
+        nnz_blk[v] = new_nnz_blk;
+        new_nnz_B += nnz_blk[v];
+        nnz_off += old_nnz_blk_B[v];
+
+      } else {
+        ConstPairIterator vpi(sr, X+nnz_off*sr->pair_size());
+        PairIterator vpi_new(sr, X+nnz_off*sr->pair_size());
+  #ifdef USE_OMP
+        #pragma omp parallel for
+  #endif
+        for (int64_t i=0; i<nnz_blk[v]; i++){
+          int64_t key = vpi[i].k();
+          int64_t new_key = 0;
+          int64_t lda = 1;
+          for (int64_t j=0; j<order; j++){
+            new_key += ((key%div_lens[j])*divisor[j]+virt_offset[j])*lda;
+            lda *= lens[j];
+            key = key/div_lens[j];
+          }
+          ((int64_t*)vpi_new[i].ptr)[0] = new_key;
+          //printf(",,key = %ld, new_key = %ld, val = %lf\n",  save_key, new_key, ((double*)vpi_new[i].d())[0]);
+        }
+        nnz_off += nnz_blk[v];
+      }
+    }
+    cdealloc(virt_offset);
+    cdealloc(div_lens);
+
+  }
+
+
 
   int64_t PairIterator::lower_bound(int64_t n, ConstPairIterator op){
     switch (sr->el_size){
