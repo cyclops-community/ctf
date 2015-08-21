@@ -37,7 +37,6 @@ int spmm(int     n,
   c1["ik"] += dnA["ij"]*b["jk"];
   
   c2["ik"] += 0.5*spA["ij"]*b["jk"];
-    printf("HERE\n");
   c2["ik"] += 0.5*b["jk"]*spA["ij"];
 
   /*printf("b\n");
