@@ -50,7 +50,7 @@ int weigh_4D(int const    n,
 
   C["ijkl"] = A["ijkl"]*B["klij"];
 
-  CTF::Bivar_Function<> fctr(&divide);
+  CTF::Function<> fctr(&divide);
 
   C.contract(1.0, C, "ijkl", B, "klij", 0.0, "ijkl", fctr);
 

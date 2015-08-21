@@ -59,10 +59,9 @@ int endomorphism_cust(int     n,
  
   A.write(nvals, inds, vals);
 
-  CTF::Endomorphism<cust_type> endo(
-    [](cust_type a){
+  CTF::Accumulator<cust_type> endo(
+    [](cust_type & a){
       a.len_name = strlen(a.name);
-      return a;
     });
   // below is equivalent to A.scale(NULL, "ijkl", endo);
   endo(A["ijkl"]);

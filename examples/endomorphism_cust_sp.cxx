@@ -15,9 +15,8 @@ struct cust_sp_type {
   int len_name;
 };
 
-cust_sp_type comp_len(cust_sp_type a){
+void comp_len(cust_sp_type & a){
   a.len_name = strlen(a.name);
-  return a;
 }
 
 int endomorphism_cust_sp(int     n,
@@ -43,7 +42,7 @@ int endomorphism_cust_sp(int     n,
   } else
     A.write(0, NULL, NULL);
 
-  CTF::Endomorphism<cust_sp_type> endo(comp_len);
+  CTF::Accumulator<cust_sp_type> endo(comp_len);
   // below is equivalent to A.scale(NULL, "ijkl", endo);
   endo(A["ijkl"]);
 

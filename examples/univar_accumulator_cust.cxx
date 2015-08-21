@@ -48,7 +48,7 @@ int univar_accumulator_cust(int     n,
   free(loc_frcs);
   free(finds);
 
-  CTF::Univar_Accumulator<particle,force> uacc([](force f, particle & p){
+  CTF::Accumulator<force,particle> uacc([](force f, particle & p){
       p.dx += f.fx*p.coeff;
       p.dy += f.fy*p.coeff;
     });
@@ -57,7 +57,7 @@ int univar_accumulator_cust(int     n,
   F2["ij"] += F["ij"];
 
   //below is the same as uacc(F2["ij"],P["i"]);
-  P["i"] += uacc(F2["ij"]);
+  uacc(F2["ij"],P["i"]);
 
   particle loc_parts_new[nloc];
   P.read(nloc, inds, loc_parts_new);

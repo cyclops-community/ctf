@@ -61,14 +61,14 @@ int univar_accumulator_cust_sp(int     n,
     
   F.write(my_forces.size(), &my_forces[0]);
 
-  CTF::Univar_Accumulator<particle,force> uacc(&acc_force);
+  CTF::Accumulator<force,particle> uacc(&acc_force);
 
   //FIXME = does not work because it sets beta to addid :/
   F2["ij"] += F["ij"];
   F2["ij"] += F["ij"];
 
   //below is the same as uacc(F2["ij"],P["i"]);
-  P["i"] += uacc(F2["ij"]);
+  uacc(F2["ij"],P["i"]);
 
   particle loc_parts_new[nloc];
   P.read(nloc, inds, loc_parts_new);

@@ -10,8 +10,8 @@
 #include <ctf.hpp>
 using namespace CTF;
 
-double fdbl(double a){
-  return a*a*a;
+void fdbl(double & a){
+  a=a*a*a;
 }
 
 int endomorphism(int     n,
@@ -31,7 +31,7 @@ int endomorphism(int     n,
 
   double scale = 1.0;
 
-  CTF::Endomorphism<double> endo([=](double d){ return scale*d*d*d; });
+  CTF::Accumulator<double> endo([=](double & d){ d=scale*d*d*d; });
   // below is equivalent to A.scale(1.0, "ijkl", endo);
   endo(A["ijkl"]);
 
@@ -42,7 +42,8 @@ int endomorphism(int     n,
   int pass = (nall == nall2);
   if (pass){
     for (int64_t i=0; i<nall; i++){
-      if (fabs(fdbl(all_start_data[i])-all_end_data[i])>=1.E-6) pass =0;
+      fdbl(all_start_data[i]);
+      if (fabs(all_start_data[i]-all_end_data[i])>=1.E-6) pass =0;
     }
   } 
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);

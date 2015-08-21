@@ -26,13 +26,13 @@ namespace CTF {
        * \brief function signature for element-wise operation a=f(a)
        */
       //dtype (*f)(dtype);
-      std::function<dtype(dtype)> f;
+      std::function<void(dtype&)> f;
      
       /**
        * \brief constructor takes function pointer
        * \param[in] f_ scalar function: (type) -> (type)
        */
-      Endomorphism(std::function<dtype(dtype)> f_){ f = f_; }
+      Endomorphism(std::function<void(dtype&)> f_){ f = f_; }
       /**
        * \brief default constructor
        */
@@ -43,7 +43,7 @@ namespace CTF {
        * \param[in,out] a pointer to operand that will be cast to dtype
        *                  is set to result of applying f on value at a
        */
-      void apply_f(char * a) const { ((dtype*)a)[0]=f(((dtype*)a)[0]); }
+      void apply_f(char * a) const { f(((dtype*)a)[0]); }
   };
 
 
@@ -51,7 +51,7 @@ namespace CTF {
    * \brief custom function f : X -> Y to be applied to tensor elemetns: 
    *          e.g. B["ij"] = f(A["ij"])
    */
-  template<typename dtype_B=double, typename dtype_A=dtype_B>
+  template<typename dtype_A=double, typename dtype_B=dtype_A>
   class Univar_Function : public CTF_int::univar_function {
     public:
       /**
@@ -98,7 +98,7 @@ namespace CTF {
    * \brief custom function f : (X * Y) -> X applied on two tensors as summation: 
    *          e.g. B["ij"] = f(A["ij"],B["ij"])
    */
-  template<typename dtype_B=double, typename dtype_A=dtype_B>
+  template<typename dtype_A=double, typename dtype_B=dtype_A>
   class Univar_Accumulator : public CTF_int::univar_function {
     public:
       /**
@@ -145,7 +145,7 @@ namespace CTF {
    * \brief custom bilinear function on two tensors: 
    *          e.g. C["ij"] = f(A["ik"],B["kj"])
    */
-  template<typename dtype_C=double, typename dtype_A=dtype_C, typename dtype_B=dtype_C>
+  template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
   class Bivar_Function : public CTF_int::bivar_function {
     public:
       /**
@@ -184,6 +184,86 @@ namespace CTF {
         ((dtype_C*)c)[0]=f(((dtype_A const*)a)[0],((dtype_B const*)b)[0]); 
       }
   };
+
+  template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
+  class Function {
+    public:
+      bool is_univar;
+      Univar_Function<dtype_A, dtype_B> * univar;
+      bool is_bivar;
+      Bivar_Function<dtype_A, dtype_B> * bivar;
+
+      Function(std::function<dtype_B(dtype_A)> f_){
+        is_univar = true;
+        is_bivar = false;
+        univar = new Univar_Function<dtype_A, dtype_B>(f_);
+      }
+
+ 
+      Function(std::function<dtype_C(dtype_A,dtype_B)> f_){
+        is_univar = false;
+        is_bivar = true;
+        bivar = new Bivar_Function<dtype_A, dtype_B, dtype_C>(f_);
+      }
+
+      CTF_int::Fun_Term operator()(CTF_int::Term const & A) const {
+        assert(is_univar);
+        return univar->operator()(A);
+      }
+      
+      operator Univar_Function<dtype_A, dtype_B>() const {
+        assert(is_univar);
+        return *univar;
+      }
+      
+      operator Bivar_Function<dtype_A, dtype_B, dtype_C>() const {
+        assert(is_bivar);
+        return *bivar;
+      }
+  };
+
+  
+  template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
+  class Accumulator {
+    public:
+      bool is_endo;
+      Endomorphism<dtype_A> * endo;
+      bool is_univar;
+      Univar_Accumulator<dtype_A, dtype_B> * univar;
+
+      Accumulator(std::function<void(dtype_A&)> f_){
+        is_endo = true;
+        is_univar = false;
+        endo = new Endomorphism<dtype_A>(f_);
+      }
+      
+      Accumulator(std::function<void(dtype_A, dtype_B&)> f_){
+        is_endo = false;
+        is_univar = true;
+        univar = new Univar_Accumulator<dtype_A, dtype_B>(f_);
+      }
+
+      void operator()(CTF_int::Term const & A) const {
+        assert(is_endo);
+        endo->operator()(A);
+      }
+ 
+      void operator()(CTF_int::Term const & A, CTF_int::Term const & B) const {
+        assert(is_univar);
+        univar->operator()(A,B);
+      }
+      
+      operator Univar_Accumulator<dtype_A, dtype_B>(){
+        assert(is_univar);
+        return *univar;
+      }
+      
+      operator Endomorphism<dtype_A>(){
+        assert(is_endo);
+        return *endo;
+      }
+  };
+  
 
 /**
  * @}
