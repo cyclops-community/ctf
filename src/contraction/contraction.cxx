@@ -10,6 +10,7 @@
 #include "spctr_comm.h"
 #include "ctr_tsr.h"
 #include "ctr_2d_general.h"
+#include "spctr_2d_general.h"
 #include "../symmetry/sym_indices.h"
 #include "../symmetry/symmetrization.h"
 #include "../redistribution/nosym_transp.h"
@@ -2934,31 +2935,175 @@ namespace CTF_int {
   //#endif
     nvirt = 1;
 
-    //ctr_2d_general * bottom_ctr_gen = NULL;
-  /*  if (nvirt_all != NULL)
-      *nvirt_all = 1;*/
+
+    spctr_2d_general * bottom_ctr_gen = NULL;
+    ASSERT(A->is_sparse);
+    blk_sz_A = A->calc_nvirt();
+    for (int a=0; a<A->order; a++){
+      blk_len_A[a] = A->edge_map[a].calc_phase()/A->edge_map[a].calc_phys_phase();
+    }
+    int ones[A->order];
+    std::fill(ones, ones+A->order, 1);
     for (i=0; i<num_tot; i++){
       virt_dim[i] = 1;
       i_A = idx_arr[3*i+0];
       i_B = idx_arr[3*i+1];
       i_C = idx_arr[3*i+2];
-      if (i_A != -1){
-        map = &A->edge_map[i_A];
-        while (map->has_child) map = map->child;
-        if (map->type == VIRTUAL_MAP)
-          virt_dim[i] = map->np;
-      } else if (i_B != -1){
-        map = &B->edge_map[i_B];
-        while (map->has_child) map = map->child;
-        if (map->type == VIRTUAL_MAP)
-          virt_dim[i] = map->np;
-      } else if (i_C != -1){
-        map = &C->edge_map[i_C];
-        while (map->has_child) map = map->child;
-        if (map->type == VIRTUAL_MAP)
-          virt_dim[i] = map->np;
+      /* If this index belongs to exactly two tensors */
+      if ((i_A != -1 && i_B != -1 && i_C == -1) ||
+          (i_A != -1 && i_B == -1 && i_C != -1) ||
+          (i_A == -1 && i_B != -1 && i_C != -1)) {
+        spctr_2d_general * ctr_gen = new spctr_2d_general(this);
+  #ifdef OFFLOAD
+        ctr_gen->alloc_host_buf = false;
+  #endif
+        int is_built = 0;
+        if (i_A == -1){
+          is_built = ctr_2d_gen_build(is_used,
+                                      global_comm,
+                                      i,
+                                      virt_dim,
+                                      ctr_gen->edge_len,
+                                      total_iter,
+                                      A,
+                                      i_A,
+                                      ctr_gen->cdt_A,
+                                      ctr_gen->ctr_lda_A,
+                                      ctr_gen->ctr_sub_lda_A,
+                                      ctr_gen->move_A,
+                                      blk_len_A,
+                                      blk_sz_A,
+                                      ones,
+                                      upload_phase_A,
+                                      B,
+                                      i_B,
+                                      ctr_gen->cdt_B,
+                                      ctr_gen->ctr_lda_B,
+                                      ctr_gen->ctr_sub_lda_B,
+                                      ctr_gen->move_B,
+                                      blk_len_B,
+                                      blk_sz_B,
+                                      virt_blk_len_B,
+                                      upload_phase_B,
+                                      C,
+                                      i_C,
+                                      ctr_gen->cdt_C,
+                                      ctr_gen->ctr_lda_C,
+                                      ctr_gen->ctr_sub_lda_C,
+                                      ctr_gen->move_C,
+                                      blk_len_C,
+                                      blk_sz_C,
+                                      virt_blk_len_C,
+                                      download_phase_C);
+        }
+        if (i_B == -1){
+          is_built = ctr_2d_gen_build(is_used,
+                                      global_comm,
+                                      i,
+                                      virt_dim,
+                                      ctr_gen->edge_len,
+                                      total_iter,
+                                      B,
+                                      i_B,
+                                      ctr_gen->cdt_B,
+                                      ctr_gen->ctr_lda_B,
+                                      ctr_gen->ctr_sub_lda_B,
+                                      ctr_gen->move_B,
+                                      blk_len_B,
+                                      blk_sz_B,
+                                      virt_blk_len_B,
+                                      upload_phase_B,
+                                      C,
+                                      i_C,
+                                      ctr_gen->cdt_C,
+                                      ctr_gen->ctr_lda_C,
+                                      ctr_gen->ctr_sub_lda_C,
+                                      ctr_gen->move_C,
+                                      blk_len_C,
+                                      blk_sz_C,
+                                      virt_blk_len_C,
+                                      download_phase_C,
+                                      A,
+                                      i_A,
+                                      ctr_gen->cdt_A,
+                                      ctr_gen->ctr_lda_A,
+                                      ctr_gen->ctr_sub_lda_A,
+                                      ctr_gen->move_A,
+                                      blk_len_A,
+                                      blk_sz_A,
+                                      ones,
+                                      upload_phase_A);
+        }
+        if (i_C == -1){
+          is_built = ctr_2d_gen_build(is_used,
+                                      global_comm,
+                                      i,
+                                      virt_dim,
+                                      ctr_gen->edge_len,
+                                      total_iter,
+                                      C,
+                                      i_C,
+                                      ctr_gen->cdt_C,
+                                      ctr_gen->ctr_lda_C,
+                                      ctr_gen->ctr_sub_lda_C,
+                                      ctr_gen->move_C,
+                                      blk_len_C,
+                                      blk_sz_C,
+                                      virt_blk_len_C,
+                                      download_phase_C,
+                                      A,
+                                      i_A,
+                                      ctr_gen->cdt_A,
+                                      ctr_gen->ctr_lda_A,
+                                      ctr_gen->ctr_sub_lda_A,
+                                      ctr_gen->move_A,
+                                      blk_len_A,
+                                      blk_sz_A,
+                                      ones,
+                                      upload_phase_A,
+                                      B,
+                                      i_B,
+                                      ctr_gen->cdt_B,
+                                      ctr_gen->ctr_lda_B,
+                                      ctr_gen->ctr_sub_lda_B,
+                                      ctr_gen->move_B,
+                                      blk_len_B,
+                                      blk_sz_B,
+                                      virt_blk_len_B,
+                                      upload_phase_B);
+        }
+        if (is_built){
+          if (is_top){
+            hctr = ctr_gen;
+            is_top = 0;
+          } else {
+            *rec_ctr = ctr_gen;
+          }
+          if (bottom_ctr_gen == NULL)
+            bottom_ctr_gen = ctr_gen;
+          rec_ctr = &ctr_gen->rec_ctr;
+        } else {
+          ctr_gen->rec_ctr = NULL;
+          delete ctr_gen;
+        }
+      } else {
+        if (i_A != -1){
+          map = &A->edge_map[i_A];
+          while (map->has_child) map = map->child;
+          if (map->type == VIRTUAL_MAP)
+            virt_dim[i] = map->np;
+        } else if (i_B != -1){
+          map = &B->edge_map[i_B];
+          while (map->has_child) map = map->child;
+          if (map->type == VIRTUAL_MAP)
+            virt_dim[i] = map->np;
+        } else if (i_C != -1){
+          map = &C->edge_map[i_C];
+          while (map->has_child) map = map->child;
+          if (map->type == VIRTUAL_MAP)
+            virt_dim[i] = map->np;
+        }
       }
-      
       /*if (sA && i_A != -1){
         nvirt = virt_dim[i]/str_A->strip_dim[i_A];
       } else if (sB && i_B != -1){
@@ -2969,6 +3114,7 @@ namespace CTF_int {
       
       nvirt = nvirt * virt_dim[i];
     }
+
     if (nvirt_all != NULL)
       *nvirt_all = nvirt;
 

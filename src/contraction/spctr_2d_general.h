@@ -103,6 +103,10 @@ namespace CTF_int{
        */
       double est_time_rec(int nlyr);
       spctr * clone();
+      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
+        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
+        rec_ctr->set_nnz_blk_A(new_nvirt_A, nnbA);
+      }
 
       /**
        * \brief determines buffer and block sizes needed for spctr_2d_general

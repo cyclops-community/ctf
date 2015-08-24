@@ -241,10 +241,11 @@ namespace CTF_int {
       }*/
     }
 //
-    rec_ctr->set_nnz_blk_A(this->nnz_blk_A);
+    rec_ctr->set_nnz_blk_A(nvirt_A, this->nnz_blk_A);
     rec_ctr->A         = buf_A;
     rec_ctr->nnz_A     = size_A;
-    rec_ctr->set_nnz_blk_B(this->nnz_blk_B);
+    ASSERT(!is_sparse_B);
+//    rec_ctr->set_nnz_blk_B(nvirt_B, this->nnz_blk_B);
     rec_ctr->B         = buf_B;
     rec_ctr->nnz_B     = size_B;
     rec_ctr->C         = this->C;

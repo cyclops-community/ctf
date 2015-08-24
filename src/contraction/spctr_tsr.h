@@ -28,11 +28,21 @@ namespace CTF_int{
       spctr(spctr * other);
       virtual spctr * clone() { return NULL; }
       spctr(contraction const * c);
-      virtual void set_nnz_blk_A(int64_t const * nnbA){
-        if (nnbA != NULL) memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
-      }
-      virtual void set_nnz_blk_B(int64_t const * nnbB){
-        if (nnbB != NULL) memcpy(nnz_blk_B, nnbB, nvirt_B*sizeof(int64_t));
+      virtual void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
+        if (nnbA != NULL){
+          if (nvirt_A == new_nvirt_A){ 
+            memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
+          } else {
+            nvirt_A = new_nvirt_A;
+            cdealloc(nnz_blk_A);
+            nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
+            memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
+
+          }
+        } else {
+          nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
+          memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
+        }
       }
   };
 
@@ -68,12 +78,12 @@ namespace CTF_int{
       void print();
       int64_t mem_fp();
       spctr * clone();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        spctr::set_nnz_blk_A(nnbA);
+      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
+        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
       }
-      void set_nnz_blk_B(int64_t const * nnbB){
+     /* void set_nnz_blk_B(int64_t const * nnbB){
         spctr::set_nnz_blk_B(nnbB);
-      }
+      }*/
       /**
        * \brief returns the execution time the local part this kernel is estimated to take
        * \return time in sec
@@ -131,14 +141,14 @@ namespace CTF_int{
 
       double est_time_rec(int nlyr);
       spctr * clone();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        spctr::set_nnz_blk_A(nnbA);
-        rec_ctr->set_nnz_blk_A(nnbA);
+      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
+        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
+        rec_ctr->set_nnz_blk_A(new_nvirt_A, nnbA);
       }
-      void set_nnz_blk_B(int64_t const * nnbB){
+      /*void set_nnz_blk_B(int64_t const * nnbB){
         spctr::set_nnz_blk_B(nnbB);
         rec_ctr->set_nnz_blk_B(nnbB);
-      }
+      }*/
 
       /**
        * \brief deallocates spctr_virt object
@@ -172,13 +182,9 @@ namespace CTF_int{
       int64_t mem_fp();
       int64_t mem_rec();
       spctr * clone();
-      void set_nnz_blk_A(int64_t const * nnbA){
-        spctr::set_nnz_blk_A(nnbA);
-        rec_ctr->set_nnz_blk_A(nnbA);
-      }
-      void set_nnz_blk_B(int64_t const * nnbB){
-        spctr::set_nnz_blk_B(nnbB);
-        rec_ctr->set_nnz_blk_B(nnbB);
+      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
+        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
+        rec_ctr->set_nnz_blk_A(new_nvirt_A, nnbA);
       }
       spctr_pin_keys(spctr * other);
       ~spctr_pin_keys();

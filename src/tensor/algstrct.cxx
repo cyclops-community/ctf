@@ -350,28 +350,54 @@ namespace CTF_int {
       }
     }
   }     
- 
-  void algstrct::spcopy(int64_t         m,
+  
+  void algstrct::socopy(int64_t         m,
                         int64_t         n,
-                        char const *    a,
                         int64_t         lda_a,
+                        int64_t         lda_b,
                         int64_t const * sizes_a,
                         int64_t const * offsets_a,
                         int64_t         tot_sz,
-                        char *          b,
+                        int64_t *&      sizes_b,
+                        int64_t *&      offsets_b,
+                        int64_t &       new_tot_sz)
+    const {
+    sizes_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
+    offsets_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
+    if (lda_a == m && lda_b == n){
+      memcpy(sizes_b,sizes_a,m*n*sizeof(int64_t));
+      new_tot_sz = tot_sz;
+    } else {
+      new_tot_sz = 0;
+      for (int i=0; i<n; i++){
+        memcpy(sizes_b+lda_b*i, sizes_a+lda_a*i, m*sizeof(int64_t));
+        memcpy(offsets_b+lda_b*i, offsets_a+lda_a*i, m*sizeof(int64_t));
+        for (int j=0; j<m; m++){
+          new_tot_sz += sizes_a[lda_a*i+j];
+        }
+      }
+    }
+  }
+
+  void algstrct::spcopy(int64_t         m,
+                        int64_t         n,
+                        int64_t         lda_a,
                         int64_t         lda_b,
+                        int64_t const * sizes_a,
+                        int64_t const * offsets_a,
+                        int64_t         tot_sz,
+                        char const *    a,
                         int64_t const * sizes_b,
                         int64_t const * offsets_b,
-                        int64_t *&      sizes_b)
+                        char *          b)
     const {
     if (lda_a == m && lda_b == n){
-      memcpy(b,a,el_size*m*n*tot_sz);
+      memcpy(b,a,pair_size()*m*n*tot_sz);
     } else {
-      char * a_ptr, * b_ptr;
-      int64_t size_part = 0;
       for (int i=0; i<n; i++){
         for (int j=0; j<m; j++){
-        memcpy(b+offsets_b[lda_b*i+j]*el_size,a+offsets_a[lda_a*i+j]*el_size,sizes_a[lda_a*i+j]*el_size);
+          memcpy(b+offsets_b[lda_b*i+j]*pair_size(),a+offsets_a[lda_a*i+j]*el_size,sizes_a[lda_a*i+j]*pair_size());
+        }
       }
     }
   }

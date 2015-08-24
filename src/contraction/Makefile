@@ -1,4 +1,4 @@
-LOBJS = contraction.o sym_seq_ctr.o ctr_offload.o ctr_comm.o ctr_tsr.o ctr_2d_general.o sp_seq_ctr.o spctr_tsr.o spctr_comm.o
+LOBJS = contraction.o sym_seq_ctr.o ctr_offload.o ctr_comm.o ctr_tsr.o ctr_2d_general.o sp_seq_ctr.o spctr_tsr.o spctr_comm.o spctr_2d_general.o
 OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq

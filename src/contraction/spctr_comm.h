@@ -22,6 +22,10 @@ namespace CTF_int{
       CommData ** cdt_C;
       /* Class to be called on sub-blocks */
       spctr * rec_ctr;
+      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
+        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
+        rec_ctr->set_nnz_blk_A(new_nvirt_A, nnbA);
+      }
       
       void run();
       /**
