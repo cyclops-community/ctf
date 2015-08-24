@@ -349,7 +349,33 @@ namespace CTF_int {
         axpy(m, alpha, a+el_size*lda_a*i, 1, b+el_size*lda_b*i, 1);
       }
     }
-  }           
+  }     
+ 
+  void algstrct::spcopy(int64_t         m,
+                        int64_t         n,
+                        char const *    a,
+                        int64_t         lda_a,
+                        int64_t const * sizes_a,
+                        int64_t const * offsets_a,
+                        int64_t         tot_sz,
+                        char *          b,
+                        int64_t         lda_b,
+                        int64_t const * sizes_b,
+                        int64_t const * offsets_b,
+                        int64_t *&      sizes_b)
+    const {
+    if (lda_a == m && lda_b == n){
+      memcpy(b,a,el_size*m*n*tot_sz);
+    } else {
+      char * a_ptr, * b_ptr;
+      int64_t size_part = 0;
+      for (int i=0; i<n; i++){
+        for (int j=0; j<m; j++){
+        memcpy(b+offsets_b[lda_b*i+j]*el_size,a+offsets_a[lda_a*i+j]*el_size,sizes_a[lda_a*i+j]*el_size);
+      }
+    }
+  }
+     
 
   void algstrct::set(char * a, char const * b, int64_t n) const {
     switch (el_size) {
