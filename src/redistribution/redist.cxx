@@ -443,7 +443,7 @@ namespace CTF_int {
                        char *&              tsr_cyclic_data,
                        algstrct const *     sr,
                        CommData             glb_comm){
-    int i, idx_lyr_new, idx_lyr_old, blk_idx, prc_idx, loc_idx;
+    int i, idx_lyr_new, idx_lyr_old, rem_idx, prc_idx, loc_idx;
     int num_old_virt, num_new_virt;
     int * idx, * old_loc_lda, * new_loc_lda, * phase_lda;
     int64_t blk_sz;
@@ -499,17 +499,17 @@ namespace CTF_int {
 
       for (;;){
         loc_idx = 0;
-        blk_idx = 0;
+        rem_idx = 0;
         prc_idx = 0;
         for (i=0; i<order; i++){
           loc_idx += idx[i]*new_loc_lda[i];
-          blk_idx += ( idx[i]*new_dist.phys_phase[i] + new_dist.perank[i])*phase_lda[i];
+          rem_idx += ((idx[i]*new_dist.phys_phase[i] + new_dist.perank[i])/old_dist.phys_phase[i])*old_loc_lda[i];
           prc_idx += ((idx[i]*new_dist.phys_phase[i] + new_dist.perank[i])%old_dist.phys_phase[i])*old_dist.pe_lda[i];
         }
         DPRINTF(3,"proc %d receiving blk %d (loc %d, size %ld) from proc %d\n", 
-                glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx);
+                glb_comm.rank, rem_idx, loc_idx, blk_sz, prc_idx);
         MPI_Irecv(tsr_cyclic_data+sr->el_size*loc_idx*blk_sz, blk_sz, 
-                  sr->mdtype(), prc_idx, blk_idx, glb_comm.cm, reqs+loc_idx);
+                  sr->mdtype(), prc_idx, rem_idx, glb_comm.cm, reqs+loc_idx);
         for (i=0; i<order; i++){
           idx[i]++;
           if (idx[i] >= new_dist.virt_phase[i])
@@ -526,17 +526,15 @@ namespace CTF_int {
 
       for (;;){
         loc_idx = 0;
-        blk_idx = 0;
         prc_idx = 0;
         for (i=0; i<order; i++){
           loc_idx += idx[i]*old_loc_lda[i];
-          blk_idx += ( idx[i]*old_dist.phys_phase[i] + old_dist.perank[i])*phase_lda[i];
           prc_idx += ((idx[i]*old_dist.phys_phase[i] + old_dist.perank[i])%new_dist.phys_phase[i])*new_dist.pe_lda[i];
         }
         DPRINTF(3,"proc %d sending blk %d (loc %d size %ld) to proc %d el_size = %d\n", 
-                glb_comm.rank, blk_idx, loc_idx, blk_sz, prc_idx, sr->el_size);
+                glb_comm.rank, loc_idx, loc_idx, blk_sz, prc_idx, sr->el_size);
         MPI_Isend(tsr_data+sr->el_size*loc_idx*blk_sz, blk_sz,
-                  sr->mdtype(), prc_idx, blk_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
+                  sr->mdtype(), prc_idx, loc_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
         for (i=0; i<order; i++){
           idx[i]++;
           if (idx[i] >= old_dist.virt_phase[i])
