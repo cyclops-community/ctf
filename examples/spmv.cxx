@@ -17,6 +17,7 @@ int spmv(int     n,
   Vector<> c1(n, dw);
   Vector<> c2(n, dw);
 
+  srand48(dw.rank);
   b.fill_random(0.0,1.0);
   c1.fill_random(0.0,1.0);
   dnA.fill_random(0.0,1.0);
@@ -25,26 +26,25 @@ int spmv(int     n,
   spA.sparsify(.5);
   dnA["ij"] = 0.0;
   dnA["ij"] += spA["ij"];
-  
-  /*printf("dense A\n");
-  dnA.print();
-  printf("sparse A\n");
-  spA.print();*/
-
+ 
   c2["i"] = c1["i"];
   
   c1["i"] += dnA["ij"]*b["j"];
   
   c2["i"] += .5*spA["ij"]*b["j"];
   c2["i"] += .5*b["j"]*spA["ij"];
-
-  /*printf("b\n");
+/*
+  if (dw.rank == 0) printf("dense A\n");
+  dnA.print();
+  if (dw.rank == 0) printf("sparse A\n");
+  spA.print();
+  if (dw.rank == 0) printf("b\n");
   b.print();
-  printf("dense c + A * b\n");
+  if (dw.rank == 0) printf("dense c + A * b\n");
   c1.print();
-  printf("sparse c + A * b\n");
-  c2.print();*/
-
+  if (dw.rank == 0) printf("sparse c + A * b\n");
+  c2.print();
+*/
   assert(c2.norm2() >= 1E-6);
 
   c2["i"] -= c1["i"];

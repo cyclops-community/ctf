@@ -11,68 +11,18 @@ namespace CTF_int {
   spctr::spctr(contraction const * c)
     : ctr(c) {
     is_sparse_A = c->A->is_sparse;
-    nnz_A       = c->A->nnz_loc;
-    nvirt_A     = c->A->calc_nvirt();
-
     is_sparse_B = c->B->is_sparse;
-    nnz_B       = c->B->nnz_loc;
-    nvirt_B     = c->B->calc_nvirt();
-
     is_sparse_C = c->C->is_sparse;
-    nnz_C       = c->C->nnz_loc;
-    nvirt_C     = c->C->calc_nvirt();
-
-    if (is_sparse_A){
-      nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
-      memcpy(nnz_blk_A, c->A->nnz_blk, sizeof(int64_t)*nvirt_A);
-    } else nnz_blk_A = NULL;
-
-    if (is_sparse_B){
-      nnz_blk_B = (int64_t*)alloc(sizeof(int64_t)*nvirt_B);
-      memcpy(nnz_blk_B, c->B->nnz_blk, sizeof(int64_t)*nvirt_B);
-    } else nnz_blk_B = NULL;
-
-    nnz_blk_C   = c->C->nnz_blk;
-    new_nnz_C   = nnz_C;
-    new_C       = NULL;
-
   }
 
   spctr::spctr(spctr * other)
     : ctr(other) {
     is_sparse_A = other->is_sparse_A;
-    nnz_A       = other->nnz_A;
-    nvirt_A     = other->nvirt_A;
-
     is_sparse_B = other->is_sparse_B;
-    nnz_B       = other->nnz_B;
-    nvirt_B     = other->nvirt_B;
-
     is_sparse_C = other->is_sparse_C;
-    nnz_C       = other->nnz_C;
-    nvirt_C     = other->nvirt_C;
-
-    new_nnz_C   = other->new_nnz_C;
-    new_C       = other->new_C;
-
-    //nnz_blk_B should be copied by pointer, they are the same pointer as in tensor object
-    nnz_blk_C   = other->nnz_blk_C;
-    //nnz_blk_A should be copied by value, since it needs to be potentially set in replicate and deallocated later
-    if (is_sparse_A){
-      nnz_blk_A   = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
-      memcpy(nnz_blk_A, other->nnz_blk_A, sizeof(int64_t)*nvirt_A);
-    } else nnz_blk_A = NULL;
-
-    if (is_sparse_B){
-      nnz_blk_B   = (int64_t*)alloc(sizeof(int64_t)*nvirt_B);
-      memcpy(nnz_blk_B, other->nnz_blk_B, sizeof(int64_t)*nvirt_B);
-    } else nnz_blk_B = NULL;
   }
 
-  spctr::~spctr(){
-    if (nnz_blk_A != NULL) cdealloc(nnz_blk_A);
-    if (nnz_blk_B != NULL) cdealloc(nnz_blk_B);
-  }
+  spctr::~spctr(){  }
 
 
   seq_tsr_spctr::seq_tsr_spctr(contraction const * c,
@@ -179,9 +129,9 @@ namespace CTF_int {
     if (is_inner) size_A *= inner_params.m*inner_params.k;
     if (is_inner) size_B *= inner_params.n*inner_params.k;
     if (is_inner) size_C *= inner_params.m*inner_params.n;
-    if (is_sparse_A) size_A = nnz_A*sr_A->pair_size();
+    /*if (is_sparse_A) size_A = nnz_A*sr_A->pair_size();
     if (is_sparse_B) size_B = nnz_B*sr_B->pair_size();
-    if (is_sparse_C) size_C = nnz_C*sr_C->pair_size();
+    if (is_sparse_C) size_C = nnz_C*sr_C->pair_size();*/
    
     /*ASSERT(size_A > 0);
     ASSERT(size_B > 0);
@@ -214,7 +164,10 @@ namespace CTF_int {
     return est_time_fp(nlyr);
   }
 
-  void seq_tsr_spctr::run(){
+  void seq_tsr_spctr::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+                          char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+                          char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+                          char *& new_C, int64_t & new_nnz_C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
     ASSERT( is_sparse_A);
     ASSERT(!is_sparse_B);
@@ -223,21 +176,21 @@ namespace CTF_int {
 
 
     spA_dnB_dnC_seq_ctr(this->alpha,
-                        this->A,
+                        A,
                         nnz_A,
                         sr_A,
                         order_A,
                         edge_len_A,
                         sym_A,
                         idx_map_A,
-                        this->B,
+                        B,
                         sr_B,
                         order_B,
                         edge_len_B,
                         sym_B,
                         idx_map_B,
                         this->beta,
-                        this->C,
+                        C,
                         sr_C,
                         order_C,
                         edge_len_C,
@@ -248,11 +201,11 @@ namespace CTF_int {
 
 
   spctr_virt::spctr_virt(contraction const * c,
-                     int                 num_tot,
-                     int *               virt_dim,
-                     int64_t             vrt_sz_A,
-                     int64_t             vrt_sz_B,
-                     int64_t             vrt_sz_C)
+                         int                 num_tot,
+                         int *               virt_dim,
+                         int64_t             vrt_sz_A,
+                         int64_t             vrt_sz_B,
+                         int64_t             vrt_sz_C)
       : spctr(c) {
     this->num_dim   = num_tot;
     this->virt_dim  = virt_dim;
@@ -329,7 +282,10 @@ namespace CTF_int {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
-  void spctr_virt::run(){
+  void spctr_virt::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+                       char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+                       char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+                       char *& new_C, int64_t & new_nnz_C){
     TAU_FSTART(spctr_virt);
     int * idx_arr, * tidx_arr, * lda_A, * lda_B, * lda_C, * beta_arr;
     int * ilda_A, * ilda_B, * ilda_C;
@@ -404,7 +360,7 @@ namespace CTF_int {
           sp_offsets_C[0] = 0;
         else
           sp_offsets_C[i] = sp_offsets_C[i-1]+nnz_blk_C[i-1];
-        buckets_C[i] = this->C + sp_offsets_C[i]*this->sr_C->pair_size();
+        buckets_C[i] = C + sp_offsets_C[i]*this->sr_C->pair_size();
       }      
     }
 
@@ -447,35 +403,41 @@ namespace CTF_int {
 
         off_A = 0, off_B = 0, off_C = 0;
         for (;;){
+          int64_t new_sz_C;
           if (off_C >= start_off && off_C < end_off) {
-
+            int64_t rec_nnz_A;
+            int64_t rec_nnz_B;
+            int64_t rec_nnz_C;
+            char * rec_A, * rec_B, * rec_C;
             if (is_sparse_A){
-              tid_rec_ctr->nnz_A = nnz_blk_A[off_A];
-              tid_rec_ctr->A     = this->A + sp_offsets_A[off_A]*this->sr_A->pair_size();
+              rec_nnz_A = nnz_blk_A[off_A];
+              rec_A     = A + sp_offsets_A[off_A]*this->sr_A->pair_size();
             } else
-              tid_rec_ctr->A     = this->A + off_A*blk_sz_A*sr_A->el_size;
+              rec_A     = A + off_A*blk_sz_A*sr_A->el_size;
             if (is_sparse_B){
-              tid_rec_ctr->nnz_B = nnz_blk_B[off_B];
-              tid_rec_ctr->B     = this->B + sp_offsets_B[off_B]*this->sr_B->pair_size();
+              rec_nnz_B = nnz_blk_B[off_B];
+              rec_B     = B + sp_offsets_B[off_B]*this->sr_B->pair_size();
             } else
-              tid_rec_ctr->B     = this->B + off_B*blk_sz_B*sr_A->el_size;
+              rec_B     = B + off_B*blk_sz_B*sr_A->el_size;
             if (is_sparse_C){
-              tid_rec_ctr->nnz_C = new_sp_szs_C[off_C];
-              tid_rec_ctr->C     = this->C + sp_offsets_C[off_C]*this->sr_C->pair_size();
+              rec_nnz_C = new_sp_szs_C[off_C];
+              rec_C     = C + sp_offsets_C[off_C]*this->sr_C->pair_size();
             } else
-              tid_rec_ctr->C     = this->C + off_C*blk_sz_C*sr_A->el_size;
+              rec_C     = C + off_C*blk_sz_C*sr_A->el_size;
             if (beta_arr[off_C]>0)
               rec_ctr->beta = sr_C->mulid();
             else
               rec_ctr->beta = this->beta; 
             beta_arr[off_C]       = 1;
-            tid_rec_ctr->run();
+            tid_rec_ctr->run(rec_A, rec_nnz_A, 1, nnz_blk_A+off_A,
+                             rec_B, rec_nnz_B, 1, nnz_blk_B+off_B,
+                             rec_C, rec_nnz_C, 1, new_sp_szs_C+off_C,
+                             buckets_C[off_C], new_sz_C);
           }
 
           if (is_sparse_C){
-            new_sp_szs_C[off_C] = rec_ctr->new_nnz_C;
+            new_sp_szs_C[off_C] = new_sz_C;
             if (beta_arr[off_C] > 0) cdealloc(buckets_C[off_C]);
-            buckets_C[off_C] = rec_ctr->new_C;
           }
 
           for (i=0; i<num_dim; i++){
@@ -498,11 +460,11 @@ namespace CTF_int {
       }
     }
     if (this->is_sparse_C){
-      this->new_nnz_C = 0;
+      new_nnz_C = 0;
       for (int i=0; i<nb_C; i++){
-        this->new_nnz_C += new_sp_szs_C[i];
+        new_nnz_C += new_sp_szs_C[i];
       }
-      new_C = (char*)alloc(this->new_nnz_C*this->sr_C->pair_size());
+      new_C = (char*)alloc(new_nnz_C*this->sr_C->pair_size());
       int64_t pfx = 0;
       for (int i=0; i<nb_C; i++){
         memcpy(new_C+pfx, buckets_C[i], new_sp_szs_C[i]*this->sr_C->pair_size());
@@ -510,7 +472,7 @@ namespace CTF_int {
         if (beta_arr[i] > 0) cdealloc(buckets_C[i]);
       }
       //FIXME: how to pass C back generally
-      //cdealloc(this->C);
+      //cdealloc(C);
       cdealloc(buckets_C);
     }
     if (is_sparse_A) cdealloc(sp_offsets_A);
@@ -602,27 +564,37 @@ namespace CTF_int {
     }
   }
 
-  void spctr_pin_keys::run(){
+  double spctr_pin_keys::est_time_fp(int nlyr) {
+    //FIXME: need sparsity knowledge
+    return 0;
+  }
+
+  double spctr_pin_keys::est_time_rec(int nlyr) {
+    return est_time_fp(nlyr)+rec_ctr->est_time_rec(nlyr);
+  }
+
+  void spctr_pin_keys::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+                           char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+                           char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+                           char *& new_C, int64_t & new_nnz_C){
     char * X;
     algstrct const * sr;
     int64_t nnz;
-    int64_t * nnz_blk;
-    int nvirt;
     switch (AxBxC){ 
       case 0:
-        X = this->A;
+        X = A;
         sr = this->sr_A;
-        nnz = this->nnz_A;
+        nnz = nnz_A;
         break;
       case 1:
-        X = this->B;
+        X = B;
         sr = this->sr_B;
-        nnz = this->nnz_B;
+        nnz = nnz_B;
         break;
       case 2:
-        X = this->C;
+        X = C;
         sr = this->sr_C;
-        nnz = this->nnz_C;
+        nnz = nnz_C;
         break;
     }
 
@@ -632,30 +604,37 @@ namespace CTF_int {
       div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
 //      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
     }*/
-
+    char * nA, * nB, * nC;
+    nA = A; nB = B; nC = C;
+    char * nX;
+    switch (AxBxC){
+      case 0:
+        mst_alloc_ptr(sr->pair_size()*nnz, (void**)&nX);
+        memcpy(nX, X, sr->pair_size()*nnz);
+        nA = nX;
+        break;
+      case 1:
+        mst_alloc_ptr(sr->pair_size()*nnz, (void**)&nX);
+        memcpy(nX, X, sr->pair_size()*nnz);
+        nB = nX;
+        break;
+    }
     ConstPairIterator pi(sr, X);
-    PairIterator pi_new(sr, X);
+    PairIterator pi_new(sr, nX);
 
     pi.pin(nnz, order, lens, divisor, pi_new);
 
-    rec_ctr->A = A;
-    rec_ctr->B = B;
-    rec_ctr->C = C;
+    rec_ctr->run(nA, nnz_A, nvirt_A, nnz_blk_A,
+                 nB, nnz_B, nvirt_B, nnz_blk_B,
+                 nC, nnz_C, nvirt_C, nnz_blk_C,
+                 new_C, new_nnz_C);
 
-    rec_ctr->nnz_A = nnz_A;
-    rec_ctr->nnz_B = nnz_B;
-    rec_ctr->run();
-
-    new_nnz_C = rec_ctr->new_nnz_C;
-    new_C = rec_ctr->new_C;
     switch (AxBxC){
+      case 0:
       case 1:
-        depin(sr_A, order, lens, divisor, nvirt_A, virt_dim, phys_rank, A, nnz_A, (int64_t*)nnz_blk_A, A, false);
+        cdealloc(nX);
         break;
       case 2:
-        depin(sr_B, order, lens, divisor, nvirt_B, virt_dim, phys_rank, B, nnz_B, (int64_t*)nnz_blk_B, B, false);
-        break;
-      case 3:
         depin(sr_C, order, lens, divisor, nvirt_C, virt_dim, phys_rank, new_C, new_nnz_C, nnz_blk_C, new_C, true);
         break;
     }

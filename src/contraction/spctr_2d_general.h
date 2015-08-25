@@ -7,41 +7,41 @@
 namespace CTF_int{
   class tensor;
   int  spctr_2d_gen_build(int                        is_used,
-                        CommData                   global_comm,
-                        int                        i,
-                        int *                      virt_dim,
-                        int &                      cg_edge_len,
-                        int &                      total_iter,
-                        tensor *                   A,
-                        int                        i_A,
-                        CommData *&                cg_cdt_A,
-                        int64_t &                  cg_spctr_lda_A,
-                        int64_t &                  cg_spctr_sub_lda_A,
-                        bool &                     cg_move_A,
-                        int *                      blk_len_A,
-                        int64_t &                  blk_sz_A,
-                        int const *                virt_blk_len_A,
-                        int &                      load_phase_A,
-                        tensor *                   B,
-                        int                        i_B,
-                        CommData *&                cg_cdt_B,
-                        int64_t &                  cg_spctr_lda_B,
-                        int64_t &                  cg_spctr_sub_lda_B,
-                        bool &                     cg_move_B,
-                        int *                      blk_len_B,
-                        int64_t &                  blk_sz_B,
-                        int const *                virt_blk_len_B,
-                        int &                      load_phase_B,
-                        tensor *                   C,
-                        int                        i_C,
-                        CommData *&                cg_cdt_C,
-                        int64_t &                  cg_spctr_lda_C,
-                        int64_t &                  cg_spctr_sub_lda_C,
-                        bool &                     cg_move_C,
-                        int *                      blk_len_C,
-                        int64_t &                  blk_sz_C,
-                        int const *                virt_blk_len_C,
-                        int &                      load_phase_C);
+                          CommData                   global_comm,
+                          int                        i,
+                          int *                      virt_dim,
+                          int &                      cg_edge_len,
+                          int &                      total_iter,
+                          tensor *                   A,
+                          int                        i_A,
+                          CommData *&                cg_cdt_A,
+                          int64_t &                  cg_spctr_lda_A,
+                          int64_t &                  cg_spctr_sub_lda_A,
+                          bool &                     cg_move_A,
+                          int *                      blk_len_A,
+                          int64_t &                  blk_sz_A,
+                          int const *                virt_blk_len_A,
+                          int &                      load_phase_A,
+                          tensor *                   B,
+                          int                        i_B,
+                          CommData *&                cg_cdt_B,
+                          int64_t &                  cg_spctr_lda_B,
+                          int64_t &                  cg_spctr_sub_lda_B,
+                          bool &                     cg_move_B,
+                          int *                      blk_len_B,
+                          int64_t &                  blk_sz_B,
+                          int const *                virt_blk_len_B,
+                          int &                      load_phase_B,
+                          tensor *                   C,
+                          int                        i_C,
+                          CommData *&                cg_cdt_C,
+                          int64_t &                  cg_spctr_lda_C,
+                          int64_t &                  cg_spctr_sub_lda_C,
+                          bool &                     cg_move_C,
+                          int *                      blk_len_C,
+                          int64_t &                  blk_sz_C,
+                          int const *                virt_blk_len_C,
+                          int &                      load_phase_C);
 
 
   class spctr_2d_general : public spctr {
@@ -80,7 +80,11 @@ namespace CTF_int{
        *  each processor. Performs rank-b updates 
        *  where b is the smallest blocking factor among A and B or A and C or B and C. 
        */
-      void run();
+      void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+               char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+               char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+               char *& new_C, int64_t & new_nnz_C);
+
       /**
        * \brief returns the number of bytes of buffer space
        *  we need 
@@ -103,10 +107,10 @@ namespace CTF_int{
        */
       double est_time_rec(int nlyr);
       spctr * clone();
-      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
+/*      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
         spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
         rec_ctr->set_nnz_blk_A(new_nvirt_A, nnbA);
-      }
+      }*/
 
       /**
        * \brief determines buffer and block sizes needed for spctr_2d_general

@@ -110,6 +110,7 @@ namespace CTF_int {
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
   }
+  
 
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
@@ -122,6 +123,8 @@ namespace CTF_int {
     ASSERT(0);
     return MPI_CHAR;
   }
+  
+  
 
   char const * algstrct::addid() const {
     return NULL;
@@ -366,13 +369,14 @@ namespace CTF_int {
     offsets_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
     if (lda_a == m && lda_b == n){
       memcpy(sizes_b,sizes_a,m*n*sizeof(int64_t));
+      memcpy(offsets_b,offsets_a,m*n*sizeof(int64_t));
       new_tot_sz = tot_sz;
     } else {
       new_tot_sz = 0;
       for (int i=0; i<n; i++){
         memcpy(sizes_b+lda_b*i, sizes_a+lda_a*i, m*sizeof(int64_t));
         memcpy(offsets_b+lda_b*i, offsets_a+lda_a*i, m*sizeof(int64_t));
-        for (int j=0; j<m; m++){
+        for (int j=0; j<m; j++){
           new_tot_sz += sizes_a[lda_a*i+j];
         }
       }
@@ -739,6 +743,7 @@ namespace CTF_int {
   #endif
         for (int64_t i=0; i<nnz_blk[v]; i++){
           int64_t key = vpi[i].k();
+          //int64_t save_key = vpi[i].k();
           int64_t new_key = 0;
           int64_t lda = 1;
           for (int64_t j=0; j<order; j++){

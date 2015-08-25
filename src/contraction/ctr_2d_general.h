@@ -80,7 +80,7 @@ namespace CTF_int{
        *  each processor. Performs rank-b updates 
        *  where b is the smallest blocking factor among A and B or A and C or B and C. 
        */
-      void run();
+      void run(char * A, char * B, char * C);
       /**
        * \brief returns the number of bytes of buffer space
        *  we need 

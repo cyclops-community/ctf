@@ -10,40 +10,19 @@ namespace CTF_int{
   class spctr : public ctr {
     public: 
       bool      is_sparse_A;
-      int64_t   nnz_A;
-      int       nvirt_A;
-      int64_t * nnz_blk_A;
       bool      is_sparse_B;
-      int64_t   nnz_B;
-      int       nvirt_B;
-      int64_t * nnz_blk_B;
       bool      is_sparse_C;
-      int64_t   nnz_C;
-      int       nvirt_C;
-      int64_t * nnz_blk_C;
-      int64_t   new_nnz_C;
       char *    new_C;
 
       ~spctr();
       spctr(spctr * other);
       virtual spctr * clone() { return NULL; }
+      void run(char * A, char * B, char * C) { printf("CTF ERROR: PROVIDE SPARSITY ARGS TO RUN\n"); assert(0); };
+      virtual void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+                       char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+                       char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+                       char *& new_C, int64_t & new_nnz_C) { ASSERT(0); }
       spctr(contraction const * c);
-      virtual void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
-        if (nnbA != NULL){
-          if (nvirt_A == new_nvirt_A){ 
-            memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
-          } else {
-            nvirt_A = new_nvirt_A;
-            cdealloc(nnz_blk_A);
-            nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
-            memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
-
-          }
-        } else {
-          nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
-          memcpy(nnz_blk_A, nnbA, nvirt_A*sizeof(int64_t));
-        }
-      }
   };
 
   class seq_tsr_spctr : public spctr {
@@ -74,16 +53,13 @@ namespace CTF_int{
       /**
        * \brief wraps user sequential function signature
        */
-      void run();
+      void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+               char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+               char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+               char *& new_C, int64_t & new_nnz_C);
       void print();
       int64_t mem_fp();
       spctr * clone();
-      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
-        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
-      }
-     /* void set_nnz_blk_B(int64_t const * nnbB){
-        spctr::set_nnz_blk_B(nnbB);
-      }*/
       /**
        * \brief returns the execution time the local part this kernel is estimated to take
        * \return time in sec
@@ -135,20 +111,15 @@ namespace CTF_int{
       /**
        * \brief iterates over the dense virtualization block grid and contracts
        */
-      void run();
+      void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+               char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+               char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+               char *& new_C, int64_t & new_nnz_C);
       int64_t mem_fp();
       int64_t mem_rec();
 
       double est_time_rec(int nlyr);
       spctr * clone();
-      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
-        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
-        rec_ctr->set_nnz_blk_A(new_nvirt_A, nnbA);
-      }
-      /*void set_nnz_blk_B(int64_t const * nnbB){
-        spctr::set_nnz_blk_B(nnbB);
-        rec_ctr->set_nnz_blk_B(nnbB);
-      }*/
 
       /**
        * \brief deallocates spctr_virt object
@@ -177,15 +148,24 @@ namespace CTF_int{
       int * virt_dim;
       int * phys_rank;
 
-      void run();
+      void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+               char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+               char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+               char *& new_C, int64_t & new_nnz_C);
       void print();
       int64_t mem_fp();
       int64_t mem_rec();
       spctr * clone();
-      void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
-        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
-        rec_ctr->set_nnz_blk_A(new_nvirt_A, nnbA);
-      }
+      /**
+       * \brief returns the execution time the local part this kernel is estimated to take
+       * \return time in sec
+       */
+      double est_time_fp(int nlyr);
+      /**
+       * \brief returns the execution time this kernel and its recursive calls are estimated to take
+       * \return time in sec
+       */
+      double est_time_rec(int nlyr);
       spctr_pin_keys(spctr * other);
       ~spctr_pin_keys();
       spctr_pin_keys(contraction const * s, int AxBxC);

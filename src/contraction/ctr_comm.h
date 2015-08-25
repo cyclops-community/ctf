@@ -31,9 +31,6 @@ namespace CTF_int{
 
   class ctr {
     public: 
-      char * A; /* m by k */
-      char * B; /* k by n */
-      char * C; /* m by n */
       algstrct const * sr_A;
       algstrct const * sr_B;
       algstrct const * sr_C;
@@ -41,7 +38,7 @@ namespace CTF_int{
       int num_lyr; /* number of copies of this matrix being computed on */
       int idx_lyr; /* the index of this copy */
 
-      virtual void run() { printf("SHOULD NOTR\n"); };
+      virtual void run(char * A, char * B, char * C) { printf("SHOULD NOTR\n"); };
       virtual void print() { };
       virtual int64_t mem_fp() { return 0; };
       virtual int64_t mem_rec() { return mem_fp(); };
@@ -80,7 +77,7 @@ namespace CTF_int{
       /* Class to be called on sub-blocks */
       ctr * rec_ctr;
       
-      void run();
+      void run(char * A, char * B, char * C);
       /**
        * \brief returns the number of bytes of buffer space
        *  we need 

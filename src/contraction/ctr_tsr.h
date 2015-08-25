@@ -26,7 +26,7 @@ namespace CTF_int {
       /**
        * \brief iterates over the dense virtualization block grid and contracts
        */
-      void run();
+      void run(char * A, char * B, char * C);
       int64_t mem_fp();
       int64_t mem_rec();
 
@@ -108,7 +108,7 @@ namespace CTF_int {
       /**
        * \brief wraps user sequential function signature
        */
-      void run();
+      void run(char * A, char * B, char * C);
       void print();
       int64_t mem_fp();
       double est_time_rec(int nlyr);

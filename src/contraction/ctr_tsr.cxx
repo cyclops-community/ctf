@@ -97,7 +97,7 @@ namespace CTF_int {
   }
 
 
-  void ctr_virt::run(){
+  void ctr_virt::run(char * A, char * B, char * C){
     TAU_FSTART(ctr_virt);
     int * idx_arr, * tidx_arr, * lda_A, * lda_B, * lda_C, * beta_arr;
     int * ilda_A, * ilda_B, * ilda_C;
@@ -181,15 +181,15 @@ namespace CTF_int {
         off_A = 0, off_B = 0, off_C = 0;
         for (;;){
           if (off_C >= start_off && off_C < end_off) {
-            tid_rec_ctr->A        = this->A + off_A*blk_sz_A*sr_A->el_size;
-            tid_rec_ctr->B        = this->B + off_B*blk_sz_B*sr_A->el_size;
-            tid_rec_ctr->C        = this->C + off_C*blk_sz_C*sr_A->el_size;
             if (beta_arr[off_C]>0)
               rec_ctr->beta = sr_C->mulid();
             else
               rec_ctr->beta = this->beta; 
             beta_arr[off_C]       = 1;
-            tid_rec_ctr->run();
+            tid_rec_ctr->run(
+                     A + off_A*blk_sz_A*sr_A->el_size,
+                     B + off_B*blk_sz_B*sr_A->el_size,
+                     C + off_C*blk_sz_C*sr_A->el_size);
           }
 
           for (i=0; i<num_dim; i++){
@@ -419,25 +419,25 @@ namespace CTF_int {
     return est_time_fp(nlyr);
   }
 
-  void seq_tsr_ctr::run(){
+  void seq_tsr_ctr::run(char * A, char * B, char * C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
     if (is_custom){
       ASSERT(is_inner == 0);
       sym_seq_ctr_cust(this->alpha,
-                       this->A,
+                       A,
                        sr_A,
                        order_A,
                        edge_len_A,
                        sym_A,
                        idx_map_A,
-                       this->B,
+                       B,
                        sr_B,
                        order_B,
                        edge_len_B,
                        sym_B,
                        idx_map_B,
                        this->beta,
-                       this->C,
+                       C,
                        sr_C,
                        order_C,
                        edge_len_C,
@@ -446,20 +446,20 @@ namespace CTF_int {
                        func);
     } else if (is_inner){
       sym_seq_ctr_inr(this->alpha,
-                      this->A,
+                      A,
                       sr_A,
                       order_A,
                       edge_len_A,
                       sym_A,
                       idx_map_A,
-                      this->B,
+                      B,
                       sr_B,
                       order_B,
                       edge_len_B,
                       sym_B,
                       idx_map_B,
                       this->beta,
-                      this->C,
+                      C,
                       sr_C,
                       order_C,
                       edge_len_C,
@@ -468,20 +468,20 @@ namespace CTF_int {
                       &inner_params);
     } else {
       sym_seq_ctr_ref(this->alpha,
-                      this->A,
+                      A,
                       sr_A,
                       order_A,
                       edge_len_A,
                       sym_A,
                       idx_map_A,
-                      this->B,
+                      B,
                       sr_B,
                       order_B,
                       edge_len_B,
                       sym_B,
                       idx_map_B,
                       this->beta,
-                      this->C,
+                      C,
                       sr_C,
                       order_C,
                       edge_len_C,
@@ -570,12 +570,12 @@ namespace CTF_int {
              n,
              k,
              alpha,
-             this->A,
+             A,
              lda_A,
-             this->B,
+             B,
              lda_B,
              this->beta,
-             this->C,
+             C,
              lda_C);
     }
   }
@@ -591,12 +591,12 @@ namespace CTF_int {
              n,
              k,
              alpha,
-             this->A,
+             A,
              lda_A,
-             this->B,
+             B,
              lda_B,
              this->beta,
-             this->C,
+             C,
              lda_C);
     }
   }*/

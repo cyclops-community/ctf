@@ -263,7 +263,7 @@ namespace CTF_int {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
-  void ctr_2d_general::run() {
+  void ctr_2d_general::run(char * A, char * B, char * C){
     int owner_A, owner_B, owner_C, ret;
     int64_t ib;
     char * buf_A, * buf_B, * buf_C, * buf_aux; 
@@ -329,11 +329,11 @@ namespace CTF_int {
         owner_A   = ib % cdt_A->np;
         if (rank_A == owner_A){
           if (b_A == 1){
-            op_A = this->A;
+            op_A = A;
           } else {
             op_A = buf_A;
             sr_A->copy(ctr_sub_lda_A, ctr_lda_A, 
-                       this->A+sr_A->el_size*(ib/cdt_A->np)*ctr_sub_lda_A, ctr_sub_lda_A*b_A, 
+                       A+sr_A->el_size*(ib/cdt_A->np)*ctr_sub_lda_A, ctr_sub_lda_A*b_A, 
                        op_A, ctr_sub_lda_A);
           }
         } else
@@ -341,14 +341,14 @@ namespace CTF_int {
         MPI_Bcast(op_A, s_A, sr_A->mdtype(), owner_A, cdt_A->cm);
       } else {
         if (ctr_sub_lda_A == 0)
-          op_A = this->A;
+          op_A = A;
         else {
           if (ctr_lda_A == 1)
-            op_A = this->A+sr_A->el_size*ib*ctr_sub_lda_A;
+            op_A = A+sr_A->el_size*ib*ctr_sub_lda_A;
           else {
             op_A = buf_A;
             sr_A->copy(ctr_sub_lda_A, ctr_lda_A,
-                       this->A+sr_A->el_size*ib*ctr_sub_lda_A, ctr_sub_lda_A*edge_len, 
+                       A+sr_A->el_size*ib*ctr_sub_lda_A, ctr_sub_lda_A*edge_len, 
                        buf_A, ctr_sub_lda_A);
           }      
         }
@@ -357,11 +357,11 @@ namespace CTF_int {
         owner_B   = ib % cdt_B->np;
         if (rank_B == owner_B){
           if (b_B == 1){
-            op_B = this->B;
+            op_B = B;
           } else {
             op_B = buf_B;
             sr_B->copy(ctr_sub_lda_B, ctr_lda_B,
-                       this->B+sr_B->el_size*(ib/cdt_B->np)*ctr_sub_lda_B, ctr_sub_lda_B*b_B, 
+                       B+sr_B->el_size*(ib/cdt_B->np)*ctr_sub_lda_B, ctr_sub_lda_B*b_B, 
                        op_B, ctr_sub_lda_B);
           }
         } else 
@@ -370,14 +370,14 @@ namespace CTF_int {
         MPI_Bcast(op_B, s_B, sr_B->mdtype(), owner_B, cdt_B->cm);
       } else {
         if (ctr_sub_lda_B == 0)
-          op_B = this->B;
+          op_B = B;
         else {
           if (ctr_lda_B == 1){
-            op_B = this->B+sr_B->el_size*ib*ctr_sub_lda_B;
+            op_B = B+sr_B->el_size*ib*ctr_sub_lda_B;
           } else {
             op_B = buf_B;
             sr_B->copy(ctr_sub_lda_B, ctr_lda_B,
-                       this->B+sr_B->el_size*ib*ctr_sub_lda_B, ctr_sub_lda_B*edge_len, 
+                       B+sr_B->el_size*ib*ctr_sub_lda_B, ctr_sub_lda_B*edge_len, 
                        buf_B, ctr_sub_lda_B);
           }      
         }
@@ -387,10 +387,10 @@ namespace CTF_int {
         rec_ctr->beta = sr_C->addid();
       } else {
         if (ctr_sub_lda_C == 0)
-          op_C = this->C;
+          op_C = C;
         else {
           if (ctr_lda_C == 1) 
-            op_C = this->C+sr_C->el_size*ib*ctr_sub_lda_C;
+            op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
             rec_ctr->beta = sr_C->addid();
@@ -399,11 +399,7 @@ namespace CTF_int {
       } 
 
 
-      rec_ctr->A = op_A;
-      rec_ctr->B = op_B;
-      rec_ctr->C = op_C;
-
-      rec_ctr->run();
+      rec_ctr->run(op_A, op_B, op_C);
 
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
@@ -415,14 +411,14 @@ namespace CTF_int {
         if (rank_C == owner_C){
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
                      op_C, ctr_sub_lda_C, sr_C->mulid(),
-                     this->C+sr_C->el_size*(ib/cdt_C->np)*ctr_sub_lda_C, 
+                     C+sr_C->el_size*(ib/cdt_C->np)*ctr_sub_lda_C, 
                      ctr_sub_lda_C*b_C, this->beta);
         }
       } else {
         if (ctr_lda_C != 1 && ctr_sub_lda_C != 0)
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
                      buf_C, ctr_sub_lda_C, sr_C->mulid(), 
-                     this->C+sr_C->el_size*ib*ctr_sub_lda_C, 
+                     C+sr_C->el_size*ib*ctr_sub_lda_C, 
                      ctr_sub_lda_C*edge_len, this->beta);
         if (ctr_sub_lda_C == 0)
           rec_ctr->beta = sr_C->mulid();

@@ -193,39 +193,36 @@ namespace CTF_int {
   }
 
 
-  void strp_ctr::run(){
+  void strp_ctr::run(char * A, char * B, char * C){
     char * bA, * bB, * bC;
 
     if (strip_A) {
-      rec_strp_A->A = this->A;
+      rec_strp_A->A = A;
       rec_strp_A->run(0);
       bA = rec_strp_A->buffer;
     } else {
-      bA = this->A;
+      bA = A;
     }
     if (strip_B) {
-      rec_strp_B->A = this->B;
+      rec_strp_B->A = B;
       rec_strp_B->run(0);
       bB = rec_strp_B->buffer;
     } else {
-      bB = this->B;
+      bB = B;
     }
     if (strip_C) {
-      rec_strp_C->A = this->C;
+      rec_strp_C->A = C;
       rec_strp_C->run(0);
       bC = rec_strp_C->buffer;
     } else {
-      bC = this->C;
+      bC = C;
     }
 
     
-    rec_ctr->A = bA;
-    rec_ctr->B = bB;
-    rec_ctr->C = bC;
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
     rec_ctr->beta = this->beta;
-    rec_ctr->run();
+    rec_ctr->run(bA, bB, bC);
     
     if (strip_A) rec_strp_A->free_exp();
     if (strip_B) rec_strp_B->free_exp();

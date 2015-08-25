@@ -2083,7 +2083,6 @@ namespace CTF_int {
         sctr = construct_ctr();
        
         est_time = sctr->est_time_rec(sctr->num_lyr);
-        //sctr->print();
   #if DEBUG >= 4
         printf("mapping passed contr est_time = %E sec\n", est_time);
   #endif 
@@ -2417,10 +2416,6 @@ namespace CTF_int {
                    
     TAU_FSTOP(redistribute_for_contraction);
     
-    (*ctrf)->A    = A->data;
-    (*ctrf)->B    = B->data;
-    (*ctrf)->C    = C->data;
-
     CTF_int::cdealloc( old_phase_A );
     CTF_int::cdealloc( old_phase_B );
     CTF_int::cdealloc( old_phase_C );
@@ -3118,9 +3113,9 @@ namespace CTF_int {
     if (nvirt_all != NULL)
       *nvirt_all = nvirt;
 
-    ASSERT(blk_sz_A >= vrt_sz_A);
-    ASSERT(blk_sz_B >= vrt_sz_B);
-    ASSERT(blk_sz_C >= vrt_sz_C);
+    ASSERT(blk_sz_A >= 1);
+    ASSERT(blk_sz_B >= 1);
+    ASSERT(blk_sz_C >= 1);
 
     /* Multiply over virtual sub-blocks */
     if (nvirt > 1){
@@ -3424,7 +3419,13 @@ namespace CTF_int {
     TAU_FSTART(ctr_func);
     /* Invoke the contraction algorithm */
     A->topo->activate();
-    ctrf->run();
+    if (A->is_sparse || B->is_sparse || C->is_sparse)
+      ((spctr*)ctrf)->run(A->data, A->nnz_loc, A->calc_nvirt(), A->nnz_blk,
+                          B->data, B->nnz_loc, B->calc_nvirt(), B->nnz_blk,
+                          C->data, C->nnz_loc, C->calc_nvirt(), C->nnz_blk,
+                          C->data, C->nnz_loc);
+    else
+      ctrf->run(A->data, B->data, C->data);
     A->topo->deactivate();
 
     TAU_FSTOP(ctr_func);

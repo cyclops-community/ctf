@@ -7,9 +7,6 @@
 
 namespace CTF_int {
   ctr::ctr(contraction const * c){
-    A       = c->A->data;
-    B       = c->B->data;
-    C       = c->C->data;
     sr_A    = c->A->sr;
     sr_B    = c->B->sr;
     sr_C    = c->C->sr;
@@ -19,9 +16,6 @@ namespace CTF_int {
   }
 
   ctr::ctr(ctr * other){
-    A = other->A;
-    B = other->B;
-    C = other->C;
     sr_A = other->sr_A;
     sr_B = other->sr_B;
     sr_C = other->sr_C;
@@ -195,35 +189,32 @@ namespace CTF_int {
   }
 
 
-  void ctr_replicate::run(){
+  void ctr_replicate::run(char * A, char * B, char * C){
     int arank, brank, crank, i;
 
     arank = 0, brank = 0, crank = 0;
     for (i=0; i<ncdt_A; i++){
       arank += cdt_A[i]->rank;
-//      POST_BCAST(this->A, size_A*sr_A->el_size, COMM_CHAR_T, 0, cdt_A[i]-> 0);
-      MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
+//      POST_BCAST(A, size_A*sr_A->el_size, COMM_CHAR_T, 0, cdt_A[i]-> 0);
+      MPI_Bcast(A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
     }
     for (i=0; i<ncdt_B; i++){
       brank += cdt_B[i]->rank;
-//      POST_BCAST(this->B, size_B*sr_B->el_size, COMM_CHAR_T, 0, cdt_B[i]-> 0);
-      MPI_Bcast(this->B, size_B, sr_B->mdtype(), 0, cdt_B[i]->cm);
+//      POST_BCAST(B, size_B*sr_B->el_size, COMM_CHAR_T, 0, cdt_B[i]-> 0);
+      MPI_Bcast(B, size_B, sr_B->mdtype(), 0, cdt_B[i]->cm);
     }
     for (i=0; i<ncdt_C; i++){
       crank += cdt_C[i]->rank;
     }
-//    if (crank != 0) this->sr_C->set(this->C, this->sr_C->addid(), size_C);
+//    if (crank != 0) this->sr_C->set(C, this->sr_C->addid(), size_C);
 //    else {
     if (crank == 0 && !sr_C->isequal(this->beta, sr_C->mulid())){
-      sr_C->scal(size_C, this->beta, this->C, 1);
+      sr_C->scal(size_C, this->beta, C, 1);
 /*      for (i=0; i<size_C; i++){
-        sr_C->mul(this->beta, this->C+i*sr_C->el_size, this->C+i*sr_C->el_size);
+        sr_C->mul(this->beta, C+i*sr_C->el_size, C+i*sr_C->el_size);
       }*/
     }
 //
-    rec_ctr->A            = this->A;
-    rec_ctr->B            = this->B;
-    rec_ctr->C            = this->C;
     if (crank != 0)
       rec_ctr->beta = sr_C->addid();
     else
@@ -231,21 +222,21 @@ namespace CTF_int {
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
 
-    rec_ctr->run();
+    rec_ctr->run(A, B, C);
     
     /*for (i=0; i<size_C; i++){
       printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
     }*/
     for (i=0; i<ncdt_C; i++){
-      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
-      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->cm);
+      //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
+      MPI_Allreduce(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->cm);
     }
 
     if (arank != 0){
-      this->sr_A->set(this->A, this->sr_A->addid(), size_A);
+      this->sr_A->set(A, this->sr_A->addid(), size_A);
     }
     if (brank != 0){
-      this->sr_B->set(this->B, this->sr_B->addid(), size_B);
+      this->sr_B->set(B, this->sr_B->addid(), size_B);
     }
   }
 }

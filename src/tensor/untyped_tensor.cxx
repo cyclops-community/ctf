@@ -1461,7 +1461,7 @@ namespace CTF_int {
 
     if (wrld->rank == 0)
       printf("Printing tensor %s\n",name);
-    print_map(fp);
+    //print_map(fp);
 
     imy_sz = 0;
     if (cutoff != NULL){

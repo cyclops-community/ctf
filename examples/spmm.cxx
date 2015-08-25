@@ -18,6 +18,8 @@ int spmm(int     n,
   Matrix<> c1(n, k, NS, dw);
   Matrix<> c2(n, k, NS, dw);
 
+  srand48(dw.rank);
+
   b.fill_random(0.0,1.0);
   c1.fill_random(0.0,1.0);
   dnA.fill_random(0.0,1.0);
@@ -36,14 +38,14 @@ int spmm(int     n,
   
   c1["ik"] += dnA["ij"]*b["jk"];
   
-  c2["ik"] += 0.5*spA["ij"]*b["jk"];
-  c2["ik"] += 0.5*b["jk"]*spA["ij"];
+  c2["ik"] += spA["ij"]*b["jk"];
+  //c2["ik"] += 0.5*b["jk"]*spA["ij"];
 
-  /*printf("b\n");
+  /*if (dw.rank == 0) printf("b\n");
   b.print();
-  printf("dense c + A * b\n");
+  if (dw.rank == 0) printf("dense c + A * b\n");
   c1.print();
-  printf("sparse c + A * b\n");
+  if (dw.rank == 0) printf("sparse c + A * b\n");
   c2.print();*/
 
   assert(c2.norm2() >= 1E-6);

@@ -169,7 +169,10 @@ namespace CTF_int {
   }
 
 
-  void spctr_replicate::run(){
+  void spctr_replicate::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
+                            char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
+                            char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
+                            char *& new_C, int64_t & new_nnz_C){
     int arank, brank, crank, i;
 
     arank = 0, brank = 0, crank = 0;
@@ -179,77 +182,74 @@ namespace CTF_int {
       brank += cdt_B[i]->rank;
     for (i=0; i<ncdt_C; i++)
       crank += cdt_C[i]->rank;
-    char * buf_A = this->A;
-    char * buf_B = this->B;
+    char * buf_A = A;
+    char * buf_B = B;
+    int64_t new_nnz_blk_A[nvirt_A];
+    int64_t new_nnz_blk_B[nvirt_B];
+    int64_t new_nnz_A, new_nnz_B;
     if (is_sparse_A){
+      memcpy(new_nnz_blk_A, nnz_blk_A, nvirt_A*sizeof(int64_t));
       /*if (ncdt_A > 0){
         save_nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
         memcpy(save_nnz_blk_A,nnz_blk_A,sizeof(int64_t)*nvirt_A);
       }*/
-      size_A = nnz_A;
+      new_nnz_A = nnz_A;
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(&size_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
-        MPI_Bcast(nnz_blk_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
+        MPI_Bcast(&new_nnz_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
+        MPI_Bcast(new_nnz_blk_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
       }
       MPI_Datatype md;
-      bool need_free = get_mpi_dt(size_A, sr_A->pair_size(), md);
+      bool need_free = get_mpi_dt(new_nnz_A, sr_A->pair_size(), md);
       
-      if (nnz_A != size_A) 
-        buf_A = (char*)alloc(sr_A->pair_size()*size_A);
+      if (nnz_A != new_nnz_A) 
+        buf_A = (char*)alloc(sr_A->pair_size()*new_nnz_A);
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(buf_A, size_A, md, 0, cdt_A[i]->cm);
+        MPI_Bcast(buf_A, new_nnz_A, md, 0, cdt_A[i]->cm);
       }
       if (need_free) MPI_Type_free(&md);
     } else {
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
+        MPI_Bcast(A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
       }
     }
     if (is_sparse_B){
+      memcpy(new_nnz_blk_B, nnz_blk_B, nvirt_B*sizeof(int64_t));
       /*if (ncdt_B > 0){
         save_nnz_blk_B = (int64_t*)alloc(sizeof(int64_t)*nvirt_B);
         memcpy(save_nnz_blk_B,nnz_blk_B,sizeof(int64_t)*nvirt_B);
       }*/
-      size_B = nnz_B;
+      new_nnz_B = nnz_B;
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(&size_B, 1, MPI_INT64_T, 0, cdt_B[i]->cm);
-        MPI_Bcast(nnz_blk_B, nvirt_B, MPI_INT64_T, 0, cdt_B[i]->cm);
+        MPI_Bcast(&new_nnz_B, 1, MPI_INT64_T, 0, cdt_B[i]->cm);
+        MPI_Bcast(new_nnz_blk_B, nvirt_B, MPI_INT64_T, 0, cdt_B[i]->cm);
       }
       MPI_Datatype md;
-      bool need_free = get_mpi_dt(size_B, sr_B->pair_size(), md);
+      bool need_free = get_mpi_dt(new_nnz_B, sr_B->pair_size(), md);
       
-      if (nnz_B != size_B) 
-        buf_B = (char*)alloc(sr_B->pair_size()*size_B);
+      if (nnz_B != new_nnz_B) 
+        buf_B = (char*)alloc(sr_B->pair_size()*new_nnz_B);
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(buf_B, size_B, md, 0, cdt_B[i]->cm);
+        MPI_Bcast(buf_B, new_nnz_B, md, 0, cdt_B[i]->cm);
       }
       if (need_free) MPI_Type_free(&md);
     } else {
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(this->B, size_B, sr_B->mdtype(), 0, cdt_B[i]->cm);
+        MPI_Bcast(B, size_B, sr_B->mdtype(), 0, cdt_B[i]->cm);
       }
     }
     if (is_sparse_C){
       //FIXME: need to replicate nnz_blk_B for this
       assert(ncdt_C == 0);
     }
-//    if (crank != 0) this->sr_C->set(this->C, this->sr_C->addid(), size_C);
+//    if (crank != 0) this->sr_C->set(C, this->sr_C->addid(), size_C);
     if (crank == 0 && !sr_C->isequal(this->beta, sr_C->mulid())){
-      sr_C->scal(size_C, this->beta, this->C, 1);
+      sr_C->scal(size_C, this->beta, C, 1);
 /*      for (i=0; i<size_C; i++){
-        sr_C->mul(this->beta, this->C+i*sr_C->el_size, this->C+i*sr_C->el_size);
+        sr_C->mul(this->beta, C+i*sr_C->el_size, C+i*sr_C->el_size);
       }*/
     }
 //
-    rec_ctr->set_nnz_blk_A(nvirt_A, this->nnz_blk_A);
-    rec_ctr->A         = buf_A;
-    rec_ctr->nnz_A     = size_A;
     ASSERT(!is_sparse_B);
-//    rec_ctr->set_nnz_blk_B(nvirt_B, this->nnz_blk_B);
-    rec_ctr->B         = buf_B;
-    rec_ctr->nnz_B     = size_B;
-    rec_ctr->C         = this->C;
-    rec_ctr->nnz_blk_C = nnz_blk_C;
     if (crank != 0)
       rec_ctr->beta = sr_C->addid();
     else
@@ -257,26 +257,26 @@ namespace CTF_int {
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
 
-    rec_ctr->run();
-    
-    new_nnz_C = rec_ctr->new_nnz_C;
-    new_C = rec_ctr->new_C;
+    rec_ctr->run(buf_A, new_nnz_A, nvirt_A, new_nnz_blk_A,
+                 buf_B, new_nnz_B, nvirt_B, new_nnz_blk_B,
+                     C,     nnz_C, nvirt_C,     nnz_blk_C,
+                 new_C, new_nnz_C);
     /*for (i=0; i<size_C; i++){
       printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
     }*/
     for (i=0; i<ncdt_C; i++){
       ASSERT(!is_sparse_C);
-      //ALLREDUCE(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
-      MPI_Allreduce(MPI_IN_PLACE, this->C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->cm);
+      //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
+      MPI_Allreduce(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->cm);
     }
 
-    if (is_sparse_A && buf_A != this->A) cdealloc(buf_A);
-    if (is_sparse_B && buf_B != this->B) cdealloc(buf_B);
+    if (is_sparse_A && buf_A != A) cdealloc(buf_A);
+    if (is_sparse_B && buf_B != B) cdealloc(buf_B);
     if (!is_sparse_A && arank != 0){
-      this->sr_A->set(this->A, this->sr_A->addid(), size_A);
+      this->sr_A->set(A, this->sr_A->addid(), size_A);
     }
     if (!is_sparse_B && brank != 0){
-      this->sr_B->set(this->B, this->sr_B->addid(), size_B);
+      this->sr_B->set(B, this->sr_B->addid(), size_B);
     }
   }
 }

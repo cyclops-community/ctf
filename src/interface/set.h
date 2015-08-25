@@ -39,7 +39,6 @@ namespace CTF_int {
   MPI_Datatype get_default_mdtype(bool & is_custom){
     MPI_Datatype newtype;
     MPI_Type_contiguous(sizeof(dtype), MPI_BYTE, &newtype);
-    //FIXME ehhh... leaks?
     MPI_Type_commit(&newtype);
     is_custom = true;
     return newtype;

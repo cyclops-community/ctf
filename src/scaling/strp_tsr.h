@@ -136,7 +136,7 @@ namespace CTF_int {
       /**
        * \brief runs strip for contraction of tensors
        */
-      void run();
+      void run(char * A, char * B, char * C);
 
       /**
        * \brief returns the number of bytes of buffer space we need recursively 

@@ -12,6 +12,8 @@ namespace CTF_int {
     public: 
       /** \brief size of each element of algstrct in bytes */
       int el_size;
+      /** \brief datatype for pairs, always custom create3d */
+//      MPI_Datatype pmdtype;
 
       /** \brief b = \max(a,addinv(a)) */
       void (*abs)(char const * a, 
@@ -24,7 +26,7 @@ namespace CTF_int {
       /**
        * \brief default constructor
        */
-      algstrct(){};
+      algstrct(){}
 
       /**
        * \brief copy constructor
@@ -41,7 +43,7 @@ namespace CTF_int {
       /**
        * \brief destructor
        */
-      virtual ~algstrct()=0;
+      virtual ~algstrct() = 0;
 
       /**
        * \brief ''copy constructor''
@@ -54,8 +56,11 @@ namespace CTF_int {
       /** \brief MPI addition operation for reductions */
       virtual MPI_Op addmop() const;
 
-      /** \brief MPI datatype (only used in reductions) */
+      /** \brief MPI datatype */
       virtual MPI_Datatype mdtype() const;
+      
+      /** \brief MPI datatype for pairs */
+//      MPI_Datatype pair_mdtype();
 
       /** \brief identity element for addition i.e. 0 */
       virtual char const * addid() const;
@@ -270,6 +275,8 @@ namespace CTF_int {
 
 
   };
+  //http://stackoverflow.com/questions/630950/pure-virtual-destructor-in-c
+  inline algstrct::~algstrct(){}
 
   /**
    * \brief depins keys of n pairs
@@ -350,8 +357,6 @@ namespace CTF_int {
       int64_t lower_bound(int64_t n, ConstPairIterator op);
   };
 
-  //http://stackoverflow.com/questions/630950/pure-virtual-destructor-in-c
-  inline algstrct::~algstrct(){}
 
   void sgemm(char           tA,
              char           tB,
