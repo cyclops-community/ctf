@@ -1110,17 +1110,44 @@ namespace CTF_int {
 
   int tensor::sparsify(char const * threshold,
                        bool         take_abs){
+    if ((threshold == NULL && sr->addid() == NULL) ||
+        (threshold != NULL && !sr->is_ordered())){
+      return SUCCESS;
+    }
+    if (threshold == NULL)
+      return sparsify([&](char const* c){ return !sr->isequal(c, sr->addid()); });
+    else if (!take_abs)
+      return sparsify([&](char const* c){ 
+        char tmp[sr->el_size];
+        sr->max(c,threshold,tmp);
+        return !sr->isequal(tmp, threshold);
+      });
+    else
+      return sparsify([&](char const* c){ 
+        char tmp[sr->el_size];
+        sr->abs(c,tmp);
+        sr->max(tmp,threshold,tmp);
+        return !sr->isequal(tmp, threshold);
+      });
+  }
+
+  int tensor::sparsify(std::function<bool(char*)> f){
     if (is_sparse){
-      if ((threshold == NULL && sr->addid() == NULL) ||
-          (threshold != NULL && !sr->is_ordered())){
-        return SUCCESS;
-      }
       int64_t nnz_loc_new = 0;
       PairIterator pi(sr, data);
       int64_t nnz_blk_old[calc_nvirt()];
       memcpy(nnz_blk_old, nnz_blk, calc_nvirt()*sizeof(int64_t));
       memset(nnz_blk, 0, calc_nvirt()*sizeof(int64_t));
-      if (threshold == NULL){
+      int64_t i=0; 
+      for (int v=0; v<calc_nvirt(); v++){
+        for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
+          if (f(pi[i].d())){
+            nnz_loc_new++;
+            nnz_blk[v]++;
+          }
+        }
+      }
+/*      if (threshold == NULL){
         int64_t i=0; 
         for (int v=0; v<calc_nvirt(); v++){
           for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
@@ -1146,13 +1173,19 @@ namespace CTF_int {
             }
           }
         }
-      }
+      }*/
       // if we don't have any actual zeros don't do anything
       if (nnz_loc_new == nnz_loc) return SUCCESS;
       alloc_ptr(nnz_loc_new*sr->pair_size(), (void**)&data);
       PairIterator pi_new(sr, data);
       nnz_loc_new = 0;
-      if (threshold == NULL){
+      for (int64_t i=0; i<nnz_loc; i++){
+        if (f(pi[i].d())){
+          memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
+          nnz_loc_new++;
+        }
+      }
+      /*if (threshold == NULL){
         for (int64_t i=0; i<nnz_loc; i++){
           if (!sr->isequal(pi[i].d(), sr->addid())){
             memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
@@ -1172,7 +1205,7 @@ namespace CTF_int {
             nnz_loc_new++;
           }
         }
-      }
+      }*/
       nnz_loc = nnz_loc_new;
       //FIXME compute max nnz_loc?
     } else {
@@ -1196,7 +1229,7 @@ namespace CTF_int {
       write(num_pairs, sr->mulid(), sr->addid(), all_pairs);
       cdealloc(all_pairs);
       //sparsify sparse->sparse
-      sparsify();
+      sparsify(f);
     }
     return SUCCESS;
   }
@@ -1999,11 +2032,11 @@ namespace CTF_int {
           }
           if (is_sparse){
             int64_t lda_i=1, lda_j=1;
-            for (int ii=1; ii<i; ii++){
-              lda_i *= lens[ii-1];
+            for (int ii=0; ii<i; ii++){
+              lda_i *= lens[ii];
             }
-            for (int jj=1; jj<j; jj++){
-              lda_j *= lens[jj-1];
+            for (int jj=0; jj<j; jj++){
+              lda_j *= lens[jj];
             }
             if (rw){
               PairIterator pi(sr, data);
@@ -2045,6 +2078,14 @@ namespace CTF_int {
                 ((int64_t*)(wdata[p].ptr))[0] = k_new;
 //                printf("k = %ld, k_new = %ld lda_i = %ld lda_j = %ld lens[0] = %d lens[1] = %d\n", k,k_new,lda_i,lda_j,lens[0],lens[1]);
               }
+              PairIterator pi(sr, this->data);
+              for (int p=0; p<nnz_loc; p++){
+                int64_t k = pi[p].k();
+                if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){
+                  pi[p].write_val(sr->addid());
+                }
+              }
+
               this->write(nw, sr->mulid(), sr->addid(), pwdata);
               cdealloc(pwdata);
             }

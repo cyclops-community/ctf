@@ -127,7 +127,10 @@ namespace CTF_int {
   
   Term::~Term(){
     delete sr;
-    if (scale != NULL) free(scale);
+    if (scale != NULL){
+      free(scale);
+      scale = NULL;
+    }
   }
 
   Contract_Term Term::operator*(Term const & A) const {
@@ -166,6 +169,17 @@ namespace CTF_int {
   void Term::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
   void Term::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
   void Term::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
+  void Term::operator=(int scl){ execute() = Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator+=(int scl){ execute() += Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator-=(int scl){ execute() -= Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator*=(int scl){ execute() *= Idx_Tensor(sr,(int64_t)scl); }
+
+
+
+  Term & Term::operator-(){
+    sr->safeaddinv(scale,scale);
+    return *this;
+  }
 /*
   Contract_Term Contract_Term::operator-() const {
     Contract_Term trm(*this);
@@ -485,6 +499,7 @@ namespace CTF_int {
         c.execute();
       }
       if (tscale != NULL) free(tscale);
+      tscale = NULL;
       delete pop_A;
       delete pop_B;
     } 
@@ -524,7 +539,10 @@ namespace CTF_int {
       }
       delete pop_A;
       delete pop_B;
-      if (tscale != NULL) free(tscale);
+      if (tscale != NULL){
+        free(tscale);
+        tscale = NULL;
+      }
     } 
     Idx_Tensor rtsr = tmp_ops[0]->execute();
     delete tmp_ops[0];

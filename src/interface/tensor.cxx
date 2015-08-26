@@ -395,6 +395,12 @@ namespace CTF {
     int ret = CTF_int::tensor::sparsify((char*)&threshold, take_abs);
     assert(ret == CTF_int::SUCCESS);
   }
+  
+  template<typename dtype>
+  void Tensor<dtype>::sparsify(std::function<bool(dtype)> filter){
+    int ret = CTF_int::tensor::sparsify([&](char const * c){ filter(((dtype*)c)[0]); });
+    assert(ret == CTF_int::SUCCESS);
+  }
 
 
   template<typename dtype>

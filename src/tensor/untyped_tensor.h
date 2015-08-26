@@ -415,6 +415,12 @@ namespace CTF_int {
        */
       int sparsify(char const * threshold=NULL,
                    bool         take_abs=true);
+  
+      /**
+       * \brief sparsifies tensor keeping only values v such that filter(v) = true
+       * \param[in] f boolean function to apply to values to determine whether to keep them
+       */ 
+      int sparsify(std::function<bool(char*)> f);
 
       /**
        * \brief read tensor data pairs local to processor including those with zero values

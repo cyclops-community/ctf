@@ -206,6 +206,21 @@ namespace CTF {
       sr->safecopy(scale,sr->mulid());
     }
   }
+  
+  void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator+=(double scl){ execute() += Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator-=(double scl){ execute() -= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator*=(double scl){ execute() *= Idx_Tensor(sr,scl); }
+
+  void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
+
+  void Idx_Tensor::operator=(int scl){ execute() = Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator+=(int scl){ execute() += Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator-=(int scl){ execute() -= Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator*=(int scl){ execute() *= Idx_Tensor(sr,(int64_t)scl); }
 
   /*Idx_Tensor Idx_Tensor::operator-() const {
 
@@ -241,8 +256,6 @@ namespace CTF {
   }
 
 
-  void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
 
 
   void Idx_Tensor::execute(Idx_Tensor output) const {

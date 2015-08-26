@@ -31,7 +31,7 @@ int endomorphism(int     n,
 
   double scale = 1.0;
 
-  CTF::Accumulator<double> endo([=](double & d){ d=scale*d*d*d; });
+  CTF::Transform<double> endo([=](double & d){ d=scale*d*d*d; });
   // below is equivalent to A.scale(1.0, "ijkl", endo);
   endo(A["ijkl"]);
 

@@ -187,6 +187,7 @@ namespace CTF_int{
                char *&                 pprs_new,
                univar_function const * func,
                int64_t                 map_pfx){
+
     // determine how many unique keys there are in prs_tsr and prs_Write
     nnew = nB;
     for (int64_t t=0,ww=0; ww<nA*map_pfx; ww++){
@@ -218,6 +219,8 @@ namespace CTF_int{
       int64_t mw = ww%map_pfx;
       if (t<nB && (w==nA || prs_B[t].k() < prs_A[w].k()*map_pfx+mw)){
         memcpy(prs_new[n].ptr, prs_B[t].ptr, sr_B->pair_size());
+        if (beta != NULL)
+          sr_B->mul(prs_B[t].d(), beta, prs_new[n].d());
         t++;
       } else {
         if (t>=nB || prs_B[t].k() > prs_A[w].k()*map_pfx+mw){
@@ -292,13 +295,18 @@ namespace CTF_int{
                        int64_t                 size_A,
                        algstrct const *        sr_A,
                        char const *            beta,
-                       char const *            B,
+                       char *                  B,
                        int64_t                 size_B,
                        char *&                 new_B,
                        int64_t &               new_size_B,
                        algstrct const *        sr_B,
                        univar_function const * func,
                        int64_t                 map_pfx){
+
+/*      if (!sr_B->isequal(beta, sr_B->mulid())){
+        printf("scaling B by 0\n");
+        sr_B->scal(size_B, beta, B, 1);
+      }*/
       spspsum(sr_A, size_A, ConstPairIterator(sr_A, A), beta,
               sr_B, size_B, ConstPairIterator(sr_B, B),alpha,
               new_size_B, new_B, func, map_pfx);

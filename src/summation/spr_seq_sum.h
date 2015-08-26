@@ -87,7 +87,7 @@ namespace CTF_int {
                        int64_t                 size_A,
                        algstrct const *        sr_A,
                        char const *            beta,
-                       char const *            B,
+                       char *                  B,
                        int64_t                 size_B,
                        char *&                 new_B,
                        int64_t &               new_size_B,

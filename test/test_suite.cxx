@@ -34,6 +34,7 @@
 #include "../examples/univar_accumulator_cust_sp.cxx"
 #include "../examples/spmv.cxx"
 #include "../examples/spmm.cxx"
+#include "../examples/jacobi.cxx"
 
 using namespace CTF;
 
@@ -242,6 +243,10 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing sparse-matrix times matrix with n=%d k=%d:\n",n*n,n);
     pass.push_back(spmm(n*n,n,dw));
+    
+    if (rank == 0)
+      printf("Testing Jacobi iteration with n=%d:\n",n);
+    pass.push_back(jacobi(n,dw));
   }
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)

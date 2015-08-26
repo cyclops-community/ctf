@@ -96,7 +96,17 @@ namespace CTF {
 
       //same as in parent (Term) but not inherited in C++
       void operator=(double scl);
+      void operator+=(double scl);
+      void operator-=(double scl);
+      void operator*=(double scl);
       void operator=(int64_t scl);
+      void operator+=(int64_t scl);
+      void operator-=(int64_t scl);
+      void operator*=(int64_t scl);
+      void operator=(int scl);
+      void operator+=(int scl);
+      void operator-=(int scl);
+      void operator*=(int scl);
 
       /**
        * \brief A += B, compute any operations on operand B and add

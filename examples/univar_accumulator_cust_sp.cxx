@@ -61,7 +61,7 @@ int univar_accumulator_cust_sp(int     n,
     
   F.write(my_forces.size(), &my_forces[0]);
 
-  CTF::Accumulator<force,particle> uacc(&acc_force);
+  CTF::Transform<force,particle> uacc(&acc_force);
 
   //FIXME = does not work because it sets beta to addid :/
   F2["ij"] += F["ij"];

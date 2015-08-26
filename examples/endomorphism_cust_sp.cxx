@@ -42,7 +42,7 @@ int endomorphism_cust_sp(int     n,
   } else
     A.write(0, NULL, NULL);
 
-  CTF::Accumulator<cust_sp_type> endo(comp_len);
+  CTF::Transform<cust_sp_type> endo(comp_len);
   // below is equivalent to A.scale(NULL, "ijkl", endo);
   endo(A["ijkl"]);
 

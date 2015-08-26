@@ -99,7 +99,7 @@ namespace CTF {
    *          e.g. B["ij"] = f(A["ij"],B["ij"])
    */
   template<typename dtype_A=double, typename dtype_B=dtype_A>
-  class Univar_Accumulator : public CTF_int::univar_function {
+  class Univar_Transform : public CTF_int::univar_function {
     public:
       /**
        * \brief function signature for element-wise multiplication, compute b=f(a)
@@ -111,7 +111,7 @@ namespace CTF {
        * \brief constructor takes function pointers to compute B=f(A));
        * \param[in] f_ linear function (type_A)->(type_B)
        */
-      Univar_Accumulator(std::function<void(dtype_A, dtype_B &)> f_){ f = f_; }
+      Univar_Transform(std::function<void(dtype_A, dtype_B &)> f_){ f = f_; }
 
       /** 
        * \brief evaluate B=f(A) 
@@ -224,23 +224,23 @@ namespace CTF {
 
   
   template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
-  class Accumulator {
+  class Transform {
     public:
       bool is_endo;
       Endomorphism<dtype_A> * endo;
       bool is_univar;
-      Univar_Accumulator<dtype_A, dtype_B> * univar;
+      Univar_Transform<dtype_A, dtype_B> * univar;
 
-      Accumulator(std::function<void(dtype_A&)> f_){
+      Transform(std::function<void(dtype_A&)> f_){
         is_endo = true;
         is_univar = false;
         endo = new Endomorphism<dtype_A>(f_);
       }
       
-      Accumulator(std::function<void(dtype_A, dtype_B&)> f_){
+      Transform(std::function<void(dtype_A, dtype_B&)> f_){
         is_endo = false;
         is_univar = true;
-        univar = new Univar_Accumulator<dtype_A, dtype_B>(f_);
+        univar = new Univar_Transform<dtype_A, dtype_B>(f_);
       }
 
       void operator()(CTF_int::Term const & A) const {
@@ -253,7 +253,7 @@ namespace CTF {
         univar->operator()(A,B);
       }
       
-      operator Univar_Accumulator<dtype_A, dtype_B>(){
+      operator Univar_Transform<dtype_A, dtype_B>(){
         assert(is_univar);
         return *univar;
       }

@@ -59,7 +59,7 @@ int endomorphism_cust(int     n,
  
   A.write(nvals, inds, vals);
 
-  CTF::Accumulator<cust_type> endo(
+  CTF::Transform<cust_type> endo(
     [](cust_type & a){
       a.len_name = strlen(a.name);
     });

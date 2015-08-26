@@ -651,7 +651,13 @@ namespace CTF {
       void sparsify(dtype threshold,
                     bool  take_abs=true);
 
-      
+     
+      /**
+       * \brief sparsifies tensor keeping only values v such that filter(v) = true
+       * \param[in] filter boolean function to apply to values to determine whether to keep them
+       */ 
+      void sparsify(std::function<bool(dtype)> filter);
+
      /**
        * \brief accumulates this tensor to a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,

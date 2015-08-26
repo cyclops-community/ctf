@@ -115,6 +115,8 @@ namespace CTF_int {
       Sum_Term operator-(double scl) const;
       Sum_Term operator-(int64_t scl) const;
       
+      Term & operator-();
+      
       /**
        * \brief A = B, compute any operations on operand B and set
        * \param[in] B tensor on the right hand side
@@ -134,6 +136,11 @@ namespace CTF_int {
       void operator+=(int64_t scl);
       void operator-=(int64_t scl);
       void operator*=(int64_t scl);
+
+      void operator=(int scl);
+      void operator+=(int scl);
+      void operator-=(int scl);
+      void operator*=(int scl);
       /**
        * \brief figures out what world this term lives on
        */
