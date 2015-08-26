@@ -203,14 +203,16 @@ namespace CTF_int {
             if (is_sparse_A){
               int64_t * new_offsets_A;
               sr_A->socopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
-                           nnz_blk_A, offsets_A, nnz_A,
+                           nnz_blk_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
                            new_nnz_blk_A, new_offsets_A, new_nnz_A);
 
               ret = CTF_int::mst_alloc_ptr(new_nnz_A*sr_A->pair_size(), (void**)&buf_A);
               ASSERT(ret==0);
               op_A = buf_A;
               sr_A->spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
-                           nnz_blk_A, offsets_A, nnz_A, A+sr_A->pair_size()*offsets_A[(ib/cdt_A->np)*ctr_sub_lda_A],
+                           nnz_blk_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
+                           offsets_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
+                           A,
                            new_nnz_blk_A, new_offsets_A, op_A);
               cdealloc(new_offsets_A);
             } else {
@@ -263,14 +265,14 @@ namespace CTF_int {
             if (is_sparse_A){
               int64_t * new_offsets_A;
               sr_A->socopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
-                           nnz_blk_A, offsets_A, nnz_A,
+                           nnz_blk_A+ib*ctr_sub_lda_A,
                            new_nnz_blk_A, new_offsets_A, new_nnz_A);
 
               ret = CTF_int::mst_alloc_ptr(new_nnz_A*sr_A->pair_size(), (void**)&buf_A);
               ASSERT(ret==0);
               op_A = buf_A;
               sr_A->spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
-                           nnz_blk_A, offsets_A, nnz_A, A+sr_A->pair_size()*offsets_A[ib*ctr_sub_lda_A],
+                           nnz_blk_A+ib*ctr_sub_lda_A, offsets_A+ib*ctr_sub_lda_A, A,
                            new_nnz_blk_A, new_offsets_A, op_A);
               cdealloc(new_offsets_A);
             } else {

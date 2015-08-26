@@ -187,8 +187,6 @@ namespace CTF_int {
                   int64_t         lda_a,
                   int64_t         lda_b,
                   int64_t const * sizes_a,
-                  int64_t const * offsets_a,
-                  int64_t         tot_sz,
                   int64_t *&      sizes_b,
                   int64_t *&      offsets_b,
                   int64_t &       new_tot_sz) const ;
@@ -199,7 +197,6 @@ namespace CTF_int {
                   int64_t         lda_b,
                   int64_t const * sizes_a,
                   int64_t const * offsets_a,
-                  int64_t         tot_sz,
                   char const *    a,
                   int64_t const * sizes_b,
                   int64_t const * offsets_b,
