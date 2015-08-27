@@ -207,7 +207,7 @@ namespace CTF_int {
     TAU_FSTART(compute_syoffs);
     offsets_A = (uint64_t**)CTF_int::alloc(sizeof(uint64_t*)*tot_order);
     offsets_B = (uint64_t**)CTF_int::alloc(sizeof(uint64_t*)*tot_order);
-
+          
     for (int idim=0; idim<tot_order; idim++){
       int len=0;
 

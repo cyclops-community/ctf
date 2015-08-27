@@ -1131,7 +1131,7 @@ namespace CTF_int {
       });
   }
 
-  int tensor::sparsify(std::function<bool(char*)> f){
+  int tensor::sparsify(std::function<bool(char const*)> f){
     if (is_sparse){
       int64_t nnz_loc_new = 0;
       PairIterator pi(sr, data);
@@ -1141,6 +1141,8 @@ namespace CTF_int {
       int64_t i=0; 
       for (int v=0; v<calc_nvirt(); v++){
         for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
+//          printf("Filtering %ldth/%ld elements %p %d %d\n",i,nnz_loc,pi.ptr,sr->el_size,sr->pair_size());
+          ASSERT(i<nnz_loc);
           if (f(pi[i].d())){
             nnz_loc_new++;
             nnz_blk[v]++;
@@ -2086,7 +2088,7 @@ namespace CTF_int {
                 }
               }
 
-              this->write(nw, sr->mulid(), sr->addid(), pwdata);
+              this->write(nw, NULL, NULL, pwdata);
               cdealloc(pwdata);
             }
           } else {

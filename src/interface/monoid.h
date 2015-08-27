@@ -90,8 +90,7 @@ namespace CTF {
       Monoid(dtype taddid_,
              dtype (*fadd_)(dtype a, dtype b),
              MPI_Op addmop_)
-              : Set<dtype, is_ord>() {
-        taddid  = taddid_;
+              : Set<dtype, is_ord>(), taddid(taddid_) {
         fadd    = fadd_;
         taddmop = addmop_;
       }

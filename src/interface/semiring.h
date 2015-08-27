@@ -17,6 +17,7 @@ namespace CTF_int {
                     int           incX,
                     dtype *       Y,
                     int           incY){
+
     for (int i=0; i<n; i++){
       Y[incY*i] += alpha*X[incX*i];
     }
@@ -232,8 +233,7 @@ namespace CTF {
                void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
                void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
                void (*scal_)(int,dtype,dtype*,int)=NULL) 
-                : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) {
-        tmulid = mulid_;
+                : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) , tmulid(mulid_) {
         fmul   = fmul_;
         fgemm  = gemm_;
         faxpy  = axpy_;
@@ -304,6 +304,8 @@ namespace CTF {
                 int          incY)  const {
         if (faxpy != NULL) faxpy(n, ((dtype const *)alpha)[0], (dtype const *)X, incX, (dtype *)Y, incY);
         else {
+          assert(incX==1);
+          assert(incY==1);
           dtype a           = ((dtype*)alpha)[0];
           dtype const * dX = (dtype*) X;
           dtype * dY       = (dtype*) Y;

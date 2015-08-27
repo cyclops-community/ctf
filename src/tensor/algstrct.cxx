@@ -525,10 +525,35 @@ namespace CTF_int {
     bool operator < (const CompPair& other) const {
       return (key < other.key);
     }
-  };
-  template struct CompPair<1>;
+  } __attribute__((packed));
+
+  struct IntPair{
+    int64_t key;
+    int data;
+    bool operator < (const IntPair& other) const {
+      return (key < other.key);
+    }
+  } __attribute__((packed));
+  
+  struct ShortPair{
+    int64_t key;
+    short data;
+    bool operator < (const ShortPair& other) const {
+      return (key < other.key);
+    }
+  } __attribute__((packed));
+  
+  struct BoolPair{
+    int64_t key;
+    bool data;
+    bool operator < (const BoolPair& other) const {
+      return (key < other.key);
+    }
+  } __attribute__((packed));
+
+/*  template struct CompPair<1>;
   template struct CompPair<2>;
-  template struct CompPair<4>;
+  template struct CompPair<4>;*/
   template struct CompPair<8>;
   template struct CompPair<12>;
   template struct CompPair<16>;
@@ -548,33 +573,43 @@ namespace CTF_int {
   void PairIterator::sort(int64_t n){
     switch (sr->el_size){
       case 1:
-        std::sort((CompPair<1>*)ptr,((CompPair<1>*)ptr)+n);
+        ASSERT(sizeof(BoolPair)==sr->pair_size());
+        std::sort((BoolPair*)ptr,((BoolPair*)ptr)+n);
         break;
       case 2:
-        std::sort((CompPair<2>*)ptr,((CompPair<2>*)ptr)+n);
+        ASSERT(sizeof(ShortPair)==sr->pair_size());
+        std::sort((ShortPair*)ptr,((ShortPair*)ptr)+n);
         break;
       case 4:
-        std::sort((CompPair<4>*)ptr,((CompPair<4>*)ptr)+n);
+        ASSERT(sizeof(IntPair)==sr->pair_size());
+        std::sort((IntPair*)ptr,((IntPair*)ptr)+n);
         break;
       case 8:
+        ASSERT(sizeof(CompPair<8>)==sr->pair_size());
         std::sort((CompPair<8>*)ptr,((CompPair<8>*)ptr)+n);
         break;
       case 12:
+        ASSERT(sizeof(CompPair<12>)==sr->pair_size());
         std::sort((CompPair<12>*)ptr,((CompPair<12>*)ptr)+n);
         break;
       case 16:
+        ASSERT(sizeof(CompPair<16>)==sr->pair_size());
         std::sort((CompPair<16>*)ptr,((CompPair<16>*)ptr)+n);
         break;
       case 20:
+        ASSERT(sizeof(CompPair<20>)==sr->pair_size());
         std::sort((CompPair<20>*)ptr,((CompPair<20>*)ptr)+n);
         break;
       case 24:
+        ASSERT(sizeof(CompPair<24>)==sr->pair_size());
         std::sort((CompPair<24>*)ptr,((CompPair<24>*)ptr)+n);
         break;
       case 28:
+        ASSERT(sizeof(CompPair<28>)==sr->pair_size());
         std::sort((CompPair<28>*)ptr,((CompPair<28>*)ptr)+n);
         break;
       case 32:
+        ASSERT(sizeof(CompPair<32>)==sr->pair_size());
         std::sort((CompPair<32>*)ptr,((CompPair<32>*)ptr)+n);
         break;
       default:

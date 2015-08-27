@@ -35,6 +35,7 @@
 #include "../examples/spmv.cxx"
 #include "../examples/spmm.cxx"
 #include "../examples/jacobi.cxx"
+#include "../examples/apsp.cxx"
 
 using namespace CTF;
 
@@ -247,6 +248,10 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing Jacobi iteration with n=%d:\n",n);
     pass.push_back(jacobi(n,dw));
+    
+    if (rank == 0)
+      printf("Testing APSP via path doubling with n=%d:\n",n*n);
+    pass.push_back(apsp(n*n,dw));
   }
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)
