@@ -313,7 +313,7 @@ namespace CTF_int{
   }
 
   template<>
-  void spA_dnB_dnC_ctrloop< MAX_ORD+(MAX_ORD/2) >
+  void spA_dnB_dnC_ctrloop< MAX_ORD >
                           (char const *           alpha,
                            ConstPairIterator &    A,
                            int64_t &              size_A,
@@ -420,7 +420,7 @@ namespace CTF_int{
         }*/
       }
     }
-    ASSERT(idx_max <= (MAX_ORD+MAX_ORD/2+1));
+    ASSERT(idx_max <= MAX_ORD);
     uint64_t ** offsets_A;
     uint64_t ** offsets_B;
     uint64_t ** offsets_C;

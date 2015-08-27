@@ -266,7 +266,7 @@ namespace CTF_int{
   }
 
   template 
-  void sym_seq_ctr_loop< MAX_ORD+(MAX_ORD/2) >
+  void sym_seq_ctr_loop< MAX_ORD >
                        (char const *     alpha,
                         char const *     A,
                         algstrct const * sr_A,
@@ -452,7 +452,7 @@ namespace CTF_int{
         }*/
       }
     }
-    if (idx_max <= (MAX_ORD+MAX_ORD/2+1)){
+    if (idx_max <= MAX_ORD){
       uint64_t ** offsets_A;
       uint64_t ** offsets_B;
       uint64_t ** offsets_C;

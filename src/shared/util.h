@@ -93,10 +93,11 @@ namespace CTF_int {
   #define HOME_CONTRACT
   #define USE_BLOCK_RESHUFFLE
 
-  #define MAX_ORD 8
+  #define MAX_ORD 12
   #define LOOP_MAX_ORD(F,...) \
     F(0,__VA_ARGS__) F(1,__VA_ARGS__) F(2,__VA_ARGS__) F(3,__VA_ARGS__) \
-    F(4,__VA_ARGS__) F(5,__VA_ARGS__) F(6,__VA_ARGS__) F(7,__VA_ARGS__) 
+    F(4,__VA_ARGS__) F(5,__VA_ARGS__) F(6,__VA_ARGS__) F(7,__VA_ARGS__) \
+    F(8,__VA_ARGS__) F(9,__VA_ARGS__) F(10,__VA_ARGS__) F(11,__VA_ARGS__) 
 
   #define ORD_CASE(ord,F,...) \
     case ord: \
