@@ -8,16 +8,16 @@
 #include <ctf.hpp>
 using namespace CTF;
 
+// calculate APSP on a graph of n nodes distributed on World (communicator) dw
 int apsp(int     n,
          World & dw){
 
-  //tropical semiring
+  //tropical semiring, define additive identity to be INT_MAX/2 to prevent integer overflow
   Semiring<int> s(INT_MAX/2, 
                   [](int a, int b){ return std::min(a,b); },
                   MPI_MIN,
                   0,
                   [](int a, int b){ return a+b; });
-
 
   //random adjacency matrix
   Matrix<int> A(n, n, dw, s);

@@ -2,12 +2,14 @@
   * @{ 
   * \defgroup jacobi jacobi
   * @{ 
-  * \brief Multiplication of a random square sparse matrix by a vector
+  * \brief Jacobi iterative method using gemv and spmv
   */
 
 #include <ctf.hpp>
 using namespace CTF;
 
+// compute a single Jacobi iteration to get new x, elementwise: x_i <== d_i*(b_i-sum_j R_ij*x_j)
+// solves Ax=b where R_ij=A_ij for i!=j, while R_ii=0, and d_i=1/A_ii
 void jacobi_iter(Matrix<> & R, Vector<> & b, Vector<> & d, Vector<> &x){
   x["i"] = -R["ij"]*x["j"];
   x["i"] += b["i"];
