@@ -12,11 +12,11 @@ int spmm(int     n,
          int     k,
          World & dw){
 
-  Matrix<> spA(true,  n, n, NS, dw);
-  Matrix<> dnA(false, n, n, NS, dw);
-  Matrix<> b(n, k, NS, dw);
-  Matrix<> c1(n, k, NS, dw);
-  Matrix<> c2(n, k, NS, dw);
+  Matrix<> spA(n, n, SP, dw);
+  Matrix<> dnA(n, n, dw);
+  Matrix<> b(n, k, dw);
+  Matrix<> c1(n, k, dw);
+  Matrix<> c2(n, k, dw);
 
   srand48(dw.rank);
 

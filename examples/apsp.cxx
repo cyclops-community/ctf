@@ -8,33 +8,26 @@
 #include <ctf.hpp>
 using namespace CTF;
 
-//struct for path with w=path weight, h=#hops
-struct path {
-  int w, h;
-  path(int w_, int h_){ w=w_; h=h_; }
-  path(){};
-};
-
 int apsp(int     n,
          World & dw){
 
   //tropical semiring
-  Semiring<int> s(INT_MAX, 
+  Semiring<int> s(INT_MAX/2, 
                   [](int a, int b){ return std::min(a,b); },
                   MPI_MIN,
                   0,
-                  [](int a, int b){ return (int)std::min((unsigned int)INT_MAX,(unsigned int)a+(unsigned int)b); });
+                  [](int a, int b){ return a+b; });
 
 
   //random adjacency matrix
-  Matrix<int> A(false, n, n, NS, dw, s);
+  Matrix<int> A(n, n, dw, s);
   srand(dw.rank);
   A.fill_random(0, 100); 
   //no loops
   A["ii"] = 0;
- 
+
   //distance matrix to compute
-  Matrix<int> D(false, n, n, NS, dw, s);
+  Matrix<int> D(n, n, dw, s);
 
   //initialize to adjacency graph
   D["ij"] = A["ij"];
@@ -51,6 +44,13 @@ int apsp(int     n,
   }
 #endif
 
+  //struct for path with w=path weight, h=#hops
+  struct path {
+    int w, h;
+    path(int w_, int h_){ w=w_; h=h_; }
+    path(){};
+  };
+
   MPI_Op opath;
   MPI_Op_create(
       [](void *invec, void *inoutvec, int *len, MPI_Datatype *datatype){ 
@@ -62,27 +62,28 @@ int apsp(int     n,
       1, &opath);
 
   //tropical semiring with hops carried by winner of min
-  Semiring<path> p(path(INT_MAX,0), 
-                   [](path a, path b){ if (a.w<=b.w) return a; else return b; },
+  Semiring<path> p(path(INT_MAX/2,0), 
+                   [](path a, path b){ if (a.w<b.w) return a; else return b; },
                    opath,
                    path(0,0),
-                   [](path a, path b){ return path((int)std::min((unsigned int)INT_MAX,(unsigned int)a.w+(unsigned int)b.w), a.h+b.h); } );
+                   [](path a, path b){ return path(a.w+b.w, a.h+b.h); });
  
   //path matrix to contain distance matrix
-  Matrix<path> P(false, n, n, NS, dw, p);
+  Matrix<path> P(n, n, dw, p);
 
   Function<int,path> setw([](int w){ return path(w, 1); });
 
   P["ij"] = setw(A["ij"]);
   
   //sparse path matrix to contain all paths of exactly i hops
-  Matrix<path> Pi(true, n, n, NS, dw, p);
+  Matrix<path> Pi(n, n, SP, dw, p);
 
   time = MPI_Wtime();
   for (int i=1; i<n; i=i<<1){
     //let Pi be all paths in P consisting of exactly i hops
     Pi["ij"] = P["ij"];
-    Pi.sparsify([=](path p){ return (p.w == i); });
+    Pi.sparsify([=](path p){ return (p.h == i); });
+
     //all shortest paths of up to 2i hops either 
     // (1) are a shortest path of length up to i
     // (2) consist of a shortest path of length up to i and a shortest path of length exactly i
@@ -95,15 +96,7 @@ int apsp(int     n,
     printf("SPARSE path doubling took %lf sec\n", time);
   }
 #endif
-  /* int64_t loc_nnz_P;
-  Pair<path> * prs_P; 
-  P.read_local_nnz(&loc_nnz_P, &prs_P);
-
-  for (int64_t i=0; i<loc_nnz_P; i++){
-    printf("[%ld][%ld] = (%d, %d)\n",prs_P[i].k%n, prs_P[i].k/n, prs_P[i].d.w, prs_P[i].d.h);
-  }*/
-
-  //check correctness by subtracting the two computed shortest path matrices from one another and checking that no nonzeros are left
+   //check correctness by subtracting the two computed shortest path matrices from one another and checking that no nonzeros are left
   Transform<path,int> xtrw([](path p, int & w){ return w-=p.w; });
 
   xtrw(P["ij"], D["ij"]);

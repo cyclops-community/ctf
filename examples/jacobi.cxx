@@ -17,8 +17,8 @@ void jacobi_iter(Matrix<> & R, Vector<> & b, Vector<> & d, Vector<> &x){
 int jacobi(int     n,
            World & dw){
 
-  Matrix<> spA(true,  n, n, NS, dw, "spA");
-  Matrix<> dnA(false, n, n, NS, dw, "dnA");
+  Matrix<> spA(n, n, SP, dw, "spA");
+  Matrix<> dnA(n, n, dw, "dnA");
   Vector<> b(n, dw);
   Vector<> c1(n, dw);
   Vector<> c2(n, dw);
@@ -42,8 +42,8 @@ int jacobi(int     n,
   Transform<> inv([](double & d){ d=1./d; });
   inv(d["i"]);
   
-  Matrix<> spR(true,  n, n, NS, dw, "spR");
-  Matrix<> dnR(false, n, n, NS, dw, "dnR");
+  Matrix<> spR(n, n, SP, dw, "spR");
+  Matrix<> dnR(n, n, dw, "dnR");
   spR["ij"] = spA["ij"];
   dnR["ij"] = dnA["ij"];
   spR["ii"] = 0;

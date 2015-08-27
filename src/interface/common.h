@@ -23,7 +23,17 @@
  * AS = 2 - antisymmetric
  * SH = 3 - symmetric hollow
  */
-enum SYM : int { NS, SY, AS, SH };
+//enum SYM : int { NS, SY, AS, SH };
+/**
+ * labels corresponding to symmetry or strucutre of entire tensor 
+ * NS = 0 - nonsymmetric
+ * SY = 1 - symmetric
+ * AS = 2 - antisymmetric
+ * SH = 3 - symmetric hollow
+ * SP = 4 - sparse
+ */
+enum STRUCTURE : int { NS, SY, AS, SH, SP };
+typedef STRUCTURE SYM;
 
 namespace CTF {
   /**

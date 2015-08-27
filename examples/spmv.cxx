@@ -11,8 +11,8 @@ using namespace CTF;
 int spmv(int     n,
          World & dw){
 
-  Matrix<> spA(true,  n, n, NS, dw);
-  Matrix<> dnA(false, n, n, NS, dw);
+  Matrix<> spA(n, n, SP, dw);
+  Matrix<> dnA(n, n, dw);
   Vector<> b(n, dw);
   Vector<> c1(n, dw);
   Vector<> c2(n, dw);

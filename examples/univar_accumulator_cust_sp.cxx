@@ -19,8 +19,8 @@ int univar_accumulator_cust_sp(int     n,
   Group<force> gF = Group<force>();
   
   Vector<particle> P(n, dw, sP);
-  Matrix<force> F (true, n, n, AS, dw, gF);
-  Matrix<force> F2(true, n, n, AS, dw, gF);
+  Matrix<force> F (n, n, AS | SP, dw, gF);
+  Matrix<force> F2(n, n, AS | SP, dw, gF);
 
   particle * loc_parts;
   int64_t nloc;
