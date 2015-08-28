@@ -155,7 +155,7 @@ namespace CTF_int {
             (iB != -1 && inB - iB != in-i) ||
             (iB != -1 && A->sym[inA] != B->sym[inB])){
           broken = 1;
-          //printf("index in = %d inA = %d inB = %d is broken symA = %d symB = %d\n",in, inA, inB, A->sym[inA], B->sym[inB]);
+      //    printf("index in = %d inA = %d inB = %d is broken symA = %d symB = %d\n",in, inA, inB, A->sym[inA], B->sym[inB]);
         }
         inA++;
       } while (A->sym[inA-1] != NS);
@@ -878,7 +878,7 @@ namespace CTF_int {
     A->unfold();
     B->unfold();
     // FIXME: if custom function, we currently don't know whether its odd, even or neither, so unpack everything
-    if (is_custom){
+    /*if (is_custom){
       bool is_nonsym=true;
       for (int i=0; i<A->order; i++){
         if (A->sym[i] != NS){
@@ -919,6 +919,7 @@ namespace CTF_int {
         }
         tensor tB(B->sr, B->order, B->lens, sym_B, B->wrld, 1);
         tB.is_home = 0;
+        tB.has_home = 0;
         if (!B->sr->isequal(B->sr->addid(), beta)){
           summation st(B, idx_B, B->sr->mulid(), &tB, idx_B, B->sr->mulid());
           st.execute();
@@ -930,7 +931,7 @@ namespace CTF_int {
         stme2.execute();
         return SUCCESS;
       }
-    }
+    }*/
 
   #ifndef HOME_CONTRACT
     #ifdef USE_SYM_SUM

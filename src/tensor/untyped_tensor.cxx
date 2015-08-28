@@ -116,7 +116,7 @@ namespace CTF_int {
 
     if (copy) {
       copy_tensor_data(other);
-    } else data = NULL;
+    } else if (!alloc_data) data = NULL;
 
   }
  
@@ -239,7 +239,6 @@ namespace CTF_int {
     this->order = other->order;
     memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int)*other->order);
     memcpy(this->padding, other->padding, sizeof(int)*other->order);
-    memcpy(this->sym, other->sym, sizeof(int)*other->order);
     this->is_mapped = other->is_mapped;
     this->is_cyclic = other->is_cyclic;
     this->topo      = other->topo;

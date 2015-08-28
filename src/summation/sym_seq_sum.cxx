@@ -346,7 +346,7 @@ namespace CTF_int {
     TAU_FSTOP(SCAL_B);
 
     memset(idx_glb, 0, sizeof(int)*idx_max);
-    if (!rep_idx && idx_max>0 && idx_max <= MAX_ORD){
+    if (!rep_idx && idx_max>0 && idx_max <= -1){
       uint64_t ** offsets_A;
       uint64_t ** offsets_B;
       compute_syoffs(sr_A, order_A, edge_len_A, sym_A, idx_map_A, sr_B, order_B, edge_len_B, sym_B, idx_map_B, idx_max, rev_idx_map, offsets_A, offsets_B);
