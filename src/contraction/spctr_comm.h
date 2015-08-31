@@ -22,15 +22,15 @@ namespace CTF_int{
       CommData ** cdt_C;
       /* Class to be called on sub-blocks */
       spctr * rec_ctr;
-    /*  void set_nnz_blk_A(int new_nvirt_A, int64_t const * nnbA){
-        spctr::set_nnz_blk_A(new_nvirt_A, nnbA);
-        rec_ctr->set_nnz_blk_A(new_nvirt_A, nnbA);
+    /*  void set_size_blk_A(int new_nblk_A, int64_t const * nnbA){
+        spctr::set_size_blk_A(new_nblk_A, nnbA);
+        rec_ctr->set_size_blk_A(new_nblk_A, nnbA);
       }*/
       
-      void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-               char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-               char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-               char *& new_C, int64_t & new_nnz_C);
+      void run(char * A, int nblk_A, int64_t const * size_blk_A,
+               char * B, int nblk_B, int64_t const * size_blk_B,
+               char * C, int nblk_C, int64_t * size_blk_C,
+               char *& new_C);
       /**
        * \brief returns the number of bytes of buffer space
        *  we need 

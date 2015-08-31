@@ -181,26 +181,7 @@ namespace CTF_int {
                 char *       b,
                 int64_t      lda_b,
                 char const * beta) const;
-      
-      void socopy(int64_t         m,
-                  int64_t         n,
-                  int64_t         lda_a,
-                  int64_t         lda_b,
-                  int64_t const * sizes_a,
-                  int64_t *&      sizes_b,
-                  int64_t *&      offsets_b,
-                  int64_t &       new_tot_sz) const ;
 
-      void spcopy(int64_t         m,
-                  int64_t         n,
-                  int64_t         lda_a,
-                  int64_t         lda_b,
-                  int64_t const * sizes_a,
-                  int64_t const * offsets_a,
-                  char const *    a,
-                  int64_t const * sizes_b,
-                  int64_t const * offsets_b,
-                  char *          b) const;
       /** \brief copies pair b to element a */
       void copy_pair(char * a, char const * b) const;
       

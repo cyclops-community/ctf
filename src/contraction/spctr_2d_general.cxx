@@ -112,10 +112,10 @@ namespace CTF_int {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
-  void spctr_2d_general::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-                             char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-                             char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-                             char *& new_C, int64_t & new_nnz_C){
+  void spctr_2d_general::run(char * A, int nblk_A, int64_t const * size_blk_A,
+                             char * B, int nblk_B, int64_t const * size_blk_B,
+                             char * C, int nblk_C, int64_t * size_blk_C,
+                             char *& new_C){
     int owner_A, owner_B, owner_C, ret;
     int64_t ib;
     char * buf_A, * buf_B, * buf_C, * buf_aux; 
@@ -179,43 +179,43 @@ namespace CTF_int {
 
     int64_t * offsets_A;
     if (is_sparse_A){
-      CTF_int::alloc_ptr(sizeof(int64_t)*nvirt_A, (void**)&offsets_A);
-      for (int i=0; i<nvirt_A; i++){
+      CTF_int::alloc_ptr(sizeof(int64_t)*nblk_A, (void**)&offsets_A);
+      for (int i=0; i<nblk_A; i++){
         if (i==0) offsets_A[0] = 0;
-        else offsets_A[i] = offsets_A[i-1]+nnz_blk_A[i-1];
+        else offsets_A[i] = offsets_A[i-1]+size_blk_A[i-1];
       }
     }
     ASSERT(!is_sparse_B);
     ASSERT(!is_sparse_C);
-    int64_t * new_nnz_blk_A = (int64_t*)nnz_blk_A;
-    int64_t new_nnz_A = nnz_A;
-    int new_nvirt_A = nvirt_A;
+    int64_t * new_size_blk_A = (int64_t*)size_blk_A;
+    int new_nblk_A = nblk_A;
     //for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
+
     for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
-      new_nnz_blk_A = (int64_t*)nnz_blk_A;
-      new_nnz_A = nnz_A;
+      new_size_blk_A = (int64_t*)size_blk_A;
       if (move_A){
-        new_nvirt_A = nvirt_A/b_A;
+        new_nblk_A = nblk_A/b_A;
         owner_A   = ib % cdt_A->np;
         if (rank_A == owner_A){
           if (b_A == 1){
             op_A = A;
-            new_nnz_A = nnz_A;
           } else {
             if (is_sparse_A){
               int64_t * new_offsets_A;
-              sr_A->socopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
-                           nnz_blk_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
-                           new_nnz_blk_A, new_offsets_A, new_nnz_A);
+              socopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
+                     size_blk_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
+                     new_size_blk_A, new_offsets_A);
 
-              ret = CTF_int::mst_alloc_ptr(new_nnz_A*sr_A->pair_size(), (void**)&buf_A);
+              int64_t bc_size_A = 0;
+              for (int z=0; z<new_nblk_A; z++) bc_size_A += new_size_blk_A[z];
+              ret = CTF_int::mst_alloc_ptr(bc_size_A, (void**)&buf_A);
               ASSERT(ret==0);
               op_A = buf_A;
-              sr_A->spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
-                           nnz_blk_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
-                           offsets_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
-                           A,
-                           new_nnz_blk_A, new_offsets_A, op_A);
+              spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
+                     size_blk_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
+                     offsets_A+(ib/cdt_A->np)*ctr_sub_lda_A, 
+                     A,
+                     new_size_blk_A, new_offsets_A, op_A);
               cdealloc(new_offsets_A);
             } else {
               op_A = buf_A;
@@ -226,28 +226,26 @@ namespace CTF_int {
           }
         } else {
           if (is_sparse_A)
-            CTF_int::alloc_ptr(sizeof(int64_t)*nvirt_A/b_A, (void**)&new_nnz_blk_A);
+            CTF_int::alloc_ptr(sizeof(int64_t)*nblk_A/b_A, (void**)&new_size_blk_A);
           else
             op_A = buf_A;
         }
         if (is_sparse_A){
-          MPI_Bcast(&new_nnz_A, 1, MPI_INT64_T, owner_A, cdt_A->cm);
-          MPI_Bcast(new_nnz_blk_A, new_nvirt_A, MPI_INT64_T, owner_A, cdt_A->cm);
+          MPI_Bcast(new_size_blk_A, new_nblk_A, MPI_INT64_T, owner_A, cdt_A->cm);
+          int64_t bc_size_A = 0;
+          for (int z=0; z<new_nblk_A; z++) bc_size_A += new_size_blk_A[z];
 
           if (cdt_A->rank != owner_A){ 
-            ret = CTF_int::mst_alloc_ptr(new_nnz_A*sr_A->pair_size(), (void**)&buf_A);
+            ret = CTF_int::mst_alloc_ptr(bc_size_A, (void**)&buf_A);
             ASSERT(ret==0);
             op_A = buf_A;
           }
-          MPI_Datatype md;
-          bool need_free = get_mpi_dt(new_nnz_A, sr_A->pair_size(), md);
-          MPI_Bcast(op_A, new_nnz_A, md, owner_A, cdt_A->cm);
-          if (need_free) MPI_Type_free(&md);
+          MPI_Bcast(op_A, bc_size_A, MPI_CHAR, owner_A, cdt_A->cm);
           /*int rrank;
           MPI_Comm_rank(MPI_COMM_WORLD, &rrank);
-          printf("rrank = %d new_nvirt_A = %d rank = %d owner = %d new_nnz_A = %ld old_nnz_A = %ld\n",rrank,new_nvirt_A,cdt_A->rank, owner_A, new_nnz_A, nnz_A);
-          for (int rr=0; rr<new_nvirt_A; rr++){
-            printf("rrank = %d new_nvirt_A = %d new_nnz_blk_A[%d] = %ld\n", rrank, new_nvirt_A, rr, new_nnz_blk_A[rr]);
+          printf("rrank = %d new_nblk_A = %d rank = %d owner = %d new_nnz_A = %ld old_nnz_A = %ld\n",rrank,new_nblk_A,cdt_A->rank, owner_A, new_nnz_A, nnz_A);
+          for (int rr=0; rr<new_nblk_A; rr++){
+            printf("rrank = %d new_nblk_A = %d new_size_blk_A[%d] = %ld\n", rrank, new_nblk_A, rr, new_size_blk_A[rr]);
           }*/
         } else {
           MPI_Bcast(op_A, s_A, sr_A->mdtype(), owner_A, cdt_A->cm);
@@ -256,35 +254,33 @@ namespace CTF_int {
         if (ctr_sub_lda_A == 0)
           op_A = A;
         else {
-          new_nvirt_A = nvirt_A/edge_len;
+          new_nblk_A = nblk_A/edge_len;
           if (ctr_lda_A == 1){
             if (is_sparse_A){
-              op_A = A+sr_A->pair_size()*offsets_A[ib*ctr_sub_lda_A];
-              CTF_int::alloc_ptr(sizeof(int64_t)*new_nvirt_A, (void**)&new_nnz_blk_A);
-              memcpy(new_nnz_blk_A, nnz_blk_A+ib*ctr_sub_lda_A, sizeof(int64_t)*new_nvirt_A);
-              new_nnz_A = 0;
-              for (int a=0; a<new_nvirt_A; a++){
-                new_nnz_A += new_nnz_blk_A[a];
-              }
+              op_A = A+offsets_A[ib*ctr_sub_lda_A];
+              CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_A, (void**)&new_size_blk_A);
+              memcpy(new_size_blk_A, size_blk_A+ib*ctr_sub_lda_A, sizeof(int64_t)*new_nblk_A);
 /*              int rrank;
               MPI_Comm_rank(MPI_COMM_WORLD, &rrank);
-              printf("rrank = %d ib = %ld new_nvirt_A = %d, new_nnz_A = %ld offset = %ld\n", rrank, ib, new_nvirt_A, new_nnz_A, offsets_A[ib*ctr_sub_lda_A]);*/
+              printf("rrank = %d ib = %ld new_nblk_A = %d, new_nnz_A = %ld offset = %ld\n", rrank, ib, new_nblk_A, new_nnz_A, offsets_A[ib*ctr_sub_lda_A]);*/
             } else {
               op_A = A+sr_A->el_size*ib*ctr_sub_lda_A;
             }
           } else {
             if (is_sparse_A){
               int64_t * new_offsets_A;
-              sr_A->socopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*edge_len, ctr_sub_lda_A,
-                           nnz_blk_A+ib*ctr_sub_lda_A,
-                           new_nnz_blk_A, new_offsets_A, new_nnz_A);
+              socopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*edge_len, ctr_sub_lda_A,
+                     size_blk_A+ib*ctr_sub_lda_A,
+                     new_size_blk_A, new_offsets_A);
+              int64_t bc_size_A = 0;
+              for (int z=0; z<new_nblk_A; z++) bc_size_A += new_size_blk_A[z];
 
-              ret = CTF_int::mst_alloc_ptr(new_nnz_A*sr_A->pair_size(), (void**)&buf_A);
+              ret = CTF_int::mst_alloc_ptr(bc_size_A, (void**)&buf_A);
               ASSERT(ret==0);
               op_A = buf_A;
-              sr_A->spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*edge_len, ctr_sub_lda_A,
-                           nnz_blk_A+ib*ctr_sub_lda_A, offsets_A+ib*ctr_sub_lda_A, A,
-                           new_nnz_blk_A, new_offsets_A, op_A);
+              spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*edge_len, ctr_sub_lda_A,
+                     size_blk_A+ib*ctr_sub_lda_A, offsets_A+ib*ctr_sub_lda_A, A,
+                     new_size_blk_A, new_offsets_A, op_A);
               cdealloc(new_offsets_A);
             } else {
               op_A = buf_A;
@@ -341,10 +337,10 @@ namespace CTF_int {
       } 
 
 
-      rec_ctr->run(op_A, new_nnz_A, new_nvirt_A, new_nnz_blk_A,
-                   op_B, nnz_B, nvirt_B, nnz_blk_B,
-                   op_C, nnz_C, nvirt_C, nnz_blk_C,
-                   new_C, new_nnz_C);
+      rec_ctr->run(op_A, new_nblk_A, new_size_blk_A,
+                   op_B, nblk_B, size_blk_B,
+                   op_C, nblk_C, size_blk_C,
+                   new_C);
 
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);

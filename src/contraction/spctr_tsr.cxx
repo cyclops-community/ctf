@@ -164,16 +164,19 @@ namespace CTF_int {
     return est_time_fp(nlyr);
   }
 
-  void seq_tsr_spctr::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-                          char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-                          char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-                          char *& new_C, int64_t & new_nnz_C){
+  void seq_tsr_spctr::run(char * A, int nblk_A, int64_t const * size_blk_A,
+                          char * B, int nblk_B, int64_t const * size_blk_B,
+                          char * C, int nblk_C, int64_t * size_blk_C,
+                          char *& new_C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
     ASSERT( is_sparse_A);
     ASSERT(!is_sparse_B);
     ASSERT(!is_sparse_C);
     ASSERT(is_inner == 0);
-    ASSERT(nvirt_A == 1);
+    ASSERT(nblk_A == 1);
+    ASSERT(size_blk_A[0]%sr_A->pair_size() == 0);
+
+    int64_t nnz_A = size_blk_A[0]/sr_A->pair_size();
 
     spA_dnB_dnC_seq_ctr(this->alpha,
                         A,
@@ -264,11 +267,11 @@ namespace CTF_int {
 
   double spctr_virt::est_time_rec(int nlyr) {
     /* FIXME: for now treat flops like comm, later make proper cost */
-    int64_t nvirt = 1;
+    int64_t nblk = 1;
     for (int dim=0; dim<num_dim; dim++){
-      nvirt *= virt_dim[dim];
+      nblk *= virt_dim[dim];
     }
-    return nvirt*rec_ctr->est_time_rec(nlyr);
+    return nblk*rec_ctr->est_time_rec(nlyr);
   }
 
 
@@ -282,10 +285,10 @@ namespace CTF_int {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
-  void spctr_virt::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-                       char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-                       char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-                       char *& new_C, int64_t & new_nnz_C){
+  void spctr_virt::run(char * A, int nblk_A, int64_t const * size_blk_A,
+                       char * B, int nblk_B, int64_t const * size_blk_B,
+                       char * C, int nblk_C, int64_t * size_blk_C,
+                       char *& new_C){
     TAU_FSTART(spctr_virt);
     int * idx_arr, * tidx_arr, * lda_A, * lda_B, * lda_C, * beta_arr;
     int * ilda_A, * ilda_B, * ilda_C;
@@ -335,7 +338,7 @@ namespace CTF_int {
       sp_offsets_A = (int64_t*)alloc(sizeof(int64_t)*nb_A);
       sp_offsets_A[0] = 0;
       for (int i=1; i<nb_A; i++){
-        sp_offsets_A[i] = sp_offsets_A[i-1]+nnz_blk_A[i-1];
+        sp_offsets_A[i] = sp_offsets_A[i-1]+size_blk_A[i-1];
       }
     }
     int64_t * sp_offsets_B;
@@ -343,7 +346,7 @@ namespace CTF_int {
       sp_offsets_B = (int64_t*)alloc(sizeof(int64_t)*nb_B);
       sp_offsets_B[0] = 0;
       for (int i=1; i<nb_B; i++){
-        sp_offsets_B[i] = sp_offsets_B[i-1]+nnz_blk_B[i-1];
+        sp_offsets_B[i] = sp_offsets_B[i-1]+size_blk_B[i-1];
       }
     }
 
@@ -352,15 +355,15 @@ namespace CTF_int {
     char ** buckets_C;
     if (is_sparse_C){
       sp_offsets_C = (int64_t*)alloc(sizeof(int64_t)*nb_C);
-      new_sp_szs_C = nnz_blk_C; //(int64_t*)alloc(sizeof(int64_t)*nb_C);
+      new_sp_szs_C = size_blk_C; //(int64_t*)alloc(sizeof(int64_t)*nb_C);
 //      memcpy(new_sp_szs_C, blk_sz_C, sizeof(int64_t)*nb_C);
       buckets_C = (char**)alloc(sizeof(char*)*nb_C);
       for (int i=0; i<nb_C; i++){
         if (i==0)
           sp_offsets_C[0] = 0;
         else
-          sp_offsets_C[i] = sp_offsets_C[i-1]+nnz_blk_C[i-1];
-        buckets_C[i] = C + sp_offsets_C[i]*this->sr_C->pair_size();
+          sp_offsets_C[i] = sp_offsets_C[i-1]+size_blk_C[i-1];
+        buckets_C[i] = C + sp_offsets_C[i];
       }      
     }
 
@@ -403,25 +406,18 @@ namespace CTF_int {
 
         off_A = 0, off_B = 0, off_C = 0;
         for (;;){
-          int64_t new_sz_C;
           if (off_C >= start_off && off_C < end_off) {
-            int64_t rec_nnz_A;
-            int64_t rec_nnz_B;
-            int64_t rec_nnz_C;
             char * rec_A, * rec_B, * rec_C;
             if (is_sparse_A){
-              rec_nnz_A = nnz_blk_A[off_A];
-              rec_A     = A + sp_offsets_A[off_A]*this->sr_A->pair_size();
+              rec_A     = A + sp_offsets_A[off_A];
             } else
               rec_A     = A + off_A*blk_sz_A*sr_A->el_size;
             if (is_sparse_B){
-              rec_nnz_B = nnz_blk_B[off_B];
-              rec_B     = B + sp_offsets_B[off_B]*this->sr_B->pair_size();
+              rec_B     = B + sp_offsets_B[off_B];
             } else
               rec_B     = B + off_B*blk_sz_B*sr_A->el_size;
             if (is_sparse_C){
-              rec_nnz_C = new_sp_szs_C[off_C];
-              rec_C     = C + sp_offsets_C[off_C]*this->sr_C->pair_size();
+              rec_C     = C + sp_offsets_C[off_C];
             } else
               rec_C     = C + off_C*blk_sz_C*sr_A->el_size;
             if (beta_arr[off_C]>0)
@@ -429,15 +425,13 @@ namespace CTF_int {
             else
               rec_ctr->beta = this->beta; 
             beta_arr[off_C]       = 1;
-            printf("recursing nbA = %d, rec_nnz_A = %ld, off_A = %ld\n", nb_A, rec_nnz_A, off_A);
-            tid_rec_ctr->run(rec_A, rec_nnz_A, 1, nnz_blk_A+off_A,
-                             rec_B, rec_nnz_B, 1, nnz_blk_B+off_B,
-                             rec_C, rec_nnz_C, 1, new_sp_szs_C+off_C,
-                             buckets_C[off_C], new_sz_C);
+            tid_rec_ctr->run(rec_A, 1, size_blk_A+off_A,
+                             rec_B, 1, size_blk_B+off_B,
+                             rec_C, 1, new_sp_szs_C+off_C,
+                             buckets_C[off_C]);
           }
 
           if (is_sparse_C){
-            new_sp_szs_C[off_C] = new_sz_C;
             if (beta_arr[off_C] > 0) cdealloc(buckets_C[off_C]);
           }
 
@@ -461,11 +455,11 @@ namespace CTF_int {
       }
     }
     if (this->is_sparse_C){
-      new_nnz_C = 0;
+      int64_t new_size_C = 0;
       for (int i=0; i<nb_C; i++){
-        new_nnz_C += new_sp_szs_C[i];
+        new_size_C += new_sp_szs_C[i];
       }
-      new_C = (char*)alloc(new_nnz_C*this->sr_C->pair_size());
+      new_C = (char*)alloc(new_size_C);
       int64_t pfx = 0;
       for (int i=0; i<nb_C; i++){
         memcpy(new_C+pfx, buckets_C[i], new_sp_szs_C[i]*this->sr_C->pair_size());
@@ -574,28 +568,37 @@ namespace CTF_int {
     return est_time_fp(nlyr)+rec_ctr->est_time_rec(nlyr);
   }
 
-  void spctr_pin_keys::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-                           char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-                           char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-                           char *& new_C, int64_t & new_nnz_C){
+  void spctr_pin_keys::run(char * A, int nblk_A, int64_t const * size_blk_A,
+                           char * B, int nblk_B, int64_t const * size_blk_B,
+                           char * C, int nblk_C, int64_t * size_blk_C,
+                           char *& new_C){
     char * X;
     algstrct const * sr;
-    int64_t nnz;
+    int64_t nnz = 0;
     switch (AxBxC){ 
       case 0:
         X = A;
         sr = this->sr_A;
-        nnz = nnz_A;
+        for (int i=0; i<nblk_A; i++){
+          ASSERT(size_blk_A[i]%sr_A->pair_size() == 0);
+          nnz += size_blk_A[i]/sr_A->pair_size();
+        }
         break;
       case 1:
         X = B;
         sr = this->sr_B;
-        nnz = nnz_B;
+        for (int i=0; i<nblk_B; i++){
+          ASSERT(size_blk_B[i]%sr_B->pair_size() == 0);
+          nnz += size_blk_B[i]/sr_B->pair_size();
+        }
         break;
       case 2:
         X = C;
         sr = this->sr_C;
-        nnz = nnz_C;
+        for (int i=0; i<nblk_C; i++){
+          ASSERT(size_blk_C[i]%sr_C->pair_size() == 0);
+          nnz += size_blk_C[i]/sr_C->pair_size();
+        }
         break;
     }
 
@@ -625,10 +628,11 @@ namespace CTF_int {
 
     pi.pin(nnz, order, lens, divisor, pi_new);
 
-    rec_ctr->run(nA, nnz_A, nvirt_A, nnz_blk_A,
-                 nB, nnz_B, nvirt_B, nnz_blk_B,
-                 nC, nnz_C, nvirt_C, nnz_blk_C,
-                 new_C, new_nnz_C);
+    rec_ctr->run(nA, nblk_A, size_blk_A,
+                 nB, nblk_B, size_blk_B,
+                 nC, nblk_C, size_blk_C,
+                 new_C);
+
 
     switch (AxBxC){
       case 0:
@@ -636,7 +640,12 @@ namespace CTF_int {
         cdealloc(nX);
         break;
       case 2:
-        depin(sr_C, order, lens, divisor, nvirt_C, virt_dim, phys_rank, new_C, new_nnz_C, nnz_blk_C, new_C, true);
+        int64_t new_nnz_C=0;
+        for (int i=0; i<nblk_C; i++){
+          ASSERT(size_blk_C[i] % sr_C->pair_size() == 0);
+          new_nnz_C += size_blk_C[i] / sr_C->pair_size();
+        }
+        depin(sr_C, order, lens, divisor, nblk_C, virt_dim, phys_rank, new_C, new_nnz_C, size_blk_C, new_C, true);
         break;
     }
   }

@@ -353,50 +353,7 @@ namespace CTF_int {
       }
     }
   }     
-  
-  void algstrct::socopy(int64_t         m,
-                        int64_t         n,
-                        int64_t         lda_a,
-                        int64_t         lda_b,
-                        int64_t const * sizes_a,
-                        int64_t *&      sizes_b,
-                        int64_t *&      offsets_b,
-                        int64_t &       new_tot_sz)
-    const {
-    sizes_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
-    offsets_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
-
-    new_tot_sz = 0;
-    int64_t last_offset = 0;
-    for (int i=0; i<n; i++){
-      for (int j=0; j<m; j++){
-        new_tot_sz           += sizes_a[lda_a*i+j];
-        sizes_b[lda_b*i+j]    = sizes_a[lda_a*i+j];
-        offsets_b[lda_b*i+j]  = last_offset;
-        last_offset           = sizes_a[lda_a*i+j];
-      }
-    }
-  }
-
-  void algstrct::spcopy(int64_t         m,
-                        int64_t         n,
-                        int64_t         lda_a,
-                        int64_t         lda_b,
-                        int64_t const * sizes_a,
-                        int64_t const * offsets_a,
-                        char const *    a,
-                        int64_t const * sizes_b,
-                        int64_t const * offsets_b,
-                        char *          b)
-    const {
-    for (int i=0; i<n; i++){
-      for (int j=0; j<m; j++){
-        memcpy(b+offsets_b[lda_b*i+j]*pair_size(),a+offsets_a[lda_a*i+j]*pair_size(),sizes_a[lda_a*i+j]*pair_size());
-      }
-    }
-  }
-     
-
+ 
   void algstrct::set(char * a, char const * b, int64_t n) const {
     switch (el_size) {
       case 4: {

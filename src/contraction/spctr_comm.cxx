@@ -169,10 +169,10 @@ namespace CTF_int {
   }
 
 
-  void spctr_replicate::run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-                            char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-                            char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-                            char *& new_C, int64_t & new_nnz_C){
+  void spctr_replicate::run(char * A, int nblk_A, int64_t const * size_blk_A,
+                            char * B, int nblk_B, int64_t const * size_blk_B,
+                            char * C, int nblk_C, int64_t * size_blk_C,
+                            char *& new_C){
     int arank, brank, crank, i;
 
     arank = 0, brank = 0, crank = 0;
@@ -184,61 +184,56 @@ namespace CTF_int {
       crank += cdt_C[i]->rank;
     char * buf_A = A;
     char * buf_B = B;
-    int64_t new_nnz_blk_A[nvirt_A];
-    int64_t new_nnz_blk_B[nvirt_B];
-    int64_t new_nnz_A, new_nnz_B;
+    int64_t new_size_blk_A[nblk_A];
+    int64_t new_size_blk_B[nblk_B];
     if (is_sparse_A){
-      memcpy(new_nnz_blk_A, nnz_blk_A, nvirt_A*sizeof(int64_t));
+      memcpy(new_size_blk_A, size_blk_A, nblk_A*sizeof(int64_t));
       /*if (ncdt_A > 0){
-        save_nnz_blk_A = (int64_t*)alloc(sizeof(int64_t)*nvirt_A);
-        memcpy(save_nnz_blk_A,nnz_blk_A,sizeof(int64_t)*nvirt_A);
+        save_size_blk_A = (int64_t*)alloc(sizeof(int64_t)*nblk_A);
+        memcpy(save_size_blk_A,size_blk_A,sizeof(int64_t)*nblk_A);
       }*/
-      new_nnz_A = nnz_A;
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(&new_nnz_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
-        MPI_Bcast(new_nnz_blk_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
+        MPI_Bcast(new_size_blk_A, nblk_A, MPI_INT64_T, 0, cdt_A[i]->cm);
       }
-      MPI_Datatype md;
-      bool need_free = get_mpi_dt(new_nnz_A, sr_A->pair_size(), md);
-      
-      if (nnz_A != new_nnz_A) 
-        buf_A = (char*)alloc(sr_A->pair_size()*new_nnz_A);
+      int64_t new_size_A = 0;
+      for (i=0; i<nblk_A; i++){
+        new_size_A += new_size_blk_A[i];
+      }      
+      if (arank != 0)
+        buf_A = (char*)alloc(sr_A->pair_size()*new_size_A);
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(buf_A, new_nnz_A, md, 0, cdt_A[i]->cm);
+        MPI_Bcast(buf_A, new_size_A, MPI_CHAR, 0, cdt_A[i]->cm);
       }
-      if (need_free) MPI_Type_free(&md);
     } else {
       for (i=0; i<ncdt_A; i++){
         MPI_Bcast(A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
       }
     }
     if (is_sparse_B){
-      memcpy(new_nnz_blk_B, nnz_blk_B, nvirt_B*sizeof(int64_t));
+      memcpy(new_size_blk_B, size_blk_B, nblk_B*sizeof(int64_t));
       /*if (ncdt_B > 0){
-        save_nnz_blk_B = (int64_t*)alloc(sizeof(int64_t)*nvirt_B);
-        memcpy(save_nnz_blk_B,nnz_blk_B,sizeof(int64_t)*nvirt_B);
+        save_size_blk_B = (int64_t*)alloc(sizeof(int64_t)*nblk_B);
+        memcpy(save_size_blk_B,size_blk_B,sizeof(int64_t)*nblk_B);
       }*/
-      new_nnz_B = nnz_B;
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(&new_nnz_B, 1, MPI_INT64_T, 0, cdt_B[i]->cm);
-        MPI_Bcast(new_nnz_blk_B, nvirt_B, MPI_INT64_T, 0, cdt_B[i]->cm);
+        MPI_Bcast(new_size_blk_B, nblk_B, MPI_INT64_T, 0, cdt_B[i]->cm);
       }
-      MPI_Datatype md;
-      bool need_free = get_mpi_dt(new_nnz_B, sr_B->pair_size(), md);
-      
-      if (nnz_B != new_nnz_B) 
-        buf_B = (char*)alloc(sr_B->pair_size()*new_nnz_B);
+      int64_t new_size_B = 0;
+      for (i=0; i<nblk_B; i++){
+        new_size_B += new_size_blk_B[i];
+      }      
+      if (brank != 0)
+        buf_B = (char*)alloc(sr_B->pair_size()*new_size_B);
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(buf_B, new_nnz_B, md, 0, cdt_B[i]->cm);
+        MPI_Bcast(buf_B, new_size_B, MPI_CHAR, 0, cdt_B[i]->cm);
       }
-      if (need_free) MPI_Type_free(&md);
     } else {
       for (i=0; i<ncdt_B; i++){
         MPI_Bcast(B, size_B, sr_B->mdtype(), 0, cdt_B[i]->cm);
       }
     }
     if (is_sparse_C){
-      //FIXME: need to replicate nnz_blk_B for this
+      //FIXME: need to replicate size_blk_B for this
       assert(ncdt_C == 0);
     }
 //    if (crank != 0) this->sr_C->set(C, this->sr_C->addid(), size_C);
@@ -257,10 +252,10 @@ namespace CTF_int {
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
 
-    rec_ctr->run(buf_A, new_nnz_A, nvirt_A, new_nnz_blk_A,
-                 buf_B, new_nnz_B, nvirt_B, new_nnz_blk_B,
-                     C,     nnz_C, nvirt_C,     nnz_blk_C,
-                 new_C, new_nnz_C);
+    rec_ctr->run(buf_A, nblk_A, new_size_blk_A,
+                 buf_B, nblk_B, new_size_blk_B,
+                     C, nblk_C,     size_blk_C,
+                 new_C);
     /*for (i=0; i<size_C; i++){
       printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
     }*/

@@ -107,7 +107,7 @@ int apsp(int     n,
   Pair<int> * prs; 
   D.read_local_nnz(&loc_nnz, &prs);
 
-  bool pass = (loc_nnz == 0);
+  int pass = (loc_nnz == 0);
 
   if (dw.rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);

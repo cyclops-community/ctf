@@ -460,6 +460,25 @@ namespace CTF_int {
                       int *       arr);
 
 
+  void socopy(int64_t         m,
+              int64_t         n,
+              int64_t         lda_a,
+              int64_t         lda_b,
+              int64_t const * sizes_a,
+              int64_t *&      sizes_b,
+              int64_t *&      offsets_b);
+
+  void spcopy(int64_t         m,
+              int64_t         n,
+              int64_t         lda_a,
+              int64_t         lda_b,
+              int64_t const * sizes_a,
+              int64_t const * offsets_a,
+              char const *    a,
+              int64_t const * sizes_b,
+              int64_t const * offsets_b,
+              char *          b);
+
 
 }
 #endif

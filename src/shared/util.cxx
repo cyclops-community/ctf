@@ -236,4 +236,44 @@ namespace CTF_int {
     CTF_int::cdealloc(swap);
   }
 
+
+  void socopy(int64_t         m,
+              int64_t         n,
+              int64_t         lda_a,
+              int64_t         lda_b,
+              int64_t const * sizes_a,
+              int64_t *&      sizes_b,
+              int64_t *&      offsets_b){
+    sizes_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
+    offsets_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
+
+    int64_t last_offset = 0;
+    for (int i=0; i<n; i++){
+      for (int j=0; j<m; j++){
+        sizes_b[lda_b*i+j]    = sizes_a[lda_a*i+j];
+        offsets_b[lda_b*i+j]  = last_offset;
+        last_offset           = sizes_a[lda_a*i+j];
+      }
+    }
+  }
+
+  void spcopy(int64_t         m,
+              int64_t         n,
+              int64_t         lda_a,
+              int64_t         lda_b,
+              int64_t const * sizes_a,
+              int64_t const * offsets_a,
+              char const *    a,
+              int64_t const * sizes_b,
+              int64_t const * offsets_b,
+              char *          b){
+    for (int i=0; i<n; i++){
+      for (int j=0; j<m; j++){
+        memcpy(b+offsets_b[lda_b*i+j],a+offsets_a[lda_a*i+j],sizes_a[lda_a*i+j]);
+      }
+    }
+  }
+     
+
+
 }

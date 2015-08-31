@@ -939,8 +939,6 @@ namespace CTF_int {
     char * X;
     algstrct const * sr;
     int64_t nnz;
-    int64_t * nnz_blk;
-    int nvirt;
     if (A_or_B){
       X = this->A;
       sr = this->sr_A;

@@ -18,10 +18,10 @@ namespace CTF_int{
       spctr(spctr * other);
       virtual spctr * clone() { return NULL; }
       void run(char * A, char * B, char * C) { printf("CTF ERROR: PROVIDE SPARSITY ARGS TO RUN\n"); assert(0); };
-      virtual void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-                       char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-                       char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-                       char *& new_C, int64_t & new_nnz_C) { ASSERT(0); }
+      virtual void run(char * A, int nblk_A, int64_t const * size_blk_A,
+                       char * B, int nblk_B, int64_t const * size_blk_B,
+                       char * C, int nblk_C, int64_t * size_blk_C,
+                       char *& new_C) { ASSERT(0); }
       spctr(contraction const * c);
   };
 
@@ -53,10 +53,10 @@ namespace CTF_int{
       /**
        * \brief wraps user sequential function signature
        */
-      void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-               char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-               char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-               char *& new_C, int64_t & new_nnz_C);
+      void run(char * A, int nblk_A, int64_t const * size_blk_A,
+               char * B, int nblk_B, int64_t const * size_blk_B,
+               char * C, int nblk_C, int64_t * size_blk_C,
+               char *& new_C);
       void print();
       int64_t mem_fp();
       spctr * clone();
@@ -111,10 +111,10 @@ namespace CTF_int{
       /**
        * \brief iterates over the dense virtualization block grid and contracts
        */
-      void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-               char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-               char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-               char *& new_C, int64_t & new_nnz_C);
+      void run(char * A, int nblk_A, int64_t const * size_blk_A,
+               char * B, int nblk_B, int64_t const * size_blk_B,
+               char * C, int nblk_C, int64_t * size_blk_C,
+               char *& new_C);
       int64_t mem_fp();
       int64_t mem_rec();
 
@@ -148,10 +148,10 @@ namespace CTF_int{
       int * virt_dim;
       int * phys_rank;
 
-      void run(char * A, int64_t nnz_A, int nvirt_A, int64_t const * nnz_blk_A,
-               char * B, int64_t nnz_B, int nvirt_B, int64_t const * nnz_blk_B,
-               char * C, int64_t nnz_C, int nvirt_C, int64_t * nnz_blk_C,
-               char *& new_C, int64_t & new_nnz_C);
+      void run(char * A, int nblk_A, int64_t const * size_blk_A,
+               char * B, int nblk_B, int64_t const * size_blk_B,
+               char * C, int nblk_C, int64_t * size_blk_C,
+               char *& new_C);
       void print();
       int64_t mem_fp();
       int64_t mem_rec();

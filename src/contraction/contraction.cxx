@@ -3419,12 +3419,39 @@ namespace CTF_int {
     TAU_FSTART(ctr_func);
     /* Invoke the contraction algorithm */
     A->topo->activate();
-    if (A->is_sparse || B->is_sparse || C->is_sparse)
-      ((spctr*)ctrf)->run(A->data, A->nnz_loc, A->calc_nvirt(), A->nnz_blk,
-                          B->data, B->nnz_loc, B->calc_nvirt(), B->nnz_blk,
-                          C->data, C->nnz_loc, C->calc_nvirt(), C->nnz_blk,
-                          C->data, C->nnz_loc);
-    else
+    if (A->is_sparse || B->is_sparse || C->is_sparse){
+      int64_t * size_blk_A = NULL;
+      if (A->nnz_blk != NULL){
+        alloc_ptr(A->calc_nvirt()*sizeof(int64_t), (void**)&size_blk_A);
+        for (int i=0; i<A->calc_nvirt(); i++){
+          size_blk_A[i] = A->nnz_blk[i]*A->sr->pair_size();
+        }
+      }
+      int64_t * size_blk_B = NULL;
+      if (B->nnz_blk != NULL){
+        alloc_ptr(B->calc_nvirt()*sizeof(int64_t), (void**)&size_blk_B);
+        for (int i=0; i<B->calc_nvirt(); i++){
+          size_blk_B[i] = B->nnz_blk[i]*B->sr->pair_size();
+        }
+      }
+      int64_t * size_blk_C = NULL;
+      if (C->nnz_blk != NULL){
+        alloc_ptr(C->calc_nvirt()*sizeof(int64_t), (void**)&size_blk_C);
+        for (int i=0; i<C->calc_nvirt(); i++){
+          size_blk_C[i] = C->nnz_blk[i]*C->sr->pair_size();
+        }
+      }
+
+      ((spctr*)ctrf)->run(A->data, A->calc_nvirt(), size_blk_A,
+                          B->data, B->calc_nvirt(), size_blk_B,
+                          C->data, C->calc_nvirt(), size_blk_C,
+                          C->data);
+
+      //FIXME: adjust C->nnz_blk
+      if (size_blk_A != NULL) cdealloc(size_blk_A);
+      if (size_blk_B != NULL) cdealloc(size_blk_B);
+      if (size_blk_C != NULL) cdealloc(size_blk_C);
+    } else
       ctrf->run(A->data, B->data, C->data);
     A->topo->deactivate();
 
@@ -4121,7 +4148,8 @@ namespace CTF_int {
   }
 
   void contraction::print(){
-    int i,j,max,ex_A, ex_B,ex_C;
+//    int j,ex_A, ex_B,ex_C;
+    int i,max;
     max = A->order+B->order+C->order;
     CommData global_comm = A->wrld->cdt;
     MPI_Barrier(global_comm.cm);
