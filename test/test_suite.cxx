@@ -36,6 +36,7 @@
 #include "../examples/spmm.cxx"
 #include "../examples/jacobi.cxx"
 #include "../examples/apsp.cxx"
+#include "../examples/sparse_mp3.cxx"
 
 using namespace CTF;
 
@@ -252,6 +253,10 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing APSP via path doubling with n=%d:\n",n*n);
     pass.push_back(apsp(n*n,dw));
+    
+    if (rank == 0)
+      printf("Testing dense and sparse MP3 calculation %d occupied and %d virtual orbitals:\n",n,2*n);
+    pass.push_back(sparse_mp3(n,2*n,dw));
   }
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)

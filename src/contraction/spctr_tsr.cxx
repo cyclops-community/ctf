@@ -173,7 +173,7 @@ namespace CTF_int {
     ASSERT(!is_sparse_B);
     ASSERT(!is_sparse_C);
     ASSERT(is_inner == 0);
-
+    ASSERT(nvirt_A == 1);
 
     spA_dnB_dnC_seq_ctr(this->alpha,
                         A,
@@ -429,6 +429,7 @@ namespace CTF_int {
             else
               rec_ctr->beta = this->beta; 
             beta_arr[off_C]       = 1;
+            printf("recursing nbA = %d, rec_nnz_A = %ld, off_A = %ld\n", nb_A, rec_nnz_A, off_A);
             tid_rec_ctr->run(rec_A, rec_nnz_A, 1, nnz_blk_A+off_A,
                              rec_B, rec_nnz_B, 1, nnz_blk_B+off_B,
                              rec_C, rec_nnz_C, 1, new_sp_szs_C+off_C,

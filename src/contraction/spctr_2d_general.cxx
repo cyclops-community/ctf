@@ -192,6 +192,8 @@ namespace CTF_int {
     int new_nvirt_A = nvirt_A;
     //for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
     for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
+      new_nnz_blk_A = (int64_t*)nnz_blk_A;
+      new_nnz_A = nnz_A;
       if (move_A){
         new_nvirt_A = nvirt_A/b_A;
         owner_A   = ib % cdt_A->np;
@@ -241,6 +243,12 @@ namespace CTF_int {
           bool need_free = get_mpi_dt(new_nnz_A, sr_A->pair_size(), md);
           MPI_Bcast(op_A, new_nnz_A, md, owner_A, cdt_A->cm);
           if (need_free) MPI_Type_free(&md);
+          /*int rrank;
+          MPI_Comm_rank(MPI_COMM_WORLD, &rrank);
+          printf("rrank = %d new_nvirt_A = %d rank = %d owner = %d new_nnz_A = %ld old_nnz_A = %ld\n",rrank,new_nvirt_A,cdt_A->rank, owner_A, new_nnz_A, nnz_A);
+          for (int rr=0; rr<new_nvirt_A; rr++){
+            printf("rrank = %d new_nvirt_A = %d new_nnz_blk_A[%d] = %ld\n", rrank, new_nvirt_A, rr, new_nnz_blk_A[rr]);
+          }*/
         } else {
           MPI_Bcast(op_A, s_A, sr_A->mdtype(), owner_A, cdt_A->cm);
         }
@@ -258,20 +266,23 @@ namespace CTF_int {
               for (int a=0; a<new_nvirt_A; a++){
                 new_nnz_A += new_nnz_blk_A[a];
               }
+/*              int rrank;
+              MPI_Comm_rank(MPI_COMM_WORLD, &rrank);
+              printf("rrank = %d ib = %ld new_nvirt_A = %d, new_nnz_A = %ld offset = %ld\n", rrank, ib, new_nvirt_A, new_nnz_A, offsets_A[ib*ctr_sub_lda_A]);*/
             } else {
               op_A = A+sr_A->el_size*ib*ctr_sub_lda_A;
             }
           } else {
             if (is_sparse_A){
               int64_t * new_offsets_A;
-              sr_A->socopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
+              sr_A->socopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*edge_len, ctr_sub_lda_A,
                            nnz_blk_A+ib*ctr_sub_lda_A,
                            new_nnz_blk_A, new_offsets_A, new_nnz_A);
 
               ret = CTF_int::mst_alloc_ptr(new_nnz_A*sr_A->pair_size(), (void**)&buf_A);
               ASSERT(ret==0);
               op_A = buf_A;
-              sr_A->spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*b_A, ctr_sub_lda_A,
+              sr_A->spcopy(ctr_sub_lda_A, ctr_lda_A, ctr_sub_lda_A*edge_len, ctr_sub_lda_A,
                            nnz_blk_A+ib*ctr_sub_lda_A, offsets_A+ib*ctr_sub_lda_A, A,
                            new_nnz_blk_A, new_offsets_A, op_A);
               cdealloc(new_offsets_A);

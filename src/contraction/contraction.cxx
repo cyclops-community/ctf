@@ -1976,7 +1976,7 @@ namespace CTF_int {
   #if DEBUG < 3 
       for (int t=global_comm.rank; t<(int)wrld->topovec.size()+3; t+=global_comm.np){
   #else
-      for (int t=global_comm.rank*(wrld->topovec.size()+3); t<(int)wrld->topovec.size()+3; t++){
+      for (int t=0; t<(int)wrld->topovec.size()+3; t++){
   #endif
         A->clear_mapping();
         B->clear_mapping();

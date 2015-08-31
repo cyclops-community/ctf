@@ -137,6 +137,7 @@ namespace CTF_int{
       spA_dnB_dnC_ctrloop<idim-1>(alpha, cpiA, new_size_A, sr_A, order_A, edge_len_A, lda_A, sym_A, idx_map_A, B+offsets_B[idim][nidx[idim]], sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C+offsets_C[idim][nidx[idim]], sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, func, nidx, rev_idx_map, idx_max);
       if (rA != -1) {
         if (size_A == new_size_A){
+          ASSERT(rA==0);
           //if we did not advance, in recursive loops, it means all rA=-1 for lower idim, and we now want to advance by 1
           size_A = new_size_A-1;
           A.ptr = cpiA[1].ptr;

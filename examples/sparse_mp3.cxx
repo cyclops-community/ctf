@@ -17,43 +17,33 @@ double mp3(Tensor<> & Ea,
            Tensor<> & Vabcd,
            Tensor<> & Vijkl,
            Tensor<> & Vaibj){
-//  int shapeSHSH[] = {SH,NS,SH,NS};
-//  Tensor<> D(4,Vabij.lens,shapeSHSH,*Vabij.wrld);
-  Tensor<> D(4,Vabij.lens,Vabij.sym,*Vabij.wrld);
+  Tensor<> D(4,Vabij.lens,*Vabij.wrld);
   D["abij"] += Ei["i"]; 
   D["abij"] += Ei["j"]; 
   D["abij"] -= Ea["a"]; 
   D["abij"] -= Ea["b"]; 
 
-  //Transform<> div([](double a, double & b){ printf("b=%lf, a = %lf, b/a = %lf\n",b,a,b/a); b=b/a; });
-  Transform<> div([](double a, double & b){ b=b/a; });
+  Transform<> div([](double & b){ b=1./b; });
+  div(D["abij"]);
 
-  Tensor<> T(4,Vabij.lens,Vabij.sym,*Vabij.wrld);
-  T["abij"] += Vabij["abij"];
-  //Tensor<> T2 = Tensor<>(T, shapeSHSH);
-  div(D["abij"],T["abij"]);
-//  T = Tensor<>(T2, Vabij.sym);
+  Tensor<> T(4,Vabij.lens,*Vabij.wrld);
+  T["abij"] = Vabij["abij"]*D["abij"];
   
-  Tensor<> Z(4,Vabij.lens,Vabij.sym,*Vabij.wrld);
+  Tensor<> Z(4,Vabij.lens,*Vabij.wrld);
   Z["abij"] = Vijab["ijab"];
   Z["abij"] += Fab["af"]*T["fbij"];
   Z["abij"] -= Fij["ni"]*T["abnj"];
   Z["abij"] += 0.5*Vabcd["abef"]*T["efij"];
   Z["abij"] += 0.5*Vijkl["mnij"]*T["abmn"];
-  Z["abij"] -= Vaibj["amei"]*T["ebmj"];
+  Z["abij"] = Vaibj["amei"]*T["ebmj"];
 
-  div(D["abij"],Z["abij"]);
-
-  T["abij"] += Z["abij"];
+  T["abij"] += Z["abij"]*D["abij"];
 
   double MP3_energy = .25*T["abij"]*Vabij["abij"];
   return MP3_energy;
 }
 
 int sparse_mp3(int nv, int no, World & dw){
-  //int shapeASAS[] = {AS,NS,AS,NS};
-  int shapeASAS[] = {NS,NS,NS,NS};
-  int shapeNSNS[] = {NS,NS,NS,NS};
   int vvvv[]      = {nv,nv,nv,nv};
   int vovo[]      = {nv,no,nv,no};
   int vvoo[]      = {nv,nv,no,no};
@@ -74,11 +64,11 @@ int sparse_mp3(int nv, int no, World & dw){
   Fab.fill_random(-1.0,1.0);
   Fij.fill_random(-1.0,1.0);
 
-  Tensor<> Vabij(4,vvoo,shapeASAS,dw);
-  Tensor<> Vijab(4,oovv,shapeASAS,dw);
-  Tensor<> Vabcd(4,vvvv,shapeASAS,dw);
-  Tensor<> Vijkl(4,oooo,shapeASAS,dw);
-  Tensor<> Vaibj(4,vovo,shapeNSNS,dw);
+  Tensor<> Vabij(4,vvoo,dw);
+  Tensor<> Vijab(4,oovv,dw);
+  Tensor<> Vabcd(4,vvvv,dw);
+  Tensor<> Vijkl(4,oooo,dw);
+  Tensor<> Vaibj(4,vovo,dw);
   
   Vabij.fill_random(-1.0,1.0);
   Vijab.fill_random(-1.0,1.0);
@@ -116,7 +106,7 @@ int sparse_mp3(int nv, int no, World & dw){
   sparse_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
 #ifndef TEST_SUITE
   if (dw.rank == 0)
-    printf("Calcluated MP3 energy %lf with dense integral tensors in time %lf sec.\n",dense_energy,MPI_Wtime()-time);
+    printf("Calcluated MP3 energy %lf with sparse integral tensors in time %lf sec.\n",sparse_energy,MPI_Wtime()-time);
 #endif  
  
   bool pass = fabs((dense_energy-sparse_energy)/dense_energy)<1.E-6;
