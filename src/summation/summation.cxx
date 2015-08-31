@@ -1060,7 +1060,7 @@ namespace CTF_int {
     std::vector<summation> perm_types;
     std::vector<int> signs;
     char const * dbeta;
-  #if (DEBUG >= 2 || VERBOSE >= 1)
+  #if (DEBUG >= 2)
     print();
   #endif
     check_consistency();

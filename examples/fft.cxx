@@ -17,7 +17,7 @@ Matrix< std::complex<double> > DFT_matrix(int n, World & wrld){
   int64_t * idx;
   std::complex<double> imag(0,1);
   std::complex<double> * data;
-  Matrix < std::complex<double> >DFT(n, n, NS, wrld);
+  Matrix < std::complex<double> >DFT(n, n, NS, wrld, "DFT");
   DFT.read_local(&np, &idx, &data);
 
   for (int64_t i=0; i<np; i++){
@@ -29,28 +29,60 @@ Matrix< std::complex<double> > DFT_matrix(int n, World & wrld){
   return DFT;
 }
 
-
 void fft(Vector< std::complex<double> > & v, int n){
   int64_t np;
   int64_t * idx;
   std::complex<double> * data;
-  
+  int logn=0;
+  while (1<<logn < n){
+    logn++;
+  }
+  assert(1<<logn == n);
   int nfact;
   int * factors;
   CTF_int::factorize(n, &nfact, &factors);
+  assert(nfact == logn);
   
-  Tensor< std::complex<double> > V(nfact, factors, *v.wrld, *v.sr);
+  Tensor< std::complex<double> > V(nfact, factors, *v.wrld, *v.sr, "V");
 
   v.read_local(&np, &idx, &data);
 
   V.write(np, idx, data);
-  char inds[nfact];
+
+  free(idx);
+  free(data);
+  
+
+  char inds[nfact+1];
+  char rev_inds[nfact];
   for (int i=0; i<nfact; i++){
     inds[i]='a'+i;
+    rev_inds[i]='a'+nfact-i-1;
   }
-  
+  inds[nfact] = 'a';
+  //reverse tensor index order (corresponds to no-op recursion in FFT that picks odds/evens) so that I am less confused
+  V[rev_inds] = V[inds];
   for (int i=0; i<nfact; i++){
-    Matrix< std::complex<double> > DFT = DFT_matrix(factors[i],*v.wrld);
+    inds[nfact+i]='a'+i;
+  }
+ 
+  V.print(); 
+  Matrix< std::complex<double> > DFT = DFT_matrix(2,*v.wrld);
+  for (int i=0; i<nfact; i++){
+    Tensor< std::complex<double> > S(i+1, factors, *v.wrld, *v.sr, "S");
+    S.read_local(&np, &idx, &data);
+    std::complex<double> imag(0,1);
+    for(int64_t i=0; i<np; i++){
+      if (idx[i]%2 == 1){
+        data[i] = exp(-2.*(idx[i]/2)*(M_PI/n)*imag);
+      } else {
+        data[i] = std::complex<double>(1.0,0.0);
+      }
+    }
+    S.write(np, idx, data);
+
+    S.print();
+    V[inds+1] *= S[inds];
     char inds_in[nfact];
     char inds_out[nfact];
     char inds_DFT[2];
@@ -70,35 +102,46 @@ void fft(Vector< std::complex<double> > & v, int n){
   
   free(idx);
   free(data);
+  
 }
-
 
 
 int fft(int     n,
         World & dw){
 
 
-  Vector< std::complex<double> > a(n, dw);
-  Vector< std::complex<double> > da(n, dw);
-  Vector< std::complex<double> > fa(n, dw);
+  Vector< std::complex<double> > a(n, dw, "a");
+  Vector< std::complex<double> > da(n, dw, "da");
 
-  srand48(dw.rank);
+  srand48(2*dw.rank);
   Transform< std::complex<double> > set_rand([](std::complex<double> & d){ d=std::complex<double>(drand48(),drand48()); } );
   set_rand(a["i"]);
+  /*if (dw.rank == 0){
+    std::complex<double> val (1.0, 0.0);
+    int64_t idx = 2;
+    a.write(1, &idx, &val);
+  } else a.write(0,NULL,NULL);
+*/
+//  a.sparsify([](std::complex<double> d){ return fabs(d.real()) > .8; });
   
   Matrix< std::complex<double> > DFT = DFT_matrix(n,dw);
   
   da["i"] = DFT["ij"]*a["j"];
 
+  Vector< std::complex<double> > fa(n, dw, "fa");
   fa["i"] = a["i"];
   
   fft(fa, n);
+  fa.print();
 
+  da.print();
   da["i"] -= fa["i"];
 
   std::complex<double> dnrm;
   Scalar< std::complex<double> > s(dnrm, dw);
-  s[""] += da["i"];
+  s.print();
+  s[""] += da["i"]*da["i"];
+  s.print();
   dnrm = s;  
   bool pass = dnrm.real() <= 1.E-6 && dnrm.imag() <= 1.E-6;
 

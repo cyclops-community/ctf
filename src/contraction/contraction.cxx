@@ -93,7 +93,7 @@ namespace CTF_int {
   }
 
   void contraction::execute(){
-#if DEBUG >= 2
+#ifdef VERBOSE //DEBUG >= 2
     if (A->wrld->cdt.rank == 0) printf("Contraction::execute (head):\n");
     print();
 #endif
@@ -3372,7 +3372,7 @@ namespace CTF_int {
       C->print_map(stdout);
   #endif
       ctrf = construct_ctr();
-  #ifdef VERBOSE
+  #if DEBUG >= 1
       if (global_comm.rank == 0){
         int64_t memuse = ctrf->mem_rec();
         printf("Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
@@ -4126,7 +4126,39 @@ namespace CTF_int {
     CommData global_comm = A->wrld->cdt;
     MPI_Barrier(global_comm.cm);
     if (global_comm.rank == 0){
-      printf("Contracting Tensor %s with %s into %s\n", A->name, B->name, C->name);
+//      printf("Contracting Tensor %s with %s into %s\n", A->name, B->name, C->name);
+      char cname[200];
+      cname[0] = '\0';
+      sprintf(cname, "%s", C->name);
+      sprintf(cname+strlen(cname),"[");
+      for (i=0; i<C->order; i++){
+        if (i>0)
+          sprintf(cname+strlen(cname)," %d",idx_C[i]);
+        else
+          sprintf(cname+strlen(cname),"%d",idx_C[i]);
+      }
+      sprintf(cname+strlen(cname),"]=");
+      sprintf(cname+strlen(cname), "%s", A->name);
+      sprintf(cname+strlen(cname),"[");
+      for (i=0; i<A->order; i++){
+        if (i>0)
+          sprintf(cname+strlen(cname)," %d",idx_A[i]);
+        else
+          sprintf(cname+strlen(cname),"%d",idx_A[i]);
+      }
+      sprintf(cname+strlen(cname),"]*");
+      sprintf(cname+strlen(cname), "%s", B->name);
+      sprintf(cname+strlen(cname),"[");
+      for (i=0; i<B->order; i++){
+        if (i>0)
+          sprintf(cname+strlen(cname)," %d",idx_B[i]);
+        else
+          sprintf(cname+strlen(cname),"%d",idx_B[i]);
+      }
+      sprintf(cname+strlen(cname),"]");
+      printf("CTF: contraction %s\n",cname);
+
+/*
       if (alpha != NULL){
         printf("alpha is "); 
         A->sr->print(alpha);
@@ -4191,7 +4223,7 @@ namespace CTF_int {
         }
         printf("\n");
         if (ex_A + ex_B + ex_C == 0) break;
-      }
+      }*/
     }
   }
 }
