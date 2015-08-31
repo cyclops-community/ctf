@@ -4,6 +4,8 @@
 #include "../interface/common.h"
 
 namespace CTF_int {
+  class Bivar_Function;
+
   /**
    * \brief algstrct (algebraic structure) defines the elementwise operations computed 
    *         in each tensor contraction, virtual classes defined in derived typed classes or algstrctcpy
@@ -152,6 +154,9 @@ namespace CTF_int {
       /** \brief compute b=beta*b + alpha*a */
       void acc(char * b, char const * beta, char const * a, char const * alpha) const;
       
+      /** \brief compute c=c + alpha*a*b */
+      void accmul(char * c, char const * a, char const * b, char const * alpha) const;
+      
       /** \brief copies element b to element a */
       void copy(char * a, char const * b) const;
       
@@ -202,6 +207,10 @@ namespace CTF_int {
       
       /** \brief gets pair to value from pair */
       char const * get_value(char const * a) const;
+
+      void coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, Bivar_Function const * func) const;
+
+
   };
 
   class PairIterator;
@@ -250,7 +259,6 @@ namespace CTF_int {
        */
       void pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new);
       
-
 
   };
   //http://stackoverflow.com/questions/630950/pure-virtual-destructor-in-c

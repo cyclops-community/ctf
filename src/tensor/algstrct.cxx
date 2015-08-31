@@ -254,6 +254,14 @@ namespace CTF_int {
     mul(a, alpha, b);
     add(b, tmp, b);
   }
+  
+  void algstrct::accmul(char * c, char const * a, char const * b, char const * alpha) const {
+    char tmp[el_size];
+    mul(a, b, tmp);
+    mul(tmp, alpha, tmp);
+    add(c, tmp, c);
+  }
+
 
   void algstrct::safecopy(char *& a, char const * b) const {
     if (b == NULL){
@@ -400,6 +408,22 @@ namespace CTF_int {
      
   char const * algstrct::get_value(char const * a) const {
     return a+sizeof(int64_t);
+  }
+
+
+  void algstrct::coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, Bivar_Function const * func) const {
+    if (func == NULL && alpha != NULL && isequal(beta,mulid())){
+      for (int64_t i=0; i<nnz_A; i++){
+        int row_A = rows_A[i];
+        int col_A = cols_A[i];
+        for (int col_C=0; col_C<n; col_C++){
+          accmul(C+el_size*col_C*k+row_A, 
+                 A+el_size*i, 
+                 B+el_size*col_C*k+col_A,
+                 alpha);
+        }
+      }
+    } else { ASSERT(0); assert(0); }
   }
       
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){
