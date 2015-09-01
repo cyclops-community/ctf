@@ -461,7 +461,7 @@ namespace CTF {
           fcoomm(m, n, k, ((dtype const *)alpha)[0], (dtype const *)A, rows_A, cols_A, nnz_A, (dtype const *)B, ((dtype const *)beta)[0], (dtype *)C);
           return;
         }
-        if (func == NULL && alpha != NULL && isequal(beta,mulid())){
+        if (func == NULL && alpha != NULL && this->isequal(beta,mulid())){
           dtype const * dA = (dtype const*)A;
           dtype const * dB = (dtype const*)B;
           dtype * dC = (dtype*)C;

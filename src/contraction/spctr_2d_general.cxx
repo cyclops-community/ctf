@@ -340,8 +340,8 @@ namespace CTF_int {
       rec_ctr->run(op_A, new_nblk_A, new_size_blk_A,
                    op_B, nblk_B, size_blk_B,
                    op_C, nblk_C, size_blk_C,
-                   new_C);
-
+                   op_C);
+      new_C = C;
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
       }*/

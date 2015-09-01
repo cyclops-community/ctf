@@ -35,7 +35,7 @@ double mp3(Tensor<> & Ea,
   Z["abij"] -= Fij["ni"]*T["abnj"];
   Z["abij"] += 0.5*Vabcd["abef"]*T["efij"];
   Z["abij"] += 0.5*Vijkl["mnij"]*T["abmn"];
-  Z["abij"] = Vaibj["amei"]*T["ebmj"];
+  Z["abij"] += Vaibj["amei"]*T["ebmj"];
 
   T["abij"] += Z["abij"]*D["abij"];
 

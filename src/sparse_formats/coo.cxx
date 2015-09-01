@@ -58,6 +58,7 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
     //  printf("[%d] %d -> %d\n", lens[i], i, ordering[i]);
       rev_ord_lens[ordering[i]] = lens[i]/phase[i];
+      if (lens[i]%phase[i] > 0) rev_ord_lens[ordering[i]]++;
     }
 
     for (int i=0; i<order; i++){

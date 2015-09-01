@@ -187,7 +187,11 @@ namespace CTF_int {
     if (use_coomm){
       COO_Matrix cA(A);
       if (!sr_C->isequal(beta,sr_C->mulid())){
-        sr_C->scal(inner_params.sz_C, beta, C, 1);
+        if (sr_C->isequal(beta,sr_C->addid())){
+          sr_C->set(C, beta, inner_params.sz_C);
+        } else {
+          sr_C->scal(inner_params.sz_C, beta, C, 1);
+        }
       }
       cA.coomm(sr_A, inner_params.m, inner_params.n, inner_params.k,
                alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
