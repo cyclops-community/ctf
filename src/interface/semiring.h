@@ -1,6 +1,7 @@
 #ifndef __SEMIRING_H__
 #define __SEMIRING_H__
 
+#include "functions.h"
 
 namespace CTF_int {
 
@@ -178,6 +179,92 @@ namespace CTF_int {
              std::complex<double> *       C){
     CTF_int::zgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
+
+  template <typename dtype>
+  void default_coomm
+                 (int           m,
+                  int           n,
+                  int           k,
+                  dtype         alpha,
+                  dtype const * A,
+                  int const *   rows_A,
+                  int const *   cols_A,
+                  int           nnz_A,
+                  dtype const * B,
+                  dtype         beta,
+                  dtype *       C){
+
+    for (int j=0; j<n; j++){
+      for (int i=0; i<m; i++){
+        C[j*m+i] *= beta;
+      }
+    }
+    for (int i=0; i<nnz_A; i++){
+      int row_A = rows_A[i]-1;
+      int col_A = cols_A[i]-1;
+      for (int col_C=0; col_C<n; col_C++){
+         C[col_C*m+row_A] += alpha*A[i]*B[col_C*k+col_A];
+      }
+    }
+  }
+
+#if USE_SP_MKL
+  template <>
+  void default_coomm< float >
+          (int           m,
+           int           n,
+           int           k,
+           float         alpha,
+           float const * A,
+           int const *   rows_A,
+           int const *   cols_A,
+           int           nnz_A,
+           float const * B,
+           float         beta,
+           float *       C);
+
+  template <>
+  void default_coomm< double >
+          (int            m,
+           int            n,
+           int            k,
+           double         alpha,
+           double const * A,
+           int const *    rows_A,
+           int const *    cols_A,
+           int            nnz_A,
+           double const * B,
+           double         beta,
+           double *       C);
+
+  template <>
+  void default_coomm< std::complex<float> >
+          (int                         m,
+           int                         n,
+           int                         k,
+           std::complex<float>         alpha,
+           std::complex<float> const * A,
+           int const *                 rows_A,
+           int const *                 cols_A,
+           int                         nnz_A,
+           std::complex<float> const * B,
+           std::complex<float>         beta,
+           std::complex<float> *       C);
+
+  template <>
+  void default_coomm< std::complex<double> >
+     (int                          m,
+      int                          n,
+      int                          k,
+      std::complex<double>         alpha,
+      std::complex<double> const * A,
+      int const *                  rows_A,
+      int const *                  cols_A,
+      int                          nnz_A,
+      std::complex<double> const * B,
+      std::complex<double>         beta,
+      std::complex<double> *       C);
+#endif
 }
 
 namespace CTF {
@@ -200,6 +287,7 @@ namespace CTF {
       void (*faxpy)(int,dtype,dtype const*,int,dtype*,int);
       dtype (*fmul)(dtype a, dtype b);
       void (*fgemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
+      void (*fcoomm)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*);
     
       Semiring(Semiring const & other) : Monoid<dtype, is_ord>(other) { 
         this->tmulid = other.tmulid;
@@ -207,6 +295,7 @@ namespace CTF {
         this->faxpy  = other.faxpy;
         this->fmul   = other.fmul;
         this->fgemm  = other.fgemm;
+        this->fcoomm = other.fcoomm;
       }
 
       virtual CTF_int::algstrct * clone() const {
@@ -231,12 +320,14 @@ namespace CTF {
                dtype (*fmul_)(dtype a, dtype b),
                void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
                void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
-               void (*scal_)(int,dtype,dtype*,int)=NULL) 
+               void (*scal_)(int,dtype,dtype*,int)=NULL,
+               void (*coomm_)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*)=NULL)
                 : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) , tmulid(mulid_) {
         fmul   = fmul_;
         fgemm  = gemm_;
         faxpy  = axpy_;
         fscal  = scal_;
+        fcoomm = coomm_;
       }
 
       /**
@@ -248,6 +339,7 @@ namespace CTF {
         fgemm  = &CTF_int::default_gemm<dtype>;
         faxpy  = &CTF_int::default_axpy<dtype>;
         fscal  = &CTF_int::default_scal<dtype>;
+        fcoomm = &CTF_int::default_coomm<dtype>;
       }
 
       void mul(char const * a, 
@@ -328,8 +420,8 @@ namespace CTF {
         if (fgemm != NULL) fgemm(tA, tB, m, n, k, ((dtype const *)alpha)[0], (dtype const *)A, (dtype const *)B, ((dtype const *)beta)[0], (dtype *)C);
         else {
           dtype a          = ((dtype*)alpha)[0];
-          dtype const * dA = (dtype*) A;
-          dtype const * dB = (dtype*) B;
+          dtype const * dA = (dtype const *) A;
+          dtype const * dB = (dtype const *) B;
           dtype * dC       = (dtype*) C;
           if (!this->isequal(beta, this->mulid())){
             scal(m*n, beta, C, 1);
@@ -364,6 +456,28 @@ namespace CTF {
         } 
       }
 
+      void coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, CTF_int::bivar_function const * func) const {
+        if (func == NULL && alpha != NULL && fcoomm != NULL){
+          fcoomm(m, n, k, ((dtype const *)alpha)[0], (dtype const *)A, rows_A, cols_A, nnz_A, (dtype const *)B, ((dtype const *)beta)[0], (dtype *)C);
+          return;
+        }
+        if (func == NULL && alpha != NULL && isequal(beta,mulid())){
+          dtype const * dA = (dtype const*)A;
+          dtype const * dB = (dtype const*)B;
+          dtype * dC = (dtype*)C;
+          dtype a = ((dtype*)alpha)[0];
+          if (!this->isequal(beta, this->mulid())){
+            scal(m*n, beta, C, 1);
+          }  
+          for (int64_t i=0; i<nnz_A; i++){
+            int row_A = rows_A[i]-1;
+            int col_A = cols_A[i]-1;
+            for (int col_C=0; col_C<n; col_C++){
+               dC[col_C*m+row_A] = this->fadd(fmul(a,fmul(dA[i],dB[col_C*k+col_A])), dC[col_C*m+row_A]);
+            }
+          }
+        } else { assert(0); }
+      }
   };
 
   /**

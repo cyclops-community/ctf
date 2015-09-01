@@ -1,6 +1,5 @@
 #include "coo.h"
 #include "../shared/util.h"
-
 namespace CTF_int {
   int64_t get_coo_size(int64_t nnz, int val_size){
     return nnz*(val_size+sizeof(int)*2)+2*sizeof(int64_t);
@@ -84,8 +83,8 @@ namespace CTF_int {
     ConstPairIterator pi(sr, tsr_data);
     for (int64_t i=0; i<nz; i++){
       int64_t k = pi[i].k();
-      cs[i] = 0;
-      rs[i] = 0;
+      cs[i] = 1;
+      rs[i] = 1;
       for (int j=0; j<order; j++){
         int64_t kpart = (k%lens[j])/phase[j];
         if (ordering[j] < nrow_idx){
@@ -100,6 +99,7 @@ namespace CTF_int {
       memcpy(vs+val_size*i, pi[i].d(), val_size);
     }
   }
+
 
   void COO_Matrix::coomm(algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
     int64_t nz = nnz(); 

@@ -412,22 +412,8 @@ namespace CTF_int {
 
 
   void algstrct::coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
-    if (func == NULL && alpha != NULL && isequal(beta,mulid())){
-      for (int64_t i=0; i<nnz_A; i++){
-        int row_A = rows_A[i];
-        int col_A = cols_A[i];
-        for (int col_C=0; col_C<n; col_C++){
-          /*printf("i=%ld, row_A=%d, col_A=%d, col_C=%d\n", i, row_A, col_A, col_C);
-          print(C+el_size*(col_C*m+row_A));
-          print(A+el_size*i );
-          print(B+el_size*(col_C*k+col_A));*/
-          accmul(C+el_size*(col_C*m+row_A), 
-                 A+el_size*i, 
-                 B+el_size*(col_C*k+col_A),
-                 alpha);
-        }
-      }
-    } else { ASSERT(0); assert(0); }
+    printf("CTF ERROR: coomm not present for this algebraic structure\n");
+    ASSERT(0);
   }
       
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){

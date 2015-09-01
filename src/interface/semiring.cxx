@@ -68,4 +68,98 @@ namespace CTF_int {
       (int n, std::complex<double> alpha, std::complex<double> * X, int incX){
     CTF_BLAS::ZSCAL(&n,&alpha,X,&incX);
   }
+
+#if USE_SP_MKL
+  template <>
+  void default_coomm< float >
+          (int           m,
+           int           n,
+           int           k,
+           float         alpha,
+           float const * A,
+           int const *   rows_A,
+           int const *   cols_A,
+           int           nnz_A,
+           float const * B,
+           float         beta,
+           float *       C){
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    CTF_BLAS::MKL_SCOOMM(&transa, &m, &n, &k, &alpha,
+               matdescra, (float*)A, rows_A, cols_A, &nnz_A,
+               (float*)B, &k, &beta,
+               (float*)C, &m);
+
+  }
+
+  template <>
+  void default_coomm< double >
+          (int            m,
+           int            n,
+           int            k,
+           double         alpha,
+           double const * A,
+           int const *    rows_A,
+           int const *    cols_A,
+           int            nnz_A,
+           double const * B,
+           double         beta,
+           double *       C){
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    CTF_BLAS::MKL_DCOOMM(&transa, &m, &n, &k, &alpha,
+               matdescra, (double*)A, rows_A, cols_A, &nnz_A,
+               (double*)B, &k, &beta,
+               (double*)C, &m);
+
+  }
+
+
+  template <>
+  void default_coomm< std::complex<float> >
+          (int                         m,
+           int                         n,
+           int                         k,
+           std::complex<float>         alpha,
+           std::complex<float> const * A,
+           int const *                 rows_A,
+           int const *                 cols_A,
+           int                         nnz_A,
+           std::complex<float> const * B,
+           std::complex<float>         beta,
+           std::complex<float> *       C){
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    CTF_BLAS::MKL_CCOOMM(&transa, &m, &n, &k, &alpha,
+               matdescra, (std::complex<float>*)A, rows_A, cols_A, &nnz_A,
+               (std::complex<float>*)B, &k, &beta,
+               (std::complex<float>*)C, &m);
+
+  }
+
+  template <>
+  void default_coomm< std::complex<double> >
+     (int                          m,
+      int                          n,
+      int                          k,
+      std::complex<double>         alpha,
+      std::complex<double> const * A,
+      int const *                  rows_A,
+      int const *                  cols_A,
+      int                          nnz_A,
+      std::complex<double> const * B,
+      std::complex<double>         beta,
+      std::complex<double> *       C){
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    CTF_BLAS::MKL_ZCOOMM(&transa, &m, &n, &k, &alpha,
+               matdescra, (std::complex<double>*)A, rows_A, cols_A, &nnz_A,
+               (std::complex<double>*)B, &k, &beta,
+               (std::complex<double>*)C, &m);
+
+  }
+
+
+ 
+#endif
 }

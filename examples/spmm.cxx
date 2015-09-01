@@ -48,11 +48,11 @@ int spmm(int     n,
   if (dw.rank == 0) printf("sparse c + A * b\n");
   c2.print();*/
 
-  assert(c2.norm2() >= 1E-6);
+  assert(c1.norm2() >= 1E-6);
 
-  c2["ik"] -= c1["ik"];
+  c1["ik"] -= c2["ik"];
 
-  bool pass = c2.norm2() <= 1.E-6;
+  bool pass = c1.norm2() <= 1.E-6;
 
   if (dw.rank == 0){
     if (pass) 

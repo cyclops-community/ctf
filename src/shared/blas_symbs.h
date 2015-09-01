@@ -17,6 +17,10 @@
 #define SCOPY scopy_
 #define DCOPY dcopy_
 #define ZCOPY zcopy_
+#define MKL_SCOOMM mkl_scoomm_
+#define MKL_DCOOMM mkl_dcoomm_
+#define MKL_CCOOMM mkl_ccoomm_
+#define MKL_ZCOOMM mkl_zcoomm_
 #else
 #define SGEMM sgemm
 #define DGEMM dgemm
@@ -33,6 +37,10 @@
 #define SCOPY scopy
 #define DCOPY dcopy
 #define ZCOPY zcopy
+#define MKL_SCOOMM mkl_scoomm
+#define MKL_DCOOMM mkl_dcoomm
+#define MKL_CCOOMM mkl_ccoomm
+#define MKL_ZCOOMM mkl_zcoomm
 #endif
 
 namespace CTF_BLAS {
@@ -179,6 +187,80 @@ namespace CTF_BLAS {
              std::complex<double> * dA,
              std::complex<double> * dX,
              const int *            incX);
+
+#if USE_SP_MKL
+  extern "C"
+  void MKL_SCOOMM(char *        transa,
+                  int *         m,
+                  int *         n,
+                  int *         k,
+                  float *       alpha,
+                  char *        matdescra,
+                  float const * val,
+                  int const *   rowind,
+                  int const *   colind,
+                  int *         nnz,
+                  float const * b,
+                  int *         ldb,
+                  float *       beta,
+                  float *       c,
+                  int *         ldc);
+
+
+  extern "C"
+  void MKL_DCOOMM(char *         transa,
+                  int *          m,
+                  int *          n,
+                  int *          k,
+                  double *       alpha,
+                  char *         matdescra,
+                  double const * val,
+                  int const *    rowind,
+                  int const *    colind,
+                  int *          nnz,
+                  double const * b,
+                  int *          ldb,
+                  double *       beta,
+                  double *       c,
+                  int *          ldc);
+
+  extern "C"
+  void MKL_CCOOMM(char *                      transa,
+                  int *                       m,
+                  int *                       n,
+                  int *                       k,
+                  std::complex<float> *       alpha,
+                  char *                      matdescra,
+                  std::complex<float> const * val,
+                  int const *                 rowind,
+                  int const *                 colind,
+                  int *                       nnz,
+                  std::complex<float> const * b,
+                  int *                       ldb,
+                  std::complex<float> *       beta,
+                  std::complex<float> *       c,
+                  int *                       ldc);
+
+
+  extern "C"
+  void MKL_ZCOOMM(char *                       transa,
+                  int *                        m,
+                  int *                        n,
+                  int *                        k,
+                  std::complex<double> *       alpha,
+                  char *                       matdescra,
+                  std::complex<double> const * val,
+                  int const *                  rowind,
+                  int const *                  colind,
+                  int *                        nnz,
+                  std::complex<double> const * b,
+                  int *                        ldb,
+                  std::complex<double> *       beta,
+                  std::complex<double> *       c,
+                  int *                        ldc);
+
+#endif
+
 
 }
 #endif

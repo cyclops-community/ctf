@@ -148,6 +148,20 @@ namespace CTF_int {
                         char const * beta,
                         char *       C)  const;
 
+      /** \brief sparse version of gemm using coordinate format for A */
+      virtual void coomm(int                    m,
+                         int                    n,
+                         int                    k,
+                         char const *           alpha,
+                         char const *           A,
+                         int const *            rows_A,
+                         int const *            cols_A,
+                         int64_t                nnz_A,
+                         char const *           B,
+                         char const *           beta,
+                         char *                 C,
+                         bivar_function const * func) const;
+
       /** \brief returns true if algstrct elements a and b are equal */
       virtual bool isequal(char const * a, char const * b) const;
     
@@ -207,8 +221,6 @@ namespace CTF_int {
       
       /** \brief gets pair to value from pair */
       char const * get_value(char const * a) const;
-
-      void coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const;
 
 
   };
