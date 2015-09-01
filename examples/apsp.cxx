@@ -7,7 +7,17 @@
 
 #include <ctf.hpp>
 using namespace CTF;
+  struct path {
+    int w, h;
+    path(int w_, int h_){ w=w_; h=h_; }
+    path(){};
+  };
 
+
+  template <>  
+  inline void Set<path>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(%d %d)",((path*)a)[0].w,((path*)a)[0].h);
+  }
 // calculate APSP on a graph of n nodes distributed on World (communicator) dw
 int apsp(int     n,
          World & dw){
@@ -45,12 +55,6 @@ int apsp(int     n,
 #endif
 
   //struct for path with w=path weight, h=#hops
-  struct path {
-    int w, h;
-    path(int w_, int h_){ w=w_; h=h_; }
-    path(){};
-  };
-
   MPI_Op opath;
   MPI_Op_create(
       [](void *invec, void *inoutvec, int *len, MPI_Datatype *datatype){ 
@@ -63,7 +67,7 @@ int apsp(int     n,
 
   //tropical semiring with hops carried by winner of min
   Semiring<path> p(path(INT_MAX/2,0), 
-                   [](path a, path b){ if (a.w<b.w) return a; else return b; },
+                   [](path a, path b){ if (a.w<b.w || (a.w == b.w && a.h<b.h)) return a; else return b; },
                    opath,
                    path(0,0),
                    [](path a, path b){ return path(a.w+b.w, a.h+b.h); });

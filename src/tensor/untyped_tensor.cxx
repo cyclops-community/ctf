@@ -1669,28 +1669,30 @@ namespace CTF_int {
     int i, j, nvirt, allfold_dim;
     int * all_edge_len, * sub_edge_len;
     if (this->is_folded){
-      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
-      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
-      calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
-               NULL, sub_edge_len, NULL);
-      allfold_dim = 0;
-      for (i=0; i<this->order; i++){
-        if (this->sym[i] == NS){
-          j=1;
-          while (i-j >= 0 && this->sym[i-j] != NS) j++;
-          all_edge_len[allfold_dim] = sy_packed_size(j, sub_edge_len+i-j+1,
-                                                     this->sym+i-j+1);
-          allfold_dim++;
+      if (!is_sparse){
+        CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
+        CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
+        calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
+                 NULL, sub_edge_len, NULL);
+        allfold_dim = 0;
+        for (i=0; i<this->order; i++){
+          if (this->sym[i] == NS){
+            j=1;
+            while (i-j >= 0 && this->sym[i-j] != NS) j++;
+            all_edge_len[allfold_dim] = sy_packed_size(j, sub_edge_len+i-j+1,
+                                                       this->sym+i-j+1);
+            allfold_dim++;
+          }
         }
+        nvirt = this->calc_nvirt();
+        for (i=0; i<nvirt; i++){
+          nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
+                                 this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
+        }
+        CTF_int::cdealloc(all_edge_len);
+        CTF_int::cdealloc(sub_edge_len);
+        this->rec_tsr->is_data_aliased=1;
       }
-      nvirt = this->calc_nvirt();
-      for (i=0; i<nvirt; i++){
-        nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
-                               this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
-      }
-      CTF_int::cdealloc(all_edge_len);
-      CTF_int::cdealloc(sub_edge_len);
-      this->rec_tsr->is_data_aliased=1;
       delete this->rec_tsr;
       CTF_int::cdealloc(this->inner_ordering);
     }  

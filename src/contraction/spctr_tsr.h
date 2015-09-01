@@ -43,7 +43,7 @@ namespace CTF_int{
       int const * idx_map_C;
       int *       sym_C;
 
-      int is_inner;
+      int use_coomm;
       iparam inner_params;
       
       int is_custom;
@@ -82,7 +82,7 @@ namespace CTF_int{
       }
 
       seq_tsr_spctr(contraction const * s,
-                    bool                is_inner,
+                    bool                use_coomm,
                     iparam const *      inner_params,
                     int *               virt_blk_len_A,
                     int *               virt_blk_len_B,
@@ -171,7 +171,6 @@ namespace CTF_int{
       spctr_pin_keys(contraction const * s, int AxBxC);
 
   };
-
 }
 
 #endif

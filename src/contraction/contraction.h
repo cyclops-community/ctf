@@ -259,7 +259,9 @@ namespace CTF_int {
                                 int            is_used,
                                 int const *    phys_mapped);
 
-      ctr * construct_sparse_ctr(int *          nvirt_all,
+      ctr * construct_sparse_ctr(int            is_inner,
+                                 iparam const * inner_params,
+                                 int *          nvirt_all,
                                  int            is_used,
                                  int const *    phys_mapped);
 

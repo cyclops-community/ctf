@@ -17,7 +17,6 @@ namespace CTF_int {
                     int           incX,
                     dtype *       Y,
                     int           incY){
-
     for (int i=0; i<n; i++){
       Y[incY*i] += alpha*X[incX*i];
     }
@@ -334,9 +333,33 @@ namespace CTF {
           dtype * dC       = (dtype*) C;
           if (!this->isequal(beta, this->mulid())){
             scal(m*n, beta, C, 1);
-          }   
-          for (int64_t i=0; i<n; i++){
-            dC[i] = this->fadd(fmul(a,fmul(dA[i],dB[i])), dC[i]);
+          }  
+          int lda_Cj, lda_Ci, lda_Al, lda_Ai, lda_Bj, lda_Bl;
+          lda_Cj = m;
+          lda_Ci = 1;
+          if (tA == 'N'){
+            lda_Al = m;
+            lda_Ai = 1;
+          } else {
+            assert(tA == 'T');
+            lda_Al = 1;
+            lda_Ai = m;
+          } 
+          if (tB == 'N'){
+            lda_Bj = k;
+            lda_Bl = 1;
+          } else {
+            assert(tB == 'T');
+            lda_Bj = 1;
+            lda_Bl = k;
+          } 
+          for (int64_t j=0; j<n; j++){
+            for (int64_t i=0; i<m; i++){
+              for (int64_t l=0; l<k; l++){
+                //dC[j*m+i] = this->fadd(fmul(a,fmul(dA[l*m+i],dB[j*k+l])), dC[j*m+i]);
+                dC[j*lda_Cj+i*lda_Ci] = this->fadd(fmul(a,fmul(dA[l*lda_Al+i*lda_Ai],dB[j*lda_Bj+l*lda_Bl])), dC[j*lda_Cj+i*lda_Ci]);
+              }
+            }
           }
         } 
       }

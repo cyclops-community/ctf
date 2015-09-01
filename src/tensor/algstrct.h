@@ -4,7 +4,7 @@
 #include "../interface/common.h"
 
 namespace CTF_int {
-  class Bivar_Function;
+  class bivar_function;
 
   /**
    * \brief algstrct (algebraic structure) defines the elementwise operations computed 
@@ -208,7 +208,7 @@ namespace CTF_int {
       /** \brief gets pair to value from pair */
       char const * get_value(char const * a) const;
 
-      void coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, Bivar_Function const * func) const;
+      void coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const;
 
 
   };

@@ -43,8 +43,8 @@ int spmv(int     n,
   if (dw.rank == 0) printf("dense c + A * b\n");
   c1.print();
   if (dw.rank == 0) printf("sparse c + A * b\n");
-  c2.print();
-*/
+  c2.print();*/
+
   assert(c2.norm2() >= 1E-6);
 
   c2["i"] -= c1["i"];
