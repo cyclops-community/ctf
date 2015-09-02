@@ -174,7 +174,7 @@ namespace CTF_int {
                             char * C, int nblk_C, int64_t * size_blk_C,
                             char *& new_C){
     int arank, brank, crank, i;
-
+    TAU_FSTART(spctr_replicate);
     arank = 0, brank = 0, crank = 0;
     for (i=0; i<ncdt_A; i++)
       arank += cdt_A[i]->rank;
@@ -252,10 +252,12 @@ namespace CTF_int {
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
 
+    TAU_FSTOP(spctr_replicate);
     rec_ctr->run(buf_A, nblk_A, new_size_blk_A,
                  buf_B, nblk_B, new_size_blk_B,
                      C, nblk_C,     size_blk_C,
                  new_C);
+    TAU_FSTART(spctr_replicate);
     /*for (i=0; i<size_C; i++){
       printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
     }*/
@@ -273,5 +275,6 @@ namespace CTF_int {
     if (!is_sparse_B && brank != 0){
       this->sr_B->set(B, this->sr_B->addid(), size_B);
     }
+    TAU_FSTOP(spctr_replicate);
   }
 }

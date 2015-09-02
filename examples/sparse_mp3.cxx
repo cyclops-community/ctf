@@ -43,7 +43,7 @@ double mp3(Tensor<> & Ea,
   return MP3_energy;
 }
 
-int sparse_mp3(int nv, int no, World & dw){
+int sparse_mp3(int nv, int no, World & dw, double sp=.8){
   int vvvv[]      = {nv,nv,nv,nv};
   int vovo[]      = {nv,no,nv,no};
   int vvoo[]      = {nv,nv,no,no};
@@ -76,7 +76,7 @@ int sparse_mp3(int nv, int no, World & dw){
   Vijkl.fill_random(-1.0,1.0);
   Vaibj.fill_random(-1.0,1.0);
 
-  Transform<> fltr([](double & d){ if (fabs(d)<.8) d=0.0; });
+  Transform<> fltr([=](double & d){ if (fabs(d)<sp) d=0.0; });
   fltr(Vabij["abij"]);
   fltr(Vijab["ijab"]);
   fltr(Vabcd["abcd"]);
@@ -88,7 +88,10 @@ int sparse_mp3(int nv, int no, World & dw){
 #ifndef TEST_SUITE
   double time = MPI_Wtime();
 #endif  
+  Timer_epoch dmp3("dense MP3");
+  dmp3.begin();
   dense_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
+  dmp3.end();
 #ifndef TEST_SUITE
   if (dw.rank == 0)
     printf("Calcluated MP3 energy %lf with dense integral tensors in time %lf sec.\n",dense_energy,MPI_Wtime()-time);
@@ -103,7 +106,10 @@ int sparse_mp3(int nv, int no, World & dw){
 #ifndef TEST_SUITE
   time = MPI_Wtime();
 #endif  
+  Timer_epoch smp3("sparse MP3");
+  smp3.begin();
   sparse_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
+  smp3.end();
 #ifndef TEST_SUITE
   if (dw.rank == 0)
     printf("Calcluated MP3 energy %lf with sparse integral tensors in time %lf sec.\n",sparse_energy,MPI_Wtime()-time);
@@ -135,6 +141,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, nv, no, pass;
+  double sp;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -152,13 +159,18 @@ int main(int argc, char ** argv){
     if (no < 0) no = 7;
   } else no = 7;
 
+  if (getCmdOption(input_str, input_str+in_num, "-sp")){
+    sp = atof(getCmdOption(input_str, input_str+in_num, "-sp"));
+    if (sp < 0.0 || sp > 1.0) sp = .8;
+  } else sp = .8;
+
   if (rank == 0){
-    printf("Running sparse third-order Moller-Plesset petrubation theory (MP3) method on %d virtual and %d occupied orbitals\n",nv,no);
+    printf("Running sparse (%lf zeros) third-order Moller-Plesset petrubation theory (MP3) method on %d virtual and %d occupied orbitals\n",sp,nv,no);
   }
 
   {
     World dw;
-    pass = sparse_mp3(nv, no, dw);
+    pass = sparse_mp3(nv, no, dw, sp);
     assert(pass);
   }
 

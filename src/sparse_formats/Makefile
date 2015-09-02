@@ -1,4 +1,4 @@
-LOBJS = coo.o
+LOBJS = coo.o csr.o
 OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq

@@ -21,6 +21,14 @@
 #define MKL_DCOOMM mkl_dcoomm_
 #define MKL_CCOOMM mkl_ccoomm_
 #define MKL_ZCOOMM mkl_zcoomm_
+#define MKL_SCSRCOO mkl_scsrcoo_
+#define MKL_DCSRCOO mkl_dcsrcoo_
+#define MKL_CCSRCOO mkl_ccsrcoo_
+#define MKL_ZCSRCOO mkl_zcsrcoo_
+#define MKL_SCSRMM mkl_scsrmm_
+#define MKL_DCSRMM mkl_dcsrmm_
+#define MKL_CCSRMM mkl_ccsrmm_
+#define MKL_ZCSRMM mkl_zcsrmm_
 #else
 #define SGEMM sgemm
 #define DGEMM dgemm
@@ -41,6 +49,14 @@
 #define MKL_DCOOMM mkl_dcoomm
 #define MKL_CCOOMM mkl_ccoomm
 #define MKL_ZCOOMM mkl_zcoomm
+#define MKL_SCSRCOO mkl_scsrcoo
+#define MKL_DCSRCOO mkl_dcsrcoo
+#define MKL_CCSRCOO mkl_ccsrcoo
+#define MKL_ZCSRCOO mkl_zcsrcoo
+#define MKL_SCSRMM mkl_scsrmm
+#define MKL_DCSRMM mkl_dcsrmm
+#define MKL_CCSRMM mkl_ccsrmm
+#define MKL_ZCSRMM mkl_zcsrmm
 #endif
 
 namespace CTF_BLAS {
@@ -258,6 +274,68 @@ namespace CTF_BLAS {
                   std::complex<double> *       beta,
                   std::complex<double> *       c,
                   int *                        ldc);
+
+  extern "C"
+  void MKL_SCSRCOO(int const * job,
+                   int *       n,
+                   float *     acsr,
+                   int const * ja,
+                   int const * ia,
+                   int *       nnz,
+                   float *     acoo,
+                   int const * rowind,
+                   int const * colind,
+                   int *       info);
+
+  extern "C"
+  void MKL_DCSRCOO(int const * job,
+                   int *       n,
+                   double *    acsr,
+                   int const * ja,
+                   int const * ia,
+                   int *       nnz,
+                   double *    acoo,
+                   int const * rowind,
+                   int const * colind,
+                   int *       info);
+
+  extern "C"
+  void MKL_CCSRCOO(int const *           job,
+                   int *                 n,
+                   std::complex<float> * acsr,
+                   int const *           ja,
+                   int const *           ia,
+                   int *                 nnz,
+                   std::complex<float> * acoo,
+                   int const *           rowind,
+                   int const *           colind,
+                   int *                 info);
+
+  extern "C"
+  void MKL_ZCSRCOO(int const *            job,
+                   int *                  n,
+                   std::complex<double> * acsr,
+                   int const *            ja,
+                   int const *            ia,
+                   int *                  nnz,
+                   std::complex<double> * acoo,
+                   int const *            rowind,
+                   int const *            colind,
+                   int *                  info);
+
+
+  extern "C"
+  void MKL_SCSRMM(const char *transa , const int *m , const int *n , const int *k , const float *alpha , const char *matdescra , const float *val , const int *indx , const int *pntrb , const int *pntre , const float *b , const int *ldb , const float *beta , float *c , const int *ldc );
+
+  extern "C"
+  void MKL_DCSRMM(const char *transa , const int *m , const int *n , const int *k , const double *alpha , const char *matdescra , const double *val , const int *indx , const int *pntrb , const int *pntre , const double *b , const int *ldb , const double *beta , double *c , const int *ldc );
+
+
+  extern "C"
+  void MKL_CCSRMM(const char *transa , const int *m , const int *n , const int *k , const std::complex<float> *alpha , const char *matdescra , const std::complex<float> *val , const int *indx , const int *pntrb , const int *pntre , const std::complex<float> *b , const int *ldb , const std::complex<float> *beta , std::complex<float> *c , const int *ldc );
+
+  extern "C"
+  void MKL_ZCSRMM(const char *transa , const int *m , const int *n , const int *k , const std::complex<double> *alpha , const char *matdescra , const std::complex<double> *val , const int *indx , const int *pntrb , const int *pntre , const std::complex<double> *b , const int *ldb , const std::complex<double> *beta , std::complex<double> *c , const int *ldc );
 
 #endif
 

@@ -109,6 +109,7 @@ namespace CTF_int {
   }
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
+    has_csrmm = false;
   }
   
 
@@ -246,6 +247,11 @@ namespace CTF_int {
       if (a[i] != b[i]) iseq = false;
     }
     return iseq;
+  }
+
+  void algstrct::coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+    printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
+    ASSERT(0);
   }
       
   void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {
@@ -415,6 +421,12 @@ namespace CTF_int {
     printf("CTF ERROR: coomm not present for this algebraic structure\n");
     ASSERT(0);
   }
+
+  void algstrct::csrmm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
+    printf("CTF ERROR: csrmm not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
       
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){
     sr=pi.sr; ptr=pi.ptr; 

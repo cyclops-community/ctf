@@ -1,5 +1,6 @@
 #include "coo.h"
 #include "../shared/util.h"
+
 namespace CTF_int {
   int64_t get_coo_size(int64_t nnz, int val_size){
     return nnz*(val_size+sizeof(int)*2)+2*sizeof(int64_t);
@@ -20,8 +21,12 @@ namespace CTF_int {
     return ((int64_t*)all_data)[0];
   }
 
+  int COO_Matrix::val_size() const {
+    return ((int64_t*)all_data)[1];
+  }
+
   int64_t COO_Matrix::size() const {
-    return nnz()*((int64_t*)all_data)[1];
+    return get_coo_size(nnz(),val_size());
   }
   
   char * COO_Matrix::vals() const {
@@ -30,22 +35,23 @@ namespace CTF_int {
 
   int * COO_Matrix::rows() const {
     int64_t n = this->nnz();
-    int val_size = ((int64_t*)all_data)[1];
+    int v_sz = this->val_size();
 
-    return (int*)(all_data + n*val_size+2*sizeof(int64_t));
+    return (int*)(all_data + n*v_sz+2*sizeof(int64_t));
   } 
 
   int * COO_Matrix::cols() const {
     int64_t n = this->nnz();
-    int val_size = ((int64_t*)all_data)[1];
+    int v_sz = ((int64_t*)all_data)[1];
 
-    return (int*)(all_data + n*(val_size+sizeof(int))+2*sizeof(int64_t));
+    return (int*)(all_data + n*(v_sz+sizeof(int))+2*sizeof(int64_t));
   } 
 
   void COO_Matrix::set_data(int64_t nz, int order, int const * lens, int const * rev_ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase){
+    TAU_FSTART(convert_to_COO);
     ((int64_t*)all_data)[0] = nz;
     ((int64_t*)all_data)[1] = sr->el_size;
-    int val_size = sr->el_size;
+    int v_sz = sr->el_size;
 
     int * rev_ord_lens = (int*)alloc(sizeof(int)*order);
     int * ordering = (int*)alloc(sizeof(int)*order);
@@ -97,8 +103,9 @@ namespace CTF_int {
         k=k/lens[j];
       }
     //  printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
-      memcpy(vs+val_size*i, pi[i].d(), val_size);
+      memcpy(vs+v_sz*i, pi[i].d(), v_sz);
     }
+    TAU_FSTOP(convert_to_COO);
   }
 
 

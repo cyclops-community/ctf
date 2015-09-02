@@ -16,6 +16,7 @@
 #include "../redistribution/nosym_transp.h"
 #include "../redistribution/redist.h"
 #include "../sparse_formats/coo.h"
+#include "../sparse_formats/csr.h"
 #include <cfloat>
 #include <limits>
 
@@ -699,7 +700,10 @@ namespace CTF_int {
       int64_t new_sz_A = 0;
       A->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
       for (i=0; i<nvirt_A; i++){
-        A->rec_tsr->nnz_blk[i] = get_coo_size(A->nnz_blk[i], A->sr->el_size); 
+        if (A->sr->has_csrmm)
+          A->rec_tsr->nnz_blk[i] = get_csr_size(A->nnz_blk[i], iprm.m, A->sr->el_size); 
+        else
+          A->rec_tsr->nnz_blk[i] = get_coo_size(A->nnz_blk[i], A->sr->el_size); 
         new_sz_A += A->rec_tsr->nnz_blk[i];
       }
       A->rec_tsr->data = (char*)alloc(new_sz_A);
@@ -715,8 +719,15 @@ namespace CTF_int {
       char * data_ptr_out = A->rec_tsr->data;
       char const * data_ptr_in = A->data;
       for (i=0; i<nvirt_A; i++){
-        COO_Matrix cm(data_ptr_out);
-        cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
+        if (A->sr->has_csrmm){
+          COO_Matrix cm(A->nnz_blk[i], A->sr);
+          cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
+          CSR_Matrix cs(cm, iprm.m, A->sr, data_ptr_out);
+          cdealloc(cm.all_data);
+        } else {
+          COO_Matrix cm(data_ptr_out);
+          cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
+        }
         data_ptr_in += A->nnz_blk[i]*A->sr->pair_size();
         data_ptr_out += A->rec_tsr->nnz_blk[i];
       }
@@ -3173,7 +3184,9 @@ namespace CTF_int {
     } else
       CTF_int::cdealloc(virt_dim);
 
-    seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, is_inner, inner_params, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
+    int krnl_type = is_inner;
+    if (krnl_type == 1 && A->sr->has_csrmm) krnl_type = 2;
+    seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, krnl_type, inner_params, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {
       hctr = ctrseq;
       is_top = 0;
@@ -3461,6 +3474,11 @@ namespace CTF_int {
   #endif
   //  stat = zero_out_padding(type->tid_A);
   //  stat = zero_out_padding(type->tid_B);
+  #ifdef PROFILE
+    TAU_FSTART(pre_ctr_func_barrier);
+    MPI_Barrier(global_comm.cm);
+    TAU_FSTOP(pre_ctr_func_barrier);
+  #endif
     TAU_FSTART(ctr_func);
     /* Invoke the contraction algorithm */
     A->topo->activate();
@@ -3520,6 +3538,11 @@ namespace CTF_int {
       ctrf->run(A->data, B->data, C->data);
     A->topo->deactivate();
 
+  #ifdef PROFILE
+    TAU_FSTART(post_ctr_func_barrier);
+    MPI_Barrier(global_comm.cm);
+    TAU_FSTOP(post_ctr_func_barrier);
+  #endif
     TAU_FSTOP(ctr_func);
   #ifndef SEQ
     if (C->is_cyclic)

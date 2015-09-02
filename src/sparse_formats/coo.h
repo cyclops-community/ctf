@@ -19,6 +19,8 @@ namespace CTF_int {
 
       int64_t nnz() const;
 
+      int val_size() const;
+
       int64_t size() const;
 
       char * vals() const;

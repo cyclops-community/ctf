@@ -207,7 +207,7 @@ namespace CTF {
       if (!universe_exists){
         universe_exists = true;
         universe = *this;
-        CTF_int::mem_create();
+//        CTF_int::mem_create();
         is_copy = true;
       } 
     }

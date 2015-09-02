@@ -14,6 +14,8 @@ namespace CTF_int {
     public: 
       /** \brief size of each element of algstrct in bytes */
       int el_size;
+      /** \brief whether there is an MKL CSRMM routine for this algebraic structure */
+      bool has_csrmm;
       /** \brief datatype for pairs, always custom create3d */
 //      MPI_Datatype pmdtype;
 
@@ -28,7 +30,7 @@ namespace CTF_int {
       /**
        * \brief default constructor
        */
-      algstrct(){}
+      algstrct(){ has_csrmm = false; }
 
       /**
        * \brief copy constructor
@@ -162,8 +164,25 @@ namespace CTF_int {
                          char *                 C,
                          bivar_function const * func) const;
 
+      /** \brief sparse version of gemm using CSR format for A */
+      virtual void csrmm(int                    m,
+                         int                    n,
+                         int                    k,
+                         char const *           alpha,
+                         char const *           A,
+                         int const *            rows_A,
+                         int const *            cols_A,
+                         int64_t                nnz_A,
+                         char const *           B,
+                         char const *           beta,
+                         char *                 C,
+                         bivar_function const * func) const;
+
       /** \brief returns true if algstrct elements a and b are equal */
       virtual bool isequal(char const * a, char const * b) const;
+
+      /** \brief converts coordinate sparse matrix layout to CSR layout */
+      virtual void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const;
     
       /** \brief compute b=beta*b + alpha*a */
       void acc(char * b, char const * beta, char const * a, char const * alpha) const;

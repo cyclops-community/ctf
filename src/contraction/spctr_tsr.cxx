@@ -6,6 +6,7 @@
 #include "sp_seq_ctr.h"
 #include "contraction.h"
 #include "../sparse_formats/coo.h"
+#include "../sparse_formats/csr.h"
 #include "../tensor/untyped_tensor.h"
 
 namespace CTF_int {  
@@ -27,7 +28,7 @@ namespace CTF_int {
 
 
   seq_tsr_spctr::seq_tsr_spctr(contraction const * c,
-                               bool                use_coomm_,
+                               int                 krnl_type_,
                                iparam const *      inner_params,
                                int *               virt_blk_len_A,
                                int *               virt_blk_len_B,
@@ -43,8 +44,8 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*c->C->order, (void**)&new_sym_C);
     memcpy(new_sym_C, c->C->sym, sizeof(int)*c->C->order);
 
-    this->use_coomm  = use_coomm_;
-    if (use_coomm){
+    this->krnl_type  = krnl_type_;
+    if (krnl_type > 0){
       if (c->A->wrld->cdt.rank == 0){
         DPRINTF(1,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
           inner_params->m, inner_params->k);
@@ -89,8 +90,8 @@ namespace CTF_int {
     for (i=0; i<order_C; i++){
       printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
     }
-    printf("is inner = %d\n", use_coomm);
-    if (use_coomm) printf("inner n = %d m= %d k = %d\n",
+    printf("kernel type is %d\n", krnl_type);
+    if (krnl_type>0) printf("inner n = %d m= %d k = %d\n",
                           inner_params.n, inner_params.m, inner_params.k);
   }
 
@@ -119,7 +120,7 @@ namespace CTF_int {
     edge_len_C   = (int*)CTF_int::alloc(sizeof(int)*order_C);
     memcpy(edge_len_C, o->edge_len_C, sizeof(int)*order_C);
 
-    use_coomm     = o->use_coomm;
+    krnl_type    = o->krnl_type;
     inner_params = o->inner_params;
     is_custom    = o->is_custom;
     func         = o->func;
@@ -136,9 +137,9 @@ namespace CTF_int {
     uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
     uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B)*sr_B->el_size;
     uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C)*sr_C->el_size;
-    if (use_coomm) size_A *= inner_params.m*inner_params.k;
-    if (use_coomm) size_B *= inner_params.n*inner_params.k;
-    if (use_coomm) size_C *= inner_params.m*inner_params.n;
+    if (krnl_type>0) size_A *= inner_params.m*inner_params.k;
+    if (krnl_type>0) size_B *= inner_params.n*inner_params.k;
+    if (krnl_type>0) size_C *= inner_params.m*inner_params.n;
     /*if (is_sparse_A) size_A = nnz_A*sr_A->pair_size();
     if (is_sparse_B) size_B = nnz_B*sr_B->pair_size();
     if (is_sparse_C) size_C = nnz_C*sr_C->pair_size();*/
@@ -154,7 +155,7 @@ namespace CTF_int {
             &idx_max,     &rev_idx_map);
 
     double flops = 2.0;
-    if (use_coomm) {
+    if (krnl_type>0) {
       flops *= inner_params.m;
       flops *= inner_params.n;
       flops *= inner_params.k;
@@ -184,7 +185,23 @@ namespace CTF_int {
     ASSERT(!is_sparse_C);
     ASSERT(nblk_A == 1);
 
-    if (use_coomm){
+    if (krnl_type==2){
+      // Do mm using CSR format
+      CSR_Matrix cA(A);
+      if (!sr_C->isequal(beta,sr_C->mulid())){
+        if (sr_C->isequal(beta,sr_C->addid())){
+          sr_C->set(C, beta, inner_params.sz_C);
+        } else {
+          sr_C->scal(inner_params.sz_C, beta, C, 1);
+        }
+      }
+      TAU_FSTART(CSRMM);
+      cA.csrmm(sr_A, inner_params.m, inner_params.n, inner_params.k,
+               alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
+      TAU_FSTOP(CSRMM);
+
+    } else if (krnl_type==1){
+      // Do mm using coordinate format
       COO_Matrix cA(A);
       if (!sr_C->isequal(beta,sr_C->mulid())){
         if (sr_C->isequal(beta,sr_C->addid())){
@@ -193,13 +210,16 @@ namespace CTF_int {
           sr_C->scal(inner_params.sz_C, beta, C, 1);
         }
       }
+      TAU_FSTART(COOMM);
       cA.coomm(sr_A, inner_params.m, inner_params.n, inner_params.k,
                alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
+      TAU_FSTOP(COOMM);
     } else {
       ASSERT(size_blk_A[0]%sr_A->pair_size() == 0);
 
       int64_t nnz_A = size_blk_A[0]/sr_A->pair_size();
 
+      TAU_FSTART(spA_dnB_dnC_seq);
       spA_dnB_dnC_seq_ctr(this->alpha,
                           A,
                           nnz_A,
@@ -222,6 +242,7 @@ namespace CTF_int {
                           sym_C,
                           idx_map_C,
                           func);
+      TAU_FSTOP(spA_dnB_dnC_seq);
     }
   }
 
@@ -595,6 +616,7 @@ namespace CTF_int {
                            char * B, int nblk_B, int64_t const * size_blk_B,
                            char * C, int nblk_C, int64_t * size_blk_C,
                            char *& new_C){
+    TAU_FSTART(spctr_pin_keys);
     char * X;
     algstrct const * sr;
     int64_t nnz = 0;
@@ -651,10 +673,12 @@ namespace CTF_int {
 
     pi.pin(nnz, order, lens, divisor, pi_new);
 
+    TAU_FSTOP(spctr_pin_keys);
     rec_ctr->run(nA, nblk_A, size_blk_A,
                  nB, nblk_B, size_blk_B,
                  nC, nblk_C, size_blk_C,
                  new_C);
+    TAU_FSTART(spctr_pin_keys);
 
 
     switch (AxBxC){
@@ -671,5 +695,6 @@ namespace CTF_int {
         depin(sr_C, order, lens, divisor, nblk_C, virt_dim, phys_rank, new_C, new_nnz_C, size_blk_C, new_C, true);
         break;
     }
+    TAU_FSTOP(spctr_pin_keys);
   }
 }

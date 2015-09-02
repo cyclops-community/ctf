@@ -10,7 +10,8 @@ using namespace CTF;
 
 int spmm(int     n,
          int     k,
-         World & dw){
+         World & dw,
+         double  sp=.50){
 
   Matrix<> spA(n, n, SP, dw);
   Matrix<> dnA(n, n, dw);
@@ -25,7 +26,7 @@ int spmm(int     n,
   dnA.fill_random(0.0,1.0);
 
   spA["ij"] += dnA["ij"];
-  spA.sparsify(.5);
+  spA.sparsify(sp);
   dnA["ij"] = 0.0;
   dnA["ij"] += spA["ij"];
   
@@ -78,6 +79,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, n, k, pass;
+  double sp;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -94,14 +96,19 @@ int main(int argc, char ** argv){
     k = atoi(getCmdOption(input_str, input_str+in_num, "-k"));
     if (k < 0) k = 7;
   } else k = 7;
+  if (getCmdOption(input_str, input_str+in_num, "-sp")){
+    sp = atof(getCmdOption(input_str, input_str+in_num, "-sp"));
+    if (sp < 0.0 || sp > 1.0) sp = .8;
+  } else sp = .8;
+
 
   {
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Multiplying %d-by-%d sparse matrix by %d-by-%d dense matrix\n",n,n,n,k);
+      printf("Multiplying %d-by-%d sparse (%lf zeros) matrix by %d-by-%d dense matrix\n",n,n,sp,n,k);
     }
-    pass = spmm(n, k, dw);
+    pass = spmm(n, k, dw, sp);
     assert(pass);
   }
 

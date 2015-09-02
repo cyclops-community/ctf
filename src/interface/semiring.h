@@ -208,7 +208,6 @@ namespace CTF_int {
     }
   }
 
-#if USE_SP_MKL
   template <>
   void default_coomm< float >
           (int           m,
@@ -264,7 +263,113 @@ namespace CTF_int {
       std::complex<double> const * B,
       std::complex<double>         beta,
       std::complex<double> *       C);
-#endif
+
+
+  template <typename dtype>
+  void default_csrmm
+                 (int           m,
+                  int           n,
+                  int           k,
+                  dtype         alpha,
+                  dtype const * A,
+                  int const *   rows_A,
+                  int const *   cols_A,
+                  int           nnz_A,
+                  dtype const * B,
+                  dtype         beta,
+                  dtype *       C){
+    printf("CTF ERROR: no default CSRMM, only possible for types supported by MKL\n");
+    ASSERT(0);
+  }
+
+
+  template <>
+  void default_csrmm< float >
+          (int           m,
+           int           n,
+           int           k,
+           float         alpha,
+           float const * A,
+           int const *   rows_A,
+           int const *   cols_A,
+           int           nnz_A,
+           float const * B,
+           float         beta,
+           float *       C);
+
+  template <>
+  void default_csrmm< double >
+          (int            m,
+           int            n,
+           int            k,
+           double         alpha,
+           double const * A,
+           int const *    rows_A,
+           int const *    cols_A,
+           int            nnz_A,
+           double const * B,
+           double         beta,
+           double *       C);
+
+
+  template <>
+  void default_csrmm< std::complex<float> >
+          (int                         m,
+           int                         n,
+           int                         k,
+           std::complex<float>         alpha,
+           std::complex<float> const * A,
+           int const *                 rows_A,
+           int const *                 cols_A,
+           int                         nnz_A,
+           std::complex<float> const * B,
+           std::complex<float>         beta,
+           std::complex<float> *       C);
+
+
+
+  template <>
+  void default_csrmm< std::complex<double> >
+          (int                          m,
+           int                          n,
+           int                          k,
+           std::complex<double>         alpha,
+           std::complex<double> const * A,
+           int const *                  rows_A,
+           int const *                  cols_A,
+           int                          nnz_A,
+           std::complex<double> const * B,
+           std::complex<double>         beta,
+           std::complex<double> *       C);
+
+
+
+  template <typename type>
+  bool get_def_has_csrmm(){ return false; }
+  template <>
+  bool get_def_has_csrmm<float>();
+  template <>
+  bool get_def_has_csrmm<double>();
+  template <>
+  bool get_def_has_csrmm< std::complex<float> >();
+  template <>
+  bool get_def_has_csrmm< std::complex<double> >();
+
+
+  template <typename dtype>  
+  void def_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_cs, int * csr_rs, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    printf("CTF ERROR: no default COO to CSR conversion kernel available, only possible for types supported by MKL\n");
+    ASSERT(0);
+  }
+  
+  template <>  
+  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_cs, int * csr_rs, float const * coo_vs, int const * coo_rs, int const * coo_cs);
+  template <>  
+  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_cs, int * csr_rs, double const * coo_vs, int const * coo_rs, int const * coo_cs);
+  template <>  
+  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_cs, int * csr_rs, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs);
+  template <>  
+  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_cs, int * csr_rs, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs);
 }
 
 namespace CTF {
@@ -340,6 +445,7 @@ namespace CTF {
         faxpy  = &CTF_int::default_axpy<dtype>;
         fscal  = &CTF_int::default_scal<dtype>;
         fcoomm = &CTF_int::default_coomm<dtype>;
+        this->has_csrmm = CTF_int::get_def_has_csrmm<dtype>();
       }
 
       void mul(char const * a, 
@@ -478,8 +584,31 @@ namespace CTF {
           }
         } else { assert(0); }
       }
-  };
 
+      void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+        assert(this->has_csrmm);
+        CTF_int::def_coo_to_csr(nz, nrow, (dtype *)csr_vs, csr_cs, csr_rs, (dtype const *) coo_vs, coo_rs, coo_cs);
+      }
+
+
+      /** \brief sparse version of gemm using CSR format for A */
+      void csrmm(int          m,
+                 int          n,
+                 int          k,
+                 char const * alpha,
+                 char const * A,
+                 int const *  rows_A,
+                 int const *  cols_A,
+                 int64_t      nnz_A,
+                 char const * B,
+                 char const * beta,
+                 char *       C,
+                 CTF_int::bivar_function const * func) const {
+        assert(this->has_csrmm);
+        assert(func == NULL);
+        CTF_int::default_csrmm<dtype>(m,n,k,((dtype*)alpha)[0],(dtype*)A,rows_A,cols_A,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
+      }
+  };
   /**
    * @}
    */
