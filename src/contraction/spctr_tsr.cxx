@@ -133,21 +133,17 @@ namespace CTF_int {
 
   int64_t seq_tsr_spctr::mem_fp(){ return 0; }
 
-  double seq_tsr_spctr::est_time_fp(int nlyr){ 
+  double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
     uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
     uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B)*sr_B->el_size;
     uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C)*sr_C->el_size;
     if (krnl_type>0) size_A *= inner_params.m*inner_params.k;
     if (krnl_type>0) size_B *= inner_params.n*inner_params.k;
     if (krnl_type>0) size_C *= inner_params.m*inner_params.n;
-    /*if (is_sparse_A) size_A = nnz_A*sr_A->pair_size();
-    if (is_sparse_B) size_B = nnz_B*sr_B->pair_size();
-    if (is_sparse_C) size_C = nnz_C*sr_C->pair_size();*/
+    if (is_sparse_A) size_A *= nnz_frac_A;
+    if (is_sparse_B) size_B *= nnz_frac_B;
+    if (is_sparse_C) size_C *= nnz_frac_C;
    
-    /*ASSERT(size_A > 0);
-    ASSERT(size_B > 0);
-    ASSERT(size_C > 0);*/
-
     int idx_max, * rev_idx_map; 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
@@ -166,13 +162,17 @@ namespace CTF_int {
         else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
       }
     }
+    //FIXME only makes sense when one of A/B/C is sparse
+    if (is_sparse_A) flops *= nnz_frac_A;
+    if (is_sparse_B) flops *= nnz_frac_B;
+    if (is_sparse_C) flops *= nnz_frac_C;
     ASSERT(flops >= 0.0);
     CTF_int::cdealloc(rev_idx_map);
     return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
   }
 
-  double seq_tsr_spctr::est_time_rec(int nlyr){ 
-    return est_time_fp(nlyr);
+  double seq_tsr_spctr::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
+    return est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   void seq_tsr_spctr::run(char * A, int nblk_A, int64_t const * size_blk_A,
@@ -309,13 +309,13 @@ namespace CTF_int {
   }
 
 
-  double spctr_virt::est_time_rec(int nlyr) {
+  double spctr_virt::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
     /* FIXME: for now treat flops like comm, later make proper cost */
     int64_t nblk = 1;
     for (int dim=0; dim<num_dim; dim++){
       nblk *= virt_dim[dim];
     }
-    return nblk*rec_ctr->est_time_rec(nlyr);
+    return nblk*rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
 
@@ -580,12 +580,15 @@ namespace CTF_int {
     switch (AxBxC){ 
       case 0:
         X = s->A;
+        dns_blk_sz = s->A->size;
         break;
       case 1:
         X = s->B;
+        dns_blk_sz = s->B->size;
         break;
       case 2:
         X = s->C;
+        dns_blk_sz = s->C->size;
         break;
     }
 
@@ -603,13 +606,20 @@ namespace CTF_int {
     }
   }
 
-  double spctr_pin_keys::est_time_fp(int nlyr) {
-    //FIXME: need sparsity knowledge
+  double spctr_pin_keys::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    switch (AxBxC){
+      case 0:
+        return dns_blk_sz*nnz_frac_A;
+      case 1:
+        return dns_blk_sz*nnz_frac_B;
+      case 2:
+        return dns_blk_sz*nnz_frac_C;
+    }
     return 0;
   }
 
-  double spctr_pin_keys::est_time_rec(int nlyr) {
-    return est_time_fp(nlyr)+rec_ctr->est_time_rec(nlyr);
+  double spctr_pin_keys::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    return est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C)+rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   void spctr_pin_keys::run(char * A, int nblk_A, int64_t const * size_blk_A,

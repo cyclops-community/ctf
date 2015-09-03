@@ -137,27 +137,28 @@ namespace CTF_int {
     rec_ctr->print();
   }
 
-  double spctr_replicate::est_time_fp(int nlyr){
+  double spctr_replicate::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     int i;
     double tot_sz;
     tot_sz = 0.0;
     for (i=0; i<ncdt_A; i++){
       ASSERT(cdt_A[i]->np > 0);
-      tot_sz += cdt_A[i]->estimate_bcast_time(size_A*sr_A->el_size);
+      //FIXME estimates off since multiplying by element size vs pair/CSR size
+      tot_sz += cdt_A[i]->estimate_bcast_time(nnz_frac_A*size_A*sr_A->el_size);
     }
     for (i=0; i<ncdt_B; i++){
       ASSERT(cdt_B[i]->np > 0);
-      tot_sz += cdt_B[i]->estimate_bcast_time(size_B*sr_B->el_size);
+      tot_sz += cdt_B[i]->estimate_bcast_time(nnz_frac_B*size_B*sr_B->el_size);
     }
     for (i=0; i<ncdt_C; i++){
       ASSERT(cdt_C[i]->np > 0);
-      tot_sz += cdt_C[i]->estimate_allred_time(size_C*sr_C->el_size);
+      tot_sz += cdt_C[i]->estimate_allred_time(nnz_frac_C*size_C*sr_C->el_size);
     }
     return tot_sz;
   }
 
-  double spctr_replicate::est_time_rec(int nlyr) {
-    return rec_ctr->est_time_rec(nlyr) + est_time_fp(nlyr);
+  double spctr_replicate::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    return rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   int64_t spctr_replicate::mem_fp(){

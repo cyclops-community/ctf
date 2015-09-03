@@ -17,6 +17,28 @@ namespace CTF_int{
       ~spctr();
       spctr(spctr * other);
       virtual spctr * clone() { return NULL; }
+      /**
+       * \brief returns the execution time the local part this kernel is estimated to take
+       * \param[in] nlyr amount of replication
+       * \param[in] nnz_frac_A percentage of nonzeros in tensor A
+       * \param[in] nnz_frac_B percentage of nonzeros in tensor B
+       * \param[in] nnz_frac_C percentage of nonzeros in tensor C
+       * \return time in sec
+       */
+      virtual double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ return 0.0; }
+      double est_time_fp(int nlyr){ return est_time_fp(nlyr, 1.0, 1.0, 1.0); }
+      /**
+       * \brief returns the execution time this kernel and its recursive calls are estimated to take
+       * \param[in] nlyr amount of replication
+       * \param[in] nnz_frac_A percentage of nonzeros in tensor A
+       * \param[in] nnz_frac_B percentage of nonzeros in tensor B
+       * \param[in] nnz_frac_C percentage of nonzeros in tensor C
+       * \return time in sec
+       */
+      virtual double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ return 0.0; }
+      double est_time_rec(int nlyr){ return est_time_rec(nlyr, 1.0, 1.0, 1.0); }
+
+
       void run(char * A, char * B, char * C) { printf("CTF ERROR: PROVIDE SPARSITY ARGS TO RUN\n"); assert(0); };
       virtual void run(char * A, int nblk_A, int64_t const * size_blk_A,
                        char * B, int nblk_B, int64_t const * size_blk_B,
@@ -60,16 +82,8 @@ namespace CTF_int{
       void print();
       int64_t mem_fp();
       spctr * clone();
-      /**
-       * \brief returns the execution time the local part this kernel is estimated to take
-       * \return time in sec
-       */
-      double est_time_fp(int nlyr);
-      /**
-       * \brief returns the execution time this kernel and its recursive calls are estimated to take
-       * \return time in sec
-       */
-      double est_time_rec(int nlyr);
+      double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 
       /**
        * \brief copies ctr object
@@ -118,7 +132,7 @@ namespace CTF_int{
       int64_t mem_fp();
       int64_t mem_rec();
 
-      double est_time_rec(int nlyr);
+      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       spctr * clone();
 
       /**
@@ -147,6 +161,7 @@ namespace CTF_int{
       int * divisor;
       int * virt_dim;
       int * phys_rank;
+      int64_t dns_blk_sz;
 
       void run(char * A, int nblk_A, int64_t const * size_blk_A,
                char * B, int nblk_B, int64_t const * size_blk_B,
@@ -156,16 +171,9 @@ namespace CTF_int{
       int64_t mem_fp();
       int64_t mem_rec();
       spctr * clone();
-      /**
-       * \brief returns the execution time the local part this kernel is estimated to take
-       * \return time in sec
-       */
-      double est_time_fp(int nlyr);
-      /**
-       * \brief returns the execution time this kernel and its recursive calls are estimated to take
-       * \return time in sec
-       */
-      double est_time_rec(int nlyr);
+
+      double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       spctr_pin_keys(spctr * other);
       ~spctr_pin_keys();
       spctr_pin_keys(contraction const * s, int AxBxC);

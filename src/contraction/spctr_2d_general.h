@@ -100,12 +100,12 @@ namespace CTF_int{
        * \brief returns the number of bytes this kernel will send per processor
        * \return bytes sent
        */
-      double est_time_fp(int nlyr);
+      double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       /**
        * \brief returns the number of bytes send by each proc recursively 
        * \return bytes needed for recursive contraction
        */
-      double est_time_rec(int nlyr);
+      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       spctr * clone();
 /*      void set_size_blk_A(int new_nblk_A, int64_t const * nnbA){
         spctr::set_size_blk_A(new_nblk_A, nnbA);

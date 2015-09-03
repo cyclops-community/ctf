@@ -42,16 +42,8 @@ namespace CTF_int{
        * \return bytes needed for recursive contraction
        */
       int64_t mem_rec();
-      /**
-       * \brief returns the execution time the local part this kernel is estimated to take
-       * \return time in sec
-       */
-      double est_time_fp(int nlyr);
-      /**
-       * \brief returns the execution time this kernel and its recursive calls are estimated to take
-       * \return time in sec
-       */
-      double est_time_rec(int nlyr);
+      double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       void print();
       spctr * clone();
 
