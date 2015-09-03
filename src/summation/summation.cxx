@@ -1520,12 +1520,8 @@ namespace CTF_int {
           cdealloc(tnsr_B->data);
           tnsr_B->data = spsumf->new_B;
           //tnsr_B->nnz_loc = spsumf->new_nnz_B;
-          tnsr_B->nnz_loc = 0;
-          for (int i=0; i<tnsr_B->calc_nvirt(); i++){
-        //    printf("rec %p pin %p new_blk_nnz_B[%d] = %ld\n",spsumf->nnz_blk_B,tnsr_B->nnz_blk,i,tnsr_B->nnz_blk[i]);
-            tnsr_B->nnz_loc += tnsr_B->nnz_blk[i];
-          }
         }
+        tnsr_B->set_new_nnz_glb(tnsr_B->nnz_blk);
         ASSERT(tnsr_B->nnz_loc == spsumf->new_nnz_B);
       }
       /*tnsr_B->unfold();

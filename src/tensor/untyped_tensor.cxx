@@ -246,11 +246,12 @@ namespace CTF_int {
       copy_mapping(other->order, other->edge_map, this->edge_map);
     this->size = other->size;
     this->nnz_loc = other->nnz_loc;
+    this->nnz_tot = other->nnz_tot;
     //this->nnz_loc_max = other->nnz_loc_max;
 #if DEBUG>= 1
     if (wrld->rank == 0){
       if (is_sparse){
-        printf("New sparse tensor %s copied from %s of size %ld nonzeros (%ld bytes):\n",name, other->name, this->nnz_loc,this->nnz_loc*sr->el_size);
+        printf("New sparse tensor %s copied from %s of size %ld nonzeros (%ld bytes) locally, %ld nonzeros total:\n",name, other->name, this->nnz_loc,this->nnz_loc*sr->el_size,nnz_tot);
       } else {
         printf("New tensor %s copied from %s of size %ld elms (%ld bytes):\n",name, other->name, this->size,this->size*sr->el_size);
       }
@@ -285,6 +286,7 @@ namespace CTF_int {
     this->is_sparse         = is_sparse_;
     this->data              = NULL;
     this->nnz_loc           = 0;
+    this->nnz_tot           = 0;
     this->nnz_blk           = NULL;
 //    this->nnz_loc_max       = 0;
     if (name_ != NULL){
@@ -981,7 +983,7 @@ namespace CTF_int {
                       new_pairs,
                       nnz_loc_new);
       if (is_sparse && rw == 'w'){
-        this->nnz_loc = nnz_loc_new;
+        this->set_new_nnz_glb(nnz_blk);
         if (tsr->data != NULL) cdealloc(tsr->data);
         tsr->data = new_pairs;
 /*        for (int64_t i=0; i<nnz_loc; i++){
@@ -1176,14 +1178,15 @@ namespace CTF_int {
         }
       }*/
       // if we don't have any actual zeros don't do anything
-      if (nnz_loc_new == nnz_loc) return SUCCESS;
-      alloc_ptr(nnz_loc_new*sr->pair_size(), (void**)&data);
-      PairIterator pi_new(sr, data);
-      nnz_loc_new = 0;
-      for (int64_t i=0; i<nnz_loc; i++){
-        if (f(pi[i].d())){
-          memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
-          nnz_loc_new++;
+      if (nnz_loc_new != nnz_loc){
+        alloc_ptr(nnz_loc_new*sr->pair_size(), (void**)&data);
+        PairIterator pi_new(sr, data);
+        nnz_loc_new = 0;
+        for (int64_t i=0; i<nnz_loc; i++){
+          if (f(pi[i].d())){
+            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
+            nnz_loc_new++;
+          }
         }
       }
       /*if (threshold == NULL){
@@ -1207,7 +1210,7 @@ namespace CTF_int {
           }
         }
       }*/
-      nnz_loc = nnz_loc_new;
+      this->set_new_nnz_glb(nnz_blk);
       //FIXME compute max nnz_loc?
     } else {
       ASSERT(!has_home || is_home);
@@ -1224,6 +1227,7 @@ namespace CTF_int {
       clear_mapping();
       is_sparse = true;
       nnz_loc = 0;
+      nnz_tot = 0;
       set_zero();
       //nnz_loc_max = 0;
       //write old data as pairs to self FIXME can be done faster
@@ -1900,6 +1904,7 @@ namespace CTF_int {
         nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
         std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
         this->write(old_nnz, sr->mulid(), sr->addid(), old_data);
+        //this->set_new_nnz_glb(nnz_blk);
         shuffled_data = this->data;
         cdealloc(old_data);
       } else
@@ -2256,6 +2261,15 @@ namespace CTF_int {
         sym_table[(i+1)*order+i] = 1;
       }
     }
+  }
+
+  void tensor::set_new_nnz_glb(int64_t const * nnz_blk_){
+    nnz_loc = 0;
+    for (int i=0; i<calc_nvirt(); i++){
+      nnz_blk[i] = nnz_blk_[i];
+      nnz_loc += nnz_blk[i];
+    }
+    MPI_Allreduce(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM, wrld->comm);
   }
 
 }

@@ -125,7 +125,7 @@ namespace CTF_int {
       /** \brief number of local nonzero elements */
       int64_t nnz_loc;
       /** \brief maximum number of local nonzero elements over all procs*/
-      //int64_t nnz_loc_max;
+      int64_t nnz_tot;
       /** \brief nonzero elements in each block owned locally */
       int64_t * nnz_blk;
       
@@ -630,6 +630,12 @@ namespace CTF_int {
         * \param[in] sym
         */
       void set_sym(int const * sym); 
+
+      /**
+       * \brief sets the number of nonzeros both locally (nnz_loc) and overall globally (nnz_tot)
+       * \param[in] nnz_blk number of nonzeros in each block  
+       */
+      void set_new_nnz_glb(int64_t const * nnz_blk);
   };
 }
 
