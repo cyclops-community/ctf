@@ -225,6 +225,13 @@ namespace CTF_int {
       int64_t calc_nvirt() const;
 
       /**
+       * \brief calculate the number of processes this tensor is distributed over
+       * return number of processes owning a block of the tensor
+       */
+      int64_t calc_npe() const;
+
+
+      /**
        * \brief sets padding and local size of a tensor given a mapping
        */
       void set_padding();

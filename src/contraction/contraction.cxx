@@ -576,12 +576,30 @@ namespace CTF_int {
       permute_target(tfC->order, tfnew_ord_C, tCiord);
     
       double time_est = 0.0;
-      time_est += tA->calc_nvirt()*est_time_transp(tall_fdim_A, tAiord, tall_flen_A, 1, tA->sr);
-      time_est += tB->calc_nvirt()*est_time_transp(tall_fdim_B, tBiord, tall_flen_B, 1, tB->sr);
-      time_est += 2.*tC->calc_nvirt()*est_time_transp(tall_fdim_C, tCiord, tall_flen_C, 1, tC->sr);
-      if (time_est <= btime){
-        btime = time_est;
-        bperm_order = iord;
+      if (tA->is_sparse)
+        time_est += tA->nnz_tot/(tA->size*tA->calc_npe())*tA->calc_nvirt()*est_time_transp(tall_fdim_A, tAiord, tall_flen_A, 1, tA->sr);
+      else
+        time_est += tA->calc_nvirt()*est_time_transp(tall_fdim_A, tAiord, tall_flen_A, 1, tA->sr);
+      if (tB->is_sparse)
+        time_est += tB->nnz_tot/(tB->size*tB->calc_npe())*tB->calc_nvirt()*est_time_transp(tall_fdim_B, tBiord, tall_flen_B, 1, tB->sr);
+      else
+        time_est += tB->calc_nvirt()*est_time_transp(tall_fdim_B, tBiord, tall_flen_B, 1, tB->sr);
+      if (tC->is_sparse)
+        time_est += 2.*tC->nnz_tot/(tC->size*tC->calc_npe())*tC->calc_nvirt()*est_time_transp(tall_fdim_C, tCiord, tall_flen_C, 1, tC->sr);
+      else
+        time_est += 2.*tC->calc_nvirt()*est_time_transp(tall_fdim_C, tCiord, tall_flen_C, 1, tC->sr);
+      if (A->is_sparse || B->is_sparse || C->is_sparse){
+        if (iord == 1){
+          if (time_est <= btime){
+            btime = time_est;
+            bperm_order = iord;
+          }
+        }
+      } else {
+        if (time_est <= btime){
+          btime = time_est;
+          bperm_order = iord;
+        }
       }
       cdealloc(tAiord);
       cdealloc(tBiord);
@@ -2016,6 +2034,8 @@ namespace CTF_int {
     for (j=0; j<C->order; j++){
       old_phase_C[j]   = C->edge_map[j].calc_phase();
     }
+
+    bool is_ctr_sparse = A->is_sparse || B->is_sparse || C->is_sparse;
     //}
     btopo = -1;
     best_time = DBL_MAX;
@@ -2131,8 +2151,17 @@ namespace CTF_int {
         B->set_padding();
         C->set_padding();
         sctr = construct_ctr();
-       
-        est_time = sctr->est_time_rec(sctr->num_lyr);
+        double nnz_frac_A = 1.0;
+        double nnz_frac_B = 1.0;
+        double nnz_frac_C = 1.0;
+        if (A->is_sparse) nnz_frac_A = A->nnz_tot/(A->size*A->calc_npe());
+        if (B->is_sparse) nnz_frac_B = B->nnz_tot/(B->size*B->calc_npe());
+        if (C->is_sparse) nnz_frac_C = C->nnz_tot/(C->size*C->calc_npe());
+        if (is_ctr_sparse){
+          est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+        } else { 
+          est_time = sctr->est_time_rec(sctr->num_lyr);
+        }
   #if DEBUG >= 4
         printf("mapping passed contr est_time = %E sec\n", est_time);
   #endif 
@@ -2150,14 +2179,14 @@ namespace CTF_int {
           need_remap_A = 1;
         if (need_remap_A) {
           nvirt = (int64_t)A->calc_nvirt();
-          est_time += global_comm.estimate_alltoallv_time(A->sr->el_size*A->size);
+          est_time += global_comm.estimate_alltoallv_time(A->sr->el_size*A->size*nnz_frac_A);
           if (can_block_reshuffle(A->order, old_phase_A, A->edge_map)){
-            memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size);
+            memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*nnz_frac_A);
           } else {
-            est_time += 5.*COST_MEMBW*A->sr->el_size*A->size+global_comm.estimate_alltoall_time(1);
+            est_time += 5.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
-              est_time += 5.*COST_MEMBW*A->sr->el_size*A->size;
-            memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*2.5);
+              est_time += 5.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A;
+            memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*nnz_frac_A*2.5);
           }
         } else
           memuse = 0;
@@ -2170,14 +2199,14 @@ namespace CTF_int {
           need_remap_B = 1;
         if (need_remap_B) {
           nvirt = (int64_t)B->calc_nvirt();
-          est_time += global_comm.estimate_alltoallv_time(B->sr->el_size*B->size);
+          est_time += global_comm.estimate_alltoallv_time(B->sr->el_size*B->size*nnz_frac_B);
           if (can_block_reshuffle(B->order, old_phase_B, B->edge_map)){
-            memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size);
+            memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*nnz_frac_B);
           } else {
-            est_time += 5.*COST_MEMBW*B->sr->el_size*B->size+global_comm.estimate_alltoall_time(1);
+            est_time += 5.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
-              est_time += 5.*COST_MEMBW*B->sr->el_size*B->size;
-            memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*2.5);
+              est_time += 5.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B;
+            memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*nnz_frac_B*2.5);
           }
         }
         if (topo_i == old_topo_C){
@@ -2189,14 +2218,14 @@ namespace CTF_int {
           need_remap_C = 1;
         if (need_remap_C) {
           nvirt = (int64_t)C->calc_nvirt();
-          est_time += global_comm.estimate_alltoallv_time(B->sr->el_size*B->size);
+          est_time += global_comm.estimate_alltoallv_time(C->sr->el_size*C->size*nnz_frac_C);
           if (can_block_reshuffle(C->order, old_phase_C, C->edge_map)){
-            memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size);
+            memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*nnz_frac_C);
           } else {
-            est_time += 5.*COST_MEMBW*C->sr->el_size*C->size+global_comm.estimate_alltoall_time(1);
+            est_time += 5.*COST_MEMBW*C->sr->el_size*C->size*nnz_frac_C+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
-              est_time += 5.*COST_MEMBW*C->sr->el_size*C->size;
-            memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*2.5);
+              est_time += 5.*COST_MEMBW*C->sr->el_size*C->size*nnz_frac_C;
+            memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*nnz_frac_C*2.5);
           }
         }
         if (can_fold()) est_time += est_time_fold();

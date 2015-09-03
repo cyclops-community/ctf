@@ -381,6 +381,28 @@ namespace CTF_int {
     return nvirt;  
   }
 
+ 
+  int64_t tensor::calc_npe() const {
+    int j;
+    int64_t npe;
+    mapping * map;
+    npe = 1;
+    for (j=0; j<this->order; j++){
+      map = &this->edge_map[j];
+      if (map->type == PHYSICAL_MAP){
+        npe *= map->np;
+      }
+      while (map->has_child){
+        map = map->child;
+        if (map->type == PHYSICAL_MAP){
+          npe *= map->np;
+        }
+      }
+    }
+    return npe;  
+  }
+
+
   void tensor::set_padding(){
     int j, pad, i;
     int * new_phase, * sub_edge_len;
