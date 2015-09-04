@@ -8,6 +8,7 @@
 #include "../interface/world.h"
 #include "../interface/partition.h"
 #include "algstrct.h"
+#include <functional>
 
 namespace CTF {
   class Idx_Tensor;
