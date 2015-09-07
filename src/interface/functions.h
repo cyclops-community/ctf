@@ -220,6 +220,11 @@ namespace CTF {
         assert(is_bivar);
         return *bivar;
       }
+
+      ~Function(){
+        if (is_univar) delete(univar);
+        if (is_bivar) delete(bivar);
+      }
   };
 
   
@@ -241,6 +246,11 @@ namespace CTF {
         is_endo = false;
         is_univar = true;
         univar = new Univar_Transform<dtype_A, dtype_B>(f_);
+      }
+
+      ~Transform(){
+        if (is_endo) delete endo;
+        if (is_univar) delete univar;
       }
 
       void operator()(CTF_int::Term const & A) const {

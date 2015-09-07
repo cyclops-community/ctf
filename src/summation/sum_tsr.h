@@ -58,7 +58,7 @@ namespace CTF_int {
       */
       void operator()(Term const & A, Term const & B) const;
 
-
+      virtual ~univar_function(){}
 
   };
 

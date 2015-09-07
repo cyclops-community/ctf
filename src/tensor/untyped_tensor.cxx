@@ -1201,6 +1201,7 @@ namespace CTF_int {
       }*/
       // if we don't have any actual zeros don't do anything
       if (nnz_loc_new != nnz_loc){
+        char * old_data = data;
         alloc_ptr(nnz_loc_new*sr->pair_size(), (void**)&data);
         PairIterator pi_new(sr, data);
         nnz_loc_new = 0;
@@ -1210,6 +1211,7 @@ namespace CTF_int {
             nnz_loc_new++;
           }
         }
+        cdealloc(old_data);
       }
       /*if (threshold == NULL){
         for (int64_t i=0; i<nnz_loc; i++){
@@ -1409,8 +1411,9 @@ namespace CTF_int {
 
     PairIterator ipr(sr, all_pairs);
     ipr.sort(nval);
-    if (n>0)
+    if (n>0){
       cdealloc(my_pairs);
+    }
     *num_pair = nval;
     return ipr; 
   }

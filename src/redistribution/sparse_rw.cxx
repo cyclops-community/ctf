@@ -1122,7 +1122,10 @@ namespace CTF_int {
               dpairsb, new_pairsb, &new_num_pair, sr);
 
     CTF_int::cdealloc(dpairsb);
-    if (nval == 0) CTF_int::cdealloc(new_pairsb);
+    if (new_num_pair == 0){
+      CTF_int::cdealloc(new_pairsb);
+      new_pairsb = NULL;
+    }
     *pairs = new_pairsb;
     *nread = new_num_pair;
 

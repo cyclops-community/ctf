@@ -21,6 +21,8 @@ namespace CTF_int{
        * \param[in,out] result: c=&f(*a,*b) 
        */
       virtual void apply_f(char const * a, char const * b, char * c) const { assert(0); }
+      
+      virtual ~bivar_function(){}
   };
 
 

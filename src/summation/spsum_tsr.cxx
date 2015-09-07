@@ -977,7 +977,9 @@ namespace CTF_int {
     if (A_or_B){
       depin(sr_A, order, lens, divisor, nvirt_A, virt_dim, phys_rank, A, nnz_A, (int64_t*)nnz_blk_A, A, false);
     } else {
+      char * old_B = new_B;
       depin(sr_B, order, lens, divisor, nvirt_B, virt_dim, phys_rank, new_B, new_nnz_B, nnz_blk_B, new_B, true);
+      if (old_B != new_B && old_B != B) cdealloc(old_B);
     }
   }
 }

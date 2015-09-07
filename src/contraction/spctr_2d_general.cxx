@@ -344,6 +344,12 @@ namespace CTF_int {
                    op_C);
 
       TAU_FSTART(spctr_2d_general);
+      if (new_size_blk_A != size_blk_A)
+        cdealloc(new_size_blk_A);
+      if (is_sparse_A && buf_A != NULL){
+        cdealloc(buf_A);
+        buf_A = NULL;
+      }
       new_C = C;
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
@@ -384,6 +390,9 @@ namespace CTF_int {
       if (buf_B != NULL) CTF_int::cdealloc(buf_B);
       if (buf_C != NULL) CTF_int::cdealloc(buf_C);
       CTF_int::cdealloc(buf_aux);
+    }
+    if (is_sparse_A){
+      cdealloc(offsets_A);
     }
     TAU_FSTOP(spctr_2d_general);
   }

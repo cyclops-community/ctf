@@ -1578,7 +1578,9 @@ namespace CTF_int {
   #endif
 
       delete sumf;
-      if (tnsr_A != A) delete tnsr_A;
+      if (tnsr_A != A){
+        delete tnsr_A;
+      }
       for (int i=nst_B-1; i>=0; i--){
         int ret = dstack_tsr_B[i]->extract_diag(dstack_map_B[i], 0, tnsr_B, &new_idx_map);
         ASSERT(ret == SUCCESS);

@@ -105,6 +105,10 @@ namespace CTF_int {
     //  printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
       memcpy(vs+v_sz*i, pi[i].d(), v_sz);
     }
+    cdealloc(ordering);
+    cdealloc(rev_ord_lens);
+    cdealloc(lda_col);
+    cdealloc(lda_row);
     TAU_FSTOP(convert_to_COO);
   }
 

@@ -765,6 +765,9 @@ namespace CTF_int {
         nnz_off += nnz_blk[v];
       }
     }
+    if (check_padding){
+     cdealloc(old_nnz_blk_B);
+    }
     cdealloc(virt_offset);
     cdealloc(div_lens);
 

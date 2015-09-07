@@ -716,6 +716,7 @@ namespace CTF_int {
       }
     } else {
       int64_t new_sz_A = 0;
+      A->rec_tsr->is_sparse = 1;
       A->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
       for (i=0; i<nvirt_A; i++){
         if (A->sr->has_csrmm)
@@ -3226,6 +3227,7 @@ namespace CTF_int {
     CTF_int::cdealloc(blk_len_A);
     CTF_int::cdealloc(blk_len_B);
     CTF_int::cdealloc(blk_len_C);
+    CTF_int::cdealloc(idx_arr);
 
     return hctr;
   }
@@ -3377,6 +3379,7 @@ namespace CTF_int {
         if (idx_arr[3*ila+2] != -1) 
           new_idx_C[idx_arr[3*ila+2]]=num_tot-i-1;
       }
+      cdealloc(idx_arr);
       bool is_chngd = false;
       for (int i=0; i<A->order; i++){
         if (idx_A[i] != new_idx_A[i]) is_chngd=true;

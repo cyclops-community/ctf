@@ -14,12 +14,13 @@ struct path {
   path(){};
 };
 
-
-template <>  
-inline void Set<path>::print(char const * a, FILE * fp) const {
-  fprintf(fp,"(%d %d)",((path*)a)[0].w,((path*)a)[0].h);
+namespace CTF {
+  template <>  
+  inline void Set<path>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(%d %d)",((path*)a)[0].w,((path*)a)[0].h);
+  }
 }
-// calculate APSP on a graph of n nodes distributed on World (communicator) dw
+  // calculate APSP on a graph of n nodes distributed on World (communicator) dw
 int apsp(int     n,
          World & dw,
          int     niter=0){
@@ -111,6 +112,7 @@ int apsp(int     n,
       printf("{ APSP by path doubling } failed \n");
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+  free(prs);
 #ifndef TEST_SUITE
   if (dw.rank == 0){
     printf("Starting %d benchmarking iterations of dense APSP-PD...\n", niter);
