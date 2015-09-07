@@ -146,7 +146,7 @@ int apsp(int     n,
     }
     printf("\n");
     std::sort(times,times+niter);
-    printf("Dense MM (n=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,min_time,tot_time/niter, times[niter/2], max_time);
+    printf("Dense APSP (n=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,min_time,tot_time/niter, times[niter/2], max_time);
   }
   if (dw.rank == 0){
     printf("Starting %d benchmarking iterations of sparse APSP-PD...\n", niter);
@@ -181,7 +181,7 @@ int apsp(int     n,
     }
     printf("\n");
     std::sort(times,times+niter);
-    printf("Sparse MM (n=%d): Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,min_time,tot_time/niter, times[niter/2], max_time);
+    printf("Sparse APSP (n=%d): Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,min_time,tot_time/niter, times[niter/2], max_time);
   }
 
 #endif

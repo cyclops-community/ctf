@@ -74,14 +74,14 @@ int spmm(int     n,
   dspmm.end();
   
   if (dw.rank == 0){
-    printf("Completed %d benchmarking iterations of dense SPMM (n=%d k=%d).\n", niter, n, k);
+    printf("Completed %d benchmarking iterations of dense SPMM (n=%d k=%d sp=%lf).\n", niter, n, k, sp);
     printf("All iterations times: ");
     for (int i=0; i<niter; i++){
       printf("%lf ", times[i]);
     }
     printf("\n");
     std::sort(times,times+niter);
-    printf("Dense MM (n=%d k=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,k,min_time,tot_time/niter, times[niter/2], max_time);
+    printf("Dense MM (n=%d k=%d sp=%lf) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,k,sp,min_time,tot_time/niter, times[niter/2], max_time);
   }
   if (dw.rank == 0){
     printf("Starting %d benchmarking iterations of sparse SPMM...\n", niter);
@@ -104,14 +104,14 @@ int spmm(int     n,
   sspmm.end();
   
   if (dw.rank == 0){
-    printf("Completed %d benchmarking iterations of sparse SPMM (n=%d k=%d).\n", niter, n, k);
+    printf("Completed %d benchmarking iterations of sparse SPMM (n=%d k=%d sp=%lf).\n", niter, n, k, sp);
     printf("All iterations times: ");
     for (int i=0; i<niter; i++){
       printf("%lf ", times[i]);
     }
     printf("\n");
     std::sort(times,times+niter);
-    printf("Sparse MM (n=%d k=%d): Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,k,min_time,tot_time/niter, times[niter/2], max_time);
+    printf("Sparse MM (n=%d k=%d sp=%lf): Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,k,sp,min_time,tot_time/niter, times[niter/2], max_time);
   }
 
 #endif

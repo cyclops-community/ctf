@@ -113,14 +113,14 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0){
   dmp3.end();
   
   if (dw.rank == 0){
-    printf("Completed %d benchmarking iterations of dense MP3 (no=%d nv=%d).\n", niter, no, nv);
+    printf("Completed %d benchmarking iterations of dense MP3 (no=%d nv=%d sp=%lf).\n", niter, no, nv, sp);
     printf("All iterations times: ");
     for (int i=0; i<niter; i++){
       printf("%lf ", times[i]);
     }
     printf("\n");
     std::sort(times,times+niter);
-    printf("Dense MP3 (no=%d nv=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,min_time,tot_time/niter, times[niter/2], max_time);
+    printf("Dense MP3 (no=%d nv=%d sp=%lf) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,min_time,tot_time/niter, times[niter/2], max_time);
   }
 #endif  
 
@@ -172,7 +172,7 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0){
     }
     printf("\n");
     std::sort(times,times+niter);
-    printf("Sparse MP3 (no=%d nv=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,min_time,tot_time/niter, times[niter/2], max_time);
+    printf("Sparse MP3 (no=%d nv=%d sp=%lf) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,min_time,tot_time/niter, times[niter/2], max_time);
   }
 #endif 
   return pass;
