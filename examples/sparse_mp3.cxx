@@ -6,6 +6,7 @@
   */
 
 #include <ctf.hpp>
+#include <float.h>
 using namespace CTF;
 
 double mp3(Tensor<> & Ea,
@@ -43,7 +44,7 @@ double mp3(Tensor<> & Ea,
   return MP3_energy;
 }
 
-int sparse_mp3(int nv, int no, World & dw, double sp=.8){
+int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0){
   int vvvv[]      = {nv,nv,nv,nv};
   int vovo[]      = {nv,no,nv,no};
   int vvoo[]      = {nv,nv,no,no};
@@ -85,16 +86,42 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8){
 
   double dense_energy, sparse_energy;
 
-#ifndef TEST_SUITE
-  double time = MPI_Wtime();
-#endif  
-  Timer_epoch dmp3("dense MP3");
-  dmp3.begin();
   dense_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
-  dmp3.end();
+
 #ifndef TEST_SUITE
   if (dw.rank == 0)
-    printf("Calcluated MP3 energy %lf with dense integral tensors in time %lf sec.\n",dense_energy,MPI_Wtime()-time);
+    printf("Calcluated MP3 energy %lf with dense integral tensors.\n",dense_energy);
+  if (dw.rank == 0){
+    printf("Starting %d benchmarking iterations of dense MP3...\n", niter);
+  }
+  double min_time = DBL_MAX;
+  double max_time = 0.0;
+  double tot_time = 0.0;
+  double times[niter];
+  Timer_epoch dmp3("dense MP3");
+  dmp3.begin();
+  for (int i=0; i<niter; i++){
+    double start_time = MPI_Wtime();
+    double tmp = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
+    double end_time = MPI_Wtime();
+    double iter_time = end_time-start_time;
+    times[i] = iter_time;
+    tot_time += iter_time;
+    if (iter_time < min_time) min_time = iter_time;
+    if (iter_time > max_time) max_time = iter_time;
+  }
+  dmp3.end();
+  
+  if (dw.rank == 0){
+    printf("Completed %d benchmarking iterations of dense MP3 (no=%d nv=%d).\n", niter, no, nv);
+    printf("All iterations times: ");
+    for (int i=0; i<niter; i++){
+      printf("%lf ", times[i]);
+    }
+    printf("\n");
+    std::sort(times,times+niter);
+    printf("Dense MP3 (no=%d nv=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,min_time,tot_time/niter, times[niter/2], max_time);
+  }
 #endif  
 
   Vabcd.sparsify();
@@ -103,18 +130,8 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8){
   Vijkl.sparsify();
   Vaibj.sparsify();
 
-#ifndef TEST_SUITE
-  time = MPI_Wtime();
-#endif  
-  Timer_epoch smp3("sparse MP3");
-  smp3.begin();
   sparse_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
-  smp3.end();
-#ifndef TEST_SUITE
-  if (dw.rank == 0)
-    printf("Calcluated MP3 energy %lf with sparse integral tensors in time %lf sec.\n",sparse_energy,MPI_Wtime()-time);
-#endif  
- 
+
   bool pass = fabs((dense_energy-sparse_energy)/dense_energy)<1.E-6;
 
   if (Ea.wrld->rank == 0){
@@ -123,6 +140,41 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8){
     else
       printf("{ sparse third-order Moller-Plesset petrubation theory (MP3) } failed \n");
   }
+
+#ifndef TEST_SUITE
+  if (dw.rank == 0)
+    printf("Calcluated MP3 energy %lf with sparse integral tensors.\n",sparse_energy);
+  if (dw.rank == 0){
+    printf("Starting %d benchmarking iterations of sparse MP3...\n", niter);
+  }
+  min_time = DBL_MAX;
+  max_time = 0.0;
+  tot_time = 0.0;
+  Timer_epoch smp3("sparse MP3");
+  smp3.begin();
+  for (int i=0; i<niter; i++){
+    double start_time = MPI_Wtime();
+    double tmp = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
+    double end_time = MPI_Wtime();
+    double iter_time = end_time-start_time;
+    times[i] = iter_time;
+    tot_time += iter_time;
+    if (iter_time < min_time) min_time = iter_time;
+    if (iter_time > max_time) max_time = iter_time;
+  }
+  smp3.end();
+  
+  if (dw.rank == 0){
+    printf("Completed %d benchmarking iterations of sparse MP3 (no=%d nv=%d).\n", niter, no, nv);
+    printf("All iterations times: ");
+    for (int i=0; i<niter; i++){
+      printf("%lf ", times[i]);
+    }
+    printf("\n");
+    std::sort(times,times+niter);
+    printf("Sparse MP3 (no=%d nv=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,min_time,tot_time/niter, times[niter/2], max_time);
+  }
+#endif 
   return pass;
 } 
 
@@ -140,7 +192,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, nv, no, pass;
+  int rank, np, nv, no, pass, niter;
   double sp;
   int const in_num = argc;
   char ** input_str = argv;
@@ -164,13 +216,18 @@ int main(int argc, char ** argv){
     if (sp < 0.0 || sp > 1.0) sp = .8;
   } else sp = .8;
 
+  if (getCmdOption(input_str, input_str+in_num, "-niter")){
+    niter = atof(getCmdOption(input_str, input_str+in_num, "-niter"));
+    if (niter < 0) niter = 10;
+  } else niter = 10;
+
   if (rank == 0){
     printf("Running sparse (%lf zeros) third-order Moller-Plesset petrubation theory (MP3) method on %d virtual and %d occupied orbitals\n",sp,nv,no);
   }
 
   {
     World dw;
-    pass = sparse_mp3(nv, no, dw, sp);
+    pass = sparse_mp3(nv, no, dw, sp, niter);
     assert(pass);
   }
 

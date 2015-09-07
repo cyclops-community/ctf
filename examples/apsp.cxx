@@ -6,21 +6,23 @@
   */
 
 #include <ctf.hpp>
+#include <float.h>
 using namespace CTF;
-  struct path {
-    int w, h;
-    path(int w_, int h_){ w=w_; h=h_; }
-    path(){};
-  };
+struct path {
+  int w, h;
+  path(int w_, int h_){ w=w_; h=h_; }
+  path(){};
+};
 
 
-  template <>  
-  inline void Set<path>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(%d %d)",((path*)a)[0].w,((path*)a)[0].h);
-  }
+template <>  
+inline void Set<path>::print(char const * a, FILE * fp) const {
+  fprintf(fp,"(%d %d)",((path*)a)[0].w,((path*)a)[0].h);
+}
 // calculate APSP on a graph of n nodes distributed on World (communicator) dw
 int apsp(int     n,
-         World & dw){
+         World & dw,
+         int     niter=0){
 
   //tropical semiring, define additive identity to be INT_MAX/2 to prevent integer overflow
   Semiring<int> s(INT_MAX/2, 
@@ -32,7 +34,7 @@ int apsp(int     n,
   //random adjacency matrix
   Matrix<int> A(n, n, dw, s);
   srand(dw.rank);
-  A.fill_random(0, 100); 
+  A.fill_random(0, n*n); 
   //no loops
   A["ii"] = 0;
 
@@ -42,17 +44,10 @@ int apsp(int     n,
   //initialize to adjacency graph
   D["ij"] = A["ij"];
 
-  double time = MPI_Wtime();  
   for (int i=1; i<n; i=i<<1){
     //all shortest paths of up 2i hops consist of one or two shortest paths up to i hops
     D["ij"] += D["ik"]*D["kj"];
   }
-  time = MPI_Wtime() - time;
-#ifndef TEST_SUITE
-  if (dw.rank == 0){
-    printf("Dense path doubling took %lf sec\n", time);
-  }
-#endif
 
   //struct for path with w=path weight, h=#hops
   MPI_Op opath;
@@ -82,7 +77,6 @@ int apsp(int     n,
   //sparse path matrix to contain all paths of exactly i hops
   Matrix<path> Pi(n, n, SP, dw, p);
 
-  time = MPI_Wtime();
   for (int i=1; i<n; i=i<<1){
     //let Pi be all paths in P consisting of exactly i hops
     Pi["ij"] = P["ij"];
@@ -94,22 +88,18 @@ int apsp(int     n,
     P["ij"] += Pi["ik"]*P["kj"];
   }
   
-  time = MPI_Wtime() - time;
-#ifndef TEST_SUITE
-  if (dw.rank == 0){
-    printf("SPARSE path doubling took %lf sec\n", time);
-  }
-#endif
    //check correctness by subtracting the two computed shortest path matrices from one another and checking that no nonzeros are left
   Transform<path,int> xtrw([](path p, int & w){ return w-=p.w; });
 
   xtrw(P["ij"], D["ij"]);
 
-  D.sparsify([](int w){ return w!=0; });
+  Matrix<int> D2(D);
+
+  D2.sparsify([](int w){ return w!=0; });
 
   int64_t loc_nnz;
   Pair<int> * prs; 
-  D.read_local_nnz(&loc_nnz, &prs);
+  D2.read_local_nnz(&loc_nnz, &prs);
 
   int pass = (loc_nnz == 0);
 
@@ -121,6 +111,78 @@ int apsp(int     n,
       printf("{ APSP by path doubling } failed \n");
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+#ifndef TEST_SUITE
+  if (dw.rank == 0){
+    printf("Starting %d benchmarking iterations of dense APSP-PD...\n", niter);
+  }
+  double min_time = DBL_MAX;
+  double max_time = 0.0;
+  double tot_time = 0.0;
+  double times[niter];
+  Timer_epoch dapsp("dense APSP-PD");
+  dapsp.begin();
+  for (int i=0; i<niter; i++){
+    D["ij"] = A["ij"];
+    double start_time = MPI_Wtime();
+    for (int j=1; j<n; j=j<<1){
+      D["ij"] += D["ik"]*D["kj"];
+    }
+    double end_time = MPI_Wtime();
+    double iter_time = end_time-start_time;
+    times[i] = iter_time;
+    tot_time += iter_time;
+    if (iter_time < min_time) min_time = iter_time;
+    if (iter_time > max_time) max_time = iter_time;
+  }
+  dapsp.end();
+  
+  if (dw.rank == 0){
+    printf("Completed %d benchmarking iterations of dense APSP-PD (n=%d).\n", niter, n);
+    printf("All iterations times: ");
+    for (int i=0; i<niter; i++){
+      printf("%lf ", times[i]);
+    }
+    printf("\n");
+    std::sort(times,times+niter);
+    printf("Dense MM (n=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,min_time,tot_time/niter, times[niter/2], max_time);
+  }
+  if (dw.rank == 0){
+    printf("Starting %d benchmarking iterations of sparse APSP-PD...\n", niter);
+  }
+  min_time = DBL_MAX;
+  max_time = 0.0;
+  tot_time = 0.0;
+  Timer_epoch sapsp("sparse APSP-PD");
+  sapsp.begin();
+  for (int i=0; i<niter; i++){
+    P["ij"] = setw(A["ij"]);
+    double start_time = MPI_Wtime();
+    for (int j=1; j<n; j=j<<1){
+      Pi["ij"] = P["ij"];
+      Pi.sparsify([=](path p){ return (p.h == j); });
+      P["ij"] += Pi["ik"]*P["kj"];
+    }
+    double end_time = MPI_Wtime();
+    double iter_time = end_time-start_time;
+    times[i] = iter_time;
+    tot_time += iter_time;
+    if (iter_time < min_time) min_time = iter_time;
+    if (iter_time > max_time) max_time = iter_time;
+  }
+  sapsp.end();
+  
+  if (dw.rank == 0){
+    printf("Completed %d benchmarking iterations of sparse APSP-PD (n=%d).\n", niter, n);
+    printf("All iterations times: ");
+    for (int i=0; i<niter; i++){
+      printf("%lf ", times[i]);
+    }
+    printf("\n");
+    std::sort(times,times+niter);
+    printf("Sparse MM (n=%d): Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,min_time,tot_time/niter, times[niter/2], max_time);
+  }
+
+#endif
   return pass;
 } 
 
@@ -138,7 +200,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, n, pass;
+  int rank, np, n, pass, niter;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -151,6 +213,10 @@ int main(int argc, char ** argv){
     if (n < 0) n = 7;
   } else n = 7;
 
+  if (getCmdOption(input_str, input_str+in_num, "-niter")){
+    niter = atof(getCmdOption(input_str, input_str+in_num, "-niter"));
+    if (niter < 0) niter = 10;
+  } else niter = 10;
 
   {
     World dw(argc, argv);
@@ -158,7 +224,7 @@ int main(int argc, char ** argv){
     if (rank == 0){
       printf("Computing APSP of dense graph with %d nodes using dense and sparse path doubling\n",n);
     }
-    pass = apsp(n, dw);
+    pass = apsp(n, dw, niter);
     assert(pass);
   }
 
