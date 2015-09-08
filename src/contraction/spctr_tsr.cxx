@@ -140,9 +140,9 @@ namespace CTF_int {
     if (krnl_type>0) size_A *= inner_params.m*inner_params.k;
     if (krnl_type>0) size_B *= inner_params.n*inner_params.k;
     if (krnl_type>0) size_C *= inner_params.m*inner_params.n;
-    if (is_sparse_A) size_A *= nnz_frac_A;
-    if (is_sparse_B) size_B *= nnz_frac_B;
-    if (is_sparse_C) size_C *= nnz_frac_C;
+    if (is_sparse_A) size_A *= nnz_frac_A*10;
+    if (is_sparse_B) size_B *= nnz_frac_B*10;
+    if (is_sparse_C) size_C *= nnz_frac_C*10;
    
     int idx_max, * rev_idx_map; 
     inv_idx(order_A,       idx_map_A,
@@ -163,9 +163,9 @@ namespace CTF_int {
       }
     }
     //FIXME only makes sense when one of A/B/C is sparse
-    if (is_sparse_A) flops *= nnz_frac_A;
-    if (is_sparse_B) flops *= nnz_frac_B;
-    if (is_sparse_C) flops *= nnz_frac_C;
+    if (is_sparse_A) flops *= nnz_frac_A*10;
+    if (is_sparse_B) flops *= nnz_frac_B*10;
+    if (is_sparse_C) flops *= nnz_frac_C*10;
     ASSERT(flops >= 0.0);
     CTF_int::cdealloc(rev_idx_map);
     return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
@@ -609,11 +609,11 @@ namespace CTF_int {
   double spctr_pin_keys::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
     switch (AxBxC){
       case 0:
-        return dns_blk_sz*nnz_frac_A;
+        return 2.*dns_blk_sz*nnz_frac_A*COST_MEMBW;
       case 1:
-        return dns_blk_sz*nnz_frac_B;
+        return 2.*dns_blk_sz*nnz_frac_B*COST_MEMBW;
       case 2:
-        return dns_blk_sz*nnz_frac_C;
+        return 4.*dns_blk_sz*nnz_frac_C*COST_MEMBW;
     }
     return 0;
   }
