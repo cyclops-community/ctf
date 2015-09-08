@@ -44,7 +44,7 @@ double mp3(Tensor<> & Ea,
   return MP3_energy;
 }
 
-int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0){
+int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0, bool bd=1){
   int vvvv[]      = {nv,nv,nv,nv};
   int vovo[]      = {nv,no,nv,no};
   int vvoo[]      = {nv,nv,no,no};
@@ -91,36 +91,38 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0){
 #ifndef TEST_SUITE
   if (dw.rank == 0)
     printf("Calcluated MP3 energy %lf with dense integral tensors.\n",dense_energy);
-  if (dw.rank == 0){
-    printf("Starting %d benchmarking iterations of dense MP3...\n", niter);
-  }
   double min_time = DBL_MAX;
   double max_time = 0.0;
   double tot_time = 0.0;
   double times[niter];
-  Timer_epoch dmp3("dense MP3");
-  dmp3.begin();
-  for (int i=0; i<niter; i++){
-    double start_time = MPI_Wtime();
-    double tmp = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
-    double end_time = MPI_Wtime();
-    double iter_time = end_time-start_time;
-    times[i] = iter_time;
-    tot_time += iter_time;
-    if (iter_time < min_time) min_time = iter_time;
-    if (iter_time > max_time) max_time = iter_time;
-  }
-  dmp3.end();
-  
-  if (dw.rank == 0){
-    printf("Completed %d benchmarking iterations of dense MP3 (no=%d nv=%d sp=%lf).\n", niter, no, nv, sp);
-    printf("All iterations times: ");
-    for (int i=0; i<niter; i++){
-      printf("%lf ", times[i]);
+  if (bd){
+    if (dw.rank == 0){
+      printf("Starting %d benchmarking iterations of dense MP3...\n", niter);
     }
-    printf("\n");
-    std::sort(times,times+niter);
-    printf("Dense MP3 (no=%d nv=%d sp=%lf) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,min_time,tot_time/niter, times[niter/2], max_time);
+    Timer_epoch dmp3("dense MP3");
+    dmp3.begin();
+    for (int i=0; i<niter; i++){
+      double start_time = MPI_Wtime();
+      double tmp = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj);
+      double end_time = MPI_Wtime();
+      double iter_time = end_time-start_time;
+      times[i] = iter_time;
+      tot_time += iter_time;
+      if (iter_time < min_time) min_time = iter_time;
+      if (iter_time > max_time) max_time = iter_time;
+    }
+    dmp3.end();
+    
+    if (dw.rank == 0){
+      printf("Completed %d benchmarking iterations of dense MP3 (no=%d nv=%d sp=%lf).\n", niter, no, nv, sp);
+      printf("All iterations times: ");
+      for (int i=0; i<niter; i++){
+        printf("%lf ", times[i]);
+      }
+      printf("\n");
+      std::sort(times,times+niter);
+      printf("Dense MP3 (no=%d nv=%d sp=%lf) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,min_time,tot_time/niter, times[niter/2], max_time);
+    }
   }
 #endif  
 
@@ -192,7 +194,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, nv, no, pass, niter;
+  int rank, np, nv, no, pass, niter, bd;
   double sp;
   int const in_num = argc;
   char ** input_str = argv;
@@ -221,13 +223,18 @@ int main(int argc, char ** argv){
     if (niter < 0) niter = 10;
   } else niter = 10;
 
+  if (getCmdOption(input_str, input_str+in_num, "-bd")){
+    bd = atoi(getCmdOption(input_str, input_str+in_num, "-bd"));
+    if (bd != 0 && bd != 1) bd = 1;
+  } else bd = 1;
+
   if (rank == 0){
     printf("Running sparse (%lf zeros) third-order Moller-Plesset petrubation theory (MP3) method on %d virtual and %d occupied orbitals\n",sp,nv,no);
   }
 
   {
     World dw;
-    pass = sparse_mp3(nv, no, dw, sp, niter);
+    pass = sparse_mp3(nv, no, dw, sp, niter, bd);
     assert(pass);
   }
 
