@@ -2155,9 +2155,9 @@ namespace CTF_int {
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
-        if (A->is_sparse) nnz_frac_A = A->nnz_tot/(A->size*A->calc_npe());
-        if (B->is_sparse) nnz_frac_B = B->nnz_tot/(B->size*B->calc_npe());
-        if (C->is_sparse) nnz_frac_C = C->nnz_tot/(C->size*C->calc_npe());
+        if (A->is_sparse) nnz_frac_A = std::min(1.0, (log2(A->calc_npe())*A->nnz_tot)/(A->size*A->calc_npe()));
+        if (B->is_sparse) nnz_frac_B = std::min(1.0, (log2(B->calc_npe())*B->nnz_tot)/(B->size*B->calc_npe()));
+        if (C->is_sparse) nnz_frac_C = std::min(1.0, (log2(C->calc_npe())*C->nnz_tot)/(C->size*C->calc_npe()));
         if (is_ctr_sparse){
           est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
         } else { 
@@ -2184,7 +2184,10 @@ namespace CTF_int {
           if (can_block_reshuffle(A->order, old_phase_A, A->edge_map)){
             memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*nnz_frac_A);
           } else {
-            est_time += 5.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
+            if (A->is_sparse)
+              est_time += 25.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
+            else 
+              est_time += 5.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A;
             memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*nnz_frac_A*2.5);
@@ -2204,7 +2207,10 @@ namespace CTF_int {
           if (can_block_reshuffle(B->order, old_phase_B, B->edge_map)){
             memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*nnz_frac_B);
           } else {
-            est_time += 5.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B+global_comm.estimate_alltoall_time(1);
+            if (B->is_sparse)
+              est_time += 25.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B+global_comm.estimate_alltoall_time(1);
+            else 
+              est_time += 5.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B+global_comm.estimate_alltoall_time(1);
             if (nvirt > 1) 
               est_time += 5.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B;
             memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*nnz_frac_B*2.5);
@@ -2219,13 +2225,14 @@ namespace CTF_int {
           need_remap_C = 1;
         if (need_remap_C) {
           nvirt = (int64_t)C->calc_nvirt();
-          est_time += global_comm.estimate_alltoallv_time(C->sr->el_size*C->size*nnz_frac_C);
+          est_time += 2.*global_comm.estimate_alltoallv_time(C->sr->el_size*C->size*nnz_frac_C);
           if (can_block_reshuffle(C->order, old_phase_C, C->edge_map)){
             memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*nnz_frac_C);
           } else {
-            est_time += 5.*COST_MEMBW*C->sr->el_size*C->size*nnz_frac_C+global_comm.estimate_alltoall_time(1);
-            if (nvirt > 1) 
-              est_time += 5.*COST_MEMBW*C->sr->el_size*C->size*nnz_frac_C;
+            if (A->is_sparse)
+              est_time += 50.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
+            else 
+              est_time += 10.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
             memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*nnz_frac_C*2.5);
           }
         }

@@ -2103,7 +2103,10 @@ namespace CTF_int {
         if (can_block_reshuffle(A->order, dA.phase, A->edge_map)){
           size += A->size*log2(wrld->cdt.np);
         } else {
-          size += 5.*A->size*log2(wrld->cdt.np);
+          if (A->is_sparse)
+            size += 25.*A->size*log2(wrld->cdt.np);
+          else
+            size += 5.*A->size*log2(wrld->cdt.np);
         }
       }
       if (B->topo == old_topo_B){
@@ -2117,7 +2120,17 @@ namespace CTF_int {
         if (can_block_reshuffle(B->order, dB.phase, B->edge_map)){
           size += B->size*log2(wrld->cdt.np);
         } else {
-          size += 5.*B->size*log2(wrld->cdt.np);
+          if (B->is_home){
+            if (B->is_sparse)
+              size += 50.*B->size*log2(wrld->cdt.np);
+            else
+              size += 10.*B->size*log2(wrld->cdt.np);
+          } else {
+            if (B->is_sparse)
+              size += 25.*B->size*log2(wrld->cdt.np);
+            else
+              size += 5.*B->size*log2(wrld->cdt.np);
+          }
         }
       }
 
