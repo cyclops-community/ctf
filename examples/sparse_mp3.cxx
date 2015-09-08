@@ -56,11 +56,11 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0, bool bd=1)
   Vector<> Ea(nv,dw);
   Vector<> Ei(no,dw);
 
-  Ea.fill_random(-2.0,-1.0);
-  Ei.fill_random(-2.0,-1.0);
+  Ea.fill_random(1.0*nv*nv,2.0*nv*nv);
+  Ei.fill_random(-2.0*no*no,-1.0*no*no);
 
-  Matrix<> Fab(nv,nv,AS,dw);
-  Matrix<> Fij(no,no,AS,dw);
+  Matrix<> Fab(nv,nv,dw);
+  Matrix<> Fij(no,no,dw);
 
   Fab.fill_random(-1.0,1.0);
   Fij.fill_random(-1.0,1.0);
