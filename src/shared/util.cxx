@@ -252,7 +252,7 @@ namespace CTF_int {
       for (int j=0; j<m; j++){
         sizes_b[lda_b*i+j]    = sizes_a[lda_a*i+j];
         offsets_b[lda_b*i+j]  = last_offset;
-        last_offset           = sizes_a[lda_a*i+j];
+        last_offset           = last_offset+sizes_a[lda_a*i+j];
       }
     }
   }
