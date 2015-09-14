@@ -8,25 +8,25 @@
 namespace CTF_int {
   
   template <int idim>
-  void sym_seq_sum_loop(char const *      alpha,
-                        char const *      A,
-                        algstrct const *  sr_A,
-                        int               order_A,
-                        int const *       edge_len_A,
-                        int const *       sym_A,
-                        int const *       idx_map_A,
-                        uint64_t *const*  offsets_A,
-                        char *            B,
-                        algstrct const *  sr_B,
-                        int               order_B,
-                        int const *       edge_len_B,
-                        int const *       sym_B,
-                        int const *       idx_map_B,
-                        uint64_t *const*  offsets_B,
-                        univar_function * func,
-                        int const *       idx,
-                        int const *       rev_idx_map,
-                        int               idx_max){
+  void sym_seq_sum_loop(char const *            alpha,
+                        char const *            A,
+                        algstrct const *        sr_A,
+                        int                     order_A,
+                        int const *             edge_len_A,
+                        int const *             sym_A,
+                        int const *             idx_map_A,
+                        uint64_t *const*        offsets_A,
+                        char *                  B,
+                        algstrct const *        sr_B,
+                        int                     order_B,
+                        int const *             edge_len_B,
+                        int const *             sym_B,
+                        int const *             idx_map_B,
+                        uint64_t *const*        offsets_B,
+                        univar_function const * func,
+                        int const *             idx,
+                        int const *             rev_idx_map,
+                        int                     idx_max){
     int imax=0;
     int rA = rev_idx_map[2*idim+0];
     int rB = rev_idx_map[2*idim+1];
@@ -104,25 +104,25 @@ namespace CTF_int {
 
   template <>
   void sym_seq_sum_loop<0>
-                       (char const *      alpha,
-                        char const *      A,
-                        algstrct const *  sr_A,
-                        int               order_A,
-                        int const *       edge_len_A,
-                        int const *       sym_A,
-                        int const *       idx_map_A,
-                        uint64_t *const*  offsets_A,
-                        char *            B,
-                        algstrct const *  sr_B,
-                        int               order_B,
-                        int const *       edge_len_B,
-                        int const *       sym_B,
-                        int const *       idx_map_B,
-                        uint64_t *const*  offsets_B,
-                        univar_function * func,
-                        int const *       idx,
-                        int const *       rev_idx_map,
-                        int               idx_max){
+                       (char const *            alpha,
+                        char const *            A,
+                        algstrct const *        sr_A,
+                        int                     order_A,
+                        int const *             edge_len_A,
+                        int const *             sym_A,
+                        int const *             idx_map_A,
+                        uint64_t *const*        offsets_A,
+                        char *                  B,
+                        algstrct const *        sr_B,
+                        int                     order_B,
+                        int const *             edge_len_B,
+                        int const *             sym_B,
+                        int const *             idx_map_B,
+                        uint64_t *const*        offsets_B,
+                        univar_function const * func,
+                        int const *             idx,
+                        int const *             rev_idx_map,
+                        int                     idx_max){
     int imax=0;
     int rA = rev_idx_map[0];
     int rB = rev_idx_map[1];
@@ -164,28 +164,28 @@ namespace CTF_int {
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       }
-    }//FIXME else?
+    } //FIXME else 
   }
 
   template 
   void sym_seq_sum_loop< MAX_ORD >
-                       (char const *      alpha,
-                        char const *      A,
-                        algstrct const *  sr_A,
-                        int               order_A,
-                        int const *       edge_len_A,
-                        int const *       sym_A,
-                        int const *       idx_map_A,
-                        uint64_t *const*  offsets_A,
-                        char *            B,
-                        algstrct const *  sr_B,
-                        int               order_B,
-                        int const *       edge_len_B,
-                        int const *       sym_B,
-                        int const *       idx_map_B,
-                        uint64_t *const*  offsets_B,
-                        univar_function * func,
-                        int const *       idx,
+                       (char const *            alpha,
+                        char const *            A,
+                        algstrct const *        sr_A,
+                        int                     order_A,
+                        int const *             edge_len_A,
+                        int const *             sym_A,
+                        int const *             idx_map_A,
+                        uint64_t *const*        offsets_A,
+                        char *                  B,
+                        algstrct const *        sr_B,
+                        int                     order_B,
+                        int const *             edge_len_B,
+                        int const *             sym_B,
+                        int const *             idx_map_B,
+                        uint64_t *const*        offsets_B,
+                        univar_function const * func,
+                        int const *             idx,
                         int const *       rev_idx_map,
                         int               idx_max);
 
@@ -207,7 +207,7 @@ namespace CTF_int {
     TAU_FSTART(compute_syoffs);
     offsets_A = (uint64_t**)CTF_int::alloc(sizeof(uint64_t*)*tot_order);
     offsets_B = (uint64_t**)CTF_int::alloc(sizeof(uint64_t*)*tot_order);
-
+          
     for (int idim=0; idim<tot_order; idim++){
       int len=0;
 
@@ -340,7 +340,8 @@ namespace CTF_int {
       SCAL_B;
     else {
       int64_t sz_B = sy_packed_size(order_B, edge_len_B, sym_B);
-      sr_B->scal(sz_B, beta, B, 1);
+      if (!sr_B->isequal(beta, sr_B->mulid()))
+        sr_B->scal(sz_B, beta, B, 1);
     }
     TAU_FSTOP(SCAL_B);
 
@@ -517,21 +518,21 @@ namespace CTF_int {
     return 0;
   }
 
-  int sym_seq_sum_cust(char const *     alpha,
-                       char const *     A,
-                       algstrct const * sr_A,
-                       int              order_A,
-                       int const *      edge_len_A,
-                       int const *      sym_A,
-                       int const *      idx_map_A,
-                       char const *     beta,
-                       char *           B,
-                       algstrct const * sr_B,
-                       int              order_B,
-                       int const *      edge_len_B,
-                       int const *      sym_B,
-                       int const *      idx_map_B,
-                       univar_function  func){
+  int sym_seq_sum_cust(char const *            alpha,
+                       char const *            A,
+                       algstrct const *        sr_A,
+                       int                     order_A,
+                       int const *             edge_len_A,
+                       int const *             sym_A,
+                       int const *             idx_map_A,
+                       char const *            beta,
+                       char *                  B,
+                       algstrct const *        sr_B,
+                       int                     order_B,
+                       int const *             edge_len_B,
+                       int const *             sym_B,
+                       int const *             idx_map_B,
+                       univar_function const * func){
     TAU_FSTART(sym_seq_sum_cust);
     int idx, i, idx_max, imin, imax, iA, iB, j, k;
     int off_idx, sym_pass;
@@ -558,13 +559,16 @@ namespace CTF_int {
     for (;;){
       if (sym_pass){
         if (alpha != NULL){
-          char tmp[sr_B->el_size];
-          sr_A->mul(A+sr_A->el_size*idx_A, alpha, tmp);
-          func.apply_f(tmp, tmp);
-          sr_B->add(B+idx_B*sr_B->el_size, tmp, B+sr_B->el_size*idx_B);
+          char tmp_A[sr_A->el_size];
+          sr_A->mul(A+sr_A->el_size*idx_A, alpha, tmp_A);
+          func->acc_f(tmp_A, B+idx_B*sr_B->el_size, sr_B);
+//          func->apply_f(tmp_A, tmp_B);
+  //        sr_B->add(B+idx_B*sr_B->el_size, tmp_B, B+sr_B->el_size*idx_B);
           CTF_FLOPS_ADD(2);
         } else {
-          func.apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size);
+          func->acc_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, sr_B);
+          //func->apply_f(A+idx_A*sr_A->el_size, tmp_B);
+          //sr_B->add(B+idx_B*sr_B->el_size, tmp_B, B+idx_B*sr_B->el_size);
           CTF_FLOPS_ADD(1);
         }
       }

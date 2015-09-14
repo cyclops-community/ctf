@@ -9,6 +9,8 @@
 #include "../mapping/mapping.h"
 
 namespace CTF_int {
+  class summation;
+
   class strp_tsr {
     public: 
       int              alloced;
@@ -116,7 +118,7 @@ namespace CTF_int {
        * \brief deconstructor
        */
       ~strp_sum();
-      strp_sum(){}
+      strp_sum(summation const * s);
   };
 
   class strp_ctr : public ctr {
@@ -134,7 +136,7 @@ namespace CTF_int {
       /**
        * \brief runs strip for contraction of tensors
        */
-      void run();
+      void run(char * A, char * B, char * C);
 
       /**
        * \brief returns the number of bytes of buffer space we need recursively 
@@ -164,7 +166,7 @@ namespace CTF_int {
        * \brief copies strp_ctr object
        */
       strp_ctr(ctr *other);
-      strp_ctr(){}
+      strp_ctr(contraction const * c) : ctr(c) {}
   };
 
   /**

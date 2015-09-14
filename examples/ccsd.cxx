@@ -275,7 +275,7 @@ void ccsd(Integrals   &V,
   Dabij["abij"] -= V["b"];
 
 
-  Bivar_Function<> fctr(&divide);
+  Function<> fctr(&divide);
 
   T.ai->contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij->contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);

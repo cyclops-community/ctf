@@ -16,6 +16,7 @@ namespace CTF_int {
    * \param[in] permutation permutation to apply to keys of each pair
    * \param[in,out] pairs the keys and values as pairs
    * \param[out] new_num_pair number of new pairs, since pairs are ignored if perm[i][j] == -1
+   * \param[in] sr algstrct defining data type of array
    */
   void permute_keys(int              order,
                     int              num_pair,
@@ -34,6 +35,7 @@ namespace CTF_int {
    * \param[in] new_edge_len new nonpadded tensor edge lengths
    * \param[in] permutation permutation to apply to keys of each pair
    * \param[in,out] pairs the keys and values as pairs
+   * \param[in] sr algstrct defining data type of array
    */
   void depermute_keys(int              order,
                       int              num_pair,
@@ -87,18 +89,18 @@ namespace CTF_int {
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr algstrct context defining values
    */
-  void bucket_by_pe( int               order,
-                     int64_t           num_pair,
-                     int64_t           np,
-                     int const *       phys_phase,
-                     int const *       virt_phase,
-                     int const *       bucket_lda,
-                     int const *       edge_len,
-                     ConstPairIterator mapped_data,
-                     int64_t *         bucket_counts,
-                     int64_t *         bucket_off,
-                     PairIterator      bucket_data,
-                     algstrct const *  sr);
+  void bucket_by_pe(int               order,
+                    int64_t           num_pair,
+                    int64_t           np,
+                    int const *       phys_phase,
+                    int const *       virt_phase,
+                    int const *       bucket_lda,
+                    int const *       edge_len,
+                    ConstPairIterator mapped_data,
+                    int64_t *         bucket_counts,
+                    int64_t *         bucket_off,
+                    PairIterator      bucket_data,
+                    algstrct const *  sr);
 
   /**
    * \brief buckets key value pairs by block/virtual-processor
@@ -112,15 +114,15 @@ namespace CTF_int {
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr algstrct context defining values
    */
-  void bucket_by_virt(int               order,
-                      int               num_virt,
-                      int64_t           num_pair,
-                      int const *       phys_phase,
-                      int const *       virt_phase,
-                      int const *       edge_len,
-                      ConstPairIterator mapped_data,
-                      PairIterator      bucket_data,
-                      algstrct const *  sr);
+  int64_t * bucket_by_virt(int               order,
+                           int               num_virt,
+                           int64_t           num_pair,
+                           int const *       phys_phase,
+                           int const *       virt_phase,
+                           int const *       edge_len,
+                           ConstPairIterator mapped_data,
+                           PairIterator      bucket_data,
+                           algstrct const *  sr);
 
   /**
    * \brief read or write pairs from / to tensor
@@ -178,6 +180,10 @@ namespace CTF_int {
    * \param[in,out] rw_data data to read from or write to
    * \param[in] glb_comm the global communicator
    * \param[in] sr algstrct context defining values
+   * \param[in] is_sparse if true local data (vdata) is sparse, otherwise rest of params irrelevant
+   * \param[in] nnz_loc number of local elements in sparse tensor
+   * \param[out] new_data new elements of the local sparse tensor (if rw=='w')
+   * \param[out] nnz_loc_new number of elements of the new local sparse tensor (if rw=='w')
    */
   void wr_pairs_layout(int              order,
                        int              np,
@@ -194,10 +200,16 @@ namespace CTF_int {
                        int const *      virt_phase,
                        int *            virt_phys_rank,
                        int const *      bucket_lda,
-                       char *           wr_pairs,
+                       char *           wr_pairs_buf,
                        char *           rw_data,
                        CommData         glb_comm,
-                       algstrct const * sr);
+                       algstrct const * sr,
+                       bool             is_sparse,
+                       int64_t          nnz_loc,
+                       int64_t *        nnz_blk,
+                       char *&          pprs_new,
+                       int64_t &        nnz_loc_new);
+
 
   /**
    * \brief read tensor pairs local to processor
@@ -233,5 +245,49 @@ namespace CTF_int {
                       algstrct const * sr);
 
 
+  /**
+   * \brief reads elements of a sparse set defining the tensor, 
+   *    into a sparse read set with potentially repeating keys
+   * \param[in] sr algstrct defining data type of array
+   * \param[in] ntsr number of elements in sparse tensor
+   * \param[in] prs_tsr pairs of the sparse tensor
+   * \param[in] alpha scaling factor for data of the sparse tensor
+   * \param[in] nread number of elements in the read set
+   * \param[in,out] prs_read pairs of the read set
+   * \param[in] beta scaling factor for data of the read set
+   */
+  void sp_read(algstrct const *  sr, 
+               int64_t           ntsr,
+               ConstPairIterator prs_tsr,
+               char const *      alpha,
+               int64_t           nread,
+               PairIterator      prs_read,
+               char const *      beta);
+
+
+  /**
+   * \brief writes pairs in a sparse write set to the 
+   *         sparse set of elements defining the tensor,
+   *         resulting in a set of size between ntsr and ntsr+nwrite
+   * \param[in] sr algstrct defining data type of array
+   * \param[in] ntsr number of elements in sparse tensor
+   * \param[in] prs_tsr pairs of the sparse tensor
+   * \param[in] beta scaling factor for data of the sparse tensor
+   * \param[in] nwrite number of elements in the write set
+   * \param[in] prs_write pairs of the write set
+   * \param[in] alpha scaling factor for data of the write set
+   * \param[out] nnew number of elements in resulting set
+   * \param[out] pprs_new char array containing the pairs of the resulting set
+   */
+  void sp_write(int               num_virt,
+                algstrct const *  sr,
+                int64_t *         vntsr,
+                ConstPairIterator vprs_tsr,
+                char const *      beta,
+                int64_t *         vnwrite,
+                ConstPairIterator vprs_write,
+                char const *      alpha,
+                int64_t *         vnnew,
+                char *&           pprs_new);
 }
 #endif

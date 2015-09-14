@@ -17,8 +17,6 @@ namespace CTF {
       char * idx_map;
       int is_intm;
 
-    public:
-
     
       // derived clone calls copy constructor
       CTF_int::Term * clone(std::map< CTF_int::tensor*, CTF_int::tensor* >* remap = NULL) const;
@@ -95,8 +93,20 @@ namespace CTF {
        */
       void operator=(CTF_int::Term const & B);
       void operator=(Idx_Tensor const & B);
+
+      //same as in parent (Term) but not inherited in C++
       void operator=(double scl);
+      void operator+=(double scl);
+      void operator-=(double scl);
+      void operator*=(double scl);
       void operator=(int64_t scl);
+      void operator+=(int64_t scl);
+      void operator-=(int64_t scl);
+      void operator*=(int64_t scl);
+      void operator=(int scl);
+      void operator+=(int scl);
+      void operator-=(int scl);
+      void operator*=(int scl);
 
       /**
        * \brief A += B, compute any operations on operand B and add
@@ -109,6 +119,12 @@ namespace CTF {
        * \param[in] B tensor on the right hand side
        */
       void operator-=(CTF_int::Term const & B);
+
+      /**
+       * \brief negates term
+       */
+//      Idx_Tensor operator-() const;
+ 
       
       /**
        * \brief A -> A*B contract two tensors

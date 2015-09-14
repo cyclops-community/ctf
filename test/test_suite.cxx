@@ -24,6 +24,19 @@
 #include "multi_tsr_sym.cxx"
 #include "repack.cxx"
 #include "sy_times_ns.cxx"
+#include "speye.cxx"
+#include "sptensor_sum.cxx"
+#include "../examples/endomorphism.cxx"
+#include "../examples/endomorphism_cust.cxx"
+#include "../examples/endomorphism_cust_sp.cxx"
+#include "../examples/univar_function.cxx"
+#include "../examples/univar_accumulator_cust.cxx"
+#include "../examples/univar_accumulator_cust_sp.cxx"
+#include "../examples/spmv.cxx"
+#include "../examples/spmm.cxx"
+#include "../examples/jacobi.cxx"
+#include "../examples/apsp.cxx"
+#include "../examples/sparse_mp3.cxx"
 
 using namespace CTF;
 
@@ -149,10 +162,9 @@ int main(int argc, char ** argv){
       printf("Testing gemm on subworld algorithm with n,m,k = %d div = 3:\n",n*n);
     pass.push_back(test_subworld_gemm(n*n, n*n, n*n, 3, dw));
 #endif    
-
     if (rank == 0)
-      printf("Testing non-symmetric Strassen's algorithm with n = %d:\n", n*n);
-    pass.push_back(strassen(n*n, NS, dw));
+      printf("Testing non-symmetric Strassen's algorithm with n = %d:\n", 2*n*n);
+    pass.push_back(strassen(2*n*n, NS, dw));
     
     if (rank == 0)
       printf("Testing diagonal write with n = %d:\n",n);
@@ -169,6 +181,7 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing SY times NS with n = %d:\n",n);
     pass.push_back(sy_times_ns(n,dw));
+
 #if 0
     if (rank == 0)
       printf("Testing skew-symmetric Strassen's algorithm with n = %d:\n",n*n);
@@ -191,7 +204,58 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing 3D DFT with n = %d:\n",n);
     pass.push_back(test_dft_3D(n, dw));
+    
+    if (rank == 0)
+      printf("Testing sparse summation with n = %d:\n",n);
+    pass.push_back(sptensor_sum(n,dw));
+    
+    if (rank == 0)
+      printf("Testing sparse identity with n = %d order = %d:\n",n,11);
+    pass.push_back(speye(n,11,dw));
+    
+    if (rank == 0)
+      printf("Testing endomorphism A_ijkl = A_ijkl^3 with n = %d:\n",n);
+    pass.push_back(endomorphism(n,dw));
 
+    if (rank == 0)
+      printf("Testing endomorphism with custom function on a monoid A_ijkl = f(A_ijkl) with n = %d:\n",n);
+    pass.push_back(endomorphism_cust(n,dw));
+
+    if (rank == 0)
+      printf("Testing endomorphism with custom function on a sparse set A_ijkl = f(A_ijkl) with n = %d:\n",n);
+    pass.push_back(endomorphism_cust_sp(n,dw));
+
+    if (rank == 0)
+      printf("Testing univar_function .5*A_ijkl = .5*A_ijkl^4 with n = %d:\n",n);
+    pass.push_back(univar_function(n,dw));
+
+    if (rank == 0)
+      printf("Testing univar_accumulator_cust integrates forces to particles with n = %d:\n",n);
+    pass.push_back(univar_accumulator_cust(n,dw));
+
+    if (rank == 0)
+      printf("Testing univar_accumulator_cust_sp integrates sparse forces to particles with n = %d:\n",n);
+    pass.push_back(univar_accumulator_cust_sp(n,dw));
+    
+    if (rank == 0)
+      printf("Testing sparse-matrix times vector with n=%d:\n",n);
+    pass.push_back(spmv(n,dw));
+    
+    if (rank == 0)
+      printf("Testing sparse-matrix times matrix with n=%d k=%d:\n",n*n,n);
+    pass.push_back(spmm(n*n,n,dw));
+    
+    if (rank == 0)
+      printf("Testing Jacobi iteration with n=%d:\n",n);
+    pass.push_back(jacobi(n,dw));
+    
+    if (rank == 0)
+      printf("Testing APSP via path doubling with n=%d:\n",n*n);
+    pass.push_back(apsp(n*n,dw));
+    
+    if (rank == 0)
+      printf("Testing dense and sparse MP3 calculation %d occupied and %d virtual orbitals:\n",n,2*n);
+    pass.push_back(sparse_mp3(n,2*n,dw));
   }
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)

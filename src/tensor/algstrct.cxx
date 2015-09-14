@@ -16,19 +16,19 @@ namespace CTF_int {
              float  const * B,
              float          beta,
              float  *       C){
-    int lda_A, lda_B, lda_C;
+    int lda, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
-      lda_A = m;
+      lda = m;
     } else {
-      lda_A = k;
+      lda = k;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
     } else {
       lda_B = n;
     }
-    CTF_BLAS::SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
 
 
@@ -42,19 +42,19 @@ namespace CTF_int {
                double const * B,
                double         beta,
                double *       C){
-    int lda_A, lda_B, lda_C;
+    int lda, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
-      lda_A = m;
+      lda = m;
     } else {
-      lda_A = k;
+      lda = k;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
     } else {
       lda_B = n;
     }
-    CTF_BLAS::DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
 
   void cgemm(char                        tA,
@@ -67,19 +67,19 @@ namespace CTF_int {
              std::complex<float> const * B,
              std::complex<float>         beta,
              std::complex<float> *       C){
-    int lda_A, lda_B, lda_C;
+    int lda, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
-      lda_A = m;
+      lda = m;
     } else {
-      lda_A = k;
+      lda = k;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
     } else {
       lda_B = n;
     }
-    CTF_BLAS::CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
 
 
@@ -93,23 +93,25 @@ namespace CTF_int {
              std::complex<double> const * B,
              std::complex<double>         beta,
              std::complex<double> *       C){
-    int lda_A, lda_B, lda_C;
+    int lda, lda_B, lda_C;
     lda_C = m;
     if (tA == 'n' || tA == 'N'){
-      lda_A = m;
+      lda = m;
     } else {
-      lda_A = k;
+      lda = k;
     }
     if (tB == 'n' || tB == 'N'){
       lda_B = k;
     } else {
       lda_B = n;
     }
-    CTF_BLAS::ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda_A,B,&lda_B,&beta,C,&lda_C);
+    CTF_BLAS::ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
+    has_csrmm = false;
   }
+  
 
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
@@ -122,6 +124,8 @@ namespace CTF_int {
     ASSERT(0);
     return MPI_CHAR;
   }
+  
+  
 
   char const * algstrct::addid() const {
     return NULL;
@@ -129,6 +133,11 @@ namespace CTF_int {
 
   char const * algstrct::mulid() const {
     return NULL;
+  }
+
+  void algstrct::safeaddinv(char const * a, char *& b) const {
+    printf("CTF ERROR: no additive inverse present for this algebraic structure\n");
+    ASSERT(0);
   }
 
   void algstrct::addinv(char const * a, char * b) const {
@@ -142,6 +151,11 @@ namespace CTF_int {
   }
 
   void algstrct::mul(char const * a, char const * b, char * c) const {
+    printf("CTF ERROR: multiplication operation present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  void algstrct::safemul(char const * a, char const * b, char *& c) const {
     printf("CTF ERROR: multiplication operation present for this algebraic structure\n");
     ASSERT(0);
   }
@@ -234,6 +248,11 @@ namespace CTF_int {
     }
     return iseq;
   }
+
+  void algstrct::coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+    printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
+    ASSERT(0);
+  }
       
   void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {
     char tmp[el_size];
@@ -241,7 +260,24 @@ namespace CTF_int {
     mul(a, alpha, b);
     add(b, tmp, b);
   }
+  
+  void algstrct::accmul(char * c, char const * a, char const * b, char const * alpha) const {
+    char tmp[el_size];
+    mul(a, b, tmp);
+    mul(tmp, alpha, tmp);
+    add(c, tmp, c);
+  }
 
+
+  void algstrct::safecopy(char *& a, char const * b) const {
+    if (b == NULL){
+      if (a != NULL) cdealloc(a);
+      a = NULL;
+    } else {
+      if (a == NULL) a = (char*)alloc(el_size); 
+      memcpy(a, b, el_size);
+    }
+  }
   void algstrct::copy(char * a, char const * b) const {
     memcpy(a, b, el_size);
   }
@@ -330,8 +366,8 @@ namespace CTF_int {
         axpy(m, alpha, a+el_size*lda_a*i, 1, b+el_size*lda_b*i, 1);
       }
     }
-  }           
-
+  }     
+ 
   void algstrct::set(char * a, char const * b, int64_t n) const {
     switch (el_size) {
       case 4: {
@@ -379,6 +415,18 @@ namespace CTF_int {
   char const * algstrct::get_value(char const * a) const {
     return a+sizeof(int64_t);
   }
+
+
+  void algstrct::coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
+    printf("CTF ERROR: coomm not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  void algstrct::csrmm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
+    printf("CTF ERROR: csrmm not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
       
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){
     sr=pi.sr; ptr=pi.ptr; 
@@ -421,7 +469,7 @@ namespace CTF_int {
     return ((int64_t*)ptr)[0];
   }
 
-  char const * PairIterator::d() const {
+  char * PairIterator::d() const {
     return ptr+sizeof(int64_t);
   }
 
@@ -460,10 +508,35 @@ namespace CTF_int {
     bool operator < (const CompPair& other) const {
       return (key < other.key);
     }
-  };
-  template struct CompPair<1>;
+  } __attribute__((packed));
+
+  struct IntPair{
+    int64_t key;
+    int data;
+    bool operator < (const IntPair& other) const {
+      return (key < other.key);
+    }
+  } __attribute__((packed));
+  
+  struct ShortPair{
+    int64_t key;
+    short data;
+    bool operator < (const ShortPair& other) const {
+      return (key < other.key);
+    }
+  } __attribute__((packed));
+  
+  struct BoolPair{
+    int64_t key;
+    bool data;
+    bool operator < (const BoolPair& other) const {
+      return (key < other.key);
+    }
+  } __attribute__((packed));
+
+/*  template struct CompPair<1>;
   template struct CompPair<2>;
-  template struct CompPair<4>;
+  template struct CompPair<4>;*/
   template struct CompPair<8>;
   template struct CompPair<12>;
   template struct CompPair<16>;
@@ -483,33 +556,43 @@ namespace CTF_int {
   void PairIterator::sort(int64_t n){
     switch (sr->el_size){
       case 1:
-        std::sort((CompPair<1>*)ptr,((CompPair<1>*)ptr)+n);
+        ASSERT(sizeof(BoolPair)==sr->pair_size());
+        std::sort((BoolPair*)ptr,((BoolPair*)ptr)+n);
         break;
       case 2:
-        std::sort((CompPair<2>*)ptr,((CompPair<2>*)ptr)+n);
+        ASSERT(sizeof(ShortPair)==sr->pair_size());
+        std::sort((ShortPair*)ptr,((ShortPair*)ptr)+n);
         break;
       case 4:
-        std::sort((CompPair<4>*)ptr,((CompPair<4>*)ptr)+n);
+        ASSERT(sizeof(IntPair)==sr->pair_size());
+        std::sort((IntPair*)ptr,((IntPair*)ptr)+n);
         break;
       case 8:
+        ASSERT(sizeof(CompPair<8>)==sr->pair_size());
         std::sort((CompPair<8>*)ptr,((CompPair<8>*)ptr)+n);
         break;
       case 12:
+        ASSERT(sizeof(CompPair<12>)==sr->pair_size());
         std::sort((CompPair<12>*)ptr,((CompPair<12>*)ptr)+n);
         break;
       case 16:
+        ASSERT(sizeof(CompPair<16>)==sr->pair_size());
         std::sort((CompPair<16>*)ptr,((CompPair<16>*)ptr)+n);
         break;
       case 20:
+        ASSERT(sizeof(CompPair<20>)==sr->pair_size());
         std::sort((CompPair<20>*)ptr,((CompPair<20>*)ptr)+n);
         break;
       case 24:
+        ASSERT(sizeof(CompPair<24>)==sr->pair_size());
         std::sort((CompPair<24>*)ptr,((CompPair<24>*)ptr)+n);
         break;
       case 28:
+        ASSERT(sizeof(CompPair<28>)==sr->pair_size());
         std::sort((CompPair<28>*)ptr,((CompPair<28>*)ptr)+n);
         break;
       case 32:
+        ASSERT(sizeof(CompPair<32>)==sr->pair_size());
         std::sort((CompPair<32>*)ptr,((CompPair<32>*)ptr)+n);
         break;
       default:
@@ -526,6 +609,8 @@ namespace CTF_int {
         char swap_buffer[(sizeof(int64_t)+sr->el_size)*n];
     
         memcpy(swap_buffer, ptr, (sizeof(int64_t)+sr->el_size)*n);
+
+        std::sort(ptr_pairs, ptr_pairs+n);
         
 #ifdef USE_OMP
         #pragma omp parallel for
@@ -538,6 +623,157 @@ namespace CTF_int {
         break;
     }
   }
+
+  void ConstPairIterator::permute(int64_t n, int order, int const * old_lens, int64_t const * new_lda, PairIterator wA){
+    ConstPairIterator rA = * this;
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<n; i++){
+      int64_t k = rA[i].k();
+      int64_t k_new = 0;
+      for (int j=0; j<order; j++){
+        k_new += (k%old_lens[j])*new_lda[j];
+        k = k/old_lens[j];
+      }
+      ((int64_t*)wA[i].ptr)[0] = k_new;
+      memcpy(wA[i].d(), rA[i].d(), sr->el_size);
+      //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
+    }
+   
+
+  }
+
+  void ConstPairIterator::pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new){
+    ConstPairIterator pi = *this;
+    int * div_lens;
+    alloc_ptr(order*sizeof(int), (void**)&div_lens);
+    for (int j=0; j<order; j++){
+      div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
+//      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
+    }
+    for (int64_t i=0; i<n; i++){
+      int64_t key = pi[i].k();
+      int64_t new_key = 0;
+      int64_t lda = 1;
+//      printf("rank = %d, in key = %ld,  val = %lf\n",  phys_rank[0], save_key,  ((double*)pi_new[i].d())[0]);
+      for (int j=0; j<order; j++){
+//        printf("%d %ld %d\n",j,(key%lens[j])%divisor[j],phys_rank[j]);
+        //ASSERT(((key%lens[j])%(divisor[j]/virt_dim[j])) == phys_rank[j]);
+        new_key += ((key%lens[j])/divisor[j])*lda;
+        lda *= div_lens[j];
+        key = key/lens[j];
+      }
+      ((int64_t*)pi_new[i].ptr)[0] = new_key;
+    }
+    cdealloc(div_lens);
+
+  }
+
+  void depin(algstrct const * sr, int order, int const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding){
+
+    int * div_lens;
+    alloc_ptr(order*sizeof(int), (void**)&div_lens);
+    for (int j=0; j<order; j++){
+      div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
+//      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
+    }
+    if (check_padding){ 
+      check_padding = false;
+      for (int v=0; v<nvirt; v++){
+        int vv = v;
+        for (int j=0; j<order; j++){
+          int vo = (vv%virt_dim[j])*(divisor[j]/virt_dim[j])+phys_rank[j];
+          if (lens[j]%divisor[j] != 0 && vo >= lens[j]%divisor[j]){
+            check_padding = true;
+          }
+          vv=vv/virt_dim[j];
+        }
+      }
+    } 
+    int64_t * old_nnz_blk_B = nnz_blk;
+    if (check_padding){
+      //FIXME: uses a bit more memory then we will probably need, but probably worth not doing another round to count first
+      new_B = (char*)alloc(sr->pair_size()*new_nnz_B);
+      old_nnz_blk_B = (int64_t*)alloc(sizeof(int64_t)*nvirt);
+      memcpy(old_nnz_blk_B, nnz_blk, sizeof(int64_t)*nvirt);
+      memset(nnz_blk, 0, sizeof(int64_t)*nvirt);
+    }
+
+    int * virt_offset;
+    alloc_ptr(order*sizeof(int), (void**)&virt_offset);
+    int64_t nnz_off = 0;
+    if (check_padding)
+      new_nnz_B = 0;
+    for (int v=0; v<nvirt; v++){
+      //printf("%d %p new_B %p pin %p new_blk_nnz_B[%d] = %ld\n",A_or_B,this,new_B,nnz_blk,v,nnz_blk[v]);
+      int vv=v;
+      for (int j=0; j<order; j++){
+        virt_offset[j] = (vv%virt_dim[j])*(divisor[j]/virt_dim[j])+phys_rank[j];
+        vv=vv/virt_dim[j];
+      }
+
+      if (check_padding){ 
+        int64_t new_nnz_blk = 0;
+        ConstPairIterator vpi(sr, X+nnz_off*sr->pair_size());
+        PairIterator vpi_new(sr, new_B+new_nnz_B*sr->pair_size());
+        for (int64_t i=0; i<old_nnz_blk_B[v]; i++){
+          int64_t key = vpi[i].k();
+          int64_t new_key = 0;
+          int64_t lda = 1;
+          bool is_outside = false;
+          for (int j=0; j<order; j++){
+            //printf("%d %ld %ld %d\n",j,vpi[i].k(),((key%div_lens[j])*divisor[j]+virt_offset[j]),lens[j]);
+            if (((key%div_lens[j])*divisor[j]+virt_offset[j])>=lens[j]){
+              //printf("element is outside\n");
+              is_outside = true;
+            }
+            new_key += ((key%div_lens[j])*divisor[j]+virt_offset[j])*lda;
+            lda *= lens[j];
+            key = key/div_lens[j];
+          }
+          if (!is_outside){
+            //printf("key = %ld, new_key = %ld, val = %lf\n", vpi[i].k(), new_key, ((double*)vpi[i].d())[0]);
+            ((int64_t*)vpi_new[new_nnz_blk].ptr)[0] = new_key;
+            vpi_new[new_nnz_blk].write_val(vpi[i].d());
+            new_nnz_blk++;
+          }  
+        }
+        nnz_blk[v] = new_nnz_blk;
+        new_nnz_B += nnz_blk[v];
+        nnz_off += old_nnz_blk_B[v];
+
+      } else {
+        ConstPairIterator vpi(sr, X+nnz_off*sr->pair_size());
+        PairIterator vpi_new(sr, X+nnz_off*sr->pair_size());
+  #ifdef USE_OMP
+        #pragma omp parallel for
+  #endif
+        for (int64_t i=0; i<nnz_blk[v]; i++){
+          int64_t key = vpi[i].k();
+          //int64_t save_key = vpi[i].k();
+          int64_t new_key = 0;
+          int64_t lda = 1;
+          for (int64_t j=0; j<order; j++){
+            new_key += ((key%div_lens[j])*divisor[j]+virt_offset[j])*lda;
+            lda *= lens[j];
+            key = key/div_lens[j];
+          }
+          ((int64_t*)vpi_new[i].ptr)[0] = new_key;
+          //printf(",,key = %ld, new_key = %ld, val = %lf\n",  save_key, new_key, ((double*)vpi_new[i].d())[0]);
+        }
+        nnz_off += nnz_blk[v];
+      }
+    }
+    if (check_padding){
+     cdealloc(old_nnz_blk_B);
+    }
+    cdealloc(virt_offset);
+    cdealloc(div_lens);
+
+  }
+
+
 
   int64_t PairIterator::lower_bound(int64_t n, ConstPairIterator op){
     switch (sr->el_size){

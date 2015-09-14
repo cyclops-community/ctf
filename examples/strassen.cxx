@@ -266,6 +266,8 @@ int main(int argc, char ** argv){
     if (n < 0) n = 256;
   } else n = 256;
 
+  assert(n%2 == 0);
+
   {
     World dw(MPI_COMM_WORLD, argc, argv);
     int pass;    

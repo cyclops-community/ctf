@@ -52,6 +52,7 @@ namespace CTF_int {
         }
         if (has_home && !is_home) cdealloc(home_buffer);
       }
+      if (is_sparse) cdealloc(nnz_blk);
       order = -1;
       delete sr;
     }
@@ -61,15 +62,16 @@ namespace CTF_int {
     free_self();
   }
 
-  tensor::tensor(algstrct const * sr_,
+  tensor::tensor(algstrct const * sr,
                  int              order,
                  int const *      edge_len,
                  int const *      sym,
                  World *          wrld,
                  bool             alloc_data,
                  char const *     name,
-                 bool             profile){
-    this->init(sr_, order,edge_len,sym,wrld,alloc_data,name,profile);
+                 bool             profile,
+                 bool             is_sparse){
+    this->init(sr, order,edge_len,sym,wrld,alloc_data,name,profile,is_sparse);
   }
 
   tensor::tensor(algstrct const *           sr,
@@ -82,7 +84,7 @@ namespace CTF_int {
                  CTF::Idx_Partition const & blk,
                  char const *               name,
                  bool                       profile){
-    this->init(sr, order,edge_len,sym,wrld,0,name,profile);
+    this->init(sr, order,edge_len,sym,wrld,0,name,profile,0);
     set_distribution(idx, prl, blk);
     this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
     this->sr->set(this->data, this->sr->addid(), this->size);
@@ -107,14 +109,14 @@ namespace CTF_int {
     }
     this->init(other->sr, other->order, other->lens,
                other->sym, other->wrld, (!copy & alloc_data), nname,
-               other->profile);
+               other->profile, other->is_sparse);
     cdealloc(nname);
   
     this->has_zero_edge_len = other->has_zero_edge_len;
 
     if (copy) {
       copy_tensor_data(other);
-    } else data = NULL;
+    } else if (!alloc_data) data = NULL;
 
   }
  
@@ -124,7 +126,7 @@ namespace CTF_int {
     strcpy(nname, other->name);
     strcat(nname, d);
     if (other->wrld->rank == 0) {
-      DPRINTF(1,"Repacking tensor %s into %s\n",other->name);
+      DPRINTF(1,"Repacking tensor %s into %s\n",other->name,nname);
     }
 
     bool has_chng=false, less_sym=false, more_sym=false;
@@ -151,14 +153,14 @@ namespace CTF_int {
     if (!less_sym && !more_sym){
       this->init(other->sr, other->order, other->lens,
                  new_sym, other->wrld, 0, nname,
-                 other->profile);
+                 other->profile, other->is_sparse);
       copy_tensor_data(other);
       if (has_chng)
         zero_out_padding();
     } else {
       this->init(other->sr, other->order, other->lens,
                  new_sym, other->wrld, 1, nname,
-                 other->profile);
+                 other->profile, other->is_sparse);
       int idx[order];
       for (int j=0; j<order; j++){
         idx[j] = j;
@@ -176,7 +178,7 @@ namespace CTF_int {
 //      if (other->is_folded) other->unfold();
     ASSERT(!other->is_folded);
 
-    if (other->is_mapped){
+    if (other->is_mapped && !other->is_sparse){
   #ifdef HOME_CONTRACT
       if (other->has_home){
 /*          if (this->has_home && 
@@ -209,19 +211,15 @@ namespace CTF_int {
   #endif
       memcpy(this->data, other->data, sr->el_size*other->size);
     } else {
-      if (this->is_mapped){
-        CTF_int::cdealloc(this->data);
-        CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
-                       (void**)&this->pairs);
-      } else {
-        if (this->size < other->size || this->size > 2*other->size){
-          CTF_int::cdealloc(this->pairs);
-          CTF_int::alloc_ptr(other->size*(sizeof(int64_t)+sr->el_size), 
-                           (void**)&this->pairs);
-        }
-      }
-      memcpy(this->pairs, other->pairs, 
-             (sizeof(int64_t)+sr->el_size)*other->size);
+      ASSERT(this->is_sparse);
+      if (data!=NULL)    CTF_int::cdealloc(this->data);
+      if (nnz_blk!=NULL) CTF_int::cdealloc(this->nnz_blk);
+      CTF_int::alloc_ptr(other->nnz_loc*(sizeof(int64_t)+sr->el_size), 
+                       (void**)&this->data);
+      CTF_int::alloc_ptr(other->calc_nvirt()*sizeof(int64_t), (void**)&this->nnz_blk);
+      memcpy(this->nnz_blk, other->nnz_blk, other->calc_nvirt()*sizeof(int64_t));
+      memcpy(this->data, other->data, 
+             (sizeof(int64_t)+sr->el_size)*other->nnz_loc);
     } 
     if (this->is_folded){
       delete this->rec_tsr;
@@ -241,16 +239,23 @@ namespace CTF_int {
     this->order = other->order;
     memcpy(this->pad_edge_len, other->pad_edge_len, sizeof(int)*other->order);
     memcpy(this->padding, other->padding, sizeof(int)*other->order);
-    memcpy(this->sym, other->sym, sizeof(int)*other->order);
     this->is_mapped = other->is_mapped;
     this->is_cyclic = other->is_cyclic;
     this->topo      = other->topo;
     if (other->is_mapped)
       copy_mapping(other->order, other->edge_map, this->edge_map);
     this->size = other->size;
+    this->nnz_loc = other->nnz_loc;
+    this->nnz_tot = other->nnz_tot;
+    //this->nnz_loc_max = other->nnz_loc_max;
 #if DEBUG>= 1
-    if (wrld->rank == 0)
-      printf("New tensor %s copied from %s of size %ld elms (%ld bytes):\n",name, other->name, this->size,this->size*sr->el_size);
+    if (wrld->rank == 0){
+      if (is_sparse){
+        printf("New sparse tensor %s copied from %s of size %ld nonzeros (%ld bytes) locally, %ld nonzeros total:\n",name, other->name, this->nnz_loc,this->nnz_loc*sr->el_size,nnz_tot);
+      } else {
+        printf("New tensor %s copied from %s of size %ld elms (%ld bytes):\n",name, other->name, this->size,this->size*sr->el_size);
+      }
+    }
 #endif
 
   }
@@ -262,7 +267,8 @@ namespace CTF_int {
                     World *          wrld_,
                     bool             alloc_data,
                     char const *     name_,
-                    bool             profile){
+                    bool             profile_,
+                    bool             is_sparse_){
     this->sr                = sr_->clone();
     this->order             = order_;
     this->wrld              = wrld_;
@@ -276,7 +282,13 @@ namespace CTF_int {
     this->has_zero_edge_len = 0;
     this->is_home           = 0;
     this->has_home          = 0;
-    this->profile           = profile;
+    this->profile           = profile_;
+    this->is_sparse         = is_sparse_;
+    this->data              = NULL;
+    this->nnz_loc           = 0;
+    this->nnz_tot           = 0;
+    this->nnz_blk           = NULL;
+//    this->nnz_loc_max       = 0;
     if (name_ != NULL){
       this->name = (char*)alloc(strlen(name_)+1);
       strcpy(this->name, name_);
@@ -290,9 +302,8 @@ namespace CTF_int {
       this->name[6] = '\0';
     }
     if (wrld->rank == 0)
-      DPRINTF(1,"Created order %d tensor %s\n",order,name);
+      DPRINTF(1,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
 
-    this->pairs    = NULL;
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int));
 
@@ -370,13 +381,37 @@ namespace CTF_int {
     return nvirt;  
   }
 
+ 
+  int64_t tensor::calc_npe() const {
+    int j;
+    int64_t npe;
+    mapping * map;
+    npe = 1;
+    for (j=0; j<this->order; j++){
+      map = &this->edge_map[j];
+      if (map->type == PHYSICAL_MAP){
+        npe *= map->np;
+      }
+      while (map->has_child){
+        map = map->child;
+        if (map->type == PHYSICAL_MAP){
+          npe *= map->np;
+        }
+      }
+    }
+    return npe;  
+  }
+
+
   void tensor::set_padding(){
     int j, pad, i;
     int * new_phase, * sub_edge_len;
     mapping * map;
+    //if (!is_mapped) return;
 
     CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&new_phase);
     CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&sub_edge_len);
+
 /*
     for (i=0; i<this->order; i++){
       this->edge_len[i] -= this->padding[i];
@@ -395,10 +430,11 @@ namespace CTF_int {
       this->pad_edge_len[i] = this->lens[i] + this->padding[i];
       sub_edge_len[i] = this->pad_edge_len[i]/new_phase[i];
     }
+
     this->size = calc_nvirt()*sy_packed_size(this->order, sub_edge_len, this->sym);
    
     //NEW: I think its always true
-    is_mapped = 1; 
+    //is_mapped = 1; 
 
     CTF_int::cdealloc(sub_edge_len);
     CTF_int::cdealloc(new_phase);
@@ -417,108 +453,115 @@ namespace CTF_int {
     int64_t memuse, bmemuse;
 
     if (this->is_mapped){
-      sr->set(this->data, sr->addid(), this->size);
-    } else {
-      if (this->pairs != NULL){
-        sr->set(this->pairs, sr->addid(), this->size);
+      if (is_sparse){
+        cdealloc(this->data);
+        this->data = NULL;
+        this->size = 0;
       } else {
-        CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&restricted);
-  //      memset(restricted, 0, this->order*sizeof(int));
+        sr->set(this->data, sr->addid(), this->size);
+      }
+    } else {
+      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&restricted);
+  //    memset(restricted, 0, this->order*sizeof(int));
 
-        /* Map the tensor if necessary */
-        bnvirt = INT64_MAX;
-        btopo = -1;
-        bmemuse = INT64_MAX;
-        for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
-          this->clear_mapping();
-          this->set_padding();
-          memset(restricted, 0, this->order*sizeof(int));
-          map_success = map_tensor(wrld->topovec[i]->order, this->order, this->pad_edge_len,
-                                   this->sym_table, restricted,
-                                   wrld->topovec[i]->dim_comm, NULL, 0,
-                                   this->edge_map);
-          if (map_success == ERROR) {
-            ASSERT(0);
-            return ERROR;
-          } else if (map_success == SUCCESS){
-            this->topo = wrld->topovec[i];
-            this->set_padding();
-            memuse = (int64_t)this->size;
-
-            if ((int64_t)memuse >= (int64_t)proc_bytes_available()){
-              DPRINTF(1,"Not enough memory to map tensor on topo %d\n", i);
-              continue;
-            }
-
-            nvirt = (int64_t)this->calc_nvirt();
-            ASSERT(nvirt != 0);
-            //for consistency with old code compare nvirt, but might b et better to discard
-            if (btopo == -1 || nvirt < bnvirt){
-              bnvirt = nvirt;
-              btopo = i;
-              bmemuse = memuse;
-            } else if (memuse < bmemuse){
-              btopo = i;
-              bmemuse = memuse;
-            }
-          } else
-            DPRINTF(3,"Unsuccessful in map_tensor() in set_zero()\n");
-        }
-        if (btopo == -1)
-          bmemuse = INT64_MAX;
-        /* pick lower dimensional mappings, if equivalent */
-        ///btopo = get_best_topo(bnvirt, btopo, wrld->cdt, 0, bmemuse);
-        btopo = get_best_topo(bmemuse, btopo, wrld->cdt);
-
-        if (btopo == -1 || btopo == INT_MAX) {
-          if (wrld->rank==0)
-            printf("ERROR: FAILED TO MAP TENSOR\n");
-          return ERROR;
-        }
-
-        memset(restricted, 0, this->order*sizeof(int));
+      /* Map the tensor if necessary */
+      bnvirt = INT64_MAX;
+      btopo = -1;
+      bmemuse = INT64_MAX;
+      for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
         this->clear_mapping();
         this->set_padding();
-        map_success = map_tensor(wrld->topovec[btopo]->order, this->order,
-                                 this->pad_edge_len, this->sym_table, restricted,
-                                 wrld->topovec[btopo]->dim_comm, NULL, 0,
+        memset(restricted, 0, this->order*sizeof(int));
+        map_success = map_tensor(wrld->topovec[i]->order, this->order, this->pad_edge_len,
+                                 this->sym_table, restricted,
+                                 wrld->topovec[i]->dim_comm, NULL, 0,
                                  this->edge_map);
-        ASSERT(map_success == SUCCESS);
+        if (map_success == ERROR) {
+          ASSERT(0);
+          return ERROR;
+        } else if (map_success == SUCCESS){
+          this->topo = wrld->topovec[i];
+          this->set_padding();
+          memuse = (int64_t)this->size;
 
-        this->topo = wrld->topovec[btopo];
+          if (!is_sparse && (int64_t)memuse >= (int64_t)proc_bytes_available()){
+            DPRINTF(1,"Not enough memory to map tensor on topo %d\n", i);
+            continue;
+          }
 
-        CTF_int::cdealloc(restricted);
+          nvirt = (int64_t)this->calc_nvirt();
+          ASSERT(nvirt != 0);
+          //for consistency with old code compare nvirt, but might b et better to discard
+          if (btopo == -1 || nvirt < bnvirt){
+            bnvirt = nvirt;
+            btopo = i;
+            bmemuse = memuse;
+          } else if (memuse < bmemuse){
+            btopo = i;
+            bmemuse = memuse;
+          }
+        } else
+          DPRINTF(3,"Unsuccessful in map_tensor() in set_zero()\n");
+      }
+      if (btopo == -1)
+        bmemuse = INT64_MAX;
+      /* pick lower dimensional mappings, if equivalent */
+      ///btopo = get_best_topo(bnvirt, btopo, wrld->cdt, 0, bmemuse);
+      btopo = get_best_topo(bmemuse, btopo, wrld->cdt);
 
-        this->is_mapped = 1;
-        this->set_padding();
+      if (btopo == -1 || btopo == INT_MAX) {
+        if (wrld->rank==0)
+          printf("ERROR: FAILED TO MAP TENSOR\n");
+        return ERROR;
+      }
 
-        if (this->size > INT_MAX && wrld->rank == 0)
-          printf("CTF WARNING: Tensor %s is has local size %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
+      memset(restricted, 0, this->order*sizeof(int));
+      this->clear_mapping();
+      this->set_padding();
+      map_success = map_tensor(wrld->topovec[btopo]->order, this->order,
+                               this->pad_edge_len, this->sym_table, restricted,
+                               wrld->topovec[btopo]->dim_comm, NULL, 0,
+                               this->edge_map);
+      ASSERT(map_success == SUCCESS);
+
+      this->topo = wrld->topovec[btopo];
+
+      CTF_int::cdealloc(restricted);
+
+      this->is_mapped = 1;
+      this->set_padding();
+
+      if (!is_sparse && this->size > INT_MAX && wrld->rank == 0)
+        printf("CTF WARNING: Tensor %s is has local size %ld, which is greater than INT_MAX=%d, so MPI could run into problems\n", name, size, INT_MAX);
      
-#ifdef HOME_CONTRACT 
+      if (is_sparse){
+        nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
+        std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
+      } else {
+        #ifdef HOME_CONTRACT 
         if (this->order > 0){
           this->home_size = this->size; //MAX(1024+this->size, 1.20*this->size);
           this->is_home = 1;
           this->has_home = 1;
           //this->is_home = 0;
           //this->has_home = 0;
-  /*        if (wrld->rank == 0)
+    /*      if (wrld->rank == 0)
             DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
           CTF_int::alloc_ptr(this->home_size*sr->el_size, (void**)&this->home_buffer);
           this->data = this->home_buffer;
         } else {
           CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);
         }
-#else
+        #else
         CTF_int::mst_alloc_ptr(this->size*sr->el_size, (void**)&this->data);
-#endif
-
-#if DEBUG >= 2
+        #endif
+        #if DEBUG >= 2
         if (wrld->rank == 0)
           printf("New tensor %s defined of size %ld elms (%ld bytes):\n",name, this->size,this->size*sr->el_size);
         this->print_map(stdout);
-#endif
-        sr->set(this->data, sr->addid(), this->size);
+        #endif
+        if (sr->addid() != NULL)
+          sr->set(this->data, sr->addid(), this->size);
       }
     }
     return SUCCESS;
@@ -526,7 +569,10 @@ namespace CTF_int {
 
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
-      printf("printing mapping of %s\n",name);
+      if (is_sparse)
+        printf("printing mapping of sparse tensor %s\n",name);
+      else
+        printf("printing mapping of dense tensor %s\n",name);
       if (topo != NULL){
         printf("mapped to order %d topology with dims:",topo->order);
         for (int dim=0; dim<topo->order; dim++){
@@ -908,9 +954,9 @@ namespace CTF_int {
     if (tsr->has_zero_edge_len) return SUCCESS;
     TAU_FSTART(write_pairs);
     ASSERT(!is_folded);
-    tsr->set_padding();
 
     if (tsr->is_mapped){
+      tsr->set_padding();
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&phase);
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&phys_phase);
       CTF_int::alloc_ptr(tsr->order*sizeof(int), (void**)&virt_phys_rank);
@@ -932,6 +978,8 @@ namespace CTF_int {
           bucket_lda[i] = 0;
       }
 
+      int64_t nnz_loc_new;
+      char * new_pairs;
       wr_pairs_layout(tsr->order,
                       wrld->np,
                       num_pair,
@@ -950,7 +998,22 @@ namespace CTF_int {
                       mapped_data,
                       tsr->data,
                       wrld->cdt,
-                      sr);
+                      sr,
+                      is_sparse,
+                      nnz_loc,
+                      nnz_blk,
+                      new_pairs,
+                      nnz_loc_new);
+      if (is_sparse && rw == 'w'){
+        this->set_new_nnz_glb(nnz_blk);
+        if (tsr->data != NULL) cdealloc(tsr->data);
+        tsr->data = new_pairs;
+/*        for (int64_t i=0; i<nnz_loc; i++){
+          printf("rank = %d, stores key %ld value %lf\n",wrld->rank, 
+                  ((int64_t*)(new_pairs+i*sr->pair_size()))[0],
+                  ((double*)(new_pairs+i*sr->pair_size()+sizeof(int64_t)))[0]);
+        }*/
+      }
 
       CTF_int::cdealloc(phase);
       CTF_int::cdealloc(phys_phase);
@@ -1068,6 +1131,147 @@ namespace CTF_int {
 
   }
 
+  int tensor::sparsify(char const * threshold,
+                       bool         take_abs){
+    if ((threshold == NULL && sr->addid() == NULL) ||
+        (threshold != NULL && !sr->is_ordered())){
+      return SUCCESS;
+    }
+    if (threshold == NULL)
+      return sparsify([&](char const* c){ return !sr->isequal(c, sr->addid()); });
+    else if (!take_abs)
+      return sparsify([&](char const* c){ 
+        char tmp[sr->el_size];
+        sr->max(c,threshold,tmp);
+        return !sr->isequal(tmp, threshold);
+      });
+    else
+      return sparsify([&](char const* c){ 
+        char tmp[sr->el_size];
+        sr->abs(c,tmp);
+        sr->max(tmp,threshold,tmp);
+        return !sr->isequal(tmp, threshold);
+      });
+  }
+
+  int tensor::sparsify(std::function<bool(char const*)> f){
+    if (is_sparse){
+      int64_t nnz_loc_new = 0;
+      PairIterator pi(sr, data);
+      int64_t nnz_blk_old[calc_nvirt()];
+      memcpy(nnz_blk_old, nnz_blk, calc_nvirt()*sizeof(int64_t));
+      memset(nnz_blk, 0, calc_nvirt()*sizeof(int64_t));
+      int64_t i=0; 
+      for (int v=0; v<calc_nvirt(); v++){
+        for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
+//          printf("Filtering %ldth/%ld elements %p %d %d\n",i,nnz_loc,pi.ptr,sr->el_size,sr->pair_size());
+          ASSERT(i<nnz_loc);
+          if (f(pi[i].d())){
+            nnz_loc_new++;
+            nnz_blk[v]++;
+          }
+        }
+      }
+/*      if (threshold == NULL){
+        int64_t i=0; 
+        for (int v=0; v<calc_nvirt(); v++){
+          for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
+            if (!sr->isequal(pi[i].d(), sr->addid())){
+              nnz_loc_new++;
+              nnz_blk[v]++;
+            }
+          }
+        }
+      } else {
+        int64_t i=0; 
+        for (int v=0; v<calc_nvirt(); v++){
+          for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
+            char tmp[sr->el_size];
+            if (take_abs)
+              sr->abs(pi[i].d(), tmp);
+            else
+              memcpy(tmp, pi[i].d(), sr->el_size);
+            sr->max(threshold, tmp, tmp);
+            if (!sr->isequal(tmp,threshold)){
+              nnz_loc_new++;
+              nnz_blk[v]++;
+            }
+          }
+        }
+      }*/
+      // if we don't have any actual zeros don't do anything
+      if (nnz_loc_new != nnz_loc){
+        char * old_data = data;
+        alloc_ptr(nnz_loc_new*sr->pair_size(), (void**)&data);
+        PairIterator pi_new(sr, data);
+        nnz_loc_new = 0;
+        for (int64_t i=0; i<nnz_loc; i++){
+          if (f(pi[i].d())){
+            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
+            nnz_loc_new++;
+          }
+        }
+        cdealloc(old_data);
+      }
+      /*if (threshold == NULL){
+        for (int64_t i=0; i<nnz_loc; i++){
+          if (!sr->isequal(pi[i].d(), sr->addid())){
+            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
+            nnz_loc_new++;
+          }
+        }
+      } else {
+        for (int64_t i=0; i<nnz_loc; i++){
+          char tmp[sr->el_size];
+          if (take_abs)
+            sr->abs(pi[i].d(), tmp);
+          else
+            memcpy(tmp, pi[i].d(), sr->el_size);
+          sr->max(threshold, tmp, tmp);
+          if (!sr->isequal(tmp,threshold)){
+            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
+            nnz_loc_new++;
+          }
+        }
+      }*/
+      this->set_new_nnz_glb(nnz_blk);
+      //FIXME compute max nnz_loc?
+    } else {
+      ASSERT(!has_home || is_home);
+      char * all_pairs;
+      int64_t num_pairs;
+      //get all local pairs, including zero ones FIXME can be done faster
+      read_local(&num_pairs, &all_pairs);
+      //become sparse
+      cdealloc(data);
+      data = NULL;
+      is_home = false;
+      has_home = false;
+      home_buffer = NULL;
+      clear_mapping();
+      is_sparse = true;
+      nnz_loc = 0;
+      nnz_tot = 0;
+      set_zero();
+      //nnz_loc_max = 0;
+      //write old data as pairs to self FIXME can be done faster
+      write(num_pairs, sr->mulid(), sr->addid(), all_pairs);
+      cdealloc(all_pairs);
+      //sparsify sparse->sparse
+      sparsify(f);
+    }
+    return SUCCESS;
+  }
+
+  int tensor::read_local_nnz(int64_t * num_pair,
+                             char **   mapped_data) const {
+    tensor tsr_cpy(this);
+    tsr_cpy.sparsify();
+    *mapped_data = tsr_cpy.data;
+    *num_pair = tsr_cpy.nnz_loc;
+    tsr_cpy.is_data_aliased = true;
+    return SUCCESS;
+  }
 
 
   int tensor::read_local(int64_t * num_pair,
@@ -1092,9 +1296,15 @@ namespace CTF_int {
 //    tsr->set_padding();
 
 
-    if (!tsr->is_mapped){
-      *num_pair = tsr->size;
-      *mapped_data = tsr->pairs;
+    if (tsr->is_sparse){
+      char * nnz_data;
+      int64_t num_nnz;
+      read_local_nnz(&num_nnz, &nnz_data);
+      tensor dense_tsr(sr, order, lens, sym, wrld);
+      dense_tsr.write(num_nnz, sr->mulid(), sr->addid(), nnz_data);
+      cdealloc(nnz_data);
+      dense_tsr.read_local(num_pair, mapped_data);
+      *num_pair = nnz_loc;
       return SUCCESS;
     } else {
       TAU_FSTART(read_local_pairs);
@@ -1201,8 +1411,9 @@ namespace CTF_int {
 
     PairIterator ipr(sr, all_pairs);
     ipr.sort(nval);
-    if (n>0)
+    if (n>0){
       cdealloc(my_pairs);
+    }
     *num_pair = nval;
     return ipr; 
   }
@@ -1283,7 +1494,7 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
        idx_A[i] = i;
     }
-    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->mulid(), func);
+    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->mulid(), &func);
     sm.execute();
     sr->copy(result, sc.data);
     MPI_Bcast(result, sr->el_size, MPI_CHAR, 0, wrld->cdt.cm);
@@ -1313,10 +1524,15 @@ namespace CTF_int {
 
     if (wrld->rank == 0)
       printf("Printing tensor %s\n",name);
-    print_map(fp);
+    //print_map(fp);
 
     imy_sz = 0;
-    read_local(&imy_sz, &pmy_data);
+    if (cutoff != NULL){
+      tensor tsr_cpy(this);
+      tsr_cpy.sparsify(cutoff);
+      tsr_cpy.read_local_nnz(&imy_sz, &pmy_data);
+    } else
+      read_local_nnz(&imy_sz, &pmy_data);
     my_sz = imy_sz;
     //PairIterator my_data = PairIterator(sr,pmy_data);
 
@@ -1351,12 +1567,12 @@ namespace CTF_int {
     if (wrld->rank == 0){
 //      all_data.sort(tot_sz);
       for (int64_t i=0; i<tot_sz; i++){
-        if (cutoff != NULL){
+        /*if (cutoff != NULL){
           char absval[sr->el_size];
           sr->abs(all_data[i].d(),absval);
           sr->max(absval, cutoff, absval);
           if(sr->isequal(absval, cutoff)) continue;
-        }
+        }*/
         k = all_data[i].k();
         for (int j=0; j<order; j++){
             //idx_arr[order-j-1] = k%lens[j];
@@ -1482,28 +1698,30 @@ namespace CTF_int {
     int i, j, nvirt, allfold_dim;
     int * all_edge_len, * sub_edge_len;
     if (this->is_folded){
-      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
-      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
-      calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
-               NULL, sub_edge_len, NULL);
-      allfold_dim = 0;
-      for (i=0; i<this->order; i++){
-        if (this->sym[i] == NS){
-          j=1;
-          while (i-j >= 0 && this->sym[i-j] != NS) j++;
-          all_edge_len[allfold_dim] = sy_packed_size(j, sub_edge_len+i-j+1,
-                                                     this->sym+i-j+1);
-          allfold_dim++;
+      if (!is_sparse){
+        CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
+        CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
+        calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
+                 NULL, sub_edge_len, NULL);
+        allfold_dim = 0;
+        for (i=0; i<this->order; i++){
+          if (this->sym[i] == NS){
+            j=1;
+            while (i-j >= 0 && this->sym[i-j] != NS) j++;
+            all_edge_len[allfold_dim] = sy_packed_size(j, sub_edge_len+i-j+1,
+                                                       this->sym+i-j+1);
+            allfold_dim++;
+          }
         }
+        nvirt = this->calc_nvirt();
+        for (i=0; i<nvirt; i++){
+          nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
+                                 this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
+        }
+        CTF_int::cdealloc(all_edge_len);
+        CTF_int::cdealloc(sub_edge_len);
+        this->rec_tsr->is_data_aliased=1;
       }
-      nvirt = this->calc_nvirt();
-      for (i=0; i<nvirt; i++){
-        nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
-                               this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
-      }
-      CTF_int::cdealloc(all_edge_len);
-      CTF_int::cdealloc(sub_edge_len);
-      this->rec_tsr->is_data_aliased=1;
       delete this->rec_tsr;
       CTF_int::cdealloc(this->inner_ordering);
     }  
@@ -1648,18 +1866,21 @@ namespace CTF_int {
   #endif
 
     distribution new_dist = distribution(this);
+    if (is_sparse) can_block_shuffle = 0;
+    else {
   #ifdef USE_BLOCK_RESHUFFLE
-    can_block_shuffle = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
+      can_block_shuffle = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
   #else
-    can_block_shuffle = 0;
-  #endif
-    if (old_offsets != NULL || old_permutation != NULL ||
-        new_offsets != NULL || new_permutation != NULL){
       can_block_shuffle = 0;
+  #endif
+      if (old_offsets != NULL || old_permutation != NULL ||
+          new_offsets != NULL || new_permutation != NULL){
+        can_block_shuffle = 0;
+      }
     }
 
     if (size > INT_MAX && wrld->cdt.rank == 0)
-      printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%ld, so MPI could run into problems\n", name, size, INT_MAX);
+      printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%d, so MPI could run into problems\n", name, size, INT_MAX);
 
   #ifdef HOME_CONTRACT
     if (this->is_home){    
@@ -1697,7 +1918,22 @@ namespace CTF_int {
       block_reshuffle(old_dist, new_dist, this->data, shuffled_data, sr, wrld->cdt);
       CTF_int::cdealloc((void*)this->data);
     } else {
-      dgtog_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
+      if (is_sparse){
+        //padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data, sr, wrld->cdt);
+        char * old_data = this->data;
+        
+        this->data = NULL;
+        int64_t old_nnz = nnz_loc;
+        nnz_loc = 0;
+        cdealloc(nnz_blk);
+        nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
+        std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
+        this->write(old_nnz, sr->mulid(), sr->addid(), old_data);
+        //this->set_new_nnz_glb(nnz_blk);
+        shuffled_data = this->data;
+        cdealloc(old_data);
+      } else
+        dgtog_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
       //glb_cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
       //cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
       //CTF_int::cdealloc((void*)this->data);
@@ -1797,12 +2033,12 @@ namespace CTF_int {
                            int         rw,
                            tensor *&   new_tsr,
                            int **      idx_map_new){
-    int i, j, k, * edge_len, * sym, * ex_idx_map, * diag_idx_map;
+    int i, j, k, * edge_len, * nsym, * ex_idx_map, * diag_idx_map;
     for (i=0; i<this->order; i++){
       for (j=i+1; j<this->order; j++){
         if (idx_map[i] == idx_map[j]){
           CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&edge_len);
-          CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&sym);
+          CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&nsym);
           CTF_int::alloc_ptr(sizeof(int)*this->order,   (void**)idx_map_new);
           CTF_int::alloc_ptr(sizeof(int)*this->order,   (void**)&ex_idx_map);
           CTF_int::alloc_ptr(sizeof(int)*this->order-1, (void**)&diag_idx_map);
@@ -1813,28 +2049,91 @@ namespace CTF_int {
               edge_len[k]        = this->pad_edge_len[k]-this->padding[k];
               (*idx_map_new)[k]  = idx_map[k];
               if (k==j-1){
-                sym[k] = NS;
+                nsym[k] = NS;
+                if (this->sym[k] == this->sym[j]) nsym[k] = this->sym[k];
               } else 
-                sym[k] = this->sym[k];
+                nsym[k] = this->sym[k];
             } else if (k>j) {
               ex_idx_map[k]       = k-1;
               diag_idx_map[k-1]   = k-1;
               edge_len[k-1]       = this->pad_edge_len[k]-this->padding[k];
-              sym[k-1]            = this->sym[k];
+              nsym[k-1]            = this->sym[k];
               (*idx_map_new)[k-1] = idx_map[k];
             } else {
               ex_idx_map[k] = i;
             }
           }
-          if (rw){
-            new_tsr = new tensor(sr, this->order-1, edge_len, sym, wrld, 1);
-            summation sum = summation(this, ex_idx_map, sr->mulid(), new_tsr, diag_idx_map, sr->addid());
-            sum.execute(1);
+          if (is_sparse){
+            int64_t lda_i=1, lda_j=1;
+            for (int ii=0; ii<i; ii++){
+              lda_i *= lens[ii];
+            }
+            for (int jj=0; jj<j; jj++){
+              lda_j *= lens[jj];
+            }
+            if (rw){
+              PairIterator pi(sr, data);
+              new_tsr = new tensor(sr, this->order-1, edge_len, nsym, wrld, 1, name, 1, is_sparse);
+              int64_t nw = 0;
+              for (int p=0; p<nnz_loc; p++){
+                int64_t k = pi[p].k();
+                if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]) nw++;
+              }
+              char * pwdata = (char*)alloc(sr->pair_size()*nw);
+              PairIterator wdata(sr, pwdata);
+              nw=0;
+#ifdef USE_OMP
+//              #pragma omp parallel for
+#endif
+              for (int p=0; p<nnz_loc; p++){
+                int64_t k = pi[p].k();
+                if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){ 
+                  int64_t k_new = (k%lda_j)+(k/(lda_j*lens[j])*lda_j);
+                  ((int64_t*)(wdata[nw].ptr))[0] = k_new;
+                  wdata[nw].write_val(pi[p].d());
+                  nw++;
+                }
+              }
+              new_tsr->write(nw, sr->mulid(), sr->addid(), pwdata);
+              cdealloc(pwdata);
+            } else {
+              char * pwdata;
+              int64_t nw;
+              new_tsr->read_local_nnz(&nw, &pwdata);
+              PairIterator wdata(sr, pwdata);
+#ifdef USE_OMP
+              #pragma omp parallel for
+#endif
+              for (int p=0; p<nw; p++){
+                int64_t k = wdata[p].k();
+                int64_t kpart = (k/lda_i)%lens[i];
+                int64_t k_new = (k%lda_j)+((k/lda_j)*lens[j]+kpart)*lda_j;
+                ((int64_t*)(wdata[p].ptr))[0] = k_new;
+//                printf("k = %ld, k_new = %ld lda_i = %ld lda_j = %ld lens[0] = %d lens[1] = %d\n", k,k_new,lda_i,lda_j,lens[0],lens[1]);
+              }
+              PairIterator pi(sr, this->data);
+              for (int p=0; p<nnz_loc; p++){
+                int64_t k = pi[p].k();
+                if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){
+                  pi[p].write_val(sr->addid());
+                }
+              }
+
+              this->write(nw, NULL, NULL, pwdata);
+              cdealloc(pwdata);
+            }
           } else {
-            summation sum = summation(new_tsr, diag_idx_map, sr->mulid(), this, ex_idx_map, sr->addid());
-            sum.execute(1);
+            if (rw){
+          
+              new_tsr = new tensor(sr, this->order-1, edge_len, nsym, wrld, 1, name, 1, is_sparse);
+              summation sum = summation(this, ex_idx_map, sr->mulid(), new_tsr, diag_idx_map, sr->addid());
+              sum.execute(1);
+            } else {
+              summation sum = summation(new_tsr, diag_idx_map, sr->mulid(), this, ex_idx_map, sr->addid());
+              sum.execute(1);
+            }
           }
-          CTF_int::cdealloc(edge_len), CTF_int::cdealloc(sym), CTF_int::cdealloc(ex_idx_map), CTF_int::cdealloc(diag_idx_map);
+          CTF_int::cdealloc(edge_len), CTF_int::cdealloc(nsym), CTF_int::cdealloc(ex_idx_map), CTF_int::cdealloc(diag_idx_map);
           return SUCCESS;
         }
       }
@@ -1851,13 +2150,14 @@ namespace CTF_int {
 
     TAU_FSTART(zero_out_padding);
 
-    if (this->has_zero_edge_len){
+    if (this->has_zero_edge_len || is_sparse){
       return SUCCESS;
     }
     this->unfold();
     this->set_padding();
 
-    if (!this->is_mapped){
+    if (!this->is_mapped || sr->addid() == NULL){
+      TAU_FSTOP(zero_out_padding);
       return SUCCESS;
     } else {
       np = this->size;
@@ -1954,6 +2254,25 @@ namespace CTF_int {
     TAU_FSTOP(scale_diagonals);
   }
 
+  void tensor::addinv(){
+    if (is_sparse){
+      PairIterator pi(sr,data);
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=0; i<nnz_loc; i++){
+        sr->addinv(pi[i].d(), pi[i].d());
+      }
+    } else {
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int64_t i=0; i<size; i++){
+        sr->addinv(data+i*sr->el_size,data+i*sr->el_size);
+      }
+    }
+  }
+
   void tensor::set_sym(int const * sym_){
     if (sym_ == NULL)
       std::fill(this->sym, this->sym+order, NS);
@@ -1967,6 +2286,15 @@ namespace CTF_int {
         sym_table[(i+1)*order+i] = 1;
       }
     }
+  }
+
+  void tensor::set_new_nnz_glb(int64_t const * nnz_blk_){
+    nnz_loc = 0;
+    for (int i=0; i<calc_nvirt(); i++){
+      nnz_blk[i] = nnz_blk_[i];
+      nnz_loc += nnz_blk[i];
+    }
+    MPI_Allreduce(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM, wrld->comm);
   }
 
 }

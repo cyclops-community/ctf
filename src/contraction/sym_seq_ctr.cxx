@@ -32,7 +32,7 @@ namespace CTF_int{
                         int const *      sym_C,
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
-                        bivar_function * func,
+                        bivar_function const * func,
                         int const *      idx,
                         int const *      rev_idx_map,
                         int              idx_max){
@@ -157,7 +157,7 @@ namespace CTF_int{
                         int const *      sym_C,
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
-                        bivar_function * func,
+                        bivar_function const * func,
                         int const *      idx,
                         int const *      rev_idx_map,
                         int              idx_max){
@@ -266,7 +266,7 @@ namespace CTF_int{
   }
 
   template 
-  void sym_seq_ctr_loop< MAX_ORD+(MAX_ORD/2) >
+  void sym_seq_ctr_loop< MAX_ORD >
                        (char const *     alpha,
                         char const *     A,
                         algstrct const * sr_A,
@@ -290,7 +290,7 @@ namespace CTF_int{
                         int const *      sym_C,
                         int const *      idx_map_C,
                         uint64_t *const* offsets_C,
-                        bivar_function * func,
+                        bivar_function const * func,
                         int const *      idx,
                         int const *      rev_idx_map,
                         int              idx_max);
@@ -397,7 +397,8 @@ namespace CTF_int{
                       int const *      sym_C,
                       int const *      idx_map_C){
     TAU_FSTART(sym_seq_ctr_ref);
-    int idx, i, idx_max, imin, imax, sz, iA, iB, iC, j, k;
+    int idx, i, idx_max, imin, imax, iA, iB, iC, j, k;
+    int64_t sz;
     int off_idx, sym_pass;
     int * rev_idx_map;
     int * dlen_A, * dlen_B, * dlen_C;
@@ -451,7 +452,7 @@ namespace CTF_int{
         }*/
       }
     }
-    if (idx_max <= (MAX_ORD+MAX_ORD/2+1)){
+    if (idx_max <= MAX_ORD){
       uint64_t ** offsets_A;
       uint64_t ** offsets_B;
       uint64_t ** offsets_C;
@@ -580,7 +581,7 @@ namespace CTF_int{
                        int const *      edge_len_C,
                        int const *      sym_C,
                        int const *      idx_map_C,
-                       bivar_function * func){
+                       bivar_function const * func){
     TAU_FSTART(sym_seq_ctr_cust);
     int idx, i, idx_max, imin, imax, iA, iB, iC, j, k;
     int off_idx, sym_pass;

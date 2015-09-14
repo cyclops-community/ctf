@@ -305,7 +305,9 @@ namespace CTF_int {
   /*      tmp_arr[j] = (k%edge_len[j])%phase[j];
         tmp_arr[j] = tmp_arr[j]/virt_phase[j];
         tmp_arr[j] = tmp_arr[j]*bucket_lda[j];*/
-        loc += (k%phys_phase[j])*bucket_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += (k%phys_phase[j])*bucket_lda[j];
+        loc += ((k%edge_len[j])%phys_phase[j])*bucket_lda[j];
         k = k/edge_len[j];
       }
   /*    for (j=0; j<order; j++){
@@ -355,7 +357,9 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += (k%phys_phase[j])*bucket_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += (k%phys_phase[j])*bucket_lda[j];
+        loc += ((k%edge_len[j])%phys_phase[j])*bucket_lda[j];
         k = k/edge_len[j];
       }
   #ifdef USE_OMP
@@ -373,15 +377,15 @@ namespace CTF_int {
     TAU_FSTOP(bucket_by_pe_move);
   }
   
-  void bucket_by_virt(int               order,
-                      int               num_virt,
-                      int64_t           num_pair,
-                      int const *       phys_phase,
-                      int const *       virt_phase,
-                      int const *       edge_len,
-                      ConstPairIterator mapped_data,
-                      PairIterator      bucket_data,
-                      algstrct const *  sr){
+  int64_t * bucket_by_virt(int               order,
+                           int               num_virt,
+                           int64_t           num_pair,
+                           int const *       phys_phase,
+                           int const *       virt_phase,
+                           int const *       edge_len,
+                           ConstPairIterator mapped_data,
+                           PairIterator      bucket_data,
+                           algstrct const *  sr){
     int64_t * virt_counts, * virt_prefix, * virt_lda;
     TAU_FSTART(bucket_by_virt);
     
@@ -416,7 +420,9 @@ namespace CTF_int {
       int64_t loc = 0;
       //#pragma unroll
       for (int j=0; j<order; j++){
-        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        loc += (((k%edge_len[j])/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       
@@ -449,7 +455,9 @@ namespace CTF_int {
       int64_t loc = 0;
       //#pragma unroll
       for (int j=0; j<order; j++){
-        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        loc += (((k%edge_len[j])/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       bucket_data[virt_prefix[loc] + sub_offs[loc+omp_get_thread_num()*num_virt]].write(mapped_data[i]);
@@ -461,7 +469,9 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        loc += (((k%edge_len[j])/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       virt_counts[loc]++;
@@ -477,7 +487,9 @@ namespace CTF_int {
       int64_t k = mapped_data[i].k();
       int64_t loc = 0;
       for (int j=0; j<order; j++){
-        loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        //FIXME: fine for dense but need extra mod for sparse :(
+        //loc += ((k/phys_phase[j])%virt_phase[j])*virt_lda[j];
+        loc += (((k%edge_len[j])/phys_phase[j])%virt_phase[j])*virt_lda[j];
         k = k/edge_len[j];
       }
       bucket_data[virt_prefix[loc] + virt_counts[loc]].write(mapped_data[i]);
@@ -506,9 +518,9 @@ namespace CTF_int {
     CTF_int::cdealloc(sub_offs);
   #endif
     CTF_int::cdealloc(virt_prefix);
-    CTF_int::cdealloc(virt_counts);
     CTF_int::cdealloc(virt_lda);
     TAU_FSTOP(bucket_by_virt);
+    return virt_counts;
   }
 
   void readwrite(int              order,
@@ -588,7 +600,7 @@ namespace CTF_int {
               if (rw == 'r'){
                 if (alpha == NULL){
                   pairs[pr_offset].write_val(data+sr->el_size*(buf_offset+i));
-/*                if (sr->isbeta == 0.0){
+/*                if (sr->isbeta == 0.0)
                   char wval[sr->pair_size()];
                   sr->mul(alpha,data + sr->el_size*(buf_offset+i), wval);
                   pairs[pr_offset].write_val(wval);*/
@@ -691,7 +703,7 @@ namespace CTF_int {
       if (act_lda == order) break;
     }
     TAU_FSTOP(readwrite);
-    //printf("pr_offset = " PRId64 "/" PRId64 "\n",pr_offset,size);
+    //printf("pr_offset = %ld / %ld \n",pr_offset,size);
     ASSERT(pr_offset == size);
     CTF_int::cdealloc(idx);
     CTF_int::cdealloc(virt_rank);
@@ -716,7 +728,12 @@ namespace CTF_int {
                        char *           wr_pairs_buf,
                        char *           rw_data,
                        CommData         glb_comm,
-                       algstrct const * sr){
+                       algstrct const * sr,
+                       bool             is_sparse,
+                       int64_t          nnz_loc,
+                       int64_t *        nnz_blk,
+                       char *&          pprs_new,
+                       int64_t &        nnz_loc_new){
     int64_t new_num_pair, nwrite, swp;
     int64_t * bucket_counts, * recv_counts;
     int64_t * recv_displs, * send_displs;
@@ -724,7 +741,11 @@ namespace CTF_int {
     int * ckey;
     int j, is_out, sign, is_perm;
     char * swap_datab, * buf_datab;
-
+    int64_t * old_nnz_blk;
+    if (is_sparse){
+      CTF_int::alloc_ptr(num_virt*sizeof(int64_t),     (void**)&old_nnz_blk);
+      memcpy(old_nnz_blk, nnz_blk, num_virt*sizeof(int64_t));
+    }
 
     CTF_int::alloc_ptr(inwrite*sr->pair_size(), (void**)&buf_datab);
     CTF_int::alloc_ptr(inwrite*sr->pair_size(), (void**)&swap_datab);
@@ -869,13 +890,17 @@ namespace CTF_int {
     TAU_FSTOP(check_key_ranges);
 
     /* If the packed tensor is padded, pad keys */
-    pad_key(order, nwrite, depad_edge_len, padding, swap_data, sr);
-    CTF_int::cdealloc(depad_edge_len);
+    int const * wlen;
+    if (!is_sparse){
+      pad_key(order, nwrite, depad_edge_len, padding, swap_data, sr);
+      CTF_int::cdealloc(depad_edge_len);
+      wlen = edge_len;
+    } else wlen = depad_edge_len; 
 
     /* Figure out which processor the value in a packed layout, lies for each key */
     bucket_by_pe(order, nwrite, np,
                  phys_phase, virt_phase, bucket_lda,
-                 edge_len, swap_data, bucket_counts,
+                 wlen, swap_data, bucket_counts,
                  send_displs, buf_data, sr);
 
     /* Exchange send counts */
@@ -918,25 +943,42 @@ namespace CTF_int {
 
     /* Figure out what virtual bucket each key belongs to. Bucket
        and sort them accordingly */
-    bucket_by_virt(order, num_virt, new_num_pair, phys_phase, virt_phase,
-                       edge_len, swap_data, buf_data, sr);
+    int64_t * virt_counts = 
+        bucket_by_virt(order, num_virt, new_num_pair, phys_phase, virt_phase,
+                       wlen, swap_data, buf_data, sr);
 
     /* Write or read the values corresponding to the keys */
-    readwrite(order,
-              new_num_pair,
-              alpha,
-              beta,
-              num_virt,
-              edge_len,
-              sym,
-              phase,
-              phys_phase,
-              virt_phase,
-              virt_phys_rank,
-              rw_data,
-              buf_datab,
-              rw,
-              sr);
+    if (is_sparse){
+      if (rw == 'r'){
+        ConstPairIterator prs_tsr(sr, rw_data);
+        sp_read(sr, nnz_loc, prs_tsr, alpha, new_num_pair, buf_data, beta);
+      } else {
+        ConstPairIterator prs_tsr(sr, rw_data);
+        ConstPairIterator prs_write(sr, buf_data.ptr);
+        sp_write(num_virt, sr, old_nnz_blk, prs_tsr, beta, virt_counts, prs_write, alpha, nnz_blk, pprs_new);
+        for (int v=0; v<num_virt; v++){
+          if (v==0) nnz_loc_new = nnz_blk[0];
+          else nnz_loc_new += nnz_blk[v];
+        }
+      }
+    } else 
+      readwrite(order,
+                new_num_pair,
+                alpha,
+                beta,
+                num_virt,
+                edge_len,
+                sym,
+                phase,
+                phys_phase,
+                virt_phase,
+                virt_phys_rank,
+                rw_data,
+                buf_datab,
+                rw,
+                sr);
+
+    cdealloc(virt_counts);
 
     /* If we want to read the keys, we must return them to where they
        were requested */
@@ -969,10 +1011,12 @@ namespace CTF_int {
       
 
       /* unpad the keys if necesary */
-      for (int i=0; i<order; i++){
-        depadding[i] = -padding[i];
-      } 
-      pad_key(order, nwrite, edge_len, depadding, buf_data, sr);
+      if (!is_sparse){
+        for (int i=0; i<order; i++){
+          depadding[i] = -padding[i];
+        } 
+        pad_key(order, nwrite, edge_len, depadding, buf_data, sr);
+      }
 
       /* Sort the pairs that were sent out, now with correct values */
 //      std::sort(buf_data, buf_data+nwrite);
@@ -1003,12 +1047,14 @@ namespace CTF_int {
       }
       CTF_int::cdealloc(depadding);
     }
+    if (is_sparse) cdealloc(depad_edge_len);
     //FIXME: free here?
     cdealloc(changed_key_indices);
     cdealloc(changed_key_scale);
     cdealloc(new_changed_pairs);
     TAU_FSTOP(wr_pairs_layout);
 
+    if (is_sparse) CTF_int::cdealloc(old_nnz_blk);
     CTF_int::cdealloc(swap_datab);
     CTF_int::cdealloc(buf_datab);
     CTF_int::cdealloc((void*)bucket_counts);
@@ -1076,7 +1122,10 @@ namespace CTF_int {
               dpairsb, new_pairsb, &new_num_pair, sr);
 
     CTF_int::cdealloc(dpairsb);
-    if (nval == 0) CTF_int::cdealloc(new_pairsb);
+    if (new_num_pair == 0){
+      CTF_int::cdealloc(new_pairsb);
+      new_pairsb = NULL;
+    }
     *pairs = new_pairsb;
     *nread = new_num_pair;
 
@@ -1091,5 +1140,149 @@ namespace CTF_int {
     CTF_int::cdealloc(prepadding);
   }
 
+  void sp_read(algstrct const *  sr, 
+               int64_t           ntsr,
+               ConstPairIterator prs_tsr,
+               char const *      alpha,
+               int64_t           nread,
+               PairIterator      prs_read,
+               char const *      beta){
+    // each for loop iteration does one addition, o and r are also incremented within
+    // only incrementing r allows multiple reads of the same val
+    for (int64_t t=0,r=0; t<ntsr && r<nread; r++){
+      while (prs_tsr[t].k() != prs_read[r].k() && t<ntsr && r<nread){
+        if (prs_tsr[t].k() < prs_read[r].k())
+          t++;
+        else
+          r++;
+      }
+      // scale and add if match found
+      if (t<ntsr && r<nread){
+        char a[sr->el_size];
+        char b[sr->el_size];
+        char c[sr->el_size];
+        if (beta != NULL){
+          sr->mul(prs_read[r].d(), beta, a);
+        } else {
+          prs_read[r].read_val(a);
+        }
+        if (alpha != NULL){
+          sr->mul(prs_tsr[t].d(), alpha, b);
+        } else {
+          prs_tsr[t].read_val(b);
+        }
+        sr->add(a, b, c);
+        prs_read[r].write_val(c);
+      }
+    }
+  }
+             
+  void sp_write(int               num_virt,
+                algstrct const *  sr,
+                int64_t *         vntsr,
+                ConstPairIterator vprs_tsr,
+                char const *      beta,
+                int64_t *         vnwrite,
+                ConstPairIterator vprs_write,
+                char const *      alpha,
+                int64_t *         vnnew,
+                char *&           pprs_new){
+    // determine how many unique keys there are in prs_tsr and prs_Write
+    int64_t tot_new = 0;
+    ConstPairIterator prs_tsr = vprs_tsr;
+    ConstPairIterator prs_write = vprs_write;
+    for (int v=0; v<num_virt; v++){
+      int64_t ntsr = vntsr[v];
+      int64_t nwrite = vnwrite[v];
+      if (v>0){
+        prs_tsr = prs_tsr[vntsr[v-1]];
+        prs_write = prs_write[vnwrite[v-1]];
+      }
+      int64_t nnew = 0;
+      nnew = ntsr;
+      for (int64_t t=0,w=0; w<nwrite; w++){
+        while (w<nwrite){
+          if (t<ntsr && prs_tsr[t].k() < prs_write[w].k())
+            t++;
+          else if (t<ntsr && prs_tsr[t].k() == prs_write[w].k()){
+            t++;
+            w++;
+          } else {
+            if (w==0 || prs_write[w-1].k() != prs_write[w].k())
+              nnew++;
+            w++;
+          }
+        }
+      }
+      vnnew[v] = nnew;
+      tot_new += nnew;
+    }
+    //printf("ntsr = %ld nwrite = %ld nnew = %ld\n",ntsr,nwrite,nnew); 
+    alloc_ptr(sr->pair_size()*tot_new, (void**)&pprs_new);
+    PairIterator vprs_new(sr, pprs_new);
+    // each for loop computes one new value of prs_new 
+    //    (multiple writes may contribute to it), 
+    //    t, w, and n are incremented within
+    // only incrementing r allows multiple writes of the same val
+    prs_tsr = vprs_tsr;
+    prs_write = vprs_write;
+    PairIterator prs_new = vprs_new;
+    for (int v=0; v<num_virt; v++){
+      int64_t ntsr = vntsr[v];
+      int64_t nwrite = vnwrite[v];
+      int64_t nnew = vnnew[v];
+      if (v>0){
+        prs_tsr = prs_tsr[vntsr[v-1]];
+        prs_write = prs_write[vnwrite[v-1]];
+        prs_new = prs_new[vnnew[v-1]];
+      }
+
+      for (int64_t t=0,w=0,n=0; n<nnew; n++){
+        if (t<ntsr && (w==nwrite || prs_tsr[t].k() < prs_write[w].k())){
+          memcpy(prs_new[n].ptr, prs_tsr[t].ptr, sr->pair_size());
+          t++;
+        } else {
+          if (t>=ntsr || prs_tsr[t].k() > prs_write[w].k()){
+            memcpy(prs_new[n].ptr, prs_write[w].ptr, sr->pair_size());
+            if (alpha != NULL)
+              sr->mul(prs_new[n].d(), alpha, prs_new[n].d());
+            w++;
+          } else {
+            char a[sr->el_size];
+            char b[sr->el_size];
+            char c[sr->el_size];
+            if (alpha != NULL){
+              sr->mul(prs_write[w].d(), alpha, a);
+            } else {
+              prs_write[w].read_val(a);
+            }
+            if (beta != NULL){
+              sr->mul(prs_tsr[t].d(), beta, b);
+            } else {
+              prs_tsr[t].read_val(b);
+            }
+            sr->add(a, b, c);
+            prs_new[n].write_val(c);
+            ((int64_t*)(prs_new[n].ptr))[0] = prs_tsr[t].k();
+            t++;
+            w++;
+          }
+          // accumulate any repeated key writes
+          while (w < nwrite && prs_write[w].k() == prs_write[w-1].k()){
+            if (alpha != NULL){
+              char a[sr->el_size];
+              sr->mul(prs_write[w].d(), alpha, a);
+              sr->add(prs_new[n].d(), a, prs_new[n].d());
+            } else
+              sr->add(prs_new[n].d(), prs_write[w].d(), prs_new[n].d());
+            w++;
+          }
+        }
+        /*printf("%ldth value is ", n);
+        sr->print(prs_new[n].d());
+        printf(" with key %ld\n",prs_new[n].k());*/
+      }
+    }
+  }
 }
        

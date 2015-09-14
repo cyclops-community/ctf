@@ -99,7 +99,7 @@ int gemm(int      m,
     D.read_local(&np, &indices_BC, &pairs_BC);
     E.read_local(&np, &indices_AB, &pairs_AB);
     for (i=0; i<np; i++){
-      if (fabs((pairs_BC[i]-pairs_AB[i])/pairs_AB[i])>1.E-8){
+      if (fabs((pairs_BC[i]-pairs_AB[i])/pairs_AB[i]/k)>1.E-8){
         pass = 0;
         printf("P[%d]: element %ld is of (A*B)*C is %lf,",
                 rank,indices_AB[i],pairs_AB[i]);

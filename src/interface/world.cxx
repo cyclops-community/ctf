@@ -13,18 +13,19 @@ extern "C"
 using namespace CTF_int;
 
 namespace CTF {
+  bool universe_exists = false;
+  World universe("");
+
   World::World(int            argc,
-               char * const * argv) : cdt(MPI_COMM_WORLD) {
+               char * const * argv){
     comm = MPI_COMM_WORLD;
-    MPI_Comm_rank(comm, &rank);
-    MPI_Comm_size(comm, &np);
 #ifdef BGQ
-    this->init(comm, rank, np, TOPOLOGY_BGQ, argc, argv);
+    this->init(comm, TOPOLOGY_BGQ, argc, argv);
 #else
 #ifdef BGP
-    this->init(comm, rank, np, TOPOLOGY_BGP, argc, argv);
+    this->init(comm, TOPOLOGY_BGP, argc, argv);
 #else
-    this->init(comm, rank, np, TOPOLOGY_GENERIC, argc, argv);
+    this->init(comm, TOPOLOGY_GENERIC, argc, argv);
 #endif
 #endif
   }
@@ -32,17 +33,15 @@ namespace CTF {
 
   World::World(MPI_Comm       comm_,
                int            argc,
-               char * const * argv)  : cdt(comm_) {
+               char * const * argv){
     comm = comm_;
-    MPI_Comm_rank(comm, &rank);
-    MPI_Comm_size(comm, &np);
 #ifdef BGQ
-    this->init(comm, rank, np, TOPOLOGY_BGQ, argc, argv);
+    this->init(comm, TOPOLOGY_BGQ, argc, argv);
 #else
 #ifdef BGP
-    this->init(comm, rank, np, TOPOLOGY_BGP, argc, argv);
+    this->init(comm, TOPOLOGY_BGP, argc, argv);
 #else
-    this->init(comm, rank, np, TOPOLOGY_GENERIC, argc, argv);
+    this->init(comm, TOPOLOGY_GENERIC, argc, argv);
 #endif
 #endif
   }
@@ -52,19 +51,34 @@ namespace CTF {
                int const *     lens, 
                MPI_Comm        comm_,
                int             argc,
-               char * const *  argv) : cdt(comm_) {
+               char * const *  argv){
     comm = comm_;
-    MPI_Comm_rank(comm, &rank);
-    MPI_Comm_size(comm, &np);
-    this->init(comm, rank, np, order, lens, argc, argv);
+    this->init(comm, order, lens, argc, argv);
   }
+/*
+  World::World(World const & other){
+    comm        = other.comm;
+    cdt         = other.cdt;
+    rank        = other.rank;
+    np          = other.np;
+    initialized = other.initialized;
+  
+    ASSERT(0); 
+    for (int i=0; i<(int)other.topovec.size(); i++){
+      topovec.push_back(other.topovec[i]);
+    }
+  }*/
+
+  World::World(char const * emptystring){}
 
   World::~World(){
-    for (int i=0; i<(int)topovec.size(); i++){
-      delete topovec[i];
+    if (!is_copy){
+      for (int i=0; i<(int)topovec.size(); i++){
+        delete topovec[i];
+      }
+      delete phys_topology;
     }
     topovec.clear();
-    delete phys_topology;
 
     initialized = 0;
     mem_exit(rank);
@@ -82,27 +96,22 @@ namespace CTF {
 
 
   int World::init(MPI_Comm const  global_context,
-                  int             rank, 
-                  int             np,
                   TOPOLOGY        mach,
                   int             argc,
                   const char * const *  argv){
+    cdt = CommData(comm);
     phys_topology = get_phys_topo(cdt, mach);
-    topovec = peel_perm_torus(phys_topology, cdt);
     
     return initialize(argc, argv);
   }
 
   int World::init(MPI_Comm const       global_context,
-                  int                  rank,
-                  int                  np,
                   int                  order,
                   int const *          dim_len,
                   int                  argc,
                   const char * const * argv){
-    phys_topology = new topology(order, dim_len, cdt, 1);
-    topovec = peel_perm_torus(phys_topology, cdt);
 
+    phys_topology = new topology(order, dim_len, cdt, 1);
 
     return initialize(argc, argv);
   }
@@ -110,8 +119,15 @@ namespace CTF {
   int World::initialize(int                   argc,
                         const char * const *  argv){
     char * mst_size, * stack_size, * mem_size, * ppn;
-    int rank = cdt.rank;  
-
+    if (comm == MPI_COMM_WORLD && universe_exists){
+      *this = universe;
+      is_copy = true;
+    } else {
+      is_copy = false;
+      MPI_Comm_rank(comm, &rank);
+      MPI_Comm_size(comm, &np);
+      topovec = peel_perm_torus(phys_topology, cdt);
+    }
     CTF_int::mem_create();
     if (CTF_int::get_num_instances() == 1){
       TAU_FSTART(CTF);
@@ -187,6 +203,14 @@ namespace CTF {
         VPRINTF(1,"Total amount of memory available to process 0 is %ld\n", proc_bytes_available());
     } 
     initialized = 1;
+    if (comm == MPI_COMM_WORLD){
+      if (!universe_exists){
+        universe_exists = true;
+        universe = *this;
+//        CTF_int::mem_create();
+        is_copy = true;
+      } 
+    }
     return CTF_int::SUCCESS;
   }
 
@@ -219,5 +243,12 @@ namespace CTF {
 
   }*/
 
+  World & get_universe(){
+    if (!universe_exists){
+      universe_exists = true;
+      universe = World();
+    }
+    return universe;
+  }
 
 }

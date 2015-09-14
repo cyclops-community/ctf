@@ -164,7 +164,7 @@ namespace CTF_int {
    */
   void mem_exit(int rank){
     instance_counter--;
-    assert(instance_counter >= 0);
+    //assert(instance_counter >= 0);
   #ifndef PRODUCTION
     if (instance_counter == 0){
       for (int i=0; i<max_threads; i++){

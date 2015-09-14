@@ -1,13 +1,14 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __INT_TENSOR_H__
-#define __INT_TENSOR_H__
+#ifndef __UNTYPED_TENSOR_H__
+#define __UNTYPED_TENSOR_H__
 
 #include "../mapping/mapping.h"
 #include "../mapping/distribution.h"
 #include "../interface/world.h"
 #include "../interface/partition.h"
 #include "algstrct.h"
+#include <functional>
 
 namespace CTF {
   class Idx_Tensor;
@@ -27,6 +28,7 @@ namespace CTF_int {
        * \param[in] wrld a distributed context for the tensor to live in
        * \param[in] name_an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] is_sparse set to 1 to store only nontrivial tensor elements
        */
       void init(algstrct const * sr,
                 int              order,
@@ -35,7 +37,8 @@ namespace CTF_int {
                 CTF::World *     wrld,
                 bool             alloc_data,
                 char const *     name,
-                bool             profile);
+                bool             profile,
+                bool             is_sparse);
       /**
        * \brief read all pairs with each processor (packed)
        * \param[out] num_pair number of values read
@@ -107,10 +110,7 @@ namespace CTF_int {
       /** \brief if true tensor has a zero edge length, so is zero, which short-cuts stuff */
       bool has_zero_edge_len;
       /** \brief tensor data, either the data or the key-value pairs should exist at any given time */
-      union {
-        char * data;
-        char * pairs;
-      };
+      char * data;
       /** \brief whether the tensor has a home mapping/buffer */
       bool has_home;
       /** \brief buffer associated with home mapping of tensor, to which it is returned */
@@ -121,6 +121,14 @@ namespace CTF_int {
       bool is_home;
       /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
+      /** \brief whether only the non-zero elements of the tensor are stored */
+      bool is_sparse;
+      /** \brief number of local nonzero elements */
+      int64_t nnz_loc;
+      /** \brief maximum number of local nonzero elements over all procs*/
+      int64_t nnz_tot;
+      /** \brief nonzero elements in each block owned locally */
+      int64_t * nnz_blk;
       
       /**
        * \brief associated an index map with the tensor for future operation
@@ -146,6 +154,7 @@ namespace CTF_int {
        * \param[in] alloc_data whether to allocate and set data to zero immediately
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] is_sparse set to 1 to store only nontrivial tensor elements
        */
       tensor(algstrct const * sr,
              int              order,
@@ -154,7 +163,8 @@ namespace CTF_int {
              CTF::World *     wrld,
              bool             alloc_data=true,
              char const *     name=NULL,
-             bool             profile=1);
+             bool             profile=1,
+             bool             is_sparse=0);
 
       /**
        * \brief defines a tensor object with some mapping (if alloc_data)
@@ -216,6 +226,13 @@ namespace CTF_int {
       int64_t calc_nvirt() const;
 
       /**
+       * \brief calculate the number of processes this tensor is distributed over
+       * return number of processes owning a block of the tensor
+       */
+      int64_t calc_npe() const;
+
+
+      /**
        * \brief sets padding and local size of a tensor given a mapping
        */
       void set_padding();
@@ -241,6 +258,8 @@ namespace CTF_int {
        */
       void scale_diagonals(int const * sym_mask);
 
+      // apply an additive inverse to all elements of the tensor
+      void addinv();
 
       /**
        * \brief displays mapping information
@@ -266,6 +285,7 @@ namespace CTF_int {
 
       /** \brief turn off profiling */
       void profile_off();
+
 
       /**
        * \brief get raw data pointer without copy WARNING: includes padding 
@@ -395,12 +415,38 @@ namespace CTF_int {
                   char const *  beta);
 
       /**
-       * \brief read tensor data pairs local to processor. 
+       * \brief reduce tensor to sparse format, storing only nonzero data, or data above a specified threshold.
+       *        makes dense tensors sparse.
+       *        cleans sparse tensors of any 'computed' zeros.
+       * \param[in] threshold all values smaller or equal to than this one will be removed/not stored (by default is NULL, meaning only zeros are removed, so same as threshold=additive identity)
+       * \param[in] take_abs whether to take absolute value when comparing to threshold
+       */
+      int sparsify(char const * threshold=NULL,
+                   bool         take_abs=true);
+  
+      /**
+       * \brief sparsifies tensor keeping only values v such that filter(v) = true
+       * \param[in] f boolean function to apply to values to determine whether to keep them
+       */ 
+      int sparsify(std::function<bool(char const*)> f);
+
+      /**
+       * \brief read tensor data pairs local to processor including those with zero values
+       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with 
+       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
        * \param[out] num_pair number of values read
        * \param[out] mapped_data values read
        */
       int read_local(int64_t * num_pair,
                      char **   mapped_data) const;
+
+      /**
+       * \brief read tensor data pairs local to processor that have nonzero values
+       * \param[out] num_pair number of values read
+       * \param[out] mapped_data values read
+       */
+      int read_local_nnz(int64_t * num_pair,
+                         char **   mapped_data) const;
 
       /** 
        * \brief copy A into this (B). Realloc if necessary 
@@ -592,8 +638,14 @@ namespace CTF_int {
         * \param[in] sym
         */
       void set_sym(int const * sym); 
+
+      /**
+       * \brief sets the number of nonzeros both locally (nnz_loc) and overall globally (nnz_tot)
+       * \param[in] nnz_blk number of nonzeros in each block  
+       */
+      void set_new_nnz_glb(int64_t const * nnz_blk);
   };
 }
 
-#endif// __INT_TENSOR_H__
+#endif// __UNTYPED_TENSOR_H__
 

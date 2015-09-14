@@ -213,6 +213,9 @@ namespace CTF_int {
   INST_CALC_CNT_BEC_ICPC_SUCKS(6)
   INST_CALC_CNT_BEC_ICPC_SUCKS(7)
   INST_CALC_CNT_BEC_ICPC_SUCKS(8)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(9)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(10)
+  INST_CALC_CNT_BEC_ICPC_SUCKS(11)
 
   void calc_drv_displs(int const *          sym,
                        int const *          edge_len,

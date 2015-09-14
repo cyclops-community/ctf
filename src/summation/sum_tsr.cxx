@@ -3,20 +3,48 @@
 #include "../shared/util.h"
 #include "sum_tsr.h"
 #include "sym_seq_sum.h"
+#include "../interface/fun_term.h"
+#include "../interface/idx_tensor.h"
 
 namespace CTF_int {
+  Fun_Term univar_function::operator()(Term const & A) const {
+    return Fun_Term(A.clone(), this);
+  }
+
+  void univar_function::operator()(Term const & A, Term const & B) const {
+    Fun_Term ft(A.clone(), this);
+    ft.execute(B.execute());
+  }
+
   tsum::tsum(tsum * other){
-    A      = other->A;
-    alpha  = other->alpha;
-    sr_A   = other->sr_A;
-    B      = other->B;
-    beta   = other->beta;
-    sr_B   = other->sr_B;
-    buffer = NULL;
+    A           = other->A;
+    sr_A        = other->sr_A;
+    alpha       = other->alpha;
+    B           = other->B;
+    beta        = other->beta;
+    sr_B        = other->sr_B;
+
+    buffer      = NULL;
+  }
+  
+  tsum::~tsum(){
+    if (buffer != NULL) cdealloc(buffer); 
+  }
+
+  tsum::tsum(summation const * s){
+    A           = s->A->data;
+    sr_A        = s->A->sr;
+    alpha       = s->alpha;
+
+    B           = s->B->data;
+    sr_B        = s->B->sr;
+    beta        = s->beta;
+
+    buffer      = NULL;
   }
 
   tsum_virt::~tsum_virt() {
-    CTF_int::cdealloc(virt_dim);
+    cdealloc(virt_dim);
     delete rec_tsum;
   }
 
@@ -24,16 +52,15 @@ namespace CTF_int {
     tsum_virt * o = (tsum_virt*)other;
     rec_tsum      = o->rec_tsum->clone();
     num_dim       = o->num_dim;
-    virt_dim      = (int*)CTF_int::alloc(sizeof(int)*num_dim);
+    virt_dim      = (int*)alloc(sizeof(int)*num_dim);
     memcpy(virt_dim, o->virt_dim, sizeof(int)*num_dim);
+  }
 
-    order_A       = o->order_A;
-    blk_sz_A      = o->blk_sz_A;
-    idx_map_A     = o->idx_map_A;
-
-    order_B       = o->order_B;
-    blk_sz_B      = o->blk_sz_B;
-    idx_map_B     = o->idx_map_B;
+  tsum_virt::tsum_virt(summation const * s) : tsum(s) {
+    order_A   = s->A->order;
+    idx_map_A = s->idx_A;
+    order_B   = s->B->order;
+    idx_map_B = s->idx_B;
   }
 
   tsum * tsum_virt::clone() {
@@ -67,7 +94,7 @@ namespace CTF_int {
       idx_arr = (int*)this->buffer;
     } else {
       alloced = 1;
-      ret = CTF_int::alloc_ptr(mem_fp(), (void**)&idx_arr);
+      ret = alloc_ptr(mem_fp(), (void**)&idx_arr);
       ASSERT(ret==0);
     }
     
@@ -94,7 +121,7 @@ namespace CTF_int {
   #undef SET_LDA_X
     
     /* dynammically determined size */ 
-    beta_arr = (int*)CTF_int::alloc(sizeof(int)*nb_B);
+    beta_arr = (int*)alloc(sizeof(int)*nb_B);
    
     memset(idx_arr, 0, num_dim*sizeof(int));
     memset(beta_arr, 0, nb_B*sizeof(int));
@@ -109,9 +136,9 @@ namespace CTF_int {
         rec_tsum->beta = sr_B->mulid();
       else
         rec_tsum->beta = this->beta; 
-//        sr_B->copy(rec_tsum->beta, this->beta);
-      beta_arr[off_B] = 1;
+  
       rec_tsum->run();
+       beta_arr[off_B] = 1;
 
       for (i=0; i<num_dim; i++){
         off_A -= ilda_A[i]*idx_arr[i];
@@ -126,9 +153,9 @@ namespace CTF_int {
       if (i==num_dim) break;
     }
     if (alloced){
-      CTF_int::cdealloc(idx_arr);
+      cdealloc(idx_arr);
     }
-    CTF_int::cdealloc(beta_arr);
+    cdealloc(beta_arr);
     TAU_FSTOP(sum_virt);
   }
 
@@ -155,12 +182,12 @@ namespace CTF_int {
       cdt_A[i]->deactivate();
     }*/
     if (ncdt_A > 0)
-      CTF_int::cdealloc(cdt_A);
+      cdealloc(cdt_A);
 /*    for (int i=0; i<ncdt_B; i++){
       cdt_B[i]->deactivate();
     }*/
     if (ncdt_B > 0)
-      CTF_int::cdealloc(cdt_B);
+      cdealloc(cdt_B);
   }
 
   tsum_replicate::tsum_replicate(tsum * other) : tsum(other) {
@@ -170,6 +197,47 @@ namespace CTF_int {
     size_B = o->size_B;
     ncdt_A = o->ncdt_A;
     ncdt_B = o->ncdt_B;
+  }
+
+
+  tsum_replicate::tsum_replicate(summation const *           s,
+                                 int const *                 phys_mapped,
+                                 int64_t                     blk_sz_A,
+                                 int64_t blk_sz_B) : tsum(s) {
+    int i;
+    int nphys_dim = s->A->topo->order;
+    this->ncdt_A = 0;
+    this->ncdt_B = 0;
+    this->size_A = blk_sz_A;
+    this->size_B = blk_sz_B;
+    this->cdt_A  = NULL;
+    this->cdt_B  = NULL;
+    for (i=0; i<nphys_dim; i++){
+      if (phys_mapped[2*i+0] == 0 && phys_mapped[2*i+1] == 1){
+        this->ncdt_A++;
+      }
+      if (phys_mapped[2*i+1] == 0 && phys_mapped[2*i+0] == 1){
+        this->ncdt_B++;
+      }
+    }
+    if (this->ncdt_A > 0)
+      CTF_int::alloc_ptr(sizeof(CommData*)*this->ncdt_A, (void**)&this->cdt_A);
+    if (this->ncdt_B > 0)
+      CTF_int::alloc_ptr(sizeof(CommData*)*this->ncdt_B, (void**)&this->cdt_B);
+    this->ncdt_A = 0;
+    this->ncdt_B = 0;
+    for (i=0; i<nphys_dim; i++){
+      if (phys_mapped[2*i+0] == 0 && phys_mapped[2*i+1] == 1){
+        this->cdt_A[this->ncdt_A] = &s->A->topo->dim_comm[i];
+        this->ncdt_A++;
+      }
+      if (phys_mapped[2*i+1] == 0 && phys_mapped[2*i+0] == 1){
+        this->cdt_B[this->ncdt_B] = &s->B->topo->dim_comm[i];
+        this->ncdt_B++;
+      }
+    }
+    ASSERT(this->ncdt_A == 0 || this->cdt_B == 0);
+
   }
 
   tsum * tsum_replicate::clone() {
@@ -182,10 +250,11 @@ namespace CTF_int {
 
   void tsum_replicate::run(){
     int brank, i;
-
+    char * buf = this->A;
     for (i=0; i<ncdt_A; i++){
       MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
     }
+
    /* for (i=0; i<ncdt_B; i++){
       POST_BCAST(this->B, size_B*sizeof(dtype), COMM_CHAR_T, 0, cdt_B[i]-> 0);
     }*/
@@ -195,9 +264,9 @@ namespace CTF_int {
     }
     if (brank != 0) sr_B->set(this->B, sr_B->addid(), size_B);
 
-    rec_tsum->A           = this->A;
-    rec_tsum->B           = this->B;
-    rec_tsum->alpha       = this->alpha;
+    rec_tsum->A         = buf;
+    rec_tsum->B         = this->B;
+    rec_tsum->alpha     = this->alpha;
     if (brank != 0)
       rec_tsum->beta = sr_B->mulid();
     else
@@ -205,6 +274,8 @@ namespace CTF_int {
 
     rec_tsum->run();
     
+    if (buf != this->A) cdealloc(buf);
+
     for (i=0; i<ncdt_B; i++){
       MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i]->cm);
     }
@@ -218,20 +289,34 @@ namespace CTF_int {
     order_A    = o->order_A;
     idx_map_A  = o->idx_map_A;
     sym_A      = o->sym_A;
-    edge_len_A = (int*)CTF_int::alloc(sizeof(int)*order_A);
+    edge_len_A = (int*)alloc(sizeof(int)*order_A);
     memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
 
     order_B    = o->order_B;
     idx_map_B  = o->idx_map_B;
     sym_B      = o->sym_B;
-    edge_len_B = (int*)CTF_int::alloc(sizeof(int)*order_B);
+    edge_len_B = (int*)alloc(sizeof(int)*order_B);
     memcpy(edge_len_B, o->edge_len_B, sizeof(int)*order_B);
     
     is_inner   = o->is_inner;
     inr_stride = o->inr_stride;
+    
+    map_pfx    = o->map_pfx;
 
     is_custom  = o->is_custom;
     func       = o->func;
+  }
+  
+  seq_tsr_sum::seq_tsr_sum(summation const * s) : tsum(s) {
+    order_A   = s->A->order;
+    sym_A     = s->A->sym;
+    idx_map_A = s->idx_A;
+    order_B   = s->B->order;
+    sym_B     = s->B->sym;
+    idx_map_B = s->idx_B;
+    is_custom = s->is_custom;
+
+    map_pfx = 1;
   }
 
   void seq_tsr_sum::print(){
@@ -245,6 +330,7 @@ namespace CTF_int {
     }
     printf("is inner = %d\n", is_inner);
     if (is_inner) printf("inner stride = %d\n", inr_stride);
+    printf("map_pfx = %ld\n", map_pfx);
   }
 
   tsum * seq_tsr_sum::clone() {
@@ -303,34 +389,6 @@ namespace CTF_int {
                       sym_B,
                       idx_map_B);
     }
+    
   }
-
-  void inv_idx(int                order_A,
-               int const *        idx_A,
-               int                order_B,
-               int const *        idx_B,
-               int *              order_tot,
-               int **             idx_arr){
-    int i, dim_max;
-
-    dim_max = -1;
-    for (i=0; i<order_A; i++){
-      if (idx_A[i] > dim_max) dim_max = idx_A[i];
-    }
-    for (i=0; i<order_B; i++){
-      if (idx_B[i] > dim_max) dim_max = idx_B[i];
-    }
-    dim_max++;
-    *order_tot = dim_max;
-    *idx_arr = (int*)CTF_int::alloc(sizeof(int)*2*dim_max);
-    std::fill((*idx_arr), (*idx_arr)+2*dim_max, -1);  
-
-    for (i=0; i<order_A; i++){
-      (*idx_arr)[2*idx_A[i]] = i;
-    }
-    for (i=0; i<order_B; i++){
-      (*idx_arr)[2*idx_B[i]+1] = i;
-    }
-  }
-
 }

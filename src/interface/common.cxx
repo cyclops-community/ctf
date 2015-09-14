@@ -173,10 +173,10 @@ namespace CTF_int {
   #endif
   }
 
-/*  CommData::CommData(){
+  CommData::CommData(){
     alive = 0;
     created = 0;
-  }*/
+  }
 
   CommData::~CommData(){
     deactivate();
@@ -242,7 +242,11 @@ namespace CTF_int {
   void CommData::deactivate(){
     if (alive){
       alive = 0;
-      if (created) MPI_Comm_free(&cm);
+      if (created){
+        int is_finalized;
+        MPI_Finalized(&is_finalized);
+        if (!is_finalized) MPI_Comm_free(&cm);
+      }
       created = 0;
     }
   }
@@ -395,6 +399,31 @@ namespace CTF_int {
       lda *= lens[i];
     }
 
+  }
+
+  bool get_mpi_dt(int64_t count, int64_t datum_size, MPI_Datatype & dt){
+    ASSERT(count <= INT_MAX);
+    bool is_new = false;
+    switch (datum_size){
+      case 1:
+        dt = MPI_CHAR;
+        break;
+      case 4:
+        dt = MPI_INT;
+        break;
+      case 8:
+        dt = MPI_DOUBLE;
+        break;
+      case 16:
+        dt = MPI_DOUBLE_COMPLEX;
+        break;
+      default:
+        MPI_Type_contiguous(datum_size, MPI_CHAR, &dt);
+        MPI_Type_commit(&dt);
+        is_new = true;
+        break;
+    }
+    return is_new;
   }
 
 

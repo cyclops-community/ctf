@@ -138,7 +138,7 @@ namespace CTF {
       idx_map = (char*)CTF_int::alloc(other.parent->order*sizeof(char));
       memcpy(idx_map, other.idx_map, parent->order*sizeof(char));
     }
-    sr->copy(scale,other.scale);
+    sr->safecopy(scale,other.scale);
   }
 
 /*  Idx_Tensor::Idx_Tensor(){
@@ -179,9 +179,9 @@ namespace CTF {
       std::cout << "op= tensor" << std::endl;
       assert(false);
     } else {
-      sr->copy(scale,sr->addid());
+      sr->safecopy(scale,sr->addid());
       B.execute(*this);
-      sr->copy(scale,sr->mulid());
+      sr->safecopy(scale,sr->mulid());
     }
   }
 
@@ -190,14 +190,11 @@ namespace CTF {
       global_schedule->add_operation(
           new TensorOperation(TENSOR_OP_SET, new Idx_Tensor(*this), B.clone()));
     } else {
-      sr->copy(scale,sr->addid());
+      sr->safecopy(scale,sr->addid());
       B.execute(*this);
-      sr->copy(scale,sr->mulid());
+      sr->safecopy(scale,sr->mulid());
     }
   }
-
-  void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
-  void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
 
   void Idx_Tensor::operator+=(Term const & B){
     if (global_schedule != NULL) {
@@ -206,9 +203,31 @@ namespace CTF {
     } else {
       //sr->copy(scale,sr->mulid());
       B.execute(*this);
-      sr->copy(scale,sr->mulid());
+      sr->safecopy(scale,sr->mulid());
     }
   }
+  
+  void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator+=(double scl){ execute() += Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator-=(double scl){ execute() -= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator*=(double scl){ execute() *= Idx_Tensor(sr,scl); }
+
+  void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
+
+  void Idx_Tensor::operator=(int scl){ execute() = Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator+=(int scl){ execute() += Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator-=(int scl){ execute() -= Idx_Tensor(sr,(int64_t)scl); }
+  void Idx_Tensor::operator*=(int scl){ execute() *= Idx_Tensor(sr,(int64_t)scl); }
+
+  /*Idx_Tensor Idx_Tensor::operator-() const {
+
+    Idx_Tensor trm(*this);
+    sr->safeaddinv(trm.scale,trm.scale);
+    return trm;
+  }*/
 
   void Idx_Tensor::operator-=(Term const & B){
     if (global_schedule != NULL) {
@@ -216,11 +235,12 @@ namespace CTF {
           new TensorOperation(TENSOR_OP_SUBTRACT, new Idx_Tensor(*this), B.clone()));
     } else {
       Term * Bcpy = B.clone();
-      char ainv[sr->el_size];
-      sr->addinv(sr->mulid(),ainv);
-      sr->mul(Bcpy->scale,ainv,Bcpy->scale);
+      char * ainv = NULL;
+      B.sr->safeaddinv(B.sr->mulid(),ainv);
+      B.sr->safemul(Bcpy->scale,ainv,Bcpy->scale);
       Bcpy->execute(*this);
-      sr->copy(scale,sr->mulid());
+      sr->safecopy(scale,sr->mulid());
+      if (ainv != NULL) cdealloc(ainv);
       delete Bcpy;
     }
   }
@@ -235,14 +255,17 @@ namespace CTF {
     }
   }
 
+
+
+
   void Idx_Tensor::execute(Idx_Tensor output) const {
     if (parent == NULL){
-//      output.sr->mul(output.scale, scale, output.scale);
+//      output.sr->safemul(output.scale, scale, output.scale);
       CTF_int::tensor ts(output.sr, 0, NULL, NULL, output.where_am_i(), true, NULL, 0);
       char * data;
       int64_t sz;
       ts.get_raw_data(&data, &sz);
-      if (ts.wrld->rank == 0) ts.sr->copy(data, scale);
+      if (ts.wrld->rank == 0) ts.sr->safecopy(data, scale);
       summation s(&ts, NULL, ts.sr->mulid(), 
                   output.parent, output.idx_map, output.scale);
       s.execute();

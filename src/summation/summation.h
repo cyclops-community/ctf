@@ -3,6 +3,7 @@
 
 #include "assert.h"
 #include "sum_tsr.h"
+#include "spsum_tsr.h"
 
 namespace CTF_int {
   class tensor; 
@@ -30,7 +31,7 @@ namespace CTF_int {
       /** \brief whether there is a elementwise custom function */
       bool is_custom;
       /** \brief function to execute on elements */
-      univar_function func;
+      univar_function const * func;
 
       /** \brief lazy constructor */
 //      summation(){ idx_A = NULL; idx_B = NULL; alpha=NULL; beta=NULL; is_custom=0; };
@@ -76,20 +77,20 @@ namespace CTF_int {
        * \param[in] beta scaling factor of ouput (can be NULL)
                       C[idx_B] = beta*B[idx_B] + alpha * A[idx_A]
        */
-      summation(tensor *        A,
-                int const *     idx_A,
-                char const *    alpha,
-                tensor *        B,
-                int const *     idx_B,
-                char const *    beta,
-                univar_function func);
-      summation(tensor *        A,
-                char const *    idx_A,
-                char const *    alpha,
-                tensor *        B,
-                char const *    idx_B,
-                char const *    beta,
-                univar_function func);
+      summation(tensor *                A,
+                int const *             idx_A,
+                char const *            alpha,
+                tensor *                B,
+                int const *             idx_B,
+                char const *            beta,
+                univar_function const * func);
+      summation(tensor *                A,
+                char const *            idx_A,
+                char const *            alpha,
+                tensor *                B,
+                char const *            idx_B,
+                char const *            beta,
+                univar_function const * func);
 
       /** \brief run summation  
         * \param[in] run_diag if true runs diagonal iterators (otherwise calls itself with run_diag=true later
@@ -174,10 +175,28 @@ namespace CTF_int {
 
       /**
        * \brief constructs function pointer to sum tensors A and B,B = B*beta+alpha*A
-       * \param[in] inner_stride local daxpy stride
        * \return tsum summation class pointer to run
       */
       tsum * construct_sum(int inner_stride=-1);
+
+      /**
+       * \brief constructs function pointer to sum tensors A and B at least one of which is sparse,
+       *            B = B*beta+alpha*A
+       * \param[in] virt_dim dimensions of grid of blocks owned by each process
+       * \param[in] phys_mapped dimension 2*num_phys_dim, keeps track of which dimensions A and B are mapped to
+       * \return tspsum summation class pointer to run
+      */
+      tspsum * construct_sparse_sum(int const * phys_mapped);
+
+      /**
+       * \brief constructs function pointer to sum tensors A and B both of which are dense,
+       *            B = B*beta+alpha*A
+       * \param[in] phys_mapped dimension 2*num_phys_dim, keeps track of which dimensions A and B are mapped to
+       * \return tsum summation class pointer to run
+      */
+      tsum * construct_dense_sum(int         inner_stride,
+                                 int const * phys_mapped);
+
 
       /**
        * \brief a*idx_map_A(A) + b*idx_map_B(B) -> idx_map_B(B).
@@ -226,6 +245,11 @@ namespace CTF_int {
        * \return SUCCESS if valid mapping found, ERROR if not enough memory or another issue
        */
       int map();
+      
+      /**
+       * \brief performs a sum when one or both of the tensors are sparse
+       */
+      void sp_sum();
   };
 }
 

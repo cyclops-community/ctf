@@ -1,10 +1,164 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "ctr_2d_general.h"
+#include "../tensor/untyped_tensor.h"
+#include "../mapping/mapping.h"
 #include "../shared/util.h"
 #include <climits>
 
 namespace CTF_int {
+
+  int  ctr_2d_gen_build(int                        is_used,
+                        CommData                   global_comm,
+                        int                        i,
+                        int *                      virt_dim,
+                        int &                      cg_edge_len,
+                        int &                      total_iter,
+                        tensor *                   A,
+                        int                        i_A,
+                        CommData *&                cg_cdt_A,
+                        int64_t &                  cg_ctr_lda_A,
+                        int64_t &                  cg_ctr_sub_lda_A,
+                        bool &                     cg_move_A,
+                        int *                      blk_len_A,
+                        int64_t &                  blk_sz_A,
+                        int const *                virt_blk_len_A,
+                        int &                      load_phase_A,
+                        tensor *                   B,
+                        int                        i_B,
+                        CommData *&                cg_cdt_B,
+                        int64_t &                  cg_ctr_lda_B,
+                        int64_t &                  cg_ctr_sub_lda_B,
+                        bool &                     cg_move_B,
+                        int *                      blk_len_B,
+                        int64_t &                  blk_sz_B,
+                        int const *                virt_blk_len_B,
+                        int &                      load_phase_B,
+                        tensor *                   C,
+                        int                        i_C,
+                        CommData *&                cg_cdt_C,
+                        int64_t &                  cg_ctr_lda_C,
+                        int64_t &                  cg_ctr_sub_lda_C,
+                        bool &                     cg_move_C,
+                        int *                      blk_len_C,
+                        int64_t &                  blk_sz_C,
+                        int const *                virt_blk_len_C,
+                        int &                      load_phase_C){
+    mapping * map;
+    int j;
+    int nstep = 1;
+    if (comp_dim_map(&C->edge_map[i_C], &B->edge_map[i_B])){
+      map = &B->edge_map[i_B];
+      while (map->has_child) map = map->child;
+      if (map->type == VIRTUAL_MAP){
+        virt_dim[i] = map->np;
+      }
+      return 0;
+    } else {
+      if (B->edge_map[i_B].type == VIRTUAL_MAP &&
+        C->edge_map[i_C].type == VIRTUAL_MAP){
+        virt_dim[i] = B->edge_map[i_B].np;
+        return 0;
+      } else {
+        cg_edge_len = 1;
+        if (B->edge_map[i_B].type == PHYSICAL_MAP){
+          cg_edge_len = lcm(cg_edge_len, B->edge_map[i_B].calc_phase());
+          cg_cdt_B = &B->topo->dim_comm[B->edge_map[i_B].cdt];
+          /*if (is_used && cg_cdt_B.alive == 0)
+            cg_cdt_B.activate(global_comm.cm);*/
+          nstep = B->edge_map[i_B].calc_phase();
+          cg_move_B = 1;
+        } else
+          cg_move_B = 0;
+        if (C->edge_map[i_C].type == PHYSICAL_MAP){
+          cg_edge_len = lcm(cg_edge_len, C->edge_map[i_C].calc_phase());
+          cg_cdt_C = &C->topo->dim_comm[C->edge_map[i_C].cdt];
+          /*if (is_used && cg_cdt_C.alive == 0)
+            cg_cdt_C.activate(global_comm.cm);*/
+          nstep = MAX(nstep, C->edge_map[i_C].calc_phase());
+          cg_move_C = 1;
+        } else
+          cg_move_C = 0;
+        cg_ctr_lda_A = 1;
+        cg_ctr_sub_lda_A = 0;
+        cg_move_A = 0;
+  
+  
+        /* Adjust the block lengths, since this algorithm will cut
+           the block into smaller ones of the min block length */
+        /* Determine the LDA of this dimension, based on virtualization */
+        cg_ctr_lda_B  = 1;
+        if (B->edge_map[i_B].type == PHYSICAL_MAP)
+          cg_ctr_sub_lda_B= blk_sz_B*B->edge_map[i_B].np/cg_edge_len;
+        else
+          cg_ctr_sub_lda_B= blk_sz_B/cg_edge_len;
+        for (j=i_B+1; j<B->order; j++) {
+          cg_ctr_sub_lda_B = (cg_ctr_sub_lda_B *
+                virt_blk_len_B[j]) / blk_len_B[j];
+          cg_ctr_lda_B = (cg_ctr_lda_B*blk_len_B[j])
+                /virt_blk_len_B[j];
+        }
+        cg_ctr_lda_C  = 1;
+        if (C->edge_map[i_C].type == PHYSICAL_MAP)
+          cg_ctr_sub_lda_C= blk_sz_C*C->edge_map[i_C].np/cg_edge_len;
+        else
+          cg_ctr_sub_lda_C= blk_sz_C/cg_edge_len;
+        for (j=i_C+1; j<C->order; j++) {
+          cg_ctr_sub_lda_C = (cg_ctr_sub_lda_C *
+                virt_blk_len_C[j]) / blk_len_C[j];
+          cg_ctr_lda_C = (cg_ctr_lda_C*blk_len_C[j])
+                /virt_blk_len_C[j];
+        }
+        if (B->edge_map[i_B].type != PHYSICAL_MAP){
+          blk_sz_B  = blk_sz_B / nstep;
+          blk_len_B[i_B] = blk_len_B[i_B] / nstep;
+        } else {
+          blk_sz_B  = blk_sz_B * B->edge_map[i_B].np / nstep;
+          blk_len_B[i_B] = blk_len_B[i_B] * B->edge_map[i_B].np / nstep;
+        }
+        if (C->edge_map[i_C].type != PHYSICAL_MAP){
+          blk_sz_C  = blk_sz_C / nstep;
+          blk_len_C[i_C] = blk_len_C[i_C] / nstep;
+        } else {
+          blk_sz_C  = blk_sz_C * C->edge_map[i_C].np / nstep;
+          blk_len_C[i_C] = blk_len_C[i_C] * C->edge_map[i_C].np / nstep;
+        }
+  
+        if (B->edge_map[i_B].has_child){
+          ASSERT(B->edge_map[i_B].child->type == VIRTUAL_MAP);
+          virt_dim[i] = B->edge_map[i_B].np*B->edge_map[i_B].child->np/nstep;
+        }
+        if (C->edge_map[i_C].has_child) {
+          ASSERT(C->edge_map[i_C].child->type == VIRTUAL_MAP);
+          virt_dim[i] = C->edge_map[i_C].np*C->edge_map[i_C].child->np/nstep;
+        }
+        if (C->edge_map[i_C].type == VIRTUAL_MAP){
+          virt_dim[i] = C->edge_map[i_C].np/nstep;
+        }
+        if (B->edge_map[i_B].type == VIRTUAL_MAP)
+          virt_dim[i] = B->edge_map[i_B].np/nstep;
+  #ifdef OFFLOAD
+        total_iter *= nstep;
+        if (cg_ctr_sub_lda_A == 0)
+          load_phase_A *= nstep;
+        else 
+          load_phase_A  = 1;
+        if (cg_ctr_sub_lda_B == 0)   
+          load_phase_B *= nstep;
+        else 
+          load_phase_B  = 1;
+        if (cg_ctr_sub_lda_C == 0) 
+          load_phase_C *= nstep;
+        else 
+          load_phase_C  = 1;
+  #endif
+      }
+    } 
+    return 1;
+  }
+
+
+
   ctr_2d_general::~ctr_2d_general() {
     /*if (move_A) cdt_A->deactivate();
     if (move_B) cdt_B->deactivate();
@@ -109,7 +263,7 @@ namespace CTF_int {
     return rec_ctr->mem_rec() + mem_fp();
   }
 
-  void ctr_2d_general::run() {
+  void ctr_2d_general::run(char * A, char * B, char * C){
     int owner_A, owner_B, owner_C, ret;
     int64_t ib;
     char * buf_A, * buf_B, * buf_C, * buf_aux; 
@@ -175,11 +329,11 @@ namespace CTF_int {
         owner_A   = ib % cdt_A->np;
         if (rank_A == owner_A){
           if (b_A == 1){
-            op_A = this->A;
+            op_A = A;
           } else {
             op_A = buf_A;
             sr_A->copy(ctr_sub_lda_A, ctr_lda_A, 
-                       this->A+sr_A->el_size*(ib/cdt_A->np)*ctr_sub_lda_A, ctr_sub_lda_A*b_A, 
+                       A+sr_A->el_size*(ib/cdt_A->np)*ctr_sub_lda_A, ctr_sub_lda_A*b_A, 
                        op_A, ctr_sub_lda_A);
           }
         } else
@@ -187,14 +341,14 @@ namespace CTF_int {
         MPI_Bcast(op_A, s_A, sr_A->mdtype(), owner_A, cdt_A->cm);
       } else {
         if (ctr_sub_lda_A == 0)
-          op_A = this->A;
+          op_A = A;
         else {
           if (ctr_lda_A == 1)
-            op_A = this->A+sr_A->el_size*ib*ctr_sub_lda_A;
+            op_A = A+sr_A->el_size*ib*ctr_sub_lda_A;
           else {
             op_A = buf_A;
             sr_A->copy(ctr_sub_lda_A, ctr_lda_A,
-                       this->A+sr_A->el_size*ib*ctr_sub_lda_A, ctr_sub_lda_A*edge_len, 
+                       A+sr_A->el_size*ib*ctr_sub_lda_A, ctr_sub_lda_A*edge_len, 
                        buf_A, ctr_sub_lda_A);
           }      
         }
@@ -203,11 +357,11 @@ namespace CTF_int {
         owner_B   = ib % cdt_B->np;
         if (rank_B == owner_B){
           if (b_B == 1){
-            op_B = this->B;
+            op_B = B;
           } else {
             op_B = buf_B;
             sr_B->copy(ctr_sub_lda_B, ctr_lda_B,
-                       this->B+sr_B->el_size*(ib/cdt_B->np)*ctr_sub_lda_B, ctr_sub_lda_B*b_B, 
+                       B+sr_B->el_size*(ib/cdt_B->np)*ctr_sub_lda_B, ctr_sub_lda_B*b_B, 
                        op_B, ctr_sub_lda_B);
           }
         } else 
@@ -216,14 +370,14 @@ namespace CTF_int {
         MPI_Bcast(op_B, s_B, sr_B->mdtype(), owner_B, cdt_B->cm);
       } else {
         if (ctr_sub_lda_B == 0)
-          op_B = this->B;
+          op_B = B;
         else {
           if (ctr_lda_B == 1){
-            op_B = this->B+sr_B->el_size*ib*ctr_sub_lda_B;
+            op_B = B+sr_B->el_size*ib*ctr_sub_lda_B;
           } else {
             op_B = buf_B;
             sr_B->copy(ctr_sub_lda_B, ctr_lda_B,
-                       this->B+sr_B->el_size*ib*ctr_sub_lda_B, ctr_sub_lda_B*edge_len, 
+                       B+sr_B->el_size*ib*ctr_sub_lda_B, ctr_sub_lda_B*edge_len, 
                        buf_B, ctr_sub_lda_B);
           }      
         }
@@ -233,10 +387,10 @@ namespace CTF_int {
         rec_ctr->beta = sr_C->addid();
       } else {
         if (ctr_sub_lda_C == 0)
-          op_C = this->C;
+          op_C = C;
         else {
           if (ctr_lda_C == 1) 
-            op_C = this->C+sr_C->el_size*ib*ctr_sub_lda_C;
+            op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
             rec_ctr->beta = sr_C->addid();
@@ -245,11 +399,7 @@ namespace CTF_int {
       } 
 
 
-      rec_ctr->A = op_A;
-      rec_ctr->B = op_B;
-      rec_ctr->C = op_C;
-
-      rec_ctr->run();
+      rec_ctr->run(op_A, op_B, op_C);
 
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
@@ -261,14 +411,14 @@ namespace CTF_int {
         if (rank_C == owner_C){
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
                      op_C, ctr_sub_lda_C, sr_C->mulid(),
-                     this->C+sr_C->el_size*(ib/cdt_C->np)*ctr_sub_lda_C, 
+                     C+sr_C->el_size*(ib/cdt_C->np)*ctr_sub_lda_C, 
                      ctr_sub_lda_C*b_C, this->beta);
         }
       } else {
         if (ctr_lda_C != 1 && ctr_sub_lda_C != 0)
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
                      buf_C, ctr_sub_lda_C, sr_C->mulid(), 
-                     this->C+sr_C->el_size*ib*ctr_sub_lda_C, 
+                     C+sr_C->el_size*ib*ctr_sub_lda_C, 
                      ctr_sub_lda_C*edge_len, this->beta);
         if (ctr_sub_lda_C == 0)
           rec_ctr->beta = sr_C->mulid();

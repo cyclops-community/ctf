@@ -5,6 +5,45 @@
 #define __CTR_2D_GENERAL_H__
 
 namespace CTF_int{
+  class tensor;
+  int  ctr_2d_gen_build(int                        is_used,
+                        CommData                   global_comm,
+                        int                        i,
+                        int *                      virt_dim,
+                        int &                      cg_edge_len,
+                        int &                      total_iter,
+                        tensor *                   A,
+                        int                        i_A,
+                        CommData *&                cg_cdt_A,
+                        int64_t &                  cg_ctr_lda_A,
+                        int64_t &                  cg_ctr_sub_lda_A,
+                        bool &                     cg_move_A,
+                        int *                      blk_len_A,
+                        int64_t &                  blk_sz_A,
+                        int const *                virt_blk_len_A,
+                        int &                      load_phase_A,
+                        tensor *                   B,
+                        int                        i_B,
+                        CommData *&                cg_cdt_B,
+                        int64_t &                  cg_ctr_lda_B,
+                        int64_t &                  cg_ctr_sub_lda_B,
+                        bool &                     cg_move_B,
+                        int *                      blk_len_B,
+                        int64_t &                  blk_sz_B,
+                        int const *                virt_blk_len_B,
+                        int &                      load_phase_B,
+                        tensor *                   C,
+                        int                        i_C,
+                        CommData *&                cg_cdt_C,
+                        int64_t &                  cg_ctr_lda_C,
+                        int64_t &                  cg_ctr_sub_lda_C,
+                        bool &                     cg_move_C,
+                        int *                      blk_len_C,
+                        int64_t &                  blk_sz_C,
+                        int const *                virt_blk_len_C,
+                        int &                      load_phase_C);
+
+
   class ctr_2d_general : public ctr {
     public: 
       int edge_len;
@@ -41,7 +80,7 @@ namespace CTF_int{
        *  each processor. Performs rank-b updates 
        *  where b is the smallest blocking factor among A and B or A and C or B and C. 
        */
-      void run();
+      void run(char * A, char * B, char * C);
       /**
        * \brief returns the number of bytes of buffer space
        *  we need 
@@ -91,7 +130,11 @@ namespace CTF_int{
        * \brief deallocs ctr_2d_general object
        */
       ~ctr_2d_general();
-      ctr_2d_general(){ move_A=0; move_B=0; move_C=0; }
+      /**
+       * \brief partial constructor, most of the logic is in the ctr_2d_gen_build function
+       * \param[in] contraction object to get info about ctr from
+       */
+      ctr_2d_general(contraction * c) : ctr(c){ move_A=0; move_B=0; move_C=0; }
   };
 }
 #endif

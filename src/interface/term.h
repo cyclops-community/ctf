@@ -111,8 +111,11 @@ namespace CTF_int {
        * \param[in] A subtracted term
        */
       Sum_Term operator-(Term const & A) const;
+      
       Sum_Term operator-(double scl) const;
       Sum_Term operator-(int64_t scl) const;
+      
+      Term & operator-();
       
       /**
        * \brief A = B, compute any operations on operand B and set
@@ -133,6 +136,11 @@ namespace CTF_int {
       void operator+=(int64_t scl);
       void operator-=(int64_t scl);
       void operator*=(int64_t scl);
+
+      void operator=(int scl);
+      void operator+=(int scl);
+      void operator-=(int scl);
+      void operator*=(int scl);
       /**
        * \brief figures out what world this term lives on
        */
@@ -169,7 +177,7 @@ namespace CTF_int {
     
       // copy constructor
       Sum_Term(Sum_Term const & other,
-          std::map<tensor*, tensor*>* remap = NULL);
+               std::map<tensor*, tensor*>* remap = NULL);
 
       // dervied clone calls copy constructor
       Term* clone(std::map<tensor*, tensor*>* remap = NULL) const;
@@ -222,6 +230,12 @@ namespace CTF_int {
        * \param[in] A subtracted term
        */
       Sum_Term operator-(Term const & A) const;
+ 
+      /**
+       * \brief negates term
+       */
+//      Sum_Term operator-() const;
+
 
       /**
        * \brief figures out what world this term lives on
@@ -292,6 +306,11 @@ namespace CTF_int {
        * \param[in] A term to multiply by
        */
       Contract_Term operator*(Term const & A) const;
+ 
+      /**
+       * \brief negates term
+       */
+//      Contract_Term operator-() const;
 
       /**
        * \brief figures out what world this term lives on

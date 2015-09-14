@@ -6,6 +6,7 @@
 
 namespace CTF_int {
   class tensor; 
+  class endomorphism; 
 
   /**
    * \brief class for execution distributed scaling of a tensor
@@ -25,7 +26,7 @@ namespace CTF_int {
       bool is_custom;
 
       /** \brief function to execute on elementwise elements */
-      endomorphism func;
+      endomorphism const * func;
 
       /**
        * \brief constructor definining contraction with C's mul and add ops
@@ -46,15 +47,18 @@ namespace CTF_int {
        * \param[in] A left operand tensor
        * \param[in] idx_map indices of left operand
                       func(&A[idx_map])
+       * \param[in] alpha scaling factor alpha * A[idx_map];
+                      A[idx_map] = alpha * func(A[idx_map])
+       * \param[in] func elementwise function
        */
-      scaling(tensor *     A,
-              int const *  idx_map,
-              endomorphism func,
-              char const * alpha=NULL);
-      scaling(tensor *     A,
-              char const * idx_map,
-              endomorphism func,
-              char const * alpha=NULL);
+      scaling(tensor *             A,
+              int const *          idx_map,
+              char const *         alpha,
+              endomorphism const * func);
+      scaling(tensor *             A,
+              char const *         idx_map,
+              char const *         alpha,
+              endomorphism const * func);
 
       /** \brief destructor */
       ~scaling();
@@ -65,6 +69,10 @@ namespace CTF_int {
       /** \brief predicts execution time in seconds using performance models */
       double estimate_time();
     
+      /**
+       * \brief scales a sparse tensor
+       */
+      void sp_scl();
   };
 
 }

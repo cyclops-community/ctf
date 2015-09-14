@@ -10,11 +10,11 @@ namespace CTF {
   /**
    * \brief a sparse subset of a tensor 
    */
-  template<typename dtype=double, bool is_ord=true>
+  template<typename dtype=double>
   class Sparse_Tensor {
     public:
       /** \brief dense tensor whose subset this sparse tensor is of */
-      Tensor<dtype, is_ord> * parent;
+      Tensor<dtype> * parent;
       /** \brief indices of the sparse elements of this tensor */
       std::vector<int64_t > indices;
       /** \brief scaling factor by which to scale the tensor elements */
@@ -31,7 +31,7 @@ namespace CTF {
        * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
        */
       Sparse_Tensor(std::vector<int64_t >   indices,
-                    Tensor<dtype, is_ord> * parent);
+                    Tensor<dtype> * parent);
 
       /**
        * \brief initialize a tensor which corresponds to a set of indices 
@@ -41,7 +41,7 @@ namespace CTF {
        */
       Sparse_Tensor(int64_t                 n,
                     int64_t       *         indices,
-                    Tensor<dtype, is_ord> * parent);
+                    Tensor<dtype> * parent);
 
       /**
        * \brief set the sparse set of indices on the parent tensor to values

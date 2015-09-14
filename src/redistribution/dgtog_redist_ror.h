@@ -552,7 +552,8 @@ void dgtog_reshuffle(int const *          sym,
 
   if (new_idx_lyr == 0){
     char * aux_buf; alloc_ptr(sr->el_size*new_dist.size, (void**)&aux_buf);
-    sr->set(aux_buf, sr->addid(), new_dist.size);
+    if (sr->addid() != NULL)
+      sr->set(aux_buf, sr->addid(), new_dist.size);
 
     char ** buckets = (char**)alloc(sizeof(char**)*nnew_rep);
 
@@ -653,7 +654,8 @@ void dgtog_reshuffle(int const *          sym,
     *ptr_tsr_new_data = aux_buf;
     CTF_int::cdealloc(recv_buffer);
   } else {
-    sr->set(recv_buffer, sr->addid(), new_dist.size);
+    if (sr->addid() != NULL)
+      sr->set(recv_buffer, sr->addid(), new_dist.size);
     *ptr_tsr_new_data = recv_buffer;
   }
   //printf("[%d] reached final barrier %d\n",ord_glb_comm.rank, MTAG);

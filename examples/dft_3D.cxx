@@ -27,11 +27,11 @@ int test_dft_3D(int     n,
   MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-  CTF::Ring< std::complex<long double>, false > ldr;
+  CTF::Ring< std::complex<long double> > ldr;
 
-  Matrix < std::complex<long double>, false >DFT(n, n, SY, wrld, ldr);
-  Matrix < std::complex<long double>, false >IDFT(n, n, SY, wrld, ldr);
-  Tensor < std::complex<long double>, false >MESH(3, len, sym, wrld, ldr);
+  Matrix < std::complex<long double> >DFT(n, n, SY, wrld, ldr);
+  Matrix < std::complex<long double> >IDFT(n, n, SY, wrld, ldr);
+  Tensor < std::complex<long double> >MESH(3, len, sym, wrld, ldr);
 
   DFT.read_local(&np, &idx, &data);
 

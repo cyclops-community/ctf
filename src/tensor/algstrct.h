@@ -4,6 +4,8 @@
 #include "../interface/common.h"
 
 namespace CTF_int {
+  class bivar_function;
+
   /**
    * \brief algstrct (algebraic structure) defines the elementwise operations computed 
    *         in each tensor contraction, virtual classes defined in derived typed classes or algstrctcpy
@@ -12,6 +14,10 @@ namespace CTF_int {
     public: 
       /** \brief size of each element of algstrct in bytes */
       int el_size;
+      /** \brief whether there is an MKL CSRMM routine for this algebraic structure */
+      bool has_csrmm;
+      /** \brief datatype for pairs, always custom create3d */
+//      MPI_Datatype pmdtype;
 
       /** \brief b = \max(a,addinv(a)) */
       void (*abs)(char const * a, 
@@ -24,7 +30,7 @@ namespace CTF_int {
       /**
        * \brief default constructor
        */
-      algstrct(){};
+      algstrct(){ has_csrmm = false; }
 
       /**
        * \brief copy constructor
@@ -41,7 +47,7 @@ namespace CTF_int {
       /**
        * \brief destructor
        */
-      virtual ~algstrct()=0;
+      virtual ~algstrct() = 0;
 
       /**
        * \brief ''copy constructor''
@@ -49,11 +55,16 @@ namespace CTF_int {
       virtual algstrct * clone() const = 0;
 //        return new algstrct(el_size);
 
+      virtual bool is_ordered() const = 0;
+
       /** \brief MPI addition operation for reductions */
       virtual MPI_Op addmop() const;
 
-      /** \brief MPI datatype (only used in reductions) */
+      /** \brief MPI datatype */
       virtual MPI_Datatype mdtype() const;
+      
+      /** \brief MPI datatype for pairs */
+//      MPI_Datatype pair_mdtype();
 
       /** \brief identity element for addition i.e. 0 */
       virtual char const * addid() const;
@@ -63,6 +74,9 @@ namespace CTF_int {
 
       /** \brief b = -a */
       virtual void addinv(char const * a, char * b) const;
+      
+      /** \brief b = -a, with checks for NULL and alloc as necessary */
+      virtual void safeaddinv(char const * a, char *& b) const;
 
       /** \brief c = a+b */
       virtual void add(char const * a, 
@@ -73,6 +87,11 @@ namespace CTF_int {
       virtual void mul(char const * a, 
                        char const * b,
                        char *       c) const;
+
+      /** \brief c = a*b, with NULL treated as mulid */
+      virtual void safemul(char const * a, 
+                           char const * b,
+                           char *&      c) const;
 
       /** \brief c = min(a,b) */
       virtual void min(char const * a, 
@@ -131,14 +150,51 @@ namespace CTF_int {
                         char const * beta,
                         char *       C)  const;
 
+      /** \brief sparse version of gemm using coordinate format for A */
+      virtual void coomm(int                    m,
+                         int                    n,
+                         int                    k,
+                         char const *           alpha,
+                         char const *           A,
+                         int const *            rows_A,
+                         int const *            cols_A,
+                         int64_t                nnz_A,
+                         char const *           B,
+                         char const *           beta,
+                         char *                 C,
+                         bivar_function const * func) const;
+
+      /** \brief sparse version of gemm using CSR format for A */
+      virtual void csrmm(int                    m,
+                         int                    n,
+                         int                    k,
+                         char const *           alpha,
+                         char const *           A,
+                         int const *            rows_A,
+                         int const *            cols_A,
+                         int64_t                nnz_A,
+                         char const *           B,
+                         char const *           beta,
+                         char *                 C,
+                         bivar_function const * func) const;
+
       /** \brief returns true if algstrct elements a and b are equal */
       virtual bool isequal(char const * a, char const * b) const;
+
+      /** \brief converts coordinate sparse matrix layout to CSR layout */
+      virtual void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const;
     
       /** \brief compute b=beta*b + alpha*a */
       void acc(char * b, char const * beta, char const * a, char const * alpha) const;
       
+      /** \brief compute c=c + alpha*a*b */
+      void accmul(char * c, char const * a, char const * b, char const * alpha) const;
+      
       /** \brief copies element b to element a */
       void copy(char * a, char const * b) const;
+      
+      /** \brief copies element b to element a, , with checks for NULL and alloc as necessary */
+      void safecopy(char *& a, char const * b) const;
       
       /** \brief copies n elements from array b to array a */
       void copy(char * a, char const * b, int64_t n) const;
@@ -163,7 +219,7 @@ namespace CTF_int {
                 char *       b,
                 int64_t      lda_b,
                 char const * beta) const;
-      
+
       /** \brief copies pair b to element a */
       void copy_pair(char * a, char const * b) const;
       
@@ -184,6 +240,8 @@ namespace CTF_int {
       
       /** \brief gets pair to value from pair */
       char const * get_value(char const * a) const;
+
+
   };
 
   class PairIterator;
@@ -220,8 +278,27 @@ namespace CTF_int {
        * \param[in,out] buf pair to set
        */
       void read_val(char * buf) const;
-  };
 
+      
+      /**
+       * \brief permutes keys of n pairs
+       */
+      void permute(int64_t n, int order, int const * old_lens, int64_t const * new_lda, PairIterator wA);
+      
+      /**
+       * \brief pins keys of n pairs
+       */
+      void pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new);
+      
+
+  };
+  //http://stackoverflow.com/questions/630950/pure-virtual-destructor-in-c
+  inline algstrct::~algstrct(){}
+
+  /**
+   * \brief depins keys of n pairs
+   */
+  void depin(algstrct const * sr, int order, int const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding);
 
   class PairIterator {
     public:
@@ -238,7 +315,7 @@ namespace CTF_int {
       int64_t k() const;
     
       /** \brief returns value of pair at head of ptr */
-      char const * d() const;
+      char * d() const;
     
       /** 
        * \brief sets external data to what this operator points to
@@ -297,8 +374,6 @@ namespace CTF_int {
       int64_t lower_bound(int64_t n, ConstPairIterator op);
   };
 
-  //http://stackoverflow.com/questions/630950/pure-virtual-destructor-in-c
-  inline algstrct::~algstrct(){}
 
   void sgemm(char           tA,
              char           tB,

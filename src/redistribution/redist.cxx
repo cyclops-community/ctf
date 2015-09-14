@@ -47,9 +47,9 @@ namespace CTF_int {
       pairs = NULL;
     }
 
-  #if DEBUG >= 1
+  /*#if DEBUG >= 1
     int64_t old_size = sy_packed_size(old_dist.order, new_dist.pad_edge_len, sym);
-  #endif
+  #endif*/
 
     for (int i=0; i<old_dist.order; i++){
       sub_edge_len[i] = new_dist.pad_edge_len[i] / new_dist.phase[i];
@@ -69,6 +69,8 @@ namespace CTF_int {
     sr->set(tsr_new_data, sr->addid(), swp_nval);
 
 
+    int64_t ignrd;
+    char * aignrd;
     wr_pairs_layout(old_dist.order,
                     numPes,
                     new_nval,
@@ -87,7 +89,12 @@ namespace CTF_int {
                     pairs,
                     tsr_new_data,
                     ord_glb_comm,
-                    sr);
+                    sr,
+                    false,
+                    0,
+                    NULL,
+                    aignrd,
+                    ignrd);
                   
     *tsr_cyclic_data = tsr_new_data;
 

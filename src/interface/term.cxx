@@ -39,9 +39,9 @@ namespace CTF_int {
       }
     }
 
-    idx_C = (char*)malloc(sizeof(char)*order_C);
-    sym_C = (int*)malloc(sizeof(int)*order_C);
-    len_C = (int*)malloc(sizeof(int)*order_C);
+    idx_C = (char*)alloc(sizeof(char)*order_C);
+    sym_C = (int*)alloc(sizeof(int)*order_C);
+    len_C = (int*)alloc(sizeof(int)*order_C);
     idx = 0;
     for (i=0; i<A.parent->order; i++){
       for (j=0; j<i && A.idx_map[i] != A.idx_map[j]; j++){}
@@ -121,13 +121,16 @@ namespace CTF_int {
 
   Term::Term(algstrct const * sr_){
     sr = sr_->clone();
-    scale = (char*)malloc(sr->el_size);
-    sr->copy(scale,sr->mulid());
+    scale = NULL; // (char*)alloc(sr->el_size);
+    sr->safecopy(scale,sr->mulid());
   }
   
   Term::~Term(){
     delete sr;
-    free(scale);
+    if (scale != NULL){
+      free(scale);
+      scale = NULL;
+    }
   }
 
   Contract_Term Term::operator*(Term const & A) const {
@@ -144,7 +147,10 @@ namespace CTF_int {
 
   Sum_Term Term::operator-(Term const & A) const {
     Sum_Term trm(this->clone(),A.clone());
-    sr->addinv(A.scale, trm.operands[1]->scale);
+
+    if (trm.operands[1]->scale == NULL)
+      trm.operands[1]->scale = (char*)alloc(sr->el_size);
+    sr->safeaddinv(A.scale, trm.operands[1]->scale);
     return trm;
   }
 
@@ -163,6 +169,23 @@ namespace CTF_int {
   void Term::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }
   void Term::operator-=(int64_t scl){ execute() -= Idx_Tensor(sr,scl); }
   void Term::operator*=(int64_t scl){ execute() *= Idx_Tensor(sr,scl); }
+  void Term::operator=(int scl){ execute() = Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator+=(int scl){ execute() += Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator-=(int scl){ execute() -= Idx_Tensor(sr,(int64_t)scl); }
+  void Term::operator*=(int scl){ execute() *= Idx_Tensor(sr,(int64_t)scl); }
+
+
+
+  Term & Term::operator-(){
+    sr->safeaddinv(scale,scale);
+    return *this;
+  }
+/*
+  Contract_Term Contract_Term::operator-() const {
+    Contract_Term trm(*this);
+    sr->safeaddinv(trm.scale,trm.scale);
+    return trm;
+  }*/
 
   Contract_Term Term::operator*(int64_t scl) const {
     Idx_Tensor iscl(sr, scl);
@@ -222,7 +245,7 @@ namespace CTF_int {
   Sum_Term::Sum_Term(
       Sum_Term const & other,
       std::map<tensor*, tensor*>* remap) : Term(other.sr) {
-    sr->copy(this->scale, other.scale);
+    sr->safecopy(this->scale, other.scale);
     for (int i=0; i<(int)other.operands.size(); i++){
       this->operands.push_back(other.operands[i]->clone(remap));
     }
@@ -239,12 +262,17 @@ namespace CTF_int {
     st.operands.push_back(A.clone());
     return st;
   }
-
+/*
+  Sum_Term Sum_Term::operator-() const {
+    Sum_Term trm(*this);
+    sr->safeaddinv(trm.scale,trm.scale);
+    return trm;
+  }*/
 
   Sum_Term Sum_Term::operator-(Term const & A) const {
     Sum_Term st(*this);
     st.operands.push_back(A.clone());
-    sr->addinv(A.scale, st.operands.back()->scale);
+    sr->safeaddinv(A.scale, st.operands.back()->scale);
     return st;
   }
 
@@ -318,7 +346,7 @@ namespace CTF_int {
       delete pop_A;
       delete pop_B;
     }
-    sr->mul(tmp_ops[0]->scale, this->scale, tmp_ops[0]->scale); 
+    sr->safemul(tmp_ops[0]->scale, this->scale, tmp_ops[0]->scale); 
     Idx_Tensor ans = tmp_ops[0]->execute();
     delete tmp_ops[0];
     tmp_ops.clear();
@@ -330,7 +358,7 @@ namespace CTF_int {
     std::vector< Term* > tmp_ops = operands;
     for (int i=0; i<((int)tmp_ops.size())-1; i++){
       tmp_ops[i]->execute(output);
-      sr->copy(output.scale, sr->mulid());
+      sr->safecopy(output.scale, sr->mulid());
     }
     Idx_Tensor itsr = tmp_ops.back()->execute();
     summation s(itsr.parent, itsr.idx_map, itsr.scale, output.parent, output.idx_map, output.scale);
@@ -386,7 +414,7 @@ namespace CTF_int {
   Contract_Term::Contract_Term(
       Contract_Term const & other,
       std::map<tensor*, tensor*>* remap) : Term(other.sr) {
-    sr->copy(this->scale, other.scale);
+    sr->safecopy(this->scale, other.scale);
     for (int i=0; i<(int)other.operands.size(); i++){
       Term * t = other.operands[i]->clone(remap);
       operands.push_back(t);
@@ -411,8 +439,8 @@ namespace CTF_int {
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
     }
-    char tscale[sr->el_size];
-    sr->copy(tscale, this->scale);
+    char * tscale = NULL;
+    sr->safecopy(tscale, this->scale);
     while (tmp_ops.size() > 2){
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
@@ -421,20 +449,20 @@ namespace CTF_int {
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
       if (op_A.parent == NULL) {
-        sr->mul(op_A.scale, op_B.scale, op_B.scale);
+        sr->safemul(op_A.scale, op_B.scale, op_B.scale);
         tmp_ops.push_back(op_B.clone());
       } else if (op_B.parent == NULL) {
-        sr->mul(op_A.scale, op_B.scale, op_A.scale);
+        sr->safemul(op_A.scale, op_B.scale, op_A.scale);
         tmp_ops.push_back(op_A.clone());
       } else {
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        sr->mul(tscale, op_A.scale, tscale);
-        sr->mul(tscale, op_B.scale, tscale);
+        sr->safemul(tscale, op_A.scale, tscale);
+        sr->safemul(tscale, op_B.scale, tscale);
         contraction c(op_A.parent, op_A.idx_map,
                       op_B.parent, op_B.idx_map, tscale,
                       intm->parent, intm->idx_map, intm->scale);
         c.execute(); 
-        sr->copy(tscale, sr->mulid());
+        sr->safecopy(tscale, sr->mulid());
         tmp_ops.push_back(intm);
       }
       delete pop_A;
@@ -442,16 +470,17 @@ namespace CTF_int {
     } 
     {
       assert(tmp_ops.size() == 2);
-      Term * pop_A = tmp_ops.back();
-      tmp_ops.pop_back();
       Term * pop_B = tmp_ops.back();
+      tmp_ops.pop_back();
+      Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
-      char tscale[sr->el_size];
-      sr->copy(tscale, this->scale);
-      sr->mul(tscale, op_A.scale, tscale);
-      sr->mul(tscale, op_B.scale, tscale);
+      if (tscale != NULL) free(tscale);
+      tscale = NULL;
+      sr->safecopy(tscale, this->scale);
+      sr->safemul(tscale, op_A.scale, tscale);
+      sr->safemul(tscale, op_B.scale, tscale);
 
       if (op_A.parent == NULL && op_B.parent == NULL){
         assert(0); //FIXME write scalar to whole tensor
@@ -469,6 +498,8 @@ namespace CTF_int {
                       output.parent, output.idx_map, output.scale);
         c.execute();
       }
+      if (tscale != NULL) free(tscale);
+      tscale = NULL;
       delete pop_A;
       delete pop_B;
     } 
@@ -480,8 +511,8 @@ namespace CTF_int {
     for (int i=0; i<(int)operands.size(); i++){
       tmp_ops.push_back(operands[i]->clone());
     }
-    char tscale[sr->el_size];
-    sr->copy(tscale, this->scale);
+    char * tscale = NULL;
+    sr->safecopy(tscale, this->scale);
     while (tmp_ops.size() > 1){
       Term * pop_A = tmp_ops.back();
       tmp_ops.pop_back();
@@ -490,24 +521,28 @@ namespace CTF_int {
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
       if (op_A.parent == NULL) {
-        sr->mul(op_B.scale, op_A.scale, op_B.scale);
+        sr->safemul(op_B.scale, op_A.scale, op_B.scale);
         tmp_ops.push_back(op_B.clone());
       } else if (op_B.parent == NULL) {
-        sr->mul(op_B.scale, op_A.scale, op_A.scale);
+        sr->safemul(op_B.scale, op_A.scale, op_A.scale);
         tmp_ops.push_back(op_A.clone());
       } else {
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
-        sr->mul(tscale, op_A.scale, tscale);
-        sr->mul(tscale, op_B.scale, tscale);
+        sr->safemul(tscale, op_A.scale, tscale);
+        sr->safemul(tscale, op_B.scale, tscale);
         contraction c(op_A.parent, op_A.idx_map,
                       op_B.parent, op_B.idx_map, tscale,
                       intm->parent, intm->idx_map, intm->scale);
         c.execute(); 
-        sr->copy(tscale, sr->mulid());
+        sr->safecopy(tscale, sr->mulid());
         tmp_ops.push_back(intm);
       }
       delete pop_A;
       delete pop_B;
+      if (tscale != NULL){
+        free(tscale);
+        tscale = NULL;
+      }
     } 
     Idx_Tensor rtsr = tmp_ops[0]->execute();
     delete tmp_ops[0];

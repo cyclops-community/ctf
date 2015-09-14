@@ -12,7 +12,7 @@ namespace CTF {
    */
 
 
-    /**
+  /**
    * \brief an instance of the CTF library (world) on a MPI communicator
    */
   class World {
@@ -41,6 +41,12 @@ namespace CTF {
        * \param[in] argv main arguments 
        */
       World(int argc, char * const * argv);
+    
+      /**
+       * \brief copy constructor, reallocates copies of all topologies
+       * \param[in] other world to copy
+       */
+//      World(World const & other);
 
       /**
        * \brief creates CTF library on comm that can output profile data 
@@ -68,10 +74,23 @@ namespace CTF {
             char * const * argv = NULL);
 
       /**
+       * \brief substitute for default constructor that does not initialize the world
+       * \param[in] ptrnull should be set to ""
+       */
+      World(char const * emptystring);
+
+
+      /**
        * \brief frees CTF library
        */
       ~World();
+
+
+      bool operator==(World const & other){ return comm==other.comm; }
     private:
+      /* whether this world is a copy of the universe object */
+      bool is_copy;
+
       /**
        * \brief initializes world stack and parameters, args only needed for profiler output
        * \param[in] argc number of arguments to application
@@ -91,8 +110,6 @@ namespace CTF {
        * \param[in] argv arguments passed to main
        */
       int init(MPI_Comm             global_context,
-               int                  rank,
-               int                  np,
                CTF_int::TOPOLOGY    mach = CTF_int::TOPOLOGY_GENERIC,
                int                  argc = 0,
                const char * const * argv = NULL);
@@ -111,18 +128,13 @@ namespace CTF {
        * \param[in] argv arguments passed to main
        */
       int init(MPI_Comm       global_context,
-               int            rank,
-               int            np,
                int            order,
                int const *    dim_len,
                int            argc = 0,
                const char * const * argv = NULL);
-
-
-
-
   };
 
+  World & get_universe();
   /**
    * @}
    */

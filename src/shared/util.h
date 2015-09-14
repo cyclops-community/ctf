@@ -93,10 +93,11 @@ namespace CTF_int {
   #define HOME_CONTRACT
   #define USE_BLOCK_RESHUFFLE
 
-  #define MAX_ORD 8
+  #define MAX_ORD 12
   #define LOOP_MAX_ORD(F,...) \
     F(0,__VA_ARGS__) F(1,__VA_ARGS__) F(2,__VA_ARGS__) F(3,__VA_ARGS__) \
-    F(4,__VA_ARGS__) F(5,__VA_ARGS__) F(6,__VA_ARGS__) F(7,__VA_ARGS__) 
+    F(4,__VA_ARGS__) F(5,__VA_ARGS__) F(6,__VA_ARGS__) F(7,__VA_ARGS__) \
+    F(8,__VA_ARGS__) F(9,__VA_ARGS__) F(10,__VA_ARGS__) F(11,__VA_ARGS__) 
 
   #define ORD_CASE(ord,F,...) \
     case ord: \
@@ -112,7 +113,7 @@ namespace CTF_int {
     switch (act_ord){ \
       LOOP_MAX_ORD(ORD_CASE,F,__VA_ARGS__) \
       default: \
-        assert(0); \
+        ASSERT(0); \
         break; \
     }
 
@@ -120,7 +121,7 @@ namespace CTF_int {
     switch (act_ord){ \
       LOOP_MAX_ORD(ORD_CASE_RET,R,F,__VA_ARGS__) \
       default: \
-        assert(0); \
+        ASSERT(0); \
         break; \
     }
 
@@ -458,6 +459,25 @@ namespace CTF_int {
                       int const * perm,
                       int *       arr);
 
+
+  void socopy(int64_t         m,
+              int64_t         n,
+              int64_t         lda_a,
+              int64_t         lda_b,
+              int64_t const * sizes_a,
+              int64_t *&      sizes_b,
+              int64_t *&      offsets_b);
+
+  void spcopy(int64_t         m,
+              int64_t         n,
+              int64_t         lda_a,
+              int64_t         lda_b,
+              int64_t const * sizes_a,
+              int64_t const * offsets_a,
+              char const *    a,
+              int64_t const * sizes_b,
+              int64_t const * offsets_b,
+              char *          b);
 
 
 }

@@ -10,48 +10,83 @@ namespace CTF {
   /**
    * \brief Matrix class which encapsulates a 2D tensor 
    * \param[in] dtype specifies tensor element type
-   * \param[in] is_ord specifies whether these can be ordered (i.e. operator '<' must be defined)
    */
-  template<typename dtype=double, bool is_ord=true> 
-  class Matrix : public Tensor<dtype, is_ord> {
+  template<typename dtype=double> 
+  class Matrix : public Tensor<dtype> {
     public:
       int nrow, ncol, sym;
       /**
        * \brief constructor for a matrix
-       * \param[in] nrow_ number of matrix rows
-       * \param[in] ncol_ number of matrix columns
-       * \param[in] sym_ symmetry of matrix
-       * \param[in] world_ CTF world where the tensor will live
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] nrow number of matrix rows
+       * \param[in] ncol number of matrix columns
+       * \param[in] wrld CTF world where the tensor will live
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
        */ 
       Matrix(int                       nrow,
              int                       ncol,
-             int                       sym,
-             World &                   wrld,
-             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
+             World &                   wrld=get_universe(),
+             CTF_int::algstrct const & sr=Ring<dtype>(),
+             char const *              name=NULL,
+             int                       profile=0);
 
       /**
        * \brief constructor for a matrix
-       * \param[in] nrow_ number of matrix rows
-       * \param[in] ncol_ number of matrix columns
-       * \param[in] sym_ symmetry of matrix
-       * \param[in] world_ CTF world where the tensor will live
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       * \param[in] nrow number of matrix rows
+       * \param[in] ncol number of matrix columns
+       * \param[in] world CTF world where the tensor will live
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
       Matrix(int                       nrow,
              int                       ncol,
-             int                       sym,
              World &                   wrld,
              char const *              name,
              int                       profile=0,
-             CTF_int::algstrct const & sr=Ring<dtype,is_ord>());
+             CTF_int::algstrct const & sr=Ring<dtype>());
 
 
-      Matrix<dtype,is_ord> & operator=(const Matrix<dtype,is_ord> & A);
+
+      /**
+       * \brief constructor for a matrix
+       * \param[in] nrow number of matrix rows
+       * \param[in] ncol number of matrix columns
+       * \param[in] qtf quantifier for qtfmetry or sparsity of matrix
+       * \param[in] wrld CTF world where the tensor will live
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       */ 
+      Matrix(int                       nrow,
+             int                       ncol,
+             int                       qtf=0,
+             World &                   wrld=get_universe(),
+             CTF_int::algstrct const & sr=Ring<dtype>(),
+             char const *              name=NULL,
+             int                       profile=0);
+
+      /**
+       * \brief constructor for a matrix
+       * \param[in] nrow number of matrix rows
+       * \param[in] ncol number of matrix columns
+       * \param[in] qtf qtfmetry of matrix
+       * \param[in] world CTF world where the tensor will live
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       */ 
+      Matrix(int                       nrow,
+             int                       ncol,
+             int                       qtf,
+             World &                   wrld,
+             char const *              name,
+             int                       profile=0,
+             CTF_int::algstrct const & sr=Ring<dtype>());
+
+
+      Matrix<dtype> & operator=(const Matrix<dtype> & A);
   };
   /**
    * @}

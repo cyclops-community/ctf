@@ -316,7 +316,7 @@ elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     LDFGLAGS="-lpthread"
     realcompiler
     defaultflags
-    DEFS="$DEFS -D`echo $NERSC_HOST | tr a-z A-Z`"
+    DEFS="$DEFS -DUSE_SP_MKL=1 -D`echo $NERSC_HOST | tr a-z A-Z`"
     
     
 elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
@@ -480,6 +480,7 @@ else
         UNDERSCORE=1
         echo 'BLAS library was not specified, using -mkl.'
         BLASLIBS=-mkl
+        DEFS="$DEFS -DUSE_SP_MKL=1"
       elif testlink -lblas dgemm_ 0; then
         UNDERSCORE=1
         echo 'BLAS library was not specified, using -lblas (with underscores).'

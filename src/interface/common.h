@@ -16,6 +16,10 @@
 
 #include "mpi.h"
 
+#ifndef USE_SP_MKL
+#define USE_SP_MKL 0
+#endif
+
 /**
  * labels corresponding to symmetry of each tensor dimension
  * NS = 0 - nonsymmetric
@@ -23,7 +27,17 @@
  * AS = 2 - antisymmetric
  * SH = 3 - symmetric hollow
  */
-enum SYM : int { NS, SY, AS, SH };
+//enum SYM : int { NS, SY, AS, SH };
+/**
+ * labels corresponding to symmetry or strucutre of entire tensor 
+ * NS = 0 - nonsymmetric
+ * SY = 1 - symmetric
+ * AS = 2 - antisymmetric
+ * SH = 3 - symmetric hollow
+ * SP = 4 - sparse
+ */
+enum STRUCTURE : int { NS, SY, AS, SH, SP };
+typedef STRUCTURE SYM;
 
 namespace CTF {
   /**
@@ -85,7 +99,7 @@ namespace CTF_int {
       int alive;
       int created;
 
-      //CommData();
+      CommData();
       ~CommData();
 
       /** \brief copy constructor sets created to zero */
@@ -177,5 +191,17 @@ namespace CTF_int {
                 int const * lens,
                 int const * idx_arr,
                 int64_t *   idx);
+
+  /**
+   * \brief gives a datatype for arbitrary datum_size, errors if exceeding 32-bits
+   *
+   * \param[in] count number of elements we want to communicate
+   * \param[in] datum_size element size
+   * \param[in] dt new datatype to pass to MPI routine
+   * \return whether the datatype is custom and needs to be freed
+   */
+  bool get_mpi_dt(int64_t count, int64_t datum_size, MPI_Datatype & dt);
+
+
 }
 #endif
