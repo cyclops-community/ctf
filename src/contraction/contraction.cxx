@@ -2155,9 +2155,9 @@ namespace CTF_int {
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
-        if (A->is_sparse) nnz_frac_A = std::min(1.0, (log2(A->calc_npe())*A->nnz_tot)/(A->size*A->calc_npe()));
-        if (B->is_sparse) nnz_frac_B = std::min(1.0, (log2(B->calc_npe())*B->nnz_tot)/(B->size*B->calc_npe()));
-        if (C->is_sparse) nnz_frac_C = std::min(1.0, (log2(C->calc_npe())*C->nnz_tot)/(C->size*C->calc_npe()));
+        if (A->is_sparse) nnz_frac_A = std::min(1.0, (std::max(5.,log2(A->calc_npe()))*A->nnz_tot)/(A->size*A->calc_npe()));
+        if (B->is_sparse) nnz_frac_B = std::min(1.0, (std::max(5.,log2(B->calc_npe()))*B->nnz_tot)/(B->size*B->calc_npe()));
+        if (C->is_sparse) nnz_frac_C = std::min(1.0, (std::max(5.,log2(C->calc_npe()))*C->nnz_tot)/(C->size*C->calc_npe()));
         if (is_ctr_sparse){
           est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
         } else { 
