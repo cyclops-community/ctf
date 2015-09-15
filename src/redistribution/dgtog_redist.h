@@ -2,6 +2,13 @@
 #include "dgtog_calc_cnt.h"
 
 namespace CTF_int {
+  /**
+   * \brief estimates execution time, given this processor sends a receives tot_sz across np procs
+   * \param[in] tot_sz amount of data sent/recved
+   * \param[in] np number of procs involved
+   */
+  double dgtog_est_time(int64_t tot_sz, int np);
+
   void dgtog_reshuffle(int const *          sym,
                        int const *          edge_len,
                        distribution const & old_dist,

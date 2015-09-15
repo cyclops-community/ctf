@@ -8,6 +8,18 @@ namespace CTF {
 }
 
 namespace CTF_int {
+  static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
+  static LinModel<3> alltoall_mdl(init_mdl);
+  static LinModel<3> alltoallv_mdl(init_mdl);
+  
+#ifdef BGQ
+  static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, 0.0, COST_NETWBW + 2.0*COST_MEMBW};
+#else
+  static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW + 2.0*COST_MEMBW, 0.0};
+#endif
+  static LinModel<4> allred_mdl(init_lg_mdl);
+  static LinModel<4> bcast_mdl(init_lg_mdl);
+
 
   template <typename type>
   int conv_idx(int          order,
@@ -252,27 +264,45 @@ namespace CTF_int {
   }
      
   double CommData::estimate_bcast_time(int64_t msg_sz){
-#ifdef BGQ
-    return msg_sz*(double)COST_NETWBW+COST_LATENCY;
-#else
-    return msg_sz*(double)log2((double)np)*COST_NETWBW;
-#endif
+    double ps[] = {1.0, log2((double)np), (double)msg_sz, log2((double)np)*msg_sz};
+    return bcast_mdl.est_time(ps);
   }
      
   double CommData::estimate_allred_time(int64_t msg_sz){
-#ifdef BGQ
-    return msg_sz*(double)(2.*COST_MEMBW+COST_NETWBW)+COST_LATENCY;
-#else
-    return msg_sz*(double)log2((double)np)*(2.*COST_MEMBW+COST_FLOP+COST_NETWBW);
-#endif
+    double ps[] = {1.0, log2((double)np), (double)msg_sz, log2((double)np)*msg_sz};
+    return allred_mdl.est_time(ps);
+
   }
   
   double CommData::estimate_alltoall_time(int64_t chunk_sz) {
-    return chunk_sz*np*log2((double)np)*COST_NETWBW+2.*log2((double)np)*COST_LATENCY;
+    double ps[] = {1.0, log2((double)np), log2((double)np)*np*chunk_sz};
+    return alltoall_mdl.est_time(ps);
   }
   
   double CommData::estimate_alltoallv_time(int64_t tot_sz) {
-    return 2.*tot_sz*log2((double)np)*COST_NETWBW+2.*log2((double)np)*COST_LATENCY;
+    double ps[] = {1.0, log2((double)np), log2((double)np)*tot_sz};
+    return alltoallv_mdl.est_time(ps);
+  }
+
+
+  void CommData::bcast(void * buf, int64_t count, MPI_Datatype mdtype, int root){
+    double st_time = MPI_Wtime();
+    MPI_Bcast(buf, count, mdtype, root, cm);
+    double exe_time = MPI_Wtime()-st_time;
+    int tsize;
+    MPI_Type_size(mdtype, &tsize);
+    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize, log2(np)*((double)count)*tsize};
+    bcast_mdl.observe(tps);
+  }
+
+  void CommData::allred(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op){
+    double st_time = MPI_Wtime();
+    MPI_Allreduce(inbuf, outbuf, count, mdtype, op, cm);
+    double exe_time = MPI_Wtime()-st_time;
+    int tsize;
+    MPI_Type_size(mdtype, &tsize);
+    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize, log2(np)*((double)count)*tsize};
+    allred_mdl.observe(tps);
   }
 
   void CommData::all_to_allv(void *          send_buffer,
@@ -282,6 +312,7 @@ namespace CTF_int {
                              void *          recv_buffer,
                              int64_t const * recv_counts,
                              int64_t const * recv_displs){
+    double st_time = MPI_Wtime();
     int num_nnz_trgt = 0;
     int num_nnz_recv = 0;
     for (int p=0; p<np; p++){
@@ -365,6 +396,10 @@ namespace CTF_int {
       CTF_int::cdealloc(i32_recv_counts);
       CTF_int::cdealloc(i32_recv_displs);
     }
+    double exe_time = MPI_Wtime()-st_time;
+    int64_t tot_sz = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
+    double tps[] = {exe_time, 1.0, log2(np), (double)tot_sz};
+    alltoallv_mdl.observe(tps);
   }
 
   void cvrt_idx(int         order,

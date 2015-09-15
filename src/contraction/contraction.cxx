@@ -1956,7 +1956,6 @@ namespace CTF_int {
     int64_t memuse;//, bmemuse;
     double est_time, best_time;
     int btopo;
-    int64_t nvirt;
     //int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
     int * old_phase_A, * old_phase_B, * old_phase_C;
     topology * old_topo_A, * old_topo_B, * old_topo_C;
@@ -1987,10 +1986,10 @@ namespace CTF_int {
     old_topo_A = A->topo;
     old_topo_B = B->topo;
     old_topo_C = C->topo;
-    if (do_remap){
       ASSERT(A->is_mapped);
       ASSERT(B->is_mapped);
       ASSERT(C->is_mapped);
+    if (do_remap){
     #if DEBUG >= 2
       if (global_comm.rank == 0)
         printf("Initial mappings:\n");
@@ -1998,6 +1997,7 @@ namespace CTF_int {
       B->print_map();
       C->print_map();
     #endif
+    }
       A->unfold();
       B->unfold();
       C->unfold();
@@ -2018,11 +2018,11 @@ namespace CTF_int {
                    &old_size_C, &was_cyclic_C, &old_padding_C,
                    &old_edge_len_C, C->topo);*/
     //} else {
-    } else {
+/*    } else {
       dA = NULL;
       dB = NULL;
       dC = NULL;
-    }
+    }*/
     CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&old_phase_A);
     for (j=0; j<A->order; j++){
       old_phase_A[j]   = A->edge_map[j].calc_phase();
@@ -2179,19 +2179,8 @@ namespace CTF_int {
         } else
           need_remap_A = 1;
         if (need_remap_A) {
-          nvirt = (int64_t)A->calc_nvirt();
-          est_time += global_comm.estimate_alltoallv_time(A->sr->el_size*A->size*nnz_frac_A);
-          if (can_block_reshuffle(A->order, old_phase_A, A->edge_map)){
-            memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*nnz_frac_A);
-          } else {
-            if (A->is_sparse)
-              est_time += 25.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
-            else 
-              est_time += 5.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
-            if (nvirt > 1) 
-              est_time += 5.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A;
-            memuse = MAX(memuse,(int64_t)A->sr->el_size*A->size*nnz_frac_A*2.5);
-          }
+          est_time += A->est_redist_time(*dA, nnz_frac_A); 
+          memuse = A->get_redist_mem(*dA, nnz_frac_A);
         } else
           memuse = 0;
         if (topo_i == old_topo_B){
@@ -2202,19 +2191,8 @@ namespace CTF_int {
         } else
           need_remap_B = 1;
         if (need_remap_B) {
-          nvirt = (int64_t)B->calc_nvirt();
-          est_time += global_comm.estimate_alltoallv_time(B->sr->el_size*B->size*nnz_frac_B);
-          if (can_block_reshuffle(B->order, old_phase_B, B->edge_map)){
-            memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*nnz_frac_B);
-          } else {
-            if (B->is_sparse)
-              est_time += 25.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B+global_comm.estimate_alltoall_time(1);
-            else 
-              est_time += 5.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B+global_comm.estimate_alltoall_time(1);
-            if (nvirt > 1) 
-              est_time += 5.*COST_MEMBW*B->sr->el_size*B->size*nnz_frac_B;
-            memuse = MAX(memuse,(int64_t)B->sr->el_size*B->size*nnz_frac_B*2.5);
-          }
+          est_time += B->est_redist_time(*dB, nnz_frac_B); 
+          memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
         }
         if (topo_i == old_topo_C){
           for (d=0; d<C->order; d++){
@@ -2224,17 +2202,8 @@ namespace CTF_int {
         } else
           need_remap_C = 1;
         if (need_remap_C) {
-          nvirt = (int64_t)C->calc_nvirt();
-          est_time += 2.*global_comm.estimate_alltoallv_time(C->sr->el_size*C->size*nnz_frac_C);
-          if (can_block_reshuffle(C->order, old_phase_C, C->edge_map)){
-            memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*nnz_frac_C);
-          } else {
-            if (A->is_sparse)
-              est_time += 50.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
-            else 
-              est_time += 10.*COST_MEMBW*A->sr->el_size*A->size*nnz_frac_A+global_comm.estimate_alltoall_time(1);
-            memuse = MAX(memuse,(int64_t)C->sr->el_size*C->size*nnz_frac_C*2.5);
-          }
+          est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
+          memuse = 2.*std::max(memuse,C->get_redist_mem(*dC, nnz_frac_C));
         }
         if (can_fold()) est_time += est_time_fold();
         memuse = MAX((int64_t)sctr->mem_rec(), memuse);

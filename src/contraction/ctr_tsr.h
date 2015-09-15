@@ -111,6 +111,8 @@ namespace CTF_int {
       void run(char * A, char * B, char * C);
       void print();
       int64_t mem_fp();
+      double est_fp();
+      uint64_t est_membw();
       double est_time_rec(int nlyr);
       double est_time_fp(int nlyr);
       ctr * clone();

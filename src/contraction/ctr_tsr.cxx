@@ -6,6 +6,7 @@
 #include "sym_seq_ctr.h"
 #include "contraction.h"
 #include "../tensor/untyped_tensor.h"
+#include "../shared/model.h"
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -218,6 +219,8 @@ namespace CTF_int {
     TAU_FSTOP(ctr_virt);
   }
 
+
+
   seq_tsr_ctr::seq_tsr_ctr(contraction const * c,
                            bool                is_inner,
                            iparam const *      inner_params,
@@ -377,10 +380,14 @@ namespace CTF_int {
     return new seq_tsr_ctr(this);
   }
 
-
   int64_t seq_tsr_ctr::mem_fp(){ return 0; }
 
-  double seq_tsr_ctr::est_time_fp(int nlyr){ 
+  double seq_tsr_ctr_mig[] = {1e-6, 9.30e-11, 5.61e-10};
+  static LinModel<3> seq_tsr_ctr_mdl_cst(seq_tsr_ctr_mig);
+  static LinModel<3> seq_tsr_ctr_mdl_ref(seq_tsr_ctr_mig);
+  static LinModel<3> seq_tsr_ctr_mdl_inr(seq_tsr_ctr_mig);
+
+  uint64_t seq_tsr_ctr::est_membw(){
     uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
     uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B)*sr_B->el_size;
     uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C)*sr_C->el_size;
@@ -391,7 +398,10 @@ namespace CTF_int {
     ASSERT(size_A > 0);
     ASSERT(size_B > 0);
     ASSERT(size_C > 0);
-
+    return size_A+size_B+size_C;
+  }
+  
+  double seq_tsr_ctr::est_fp(){
     int idx_max, * rev_idx_map; 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
@@ -403,16 +413,27 @@ namespace CTF_int {
       flops *= inner_params.m;
       flops *= inner_params.n;
       flops *= inner_params.k;
-    } else {
-      for (int i=0; i<idx_max; i++){
-        if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
-        else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
-        else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
-      }
+    }
+    for (int i=0; i<idx_max; i++){
+      if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
+      else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
+      else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
     }
     ASSERT(flops >= 0.0);
     CTF_int::cdealloc(rev_idx_map);
-    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
+    return flops;
+  }
+
+  double seq_tsr_ctr::est_time_fp(int nlyr){ 
+    //return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
+    double ps[] = {1.0, (double)est_membw(), est_fp()};
+//    printf("time estimate is %lf\n", seq_tsr_ctr_mdl.est_time(ps));
+    if (is_custom)
+      return seq_tsr_ctr_mdl_cst.est_time(ps);
+    else if (is_inner)          
+      return seq_tsr_ctr_mdl_inr.est_time(ps);
+    else                        
+      return seq_tsr_ctr_mdl_ref.est_time(ps);
   }
 
   double seq_tsr_ctr::est_time_rec(int nlyr){ 
@@ -422,6 +443,7 @@ namespace CTF_int {
   void seq_tsr_ctr::run(char * A, char * B, char * C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
     if (is_custom){
+      double st_time = MPI_Wtime();
       ASSERT(is_inner == 0);
       sym_seq_ctr_cust(this->alpha,
                        A,
@@ -444,7 +466,13 @@ namespace CTF_int {
                        sym_C,
                        idx_map_C,
                        func);
+      double exe_time = MPI_Wtime()-st_time;
+      double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
+      seq_tsr_ctr_mdl_cst.observe(tps);
     } else if (is_inner){
+//      double ps[] = {1.0, (double)est_membw(), est_fp()};
+//      double est_time = seq_tsr_ctr_mdl_inr.est_time(ps);
+      double st_time = MPI_Wtime();
       sym_seq_ctr_inr(this->alpha,
                       A,
                       sr_A,
@@ -466,7 +494,13 @@ namespace CTF_int {
                       sym_C,
                       idx_map_C,
                       &inner_params);
+      double exe_time = MPI_Wtime()-st_time;
+ //     printf("exe_time = %E est_time = %E abs_err = %e rel_err = %lf\n", exe_time,est_time,fabs(exe_time-est_time),fabs(exe_time-est_time)/exe_time);
+      double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
+      seq_tsr_ctr_mdl_inr.observe(tps);
+//      seq_tsr_ctr_mdl_inr.print_param_guess();
     } else {
+      double st_time = MPI_Wtime();
       sym_seq_ctr_ref(this->alpha,
                       A,
                       sr_A,
@@ -487,6 +521,9 @@ namespace CTF_int {
                       edge_len_C,
                       sym_C,
                       idx_map_C);
+      double exe_time = MPI_Wtime()-st_time;
+      double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
+      seq_tsr_ctr_mdl_ref.observe(tps);
     }
   }
 

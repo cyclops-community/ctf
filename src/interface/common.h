@@ -15,6 +15,7 @@
 #include <limits.h>
 
 #include "mpi.h"
+#include "../shared/model.h"
 
 #ifndef USE_SP_MKL
 #define USE_SP_MKL 0
@@ -98,7 +99,7 @@ namespace CTF_int {
       int color;
       int alive;
       int created;
-
+  
       CommData();
       ~CommData();
 
@@ -148,6 +149,16 @@ namespace CTF_int {
      
       /* \brief provide estimate of all_to_all_v execution time */
       double estimate_alltoallv_time(int64_t tot_sz);
+
+      /**
+       * \brief broadcast, same interface as MPI_Bcast, but excluding the comm
+       */
+      void bcast(void * buf, int64_t count, MPI_Datatype mdtype, int root);
+
+      /**
+       * \brief allreduce, same interface as MPI_Allred, but excluding the comm
+       */
+      void allred(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op);
 
       /**
        * \brief performs all-to-all-v with 64-bit integer counts and offset on arbitrary

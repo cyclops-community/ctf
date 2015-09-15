@@ -612,6 +612,10 @@ namespace CTF_int {
                        int const *  new_offsets = NULL,
                        int * const * new_permutation = NULL);
 
+      double est_redist_time(distribution const & old_dist, double nnz_frac);
+  
+      int64_t get_redist_mem(distribution const & old_dist, double nnz_frac);
+
       /**
         * \brief map the remainder of a tensor 
         * \param[in] num_phys_dims number of physical processor grid dimensions

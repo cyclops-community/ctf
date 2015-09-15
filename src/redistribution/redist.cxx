@@ -442,7 +442,13 @@ namespace CTF_int {
     cdealloc(all_virt_counts);
   }
 
+  static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
+  static LinModel<3> blres_mdl(init_mdl);
 
+  double blres_est_time(int64_t tot_sz, int np){
+    double ps[] = {1.0, (double)log2(np), (double)tot_sz*log2(np)};
+    return blres_mdl.est_time(ps);
+  }
 
   void block_reshuffle(distribution const & old_dist,
                        distribution const & new_dist,
@@ -470,6 +476,7 @@ namespace CTF_int {
     }
 
     TAU_FSTART(block_reshuffle);
+    double st_time = MPI_Wtime();
 
     mst_alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
     alloc_ptr(sizeof(int)*order, (void**)&idx);
@@ -569,6 +576,10 @@ namespace CTF_int {
     cdealloc(new_loc_lda);
     cdealloc(phase_lda);
     cdealloc(reqs);
+    
+    double exe_time = MPI_Wtime()-st_time;
+    double tps[] = {exe_time, 1.0, (double)log2(glb_comm.np), (double)std::max(new_dist.size, new_dist.size)*log2(glb_comm.np)*sr->el_size};;
+    blres_mdl.observe(tps);
 
     TAU_FSTOP(block_reshuffle);
 

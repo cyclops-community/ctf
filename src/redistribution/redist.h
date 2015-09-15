@@ -91,6 +91,15 @@ namespace CTF_int {
                        CommData             ord_glb_comm,
                        int                  idx_lyr,
                        int * const *        bucket_offset);
+
+
+  /**
+   * \brief estimates execution time, given this processor sends a receives tot_sz across np procs
+   * \param[in] tot_sz amount of data sent/recved
+   * \param[in] np number of procs involved
+   */
+  double blres_est_time(int64_t tot_sz, int np);
+
   /**
    * \brief Reshuffle elements by block given the global phases stay the same
    * \param[in] old_dist starting data distrubtion

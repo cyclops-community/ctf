@@ -300,8 +300,6 @@ void redist_bucket_isr<0>
   }
 }
 #endif
-
-
  
 void dgtog_reshuffle(int const *          sym,
                      int const *          edge_len,
@@ -328,6 +326,7 @@ void dgtog_reshuffle(int const *          sym,
     return;
   }
   TAU_FSTART(dgtog_reshuffle);
+  double st_time = MPI_Wtime();
 
   int * old_virt_lda, * new_virt_lda;
   alloc_ptr(order*sizeof(int),     (void**)&old_virt_lda);
@@ -707,5 +706,8 @@ void dgtog_reshuffle(int const *          sym,
 #endif
   CTF_int::cdealloc(tsr_data);
 #endif
+  double exe_time = MPI_Wtime()-st_time;
+  double tps[] = {exe_time, 1.0, (double)log2(ord_glb_comm.np), (double)std::max(new_dist.size, new_dist.size)*log2(ord_glb_comm.np)*sr->el_size};;
+  dgtog_res_mdl.observe(tps);
   TAU_FSTOP(dgtog_reshuffle);
 }

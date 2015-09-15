@@ -676,28 +676,28 @@ namespace CTF_int {
     //FIXME: assumes order 0 dummy, what if we run this on actual order 0 tensor?
     if (order != -1) is_sub = 1;
     int tot_sub;
-    MPI_Allreduce(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM, greater_world->comm);
+    greater_world->cdt.allred(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
     //this should in most sane cases ensure that a unique subcomm is involved
     if (order != -1) ASSERT(tot_sub == wrld->np);
     int aorder;
-    MPI_Allreduce(&order, &aorder, 1, MPI_INT, MPI_MAX, greater_world->comm);
+    greater_world->cdt.allred(&order, &aorder, 1, MPI_INT, MPI_MAX);
 
     int sub_root_rank = 0;
     int buf_sz = get_distribution_size(aorder);
     char * buffer;
     if (order >= 0 && wrld->rank == 0){
-      MPI_Allreduce(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
+      greater_world->cdt.allred(&greater_world->rank, &sub_root_rank, 1, MPI_INT, MPI_SUM);
       ASSERT(sub_root_rank == greater_world->rank);
       distribution dstrib = distribution(this);
       int bsz;
       dstrib.serialize(&buffer, &bsz);
       ASSERT(bsz == buf_sz);
-      MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
+      greater_world->cdt.bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank);
     } else {
       buffer = (char*)CTF_int::alloc(buf_sz);
-      MPI_Allreduce(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM, greater_world->comm);
-      MPI_Bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank, greater_world->comm);
+      greater_world->cdt.allred(MPI_IN_PLACE, &sub_root_rank, 1, MPI_INT, MPI_SUM);
+      greater_world->cdt.bcast(buffer, buf_sz, MPI_CHAR, sub_root_rank);
     }
     odst = new distribution(buffer);
     CTF_int::cdealloc(buffer);
@@ -1478,7 +1478,7 @@ namespace CTF_int {
     summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->addid());
     sm.execute();
     sr->copy(result, sc.data);
-    MPI_Bcast(result, sr_other->el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    wrld->cdt.bcast(result, sr_other->el_size, MPI_CHAR, 0);
     return SUCCESS;
   }
 
@@ -1497,7 +1497,7 @@ namespace CTF_int {
     summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->mulid(), &func);
     sm.execute();
     sr->copy(result, sc.data);
-    MPI_Bcast(result, sr->el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    wrld->cdt.bcast(result, sr->el_size, MPI_CHAR, 0);
     return SUCCESS;
   }
 
@@ -1511,7 +1511,7 @@ namespace CTF_int {
     contraction ctr = contraction(this, idx_A, this, idx_A, sr->mulid(), &sc, NULL, sr->addid());
     ctr.execute();
     sr->copy(result, sc.data);
-    MPI_Bcast(result, sr->el_size, MPI_CHAR, 0, wrld->cdt.cm);
+    wrld->cdt.bcast(result, sr->el_size, MPI_CHAR, 0);
     return SUCCESS;
   }
 
@@ -1978,6 +1978,49 @@ namespace CTF_int {
 
   }
 
+
+  double tensor::est_redist_time(distribution const & old_dist, double nnz_frac){
+    int nvirt = (int64_t)calc_nvirt();
+    bool can_blres;
+    if (is_sparse) can_blres = 0;
+    else {
+  #ifdef USE_BLOCK_RESHUFFLE
+      can_blres = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
+  #else
+      can_blres = 0;
+  #endif
+    }
+
+    double est_time = 0.0;
+
+    if (can_blres){
+      est_time += blres_est_time(this->sr->el_size*this->size*nnz_frac, wrld->cdt.np);
+    } else {
+      if (this->is_sparse)
+        est_time += 25.*COST_MEMBW*this->sr->el_size*this->size*nnz_frac+wrld->cdt.estimate_alltoall_time(1);
+      else
+        est_time += dgtog_est_time(this->sr->el_size*this->size*nnz_frac, wrld->cdt.np);
+    }
+
+    return est_time;
+  }
+  
+  int64_t tensor::get_redist_mem(distribution const & old_dist, double nnz_frac){
+    bool can_blres;
+    if (is_sparse) can_blres = 0;
+    else {
+  #ifdef USE_BLOCK_RESHUFFLE
+      can_blres = can_block_reshuffle(this->order, old_dist.phase, this->edge_map);
+  #else
+      can_blres = 0;
+  #endif
+    }
+    if (can_blres)
+      return (int64_t)this->sr->el_size*this->size*nnz_frac;
+    else
+      return (int64_t)this->sr->el_size*this->size*nnz_frac*2.5;
+  }
+
   int tensor::map_tensor_rem(int        num_phys_dims,
                              CommData * phys_comm,
                              int        fill){
@@ -2294,7 +2337,7 @@ namespace CTF_int {
       nnz_blk[i] = nnz_blk_[i];
       nnz_loc += nnz_blk[i];
     }
-    MPI_Allreduce(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM, wrld->comm);
+    wrld->cdt.allred(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM);
   }
 
 }

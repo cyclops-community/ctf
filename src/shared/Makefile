@@ -1,4 +1,4 @@
-LOBJS = util.o memcontrol.o int_timer.o
+LOBJS = util.o memcontrol.o int_timer.o model.o
 OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 
 #%d | r ! grep -ho "\.\..*\.h" *.cxx *.h | sort | uniq

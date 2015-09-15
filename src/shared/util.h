@@ -35,13 +35,7 @@ volatile static int64_t int64_t_max = INT64_MAX;
 #define PMPI CTF_PMPI
 #endif
 
-#include "int_timer.h"
-#include "pmpi.h"
-#include "fompi_wrapper.h"
-
 namespace CTF_int {
-
-
   //latency time per message
   #define COST_LATENCY (1.e-6)
   //memory bandwidth: time per per byte
@@ -52,6 +46,15 @@ namespace CTF_int {
   #define COST_FLOP (2.e-11)
   //flop cost: time per flop
   #define COST_OFFLOADBW (5.e-10)
+}
+
+#include "int_timer.h"
+#include "pmpi.h"
+#include "fompi_wrapper.h"
+
+namespace CTF_int {
+
+
   //max total virtualization factor for mappings
   #define MAX_NVIRT 256
   //min total virtualization factor for mappings 
