@@ -156,7 +156,7 @@ namespace CTF_int {
       void bcast(void * buf, int64_t count, MPI_Datatype mdtype, int root);
 
       /**
-       * \brief allreduce, same interface as MPI_Allred, but excluding the comm
+       * \brief allreduce, same interface as MPI_Allreduce, but excluding the comm
        */
       void allred(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op);
 

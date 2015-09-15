@@ -338,7 +338,7 @@ namespace CTF_int {
           }
         } else
           op_A = buf_A;
-        MPI_Bcast(op_A, s_A, sr_A->mdtype(), owner_A, cdt_A->cm);
+        cdt_A->bcast(op_A, s_A, sr_A->mdtype(), owner_A);
       } else {
         if (ctr_sub_lda_A == 0)
           op_A = A;
@@ -367,7 +367,7 @@ namespace CTF_int {
         } else 
           op_B = buf_B;
 //        printf("c_B = %ld, s_B = %ld, d_B = %ld, b_B = %ld\n", c_B, s_B,db, b_B);
-        MPI_Bcast(op_B, s_B, sr_B->mdtype(), owner_B, cdt_B->cm);
+        cdt_B->bcast(op_B, s_B, sr_B->mdtype(), owner_B);
       } else {
         if (ctr_sub_lda_B == 0)
           op_B = B;
@@ -406,7 +406,7 @@ namespace CTF_int {
       }*/
       if (move_C){
         /* FIXME: Wont work for single precsion */
-        MPI_Allreduce(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), cdt_C->cm);
+        cdt_C->allred(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop());
         owner_C   = ib % cdt_C->np;
         if (rank_C == owner_C){
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,

@@ -252,7 +252,7 @@ namespace CTF_int {
     int brank, i;
     char * buf = this->A;
     for (i=0; i<ncdt_A; i++){
-      MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
+      cdt_A[i]->bcast(this->A, size_A, sr_A->mdtype(), 0);
     }
 
    /* for (i=0; i<ncdt_B; i++){
@@ -277,7 +277,7 @@ namespace CTF_int {
     if (buf != this->A) cdealloc(buf);
 
     for (i=0; i<ncdt_B; i++){
-      MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i]->cm);
+      cdt_B[i]->allred(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop());
     }
 
   }

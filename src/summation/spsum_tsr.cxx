@@ -336,8 +336,8 @@ namespace CTF_int {
       }*/
       size_A = nnz_A;
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(&size_A, 1, MPI_INT64_T, 0, cdt_A[i]->cm);
-        MPI_Bcast(nnz_blk_A, nvirt_A, MPI_INT64_T, 0, cdt_A[i]->cm);
+        cdt_A[i]->bcast(&size_A, 1, MPI_INT64_T, 0);
+        cdt_A[i]->bcast(nnz_blk_A, nvirt_A, MPI_INT64_T, 0);
       }
       MPI_Datatype md;
       bool need_free = get_mpi_dt(size_A, sr_A->pair_size(), md);
@@ -345,12 +345,12 @@ namespace CTF_int {
       if (nnz_A != size_A) 
         buf = (char*)alloc(sr_A->pair_size()*size_A);
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(buf, size_A, md, 0, cdt_A[i]->cm);
+        cdt_A[i]->bcast(buf, size_A, md, 0);
       }
       if (need_free) MPI_Type_free(&md);
     } else {
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(this->A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
+        cdt_A[i]->bcast(this->A, size_A, sr_A->mdtype(), 0);
       }
     }
     if (is_sparse_B){
@@ -358,8 +358,8 @@ namespace CTF_int {
       assert(ncdt_B == 0);
       size_B = nnz_B;
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(&size_B, 1, MPI_INT64_T, 0, cdt_B[i]->cm);
-        MPI_Bcast(nnz_blk_B, nvirt_B, MPI_INT64_T, 0, cdt_A[i]->cm);
+        cdt_B[i]->bcast(&size_B, 1, MPI_INT64_T, 0);
+        cdt_A[i]->bcast(nnz_blk_B, nvirt_B, MPI_INT64_T, 0);
       }
     }
 
@@ -393,7 +393,7 @@ namespace CTF_int {
     if (buf != this->A) cdealloc(buf);
 
     for (i=0; i<ncdt_B; i++){
-      MPI_Allreduce(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop(), cdt_B[i]->cm);
+      cdt_B[i]->allred(MPI_IN_PLACE, this->B, size_B, sr_B->mdtype(), sr_B->addmop());
     }
 
 /*    if (save_nnz_blk_A != NULL){

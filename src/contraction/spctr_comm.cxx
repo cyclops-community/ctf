@@ -194,7 +194,7 @@ namespace CTF_int {
         memcpy(save_size_blk_A,size_blk_A,sizeof(int64_t)*nblk_A);
       }*/
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(new_size_blk_A, nblk_A, MPI_INT64_T, 0, cdt_A[i]->cm);
+        cdt_A[i]->bcast(new_size_blk_A, nblk_A, MPI_INT64_T, 0);
       }
       int64_t new_size_A = 0;
       for (i=0; i<nblk_A; i++){
@@ -203,11 +203,11 @@ namespace CTF_int {
       if (arank != 0)
         buf_A = (char*)alloc(sr_A->pair_size()*new_size_A);
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(buf_A, new_size_A, MPI_CHAR, 0, cdt_A[i]->cm);
+        cdt_A[i]->bcast(buf_A, new_size_A, MPI_CHAR, 0);
       }
     } else {
       for (i=0; i<ncdt_A; i++){
-        MPI_Bcast(A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
+        cdt_A[i]->bcast(A, size_A, sr_A->mdtype(), 0);
       }
     }
     if (is_sparse_B){
@@ -217,7 +217,7 @@ namespace CTF_int {
         memcpy(save_size_blk_B,size_blk_B,sizeof(int64_t)*nblk_B);
       }*/
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(new_size_blk_B, nblk_B, MPI_INT64_T, 0, cdt_B[i]->cm);
+        cdt_B[i]->bcast(new_size_blk_B, nblk_B, MPI_INT64_T, 0);
       }
       int64_t new_size_B = 0;
       for (i=0; i<nblk_B; i++){
@@ -226,11 +226,11 @@ namespace CTF_int {
       if (brank != 0)
         buf_B = (char*)alloc(sr_B->pair_size()*new_size_B);
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(buf_B, new_size_B, MPI_CHAR, 0, cdt_B[i]->cm);
+        cdt_B[i]->bcast(buf_B, new_size_B, MPI_CHAR, 0);
       }
     } else {
       for (i=0; i<ncdt_B; i++){
-        MPI_Bcast(B, size_B, sr_B->mdtype(), 0, cdt_B[i]->cm);
+        cdt_B[i]->bcast(B, size_B, sr_B->mdtype(), 0);
       }
     }
     if (is_sparse_C){
@@ -265,7 +265,7 @@ namespace CTF_int {
     for (i=0; i<ncdt_C; i++){
       ASSERT(!is_sparse_C);
       //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
-      MPI_Allreduce(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->cm);
+      cdt_C[i]->allred(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop());
     }
 
     if (is_sparse_A && buf_A != A) cdealloc(buf_A);

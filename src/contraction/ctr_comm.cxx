@@ -196,12 +196,12 @@ namespace CTF_int {
     for (i=0; i<ncdt_A; i++){
       arank += cdt_A[i]->rank;
 //      POST_BCAST(A, size_A*sr_A->el_size, COMM_CHAR_T, 0, cdt_A[i]-> 0);
-      MPI_Bcast(A, size_A, sr_A->mdtype(), 0, cdt_A[i]->cm);
+      cdt_A[i]->bcast(A, size_A, sr_A->mdtype(), 0);
     }
     for (i=0; i<ncdt_B; i++){
       brank += cdt_B[i]->rank;
 //      POST_BCAST(B, size_B*sr_B->el_size, COMM_CHAR_T, 0, cdt_B[i]-> 0);
-      MPI_Bcast(B, size_B, sr_B->mdtype(), 0, cdt_B[i]->cm);
+      cdt_B[i]->bcast(B, size_B, sr_B->mdtype(), 0);
     }
     for (i=0; i<ncdt_C; i++){
       crank += cdt_C[i]->rank;
@@ -229,7 +229,7 @@ namespace CTF_int {
     }*/
     for (i=0; i<ncdt_C; i++){
       //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
-      MPI_Allreduce(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->cm);
+      cdt_C[i]->allred(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop());
     }
 
     if (arank != 0){

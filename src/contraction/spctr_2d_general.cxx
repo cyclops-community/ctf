@@ -231,7 +231,7 @@ namespace CTF_int {
             op_A = buf_A;
         }
         if (is_sparse_A){
-          MPI_Bcast(new_size_blk_A, new_nblk_A, MPI_INT64_T, owner_A, cdt_A->cm);
+          cdt_A->bcast(new_size_blk_A, new_nblk_A, MPI_INT64_T, owner_A);
           int64_t bc_size_A = 0;
           for (int z=0; z<new_nblk_A; z++) bc_size_A += new_size_blk_A[z];
 
@@ -240,7 +240,7 @@ namespace CTF_int {
             ASSERT(ret==0);
             op_A = buf_A;
           }
-          MPI_Bcast(op_A, bc_size_A, MPI_CHAR, owner_A, cdt_A->cm);
+          cdt_A->bcast(op_A, bc_size_A, MPI_CHAR, owner_A);
           /*int rrank;
           MPI_Comm_rank(MPI_COMM_WORLD, &rrank);
           printf("rrank = %d new_nblk_A = %d rank = %d owner = %d new_nnz_A = %ld old_nnz_A = %ld\n",rrank,new_nblk_A,cdt_A->rank, owner_A, new_nnz_A, nnz_A);
@@ -248,7 +248,7 @@ namespace CTF_int {
             printf("rrank = %d new_nblk_A = %d new_size_blk_A[%d] = %ld\n", rrank, new_nblk_A, rr, new_size_blk_A[rr]);
           }*/
         } else {
-          MPI_Bcast(op_A, s_A, sr_A->mdtype(), owner_A, cdt_A->cm);
+          cdt_A->bcast(op_A, s_A, sr_A->mdtype(), owner_A);
         }
       } else {
         if (ctr_sub_lda_A == 0)
@@ -305,7 +305,7 @@ namespace CTF_int {
         } else 
           op_B = buf_B;
 //        printf("c_B = %ld, s_B = %ld, d_B = %ld, b_B = %ld\n", c_B, s_B,db, b_B);
-        MPI_Bcast(op_B, s_B, sr_B->mdtype(), owner_B, cdt_B->cm);
+        cdt_B->bcast(op_B, s_B, sr_B->mdtype(), owner_B);
       } else {
         if (ctr_sub_lda_B == 0)
           op_B = B;
@@ -356,7 +356,7 @@ namespace CTF_int {
       }*/
       if (move_C){
         /* FIXME: Wont work for single precsion */
-        MPI_Allreduce(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), cdt_C->cm);
+        cdt_C->allred(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop());
         owner_C   = ib % cdt_C->np;
         if (rank_C == owner_C){
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
