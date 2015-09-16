@@ -564,6 +564,12 @@ namespace CTF_int {
        *        unsets is_folded and deletes rec_tsr
        */
       void unfold();
+      
+      /**
+       * \brief removes folding without doing transpose
+       *        unsets is_folded and deletes rec_tsr
+       */
+      void remove_fold();
 
 
       /**

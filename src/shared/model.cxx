@@ -5,6 +5,8 @@
 
 namespace CTF_int {
 
+#define SPLINE_CHUNK_SZ = 8
+
   double cddot(int n,       const double *dX,
                int incX,    const double *dY,
                int incY){
@@ -26,9 +28,9 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  LinModel<nparam>::LinModel(double const * init_guess, int hist_size_, int first_tune_){
+  LinModel<nparam>::LinModel(double const * init_guess, int hist_size_, int tune_interval_){
     hist_size = hist_size_;
-    first_tune = first_tune_;
+    tune_interval = tune_interval_;
     mat_lda = nparam+1;
     time_param_mat = (double*)alloc(mat_lda*hist_size*sizeof(double));
     memcpy(param_guess, init_guess, nparam*sizeof(double));
@@ -38,8 +40,11 @@ namespace CTF_int {
   
   template <int nparam>
   void LinModel<nparam>::observe(double const * tp){
+//    if (fabs(est_time(tp+1)-tp[0])>3.E-3) printf("estimate was %lf, actual executon took %lf\n", est_time(tp+1), tp[0]);
+
     //printf("observed %lf %lf %lf\n", tp[0], tp[1], tp[2]);
-    if (nobs < hist_size){
+    memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
+    /*if (nobs < hist_size){
       memcpy(time_param_mat+nobs*mat_lda, tp, mat_lda*sizeof(double));
     } else {
       std::pop_heap( (time_param<nparam>*)time_param_mat,
@@ -50,13 +55,14 @@ namespace CTF_int {
       std::push_heap( (time_param<nparam>*)time_param_mat,
                      ((time_param<nparam>*)time_param_mat)+hist_size,
                      &comp_time_param<nparam>);
-    }
+    }*/
     nobs++;
-    int no=nobs;
-    int lg_nobs=0;
-    while (no>=first_tune){ no=no/first_tune; lg_nobs++; }
-    if (lg_nobs > 0 && std::pow(first_tune,lg_nobs)==nobs){
+    if (nobs % tune_interval == 0){
       int ncol = std::min(nobs,hist_size);
+    /*  time_param * sort_mat = (time_param*)alloc(sizeof(time_param)*ncol);
+      memcpy(sort_mat, time_param_mat, sizeof(time_param)*ncol);
+      std::sort(sort_mat, sort_mat+ncol, &comp_time_param);
+      //FIXME: cont pick splitters*/
       double * A = (double*)alloc(sizeof(double)*nparam*ncol);
       double * b = (double*)alloc(sizeof(double)*ncol);
       for (int i=0; i<ncol; i++){
@@ -86,6 +92,11 @@ namespace CTF_int {
       cdealloc(iwork);
       cdealloc(A);
       memcpy(param_guess, b, nparam*sizeof(double));
+      /*double max_resd_sq = 0.0;
+      for (int i=0; i<ncol-nparam; i++){
+        max_resd_sq = std::max(max_resd_sq, b[nparam+i]);
+      }
+      printf("max residual sq is %lf\n",max_resd_sq);*/
       cdealloc(b);
     }
   }

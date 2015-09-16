@@ -658,7 +658,7 @@ namespace CTF_int {
 
   }
 
-  iparam contraction::map_fold(){
+  iparam contraction::map_fold(bool do_transp){
     int i, all_fdim_A, all_fdim_B, all_fdim_C;
     int nvirt_A, nvirt_B, nvirt_C;
     int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
@@ -707,59 +707,60 @@ namespace CTF_int {
     permute_target(tfB->order, fnew_ord_B, tB->inner_ordering);
     permute_target(tfC->order, fnew_ord_C, tC->inner_ordering);
     
-
-    nvirt_A = A->calc_nvirt();
-    if (!A->is_sparse){
-      for (i=0; i<nvirt_A; i++){
-        nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A,
-                        A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
-      }
-    } else {
-      int64_t new_sz_A = 0;
-      A->rec_tsr->is_sparse = 1;
-      A->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
-      for (i=0; i<nvirt_A; i++){
-        if (A->sr->has_csrmm)
-          A->rec_tsr->nnz_blk[i] = get_csr_size(A->nnz_blk[i], iprm.m, A->sr->el_size); 
-        else
-          A->rec_tsr->nnz_blk[i] = get_coo_size(A->nnz_blk[i], A->sr->el_size); 
-        new_sz_A += A->rec_tsr->nnz_blk[i];
-      }
-      A->rec_tsr->data = (char*)alloc(new_sz_A);
-      A->rec_tsr->is_data_aliased = false;
-      int nrow_idx = 0;
-      int phase[A->order];
-      for (i=0; i<A->order; i++){
-        phase[i] = A->edge_map[i].calc_phase();
-        for (int j=0; j<C->order; j++){
-          if (idx_A[i] == idx_C[j]) nrow_idx++;
+    if (do_transp){
+      nvirt_A = A->calc_nvirt();
+      if (!A->is_sparse){
+        for (i=0; i<nvirt_A; i++){
+          nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A,
+                          A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
+        }
+      } else {
+        int64_t new_sz_A = 0;
+        A->rec_tsr->is_sparse = 1;
+        A->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
+        for (i=0; i<nvirt_A; i++){
+          if (A->sr->has_csrmm)
+            A->rec_tsr->nnz_blk[i] = get_csr_size(A->nnz_blk[i], iprm.m, A->sr->el_size); 
+          else
+            A->rec_tsr->nnz_blk[i] = get_coo_size(A->nnz_blk[i], A->sr->el_size); 
+          new_sz_A += A->rec_tsr->nnz_blk[i];
+        }
+        A->rec_tsr->data = (char*)alloc(new_sz_A);
+        A->rec_tsr->is_data_aliased = false;
+        int nrow_idx = 0;
+        int phase[A->order];
+        for (i=0; i<A->order; i++){
+          phase[i] = A->edge_map[i].calc_phase();
+          for (int j=0; j<C->order; j++){
+            if (idx_A[i] == idx_C[j]) nrow_idx++;
+          }
+        }
+        char * data_ptr_out = A->rec_tsr->data;
+        char const * data_ptr_in = A->data;
+        for (i=0; i<nvirt_A; i++){
+          if (A->sr->has_csrmm){
+            COO_Matrix cm(A->nnz_blk[i], A->sr);
+            cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
+            CSR_Matrix cs(cm, iprm.m, A->sr, data_ptr_out);
+            cdealloc(cm.all_data);
+          } else {
+            COO_Matrix cm(data_ptr_out);
+            cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
+          }
+          data_ptr_in += A->nnz_blk[i]*A->sr->pair_size();
+          data_ptr_out += A->rec_tsr->nnz_blk[i];
         }
       }
-      char * data_ptr_out = A->rec_tsr->data;
-      char const * data_ptr_in = A->data;
-      for (i=0; i<nvirt_A; i++){
-        if (A->sr->has_csrmm){
-          COO_Matrix cm(A->nnz_blk[i], A->sr);
-          cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
-          CSR_Matrix cs(cm, iprm.m, A->sr, data_ptr_out);
-          cdealloc(cm.all_data);
-        } else {
-          COO_Matrix cm(data_ptr_out);
-          cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
-        }
-        data_ptr_in += A->nnz_blk[i]*A->sr->pair_size();
-        data_ptr_out += A->rec_tsr->nnz_blk[i];
+      nvirt_B = B->calc_nvirt();
+      for (i=0; i<nvirt_B; i++){
+        nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B,
+                        B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
       }
-    }
-    nvirt_B = B->calc_nvirt();
-    for (i=0; i<nvirt_B; i++){
-      nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B,
-                      B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
-    }
-    nvirt_C = C->calc_nvirt();
-    for (i=0; i<nvirt_C; i++){
-      nosym_transpose(all_fdim_C, C->inner_ordering, all_flen_C,
-                      C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
+      nvirt_C = C->calc_nvirt();
+      for (i=0; i<nvirt_C; i++){
+        nosym_transpose(all_fdim_C, C->inner_ordering, all_flen_C,
+                        C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
+      }
     }
 
     CTF_int::cdealloc(fnew_ord_A);
@@ -793,15 +794,9 @@ namespace CTF_int {
     CTF_int::cdealloc(all_flen_B);
     CTF_int::cdealloc(all_flen_C);
     delete fold_ctr;
-    A->is_folded = 0; 
-    delete A->rec_tsr; 
-    cdealloc(A->inner_ordering); 
-    B->is_folded = 0; 
-    delete B->rec_tsr; 
-    cdealloc(B->inner_ordering); 
-    C->is_folded = 0; 
-    delete C->rec_tsr; 
-    cdealloc(C->inner_ordering); 
+    A->remove_fold();
+    B->remove_fold();
+    C->remove_fold();
 
     return btime;
   }
@@ -2163,6 +2158,18 @@ namespace CTF_int {
         } else { 
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
+  #if FOLD_TSR
+        if (!is_custom && can_fold()){
+          est_time = est_time_fold();
+          iparam prm = map_fold(false);
+          ctr * sctrf = construct_ctr(1, &prm);
+          est_time += sctrf->est_time_rec(sctrf->num_lyr);
+          delete sctrf;
+          A->remove_fold();
+          B->remove_fold();
+          C->remove_fold();
+        }
+  #endif
   #if DEBUG >= 4
         printf("mapping passed contr est_time = %E sec\n", est_time);
   #endif 
@@ -2205,7 +2212,6 @@ namespace CTF_int {
           est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
           memuse = 2.*std::max(memuse,C->get_redist_mem(*dC, nnz_frac_C));
         }
-        if (can_fold()) est_time += est_time_fold();
         memuse = MAX((int64_t)sctr->mem_rec(), memuse);
   #if DEBUG >= 4
         printf("total (with redistribution and transp) est_time = %E\n", est_time);
@@ -2420,11 +2426,9 @@ namespace CTF_int {
          
       //FIXME: adhoc? 
       memuse = MAX((int64_t)(*ctrf)->mem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
-  #if DEBUG >= 1
     if (global_comm.rank == 0)
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
               (double)memuse,(double)proc_bytes_available(),gbest_time);
-  #endif          
 
     if (A->is_cyclic == 0 &&
         B->is_cyclic == 0 &&
@@ -3462,8 +3466,8 @@ namespace CTF_int {
     if (global_comm.rank == 0)
       ctrf->print();
   #endif
+  double dtt = MPI_Wtime();
   #ifdef DEBUG
-    double dtt = MPI_Wtime();
     if (global_comm.rank == 0){
       DPRINTF(1,"[%d] performing contraction\n",
           global_comm.rank);
@@ -3559,7 +3563,7 @@ namespace CTF_int {
     A->unfold();
     B->unfold();
     if (A->wrld->rank == 0){
-      DPRINTF(1, "Contraction permutation completed in %lf sec.\n",MPI_Wtime()-dtt);
+      VPRINTF(1, "Contraction permutation completed in %lf sec.\n",MPI_Wtime()-dtt);
     }
 
 

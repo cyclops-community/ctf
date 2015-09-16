@@ -177,9 +177,10 @@ namespace CTF_int {
 
       /**
        * \brief folds tensors for contraction
+       * \param[in] do_transp if false then do not transpose data
        * \return inner_prm parameters includng n,m,k
        */
-      iparam map_fold();
+      iparam map_fold(bool do_transp=true);
       
       /**
        * \brief estimates the time need to fold tensors for contraction

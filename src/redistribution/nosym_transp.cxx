@@ -3,6 +3,12 @@
 
 namespace CTF_int {
 
+  static double init_ct_ps[] = {COST_LATENCY, 1.5*COST_MEMBW};
+  static LinModel<2> long_contig_transp_mdl(init_ct_ps);
+  static LinModel<2> shrt_contig_transp_mdl(init_ct_ps);
+  static LinModel<2> non_contig_transp_mdl(init_ct_ps);
+
+
 //#define OPT_NOSYM_TR
 //#define CL_BLOCK
 
@@ -314,6 +320,8 @@ namespace CTF_int {
     int64_t * chunk_size;
     char ** tswap_data;
 
+
+
     bool is_diff = false;
     for (int i=0; i<order; i++){
       if (new_order[i] != i) is_diff = true;
@@ -325,6 +333,7 @@ namespace CTF_int {
       TAU_FSTOP(nosym_transpose);
       return;
     }
+    double st_time = MPI_Wtime();
   #ifdef USE_OMP
     int max_ntd = MIN(16,omp_get_max_threads());
     CTF_int::alloc_ptr(max_ntd*sizeof(char*),   (void**)&tswap_data);
@@ -368,6 +377,27 @@ namespace CTF_int {
 
     CTF_int::cdealloc(tswap_data);
     CTF_int::cdealloc(chunk_size);
+    int64_t contig0 = 1;
+    for (int i=0; i<order; i++){
+      if (new_order[i] == i) contig0 *= edge_len[i];
+      else break;
+    } 
+
+    int64_t tot_sz = 1;
+    for (int i=0; i<order; i++){
+      tot_sz *= edge_len[i];
+    }
+ 
+    double exe_time = MPI_Wtime() - st_time;
+    double tps[] = {exe_time, 1.0, (double)tot_sz};
+    if (contig0 < 4){
+      return non_contig_transp_mdl.observe(tps);
+    } else if (contig0 <= 64){
+      return shrt_contig_transp_mdl.observe(tps);
+    } else {
+      return long_contig_transp_mdl.observe(tps);
+    }
+
     TAU_FSTOP(nosym_transpose);
   }
 
@@ -446,7 +476,6 @@ namespace CTF_int {
       return;
     }
 #endif
-
 
   #ifdef USE_OMP
     #pragma omp parallel num_threads(max_ntd)
@@ -542,7 +571,6 @@ namespace CTF_int {
     CTF_int::cdealloc(new_lda);
     TAU_FSTOP(nosym_transpose_thr);
   }
-
   double est_time_transp(int              order,
                          int const *      new_order,
                          int const *      edge_len,
@@ -565,12 +593,13 @@ namespace CTF_int {
 
     //if the number of elements copied in the innermost loop is small, add overhead to bandwidth cost of transpose, otherwise say its linear
     //this model ignores cache-line size
-    if (contig0 < 10){
-      return 2.*tot_sz*COST_MEMBW;
-    } else if (contig0 <= 100){
-      return 1.5*tot_sz*COST_MEMBW;
+    double ps[] = {1.0, (double)tot_sz};
+    if (contig0 < 4){
+      return non_contig_transp_mdl.est_time(ps);
+    } else if (contig0 <= 64){
+      return shrt_contig_transp_mdl.est_time(ps);
     } else {
-      return 1.2*tot_sz*COST_MEMBW;
+      return long_contig_transp_mdl.est_time(ps);
     }
   }
 

@@ -11,7 +11,7 @@ namespace CTF_int {
       int nobs;
       int mat_lda;
     public:
-      int hist_size, first_tune;
+      int hist_size, tune_interval;
       double * time_param_mat;
       double param_guess[nparam];
 
@@ -19,9 +19,9 @@ namespace CTF_int {
        * \brief constructor
        * \param[in] init guess array of size nparam consisting of initial model parameter guesses
        * \param[in] hist_size number of times to keep in history
-       * \param[in] first_tune
+       * \param[in] tune_interval
        */
-      LinModel(double const * init_guess, int hist_size=100, int first_tune=nparam);
+      LinModel(double const * init_guess, int hist_size=2024, int tune_interval=8);
 
       /**
        * \brief records observation consisting of execution time and nparam paramter values

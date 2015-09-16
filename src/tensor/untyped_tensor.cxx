@@ -1729,6 +1729,14 @@ namespace CTF_int {
     //maybe not necessary
     set_padding();
   }
+  
+  void tensor::remove_fold(){
+    delete this->rec_tsr;
+    CTF_int::cdealloc(this->inner_ordering);
+    this->is_folded = 0;
+    //maybe not necessary
+    set_padding();
+  }
 
   double tensor::est_time_unfold(){
     int i, j, allfold_dim;
