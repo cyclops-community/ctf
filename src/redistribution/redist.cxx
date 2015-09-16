@@ -66,7 +66,8 @@ namespace CTF_int {
 
     alloc_ptr(swp_nval*sr->el_size, (void**)&tsr_new_data);
 
-    sr->set(tsr_new_data, sr->addid(), swp_nval);
+    if (sr->addid() != NULL)
+      sr->set(tsr_new_data, sr->addid(), swp_nval);
 
 
     int64_t ignrd;

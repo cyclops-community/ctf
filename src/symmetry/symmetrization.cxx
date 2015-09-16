@@ -700,13 +700,13 @@ namespace CTF_int {
       while (tsr_A->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          new_type = contraction(perms[k]);
+          contraction ntype(perms[k]);
           sign = signs[k];
           if (tsr_A->sym[j-1] == AS) sign *= -1;
-          tmp                    = new_type.idx_A[i];
-          new_type.idx_A[i]  = new_type.idx_A[j];
-          new_type.idx_A[j]  = tmp;
-          add_sym_perm(perms, signs, new_type, sign);
+          tmp             = ntype.idx_A[i];
+          ntype.idx_A[i]  = ntype.idx_A[j];
+          ntype.idx_A[j]  = tmp;
+          add_sym_perm(perms, signs, ntype, sign);
         }
       }
     }
@@ -715,13 +715,13 @@ namespace CTF_int {
       while (tsr_B->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          new_type = contraction(perms[k]);
+          contraction ntype(perms[k]);
           sign = signs[k];
           if (tsr_B->sym[j-1] == AS) sign *= -1;
-          tmp                    = new_type.idx_B[i];
-          new_type.idx_B[i]  = new_type.idx_B[j];
-          new_type.idx_B[j]  = tmp;
-          add_sym_perm(perms, signs, new_type, sign);
+          tmp             = ntype.idx_B[i];
+          ntype.idx_B[i]  = ntype.idx_B[j];
+          ntype.idx_B[j]  = tmp;
+          add_sym_perm(perms, signs, ntype, sign);
         }
       }
     }
@@ -731,13 +731,13 @@ namespace CTF_int {
       while (tsr_C->sym[j] != NS){
         j++;
         for (k=0; k<(int)perms.size(); k++){
-          new_type = contraction(perms[k]);
+          contraction ntype(perms[k]);
           sign = signs[k];
           if (tsr_C->sym[j-1] == AS) sign *= -1;
-          tmp                    = new_type.idx_C[i];
-          new_type.idx_C[i]  = new_type.idx_C[j];
-          new_type.idx_C[j]  = tmp;
-          add_sym_perm(perms, signs, new_type, sign);
+          tmp             = ntype.idx_C[i];
+          ntype.idx_C[i]  = ntype.idx_C[j];
+          ntype.idx_C[j]  = tmp;
+          add_sym_perm(perms, signs, ntype, sign);
         }
       }
     }

@@ -817,16 +817,22 @@ namespace CTF_int {
       nctr = new contraction(nA, idx_A, nB, idx_B, alpha, nC, idx_C, beta);
       *new_contraction = nctr;
 
+      nA->clear_mapping();
+      nA->set_padding();
       copy_mapping(A->order, A->edge_map, nA->edge_map);
       nA->is_mapped = 1;
       nA->topo      = A->topo;
       nA->set_padding();
 
+      nB->clear_mapping();
+      nB->set_padding();
       copy_mapping(B->order, B->edge_map, nB->edge_map);
       nB->is_mapped = 1;
       nB->topo      = B->topo;
       nB->set_padding();
 
+      nC->clear_mapping();
+      nC->set_padding();
       copy_mapping(C->order, C->edge_map, nC->edge_map);
       nC->is_mapped = 1;
       nC->topo      = C->topo;
@@ -2188,7 +2194,7 @@ namespace CTF_int {
   #if DEBUG >= 4
         printf("mapping passed contr est_time = %E sec\n", est_time);
   #endif 
-        ASSERT(est_time > 0.0);
+        ASSERT(est_time >= 0.0);
         memuse = 0;
         need_remap_A = 0;
         need_remap_B = 0;
@@ -2231,7 +2237,7 @@ namespace CTF_int {
   #if DEBUG >= 4
         printf("total (with redistribution and transp) est_time = %E\n", est_time);
   #endif
-        ASSERT(est_time > 0.0);
+        ASSERT(est_time >= 0.0);
 
         TAU_FSTOP(est_ctr_map_time);
         if ((int64_t)memuse >= proc_bytes_available()){

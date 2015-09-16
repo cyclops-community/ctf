@@ -1919,7 +1919,8 @@ namespace CTF_int {
   #endif
 
 #if VERIFY_REMAP
-    padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data_corr, sr, wrld->cdt);
+    if (!is_sparse)
+      padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data_corr, sr, wrld->cdt);
 #endif
 
     if (can_block_shuffle){
@@ -1952,22 +1953,23 @@ namespace CTF_int {
     this->data = shuffled_data;
 //    zero_out_padding();
   #if VERIFY_REMAP
-    bool abortt = false;
-    for (int64_t j=0; j<this->size; j++){
-      if (!sr->isequal(this->data+j*sr->el_size, shuffled_data_corr+j*sr->el_size)){
-        printf("data element %ld/%ld not received correctly on process %d\n",
-                j, this->size, wrld->cdt.rank);
-        printf("element received was ");
-        sr->print(this->data+j*sr->el_size);
-        printf(", correct "); 
-        sr->print(shuffled_data_corr+j*sr->el_size);
-        printf("\n"); 
-        abortt = true;
+    if (!is_sparse && sr->addid() != NULL){
+      bool abortt = false;
+      for (int64_t j=0; j<this->size; j++){
+        if (!sr->isequal(this->data+j*sr->el_size, shuffled_data_corr+j*sr->el_size)){
+          printf("data element %ld/%ld not received correctly on process %d\n",
+                  j, this->size, wrld->cdt.rank);
+          printf("element received was ");
+          sr->print(this->data+j*sr->el_size);
+          printf(", correct "); 
+          sr->print(shuffled_data_corr+j*sr->el_size);
+          printf("\n"); 
+          abortt = true;
+        }
       }
+      if (abortt) ABORT;
+      CTF_int::cdealloc(shuffled_data_corr);
     }
-    if (abortt) ABORT;
-    CTF_int::cdealloc(shuffled_data_corr);
-
 
   #endif
   #ifdef PROF_REDIST
