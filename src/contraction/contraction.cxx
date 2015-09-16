@@ -816,6 +816,21 @@ namespace CTF_int {
       nC = new tensor(C, 0, 0);
       nctr = new contraction(nA, idx_A, nB, idx_B, alpha, nC, idx_C, beta);
       *new_contraction = nctr;
+
+      copy_mapping(A->order, A->edge_map, nA->edge_map);
+      nA->is_mapped = 1;
+      nA->topo      = A->topo;
+      nA->set_padding();
+
+      copy_mapping(B->order, B->edge_map, nB->edge_map);
+      nB->is_mapped = 1;
+      nB->topo      = B->topo;
+      nB->set_padding();
+
+      copy_mapping(C->order, C->edge_map, nC->edge_map);
+      nC->is_mapped = 1;
+      nC->topo      = C->topo;
+      nC->set_padding();
     } else {
       nA = NULL;
       nB = NULL;

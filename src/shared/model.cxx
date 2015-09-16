@@ -103,7 +103,7 @@ namespace CTF_int {
   
   template <int nparam>
   double LinModel<nparam>::est_time(double const * param){
-    return cddot(nparam, param, 1, param_guess, 1);
+    return std::max(0.0,cddot(nparam, param, 1, param_guess, 1));
   }
 
   template <int nparam>
