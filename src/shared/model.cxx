@@ -20,6 +20,35 @@ namespace CTF_int {
     return CTF_LAPACK::DDOT(&n, dX, &incX, dY, &incY);
   }
 
+  void cdgeqrf(int const M,
+               int const N,
+               double *  A,
+               int const LDA,
+               double *  TAU2,
+               double *  WORK,
+               int const LWORK,
+               int  *    INFO){
+    CTF_LAPACK::DGEQRF(&M, &N, A, &LDA, TAU2, WORK, &LWORK, INFO);
+  }
+
+  void cdormqr(char           SIDE,
+               char           TRANS,
+               int            M,
+               int            N,
+               int            K,
+               double const * A,
+               int            LDA,
+               double const * TAU2,
+               double   *     C,
+               int            LDC,
+               double *       WORK,
+               int            LWORK,
+               int  *         INFO){
+    CTF_LAPACK::DORMQR(&SIDE, &TRANS, &M, &N, &K, A, &LDA, TAU2, C, &LDC, WORK, &LWORK, INFO);
+  }
+
+
+
   void cdgelsd(int m, int n, int k, double const * A, int lda_A, double * B, int lda_B, double * S, int cond, int * rank, double * work, int lwork, int * iwork, int * info){
     CTF_LAPACK::DGELSD(&m, &n, &k, A, &lda_A, B, &lda_B, S, &cond, rank, work, &lwork, iwork, info);
   }
@@ -71,19 +100,62 @@ namespace CTF_int {
   template <int nparam>
   void LinModel<nparam>::update(MPI_Comm cm){
     //if (nobs % tune_interval == 0){
-    int ncol = std::min(nobs,hist_size);
+    int nrcol = std::min(nobs,hist_size);
+    int ncol = std::max(nrcol, nparam);
     /*  time_param * sort_mat = (time_param*)alloc(sizeof(time_param)*ncol);
       memcpy(sort_mat, time_param_mat, sizeof(time_param)*ncol);
       std::sort(sort_mat, sort_mat+ncol, &comp_time_param);*/
-    if (ncol >= nparam){
-      double * A = (double*)alloc(sizeof(double)*nparam*ncol);
+    int tot_nrcol;
+    MPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
+    if (tot_nrcol >= nparam){
+      double * R = (double*)alloc(sizeof(double)*nparam*nparam);
       double * b = (double*)alloc(sizeof(double)*ncol);
-      for (int i=0; i<ncol; i++){
-        b[i] = time_param_mat[i*mat_lda];
-        for (int j=0; j<nparam; j++){
-          A[i+j*ncol] = time_param_mat[i*mat_lda+j+1];
+      if (ncol > nrcol){
+        std::fill(R, R+nparam*nparam, 0.0);
+        std::fill(b, b+ncol, 0.0);
+      } else {
+        double * A = (double*)alloc(sizeof(double)*nparam*ncol);
+        for (int i=0; i<ncol; i++){
+          b[i] = time_param_mat[i*mat_lda];
+          for (int j=0; j<nparam; j++){
+            A[i+j*ncol] = time_param_mat[i*mat_lda+j+1];
+          }
         }
+        double * tau = (double*)alloc(sizeof(double)*nparam);
+        int lwork;
+        int info;
+        double dlwork;
+        cdgeqrf(ncol, nparam, A, ncol, tau, &dlwork, -1, &info);
+        lwork = (int)dlwork;
+        double * work = (double*)alloc(sizeof(double)*lwork);
+        cdgeqrf(ncol, nparam, A, ncol, tau, work, lwork, &info);
+        lda_cpy(sizeof(double), nparam, nparam, ncol, nparam, (const char *)A, (char*)R);
+        cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, &dlwork, -1, &info);
+        lwork = (int)dlwork;
+        cdealloc(work);
+        work = (double*)alloc(sizeof(double)*lwork);
+        cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, work, lwork, &info);
+        cdealloc(work);
+        cdealloc(tau);
+        cdealloc(A);
       }
+      int np;
+      MPI_Comm_size(cm, &np);
+      double * all_R = (double*)alloc(sizeof(double)*nparam*nparam*np);
+      double * all_b = (double*)alloc(sizeof(double)*nparam*np);
+      MPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, cm);
+      double * Rs = (double*)alloc(sizeof(double)*nparam*nparam*np);
+      for (int i=0; i<np; i++){
+        lda_cpy(sizeof(double), nparam, nparam, nparam, np*nparam, (const char *)(all_R+i*nparam*nparam), (char*)(Rs+i*nparam));
+      }
+      MPI_Allgather(b, nparam, MPI_DOUBLE, all_b, nparam, MPI_DOUBLE, cm);
+      cdealloc(b);
+      cdealloc(all_R);
+      cdealloc(R);
+      ncol = np*nparam;
+      b = all_b;
+      double * A = Rs;
+
       double S[nparam];
       int lwork, liwork;
       double * work;
@@ -113,7 +185,7 @@ namespace CTF_int {
       printf("max residual sq is %lf\n",max_resd_sq);*/
       cdealloc(b);
     }
-    MPI_Bcast(&param_guess, nparam, MPI_DOUBLE, 0, cm);
+ //   MPI_Bcast(param_guess, nparam, MPI_DOUBLE, 0, cm);
   }
   
   template <int nparam>
