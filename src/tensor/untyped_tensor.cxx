@@ -1931,6 +1931,7 @@ namespace CTF_int {
   #if DEBUG >=1
     if (wrld->cdt.rank == 0){
       if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle to mapping\n",this->name);
+      else if (is_sparse) VPRINTF(1,"Remapping tensor %s via sparse reshuffle to mapping\n",this->name);
       else VPRINTF(1,"Remapping tensor %s via cyclic_reshuffle to mapping\n",this->name);
     }
     this->print_map(stdout);

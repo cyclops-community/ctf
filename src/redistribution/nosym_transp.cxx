@@ -4,9 +4,9 @@
 namespace CTF_int {
 
   static double init_ct_ps[] = {COST_LATENCY, 1.5*COST_MEMBW};
-  static LinModel<2> long_contig_transp_mdl(init_ct_ps);
-  static LinModel<2> shrt_contig_transp_mdl(init_ct_ps);
-  static LinModel<2> non_contig_transp_mdl(init_ct_ps);
+  LinModel<2> long_contig_transp_mdl(init_ct_ps);
+  LinModel<2> shrt_contig_transp_mdl(init_ct_ps);
+  LinModel<2> non_contig_transp_mdl(init_ct_ps);
 
 
 //#define OPT_NOSYM_TR

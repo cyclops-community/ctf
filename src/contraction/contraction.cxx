@@ -99,6 +99,10 @@ namespace CTF_int {
     if (A->wrld->cdt.rank == 0) printf("Contraction::execute (head):\n");
     print();
 #endif
+
+    if (A->wrld->cdt.cm == MPI_COMM_WORLD){
+      update_all_models(MPI_COMM_WORLD);
+    }
     
     int stat = home_contract();
     assert(stat == SUCCESS); 
@@ -691,6 +695,7 @@ namespace CTF_int {
       iprm.tB = 'N';
       iprm.tC = 'N';
     }
+//    printf("bperm_order = %d\n", bperm_order);
     get_perm<tensor*>(bperm_order, A, B, C, 
                      tA, tB, tC);
     get_perm<tensor*>(bperm_order, fold_ctr->A, fold_ctr->B, fold_ctr->C, 

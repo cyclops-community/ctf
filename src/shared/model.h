@@ -1,12 +1,21 @@
 #ifndef __MODEL_H__
 #define __MODEL_H__
 
+#include "mpi.h"
+
 namespace CTF_int { 
+  class Model {
+    public:
+      virtual void update(MPI_Comm cm){};
+  };
+
+  void update_all_models(MPI_Comm cm);
+
   /**
    * \brief Linear performance models, which given measurements, provides new model guess
    */
   template <int nparam>
-  class LinModel {
+  class LinModel : Model {
     private:
       int nobs;
       int mat_lda;
@@ -22,6 +31,12 @@ namespace CTF_int {
        * \param[in] tune_interval
        */
       LinModel(double const * init_guess, int hist_size=2024, int tune_interval=8);
+
+      /**
+       * \brief updates model based on observarions
+       * \param[in] cm communicator across which we should synchronize model (collect observations)
+       */
+      void update(MPI_Comm cm);
 
       /**
        * \brief records observation consisting of execution time and nparam paramter values

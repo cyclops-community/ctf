@@ -4,6 +4,13 @@
 #include "../shared/util.h"
 
 namespace CTF_int {
+  std::vector<Model*> all_models;
+
+  void update_all_models(MPI_Comm cm){
+    for (int i=0; i<all_models.size(); i++){
+      all_models[i]->update(cm);
+    }
+  }
 
 #define SPLINE_CHUNK_SZ = 8
 
@@ -35,6 +42,7 @@ namespace CTF_int {
     time_param_mat = (double*)alloc(mat_lda*hist_size*sizeof(double));
     memcpy(param_guess, init_guess, nparam*sizeof(double));
     nobs = 0;
+    all_models.push_back(this);
   }
 
   
@@ -57,12 +65,17 @@ namespace CTF_int {
                      &comp_time_param<nparam>);
     }*/
     nobs++;
-    if (nobs % tune_interval == 0){
-      int ncol = std::min(nobs,hist_size);
+  }
+  
+  
+  template <int nparam>
+  void LinModel<nparam>::update(MPI_Comm cm){
+    //if (nobs % tune_interval == 0){
+    int ncol = std::min(nobs,hist_size);
     /*  time_param * sort_mat = (time_param*)alloc(sizeof(time_param)*ncol);
       memcpy(sort_mat, time_param_mat, sizeof(time_param)*ncol);
-      std::sort(sort_mat, sort_mat+ncol, &comp_time_param);
-      //FIXME: cont pick splitters*/
+      std::sort(sort_mat, sort_mat+ncol, &comp_time_param);*/
+    if (ncol >= nparam){
       double * A = (double*)alloc(sizeof(double)*nparam*ncol);
       double * b = (double*)alloc(sizeof(double)*ncol);
       for (int i=0; i<ncol; i++){
@@ -87,6 +100,7 @@ namespace CTF_int {
       iwork = (int*)alloc(sizeof(int)*liwork);
       std::fill(iwork, iwork+liwork, 0);
       cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
+      //cdgeqrf(
       ASSERT(info == 0);
       cdealloc(work);
       cdealloc(iwork);
@@ -99,6 +113,7 @@ namespace CTF_int {
       printf("max residual sq is %lf\n",max_resd_sq);*/
       cdealloc(b);
     }
+    MPI_Bcast(&param_guess, nparam, MPI_DOUBLE, 0, cm);
   }
   
   template <int nparam>
