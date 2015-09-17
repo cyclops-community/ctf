@@ -994,7 +994,7 @@ namespace CTF_int {
       tnsr_B->set_padding();
       osum.B              = tnsr_B;
     } else tnsr_B = NULL;
-  #if DEBUG >= 1
+  #if DEBUG >= 2
     if (A->wrld->cdt.rank == 0)
       printf("Start head sum:\n");
   #endif
@@ -1004,7 +1004,7 @@ namespace CTF_int {
     #else
     ret = osum.sum_tensors(run_diag);
     #endif
-  #if DEBUG >= 1
+  #if DEBUG >= 2
     if (A->wrld->cdt.rank == 0)
       printf("End head sum:\n");
   #endif
@@ -2265,10 +2265,34 @@ namespace CTF_int {
   void summation::print(){
     int i,j,max,ex_A, ex_B;
     max = A->order+B->order;
+
     CommData global_comm = A->wrld->cdt;
     MPI_Barrier(global_comm.cm);
     if (global_comm.rank == 0){
-      printf("Summing Tensor %s into %s\n", A->name, B->name);
+      char sname[200];
+      sname[0] = '\0';
+      sprintf(sname, "%s", B->name);
+      sprintf(sname+strlen(sname),"[");
+      for (i=0; i<B->order; i++){
+        if (i>0)
+          sprintf(sname+strlen(sname)," %d",idx_B[i]);
+        else
+          sprintf(sname+strlen(sname),"%d",idx_B[i]);
+      }
+      sprintf(sname+strlen(sname),"] <-");
+      sprintf(sname+strlen(sname), "%s", A->name);
+      sprintf(sname+strlen(sname),"[");
+      for (i=0; i<A->order; i++){
+        if (i>0)
+          sprintf(sname+strlen(sname)," %d",idx_A[i]);
+        else
+          sprintf(sname+strlen(sname),"%d",idx_A[i]);
+      }
+      sprintf(sname+strlen(sname),"]");
+      printf("CTF: Summation %s\n",sname);
+
+
+/*      printf("Summing Tensor %s into %s\n", A->name, B->name);
       printf("alpha is "); 
       if (alpha != NULL) A->sr->print(alpha);
       else printf("NULL");
@@ -2314,7 +2338,7 @@ namespace CTF_int {
         }
         printf("\n");
         if (ex_A + ex_B== 0) break;
-      }
+      }*/
     }
   }
               

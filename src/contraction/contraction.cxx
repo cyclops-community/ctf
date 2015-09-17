@@ -95,7 +95,7 @@ namespace CTF_int {
   }
 
   void contraction::execute(){
-#ifdef VERBOSE //DEBUG >= 2
+#if DEBUG >= 2
     if (A->wrld->cdt.rank == 0) printf("Contraction::execute (head):\n");
     print();
 #endif
@@ -2437,11 +2437,11 @@ namespace CTF_int {
       C->set_padding();
       *ctrf = construct_ctr();
     #if DEBUG > 2
-      if (global_comm.rank == 0)
+/*      if (global_comm.rank == 0)
         printf("New mappings:\n");
       A->print_map(stdout);
       B->print_map(stdout);
-      C->print_map(stdout);
+      C->print_map(stdout);*/
     #endif
      
          
@@ -2609,7 +2609,7 @@ namespace CTF_int {
     }
     if (need_rep){
       if (global_comm.rank == 0)
-        DPRINTF(1,"Replicating tensor\n");
+        DPRINTF(2,"Replicating tensor\n");
 
       ctr_replicate * rctr = new ctr_replicate(this, phys_mapped, blk_sz_A, blk_sz_B, blk_sz_C);
       if (is_top){
@@ -2994,7 +2994,7 @@ namespace CTF_int {
     }
     if (need_rep){
       if (global_comm.rank == 0)
-        DPRINTF(1,"Replicating tensor\n");
+        DPRINTF(2,"Replicating tensor\n");
 
       spctr_replicate * rctr = new spctr_replicate(this, phys_mapped, blk_sz_A, blk_sz_B, blk_sz_C);
       if (is_top){
@@ -3401,8 +3401,8 @@ namespace CTF_int {
 
 
   #if DEBUG >= 1 //|| VERBOSE >= 1)
-    if (global_comm.rank == 0)
-      printf("Contraction permutation:\n");
+//    if (global_comm.rank == 0)
+  //    printf("Contraction permutation:\n");
     print();
   #endif
 
@@ -3456,19 +3456,23 @@ namespace CTF_int {
   #if DEBUG > 2
       if (global_comm.rank == 0)
         printf("Keeping mappings:\n");
-      A->print_map(stdout);
+/*      A->print_map(stdout);
       B->print_map(stdout);
-      C->print_map(stdout);
+      C->print_map(stdout);*/
   #endif
       ctrf = construct_ctr();
-  #if DEBUG >= 1
-      if (global_comm.rank == 0){
-        int64_t memuse = ctrf->mem_rec();
-        printf("Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
-                (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
-      }
-  #endif
     }
+#if DEBUG >= 1
+    if (global_comm.rank == 0){
+      int64_t memuse = ctrf->mem_rec();
+      printf("CTF: Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
+              (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
+      A->print_map();
+      B->print_map();
+      C->print_map();
+    }
+#endif
+
   #endif
     ASSERT(check_mapping());
     bool is_inner = false;
@@ -3490,11 +3494,12 @@ namespace CTF_int {
   double dtt = MPI_Wtime();
   #ifdef DEBUG
     if (global_comm.rank == 0){
-      DPRINTF(1,"[%d] performing contraction\n",
-          global_comm.rank);
-      DPRINTF(1,"%E bytes of buffer space will be needed for this contraction\n",
-        (double)ctrf->mem_rec());
-      DPRINTF(1,"System memory = %E bytes total, %E bytes used, %E bytes available.\n",
+      //DPRINTF(1,"[%d] performing contraction\n",
+        //  global_comm.rank);
+     // DPRINTF(1,"%E bytes of buffer space will be needed for this contraction\n",
+       // (double)ctrf->mem_rec());
+      DPRINTF(2,"%E bytes needed, System memory = %E bytes total, %E bytes used, %E bytes available.\n",
+        (double)ctrf->mem_rec(),
         (double)proc_bytes_total(),
         (double)proc_bytes_used(),
         (double)proc_bytes_available());
@@ -3824,7 +3829,7 @@ namespace CTF_int {
 
       if (new_ctr.unfold_broken_sym(NULL) != -1){
         if (global_comm.rank == 0)
-          DPRINTF(1,"Contraction index is broken\n");
+          DPRINTF(2,"Contraction index is broken\n");
 
         contraction * unfold_ctr;
         new_ctr.unfold_broken_sym(&unfold_ctr);
@@ -4286,7 +4291,7 @@ namespace CTF_int {
         else
           sprintf(cname+strlen(cname),"%d",idx_C[i]);
       }
-      sprintf(cname+strlen(cname),"]=");
+      sprintf(cname+strlen(cname),"] <- ");
       sprintf(cname+strlen(cname), "%s", A->name);
       sprintf(cname+strlen(cname),"[");
       for (i=0; i<A->order; i++){
@@ -4305,7 +4310,7 @@ namespace CTF_int {
           sprintf(cname+strlen(cname),"%d",idx_B[i]);
       }
       sprintf(cname+strlen(cname),"]");
-      printf("CTF: contraction %s\n",cname);
+      printf("CTF: Contraction %s\n",cname);
 
 /*
       if (alpha != NULL){

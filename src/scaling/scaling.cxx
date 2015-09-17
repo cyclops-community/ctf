@@ -80,7 +80,7 @@ namespace CTF_int {
       return SUCCESS;
     }
 
-  #if DEBUG>=1
+  #if DEBUG>=2
     if (tsr->wrld->cdt.rank == 0){
       printf("Scaling tensor %s.\n", tsr->name);
       printf("The index mapping is");
@@ -180,7 +180,7 @@ namespace CTF_int {
       ret = map_self_indices(ntsr, idx_map);
       if (ret!=SUCCESS) ABORT;
       ntsr->set_padding();
-  #if DEBUG >=1
+  #if DEBUG >=2
       if (tsr->wrld->cdt.rank == 0){
         printf("New mapping for tensor %s\n",ntsr->name);
       }
@@ -200,7 +200,7 @@ namespace CTF_int {
                            blk_len, &blk_sz, &str);
     if (st){
       if (tsr->wrld->cdt.rank == 0)
-        DPRINTF(1,"Stripping tensor\n");
+        DPRINTF(2,"Stripping tensor\n");
       strp_scl * sscl = new strp_scl;
       sscl->sr_A = tsr->sr;
       hscl = sscl;
@@ -312,7 +312,7 @@ namespace CTF_int {
   #endif
 
    if (old_dst != NULL) delete old_dst;
-  #if DEBUG>=1
+  #if DEBUG>=2
     if (tsr->wrld->cdt.rank == 0)
       printf("Done scaling tensor %s.\n", tsr->name);
   #endif

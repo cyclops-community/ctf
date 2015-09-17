@@ -33,7 +33,7 @@ namespace CTF_int {
 
   void tensor::free_self(){
     if (order != -1){
-      if (wrld->rank == 0) DPRINTF(1,"Deleted order %d tensor %s\n",order,name);
+      if (wrld->rank == 0) DPRINTF(2,"Deleted order %d tensor %s\n",order,name);
       if (is_folded) unfold();
       cdealloc(name);
       cdealloc(sym);
@@ -105,7 +105,7 @@ namespace CTF_int {
     strcpy(nname, other->name);
     strcat(nname, d);
     if (other->wrld->rank == 0) {
-      DPRINTF(1,"Cloning tensor %s into %s copy=%d alloc_data=%d\n",other->name, nname,copy, alloc_data);
+      DPRINTF(2,"Cloning tensor %s into %s copy=%d alloc_data=%d\n",other->name, nname,copy, alloc_data);
     }
     this->init(other->sr, other->order, other->lens,
                other->sym, other->wrld, (!copy & alloc_data), nname,
@@ -126,14 +126,14 @@ namespace CTF_int {
     strcpy(nname, other->name);
     strcat(nname, d);
     if (other->wrld->rank == 0) {
-      DPRINTF(1,"Repacking tensor %s into %s\n",other->name,nname);
+      DPRINTF(2,"Repacking tensor %s into %s\n",other->name,nname);
     }
 
     bool has_chng=false, less_sym=false, more_sym=false;
     for (int i=0; i<other->order; i++){
       if (other->sym[i] != new_sym[i]){
         if (other->wrld->rank == 0) {
-          DPRINTF(1,"sym[%d] was %d now %d\n",i,other->sym[i],new_sym[i]);
+          DPRINTF(2,"sym[%d] was %d now %d\n",i,other->sym[i],new_sym[i]);
         }
         has_chng = true;
         if (other->sym[i] == NS){
@@ -302,7 +302,7 @@ namespace CTF_int {
       this->name[6] = '\0';
     }
     if (wrld->rank == 0)
-      DPRINTF(1,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
+      DPRINTF(2,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
 
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int));
@@ -569,23 +569,41 @@ namespace CTF_int {
 
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
-      if (is_sparse)
+/*      if (is_sparse)
         printf("printing mapping of sparse tensor %s\n",name);
       else
-        printf("printing mapping of dense tensor %s\n",name);
-      if (topo != NULL){
-        printf("mapped to order %d topology with dims:",topo->order);
+        printf("printing mapping of dense tensor %s\n",name);*/
+/*      if (topo != NULL){
+        printf("CTF: %s mapped to order %d topology with dims:",name,topo->order);
         for (int dim=0; dim<topo->order; dim++){
           printf(" %d ",topo->lens[dim]);
         }
       }
-      printf("\nCTF: sym  len  tphs  pphs  vphs\n");
+      printf("\n");*/
+      char tname[200];
+      tname[0] = '\0';
+      sprintf(tname, "%s[", name);
+      for (int dim=0; dim<order; dim++){
+        if (dim>0)
+          sprintf(tname+strlen(tname), ",");
+        int tp = edge_map[dim].calc_phase();
+        int pp = edge_map[dim].calc_phys_phase();
+        int vp = tp/pp;
+        if (tp==1) sprintf(tname+strlen(tname),"1");
+        else {
+          if (pp > 1) sprintf(tname+strlen(tname),"p%d",pp);
+          if (vp > 1) sprintf(tname+strlen(tname),"v%d",vp);
+        }
+      }
+      sprintf(tname+strlen(tname), "]");
+      printf("CTF: Tensor mapping is %s\n",tname);
+/*      printf("\nCTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
         int tp = edge_map[dim].calc_phase();
         int pp = edge_map[dim].calc_phys_phase();
         int vp = tp/pp;
         printf("CTF: %2s %5d %5d %5d %5d\n", SY_strings[sym[dim]], lens[dim], tp, pp, vp);
-      }
+      }*/
     }
   }
    

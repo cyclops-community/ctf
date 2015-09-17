@@ -47,7 +47,7 @@ namespace CTF_int {
     this->krnl_type  = krnl_type_;
     if (krnl_type > 0){
       if (c->A->wrld->cdt.rank == 0){
-        DPRINTF(1,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
+        DPRINTF(2,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
           inner_params->m, inner_params->k);
       }
 
