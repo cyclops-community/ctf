@@ -1741,6 +1741,133 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  bool contraction::
+      exh_map_to_topo(topology const * topo,
+                      int              variant){
+   
+    int num_tot;
+    int * idx_arr;
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+
+    int num_choices = num_tot*num_tot;
+    int nv = variant;
+    for (int idim=0; idim<topo->order; idim++){
+      int i = (nv%num_choices)/num_tot;
+      int j = (nv%num_choices)%num_tot;
+      nv = nv/num_choices;
+      int iA = idx_arr[3*i+0];
+      int iB = idx_arr[3*i+1];
+      int iC = idx_arr[3*i+2];
+      int jA = idx_arr[3*j+0];
+      int jB = idx_arr[3*j+1];
+      int jC = idx_arr[3*j+2];
+      if (i==j){
+        if (iA != -1 && iB != -1 && iC != -1) return false;
+        else {
+          A->edge_map[iA].aug_phys(topo, idim);
+          B->edge_map[iB].aug_phys(topo, idim);
+          C->edge_map[iC].aug_phys(topo, idim);
+        }
+      } else {
+        if (iA != -1) A->edge_map[iA].aug_phys(topo, idim);
+        else if (jA != -1) A->edge_map[jA].aug_phys(topo, idim);
+        if (iB != -1) B->edge_map[iB].aug_phys(topo, idim);
+        else if (jB != -1) B->edge_map[jB].aug_phys(topo, idim);
+        if (iC != -1) C->edge_map[iC].aug_phys(topo, idim);
+        else if (jC != -1) C->edge_map[jC].aug_phys(topo, idim);
+      }
+    }
+    
+    
+    //A->order*B->order*C->order+A->order*B->order+A->order*C->order+B->order*C->order+A->order+B->order+C->order+1;
+/*    int nv = variant;
+    for (int idim=0; idim<topo->order; idim++){
+      int iv = nv%num_choices;
+      nv = nv/num_choices;
+      if (iv == 0) continue;
+      iv--;
+      if (iv < A->order+B->order+C->order){
+        if (iv < A->order){
+          A->edge_map[iv].aug_phys(topo, idim);
+          continue;
+        }
+        iv -= A->order;
+        if (iv < B->order){
+          B->edge_map[iv].aug_phys(topo, idim);
+          continue;
+        }
+        iv -= B->order;
+        if (iv < C->order){
+          C->edge_map[iv].aug_phys(topo, idim);
+          continue;
+        }
+      }
+      iv -= A->order+B->order+C->order;
+      if (iv < A->order*B->order+A->order*C->order+B->order*C->order){
+        if (iv < A->order*B->order){
+          A->edge_map[iv%A->order].aug_phys(topo, idim);
+          B->edge_map[iv/A->order].aug_phys(topo, idim);
+          continue;
+        }
+        iv -= A->order*B->order;
+        if (iv < A->order*C->order){
+          A->edge_map[iv%A->order].aug_phys(topo, idim);
+          C->edge_map[iv/A->order].aug_phys(topo, idim);
+          continue;
+        }
+        iv -= A->order*C->order;
+        if (iv < B->order*C->order){
+          B->edge_map[iv%B->order].aug_phys(topo, idim);
+          C->edge_map[iv/B->order].aug_phys(topo, idim);
+          continue;
+        }
+      } 
+      iv -= A->order*B->order+A->order*C->order+B->order*C->order;
+      A->edge_map[iv%A->order].aug_phys(topo, idim);
+      iv = iv/A->order;
+      B->edge_map[iv%B->order].aug_phys(topo, idim);
+      iv = iv/B->order;
+      C->edge_map[iv%C->order].aug_phys(topo, idim);
+    }   */ 
+    bool is_mod = true;
+    while (is_mod){
+      is_mod = false;
+      int ret;
+      ret = map_symtsr(A->order, A->sym_table, A->edge_map);
+      ASSERT(ret == SUCCESS); //if (ret!=SUCCESS) return ret;
+      ret = map_symtsr(B->order, B->sym_table, B->edge_map);
+      ASSERT(ret == SUCCESS); //if (ret!=SUCCESS) return ret;
+      ret = map_symtsr(C->order, C->sym_table, C->edge_map);
+      ASSERT(ret == SUCCESS); //if (ret!=SUCCESS) return ret;
+
+      for (int i=0; i<num_tot; i++){
+        int iA = idx_arr[3*i+0];
+        int iB = idx_arr[3*i+1];
+        int iC = idx_arr[3*i+2];
+        int lcm_phase = 1;
+        if (iA != -1) lcm_phase = lcm(lcm_phase,A->edge_map[iA].calc_phase());
+        if (iB != -1) lcm_phase = lcm(lcm_phase,B->edge_map[iB].calc_phase());
+        if (iC != -1) lcm_phase = lcm(lcm_phase,C->edge_map[iC].calc_phase());
+        if (iA != -1 && lcm_phase != A->edge_map[iA].calc_phase()){
+          A->edge_map[iA].aug_virt(lcm_phase);
+          is_mod = true;
+        }
+        if (iB != -1 && lcm_phase != B->edge_map[iB].calc_phase()){
+          B->edge_map[iB].aug_virt(lcm_phase);
+          is_mod = true;
+        }
+        if (iC != -1 && lcm_phase != C->edge_map[iC].calc_phase()){
+          C->edge_map[iC].aug_virt(lcm_phase);
+          is_mod = true;
+        }
+        //printf("i=%d lcm_phase=%d\n",i,lcm_phase);
+      }
+    }
+    return true;
+  }
 
   int contraction::
       map_to_topology(topology * topo,
@@ -2062,21 +2189,46 @@ namespace CTF_int {
     btopo = -1;
     best_time = DBL_MAX;
     //bmemuse = UINT64_MAX;
-
+/*
     for (j=0; j<6; j++){
-      /* Attempt to map to all possible permutations of processor topology */
+      // Attempt to map to all possible permutations of processor topology 
   #if DEBUG < 3 
       for (int t=global_comm.rank; t<(int)wrld->topovec.size()+3; t+=global_comm.np){
   #else
       for (int t=0; t<(int)wrld->topovec.size()+3; t++){
-  #endif
+  #endif*/
+ 
+    int num_tot;
+    int * idx_arr; 
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    cdealloc(idx_arr);
+    int num_choices = num_tot*num_tot;
+    int64_t tot_num_choices = 0;
+    for (int i=0; i<wrld->topovec.size(); i++){
+      tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
+    }
+//    if (global_comm.rank == 0)
+      printf("%d there are %ld possible mappings to try\n",global_comm.rank, tot_num_choices);
+    int64_t choice_offset = 0;
+    int64_t valid_mappings = 0;
+    for (int i=0; i<wrld->topovec.size(); i++){
+      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+      int64_t old_off = choice_offset;
+      choice_offset += tnum_choices;
+      for (int j=0; j<tnum_choices; j++){
+        if ((old_off + j)%global_comm.np != global_comm.rank)
+          continue;
+        printf("working on mapping %d\n", j);
         A->clear_mapping();
         B->clear_mapping();
         C->clear_mapping();
         A->set_padding();
         B->set_padding();
         C->set_padding();
-      
+     /* 
         topology * topo_i = NULL;
         if (t < 3){
           switch (t){
@@ -2103,8 +2255,11 @@ namespace CTF_int {
         TAU_FSTART(map_ctr_to_topo);
         ret = map_to_topology(topo_i, j);
         TAU_FSTOP(map_ctr_to_topo);
-        
-
+        */
+        topology * topo_i = wrld->topovec[i];
+        bool br = exh_map_to_topo(topo_i, j);
+        if (!br) continue;
+/*
         if (ret == ERROR) {
           TAU_FSTOP(select_ctr_map);
           return ERROR;
@@ -2112,7 +2267,7 @@ namespace CTF_int {
         if (ret == NEGATIVE){
           //printf("map_to_topology returned negative\n");
           continue;
-        }
+        }*/
     
         A->is_mapped = 1;
         B->is_mapped = 1;
@@ -2128,6 +2283,7 @@ namespace CTF_int {
   #endif
         
         if (check_mapping() == 0) continue;
+        valid_mappings++;
         est_time = 0.0;
         
   #if 0
@@ -2246,12 +2402,12 @@ namespace CTF_int {
 
         TAU_FSTOP(est_ctr_map_time);
         if ((int64_t)memuse >= proc_bytes_available()){
-          DPRINTF(2,"Not enough memory available for topo %d with order %d\n", t, j);
+          DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
           delete sctr;
           continue;
         } 
         if (A->size > INT_MAX || B->size > INT_MAX || C->size > INT_MAX){
-          DPRINTF(2,"MPI does not handle enough bits for topo %d with order %d \n", t, j);
+          DPRINTF(2,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
           delete sctr;
           continue;
         }
@@ -2271,7 +2427,7 @@ namespace CTF_int {
         if (est_time < best_time) {
           best_time = est_time;
           //bmemuse = memuse;
-          btopo = 6*t+j;      
+          btopo = old_off+j;
         }  
         delete sctr;
   /*#else
@@ -2289,6 +2445,9 @@ namespace CTF_int {
   #if DEBUG>=3
     MPI_Barrier(A->wrld->comm);
   #endif
+    int64_t tot_valid_mappings;
+    MPI_Allreduce(&valid_mappings, &tot_valid_mappings, 1, MPI_INT64_T, MPI_SUM, global_comm.cm);
+    if (A->wrld->rank == 0) printf("number valid mappings was %ld\n", tot_valid_mappings);
   /*#if BEST_VOL
     ALLREDUCE(&bnvirt, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, global_comm);
     if (bnvirt != gnvirt){
@@ -2322,6 +2481,7 @@ namespace CTF_int {
     MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
     TAU_FSTOP(all_select_ctr_map);
 
+    printf("%d number valid mappings was %ld\n", A->wrld->rank,tot_valid_mappings);
 
     A->clear_mapping();
     B->clear_mapping();
@@ -2352,13 +2512,16 @@ namespace CTF_int {
 */
       if (ttopo == INT_MAX || ttopo == -1){
         printf("ERROR: Failed to map contraction!\n");
+        ASSERT(0);
         //ABORT;
         return ERROR;
       }
+    printf("%d return success %ld\n", A->wrld->rank,tot_valid_mappings);
       return SUCCESS;
     }
+    printf("try %d mapping set\n", global_comm.rank);
     topology * topo_g;
-    int j_g = ttopo%6;
+    /*int j_g = ttopo%6;
     if (ttopo < 18){
       switch (ttopo/6){
         case 0:
@@ -2382,19 +2545,33 @@ namespace CTF_int {
         break;
       }
     } else topo_g = wrld->topovec[(ttopo-18)/6];
-   
+   */
+    choice_offset = 0;
+    int i=0;
+    int64_t old_off;
+    for (i=0; i<wrld->topovec.size(); i++){
+      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+      old_off = choice_offset;
+      choice_offset += tnum_choices;
+      if (choice_offset >= ttopo) break;
+    }
+    topo_g = wrld->topovec[i];
+    int j_g = ttopo-old_off;
+
 
     A->topo = topo_g;
     B->topo = topo_g;
     C->topo = topo_g;
     
-    ret = map_to_topology(topo_g, j_g);
+    //ret = map_to_topology(topo_g, j_g);
+    exh_map_to_topo(topo_g, j_g);
+    printf("%d mapping set\n", global_comm.rank);
 
-
+/*
     if (ret == NEGATIVE || ret == ERROR) {
       printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
       return ERROR;
-    }
+    }*/
     A->is_mapped = 1;
     B->is_mapped = 1;
     C->is_mapped = 1;
@@ -3345,6 +3522,42 @@ namespace CTF_int {
       delete new_tsr;
       return stat;
     }
+    printf("%d starts  contraction\n",A->wrld->rank);
+    for (int i=0; i<A->order; i++){
+      int iA = idx_A[i];
+      bool has_match = false;
+      for (int j=0; j<B->order; j++){
+        if (idx_B[j] == iA) has_match = true;
+      }
+      for (int j=0; j<C->order; j++){
+        if (idx_C[j] == iA) has_match = true;
+      }
+      if (false && !has_match){
+        int new_len[A->order-1];
+        int new_sym[A->order-1];
+        int new_idx[A->order-1];
+        for (int j=0; j<A->order; j++){
+          if (j==iA) continue;
+          if (j<iA){
+            new_len[j] = A->lens[j];
+            new_sym[j] = A->sym[j];
+            new_idx[j] = idx_A[j];
+          } else {
+            new_len[j-1] = A->lens[j];
+            new_sym[j-1] = A->sym[j];
+            new_idx[j-1] = idx_A[j];
+          }
+        }
+        tensor * new_tsr = new tensor(A->sr, A->order-1, new_len, new_sym, A->wrld, 1, A->name, 1, A->is_sparse);
+        summation s(A, idx_A, A->sr->mulid(), new_tsr, new_idx, A->sr->mulid());
+        s.execute();
+        contraction ctr(new_tsr, new_idx, B, idx_B, alpha, C, idx_C, beta, func);
+        ctr.execute();
+        delete new_tsr;
+        return SUCCESS;
+      }
+    }
+
 
     ASSERT(!C->is_sparse);
     if (B->is_sparse){
@@ -3855,14 +4068,15 @@ namespace CTF_int {
         }
         if (sy && unfold_ctr->map(&ctrf, 0) == SUCCESS)
   #endifi*/
+            DPRINTF(1,"%d AAPerforming index desymmetrization\n",tnsr_A->wrld->rank);
           if (tnsr_A == tnsr_B){
             tnsr_A = new tensor(tnsr_B);
           }
           desymmetrize(tnsr_A, unfold_ctr->A, 0);
           desymmetrize(tnsr_B, unfold_ctr->B, 0);
           desymmetrize(tnsr_C, unfold_ctr->C, 1);
-          if (global_comm.rank == 0)
-            DPRINTF(1,"Performing index desymmetrization\n");
+  //        if (global_comm.rank == 0)
+            DPRINTF(1,"%d Performing index desymmetrization\n",tnsr_A->wrld->rank);
           unfold_ctr->alpha = align_alpha;
           stat = unfold_ctr->sym_contract();
           if (!unfold_ctr->C->is_data_aliased && !tnsr_C->sr->isequal(tnsr_C->sr->mulid(), unfold_ctr->beta)){
@@ -3890,6 +4104,7 @@ namespace CTF_int {
             delete unfold_ctr->C;
           }
         } else {
+            DPRINTF(1,"%d Not Performing index desymmetrization\n",tnsr_A->wrld->rank);
           get_sym_perms(new_ctr, perm_types, signs);
                         //&nscl_C, &scl_maps_C, &scl_alpha_C);
           dbeta = beta;

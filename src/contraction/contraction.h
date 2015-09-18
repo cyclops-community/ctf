@@ -227,6 +227,18 @@ namespace CTF_int {
                           int *      idx_no_ctr,
                           int *      idx_weigh);*/
 
+
+      /**
+       * \brief maps tensors to topology 
+       *        with certain choice of mapping of topo dims to tensor dims
+       *
+       * \param topo topology to map to 
+       * \param index of mapping choice, parsed inside
+       *       A->order*B->order*C->order+A->order*B->order+A->order*C->order+B->order*C->order+A->order+B->order+C->order+1 choices per dimension 
+       * \param return true if this could be a valid mapping
+       */
+      bool exh_map_to_topo(topology const * topo,
+                           int              variant);
       /**
        * \brief attempts to remap 3 tensors to the same topology if possible
        */

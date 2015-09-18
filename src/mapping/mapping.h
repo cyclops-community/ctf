@@ -59,6 +59,19 @@ namespace CTF_int {
 
       /** \brief resets mapping to NOT_MAPPED */
       void clear();
+
+      /**
+       * \brief adds a physical mapping to this mapping
+       * \param[in] topo topology to map to
+       * \param[in] idim dimension of topology to map to
+       */
+      void aug_phys(topology const * topo, int idim);
+      
+      /**
+       * \brief augments mapping to have sufficient virtualization so that the total phas is exactly tot_phase (assumes tot_phase is not current phase)
+       * \param[in] tot_phase the desired total phase
+       */
+      void aug_virt(int tot_phase);
   };
   
   /** \brief compares two mappings

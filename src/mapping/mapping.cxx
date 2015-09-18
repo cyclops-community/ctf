@@ -101,6 +101,45 @@ namespace CTF_int {
     this->has_child = 0;
   }
 
+  void mapping::aug_phys(topology const * topo, int idim){
+    mapping * map = NULL;
+    if (type != NOT_MAPPED)
+      map = new mapping(*this);
+    clear();
+    type = PHYSICAL_MAP;
+    cdt = idim;
+    np = topo->lens[idim];
+    has_child = (map != NULL);
+    child = map;
+  }
+
+
+  void mapping::aug_virt(int tot_phase){
+    mapping * map = this;
+    int my_phase = 1;
+    while (map->has_child){
+      my_phase *= map->np;
+      map = map->child;
+    }
+    if (map->type == NOT_MAPPED){
+      map->type = VIRTUAL_MAP;
+      map->np = tot_phase/(map->np*my_phase);
+    } else if (map->type == VIRTUAL_MAP){
+      ASSERT(tot_phase%my_phase == 0);
+      map->np = tot_phase/my_phase;
+    } else {
+      ASSERT(map->type == PHYSICAL_MAP);
+      map->has_child = 1;
+      map->child = new mapping();
+      my_phase *= map->np;
+      map = map->child;
+      map->np = tot_phase/my_phase;
+      map->type = VIRTUAL_MAP;
+      map->has_child = 0;
+    }
+  }
+
+
   int comp_dim_map(mapping const *  map_A,
                    mapping const *  map_B){
     if (map_A->type == NOT_MAPPED &&
