@@ -2,14 +2,17 @@
 #define __MODEL_H__
 
 #include "mpi.h"
+#include "init_models.h"
 
 namespace CTF_int { 
   class Model {
     public:
       virtual void update(MPI_Comm cm){};
+      virtual void print(){};
   };
 
   void update_all_models(MPI_Comm cm);
+  void print_all_models();
 
   /**
    * \brief Linear performance models, which given measurements, provides new model guess
@@ -20,9 +23,10 @@ namespace CTF_int {
       int nobs;
       int mat_lda;
     public:
-      int hist_size, tune_interval;
+      int hist_size;
       double * time_param_mat;
       double param_guess[nparam];
+      char * name;
 
       /** 
        * \brief constructor
@@ -30,7 +34,9 @@ namespace CTF_int {
        * \param[in] hist_size number of times to keep in history
        * \param[in] tune_interval
        */
-      LinModel(double const * init_guess, int hist_size=2024, int tune_interval=8);
+      LinModel(double const * init_guess, char const * name, int hist_size=2024);
+
+      ~LinModel();
 
       /**
        * \brief updates model based on observarions
@@ -54,7 +60,7 @@ namespace CTF_int {
       /**
        * \brief prints current parameter estimates
        */
-      void print_param_guess();
+      void print();
   };
 }
 

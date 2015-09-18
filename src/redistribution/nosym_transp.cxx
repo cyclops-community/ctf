@@ -3,10 +3,10 @@
 
 namespace CTF_int {
 
-  static double init_ct_ps[] = {COST_LATENCY, 1.5*COST_MEMBW};
-  LinModel<2> long_contig_transp_mdl(init_ct_ps);
-  LinModel<2> shrt_contig_transp_mdl(init_ct_ps);
-  LinModel<2> non_contig_transp_mdl(init_ct_ps);
+  //static double init_ct_ps[] = {COST_LATENCY, 1.5*COST_MEMBW};
+  LinModel<2> long_contig_transp_mdl(long_contig_transp_mdl_init,"long_contig_transp_mdl");
+  LinModel<2> shrt_contig_transp_mdl(shrt_contig_transp_mdl_init,"shrt_contig_transp_mdl");
+  LinModel<2> non_contig_transp_mdl(non_contig_transp_mdl_init,"non_contig_transp_mdl");
 
 
 //#define OPT_NOSYM_TR
@@ -390,9 +390,9 @@ namespace CTF_int {
  
     double exe_time = MPI_Wtime() - st_time;
     double tps[] = {exe_time, 1.0, (double)tot_sz};
-    if (contig0 < 4){
+    if (contig0 < 2){
       return non_contig_transp_mdl.observe(tps);
-    } else if (contig0 <= 64){
+    } else if (contig0 <= 8){
       return shrt_contig_transp_mdl.observe(tps);
     } else {
       return long_contig_transp_mdl.observe(tps);

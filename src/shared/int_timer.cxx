@@ -9,6 +9,7 @@
 //#include <vector>
 #include "util.h"
 #include "int_timer.h"
+#include "model.h"
 #include "../interface/timer.h"
 
 using namespace CTF_int;
@@ -175,6 +176,8 @@ namespace CTF{
     FILE * output = NULL;
 
     if (rank == 0){
+      CTF_int::print_all_models();
+
       char filename[300];
       char part[300];
       

@@ -4,13 +4,28 @@
 #include "../shared/util.h"
 
 namespace CTF_int {
-  std::vector<Model*> all_models;
+  
+  std::vector<Model*>& get_all_models(){
+    static std::vector<Model*> all_models;
+    return all_models;
+  }
 
   void update_all_models(MPI_Comm cm){
-    for (int i=0; i<all_models.size(); i++){
-      all_models[i]->update(cm);
+#ifdef TUNE
+    for (int i=0; i<get_all_models().size(); i++){
+      get_all_models()[i]->update(cm);
     }
+#endif
   }
+  
+  void print_all_models(){
+#ifdef TUNE
+    for (int i=0; i<get_all_models().size(); i++){
+      get_all_models()[i]->print();
+    }
+#endif
+  }
+
 
 #define SPLINE_CHUNK_SZ = 8
 
@@ -64,19 +79,32 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  LinModel<nparam>::LinModel(double const * init_guess, int hist_size_, int tune_interval_){
+  LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
+    memcpy(param_guess, init_guess, nparam*sizeof(double));
+#ifdef TUNE
+    name = (char*)alloc(strlen(name_)+1);
+    name[0] = '\0';
+    strcpy(name, name_);
     hist_size = hist_size_;
-    tune_interval = tune_interval_;
     mat_lda = nparam+1;
     time_param_mat = (double*)alloc(mat_lda*hist_size*sizeof(double));
-    memcpy(param_guess, init_guess, nparam*sizeof(double));
     nobs = 0;
-    all_models.push_back(this);
+    get_all_models().push_back(this);
+#endif
+  }
+  
+  template <int nparam>
+  LinModel<nparam>::~LinModel(){
+#ifdef TUNE
+    cdealloc(name);
+    cdealloc(time_param_mat);
+#endif
   }
 
   
   template <int nparam>
   void LinModel<nparam>::observe(double const * tp){
+#ifdef TUNE
 //    if (fabs(est_time(tp+1)-tp[0])>3.E-3) printf("estimate was %lf, actual executon took %lf\n", est_time(tp+1), tp[0]);
 
     //printf("observed %lf %lf %lf\n", tp[0], tp[1], tp[2]);
@@ -94,11 +122,13 @@ namespace CTF_int {
                      &comp_time_param<nparam>);
     }*/
     nobs++;
+#endif
   }
   
   
   template <int nparam>
   void LinModel<nparam>::update(MPI_Comm cm){
+#ifdef TUNE
     //if (nobs % tune_interval == 0){
     int nrcol = std::min(nobs,hist_size);
     int ncol = std::max(nrcol, nparam);
@@ -186,6 +216,7 @@ namespace CTF_int {
       cdealloc(b);
     }
  //   MPI_Bcast(param_guess, nparam, MPI_DOUBLE, 0, cm);
+#endif
   }
   
   template <int nparam>
@@ -194,11 +225,13 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void LinModel<nparam>::print_param_guess(){
+  void LinModel<nparam>::print(){
+    printf("double %s_init[] = {",name);
     for (int i=0; i<nparam; i++){
-      printf("param[%d] = %E\n",
-              i, param_guess[i]);
+      if (i>0) printf(", ");
+      printf("%1.4E", param_guess[i]);
     }
+    printf("};\n");
 
   }
 
