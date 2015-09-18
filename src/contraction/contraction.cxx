@@ -2337,6 +2337,9 @@ namespace CTF_int {
       delete [] old_map_A;
       delete [] old_map_B;
       delete [] old_map_C;
+      delete dA;
+      delete dB;
+      delete dC;
 /*      for (i=0; i<A->order; i++)
         old_map_A[i].clear();
       for (i=0; i<B->order; i++)
