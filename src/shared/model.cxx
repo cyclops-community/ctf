@@ -105,11 +105,16 @@ namespace CTF_int {
   template <int nparam>
   void LinModel<nparam>::observe(double const * tp){
 #ifdef TUNE
-//    if (fabs(est_time(tp+1)-tp[0])>3.E-3) printf("estimate was %lf, actual executon took %lf\n", est_time(tp+1), tp[0]);
-
+    if (fabs(est_time(tp+1)-tp[0])>1.E-2){ 
+      printf("estimate of %s[%1.2E*%1.2E", name, tp[0], param_guess[0]);
+      for (int i=1; i<nparam; i++){
+        printf(",%1.2E*%1.2E",tp[i], param_guess[i]);
+      }
+      printf("] was %1.2E, actual executon took %1.2E\n", est_time(tp+1), tp[0]);
+    }
     //printf("observed %lf %lf %lf\n", tp[0], tp[1], tp[2]);
-    memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
-    /*if (nobs < hist_size){
+ //   memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
+    if (nobs < hist_size){
       memcpy(time_param_mat+nobs*mat_lda, tp, mat_lda*sizeof(double));
     } else {
       std::pop_heap( (time_param<nparam>*)time_param_mat,
@@ -120,7 +125,7 @@ namespace CTF_int {
       std::push_heap( (time_param<nparam>*)time_param_mat,
                      ((time_param<nparam>*)time_param_mat)+hist_size,
                      &comp_time_param<nparam>);
-    }*/
+    }
     nobs++;
 #endif
   }
@@ -160,6 +165,11 @@ namespace CTF_int {
         double * work = (double*)alloc(sizeof(double)*lwork);
         cdgeqrf(ncol, nparam, A, ncol, tau, work, lwork, &info);
         lda_cpy(sizeof(double), nparam, nparam, ncol, nparam, (const char *)A, (char*)R);
+        for (int i=0; i<nparam; i++){
+          for (int j=i+1; j<nparam; j++){
+            R[i*nparam+j] = 0.0;
+          }
+        }
         cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, &dlwork, -1, &info);
         lwork = (int)dlwork;
         cdealloc(work);

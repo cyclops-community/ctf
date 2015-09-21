@@ -34,7 +34,7 @@ namespace CTF_int {
        * \param[in] hist_size number of times to keep in history
        * \param[in] tune_interval
        */
-      LinModel(double const * init_guess, char const * name, int hist_size=2024);
+      LinModel(double const * init_guess, char const * name, int hist_size=1024);
 
       ~LinModel();
 

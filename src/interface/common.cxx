@@ -286,8 +286,14 @@ namespace CTF_int {
 
 
   void CommData::bcast(void * buf, int64_t count, MPI_Datatype mdtype, int root){
+#ifdef TUNE
+    MPI_Barrier(cm);
+#endif
     double st_time = MPI_Wtime();
     MPI_Bcast(buf, count, mdtype, root, cm);
+#ifdef TUNE
+    MPI_Barrier(cm);
+#endif
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
@@ -296,8 +302,14 @@ namespace CTF_int {
   }
 
   void CommData::allred(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op){
+#ifdef TUNE
+    MPI_Barrier(cm);
+#endif
     double st_time = MPI_Wtime();
     MPI_Allreduce(inbuf, outbuf, count, mdtype, op, cm);
+#ifdef TUNE
+    MPI_Barrier(cm);
+#endif
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
@@ -312,6 +324,9 @@ namespace CTF_int {
                              void *          recv_buffer,
                              int64_t const * recv_counts,
                              int64_t const * recv_displs){
+#ifdef TUNE
+    MPI_Barrier(cm);
+#endif
     double st_time = MPI_Wtime();
     int num_nnz_trgt = 0;
     int num_nnz_recv = 0;
@@ -396,6 +411,9 @@ namespace CTF_int {
       CTF_int::cdealloc(i32_recv_counts);
       CTF_int::cdealloc(i32_recv_displs);
     }
+#ifdef TUNE
+    MPI_Barrier(cm);
+#endif
     double exe_time = MPI_Wtime()-st_time;
     int64_t tot_sz = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
     double tps[] = {exe_time, 1.0, log2(np), (double)tot_sz};
