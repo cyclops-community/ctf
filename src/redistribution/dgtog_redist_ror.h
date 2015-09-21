@@ -325,6 +325,9 @@ void dgtog_reshuffle(int const *          sym,
     CTF_int::cdealloc(tsr_data);
     return;
   }
+#ifdef TUNE
+  MPI_Barrier(ord_glb_comm.cm);
+#endif
   TAU_FSTART(dgtog_reshuffle);
   double st_time = MPI_Wtime();
 
@@ -706,8 +709,11 @@ void dgtog_reshuffle(int const *          sym,
 #endif
   CTF_int::cdealloc(tsr_data);
 #endif
+#ifdef TUNE
+  MPI_Barrier(ord_glb_comm.cm);
+#endif
   double exe_time = MPI_Wtime()-st_time;
-  double tps[] = {exe_time, 1.0, (double)log2(ord_glb_comm.np), (double)std::max(new_dist.size, new_dist.size)*log2(ord_glb_comm.np)*sr->el_size};;
+  double tps[] = {exe_time, 1.0, (double)log2(ord_glb_comm.np), (double)std::max(old_dist.size, new_dist.size)*log2(ord_glb_comm.np)*sr->el_size};;
   dgtog_res_mdl.observe(tps);
   TAU_FSTOP(dgtog_reshuffle);
 }

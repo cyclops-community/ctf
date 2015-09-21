@@ -477,6 +477,9 @@ namespace CTF_int {
     }
 
     TAU_FSTART(block_reshuffle);
+#ifdef TUNE
+    MPI_Barrier(glb_comm.cm);
+#endif
     double st_time = MPI_Wtime();
 
     mst_alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
