@@ -105,13 +105,13 @@ namespace CTF_int {
   template <int nparam>
   void LinModel<nparam>::observe(double const * tp){
 #ifdef TUNE
-    if (fabs(est_time(tp+1)-tp[0])>1.E-2){ 
+    /*if (fabs(est_time(tp+1)-tp[0])>1.E-2){ 
       printf("estimate of %s[%1.2E*%1.2E", name, tp[0], param_guess[0]);
       for (int i=1; i<nparam; i++){
         printf(",%1.2E*%1.2E",tp[i], param_guess[i]);
       }
       printf("] was %1.2E, actual executon took %1.2E\n", est_time(tp+1), tp[0]);
-    }
+    }*/
     //printf("observed %lf %lf %lf\n", tp[0], tp[1], tp[2]);
  //   memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
     if (nobs < hist_size){
