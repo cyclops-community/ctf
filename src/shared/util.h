@@ -483,6 +483,10 @@ namespace CTF_int {
               char *          b);
 
 
+  int64_t fact(int64_t n);  
+  int64_t choose(int64_t n, int64_t k);  
+  void get_choice(int64_t n, int64_t k, int64_t ch, int * chs);
+  int64_t chchoose(int64_t n, int64_t k);
 }
 #endif
 

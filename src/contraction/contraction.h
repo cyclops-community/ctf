@@ -229,6 +229,18 @@ namespace CTF_int {
 
 
       /**
+       * \brief get number of mappings variants of contraction for a given topology
+       * \param[in] topo topology we want to map to
+       */
+      int get_num_map_variants(topology const * topo);
+
+      int get_num_map_variants(topology const * topo,
+                               int &            nmax_ctr_2d,
+                               int &            nAB,
+                               int &            nAC,
+                               int &            nBC);
+
+      /**
        * \brief maps tensors to topology 
        *        with certain choice of mapping of topo dims to tensor dims
        *

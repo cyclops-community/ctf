@@ -109,7 +109,7 @@ namespace CTF_int {
   }
   
   template<typename ptype>
-  void get_perm(int      perm_order,
+  void get_perm(int     perm_order,
                 ptype   A,
                 ptype   B,
                 ptype   C,
@@ -680,11 +680,13 @@ namespace CTF_int {
                            all_flen_A, all_flen_B, all_flen_C);
 
   #if DEBUG>=2
-    CommData global_comm = A->wrld->cdt;
-    if (global_comm.rank == 0){
-      printf("Folded contraction type:\n");
+    if (do_transp){
+      CommData global_comm = A->wrld->cdt;
+      if (global_comm.rank == 0){
+        printf("Folded contraction type:\n");
+      }
+      fold_ctr->print();
     }
-    fold_ctr->print();
   #endif
     select_ctr_perm(fold_ctr, all_fdim_A, all_fdim_B, all_fdim_C,
                               all_flen_A, all_flen_B, all_flen_C,
@@ -1741,6 +1743,47 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  int contraction::
+      get_num_map_variants(topology const * topo){
+    int nAB, nAC, nBC, nmax_ctr_2d; 
+    return get_num_map_variants(topo, nmax_ctr_2d, nAB, nAC, nBC);
+  }
+
+  int contraction::
+      get_num_map_variants(topology const * topo,
+                           int &            nmax_ctr_2d,
+                           int &            nAB,
+                           int &            nAC,
+                           int &            nBC){
+    int num_tot;
+    int * idx_arr;
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    nAB=0;
+    nAC=0;
+    nBC=0;
+  
+    for (int i=0; i<num_tot; i++){
+      if (idx_arr[3*i+0] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] == -1)
+        nAB++;
+      if (idx_arr[3*i+0] != -1 && idx_arr[3*i+1] == -1 && idx_arr[3*i+2] != -1)
+        nAC++;
+      if (idx_arr[3*i+0] == -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1)
+        nBC++;
+    }
+    nmax_ctr_2d = std::min(topo->order/2,std::min(nAC,std::min(nAB,nBC)));
+    int nv=0;
+    for (int nctr_2d=0; nctr_2d<=nmax_ctr_2d; nctr_2d++){
+      if (topo->order-2*nctr_2d <= num_tot){
+        nv += std::pow(3,nctr_2d)*choose(num_tot,topo->order-2*nctr_2d)*choose(nAB,nctr_2d)*choose(nAC,nctr_2d)*choose(nBC,nctr_2d);
+      }
+    }
+    cdealloc(idx_arr);
+    return nv;
+  }
+   
   bool contraction::
       exh_map_to_topo(topology const * topo,
                       int              variant){
@@ -1752,26 +1795,142 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
 
-    int num_choices = num_tot*num_tot;
-    int nv = variant;
-    for (int idim=0; idim<topo->order; idim++){
-      int i = (nv%num_choices)/num_tot;
-      int j = (nv%num_choices)%num_tot;
-      nv = nv/num_choices;
-      int iA = idx_arr[3*i+0];
-      int iB = idx_arr[3*i+1];
-      int iC = idx_arr[3*i+2];
-      int jA = idx_arr[3*j+0];
-      int jB = idx_arr[3*j+1];
-      int jC = idx_arr[3*j+2];
-      if (i==j){
-        if (iA != -1 && iB != -1 && iC != -1) return false;
-        else {
-          A->edge_map[iA].aug_phys(topo, idim);
-          B->edge_map[iB].aug_phys(topo, idim);
-          C->edge_map[iC].aug_phys(topo, idim);
+    int nAB, nAC, nBC, nmax_ctr_2d; 
+    int nvar_tot = get_num_map_variants(topo, nmax_ctr_2d, nAB, nAC, nBC);
+    ASSERT(variant<nvar_tot);
+
+    int nv=0;
+    for (int nctr_2d=0; nctr_2d<=nmax_ctr_2d; nctr_2d++){
+      int nv0 = nv;
+      if (topo->order-2*nctr_2d <= num_tot){
+        nv += std::pow(3,nctr_2d)*choose(num_tot,topo->order-2*nctr_2d)*choose(nAB,nctr_2d)*choose(nAC,nctr_2d)*choose(nBC,nctr_2d);
+      }
+      if (nv > variant){
+        int v = variant - nv0;
+        int rep_choices = choose(num_tot,topo->order-2*nctr_2d);
+        int rep_ch = v%rep_choices;
+        int rep_inds[topo->order-2*nctr_2d];
+        get_choice(num_tot,topo->order-2*nctr_2d,rep_ch,rep_inds);
+        for (int i=2*nctr_2d; i<topo->order; i++){
+          int r = rep_inds[i-2*nctr_2d];
+          if (idx_arr[3*r+0] != -1)
+            A->edge_map[idx_arr[3*r+0]].aug_phys(topo, i);
+          if (idx_arr[3*r+1] != -1)
+            B->edge_map[idx_arr[3*r+1]].aug_phys(topo, i);
+          if (idx_arr[3*r+2] != -1)
+            C->edge_map[idx_arr[3*r+2]].aug_phys(topo, i);
         }
-      } else {
+        int iAB[nctr_2d];
+        int iAC[nctr_2d];
+        int iBC[nctr_2d];
+        int ord[nctr_2d];
+        v = v/rep_choices;
+        for (int i=0; i<nctr_2d; i++){
+          ord[i] = v%3;
+          v = v/3;
+        }
+        get_choice(nAB,nctr_2d,v%choose(nAB,nctr_2d),iAB);
+        v = v/choose(nAB,nctr_2d);
+        get_choice(nAC,nctr_2d,v%choose(nAC,nctr_2d),iAC);
+        v = v/choose(nAC,nctr_2d);
+        get_choice(nBC,nctr_2d,v%choose(nBC,nctr_2d),iBC);
+        v = v/choose(nBC,nctr_2d);
+        
+        for (int i=0; i<nctr_2d; i++){
+         // printf("iAB[%d] = %d iAC[%d] = %d iBC[%d] = %d ord[%d] = %d\n", i, iAB[i], i, iAC[i], i, iBC[i], i, ord[i]);
+          int iiAB=0;
+          int iiAC=0;
+          int iiBC=0;
+          for (int j=0; j<num_tot; j++){
+            if (idx_arr[3*j+0] != -1 && idx_arr[3*j+1] != -1 && idx_arr[3*j+2] == -1){
+              if (iAB[i] == iiAB){
+                switch (ord[i]){
+                  case 0:
+                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i);
+                    B->edge_map[idx_arr[3*j+1]].aug_phys(topo, 2*i+1);
+                    break;
+                  case 1:
+                  case 2:
+                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i);
+                    B->edge_map[idx_arr[3*j+1]].aug_phys(topo, 2*i);
+                    break;
+                }
+              }
+              iiAB++;
+            }
+            if (idx_arr[3*j+0] != -1 && idx_arr[3*j+1] == -1 && idx_arr[3*j+2] != -1){
+              if (iAC[i] == iiAC){
+                switch (ord[i]){
+                  case 0:
+                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i);
+                  case 1:
+                    break;
+                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i+1);
+                    break;
+                  case 2:
+                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i+1);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i+1);
+                    break;
+                }
+              }
+              iiAC++;
+            }
+            if (idx_arr[3*j+0] == -1 && idx_arr[3*j+1] != -1 && idx_arr[3*j+2] != -1){
+              if (iBC[i] == iiBC){
+                switch (ord[i]){
+                  case 2:
+                    B->edge_map[idx_arr[3*j+1]].aug_phys(topo, 2*i);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i+1);
+                    break;
+                  case 0:
+                  case 1:
+                    B->edge_map[idx_arr[3*j+1]].aug_phys(topo, 2*i+1);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i+1);
+                    break;
+                }
+              }
+              iiBC++;
+            }
+          }
+        }
+        break;
+      }
+    }
+  /*  int num_totp = num_tot+1;
+    int num_choices = num_totp*num_totp;
+    int nv = variant;
+    // go in reverse order to make aug_phys have potential to be correct order with multiple phys dims
+    for (int idim=topo->order-1; idim>=0; idim--){
+      int i = (nv%num_choices)/num_totp;
+      int j = (nv%num_choices)%num_totp;
+      nv = nv/num_choices;
+      int iA = -1;
+      int iB = -1;
+      int iC = -1;
+      if (i!=num_tot){
+        iA = idx_arr[3*i+0];
+        iB = idx_arr[3*i+1];
+        iC = idx_arr[3*i+2];
+        if (i==j){
+          if (iA != -1 || iB != -1 || iC != -1) return false;
+          else {
+            A->edge_map[iA].aug_phys(topo, idim);
+            B->edge_map[iB].aug_phys(topo, idim);
+            C->edge_map[iC].aug_phys(topo, idim);
+          }
+        }
+      } 
+      int jA = -1;
+      int jB = -1;
+      int jC = -1;
+      if (j!= num_tot && j!= i){
+        jA = idx_arr[3*j+0];
+        jB = idx_arr[3*j+1];
+        jC = idx_arr[3*j+2];
+      }
+      if (i!=j){
         if (iA != -1) A->edge_map[iA].aug_phys(topo, idim);
         else if (jA != -1) A->edge_map[jA].aug_phys(topo, idim);
         if (iB != -1) B->edge_map[iB].aug_phys(topo, idim);
@@ -1779,7 +1938,7 @@ namespace CTF_int {
         if (iC != -1) C->edge_map[iC].aug_phys(topo, idim);
         else if (jC != -1) C->edge_map[jC].aug_phys(topo, idim);
       }
-    }
+    }*/
     
     
     //A->order*B->order*C->order+A->order*B->order+A->order*C->order+B->order*C->order+A->order+B->order+C->order+1;
@@ -2205,23 +2364,26 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
     cdealloc(idx_arr);
-    int num_choices = num_tot*num_tot;
+    int num_choices = (num_tot+1)*(num_tot+1);
     int64_t tot_num_choices = 0;
     for (int i=0; i<wrld->topovec.size(); i++){
-      tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
+     // tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
+      tot_num_choices += get_num_map_variants(wrld->topovec[i]);
     }
-//    if (global_comm.rank == 0)
-      printf("%d there are %ld possible mappings to try\n",global_comm.rank, tot_num_choices);
+    //if (global_comm.rank == 0)
+      //printf("%d there are %ld possible mappings to try\n",global_comm.rank, tot_num_choices);
     int64_t choice_offset = 0;
     int64_t valid_mappings = 0;
     for (int i=0; i<wrld->topovec.size(); i++){
-      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+//      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+      int tnum_choices = get_num_map_variants(wrld->topovec[i]);
+
       int64_t old_off = choice_offset;
       choice_offset += tnum_choices;
       for (int j=0; j<tnum_choices; j++){
         if ((old_off + j)%global_comm.np != global_comm.rank)
           continue;
-        printf("working on mapping %d\n", j);
+//        printf("working on mapping %d\n", j);
         A->clear_mapping();
         B->clear_mapping();
         C->clear_mapping();
@@ -2275,12 +2437,6 @@ namespace CTF_int {
         A->topo = topo_i;
         B->topo = topo_i;
         C->topo = topo_i;
-  #if DEBUG >= 4
-        printf("\nTest mappings:\n");
-        A->print_map(stdout, 0);
-        B->print_map(stdout, 0);
-        C->print_map(stdout, 0);
-  #endif
         
         if (check_mapping() == 0) continue;
         valid_mappings++;
@@ -2328,6 +2484,12 @@ namespace CTF_int {
         A->set_padding();
         B->set_padding();
         C->set_padding();
+  #if DEBUG >= 4
+        printf("\nTest mappings:\n");
+        A->print_map(stdout, 0);
+        B->print_map(stdout, 0);
+        C->print_map(stdout, 0);
+  #endif
         sctr = construct_ctr();
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
@@ -2442,12 +2604,12 @@ namespace CTF_int {
       }
     }
     TAU_FSTOP(select_ctr_map);
-  #if DEBUG>=3
+/*  #iif DEBUG>=3
     MPI_Barrier(A->wrld->comm);
-  #endif
+  #endif*/
     int64_t tot_valid_mappings;
     MPI_Allreduce(&valid_mappings, &tot_valid_mappings, 1, MPI_INT64_T, MPI_SUM, global_comm.cm);
-    if (A->wrld->rank == 0) printf("number valid mappings was %ld\n", tot_valid_mappings);
+//    if (A->wrld->rank == 0) printf("number valid mappings was %ld\n", tot_valid_mappings);
   /*#if BEST_VOL
     ALLREDUCE(&bnvirt, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, global_comm);
     if (bnvirt != gnvirt){
@@ -2481,7 +2643,6 @@ namespace CTF_int {
     MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
     TAU_FSTOP(all_select_ctr_map);
 
-    printf("%d number valid mappings was %ld\n", A->wrld->rank,tot_valid_mappings);
 
     A->clear_mapping();
     B->clear_mapping();
@@ -2516,10 +2677,8 @@ namespace CTF_int {
         //ABORT;
         return ERROR;
       }
-    printf("%d return success %ld\n", A->wrld->rank,tot_valid_mappings);
       return SUCCESS;
     }
-    printf("try %d mapping set\n", global_comm.rank);
     topology * topo_g;
     /*int j_g = ttopo%6;
     if (ttopo < 18){
@@ -2550,7 +2709,8 @@ namespace CTF_int {
     int i=0;
     int64_t old_off;
     for (i=0; i<wrld->topovec.size(); i++){
-      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+      //int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+      int tnum_choices = get_num_map_variants(wrld->topovec[i]);
       old_off = choice_offset;
       choice_offset += tnum_choices;
       if (choice_offset >= ttopo) break;
@@ -2565,7 +2725,6 @@ namespace CTF_int {
     
     //ret = map_to_topology(topo_g, j_g);
     exh_map_to_topo(topo_g, j_g);
-    printf("%d mapping set\n", global_comm.rank);
 
 /*
     if (ret == NEGATIVE || ret == ERROR) {
@@ -2622,11 +2781,12 @@ namespace CTF_int {
       C->set_padding();
       *ctrf = construct_ctr();
     #if DEBUG > 2
-/*      if (global_comm.rank == 0)
+      if (global_comm.rank == 0)
         printf("New mappings:\n");
       A->print_map(stdout);
       B->print_map(stdout);
-      C->print_map(stdout);*/
+      C->print_map(stdout);
+      MPI_Barrier(global_comm.cm);
     #endif
      
          
@@ -3522,7 +3682,6 @@ namespace CTF_int {
       delete new_tsr;
       return stat;
     }
-    printf("%d starts  contraction\n",A->wrld->rank);
     for (int i=0; i<A->order; i++){
       int iA = idx_A[i];
       bool has_match = false;
@@ -3709,8 +3868,7 @@ namespace CTF_int {
     } 
   #endif
   #if DEBUG >=2
-    if (global_comm.rank == 0)
-      ctrf->print();
+    ctrf->print();
   #endif
   double dtt = MPI_Wtime();
   #ifdef DEBUG

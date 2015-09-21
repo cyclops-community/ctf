@@ -549,8 +549,8 @@ namespace CTF_int {
           loc_idx += idx[i]*old_loc_lda[i];
           prc_idx += ((idx[i]*old_dist.phys_phase[i] + old_dist.perank[i])%new_dist.phys_phase[i])*new_dist.pe_lda[i];
         }
-        DPRINTF(3,"proc %d sending blk %d (loc %d size %ld) to proc %d el_size = %d\n", 
-                glb_comm.rank, loc_idx, loc_idx, blk_sz, prc_idx, sr->el_size);
+        DPRINTF(3,"proc %d sending blk %d (loc %d size %ld) to proc %d el_size = %d %p %p\n", 
+                glb_comm.rank, loc_idx, loc_idx, blk_sz, prc_idx, sr->el_size, tsr_data, reqs+num_new_virt+loc_idx);
         MPI_Isend(tsr_data+sr->el_size*loc_idx*blk_sz, blk_sz,
                   sr->mdtype(), prc_idx, loc_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
         for (i=0; i<order; i++){

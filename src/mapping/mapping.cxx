@@ -353,7 +353,14 @@ namespace CTF_int {
         while (map2->has_child){
           map2 = map2->child;
           if (map2->type == PHYSICAL_MAP){
-            if (map1->cdt == map2->cdt) pass = 0;
+            /*if (map1->cdt == map2->cdt) pass = 0;
+            if (!pass){          
+              DPRINTF(3,"failed confirmation here i=%d\n",i);
+              break;
+            }*/
+            //FIXME: learn to do proper recursive physical mappings
+            if (map2->cdt != map1->cdt+1) 
+              pass = 0;
             if (!pass){          
               DPRINTF(3,"failed confirmation here i=%d\n",i);
               break;

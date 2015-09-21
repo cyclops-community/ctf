@@ -274,6 +274,38 @@ namespace CTF_int {
     }
   }
      
+  int64_t fact(int64_t n){
+    int64_t f = 1;
+    for (int64_t i=1; i<=n; i++){
+      f*=i;
+    }
+    return f;
+  }
+  
+  int64_t choose(int64_t n, int64_t k){
+    return fact(n)/(fact(k)*fact(n-k));
+  }
+
+  void get_choice(int64_t n, int64_t k, int64_t ch, int * chs){
+    if (k==0) return;
+    if (k==1){
+      chs[0] = ch;
+      return;
+    }
+    int lens[k];
+    std::fill(lens, lens+k, n);
+    int sym[k];
+    std::fill(sym, sym+k-1, SH);
+    sym[k-1] = NS;
+
+    calc_idx_arr(k,lens,sym,ch,chs);
+    //FIXME add 1?
+  }
+  
+  int64_t chchoose(int64_t n, int64_t k){
+    return fact(n+k-1)/(fact(k)*fact(n-1));
+  }
+
 
 
 }
