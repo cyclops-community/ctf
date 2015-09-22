@@ -240,6 +240,8 @@ namespace CTF_int {
                                int &            nAC,
                                int &            nBC);
 
+      bool switch_topo_perm();
+
       /**
        * \brief maps tensors to topology 
        *        with certain choice of mapping of topo dims to tensor dims

@@ -1755,6 +1755,7 @@ namespace CTF_int {
                            int &            nAB,
                            int &            nAC,
                            int &            nBC){
+    TAU_FSTART(get_num_map_vars);
     int num_tot;
     int * idx_arr;
     inv_idx(A->order, idx_A,
@@ -1781,9 +1782,110 @@ namespace CTF_int {
       }
     }
     cdealloc(idx_arr);
+    TAU_FSTOP(get_num_map_vars);
     return nv;
   }
-   
+  
+  bool contraction::switch_topo_perm(){
+    ASSERT(A->topo == B->topo && B->topo == C->topo);
+    topology const * topo = A->topo;
+    int new_order[topo->order*sizeof(int)];
+    std::fill(new_order, new_order+topo->order, -1);
+    int il=0;
+    for (int i=0; i<A->order; i++){
+      mapping const * map = A->edge_map+i;
+      if (map->type == PHYSICAL_MAP && map->has_child && map->child->type == PHYSICAL_MAP){
+        new_order[map->cdt] = il;
+        il++;
+        new_order[map->child->cdt] = il;
+        il++;
+      }
+    }
+    for (int i=0; i<B->order; i++){
+      mapping const * map = B->edge_map+i;
+      if (map->type == PHYSICAL_MAP && map->has_child && map->child->type == PHYSICAL_MAP){
+        if (new_order[map->cdt] != -1 || new_order[map->child->cdt] != -1){
+          if (new_order[map->child->cdt] != new_order[map->cdt]+1)
+            return false;
+        } else {
+          new_order[map->cdt] = il;
+          il++;
+          new_order[map->child->cdt] = il;
+          il++;
+        }
+      }
+    }
+    for (int i=0; i<C->order; i++){
+      mapping const * map = C->edge_map+i;
+      if (map->type == PHYSICAL_MAP && map->has_child && map->child->type == PHYSICAL_MAP){
+        if (new_order[map->cdt] != -1 || new_order[map->child->cdt] != -1){
+          if (new_order[map->child->cdt] != new_order[map->cdt]+1)
+            return false;
+        } else {
+          new_order[map->cdt] = il;
+          il++;
+          new_order[map->child->cdt] = il;
+          il++;
+        }
+      }
+    }
+
+    for (int i=0; i<topo->order; i++){
+      if (new_order[i] == -1){
+        new_order[i] = il;
+        il++;
+      }
+    }
+    int new_lens[topo->order];
+    for (int i=0; i<topo->order; i++){
+      new_lens[new_order[i]] = topo->lens[i];
+//      printf("new_order[%d/%d] = %d, new_lens[%d] = %d\n", i, topo->order, new_order[i], new_order[i], new_lens[new_order[i]]);
+    }
+    topology * new_topo = NULL;
+    for (int i=0; i<A->wrld->topovec.size(); i++){
+      if (A->wrld->topovec[i]->order == topo->order){
+        bool has_same_len = true;
+        for (int j=0; j<topo->order; j++){
+          if (A->wrld->topovec[i]->lens[j] != new_lens[j]) has_same_len = false;
+        }
+        if (has_same_len){
+          new_topo = A->wrld->topovec[i];
+          break;
+        }
+      }
+    }
+    ASSERT(new_topo != NULL);
+    A->topo = new_topo;
+    B->topo = new_topo;
+    C->topo = new_topo;
+    for (int i=0; i<A->order; i++){
+      mapping * map = A->edge_map + i;
+      while (map != NULL && map->type == PHYSICAL_MAP){
+        map->cdt = new_order[map->cdt];
+        if (map->has_child) map = map->child;
+        else map = NULL;
+      }
+    }
+    for (int i=0; i<B->order; i++){
+      mapping * map = B->edge_map + i;
+      while (map != NULL && map->type == PHYSICAL_MAP){
+        map->cdt = new_order[map->cdt];
+        if (map->has_child) map = map->child;
+        else map = NULL;
+      }
+    }
+    for (int i=0; i<C->order; i++){
+      mapping * map = C->edge_map + i;
+      while (map != NULL && map->type == PHYSICAL_MAP){
+        map->cdt = new_order[map->cdt];
+        if (map->has_child) map = map->child;
+        else map = NULL;
+      }
+    }
+    return true;
+
+  }
+ 
   bool contraction::
       exh_map_to_topo(topology const * topo,
                       int              variant){
@@ -1862,12 +1964,12 @@ namespace CTF_int {
               if (iAC[i] == iiAC){
                 switch (ord[i]){
                   case 0:
-                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i);
-                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i);
+                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i+1);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i+1);
                   case 1:
                     break;
-                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i);
-                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i+1);
+                    A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i+1);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i);
                     break;
                   case 2:
                     A->edge_map[idx_arr[3*j+0]].aug_phys(topo, 2*i+1);
@@ -1881,10 +1983,13 @@ namespace CTF_int {
               if (iBC[i] == iiBC){
                 switch (ord[i]){
                   case 2:
-                    B->edge_map[idx_arr[3*j+1]].aug_phys(topo, 2*i);
-                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i+1);
+                    B->edge_map[idx_arr[3*j+1]].aug_phys(topo, 2*i+1);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i);
                     break;
                   case 0:
+                    B->edge_map[idx_arr[3*j+1]].aug_phys(topo, 2*i);
+                    C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i);
+                    break;
                   case 1:
                     B->edge_map[idx_arr[3*j+1]].aug_phys(topo, 2*i+1);
                     C->edge_map[idx_arr[3*j+2]].aug_phys(topo, 2*i+1);
@@ -2025,6 +2130,7 @@ namespace CTF_int {
         //printf("i=%d lcm_phase=%d\n",i,lcm_phase);
       }
     }
+    cdealloc(idx_arr);
     return true;
   }
 
@@ -2277,7 +2383,12 @@ namespace CTF_int {
     old_topo_B = NULL;
     old_topo_C = NULL;
 
+#ifdef PROFILE
+    MPI_Barrier(global_comm.cm);
+#endif
+
     TAU_FSTART(select_ctr_map);
+    TAU_FSTART(init_select_ctr_map);
   #if BEST_VOL
     CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
@@ -2293,9 +2404,9 @@ namespace CTF_int {
     old_topo_A = A->topo;
     old_topo_B = B->topo;
     old_topo_C = C->topo;
-      ASSERT(A->is_mapped);
-      ASSERT(B->is_mapped);
-      ASSERT(C->is_mapped);
+    ASSERT(A->is_mapped);
+    ASSERT(B->is_mapped);
+    ASSERT(C->is_mapped);
     if (do_remap){
     #if DEBUG >= 2
       if (global_comm.rank == 0)
@@ -2364,16 +2475,16 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
     cdealloc(idx_arr);
-    int num_choices = (num_tot+1)*(num_tot+1);
+//    int num_choices = (num_tot+1)*(num_tot+1);
     int64_t tot_num_choices = 0;
     for (int i=0; i<wrld->topovec.size(); i++){
      // tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
       tot_num_choices += get_num_map_variants(wrld->topovec[i]);
     }
-    //if (global_comm.rank == 0)
-      //printf("%d there are %ld possible mappings to try\n",global_comm.rank, tot_num_choices);
-    int64_t choice_offset = 0;
     int64_t valid_mappings = 0;
+    int64_t choice_offset = 0;
+    int64_t max_memuse = proc_bytes_available();
+    TAU_FSTOP(init_select_ctr_map);
     for (int i=0; i<wrld->topovec.size(); i++){
 //      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
       int tnum_choices = get_num_map_variants(wrld->topovec[i]);
@@ -2419,7 +2530,10 @@ namespace CTF_int {
         TAU_FSTOP(map_ctr_to_topo);
         */
         topology * topo_i = wrld->topovec[i];
+        TAU_FSTART(exh_map);
         bool br = exh_map_to_topo(topo_i, j);
+        TAU_FSTOP(exh_map);
+        if (!br) DPRINTF(3,"exh_map_to_topo returned false\n");
         if (!br) continue;
 /*
         if (ret == ERROR) {
@@ -2438,7 +2552,17 @@ namespace CTF_int {
         B->topo = topo_i;
         C->topo = topo_i;
         
-        if (check_mapping() == 0) continue;
+        TAU_FSTART(switch_topo_perm);
+        br = switch_topo_perm();
+        TAU_FSTOP(switch_topo_perm);
+        if (!br){ DPRINTF(3,"switch topo perm returned false\n"); }
+        if (!br) continue;
+        TAU_FSTART(check_ctr_mapping);
+        if (check_mapping() == 0){ 
+          TAU_FSTOP(check_ctr_mapping);
+          continue;
+        }
+        TAU_FSTOP(check_ctr_mapping);
         valid_mappings++;
         est_time = 0.0;
         
@@ -2563,11 +2687,14 @@ namespace CTF_int {
         ASSERT(est_time >= 0.0);
 
         TAU_FSTOP(est_ctr_map_time);
-        if ((int64_t)memuse >= proc_bytes_available()){
+        TAU_FSTART(get_avail_res);
+        if ((int64_t)memuse >= max_memuse){
           DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
+          TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
         } 
+        TAU_FSTOP(get_avail_res);
         if (A->size > INT_MAX || B->size > INT_MAX || C->size > INT_MAX){
           DPRINTF(2,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
           delete sctr;
@@ -2607,9 +2734,11 @@ namespace CTF_int {
 /*  #iif DEBUG>=3
     MPI_Barrier(A->wrld->comm);
   #endif*/
+#if DEBUG >= 2 
     int64_t tot_valid_mappings;
     MPI_Allreduce(&valid_mappings, &tot_valid_mappings, 1, MPI_INT64_T, MPI_SUM, global_comm.cm);
-//    if (A->wrld->rank == 0) printf("number valid mappings was %ld\n", tot_valid_mappings);
+    if (A->wrld->rank == 0) DPRINTF(2,"number valid mappings was %ld/%ld\n", tot_valid_mappings, tot_num_choices);
+#endif
   /*#if BEST_VOL
     ALLREDUCE(&bnvirt, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, global_comm);
     if (bnvirt != gnvirt){
@@ -2713,7 +2842,7 @@ namespace CTF_int {
       int tnum_choices = get_num_map_variants(wrld->topovec[i]);
       old_off = choice_offset;
       choice_offset += tnum_choices;
-      if (choice_offset >= ttopo) break;
+      if (choice_offset > ttopo) break;
     }
     topo_g = wrld->topovec[i];
     int j_g = ttopo-old_off;
@@ -2726,6 +2855,7 @@ namespace CTF_int {
     //ret = map_to_topology(topo_g, j_g);
     exh_map_to_topo(topo_g, j_g);
 
+    switch_topo_perm();
 /*
     if (ret == NEGATIVE || ret == ERROR) {
       printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
@@ -4226,14 +4356,13 @@ namespace CTF_int {
         }
         if (sy && unfold_ctr->map(&ctrf, 0) == SUCCESS)
   #endifi*/
-            DPRINTF(1,"%d AAPerforming index desymmetrization\n",tnsr_A->wrld->rank);
           if (tnsr_A == tnsr_B){
             tnsr_A = new tensor(tnsr_B);
           }
           desymmetrize(tnsr_A, unfold_ctr->A, 0);
           desymmetrize(tnsr_B, unfold_ctr->B, 0);
           desymmetrize(tnsr_C, unfold_ctr->C, 1);
-  //        if (global_comm.rank == 0)
+          if (global_comm.rank == 0)
             DPRINTF(1,"%d Performing index desymmetrization\n",tnsr_A->wrld->rank);
           unfold_ctr->alpha = align_alpha;
           stat = unfold_ctr->sym_contract();

@@ -358,7 +358,6 @@ namespace CTF_int {
               DPRINTF(3,"failed confirmation here i=%d\n",i);
               break;
             }*/
-            //FIXME: learn to do proper recursive physical mappings
             if (map2->cdt != map1->cdt+1) 
               pass = 0;
             if (!pass){          

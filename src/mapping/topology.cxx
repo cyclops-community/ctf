@@ -52,11 +52,11 @@ namespace CTF_int {
     dim_comm     = (CommData*)CTF_int::alloc(order_*sizeof(CommData));
     is_activated = false;
    
-//    memcpy(lens, lens_, order_*sizeof(int));
+    memcpy(lens, lens_, order_*sizeof(int));
     //reverse FIXME: this is assumed somewhere...
-    for (int i=0; i<order; i++){
-      lens[i] = lens_[order-i-1];
-    }
+//    for (int i=0; i<order; i++){
+//      lens[i] = lens_[order-i-1];
+//    }
  
     int stride = 1, cut = 0;
     int rank = glb_comm.rank;
@@ -404,7 +404,12 @@ namespace CTF_int {
     std::vector<topology*> perm_vec;
     perm_vec.push_back(phys_topology);
     bool changed;
+    /*int i=0;
     do {
+      for (int j=0; j< perm_vec[i]->order; 
+    } while(i<perm_vec.size();*/
+    do {
+//      printf("HERE %d %d %d %d\n",perm_vec[0]->order, perm_vec.size(), perm_vec[0]->lens[0], perm_vec[0]->lens[1]);
       changed = false;
       for (int i=0; i<(int)perm_vec.size(); i++){
         for (int j=0; j<perm_vec[i]->order; j++){
@@ -416,6 +421,9 @@ namespace CTF_int {
                 new_lens[j] = perm_vec[i]->lens[k];
                 new_lens[k] = perm_vec[i]->lens[j];
                 topology * new_topo = new topology(perm_vec[i]->order, new_lens, cdt);
+                /*for (int z=0; z<new_topo->order; z++){
+                  printf("%d %d %d adding topo %d with len[%d] = %d %d\n",i,j,k,perm_vec.size(),z,new_topo->lens[z], new_lens[z]);
+                }*/
                 if (find_topology(new_topo, perm_vec) == -1){
                   perm_vec.push_back(new_topo);
                   changed=true;

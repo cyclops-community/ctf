@@ -591,10 +591,14 @@ namespace CTF_int {
         int vp = tp/pp;
         if (tp==1) sprintf(tname+strlen(tname),"1");
         else {
-          if (pp > 1) sprintf(tname+strlen(tname),"p%d",pp);
+          if (pp > 1){
+            sprintf(tname+strlen(tname),"p%d(%d)",edge_map[dim].np,edge_map[dim].cdt);
+            if (edge_map[dim].has_child && edge_map[dim].child->type == PHYSICAL_MAP) 
+              sprintf(tname+strlen(tname),"p%d(%d)",edge_map[dim].child->np,edge_map[dim].child->cdt);
+          }
           if (vp > 1) sprintf(tname+strlen(tname),"v%d",vp);
         }
-        sprintf(tname+strlen(tname),"c%d",edge_map[dim].has_child);
+//        sprintf(tname+strlen(tname),"c%d",edge_map[dim].has_child);
       }
       sprintf(tname+strlen(tname), "]");
       printf("CTF: Tensor mapping is %s\n",tname);
