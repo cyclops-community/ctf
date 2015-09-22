@@ -7,6 +7,8 @@
 namespace CTF_int {
   class tensor; 
   class topology; 
+  class distribution;
+  class mapping;
 
   /**
    * \brief class for execution distributed contraction of tensors
@@ -257,6 +259,10 @@ namespace CTF_int {
        * \brief attempts to remap 3 tensors to the same topology if possible
        */
       int try_topo_morph();
+
+      void get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time);
+
+      void get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time);
 
       /**
        * \brief find best possible mapping for contraction and redistribute tensors to this mapping

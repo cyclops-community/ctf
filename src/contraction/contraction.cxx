@@ -2363,111 +2363,17 @@ namespace CTF_int {
 
   }
 
-  int contraction::map(ctr ** ctrf, bool do_remap){
-    int ret, j, need_remap, d;
+  void contraction::get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time){
+    int ret, i, j, need_remap, d;
     int need_remap_A, need_remap_B, need_remap_C;
     int64_t memuse;//, bmemuse;
     double est_time, best_time;
     int btopo;
-    //int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
-    int * old_phase_A, * old_phase_B, * old_phase_C;
-    topology * old_topo_A, * old_topo_B, * old_topo_C;
-    ctr * sctr;
-    distribution * dA, * dB, * dC;
-
-    ASSERT(A->wrld->comm == B->wrld->comm && B->wrld->comm == C->wrld->comm);
+    bool is_ctr_sparse = A->is_sparse || B->is_sparse || C->is_sparse;
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
-    
-    old_topo_A = NULL;
-    old_topo_B = NULL;
-    old_topo_C = NULL;
-
-#ifdef PROFILE
-    MPI_Barrier(global_comm.cm);
-#endif
-
-    TAU_FSTART(select_ctr_map);
-    TAU_FSTART(init_select_ctr_map);
-  #if BEST_VOL
-    CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
-    CTF_int::alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
-    CTF_int::alloc_ptr(sizeof(int)*C->order,     (void**)&virt_blk_len_C);
-  #endif
-    
-    mapping * old_map_A = new mapping[A->order];
-    mapping * old_map_B = new mapping[B->order];
-    mapping * old_map_C = new mapping[C->order];
-    copy_mapping(A->order, A->edge_map, old_map_A);
-    copy_mapping(B->order, B->edge_map, old_map_B);
-    copy_mapping(C->order, C->edge_map, old_map_C);
-    old_topo_A = A->topo;
-    old_topo_B = B->topo;
-    old_topo_C = C->topo;
-    ASSERT(A->is_mapped);
-    ASSERT(B->is_mapped);
-    ASSERT(C->is_mapped);
-    if (do_remap){
-    #if DEBUG >= 2
-      if (global_comm.rank == 0)
-        printf("Initial mappings:\n");
-      A->print_map();
-      B->print_map();
-      C->print_map();
-    #endif
-    }
-      A->unfold();
-      B->unfold();
-      C->unfold();
-      A->set_padding();
-      B->set_padding();
-      C->set_padding();
-      /* Save the current mappings of A, B, C */
-      dA = new distribution(A);
-      dB = new distribution(B);
-      dC = new distribution(C);
-      /*save_mapping(A, &old_phase_A, &old_rank_A, &old_virt_dim_A, &old_pe_lda_A,
-                   &old_size_A, &was_cyclic_A, &old_padding_A,
-                   &old_edge_len_A, A->topo);
-      save_mapping(B, &old_phase_B, &old_rank_B, &old_virt_dim_B, &old_pe_lda_B,
-                   &old_size_B, &was_cyclic_B, &old_padding_B,
-                   &old_edge_len_B, B->topo);
-      save_mapping(C, &old_phase_C, &old_rank_C, &old_virt_dim_C, &old_pe_lda_C,
-                   &old_size_C, &was_cyclic_C, &old_padding_C,
-                   &old_edge_len_C, C->topo);*/
-    //} else {
-/*    } else {
-      dA = NULL;
-      dB = NULL;
-      dC = NULL;
-    }*/
-    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&old_phase_A);
-    for (j=0; j<A->order; j++){
-      old_phase_A[j]   = A->edge_map[j].calc_phase();
-    }
-    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&old_phase_B);
-    for (j=0; j<B->order; j++){
-      old_phase_B[j]   = B->edge_map[j].calc_phase();
-    }
-    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&old_phase_C);
-    for (j=0; j<C->order; j++){
-      old_phase_C[j]   = C->edge_map[j].calc_phase();
-    }
-
-    bool is_ctr_sparse = A->is_sparse || B->is_sparse || C->is_sparse;
-    //}
     btopo = -1;
     best_time = DBL_MAX;
-    //bmemuse = UINT64_MAX;
-/*
-    for (j=0; j<6; j++){
-      // Attempt to map to all possible permutations of processor topology 
-  #if DEBUG < 3 
-      for (int t=global_comm.rank; t<(int)wrld->topovec.size()+3; t+=global_comm.np){
-  #else
-      for (int t=0; t<(int)wrld->topovec.size()+3; t++){
-  #endif*/
- 
     int num_tot;
     int * idx_arr; 
     inv_idx(A->order, idx_A,
@@ -2475,33 +2381,21 @@ namespace CTF_int {
             C->order, idx_C,
             &num_tot, &idx_arr);
     cdealloc(idx_arr);
-//    int num_choices = (num_tot+1)*(num_tot+1);
-    int64_t tot_num_choices = 0;
-    for (int i=0; i<wrld->topovec.size(); i++){
-     // tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
-      tot_num_choices += get_num_map_variants(wrld->topovec[i]);
-    }
-    int64_t valid_mappings = 0;
-    int64_t choice_offset = 0;
     int64_t max_memuse = proc_bytes_available();
-    TAU_FSTOP(init_select_ctr_map);
-    for (int i=0; i<wrld->topovec.size(); i++){
-//      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
-      int tnum_choices = get_num_map_variants(wrld->topovec[i]);
-
-      int64_t old_off = choice_offset;
-      choice_offset += tnum_choices;
-      for (int j=0; j<tnum_choices; j++){
-        if ((old_off + j)%global_comm.np != global_comm.rank)
-          continue;
-//        printf("working on mapping %d\n", j);
+    for (j=0; j<6; j++){
+      // Attempt to map to all possible permutations of processor topology 
+  #if DEBUG < 3 
+      for (int t=global_comm.rank; t<(int)wrld->topovec.size()+3; t+=global_comm.np){
+  #else
+      for (int t=0; t<(int)wrld->topovec.size()+3; t++){
+  #endif
         A->clear_mapping();
         B->clear_mapping();
         C->clear_mapping();
         A->set_padding();
         B->set_padding();
         C->set_padding();
-     /* 
+      
         topology * topo_i = NULL;
         if (t < 3){
           switch (t){
@@ -2528,22 +2422,14 @@ namespace CTF_int {
         TAU_FSTART(map_ctr_to_topo);
         ret = map_to_topology(topo_i, j);
         TAU_FSTOP(map_ctr_to_topo);
-        */
-        topology * topo_i = wrld->topovec[i];
-        TAU_FSTART(exh_map);
-        bool br = exh_map_to_topo(topo_i, j);
-        TAU_FSTOP(exh_map);
-        if (!br) DPRINTF(3,"exh_map_to_topo returned false\n");
-        if (!br) continue;
-/*
+
         if (ret == ERROR) {
           TAU_FSTOP(select_ctr_map);
-          return ERROR;
         }
         if (ret == NEGATIVE){
           //printf("map_to_topology returned negative\n");
           continue;
-        }*/
+        }
     
         A->is_mapped = 1;
         B->is_mapped = 1;
@@ -2552,58 +2438,13 @@ namespace CTF_int {
         B->topo = topo_i;
         C->topo = topo_i;
         
-        TAU_FSTART(switch_topo_perm);
-        br = switch_topo_perm();
-        TAU_FSTOP(switch_topo_perm);
-        if (!br){ DPRINTF(3,"switch topo perm returned false\n"); }
-        if (!br) continue;
         TAU_FSTART(check_ctr_mapping);
         if (check_mapping() == 0){ 
           TAU_FSTOP(check_ctr_mapping);
           continue;
         }
         TAU_FSTOP(check_ctr_mapping);
-        valid_mappings++;
         est_time = 0.0;
-        
-  #if 0
-        nvirt_all = -1;
-        old_nvirt_all = -2;
-        while (nvirt_all < MIN_NVIRT){
-          old_nvirt_all = nvirt_all;
-          A->set_padding();
-          B->set_padding();
-          C->set_padding();
-          sctr = construct_contraction(type, buffer, buffer_len, func_ptr,
-                                        alpha, beta, 0, NULL, &nvirt_all);
-          /* If this cannot be stretched */
-          if (old_nvirt_all == nvirt_all || nvirt_all > MAX_NVIRT){
-            A->clear_mapping();
-            B->clear_mapping();
-            C->clear_mapping();
-            A->set_padding();
-            B->set_padding();
-            C->set_padding();
-
-            ret = map_to_topology(type->tid_A, type->tid_B, type->tid_C, idx_A,
-                                  idx_B, idx_C, i, j,
-                                  idx_arr, idx_ctr, idx_extra, idx_no_ctr);
-            A->is_mapped = 1;
-            B->is_mapped = 1;
-            C->is_mapped = 1;
-            A->itopo = i;
-            B->itopo = i;
-            C->itopo = i;
-            break;
-
-          }
-          if (nvirt_all < MIN_NVIRT){
-            stretch_virt(A->order, 2, A->edge_map);
-            stretch_virt(B->order, 2, B->edge_map);
-            stretch_virt(C->order, 2, C->edge_map);
-          }
-        }
-  #endif
         TAU_FSTART(est_ctr_map_time);
         A->set_padding();
         B->set_padding();
@@ -2614,7 +2455,7 @@ namespace CTF_int {
         B->print_map(stdout, 0);
         C->print_map(stdout, 0);
   #endif
-        sctr = construct_ctr();
+        ctr * sctr = construct_ctr();
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
@@ -2701,67 +2542,15 @@ namespace CTF_int {
           continue;
         }
 
-        /* be careful about overflow */
-  /*      nvirt = (int64_t)A->calc_nvirt();
-        tnvirt = nvirt*(int64_t)B->calc_nvirt();
-        if (tnvirt < nvirt) nvirt = UINT64_MAX;
-        else {
-          nvirt = tnvirt;
-          tnvirt = nvirt*(int64_t)C->calc_nvirt();
-          if (tnvirt < nvirt) nvirt = UINT64_MAX;
-          else nvirt = tnvirt;
-        }*/
-        //if (btopo == -1 || (nvirt < bnvirt  || 
-        //((nvirt == bnvirt || nvirt <= ALLOW_NVIRT) && est_time < best_time))) {
         if (est_time < best_time) {
           best_time = est_time;
           //bmemuse = memuse;
-          btopo = old_off+j;
+          btopo = 6*t+j;
         }  
         delete sctr;
-  /*#else
-    #if BEST_COMM
-        est_time = sctr->comm_rec(sctr->num_lyr);
-        if (est_time < best_time){
-          best_time = est_time;
-          btopo = 6*i+j;
-        }
-    #endif
-  #endif*/
       }
     }
     TAU_FSTOP(select_ctr_map);
-/*  #iif DEBUG>=3
-    MPI_Barrier(A->wrld->comm);
-  #endif*/
-#if DEBUG >= 2 
-    int64_t tot_valid_mappings;
-    MPI_Allreduce(&valid_mappings, &tot_valid_mappings, 1, MPI_INT64_T, MPI_SUM, global_comm.cm);
-    if (A->wrld->rank == 0) DPRINTF(2,"number valid mappings was %ld/%ld\n", tot_valid_mappings, tot_num_choices);
-#endif
-  /*#if BEST_VOL
-    ALLREDUCE(&bnvirt, &gnvirt, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, global_comm);
-    if (bnvirt != gnvirt){
-      btopo = INT_MAX;
-    }
-    ALLREDUCE(&btopo, &gtopo, 1, MPI_INT, MPI_MIN, global_comm);
-  #endif
-  #if BEST_VIRT
-    if (btopo == -1){
-      bnvirt = UINT64_MAX;
-      btopo = INT_MAX;
-    }
-    DEBUG_PRINTF("bnvirt = " PRIu64 "\n", (int64_t)bnvirt);
-    // pick lower dimensional mappings, if equivalent 
-  #if BEST_COMM
-    if (bnvirt >= ALLOW_NVIRT)
-      gtopo = get_best_topo(bnvirt+1-ALLOW_NVIRT, btopo, global_comm, best_time, bmemuse);
-    else
-      gtopo = get_best_topo(1, btopo, global_comm, best_time, bmemuse);
-  #else
-    gtopo = get_best_topo(bnvirt, btopo, global_comm);
-  #endif
-  #endif*/
     TAU_FSTART(all_select_ctr_map);
     double gbest_time;
     MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
@@ -2772,6 +2561,291 @@ namespace CTF_int {
     MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
     TAU_FSTOP(all_select_ctr_map);
 
+    idx=ttopo;
+    time=gbest_time;
+
+  }
+
+  void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time){
+    int ret, j, need_remap, d;
+    int need_remap_A, need_remap_B, need_remap_C;
+    int64_t memuse;//, bmemuse;
+    double est_time, best_time;
+    int btopo;
+    bool is_ctr_sparse = A->is_sparse || B->is_sparse || C->is_sparse;
+    World * wrld = A->wrld;
+    CommData global_comm = wrld->cdt;
+    btopo = -1;
+    best_time = DBL_MAX;
+    int num_tot;
+    int * idx_arr; 
+    inv_idx(A->order, idx_A,
+            B->order, idx_B,
+            C->order, idx_C,
+            &num_tot, &idx_arr);
+    cdealloc(idx_arr);
+    int64_t tot_num_choices = 0;
+    for (int i=0; i<wrld->topovec.size(); i++){
+     // tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
+      tot_num_choices += get_num_map_variants(wrld->topovec[i]);
+    }
+    int64_t valid_mappings = 0;
+    int64_t choice_offset = 0;
+    int64_t max_memuse = proc_bytes_available();
+    TAU_FSTOP(init_select_ctr_map);
+    for (int i=0; i<wrld->topovec.size(); i++){
+//      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+      int tnum_choices = get_num_map_variants(wrld->topovec[i]);
+
+      int64_t old_off = choice_offset;
+      choice_offset += tnum_choices;
+      for (int j=0; j<tnum_choices; j++){
+        if ((old_off + j)%global_comm.np != global_comm.rank)
+          continue;
+        A->clear_mapping();
+        B->clear_mapping();
+        C->clear_mapping();
+        A->set_padding();
+        B->set_padding();
+        C->set_padding();
+        topology * topo_i = wrld->topovec[i];
+        TAU_FSTART(exh_map);
+        bool br = exh_map_to_topo(topo_i, j);
+        TAU_FSTOP(exh_map);
+        if (!br) DPRINTF(3,"exh_map_to_topo returned false\n");
+        if (!br) continue;
+        A->is_mapped = 1;
+        B->is_mapped = 1;
+        C->is_mapped = 1;
+        A->topo = topo_i;
+        B->topo = topo_i;
+        C->topo = topo_i;
+        
+        TAU_FSTART(switch_topo_perm);
+        br = switch_topo_perm();
+        TAU_FSTOP(switch_topo_perm);
+        if (!br){ DPRINTF(3,"switch topo perm returned false\n"); }
+        if (!br) continue;
+        TAU_FSTART(check_ctr_mapping);
+        if (check_mapping() == 0){ 
+          TAU_FSTOP(check_ctr_mapping);
+          continue;
+        }
+        TAU_FSTOP(check_ctr_mapping);
+        valid_mappings++;
+        est_time = 0.0;
+        
+        TAU_FSTART(est_ctr_map_time);
+        A->set_padding();
+        B->set_padding();
+        C->set_padding();
+  #if DEBUG >= 4
+        printf("\nTest mappings:\n");
+        A->print_map(stdout, 0);
+        B->print_map(stdout, 0);
+        C->print_map(stdout, 0);
+  #endif
+        ctr * sctr = construct_ctr();
+        double nnz_frac_A = 1.0;
+        double nnz_frac_B = 1.0;
+        double nnz_frac_C = 1.0;
+        if (A->is_sparse) nnz_frac_A = std::min(1.0, (std::max(5.,log2(A->calc_npe()))*A->nnz_tot)/(A->size*A->calc_npe()));
+        if (B->is_sparse) nnz_frac_B = std::min(1.0, (std::max(5.,log2(B->calc_npe()))*B->nnz_tot)/(B->size*B->calc_npe()));
+        if (C->is_sparse) nnz_frac_C = std::min(1.0, (std::max(5.,log2(C->calc_npe()))*C->nnz_tot)/(C->size*C->calc_npe()));
+        if (is_ctr_sparse){
+          est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+        } else { 
+          est_time = sctr->est_time_rec(sctr->num_lyr);
+        }
+  #if FOLD_TSR
+        if (!is_custom && can_fold()){
+          est_time = est_time_fold();
+          iparam prm = map_fold(false);
+          ctr * sctrf = construct_ctr(1, &prm);
+          est_time += sctrf->est_time_rec(sctrf->num_lyr);
+          delete sctrf;
+          A->remove_fold();
+          B->remove_fold();
+          C->remove_fold();
+        }
+  #endif
+  #if DEBUG >= 4
+        printf("mapping passed contr est_time = %E sec\n", est_time);
+  #endif 
+        ASSERT(est_time >= 0.0);
+        memuse = 0;
+        need_remap_A = 0;
+        need_remap_B = 0;
+        need_remap_C = 0;
+        if (topo_i == old_topo_A){
+          for (d=0; d<A->order; d++){
+            if (!comp_dim_map(&A->edge_map[d],&old_map_A[d]))
+              need_remap_A = 1;
+          }
+        } else
+          need_remap_A = 1;
+        if (need_remap_A) {
+          est_time += A->est_redist_time(*dA, nnz_frac_A); 
+          memuse = A->get_redist_mem(*dA, nnz_frac_A);
+        } else
+          memuse = 0;
+        if (topo_i == old_topo_B){
+          for (d=0; d<B->order; d++){
+            if (!comp_dim_map(&B->edge_map[d],&old_map_B[d]))
+              need_remap_B = 1;
+          }
+        } else
+          need_remap_B = 1;
+        if (need_remap_B) {
+          est_time += B->est_redist_time(*dB, nnz_frac_B); 
+          memuse = std::max(memuse,B->get_redist_mem(*dB, nnz_frac_B));
+        }
+        if (topo_i == old_topo_C){
+          for (d=0; d<C->order; d++){
+            if (!comp_dim_map(&C->edge_map[d],&old_map_C[d]))
+              need_remap_C = 1;
+          }
+        } else
+          need_remap_C = 1;
+        if (need_remap_C) {
+          est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
+          memuse = 2.*std::max(memuse,C->get_redist_mem(*dC, nnz_frac_C));
+        }
+        memuse = MAX((int64_t)sctr->mem_rec(), memuse);
+  #if DEBUG >= 4
+        printf("total (with redistribution and transp) est_time = %E\n", est_time);
+  #endif
+        ASSERT(est_time >= 0.0);
+
+        TAU_FSTOP(est_ctr_map_time);
+        TAU_FSTART(get_avail_res);
+        if ((int64_t)memuse >= max_memuse){
+          DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
+          TAU_FSTOP(get_avail_res);
+          delete sctr;
+          continue;
+        } 
+        TAU_FSTOP(get_avail_res);
+        if (A->size > INT_MAX || B->size > INT_MAX || C->size > INT_MAX){
+          DPRINTF(2,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
+          delete sctr;
+          continue;
+        }
+        if (est_time < best_time) {
+          best_time = est_time;
+          //bmemuse = memuse;
+          btopo = old_off+j;
+        }  
+        delete sctr;
+      }
+    }
+    TAU_FSTOP(select_ctr_map);
+#if DEBUG >= 2 
+    int64_t tot_valid_mappings;
+    MPI_Allreduce(&valid_mappings, &tot_valid_mappings, 1, MPI_INT64_T, MPI_SUM, global_comm.cm);
+    if (A->wrld->rank == 0) DPRINTF(2,"number valid mappings was %ld/%ld\n", tot_valid_mappings, tot_num_choices);
+#endif
+    TAU_FSTART(all_select_ctr_map);
+    double gbest_time;
+    MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
+    if (best_time != gbest_time){
+      btopo = INT_MAX;
+    }
+    int ttopo;
+    MPI_Allreduce(&btopo, &ttopo, 1, MPI_INT, MPI_MIN, global_comm.cm);
+    TAU_FSTOP(all_select_ctr_map);
+
+    idx=ttopo;
+    time=gbest_time;
+
+
+  }
+
+  int contraction::map(ctr ** ctrf, bool do_remap){
+    int ret, j, need_remap, d;
+    int need_remap_A, need_remap_B, need_remap_C;
+    int64_t memuse;//, bmemuse;
+    double est_time, best_time;
+    int btopo;
+    //int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
+    int * old_phase_A, * old_phase_B, * old_phase_C;
+    topology * old_topo_A, * old_topo_B, * old_topo_C;
+    ctr * sctr;
+    distribution * dA, * dB, * dC;
+    old_topo_A = A->topo;
+    old_topo_B = B->topo;
+    old_topo_C = C->topo;
+    mapping * old_map_A = new mapping[A->order];
+    mapping * old_map_B = new mapping[B->order];
+    mapping * old_map_C = new mapping[C->order];
+    copy_mapping(A->order, A->edge_map, old_map_A);
+    copy_mapping(B->order, B->edge_map, old_map_B);
+    copy_mapping(C->order, C->edge_map, old_map_C);
+
+    ASSERT(A->wrld->comm == B->wrld->comm && B->wrld->comm == C->wrld->comm);
+    World * wrld = A->wrld;
+    CommData global_comm = wrld->cdt;
+    
+    TAU_FSTART(select_ctr_map);
+    TAU_FSTART(init_select_ctr_map);
+  #if BEST_VOL
+    CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
+    CTF_int::alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
+    CTF_int::alloc_ptr(sizeof(int)*C->order,     (void**)&virt_blk_len_C);
+  #endif
+    
+    ASSERT(A->is_mapped);
+    ASSERT(B->is_mapped);
+    ASSERT(C->is_mapped);
+    if (do_remap){
+    #if DEBUG >= 2
+      if (global_comm.rank == 0)
+        printf("Initial mappings:\n");
+      A->print_map();
+      B->print_map();
+      C->print_map();
+    #endif
+    }
+    A->unfold();
+    B->unfold();
+    C->unfold();
+    A->set_padding();
+    B->set_padding();
+    C->set_padding();
+    /* Save the current mappings of A, B, C */
+    dA = new distribution(A);
+    dB = new distribution(B);
+    dC = new distribution(C);
+    CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&old_phase_A);
+    for (j=0; j<A->order; j++){
+      old_phase_A[j]   = A->edge_map[j].calc_phase();
+    }
+    CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&old_phase_B);
+    for (j=0; j<B->order; j++){
+      old_phase_B[j]   = B->edge_map[j].calc_phase();
+    }
+    CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&old_phase_C);
+    for (j=0; j<C->order; j++){
+      old_phase_C[j]   = C->edge_map[j].calc_phase();
+    }
+
+    bool is_ctr_sparse = A->is_sparse || B->is_sparse || C->is_sparse;
+    //}
+    btopo = -1;
+    best_time = DBL_MAX;
+    //bmemuse = UINT64_MAX;
+    int ttopo, ttopo_sel, ttopo_exh;
+    double gbest_time, gbest_time_sel, gbest_time_exh;
+  
+    get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
+    get_best_exh_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_exh, gbest_time_exh);
+    if (gbest_time_sel < gbest_time_exh){
+      gbest_time = gbest_time_sel;
+      ttopo = ttopo_sel;
+    } else {
+      gbest_time = gbest_time_exh;
+      ttopo = ttopo_exh;
+    }
 
     A->clear_mapping();
     B->clear_mapping();
@@ -2790,16 +2864,7 @@ namespace CTF_int {
       delete dA;
       delete dB;
       delete dC;
-/*      for (i=0; i<A->order; i++)
-        old_map_A[i].clear();
-      for (i=0; i<B->order; i++)
-        old_map_B[i].clear();
-      for (i=0; i<C->order; i++)
-        old_map_C[i].clear();
-      CTF_int::cdealloc(old_map_A);
-      CTF_int::cdealloc(old_map_B);
-      CTF_int::cdealloc(old_map_C);
-*/
+
       if (ttopo == INT_MAX || ttopo == -1){
         printf("ERROR: Failed to map contraction!\n");
         ASSERT(0);
@@ -2809,58 +2874,61 @@ namespace CTF_int {
       return SUCCESS;
     }
     topology * topo_g;
-    /*int j_g = ttopo%6;
-    if (ttopo < 18){
-      switch (ttopo/6){
-        case 0:
-        topo_g = old_topo_A;
-        copy_mapping(A->order, old_map_A, A->edge_map);
-        break;
-      
-        case 1:
-        topo_g = old_topo_B;
-        copy_mapping(B->order, old_map_B, B->edge_map);
-        break;
-
-        case 2:
-        topo_g = old_topo_C;
-        copy_mapping(C->order, old_map_C, C->edge_map);
-        break;
+    int j_g;
+    if (gbest_time_sel < gbest_time_exh){
+      j_g = ttopo%6;
+      if (ttopo < 18){
+        switch (ttopo/6){
+          case 0:
+          topo_g = old_topo_A;
+          copy_mapping(A->order, old_map_A, A->edge_map);
+          break;
         
-        default:
-        topo_g = NULL;
-        assert(0);
-        break;
-      }
-    } else topo_g = wrld->topovec[(ttopo-18)/6];
-   */
-    choice_offset = 0;
-    int i=0;
-    int64_t old_off;
-    for (i=0; i<wrld->topovec.size(); i++){
-      //int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
-      int tnum_choices = get_num_map_variants(wrld->topovec[i]);
-      old_off = choice_offset;
-      choice_offset += tnum_choices;
-      if (choice_offset > ttopo) break;
-    }
-    topo_g = wrld->topovec[i];
-    int j_g = ttopo-old_off;
+          case 1:
+          topo_g = old_topo_B;
+          copy_mapping(B->order, old_map_B, B->edge_map);
+          break;
 
+          case 2:
+          topo_g = old_topo_C;
+          copy_mapping(C->order, old_map_C, C->edge_map);
+          break;
+          
+          default:
+          topo_g = NULL;
+          assert(0);
+          break;
+        }
+      } else topo_g = wrld->topovec[(ttopo-18)/6];
+    } else {
+      int64_t choice_offset = 0;
+      int i=0;
+      int64_t old_off;
+      for (i=0; i<wrld->topovec.size(); i++){
+        //int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
+        int tnum_choices = get_num_map_variants(wrld->topovec[i]);
+        old_off = choice_offset;
+        choice_offset += tnum_choices;
+        if (choice_offset > ttopo) break;
+      }
+      topo_g = wrld->topovec[i];
+      j_g = ttopo-old_off;
+    }
 
     A->topo = topo_g;
     B->topo = topo_g;
     C->topo = topo_g;
     
-    //ret = map_to_topology(topo_g, j_g);
-    exh_map_to_topo(topo_g, j_g);
-
-    switch_topo_perm();
-/*
-    if (ret == NEGATIVE || ret == ERROR) {
-      printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
-      return ERROR;
-    }*/
+    if (gbest_time_sel < gbest_time_exh){
+      ret = map_to_topology(topo_g, j_g);
+      if (ret == NEGATIVE || ret == ERROR) {
+        printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
+        return ERROR;
+      }
+    } else {
+      exh_map_to_topo(topo_g, j_g);
+      switch_topo_perm();
+    }
     A->is_mapped = 1;
     B->is_mapped = 1;
     C->is_mapped = 1;
@@ -2870,58 +2938,21 @@ namespace CTF_int {
   //  else if (global_comm.rank == 0) printf("Mapping successful estimated execution time = %lf sec\n",best_time);
   #endif
     ASSERT(check_mapping());
-  
-#if 0
-    nvirt_all = -1;
-    old_nvirt_all = -2;
-    while (nvirt_all < MIN_NVIRT){
-      old_nvirt_all = nvirt_all;
-      A->set_padding();
-      B->set_padding();
-      C->set_padding();
-      *ctrf = construct_ctr();
-      delete *ctrf;
-      /* If this cannot be stretched */
-      if (old_nvirt_all == nvirt_all || nvirt_all > MAX_NVIRT){
-        A->clear_mapping();
-        B->clear_mapping();
-        C->clear_mapping();
-        A->set_padding();
-        B->set_padding();
-        C->set_padding();
-        A->topo = topo_g;
-        B->topo = topo_g;
-        C->topo = topo_g;
-
-          ret = map_to_topology(topo_g, j_g);
-          A->is_mapped = 1;
-          B->is_mapped = 1;
-          C->is_mapped = 1;
-          break;
-        }
-        if (nvirt_all < MIN_NVIRT){
-          stretch_virt(A->order, 2, A->edge_map);
-          stretch_virt(B->order, 2, B->edge_map);
-          stretch_virt(C->order, 2, C->edge_map);
-        }
-      }
-#endif
-      A->set_padding();
-      B->set_padding();
-      C->set_padding();
-      *ctrf = construct_ctr();
+    A->set_padding();
+    B->set_padding();
+    C->set_padding();
+    *ctrf = construct_ctr();
     #if DEBUG > 2
-      if (global_comm.rank == 0)
-        printf("New mappings:\n");
-      A->print_map(stdout);
-      B->print_map(stdout);
-      C->print_map(stdout);
-      MPI_Barrier(global_comm.cm);
+    if (global_comm.rank == 0)
+      printf("New mappings:\n");
+    A->print_map(stdout);
+    B->print_map(stdout);
+    C->print_map(stdout);
+    MPI_Barrier(global_comm.cm);
     #endif
      
-         
-      //FIXME: adhoc? 
-      memuse = MAX((int64_t)(*ctrf)->mem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
+    //FIXME: adhoc? 
+    memuse = MAX((int64_t)(*ctrf)->mem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
     if (global_comm.rank == 0)
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
               (double)memuse,(double)proc_bytes_available(),gbest_time);
