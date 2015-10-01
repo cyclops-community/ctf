@@ -96,9 +96,10 @@ namespace CTF_int {
   /**
    * \brief estimates execution time, given this processor sends a receives tot_sz across np procs
    * \param[in] tot_sz amount of data sent/recved
-   * \param[in] np number of procs involved
+   * \param[in] nv0 starting number of blocks
+   * \param[in] nv1 ending number of blocks
    */
-  double blres_est_time(int64_t tot_sz, int np);
+  double blres_est_time(int64_t tot_sz, int nv0, int nv1);
 
   /**
    * \brief Reshuffle elements by block given the global phases stay the same

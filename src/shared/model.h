@@ -22,6 +22,10 @@ namespace CTF_int {
     private:
       int nobs;
       int mat_lda;
+      bool is_tuned;
+      double tot_time;
+      double over_time;
+      double under_time;
     public:
       int hist_size;
       double * time_param_mat;

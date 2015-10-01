@@ -2024,11 +2024,15 @@ namespace CTF_int {
       can_blres = 0;
   #endif
     }
+    int old_nvirt = 1;
+    for (int i=0; i<order; i++){
+      old_nvirt *= old_dist.virt_phase[i];
+    }
 
     double est_time = 0.0;
 
     if (can_blres){
-      est_time += blres_est_time(this->sr->el_size*this->size*nnz_frac, wrld->cdt.np);
+      est_time += blres_est_time(std::max(old_dist.size,this->size)*this->sr->el_size*nnz_frac, nvirt, old_nvirt);
     } else {
       if (this->is_sparse)
         est_time += 25.*COST_MEMBW*this->sr->el_size*this->size*nnz_frac+wrld->cdt.estimate_alltoall_time(1);
