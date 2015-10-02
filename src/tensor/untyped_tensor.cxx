@@ -45,8 +45,10 @@ namespace CTF_int {
       cdealloc(sym_table);
       delete [] edge_map;
       if (!is_data_aliased){
-        if (is_home) cdealloc(home_buffer);
-        else { 
+        if (has_home) inc_tot_mem_used(-size*sr->el_size);
+        if (is_home){
+          cdealloc(home_buffer);
+        } else { 
           if (data != NULL)
             cdealloc(data);
         }
@@ -186,6 +188,7 @@ namespace CTF_int {
           CTF_int::cdealloc(this->home_buffer);
         }*/
         this->home_size = other->home_size;
+        if (other->has_home) inc_tot_mem_used(home_size*sr->el_size);
         this->home_buffer = (char*)CTF_int::alloc(other->home_size*sr->el_size);
         if (other->is_home){
           this->is_home = 1;
@@ -548,6 +551,7 @@ namespace CTF_int {
     /*      if (wrld->rank == 0)
             DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
           CTF_int::alloc_ptr(this->home_size*sr->el_size, (void**)&this->home_buffer);
+          inc_tot_mem_used(size*sr->el_size);
           this->data = this->home_buffer;
         } else {
           CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);

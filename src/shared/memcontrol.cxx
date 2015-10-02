@@ -45,6 +45,14 @@ namespace CTF_int {
   int max_threads;
   int instance_counter = 0;
   int64_t mem_used[MAX_THREADS];
+  int64_t tot_mem_used;
+  void inc_tot_mem_used(int64_t a){
+    tot_mem_used += a;
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank == 0)
+      printf("tot_mem_used = %1.5E, proc_bytes_available() = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_available());
+  }
   #ifndef PRODUCTION
   std::list<mem_loc> mem_stacks[MAX_THREADS];
   #endif
@@ -155,6 +163,7 @@ namespace CTF_int {
       for (i=0; i<max_threads; i++){
         mem_used[i] = 0;
       }
+      tot_mem_used = 0;
     }
   }
 
@@ -528,8 +537,9 @@ namespace CTF_int {
   int64_t proc_bytes_available(){
     uint64_t mem_avail;
     Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail);
+    mem_avail = std::min(mem_avail,proc_bytes_total()-tot_mem_use);
     mem_avail*= memcap;
-    mem_avail += mst_buffer_size-mst_buffer_used;
+    //mem_avail += mst_buffer_size-mst_buffer_used;
   /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
             mem_avail, proc_bytes_total() - proc_bytes_used());*/
     

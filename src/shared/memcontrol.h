@@ -4,6 +4,7 @@
 #define __MEMCONTROL_H__
 
 namespace CTF_int {
+  void inc_tot_mem_used(int64_t a);
   int64_t proc_bytes_used();
   int64_t proc_bytes_total();
   int64_t proc_bytes_available();
