@@ -2923,7 +2923,7 @@ namespace CTF_int {
         choice_offset += tnum_choices;
         if (choice_offset > ttopo) break;
       }
-      topo_g = wrld->topovec[i-1];
+      topo_g = wrld->topovec[i];
       j_g = ttopo-old_off;
     }
 
