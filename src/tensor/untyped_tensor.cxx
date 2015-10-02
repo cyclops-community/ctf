@@ -2028,12 +2028,12 @@ namespace CTF_int {
     double est_time = 0.0;
 
     if (can_blres){
-      est_time += blres_est_time(this->sr->el_size*this->size*nnz_frac, wrld->cdt.np);
+      est_time += blres_est_time(this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac, wrld->cdt.np);
     } else {
       if (this->is_sparse)
-        est_time += 25.*COST_MEMBW*this->sr->el_size*this->size*nnz_frac+wrld->cdt.estimate_alltoall_time(1);
+        est_time += 25.*COST_MEMBW*this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac+wrld->cdt.estimate_alltoall_time(1);
       else
-        est_time += dgtog_est_time(this->sr->el_size*this->size*nnz_frac, wrld->cdt.np);
+        est_time += dgtog_est_time(this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac, wrld->cdt.np);
     }
 
     return est_time;

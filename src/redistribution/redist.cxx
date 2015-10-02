@@ -582,7 +582,7 @@ namespace CTF_int {
     cdealloc(reqs);
     
     double exe_time = MPI_Wtime()-st_time;
-    double tps[] = {exe_time, 1.0, (double)log2(glb_comm.np), (double)std::max(new_dist.size, new_dist.size)*log2(glb_comm.np)*sr->el_size};;
+    double tps[] = {exe_time, 1.0, (double)log2(glb_comm.np), (double)std::max(new_dist.size, new_dist.size)*log2(glb_comm.np)*sr->el_size};
     blres_mdl.observe(tps);
 
     TAU_FSTOP(block_reshuffle);

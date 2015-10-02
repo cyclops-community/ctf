@@ -2566,7 +2566,7 @@ namespace CTF_int {
 
   }
 
-  void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time){
+  void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time, double init_best_time=DBL_MAX){
     int ret, j, need_remap, d;
     int need_remap_A, need_remap_B, need_remap_C;
     int64_t memuse;//, bmemuse;
@@ -2576,7 +2576,7 @@ namespace CTF_int {
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     btopo = -1;
-    best_time = DBL_MAX;
+    best_time = init_best_time;
     int num_tot;
     int * idx_arr; 
     inv_idx(A->order, idx_A,
@@ -2645,34 +2645,13 @@ namespace CTF_int {
         B->print_map(stdout, 0);
         C->print_map(stdout, 0);
   #endif
-        ctr * sctr = construct_ctr();
+
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
         if (A->is_sparse) nnz_frac_A = std::min(1.0, (std::max(5.,log2(A->calc_npe()))*A->nnz_tot)/(A->size*A->calc_npe()));
         if (B->is_sparse) nnz_frac_B = std::min(1.0, (std::max(5.,log2(B->calc_npe()))*B->nnz_tot)/(B->size*B->calc_npe()));
         if (C->is_sparse) nnz_frac_C = std::min(1.0, (std::max(5.,log2(C->calc_npe()))*C->nnz_tot)/(C->size*C->calc_npe()));
-        if (is_ctr_sparse){
-          est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
-        } else { 
-          est_time = sctr->est_time_rec(sctr->num_lyr);
-        }
-  #if FOLD_TSR
-        if (!is_custom && can_fold()){
-          est_time = est_time_fold();
-          iparam prm = map_fold(false);
-          ctr * sctrf = construct_ctr(1, &prm);
-          est_time += sctrf->est_time_rec(sctrf->num_lyr);
-          delete sctrf;
-          A->remove_fold();
-          B->remove_fold();
-          C->remove_fold();
-        }
-  #endif
-  #if DEBUG >= 4
-        printf("mapping passed contr est_time = %E sec\n", est_time);
-  #endif 
-        ASSERT(est_time >= 0.0);
         memuse = 0;
         need_remap_A = 0;
         need_remap_B = 0;
@@ -2711,6 +2690,30 @@ namespace CTF_int {
           est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
           memuse = 2.*std::max(memuse,C->get_redist_mem(*dC, nnz_frac_C));
         }
+ 
+        if (est_time >= best_time) continue;
+
+        ctr * sctr = construct_ctr();
+        if (is_ctr_sparse){
+          est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+        } else { 
+          est_time = sctr->est_time_rec(sctr->num_lyr);
+        }
+  #if FOLD_TSR
+        if (!is_custom && can_fold()){
+          est_time = est_time_fold();
+          iparam prm = map_fold(false);
+          ctr * sctrf = construct_ctr(1, &prm);
+          est_time += sctrf->est_time_rec(sctrf->num_lyr);
+          delete sctrf;
+          A->remove_fold();
+          B->remove_fold();
+          C->remove_fold();
+        }
+  #endif
+  #if DEBUG >= 4
+        printf("mapping passed contr est_time = %E sec\n", est_time);
+  #endif 
         memuse = MAX((int64_t)sctr->mem_rec(), memuse);
   #if DEBUG >= 4
         printf("total (with redistribution and transp) est_time = %E\n", est_time);
@@ -2837,8 +2840,17 @@ namespace CTF_int {
     int ttopo, ttopo_sel, ttopo_exh;
     double gbest_time, gbest_time_sel, gbest_time_exh;
   
+    TAU_FSTART(get_best_sel_map);
     get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
-    get_best_exh_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_exh, gbest_time_exh);
+    TAU_FSTOP(get_best_sel_map);
+    if (gbest_time_sel < 1.E-1){
+      gbest_time_exh = gbest_time_sel+1.;
+      ttopo_exh = ttopo_sel;
+    } else {
+      TAU_FSTART(get_best_exh_map);
+      get_best_exh_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_exh, gbest_time_exh, gbest_time_sel);
+      TAU_FSTOP(get_best_exh_map);
+    }
     if (gbest_time_sel < gbest_time_exh){
       gbest_time = gbest_time_sel;
       ttopo = ttopo_sel;
