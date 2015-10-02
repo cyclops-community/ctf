@@ -51,7 +51,7 @@ namespace CTF_int {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0)
-      printf("tot_mem_used = %1.5E, proc_bytes_available() = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_available());
+      printf("tot_mem_used = %1.5E/%1.5E, proc_bytes_available() = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_used(), (double)proc_bytes_available());
   }
   #ifndef PRODUCTION
   std::list<mem_loc> mem_stacks[MAX_THREADS];
