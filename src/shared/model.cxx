@@ -23,6 +23,9 @@ namespace CTF_int {
     for (int i=0; i<get_all_models().size(); i++){
       get_all_models()[i]->print();
     }
+    for (int i=0; i<get_all_models().size(); i++){
+      get_all_models()[i]->print_uo();
+    }
 #endif
   }
 
@@ -301,9 +304,13 @@ namespace CTF_int {
       printf("%1.4E", param_guess[i]);
     }
     printf("};\n");
-    printf("%s is_tuned = %d tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,tot_time,over_time,under_time);
-
   }
+
+  template <int nparam>
+  void LinModel<nparam>::print_uo(){
+    printf("%s is_tuned = %d tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,tot_time,over_time,under_time);
+  }
+
 
 
   template class LinModel<1>;

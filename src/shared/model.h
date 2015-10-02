@@ -9,6 +9,7 @@ namespace CTF_int {
     public:
       virtual void update(MPI_Comm cm){};
       virtual void print(){};
+      virtual void print_uo(){};
   };
 
   void update_all_models(MPI_Comm cm);
@@ -65,6 +66,11 @@ namespace CTF_int {
        * \brief prints current parameter estimates
        */
       void print();
+
+      /**
+       * \brief prints time estimate errors
+       */
+      void print_uo();
   };
 }
 
