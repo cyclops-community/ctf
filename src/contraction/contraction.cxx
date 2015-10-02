@@ -2851,7 +2851,7 @@ namespace CTF_int {
       get_best_exh_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_exh, gbest_time_exh, gbest_time_sel);
       TAU_FSTOP(get_best_exh_map);
     }
-    if (gbest_time_sel < gbest_time_exh){
+    if (gbest_time_sel <= gbest_time_exh){
       gbest_time = gbest_time_sel;
       ttopo = ttopo_sel;
     } else {
@@ -2887,7 +2887,7 @@ namespace CTF_int {
     }
     topology * topo_g;
     int j_g;
-    if (gbest_time_sel < gbest_time_exh){
+    if (gbest_time_sel <= gbest_time_exh){
       j_g = ttopo%6;
       if (ttopo < 18){
         switch (ttopo/6){
@@ -2923,15 +2923,18 @@ namespace CTF_int {
         choice_offset += tnum_choices;
         if (choice_offset > ttopo) break;
       }
-      topo_g = wrld->topovec[i];
+      topo_g = wrld->topovec[i-1];
       j_g = ttopo-old_off;
     }
 
     A->topo = topo_g;
     B->topo = topo_g;
     C->topo = topo_g;
+    A->is_mapped = 1;
+    B->is_mapped = 1;
+    C->is_mapped = 1;
     
-    if (gbest_time_sel < gbest_time_exh){
+    if (gbest_time_sel <= gbest_time_exh){
       ret = map_to_topology(topo_g, j_g);
       if (ret == NEGATIVE || ret == ERROR) {
         printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
@@ -2941,9 +2944,6 @@ namespace CTF_int {
       exh_map_to_topo(topo_g, j_g);
       switch_topo_perm();
     }
-    A->is_mapped = 1;
-    B->is_mapped = 1;
-    C->is_mapped = 1;
   #if DEBUG > 2
     if (!check_mapping())
       printf("ERROR ON FINAL MAP ATTEMPT, THIS SHOULD NOT HAPPEN\n");
