@@ -503,15 +503,16 @@ namespace CTF_int {
    * \brief gives total memory used on this MPI process 
    */
   int64_t proc_bytes_used(){
-    /*struct mallinfo info;
+    struct mallinfo info;
     info = mallinfo();
-    return (int64_t)(info.usmblks + info.uordblks + info.hblkhd);*/
-    int64_t ms = 0;
+    return (int64_t)(info.usmblks + info.uordblks + info.hblkhd);
+    /*int64_t ms = 0;
     int i;
     for (i=0; i<max_threads; i++){
       ms += mem_used[i];
     }
-    return ms + mst_buffer_used;// + (int64_t)mst_buffer_size;
+    return ms + mst_buffer_used;// + (int64_t)mst_buffer_size;*/
+//    return tot_mem_used;
   }
 
   #ifdef BGQ
@@ -537,8 +538,8 @@ namespace CTF_int {
   int64_t proc_bytes_available(){
     uint64_t mem_avail;
     Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail);
-    mem_avail = std::min(mem_avail*memcap,proc_bytes_total()*memcap-tot_mem_use);
-//    mem_avail*= memcap;
+//    mem_avail = std::min(mem_avail*memcap,proc_bytes_total()*memcap-tot_mem_use);
+    mem_avail*= memcap;
     //mem_avail += mst_buffer_size-mst_buffer_used;
   /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
             mem_avail, proc_bytes_total() - proc_bytes_used());*/
@@ -583,9 +584,9 @@ namespace CTF_int {
    * \brief gives total memory size per MPI process 
    */
   int64_t proc_bytes_available(){
-  /*  struct mallinfo info;
+    /*struct mallinfo info;
     info = mallinfo();
-    return (int64_t)info.fordblks;*/
+    return memcap*(int64_t)info.fordblks;*/
     return memcap*proc_bytes_total() - proc_bytes_used();
   }
 
