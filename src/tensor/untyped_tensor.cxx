@@ -1001,41 +1001,56 @@ namespace CTF_int {
           bucket_lda[i] = 0;
       }
 
-      int64_t nnz_loc_new;
-      char * new_pairs;
-      wr_pairs_layout(tsr->order,
-                      wrld->np,
-                      num_pair,
-                      alpha,
-                      beta,
-                      rw,
-                      num_virt,
-                      tsr->sym,
-                      tsr->pad_edge_len,
-                      tsr->padding,
-                      phase,
-                      phys_phase,
-                      virt_phase,
-                      virt_phys_rank,
-                      bucket_lda,
-                      mapped_data,
-                      tsr->data,
-                      wrld->cdt,
-                      sr,
-                      is_sparse,
-                      nnz_loc,
-                      nnz_blk,
-                      new_pairs,
-                      nnz_loc_new);
-      if (is_sparse && rw == 'w'){
-        this->set_new_nnz_glb(nnz_blk);
-        if (tsr->data != NULL) cdealloc(tsr->data);
-        tsr->data = new_pairs;
-/*        for (int64_t i=0; i<nnz_loc; i++){
-          printf("rank = %d, stores key %ld value %lf\n",wrld->rank, 
-                  ((int64_t*)(new_pairs+i*sr->pair_size()))[0],
-                  ((double*)(new_pairs+i*sr->pair_size()+sizeof(int64_t)))[0]);
-        }*/
+      // buffer write if not enough memory
+      int npart = 1;
+      int64_t max_memuse = proc_bytes_available();
+      if (4*num_pair*sr->pair_size() >= max_memuse){
+        npart = 1 + (6*num_pair*sr->pair_size())/max_memuse;
+      }
+      MPI_Allreduce(MPI_IN_PLACE, &npart, 1, MPI_INT, MPI_MAX, wrld->cdt.cm);
+
+      int64_t part_size = num_pair/npart;
+      for (int part = 0; part<npart; part++){
+        int64_t nnz_loc_new;
+        char * new_pairs;
+        int64_t pnum_pair;
+        if (part == npart-1) pnum_pair = num_pair - part_size*part;
+        else pnum_pair = part_size;
+        char * buf_ptr = mapped_data + sr->pair_size()*part_size*part;
+        wr_pairs_layout(tsr->order,
+                        wrld->np,
+                        pnum_pair,
+                        alpha,
+                        beta,
+                        rw,
+                        num_virt,
+                        tsr->sym,
+                        tsr->pad_edge_len,
+                        tsr->padding,
+                        phase,
+                        phys_phase,
+                        virt_phase,
+                        virt_phys_rank,
+                        bucket_lda,
+                        buf_ptr,
+                        tsr->data,
+                        wrld->cdt,
+                        sr,
+                        is_sparse,
+                        nnz_loc,
+                        nnz_blk,
+                        new_pairs,
+                        nnz_loc_new);
+        if (is_sparse && rw == 'w'){
+          this->set_new_nnz_glb(nnz_blk);
+          if (tsr->data != NULL) cdealloc(tsr->data);
+          tsr->data = new_pairs;
+  /*        for (int64_t i=0; i<nnz_loc; i++){
+            printf("rank = %d, stores key %ld value %lf\n",wrld->rank, 
+                    ((int64_t*)(new_pairs+i*sr->pair_size()))[0],
+                    ((double*)(new_pairs+i*sr->pair_size()+sizeof(int64_t)))[0]);
+          }*/
+        }
       }
 
       CTF_int::cdealloc(phase);
