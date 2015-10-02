@@ -9,6 +9,7 @@ namespace CTF_int {
     public:
       virtual void update(MPI_Comm cm){};
       virtual void print(){};
+      virtual void print_uo(){};
   };
 
   void update_all_models(MPI_Comm cm);
@@ -22,6 +23,10 @@ namespace CTF_int {
     private:
       int nobs;
       int mat_lda;
+      bool is_tuned;
+      double tot_time;
+      double over_time;
+      double under_time;
     public:
       int hist_size;
       double * time_param_mat;
@@ -34,7 +39,7 @@ namespace CTF_int {
        * \param[in] hist_size number of times to keep in history
        * \param[in] tune_interval
        */
-      LinModel(double const * init_guess, char const * name, int hist_size=1024);
+      LinModel(double const * init_guess, char const * name, int hist_size=16384);
 
       ~LinModel();
 
@@ -61,6 +66,11 @@ namespace CTF_int {
        * \brief prints current parameter estimates
        */
       void print();
+
+      /**
+       * \brief prints time estimate errors
+       */
+      void print_uo();
   };
 }
 

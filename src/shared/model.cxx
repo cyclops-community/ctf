@@ -23,6 +23,9 @@ namespace CTF_int {
     for (int i=0; i<get_all_models().size(); i++){
       get_all_models()[i]->print();
     }
+    for (int i=0; i<get_all_models().size(); i++){
+      get_all_models()[i]->print_uo();
+    }
 #endif
   }
 
@@ -89,6 +92,10 @@ namespace CTF_int {
     mat_lda = nparam+1;
     time_param_mat = (double*)alloc(mat_lda*hist_size*sizeof(double));
     nobs = 0;
+    is_tuned = false;
+    tot_time = 0.0;
+    over_time = 0.0;
+    under_time = 0.0;
     get_all_models().push_back(this);
 #endif
   }
@@ -105,23 +112,32 @@ namespace CTF_int {
   template <int nparam>
   void LinModel<nparam>::observe(double const * tp){
 #ifdef TUNE
-    for (int i=0; i<nobs; i++){
+    /*for (int i=0; i<nobs; i++){
       bool is_same = true;
       for (int j=0; j<nparam; j++){
         if (time_param_mat[i*mat_lda+1+j] != tp[1+j]) is_same = false;
       }
       if (is_same) return;
+    }*/
+    if (is_tuned){
+      tot_time += tp[0];
+      if (est_time(tp+1)>tp[0]){ 
+        under_time += est_time(tp+1)-tp[0];
+      } else {
+        over_time += tp[0]-est_time(tp+1);
+      }
     }
-    if (fabs(est_time(tp+1)-tp[0])>1.E-1){ 
+    /*if (fabs(est_time(tp+1)-tp[0])>1.E-1){ 
       printf("estimate of %s[%1.2E*%1.2E", name, tp[0], param_guess[0]);
       for (int i=1; i<nparam; i++){
         printf(",%1.2E*%1.2E",tp[i+1], param_guess[i]);
       }
       printf("] was %1.2E, actual executon took %1.2E\n", est_time(tp+1), tp[0]);
-    }
+      print();
+    }*/
     //printf("observed %lf %lf %lf\n", tp[0], tp[1], tp[2]);
- //   memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
-    if (nobs < hist_size){
+    memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
+ /*   if (nobs < hist_size){
       memcpy(time_param_mat+nobs*mat_lda, tp, mat_lda*sizeof(double));
     } else {
       std::pop_heap( (time_param<nparam>*)time_param_mat,
@@ -132,7 +148,7 @@ namespace CTF_int {
       std::push_heap( (time_param<nparam>*)time_param_mat,
                      ((time_param<nparam>*)time_param_mat)+hist_size,
                      &comp_time_param<nparam>);
-    }
+    }*/
     nobs++;
 #endif
   }
@@ -141,6 +157,18 @@ namespace CTF_int {
   template <int nparam>
   void LinModel<nparam>::update(MPI_Comm cm){
 #ifdef TUNE
+    double S[nparam];
+    int lwork, liwork;
+    double * work;
+    int * iwork;
+    int rank;
+    int info;
+    // workspace query
+    double dlwork;      
+    int np;
+    int rk;
+    MPI_Comm_size(cm, &np);
+    MPI_Comm_rank(cm, &rk);
     //if (nobs % tune_interval == 0){
     int nrcol = std::min(nobs,hist_size);
     int ncol = std::max(nrcol, nparam);
@@ -149,7 +177,8 @@ namespace CTF_int {
       std::sort(sort_mat, sort_mat+ncol, &comp_time_param);*/
     int tot_nrcol;
     MPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
-    if (tot_nrcol >= nparam){
+    if (tot_nrcol >= 4.*np*nparam){
+      is_tuned = true;
       double * R = (double*)alloc(sizeof(double)*nparam*nparam);
       double * b = (double*)alloc(sizeof(double)*ncol);
       if (ncol > nrcol){
@@ -163,6 +192,37 @@ namespace CTF_int {
             A[i+j*ncol] = time_param_mat[i*mat_lda+j+1];
           }
         }
+        if (false && np == 1){
+          cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
+          ASSERT(info == 0);
+          lwork = (int)dlwork;
+          work = (double*)alloc(sizeof(double)*lwork);
+          iwork = (int*)alloc(sizeof(int)*liwork);
+          std::fill(iwork, iwork+liwork, 0);
+          cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
+          //cdgeqrf(
+          ASSERT(info == 0);
+          cdealloc(work);
+          cdealloc(iwork);
+          cdealloc(A);
+          memcpy(param_guess, b, nparam*sizeof(double));
+          /*print();
+          double max_resd_sq = 0.0;
+          for (int i=0; i<ncol-nparam; i++){
+            max_resd_sq = std::max(max_resd_sq, b[nparam+i]);
+          }
+          printf("%s max residual sq is %lf\n",name,max_resd_sq);
+          double max_err = 0.0;
+          for (int i=0; i<nobs; i++){
+            max_err = std::max(max_err, fabs(est_time(time_param_mat+i*mat_lda+1)-time_param_mat[i*mat_lda]));
+          }
+          printf("%s max error is %lf\n",name,max_err);*/
+          cdealloc(b);
+          return;
+        }
+
+
+
         double * tau = (double*)alloc(sizeof(double)*nparam);
         int lwork;
         int info;
@@ -186,8 +246,6 @@ namespace CTF_int {
         cdealloc(tau);
         cdealloc(A);
       }
-      int np;
-      MPI_Comm_size(cm, &np);
       double * all_R = (double*)alloc(sizeof(double)*nparam*nparam*np);
       double * all_b = (double*)alloc(sizeof(double)*nparam*np);
       MPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, cm);
@@ -202,16 +260,14 @@ namespace CTF_int {
       ncol = np*nparam;
       b = all_b;
       double * A = Rs;
-
-      double S[nparam];
-      int lwork, liwork;
-      double * work;
-      int * iwork;
-      int rank;
-      int info;
-      // workspace query
-      double dlwork;      
-
+      /*if (rk==0){
+        for (int r=0; r<ncol; r++){
+          for (int c=0; c<nparam; c++){
+            printf("A[%d, %d] = %lf, ", r,c,A[c*ncol+r]);
+          }
+          printf("b[%d] = %lf\n",r,b[r]);
+        }
+      }*/
       cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
       ASSERT(info == 0);
       lwork = (int)dlwork;
@@ -225,11 +281,17 @@ namespace CTF_int {
       cdealloc(iwork);
       cdealloc(A);
       memcpy(param_guess, b, nparam*sizeof(double));
-      /*double max_resd_sq = 0.0;
+/*      print();
+      double max_resd_sq = 0.0;
       for (int i=0; i<ncol-nparam; i++){
         max_resd_sq = std::max(max_resd_sq, b[nparam+i]);
       }
-      printf("max residual sq is %lf\n",max_resd_sq);*/
+      printf("%s max residual sq is %lf\n",name,max_resd_sq);
+      double max_err = 0.0;
+      for (int i=0; i<nobs; i++){
+        max_err = std::max(max_err, fabs(est_time(time_param_mat+i*mat_lda+1)-time_param_mat[i*mat_lda]));
+      }
+      printf("%s max error is %lf\n",name,max_err);*/
       cdealloc(b);
     }
  //   MPI_Bcast(param_guess, nparam, MPI_DOUBLE, 0, cm);
@@ -249,8 +311,13 @@ namespace CTF_int {
       printf("%1.4E", param_guess[i]);
     }
     printf("};\n");
-
   }
+
+  template <int nparam>
+  void LinModel<nparam>::print_uo(){
+    printf("%s is_tuned = %d tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,tot_time,over_time,under_time);
+  }
+
 
 
   template class LinModel<1>;

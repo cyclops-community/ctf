@@ -443,11 +443,11 @@ namespace CTF_int {
     cdealloc(all_virt_counts);
   }
 
-  static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
-  LinModel<3> blres_mdl(blres_mdl_init,"blres_mdl");
+  //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
+  LinModel<2> blres_mdl(blres_mdl_init,"blres_mdl");
 
-  double blres_est_time(int64_t tot_sz, int np){
-    double ps[] = {1.0, (double)log2(np), (double)tot_sz*log2(np)};
+  double blres_est_time(int64_t tot_sz, int nv0, int nv1){
+    double ps[] = {nv0+nv1, (double)tot_sz};
     return blres_mdl.est_time(ps);
   }
 
@@ -479,8 +479,8 @@ namespace CTF_int {
     TAU_FSTART(block_reshuffle);
 #ifdef TUNE
     MPI_Barrier(glb_comm.cm);
-#endif
     double st_time = MPI_Wtime();
+#endif
 
     mst_alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
     alloc_ptr(sizeof(int)*order, (void**)&idx);
@@ -581,9 +581,12 @@ namespace CTF_int {
     cdealloc(phase_lda);
     cdealloc(reqs);
     
+#ifdef TUNE
+    MPI_Barrier(glb_comm.cm);
     double exe_time = MPI_Wtime()-st_time;
-    double tps[] = {exe_time, 1.0, (double)log2(glb_comm.np), (double)std::max(new_dist.size, new_dist.size)*log2(glb_comm.np)*sr->el_size};
+    double tps[] = {exe_time, num_old_virt+num_new_virt, (double)std::max(new_dist.size, new_dist.size)};
     blres_mdl.observe(tps);
+#endif
 
     TAU_FSTOP(block_reshuffle);
 
