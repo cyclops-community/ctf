@@ -190,7 +190,7 @@ namespace CTF {
       ppn = getenv("CTF_PPN");
       if (ppn != NULL){
         if (rank == 0)
-          VPRINTF(1,"Assuming %d processes per node due to CTF_PPN environment variable\n",
+          printf("Assuming %d processes per node due to CTF_PPN environment variable\n",
                     atoi(ppn));
         ASSERT(atoi(ppn)>=1);
   #ifdef BGQ

@@ -1008,7 +1008,10 @@ namespace CTF_int {
         npart = 1 + (6*num_pair*sr->pair_size())/max_memuse;
       }
       MPI_Allreduce(MPI_IN_PLACE, &npart, 1, MPI_INT, MPI_MAX, wrld->cdt.cm);
-      if (wrld->cdt.rank == 0) printf("Performing write of %ld elements (mem %1.1E) in %d parts %1.1E memory available\n", num_pair, (double)num_pair*sr->pair_size(), npart, (double)max_memuse);
+      
+      int64_t max_np;
+      MPI_Allreduce(&num_pair, &max_np, 1, MPI_INT64_T, MPI_MAX, wrld->cdt.cm);
+      if (wrld->cdt.rank == 0) printf("Performing write of %ld (max %ld) elements (max mem %1.1E) in %d parts %1.1E memory available\n", num_pair, max_np, (double)max_np*sr->pair_size(), npart, (double)max_memuse);
 
       int64_t part_size = num_pair/npart;
       for (int part = 0; part<npart; part++){
