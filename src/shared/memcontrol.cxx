@@ -29,6 +29,9 @@
 #include "omp.h"
 #endif
 #include "memcontrol.h"
+#include <iostream>
+#include <fstream>
+using namespace std;
 //#include "../dist_tensor/cyclopstf.hpp"
 
 //struct mallinfo mallinfo(void);
@@ -39,7 +42,7 @@ namespace CTF_int {
   };
 
   /* fraction of total memory which can be saturated */
-  double memcap = 0.75;
+  double memcap = 0.98;
   int64_t mem_size = 0;
   #define MAX_THREADS 256
   int max_threads;
@@ -51,7 +54,7 @@ namespace CTF_int {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0)
-      printf("tot_mem_used = %1.5E/%1.5E, proc_bytes_available() = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_used(), (double)proc_bytes_available());
+      printf("CTF used memory = %1.5E, Total used memory = %1.5E, available memory via malloc_info is = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_used(), (double)proc_bytes_available());
   }
   #ifndef PRODUCTION
   std::list<mem_loc> mem_stacks[MAX_THREADS];
@@ -503,9 +506,51 @@ namespace CTF_int {
    * \brief gives total memory used on this MPI process 
    */
   int64_t proc_bytes_used(){
-    struct mallinfo info;
+    size_t size = 10000;
+    char ombuf[size];
+
+    ombuf[0] = 'a';
+    ombuf[1] = 'b';
+    ombuf[2] = 'c';
+    ombuf[3] = '\0';
+
+    FILE * f = fmemopen(ombuf, size, "w");
+    malloc_info(0,f);
+    fclose(f);
+    f = fmemopen(ombuf, size, "r");
+    char * buffer;
+    long length;
+    fseek (f, 0, SEEK_END);
+    length = ftell(f);
+    fseek (f, 0, SEEK_SET);
+    buffer = (char*)malloc(length+1);
+    if (buffer){
+      fread(buffer, 1, length, f);
+    }
+    buffer[length] = '\0';
+    fclose (f);
+    stringstream strs(buffer);
+    string sbuf = strs.str();
+    size_t s_st, s_end;
+    //printf("str = %s\n",sbuf.c_str());
+    s_st = sbuf.rfind("total");
+    assert(s_st != -1);
+    s_end = s_st;
+    while (sbuf[s_end] != '"'){ s_end++; ASSERT(s_end-s_st<20); }
+    s_end++;
+    while (sbuf[s_end] != '"'){ s_end++; ASSERT(s_end-s_st<20); }
+    s_end++;
+    s_st = s_end;
+    while (sbuf[s_end] != '"'){ s_end++; ASSERT(s_end-s_st<20); }
+    sbuf[s_end]='\0';
+    long long bused = atoll(&sbuf[s_st]);
+    ASSERT(bused >= 0);
+    //printf("bused = %ld s_st = %ld, s_end = %ld, size = %ld\n", (long)bused, (long)s_st, (long)s_end, (long)size);
+    return (int64_t)bused;
+    
+/*    struct mallinfo info;
     info = mallinfo();
-    return (int64_t)(info.usmblks + info.uordblks + info.hblkhd);
+    return (int64_t)(info.usmblks + info.uordblks + info.hblkhd);*/
     /*int64_t ms = 0;
     int i;
     for (i=0; i<max_threads; i++){
@@ -515,12 +560,12 @@ namespace CTF_int {
 //    return tot_mem_used;
   }
 
-  #ifdef BGQ
   /* FIXME: only correct for 1 process per node */
   /**
    * \brief gives total memory size per MPI process 
    */
   int64_t proc_bytes_total() {
+#ifdef BGQ
     uint64_t total;
     int node_config;
 
@@ -530,31 +575,8 @@ namespace CTF_int {
     } else {
       return total;
     }
-  }
-
-  /**
-   * \brief gives total memory available on this MPI process 
-   */
-  int64_t proc_bytes_available(){
-    uint64_t mem_avail;
-    Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail);
-//    mem_avail = std::min(mem_avail*memcap,proc_bytes_total()*memcap-tot_mem_use);
-    mem_avail*= memcap;
-    //mem_avail += mst_buffer_size-mst_buffer_used;
-  /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
-            mem_avail, proc_bytes_total() - proc_bytes_used());*/
-    
-    return mem_avail;
-  }
-
-
-  #else /* If not BGQ */
-
+#else
   #ifdef BGP
-  /**
-   * \brief gives total memory size per MPI process 
-   */
-  int64_t proc_bytes_total() {
     int64_t total;
     int node_config;
     _BGP_Personality_t personality;
@@ -568,49 +590,46 @@ namespace CTF_int {
     total *= 1024*1024;
 
     return total;
-  }
-
-  /**
-   * \brief gives total memory available on this MPI process 
-   */
-  int64_t proc_bytes_available(){
-    return memcap*proc_bytes_total() - proc_bytes_used();
-  }
-
-
-  #else /* If not BGP */
-
-  /**
-   * \brief gives total memory size per MPI process 
-   */
-  int64_t proc_bytes_available(){
-    /*struct mallinfo info;
-    info = mallinfo();
-    return memcap*(int64_t)info.fordblks;*/
-    return memcap*proc_bytes_total() - proc_bytes_used();
-  }
-
-  /**
-   * \brief gives total memory available on this MPI process 
-   */
-  int64_t proc_bytes_total(){
-  #ifdef __MACH__
+  #else
+    #ifdef __MACH__
     int mib[] = {CTL_HW,HW_MEMSIZE};
     int64_t mem;
     size_t len = 8;
     sysctl(mib, 2, &mem, &len, NULL, 0);
     return mem;
-  #else
+    #else
     int64_t pages = (int64_t)sysconf(_SC_PHYS_PAGES);
     int64_t page_size = (int64_t)sysconf(_SC_PAGE_SIZE);
     if (mem_size != 0)
       return MIN((int64_t)(pages * page_size), (int64_t)mem_size);
     else
       return pages * page_size;
+    #endif
   #endif
+#endif
   }
-  #endif
-  #endif
+
+  /**
+   * \brief gives total memory available on this MPI process 
+   */
+  int64_t proc_bytes_available(){
+#ifdef BGQ
+    uint64_t mem_avail;
+    Kernel_GetMemorySize(KERNEL_MEMSIZE_HEAPAVAIL, &mem_avail);
+//    mem_avail = std::min(mem_avail*memcap,proc_bytes_total()*memcap-tot_mem_use);
+    mem_avail*= memcap;
+    //mem_avail += mst_buffer_size-mst_buffer_used;
+  /*  printf("HEAPAVIL = %llu, TOTAL HEAP - mallinfo used = %llu\n",
+            mem_avail, proc_bytes_total() - proc_bytes_used());*/
+    
+    return mem_avail;
+#else
+    int64_t pused = proc_bytes_used();
+    int64_t ptotal = proc_bytes_total();
+    if (pused > memcap*ptotal){ printf("CTF ERROR: less than %lf percent of local memory remaining, ensuing segfault likely.\n", (100.*(1.-memcap))); }
+    return memcap*ptotal-pused;
+#endif
+  }
 }
 
 
