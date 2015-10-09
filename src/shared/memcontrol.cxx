@@ -6,6 +6,7 @@
 #include "sys/sysctl.h"
 #else
 #include "malloc.h"
+#include "sys/resource.h"
 #endif
 #include <stdint.h>
 #include <iostream>
@@ -36,13 +37,38 @@ using namespace std;
 
 //struct mallinfo mallinfo(void);
 namespace CTF_int {
+
+// Thanks, http://stackoverflow.com/questions/1558402/memory-usage-of-current-process-in-c
+/*typedef struct {
+    unsigned long size,resident,share,text,lib,data,dt;
+} statm_t;
+
+void read_off_memory_status(statm_t& result)
+{
+  unsigned long dummy;
+  const char* statm_path = "/proc/self/statm";
+
+  FILE *f = fopen(statm_path,"r");
+  if(!f){
+    perror(statm_path);
+    abort();
+  }
+  if(7 != fscanf(f,"%ld %ld %ld %ld %ld %ld %ld",
+    &result.size,&result.resident,&result.share,&result.text,&result.lib,&result.data,&result.dt))
+  {
+    perror(statm_path);
+    abort();
+  }
+  fclose(f);
+}*/
+
   struct mem_loc {
     void * ptr;
     int64_t len;
   };
 
   /* fraction of total memory which can be saturated */
-  double memcap = 0.98;
+  double memcap = 0.5;
   int64_t mem_size = 0;
   #define MAX_THREADS 256
   int max_threads;
@@ -53,8 +79,8 @@ namespace CTF_int {
     tot_mem_used += a;
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if (rank == 0)
-      printf("CTF used memory = %1.5E, Total used memory = %1.5E, available memory via malloc_info is = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_used(), (double)proc_bytes_available());
+//    if (rank == 0)
+  //    printf("CTF used memory = %1.5E, Total used memory = %1.5E, available memory via malloc_info is = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_used(), (double)proc_bytes_available());
   }
   #ifndef PRODUCTION
   std::list<mem_loc> mem_stacks[MAX_THREADS];
@@ -506,7 +532,14 @@ namespace CTF_int {
    * \brief gives total memory used on this MPI process 
    */
   int64_t proc_bytes_used(){
-    size_t size = 10000;
+    /*statm_t smt;
+    read_off_memory_status(smt);
+    printf("CTF %ld\n", tot_mem_used);
+    printf("%lu %lu %lu %lu %lu %lu %lu\n", smt.size, smt.resident, smt.share, smt.text, smt.lib, smt.data, smt.dt); 
+    rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+    return ru.ru_maxrss;*/
+    /*size_t size = 10000;
     char ombuf[size];
 
     ombuf[0] = 'a';
@@ -547,7 +580,7 @@ namespace CTF_int {
     ASSERT(bused >= 0);
     //printf("bused = %ld s_st = %ld, s_end = %ld, size = %ld\n", (long)bused, (long)s_st, (long)s_end, (long)size);
     return (int64_t)bused;
-    
+    */
 /*    struct mallinfo info;
     info = mallinfo();
     return (int64_t)(info.usmblks + info.uordblks + info.hblkhd);*/
@@ -557,7 +590,7 @@ namespace CTF_int {
       ms += mem_used[i];
     }
     return ms + mst_buffer_used;// + (int64_t)mst_buffer_size;*/
-//    return tot_mem_used;
+    return tot_mem_used;
   }
 
   /* FIXME: only correct for 1 process per node */

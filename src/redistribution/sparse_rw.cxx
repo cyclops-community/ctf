@@ -921,9 +921,9 @@ namespace CTF_int {
       recv_displs[i] = recv_displs[i]*sizeof(tkv_pair<dtype>);
     }*/
 
-    int64_t max_np;
+/*    int64_t max_np;
     MPI_Allreduce(&new_num_pair, &max_np, 1, MPI_INT64_T, MPI_MAX, glb_comm.cm);
-    if (glb_comm.rank == 0) printf("max received elements is %ld, mine are %ld\n", max_np, new_num_pair);
+    if (glb_comm.rank == 0) printf("max received elements is %ld, mine are %ld\n", max_np, new_num_pair);*/
 
     if (new_num_pair > nwrite){
       CTF_int::cdealloc(swap_datab);

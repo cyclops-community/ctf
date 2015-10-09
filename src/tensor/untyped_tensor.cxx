@@ -1013,9 +1013,9 @@ namespace CTF_int {
       }
       MPI_Allreduce(MPI_IN_PLACE, &npart, 1, MPI_INT, MPI_MAX, wrld->cdt.cm);
       
-      int64_t max_np;
+/*      int64_t max_np;
       MPI_Allreduce(&num_pair, &max_np, 1, MPI_INT64_T, MPI_MAX, wrld->cdt.cm);
-      if (wrld->cdt.rank == 0) printf("Performing write of %ld (max %ld) elements (max mem %1.1E) in %d parts %1.5E memory available, %1.5E used\n", num_pair, max_np, (double)max_np*sr->pair_size(), npart, (double)max_memuse, (double)proc_bytes_used());
+      if (wrld->cdt.rank == 0) printf("Performing write of %ld (max %ld) elements (max mem %1.1E) in %d parts %1.5E memory available, %1.5E used\n", num_pair, max_np, (double)max_np*sr->pair_size(), npart, (double)max_memuse, (double)proc_bytes_used());*/
 
       int64_t part_size = num_pair/npart;
       for (int part = 0; part<npart; part++){
@@ -1060,7 +1060,7 @@ namespace CTF_int {
           }*/
         }
       }
-      if (wrld->cdt.rank == 0) printf("Completed write of %ld elements\n", num_pair);
+//      if (wrld->cdt.rank == 0) printf("Completed write of %ld elements\n", num_pair);
 
       CTF_int::cdealloc(phase);
       CTF_int::cdealloc(phys_phase);
