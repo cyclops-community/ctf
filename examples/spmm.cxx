@@ -40,11 +40,11 @@ int spmm(int     n,
   c2["ik"] += 0.5*spA["ij"]*b["jk"];
   c2["ik"] += 0.5*b["jk"]*spA["ij"];
 
-  assert(c1.norm2() >= 1E-6);
+  bool pass = c1.norm2() >= 1E-6;
 
   c1["ik"] -= c2["ik"];
 
-  bool pass = c1.norm2() <= 1.E-6;
+  if (pass) pass = c1.norm2() <= 1.E-6;
 
   if (dw.rank == 0){
     if (pass) 

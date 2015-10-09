@@ -9,21 +9,13 @@
 //#include "../shared/util.h"
 #include "device_launch_parameters.h"
 #include "int_timer.h"
+#include <stdint.h>
 
 #include "offload.h"
+#include "../tensor/algstrct.h"
 
 namespace CTF_int{
   volatile static int64_t int64_t_max = INT64_MAX;
-  
-  #ifndef ASSERT
-  #if ENABLE_ASSERT
-  #define ASSERT(...)                \
-  do { if (!(__VA_ARGS__)) handler(); assert(__VA_ARGS__); } while (0)
-  #else
-  #define ASSERT(...) do {} while(0 && (__VA_ARGS__))
-  #endif
-  #endif
-  
   #ifndef PROFILE
   #define TAU_PROFILE(NAME,ARG,USER)
   #define TAU_PROFILE_TIMER(ARG1, ARG2, ARG3, ARG4)
@@ -47,9 +39,9 @@ namespace CTF_int{
     if (!initialized){
       int ndev=0;
       cudaGetDeviceCount(&ndev);
-      ASSERT(ndev > 0);
+      assert(ndev > 0);
       cublasStatus_t status = cublasCreate(&cuhandle);
-      ASSERT(status == CUBLAS_STATUS_SUCCESS);
+      assert(status == CUBLAS_STATUS_SUCCESS);
     }
     initialized = 1;
   }
@@ -57,7 +49,7 @@ namespace CTF_int{
   void offload_exit(){
     if (initialized){
       cublasStatus_t status = cublasDestroy(cuhandle);
-      ASSERT(status == CUBLAS_STATUS_SUCCESS);
+      assert(status == CUBLAS_STATUS_SUCCESS);
       initialized = 0;
     }
   }
@@ -66,20 +58,23 @@ namespace CTF_int{
     sr = sr_;
     size = size_;
     cudaError_t err = cudaMalloc((void**)&dev_ptr, size*sr->el_size);
-    ASSERT(err == cudaSuccess);
+    printf("allocated dev %p size %ld\n", dev_ptr,size*sr->el_size);
+    assert(err == cudaSuccess);
   }
   
   offload_ptr::~offload_ptr(){
     cudaError_t err = cudaFree(dev_ptr);
-    ASSERT(err == cudaSuccess);
+    assert(err == cudaSuccess);
   }
   
-  void offload_ptr::download(dtype * host_ptr){
+  void offload_ptr::download(char * host_ptr){
+    assert(initialized);
     TAU_FSTART(cuda_download);
     cudaError_t err = cudaMemcpy(host_ptr, dev_ptr, size*sr->el_size,
                                  cudaMemcpyDeviceToHost);
     TAU_FSTOP(cuda_download);
-    ASSERT(err == cudaSuccess);
+    printf("err = %d size = %ld dev ptr = %p host ptr = %p\n",err,size*sr->el_size,dev_ptr,host_ptr);
+    assert(err == cudaSuccess);
   }
   
   void offload_ptr::upload(char const * host_ptr){
@@ -87,7 +82,7 @@ namespace CTF_int{
     cudaError_t err = cudaMemcpy(dev_ptr, host_ptr, size*sr->el_size,
                                  cudaMemcpyHostToDevice);
     TAU_FSTOP(cuda_upload);
-    ASSERT(err == cudaSuccess);
+    assert(err == cudaSuccess);
   }
   
   
@@ -108,10 +103,10 @@ namespace CTF_int{
         gset_zero<<<blockSize, numBlocks>>>((float*)dev_ptr, size, ((float*)sr->addid())[0]);
         break;
       case 8:
-        gset_zero<<<blockSize, numBlocks>>>((double*)dev_ptr, size, ((float*)sr->addid())[0]);
+        gset_zero<<<blockSize, numBlocks>>>((double*)dev_ptr, size, ((double*)sr->addid())[0]);
         break;
       case 16:
-        gset_zero<<<blockSize, numBlocks>>>((long double*)dev_ptr, size, ((long double*)sr->addid())[0]);
+        gset_zero<<<blockSize, numBlocks>>>((std::complex<double>*)dev_ptr, size, ((std::complex<double>*)sr->addid())[0]);
         break;
       default:
         assert(0);
@@ -121,30 +116,31 @@ namespace CTF_int{
   
   void host_pinned_alloc(void ** ptr, int64_t size){
     cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
-    ASSERT(err == cudaSuccess);
+    assert(err == cudaSuccess);
+    printf("made pinned alloc ptr = %p size = %ld\n", *ptr, size);
   }
   
   void host_pinned_free(void * ptr){
     cudaError_t err = cudaFreeHost(ptr);
-    ASSERT(err == cudaSuccess);
+    assert(err == cudaSuccess);
   }
   
   template <typename dtype>
-  void offload_gemm(char                  tA,
-                    char                  tB,
-                    int                   m,
-                    int                   n,
-                    int                   k,
-                    dtype                 alpha,
-                    offload_ptr<dtype> &  A,
-                    int                   lda_A,
-                    offload_ptr<dtype> &  B,
-                    int                   lda_B,
-                    dtype                 beta,
-                    offload_ptr<dtype> &  C,
-                    int                   lda_C){
+  void offload_gemm(char           tA,
+                    char           tB,
+                    int            m,
+                    int            n,
+                    int            k,
+                    dtype          alpha,
+                    offload_ptr &  A,
+                    int            lda_A,
+                    offload_ptr &  B,
+                    int            lda_B,
+                    dtype          beta,
+                    offload_ptr &  C,
+                    int            lda_C){
     TAU_FSTART(cuda_gemm);
-    offload_gemm(tA, tB, m, n, k, alpha, A.dev_ptr, lda_A, B.dev_ptr, lda_B, beta, C.dev_ptr, lda_C);
+    offload_gemm(tA, tB, m, n, k, alpha, (dtype*)A.dev_ptr, lda_A, (dtype*)B.dev_ptr, lda_B, beta, (dtype*)C.dev_ptr, lda_C);
     TAU_FSTOP(cuda_gemm);
   }
   template 
@@ -189,7 +185,7 @@ namespace CTF_int{
                             double         beta,
                             double *       dev_C,
                             int            lda_C){
-    ASSERT(initialized);
+    assert(initialized);
   
     cublasOperation_t cuA;  
     switch (tA){
@@ -221,11 +217,11 @@ namespace CTF_int{
                   dev_A, lda_A, 
                   dev_B, lda_B, &beta, 
                   dev_C, lda_C);
-  #ifdef PROFILE
+  //#ifdef PROFILE
     cudaDeviceSynchronize();
-  #endif
+  //#endif
     
-    ASSERT(status == CUBLAS_STATUS_SUCCESS);
+    assert(status == CUBLAS_STATUS_SUCCESS);
   }
   
   
@@ -244,7 +240,7 @@ namespace CTF_int{
                            std::complex<double>         beta,
                            std::complex<double> *       dev_C,
                            int                          lda_C){
-    ASSERT(initialized);
+    assert(initialized);
     
     cublasOperation_t cuA;  
     switch (tA){
@@ -286,12 +282,12 @@ namespace CTF_int{
                   reinterpret_cast<const cuDoubleComplex*>(dev_B), lda_B, 
                   reinterpret_cast<cuDoubleComplex*>(&beta), 
                   reinterpret_cast<cuDoubleComplex*>(dev_C), lda_C);
-  #ifdef PROFILE
+  //#ifdef PROFILE
     cudaDeviceSynchronize();
-  #endif
+  //#endif
     TAU_FSTOP(cublas_zgemm);
     
-    ASSERT(status == CUBLAS_STATUS_SUCCESS);
+    assert(status == CUBLAS_STATUS_SUCCESS);
     assert(status == CUBLAS_STATUS_SUCCESS);
   }
   

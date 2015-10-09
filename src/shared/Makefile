@@ -13,5 +13,5 @@ $(OBJS): $(ODIR)/%.o: %.cxx *.h  $(HDRS)
 	$(FCXX) -c $< -o $@
 
 $(NVCC_OBJS): $(ODIR)/%.o: %.cu *.h
-	$(OFFLOAD_CXX) $< -o $@
+	$(OFFLOAD_CXX) -c $< -o $@
 

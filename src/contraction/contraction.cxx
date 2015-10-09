@@ -2531,14 +2531,14 @@ namespace CTF_int {
         TAU_FSTOP(est_ctr_map_time);
         TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
-          DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
+          DPRINTF(2,"Not enough memory available for topo %d with order\n", j);
           TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
         } 
         TAU_FSTOP(get_avail_res);
         if (A->size > INT_MAX || B->size > INT_MAX || C->size > INT_MAX){
-          DPRINTF(2,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
+          DPRINTF(2,"MPI does not handle enough bits for topo %d with order\n", j);
           delete sctr;
           continue;
         }

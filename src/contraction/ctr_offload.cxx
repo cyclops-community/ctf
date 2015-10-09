@@ -83,6 +83,7 @@ namespace CTF_int {
   }
 
   void ctr_offload::run(char * A, char * B, char * C){
+    ASSERT(iter_counter < total_iter);
     if (iter_counter == 0){
       ptr_A = new offload_ptr(sr_A, size_A);
       ptr_B = new offload_ptr(sr_B, size_B);
@@ -119,6 +120,7 @@ namespace CTF_int {
     if (iter_counter % download_phase_C == 0){
       char * C_host_ptr;
       host_pinned_alloc((void**)&C_host_ptr, size_C*sr_C->el_size);
+      printf("%p %p %p\n", C_host_ptr, C, sr_C->mulid());
       ptr_C->download(C_host_ptr);
       sr_C->axpy(size_C, sr_C->mulid(), C_host_ptr, 1, C, 1);
 /*      for (int i=0; i<size_C; i++){

@@ -3,11 +3,11 @@
 #ifndef __OFFLOAD_H__
 #define __OFFLOAD_H__
 
-#include "../interface/common.h"
-#include "../tensor/algstrct.h"
+//#include "../interface/common.h"
 
 namespace CTF_int{
-
+  class algstrct;
+  
   /** \brief initialize offloading, e.g. create cublas */
   void offload_init();
   /** \brief exit offloading, e.g. destroy cublas */
