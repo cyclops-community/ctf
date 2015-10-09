@@ -1,5 +1,6 @@
 #include "set.h"
 #include "../shared/blas_symbs.h"
+#include "../shared/offload.h"
 
 
 namespace CTF_int {
@@ -424,5 +425,41 @@ namespace CTF_int {
     ASSERT(0);
   }
 #endif
+
+}
+namespace CTF {
+/*  template<> 
+  bool CTF::Semiring<float,1>::is_offloadable() const {
+    return fgemm == CTF_int::default_gemm<float>;
+  }*/
+
+  template<> 
+  bool CTF::Semiring<double,1>::is_offloadable() const {
+    return fgemm == CTF_int::default_gemm<double>;
+  }
+
+  template<> 
+  bool CTF::Semiring<std::complex<double>,0>::is_offloadable() const {
+    return fgemm == CTF_int::default_gemm< std::complex<double> >;
+  }
+
+  template<> 
+  void CTF::Semiring<double,1>::offload_gemm(
+                        char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C) const {
+    int lda_A = k;
+    if (tA == 'n' || tA == 'N') lda_A = m;
+    int lda_B = n;
+    if (tB == 'N' || tB == 'N') lda_B = k;
+    CTF_int::offload_gemm<double>(tA, tB, m, n, k, ((double const*)alpha)[0], (double const *)A, lda_A, (double const *)B, lda_B, ((double const*)beta)[0], (double*)C, m);
+  }
 
 }

@@ -4,6 +4,7 @@
 #define __OFFLOAD_H__
 
 #include "../interface/common.h"
+#include "../tensor/algstrct.h"
 
 namespace CTF_int{
 
@@ -16,18 +17,18 @@ namespace CTF_int{
     public:
       /** \brief device pointer */
       char * dev_ptr;
-      /** \brief element size */
-      int el_size;
+      /** \brief algebraic structure */
+      algstrct const * sr;
       /** \brief number of elements */
       int64_t size;
   
       
       /**
        * \brief constructor allocates device buffer
-       * \param[in] el_size element size
+       * \param[in] sr algebraic structure
        * \param[in] size number of elements
        */
-      offload_ptr(int el_size, int64_t size);
+      offload_ptr(algstrct const * sr, int64_t size);
   
       /**
        * \brief destructor allocates device buffer
@@ -49,7 +50,7 @@ namespace CTF_int{
       /**
        * \brief set device data to zero
        */
-      //void set_zero();
+      void set_zero();
   };
   
   /**
@@ -65,35 +66,35 @@ namespace CTF_int{
    */
   void host_pinned_free(void * ptr);
   
-  //template <typename dtype>
-  //void offload_gemm( char                 tA,
-  //                   char                 tB,
-  //                   int                  m,
-  //                   int                  n,
-  //                   int                  k,
-  //                   dtype                alpha,
-  //                   offload_ptr<dtype> & A,
-  //                   int                  lda_A,
-  //                   offload_ptr<dtype> & B,
-  //                   int                  lda_B,
-  //                   dtype                beta,
-  //                   offload_ptr<dtype> & C,
-  //                   int                  lda_C);
-  //
-  //template <typename dtype>
-  //void offload_gemm( char                 tA,
-  //                   char                 tB,
-  //                   int                  m,
-  //                   int                  n,
-  //                   int                  k,
-  //                   dtype                alpha,
-  //                   dtype const        * dev_A,
-  //                   int                  lda_A,
-  //                   dtype const        * dev_B,
-  //                   int                  lda_B,
-  //                   dtype                beta,
-  //                   dtype              * dev_C,
-  //                   int                  lda_C);
+  template <typename dtype>
+  void offload_gemm(char          tA,
+                    char          tB,
+                    int           m,
+                    int           n,
+                    int           k,
+                    dtype         alpha,
+                    offload_ptr & A,
+                    int           lda_A,
+                    offload_ptr & B,
+                    int           lda_B,
+                    dtype         beta,
+                    offload_ptr & C,
+                    int           lda_C);
+  
+  template <typename dtype>
+  void offload_gemm(char                 tA,
+                    char                 tB,
+                    int                  m,
+                    int                  n,
+                    int                  k,
+                    dtype                alpha,
+                    dtype const        * dev_A,
+                    int                  lda_A,
+                    dtype const        * dev_B,
+                    int                  lda_B,
+                    dtype                beta,
+                    dtype              * dev_C,
+                    int                  lda_C);
 }  
 #endif
 

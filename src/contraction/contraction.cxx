@@ -9,6 +9,7 @@
 #include "sym_seq_ctr.h"
 #include "spctr_comm.h"
 #include "ctr_tsr.h"
+#include "ctr_offload.h"
 #include "ctr_2d_general.h"
 #include "spctr_2d_general.h"
 #include "../symmetry/sym_indices.h"
@@ -2364,7 +2365,7 @@ namespace CTF_int {
   }
 
   void contraction::get_best_sel_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time){
-    int ret, i, j, need_remap, d;
+    int ret, j, d;
     int need_remap_A, need_remap_B, need_remap_C;
     int64_t memuse;//, bmemuse;
     double est_time, best_time;
@@ -2567,7 +2568,7 @@ namespace CTF_int {
   }
 
   void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time, double init_best_time=DBL_MAX){
-    int ret, j, need_remap, d;
+    int d;
     int need_remap_A, need_remap_B, need_remap_C;
     int64_t memuse;//, bmemuse;
     double est_time, best_time;
@@ -2766,14 +2767,12 @@ namespace CTF_int {
 
   int contraction::map(ctr ** ctrf, bool do_remap){
     int ret, j, need_remap, d;
-    int need_remap_A, need_remap_B, need_remap_C;
     int64_t memuse;//, bmemuse;
-    double est_time, best_time;
+    double best_time;
     int btopo;
     //int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
     int * old_phase_A, * old_phase_B, * old_phase_C;
     topology * old_topo_A, * old_topo_B, * old_topo_C;
-    ctr * sctr;
     distribution * dA, * dB, * dC;
     old_topo_A = A->topo;
     old_topo_B = B->topo;
@@ -2832,7 +2831,6 @@ namespace CTF_int {
       old_phase_C[j]   = C->edge_map[j].calc_phase();
     }
 
-    bool is_ctr_sparse = A->is_sparse || B->is_sparse || C->is_sparse;
     //}
     btopo = -1;
     best_time = DBL_MAX;
@@ -3323,36 +3321,26 @@ namespace CTF_int {
     if (nvirt_all != NULL)
       *nvirt_all = nvirt;
 
-    ASSERT(blk_sz_A >= vrt_sz_A);
-    ASSERT(blk_sz_B >= vrt_sz_B);
-    ASSERT(blk_sz_C >= vrt_sz_C);
-
   #ifdef OFFLOAD
-    //FIXME: out of date
-    if (ftsr.is_offloadable || is_inner > 0){
+    if (!is_custom && is_inner > 0 && C->sr->is_offloadable()){
       if (bottom_ctr_gen != NULL)
         bottom_ctr_gen->alloc_host_buf = true;
-      ctr_offload * ctroff = new ctr_offload;
+      ctr_offload * ctroff = new ctr_offload(this, blk_sz_A, blk_sz_B, blk_sz_C, total_iter, upload_phase_A, upload_phase_B, download_phase_C);
       if (is_top){
         hctr = ctroff;
-        hctr->idx_lyr = 0;
-        hctr->num_lyr = 0;
         is_top = 0;
       } else {
         *rec_ctr = ctroff;
       }
       rec_ctr = &ctroff->rec_ctr;
-
-      ctroff->size_A = blk_sz_A;
-      ctroff->size_B = blk_sz_B;
-      ctroff->size_C = blk_sz_C;
-      ctroff->total_iter = total_iter;
-      ctroff->upload_phase_A = upload_phase_A;
-      ctroff->upload_phase_B = upload_phase_B;
-      ctroff->download_phase_C = download_phase_C;
     }
   #endif
 
+
+
+    ASSERT(blk_sz_A >= vrt_sz_A);
+    ASSERT(blk_sz_B >= vrt_sz_B);
+    ASSERT(blk_sz_C >= vrt_sz_C);
     /* Multiply over virtual sub-blocks */
     if (nvirt > 1){
       ctr_virt * ctrv = new ctr_virt(this, num_tot, virt_dim, vrt_sz_A, vrt_sz_B, vrt_sz_C);

@@ -4,6 +4,7 @@
 #include "world.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
+#include "../shared/offload.h"
 
 extern "C"
 {

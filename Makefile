@@ -6,8 +6,8 @@ export BDIR
 export ODIR=$(BDIR)/obj
 include $(BDIR)/config.mk
 export FCXX
+export OFFLOAD_CXX
 export LIBS
-export OFFLOAD_FCXX
 
 
 

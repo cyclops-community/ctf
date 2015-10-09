@@ -4,6 +4,7 @@
 #include "../tensor/untyped_tensor.h"
 #include "../mapping/mapping.h"
 #include "../shared/util.h"
+#include "../shared/offload.h"
 #include <climits>
 
 namespace CTF_int {
@@ -310,9 +311,12 @@ namespace CTF_int {
       host_pinned_alloc((void**)&buf_A, s_A*sr_A->el_size);
       host_pinned_alloc((void**)&buf_B, s_B*sr_B->el_size);
       host_pinned_alloc((void**)&buf_C, s_C*sr_C->el_size);
-#endif
+    }
+#else
     if (0){
-    } else {
+    }
+#endif
+    else {
       ret = CTF_int::mst_alloc_ptr(s_A*sr_A->el_size, (void**)&buf_A);
       ASSERT(ret==0);
       ret = CTF_int::mst_alloc_ptr(s_B*sr_B->el_size, (void**)&buf_B);
@@ -433,9 +437,12 @@ namespace CTF_int {
       host_pinned_free(buf_A);
       host_pinned_free(buf_B);
       host_pinned_free(buf_C);
-#endif
+    }
+#else
     if (0){
-    } else {
+    }
+#endif
+    else {
       CTF_int::cdealloc(buf_A);
       CTF_int::cdealloc(buf_B);
       CTF_int::cdealloc(buf_C);

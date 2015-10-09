@@ -239,6 +239,25 @@ namespace CTF_int {
     printf("CTF ERROR: gemm not present for this algebraic structure\n");
     ASSERT(0);
   }
+
+
+   void algstrct::offload_gemm(char         tA,
+                               char         tB,
+                               int          m,
+                               int          n,
+                               int          k,
+                               char const * alpha,
+                               char const * A,
+                               char const * B,
+                               char const * beta,
+                               char *       C) const {
+    printf("CTF ERROR: offload gemm not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
+  bool algstrct::is_offloadable() const {
+    return false;
+  }
  
   bool algstrct::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;

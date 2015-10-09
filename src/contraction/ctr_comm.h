@@ -4,7 +4,6 @@
 #define __CTR_COMM_H__
 
 #include "../tensor/algstrct.h"
-#include "ctr_offload.h"
 
 namespace CTF_int{
   class contraction;

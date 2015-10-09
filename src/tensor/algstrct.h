@@ -150,6 +150,19 @@ namespace CTF_int {
                         char const * beta,
                         char *       C)  const;
 
+      virtual void offload_gemm(char         tA,
+                                char         tB,
+                                int          m,
+                                int          n,
+                                int          k,
+                                char const * alpha,
+                                char const * A,
+                                char const * B,
+                                char const * beta,
+                                char *       C)  const;
+
+      virtual bool is_offloadable() const;
+
       /** \brief sparse version of gemm using coordinate format for A */
       virtual void coomm(int                    m,
                          int                    n,

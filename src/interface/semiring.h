@@ -568,6 +568,25 @@ namespace CTF {
         } 
       }
 
+      void offload_gemm(char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C) const {
+        printf("CTF ERROR: offload gemm not present for this semiring\n");
+        ASSERT(0);
+      }
+
+      bool is_offloadable() const {
+        return false;
+      }
+
+
       void coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, CTF_int::bivar_function const * func) const {
         if (func == NULL && alpha != NULL && fcoomm != NULL){
           fcoomm(m, n, k, ((dtype const *)alpha)[0], (dtype const *)A, rows_A, cols_A, nnz_A, (dtype const *)B, ((dtype const *)beta)[0], (dtype *)C);

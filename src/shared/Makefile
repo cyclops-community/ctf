@@ -5,13 +5,13 @@ OBJS = $(addprefix $(ODIR)/, $(LOBJS))
 HDRS = ../../Makefile $(BDIR)/config.mk  ../interface/common.h ../interface/timer.h
 
 LNVCC_OBJS = offload.o
-LNVCC_OBJS = $(addprefix $(ODIR)/, $(LLNVCC_OBJS))
+NVCC_OBJS = $(addprefix $(ODIR)/, $(LNVCC_OBJS))
 
-ctf: $(OBJS) 
+ctf: $(OBJS) $(NVCC_OBJS)
 
 $(OBJS): $(ODIR)/%.o: %.cxx *.h  $(HDRS)
 	$(FCXX) -c $< -o $@
 
-$(NVCC_OBJS): $(ODIR)/%.o: %.cxx *.h
-	$(OFFLOAD_CXX) -c $< -o $@
+$(NVCC_OBJS): $(ODIR)/%.o: %.cu *.h
+	$(OFFLOAD_CXX) $< -o $@
 

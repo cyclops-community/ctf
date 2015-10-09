@@ -32,7 +32,7 @@ namespace CTF_int {
     ctr_sub_lda_C = o->ctr_sub_lda_C;
     cdt_C         = o->cdt_C;
     move_C        = o->move_C;
-#ifdef OFFLOAD
+#if 0 //def OFFLOAD
     alloc_host_buf = o->alloc_host_buf;
 #endif
   }
@@ -48,7 +48,7 @@ namespace CTF_int {
     printf("move_C = %d, ctr_lda_C = %ld, ctr_sub_lda_C = %ld\n",
             move_C, ctr_lda_C, ctr_sub_lda_C);
     if (move_C) printf("cdt_C length = %d\n",cdt_C->np);
-#ifdef OFFLOAD
+#if 0 //def OFFLOAD
     if (alloc_host_buf)
       printf("alloc_host_buf is true\n");
     else
@@ -157,7 +157,7 @@ namespace CTF_int {
     
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     
-#ifdef OFFLOAD
+#if 0 //def OFFLOAD
     if (alloc_host_buf){
       host_pinned_alloc((void**)&buf_A, s_A*sr_A->el_size);
       host_pinned_alloc((void**)&buf_B, s_B*sr_B->el_size);
@@ -378,7 +378,7 @@ namespace CTF_int {
       }*/
     }
     /* FIXME: reuse that */
-#ifdef OFFLOAD
+#if 0 //def OFFLOAD
     if (alloc_host_buf){
       host_pinned_free(buf_A);
       host_pinned_free(buf_B);

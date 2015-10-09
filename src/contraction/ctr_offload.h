@@ -1,7 +1,7 @@
 #include "../shared/offload.h"
+#include "ctr_comm.h"
 
 namespace CTF_int {
-  class ctr;
   #ifdef OFFLOAD
   class ctr_offload : public ctr {
     public: 
@@ -27,7 +27,7 @@ namespace CTF_int {
       /**
        * \brief performs replication along a dimension, generates 2.5D algs
        */
-      void run();
+      void run(char * A, char * B, char * C);
 
       /**
        * \brief returns the number of bytes of buffer space
@@ -69,7 +69,27 @@ namespace CTF_int {
        * \brief deallocates ctr_offload object
        */
       ~ctr_offload();
-      ctr_offload(){ iter_counter = 0; ptr_A = NULL; ptr_B = NULL; ptr_C = NULL; }
+
+      /**
+       * \brief allocates ctr_offload object
+       * \param[in] c contraction object
+       * \param[in] size_A size of the A tensor
+       * \param[in] size_B size of the B tensor
+       * \param[in] size_C size of the C tensor
+       * \param[in] total_iter number of gemms to be done
+       * \param[in] upload_phase_A period in iterations with which to upload A
+       * \param[in] upload_phase_B period in iterations with which to upload B
+       * \param[in] down;oad_phase_C period in iterations with which to download C
+       */
+      ctr_offload(contraction const * c,
+                  int64_t size_A,
+                  int64_t size_B,
+                  int64_t size_C,
+                  int total_iter,
+                  int upload_phase_A,
+                  int upload_phase_B,
+                  int download_phase_C);
+
   };
   #endif
 

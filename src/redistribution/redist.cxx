@@ -447,7 +447,7 @@ namespace CTF_int {
   LinModel<2> blres_mdl(blres_mdl_init,"blres_mdl");
 
   double blres_est_time(int64_t tot_sz, int nv0, int nv1){
-    double ps[] = {nv0+nv1, (double)tot_sz};
+    double ps[] = {(double)nv0+nv1, (double)tot_sz};
     return blres_mdl.est_time(ps);
   }
 

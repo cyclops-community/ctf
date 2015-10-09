@@ -765,10 +765,10 @@ namespace CTF_int{
         TAU_FSTART(gemm);
   #ifdef OFFLOAD
   //      if (prm->m*prm->n*prm->k > 1000){
-        offload_gemm<dtype>(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
-                            A+idx_A*stride_A*sr_A->el_size, prm->k,
-                            B+idx_B*stride_B*sr_B->el_size, prm->k, sr_C->mulid(),
-                            C+idx_C*stride_C*sr_C->el_size, prm->m);
+        sr_C->offload_gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
+                           A+idx_A*stride_A*sr_A->el_size,
+                           B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
+                           C+idx_C*stride_C*sr_C->el_size);
   #else
         //printf("[%d] <- [%d]*[%d] (%d)\n",idx_C, idx_A, idx_B, cntr++);
         //printf("%c %c %c %d %d %d\n", prm->tC, prm->tA, prm->tB, prm->m, prm->n, prm->k);
