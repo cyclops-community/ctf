@@ -81,6 +81,7 @@ namespace CTF_int {
     char tA;
     char tB;
     char tC;
+    bool offload;
   };
 
   class seq_tsr_ctr : public ctr {

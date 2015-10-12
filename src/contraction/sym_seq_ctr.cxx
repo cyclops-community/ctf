@@ -741,54 +741,58 @@ namespace CTF_int{
     memset(idx_glb, 0, sizeof(int)*idx_max);
 
 
-    /* Scale C immediately. FIXME: wrong for iterators over subset of C */
-  #ifndef OFFLOAD
-    if (!sr_C->isequal(beta, sr_C->mulid())){
-      CTF_FLOPS_ADD(prm->sz_C);
-  /*    for (i=0; i<prm->sz_C; i++){
-        C[i] = C[i]*beta;
-      }*/
-      if (sr_C->isequal(beta, sr_C->addid())){
-        sr_C->set(C, sr_C->addid(), prm->sz_C);
-      } else {
-        sr_C->scal(prm->sz_C, beta, C, 1);
+    /* Scale C immediately. WARNING: wrong for iterators over subset of C */
+    if (!prm->offload){
+      if (!sr_C->isequal(beta, sr_C->mulid())){
+        CTF_FLOPS_ADD(prm->sz_C);
+    /*    for (i=0; i<prm->sz_C; i++){
+          C[i] = C[i]*beta;
+        }*/
+        if (sr_C->isequal(beta, sr_C->addid())){
+          sr_C->set(C, sr_C->addid(), prm->sz_C);
+        } else {
+          sr_C->scal(prm->sz_C, beta, C, 1);
+        }
       }
     }
-  #endif
     idx_A = 0, idx_B = 0, idx_C = 0;
     sym_pass = 1;
 
    // int cntr=0;  
     for (;;){
       if (sym_pass){
-  //      C[idx_C] += alpha*A[idx_A]*B[idx_B];
         TAU_FSTART(gemm);
-  #ifdef OFFLOAD
-  //      if (prm->m*prm->n*prm->k > 1000){
-        sr_C->offload_gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
-                           A+idx_A*stride_A*sr_A->el_size,
-                           B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
-                           C+idx_C*stride_C*sr_C->el_size);
-  #else
+        if (prm->tC == 'N'){
+          if (prm->offload){
+            sr_C->offload_gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
+                               A+idx_A*stride_A*sr_A->el_size,
+                               B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
+                               C+idx_C*stride_C*sr_C->el_size);
+          } else {
+            sr_C->gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
+                       A+idx_A*stride_A*sr_A->el_size, 
+                       B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
+                       C+idx_C*stride_C*sr_C->el_size);
+          }
+        } else {
+          if (prm->offload){
+            sr_C->offload_gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
+                               B+idx_B*stride_B*sr_B->el_size,
+                               A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(),
+                              C+idx_C*stride_C*sr_C->el_size);
+          } else {
+            sr_C->gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
+                       B+idx_B*stride_B*sr_B->el_size,
+                       A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(), 
+                       C+idx_C*stride_C*sr_C->el_size);
+          }
+        }
         //printf("[%d] <- [%d]*[%d] (%d)\n",idx_C, idx_A, idx_B, cntr++);
         //printf("%c %c %c %d %d %d\n", prm->tC, prm->tA, prm->tB, prm->m, prm->n, prm->k);
-        if (prm->tC == 'N'){
-          sr_C->gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
-                    A+idx_A*stride_A*sr_A->el_size, 
-                    B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
-                    C+idx_C*stride_C*sr_C->el_size);
-        } else {
-          sr_C->gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
-                    B+idx_B*stride_B*sr_B->el_size,
-                    A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(), 
-                    C+idx_C*stride_C*sr_C->el_size);
-
-        }
-  #endif
         /*printf("multiplying %lf by %lf and got %lf\n", 
-((double*)(A+idx_A*stride_A*sr_A->el_size))[0],
-((double*)(B+idx_B*stride_B*sr_B->el_size))[0],
-((double*)(C+idx_C*stride_C*sr_C->el_size))[0]);*/
+    ((double*)(A+idx_A*stride_A*sr_A->el_size))[0],
+    ((double*)(B+idx_B*stride_B*sr_B->el_size))[0],
+    ((double*)(C+idx_C*stride_C*sr_C->el_size))[0]);*/
         TAU_FSTOP(gemm);
         // count n^2 FLOPS too
         CTF_FLOPS_ADD((2 * (int64_t)prm->n * (int64_t)prm->m * (int64_t)(prm->k+1)));

@@ -58,7 +58,6 @@ namespace CTF_int{
     sr = sr_;
     size = size_;
     cudaError_t err = cudaMalloc((void**)&dev_ptr, size*sr->el_size);
-    printf("allocated dev %p size %ld\n", dev_ptr,size*sr->el_size);
     assert(err == cudaSuccess);
   }
   
@@ -73,7 +72,6 @@ namespace CTF_int{
     cudaError_t err = cudaMemcpy(host_ptr, dev_ptr, size*sr->el_size,
                                  cudaMemcpyDeviceToHost);
     TAU_FSTOP(cuda_download);
-    printf("err = %d size = %ld dev ptr = %p host ptr = %p\n",err,size*sr->el_size,dev_ptr,host_ptr);
     assert(err == cudaSuccess);
   }
   
@@ -117,7 +115,6 @@ namespace CTF_int{
   void host_pinned_alloc(void ** ptr, int64_t size){
     cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
     assert(err == cudaSuccess);
-    printf("made pinned alloc ptr = %p size = %ld\n", *ptr, size);
   }
   
   void host_pinned_free(void * ptr){
@@ -211,15 +208,14 @@ namespace CTF_int{
         break;
     }  
   
-    //printf("offloading dgemm\n");
     cublasStatus_t status = 
       cublasDgemm(cuhandle, cuA, cuB, m, n, k, &alpha, 
                   dev_A, lda_A, 
                   dev_B, lda_B, &beta, 
                   dev_C, lda_C);
-  //#ifdef PROFILE
+  #ifdef PROFILE
     cudaDeviceSynchronize();
-  //#endif
+  #endif
     
     assert(status == CUBLAS_STATUS_SUCCESS);
   }
@@ -282,9 +278,9 @@ namespace CTF_int{
                   reinterpret_cast<const cuDoubleComplex*>(dev_B), lda_B, 
                   reinterpret_cast<cuDoubleComplex*>(&beta), 
                   reinterpret_cast<cuDoubleComplex*>(dev_C), lda_C);
-  //#ifdef PROFILE
+  #ifdef PROFILE
     cudaDeviceSynchronize();
-  //#endif
+  #endif
     TAU_FSTOP(cublas_zgemm);
     
     assert(status == CUBLAS_STATUS_SUCCESS);

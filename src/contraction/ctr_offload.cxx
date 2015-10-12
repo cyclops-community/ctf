@@ -113,14 +113,13 @@ namespace CTF_int {
     rec_ctr->num_lyr = this->num_lyr;
     rec_ctr->idx_lyr = this->idx_lyr;
 
-    rec_ctr->run(A, B, C);
+    rec_ctr->run(ptr_A->dev_ptr, ptr_B->dev_ptr, ptr_C->dev_ptr);
     
     iter_counter++;
 
     if (iter_counter % download_phase_C == 0){
       char * C_host_ptr;
       host_pinned_alloc((void**)&C_host_ptr, size_C*sr_C->el_size);
-      printf("%p %p %p\n", C_host_ptr, C, sr_C->mulid());
       ptr_C->download(C_host_ptr);
       sr_C->axpy(size_C, sr_C->mulid(), C_host_ptr, 1, C, 1);
 /*      for (int i=0; i<size_C; i++){

@@ -3320,9 +3320,10 @@ namespace CTF_int {
     }
     if (nvirt_all != NULL)
       *nvirt_all = nvirt;
-
+    bool do_offload = false;
   #ifdef OFFLOAD
     if (!is_custom && is_inner > 0 && C->sr->is_offloadable()){
+      do_offload = true;
       if (bottom_ctr_gen != NULL)
         bottom_ctr_gen->alloc_host_buf = true;
       ctr_offload * ctroff = new ctr_offload(this, blk_sz_A, blk_sz_B, blk_sz_C, total_iter, upload_phase_A, upload_phase_B, download_phase_C);
@@ -3354,7 +3355,14 @@ namespace CTF_int {
     } else
       CTF_int::cdealloc(virt_dim);
 
-    seq_tsr_ctr * ctrseq = new seq_tsr_ctr(this, is_inner, inner_params, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
+    iparam const * iptr = NULL;
+    iparam inp_cpy;
+    if (is_inner){
+      inp_cpy = *inner_params;
+      inp_cpy.offload = do_offload;
+      iptr = &inp_cpy;
+    }
+    seq_tsr_ctr * ctrseq = new seq_tsr_ctr(this, is_inner, iptr, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {
       hctr = ctrseq;
       is_top = 0;

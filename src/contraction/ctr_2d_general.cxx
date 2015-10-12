@@ -308,9 +308,9 @@ namespace CTF_int {
     
 #ifdef OFFLOAD
     if (alloc_host_buf){
-      host_pinned_alloc((void**)&buf_A, s_A*sr_A->el_size);
-      host_pinned_alloc((void**)&buf_B, s_B*sr_B->el_size);
-      host_pinned_alloc((void**)&buf_C, s_C*sr_C->el_size);
+      if (s_A > 0) host_pinned_alloc((void**)&buf_A, s_A*sr_A->el_size);
+      if (s_B > 0) host_pinned_alloc((void**)&buf_B, s_B*sr_B->el_size);
+      if (s_C > 0) host_pinned_alloc((void**)&buf_C, s_C*sr_C->el_size);
     }
 #else
     if (0){
@@ -324,8 +324,8 @@ namespace CTF_int {
       ret = CTF_int::mst_alloc_ptr(s_C*sr_C->el_size, (void**)&buf_C);
       ASSERT(ret==0);
     }
-    ret = CTF_int::mst_alloc_ptr(aux_size, (void**)&buf_aux);
-    ASSERT(ret==0);
+    //ret = CTF_int::mst_alloc_ptr(aux_size, (void**)&buf_aux);
+    //ASSERT(ret==0);
 
     //for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
     for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
@@ -434,9 +434,9 @@ namespace CTF_int {
     /* FIXME: reuse that */
 #ifdef OFFLOAD
     if (alloc_host_buf){
-      host_pinned_free(buf_A);
-      host_pinned_free(buf_B);
-      host_pinned_free(buf_C);
+      if (s_A > 0) host_pinned_free(buf_A);
+      if (s_B > 0) host_pinned_free(buf_B);
+      if (s_C > 0) host_pinned_free(buf_C);
     }
 #else
     if (0){
@@ -446,7 +446,6 @@ namespace CTF_int {
       CTF_int::cdealloc(buf_A);
       CTF_int::cdealloc(buf_B);
       CTF_int::cdealloc(buf_C);
-      CTF_int::cdealloc(buf_aux);
     }
     TAU_FSTOP(ctr_2d_general);
   }
