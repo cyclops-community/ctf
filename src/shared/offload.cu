@@ -13,6 +13,7 @@
 
 #include "offload.h"
 #include "../tensor/algstrct.h"
+#include "../interface/timer.h"
 
 namespace CTF_int{
   volatile static int64_t int64_t_max = INT64_MAX;
@@ -65,20 +66,42 @@ namespace CTF_int{
     cudaError_t err = cudaFree(dev_ptr);
     assert(err == cudaSuccess);
   }
+
+  LinModel<2> upload_mdl(upload_mdl_init,"upload_mdl");
+  LinModel<2> download_mdl(download_mdl_init,"download_mdl");
+
+  double estimate_download_time(int64_t size){
+    double ps[] = {1.0, (double)size};
+    return download_mdl.est_time(ps);
+  }
+
+  double estimate_upload_time(int64_t size){
+    double ps[] = {1.0, (double)size};
+    return upload_mdl.est_time(ps);
+  }
   
   void offload_ptr::download(char * host_ptr){
     assert(initialized);
     TAU_FSTART(cuda_download);
+    double st_time = MPI_Wtime();
     cudaError_t err = cudaMemcpy(host_ptr, dev_ptr, size*sr->el_size,
                                  cudaMemcpyDeviceToHost);
+    double exe_time = MPI_Wtime()-st_time;
+    double tps[] = {exe_time, 1.0, (double)size*sr->el_size};
+    download_mdl.observe(tps);
     TAU_FSTOP(cuda_download);
     assert(err == cudaSuccess);
   }
   
   void offload_ptr::upload(char const * host_ptr){
     TAU_FSTART(cuda_upload);
+    double st_time = MPI_Wtime();
     cudaError_t err = cudaMemcpy(dev_ptr, host_ptr, size*sr->el_size,
                                  cudaMemcpyHostToDevice);
+
+    double exe_time = MPI_Wtime()-st_time;
+    double tps[] = {exe_time, 1.0, (double)size*sr->el_size};
+    upload_mdl.observe(tps);
     TAU_FSTOP(cuda_upload);
     assert(err == cudaSuccess);
   }

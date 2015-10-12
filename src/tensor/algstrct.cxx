@@ -639,7 +639,7 @@ namespace CTF_int {
                  swap_buffer+ptr_pairs[i].idx*(sizeof(int64_t)+sr->el_size),
                  sizeof(int64_t)+sr->el_size);
         }
-        break;
+        break; //compiler warning here seems to be gcc bug
     }
   }
 

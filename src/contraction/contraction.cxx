@@ -1843,7 +1843,7 @@ namespace CTF_int {
 //      printf("new_order[%d/%d] = %d, new_lens[%d] = %d\n", i, topo->order, new_order[i], new_order[i], new_lens[new_order[i]]);
     }
     topology * new_topo = NULL;
-    for (int i=0; i<A->wrld->topovec.size(); i++){
+    for (int i=0; i<(int)A->wrld->topovec.size(); i++){
       if (A->wrld->topovec[i]->order == topo->order){
         bool has_same_len = true;
         for (int j=0; j<topo->order; j++){
@@ -2586,7 +2586,7 @@ namespace CTF_int {
             &num_tot, &idx_arr);
     cdealloc(idx_arr);
     int64_t tot_num_choices = 0;
-    for (int i=0; i<wrld->topovec.size(); i++){
+    for (int i=0; i<(int)wrld->topovec.size(); i++){
      // tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
       tot_num_choices += get_num_map_variants(wrld->topovec[i]);
     }
@@ -2594,7 +2594,7 @@ namespace CTF_int {
     int64_t choice_offset = 0;
     int64_t max_memuse = proc_bytes_available();
     TAU_FSTOP(init_select_ctr_map);
-    for (int i=0; i<wrld->topovec.size(); i++){
+    for (int i=0; i<(int)wrld->topovec.size(); i++){
 //      int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
       int tnum_choices = get_num_map_variants(wrld->topovec[i]);
 
@@ -2767,10 +2767,6 @@ namespace CTF_int {
 
   int contraction::map(ctr ** ctrf, bool do_remap){
     int ret, j, need_remap, d;
-    int64_t memuse;//, bmemuse;
-    double best_time;
-    int btopo;
-    //int * idx_arr, * idx_ctr, * idx_no_ctr, * idx_extra, * idx_weigh;
     int * old_phase_A, * old_phase_B, * old_phase_C;
     topology * old_topo_A, * old_topo_B, * old_topo_C;
     distribution * dA, * dB, * dC;
@@ -2831,12 +2827,9 @@ namespace CTF_int {
       old_phase_C[j]   = C->edge_map[j].calc_phase();
     }
 
-    //}
-    btopo = -1;
-    best_time = DBL_MAX;
     //bmemuse = UINT64_MAX;
     int ttopo, ttopo_sel, ttopo_exh;
-    double gbest_time, gbest_time_sel, gbest_time_exh;
+    double gbest_time_sel, gbest_time_exh;
   
     TAU_FSTART(get_best_sel_map);
     get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
@@ -2850,10 +2843,8 @@ namespace CTF_int {
       TAU_FSTOP(get_best_exh_map);
     }
     if (gbest_time_sel <= gbest_time_exh){
-      gbest_time = gbest_time_sel;
       ttopo = ttopo_sel;
     } else {
-      gbest_time = gbest_time_exh;
       ttopo = ttopo_exh;
     }
 
@@ -2914,7 +2905,7 @@ namespace CTF_int {
       int64_t choice_offset = 0;
       int i=0;
       int64_t old_off;
-      for (i=0; i<wrld->topovec.size(); i++){
+      for (i=0; i<(int)wrld->topovec.size(); i++){
         //int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
         int tnum_choices = get_num_map_variants(wrld->topovec[i]);
         old_off = choice_offset;
@@ -2962,10 +2953,10 @@ namespace CTF_int {
     #endif
      
     //FIXME: adhoc? 
-    memuse = MAX((int64_t)(*ctrf)->mem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
+    /*memuse = MAX((int64_t)(*ctrf)->mem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
     if (global_comm.rank == 0)
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
-              (double)memuse,(double)proc_bytes_available(),gbest_time);
+              (double)memuse,(double)proc_bytes_available(),gbest_time);*/
 
     if (A->is_cyclic == 0 &&
         B->is_cyclic == 0 &&
@@ -4039,7 +4030,9 @@ namespace CTF_int {
   #if DEBUG >=2
     ctrf->print();
   #endif
+  #if VERBOSE >= 1
   double dtt = MPI_Wtime();
+  #endif
   #ifdef DEBUG
     if (global_comm.rank == 0){
       //DPRINTF(1,"[%d] performing contraction\n",
@@ -4823,9 +4816,8 @@ namespace CTF_int {
   }
 
   void contraction::print(){
-//    int j,ex_A, ex_B,ex_C;
-    int i,max;
-    max = A->order+B->order+C->order;
+    int i;
+    //max = A->order+B->order+C->order;
     CommData global_comm = A->wrld->cdt;
     MPI_Barrier(global_comm.cm);
     if (global_comm.rank == 0){

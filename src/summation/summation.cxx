@@ -2263,8 +2263,8 @@ namespace CTF_int {
   }
 
   void summation::print(){
-    int i,j,max,ex_A, ex_B;
-    max = A->order+B->order;
+    int i;
+    //max = A->order+B->order;
 
     CommData global_comm = A->wrld->cdt;
     MPI_Barrier(global_comm.cm);

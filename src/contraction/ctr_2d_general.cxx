@@ -267,7 +267,7 @@ namespace CTF_int {
   void ctr_2d_general::run(char * A, char * B, char * C){
     int owner_A, owner_B, owner_C, ret;
     int64_t ib;
-    char * buf_A, * buf_B, * buf_C, * buf_aux; 
+    char * buf_A, * buf_B, * buf_C; 
     char * op_A, * op_B, * op_C; 
     int rank_A, rank_B, rank_C;
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;

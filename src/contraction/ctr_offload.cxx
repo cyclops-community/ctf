@@ -64,9 +64,9 @@ namespace CTF_int {
 
   double ctr_offload::est_time_fp(int nlyr){
     double tot_time = 0.0;
-    tot_time += size_A*sr_A->el_size*(total_iter/upload_phase_A)*COST_OFFLOADBW;
-    tot_time += size_B*sr_B->el_size*(total_iter/upload_phase_B)*COST_OFFLOADBW;
-    tot_time += size_C*sr_C->el_size*(total_iter/download_phase_C)*COST_OFFLOADBW;
+    tot_time += estimate_upload_time(size_A*sr_A->el_size)*(total_iter/upload_phase_A);
+    tot_time += estimate_upload_time(size_B*sr_B->el_size)*(total_iter/upload_phase_B);
+    tot_time += estimate_download_time(size_C*sr_C->el_size)*(total_iter/download_phase_C);
     return tot_time;
   }
 

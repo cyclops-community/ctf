@@ -12,6 +12,12 @@ namespace CTF_int{
   void offload_init();
   /** \brief exit offloading, e.g. destroy cublas */
   void offload_exit();
+
+  /** \brief estimate time it takes to upload */
+  double estimate_download_time(int64_t size);
+
+  /** \brief estimate time it takes to download */
+  double estimate_upload_time(int64_t size);
   
   class offload_ptr {
     public:
