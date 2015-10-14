@@ -358,7 +358,8 @@ elif (hostname | grep 'titan'); then
     CXX="CC -std=c++0x"
     realcompiler
     defaultflags
-    NVCC='nvcc -ccbin gcc -m64'
+    NVCC='nvcc'
+    NVCCFLAGS='-ccbin g++ -O3 -std=c++11 -m64'
     LDFLAGS='$(LDFLAGS) -lcuda -lcudart -lcublas'
  
 else
@@ -533,7 +534,8 @@ fi
 
 echo -n 'Checking whether NVCC (cuda) is provided... '
 if [ "x$NVCC" = "x" ]; then
-  NVCC="$CXX -x c -c"
+  NVCC='nvcc'
+  NVCCFLAGS='-ccbin g++ -O0 -g -std=c++11 -m64'
   echo 'NVCC is not provided, cuda will not be used.'
 else
   DEFS="$DEFS -DOFFLOAD -DUSE_CUDA"
@@ -546,29 +548,50 @@ mkdir -p $BUILDDIR/obj
 mkdir -p $BUILDDIR/bin
 
 cat > $BUILDDIR/config.mk <<EOF
+### LINK TIME LIBRARIES AND FLAGS
+#libraries and flags for link time (irrelevant if only building CTF lib and not examples/tests)
 BLAS_LIBS   = $SCALAPACKLIBS $BLASLIBS
-
 LDFLAGS     = $LDFLAGS
+
+### COMPILE TIME INCLUDES AND FLAGS
+#C++ compiler 
+CXX         = $CXX
+#includes for compile time
 INCLUDES    = $INCLUDES
-
-DEFS        = $DEFS 
-
-#uncomment below to enable performance profiling
-#DEFS       += -DPROFILE -DPMPI
-#uncomment below to enable verbosity (1 for basic contraction information)
-#DEFS       += -DVERBOSE=1
-#uncomment to set debug level and dump information about mapping and internal CTF actions
-#DEFS       += -DDEBUG=1
-
+#optimization flags, some intel compiler versions may run into errors when using -fast or -ipo
+CXXFLAGS    = $CXXFLAGS $WARNFLAGS 
+#command to make library out of object files
 AR          = $AR
 
-CXX         = $CXX
-CXXFLAGS    = $CXXFLAGS $WARNFLAGS 
+#macros to be defined throughout the code
+DEFS        = $DEFS 
 
-FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS) \$(INCLUDES)
-LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
+### Optional: PROFILING AND TUNING
+#uncomment below to enable performance profiling
+#DEFS       += -DPROFILE -DPMPI
+#uncomment below to enable automatic performance tuning (loses reproducibility of results)
+#Note: -DTUNE requires lapack (include -mkl or -llapack in BLAS_LIBS)
+#DEFS       += -DTUNE
 
+### Optional: DEBUGGING AND VERBOSITY
+#uncomment below to enable CTF execution output (1 for basic contraction information on start-up and contractions)
+#DEFS       += -DVERBOSE=1
+#uncomment to set debug level to dump information about mapping and internal CTF actions and activate asserts
+#DEFS       += -DDEBUG=1
+
+### Optional: GPU OFFLOADING
+#setup and uncomment below lines to enable NVIDIA GPU offloading (if not already in DEFS above)
+#DEFS       += -DOFFLOAD -DUSE_CUDA=1
+#uncomment and adjust path to cublas libs (if not already included in BLAS_LIBS or LDFLAGS)
+#BLAS_LIBS  += -L/usr/local/cuda/lib64 -lcuda -lcudart -lcublas 
+#compiler for cuda files
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
+
+### FULL COMPILE COMMAND AND LIBRARIES
+#used to compile all plain C++ files
+FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS) \$(INCLUDES)
+#link-line for all executables
+LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
 EOF
 
 if [ ! -f $BUILDDIR/include/ctf.hpp ] ; then
@@ -584,4 +607,5 @@ all: ctf
 	export CTF_BUILD_DIR=$BUILDDIR; cd \$(CTFDIR); make \$@;
 EOF
 fi
-echo 'Configure was successful.'
+echo 'A config.mk file has been created (to adjust all settings edit the config.mk file manually or rerun ./configure to create a new one).'
+echo 'Configure finished successfully.'
