@@ -62,7 +62,7 @@ ctf:
 ctflib: ctf 
 	$(AR) -crs $(BDIR)/lib/libctf.a $(ODIR)/*.o; 
 
-$(BDIR)/lib/libctf.a: src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
+$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
 	
 clean: clean_bin clean_lib clean_obj

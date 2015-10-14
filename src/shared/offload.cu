@@ -1,19 +1,20 @@
 /*Copyright (c) 2014, Edgar Solomonik, all rights reserved.*/
 
-#ifdef USE_CUDA
-#include <cuda_runtime.h>
-#include <cublas_v2.h>
 #include <complex>
 #include <assert.h>
 #include <stdio.h>
-//#include "../shared/util.h"
-#include "device_launch_parameters.h"
 #include "int_timer.h"
 #include <stdint.h>
 
 #include "offload.h"
 #include "../tensor/algstrct.h"
 #include "../interface/timer.h"
+
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
+#include "device_launch_parameters.h"
+#endif
 
 namespace CTF_int{
   volatile static int64_t int64_t_max = INT64_MAX;
@@ -33,6 +34,7 @@ namespace CTF_int{
     do{                                           \
      assert(0); } while (0)
   
+#ifdef USE_CUDA
   int initialized = 0;
   cublasHandle_t cuhandle;
   
@@ -144,6 +146,7 @@ namespace CTF_int{
     cudaError_t err = cudaFreeHost(ptr);
     assert(err == cudaSuccess);
   }
+#endif
   
   template <typename dtype>
   void offload_gemm(char           tA,
@@ -163,6 +166,7 @@ namespace CTF_int{
     offload_gemm(tA, tB, m, n, k, alpha, (dtype*)A.dev_ptr, lda_A, (dtype*)B.dev_ptr, lda_B, beta, (dtype*)C.dev_ptr, lda_C);
     TAU_FSTOP(cuda_gemm);
   }
+
   template 
   void offload_gemm(char          tA,
                     char          tB,
@@ -191,6 +195,7 @@ namespace CTF_int{
                     std::complex<double> beta,
                     offload_ptr &        C,
                     int                  lda_C);
+
   template <>
   void offload_gemm<double>(char           tA,
                             char           tB,
@@ -205,6 +210,7 @@ namespace CTF_int{
                             double         beta,
                             double *       dev_C,
                             int            lda_C){
+  #ifdef USE_CUDA
     assert(initialized);
   
     cublasOperation_t cuA;  
@@ -241,6 +247,7 @@ namespace CTF_int{
   #endif
     
     assert(status == CUBLAS_STATUS_SUCCESS);
+  #endif  
   }
   
   
@@ -259,6 +266,7 @@ namespace CTF_int{
                            std::complex<double>         beta,
                            std::complex<double> *       dev_C,
                            int                          lda_C){
+  #ifdef USE_CUDA
     assert(initialized);
     
     cublasOperation_t cuA;  
@@ -308,7 +316,6 @@ namespace CTF_int{
     
     assert(status == CUBLAS_STATUS_SUCCESS);
     assert(status == CUBLAS_STATUS_SUCCESS);
+  #endif
   }
-  
 }
-#endif

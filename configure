@@ -14,6 +14,8 @@ function usage
   echo -e '\t--scalapack=libs  Specify the linker options and/or libraries needed to link'
   echo -e '\t                  the ScaLAPACK libraries. Necessary only for a couple of non-critical tests.'
   echo
+  echo -e '\t--with-cuda       Tells CTF to try setup NVCC, NVCCFLAGS, and CUBLAS libs automatically'
+  echo
   echo -e 'Additionally, the variables CXX, CXXFLAGS, INCLUDES, AR, NVCC, NVCCFLAGS, LDFLAGS, and WARNFLAGS'
   echo -e 'can be set on the command line, e.g. ./configure CXX=g++ CXXFLAGS="-fopenmp -O2 -g".'
   echo
@@ -140,6 +142,60 @@ EOF
 
 }
 
+#Usage: 'testcompiler $1' where 
+# $1 - 0 if no printouts, 1 if verbose
+function testnvcc
+{
+  status=1
+  cat > .test.cu <<EOF
+  #include <cuda_runtime.h>
+  int main(){ 
+    int ndev=0;
+    cudaGetDeviceCount(&ndev);
+    return 0; 
+  }
+EOF
+  if [ $1 -eq 1 ]; then
+    ( set -x; $NVCC $NVCCFLAGS $DEFS $INCLUDES .test.cu -c .test.o  2>&1 )
+    ( set -x; $CXX $DEFS $WARNFLAGS $INCLUDES .test.o $LDFLAGS 2>&1 )
+  else
+    $NVCC $NVCCFLAGS $DEFS $INCLUDES .test.cu -c .test.o > /dev/null 2>&1
+    $CXX $DEFS $WARNFLAGS $INCLUDES .test.o $LDFLAGS > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cu .test.o
+  return $status
+}
+
+function testcublas
+{
+  status=1
+  cat > .test.cu <<EOF
+  #include <cuda_runtime.h>
+  #include <cublas_v2.h>
+  cublasHandle_t cuhandle;
+  int main(){
+    cublasStatus_t status = cublasCreate(&cuhandle);
+    return 0; 
+  }
+EOF
+  if [ $1 -eq 1 ]; then
+    ( set -x; $NVCC $NVCCFLAGS $DEFS $INCLUDES .test.cu -c .test.o  2>&1 )
+    ( set -x; $CXX $DEFS $WARNFLAGS $INCLUDES .test.o $LDFLAGS 2>&1 )
+  else
+    $NVCC $NVCCFLAGS $DEFS $INCLUDES .test.cu -c .test.o > /dev/null 2>&1
+    $CXX $DEFS $WARNFLAGS $INCLUDES .test.o $LDFLAGS > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cu a.out
+  return $status
+}
+
+
 function realcompiler
 {
     echo -n 'Checking compiler type/version... '
@@ -240,6 +296,7 @@ EOF
 # Parse command-line arguments
 #
 depstype=normal
+SETUP_CUDA=0
 while [ "x$1" != "x" ]; do
   case $1 in
     --build-dir=*)
@@ -250,6 +307,9 @@ while [ "x$1" != "x" ]; do
       ;;
     --scalapack=*)
       SCALAPACKLIBS="${1#--scalapack=}"
+      ;;
+    --with-cuda)
+      SETUP_CUDA=1
       ;;
     --help)
       usage
@@ -358,9 +418,9 @@ elif (hostname | grep 'titan'); then
     CXX="CC -std=c++0x"
     realcompiler
     defaultflags
-    NVCC='nvcc'
-    NVCCFLAGS='-ccbin g++ -O3 -std=c++11 -m64'
-    LDFLAGS='$(LDFLAGS) -lcuda -lcudart -lcublas'
+    NVCC='nvcc -ccbin g++'
+    NVCCFLAGS='-O3 -std=c++11 -m64'
+    LDFLAGS="$LDFLAGS -lcuda -lcudart -lcublas"
  
 else
   #
@@ -532,14 +592,61 @@ fi
 #  echo
 #fi
 
-echo -n 'Checking whether NVCC (cuda) is provided... '
+USE_CUDA=0
+echo -n 'Checking whether to use CUDA... '
 if [ "x$NVCC" = "x" ]; then
-  NVCC='nvcc'
-  NVCCFLAGS='-ccbin g++ -O0 -g -std=c++11 -m64'
-  echo 'NVCC is not provided, cuda will not be used.'
+  if [ $SETUP_CUDA = 1 ]; then
+    echo -n 'automatic nvcc setup requested... '
+    NVCC='nvcc -ccbin g++'
+    NVCCFLAGS='-O3 -std=c++11 -m64'
+    LDFLAGS="$LDFLAGS -L/usr/local/cuda/lib64/ -lcuda -lcudart"
+    if testnvcc 0; then
+      echo 'nvcc defaults work successfully.'
+      DEFS="$DEFS -DOFFLOAD -DUSE_CUDA"
+      USE_CUDA=1
+    else  
+      echo 'FAILED! error below:'
+      echo
+      testnvcc 1
+      echo
+      exit 1
+    fi
+  else
+    echo 'cuda will not be used.'
+    NVCC='$(CXX) -x c++'
+    NVCCFLAGS='$(CXXFLAGS)'
+  fi
 else
+  echo 'testing provided NVCC and NVCCFLAGS... '
   DEFS="$DEFS -DOFFLOAD -DUSE_CUDA"
-  echo 'NVCC provided and cuda will be used.'
+  USE_CUDA=1
+  if testnvcc 0; then
+    echo 'successful.'
+  else
+    echo 'FAILED! error below:'
+    echo
+    testnvcc 1
+    echo
+    exit 1
+  fi
+fi
+
+if [ $USE_CUDA = 1 ]; then
+  echo -n 'Checking whether CUBLAS libraries are provided... '
+  if testcublas 0; then
+    echo 'CUBLAS works with provided LDFLAGS.'
+  else
+    LDFLAGS="$LDFLAGS -lcublas"
+    if testcublas 0; then
+      echo 'CUBLAS works with default -lcublas.'
+    else
+      echo 'FAILED! error with default flags below:'
+      echo
+      testnvcc 1
+      echo
+      exit 1
+    fi
+  fi 
 fi
 
 mkdir -p $BUILDDIR
@@ -579,19 +686,13 @@ DEFS        = $DEFS
 #uncomment to set debug level to dump information about mapping and internal CTF actions and activate asserts
 #DEFS       += -DDEBUG=1
 
-### Optional: GPU OFFLOADING
-#setup and uncomment below lines to enable NVIDIA GPU offloading (if not already in DEFS above)
-#DEFS       += -DOFFLOAD -DUSE_CUDA=1
-#uncomment and adjust path to cublas libs (if not already included in BLAS_LIBS or LDFLAGS)
-#BLAS_LIBS  += -L/usr/local/cuda/lib64 -lcuda -lcudart -lcublas 
-#compiler for cuda files
-OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
-
 ### FULL COMPILE COMMAND AND LIBRARIES
 #used to compile all plain C++ files
 FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS) \$(INCLUDES)
 #link-line for all executables
 LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
+#compiler for CUDA files (used to compile CUDA code only when -DOFFLOAD and -DUSE_CUDA are in DEFS, otherwise should be same as FCXX with -x c++)
+OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
 EOF
 
 if [ ! -f $BUILDDIR/include/ctf.hpp ] ; then
