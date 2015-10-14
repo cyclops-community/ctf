@@ -1244,7 +1244,7 @@ namespace CTF_int {
           dbeta = beta;
           char * new_alpha = (char*)alloc(tnsr_B->sr->el_size);
 
-          tensor * inv_tsr_A;
+          tensor * inv_tsr_A = NULL;
           bool need_inv = false;
           // if we have no multiplicative operator, must inverse sign manually
           if (tnsr_B->sr->mulid() == NULL){

@@ -119,7 +119,9 @@ namespace CTF_int {
     int owner_A, owner_B, owner_C, ret;
     int64_t ib;
     char * buf_A, * buf_B, * buf_C, * buf_aux; 
-    char * op_A, * op_B, * op_C; 
+    char * op_A = NULL;
+    char * op_B = NULL;
+    char * op_C = NULL; 
     int rank_A, rank_B, rank_C;
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
     if (move_A) rank_A = cdt_A->rank;

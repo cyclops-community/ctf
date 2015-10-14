@@ -377,7 +377,7 @@ namespace CTF_int {
     beta_arr = (int*)CTF_int::alloc(sizeof(int)*nb_C);
     memset(beta_arr, 0, nb_C*sizeof(int));
 
-    int64_t * sp_offsets_A;
+    int64_t * sp_offsets_A = NULL;
     if (is_sparse_A){
       sp_offsets_A = (int64_t*)alloc(sizeof(int64_t)*nb_A);
       sp_offsets_A[0] = 0;
@@ -385,7 +385,7 @@ namespace CTF_int {
         sp_offsets_A[i] = sp_offsets_A[i-1]+size_blk_A[i-1];
       }
     }
-    int64_t * sp_offsets_B;
+    int64_t * sp_offsets_B = NULL;
     if (is_sparse_B){
       sp_offsets_B = (int64_t*)alloc(sizeof(int64_t)*nb_B);
       sp_offsets_B[0] = 0;
@@ -394,9 +394,9 @@ namespace CTF_int {
       }
     }
 
-    int64_t * sp_offsets_C;
-    int64_t * new_sp_szs_C;
-    char ** buckets_C;
+    int64_t * sp_offsets_C = NULL;
+    int64_t * new_sp_szs_C = NULL;
+    char ** buckets_C = NULL;
     if (is_sparse_C){
       sp_offsets_C = (int64_t*)alloc(sizeof(int64_t)*nb_C);
       new_sp_szs_C = size_blk_C; //(int64_t*)alloc(sizeof(int64_t)*nb_C);
@@ -498,7 +498,7 @@ namespace CTF_int {
         }
       }
     }
-    if (this->is_sparse_C){
+    if (is_sparse_C){
       int64_t new_size_C = 0;
       for (int i=0; i<nb_C; i++){
         new_size_C += new_sp_szs_C[i];
@@ -575,7 +575,7 @@ namespace CTF_int {
   }
 
   spctr_pin_keys::spctr_pin_keys(contraction const * s, int AxBxC_) : spctr(s) {
-    tensor * X;
+    tensor * X = NULL;
     AxBxC = AxBxC_;
     switch (AxBxC){ 
       case 0:
@@ -627,8 +627,8 @@ namespace CTF_int {
                            char * C, int nblk_C, int64_t * size_blk_C,
                            char *& new_C){
     TAU_FSTART(spctr_pin_keys);
-    char * X;
-    algstrct const * sr;
+    char * X = NULL;
+    algstrct const * sr = NULL;
     int64_t nnz = 0;
     switch (AxBxC){ 
       case 0:
@@ -665,7 +665,7 @@ namespace CTF_int {
     }*/
     char * nA, * nB, * nC;
     nA = A; nB = B; nC = C;
-    char * nX;
+    char * nX = NULL;
     switch (AxBxC){
       case 0:
         mst_alloc_ptr(sr->pair_size()*nnz, (void**)&nX);

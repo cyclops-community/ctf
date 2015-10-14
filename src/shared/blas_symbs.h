@@ -1,7 +1,9 @@
 #ifndef __BLAS_SYMBS__
 #define __BLAS_SYMBS__
 
+#include <complex>
 #if FTN_UNDERSCORE
+#define DDOT ddot_
 #define SGEMM sgemm_
 #define DGEMM dgemm_
 #define CGEMM cgemm_
@@ -30,6 +32,7 @@
 #define MKL_CCSRMM mkl_ccsrmm_
 #define MKL_ZCSRMM mkl_zcsrmm_
 #else
+#define DDOT ddot
 #define SGEMM sgemm
 #define DGEMM dgemm
 #define CGEMM cgemm
@@ -60,6 +63,11 @@
 #endif
 
 namespace CTF_BLAS {
+  extern "C"
+  double DDOT(int * n,         const double * dX,      
+              int * incX,      const double * dY,      
+              int * incY);
+
 
   extern "C"
   void SGEMM(const char *,

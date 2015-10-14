@@ -1,5 +1,6 @@
 
 #include "../shared/lapack_symbs.h"
+#include "../shared/blas_symbs.h"
 #include "model.h"
 #include "../shared/util.h"
 
@@ -35,7 +36,7 @@ namespace CTF_int {
   double cddot(int n,       const double *dX,
                int incX,    const double *dY,
                int incY){
-    return CTF_LAPACK::DDOT(&n, dX, &incX, dY, &incY);
+    return CTF_BLAS::DDOT(&n, dX, &incX, dY, &incY);
   }
 
   void cdgeqrf(int const M,
@@ -46,7 +47,9 @@ namespace CTF_int {
                double *  WORK,
                int const LWORK,
                int  *    INFO){
+#ifdef TUNE
     CTF_LAPACK::DGEQRF(&M, &N, A, &LDA, TAU2, WORK, &LWORK, INFO);
+#endif
   }
 
   void cdormqr(char           SIDE,
@@ -62,13 +65,17 @@ namespace CTF_int {
                double *       WORK,
                int            LWORK,
                int  *         INFO){
+#ifdef TUNE
     CTF_LAPACK::DORMQR(&SIDE, &TRANS, &M, &N, &K, A, &LDA, TAU2, C, &LDC, WORK, &LWORK, INFO);
+#endif
   }
 
 
 
   void cdgelsd(int m, int n, int k, double const * A, int lda_A, double * B, int lda_B, double * S, int cond, int * rank, double * work, int lwork, int * iwork, int * info){
+#ifdef TUNE
     CTF_LAPACK::DGELSD(&m, &n, &k, A, &lda_A, B, &lda_B, S, &cond, rank, work, &lwork, iwork, info);
+#endif
   }
 
   template <int nparam>

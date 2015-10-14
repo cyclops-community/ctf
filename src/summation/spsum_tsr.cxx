@@ -141,7 +141,7 @@ namespace CTF_int {
     /* dynammically determined size */ 
     beta_arr = (int*)alloc(sizeof(int)*nb_B);
 
-    int64_t * sp_offsets_A;
+    int64_t * sp_offsets_A = NULL;
     if (is_sparse_A){
       sp_offsets_A = (int64_t*)alloc(sizeof(int64_t)*nb_A);
       sp_offsets_A[0] = 0;
@@ -150,9 +150,9 @@ namespace CTF_int {
       }
     }
 
-    int64_t * sp_offsets_B;
-    int64_t * new_sp_szs_B;
-    char ** buckets_B;
+    int64_t * sp_offsets_B = NULL;
+    int64_t * new_sp_szs_B = NULL;
+    char ** buckets_B = NULL;
     if (is_sparse_B){
       sp_offsets_B = (int64_t*)alloc(sizeof(int64_t)*nb_B);
       new_sp_szs_B = nnz_blk_B; //(int64_t*)alloc(sizeof(int64_t)*nb_B);
@@ -210,7 +210,7 @@ namespace CTF_int {
       }
       if (i==num_dim) break;
     }
-    if (this->is_sparse_B){
+    if (is_sparse_B){
       this->new_nnz_B = 0;
       for (int i=0; i<nb_B; i++){
         this->new_nnz_B += new_sp_szs_B[i];

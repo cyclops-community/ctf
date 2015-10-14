@@ -2904,7 +2904,7 @@ namespace CTF_int {
     } else {
       int64_t choice_offset = 0;
       int i=0;
-      int64_t old_off;
+      int64_t old_off = 0;
       for (i=0; i<(int)wrld->topovec.size(); i++){
         //int tnum_choices = pow(num_choices,(int) wrld->topovec[i]->order);
         int tnum_choices = get_num_map_variants(wrld->topovec[i]);
