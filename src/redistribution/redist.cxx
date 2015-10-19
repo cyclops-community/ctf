@@ -444,7 +444,7 @@ namespace CTF_int {
   }
 
   //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
-  LinModel<2> blres_mdl(blres_mdl_init,"blres_mdl");
+  CubicModel<2> blres_mdl(blres_mdl_init,"blres_mdl");
 
   double blres_est_time(int64_t tot_sz, int nv0, int nv1){
     double ps[] = {(double)nv0+nv1, (double)tot_sz};

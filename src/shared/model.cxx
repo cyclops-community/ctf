@@ -106,12 +106,19 @@ namespace CTF_int {
     get_all_models().push_back(this);
 #endif
   }
+
   
+  template <int nparam>
+  LinModel<nparam>::LinModel(){
+    name = NULL;
+    time_param_mat = NULL;
+  }
+
   template <int nparam>
   LinModel<nparam>::~LinModel(){
 #ifdef TUNE
-    cdealloc(name);
-    cdealloc(time_param_mat);
+    if (name != NULL) cdealloc(name);
+    if (time_param_mat != NULL) cdealloc(time_param_mat);
 #endif
   }
 
@@ -325,16 +332,84 @@ namespace CTF_int {
     printf("%s is_tuned = %d tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,tot_time,over_time,under_time);
   }
 
-
-
   template class LinModel<1>;
   template class LinModel<2>;
   template class LinModel<3>;
   template class LinModel<4>;
-  template class LinModel<5>;
-  template class LinModel<6>;
-  template class LinModel<7>;
-  template class LinModel<8>;
 
+  /**
+   * Given params e.g. [x,y,z] outputs params [x,y,z,x*x,x*y,x*z,y*y,y*z,z*z,x*x*x,x*x*y,x*x*z,x*y*x, ....] etc
+   * \param[in] param parameters to a cubic model
+   * \param[in,out] lparam (preallocated) parameters to pass to larger linear model
+   * \param[in] nparam size of param
+   */
+  static void cube_params(double const * param, double * lparam, int nparam){
+    //linear parameters
+    memcpy(lparam, param, nparam*sizeof(double));
+    int sq_idx = nparam;
+    int cu_idx = nparam+nparam*(nparam+1)/2;
+    for (int i=0; i<nparam; i++){
+      for (int j=0; j<=i; j++){
+        //quadratic parameters
+        double sqp = param[i]*param[j];
+        lparam[sq_idx] = sqp;
+        sq_idx++;
+        for (int k=0; k<=j; k++){
+          //cubic parameters
+          lparam[cu_idx] = sqp*param[k];
+          cu_idx++;
+        }
+      }
+    }
+  }
+
+  static double * get_cube_param(double const * param, int nparam){
+    double * lparam = new double[nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam];
+    cube_params(param, lparam, nparam);
+    return lparam;
+  }
+
+
+  template <int nparam>
+  CubicModel<nparam>::CubicModel(double const * init_guess, char const * name, int hist_size) 
+    : lmdl(init_guess, name, hist_size) 
+  { }
+  
+  template <int nparam>
+  CubicModel<nparam>::~CubicModel(){}
+  
+  template <int nparam>
+  void CubicModel<nparam>::update(MPI_Comm cm){
+    lmdl.update(cm);
+  }
+
+  template <int nparam>
+  void CubicModel<nparam>::observe(double const * time_param){
+    double ltime_param[nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam+1];
+    ltime_param[0] = time_param[0];
+    cube_params(time_param+1, ltime_param+1, nparam);
+    lmdl.observe(ltime_param);
+  }
+
+  template <int nparam>
+  double CubicModel<nparam>::est_time(double const * param){
+    double lparam[nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam];
+    cube_params(param, lparam, nparam);
+    return lmdl.est_time(lparam);
+  }
+
+  template <int nparam>
+  void CubicModel<nparam>::print(){
+    lmdl.print();
+  }
+
+  template <int nparam>
+  void CubicModel<nparam>::print_uo(){
+    lmdl.print_uo();
+  }
+  template class CubicModel<1>;
+  template class CubicModel<2>;
+  template class CubicModel<3>;
+  template class CubicModel<4>;
 }
 

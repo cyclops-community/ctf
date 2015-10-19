@@ -41,6 +41,7 @@ namespace CTF_int {
        */
       LinModel(double const * init_guess, char const * name, int hist_size=16384);
 
+      LinModel();
       ~LinModel();
 
       /**
@@ -72,6 +73,57 @@ namespace CTF_int {
        */
       void print_uo();
   };
+
+  /**
+   * \brief Cubic performance models, which given measurements, provides new model guess
+   */
+  template <int nparam>
+  class CubicModel : Model {
+    private:
+      LinModel<nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam> lmdl;
+
+    public:
+      /** 
+       * \brief constructor
+       * \param[in] init guess array of size nparam consisting of initial model parameter guesses
+       * \param[in] hist_size number of times to keep in history
+       * \param[in] tune_interval
+       */
+      CubicModel(double const * init_guess, char const * name, int hist_size=8192);
+
+      ~CubicModel();
+
+      /**
+       * \brief updates model based on observarions
+       * \param[in] cm communicator across which we should synchronize model (collect observations)
+       */
+      void update(MPI_Comm cm);
+
+      /**
+       * \brief records observation consisting of execution time and nparam paramter values
+       * \param[in] time_param array of size nparam+1 of form [exe_sec,val_1,val_2,...,val_nparam]
+       */
+      void observe(double const * time_param);
+      
+      /**
+       * \brief estimates model time based on observarions
+       * \param[in] param array of size nparam of form [val_1,val_2,...,val_nparam]
+       * \return estimated time
+       */
+      double est_time(double const * param);
+
+      /**
+       * \brief prints current parameter estimates
+       */
+      void print();
+
+      /**
+       * \brief prints time estimate errors
+       */
+      void print_uo();
+
+  };
+
 }
 
 #endif
