@@ -71,11 +71,14 @@ void train_world(double dtime, World & dw){
     double t_st = MPI_Wtime();
     int niter = 0;
     int64_t m = m0;
+    double ctime;
     do {
       train_dns_vec_mat(n, m, dw);
       niter++;
       m *= 1.6;
-    } while (MPI_Wtime() - t_st < ddtime);
+      ctime = MPI_Wtime() - t_st;
+      MPI_Allreduce(MPI_IN_PLACE, &ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
+    } while (ctime < ddtime);
     if (niter <= 10) break;
     n *= 1.4;
   }
