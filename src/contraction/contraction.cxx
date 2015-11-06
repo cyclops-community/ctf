@@ -101,9 +101,9 @@ namespace CTF_int {
     print();
 #endif
 
-    if (A->wrld->cdt.cm == MPI_COMM_WORLD){
-      update_all_models(MPI_COMM_WORLD);
-    }
+    //if (A->wrld->cdt.cm == MPI_COMM_WORLD){
+      update_all_models(A->wrld->cdt.cm);
+    //}
     
     int stat = home_contract();
     assert(stat == SUCCESS); 

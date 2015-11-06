@@ -56,10 +56,16 @@ namespace CTF {
     comm = comm_;
     this->init(comm, order, lens, argc, argv);
   }
-/*
+
   World::World(World const & other){
     comm        = other.comm;
-    cdt         = other.cdt;
+#if DEBUG >= 1
+    if (other.rank == 0){
+      printf("CTF WARNING: Creating copy of World, which is not free or useful, pass original World by reference instead if possible.\n");
+    }
+#endif
+    this->init(comm, other.phys_topology->order, other.phys_topology->lens, 0, NULL);
+/*    cdt         = other.cdt;
     rank        = other.rank;
     np          = other.np;
     initialized = other.initialized;
@@ -67,8 +73,8 @@ namespace CTF {
     ASSERT(0); 
     for (int i=0; i<(int)other.topovec.size(); i++){
       topovec.push_back(other.topovec[i]);
-    }
-  }*/
+    }*/
+  }
 
   World::World(char const * emptystring){}
 
@@ -112,6 +118,7 @@ namespace CTF {
                   int                  argc,
                   const char * const * argv){
 
+    cdt = CommData(global_context);
     phys_topology = new topology(order, dim_len, cdt, 1);
 
     return initialize(argc, argv);

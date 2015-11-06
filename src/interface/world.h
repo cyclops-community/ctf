@@ -46,7 +46,7 @@ namespace CTF {
        * \brief copy constructor, reallocates copies of all topologies
        * \param[in] other world to copy
        */
-//      World(World const & other);
+      World(World const & other);
 
       /**
        * \brief creates CTF library on comm that can output profile data 

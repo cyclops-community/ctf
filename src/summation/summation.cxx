@@ -115,6 +115,7 @@ namespace CTF_int {
     if (A->wrld->cdt.rank == 0) printf("Summation::execute (head):\n");
     print();
 #endif
+    update_all_models(A->wrld->cdt.cm);
     if (A->is_sparse || B->is_sparse){
       int stat = sym_sum_tsr(run_diag);
       assert(stat == SUCCESS); 
