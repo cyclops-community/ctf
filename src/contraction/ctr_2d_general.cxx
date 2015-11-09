@@ -240,14 +240,14 @@ namespace CTF_int {
   double ctr_2d_general::est_time_fp(int nlyr) {
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
-    double est_bcast_time = 0.0;
+    double est_comm_time = 0.0;
     if (move_A)
-      est_bcast_time += cdt_A->estimate_bcast_time(sr_A->el_size*s_A);
+      est_comm_time += cdt_A->estimate_bcast_time(sr_A->el_size*s_A);
     if (move_B)
-      est_bcast_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B);
+      est_comm_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B);
     if (move_C)
-      est_bcast_time += cdt_C->estimate_bcast_time(sr_C->el_size*s_C);
-    return (est_bcast_time*(double)edge_len)/MIN(nlyr,edge_len);
+      est_comm_time += cdt_C->estimate_allred_time(sr_C->el_size*s_C);
+    return (est_comm_time*(double)edge_len)/MIN(nlyr,edge_len);
   }
 
   double ctr_2d_general::est_time_rec(int nlyr) {
