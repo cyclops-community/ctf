@@ -17,8 +17,8 @@ namespace CTF_int {
 #else
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW + 2.0*COST_MEMBW, 0.0};
 #endif
-  LinModel<4> allred_mdl(allred_mdl_init,"allred_mdl");
-  LinModel<4> bcast_mdl(bcast_mdl_init,"bcast_mdl");
+  LinModel<3> allred_mdl(allred_mdl_init,"allred_mdl");
+  LinModel<3> bcast_mdl(bcast_mdl_init,"bcast_mdl");
 
 
   template <typename type>
@@ -264,12 +264,12 @@ namespace CTF_int {
   }
      
   double CommData::estimate_bcast_time(int64_t msg_sz){
-    double ps[] = {1.0, log2((double)np), (double)msg_sz, log2((double)np)*msg_sz};
+    double ps[] = {1.0, log2((double)np), (double)msg_sz};
     return bcast_mdl.est_time(ps);
   }
      
   double CommData::estimate_allred_time(int64_t msg_sz){
-    double ps[] = {1.0, log2((double)np), (double)msg_sz, log2((double)np)*msg_sz};
+    double ps[] = {1.0, log2((double)np), (double)msg_sz};
     return allred_mdl.est_time(ps);
 
   }
@@ -297,7 +297,7 @@ namespace CTF_int {
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
-    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize, log2(np)*((double)count)*tsize};
+    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize};
     bcast_mdl.observe(tps);
   }
 
@@ -313,7 +313,7 @@ namespace CTF_int {
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
-    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize, log2(np)*((double)count)*tsize};
+    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize};
     allred_mdl.observe(tps);
   }
 

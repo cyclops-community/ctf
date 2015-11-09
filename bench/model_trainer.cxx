@@ -7,6 +7,9 @@
   */
 
 #include <ctf.hpp>
+#define TEST_SUITE
+#include "../examples/ccsd.cxx"
+#undef TEST_SUITE
 using namespace CTF;
 
 void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
@@ -43,7 +46,7 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   /*Function<> f2([](double a, double b){ return a*a+b*b; });
 
   G["ij"] += f2(A["ij"], F["ij"]);
-  G["ij"] -= f2(A["ik"], F["kj"]);*/
+  ["ij"] -= f2(A["ik"], F["kj"]);*/
 
   Transform<> t1([](double & a){ a*=a; });
 
@@ -61,10 +64,22 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   t3(A["ij"],G["ij"],F["ij"]);*/
 }
 
+void train_ccsd(int64_t n, int64_t m, World & dw){
+  int nv = sqrt(n);
+  int no = sqrt(m);
+  Integrals V(no, nv, dw);
+  V.fill_rand();
+  Amplitudes T(no, nv, dw);
+  T.fill_rand();
+  ccsd(V,T,0);
+  T["ai"] = (1./T.ai->norm2())*T["ai"];
+  T["abij"] = (1./T.abij->norm2())*T["abij"];
+}
+
 void train_world(double dtime, World & dw){
   int n0 = 15, m0 = 15;
   int64_t n = n0;
-  int64_t approx_niter = (log((dtime*5000./15.)/dw.np)/log(1.4));
+  int64_t approx_niter = (log((dtime*2000./15.)/dw.np)/log(1.4));
   double ddtime = dtime/approx_niter;
 //  printf("ddtime = %lf\n", ddtime);
   for (;;){
@@ -75,6 +90,7 @@ void train_world(double dtime, World & dw){
     do {
 //      if (dw.rank == 0) printf("executing n= %ld m = %ld\n", n, m);
       train_dns_vec_mat(n, m, dw);
+      train_ccsd(n, m, dw);
       niter++;
       m *= 1.6;
       ctime = MPI_Wtime() - t_st;
