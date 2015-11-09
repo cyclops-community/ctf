@@ -73,13 +73,14 @@ void train_world(double dtime, World & dw){
     int64_t m = m0;
     double ctime;
     do {
+//      if (dw.rank == 0) printf("executing n= %ld m = %ld\n", n, m);
       train_dns_vec_mat(n, m, dw);
       niter++;
       m *= 1.6;
       ctime = MPI_Wtime() - t_st;
       MPI_Allreduce(MPI_IN_PLACE, &ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
-    } while (ctime < ddtime);
-    if (niter <= 10) break;
+    } while (ctime < ddtime && m<= 1000000);
+    if (niter <= 3 || n>=1000000) break;
     n *= 1.4;
   }
 }

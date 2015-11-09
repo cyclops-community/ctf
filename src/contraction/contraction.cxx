@@ -2834,7 +2834,7 @@ namespace CTF_int {
     TAU_FSTART(get_best_sel_map);
     get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
     TAU_FSTOP(get_best_sel_map);
-    if (gbest_time_sel < 1.E-1){
+    if (gbest_time_sel < 1.){
       gbest_time_exh = gbest_time_sel+1.;
       ttopo_exh = ttopo_sel;
     } else {

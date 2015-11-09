@@ -9,16 +9,16 @@ namespace CTF {
 
 namespace CTF_int {
   //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
-  CubicModel<3> alltoall_mdl(alltoall_mdl_init,"alltoall_mdl");
-  CubicModel<3> alltoallv_mdl(alltoallv_mdl_init,"alltoallv_mdl");
+  LinModel<3> alltoall_mdl(alltoall_mdl_init,"alltoall_mdl");
+  LinModel<3> alltoallv_mdl(alltoallv_mdl_init,"alltoallv_mdl");
   
 #ifdef BGQ
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, 0.0, COST_NETWBW + 2.0*COST_MEMBW};
 #else
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW + 2.0*COST_MEMBW, 0.0};
 #endif
-  CubicModel<4> allred_mdl(allred_mdl_init,"allred_mdl");
-  CubicModel<4> bcast_mdl(bcast_mdl_init,"bcast_mdl");
+  LinModel<4> allred_mdl(allred_mdl_init,"allred_mdl");
+  LinModel<4> bcast_mdl(bcast_mdl_init,"bcast_mdl");
 
 
   template <typename type>

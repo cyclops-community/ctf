@@ -69,8 +69,8 @@ namespace CTF_int{
     assert(err == cudaSuccess);
   }
 
-  CubicModel<2> upload_mdl(upload_mdl_init,"upload_mdl");
-  CubicModel<2> download_mdl(download_mdl_init,"download_mdl");
+  LinModel<2> upload_mdl(upload_mdl_init,"upload_mdl");
+  LinModel<2> download_mdl(download_mdl_init,"download_mdl");
 
   double estimate_download_time(int64_t size){
     double ps[] = {1.0, (double)size};
