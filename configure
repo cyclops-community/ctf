@@ -499,7 +499,6 @@ fi
 # Check that compiler works without error
 #
 echo -n 'Checking flags (CXXFLAGS)... '
-ODEFS=$DEFS
 DEFS="$DEFS $CXXFLAGS"
 if testcompiler 0; then
   echo 'successful.'
@@ -518,11 +517,16 @@ echo -n 'Checking if OpenMP is provided... '
 if testopenmp; then
   echo 'OpenMP works.'
 else
-  echo 'Unable to compile OpenMP test program, will build without OpenMP, to enable OpenMP please provide e.g. CXXFLAGS=-fopenmp.'
-  DEFS="$DEFS -DOMP_OFF"
+  OLDFLAGS=$LDFLAGS
+  LDFLAGS="$LDFLAGS -fopenmp"
+  if testopenmp; then
+    echo 'using OpenMP via -fopenmp flag.'
+  else
+    echo 'Uuable to compile OpenMP test program, will build without OpenMP, to enable OpenMP please provide e.g. CXXFLAGS=-fopenmp.'
+    LDFLAGS="$OLDFLAGS -DOMP_OFF"
+  fi
 fi
   
-DEFS=$ODEFS
 
 #
 # Determine BLAS/LAPACK naming convention
@@ -705,7 +709,7 @@ cat > $BUILDDIR/Makefile <<EOF
 CTFDIR=$CTFDIR
 all: ctf
 %:
-	export CTF_BUILD_DIR=$BUILDDIR; cd \$(CTFDIR); make \$@;
+	export CTF_BUILD_DIR=$BUILDDIR; cd \$(CTFDIR); \$(MAKE) \$@;
 EOF
 fi
 echo 'A config.mk file has been created (to adjust all settings edit the config.mk file manually or rerun ./configure to create a new one).'

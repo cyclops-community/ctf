@@ -147,25 +147,7 @@ namespace CTF_int{
     assert(err == cudaSuccess);
   }
 #endif
-  
-  template <typename dtype>
-  void offload_gemm(char           tA,
-                    char           tB,
-                    int            m,
-                    int            n,
-                    int            k,
-                    dtype          alpha,
-                    offload_ptr &  A,
-                    int            lda_A,
-                    offload_ptr &  B,
-                    int            lda_B,
-                    dtype          beta,
-                    offload_ptr &  C,
-                    int            lda_C){
-    TAU_FSTART(cuda_gemm);
-    offload_gemm(tA, tB, m, n, k, alpha, (dtype*)A.dev_ptr, lda_A, (dtype*)B.dev_ptr, lda_B, beta, (dtype*)C.dev_ptr, lda_C);
-    TAU_FSTOP(cuda_gemm);
-  }
+ 
 
   template 
   void offload_gemm(char          tA,
@@ -317,5 +299,24 @@ namespace CTF_int{
     assert(status == CUBLAS_STATUS_SUCCESS);
     assert(status == CUBLAS_STATUS_SUCCESS);
   #endif
+  }
+ 
+  template <typename dtype>
+  void offload_gemm(char           tA,
+                    char           tB,
+                    int            m,
+                    int            n,
+                    int            k,
+                    dtype          alpha,
+                    offload_ptr &  A,
+                    int            lda_A,
+                    offload_ptr &  B,
+                    int            lda_B,
+                    dtype          beta,
+                    offload_ptr &  C,
+                    int            lda_C){
+    TAU_FSTART(cuda_gemm);
+    offload_gemm(tA, tB, m, n, k, alpha, (dtype*)A.dev_ptr, lda_A, (dtype*)B.dev_ptr, lda_B, beta, (dtype*)C.dev_ptr, lda_C);
+    TAU_FSTOP(cuda_gemm);
   }
 }
