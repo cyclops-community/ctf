@@ -35,7 +35,12 @@ int fast_sym_4D(int const     n,
   Tensor<> Bs(3, len3, NNN, ctf);
   Tensor<> Cs(3, len3, NNN, ctf);
 
-  {
+  srand48(rank*347+23);
+
+  A.fill_random(-1.0, 1.0);
+  B.fill_random(-1.0, 1.0);
+
+  /*{
     int64_t * indices;
     double * values;
     int64_t size;
@@ -55,7 +60,7 @@ int fast_sym_4D(int const     n,
     B.write(size, indices, values);
     free(indices);
     free(values);
-  }
+  }*/
 
 
   C_ans["ijab"] = A["ikal"]*B["kjlb"];
@@ -64,13 +69,13 @@ int fast_sym_4D(int const     n,
   B_rep["ijklb"] += B["ijlb"];
   Z["ijkab"] += A_rep["ijkal"]*B_rep["ijklb"];
   C["ijab"] += Z["ijkab"];
-  Cs["iab"] += A["ikal"]*B["iklb"];
+/*  Cs["iab"] += A["ikal"]*B["iklb"];
   As["ial"] += A["ikal"];
-  Bs["ilb"] += B["iklb"];
+  Bs["ilb"] += B["iklb"];*/
   C["ijab"] -= ((double)n)*A["ijal"]*B["ijlb"];
-  C["ijab"] -= Cs["iab"];
-  C["ijab"] -= As["ial"]*B["ijlb"];
-  C["ijab"] -= A["ijal"]*Bs["jlb"];
+  C["ijab"] -= A["ikal"]*B["iklb"];
+  C["ijab"] -= A["ikal"]*B["ijlb"];
+  C["ijab"] -= A["ijal"]*B["iklb"];
 /*
   A_rep["ijkal"] += A["ijal"];
   A_rep["ijkal"] += A["ikal"];
@@ -106,7 +111,8 @@ int fast_sym_4D(int const     n,
     C.print();
   }
   Tensor<> Diff(4, len4, HNNN, ctf);
-  Diff["ijab"] = C["ijab"]-C_ans["ijab"];
+  Diff["ijab"] += C["ijab"];
+  Diff["ijab"] -= C_ans["ijab"];
   double nrm = Diff.norm2();
   int pass = (nrm <=1.E-10);
   

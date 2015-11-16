@@ -253,8 +253,8 @@ namespace CTF {
 
   World & get_universe(){
     if (!universe_exists){
-      universe_exists = true;
       universe = World();
+      universe_exists = true;
     }
     return universe;
   }
