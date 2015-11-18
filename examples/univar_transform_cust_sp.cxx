@@ -2,16 +2,16 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup univar_accumulator_cust_sp univar_accumulator_cust_sp
+  * \defgroup univar_transform_cust_sp univar_transform_cust_sp
   * @{ 
-  * \brief tests cust_spom element-wise accumulator_cust_sps by implementing division elementwise on 4D tensors
+  * \brief tests cust_spom element-wise transform_cust_sps by implementing division elementwise on 4D tensors
   */
 
 #include <ctf.hpp>
 #include "moldynamics.h"
 using namespace CTF;
 
-int univar_accumulator_cust_sp(int     n,
+int univar_transform_cust_sp(int     n,
                                World & dw){
   assert(n>1);
   
@@ -146,9 +146,9 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
-      printf("Computing univar_accumulator_cust_sp A_ijkl = f(A_ijkl)\n");
+      printf("Computing univar_transform_cust_sp A_ijkl = f(A_ijkl)\n");
     }
-    univar_accumulator_cust_sp(n, dw);
+    univar_transform_cust_sp(n, dw);
   }
 
 

@@ -2,17 +2,17 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup univar_accumulator_cust univar_accumulator_cust
+  * \defgroup univar_transform_cust univar_transform_cust
   * @{ 
-  * \brief tests custom element-wise accumulator_custs by implementing division elementwise on 4D tensors
+  * \brief tests custom element-wise transform_custs by implementing division elementwise on 4D tensors
   */
 
 #include <ctf.hpp>
 #include "moldynamics.h"
 using namespace CTF;
 
-int univar_accumulator_cust(int     n,
-                            World & dw){
+int univar_transform_cust(int     n,
+                          World & dw){
   
   Set<particle> sP = Set<particle>();
   Group<force> gF = Group<force>();
@@ -137,9 +137,9 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
-      printf("Computing univar_accumulator_cust A_ijkl = f(A_ijkl)\n");
+      printf("Computing univar_transform_cust A_ijkl = f(A_ijkl)\n");
     }
-    univar_accumulator_cust(n, dw);
+    univar_transform_cust(n, dw);
   }
 
 

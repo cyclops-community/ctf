@@ -30,8 +30,8 @@
 #include "../examples/endomorphism_cust.cxx"
 #include "../examples/endomorphism_cust_sp.cxx"
 #include "../examples/univar_function.cxx"
-#include "../examples/univar_accumulator_cust.cxx"
-#include "../examples/univar_accumulator_cust_sp.cxx"
+#include "../examples/univar_transform_cust.cxx"
+#include "../examples/univar_transform_cust_sp.cxx"
 #include "../examples/bivar_function.cxx"
 #include "../examples/bivar_transform.cxx"
 #include "../examples/spmv.cxx"
@@ -232,12 +232,12 @@ int main(int argc, char ** argv){
     pass.push_back(univar_function(n,dw));
 
     if (rank == 0)
-      printf("Testing univar_accumulator_cust integrates forces to particles with n = %d:\n",n);
-    pass.push_back(univar_accumulator_cust(n,dw));
+      printf("Testing univar_transform_cust integrates forces to particles with n = %d:\n",n);
+    pass.push_back(univar_transform_cust(n,dw));
 
     if (rank == 0)
-      printf("Testing univar_accumulator_cust_sp integrates sparse forces to particles with n = %d:\n",n);
-    pass.push_back(univar_accumulator_cust_sp(n,dw));
+      printf("Testing univar_transform_cust_sp integrates sparse forces to particles with n = %d:\n",n);
+    pass.push_back(univar_transform_cust_sp(n,dw));
     
     if (rank == 0)
       printf("Testing bivar_function A_ijkl = f2(A_ijkl, B_ijkl) with n = %d:\n",n);
