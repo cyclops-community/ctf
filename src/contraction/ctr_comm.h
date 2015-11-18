@@ -4,6 +4,7 @@
 #define __CTR_COMM_H__
 
 #include "../tensor/algstrct.h"
+#include "../interface/fun_term.h"
 
 namespace CTF_int{
   class contraction;
@@ -19,9 +20,37 @@ namespace CTF_int{
        * \param[in] b pointer to second operand that will be cast to type by extending class
        * \param[in,out] result: c=&f(*a,*b) 
        */
-      virtual void apply_f(char const * a, char const * b, char * c) const { assert(0); }
+      virtual void apply_f(char const * a, char const * b, char * c) const = 0;
+      
+      /**
+       * \brief compute c = c+f(a,b)
+       * \param[in] a pointer to operand that will be cast to dtype 
+       * \param[in] b pointer to operand that will be cast to dtype 
+       * \param[in,out] result c+f(*a,b) of applying f on value of (different type) on a
+       * \param[in] sr_C algebraic structure for b, needed to do add
+       */
+      virtual void acc_f(char const * a, char const * b, char * c, CTF_int::algstrct const * sr_C) const = 0;
+
+
+      /** 
+       * \brief evaluate C+=f(A,B)  or f(A,B,C) if transform
+       * \param[in] A operand tensor with pre-defined indices 
+       * \param[in] B operand tensor with pre-defined indices 
+       * \param[in] C output tensor with pre-defined indices 
+      */
+      void operator()(Term const & A, Term const & B, Term const & C) const;
+
+      /** 
+       * \brief evaluate f(A,B) 
+       * \param[in] A operand tensor with pre-defined indices 
+       * \param[in] B operand tensor with pre-defined indices 
+       * \return Bifun_Term that evaluates f(A)
+      */
+      Bifun_Term operator()(Term const & A, Term const & B) const;
       
       virtual ~bivar_function(){}
+      
+      virtual bool is_accumulator() const { return false; }
   };
 
 

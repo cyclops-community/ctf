@@ -239,26 +239,22 @@ namespace CTF_int{
       } else if (alpha == NULL){
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
-          func->apply_f(A+offsets_A[0][i], 
-                        B+offsets_B[0][i], 
-                        tmp);
-          sr_C->add(tmp, 
-                    C+offsets_C[0][i], 
-                    C+offsets_C[0][i]);
+          func->acc_f(A+offsets_A[0][i], 
+                      B+offsets_B[0][i], 
+                      C+offsets_C[0][i],
+                      sr_C);
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       } else {
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
-          func->apply_f(A+offsets_A[0][i], 
-                        B+offsets_B[0][i], 
-                        tmp);
-          sr_C->mul(tmp,
+          sr_C->mul(A+offsets_A[0][i],
                     alpha,
                     tmp);
-          sr_C->add(tmp, 
-                    C+offsets_C[0][i], 
-                    C+offsets_C[0][i]);
+          func->acc_f(tmp, 
+                      B+offsets_B[0][i], 
+                      C+offsets_C[0][i],
+                      sr_C);
         }
         CTF_FLOPS_ADD(3*(imax-imin));
       }
@@ -624,69 +620,103 @@ namespace CTF_int{
       }
     }
 
-    idx_A = 0, idx_B = 0, idx_C = 0;
-    sym_pass = 1;
-    for (;;){
-      //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
-      if (sym_pass){
-        if (alpha == NULL && beta == NULL){
-          func->apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
-                        C+idx_C*sr_C->el_size);
-          CTF_FLOPS_ADD(1);
-        } else  if (alpha == NULL){
-          char tmp[sr_C->el_size];
-          func->apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
-                        tmp);
-          sr_C->add(tmp, C+idx_C*sr_C->el_size, C+idx_C*sr_C->el_size);
-          CTF_FLOPS_ADD(2);
-        } else {
-          char tmp[sr_C->el_size];
-          func->apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
-                        tmp);
-          sr_C->mul(tmp, alpha, tmp);
-          sr_C->add(tmp, C+idx_C*sr_C->el_size, C+idx_C*sr_C->el_size);
-          CTF_FLOPS_ADD(3);
+    if (false && idx_max <= MAX_ORD){
+      uint64_t ** offsets_A;
+      uint64_t ** offsets_B;
+      uint64_t ** offsets_C;
+      compute_syoffs(sr_A, order_A, edge_len_A, sym_A, idx_map_A, sr_B, order_B, edge_len_B, sym_B, idx_map_B, sr_C, order_C, edge_len_C, sym_C, idx_map_C, idx_max, rev_idx_map, offsets_A, offsets_B, offsets_C);
+
+      //if we have something to parallelize without needing to replicate C
+      if (order_C > 1 || (order_C > 0 && idx_map_C[0] != 0)){
+#ifdef USE_OMP    
+        #pragma omp parallel
+#endif
+        {
+          int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+          memset(idx_glb, 0, sizeof(int)*idx_max);
+
+          SWITCH_ORD_CALL(sym_seq_ctr_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C, sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, func, idx_glb, rev_idx_map, idx_max);
+          cdealloc(idx_glb);
+        }
+      } else {
+        {
+          int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+          memset(idx_glb, 0, sizeof(int)*idx_max);
+
+          SWITCH_ORD_CALL(sym_seq_ctr_loop, idx_max-1, alpha, A, sr_A, order_A, edge_len_A, sym_A, idx_map_A, offsets_A, B, sr_B, order_B, edge_len_B, sym_B, idx_map_B, offsets_B, beta, C, sr_C, order_C, edge_len_C, sym_C, idx_map_C, offsets_C, func, idx_glb, rev_idx_map, idx_max);
+          cdealloc(idx_glb);
         }
       }
-
-      for (idx=0; idx<idx_max; idx++){
-        imin = 0, imax = INT_MAX;
-
-        GET_MIN_MAX(A,0,3);
-        GET_MIN_MAX(B,1,3);
-        GET_MIN_MAX(C,2,3);
-
-        ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
-
-        idx_glb[idx]++;
-
-        if (idx_glb[idx] >= imax){
-          idx_glb[idx] = imin;
-        }
-        if (idx_glb[idx] != imin) {
-          break;
-        }
+      for (int l=0; l<idx_max; l++){
+        cdealloc(offsets_A[l]);
+        cdealloc(offsets_B[l]);
+        cdealloc(offsets_C[l]);
       }
-      if (idx == idx_max) break;
-
-      CHECK_SYM(A);
-      if (!sym_pass) continue;
-      CHECK_SYM(B);
-      if (!sym_pass) continue;
-      CHECK_SYM(C);
-      if (!sym_pass) continue;
-      
-
-      if (order_A > 0)
-        RESET_IDX(A);
-      if (order_B > 0)
-        RESET_IDX(B);
-      if (order_C > 0)
-        RESET_IDX(C);
+      cdealloc(offsets_A);
+      cdealloc(offsets_B);
+      cdealloc(offsets_C);
+    } else {
+  
+  
+      idx_A = 0, idx_B = 0, idx_C = 0;
+      sym_pass = 1;
+      for (;;){
+        //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
+        if (sym_pass){
+          if (alpha == NULL && beta == NULL){
+            func->apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
+                          C+idx_C*sr_C->el_size);
+            CTF_FLOPS_ADD(1);
+          } else  if (alpha == NULL){
+            func->acc_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, C+idx_C*sr_C->el_size, sr_C);
+            CTF_FLOPS_ADD(2);
+          } else {
+            char tmp[sr_C->el_size];
+            sr_C->mul(A+idx_A*sr_A->el_size, alpha, tmp);
+            func->acc_f(tmp, B+idx_B*sr_B->el_size, C+idx_C*sr_C->el_size, sr_C);
+            CTF_FLOPS_ADD(3);
+          }
+        }
+  
+        for (idx=0; idx<idx_max; idx++){
+          imin = 0, imax = INT_MAX;
+  
+          GET_MIN_MAX(A,0,3);
+          GET_MIN_MAX(B,1,3);
+          GET_MIN_MAX(C,2,3);
+  
+          ASSERT(idx_glb[idx] >= imin && idx_glb[idx] < imax);
+  
+          idx_glb[idx]++;
+  
+          if (idx_glb[idx] >= imax){
+            idx_glb[idx] = imin;
+          }
+          if (idx_glb[idx] != imin) {
+            break;
+          }
+        }
+        if (idx == idx_max) break;
+  
+        CHECK_SYM(A);
+        if (!sym_pass) continue;
+        CHECK_SYM(B);
+        if (!sym_pass) continue;
+        CHECK_SYM(C);
+        if (!sym_pass) continue;
+        
+  
+        if (order_A > 0)
+          RESET_IDX(A);
+        if (order_B > 0)
+          RESET_IDX(B);
+        if (order_C > 0)
+          RESET_IDX(C);
+      }
+      CTF_int::cdealloc(dlen_A);
+      CTF_int::cdealloc(dlen_B);
+      CTF_int::cdealloc(dlen_C);
     }
-    CTF_int::cdealloc(dlen_A);
-    CTF_int::cdealloc(dlen_B);
-    CTF_int::cdealloc(dlen_C);
     CTF_int::cdealloc(idx_glb);
     CTF_int::cdealloc(rev_idx_map);
     TAU_FSTOP(sym_seq_ctr_cust);

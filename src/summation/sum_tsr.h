@@ -37,7 +37,7 @@ namespace CTF_int {
         sr_B->add(b, tb, b);
       }
 
-      virtual bool is_accumulator() const { return false; };
+      virtual bool is_transform() const { return false; };
 
       univar_function(void (*f_)(char const *, char *)) { f=f_; }
       univar_function(void (*f_)(char const *, char *), bool is_dist) { f=f_; is_distributive=is_dist; }
@@ -47,19 +47,20 @@ namespace CTF_int {
       /** 
        * \brief evaluate B=f(A) 
        * \param[in] A operand tensor with pre-defined indices 
-       * \return Fun_Term that evaluates f(A)
+       * \return Unifun_Term that evaluates f(A)
       */
-      Fun_Term operator()(Term const & A) const;
+      Unifun_Term operator()(Term const & A) const;
 
       /** 
-       * \brief evaluate B+=f(A)  or f(A,B) if accumulator
+       * \brief evaluate B+=f(A)  or f(A,B) if transform
        * \param[in] A operand tensor with pre-defined indices 
-       * \return Fun_Term that evaluates f(A)
+       * \param[in] B output tensor with pre-defined indices 
       */
       void operator()(Term const & A, Term const & B) const;
 
       virtual ~univar_function(){}
 
+      virtual bool is_accumulator() const { return false; }
   };
 
 

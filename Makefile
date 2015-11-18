@@ -9,14 +9,13 @@ export FCXX
 export OFFLOAD_CXX
 export LIBS
 
-
-
 all: $(BDIR)/lib/libctf.a
+
 
 EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice qinformatics endomorphism endomorphism_cust endomorphism_cust_sp \
            univar_function univar_accumulator_cust univar_accumulator_cust_sp spmv spmm jacobi apsp fft \
-           sparse_mp3
+           sparse_mp3 bivar_function bivar_transform
 
 TESTS = test_suite pgemm_test nonsq_pgemm_test diag_sym sym3 readwrite_test \
         ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test  sy_times_ns repack \
@@ -28,6 +27,14 @@ STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
           fast_tensor_ctr fast_sy_as_as_tensor_ctr fast_as_as_sy_tensor_ctr
 
 EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(STUDIES)
+
+export EXAMPLES
+export TESTS
+export BENCHMARKS
+export STUDIES
+
+
+
 
 .PHONY: executables
 executables: $(EXECUTABLES)

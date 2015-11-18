@@ -173,17 +173,81 @@ namespace CTF {
       */
       //Idx_Tensor operator()(Idx_Tensor const  & A, 
       //                      Idx_Tensor const  & B);
-      
+
       /**
-       * \brief apply function f to values stored at a and b
-       * \param[in] a pointer to first operand that will be cast to dtype 
-       * \param[in] b pointer to second operand that will be cast to dtype 
-       * \param[in,out] result: c=&f(*a,*b) 
+       * \brief compute c = f(a,b)
+       * \param[in] a pointer to operand that will be cast to dtype 
+       * \param[in] b pointer to operand that will be cast to dtype 
+       * \param[in,out] result c+f(*a,b) of applying f on value of (different type) on a
        */
       void apply_f(char const * a, char const * b, char * c) const { 
-        ((dtype_C*)c)[0]=f(((dtype_A const*)a)[0],((dtype_B const*)b)[0]); 
+        ((dtype_C*)c)[0] = f(((dtype_A const*)a)[0],((dtype_B const*)b)[0]); 
       }
+
+      /**
+       * \brief compute c = c+ f(a,b)
+       * \param[in] a pointer to operand that will be cast to dtype 
+       * \param[in] b pointer to operand that will be cast to dtype 
+       * \param[in,out] result c+f(*a,b) of applying f on value of (different type) on a
+       * \param[in] sr_C algebraic structure for b, needed to do add
+       */
+      void acc_f(char const * a, char const * b, char * c, CTF_int::algstrct const * sr_C) const { 
+        dtype_C tmp;
+        tmp = f(((dtype_A const*)a)[0],((dtype_B const*)b)[0]);
+        sr_C->add(c, (char const *)&tmp, c); 
+      }
+
+
   };
+
+  /**
+   * \brief custom function f : (X * Y) -> X applied on two tensors as summation: 
+   *          e.g. B["ij"] = f(A["ij"],B["ij"])
+   */
+  template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
+  class Bivar_Transform : public CTF_int::bivar_function {
+    public:
+      /**
+       * \brief function signature for element-wise multiplication, compute b=f(a)
+       */
+      //void (*f)(dtype_A, dtype_B &);
+      std::function<void(dtype_A, dtype_B, dtype_C &)> f;
+      
+      /**
+       * \brief constructor takes function pointers to compute B=f(A));
+       * \param[in] f_ linear function (type_A)->(type_B)
+       */
+      Bivar_Transform(std::function<void(dtype_A, dtype_B, dtype_C &)> f_){ f = f_; }
+
+      /** 
+       * \brief evaluate B=f(A) 
+       * \param[in] A operand tensor with pre-defined indices 
+       * return f(A) output tensor 
+       */
+      //Idx_Tensor operator()(Idx_Tensor const  & A);
+       /**
+       * \brief compute f(a,b)
+       * \param[in] a pointer to the accumulated operand 
+       * \param[in,out] value that is accumulated to
+       * \param[in] sr_B algebraic structure for b, here is ignored
+       */
+      void acc_f(char const * a, char const * b, char * c, CTF_int::algstrct const * sr_B) const {
+        f(((dtype_A*)a)[0], ((dtype_B*)b)[0], ((dtype_C*)c)[0]);
+      }
+      
+      /**
+       * \brief apply function f to value stored at a, for an accumulator, this is the same as acc_f below
+       * \param[in] a pointer to operand that will be cast to dtype 
+       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       */
+      void apply_f(char const * a, char const * b, char * c) const { acc_f(a,b,c,NULL); }
+
+
+      bool is_accumulator() const { return true; }
+  };
+
+
+
 
   template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
   class Function {
@@ -206,9 +270,14 @@ namespace CTF {
         bivar = new Bivar_Function<dtype_A, dtype_B, dtype_C>(f_);
       }
 
-      CTF_int::Fun_Term operator()(CTF_int::Term const & A) const {
+      CTF_int::Unifun_Term operator()(CTF_int::Term const & A) const {
         assert(is_univar);
         return univar->operator()(A);
+      }
+ 
+      CTF_int::Bifun_Term operator()(CTF_int::Term const & A, CTF_int::Term const & B) const {
+        assert(is_bivar);
+        return bivar->operator()(A,B);
       }
       
       operator Univar_Function<dtype_A, dtype_B>() const {
@@ -235,22 +304,35 @@ namespace CTF {
       Endomorphism<dtype_A> * endo;
       bool is_univar;
       Univar_Transform<dtype_A, dtype_B> * univar;
+      bool is_bivar;
+      Bivar_Transform<dtype_A, dtype_B> * bivar;
 
       Transform(std::function<void(dtype_A&)> f_){
         is_endo = true;
         is_univar = false;
+        is_bivar = false;
         endo = new Endomorphism<dtype_A>(f_);
       }
       
       Transform(std::function<void(dtype_A, dtype_B&)> f_){
         is_endo = false;
         is_univar = true;
+        is_bivar = false;
         univar = new Univar_Transform<dtype_A, dtype_B>(f_);
       }
+      
+      Transform(std::function<void(dtype_A, dtype_B, dtype_C&)> f_){
+        is_endo = false;
+        is_univar = false;
+        is_bivar = true;
+        bivar = new Bivar_Transform<dtype_A, dtype_B, dtype_C>(f_);
+      }
+
 
       ~Transform(){
         if (is_endo) delete endo;
         if (is_univar) delete univar;
+        if (is_bivar) delete bivar;
       }
 
       void operator()(CTF_int::Term const & A) const {
@@ -262,7 +344,17 @@ namespace CTF {
         assert(is_univar);
         univar->operator()(A,B);
       }
+ 
+      void operator()(CTF_int::Term const & A, CTF_int::Term const & B, CTF_int::Term const & C) const {
+        assert(is_bivar);
+        bivar->operator()(A,B,C);
+      }
       
+      operator Bivar_Transform<dtype_A, dtype_B, dtype_C>(){
+        assert(is_bivar);
+        return *bivar;
+      }
+
       operator Univar_Transform<dtype_A, dtype_B>(){
         assert(is_univar);
         return *univar;
@@ -272,6 +364,8 @@ namespace CTF {
         assert(is_endo);
         return *endo;
       }
+      
+      bool is_accumulator() const { return true; }
   };
   
 

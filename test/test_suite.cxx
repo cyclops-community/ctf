@@ -32,6 +32,8 @@
 #include "../examples/univar_function.cxx"
 #include "../examples/univar_accumulator_cust.cxx"
 #include "../examples/univar_accumulator_cust_sp.cxx"
+#include "../examples/bivar_function.cxx"
+#include "../examples/bivar_transform.cxx"
 #include "../examples/spmv.cxx"
 #include "../examples/spmm.cxx"
 #include "../examples/jacobi.cxx"
@@ -237,6 +239,16 @@ int main(int argc, char ** argv){
       printf("Testing univar_accumulator_cust_sp integrates sparse forces to particles with n = %d:\n",n);
     pass.push_back(univar_accumulator_cust_sp(n,dw));
     
+    if (rank == 0)
+      printf("Testing bivar_function A_ijkl = f2(A_ijkl, B_ijkl) with n = %d:\n",n);
+    pass.push_back(bivar_function(n,dw));
+    
+    if (rank == 0)
+      printf("Testing bivar_transform 3(A_ijkl, B_ijkl, C_ijkl) with n = %d:\n",n);
+    pass.push_back(bivar_transform(n,dw));
+    
+    if (rank == 0)
+      printf("Testing sparse-matrix times vector with n=%d:\n",n);
     if (rank == 0)
       printf("Testing sparse-matrix times vector with n=%d:\n",n);
     pass.push_back(spmv(n,dw));

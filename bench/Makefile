@@ -1,7 +1,5 @@
 include $(BDIR)/config.mk
 
-BENCHMARKS = bench_contraction bench_nosym_transp bench_redistribution model_trainer
-
 .PHONY:
 $(BENCHMARKS): %: $(BDIR)/bin/%
 

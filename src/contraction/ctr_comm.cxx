@@ -3,9 +3,22 @@
 #include "../shared/util.h"
 #include "ctr_comm.h"
 #include "contraction.h"
+#include "../interface/fun_term.h"
+#include "../interface/idx_tensor.h"
 #include "../tensor/untyped_tensor.h"
 
 namespace CTF_int {
+  Bifun_Term bivar_function::operator()(Term const & A, Term const & B) const {
+    return Bifun_Term(A.clone(), B.clone(), this);
+  }
+
+  void bivar_function::operator()(Term const & A, Term const & B, Term const & C) const {
+    Bifun_Term ft(A.clone(), B.clone(), this);
+    ft.execute(C.execute());
+  }
+
+
+
   ctr::ctr(contraction const * c){
     sr_A    = c->A->sr;
     sr_B    = c->B->sr;
