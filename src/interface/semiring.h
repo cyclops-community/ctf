@@ -530,7 +530,6 @@ namespace CTF {
         if (fgemm != NULL) fgemm(tA, tB, m, n, k, ((dtype const *)alpha)[0], (dtype const *)A, (dtype const *)B, ((dtype const *)beta)[0], (dtype *)C);
         else {
           TAU_FSTART(func_gemm);
-          dtype a          = ((dtype*)alpha)[0];
           dtype const * dA = (dtype const *) A;
           dtype const * dB = (dtype const *) B;
           dtype * dC       = (dtype*) C;
@@ -556,11 +555,23 @@ namespace CTF {
             lda_Bj = 1;
             lda_Bl = k;
           } 
-          for (int64_t j=0; j<n; j++){
-            for (int64_t i=0; i<m; i++){
-              for (int64_t l=0; l<k; l++){
-                //dC[j*m+i] = this->fadd(fmul(a,fmul(dA[l*m+i],dB[j*k+l])), dC[j*m+i]);
-                dC[j*lda_Cj+i*lda_Ci] = this->fadd(fmul(a,fmul(dA[l*lda_Al+i*lda_Ai],dB[j*lda_Bj+l*lda_Bl])), dC[j*lda_Cj+i*lda_Ci]);
+          if (!this->isequal(alpha, this->mulid())){
+            dtype a          = ((dtype*)alpha)[0];
+            for (int64_t j=0; j<n; j++){
+              for (int64_t i=0; i<m; i++){
+                for (int64_t l=0; l<k; l++){
+                  //dC[j*m+i] = this->fadd(fmul(a,fmul(dA[l*m+i],dB[j*k+l])), dC[j*m+i]);
+                  dC[j*lda_Cj+i*lda_Ci] = this->fadd(fmul(a,fmul(dA[l*lda_Al+i*lda_Ai],dB[j*lda_Bj+l*lda_Bl])), dC[j*lda_Cj+i*lda_Ci]);
+                }
+              }
+            }
+          } else {
+            for (int64_t j=0; j<n; j++){
+              for (int64_t i=0; i<m; i++){
+                for (int64_t l=0; l<k; l++){
+                  //dC[j*m+i] = this->fadd(fmul(a,fmul(dA[l*m+i],dB[j*k+l])), dC[j*m+i]);
+                  dC[j*lda_Cj+i*lda_Ci] = this->fadd(fmul(dA[l*lda_Al+i*lda_Ai],dB[j*lda_Bj+l*lda_Bl]), dC[j*lda_Cj+i*lda_Ci]);
+                }
               }
             }
           }

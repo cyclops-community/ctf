@@ -517,7 +517,7 @@ namespace CTF_int {
                            fB->order, fidx_B, &sidx_B,
                            fC->order, fidx_C, &sidx_C);
 
-    fold_ctr = new contraction(fA, sidx_A, fB, sidx_B, alpha, fC, sidx_C, beta);
+    fold_ctr = new contraction(fA, sidx_A, fB, sidx_B, alpha, fC, sidx_C, beta, func);
 
     CTF_int::cdealloc(sidx_A);
     CTF_int::cdealloc(sidx_B);
@@ -822,7 +822,7 @@ namespace CTF_int {
       nA = new tensor(A, 0, 0);
       nB = new tensor(B, 0, 0);
       nC = new tensor(C, 0, 0);
-      nctr = new contraction(nA, idx_A, nB, idx_B, alpha, nC, idx_C, beta);
+      nctr = new contraction(nA, idx_A, nB, idx_B, alpha, nC, idx_C, beta, func);
       *new_contraction = nctr;
 
       nA->clear_mapping();
@@ -4352,10 +4352,10 @@ namespace CTF_int {
       }
 
       char * oc_align_alpha = (char*)alloc(tnsr_C->sr->el_size);
-      tnsr_C->sr->copy(oc_align_alpha, align_alpha);
+      tnsr_C->sr->safecopy(oc_align_alpha, align_alpha);
       if (ocfact != 1){
         if (ocfact != 1){
-          tnsr_B->sr->copy(oc_align_alpha, tnsr_B->sr->addid());
+          tnsr_B->sr->safecopy(oc_align_alpha, tnsr_B->sr->addid());
           
           for (int i=0; i<ocfact; i++){
             tnsr_B->sr->add(oc_align_alpha, align_alpha, oc_align_alpha);
@@ -4522,7 +4522,7 @@ namespace CTF_int {
     }*/ 
 
     //CTF_ctr_type_t ntype = *stype;
-    contraction new_ctr = contraction(*this);;
+    contraction new_ctr = contraction(*this);
 
     was_home_A = A->is_home;
     was_home_B = B->is_home;

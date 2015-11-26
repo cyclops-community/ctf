@@ -52,11 +52,12 @@ int apsp(int     n,
 
   //struct for path with w=path weight, h=#hops
   MPI_Op opath;
+
   MPI_Op_create(
-      [](void *invec, void *inoutvec, int *len, MPI_Datatype *datatype){ 
-        for (int i=0; i<*len; i++){
-          if (((path*)invec)[i].w <= ((path*)inoutvec)[i].w)
-           ((path*)inoutvec)[i] = ((path*)invec)[i];
+      [](void * a, void * b, int * n, MPI_Datatype*){ 
+        for (int i=0; i<*n; i++){ 
+          if (((path*)a)[i].w <= ((path*)b)[i].w)
+            ((path*)b)[i].w = ((path*)a)[i].w;
         }
       },
       1, &opath);
@@ -72,8 +73,8 @@ int apsp(int     n,
   Matrix<path> P(n, n, dw, p);
 
   Function<int,path> setw([](int w){ return path(w, 1); });
-
   P["ij"] = setw(A["ij"]);
+//  P["ij"] = ((Function<int,path>)([](int w){ return path(w, 1); }))(A["ij"]);
   
   //sparse path matrix to contain all paths of exactly i hops
   Matrix<path> Pi(n, n, SP, dw, p);
@@ -157,7 +158,8 @@ int apsp(int     n,
   Timer_epoch sapsp("sparse APSP-PD");
   sapsp.begin();
   for (int i=0; i<niter; i++){
-    P["ij"] = setw(A["ij"]);
+    //P["ij"] = setw(A["ij"]);
+    P["ij"] = ((Function<int,path>)([](int w){ return path(w, 1); }))(A["ij"]);
     double start_time = MPI_Wtime();
     for (int j=1; j<n; j=j<<1){
       Pi["ij"] = P["ij"];

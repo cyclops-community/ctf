@@ -195,14 +195,14 @@ namespace CTF_int{
     printf("-> %d/%d %d %d %d\n",tid,ntd,func==NULL, alpha==NULL,beta==NULL);*/
 
     if (func == NULL){
-      if (alpha == NULL && beta == NULL){
+      /*if (alpha == NULL && beta == NULL){
         for (int i=imin; i<imax; i++){
           sr_C->mul(A+offsets_A[0][i],
                     B+offsets_B[0][i], 
                     C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(imax-imin);
-      } else if (alpha == NULL){
+      } else*/ if (alpha == NULL){
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
           sr_C->mul(A+offsets_A[0][i], 
@@ -229,14 +229,15 @@ namespace CTF_int{
         CTF_FLOPS_ADD(3*(imax-imin));
       }
     } else {
-      if (alpha == NULL && beta == NULL){
+      /*if (alpha == NULL && beta == NULL){
+printf("HERE1\n");
         for (int i=imin; i<imax; i++){
           func->apply_f(A+offsets_A[0][i],
                         B+offsets_B[0][i], 
                         C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(imax-imin);
-      } else if (alpha == NULL){
+      } else*/ if (alpha == NULL){
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
           func->acc_f(A+offsets_A[0][i], 
@@ -492,11 +493,11 @@ namespace CTF_int{
       for (;;){
         //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
         if (sym_pass){
-          if (alpha == NULL && beta == NULL){
+          /*if (alpha == NULL && beta == NULL){
             sr_C->mul(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
                      C+idx_C*sr_C->el_size);
             CTF_FLOPS_ADD(1);
-          } else  if (alpha == NULL){
+          } else*/  if (alpha == NULL){
             char tmp[sr_C->el_size];
             sr_C->mul(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
                      tmp);
@@ -608,7 +609,7 @@ namespace CTF_int{
         C[i] = C[i]*beta;
       }
     }*/
-    if (!sr_C->isequal(beta, sr_C->mulid())){
+    if (beta != NULL && !sr_C->isequal(beta, sr_C->mulid())){
       int64_t sz = sy_packed_size(order_C, edge_len_C, sym_C);
       if (sr_C->isequal(beta, sr_C->addid())){
         sr_C->set(C, sr_C->addid(), sz);
@@ -620,7 +621,7 @@ namespace CTF_int{
       }
     }
 
-    if (false && idx_max <= MAX_ORD){
+    if (idx_max <= MAX_ORD){
       uint64_t ** offsets_A;
       uint64_t ** offsets_B;
       uint64_t ** offsets_C;
@@ -663,11 +664,11 @@ namespace CTF_int{
       for (;;){
         //printf("[%d] <- [%d]*[%d]\n",idx_C, idx_A, idx_B);
         if (sym_pass){
-          if (alpha == NULL && beta == NULL){
+          /*if (alpha == NULL && beta == NULL){
             func->apply_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, 
                           C+idx_C*sr_C->el_size);
             CTF_FLOPS_ADD(1);
-          } else  if (alpha == NULL){
+          } else */ if (alpha == NULL){
             func->acc_f(A+idx_A*sr_A->el_size, B+idx_B*sr_B->el_size, C+idx_C*sr_C->el_size, sr_C);
             CTF_FLOPS_ADD(2);
           } else {

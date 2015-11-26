@@ -222,7 +222,12 @@ namespace CTF_int {
 //    if (crank != 0) this->sr_C->set(C, this->sr_C->addid(), size_C);
 //    else {
     if (crank == 0 && !sr_C->isequal(this->beta, sr_C->mulid())){
-      sr_C->scal(size_C, this->beta, C, 1);
+      if (sr_C->isequal(this->beta, sr_C->addid())){
+        sr_C->set(C, sr_C->addid(), size_C);
+      } else {
+        sr_C->scal(size_C, this->beta, C, 1);
+      }
+
 /*      for (i=0; i<size_C; i++){
         sr_C->mul(this->beta, C+i*sr_C->el_size, C+i*sr_C->el_size);
       }*/
@@ -245,10 +250,10 @@ namespace CTF_int {
       cdt_C[i]->allred(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop());
     }
 
-    if (arank != 0){
+    if (arank != 0 && this->sr_A->addid() != NULL){
       this->sr_A->set(A, this->sr_A->addid(), size_A);
     }
-    if (brank != 0){
+    if (brank != 0 && this->sr_B->addid() != NULL){
       this->sr_B->set(B, this->sr_B->addid(), size_B);
     }
   }

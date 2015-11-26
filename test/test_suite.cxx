@@ -33,12 +33,14 @@
 #include "../examples/univar_transform_cust.cxx"
 #include "../examples/univar_transform_cust_sp.cxx"
 #include "../examples/bivar_function.cxx"
+#include "../examples/bivar_function_cust.cxx"
 #include "../examples/bivar_transform.cxx"
 #include "../examples/spmv.cxx"
 #include "../examples/spmm.cxx"
 #include "../examples/jacobi.cxx"
 #include "../examples/apsp.cxx"
 #include "../examples/sparse_mp3.cxx"
+#include "../examples/bitonic.cxx"
 
 using namespace CTF;
 
@@ -244,11 +246,13 @@ int main(int argc, char ** argv){
     pass.push_back(bivar_function(n,dw));
     
     if (rank == 0)
+      printf("Testing custom bivar_function F[\"i\"] += f(P[\"i\"],P[\"j\"] with n = %d:\n",n);
+    pass.push_back(bivar_function_cust(n,dw));
+    
+    if (rank == 0)
       printf("Testing bivar_transform 3(A_ijkl, B_ijkl, C_ijkl) with n = %d:\n",n);
     pass.push_back(bivar_transform(n,dw));
     
-    if (rank == 0)
-      printf("Testing sparse-matrix times vector with n=%d:\n",n);
     if (rank == 0)
       printf("Testing sparse-matrix times vector with n=%d:\n",n);
     pass.push_back(spmv(n,dw));
@@ -268,6 +272,11 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing dense and sparse MP3 calculation %d occupied and %d virtual orbitals:\n",n,2*n);
     pass.push_back(sparse_mp3(n,2*n,dw));
+    
+    /*int logn = log2(n)+1;
+    if (rank == 0)
+      printf("Testing bitonic sorting with %d elements:\n",1<<logn);
+    pass.push_back(bitonic(logn,dw));*/
   }
   int num_pass = std::accumulate(pass.begin(), pass.end(), 0);
   if (rank == 0)

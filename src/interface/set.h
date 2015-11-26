@@ -190,6 +190,7 @@ namespace CTF {
 
       bool isequal(char const * a, char const * b) const {
         if (a == NULL && b == NULL) return true;
+        if (a == NULL || b == NULL) return false;
         for (int i=0; i<el_size; i++){
           if (a[i] != b[i]) return false;
         }

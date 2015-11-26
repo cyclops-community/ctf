@@ -212,8 +212,17 @@ namespace CTF_int {
                       char const * alpha,
                       char       * X,
                       int          incX)  const {
-    printf("CTF ERROR: scal not present for this algebraic structure\n");
-    ASSERT(0);
+    if (isequal(alpha, addid())){
+      if (incX == 1) set(X, addid(), n);
+      else {
+        for (int i=0; i<n; i++){
+          copy(X+i*el_size, addid());
+        }
+      }
+    } else {
+      printf("CTF ERROR: scal not present for this algebraic structure\n");
+      ASSERT(0);
+    }
   }
 
   void algstrct::axpy(int          n,
@@ -261,6 +270,7 @@ namespace CTF_int {
  
   bool algstrct::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     bool iseq = true;
     for (int i=0; i<el_size; i++) {
       if (a[i] != b[i]) iseq = false;

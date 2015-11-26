@@ -255,7 +255,7 @@ namespace CTF {
       bool is_univar;
       Univar_Function<dtype_A, dtype_B> * univar;
       bool is_bivar;
-      Bivar_Function<dtype_A, dtype_B> * bivar;
+      Bivar_Function<dtype_A, dtype_B, dtype_C> * bivar;
 
       Function(std::function<dtype_B(dtype_A)> f_){
         is_univar = true;
