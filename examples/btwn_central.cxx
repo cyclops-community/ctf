@@ -1,29 +1,32 @@
 /** \addtogroup examples 
   * @{ 
-  * \defgroup apsp apsp
+  * \defgroup btwn_central betweenness centrality
   * @{ 
-  * \brief All-pairs shortest-paths via path doubling and Tiskin's augmented path doubling
+  * \brief betweenness centrality computation
   */
 
 #include <ctf.hpp>
 #include <float.h>
 using namespace CTF;
 struct path {
-  int w, h;
-  path(int w_, int h_){ w=w_; h=h_; }
+  int w; // weighted distance
+  int h; // number of hops
+  int m; // multiplictiy
+  path(int w_, int h_, int m_){ w=w_; h=h_; m=m_; }
+  path(path const & p){ w=p.w; h=p.h; m=p.m; }
   path(){};
 };
 
 namespace CTF {
   template <>  
   inline void Set<path>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(%d %d)",((path*)a)[0].w,((path*)a)[0].h);
+    fprintf(fp,"(w=%d h=%d m=%d)",((path*)a)[0].w,((path*)a)[0].h,((path*)a)[0].m);
   }
 }
   // calculate APSP on a graph of n nodes distributed on World (communicator) dw
-int apsp(int     n,
-         World & dw,
-         int     niter=0){
+int btwn_cnt(int     n,
+             World & dw,
+             int     niter=0){
 
   //tropical semiring, define additive identity to be INT_MAX/2 to prevent integer overflow
   Semiring<int> s(INT_MAX/2, 
@@ -35,7 +38,7 @@ int apsp(int     n,
   //random adjacency matrix
   Matrix<int> A(n, n, dw, s);
   srand(dw.rank);
-  A.fill_random(0, n*n); 
+  A.fill_random(0, n); 
   //no loops
   A["ii"] = 0;
 
@@ -56,25 +59,30 @@ int apsp(int     n,
   MPI_Op_create(
       [](void * a, void * b, int * n, MPI_Datatype*){ 
         for (int i=0; i<*n; i++){ 
-          if (((path*)a)[i].w <= ((path*)b)[i].w)
+          if (((path*)a)[i].w <= ((path*)b)[i].w){
             ((path*)b)[0] = ((path*)a)[0];
+          }
         }
       },
       1, &opath);
 
   //tropical semiring with hops carried by winner of min
-  Semiring<path> p(path(INT_MAX/2,0), 
-                   [](path a, path b){ if (a.w<b.w || (a.w == b.w && a.h<b.h)) return a; else return b; },
+  Semiring<path> p(path(INT_MAX/2,0,1), 
+                   [](path a, path b){ 
+                     if (a.w<b.w){ return a; }
+                     if (b.w<a.w){ return b; }
+                     if (a.w==b.w){ return path(a.w, std::min(a.h,b.h), a.m+b.m); }
+                   },
                    opath,
-                   path(0,0),
-                   [](path a, path b){ return path(a.w+b.w, a.h+b.h); });
+                   path(0,0,1),
+                   [](path a, path b){ return path(a.w+b.w, a.h+b.h, a.m*b.m); });
  
   //path matrix to contain distance matrix
   Matrix<path> P(n, n, dw, p);
 
-  Function<int,path> setw([](int w){ return path(w, 1); });
+  Function<int,path> setw([](int w){ return path(w, 1, 1); });
+
   P["ij"] = setw(A["ij"]);
-//  P["ij"] = ((Function<int,path>)([](int w){ return path(w, 1); }))(A["ij"]);
   
   //sparse path matrix to contain all paths of exactly i hops
   Matrix<path> Pi(n, n, SP, dw, p);
@@ -89,6 +97,8 @@ int apsp(int     n,
     // (2) consist of a shortest path of length up to i and a shortest path of length exactly i
     P["ij"] += Pi["ik"]*P["kj"];
   }
+
+  P.print();
   
    //check correctness by subtracting the two computed shortest path matrices from one another and checking that no nonzeros are left
   Transform<path,int> xtrw([](path p, int & w){ return w-=p.w; });
@@ -114,79 +124,6 @@ int apsp(int     n,
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
   free(prs);
-#ifndef TEST_SUITE
-  if (dw.rank == 0){
-    printf("Starting %d benchmarking iterations of dense APSP-PD...\n", niter);
-  }
-  double min_time = DBL_MAX;
-  double max_time = 0.0;
-  double tot_time = 0.0;
-  double times[niter];
-  Timer_epoch dapsp("dense APSP-PD");
-  dapsp.begin();
-  for (int i=0; i<niter; i++){
-    D["ij"] = A["ij"];
-    double start_time = MPI_Wtime();
-    for (int j=1; j<n; j=j<<1){
-      D["ij"] += D["ik"]*D["kj"];
-    }
-    double end_time = MPI_Wtime();
-    double iter_time = end_time-start_time;
-    times[i] = iter_time;
-    tot_time += iter_time;
-    if (iter_time < min_time) min_time = iter_time;
-    if (iter_time > max_time) max_time = iter_time;
-  }
-  dapsp.end();
-  
-  if (dw.rank == 0){
-    printf("Completed %d benchmarking iterations of dense APSP-PD (n=%d).\n", niter, n);
-    printf("All iterations times: ");
-    for (int i=0; i<niter; i++){
-      printf("%lf ", times[i]);
-    }
-    printf("\n");
-    std::sort(times,times+niter);
-    printf("Dense APSP (n=%d) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,min_time,tot_time/niter, times[niter/2], max_time);
-  }
-  if (dw.rank == 0){
-    printf("Starting %d benchmarking iterations of sparse APSP-PD...\n", niter);
-  }
-  min_time = DBL_MAX;
-  max_time = 0.0;
-  tot_time = 0.0;
-  Timer_epoch sapsp("sparse APSP-PD");
-  sapsp.begin();
-  for (int i=0; i<niter; i++){
-    //P["ij"] = setw(A["ij"]);
-    P["ij"] = ((Function<int,path>)([](int w){ return path(w, 1); }))(A["ij"]);
-    double start_time = MPI_Wtime();
-    for (int j=1; j<n; j=j<<1){
-      Pi["ij"] = P["ij"];
-      Pi.sparsify([=](path p){ return (p.h == j); });
-      P["ij"] += Pi["ik"]*P["kj"];
-    }
-    double end_time = MPI_Wtime();
-    double iter_time = end_time-start_time;
-    times[i] = iter_time;
-    tot_time += iter_time;
-    if (iter_time < min_time) min_time = iter_time;
-    if (iter_time > max_time) max_time = iter_time;
-  }
-  sapsp.end();
-  
-  if (dw.rank == 0){
-    printf("Completed %d benchmarking iterations of sparse APSP-PD (n=%d).\n", niter, n);
-    printf("All iterations times: ");
-    for (int i=0; i<niter; i++){
-      printf("%lf ", times[i]);
-    }
-    printf("\n");
-    std::sort(times,times+niter);
-    printf("Sparse APSP (n=%d): Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",n,min_time,tot_time/niter, times[niter/2], max_time);
-  }
-
-#endif
   return pass;
 } 
 
@@ -226,9 +163,9 @@ int main(int argc, char ** argv){
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Computing APSP of dense graph with %d nodes using dense and sparse path doubling\n",n);
+      printf("Computing betweenness centrality of dense graph with %d nodes using dense and sparse path doubling\n",n);
     }
-    pass = apsp(n, dw, niter);
+    pass = btwn_cnt(n, dw, niter);
     assert(pass);
   }
 
