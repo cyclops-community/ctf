@@ -3,35 +3,6 @@
 
 #include "../tensor/algstrct.h"
 
-namespace CTF_int {
- 
-  template <typename dtype>
-  dtype default_addinv(dtype a){
-    return -a;
-  }
-
- 
-  template <typename dtype, bool is_ord>
-  inline typename std::enable_if<is_ord, dtype>::type
-  default_abs(dtype a){
-    dtype b = default_addinv<dtype>(a);
-    return a>=b ? a : b;
-  }
-  
-  template <typename dtype, bool is_ord>
-  inline typename std::enable_if<!is_ord, dtype>::type
-  default_abs(dtype a){
-    printf("CTF ERROR: cannot compute abs unless the set is ordered");
-    assert(0);
-    return a;
-  }
-
-  template <typename dtype, dtype (*abs)(dtype)>
-  void char_abs(char const * a,
-                char * b){
-    ((dtype*)b)[0]=abs(((dtype const*)a)[0]);
-  }
-}
 namespace CTF {
   /**
    * \addtogroup algstrct 

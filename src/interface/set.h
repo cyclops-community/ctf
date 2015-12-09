@@ -7,6 +7,34 @@
 #include <inttypes.h>
 
 namespace CTF_int {
+
+  template <typename dtype>
+  dtype default_addinv(dtype a){
+    return -a;
+  }
+
+ 
+  template <typename dtype, bool is_ord>
+  inline typename std::enable_if<is_ord, dtype>::type
+  default_abs(dtype a){
+    dtype b = default_addinv<dtype>(a);
+    return a>=b ? a : b;
+  }
+  
+  template <typename dtype, bool is_ord>
+  inline typename std::enable_if<!is_ord, dtype>::type
+  default_abs(dtype a){
+    printf("CTF ERROR: cannot compute abs unless the set is ordered");
+    assert(0);
+    return a;
+  }
+
+  template <typename dtype, dtype (*abs)(dtype)>
+  void char_abs(char const * a,
+                char * b){
+    ((dtype*)b)[0]=abs(((dtype const*)a)[0]);
+  }
+
   //C++14 support needed for these std::enable_if
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<is_ord, dtype>::type
@@ -119,6 +147,7 @@ namespace CTF {
           this->tmdtype = other.tmdtype;
           is_custom_mdtype = false;
         }
+        abs = other.abs;
       }
 
       virtual CTF_int::algstrct * clone() const {
@@ -129,8 +158,12 @@ namespace CTF {
 
       Set() : CTF_int::algstrct(sizeof(dtype)){ 
         tmdtype = CTF_int::get_default_mdtype<dtype>(is_custom_mdtype);
+        abs = NULL;
       }
 
+      void set_abs_to_default(){
+        abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
+      }
       
       MPI_Datatype mdtype() const {
         return tmdtype;        

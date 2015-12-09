@@ -116,12 +116,14 @@ namespace CTF_int {
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
     return MPI_SUM;
   }
 
   MPI_Datatype algstrct::mdtype() const {
     printf("CTF ERROR: no MPI_Datatype present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
     return MPI_CHAR;
   }
   
@@ -138,57 +140,68 @@ namespace CTF_int {
   void algstrct::safeaddinv(char const * a, char *& b) const {
     printf("CTF ERROR: no additive inverse present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::addinv(char const * a, char * b) const {
     printf("CTF ERROR: no additive inverse present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::add(char const * a, char const * b, char * c) const {
-    printf("CTF ERROR: addition operation present for this algebraic structure\n");
+    printf("CTF ERROR: no addition operation present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::mul(char const * a, char const * b, char * c) const {
-    printf("CTF ERROR: multiplication operation present for this algebraic structure\n");
+    printf("CTF ERROR: no multiplication operation present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::safemul(char const * a, char const * b, char *& c) const {
-    printf("CTF ERROR: multiplication operation present for this algebraic structure\n");
+    printf("CTF ERROR: no multiplication operation present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::min(char const * a, char const * b, char * c) const {
-    printf("CTF ERROR: min operation present for this algebraic structure\n");
+    printf("CTF ERROR: no min operation present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::max(char const * a, char const * b, char * c) const {
-    printf("CTF ERROR: max operation present for this algebraic structure\n");
+    printf("CTF ERROR: no max operation present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::cast_int(int64_t i, char * c) const {
     printf("CTF ERROR: integer scaling not possible for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::cast_double(double d, char * c) const {
     printf("CTF ERROR: double scaling not possible for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   double algstrct::cast_to_double(char const * c) const {
     printf("CTF ERROR: double cast not possible for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
     return 0.0;
   }
 
   int64_t algstrct::cast_to_int(char const * c) const {
     printf("CTF ERROR: int cast not possible for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
     return 0;
   }
 
@@ -201,11 +214,13 @@ namespace CTF_int {
   void algstrct::min(char * c) const {
     printf("CTF ERROR: min limit not present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::max(char * c) const {
     printf("CTF ERROR: max limit not present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
   void algstrct::scal(int          n,
@@ -222,6 +237,7 @@ namespace CTF_int {
     } else {
       printf("CTF ERROR: scal not present for this algebraic structure\n");
       ASSERT(0);
+      assert(0);
     }
   }
 
@@ -233,6 +249,7 @@ namespace CTF_int {
                       int          incY)  const {
     printf("CTF ERROR: axpy not present for this algebraic structure\n");
     ASSERT(0);
+    assert(0);
   }
 
    void algstrct::gemm(char         tA,
