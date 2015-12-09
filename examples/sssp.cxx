@@ -16,9 +16,9 @@ bool Bellman_Ford(Matrix<t> A, Vector<t> P, int n){
   Vector<t> Q(P);
   int r = 0;
   do { 
-    if (r == n) return false;      // exit if we did not converge in n iterations
+    if (r == n+1) return false;      // exit if we did not converge in n iterations
     else r++;
-    Q["i"] = P["i"];              // save old distances
+    Q["i"]  = P["i"];              // save old distances
     P["i"] += A["ij"]*P["j"];      // update distances 
   } while (P.norm1() < Q.norm1()); // continue so long as some distance got shorter
   return true;
@@ -28,7 +28,7 @@ bool Bellman_Ford(Matrix<t> A, Vector<t> P, int n){
 int sssp(int     n,
          World & dw){
 
-  //tropical semiring, define additive identity to be INT_MAX/2 to prevent integer overflow
+  //tropical semiring, define additive identity to be n*n (max weight) to prevent integer overflow
   Semiring<int> s(n*n, 
                   [](int a, int b){ return std::min(a,b); },
                   MPI_MIN,

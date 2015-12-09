@@ -23,13 +23,14 @@ namespace CTF {
     fprintf(fp,"(w=%d h=%d m=%d)",((path*)a)[0].w,((path*)a)[0].h,((path*)a)[0].m);
   }
 }
-  // calculate APSP on a graph of n nodes distributed on World (communicator) dw
+
+// calculate APSP on a graph of n nodes distributed on World (communicator) dw
 int btwn_cnt(int     n,
              World & dw,
              int     niter=0){
 
-  //tropical semiring, define additive identity to be INT_MAX/2 to prevent integer overflow
-  Semiring<int> s(INT_MAX/2, 
+  //tropical semiring, define additive identity to be n*n (max weight) to prevent integer overflow
+  Semiring<int> s(n*n, 
                   [](int a, int b){ return std::min(a,b); },
                   MPI_MIN,
                   0,
@@ -38,10 +39,11 @@ int btwn_cnt(int     n,
   //random adjacency matrix
   Matrix<int> A(n, n, dw, s);
   srand(dw.rank);
-  A.fill_random(0, n); 
-  //no loops
+  A.fill_random(1, std::min(n*n,100)); 
+
   A["ii"] = 0;
 
+  A.sparsify([=](int a){ return a<50; });
   //distance matrix to compute
   Matrix<int> D(n, n, dw, s);
 
@@ -67,7 +69,7 @@ int btwn_cnt(int     n,
       1, &opath);
 
   //tropical semiring with hops carried by winner of min
-  Semiring<path> p(path(INT_MAX/2,0,1), 
+  Semiring<path> p(path(n*n,0,1), 
                    [](path a, path b){ 
                      if (a.w<b.w){ return a; }
                      if (b.w<a.w){ return b; }
@@ -78,7 +80,8 @@ int btwn_cnt(int     n,
                    [](path a, path b){ return path(a.w+b.w, a.h+b.h, a.m*b.m); });
  
   //path matrix to contain distance matrix
-  Matrix<path> P(n, n, dw, p);
+  Matrix<path> P(n, n, dw, p, "P");
+  Matrix<path> P2(n, n, dw, p, "P2");
 
   Function<int,path> setw([](int w){ return path(w, 1, 1); });
 
@@ -89,13 +92,17 @@ int btwn_cnt(int     n,
 
   for (int i=1; i<n; i=i<<1){
     //let Pi be all paths in P consisting of exactly i hops
-    Pi["ij"] = P["ij"];
-    Pi.sparsify([=](path p){ return (p.h == i); });
+//    Pi["ij"] = P["ij"];
+//    Pi.sparsify([=](path p){ return (p.h == i); });
 
     //all shortest paths of up to 2i hops either 
     // (1) are a shortest path of length up to i
     // (2) consist of a shortest path of length up to i and a shortest path of length exactly i
-    P["ij"] += Pi["ik"]*P["kj"];
+    ((Transform<path>)([=](path & p){ p = path(n*n,0,0); }))(P2["ij"]);
+    P2["ij"] += P["ik"]*P["kj"];
+    //P.print();
+    ((Transform<path,path>)([](path a, path & b){ if (a.w <= b.w && a.m > b.m) b=a; }))(P2["ij"], P["ij"]);
+    //P.print();
   }
 
   P.print();
