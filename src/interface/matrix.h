@@ -85,7 +85,6 @@ namespace CTF {
              int                       profile=0,
              CTF_int::algstrct const & sr=Ring<dtype>());
 
-
       Matrix<dtype> & operator=(const Matrix<dtype> & A);
   };
   /**

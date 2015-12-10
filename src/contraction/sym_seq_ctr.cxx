@@ -247,6 +247,9 @@ printf("HERE1\n");
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       } else {
+        ASSERT(0);
+        assert(0);
+        //printf("HERTE alpha = %d\n",*(int*)alpha);
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
           sr_C->mul(A+offsets_A[0][i],

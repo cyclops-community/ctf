@@ -305,7 +305,7 @@ namespace CTF {
       bool is_univar;
       Univar_Transform<dtype_A, dtype_B> * univar;
       bool is_bivar;
-      Bivar_Transform<dtype_A, dtype_B> * bivar;
+      Bivar_Transform<dtype_A, dtype_B, dtype_C> * bivar;
 
       Transform(std::function<void(dtype_A&)> f_){
         is_endo = true;

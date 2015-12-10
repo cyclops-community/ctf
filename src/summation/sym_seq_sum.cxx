@@ -154,8 +154,8 @@ namespace CTF_int {
         CTF_FLOPS_ADD(imax-imin);
       } else {
         for (int i=imin; i<imax; i++){
-          char tmp[sr_B->el_size];
-          sr_B->mul(A+offsets_A[0][i], 
+          char tmp[sr_A->el_size];
+          sr_A->mul(A+offsets_A[0][i], 
                     alpha,
                     tmp);
           sr_B->add(tmp, 
@@ -333,7 +333,6 @@ namespace CTF_int {
 
     int * idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
     memset(idx_glb, 0, sizeof(int)*idx_max);
-
     //FIXME do via scal()
     TAU_FSTART(SCAL_B);
     if (rep_idx)
@@ -379,8 +378,8 @@ namespace CTF_int {
                   idx_B,alpha,idx_A,A[idx_A],beta,idx_B,B[idx_B]);*/
 //        printf("adding to %d ",idx_B); sr_B->print(B+sr_B->el_size*idx_B); printf("\n");
           if (alpha != NULL){
-            char tmp[sr_B->el_size];
-            sr_B->mul(A+sr_A->el_size*idx_A, alpha, tmp);
+            char tmp[sr_A->el_size];
+            sr_A->mul(A+sr_A->el_size*idx_A, alpha, tmp);
             sr_B->add(tmp, B+sr_B->el_size*idx_B, B+sr_B->el_size*idx_B);
             CTF_FLOPS_ADD(2);
           } else {
@@ -460,6 +459,7 @@ namespace CTF_int {
     memcpy(dlen_B, edge_len_B, sizeof(int)*order_B);
 
     idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
+
 
     SCAL_B_inr;
 

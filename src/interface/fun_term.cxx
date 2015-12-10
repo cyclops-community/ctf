@@ -92,13 +92,21 @@ namespace CTF_int {
   void Bifun_Term::execute(CTF::Idx_Tensor output) const {
     CTF::Idx_Tensor opA = A->execute();
     CTF::Idx_Tensor opB = B->execute();
-    char * scl;
+/*    char * scl;
     scl = NULL;
     if (opA.scale != NULL || opB.scale != NULL) 
-      opA.sr->safemul(opA.scale, opB.scale, scl);
-    contraction c(opA.parent, opA.idx_map, opB.parent, opB.idx_map, scl, output.parent, output.idx_map, output.scale, func);
+      opA.sr->safemul(opA.scale, opB.scale, scl);*/
+    if (!opA.sr->isequal(opA.scale, opB.sr->mulid()) ||
+        !opB.sr->isequal(opB.scale, opB.sr->mulid()) /*||
+        !output.sr->isequal(output.scale, output.sr->mulid())*/){
+      if (opA.parent->wrld->rank == 0)
+        printf("CTF ERROR: cannot scale tensors when using bilinear function or transform, aborting.\n");
+      ASSERT(0);
+      assert(0);
+    }
+    contraction c(opA.parent, opA.idx_map, opB.parent, opB.idx_map, NULL, output.parent, output.idx_map, NULL, func);
     c.execute();
-    if (scl != NULL) cdealloc(scl);
+//    if (scl != NULL) cdealloc(scl);
   }
  
   CTF::Idx_Tensor Bifun_Term::execute() const {

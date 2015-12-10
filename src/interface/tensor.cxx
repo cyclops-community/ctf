@@ -530,6 +530,7 @@ namespace CTF {
     int * new_lens = (int*)CTF_int::alloc(sizeof(int)*order);
     int * new_sym = (int*)CTF_int::alloc(sizeof(int)*order);
     for (i=0; i<order; i++){
+      printf("i %d end %d offset %d len %d\n", i, ends[i], offsets[i], lens[i]);
       assert(ends[i] - offsets[i] > 0 && 
                   offsets[i] >= 0 && 
                   ends[i] <= lens[i]);
@@ -563,8 +564,11 @@ namespace CTF {
 
     int * offsets, * ends;
    
-    conv_idx(this->order, this->len, corner_off, &offsets);
-    conv_idx(this->order, this->len, corner_end, &ends);
+    CTF_int::cvrt_idx(this->order, this->lens, corner_off, &offsets);
+    CTF_int::cvrt_idx(this->order, this->lens, corner_end, &ends);
+    for (int i=0; i<order; i++){
+      ends[i]++;
+    }
     
     Tensor tsr = slice(offsets, ends, owrld);
 

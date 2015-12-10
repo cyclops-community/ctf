@@ -1629,9 +1629,9 @@ namespace CTF_int {
         for (int j=0; j<order; j++){
           fprintf(fp,"[%d]",idx_arr[j]);
         }
-        fprintf(fp," <");
+        fprintf(fp,"(%ld, <",all_data[i].k());
         sr->print(all_data[i].d());
-        fprintf(fp,"> %ld\n",all_data[i].k());
+        fprintf(fp,">)\n");
       }
       cdealloc(recvcnts);
       cdealloc(displs);
