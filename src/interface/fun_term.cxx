@@ -96,7 +96,7 @@ namespace CTF_int {
     scl = NULL;
     if (opA.scale != NULL || opB.scale != NULL) 
       opA.sr->safemul(opA.scale, opB.scale, scl);*/
-    if (!opA.sr->isequal(opA.scale, opB.sr->mulid()) ||
+    if (!opA.sr->isequal(opA.scale, opA.sr->mulid()) ||
         !opB.sr->isequal(opB.scale, opB.sr->mulid()) /*||
         !output.sr->isequal(output.scale, output.sr->mulid())*/){
       if (opA.parent->wrld->rank == 0)
