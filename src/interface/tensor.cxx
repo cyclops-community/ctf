@@ -594,12 +594,32 @@ namespace CTF {
     dtype ans;
     switch (op) {
       case OP_SUM:
-        ret = reduce_sum((char*)&ans);
+        if (sr->is_ordered()){
+          Semiring<dtype,1> r = Semiring<dtype,1>(); 
+          ret = reduce_sum((char*)&ans, &r);
+        } else {
+          Semiring<dtype,0> r = Semiring<dtype,0>(); 
+          ret = reduce_sum((char*)&ans, &r);
+        }
+//        ret = reduce_sum((char*)&ans);
         break;
       case OP_SUMABS:
-        ret = reduce_sumabs((char*)&ans);
+        if (sr->is_ordered()){
+          Ring<dtype,1> r = Ring<dtype,1>(); 
+          ret = reduce_sumabs((char*)&ans, &r);
+        } else {
+          Ring<dtype,0> r = Ring<dtype,0>(); 
+          ret = reduce_sumabs((char*)&ans, &r);
+        }
         break;
       case OP_SUMSQ:
+/*        if (sr->is_ordered()){
+          Ring<dtype,1> r = Ring<dtype,1>(); 
+          ret = reduce_sumsq((char*)&ans, &r);
+        } else {
+          Ring<dtype,0> r = Ring<dtype,0>(); 
+          ret = reduce_sumsq((char*)&ans, &r);
+        }*/
         ret = reduce_sumsq((char*)&ans);
         break;
       case OP_MAX:

@@ -11,7 +11,7 @@ using namespace CTF;
 
 int fast_sym_4D(int const     n,
                 World    &ctf){
-  int rank, i, num_pes;
+  int rank, num_pes;
   
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &num_pes);

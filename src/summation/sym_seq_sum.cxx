@@ -339,8 +339,12 @@ namespace CTF_int {
       SCAL_B;
     else {
       int64_t sz_B = sy_packed_size(order_B, edge_len_B, sym_B);
-      if (!sr_B->isequal(beta, sr_B->mulid()))
-        sr_B->scal(sz_B, beta, B, 1);
+      if (beta != NULL || sr_B->mulid() != NULL){
+        if (beta == NULL || sr_B->isequal(beta, sr_B->addid()))
+            sr_B->set(B, sr_B->addid(), sz_B);
+        else if (!sr_B->isequal(beta, sr_B->mulid()))
+          sr_B->scal(sz_B, beta, B, 1);
+      }
     }
     TAU_FSTOP(SCAL_B);
 

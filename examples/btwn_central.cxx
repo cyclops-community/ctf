@@ -18,6 +18,7 @@ struct path {
 };
 
 Semiring<path> get_path_semiring(int n){
+
   //struct for path with w=path weight, h=#hops
   MPI_Op opath;
 
@@ -149,8 +150,6 @@ int btwn_cnt(int     n,
   Vector<int> v2 = btwn_cnt_fast(A, n);
  
   int pass = 1;
-  
-
   if (dw.rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     if (pass) 

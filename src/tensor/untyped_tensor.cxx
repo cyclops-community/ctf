@@ -1522,7 +1522,7 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
        idx_A[i] = i;
     }
-    summation sm = summation(this, idx_A, sr->mulid(), &sc, NULL, sr_other->addid());
+    summation sm = summation(this, idx_A, sr_other->mulid(), &sc, NULL, sr_other->mulid());
     sm.execute();
     sr->copy(result, sc.data);
     wrld->cdt.bcast(result, sr_other->el_size, MPI_CHAR, 0);
@@ -1533,9 +1533,9 @@ namespace CTF_int {
     return reduce_sumabs(result, sr);
   }
 
-  int tensor::reduce_sumabs(char * result, algstrct const * sr_other) {
+  int tensor::reduce_sumabs(char * result, algstrct const * sr_other){
     ASSERT(is_mapped && !is_folded);
-    univar_function func = univar_function(sr->abs);
+    univar_function func = univar_function(sr_other->abs);
     tensor sc = tensor(sr_other, 0, NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){

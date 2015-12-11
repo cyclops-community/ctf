@@ -26,7 +26,7 @@ namespace CTF {
        */ 
       Matrix(int                       nrow,
              int                       ncol,
-             World &                   wrld=get_universe(),
+             World &                   wrld,
              CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
              int                       profile=0);

@@ -38,6 +38,7 @@
 #include "../examples/spmv.cxx"
 #include "../examples/spmm.cxx"
 #include "../examples/jacobi.cxx"
+#include "../examples/sssp.cxx"
 #include "../examples/apsp.cxx"
 #include "../examples/sparse_mp3.cxx"
 #include "../examples/bitonic.cxx"
@@ -264,7 +265,12 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing Jacobi iteration with n=%d:\n",n);
     pass.push_back(jacobi(n,dw));
+     
+    if (rank == 0)
+      printf("Testing SSSP via the Bellman-Ford algorithm n=%d:\n",n*n);
+    pass.push_back(sssp(n*n,dw));
     
+
     if (rank == 0)
       printf("Testing APSP via path doubling with n=%d:\n",n*n);
     pass.push_back(apsp(n*n,dw));
