@@ -117,12 +117,12 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
 
     //let shortest paths vectors be paths
     Matrix<path> B(n, k, dw, p, "B");
-    B["ij"] = ((Function<int,path>)([](int i){ return path(i, 1); }))(iA["ij"]);
+    B["ij"] = ((Function<int,path>)([](int w){ return path(w, 1); }))(iA["ij"]);
     
     //compute Bellman Ford
     for (int i=0; i<n; i++){
-      B["ij"] = ((Function<int,path,path>)([](int i, path p){ return path(p.w+i, p.m); }))(A["ik"],B["kj"]);
-      B["ij"] += ((Function<int,path>)([](int i){ return path(i, 1); }))(iA["ij"]);
+      B["ij"] = ((Function<int,path,path>)([](int w, path p){ return path(p.w+w, p.m); }))(A["ik"],B["kj"]);
+      B["ij"] += ((Function<int,path>)([](int w){ return path(w, 1); }))(iA["ij"]);
     }
 
     //transfer shortest path data to Matrix of cpaths to compute c centrality scores
@@ -131,8 +131,8 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     for (int i=0; i<n; i++){
       cB["ij"] = ((Function<int,cpath,cpath>)(
-                    [](int i, cpath p){ 
-                      return cpath(p.w-i, p.m, (1.+p.c)/p.m); 
+                    [](int w, cpath p){ 
+                      return cpath(p.w-w, p.m, (1.+p.c)/p.m); 
                     }))(A["ki"],cB["kj"]);
       ((Transform<path,cpath>)([](path p, cpath & cp){ 
         cp = (p.w <= cp.w) ? cpath(p.w, p.m, cp.c*p.m) : cpath(p.w, p.m, 0.); 
