@@ -82,7 +82,7 @@ Monoid<cpath> get_cpath_monoid(int n){
   return cp;
 }
 
-//overrite printfs to make it possible to print matrices of paths
+//overwrite printfs to make it possible to print matrices of paths
 namespace CTF {
   template <>  
   inline void Set<path>::print(char const * a, FILE * fp) const {
@@ -110,7 +110,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
   for (int ib=0; ib<n; ib+=b){
     int k = std::min(b, n-ib);
 
-    //initialize shortest path vectors from then ext k sources to the correponding columns of the adjacency matrices and loops with weight 0
+    //initialize shortest path vectors from the next k sources to the corresponding columns of the adjacency matrices and loops with weight 0
     ((Transform<int>)([=](int& w){ w = 0; }))(A["ii"]);
     Tensor<int> iA = A.slice(ib*n, (ib+k-1)*n+n-1);
     ((Transform<int>)([=](int& w){ w = INT_MAX/2; }))(A["ii"]);
@@ -128,7 +128,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
     //transfer shortest path data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
     ((Transform<path,cpath>)([](path p, cpath & cp){ cp = cpath(p.w, p.m, 0.); }))(B["ij"],cB["ij"]);
-    //compute centrality scores by propogating them backwards from the furthest nodes (reverse Bellman Ford)
+    //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     for (int i=0; i<n; i++){
       cB["ij"] = ((Function<int,cpath,cpath>)(
                     [](int i, cpath p){ 
@@ -186,7 +186,7 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & v){
 
   //set postv_ijk = 
   //    for all nodes j on the shortest path from i to k (d_ik=d_ij+d_jk)
-  //      let multiplicty of shortest paths from i to j is a, from j to k is b, and from i to k is c
+  //      let multiplicity of shortest paths from i to j is a, from j to k is b, and from i to k is c
   //        then postv_ijk = a*b/c
   ((Transform<path,path,cpath>)(
     [=](path a, path b, cpath & c){ 
