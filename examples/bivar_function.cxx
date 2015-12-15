@@ -36,7 +36,7 @@ int bivar_function(int     n,
   B.read_all(&nall_B, &all_start_data_B);
 
   CTF::Function<> bfun([](double a, double b){ return a*b + b*a; });
-  .5*A["ijkl"]+=bfun(.5*A["ijkl"],B["ijkl"]);
+  .5*A["ijkl"]+=bfun(A["ijkl"],B["ijkl"]);
 
   double * all_end_data_A;
   int64_t nall2_A;
@@ -45,7 +45,7 @@ int bivar_function(int     n,
   int pass = (nall_A == nall2_A);
   if (pass){
     for (int64_t i=0; i<nall_A; i++){
-      if (fabs(.5*all_start_data_A[i]+f2(.5*all_start_data_A[i],all_start_data_B[i])-all_end_data_A[i])>=1.E-6) pass =0;
+      if (fabs(.5*all_start_data_A[i]+f2(all_start_data_A[i],all_start_data_B[i])-all_end_data_A[i])>=1.E-6) pass =0;
     }
   } 
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);

@@ -104,7 +104,7 @@ namespace CTF_int {
       ASSERT(0);
       assert(0);
     }
-    contraction c(opA.parent, opA.idx_map, opB.parent, opB.idx_map, NULL, output.parent, output.idx_map, NULL, func);
+    contraction c(opA.parent, opA.idx_map, opB.parent, opB.idx_map, NULL, output.parent, output.idx_map, output.scale, func);
     c.execute();
 //    if (scl != NULL) cdealloc(scl);
   }

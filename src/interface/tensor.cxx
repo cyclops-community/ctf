@@ -536,7 +536,6 @@ namespace CTF {
     int * new_lens = (int*)CTF_int::alloc(sizeof(int)*order);
     int * new_sym = (int*)CTF_int::alloc(sizeof(int)*order);
     for (i=0; i<order; i++){
-      printf("i %d end %d offset %d len %d\n", i, ends[i], offsets[i], lens[i]);
       assert(ends[i] - offsets[i] > 0 && 
                   offsets[i] >= 0 && 
                   ends[i] <= lens[i]);

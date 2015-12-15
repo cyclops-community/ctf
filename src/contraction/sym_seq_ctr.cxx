@@ -202,7 +202,8 @@ namespace CTF_int{
                     C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(imax-imin);
-      } else*/ if (alpha == NULL){
+      } else*/ 
+      if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
           sr_C->mul(A+offsets_A[0][i], 
@@ -237,7 +238,8 @@ printf("HERE1\n");
                         C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(imax-imin);
-      } else*/ if (alpha == NULL){
+      } else*/ 
+      if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
           func->acc_f(A+offsets_A[0][i], 
@@ -442,7 +444,7 @@ printf("HERE1\n");
     /* Scale C immediately. FIXME: wrong for iterators over subset of C */
     if (!sr_C->isequal(beta, sr_C->mulid())){
       sz = sy_packed_size(order_C, edge_len_C, sym_C);
-      if (sr_C->isequal(beta, sr_C->addid())){
+      if (sr_C->isequal(beta, sr_C->addid()) || sr_C->isequal(beta, NULL)){
         sr_C->set(C, sr_C->addid(), sz);
       } else {
         sr_C->scal(sz, beta, C, 1);

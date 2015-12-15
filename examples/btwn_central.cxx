@@ -158,7 +158,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, Matrix<path> * Ms =
     for (int i=0; i<n; i++){
       Matrix<path> B2(n, k, dw, p, "B2");
     ((Transform<path>)([](path& w){ w = path(0, 0, 1); }))(B["ii"]);
-      B.print();
+      //B.print();
       B2["ij"] = B["ij"];
       B["ij"] = ((Function<int,path,path>)([](int i, path p){ return path(p.w+i, p.h+1, p.m); }))(A["ik"],B2["kj"]);
 //      ((Transform<path,path>)([](path a, path & b){ if (a.w < b.w || (a.w == b.w && a.m > b.m)) b=a; }))(B2["ij"], B["ij"]);
@@ -171,7 +171,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, Matrix<path> * Ms =
 //      Ms->print();
     }
     ((Transform<path>)([=](path& w){ w = path(-INT_MAX/2, 0, 1); }))(B["ii"]);
-    B.print();
+    //B.print();
     Matrix<cpath> cB(n, k, dw, cp, "cB");
     ((Transform<path,cpath>)([](path p, cpath & cp){ cp = cpath(p.w, p.m, 0.); }))(B["ij"],cB["ij"]);
   //  ((Transform<cpath>)([=](cpath& w){ w = cpath(-INT_MAX/2, 1, 0); }))(cB["ii"]);
@@ -183,19 +183,15 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, Matrix<path> * Ms =
       int n3[]={n,n,n};
       Tensor<cpath> cB3(3,n3, dw, cp, "cB3");
       cB3["ijk"] += ((Function<int,cpath,cpath>)([](int i, cpath p){ return cpath(p.w-i, p.m, (1.+p.c)/p.m); }))(A["ki"],cB["kj"]);
-      cB3.print();
       cB2["ij"] += cB3["ijk"];
       ((Transform<cpath,cpath>)([](cpath a, cpath & b){ b.c=a.c*b.m; }))(cB2["ij"], cB["ij"]);
-      cB.print();
-      A.print();
     ((Transform<cpath>)([](cpath & p){ p.c=0; }))(cB["ii"]);
 //      ((Transform<path,cpath>)([](path p, cpath & cp){ cp.w = p.w; cp.m = p.m; }))(B["ij"],cB["ij"]);
     }
-    assert(n==k);
-    Matrix<> dcB(n,n,dw);
-    dcB["ij"] = ((Function<cpath,double>)([](cpath p){ return p.c; }))(cB["ij"]);
-    Tensor<double> scB = dcB.slice(0,n*(n-1));
-    scB.print();
+    //assert(n==k);
+    //Matrix<> dcB(n,n,dw);
+    //dcB["ij"] = ((Function<cpath,double>)([](cpath p){ return p.c; }))(cB["ij"]);
+    //Tensor<double> scB = dcB.slice(0,n*(n-1));
     v["i"] += ((Function<cpath,double>)([](cpath a){ return a.c; }))(cB["ij"]);
   }
 }
@@ -232,7 +228,7 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & str_cnt, Matrix<path> * Ms
     //((Transform<path,path>)([](path a, path & b){ if (a.w < b.w){ b=a; } else if (a.w == b.w){ b=a; } }))(P2["ij"], P["ij"]);
   //  P.print();
   }
-  P.print();
+  //P.print();
   ((Transform<path>)([=](path& p){ p = path(INT_MAX/2, 0, 1); }))(P["ii"]);
   ((Transform<path>)([=](path& p){ if (p.w >= INT_MAX/2) p = path(INT_MAX/2, 0, 1); }))(P["ij"]);
   if (Ms != NULL)
@@ -256,12 +252,12 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & str_cnt, Matrix<path> * Ms
   ))(P["ij"],P["jk"],postv["ijk"]);
   //ostv.print();
   ostv["ijk"] = ((Function<cpath,double>)([](cpath p){ return p.c; }))(postv["ijk"]);
-  Tensor<double> sostv = ostv.slice(0,n*n*(n-1)+n-1);
-  sostv.set_name("sostv");
-  sostv.print();
-  Vector<double> sostv2(n, dw, "sostv2");
-  sostv2["j"] += sostv["ikj"];
-  sostv2.print();
+//  Tensor<double> sostv = ostv.slice(0,n*n*(n-1)+n-1);
+//  sostv.set_name("sostv");
+//  sostv.print();
+ // Vector<double> sostv2(n, dw, "sostv2");
+ // sostv2["j"] += sostv["ikj"];
+  //sostv2.print();
 
   str_cnt["j"] += ostv["ijk"];
 
@@ -371,7 +367,7 @@ int btwn_cnt(int     n,
     A.write(2,inds,vals);
   } else A.write(0, NULL, NULL);*/
   srand(dw.rank+1);
-  A.fill_random(1, 4);//std::min(n*n,100)); 
+  A.fill_random(1, std::min(n*n,100)); 
 /*  if (dw.rank == 0){
     int64_t inds[n*(n-1)/2];
     int vals[n*(n-1)/2];
@@ -400,43 +396,41 @@ int btwn_cnt(int     n,
   btwn_cnt_naive(A, v1, &M1);
  
   btwn_cnt_fast(A, n, v2, &M2);
-  M1.print();
-  M2.print();
+//  M1.print();
+  //M2.print();
 
-  v1.print();
-  v2.print();
+ // v1.print();
+//  v2.print();
 //  v1.compare(v2);
 
   Scalar<int> isc(dw);
   isc[""] += ((Function<path,path,int>)([](path a, path b){ return std::abs(a.w-b.w); }))(M1["ij"],M2["ij"]);
-  isc.print();
  int pass = (isc.get_val() == 0);
-  if (pass)
+/*  if (pass)
     printf("shortest paths match\n");
   else
-    printf("shortest paths do not match\n");
+    printf("shortest paths do not match\n");*/
   isc[""] = 0;
   isc[""] += ((Function<path,path,int>)([](path a, path b){ return std::abs(a.m-b.m); }))(M1["ij"],M2["ij"]);
-  isc.print();
-  pass = (isc.get_val() == 0);
-  if (pass)
+  pass = pass & (isc.get_val() == 0);
+/*  if (pass)
     printf("multiplicites match\n");
   else
-    printf("multiplicites do not match\n");
+    printf("multiplicites do not match\n");*/
 
 
-  ((Transform<path,path>)([](path a, path & b){ 
+  /*((Transform<path,path>)([](path a, path & b){ 
     if (b.w==a.w) b.w=INT_MAX/2; 
     else b.w -= a.w; 
     if (b.m !=a.m){ b.w = -b.w; b.m-=a.m; } 
     else { b.m = 1; } 
     b.h=0;
   }))(M2["ij"], M1["ij"]);
-  M1.print();
+  M1.print();*/
 
   Scalar<> sc(dw);
   sc[""] = ((Function<>)([](double a, double b){ return std::abs(a-b); }))(v1["i"],v2["i"]);
-  pass = (sc.get_val() <= 0.001);
+  pass = pass & (sc.get_val() <= 0.001);
 
   if (dw.rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
@@ -485,7 +479,7 @@ int main(int argc, char ** argv){
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Computing betweenness centrality of dense graph with %d nodes using dense and sparse path doubling\n",n);
+      printf("Computing betweenness centrality for graph with %d nodes\n",n);
     }
     pass = btwn_cnt(n, dw, niter);
     assert(pass);
