@@ -834,7 +834,7 @@ namespace CTF_int {
       all_data_A = blk_data_B;
       sz_A = blk_sz_B;
     } else {
-      tsr_A->read_local(&sz_A, &all_data_A);
+      tsr_A->read_local_nnz(&sz_A, &all_data_A);
     }
    
     if (tsr_A->order == 0 || tsr_A->has_zero_edge_len){
@@ -870,6 +870,7 @@ namespace CTF_int {
     printf("beta is "); tsr_B->sr->print(beta); printf("\n");
     printf("writing B blk_sz_A = %ld key =%ld\n",blk_sz_A,*(int64_t*)blk_data_A);
     tsr_B->sr->print(blk_data_A+sizeof(int64_t));*/
+
     tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');  
     if (tsr_A->order != 0 && !tsr_A->has_zero_edge_len)
       CTF_int::cdealloc(blk_data_A);
@@ -1351,7 +1352,7 @@ namespace CTF_int {
       dense_tsr.write(num_nnz, sr->mulid(), sr->addid(), nnz_data);
       cdealloc(nnz_data);
       dense_tsr.read_local(num_pair, mapped_data);
-      *num_pair = nnz_loc;
+      //*num_pair = num_pair;
       return SUCCESS;
     } else {
       TAU_FSTART(read_local_pairs);

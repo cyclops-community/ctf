@@ -50,7 +50,7 @@ namespace CTF_int{
     for (int i=0; i<imax; i++){
       while (size_A > 0 && idx_B == A.k()){
         if (func == NULL){
-          if (alpha == sr_A->mulid()){
+          if (sr_A->isequal(alpha, sr_A->mulid()) || alpha == NULL){
             sr_B->add(A.d(), B, B);
           } else {
             char tmp[sr_A->el_size];
@@ -58,7 +58,7 @@ namespace CTF_int{
             sr_B->add(tmp, B, B);
           }
         } else {
-          if (alpha == sr_A->mulid()){
+          if (sr_A->isequal(alpha, sr_A->mulid()) || alpha == NULL){
             func->acc_f(A.d(), B, sr_B);
           } else {
             char tmp[sr_A->el_size];
@@ -124,7 +124,10 @@ namespace CTF_int{
     } else {
       int64_t sz_B = sy_packed_size(order_B, edge_len_B, sym_B);
       if (!sr_B->isequal(beta, sr_B->mulid()))
-        sr_B->scal(sz_B, beta, B, 1);
+        if (sr_B->isequal(beta, sr_B->addid()) || sr_B->isequal(beta, NULL))
+          sr_B->set(B, sr_B->addid(), sz_B);
+        else
+          sr_B->scal(sz_B, beta, B, 1);
 
       int64_t lda_B[order_B];
       for (int i=0; i<order_B; i++){

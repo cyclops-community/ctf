@@ -214,14 +214,15 @@ namespace CTF_int{
     printf("-> %d/%d %d %d %d\n",tid,ntd,func==NULL, alpha==NULL,beta==NULL);*/
     if (rA == -1){
       if (func == NULL){
-        if (alpha == NULL && beta == NULL){
+/*        if (alpha == NULL && beta == NULL){
           for (int i=imin; i<imax; i++){
             sr_C->mul(A[0].d(),
                       B+offsets_B[0][i], 
                       C+offsets_C[0][i]);
           }
           CTF_FLOPS_ADD(imax-imin);
-        } else if (alpha == NULL){
+        } else if (alpha == NULL)*/
+        if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
           for (int i=imin; i<imax; i++){
             char tmp[sr_C->el_size];
             sr_C->mul(A[0].d(), 
@@ -248,25 +249,33 @@ namespace CTF_int{
           CTF_FLOPS_ADD(3*(imax-imin));
         }
       } else {
-        if (alpha == NULL && beta == NULL){
+/*        if (alpha == NULL && beta == NULL){
           for (int i=imin; i<imax; i++){
             func->apply_f(A[0].d(),
                           B+offsets_B[0][i], 
                           C+offsets_C[0][i]);
           }
           CTF_FLOPS_ADD(imax-imin);
-        } else if (alpha == NULL){
+        } else if (alpha == NULL)*/
+        if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
           for (int i=imin; i<imax; i++){
+            func->acc_f(A[0].d(), 
+                        B+offsets_B[0][i], 
+                        C+offsets_C[0][i],
+                        sr_C);
+/*
             char tmp[sr_C->el_size];
             func->apply_f(A[0].d(), 
                           B+offsets_B[0][i], 
                           tmp);
             sr_C->add(tmp, 
                       C+offsets_C[0][i], 
-                      C+offsets_C[0][i]);
+                      C+offsets_C[0][i]);*/
           }
           CTF_FLOPS_ADD(2*(imax-imin));
         } else {
+          ASSERT(0);
+          assert(0);
           for (int i=imin; i<imax; i++){
             char tmp[sr_C->el_size];
             func->apply_f(A[0].d(), 
@@ -290,6 +299,7 @@ namespace CTF_int{
         }
       }
       ASSERT(func == NULL && alpha != NULL && beta != NULL);
+      assert(func == NULL && alpha != NULL && beta != NULL);
       do {
         int64_t sk = A[0].k()-key_offset;
         ASSERT(sk >= 0);
@@ -411,7 +421,7 @@ namespace CTF_int{
     /* Scale C immediately. FIXME: wrong for iterators over subset of C */
     if (!sr_C->isequal(beta, sr_C->mulid())){
       sz = sy_packed_size(order_C, edge_len_C, sym_C);
-      if (sr_C->isequal(beta, sr_C->addid())){
+      if (sr_C->isequal(beta, sr_C->addid()) || sr_C->isequal(beta, NULL)){
         sr_C->set(C, sr_C->addid(), sz);
       } else {
         sr_C->scal(sz, beta, C, 1);
