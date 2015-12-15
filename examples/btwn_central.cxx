@@ -20,7 +20,7 @@ class path {
 };
 
 //(min, +) tropical semiring for path structure
-Semiring<path> get_path_semiring(int n){
+Semiring<path> get_path_semiring(){
   //struct for path with w=path weight, h=#hops
   MPI_Op opath;
 
@@ -58,7 +58,7 @@ class cpath : public path {
 };
 
 // min Monoid for cpath structure
-Monoid<cpath> get_cpath_monoid(int n){
+Monoid<cpath> get_cpath_monoid(){
   //struct for cpath with w=cpath weight, h=#hops
   MPI_Op ocpath;
 
@@ -104,8 +104,8 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
   World dw = *A.wrld;
   int n = A.nrow;
 
-  Semiring<path> p = get_path_semiring(n);
-  Monoid<cpath> cp = get_cpath_monoid(n);
+  Semiring<path> p = get_path_semiring();
+  Monoid<cpath> cp = get_cpath_monoid();
 
   for (int ib=0; ib<n; ib+=b){
     int k = std::min(b, n-ib);
@@ -157,8 +157,8 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & v){
   World dw = *A.wrld;
   int n = A.nrow;
 
-  Semiring<path> p = get_path_semiring(n);
-  Monoid<cpath> cp = get_cpath_monoid(n);
+  Semiring<path> p = get_path_semiring();
+  Monoid<cpath> cp = get_cpath_monoid();
   //path matrix to contain distance matrix
   Matrix<path> P(n, n, dw, p, "P");
 
