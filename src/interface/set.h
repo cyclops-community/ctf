@@ -412,54 +412,63 @@ namespace CTF {
   template <>  
   inline bool Set<float>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return ((float*)a)[0] == ((float*)b)[0];
   }
 
   template <>  
   inline bool Set<double>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return ((double*)a)[0] == ((double*)b)[0];
   }
 
   template <>  
   inline bool Set<int>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return ((int*)a)[0] == ((int*)b)[0];
   }
 
   template <>  
   inline bool Set<uint64_t>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return ((uint64_t*)a)[0] == ((uint64_t*)b)[0];
   }
 
   template <>  
   inline bool Set<int64_t>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return ((int64_t*)a)[0] == ((int64_t*)b)[0];
   }
 
   template <>  
   inline bool Set<long double>::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return ((long double*)a)[0] == ((long double*)b)[0];
   }
 
   template <>  
   inline bool Set< std::complex<float>,false >::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return (( std::complex<float> *)a)[0] == (( std::complex<float> *)b)[0];
   }
 
   template <>  
   inline bool Set< std::complex<double>,false >::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return (( std::complex<double> *)a)[0] == (( std::complex<double> *)b)[0];
   }
 
   template <>  
   inline bool Set< std::complex<long double>,false >::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
+    if (a == NULL || b == NULL) return false;
     return (( std::complex<long double> *)a)[0] == (( std::complex<long double> *)b)[0];
   }
 

@@ -612,7 +612,7 @@ printf("HERE1\n");
         C[i] = C[i]*beta;
       }
     }*/
-    if (beta != NULL && !sr_C->isequal(beta, sr_C->mulid())){
+/*    if (beta != NULL && !sr_C->isequal(beta, sr_C->mulid())){
       int64_t sz = sy_packed_size(order_C, edge_len_C, sym_C);
       if (sr_C->isequal(beta, sr_C->addid())){
         sr_C->set(C, sr_C->addid(), sz);
@@ -622,7 +622,20 @@ printf("HERE1\n");
                     C+i*sr_C->el_size);
         }
       }
+    }*/
+    if (!sr_C->isequal(beta, sr_C->mulid())){
+      int64_t sz = sy_packed_size(order_C, edge_len_C, sym_C);
+      if (sr_C->isequal(beta, sr_C->addid()) || sr_C->isequal(beta, NULL)){
+        sr_C->set(C, sr_C->addid(), sz);
+      } else {
+        sr_C->scal(sz, beta, C, 1);
+        /*for (i=0; i<sz; i++){
+          sr_C->mul(C+i*sr_C->el_size, beta, 
+                    C+i*sr_C->el_size);
+        }*/
+      }
     }
+
 
     if (idx_max <= MAX_ORD){
       uint64_t ** offsets_A;

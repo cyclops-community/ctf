@@ -495,12 +495,18 @@ namespace CTF {
                             dtype          alpha){
     int * offsets, * ends, * offsets_A, * ends_A;
    
-    CTF_int::cvrt_idx(this->order, this->len, corner_off, &offsets);
-    CTF_int::cvrt_idx(this->order, this->len, corner_end, &ends);
+    CTF_int::cvrt_idx(this->order, this->lens, corner_off, &offsets);
+    CTF_int::cvrt_idx(this->order, this->lens, corner_end, &ends);
+    for (int i=0; i<order; i++){
+      ends[i]++;
+    }
     CTF_int::cvrt_idx(A.order, A.lens, corner_off_A, &offsets_A);
     CTF_int::cvrt_idx(A.order, A.lens, corner_end_A, &ends_A);
+    for (int i=0; i<A.order; i++){
+      ends_A[i]++;
+    }
     
-    slice(offsets, ends, beta, &A, offsets_A, ends_A, (char*)&alpha);
+    CTF_int::tensor::slice(offsets, ends, (char*)&beta, (Tensor *)&A, offsets_A, ends_A, (char*)&alpha);
 
     CTF_int::cdealloc(offsets);
     CTF_int::cdealloc(ends);
