@@ -1969,7 +1969,7 @@ namespace CTF_int {
     int btopo;
     int gtopo;
 
-    ASSERT(A->wrld == B->wrld);
+    ASSERT(A->wrld->cdt.cm == B->wrld->cdt.cm);
     World * wrld = A->wrld;
    
     TAU_FSTART(map_tensor_pair);

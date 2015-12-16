@@ -3413,7 +3413,7 @@ namespace CTF_int {
     mapping * map;
     spctr * hctr = NULL;
     spctr ** rec_ctr = NULL;
-    ASSERT(A->wrld == B->wrld && B->wrld == C->wrld);
+    ASSERT(A->wrld->cdt.cm == B->wrld->cdt.cm && B->wrld->cdt.cm == C->wrld->cdt.cm);
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
 

@@ -158,7 +158,7 @@ namespace CTF {
 
       Set() : CTF_int::algstrct(sizeof(dtype)){ 
         tmdtype = CTF_int::get_default_mdtype<dtype>(is_custom_mdtype);
-        abs = NULL;
+        set_abs_to_default();
       }
 
       void set_abs_to_default(){
