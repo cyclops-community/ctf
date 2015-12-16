@@ -363,11 +363,11 @@ namespace CTF_int {
     }
   }
 
-  static double * get_cube_param(double const * param, int nparam){
+  /*static double * get_cube_param(double const * param, int nparam){
     double * lparam = new double[nparam*(nparam+1)*(nparam+2)/6+nparam*(nparam+1)/2+nparam];
     cube_params(param, lparam, nparam);
     return lparam;
-  }
+  }*/
 
 
   template <int nparam>

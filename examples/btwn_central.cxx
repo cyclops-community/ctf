@@ -7,55 +7,58 @@
 
 #include <ctf.hpp>
 #include <float.h>
-using namespace CTF;
 
+using namespace CTF;
 //structure for regular path that keeps track of the multiplicity of paths
-class path {
+class mpath {
   public:
   int w; // weighted distance
   int m; // multiplictiy
-  path(int w_, int m_){ w=w_; m=m_; }
-  path(path const & p){ w=p.w; m=p.m; }
-  path(){};
+  mpath(int w_, int m_){ w=w_; m=m_; }
+  mpath(mpath const & p){ w=p.w; m=p.m; }
+  mpath(){};
 };
 
-//(min, +) tropical semiring for path structure
-Semiring<path> get_path_semiring(){
-  //struct for path with w=path weight, h=#hops
-  MPI_Op opath;
+//path with a centrality score
+class cpath : public mpath {
+  public:
+  double c; // centrality score
+  cpath(int w_, int m_, double c_) : mpath(w_, m_) { c=c_;}
+  cpath(cpath const & p) : mpath(p) { c=p.c; }
+  cpath(){};
+};
+
+
+//(min, +) tropical semiring for mpath structure
+Semiring<mpath> get_mpath_semiring(){
+  //struct for mpath with w=mpath weight, h=#hops
+  MPI_Op ompath;
 
   MPI_Op_create(
       [](void * a, void * b, int * n, MPI_Datatype*){ 
         for (int i=0; i<*n; i++){ 
-          if (((path*)a)[i].w <= ((path*)b)[i].w){
-            ((path*)b)[0] = ((path*)a)[0];
+          if (((mpath*)a)[i].w < ((mpath*)b)[i].w){
+            ((mpath*)b)[i] = ((mpath*)a)[i];
+          } else if (((mpath*)a)[i].w == ((mpath*)b)[i].w){
+            ((mpath*)b)[i].m += ((mpath*)a)[i].m;
           }
         }
       },
-      1, &opath);
+      1, &ompath);
 
   //tropical semiring with hops carried by winner of min
-  Semiring<path> p(path(INT_MAX/2,1), 
-                   [](path a, path b){ 
+  Semiring<mpath> p(mpath(INT_MAX/2,1), 
+                   [](mpath a, mpath b){ 
                      if (a.w<b.w){ return a; }
                      else if (b.w<a.w){ return b; }
-                     else { return path(a.w, a.m+b.m); }
+                     else { return mpath(a.w, a.m+b.m); }
                    },
-                   opath,
-                   path(0,1),
-                   [](path a, path b){ return path(a.w+b.w, a.m*b.m); });
+                   ompath,
+                   mpath(0,1),
+                   [](mpath a, mpath b){ return mpath(a.w+b.w, a.m*b.m); });
 
   return p;
 }
-
-//path with a centrality score
-class cpath : public path {
-  public:
-  double c; // centrality score
-  cpath(int w_, int m_, double c_) : path(w_, m_) { c=c_;}
-  cpath(cpath const & p) : path(p) { c=p.c; }
-  cpath(){};
-};
 
 // min Monoid for cpath structure
 Monoid<cpath> get_cpath_monoid(){
@@ -65,8 +68,11 @@ Monoid<cpath> get_cpath_monoid(){
   MPI_Op_create(
       [](void * a, void * b, int * n, MPI_Datatype*){ 
         for (int i=0; i<*n; i++){ 
-          if (((cpath*)a)[i].w <= ((cpath*)b)[i].w){
-            ((cpath*)b)[0] = ((cpath*)a)[0];
+          if (((cpath*)a)[i].w > ((cpath*)b)[i].w){
+            ((cpath*)b)[i] = ((cpath*)a)[i];
+          } else if (((cpath*)a)[i].w == ((cpath*)b)[i].w){
+            ((cpath*)b)[i].m += ((cpath*)a)[i].m;
+            ((cpath*)b)[i].c += ((cpath*)a)[i].c;
           }
         }
       },
@@ -82,11 +88,11 @@ Monoid<cpath> get_cpath_monoid(){
   return cp;
 }
 
-//overwrite printfs to make it possible to print matrices of paths
+//overwrite printfs to make it possible to print matrices of mpaths
 namespace CTF {
   template <>  
-  inline void Set<path>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(w=%d m=%d)",((path*)a)[0].w,((path*)a)[0].m);
+  inline void Set<mpath>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(w=%d m=%d)",((mpath*)a)[0].w,((mpath*)a)[0].m);
   }
   template <>  
   inline void Set<cpath>::print(char const * a, FILE * fp) const {
@@ -104,37 +110,37 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
   World dw = *A.wrld;
   int n = A.nrow;
 
-  Semiring<path> p = get_path_semiring();
+  Semiring<mpath> p = get_mpath_semiring();
   Monoid<cpath> cp = get_cpath_monoid();
 
   for (int ib=0; ib<n; ib+=b){
     int k = std::min(b, n-ib);
 
-    //initialize shortest path vectors from the next k sources to the corresponding columns of the adjacency matrices and loops with weight 0
+    //initialize shortest mpath vectors from the next k sources to the corresponding columns of the adjacency matrices and loops with weight 0
     ((Transform<int>)([=](int& w){ w = 0; }))(A["ii"]);
     Tensor<int> iA = A.slice(ib*n, (ib+k-1)*n+n-1);
     ((Transform<int>)([=](int& w){ w = INT_MAX/2; }))(A["ii"]);
 
-    //let shortest paths vectors be paths
-    Matrix<path> B(n, k, dw, p, "B");
-    B["ij"] = ((Function<int,path>)([](int w){ return path(w, 1); }))(iA["ij"]);
+    //let shortest mpaths vectors be mpaths
+    Matrix<mpath> B(n, k, dw, p, "B");
+    B["ij"] = ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
     
     //compute Bellman Ford
     for (int i=0; i<n; i++){
-      B["ij"] = ((Function<int,path,path>)([](int w, path p){ return path(p.w+w, p.m); }))(A["ik"],B["kj"]);
-      B["ij"] += ((Function<int,path>)([](int w){ return path(w, 1); }))(iA["ij"]);
+      B["ij"] = ((Function<int,mpath,mpath>)([](int w, mpath p){ return mpath(p.w+w, p.m); }))(A["ik"],B["kj"]);
+      B["ij"] += ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
     }
 
-    //transfer shortest path data to Matrix of cpaths to compute c centrality scores
+    //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
-    ((Transform<path,cpath>)([](path p, cpath & cp){ cp = cpath(p.w, p.m, 0.); }))(B["ij"],cB["ij"]);
+    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, p.m, 0.); }))(B["ij"],cB["ij"]);
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     for (int i=0; i<n; i++){
       cB["ij"] = ((Function<int,cpath,cpath>)(
                     [](int w, cpath p){ 
                       return cpath(p.w-w, p.m, (1.+p.c)/p.m); 
                     }))(A["ki"],cB["kj"]);
-      ((Transform<path,cpath>)([](path p, cpath & cp){ 
+      ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ 
         cp = (p.w <= cp.w) ? cpath(p.w, p.m, cp.c*p.m) : cpath(p.w, p.m, 0.); 
       }))(B["ij"],cB["ij"]);
     }
@@ -157,39 +163,39 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & v){
   World dw = *A.wrld;
   int n = A.nrow;
 
-  Semiring<path> p = get_path_semiring();
+  Semiring<mpath> p = get_mpath_semiring();
   Monoid<cpath> cp = get_cpath_monoid();
-  //path matrix to contain distance matrix
-  Matrix<path> P(n, n, dw, p, "P");
+  //mpath matrix to contain distance matrix
+  Matrix<mpath> P(n, n, dw, p, "P");
 
-  Function<int,path> setw([](int w){ return path(w, 1); });
+  Function<int,mpath> setw([](int w){ return mpath(w, 1); });
 
   P["ij"] = setw(A["ij"]);
   
-  ((Transform<path>)([=](path& w){ w = path(INT_MAX/2, 1); }))(P["ii"]);
+  ((Transform<mpath>)([=](mpath& w){ w = mpath(INT_MAX/2, 1); }))(P["ii"]);
 
-  Matrix<path> Pi(n, n, dw, p);
+  Matrix<mpath> Pi(n, n, dw, p);
   Pi["ij"] = P["ij"];
  
-  //compute all shortest paths by Bellman Ford 
+  //compute all shortest mpaths by Bellman Ford 
   for (int i=0; i<n; i++){
-    ((Transform<path>)([=](path & p){ p = path(0,1); }))(P["ii"]);
+    ((Transform<mpath>)([=](mpath & p){ p = mpath(0,1); }))(P["ii"]);
     P["ij"] = Pi["ik"]*P["kj"];
   }
-  ((Transform<path>)([=](path& p){ p = path(INT_MAX/2, 1); }))(P["ii"]);
+  ((Transform<mpath>)([=](mpath& p){ p = mpath(INT_MAX/2, 1); }))(P["ii"]);
 
   int lenn[3] = {n,n,n};
   Tensor<cpath> postv(3, lenn, dw, cp, "postv");
 
-  //set postv_ijk = shortest path from i to k (d_ik)
-  postv["ijk"] += ((Function<path,cpath>)([](path p){ return cpath(p.w, p.m, 0.0); }))(P["ik"]);
+  //set postv_ijk = shortest mpath from i to k (d_ik)
+  postv["ijk"] += ((Function<mpath,cpath>)([](mpath p){ return cpath(p.w, p.m, 0.0); }))(P["ik"]);
 
   //set postv_ijk = 
-  //    for all nodes j on the shortest path from i to k (d_ik=d_ij+d_jk)
-  //      let multiplicity of shortest paths from i to j is a, from j to k is b, and from i to k is c
+  //    for all nodes j on the shortest mpath from i to k (d_ik=d_ij+d_jk)
+  //      let multiplicity of shortest mpaths from i to j is a, from j to k is b, and from i to k is c
   //        then postv_ijk = a*b/c
-  ((Transform<path,path,cpath>)(
-    [=](path a, path b, cpath & c){ 
+  ((Transform<mpath,mpath,cpath>)(
+    [=](mpath a, mpath b, cpath & c){ 
       if (c.w<INT_MAX/2 && a.w+b.w == c.w){ c.c = ((double)a.m*b.m)/c.m; } 
       else { c.c = 0; }
     }
@@ -216,6 +222,16 @@ int btwn_cnt(int     n,
   //fill with values in the range of [1,min(n*n,100)]
   srand(dw.rank+1);
   A.fill_random(1, std::min(n*n,100)); 
+/*  if (dw.rank == 0){
+    int64_t inds[n*n];
+    int vals[n*n];
+    for (int i=0; i<n*n; i++){
+      inds[i] = i;
+      vals[i] = (rand()%std::min(n*n,100))+1;
+    }
+    A.write(n*n,inds,vals);
+  } else A.write(0,NULL,NULL);*/
+  
   A["ii"] = 0;
   
   //keep only values smaller than 20 (about 20% sparsity)
@@ -229,6 +245,9 @@ int btwn_cnt(int     n,
   btwn_cnt_naive(A, v1);
   //compute centrality scores by Bellman Ford with block size 2
   btwn_cnt_fast(A, 2, v2);
+
+  //v1.print();
+  //v2.print();
 
   v1["i"] -= v2["i"];
   int pass = v1.norm2() <= 1.E-6;

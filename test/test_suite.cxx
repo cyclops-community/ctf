@@ -40,6 +40,7 @@
 #include "../examples/jacobi.cxx"
 #include "../examples/sssp.cxx"
 #include "../examples/apsp.cxx"
+#include "../examples/btwn_central.cxx"
 #include "../examples/sparse_mp3.cxx"
 #include "../examples/bitonic.cxx"
 
@@ -270,10 +271,14 @@ int main(int argc, char ** argv){
       printf("Testing SSSP via the Bellman-Ford algorithm n=%d:\n",n*n);
     pass.push_back(sssp(n*n,dw));
     
-
     if (rank == 0)
       printf("Testing APSP via path doubling with n=%d:\n",n*n);
     pass.push_back(apsp(n*n,dw));
+
+    if (rank == 0)
+      printf("Testing betweenness centrality with n=%d:\n",n*n);
+    pass.push_back(btwn_cnt(n*n,dw));
+
     
     if (rank == 0)
       printf("Testing dense and sparse MP3 calculation %d occupied and %d virtual orbitals:\n",n,2*n);

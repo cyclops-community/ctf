@@ -241,7 +241,6 @@ printf("HERE1\n");
       } else*/ 
       if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
         for (int i=imin; i<imax; i++){
-          char tmp[sr_C->el_size];
           func->acc_f(A+offsets_A[0][i], 
                       B+offsets_B[0][i], 
                       C+offsets_C[0][i],

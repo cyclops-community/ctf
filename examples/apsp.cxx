@@ -57,7 +57,7 @@ int apsp(int     n,
       [](void * a, void * b, int * n, MPI_Datatype*){ 
         for (int i=0; i<*n; i++){ 
           if (((path*)a)[i].w <= ((path*)b)[i].w)
-            ((path*)b)[0] = ((path*)a)[0];
+            ((path*)b)[i] = ((path*)a)[i];
         }
       },
       1, &opath);

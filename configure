@@ -517,13 +517,13 @@ echo -n 'Checking if OpenMP is provided... '
 if testopenmp; then
   echo 'OpenMP works.'
 else
-  OLDFLAGS=$LDFLAGS
-  LDFLAGS="$LDFLAGS -fopenmp"
+  OCXXFLAGS=$CXXFLAGS
+  CXXFLAGS="$CXXFLAGS -fopenmp"
   if testopenmp; then
     echo 'using OpenMP via -fopenmp flag.'
   else
     echo 'Uuable to compile OpenMP test program, will build without OpenMP, to enable OpenMP please provide e.g. CXXFLAGS=-fopenmp.'
-    LDFLAGS="$OLDFLAGS -DOMP_OFF"
+    CXXFLAGS="$OCXXFLAGS -DOMP_OFF"
   fi
 fi
   

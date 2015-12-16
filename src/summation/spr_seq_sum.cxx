@@ -105,8 +105,9 @@ namespace CTF_int{
                        univar_function const * func){
     TAU_FSTART(spA_dnB_seq_sum);
     if (order_B == 0){
-      if (!sr_B->isequal(beta, sr_B->mulid()))
+      if (!sr_B->isequal(beta, sr_B->mulid())){
         sr_B->mul(beta, B, B);
+      }
       ConstPairIterator pi(sr_A, A);
       for (int64_t i=0; i<size_A; i++){
         char tmp_buf[sr_A->el_size];
@@ -123,11 +124,12 @@ namespace CTF_int{
       }
     } else {
       int64_t sz_B = sy_packed_size(order_B, edge_len_B, sym_B);
-      if (!sr_B->isequal(beta, sr_B->mulid()))
+      if (!sr_B->isequal(beta, sr_B->mulid())){
         if (sr_B->isequal(beta, sr_B->addid()) || sr_B->isequal(beta, NULL))
           sr_B->set(B, sr_B->addid(), sz_B);
         else
           sr_B->scal(sz_B, beta, B, 1);
+      }
 
       int64_t lda_B[order_B];
       for (int i=0; i<order_B; i++){
