@@ -1,32 +1,34 @@
 /*! \mainpage 
  * \section intro Introduction
  * 
- * Cyclops Tensor Framework (CTF) is a distributed-memory library that provides support for high-dimensional arrays (tensors).
- * CTF arrays are distributed over MPI communicators and two-level parallelism (MPI + threads) 
- * is supported with via extensive internal usage of OpenMP and capability to exploit threaded BLAS effectively. 
- * CTF is capable of performing summation and contraction, as well as data manipulation and mapping.
+ * Cyclops Tensor Framework (CTF) is a distributed-memory library that provides support for tensor algebra.
+ * CTF tensors are multidimensional distributed arrays of arbitrary type, which may be used to represent graphs or hypergraphs.
+ * The primary means of specifying CTF tensor operations is assigning `iterator' indices for each way of each tensor and specifying an elementwise function to apply.
+ * Partitioning and efficient redistribution of tensor data is also possible via CTF.
+ *
  * The software is available on GitHub (github.com/solomonik/ctf) and maybe obtained via the command 
  *
  * git clone https://github.com/solomonik/ctf
  *
- * The lead developer of this code is Edgar Solomonik (University of California-Berkeley).
- * Devin Matthews (University of Austin Texas) has also made significant contributions to CTF.
- * Additionally, Devin leads the development of Aquarius (https://code.google.com/p/aquarius-chem/),
- * a distributed-memory quantum chemistry software suite running on top of the CTF library.
- * Richard Lin (UC Berkeley) is working on multi-contraction scheduling in (on top of) CTF.
- * Jeff Hammond (Intel) and James Demmel (University of California-Berkeley) have overseen the high-level development of the ideas in the CTF framework.
+ * CTF requires the BLAS and MPI to be built, with MPI being the main parallel execution and communication mechanism.
+ * OpenMP and CUDA may additionally be provided for threading and accelerator support, respectively, but CTF will also build without them.
  *
- * The source to CTF is available for reference and usage under
- * a BSD license. Please email solomon@eecs.berkeley.edu with all questions and interest.
+ * As a guide to modern usage of CTF for sparse matrix computations, graph computations, and tensor computations, we recommend the following paper
  *
- * CTF aims to provide support for distributed memory tensors (scalars, vectors, matrices, etc.).
- * CTF provides summation and contration routines in Einstein notation, so that any for loops are implicitly described by the index notation.
+ * Edgar Solomonik and Torsten Hoefler; Sparse Tensor Algebra as a Parallel Programming Model; arXiv, Nov 2015.
+ * <a href="http://arxiv.org/abs/1512.00066">(link)</a>
+ *
+ * Additionally, we recommend starting by looking at example CTF codes provided in the examples/ subdirectory. 
+ * Specifics of the interface may be found in this doxygen documentation, especially in the functionality description of CTF::Tensor.
+ *
+ * CTF aims to provide seamless support for distributed memory tensors (scalars, vectors, matrices, etc.).
+ * CTF provides summation and contraction routines in Einstein notation, so that any for loops are implicitly described by the index notation.
  * The tensors in CTF are templated and may be defined on any algebraic structure (e.g. semiring, ring, set, monoid) with potentially custom addition and multiplication operators. 
  * Each tensor is decomposed on a CTF::World associated with an MPI communicator.
- * A number of example codes using CTF are provided in the examples/ subdirectory. CTF uses hybried parallelism with MPI and OpenMP when
- * OMP_NUM_THREADS is set appropriately.
+ * Threading is activated by compiling with -fopenmp and setting OMP_NUM_THREADS appropriately at runtime.
+ * Further build-time configurations may be specified as parameters to the configure script (run configure --help) or modified in the generated config.mk file.
  *
- * The algorithms and application of CTF are described in detail in the following publications
+ * The algorithms and application of CTF to electronic structure methods are described in detail in the following publications
  *
  * Edgar Solomonik, Devin Matthews, Jeff R. Hammond, John F. Stanton, and James Demmel; A massively parallel tensor contraction framework for coupled-cluster computations; Journal of Parallel and Distributed Computing, June 2014.
  * <a href="http://www.sciencedirect.com/science/article/pii/S074373151400104X">(link)</a>
@@ -36,6 +38,18 @@
  *
  * Edgar Solomonik, Jeff Hammond, and James Demmel; A preliminary analysis of Cyclops Tensor Framework; EECS Department, University of California, Berkeley, March 2012. 
  * <a href="http://www.eecs.berkeley.edu/Pubs/TechRpts/2012/EECS-2012-29.pdf">(link)</a>
+ *
+
+ *
+ * The lead developer of this code is Edgar Solomonik (University of California-Berkeley).
+ * Devin Matthews (University of Austin Texas) has also made significant contributions to CTF.
+ * Additionally, Devin leads the development of Aquarius (https://code.google.com/p/aquarius-chem/),
+ * a distributed-memory quantum chemistry software suite running on top of the CTF library.
+ * Richard Lin (UC Berkeley) has worked on multi-contraction scheduling in (on top of) CTF.
+ * Jeff Hammond (Intel), Torsten Hoefler (ETH Zurich) and James Demmel (University of California-Berkeley) have overseen the high-level development of the ideas in the CTF framework.
+ *
+ * The source to CTF is available for reference and usage under
+ * a BSD license. Please email solomon@eecs.berkeley.edu with all questions and interest.
  *
  *
  * \section interface Interface
@@ -65,14 +79,15 @@
  * to the CTF::World on which the vector is defined. A vector is a 1-dimensional tensor.
  *
  * A CTF::Matrix
- * is a dense matrix. The matrix may be defined with a symmetry (AS-asymmtric, SY-symmetric, SH-symmetric-hollow, NS-nonsymmetric),
+ * is a dense matrix. The matrix may be defined with a symmetry (AS-antisymmtric, SY-symmetric, SH-symmetric-hollow, NS-nonsymmetric),
  * where asymmteric (skew-symmetric) and symmetric-hollow matrices are zero along the diagonal while symmetric (SY) ones are not.
  * The symmetric matrix stored in packed format internally, but may sometimes be unpacked when operated on if enough memory is available.
- * A CTF::Matrix is internall equivalent to a 2-dimensional CTF::Tensor with symmetry {SY/AS/SH/NS,NS} and edge lengths {nrow,ncol}.
+ * A CTF::Matrix is internal equivalent to a 2-dimensional CTF::Tensor with symmetry {SY/AS/SH/NS,NS} and edge lengths {nrow,ncol}.
  *
  * A CTF::Tensor is an arbitrary-dimensional
- * distributed array, which can be defined as usual on any CTF::World. The symmetry is specified via an array of integers of length equal
+ * distributed array, which can be defined as usual on any CTF::World. The symmetry is specified via an array of integers (elements of enum {NS--nonsymmetric, SY--symmetric, AS--antisymmetric, and SH--symmetric hollow}) of length equal
  * to the number of dimensions, with the entry i of the symmetric array specifying the symmetric relation between index i and index i+1.
+ * The specifier `SP' defines the tensor as sparse (with no initial data allocated), a dense tensor may also be turned into a sparse one via CTF::Tensor::sparsify().
  * The edge lengths (number of rows and columns for a matrix) are similarly specified by an array of size equal to the number of dimensions,
  * with each successive entry specifying a slower-incremented dimension of the default internal tensor layout.
  *
@@ -90,9 +105,13 @@
  * Tensors can be summed and contracted via the CTF::Tensor::sum() and CTF::Tensor::contract() calls or via operator notation with index strings
  * e.g.  implies contraction over the mn indices. Summations can be done similarly.
  * Indexing over diagonals is possible by repeating the index in the string e.g. "ii".
- * Custom elemen-twise operations may be performed on each element instead of addition and multiplication via the constructs CTF::Endomorphism
- * for applying a transformation to a tensor of a single type, CTF::Univar_Function for applying a function to tensor elements of one type to produce tensor elements of another type,
- * and CTF::Bivar_Function, which is a bivariate function that is associated with one output and two input types. These can be used within CTF::Tensor::scale(), CTF::Tensor::sum(), and CTF::Tensor::contract(), respectively.
+ * Custom elementwise operations may be performed on each element instead of addition and multiplication via the constructs CTF::Function (returns new tensor values) and CTF::Transform (modifies existing tensor values).
+ * These can be used within CTF::Tensor::scale(), CTF::Tensor::sum(), and CTF::Tensor::contract(), as well as within the index notation.
+ * C++11 Lambdas allow definition and application of arbitrary elementwise operators to CTF tensors in a single line of code, e.g.
+ *
+ *  ((Transform<force,particle>)([] (force f, particle & p){ p.dx += f.fx*p.coeff; p.dy += f.fy*p.coeff; }))(F["i"], P["i"]);
+ *
+ * For context of above CTF::Transform see examples/bivar_function_cust.cxx. For additional sample codes see examples/sssp.cxx and examples/apsp.cxx, for more advanced usage see examples/btwn_central.cxx and examples/bitonic.cxx.
  *
  * \subsection spio Sparse global data input and output 
  *
