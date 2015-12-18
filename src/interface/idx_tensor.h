@@ -2,6 +2,7 @@
 #define __EXPRESSION_H__
 
 #include "term.h"
+#include "functions.h"
 
 namespace CTF {
   /**
@@ -153,6 +154,155 @@ namespace CTF {
       World * where_am_i() const;
   };
 
+  template<typename dtype>
+  class Typ_Idx_Tensor;
+
+  
+  template<typename dtype_A, typename dtype_B>
+  class Univar_Transform;
+  
+  template<typename dtype_A, typename dtype_B, typename dtype_C>
+  class Typ_Contract_Term;
+  
+  template<typename dtype_A, typename dtype_B>
+  class Typ_Sum_Term : public CTF_int::Sum_Term {
+    public:
+
+      Typ_Sum_Term(Typ_Idx_Tensor<dtype_A> * A, Typ_Idx_Tensor<dtype_B> * B) : CTF_int::Sum_Term(A,B) {}
+
+      void operator()(std::function<void(dtype_A, dtype_B&)> f){
+        (Transform<dtype_A,dtype_B>(f))(*operands[0],*operands[1]);
+      }
+
+      void operator,(std::function<void(dtype_A, dtype_B&)> f){
+        (Transform<dtype_A,dtype_B>(f))(*operands[0],*operands[1]);
+      }
+
+      void operator()(std::function<dtype_B(dtype_A)> f){
+        ((Function<dtype_A,dtype_B>(f))(*operands[0])).execute(operands[1]->execute());
+      }
+
+      void operator,(std::function<dtype_B(dtype_A)> f){
+        ((Function<dtype_A,dtype_B>(f))(*operands[0])).execute(operands[1]->execute());
+      }
+ 
+      
+      template<typename dtype_C>
+      Typ_Contract_Term<dtype_A,dtype_B,dtype_C> operator&(Typ_Idx_Tensor<dtype_C> C){
+        return Typ_Contract_Term<dtype_A,dtype_B,dtype_C>(&C, *this);
+      }
+  };
+  
+  template<typename dtype_A, typename dtype_B, typename dtype_C>
+  class Typ_Contract_Term : public CTF_int::Contract_Term {
+    public:
+      Typ_Idx_Tensor<dtype_C> * C;
+      Typ_Contract_Term(Typ_Idx_Tensor<dtype_C> * C_, 
+                        Typ_Sum_Term<dtype_A,dtype_B> S) 
+          : Contract_Term(S.operands[0]->clone(), 
+                          S.operands[1]->clone()) {
+        C = C_;
+      }
+      
+      void operator,(std::function<dtype_C(dtype_A, dtype_B)> f){
+        ((Function<dtype_A,dtype_B,dtype_C>(f))(*operands[1],*operands[0])).execute(*C);
+        
+      }
+      
+      void operator,(std::function<void(dtype_A, dtype_B, dtype_C&)> f){
+        ((Transform<dtype_A,dtype_B,dtype_C>(f)))(*operands[1],*operands[0],*C);
+      }
+        
+  };
+
+  template<typename dtype>
+  class Typ_AIdx_Tensor;
+
+  template<typename dtype>
+  class Typ_Idx_Tensor : public Idx_Tensor {
+    public:
+      ~Typ_Idx_Tensor(){}
+
+      /**
+       * \brief constructor takes in a parent tensor and its indices 
+       * \param[in] parent_ the parent tensor
+       * \param[in] idx_map_ the indices assigned ot this tensor
+       * \param[in] copy if set to 1, create copy of parent
+       */
+      Typ_Idx_Tensor(CTF_int::tensor * parent_,
+                     const char *      idx_map_,
+                     int               copy=0) : Idx_Tensor(parent_, idx_map_, copy) {}
+      
+      Typ_Idx_Tensor(Typ_Idx_Tensor const & B) : Idx_Tensor(B) {}
+      Typ_Idx_Tensor<dtype> * clone() const { return new Typ_Idx_Tensor<dtype>(*this); }
+      void operator=(CTF_int::Term const & B){ Idx_Tensor::operator=(B); }
+      void operator=(Idx_Tensor const & B){ Idx_Tensor::operator=(B); }
+      void operator=(double scl){ Idx_Tensor::operator=(scl); }
+      void operator=(int64_t scl){ Idx_Tensor::operator=(scl); }
+      void operator=(int scl){ Idx_Tensor::operator=(scl); }
+
+
+
+      template <typename dtype_B>
+      Typ_Sum_Term<dtype, dtype_B> operator&(Typ_Idx_Tensor<dtype_B> B){
+        return Typ_Sum_Term<dtype, dtype_B>(this->clone(), B.clone());
+      }
+ 
+      template <typename dtype_A, typename dtype_B>
+      Typ_Contract_Term<dtype_A, dtype_B, dtype> operator+=(Typ_Sum_Term<dtype_A,dtype_B> t){
+        return Typ_Contract_Term<dtype_A,dtype_B,dtype>(this->clone(), t);
+      }
+     /* 
+      template <typename dtype_A, typename dtype_B>
+      Typ_Contract_Term<dtype_A, dtype_B, dtype> operator&=(Typ_Sum_Term<dtype_A,dtype_B> t){
+        sr->safecopy(scale,sr->addid());
+        return Typ_Contract_Term<dtype_A,dtype_B,dtype>(this->clone(), t);
+      }*/
+      
+      template <typename dtype_A, typename dtype_B>
+      Typ_Contract_Term<dtype_A, dtype_B, dtype> operator=(Typ_Sum_Term<dtype_A,dtype_B> t){
+        sr->safecopy(scale,sr->addid());
+        return Typ_Contract_Term<dtype_A,dtype_B,dtype>(this, t);
+      }
+
+      Typ_AIdx_Tensor<dtype> operator~(){
+        return Typ_AIdx_Tensor<dtype>(*this);
+      }
+ 
+      
+      template <typename dtype_A>
+      Typ_Sum_Term<dtype_A, dtype> operator=(Typ_AIdx_Tensor<dtype_A> t){
+        sr->safecopy(scale,sr->addid());
+        return Typ_Sum_Term<dtype_A,dtype>(t.clone(), this->clone());
+      }
+      
+      template <typename dtype_A>
+      Typ_Sum_Term<dtype_A, dtype> operator+=(Typ_AIdx_Tensor<dtype_A> t){
+        return Typ_Sum_Term<dtype_A,dtype>(t.clone(), this->clone());
+      }
+
+      void operator+=(CTF_int::Term const & B){ Idx_Tensor::operator+=(B); }
+      void operator+=(Idx_Tensor const & B){ Idx_Tensor::operator+=(B); }
+      void operator+=(double scl){ Idx_Tensor::operator+=(scl); }
+      void operator+=(int64_t scl){ Idx_Tensor::operator+=(scl); }
+      void operator+=(int scl){ Idx_Tensor::operator+=(scl); }
+
+
+      void operator,(std::function<void(dtype&)> f){
+        ((Transform<dtype>(f)))(*this);
+      }
+      
+      void operator()(std::function<void(dtype&)> f){
+        ((Transform<dtype>(f)))(*this);
+      }
+        
+  };
+
+  template<typename dtype>
+  class Typ_AIdx_Tensor : public Typ_Idx_Tensor<dtype> {
+    public:
+      Typ_AIdx_Tensor(Typ_Idx_Tensor<dtype> const & A) : Typ_Idx_Tensor<dtype>(A) {};
+  };
   /**
    * @}
    */

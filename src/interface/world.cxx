@@ -128,6 +128,7 @@ namespace CTF {
                         const char * const *  argv){
     char * mst_size, * stack_size, * mem_size, * ppn;
     if (comm == MPI_COMM_WORLD && universe_exists){
+      delete phys_topology;
       *this = universe;
       is_copy = true;
     } else {

@@ -295,7 +295,6 @@ namespace CTF {
         if (is_bivar) delete(bivar);
       }
   };
-
   
   template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
   class Transform {
@@ -367,7 +366,6 @@ namespace CTF {
       
       bool is_accumulator() const { return true; }
   };
-  
 
 /**
  * @}

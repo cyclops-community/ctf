@@ -10,7 +10,8 @@
 
 namespace CTF {
 
-  class Idx_Tensor;
+  template<typename dtype=double>
+  class Typ_Idx_Tensor;
 
   template <typename dtype>
   class Sparse_Tensor;
@@ -279,7 +280,7 @@ namespace CTF {
        * \brief associated an index map with the tensor for future operation
        * \param[in] idx_map_ index assignment for this tensor
        */
-      Idx_Tensor operator[](char const * idx_map);
+      Typ_Idx_Tensor<dtype> operator[](char const * idx_map);
  
       /**
        * \brief gives the values associated with any set of indices

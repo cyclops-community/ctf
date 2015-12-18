@@ -57,6 +57,7 @@ int univar_transform_cust(int     n,
   F2["ij"] += F["ij"];
 
   //below is the same as uacc(F2["ij"],P["i"]);
+  //uacc(F2["ij"],P["i"]);
   uacc(F2["ij"],P["i"]);
 
   particle loc_parts_new[nloc];

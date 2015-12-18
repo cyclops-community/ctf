@@ -731,10 +731,10 @@ printf("HERE1\n");
         if (order_C > 0)
           RESET_IDX(C);
       }
-      CTF_int::cdealloc(dlen_A);
-      CTF_int::cdealloc(dlen_B);
-      CTF_int::cdealloc(dlen_C);
     }
+    CTF_int::cdealloc(dlen_A);
+    CTF_int::cdealloc(dlen_B);
+    CTF_int::cdealloc(dlen_C);
     CTF_int::cdealloc(idx_glb);
     CTF_int::cdealloc(rev_idx_map);
     TAU_FSTOP(sym_seq_ctr_cust);

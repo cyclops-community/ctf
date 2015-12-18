@@ -104,9 +104,9 @@ namespace CTF {
     : CTF_int::tensor(&A, new_sym){ }
 
   template<typename dtype>
-  Idx_Tensor Tensor<dtype>::operator[](const char * idx_map_){
+  Typ_Idx_Tensor<dtype> Tensor<dtype>::operator[](const char * idx_map_){
     //ASSERT(strlen(idx_map_)==order);
-    Idx_Tensor idxtsr(this, idx_map_);
+    Typ_Idx_Tensor<dtype> idxtsr(this, idx_map_);
     return idxtsr;
   }
 

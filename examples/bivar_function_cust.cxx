@@ -38,6 +38,8 @@ int bivar_function_cust(int     n,
     loc_parts[i].id = 777;
   }
   P.write(nloc, inds, loc_parts);
+  free(inds);
+  free(loc_parts);
 
   Vector<force> F(n, dw, gF);
   
