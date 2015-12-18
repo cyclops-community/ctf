@@ -206,7 +206,6 @@ namespace CTF {
       
       void operator,(std::function<dtype_C(dtype_A, dtype_B)> f){
         ((Function<dtype_A,dtype_B,dtype_C>(f))(*operands[1],*operands[0])).execute(*C);
-        
       }
       
       void operator,(std::function<void(dtype_A, dtype_B, dtype_C&)> f){

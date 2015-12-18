@@ -169,7 +169,7 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & v){
 
   P["ij"] = ~ A["ij"], [](int w){ return mpath(w, 1); };
   
-  P["ii"]([](mpath& w){ w = mpath(INT_MAX/2, 1); });
+  P["ii"], [](mpath& w){ w = mpath(INT_MAX/2, 1); };
 
   Matrix<mpath> Pi(n, n, dw, p);
   Pi["ij"] = P["ij"];
