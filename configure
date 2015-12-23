@@ -499,6 +499,7 @@ fi
 # Check that compiler works without error
 #
 echo -n 'Checking flags (CXXFLAGS)... '
+ODEFS="$DEFS"
 DEFS="$DEFS $CXXFLAGS"
 if testcompiler 0; then
   echo 'successful.'
@@ -509,6 +510,7 @@ else
   echo
   exit 1
 fi
+DEFS="$ODEFS"
 
 #
 # Check if OpenMP is provided
@@ -522,7 +524,7 @@ else
   if testopenmp; then
     echo 'using OpenMP via -fopenmp flag.'
   else
-    echo 'Uuable to compile OpenMP test program, will build without OpenMP, to enable OpenMP please provide e.g. CXXFLAGS=-fopenmp.'
+    echo 'unable to compile OpenMP test program, will build without OpenMP, to enable OpenMP please provide e.g. CXXFLAGS=-fopenmp.'
     CXXFLAGS="$OCXXFLAGS -DOMP_OFF"
   fi
 fi
