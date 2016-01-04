@@ -116,6 +116,9 @@ namespace CTF_int {
        */
       int is_equal(contraction const & os);
 
+      /** \brief print contraction details */
+      void print() const;
+
     private:
       /**
        * \brief finds and return all contraction indices which can be folded into
@@ -328,9 +331,6 @@ namespace CTF_int {
        * \brief returns true if prescale_operands has real work to do
        */
       bool need_prescale_operands();
-
-      /** \brief print contraction details */
-      void print();
   };
 
 

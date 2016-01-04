@@ -25,6 +25,232 @@ namespace CTF_int {
 
   using namespace CTF;
 
+  double de_flops = 0;
+  double sp_flops = 0;
+  double skip_flops = 0;
+
+  struct sgroup {
+    int n, s, t, v;
+  };
+
+  static double get_de_cost(std::vector<sgroup> & vec){
+    double flops = 1;
+    for (int i=0; i<vec.size(); i++){
+      int dim = vec[i].s + vec[i].t + vec[i].v;
+      assert(dim <= 2);
+      int div = std::max(std::max(vec[i].s, vec[i].t),vec[i].v);
+      flops *= vec[i].n;
+      if (div == 2){
+        flops *= vec[i].n-1;
+        flops = flops / div;
+      } else if (dim == 2)
+        flops *= vec[i].n;
+    }
+    return flops;
+  }
+
+  static double get_sp_cost(std::vector<sgroup> & vec){
+    double flops = 1;
+    for (int i=0; i<vec.size(); i++){
+      int dim = vec[i].s + vec[i].t + vec[i].v;
+      assert(dim <= 2);
+      int div = dim;
+      flops *= vec[i].n;
+      if (dim == 2){
+        flops *= vec[i].n-1;
+        flops = flops / div;
+      }
+    }
+    return flops;
+  }
+
+
+  static void count_cost(contraction const * c){
+    int num_tot;
+    int * idx_arr;
+    c->print();
+    c->A->print_map();
+    c->B->print_map();
+    c->C->print_map();
+      
+    inv_idx(c->A->order, c->idx_A,
+            c->B->order, c->idx_B,
+            c->C->order, c->idx_C,
+            &num_tot, &idx_arr);
+
+    bool skip = false;
+    for (int i=0; i<num_tot; i++){
+      int ni = 0;
+      if (idx_arr[3*i+0] != -1) ni++;
+      if (idx_arr[3*i+1] != -1) ni++;
+      if (idx_arr[3*i+2] != -1) ni++;
+      if (ni != 2) skip = true;
+    }
+
+    if (skip || num_tot < 6){
+      double flops = 1;
+      for (int i=0; i<num_tot; i++){
+        if (idx_arr[3*i+0] != -1) flops *= c->A->lens[idx_arr[3*i+0]];
+        else if (idx_arr[3*i+1] != -1) flops *= c->B->lens[idx_arr[3*i+1]];
+        else if (idx_arr[3*i+2] != -1) flops *= c->C->lens[idx_arr[3*i+2]];
+      }
+      skip_flops += flops;
+    } else {
+      //assumes there are no sgroup with s,t,v>0
+      std::vector<sgroup> vec;
+      bool used[num_tot];
+      std::fill(used, used+num_tot, 0);
+      for (int iA=0; iA<c->A->order; iA++){
+        int nsym = 0;
+        while (c->A->sym[iA+nsym] != NS){
+          nsym++;
+        }
+        assert(nsym <= 1);
+        if (nsym == 1){
+          sgroup s;
+          s.n = c->A->lens[iA];
+          int nB = 0;
+          if (idx_arr[3*c->idx_A[iA  ]+1] != -1) nB++;
+          if (idx_arr[3*c->idx_A[iA+1]+1] != -1) nB++;
+          if (nB == 0){
+            int iC = idx_arr[3*c->idx_A[iA  ]+2];
+            int jC = idx_arr[3*c->idx_A[iA+1]+2];
+            assert(c->C->sym[std::min(iC, jC)] != NS);
+            s.s = 2;
+            s.t = 0;
+            s.v = 0;
+          } else if (nB == 2){
+            int iB = idx_arr[3*c->idx_A[iA  ]+1];
+            int jB = idx_arr[3*c->idx_A[iA+1]+1];
+            assert(c->B->sym[std::min(iB, jB)] != NS);
+            s.s = 0;
+            s.t = 0;
+            s.v = 2;
+          } else {
+            assert(nB == 1);
+            s.s = 1;
+            s.t = 0;
+            s.v = 1;
+          }
+          vec.push_back(s);
+          used[c->idx_A[iA  ]] = 1;
+          used[c->idx_A[iA+1]] = 1;
+        }
+      }
+      for (int iB=0; iB<c->B->order; iB++){
+        int nsym = 0;
+        while (c->B->sym[iB+nsym] != NS){
+          nsym++;
+        }
+        assert(nsym <= 1);
+        if (nsym == 1){
+          sgroup s;
+          s.n = c->B->lens[iB];
+          int nA = 0;
+          if (idx_arr[3*c->idx_B[iB  ]+0] != -1) nA++;
+          if (idx_arr[3*c->idx_B[iB+1]+0] != -1) nA++;
+          if (nA == 0){
+            int iC = idx_arr[3*c->idx_B[iB  ]+2];
+            int jC = idx_arr[3*c->idx_B[iB+1]+2];
+            assert(c->C->sym[std::min(iC, jC)] != NS);
+            s.s = 0;
+            s.t = 2;
+            s.v = 0;
+          } else if (nA == 2){
+            break;
+         /*   int iA = idx_arr[3*c->idx_B[iB  ]+0];
+            int jA = idx_arr[3*c->idx_B[iB+1]+0];
+            assert(c->A->sym[std::min(iA, jA)] != NS);
+            s.s = 0;
+            s.t = 0;
+            s.v = 2;*/
+          } else {
+            assert(nA == 1);
+            s.s = 0;
+            s.t = 1;
+            s.v = 1;
+          }
+          if (used[c->idx_B[iB  ]] == 0 && used[c->idx_B[iB+1]] == 0){
+            vec.push_back(s);
+            used[c->idx_B[iB  ]] = 1;
+            used[c->idx_B[iB+1]] = 1;
+          }
+        }
+      }
+      for (int iC=0; iC<c->C->order; iC++){
+        int nsym = 0;
+        while (c->C->sym[iC+nsym] != NS){
+          nsym++;
+        }
+        assert(nsym <= 1);
+        if (nsym == 1){
+          sgroup s;
+          s.n = c->C->lens[iC];
+          int nA = 0;
+          if (idx_arr[3*c->idx_C[iC  ]+0] != -1) nA++;
+          if (idx_arr[3*c->idx_C[iC+1]+0] != -1) nA++;
+          if (nA == 0){
+            break;
+/*            int iB = idx_arr[3*c->idx_C[iC  ]+1];
+            int jB = idx_arr[3*c->idx_C[iC+1]+1];
+            assert(c->B->sym[std::min(iB, jB)] != NS);
+            s.s = 0;
+            s.t = 0;
+            s.v = 0;*/
+          } else if (nA == 2){
+            break;
+/*            int iA = idx_arr[3*c->idx_C[iC  ]+0];
+            int jA = idx_arr[3*c->idx_C[iC+1]+0];
+            assert(c->A->sym[std::min(iA, jA)] != NS);
+            s.s = 0;
+            s.t = 0;
+            s.v = 2;*/
+          } else {
+            assert(nA == 1);
+            s.s = 0;
+            s.t = 1;
+            s.v = 1;
+          }
+          if (used[c->idx_C[iC  ]] == 0 &&
+              used[c->idx_C[iC+1]] == 0){
+            vec.push_back(s);
+            used[c->idx_C[iC  ]] = 1;
+            used[c->idx_C[iC+1]] = 1;
+          }
+        }
+      }
+      for (int i=0; i<num_tot; i++){
+        if (!used[i]){
+          sgroup s;
+          if (idx_arr[3*i+0] == -1){
+            s.n = c->B->lens[idx_arr[3*i+1]];
+            s.s = 0;
+            s.t = 1;
+            s.v = 0;
+          }
+          if (idx_arr[3*i+1] == -1){
+            s.n = c->C->lens[idx_arr[3*i+2]];
+            s.s = 1;
+            s.t = 0;
+            s.v = 0;
+          }
+          if (idx_arr[3*i+2] == -1){
+            s.n = c->B->lens[idx_arr[3*i+1]];
+            s.s = 0;
+            s.t = 0;
+            s.v = 1;
+          }
+          vec.push_back(s);
+        }
+      }
+      double de_cost = get_de_cost(vec);   
+      double sp_cost = get_sp_cost(vec);   
+      de_flops += de_cost;
+      sp_flops += sp_cost;
+      printf("Contraction requires %1.2E/%1.2E de flops, %1.2E/%1.2E sp flops\n",de_cost, de_flops, sp_cost, sp_flops);
+    }
+  }
+
   contraction::~contraction(){
     if (idx_A != NULL) cdealloc(idx_A);
     if (idx_B != NULL) cdealloc(idx_B);
@@ -100,6 +326,8 @@ namespace CTF_int {
     if (A->wrld->cdt.rank == 0) printf("Contraction::execute (head):\n");
     print();
 #endif
+
+    count_cost(this);
 
     //if (A->wrld->cdt.cm == MPI_COMM_WORLD){
       update_all_models(A->wrld->cdt.cm);
@@ -4815,7 +5043,7 @@ namespace CTF_int {
     cdealloc(idx_arr);
   }
 
-  void contraction::print(){
+  void contraction::print() const {
     int i;
     //max = A->order+B->order+C->order;
     CommData global_comm = A->wrld->cdt;

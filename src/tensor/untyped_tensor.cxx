@@ -588,8 +588,6 @@ namespace CTF_int {
       tname[0] = '\0';
       sprintf(tname, "%s[", name);
       for (int dim=0; dim<order; dim++){
-        if (dim>0)
-          sprintf(tname+strlen(tname), ",");
         int tp = edge_map[dim].calc_phase();
         int pp = edge_map[dim].calc_phys_phase();
         int vp = tp/pp;
@@ -602,6 +600,11 @@ namespace CTF_int {
           }
           if (vp > 1) sprintf(tname+strlen(tname),"v%d",vp);
         }
+        if (sym[dim] != NS)
+          sprintf(tname+strlen(tname),"<");
+        else if (dim < order-1)
+          sprintf(tname+strlen(tname), ",");
+
 //        sprintf(tname+strlen(tname),"c%d",edge_map[dim].has_child);
       }
       sprintf(tname+strlen(tname), "]");
