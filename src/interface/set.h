@@ -90,11 +90,11 @@ namespace CTF_int {
   template <>
   inline MPI_Datatype get_default_mdtype<long double>(bool & is_custom){ is_custom=false; return MPI_LONG_DOUBLE; }
   template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<float> >(bool & is_custom){ is_custom=false; return MPI_COMPLEX; }
+  inline MPI_Datatype get_default_mdtype< std::complex<float> >(bool & is_custom){ is_custom=false; return MPI_C_COMPLEX; }
   template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<double> >(bool & is_custom){ is_custom=false; return MPI_DOUBLE_COMPLEX; }
+  inline MPI_Datatype get_default_mdtype< std::complex<double> >(bool & is_custom){ is_custom=false; return MPI_C_DOUBLE_COMPLEX; }
   template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(bool & is_custom){ is_custom=false; return MPI::LONG_DOUBLE_COMPLEX; }
+  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(bool & is_custom){ is_custom=false; return MPI_C_LONG_DOUBLE_COMPLEX; }
 
   template <typename dtype>
   constexpr bool get_default_is_ord(){
