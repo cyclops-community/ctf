@@ -133,7 +133,7 @@ function testopenmp
     return j; 
   }
 EOF
-  $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LDFLAGS > /dev/null 2>&1
+  $CXX $CXXFLAGS $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LDFLAGS > /dev/null 2>&1
   if [ -x a.out ]; then
     status=0
   fi
@@ -256,7 +256,7 @@ function defaultflags
             ;;
         gnu | clang)
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -O3'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-O3'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
@@ -266,7 +266,7 @@ function defaultflags
             echo 'No default flags known for given compilers. Make sure that you have set the'
             echo 'appropriate compiler flags manually.'
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
-            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-fopenmp -O3'; fi
+            if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-O3'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
             if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
@@ -444,9 +444,10 @@ echo -n 'Checking whether __APPLE__ is defined... '
 check_if_apple;
 status=$?
 if [ $status = 1 ]; then
-  echo -n 'yes, tacking on -D_DARWIN_C_SOURCE to CXXFLAGS.'
+  echo -n 'yes, tacking on -D_DARWIN_C_SOURCE to DEFS and -std=c++0x to CXX.'
   echo
   DEFS="$DEFS -D_DARWIN_C_SOURCE"
+  CXX="$CXX -std=c++0x"
 else
   echo -n 'no.'
   echo
