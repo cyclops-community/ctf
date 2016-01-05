@@ -31,39 +31,71 @@ namespace CTF_int {
 
   struct sgroup {
     int n, s, t, v;
+    std::vector<int> inds;
   };
 
+  static int64_t choose(int n, int m){
+    int64_t f = 1;
+    for (int i=0; i<m; i++){
+      f*=(n-m);
+    }
+    for (int i=1; i<=m; i++){
+      f=f/m;
+    }
+    return f;
+  }
+
   static double get_de_cost(std::vector<sgroup> & vec){
-    double flops = 1;
+    double flops = 2;
     for (int i=0; i<vec.size(); i++){
-      int dim = vec[i].s + vec[i].t + vec[i].v;
+      flops *= choose(vec[i].n,vec[i].s)*choose(vec[i].n,vec[i].t)*choose(vec[i].n,vec[i].v);
+/*      int dim = vec[i].s + vec[i].t + vec[i].v;
       assert(dim <= 2);
       int div = std::max(std::max(vec[i].s, vec[i].t),vec[i].v);
-      flops *= vec[i].n;
       if (div == 2){
         flops *= vec[i].n-1;
         flops = flops / div;
       } else if (dim == 2)
-        flops *= vec[i].n;
+        flops *= vec[i].n;*/
     }
     return flops;
   }
 
+
   static double get_sp_cost(std::vector<sgroup> & vec){
-    double flops = 1;
-    for (int i=0; i<vec.size(); i++){
-      int dim = vec[i].s + vec[i].t + vec[i].v;
-      assert(dim <= 2);
-      int div = dim;
-      flops *= vec[i].n;
-      if (dim == 2){
-        flops *= vec[i].n-1;
-        flops = flops / div;
+    double flops;
+    int64_t size_A=1, size_B=1, size_C=1;
+    double rec_flops;
+    if (vec.size()==1){
+      rec_flops = 2;
+    } else {
+      std::vector<sgroup> rec_vec;
+      for (int j=1; j<vec.size(); j++){
+        rec_vec.push_back(vec[j]);
+        size_A *= choose(vec[j].n, vec[j].s+vec[j].v);
+        size_B *= choose(vec[j].n, vec[j].v+vec[j].t);
+        size_C *= choose(vec[j].n, vec[j].s+vec[j].t);
+      } 
+      rec_flops = get_sp_cost(rec_vec);
+    }
+    //printf("rec_flops = %1.2E sA = %1.2E sB = %1.2E sC = %1.2E\n",rec_flops,(double)size_A,(double)size_B,(double)size_C);
+    int dim = vec[0].s + vec[0].t + vec[0].v;
+    if (dim == 1){
+      flops = rec_flops*vec[0].n;
+    } else {
+      int n = vec[0].n;
+      int s = vec[0].s;
+      int t = vec[0].t;
+      int v = vec[0].v;
+      flops = choose(n,s+t+v)*(rec_flops+choose(s+t+v,t)*size_A+choose(s+t+v,s)*size_B+choose(s+t+v,v)*size_C);
+      if (v>0){
+        flops += choose(n,s+v)*size_A+choose(n,v+t)*size_B+choose(n,s+t)*size_C;
+      } else {
+        flops += .5*choose(2*(s+t),s+t)*choose(n,s+t)*size_C;
       }
     }
     return flops;
   }
-
 
   static void count_cost(contraction const * c){
     int num_tot;
@@ -97,157 +129,126 @@ namespace CTF_int {
       skip_flops += flops;
     } else {
       //assumes there are no sgroup with s,t,v>0
-      std::vector<sgroup> vec;
-      bool used[num_tot];
-      std::fill(used, used+num_tot, 0);
+      std::vector<sgroup> symgrps;
       for (int iA=0; iA<c->A->order; iA++){
         int nsym = 0;
         while (c->A->sym[iA+nsym] != NS){
           nsym++;
-        }
-        assert(nsym <= 1);
-        if (nsym == 1){
           sgroup s;
           s.n = c->A->lens[iA];
-          int nB = 0;
-          if (idx_arr[3*c->idx_A[iA  ]+1] != -1) nB++;
-          if (idx_arr[3*c->idx_A[iA+1]+1] != -1) nB++;
-          if (nB == 0){
-            int iC = idx_arr[3*c->idx_A[iA  ]+2];
-            int jC = idx_arr[3*c->idx_A[iA+1]+2];
-            assert(c->C->sym[std::min(iC, jC)] != NS);
-            s.s = 2;
-            s.t = 0;
-            s.v = 0;
-          } else if (nB == 2){
-            int iB = idx_arr[3*c->idx_A[iA  ]+1];
-            int jB = idx_arr[3*c->idx_A[iA+1]+1];
-            assert(c->B->sym[std::min(iB, jB)] != NS);
-            s.s = 0;
-            s.t = 0;
-            s.v = 2;
-          } else {
-            assert(nB == 1);
-            s.s = 1;
-            s.t = 0;
-            s.v = 1;
+          s.t = 0;
+          s.s = 0;
+          for (int j=0; j<=nsym; j++){
+            if (idx_arr[3*c->idx_A[iA+j]+2] != -1) s.s++;
+            s.inds.push_back(c->idx_A[iA+j]);
           }
-          vec.push_back(s);
-          used[c->idx_A[iA  ]] = 1;
-          used[c->idx_A[iA+1]] = 1;
+          s.v = nsym+1-s.s;
+          symgrps.push_back(s);
         }
       }
       for (int iB=0; iB<c->B->order; iB++){
         int nsym = 0;
         while (c->B->sym[iB+nsym] != NS){
           nsym++;
-        }
-        assert(nsym <= 1);
-        if (nsym == 1){
           sgroup s;
           s.n = c->B->lens[iB];
-          int nA = 0;
-          if (idx_arr[3*c->idx_B[iB  ]+0] != -1) nA++;
-          if (idx_arr[3*c->idx_B[iB+1]+0] != -1) nA++;
-          if (nA == 0){
-            int iC = idx_arr[3*c->idx_B[iB  ]+2];
-            int jC = idx_arr[3*c->idx_B[iB+1]+2];
-            assert(c->C->sym[std::min(iC, jC)] != NS);
-            s.s = 0;
-            s.t = 2;
-            s.v = 0;
-          } else if (nA == 2){
-            break;
-         /*   int iA = idx_arr[3*c->idx_B[iB  ]+0];
-            int jA = idx_arr[3*c->idx_B[iB+1]+0];
-            assert(c->A->sym[std::min(iA, jA)] != NS);
-            s.s = 0;
-            s.t = 0;
-            s.v = 2;*/
-          } else {
-            assert(nA == 1);
-            s.s = 0;
-            s.t = 1;
-            s.v = 1;
+          s.s = 0;
+          s.t = 0;
+          for (int j=0; j<=nsym; j++){
+            if (idx_arr[3*c->idx_B[iB+j]+2] != -1) s.t++;
+            s.inds.push_back(c->idx_B[iB+j]);
           }
-          if (used[c->idx_B[iB  ]] == 0 && used[c->idx_B[iB+1]] == 0){
-            vec.push_back(s);
-            used[c->idx_B[iB  ]] = 1;
-            used[c->idx_B[iB+1]] = 1;
-          }
+          s.v = nsym+1-s.t;
+          if (s.t != 0)
+            symgrps.push_back(s);
         }
       }
+
       for (int iC=0; iC<c->C->order; iC++){
         int nsym = 0;
         while (c->C->sym[iC+nsym] != NS){
           nsym++;
-        }
-        assert(nsym <= 1);
-        if (nsym == 1){
           sgroup s;
           s.n = c->C->lens[iC];
-          int nA = 0;
-          if (idx_arr[3*c->idx_C[iC  ]+0] != -1) nA++;
-          if (idx_arr[3*c->idx_C[iC+1]+0] != -1) nA++;
-          if (nA == 0){
-            break;
-/*            int iB = idx_arr[3*c->idx_C[iC  ]+1];
-            int jB = idx_arr[3*c->idx_C[iC+1]+1];
-            assert(c->B->sym[std::min(iB, jB)] != NS);
-            s.s = 0;
-            s.t = 0;
-            s.v = 0;*/
-          } else if (nA == 2){
-            break;
-/*            int iA = idx_arr[3*c->idx_C[iC  ]+0];
-            int jA = idx_arr[3*c->idx_C[iC+1]+0];
-            assert(c->A->sym[std::min(iA, jA)] != NS);
-            s.s = 0;
-            s.t = 0;
-            s.v = 2;*/
-          } else {
-            assert(nA == 1);
-            s.s = 0;
-            s.t = 1;
-            s.v = 1;
+          s.v = 0;
+          s.s = 0;
+          for (int j=0; j<=nsym; j++){
+            if (idx_arr[3*c->idx_C[iC+j]] != -1) s.s++;
+            s.inds.push_back(c->idx_C[iC+j]);
           }
-          if (used[c->idx_C[iC  ]] == 0 &&
-              used[c->idx_C[iC+1]] == 0){
-            vec.push_back(s);
-            used[c->idx_C[iC  ]] = 1;
-            used[c->idx_C[iC+1]] = 1;
-          }
+          s.t = nsym+1-s.s;
+          if (s.t != 0 && s.s != 0)
+            symgrps.push_back(s);
         }
       }
-      for (int i=0; i<num_tot; i++){
-        if (!used[i]){
-          sgroup s;
-          if (idx_arr[3*i+0] == -1){
-            s.n = c->B->lens[idx_arr[3*i+1]];
-            s.s = 0;
-            s.t = 1;
-            s.v = 0;
+
+      int nsubgrps = 1<<symgrps.size();
+
+      double de_cost = DBL_MAX;
+      double sp_cost = DBL_MAX;
+  
+      for (int i=0; i<nsubgrps; i++){
+        std::vector<sgroup> subgrp;
+        int m = i;
+        for (int j=0; j<symgrps.size(); j++){
+          if (m%2 == 1) subgrp.push_back(symgrps[j]);
+          m = m<<1;
+        }
+        bool used[num_tot];
+        std::fill(used, used+num_tot, 0);
+        bool skip = false;
+        for (int k=0; k<subgrp.size(); k++){
+          for (int l=0; l<subgrp[k].s+subgrp[k].t+subgrp[k].v; l++){
+            if (used[subgrp[k].inds[l]]) skip = true;
+            else used[subgrp[k].inds[l]] = 1;
           }
-          if (idx_arr[3*i+1] == -1){
-            s.n = c->C->lens[idx_arr[3*i+2]];
-            s.s = 1;
-            s.t = 0;
-            s.v = 0;
+        }
+        if (!skip){
+          std::vector< std::pair<int,sgroup> > psubgrp;
+          for (int k=0; k<subgrp.size(); k++){
+            psubgrp.push_back(std::pair<int,sgroup>(k,subgrp[k]));
           }
-          if (idx_arr[3*i+2] == -1){
-            s.n = c->B->lens[idx_arr[3*i+1]];
-            s.s = 0;
-            s.t = 0;
-            s.v = 1;
+          for (int j=0; j<num_tot; j++){
+            if (!used[j]){
+              sgroup s;
+              if (idx_arr[3*j+0] == -1){
+                s.n = c->B->lens[idx_arr[3*j+1]];
+                s.s = 0;
+                s.t = 1;
+                s.v = 0;
+              }
+              if (idx_arr[3*j+1] == -1){
+                s.n = c->C->lens[idx_arr[3*j+2]];
+                s.s = 1;
+                s.t = 0;
+                s.v = 0;
+              }
+              if (idx_arr[3*j+2] == -1){
+                s.n = c->B->lens[idx_arr[3*j+1]];
+                s.s = 0;
+                s.t = 0;
+                s.v = 1;
+              }
+              psubgrp.push_back(std::pair<int,sgroup>(psubgrp.size(),s));
+            }
           }
-          vec.push_back(s);
+          do {
+            std::vector<sgroup> nsubgrp;
+            for (int k=0; k<psubgrp.size(); k++){
+              nsubgrp.push_back(psubgrp[k].second);
+            }
+            de_cost = std::min(de_cost,get_de_cost(nsubgrp)); 
+            sp_cost = std::min(sp_cost,get_sp_cost(nsubgrp)); 
+          } while (std::next_permutation(&(psubgrp[0]), &(psubgrp[subgrp.size()]), 
+                      [](std::pair<int,sgroup> p1, std::pair<int,sgroup> p2){ 
+                        return p1.first < p2.first; 
+                      }));
         }
       }
-      double de_cost = get_de_cost(vec);   
-      double sp_cost = get_sp_cost(vec);   
+
       de_flops += de_cost;
       sp_flops += sp_cost;
-      printf("Contraction requires %1.2E/%1.2E de flops, %1.2E/%1.2E sp flops\n",de_cost, de_flops, sp_cost, sp_flops);
+      printf("Contraction requires %1.2E/%1.2E de flops, %1.2E/%1.2E sp flops (%1.2E skipped flops)\n",de_cost, de_flops, sp_cost, sp_flops, skip_flops);
     }
   }
 
