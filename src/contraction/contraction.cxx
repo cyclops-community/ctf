@@ -37,10 +37,10 @@ namespace CTF_int {
   static int64_t choose(int n, int m){
     int64_t f = 1;
     for (int i=0; i<m; i++){
-      f*=(n-m);
+      f*=(n-i);
     }
-    for (int i=1; i<=m; i++){
-      f=f/m;
+    for (int i=2; i<=m; i++){
+      f=f/i;
     }
     return f;
   }
@@ -67,7 +67,7 @@ namespace CTF_int {
     int64_t size_A=1, size_B=1, size_C=1;
     double rec_flops;
     if (vec.size()==1){
-      rec_flops = 2;
+      rec_flops = 1;
     } else {
       std::vector<sgroup> rec_vec;
       for (int j=1; j<vec.size(); j++){
@@ -78,22 +78,37 @@ namespace CTF_int {
       } 
       rec_flops = get_sp_cost(rec_vec);
     }
-    //printf("rec_flops = %1.2E sA = %1.2E sB = %1.2E sC = %1.2E\n",rec_flops,(double)size_A,(double)size_B,(double)size_C);
+    printf("rec_flops = %1.2E sA = %1.2E sB = %1.2E sC = %1.2E\n",rec_flops,(double)size_A,(double)size_B,(double)size_C);
     int dim = vec[0].s + vec[0].t + vec[0].v;
     if (dim == 1){
-      flops = rec_flops*vec[0].n;
+      if (vec.size()==1)
+        flops = 2*vec[0].n;
+      else
+        flops = rec_flops*vec[0].n;
     } else {
       int n = vec[0].n;
       int s = vec[0].s;
       int t = vec[0].t;
       int v = vec[0].v;
-      flops = choose(n,s+t+v)*(rec_flops+choose(s+t+v,t)*size_A+choose(s+t+v,s)*size_B+choose(s+t+v,v)*size_C);
       if (v>0){
-        flops += choose(n,s+v)*size_A+choose(n,v+t)*size_B+choose(n,s+t)*size_C;
+        flops = choose(n,s+t+v)*(rec_flops+(choose(s+t+v,t)-1)*size_A+(choose(s+t+v,s)-1)*size_B+choose(s+t+v,v)*size_C);
+        if (t>0)
+          flops += choose(n,s+v)*size_A;
+        if (s>0)
+          flops += choose(n,v+t)*size_B;
+        
+        //flops += choose(n,s+v)*size_A+choose(n,v+t)*size_B+choose(n,s+t)*size_C;
       } else {
-        flops += .5*choose(2*(s+t),s+t)*choose(n,s+t)*size_C;
+        flops = choose(n,s+t+v)*(rec_flops+(choose(s+t+v,t)-1)*size_A+(choose(s+t+v,s)-1)*size_B+(choose(s+t+v,v)-1)*size_C);
+        for (int r=1; r<=std::min(s,t); r++){
+          flops += choose(s+t,r)*choose(s+t-r,r)*choose(n,s+t)*size_C;
+        }
+        /*if (s>0 && t>0){
+          flops += .5*choose(2*(s+t),s+t)*choose(n,s+t)*size_C;
+        }*/
       }
     }
+    printf("flops = %1.2E\n",flops);
     return flops;
   }
 
@@ -192,7 +207,7 @@ namespace CTF_int {
         int m = i;
         for (int j=0; j<symgrps.size(); j++){
           if (m%2 == 1) subgrp.push_back(symgrps[j]);
-          m = m<<1;
+          m = m>>1;
         }
         bool used[num_tot];
         std::fill(used, used+num_tot, 0);
@@ -236,9 +251,13 @@ namespace CTF_int {
             std::vector<sgroup> nsubgrp;
             for (int k=0; k<psubgrp.size(); k++){
               nsubgrp.push_back(psubgrp[k].second);
+              printf("n = %d s = %d t = %d v = %d\n",nsubgrp[k].n,nsubgrp[k].s,nsubgrp[k].t,nsubgrp[k].v);
             }
-            de_cost = std::min(de_cost,get_de_cost(nsubgrp)); 
-            sp_cost = std::min(sp_cost,get_sp_cost(nsubgrp)); 
+            double tde_cost = get_de_cost(nsubgrp); 
+            double tsp_cost = get_sp_cost(nsubgrp); 
+            printf("de cost = %1.2E sp cost = %1.2E\n", tde_cost, tsp_cost);
+            de_cost = std::min(de_cost,tde_cost); 
+            sp_cost = std::min(sp_cost,tsp_cost); 
           } while (std::next_permutation(&(psubgrp[0]), &(psubgrp[subgrp.size()]), 
                       [](std::pair<int,sgroup> p1, std::pair<int,sgroup> p2){ 
                         return p1.first < p2.first; 
