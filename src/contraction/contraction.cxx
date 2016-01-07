@@ -1249,16 +1249,18 @@ namespace CTF_int {
                 } else
                   phys_mapped[map->cdt] = 1;
                 } 
-                /*if (map->has_child) {
-                  if (map->child->type == PHYSICAL_MAP){
-                    DPRINTF(3,"failed confirmation here %d, matched and folded physical mapping not allowed\n",iB);
-                    pass = 0;
-                  }
-                }*/
               } else {
                 /* If the mapping along this dimension is different, make sure
                    the mismatch is mapped onto unqiue physical dimensions */
                 map = &pA->edge_map[iA];
+                if (map->has_child) {
+                  if (map->child->type == PHYSICAL_MAP){
+                    DPRINTF(3,"failed confirmation here %d, matched and folded physical mapping not allowed\n",iB);
+                    pass = 0;
+                  }
+                }
+
+
                 for (;;){
                   if (map->type == PHYSICAL_MAP){
                     if (phys_mismatched[map->cdt] == 1){
