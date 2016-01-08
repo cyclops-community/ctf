@@ -399,8 +399,8 @@ namespace CTF_int {
                         recv_buffer, i32_recv_counts, i32_recv_displs, MPI_DOUBLE, cm);
           break;
         case 16:
-          MPI_Alltoallv(send_buffer, i32_send_counts, i32_send_displs, MPI_CXX_DOUBLE_COMPLEX,
-                        recv_buffer, i32_recv_counts, i32_recv_displs, MPI_CXX_DOUBLE_COMPLEX, cm);
+          MPI_Alltoallv(send_buffer, i32_send_counts, i32_send_displs, MPI_C_DOUBLE_COMPLEX,
+                        recv_buffer, i32_recv_counts, i32_recv_displs, MPI_C_DOUBLE_COMPLEX, cm);
           break;
         default: 
           ABORT;
@@ -468,7 +468,7 @@ namespace CTF_int {
         dt = MPI_DOUBLE;
         break;
       case 16:
-        dt = MPI_CXX_DOUBLE_COMPLEX;
+        dt = MPI_C_DOUBLE_COMPLEX;
         break;
       default:
         MPI_Type_contiguous(datum_size, MPI_CHAR, &dt);
