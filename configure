@@ -195,6 +195,32 @@ EOF
   return $status
 }
 
+#Usage: 'testcompiler $1' where 
+# $1 - 0 if no printouts, 1 if verbose
+function testlambda
+{
+  status=1
+  cat > .test.cxx <<EOF
+  #include <functional>
+  void a(std::function<void(int)>){}
+  void a(std::function<void(int,int)>){}
+  void f(int){};
+  int main(){ 
+    a(&f);
+    return 0; 
+  }
+EOF
+  if [ $1 -eq 1 ]; then
+    ( set -x; $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx $LDFLAGS  2>&1 )
+  else
+    $CXX $DEFS $WARNFLAGS $INCLUDES .test.cxx $LDFLAGS  > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cxx a.out
+  return $status
+}
 
 function realcompiler
 {
@@ -377,7 +403,17 @@ elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
     realcompiler
     defaultflags
     DEFS="$DEFS -DUSE_SP_MKL=1 -D`echo $NERSC_HOST | tr a-z A-Z`"
-    
+echo -n 'Checking if std::function recognition works... '
+if testlambda 0; then
+  echo 'successful.'
+else
+  echo
+  testlambda 1
+  echo
+  echo 'failed, if on Edison, please run `module load gcc/4.9.2` and reconfigure.'
+  echo
+  exit 1
+fi
     
 elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
   echo 'Hostname recognized as a BG/P machine. (PLEASE USE CTF v1.1: git checkout v1.1)'
