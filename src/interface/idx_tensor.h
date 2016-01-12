@@ -232,8 +232,21 @@ namespace CTF {
                      const char *      idx_map_,
                      int               copy=0) : Idx_Tensor(parent_, idx_map_, copy) {}
       
-      Typ_Idx_Tensor(Typ_Idx_Tensor const & B) : Idx_Tensor(B) {}
-      Typ_Idx_Tensor<dtype> * clone() const { return new Typ_Idx_Tensor<dtype>(*this); }
+      /**
+       * \brief copy constructor
+       * \param[in] B tensor to copy
+       * \param[in] copy if 1 then copy the parent tensor of B into a new tensor
+       * \param[in] remap redistribution dependency map
+       */
+      Typ_Idx_Tensor(Typ_Idx_Tensor const &                            B,
+                     int                                           copy=0,
+                     std::map<CTF_int::tensor*, CTF_int::tensor*>* remap=NULL) : Idx_Tensor(B, copy, remap) {}
+
+
+      Typ_Idx_Tensor<dtype> * tclone() const { return new Typ_Idx_Tensor<dtype>(*this); }
+
+      CTF_int::Term * clone(std::map< CTF_int::tensor*, CTF_int::tensor* >* remap = NULL) const { return new Typ_Idx_Tensor<dtype>(*this, 0, remap); }
+
       void operator=(CTF_int::Term const & B){ Idx_Tensor::operator=(B); }
       void operator=(Idx_Tensor const & B){ Idx_Tensor::operator=(B); }
       void operator=(double scl){ Idx_Tensor::operator=(scl); }
@@ -244,12 +257,12 @@ namespace CTF {
 
       template <typename dtype_B>
       Typ_Sum_Term<dtype, dtype_B> operator&(Typ_Idx_Tensor<dtype_B> B){
-        return Typ_Sum_Term<dtype, dtype_B>(this->clone(), B.clone());
+        return Typ_Sum_Term<dtype, dtype_B>(this->tclone(), B.tclone());
       }
  
       template <typename dtype_A, typename dtype_B>
       Typ_Contract_Term<dtype_A, dtype_B, dtype> operator+=(Typ_Sum_Term<dtype_A,dtype_B> t){
-        return Typ_Contract_Term<dtype_A,dtype_B,dtype>(this->clone(), t);
+        return Typ_Contract_Term<dtype_A,dtype_B,dtype>(this->tclone(), t);
       }
      /* 
       template <typename dtype_A, typename dtype_B>
@@ -272,12 +285,12 @@ namespace CTF {
       template <typename dtype_A>
       Typ_Sum_Term<dtype_A, dtype> operator=(Typ_AIdx_Tensor<dtype_A> t){
         sr->safecopy(scale,sr->addid());
-        return Typ_Sum_Term<dtype_A,dtype>(t.clone(), this->clone());
+        return Typ_Sum_Term<dtype_A,dtype>(t.tclone(), this->tclone());
       }
       
       template <typename dtype_A>
       Typ_Sum_Term<dtype_A, dtype> operator+=(Typ_AIdx_Tensor<dtype_A> t){
-        return Typ_Sum_Term<dtype_A,dtype>(t.clone(), this->clone());
+        return Typ_Sum_Term<dtype_A,dtype>(t.tclone(), this->tclone());
       }
 
       void operator+=(CTF_int::Term const & B){ Idx_Tensor::operator+=(B); }

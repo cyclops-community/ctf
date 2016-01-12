@@ -165,7 +165,6 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & v){
   //mpath matrix to contain distance matrix
   Matrix<mpath> P(n, n, dw, p, "P");
 
-  Function<int,mpath> setw();
 
   P["ij"] = ~ A["ij"], [](int w){ return mpath(w, 1); };
   
