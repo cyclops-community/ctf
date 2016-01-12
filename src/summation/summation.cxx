@@ -111,8 +111,10 @@ namespace CTF_int {
   }
 
   void summation::execute(bool run_diag){
-#if DEBUG >= 2
+#if (DEBUG >= 2 || VERBOSE >= 1)
+  #if DEBUG >= 2
     if (A->wrld->cdt.rank == 0) printf("Summation::execute (head):\n");
+  #endif
     print();
 #endif
     update_all_models(A->wrld->cdt.cm);
@@ -2280,7 +2282,7 @@ namespace CTF_int {
         else
           sprintf(sname+strlen(sname),"%d",idx_B[i]);
       }
-      sprintf(sname+strlen(sname),"] <-");
+      sprintf(sname+strlen(sname),"] <- ");
       sprintf(sname+strlen(sname), "%s", A->name);
       sprintf(sname+strlen(sname),"[");
       for (i=0; i<A->order; i++){

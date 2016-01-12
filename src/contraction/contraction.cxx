@@ -96,8 +96,10 @@ namespace CTF_int {
   }
 
   void contraction::execute(){
-#if DEBUG >= 2
+#if (DEBUG >= 2 || VERBOSE >= 1)
+  #if DEBUG >= 2
     if (A->wrld->cdt.rank == 0) printf("Contraction::execute (head):\n");
+  #endif
     print();
 #endif
 
@@ -4032,7 +4034,7 @@ namespace CTF_int {
   #if DEBUG >=2
     ctrf->print();
   #endif
-  #if VERBOSE >= 1
+  #if VERBOSE >= 2
   double dtt = MPI_Wtime();
   #endif
   #ifdef DEBUG
@@ -4131,9 +4133,11 @@ namespace CTF_int {
   #endif
     A->unfold();
     B->unfold();
+  #if VERBOSE >= 2
     if (A->wrld->rank == 0){
-      VPRINTF(1, "Contraction permutation completed in %lf sec.\n",MPI_Wtime()-dtt);
+      VPRINTF(2, "Contraction permutation completed in %lf sec.\n",MPI_Wtime()-dtt);
     }
+  #endif
 
 
   #if 0 //VERIFY

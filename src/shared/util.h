@@ -76,7 +76,7 @@ namespace CTF_int {
   #ifndef ASSERT
   #if ENABLE_ASSERT
   #define ASSERT(...)                \
-  do { if (!(__VA_ARGS__)) CTF_int::handler(); assert(__VA_ARGS__); } while (0)
+  do { if (!(__VA_ARGS__)){ int rank; MPI_Comm_rank(MPI_COMM_WORLD,&rank); if (rank == 0){ printf("CTF ERROR: %s:%d, ASSERT(%s) failed\n",__FILE__,__LINE__,#__VA_ARGS__); } CTF_int::handler(); assert(__VA_ARGS__); } } while (0)
   #else
   #define ASSERT(...) do {} while(0 && (__VA_ARGS__))
   #endif
