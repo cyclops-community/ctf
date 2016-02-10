@@ -248,18 +248,20 @@ printf("HERE1\n");
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       } else {
-        ASSERT(0);
-        assert(0);
+        //ASSERT(0);
+        //assert(0);
         //printf("HERTE alpha = %d\n",*(int*)alpha);
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
-          sr_C->mul(A+offsets_A[0][i],
+          func->apply_f(A+offsets_A[0][i], 
+                        B+offsets_B[0][i], 
+                        tmp);
+          sr_C->mul(tmp,
                     alpha,
                     tmp);
-          func->acc_f(tmp, 
-                      B+offsets_B[0][i], 
-                      C+offsets_C[0][i],
-                      sr_C);
+          sr_C->add(tmp, 
+                    C+offsets_C[0][i], 
+                    C+offsets_C[0][i]);
         }
         CTF_FLOPS_ADD(3*(imax-imin));
       }
