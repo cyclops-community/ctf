@@ -394,7 +394,7 @@ if [ "$NERSC_HOST" = "carver" ]; then
     DEFS="$DEFS -DCARVER"
     
     
-elif [ "$NERSC_HOST" = "hopper" -o "$NERSC_HOST" = "edison" ]; then
+elif [ "$NERSC_HOST" = "hopper"  -o "$NERSC_HOST" = "cori" -o "$NERSC_HOST" = "edison" ]; then
     echo 'Hostname recognized as a NERSC machine.'
     host=nersc
     BLASLIBS="-mkl=parallel"   
