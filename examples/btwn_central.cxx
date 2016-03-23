@@ -117,37 +117,40 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
     int k = std::min(b, n-ib);
 
     //initialize shortest mpath vectors from the next k sources to the corresponding columns of the adjacency matrices and loops with weight 0
-    A["ii"], [=](int& w){ w = 0; };
+    ((Transform<int>)([=](int& w){ w = 0; }))(A["ii"]);
     Tensor<int> iA = A.slice(ib*n, (ib+k-1)*n+n-1);
-    
-    A["ii"]([=](int& w){ w = INT_MAX/2; });
+    ((Transform<int>)([=](int& w){ w = INT_MAX/2; }))(A["ii"]);
 
     //let shortest mpaths vectors be mpaths
     Matrix<mpath> B(n, k, dw, p, "B");
-    B["ij"] = ~ iA["ij"], [](int w){ return mpath(w, 1); };
+    B["ij"] = ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
     
     //compute Bellman Ford
     for (int i=0; i<n; i++){
-      B["ij"] = A["ik"] & B["kj"], [](int w, mpath p){ return mpath(p.w+w, p.m); };
-      B["ij"] += ~ iA["ij"], [](int w){ return mpath(w, 1); };
+      B["ij"] = ((Function<int,mpath,mpath>)([](int w, mpath p){ return mpath(p.w+w, p.m); }))(A["ik"],B["kj"]);
+      B["ij"] += ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
     }
 
     //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
-    //((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, p.m, 0.); }))(B["ij"],cB["ij"]);
-    B["ij"] & cB["ij"], [](mpath p, cpath & cp){ cp = cpath(p.w, p.m, 0.); };
+    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, p.m, 0.); }))(B["ij"],cB["ij"]);
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     for (int i=0; i<n; i++){
-      cB["ij"] = A["ki"] & cB["kj"], [](int w, cpath p){ return cpath(p.w-w, p.m, (1.+p.c)/p.m); };
-      B["ij"] & cB["ij"], [](mpath p, cpath & cp){ cp = (p.w <= cp.w) ? cpath(p.w, p.m, cp.c*p.m) : cpath(p.w, p.m, 0.); };
+      cB["ij"] = ((Function<int,cpath,cpath>)(
+                    [](int w, cpath p){ 
+                      return cpath(p.w-w, p.m, (1.+p.c)/p.m); 
+                    }))(A["ki"],cB["kj"]);
+      ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ 
+        cp = (p.w <= cp.w) ? cpath(p.w, p.m, cp.c*p.m) : cpath(p.w, p.m, 0.); 
+      }))(B["ij"],cB["ij"]);
     }
     //set self-centrality scores to zero
     //FIXME: assumes loops are zero edges and there are no others zero edges in A
-    //((Transform<cpath>)([](cpath & p){ if (p.w == 0) p.c=0; }))(cB["ij"]);
-    cB["ij"]([](cpath & p){ if (p.w == 0) p.c=0; });
+    ((Transform<cpath>)([](cpath & p){ if (p.w == 0) p.c=0; }))(cB["ij"]);
+    //((Transform<cpath>)([](cpath & p){ p.c=0; }))(cB["ii"]);
 
     //accumulate centrality scores
-    v["i"] += ~ cB["ij"], [](cpath a){ return a.c; };
+    v["i"] += ((Function<cpath,double>)([](cpath a){ return a.c; }))(cB["ij"]);
   }
 }
 
@@ -165,39 +168,41 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & v){
   //mpath matrix to contain distance matrix
   Matrix<mpath> P(n, n, dw, p, "P");
 
+  Function<int,mpath> setw([](int w){ return mpath(w, 1); });
 
-  P["ij"] = ~ A["ij"], [](int w){ return mpath(w, 1); };
+  P["ij"] = setw(A["ij"]);
   
-  P["ii"], [](mpath& w){ w = mpath(INT_MAX/2, 1); };
+  ((Transform<mpath>)([=](mpath& w){ w = mpath(INT_MAX/2, 1); }))(P["ii"]);
 
   Matrix<mpath> Pi(n, n, dw, p);
   Pi["ij"] = P["ij"];
  
   //compute all shortest mpaths by Bellman Ford 
   for (int i=0; i<n; i++){
-    P["ii"], [](mpath & p){ p = mpath(0,1); };
+    ((Transform<mpath>)([=](mpath & p){ p = mpath(0,1); }))(P["ii"]);
     P["ij"] = Pi["ik"]*P["kj"];
   }
-  P["ii"], [](mpath& p){ p = mpath(INT_MAX/2, 1); };
+  ((Transform<mpath>)([=](mpath& p){ p = mpath(INT_MAX/2, 1); }))(P["ii"]);
 
   int lenn[3] = {n,n,n};
   Tensor<cpath> postv(3, lenn, dw, cp, "postv");
 
   //set postv_ijk = shortest mpath from i to k (d_ik)
-  postv["ijk"] += ~ P["ik"], [](mpath p){ return cpath(p.w, p.m, 0.0); };
+  postv["ijk"] += ((Function<mpath,cpath>)([](mpath p){ return cpath(p.w, p.m, 0.0); }))(P["ik"]);
 
   //set postv_ijk = 
   //    for all nodes j on the shortest mpath from i to k (d_ik=d_ij+d_jk)
   //      let multiplicity of shortest mpaths from i to j is a, from j to k is b, and from i to k is c
   //        then postv_ijk = a*b/c
-  P["ij"] & P["jk"] & postv["ijk"], 
-      [](mpath a, mpath b, cpath & c){ 
-        if (c.w<INT_MAX/2 && a.w+b.w == c.w){ c.c = ((double)a.m*b.m)/c.m; } 
-        else { c.c = 0; }
-      };
+  ((Transform<mpath,mpath,cpath>)(
+    [=](mpath a, mpath b, cpath & c){ 
+      if (c.w<INT_MAX/2 && a.w+b.w == c.w){ c.c = ((double)a.m*b.m)/c.m; } 
+      else { c.c = 0; }
+    }
+  ))(P["ij"],P["jk"],postv["ijk"]);
 
   //sum multiplicities v_j = sum(i,k) postv_ijk
-  v["j"] += ~ postv["ijk"], [](cpath p){ return p.c; };
+  v["j"] += ((Function<cpath,double>)([](cpath p){ return p.c; }))(postv["ijk"]);
 }
 
 // calculate betweenness centrality a graph of n nodes distributed on World (communicator) dw
@@ -241,8 +246,8 @@ int btwn_cnt(int     n,
   //compute centrality scores by Bellman Ford with block size 2
   btwn_cnt_fast(A, 2, v2);
 
-  //v1.print();
-  //v2.print();
+ // v1.print();
+ // v2.print();
 
   v1["i"] -= v2["i"];
   int pass = v1.norm2() <= 1.E-6;
