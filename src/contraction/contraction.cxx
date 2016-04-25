@@ -3952,7 +3952,9 @@ namespace CTF_int {
 
     TAU_FSTART(contract);
 
+    TAU_FSTART(prescale_operands);
     prescale_operands();
+    TAU_FSTOP(prescale_operands);
   #if 0 //VERIFY
     int64_t nsA, nsB;
     int64_t nA, nB, nC, up_nC;
@@ -4802,15 +4804,15 @@ namespace CTF_int {
       if (V->sym[iV+npres] == NS && iiC == -1 && iiT == -1){
         npres++;
       }
-      if (V->is_home){
-        if (V->wrld->cdt.rank == 0)
-          DPRINTF(2,"Tensor %s leaving home\n", V->name);
-        V->data = (char*)CTF_int::mst_alloc(V->size*V->sr->el_size);
-        memcpy(V->data, V->home_buffer, V->size*V->sr->el_size);
-        V->is_home = 0;
-      }
-
       if (npres > 1){
+        if (V->is_home){
+          if (V->wrld->cdt.rank == 0)
+            DPRINTF(2,"Tensor %s leaving home\n", V->name);
+          V->data = (char*)CTF_int::mst_alloc(V->size*V->sr->el_size);
+          memcpy(V->data, V->home_buffer, V->size*V->sr->el_size);
+          V->is_home = 0;
+        }
+
         int sym_mask[V->order];
         std::fill(sym_mask, sym_mask+V->order, 0);
         std::fill(sym_mask+iV, sym_mask+iV+npres, 1);
