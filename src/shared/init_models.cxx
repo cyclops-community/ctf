@@ -12,5 +12,7 @@ double seq_tsr_ctr_mdl_cst_init[] = {5.3745E-06, 3.6464E-08, 2.2334E-10};
 double seq_tsr_ctr_mdl_ref_init[] = {5.3745E-06, 3.6464E-08, 2.2334E-10};
 double seq_tsr_ctr_mdl_inr_init[] = {5.3745E-06, 3.6464E-11, 8.2334E-12};
 double seq_tsr_ctr_mdl_off_init[] = {2.5413E-04, 1.5889E-10, 9.6735E-12};
+double download_mdl_init[] = {-3.5337E-07, 1.5186E-09};
+double upload_mdl_init[] = {-3.5337E-07, 1.5186E-09};
 }
 

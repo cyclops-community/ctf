@@ -29,7 +29,7 @@ namespace CTF {
             dtype (*fadd_)(dtype a, dtype b),
             MPI_Op addmop_)
               : Monoid<dtype, is_ord>(taddid_, fadd_, addmop_) { 
-        abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
+        this->abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
       }
 
       //treat NULL as mulid

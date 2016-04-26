@@ -50,7 +50,7 @@ namespace CTF {
            void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
            void (*scal_)(int,dtype,dtype*,int)=NULL)
             : Semiring<dtype,is_ord>(addid_, fadd_, mulid_, addmop_, fmul_, gemm_, axpy_, scal_) {
-          abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
+          this->abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
         }
 
       //treat NULL as mulid

@@ -41,7 +41,8 @@ namespace CTF_int{
   void offload_init(){
     if (!initialized){
       int ndev=0;
-      cudaGetDeviceCount(&ndev);
+      cudaError_t err = cudaGetDeviceCount(&ndev);
+      assert(err == cudaSuccess);
       assert(ndev > 0);
       cublasStatus_t status = cublasCreate(&cuhandle);
       assert(status == CUBLAS_STATUS_SUCCESS);

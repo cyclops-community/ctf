@@ -49,7 +49,7 @@ namespace CTF {
   template<typename dtype>
   Vector<dtype> & Vector<dtype>::operator=(const Vector<dtype> & A){
     CTF_int::tensor::free_self();
-    CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile);
+    CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile, A.is_sparse);
     return *this;
   }
 

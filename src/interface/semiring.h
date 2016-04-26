@@ -616,7 +616,7 @@ namespace CTF {
             int row_A = rows_A[i]-1;
             int col_A = cols_A[i]-1;
             for (int col_C=0; col_C<n; col_C++){
-               dC[col_C*m+row_A] = this->fadd(fmul(a,fmul(dA[i],dB[col_C*k+col_A])), dC[col_C*m+row_A]);
+              dC[col_C*m+row_A] = this->fadd(fmul(a,fmul(dA[i],dB[col_C*k+col_A])), dC[col_C*m+row_A]);
             }
           }
           TAU_FSTOP(func_coomm);

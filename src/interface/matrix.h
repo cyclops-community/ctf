@@ -14,7 +14,7 @@ namespace CTF {
   template<typename dtype=double> 
   class Matrix : public Tensor<dtype> {
     public:
-      int nrow, ncol, sym;
+      int nrow, ncol, symm;
       /**
        * \brief constructor for a matrix
        * \param[in] nrow number of matrix rows
