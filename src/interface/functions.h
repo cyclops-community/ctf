@@ -217,7 +217,8 @@ namespace CTF {
        * \brief constructor takes function pointers to compute B=f(A));
        * \param[in] f_ linear function (type_A)->(type_B)
        */
-      Bivar_Transform(std::function<void(dtype_A, dtype_B, dtype_C &)> f_){ f = f_; }
+      Bivar_Transform(std::function<void(dtype_A, dtype_B, dtype_C &)> f_) : CTF_int::bivar_function() {
+        f = f_; }
 
       /** 
        * \brief evaluate B=f(A) 
@@ -244,6 +245,7 @@ namespace CTF {
 
 
       bool is_accumulator() const { return true; }
+
   };
 
 

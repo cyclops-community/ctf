@@ -131,19 +131,20 @@ namespace CTF_int {
         tC = B;
         break;
       case 2:
-        tA = B;
+        tA = C;
         tB = A;
-        tC = C;
+        tC = B;
         break;
+
       case 3:
         tA = B;
         tB = C;
         tC = A;
         break;
       case 4:
-        tA = C;
+        tA = B;
         tB = A;
-        tC = B;
+        tC = C;
         break;
       case 5:
         tA = C;
@@ -552,7 +553,7 @@ namespace CTF_int {
     int * tAiord, * tBiord, * tCiord;
 
     //iterate over permutations of {A,B,C}
-    for (int iord=0; iord<6; iord++){
+    for (int iord=0; iord<2; iord++){
       get_perm<tensor*>(iord, A, B, C, 
                        tA, tB, tC);
       get_perm<tensor*>(iord, fold_ctr->A, fold_ctr->B, fold_ctr->C, 
@@ -630,13 +631,15 @@ namespace CTF_int {
         iprm.tC = 'N';
         //calc_fold_nmk(fold_ctr->A, fold_ctr->B, fold_ctr->C, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C, fnew_ord_A, fnew_ord_C, &iprm);
         break;
-      case 2: // B A C
-        //index order : 1. AB 2. BC 3. AC
-        //C^T=B^T*A^T
+
+      case 2: // C A B
+        //index order : 1. CA 2. BC 3. AB
         iprm.tA = 'N';
         iprm.tB = 'T';
-        iprm.tC = 'T';
+        iprm.tC = 'N';
+        //calc_fold_nmk(fold_ctr->A, fold_ctr->B, fold_ctr->C, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C, fnew_ord_B, fnew_ord_C, &iprm);
         break;
+
       case 3: // B C A
         //index order : 1. BC 2. AB 3. AC
         //C^T=B^T*A^T
@@ -644,12 +647,12 @@ namespace CTF_int {
         iprm.tB = 'N';
         iprm.tC = 'T';
         break;
-      case 4: // C A B
-        //index order : 1. CA 2. BC 3. AB
+      case 4: // B A C
+        //index order : 1. AB 2. BC 3. AC
+        //C^T=B^T*A^T
         iprm.tA = 'N';
         iprm.tB = 'T';
-        iprm.tC = 'N';
-        //calc_fold_nmk(fold_ctr->A, fold_ctr->B, fold_ctr->C, fold_ctr->idx_A, fold_ctr->idx_B, fold_ctr->idx_C, fnew_ord_B, fnew_ord_C, &iprm);
+        iprm.tC = 'T';
         break;
       case 5: // C B A
         //index order : 1. BC 2. AC 3. AB
@@ -2473,7 +2476,7 @@ namespace CTF_int {
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
   #if FOLD_TSR
-        if (!is_custom && can_fold()){
+        if ((!is_custom || (func->has_gemm && !is_ctr_sparse)) && can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           ctr * sctrf = construct_ctr(1, &prm);
@@ -2705,7 +2708,7 @@ namespace CTF_int {
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
   #if FOLD_TSR
-        if (!is_custom && can_fold()){
+        if ((!is_custom || (func->has_gemm && !is_ctr_sparse)) && can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           ctr * sctrf = construct_ctr(1, &prm);
@@ -4023,7 +4026,7 @@ namespace CTF_int {
     ASSERT(check_mapping());
     bool is_inner = false;
   #if FOLD_TSR
-    if (!is_custom) is_inner = can_fold();
+    if (!is_custom || (func->has_gemm && !A->is_sparse && !B->is_sparse && !C->is_sparse)) is_inner = can_fold();
     if (is_inner){
       iparam prm;
       TAU_FSTART(map_fold);

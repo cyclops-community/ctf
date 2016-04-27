@@ -529,7 +529,7 @@ namespace CTF {
                 char *       C)  const {
         if (fgemm != NULL) fgemm(tA, tB, m, n, k, ((dtype const *)alpha)[0], (dtype const *)A, (dtype const *)B, ((dtype const *)beta)[0], (dtype *)C);
         else {
-          TAU_FSTART(func_gemm);
+          TAU_FSTART(sring_gemm);
           dtype const * dA = (dtype const *) A;
           dtype const * dB = (dtype const *) B;
           dtype * dC       = (dtype*) C;
@@ -540,7 +540,7 @@ namespace CTF {
           lda_Cj = m;
           lda_Ci = 1;
           if (tA == 'N'){
-            lda_Al = m;
+            lda_Al = k;
             lda_Ai = 1;
           } else {
             assert(tA == 'T');
@@ -553,7 +553,7 @@ namespace CTF {
           } else {
             assert(tB == 'T');
             lda_Bj = 1;
-            lda_Bl = k;
+            lda_Bl = n;
           } 
           if (!this->isequal(alpha, this->mulid())){
             dtype a          = ((dtype*)alpha)[0];
@@ -575,7 +575,7 @@ namespace CTF {
               }
             }
           }
-          TAU_FSTOP(func_gemm);
+          TAU_FSTOP(sring_gemm);
         } 
       }
 

@@ -5,88 +5,11 @@
   * \brief betweenness centrality computation
   */
 
-#include <ctf.hpp>
 #include <float.h>
+#include "btwn_central.h"
 
 using namespace CTF;
-//structure for regular path that keeps track of the multiplicity of paths
-class mpath {
-  public:
-  int w; // weighted distance
-  int m; // multiplictiy
-  mpath(int w_, int m_){ w=w_; m=m_; }
-  mpath(mpath const & p){ w=p.w; m=p.m; }
-  mpath(){};
-};
 
-//path with a centrality score
-class cpath : public mpath {
-  public:
-  double c; // centrality score
-  cpath(int w_, int m_, double c_) : mpath(w_, m_) { c=c_;}
-  cpath(cpath const & p) : mpath(p) { c=p.c; }
-  cpath(){};
-};
-
-
-//(min, +) tropical semiring for mpath structure
-Semiring<mpath> get_mpath_semiring(){
-  //struct for mpath with w=mpath weight, h=#hops
-  MPI_Op ompath;
-
-  MPI_Op_create(
-      [](void * a, void * b, int * n, MPI_Datatype*){ 
-        for (int i=0; i<*n; i++){ 
-          if (((mpath*)a)[i].w < ((mpath*)b)[i].w){
-            ((mpath*)b)[i] = ((mpath*)a)[i];
-          } else if (((mpath*)a)[i].w == ((mpath*)b)[i].w){
-            ((mpath*)b)[i].m += ((mpath*)a)[i].m;
-          }
-        }
-      },
-      1, &ompath);
-
-  //tropical semiring with hops carried by winner of min
-  Semiring<mpath> p(mpath(INT_MAX/2,1), 
-                   [](mpath a, mpath b){ 
-                     if (a.w<b.w){ return a; }
-                     else if (b.w<a.w){ return b; }
-                     else { return mpath(a.w, a.m+b.m); }
-                   },
-                   ompath,
-                   mpath(0,1),
-                   [](mpath a, mpath b){ return mpath(a.w+b.w, a.m*b.m); });
-
-  return p;
-}
-
-// min Monoid for cpath structure
-Monoid<cpath> get_cpath_monoid(){
-  //struct for cpath with w=cpath weight, h=#hops
-  MPI_Op ocpath;
-
-  MPI_Op_create(
-      [](void * a, void * b, int * n, MPI_Datatype*){ 
-        for (int i=0; i<*n; i++){ 
-          if (((cpath*)a)[i].w > ((cpath*)b)[i].w){
-            ((cpath*)b)[i] = ((cpath*)a)[i];
-          } else if (((cpath*)a)[i].w == ((cpath*)b)[i].w){
-            ((cpath*)b)[i].m += ((cpath*)a)[i].m;
-            ((cpath*)b)[i].c += ((cpath*)a)[i].c;
-          }
-        }
-      },
-      1, &ocpath);
-
-  Monoid<cpath> cp(cpath(-INT_MAX/2,1,0.), 
-                  [](cpath a, cpath b){ 
-                    if (a.w>b.w){ return a; }
-                    else if (b.w>a.w){ return b; }
-                    else { return cpath(a.w, a.m+b.m, a.c+b.c); }
-                  }, ocpath);
-
-  return cp;
-}
 
 //overwrite printfs to make it possible to print matrices of mpaths
 namespace CTF {

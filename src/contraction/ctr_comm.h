@@ -14,6 +14,8 @@ namespace CTF_int{
    */
   class bivar_function {
     public:
+      bool has_gemm;
+
       /**
        * \brief apply function f to values stored at a and b
        * \param[in] a pointer to first operand that will be cast to type by extending class
@@ -48,9 +50,22 @@ namespace CTF_int{
       */
       Bifun_Term operator()(Term const & A, Term const & B) const;
       
+      bivar_function(){ has_gemm = false;}
+
       virtual ~bivar_function(){}
       
       virtual bool is_accumulator() const { return false; }
+
+      virtual void cgemm(char         tA,
+                         char         tB,
+                         int          m,
+                         int          n,
+                         int          k,
+                         char const * A,
+                         char const * B,
+                         char *       C)  const {};
+
+
   };
 
 

@@ -8,6 +8,7 @@
   */
 
 #include <ctf.hpp>
+#include <ctf_cuda.hpp>
 #include "moldynamics.h"
 using namespace CTF;
 namespace CTF {
@@ -43,10 +44,13 @@ int bivar_function_cust(int     n,
 
   Vector<force> F(n, dw, gF);
   
-  CTF::Function<particle, particle, force> fGF(&get_force);
+//  CTF::Bivar_Function<particle, particle, force> fGF(&get_force);
+  CTF::Bivar_Kernel<particle, particle, force, get_force> fGF;
 
   F["i"] += fGF(P["i"],P["j"]);
-  
+ 
+  F.print();
+ 
   Matrix<force> F_all(n, n, NS, dw, gF);
 
   F_all["ij"] = fGF(P["i"],P["j"]);

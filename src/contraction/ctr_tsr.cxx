@@ -310,6 +310,8 @@ namespace CTF_int {
     this->alpha      = c->alpha;
     if (is_custom){
       this->func     = c->func;
+    } else {
+      this->func     = NULL;
     }
     this->order_A    = c->A->order;
     this->idx_map_A  = c->idx_A;
@@ -446,7 +448,7 @@ namespace CTF_int {
 
   void seq_tsr_ctr::run(char * A, char * B, char * C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
-    if (is_custom){
+    if (is_custom && !is_inner){
       double st_time = MPI_Wtime();
       ASSERT(is_inner == 0);
       sym_seq_ctr_cust(this->alpha,
@@ -474,6 +476,7 @@ namespace CTF_int {
       double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
       seq_tsr_ctr_mdl_cst.observe(tps);
     } else if (is_inner){
+      ASSERT(is_custom || func == NULL);
 //      double ps[] = {1.0, (double)est_membw(), est_fp()};
 //      double est_time = seq_tsr_ctr_mdl_inr.est_time(ps);
       double st_time = MPI_Wtime();
@@ -497,7 +500,8 @@ namespace CTF_int {
                       edge_len_C,
                       sym_C,
                       idx_map_C,
-                      &inner_params);
+                      &inner_params,
+                      func);
       double exe_time = MPI_Wtime()-st_time;
  //     printf("exe_time = %E est_time = %E abs_err = %e rel_err = %lf\n", exe_time,est_time,fabs(exe_time-est_time),fabs(exe_time-est_time)/exe_time);
       double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
