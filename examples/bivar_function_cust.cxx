@@ -49,8 +49,6 @@ int bivar_function_cust(int     n,
 
   F["i"] += fGF(P["i"],P["j"]);
  
-  F.print();
- 
   Matrix<force> F_all(n, n, NS, dw, gF);
 
   F_all["ij"] = fGF(P["i"],P["j"]);

@@ -15,6 +15,7 @@ namespace CTF_int{
   class bivar_function {
     public:
       bool has_gemm;
+      bool commutative;
 
       /**
        * \brief apply function f to values stored at a and b
@@ -50,7 +51,8 @@ namespace CTF_int{
       */
       Bifun_Term operator()(Term const & A, Term const & B) const;
       
-      bivar_function(){ has_gemm = false;}
+      bivar_function(){ has_gemm = false; commutative = false; }
+      bivar_function(bool is_comm){ has_gemm = false; commutative = is_comm; }
 
       virtual ~bivar_function(){}
       

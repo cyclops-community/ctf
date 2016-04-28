@@ -89,7 +89,6 @@ namespace CTF{
       int lda_A_k = tA == 'N' ? m : 1;
       int lda_B_k = tB == 'N' ? 1 : n;
       int lda_B_n = tB == 'N' ? k : 1;
-      printf("tA = %c tB = %c\n",tA,tB);
       #pragma omp parallel for 
       for (int mi=0; mi<m; mi++){
         #pragma omp parallel for 

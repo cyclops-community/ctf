@@ -540,12 +540,12 @@ namespace CTF {
           lda_Cj = m;
           lda_Ci = 1;
           if (tA == 'N'){
-            lda_Al = k;
+            lda_Al = m;
             lda_Ai = 1;
           } else {
             assert(tA == 'T');
             lda_Al = 1;
-            lda_Ai = m;
+            lda_Ai = k;
           } 
           if (tB == 'N'){
             lda_Bj = k;

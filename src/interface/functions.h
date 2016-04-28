@@ -142,7 +142,7 @@ namespace CTF {
 
 
   /**
-   * \brief custom bilinear function on two tensors: 
+   * \brief custom bivariate function on two tensors: 
    *          e.g. C["ij"] = f(A["ik"],B["kj"])
    */
   template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
@@ -156,9 +156,23 @@ namespace CTF {
      
       /**
        * \brief constructor takes function pointers to compute C=f(A,B);
-       * \param[in] f_ bilinear function (type_A,type_B)->(type_C)
+       * \param[in] f_ bivariate function (type_A,type_B)->(type_C)
        */
-      Bivar_Function(std::function<dtype_C (dtype_A, dtype_B)> f_){ f=f_; }
+      Bivar_Function(std::function<dtype_C (dtype_A, dtype_B)> f_)
+        : CTF_int::bivar_function(){
+        f=f_; commutative=0; 
+      }
+      
+      /**
+       * \brief constructor takes function pointers to compute C=f(A,B);
+       * \param[in] f_ bivariate function (type_A,type_B)->(type_C)
+       * \param[in] is_comm whether function is commutative
+       */
+      Bivar_Function(std::function<dtype_C (dtype_A, dtype_B)> f_, 
+                     bool                                      is_comm)
+        : CTF_int::bivar_function(is_comm){
+        f=f_;
+      }
 
       /**
        * \brief default constructor sets function pointer to NULL
@@ -201,8 +215,8 @@ namespace CTF {
   };
 
   /**
-   * \brief custom function f : (X * Y) -> X applied on two tensors as summation: 
-   *          e.g. B["ij"] = f(A["ij"],B["ij"])
+   * \brief custom function f : (X * Y * Z) -> Z applied on three tensors as contraction: 
+   *          e.g. f(A["ij"],B["ij"],C["ij"])
    */
   template<typename dtype_A=double, typename dtype_B=dtype_A, typename dtype_C=dtype_A>
   class Bivar_Transform : public CTF_int::bivar_function {
@@ -217,8 +231,22 @@ namespace CTF {
        * \brief constructor takes function pointers to compute B=f(A));
        * \param[in] f_ linear function (type_A)->(type_B)
        */
-      Bivar_Transform(std::function<void(dtype_A, dtype_B, dtype_C &)> f_) : CTF_int::bivar_function() {
-        f = f_; }
+      Bivar_Transform(std::function<void(dtype_A, dtype_B, dtype_C &)> f_)
+        : CTF_int::bivar_function() {
+        f = f_; 
+      }
+
+      /**
+       * \brief constructor takes function pointers to compute C=f(A,B);
+       * \param[in] f_ bivariate function (type_A,type_B)->(type_C)
+       * \param[in] is_comm whether function is commutative
+       */
+      Bivar_Transform(std::function<void(dtype_A, dtype_B, dtype_C &)> f_,
+                      bool                                             is_comm)
+        : CTF_int::bivar_function(is_comm){
+        f=f_; 
+      }
+
 
       /** 
        * \brief evaluate B=f(A) 

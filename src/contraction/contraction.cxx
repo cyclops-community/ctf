@@ -552,8 +552,12 @@ namespace CTF_int {
     int * tfnew_ord_A, * tfnew_ord_B, * tfnew_ord_C;
     int * tAiord, * tBiord, * tCiord;
 
+    // if function not commutative consider only orderings where we call dgemm without interchanging A and B
+    int max_ord = 6;
+    if (is_custom && !func->commutative) max_ord = 3;
+
     //iterate over permutations of {A,B,C}
-    for (int iord=0; iord<2; iord++){
+    for (int iord=0; iord<3; iord++){
       get_perm<tensor*>(iord, A, B, C, 
                        tA, tB, tC);
       get_perm<tensor*>(iord, fold_ctr->A, fold_ctr->B, fold_ctr->C, 
