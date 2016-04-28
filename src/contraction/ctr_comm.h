@@ -15,6 +15,7 @@ namespace CTF_int{
   class bivar_function {
     public:
       bool has_gemm;
+      bool has_off_gemm;
       bool commutative;
 
       /**
@@ -51,8 +52,8 @@ namespace CTF_int{
       */
       Bifun_Term operator()(Term const & A, Term const & B) const;
       
-      bivar_function(){ has_gemm = false; commutative = false; }
-      bivar_function(bool is_comm){ has_gemm = false; commutative = is_comm; }
+      bivar_function(){ has_gemm = false; has_off_gemm = false; commutative = false; }
+      bivar_function(bool is_comm){ has_gemm = false; has_off_gemm = false; commutative = is_comm; }
 
       virtual ~bivar_function(){}
       
@@ -65,11 +66,17 @@ namespace CTF_int{
                          int          k,
                          char const * A,
                          char const * B,
-                         char *       C)  const {};
+                         char *       C)  const {}
 
-
+      virtual void coffload_gemm(char         tA,
+                                 char         tB,
+                                 int          m,
+                                 int          n,
+                                 int          k,
+                                 char const * A,
+                                 char const * B,
+                                 char *       C) const {}
   };
-
 
   /**
    * \addtogroup nest_dist Nested distributed contraction and summation routines

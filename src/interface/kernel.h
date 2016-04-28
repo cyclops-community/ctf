@@ -11,10 +11,8 @@ namespace CTF{
                              int             m,
                              int             n,
                              int             k,
-                             dtype_C         alpha,
                              dtype_A const * A,
                              dtype_B const * B,
-                             dtype_C         beta,
                              dtype_C *       C){
     int bidx = blockIdx.x;
     int tidx = threadIdx.x;
@@ -35,6 +33,9 @@ namespace CTF{
   #endif
 
   template<typename dtype>
+  #ifdef __CUDACC__
+  __device__ __host__
+  #endif
   void default_monoid(dtype a, dtype & b){ b = a+b; }
 
   template<typename dtype=double, void(*g)(dtype, dtype&)=default_monoid<dtype> >
@@ -75,7 +76,19 @@ namespace CTF{
     public:
     Bivar_Kernel() : Bivar_Function<dtype_A, dtype_B, dtype_C>(f) {
       this->has_gemm = true;
+#ifdef __CUDACC__
+      this->has_off_gemm = true;
+#endif
     }
+
+    Bivar_Kernel(bool is_comm) : Bivar_Function<dtype_A, dtype_B, dtype_C>(f, is_comm) {
+      this->has_gemm = true;
+#ifdef __CUDACC__
+      this->has_off_gemm = true;
+#endif
+    }
+
+
 
     static void gemm(char            tA,
                      char            tB,
@@ -121,15 +134,27 @@ namespace CTF{
                              int             m,
                              int             n,
                              int             k,
-                             dtype_C         alpha,
                              dtype_A const * A,
                              dtype_B const * B,
-                             dtype_C         beta,
                              dtype_C *       C){
 #ifdef __CUDACC__
-      cuda_gemmf<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(tA, tB, m, n, k, alpha, A, B, beta, C);
+      cuda_gemmf<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(tA, tB, m, n, k, A, B, C);
+#else
+      assert(0);
 #endif
     }
+
+    void coffload_gemm(char         tA,
+                       char         tB,
+                       int          m,
+                       int          n,
+                       int          k,
+                       char const * A,
+                       char const * B,
+                       char *       C) const {
+      offload_gemm(tA, tB, m, n, k, (dtype_A const *)A, (dtype_B const *)B, (dtype_C*)C);
+    }
+
 
 /*    static void axpy(int             n,
                      dtype_C         alpha,

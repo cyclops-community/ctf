@@ -3324,7 +3324,7 @@ namespace CTF_int {
       *nvirt_all = nvirt;
     bool do_offload = false;
   #ifdef OFFLOAD
-    if (!is_custom && is_inner > 0 && C->sr->is_offloadable()){
+    if ((!is_custom || func->has_off_gemm) && is_inner > 0 && (is_custom || C->sr->is_offloadable())){
       do_offload = true;
       if (bottom_ctr_gen != NULL)
         bottom_ctr_gen->alloc_host_buf = true;
