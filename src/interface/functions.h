@@ -294,10 +294,10 @@ namespace CTF {
       }
 
  
-      Function(std::function<dtype_C(dtype_A,dtype_B)> f_){
+      Function(std::function<dtype_C(dtype_A,dtype_B)> f_, bool is_comm=false){
         is_univar = false;
         is_bivar = true;
-        bivar = new Bivar_Function<dtype_A, dtype_B, dtype_C>(f_);
+        bivar = new Bivar_Function<dtype_A, dtype_B, dtype_C>(f_,is_comm);
       }
 
       CTF_int::Unifun_Term operator()(CTF_int::Term const & A) const {

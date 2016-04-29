@@ -11,6 +11,12 @@ using namespace CTF;
 #define HOST
 #endif
 
+DEVICE HOST
+void mfunc(mpath a, mpath & b){ 
+  if (a.w<b.w){ b=a; }
+  else if (b.w==a.w){ b.m+=a.m; }
+}
+
 void DEVICE HOST cnfunc(cpath a, cpath & b){
   if (a.w>b.w){ b=a; }
   else if (b.w>a.w){ }
@@ -82,11 +88,19 @@ Monoid<cpath> get_cpath_monoid(){
                     else { return cpath(a.w, a.m+b.m, a.c+b.c); }
                   }, ocpath);
 
-  Bivar_Kernel<cpath,cpath,cpath,cfunc, cnfunc> tmp;
+//  Bivar_Kernel<cpath,cpath,cpath,cfunc, cnfunc> tmp;
 //  Kernel k = tmp.generate_kernel<cfunc>();
 
 //  Monoid<cpath> cp(cpath(-INT_MAX/2,1,0.), ker);
 //  Kernel<cpath, cpath, cpath, cfunc> ker;
 
   return cp;
+}
+
+DEVICE HOST
+mpath addw(int w, mpath p){ return mpath(p.w+w, p.m); }
+
+Bivar_Function<int,mpath,mpath> * get_Bellman_kernel(){
+  return new Bivar_Kernel<int,mpath,mpath,addw,mfunc>();
+  //return new Bivar_Function<int,mpath,mpath>(addw);
 }

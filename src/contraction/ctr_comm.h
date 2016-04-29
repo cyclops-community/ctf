@@ -75,7 +75,17 @@ namespace CTF_int{
                                  int          k,
                                  char const * A,
                                  char const * B,
-                                 char *       C) const {}
+                                 char *       C) const { assert(0); }
+
+    virtual void ccoomm(int                             m,
+                        int                             n,
+                        int                             k,
+                        char const *                    A,
+                        int const *                     rows_A,
+                        int const *                     cols_A,
+                        int64_t                         nnz_A,
+                        char const *                    B,
+                        char *                          C) const { assert(0); }
   };
 
   /**

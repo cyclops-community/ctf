@@ -1,5 +1,6 @@
 #include "coo.h"
 #include "../shared/util.h"
+#include "../contraction/ctr_comm.h"
 
 namespace CTF_int {
   int64_t get_coo_size(int64_t nnz, int val_size){
@@ -118,8 +119,14 @@ namespace CTF_int {
     int const * rs = rows();
     int const * cs = cols();
     char const * vs = vals();
-    ASSERT(sr_B->el_size == sr_A->el_size);
-    ASSERT(sr_C->el_size == sr_A->el_size);
-    sr_A->coomm(m,n,k,alpha,vs,rs,cs,nz,B,beta,C,func);
+    if (func != NULL && func->has_gemm){
+      assert(sr_C->isequal(beta, sr_C->mulid()));
+      assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+      func->ccoomm(m,n,k,vs,rs,cs,nz,B,C);
+    } else {
+      ASSERT(sr_B->el_size == sr_A->el_size);
+      ASSERT(sr_C->el_size == sr_A->el_size);
+      sr_A->coomm(m,n,k,alpha,vs,rs,cs,nz,B,beta,C,func);
+    }
   }
 }

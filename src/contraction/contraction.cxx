@@ -2480,7 +2480,7 @@ namespace CTF_int {
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
   #if FOLD_TSR
-        if ((!is_custom || (func->has_gemm && !is_ctr_sparse)) && can_fold()){
+        if ((!is_custom || func->has_gemm) && can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           ctr * sctrf = construct_ctr(1, &prm);
@@ -2712,7 +2712,7 @@ namespace CTF_int {
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
   #if FOLD_TSR
-        if ((!is_custom || (func->has_gemm && !is_ctr_sparse)) && can_fold()){
+        if ((!is_custom || func->has_gemm) && can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           ctr * sctrf = construct_ctr(1, &prm);
@@ -4030,7 +4030,7 @@ namespace CTF_int {
     ASSERT(check_mapping());
     bool is_inner = false;
   #if FOLD_TSR
-    if (!is_custom || (func->has_gemm && !A->is_sparse && !B->is_sparse && !C->is_sparse)) is_inner = can_fold();
+    if (!is_custom || func->has_gemm) is_inner = can_fold();
     if (is_inner){
       iparam prm;
       TAU_FSTART(map_fold);

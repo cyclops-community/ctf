@@ -27,4 +27,6 @@ CTF::Monoid<cpath> get_cpath_monoid();
 
 //(min, +) tropical semiring for mpath structure
 CTF::Semiring<mpath> get_mpath_semiring();
+
+CTF::Bivar_Function<int,mpath,mpath> * get_Bellman_kernel();
 #endif

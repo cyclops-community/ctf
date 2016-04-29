@@ -47,10 +47,15 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
     //let shortest mpaths vectors be mpaths
     Matrix<mpath> B(n, k, dw, p, "B");
     B["ij"] = ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
-    
+
+    Bivar_Function<int,mpath,mpath> * Bellman = get_Bellman_kernel();
+ 
     //compute Bellman Ford
     for (int i=0; i<n; i++){
-      B["ij"] = ((Function<int,mpath,mpath>)([](int w, mpath p){ return mpath(p.w+w, p.m); }))(A["ik"],B["kj"]);
+      Matrix<mpath> C(B);
+      B.set_zero();
+      (*Bellman)(A["ik"],C["kj"],B["ij"]);
+//      B["ij"] = ((Function<int,mpath,mpath>)([](int w, mpath p){ return mpath(p.w+w, p.m); }))(A["ik"],B["kj"]);
       B["ij"] += ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
     }
 

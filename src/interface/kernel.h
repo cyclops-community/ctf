@@ -115,6 +115,41 @@ namespace CTF{
       }
     }
 
+
+    static void coomm(int             m,
+                      int             n,
+                      int             k,
+                      dtype_A const * A,
+                      int const *     rows_A,
+                      int const *     cols_A,
+                      int             nnz_A,
+                      dtype_B const * B,
+                      dtype_C *       C){
+      TAU_FSTART(default_fcoomm);
+      for (int i=0; i<nnz_A; i++){
+        int row_A = rows_A[i]-1;
+        int col_A = cols_A[i]-1;
+        for (int col_C=0; col_C<n; col_C++){
+          g(f(A[i],B[col_C*k+col_A]),C[col_C*m+row_A]);
+        }
+      }
+      TAU_FSTOP(default_fcoomm);
+    }
+
+    void ccoomm(int                             m,
+                int                             n,
+                int                             k,
+                char const *                    A,
+                int const *                     rows_A,
+                int const *                     cols_A,
+                int64_t                         nnz_A,
+                char const *                    B,
+                char *                          C) const {
+      coomm(m, n, k, (dtype_A const *)A, rows_A, cols_A, nnz_A, 
+            (dtype_B const *)B, (dtype_C *)C);
+    }
+
+
     void cgemm(char         tA,
                char         tB,
                int          m,
