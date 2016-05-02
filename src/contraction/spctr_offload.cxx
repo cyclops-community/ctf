@@ -95,31 +95,32 @@ namespace CTF_int {
         for (int i=0; i<nblk_A; i++){
           sp_size_A += size_blk_A[i];
         }      
-        spr_A = new offload_spr(sr_A, sp_size_A);
+        spr_A = new offload_arr(sp_size_A);
       } else {
-        ptr_A = new offload_ptr(sr_A, size_A);
-        ptr_A->upload(A);
+        ptr_A = new offload_tsr(sr_A, size_A);
       }
+      ptr_A->upload(A);
       if (is_sparse_B){
         int64_t sp_size_B;
         for (int i=0; i<nblk_B; i++){
           sp_size_B += size_blk_B[i];
         }      
-        spr_B = new offload_spr(sr_B, sp_size_B);
+        spr_B = new offload_arr(sp_size_B);
       } else {
-        ptr_B = new offload_ptr(sr_B, size_B);
-        ptr_B->upload(B);
+        ptr_B = new offload_tsr(sr_B, size_B);
       }
+      ptr_B->upload(B);
       if (is_sparse_C){
         int64_t sp_size_C;
         for (int i=0; i<nblk_C; i++){
           sp_size_C += size_blk_C[i];
         }      
-        spr_C = new offload_spr(sr_C, sp_size_C);
+        spr_C = new offload_arr(sp_size_C);
         ASSERT(0); assert(0);
       } else {
-        ptr_C = new offload_ptr(sr_C, size_C);
-        ptr_C->set_zero();
+        offload_tsr * tptr_C = new offload_tsr(sr_C, size_C);
+        ptr_C = tptr_C;
+        tptr_C->set_zero();
       }
     
     } else {
@@ -171,7 +172,7 @@ namespace CTF_int {
       }*/
       host_pinned_free(C_host_ptr);
       if (iter_counter != total_iter)
-        ptr_C->set_zero();
+        ((offload_tsr*)ptr_C)->set_zero();
     }
 
 

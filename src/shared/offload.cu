@@ -58,17 +58,13 @@ namespace CTF_int{
     }
   }
   
-  offload_ptr::offload_ptr(algstrct const * sr_, int64_t size_){
+  offload_tsr::offload_tsr(algstrct const * sr_, int64_t size_) : offload_arr(size_*sr->el_size) {
     sr = sr_;
     size = size_;
-    cudaError_t err = cudaMalloc((void**)&dev_ptr, size*sr->el_size);
-    assert(err == cudaSuccess);
   }
   
-  offload_ptr::~offload_ptr(){
-    cudaError_t err = cudaFree(dev_ptr);
-    assert(err == cudaSuccess);
-  }
+  /*offload_tsr::~offload_tsr(){
+  }*/
 
   LinModel<2> upload_mdl(upload_mdl_init,"upload_mdl");
   LinModel<2> download_mdl(download_mdl_init,"download_mdl");
@@ -83,32 +79,6 @@ namespace CTF_int{
     return upload_mdl.est_time(ps);
   }
   
-  void offload_ptr::download(char * host_ptr){
-    assert(initialized);
-    TAU_FSTART(cuda_download);
-    double st_time = MPI_Wtime();
-    cudaError_t err = cudaMemcpy(host_ptr, dev_ptr, size*sr->el_size,
-                                 cudaMemcpyDeviceToHost);
-    double exe_time = MPI_Wtime()-st_time;
-    double tps[] = {exe_time, 1.0, (double)size*sr->el_size};
-    download_mdl.observe(tps);
-    TAU_FSTOP(cuda_download);
-    assert(err == cudaSuccess);
-  }
-  
-  void offload_ptr::upload(char const * host_ptr){
-    TAU_FSTART(cuda_upload);
-    double st_time = MPI_Wtime();
-    cudaError_t err = cudaMemcpy(dev_ptr, host_ptr, size*sr->el_size,
-                                 cudaMemcpyHostToDevice);
-
-    double exe_time = MPI_Wtime()-st_time;
-    double tps[] = {exe_time, 1.0, (double)size*sr->el_size};
-    upload_mdl.observe(tps);
-    TAU_FSTOP(cuda_upload);
-    assert(err == cudaSuccess);
-  }
-  
   
   template <typename dtype>
   __global__ void gset_zero(dtype *arr, int64_t size, dtype val) {
@@ -119,18 +89,18 @@ namespace CTF_int{
     }
   }
   
-  void offload_ptr::set_zero(){
+  void offload_tsr::set_zero(){
     int blockSize = 256;
     int numBlocks = (size + blockSize - 1) / (size);
     switch (sr->el_size){
       case 4:
-        gset_zero<<<blockSize, numBlocks>>>((float*)dev_ptr, size, ((float*)sr->addid())[0]);
+        gset_zero<<<blockSize, numBlocks>>>((float*)dev_spr, size, ((float*)sr->addid())[0]);
         break;
       case 8:
-        gset_zero<<<blockSize, numBlocks>>>((double*)dev_ptr, size, ((double*)sr->addid())[0]);
+        gset_zero<<<blockSize, numBlocks>>>((double*)dev_spr, size, ((double*)sr->addid())[0]);
         break;
       case 16:
-        gset_zero<<<blockSize, numBlocks>>>((std::complex<double>*)dev_ptr, size, ((std::complex<double>*)sr->addid())[0]);
+        gset_zero<<<blockSize, numBlocks>>>((std::complex<double>*)dev_spr, size, ((std::complex<double>*)sr->addid())[0]);
         break;
       default:
         assert(0);
@@ -139,19 +109,19 @@ namespace CTF_int{
   }
 
  
-  offload_spr::offload_spr(int64_t nbytes_){
+  offload_arr::offload_arr(int64_t nbytes_){
     nbytes = nbytes_;
     cudaError_t err = cudaMalloc((void**)&dev_spr, nbytes);
     assert(err == cudaSuccess);
   }
   
-  offload_spr::~offload_spr(){
+  offload_arr::~offload_arr(){
     cudaError_t err = cudaFree(dev_spr);
     assert(err == cudaSuccess);
   }
 
  
-  void offload_spr::download(char * host_spr){
+  void offload_arr::download(char * host_spr){
     assert(initialized);
     TAU_FSTART(cuda_download);
     double st_time = MPI_Wtime();
@@ -164,7 +134,7 @@ namespace CTF_int{
     assert(err == cudaSuccess);
   }
   
-  void offload_spr::upload(char const * host_spr){
+  void offload_arr::upload(char const * host_spr){
     TAU_FSTART(cuda_upload);
     double st_time = MPI_Wtime();
     cudaError_t err = cudaMemcpy(dev_spr, host_spr, nbytes,
@@ -198,12 +168,12 @@ namespace CTF_int{
                     int           n,
                     int           k,
                     double        alpha,
-                    offload_ptr & A,
+                    offload_tsr & A,
                     int           lda_A,
-                    offload_ptr & B,
+                    offload_tsr & B,
                     int           lda_B,
                     double        beta,
-                    offload_ptr & C,
+                    offload_tsr & C,
                     int           lda_C);
   template 
   void offload_gemm(char                 tA,
@@ -212,12 +182,12 @@ namespace CTF_int{
                     int                  n,
                     int                  k,
                     std::complex<double> alpha,
-                    offload_ptr &        A,
+                    offload_tsr &        A,
                     int                  lda_A,
-                    offload_ptr &        B,
+                    offload_tsr &        B,
                     int                  lda_B,
                     std::complex<double> beta,
-                    offload_ptr &        C,
+                    offload_tsr &        C,
                     int                  lda_C);
 
   template <>
@@ -350,15 +320,15 @@ namespace CTF_int{
                     int            n,
                     int            k,
                     dtype          alpha,
-                    offload_ptr &  A,
+                    offload_tsr &  A,
                     int            lda_A,
-                    offload_ptr &  B,
+                    offload_tsr &  B,
                     int            lda_B,
                     dtype          beta,
-                    offload_ptr &  C,
+                    offload_tsr &  C,
                     int            lda_C){
     TAU_FSTART(cuda_gemm);
-    offload_gemm(tA, tB, m, n, k, alpha, (dtype*)A.dev_ptr, lda_A, (dtype*)B.dev_ptr, lda_B, beta, (dtype*)C.dev_ptr, lda_C);
+    offload_gemm(tA, tB, m, n, k, alpha, (dtype*)A.dev_spr, lda_A, (dtype*)B.dev_spr, lda_B, beta, (dtype*)C.dev_spr, lda_C);
     TAU_FSTOP(cuda_gemm);
   }
 }

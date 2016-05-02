@@ -20,9 +20,9 @@ namespace CTF_int {
       int upload_phase_A;
       int upload_phase_B;
       int download_phase_C;
-      offload_ptr * ptr_A;
-      offload_ptr * ptr_B;
-      offload_ptr * ptr_C;
+      offload_tsr * ptr_A;
+      offload_tsr * ptr_B;
+      offload_tsr * ptr_C;
       
       /**
        * \brief print ctr object

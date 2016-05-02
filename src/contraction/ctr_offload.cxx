@@ -85,9 +85,9 @@ namespace CTF_int {
   void ctr_offload::run(char * A, char * B, char * C){
     ASSERT(iter_counter < total_iter);
     if (iter_counter == 0){
-      ptr_A = new offload_ptr(sr_A, size_A);
-      ptr_B = new offload_ptr(sr_B, size_B);
-      ptr_C = new offload_ptr(sr_C, size_C);
+      ptr_A = new offload_tsr(sr_A, size_A);
+      ptr_B = new offload_tsr(sr_B, size_B);
+      ptr_C = new offload_tsr(sr_C, size_C);
       
       ptr_A->upload(A);
       ptr_B->upload(B);

@@ -20,12 +20,9 @@ namespace CTF_int {
       int64_t size_A; /* size of A blocks */
       int64_t size_B; /* size of B blocks */
       int64_t size_C; /* size of C blocks */
-      offload_ptr * ptr_A;
-      offload_ptr * ptr_B;
-      offload_ptr * ptr_C;
-      offload_spr * spr_A;
-      offload_spr * spr_B;
-      offload_spr * spr_C;
+      offload_arr * spr_A;
+      offload_arr * spr_B;
+      offload_arr * spr_C;
       
       /**
        * \brief print ctr object
