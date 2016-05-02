@@ -30,6 +30,28 @@ namespace CTF{
       }
     }
   }
+
+  template<typename dtype_A, typename dtype_B, typename dtype_C, dtype_C(*f)(dtype_A, dtype_B), void(*g)(dtype_C, dtype_C&)>
+  __global__ void cuda_csrmmf(int             m,
+                              int             n,
+                              int             k,
+                              dtype_A const * A,
+                              int const *     IA,
+                              int const *     JA,
+                              dtype_B const * B,
+                              dtype_C *       C){
+    int bidx = blockIdx.x;
+    int tidx = threadIdx.x;
+    for (int row_A=bidx; row_A<m; row_A+=NBLK){
+      for (int col_B=tidx; col_B<n; col_B+=NTRD){
+        for (int i_A=IA[row_A]-1; i_A<IA[row_A+1]-1; i_A++){
+          int col_A = JA[i_A]-1;
+          g(f(A[i_A],B[col_B*k+col_A]),C[col_B*m+row_A]);
+        }
+      }
+    }
+  }
+
   #endif
 
   template<typename dtype>
@@ -102,9 +124,13 @@ namespace CTF{
       int lda_A_k = tA == 'N' ? m : 1;
       int lda_B_k = tB == 'N' ? 1 : n;
       int lda_B_n = tB == 'N' ? k : 1;
-      #pragma omp parallel for 
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif 
       for (int mi=0; mi<m; mi++){
-        #pragma omp parallel for 
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif 
         for (int ni=0; ni<n; ni++){
           for (int ki=0; ki<k; ki++){
             g(f(A[mi*lda_A_m+ki*lda_A_k],
@@ -160,9 +186,13 @@ namespace CTF{
                int64_t         nnz_A,
                dtype_B const * B,
                dtype_C *       C) const {
+#ifdef _OPENMP
       #pragma omp parallel for
+#endif
       for (int row_A=0; row_A<m; row_A++){
+#ifdef _OPENMP
         #pragma omp parallel for
+#endif
         for (int col_B=0; col_B<n; col_B++){
           for (int i_A=IA[row_A]-1; i_A<IA[row_A+1]-1; i_A++){
             int col_A = JA[i_A]-1;

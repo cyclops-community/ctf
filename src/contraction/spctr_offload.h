@@ -1,28 +1,31 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-#ifndef __CTR_OFFLOAD_H__
-#define __CTR_OFFLOAD_H__
+#ifndef __SPCTR_OFFLOAD_H__
+#define __SPCTR_OFFLOAD_H__
 
 #include "../shared/offload.h"
-#include "ctr_comm.h"
+#include "spctr.h"
 
 namespace CTF_int {
   #ifdef OFFLOAD
-  class ctr_offload : public ctr {
+  class spctr_offload : public spctr {
     public: 
       /* Class to be called on sub-blocks */
-      ctr * rec_ctr;
-      int64_t size_A;
-      int64_t size_B;
-      int64_t size_C;
+      spctr * rec_ctr;
       int iter_counter;
       int total_iter;
       int upload_phase_A;
       int upload_phase_B;
       int download_phase_C;
+      int64_t size_A; /* size of A blocks */
+      int64_t size_B; /* size of B blocks */
+      int64_t size_C; /* size of C blocks */
       offload_ptr * ptr_A;
       offload_ptr * ptr_B;
       offload_ptr * ptr_C;
+      offload_spr * spr_A;
+      offload_spr * spr_B;
+      offload_spr * spr_C;
       
       /**
        * \brief print ctr object
@@ -30,9 +33,12 @@ namespace CTF_int {
       void print();
 
       /**
-       * \brief offloads and downloads local blocks of dense tensors
+       * \brief offloads and downloads local blocks of dense or CSR tensors
        */
-      void run(char * A, char * B, char * C);
+      void run(char * A, int nblk_A, int64_t const * size_blk_A,
+               char * B, int nblk_B, int64_t const * size_blk_B,
+               char * C, int nblk_C, int64_t * size_blk_C,
+               char *& new_C);
 
       /**
        * \brief returns the number of bytes of buffer space
@@ -51,29 +57,22 @@ namespace CTF_int {
        * \brief returns the time this kernel will take excluding calls to rec_ctr
        * \return seconds needed
        */
-      double est_time_fp(int nlyr);
-
+      double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 
       /**
        * \brief returns the time this kernel will take including calls to rec_ctr
        * \return seconds needed for recursive contraction
        */
-      double est_time_rec(int nlyr);
+      double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 
-      /**
-       * \brief copies ctr object
-       */
-      ctr * clone();
+      spctr * clone();
 
-      /**
-       * \brief copies ctr object
-       */
-      ctr_offload(ctr * other);
+      spctr_offload(spctr * other);
 
       /**
        * \brief deallocates ctr_offload object
        */
-      ~ctr_offload();
+      ~spctr_offload();
 
       /**
        * \brief allocates ctr_offload object
@@ -86,18 +85,17 @@ namespace CTF_int {
        * \param[in] upload_phase_B period in iterations with which to upload B
        * \param[in] download_phase_C period in iterations with which to download C
        */
-      ctr_offload(contraction const * c,
-                  int64_t size_A,
-                  int64_t size_B,
-                  int64_t size_C,
-                  int total_iter,
-                  int upload_phase_A,
-                  int upload_phase_B,
-                  int download_phase_C);
+      spctr_offload(contraction const * c,
+                    int64_t size_A,
+                    int64_t size_B,
+                    int64_t size_C,
+                    int total_iter,
+                    int upload_phase_A,
+                    int upload_phase_B,
+                    int download_phase_C);
 
   };
   #endif
 
 }
-
 #endif

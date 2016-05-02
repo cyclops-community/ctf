@@ -27,7 +27,6 @@ namespace CTF_int{
       algstrct const * sr;
       /** \brief number of elements */
       int64_t size;
-  
       
       /**
        * \brief constructor allocates device buffer
@@ -58,6 +57,38 @@ namespace CTF_int{
        */
       void set_zero();
   };
+
+  class offload_spr {
+    public:
+      /** \brief device pointer */
+      char * dev_spr;
+      /** \brief number of bytes */
+      int64_t nbytes;
+      
+      /**
+       * \brief constructor allocates device buffer
+       * \param[in] nbytes number of elements
+       */
+      offload_spr(int64_t nbytes);
+  
+      /**
+       * \brief destructor allocates device buffer
+       */
+      ~offload_spr();
+  
+      /**
+       * \brief read data from device to host pointer
+       * \param[in,out] host_spr (should be preallocated)
+       */
+      void download(char * host_spr);
+  
+      /**
+       * \brief write data from host to device
+       * \param[in] host_spr
+       */
+      void upload(char const * host_spr);
+  };
+
   
   /**
    * \brief allocate a pinned host buffer

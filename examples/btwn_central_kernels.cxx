@@ -3,31 +3,25 @@
 #include <ctf_cuda.hpp>
 using namespace CTF;
 
-#ifdef __CUDACC_
-#define DEVICE __device__
-#define HOST __host__
-#else
-#define DEVICE
-#define HOST
-#endif
 
-DEVICE HOST
+DEVICE HOST 
 void mfunc(mpath a, mpath & b){ 
   if (a.w<b.w){ b=a; }
   else if (b.w==a.w){ b.m+=a.m; }
 }
 
-void DEVICE HOST cnfunc(cpath a, cpath & b){
+DEVICE HOST 
+void cnfunc(cpath a, cpath & b){
   if (a.w>b.w){ b=a; }
   else if (b.w>a.w){ }
-  else { b=cpath(a.w, a.m+b.m, a.c+b.c); }
+  else { b.w=a.w; b.m+=a.m; b.c+=a.c; }
 }
 
-cpath DEVICE HOST cfunc(cpath a, cpath b){
+/*cpath DEVICE HOST cfunc(cpath a, cpath b){
   if (a.w>b.w){ return a; }
   else if (b.w>a.w){ return b; }
   else { return cpath(a.w, a.m+b.m, a.c+b.c); }
-}
+}*/
 
 
 //(min, +) tropical semiring for mpath structure
@@ -97,8 +91,9 @@ Monoid<cpath> get_cpath_monoid(){
   return cp;
 }
 
-DEVICE HOST
-mpath addw(int w, mpath p){ return mpath(p.w+w, p.m); }
+
+DEVICE HOST 
+mpath addw(int w, mpath p){ p.w=p.w+w; return p; }
 
 Bivar_Function<int,mpath,mpath> * get_Bellman_kernel(){
   return new Bivar_Kernel<int,mpath,mpath,addw,mfunc>();

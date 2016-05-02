@@ -3718,6 +3718,24 @@ namespace CTF_int {
     ASSERT(blk_sz_B >= 1);
     ASSERT(blk_sz_C >= 1);
 
+  /*  bool do_offload = false;
+  #ifdef OFFLOAD
+    if ((!is_custom || func->has_off_gemm) && is_inner > 0 && (is_custom || C->sr->is_offloadable())){
+      do_offload = true;
+      if (bottom_ctr_gen != NULL)
+        bottom_ctr_gen->alloc_host_buf = true;
+      ctr_offload * ctroff = new ctr_offload(this, blk_sz_A, blk_sz_B, blk_sz_C, total_iter, upload_phase_A, upload_phase_B, download_phase_C);
+      if (is_top){
+        hctr = ctroff;
+        is_top = 0;
+      } else {
+        *rec_ctr = ctroff;
+      }
+      rec_ctr = &ctroff->rec_ctr;
+    }
+  #endif*/
+
+
     /* Multiply over virtual sub-blocks */
     if (nvirt > 1){
       spctr_virt * ctrv = new spctr_virt(this, num_tot, virt_dim, vrt_sz_A, vrt_sz_B, vrt_sz_C);

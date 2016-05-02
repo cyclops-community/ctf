@@ -2,13 +2,26 @@
 #define __BTWN_CENTRAL_H__
 
 #include <ctf.hpp>
+
+#ifdef __CUDACC__
+#define DEVICE __device__
+#define HOST __host__
+#else
+#define DEVICE
+#define HOST
+#endif
+
+
 //structure for regular path that keeps track of the multiplicity of paths
 class mpath {
   public:
   int w; // weighted distance
   int m; // multiplictiy
+  DEVICE HOST
   mpath(int w_, int m_){ w=w_; m=m_; }
+  DEVICE HOST
   mpath(mpath const & p){ w=p.w; m=p.m; }
+  DEVICE HOST
   mpath(){};
 };
 

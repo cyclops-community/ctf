@@ -137,6 +137,47 @@ namespace CTF_int{
         break;
     }
   }
+
+ 
+  offload_spr::offload_spr(int64_t nbytes_){
+    nbytes = nbytes_;
+    cudaError_t err = cudaMalloc((void**)&dev_spr, nbytes);
+    assert(err == cudaSuccess);
+  }
+  
+  offload_spr::~offload_spr(){
+    cudaError_t err = cudaFree(dev_spr);
+    assert(err == cudaSuccess);
+  }
+
+ 
+  void offload_spr::download(char * host_spr){
+    assert(initialized);
+    TAU_FSTART(cuda_download);
+    double st_time = MPI_Wtime();
+    cudaError_t err = cudaMemcpy(host_spr, dev_spr, nbytes,
+                                 cudaMemcpyDeviceToHost);
+    double exe_time = MPI_Wtime()-st_time;
+    double tps[] = {exe_time, 1.0, (double)nbytes};
+    download_mdl.observe(tps);
+    TAU_FSTOP(cuda_download);
+    assert(err == cudaSuccess);
+  }
+  
+  void offload_spr::upload(char const * host_spr){
+    TAU_FSTART(cuda_upload);
+    double st_time = MPI_Wtime();
+    cudaError_t err = cudaMemcpy(dev_spr, host_spr, nbytes,
+                                 cudaMemcpyHostToDevice);
+
+    double exe_time = MPI_Wtime()-st_time;
+    double tps[] = {exe_time, 1.0, (double)nbytes};
+    upload_mdl.observe(tps);
+    TAU_FSTOP(cuda_upload);
+    assert(err == cudaSuccess);
+  }
+  
+
   
   void host_pinned_alloc(void ** ptr, int64_t size){
     cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
