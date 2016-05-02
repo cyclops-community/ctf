@@ -736,7 +736,7 @@ namespace CTF_int {
         A->rec_tsr->is_sparse = 1;
         A->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
         for (i=0; i<nvirt_A; i++){
-          if (A->sr->has_csrmm)
+          if (A->sr->has_csrmm || (is_custom && func->has_gemm))
             A->rec_tsr->nnz_blk[i] = get_csr_size(A->nnz_blk[i], iprm.m, A->sr->el_size); 
           else
             A->rec_tsr->nnz_blk[i] = get_coo_size(A->nnz_blk[i], A->sr->el_size); 
@@ -755,7 +755,7 @@ namespace CTF_int {
         char * data_ptr_out = A->rec_tsr->data;
         char const * data_ptr_in = A->data;
         for (i=0; i<nvirt_A; i++){
-          if (A->sr->has_csrmm){
+          if (A->sr->has_csrmm || (is_custom && func->has_gemm)){
             COO_Matrix cm(A->nnz_blk[i], A->sr);
             cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
             CSR_Matrix cs(cm, iprm.m, A->sr, data_ptr_out);
@@ -3732,7 +3732,7 @@ namespace CTF_int {
       CTF_int::cdealloc(virt_dim);
 
     int krnl_type = is_inner;
-    if (krnl_type == 1 && A->sr->has_csrmm) krnl_type = 2;
+    if (krnl_type == 1 && (A->sr->has_csrmm || (is_custom && func->has_gemm))) krnl_type = 2;
     seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, krnl_type, inner_params, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {
       hctr = ctrseq;

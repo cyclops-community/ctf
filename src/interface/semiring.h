@@ -195,7 +195,6 @@ namespace CTF_int {
                   dtype const * B,
                   dtype         beta,
                   dtype *       C){
-
     TAU_FSTART(default_coomm);
     for (int j=0; j<n; j++){
       for (int i=0; i<m; i++){
@@ -269,24 +268,8 @@ namespace CTF_int {
       std::complex<double> *       C);
 
 
-  template <typename dtype>
-  void default_csrmm
-                 (int           m,
-                  int           n,
-                  int           k,
-                  dtype         alpha,
-                  dtype const * A,
-                  int const *   rows_A,
-                  int const *   cols_A,
-                  int           nnz_A,
-                  dtype const * B,
-                  dtype         beta,
-                  dtype *       C){
-    printf("CTF ERROR: no default CSRMM, only possible for types supported by MKL\n");
-    ASSERT(0);
-  }
 
-
+/*
   template <>
   void default_csrmm< float >
           (int           m,
@@ -346,10 +329,10 @@ namespace CTF_int {
            std::complex<double>         beta,
            std::complex<double> *       C);
 
-
+*/
 
   template <typename type>
-  bool get_def_has_csrmm(){ return false; }
+  bool get_def_has_csrmm(){ return true; }
   template <>
   bool get_def_has_csrmm<float>();
   template <>
@@ -359,13 +342,56 @@ namespace CTF_int {
   template <>
   bool get_def_has_csrmm< std::complex<double> >();
 
+  template <typename dtype>  
+  void seq_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_cs, int * csr_rs, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    csr_rs[0] = 1;
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int i=1; i<nrow+1; i++){
+      csr_rs[i] = 0;
+    }
+    for (int64_t i=0; i<nz; i++){
+      csr_rs[coo_rs[i]]++;
+    }
+    for (int i=0; i<nrow; i++){
+      csr_rs[i+1] += csr_rs[i];
+    }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nz; i++){
+      csr_cs[i] = i;
+    }
+
+    class comp_ref {
+      public:
+        int const * a;
+        comp_ref(int const * a_){ a = a_; }
+        bool operator()(int u, int v){ 
+          return a[u] < a[v];
+        }
+    };
+
+    comp_ref crc(coo_cs);
+    std::sort(csr_cs, csr_cs+nz, crc);
+    comp_ref crr(coo_rs);
+    std::stable_sort(csr_cs, csr_cs+nz, crr);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nz; i++){
+      csr_vs[i] = coo_vs[csr_cs[i]];
+      csr_cs[i] = coo_cs[csr_cs[i]];
+    }
+  }
+
 
   template <typename dtype>  
   void def_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_cs, int * csr_rs, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: no default COO to CSR conversion kernel available, only possible for types supported by MKL\n");
-    ASSERT(0);
+    seq_coo_to_csr<dtype>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
   }
-  
+ 
   template <>  
   void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_cs, int * csr_rs, float const * coo_vs, int const * coo_rs, int const * coo_cs);
   template <>  
@@ -624,8 +650,42 @@ namespace CTF {
       }
 
       void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
-        assert(this->has_csrmm);
         CTF_int::def_coo_to_csr(nz, nrow, (dtype *)csr_vs, csr_cs, csr_rs, (dtype const *) coo_vs, coo_rs, coo_cs);
+      }
+
+      void default_csrmm
+                     (int           m,
+                      int           n,
+                      int           k,
+                      dtype         alpha,
+                      dtype const * A,
+                      int const *   IA,
+                      int const *   JA,
+                      int           nnz_A,
+                      dtype const * B,
+                      dtype         beta,
+                      dtype *       C) const {
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif
+        for (int row_A=0; row_A<m; row_A++){
+#ifdef _OPENMP
+          #pragma omp parallel for
+#endif
+          for (int col_B=0; col_B<n; col_B++){
+            C[col_B*m+row_A] = this->fmul(beta,C[col_B*m+row_A]);
+            if (IA[row_A] < IA[row_A+1]){
+              int i_A1 = IA[row_A]-1;
+              int col_A1 = JA[i_A1]-1;
+              dtype tmp = this->fmul(A[i_A1],B[col_B*k+col_A1]);
+              for (int i_A=IA[row_A]; i_A<IA[row_A+1]-1; i_A++){
+                int col_A = JA[i_A]-1;
+                tmp = this->fadd(tmp, this->fmul(A[i_A],B[col_B*k+col_A]));
+              }
+              C[col_B*m+row_A] = this->fadd(C[col_B*m+row_A], this->fmul(alpha,tmp));
+            }
+          }
+        }
       }
 
 
@@ -644,7 +704,7 @@ namespace CTF {
                  CTF_int::bivar_function const * func) const {
         assert(this->has_csrmm);
         assert(func == NULL);
-        CTF_int::default_csrmm<dtype>(m,n,k,((dtype*)alpha)[0],(dtype*)A,rows_A,cols_A,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
+        this->default_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,rows_A,cols_A,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
       }
   };
   /**

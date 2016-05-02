@@ -198,14 +198,15 @@ namespace CTF_int {
   bool get_def_has_csrmm< std::complex<double> >(){ return true; }
 #else
   template <>
-  bool get_def_has_csrmm<float>(){ return false; }
+  bool get_def_has_csrmm<float>(){ return true; }
   template <>
-  bool get_def_has_csrmm<double>(){ return false; }
+  bool get_def_has_csrmm<double>(){ return true; }
   template <>
-  bool get_def_has_csrmm< std::complex<float> >(){ return false; }
+  bool get_def_has_csrmm< std::complex<float> >(){ return true; }
   template <>
-  bool get_def_has_csrmm< std::complex<double> >(){ return false; }
+  bool get_def_has_csrmm< std::complex<double> >(){ return true; }
 #endif
+
 
 #if USE_SP_MKL
   template <>  
@@ -243,34 +244,31 @@ namespace CTF_int {
     int info = 1;
     CTF_BLAS::MKL_ZCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (std::complex<double>*)coo_vs, coo_rs, coo_cs, &info);
   }
+
 #else
   template <> 
   void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_cs, int * csr_rs, float const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: MKL required for COO to CSR conversion, should not be here\n");
-    ASSERT(0);
+    seq_coo_to_csr<float>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
   }
   template <>  
   void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_cs, int * csr_rs, double const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: MKL required for COO to CSR conversion, should not be here\n");
-    ASSERT(0);
+    seq_coo_to_csr<double>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
   }
   template <>  
   void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_cs, int * csr_rs, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: MKL required for COO to CSR conversion, should not be here\n");
-    ASSERT(0);
+    seq_coo_to_csr<std::complex<float>>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
   }
   template <>  
   void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_cs, int * csr_rs, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: MKL required for COO to CSR conversion, should not be here\n");
-    ASSERT(0);
+    seq_coo_to_csr<std::complex<double>>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
   }
-
 #endif
+}
 
-
+namespace CTF {
 #if USE_SP_MKL
   template <>
-  void default_csrmm< float >
+  void CTF::Semiring<float,1>::default_csrmm
           (int           m,
            int           n,
            int           k,
@@ -281,7 +279,7 @@ namespace CTF_int {
            int           nnz_A,
            float const * B,
            float         beta,
-           float *       C){
+           float *       C) const {
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
@@ -290,7 +288,7 @@ namespace CTF_int {
   }
 
   template <>
-  void default_csrmm< double >
+  void CTF::Semiring<double,1>::default_csrmm
           (int            m,
            int            n,
            int            k,
@@ -301,7 +299,7 @@ namespace CTF_int {
            int            nnz_A,
            double const * B,
            double         beta,
-           double *       C){
+           double *       C) const {
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
@@ -312,7 +310,7 @@ namespace CTF_int {
 
 
   template <>
-  void default_csrmm< std::complex<float> >
+  void CTF::Semiring<std::complex<float>,0>::default_csrmm
           (int                         m,
            int                         n,
            int                         k,
@@ -323,7 +321,7 @@ namespace CTF_int {
            int                         nnz_A,
            std::complex<float> const * B,
            std::complex<float>         beta,
-           std::complex<float> *       C){
+           std::complex<float> *       C) const {
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
@@ -332,7 +330,7 @@ namespace CTF_int {
   }
 
   template <>
-  void default_csrmm< std::complex<double> >
+  void CTF::Semiring<std::complex<double>,0>::default_csrmm
           (int                          m,
            int                          n,
            int                          k,
@@ -343,7 +341,7 @@ namespace CTF_int {
            int                          nnz_A,
            std::complex<double> const * B,
            std::complex<double>         beta,
-           std::complex<double> *       C){
+           std::complex<double> *       C) const {
 
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
@@ -351,83 +349,8 @@ namespace CTF_int {
     CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
 
   }
-
-#else
-  template <>
-  void default_csrmm< float >
-          (int           m,
-           int           n,
-           int           k,
-           float         alpha,
-           float const * A,
-           int const *   rows_A,
-           int const *   cols_A,
-           int           nnz_A,
-           float const * B,
-           float         beta,
-           float *       C){
-    printf("CTF ERROR: MKL required for CSRMM, should not be here\n");
-    ASSERT(0);
-  }
-
-  template <>
-  void default_csrmm< double >
-          (int            m,
-           int            n,
-           int            k,
-           double         alpha,
-           double const * A,
-           int const *    rows_A,
-           int const *    cols_A,
-           int            nnz_A,
-           double const * B,
-           double         beta,
-           double *       C){
-    printf("CTF ERROR: MKL required for CSRMM, should not be here\n");
-    ASSERT(0);
-  }
-
-
-  template <>
-  void default_csrmm< std::complex<float> >
-          (int                         m,
-           int                         n,
-           int                         k,
-           std::complex<float>         alpha,
-           std::complex<float> const * A,
-           int const *                 rows_A,
-           int const *                 cols_A,
-           int                         nnz_A,
-           std::complex<float> const * B,
-           std::complex<float>         beta,
-           std::complex<float> *       C){
-
-    printf("CTF ERROR: MKL required for CSRMM, should not be here\n");
-    ASSERT(0);
-  }
-
-
-
-  template <>
-  void default_csrmm< std::complex<double> >
-          (int                          m,
-           int                          n,
-           int                          k,
-           std::complex<double>         alpha,
-           std::complex<double> const * A,
-           int const *                  rows_A,
-           int const *                  cols_A,
-           int                          nnz_A,
-           std::complex<double> const * B,
-           std::complex<double>         beta,
-           std::complex<double> *       C){
-    printf("CTF ERROR: MKL required for CSRMM, should not be here\n");
-    ASSERT(0);
-  }
 #endif
 
-}
-namespace CTF {
 /*  template<> 
   bool CTF::Semiring<float,1>::is_offloadable() const {
     return fgemm == &CTF_int::default_gemm<float>;

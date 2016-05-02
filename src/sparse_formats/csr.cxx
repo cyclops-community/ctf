@@ -1,4 +1,5 @@
 #include "csr.h"
+#include "../contraction/ctr_comm.h"
 #include "../shared/util.h"
 
 namespace CTF_int {
@@ -42,6 +43,12 @@ namespace CTF_int {
     //memset(csr_rs
 
     sr->coo_to_csr(nz, nrow, csr_vs, csr_cs, csr_rs, vs, coo_rs, coo_cs);
+/*    for (int i=0; i<nrow; i++){
+      printf("csr_rs[%d] = %d\n",i,csr_rs[i]);
+    }
+    for (int i=0; i<nz; i++){
+      printf("csr_cs[%d] = %d\n",i,csr_cs[i]);
+    }*/
     
   }
 
@@ -86,9 +93,15 @@ namespace CTF_int {
     int const * rs = rows();
     int const * cs = cols();
     char const * vs = vals();
-    ASSERT(sr_B->el_size == sr_A->el_size);
-    ASSERT(sr_C->el_size == sr_A->el_size);
-    sr_A->csrmm(m,n,k,alpha,vs,rs,cs,nz,B,beta,C,func);
+    if (func != NULL && func->has_gemm){
+      assert(sr_C->isequal(beta, sr_C->mulid()));
+      assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+      func->ccsrmm(m,n,k,vs,rs,cs,nz,B,C);
+    } else {
+      ASSERT(sr_B->el_size == sr_A->el_size);
+      ASSERT(sr_C->el_size == sr_A->el_size);
+      sr_A->csrmm(m,n,k,alpha,vs,rs,cs,nz,B,beta,C,func);
+    }
   }
 
 }

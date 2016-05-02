@@ -86,6 +86,17 @@ namespace CTF_int{
                         int64_t                         nnz_A,
                         char const *                    B,
                         char *                          C) const { assert(0); }
+
+
+    virtual void ccsrmm(int          m,
+                        int          n,
+                        int          k,
+                        char const * a,
+                        int const *  ia,
+                        int const *  ja,
+                        int64_t      nnz_a,
+                        char const * b,
+                        char *       c) const { int *r = NULL; r[0] = 23; assert(0); }
   };
 
   /**
