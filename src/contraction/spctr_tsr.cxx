@@ -197,7 +197,7 @@ namespace CTF_int {
       }
       TAU_FSTART(CSRMM);
       cA.csrmm(sr_A, inner_params.m, inner_params.n, inner_params.k,
-               alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
+               alpha, B, sr_B, sr_C->mulid(), C, sr_C, func, inner_params.offload);
       TAU_FSTOP(CSRMM);
 
     } else if (krnl_type==1){

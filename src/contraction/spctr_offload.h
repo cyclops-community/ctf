@@ -4,7 +4,7 @@
 #define __SPCTR_OFFLOAD_H__
 
 #include "../shared/offload.h"
-#include "spctr.h"
+#include "spctr_tsr.h"
 
 namespace CTF_int {
   #ifdef OFFLOAD

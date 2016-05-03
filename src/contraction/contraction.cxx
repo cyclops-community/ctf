@@ -11,6 +11,7 @@
 #include "ctr_tsr.h"
 #include "ctr_offload.h"
 #include "ctr_2d_general.h"
+#include "spctr_offload.h"
 #include "spctr_2d_general.h"
 #include "../symmetry/sym_indices.h"
 #include "../symmetry/symmetrization.h"
@@ -3357,7 +3358,8 @@ namespace CTF_int {
     } else
       CTF_int::cdealloc(virt_dim);
 
-    iparam const * iptr = NULL;
+
+    iparam const * iptr = inner_params;
     iparam inp_cpy;
     if (is_inner){
       inp_cpy = *inner_params;
@@ -3718,13 +3720,14 @@ namespace CTF_int {
     ASSERT(blk_sz_B >= 1);
     ASSERT(blk_sz_C >= 1);
 
-  /*  bool do_offload = false;
+    bool do_offload = false;
   #ifdef OFFLOAD
-    if ((!is_custom || func->has_off_gemm) && is_inner > 0 && (is_custom || C->sr->is_offloadable())){
+    //if ((!is_custom || func->has_off_gemm) && is_inner > 0 && (is_custom || C->sr->is_offloadable())){
+    if (is_custom && func->has_off_gemm){
       do_offload = true;
       if (bottom_ctr_gen != NULL)
         bottom_ctr_gen->alloc_host_buf = true;
-      ctr_offload * ctroff = new ctr_offload(this, blk_sz_A, blk_sz_B, blk_sz_C, total_iter, upload_phase_A, upload_phase_B, download_phase_C);
+      spctr_offload * ctroff = new spctr_offload(this, blk_sz_A, blk_sz_B, blk_sz_C, total_iter, upload_phase_A, upload_phase_B, download_phase_C);
       if (is_top){
         hctr = ctroff;
         is_top = 0;
@@ -3733,7 +3736,7 @@ namespace CTF_int {
       }
       rec_ctr = &ctroff->rec_ctr;
     }
-  #endif*/
+  #endif
 
 
     /* Multiply over virtual sub-blocks */
@@ -3751,7 +3754,17 @@ namespace CTF_int {
 
     int krnl_type = is_inner;
     if (krnl_type == 1 && (A->sr->has_csrmm || (is_custom && func->has_gemm))) krnl_type = 2;
-    seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, krnl_type, inner_params, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
+
+
+    iparam const * iptr = inner_params;
+    iparam inp_cpy;
+    if (is_inner){
+      inp_cpy = *inner_params;
+      inp_cpy.offload = do_offload;
+      iptr = &inp_cpy;
+    }
+
+    seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, krnl_type, iptr, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {
       hctr = ctrseq;
       is_top = 0;

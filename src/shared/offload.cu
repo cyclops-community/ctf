@@ -58,7 +58,7 @@ namespace CTF_int{
     }
   }
   
-  offload_tsr::offload_tsr(algstrct const * sr_, int64_t size_) : offload_arr(size_*sr->el_size) {
+  offload_tsr::offload_tsr(algstrct const * sr_, int64_t size_) : offload_arr(size_*sr_->el_size) {
     sr = sr_;
     size = size_;
   }

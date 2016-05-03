@@ -113,7 +113,7 @@ namespace CTF_int {
     rec_ctr->num_lyr = this->num_lyr;
     rec_ctr->idx_lyr = this->idx_lyr;
 
-    rec_ctr->run(ptr_A->dev_ptr, ptr_B->dev_ptr, ptr_C->dev_ptr);
+    rec_ctr->run(ptr_A->dev_spr, ptr_B->dev_spr, ptr_C->dev_spr);
     
     iter_counter++;
 

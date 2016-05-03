@@ -39,7 +39,7 @@ namespace CTF_int {
       /**
        * \brief computes C = beta*C + func(alpha*A*B) where A is this CSR_Matrix, while B and C are dense
        */
-      void csrmm(algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func);
+      void csrmm(algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
 
   };
 }

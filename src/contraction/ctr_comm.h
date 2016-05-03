@@ -5,6 +5,7 @@
 
 #include "../tensor/algstrct.h"
 #include "../interface/fun_term.h"
+#include "../sparse_formats/csr.h"
 
 namespace CTF_int{
   class contraction;
@@ -97,6 +98,13 @@ namespace CTF_int{
                         int64_t      nnz_a,
                         char const * b,
                         char *       c) const { int *r = NULL; r[0] = 23; assert(0); }
+
+    virtual void coffload_csrmm(int          m,
+                                int          n,
+                                int          k,
+                                char const * all_data,
+                                char const * B,
+                                char *       C) const { assert(0); }
   };
 
   /**

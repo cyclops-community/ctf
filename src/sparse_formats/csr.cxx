@@ -88,19 +88,26 @@ namespace CTF_int {
     return (int*)(all_data + n*v_sz+(nr+1)*sizeof(int)+3*sizeof(int64_t));
   } 
 
-  void CSR_Matrix::csrmm(algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
-    int64_t nz = nnz(); 
-    int const * rs = rows();
-    int const * cs = cols();
-    char const * vs = vals();
-    if (func != NULL && func->has_gemm){
+  void CSR_Matrix::csrmm(algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
+    if (func != NULL && func->has_gemm && do_offload){
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
-      func->ccsrmm(m,n,k,vs,rs,cs,nz,B,C);
+      func->coffload_csrmm(m,n,k,all_data,B,C);
     } else {
-      ASSERT(sr_B->el_size == sr_A->el_size);
-      ASSERT(sr_C->el_size == sr_A->el_size);
-      sr_A->csrmm(m,n,k,alpha,vs,rs,cs,nz,B,beta,C,func);
+      int64_t nz = nnz(); 
+      int const * rs = rows();
+      int const * cs = cols();
+      char const * vs = vals();
+      if (func != NULL && func->has_gemm){
+        assert(sr_C->isequal(beta, sr_C->mulid()));
+        assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+        func->ccsrmm(m,n,k,vs,rs,cs,nz,B,C);
+      } else {
+        ASSERT(sr_B->el_size == sr_A->el_size);
+        ASSERT(sr_C->el_size == sr_A->el_size);
+        assert(!do_offload);
+        sr_A->csrmm(m,n,k,alpha,vs,rs,cs,nz,B,beta,C,func);
+      }
     }
   }
 

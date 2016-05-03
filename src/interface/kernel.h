@@ -32,14 +32,15 @@ namespace CTF{
   }
 
   template<typename dtype_A, typename dtype_B, typename dtype_C, dtype_C(*f)(dtype_A, dtype_B), void(*g)(dtype_C, dtype_C&)>
-  __global__ void cuda_csrmmf(int             m,
-                              int             n,
-                              int             k,
-                              dtype_A const * A,
-                              int const *     IA,
-                              int const *     JA,
-                              dtype_B const * B,
-                              dtype_C *       C){
+  __device__ 
+  void cuda_csrmmf(int             m,
+                   int             n,
+                   int             k,
+                   dtype_A const * A,
+                   int const *     IA,
+                   int const *     JA,
+                   dtype_B const * B,
+                   dtype_C *       C){
     int bidx = blockIdx.x;
     int tidx = threadIdx.x;
     for (int row_A=bidx; row_A<m; row_A+=NBLK){
@@ -50,6 +51,21 @@ namespace CTF{
         }
       }
     }
+  }
+
+  template<typename dtype_A, typename dtype_B, typename dtype_C, dtype_C(*f)(dtype_A, dtype_B), void(*g)(dtype_C, dtype_C&)>
+  __global__
+  void offload_csrmm(int             m,
+                     int             n,
+                     int             k,
+                     char const *    all_data,
+                     dtype_B const * B,
+                     dtype_C *       C){
+   int64_t nnz_A = ((int64_t*)all_data)[0];
+   dtype_A const * A = (dtype_A const *)(all_data + 3*sizeof(int64_t));
+   int const * IA = (int*)(all_data + nnz_A*sizeof(dtype_A)+3*sizeof(int64_t)); 
+   int const * JA = (int*)(all_data + nnz_A*sizeof(dtype_A)+(m+1)*sizeof(int)+3*sizeof(int64_t));
+   cuda_csrmmf<dtype_A,dtype_B,dtype_C,f,g>(m,n,k,A,IA,JA,B,C);
   }
 
   #endif
@@ -255,6 +271,35 @@ namespace CTF{
                        char *       C) const {
       offload_gemm(tA, tB, m, n, k, (dtype_A const *)A, (dtype_B const *)B, (dtype_C*)C);
     }
+
+/*
+    void coffload_csrmm(int          m,
+                        int          n,
+                        int          k,
+                        char const * A,
+                        int const *  IA,
+                        int const *  JA,
+                        int64_t      nnz_A,
+                        char const * B,
+                        char *       C) const {
+      offload_csrmm(m, n, k, (dtype_A const *)A, IA, JA, nnz_A, (dtype_B const *)B, (dtype_C*)C);
+    }*/
+
+    void coffload_csrmm(int          m,
+                        int          n,
+                        int          k,
+                        char const * all_data,
+                        char const * B,
+                        char *       C) const {
+#ifdef __CUDACC__
+      offload_csrmm<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(m, n, k, all_data, (dtype_B const *)B, (dtype_C *)C);
+#else
+      assert(0);
+#endif
+//      offload_csrmm(m, n, k, (dtype_A const *)A, IA, JA, nnz_A, (dtype_B const *)B, (dtype_C*)C);
+    }
+
+
 
 
 /*    static void axpy(int             n,
