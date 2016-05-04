@@ -344,6 +344,7 @@ namespace CTF_int {
 
   template <typename dtype>  
   void seq_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_cs, int * csr_rs, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    TAU_FSTART(seq_coo_to_csr);
     csr_rs[0] = 1;
 #ifdef _OPENMP
     #pragma omp parallel for
@@ -374,9 +375,13 @@ namespace CTF_int {
     };
 
     comp_ref crc(coo_cs);
+    TAU_FSTART(sort_coo_to_csr);
     std::sort(csr_cs, csr_cs+nz, crc);
+    TAU_FSTOP(sort_coo_to_csr);
     comp_ref crr(coo_rs);
+    TAU_FSTART(stsort_coo_to_csr);
     std::stable_sort(csr_cs, csr_cs+nz, crr);
+    TAU_FSTOP(stsort_coo_to_csr);
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
@@ -384,6 +389,7 @@ namespace CTF_int {
       csr_vs[i] = coo_vs[csr_cs[i]];
       csr_cs[i] = coo_cs[csr_cs[i]];
     }
+    TAU_FSTOP(seq_coo_to_csr);
   }
 
 

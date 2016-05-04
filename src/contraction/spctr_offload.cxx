@@ -89,27 +89,41 @@ namespace CTF_int {
                           char *& new_C){
 
     ASSERT(iter_counter < total_iter);
-    if (iter_counter == 0){
+    if (iter_counter % upload_phase_A == 0){
       if (is_sparse_A){
+        if (iter_counter != 0){
+          delete spr_A; 
+        }
         int64_t sp_size_A = 0;
         for (int i=0; i<nblk_A; i++){
           sp_size_A += size_blk_A[i];
         }      
         spr_A = new offload_arr(sp_size_A);
       } else {
-        spr_A = new offload_tsr(sr_A, size_A);
+        if (iter_counter == 0){
+          spr_A = new offload_tsr(sr_A, size_A);
+        }
       }
       spr_A->upload(A);
+    }
+    if (iter_counter % upload_phase_B == 0){
       if (is_sparse_B){
+        if (iter_counter != 0){
+          delete spr_B; 
+        }
         int64_t sp_size_B = 0;
         for (int i=0; i<nblk_B; i++){
           sp_size_B += size_blk_B[i];
         }      
         spr_B = new offload_arr(sp_size_B);
       } else {
-        spr_B = new offload_tsr(sr_B, size_B);
+        if (iter_counter == 0){
+          spr_B = new offload_tsr(sr_B, size_B);
+        }
       }
       spr_B->upload(B);
+    }
+    if (iter_counter == 0){
       if (is_sparse_C){
         int64_t sp_size_C = 0;
         for (int i=0; i<nblk_C; i++){
@@ -122,15 +136,8 @@ namespace CTF_int {
         spr_C = tspr_C;
         tspr_C->set_zero();
       }
-    
-    } else {
-      if (iter_counter % upload_phase_A == 0){
-        spr_A->upload(A);
-      }
-      if (iter_counter % upload_phase_B == 0){
-        spr_B->upload(B);
-      }
-    }
+    } 
+
     if (this->beta != sr_C->mulid()){
       ASSERT(iter_counter % download_phase_C == 0);
       //FIXME daxpy 

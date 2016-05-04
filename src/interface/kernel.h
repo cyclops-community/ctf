@@ -202,6 +202,7 @@ namespace CTF{
                int64_t         nnz_A,
                dtype_B const * B,
                dtype_C *       C) const {
+      TAU_FSTART(3type_csrmm);
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
@@ -216,6 +217,7 @@ namespace CTF{
           }
         }
       }
+      TAU_FSTOP(3type_csrmm);
     }
 
     void ccsrmm(int          m,
@@ -255,7 +257,9 @@ namespace CTF{
                              dtype_B const * B,
                              dtype_C *       C){
 #ifdef __CUDACC__
+      TAU_FSTART(3type_cugemm);
       cuda_gemmf<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(tA, tB, m, n, k, A, B, C);
+      TAU_FSTOP(3type_cugemm);
 #else
       assert(0);
 #endif
@@ -292,7 +296,9 @@ namespace CTF{
                         char const * B,
                         char *       C) const {
 #ifdef __CUDACC__
+      TAU_FSTART(3type_cucsrmm);
       offload_csrmm<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(m, n, k, all_data, (dtype_B const *)B, (dtype_C *)C);
+      TAU_FSTOP(3type_cucsrmm);
 #else
       assert(0);
 #endif

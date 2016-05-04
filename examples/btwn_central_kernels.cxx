@@ -11,17 +11,29 @@ void mfunc(mpath a, mpath & b){
 }
 
 DEVICE HOST 
-void cnfunc(cpath a, cpath & b){
+mpath addw(int w, mpath p){ p.w=p.w+w; return p; }
+
+Bivar_Function<int,mpath,mpath> * get_Bellman_kernel(){
+  return new Bivar_Kernel<int,mpath,mpath,addw,mfunc>();
+  //return new Bivar_Function<int,mpath,mpath>(addw);
+}
+
+DEVICE HOST 
+void cfunc(cpath a, cpath & b){
   if (a.w>b.w){ b=a; }
   else if (b.w>a.w){ }
   else { b.w=a.w; b.m+=a.m; b.c+=a.c; }
 }
 
-/*cpath DEVICE HOST cfunc(cpath a, cpath b){
-  if (a.w>b.w){ return a; }
-  else if (b.w>a.w){ return b; }
-  else { return cpath(a.w, a.m+b.m, a.c+b.c); }
-}*/
+DEVICE HOST
+cpath subw(int w, cpath p){
+  return cpath(p.w-w , p.m, (1.+p.c)/p.m);
+}
+
+Bivar_Function<int,cpath,cpath> * get_Brandes_kernel(){
+  return new Bivar_Kernel<int,cpath,cpath,subw,cfunc>();
+  //return new Bivar_Function<int,mpath,mpath>(addw);
+}
 
 
 //(min, +) tropical semiring for mpath structure
@@ -92,10 +104,4 @@ Monoid<cpath> get_cpath_monoid(){
 }
 
 
-DEVICE HOST 
-mpath addw(int w, mpath p){ p.w=p.w+w; return p; }
 
-Bivar_Function<int,mpath,mpath> * get_Bellman_kernel(){
-  return new Bivar_Kernel<int,mpath,mpath,addw,mfunc>();
-  //return new Bivar_Function<int,mpath,mpath>(addw);
-}

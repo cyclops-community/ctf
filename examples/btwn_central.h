@@ -29,7 +29,9 @@ class mpath {
 class cpath : public mpath {
   public:
   double c; // centrality score
+  DEVICE HOST
   cpath(int w_, int m_, double c_) : mpath(w_, m_) { c=c_;}
+  DEVICE HOST
   cpath(cpath const & p) : mpath(p) { c=p.c; }
   cpath(){};
 };
@@ -42,4 +44,6 @@ CTF::Monoid<cpath> get_cpath_monoid();
 CTF::Semiring<mpath> get_mpath_semiring();
 
 CTF::Bivar_Function<int,mpath,mpath> * get_Bellman_kernel();
+
+CTF::Bivar_Function<int,cpath,cpath> * get_Brandes_kernel();
 #endif

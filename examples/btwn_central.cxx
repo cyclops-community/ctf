@@ -36,6 +36,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
   Semiring<mpath> p = get_mpath_semiring();
   Monoid<cpath> cp = get_cpath_monoid();
 
+
   for (int ib=0; ib<n; ib+=b){
     int k = std::min(b, n-ib);
 
@@ -49,29 +50,48 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
     B["ij"] = ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
 
     Bivar_Function<int,mpath,mpath> * Bellman = get_Bellman_kernel();
- 
+
+     
     //compute Bellman Ford
-    for (int i=0; i<n; i++){
+    int nbl = 0;
+    for (int i=0; i<n; i++, nbl++){
       Matrix<mpath> C(B);
       B.set_zero();
+      CTF::Timer tbl("Bellman");
+      tbl.start();
       (*Bellman)(A["ik"],C["kj"],B["ij"]);
+      tbl.stop();
 //      B["ij"] = ((Function<int,mpath,mpath>)([](int w, mpath p){ return mpath(p.w+w, p.m); }))(A["ik"],B["kj"]);
       B["ij"] += ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
+      Scalar<int> num_changed = Scalar<int>();
+      num_changed[""] += ((Function<mpath,mpath,int>)([](mpath p, mpath q){ return (p.w!=q.w) | (p.m!=q.m); }))(C["ij"],B["ij"]);
+      if (num_changed.get_val() == 0) break;
     }
+    if (dw.rank == 0)
+      printf(", (%d", nbl);
 
     //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
     ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, p.m, 0.); }))(B["ij"],cB["ij"]);
+    Bivar_Function<int,cpath,cpath> * Brandes = get_Brandes_kernel();
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
-    for (int i=0; i<n; i++){
-      cB["ij"] = ((Function<int,cpath,cpath>)(
-                    [](int w, cpath p){ 
-                      return cpath(p.w-w, p.m, (1.+p.c)/p.m); 
-                    }))(A["ki"],cB["kj"]);
+    int nbr = 0;
+    for (int i=0; i<n; i++, nbr++){
+      Matrix<cpath> C(cB);
+      cB.set_zero();
+      CTF::Timer tbr("Brandes");
+      tbr.start();
+      cB["ij"] += (*Brandes)(A["ki"],C["kj"]);
+      tbr.stop();
       ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ 
         cp = (p.w <= cp.w) ? cpath(p.w, p.m, cp.c*p.m) : cpath(p.w, p.m, 0.); 
       }))(B["ij"],cB["ij"]);
+      Scalar<int> num_changed = Scalar<int>();
+      num_changed[""] += ((Function<cpath,cpath,int>)([](cpath p, cpath q){ return p.c!=q.c; }))(C["ij"],cB["ij"]);
+      if (num_changed.get_val() == 0) break;
     }
+    if (dw.rank == 0)
+      printf(",%d)", nbr);
     //set self-centrality scores to zero
     //FIXME: assumes loops are zero edges and there are no others zero edges in A
     ((Transform<cpath>)([](cpath & p){ if (p.w == 0) p.c=0; }))(cB["ij"]);
@@ -135,7 +155,9 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & v){
 
 // calculate betweenness centrality a graph of n nodes distributed on World (communicator) dw
 int btwn_cnt(int     n,
-             World & dw){
+             World & dw,
+             double  sp=.20,
+             int     bsize=2){
 
   //tropical semiring, define additive identity to be INT_MAX/2 to prevent integer overflow
   Semiring<int> s(INT_MAX/2, 
@@ -145,50 +167,71 @@ int btwn_cnt(int     n,
                   [](int a, int b){ return a+b; });
 
   //random adjacency matrix
-  Matrix<int> A(n, n, dw, s, "A");
+  Matrix<int> A(n, n, SP, dw, s, "A");
 
   //fill with values in the range of [1,min(n*n,100)]
   srand(dw.rank+1);
-  A.fill_random(1, std::min(n*n,100)); 
-/*  if (dw.rank == 0){
-    int64_t inds[n*n];
-    int vals[n*n];
-    for (int i=0; i<n*n; i++){
-      inds[i] = i;
-      vals[i] = (rand()%std::min(n*n,100))+1;
+//  A.fill_random(1, std::min(n*n,100)); 
+  int nmy = ((int)std::max((int)(n*sp),(int)1))*((int)((n+dw.np-1)/dw.np));
+  int64_t inds[nmy];
+  int vals[nmy];
+  int i=0;
+  for (int row=dw.rank*n/dw.np; row<(int)(dw.rank+1)*n/dw.np; row++){
+    int cols[std::max((int)(n*sp),1)];
+    for (int col=0; col<std::max((int)(n*sp),1); col++){
+      bool is_rep;
+      do {
+        cols[col] = rand()%n;
+        is_rep = 0;
+        for (int c=0; c<col; c++){
+          if (cols[c] == cols[col]) is_rep = 1;
+        }
+      } while (is_rep);
+      inds[i] = cols[col]*n+row;
+      vals[i] = (rand()%std::min(n*n,20))+1;
+      i++;
     }
-    A.write(n*n,inds,vals);
-  } else A.write(0,NULL,NULL);*/
+  }
+  A.write(i,inds,vals);
   
   A["ii"] = 0;
   
   //keep only values smaller than 20 (about 20% sparsity)
-  A.sparsify([=](int a){ return a<20; });
+  //A.sparsify([=](int a){ return a<sp*100; });
 
 
   Vector<double> v1(n,dw);
   Vector<double> v2(n,dw);
 
-  //compute centrality scores by naive counting
-  btwn_cnt_naive(A, v1);
-  //compute centrality scores by Bellman Ford with block size 2
-  btwn_cnt_fast(A, 2, v2);
+  double st_time = MPI_Wtime();
 
+  //compute centrality scores by naive counting
+  if (n <= 20)
+    btwn_cnt_naive(A, v1);
+  //compute centrality scores by Bellman Ford with block size 2
+  btwn_cnt_fast(A, bsize, v2);
+
+  printf("\n");
  // v1.print();
  // v2.print();
 
-  v1["i"] -= v2["i"];
-  int pass = v1.norm2() <= 1.E-6;
+  if (n<= 20){
+    v1["i"] -= v2["i"];
+    int pass = v1.norm2() <= 1.E-6;
 
-  if (dw.rank == 0){
-    MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-    if (pass) 
-      printf("{ betweenness centrality } passed \n");
-    else
-      printf("{ betweenness centrality } failed \n");
-  } else 
-    MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-  return pass;
+    if (dw.rank == 0){
+      MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+      if (pass) 
+        printf("{ betweenness centrality } passed \n");
+      else
+        printf("{ betweenness centrality } failed \n");
+    } else 
+      MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+    return pass;
+  } else {
+    if (dw.rank == 0) printf("Completed in total time %lf sec.\n", MPI_Wtime()-st_time);
+    return 1;
+  }
 } 
 
 
@@ -205,7 +248,8 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, n, pass;
+  int rank, np, n, pass, bsize;
+  double sp;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -218,13 +262,24 @@ int main(int argc, char ** argv){
     if (n < 0) n = 7;
   } else n = 7;
 
+  if (getCmdOption(input_str, input_str+in_num, "-sp")){
+    sp = atof(getCmdOption(input_str, input_str+in_num, "-sp"));
+    if (sp < 0) sp = .2;
+  } else sp = .2;
+  if (getCmdOption(input_str, input_str+in_num, "-bsize")){
+    bsize = atoi(getCmdOption(input_str, input_str+in_num, "-bsize"));
+    if (bsize < 0) bsize = 2;
+  } else bsize = 2;
+
+
+
   {
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Computing betweenness centrality for graph with %d nodes\n",n);
+      printf("Computing betweenness centrality for graph with %d nodes, with %lf percent sparsity, and batch size %d",n,sp,bsize);
     }
-    pass = btwn_cnt(n, dw);
+    pass = btwn_cnt(n, dw, sp, bsize);
     assert(pass);
   }
 
