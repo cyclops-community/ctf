@@ -210,57 +210,75 @@ namespace CTF_int {
 
 #if USE_SP_MKL
   template <>  
-  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_cs, int * csr_rs, float const * coo_vs, int const * coo_rs, int const * coo_cs){
+  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_ja, int * csr_ia, float const * coo_vs, int const * coo_rs, int const * coo_cs){
     int inz = nz;
     int job[8]={2,1,1,0,inz,0,0,0};
 
     int info = 1;
-    CTF_BLAS::MKL_SCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (float*)coo_vs, coo_rs, coo_cs, &info);
+    CTF_BLAS::MKL_SCSRCOO(job, &nrow, csr_vs, csr_ja, csr_ia, &inz, (float*)coo_vs, coo_rs, coo_cs, &info);
 
   }
   template <>  
-  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_cs, int * csr_rs, double const * coo_vs, int const * coo_rs, int const * coo_cs){
+  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_ja, int * csr_ia, double const * coo_vs, int const * coo_rs, int const * coo_cs){
     int inz = nz;
     int job[8]={2,1,1,0,inz,0,0,0};
 
     int info = 1;
     TAU_FSTART(MKL_DCSRCOO);
-    CTF_BLAS::MKL_DCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (double*)coo_vs, coo_rs, coo_cs, &info);
+    CTF_BLAS::MKL_DCSRCOO(job, &nrow, csr_vs, csr_ja, csr_ia, &inz, (double*)coo_vs, coo_rs, coo_cs, &info);
     TAU_FSTOP(MKL_DCSRCOO);
   }
   template <>  
-  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_cs, int * csr_rs, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs){
+  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_ja, int * csr_ia, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs){
     int inz = nz;
     int job[8]={2,1,1,0,inz,0,0,0};
 
     int info = 1;
-    CTF_BLAS::MKL_CCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (std::complex<float>*)coo_vs, coo_rs, coo_cs, &info);
+    CTF_BLAS::MKL_CCSRCOO(job, &nrow, csr_vs, csr_ja, csr_ia, &inz, (std::complex<float>*)coo_vs, coo_rs, coo_cs, &info);
   }
   template <>  
-  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_cs, int * csr_rs, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs){
+  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_ja, int * csr_ia, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs){
     int inz = nz;
     int job[8]={2,1,1,0,inz,0,0,0};
 
     int info = 1;
-    CTF_BLAS::MKL_ZCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (std::complex<double>*)coo_vs, coo_rs, coo_cs, &info);
+    CTF_BLAS::MKL_ZCSRCOO(job, &nrow, csr_vs, csr_ja, csr_ia, &inz, (std::complex<double>*)coo_vs, coo_rs, coo_cs, &info);
   }
 
+  bool try_mkl_coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs, int el_size){
+    switch (el_size){
+      case 4:
+        def_coo_to_csr<float>(nz,nrow,(float*)csr_vs,csr_ja,csr_ia,(float const*)coo_vs,coo_rs,coo_cs);
+        break;
+      case 8:
+        def_coo_to_csr<double>(nz,nrow,(double*)csr_vs,csr_ja,csr_ia,(double const*)coo_vs,coo_rs,coo_cs);
+        break;
+      case 16:
+        def_coo_to_csr<std::complex<double>>(nz,nrow,(std::complex<double>*)csr_vs,csr_ja,csr_ia,(std::complex<double> const*)coo_vs,coo_rs,coo_cs);
+        break;
+    } 
+    return true; 
+  }
 #else
   template <> 
-  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_cs, int * csr_rs, float const * coo_vs, int const * coo_rs, int const * coo_cs){
-    seq_coo_to_csr<float>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
+  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_ja, int * csr_ia, float const * coo_vs, int const * coo_rs, int const * coo_cs){
+    seq_coo_to_csr<float>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
   }
   template <>  
-  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_cs, int * csr_rs, double const * coo_vs, int const * coo_rs, int const * coo_cs){
-    seq_coo_to_csr<double>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
+  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_ja, int * csr_ia, double const * coo_vs, int const * coo_rs, int const * coo_cs){
+    seq_coo_to_csr<double>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
   }
   template <>  
-  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_cs, int * csr_rs, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs){
-    seq_coo_to_csr<std::complex<float>>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
+  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_ja, int * csr_ia, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs){
+    seq_coo_to_csr<std::complex<float>>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
   }
   template <>  
-  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_cs, int * csr_rs, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs){
-    seq_coo_to_csr<std::complex<double>>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
+  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_ja, int * csr_ia, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs){
+    seq_coo_to_csr<std::complex<double>>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
+  }
+
+  bool try_mkl_coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs, int el_size){
+    return 0; 
   }
 #endif
 }
@@ -274,8 +292,8 @@ namespace CTF {
            int           k,
            float         alpha,
            float const * A,
-           int const *   rows_A,
-           int const *   cols_A,
+           int const *   IA,
+           int const *   JA,
            int           nnz_A,
            float const * B,
            float         beta,
@@ -283,7 +301,7 @@ namespace CTF {
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
-    CTF_BLAS::MKL_SCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
+    CTF_BLAS::MKL_SCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
 
   }
 
@@ -294,8 +312,8 @@ namespace CTF {
            int            k,
            double         alpha,
            double const * A,
-           int const *    rows_A,
-           int const *    cols_A,
+           int const *    IA,
+           int const *    JA,
            int            nnz_A,
            double const * B,
            double         beta,
@@ -304,7 +322,7 @@ namespace CTF {
     char matdescra[6] = {'G',0,0,'F',0,0};
     
     TAU_FSTART(MKL_DCSRMM);
-    CTF_BLAS::MKL_DCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
+    CTF_BLAS::MKL_DCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
     TAU_FSTOP(MKL_DCSRMM);
   }
 
@@ -316,8 +334,8 @@ namespace CTF {
            int                         k,
            std::complex<float>         alpha,
            std::complex<float> const * A,
-           int const *                 rows_A,
-           int const *                 cols_A,
+           int const *                 IA,
+           int const *                 JA,
            int                         nnz_A,
            std::complex<float> const * B,
            std::complex<float>         beta,
@@ -325,7 +343,7 @@ namespace CTF {
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
-    CTF_BLAS::MKL_CCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
+    CTF_BLAS::MKL_CCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
 
   }
 
@@ -336,8 +354,8 @@ namespace CTF {
            int                          k,
            std::complex<double>         alpha,
            std::complex<double> const * A,
-           int const *                  rows_A,
-           int const *                  cols_A,
+           int const *                  IA,
+           int const *                  JA,
            int                          nnz_A,
            std::complex<double> const * B,
            std::complex<double>         beta,
@@ -346,7 +364,7 @@ namespace CTF {
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
-    CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
+    CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
 
   }
 #endif

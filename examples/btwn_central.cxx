@@ -67,8 +67,10 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
       num_changed[""] += ((Function<mpath,mpath,int>)([](mpath p, mpath q){ return (p.w!=q.w) | (p.m!=q.m); }))(C["ij"],B["ij"]);
       if (num_changed.get_val() == 0) break;
     }
+#ifndef TEST_SUITE
     if (dw.rank == 0)
       printf(", (%d", nbl);
+#endif
 
     //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
@@ -90,8 +92,10 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
       num_changed[""] += ((Function<cpath,cpath,int>)([](cpath p, cpath q){ return p.c!=q.c; }))(C["ij"],cB["ij"]);
       if (num_changed.get_val() == 0) break;
     }
+#ifndef TEST_SUITE
     if (dw.rank == 0)
       printf(",%d)", nbr);
+#endif
     //set self-centrality scores to zero
     //FIXME: assumes loops are zero edges and there are no others zero edges in A
     ((Transform<cpath>)([](cpath & p){ if (p.w == 0) p.c=0; }))(cB["ij"]);
@@ -211,7 +215,10 @@ int btwn_cnt(int     n,
   //compute centrality scores by Bellman Ford with block size 2
   btwn_cnt_fast(A, bsize, v2);
 
-  printf("\n");
+#ifndef TEST_SUITE
+  if (dw.rank == 0)
+    printf("\n");
+#endif
  // v1.print();
  // v2.print();
 

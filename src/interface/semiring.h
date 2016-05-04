@@ -342,27 +342,35 @@ namespace CTF_int {
   template <>
   bool get_def_has_csrmm< std::complex<double> >();
 
+  //does conversion using MKL function if it is available
+  bool try_mkl_coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs, int el_size);
+
   template <typename dtype>  
-  void seq_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_cs, int * csr_rs, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+  void seq_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_ja, int * csr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    int sz = sizeof(dtype);
+    if (sz == 4 || sz == 8 || sz == 16){
+      bool b = try_mkl_coo_to_csr(nz, nrow, (char*)csr_vs, csr_ja, csr_ia, (char const*)coo_vs, coo_rs, coo_cs, sz);
+      if (b) return;
+    }
     TAU_FSTART(seq_coo_to_csr);
-    csr_rs[0] = 1;
+    csr_ia[0] = 1;
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
     for (int i=1; i<nrow+1; i++){
-      csr_rs[i] = 0;
+      csr_ia[i] = 0;
     }
     for (int64_t i=0; i<nz; i++){
-      csr_rs[coo_rs[i]]++;
+      csr_ia[coo_rs[i]]++;
     }
     for (int i=0; i<nrow; i++){
-      csr_rs[i+1] += csr_rs[i];
+      csr_ia[i+1] += csr_ia[i];
     }
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
     for (int64_t i=0; i<nz; i++){
-      csr_cs[i] = i;
+      csr_ja[i] = i;
     }
 
     class comp_ref {
@@ -376,36 +384,36 @@ namespace CTF_int {
 
     comp_ref crc(coo_cs);
     TAU_FSTART(sort_coo_to_csr);
-    std::sort(csr_cs, csr_cs+nz, crc);
+    std::sort(csr_ja, csr_ja+nz, crc);
     TAU_FSTOP(sort_coo_to_csr);
     comp_ref crr(coo_rs);
     TAU_FSTART(stsort_coo_to_csr);
-    std::stable_sort(csr_cs, csr_cs+nz, crr);
+    std::stable_sort(csr_ja, csr_ja+nz, crr);
     TAU_FSTOP(stsort_coo_to_csr);
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
     for (int64_t i=0; i<nz; i++){
-      csr_vs[i] = coo_vs[csr_cs[i]];
-      csr_cs[i] = coo_cs[csr_cs[i]];
+      csr_vs[i] = coo_vs[csr_ja[i]];
+      csr_ja[i] = coo_cs[csr_ja[i]];
     }
     TAU_FSTOP(seq_coo_to_csr);
   }
 
 
   template <typename dtype>  
-  void def_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_cs, int * csr_rs, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
-    seq_coo_to_csr<dtype>(nz, nrow, csr_vs, csr_cs, csr_rs, coo_vs, coo_rs, coo_cs);
+  void def_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_ja, int * csr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    seq_coo_to_csr<dtype>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
   }
  
   template <>  
-  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_cs, int * csr_rs, float const * coo_vs, int const * coo_rs, int const * coo_cs);
+  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_ja, int * csr_ia, float const * coo_vs, int const * coo_rs, int const * coo_cs);
   template <>  
-  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_cs, int * csr_rs, double const * coo_vs, int const * coo_rs, int const * coo_cs);
+  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_ja, int * csr_ia, double const * coo_vs, int const * coo_rs, int const * coo_cs);
   template <>  
-  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_cs, int * csr_rs, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs);
+  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_ja, int * csr_ia, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs);
   template <>  
-  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_cs, int * csr_rs, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs);
+  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_ja, int * csr_ia, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs);
 }
 
 namespace CTF {
@@ -655,8 +663,10 @@ namespace CTF {
         } else { assert(0); }
       }
 
-      void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
-        CTF_int::def_coo_to_csr(nz, nrow, (dtype *)csr_vs, csr_cs, csr_rs, (dtype const *) coo_vs, coo_rs, coo_cs);
+      void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+        TAU_FSTART(coo_to_csr);
+        CTF_int::def_coo_to_csr(nz, nrow, (dtype *)csr_vs, csr_ja, csr_ia, (dtype const *) coo_vs, coo_rs, coo_cs);
+        TAU_FSTOP(coo_to_csr);
       }
 
       void default_csrmm
@@ -701,8 +711,8 @@ namespace CTF {
                  int          k,
                  char const * alpha,
                  char const * A,
-                 int const *  rows_A,
-                 int const *  cols_A,
+                 int const *  IA,
+                 int const *  JA,
                  int64_t      nnz_A,
                  char const * B,
                  char const * beta,
@@ -710,7 +720,7 @@ namespace CTF {
                  CTF_int::bivar_function const * func) const {
         assert(this->has_csrmm);
         assert(func == NULL);
-        this->default_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,rows_A,cols_A,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
+        this->default_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,IA,JA,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
       }
   };
   /**

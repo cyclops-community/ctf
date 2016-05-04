@@ -43,8 +43,8 @@ namespace CTF{
                    dtype_C *       C){
     int bidx = blockIdx.x;
     int tidx = threadIdx.x;
-    for (int row_A=bidx; row_A<m; row_A+=NBLK){
-      for (int col_B=tidx; col_B<n; col_B+=NTRD){
+    for (int col_B=bidx; col_B<n; col_B+=NBLK){
+      for (int row_A=tidx; row_A<m; row_A+=NTRD){
         for (int i_A=IA[row_A]-1; i_A<IA[row_A+1]-1; i_A++){
           int col_A = JA[i_A]-1;
           g(f(A[i_A],B[col_B*k+col_A]),C[col_B*m+row_A]);
@@ -257,9 +257,14 @@ namespace CTF{
                              dtype_B const * B,
                              dtype_C *       C){
 #ifdef __CUDACC__
+#ifdef PROFILE_CUGEMM
       TAU_FSTART(3type_cugemm);
+#endif
       cuda_gemmf<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(tA, tB, m, n, k, A, B, C);
+#ifdef PROFILE_CUGEMM
+      cudaDeviceSynchronize();
       TAU_FSTOP(3type_cugemm);
+#endif
 #else
       assert(0);
 #endif
@@ -296,9 +301,14 @@ namespace CTF{
                         char const * B,
                         char *       C) const {
 #ifdef __CUDACC__
+#ifdef PROFILE_CUGEMM
       TAU_FSTART(3type_cucsrmm);
+#endif
       offload_csrmm<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(m, n, k, all_data, (dtype_B const *)B, (dtype_C *)C);
+#ifdef PROFILE_CUGEMM
+      cudaDeviceSynchronize();
       TAU_FSTOP(3type_cucsrmm);
+#endif
 #else
       assert(0);
 #endif

@@ -454,7 +454,7 @@ elif (hostname | grep 'titan'); then
     CXX="CC -std=c++0x"
     realcompiler
     defaultflags
-    NVCC='nvcc -ccbin g++'
+    NVCC='nvcc -ccbin g++ -x cu'
     NVCCFLAGS='-O3 -std=c++11 -m64'
     LDFLAGS="$LDFLAGS -lcuda -lcudart -lcublas"
  
@@ -640,7 +640,7 @@ echo -n 'Checking whether to use CUDA... '
 if [ "x$NVCC" = "x" ]; then
   if [ $SETUP_CUDA = 1 ]; then
     echo -n 'automatic nvcc setup requested... '
-    NVCC='nvcc -ccbin g++'
+    NVCC='nvcc -ccbin g++ -x cu'
     NVCCFLAGS='-O3 -std=c++11 -m64'
     LDFLAGS="$LDFLAGS -L/usr/local/cuda/lib64/ -lcuda -lcudart"
     if testnvcc 0; then
