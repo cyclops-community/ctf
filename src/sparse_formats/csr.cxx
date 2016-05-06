@@ -2,12 +2,21 @@
 #include "../contraction/ctr_comm.h"
 #include "../shared/util.h"
 
+#define ALIGN 256
+
 namespace CTF_int {
   int64_t get_csr_size(int64_t nnz, int nrow, int val_size){
-    return nnz*(val_size+sizeof(int))+(nrow+1)*sizeof(int)+3*sizeof(int64_t);
+    int offset = 3*sizeof(int64_t);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    offset += nnz*val_size;
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    offset += (nrow+1)*sizeof(int);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    return offset + sizeof(int)*nnz;
   }
 
   CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow, algstrct const * sr){
+    ASSERT(ALIGN >= 16);
     int64_t size = get_csr_size(nnz, nrow, sr->el_size);
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = nnz;
@@ -16,10 +25,12 @@ namespace CTF_int {
   }
 
   CSR_Matrix::CSR_Matrix(char * all_data_){
+    ASSERT(ALIGN >= 16);
     all_data = all_data_;
   }
 
   CSR_Matrix::CSR_Matrix(COO_Matrix const & coom, int nrow, algstrct const * sr, char * data){
+    ASSERT(ALIGN >= 16);
     int64_t nz = coom.nnz(); 
     int64_t v_sz = coom.val_size(); 
     int const * coo_rs = coom.rows();
@@ -70,14 +81,21 @@ namespace CTF_int {
   }
   
   char * CSR_Matrix::vals() const {
-    return all_data + 3*sizeof(int64_t);
+    int offset = 3*sizeof(int64_t);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    return all_data + offset;
   }
 
   int * CSR_Matrix::rows() const {
     int64_t n = this->nnz();
     int v_sz = this->val_size();
 
-    return (int*)(all_data + n*v_sz+3*sizeof(int64_t));
+    int offset = 3*sizeof(int64_t);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    offset += n*v_sz;
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+
+    return (int*)(all_data + offset);
   } 
 
   int * CSR_Matrix::cols() const {
@@ -85,7 +103,14 @@ namespace CTF_int {
     int64_t nr = this->nrow();
     int v_sz = this->val_size();
 
-    return (int*)(all_data + n*v_sz+(nr+1)*sizeof(int)+3*sizeof(int64_t));
+    int offset = 3*sizeof(int64_t);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    offset += n*v_sz;
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    offset += (nr+1)*sizeof(int);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    //return (int*)(all_data + n*v_sz+(nr+1)*sizeof(int)+3*sizeof(int64_t));
+    return (int*)(all_data + offset);
   } 
 
   void CSR_Matrix::csrmm(algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload){

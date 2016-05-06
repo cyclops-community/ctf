@@ -53,6 +53,10 @@ namespace CTF{
     }
   }
 
+  
+  //FIXME there is code replication here with ../sparse_foramts/csr.cxx
+  #define ALIGN 256
+
   template<typename dtype_A, typename dtype_B, typename dtype_C, dtype_C(*f)(dtype_A, dtype_B), void(*g)(dtype_C, dtype_C&)>
   __global__
   void offload_csrmm(int             m,
@@ -61,12 +65,20 @@ namespace CTF{
                      char const *    all_data,
                      dtype_B const * B,
                      dtype_C *       C){
-   int64_t nnz_A = ((int64_t*)all_data)[0];
-   dtype_A const * A = (dtype_A const *)(all_data + 3*sizeof(int64_t));
-   int const * IA = (int*)(all_data + nnz_A*sizeof(dtype_A)+3*sizeof(int64_t)); 
-   int const * JA = (int*)(all_data + nnz_A*sizeof(dtype_A)+(m+1)*sizeof(int)+3*sizeof(int64_t));
-   cuda_csrmmf<dtype_A,dtype_B,dtype_C,f,g>(m,n,k,A,IA,JA,B,C);
+    int64_t nnz_A = ((int64_t*)all_data)[0];
+    int offset = 3*sizeof(int64_t);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    dtype_A const * A = (dtype_A const *)(all_data + offset);
+    offset += nnz_A*sizeof(dtype_A);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    int const * IA = (int*)(all_data + offset); 
+    offset += (m+1)*sizeof(int);
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    int const * JA = (int*)(all_data + offset);
+    cuda_csrmmf<dtype_A,dtype_B,dtype_C,f,g>(m,n,k,A,IA,JA,B,C);
   }
+
+  #undef ALIGN
 
   #endif
 
