@@ -88,8 +88,11 @@ namespace CTF_int {
     int * cs = cols();
     char * vs = vals();
 
-    ConstPairIterator pi(sr, tsr_data);
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
     for (int64_t i=0; i<nz; i++){
+      ConstPairIterator pi(sr, tsr_data);
       int64_t k = pi[i].k();
       cs[i] = 1;
       rs[i] = 1;

@@ -28,8 +28,9 @@ namespace CTF {
   * \param[in] A matrix on the tropical semiring containing edge weights
   * \param[in] b number of source vertices for which to compute Bellman Ford at a time
   * \param[out] v vector that will contain centrality scores for each vertex
+  * \param[in] nbatches, number of batches (sets of nodes of size b) to compute on (0 means all)
   */
-void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
+void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
   World dw = *A.wrld;
   int n = A.nrow;
 
@@ -37,7 +38,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v){
   Monoid<cpath> cp = get_cpath_monoid();
 
 
-  for (int ib=0; ib<n; ib+=b){
+  for (int ib=0; ib<n && (nbatches == 0 || ib/b<nbatches); ib+=b){
     int k = std::min(b, n-ib);
 
     //initialize shortest mpath vectors from the next k sources to the corresponding columns of the adjacency matrices and loops with weight 0
@@ -161,7 +162,8 @@ void btwn_cnt_naive(Matrix<int> & A, Vector<double> & v){
 int btwn_cnt(int     n,
              World & dw,
              double  sp=.20,
-             int     bsize=2){
+             int     bsize=2,
+             int     nbatches=1){
 
   //tropical semiring, define additive identity to be INT_MAX/2 to prevent integer overflow
   Semiring<int> s(INT_MAX/2, 
@@ -209,20 +211,14 @@ int btwn_cnt(int     n,
 
   double st_time = MPI_Wtime();
 
-  //compute centrality scores by naive counting
-  if (n <= 20)
-    btwn_cnt_naive(A, v1);
-  //compute centrality scores by Bellman Ford with block size 2
-  btwn_cnt_fast(A, bsize, v2);
 
-#ifndef TEST_SUITE
-  if (dw.rank == 0)
-    printf("\n");
-#endif
  // v1.print();
  // v2.print();
 
   if (n<= 20){
+    btwn_cnt_naive(A, v1);
+    //compute centrality scores by Bellman Ford with block size bsize
+    btwn_cnt_fast(A, bsize, v2);
     v1["i"] -= v2["i"];
     int pass = v1.norm2() <= 1.E-6;
 
@@ -236,7 +232,17 @@ int btwn_cnt(int     n,
       MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     return pass;
   } else {
-    if (dw.rank == 0) printf("Completed in total time %lf sec.\n", MPI_Wtime()-st_time);
+    Timer_epoch tbtwn("Betweenness centrality");
+    tbtwn.begin();
+    btwn_cnt_fast(A, bsize, v2, nbatches);
+    tbtwn.end();
+    if (dw.rank == 0){
+      #ifndef TEST_SUITE
+      printf("\n");
+      #endif
+      if (nbatches == 0) printf("Completed all batches in time %lf sec, projected total %lf sec.\n", MPI_Wtime()-st_time, MPI_Wtime()-st_time);
+      else printf("Completed %d batches in time %lf sec, projected total %lf sec.\n", nbatches, MPI_Wtime()-st_time, (n/(bsize*nbatches))*(MPI_Wtime()-st_time));
+    }
     return 1;
   }
 } 
@@ -255,7 +261,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, n, pass, bsize;
+  int rank, np, n, pass, bsize, nbatches;
   double sp;
   int const in_num = argc;
   char ** input_str = argv;
@@ -277,6 +283,10 @@ int main(int argc, char ** argv){
     bsize = atoi(getCmdOption(input_str, input_str+in_num, "-bsize"));
     if (bsize < 0) bsize = 2;
   } else bsize = 2;
+  if (getCmdOption(input_str, input_str+in_num, "-nbatches")){
+    nbatches = atoi(getCmdOption(input_str, input_str+in_num, "-nbatches"));
+    if (nbatches < 0) nbatches = 1;
+  } else nbatches = 1;
 
 
 
@@ -286,7 +296,7 @@ int main(int argc, char ** argv){
     if (rank == 0){
       printf("Computing betweenness centrality for graph with %d nodes, with %lf percent sparsity, and batch size %d",n,sp,bsize);
     }
-    pass = btwn_cnt(n, dw, sp, bsize);
+    pass = btwn_cnt(n, dw, sp, bsize, nbatches);
     assert(pass);
   }
 
