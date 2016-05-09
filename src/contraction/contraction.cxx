@@ -2436,9 +2436,6 @@ namespace CTF_int {
         ret = map_to_topology(topo_i, j);
         TAU_FSTOP(map_ctr_to_topo);
 
-        if (ret == ERROR) {
-          TAU_FSTOP(select_ctr_map);
-        }
         if (ret == NEGATIVE){
           //printf("map_to_topology returned negative\n");
           continue;
@@ -2563,7 +2560,6 @@ namespace CTF_int {
         delete sctr;
       }
     }
-    TAU_FSTOP(select_ctr_map);
     TAU_FSTART(all_select_ctr_map);
     double gbest_time;
     MPI_Allreduce(&best_time, &gbest_time, 1, MPI_DOUBLE, MPI_MIN, global_comm.cm);
@@ -2755,7 +2751,6 @@ namespace CTF_int {
         delete sctr;
       }
     }
-    TAU_FSTOP(select_ctr_map);
 #if DEBUG >= 2 
     int64_t tot_valid_mappings;
     MPI_Allreduce(&valid_mappings, &tot_valid_mappings, 1, MPI_INT64_T, MPI_SUM, global_comm.cm);
@@ -2796,7 +2791,6 @@ namespace CTF_int {
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     
-    TAU_FSTART(select_ctr_map);
     TAU_FSTART(init_select_ctr_map);
   #if BEST_VOL
     CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
@@ -3339,7 +3333,6 @@ namespace CTF_int {
       rec_ctr = &ctroff->rec_ctr;
     }
   #endif
-
 
 
     ASSERT(blk_sz_A >= vrt_sz_A);

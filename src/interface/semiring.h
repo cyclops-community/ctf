@@ -726,6 +726,64 @@ namespace CTF {
   /**
    * @}
    */
+
+  template<> 
+  bool CTF::Semiring<double,1>::is_offloadable() const;
+  template<> 
+  bool CTF::Semiring<float,1>::is_offloadable() const;
+  template<> 
+  bool CTF::Semiring<std::complex<float>,0>::is_offloadable() const;
+  template<> 
+  bool CTF::Semiring<std::complex<double>,0>::is_offloadable() const;
+
+  template<> 
+  void CTF::Semiring<double,1>::offload_gemm(
+                        char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C) const;
+  template<> 
+  void CTF::Semiring<double,1>::offload_gemm(
+                        char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C) const;
+  template<> 
+  void CTF::Semiring<std::complex<float>,0>::offload_gemm(
+                        char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C) const;
+  template<> 
+  void CTF::Semiring<std::complex<double>,0>::offload_gemm(
+                        char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C) const;
 }
 #include "ring.h"
 #endif

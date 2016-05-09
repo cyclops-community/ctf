@@ -373,6 +373,16 @@ namespace CTF {
   bool CTF::Semiring<float,1>::is_offloadable() const {
     return fgemm == &CTF_int::default_gemm<float>;
   }*/
+  template<> 
+  bool CTF::Semiring<float,1>::is_offloadable() const {
+    return fgemm == &CTF_int::default_gemm<float>;
+  }
+
+  template<> 
+  bool CTF::Semiring<std::complex<float>,0>::is_offloadable() const {
+    return fgemm == &CTF_int::default_gemm< std::complex<float> >;
+  }
+
 
   template<> 
   bool CTF::Semiring<double,1>::is_offloadable() const {

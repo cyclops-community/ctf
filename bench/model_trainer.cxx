@@ -12,6 +12,8 @@
 #undef TEST_SUITE
 using namespace CTF;
 
+void train_off_vec_mat(int64_t n, int64_t m, World & dw);
+
 void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   Vector<> b(n, dw);
   Vector<> c(m, dw);
@@ -57,11 +59,70 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   
   t2(b["i"],b["i"]);
   t2(A["ij"],A2["ij"]);
-  
+
+
   /*Transform<> t3([](double a, double b, double & c){ c=c*c-b*a; });
 
   t3(c["i"],b["i"],b["i"]);
   t3(A["ij"],G["ij"],F["ij"]);*/
+}
+
+
+void train_sps_vec_mat(int64_t n, int64_t m, World & dw){
+  for (double sp = .01; sp<.32; sp*=2.){
+    Vector<> b(n, dw);
+    Vector<> c(m, dw);
+    Matrix<> A(m, n, dw);
+    Matrix<> B(m, n, dw);
+    Matrix<> A1(m, n, dw);
+    Matrix<> A2(m, n, dw);
+    Matrix<> G(n, n, NS, dw);
+    Matrix<> F(m, m, NS, dw);
+  
+    srand48(dw.rank);
+    b.fill_random(-.5, .5);
+    c.fill_random(-.5, .5);
+    A.fill_random(-.5, .5);
+    A.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+    B.fill_random(-.5, .5);
+    A1.fill_random(-.5, .5);
+    A2.fill_random(-.5, .5);
+    G.fill_random(-.5, .5);
+    F.fill_random(-.5, .5);
+  
+    B["ij"] += A["ik"]*G["kj"];
+    B["ij"] += A["ij"]*A1["ij"];
+    B["ij"] += F["ik"]*A["kj"];
+    c["i"]  += A["ij"]*b["j"];
+    b["j"]  += .2*A["ij"]*c["i"];
+    b["i"]  += b["i"]*b["i"];
+  
+    Function<> f1([](double a){ return a*a; });
+  
+    A2["ij"] = f1(A["ij"]);
+    
+    c["i"] += f1(A["ij"]);
+    
+    /*Function<> f2([](double a, double b){ return a*a+b*b; });
+  
+    G["ij"] += f2(A["ij"], F["ij"]);
+    ["ij"] -= f2(A["ik"], F["kj"]);*/
+  
+    Transform<> t1([](double & a){ a*=a; });
+  
+    t1(b["i"]);
+    t1(A["ij"]);
+  
+    Transform<> t2([](double a, double & b){ b-=b/a; });
+    
+    t2(b["i"],b["i"]);
+    t2(A["ij"],A2["ij"]);
+  
+    /*Transform<> t3([](double a, double b, double & c){ c=c*c-b*a; });
+  
+    t3(c["i"],b["i"],b["i"]);
+    t3(A["ij"],G["ij"],F["ij"]);*/
+  }
 }
 
 void train_ccsd(int64_t n, int64_t m, World & dw){
@@ -79,7 +140,7 @@ void train_ccsd(int64_t n, int64_t m, World & dw){
 void train_world(double dtime, World & dw){
   int n0 = 15, m0 = 15;
   int64_t n = n0;
-  int64_t approx_niter = (log((dtime*2000./15.)/dw.np)/log(1.4));
+  int64_t approx_niter = 10*log(dtime); //log((dtime*2000./15.)/dw.np);
   double ddtime = dtime/approx_niter;
 //  printf("ddtime = %lf\n", ddtime);
   for (;;){
@@ -90,6 +151,8 @@ void train_world(double dtime, World & dw){
     do {
 //      if (dw.rank == 0) printf("executing n= %ld m = %ld\n", n, m);
       train_dns_vec_mat(n, m, dw);
+      train_sps_vec_mat(n/2, m/2, dw);
+      train_off_vec_mat(n, m, dw);
       train_ccsd(n, m, dw);
       niter++;
       m *= 1.6;

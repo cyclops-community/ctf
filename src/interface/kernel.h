@@ -107,11 +107,11 @@ namespace CTF{
     }
 
 
-    static void xpy(int             n,
+    static void xpy(int           n,
                     dtype const * X,
-                    int             incX,
+                    int           incX,
                     dtype *       Y,
-                    int             incY){
+                    int           incY){
 
       for (int i=0; i<n; i++){
         g(X[incX*i],Y[incY*i]);
@@ -190,15 +190,15 @@ namespace CTF{
       TAU_FSTOP(default_fcoomm);
     }
 
-    void ccoomm(int                             m,
-                int                             n,
-                int                             k,
-                char const *                    A,
-                int const *                     rows_A,
-                int const *                     cols_A,
-                int64_t                         nnz_A,
-                char const *                    B,
-                char *                          C) const {
+    void ccoomm(int          m,
+                int          n,
+                int          k,
+                char const * A,
+                int const *  rows_A,
+                int const *  cols_A,
+                int64_t      nnz_A,
+                char const * B,
+                char *       C) const {
       int * ptr = NULL;
       ptr[0] = 3;
       coomm(m, n, k, (dtype_A const *)A, rows_A, cols_A, nnz_A, 
