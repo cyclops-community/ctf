@@ -389,6 +389,8 @@ namespace CTF_int {
   LinModel<3> seq_tsr_ctr_mdl_ref(seq_tsr_ctr_mdl_ref_init,"seq_tsr_ctr_mdl_ref");
   LinModel<3> seq_tsr_ctr_mdl_inr(seq_tsr_ctr_mdl_inr_init,"seq_tsr_ctr_mdl_inr");
   LinModel<3> seq_tsr_ctr_mdl_off(seq_tsr_ctr_mdl_off_init,"seq_tsr_ctr_mdl_off");
+  LinModel<3> seq_tsr_ctr_mdl_cst_inr(seq_tsr_ctr_mdl_cst_inr_init,"seq_tsr_ctr_mdl_cst_inr");
+  LinModel<3> seq_tsr_ctr_mdl_cst_off(seq_tsr_ctr_mdl_cst_off_init,"seq_tsr_ctr_mdl_cst_off");
 
   uint64_t seq_tsr_ctr::est_membw(){
     uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
@@ -505,10 +507,17 @@ namespace CTF_int {
       double exe_time = MPI_Wtime()-st_time;
  //     printf("exe_time = %E est_time = %E abs_err = %e rel_err = %lf\n", exe_time,est_time,fabs(exe_time-est_time),fabs(exe_time-est_time)/exe_time);
       double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
-      if (inner_params.offload)
-        seq_tsr_ctr_mdl_off.observe(tps);
-      else 
-        seq_tsr_ctr_mdl_inr.observe(tps);
+      if (is_custom){
+        if (inner_params.offload)
+          seq_tsr_ctr_mdl_cst_off.observe(tps);
+        else 
+          seq_tsr_ctr_mdl_cst_inr.observe(tps);
+      } else {
+        if (inner_params.offload)
+          seq_tsr_ctr_mdl_off.observe(tps);
+        else 
+          seq_tsr_ctr_mdl_inr.observe(tps);
+      }
 //      seq_tsr_ctr_mdl_inr.print_param_guess();
     } else {
       double st_time = MPI_Wtime();

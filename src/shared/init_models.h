@@ -14,6 +14,8 @@ namespace CTF_int{
   extern double seq_tsr_ctr_mdl_ref_init[];
   extern double seq_tsr_ctr_mdl_inr_init[];
   extern double seq_tsr_ctr_mdl_off_init[];
+  extern double seq_tsr_ctr_mdl_cst_inr_init[];
+  extern double seq_tsr_ctr_mdl_cst_off_init[];
   extern double upload_mdl_init[];
   extern double download_mdl_init[];
 }
