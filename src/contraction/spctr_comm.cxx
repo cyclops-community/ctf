@@ -239,7 +239,9 @@ namespace CTF_int {
     }
 //    if (crank != 0) this->sr_C->set(C, this->sr_C->addid(), size_C);
     if (crank == 0 && !sr_C->isequal(this->beta, sr_C->mulid())){
-      sr_C->scal(size_C, this->beta, C, 1);
+      if (sr_C->isequal(sr_C->addid(), beta))
+        sr_C->set(C, sr_C->addid(), size_C);
+      else sr_C->scal(size_C, this->beta, C, 1);
 /*      for (i=0; i<size_C; i++){
         sr_C->mul(this->beta, C+i*sr_C->el_size, C+i*sr_C->el_size);
       }*/
@@ -265,7 +267,7 @@ namespace CTF_int {
     for (i=0; i<ncdt_C; i++){
       ASSERT(!is_sparse_C);
       //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
-      cdt_C[i]->allred(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop());
+      cdt_C[i]->allred(MPI_IN_PLACE, new_C, size_C, sr_C->mdtype(), sr_C->addmop());
     }
 
     if (is_sparse_A && buf_A != A) cdealloc(buf_A);

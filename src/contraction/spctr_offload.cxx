@@ -139,7 +139,7 @@ namespace CTF_int {
     } 
 
     if (!sr_C->isequal(this->beta, sr_C->addid())
-        && sr_C->isequal(this->beta, sr_C->addid())){
+        && !sr_C->isequal(this->beta, sr_C->mulid())){
       ASSERT(iter_counter % download_phase_C == 0);
       //FIXME daxpy 
       CTF_FLOPS_ADD(size_C);
