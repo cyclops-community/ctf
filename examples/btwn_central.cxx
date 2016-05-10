@@ -55,6 +55,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
      
     //compute Bellman Ford
     int nbl = 0;
+    double sbl = MPI_Wtime();
     for (int i=0; i<n; i++, nbl++){
       Matrix<mpath> C(B);
       B.set_zero();
@@ -68,10 +69,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
       num_changed[""] += ((Function<mpath,mpath,int>)([](mpath p, mpath q){ return (p.w!=q.w) | (p.m!=q.m); }))(C["ij"],B["ij"]);
       if (num_changed.get_val() == 0) break;
     }
-#ifndef TEST_SUITE
-    if (dw.rank == 0)
-      printf(", (%d", nbl);
-#endif
+    double tbl = MPI_Wtime() - sbl;
 
     //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
@@ -79,6 +77,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
     Bivar_Function<int,cpath,cpath> * Brandes = get_Brandes_kernel();
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     int nbr = 0;
+    double sbr = MPI_Wtime();
     for (int i=0; i<n; i++, nbr++){
       Matrix<cpath> C(cB);
       cB.set_zero();
@@ -93,9 +92,10 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
       num_changed[""] += ((Function<cpath,cpath,int>)([](cpath p, cpath q){ return p.c!=q.c; }))(C["ij"],cB["ij"]);
       if (num_changed.get_val() == 0) break;
     }
+    double tbr = MPI_Wtime() - sbr;
 #ifndef TEST_SUITE
     if (dw.rank == 0)
-      printf(",%d)", nbr);
+      printf("(%d ,%d) iter (%lf, %lf) sec\n", nbl, nbr, tbl, tbr);
 #endif
     //set self-centrality scores to zero
     //FIXME: assumes loops are zero edges and there are no others zero edges in A
@@ -240,9 +240,6 @@ int btwn_cnt(int     n,
     btwn_cnt_fast(A, bsize, v2, nbatches);
     tbtwn.end();
     if (dw.rank == 0){
-      #ifndef TEST_SUITE
-      printf("\n");
-      #endif
       if (nbatches == 0) printf("Completed all batches in time %lf sec, projected total %lf sec.\n", MPI_Wtime()-st_time, MPI_Wtime()-st_time);
       else printf("Completed %d batches in time %lf sec, projected total %lf sec.\n", nbatches, MPI_Wtime()-st_time, (n/(bsize*nbatches))*(MPI_Wtime()-st_time));
     }
@@ -301,7 +298,7 @@ int main(int argc, char ** argv){
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Computing betweenness centrality for graph with %d nodes, with %lf percent sparsity, and batch size %d",n,sp,bsize);
+      printf("Computing betweenness centrality for graph with %d nodes, with %lf percent sparsity, and batch size %d\n",n,sp,bsize);
     }
     pass = btwn_cnt(n, dw, sp, bsize, nbatches, test);
     //assert(pass);

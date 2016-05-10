@@ -433,13 +433,20 @@ namespace CTF_int {
     //return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
     double ps[] = {1.0, (double)est_membw(), est_fp()};
 //    printf("time estimate is %lf\n", seq_tsr_ctr_mdl.est_time(ps));
-    if (is_custom)
+    if (is_custom && !is_inner){
       return seq_tsr_ctr_mdl_cst.est_time(ps);
-    else if (is_inner){
-      if (inner_params.offload)
-        return seq_tsr_ctr_mdl_off.est_time(ps);
-      else
-        return seq_tsr_ctr_mdl_inr.est_time(ps);
+    } else if (is_inner){
+      if (is_custom){
+        if (inner_params.offload)
+          seq_tsr_ctr_mdl_cst_off.est_time(ps);
+        else 
+          seq_tsr_ctr_mdl_cst_inr.est_time(ps);
+      } else {
+        if (inner_params.offload)
+          return seq_tsr_ctr_mdl_off.est_time(ps);
+        else
+          return seq_tsr_ctr_mdl_inr.est_time(ps);
+      }
     } else                        
       return seq_tsr_ctr_mdl_ref.est_time(ps);
   }
