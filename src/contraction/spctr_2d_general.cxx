@@ -324,8 +324,6 @@ namespace CTF_int {
       }
       if (move_C){
         op_C = buf_C;
-//        sr_C->set(op_C, sr_C->addid(), s_C);
-//        rec_ctr->beta = sr_C->mulid();
         rec_ctr->beta = sr_C->addid();
       } else {
         if (ctr_sub_lda_C == 0)
@@ -335,8 +333,6 @@ namespace CTF_int {
             op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
-//            sr_C->set(op_C, sr_C->addid(), s_C);
-//            rec_ctr->beta = sr_C->mulid();
             rec_ctr->beta = sr_C->addid();
           }
         }
@@ -361,7 +357,6 @@ namespace CTF_int {
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
       }*/
       if (move_C){
-        /* FIXME: Wont work for single precsion */
         cdt_C->allred(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop());
         owner_C   = ib % cdt_C->np;
         if (rank_C == owner_C){

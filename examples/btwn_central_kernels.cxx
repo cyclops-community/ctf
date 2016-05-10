@@ -36,6 +36,18 @@ Bivar_Function<int,cpath,cpath> * get_Brandes_kernel(){
 }
 
 
+void mpath_red(mpath const * a,
+               mpath * b,
+               int n){
+  #pragma omp parallel for
+  for (int i=0; i<n; i++){
+    if (a[i].w <  b[i].w){
+      b[i].w  = a[i].w;
+      b[i].m  = a[i].m;
+    } else if (a[i].w == b[i].w) b[i].m += a[i].m;
+  }
+}
+
 //(min, +) tropical semiring for mpath structure
 Semiring<mpath> get_mpath_semiring(){
   //struct for mpath with w=mpath weight, h=#hops
@@ -43,13 +55,14 @@ Semiring<mpath> get_mpath_semiring(){
 
   MPI_Op_create(
       [](void * a, void * b, int * n, MPI_Datatype*){ 
-        for (int i=0; i<*n; i++){ 
+        mpath_red((mpath*)a, (mpath*)b, *n);
+/*        for (int i=0; i<*n; i++){ 
           if (((mpath*)a)[i].w < ((mpath*)b)[i].w){
             ((mpath*)b)[i] = ((mpath*)a)[i];
           } else if (((mpath*)a)[i].w == ((mpath*)b)[i].w){
             ((mpath*)b)[i].m += ((mpath*)a)[i].m;
           }
-        }
+        }*/
       },
       1, &ompath);
 
@@ -68,6 +81,22 @@ Semiring<mpath> get_mpath_semiring(){
 }
 
 
+void cpath_red(cpath const * a,
+               cpath * b,
+               int n){
+  #pragma omp parallel for
+  for (int i=0; i<n; i++){
+    if (a[i].w > b[i].w){
+      b[i].w  = a[i].w;
+      b[i].m  = a[i].m;
+      b[i].c  = a[i].c;
+    } else if (a[i].w == b[i].w){
+      b[i].m += a[i].m;
+      b[i].c += a[i].c;
+    }
+  }
+}
+
 
 // min Monoid for cpath structure
 Monoid<cpath> get_cpath_monoid(){
@@ -76,14 +105,15 @@ Monoid<cpath> get_cpath_monoid(){
 
   MPI_Op_create(
       [](void * a, void * b, int * n, MPI_Datatype*){ 
-        for (int i=0; i<*n; i++){ 
+        cpath_red((cpath*)a, (cpath*)b, *n);
+/*        for (int i=0; i<*n; i++){ 
           if (((cpath*)a)[i].w > ((cpath*)b)[i].w){
             ((cpath*)b)[i] = ((cpath*)a)[i];
           } else if (((cpath*)a)[i].w == ((cpath*)b)[i].w){
             ((cpath*)b)[i].m += ((cpath*)a)[i].m;
             ((cpath*)b)[i].c += ((cpath*)a)[i].c;
           }
-        }
+        }*/
       },
       1, &ocpath);
 

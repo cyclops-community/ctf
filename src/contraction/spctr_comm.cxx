@@ -201,7 +201,7 @@ namespace CTF_int {
         new_size_A += new_size_blk_A[i];
       }      
       if (arank != 0)
-        buf_A = (char*)alloc(sr_A->pair_size()*new_size_A);
+        buf_A = (char*)alloc(new_size_A);
       for (i=0; i<ncdt_A; i++){
         cdt_A[i]->bcast(buf_A, new_size_A, MPI_CHAR, 0);
       }
@@ -224,7 +224,7 @@ namespace CTF_int {
         new_size_B += new_size_blk_B[i];
       }      
       if (brank != 0)
-        buf_B = (char*)alloc(sr_B->pair_size()*new_size_B);
+        buf_B = (char*)alloc(new_size_B);
       for (i=0; i<ncdt_B; i++){
         cdt_B[i]->bcast(buf_B, new_size_B, MPI_CHAR, 0);
       }
@@ -246,9 +246,7 @@ namespace CTF_int {
         sr_C->mul(this->beta, C+i*sr_C->el_size, C+i*sr_C->el_size);
       }*/
     }
-//
     ASSERT(!is_sparse_B);
-    //  sr_C->set(C, sr_C->addid(), size_C);
     if (crank != 0)
       rec_ctr->beta = sr_C->addid();
     else

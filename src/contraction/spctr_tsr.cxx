@@ -459,11 +459,11 @@ namespace CTF_int {
             if (is_sparse_B){
               rec_B     = B + sp_offsets_B[off_B];
             } else
-              rec_B     = B + off_B*blk_sz_B*sr_A->el_size;
+              rec_B     = B + off_B*blk_sz_B*sr_B->el_size;
             if (is_sparse_C){
               rec_C     = C + sp_offsets_C[off_C];
             } else
-              rec_C     = C + off_C*blk_sz_C*sr_A->el_size;
+              rec_C     = C + off_C*blk_sz_C*sr_C->el_size;
             if (beta_arr[off_C]>0)
               rec_ctr->beta = sr_C->mulid();
             else
