@@ -138,12 +138,14 @@ namespace CTF_int {
       }
     } 
 
-    if (!sr_C->isequal(this->beta, sr_C->addid())
-        && !sr_C->isequal(this->beta, sr_C->mulid())){
+    if (!sr_C->isequal(this->beta, sr_C->mulid())){
       ASSERT(iter_counter % download_phase_C == 0);
       //FIXME daxpy 
       CTF_FLOPS_ADD(size_C);
-      sr_C->scal(size_C, this->beta, C, 1);
+      if (sr_C->isequal(this->beta, sr_C->addid()))
+        sr_C->set(C, sr_C->addid(), size_C);
+      else
+        sr_C->scal(size_C, this->beta, C, 1);
       /*for (int i=0; i<size_C; i++){
         this->C[i] = this->C[i]*this->beta;
       }*/
@@ -169,10 +171,7 @@ namespace CTF_int {
         memcpy(C_host_ptr+i*sr_C->el_size, sr_C->addid(), sr_C->el_size);
         memcpy(C+i*sr_C->el_size, sr_C->addid(), sr_C->el_size);
       }*/
-      if (sr_C->isequal(sr_C->addid(), beta))
-        sr_C->copy(C, C_host_ptr, size_C);
-      else
-        sr_C->axpy(size_C, sr_C->mulid(), C_host_ptr, 1, C, 1);
+      sr_C->axpy(size_C, sr_C->mulid(), C_host_ptr, 1, C, 1);
 /*      for (int i=0; i<size_C; i++){
         this->C[i] += C_host_ptr[i];
       }*/

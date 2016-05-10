@@ -324,6 +324,8 @@ namespace CTF_int {
       }
       if (move_C){
         op_C = buf_C;
+//        sr_C->set(op_C, sr_C->addid(), s_C);
+//        rec_ctr->beta = sr_C->mulid();
         rec_ctr->beta = sr_C->addid();
       } else {
         if (ctr_sub_lda_C == 0)
@@ -333,6 +335,8 @@ namespace CTF_int {
             op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
+//            sr_C->set(op_C, sr_C->addid(), s_C);
+//            rec_ctr->beta = sr_C->mulid();
             rec_ctr->beta = sr_C->addid();
           }
         }

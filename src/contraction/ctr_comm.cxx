@@ -233,10 +233,12 @@ namespace CTF_int {
       }*/
     }
 //
+    //sr_C->set(C, sr_C->addid(), size_C);
     if (crank != 0)
       rec_ctr->beta = sr_C->addid();
     else
       rec_ctr->beta = sr_C->mulid(); 
+
     rec_ctr->num_lyr      = this->num_lyr;
     rec_ctr->idx_lyr      = this->idx_lyr;
 
