@@ -20,14 +20,13 @@ Bivar_Function<int,mpath,mpath> * get_Bellman_kernel(){
 
 DEVICE HOST 
 void cfunc(cpath a, cpath & b){
-  if (a.w>b.w){ b=a; }
-  else if (b.w>a.w){ }
-  else { b.w=a.w; b.m+=a.m; b.c+=a.c; }
+  if (a.w>b.w){ b.c=a.c; b.w=a.w; }
+  else if (b.w == a.w){ b.c+=a.c; }
 }
 
 DEVICE HOST
 cpath subw(int w, cpath p){
-  return cpath(p.w-w , p.m, (1.+p.c)/p.m);
+  return cpath(p.w-w , p.m, p.m+p.c*p.m);
 }
 
 Bivar_Function<int,cpath,cpath> * get_Brandes_kernel(){
@@ -91,7 +90,6 @@ void cpath_red(cpath const * a,
       b[i].m  = a[i].m;
       b[i].c  = a[i].c;
     } else if (a[i].w == b[i].w){
-      b[i].m += a[i].m;
       b[i].c += a[i].c;
     }
   }
@@ -118,10 +116,10 @@ Monoid<cpath> get_cpath_monoid(){
       1, &ocpath);
 
   Monoid<cpath> cp(cpath(-INT_MAX/2,1,0.), 
-                  [](cpath a, cpath b){ 
+                  [](cpath a, cpath b){
                     if (a.w>b.w){ return a; }
                     else if (b.w>a.w){ return b; }
-                    else { return cpath(a.w, a.m+b.m, a.c+b.c); }
+                    else { return cpath(a.w, a.m, a.c+b.c); }
                   }, ocpath);
 
 //  Bivar_Kernel<cpath,cpath,cpath,cfunc, cnfunc> tmp;

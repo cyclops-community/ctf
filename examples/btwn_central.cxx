@@ -19,7 +19,7 @@ namespace CTF {
   }
   template <>  
   inline void Set<cpath>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(w=%d m=%d c=%lf)",((cpath*)a)[0].w,((cpath*)a)[0].m,((cpath*)a)[0].c);
+    fprintf(fp,"(w=%d m=%f c=%lf)",((cpath*)a)[0].w,((cpath*)a)[0].m,((cpath*)a)[0].c);
   }
 }
 
@@ -73,7 +73,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
 
     //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
-    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, p.m, 0.); }))(B["ij"],cB["ij"]);
+    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, 1./p.m, 0.); }))(B["ij"],cB["ij"]);
     Bivar_Function<int,cpath,cpath> * Brandes = get_Brandes_kernel();
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     int nbr = 0;
@@ -86,7 +86,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
       cB["ij"] += (*Brandes)(A["ki"],C["kj"]);
       tbr.stop();
       ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ 
-        cp = (p.w <= cp.w) ? cpath(p.w, p.m, cp.c*p.m) : cpath(p.w, p.m, 0.); 
+        cp = (p.w <= cp.w) ? cpath(p.w, 1./p.m, cp.c*p.m) : cpath(p.w, 1./p.m, 0.); 
       }))(B["ij"],cB["ij"]);
       Scalar<int> num_changed = Scalar<int>();
       num_changed[""] += ((Function<cpath,cpath,int>)([](cpath p, cpath q){ return p.c!=q.c; }))(C["ij"],cB["ij"]);
@@ -235,6 +235,11 @@ int btwn_cnt(int     n,
       MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
     return pass;
   } else {
+    if (dw.rank == 0)
+      printf("Executing warm-up batch\n");
+    btwn_cnt_fast(A, bsize, v2, 1);
+    if (dw.rank == 0)
+      printf("Starting benchmarking\n");
     Timer_epoch tbtwn("Betweenness centrality");
     tbtwn.begin();
     btwn_cnt_fast(A, bsize, v2, nbatches);

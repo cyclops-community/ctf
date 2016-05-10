@@ -26,13 +26,15 @@ class mpath {
 };
 
 //path with a centrality score
-class cpath : public mpath {
+class cpath {
   public:
   double c; // centrality score
+  float m;
+  int w;
   DEVICE HOST
-  cpath(int w_, int m_, double c_) : mpath(w_, m_) { c=c_;}
+  cpath(int w_, float m_, double c_){ w=w_; m=m_; c=c_;}
   DEVICE HOST
-  cpath(cpath const & p) : mpath(p) { c=p.c; }
+  cpath(cpath const & p){ w=p.w; m=p.m; c=p.c; }
   cpath(){};
 };
 
