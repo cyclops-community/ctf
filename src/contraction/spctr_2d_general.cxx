@@ -357,6 +357,11 @@ namespace CTF_int {
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
       }*/
       if (move_C){
+#ifdef PROFILE
+        TAU_FSTART(spctr_2d_general_barrier);
+        MPI_Barrier(cdt_C->cm);
+        TAU_FSTOP(spctr_2d_general_barrier);
+#endif
         cdt_C->allred(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop());
         owner_C   = ib % cdt_C->np;
         if (rank_C == owner_C){

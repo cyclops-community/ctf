@@ -87,7 +87,7 @@ namespace CTF_int {
                           char * B, int nblk_B, int64_t const * size_blk_B,
                           char * C, int nblk_C, int64_t * size_blk_C,
                           char *& new_C){
-
+    TAU_FSTART(spctr_offload);
     ASSERT(iter_counter < total_iter);
     if (iter_counter % upload_phase_A == 0){
       if (is_sparse_A){
@@ -155,10 +155,12 @@ namespace CTF_int {
     rec_ctr->num_lyr = this->num_lyr;
     rec_ctr->idx_lyr = this->idx_lyr;
 
+    TAU_FSTOP(spctr_offload);
     rec_ctr->run(spr_A->dev_spr, nblk_A, size_blk_A,
                  spr_B->dev_spr, nblk_B, size_blk_B,
                  spr_C->dev_spr, nblk_C, size_blk_C,
                  new_C);
+    TAU_FSTART(spctr_offload);
     
     iter_counter++;
 
@@ -187,6 +189,7 @@ namespace CTF_int {
       delete spr_C;
       iter_counter = 0;
     }
+    TAU_FSTOP(spctr_offload);
   }
 }
 #endif

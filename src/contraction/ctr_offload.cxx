@@ -83,6 +83,7 @@ namespace CTF_int {
   }
 
   void ctr_offload::run(char * A, char * B, char * C){
+    TAU_FSTART(ctr_offload);
     ASSERT(iter_counter < total_iter);
     if (iter_counter == 0){
       ptr_A = new offload_tsr(sr_A, size_A);
@@ -116,7 +117,9 @@ namespace CTF_int {
     rec_ctr->num_lyr = this->num_lyr;
     rec_ctr->idx_lyr = this->idx_lyr;
 
+    TAU_FSTOP(ctr_offload);
     rec_ctr->run(ptr_A->dev_spr, ptr_B->dev_spr, ptr_C->dev_spr);
+    TAU_FSTART(ctr_offload);
     
     iter_counter++;
 
@@ -140,6 +143,7 @@ namespace CTF_int {
       delete ptr_C;
       iter_counter = 0;
     }
+    TAU_FSTOP(ctr_offload);
   }
 }
 #endif

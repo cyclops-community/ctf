@@ -111,12 +111,16 @@ namespace CTF_int{
  
   offload_arr::offload_arr(int64_t nbytes_){
     nbytes = nbytes_;
+    TAU_FSTART(offload_malloc);
     cudaError_t err = cudaMalloc((void**)&dev_spr, nbytes);
+    TAU_FSTOP(offload_malloc);
     assert(err == cudaSuccess);
   }
   
   offload_arr::~offload_arr(){
+    TAU_FSTART(offload_free);
     cudaError_t err = cudaFree(dev_spr);
+    TAU_FSTOP(offload_free);
     assert(err == cudaSuccess);
   }
 
@@ -150,12 +154,16 @@ namespace CTF_int{
 
   
   void host_pinned_alloc(void ** ptr, int64_t size){
+    TAU_FSTART(host_pinned_malloc);
     cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
+    TAU_FSTOP(host_pinned_malloc);
     assert(err == cudaSuccess);
   }
   
   void host_pinned_free(void * ptr){
+    TAU_FSTART(host_pinned_free);
     cudaError_t err = cudaFreeHost(ptr);
+    TAU_FSTOP(host_pinned_free);
     assert(err == cudaSuccess);
   }
 #endif
