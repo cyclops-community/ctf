@@ -55,7 +55,7 @@ namespace CTF_int {
   }
 
 
-  void Unifun_Term::get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const {
+  void Unifun_Term::get_inputs(std::set<CTF::Idx_Tensor*, CTF_int::tensor_name_less >* inputs_set) const {
     A->get_inputs(inputs_set);
   }
 
@@ -131,7 +131,7 @@ namespace CTF_int {
   }
 
 
-  void Bifun_Term::get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const {
+  void Bifun_Term::get_inputs(std::set<CTF::Idx_Tensor*, CTF_int::tensor_name_less >* inputs_set) const {
     A->get_inputs(inputs_set);
     B->get_inputs(inputs_set);
   }

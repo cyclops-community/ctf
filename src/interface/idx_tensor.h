@@ -86,7 +86,7 @@ namespace CTF {
       /**
       * \brief appends the tensors this depends on to the input set
       */
-      void get_inputs(std::set< CTF_int::tensor*, CTF_int::tensor_tid_less >* inputs_set) const;
+      void get_inputs(std::set<Idx_Tensor*, CTF_int::tensor_name_less >* inputs_set) const;
 
       /**
        * \brief A = B, compute any operations on operand B and set
@@ -319,6 +319,4 @@ namespace CTF {
    * @}
    */
 }
-
-
 #endif

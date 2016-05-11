@@ -32,7 +32,7 @@ namespace CTF_int {
 
       double  estimate_time(CTF::Idx_Tensor output) const;
 
-      void get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const;
+      void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const;
 
       CTF::World * where_am_i() const;
   };
@@ -62,7 +62,7 @@ namespace CTF_int {
 
       double  estimate_time(CTF::Idx_Tensor output) const;
 
-      void get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const;
+      void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const;
 
       CTF::World * where_am_i() const;
   };

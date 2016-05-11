@@ -48,13 +48,13 @@ namespace CTF {
     /**
      * \brief appends the tensors this writes to to the input set
      */
-    void get_outputs(std::set<CTF_int::tensor*, CTF_int::tensor_tid_less >* outputs_set) const;
+    void get_outputs(std::set<Idx_Tensor*, CTF_int::tensor_name_less >* outputs_set) const;
 
     /**
      * \brief appends the tensors this depends on (reads from, including the output
      * if a previous value is required) to the input set
      */
-    void get_inputs(std::set<CTF_int::tensor*, CTF_int::tensor_tid_less >* inputs_set) const;
+    void get_inputs(std::set<Idx_Tensor*, CTF_int::tensor_name_less >* inputs_set) const;
 
     /**
      * \brief runs this operation, but does NOT handle dependency scheduling
