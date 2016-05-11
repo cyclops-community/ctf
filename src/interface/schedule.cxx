@@ -37,11 +37,11 @@ namespace CTF {
     World * world;
 
     std::vector<TensorOperation*> ops;  // operations to execute
-    std::set<tensor*, tensor_tid_less > local_tensors; // all local tensors used
+    std::set<Idx_Tensor*, tensor_name_less > local_tensors; // all local tensors used
     std::map<tensor*, tensor*> remap; // mapping from global tensor -> local tensor
 
-    std::set<tensor*, tensor_tid_less > global_tensors; // all referenced tensors stored as global tensors
-    std::set<tensor*, tensor_tid_less > output_tensors; // tensors to be written back out, stored as global tensors
+    std::set<Idx_Tensor*, tensor_name_less > global_tensors; // all referenced tensors stored as global tensors
+    std::set<Idx_Tensor*, tensor_name_less > output_tensors; // tensors to be written back out, stored as global tensors
   };
 
   ScheduleTimer Schedule::partition_and_execute() {
@@ -156,21 +156,21 @@ namespace CTF {
     // Create and communicate tensors to subworlds
     schedule_timer.comm_down_time = MPI_Wtime();
     for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
-      typename std::set<tensor*, tensor_tid_less >::iterator global_tensor_iter;
+      typename std::set<Idx_Tensor*, tensor_name_less >::iterator global_tensor_iter;
       for (global_tensor_iter=comm_op_iter->global_tensors.begin(); global_tensor_iter!=comm_op_iter->global_tensors.end(); global_tensor_iter++) {
-        tensor* local_clone;
+        Idx_Tensor* local_clone;
         if (comm_op_iter->world != NULL) {
-          local_clone = new tensor(*(*global_tensor_iter));//, *comm_op_iter->world);
+          local_clone = new Idx_Tensor(*(*global_tensor_iter));//, *comm_op_iter->world);
         } else {
           local_clone = NULL;
         }
         comm_op_iter->local_tensors.insert(local_clone);
-        comm_op_iter->remap[*global_tensor_iter] = local_clone;
-        (*global_tensor_iter)->add_to_subworld(local_clone, (*global_tensor_iter)->sr->mulid(), (*global_tensor_iter)->sr->addid());
+        comm_op_iter->remap[(*global_tensor_iter)->parent] = local_clone->parent;
+        (*global_tensor_iter)->parent->add_to_subworld(local_clone->parent, (*global_tensor_iter)->sr->mulid(), (*global_tensor_iter)->sr->addid());
       }
-      typename std::set<tensor*, tensor_tid_less >::iterator output_tensor_iter;
+      typename std::set<Idx_Tensor*, tensor_name_less >::iterator output_tensor_iter;
       for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {
-        assert(comm_op_iter->remap.find(*output_tensor_iter) != comm_op_iter->remap.end());
+        assert(comm_op_iter->remap.find((*output_tensor_iter)->parent) != comm_op_iter->remap.end());
       }
     }
     schedule_timer.comm_down_time = MPI_Wtime() - schedule_timer.comm_down_time;
@@ -201,16 +201,16 @@ namespace CTF {
     // Communicate results back into global
     schedule_timer.comm_up_time = MPI_Wtime();
     for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
-      typename std::set<tensor*, tensor_tid_less >::iterator output_tensor_iter;
+      typename std::set<Idx_Tensor*, tensor_name_less >::iterator output_tensor_iter;
       for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {
-        (*output_tensor_iter)->add_from_subworld(comm_op_iter->remap[*output_tensor_iter], (*output_tensor_iter)->sr->mulid(), (*output_tensor_iter)->sr->addid());
+        (*output_tensor_iter)->parent->add_from_subworld(comm_op_iter->remap[(*output_tensor_iter)->parent], (*output_tensor_iter)->sr->mulid(), (*output_tensor_iter)->sr->addid());
       }
     }
     schedule_timer.comm_up_time = MPI_Wtime() - schedule_timer.comm_up_time;
 
     // Clean up local tensors & world
     if ((int64_t)comm_ops.size() > my_color) {
-      typename std::set<tensor*, tensor_tid_less >::iterator local_tensor_iter;
+      typename std::set<Idx_Tensor*, tensor_name_less >::iterator local_tensor_iter;
       for (local_tensor_iter=comm_ops[my_color].local_tensors.begin(); local_tensor_iter!=comm_ops[my_color].local_tensors.end(); local_tensor_iter++) {
         delete *local_tensor_iter;
       }
@@ -279,17 +279,17 @@ namespace CTF {
   void Schedule::add_operation_typed(TensorOperation* op) {
     steps_original.push_back(op);
 
-    std::set<tensor*, tensor_tid_less > op_lhs_set;
+    std::set<Idx_Tensor*, tensor_name_less > op_lhs_set;
     op->get_outputs(&op_lhs_set);
     assert(op_lhs_set.size() == 1); // limited case to make this a bit easier
-    tensor* op_lhs = *op_lhs_set.begin();
+    tensor* op_lhs = (*op_lhs_set.begin())->parent;
 
-    std::set<tensor*, tensor_tid_less > op_deps;
+    std::set<Idx_Tensor*, tensor_name_less > op_deps;
     op->get_inputs(&op_deps);
 
-    typename std::set<tensor*, tensor_tid_less >::iterator deps_iter;
+    typename std::set<Idx_Tensor*, tensor_name_less >::iterator deps_iter;
     for (deps_iter = op_deps.begin(); deps_iter != op_deps.end(); deps_iter++) {
-      tensor* dep = *deps_iter;
+      tensor* dep = (*deps_iter)->parent;
       typename std::map<tensor*, TensorOperation*>::iterator dep_loc = latest_write.find(dep);
       TensorOperation* dep_op;
       if (dep_loc != latest_write.end()) {
@@ -363,13 +363,13 @@ namespace CTF {
     }
   }
 
-  void TensorOperation::get_outputs(std::set<tensor*, tensor_tid_less >* outputs_set) const {
+  void TensorOperation::get_outputs(std::set<Idx_Tensor*, tensor_name_less >* outputs_set) const {
     assert(lhs->parent);
     assert(outputs_set != NULL);
-    outputs_set->insert(lhs->parent);
+    outputs_set->insert(lhs);
   }
 
-  void TensorOperation::get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const {
+  void TensorOperation::get_inputs(std::set<Idx_Tensor*, tensor_name_less >* inputs_set) const {
     rhs->get_inputs(inputs_set);
 
     switch (op) {
@@ -379,7 +379,7 @@ namespace CTF {
     case TENSOR_OP_SUBTRACT:
     case TENSOR_OP_MULTIPLY:
       assert(lhs->parent != NULL);
-      inputs_set->insert(lhs->parent);
+      inputs_set->insert(lhs);
       break;
     default:
       std::cerr << "TensorOperation::get_inputs(): unexpected op: " << op << std::endl;

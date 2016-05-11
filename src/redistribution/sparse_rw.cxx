@@ -188,9 +188,10 @@ namespace CTF_int {
                    char const *     vdata,
                    char *           vpairs,
                    algstrct const * sr){
-    int i, imax, act_lda, idx_offset, act_max, buf_offset;
-    int64_t p;
-    int * idx, * virt_rank, * edge_lda;  
+    int i, imax, act_lda, act_max;
+    int64_t p, idx_offset, buf_offset;
+    int * idx, * virt_rank;
+    int64_t * edge_lda;  
     if (order == 0){
       ASSERT(size <= 1);
       if (size == 1){
@@ -202,7 +203,7 @@ namespace CTF_int {
     TAU_FSTART(assign_keys);
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
-    CTF_int::alloc_ptr(order*sizeof(int), (void**)&edge_lda);
+    CTF_int::alloc_ptr(order*sizeof(int64_t), (void**)&edge_lda);
     
     memset(virt_rank, 0, sizeof(int)*order);
     

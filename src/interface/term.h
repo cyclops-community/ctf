@@ -22,17 +22,8 @@ namespace CTF_int {
    * \brief comparison function for sets of tensor pointers
    * This ensures the set iteration order is consistent across nodes
    */
-  struct tensor_tid_less {
-    bool operator()(tensor* A, tensor* B) {
-      if (A == NULL && B != NULL) {
-        return true;
-      } else if (A == NULL || B == NULL) {
-        return false;
-      }
-      assert(0);//FIXME
-      //return A->tid < B->tid;
-      return -1;
-    }
+  struct tensor_name_less {
+    bool operator()(CTF::Idx_Tensor* A, CTF::Idx_Tensor* B);
   };
 
 
@@ -84,7 +75,7 @@ namespace CTF_int {
       /**
       * \brief appends the tensors this depends on to the input set
       */
-      virtual void get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const = 0;
+      virtual void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const = 0;
 
       /**
        * \brief constructs a new term which multiplies by tensor A
@@ -217,7 +208,7 @@ namespace CTF_int {
       /**
       * \brief appends the tensors this depends on to the input set
       */
-      void get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const;
+      void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const;
 
       /**
        * \brief constructs a new term by addition of two terms
@@ -278,7 +269,7 @@ namespace CTF_int {
       /**
       * \brief appends the tensors this depends on to the input set
       */
-      void get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const;
+      void get_inputs(std::set<CTF::Idx_Tensor*, tensor_name_less >* inputs_set) const;
 
       /**
        * \brief evalues the expression to produce an intermediate with 

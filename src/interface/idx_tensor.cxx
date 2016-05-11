@@ -299,10 +299,8 @@ namespace CTF {
     return *this;
   }
 
-  void Idx_Tensor::get_inputs(std::set<CTF_int::tensor*, tensor_tid_less >* inputs_set) const {
-    if (parent) {
-      inputs_set->insert(parent);
-    }
+  void Idx_Tensor::get_inputs(std::set<Idx_Tensor*, tensor_name_less >* inputs_set) const {
+    inputs_set->insert((Idx_Tensor*)this);
   }
 
   /*template<typename dtype, bool is_ord>

@@ -38,6 +38,7 @@ namespace CTF_int {
         }
       }
     }
+    
 
     idx_C = (char*)alloc(sizeof(char)*order_C);
     sym_C = (int*)alloc(sizeof(int)*order_C);
@@ -85,6 +86,61 @@ namespace CTF_int {
       idx++;
     }
 
+    tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
+    Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
+    out->is_intm = 1;
+    free(sym_C);
+    free(len_C);
+    free(idx_C);
+    return out;
+
+  }
+
+  Idx_Tensor * get_full_intm(Idx_Tensor& A, 
+                             Idx_Tensor& B,
+                             int num_out_inds,
+                             char const * out_inds){
+    int * len_C, * sym_C;
+    char * idx_C;
+    int order_C, i, j;
+    
+    idx_C = (char*)alloc(sizeof(char)*num_out_inds);
+    sym_C = (int*)alloc(sizeof(int)*num_out_inds);
+    len_C = (int*)alloc(sizeof(int)*num_out_inds);
+    order_C = 0;
+    for (j=0; j<num_out_inds; j++){
+      bool found = false;
+      int len = -1;
+      int sym_prev = -1;
+      for (i=0; i<A.parent->order; i++){
+        if (A.idx_map[i] == out_inds[j]){
+          found = true;
+          len = A.parent->lens[i];
+          if (sym_prev != -1) sym_prev = NS;
+          else if (i>0 && order_C>0 && A.idx_map[i-1] == idx_C[order_C-1]) sym_prev = A.parent->sym[i-1];
+          else sym_prev = NS;
+        }
+      }
+      if (!found){
+        for (i=0; i<B.parent->order; i++){
+          if (B.idx_map[i] == out_inds[j]){
+            found = true;
+            len = B.parent->lens[i];
+            if (sym_prev != NS && i>0 && order_C>0 && B.idx_map[i-1] == idx_C[order_C-1]) sym_prev = B.parent->sym[i-1];
+            else sym_prev = NS;
+
+          }
+        }
+      }
+      if (found){
+        idx_C[order_C] = out_inds[j];
+        len_C[order_C] = len;
+        if (sym_prev > 0)
+          sym_C[order_C-1] = sym_prev;
+        sym_C[order_C] = NS;
+        order_C++;
+      }
+    }
     tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     out->is_intm = 1;
@@ -366,7 +422,7 @@ namespace CTF_int {
   }
 
 
-  void Sum_Term::get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const {
+  void Sum_Term::get_inputs(std::set<Idx_Tensor*, tensor_name_less >* inputs_set) const {
     for (int i=0; i<(int)operands.size(); i++){
       operands[i]->get_inputs(inputs_set);
     }
@@ -455,7 +511,22 @@ namespace CTF_int {
         sr->safemul(op_A.scale, op_B.scale, op_A.scale);
         tmp_ops.push_back(op_A.clone());
       } else {
-        Idx_Tensor * intm = get_full_intm(op_A, op_B);
+        std::set<char> uniq_inds;
+        for (int k=0; k<output.parent->order; k++){
+          uniq_inds.insert(output.idx_map[k]);
+        }
+        std::set<Idx_Tensor*, tensor_name_less > inputs;
+        for (int j=0; j<(int)tmp_ops.size(); j++){
+          tmp_ops[j]->get_inputs(&inputs);
+        }
+        for (std::set<Idx_Tensor*>::iterator j=inputs.begin(); j!=inputs.end(); j++){
+          for (int k=0; k<(*j)->parent->order; k++){
+            uniq_inds.insert((*j)->idx_map[k]);
+          }
+        }
+        std::vector<char> arr(uniq_inds.begin(), uniq_inds.end());
+
+        Idx_Tensor * intm = get_full_intm(op_A, op_B, uniq_inds.size(), &(arr[0]));
         sr->safemul(tscale, op_A.scale, tscale);
         sr->safemul(tscale, op_B.scale, tscale);
         contraction c(op_A.parent, op_A.idx_map,
@@ -527,6 +598,7 @@ namespace CTF_int {
         sr->safemul(op_B.scale, op_A.scale, op_A.scale);
         tmp_ops.push_back(op_A.clone());
       } else {
+        printf("HERE2\n");
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
         sr->safemul(tscale, op_A.scale, tscale);
         sr->safemul(tscale, op_B.scale, tscale);
@@ -644,7 +716,7 @@ namespace CTF_int {
 
 
 
-  void Contract_Term::get_inputs(std::set<tensor*, tensor_tid_less >* inputs_set) const {
+  void Contract_Term::get_inputs(std::set<Idx_Tensor*, tensor_name_less >* inputs_set) const {
     for (int i=0; i<(int)operands.size(); i++){
       operands[i]->get_inputs(inputs_set);
     }
@@ -677,4 +749,23 @@ namespace CTF_int {
 
 
 }
+
+
+namespace CTF_int {  
+  bool tensor_name_less::operator()(CTF::Idx_Tensor* A, CTF::Idx_Tensor* B) {
+    int d = strcmp(A->parent->name, B->parent->name);
+    if (d>0) return d; else return 1;
+    /*if (A == NULL && B != NULL) {
+      return true;
+    } else if (A == NULL || B == NULL) {
+      return false;
+    }
+    assert(0);//FIXME
+    //return A->tid < B->tid;
+    return -1;*/
+  }
+}
+
+
+
 
