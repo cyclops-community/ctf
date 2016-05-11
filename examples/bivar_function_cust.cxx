@@ -8,7 +8,6 @@
   */
 
 #include <ctf.hpp>
-#include <ctf_cuda.hpp>
 #include "moldynamics.h"
 using namespace CTF;
 namespace CTF {

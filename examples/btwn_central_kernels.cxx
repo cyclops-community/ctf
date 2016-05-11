@@ -1,6 +1,5 @@
 
 #include "btwn_central.h"
-#include <ctf_cuda.hpp>
 using namespace CTF;
 
 
