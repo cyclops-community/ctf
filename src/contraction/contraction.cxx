@@ -733,6 +733,11 @@ namespace CTF_int {
                           A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
         }
       } else {
+#ifdef PROFILE
+        MPI_Barrier(A->wrld->comm);
+        TAU_FSTART(sparse_transpose);
+        double t_st = MPI_Wtime();
+#endif
         int64_t new_sz_A = 0;
         A->rec_tsr->is_sparse = 1;
         A->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
@@ -768,6 +773,24 @@ namespace CTF_int {
           data_ptr_in += A->nnz_blk[i]*A->sr->pair_size();
           data_ptr_out += A->rec_tsr->nnz_blk[i];
         }
+#ifdef PROFILE
+        double t_end = MPI_Wtime();
+        MPI_Barrier(A->wrld->comm);
+        TAU_FSTOP(sparse_transpose);
+        int64_t max_nnz, avg_nnz;
+        double max_time, avg_time;
+        max_nnz = A->nnz_loc;
+        MPI_Allreduce(MPI_IN_PLACE, &max_nnz, 1, MPI_INT64_T, MPI_MAX, A->wrld->comm);
+        avg_nnz = (A->nnz_loc+A->wrld->np/2)/A->wrld->np;
+        MPI_Allreduce(MPI_IN_PLACE, &avg_nnz, 1, MPI_INT64_T, MPI_SUM, A->wrld->comm);
+        max_time = t_end-t_st;
+        MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, A->wrld->comm);
+        avg_time = (t_end-t_st)/A->wrld->np;
+        MPI_Allreduce(MPI_IN_PLACE, &avg_time, 1, MPI_DOUBLE, MPI_SUM, A->wrld->comm);
+        if (A->wrld->rank == 0){
+          printf("avg_nnz = %ld max_nnz = %ld, avg_time = %lf max_time = %lf\n", avg_nnz, max_nnz, avg_time, max_time);
+        }
+#endif
       }
       nvirt_B = B->calc_nvirt();
       for (i=0; i<nvirt_B; i++){
@@ -4013,6 +4036,12 @@ namespace CTF_int {
       fftsr.is_offloadable = 0;
   #endif
     }*/
+
+  #ifdef PROFILE
+    TAU_FSTART(pre_map_barrier);
+    MPI_Barrier(global_comm.cm);
+    TAU_FSTOP(pre_map_barrier);
+  #endif
   #if REDIST
     //stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
     stat = map(&ctrf);
@@ -4050,6 +4079,11 @@ namespace CTF_int {
     }
 #endif
 
+  #ifdef PROFILE
+    TAU_FSTART(pre_fold_barrier);
+    MPI_Barrier(global_comm.cm);
+    TAU_FSTOP(pre_fold_barrier);
+  #endif
   #endif
     ASSERT(check_mapping());
     bool is_inner = false;
