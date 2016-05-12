@@ -92,9 +92,9 @@ namespace CTF_int {
     if (move_A)
       est_bcast_time += cdt_A->estimate_bcast_time(sr_A->el_size*s_A*nnz_frac_A);
     if (move_B)
-      est_bcast_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B*nnz_frac_A);
+      est_bcast_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B*nnz_frac_B);
     if (move_C)
-      est_bcast_time += cdt_C->estimate_bcast_time(sr_C->el_size*s_C*nnz_frac_A);
+      est_bcast_time += cdt_C->estimate_allred_time(sr_C->el_size*s_C*nnz_frac_C, sr_C->addmop());
     return (est_bcast_time*(double)edge_len)/MIN(nlyr,edge_len);
   }
 

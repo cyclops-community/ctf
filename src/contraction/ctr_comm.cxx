@@ -184,7 +184,7 @@ namespace CTF_int {
     }
     for (i=0; i<ncdt_C; i++){
       ASSERT(cdt_C[i]->np > 0);
-      tot_sz += cdt_C[i]->estimate_allred_time(size_C*sr_C->el_size);
+      tot_sz += cdt_C[i]->estimate_allred_time(size_C*sr_C->el_size, sr_C->addmop());
     }
     return tot_sz;
   }

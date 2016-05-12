@@ -55,7 +55,9 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
      
     //compute Bellman Ford
     int nbl = 0;
+#ifndef TEST_SUITE
     double sbl = MPI_Wtime();
+#endif
     for (int i=0; i<n; i++, nbl++){
       Matrix<mpath> C(B);
       B.set_zero();
@@ -69,7 +71,9 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
       num_changed[""] += ((Function<mpath,mpath,int>)([](mpath p, mpath q){ return (p.w!=q.w) | (p.m!=q.m); }))(C["ij"],B["ij"]);
       if (num_changed.get_val() == 0) break;
     }
+#ifndef TEST_SUITE
     double tbl = MPI_Wtime() - sbl;
+#endif
 
     //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
@@ -77,7 +81,9 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
     Bivar_Function<int,cpath,cpath> * Brandes = get_Brandes_kernel();
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     int nbr = 0;
+#ifndef TEST_SUITE
     double sbr = MPI_Wtime();
+#endif
     for (int i=0; i<n; i++, nbr++){
       Matrix<cpath> C(cB);
       cB.set_zero();
@@ -92,8 +98,8 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
       num_changed[""] += ((Function<cpath,cpath,int>)([](cpath p, cpath q){ return p.c!=q.c; }))(C["ij"],cB["ij"]);
       if (num_changed.get_val() == 0) break;
     }
-    double tbr = MPI_Wtime() - sbr;
 #ifndef TEST_SUITE
+    double tbr = MPI_Wtime() - sbr;
     if (dw.rank == 0)
       printf("(%d ,%d) iter (%lf, %lf) sec\n", nbl, nbr, tbl, tbr);
 #endif

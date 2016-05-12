@@ -246,7 +246,7 @@ namespace CTF_int {
     if (move_B)
       est_comm_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B);
     if (move_C)
-      est_comm_time += cdt_C->estimate_allred_time(sr_C->el_size*s_C);
+      est_comm_time += cdt_C->estimate_allred_time(sr_C->el_size*s_C, sr_C->addmop());
     return (est_comm_time*(double)edge_len)/MIN(nlyr,edge_len);
   }
 

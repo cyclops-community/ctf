@@ -8,6 +8,73 @@
 
 namespace CTF_int {
 
+  //does conversion using MKL function if it is available
+  bool try_mkl_coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs, int el_size);
+
+  template <typename dtype>  
+  void seq_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_ja, int * csr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    int sz = sizeof(dtype);
+    if (sz == 4 || sz == 8 || sz == 16){
+      bool b = try_mkl_coo_to_csr(nz, nrow, (char*)csr_vs, csr_ja, csr_ia, (char const*)coo_vs, coo_rs, coo_cs, sz);
+      if (b) return;
+    }
+    csr_ia[0] = 1;
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int i=1; i<nrow+1; i++){
+      csr_ia[i] = 0;
+    }
+    for (int64_t i=0; i<nz; i++){
+      csr_ia[coo_rs[i]]++;
+    }
+    for (int i=0; i<nrow; i++){
+      csr_ia[i+1] += csr_ia[i];
+    }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nz; i++){
+      csr_ja[i] = i;
+    }
+
+    class comp_ref {
+      public:
+        int const * a;
+        comp_ref(int const * a_){ a = a_; }
+        bool operator()(int u, int v){ 
+          return a[u] < a[v];
+        }
+    };
+
+    comp_ref crc(coo_cs);
+    std::sort(csr_ja, csr_ja+nz, crc);
+    comp_ref crr(coo_rs);
+    std::stable_sort(csr_ja, csr_ja+nz, crr);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nz; i++){
+      csr_vs[i] = coo_vs[csr_ja[i]];
+      csr_ja[i] = coo_cs[csr_ja[i]];
+    }
+  }
+
+  template <typename dtype>  
+  void def_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_ja, int * csr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
+    seq_coo_to_csr<dtype>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
+  }
+ 
+  template <>  
+  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_ja, int * csr_ia, float const * coo_vs, int const * coo_rs, int const * coo_cs);
+  template <>  
+  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_ja, int * csr_ia, double const * coo_vs, int const * coo_rs, int const * coo_cs);
+  template <>  
+  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_ja, int * csr_ia, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs);
+  template <>  
+  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_ja, int * csr_ia, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs);
+
+
   template <typename dtype>
   dtype default_addinv(dtype a){
     return -a;
@@ -229,6 +296,12 @@ namespace CTF {
         }
         return true;
       }
+
+      void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
+        CTF_int::def_coo_to_csr(nz, nrow, (dtype *)csr_vs, csr_ja, csr_ia, (dtype const *) coo_vs, coo_rs, coo_cs);
+      }
+
+
   };
 
   //FIXME do below with macros to shorten

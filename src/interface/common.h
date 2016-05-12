@@ -142,7 +142,7 @@ namespace CTF_int {
       double estimate_bcast_time(int64_t msg_sz);
    
       /* \brief provide estimate of allreduction execution time */
-      double estimate_allred_time(int64_t msg_sz);
+      double estimate_allred_time(int64_t msg_sz, MPI_Op op);
      
       /* \brief provide estimate of all_to_all execution time */
       double estimate_alltoall_time(int64_t chunk_sz);

@@ -10,16 +10,28 @@ struct grp{
   __device__ __host__
 #endif
   static void op2(double a, double & b){ b+=a; };
+  static double op2_t2(double a, double b){ return a+b; };
+  static void op2_red(double const * a, double * b, int n){ 
+    #pragma omp parallel for
+    for (int i=0; i<n; i++){
+      b[i] += a[i];
+    }
+  }
 };
 
 
 void train_off_vec_mat(int64_t n, int64_t m, World & dw){
+  MPI_Op madd;
+  MPI_Op_create([](void * a, void * b, int * n, MPI_Datatype*){ 
+                  grp::op2_red((double*)a, (double*)b, *n);
+                }, 1, &madd);
+  Monoid<> mon(0, grp::op2_t2, madd);
   for (double sp = .005; sp<.32; sp*=2.){
-    Vector<> b(n, dw);
-    Vector<> c(m, dw);
-    Matrix<> A(m, n, dw);
-    Matrix<> B(m, n, dw);
-    Matrix<> G(n, n, NS, dw);
+    Vector<> b(n, dw, mon);
+    Vector<> c(m, dw, mon);
+    Matrix<> A(m, n, dw, mon);
+    Matrix<> B(m, n, dw, mon);
+    Matrix<> G(n, n, NS, dw, mon);
   
     srand48(dw.rank);
     b.fill_random(-.5, .5);
