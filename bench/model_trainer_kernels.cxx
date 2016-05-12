@@ -1,5 +1,4 @@
 #include <ctf.hpp>
-#include <ctf_cuda.hpp>
 using namespace CTF;
 
 struct grp{
