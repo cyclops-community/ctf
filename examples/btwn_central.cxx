@@ -185,18 +185,18 @@ int btwn_cnt(int     n,
   //fill with values in the range of [1,min(n*n,100)]
   srand(dw.rank+1);
 //  A.fill_random(1, std::min(n*n,100)); 
-  int nmy = ((int)std::max((int)(n*sp),(int)1))*((int)((n+dw.np-1)/dw.np));
+  int64_t nmy = ((int64_t)std::max((int64_t)(n*sp),(int64_t)1))*((int64_t)((n+dw.np-1)/dw.np));
   int64_t inds[nmy];
   int vals[nmy];
-  int i=0;
-  for (int row=dw.rank*n/dw.np; row<(int)(dw.rank+1)*n/dw.np; row++){
-    int cols[std::max((int)(n*sp),1)];
-    for (int col=0; col<std::max((int)(n*sp),1); col++){
+  int64_t i=0;
+  for (int64_t row=dw.rank*n/dw.np; row<(int64_t)(dw.rank+1)*n/dw.np; row++){
+    int64_t cols[std::max((int64_t)(n*sp),(int64_t)1)];
+    for (int64_t col=0; col<std::max((int64_t)(n*sp),(int64_t)1); col++){
       bool is_rep;
       do {
         cols[col] = rand()%n;
         is_rep = 0;
-        for (int c=0; c<col; c++){
+        for (int64_t c=0; c<col; c++){
           if (cols[c] == cols[col]) is_rep = 1;
         }
       } while (is_rep);
@@ -208,6 +208,7 @@ int btwn_cnt(int     n,
   A.write(i,inds,vals);
   
   A["ii"] = 0;
+
   
   //keep only values smaller than 20 (about 20% sparsity)
   //A.sparsify([=](int a){ return a<sp*100; });

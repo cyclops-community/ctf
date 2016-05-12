@@ -19,6 +19,18 @@ namespace CTF_int{
   extern double seq_tsr_ctr_mdl_cst_off_init[];
   extern double upload_mdl_init[];
   extern double download_mdl_init[];
+  extern double seq_tsr_spctr_cst_off_k0_init[];
+  extern double seq_tsr_spctr_cst_off_k1_init[];
+  extern double seq_tsr_spctr_cst_off_k2_init[];
+  extern double seq_tsr_spctr_cst_k0_init[];
+  extern double seq_tsr_spctr_cst_k1_init[];
+  extern double seq_tsr_spctr_cst_k2_init[];
+  extern double seq_tsr_spctr_off_k0_init[];
+  extern double seq_tsr_spctr_off_k1_init[];
+  extern double seq_tsr_spctr_off_k2_init[];
+  extern double seq_tsr_spctr_k0_init[];
+  extern double seq_tsr_spctr_k1_init[];
+  extern double seq_tsr_spctr_k2_init[];
 }
 
 #endif

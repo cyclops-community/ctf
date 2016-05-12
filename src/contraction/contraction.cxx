@@ -736,7 +736,7 @@ namespace CTF_int {
 #ifdef PROFILE
         MPI_Barrier(A->wrld->comm);
         TAU_FSTART(sparse_transpose);
-        double t_st = MPI_Wtime();
+//        double t_st = MPI_Wtime();
 #endif
         int64_t new_sz_A = 0;
         A->rec_tsr->is_sparse = 1;
@@ -774,10 +774,10 @@ namespace CTF_int {
           data_ptr_out += A->rec_tsr->nnz_blk[i];
         }
 #ifdef PROFILE
-        double t_end = MPI_Wtime();
+//        double t_end = MPI_Wtime();
         MPI_Barrier(A->wrld->comm);
         TAU_FSTOP(sparse_transpose);
-        int64_t max_nnz, avg_nnz;
+        /*int64_t max_nnz, avg_nnz;
         double max_time, avg_time;
         max_nnz = A->nnz_loc;
         MPI_Allreduce(MPI_IN_PLACE, &max_nnz, 1, MPI_INT64_T, MPI_MAX, A->wrld->comm);
@@ -789,7 +789,7 @@ namespace CTF_int {
         MPI_Allreduce(MPI_IN_PLACE, &avg_time, 1, MPI_DOUBLE, MPI_SUM, A->wrld->comm);
         if (A->wrld->rank == 0){
           printf("avg_nnz = %ld max_nnz = %ld, avg_time = %lf max_time = %lf\n", avg_nnz, max_nnz, avg_time, max_time);
-        }
+        }*/
 #endif
       }
       nvirt_B = B->calc_nvirt();
@@ -2492,9 +2492,10 @@ namespace CTF_int {
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
-        if (A->is_sparse) nnz_frac_A = std::min(1.0, (std::max(5.,log2(A->calc_npe()))*A->nnz_tot)/(A->size*A->calc_npe()));
-        if (B->is_sparse) nnz_frac_B = std::min(1.0, (std::max(5.,log2(B->calc_npe()))*B->nnz_tot)/(B->size*B->calc_npe()));
-        if (C->is_sparse) nnz_frac_C = std::min(1.0, (std::max(5.,log2(C->calc_npe()))*C->nnz_tot)/(C->size*C->calc_npe()));
+        if (A->is_sparse) nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
+        if (B->is_sparse) nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
+        if (C->is_sparse) nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
+
         if (is_ctr_sparse){
           est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
         } else { 
@@ -2678,12 +2679,35 @@ namespace CTF_int {
         C->print_map(stdout, 0);
   #endif
 
+        ctr * sctr = construct_ctr();
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
-        if (A->is_sparse) nnz_frac_A = std::min(1.0, (std::max(5.,log2(A->calc_npe()))*A->nnz_tot)/(A->size*A->calc_npe()));
-        if (B->is_sparse) nnz_frac_B = std::min(1.0, (std::max(5.,log2(B->calc_npe()))*B->nnz_tot)/(B->size*B->calc_npe()));
-        if (C->is_sparse) nnz_frac_C = std::min(1.0, (std::max(5.,log2(C->calc_npe()))*C->nnz_tot)/(C->size*C->calc_npe()));
+        if (A->is_sparse) nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
+        if (B->is_sparse) nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
+        if (C->is_sparse) nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
+        if (is_ctr_sparse){
+          est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+        } else { 
+          est_time = sctr->est_time_rec(sctr->num_lyr);
+        }
+  #if FOLD_TSR
+        if ((!is_custom || func->has_gemm) && can_fold()){
+          est_time = est_time_fold();
+          iparam prm = map_fold(false);
+          ctr * sctrf = construct_ctr(1, &prm);
+          est_time += sctrf->est_time_rec(sctrf->num_lyr);
+          delete sctrf;
+          A->remove_fold();
+          B->remove_fold();
+          C->remove_fold();
+        }
+  #endif
+  #if DEBUG >= 4
+        printf("mapping passed contr est_time = %E sec\n", est_time);
+  #endif 
+        ASSERT(est_time >= 0.0);
+
         memuse = 0;
         need_remap_A = 0;
         need_remap_B = 0;
@@ -2725,27 +2749,7 @@ namespace CTF_int {
  
         if (est_time >= best_time) continue;
 
-        ctr * sctr = construct_ctr();
-        if (is_ctr_sparse){
-          est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
-        } else { 
-          est_time = sctr->est_time_rec(sctr->num_lyr);
-        }
-  #if FOLD_TSR
-        if ((!is_custom || func->has_gemm) && can_fold()){
-          est_time = est_time_fold();
-          iparam prm = map_fold(false);
-          ctr * sctrf = construct_ctr(1, &prm);
-          est_time += sctrf->est_time_rec(sctrf->num_lyr);
-          delete sctrf;
-          A->remove_fold();
-          B->remove_fold();
-          C->remove_fold();
-        }
-  #endif
-  #if DEBUG >= 4
-        printf("mapping passed contr est_time = %E sec\n", est_time);
-  #endif 
+
         memuse = MAX((int64_t)sctr->mem_rec(), memuse);
   #if DEBUG >= 4
         printf("total (with redistribution and transp) est_time = %E\n", est_time);

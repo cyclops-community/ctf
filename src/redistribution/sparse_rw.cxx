@@ -827,7 +827,6 @@ namespace CTF_int {
     int64_t * changed_key_indices;
     char * new_changed_pairs;
     int * changed_key_scale;
-    
     CTF_int::alloc_ptr(nchanged*sizeof(int64_t), (void**)&changed_key_indices);
     CTF_int::alloc_ptr(nchanged*sr->pair_size(),  (void**)&new_changed_pairs);
     CTF_int::alloc_ptr(nchanged*sizeof(int),     (void**)&changed_key_scale);
@@ -931,7 +930,6 @@ namespace CTF_int {
       CTF_int::alloc_ptr(sr->pair_size()*new_num_pair, (void**)&swap_datab);
       swap_data = PairIterator(sr, swap_datab);
     }
-
     /* Exchange data according to counts/offsets */
     //ALL_TO_ALLV(buf_data, bucket_counts, send_displs, MPI_CHAR,
     //            swap_data, recv_counts, recv_displs, MPI_CHAR, glb_comm);

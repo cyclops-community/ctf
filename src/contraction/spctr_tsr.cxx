@@ -36,6 +36,7 @@ namespace CTF_int {
                                int64_t             vrt_sz_C)
         : spctr(c) {
      
+    int i, j, k; 
     int * new_sym_A, * new_sym_B, * new_sym_C;
     CTF_int::alloc_ptr(sizeof(int)*c->A->order, (void**)&new_sym_A);
     memcpy(new_sym_A, c->A->sym, sizeof(int)*c->A->order);
@@ -53,6 +54,62 @@ namespace CTF_int {
 
       this->inner_params  = *inner_params;
       this->inner_params.sz_C = vrt_sz_C;
+      tensor * itsr;
+      itsr = c->A->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->A->inner_ordering[i];
+        for (k=0; k<c->A->order; k++){
+          if (c->A->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->A->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+  /*        printf("inner_ordering[%d]=%d setting dim %d of A, to len %d from len %d\n",
+                  i, c->A->inner_ordering[i], k, 1, virt_blk_len_A[k]);*/
+          virt_blk_len_A[k] = 1;
+          new_sym_A[k] = NS;
+        }
+      }
+      itsr = c->B->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->B->inner_ordering[i];
+        for (k=0; k<c->B->order; k++){
+          if (c->B->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->B->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+        /*  printf("inner_ordering[%d]=%d setting dim %d of B, to len %d from len %d\n",
+                  i, c->B->inner_ordering[i], k, 1, virt_blk_len_B[k]);*/
+          virt_blk_len_B[k] = 1;
+          new_sym_B[k] = NS;
+        }
+      }
+      itsr = c->C->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->C->inner_ordering[i];
+        for (k=0; k<c->C->order; k++){
+          if (c->C->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->C->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+        /*  printf("inner_ordering[%d]=%d setting dim %d of C, to len %d from len %d\n",
+                  i, c->C->inner_ordering[i], k, 1, virt_blk_len_C[k]);*/
+          virt_blk_len_C[k] = 1;
+          new_sym_C[k] = NS;
+        }
+      }
+
     }
 
     this->is_custom  = c->is_custom;
@@ -132,18 +189,8 @@ namespace CTF_int {
 
 
   int64_t seq_tsr_spctr::mem_fp(){ return 0; }
-
-  double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
-    uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
-    uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B)*sr_B->el_size;
-    uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C)*sr_C->el_size;
-    if (krnl_type>0) size_A *= inner_params.m*inner_params.k;
-    if (krnl_type>0) size_B *= inner_params.n*inner_params.k;
-    if (krnl_type>0) size_C *= inner_params.m*inner_params.n;
-    if (is_sparse_A) size_A *= nnz_frac_A*10;
-    if (is_sparse_B) size_B *= nnz_frac_B*10;
-    if (is_sparse_C) size_C *= nnz_frac_C*10;
-   
+  
+  double seq_tsr_spctr::est_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     int idx_max, * rev_idx_map; 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
@@ -168,7 +215,80 @@ namespace CTF_int {
     if (is_sparse_C) flops *= nnz_frac_C*10;
     ASSERT(flops >= 0.0);
     CTF_int::cdealloc(rev_idx_map);
-    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
+    return flops;
+  }
+
+  uint64_t seq_tsr_spctr::est_membw(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
+    uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B)*sr_B->el_size;
+    uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C)*sr_C->el_size;
+    if (krnl_type>0) size_A *= ((int64_t)inner_params.m)*inner_params.k;
+    if (krnl_type>0) size_B *= ((int64_t)inner_params.n)*inner_params.k;
+    if (krnl_type>0) size_C *= ((int64_t)inner_params.m)*inner_params.n;
+    if (is_sparse_A) size_A *= nnz_frac_A*10;
+    if (is_sparse_B) size_B *= nnz_frac_B*10;
+    if (is_sparse_C) size_C *= nnz_frac_C*10;
+   
+    return size_A+size_B+size_C;
+  }
+
+  LinModel<3> seq_tsr_spctr_cst_off_k0(seq_tsr_spctr_cst_off_k0_init,"seq_tsr_spctr_cst_off_k0");
+  LinModel<3> seq_tsr_spctr_cst_off_k1(seq_tsr_spctr_cst_off_k1_init,"seq_tsr_spctr_cst_off_k1");
+  LinModel<3> seq_tsr_spctr_cst_off_k2(seq_tsr_spctr_cst_off_k2_init,"seq_tsr_spctr_cst_off_k2");
+  LinModel<3> seq_tsr_spctr_cst_k0(seq_tsr_spctr_cst_k0_init,"seq_tsr_spctr_cst_k0");
+  LinModel<3> seq_tsr_spctr_cst_k1(seq_tsr_spctr_cst_k1_init,"seq_tsr_spctr_cst_k1");
+  LinModel<3> seq_tsr_spctr_cst_k2(seq_tsr_spctr_cst_k2_init,"seq_tsr_spctr_cst_k2");
+  LinModel<3> seq_tsr_spctr_off_k0(seq_tsr_spctr_off_k0_init,"seq_tsr_spctr_off_k0");
+  LinModel<3> seq_tsr_spctr_off_k1(seq_tsr_spctr_off_k1_init,"seq_tsr_spctr_off_k1");
+  LinModel<3> seq_tsr_spctr_off_k2(seq_tsr_spctr_off_k2_init,"seq_tsr_spctr_off_k2");
+  LinModel<3> seq_tsr_spctr_k0(seq_tsr_spctr_k0_init,"seq_tsr_spctr_k0");
+  LinModel<3> seq_tsr_spctr_k1(seq_tsr_spctr_k1_init,"seq_tsr_spctr_k1");
+  LinModel<3> seq_tsr_spctr_k2(seq_tsr_spctr_k2_init,"seq_tsr_spctr_k2");
+
+  double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
+//    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
+    double ps[] = {1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C)};
+    switch (krnl_type){
+      case 0:
+        if (is_custom){
+          if (inner_params.offload)
+            return seq_tsr_spctr_cst_off_k0.est_time(ps);
+          else
+            return seq_tsr_spctr_cst_k0.est_time(ps);
+        } else {
+          if (inner_params.offload)
+            return seq_tsr_spctr_off_k0.est_time(ps);
+          else
+            return seq_tsr_spctr_k0.est_time(ps);
+        }
+        break;
+      case 1:
+        if (is_custom){
+          if (inner_params.offload)
+            return seq_tsr_spctr_cst_off_k1.est_time(ps);
+          else
+            return seq_tsr_spctr_cst_k1.est_time(ps);
+        } else {
+          if (inner_params.offload)
+            return seq_tsr_spctr_off_k1.est_time(ps);
+          else
+            return seq_tsr_spctr_k1.est_time(ps);
+        }
+        break;
+      case 2:
+        if (is_custom){
+          if (inner_params.offload)
+            return seq_tsr_spctr_cst_off_k2.est_time(ps);
+          else
+            return seq_tsr_spctr_cst_k2.est_time(ps);
+        } else {
+          if (inner_params.offload)
+            return seq_tsr_spctr_off_k2.est_time(ps);
+          else
+            return seq_tsr_spctr_k2.est_time(ps);
+        }
+        break;
+    }
   }
 
   double seq_tsr_spctr::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
@@ -184,6 +304,8 @@ namespace CTF_int {
     ASSERT(!is_sparse_B);
     ASSERT(!is_sparse_C);
     ASSERT(nblk_A == 1);
+
+    double st_time = MPI_Wtime();
 
     if (krnl_type==2){
       // Do mm using CSR format
@@ -244,6 +366,56 @@ namespace CTF_int {
                           func);
       TAU_FSTOP(spA_dnB_dnC_seq);
     }
+    double nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
+    for (int i=0; i<order_A; i++){
+      nnz_frac_A = nnz_frac_A / edge_len_A[i];
+    }
+    if (krnl_type > 0) nnz_frac_A = nnz_frac_A / (inner_params.m*inner_params.k);
+    
+    double exe_time = MPI_Wtime() - st_time;
+    double tps[] = {exe_time, 1.0, (double)est_membw(nnz_frac_A, 1.0, 1.0), est_fp(nnz_frac_A, 1.0, 1.0)};
+    switch (krnl_type){
+      case 0:
+        if (is_custom){
+          if (inner_params.offload)
+            seq_tsr_spctr_cst_off_k0.observe(tps);
+          else
+            seq_tsr_spctr_cst_k0.observe(tps);
+        } else {
+          if (inner_params.offload)
+            seq_tsr_spctr_off_k0.observe(tps);
+          else
+            seq_tsr_spctr_k0.observe(tps);
+        }
+        break;
+      case 1:
+        if (is_custom){
+          if (inner_params.offload)
+            seq_tsr_spctr_cst_off_k1.observe(tps);
+          else
+            seq_tsr_spctr_cst_k1.observe(tps);
+        } else {
+          if (inner_params.offload)
+            seq_tsr_spctr_off_k1.observe(tps);
+          else
+            seq_tsr_spctr_k1.observe(tps);
+        }
+        break;
+      case 2:
+        if (is_custom){
+          if (inner_params.offload)
+            seq_tsr_spctr_cst_off_k2.observe(tps);
+          else
+            seq_tsr_spctr_cst_k2.observe(tps);
+        } else {
+          if (inner_params.offload)
+            seq_tsr_spctr_off_k2.observe(tps);
+          else
+            seq_tsr_spctr_k2.observe(tps);
+        }
+        break;
+    }
+
   }
 
 
