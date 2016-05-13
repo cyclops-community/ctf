@@ -184,7 +184,7 @@ namespace CTF_int {
     }
     for (i=0; i<ncdt_C; i++){
       ASSERT(cdt_C[i]->np > 0);
-      tot_sz += cdt_C[i]->estimate_allred_time(size_C*sr_C->el_size, sr_C->addmop());
+      tot_sz += cdt_C[i]->estimate_red_time(size_C*sr_C->el_size, sr_C->addmop());
     }
     return tot_sz;
   }
@@ -249,7 +249,10 @@ namespace CTF_int {
     }*/
     for (i=0; i<ncdt_C; i++){
       //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
-      cdt_C[i]->allred(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop());
+      if (cdt_C[i]->rank == 0)
+        cdt_C[i]->red(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), 0);
+      else
+        cdt_C[i]->red(C, NULL, size_C, sr_C->mdtype(), sr_C->addmop(), 0);
     }
 
     if (arank != 0 && this->sr_A->addid() != NULL){

@@ -144,6 +144,9 @@ namespace CTF_int {
       /* \brief provide estimate of allreduction execution time */
       double estimate_allred_time(int64_t msg_sz, MPI_Op op);
      
+      /* \brief provide estimate of reduction execution time */
+      double estimate_red_time(int64_t msg_sz, MPI_Op op);
+     
       /* \brief provide estimate of all_to_all execution time */
       double estimate_alltoall_time(int64_t chunk_sz);
      
@@ -159,6 +162,11 @@ namespace CTF_int {
        * \brief allreduce, same interface as MPI_Allreduce, but excluding the comm
        */
       void allred(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op);
+
+      /**
+       * \brief reduce, same interface as MPI_Reduce, but excluding the comm
+       */
+      void red(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op, int root);
 
       /**
        * \brief performs all-to-all-v with 64-bit integer counts and offset on arbitrary

@@ -6,6 +6,8 @@ namespace CTF_int{
   extern double non_contig_transp_mdl_init[];
   extern double alltoall_mdl_init[];
   extern double alltoallv_mdl_init[];
+  extern double red_mdl_init[];
+  extern double red_mdl_cst_init[];
   extern double allred_mdl_init[];
   extern double allred_mdl_cst_init[];
   extern double bcast_mdl_init[];

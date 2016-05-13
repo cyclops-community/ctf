@@ -246,7 +246,7 @@ namespace CTF_int {
     if (move_B)
       est_comm_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B);
     if (move_C)
-      est_comm_time += cdt_C->estimate_allred_time(sr_C->el_size*s_C, sr_C->addmop());
+      est_comm_time += cdt_C->estimate_red_time(sr_C->el_size*s_C, sr_C->addmop());
     return (est_comm_time*(double)edge_len)/MIN(nlyr,edge_len);
   }
 
@@ -414,8 +414,11 @@ namespace CTF_int {
       }*/
       if (move_C){
         /* FIXME: Wont work for single precsion */
-        cdt_C->allred(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop());
         owner_C   = ib % cdt_C->np;
+        if (cdt_C->rank == owner_C)
+          cdt_C->red(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
+        else
+          cdt_C->red(op_C, NULL, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
         if (rank_C == owner_C){
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
                      op_C, ctr_sub_lda_C, sr_C->mulid(),

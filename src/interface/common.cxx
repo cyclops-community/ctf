@@ -17,6 +17,8 @@ namespace CTF_int {
 #else
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW + 2.0*COST_MEMBW, 0.0};
 #endif
+  LinModel<3> red_mdl(red_mdl_init,"red_mdl");
+  LinModel<3> red_mdl_cst(red_mdl_cst_init,"red_mdl_cst");
   LinModel<3> allred_mdl(allred_mdl_init,"allred_mdl");
   LinModel<3> allred_mdl_cst(allred_mdl_cst_init,"allred_mdl_cst");
   LinModel<3> bcast_mdl(bcast_mdl_init,"bcast_mdl");
@@ -280,6 +282,15 @@ namespace CTF_int {
     else
       return allred_mdl_cst.est_time(ps);
   }
+
+  double CommData::estimate_red_time(int64_t msg_sz, MPI_Op op){
+    double ps[] = {1.0, log2((double)np), (double)msg_sz};
+    if (op >= MPI_MAX && op <= MPI_REPLACE)
+      return red_mdl.est_time(ps);
+    else
+      return red_mdl_cst.est_time(ps);
+  }
+ 
   
   double CommData::estimate_alltoall_time(int64_t chunk_sz) {
     double ps[] = {1.0, log2((double)np), log2((double)np)*np*chunk_sz};
@@ -326,6 +337,26 @@ namespace CTF_int {
     else
       allred_mdl_cst.observe(tps);
   }
+
+  void CommData::red(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op, int root){
+#ifdef TUNE
+    MPI_Barrier(cm);
+#endif
+    double st_time = MPI_Wtime();
+    MPI_Reduce(inbuf, outbuf, count, mdtype, op, root, cm);
+#ifdef TUNE
+    MPI_Barrier(cm);
+#endif
+    double exe_time = MPI_Wtime()-st_time;
+    int tsize;
+    MPI_Type_size(mdtype, &tsize);
+    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize};
+    if (op >= MPI_MAX && op <= MPI_REPLACE)
+      red_mdl.observe(tps);
+    else
+      red_mdl_cst.observe(tps);
+  }
+
 
   void CommData::all_to_allv(void *          send_buffer,
                              int64_t const * send_counts,

@@ -1,5 +1,7 @@
 namespace CTF_int{
 double blres_mdl_init[] = {3.7870E-05, 1.2061E-08};
+double red_mdl_init[] = {4.0685E-05, 1.3873E-06, 3.7988E-09};
+double red_mdl_cst_init[] = {4.0685E-05, 1.3873E-06, 3.7988E-09};
 double allred_mdl_init[] = {4.0685E-05, 1.3873E-06, 3.7988E-09};
 double allred_mdl_cst_init[] = {4.0685E-05, 1.3873E-06, 3.7988E-09};
 double bcast_mdl_init[] = {9.2877E-05, -1.0985E-05, 7.1096E-10};
