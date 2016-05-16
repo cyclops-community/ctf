@@ -94,6 +94,8 @@ namespace CTF_int {
       mapping * edge_map;
       /** \brief current size of local tensor data chunk (mapping-dependent) */
       int64_t size;
+      /** \brief size CTF keeps track of for memory usage */
+      int64_t registered_alloc_size;
       /** \brief whether the data is folded/transposed into a (lower-order) tensor */
       bool is_folded;
       /** \brief ordering of the dimensions according to which the tensori s folded */
@@ -654,6 +656,21 @@ namespace CTF_int {
        * \param[in] nnz_blk number of nonzeros in each block  
        */
       void set_new_nnz_glb(int64_t const * nnz_blk);
+
+      /**
+       * \brief degister home buffer 
+       */
+      void leave_home_with_buffer();
+    
+      /**
+        * \brief register buffer allocation for this tensor
+        */
+      void register_size(int64_t size);
+      
+      /**
+        * \brief deregister buffer allocation for this tensor
+        */
+      void deregister_size();
   };
 }
 

@@ -35,7 +35,6 @@ namespace CTF_int {
     if (order != -1){
       if (wrld->rank == 0) DPRINTF(2,"Deleted order %d tensor %s\n",order,name);
       if (is_folded) unfold();
-      cdealloc(name);
       cdealloc(sym);
       cdealloc(lens);
       cdealloc(pad_edge_len);
@@ -44,8 +43,8 @@ namespace CTF_int {
         cdealloc(scp_padding);
       cdealloc(sym_table);
       delete [] edge_map;
+      deregister_size();
       if (!is_data_aliased){
-        if (has_home) inc_tot_mem_used(-size*sr->el_size);
         if (is_home){
           cdealloc(home_buffer);
         } else { 
@@ -57,6 +56,7 @@ namespace CTF_int {
       if (is_sparse) cdealloc(nnz_blk);
       order = -1;
       delete sr;
+      cdealloc(name);
     }
   }
 
@@ -88,6 +88,7 @@ namespace CTF_int {
                  bool                       profile){
     this->init(sr, order,edge_len,sym,wrld,0,name,profile,0);
     set_distribution(idx, prl, blk);
+    register_size(this->home_size*sr->el_size);
     this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
     this->sr->set(this->data, this->sr->addid(), this->size);
 #ifdef HOME_CONTRACT
@@ -188,7 +189,7 @@ namespace CTF_int {
           CTF_int::cdealloc(this->home_buffer);
         }*/
         this->home_size = other->home_size;
-        if (other->has_home) inc_tot_mem_used(home_size*sr->el_size);
+        register_size(this->home_size*sr->el_size);
         this->home_buffer = (char*)CTF_int::alloc(other->home_size*sr->el_size);
         if (other->is_home){
           this->is_home = 1;
@@ -292,6 +293,7 @@ namespace CTF_int {
     this->nnz_tot           = 0;
     this->nnz_blk           = NULL;
 //    this->nnz_loc_max       = 0;
+    this->registered_alloc_size = 0;
     if (name_ != NULL){
       this->name = (char*)alloc(strlen(name_)+1);
       strcpy(this->name, name_);
@@ -551,7 +553,8 @@ namespace CTF_int {
     /*      if (wrld->rank == 0)
             DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
           CTF_int::alloc_ptr(this->home_size*sr->el_size, (void**)&this->home_buffer);
-          inc_tot_mem_used(size*sr->el_size);
+          if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
+          register_size(this->size*sr->el_size);
           this->data = this->home_buffer;
         } else {
           CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);
@@ -1429,8 +1432,7 @@ namespace CTF_int {
           idx_A[i] = i;
         }
         tensor tA(sr, order, lens, sym_A, wrld, 1);
-        tA.is_home = 0;
-        tA.has_home = 0;
+        tA.leave_home_with_buffer();
         summation st(this, idx_A, sr->mulid(), &tA, idx_A, sr->mulid());
         st.execute();
         return tA.read_all_pairs(num_pair, false);
@@ -2403,5 +2405,30 @@ namespace CTF_int {
     wrld->cdt.allred(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM);
   }
 
+  void tensor::leave_home_with_buffer(){
+#ifdef HOME_CONTRACT
+    if (this->has_home){
+      if (!this->is_home){
+        cdealloc(this->home_buffer);
+        this->home_buffer = this->data;
+      }
+      if (wrld->rank == 0) DPRINTF(2,"Deleting home (leave) of %s\n",name);
+      deregister_size();
+    }
+    this->is_home = 0;
+    this->has_home = 0;    
+#endif    
+  }
+
+  void tensor::register_size(int64_t size){
+    deregister_size();
+    registered_alloc_size = size;
+    inc_tot_mem_used(registered_alloc_size);
+  }
+  
+  void tensor::deregister_size(){
+    inc_tot_mem_used(-registered_alloc_size);
+    registered_alloc_size = 0;
+  }
 }
 
