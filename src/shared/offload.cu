@@ -92,6 +92,7 @@ namespace CTF_int{
   void offload_tsr::set_zero(){
     int blockSize = 256;
     int numBlocks = (size + blockSize - 1) / (size);
+    TAU_FSTART(set_zero);
     switch (sr->el_size){
       case 4:
         gset_zero<<<blockSize, numBlocks>>>((float*)dev_spr, size, ((float*)sr->addid())[0]);
@@ -106,6 +107,7 @@ namespace CTF_int{
         assert(0);
         break;
     }
+    TAU_FSTOP(set_zero);
   }
 
  

@@ -68,6 +68,8 @@ namespace CTF_int {
     tot_time += estimate_upload_time(nnz_frac_A*size_A*sr_A->el_size)*(total_iter/upload_phase_A);
     tot_time += estimate_upload_time(nnz_frac_B*size_B*sr_B->el_size)*(total_iter/upload_phase_B);
     tot_time += estimate_download_time(nnz_frac_C*size_C*sr_C->el_size)*(total_iter/download_phase_C);
+    tot_time += estimate_download_time(nnz_frac_C*size_C*sr_C->el_size)*(total_iter/download_phase_C);
+    //tot_time += 1.E-9*2.*nnz_frac_C*size_C*sr_C->el_size*(total_iter/download_phase_C);
     return tot_time;
   }
 
@@ -138,6 +140,7 @@ namespace CTF_int {
       }
     } 
 
+    TAU_FSTART(offload_scale);
     if (!sr_C->isequal(this->beta, sr_C->mulid())){
       ASSERT(iter_counter % download_phase_C == 0);
       //FIXME daxpy 
@@ -150,6 +153,7 @@ namespace CTF_int {
         this->C[i] = this->C[i]*this->beta;
       }*/
     }
+    TAU_FSTOP(offload_scale);
 
     rec_ctr->beta    = sr_C->mulid();
     rec_ctr->num_lyr = this->num_lyr;
@@ -173,7 +177,9 @@ namespace CTF_int {
         memcpy(C_host_ptr+i*sr_C->el_size, sr_C->addid(), sr_C->el_size);
         memcpy(C+i*sr_C->el_size, sr_C->addid(), sr_C->el_size);
       }*/
+      TAU_FSTART(offload_axpy);
       sr_C->axpy(size_C, sr_C->mulid(), C_host_ptr, 1, C, 1);
+      TAU_FSTOP(offload_axpy);
 /*      for (int i=0; i<size_C; i++){
         this->C[i] += C_host_ptr[i];
       }*/
