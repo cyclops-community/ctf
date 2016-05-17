@@ -119,7 +119,8 @@ namespace CTF_int {
         depermutation[d] = (int*)CTF_int::alloc(new_edge_len[d]*sizeof(int));
         std::fill(depermutation[d],depermutation[d]+new_edge_len[d], -1);
         for (int i=0; i<edge_len[d]; i++){
-          depermutation[d][permutation[d][i]] = i;
+          if (permutation[d][i] > -1)
+            depermutation[d][permutation[d][i]] = i;
         }
       }
     }

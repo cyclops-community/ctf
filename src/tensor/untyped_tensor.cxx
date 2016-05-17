@@ -660,7 +660,9 @@ namespace CTF_int {
         blk_sz_B = 0;
         all_data_B = NULL;
       } else {
-        tsr_B->read_local(&sz_B, &all_data_B);
+        if (wrld->rank == 0) printf("CTF ERROR: please use other variant of permute function when the output is sparse\n");
+        assert(!tsr_B->is_sparse);
+        tsr_B->read_local_nnz(&sz_B, &all_data_B);
         //permute all_data_B
         permute_keys(tsr_B->order, sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, &blk_sz_B, sr);
       }
@@ -677,7 +679,7 @@ namespace CTF_int {
       } else {
         ASSERT(permutation_A != NULL);
         ASSERT(permutation_B == NULL);
-        tsr_A->read_local(&sz_A, &all_data_A);
+        tsr_A->read_local_nnz(&sz_A, &all_data_A);
         //permute all_data_A
         permute_keys(tsr_A->order, sz_A, tsr_A->lens, tsr_B->lens, permutation_A, all_data_A, &blk_sz_A, sr);
       }
