@@ -520,8 +520,10 @@ namespace CTF_int {
           tmp_ops[j]->get_inputs(&inputs);
         }
         for (std::set<Idx_Tensor*>::iterator j=inputs.begin(); j!=inputs.end(); j++){
-          for (int k=0; k<(*j)->parent->order; k++){
-            uniq_inds.insert((*j)->idx_map[k]);
+          if ((*j)->parent != NULL){
+            for (int k=0; k<(*j)->parent->order; k++){
+              uniq_inds.insert((*j)->idx_map[k]);
+            }
           }
         }
         std::vector<char> arr(uniq_inds.begin(), uniq_inds.end());
@@ -753,14 +755,20 @@ namespace CTF_int {
 
 namespace CTF_int {  
   bool tensor_name_less::operator()(CTF::Idx_Tensor* A, CTF::Idx_Tensor* B) {
-    int d = strcmp(A->parent->name, B->parent->name);
-    if (d>0) return d; else return 1;
-    /*if (A == NULL && B != NULL) {
+    if (A == NULL && B != NULL) {
       return true;
     } else if (A == NULL || B == NULL) {
       return false;
     }
-    assert(0);//FIXME
+    if (A->parent == NULL && B->parent != NULL) {
+      return true;
+    } else if (A->parent == NULL || B->parent == NULL) {
+      return false;
+    }
+    int d = strcmp(A->parent->name, B->parent->name);
+    if (d>0) return d; 
+    else return 1;
+    /*assert(0);//FIXME
     //return A->tid < B->tid;
     return -1;*/
   }
