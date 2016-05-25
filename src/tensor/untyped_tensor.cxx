@@ -1937,7 +1937,7 @@ namespace CTF_int {
       }
     }
 
-    if (size > INT_MAX && wrld->cdt.rank == 0)
+    if (size > INT_MAX && !is_sparse && wrld->cdt.rank == 0)
       printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%d, so MPI could run into problems\n", name, size, INT_MAX);
 
   #ifdef HOME_CONTRACT
