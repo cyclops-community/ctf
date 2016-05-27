@@ -558,7 +558,7 @@ namespace CTF_int {
     if (is_custom && !func->commutative) max_ord = 3;
 
     //iterate over permutations of {A,B,C}
-    for (int iord=0; iord<3; iord++){
+    for (int iord=0; iord<max_ord; iord++){
       get_perm<tensor*>(iord, A, B, C, 
                        tA, tB, tC);
       get_perm<tensor*>(iord, fold_ctr->A, fold_ctr->B, fold_ctr->C, 
@@ -2749,8 +2749,8 @@ namespace CTF_int {
  
         if (est_time >= best_time) continue;
 
-
-        memuse = MAX((int64_t)sctr->mem_rec(), memuse);
+        int64_t sctr_mem_use = (int64_t)sctr->mem_rec();
+        memuse = MAX(sctr_mem_use, memuse);
   #if DEBUG >= 4
         printf("total (with redistribution and transp) est_time = %E\n", est_time);
   #endif
@@ -2759,14 +2759,16 @@ namespace CTF_int {
         TAU_FSTOP(est_ctr_map_time);
         TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
-          DPRINTF(2,"Not enough memory available for topo %d with order %d\n", i, j);
+          DPRINTF(1,"Not enough memory available for topo %d with order %d\n", i, j);
           TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
         } 
         TAU_FSTOP(get_avail_res);
-        if (A->size > INT_MAX || B->size > INT_MAX || C->size > INT_MAX){
-          DPRINTF(2,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
+        if (((!A->is_sparse) && A->size > INT_MAX) || 
+            ((!B->is_sparse) && B->size > INT_MAX) || 
+            ((!C->is_sparse) && C->size > INT_MAX)){
+          DPRINTF(1,"MPI does not handle enough bits for topo %d with order %d \n", i, j);
           delete sctr;
           continue;
         }
