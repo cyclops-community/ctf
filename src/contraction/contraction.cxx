@@ -4048,7 +4048,9 @@ namespace CTF_int {
     MPI_Barrier(global_comm.cm);
     TAU_FSTOP(pre_map_barrier);
   #endif
+    bool keep_map = 1;
   #if REDIST
+    keep_map = 0;
     //stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
     stat = map(&ctrf);
     if (stat == ERROR) {
@@ -4064,6 +4066,7 @@ namespace CTF_int {
         return ERROR;
       }
     } else {
+      keep_map = 1;
       /* Construct the tensor algorithm we would like to use */
   #if DEBUG > 2
       if (global_comm.rank == 0)
@@ -4074,11 +4077,15 @@ namespace CTF_int {
   #endif
       ctrf = construct_ctr();
     }
-#if DEBUG >= 1
+#if (VERBOSE >= 1 || DEBUG >= 1)
     if (global_comm.rank == 0){
       int64_t memuse = ctrf->mem_rec();
-      printf("CTF: Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
-              (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
+      if (keep_map)
+        printf("CTF: Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
+                (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
+      else
+        printf("CTF: Contraction will use new mapping, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
+                (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
       A->print_map();
       B->print_map();
       C->print_map();

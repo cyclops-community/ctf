@@ -251,7 +251,7 @@ namespace CTF_int {
   }
 
   double ctr_2d_general::est_time_rec(int nlyr) {
-    return edge_len*rec_ctr->est_time_rec(1) + est_time_fp(nlyr);
+    return rec_ctr->est_time_rec(1)*(double)edge_len/MIN(nlyr,edge_len) + est_time_fp(nlyr);
   }
 
   int64_t ctr_2d_general::mem_fp() {

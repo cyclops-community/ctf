@@ -99,7 +99,7 @@ namespace CTF_int {
   }
 
   double spctr_2d_general::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
-    return edge_len*rec_ctr->est_time_rec(1, nnz_frac_A, nnz_frac_B, nnz_frac_C) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+    return rec_ctr->est_time_rec(1, nnz_frac_A, nnz_frac_B, nnz_frac_C)*(double)edge_len/MIN(nlyr,edge_len) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   int64_t spctr_2d_general::mem_fp() {
