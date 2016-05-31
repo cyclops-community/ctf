@@ -727,7 +727,7 @@ namespace CTF_int {
         for (int j=0; j<Y->order; j++){
           if (idx_X[i] == idx_Y[j]){
             ASSERT(p[i] == nm); // no repeating indices allowed here!
-            p[i] = j+nmap_idx;
+            p[i] = i+nmap_idx;
           }
         }
         if (p[i] == nm) nm++;
@@ -743,6 +743,10 @@ namespace CTF_int {
     printf("tspsum_permute:\n");
     if (A_or_B) printf("permuting A\n");
     else        printf("permuting B\n");
+    for (int i=0; i<order; i++){
+      printf("p[%d] = %d ",i,p[i]);
+    }
+    printf("\n");
     rec_tsum->print();
   }
   

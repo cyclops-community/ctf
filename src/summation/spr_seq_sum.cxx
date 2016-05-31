@@ -261,9 +261,9 @@ namespace CTF_int{
           } else {
             prs_B[t].read_val(b);
           }
-          if (func == NULL)
+          if (func == NULL){ 
             sr_B->add(a, b, b);
-          else
+          } else
             func->acc_f(a, b, sr_B);
           prs_new[n].write_val(b);
           ((int64_t*)(prs_new[n].ptr))[0] = prs_B[t].k();
