@@ -21,7 +21,7 @@ namespace CTF_int {
   template <int nparam>
   class LinModel : Model {
     private:
-      int nobs;
+      int64_t nobs;
       int mat_lda;
       bool is_tuned;
       double tot_time;
@@ -31,6 +31,7 @@ namespace CTF_int {
       int hist_size;
       double * time_param_mat;
       double param_guess[nparam];
+      double regularization[nparam];
       char * name;
 
       /** 
@@ -39,7 +40,7 @@ namespace CTF_int {
        * \param[in] hist_size number of times to keep in history
        * \param[in] tune_interval
        */
-      LinModel(double const * init_guess, char const * name, int hist_size=16384);
+      LinModel(double const * init_guess, char const * name, int hist_size=32768);
 
       LinModel();
       ~LinModel();

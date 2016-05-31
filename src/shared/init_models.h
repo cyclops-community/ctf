@@ -12,7 +12,9 @@ namespace CTF_int{
   extern double allred_mdl_cst_init[];
   extern double bcast_mdl_init[];
   extern double dgtog_res_mdl_init[];
+  extern double spredist_mdl_init[];
   extern double blres_mdl_init[];
+  extern double pin_keys_mdl_init[];
   extern double seq_tsr_ctr_mdl_cst_init[];
   extern double seq_tsr_ctr_mdl_ref_init[];
   extern double seq_tsr_ctr_mdl_inr_init[];

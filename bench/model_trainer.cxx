@@ -12,6 +12,10 @@
 #undef TEST_SUITE
 using namespace CTF;
 
+namespace CTF_int{
+  void update_all_models(MPI_Comm comm);
+}
+
 void train_off_vec_mat(int64_t n, int64_t m, World & dw);
 
 void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
@@ -187,6 +191,9 @@ void train_all(double time, World & dw){
     MPI_Comm_split(dw.comm, mw, mr, &cm);
     World w(cm);
     train_world(dtime, w);
+    CTF_int::update_all_models(w.cdt.cm);
+    train_world(dtime, w);
+    CTF_int::update_all_models(w.cdt.cm);
   }
 }
 

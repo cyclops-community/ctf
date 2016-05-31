@@ -29,7 +29,7 @@ namespace CTF_int {
 
   seq_tsr_spctr::seq_tsr_spctr(contraction const * c,
                                int                 krnl_type_,
-                               iparam const *      inner_params,
+                               iparam const *      inner_params_,
                                int *               virt_blk_len_A,
                                int *               virt_blk_len_B,
                                int *               virt_blk_len_C,
@@ -48,11 +48,11 @@ namespace CTF_int {
     this->krnl_type  = krnl_type_;
     if (krnl_type > 0){
       if (c->A->wrld->cdt.rank == 0){
-        DPRINTF(2,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
-          inner_params->m, inner_params->k);
+        DPRINTF(2,"Folded tensor n=%d m=%d k=%d\n", inner_params_->n,
+          inner_params_->m, inner_params_->k);
       }
 
-      this->inner_params  = *inner_params;
+      this->inner_params  = *inner_params_;
       this->inner_params.sz_C = vrt_sz_C;
       tensor * itsr;
       itsr = c->A->rec_tsr;
@@ -289,6 +289,8 @@ namespace CTF_int {
         }
         break;
     }
+    assert(0); //wont make it here
+    return 0.0;
   }
 
   double seq_tsr_spctr::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
@@ -377,15 +379,15 @@ namespace CTF_int {
     switch (krnl_type){
       case 0:
         if (is_custom){
-          if (inner_params.offload)
-            seq_tsr_spctr_cst_off_k0.observe(tps);
-          else
-            seq_tsr_spctr_cst_k0.observe(tps);
+          //if (inner_params.offload)
+          //  seq_tsr_spctr_cst_off_k0.observe(tps);
+          //else
+          seq_tsr_spctr_cst_k0.observe(tps);
         } else {
-          if (inner_params.offload)
-            seq_tsr_spctr_off_k0.observe(tps);
-          else
-            seq_tsr_spctr_k0.observe(tps);
+          //if (inner_params.offload)
+          //  seq_tsr_spctr_off_k0.observe(tps);
+          //else
+          seq_tsr_spctr_k0.observe(tps);
         }
         break;
       case 1:
@@ -778,14 +780,16 @@ namespace CTF_int {
     }
   }
 
+  LinModel<2> pin_keys_mdl(pin_keys_mdl_init,"pin_keys_mdl");
   double spctr_pin_keys::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    double ps[] = {1.0, dns_blk_sz*nnz_frac_A};
     switch (AxBxC){
       case 0:
-        return 2.*dns_blk_sz*nnz_frac_A*COST_MEMBW;
+        return pin_keys_mdl.est_time(ps);
       case 1:
-        return 2.*dns_blk_sz*nnz_frac_B*COST_MEMBW;
+        return pin_keys_mdl.est_time(ps);
       case 2:
-        return 4.*dns_blk_sz*nnz_frac_C*COST_MEMBW;
+        return 2.*pin_keys_mdl.est_time(ps);
     }
     return 0;
   }
@@ -835,6 +839,7 @@ namespace CTF_int {
       div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
 //      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
     }*/
+    double st_time = MPI_Wtime();
     char * nA, * nB, * nC;
     nA = A; nB = B; nC = C;
     char * nX = NULL;
@@ -855,6 +860,10 @@ namespace CTF_int {
 
     pi.pin(nnz, order, lens, divisor, pi_new);
 
+    double exe_time = MPI_Wtime()-st_time;
+    double tps[] = {exe_time, 1.0, nnz};
+    pin_keys_mdl.observe(tps);
+    
     TAU_FSTOP(spctr_pin_keys);
     rec_ctr->run(nA, nblk_A, size_blk_A,
                  nB, nblk_B, size_blk_B,
@@ -869,12 +878,16 @@ namespace CTF_int {
         cdealloc(nX);
         break;
       case 2:
+        st_time = MPI_Wtime();
         int64_t new_nnz_C=0;
         for (int i=0; i<nblk_C; i++){
           ASSERT(size_blk_C[i] % sr_C->pair_size() == 0);
           new_nnz_C += size_blk_C[i] / sr_C->pair_size();
         }
         depin(sr_C, order, lens, divisor, nblk_C, virt_dim, phys_rank, new_C, new_nnz_C, size_blk_C, new_C, true);
+        double exe_time = MPI_Wtime()-st_time;
+        double tps[] = {exe_time, 1.0, nnz};
+        pin_keys_mdl.observe(tps);
         break;
     }
     TAU_FSTOP(spctr_pin_keys);

@@ -438,9 +438,9 @@ namespace CTF_int {
     } else if (is_inner){
       if (is_custom){
         if (inner_params.offload)
-          seq_tsr_ctr_mdl_cst_off.est_time(ps);
+          return seq_tsr_ctr_mdl_cst_off.est_time(ps);
         else 
-          seq_tsr_ctr_mdl_cst_inr.est_time(ps);
+          return seq_tsr_ctr_mdl_cst_inr.est_time(ps);
       } else {
         if (inner_params.offload)
           return seq_tsr_ctr_mdl_off.est_time(ps);
@@ -449,6 +449,8 @@ namespace CTF_int {
       }
     } else                        
       return seq_tsr_ctr_mdl_ref.est_time(ps);
+    assert(0); //wont make it here
+    return 0.0;
   }
 
   double seq_tsr_ctr::est_time_rec(int nlyr){ 

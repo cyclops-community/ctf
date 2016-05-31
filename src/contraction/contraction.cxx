@@ -105,7 +105,7 @@ namespace CTF_int {
 #endif
 
     //if (A->wrld->cdt.cm == MPI_COMM_WORLD){
-      update_all_models(A->wrld->cdt.cm);
+//      update_all_models(A->wrld->cdt.cm);
     //}
     
     int stat = home_contract();

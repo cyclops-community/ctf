@@ -20,6 +20,12 @@ using namespace CTF;
 
 namespace CTF_int {
 
+  LinModel<3> spredist_mdl(spredist_mdl_init,"spredist_mdl");
+  double spredist_est_time(int64_t size, int np){
+    double ps[] = {1.0, (double)log2(np), (double)size*log2(np)};
+    return spredist_mdl.est_time(ps);
+  }
+
 //  static const char * SY_strings[4] = {"NS", "SY", "AS", "SH"};
 
   Idx_Tensor tensor::operator[](const char * idx_map_){
@@ -1980,6 +1986,7 @@ namespace CTF_int {
     } else {
       if (is_sparse){
         //padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data, sr, wrld->cdt);
+        double st_time = MPI_Wtime();
         char * old_data = this->data;
         
         this->data = NULL;
@@ -1992,6 +1999,11 @@ namespace CTF_int {
         //this->set_new_nnz_glb(nnz_blk);
         shuffled_data = this->data;
         cdealloc(old_data);
+
+        double exe_time = MPI_Wtime()-st_time;
+        double nnz_frac = ((double)nnz_tot)/(old_dist.size*wrld->cdt.np);
+        double tps[] = {exe_time, 1.0, (double)log2(wrld->cdt.np),  (double)std::max(old_dist.size, new_dist.size)*log2(wrld->cdt.np)*sr->el_size*nnz_frac};
+        spredist_mdl.observe(tps);
       } else
         dgtog_reshuffle(sym, lens, old_dist, new_dist, &this->data, &shuffled_data, sr, wrld->cdt);
       //glb_cyclic_reshuffle(sym, old_dist, old_offsets, old_permutation, new_dist, new_offsets, new_permutation, &this->data, &shuffled_data, sr, wrld->cdt, 1, sr->mulid(), sr->addid());
@@ -2062,7 +2074,8 @@ namespace CTF_int {
       est_time += blres_est_time(std::max(old_dist.size,this->size)*this->sr->el_size*nnz_frac, nvirt, old_nvirt);
     } else {
       if (this->is_sparse)
-        est_time += 25.*COST_MEMBW*this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac+wrld->cdt.estimate_alltoall_time(1);
+        //est_time += 25.*COST_MEMBW*this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac+wrld->cdt.estimate_alltoall_time(1);
+        est_time += spredist_est_time(this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac, wrld->cdt.np);
       else
         est_time += dgtog_est_time(this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac, wrld->cdt.np);
     }
