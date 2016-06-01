@@ -236,6 +236,10 @@ namespace CTF_int {
     CTF_int::cdealloc(idx_arr);
   }
 
+  bool contraction::is_sparse(){
+    return A->is_sparse || B->is_sparse || C->is_sparse;
+  }
+
   void contraction::get_fold_indices(int *  num_fold,
                                      int ** fold_idx){
     int i, in, num_tot, nfold, broken;
@@ -366,7 +370,7 @@ namespace CTF_int {
       }
     }
     get_fold_indices(&nfold, &fold_idx);
-    if (A->is_sparse){
+    if (is_sparse()){
       //when A is sparse we must fold all indices and reduce block contraction entirely to coomm
       if ((A->order+B->order+C->order)%2 == 1 ||
           (A->order+B->order+C->order)/2 < nfold){
@@ -601,7 +605,7 @@ namespace CTF_int {
         time_est += 2.*tC->nnz_tot/(tC->size*tC->calc_npe())*tC->calc_nvirt()*est_time_transp(tall_fdim_C, tCiord, tall_flen_C, 1, tC->sr);
       else
         time_est += 2.*tC->calc_nvirt()*est_time_transp(tall_fdim_C, tCiord, tall_flen_C, 1, tC->sr);
-      if (A->is_sparse || B->is_sparse || C->is_sparse){
+      if (is_sparse()){
         if (iord == 1){
           if (time_est <= btime){
             btime = time_est;
@@ -702,7 +706,7 @@ namespace CTF_int {
     select_ctr_perm(fold_ctr, all_fdim_A, all_fdim_B, all_fdim_C,
                               all_flen_A, all_flen_B, all_flen_C,
                     bperm_order, btime, iprm);
-    if (A->is_sparse || B->is_sparse || C->is_sparse){
+    if (is_sparse()){
       bperm_order = 1;
       iprm.tA = 'N';
       iprm.tB = 'N';
@@ -726,6 +730,7 @@ namespace CTF_int {
     permute_target(tfC->order, fnew_ord_C, tC->inner_ordering);
     
     if (do_transp){
+      bool csr_or_coo = A->sr->has_csrmm || (is_custom && func->has_gemm);
       nvirt_A = A->calc_nvirt();
       if (!A->is_sparse){
         for (i=0; i<nvirt_A; i++){
@@ -733,75 +738,46 @@ namespace CTF_int {
                           A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
         }
       } else {
-#ifdef PROFILE
-        MPI_Barrier(A->wrld->comm);
-        TAU_FSTART(sparse_transpose);
-//        double t_st = MPI_Wtime();
-#endif
-        int64_t new_sz_A = 0;
-        A->rec_tsr->is_sparse = 1;
-        A->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
-        for (i=0; i<nvirt_A; i++){
-          if (A->sr->has_csrmm || (is_custom && func->has_gemm))
-            A->rec_tsr->nnz_blk[i] = get_csr_size(A->nnz_blk[i], iprm.m, A->sr->el_size); 
-          else
-            A->rec_tsr->nnz_blk[i] = get_coo_size(A->nnz_blk[i], A->sr->el_size); 
-          new_sz_A += A->rec_tsr->nnz_blk[i];
-        }
-        A->rec_tsr->data = (char*)alloc(new_sz_A);
-        A->rec_tsr->is_data_aliased = false;
         int nrow_idx = 0;
-        int phase[A->order];
-        for (i=0; i<A->order; i++){
-          phase[i] = A->edge_map[i].calc_phase();
+        for (int i=0; i<A->order; i++){
           for (int j=0; j<C->order; j++){
             if (idx_A[i] == idx_C[j]) nrow_idx++;
           }
         }
-        char * data_ptr_out = A->rec_tsr->data;
-        char const * data_ptr_in = A->data;
-        for (i=0; i<nvirt_A; i++){
-          if (A->sr->has_csrmm || (is_custom && func->has_gemm)){
-            COO_Matrix cm(A->nnz_blk[i], A->sr);
-            cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
-            CSR_Matrix cs(cm, iprm.m, A->sr, data_ptr_out);
-            cdealloc(cm.all_data);
-          } else {
-            COO_Matrix cm(data_ptr_out);
-            cm.set_data(A->nnz_blk[i], A->order, A->lens, A->inner_ordering, nrow_idx, data_ptr_in, A->sr, phase);
-          }
-          data_ptr_in += A->nnz_blk[i]*A->sr->pair_size();
-          data_ptr_out += A->rec_tsr->nnz_blk[i];
-        }
-#ifdef PROFILE
-//        double t_end = MPI_Wtime();
-        MPI_Barrier(A->wrld->comm);
-        TAU_FSTOP(sparse_transpose);
-        /*int64_t max_nnz, avg_nnz;
-        double max_time, avg_time;
-        max_nnz = A->nnz_loc;
-        MPI_Allreduce(MPI_IN_PLACE, &max_nnz, 1, MPI_INT64_T, MPI_MAX, A->wrld->comm);
-        avg_nnz = (A->nnz_loc+A->wrld->np/2)/A->wrld->np;
-        MPI_Allreduce(MPI_IN_PLACE, &avg_nnz, 1, MPI_INT64_T, MPI_SUM, A->wrld->comm);
-        max_time = t_end-t_st;
-        MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, A->wrld->comm);
-        avg_time = (t_end-t_st)/A->wrld->np;
-        MPI_Allreduce(MPI_IN_PLACE, &avg_time, 1, MPI_DOUBLE, MPI_SUM, A->wrld->comm);
-        if (A->wrld->rank == 0){
-          printf("avg_nnz = %ld max_nnz = %ld, avg_time = %lf max_time = %lf\n", avg_nnz, max_nnz, avg_time, max_time);
-        }*/
-#endif
+        A->spmatricize(iprm.m, nrow_idx, csr_or_coo);
       }
       nvirt_B = B->calc_nvirt();
-      for (i=0; i<nvirt_B; i++){
-        nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B,
-                        B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
+      if (!B->is_sparse){
+        for (i=0; i<nvirt_B; i++){
+          nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B,
+                          B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
+        }
+      } else {
+        int nrow_idx = 0;
+        for (int i=0; i<B->order; i++){
+          for (int j=0; j<A->order; j++){
+            if (idx_B[i] == idx_A[j]) nrow_idx++;
+          }
+        }
+        B->spmatricize(iprm.k, nrow_idx, csr_or_coo);
       }
+
       nvirt_C = C->calc_nvirt();
-      for (i=0; i<nvirt_C; i++){
-        nosym_transpose(all_fdim_C, C->inner_ordering, all_flen_C,
-                        C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
+      if (!B->is_sparse){
+        for (i=0; i<nvirt_C; i++){
+          nosym_transpose(all_fdim_C, C->inner_ordering, all_flen_C,
+                          C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
+        }
+      } else {
+        int nrow_idx = 0;
+        for (int i=0; i<C->order; i++){
+          for (int j=0; j<A->order; j++){
+            if (idx_C[i] == idx_A[j]) nrow_idx++;
+          }
+        }
+        C->spmatricize(iprm.m, nrow_idx, csr_or_coo);
       }
+    
     }
 
     CTF_int::cdealloc(fnew_ord_A);

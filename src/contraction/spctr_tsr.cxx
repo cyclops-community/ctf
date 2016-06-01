@@ -861,7 +861,7 @@ namespace CTF_int {
     pi.pin(nnz, order, lens, divisor, pi_new);
 
     double exe_time = MPI_Wtime()-st_time;
-    double tps[] = {exe_time, 1.0, nnz};
+    double tps[] = {exe_time, 1.0, (double)nnz};
     pin_keys_mdl.observe(tps);
     
     TAU_FSTOP(spctr_pin_keys);
@@ -886,7 +886,7 @@ namespace CTF_int {
         }
         depin(sr_C, order, lens, divisor, nblk_C, virt_dim, phys_rank, new_C, new_nnz_C, size_blk_C, new_C, true);
         double exe_time = MPI_Wtime()-st_time;
-        double tps[] = {exe_time, 1.0, nnz};
+        double tps[] = {exe_time, 1.0, (double)nnz};
         pin_keys_mdl.observe(tps);
         break;
     }

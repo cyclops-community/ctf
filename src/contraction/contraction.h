@@ -118,6 +118,11 @@ namespace CTF_int {
 
     private:
       /**
+       * \brief returns true if one of the tensors is sparse 
+       */
+      bool is_sparse();
+
+      /**
        * \brief finds and return all contraction indices which can be folded into
        *    dgemm, for which they must (1) not break symmetry (2) belong to 
        *    exactly two of (A,B,C).

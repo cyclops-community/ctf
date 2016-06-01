@@ -654,6 +654,14 @@ namespace CTF_int {
        * \param[in] nnz_blk number of nonzeros in each block  
        */
       void set_new_nnz_glb(int64_t const * nnz_blk);
+
+      /**
+       * \brief transposes local data in preparation for summation or contraction, transforms to COO or CSR format for sparse
+       * \param[in] m number of rows in matrix
+       * \param[in] nrow_idx number of indices to fold into column
+       * \param[in] csr whether to do csr (1) or coo (0) layout
+       */
+      void spmatricize(int m, int nrow_idx, bool csr);
   };
 }
 

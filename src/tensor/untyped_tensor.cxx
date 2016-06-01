@@ -2418,5 +2418,64 @@ namespace CTF_int {
     wrld->cdt.allred(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM);
   }
 
+  void tensor::spmatricize(int m, int nrow_idx, bool csr){
+    ASSERT(is_sparse);
+
+#ifdef PROFILE
+    MPI_Barrier(A->wrld->comm);
+    TAU_FSTART(sparse_transpose);
+//        double t_st = MPI_Wtime();
+#endif
+    int64_t new_sz_A = 0;
+    this->rec_tsr->is_sparse = 1;
+    int nvirt_A = calc_nvirt();
+    this->rec_tsr->nnz_blk = (int64_t*)alloc(nvirt_A*sizeof(int64_t));
+    for (int i=0; i<nvirt_A; i++){
+      if (csr)
+        this->rec_tsr->nnz_blk[i] = get_csr_size(this->nnz_blk[i], m, this->sr->el_size); 
+      else
+        this->rec_tsr->nnz_blk[i] = get_coo_size(this->nnz_blk[i], this->sr->el_size); 
+      new_sz_A += this->rec_tsr->nnz_blk[i];
+    }
+    this->rec_tsr->data = (char*)alloc(new_sz_A);
+    this->rec_tsr->is_data_aliased = false;
+    int phase[this->order];
+    for (int i=0; i<this->order; i++){
+      phase[i] = this->edge_map[i].calc_phase();
+    }
+    char * data_ptr_out = this->rec_tsr->data;
+    char const * data_ptr_in = this->data;
+    for (int i=0; i<nvirt_A; i++){
+      if (csr){
+        COO_Matrix cm(this->nnz_blk[i], this->sr);
+        cm.set_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+        CSR_Matrix cs(cm, m, this->sr, data_ptr_out);
+        cdealloc(cm.all_data);
+      } else {
+        COO_Matrix cm(data_ptr_out);
+        cm.set_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
+      }
+      data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
+      data_ptr_out += this->rec_tsr->nnz_blk[i];
+    }
+#ifdef PROFILE
+//        double t_end = MPI_Wtime();
+    MPI_Barrier(this->wrld->comm);
+    TAU_FSTOP(sparse_transpose);
+    /*int64_t max_nnz, avg_nnz;
+    double max_time, avg_time;
+    max_nnz = this->nnz_loc;
+    MPI_Allreduce(MPI_IN_PLACE, &max_nnz, 1, MPI_INT64_T, MPI_MAX, this->wrld->comm);
+    avg_nnz = (this->nnz_loc+this->wrld->np/2)/this->wrld->np;
+    MPI_Allreduce(MPI_IN_PLACE, &avg_nnz, 1, MPI_INT64_T, MPI_SUM, this->wrld->comm);
+    max_time = t_end-t_st;
+    MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, this->wrld->comm);
+    avg_time = (t_end-t_st)/this->wrld->np;
+    MPI_Allreduce(MPI_IN_PLACE, &avg_time, 1, MPI_DOUBLE, MPI_SUM, this->wrld->comm);
+    if (this->wrld->rank == 0){
+      printf("avg_nnz = %ld max_nnz = %ld, avg_time = %lf max_time = %lf\n", avg_nnz, max_nnz, avg_time, max_time);
+    }*/
+#endif
+  }
 }
 
