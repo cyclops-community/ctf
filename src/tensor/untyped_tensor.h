@@ -658,10 +658,11 @@ namespace CTF_int {
       /**
        * \brief transposes local data in preparation for summation or contraction, transforms to COO or CSR format for sparse
        * \param[in] m number of rows in matrix
+       * \param[in] n number of columns in matrix
        * \param[in] nrow_idx number of indices to fold into column
        * \param[in] csr whether to do csr (1) or coo (0) layout
        */
-      void spmatricize(int m, int nrow_idx, bool csr);
+      void spmatricize(int m, int n, int nrow_idx, bool csr);
   };
 }
 

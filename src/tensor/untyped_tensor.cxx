@@ -2418,7 +2418,7 @@ namespace CTF_int {
     wrld->cdt.allred(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM);
   }
 
-  void tensor::spmatricize(int m, int nrow_idx, bool csr){
+  void tensor::spmatricize(int m, int n, int nrow_idx, bool csr){
     ASSERT(is_sparse);
 
 #ifdef PROFILE
@@ -2449,7 +2449,7 @@ namespace CTF_int {
       if (csr){
         COO_Matrix cm(this->nnz_blk[i], this->sr);
         cm.set_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_in, this->sr, phase);
-        CSR_Matrix cs(cm, m, this->sr, data_ptr_out);
+        CSR_Matrix cs(cm, m, n, this->sr, data_ptr_out);
         cdealloc(cm.all_data);
       } else {
         COO_Matrix cm(data_ptr_out);

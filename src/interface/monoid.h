@@ -122,6 +122,13 @@ namespace CTF {
         }
       }
 
+      //void csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic)
+      char * csr_add(char * cA, char * cB){
+        printf("CTF error: support for CSR addition for this type unavailable\n");
+        assert(0);
+        return NULL;
+      }
+
   };
   /**
    * @}

@@ -31,6 +31,11 @@
 #define MKL_DCSRMM mkl_dcsrmm_
 #define MKL_CCSRMM mkl_ccsrmm_
 #define MKL_ZCSRMM mkl_zcsrmm_
+#define MKL_SCSRADD mkl_scsradd_
+#define MKL_DCSRADD mkl_dcsradd_
+#define MKL_CCSRADD mkl_ccsradd_
+#define MKL_ZCSRADD mkl_zcsradd_
+
 #else
 #define DDOT ddot
 #define SGEMM sgemm
@@ -60,7 +65,12 @@
 #define MKL_DCSRMM mkl_dcsrmm
 #define MKL_CCSRMM mkl_ccsrmm
 #define MKL_ZCSRMM mkl_zcsrmm
+#define MKL_SCSRADD mkl_scsradd
+#define MKL_DCSRADD mkl_dcsradd
+#define MKL_CCSRADD mkl_ccsradd
+#define MKL_ZCSRADD mkl_zcsradd
 #endif
+
 
 namespace CTF_BLAS {
   extern "C"
@@ -345,6 +355,18 @@ namespace CTF_BLAS {
   extern "C"
   void MKL_ZCSRMM(const char *transa , const int *m , const int *n , const int *k , const std::complex<double> *alpha , const char *matdescra , const std::complex<double> *val , const int *indx , const int *pntrb , const int *pntre , const std::complex<double> *b , const int *ldb , const std::complex<double> *beta , std::complex<double> *c , const int *ldc );
 
+
+  extern "C"
+  void MKL_SCSRADD(char const * transa, int const * job, int const * sort, int const * n, int const * k, float const * a, int const * ja, int const * ia, float const * beta, float const * b, int const * jb, int const * ib, float * c, int * jc, int * ic, int const * nnzmax, int const * ierr);
+
+  extern "C"
+  void MKL_DCSRADD(char const * transa, int const * job, int const * sort, int const * n, int const * k, double const * a, int const * ja, int const * ia, double const * beta, double const * b, int const * jb, int const * ib, double * c, int * jc, int * ic, int const * nnzmax, int const * ierr);
+
+  extern "C"
+  void MKL_CCSRADD(char const * transa, int const * job, int const * sort, int const * n, int const * k, std::complex<float> const * a, int const * ja, int const * ia, std::complex<float> const * beta, std::complex<float> const * b, int const * jb, int const * ib, std::complex<float> * c, int * jc, int * ic, int const * nnzmax, int const * ierr);
+
+  extern "C"
+  void MKL_ZCSRADD(char const * transa, int const * job, int const * sort, int const * n, int const * k, std::complex<double> const * a, int const * ja, int const * ia, std::complex<double> const * beta, std::complex<double> const * b, int const * jb, int const * ib, std::complex<double> * c, int * jc, int * ic, int const * nnzmax, int const * ierr);
 #endif
 
 

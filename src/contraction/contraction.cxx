@@ -744,7 +744,7 @@ namespace CTF_int {
             if (idx_A[i] == idx_C[j]) nrow_idx++;
           }
         }
-        A->spmatricize(iprm.m, nrow_idx, csr_or_coo);
+        A->spmatricize(iprm.m, iprm.k, nrow_idx, csr_or_coo);
       }
       nvirt_B = B->calc_nvirt();
       if (!B->is_sparse){
@@ -759,7 +759,7 @@ namespace CTF_int {
             if (idx_B[i] == idx_A[j]) nrow_idx++;
           }
         }
-        B->spmatricize(iprm.k, nrow_idx, csr_or_coo);
+        B->spmatricize(iprm.k, iprm.n, nrow_idx, csr_or_coo);
       }
 
       nvirt_C = C->calc_nvirt();
@@ -775,7 +775,7 @@ namespace CTF_int {
             if (idx_C[i] == idx_A[j]) nrow_idx++;
           }
         }
-        C->spmatricize(iprm.m, nrow_idx, csr_or_coo);
+        C->spmatricize(iprm.m, iprm.n, nrow_idx, csr_or_coo);
       }
     
     }
@@ -1282,9 +1282,9 @@ namespace CTF_int {
                       map = map->child;
                     else break;
                   } else break;
-                      }
-                      map = &pB->edge_map[iB];
-                            for (;;){
+                }
+                map = &pB->edge_map[iB];
+                for (;;){
                   if (map->type == PHYSICAL_MAP){
                     if (phys_mismatched[map->cdt] == 1){
                       DPRINTF(3,"failed confirmation here i=%d iA=%d iB=%d\n",i,iA,iB);
@@ -2381,7 +2381,7 @@ namespace CTF_int {
     int64_t memuse;//, bmemuse;
     double est_time, best_time;
     int btopo;
-    bool is_ctr_sparse = A->is_sparse || B->is_sparse || C->is_sparse;
+    bool is_ctr_sparse = is_sparse();
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     btopo = -1;
@@ -2581,7 +2581,7 @@ namespace CTF_int {
     int64_t memuse;//, bmemuse;
     double est_time, best_time;
     int btopo;
-    bool is_ctr_sparse = A->is_sparse || B->is_sparse || C->is_sparse;
+    bool is_ctr_sparse = is_sparse();
     World * wrld = A->wrld;
     CommData global_comm = wrld->cdt;
     btopo = -1;
@@ -3828,7 +3828,7 @@ namespace CTF_int {
       }
     }
     ctr * hctr;
-    if (A->is_sparse || B->is_sparse || B->is_sparse){
+    if (is_sparse()){
       hctr = construct_sparse_ctr(is_inner, inner_params, nvirt_all, is_used, phys_mapped);
     } else {
       hctr = construct_dense_ctr(is_inner, inner_params, nvirt_all, is_used, phys_mapped);
@@ -3891,7 +3891,7 @@ namespace CTF_int {
       for (int j=0; j<C->order; j++){
         if (idx_C[j] == iA) has_match = true;
       }
-      if (false && !has_match){
+      /*if (false && !has_match){
         int new_len[A->order-1];
         int new_sym[A->order-1];
         int new_idx[A->order-1];
@@ -3914,23 +3914,24 @@ namespace CTF_int {
         ctr.execute();
         delete new_tsr;
         return SUCCESS;
-      }
+      }*/
     }
 
 
-    ASSERT(!C->is_sparse);
-    if (B->is_sparse){
-      ASSERT(!A->is_sparse);
+//    ASSERT(!C->is_sparse);
+    if (B->is_sparse && !A->is_sparse){
+//      ASSERT(!A->is_sparse);
       //FIXME ASSERT that commitative
       contraction CBA(B,idx_B,A,idx_A,alpha,C,idx_C,beta,func);
       CBA.contract();
       return SUCCESS;
-    } 
-    if (A->is_sparse){
-      /*bool A_inds_ordered = true;
-      for (int i=1; i<A->order; i++){
-        if (idx_A[i] < idx_A[i-1]) A_inds_ordered = false;
-      }*/
+    }
+    //FIXME: was putting indices of A at the end here before 
+/*    if (A->is_sparse){
+      //bool A_inds_ordered = true;
+      //for (int i=1; i<A->order; i++){
+      //  if (idx_A[i] < idx_A[i-1]) A_inds_ordered = false;
+      //}
       int new_idx_A[A->order];
       int new_idx_B[B->order];
       int new_idx_C[C->order];
@@ -3977,7 +3978,7 @@ namespace CTF_int {
         return SUCCESS;
       }
       
-    }
+    }*/
 
 
   #if DEBUG >= 1 //|| VERBOSE >= 1)
@@ -4121,7 +4122,7 @@ namespace CTF_int {
     TAU_FSTART(ctr_func);
     /* Invoke the contraction algorithm */
     A->topo->activate();
-    if (A->is_sparse || B->is_sparse || C->is_sparse){
+    if (is_sparse()){
       int64_t * size_blk_A = NULL;
       int64_t * size_blk_B = NULL;
       int64_t * size_blk_C = NULL;
@@ -4166,8 +4167,17 @@ namespace CTF_int {
                           data_B, B->calc_nvirt(), size_blk_B,
                           data_C, C->calc_nvirt(), size_blk_C,
                           data_C);
+      if (C->is_sparse){
+        if (!is_inner){
+          C->data = data_C;
+          for (int i=0; i<C->calc_nvirt(); i++){
+            C->nnz_blk[i] = size_blk_C[i]/C->sr->pair_size();
+          }
+        } else {
+          C->rec_tsr->data = data_C;
+        }
+      }
 
-      //FIXME: adjust C->nnz_blk
       if (!is_inner){
         if (size_blk_A != NULL) cdealloc(size_blk_A);
         if (size_blk_B != NULL) cdealloc(size_blk_B);

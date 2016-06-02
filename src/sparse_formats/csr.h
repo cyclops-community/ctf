@@ -14,17 +14,19 @@ namespace CTF_int {
     public:
       char * all_data;
       
-      CSR_Matrix(int64_t nnz, int nrow, algstrct const * sr);
+      CSR_Matrix(int64_t nnz, int nrow, int ncol, algstrct const * sr);
 
       CSR_Matrix(char * all_data);
       
-      CSR_Matrix(COO_Matrix const & coom, int nrow, algstrct const * sr, char * data=NULL);
+      CSR_Matrix(COO_Matrix const & coom, int nrow, int ncol, algstrct const * sr, char * data=NULL);
 
       int64_t nnz() const;
 
       int64_t size() const;
 
       int nrow() const;
+      
+      int ncol() const;
       
       int val_size() const;
 

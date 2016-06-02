@@ -301,7 +301,6 @@ namespace CTF {
         CTF_int::def_coo_to_csr(nz, nrow, (dtype *)csr_vs, csr_ja, csr_ia, (dtype const *) coo_vs, coo_rs, coo_cs);
       }
 
-
   };
 
   //FIXME do below with macros to shorten

@@ -6,7 +6,7 @@
 
 namespace CTF_int {
   int64_t get_csr_size(int64_t nnz, int nrow, int val_size){
-    int offset = 3*sizeof(int64_t);
+    int offset = 4*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     offset += nnz*val_size;
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
@@ -15,13 +15,14 @@ namespace CTF_int {
     return offset + sizeof(int)*nnz;
   }
 
-  CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow, algstrct const * sr){
+  CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow, int ncol, algstrct const * sr){
     ASSERT(ALIGN >= 16);
     int64_t size = get_csr_size(nnz, nrow, sr->el_size);
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = nnz;
     ((int64_t*)all_data)[1] = sr->el_size;
     ((int64_t*)all_data)[2] = nrow;
+    ((int64_t*)all_data)[3] = ncol;
   }
 
   CSR_Matrix::CSR_Matrix(char * all_data_){
@@ -29,7 +30,7 @@ namespace CTF_int {
     all_data = all_data_;
   }
 
-  CSR_Matrix::CSR_Matrix(COO_Matrix const & coom, int nrow, algstrct const * sr, char * data){
+  CSR_Matrix::CSR_Matrix(COO_Matrix const & coom, int nrow, int ncol, algstrct const * sr, char * data){
     ASSERT(ALIGN >= 16);
     int64_t nz = coom.nnz(); 
     int64_t v_sz = coom.val_size(); 
@@ -45,6 +46,7 @@ namespace CTF_int {
     ((int64_t*)all_data)[0] = nz;
     ((int64_t*)all_data)[1] = v_sz;
     ((int64_t*)all_data)[2] = nrow;
+    ((int64_t*)all_data)[3] = ncol;
 
     char * csr_vs = vals();
     int * csr_rs = rows();
@@ -80,8 +82,12 @@ namespace CTF_int {
     return ((int64_t*)all_data)[2];
   }
   
+  int CSR_Matrix::ncol() const {
+    return ((int64_t*)all_data)[3];
+  }
+  
   char * CSR_Matrix::vals() const {
-    int offset = 3*sizeof(int64_t);
+    int offset = 4*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     return all_data + offset;
   }
@@ -90,7 +96,7 @@ namespace CTF_int {
     int64_t n = this->nnz();
     int v_sz = this->val_size();
 
-    int offset = 3*sizeof(int64_t);
+    int offset = 4*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     offset += n*v_sz;
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
@@ -103,7 +109,7 @@ namespace CTF_int {
     int64_t nr = this->nrow();
     int v_sz = this->val_size();
 
-    int offset = 3*sizeof(int64_t);
+    int offset = 4*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     offset += n*v_sz;
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);

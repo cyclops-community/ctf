@@ -3,6 +3,7 @@
 #include "../shared/blas_symbs.h"
 #include "untyped_tensor.h"
 #include "algstrct.h"
+#include "../sparse_formats/csr.h"
 
 namespace CTF_int {
 
@@ -298,6 +299,14 @@ namespace CTF_int {
   void algstrct::coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
+  }
+
+
+//  void algstrct::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic){
+  char * algstrct::csr_add(char * cA, char * cB){
+    printf("CTF ERROR: cannot do CSR add on this algebraic structure\n");
+    ASSERT(0);
+    return NULL;
   }
       
   void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {

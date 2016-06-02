@@ -187,6 +187,7 @@ namespace CTF_int {
     char * buf_B = B;
     int64_t new_size_blk_A[nblk_A];
     int64_t new_size_blk_B[nblk_B];
+    int64_t new_size_blk_C[nblk_C];
     if (is_sparse_A){
       memcpy(new_size_blk_A, size_blk_A, nblk_A*sizeof(int64_t));
       /*if (ncdt_A > 0){
@@ -235,10 +236,12 @@ namespace CTF_int {
     }
     if (is_sparse_C){
       //FIXME: need to replicate size_blk_B for this
-      assert(ncdt_C == 0);
+      //assert(ncdt_C == 0);
+      memset(new_size_blk_C, 0, sizeof(int64_t)*nblk_C);
     }
 //    if (crank != 0) this->sr_C->set(C, this->sr_C->addid(), size_C);
     if (crank == 0 && !sr_C->isequal(this->beta, sr_C->mulid())){
+      ASSERT(!is_sparse_C);
       if (sr_C->isequal(sr_C->addid(), beta))
         sr_C->set(C, sr_C->addid(), size_C);
       else sr_C->scal(size_C, this->beta, C, 1);
