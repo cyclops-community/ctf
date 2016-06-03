@@ -122,7 +122,7 @@ namespace CTF {
         }
       }
 
-      //void csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic)
+      /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
       char * csr_add(char * cA, char * cB){
         printf("CTF error: support for CSR addition for this type unavailable\n");
         assert(0);

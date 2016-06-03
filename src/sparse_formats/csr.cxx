@@ -142,4 +142,81 @@ namespace CTF_int {
     }
   }
 
+  CSR_Matrix * CSR_Matrix::partition(int s, char ** parts_buffer){
+    int part_nnz[s], part_nrows[s];
+    int m = nrow();
+    char * org_vals = vals();
+    int * org_rows = rows();
+    int * org_cols = cols();
+    for (int i=0; i<s; i++){
+      part_nnz[i] = 0;
+      part_nrows[i] = 0;
+    }
+    for (int i=0; i<m; i++){
+      part_nrows[i%s]++;
+      part_nnz[i]+=org_rows[i+1]-org_rows[i];
+    }
+    int64_t tot_sz = 0;
+    for (int i=0; i<s; i++){
+      tot_sz += get_csr_size(part_nnz[i], part_nrows[i], val_size());
+    }
+    char * new_data = (char*)alloc(tot_sz);
+    char * part_data = new_data;
+    CSR_Matrix * parts = (CSR_Matrix*)alloc(sizeof(CSR_Matrix)*s);
+    for (int i=0; i<s; i++){
+      ((int64_t*)part_data)[0] = part_nnz[i];
+      ((int64_t*)part_data)[1] = val_size();
+      ((int64_t*)part_data)[2] = part_nrows[i];
+      ((int64_t*)part_data)[3] = ncol();
+      parts[i] = CSR_Matrix(part_data);
+      char * pvals = parts[i].vals();
+      int * prows = parts[i].rows();
+      int * pcols = parts[i].cols();
+      prows[0] = 1;
+      for (int j=i; j<m; j+=s){
+        memcpy(pvals+(prows[j/s]-1)*val_size(), org_vals+(org_rows[j]-1)*val_size(), (org_rows[j+1]-org_rows[j])*val_size());
+        memcpy(pcols+(prows[j/s]-1)*sizeof(int), org_cols+(org_rows[j]-1)*sizeof(int), (org_rows[j+1]-org_rows[j])*sizeof(int));
+        prows[j/s+1] = prows[j/s]+org_rows[j+1]-org_rows[j];
+      }
+      part_data += get_csr_size(part_nnz[i], part_nrows[i], val_size());
+    }
+    return parts;
+  }
+      
+  CSR_Matrix::CSR_Matrix(char * const * smnds, int s){
+    CSR_Matrix csrs[s];
+    int64_t tot_nnz=0, tot_nrow=0;
+    for (int i=0; i<s; i++){
+      csrs[i] = CSR_Matrix(smnds[i]);
+      tot_nnz += csrs[i].nnz();
+      tot_nrow += csrs[i].nrow();
+    }
+    int64_t v_sz = csrs[0].val_size();
+    int64_t tot_ncol = csrs[0].ncol();
+    all_data = (char*)alloc(get_csr_size(tot_nnz, tot_nrow, v_sz));
+    ((int64_t*)all_data)[0] = tot_nnz;
+    ((int64_t*)all_data)[1] = v_sz;
+    ((int64_t*)all_data)[2] = tot_nrow;
+    ((int64_t*)all_data)[3] = tot_ncol;
+    
+    char * csr_vs = vals();
+    int * csr_rs = rows();
+    int * csr_cs = cols();
+
+    csr_rs[0] = 1;
+
+    for (int i=0; i<tot_nrow; i++){
+      int ipart = i%s;
+      int const * prows = csrs[ipart].rows();
+      int i_nnz = prows[i/s+1]-prows[i/s];
+      memcpy(csr_vs+(csr_rs[i]-1)*v_sz,
+             csrs[ipart].vals()+(prows[i/s]-1)*v_sz,
+             i_nnz*v_sz);
+      memcpy(csr_cs+(csr_rs[i]-1)*sizeof(int),
+             csrs[ipart].cols()+(prows[i/s]-1)*sizeof(int),
+             i_nnz*sizeof(int));
+      csr_rs[i+1] = csr_rs[i]+i_nnz;
+    }
+  }
+
 }

@@ -24,7 +24,6 @@ namespace CTF {
     MKL_SCSRADD(tA, tB, &job, &sort, m, n, (float*)a, ja, ia, &mlid, (float*)b, jb, ib, (float*)c, jc, ic, NULL, &info);
   }*/
 
-//  void Monoid<double,1>::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic)
   template <>
   char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB){
     if (fadd != default_add<double>){

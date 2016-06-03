@@ -198,8 +198,10 @@ namespace CTF_int {
       virtual void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const;
 
       /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
-//      virtual void csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic);
       virtual char * csr_add(char * cA, char * cB);
+
+      /** \brief reduces CSR matrices stored in cA on each processor in cm and returns result on processor root */
+      virtual char * csr_reduce(char * cA, int root, MPI_Comm cm);
     
       /** \brief compute b=beta*b + alpha*a */
       void acc(char * b, char const * beta, char const * a, char const * alpha) const;
