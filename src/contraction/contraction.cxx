@@ -3357,14 +3357,12 @@ namespace CTF_int {
       CTF_int::cdealloc(virt_dim);
 
 
-    iparam const * iptr = inner_params;
     iparam inp_cpy;
-    if (is_inner){
+    if (inner_params != NULL)
       inp_cpy = *inner_params;
-      inp_cpy.offload = do_offload;
-      iptr = &inp_cpy;
-    }
-    seq_tsr_ctr * ctrseq = new seq_tsr_ctr(this, is_inner, iptr, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
+    inp_cpy.offload = do_offload;
+
+    seq_tsr_ctr * ctrseq = new seq_tsr_ctr(this, is_inner, &inp_cpy, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {
       hctr = ctrseq;
       is_top = 0;
@@ -3754,15 +3752,12 @@ namespace CTF_int {
     if (krnl_type == 1 && (A->sr->has_csrmm || (is_custom && func->has_gemm))) krnl_type = 2;
 
 
-    iparam const * iptr = inner_params;
     iparam inp_cpy;
-    if (is_inner){
+    if (inner_params != NULL)
       inp_cpy = *inner_params;
-      inp_cpy.offload = do_offload;
-      iptr = &inp_cpy;
-    }
+    inp_cpy.offload = do_offload;
 
-    seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, krnl_type, iptr, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
+    seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, krnl_type, &inp_cpy, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {
       hctr = ctrseq;
       is_top = 0;

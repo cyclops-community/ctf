@@ -303,13 +303,13 @@ namespace CTF_int {
 
 
 //  void algstrct::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic){
-  char * algstrct::csr_add(char * cA, char * cB){
+  char * algstrct::csr_add(char * cA, char * cB) const {
     printf("CTF ERROR: cannot do CSR add on this algebraic structure\n");
     ASSERT(0);
     return NULL;
   }
   
-  char * algstrct::csr_reduce(char * cA, int root, MPI_Comm cm){
+  char * algstrct::csr_reduce(char * cA, int root, MPI_Comm cm) const {
     int r, p;
     MPI_Comm_rank(cm, &r);
     MPI_Comm_size(cm, &p);

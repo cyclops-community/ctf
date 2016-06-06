@@ -268,9 +268,20 @@ namespace CTF_int {
       printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
     }*/
     for (i=0; i<ncdt_C; i++){
-      ASSERT(!is_sparse_C);
       //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
-      cdt_C[i]->allred(MPI_IN_PLACE, new_C, size_C, sr_C->mdtype(), sr_C->addmop());
+      if (is_sparse_C){
+        int64_t csr_sz_acc = 0;
+        for (int blk=0; blk<nblk_C; blk++){
+          sr_C->csr_reduce(new_C+csr_sz_acc, 0, cdt_C[i]->cm);
+          csr_sz_acc += size_blk_C[blk];
+        }
+      } else {
+        if (cdt_C[i]->rank == 0){
+          cdt_C[i]->red(MPI_IN_PLACE, new_C, size_C, sr_C->mdtype(), sr_C->addmop(), 0);
+        } else {
+          cdt_C[i]->red(new_C, NULL, size_C, sr_C->mdtype(), sr_C->addmop(), 0);
+        }
+      }
     }
 
     if (is_sparse_A && buf_A != A) cdealloc(buf_A);

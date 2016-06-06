@@ -12,7 +12,9 @@ namespace CTF_int {
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     offset += (nrow+1)*sizeof(int);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
-    return offset + sizeof(int)*nnz;
+    offset += sizeof(int)*nnz;
+    if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
+    return offset;
   }
 
   CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow, int ncol, algstrct const * sr){

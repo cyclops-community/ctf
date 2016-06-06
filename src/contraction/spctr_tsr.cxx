@@ -45,14 +45,14 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*c->C->order, (void**)&new_sym_C);
     memcpy(new_sym_C, c->C->sym, sizeof(int)*c->C->order);
 
-    this->krnl_type  = krnl_type_;
+    this->krnl_type    = krnl_type_;
+    this->inner_params = *inner_params_;
     if (krnl_type > 0){
       if (c->A->wrld->cdt.rank == 0){
         DPRINTF(2,"Folded tensor n=%d m=%d k=%d\n", inner_params_->n,
           inner_params_->m, inner_params_->k);
       }
 
-      this->inner_params  = *inner_params_;
       this->inner_params.sz_C = vrt_sz_C;
       tensor * itsr;
       itsr = c->A->rec_tsr;

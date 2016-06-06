@@ -239,6 +239,7 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*c->C->order, (void**)&new_sym_C);
     memcpy(new_sym_C, c->C->sym, sizeof(int)*c->C->order);
 
+    this->inner_params  = *inner_params;
     if (!is_inner){
       this->is_inner  = 0;
     } else if (is_inner == 1) {
@@ -248,7 +249,6 @@ namespace CTF_int {
       }
 
       this->is_inner    = 1;
-      this->inner_params  = *inner_params;
       this->inner_params.sz_C = vrt_sz_C;
       tensor * itsr;
       itsr = c->A->rec_tsr;
