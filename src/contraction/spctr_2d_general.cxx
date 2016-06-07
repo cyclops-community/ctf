@@ -228,9 +228,15 @@ namespace CTF_int {
       if (ctr_sub_lda_C == 0)
         op_C = C;
       else {
-        if (ctr_lda_C == 1) 
-          op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
-        else {
+        if (ctr_lda_C == 1){
+          if (is_sparse_C){
+            op_C = C+offsets_C[ib*ctr_sub_lda_C];
+            CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_C, (void**)&new_size_blk_C);
+            memcpy(new_size_blk_C, size_blk_C+ib*ctr_sub_lda_C, sizeof(int64_t)*new_nblk_C);
+          } else {
+            op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
+          }
+        } else {
           op_C = buf_C;
           rec_beta = sr_C->addid();
         }
@@ -240,7 +246,7 @@ namespace CTF_int {
   }
 
 
-  void reduce_step_post(int edge_len, char * C, bool is_sparse_C, bool move_C, algstrct const * sr_C, int64_t b_C, int64_t s_C, char * buf_C, CommData * cdt_C, int64_t ctr_sub_lda_C, int64_t ctr_lda_C, int nblk_C, int64_t const * size_blk_C, int & new_nblk_C, int64_t *& new_size_blk_C, int64_t * offsets_C, int ib, char const *& rec_beta, char const * beta, char * op_C){
+  void reduce_step_post(int edge_len, char * C, bool is_sparse_C, bool move_C, algstrct const * sr_C, int64_t b_C, int64_t s_C, char * buf_C, CommData * cdt_C, int64_t ctr_sub_lda_C, int64_t ctr_lda_C, int nblk_C, int64_t * size_blk_C, int & new_nblk_C, int64_t *& new_size_blk_C, int64_t * offsets_C, int ib, char const *& rec_beta, char const * beta, char * new_C){
     if (move_C){
 #ifdef PROFILE
       TAU_FSTART(spctr_2d_general_barrier);
@@ -248,22 +254,46 @@ namespace CTF_int {
       TAU_FSTOP(spctr_2d_general_barrier);
 #endif
       int owner_C   = ib % cdt_C->np;
-      if (cdt_C->rank == owner_C)
-        cdt_C->red(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
-      else
-        cdt_C->red(op_C, NULL, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
-      if (cdt_C->rank == owner_C){
-        sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
-                   op_C, ctr_sub_lda_C, sr_C->mulid(),
-                   C+sr_C->el_size*(ib/cdt_C->np)*ctr_sub_lda_C, 
-                   ctr_sub_lda_C*b_C, beta);
+      if (is_sparse_C){
+        int64_t csr_sz_acc = 0;
+        int64_t new_csr_sz_acc = 0;
+        char * new_Cs[nblk_C];
+        for (int blk=0; blk<nblk_C; blk++){
+          new_Cs[blk] = sr_C->csr_reduce(new_C+csr_sz_acc, 0, cdt_C->cm);
+        
+          csr_sz_acc += new_size_blk_C[blk];
+          new_size_blk_C[blk] = cdt_C->rank == 0 ? ((CSR_Matrix)(new_Cs[blk])).size() : 0;
+          new_csr_sz_acc += new_size_blk_C[blk];
+        }
+        cdealloc(new_C);
+        alloc_ptr(new_csr_sz_acc, (void**)&new_C);
+        new_csr_sz_acc = 0;
+        for (int blk=0; blk<nblk_C; blk++){
+          memcpy(new_C+new_csr_sz_acc, new_Cs[blk], new_size_blk_C[blk]);
+          cdealloc(new_Cs[blk]);
+          new_csr_sz_acc += new_size_blk_C[blk];
+        }  
+      } else {
+        if (cdt_C->rank == owner_C)
+          cdt_C->red(MPI_IN_PLACE, new_C, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
+        else
+          cdt_C->red(new_C, NULL, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
+        if (cdt_C->rank == owner_C){
+          sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
+                     new_C, ctr_sub_lda_C, sr_C->mulid(),
+                     C+sr_C->el_size*(ib/cdt_C->np)*ctr_sub_lda_C, 
+                     ctr_sub_lda_C*b_C, beta);
+        }
       }
     } else {
-      if (ctr_lda_C != 1 && ctr_sub_lda_C != 0)
-        sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
-                   buf_C, ctr_sub_lda_C, sr_C->mulid(), 
-                   C+sr_C->el_size*ib*ctr_sub_lda_C, 
-                   ctr_sub_lda_C*edge_len, beta);
+      if (ctr_lda_C != 1 && ctr_sub_lda_C != 0){
+        if (!is_sparse_C){
+          sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
+                     buf_C, ctr_sub_lda_C, sr_C->mulid(), 
+                     C+sr_C->el_size*ib*ctr_sub_lda_C, 
+                     ctr_sub_lda_C*edge_len, beta);
+        }
+      }
       if (ctr_sub_lda_C == 0)
         rec_beta = sr_C->mulid();
     }
@@ -273,9 +303,10 @@ namespace CTF_int {
                              char * B, int nblk_B, int64_t const * size_blk_B,
                              char * C, int nblk_C, int64_t * size_blk_C,
                              char *& new_C){
-    int owner_A, owner_B, owner_C, ret;
+    int owner_A, owner_B, owner_C, ret, n_new_C_grps;
     int64_t ib;
-    char * buf_A, * buf_B, * buf_C, * buf_aux; 
+    char * buf_A, * buf_B, * buf_C, * buf_aux;
+    char ** new_C_grps; 
     char * op_A = NULL;
     char * op_B = NULL;
     char * op_C = NULL; 
@@ -285,6 +316,23 @@ namespace CTF_int {
     else rank_B = -1;
     if (move_C) rank_C = cdt_C->rank;
     else rank_C = -1;
+
+    if (is_sparse_C){
+      if (move_C){
+        n_new_C_grps = edge_len/cdt_C->np;
+      } else {
+        if (ctr_lda_C != 1 && ctr_sub_lda_C != 0){
+          n_new_C_grps = edge_len;
+        } else {
+          n_new_C_grps = 1;
+        }
+      }
+    } else {
+      n_new_C_grps = 1;
+    }
+    if (n_new_C_grps > 1)
+      alloc_ptr(n_new_C_grps*sizeof(char*), (void**)&new_C_grps);
+    int i_new_C_grp = 0;
     
     TAU_FSTART(spctr_2d_general);
 
@@ -384,15 +432,35 @@ namespace CTF_int {
       TAU_FSTART(spctr_2d_general);
       if (new_size_blk_A != size_blk_A)
         cdealloc(new_size_blk_A);
+      if (new_size_blk_B != size_blk_B)
+        cdealloc(new_size_blk_B);
+      if (new_size_blk_C != size_blk_C)
+        cdealloc(new_size_blk_C);
       if (is_sparse_A && buf_A != NULL){
         cdealloc(buf_A);
         buf_A = NULL;
       }
-      new_C = C;
+      if (is_sparse_B && buf_B != NULL){
+        cdealloc(buf_B);
+        buf_B = NULL;
+      }
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
       }*/
       reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, op_C);
+      if (!move_C || cdt_C->rank == (ib % cdt_C->np)){ 
+        if (n_new_C_grps == 1)
+          new_C = op_C;
+        else {
+          new_C_grps[i_new_C_grp] = op_C;
+          for (int k=0; k<ctr_lda_C; k++){
+            for (int j=0; j<ctr_sub_lda_C; j++){
+              size_blk_C[ctr_sub_lda_C*(k*n_new_C_grps+i_new_C_grp)+j] = new_size_blk_C[ctr_sub_lda_C*k+j];
+            }
+          }
+          i_new_C_grp++;
+        }
+      }
     }
 #if 0 //def OFFLOAD
     if (alloc_host_buf){
@@ -400,6 +468,35 @@ namespace CTF_int {
       host_pinned_free(buf_B);
       host_pinned_free(buf_C);
 #endif
+    if (n_new_C_grps > 1){
+      assert(0);
+      ASSERT(i_new_C_grp == n_new_C_grps);
+      int64_t new_sz_C = 0;
+      int64_t new_offsets_C[nblk_C];
+      int64_t grp_offsets_C[nblk_C/n_new_C_grps];
+      int64_t grp_sizes_C[nblk_C/n_new_C_grps];
+      int64_t last_offset = 0;
+      for (int i=0; i<nblk_C; i++){
+        new_sz_C += size_blk_C[i];
+        new_offsets_C[i] = last_offset;
+        last_offset += size_blk_C[i];
+      }
+      alloc_ptr(new_sz_C, (void**)&new_C);
+      for (int i=0; i<n_new_C_grps; i++){
+        int64_t last_grp_offset = 0;
+        for (int j=0; j<ctr_sub_lda_C; j++){ 
+          for (int k=0; k<ctr_lda_C; k++){ 
+            grp_offsets_C[ctr_sub_lda_B*k+j] = last_offset;
+            grp_sizes_C[ctr_sub_lda_B*k+j] = size_blk_C[ctr_sub_lda_C*(i+n_new_C_grps*k)+j];
+            last_offset += grp_sizes_C[ctr_sub_lda_B*k+j];
+          }
+        }
+        spcopy(ctr_sub_lda_C, ctr_lda_C, ctr_sub_lda_C, ctr_sub_lda_C*n_new_C_grps,
+               grp_sizes_C, grp_offsets_C, new_C_grps[i],
+               size_blk_C, new_offsets_C, new_C);
+        cdealloc(new_C_grps[i]);
+      }
+    }
     if (0){
     } else {
       if (buf_A != NULL) CTF_int::cdealloc(buf_A);
@@ -415,6 +512,8 @@ namespace CTF_int {
     }
     if (is_sparse_C){
       cdealloc(offsets_C);
+    } else {
+      new_C = C;
     }
     TAU_FSTOP(spctr_2d_general);
   }

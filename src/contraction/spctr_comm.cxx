@@ -235,8 +235,6 @@ namespace CTF_int {
       }
     }
     if (is_sparse_C){
-      //FIXME: need to replicate size_blk_B for this
-      //assert(ncdt_C == 0);
       memset(new_size_blk_C, 0, sizeof(int64_t)*nblk_C);
     }
 //    if (crank != 0) this->sr_C->set(C, this->sr_C->addid(), size_C);
@@ -249,7 +247,6 @@ namespace CTF_int {
         sr_C->mul(this->beta, C+i*sr_C->el_size, C+i*sr_C->el_size);
       }*/
     }
-    ASSERT(!is_sparse_B);
     if (crank != 0)
       rec_ctr->beta = sr_C->addid();
     else
@@ -271,10 +268,23 @@ namespace CTF_int {
       //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
       if (is_sparse_C){
         int64_t csr_sz_acc = 0;
+        int64_t new_csr_sz_acc = 0;
+        char * new_Cs[nblk_C];
         for (int blk=0; blk<nblk_C; blk++){
-          sr_C->csr_reduce(new_C+csr_sz_acc, 0, cdt_C[i]->cm);
+          new_Cs[blk] = sr_C->csr_reduce(new_C+csr_sz_acc, 0, cdt_C[i]->cm);
+        
           csr_sz_acc += size_blk_C[blk];
+          size_blk_C[blk] = cdt_C[i]->rank == 0 ? ((CSR_Matrix)(new_Cs[blk])).size() : 0;
+          new_csr_sz_acc += size_blk_C[blk];
         }
+        cdealloc(new_C);
+        alloc_ptr(new_csr_sz_acc, (void**)&new_C);
+        new_csr_sz_acc = 0;
+        for (int blk=0; blk<nblk_C; blk++){
+          memcpy(new_C+new_csr_sz_acc, new_Cs[blk], size_blk_C[blk]);
+          cdealloc(new_Cs[blk]);
+          new_csr_sz_acc += size_blk_C[blk];
+        }        
       } else {
         if (cdt_C[i]->rank == 0){
           cdt_C[i]->red(MPI_IN_PLACE, new_C, size_C, sr_C->mdtype(), sr_C->addmop(), 0);
