@@ -146,7 +146,33 @@ namespace CTF_int {
   }
 
   void CSR_Matrix::csrmultd(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
-    assert(func == NULL);
+    if (func != NULL && func->has_gemm && do_offload){
+      assert(0);
+      assert(sr_C->isequal(beta, sr_C->mulid()));
+      assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+    } else {
+      CSR_Matrix cA((char*)A);
+      int64_t nzA = cA.nnz(); 
+      int const * rsA = cA.rows();
+      int const * csA = cA.cols();
+      char const * vsA = cA.vals();
+      CSR_Matrix cB((char*)B);
+      int64_t nzB = cB.nnz(); 
+      int const * rsB = cB.rows();
+      int const * csB = cB.cols();
+      char const * vsB = cB.vals();
+      if (func != NULL && func->has_gemm){
+        assert(0);
+        assert(sr_C->isequal(beta, sr_C->mulid()));
+        assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+      } else {
+        ASSERT(sr_B->el_size == sr_A->el_size);
+        ASSERT(sr_C->el_size == sr_A->el_size);
+        assert(!do_offload);
+        sr_A->csrmultd(m,n,k,vsA,csA,rsA,nzA,vsB,csB,rsB,nzB,C);
+      }
+    }
+
   }
 
   CSR_Matrix * CSR_Matrix::partition(int s, char ** parts_buffer){
@@ -191,15 +217,15 @@ namespace CTF_int {
   }
       
   CSR_Matrix::CSR_Matrix(char * const * smnds, int s){
-    CSR_Matrix csrs[s];
+    CSR_Matrix * csrs[s];
     int64_t tot_nnz=0, tot_nrow=0;
     for (int i=0; i<s; i++){
-      csrs[i] = CSR_Matrix(smnds[i]);
-      tot_nnz += csrs[i].nnz();
-      tot_nrow += csrs[i].nrow();
+      csrs[i] = new CSR_Matrix(smnds[i]);
+      tot_nnz += csrs[i]->nnz();
+      tot_nrow += csrs[i]->nrow();
     }
-    int64_t v_sz = csrs[0].val_size();
-    int64_t tot_ncol = csrs[0].ncol();
+    int64_t v_sz = csrs[0]->val_size();
+    int64_t tot_ncol = csrs[0]->ncol();
     all_data = (char*)alloc(get_csr_size(tot_nnz, tot_nrow, v_sz));
     ((int64_t*)all_data)[0] = tot_nnz;
     ((int64_t*)all_data)[1] = v_sz;
@@ -214,15 +240,18 @@ namespace CTF_int {
 
     for (int i=0; i<tot_nrow; i++){
       int ipart = i%s;
-      int const * prows = csrs[ipart].rows();
+      int const * prows = csrs[ipart]->rows();
       int i_nnz = prows[i/s+1]-prows[i/s];
       memcpy(csr_vs+(csr_rs[i]-1)*v_sz,
-             csrs[ipart].vals()+(prows[i/s]-1)*v_sz,
+             csrs[ipart]->vals()+(prows[i/s]-1)*v_sz,
              i_nnz*v_sz);
       memcpy(csr_cs+(csr_rs[i]-1)*sizeof(int),
-             csrs[ipart].cols()+(prows[i/s]-1)*sizeof(int),
+             csrs[ipart]->cols()+(prows[i/s]-1)*sizeof(int),
              i_nnz*sizeof(int));
       csr_rs[i+1] = csr_rs[i]+i_nnz;
+    }
+    for (int i=0; i<s; i++){
+      delete csrs[i];
     }
   }
 

@@ -545,6 +545,21 @@ namespace CTF {
         }
       }
 
+      void csrmultd
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char *       C) const {
+        this->default_csrmultd(m,n,k,(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,(dtype*)C);
+      }
   };
   /**
    * @}

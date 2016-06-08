@@ -330,8 +330,8 @@ namespace CTF_int {
                   int const *   IA,
                   int           nnz_A,
                   dtype const * B,
-                  int const *   IB,
                   int const *   JB,
+                  int const *   IB,
                   int           nnz_B,
                   dtype *       C){
     TAU_FSTART(muladd_csrmultd);
@@ -343,7 +343,7 @@ namespace CTF_int {
         int row_B = JA[i_A]-1; //=col_A
         for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
           int col_B = JB[i_B]-1;
-          C[col_B*m+row_A] += A[i_A]*B[j_B];
+          C[col_B*m+row_A] += A[i_A]*B[i_B];
         }
       }
     }
@@ -464,9 +464,13 @@ namespace CTF {
 #if USE_SP_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
+    //FIXME: yell at Intel for not accumulating and switching n with k
+    double * tmp_C_buf = (double*)malloc(sizeof(double)*m*n);
     TAU_FSTART(MKL_DCSRMULTD);
-    CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &n, &k, A, JA, IA, B, JB, IB, C, &m);
+    CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m);
     TAU_FSTOP(MKL_DCSRMULTD);
+    CTF_int::default_axpy<double>(m*n, 1.0, tmp_C_buf, 1, C, 1);
+    free(tmp_C_buf);
 #else
     CTF_int::muladd_csrmultd<double>(m,n,k,A,JA,IA,nnz_A,B,JB,IB,nnz_B,C);
 #endif

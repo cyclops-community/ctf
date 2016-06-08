@@ -763,7 +763,7 @@ namespace CTF_int {
       }
 
       nvirt_C = C->calc_nvirt();
-      if (!B->is_sparse){
+      if (!C->is_sparse){
         for (i=0; i<nvirt_C; i++){
           nosym_transpose(all_fdim_C, C->inner_ordering, all_flen_C,
                           C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
@@ -3531,13 +3531,26 @@ namespace CTF_int {
 
 
     spctr_2d_general * bottom_ctr_gen = NULL;
-    ASSERT(A->is_sparse);
-    blk_sz_A = A->calc_nvirt();
-    for (int a=0; a<A->order; a++){
-      blk_len_A[a] = A->edge_map[a].calc_phase()/A->edge_map[a].calc_phys_phase();
-    }
-    int ones[A->order];
-    std::fill(ones, ones+A->order, 1);
+
+    int spvirt_blk_len_A[A->order];
+    if (A->is_sparse){
+      blk_sz_A = A->calc_nvirt();
+      for (int a=0; a<A->order; a++){
+        blk_len_A[a] = A->edge_map[a].calc_phase()/A->edge_map[a].calc_phys_phase();
+      }
+      std::fill(spvirt_blk_len_A, spvirt_blk_len_A+A->order, 1);
+    } else 
+      memcpy(spvirt_blk_len_A, virt_blk_len_A, sizeof(int)*A->order);
+    int spvirt_blk_len_B[B->order];
+    if (B->is_sparse){
+      blk_sz_B = B->calc_nvirt();
+      for (int a=0; a<B->order; a++){
+        blk_len_B[a] = B->edge_map[a].calc_phase()/B->edge_map[a].calc_phys_phase();
+      }
+      std::fill(spvirt_blk_len_B, spvirt_blk_len_B+B->order, 1);
+    } else 
+      memcpy(spvirt_blk_len_B, virt_blk_len_B, sizeof(int)*B->order);
+
     for (i=0; i<num_tot; i++){
       virt_dim[i] = 1;
       i_A = idx_arr[3*i+0];
@@ -3567,7 +3580,7 @@ namespace CTF_int {
                                       ctr_gen->move_A,
                                       blk_len_A,
                                       blk_sz_A,
-                                      ones,
+                                      spvirt_blk_len_A,
                                       upload_phase_A,
                                       B,
                                       i_B,
@@ -3577,7 +3590,7 @@ namespace CTF_int {
                                       ctr_gen->move_B,
                                       blk_len_B,
                                       blk_sz_B,
-                                      virt_blk_len_B,
+                                      spvirt_blk_len_B,
                                       upload_phase_B,
                                       C,
                                       i_C,
@@ -3605,7 +3618,7 @@ namespace CTF_int {
                                       ctr_gen->move_B,
                                       blk_len_B,
                                       blk_sz_B,
-                                      virt_blk_len_B,
+                                      spvirt_blk_len_B,
                                       upload_phase_B,
                                       C,
                                       i_C,
@@ -3625,7 +3638,7 @@ namespace CTF_int {
                                       ctr_gen->move_A,
                                       blk_len_A,
                                       blk_sz_A,
-                                      ones,
+                                      spvirt_blk_len_A,
                                       upload_phase_A);
         }
         if (i_C == -1){
@@ -3653,7 +3666,7 @@ namespace CTF_int {
                                       ctr_gen->move_A,
                                       blk_len_A,
                                       blk_sz_A,
-                                      ones,
+                                      spvirt_blk_len_A,
                                       upload_phase_A,
                                       B,
                                       i_B,
@@ -3663,7 +3676,7 @@ namespace CTF_int {
                                       ctr_gen->move_B,
                                       blk_len_B,
                                       blk_sz_B,
-                                      virt_blk_len_B,
+                                      spvirt_blk_len_B,
                                       upload_phase_B);
         }
         if (is_built){
@@ -4096,7 +4109,9 @@ namespace CTF_int {
     } 
   #endif
   #if DEBUG >=2
+  if (global_comm.rank == 0){
     ctrf->print();
+  }
   #endif
   #if VERBOSE >= 2
   double dtt = MPI_Wtime();
@@ -4165,8 +4180,8 @@ namespace CTF_int {
         else              data_B = B->data;
         if (C->is_sparse) data_C = C->rec_tsr->data;
         else              data_C = C->data;
-        size_blk_B = B->rec_tsr->nnz_blk;
         size_blk_A = A->rec_tsr->nnz_blk;
+        size_blk_B = B->rec_tsr->nnz_blk;
         size_blk_C = C->rec_tsr->nnz_blk;
       }
 

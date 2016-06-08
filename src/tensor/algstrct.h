@@ -191,6 +191,22 @@ namespace CTF_int {
                          char *                 C,
                          bivar_function const * func) const;
 
+      /** \brief sparse version of gemm using CSR format for A and B*/
+      virtual void csrmultd
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char *       C) const;
+
+
       /** \brief returns true if algstrct elements a and b are equal */
       virtual bool isequal(char const * a, char const * b) const;
 

@@ -276,6 +276,7 @@ namespace CTF_int {
         }
         break;
       case 2:
+      case 3:
         if (is_custom){
           if (inner_params.offload)
             return seq_tsr_spctr_cst_off_k2.est_time(ps);
@@ -302,8 +303,6 @@ namespace CTF_int {
                           char * C, int nblk_C, int64_t * size_blk_C,
                           char *& new_C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
-    ASSERT( is_sparse_A);
-    ASSERT(!is_sparse_B);
     ASSERT(!is_sparse_C);
     ASSERT(nblk_A == 1);
 
@@ -419,6 +418,7 @@ namespace CTF_int {
         }
         break;
       case 2:
+      case 3:
         if (is_custom){
           if (inner_params.offload)
             seq_tsr_spctr_cst_off_k2.observe(tps);

@@ -2,7 +2,7 @@
   * @{ 
   * \defgroup spmm spmm
   * @{ 
-  * \brief Multiplication of a random square sparse matrix by a vector
+  * \brief Multiplication of a random square sparse matrix by a dense matrix
   */
 
 #include <ctf.hpp>

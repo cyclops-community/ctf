@@ -310,12 +310,7 @@ namespace CTF_int {
     char * op_A = NULL;
     char * op_B = NULL;
     char * op_C = NULL; 
-    int rank_B, rank_C;
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
-    if (move_B) rank_B = cdt_B->rank;
-    else rank_B = -1;
-    if (move_C) rank_C = cdt_C->rank;
-    else rank_C = -1;
 
     if (is_sparse_C){
       if (move_C){
