@@ -25,39 +25,19 @@ namespace CTF_int {
 
   template <>
   void default_axpy<float>
-                   (int           n,
-                    float         alpha,
-                    float const * X,
-                    int           incX,
-                    float *       Y,
-                    int           incY);
+                   (int,float,float const *,int,float *,int);
 
   template <>
   void default_axpy<double>
-                   (int            n,
-                    double         alpha,
-                    double const * X,
-                    int            incX,
-                    double *       Y,
-                    int            incY);
+                   (int,double,double const *,int,double *,int);
 
   template <>
   void default_axpy< std::complex<float> >
-                   (int                         n,
-                    std::complex<float>         alpha,
-                    std::complex<float> const * X,
-                    int                         incX,
-                    std::complex<float> *       Y,
-                    int                         incY);
+                   (int,std::complex<float>,std::complex<float> const *,int,std::complex<float> *,int);
 
   template <>
   void default_axpy< std::complex<double> >
-                   (int                          n,
-                    std::complex<double>         alpha,
-                    std::complex<double> const * X,
-                    int                          incX,
-                    std::complex<double> *       Y,
-                    int                          incY);
+                   (int,std::complex<double>,std::complex<double> const *,int,std::complex<double> *,int);
 
   template <typename dtype>
   void default_scal(int           n,
@@ -213,59 +193,19 @@ namespace CTF_int {
 
   template <>
   void default_coomm< float >
-          (int           m,
-           int           n,
-           int           k,
-           float         alpha,
-           float const * A,
-           int const *   rows_A,
-           int const *   cols_A,
-           int           nnz_A,
-           float const * B,
-           float         beta,
-           float *       C);
+          (int,int,int,float,float const *,int const *,int const *,int,float const *,float,float *);
 
   template <>
   void default_coomm< double >
-          (int            m,
-           int            n,
-           int            k,
-           double         alpha,
-           double const * A,
-           int const *    rows_A,
-           int const *    cols_A,
-           int            nnz_A,
-           double const * B,
-           double         beta,
-           double *       C);
+          (int,int,int,double,double const *,int const *,int const *,int,double const *,double,double *);
 
   template <>
   void default_coomm< std::complex<float> >
-          (int                         m,
-           int                         n,
-           int                         k,
-           std::complex<float>         alpha,
-           std::complex<float> const * A,
-           int const *                 rows_A,
-           int const *                 cols_A,
-           int                         nnz_A,
-           std::complex<float> const * B,
-           std::complex<float>         beta,
-           std::complex<float> *       C);
+          (int,int,int,std::complex<float>,std::complex<float> const *,int const *,int const *,int,std::complex<float> const *,std::complex<float>,std::complex<float> *);
 
   template <>
   void default_coomm< std::complex<double> >
-     (int                          m,
-      int                          n,
-      int                          k,
-      std::complex<double>         alpha,
-      std::complex<double> const * A,
-      int const *                  rows_A,
-      int const *                  cols_A,
-      int                          nnz_A,
-      std::complex<double> const * B,
-      std::complex<double>         beta,
-      std::complex<double> *       C);
+     (int,int,int,std::complex<double>,std::complex<double> const *,int const *,int const *,int,std::complex<double> const *,std::complex<double>,std::complex<double> *);
 
 
 }
@@ -292,7 +232,9 @@ namespace CTF {
       dtype (*fmul)(dtype a, dtype b);
       void (*fgemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
       void (*fcoomm)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*);
-      void (*fcsrmultd)(int,int,int,dtype const*,int const*,int const*,dtype const*,int const*, int const*,dtype*,int);
+      //void (*fcsrmm)(int,int,int,dtype,dtype const*,int const*,int const*,dtype const*,dtype,dtype*);
+       //csrmultd_ kernel for multiplying two sparse matrices into a dense output 
+      //void (*fcsrmultd)(int,int,int,dtype const*,int const*,int const*,dtype const*,int const*, int const*,dtype*,int);
     
       Semiring(Semiring const & other) : Monoid<dtype, is_ord>(other) { 
         this->tmulid    = other.tmulid;
@@ -301,7 +243,6 @@ namespace CTF {
         this->fmul      = other.fmul;
         this->fgemm     = other.fgemm;
         this->fcoomm    = other.fcoomm;
-        this->fcsrmultd = other.fcsrmultd;
       }
 
       virtual CTF_int::algstrct * clone() const {
@@ -319,7 +260,6 @@ namespace CTF {
        * \param[in] axpy_ vector sum function
        * \param[in] scal_ vector scale function
        * \param[in] coomm_ kernel for multiplying sparse matrix in coordinate format with dense matrix
-       * \param[in] csrmultd_ kernel for multiplying two sparse matrices into a dense output 
        */
       Semiring(dtype        addid_,
                dtype (*fadd_)(dtype a, dtype b),
@@ -539,14 +479,14 @@ namespace CTF {
         #pragma omp parallel for
 #endif
         for (int row_A=0; row_A<m; row_A++){
-          if (IA[row_A] < IA[row_A+1]){
-            int i_A1 = IA[row_A]-1;
-            int col_A1 = JA[i_A1]-1;
 #ifdef _OPENMP
-            #pragma omp parallel for
+          #pragma omp parallel for
 #endif
-            for (int col_B=0; col_B<n; col_B++){
-              C[col_B*m+row_A] = this->fmul(beta,C[col_B*m+row_A]);
+          for (int col_B=0; col_B<n; col_B++){
+            C[col_B*m+row_A] = this->fmul(beta,C[col_B*m+row_A]);
+            if (IA[row_A] < IA[row_A+1]){
+              int i_A1 = IA[row_A]-1;
+              int col_A1 = JA[i_A1]-1;
               dtype tmp = this->fmul(A[i_A1],B[col_B*k+col_A1]);
               for (int i_A=IA[row_A]; i_A<IA[row_A+1]-1; i_A++){
                 int col_A = JA[i_A]-1;
@@ -610,6 +550,17 @@ namespace CTF {
    * @}
    */
 
+  template <>
+  void CTF::Semiring<float,1>::default_csrmm(int,int,int,float,float const *,int const *,int const *,int,float const *,float,float *) const;
+  template <>
+  void CTF::Semiring<double,1>::default_csrmm(int,int,int,double,double const *,int const *,int const *,int,double const *,double,double *) const;
+  template <>
+  void CTF::Semiring<std::complex<float>,0>::default_csrmm(int,int,int,std::complex<float>,std::complex<float> const *,int const *,int const *,int,std::complex<float> const *,std::complex<float>,std::complex<float> *) const;
+  template <>
+  void CTF::Semiring<std::complex<double>,0>::default_csrmm(int,int,int,std::complex<double>,std::complex<double> const *,int const *,int const *,int,std::complex<double> const *,std::complex<double>,std::complex<double> *) const;
+
+
+
   template<> 
   bool CTF::Semiring<double,1>::is_offloadable() const;
   template<> 
@@ -620,53 +571,13 @@ namespace CTF {
   bool CTF::Semiring<std::complex<double>,0>::is_offloadable() const;
 
   template<> 
-  void CTF::Semiring<double,1>::offload_gemm(
-                        char         tA,
-                        char         tB,
-                        int          m,
-                        int          n,
-                        int          k,
-                        char const * alpha,
-                        char const * A,
-                        char const * B,
-                        char const * beta,
-                        char *       C) const;
+  void CTF::Semiring<double,1>::offload_gemm(char,char,int,int,int,char const *,char const *,char const *,char const *,char *) const;
   template<> 
-  void CTF::Semiring<double,1>::offload_gemm(
-                        char         tA,
-                        char         tB,
-                        int          m,
-                        int          n,
-                        int          k,
-                        char const * alpha,
-                        char const * A,
-                        char const * B,
-                        char const * beta,
-                        char *       C) const;
+  void CTF::Semiring<double,1>::offload_gemm(char,char,int,int,int,char const *,char const *,char const *,char const *,char *) const;
   template<> 
-  void CTF::Semiring<std::complex<float>,0>::offload_gemm(
-                        char         tA,
-                        char         tB,
-                        int          m,
-                        int          n,
-                        int          k,
-                        char const * alpha,
-                        char const * A,
-                        char const * B,
-                        char const * beta,
-                        char *       C) const;
+  void CTF::Semiring<std::complex<float>,0>::offload_gemm(char,char,int,int,int,char const *,char const *,char const *,char const *,char *) const;
   template<> 
-  void CTF::Semiring<std::complex<double>,0>::offload_gemm(
-                        char         tA,
-                        char         tB,
-                        int          m,
-                        int          n,
-                        int          k,
-                        char const * alpha,
-                        char const * A,
-                        char const * B,
-                        char const * beta,
-                        char *       C) const;
+  void CTF::Semiring<std::complex<double>,0>::offload_gemm(char,char,int,int,int,char const *,char const *,char const *,char const *,char *) const;
 }
 #include "ring.h"
 #endif

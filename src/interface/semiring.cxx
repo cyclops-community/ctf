@@ -281,10 +281,49 @@ namespace CTF_int {
     return 0; 
   }
 #endif
+#if (USE_SP_MKL!=1)
+  template <typename dtype>
+  void muladd_csrmm
+                 (int           m,
+                  int           n,
+                  int           k,
+                  dtype         alpha,
+                  dtype const * A,
+                  int const *   IA,
+                  int const *   JA,
+                  int           nnz_A,
+                  dtype const * B,
+                  dtype         beta,
+                  dtype *       C){
+    TAU_FSTART(muladd_csrmm);
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int row_A=0; row_A<m; row_A++){
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int col_B=0; col_B<n; col_B++){
+        C[col_B*m+row_A] *= beta;
+        if (IA[row_A] < IA[row_A+1]){
+          int i_A1 = IA[row_A]-1;
+          int col_A1 = JA[i_A1]-1;
+          dtype tmp = A[i_A1]*B[col_B*k+col_A1];
+          for (int i_A=IA[row_A]; i_A<IA[row_A+1]-1; i_A++){
+            int col_A = JA[i_A]-1;
+            tmp += A[i_A]*B[col_B*k+col_A];
+          }
+          C[col_B*m+row_A] += alpha*tmp;
+        }
+      }
+    }
+    TAU_FSTOP(muladd_csrmm);
+  }
+#endif
 }
 
 namespace CTF {
-#if USE_SP_MKL
+
   template <>
   void CTF::Semiring<float,1>::default_csrmm
           (int           m,
@@ -298,11 +337,14 @@ namespace CTF {
            float const * B,
            float         beta,
            float *       C) const {
+#if USE_SP_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
     CTF_BLAS::MKL_SCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
-
+#else
+    CTF_int::muladd_csrmm<float>(m,n,k,alpha,A,IA,JA,nnz_A,B,beta,C);
+#endif
   }
 
   template <>
@@ -318,12 +360,15 @@ namespace CTF {
            double const * B,
            double         beta,
            double *       C) const {
+#if USE_SP_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
-    
     TAU_FSTART(MKL_DCSRMM);
     CTF_BLAS::MKL_DCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
     TAU_FSTOP(MKL_DCSRMM);
+#else
+    CTF_int::muladd_csrmm<double>(m,n,k,alpha,A,IA,JA,nnz_A,B,beta,C);
+#endif
   }
 
 
@@ -340,11 +385,14 @@ namespace CTF {
            std::complex<float> const * B,
            std::complex<float>         beta,
            std::complex<float> *       C) const {
+#if USE_SP_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
     CTF_BLAS::MKL_CCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
-
+#else
+    CTF_int::muladd_csrmm< std::complex<float> >(m,n,k,alpha,A,IA,JA,nnz_A,B,beta,C);
+#endif
   }
 
   template <>
@@ -360,14 +408,31 @@ namespace CTF {
            std::complex<double> const * B,
            std::complex<double>         beta,
            std::complex<double> *       C) const {
-
+#if USE_SP_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
-   printf("HERE\n"); 
     CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
-
-  }
+#else
+    CTF_int::muladd_csrmm< std::complex<double> >(m,n,k,alpha,A,IA,JA,nnz_A,B,beta,C);
 #endif
+  }
+
+  template<>
+  void CTF::Semiring<double,1>::default_csrmultd
+                 (int            m,
+                  int            n,
+                  int            k,
+                  double const * A,
+                  int const *    IA,
+                  int const *    JA,
+                  int            nnz_A,
+                  double const * B,
+                  int const *    IB,
+                  int const *    JB,
+                  int            nnz_B,
+                  double *       C) const {
+    assert(0);
+  }
 
 /*  template<> 
   bool CTF::Semiring<float,1>::is_offloadable() const {
