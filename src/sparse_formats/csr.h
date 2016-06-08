@@ -62,11 +62,6 @@ namespace CTF_int {
 //      void set_data(int64_t nz, int order, int const * lens, int const * ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase);
 
       /**
-       * \brief computes C = beta*C + func(alpha*A*B) where A is this CSR_Matrix, while B and C are dense
-       */
-      void csrmm(algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
-
-      /**
        * \brief splits CSR matrix into s submatrices (returned) corresponding to subsets of rows, all parts allocated in one contiguous buffer (passed back in parts_buffer)
        */
       CSR_Matrix * partition(int s, char ** parts_buffer);
@@ -75,6 +70,18 @@ namespace CTF_int {
        * \brief constructor merges parts into one CSR matrix, assuming they are split by partition() (Above)
        */
       CSR_Matrix(char * const * smnds, int s);
+
+      /**
+       * \brief computes C = beta*C + func(alpha*A*B) where A is a CSR_Matrix, while B and C are dense
+       */
+      static void csrmm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
+      
+      /**
+       * \brief computes C = beta*C + func(alpha*A*B) where A and B are CSR_Matrices, while C is dense
+       */
+      static void csrmultd(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
+
+
   };
 }
 

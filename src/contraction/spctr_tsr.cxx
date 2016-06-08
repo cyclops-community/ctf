@@ -156,14 +156,14 @@ namespace CTF_int {
     seq_tsr_spctr * o = (seq_tsr_spctr*)other;
     alpha = o->alpha;
     
-    order_A        = o->order_A;
+    order_A       = o->order_A;
     idx_map_A     = o->idx_map_A;
     sym_A         = (int*)CTF_int::alloc(sizeof(int)*order_A);
     memcpy(sym_A, o->sym_A, sizeof(int)*order_A);
     edge_len_A    = (int*)CTF_int::alloc(sizeof(int)*order_A);
     memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
 
-    order_B        = o->order_B;
+    order_B       = o->order_B;
     idx_map_B     = o->idx_map_B;
     sym_B         = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(sym_B, o->sym_B, sizeof(int)*order_B);
@@ -204,7 +204,7 @@ namespace CTF_int {
       flops *= inner_params.k;
     } else {
       for (int i=0; i<idx_max; i++){
-        if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
+             if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
         else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
         else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
       }
@@ -309,9 +309,7 @@ namespace CTF_int {
 
     double st_time = MPI_Wtime();
 
-    if (krnl_type==2){
-      // Do mm using CSR format
-      CSR_Matrix cA(A);
+    if (krnl_type > 0){
       if (!sr_C->isequal(beta,sr_C->mulid())){
         if (sr_C->isequal(beta,sr_C->addid())){
           sr_C->set(C, beta, inner_params.sz_C);
@@ -319,54 +317,71 @@ namespace CTF_int {
           sr_C->scal(inner_params.sz_C, beta, C, 1);
         }
       }
-      TAU_FSTART(CSRMM);
-      cA.csrmm(sr_A, inner_params.m, inner_params.n, inner_params.k,
-               alpha, B, sr_B, sr_C->mulid(), C, sr_C, func, inner_params.offload);
-      TAU_FSTOP(CSRMM);
+    }
 
-    } else if (krnl_type==1){
-      // Do mm using coordinate format
-      COO_Matrix cA(A);
-      if (!sr_C->isequal(beta,sr_C->mulid())){
-        if (sr_C->isequal(beta,sr_C->addid())){
-          sr_C->set(C, beta, inner_params.sz_C);
-        } else {
-          sr_C->scal(inner_params.sz_C, beta, C, 1);
-        }
+    switch (krnl_type){
+      case 0:
+      {
+        ASSERT(size_blk_A[0]%sr_A->pair_size() == 0);
+
+        int64_t nnz_A = size_blk_A[0]/sr_A->pair_size();
+
+        TAU_FSTART(spA_dnB_dnC_seq);
+        spA_dnB_dnC_seq_ctr(this->alpha,
+                            A,
+                            nnz_A,
+                            sr_A,
+                            order_A,
+                            edge_len_A,
+                            sym_A,
+                            idx_map_A,
+                            B,
+                            sr_B,
+                            order_B,
+                            edge_len_B,
+                            sym_B,
+                            idx_map_B,
+                            this->beta,
+                            C,
+                            sr_C,
+                            order_C,
+                            edge_len_C,
+                            sym_C,
+                            idx_map_C,
+                            func);
+        TAU_FSTOP(spA_dnB_dnC_seq);
       }
-      TAU_FSTART(COOMM);
-      cA.coomm(sr_A, inner_params.m, inner_params.n, inner_params.k,
-               alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
-      TAU_FSTOP(COOMM);
-    } else {
-      ASSERT(size_blk_A[0]%sr_A->pair_size() == 0);
+      break;
 
-      int64_t nnz_A = size_blk_A[0]/sr_A->pair_size();
+      case 1:
+      {
+        // Do mm using coordinate format
+        TAU_FSTART(COOMM);
+        COO_Matrix::coomm(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                 alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
+        TAU_FSTOP(COOMM);
+      }
+      break;
 
-      TAU_FSTART(spA_dnB_dnC_seq);
-      spA_dnB_dnC_seq_ctr(this->alpha,
-                          A,
-                          nnz_A,
-                          sr_A,
-                          order_A,
-                          edge_len_A,
-                          sym_A,
-                          idx_map_A,
-                          B,
-                          sr_B,
-                          order_B,
-                          edge_len_B,
-                          sym_B,
-                          idx_map_B,
-                          this->beta,
-                          C,
-                          sr_C,
-                          order_C,
-                          edge_len_C,
-                          sym_C,
-                          idx_map_C,
-                          func);
-      TAU_FSTOP(spA_dnB_dnC_seq);
+      case 2:
+      {
+        // Do mm using CSR format for A
+        TAU_FSTART(CSRMM);
+        CSR_Matrix::csrmm(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                          alpha, B, sr_B, sr_C->mulid(), C, sr_C, func, inner_params.offload);
+        TAU_FSTOP(CSRMM);
+      }
+      break;
+
+      case 3:
+      {
+        // Do mm using CSR format for A and B
+        TAU_FSTART(CSRMULTD);
+        CSR_Matrix::csrmultd(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                             alpha, B, sr_B, sr_C->mulid(), C, sr_C, func, inner_params.offload);
+        TAU_FSTOP(CSRMULTD);
+      }
+      break;
     }
     double nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
     for (int i=0; i<order_A; i++){

@@ -117,11 +117,12 @@ namespace CTF_int {
   }
 
 
-  void COO_Matrix::coomm(algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
-    int64_t nz = nnz(); 
-    int const * rs = rows();
-    int const * cs = cols();
-    char const * vs = vals();
+  void COO_Matrix::coomm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func){
+    COO_Matrix cA((char*)A);
+    int64_t nz = cA.nnz(); 
+    int const * rs = cA.rows();
+    int const * cs = cA.cols();
+    char const * vs = cA.vals();
     if (func != NULL && func->has_gemm){
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));

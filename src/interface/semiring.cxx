@@ -186,7 +186,7 @@ namespace CTF_int {
     DEF_COOMM_KERNEL();
 #endif
   }
-
+/*
 #if USE_SP_MKL
   template <>
   bool get_def_has_csrmm<float>(){ return true; }
@@ -206,7 +206,7 @@ namespace CTF_int {
   template <>
   bool get_def_has_csrmm< std::complex<double> >(){ return true; }
 #endif
-
+*/
 
 #if USE_SP_MKL
   template <>  
@@ -363,7 +363,7 @@ namespace CTF {
 
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
-    
+   printf("HERE\n"); 
     CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
 
   }

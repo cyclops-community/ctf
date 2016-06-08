@@ -728,9 +728,9 @@ namespace CTF_int {
     permute_target(tfA->order, fnew_ord_A, tA->inner_ordering);
     permute_target(tfB->order, fnew_ord_B, tB->inner_ordering);
     permute_target(tfC->order, fnew_ord_C, tC->inner_ordering);
-    
+ 
     if (do_transp){
-      bool csr_or_coo = A->sr->has_csrmm || (is_custom && func->has_gemm);
+      bool csr_or_coo = B->is_sparse || C->is_sparse || (is_custom && func->has_gemm) || !A->sr->has_coo_ker;
       nvirt_A = A->calc_nvirt();
       if (!A->is_sparse){
         for (i=0; i<nvirt_A; i++){
@@ -3748,8 +3748,20 @@ namespace CTF_int {
     } else
       CTF_int::cdealloc(virt_dim);
 
-    int krnl_type = is_inner;
-    if (krnl_type == 1 && (A->sr->has_csrmm || (is_custom && func->has_gemm))) krnl_type = 2;
+    int krnl_type;
+    if (is_inner){
+      ASSERT(!(!A->is_sparse && (B->is_sparse || C->is_sparse)));
+      if (A->is_sparse && !B->is_sparse && !C->is_sparse){
+        if ((is_custom && func->has_gemm) || !A->sr->has_coo_ker) krnl_type = 2;
+        else krnl_type = 1;
+      } 
+      if (A->is_sparse && B->is_sparse && !C->is_sparse){
+        krnl_type = 3;
+      }
+      if (A->is_sparse && B->is_sparse && C->is_sparse){
+        krnl_type = 4;
+      }
+    } else krnl_type = 0;
 
 
     iparam inp_cpy;

@@ -14,8 +14,8 @@ namespace CTF_int {
     public: 
       /** \brief size of each element of algstrct in bytes */
       int el_size;
-      /** \brief whether there is an MKL CSRMM routine for this algebraic structure */
-      bool has_csrmm;
+      /** \brief whether there was a custom COO CSRMM kernel provided for this algebraic structure */
+      bool has_coo_ker;
       /** \brief datatype for pairs, always custom create3d */
 //      MPI_Datatype pmdtype;
 
@@ -30,7 +30,7 @@ namespace CTF_int {
       /**
        * \brief default constructor
        */
-      algstrct(){ has_csrmm = false; }
+      algstrct(){ has_coo_ker = false; }
 
       /**
        * \brief copy constructor

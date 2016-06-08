@@ -268,79 +268,6 @@ namespace CTF_int {
       std::complex<double> *       C);
 
 
-
-/*
-  template <>
-  void default_csrmm< float >
-          (int           m,
-           int           n,
-           int           k,
-           float         alpha,
-           float const * A,
-           int const *   rows_A,
-           int const *   cols_A,
-           int           nnz_A,
-           float const * B,
-           float         beta,
-           float *       C);
-
-  template <>
-  void default_csrmm< double >
-          (int            m,
-           int            n,
-           int            k,
-           double         alpha,
-           double const * A,
-           int const *    rows_A,
-           int const *    cols_A,
-           int            nnz_A,
-           double const * B,
-           double         beta,
-           double *       C);
-
-
-  template <>
-  void default_csrmm< std::complex<float> >
-          (int                         m,
-           int                         n,
-           int                         k,
-           std::complex<float>         alpha,
-           std::complex<float> const * A,
-           int const *                 rows_A,
-           int const *                 cols_A,
-           int                         nnz_A,
-           std::complex<float> const * B,
-           std::complex<float>         beta,
-           std::complex<float> *       C);
-
-
-
-  template <>
-  void default_csrmm< std::complex<double> >
-          (int                          m,
-           int                          n,
-           int                          k,
-           std::complex<double>         alpha,
-           std::complex<double> const * A,
-           int const *                  rows_A,
-           int const *                  cols_A,
-           int                          nnz_A,
-           std::complex<double> const * B,
-           std::complex<double>         beta,
-           std::complex<double> *       C);
-
-*/
-
-  template <typename type>
-  bool get_def_has_csrmm(){ return true; }
-  template <>
-  bool get_def_has_csrmm<float>();
-  template <>
-  bool get_def_has_csrmm<double>();
-  template <>
-  bool get_def_has_csrmm< std::complex<float> >();
-  template <>
-  bool get_def_has_csrmm< std::complex<double> >();
 }
 
 
@@ -365,14 +292,16 @@ namespace CTF {
       dtype (*fmul)(dtype a, dtype b);
       void (*fgemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
       void (*fcoomm)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*);
+      void (*fcsrmultd)(int,int,int,dtype const*,int const*,int const*,dtype const*,int const*, int const*,dtype*,int);
     
       Semiring(Semiring const & other) : Monoid<dtype, is_ord>(other) { 
-        this->tmulid = other.tmulid;
-        this->fscal  = other.fscal;
-        this->faxpy  = other.faxpy;
-        this->fmul   = other.fmul;
-        this->fgemm  = other.fgemm;
-        this->fcoomm = other.fcoomm;
+        this->tmulid    = other.tmulid;
+        this->fscal     = other.fscal;
+        this->faxpy     = other.faxpy;
+        this->fmul      = other.fmul;
+        this->fgemm     = other.fgemm;
+        this->fcoomm    = other.fcoomm;
+        this->fcsrmultd = other.fcsrmultd;
       }
 
       virtual CTF_int::algstrct * clone() const {
@@ -389,6 +318,8 @@ namespace CTF {
        * \param[in] gemm_ block matrix multiplication function
        * \param[in] axpy_ vector sum function
        * \param[in] scal_ vector scale function
+       * \param[in] coomm_ kernel for multiplying sparse matrix in coordinate format with dense matrix
+       * \param[in] csrmultd_ kernel for multiplying two sparse matrices into a dense output 
        */
       Semiring(dtype        addid_,
                dtype (*fadd_)(dtype a, dtype b),
@@ -400,11 +331,13 @@ namespace CTF {
                void (*scal_)(int,dtype,dtype*,int)=NULL,
                void (*coomm_)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*)=NULL)
                 : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) , tmulid(mulid_) {
-        fmul   = fmul_;
-        fgemm  = gemm_;
-        faxpy  = axpy_;
-        fscal  = scal_;
-        fcoomm = coomm_;
+        fmul      = fmul_;
+        fgemm     = gemm_;
+        faxpy     = axpy_;
+        fscal     = scal_;
+        fcoomm    = coomm_;
+        // if provided a coordinate MM kernel, don't use CSR
+        this->has_coo_ker = (coomm_ != NULL);
       }
 
       /**
@@ -412,12 +345,11 @@ namespace CTF {
        */
       Semiring() : Monoid<dtype,is_ord>() {
         tmulid = dtype(1);
-        fmul   = &CTF_int::default_mul<dtype>;
-        fgemm  = &CTF_int::default_gemm<dtype>;
-        faxpy  = &CTF_int::default_axpy<dtype>;
-        fscal  = &CTF_int::default_scal<dtype>;
-        fcoomm = &CTF_int::default_coomm<dtype>;
-        this->has_csrmm = CTF_int::get_def_has_csrmm<dtype>();
+        fmul      = &CTF_int::default_mul<dtype>;
+        fgemm     = &CTF_int::default_gemm<dtype>;
+        faxpy     = &CTF_int::default_axpy<dtype>;
+        fscal     = &CTF_int::default_scal<dtype>;
+        fcoomm    = &CTF_int::default_coomm<dtype>;
       }
 
       void mul(char const * a, 
@@ -607,14 +539,14 @@ namespace CTF {
         #pragma omp parallel for
 #endif
         for (int row_A=0; row_A<m; row_A++){
+          if (IA[row_A] < IA[row_A+1]){
+            int i_A1 = IA[row_A]-1;
+            int col_A1 = JA[i_A1]-1;
 #ifdef _OPENMP
-          #pragma omp parallel for
+            #pragma omp parallel for
 #endif
-          for (int col_B=0; col_B<n; col_B++){
-            C[col_B*m+row_A] = this->fmul(beta,C[col_B*m+row_A]);
-            if (IA[row_A] < IA[row_A+1]){
-              int i_A1 = IA[row_A]-1;
-              int col_A1 = JA[i_A1]-1;
+            for (int col_B=0; col_B<n; col_B++){
+              C[col_B*m+row_A] = this->fmul(beta,C[col_B*m+row_A]);
               dtype tmp = this->fmul(A[i_A1],B[col_B*k+col_A1]);
               for (int i_A=IA[row_A]; i_A<IA[row_A+1]-1; i_A++){
                 int col_A = JA[i_A]-1;
@@ -626,6 +558,7 @@ namespace CTF {
         }
       }
 
+//      void (*fcsrmultd)(int,int,int,dtype const*,int const*,int const*,dtype const*,int const*, int const*,dtype*,int);
 
       /** \brief sparse version of gemm using CSR format for A */
       void csrmm(int          m,
@@ -640,10 +573,38 @@ namespace CTF {
                  char const * beta,
                  char *       C,
                  CTF_int::bivar_function const * func) const {
-        assert(this->has_csrmm);
+        assert(!this->has_coo_ker);
         assert(func == NULL);
         this->default_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,IA,JA,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
       }
+
+      void default_csrmultd
+                     (int           m,
+                      int           n,
+                      int           k,
+                      dtype const * A,
+                      int const *   IA,
+                      int const *   JA,
+                      int           nnz_A,
+                      dtype const * B,
+                      int const *   IB,
+                      int const *   JB,
+                      int           nnz_B,
+                      dtype *       C) const {
+#ifdef _OPENMP
+        #pragma omp parallel for
+#endif
+        for (int row_A=0; row_A<m; row_A++){
+          for (int i_A=IA[row_A]-1; i_A<IA[row_A+1]-1; i_A++){
+            int row_B = JA[i_A]-1; //=col_A
+            for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
+              int col_B = JB[i_B]-1;
+              this->fadd(C[col_B*m+row_A], this->fmul(A[i_A],B[j_B]));
+            }
+          }
+        }
+      }
+
   };
   /**
    * @}

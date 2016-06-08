@@ -110,7 +110,7 @@ namespace CTF_int {
   }
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
-    has_csrmm = false;
+    has_coo_ker = false;
   }
   
 
