@@ -289,8 +289,8 @@ namespace CTF_int {
                   int           k,
                   dtype         alpha,
                   dtype const * A,
-                  int const *   IA,
                   int const *   JA,
+                  int const *   IA,
                   int           nnz_A,
                   dtype const * B,
                   dtype         beta,
@@ -319,6 +319,36 @@ namespace CTF_int {
     }
     TAU_FSTOP(muladd_csrmm);
   }
+
+  template<typename dtype>
+  void muladd_csrmultd
+                 (int           m,
+                  int           n,
+                  int           k,
+                  dtype const * A,
+                  int const *   JA,
+                  int const *   IA,
+                  int           nnz_A,
+                  dtype const * B,
+                  int const *   IB,
+                  int const *   JB,
+                  int           nnz_B,
+                  dtype *       C){
+    TAU_FSTART(muladd_csrmultd);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int row_A=0; row_A<m; row_A++){
+      for (int i_A=IA[row_A]-1; i_A<IA[row_A+1]-1; i_A++){
+        int row_B = JA[i_A]-1; //=col_A
+        for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
+          int col_B = JB[i_B]-1;
+          C[col_B*m+row_A] += A[i_A]*B[j_B];
+        }
+      }
+    }
+    TAU_FSTOP(muladd_csrmultd);
+  }
 #endif
 }
 
@@ -331,8 +361,8 @@ namespace CTF {
            int           k,
            float         alpha,
            float const * A,
-           int const *   IA,
            int const *   JA,
+           int const *   IA,
            int           nnz_A,
            float const * B,
            float         beta,
@@ -343,7 +373,7 @@ namespace CTF {
     
     CTF_BLAS::MKL_SCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
 #else
-    CTF_int::muladd_csrmm<float>(m,n,k,alpha,A,IA,JA,nnz_A,B,beta,C);
+    CTF_int::muladd_csrmm<float>(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
 #endif
   }
 
@@ -354,8 +384,8 @@ namespace CTF {
            int            k,
            double         alpha,
            double const * A,
-           int const *    IA,
            int const *    JA,
+           int const *    IA,
            int            nnz_A,
            double const * B,
            double         beta,
@@ -367,7 +397,7 @@ namespace CTF {
     CTF_BLAS::MKL_DCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
     TAU_FSTOP(MKL_DCSRMM);
 #else
-    CTF_int::muladd_csrmm<double>(m,n,k,alpha,A,IA,JA,nnz_A,B,beta,C);
+    CTF_int::muladd_csrmm<double>(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
 #endif
   }
 
@@ -379,8 +409,8 @@ namespace CTF {
            int                         k,
            std::complex<float>         alpha,
            std::complex<float> const * A,
-           int const *                 IA,
            int const *                 JA,
+           int const *                 IA,
            int                         nnz_A,
            std::complex<float> const * B,
            std::complex<float>         beta,
@@ -391,7 +421,7 @@ namespace CTF {
     
     CTF_BLAS::MKL_CCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
 #else
-    CTF_int::muladd_csrmm< std::complex<float> >(m,n,k,alpha,A,IA,JA,nnz_A,B,beta,C);
+    CTF_int::muladd_csrmm< std::complex<float> >(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
 #endif
   }
 
@@ -402,8 +432,8 @@ namespace CTF {
            int                          k,
            std::complex<double>         alpha,
            std::complex<double> const * A,
-           int const *                  IA,
            int const *                  JA,
+           int const *                  IA,
            int                          nnz_A,
            std::complex<double> const * B,
            std::complex<double>         beta,
@@ -413,7 +443,7 @@ namespace CTF {
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
 #else
-    CTF_int::muladd_csrmm< std::complex<double> >(m,n,k,alpha,A,IA,JA,nnz_A,B,beta,C);
+    CTF_int::muladd_csrmm< std::complex<double> >(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
 #endif
   }
 
@@ -423,15 +453,24 @@ namespace CTF {
                   int            n,
                   int            k,
                   double const * A,
-                  int const *    IA,
                   int const *    JA,
+                  int const *    IA,
                   int            nnz_A,
                   double const * B,
-                  int const *    IB,
                   int const *    JB,
+                  int const *    IB,
                   int            nnz_B,
                   double *       C) const {
-    assert(0);
+#if USE_SP_MKL
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    TAU_FSTART(MKL_DCSRMULTD);
+    CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &n, &k, A, JA, IA, B, JB, IB, C, &m);
+    TAU_FSTOP(MKL_DCSRMULTD);
+#else
+    CTF_int::muladd_csrmultd<double>(m,n,k,A,JA,IA,nnz_A,B,JB,IB,nnz_B,C);
+#endif
+
   }
 
 /*  template<> 

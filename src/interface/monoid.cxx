@@ -25,7 +25,7 @@ namespace CTF {
   }*/
 
   template <>
-  char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB){
+  char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB) const {
     if (fadd != default_add<double>){
       printf("CTF error: support for CSR addition for this type unavailable\n");
       assert(0);

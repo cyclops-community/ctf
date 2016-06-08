@@ -469,8 +469,8 @@ namespace CTF {
                       int           k,
                       dtype         alpha,
                       dtype const * A,
-                      int const *   IA,
                       int const *   JA,
+                      int const *   IA,
                       int           nnz_A,
                       dtype const * B,
                       dtype         beta,
@@ -506,8 +506,8 @@ namespace CTF {
                  int          k,
                  char const * alpha,
                  char const * A,
-                 int const *  IA,
                  int const *  JA,
+                 int const *  IA,
                  int64_t      nnz_A,
                  char const * B,
                  char const * beta,
@@ -515,7 +515,7 @@ namespace CTF {
                  CTF_int::bivar_function const * func) const {
         assert(!this->has_coo_ker);
         assert(func == NULL);
-        this->default_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,IA,JA,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
+        this->default_csrmm(m,n,k,((dtype*)alpha)[0],(dtype*)A,JA,IA,nnz_A,(dtype*)B,((dtype*)beta)[0],(dtype*)C);
       }
 
       void default_csrmultd
@@ -523,8 +523,8 @@ namespace CTF {
                       int           n,
                       int           k,
                       dtype const * A,
-                      int const *   IA,
                       int const *   JA,
+                      int const *   IA,
                       int           nnz_A,
                       dtype const * B,
                       int const *   IB,
@@ -539,7 +539,7 @@ namespace CTF {
             int row_B = JA[i_A]-1; //=col_A
             for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
               int col_B = JB[i_B]-1;
-              this->fadd(C[col_B*m+row_A], this->fmul(A[i_A],B[j_B]));
+              this->fadd(C[col_B*m+row_A], this->fmul(A[i_A],B[i_B]));
             }
           }
         }
@@ -560,6 +560,14 @@ namespace CTF {
   void CTF::Semiring<std::complex<double>,0>::default_csrmm(int,int,int,std::complex<double>,std::complex<double> const *,int const *,int const *,int,std::complex<double> const *,std::complex<double>,std::complex<double> *) const;
 
 
+//  template <>
+//  void CTF::Semiring<float,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const 
+  template <>
+  void CTF::Semiring<double,1>::default_csrmultd(int,int,int,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double *) const;
+/*  template <>
+  void CTF::Semiring<std::complex<float>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const 
+  template <>
+  void CTF::Semiring<std::complex<double>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const */
 
   template<> 
   bool CTF::Semiring<double,1>::is_offloadable() const;

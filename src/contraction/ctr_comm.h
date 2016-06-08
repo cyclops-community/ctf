@@ -93,8 +93,8 @@ namespace CTF_int{
                         int          n,
                         int          k,
                         char const * a,
-                        int const *  ia,
                         int const *  ja,
+                        int const *  ia,
                         int64_t      nnz_a,
                         char const * b,
                         char *       c) const { int *r = NULL; r[0] = 23; assert(0); }

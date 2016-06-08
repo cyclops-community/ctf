@@ -582,7 +582,7 @@ namespace CTF_int {
     ASSERT(0);
   }
 
-  void algstrct::csrmm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
+  void algstrct::csrmm(int m, int n, int k, char const * alpha, char const * A, int const * JA, int const * IA, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
     printf("CTF ERROR: csrmm not present for this algebraic structure\n");
     ASSERT(0);
   }

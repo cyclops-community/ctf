@@ -135,12 +135,12 @@ namespace CTF_int {
       if (func != NULL && func->has_gemm){
         assert(sr_C->isequal(beta, sr_C->mulid()));
         assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
-        func->ccsrmm(m,n,k,vs,rs,cs,nz,B,C);
+        func->ccsrmm(m,n,k,vs,cs,rs,nz,B,C);
       } else {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
         assert(!do_offload);
-        sr_A->csrmm(m,n,k,alpha,vs,rs,cs,nz,B,beta,C,func);
+        sr_A->csrmm(m,n,k,alpha,vs,cs,rs,nz,B,beta,C,func);
       }
     }
   }

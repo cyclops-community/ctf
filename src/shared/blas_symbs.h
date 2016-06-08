@@ -35,7 +35,10 @@
 #define MKL_DCSRADD mkl_dcsradd_
 #define MKL_CCSRADD mkl_ccsradd_
 #define MKL_ZCSRADD mkl_zcsradd_
-
+#define MKL_SCSRMULTD mkl_scsrmultd_
+#define MKL_DCSRMULTD mkl_dcsrmultd_
+#define MKL_CCSRMULTD mkl_ccsrmultd_
+#define MKL_ZCSRMULTD mkl_zcsrmultd_
 #else
 #define DDOT ddot
 #define SGEMM sgemm
@@ -69,6 +72,10 @@
 #define MKL_DCSRADD mkl_dcsradd
 #define MKL_CCSRADD mkl_ccsradd
 #define MKL_ZCSRADD mkl_zcsradd
+#define MKL_SCSRMULTD mkl_scsrmultd
+#define MKL_DCSRMULTD mkl_dcsrmultd
+#define MKL_CCSRMULTD mkl_ccsrmultd
+#define MKL_ZCSRMULTD mkl_zcsrmultd
 #endif
 
 
@@ -354,6 +361,19 @@ namespace CTF_BLAS {
 
   extern "C"
   void MKL_ZCSRMM(const char *transa , const int *m , const int *n , const int *k , const std::complex<double> *alpha , const char *matdescra , const std::complex<double> *val , const int *indx , const int *pntrb , const int *pntre , const std::complex<double> *b , const int *ldb , const std::complex<double> *beta , std::complex<double> *c , const int *ldc );
+
+  extern "C"
+  void MKL_SCSRMULTD(const char *transa , const int *m , const int *n , const int *k, const float *a , const int *ja , const int *ia , const float *b , const int *jb , const int *ib , float *c , const int *ldc );
+
+  extern "C"
+  void MKL_DCSRMULTD(const char *transa , const int *m , const int *n , const int *k, const double *a , const int *ja , const int *ia , const double *b , const int *jb , const int *ib , double *c , const int *ldc );
+
+
+  extern "C"
+  void MKL_CCSRMULTD(const char *transa , const int *m , const int *n , const int *k, const std::complex<float> *a , const int *ja , const int *ia , const std::complex<float> *b , const int *jb , const int *ib , std::complex<float> *c , const int *ldc );
+
+  extern "C"
+  void MKL_ZCSRMULTD(const char *transa , const int *m , const int *n , const int *k, const std::complex<double> *a , const int *ja , const int *ia , const std::complex<double> *b , const int *jb , const int *ib , std::complex<double> *c , const int *ldc );
 
 
   extern "C"

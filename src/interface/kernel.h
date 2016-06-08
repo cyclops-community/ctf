@@ -37,8 +37,8 @@ namespace CTF{
                    int             n,
                    int             k,
                    dtype_A const * A,
-                   int const *     IA,
                    int const *     JA,
+                   int const *     IA,
                    dtype_B const * B,
                    dtype_C *       C){
     int bidx = blockIdx.x;
@@ -75,7 +75,7 @@ namespace CTF{
     offset += (m+1)*sizeof(int);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     int const * JA = (int*)(all_data + offset);
-    cuda_csrmmf<dtype_A,dtype_B,dtype_C,f,g>(m,n,k,A,IA,JA,B,C);
+    cuda_csrmmf<dtype_A,dtype_B,dtype_C,f,g>(m,n,k,A,JA,IA,B,C);
   }
 
   #undef ALIGN
@@ -209,8 +209,8 @@ namespace CTF{
                int             n,
                int             k,
                dtype_A const * A,
-               int const *     IA,
                int const *     JA,
+               int const *     IA,
                int64_t         nnz_A,
                dtype_B const * B,
                dtype_C *       C) const {
@@ -236,12 +236,12 @@ namespace CTF{
                 int          n,
                 int          k,
                 char const * A,
-                int const *  IA,
                 int const *  JA,
+                int const *  IA,
                 int64_t      nnz_A,
                 char const * B,
                 char *       C) const {
-      csrmm(m,n,k,(dtype_A const *)A,IA,JA,nnz_A,(dtype_B const *)B, (dtype_C *)C);
+      csrmm(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B, (dtype_C *)C);
     }
 
 
@@ -298,12 +298,12 @@ namespace CTF{
                         int          n,
                         int          k,
                         char const * A,
-                        int const *  IA,
                         int const *  JA,
+                        int const *  IA,
                         int64_t      nnz_A,
                         char const * B,
                         char *       C) const {
-      offload_csrmm(m, n, k, (dtype_A const *)A, IA, JA, nnz_A, (dtype_B const *)B, (dtype_C*)C);
+      offload_csrmm(m, n, k, (dtype_A const *)A, JA, IA, nnz_A, (dtype_B const *)B, (dtype_C*)C);
     }*/
 
     void coffload_csrmm(int          m,
@@ -324,7 +324,7 @@ namespace CTF{
 #else
       assert(0);
 #endif
-//      offload_csrmm(m, n, k, (dtype_A const *)A, IA, JA, nnz_A, (dtype_B const *)B, (dtype_C*)C);
+//      offload_csrmm(m, n, k, (dtype_A const *)A, JA, IA, nnz_A, (dtype_B const *)B, (dtype_C*)C);
     }
 
 
