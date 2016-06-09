@@ -70,8 +70,6 @@ namespace CTF_int {
     }
     memcpy(coo_vs, csr_vs, sizeof(dtype)*nz);
     memcpy(coo_cs, csr_ia, sizeof(int)*nz);
-    int ir=0;
-    int i=0;
     for (int i=0; i<nrow; i++){
       std::fill(coo_rs+csr_ja[i]-1, coo_rs+csr_ja[i+1]-1, i+1);
     }
