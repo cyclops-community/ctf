@@ -51,18 +51,18 @@ namespace CTF_int {
     ((int64_t*)all_data)[3] = ncol;
 
     char * csr_vs = vals();
-    int * csr_rs = rows();
-    int * csr_cs = cols();
+    int * csr_ja = JA();
+    int * csr_ia = IA();
 
     //memcpy(csr_vs, vs, nz*v_sz);
-    //memset(csr_rs
+    //memset(csr_ja
 
-    sr->coo_to_csr(nz, nrow, csr_vs, csr_cs, csr_rs, vs, coo_rs, coo_cs);
+    sr->coo_to_csr(nz, nrow, csr_vs, csr_ja, csr_ia, vs, coo_rs, coo_cs);
 /*    for (int i=0; i<nrow; i++){
-      printf("csr_rs[%d] = %d\n",i,csr_rs[i]);
+      printf("csr_ja[%d] = %d\n",i,csr_ja[i]);
     }
     for (int i=0; i<nz; i++){
-      printf("csr_cs[%d] = %d\n",i,csr_cs[i]);
+      printf("csr_ia[%d] = %d\n",i,csr_ia[i]);
     }*/
     
   }
@@ -94,7 +94,7 @@ namespace CTF_int {
     return all_data + offset;
   }
 
-  int * CSR_Matrix::rows() const {
+  int * CSR_Matrix::IA() const {
     int64_t n = this->nnz();
     int v_sz = this->val_size();
 
@@ -106,7 +106,7 @@ namespace CTF_int {
     return (int*)(all_data + offset);
   } 
 
-  int * CSR_Matrix::cols() const {
+  int * CSR_Matrix::JA() const {
     int64_t n = this->nnz();
     int64_t nr = this->nrow();
     int v_sz = this->val_size();
@@ -129,18 +129,18 @@ namespace CTF_int {
     } else {
       CSR_Matrix cA((char*)A);
       int64_t nz = cA.nnz(); 
-      int const * rs = cA.rows();
-      int const * cs = cA.cols();
+      int const * ja = cA.JA();
+      int const * ia = cA.IA();
       char const * vs = cA.vals();
       if (func != NULL && func->has_gemm){
         assert(sr_C->isequal(beta, sr_C->mulid()));
         assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
-        func->ccsrmm(m,n,k,vs,cs,rs,nz,B,C);
+        func->ccsrmm(m,n,k,vs,ja,ia,nz,B,C);
       } else {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
         assert(!do_offload);
-        sr_A->csrmm(m,n,k,alpha,vs,cs,rs,nz,B,beta,C,func);
+        sr_A->csrmm(m,n,k,alpha,vs,ja,ia,nz,B,beta,C,func);
       }
     }
   }
@@ -153,13 +153,13 @@ namespace CTF_int {
     } else {
       CSR_Matrix cA((char*)A);
       int64_t nzA = cA.nnz(); 
-      int const * rsA = cA.rows();
-      int const * csA = cA.cols();
+      int const * jA = cA.JA();
+      int const * iA = cA.IA();
       char const * vsA = cA.vals();
       CSR_Matrix cB((char*)B);
       int64_t nzB = cB.nnz(); 
-      int const * rsB = cB.rows();
-      int const * csB = cB.cols();
+      int const * jB = cB.JA();
+      int const * iB = cB.IA();
       char const * vsB = cB.vals();
       if (func != NULL && func->has_gemm){
         assert(0);
@@ -169,7 +169,7 @@ namespace CTF_int {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
         assert(!do_offload);
-        sr_A->csrmultd(m,n,k,alpha,vsA,csA,rsA,nzA,vsB,csB,rsB,nzB,beta,C);
+        sr_A->csrmultd(m,n,k,alpha,vsA,jA,iA,nzA,vsB,jB,iB,nzB,beta,C);
       }
     }
 
@@ -179,8 +179,8 @@ namespace CTF_int {
     int part_nnz[s], part_nrows[s];
     int m = nrow();
     char * org_vals = vals();
-    int * org_rows = rows();
-    int * org_cols = cols();
+    int * org_rows = JA();
+    int * org_cols = IA();
     for (int i=0; i<s; i++){
       part_nnz[i] = 0;
       part_nrows[i] = 0;
@@ -203,13 +203,13 @@ namespace CTF_int {
       ((int64_t*)part_data)[3] = ncol();
       parts[i] = CSR_Matrix(part_data);
       char * pvals = parts[i].vals();
-      int * prows = parts[i].rows();
-      int * pcols = parts[i].cols();
-      prows[0] = 1;
+      int * pja = parts[i].JA();
+      int * pia = parts[i].IA();
+      pja[0] = 1;
       for (int j=i; j<m; j+=s){
-        memcpy(pvals+(prows[j/s]-1)*val_size(), org_vals+(org_rows[j]-1)*val_size(), (org_rows[j+1]-org_rows[j])*val_size());
-        memcpy(pcols+(prows[j/s]-1)*sizeof(int), org_cols+(org_rows[j]-1)*sizeof(int), (org_rows[j+1]-org_rows[j])*sizeof(int));
-        prows[j/s+1] = prows[j/s]+org_rows[j+1]-org_rows[j];
+        memcpy(pvals+(pja[j/s]-1)*val_size(), org_vals+(org_rows[j]-1)*val_size(), (org_rows[j+1]-org_rows[j])*val_size());
+        memcpy(pia+(pja[j/s]-1)*sizeof(int), org_cols+(org_rows[j]-1)*sizeof(int), (org_rows[j+1]-org_rows[j])*sizeof(int));
+        pja[j/s+1] = pja[j/s]+org_rows[j+1]-org_rows[j];
       }
       part_data += get_csr_size(part_nnz[i], part_nrows[i], val_size());
     }
@@ -233,22 +233,22 @@ namespace CTF_int {
     ((int64_t*)all_data)[3] = tot_ncol;
     
     char * csr_vs = vals();
-    int * csr_rs = rows();
-    int * csr_cs = cols();
+    int * csr_ja = JA();
+    int * csr_ia = IA();
 
-    csr_rs[0] = 1;
+    csr_ja[0] = 1;
 
     for (int i=0; i<tot_nrow; i++){
       int ipart = i%s;
-      int const * prows = csrs[ipart]->rows();
+      int const * prows = csrs[ipart]->JA();
       int i_nnz = prows[i/s+1]-prows[i/s];
-      memcpy(csr_vs+(csr_rs[i]-1)*v_sz,
+      memcpy(csr_vs+(csr_ja[i]-1)*v_sz,
              csrs[ipart]->vals()+(prows[i/s]-1)*v_sz,
              i_nnz*v_sz);
-      memcpy(csr_cs+(csr_rs[i]-1)*sizeof(int),
-             csrs[ipart]->cols()+(prows[i/s]-1)*sizeof(int),
+      memcpy(csr_ia+(csr_ja[i]-1)*sizeof(int),
+             csrs[ipart]->IA()+(prows[i/s]-1)*sizeof(int),
              i_nnz*sizeof(int));
-      csr_rs[i+1] = csr_rs[i]+i_nnz;
+      csr_ja[i+1] = csr_ja[i]+i_nnz;
     }
     for (int i=0; i<s; i++){
       delete csrs[i];

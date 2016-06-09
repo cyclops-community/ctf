@@ -10,6 +10,8 @@ namespace CTF_int {
 
   //does conversion using MKL function if it is available
   bool try_mkl_coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs, int el_size);
+  
+  bool try_mkl_csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs, int el_size);
 
   template <typename dtype>  
   void seq_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_ja, int * csr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
@@ -59,27 +61,36 @@ namespace CTF_int {
       csr_ja[i] = coo_cs[csr_ja[i]];
     }
   }
+  template <typename dtype>  
+  void seq_csr_to_coo(int64_t nz, int nrow, dtype const * csr_vs, int const * csr_ja, int const * csr_ia, dtype * coo_vs, int * coo_rs, int * coo_cs){
+    int sz = sizeof(dtype);
+    if (sz == 4 || sz == 8 || sz == 16){
+      bool b = try_mkl_csr_to_coo(nz, nrow, (char const*)csr_vs, csr_ja, csr_ia, (char*)coo_vs, coo_rs, coo_cs, sz);
+      if (b) return;
+    }
+    memcpy(coo_vs, csr_vs, sizeof(dtype)*nz);
+    memcpy(coo_cs, csr_ia, sizeof(int)*nz);
+    int ir=0;
+    int i=0;
+    for (int i=0; i<nrow; i++){
+      std::fill(coo_rs+csr_ja[i]-1, coo_rs+csr_ja[i+1]-1, i+1);
+    }
+  }
 
   template <typename dtype>  
   void def_coo_to_csr(int64_t nz, int nrow, dtype * csr_vs, int * csr_ja, int * csr_ia, dtype const * coo_vs, int const * coo_rs, int const * coo_cs){
     seq_coo_to_csr<dtype>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
   }
- 
-  template <>  
-  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_ja, int * csr_ia, float const * coo_vs, int const * coo_rs, int const * coo_cs);
-  template <>  
-  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_ja, int * csr_ia, double const * coo_vs, int const * coo_rs, int const * coo_cs);
-  template <>  
-  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_ja, int * csr_ia, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs);
-  template <>  
-  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_ja, int * csr_ia, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs);
 
+  template <typename dtype>  
+  void def_csr_to_coo(int64_t nz, int nrow, dtype const * csr_vs, int const * csr_ja, int const * csr_ia, dtype * coo_vs, int * coo_rs, int * coo_cs){
+    seq_csr_to_coo<dtype>(nz, nrow, csr_vs, csr_ja, csr_ia, coo_vs, coo_rs, coo_cs);
+  }
 
   template <typename dtype>
   dtype default_addinv(dtype a){
     return -a;
   }
-
  
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<is_ord, dtype>::type
@@ -300,6 +311,11 @@ namespace CTF {
       void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
         CTF_int::def_coo_to_csr(nz, nrow, (dtype *)csr_vs, csr_ja, csr_ia, (dtype const *) coo_vs, coo_rs, coo_cs);
       }
+
+      void csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const {
+        CTF_int::def_csr_to_coo(nz, nrow, (dtype const *)csr_vs, csr_ja, csr_ia, (dtype*) coo_vs, coo_rs, coo_cs);
+      }
+
 
   };
 

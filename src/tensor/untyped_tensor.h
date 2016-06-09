@@ -663,6 +663,16 @@ namespace CTF_int {
        * \param[in] csr whether to do csr (1) or coo (0) layout
        */
       void spmatricize(int m, int n, int nrow_idx, bool csr);
+
+      /**
+       * \brief transposes back local data from sparse matrix format to key-value pair format
+       * \param[in] m number of rows in matrix
+       * \param[in] n number of columns in matrix
+       * \param[in] nrow_idx number of indices to fold into column
+       * \param[in] csr whether to go from csr (1) or coo (0) layout
+       */
+      void despmatricize(int m, int n, int nrow_idx, bool csr);
+
   };
 }
 

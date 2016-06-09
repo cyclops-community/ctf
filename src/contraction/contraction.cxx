@@ -3550,6 +3550,15 @@ namespace CTF_int {
       std::fill(spvirt_blk_len_B, spvirt_blk_len_B+B->order, 1);
     } else 
       memcpy(spvirt_blk_len_B, virt_blk_len_B, sizeof(int)*B->order);
+    int spvirt_blk_len_C[C->order];
+    if (C->is_sparse){
+      blk_sz_C = C->calc_nvirt();
+      for (int a=0; a<C->order; a++){
+        blk_len_C[a] = C->edge_map[a].calc_phase()/C->edge_map[a].calc_phys_phase();
+      }
+      std::fill(spvirt_blk_len_C, spvirt_blk_len_C+C->order, 1);
+    } else 
+      memcpy(spvirt_blk_len_C, virt_blk_len_C, sizeof(int)*C->order);
 
     for (i=0; i<num_tot; i++){
       virt_dim[i] = 1;
@@ -3600,7 +3609,7 @@ namespace CTF_int {
                                       ctr_gen->move_C,
                                       blk_len_C,
                                       blk_sz_C,
-                                      virt_blk_len_C,
+                                      spvirt_blk_len_C,
                                       download_phase_C);
         }
         if (i_B == -1){
@@ -3628,7 +3637,7 @@ namespace CTF_int {
                                       ctr_gen->move_C,
                                       blk_len_C,
                                       blk_sz_C,
-                                      virt_blk_len_C,
+                                      spvirt_blk_len_C,
                                       download_phase_C,
                                       A,
                                       i_A,
@@ -3656,7 +3665,7 @@ namespace CTF_int {
                                       ctr_gen->move_C,
                                       blk_len_C,
                                       blk_sz_C,
-                                      virt_blk_len_C,
+                                      spvirt_blk_len_C,
                                       download_phase_C,
                                       A,
                                       i_A,

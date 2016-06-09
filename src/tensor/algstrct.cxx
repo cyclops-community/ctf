@@ -300,6 +300,11 @@ namespace CTF_int {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
   }
+      
+  void algstrct::csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const {
+    printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
+    ASSERT(0);
+  }
 
 
 //  void algstrct::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic){
@@ -324,7 +329,7 @@ namespace CTF_int {
     CSR_Matrix A(cA);
     char * parts_buffer; 
     CSR_Matrix * parts = A.partition(s, &parts_buffer);
-    MPI_Request reqs[2*(s-1)];
+    //MPI_Request reqs[2*(s-1)];
     int rcv_szs[s-1];
     int snd_szs[s-1];
     for (int i=0; i<s; i++){

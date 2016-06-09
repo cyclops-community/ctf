@@ -2477,5 +2477,67 @@ namespace CTF_int {
     }*/
 #endif
   }
+
+  void tensor::despmatricize(int m, int n, int nrow_idx, bool csr){
+    ASSERT(is_sparse);
+
+#ifdef PROFILE
+    MPI_Barrier(this->wrld->comm);
+    TAU_FSTART(sparse_transpose);
+//        double t_st = MPI_Wtime();
+#endif
+    int64_t offset_A = 0;
+    int64_t new_sz_A = 0;
+    this->rec_tsr->is_sparse = 1;
+    int nvirt_A = calc_nvirt();
+    for (int i=0; i<nvirt_A; i++){
+      if (csr){
+        CSR_Matrix cA(this->rec_tsr->data+offset_A);
+        new_sz_A += cA.nnz()*sr->pair_size();
+      } else {
+        COO_Matrix cA(this->rec_tsr->data+offset_A);
+        new_sz_A += cA.nnz()*sr->pair_size();
+      }
+      offset_A += this->rec_tsr->nnz_blk[i];
+    }
+    this->data = (char*)alloc(new_sz_A);
+    int phase[this->order];
+    int phase_rank[this->order];
+    for (int i=0; i<this->order; i++){
+      phase[i] = this->edge_map[i].calc_phase();
+      phase_rank[i] = this->edge_map[i].calc_phys_rank(this->topo)*phase[i];
+    }
+    char * data_ptr_out = this->data;
+    char const * data_ptr_in = this->rec_tsr->data;
+    for (int i=0; i<nvirt_A; i++){
+      if (csr){
+        CSR_Matrix cs((char*)data_ptr_in);
+        COO_Matrix cm(cs, this->sr);
+        cm.get_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+        cdealloc(cm.all_data);
+      } else {
+        COO_Matrix cm((char*)data_ptr_in);
+        cm.get_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+      }
+      data_ptr_out += this->nnz_blk[i]*this->sr->pair_size();
+      data_ptr_in += this->rec_tsr->nnz_blk[i];
+      if (i<nvirt_A-1){
+        int j=0;
+        bool cont = true;
+        while (cont){
+          phase_rank[j]++;
+          if (phase_rank[j]%phase[j] == 0) phase_rank[j]-=phase[j];
+          else cont = false;
+          j++;
+        }
+      }
+    } 
+#ifdef PROFILE
+//        double t_end = MPI_Wtime();
+    MPI_Barrier(this->wrld->comm);
+    TAU_FSTOP(sparse_transpose);
+#endif
+  }
+
 }
 

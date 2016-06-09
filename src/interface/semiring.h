@@ -533,7 +533,7 @@ namespace CTF {
                       int           nnz_B,
                       dtype         beta,
                       dtype *       C) const {
-        if (beta != tmulid){
+        if (!this->isequal((char const*)&beta, this->mulid())){
           this->scal(m*n, (char const *)&beta, (char*)C, 1);
         }
 #ifdef _OPENMP
@@ -544,7 +544,7 @@ namespace CTF {
             int row_B = JA[i_A]-1; //=col_A
             for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
               int col_B = JB[i_B]-1;
-              if (alpha != tmulid)
+              if (!this->isequal((char const*)&alpha, this->mulid()))
                 this->fadd(C[col_B*m+row_A], this->fmul(alpha,this->fmul(A[i_A],B[i_B])));
               else
                 this->fadd(C[col_B*m+row_A], this->fmul(A[i_A],B[i_B]));

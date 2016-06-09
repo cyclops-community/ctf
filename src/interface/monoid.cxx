@@ -41,12 +41,12 @@ namespace CTF {
     int sort = 1;
     double mlid = 1.0;
     int info;
-    CTF_BLAS::MKL_DCSRADD(&tA, &job, &sort, &m, &n, (double*)A.vals(), A.cols(), A.rows(), &mlid, (double*)B.vals(), B.cols(), B.rows(), NULL, NULL, ic, NULL, &info);
+    CTF_BLAS::MKL_DCSRADD(&tA, &job, &sort, &m, &n, (double*)A.vals(), A.JA(), A.IA(), &mlid, (double*)B.vals(), B.JA(), B.IA(), NULL, NULL, ic, NULL, &info);
     CSR_Matrix C(ic[m], m, n, this);
-    memcpy(C.rows(), ic, sizeof(int)*(m+1));
+    memcpy(C.IA(), ic, sizeof(int)*(m+1));
     cdealloc(ic);
     job = 2;
-    CTF_BLAS::MKL_DCSRADD(&tA, &job, &sort, &m, &n, (double*)A.vals(), A.cols(), A.rows(), &mlid, (double*)B.vals(), B.cols(), B.rows(), (double*)C.vals(), C.cols(), C.rows(), NULL, &info);
+    CTF_BLAS::MKL_DCSRADD(&tA, &job, &sort, &m, &n, (double*)A.vals(), A.JA(), A.IA(), &mlid, (double*)B.vals(), B.JA(), B.IA(), (double*)C.vals(), C.JA(), C.IA(), NULL, &info);
     return C.all_data;
   }
 

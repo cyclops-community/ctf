@@ -54,12 +54,10 @@ namespace CTF_int {
       char * vals() const;
 
       /** \brief retrieves prefix sum of number of nonzeros for each row (of size nrow()+1) out of all_data */
-      int * rows() const;
+      int * IA() const;
 
       /** \brief retrieves column indices of each value in vals stored in sorted form by row */
-      int * cols() const;
-
-//      void set_data(int64_t nz, int order, int const * lens, int const * ordering, int nrow_idx, char const * tsr_data, algstrct const * sr, int const * phase);
+      int * JA() const;
 
       /**
        * \brief splits CSR matrix into s submatrices (returned) corresponding to subsets of rows, all parts allocated in one contiguous buffer (passed back in parts_buffer)

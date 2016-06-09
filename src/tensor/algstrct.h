@@ -214,6 +214,9 @@ namespace CTF_int {
 
       /** \brief converts coordinate sparse matrix layout to CSR layout */
       virtual void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const;
+      
+      /** \brief converts CSR sparse matrix layout to coordinate (COO) layout */
+      virtual void csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const;
 
       /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
       virtual char * csr_add(char * cA, char * cB) const;
