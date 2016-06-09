@@ -2422,7 +2422,7 @@ namespace CTF_int {
     ASSERT(is_sparse);
 
 #ifdef PROFILE
-    MPI_Barrier(A->wrld->comm);
+    MPI_Barrier(this->wrld->comm);
     TAU_FSTART(sparse_transpose);
 //        double t_st = MPI_Wtime();
 #endif
