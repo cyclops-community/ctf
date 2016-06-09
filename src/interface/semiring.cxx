@@ -452,6 +452,7 @@ namespace CTF {
                  (int            m,
                   int            n,
                   int            k,
+                  double         alpha,
                   double const * A,
                   int const *    JA,
                   int const *    IA,
@@ -460,20 +461,43 @@ namespace CTF {
                   int const *    JB,
                   int const *    IB,
                   int            nnz_B,
+                  double         beta,
                   double *       C) const {
+    TAU_FSTART(csrmultd);
+    if (alpha == 0.0){
+      if (beta != 1.0)
+        CTF_int::default_scal<double>(m*n, beta, C, 1);
+      return;
+    }
 #if USE_SP_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
-    //FIXME: yell at Intel for not accumulating and switching n with k
-    double * tmp_C_buf = (double*)malloc(sizeof(double)*m*n);
-    TAU_FSTART(MKL_DCSRMULTD);
-    CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m);
-    TAU_FSTOP(MKL_DCSRMULTD);
-    CTF_int::default_axpy<double>(m*n, 1.0, tmp_C_buf, 1, C, 1);
-    free(tmp_C_buf);
+    if (beta == 0.0){
+      TAU_FSTART(MKL_DCSRMULTD);
+      CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, C, &m);
+      TAU_FSTOP(MKL_DCSRMULTD);
+      if (alpha != 1.0)
+        CTF_int::default_scal<double>(m*n, alpha, C, 1);
+    } else {
+      double * tmp_C_buf = (double*)malloc(sizeof(double)*m*n);
+      TAU_FSTART(MKL_DCSRMULTD);
+      CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m);
+      TAU_FSTOP(MKL_DCSRMULTD);
+      if (beta != 1.0)
+        CTF_int::default_scal<double>(m*n, beta, C, 1);
+      CTF_int::default_axpy<double>(m*n, alpha, tmp_C_buf, 1, C, 1);
+      free(tmp_C_buf);
+    }
 #else
+    if (alpha != 1.0 || beta != 1.0){
+      CTF_int::default_scal<double>(m*n, beta/alpha, C, 1);
+    }
     CTF_int::muladd_csrmultd<double>(m,n,k,A,JA,IA,nnz_A,B,JB,IB,nnz_B,C);
+    if (alpha != 1.0){
+      CTF_int::default_scal<double>(m*n, alpha, C, 1);
+    }
 #endif
+    TAU_FSTOP(csrmultd);
 
   }
 

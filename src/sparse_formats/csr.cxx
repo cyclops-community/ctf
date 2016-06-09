@@ -169,7 +169,7 @@ namespace CTF_int {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
         assert(!do_offload);
-        sr_A->csrmultd(m,n,k,vsA,csA,rsA,nzA,vsB,csB,rsB,nzB,C);
+        sr_A->csrmultd(m,n,k,alpha,vsA,csA,rsA,nzA,vsB,csB,rsB,nzB,beta,C);
       }
     }
 

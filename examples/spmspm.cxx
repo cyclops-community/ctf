@@ -44,10 +44,8 @@ int spmspm(int     m,
   
   dC["ik"] += dnA["ij"]*dnB["jk"];
   
-  sC["ik"] += spA["ij"]*spB["jk"];
-//  sC["ik"] += 0.5*spA["ij"]*spB["jk"];
-//  sC["ik"] += 0.5*spB["jk"]*spA["ij"];
-//  dC.print();
+  sC["ik"] += .5*spA["ij"]*spB["jk"];
+  sC["ik"] += .5*spB["jk"]*spA["ij"];
 //  sC.print();
 
   bool pass = dC.norm2() >= 1E-6;
@@ -189,7 +187,7 @@ int main(int argc, char ** argv){
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Multiplying %d-by-%d sparse (%lf pct zeros) matrix by %d-by-%d sparse matrix (%lf pct zeros)\n",m,k,sp,k,n,sp);
+      printf("Multiplying %d-by-%d sparse (%lf pct zeros) matrix by %d-by-%d sparse matrix (%lf pct zeros)\n",m,k,100.*sp,k,n,100.*sp);
     }
     pass = spmspm(m, n, k, dw, sp, niter, bd);
     assert(pass);

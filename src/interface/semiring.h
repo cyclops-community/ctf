@@ -522,6 +522,7 @@ namespace CTF {
                      (int           m,
                       int           n,
                       int           k,
+                      dtype         alpha,
                       dtype const * A,
                       int const *   JA,
                       int const *   IA,
@@ -530,7 +531,11 @@ namespace CTF {
                       int const *   IB,
                       int const *   JB,
                       int           nnz_B,
+                      dtype         beta,
                       dtype *       C) const {
+        if (beta != tmulid){
+          this->scal(m*n, (char const *)&beta, (char*)C, 1);
+        }
 #ifdef _OPENMP
         #pragma omp parallel for
 #endif
@@ -539,7 +544,10 @@ namespace CTF {
             int row_B = JA[i_A]-1; //=col_A
             for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
               int col_B = JB[i_B]-1;
-              this->fadd(C[col_B*m+row_A], this->fmul(A[i_A],B[i_B]));
+              if (alpha != tmulid)
+                this->fadd(C[col_B*m+row_A], this->fmul(alpha,this->fmul(A[i_A],B[i_B])));
+              else
+                this->fadd(C[col_B*m+row_A], this->fmul(A[i_A],B[i_B]));
             }
           }
         }
@@ -549,6 +557,7 @@ namespace CTF {
                 (int          m,
                  int          n,
                  int          k,
+                 char const * alpha,
                  char const * A,
                  int const *  JA,
                  int const *  IA,
@@ -557,8 +566,9 @@ namespace CTF {
                  int const *  JB,
                  int const *  IB,
                  int64_t      nnz_B,
+                 char const * beta,
                  char *       C) const {
-        this->default_csrmultd(m,n,k,(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,(dtype*)C);
+        this->default_csrmultd(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],(dtype*)C);
       }
   };
   /**
@@ -578,7 +588,7 @@ namespace CTF {
 //  template <>
 //  void CTF::Semiring<float,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const 
   template <>
-  void CTF::Semiring<double,1>::default_csrmultd(int,int,int,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double *) const;
+  void CTF::Semiring<double,1>::default_csrmultd(int,int,int,double,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double,double *) const;
 /*  template <>
   void CTF::Semiring<std::complex<float>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const 
   template <>

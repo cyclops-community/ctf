@@ -196,6 +196,7 @@ namespace CTF_int {
                 (int          m,
                  int          n,
                  int          k,
+                 char const * alpha,
                  char const * A,
                  int const *  JA,
                  int const *  IA,
@@ -204,6 +205,7 @@ namespace CTF_int {
                  int const *  JB,
                  int const *  IB,
                  int64_t      nnz_B,
+                 char const * beta,
                  char *       C) const;
 
 
