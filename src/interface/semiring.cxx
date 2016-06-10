@@ -478,7 +478,7 @@ namespace CTF {
       C_CSR = C_ret;
     }
 #else
-    assert(0);
+    this->gen_csrmultcsr(m,n,k,alpha,A,JA,IA,nnz_A,B,JB,IB,nnz_B,beta,C_CSR);
 #endif
   }
 
