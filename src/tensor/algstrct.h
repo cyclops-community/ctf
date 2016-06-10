@@ -207,7 +207,21 @@ namespace CTF_int {
                  int64_t      nnz_B,
                  char const * beta,
                  char *       C) const;
-
+      virtual void csrmultcsr
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * alpha,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char const * beta,
+                 char *&      C_CSR) const;
 
       /** \brief returns true if algstrct elements a and b are equal */
       virtual bool isequal(char const * a, char const * b) const;

@@ -123,6 +123,10 @@ namespace CTF_int {
       bool profile;
       /** \brief whether only the non-zero elements of the tensor are stored */
       bool is_sparse;
+      /** \brief whether CSR or COO if folded */
+      bool is_csr;
+      /** \brief how many modes are folded into matricized row */
+      int nrow_idx;
       /** \brief number of local nonzero elements */
       int64_t nnz_loc;
       /** \brief maximum number of local nonzero elements over all procs*/
@@ -562,8 +566,9 @@ namespace CTF_int {
       /**
        * \brief undo the folding of a local tensor block
        *        unsets is_folded and deletes rec_tsr
+       * \param[in] was_mod true if data was modified, controls whether to discard sparse data
        */
-      void unfold();
+      void unfold(bool was_mod=0);
       
       /**
        * \brief removes folding without doing transpose
@@ -666,12 +671,10 @@ namespace CTF_int {
 
       /**
        * \brief transposes back local data from sparse matrix format to key-value pair format
-       * \param[in] m number of rows in matrix
-       * \param[in] n number of columns in matrix
        * \param[in] nrow_idx number of indices to fold into column
        * \param[in] csr whether to go from csr (1) or coo (0) layout
        */
-      void despmatricize(int m, int n, int nrow_idx, bool csr);
+      void despmatricize(int nrow_idx, bool csr);
 
   };
 }

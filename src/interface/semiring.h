@@ -553,6 +553,27 @@ namespace CTF {
         }
       }
 
+      void default_csrmultcsr
+                     (int           m,
+                      int           n,
+                      int           k,
+                      dtype         alpha,
+                      dtype const * A,
+                      int const *   JA,
+                      int const *   IA,
+                      int           nnz_A,
+                      dtype const * B,
+                      int const *   IB,
+                      int const *   JB,
+                      int           nnz_B,
+                      dtype         beta,
+                      char *&       C_CSR) const {
+        printf("FAILURE: kernel missing\n");
+        assert(0);
+
+      }
+
+
       void csrmultd
                 (int          m,
                  int          n,
@@ -570,6 +591,26 @@ namespace CTF {
                  char *       C) const {
         this->default_csrmultd(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],(dtype*)C);
       }
+
+
+      void csrmultcsr
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * alpha,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char const * beta,
+                 char *&      C_CSR) const {
+        this->default_csrmultcsr(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],C_CSR);
+      }
+
   };
   /**
    * @}
@@ -593,6 +634,10 @@ namespace CTF {
   void CTF::Semiring<std::complex<float>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const 
   template <>
   void CTF::Semiring<std::complex<double>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const */
+
+  template <>
+  void CTF::Semiring<double,1>::default_csrmultcsr(int,int,int,double,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double,char *&) const;
+
 
   template<> 
   bool CTF::Semiring<double,1>::is_offloadable() const;

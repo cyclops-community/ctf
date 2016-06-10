@@ -277,6 +277,7 @@ namespace CTF_int {
         break;
       case 2:
       case 3:
+      case 4:
         if (is_custom){
           if (inner_params.offload)
             return seq_tsr_spctr_cst_off_k2.est_time(ps);
@@ -381,6 +382,18 @@ namespace CTF_int {
         TAU_FSTOP(CSRMULTD);
       }
       break;
+
+      case 4:
+      {
+        // Do mm using CSR format for A and B and C
+        TAU_FSTART(CSRMULTCSR);
+        new_C = C;
+        CSR_Matrix::csrmultcsr(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                               alpha, B, sr_B, sr_C->mulid(), new_C, sr_C, func, inner_params.offload);
+        size_blk_C[0] = ((CSR_Matrix)new_C).nnz();
+        TAU_FSTOP(CSRMULTCSR);
+      }
+      break;
     }
     double nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
     for (int i=0; i<order_A; i++){
@@ -419,6 +432,7 @@ namespace CTF_int {
         break;
       case 2:
       case 3:
+      case 4:
         if (is_custom){
           if (inner_params.offload)
             seq_tsr_spctr_cst_off_k2.observe(tps);

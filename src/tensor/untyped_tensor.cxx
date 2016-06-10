@@ -297,6 +297,8 @@ namespace CTF_int {
     this->nnz_loc           = 0;
     this->nnz_tot           = 0;
     this->nnz_blk           = NULL;
+    this->is_csr            = false;
+    this->nrow_idx          = -1;
 //    this->nnz_loc_max       = 0;
     if (name_ != NULL){
       this->name = (char*)alloc(strlen(name_)+1);
@@ -1750,34 +1752,39 @@ namespace CTF_int {
 
   }
 
-  void tensor::unfold(){
+  void tensor::unfold(bool was_mod){
     int i, j, nvirt, allfold_dim;
     int * all_edge_len, * sub_edge_len;
     if (this->is_folded){
-      if (!is_sparse){
-        CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
-        CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
-        calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
-                 NULL, sub_edge_len, NULL);
-        allfold_dim = 0;
-        for (i=0; i<this->order; i++){
-          if (this->sym[i] == NS){
-            j=1;
-            while (i-j >= 0 && this->sym[i-j] != NS) j++;
-            all_edge_len[allfold_dim] = sy_packed_size(j, sub_edge_len+i-j+1,
-                                                       this->sym+i-j+1);
-            allfold_dim++;
-          }
+      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
+      CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&sub_edge_len);
+      calc_dim(this->order, this->size, this->pad_edge_len, this->edge_map,
+               NULL, sub_edge_len, NULL);
+      allfold_dim = 0;
+      for (i=0; i<this->order; i++){
+        if (this->sym[i] == NS){
+          j=1;
+          while (i-j >= 0 && this->sym[i-j] != NS) j++;
+          all_edge_len[allfold_dim] = sy_packed_size(j, sub_edge_len+i-j+1,
+                                                     this->sym+i-j+1);
+          allfold_dim++;
         }
-        nvirt = this->calc_nvirt();
+      }
+      nvirt = this->calc_nvirt();
+      if (!is_sparse){
         for (i=0; i<nvirt; i++){
           nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len, 
                                  this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
         }
-        CTF_int::cdealloc(all_edge_len);
-        CTF_int::cdealloc(sub_edge_len);
-        this->rec_tsr->is_data_aliased=1;
+      } else {
+        ASSERT(this->nrow_idx != -1);
+        if (was_mod)
+          despmatricize(this->nrow_idx, this->is_csr);
+        cdealloc(this->rec_tsr->data);
       }
+      CTF_int::cdealloc(all_edge_len);
+      CTF_int::cdealloc(sub_edge_len);
+      this->rec_tsr->is_data_aliased=1;
       delete this->rec_tsr;
       CTF_int::cdealloc(this->inner_ordering);
     }  
@@ -2458,6 +2465,8 @@ namespace CTF_int {
       data_ptr_in += this->nnz_blk[i]*this->sr->pair_size();
       data_ptr_out += this->rec_tsr->nnz_blk[i];
     }
+    this->is_csr = csr;
+    this->nrow_idx = nrow_idx;
 #ifdef PROFILE
 //        double t_end = MPI_Wtime();
     MPI_Barrier(this->wrld->comm);
@@ -2478,7 +2487,7 @@ namespace CTF_int {
 #endif
   }
 
-  void tensor::despmatricize(int m, int n, int nrow_idx, bool csr){
+  void tensor::despmatricize(int nrow_idx, bool csr){
     ASSERT(is_sparse);
 
 #ifdef PROFILE
@@ -2531,7 +2540,9 @@ namespace CTF_int {
           j++;
         }
       }
-    } 
+    }
+    this->rec_tsr->is_csr = csr;
+ 
 #ifdef PROFILE
 //        double t_end = MPI_Wtime();
     MPI_Barrier(this->wrld->comm);

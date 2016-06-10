@@ -427,6 +427,28 @@ namespace CTF {
 
   }
 
+
+  void CTF::Semiring<double,1>::default_csrmultcsr
+                     (int           m,
+                      int           n,
+                      int           k,
+                      double         alpha,
+                      double const * A,
+                      int const *   JA,
+                      int const *   IA,
+                      int           nnz_A,
+                      double const * B,
+                      int const *   IB,
+                      int const *   JB,
+                      int           nnz_B,
+                      double         beta,
+                      char *&       C_CSR) const {
+    printf("FAILURE: kernel missing\n");
+    assert(0);
+
+  }
+
+
 /*  template<> 
   bool CTF::Semiring<float,1>::is_offloadable() const {
     return fgemm == &CTF_int::default_gemm<float>;

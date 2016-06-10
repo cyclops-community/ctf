@@ -79,6 +79,12 @@ namespace CTF_int {
        */
       static void csrmultd(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
 
+      /**
+       * \brief computes C = beta*C + func(alpha*A*B) where A, B, and C are CSR_Matrices, while C is dense
+       */
+      static void csrmultcsr(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
+
+
 
   };
 }

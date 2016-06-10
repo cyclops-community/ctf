@@ -610,7 +610,26 @@ namespace CTF_int {
     printf("CTF ERROR: csrmultd not present for this algebraic structure\n");
     ASSERT(0);
   }
+ 
+  void algstrct::csrmultcsr
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * alpha,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char const * beta,
+                 char *&      C_CSR) const {
 
+    printf("CTF ERROR: csrmultcsr not present for this algebraic structure\n");
+    ASSERT(0);
+  }
       
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){
     sr=pi.sr; ptr=pi.ptr; 

@@ -4224,6 +4224,7 @@ namespace CTF_int {
     TAU_FSTOP(post_ctr_func_barrier);
   #endif
     TAU_FSTOP(ctr_func);
+    C->unfold(1);
   #ifndef SEQ
     if (C->is_cyclic)
       stat = C->zero_out_padding();
@@ -4580,6 +4581,25 @@ namespace CTF_int {
     A->unfold();
     B->unfold();
     C->unfold();
+
+    if (C->is_sparse){
+      if (C->sr->isequal(beta,C->sr->mulid())){
+        C->set_zero();
+      } else {
+        tensor * C_buf = new tensor(C, 0, 1);
+        C_buf->has_home = 0;
+        C_buf->is_home = 0;
+        contraction new_ctr(*this);
+        new_ctr.C = C_buf;
+        new_ctr.execute();
+        char idx[C->order];
+        for (int i=0; i<C->order; i++){ idx[i] = 'a'+i; }
+        summation s(C_buf, idx, C->sr->mulid(), C, idx, C->sr->mulid());
+        s.execute();
+        delete C_buf;
+        return SUCCESS;
+      }
+    }
     
     if (A->has_zero_edge_len || 
         B->has_zero_edge_len || 

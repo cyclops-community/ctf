@@ -175,6 +175,37 @@ namespace CTF_int {
 
   }
 
+  void CSR_Matrix::csrmultcsr(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
+    if (func != NULL && func->has_gemm && do_offload){
+      assert(0);
+      assert(sr_C->isequal(beta, sr_C->mulid()));
+      assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+    } else {
+      CSR_Matrix cA((char*)A);
+      int64_t nzA = cA.nnz(); 
+      int const * jA = cA.JA();
+      int const * iA = cA.IA();
+      char const * vsA = cA.vals();
+      CSR_Matrix cB((char*)B);
+      int64_t nzB = cB.nnz(); 
+      int const * jB = cB.JA();
+      int const * iB = cB.IA();
+      char const * vsB = cB.vals();
+      if (func != NULL && func->has_gemm){
+        assert(0);
+        assert(sr_C->isequal(beta, sr_C->mulid()));
+        assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+      } else {
+        ASSERT(sr_B->el_size == sr_A->el_size);
+        ASSERT(sr_C->el_size == sr_A->el_size);
+        assert(!do_offload);
+        sr_A->csrmultcsr(m,n,k,alpha,vsA,jA,iA,nzA,vsB,jB,iB,nzB,beta,C);
+      }
+    }
+
+
+  }
+
   CSR_Matrix * CSR_Matrix::partition(int s, char ** parts_buffer){
     int part_nnz[s], part_nrows[s];
     int m = nrow();
