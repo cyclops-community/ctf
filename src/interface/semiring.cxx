@@ -429,6 +429,7 @@ namespace CTF {
   }
 
 
+  template<>
   void CTF::Semiring<double,1>::default_csrmultcsr
                      (int            m,
                       int            n,

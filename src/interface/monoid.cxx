@@ -3,7 +3,6 @@
 #include "../shared/blas_symbs.h"
 using namespace CTF_int;
 namespace CTF {
-#if USE_SP_MKL
 /*  template <>
   void Monoid<float,1>::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic){
     if (fadd != default_add<float>){
@@ -26,6 +25,7 @@ namespace CTF {
 
   template <>
   char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB) const {
+#if USE_SP_MKL
     if (fadd != default_add<double>){
       printf("CTF error: support for CSR addition for this type unavailable\n");
       assert(0);
@@ -48,7 +48,9 @@ namespace CTF {
     job = 2;
     CTF_BLAS::MKL_DCSRADD(&tA, &job, &sort, &m, &n, (double*)A.vals(), A.JA(), A.IA(), &mlid, (double*)B.vals(), B.JA(), B.IA(), (double*)C.vals(), C.JA(), C.IA(), NULL, &info);
     return C.all_data;
+#else
+    return CTF_int::algstrct::csr_add(cA, cB);
+#endif
   }
 
-#endif
 }

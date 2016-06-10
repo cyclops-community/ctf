@@ -228,6 +228,7 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()> 
   class Semiring : public Monoid<dtype, is_ord> {
     public:
+      bool is_def;
       dtype tmulid;
       void (*fscal)(int,dtype,dtype*,int);
       void (*faxpy)(int,dtype,dtype const*,int,dtype*,int);
@@ -245,6 +246,7 @@ namespace CTF {
         this->fmul      = other.fmul;
         this->fgemm     = other.fgemm;
         this->fcoomm    = other.fcoomm;
+        this->is_def    = other.is_def;
       }
 
       virtual CTF_int::algstrct * clone() const {
@@ -280,6 +282,7 @@ namespace CTF {
         fcoomm    = coomm_;
         // if provided a coordinate MM kernel, don't use CSR
         this->has_coo_ker = (coomm_ != NULL);
+        is_def = false;
       }
 
       /**
@@ -292,6 +295,7 @@ namespace CTF {
         faxpy     = &CTF_int::default_axpy<dtype>;
         fscal     = &CTF_int::default_scal<dtype>;
         fcoomm    = &CTF_int::default_coomm<dtype>;
+        is_def = true;
       }
 
       void mul(char const * a, 
@@ -616,7 +620,7 @@ namespace CTF {
             for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
               int idx_B = IB[row_B]+k-1;
               dtype tmp = fmul(A[idx_A],B[idx_B]);
-              vC[(has_col[JB[idx_B]-1])] = fadd(vC[(has_col[JB[idx_B]-1])], tmp);
+              vC[(has_col[JB[idx_B]-1])] = this->fadd(vC[(has_col[JB[idx_B]-1])], tmp);
             }
           }
         }
@@ -693,8 +697,7 @@ namespace CTF {
                  char const * beta,
                  char *&      C_CSR) const {
 
-        if (this->fmul == &CTF_int::default_mul<dtype>
-         && this->fadd == &CTF_int::default_add<dtype>){
+        if (is_def){
           this->default_csrmultcsr(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],C_CSR);
         } else {
           this->gen_csrmultcsr(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],C_CSR);
@@ -725,8 +728,8 @@ namespace CTF {
   template <>
   void CTF::Semiring<std::complex<double>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const */
 
-//  template <>
-  //void CTF::Semiring<double,1>::default_csrmultcsr(int,int,int,double,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double,char *&) const;
+  template <>
+  void CTF::Semiring<double,1>::default_csrmultcsr(int,int,int,double,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double,char *&) const;
 
 
   template<> 
