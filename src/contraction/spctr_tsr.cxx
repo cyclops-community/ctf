@@ -304,7 +304,6 @@ namespace CTF_int {
                           char * C, int nblk_C, int64_t * size_blk_C,
                           char *& new_C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
-    ASSERT(!is_sparse_C);
     ASSERT(nblk_A == 1);
 
     double st_time = MPI_Wtime();
@@ -390,7 +389,8 @@ namespace CTF_int {
         new_C = C;
         CSR_Matrix::csrmultcsr(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
                                alpha, B, sr_B, sr_C->mulid(), new_C, sr_C, func, inner_params.offload);
-        size_blk_C[0] = ((CSR_Matrix)new_C).nnz();
+        size_blk_C[0] = ((CSR_Matrix)new_C).size();
+        //printf("new size = %ld nnz = %ld\n",size_blk_C[0],((CSR_Matrix)new_C).nnz());
         TAU_FSTOP(CSRMULTCSR);
       }
       break;

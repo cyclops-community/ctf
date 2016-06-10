@@ -468,6 +468,8 @@ namespace CTF_int {
         cdealloc(this->data);
         this->data = NULL;
         this->size = 0;
+        memset(this->nnz_blk, 0, sizeof(int64_t)*calc_nvirt());
+        this->set_new_nnz_glb(this->nnz_blk); 
       } else {
         sr->set(this->data, sr->addid(), this->size);
       }
@@ -2423,6 +2425,7 @@ namespace CTF_int {
       nnz_loc += nnz_blk[i];
     }
     wrld->cdt.allred(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM);
+//    printf("New nnz loc = %ld tot = %ld\n", nnz_loc, nnz_tot);
   }
 
   void tensor::spmatricize(int m, int n, int nrow_idx, bool csr){
@@ -2522,11 +2525,13 @@ namespace CTF_int {
       if (csr){
         CSR_Matrix cs((char*)data_ptr_in);
         COO_Matrix cm(cs, this->sr);
-        cm.get_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+        cm.get_data(cs.nnz(), this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+        this->nnz_blk[i] = cm.nnz();
         cdealloc(cm.all_data);
       } else {
         COO_Matrix cm((char*)data_ptr_in);
-        cm.get_data(this->nnz_blk[i], this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+        cm.get_data(cm.nnz(), this->order, this->lens, this->inner_ordering, nrow_idx, data_ptr_out, this->sr, phase, phase_rank);
+        this->nnz_blk[i] = cm.nnz();
       }
       data_ptr_out += this->nnz_blk[i]*this->sr->pair_size();
       data_ptr_in += this->rec_tsr->nnz_blk[i];
@@ -2541,6 +2546,7 @@ namespace CTF_int {
         }
       }
     }
+    set_new_nnz_glb(this->nnz_blk);
     this->rec_tsr->is_csr = csr;
  
 #ifdef PROFILE

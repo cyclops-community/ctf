@@ -4582,8 +4582,8 @@ namespace CTF_int {
     B->unfold();
     C->unfold();
 
-    if (C->is_sparse){
-      if (C->sr->isequal(beta,C->sr->mulid())){
+    if (C->is_sparse && C->nnz_tot > 1){
+      if (C->sr->isequal(beta,C->sr->addid())){
         C->set_zero();
       } else {
         tensor * C_buf = new tensor(C, 0, 1);

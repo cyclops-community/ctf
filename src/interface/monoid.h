@@ -130,6 +130,9 @@ namespace CTF {
       }
 
   };
+  template <>
+  char * Monoid<double,1>::csr_add(char *, char *) const;
+  
   /**
    * @}
    */

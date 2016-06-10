@@ -528,8 +528,8 @@ namespace CTF {
                       int const *   IA,
                       int           nnz_A,
                       dtype const * B,
-                      int const *   IB,
                       int const *   JB,
+                      int const *   IB,
                       int           nnz_B,
                       dtype         beta,
                       dtype *       C) const {
@@ -563,8 +563,8 @@ namespace CTF {
                       int const *   IA,
                       int           nnz_A,
                       dtype const * B,
-                      int const *   IB,
                       int const *   JB,
+                      int const *   IB,
                       int           nnz_B,
                       dtype         beta,
                       char *&       C_CSR) const {

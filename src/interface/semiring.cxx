@@ -439,8 +439,8 @@ namespace CTF {
                       int const *    IA,
                       int            nnz_A,
                       double const * B,
-                      int const *    IB,
                       int const *    JB,
+                      int const *    IB,
                       int            nnz_B,
                       double         beta,
                       char *&        C_CSR) const {
@@ -455,7 +455,7 @@ namespace CTF {
     int info;
     CTF_BLAS::MKL_DCSRMULTCSR(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info);
 
-    CSR_Matrix C_add(new_ic[m], m, n, C_in.val_size());
+    CSR_Matrix C_add(new_ic[m]-1, m, n, C_in.val_size());
     memcpy(C_add.IA(), new_ic, (m+1)*sizeof(int));
     cdealloc(new_ic);
     req = 2;

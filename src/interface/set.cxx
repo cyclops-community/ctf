@@ -25,8 +25,16 @@ namespace CTF_int {
       TAU_FSTOP(MKL_DCOOCSR);
     } else {
       TAU_FSTART(MKL_DCSRCOO);
-      int job[8]={0,1,1,0,inz,2,0,0};
+      int job[8]={0,1,1,0,inz,3,0,0};
       CTF_BLAS::MKL_DCSRCOO(job, &nrow, csr_vs, csr_ja, csr_ia, &inz, (double*)coo_vs, coo_rs, coo_cs, &info);
+      /*printf("converted %d nonzers to coo\n", inz);
+      for (int i=0; i<inz; i++){
+        printf("i=%d\n",i);
+        printf("vs[i] = %lf\n",coo_vs[i]);
+        printf("rs[i] = %d\n",coo_rs[i]);
+        printf("cs[i] = %d\n",coo_cs[i]);
+      }*/
+      ASSERT(inz == nz);
       TAU_FSTOP(MKL_DCSRCOO);
     }
   }
