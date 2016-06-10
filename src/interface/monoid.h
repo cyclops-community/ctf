@@ -124,14 +124,12 @@ namespace CTF {
 
       /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
       char * csr_add(char * cA, char * cB) const {
-        printf("CTF error: support for CSR addition for this type unavailable\n");
-        assert(0);
-        return NULL;
+        return CTF_int::algstrct::csr_add(cA, cB);
       }
 
   };
   template <>
-  char * Monoid<double,1>::csr_add(char *, char *) const;
+ char * Monoid<double,1>::csr_add(char *, char *) const;
   
   /**
    * @}

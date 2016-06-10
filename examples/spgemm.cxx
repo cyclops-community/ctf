@@ -41,8 +41,9 @@ int spgemm(int     m,
   
   dnC["ik"] += dnA["ij"]*dnB["jk"];
   
-  spC["ik"] += .5*spA["ij"]*spB["jk"];
-  spC["ik"] += .5*spB["jk"]*spA["ij"];
+  spC["ik"] += spA["ij"]*spB["jk"];
+//  spC["ik"] += .5*spA["ij"]*spB["jk"];
+//  spC["ik"] += .5*spB["jk"]*spA["ij"];
 /*  spA.print();
   spB.print();
   dnC.print();

@@ -2,6 +2,8 @@
 #define __SEMIRING_H__
 
 #include "functions.h"
+#include "../sparse_formats/csr.h"
+
 
 namespace CTF_int {
 
@@ -553,6 +555,90 @@ namespace CTF {
         }
       }
 
+      void gen_csrmultcsr
+                     (int           m,
+                      int           n,
+                      int           k,
+                      dtype         alpha,
+                      dtype const * A,
+                      int const *   JA,
+                      int const *   IA,
+                      int           nnz_A,
+                      dtype const * B,
+                      int const *   JB,
+                      int const *   IB,
+                      int           nnz_B,
+                      dtype         beta,
+                      char *&       C_CSR) const {
+        int * IC = (int*)malloc(sizeof(int)*(m+1));
+        int * has_col = (int*)malloc(sizeof(int)*n);
+        IC[0] = 1;
+        for (int i=0; i<m; i++){
+          memset(has_col, 0, sizeof(int)*n);
+          IC[i+1] = IC[i];
+          for (int j=0; j<IA[i+1]-IA[i]; j++){
+            int row_B = JA[IA[i]+j-1]-1;
+            for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
+              int idx_B = IB[row_B]+k-1;
+              has_col[JB[idx_B]-1] = 1;
+            }
+          }
+          for (int j=0; j<n; j++){
+            IC[i+1] += has_col[j];
+          }
+        }
+        CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype));
+        dtype * vC = (dtype*)C.vals();
+        this->set((char *)vC, this->addid(), IC[m]-1);
+        int * JC = C.JA();
+        memcpy(C.IA(), IC, sizeof(int)*(m+1));
+        free(IC);
+        IC = C.IA();
+        for (int i=0; i<m; i++){
+          memset(has_col, 0, sizeof(int)*n);
+          for (int j=0; j<IA[i+1]-IA[i]; j++){
+            int row_B = JA[IA[i]+j-1]-1;
+            for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
+              has_col[JB[IB[row_B]+k-1]-1] = 1;
+            }
+          }
+          int vs = 0;
+          for (int j=0; j<n; j++){
+            if (has_col[j]){
+              JC[IC[i]+vs-1] = j+1;
+              has_col[j] = IC[i]+vs-1;
+              vs++;
+            }
+          }
+          for (int j=0; j<IA[i+1]-IA[i]; j++){
+            int row_B = JA[IA[i]+j-1]-1;
+            int idx_A = IA[i]+j-1;
+            for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
+              int idx_B = IB[row_B]+k-1;
+              dtype tmp = fmul(A[idx_A],B[idx_B]);
+              vC[(has_col[JB[idx_B]-1])] = fadd(vC[(has_col[JB[idx_B]-1])], tmp);
+            }
+          }
+        }
+        CTF_int::CSR_Matrix C_in(C_CSR);
+        if (!this->isequal((char const *)&alpha, this->mulid())){
+          this->scal(C.nnz(), (char const *)&alpha, C.vals(), 1);
+        }
+        if (C_in.nnz() == 0 || this->isequal((char const *)&beta, this->addid())){
+          free(C_CSR);
+          C_CSR = C.all_data;
+        } else {
+          if (!this->isequal((char const *)&beta, this->mulid())){
+            this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1);
+          }
+          char * ans = this->csr_add(C_CSR, C.all_data);
+          free(C_CSR);
+          free(C.all_data);
+          C_CSR = ans;
+        }
+      }
+
+
       void default_csrmultcsr
                      (int           m,
                       int           n,
@@ -568,9 +654,7 @@ namespace CTF {
                       int           nnz_B,
                       dtype         beta,
                       char *&       C_CSR) const {
-        printf("FAILURE: kernel missing\n");
-        assert(0);
-
+        this->gen_csrmultcsr(m,n,k,alpha,A,JA,IA,nnz_A,B,JB,IB,nnz_B,beta,C_CSR);
       }
 
 
@@ -608,7 +692,13 @@ namespace CTF {
                  int64_t      nnz_B,
                  char const * beta,
                  char *&      C_CSR) const {
-        this->default_csrmultcsr(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],C_CSR);
+
+        if (this->fmul == &CTF_int::default_mul<dtype>
+         && this->fadd == &CTF_int::default_add<dtype>){
+          this->default_csrmultcsr(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],C_CSR);
+        } else {
+          this->gen_csrmultcsr(m,n,k,((dtype const*)alpha)[0],(dtype const*)A,JA,IA,nnz_A,(dtype const*)B,JB,IB,nnz_B,((dtype const*)beta)[0],C_CSR);
+        }
       }
 
   };
@@ -635,8 +725,8 @@ namespace CTF {
   template <>
   void CTF::Semiring<std::complex<double>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const */
 
-  template <>
-  void CTF::Semiring<double,1>::default_csrmultcsr(int,int,int,double,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double,char *&) const;
+//  template <>
+  //void CTF::Semiring<double,1>::default_csrmultcsr(int,int,int,double,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double,char *&) const;
 
 
   template<> 
