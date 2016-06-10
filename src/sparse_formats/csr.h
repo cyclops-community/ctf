@@ -25,7 +25,7 @@ namespace CTF_int {
       char * all_data;
       
       /** \brief constructor allocates all_data */
-      CSR_Matrix(int64_t nnz, int nrow, int ncol, algstrct const * sr);
+      CSR_Matrix(int64_t nnz, int nrow, int ncol, int el_size);
 
       /** \brief constructor given serialized CSR matrix */
       CSR_Matrix(char * all_data);

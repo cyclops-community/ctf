@@ -1,7 +1,9 @@
 #include "set.h"
 #include "../shared/blas_symbs.h"
 #include "../shared/offload.h"
+#include "../sparse_formats/csr.h"
 
+using namespace CTF_int;
 
 namespace CTF_int {
   template <>
@@ -397,7 +399,6 @@ namespace CTF {
     }
 #if USE_SP_MKL
     char transa = 'N';
-    char matdescra[6] = {'G',0,0,'F',0,0};
     if (beta == 0.0){
       TAU_FSTART(MKL_DCSRMULTD);
       CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, C, &m);
@@ -429,23 +430,55 @@ namespace CTF {
 
 
   void CTF::Semiring<double,1>::default_csrmultcsr
-                     (int           m,
-                      int           n,
-                      int           k,
+                     (int            m,
+                      int            n,
+                      int            k,
                       double         alpha,
                       double const * A,
-                      int const *   JA,
-                      int const *   IA,
-                      int           nnz_A,
+                      int const *    JA,
+                      int const *    IA,
+                      int            nnz_A,
                       double const * B,
-                      int const *   IB,
-                      int const *   JB,
-                      int           nnz_B,
+                      int const *    IB,
+                      int const *    JB,
+                      int            nnz_B,
                       double         beta,
-                      char *&       C_CSR) const {
-    printf("FAILURE: kernel missing\n");
-    assert(0);
+                      char *&        C_CSR) const {
+#if USE_SP_MKL
+    char transa = 'N';
+    CSR_Matrix C_in(C_CSR);
 
+    int * new_ic = (int*)alloc(sizeof(int)*(m+1));
+ 
+    int sort = 1; 
+    int req = 1;
+    int info;
+    CTF_BLAS::MKL_DCSRMULTCSR(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info);
+
+    CSR_Matrix C_add(new_ic[m], m, n, C_in.val_size());
+    memcpy(C_add.IA(), new_ic, (m+1)*sizeof(int));
+    cdealloc(new_ic);
+    req = 2;
+    CTF_BLAS::MKL_DCSRMULTCSR(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (double*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info);
+
+    if (beta == 0.0){
+      cdealloc(C_CSR);
+      C_CSR = C_add.all_data;
+    } else {
+      if (beta != 1.0){
+        this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1);
+      }
+      if (alpha != 1.0){
+        this->scal(C_add.nnz(), (char const *)&alpha, C_add.vals(), 1);
+      }
+      char * C_ret = csr_add(C_CSR, C_add.all_data);
+      cdealloc(C_CSR);
+      cdealloc(C_add.all_data);
+      C_CSR = C_ret;
+    }
+#else
+    assert(0);
+#endif
   }
 
 

@@ -39,6 +39,10 @@
 #define MKL_DCSRMULTD mkl_dcsrmultd_
 #define MKL_CCSRMULTD mkl_ccsrmultd_
 #define MKL_ZCSRMULTD mkl_zcsrmultd_
+#define MKL_SCSRMULTCSR mkl_scsrmultcsr_
+#define MKL_DCSRMULTCSR mkl_dcsrmultcsr_
+#define MKL_CCSRMULTCSR mkl_ccsrmultcsr_
+#define MKL_ZCSRMULTCSR mkl_zcsrmultcsr_
 #else
 #define DDOT ddot
 #define SGEMM sgemm
@@ -76,6 +80,10 @@
 #define MKL_DCSRMULTD mkl_dcsrmultd
 #define MKL_CCSRMULTD mkl_ccsrmultd
 #define MKL_ZCSRMULTD mkl_zcsrmultd
+#define MKL_SCSRMULTCSR mkl_scsrmultcsr
+#define MKL_DCSRMULTCSR mkl_dcsrmultcsr
+#define MKL_CCSRMULTCSR mkl_ccsrmultcsr
+#define MKL_ZCSRMULTCSR mkl_zcsrmultcsr
 #endif
 
 
@@ -375,9 +383,21 @@ namespace CTF_BLAS {
   extern "C"
   void MKL_ZCSRMULTD(const char *transa , const int *m , const int *n , const int *k, const std::complex<double> *a , const int *ja , const int *ia , const std::complex<double> *b , const int *jb , const int *ib , std::complex<double> *c , const int *ldc );
 
+  extern "C"
+  void MKL_SCSRMULTCSR(const char *transa , const int *req, const int *sort, const int *m, const int *n , const int *k, const float *a , const int *ja , const int *ia , const float *b , const int *jb , const int *ib , float *c , int *jc, int *ic, int *nnz_max, int *info);
+  
+  extern "C"
+  void MKL_DCSRMULTCSR(const char *transa , const int* req, const int *sort, const int *m , const int *n , const int *k, const double *a , const int *ja , const int *ia , const double *b , const int *jb , const int *ib , double *c , int *jc, int *ic, int *nnz_max, int *info);
 
   extern "C"
-  void MKL_SCSRADD(char const * transa, int const * job, int const * sort, int const * n, int const * k, float const * a, int const * ja, int const * ia, float const * beta, float const * b, int const * jb, int const * ib, float * c, int * jc, int * ic, int const * nnzmax, int const * ierr);
+  void MKL_CCSRMULTCSR(const char *transa , const int *req, const int *sort, const int *m, const int *n , const int *k, const std::complex<float> *a , const int *ja , const int *ia , const std::complex<float> *b , const int *jb , const int *ib , std::complex<float> *c , int *jc, int *ic, int *nnz_max, int *info);
+  
+  extern "C"
+  void MKL_ZCSRMULTCSR(const char *transa , const int* req, const int *sort, const int *m , const int *n , const int *k, const std::complex<double> *a , const int *ja , const int *ia , const std::complex<double> *b , const int *jb , const int *ib , std::complex<double> *c , int *jc, int *ic, int *nnz_max, int *info);
+
+
+  extern "C"
+  void MKL_SCSRADD(char const * transa, int const *req, int const * job, int const * sort, int const * n, int const * k, float const * a, int const * ja, int const * ia, float const * beta, float const * b, int const * jb, int const * ib, float * c, int * jc, int * ic, int const * nnzmax, int const * ierr);
 
   extern "C"
   void MKL_DCSRADD(char const * transa, int const * job, int const * sort, int const * n, int const * k, double const * a, int const * ja, int const * ia, double const * beta, double const * b, int const * jb, int const * ib, double * c, int * jc, int * ic, int const * nnzmax, int const * ierr);

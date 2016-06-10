@@ -17,12 +17,12 @@ namespace CTF_int {
     return offset;
   }
 
-  CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow, int ncol, algstrct const * sr){
+  CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow, int ncol, int el_size){
     ASSERT(ALIGN >= 16);
-    int64_t size = get_csr_size(nnz, nrow, sr->el_size);
+    int64_t size = get_csr_size(nnz, nrow, el_size);
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = nnz;
-    ((int64_t*)all_data)[1] = sr->el_size;
+    ((int64_t*)all_data)[1] = el_size;
     ((int64_t*)all_data)[2] = nrow;
     ((int64_t*)all_data)[3] = ncol;
   }

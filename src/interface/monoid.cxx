@@ -42,7 +42,7 @@ namespace CTF {
     double mlid = 1.0;
     int info;
     CTF_BLAS::MKL_DCSRADD(&tA, &job, &sort, &m, &n, (double*)A.vals(), A.JA(), A.IA(), &mlid, (double*)B.vals(), B.JA(), B.IA(), NULL, NULL, ic, NULL, &info);
-    CSR_Matrix C(ic[m], m, n, this);
+    CSR_Matrix C(ic[m], m, n, this->el_size);
     memcpy(C.IA(), ic, sizeof(int)*(m+1));
     cdealloc(ic);
     job = 2;
