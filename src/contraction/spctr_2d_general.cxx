@@ -224,15 +224,20 @@ namespace CTF_int {
     if (move_C){
       op_C = buf_C;
       rec_beta = sr_C->addid();
+      new_nblk_C = nblk_C/b_C;
     } else {
-      if (ctr_sub_lda_C == 0)
+      if (ctr_sub_lda_C == 0){
+        new_nblk_C = nblk_C;
         op_C = C;
-      else {
+      } else {
+        new_nblk_C = nblk_C/edge_len;
+        if (is_sparse_C){
+            CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_C, (void**)&new_size_blk_C);
+            memcpy(new_size_blk_C, size_blk_C+ib*ctr_sub_lda_C, sizeof(int64_t)*new_nblk_C);
+        }
         if (ctr_lda_C == 1){
           if (is_sparse_C){
             op_C = C+offsets_C[ib*ctr_sub_lda_C];
-            CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_C, (void**)&new_size_blk_C);
-            memcpy(new_size_blk_C, size_blk_C+ib*ctr_sub_lda_C, sizeof(int64_t)*new_nblk_C);
           } else {
             op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
           }
@@ -286,12 +291,16 @@ namespace CTF_int {
         }
       }
     } else {
-      if (ctr_lda_C != 1 && ctr_sub_lda_C != 0){
-        if (!is_sparse_C){
-          sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
-                     buf_C, ctr_sub_lda_C, sr_C->mulid(), 
-                     C+sr_C->el_size*ib*ctr_sub_lda_C, 
-                     ctr_sub_lda_C*edge_len, beta);
+      if (ctr_sub_lda_C != 0){
+        if (ctr_lda_C == 1){
+          //FIXME: copy counts?
+        } else {
+          if (!is_sparse_C){
+            sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
+                       buf_C, ctr_sub_lda_C, sr_C->mulid(), 
+                       C+sr_C->el_size*ib*ctr_sub_lda_C, 
+                       ctr_sub_lda_C*edge_len, beta);
+          }
         }
       }
       if (ctr_sub_lda_C == 0)
@@ -316,7 +325,8 @@ namespace CTF_int {
       if (move_C){
         n_new_C_grps = edge_len/cdt_C->np;
       } else {
-        if (ctr_lda_C != 1 && ctr_sub_lda_C != 0){
+        //if (ctr_lda_C != 1 && ctr_sub_lda_C != 0)
+        if (ctr_sub_lda_C != 0){
           n_new_C_grps = edge_len;
         } else {
           n_new_C_grps = 1;
@@ -328,7 +338,6 @@ namespace CTF_int {
     if (n_new_C_grps > 1)
       alloc_ptr(n_new_C_grps*sizeof(char*), (void**)&new_C_grps);
     int i_new_C_grp = 0;
-    
     TAU_FSTART(spctr_2d_general);
 
     /* Must move at most two tensors */
@@ -412,10 +421,12 @@ namespace CTF_int {
     int64_t * new_size_blk_C;
     int new_nblk_C = nblk_C;
 
+    new_C = C;
+
     for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
       op_A = bcast_step(edge_len, A, is_sparse_A, move_A, sr_A, b_A, s_A, buf_A, cdt_A, ctr_sub_lda_A, ctr_lda_A, nblk_A, size_blk_A, new_nblk_A, new_size_blk_A, offsets_A, ib);
       op_B = bcast_step(edge_len, B, is_sparse_B, move_B, sr_B, b_B, s_B, buf_B, cdt_B, ctr_sub_lda_B, ctr_lda_B, nblk_B, size_blk_B, new_nblk_B, new_size_blk_B, offsets_B, ib);
-      op_C = reduce_step_pre(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta);
+      op_C = reduce_step_pre(edge_len, new_C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta);
 
 
       TAU_FSTOP(spctr_2d_general);
@@ -425,20 +436,6 @@ namespace CTF_int {
                    op_C);
 
       TAU_FSTART(spctr_2d_general);
-      if (new_size_blk_A != size_blk_A)
-        cdealloc(new_size_blk_A);
-      if (new_size_blk_B != size_blk_B)
-        cdealloc(new_size_blk_B);
-      if (new_size_blk_C != size_blk_C)
-        cdealloc(new_size_blk_C);
-      if (is_sparse_A && buf_A != NULL){
-        cdealloc(buf_A);
-        buf_A = NULL;
-      }
-      if (is_sparse_B && buf_B != NULL){
-        cdealloc(buf_B);
-        buf_B = NULL;
-      }
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
       }*/
@@ -456,6 +453,20 @@ namespace CTF_int {
           i_new_C_grp++;
         }
       }
+      if (new_size_blk_A != size_blk_A)
+        cdealloc(new_size_blk_A);
+      if (new_size_blk_B != size_blk_B)
+        cdealloc(new_size_blk_B);
+      if (is_sparse_A && buf_A != NULL){
+        cdealloc(buf_A);
+        buf_A = NULL;
+      }
+      if (is_sparse_B && buf_B != NULL){
+        cdealloc(buf_B);
+        buf_B = NULL;
+      }
+      if (new_size_blk_C != size_blk_C)
+        cdealloc(new_size_blk_C);
     }
 #if 0 //def OFFLOAD
     if (alloc_host_buf){
@@ -464,31 +475,29 @@ namespace CTF_int {
       host_pinned_free(buf_C);
 #endif
     if (n_new_C_grps > 1){
-      assert(0);
       ASSERT(i_new_C_grp == n_new_C_grps);
       int64_t new_sz_C = 0;
       int64_t new_offsets_C[nblk_C];
       int64_t grp_offsets_C[nblk_C/n_new_C_grps];
       int64_t grp_sizes_C[nblk_C/n_new_C_grps];
-      int64_t last_offset = 0;
       for (int i=0; i<nblk_C; i++){
+        new_offsets_C[i] = new_sz_C;
         new_sz_C += size_blk_C[i];
-        new_offsets_C[i] = last_offset;
-        last_offset += size_blk_C[i];
       }
       alloc_ptr(new_sz_C, (void**)&new_C);
       for (int i=0; i<n_new_C_grps; i++){
         int64_t last_grp_offset = 0;
         for (int j=0; j<ctr_sub_lda_C; j++){ 
           for (int k=0; k<ctr_lda_C; k++){ 
-            grp_offsets_C[ctr_sub_lda_B*k+j] = last_offset;
+            grp_offsets_C[ctr_sub_lda_B*k+j] = last_grp_offset;
             grp_sizes_C[ctr_sub_lda_B*k+j] = size_blk_C[ctr_sub_lda_C*(i+n_new_C_grps*k)+j];
-            last_offset += grp_sizes_C[ctr_sub_lda_B*k+j];
+            last_grp_offset += grp_sizes_C[ctr_sub_lda_B*k+j];
           }
         }
+//        printf("copying %ld %ld elements from matrix of size %ld from offset %ld to offset %ld\n", size_blk_C[0], grp_sizes_C[0], ((CSR_Matrix)new_C_grps[i]).size(), grp_offsets_C[0], new_offsets_C[0]);
         spcopy(ctr_sub_lda_C, ctr_lda_C, ctr_sub_lda_C, ctr_sub_lda_C*n_new_C_grps,
                grp_sizes_C, grp_offsets_C, new_C_grps[i],
-               size_blk_C, new_offsets_C, new_C);
+               size_blk_C+i*ctr_sub_lda_C, new_offsets_C+i*ctr_sub_lda_C, new_C);
         cdealloc(new_C_grps[i]);
       }
     }

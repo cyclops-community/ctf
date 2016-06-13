@@ -32,6 +32,8 @@ namespace CTF_int {
       
       CSR_Matrix(){ all_data=NULL; }
       
+      CSR_Matrix(CSR_Matrix const & other){ all_data=other.all_data; }
+      
       /** \brief constructor given coordinate format (COO) matrix */
       CSR_Matrix(COO_Matrix const & coom, int nrow, int ncol, algstrct const * sr, char * data=NULL);
 
@@ -62,12 +64,18 @@ namespace CTF_int {
       /**
        * \brief splits CSR matrix into s submatrices (returned) corresponding to subsets of rows, all parts allocated in one contiguous buffer (passed back in parts_buffer)
        */
-      CSR_Matrix * partition(int s, char ** parts_buffer);
+      void partition(int s, char ** parts_buffer, CSR_Matrix ** parts);
       
       /**
        * \brief constructor merges parts into one CSR matrix, assuming they are split by partition() (Above)
        */
       CSR_Matrix(char * const * smnds, int s);
+      
+      /**
+       * \brief outputs matrix data to stdout, intended for debugging
+       * \param[in] sr algebraic structure allowing print
+       */
+      void print(algstrct const * sr);
 
       /**
        * \brief computes C = beta*C + func(alpha*A*B) where A is a CSR_Matrix, while B and C are dense
@@ -83,7 +91,6 @@ namespace CTF_int {
        * \brief computes C = beta*C + func(alpha*A*B) where A, B, and C are CSR_Matrices, while C is dense
        */
       static void csrmultcsr(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
-
 
 
   };

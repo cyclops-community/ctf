@@ -5,25 +5,25 @@
 #define ALIGN 256
 
 namespace CTF_int {
-  int64_t get_csr_size(int64_t nnz, int nrow, int val_size){
+  int64_t get_csr_size(int64_t nnz, int nrow_, int val_size){
     int offset = 4*sizeof(int64_t);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     offset += nnz*val_size;
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
-    offset += (nrow+1)*sizeof(int);
+    offset += (nrow_+1)*sizeof(int);
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     offset += sizeof(int)*nnz;
     if (offset % ALIGN != 0) offset += ALIGN-(offset%ALIGN);
     return offset;
   }
 
-  CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow, int ncol, int el_size){
+  CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow_, int ncol, int el_size){
     ASSERT(ALIGN >= 16);
-    int64_t size = get_csr_size(nnz, nrow, el_size);
+    int64_t size = get_csr_size(nnz, nrow_, el_size);
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = nnz;
     ((int64_t*)all_data)[1] = el_size;
-    ((int64_t*)all_data)[2] = nrow;
+    ((int64_t*)all_data)[2] = (int64_t)nrow_;
     ((int64_t*)all_data)[3] = ncol;
   }
 
@@ -32,7 +32,7 @@ namespace CTF_int {
     all_data = all_data_;
   }
 
-  CSR_Matrix::CSR_Matrix(COO_Matrix const & coom, int nrow, int ncol, algstrct const * sr, char * data){
+  CSR_Matrix::CSR_Matrix(COO_Matrix const & coom, int nrow_, int ncol, algstrct const * sr, char * data){
     ASSERT(ALIGN >= 16);
     int64_t nz = coom.nnz(); 
     int64_t v_sz = coom.val_size(); 
@@ -40,14 +40,14 @@ namespace CTF_int {
     int const * coo_cs = coom.cols();
     char const * vs = coom.vals();
 
-    int64_t size = get_csr_size(nz, nrow, v_sz);
+    int64_t size = get_csr_size(nz, nrow_, v_sz);
     if (data == NULL)
       all_data = (char*)alloc(size);
     else
       all_data = data;
     ((int64_t*)all_data)[0] = nz;
     ((int64_t*)all_data)[1] = v_sz;
-    ((int64_t*)all_data)[2] = nrow;
+    ((int64_t*)all_data)[2] = (int64_t)nrow_;
     ((int64_t*)all_data)[3] = ncol;
 
     char * csr_vs = vals();
@@ -57,8 +57,8 @@ namespace CTF_int {
     //memcpy(csr_vs, vs, nz*v_sz);
     //memset(csr_ja
 
-    sr->coo_to_csr(nz, nrow, csr_vs, csr_ja, csr_ia, vs, coo_rs, coo_cs);
-/*    for (int i=0; i<nrow; i++){
+    sr->coo_to_csr(nz, nrow_, csr_vs, csr_ja, csr_ia, vs, coo_rs, coo_cs);
+/*    for (int i=0; i<nrow_; i++){
       printf("csr_ja[%d] = %d\n",i,csr_ja[i]);
     }
     for (int i=0; i<nz; i++){
@@ -206,45 +206,44 @@ namespace CTF_int {
 
   }
 
-  CSR_Matrix * CSR_Matrix::partition(int s, char ** parts_buffer){
+  void CSR_Matrix::partition(int s, char ** parts_buffer, CSR_Matrix ** parts){
     int part_nnz[s], part_nrows[s];
     int m = nrow();
+    int v_sz = val_size();
     char * org_vals = vals();
-    int * org_rows = JA();
-    int * org_cols = IA();
+    int * org_ia = IA();
+    int * org_ja = JA();
     for (int i=0; i<s; i++){
       part_nnz[i] = 0;
       part_nrows[i] = 0;
     }
     for (int i=0; i<m; i++){
       part_nrows[i%s]++;
-      part_nnz[i]+=org_rows[i+1]-org_rows[i];
+      part_nnz[i%s]+=org_ia[i+1]-org_ia[i];
     }
     int64_t tot_sz = 0;
     for (int i=0; i<s; i++){
-      tot_sz += get_csr_size(part_nnz[i], part_nrows[i], val_size());
+      tot_sz += get_csr_size(part_nnz[i], part_nrows[i], v_sz);
     }
-    char * new_data = (char*)alloc(tot_sz);
-    char * part_data = new_data;
-    CSR_Matrix * parts = (CSR_Matrix*)alloc(sizeof(CSR_Matrix)*s);
+    alloc_ptr(tot_sz, (void**)parts_buffer);
+    char * part_data = *parts_buffer;
     for (int i=0; i<s; i++){
       ((int64_t*)part_data)[0] = part_nnz[i];
-      ((int64_t*)part_data)[1] = val_size();
+      ((int64_t*)part_data)[1] = v_sz;
       ((int64_t*)part_data)[2] = part_nrows[i];
       ((int64_t*)part_data)[3] = ncol();
-      parts[i] = CSR_Matrix(part_data);
-      char * pvals = parts[i].vals();
-      int * pja = parts[i].JA();
-      int * pia = parts[i].IA();
-      pja[0] = 1;
-      for (int j=i; j<m; j+=s){
-        memcpy(pvals+(pja[j/s]-1)*val_size(), org_vals+(org_rows[j]-1)*val_size(), (org_rows[j+1]-org_rows[j])*val_size());
-        memcpy(pia+(pja[j/s]-1)*sizeof(int), org_cols+(org_rows[j]-1)*sizeof(int), (org_rows[j+1]-org_rows[j])*sizeof(int));
-        pja[j/s+1] = pja[j/s]+org_rows[j+1]-org_rows[j];
+      parts[i] = new CSR_Matrix(part_data);
+      char * pvals = parts[i]->vals();
+      int * pja = parts[i]->JA();
+      int * pia = parts[i]->IA();
+      pia[0] = 1;
+      for (int j=i, k=0; j<m; j+=s, k++){
+        memcpy(pvals+(pia[k]-1)*v_sz, org_vals+(org_ia[j]-1)*v_sz, (org_ia[j+1]-org_ia[j])*v_sz);
+        memcpy(pja+(pia[k]-1), org_ja+(org_ia[j]-1), (org_ia[j+1]-org_ia[j])*sizeof(int));
+        pia[k+1] = pia[k]+org_ia[j+1]-org_ia[j];
       }
-      part_data += get_csr_size(part_nnz[i], part_nrows[i], val_size());
+      part_data += get_csr_size(part_nnz[i], part_nrows[i], v_sz);
     }
-    return parts;
   }
       
   CSR_Matrix::CSR_Matrix(char * const * smnds, int s){
@@ -267,23 +266,41 @@ namespace CTF_int {
     int * csr_ja = JA();
     int * csr_ia = IA();
 
-    csr_ja[0] = 1;
+    csr_ia[0] = 1;
 
     for (int i=0; i<tot_nrow; i++){
       int ipart = i%s;
-      int const * prows = csrs[ipart]->JA();
-      int i_nnz = prows[i/s+1]-prows[i/s];
-      memcpy(csr_vs+(csr_ja[i]-1)*v_sz,
-             csrs[ipart]->vals()+(prows[i/s]-1)*v_sz,
+      int const * pja = csrs[ipart]->JA();
+      int const * pia = csrs[ipart]->IA();
+      int i_nnz = pia[i/s+1]-pia[i/s];
+      memcpy(csr_vs+(csr_ia[i]-1)*v_sz,
+             csrs[ipart]->vals()+(pia[i/s]-1)*v_sz,
              i_nnz*v_sz);
-      memcpy(csr_ia+(csr_ja[i]-1)*sizeof(int),
-             csrs[ipart]->IA()+(prows[i/s]-1)*sizeof(int),
+      memcpy(csr_ja+(csr_ia[i]-1),
+             pja+(pia[i/s]-1),
              i_nnz*sizeof(int));
-      csr_ja[i+1] = csr_ja[i]+i_nnz;
+      csr_ia[i+1] = csr_ia[i]+i_nnz;
     }
     for (int i=0; i<s; i++){
       delete csrs[i];
     }
+  }
+
+  void CSR_Matrix::print(algstrct const * sr){
+    char * csr_vs = vals();
+    int * csr_ja = JA();
+    int * csr_ia = IA();
+    int irow= 0;
+    int v_sz = val_size();
+    int64_t nz = nnz();
+    printf("CSR Matrix has %ld nonzeros %d rows %d cols\n", nz, nrow(), ncol());
+    for (int64_t i=0; i<nz; i++){
+      while (i>=csr_ia[irow+1]-1) irow++;
+      printf("[%d,%d] ",irow,csr_ja[i]);
+      sr->print(csr_vs+v_sz*i);
+      printf("\n");
+    }
+
   }
 
 }

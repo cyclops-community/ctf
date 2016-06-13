@@ -21,8 +21,8 @@ int spgemm(int     m,
   Matrix<> dnA(m, k, dw);
   Matrix<> spB(k, n, SP, dw);
   Matrix<> dnB(k, n, dw);
-  Matrix<> spC(m, n, SP, dw);
-  Matrix<> dnC(m, n, dw);
+  Matrix<> spC(m, n, SP, dw, "spC");
+  Matrix<> dnC(m, n, dw, "dnC");
 
   srand48(dw.rank);
 
@@ -44,10 +44,10 @@ int spgemm(int     m,
   spC["ik"] += spA["ij"]*spB["jk"];
 //  spC["ik"] += .5*spA["ij"]*spB["jk"];
 //  spC["ik"] += .5*spB["jk"]*spA["ij"];
-/*  spA.print();
-  spB.print();
-  dnC.print();
-  spC.print();*/
+//  spA.print();
+//  spB.print();
+//  dnC.print();
+//  spC.print();
 
   bool pass = dnC.norm2() >= 1E-6;
 

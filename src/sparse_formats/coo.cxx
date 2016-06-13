@@ -182,19 +182,20 @@ namespace CTF_int {
     for (int64_t i=0; i<nz; i++){
       PairIterator pi(sr, tsr_data);
       int64_t k = 0;
+      int64_t lda_k = 1;
       for (int j=0; j<order; j++){
         int64_t kpart;
-        int64_t lda_k = 1;
         if (ordering[j] < nrow_idx){
           kpart = ((rs[i]-1)/lda_row[ordering[j]])%rev_ord_lens[ordering[j]];
         } else {
           kpart = ((cs[i]-1)/lda_col[ordering[j]-nrow_idx])%rev_ord_lens[ordering[j]];
         }
         //  printf("%d %ld %d %d %ld\n",j,kpart,ordering[j],nrow_idx,lda_col[ordering[j]-nrow_idx]);
-        if (j>0){ kpart *= lens[j-1]; }
+       // if (j>0){ kpart *= lens[j-1]; }
         k+=(kpart*phase[j]+phase_rank[j])*lda_k;
         lda_k *= lens[j];
       }
+//      printf("p[%d %d] [%d,%d]->%ld\n",phase_rank[0],phase_rank[1],rs[i],cs[i],k);
       pi[i].write_key(k);
     //  printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
       memcpy(pi[i].d(), vs+v_sz*i, v_sz);

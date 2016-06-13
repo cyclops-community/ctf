@@ -382,8 +382,9 @@ namespace CTF_int {
     int r, p;
     MPI_Comm_rank(cm, &r);
     MPI_Comm_size(cm, &p);
+    if (p==1) return cA;
     int s = 2;
-    while (p%s != 1) s++;
+    while (p%s != 0) s++;
     int sr = r%s;
     MPI_Comm scm;
     MPI_Comm rcm;
@@ -392,17 +393,22 @@ namespace CTF_int {
     
     CSR_Matrix A(cA);
     char * parts_buffer; 
-    CSR_Matrix * parts = A.partition(s, &parts_buffer);
+    CSR_Matrix ** parts = (CSR_Matrix**)alloc(sizeof(CSR_Matrix*)*s);
+    A.partition(s, &parts_buffer, parts);
     //MPI_Request reqs[2*(s-1)];
-    int rcv_szs[s-1];
-    int snd_szs[s-1];
+    int rcv_szs[s];
+    int snd_szs[s];
+    int64_t tot_buf_size = 0;
     for (int i=0; i<s; i++){
       if (i==sr) snd_szs[i] = 0;
-      else snd_szs[i] = parts[i].size();
+      else snd_szs[i] = parts[i]->size();
+      tot_buf_size += snd_szs[i];
     }
-    MPI_Alltoall(snd_szs, 1, MPI_INT64_T, rcv_szs, 1, MPI_INT64_T, cm);
+
+    MPI_Alltoall(snd_szs, 1, MPI_INT, rcv_szs, 1, MPI_INT, scm);
     int64_t tot_rcv_sz = 0;
     for (int i=0; i<s; i++){
+      //printf("i=%d/%d,rcv_szs[i]=%d\n",i,s,rcv_szs[i]);
       tot_rcv_sz += rcv_szs[i];
     }
     char * rcv_buf = (char*)alloc(tot_rcv_sz);
@@ -412,13 +418,15 @@ namespace CTF_int {
     int snd_displs[s];
     rcv_displs[0] = 0;
     for (int i=0; i<s; i++){
-      if (i==sr) smnds[i] = parts[i].all_data;
+      if (i>0) rcv_displs[i] = rcv_szs[i-1]+rcv_displs[i-1];
+      snd_displs[i] = parts[i]->all_data - parts[0]->all_data;
+      if (i==sr) smnds[i] = parts[i]->all_data;
       else smnds[i] = rcv_buf + rcv_displs[i];
-      rcv_displs[i] += rcv_szs[i];
-      snd_displs[i] = parts[i].all_data - parts[0].all_data;
+//      printf("parts[%d].all_data = %p\n",i,parts[i]->all_data);
+  //    printf("snd_dipls[%d] = %d\n", i, snd_displs[i]);
+//      printf("rcv_dipls[%d] = %d\n", i, rcv_displs[i]);
     }
-    
-    MPI_Alltoallv(parts[0].all_data, snd_szs, snd_displs, MPI_CHAR, rcv_buf, rcv_szs, rcv_displs, MPI_CHAR, cm);
+    MPI_Alltoallv(parts[0]->all_data, snd_szs, snd_displs, MPI_CHAR, rcv_buf, rcv_szs, rcv_displs, MPI_CHAR, scm);
     /*  smnds[i] = (char*)alloc(rcv_szs[i]);
       int sbw = (r/phase - i + s-1)%s;
       int rbw = sbw + (r/(phase*s))*s + (r%phase);
@@ -438,23 +446,29 @@ namespace CTF_int {
     for (int z=1; z<s; z<<=1){
       for (int i=0; i<s-z; i+=2*z){
         char * csr_new = csr_add(smnds[i], smnds[i+z]);
-        if (smnds[i] < parts[0].all_data || smnds[i] > parts[s-1].all_data)
+        if ((smnds[i] < parts_buffer || 
+             smnds[i] > parts_buffer+tot_buf_size) &&
+            (smnds[i] < rcv_buf || 
+             smnds[i] > rcv_buf+tot_rcv_sz))
           cdealloc(smnds[i]);
-        if (smnds[i+z] < parts[0].all_data || smnds[i+z] > parts[s-1].all_data)
+        if ((smnds[i+z] < parts_buffer || 
+             smnds[i+z] > parts_buffer+tot_buf_size) &&
+            (smnds[i+z] < rcv_buf || 
+             smnds[i+z] > rcv_buf+tot_rcv_sz))
           cdealloc(smnds[i+z]);
         smnds[i] = csr_new;
       }
     }
     cdealloc(parts_buffer); //dealloc all parts
     char * red_sum = csr_reduce(smnds[0], root/s, rcm);
-    cdealloc(smnds[0]);
-    CSR_Matrix cf(red_sum);
-    int64_t sz = cf.size();
+    if (smnds[0] != red_sum) cdealloc(smnds[0]);
     if (r/s == root/s){
+      CSR_Matrix cf(red_sum);
+      int sz = cf.size();
       int sroot = root%s;
       int cb_sizes[s];
-      if (root == r) sz = 0;
-      MPI_Gather(&sz, 1, MPI_INT64_T, cb_sizes, 1, MPI_INT64_T, sroot, scm);
+      if (sroot == sr) sz = 0;
+      MPI_Gather(&sz, 1, MPI_INT, cb_sizes, 1, MPI_INT, sroot, scm);
       int64_t tot_cb_size = 0;
       int cb_displs[s];
       if (sr == sroot){

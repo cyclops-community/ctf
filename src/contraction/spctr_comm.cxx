@@ -272,10 +272,12 @@ namespace CTF_int {
         char * new_Cs[nblk_C];
         for (int blk=0; blk<nblk_C; blk++){
           new_Cs[blk] = sr_C->csr_reduce(new_C+csr_sz_acc, 0, cdt_C[i]->cm);
+  //        printf("%d out of %d reds complete, size = %ld should be %ld\n",blk,nblk_C,size_blk_C[blk],((CSR_Matrix)(new_C+csr_sz_acc)).size());
         
           csr_sz_acc += size_blk_C[blk];
           size_blk_C[blk] = cdt_C[i]->rank == 0 ? ((CSR_Matrix)(new_Cs[blk])).size() : 0;
           new_csr_sz_acc += size_blk_C[blk];
+//          printf("rank %d blk size %ld tot sz %ld\n", cdt_C[i]->rank, size_blk_C[blk], new_csr_sz_acc);
         }
         cdealloc(new_C);
         alloc_ptr(new_csr_sz_acc, (void**)&new_C);

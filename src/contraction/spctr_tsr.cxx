@@ -148,8 +148,8 @@ namespace CTF_int {
       printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
     }
     printf("kernel type is %d\n", krnl_type);
-    if (krnl_type>0) printf("inner n = %d m= %d k = %d\n",
-                          inner_params.n, inner_params.m, inner_params.k);
+    if (krnl_type>0) printf("inner n = %d m= %d k = %d sz_C=%ld\n",
+                          inner_params.n, inner_params.m, inner_params.k, inner_params.sz_C);
   }
 
   seq_tsr_spctr::seq_tsr_spctr(spctr * other) : spctr(other) {

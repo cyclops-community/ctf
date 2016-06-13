@@ -3791,7 +3791,11 @@ namespace CTF_int {
       inp_cpy = *inner_params;
     inp_cpy.offload = do_offload;
 
-    seq_tsr_spctr * ctrseq = new seq_tsr_spctr(this, krnl_type, &inp_cpy, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
+    seq_tsr_spctr * ctrseq;
+    if (C->is_sparse) 
+      ctrseq = new seq_tsr_spctr(this, krnl_type, &inp_cpy, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, 0);
+    else
+      ctrseq = new seq_tsr_spctr(this, krnl_type, &inp_cpy, virt_blk_len_A, virt_blk_len_B, virt_blk_len_C, vrt_sz_C);
     if (is_top) {
       hctr = ctrseq;
       is_top = 0;
