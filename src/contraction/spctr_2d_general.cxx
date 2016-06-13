@@ -232,8 +232,8 @@ namespace CTF_int {
       } else {
         new_nblk_C = nblk_C/edge_len;
         if (is_sparse_C){
-            CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_C, (void**)&new_size_blk_C);
-            memcpy(new_size_blk_C, size_blk_C+ib*ctr_sub_lda_C, sizeof(int64_t)*new_nblk_C);
+          CTF_int::alloc_ptr(sizeof(int64_t)*new_nblk_C, (void**)&new_size_blk_C);
+          memcpy(new_size_blk_C, size_blk_C+ib*ctr_sub_lda_C, sizeof(int64_t)*new_nblk_C);
         }
         if (ctr_lda_C == 1){
           if (is_sparse_C){
@@ -312,7 +312,7 @@ namespace CTF_int {
                              char * B, int nblk_B, int64_t const * size_blk_B,
                              char * C, int nblk_C, int64_t * size_blk_C,
                              char *& new_C){
-    int owner_A, owner_B, owner_C, ret, n_new_C_grps;
+    int ret, n_new_C_grps;
     int64_t ib;
     char * buf_A, * buf_B, * buf_C, * buf_aux;
     char ** new_C_grps; 
@@ -441,9 +441,10 @@ namespace CTF_int {
       }*/
       reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, op_C);
       if (!move_C || cdt_C->rank == (ib % cdt_C->np)){ 
-        if (n_new_C_grps == 1)
-          new_C = op_C;
-        else {
+        if (n_new_C_grps == 1){
+          if (is_sparse_C)
+            new_C = op_C;
+        } else {
           new_C_grps[i_new_C_grp] = op_C;
           for (int k=0; k<ctr_lda_C; k++){
             for (int j=0; j<ctr_sub_lda_C; j++){

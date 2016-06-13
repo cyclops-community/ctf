@@ -37,6 +37,8 @@
 #include "../examples/bivar_transform.cxx"
 #include "../examples/spmv.cxx"
 #include "../examples/spmm.cxx"
+#include "../examples/spmspm.cxx"
+#include "../examples/spgemm.cxx"
 #include "../examples/jacobi.cxx"
 #include "../examples/sssp.cxx"
 #include "../examples/apsp.cxx"
@@ -264,6 +266,14 @@ int main(int argc, char ** argv){
     pass.push_back(spmm(n*n,n,dw));
     
     if (rank == 0)
+      printf("Testing sparse-matrix times sparse-matrix with n=%d k=%d m=%d:\n",n,n*n,n+1);
+    pass.push_back(spmspm(n,n*n,n+1,dw,.7,0,0));
+
+    if (rank == 0)
+      printf("Testing sparse=sparse*sparse (spgemm) with n=%d k=%d m=%d:\n",n,n*n,n+1);
+    pass.push_back(spgemm(n,n*n,n+1,dw));
+
+    if (rank == 0)
       printf("Testing Jacobi iteration with n=%d:\n",n);
     pass.push_back(jacobi(n,dw));
      
@@ -278,7 +288,6 @@ int main(int argc, char ** argv){
     if (rank == 0)
       printf("Testing betweenness centrality with n=%d:\n",n);
     pass.push_back(btwn_cnt(n,dw));
-
     
     if (rank == 0)
       printf("Testing dense and sparse MP3 calculation %d occupied and %d virtual orbitals:\n",n,2*n);
