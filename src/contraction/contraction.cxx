@@ -776,6 +776,7 @@ namespace CTF_int {
           }
         }
         C->spmatricize(iprm.m, iprm.n, nrow_idx, csr_or_coo);
+        cdealloc(C->data);
       }
     
     }
@@ -4209,7 +4210,10 @@ namespace CTF_int {
             C->nnz_blk[i] = size_blk_C[i]/C->sr->pair_size();
           }
         } else {
-          C->rec_tsr->data = data_C;
+          //if (C->rec_tsr->data != data_C){
+            //cdealloc(C->rec_tsr->data);
+            C->rec_tsr->data = data_C;
+          //}
         }
       }
 
@@ -4586,7 +4590,7 @@ namespace CTF_int {
     B->unfold();
     C->unfold();
 
-    if (C->is_sparse && C->nnz_tot > 1){
+    if (C->is_sparse && C->nnz_tot > 0){
       if (C->sr->isequal(beta,C->sr->addid())){
         C->set_zero();
       } else {

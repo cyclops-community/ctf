@@ -275,13 +275,15 @@ new_nblk_C = nblk_C/edge_len;
           new_csr_sz_acc += new_size_blk_C[blk];
         }
         cdealloc(new_C);
-        alloc_ptr(new_csr_sz_acc, (void**)&new_C);
-        new_csr_sz_acc = 0;
-        for (int blk=0; blk<nblk_C; blk++){
-          memcpy(new_C+new_csr_sz_acc, new_Cs[blk], new_size_blk_C[blk]);
-          cdealloc(new_Cs[blk]);
-          new_csr_sz_acc += new_size_blk_C[blk];
-        }  
+        if (cdt_C->rank == owner_C){
+          alloc_ptr(new_csr_sz_acc, (void**)&new_C);
+          new_csr_sz_acc = 0;
+          for (int blk=0; blk<nblk_C; blk++){
+            memcpy(new_C+new_csr_sz_acc, new_Cs[blk], new_size_blk_C[blk]);
+            cdealloc(new_Cs[blk]);
+            new_csr_sz_acc += new_size_blk_C[blk];
+          }
+        } else new_C = NULL;  
       } else {
         if (cdt_C->rank == owner_C)
           cdt_C->red(MPI_IN_PLACE, new_C, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
@@ -445,6 +447,12 @@ new_nblk_C = nblk_C/edge_len;
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
       }*/
+      if (is_sparse_A && move_A && (cdt_A->rank != (ib % cdt_A->np) || b_A != 1)){
+        cdealloc(op_A);
+      }
+      if (is_sparse_B && move_B && (cdt_B->rank != (ib % cdt_B->np)|| b_B != 1)){
+        cdealloc(op_B);
+      }
       reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, op_C);
       if (!move_C || cdt_C->rank == (ib % cdt_C->np)){ 
         if (n_new_C_grps == 1){
@@ -513,6 +521,12 @@ new_nblk_C = nblk_C/edge_len;
                size_blk_C+i*ctr_sub_lda_C, new_offsets_C+i*ctr_sub_lda_C, new_C);
         cdealloc(new_C_grps[i]);
       }
+    }
+    if (move_C && is_sparse_C && C != NULL){
+      char * nnew_C = sr_C->csr_add(C, new_C);
+      cdealloc(C);
+      cdealloc(new_C);
+      new_C = nnew_C;
     }
     if (0){
     } else {

@@ -370,6 +370,7 @@ namespace CTF_int {
         this->add(vB+idx_B*el_size,vC+has_col[JB[idx_B]-1],vC+has_col[JB[idx_B]-1]);
       }
     }
+    cdealloc(has_col);
  /*   printf("nnz C is %ld\n", C.nnz());
     printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
     printf("%d %d\n",C.JA()[0],C.JA()[1]);
@@ -427,6 +428,10 @@ namespace CTF_int {
 //      printf("rcv_dipls[%d] = %d\n", i, rcv_displs[i]);
     }
     MPI_Alltoallv(parts[0]->all_data, snd_szs, snd_displs, MPI_CHAR, rcv_buf, rcv_szs, rcv_displs, MPI_CHAR, scm);
+    for (int i=0; i<s; i++){
+      delete parts[i]; //does not actually free buffer space
+    }
+    cdealloc(parts);
     /*  smnds[i] = (char*)alloc(rcv_szs[i]);
       int sbw = (r/phase - i + s-1)%s;
       int rbw = sbw + (r/(phase*s))*s + (r%phase);
@@ -460,6 +465,7 @@ namespace CTF_int {
       }
     }
     cdealloc(parts_buffer); //dealloc all parts
+    cdealloc(rcv_buf);
     char * red_sum = csr_reduce(smnds[0], root/s, rcm);
     if (smnds[0] != red_sum) cdealloc(smnds[0]);
     if (r/s == root/s){
@@ -479,6 +485,8 @@ namespace CTF_int {
       }
       char * cb_bufs = (char*)alloc(tot_cb_size);
       MPI_Gatherv(red_sum, sz, MPI_CHAR, cb_bufs, cb_sizes, cb_displs, MPI_CHAR, sroot, scm);
+      MPI_Comm_free(&scm);
+      MPI_Comm_free(&rcm);
       if (sr == sroot){
         for (int i=0; i<s; i++){
           smnds[i] = cb_bufs + cb_displs[i];
@@ -493,8 +501,11 @@ namespace CTF_int {
         cdealloc(cb_bufs);
         return NULL;
       }
-    } else return NULL;
-
+    } else {
+      MPI_Comm_free(&scm);
+      MPI_Comm_free(&rcm);
+      return NULL;
+    }
   }
       
   void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {
