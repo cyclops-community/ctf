@@ -488,27 +488,32 @@ namespace CTF {
     int info; \
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info); \
  \
-    CSR_Matrix C_add(new_ic[m]-1, m, n, C_in.val_size()); \
+    CSR_Matrix C_add(new_ic[m]-1, m, n, sizeof(dtype)); \
     memcpy(C_add.IA(), new_ic, (m+1)*sizeof(int)); \
     cdealloc(new_ic); \
     req = 2; \
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (dtype*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info); \
  \
-    if (beta == this->tmulid){ \
-      cdealloc(C_CSR); \
+    if (beta == this->taddid){ \
+      if (C_CSR != NULL) cdealloc(C_CSR); \
       C_CSR = C_add.all_data; \
     } else { \
-      if (beta != this->taddid){ \
+      if (C_CSR != NULL && beta != this->tmulid){ \
         this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1); \
       } \
-      if (alpha != this->taddid){ \
+      if (alpha != this->tmulid){ \
         this->scal(C_add.nnz(), (char const *)&alpha, C_add.vals(), 1); \
       } \
-      char * C_ret = csr_add(C_CSR, C_add.all_data); \
-      cdealloc(C_CSR); \
-      cdealloc(C_add.all_data); \
-      C_CSR = C_ret; \
-    }
+      if (C_CSR == NULL){ \
+        C_CSR = C_add.all_data; \
+      } else { \
+        char * C_ret = csr_add(C_CSR, C_add.all_data); \
+        cdealloc(C_CSR); \
+        cdealloc(C_add.all_data); \
+        C_CSR = C_ret; \
+      } \
+    } \
+  }
 #else
   #define CSR_MULTCSR_DEF(dtype,is_ord,MKL_name) \
   template<> \

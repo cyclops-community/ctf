@@ -628,7 +628,7 @@ namespace CTF {
         if (!this->isequal((char const *)&alpha, this->mulid())){
           this->scal(C.nnz(), (char const *)&alpha, C.vals(), 1);
         }
-        if (C_in.nnz() == 0 || this->isequal((char const *)&beta, this->addid())){
+        if (C_CSR == NULL || C_in.nnz() == 0 || this->isequal((char const *)&beta, this->addid())){
           //free(C_CSR);
           C_CSR = C.all_data;
         } else {
