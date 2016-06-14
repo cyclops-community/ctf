@@ -408,14 +408,14 @@ namespace CTF {
       if (alpha != this->tmulid) \
         CTF_int::default_scal<dtype>(m*n, alpha, C, 1); \
     } else { \
-      dtype * tmp_C_buf = (dtype*)malloc(sizeof(dtype)*m*n); \
+      dtype * tmp_C_buf = (dtype*)alloc(sizeof(dtype)*m*n); \
       TAU_FSTART(MKL_name); \
       CTF_BLAS::MKL_name(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m); \
       TAU_FSTOP(MKL_name); \
       if (beta != this->tmulid) \
         CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
       CTF_int::default_axpy<dtype>(m*n, alpha, tmp_C_buf, 1, C, 1); \
-      free(tmp_C_buf); \
+      cdealloc(tmp_C_buf); \
     } \
     TAU_FSTOP(csrmultd); \
   }

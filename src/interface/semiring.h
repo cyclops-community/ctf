@@ -308,16 +308,16 @@ namespace CTF {
                    char const * b,
                    char *&      c) const {
         if (a == NULL && b == NULL){
-          if (c!=NULL) free(c);
+          if (c!=NULL) CTF_int::cdealloc(c);
           c = NULL;
         } else if (a == NULL) {
-          if (c==NULL) c = (char*)malloc(this->el_size);
+          if (c==NULL) c = (char*)CTF_int::alloc(this->el_size);
           memcpy(c,b,this->el_size);
         } else if (b == NULL) {
-          if (c==NULL) c = (char*)malloc(this->el_size);
+          if (c==NULL) c = (char*)CTF_int::alloc(this->el_size);
           memcpy(c,b,this->el_size);
         } else {
-          if (c==NULL) c = (char*)malloc(this->el_size);
+          if (c==NULL) c = (char*)CTF_int::alloc(this->el_size);
           ((dtype*)c)[0] = fmul(((dtype*)a)[0],((dtype*)b)[0]);
         }
       }
@@ -574,8 +574,8 @@ namespace CTF {
                       int           nnz_B,
                       dtype         beta,
                       char *&       C_CSR) const {
-        int * IC = (int*)malloc(sizeof(int)*(m+1));
-        int * has_col = (int*)malloc(sizeof(int)*n);
+        int * IC = (int*)CTF_int::alloc(sizeof(int)*(m+1));
+        int * has_col = (int*)CTF_int::alloc(sizeof(int)*n);
         IC[0] = 1;
         for (int i=0; i<m; i++){
           memset(has_col, 0, sizeof(int)*n);
@@ -596,7 +596,7 @@ namespace CTF {
         this->set((char *)vC, this->addid(), IC[m]-1);
         int * JC = C.JA();
         memcpy(C.IA(), IC, sizeof(int)*(m+1));
-        free(IC);
+        CTF_int::cdealloc(IC);
         IC = C.IA();
         for (int i=0; i<m; i++){
           memset(has_col, 0, sizeof(int)*n);
@@ -629,18 +629,18 @@ namespace CTF {
           this->scal(C.nnz(), (char const *)&alpha, C.vals(), 1);
         }
         if (C_CSR == NULL || C_in.nnz() == 0 || this->isequal((char const *)&beta, this->addid())){
-          if (C_CSR != NULL) free(C_CSR);
+          if (C_CSR != NULL) CTF_int::cdealloc(C_CSR);
           C_CSR = C.all_data;
         } else {
           if (!this->isequal((char const *)&beta, this->mulid())){
             this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1);
           }
           char * ans = this->csr_add(C_CSR, C.all_data);
-          free(C_CSR);
-          free(C.all_data);
+          CTF_int::cdealloc(C_CSR);
+          CTF_int::cdealloc(C.all_data);
           C_CSR = ans;
         }
-        free(has_col);
+        CTF_int::cdealloc(has_col);
       }
 
 

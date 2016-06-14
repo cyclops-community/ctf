@@ -14,7 +14,7 @@ namespace CTF {
   }
 
   Partition::~Partition(){
-    free(lens);
+    CTF_int::cdealloc(lens);
   }
 
   Partition::Partition(Partition const & other){

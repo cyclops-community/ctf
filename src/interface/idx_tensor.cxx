@@ -161,7 +161,7 @@ namespace CTF {
       delete parent;
       is_intm = 0;
     }
-    if (parent != NULL)  free(idx_map);
+    if (parent != NULL)  cdealloc(idx_map);
     idx_map = NULL;
   }
 

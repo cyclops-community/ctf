@@ -89,9 +89,9 @@ namespace CTF_int {
     tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     out->is_intm = 1;
-    free(sym_C);
-    free(len_C);
-    free(idx_C);
+    cdealloc(sym_C);
+    cdealloc(len_C);
+    cdealloc(idx_C);
     return out;
 
   }
@@ -144,9 +144,9 @@ namespace CTF_int {
     tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
     out->is_intm = 1;
-    free(sym_C);
-    free(len_C);
-    free(idx_C);
+    cdealloc(sym_C);
+    cdealloc(len_C);
+    cdealloc(idx_C);
     return out;
   }
 
@@ -184,7 +184,7 @@ namespace CTF_int {
   Term::~Term(){
     delete sr;
     if (scale != NULL){
-      free(scale);
+      cdealloc(scale);
       scale = NULL;
     }
   }
@@ -547,7 +547,7 @@ namespace CTF_int {
       tmp_ops.pop_back();
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
-      if (tscale != NULL) free(tscale);
+      if (tscale != NULL) cdealloc(tscale);
       tscale = NULL;
       sr->safecopy(tscale, this->scale);
       sr->safemul(tscale, op_A.scale, tscale);
@@ -569,7 +569,7 @@ namespace CTF_int {
                       output.parent, output.idx_map, output.scale);
         c.execute();
       }
-      if (tscale != NULL) free(tscale);
+      if (tscale != NULL) cdealloc(tscale);
       tscale = NULL;
       delete pop_A;
       delete pop_B;
@@ -612,7 +612,7 @@ namespace CTF_int {
       delete pop_A;
       delete pop_B;
       if (tscale != NULL){
-        free(tscale);
+        cdealloc(tscale);
         tscale = NULL;
       }
     } 

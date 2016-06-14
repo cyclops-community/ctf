@@ -51,7 +51,7 @@ namespace CTF_int {
       cdealloc(sym_table);
       delete [] edge_map;
       if (!is_data_aliased){
-        if (has_home) inc_tot_mem_used(-size*sr->el_size);
+        if (has_home) inc_tot_mem_used(-home_size*sr->el_size);
         if (is_home){
           cdealloc(home_buffer);
         } else { 
@@ -98,6 +98,7 @@ namespace CTF_int {
     this->sr->set(this->data, this->sr->addid(), this->size);
 #ifdef HOME_CONTRACT
     this->home_size = this->size;
+    inc_tot_mem_used(home_size*sr->el_size);
     this->has_home = 1;
     this->is_home = 1;
     this->home_buffer = this->data;
@@ -1184,6 +1185,7 @@ namespace CTF_int {
 #endif
     tsr_ali.clear_mapping();
     tsr_ali.set_distribution(idx, prl, blk);
+    if (tsr_ali.has_home) inc_tot_mem_used(tsr_ali.home_size*tsr_ali.sr->el_size);
     tsr_ali.has_home = 0;
     tsr_ali.redistribute(st_dist);
     tsr_ali.is_data_aliased = 1;
@@ -1303,6 +1305,7 @@ namespace CTF_int {
       //get all local pairs, including zero ones FIXME can be done faster
       read_local(&num_pairs, &all_pairs);
       //become sparse
+      if (has_home) inc_tot_mem_used(-size*sr->el_size);
       cdealloc(data);
       data = NULL;
       is_home = false;
@@ -1443,6 +1446,7 @@ namespace CTF_int {
         tensor tA(sr, order, lens, sym_A, wrld, 1);
         tA.is_home = 0;
         tA.has_home = 0;
+        if (tA.has_home) inc_tot_mem_used(-tA.size*sr->el_size);
         summation st(this, idx_A, sr->mulid(), &tA, idx_A, sr->mulid());
         st.execute();
         return tA.read_all_pairs(num_pair, false);

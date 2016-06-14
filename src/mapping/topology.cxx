@@ -453,7 +453,7 @@ namespace CTF_int {
     
     if (topo->order <= 1) return topos;
     
-    int * new_lens = (int*)malloc(sizeof(int)*topo->order-1);
+    int * new_lens = (int*)alloc(sizeof(int)*topo->order-1);
 
     for (int i=0; i<topo->order-1; i++){
       for (int j=0; j<i; j++){
@@ -466,7 +466,7 @@ namespace CTF_int {
       topology*  new_topo = new topology(topo->order-1, new_lens, glb_comm);
       topos.push_back(new_topo);
     }
-    free(new_lens);
+    cdealloc(new_lens);
     for (int i=1; i<(int)topos.size(); i++){
       std::vector< topology* > more_topos = peel_torus(topos[i], glb_comm);
       for (int j=0; j<(int)more_topos.size(); j++){
