@@ -7,10 +7,20 @@ namespace CTF_int {
   class bivar_function;
 
   /**
+   * \brief abstract class that knows how to add
+   */
+  class accumulatable {
+    public:
+      /** \brief b+=a */
+      virtual void accum(char const * a, 
+                         char *       b) const { assert(0); }
+  };
+
+  /**
    * \brief algstrct (algebraic structure) defines the elementwise operations computed 
    *         in each tensor contraction, virtual classes defined in derived typed classes or algstrctcpy
    */
-  class algstrct {
+  class algstrct : public accumulatable {
     public: 
       /** \brief size of each element of algstrct in bytes */
       int el_size;
@@ -82,6 +92,9 @@ namespace CTF_int {
       virtual void add(char const * a, 
                        char const * b,
                        char *       c) const;
+
+      /** \brief b+=a */
+      virtual void accum(char const * a, char * b) const;
       
       /** \brief c = a*b */
       virtual void mul(char const * a, 

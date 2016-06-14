@@ -1,6 +1,7 @@
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 
+#include "../sparse_formats/csr.h"
 namespace CTF{
   #ifdef __CUDACC__
   #define NBLK 15
@@ -53,6 +54,28 @@ namespace CTF{
     }
   }
 
+
+  template<typename dtype_A, typename dtype_B, typename dtype_C, dtype_C(*f)(dtype_A, dtype_B), void(*g)(dtype_C, dtype_C&)>
+  __device__ 
+  void cuda_csrmmf(int             m,
+                   int             n,
+                   int             k,
+                   dtype_A const * A,
+                   int const *     JA,
+                   int const *     IA,
+                   dtype_B const * B,
+                   dtype_C *       C){
+    int bidx = blockIdx.x;
+    int tidx = threadIdx.x;
+    for (int col_B=bidx; col_B<n; col_B+=NBLK){
+      for (int row_A=tidx; row_A<m; row_A+=NTRD){
+        for (int i_A=IA[row_A]-1; i_A<IA[row_A+1]-1; i_A++){
+          int col_A = JA[i_A]-1;
+          g(f(A[i_A],B[col_B*k+col_A]),C[col_B*m+row_A]);
+        }
+      }
+    }
+  }
   
   //FIXME there is code replication here with ../sparse_foramts/csr.cxx
   #define ALIGN 256
@@ -89,7 +112,7 @@ namespace CTF{
   void default_monoid(dtype a, dtype & b){ b = a+b; }
 
   template<typename dtype=double, void(*g)(dtype, dtype&)=default_monoid<dtype> >
-  class Monoid_Kernel {
+  class Monoid_Kernel : public CTF_int::accumulatable {
     public:
     static MPI_Op get_MPI_Op(){
       MPI_Op moo;
@@ -106,6 +129,10 @@ namespace CTF{
       return moo;
     }
 
+    void accum(char const * a, 
+               char * b) const { 
+      g(((dtype const *)a)[0], ((dtype *)b)[0]); 
+    }
 
     static void xpy(int           n,
                     dtype const * X,
@@ -191,29 +218,27 @@ namespace CTF{
     }
 
     void ccoomm(int          m,
-                int          n,
-                int          k,
-                char const * A,
-                int const *  rows_A,
-                int const *  cols_A,
-                int64_t      nnz_A,
-                char const * B,
-                char *       C) const {
-      int * ptr = NULL;
-      ptr[0] = 3;
+                 int          n,
+                 int          k,
+                 char const * A,
+                 int const *  rows_A,
+                 int const *  cols_A,
+                 int64_t      nnz_A,
+                 char const * B,
+                 char *       C) const {
       coomm(m, n, k, (dtype_A const *)A, rows_A, cols_A, nnz_A, 
             (dtype_B const *)B, (dtype_C *)C);
     }
 
-    void csrmm(int             m,
-               int             n,
-               int             k,
-               dtype_A const * A,
-               int const *     JA,
-               int const *     IA,
-               int64_t         nnz_A,
-               dtype_B const * B,
-               dtype_C *       C) const {
+    static void csrmm(int             m,
+                      int             n,
+                      int             k,
+                      dtype_A const * A,
+                      int const *     JA,
+                      int const *     IA,
+                      int64_t         nnz_A,
+                      dtype_B const * B,
+                      dtype_C *       C){
       TAU_FSTART(3type_csrmm);
 #ifdef _OPENMP
       #pragma omp parallel for
@@ -244,8 +269,6 @@ namespace CTF{
       csrmm(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B, (dtype_C *)C);
     }
 
-
-
     void cgemm(char         tA,
                char         tB,
                int          m,
@@ -258,7 +281,123 @@ namespace CTF{
            (dtype_A const *)A, (dtype_B const *)B, (dtype_C *)C);
     }
 
+    // FIXME: below kernels replicate code from src/interface/semiring.h
 
+    static void csrmultd
+                 (int             m,
+                  int             n,
+                  int             k,
+                  dtype_A const * A,
+                  int const *     JA,
+                  int const *     IA,
+                  int             nnz_A,
+                  dtype_B const * B,
+                  int const *     JB,
+                  int const *     IB,
+                  int             nnz_B,
+                  dtype_C *       C){
+#ifdef _OPENMP
+      #pragma omp parallel for
+#endif
+      for (int row_A=0; row_A<m; row_A++){
+        for (int i_A=IA[row_A]-1; i_A<IA[row_A+1]-1; i_A++){
+          int row_B = JA[i_A]-1; //=col_A
+          for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
+            int col_B = JB[i_B]-1;
+            g(f(A[i_A],B[i_B]),C[col_B*m+row_A]);
+          }
+        }
+      }
+    }
+
+
+    void csrmultcsr
+              (int           m,
+               int           n,
+               int           k,
+               dtype_A const * A,
+               int const *   JA,
+               int const *   IA,
+               int           nnz_A,
+               dtype_B const * B,
+               int const *   JB,
+               int const *   IB,
+               int           nnz_B,
+               char *&       C_CSR) const {
+      int * IC = (int*)CTF_int::alloc(sizeof(int)*(m+1));
+      int * has_col = (int*)CTF_int::alloc(sizeof(int)*n);
+      IC[0] = 1;
+      for (int i=0; i<m; i++){
+        memset(has_col, 0, sizeof(int)*n);
+        IC[i+1] = IC[i];
+        CTF_int::CSR_Matrix::compute_has_col(JA, IA, JB, IB, i, has_col);
+        for (int j=0; j<n; j++){
+          IC[i+1] += has_col[j];
+        }
+      }
+      CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype_C));
+      dtype_C * vC = (dtype_C*)C.vals();
+      int * JC = C.JA();
+      memcpy(C.IA(), IC, sizeof(int)*(m+1));
+      CTF_int::cdealloc(IC);
+      IC = C.IA();
+      int64_t * rev_col = (int64_t*)CTF_int::alloc(sizeof(int64_t)*n);
+      for (int i=0; i<m; i++){
+        memset(has_col, 0, sizeof(int)*n);
+        CTF_int::CSR_Matrix::compute_has_col(JA, IA, JB, IB, i, has_col);
+        int vs = 0;
+        for (int j=0; j<n; j++){
+          if (has_col[j]){
+            JC[IC[i]+vs-1] = j+1;
+            rev_col[j] = IC[i]+vs-1;
+            vs++;
+          }
+        }
+        memset(has_col, 0, sizeof(int)*n);
+        for (int j=0; j<IA[i+1]-IA[i]; j++){
+          int row_B = JA[IA[i]+j-1]-1;
+          int idx_A = IA[i]+j-1;
+          for (int l=0; l<IB[row_B+1]-IB[row_B]; l++){
+            int idx_B = IB[row_B]+l-1;
+            if (has_col[JB[idx_B]-1])
+              g(f(A[idx_A],B[idx_B]), vC[rev_col[JB[idx_B]-1]]);  
+            else
+              vC[rev_col[JB[idx_B]-1]] = f(A[idx_A],B[idx_B]);
+            has_col[JB[idx_B]-1] = 1;  
+          }
+        }
+      }
+      CTF_int::CSR_Matrix C_in(C_CSR);
+      if (C_CSR == NULL || C_in.nnz() == 0){
+        if (C_CSR != NULL) CTF_int::cdealloc(C_CSR);
+        C_CSR = C.all_data;
+      } else {
+        char * ans = CTF_int::CSR_Matrix::csr_add(C_CSR, C.all_data, this);
+        CTF_int::cdealloc(C_CSR);
+        CTF_int::cdealloc(C.all_data);
+        C_CSR = ans;
+      }
+      CTF_int::cdealloc(has_col);
+      CTF_int::cdealloc(rev_col);
+    }
+
+
+
+    void ccsrmultd
+                 (int          m,
+                  int          n,
+                  int          k,
+                  char const * A,
+                  int const *  JA,
+                  int const *  IA,
+                  int          nnz_A,
+                  char const * B,
+                  int const *  JB,
+                  int const *  IB,
+                  int          nnz_B,
+                  char *       C) const {
+      csrmultd(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B,JB,IB,nnz_B,(dtype_C *)C);
+    }
 
     static void offload_gemm(char            tA,
                              char            tB,

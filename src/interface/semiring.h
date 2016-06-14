@@ -469,6 +469,7 @@ namespace CTF {
         } else { assert(0); }
       }
 
+
       void default_csrmm
                      (int           m,
                       int           n,
@@ -580,13 +581,7 @@ namespace CTF {
         for (int i=0; i<m; i++){
           memset(has_col, 0, sizeof(int)*n);
           IC[i+1] = IC[i];
-          for (int j=0; j<IA[i+1]-IA[i]; j++){
-            int row_B = JA[IA[i]+j-1]-1;
-            for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
-              int idx_B = IB[row_B]+k-1;
-              has_col[JB[idx_B]-1] = 1;
-            }
-          }
+          CTF_int::CSR_Matrix::compute_has_col(JA, IA, JB, IB, i, has_col);
           for (int j=0; j<n; j++){
             IC[i+1] += has_col[j];
           }
@@ -598,29 +593,25 @@ namespace CTF {
         memcpy(C.IA(), IC, sizeof(int)*(m+1));
         CTF_int::cdealloc(IC);
         IC = C.IA();
+        int64_t * rev_col = (int64_t*)CTF_int::alloc(sizeof(int64_t)*n);
         for (int i=0; i<m; i++){
           memset(has_col, 0, sizeof(int)*n);
-          for (int j=0; j<IA[i+1]-IA[i]; j++){
-            int row_B = JA[IA[i]+j-1]-1;
-            for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
-              has_col[JB[IB[row_B]+k-1]-1] = 1;
-            }
-          }
+          CTF_int::CSR_Matrix::compute_has_col(JA, IA, JB, IB, i, has_col);
           int vs = 0;
           for (int j=0; j<n; j++){
             if (has_col[j]){
               JC[IC[i]+vs-1] = j+1;
-              has_col[j] = IC[i]+vs-1;
+              rev_col[j] = IC[i]+vs-1;
               vs++;
             }
           }
           for (int j=0; j<IA[i+1]-IA[i]; j++){
             int row_B = JA[IA[i]+j-1]-1;
             int idx_A = IA[i]+j-1;
-            for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
-              int idx_B = IB[row_B]+k-1;
+            for (int l=0; l<IB[row_B+1]-IB[row_B]; l++){
+              int idx_B = IB[row_B]+l-1;
               dtype tmp = fmul(A[idx_A],B[idx_B]);
-              vC[(has_col[JB[idx_B]-1])] = this->fadd(vC[(has_col[JB[idx_B]-1])], tmp);
+              vC[(rev_col[JB[idx_B]-1])] = this->fadd(vC[(rev_col[JB[idx_B]-1])], tmp);
             }
           }
         }
@@ -641,6 +632,7 @@ namespace CTF {
           C_CSR = ans;
         }
         CTF_int::cdealloc(has_col);
+        CTF_int::cdealloc(rev_col);
       }
 
 

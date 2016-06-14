@@ -156,6 +156,11 @@ namespace CTF_int {
     assert(0);
   }
 
+  void algstrct::accum(char const * a, char * b) const {
+    this->add(a, b, b);
+  }
+
+
   void algstrct::mul(char const * a, char const * b, char * c) const {
     printf("CTF ERROR: no multiplication operation present for this algebraic structure\n");
     ASSERT(0);
@@ -309,74 +314,8 @@ namespace CTF_int {
 
 //  void algstrct::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic){
   char * algstrct::csr_add(char * cA, char * cB) const {
-    CSR_Matrix A(cA);
-    CSR_Matrix B(cB);
 
-    char const * vA = A.vals();
-    int const * JA = A.JA();
-    int const * IA = A.IA();
-    int nrow = A.nrow();
-    char const * vB = B.vals();
-    int const * JB = B.JA();
-    int const * IB = B.IA();
-    ASSERT(nrow == B.nrow());
-    int ncol = std::max(A.ncol(),B.ncol());
-    int * IC = (int*)alloc(sizeof(int)*(nrow+1));
-    int * has_col = (int*)alloc(sizeof(int)*ncol);
-    IC[0] = 1;
-    for (int i=0; i<nrow; i++){
-      memset(has_col, 0, sizeof(int)*ncol);
-      IC[i+1] = IC[i];
-      for (int j=0; j<IA[i+1]-IA[i]; j++){
-        has_col[JA[IA[i]+j-1]-1] = 1;
-      }
-      for (int j=0; j<IB[i+1]-IB[i]; j++){
-        has_col[JB[IB[i]+j-1]-1] = 1;
-      }
-      for (int j=0; j<ncol; j++){
-        IC[i+1] += has_col[j];
-      }
-    }
-    CSR_Matrix C(IC[nrow]-1, nrow, ncol, el_size);
-    char * vC = C.vals();
-    int * JC = C.JA();
-    memcpy(C.IA(), IC, sizeof(int)*(nrow+1));
-    cdealloc(IC);
-    IC = C.IA();
-    this->set(vC, this->addid(), IC[nrow]-1);
-    for (int i=0; i<nrow; i++){
-      memset(has_col, 0, sizeof(int)*ncol);
-      for (int j=0; j<IA[i+1]-IA[i]; j++){
-        has_col[JA[IA[i]+j-1]-1] = 1;
-      }
-      for (int j=0; j<IB[i+1]-IB[i]; j++){
-        has_col[JB[IB[i]+j-1]-1] = 1;
-      }
-      int vs = 0;
-      for (int j=0; j<ncol; j++){
-        if (has_col[j]){
-          JC[IC[i]+vs-1] = j+1;
-          //FIXME:: overflow?
-          has_col[j] = (IC[i]+vs-1)*el_size;
-          vs++;
-        }
-      }
-      for (int j=0; j<IA[i+1]-IA[i]; j++){
-        int idx_A = IA[i]+j-1;
-        this->add(vA+idx_A*el_size,vC+has_col[JA[idx_A]-1],vC+has_col[JA[idx_A]-1]);
-      }
-      for (int j=0; j<IB[i+1]-IB[i]; j++){
-        int idx_B = IB[i]+j-1;
-        this->add(vB+idx_B*el_size,vC+has_col[JB[idx_B]-1],vC+has_col[JB[idx_B]-1]);
-      }
-    }
-    cdealloc(has_col);
- /*   printf("nnz C is %ld\n", C.nnz());
-    printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
-    printf("%d %d\n",C.JA()[0],C.JA()[1]);
-    printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);*/
-    
-    return C.all_data;
+    return CTF_int::CSR_Matrix::csr_add(cA, cB, this);
   }
   
   char * algstrct::csr_reduce(char * cA, int root, MPI_Comm cm) const {

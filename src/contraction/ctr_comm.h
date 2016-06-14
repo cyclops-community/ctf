@@ -78,15 +78,15 @@ namespace CTF_int{
                                  char const * B,
                                  char *       C) const { assert(0); }
 
-    virtual void ccoomm(int                             m,
-                        int                             n,
-                        int                             k,
-                        char const *                    A,
-                        int const *                     rows_A,
-                        int const *                     cols_A,
-                        int64_t                         nnz_A,
-                        char const *                    B,
-                        char *                          C) const { assert(0); }
+    virtual void ccoomm(int          m,
+                        int          n,
+                        int          k,
+                        char const * A,
+                        int const *  rows_A,
+                        int const *  cols_A,
+                        int64_t      nnz_A,
+                        char const * B,
+                        char *       C) const { assert(0); }
 
 
     virtual void ccsrmm(int          m,
@@ -105,6 +105,22 @@ namespace CTF_int{
                                 char const * all_data,
                                 char const * B,
                                 char *       C) const { assert(0); }
+
+    virtual void ccsrmultd
+                 (int          m,
+                  int          n,
+                  int          k,
+                  char const * A,
+                  int const *  JA,
+                  int const *  IA,
+                  int          nnz_A,
+                  char const * B,
+                  int const *  JB,
+                  int const *  IB,
+                  int          nnz_B,
+                  char *       C) const { assert(0); }
+
+
   };
 
   /**

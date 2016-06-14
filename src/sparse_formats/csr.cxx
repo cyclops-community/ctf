@@ -303,4 +303,98 @@ namespace CTF_int {
 
   }
 
+  void CSR_Matrix::compute_has_col(
+                      int const * JA,
+                      int const * IA,
+                      int const * JB,
+                      int const * IB,
+                      int         i,
+                      int *       has_col){
+    for (int j=0; j<IA[i+1]-IA[i]; j++){
+      int row_B = JA[IA[i]+j-1]-1;
+      for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
+        int idx_B = IB[row_B]+k-1;
+        has_col[JB[idx_B]-1] = 1;
+      }
+    }
+  }
+
+  char * CSR_Matrix::csr_add(char * cA, char * cB, accumulatable const * adder){
+    CSR_Matrix A(cA);
+    CSR_Matrix B(cB);
+
+    int el_size = A.val_size();
+
+    char const * vA = A.vals();
+    int const * JA = A.JA();
+    int const * IA = A.IA();
+    int nrow = A.nrow();
+    char const * vB = B.vals();
+    int const * JB = B.JA();
+    int const * IB = B.IA();
+    ASSERT(nrow == B.nrow());
+    int ncol = std::max(A.ncol(),B.ncol());
+    int * IC = (int*)alloc(sizeof(int)*(nrow+1));
+    int * has_col = (int*)alloc(sizeof(int)*ncol);
+    IC[0] = 1;
+    for (int i=0; i<nrow; i++){
+      memset(has_col, 0, sizeof(int)*ncol);
+      IC[i+1] = IC[i];
+      for (int j=0; j<IA[i+1]-IA[i]; j++){
+        has_col[JA[IA[i]+j-1]-1] = 1;
+      }
+      for (int j=0; j<IB[i+1]-IB[i]; j++){
+        has_col[JB[IB[i]+j-1]-1] = 1;
+      }
+      for (int j=0; j<ncol; j++){
+        IC[i+1] += has_col[j];
+      }
+    }
+    CSR_Matrix C(IC[nrow]-1, nrow, ncol, el_size);
+    char * vC = C.vals();
+    int * JC = C.JA();
+    memcpy(C.IA(), IC, sizeof(int)*(nrow+1));
+    cdealloc(IC);
+    IC = C.IA();
+    int64_t * rev_col = (int64_t*)alloc(sizeof(int64_t)*ncol);
+    for (int i=0; i<nrow; i++){
+      memset(has_col, 0, sizeof(int)*ncol);
+      for (int j=0; j<IA[i+1]-IA[i]; j++){
+        has_col[JA[IA[i]+j-1]-1] = 1;
+      }
+      for (int j=0; j<IB[i+1]-IB[i]; j++){
+        has_col[JB[IB[i]+j-1]-1] = 1;
+      }
+      int vs = 0;
+      for (int j=0; j<ncol; j++){
+        if (has_col[j]){
+          JC[IC[i]+vs-1] = j+1;
+          //FIXME:: overflow?
+          rev_col[j] = (IC[i]+vs-1)*el_size;
+          vs++;
+        }
+      }
+      memset(has_col, 0, sizeof(int)*ncol);
+      for (int j=0; j<IA[i+1]-IA[i]; j++){
+        int idx_A = IA[i]+j-1;
+        memcpy(vC+rev_col[JA[idx_A]-1],vA+idx_A*el_size,el_size);
+        has_col[JA[idx_A]-1] = 1;
+      }
+      for (int j=0; j<IB[i+1]-IB[i]; j++){
+        int idx_B = IB[i]+j-1;
+        if (has_col[JB[idx_B]-1])
+          adder->accum(vB+idx_B*el_size,vC+rev_col[JB[idx_B]-1]);
+        else
+          memcpy(vC+rev_col[JB[idx_B]-1],vB+idx_B*el_size,el_size);
+      }
+    }
+    cdealloc(has_col);
+ /*   printf("nnz C is %ld\n", C.nnz());
+    printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
+    printf("%d %d\n",C.JA()[0],C.JA()[1]);
+    printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);*/
+    
+    return C.all_data;
+  }
+
 }

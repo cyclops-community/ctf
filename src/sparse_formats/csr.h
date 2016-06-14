@@ -92,7 +92,16 @@ namespace CTF_int {
        */
       static void csrmultcsr(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload);
 
+      static void compute_has_col(
 
+                      int const * JA,
+                      int const * IA,
+                      int const * JB,
+                      int const * IB,
+                      int         i,
+                      int *       has_col);
+      
+      static char * csr_add(char * cA, char * cB, accumulatable const * adder);
   };
 }
 
