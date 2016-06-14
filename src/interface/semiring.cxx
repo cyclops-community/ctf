@@ -375,113 +375,166 @@ namespace CTF {
 #endif
   }
 
-  template<>
-  void CTF::Semiring<double,1>::default_csrmultd
-                 (int            m,
-                  int            n,
-                  int            k,
-                  double         alpha,
-                  double const * A,
-                  int const *    JA,
-                  int const *    IA,
-                  int            nnz_A,
-                  double const * B,
-                  int const *    JB,
-                  int const *    IB,
-                  int            nnz_B,
-                  double         beta,
-                  double *       C) const {
-    TAU_FSTART(csrmultd);
-    if (alpha == 0.0){
-      if (beta != 1.0)
-        CTF_int::default_scal<double>(m*n, beta, C, 1);
-      return;
-    }
+
+#if USE_SP_MKL 
+  #define CSR_MULTD_DEF(dtype,is_ord,MKL_name) \
+  template<> \
+  void CTF::Semiring<dtype,is_ord>::default_csrmultd \
+                 (int            m, \
+                  int            n, \
+                  int            k, \
+                  dtype          alpha, \
+                  dtype const *  A, \
+                  int const *    JA, \
+                  int const *    IA, \
+                  int            nnz_A, \
+                  dtype const *  B, \
+                  int const *    JB, \
+                  int const *    IB, \
+                  int            nnz_B, \
+                  dtype          beta, \
+                  dtype *        C) const { \
+    TAU_FSTART(csrmultd); \
+    if (alpha == this->taddid){ \
+      if (beta != this->tmulid) \
+        CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
+      return; \
+    } \
+    char transa = 'N'; \
+    if (beta == this->taddid){ \
+      TAU_FSTART(MKL_name); \
+      CTF_BLAS::MKL_name(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, C, &m); \
+      TAU_FSTOP(MKL_name); \
+      if (alpha != this->tmulid) \
+        CTF_int::default_scal<dtype>(m*n, alpha, C, 1); \
+    } else { \
+      dtype * tmp_C_buf = (dtype*)malloc(sizeof(dtype)*m*n); \
+      TAU_FSTART(MKL_name); \
+      CTF_BLAS::MKL_name(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m); \
+      TAU_FSTOP(MKL_name); \
+      if (beta != this->tmulid) \
+        CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
+      CTF_int::default_axpy<dtype>(m*n, alpha, tmp_C_buf, 1, C, 1); \
+      free(tmp_C_buf); \
+    } \
+    TAU_FSTOP(csrmultd); \
+  }
+#else 
+  #define CSR_MULTD_DEF(dtype,is_ord,MKL_name) \
+  template<> \
+  void CTF::Semiring<dtype,is_ord>::default_csrmultd \
+                 (int           m, \
+                  int           n, \
+                  int           k, \
+                  dtype         alpha, \
+                  dtype const * A, \
+                  int const *   JA, \
+                  int const *   IA, \
+                  int           nnz_A, \
+                  dtype const * B, \
+                  int const *   JB, \
+                  int const *   IB, \
+                  int           nnz_B, \
+                  dtype         beta, \
+                  dtype *       C) const { \
+    TAU_FSTART(csrmultd); \
+    if (alpha == this->taddid){ \
+      if (beta != this->tmulid) \
+        CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
+      return; \
+    } \
+    if (alpha != this->tmulid || beta != this->tmulid){ \
+      CTF_int::default_scal<dtype>(m*n, beta/alpha, C, 1); \
+    } \
+    CTF_int::muladd_csrmultd<dtype>(m,n,k,A,JA,IA,nnz_A,B,JB,IB,nnz_B,C); \
+    if (alpha != this->tmulid){ \
+      CTF_int::default_scal<dtype>(m*n, alpha, C, 1); \
+    } \
+    TAU_FSTOP(csrmultd); \
+  } 
+#endif
+
+  CSR_MULTD_DEF(float,1,MKL_SCSRMULTD)
+  CSR_MULTD_DEF(double,1,MKL_DCSRMULTD)
+  CSR_MULTD_DEF(std::complex<float>,0,MKL_CCSRMULTD)
+  CSR_MULTD_DEF(std::complex<double>,0,MKL_ZCSRMULTD)
+
+
 #if USE_SP_MKL
-    char transa = 'N';
-    if (beta == 0.0){
-      TAU_FSTART(MKL_DCSRMULTD);
-      CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, C, &m);
-      TAU_FSTOP(MKL_DCSRMULTD);
-      if (alpha != 1.0)
-        CTF_int::default_scal<double>(m*n, alpha, C, 1);
-    } else {
-      double * tmp_C_buf = (double*)malloc(sizeof(double)*m*n);
-      TAU_FSTART(MKL_DCSRMULTD);
-      CTF_BLAS::MKL_DCSRMULTD(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m);
-      TAU_FSTOP(MKL_DCSRMULTD);
-      if (beta != 1.0)
-        CTF_int::default_scal<double>(m*n, beta, C, 1);
-      CTF_int::default_axpy<double>(m*n, alpha, tmp_C_buf, 1, C, 1);
-      free(tmp_C_buf);
+  #define CSR_MULTCSR_DEF(dtype,is_ord,MKL_name) \
+  template<> \
+  void CTF::Semiring<dtype,is_ord>::default_csrmultcsr \
+                     (int           m, \
+                      int           n, \
+                      int           k, \
+                      dtype         alpha, \
+                      dtype const * A, \
+                      int const *   JA, \
+                      int const *   IA, \
+                      int           nnz_A, \
+                      dtype const * B, \
+                      int const *   JB, \
+                      int const *   IB, \
+                      int           nnz_B, \
+                      dtype         beta, \
+                      char *&       C_CSR) const { \
+    char transa = 'N'; \
+    CSR_Matrix C_in(C_CSR); \
+ \
+    int * new_ic = (int*)alloc(sizeof(int)*(m+1)); \
+  \
+    int sort = 1;  \
+    int req = 1; \
+    int info; \
+    CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info); \
+ \
+    CSR_Matrix C_add(new_ic[m]-1, m, n, C_in.val_size()); \
+    memcpy(C_add.IA(), new_ic, (m+1)*sizeof(int)); \
+    cdealloc(new_ic); \
+    req = 2; \
+    CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (dtype*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info); \
+ \
+    if (beta == this->tmulid){ \
+      cdealloc(C_CSR); \
+      C_CSR = C_add.all_data; \
+    } else { \
+      if (beta != this->taddid){ \
+        this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1); \
+      } \
+      if (alpha != this->taddid){ \
+        this->scal(C_add.nnz(), (char const *)&alpha, C_add.vals(), 1); \
+      } \
+      char * C_ret = csr_add(C_CSR, C_add.all_data); \
+      cdealloc(C_CSR); \
+      cdealloc(C_add.all_data); \
+      C_CSR = C_ret; \
     }
 #else
-    if (alpha != 1.0 || beta != 1.0){
-      CTF_int::default_scal<double>(m*n, beta/alpha, C, 1);
-    }
-    CTF_int::muladd_csrmultd<double>(m,n,k,A,JA,IA,nnz_A,B,JB,IB,nnz_B,C);
-    if (alpha != 1.0){
-      CTF_int::default_scal<double>(m*n, alpha, C, 1);
-    }
-#endif
-    TAU_FSTOP(csrmultd);
-
+  #define CSR_MULTCSR_DEF(dtype,is_ord,MKL_name) \
+  template<> \
+  void CTF::Semiring<dtype,is_ord>::default_csrmultcsr \
+                     (int           m, \
+                      int           n, \
+                      int           k, \
+                      dtype         alpha, \
+                      dtype const * A, \
+                      int const *   JA, \
+                      int const *   IA, \
+                      int           nnz_A, \
+                      dtype const * B, \
+                      int const *   JB, \
+                      int const *   IB, \
+                      int           nnz_B, \
+                      dtype         beta, \
+                      char *&       C_CSR) const { \
+    this->gen_csrmultcsr(m,n,k,alpha,A,JA,IA,nnz_A,B,JB,IB,nnz_B,beta,C_CSR); \
   }
-
-
-  template<>
-  void CTF::Semiring<double,1>::default_csrmultcsr
-                     (int            m,
-                      int            n,
-                      int            k,
-                      double         alpha,
-                      double const * A,
-                      int const *    JA,
-                      int const *    IA,
-                      int            nnz_A,
-                      double const * B,
-                      int const *    JB,
-                      int const *    IB,
-                      int            nnz_B,
-                      double         beta,
-                      char *&        C_CSR) const {
-#if USE_SP_MKL
-    char transa = 'N';
-    CSR_Matrix C_in(C_CSR);
-
-    int * new_ic = (int*)alloc(sizeof(int)*(m+1));
- 
-    int sort = 1; 
-    int req = 1;
-    int info;
-    CTF_BLAS::MKL_DCSRMULTCSR(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info);
-
-    CSR_Matrix C_add(new_ic[m]-1, m, n, C_in.val_size());
-    memcpy(C_add.IA(), new_ic, (m+1)*sizeof(int));
-    cdealloc(new_ic);
-    req = 2;
-    CTF_BLAS::MKL_DCSRMULTCSR(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (double*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info);
-
-    if (beta == 0.0){
-      cdealloc(C_CSR);
-      C_CSR = C_add.all_data;
-    } else {
-      if (beta != 1.0){
-        this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1);
-      }
-      if (alpha != 1.0){
-        this->scal(C_add.nnz(), (char const *)&alpha, C_add.vals(), 1);
-      }
-      char * C_ret = csr_add(C_CSR, C_add.all_data);
-      cdealloc(C_CSR);
-      cdealloc(C_add.all_data);
-      C_CSR = C_ret;
-    }
-#else
-    this->gen_csrmultcsr(m,n,k,alpha,A,JA,IA,nnz_A,B,JB,IB,nnz_B,beta,C_CSR);
 #endif
-  }
 
+  CSR_MULTCSR_DEF(float,1,MKL_SCSRMULTCSR)
+  CSR_MULTCSR_DEF(double,1,MKL_DCSRMULTCSR)
+  CSR_MULTCSR_DEF(std::complex<float>,0,MKL_CCSRMULTCSR)
+  CSR_MULTCSR_DEF(std::complex<double>,0,MKL_ZCSRMULTCSR)
 
 /*  template<> 
   bool CTF::Semiring<float,1>::is_offloadable() const {

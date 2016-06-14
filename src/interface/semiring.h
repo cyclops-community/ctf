@@ -719,17 +719,23 @@ namespace CTF {
   void CTF::Semiring<std::complex<double>,0>::default_csrmm(int,int,int,std::complex<double>,std::complex<double> const *,int const *,int const *,int,std::complex<double> const *,std::complex<double>,std::complex<double> *) const;
 
 
-//  template <>
-//  void CTF::Semiring<float,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const 
+  template <>
+  void CTF::Semiring<float,1>::default_csrmultd(int,int,int,float,float const *,int const *,int const *,int,float const *,int const *,int const *,int,float,float *) const;
   template <>
   void CTF::Semiring<double,1>::default_csrmultd(int,int,int,double,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double,double *) const;
-/*  template <>
-  void CTF::Semiring<std::complex<float>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const 
   template <>
-  void CTF::Semiring<std::complex<double>,1>::default_csrmultd(int,int,int,dtype const *,int const *,int const *,int,dtype const *,int const *,int const *,int,dtype *) const */
+  void CTF::Semiring<std::complex<float>,0>::default_csrmultd(int,int,int,std::complex<float>,std::complex<float> const *,int const *,int const *,int,std::complex<float> const *,int const *,int const *,int,std::complex<float>,std::complex<float> *) const;
+  template <>
+  void CTF::Semiring<std::complex<double>,0>::default_csrmultd(int,int,int,std::complex<double>,std::complex<double> const *,int const *,int const *,int,std::complex<double> const *,int const *,int const *,int,std::complex<double>,std::complex<double> *) const;
 
   template <>
+  void CTF::Semiring<float,1>::default_csrmultcsr(int,int,int,float,float const *,int const *,int const *,int,float const *,int const *,int const *,int,float,char *&) const;
+  template <>
   void CTF::Semiring<double,1>::default_csrmultcsr(int,int,int,double,double const *,int const *,int const *,int,double const *,int const *,int const *,int,double,char *&) const;
+  template <>
+  void CTF::Semiring<std::complex<float>,0>::default_csrmultcsr(int,int,int,std::complex<float>,std::complex<float> const *,int const *,int const *,int,std::complex<float> const *,int const *,int const *,int,std::complex<float>,char *&) const;
+  template <>
+  void CTF::Semiring<std::complex<double>,0>::default_csrmultcsr(int,int,int,std::complex<double>,std::complex<double> const *,int const *,int const *,int,std::complex<double> const *,int const *,int const *,int,std::complex<double>,char *&) const;
 
 
   template<> 
