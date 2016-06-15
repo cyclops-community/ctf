@@ -4205,15 +4205,18 @@ namespace CTF_int {
                           data_C);
       if (C->is_sparse){
         if (!is_inner){
-          C->data = data_C;
+          if (data_C != C->data) {
+            cdealloc(C->data);
+            C->data = data_C;
+          }
           for (int i=0; i<C->calc_nvirt(); i++){
             C->nnz_blk[i] = size_blk_C[i]/C->sr->pair_size();
           }
         } else {
-          //if (C->rec_tsr->data != data_C){
-            //cdealloc(C->rec_tsr->data);
+          if (C->rec_tsr->data != data_C){
+            cdealloc(C->rec_tsr->data);
             C->rec_tsr->data = data_C;
-          //}
+          }
         }
       }
 

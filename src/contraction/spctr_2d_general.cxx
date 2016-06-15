@@ -320,7 +320,7 @@ new_nblk_C = nblk_C/edge_len;
                              char *& new_C){
     int ret, n_new_C_grps;
     int64_t ib;
-    char * buf_A, * buf_B, * buf_C, * buf_aux;
+    char * buf_A, * buf_B, * buf_C, * buf_aux, * up_C;
     char ** new_C_grps; 
     char * op_A = NULL;
     char * op_B = NULL;
@@ -441,11 +441,11 @@ new_nblk_C = nblk_C/edge_len;
       rec_ctr->run(op_A, new_nblk_A, new_size_blk_A,
                    op_B, new_nblk_B, new_size_blk_B,
                    op_C, new_nblk_C, new_size_blk_C,
-                   op_C);
+                   up_C);
 
       TAU_FSTART(spctr_2d_general);
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
-        printf("[%d] P%d op_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)op_C)[i]);
+        printf("[%d] P%d up_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)up_C)[i]);
       }*/
       if (is_sparse_A && move_A && (cdt_A->rank != (ib % cdt_A->np) || b_A != 1)){
         cdealloc(op_A);
@@ -453,11 +453,11 @@ new_nblk_C = nblk_C/edge_len;
       if (is_sparse_B && move_B && (cdt_B->rank != (ib % cdt_B->np)|| b_B != 1)){
         cdealloc(op_B);
       }
-      reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, op_C);
+      reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, up_C);
       if (!move_C || cdt_C->rank == (ib % cdt_C->np)){ 
         if (n_new_C_grps == 1){
           if (is_sparse_C){
-            new_C = op_C;
+            new_C = up_C;
             if (move_C){
               memcpy(size_blk_C, new_size_blk_C, new_nblk_C);
               op_C = NULL;
@@ -465,7 +465,7 @@ new_nblk_C = nblk_C/edge_len;
             }
           }
         } else {
-          new_C_grps[i_new_C_grp] = op_C;
+          new_C_grps[i_new_C_grp] = up_C;
           for (int k=0; k<ctr_lda_C; k++){
             for (int j=0; j<ctr_sub_lda_C; j++){
               size_blk_C[ctr_sub_lda_C*(k*n_new_C_grps+i_new_C_grp)+j] = new_size_blk_C[ctr_sub_lda_C*k+j];
@@ -524,7 +524,6 @@ new_nblk_C = nblk_C/edge_len;
     }
     if (move_C && is_sparse_C && C != NULL){
       char * nnew_C = sr_C->csr_add(C, new_C);
-      cdealloc(C);
       cdealloc(new_C);
       new_C = nnew_C;
     }

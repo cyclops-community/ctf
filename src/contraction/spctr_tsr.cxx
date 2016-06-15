@@ -318,6 +318,8 @@ namespace CTF_int {
       }
     }
 
+    new_C = C;
+
     switch (krnl_type){
       case 0:
       {
@@ -386,7 +388,6 @@ namespace CTF_int {
       {
         // Do mm using CSR format for A and B and C
         TAU_FSTART(CSRMULTCSR);
-        new_C = C;
         CSR_Matrix::csrmultcsr(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
                                alpha, B, sr_B, sr_C->mulid(), new_C, sr_C, func, inner_params.offload);
         size_blk_C[0] = ((CSR_Matrix)new_C).size();

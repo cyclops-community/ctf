@@ -369,11 +369,9 @@ namespace CTF{
       }
       CTF_int::CSR_Matrix C_in(C_CSR);
       if (C_CSR == NULL || C_in.nnz() == 0){
-        if (C_CSR != NULL) CTF_int::cdealloc(C_CSR);
         C_CSR = C.all_data;
       } else {
         char * ans = CTF_int::CSR_Matrix::csr_add(C_CSR, C.all_data, this);
-        CTF_int::cdealloc(C_CSR);
         CTF_int::cdealloc(C.all_data);
         C_CSR = ans;
       }

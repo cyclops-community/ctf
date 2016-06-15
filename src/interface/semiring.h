@@ -620,14 +620,12 @@ namespace CTF {
           this->scal(C.nnz(), (char const *)&alpha, C.vals(), 1);
         }
         if (C_CSR == NULL || C_in.nnz() == 0 || this->isequal((char const *)&beta, this->addid())){
-          if (C_CSR != NULL) CTF_int::cdealloc(C_CSR);
           C_CSR = C.all_data;
         } else {
           if (!this->isequal((char const *)&beta, this->mulid())){
             this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1);
           }
           char * ans = this->csr_add(C_CSR, C.all_data);
-          CTF_int::cdealloc(C_CSR);
           CTF_int::cdealloc(C.all_data);
           C_CSR = ans;
         }

@@ -495,7 +495,6 @@ namespace CTF {
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (dtype*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info); \
  \
     if (beta == this->taddid){ \
-      if (C_CSR != NULL) cdealloc(C_CSR); \
       C_CSR = C_add.all_data; \
     } else { \
       if (C_CSR != NULL && beta != this->tmulid){ \
@@ -508,7 +507,6 @@ namespace CTF {
         C_CSR = C_add.all_data; \
       } else { \
         char * C_ret = csr_add(C_CSR, C_add.all_data); \
-        cdealloc(C_CSR); \
         cdealloc(C_add.all_data); \
         C_CSR = C_ret; \
       } \
