@@ -5,7 +5,6 @@
 
 #define TEST_SUITE
 #include "../examples/weigh_4D.cxx"
-#include "../examples/gemm.cxx"
 #include "../examples/gemm_4D.cxx"
 #include "../examples/scalar.cxx"
 #include "../examples/trace.cxx"
@@ -36,15 +35,13 @@
 #include "../examples/bivar_function_cust.cxx"
 #include "../examples/bivar_transform.cxx"
 #include "../examples/spmv.cxx"
-#include "../examples/spmm.cxx"
-#include "../examples/spmspm.cxx"
-#include "../examples/spgemm.cxx"
 #include "../examples/jacobi.cxx"
 #include "../examples/sssp.cxx"
 #include "../examples/apsp.cxx"
 #include "../examples/btwn_central.cxx"
 #include "../examples/sparse_mp3.cxx"
 #include "../examples/bitonic.cxx"
+#include "../examples/matmul.cxx"
 
 using namespace CTF;
 
@@ -109,20 +106,20 @@ int main(int argc, char ** argv){
     pass.push_back(ccsdt_t3_to_t2(n, n+1, dw));
     
     if (rank == 0)
-      printf("Testing non-symmetric: NS = NS*NS gemm with n = %d:\n",n*n);
-    pass.push_back(gemm(n*n, n*n, n*n, NS, 1, dw));
+      printf("Testing non-symmetric: NS = NS*NS matmul with n = %d:\n",n*n);
+    pass.push_back(matmul(n*n, n*n, n*n, dw));
 
     if (rank == 0)
-      printf("Testing symmetric: SY = SY*SY gemm with n = %d:\n",n*n);
-    pass.push_back(gemm(n*n, n*n, n*n, SY, 1, dw));
+      printf("Testing symmetric: SY = SY*SY matmul with n = %d:\n",n*n);
+    pass.push_back(matmul(n*n, n*n, n*n, dw, SY, SY, SY));
 
     if (rank == 0)
-      printf("Testing (anti-)skew-symmetric: AS = AS*AS gemm with n = %d:\n",n*n);
-    pass.push_back(gemm(n*n, n*n, n*n, AS, 1, dw));
+      printf("Testing (anti-)skew-symmetric: AS = AS*AS matmul with n = %d:\n",n*n);
+    pass.push_back(matmul(n*n, n*n, n*n, dw, AS, AS, AS));
     
     if (rank == 0)
-      printf("Testing symmetric-hollow: SH = SH*SH gemm with n = %d:\n",n*n);
-    pass.push_back(gemm(n*n, n*n, n*n, SH, 1, dw));
+      printf("Testing symmetric-hollow: SH = SH*SH matmul with n = %d:\n",n*n);
+    pass.push_back(matmul(n*n, n*n, n*n, dw, SH, SH, SH));
 
     if (rank == 0)
       printf("Testing non-symmetric: NS = NS*NS 4D gemm with n = %d:\n",n);
@@ -267,15 +264,15 @@ int main(int argc, char ** argv){
     
     if (rank == 0)
       printf("Testing sparse-matrix times matrix with n=%d k=%d:\n",n*n,n);
-    pass.push_back(spmm(n*n,n,dw));
+    pass.push_back(matmul(n*n,n,n*n,dw,NS,NS,NS,.3));
     
     if (rank == 0)
-      printf("Testing sparse-matrix times sparse-matrix with n=%d k=%d m=%d:\n",n,n*n,n+1);
-    pass.push_back(spmspm(n,n*n,n+1,dw,.7,0,0));
+      printf("Testing sparse-matrix times sparse-matrix with m=%d n=%d k=%d:\n",n,n*n,n+1);
+    pass.push_back(matmul(n,n*n,n+1,dw,NS,NS,NS,.3,.3));
 
     if (rank == 0)
-      printf("Testing sparse=sparse*sparse (spgemm) with n=%d k=%d m=%d:\n",n,n*n,n+1);
-    pass.push_back(spgemm(n,n*n,n+1,dw));
+      printf("Testing sparse=sparse*sparse (spgemm) with m=%d n=%d k=%d:\n",n,n*n,n+1);
+    pass.push_back(matmul(n,n*n,n+1,dw,NS,NS,NS,.3,.3,.3));
 
     if (rank == 0)
       printf("Testing Jacobi iteration with n=%d:\n",n);
@@ -295,7 +292,7 @@ int main(int argc, char ** argv){
     
     if (rank == 0)
       printf("Testing dense and sparse MP3 calculation %d occupied and %d virtual orbitals:\n",n,2*n);
-    pass.push_back(sparse_mp3(n,2*n,dw));
+    pass.push_back(sparse_mp3(2*n,n,dw));
     
     /*int logn = log2(n)+1;
     if (rank == 0)

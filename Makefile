@@ -12,11 +12,11 @@ export LIBS
 all: $(BDIR)/lib/libctf.a
 
 
-EXAMPLES = dft dft_3D gemm gemm_4D scalar trace weigh_4D subworld_gemm \
+EXAMPLES = matmul dft dft_3D gemm_4D scalar trace weigh_4D subworld_gemm \
            permute_multiworld strassen slice_gemm ccsd sparse_permuted_slice qinformatics endomorphism endomorphism_cust endomorphism_cust_sp \
-           univar_function univar_transform_cust univar_transform_cust_sp spmv spmm jacobi apsp fft \
+           univar_function univar_transform_cust univar_transform_cust_sp spmv jacobi apsp fft \
            sparse_mp3 bivar_function bivar_transform bivar_function_cust bitonic \
-           btwn_central sssp scan spmspm spgemm
+           btwn_central sssp scan 
 
 TESTS = test_suite pgemm_test nonsq_pgemm_test diag_sym sym3 readwrite_test \
         ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test  sy_times_ns repack \
