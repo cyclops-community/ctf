@@ -354,6 +354,7 @@ namespace CTF_int {
 
   int contraction::can_fold(){
     int nfold, * fold_idx, i, j;
+    if (!is_sparse() && is_custom) return 0;
     for (i=0; i<A->order; i++){
       for (j=i+1; j<A->order; j++){
         if (idx_A[i] == idx_A[j]) return 0;
@@ -2479,7 +2480,7 @@ namespace CTF_int {
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
   #if FOLD_TSR
-        if ((!is_custom || func->has_kernel) && can_fold()){
+        if (can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           ctr * sctrf = construct_ctr(1, &prm);
@@ -2669,7 +2670,7 @@ namespace CTF_int {
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
   #if FOLD_TSR
-        if ((!is_custom || func->has_kernel) && can_fold()){
+        if (can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           ctr * sctrf = construct_ctr(1, &prm);
@@ -4112,7 +4113,7 @@ namespace CTF_int {
     ASSERT(check_mapping());
     bool is_inner = false;
   #if FOLD_TSR
-    if (!is_custom || func->has_kernel) is_inner = can_fold();
+    is_inner = can_fold();
     if (is_inner){
       iparam prm;
       TAU_FSTART(map_fold);

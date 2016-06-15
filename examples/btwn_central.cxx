@@ -29,25 +29,31 @@ namespace CTF {
   * \param[in] b number of source vertices for which to compute Bellman Ford at a time
   * \param[out] v vector that will contain centrality scores for each vertex
   * \param[in] nbatches, number of batches (sets of nodes of size b) to compute on (0 means all)
+  * \param[in] sp_B whether to store second operand as sparse
+  * \param[in] sp_C whether to store output as sparse
   */
-void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
+void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, bool sp_B=true, bool sp_C=true){
+  assert(sp_B || !sp_C);
   World dw = *A.wrld;
   int n = A.nrow;
 
   Semiring<mpath> p = get_mpath_semiring();
   Monoid<cpath> cp = get_cpath_monoid();
 
+  ((Transform<int>)([=](int& w){ w = INT_MAX/2; }))(A["ii"]);
 
   for (int ib=0; ib<n && (nbatches == 0 || ib/b<nbatches); ib+=b){
     int k = std::min(b, n-ib);
 
     //initialize shortest mpath vectors from the next k sources to the corresponding columns of the adjacency matrices and loops with weight 0
-    ((Transform<int>)([=](int& w){ w = 0; }))(A["ii"]);
+    //((Transform<int>)([=](int& w){ w = 0; }))(A["ii"]);
     Tensor<int> iA = A.slice(ib*n, (ib+k-1)*n+n-1);
-    ((Transform<int>)([=](int& w){ w = INT_MAX/2; }))(A["ii"]);
 
     //let shortest mpaths vectors be mpaths
-    Matrix<mpath> B(n, k, dw, p, "B");
+    int atr_C = 0;
+    if (sp_C) atr_C = atr_C | SP;
+    Matrix<mpath> B(n, k, atr_C, dw, p, "B");
+    Matrix<mpath> all_B(n, k, dw, p, "all_B");
     B["ij"] = ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
 
     Bivar_Function<int,mpath,mpath> * Bellman = get_Bellman_kernel();
@@ -58,26 +64,42 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
 #ifndef TEST_SUITE
     double sbl = MPI_Wtime();
 #endif
+    all_B["ij"] = B["ij"]; 
     for (int i=0; i<n; i++, nbl++){
       Matrix<mpath> C(B);
       B.set_zero();
+      if (sp_B || sp_C){
+        C.sparsify([](mpath p){ return p.w < INT_MAX/2; });
+       // printf("nnz_tot = %ld\n",C.nnz_tot);
+        if (C.nnz_tot == 0) break;
+      }
       CTF::Timer tbl("Bellman");
       tbl.start();
       (*Bellman)(A["ik"],C["kj"],B["ij"]);
       tbl.stop();
-//      B["ij"] = ((Function<int,mpath,mpath>)([](int w, mpath p){ return mpath(p.w+w, p.m); }))(A["ik"],B["kj"]);
-      B["ij"] += ((Function<int,mpath>)([](int w){ return mpath(w, 1); }))(iA["ij"]);
-      Scalar<int> num_changed = Scalar<int>();
-      num_changed[""] += ((Function<mpath,mpath,int>)([](mpath p, mpath q){ return (p.w!=q.w) | (p.m!=q.m); }))(C["ij"],B["ij"]);
-      if (num_changed.get_val() == 0) break;
+      B["ij"]+=all_B["ij"];
+      C["ij"]=B["ij"];
+      ((Transform<mpath,mpath>)([](mpath p, mpath & q){ if (p.w<q.w || (p.w==q.w && p.m==q.m)) q.w = INT_MAX/2; else if (p.w==q.w) q.m -= p.m; } ))(all_B["ij"],B["ij"]);
+      ((Transform<mpath,mpath>)([](mpath p, mpath & q){ if (p.w <= q.w){ if (p.w < q.w || p.m > q.m){ q=p; } } }))(C["ij"],all_B["ij"]); 
+      if (!sp_B && !sp_C){
+        Scalar<int> num_changed(dw); 
+        num_changed[""] += ((Function<mpath,mpath,int>)([](mpath p, mpath q){ return (p.w!=q.w) | (p.m!=q.m); }))(C["ij"],B["ij"]);
+        if (num_changed.get_val() == 0) break;
+      }
     }
+    Matrix<mpath> speye(n,n,SP,dw,p);
+    Scalar<mpath> sm(mpath(0,1),dw,p);
+    speye["ii"] = sm[""];
+    Tensor<int> ispeye = speye.slice(ib*n, (ib+k-1)*n+n-1);
+    all_B["ij"] += ispeye["ij"];
+    
 #ifndef TEST_SUITE
     double tbl = MPI_Wtime() - sbl;
 #endif
 
     //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
     Matrix<cpath> cB(n, k, dw, cp, "cB");
-    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, 1./p.m, 0.); }))(B["ij"],cB["ij"]);
+    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, 1./p.m, 0.); }))(all_B["ij"],cB["ij"]);
     Bivar_Function<int,cpath,cpath> * Brandes = get_Brandes_kernel();
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     int nbr = 0;
@@ -85,7 +107,10 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
     double sbr = MPI_Wtime();
 #endif
     for (int i=0; i<n; i++, nbr++){
+//      Matrix<cpath> C(cB);
       Matrix<cpath> C(cB);
+      C.sparsify();
+      //printf("nnz tot is %ld\n",C.nnz_tot);
       cB.set_zero();
       CTF::Timer tbr("Brandes");
       tbr.start();
@@ -93,7 +118,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0){
       tbr.stop();
       ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ 
         cp = (p.w <= cp.w) ? cpath(p.w, 1./p.m, cp.c*p.m) : cpath(p.w, 1./p.m, 0.); 
-      }))(B["ij"],cB["ij"]);
+      }))(all_B["ij"],cB["ij"]);
       Scalar<int> num_changed = Scalar<int>();
       num_changed[""] += ((Function<cpath,cpath,int>)([](cpath p, cpath q){ return p.c!=q.c; }))(C["ij"],cB["ij"]);
       if (num_changed.get_val() == 0) break;
@@ -170,7 +195,9 @@ int btwn_cnt(int     n,
              double  sp=.20,
              int     bsize=2,
              int     nbatches=1,
-             int     test=0){
+             int     test=0,
+             bool    sp_B=1,
+             bool    sp_C=1){
 
   //tropical semiring, define additive identity to be INT_MAX/2 to prevent integer overflow
   Semiring<int> s(INT_MAX/2, 
@@ -226,9 +253,9 @@ int btwn_cnt(int     n,
   if (test || n<= 20){
     btwn_cnt_naive(A, v1);
     //compute centrality scores by Bellman Ford with block size bsize
-    btwn_cnt_fast(A, bsize, v2);
-    //v1.print();
-    //v2.print();
+    btwn_cnt_fast(A, bsize, v2, 0, sp_B, sp_C);
+//    v1.print();
+  //  v2.print();
     v1["i"] -= v2["i"];
     int pass = v1.norm2() <= 1.E-6;
 
@@ -274,6 +301,7 @@ char* getCmdOption(char ** begin,
 
 int main(int argc, char ** argv){
   int rank, np, n, pass, bsize, nbatches, test;
+  bool sp_B, sp_C;
   double sp;
   int const in_num = argc;
   char ** input_str = argv;
@@ -303,6 +331,14 @@ int main(int argc, char ** argv){
     test = atoi(getCmdOption(input_str, input_str+in_num, "-test"));
     if (test < 0) test = 0;
   } else test = 0;
+  if (getCmdOption(input_str, input_str+in_num, "-sp_B")){
+    sp_B = atoi(getCmdOption(input_str, input_str+in_num, "-sp_B"));
+    if (sp_B < 0 || sp_B > 1) sp_B = 1;
+  } else sp_B = 1;
+  if (getCmdOption(input_str, input_str+in_num, "-sp_C")){
+    sp_C = atoi(getCmdOption(input_str, input_str+in_num, "-sp_C"));
+    if (sp_C < 0 || sp_C > 1) sp_C = 1;
+  } else sp_C = 1;
 
 
 
@@ -310,9 +346,9 @@ int main(int argc, char ** argv){
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Computing betweenness centrality for graph with %d nodes, with %lf percent sparsity, and batch size %d\n",n,sp,bsize);
+      printf("Computing betweenness centrality for graph with %d nodes, with %lf percent sparsity, and batch size %d, second operand sparsity set to %d, output sparsity set to %d\n",n,sp,bsize,sp_B,sp_C);
     }
-    pass = btwn_cnt(n, dw, sp, bsize, nbatches, test);
+    pass = btwn_cnt(n, dw, sp, bsize, nbatches, test, sp_B, sp_C);
     //assert(pass);
   }
 
