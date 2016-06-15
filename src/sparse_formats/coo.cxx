@@ -214,7 +214,7 @@ namespace CTF_int {
     int const * rs = cA.rows();
     int const * cs = cA.cols();
     char const * vs = cA.vals();
-    if (func != NULL && func->has_gemm){
+    if (func != NULL){
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
       func->ccoomm(m,n,k,vs,rs,cs,nz,B,C);

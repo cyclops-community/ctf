@@ -152,14 +152,14 @@ namespace CTF{
   class Bivar_Kernel : public Monoid_Kernel<dtype_C, g>, public Bivar_Function<dtype_A, dtype_B, dtype_C> {
     public:
     Bivar_Kernel() : Bivar_Function<dtype_A, dtype_B, dtype_C>(f) {
-      this->has_gemm = true;
+      this->has_kernel = true;
 #ifdef __CUDACC__
       this->has_off_gemm = true;
 #endif
     }
 
     Bivar_Kernel(bool is_comm) : Bivar_Function<dtype_A, dtype_B, dtype_C>(f, is_comm) {
-      this->has_gemm = true;
+      this->has_kernel = true;
 #ifdef __CUDACC__
       this->has_off_gemm = true;
 #endif
@@ -256,19 +256,6 @@ namespace CTF{
       }
       TAU_FSTOP(3type_csrmm);
     }
-
-    void ccsrmm(int          m,
-                int          n,
-                int          k,
-                char const * A,
-                int const *  JA,
-                int const *  IA,
-                int64_t      nnz_A,
-                char const * B,
-                char *       C) const {
-      csrmm(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B, (dtype_C *)C);
-    }
-
     void cgemm(char         tA,
                char         tB,
                int          m,
@@ -393,9 +380,42 @@ namespace CTF{
                   int const *  JB,
                   int const *  IB,
                   int          nnz_B,
-                  char *       C) const {
+                  char *       C,
+                  CTF_int::algstrct const * sr_C) const {
       csrmultd(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B,JB,IB,nnz_B,(dtype_C *)C);
     }
+
+    void ccsrmultcsr
+              (int          m,
+               int          n,
+               int          k,
+               char const * A,
+               int const *  JA,
+               int const *  IA,
+               int          nnz_A,
+               char const * B,
+               int const *  JB,
+               int const *  IB,
+               int          nnz_B,
+               char *&      C_CSR,
+               CTF_int::algstrct const * sr_C) const {
+      csrmultcsr(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B, JB, IB, nnz_B, C_CSR);
+    }
+
+    void ccsrmm(int          m,
+                int          n,
+                int          k,
+                char const * A,
+                int const *  JA,
+                int const *  IA,
+                int64_t      nnz_A,
+                char const * B,
+                char *       C,
+                CTF_int::algstrct const * sr_C) const {
+      csrmm(m,n,k,(dtype_A const *)A,JA,IA,nnz_A,(dtype_B const *)B, (dtype_C *)C);
+    }
+
+
 
     static void offload_gemm(char            tA,
                              char            tB,

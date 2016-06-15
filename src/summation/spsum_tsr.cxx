@@ -840,6 +840,10 @@ namespace CTF_int {
       rB.permute(new_nnz_B, order, lens_new, new_lda_B, wB);
       PairIterator mwB = wB;
       for (int v=0; v<nvirt_B; v++){
+        /*for (int i=0; i<nnz_blk_B[v]; i++){
+          printf("i=%d/%ld\n",i,nnz_blk_B[v]);
+          sr_B->print(mwB[i].d());
+        }*/
         mwB.sort(nnz_blk_B[v]);
         mwB = mwB[nnz_blk_B[v]];
       }

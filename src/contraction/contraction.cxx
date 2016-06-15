@@ -730,7 +730,7 @@ namespace CTF_int {
     permute_target(tfC->order, fnew_ord_C, tC->inner_ordering);
  
     if (do_transp){
-      bool csr_or_coo = B->is_sparse || C->is_sparse || (is_custom && func->has_gemm) || !A->sr->has_coo_ker;
+      bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
       nvirt_A = A->calc_nvirt();
       if (!A->is_sparse){
         for (i=0; i<nvirt_A; i++){
@@ -2479,7 +2479,7 @@ namespace CTF_int {
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
   #if FOLD_TSR
-        if ((!is_custom || func->has_gemm) && can_fold()){
+        if ((!is_custom || func->has_kernel) && can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           ctr * sctrf = construct_ctr(1, &prm);
@@ -2669,7 +2669,7 @@ namespace CTF_int {
           est_time = sctr->est_time_rec(sctr->num_lyr);
         }
   #if FOLD_TSR
-        if ((!is_custom || func->has_gemm) && can_fold()){
+        if ((!is_custom || func->has_kernel) && can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           ctr * sctrf = construct_ctr(1, &prm);
@@ -3775,7 +3775,7 @@ namespace CTF_int {
     if (is_inner){
       ASSERT(!(!A->is_sparse && (B->is_sparse || C->is_sparse)));
       if (A->is_sparse && !B->is_sparse && !C->is_sparse){
-        if ((is_custom && func->has_gemm) || !A->sr->has_coo_ker) krnl_type = 2;
+        if (is_custom || !A->sr->has_coo_ker) krnl_type = 2;
         else krnl_type = 1;
       } 
       if (A->is_sparse && B->is_sparse && !C->is_sparse){
@@ -4112,7 +4112,7 @@ namespace CTF_int {
     ASSERT(check_mapping());
     bool is_inner = false;
   #if FOLD_TSR
-    if (!is_custom || func->has_gemm) is_inner = can_fold();
+    if (!is_custom || func->has_kernel) is_inner = can_fold();
     if (is_inner){
       iparam prm;
       TAU_FSTART(map_fold);

@@ -159,7 +159,6 @@ namespace CTF_int{
                        int64_t &               new_size_B,
                        algstrct const *        sr_B,
                        univar_function const * func){
-    printf("not implted\n");
     assert(0);
   }
 
@@ -220,6 +219,10 @@ namespace CTF_int{
     //    t, w, and n are incremented within
     // only incrementing r allows multiple writes of the same val
     for (int64_t t=0,ww=0,n=0; n<nnew; n++){
+      /*if (n>0){ 
+        printf("n=%ld\n",n-1);
+        sr_A->print(prs_new[n-1].d());
+      }*/
       int64_t w = ww/map_pfx;
       int64_t mw = ww%map_pfx;
       if (t<nB && (w==nA || prs_B[t].k() < prs_A[w].k()*map_pfx+mw)){
@@ -240,7 +243,7 @@ namespace CTF_int{
               sr_A->mul(prs_new[n].d(), alpha, prs_new[n].d());
           } else {
             //((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k();
-            ((int64_t*)prs_new.ptr)[0] = prs_A[w].k()*map_pfx+mw; 
+            ((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k()*map_pfx+mw; 
             if (alpha != NULL){
               char a[sr_A->el_size];
               sr_A->mul(prs_A[w].d(), alpha, a);

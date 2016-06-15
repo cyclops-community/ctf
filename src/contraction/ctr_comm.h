@@ -15,7 +15,7 @@ namespace CTF_int{
    */
   class bivar_function {
     public:
-      bool has_gemm;
+      bool has_kernel;
       bool has_off_gemm;
       bool commutative;
 
@@ -53,8 +53,8 @@ namespace CTF_int{
       */
       Bifun_Term operator()(Term const & A, Term const & B) const;
       
-      bivar_function(){ has_gemm = false; has_off_gemm = false; commutative = false; }
-      bivar_function(bool is_comm){ has_gemm = false; has_off_gemm = false; commutative = is_comm; }
+      bivar_function(){ has_kernel = false; has_off_gemm = false; commutative = false; }
+      bivar_function(bool is_comm){ has_kernel = false; has_off_gemm = false; commutative = is_comm; }
 
       virtual ~bivar_function(){}
       
@@ -89,15 +89,48 @@ namespace CTF_int{
                         char *       C) const { assert(0); }
 
 
-    virtual void ccsrmm(int          m,
-                        int          n,
-                        int          k,
-                        char const * a,
-                        int const *  ja,
-                        int const *  ia,
-                        int64_t      nnz_a,
-                        char const * b,
-                        char *       c) const { int *r = NULL; r[0] = 23; assert(0); }
+    virtual void ccsrmm
+               (int              m,
+                int              n,
+                int              k,
+                char const *     A,
+                int const *      JA,
+                int const *      IA,
+                int64_t          nnz_A,
+                char const *     B,
+                char *           C,
+                algstrct const * sr_C) const { assert(0); }
+
+    virtual void ccsrmultd
+                 (int              m,
+                  int              n,
+                  int              k,
+                  char const *     A,
+                  int const *      JA,
+                  int const *      IA,
+                  int              nnz_A,
+                  char const *     B,
+                  int const *      JB,
+                  int const *      IB,
+                  int              nnz_B,
+                  char *           C,
+                  algstrct const * sr_C) const { assert(0); }
+
+    virtual void ccsrmultcsr
+              (int              m,
+               int              n,
+               int              k,
+               char const *     A,
+               int const *      JA,
+               int const *      IA,
+               int              nnz_A,
+               char const *     B,
+               int const *      JB,
+               int const *      IB,
+               int              nnz_B,
+               char *&          C_CSR,
+               algstrct const * sr_C) const { assert(0); }
+
 
     virtual void coffload_csrmm(int          m,
                                 int          n,
@@ -105,20 +138,6 @@ namespace CTF_int{
                                 char const * all_data,
                                 char const * B,
                                 char *       C) const { assert(0); }
-
-    virtual void ccsrmultd
-                 (int          m,
-                  int          n,
-                  int          k,
-                  char const * A,
-                  int const *  JA,
-                  int const *  IA,
-                  int          nnz_A,
-                  char const * B,
-                  int const *  JB,
-                  int const *  IB,
-                  int          nnz_B,
-                  char *       C) const { assert(0); }
 
 
   };

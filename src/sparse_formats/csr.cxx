@@ -122,7 +122,7 @@ namespace CTF_int {
   } 
 
   void CSR_Matrix::csrmm(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
-    if (func != NULL && func->has_gemm && do_offload){
+    if (func != NULL && func->has_off_gemm && do_offload){
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
       func->coffload_csrmm(m,n,k,A,B,C);
@@ -132,10 +132,10 @@ namespace CTF_int {
       int const * ja = cA.JA();
       int const * ia = cA.IA();
       char const * vs = cA.vals();
-      if (func != NULL && func->has_gemm){
+      if (func != NULL){
         assert(sr_C->isequal(beta, sr_C->mulid()));
         assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
-        func->ccsrmm(m,n,k,vs,ja,ia,nz,B,C);
+        func->ccsrmm(m,n,k,vs,ja,ia,nz,B,C,sr_C);
       } else {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
@@ -146,7 +146,7 @@ namespace CTF_int {
   }
 
   void CSR_Matrix::csrmultd(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char * C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
-    if (func != NULL && func->has_gemm && do_offload){
+    if (func != NULL && func->has_off_gemm && do_offload){
       assert(0);
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
@@ -161,10 +161,10 @@ namespace CTF_int {
       int const * jB = cB.JA();
       int const * iB = cB.IA();
       char const * vsB = cB.vals();
-      if (func != NULL && func->has_gemm){
-        assert(0);
+      if (func != NULL){
         assert(sr_C->isequal(beta, sr_C->mulid()));
         assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+        func->ccsrmultd(m,n,k,vsA,jA,iA,nzA,vsB,jB,iB,nzB,C,sr_C);
       } else {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
@@ -176,7 +176,7 @@ namespace CTF_int {
   }
 
   void CSR_Matrix::csrmultcsr(char const * A, algstrct const * sr_A, int m, int n, int k, char const * alpha, char const * B, algstrct const * sr_B, char const * beta, char *& C, algstrct const * sr_C, bivar_function const * func, bool do_offload){
-    if (func != NULL && func->has_gemm && do_offload){
+    if (func != NULL && func->has_off_gemm && do_offload){
       assert(0);
       assert(sr_C->isequal(beta, sr_C->mulid()));
       assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
@@ -191,10 +191,10 @@ namespace CTF_int {
       int const * jB = cB.JA();
       int const * iB = cB.IA();
       char const * vsB = cB.vals();
-      if (func != NULL && func->has_gemm){
-        assert(0);
+      if (func != NULL){
         assert(sr_C->isequal(beta, sr_C->mulid()));
         assert(alpha == NULL || sr_C->isequal(alpha, sr_C->mulid()));
+        func->ccsrmultcsr(m,n,k,vsA,jA,iA,nzA,vsB,jB,iB,nzB,C,sr_C);
       } else {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
