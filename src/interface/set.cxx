@@ -47,7 +47,7 @@ namespace CTF_int {
       int job[8]={2,1,1,0,inz,0,0,0};
       CTF_BLAS::MKL_ZCSRCOO(job, &nrow, csr_vs, csr_ja, csr_ia, &inz, (std::complex<double>*)coo_vs, coo_rs, coo_cs, &info);
     } else {
-      int job[8]={0,1,1,0,inz,2,0,0};
+      int job[8]={0,1,1,0,inz,3,0,0};
       CTF_BLAS::MKL_ZCSRCOO(job, &nrow, csr_vs, csr_ja, csr_ia, &inz, (std::complex<double>*)coo_vs, coo_rs, coo_cs, &info);
     }
   }
@@ -58,18 +58,19 @@ namespace CTF_int {
     switch (el_size){
       case 4:
         def_coo_to_csr_fl(nz,nrow,(float*)csr_vs,csr_ja,csr_ia,(float*)coo_vs,(int*)coo_rs,(int*)coo_cs,1);
+        return true; 
         break;
       case 8:
         def_coo_to_csr_dbl(nz,nrow,(double*)csr_vs,csr_ja,csr_ia,(double*)coo_vs,(int*)coo_rs,(int*)coo_cs,1);
+        return true; 
         break;
       case 16:
         def_coo_to_csr_cdbl(nz,nrow,(std::complex<double>*)csr_vs,csr_ja,csr_ia,(std::complex<double>*)coo_vs,(int*)coo_rs,(int*)coo_cs,1);
+        return true; 
         break;
     } 
-    return true; 
-#else
-    return false;
 #endif
+    return false;
   }
 
 
@@ -78,18 +79,19 @@ namespace CTF_int {
     switch (el_size){
       case 4:
         def_coo_to_csr_fl(nz,nrow,(float*)csr_vs,(int*)csr_ja,(int*)csr_ia,(float*)coo_vs,coo_rs,coo_cs,0);
+        return true; 
         break;
       case 8:
         def_coo_to_csr_dbl(nz,nrow,(double*)csr_vs,(int*)csr_ja,(int*)csr_ia,(double*)coo_vs,coo_rs,coo_cs,0);
+        return true; 
         break;
       case 16:
         def_coo_to_csr_cdbl(nz,nrow,(std::complex<double>*)csr_vs,(int*)csr_ja,(int*)csr_ia,(std::complex<double>*)coo_vs,coo_rs,coo_cs,0);
+        return true; 
         break;
     } 
-    return true; 
-#else 
-    return false;
 #endif
+    return false;
   }
 
 }

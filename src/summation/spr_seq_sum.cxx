@@ -247,6 +247,7 @@ namespace CTF_int{
             if (alpha != NULL){
               char a[sr_A->el_size];
               sr_A->mul(prs_A[w].d(), alpha, a);
+              prs_new[n].write_val(sr_B->addid());
               func->apply_f(a, prs_new[n].d());
             }
           }

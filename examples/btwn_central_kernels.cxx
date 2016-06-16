@@ -25,7 +25,7 @@ void cfunc(cpath a, cpath & b){
 
 DEVICE HOST
 cpath subw(int w, cpath p){
-  return cpath(p.w-w , p.m, p.m+p.c*p.m);
+  return cpath(p.w-w , p.m, p.c*p.m);
 }
 
 Bivar_Function<int,cpath,cpath> * get_Brandes_kernel(){

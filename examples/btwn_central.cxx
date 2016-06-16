@@ -40,8 +40,14 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
   Semiring<mpath> p = get_mpath_semiring();
   Monoid<cpath> cp = get_cpath_monoid();
 
-  ((Transform<int>)([=](int& w){ w = INT_MAX/2; }))(A["ii"]);
 
+  Matrix<mpath> speye(n,n,SP,dw,p);
+  Scalar<mpath> sm(mpath(0,1),dw,p);
+  speye["ii"] = sm[""];
+  Matrix<cpath> cspeye(n,n,SP,dw,cp);
+  Scalar<cpath> csm(cpath(-INT_MAX/2,1,0),dw,cp);
+  cspeye["ii"] = csm[""];
+  ((Transform<int>)([=](int& w){ w = INT_MAX/2; }))(A["ii"]);
   for (int ib=0; ib<n && (nbatches == 0 || ib/b<nbatches); ib+=b){
     int k = std::min(b, n-ib);
 
@@ -71,7 +77,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
       if (sp_B || sp_C){
         C.sparsify([](mpath p){ return p.w < INT_MAX/2; });
        // printf("nnz_tot = %ld\n",C.nnz_tot);
-        if (C.nnz_tot == 0) break;
+        if (C.nnz_tot == 0){ nbl--; break; }
       }
       CTF::Timer tbl("Bellman");
       tbl.start();
@@ -83,14 +89,11 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
       ((Transform<mpath,mpath>)([](mpath p, mpath & q){ if (p.w <= q.w){ if (p.w < q.w || p.m > q.m){ q=p; } } }))(C["ij"],all_B["ij"]); 
       if (!sp_B && !sp_C){
         Scalar<int> num_changed(dw); 
-        num_changed[""] += ((Function<mpath,mpath,int>)([](mpath p, mpath q){ return (p.w!=q.w) | (p.m!=q.m); }))(C["ij"],B["ij"]);
+        num_changed[""] += ((Function<mpath,int>)([](mpath p){ return p.w<INT_MAX/2; }))(B["ij"]);
         if (num_changed.get_val() == 0) break;
       }
     }
-    Matrix<mpath> speye(n,n,SP,dw,p);
-    Scalar<mpath> sm(mpath(0,1),dw,p);
-    speye["ii"] = sm[""];
-    Tensor<int> ispeye = speye.slice(ib*n, (ib+k-1)*n+n-1);
+    Tensor<mpath> ispeye = speye.slice(ib*n, (ib+k-1)*n+n-1);
     all_B["ij"] += ispeye["ij"];
     
 #ifndef TEST_SUITE
@@ -98,31 +101,39 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
 #endif
 
     //transfer shortest mpath data to Matrix of cpaths to compute c centrality scores
-    Matrix<cpath> cB(n, k, dw, cp, "cB");
-    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, 1./p.m, 0.); }))(all_B["ij"],cB["ij"]);
+    Matrix<cpath> cB(n, k, atr_C, dw, cp, "cB");
+    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, 1./p.m, 1.); }))(all_B["ij"],cB["ij"]);
+    Matrix<cpath> all_cB(n, k, dw, cp, "all_cB");
     Bivar_Function<int,cpath,cpath> * Brandes = get_Brandes_kernel();
     //compute centrality scores by propagating them backwards from the furthest nodes (reverse Bellman Ford)
     int nbr = 0;
 #ifndef TEST_SUITE
     double sbr = MPI_Wtime();
 #endif
+    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ cp = cpath(p.w, 1./p.m, 0.); }))(all_B["ij"],all_cB["ij"]);
+
     for (int i=0; i<n; i++, nbr++){
-//      Matrix<cpath> C(cB);
       Matrix<cpath> C(cB);
-      C.sparsify();
-      //printf("nnz tot is %ld\n",C.nnz_tot);
+      if (sp_B || sp_C){
+        C.sparsify([](cpath p){ return p.w > -INT_MAX/2 && p.c != 0.0; });
+//        printf("Brandes nnz tot is %ld\n",C.nnz_tot);
+        if (C.nnz_tot == 0){ nbr--; break; }
+      }
       cB.set_zero();
       CTF::Timer tbr("Brandes");
       tbr.start();
       cB["ij"] += (*Brandes)(A["ki"],C["kj"]);
       tbr.stop();
-      ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ 
-        cp = (p.w <= cp.w) ? cpath(p.w, 1./p.m, cp.c*p.m) : cpath(p.w, 1./p.m, 0.); 
-      }))(all_B["ij"],cB["ij"]);
-      Scalar<int> num_changed = Scalar<int>();
-      num_changed[""] += ((Function<cpath,cpath,int>)([](cpath p, cpath q){ return p.c!=q.c; }))(C["ij"],cB["ij"]);
-      if (num_changed.get_val() == 0) break;
+      ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ if (p.w == cp.w){ cp = cpath(p.w, 1./p.m, cp.c*p.m); } else { cp = cpath(p.w, 1./p.m, 0.0); } }))(all_B["ij"],cB["ij"]);
+      all_cB["ij"] += cB["ij"];
+
+      if (!sp_B && !sp_C){
+        Scalar<int> num_changed = Scalar<int>();
+        num_changed[""] += ((Function<cpath,int>)([](cpath p){ return p.c!=0.0; }))(cB["ij"]);
+        if (num_changed.get_val() == 0) break;
+      }
     }
+    ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ if (p.w == cp.w){ cp = cpath(p.w, 1./p.m, cp.c); } else { cp = cpath(p.w, 1./p.m, 0.0); } }))(all_B["ij"],cB["ij"]);
 #ifndef TEST_SUITE
     double tbr = MPI_Wtime() - sbr;
     if (dw.rank == 0)
@@ -130,11 +141,10 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
 #endif
     //set self-centrality scores to zero
     //FIXME: assumes loops are zero edges and there are no others zero edges in A
-    ((Transform<cpath>)([](cpath & p){ if (p.w == 0) p.c=0; }))(cB["ij"]);
-    //((Transform<cpath>)([](cpath & p){ p.c=0; }))(cB["ii"]);
+    ((Transform<cpath>)([](cpath & p){ if (p.w == 0) p.c=0; }))(all_cB["ij"]);
 
     //accumulate centrality scores
-    v["i"] += ((Function<cpath,double>)([](cpath a){ return a.c; }))(cB["ij"]);
+    v["i"] += ((Function<cpath,double>)([](cpath a){ return a.c; }))(all_cB["ij"]);
   }
 }
 
@@ -247,17 +257,15 @@ int btwn_cnt(int     n,
   double st_time = MPI_Wtime();
 
 
- // v1.print();
- // v2.print();
 
   if (test || n<= 20){
     btwn_cnt_naive(A, v1);
     //compute centrality scores by Bellman Ford with block size bsize
     btwn_cnt_fast(A, bsize, v2, 0, sp_B, sp_C);
 //    v1.print();
-  //  v2.print();
+//    v2.print();
     v1["i"] -= v2["i"];
-    int pass = v1.norm2() <= 1.E-6;
+    int pass = v1.norm2() <= n*1.E-6;
 
     if (dw.rank == 0){
       MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);

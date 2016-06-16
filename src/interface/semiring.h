@@ -326,6 +326,7 @@ namespace CTF {
         return (char const *)&tmulid;
       }
 
+      bool has_mul() const { return true; }
 
       /** \brief X["i"]=alpha*X["i"]; */
       void scal(int          n,

@@ -95,6 +95,9 @@ namespace CTF_int {
 
       /** \brief b+=a */
       virtual void accum(char const * a, char * b) const;
+
+      /** returns whether multiplication operator is present */
+      virtual bool has_mul() const { return false; }
       
       /** \brief c = a*b */
       virtual void mul(char const * a, 

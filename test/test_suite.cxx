@@ -288,7 +288,7 @@ int main(int argc, char ** argv){
 
     if (rank == 0)
       printf("Testing betweenness centrality with n=%d:\n",n);
-    pass.push_back(btwn_cnt(n,dw));
+    pass.push_back(btwn_cnt(n,dw,.2,2,1,1,1,1));
     
     if (rank == 0)
       printf("Testing dense and sparse MP3 calculation %d occupied and %d virtual orbitals:\n",n,2*n);

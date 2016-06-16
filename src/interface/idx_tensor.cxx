@@ -179,7 +179,11 @@ namespace CTF {
       std::cout << "op= tensor" << std::endl;
       assert(false);
     } else {
-      sr->safecopy(scale,sr->addid());
+      if (sr->has_mul()){
+        sr->safecopy(scale,sr->addid());
+      } else {
+        this->parent->set_zero();
+      }
       B.execute(*this);
       sr->safecopy(scale,sr->mulid());
     }
@@ -190,7 +194,11 @@ namespace CTF {
       global_schedule->add_operation(
           new TensorOperation(TENSOR_OP_SET, new Idx_Tensor(*this), B.clone()));
     } else {
-      sr->safecopy(scale,sr->addid());
+      if (sr->has_mul()){
+        sr->safecopy(scale,sr->addid());
+      } else {
+        this->parent->set_zero();
+      }
       B.execute(*this);
       sr->safecopy(scale,sr->mulid());
     }
