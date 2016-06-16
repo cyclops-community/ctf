@@ -44,9 +44,6 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
   Matrix<mpath> speye(n,n,SP,dw,p);
   Scalar<mpath> sm(mpath(0,1),dw,p);
   speye["ii"] = sm[""];
-  Matrix<cpath> cspeye(n,n,SP,dw,cp);
-  Scalar<cpath> csm(cpath(-INT_MAX/2,1,0),dw,cp);
-  cspeye["ii"] = csm[""];
   ((Transform<int>)([=](int& w){ w = INT_MAX/2; }))(A["ii"]);
   for (int ib=0; ib<n && (nbatches == 0 || ib/b<nbatches); ib+=b){
     int k = std::min(b, n-ib);
@@ -118,7 +115,6 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
         C.sparsify([](cpath p){ return p.w >= 0 && p.c != 0.0; });
 //        if (dw.rank == 0) printf("Brandes nnz_tot = %ld\n",C.nnz_tot);
         if (C.nnz_tot == 0){ nbr--; break; }
-        if (i>8){ C.print(); all_B.print(); }
       }
       cB.set_zero();
       CTF::Timer tbr("Brandes");
