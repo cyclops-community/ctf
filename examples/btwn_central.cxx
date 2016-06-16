@@ -76,7 +76,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
       B.set_zero();
       if (sp_B || sp_C){
         C.sparsify([](mpath p){ return p.w < INT_MAX/2; });
-       // printf("nnz_tot = %ld\n",C.nnz_tot);
+//        if (dw.rank == 0) printf("Bellman nnz_tot = %ld\n",C.nnz_tot);
         if (C.nnz_tot == 0){ nbl--; break; }
       }
       CTF::Timer tbl("Bellman");
@@ -115,9 +115,10 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
     for (int i=0; i<n; i++, nbr++){
       Matrix<cpath> C(cB);
       if (sp_B || sp_C){
-        C.sparsify([](cpath p){ return p.w > -INT_MAX/2 && p.c != 0.0; });
-//        printf("Brandes nnz tot is %ld\n",C.nnz_tot);
+        C.sparsify([](cpath p){ return p.w >= 0 && p.c != 0.0; });
+//        if (dw.rank == 0) printf("Brandes nnz_tot = %ld\n",C.nnz_tot);
         if (C.nnz_tot == 0){ nbr--; break; }
+        if (i>8){ C.print(); all_B.print(); }
       }
       cB.set_zero();
       CTF::Timer tbr("Brandes");
@@ -129,7 +130,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
 
       if (!sp_B && !sp_C){
         Scalar<int> num_changed = Scalar<int>();
-        num_changed[""] += ((Function<cpath,int>)([](cpath p){ return p.c!=0.0; }))(cB["ij"]);
+        num_changed[""] += ((Function<cpath,int>)([](cpath p){ return p.w >= 0 && p.c!=0.0; }))(cB["ij"]);
         if (num_changed.get_val() == 0) break;
       }
     }
@@ -137,7 +138,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
 #ifndef TEST_SUITE
     double tbr = MPI_Wtime() - sbr;
     if (dw.rank == 0)
-      printf("(%d ,%d) iter (%lf, %lf) sec\n", nbl, nbr, tbl, tbr);
+      printf("(%d, %d) iter (%lf, %lf) sec\n", nbl, nbr, tbl, tbr);
 #endif
     //set self-centrality scores to zero
     //FIXME: assumes loops are zero edges and there are no others zero edges in A

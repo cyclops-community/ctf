@@ -209,10 +209,9 @@ namespace CTF_int {
         else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
       }
     }
-    //FIXME only makes sense when one of A/B/C is sparse
-    if (is_sparse_A) flops *= nnz_frac_A*10;
-    if (is_sparse_B) flops *= nnz_frac_B*10;
-    if (is_sparse_C) flops *= nnz_frac_C*10;
+    if (is_sparse_A) flops *= nnz_frac_A*3.;
+    if (is_sparse_B) flops *= nnz_frac_B*3.;
+    //if (is_sparse_C) flops *= nnz_frac_C*10;
     ASSERT(flops >= 0.0);
     CTF_int::cdealloc(rev_idx_map);
     return flops;
@@ -235,15 +234,19 @@ namespace CTF_int {
   LinModel<3> seq_tsr_spctr_cst_off_k0(seq_tsr_spctr_cst_off_k0_init,"seq_tsr_spctr_cst_off_k0");
   LinModel<3> seq_tsr_spctr_cst_off_k1(seq_tsr_spctr_cst_off_k1_init,"seq_tsr_spctr_cst_off_k1");
   LinModel<3> seq_tsr_spctr_cst_off_k2(seq_tsr_spctr_cst_off_k2_init,"seq_tsr_spctr_cst_off_k2");
-  LinModel<3> seq_tsr_spctr_cst_k0(seq_tsr_spctr_cst_k0_init,"seq_tsr_spctr_cst_k0");
-  LinModel<3> seq_tsr_spctr_cst_k1(seq_tsr_spctr_cst_k1_init,"seq_tsr_spctr_cst_k1");
-  LinModel<3> seq_tsr_spctr_cst_k2(seq_tsr_spctr_cst_k2_init,"seq_tsr_spctr_cst_k2");
   LinModel<3> seq_tsr_spctr_off_k0(seq_tsr_spctr_off_k0_init,"seq_tsr_spctr_off_k0");
   LinModel<3> seq_tsr_spctr_off_k1(seq_tsr_spctr_off_k1_init,"seq_tsr_spctr_off_k1");
   LinModel<3> seq_tsr_spctr_off_k2(seq_tsr_spctr_off_k2_init,"seq_tsr_spctr_off_k2");
+  LinModel<3> seq_tsr_spctr_cst_k0(seq_tsr_spctr_cst_k0_init,"seq_tsr_spctr_cst_k0");
+  LinModel<3> seq_tsr_spctr_cst_k1(seq_tsr_spctr_cst_k1_init,"seq_tsr_spctr_cst_k1");
+  LinModel<3> seq_tsr_spctr_cst_k2(seq_tsr_spctr_cst_k2_init,"seq_tsr_spctr_cst_k2");
+  LinModel<3> seq_tsr_spctr_cst_k3(seq_tsr_spctr_cst_k3_init,"seq_tsr_spctr_cst_k3");
+  LinModel<3> seq_tsr_spctr_cst_k4(seq_tsr_spctr_cst_k4_init,"seq_tsr_spctr_cst_k4");
   LinModel<3> seq_tsr_spctr_k0(seq_tsr_spctr_k0_init,"seq_tsr_spctr_k0");
   LinModel<3> seq_tsr_spctr_k1(seq_tsr_spctr_k1_init,"seq_tsr_spctr_k1");
   LinModel<3> seq_tsr_spctr_k2(seq_tsr_spctr_k2_init,"seq_tsr_spctr_k2");
+  LinModel<3> seq_tsr_spctr_k3(seq_tsr_spctr_k3_init,"seq_tsr_spctr_k3");
+  LinModel<3> seq_tsr_spctr_k4(seq_tsr_spctr_k4_init,"seq_tsr_spctr_k4");
 
   double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
 //    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
@@ -276,8 +279,6 @@ namespace CTF_int {
         }
         break;
       case 2:
-      case 3:
-      case 4:
         if (is_custom){
           if (inner_params.offload)
             return seq_tsr_spctr_cst_off_k2.est_time(ps);
@@ -288,6 +289,20 @@ namespace CTF_int {
             return seq_tsr_spctr_off_k2.est_time(ps);
           else
             return seq_tsr_spctr_k2.est_time(ps);
+        }
+        break;
+      case 3:
+        if (is_custom){
+          return seq_tsr_spctr_cst_k3.est_time(ps);
+        } else {
+          return seq_tsr_spctr_k3.est_time(ps);
+        }
+        break;
+      case 4:
+        if (is_custom){
+          return seq_tsr_spctr_cst_k4.est_time(ps);
+        } else {
+          return seq_tsr_spctr_k4.est_time(ps);
         }
         break;
     }
@@ -396,25 +411,32 @@ namespace CTF_int {
       }
       break;
     }
-    double nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
-    for (int i=0; i<order_A; i++){
-      nnz_frac_A = nnz_frac_A / edge_len_A[i];
+    double nnz_frac_A = 1.0, nnz_frac_B = 1.0;
+    if (is_sparse_A){
+      size_blk_A[0]/sr_A->pair_size();
+      for (int i=0; i<order_A; i++){
+        nnz_frac_A = nnz_frac_A / edge_len_A[i];
+      }
     }
-    if (krnl_type > 0) nnz_frac_A = nnz_frac_A / (inner_params.m*inner_params.k);
+    if (is_sparse_B){
+      size_blk_B[0]/sr_B->pair_size();
+      for (int i=0; i<order_B; i++){
+        nnz_frac_B = nnz_frac_B / edge_len_B[i];
+      }
+    }
+
+    if (krnl_type > 0){
+      nnz_frac_A = nnz_frac_A / (inner_params.m*inner_params.k);
+      nnz_frac_B = nnz_frac_B / (inner_params.k*inner_params.n);
+    }
     
     double exe_time = MPI_Wtime() - st_time;
-    double tps[] = {exe_time, 1.0, (double)est_membw(nnz_frac_A, 1.0, 1.0), est_fp(nnz_frac_A, 1.0, 1.0)};
+    double tps[] = {exe_time, 1.0, (double)est_membw(nnz_frac_A, 1.0, 1.0), est_fp(nnz_frac_B, 1.0, 1.0)};
     switch (krnl_type){
       case 0:
         if (is_custom){
-          //if (inner_params.offload)
-          //  seq_tsr_spctr_cst_off_k0.observe(tps);
-          //else
           seq_tsr_spctr_cst_k0.observe(tps);
         } else {
-          //if (inner_params.offload)
-          //  seq_tsr_spctr_off_k0.observe(tps);
-          //else
           seq_tsr_spctr_k0.observe(tps);
         }
         break;
@@ -432,8 +454,6 @@ namespace CTF_int {
         }
         break;
       case 2:
-      case 3:
-      case 4:
         if (is_custom){
           if (inner_params.offload)
             seq_tsr_spctr_cst_off_k2.observe(tps);
@@ -444,6 +464,20 @@ namespace CTF_int {
             seq_tsr_spctr_off_k2.observe(tps);
           else
             seq_tsr_spctr_k2.observe(tps);
+        }
+        break;
+      case 3:
+        if (is_custom){
+          seq_tsr_spctr_cst_k3.observe(tps);
+        } else {
+          seq_tsr_spctr_k3.observe(tps);
+        }
+        break;
+      case 4:
+        if (is_custom){
+          seq_tsr_spctr_cst_k4.observe(tps);
+        } else {
+          seq_tsr_spctr_k4.observe(tps);
         }
         break;
     }
