@@ -65,7 +65,7 @@ Semiring<mpath> get_mpath_semiring(){
       1, &ompath);
 
   //tropical semiring with hops carried by winner of min
-  Semiring<mpath> p(mpath(INT_MAX/2,1), 
+  Semiring<mpath> p(mpath(INT_MAX/2,0), 
                    [](mpath a, mpath b){ 
                      if (a.w<b.w){ return a; }
                      else if (b.w<a.w){ return b; }
