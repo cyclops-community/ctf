@@ -359,7 +359,7 @@ namespace CTF_int {
       size_B = nnz_B;
       for (i=0; i<ncdt_B; i++){
         cdt_B[i]->bcast(&size_B, 1, MPI_INT64_T, 0);
-        cdt_A[i]->bcast(nnz_blk_B, nvirt_B, MPI_INT64_T, 0);
+        cdt_B[i]->bcast(nnz_blk_B, nvirt_B, MPI_INT64_T, 0);
       }
     }
 

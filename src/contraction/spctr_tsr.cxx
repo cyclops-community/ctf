@@ -306,6 +306,7 @@ namespace CTF_int {
         }
         break;
     }
+printf("krnl_type =%d\n",krnl_type);
     assert(0); //wont make it here
     return 0.0;
   }
@@ -707,10 +708,11 @@ namespace CTF_int {
             else
               rec_ctr->beta = this->beta; 
             beta_arr[off_C]       = 1;
+            char * pass_C = is_sparse_C ? buckets_C[off_C] : rec_C;
             tid_rec_ctr->run(rec_A, 1, size_blk_A+off_A,
                              rec_B, 1, size_blk_B+off_B,
                              rec_C, 1, new_sp_szs_C+off_C,
-                             buckets_C[off_C]);
+                             pass_C);
           }
 
           if (is_sparse_C){
@@ -751,7 +753,7 @@ namespace CTF_int {
       //FIXME: how to pass C back generally
       //cdealloc(C);
       cdealloc(buckets_C);
-    }
+    } else new_C = C;
     if (is_sparse_A) cdealloc(sp_offsets_A);
     if (is_sparse_B) cdealloc(sp_offsets_B);
     if (is_sparse_B) cdealloc(sp_offsets_C);

@@ -16,7 +16,7 @@ namespace CTF_int{
   void update_all_models(MPI_Comm comm);
 }
 
-void train_off_vec_mat(int64_t n, int64_t m, World & dw);
+void train_off_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C);
 
 void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   Vector<> b(n, dw);
@@ -72,7 +72,7 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
 }
 
 
-void train_sps_vec_mat(int64_t n, int64_t m, World & dw){
+void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C){
   for (double sp = .01; sp<.32; sp*=2.){
     Vector<> b(n, dw);
     Vector<> c(m, dw);
@@ -87,19 +87,28 @@ void train_sps_vec_mat(int64_t n, int64_t m, World & dw){
     b.fill_random(-.5, .5);
     c.fill_random(-.5, .5);
     A.fill_random(-.5, .5);
-    A.sparsify([=](double a){ return fabs(a)<=.5*sp; });
     B.fill_random(-.5, .5);
     A1.fill_random(-.5, .5);
     A2.fill_random(-.5, .5);
     G.fill_random(-.5, .5);
     F.fill_random(-.5, .5);
+    if (sp_A) A.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+    if (sp_B){
+      G.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      F.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+    }
+    if (sp_C){
+      b.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      B.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      c.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+    }
   
     B["ij"] += A["ik"]*G["kj"];
-    B["ij"] += A["ij"]*A1["ij"];
+    if (!sp_C) B["ij"] += A["ij"]*A1["ij"];
     B["ij"] += F["ik"]*A["kj"];
     c["i"]  += A["ij"]*b["j"];
     b["j"]  += .2*A["ij"]*c["i"];
-    b["i"]  += b["i"]*b["i"];
+    if (!sp_C) b["i"]  += b["i"]*b["i"];
   
     Function<> f1([](double a){ return a*a; });
   
@@ -155,8 +164,14 @@ void train_world(double dtime, World & dw){
     do {
 //      if (dw.rank == 0) printf("executing n= %ld m = %ld\n", n, m);
       train_dns_vec_mat(n, m, dw);
-      train_sps_vec_mat(n/2, m/2, dw);
-      train_off_vec_mat(n, m, dw);
+      train_sps_vec_mat(n/2, m/2, dw, 0, 0, 0);
+      train_sps_vec_mat(n/2, m/2, dw, 1, 0, 0);
+      train_sps_vec_mat(n/2, m/2, dw, 1, 1, 0);
+      train_sps_vec_mat(n/2, m/2, dw, 1, 1, 1);
+      train_off_vec_mat(n, m, dw, 0, 0, 0);
+      train_off_vec_mat(n, m, dw, 1, 0, 0);
+      train_off_vec_mat(n, m, dw, 1, 1, 0);
+      train_off_vec_mat(n, m, dw, 1, 1, 1);
       train_ccsd(n, m, dw);
       niter++;
       m *= 1.6;

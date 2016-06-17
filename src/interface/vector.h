@@ -32,6 +32,7 @@ namespace CTF {
        * \param[in] world_ CTF world where the tensor will live
        * \param[in] name_ an optionary name for the tensor
        * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] sr_ defines the tensor arithmetic for this tensor
        */ 
       Vector(int                       len,
              World &                   world=get_universe(),
@@ -41,14 +42,25 @@ namespace CTF {
 
       /**
        * \brief constructor for a vector
-       * \param[in] is_sparse whether vector should be treated as a sparse (tensor)
        * \param[in] len_ dimension of vector
+       * \param[in] atr quantifier for sparsity and symmetry of matrix (0 -> dense, >0 -> sparse)
        * \param[in] world_ CTF world where the tensor will live
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] sr_ defines the tensor arithmetic for this tensor
        */ 
-      Vector(bool                      is_sparse,
-             int                       len,
+      Vector(int                       len,
+             int                       atr,
+             World &                   world=get_universe(),
+             CTF_int::algstrct const & sr=Ring<dtype>());
+
+
+      /**
+       * \brief constructor for a vector
+       * \param[in] len_ dimension of vector
+       * \param[in] atr quantifier for sparsity and symmetry of matrix (0 -> dense, >0 -> sparse)
+       * \param[in] world_ CTF world where the tensor will live
+       */ 
+      Vector(int                       len,
+             int                       atr,
              World &                   world=get_universe(),
              char const *              name=NULL,
              int                       profile=0,

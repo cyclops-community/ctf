@@ -17,6 +17,8 @@ namespace CTF_int {
 #else
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW + 2.0*COST_MEMBW, 0.0};
 #endif
+  LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
+  LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
   LinModel<3> red_mdl(red_mdl_init,"red_mdl");
   LinModel<3> red_mdl_cst(red_mdl_cst_init,"red_mdl_cst");
   LinModel<3> allred_mdl(allred_mdl_init,"allred_mdl");
@@ -291,6 +293,14 @@ namespace CTF_int {
       return red_mdl_cst.est_time(ps);
   }
  
+  double CommData::estimate_csrred_time(int64_t msg_sz, MPI_Op op){
+    double ps[] = {1.0, log2((double)np), (double)msg_sz};
+    if (op >= MPI_MAX && op <= MPI_REPLACE)
+      return csrred_mdl.est_time(ps);
+    else
+      return csrred_mdl_cst.est_time(ps);
+  }
+
   
   double CommData::estimate_alltoall_time(int64_t chunk_sz) {
     double ps[] = {1.0, log2((double)np), log2((double)np)*np*chunk_sz};

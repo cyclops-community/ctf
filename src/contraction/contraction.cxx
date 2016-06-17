@@ -2466,31 +2466,40 @@ namespace CTF_int {
         B->print_map(stdout, 0);
         C->print_map(stdout, 0);
   #endif
-        ctr * sctr = construct_ctr();
+        ctr * sctr;
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
         if (A->is_sparse) nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
         if (B->is_sparse) nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
-        if (C->is_sparse) nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
-
-        if (is_ctr_sparse){
-          est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
-        } else { 
-          est_time = sctr->est_time_rec(sctr->num_lyr);
+        if (C->is_sparse){
+          nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
+          nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
+          nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
         }
+
   #if FOLD_TSR
         if (can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
-          ctr * sctrf = construct_ctr(1, &prm);
-          est_time += sctrf->est_time_rec(sctrf->num_lyr);
-          delete sctrf;
+          sctr = construct_ctr(1, &prm);
+          if (is_ctr_sparse)
+            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+          else
+            est_time = sctr->est_time_rec(sctr->num_lyr);
           A->remove_fold();
           B->remove_fold();
           C->remove_fold();
-        }
+        } else 
   #endif
+        {
+          sctr = construct_ctr();
+          if (is_ctr_sparse){
+            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+          } else { 
+            est_time = sctr->est_time_rec(sctr->num_lyr);
+          }
+        }
   #if DEBUG >= 4
         printf("mapping passed contr est_time = %E sec\n", est_time);
   #endif 
@@ -2657,30 +2666,36 @@ namespace CTF_int {
         C->print_map(stdout, 0);
   #endif
 
-        ctr * sctr = construct_ctr();
+
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
         if (A->is_sparse) nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
         if (B->is_sparse) nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
         if (C->is_sparse) nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
-        if (is_ctr_sparse){
-          est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
-        } else { 
-          est_time = sctr->est_time_rec(sctr->num_lyr);
-        }
+
+
+        ctr * sctr;
   #if FOLD_TSR
         if (can_fold()){
           est_time = est_time_fold();
           iparam prm = map_fold(false);
-          ctr * sctrf = construct_ctr(1, &prm);
-          est_time += sctrf->est_time_rec(sctrf->num_lyr);
-          delete sctrf;
+          sctr = construct_ctr(1, &prm);
+          est_time += sctr->est_time_rec(sctr->num_lyr);
           A->remove_fold();
           B->remove_fold();
           C->remove_fold();
-        }
+        } else 
   #endif
+        {
+          sctr = construct_ctr();
+          est_time += sctr->est_time_rec(sctr->num_lyr);
+          if (is_ctr_sparse){
+            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+          } else { 
+            est_time = sctr->est_time_rec(sctr->num_lyr);
+          }
+        }
   #if DEBUG >= 4
         printf("mapping passed contr est_time = %E sec\n", est_time);
   #endif 
@@ -2955,7 +2970,14 @@ namespace CTF_int {
     A->set_padding();
     B->set_padding();
     C->set_padding();
-    *ctrf = construct_ctr();
+    if (can_fold()){
+      iparam prm = map_fold(false);
+      *ctrf = construct_ctr(1, &prm);
+      A->remove_fold();
+      B->remove_fold();
+      C->remove_fold();
+    } else
+      *ctrf = construct_ctr();
     #if DEBUG > 2
     if (global_comm.rank == 0)
       printf("New mappings:\n");
@@ -3690,6 +3712,9 @@ namespace CTF_int {
                                       spvirt_blk_len_B,
                                       upload_phase_B);
         }
+        ctr_gen->dns_vrt_sz_A = vrt_sz_A;
+        ctr_gen->dns_vrt_sz_B = vrt_sz_B;
+        ctr_gen->dns_vrt_sz_C = vrt_sz_C;
         if (is_built){
           if (is_top){
             hctr = ctr_gen;
@@ -3775,6 +3800,7 @@ namespace CTF_int {
     int krnl_type;
     if (is_inner){
       ASSERT(!(!A->is_sparse && (B->is_sparse || C->is_sparse)));
+      ASSERT(!(C->is_sparse && (!B->is_sparse || !A->is_sparse)));
       if (A->is_sparse && !B->is_sparse && !C->is_sparse){
         if (is_custom || !A->sr->has_coo_ker) krnl_type = 2;
         else krnl_type = 1;
@@ -3785,7 +3811,11 @@ namespace CTF_int {
       if (A->is_sparse && B->is_sparse && C->is_sparse){
         krnl_type = 4;
       }
-    } else krnl_type = 0;
+    } else {
+      ASSERT(!B->is_sparse && !C->is_sparse);
+      assert(!B->is_sparse && !C->is_sparse); // FIXME: currently this type of contraction cannot be done with sparse tensors
+      krnl_type = 0;
+    }
 
 
     iparam inp_cpy;
@@ -4070,24 +4100,18 @@ namespace CTF_int {
       return ERROR;
     }
   #else
-    if (check_mapping() == 0) {
-      /* remap if necessary */
-      stat = map(&ctrf);
-      if (stat == ERROR) {
-        printf("Failed to map tensors to physical grid\n");
-        return ERROR;
-      }
-    } else {
+    if (check_mapping() != 0) {
       keep_map = 1;
       /* Construct the tensor algorithm we would like to use */
   #if DEBUG > 2
       if (global_comm.rank == 0)
         printf("Keeping mappings:\n");
-/*      A->print_map(stdout);
-      B->print_map(stdout);
-      C->print_map(stdout);*/
   #endif
-      ctrf = construct_ctr();
+    }
+    stat = map(&ctrf);
+    if (stat == ERROR) {
+      printf("Failed to map tensors to physical grid\n");
+      return ERROR;
     }
 #if (VERBOSE >= 1 || DEBUG >= 1)
     if (global_comm.rank == 0){
@@ -4110,7 +4134,7 @@ namespace CTF_int {
     TAU_FSTOP(pre_fold_barrier);
   #endif
   #endif
-    ASSERT(check_mapping());
+    //ASSERT(check_mapping());
     bool is_inner = false;
   #if FOLD_TSR
     is_inner = can_fold();

@@ -27,8 +27,7 @@ namespace CTF {
   char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB) const {
 #if USE_SP_MKL
     if (fadd != default_add<double>){
-      printf("CTF error: support for CSR addition for this type unavailable\n");
-      assert(0);
+      return CTF_int::algstrct::csr_add(cA, cB);
     }
     CSR_Matrix A(cA);
     CSR_Matrix B(cB);

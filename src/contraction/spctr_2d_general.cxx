@@ -32,6 +32,10 @@ namespace CTF_int {
     ctr_sub_lda_C = o->ctr_sub_lda_C;
     cdt_C         = o->cdt_C;
     move_C        = o->move_C;
+
+    dns_vrt_sz_A  = o->dns_vrt_sz_A;
+    dns_vrt_sz_B  = o->dns_vrt_sz_B;
+    dns_vrt_sz_C  = o->dns_vrt_sz_C;
 #if 0 //def OFFLOAD
     alloc_host_buf = o->alloc_host_buf;
 #endif
@@ -62,12 +66,12 @@ namespace CTF_int {
   }
 
   void spctr_2d_general::find_bsizes(int64_t & b_A,
-                                   int64_t & b_B,
-                                   int64_t & b_C,
-                                   int64_t & s_A,
-                                   int64_t & s_B,
-                                   int64_t & s_C,
-                                   int64_t & aux_size){
+                                     int64_t & b_B,
+                                     int64_t & b_C,
+                                     int64_t & s_A,
+                                     int64_t & s_B,
+                                     int64_t & s_C,
+                                     int64_t & aux_size){
     b_A = 0, b_B = 0, b_C = 0;
     s_A = ctr_sub_lda_A*ctr_lda_A;
     s_B = ctr_sub_lda_B*ctr_lda_B;
@@ -89,12 +93,24 @@ namespace CTF_int {
     int64_t b_A, b_B, b_C, s_A, s_B, s_C, aux_size;
     find_bsizes(b_A, b_B, b_C, s_A, s_B, s_C, aux_size);
     double est_bcast_time = 0.0;
-    if (move_A)
-      est_bcast_time += cdt_A->estimate_bcast_time(sr_A->el_size*s_A*nnz_frac_A);
-    if (move_B)
-      est_bcast_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B*nnz_frac_B);
-    if (move_C)
-      est_bcast_time += cdt_C->estimate_red_time(sr_C->el_size*s_C*nnz_frac_C, sr_C->addmop());
+    if (move_A){
+      if (is_sparse_A)
+        est_bcast_time += cdt_A->estimate_bcast_time(sr_A->el_size*s_A*nnz_frac_A*dns_vrt_sz_A);
+      else
+        est_bcast_time += cdt_A->estimate_bcast_time(sr_A->el_size*s_A*nnz_frac_A);
+    }      
+    if (move_B){
+      if (is_sparse_B)
+        est_bcast_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B*nnz_frac_B*dns_vrt_sz_B);
+      else
+        est_bcast_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B*nnz_frac_B);
+    }
+    if (move_C){
+      if (is_sparse_C)
+        est_bcast_time += cdt_C->estimate_csrred_time(sr_C->el_size*s_C*nnz_frac_C*dns_vrt_sz_C, sr_C->addmop());
+      else
+        est_bcast_time += cdt_C->estimate_red_time(sr_C->el_size*s_C*nnz_frac_C, sr_C->addmop());
+    }
     return (est_bcast_time*(double)edge_len)/MIN(nlyr,edge_len);
   }
 

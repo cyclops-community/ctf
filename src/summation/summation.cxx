@@ -1819,7 +1819,7 @@ namespace CTF_int {
     CTF_int::cdealloc(idx_arr);
 
     //if we have don't have an additive id we can't replicate
-    if (B->sr->addid() == NULL){
+    if (B->sr->addid() == NULL || B->is_sparse){
       int ndim_mapped = 0;
       for (int j=0; j<B->order; j++){
         mapping * map = &B->edge_map[j];
@@ -1829,8 +1829,8 @@ namespace CTF_int {
           if (map->type == PHYSICAL_MAP)
             ndim_mapped++;
         }
-        if (ndim_mapped < B->topo->order) pass = 0;
       }
+      if (ndim_mapped < B->topo->order) pass = 0;
     }
        
     TAU_FSTOP(check_sum_mapping);

@@ -20,18 +20,18 @@ struct grp{
 };
 
 
-void train_off_vec_mat(int64_t n, int64_t m, World & dw){
+void train_off_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C){
   MPI_Op madd;
   MPI_Op_create([](void * a, void * b, int * n, MPI_Datatype*){ 
                   grp::op2_red((double*)a, (double*)b, *n);
                 }, 1, &madd);
   Monoid<> mon(0, grp::op2_t2, madd);
   for (double sp = .005; sp<.32; sp*=2.){
-    Vector<> b(n, dw, mon);
-    Vector<> c(m, dw, mon);
     Matrix<> A(m, n, dw, mon);
     Matrix<> B(m, n, dw, mon);
-    Matrix<> G(n, n, NS, dw, mon);
+    Matrix<> G(n, n, dw, mon);
+    Vector<> b(n, dw, mon);
+    Vector<> c(m, dw, mon);
   
     srand48(dw.rank);
     b.fill_random(-.5, .5);
@@ -42,8 +42,18 @@ void train_off_vec_mat(int64_t n, int64_t m, World & dw){
  
     Bivar_Kernel<double,double,double,grp::op1,grp::op2> k1;
     
-    if (sp > .099)
-      A.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+    if (sp > .009){
+      if (sp_A)
+        A.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      if (sp_B){
+        G.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+        b.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      }
+      if (sp_C){
+        B.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+        c.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      }
+    }
   
     k1(A["ik"],G["kj"],B["ij"]);
     k1(A["ij"],b["j"],c["i"]);
