@@ -389,6 +389,7 @@ namespace CTF_int {
       }
     }
     cdealloc(has_col);
+    cdealloc(rev_col);
  /*   printf("nnz C is %ld\n", C.nnz());
     printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
     printf("%d %d\n",C.JA()[0],C.JA()[1]);

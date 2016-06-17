@@ -413,13 +413,13 @@ namespace CTF_int {
     }
     double nnz_frac_A = 1.0, nnz_frac_B = 1.0;
     if (is_sparse_A){
-      size_blk_A[0]/sr_A->pair_size();
+      nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
       for (int i=0; i<order_A; i++){
         nnz_frac_A = nnz_frac_A / edge_len_A[i];
       }
     }
     if (is_sparse_B){
-      size_blk_B[0]/sr_B->pair_size();
+      nnz_frac_B = size_blk_B[0]/sr_B->pair_size();
       for (int i=0; i<order_B; i++){
         nnz_frac_B = nnz_frac_B / edge_len_B[i];
       }

@@ -442,6 +442,7 @@ namespace CTF_int {
           topovec.push_back(temp_vec[j]);
         } else delete temp_vec[j];
       }
+      delete perm_vec[i];
     }
     return topovec;
   }

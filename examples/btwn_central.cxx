@@ -90,6 +90,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
         if (num_changed.get_val() == 0) break;
       }
     }
+    delete Bellman;
     Tensor<mpath> ispeye = speye.slice(ib*n, (ib+k-1)*n+n-1);
     all_B["ij"] += ispeye["ij"];
     
@@ -130,6 +131,7 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
         if (num_changed.get_val() == 0) break;
       }
     }
+    delete Brandes;
     ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ if (p.w == cp.w){ cp = cpath(p.w, 1./p.m, cp.c); } else { cp = cpath(p.w, 1./p.m, 0.0); } }))(all_B["ij"],cB["ij"]);
 #ifndef TEST_SUITE
     double tbr = MPI_Wtime() - sbr;
@@ -256,9 +258,9 @@ int btwn_cnt(int     n,
 
 
   if (test || n<= 20){
+    btwn_cnt_fast(A, bsize, v2, 0, sp_B, sp_C);
     btwn_cnt_naive(A, v1);
     //compute centrality scores by Bellman Ford with block size bsize
-    btwn_cnt_fast(A, bsize, v2, 0, sp_B, sp_C);
 //    v1.print();
 //    v2.print();
     v1["i"] -= v2["i"];

@@ -457,6 +457,7 @@ new_nblk_C = nblk_C/edge_len;
       if (!move_C || cdt_C->rank == (ib % cdt_C->np)){ 
         if (n_new_C_grps == 1){
           if (is_sparse_C){
+            if (new_C != C) cdealloc(new_C);
             new_C = up_C;
             if (move_C){
               memcpy(size_blk_C, new_size_blk_C, new_nblk_C);

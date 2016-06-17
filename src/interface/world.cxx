@@ -64,6 +64,7 @@ namespace CTF {
       printf("CTF WARNING: Creating copy of World, which is not free or useful, pass original World by reference instead if possible.\n");
     }
 #endif
+    //ASSERT(0);
     this->init(comm, other.phys_topology->order, other.phys_topology->lens, 0, NULL);
 /*    cdt         = other.cdt;
     rank        = other.rank;
@@ -79,13 +80,17 @@ namespace CTF {
   World::World(char const * emptystring){}
 
   World::~World(){
-    if (!is_copy){
+    if (!is_copy && this != &universe){
       for (int i=0; i<(int)topovec.size(); i++){
         delete topovec[i];
       }
       delete phys_topology;
+      if (this->cdt.cm == MPI_COMM_WORLD){
+        ASSERT(universe_exists);
+        universe_exists = false;
+      }
+      topovec.clear();
     }
-    topovec.clear();
 
     initialized = 0;
     mem_exit(rank);
@@ -216,8 +221,6 @@ namespace CTF {
       if (!universe_exists){
         universe_exists = true;
         universe = *this;
-//        CTF_int::mem_create();
-        is_copy = true;
       } 
     }
     return CTF_int::SUCCESS;

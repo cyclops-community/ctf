@@ -848,6 +848,7 @@ namespace CTF_int {
       sz_A = blk_sz_B;
     } else {
       tsr_A->read_local_nnz(&sz_A, &all_data_A);
+//      printf("sz_A+%ld\n",sz_A);
     }
    
     if (tsr_A->order == 0 || tsr_A->has_zero_edge_len){
@@ -861,7 +862,7 @@ namespace CTF_int {
       }
       depad_tsr(tsr_A->order, sz_A, ends_A, tsr_A->sym, padding_A, offsets_A,
                 all_data_A, blk_data_A, &blk_sz_A, sr);
-      if (sz_A > 0)
+      //if (sz_A > 0)
         CTF_int::cdealloc(all_data_A);
 
 
