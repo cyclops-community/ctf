@@ -153,16 +153,18 @@ void train_ccsd(int64_t n, int64_t m, World & dw){
 void train_world(double dtime, World & dw){
   int n0 = 15, m0 = 15;
   int64_t n = n0;
-  int64_t approx_niter = 10*log(dtime); //log((dtime*2000./15.)/dw.np);
+  int64_t approx_niter = std::max(1,(int)(10*log(dtime))); //log((dtime*2000./15.)/dw.np);
   double ddtime = dtime/approx_niter;
+  int rnk;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rnk);
 //  printf("ddtime = %lf\n", ddtime);
   for (;;){
     double t_st = MPI_Wtime();
     int niter = 0;
     int64_t m = m0;
-    double ctime;
+    double ctime = 0.0;
     do {
-//      if (dw.rank == 0) printf("executing n= %ld m = %ld\n", n, m);
+      if (rnk == 0) printf("executing n= %ld m = %ld ctime = %lf ddtime = %lf\n", n, m, ctime, ddtime);
       train_dns_vec_mat(n, m, dw);
       train_sps_vec_mat(n/2, m/2, dw, 0, 0, 0);
       train_sps_vec_mat(n/2, m/2, dw, 1, 0, 0);
@@ -178,7 +180,7 @@ void train_world(double dtime, World & dw){
       ctime = MPI_Wtime() - t_st;
       MPI_Allreduce(MPI_IN_PLACE, &ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
     } while (ctime < ddtime && m<= 1000000);
-    if (niter <= 3 || n>=1000000) break;
+    if (niter <= 2 || n>=1000000) break;
     n *= 1.4;
   }
 }
