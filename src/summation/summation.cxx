@@ -118,13 +118,8 @@ namespace CTF_int {
     print();
 #endif
     update_all_models(A->wrld->cdt.cm);
-    if (A->is_sparse || B->is_sparse){
-      int stat = sym_sum_tsr(run_diag);
-      assert(stat == SUCCESS); 
-    } else {
-      int stat = home_sum_tsr(run_diag);
-      assert(stat == SUCCESS); 
-    }
+    int stat = home_sum_tsr(run_diag);
+    assert(stat == SUCCESS); 
   }
   
   double summation::estimate_time(){
