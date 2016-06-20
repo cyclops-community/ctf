@@ -4633,10 +4633,11 @@ namespace CTF_int {
         C_buf->is_home = 0;
         contraction new_ctr(*this);
         new_ctr.C = C_buf;
+        new_ctr.beta = C->sr->mulid();
         new_ctr.execute();
         char idx[C->order];
         for (int i=0; i<C->order; i++){ idx[i] = 'a'+i; }
-        summation s(C_buf, idx, C->sr->mulid(), C, idx, C->sr->mulid());
+        summation s(C_buf, idx, C->sr->mulid(), C, idx, beta);
         s.execute();
         delete C_buf;
         return SUCCESS;

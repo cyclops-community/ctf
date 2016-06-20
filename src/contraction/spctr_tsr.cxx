@@ -321,6 +321,8 @@ printf("krnl_type =%d\n",krnl_type);
                           char *& new_C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
     ASSERT(nblk_A == 1);
+    ASSERT(nblk_B == 1);
+    ASSERT(nblk_C == 1);
 
     double st_time = MPI_Wtime();
 
@@ -700,24 +702,26 @@ printf("krnl_type =%d\n",krnl_type);
             } else
               rec_B     = B + off_B*blk_sz_B*sr_B->el_size;
             if (is_sparse_C){
-              rec_C     = C + sp_offsets_C[off_C];
+              rec_C     = buckets_C[off_C];
             } else
               rec_C     = C + off_C*blk_sz_C*sr_C->el_size;
             if (beta_arr[off_C]>0)
               rec_ctr->beta = sr_C->mulid();
             else
               rec_ctr->beta = this->beta; 
-            beta_arr[off_C]       = 1;
+            bool do_dealloc = beta_arr[off_C] > 0;
+            beta_arr[off_C] = 1;
             char * pass_C = is_sparse_C ? buckets_C[off_C] : rec_C;
             tid_rec_ctr->run(rec_A, 1, size_blk_A+off_A,
                              rec_B, 1, size_blk_B+off_B,
                              rec_C, 1, new_sp_szs_C+off_C,
                              pass_C);
+            if (is_sparse_C){
+              if (do_dealloc) cdealloc(buckets_C[off_C]);
+              buckets_C[off_C] = pass_C;
+            }
           }
 
-          if (is_sparse_C){
-            if (beta_arr[off_C] > 0) cdealloc(buckets_C[off_C]);
-          }
 
           for (i=0; i<num_dim; i++){
             off_A -= ilda_A[i]*tidx_arr[i];
@@ -746,8 +750,8 @@ printf("krnl_type =%d\n",krnl_type);
       new_C = (char*)alloc(new_size_C);
       int64_t pfx = 0;
       for (int i=0; i<nb_C; i++){
-        memcpy(new_C+pfx, buckets_C[i], new_sp_szs_C[i]*this->sr_C->pair_size());
-        pfx += new_sp_szs_C[i]*this->sr_C->pair_size();
+        memcpy(new_C+pfx, buckets_C[i], new_sp_szs_C[i]);
+        pfx += new_sp_szs_C[i];
         if (beta_arr[i] > 0) cdealloc(buckets_C[i]);
       }
       //FIXME: how to pass C back generally
