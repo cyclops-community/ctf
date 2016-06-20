@@ -13,7 +13,7 @@ endif
 $(ODIR)/model_trainer_kernels.o: model_trainer_kernels.cxx ../src/interface
 	$(OFFLOAD_CXX) -c $< -o $@ -I../include/ 
 
-$(BDIR)/bin/model_trainer: model_trainer.cxx $(ODIR)/model_trainer_kernels.o $(BDIR)/lib/libctf.a *.cxx Makefile ../Makefile 
+$(BDIR)/bin/model_trainer: model_trainer.cxx $(ODIR)/model_trainer_kernels.o $(BDIR)/lib/libctf.a *.cxx Makefile ../Makefile ../examples/ccsd.cxx
 	$(FCXX) $< $(ODIR)/model_trainer_kernels.o -o $@ -I../include/ -L$(BDIR)/lib -lctf $(LIBS)
 
 $(BDIR)/bin/%: %.cxx $(BDIR)/lib/libctf.a *.cxx Makefile ../Makefile 
