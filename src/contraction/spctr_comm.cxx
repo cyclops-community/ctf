@@ -265,6 +265,7 @@ namespace CTF_int {
       printf("P%d C[%d]  = %lf\n",crank,i, ((double*)C)[i]);
     }*/
     for (i=0; i<ncdt_C; i++){
+      if (i>0 && cdt_C[i-1]->rank != 0) break;
       //ALLREDUCE(MPI_IN_PLACE, C, size_C, sr_C->mdtype(), sr_C->addmop(), cdt_C[i]->;
       if (is_sparse_C){
         int64_t csr_sz_acc = 0;
