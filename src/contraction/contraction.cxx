@@ -2672,7 +2672,11 @@ namespace CTF_int {
         double nnz_frac_C = 1.0;
         if (A->is_sparse) nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
         if (B->is_sparse) nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
-        if (C->is_sparse) nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
+        if (C->is_sparse){
+          nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
+          nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
+          nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
+        }
 
 
         ctr * sctr;
@@ -2681,7 +2685,10 @@ namespace CTF_int {
           est_time = est_time_fold();
           iparam prm = map_fold(false);
           sctr = construct_ctr(1, &prm);
-          est_time += sctr->est_time_rec(sctr->num_lyr);
+          if (is_ctr_sparse)
+            est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
+          else
+            est_time = sctr->est_time_rec(sctr->num_lyr);
           A->remove_fold();
           B->remove_fold();
           C->remove_fold();
@@ -2689,7 +2696,6 @@ namespace CTF_int {
   #endif
         {
           sctr = construct_ctr();
-          est_time += sctr->est_time_rec(sctr->num_lyr);
           if (is_ctr_sparse){
             est_time = ((spctr*)sctr)->est_time_rec(sctr->num_lyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
           } else { 
