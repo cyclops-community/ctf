@@ -769,6 +769,8 @@ namespace CTF_int {
     }
 
     for (int64_t i=0; i<inwrite; i++){
+      //if (wr_pairs[i].k()>=total_tsr_size)
+        //printf("[%d] %ldth key is %ld size %ld\n",glb_comm.rank, i, wr_pairs[i].k(),total_tsr_size);
       ASSERT(wr_pairs[i].k() >= 0);
       ASSERT(wr_pairs[i].k() < total_tsr_size);
     }

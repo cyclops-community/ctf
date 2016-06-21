@@ -151,7 +151,7 @@ void train_ccsd(int64_t n, int64_t m, World & dw){
 }
 
 void train_world(double dtime, World & dw){
-  int n0 = 414, m0 = 153;
+  int n0 = 14, m0 = 15;
   int64_t n = n0;
   int64_t approx_niter = std::max(1,(int)(10*log(dtime))); //log((dtime*2000./15.)/dw.np);
   double ddtime = dtime/approx_niter;
@@ -165,16 +165,16 @@ void train_world(double dtime, World & dw){
     double ctime = 0.0;
     do {
       if (rnk == 0) printf("executing p = %d n= %ld m = %ld ctime = %lf ddtime = %lf\n", dw.np, n, m, ctime, ddtime);
-  //    train_dns_vec_mat(n, m, dw);
-      train_sps_vec_mat(n/2, m/2, dw, 0, 0, 0);
-      train_sps_vec_mat(n/2, m/2, dw, 1, 0, 0);
-      train_sps_vec_mat(n/2, m/2, dw, 1, 1, 0);
-      train_sps_vec_mat(n/2, m/2, dw, 1, 1, 1);
-  //    train_off_vec_mat(n, m, dw, 0, 0, 0);
-  //    train_off_vec_mat(n, m, dw, 1, 0, 0);
-  //    train_off_vec_mat(n, m, dw, 1, 1, 0);
-  //    train_off_vec_mat(n, m, dw, 1, 1, 1);
-  //    train_ccsd(n, m, dw);
+      train_dns_vec_mat(2*n, 2*m, dw);
+      train_sps_vec_mat(n, m, dw, 0, 0, 0);
+      train_sps_vec_mat(n, m, dw, 1, 0, 0);
+      train_sps_vec_mat(n, m, dw, 1, 1, 0);
+      train_sps_vec_mat(n, m, dw, 1, 1, 1);
+      train_off_vec_mat(n, m, dw, 0, 0, 0);
+      train_off_vec_mat(n, m, dw, 1, 0, 0);
+      train_off_vec_mat(n, m, dw, 1, 1, 0);
+      train_off_vec_mat(n, m, dw, 1, 1, 1);
+      train_ccsd(n/2, m/2, dw);
       niter++;
       m *= 1.6;
       ctime = MPI_Wtime() - t_st;
@@ -187,7 +187,6 @@ void train_world(double dtime, World & dw){
 
 void frize(std::set<int> & ps, int p){
   ps.insert(p);
-  return;
   if (p>=1){
     for (int i=2; i<p; i++){
       if (p%i == 0) frize(ps, p/i);

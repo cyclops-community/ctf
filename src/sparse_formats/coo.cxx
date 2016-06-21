@@ -193,8 +193,14 @@ namespace CTF_int {
         //  printf("%d %ld %d %d %ld\n",j,kpart,ordering[j],nrow_idx,lda_col[ordering[j]-nrow_idx]);
        // if (j>0){ kpart *= lens[j-1]; }
         k+=(kpart*phase[j]+phase_rank[j])*lda_k;
+/*        if (k>=tot_sz){
+          printf("%d kpart %ld k1 %d phase[j-1] %d phase_rank[j-1] %d lda_k %ld\n",j-1,((k-(kpart*phase[j]+phase_rank[j])*lda_k)/(lda_k/lens[j-1])-phase_rank[j-1])/phase[j-1],k-(kpart*phase[j]+phase_rank[j])*lda_k,phase[j-1],phase_rank[j-1],lda_k/lens[j-1]);
+          printf("%d kpart %ld k2 %ld phase[j] %d phase_rank[j] %d lda_k %ld\n",j,kpart,(kpart*phase[j]+phase_rank[j])*lda_k,phase[j],phase_rank[j],lda_k);
+        }*/
         lda_k *= lens[j];
       }
+      //ASSERT(k<tot_sz);
+//      if (k>=tot_sz) printf("k=%ld tot_sz=%ld c = %d r = %d\n",k,tot_sz,cs[i],rs[i]);
 //      printf("p[%d %d] [%d,%d]->%ld\n",phase_rank[0],phase_rank[1],rs[i],cs[i],k);
       pi[i].write_key(k);
     //  printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);

@@ -2521,12 +2521,12 @@ namespace CTF_int {
     }
     this->data = (char*)alloc(new_sz);
     int phase[this->order];
-    int virt_phase[this->order];
+    int phys_phase[this->order];
     int phase_rank[this->order];
     for (int i=0; i<this->order; i++){
       phase[i] = this->edge_map[i].calc_phase();
-      virt_phase[i]     = phase[i]/this->edge_map[i].calc_phys_phase();
-      phase_rank[i] = this->edge_map[i].calc_phys_rank(this->topo)*virt_phase[i];
+      phys_phase[i]     = this->edge_map[i].calc_phys_phase();
+      phase_rank[i] = this->edge_map[i].calc_phys_rank(this->topo);
     }
     char * data_ptr_out = this->data;
     char const * data_ptr_in = this->rec_tsr->data;
@@ -2550,8 +2550,9 @@ namespace CTF_int {
         int j=0;
         bool cont = true;
         while (cont){
-          phase_rank[j]++;
-          if (phase_rank[j]%virt_phase[j] == 0) phase_rank[j]-=virt_phase[j];
+          phase_rank[j]+=phys_phase[j];
+          if (phase_rank[j]>=phase[j])
+            phase_rank[j]=phase_rank[j]%phase[j];
           else cont = false;
           j++;
         }

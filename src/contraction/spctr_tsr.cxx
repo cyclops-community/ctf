@@ -306,7 +306,6 @@ namespace CTF_int {
         }
         break;
     }
-printf("krnl_type =%d\n",krnl_type);
     assert(0); //wont make it here
     return 0.0;
   }
