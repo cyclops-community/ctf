@@ -148,7 +148,7 @@ namespace CTF_int {
       double estimate_red_time(int64_t msg_sz, MPI_Op op);
      
       /* \brief provide estimate of sparse reduction execution time */
-      double estimate_csrred_time(int64_t msg_sz, MPI_Op op);
+//      double estimate_csrred_time(int64_t msg_sz, MPI_Op op);
      
       /* \brief provide estimate of all_to_all execution time */
       double estimate_alltoall_time(int64_t chunk_sz);

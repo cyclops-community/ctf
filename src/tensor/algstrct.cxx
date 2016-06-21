@@ -6,6 +6,8 @@
 #include "../sparse_formats/csr.h"
 
 namespace CTF_int {
+  LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
+  LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
 
   void sgemm(char           tA,
              char           tB,
@@ -324,6 +326,7 @@ namespace CTF_int {
     MPI_Comm_size(cm, &p);
     if (p==1) return cA;
     int s = 2;
+    double t_st = MPI_Wtime();
     while (p%s != 0) s++;
     int sr = r%s;
     MPI_Comm scm;
@@ -332,6 +335,7 @@ namespace CTF_int {
     MPI_Comm_split(cm, sr, r/s, &rcm);
     
     CSR_Matrix A(cA);
+    int64_t sz_A = A.size();
     char * parts_buffer; 
     CSR_Matrix ** parts = (CSR_Matrix**)alloc(sizeof(CSR_Matrix*)*s);
     A.partition(s, &parts_buffer, parts);
@@ -434,6 +438,9 @@ namespace CTF_int {
         CSR_Matrix out(smnds, s);
         cdealloc(red_sum);
         cdealloc(cb_bufs);
+        double t_end = MPI_Wtime() - t_st;
+        double tps[] = {t_end, 1.0, log2((double)p), (double)sz_A};
+        csrred_mdl.observe(tps);
         return out.all_data;
       } else {
         cdealloc(red_sum);
@@ -445,6 +452,12 @@ namespace CTF_int {
       MPI_Comm_free(&rcm);
       return NULL;
     }
+  }
+
+  double algstrct::estimate_csr_red_time(int64_t msg_sz, CommData const * cdt) const {
+
+    double ps[] = {1.0, log2((double)cdt->np), (double)msg_sz};
+    return csrred_mdl.est_time(ps);
   }
       
   void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {

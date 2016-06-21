@@ -254,6 +254,9 @@ namespace CTF_int {
       /** \brief reduces CSR matrices stored in cA on each processor in cm and returns result on processor root */
       virtual char * csr_reduce(char * cA, int root, MPI_Comm cm) const;
     
+      /** estimate time in seconds necessary for CSR reduction with input of size msg_sz */
+      double estimate_csr_red_time(int64_t msg_sz, CommData const * cdt) const;
+
       /** \brief compute b=beta*b + alpha*a */
       void acc(char * b, char const * beta, char const * a, char const * alpha) const;
       

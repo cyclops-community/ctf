@@ -107,7 +107,7 @@ namespace CTF_int {
     }
     if (move_C){
       if (is_sparse_C)
-        est_bcast_time += cdt_C->estimate_csrred_time(sr_C->el_size*s_C*nnz_frac_C*dns_vrt_sz_C, sr_C->addmop());
+        est_bcast_time += sr_C->estimate_csr_red_time(sr_C->el_size*s_C*nnz_frac_C*dns_vrt_sz_C, cdt_C);
       else
         est_bcast_time += cdt_C->estimate_red_time(sr_C->el_size*s_C*nnz_frac_C, sr_C->addmop());
     }
