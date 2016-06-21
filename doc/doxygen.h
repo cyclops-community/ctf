@@ -144,7 +144,7 @@
  * The sub-directory 'examples' contains a suite of sample codes. These can be built all-together
  * via the command 'make examples'.
  *
- * To profile internal CTF routines the code should be compiled with -DPROFILE and for MPI routine profile with -PMPI.
+ * To profile internal CTF routines the code should be compiled with -DPROFILE and for MPI routine profile with -DPMPI.
  *
  * It is possible to compiler CTF with the variable -DVERBOSE=1 to obtain basic reports on contraction mappings and redistributions.
  * Similarly, for DEBUG mode is activated using -DDEBUG=1 (or =2 =3 for even more print outs).
