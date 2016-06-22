@@ -4070,11 +4070,11 @@ namespace CTF_int {
     }*/
 
 
-  #if DEBUG >= 1 //|| VERBOSE >= 1)
+//  #if DEBUG >= 1 //|| VERBOSE >= 1)
 //    if (global_comm.rank == 0)
   //    printf("Contraction permutation:\n");
     print();
-  #endif
+  //#endif
 
     TAU_FSTART(contract);
 

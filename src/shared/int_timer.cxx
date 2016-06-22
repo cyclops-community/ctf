@@ -175,8 +175,8 @@ namespace CTF{
     char * recv_symbols = (char*)CTF_int::alloc(MAX_TOT_SYMBOLS_LEN);
     FILE * output = NULL;
 
+    CTF_int::update_all_models(comm);
     if (rank == 0){
-      CTF_int::update_all_models(comm);
       CTF_int::print_all_models();
 
       char filename[300];

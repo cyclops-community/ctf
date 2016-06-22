@@ -117,7 +117,7 @@ namespace CTF_int {
   #endif
     print();
 #endif
-    update_all_models(A->wrld->cdt.cm);
+    //update_all_models(A->wrld->cdt.cm);
     int stat = home_sum_tsr(run_diag);
     assert(stat == SUCCESS); 
   }
