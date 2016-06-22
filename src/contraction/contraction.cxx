@@ -2394,7 +2394,6 @@ namespace CTF_int {
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    cdealloc(idx_arr);
     int64_t max_memuse = proc_bytes_available();
     for (j=0; j<6; j++){
       // Attempt to map to all possible permutations of processor topology 
@@ -2476,6 +2475,15 @@ namespace CTF_int {
           nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
           nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
           nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
+          int64_t len_ctr = 1;
+          for (int i=0; i<num_tot; i++){
+            if (idx_arr[3*i+2]==-1){
+              int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+                                                  : B->lens[idx_arr[3*i+1]];
+              len_ctr *= edge_len;
+            }
+          }
+          nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
         }
 
   #if FOLD_TSR
@@ -2584,6 +2592,7 @@ namespace CTF_int {
     idx=ttopo;
     time=gbest_time;
 
+    cdealloc(idx_arr);
   }
 
   void contraction::get_best_exh_map(distribution const * dA, distribution const * dB, distribution const * dC, topology * old_topo_A, topology * old_topo_B, topology * old_topo_C, mapping const * old_map_A, mapping const * old_map_B, mapping const * old_map_C, int & idx, double & time, double init_best_time=DBL_MAX){
@@ -2603,7 +2612,6 @@ namespace CTF_int {
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    cdealloc(idx_arr);
     int64_t tot_num_choices = 0;
     for (int i=0; i<(int)wrld->topovec.size(); i++){
      // tot_num_choices += pow(num_choices,(int)wrld->topovec[i]->order);
@@ -2676,6 +2684,15 @@ namespace CTF_int {
           nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
           nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
           nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
+          int64_t len_ctr = 1;
+          for (int i=0; i<num_tot; i++){
+            if (idx_arr[3*i+2]==-1){
+              int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+                                                  : B->lens[idx_arr[3*i+1]];
+              len_ctr *= edge_len;
+            }
+          }
+          nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
         }
 
 
@@ -2797,6 +2814,7 @@ namespace CTF_int {
     idx=ttopo;
     time=gbest_time;
 
+    cdealloc(idx_arr);
 
   }
 
