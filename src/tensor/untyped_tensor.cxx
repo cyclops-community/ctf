@@ -499,9 +499,14 @@ namespace CTF_int {
           memuse = (int64_t)this->size;
           int64_t sum_phases = 0;
           for (int j=0; j<this->order; j++){
-            sum_phases += this->edge_map[j].calc_phase();
+            int phase = this->edge_map[j].calc_phase();
+            int max_lcm_phase = phase;
+            for (int k=0; k<this->order; k++){
+              max_lcm_phase = std::max(max_lcm_phase,lcm(phase,this->edge_map[k].calc_phase()));
+            }
+            sum_phases += max_lcm_phase + phase;
           }
-          memuse = memuse*(1.+((double)sum_phases)/(2.*wrld->topovec[i]->glb_comm.np));
+          memuse = memuse*(1.+((double)sum_phases)/(4.*wrld->topovec[i]->glb_comm.np));
 
           if (!is_sparse && (int64_t)memuse >= (int64_t)proc_bytes_available()){
             DPRINTF(1,"Not enough memory to map tensor on topo %d\n", i);
@@ -583,7 +588,6 @@ namespace CTF_int {
         if (sr->addid() != NULL)
           sr->set(this->data, sr->addid(), this->size);
       }
-      this->print_map(stdout);
     }
     return SUCCESS;
   }

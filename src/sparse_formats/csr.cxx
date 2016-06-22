@@ -320,6 +320,7 @@ namespace CTF_int {
   }
 
   char * CSR_Matrix::csr_add(char * cA, char * cB, accumulatable const * adder){
+    TAU_FSTART(csr_add);
     CSR_Matrix A(cA);
     CSR_Matrix B(cB);
 
@@ -394,6 +395,7 @@ namespace CTF_int {
     printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
     printf("%d %d\n",C.JA()[0],C.JA()[1]);
     printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);*/
+    TAU_FSTOP(csr_add);
     
     return C.all_data;
   }

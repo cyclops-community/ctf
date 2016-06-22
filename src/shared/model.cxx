@@ -138,14 +138,14 @@ namespace CTF_int {
       }
       if (is_same) return;
     }*/
-    if (is_tuned){
+//    if (is_tuned){
       tot_time += tp[0];
       if (est_time(tp+1)>tp[0]){ 
         under_time += est_time(tp+1)-tp[0];
       } else {
         over_time += tp[0]-est_time(tp+1);
       }
-    }
+//    }
     /*if (fabs(est_time(tp+1)-tp[0])>1.E-1){ 
       printf("estimate of %s[%1.2E*%1.2E", name, tp[0], param_guess[0]);
       for (int i=1; i<nparam; i++){

@@ -4070,11 +4070,11 @@ namespace CTF_int {
     }*/
 
 
-//  #if DEBUG >= 1 //|| VERBOSE >= 1)
+  #if DEBUG >= 1 //|| VERBOSE >= 1)
 //    if (global_comm.rank == 0)
   //    printf("Contraction permutation:\n");
     print();
-  //#endif
+  #endif
 
     TAU_FSTART(contract);
 
@@ -4171,11 +4171,11 @@ namespace CTF_int {
       ctrf = construct_ctr(1, &prm);
     } 
   #endif
-  //#if DEBUG >=2
+  #if DEBUG >=2
   if (global_comm.rank == 0){
     ctrf->print();
   }
-  //#endif
+  #endif
   #if VERBOSE >= 2
   double dtt = MPI_Wtime();
   #endif
@@ -4192,11 +4192,11 @@ namespace CTF_int {
         (double)proc_bytes_available());
     }
   #endif
-  //#if DEBUG >=2
+  #if DEBUG >=2
     A->print_map();
     B->print_map();
     C->print_map();
-  //#endif
+  #endif
   //  stat = zero_out_padding(type->tid_A);
   //  stat = zero_out_padding(type->tid_B);
   #ifdef PROFILE

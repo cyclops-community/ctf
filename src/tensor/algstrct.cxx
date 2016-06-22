@@ -325,6 +325,7 @@ namespace CTF_int {
     MPI_Comm_rank(cm, &r);
     MPI_Comm_size(cm, &p);
     if (p==1) return cA;
+    TAU_FSTART(csr_reduce);
     int s = 2;
     double t_st = MPI_Wtime();
     while (p%s != 0) s++;
@@ -409,7 +410,9 @@ namespace CTF_int {
     }
     cdealloc(parts_buffer); //dealloc all parts
     cdealloc(rcv_buf);
+    TAU_FSTOP(csr_reduce);
     char * red_sum = csr_reduce(smnds[0], root/s, rcm);
+    TAU_FSTART(csr_reduce);
     if (smnds[0] != red_sum) cdealloc(smnds[0]);
     if (r/s == root/s){
       CSR_Matrix cf(red_sum);
@@ -441,15 +444,18 @@ namespace CTF_int {
         double t_end = MPI_Wtime() - t_st;
         double tps[] = {t_end, 1.0, log2((double)p), (double)sz_A};
         csrred_mdl.observe(tps);
+        TAU_FSTOP(csr_reduce);
         return out.all_data;
       } else {
         cdealloc(red_sum);
         cdealloc(cb_bufs);
+        TAU_FSTOP(csr_reduce);
         return NULL;
       }
     } else {
       MPI_Comm_free(&scm);
       MPI_Comm_free(&rcm);
+      TAU_FSTOP(csr_reduce);
       return NULL;
     }
   }
