@@ -461,7 +461,7 @@ namespace CTF_int {
   int tensor::set_zero() {
     int * restricted;
     int i, map_success, btopo;
-    int64_t nvirt, bnvirt;
+//    int64_t nvirt, bnvirt;
     int64_t memuse, bmemuse;
 
     if (this->is_mapped){
@@ -479,7 +479,7 @@ namespace CTF_int {
   //    memset(restricted, 0, this->order*sizeof(int));
 
       /* Map the tensor if necessary */
-      bnvirt = INT64_MAX;
+//      bnvirt = INT64_MAX;
       btopo = -1;
       bmemuse = INT64_MAX;
       for (i=wrld->rank; i<(int64_t)wrld->topovec.size(); i+=wrld->np){
@@ -508,11 +508,11 @@ namespace CTF_int {
             continue;
           }
 
-          nvirt = (int64_t)this->calc_nvirt();
-          ASSERT(nvirt != 0);
+//          nvirt = (int64_t)this->calc_nvirt();
+  //        ASSERT(nvirt != 0);
           //for consistency with old code compare nvirt, but might b et better to discard
-          if (btopo == -1 || nvirt < bnvirt){
-            bnvirt = nvirt;
+          if (btopo == -1){ // || nvirt < bnvirt){
+  //          bnvirt = nvirt;
             btopo = i;
             bmemuse = memuse;
           } else if (memuse < bmemuse){
@@ -583,6 +583,7 @@ namespace CTF_int {
         if (sr->addid() != NULL)
           sr->set(this->data, sr->addid(), this->size);
       }
+      this->print_map(stdout);
     }
     return SUCCESS;
   }

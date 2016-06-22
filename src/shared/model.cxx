@@ -88,12 +88,14 @@ namespace CTF_int {
     return a.p[0] > b.p[0];
   }
 
+#define REG_LAMBDA 1.E5
+
   template <int nparam>
   LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
     memcpy(param_guess, init_guess, nparam*sizeof(double));
 #ifdef TUNE
     for (int i=0; i<nparam; i++){
-      regularization[i] = init_guess[i]*1.E-3;
+      regularization[i] = param_guess[i]*REG_LAMBDA;
     }
     name = (char*)alloc(strlen(name_)+1);
     name[0] = '\0';
@@ -308,6 +310,9 @@ namespace CTF_int {
       cdealloc(iwork);
       cdealloc(A);
       memcpy(param_guess, b, nparam*sizeof(double));
+      for (int i=0; i<nparam; i++){
+        regularization[i] = param_guess[i]*REG_LAMBDA;
+      }
 /*      print();
       double max_resd_sq = 0.0;
       for (int i=0; i<ncol-nparam; i++){

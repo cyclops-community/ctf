@@ -2473,8 +2473,8 @@ namespace CTF_int {
         if (B->is_sparse) nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
         if (C->is_sparse){
           nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
-          nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
-          nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
+          //nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
+          //nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
           int64_t len_ctr = 1;
           for (int i=0; i<num_tot; i++){
             if (idx_arr[3*i+2]==-1){
@@ -4171,11 +4171,11 @@ namespace CTF_int {
       ctrf = construct_ctr(1, &prm);
     } 
   #endif
-  #if DEBUG >=2
+  //#if DEBUG >=2
   if (global_comm.rank == 0){
     ctrf->print();
   }
-  #endif
+  //#endif
   #if VERBOSE >= 2
   double dtt = MPI_Wtime();
   #endif
@@ -4192,11 +4192,11 @@ namespace CTF_int {
         (double)proc_bytes_available());
     }
   #endif
-  #if DEBUG >=2
+  //#if DEBUG >=2
     A->print_map();
     B->print_map();
     C->print_map();
-  #endif
+  //#endif
   //  stat = zero_out_padding(type->tid_A);
   //  stat = zero_out_padding(type->tid_B);
   #ifdef PROFILE
