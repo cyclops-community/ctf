@@ -851,14 +851,22 @@ namespace CTF_int {
 
   LinModel<2> pin_keys_mdl(pin_keys_mdl_init,"pin_keys_mdl");
   double spctr_pin_keys::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
-    double ps[] = {1.0, dns_blk_sz*nnz_frac_A};
     switch (AxBxC){
       case 0:
+      {
+        double ps[] = {1.0, dns_blk_sz*nnz_frac_A};
         return pin_keys_mdl.est_time(ps);
+      }
       case 1:
+      {
+        double ps[] = {1.0, dns_blk_sz*nnz_frac_B};
         return pin_keys_mdl.est_time(ps);
+      }
       case 2:
+      {
+        double ps[] = {1.0, dns_blk_sz*nnz_frac_C};
         return 2.*pin_keys_mdl.est_time(ps);
+      }
     }
     return 0;
   }
