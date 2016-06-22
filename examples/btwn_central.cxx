@@ -80,10 +80,11 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
       tbl.start();
       (*Bellman)(A["ik"],C["kj"],B["ij"]);
       tbl.stop();
-      B["ij"]+=all_B["ij"];
-      C["ij"]=B["ij"];
-      ((Transform<mpath,mpath>)([](mpath p, mpath & q){ if (p.w<q.w || (p.w==q.w && p.m==q.m)) q.w = INT_MAX/2; else if (p.w==q.w) q.m -= p.m; } ))(all_B["ij"],B["ij"]);
-      ((Transform<mpath,mpath>)([](mpath p, mpath & q){ if (p.w <= q.w){ if (p.w < q.w || p.m > q.m){ q=p; } } }))(C["ij"],all_B["ij"]); 
+      CTF::Timer tblp("Bellman_post_tform");
+      tblp.start();
+      ((Transform<mpath,mpath>)([](mpath p, mpath & q){ if (p.w<q.w || (p.w==q.w && q.m==0)) q.w = INT_MAX/2; } ))(all_B["ij"],B["ij"]);
+      ((Transform<mpath,mpath>)([](mpath p, mpath & q){ if (p.w <= q.w){ if (p.w < q.w){ q=p; } else if (p.m > 0){ q.m+=p.m; } } }))(B["ij"],all_B["ij"]); 
+      tblp.stop();
       if (!sp_B && !sp_C){
         Scalar<int> num_changed(dw); 
         num_changed[""] += ((Function<mpath,int>)([](mpath p){ return p.w<INT_MAX/2; }))(B["ij"]);
@@ -122,8 +123,14 @@ void btwn_cnt_fast(Matrix<int> A, int b, Vector<double> & v, int nbatches=0, boo
       tbr.start();
       cB["ij"] += (*Brandes)(A["ki"],C["kj"]);
       tbr.stop();
+      CTF::Timer tbrp("Brandes_post_tform");
+      tbrp.start();
       ((Transform<mpath,cpath>)([](mpath p, cpath & cp){ if (p.w == cp.w){ cp = cpath(p.w, 1./p.m, cp.c*p.m); } else { cp = cpath(p.w, 1./p.m, 0.0); } }))(all_B["ij"],cB["ij"]);
+      tbrp.stop();
+      CTF::Timer tbra("Brandes_post_add");
+      tbra.start();
       all_cB["ij"] += cB["ij"];
+      tbra.stop();
 
       if (!sp_B && !sp_C){
         Scalar<int> num_changed = Scalar<int>();
