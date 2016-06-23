@@ -1229,6 +1229,7 @@ namespace CTF_int {
 
   int tensor::sparsify(std::function<bool(char const*)> f){
     if (is_sparse){
+      TAU_FSTART(sparsify);
       int64_t nnz_loc_new = 0;
       PairIterator pi(sr, data);
       int64_t nnz_blk_old[calc_nvirt()];
@@ -1309,7 +1310,9 @@ namespace CTF_int {
       }*/
       this->set_new_nnz_glb(nnz_blk);
       //FIXME compute max nnz_loc?
+      TAU_FSTOP(sparsify);
     } else {
+      TAU_FSTART(sparsify_dense);
       ASSERT(!has_home || is_home);
       char * all_pairs;
       int64_t num_pairs;
@@ -1333,6 +1336,7 @@ namespace CTF_int {
       cdealloc(all_pairs);
       //sparsify sparse->sparse
       sparsify(f);
+      TAU_FSTOP(sparsify_dense);
     }
     return SUCCESS;
   }
