@@ -161,6 +161,7 @@ namespace CTF_int {
       int * lens_new;
       int * lens_old; // FIXME = lens_new?
       int * p;
+      bool skip;
 
       void run();
       void print();

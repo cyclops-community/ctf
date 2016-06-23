@@ -1182,7 +1182,6 @@ namespace CTF_int {
         int sidx2 = unfold_sum->unfold_broken_sym(NULL);
         if (sidx%2 == 0 && (A->sym[sidx/2] == SY || unfold_sum->A->sym[sidx/2] == SY)) sy = 1;
         if (sidx%2 == 1 && (B->sym[sidx/2] == SY || unfold_sum->B->sym[sidx/2] == SY)) sy = 1;
-        //if (sy && sidx%2 == 0){
         if (!A->is_sparse && !B->is_sparse && (sidx2 != -1 || 
             (sy && (sidx%2 == 0  || !tnsr_B->sr->isequal(new_sum.beta, tnsr_B->sr->addid()))))){
           if (sidx%2 == 0){
@@ -1507,10 +1506,14 @@ namespace CTF_int {
       tnsr_A->print_map();
       tnsr_B->print_map();
   #endif
-      TAU_FSTART(sum_func);
       /* Invoke the contraction algorithm */
       tnsr_A->topo->activate();
+#ifdef PROFILE
+      TAU_FSTART(pre_sum_func_barrier);
       MPI_Barrier(tnsr_B->wrld->comm);
+      TAU_FSTOP(pre_sum_func_barrier);
+#endif
+      TAU_FSTART(sum_func);
       sumf->run();
       if (tnsr_B->is_sparse){
         tspsum * spsumf = (tspsum*)sumf;
@@ -1536,6 +1539,7 @@ namespace CTF_int {
       tnsr_A->unfold();
       tnsr_B->unfold();
 #ifndef SEQ
+      //FIXME: when is this actually needed? can we do it in sym_sum instead?
       stat = tnsr_B->zero_out_padding();
 #endif
       TAU_FSTOP(sum_func);

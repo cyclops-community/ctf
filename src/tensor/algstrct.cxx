@@ -895,6 +895,7 @@ namespace CTF_int {
   }
 
   void ConstPairIterator::pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new){
+    TAU_FSTART(pin);
     ConstPairIterator pi = *this;
     int * div_lens;
     alloc_ptr(order*sizeof(int), (void**)&div_lens);
@@ -902,6 +903,9 @@ namespace CTF_int {
       div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
 //      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
     }
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
     for (int64_t i=0; i<n; i++){
       int64_t key = pi[i].k();
       int64_t new_key = 0;
@@ -915,12 +919,18 @@ namespace CTF_int {
         key = key/lens[j];
       }
       ((int64_t*)pi_new[i].ptr)[0] = new_key;
+/*      if (i>0 && pi[i].k() > pi[i-1].k()){
+        assert(pi_new[i].k() > pi_new[i-1].k());
+      }*/
     }
     cdealloc(div_lens);
+    TAU_FSTOP(pin);
 
   }
 
   void depin(algstrct const * sr, int order, int const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding){
+
+    TAU_FSTART(depin);
 
     int * div_lens;
     alloc_ptr(order*sizeof(int), (void**)&div_lens);
@@ -1021,6 +1031,7 @@ namespace CTF_int {
     cdealloc(virt_offset);
     cdealloc(div_lens);
 
+    TAU_FSTOP(depin);
   }
 
 

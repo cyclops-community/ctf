@@ -206,6 +206,10 @@ namespace CTF_int {
     //  printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
       memcpy(pi[i].d(), vs+v_sz*i, v_sz);
     }
+    PairIterator pi2(sr, tsr_data);
+    TAU_FSTART(COO_to_kvpair_sort);
+    pi2.sort(nz);
+    TAU_FSTOP(COO_to_kvpair_sort);
     cdealloc(ordering);
     cdealloc(rev_ord_lens);
     cdealloc(lda_col);

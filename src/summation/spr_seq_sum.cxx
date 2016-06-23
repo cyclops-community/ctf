@@ -192,8 +192,10 @@ namespace CTF_int{
                univar_function const * func,
                int64_t                 map_pfx){
 
+    TAU_FSTART(spA_spB_seq_sum);
     // determine how many unique keys there are in prs_tsr and prs_Write
     nnew = nB;
+    TAU_FSTART(spA_spB_seq_sum_pre);
     for (int64_t t=0,ww=0; ww<nA*map_pfx; ww++){
       while (ww<nA*map_pfx){
         int64_t w = ww/map_pfx;
@@ -211,6 +213,7 @@ namespace CTF_int{
         }
       }
     }
+    TAU_FSTOP(spA_spB_seq_sum_pre);
 //    printf("nB = %ld nA = %ld nnew = %ld\n",nB,nA,nnew); 
     alloc_ptr(sr_B->pair_size()*nnew, (void**)&pprs_new);
     PairIterator prs_new(sr_B, pprs_new);
@@ -296,6 +299,7 @@ namespace CTF_int{
       sr_B->print(prs_new[n].d());
       printf(" with key %ld\n",prs_new[n].k());*/
     }
+    TAU_FSTOP(spA_spB_seq_sum);
   }
 
 
