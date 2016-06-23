@@ -468,7 +468,7 @@ namespace CTF_int {
       if (is_sparse){
         cdealloc(this->data);
         this->data = NULL;
-        this->size = 0;
+//        this->size = 0;
         memset(this->nnz_blk, 0, sizeof(int64_t)*calc_nvirt());
         this->set_new_nnz_glb(this->nnz_blk); 
       } else {
@@ -1246,33 +1246,7 @@ namespace CTF_int {
           }
         }
       }
-/*      if (threshold == NULL){
-        int64_t i=0; 
-        for (int v=0; v<calc_nvirt(); v++){
-          for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
-            if (!sr->isequal(pi[i].d(), sr->addid())){
-              nnz_loc_new++;
-              nnz_blk[v]++;
-            }
-          }
-        }
-      } else {
-        int64_t i=0; 
-        for (int v=0; v<calc_nvirt(); v++){
-          for (int64_t j=0; j<nnz_blk_old[v]; j++,i++){
-            char tmp[sr->el_size];
-            if (take_abs)
-              sr->abs(pi[i].d(), tmp);
-            else
-              memcpy(tmp, pi[i].d(), sr->el_size);
-            sr->max(threshold, tmp, tmp);
-            if (!sr->isequal(tmp,threshold)){
-              nnz_loc_new++;
-              nnz_blk[v]++;
-            }
-          }
-        }
-      }*/
+
       // if we don't have any actual zeros don't do anything
       if (nnz_loc_new != nnz_loc){
         char * old_data = data;
@@ -1287,33 +1261,29 @@ namespace CTF_int {
         }
         cdealloc(old_data);
       }
-      /*if (threshold == NULL){
-        for (int64_t i=0; i<nnz_loc; i++){
-          if (!sr->isequal(pi[i].d(), sr->addid())){
-            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
-            nnz_loc_new++;
-          }
-        }
-      } else {
-        for (int64_t i=0; i<nnz_loc; i++){
-          char tmp[sr->el_size];
-          if (take_abs)
-            sr->abs(pi[i].d(), tmp);
-          else
-            memcpy(tmp, pi[i].d(), sr->el_size);
-          sr->max(threshold, tmp, tmp);
-          if (!sr->isequal(tmp,threshold)){
-            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
-            nnz_loc_new++;
-          }
-        }
-      }*/
+
       this->set_new_nnz_glb(nnz_blk);
       //FIXME compute max nnz_loc?
       TAU_FSTOP(sparsify);
     } else {
       TAU_FSTART(sparsify_dense);
       ASSERT(!has_home || is_home);
+      int nvirt = calc_nvirt();
+      this->nnz_blk = (int64_t*)alloc(sizeof(int64_t)*nvirt);
+      memset(this->nnz_blk, 0, sizeof(int64_t)*nvirt);
+      int64_t blk_sz = size/nvirt;
+      for (int v=0, i=0; v<nvirt; v++){
+        for (int64_t j=0; j<blk_sz; j++,i++){
+          if (f(data+i*sr->el_size)){
+            this->nnz_blk[v]++;
+          }
+        }
+      }
+      int64_t new_nnz_loc = 0;
+      for (int v=0; v<nvirt; v++){
+        new_nnz_loc += this->nnz_blk[v];
+      }
+
       char * all_pairs;
       int64_t num_pairs;
       //get all local pairs, including zero ones FIXME can be done faster
@@ -1325,17 +1295,23 @@ namespace CTF_int {
       is_home = false;
       has_home = false;
       home_buffer = NULL;
-      clear_mapping();
       is_sparse = true;
       nnz_loc = 0;
       nnz_tot = 0;
-      set_zero();
-      //nnz_loc_max = 0;
-      //write old data as pairs to self FIXME can be done faster
-      write(num_pairs, sr->mulid(), sr->addid(), all_pairs);
+      alloc_ptr(new_nnz_loc*sr->pair_size(), (void**)&data);
+      PairIterator pi_new(sr, data);
+      ConstPairIterator pi(sr, all_pairs);
+      int64_t inew = 0;
+      for (int64_t i=0; i<num_pairs; i++){
+        if (f(pi[i].d())){
+          memcpy(pi_new[inew].ptr, pi[i].ptr, sr->pair_size());
+          inew++;
+          ASSERT(inew<=new_nnz_loc);
+        }
+      }
       cdealloc(all_pairs);
-      //sparsify sparse->sparse
-      sparsify(f);
+      this->set_new_nnz_glb(this->nnz_blk); 
+
       TAU_FSTOP(sparsify_dense);
     }
     return SUCCESS;
