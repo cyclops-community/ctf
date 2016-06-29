@@ -167,6 +167,9 @@ namespace CTF{
   void print_timers(char const * name){
     int rank, np, i, j, len_symbols, nrecv_symbols;
 
+    int is_fin = 0;
+    MPI_Finalized(&is_fin);
+    if (is_fin) MPI_Init(NULL, NULL);
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
 
@@ -280,6 +283,7 @@ namespace CTF{
     /*  if (rank == 0){
       fclose(output);
     } */
+    if (is_fin) MPI_Finalize();
 
   }
 
