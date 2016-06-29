@@ -150,12 +150,16 @@ namespace CTF{
   void Timer::stop(){
   #ifdef PROFILE
     if (!exited){
-      double delta_time = MPI_Wtime() - (*function_timers)[index].start_time;
-      (*function_timers)[index].acc_time += delta_time;
-      (*function_timers)[index].acc_excl_time += delta_time - 
-            (excl_time- (*function_timers)[index].start_excl_time); 
-      excl_time = (*function_timers)[index].start_excl_time + delta_time;
-      (*function_timers)[index].calls++;
+      int is_fin = 0;
+      MPI_Finalized(&is_fin);
+      if (!is_fin){
+        double delta_time = MPI_Wtime() - (*function_timers)[index].start_time;
+        (*function_timers)[index].acc_time += delta_time;
+        (*function_timers)[index].acc_excl_time += delta_time - 
+              (excl_time- (*function_timers)[index].start_excl_time); 
+        excl_time = (*function_timers)[index].start_excl_time + delta_time;
+        (*function_timers)[index].calls++;
+      }
       exit();
       exited = 1;
     }
@@ -169,7 +173,7 @@ namespace CTF{
 
     int is_fin = 0;
     MPI_Finalized(&is_fin);
-    if (is_fin) MPI_Init(NULL, NULL);
+    if (is_fin) return;
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &np);
 
@@ -282,7 +286,6 @@ namespace CTF{
     /*  if (rank == 0){
       fclose(output);
     } */
-    if (is_fin) MPI_Finalize();
 
   }
 
