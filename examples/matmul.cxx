@@ -85,7 +85,6 @@ int matmul(int     m,
         ref_C["ik"] -= ref_A["kj"]*ref_B["ji"];
         break;
     }
-    
     /* compute answer for matrices with attributes as specified */
     C["ik"] += .5*A["ij"]*B["jk"];
     C["ik"] += .5*B["jk"]*A["ij"];
@@ -119,6 +118,9 @@ int matmul(int     m,
     for (int i=0; i<niter; i++){
       double start_time = MPI_Wtime();
       C["ik"] += A["ij"]*B["jk"];
+      //A.print(); 
+      //B.print();
+      //C.print();
       double end_time = MPI_Wtime();
       double iter_time = end_time-start_time;
       times[i] = iter_time;
@@ -140,6 +142,7 @@ int matmul(int     m,
     }
   
   }
+
   return pass;
 } 
 

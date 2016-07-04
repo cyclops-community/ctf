@@ -560,6 +560,119 @@ namespace CTF {
           }
         }
       }
+      void gen_csrmultcsr_new
+                      (int          m, 
+                      int           n,
+                      int           k, 
+                      dtype         alpha,
+                      dtype const * A, // A m by k
+                      int const *   JA,
+                      int const *   IA,
+                      int           nnz_A,
+                      dtype const * B, // B k by n
+                      int const *   JB,
+                      int const *   IB,
+                      int           nnz_B,
+                      dtype         beta,
+                      char *&       C_CSR) const {
+        //int *ic = (int*)Malloc(sizeof(int)*(m+1));
+        int * IC = (int*)CTF_int::alloc(sizeof(int)*(m+1));
+        IC[0] = 1;
+#ifdef _OPENMP        
+        #pragma omp parallel
+        {
+#endif
+            int * has_col = (int*)CTF_int::alloc(sizeof(int)*n); //n is the num of col of B
+#ifdef _OPENMP
+            #pragma omp for schedule(dynamic) // TO DO test other strategies
+#endif          
+            for (int i=0; i<m; i++){
+                memset(has_col, 0, sizeof(int)*(n)); 
+                IC[i+1] = 1; //IC[i];
+                for (int j=0; j<IA[i+1]-IA[i]; j++){
+                    int row_B = JA[IA[i]+j-1]-1;
+                    for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
+                        int idx_B = IB[row_B]+k-1;
+                        if (has_col[JB[idx_B]] == 0){
+                            has_col[JB[idx_B]-1] = 1;
+                            IC[i+1] +=1;
+                        }
+                    }
+                }
+            }            
+            CTF_int::cdealloc(has_col);
+#ifdef _OPENMP            
+        } // END PARALLEL 
+#endif  
+        for(int i=0;i < m; i++){
+            IC[i+1] += IC[i];
+        }
+        // END pre-computation of the size of the OUTPUT
+        CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype));
+        printf("NNZ OF C %d\n", IC[m]);
+        dtype * vC = (dtype*)C.vals();
+        this->set((char *)vC, this->addid(), IC[m]-1);
+        int * JC = C.JA();
+        memcpy(C.IA(), IC, sizeof(int)*(m+1));
+        CTF_int::cdealloc(IC);
+        IC = C.IA();
+#ifdef _OPENMP        
+        #pragma omp parallel
+        {
+#endif      
+            int ins = 0;
+            int *dcol = (int *) CTF_int::alloc(n*sizeof(int));
+            dtype *acc_data = (dtype*)CTF_int::alloc(n*sizeof (dtype));
+#ifdef _OPENMP
+            #pragma omp for
+#endif            
+            for (int i=0; i<m; i++){
+                memset(acc_data, 0, sizeof(dtype)*n);
+                memset(dcol, 0, sizeof(int)*(n));
+                ins = 0;
+                for (int j=0; j<IA[i+1]-IA[i]; j++){
+                    int row_b = JA[IA[i]+j-1]-1; // 1-based
+                    int idx_a = IA[i]+j-1;
+                    for (int ii = 0; ii < IB[row_b+1]-IB[row_b]; ii++){
+                        int col_b = IB[row_b]+ii-1;
+                        int col_c = JB[col_b]-1; // 1-based
+                        dtype val = fmul(A[idx_a], B[col_b]);
+                        if (dcol[col_c] == 0){
+                            dcol[col_c] = JB[col_b];
+                        }
+                        acc_data[col_c] += val;
+                        
+                    }
+                }
+                for(int jj = 0; jj < n; jj++){
+                    if (dcol[jj] != 0){
+                        JC[IC[i]+ins-1] = dcol[jj];
+                        vC[IC[i]+ins-1] = acc_data[jj];
+                        ++ins;
+                    }
+                }
+            }
+            CTF_int::cdealloc(dcol);
+            CTF_int::cdealloc(acc_data);
+#ifdef _OPENMP             
+        } //PRAGMA END
+#endif        
+        CTF_int::CSR_Matrix C_in(C_CSR);
+        if (!this->isequal((char const *)&alpha, this->mulid())){
+          this->scal(C.nnz(), (char const *)&alpha, C.vals(), 1);
+        }
+        if (C_CSR == NULL || C_in.nnz() == 0 || this->isequal((char const *)&beta, this->addid())){
+          C_CSR = C.all_data;
+        } else {
+          if (!this->isequal((char const *)&beta, this->mulid())){
+            this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1);
+          }
+          char * ans = this->csr_add(C_CSR, C.all_data);
+          CTF_int::cdealloc(C.all_data);
+          C_CSR = ans;
+        }
+      }
+
 
       void gen_csrmultcsr
                      (int           m,
