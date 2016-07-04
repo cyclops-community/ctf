@@ -1305,13 +1305,13 @@ namespace CTF_int {
                     phys_phase, virt_phase, virt_phys_rank,
                     this->data, this->data, this->nnz_blk, this->sr, edge_lda, f); 
         } else {
-          printf("sparsifying with padding handling\n");
+          //printf("sparsifying with padding handling\n");
           // if zero passes filter, then padding may be included, so get rid of it
           int * depadding;
           CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&depadding);
           for (int i=0; i<this->order; i++){
             if (i == 0) edge_lda[0] = 1;
-            else edge_lda[i]     = edge_lda[i-1]*this->pad_edge_len[i-1];
+            else edge_lda[i] = edge_lda[i-1]*this->pad_edge_len[i-1];
             depadding[i] = -padding[i];
           }
           int * prepadding;
@@ -1327,6 +1327,7 @@ namespace CTF_int {
           for (int v=0; v<nvirt; v++){
             if (nnz_blk[v] > 0){
               int64_t old_nnz = nnz_blk[v];
+              new_pairs[v] = (char*)alloc(nnz_blk[v]*sr->pair_size());
               depad_tsr(order, nnz_blk[v], this->lens, this->sym, this->padding, prepadding,
                         data_ptr, new_pairs[v], nnz_blk+v, sr);
               pad_key(order, nnz_blk[v], this->pad_edge_len, depadding, PairIterator(sr,new_pairs[v]), sr);
