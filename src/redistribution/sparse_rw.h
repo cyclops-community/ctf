@@ -53,7 +53,7 @@ namespace CTF_int {
    * \param[in] edge_len tensor edge lengths
    * \param[in] sym symmetries of tensor
    * \param[in] phase total phase of the tensor on virtualized processor grid
-   * \param[in] phase physical phase of the tensor
+   * \param[in] phys_phase physical phase of the tensor
    * \param[in] virt_dim virtual phase in each dimension
    * \param[in] phase_rank physical phase rank multiplied by virtual phase
    * \param[in] vdata array of input values
@@ -73,6 +73,39 @@ namespace CTF_int {
                    char *           vpairs,
                    algstrct const * sr);
 
+  /**
+   * \brief extracts all tensor values (in pair format) that pass a sparsifier function (including padded zeros if they pass the fliter)
+   * \param[in] order tensor dimension
+   * \param[in] size number of values
+   * \param[in] nvirt total virtualization factor
+   * \param[in] edge_len tensor edge lengths (padded)
+   * \param[in] sym symmetries of tensor
+   * \param[in] phase total phase of the tensor on virtualized processor grid
+   * \param[in] phys_phase physical phase of the tensor
+   * \param[in] virt_dim virtual phase in each dimension
+   * \param[in] phase_rank physical phase rank multiplied by virtual phase
+   * \param[in] vdata array of input values
+   * \param[out] vpairs pairs of keys and inputted values, allocated internally
+   * \param[in,out] nnz_blk nonzero counts for each virtual block
+   * \param[in] sr algstrct defining data type of array
+   * \param[in] edge_lda lda of non-padded edge-lengths
+   * \param[in] f sparsification filter
+   */
+  void spsfy_tsr(int              order,
+                 int64_t          size,
+                 int              nvirt,
+                 int const *      edge_len,
+                 int const *      sym,
+                 int const *      phase,
+                 int const *      phys_phase,
+                 int const *      virt_dim,
+                 int *            phase_rank,
+                 char const *     vdata,
+                 char *&          vpairs,
+                 int64_t *        nnz_blk,
+                 algstrct const * sr,
+                 int64_t const *  edge_lda,
+                 std::function<bool(char const*)> f);
 
   /**
    * \brief buckets key-value pairs by processor according to distribution

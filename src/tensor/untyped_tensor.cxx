@@ -1270,48 +1270,102 @@ namespace CTF_int {
       ASSERT(!has_home || is_home);
       int nvirt = calc_nvirt();
       this->nnz_blk = (int64_t*)alloc(sizeof(int64_t)*nvirt);
-      memset(this->nnz_blk, 0, sizeof(int64_t)*nvirt);
-      int64_t blk_sz = size/nvirt;
-      for (int v=0, i=0; v<nvirt; v++){
-        for (int64_t j=0; j<blk_sz; j++,i++){
-          if (f(data+i*sr->el_size)){
-            this->nnz_blk[v]++;
+
+
+      int * virt_phase, * virt_phys_rank, * phys_phase, * phase;
+      int64_t * edge_lda;
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&virt_phase);
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&phys_phase);
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&phase);
+      CTF_int::alloc_ptr(sizeof(int)*this->order, (void**)&virt_phys_rank);
+      CTF_int::alloc_ptr(sizeof(int64_t)*this->order, (void**)&edge_lda);
+      char * old_data = this->data;
+
+      nvirt = 1;
+      int idx_lyr = wrld->rank;
+      for (int i=0; i<this->order; i++){
+        /* Calcute rank and phase arrays */
+        if (i == 0) edge_lda[0] = 1;
+        else edge_lda[i]     = edge_lda[i-1]*lens[i-1];
+        mapping const * map  = this->edge_map + i;
+        phase[i]             = map->calc_phase();
+        phys_phase[i]        = map->calc_phys_phase();
+        virt_phase[i]        = phase[i]/phys_phase[i];
+        virt_phys_rank[i]    = map->calc_phys_rank(this->topo);//*virt_phase[i];
+        nvirt          = nvirt*virt_phase[i];
+
+        if (map->type == PHYSICAL_MAP)
+          idx_lyr -= this->topo->lda[map->cdt]
+                                  *virt_phys_rank[i];
+      }
+      if (idx_lyr == 0){
+        if (!f(this->sr->addid())){
+          spsfy_tsr(this->order, this->size, nvirt,
+                    this->pad_edge_len, this->sym, phase,
+                    phys_phase, virt_phase, virt_phys_rank,
+                    this->data, this->data, this->nnz_blk, this->sr, edge_lda, f); 
+        } else {
+          printf("sparsifying with padding handling\n");
+          // if zero passes filter, then padding may be included, so get rid of it
+          int * depadding;
+          CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&depadding);
+          for (int i=0; i<this->order; i++){
+            if (i == 0) edge_lda[0] = 1;
+            else edge_lda[i]     = edge_lda[i-1]*this->pad_edge_len[i-1];
+            depadding[i] = -padding[i];
+          }
+          int * prepadding;
+          CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
+          memset(prepadding, 0, sizeof(int)*order);
+          spsfy_tsr(this->order, this->size, nvirt,
+                    this->pad_edge_len, this->sym, phase,
+                    phys_phase, virt_phase, virt_phys_rank,
+                    this->data, this->data, this->nnz_blk, this->sr, edge_lda, f); 
+          char * new_pairs[nvirt];
+          char const * data_ptr = this->data;
+          int64_t new_nnz_tot = 0;
+          for (int v=0; v<nvirt; v++){
+            if (nnz_blk[v] > 0){
+              int64_t old_nnz = nnz_blk[v];
+              depad_tsr(order, nnz_blk[v], this->lens, this->sym, this->padding, prepadding,
+                        data_ptr, new_pairs[v], nnz_blk+v, sr);
+              pad_key(order, nnz_blk[v], this->pad_edge_len, depadding, PairIterator(sr,new_pairs[v]), sr);
+              data_ptr += old_nnz*sr->pair_size();
+              new_nnz_tot += nnz_blk[v];
+            }
+          }
+          cdealloc(depadding);
+          cdealloc(prepadding);
+          cdealloc(this->data);
+          CTF_int::alloc_ptr(sr->pair_size()*new_nnz_tot,   (void**)&this->data);
+          char * new_data_ptr = this->data;
+          for (int v=0; v<nvirt; v++){
+            if (nnz_blk[v] > 0){
+              memcpy(new_data_ptr, new_pairs[v], nnz_blk[v]*sr->pair_size());
+              cdealloc(new_pairs[v]);
+            }
           }
         }
-      }
-      int64_t new_nnz_loc = 0;
-      for (int v=0; v<nvirt; v++){
-        new_nnz_loc += this->nnz_blk[v];
+      } else {
+        memset(nnz_blk, 0, sizeof(int64_t)*nvirt); 
+        this->data = NULL;
       }
 
-      char * all_pairs;
-      int64_t num_pairs;
-      //get all local pairs, including zero ones FIXME can be done faster
-      read_local(&num_pairs, &all_pairs);
+      cdealloc(old_data);
       //become sparse
       if (has_home) inc_tot_mem_used(-size*sr->el_size);
-      cdealloc(data);
-      data = NULL;
       is_home = false;
       has_home = false;
       home_buffer = NULL;
       is_sparse = true;
       nnz_loc = 0;
       nnz_tot = 0;
-      alloc_ptr(new_nnz_loc*sr->pair_size(), (void**)&data);
-      PairIterator pi_new(sr, data);
-      ConstPairIterator pi(sr, all_pairs);
-      int64_t inew = 0;
-      for (int64_t i=0; i<num_pairs; i++){
-        if (f(pi[i].d())){
-          memcpy(pi_new[inew].ptr, pi[i].ptr, sr->pair_size());
-          inew++;
-          ASSERT(inew<=new_nnz_loc);
-        }
-      }
-      cdealloc(all_pairs);
       this->set_new_nnz_glb(this->nnz_blk); 
-
+      cdealloc(virt_phase);
+      cdealloc(phys_phase);
+      cdealloc(phase);
+      cdealloc(virt_phys_rank);
+      cdealloc(edge_lda);
       TAU_FSTOP(sparsify_dense);
     }
     return SUCCESS;

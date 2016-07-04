@@ -430,7 +430,7 @@ namespace CTF_int {
   
       /**
        * \brief sparsifies tensor keeping only values v such that filter(v) = true
-       * \param[in] f boolean function to apply to values to determine whether to keep them
+       * \param[in] f boolean function to apply to values to determine whether to keep them, must be deterministic
        */ 
       int sparsify(std::function<bool(char const*)> f);
 

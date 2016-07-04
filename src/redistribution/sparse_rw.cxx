@@ -176,7 +176,6 @@ namespace CTF_int {
   }
 
 
-
   void assign_keys(int              order,
                    int64_t          size,
                    int              nvirt,
@@ -273,6 +272,157 @@ namespace CTF_int {
     TAU_FSTOP(assign_keys);
   }
  
+  void spsfy_tsr(int              order,
+                 int64_t          size,
+                 int              nvirt,
+                 int const *      edge_len,
+                 int const *      sym,
+                 int const *      phase,
+                 int const *      phys_phase,
+                 int const *      virt_dim,
+                 int *            phase_rank,
+                 char const *     vdata,
+                 char *&          vpairs,
+                 int64_t *        nnz_blk,
+                 algstrct const * sr,
+                 int64_t const *  edge_lda,
+                 std::function<bool(char const*)> f){
+    int i, imax, act_lda, act_max;
+    int64_t p, idx_offset, buf_offset;
+    int * idx, * virt_rank;
+    memset(nnz_blk, 0, sizeof(int64_t)*nvirt); 
+    if (order == 0){
+      ASSERT(size <= 1);
+      if (size == 1){
+        if (f(vdata)){
+          vpairs = (char*)alloc(sr->pair_size()*1);
+          nnz_blk[0] = 1;
+          sr->set_pair(vpairs, 0, vdata);
+        } else vpairs = NULL;
+      }
+      return;
+    }
+
+    TAU_FSTART(spsfy_tsr);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&idx);
+    CTF_int::alloc_ptr(order*sizeof(int), (void**)&virt_rank);
+    
+    memset(virt_rank, 0, sizeof(int)*order);
+    
+    int virt_blk = 0;
+    for (p=0;;p++){
+      char const * data = vdata + sr->el_size*p*(size/nvirt);
+
+      buf_offset = 0;
+    
+      memset(idx, 0, order*sizeof(int));
+      imax = edge_len[0]/phase[0];
+      for (;;){
+        if (sym[0] != NS)
+          imax = idx[1]+1;
+        /* Increment virtual bucket */
+        for (i=0; i<imax; i++){
+          ASSERT(buf_offset+i<size);
+          nnz_blk[virt_blk] += f(data+(buf_offset+i)*sr->el_size);
+        }
+        buf_offset += imax;
+        /* Increment indices and set up offsets */
+        for (act_lda=1; act_lda < order; act_lda++){
+          idx[act_lda]++;
+          act_max = edge_len[act_lda]/phase[act_lda];
+          if (sym[act_lda] != NS) act_max = idx[act_lda+1]+1;
+          if (idx[act_lda] >= act_max)
+            idx[act_lda] = 0;
+          ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
+          if (idx[act_lda] > 0)
+            break;
+        }
+        if (act_lda >= order) break;
+      }
+      for (act_lda=0; act_lda < order; act_lda++){
+        phase_rank[act_lda] -= virt_rank[act_lda]*phys_phase[act_lda];
+        virt_rank[act_lda]++;
+        if (virt_rank[act_lda] >= virt_dim[act_lda])
+          virt_rank[act_lda] = 0;
+        phase_rank[act_lda] += virt_rank[act_lda]*phys_phase[act_lda];
+        if (virt_rank[act_lda] > 0)
+          break;
+      }
+      virt_blk++;
+      if (act_lda >= order) break;
+    }
+    int64_t * nnz_blk_lda = (int64_t*)alloc(sizeof(int64_t)*nvirt);
+    nnz_blk_lda[0]=0;
+    for (int i=1; i<nvirt; i++){
+      nnz_blk_lda[i] = nnz_blk_lda[i-1]+nnz_blk[i-1];
+    } 
+    vpairs = (char*)alloc(sr->pair_size()*(nnz_blk_lda[nvirt-1]+nnz_blk[nvirt-1]));
+    
+    memset(nnz_blk, 0, sizeof(int64_t)*nvirt); 
+    virt_blk = 0;
+    for (p=0;;p++){
+      char const * data = vdata + sr->el_size*p*(size/nvirt);
+      PairIterator pairs = PairIterator(sr, vpairs + sr->pair_size()*nnz_blk_lda[virt_blk]);
+
+      idx_offset = 0, buf_offset = 0;
+      for (act_lda=1; act_lda<order; act_lda++){
+        idx_offset += phase_rank[act_lda]*edge_lda[act_lda];
+      } 
+    
+    
+      memset(idx, 0, order*sizeof(int));
+      imax = edge_len[0]/phase[0];
+      for (;;){
+        if (sym[0] != NS)
+          imax = idx[1]+1;
+        /* Increment virtual bucket */
+        for (i=0; i<imax; i++){
+          ASSERT(buf_offset+i<size);
+          if (f(data+(buf_offset+i)*sr->el_size)){
+
+            pairs[nnz_blk[virt_blk]].write_key(idx_offset+i*phase[0]+phase_rank[0]);
+            pairs[nnz_blk[virt_blk]].write_val(data+(buf_offset+i)*sr->el_size);
+            nnz_blk[virt_blk]++;
+          }
+        }
+        buf_offset += imax;
+        /* Increment indices and set up offsets */
+        for (act_lda=1; act_lda < order; act_lda++){
+          idx_offset -= (idx[act_lda]*phase[act_lda]+phase_rank[act_lda])
+                  *edge_lda[act_lda];
+          idx[act_lda]++;
+          act_max = edge_len[act_lda]/phase[act_lda];
+          if (sym[act_lda] != NS) act_max = idx[act_lda+1]+1;
+          if (idx[act_lda] >= act_max)
+            idx[act_lda] = 0;
+          idx_offset += (idx[act_lda]*phase[act_lda]+phase_rank[act_lda])
+                  *edge_lda[act_lda];
+          ASSERT(edge_len[act_lda]%phase[act_lda] == 0);
+          if (idx[act_lda] > 0)
+            break;
+        }
+        if (act_lda >= order) break;
+      }
+      for (act_lda=0; act_lda < order; act_lda++){
+        phase_rank[act_lda] -= virt_rank[act_lda]*phys_phase[act_lda];
+        virt_rank[act_lda]++;
+        if (virt_rank[act_lda] >= virt_dim[act_lda])
+          virt_rank[act_lda] = 0;
+        phase_rank[act_lda] += virt_rank[act_lda]*phys_phase[act_lda];
+        if (virt_rank[act_lda] > 0)
+          break;
+      }
+      virt_blk++;
+      if (act_lda >= order) break;
+    }
+
+    CTF_int::cdealloc(nnz_blk_lda);
+    CTF_int::cdealloc(idx);
+    CTF_int::cdealloc(virt_rank);
+    TAU_FSTOP(spsfy_tsr);
+  }
+
+
   void bucket_by_pe(int               order,
                     int64_t           num_pair,
                     int64_t           np,
