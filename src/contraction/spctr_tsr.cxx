@@ -413,7 +413,7 @@ namespace CTF_int {
       }
       break;
     }
-    double nnz_frac_A = 1.0, nnz_frac_B = 1.0;
+    double nnz_frac_A = 1.0, nnz_frac_B = 1.0, nnz_frac_C = 1.0;
     if (is_sparse_A){
       nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
       for (int i=0; i<order_A; i++){
@@ -426,14 +426,15 @@ namespace CTF_int {
         nnz_frac_B = nnz_frac_B / edge_len_B[i];
       }
     }
-
     if (krnl_type > 0){
-      nnz_frac_A = nnz_frac_A / (inner_params.m*inner_params.k);
-      nnz_frac_B = nnz_frac_B / (inner_params.k*inner_params.n);
+      if (is_sparse_A) nnz_frac_A = nnz_frac_A / (inner_params.m*inner_params.k);
+      if (is_sparse_B) nnz_frac_B = nnz_frac_B / (inner_params.k*inner_params.n);
+      if (is_sparse_C) nnz_frac_C = std::min(1.0,nnz_frac_A*nnz_frac_B*inner_params.k / (inner_params.k*inner_params.n));
+    
     }
     
     double exe_time = MPI_Wtime() - st_time;
-    double tps[] = {exe_time, 1.0, (double)est_membw(nnz_frac_A, 1.0, 1.0), est_fp(nnz_frac_B, 1.0, 1.0)};
+    double tps[] = {exe_time, 1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
     switch (krnl_type){
       case 0:
         if (is_custom){

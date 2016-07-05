@@ -73,25 +73,25 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
 
 
 void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C){
-  for (double sp = .01; sp<.32; sp*=2.){
-    Vector<> b(n, dw);
-    Vector<> c(m, dw);
-    Matrix<> A(m, n, dw);
-    Matrix<> B(m, n, dw);
-    Matrix<> A1(m, n, dw);
-    Matrix<> A2(m, n, dw);
-    Matrix<> G(n, n, NS, dw);
-    Matrix<> F(m, m, NS, dw);
+  Vector<> b(n, dw);
+  Vector<> c(m, dw);
+  Matrix<> A(m, n, dw);
+  Matrix<> B(m, n, dw);
+  Matrix<> A1(m, n, dw);
+  Matrix<> A2(m, n, dw);
+  Matrix<> G(n, n, NS, dw);
+  Matrix<> F(m, m, NS, dw);
   
-    srand48(dw.rank);
-    b.fill_random(-.5, .5);
-    c.fill_random(-.5, .5);
-    A.fill_random(-.5, .5);
-    B.fill_random(-.5, .5);
-    A1.fill_random(-.5, .5);
-    A2.fill_random(-.5, .5);
-    G.fill_random(-.5, .5);
-    F.fill_random(-.5, .5);
+  srand48(dw.rank);
+  b.fill_random(-.5, .5);
+  c.fill_random(-.5, .5);
+  A.fill_random(-.5, .5);
+  B.fill_random(-.5, .5);
+  A1.fill_random(-.5, .5);
+  A2.fill_random(-.5, .5);
+  G.fill_random(-.5, .5);
+  F.fill_random(-.5, .5);
+  for (double sp = .01; sp<.32; sp*=2.){
     if (sp_A) A.sparsify([=](double a){ return fabs(a)<=.5*sp; });
     if (sp_B){
       G.sparsify([=](double a){ return fabs(a)<=.5*sp; });
