@@ -328,7 +328,12 @@ namespace CTF_int {
     //ASSERT(ret==0);
 
     //for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
-    for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
+#ifdef MICROBENCH
+    for (ib=iidx_lyr; ib<edge_len; ib+=edge_len)
+#else
+    for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr)
+#endif
+    {
       if (move_A){
         owner_A   = ib % cdt_A->np;
         if (rank_A == owner_A){

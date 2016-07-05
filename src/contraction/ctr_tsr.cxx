@@ -205,7 +205,11 @@ namespace CTF_int {
             off_C += ilda_C[i]*tidx_arr[i];
             if (tidx_arr[i] != 0) break;
           }
+#ifdef MICROBENCH
+          break;
+#else
           if (i==num_dim) break;
+#endif
         }
         if (tid > 0){
           delete tid_rec_ctr;
