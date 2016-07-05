@@ -89,12 +89,9 @@ int matmul(int     m,
     C["ik"] += .5*A["ij"]*B["jk"];
     C["ik"] += .5*B["jk"]*A["ij"];
 
-      //ref_C.print();
            
-      //C.print();
     /* compute difference in answer */
     ref_C["ik"] -= C["ik"];
-    //ref_C.print();
 
     pass = ref_C.norm2() <= 1.E-6;
 

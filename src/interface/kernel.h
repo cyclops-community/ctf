@@ -382,39 +382,38 @@ namespace CTF{
         //int *ic = (int*)Malloc(sizeof(int)*(m+1));
         int * IC = (int*)CTF_int::alloc(sizeof(int)*(m+1));
         memset(IC, 0, sizeof(int)*(m+1));
-#ifdef _OPENMP        
+#ifdef _OPENMP
         #pragma omp parallel
         {
 #endif
-            int * has_col = (int*)CTF_int::alloc(sizeof(int)*(n+1)); //n is the num of col of B
-            int nnz = 0;
+          int * has_col = (int*)CTF_int::alloc(sizeof(int)*(n+1)); //n is the num of col of B
+          int nnz = 0;
 #ifdef _OPENMP
-            #pragma omp for schedule(dynamic) // TO DO test other strategies
+          #pragma omp for schedule(dynamic) // TO DO test other strategies
 #endif         
-            for (int i=0; i<m; i++){
-                memset(has_col, 0, sizeof(int)*(n+1)); 
-                nnz = 0;
-                for (int j=0; j<IA[i+1]-IA[i]; j++){
-                    int row_B = JA[IA[i]+j-1]-1;
-                    for (int kk=0; kk<IB[row_B+1]-IB[row_B]; kk++){
-                        int idx_B = IB[row_B]+kk-1;
-//                        printf("JB[idx] %d (%d)--- (%d %d)", JB[idx_B], has_col[JB[idx_B]],i+1, JB[idx_B]);
-                        if (has_col[JB[idx_B]] == 0){
-                            nnz++;
-                            has_col[JB[idx_B]] = 1;
-                        }
-                    }
-                    IC[i+1]=nnz;
+          for (int i=0; i<m; i++){
+            memset(has_col, 0, sizeof(int)*(n+1)); 
+            nnz = 0;
+            for (int j=0; j<IA[i+1]-IA[i]; j++){
+              int row_B = JA[IA[i]+j-1]-1;
+              for (int kk=0; kk<IB[row_B+1]-IB[row_B]; kk++){
+                int idx_B = IB[row_B]+kk-1;
+                if (has_col[JB[idx_B]] == 0){
+                  nnz++;
+                  has_col[JB[idx_B]] = 1;
                 }
-            }            
-            CTF_int::cdealloc(has_col);
-#ifdef _OPENMP            
+              }
+              IC[i+1]=nnz;
+            }
+          }
+          CTF_int::cdealloc(has_col);
+#ifdef _OPENMP
         } // END PARALLEL 
 #endif 
         int ic_prev = 1;
         for(int i=0;i < m+1; i++){
-            ic_prev += IC[i];
-            IC[i] = ic_prev;
+          ic_prev += IC[i];
+          IC[i] = ic_prev;
         }
         CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype_C));
         dtype_C * vC = (dtype_C*)C.vals();
@@ -422,46 +421,45 @@ namespace CTF{
         memcpy(C.IA(), IC, sizeof(int)*(m+1));
         CTF_int::cdealloc(IC);
         IC = C.IA();
-#ifdef _OPENMP        
+#ifdef _OPENMP
         #pragma omp parallel
         {
 #endif      
-            int ins = 0;
-            int *dcol = (int *) CTF_int::alloc(n*sizeof(int));
-            dtype_C *acc_data = (dtype_C *)CTF_int::alloc(n*sizeof (dtype_C));
+          int ins = 0;
+          int *dcol = (int *) CTF_int::alloc(n*sizeof(int));
+          dtype_C *acc_data = (dtype_C *)CTF_int::alloc(n*sizeof (dtype_C));
 #ifdef _OPENMP
-            #pragma omp for
+          #pragma omp for
 #endif            
-            for (int i=0; i<m; i++){
-           //     memset(acc_data, 0, sizeof(dtype_C)*n);
-                memset(dcol, 0, sizeof(int)*(n));
-                ins = 0;
-                for (int j=0; j<IA[i+1]-IA[i]; j++){
-                    int row_b = JA[IA[i]+j-1]-1; // 1-based
-                    int idx_a = IA[i]+j-1;
-                    for (int ii = 0; ii < IB[row_b+1]-IB[row_b]; ii++){
-                        int col_b = IB[row_b]+ii-1;
-                        int col_c = JB[col_b]-1; // 1-based
-//                        dtype_C val = fmul(A[idx_a], B[col_b]);
-                        if (dcol[col_c] == 0){
-                            dcol[col_c] = JB[col_b];
-                            acc_data[col_c] =f(A[idx_a],B[col_b]);
-                        }else{
-                            g(f(A[idx_a],B[col_b]), acc_data[col_c]);
-                        }
-                    }
+          for (int i=0; i<m; i++){
+            memset(dcol, 0, sizeof(int)*(n));
+            ins = 0;
+            for (int j=0; j<IA[i+1]-IA[i]; j++){
+              int row_b = JA[IA[i]+j-1]-1; // 1-based
+              int idx_a = IA[i]+j-1;
+              for (int ii = 0; ii < IB[row_b+1]-IB[row_b]; ii++){
+                int col_b = IB[row_b]+ii-1;
+                int col_c = JB[col_b]-1; // 1-based
+//                    dtype_C val = fmul(A[idx_a], B[col_b]);
+                if (dcol[col_c] == 0){
+                    dcol[col_c] = JB[col_b];
+                    acc_data[col_c] =f(A[idx_a],B[col_b]);
+                } else {
+                    g(f(A[idx_a],B[col_b]), acc_data[col_c]);
                 }
-                for(int jj = 0; jj < n; jj++){
-                    if (dcol[jj] != 0){
-                        JC[IC[i]+ins-1] = dcol[jj];
-                        vC[IC[i]+ins-1] = acc_data[jj];
-                        ++ins;
-                    }
-                }
+              }
             }
-            CTF_int::cdealloc(dcol);
-            CTF_int::cdealloc(acc_data);
-#ifdef _OPENMP             
+            for(int jj = 0; jj < n; jj++){
+              if (dcol[jj] != 0){
+                JC[IC[i]+ins-1] = dcol[jj];
+                vC[IC[i]+ins-1] = acc_data[jj];
+                ++ins;
+              }
+            }
+          }
+          CTF_int::cdealloc(dcol);
+          CTF_int::cdealloc(acc_data);
+#ifdef _OPENMP
         } //PRAGMA END
 #endif
       CTF_int::CSR_Matrix C_in(C_CSR);
