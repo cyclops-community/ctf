@@ -560,7 +560,7 @@ namespace CTF {
           }
         }
       }
-      void gen_csrmultcsr_new
+      void gen_csrmultcsr
                       (int          m, 
                       int           n,
                       int           k, 
@@ -577,41 +577,44 @@ namespace CTF {
                       char *&       C_CSR) const {
         //int *ic = (int*)Malloc(sizeof(int)*(m+1));
         int * IC = (int*)CTF_int::alloc(sizeof(int)*(m+1));
-        IC[0] = 1;
+        memset(IC, 0, sizeof(int)*(m+1));
 #ifdef _OPENMP        
         #pragma omp parallel
         {
 #endif
-            int * has_col = (int*)CTF_int::alloc(sizeof(int)*n); //n is the num of col of B
+            int * has_col = (int*)CTF_int::alloc(sizeof(int)*(n+1)); //n is the num of col of B
+            int nnz = 0;
 #ifdef _OPENMP
             #pragma omp for schedule(dynamic) // TO DO test other strategies
-#endif          
+#endif         
             for (int i=0; i<m; i++){
-                memset(has_col, 0, sizeof(int)*(n)); 
-                IC[i+1] = 1; //IC[i];
+                memset(has_col, 0, sizeof(int)*(n+1)); 
+                nnz = 0;
                 for (int j=0; j<IA[i+1]-IA[i]; j++){
                     int row_B = JA[IA[i]+j-1]-1;
-                    for (int k=0; k<IB[row_B+1]-IB[row_B]; k++){
-                        int idx_B = IB[row_B]+k-1;
+                    for (int kk=0; kk<IB[row_B+1]-IB[row_B]; kk++){
+                        int idx_B = IB[row_B]+kk-1;
+//                        printf("JB[idx] %d (%d)--- (%d %d)", JB[idx_B], has_col[JB[idx_B]],i+1, JB[idx_B]);
                         if (has_col[JB[idx_B]] == 0){
-                            has_col[JB[idx_B]-1] = 1;
-                            IC[i+1] +=1;
+                            nnz++;
+                            has_col[JB[idx_B]] = 1;
                         }
                     }
+                    IC[i+1]=nnz;
                 }
             }            
             CTF_int::cdealloc(has_col);
 #ifdef _OPENMP            
         } // END PARALLEL 
-#endif  
-        for(int i=0;i < m; i++){
-            IC[i+1] += IC[i];
+#endif 
+        int ic_prev = 1;
+        for(int i=0;i < m+1; i++){
+            ic_prev += IC[i];
+            IC[i] = ic_prev;
         }
-        // END pre-computation of the size of the OUTPUT
         CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype));
-        printf("NNZ OF C %d\n", IC[m]);
         dtype * vC = (dtype*)C.vals();
-        this->set((char *)vC, this->addid(), IC[m]-1);
+        this->set((char *)vC, this->addid(), IC[m]+1);
         int * JC = C.JA();
         memcpy(C.IA(), IC, sizeof(int)*(m+1));
         CTF_int::cdealloc(IC);
@@ -640,8 +643,8 @@ namespace CTF {
                         if (dcol[col_c] == 0){
                             dcol[col_c] = JB[col_b];
                         }
-                        acc_data[col_c] += val;
-                        
+                        //acc_data[col_c] += val;
+                        acc_data[col_c]= this->fadd(acc_data[col_c], val);
                     }
                 }
                 for(int jj = 0; jj < n; jj++){
@@ -656,7 +659,7 @@ namespace CTF {
             CTF_int::cdealloc(acc_data);
 #ifdef _OPENMP             
         } //PRAGMA END
-#endif        
+#endif  
         CTF_int::CSR_Matrix C_in(C_CSR);
         if (!this->isequal((char const *)&alpha, this->mulid())){
           this->scal(C.nnz(), (char const *)&alpha, C.vals(), 1);
@@ -671,10 +674,15 @@ namespace CTF {
           CTF_int::cdealloc(C.all_data);
           C_CSR = ans;
         }
+//       printf("# C ####################################\n");
+//        C_in.print(this);
+//        ((CTF_int::CSR_Matrix)C_CSR).print(this);
+//        printf("# end C ####################################\n");
+
       }
 
 
-      void gen_csrmultcsr
+      void gen_csrmultcsr_old
                      (int           m,
                       int           n,
                       int           k,
@@ -743,6 +751,8 @@ namespace CTF {
           CTF_int::cdealloc(C.all_data);
           C_CSR = ans;
         }
+        C_in.print(this);
+        ((CTF_int::CSR_Matrix)C_CSR).print(this);
         CTF_int::cdealloc(has_col);
         CTF_int::cdealloc(rev_col);
       }

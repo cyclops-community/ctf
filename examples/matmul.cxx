@@ -89,8 +89,12 @@ int matmul(int     m,
     C["ik"] += .5*A["ij"]*B["jk"];
     C["ik"] += .5*B["jk"]*A["ij"];
 
+      //ref_C.print();
+           
+      //C.print();
     /* compute difference in answer */
     ref_C["ik"] -= C["ik"];
+    //ref_C.print();
 
     pass = ref_C.norm2() <= 1.E-6;
 
@@ -116,10 +120,11 @@ int matmul(int     m,
     Timer_epoch smatmul("specified matmul");
     smatmul.begin();
     for (int i=0; i<niter; i++){
-      double start_time = MPI_Wtime();
-      C["ik"] += A["ij"]*B["jk"];
       //A.print(); 
       //B.print();
+
+      double start_time = MPI_Wtime();
+      C["ik"] += A["ij"]*B["jk"];
       //C.print();
       double end_time = MPI_Wtime();
       double iter_time = end_time-start_time;
@@ -142,7 +147,7 @@ int matmul(int     m,
     }
   
   }
-
+    
   return pass;
 } 
 
