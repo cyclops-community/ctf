@@ -339,7 +339,7 @@ namespace CTF_int {
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
-    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize};
+    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize*std::max(.5,(double)log2(np))};
     if (op >= MPI_MAX && op <= MPI_REPLACE)
       allred_mdl.observe(tps);
     else
@@ -358,7 +358,7 @@ namespace CTF_int {
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
-    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize};
+    double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize*std::max(.5,(double)log2(np))};
     if (op >= MPI_MAX && op <= MPI_REPLACE)
       red_mdl.observe(tps);
     else
