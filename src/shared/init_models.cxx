@@ -1,11 +1,11 @@
 namespace CTF_int{
 double upload_mdl_init[] = {1.0085E-05, 1.6451E-10};
 double download_mdl_init[] = {1.3658E-05, 1.5135E-10};
-double blres_mdl_init[] = {3.3534E-06, 5.1366E-09};
-double dgtog_res_mdl_init[] = {-4.2214E-05, 1.9308E-05, 7.1190E-10};
+double dgtog_res_mdl_init[] = {3.8741E-04, 8.4700E-04, 8.6174E-10};
+double blres_mdl_init[] = {3.4286E-04, 3.4760E-08};
 double alltoall_mdl_init[] = {1.0000E-06, 1.0000E-06, 5.0000E-10};
 double alltoallv_mdl_init[] = {-2.1680E-07, 9.3560E-06, 4.7400E-11};
-double red_mdl_init[] = {7.4258E-07, 3.7319E-06, 7.4544E-10};
+double red_mdl_init[] = {2.3588E-05, 2.7337E-05, 1.5716E-09};
 double red_mdl_cst_init[] = {-3.8317E-04, 3.3131E-05, 7.1506E-09};
 double allred_mdl_init[] = {-1.6708E-05, 7.8389E-06, 9.8249E-08};
 double allred_mdl_cst_init[] = {-3.3754E-04, 2.1343E-04, 3.0801E-09};

@@ -276,7 +276,7 @@ namespace CTF_int {
   }
      
   double CommData::estimate_allred_time(int64_t msg_sz, MPI_Op op){
-    double ps[] = {1.0, log2((double)np), (double)msg_sz};
+    double ps[] = {1.0, log2((double)np), (double)msg_sz*log2((double)(np))};
     if (op >= MPI_MAX && op <= MPI_REPLACE)
       return allred_mdl.est_time(ps);
     else
@@ -284,7 +284,7 @@ namespace CTF_int {
   }
 
   double CommData::estimate_red_time(int64_t msg_sz, MPI_Op op){
-    double ps[] = {1.0, log2((double)np), (double)msg_sz};
+    double ps[] = {1.0, log2((double)np), (double)msg_sz*log2((double)(np))};
     if (op >= MPI_MAX && op <= MPI_REPLACE)
       return red_mdl.est_time(ps);
     else

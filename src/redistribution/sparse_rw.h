@@ -4,6 +4,7 @@
 #define __INT_SORT_H__
 
 #include "../tensor/algstrct.h"
+#include <functional>
 
 namespace CTF_int {
 
