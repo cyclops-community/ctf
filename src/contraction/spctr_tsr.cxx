@@ -734,7 +734,7 @@ namespace CTF_int {
             off_C += ilda_C[i]*tidx_arr[i];
             if (tidx_arr[i] != 0) break;
           }
-#ifdef MICROTUNE
+#ifdef MICROBENCH
           break;
 #else
           if (i==num_dim) break;

@@ -88,15 +88,15 @@ namespace CTF_int {
     return a.p[0] > b.p[0];
   }
 
-#define REG_LAMBDA 1.E5
+#define REG_LAMBDA 1.E6
 
   template <int nparam>
   LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
     memcpy(param_guess, init_guess, nparam*sizeof(double));
 #ifdef TUNE
-    for (int i=0; i<nparam; i++){
+    /*for (int i=0; i<nparam; i++){
       regularization[i] = param_guess[i]*REG_LAMBDA;
-    }
+    }*/
     name = (char*)alloc(strlen(name_)+1);
     name[0] = '\0';
     strcpy(name, name_);
@@ -155,6 +155,7 @@ namespace CTF_int {
       print();
     }*/
     //printf("observed %lf %lf %lf\n", tp[0], tp[1], tp[2]);
+    ASSERT(tp[0] > 0.0);
     memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
  /*   if (nobs < hist_size){
       memcpy(time_param_mat+nobs*mat_lda, tp, mat_lda*sizeof(double));
@@ -197,30 +198,60 @@ namespace CTF_int {
     int tot_nrcol;
     MPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
     if (tot_nrcol >= 16.*np*nparam){
-      if (rk == 0){ ncol++; }
+      //if (rk == 0){ ncol++; }
       is_tuned = true;
+  
+      if (nrcol >= nparam) ncol += nparam;
+
       double * R = (double*)alloc(sizeof(double)*nparam*nparam);
       double * b = (double*)alloc(sizeof(double)*ncol);
-      if (ncol > nrcol){
+      if (nrcol < nparam){
         std::fill(R, R+nparam*nparam, 0.0);
         std::fill(b, b+ncol, 0.0);
-        if (rk == 0){
-          lda_cpy(sizeof(double), 1, nparam, 1, nparam, (char const*)regularization, (char*)R);
+        //regularization done on every processor
+        for (int i=0; i<nparam; i++){
+          R[nparam*i+i] = REG_LAMBDA;
         }
+/*        if (rk == 0){
+          lda_cpy(sizeof(double), 1, nparam, 1, nparam, (char const*)regularization, (char*)R);
+        }*/
       } else {
         double * A = (double*)alloc(sizeof(double)*nparam*ncol);
         int i_st = 0;
-        if (rk == 0){
-          lda_cpy(sizeof(double), 1, nparam, 1, ncol, (char const*)regularization, (char*)A);
-          b[0] = 0.0;
-          i_st = 1;
+        if (true){ //rk == 0){
+//          lda_cpy(sizeof(double), 1, nparam, 1, ncol, (char const*)regularization, (char*)A);
+          //regularization done on every processor
+          for (int i=0; i<nparam; i++){
+            b[i] = 0.0;
+            for (int j=0; j<nparam; j++){
+              if (i==j) A[ncol*j+i] = REG_LAMBDA;
+              else      A[ncol*j+i] = 0.0;
+            }
+          }
+          i_st = nparam;
         }
+        double max_time = 0.0;
+        for (int i=0; i<ncol-nparam; i++){
+          max_time = std::max(time_param_mat[i*mat_lda],max_time);
+        }
+        MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
+        double chunk = max_time / 1000.;
+        //printf("%s chunk = %+1.2e\n",name,chunk);
         for (int i=i_st; i<ncol; i++){
           b[i] = time_param_mat[(i-i_st)*mat_lda];
+          double rt_chnks = std::sqrt(b[i] / chunk);
+          double sfactor = rt_chnks/b[i];
+          b[i] = rt_chnks;
           for (int j=0; j<nparam; j++){
-            A[i+j*ncol] = time_param_mat[(i-i_st)*mat_lda+j+1];
+            A[i+j*ncol] = sfactor*time_param_mat[(i-i_st)*mat_lda+j+1];
           }
         }
+        /*for (int i=0; i<ncol; i++){
+          for (int j=0; j<nparam; j++){
+            printf("%+1.3e ", A[i+j*ncol]);
+          }
+          printf (" |  %+1.3e\n",b[i]);
+        }*/
         if (false && np == 1){
           cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
           ASSERT(info == 0);

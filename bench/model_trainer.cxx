@@ -151,7 +151,7 @@ void train_ccsd(int64_t n, int64_t m, World & dw){
 }
 
 void train_world(double dtime, World & dw){
-  int n0 = 14, m0 = 15;
+  int n0 = 19, m0 = 75;
   int64_t n = n0;
   int64_t approx_niter = std::max(1,(int)(10*log(dtime))); //log((dtime*2000./15.)/dw.np);
   double ddtime = dtime/approx_niter;
@@ -166,22 +166,24 @@ void train_world(double dtime, World & dw){
     do {
       if (rnk == 0) printf("executing p = %d n= %ld m = %ld ctime = %lf ddtime = %lf\n", dw.np, n, m, ctime, ddtime);
       train_dns_vec_mat(2*n, 2*m, dw);
-      train_sps_vec_mat(n, m, dw, 0, 0, 0);
-      train_sps_vec_mat(n, m, dw, 1, 0, 0);
-      train_sps_vec_mat(n, m, dw, 1, 1, 0);
-      train_sps_vec_mat(n, m, dw, 1, 1, 1);
-      train_off_vec_mat(n, m, dw, 0, 0, 0);
-      train_off_vec_mat(n, m, dw, 1, 0, 0);
-      train_off_vec_mat(n, m, dw, 1, 1, 0);
-      train_off_vec_mat(n, m, dw, 1, 1, 1);
+      train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
+      train_sps_vec_mat(n+1, m-2, dw, 1, 0, 0);
+      train_sps_vec_mat(n+6, m-4, dw, 1, 1, 0);
+      train_sps_vec_mat(n+2, m-3, dw, 1, 1, 1);
+      train_off_vec_mat(n+7, m-4, dw, 0, 0, 0);
+      train_off_vec_mat(n-2, m+6, dw, 1, 0, 0);
+      train_off_vec_mat(n-5, m+2, dw, 1, 1, 0);
+      train_off_vec_mat(n-3, m-1, dw, 1, 1, 1);
       train_ccsd(n/2, m/2, dw);
       niter++;
-      m *= 1.6;
+      m *= 1.9;
+      n += 2;
       ctime = MPI_Wtime() - t_st;
       MPI_Allreduce(MPI_IN_PLACE, &ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
     } while (ctime < ddtime && m<= 1000000);
     if (niter <= 2 || n>=1000000) break;
-    n *= 1.4;
+    n *= 1.7;
+    m += 3;
   }
 }
 
