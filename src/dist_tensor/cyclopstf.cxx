@@ -1055,12 +1055,18 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #endif
   int stid_A, stid_B, stid_C;
   int otid_A, otid_B, otid_C;
+
   long_int old_size_C;
   int * old_phase_C, * old_rank_C, * old_virt_dim_C, * old_pe_lda_C;
   int * old_padding_C, * old_edge_len_C;
   int * need_free;
   int was_cyclic_C;
   tensor<dtype> * tsr_nC, * tsr_oC;
+
+  if (M == 0 || N == 0 || (K == 0 && BETA == get_zero<dtype>())) return DIST_TENSOR_SUCCESS;
+ 
+  assert(K != 0 || BETA == get_zero<dtype>()); //case where we just need to scale C currently not supported/implemented, please request if needed 
+
   CTF_ctr_type ct;
   fseq_tsr_ctr<dtype> fs;
 #ifdef OFFLOAD
@@ -1096,7 +1102,6 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
 #if (!REDIST)
   }
 #endif
-
   ret = this->contract(&ct, fs, ALPHA, BETA);
   if (ret != DIST_TENSOR_SUCCESS)
     return ret;
@@ -1155,8 +1160,9 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
       (*tensors)[otid_B]->scp_padding[1] != 0){
     CTF_free((*tensors)[otid_B]->data);
   }
-  if ((*tensors)[otid_C]->scp_padding[0] != 0 ||
-      (*tensors)[otid_C]->scp_padding[1] != 0){
+  if (need_free[2]) CTF_free((*tensors)[otid_C]->data);
+  else if ((*tensors)[otid_C]->scp_padding[0] != 0 ||
+           (*tensors)[otid_C]->scp_padding[1] != 0){
     int brow, bcol;
     brow = DESCC[4];
     bcol = DESCC[5];
@@ -1166,7 +1172,6 @@ int tCTF<dtype>::pgemm(char const   TRANSA,
           = (*tensors)[otid_C]->data[i*brow+j];
       }
     }
-    CTF_free((*tensors)[otid_C]->data);
   }
   (*tensors)[otid_A]->is_data_aliased = 1;
   (*tensors)[otid_B]->is_data_aliased = 1;
