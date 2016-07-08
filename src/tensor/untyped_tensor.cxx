@@ -279,6 +279,7 @@ namespace CTF_int {
                     char const *     name_,
                     bool             profile_,
                     bool             is_sparse_){
+    TAU_FSTART(init_tensor);
     this->sr                = sr_->clone();
     this->order             = order_;
     this->wrld              = wrld_;
@@ -351,6 +352,7 @@ namespace CTF_int {
       int ret = set_zero();
       ASSERT(ret == SUCCESS);
     }
+    TAU_FSTOP(init_tensor);
   }
 
   int * tensor::calc_phase() const {
@@ -459,6 +461,7 @@ namespace CTF_int {
 
 
   int tensor::set_zero() {
+    TAU_FSTART(set_zero_tsr);
     int * restricted;
     int i, map_success, btopo;
 //    int64_t nvirt, bnvirt;
@@ -492,6 +495,7 @@ namespace CTF_int {
                                  this->edge_map);
         if (map_success == ERROR) {
           ASSERT(0);
+          TAU_FSTOP(set_zero_tsr);
           return ERROR;
         } else if (map_success == SUCCESS){
           this->topo = wrld->topovec[i];
@@ -536,6 +540,7 @@ namespace CTF_int {
       if (btopo == -1 || btopo == INT_MAX) {
         if (wrld->rank==0)
           printf("ERROR: FAILED TO MAP TENSOR\n");
+        TAU_FSTOP(set_zero_tsr);
         return ERROR;
       }
 
@@ -589,6 +594,7 @@ namespace CTF_int {
           sr->set(this->data, sr->addid(), this->size);
       }
     }
+    TAU_FSTOP(set_zero_tsr);
     return SUCCESS;
   }
 
