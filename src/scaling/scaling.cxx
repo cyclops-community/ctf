@@ -79,6 +79,7 @@ namespace CTF_int {
     if (tsr->has_zero_edge_len){
       return SUCCESS;
     }
+    TAU_FSTART(scaling);
 
   #if DEBUG>=2
     if (tsr->wrld->cdt.rank == 0){
@@ -95,6 +96,7 @@ namespace CTF_int {
 
     if (A->is_sparse){
       sp_scl();
+      TAU_FSTOP(scaling);
       return SUCCESS;
     }
    
@@ -165,6 +167,7 @@ namespace CTF_int {
       if (btopo == -1 || btopo == INT_MAX) {
         if (tsr->wrld->cdt.rank==0)
           printf("ERROR: FAILED TO MAP TENSOR SCALE\n");
+        TAU_FSTOP(scaling);
         return ERROR;
       }
 
@@ -317,11 +320,13 @@ namespace CTF_int {
       printf("Done scaling tensor %s.\n", tsr->name);
   #endif
 
+    TAU_FSTOP(scaling);
     return SUCCESS;
 
   }
 
   void scaling::sp_scl(){
+    TAU_FSTART(sp_scl);
     bool has_rep_idx = false;
     for (int i=0; i<A->order; i++){
       for (int j=0; j<i; j++){
@@ -390,5 +395,6 @@ namespace CTF_int {
         }
       }
     }
+    TAU_FSTOP(sp_scl);
   }
 }

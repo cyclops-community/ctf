@@ -1320,6 +1320,7 @@ namespace CTF_int {
     tsum * sumf;
     //check_sum(tid_A, tid_B, idx_map_A, idx_map_B);
     //FIXME: hmm all of the below already takes place in sym_sum
+    TAU_FSTART(sum_preprocessing);
     check_consistency();
     A->unfold();
     B->unfold();
@@ -1345,6 +1346,7 @@ namespace CTF_int {
         scaling scl = scaling(B, sub_idx_map_B, beta);
         scl.execute();
       }
+      TAU_FSTOP(sum_preprocessing);
       return SUCCESS;
     }
 
@@ -1380,6 +1382,8 @@ namespace CTF_int {
       if (A != stnsr_A) delete stnsr_A;
 
     }
+
+    TAU_FSTOP(sum_preprocessing);
 
     // FIXME: if A has self indices and function is distributive, presum A first, otherwise if it is dense and B is sparse, sparsify A
     summation new_sum = summation(*this);
@@ -1425,6 +1429,8 @@ namespace CTF_int {
   #endif
 
       TAU_FSTART(sum_tensors);
+      
+      TAU_FSTART(sum_tensors_map);
 
       /* Check if the current tensor mappings can be summed on */
   #if REDIST
@@ -1436,6 +1442,8 @@ namespace CTF_int {
         stat = new_sum.map();
         if (stat == ERROR) {
           printf("Failed to map tensors to physical grid\n");
+          TAU_FSTOP(sum_tensors);
+          TAU_FSTOP(sum_tensors_map);
           return ERROR;
         }
       } else {
@@ -1500,6 +1508,7 @@ namespace CTF_int {
       }*/
   #endif
 
+      TAU_FSTOP(sum_tensors_map);
   #if DEBUG >= 2
       if (tnsr_B->wrld->rank==0)
         sumf->print();
@@ -1507,14 +1516,17 @@ namespace CTF_int {
       tnsr_B->print_map();
   #endif
       /* Invoke the contraction algorithm */
-      tnsr_A->topo->activate();
 #ifdef PROFILE
       TAU_FSTART(pre_sum_func_barrier);
       MPI_Barrier(tnsr_B->wrld->comm);
       TAU_FSTOP(pre_sum_func_barrier);
 #endif
+      TAU_FSTART(activate_topo);
+      tnsr_A->topo->activate();
+      TAU_FSTOP(activate_topo);
       TAU_FSTART(sum_func);
       sumf->run();
+      TAU_FSTOP(sum_func);
       if (tnsr_B->is_sparse){
         tspsum * spsumf = (tspsum*)sumf;
         if (tnsr_B->data != spsumf->new_B){
@@ -1535,6 +1547,12 @@ namespace CTF_int {
         printf("\n");
       }
       }*/
+#ifdef PROFILE
+      TAU_FSTART(post_sum_func_barrier);
+      MPI_Barrier(tnsr_B->wrld->comm);
+      TAU_FSTOP(post_sum_func_barrier);
+#endif
+      TAU_FSTART(sum_postprocessing);
       tnsr_A->topo->deactivate();
       tnsr_A->unfold();
       tnsr_B->unfold();
@@ -1542,7 +1560,6 @@ namespace CTF_int {
       //FIXME: when is this actually needed? can we do it in sym_sum instead?
       stat = tnsr_B->zero_out_padding();
 #endif
-      TAU_FSTOP(sum_func);
 
   #if 0 //VERIFY
       stat = allread_tsr(ntid_A, &nA, &uA);
@@ -1598,6 +1615,7 @@ namespace CTF_int {
     CTF_int::cdealloc(map_B);
     CTF_int::cdealloc(dstack_map_B);
     CTF_int::cdealloc(dstack_tsr_B);
+    TAU_FSTOP(sum_postprocessing);
 
     TAU_FSTOP(sum_tensors);
     return SUCCESS;
