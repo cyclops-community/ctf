@@ -87,6 +87,7 @@ namespace CTF_int {
         }
         pairs[pfx].write(my_pairs,cnum_pair);
       }
+      cdealloc(my_pairs_buf);
     } 
     *new_num_pair = 0;
     for (int i=0; i<mntd; i++){
