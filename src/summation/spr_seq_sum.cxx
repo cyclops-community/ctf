@@ -221,7 +221,8 @@ namespace CTF_int{
     //    (multiple writes may contribute to it), 
     //    t, w, and n are incremented within
     // only incrementing r allows multiple writes of the same val
-    for (int64_t t=0,ww=0,n=0; n<nnew; n++){
+    int64_t n=0;
+    for (int64_t t=0,ww=0; n<nnew; n++){
       /*if (n>0){ 
         printf("n=%ld\n",n-1);
         sr_A->print(prs_new[n-1].d());
@@ -252,6 +253,9 @@ namespace CTF_int{
               sr_A->mul(prs_A[w].d(), alpha, a);
               prs_new[n].write_val(sr_B->addid());
               func->apply_f(a, prs_new[n].d());
+            } else {
+              prs_new[n].write_val(sr_B->addid());
+              func->apply_f(prs_A[w].d(), prs_new[n].d());
             }
           }
           ww++;
@@ -299,6 +303,7 @@ namespace CTF_int{
       sr_B->print(prs_new[n].d());
       printf(" with key %ld\n",prs_new[n].k());*/
     }
+    ASSERT(n==nnew);
     TAU_FSTOP(spA_spB_seq_sum);
   }
 

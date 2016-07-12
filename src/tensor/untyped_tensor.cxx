@@ -1681,7 +1681,7 @@ namespace CTF_int {
                pall_data, recvcnts, displs, MPI_CHAR, 0, wrld->cdt.cm);
     PairIterator all_data = PairIterator(sr,pall_data);
     if (wrld->rank == 0){
-//      all_data.sort(tot_sz);
+      all_data.sort(tot_sz);
       for (int64_t i=0; i<tot_sz; i++){
         /*if (cutoff != NULL){
           char absval[sr->el_size];
