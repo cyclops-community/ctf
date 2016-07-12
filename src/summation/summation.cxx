@@ -2120,14 +2120,14 @@ namespace CTF_int {
       } else
         need_remap_A = 1;
       if (need_remap_A){
-        if (can_block_reshuffle(A->order, dA.phase, A->edge_map)){
-          size += A->size*std::min(1.0,log2(wrld->cdt.np));
+        if (!A->is_sparse && can_block_reshuffle(A->order, dA.phase, A->edge_map)){
+          size += A->size*std::max(1.0,log2(wrld->cdt.np));
         } else {
           if (A->is_sparse){
             double nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
-            size += 25.*nnz_frac_A*A->size*std::min(1.0,log2(wrld->cdt.np));
+            size += 25.*nnz_frac_A*A->size*std::max(1.0,log2(wrld->cdt.np));
           } else
-            size += 5.*A->size*std::min(1.0,log2(wrld->cdt.np));
+            size += 5.*A->size*std::max(1.0,log2(wrld->cdt.np));
         }
       }
       if (B->topo == old_topo_B){
@@ -2138,22 +2138,19 @@ namespace CTF_int {
       } else
         need_remap_B = 1;
       if (need_remap_B){
-        if (can_block_reshuffle(B->order, dB.phase, B->edge_map)){
-          size += B->size*std::min(1.0,log2(wrld->cdt.np));
+        if (!B->is_sparse && can_block_reshuffle(B->order, dB.phase, B->edge_map)){
+          size += B->size*std::max(1.0,log2(wrld->cdt.np));
         } else {
-          if (B->is_home){
-            if (B->is_sparse){
-              double nnz_frac_B = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
-              size += 50.*nnz_frac_B*B->size*std::min(1.0,log2(wrld->cdt.np));
-            } else
-              size += 10.*B->size*std::min(1.0,log2(wrld->cdt.np));
-          } else {
-            if (B->is_sparse){
-              double nnz_frac_B = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
-              size += 25.*nnz_frac_B*B->size*std::min(1.0,log2(wrld->cdt.np));
-            } else
-              size += 5.*B->size*std::min(1.0,log2(wrld->cdt.np));
-          }
+          double pref = 1.0;
+          if (B->is_home)
+            pref = 2.0;
+          if (B->is_sparse){
+            double nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
+            double nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
+            nnz_frac_B = std::max(nnz_frac_B, nnz_frac_A);
+            size += 25.*pref*nnz_frac_B*B->size*std::max(1.0,log2(wrld->cdt.np));
+          } else
+            size += 5.*pref*B->size*std::max(1.0,log2(wrld->cdt.np));
         }
       }
 

@@ -501,6 +501,10 @@ namespace CTF_int {
           this->topo = wrld->topovec[i];
           this->set_padding();
           memuse = (int64_t)this->size;
+          if (!is_sparse && (int64_t)memuse*sr->el_size >= (int64_t)proc_bytes_available()){
+            DPRINTF(1,"Not enough memory to map tensor on topo %d\n", i);
+            continue;
+          }
           int64_t sum_phases = 0;
           for (int j=0; j<this->order; j++){
             int phase = this->edge_map[j].calc_phase();
@@ -512,10 +516,7 @@ namespace CTF_int {
           }
           memuse = memuse*(1.+((double)sum_phases)/(4.*wrld->topovec[i]->glb_comm.np));
 
-          if (!is_sparse && (int64_t)memuse >= (int64_t)proc_bytes_available()){
-            DPRINTF(1,"Not enough memory to map tensor on topo %d\n", i);
-            continue;
-          }
+
 
 //          nvirt = (int64_t)this->calc_nvirt();
   //        ASSERT(nvirt != 0);
