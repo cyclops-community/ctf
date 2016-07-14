@@ -1084,13 +1084,13 @@ namespace CTF_int {
   int tensor::read(int64_t      num_pair,
                    char const * alpha,
                    char const * beta,
-                   char * const mapped_data){
-    return write(num_pair, alpha, beta, (char*)mapped_data, 'r');
+                   char *       mapped_data){
+    return write(num_pair, alpha, beta, mapped_data, 'r');
   }
 
-  int tensor::read(int64_t      num_pair,
-                   char * const mapped_data){
-    return write(num_pair, NULL, NULL, (char*)mapped_data, 'r');
+  int tensor::read(int64_t num_pair,
+                   char *  mapped_data){
+    return write(num_pair, NULL, NULL, mapped_data, 'r');
   }
 
   void tensor::set_distribution(char const *          idx,
@@ -2430,5 +2430,86 @@ namespace CTF_int {
     inc_tot_mem_used(-registered_alloc_size);
     registered_alloc_size = 0;
   }
+
+  void tensor::write_dense_to_file(MPI_File & file, int64_t offset){
+    bool need_unpack = is_sparse;
+    for (int i=0; i<order; i++){
+      if (sym[i] != NS) need_unpack = true;
+    }
+    if (need_unpack){
+      int nsym[order];
+      std::fill(nsym, nsym+order, NS);
+      tensor t_dns(sr, order, lens, nsym, wrld);
+      t_dns["ij"] = (*this)["ij"];
+      t_dns.write_dense_to_file(file);
+    } else {
+      int64_t tot_els = packed_size(order, lens, sym);
+      int64_t chnk_sz = tot_els/wrld->np;
+      int64_t my_chnk_sz = chnk_sz;
+      if (wrld->rank < tot_els%wrld->np) my_chnk_sz++;
+      int64_t my_chnk_st = chnk_sz*wrld->rank + std::min((int64_t)wrld->rank, tot_els%wrld->np);
+  
+      char * my_pairs = (char*)alloc(sr->pair_size()*my_chnk_sz);
+      PairIterator pi(sr, my_pairs);
+  
+      for (int64_t i=0; i<my_chnk_sz; i++){
+        pi[i].write_key(my_chnk_st+i);
+      }
+  
+      this->read(my_chnk_sz, my_pairs);
+      for (int64_t i=0; i<my_chnk_sz; i++){
+        char val[sr->el_size];
+        pi[i].read_val(val);
+        memcpy(my_pairs+i*sr->el_size, val, sr->el_size);
+      }
+  
+      MPI_Status stat;
+      MPI_Offset off = my_chnk_st*sr->el_size+offset;
+      MPI_File_write_at(file, off, my_pairs, my_chnk_sz, sr->mdtype(), &stat);
+      cdealloc(my_pairs);
+    }    
+  }
+
+  void tensor::read_dense_from_file(MPI_File & file, int64_t offset){
+    bool need_unpack = is_sparse;
+    for (int i=0; i<order; i++){
+      if (sym[i] != NS) need_unpack = true;
+    }
+    if (need_unpack){
+      int nsym[order];
+      std::fill(nsym, nsym+order, NS);
+      tensor t_dns(sr, order, lens, nsym, wrld);
+      t_dns.read_dense_from_file(file);
+      summation ts(&t_dns, "ij", sr->mulid(), this, "ij", sr->addid());
+      ts.sum_tensors(true); //does not symmetrize
+//      this->["ij"] = t_dns["ij"];
+      if (is_sparse) this->sparsify();
+    } else {
+      int64_t tot_els = packed_size(order, lens, sym);
+      int64_t chnk_sz = tot_els/wrld->np;
+      int64_t my_chnk_sz = chnk_sz;
+      if (wrld->rank < tot_els%wrld->np) my_chnk_sz++;
+      int64_t my_chnk_st = chnk_sz*wrld->rank + std::min((int64_t)wrld->rank, tot_els%wrld->np);
+  
+      char * my_pairs = (char*)alloc(sr->pair_size()*my_chnk_sz);
+      //use latter part of buffer for the pure dense data, so that we do not need another buffer when forming pairs
+      char * my_pairs_tail = my_pairs + sizeof(int64_t)*my_chnk_sz;
+      MPI_Status stat;
+      MPI_Offset off = my_chnk_st*sr->el_size+offset;
+      MPI_File_read_at(file, off, my_pairs_tail, my_chnk_sz, sr->mdtype(), &stat);
+      
+      PairIterator pi(sr, my_pairs);
+      for (int64_t i=0; i<my_chnk_sz; i++){
+        char val[sr->el_size];
+        memcpy(val, my_pairs_tail+i*sr->el_size, sr->el_size);
+        pi[i].write_key(my_chnk_st+i);
+        pi[i].write_val(val);
+      }
+  
+      this->write(my_chnk_sz, sr->mulid(), sr->addid(), my_pairs);
+      cdealloc(my_pairs);
+    }    
+  }
+
 }
 

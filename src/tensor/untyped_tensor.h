@@ -324,7 +324,7 @@ namespace CTF_int {
       int read(int64_t      num_pair,
                char const * alpha,
                char const * beta,
-               char * const mapped_data);
+               char *       mapped_data);
 
       /**
        * \brief returns local data of tensor with parallel distribution prl and local blocking blk
@@ -345,8 +345,8 @@ namespace CTF_int {
        * \param[in] num_pair number of pairs to read
        * \param[in,out] mapped_data pairs to read
        */
-      int read(int64_t      num_pair,
-               char * const mapped_data);
+      int read(int64_t num_pair,
+               char *  mapped_data);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -671,6 +671,23 @@ namespace CTF_int {
         * \brief deregister buffer allocation for this tensor
         */
       void deregister_size();
+
+      /**
+       * \brief write all tensor data to binary file in element order, unpacking from sparse or symmetric formats
+       * \param[in,out] file stream to write to, the user should open, (optionally) set view, and close after function
+       * \param[in] offset displacement in bytes at which to start in the file (ought ot be the same on all processors)
+       */
+      void write_dense_to_file(MPI_File & file, int64_t offset=0);
+
+
+      /**
+       * \brief read all tensor data from binary file in element order, which should be stored as nonsymmetric and dense as done in write_dense_to_file()
+       * \param[in] file stream to read from, the user should open, (optionally) set view, and close after function
+       * \param[in] offset displacement in bytes at which to start in the file (ought ot be the same on all processors)
+       */
+      void read_dense_from_file(MPI_File & file, int64_t offset=0);
+
+
   };
 }
 
