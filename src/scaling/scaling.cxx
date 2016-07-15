@@ -132,6 +132,7 @@ namespace CTF_int {
         ntsr->clear_mapping();
         ntsr->set_padding();
         ntsr->topo = tsr->wrld->topovec[itopo];
+        ntsr->is_mapped = true;
         ret = map_self_indices(ntsr, idx_map);
         if (ret!=SUCCESS) continue;
         ret = ntsr->map_tensor_rem(ntsr->topo->order,
@@ -175,6 +176,7 @@ namespace CTF_int {
       ntsr->set_padding();
       ntsr->is_cyclic = 1;
       ntsr->topo = tsr->wrld->topovec[btopo];
+      ntsr->is_mapped = true;
       ret = map_self_indices(ntsr, idx_map);
       if (ret!=SUCCESS) ABORT;
       ret = ntsr->map_tensor_rem(ntsr->topo->order,

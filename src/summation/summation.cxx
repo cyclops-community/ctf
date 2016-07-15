@@ -1763,7 +1763,10 @@ namespace CTF_int {
 
     TAU_FSTART(check_sum_mapping);
     pass = 1;
-    
+   
+    ASSERT(A->is_mapped);
+    ASSERT(B->is_mapped);
+ 
     if (A->is_mapped == 0) pass = 0;
     if (B->is_mapped == 0) pass = 0;
     

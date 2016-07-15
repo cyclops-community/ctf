@@ -186,6 +186,7 @@ namespace CTF_int {
     //FIXME: do not unfold
 //      if (other->is_folded) other->unfold();
     ASSERT(!other->is_folded);
+    ASSERT(other->is_mapped);
 
     if (other->is_mapped && !other->is_sparse){
   #ifdef HOME_CONTRACT
