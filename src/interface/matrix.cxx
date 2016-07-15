@@ -79,10 +79,14 @@ namespace CTF {
   }
 
   template<typename dtype>
-  Matrix<dtype> & Matrix<dtype>::operator=(const Matrix<dtype> & A){
-    CTF_int::tensor::free_self();
+  Matrix<dtype>::Matrix(const Matrix<dtype> & A) 
+    : Tensor<dtype>(A) {
+    nrow = A.nrow;
+    ncol = A.ncol;
+    symm = A.symm;
+/*    CTF_int::tensor::free_self();
     CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile, A.is_sparse);
-    return *this;
+    return *this;*/
   }
 
 }

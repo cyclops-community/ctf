@@ -15,6 +15,14 @@ namespace CTF {
   class Matrix : public Tensor<dtype> {
     public:
       int nrow, ncol, symm;
+
+
+      /** 
+       * \brief copy constructor for a matrix
+       * \param[in] A matrix to copy along with its data
+       */
+      Matrix<dtype>(Matrix<dtype> const & A);
+
       /**
        * \brief constructor for a matrix
        * \param[in] nrow number of matrix rows
@@ -85,7 +93,7 @@ namespace CTF {
              int                       profile=0,
              CTF_int::algstrct const & sr=Ring<dtype>());
 
-      Matrix<dtype> & operator=(const Matrix<dtype> & A);
+//      Matrix<dtype> & operator=(const Matrix<dtype> & A);
   };
   /**
    * @}
