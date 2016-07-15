@@ -10,12 +10,6 @@
 #include <ctf.hpp>
 #include "moldynamics.h"
 using namespace CTF;
-namespace CTF {
-  template <>  
-  inline void Set<force>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(%lf %lf)",((force*)a)[0].fx,((force*)a)[0].fy);
-  }
-}
 int bivar_function_cust(int     n,
                         World & dw){
   

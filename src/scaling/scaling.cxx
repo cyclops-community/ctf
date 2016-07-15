@@ -111,6 +111,10 @@ namespace CTF_int {
       ntsr->topo = tsr->topo;
       copy_mapping(tsr->order, tsr->edge_map, ntsr->edge_map);
       ntsr->set_padding();
+      if (tsr->is_sparse){
+        CTF_int::alloc_ptr(ntsr->calc_nvirt()*sizeof(int64_t), (void**)&ntsr->nnz_blk);
+        ntsr->set_new_nnz_glb(tsr->nnz_blk);
+      }
     } else ntsr = tsr;    
   #else
     ntsr = tsr;
@@ -295,12 +299,22 @@ namespace CTF_int {
                    &old_edge_len, &ntsr->topo);*/
       tsr->data = ntsr->data;
       tsr->is_home = 0;
+
+      if (tsr->is_sparse){
+        cdealloc(ntsr->home_buffer);
+        ntsr->home_buffer = NULL;
+        CTF_int::alloc_ptr(ntsr->calc_nvirt()*sizeof(int64_t), (void**)&tsr->nnz_blk);
+        tsr->set_new_nnz_glb(ntsr->nnz_blk);
+      } 
+
       TAU_FSTART(redistribute_for_scale_home);
       tsr->redistribute(*old_dst);
       TAU_FSTOP(redistribute_for_scale_home);
-      memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr->el_size);
-      CTF_int::cdealloc(tsr->data);
-      tsr->data = tsr->home_buffer;
+      if (!tsr->is_sparse){
+        memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr->el_size);
+        CTF_int::cdealloc(tsr->data);
+        tsr->data = tsr->home_buffer;
+      }
       tsr->is_home = 1;
       ntsr->is_data_aliased = 1;
       delete ntsr;

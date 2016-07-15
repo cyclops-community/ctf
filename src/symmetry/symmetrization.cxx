@@ -62,7 +62,10 @@ namespace CTF_int {
       nonsym_tsr->data            = sym_tsr->data;
       nonsym_tsr->home_buffer     = sym_tsr->home_buffer;
       nonsym_tsr->is_home         = sym_tsr->is_home;
+      nonsym_tsr->has_home        = sym_tsr->has_home;
+      nonsym_tsr->home_size        = sym_tsr->home_size;
       nonsym_tsr->is_data_aliased = 1;
+      nonsym_tsr->set_new_nnz_glb(sym_tsr->nnz_blk);
       TAU_FSTOP(desymmetrize);
       return;
     }
@@ -284,6 +287,7 @@ namespace CTF_int {
       sym_tsr->set_padding();
       sym_tsr->size     = nonsym_tsr->size;
       sym_tsr->data     = nonsym_tsr->data;
+      sym_tsr->set_new_nnz_glb(nonsym_tsr->nnz_blk);
     } else {
   
       //sym_tsr->sr->set(sym_tsr->data, sym_tsr->sr->addid(), sym_tsr->size);

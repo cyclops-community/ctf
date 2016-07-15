@@ -4642,7 +4642,7 @@ namespace CTF_int {
     B->unfold();
     C->unfold();
 
-    if (C->is_sparse && C->nnz_tot > 0){
+    if (C->is_sparse && (C->nnz_tot > 0 || C->has_home)){
       if (C->sr->isequal(beta,C->sr->addid())){
         C->set_zero();
       } else {
@@ -4719,10 +4719,16 @@ namespace CTF_int {
       new_ctr.A->data = A->data;
       new_ctr.A->home_buffer = A->home_buffer;
       new_ctr.A->is_home = 1;
+      new_ctr.A->has_home = 1;
+      new_ctr.A->home_size = A->home_size;
       new_ctr.A->is_mapped = 1;
       new_ctr.A->topo = A->topo;
       copy_mapping(A->order, A->edge_map, new_ctr.A->edge_map);
       new_ctr.A->set_padding();
+      if (A->is_sparse){
+        CTF_int::alloc_ptr(new_ctr.A->calc_nvirt()*sizeof(int64_t), (void**)&new_ctr.A->nnz_blk);
+        new_ctr.A->set_new_nnz_glb(A->nnz_blk);
+      }
     }     
     if (was_home_B){
       if (A == B){ //stype->tid_A == stype->tid_B){
@@ -4734,13 +4740,20 @@ namespace CTF_int {
         new_ctr.B->data = B->data;
         new_ctr.B->home_buffer = B->home_buffer;
         new_ctr.B->is_home = 1;
+        new_ctr.B->has_home = 1;
+        new_ctr.B->home_size = B->home_size;
         new_ctr.B->is_mapped = 1;
         new_ctr.B->topo = B->topo;
         copy_mapping(B->order, B->edge_map, new_ctr.B->edge_map);
         new_ctr.B->set_padding();
+        if (B->is_sparse){
+          CTF_int::alloc_ptr(new_ctr.B->calc_nvirt()*sizeof(int64_t), (void**)&new_ctr.B->nnz_blk);
+          new_ctr.B->set_new_nnz_glb(B->nnz_blk);
+        }
       }
     }
     if (was_home_C){
+      ASSERT(!C->is_sparse);
       if (C == A){ //stype->tid_C == stype->tid_A){
         new_ctr.C = new_ctr.A; //tensors[ntype.tid_C];
       } else if (C == B){ //stype->tid_C == stype->tid_B){
@@ -4801,6 +4814,10 @@ namespace CTF_int {
     if (new_ctr.A != new_ctr.C){ //ntype.tid_A != ntype.tid_C){
       if (was_home_A && !new_ctr.A->is_home){
         new_ctr.A->has_home = 0;
+        if (A->is_sparse){
+          A->data = new_ctr.A->home_buffer;
+          new_ctr.A->home_buffer = NULL;
+        }
         delete new_ctr.A;
       } else if (was_home_A) {
         new_ctr.A->is_data_aliased = 1;
@@ -4810,6 +4827,10 @@ namespace CTF_int {
     if (new_ctr.B != new_ctr.A && new_ctr.B != new_ctr.C){
       if (was_home_B && A != B && !new_ctr.B->is_home){
         new_ctr.B->has_home = 0;
+        if (B->is_sparse){
+          B->data = new_ctr.B->home_buffer;
+          new_ctr.B->home_buffer = NULL;
+        }
         delete new_ctr.B;
       } else if (was_home_B && A != B) {
         new_ctr.B->is_data_aliased = 1;

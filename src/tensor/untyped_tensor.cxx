@@ -51,8 +51,8 @@ namespace CTF_int {
       cdealloc(sym_table);
       delete [] edge_map;
       if (!is_data_aliased){
-        if (has_home) inc_tot_mem_used(-home_size*sr->el_size);
-        if (is_home){
+        if (!is_sparse && has_home) inc_tot_mem_used(-home_size*sr->el_size);
+        if (!is_sparse && is_home){
           cdealloc(home_buffer);
         } else { 
           if (data != NULL)
@@ -223,12 +223,16 @@ namespace CTF_int {
       memcpy(this->data, other->data, sr->el_size*other->size);
     } else {
       ASSERT(this->is_sparse);
+      has_home = other->has_home;
+      is_home = other->is_home;
+      this->home_buffer = this->home_buffer;
       if (data!=NULL)    CTF_int::cdealloc(this->data);
       if (nnz_blk!=NULL) CTF_int::cdealloc(this->nnz_blk);
       CTF_int::alloc_ptr(other->nnz_loc*(sizeof(int64_t)+sr->el_size), 
                        (void**)&this->data);
       CTF_int::alloc_ptr(other->calc_nvirt()*sizeof(int64_t), (void**)&this->nnz_blk);
-      memcpy(this->nnz_blk, other->nnz_blk, other->calc_nvirt()*sizeof(int64_t));
+      //memcpy(this->nnz_blk, other->nnz_blk, other->calc_nvirt()*sizeof(int64_t));
+      this->set_new_nnz_glb(other->nnz_blk);
       memcpy(this->data, other->data, 
              (sizeof(int64_t)+sr->el_size)*other->nnz_loc);
     } 
@@ -568,6 +572,8 @@ namespace CTF_int {
       if (is_sparse){
         nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
         std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
+        this->is_home = 1;
+        this->has_home = 1;
       } else {
         #ifdef HOME_CONTRACT 
         if (this->order > 0){
@@ -1363,8 +1369,8 @@ namespace CTF_int {
       cdealloc(old_data);
       //become sparse
       if (has_home) inc_tot_mem_used(-size*sr->el_size);
-      is_home = false;
-      has_home = false;
+      is_home = true;
+      has_home = true;
       home_buffer = NULL;
       is_sparse = true;
       nnz_loc = 0;
@@ -1382,8 +1388,11 @@ namespace CTF_int {
 
   int tensor::read_local_nnz(int64_t * num_pair,
                              char **   mapped_data) const {
+    if (sr->isequal(sr->addid(), NULL) && !is_sparse) 
+      return read_local(num_pair,mapped_data);
     tensor tsr_cpy(this);
-    tsr_cpy.sparsify();
+    if (!is_sparse)
+      tsr_cpy.sparsify();
     *mapped_data = tsr_cpy.data;
     *num_pair = tsr_cpy.nnz_loc;
     tsr_cpy.is_data_aliased = true;
@@ -1969,6 +1978,8 @@ namespace CTF_int {
                    this->edge_map);
       this->data = other->data;
       this->is_home = other->is_home;
+      ASSERT(this->has_home == other->has_home);
+      this->home_buffer = other->home_buffer;
       this->set_padding();
     }
   }
@@ -2016,10 +2027,18 @@ namespace CTF_int {
   #ifdef HOME_CONTRACT
     if (this->is_home){    
       if (wrld->cdt.rank == 0)
-        DPRINTF(2,"Tensor %s leaving home\n", name);
-      this->data = (char*)CTF_int::mst_alloc(old_dist.size*sr->el_size);
-      memcpy(this->data, this->home_buffer, old_dist.size*sr->el_size);
-      this->is_home = 0;
+        DPRINTF(2,"Tensor %s leaving home %d\n", name, is_sparse);
+      if (is_sparse){
+        if (this->has_home){
+          this->home_buffer = (char*)CTF_int::mst_alloc(nnz_loc*sr->pair_size());
+          memcpy(this->home_buffer, this->data, nnz_loc*sr->pair_size());
+        }
+        this->is_home = 0;
+      } else {
+        this->data = (char*)CTF_int::mst_alloc(old_dist.size*sr->el_size);
+        memcpy(this->data, this->home_buffer, old_dist.size*sr->el_size);
+        this->is_home = 0;
+      }
     }
   #endif
   #ifdef PROF_REDIST
@@ -2477,13 +2496,15 @@ namespace CTF_int {
   }
 
   void tensor::set_new_nnz_glb(int64_t const * nnz_blk_){
-    nnz_loc = 0;
-    for (int i=0; i<calc_nvirt(); i++){
-      nnz_blk[i] = nnz_blk_[i];
-      nnz_loc += nnz_blk[i];
+    if (is_sparse){
+      nnz_loc = 0;
+      for (int i=0; i<calc_nvirt(); i++){
+        nnz_blk[i] = nnz_blk_[i];
+        nnz_loc += nnz_blk[i];
+      }
+      wrld->cdt.allred(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM);
+  //    printf("New nnz loc = %ld tot = %ld\n", nnz_loc, nnz_tot);
     }
-    wrld->cdt.allred(&nnz_loc, &nnz_tot, 1, MPI_INT64_T, MPI_SUM);
-//    printf("New nnz loc = %ld tot = %ld\n", nnz_loc, nnz_tot);
   }
 
   void tensor::spmatricize(int m, int n, int nrow_idx, bool csr){

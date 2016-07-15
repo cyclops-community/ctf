@@ -975,10 +975,16 @@ namespace CTF_int {
       tnsr_A->data        = A->data;
       tnsr_A->home_buffer = A->home_buffer;
       tnsr_A->is_home     = 1;
+      tnsr_A->has_home    = 1;
+      tnsr_A->home_size = A->home_size;
       tnsr_A->is_mapped   = 1;
       tnsr_A->topo        = A->topo;
       copy_mapping(A->order, A->edge_map, tnsr_A->edge_map);
       tnsr_A->set_padding();
+      if (A->is_sparse){
+        CTF_int::alloc_ptr(tnsr_A->calc_nvirt()*sizeof(int64_t), (void**)&tnsr_A->nnz_blk);
+        tnsr_A->set_new_nnz_glb(A->nnz_blk);
+      }
       osum.A              = tnsr_A;
     } else tnsr_A = NULL;     
     if (was_home_B){
@@ -990,6 +996,10 @@ namespace CTF_int {
       tnsr_B->topo        = B->topo;
       copy_mapping(B->order, B->edge_map, tnsr_B->edge_map);
       tnsr_B->set_padding();
+      if (B->is_sparse){
+        CTF_int::alloc_ptr(tnsr_B->calc_nvirt()*sizeof(int64_t), (void**)&tnsr_B->nnz_blk);
+        tnsr_B->set_new_nnz_glb(B->nnz_blk);
+      }
       osum.B              = tnsr_B;
     } else tnsr_B = NULL;
   #if DEBUG >= 2
@@ -1010,29 +1020,43 @@ namespace CTF_int {
     if (ret!= SUCCESS) return ret;
     if (was_home_A) tnsr_A->unfold(); 
     else A->unfold();
-    if (was_home_B) tnsr_B->unfold();
-    else B->unfold();
+    if (was_home_B){
+      tnsr_B->unfold();
+      if (B->is_sparse){
+        cdealloc(B->nnz_blk);
+        //do below manually rather than calling set_new_nnz_glb since virt factor may be different
+        CTF_int::alloc_ptr(tnsr_B->calc_nvirt()*sizeof(int64_t), (void**)&B->nnz_blk);
+        for (int i=0; i<tnsr_B->calc_nvirt(); i++){
+          B->nnz_blk[i] = tnsr_B->nnz_blk[i];
+        }
+        B->nnz_loc = tnsr_B->nnz_loc;
+        B->nnz_tot = tnsr_B->nnz_tot;
+      } 
+      B->data = tnsr_B->data;
+    } else B->unfold();
 
     if (was_home_B && !tnsr_B->is_home){
       if (A->wrld->cdt.rank == 0)
         DPRINTF(2,"Migrating tensor %s back to home\n", B->name);
       distribution odst(tnsr_B);
-      B->data = tnsr_B->data;
       B->is_home = 0;
       TAU_FSTART(redistribute_for_sum_home);
       B->redistribute(odst);
       TAU_FSTOP(redistribute_for_sum_home);
-      memcpy(B->home_buffer, B->data, B->size*B->sr->el_size);
-      CTF_int::cdealloc(B->data);
-      B->data = B->home_buffer;
-      B->is_home = 1;
+      if (!B->is_sparse){
+        memcpy(B->home_buffer, B->data, B->size*B->sr->el_size);
+        CTF_int::cdealloc(B->data);
+        B->data = B->home_buffer;
+      }
       tnsr_B->is_data_aliased = 1;
+      B->is_home = 1;
       delete tnsr_B;
     } else if (was_home_B){
-      if (tnsr_B->data != B->data){
-        printf("Tensor %s is a copy of %s and did not leave home but buffer is %p was %p\n", tnsr_B->name, B->name, tnsr_B->data, B->data);
-        ABORT;
-
+      if (!B->is_sparse){
+        if (tnsr_B->data != B->data){
+          printf("Tensor %s is a copy of %s and did not leave home but buffer is %p was %p\n", tnsr_B->name, B->name, tnsr_B->data, B->data);
+          ABORT;
+        }
       }
       tnsr_B->has_home = 0;
       tnsr_B->is_data_aliased = 1;
@@ -1040,6 +1064,10 @@ namespace CTF_int {
     }
     if (was_home_A && !tnsr_A->is_home){
       tnsr_A->has_home = 0;
+      if (A->is_sparse){
+        A->data = tnsr_A->home_buffer;
+        tnsr_A->home_buffer = NULL;
+      }
       delete tnsr_A;
     } else if (was_home_A) {
       tnsr_A->has_home = 0;
@@ -1246,7 +1274,8 @@ namespace CTF_int {
           // if we have no multiplicative operator, must inverse sign manually
           if (tnsr_B->sr->mulid() == NULL){
             for (i=0; i<(int)perm_types.size(); i++){
-              need_inv = true;
+              if (signs[i] == -1)
+                need_inv = true;
             }
             if (need_inv){
               inv_tsr_A = new tensor(tnsr_A);
@@ -1269,8 +1298,9 @@ namespace CTF_int {
             dbeta = new_sum.B->sr->mulid();
           }
           cdealloc(new_alpha);
-          if (need_inv)
+          if (need_inv){
             delete inv_tsr_A;
+          }
   /*        for (i=0; i<(int)perm_types.size(); i++){
             free_type(&perm_types[i]);
           }*/
@@ -1437,6 +1467,11 @@ namespace CTF_int {
       if (1) {
   #else
       if (new_sum.check_mapping() == 0) {
+  #endif
+  #if DEBUG == 2
+        if (A->wrld->cdt.rank == 0){
+          printf("Remapping tensors for sum:\n");
+        }
   #endif
         /* remap if necessary */
         stat = new_sum.map();

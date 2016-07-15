@@ -57,6 +57,17 @@ force get_force(particle const p, particle const q){
   f.fy = (p.dy-q.dy)/std::pow(get_distance(p,q)+.01,3);
   return f;
 }
+namespace CTF {
+  template <>  
+  inline void Set<particle>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(dx=%lf dy=%lf coeff=%lf id=%d)",((particle*)a)[0].dx,((particle*)a)[0].dy,((particle*)a)[0].coeff,((particle*)a)[0].id);
+  }
+  template <>  
+  inline void Set<force>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(fx=%lf fy=%lf)",((force*)a)[0].fx,((force*)a)[0].fy);
+  }
+
+}
 
 
 #endif
