@@ -2642,5 +2642,11 @@ namespace CTF_int {
 #endif
   }
 
+  void tensor::leave_home(){
+    ASSERT(!has_home || !is_home);
+    is_home = 0;
+    has_home = 0;
+  }
+
 }
 

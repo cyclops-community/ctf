@@ -676,6 +676,10 @@ namespace CTF_int {
        */
       void despmatricize(int nrow_idx, bool csr);
 
+      /**
+       * \brief leave home buffer and do not allow potential change of data distribution with every summation and contraction
+       */
+      void leave_home();
   };
 }
 
