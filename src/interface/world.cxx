@@ -112,7 +112,10 @@ namespace CTF {
                   int             argc,
                   const char * const *  argv){
     cdt = CommData(comm);
-    phys_topology = get_phys_topo(cdt, mach);
+    if (mach == TOPOLOGY_GENERIC)
+      phys_topology = NULL;
+    else
+      phys_topology = get_phys_topo(cdt, mach);
     
     return initialize(argc, argv);
   }
@@ -140,7 +143,14 @@ namespace CTF {
       is_copy = false;
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &np);
-      topovec = peel_perm_torus(phys_topology, cdt);
+      if (phys_topology == NULL){
+        phys_topology = get_phys_topo(cdt, TOPOLOGY_GENERIC);
+        topovec = get_generic_topovec(cdt);
+/*        std::vector<topology*> topovec2;
+        topovec2 = peel_perm_torus(get_phys_topo(cdt, TOPOLOGY_GENERIC), cdt);
+        printf("topovec size is %ld, via old method was %ld\n",topovec.size(), topovec2.size());*/
+      } else
+        topovec = peel_perm_torus(phys_topology, cdt);
     }
     CTF_int::mem_create();
     if (CTF_int::get_num_instances() == 1){

@@ -393,10 +393,96 @@ namespace CTF_int {
       dim_len = (int*)CTF_int::alloc((log2(np)+1)*sizeof(int));
       factorize(np, &order, &dim_len);
       topo = new topology(order, dim_len, glb_comm, 1);
-      CTF_int::cdealloc(dim_len);
       return topo;
     }
   }
+
+  /** 
+   * \brief computes all unique factorizations into non-primes each yielding a topology, prepending additional factors as specified
+   * \param[in] cdt global communicator
+   * \param[in] n_uf number of unique prime factors
+   * \param[in] uniq_fact list of prime factors
+   * \param[in] n_prepend number of factors to prepend
+   * \param[in] prelens factors to prepend
+   * \param[return] lens vector of factorizations
+   */
+  std::vector< topology* > get_all_topos(CommData cdt, int n_uf, int const * uniq_fact, int const * mults, int n_prepend, int const * prelens){
+    std::vector<topology*> topos;
+
+    int num_divisors = 1;
+    for (int i=0; i<n_uf; i++){
+      num_divisors *= (1+mults[i]);
+      ASSERT(num_divisors < 1E6);
+    }
+    
+    if (num_divisors == 1){
+      topos.push_back(new topology(n_prepend, prelens, cdt));
+      return topos;
+    }
+    int sub_mults[n_uf];
+    int new_prelens[n_prepend+1];
+    memcpy(new_prelens, prelens, n_prepend*sizeof(int));
+    //FIXME: load may be highly imbalanced
+    //for (int div=cdt.rank; div<num_divisors; div+=cdt.np)
+    for (int div=1; div<num_divisors; div++){
+      //memcpy(sub_mults, mults, n_uf*sizeof(int));
+      int dmults[n_uf];
+      int len0 = 1;
+      int idiv = div;
+      for (int i=0; i<n_uf; i++){
+        dmults[i] = idiv%(1+mults[i]);
+        sub_mults[i] = mults[i]-dmults[i];
+        idiv = idiv/(1+mults[i]);
+        len0 *= std::pow(uniq_fact[i], dmults[i]);
+      }
+      new_prelens[n_prepend] = len0;
+      std::vector< topology* > new_topos = get_all_topos(cdt, n_uf, uniq_fact, sub_mults, n_prepend+1, new_prelens);
+      //FIXME call some append function?
+      for (int i=0; i<new_topos.size(); i++){
+        topos.push_back(new_topos[i]);
+      }
+    }
+    return topos;
+  }
+
+  std::vector< topology* > get_generic_topovec(CommData cdt){
+    std::vector<topology*> topovec;
+
+    int nfact, * factors;
+    factorize(cdt.np, &nfact, &factors);
+    if (nfact <= 1){
+      topovec.push_back(new topology(nfact, factors, cdt));
+      if (cdt.np >= 7 && cdt.rank == 0) 
+        DPRINTF(1,"CTF WARNING: using a world with a prime number of processors may lead to very bad performance\n");
+      if (nfact > 0) cdealloc(factors);
+      return topovec;
+    }
+    std::sort(factors,factors+nfact);
+    int n_uf = 1;
+    assert(factors[0] != 1);
+    for (int i=1; i<nfact; i++){
+      if (factors[i] != factors[i-1]) n_uf++;
+    }
+    if (n_uf >= 3){
+      if (cdt.rank == 0) 
+        DPRINTF(1,"CTF WARNING: using a world with a number of processors that contains 3 or more unique prime factors may lead to suboptimal performance, when possible use p=2^k3^l processors for some k,l\n");
+    }
+    int uniq_fact[n_uf];
+    int mults[n_uf];
+    int i_uf = 0;
+    uniq_fact[0] = factors[0];
+    mults[0] = 1;
+    for (int i=1; i<nfact; i++){
+      if (factors[i] != factors[i-1]){
+        i_uf++;
+        uniq_fact[i_uf] = factors[i];
+        mults[i_uf] = 1;
+      } else mults[i_uf]++;
+    }
+    cdealloc(factors);
+    return get_all_topos(cdt, n_uf, uniq_fact, mults, 0, NULL);
+  }
+
 
   std::vector< topology* > peel_perm_torus(topology * phys_topology,
                                            CommData   cdt){
