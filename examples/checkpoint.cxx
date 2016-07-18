@@ -21,6 +21,7 @@ int checkpoint(int     n,
 
   srand48(13*dw.rank);
   A.fill_random(0.0,1.0);
+  A.print();
   A["ii"] = 0.0;
   A2["ij"] = A["ij"];
   A3["ij"] = 2.*A["ij"];
@@ -33,7 +34,8 @@ int checkpoint(int     n,
   
   MPI_File_open(dw.comm, "CTF_checkpoint_test_file.bin",  MPI_MODE_RDONLY | MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, &file);
   A4.read_dense_from_file(file);
-  
+ 
+  A4.print(); 
   A["ij"] -= A4["ij"];
   int pass = A.norm2() <= 1.e-9*n; 
   
