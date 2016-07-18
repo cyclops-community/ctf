@@ -18,9 +18,9 @@ EXAMPLES = matmul dft dft_3D gemm_4D scalar trace weigh_4D subworld_gemm \
            sparse_mp3 bivar_function bivar_transform bivar_function_cust bitonic \
            btwn_central sssp scan checkpoint
 
-TESTS = test_suite pgemm_test nonsq_pgemm_test diag_sym sym3 readwrite_test \
+TESTS = test_suite diag_sym readwrite_test \
         ccsdt_t3_to_t2 ccsdt_map_test multi_tsr_sym diag_ctr readall_test  sy_times_ns repack \
-        sptensor_sum speye
+        sptensor_sum speye #pgemm_test nonsq_pgemm_test 
 
 BENCHMARKS = nonsq_pgemm_bench bench_contraction bench_nosym_transp bench_redistribution model_trainer
 
