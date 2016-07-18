@@ -94,6 +94,8 @@ namespace CTF_int {
       mapping * edge_map;
       /** \brief current size of local tensor data chunk (mapping-dependent) */
       int64_t size;
+      /** \brief size CTF keeps track of for memory usage */
+      int64_t registered_alloc_size;
       /** \brief whether the data is folded/transposed into a (lower-order) tensor */
       bool is_folded;
       /** \brief ordering of the dimensions according to which the tensori s folded */
@@ -677,9 +679,19 @@ namespace CTF_int {
       void despmatricize(int nrow_idx, bool csr);
 
       /**
-       * \brief leave home buffer and do not allow potential change of data distribution with every summation and contraction
+       * \brief degister home buffer 
        */
-      void leave_home();
+      void leave_home_with_buffer();
+    
+      /**
+        * \brief register buffer allocation for this tensor
+        */
+      void register_size(int64_t size);
+      
+      /**
+        * \brief deregister buffer allocation for this tensor
+        */
+      void deregister_size();
   };
 }
 

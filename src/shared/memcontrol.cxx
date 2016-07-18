@@ -78,10 +78,11 @@ void read_off_memory_status(statm_t& result)
   void inc_tot_mem_used(int64_t a){
     tot_mem_used += a;
     ASSERT(tot_mem_used >= 0);
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    //int rank;
+  //  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 //    if (rank == 0)
-//      printf("CTF used memory = %1.5E, Total used memory = %1.5E, available memory via malloc_info is = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_used(), (double)proc_bytes_available());
+      //printf("INCREMENTING MEMUSAGE BY %ld to %ld\n",a,tot_mem_used);
+  //    printf("CTF used memory = %1.5E, Total used memory = %1.5E, available memory via malloc_info is = %1.5E\n", (double)tot_mem_used, (double)proc_bytes_used(), (double)proc_bytes_available());
   }
   #ifndef PRODUCTION
   std::list<mem_loc> mem_stacks[MAX_THREADS];

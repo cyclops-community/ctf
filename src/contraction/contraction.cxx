@@ -4185,7 +4185,7 @@ namespace CTF_int {
         //  global_comm.rank);
      // DPRINTF(1,"%E bytes of buffer space will be needed for this contraction\n",
        // (double)ctrf->mem_rec());
-      DPRINTF(2,"%E bytes needed, System memory = %E bytes total, %E bytes used, %E bytes available.\n",
+      printf("%E bytes needed, System memory = %E bytes total, %E bytes used, %E bytes available.\n",
         (double)ctrf->mem_rec(),
         (double)proc_bytes_total(),
         (double)proc_bytes_used(),
