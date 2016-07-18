@@ -291,8 +291,12 @@ int main(int argc, char ** argv){
     pass.push_back(btwn_cnt(n,dw,.2,2,1,1,1,1));
     
     if (rank == 0)
-      printf("Testing dense and sparse MP3 calculation %d occupied and %d virtual orbitals:\n",n,2*n);
-    pass.push_back(sparse_mp3(2*n,n,dw));
+      printf("Testing MP3 calculation using sparse*dense with %d occupied and %d virtual orbitals:\n",n,2*n);
+    pass.push_back(sparse_mp3(2*n,n,dw,.8,0,0,0));
+    
+    if (rank == 0)
+      printf("Testing MP3 calculation using sparse*sparse with %d occupied and %d virtual orbitals:\n",n,2*n);
+    pass.push_back(sparse_mp3(2*n,n,dw,.8,0,0,1));
     
     /*int logn = log2(n)+1;
     if (rank == 0)
