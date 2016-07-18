@@ -265,7 +265,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, nv, no, pass, niter, bnd, bns, test, sparse;
+  int rank, np, nv, no, pass, niter, bnd, bns, test;
   bool sparse_T;
   double sp;
   int const in_num = argc;
