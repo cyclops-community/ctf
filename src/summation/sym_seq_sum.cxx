@@ -164,7 +164,7 @@ namespace CTF_int {
         }
         CTF_FLOPS_ADD(2*(imax-imin));
       }
-    } //FIXME else 
+    } else assert(0); //FIXME else 
   }
 
   template 

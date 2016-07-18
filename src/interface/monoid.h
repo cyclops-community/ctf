@@ -72,20 +72,23 @@ namespace CTF {
       dtype (*fadd)(dtype a, dtype b);
       MPI_Op       taddmop;
 
-      Monoid(Monoid const & other) : Set<dtype, is_ord>(other) {
-        this->taddid  = other.taddid;
-        this->fadd    = other.fadd;
-        this->taddmop = other.taddmop;
+      Monoid(Monoid const & other) : Set<dtype, is_ord>(other), taddid(other.taddid), fadd(other.fadd), taddmop(other.taddmop) {
       }
       
       virtual CTF_int::algstrct * clone() const {
         return new Monoid<dtype, is_ord>(*this);
       }
-      Monoid() : Set<dtype, is_ord>() {
-        taddid  = (dtype)0;
+      Monoid() : Set<dtype, is_ord>(), taddid(0) {
         fadd    = &CTF_int::default_add<dtype>;
         taddmop = CTF_int::get_default_maddop<dtype>();
       } 
+
+      Monoid(dtype taddid_) : Set<dtype, is_ord>(), taddid(taddid_) {
+        fadd    = &CTF_int::default_add<dtype>;
+        taddmop = CTF_int::get_default_maddop<dtype>();
+      } 
+
+
 
       Monoid(dtype taddid_,
              dtype (*fadd_)(dtype a, dtype b),
@@ -122,7 +125,15 @@ namespace CTF {
         }
       }
 
+      /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
+      char * csr_add(char * cA, char * cB) const {
+        return CTF_int::algstrct::csr_add(cA, cB);
+      }
+
   };
+  template <>
+  char * Monoid<double,1>::csr_add(char *, char *) const;
+  
   /**
    * @}
    */

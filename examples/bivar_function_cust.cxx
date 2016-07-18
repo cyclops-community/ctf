@@ -10,12 +10,6 @@
 #include <ctf.hpp>
 #include "moldynamics.h"
 using namespace CTF;
-namespace CTF {
-  template <>  
-  inline void Set<force>::print(char const * a, FILE * fp) const {
-    fprintf(fp,"(%lf %lf)",((force*)a)[0].fx,((force*)a)[0].fy);
-  }
-}
 int bivar_function_cust(int     n,
                         World & dw){
   
@@ -43,10 +37,11 @@ int bivar_function_cust(int     n,
 
   Vector<force> F(n, dw, gF);
   
-  CTF::Function<particle, particle, force> fGF(&get_force);
+//  CTF::Bivar_Function<particle, particle, force> fGF(&get_force);
+  CTF::Bivar_Kernel<particle, particle, force, get_force> fGF;
 
   F["i"] += fGF(P["i"],P["j"]);
-  
+ 
   Matrix<force> F_all(n, n, NS, dw, gF);
 
   F_all["ij"] = fGF(P["i"],P["j"]);
@@ -70,7 +65,7 @@ int bivar_function_cust(int     n,
     }
   } 
 
-  ((Transform<force,particle>)([] (force f, particle & p){ p.dx += f.fx*p.coeff; p.dy += f.fy*p.coeff; }))(F["i"], P["i"]);
+  Transform<force,particle>([] (force f, particle & p){ p.dx += f.fx*p.coeff; p.dy += f.fy*p.coeff; })(F["i"], P["i"]);
   
   return pass;
 } 

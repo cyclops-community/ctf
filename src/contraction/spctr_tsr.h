@@ -17,6 +17,7 @@ namespace CTF_int{
       ~spctr();
       spctr(spctr * other);
       virtual spctr * clone() { return NULL; }
+
       /**
        * \brief returns the execution time the local part this kernel is estimated to take
        * \param[in] nlyr amount of replication
@@ -82,6 +83,8 @@ namespace CTF_int{
       void print();
       int64_t mem_fp();
       spctr * clone();
+      double est_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      uint64_t est_membw(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 

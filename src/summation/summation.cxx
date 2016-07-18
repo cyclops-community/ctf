@@ -117,14 +117,9 @@ namespace CTF_int {
   #endif
     print();
 #endif
-    update_all_models(A->wrld->cdt.cm);
-    if (A->is_sparse || B->is_sparse){
-      int stat = sym_sum_tsr(run_diag);
-      assert(stat == SUCCESS); 
-    } else {
-      int stat = home_sum_tsr(run_diag);
-      assert(stat == SUCCESS); 
-    }
+    //update_all_models(A->wrld->cdt.cm);
+    int stat = home_sum_tsr(run_diag);
+    assert(stat == SUCCESS); 
   }
   
   double summation::estimate_time(){
@@ -980,10 +975,16 @@ namespace CTF_int {
       tnsr_A->data        = A->data;
       tnsr_A->home_buffer = A->home_buffer;
       tnsr_A->is_home     = 1;
+      tnsr_A->has_home    = 1;
+      tnsr_A->home_size = A->home_size;
       tnsr_A->is_mapped   = 1;
       tnsr_A->topo        = A->topo;
       copy_mapping(A->order, A->edge_map, tnsr_A->edge_map);
       tnsr_A->set_padding();
+      if (A->is_sparse){
+        CTF_int::alloc_ptr(tnsr_A->calc_nvirt()*sizeof(int64_t), (void**)&tnsr_A->nnz_blk);
+        tnsr_A->set_new_nnz_glb(A->nnz_blk);
+      }
       osum.A              = tnsr_A;
     } else tnsr_A = NULL;     
     if (was_home_B){
@@ -995,6 +996,10 @@ namespace CTF_int {
       tnsr_B->topo        = B->topo;
       copy_mapping(B->order, B->edge_map, tnsr_B->edge_map);
       tnsr_B->set_padding();
+      if (B->is_sparse){
+        CTF_int::alloc_ptr(tnsr_B->calc_nvirt()*sizeof(int64_t), (void**)&tnsr_B->nnz_blk);
+        tnsr_B->set_new_nnz_glb(B->nnz_blk);
+      }
       osum.B              = tnsr_B;
     } else tnsr_B = NULL;
   #if DEBUG >= 2
@@ -1015,29 +1020,43 @@ namespace CTF_int {
     if (ret!= SUCCESS) return ret;
     if (was_home_A) tnsr_A->unfold(); 
     else A->unfold();
-    if (was_home_B) tnsr_B->unfold();
-    else B->unfold();
+    if (was_home_B){
+      tnsr_B->unfold();
+      if (B->is_sparse){
+        cdealloc(B->nnz_blk);
+        //do below manually rather than calling set_new_nnz_glb since virt factor may be different
+        CTF_int::alloc_ptr(tnsr_B->calc_nvirt()*sizeof(int64_t), (void**)&B->nnz_blk);
+        for (int i=0; i<tnsr_B->calc_nvirt(); i++){
+          B->nnz_blk[i] = tnsr_B->nnz_blk[i];
+        }
+        B->nnz_loc = tnsr_B->nnz_loc;
+        B->nnz_tot = tnsr_B->nnz_tot;
+      } 
+      B->data = tnsr_B->data;
+    } else B->unfold();
 
     if (was_home_B && !tnsr_B->is_home){
       if (A->wrld->cdt.rank == 0)
         DPRINTF(2,"Migrating tensor %s back to home\n", B->name);
       distribution odst(tnsr_B);
-      B->data = tnsr_B->data;
       B->is_home = 0;
       TAU_FSTART(redistribute_for_sum_home);
       B->redistribute(odst);
       TAU_FSTOP(redistribute_for_sum_home);
-      memcpy(B->home_buffer, B->data, B->size*B->sr->el_size);
-      CTF_int::cdealloc(B->data);
-      B->data = B->home_buffer;
-      B->is_home = 1;
+      if (!B->is_sparse){
+        memcpy(B->home_buffer, B->data, B->size*B->sr->el_size);
+        CTF_int::cdealloc(B->data);
+        B->data = B->home_buffer;
+      }
       tnsr_B->is_data_aliased = 1;
+      B->is_home = 1;
       delete tnsr_B;
     } else if (was_home_B){
-      if (tnsr_B->data != B->data){
-        printf("Tensor %s is a copy of %s and did not leave home but buffer is %p was %p\n", tnsr_B->name, B->name, tnsr_B->data, B->data);
-        ABORT;
-
+      if (!B->is_sparse){
+        if (tnsr_B->data != B->data){
+          printf("Tensor %s is a copy of %s and did not leave home but buffer is %p was %p\n", tnsr_B->name, B->name, tnsr_B->data, B->data);
+          ABORT;
+        }
       }
       tnsr_B->has_home = 0;
       tnsr_B->is_data_aliased = 1;
@@ -1045,6 +1064,10 @@ namespace CTF_int {
     }
     if (was_home_A && !tnsr_A->is_home){
       tnsr_A->has_home = 0;
+      if (A->is_sparse){
+        A->data = tnsr_A->home_buffer;
+        tnsr_A->home_buffer = NULL;
+      }
       delete tnsr_A;
     } else if (was_home_A) {
       tnsr_A->has_home = 0;
@@ -1187,7 +1210,6 @@ namespace CTF_int {
         int sidx2 = unfold_sum->unfold_broken_sym(NULL);
         if (sidx%2 == 0 && (A->sym[sidx/2] == SY || unfold_sum->A->sym[sidx/2] == SY)) sy = 1;
         if (sidx%2 == 1 && (B->sym[sidx/2] == SY || unfold_sum->B->sym[sidx/2] == SY)) sy = 1;
-        //if (sy && sidx%2 == 0){
         if (!A->is_sparse && !B->is_sparse && (sidx2 != -1 || 
             (sy && (sidx%2 == 0  || !tnsr_B->sr->isequal(new_sum.beta, tnsr_B->sr->addid()))))){
           if (sidx%2 == 0){
@@ -1252,7 +1274,8 @@ namespace CTF_int {
           // if we have no multiplicative operator, must inverse sign manually
           if (tnsr_B->sr->mulid() == NULL){
             for (i=0; i<(int)perm_types.size(); i++){
-              need_inv = true;
+              if (signs[i] == -1)
+                need_inv = true;
             }
             if (need_inv){
               inv_tsr_A = new tensor(tnsr_A);
@@ -1275,8 +1298,9 @@ namespace CTF_int {
             dbeta = new_sum.B->sr->mulid();
           }
           cdealloc(new_alpha);
-          if (need_inv)
+          if (need_inv){
             delete inv_tsr_A;
+          }
   /*        for (i=0; i<(int)perm_types.size(); i++){
             free_type(&perm_types[i]);
           }*/
@@ -1326,6 +1350,7 @@ namespace CTF_int {
     tsum * sumf;
     //check_sum(tid_A, tid_B, idx_map_A, idx_map_B);
     //FIXME: hmm all of the below already takes place in sym_sum
+    TAU_FSTART(sum_preprocessing);
     check_consistency();
     A->unfold();
     B->unfold();
@@ -1351,6 +1376,7 @@ namespace CTF_int {
         scaling scl = scaling(B, sub_idx_map_B, beta);
         scl.execute();
       }
+      TAU_FSTOP(sum_preprocessing);
       return SUCCESS;
     }
 
@@ -1386,6 +1412,8 @@ namespace CTF_int {
       if (A != stnsr_A) delete stnsr_A;
 
     }
+
+    TAU_FSTOP(sum_preprocessing);
 
     // FIXME: if A has self indices and function is distributive, presum A first, otherwise if it is dense and B is sparse, sparsify A
     summation new_sum = summation(*this);
@@ -1431,6 +1459,8 @@ namespace CTF_int {
   #endif
 
       TAU_FSTART(sum_tensors);
+      
+      TAU_FSTART(sum_tensors_map);
 
       /* Check if the current tensor mappings can be summed on */
   #if REDIST
@@ -1438,10 +1468,17 @@ namespace CTF_int {
   #else
       if (new_sum.check_mapping() == 0) {
   #endif
+  #if DEBUG == 2
+        if (A->wrld->cdt.rank == 0){
+          printf("Remapping tensors for sum:\n");
+        }
+  #endif
         /* remap if necessary */
         stat = new_sum.map();
         if (stat == ERROR) {
           printf("Failed to map tensors to physical grid\n");
+          TAU_FSTOP(sum_tensors);
+          TAU_FSTOP(sum_tensors_map);
           return ERROR;
         }
       } else {
@@ -1506,17 +1543,25 @@ namespace CTF_int {
       }*/
   #endif
 
+      TAU_FSTOP(sum_tensors_map);
   #if DEBUG >= 2
       if (tnsr_B->wrld->rank==0)
         sumf->print();
       tnsr_A->print_map();
       tnsr_B->print_map();
   #endif
-      TAU_FSTART(sum_func);
       /* Invoke the contraction algorithm */
-      tnsr_A->topo->activate();
+#ifdef PROFILE
+      TAU_FSTART(pre_sum_func_barrier);
       MPI_Barrier(tnsr_B->wrld->comm);
+      TAU_FSTOP(pre_sum_func_barrier);
+#endif
+      TAU_FSTART(activate_topo);
+      tnsr_A->topo->activate();
+      TAU_FSTOP(activate_topo);
+      TAU_FSTART(sum_func);
       sumf->run();
+      TAU_FSTOP(sum_func);
       if (tnsr_B->is_sparse){
         tspsum * spsumf = (tspsum*)sumf;
         if (tnsr_B->data != spsumf->new_B){
@@ -1537,13 +1582,19 @@ namespace CTF_int {
         printf("\n");
       }
       }*/
+#ifdef PROFILE
+      TAU_FSTART(post_sum_func_barrier);
+      MPI_Barrier(tnsr_B->wrld->comm);
+      TAU_FSTOP(post_sum_func_barrier);
+#endif
+      TAU_FSTART(sum_postprocessing);
       tnsr_A->topo->deactivate();
       tnsr_A->unfold();
       tnsr_B->unfold();
 #ifndef SEQ
+      //FIXME: when is this actually needed? can we do it in sym_sum instead?
       stat = tnsr_B->zero_out_padding();
 #endif
-      TAU_FSTOP(sum_func);
 
   #if 0 //VERIFY
       stat = allread_tsr(ntid_A, &nA, &uA);
@@ -1599,6 +1650,7 @@ namespace CTF_int {
     CTF_int::cdealloc(map_B);
     CTF_int::cdealloc(dstack_map_B);
     CTF_int::cdealloc(dstack_tsr_B);
+    TAU_FSTOP(sum_postprocessing);
 
     TAU_FSTOP(sum_tensors);
     return SUCCESS;
@@ -1746,7 +1798,10 @@ namespace CTF_int {
 
     TAU_FSTART(check_sum_mapping);
     pass = 1;
-    
+   
+    ASSERT(A->is_mapped);
+    ASSERT(B->is_mapped);
+ 
     if (A->is_mapped == 0) pass = 0;
     if (B->is_mapped == 0) pass = 0;
     
@@ -1819,7 +1874,7 @@ namespace CTF_int {
     CTF_int::cdealloc(idx_arr);
 
     //if we have don't have an additive id we can't replicate
-    if (B->sr->addid() == NULL){
+    if (B->sr->addid() == NULL || B->is_sparse){
       int ndim_mapped = 0;
       for (int j=0; j<B->order; j++){
         mapping * map = &B->edge_map[j];
@@ -1829,8 +1884,8 @@ namespace CTF_int {
           if (map->type == PHYSICAL_MAP)
             ndim_mapped++;
         }
-        if (ndim_mapped < B->topo->order) pass = 0;
       }
+      if (ndim_mapped < B->topo->order) pass = 0;
     }
        
     TAU_FSTOP(check_sum_mapping);
@@ -2103,13 +2158,14 @@ namespace CTF_int {
       } else
         need_remap_A = 1;
       if (need_remap_A){
-        if (can_block_reshuffle(A->order, dA.phase, A->edge_map)){
-          size += A->size*log2(wrld->cdt.np);
+        if (!A->is_sparse && can_block_reshuffle(A->order, dA.phase, A->edge_map)){
+          size += A->size*std::max(1.0,log2(wrld->cdt.np));
         } else {
-          if (A->is_sparse)
-            size += 25.*A->size*log2(wrld->cdt.np);
-          else
-            size += 5.*A->size*log2(wrld->cdt.np);
+          if (A->is_sparse){
+            double nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
+            size += 25.*nnz_frac_A*A->size*std::max(1.0,log2(wrld->cdt.np));
+          } else
+            size += 5.*A->size*std::max(1.0,log2(wrld->cdt.np));
         }
       }
       if (B->topo == old_topo_B){
@@ -2120,20 +2176,19 @@ namespace CTF_int {
       } else
         need_remap_B = 1;
       if (need_remap_B){
-        if (can_block_reshuffle(B->order, dB.phase, B->edge_map)){
-          size += B->size*log2(wrld->cdt.np);
+        if (!B->is_sparse && can_block_reshuffle(B->order, dB.phase, B->edge_map)){
+          size += B->size*std::max(1.0,log2(wrld->cdt.np));
         } else {
-          if (B->is_home){
-            if (B->is_sparse)
-              size += 50.*B->size*log2(wrld->cdt.np);
-            else
-              size += 10.*B->size*log2(wrld->cdt.np);
-          } else {
-            if (B->is_sparse)
-              size += 25.*B->size*log2(wrld->cdt.np);
-            else
-              size += 5.*B->size*log2(wrld->cdt.np);
-          }
+          double pref = 1.0;
+          if (B->is_home)
+            pref = 2.0;
+          if (B->is_sparse){
+            double nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
+            double nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
+            nnz_frac_B = std::max(nnz_frac_B, nnz_frac_A);
+            size += 25.*pref*nnz_frac_B*B->size*std::max(1.0,log2(wrld->cdt.np));
+          } else
+            size += 5.*pref*B->size*std::max(1.0,log2(wrld->cdt.np));
         }
       }
 

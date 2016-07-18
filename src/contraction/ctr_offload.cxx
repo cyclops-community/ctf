@@ -83,11 +83,12 @@ namespace CTF_int {
   }
 
   void ctr_offload::run(char * A, char * B, char * C){
+    TAU_FSTART(ctr_offload);
     ASSERT(iter_counter < total_iter);
     if (iter_counter == 0){
-      ptr_A = new offload_ptr(sr_A, size_A);
-      ptr_B = new offload_ptr(sr_B, size_B);
-      ptr_C = new offload_ptr(sr_C, size_C);
+      ptr_A = new offload_tsr(sr_A, size_A);
+      ptr_B = new offload_tsr(sr_B, size_B);
+      ptr_C = new offload_tsr(sr_C, size_C);
       
       ptr_A->upload(A);
       ptr_B->upload(B);
@@ -99,11 +100,14 @@ namespace CTF_int {
       if (iter_counter % upload_phase_B == 0) 
         ptr_B->upload(B);
     }
-    if (this->beta != sr_C->mulid()){
+    if (!sr_C->isequal(this->beta, sr_C->mulid())){
       ASSERT(iter_counter % download_phase_C == 0);
       //FIXME daxpy 
       CTF_FLOPS_ADD(size_C);
-      sr_C->scal(size_C, this->beta, C, 1);
+      if (sr_C->isequal(this->beta, sr_C->addid()))
+        sr_C->set(C, sr_C->addid(), size_C);
+      else
+        sr_C->scal(size_C, this->beta, C, 1);
       /*for (int i=0; i<size_C; i++){
         this->C[i] = this->C[i]*this->beta;
       }*/
@@ -113,7 +117,9 @@ namespace CTF_int {
     rec_ctr->num_lyr = this->num_lyr;
     rec_ctr->idx_lyr = this->idx_lyr;
 
-    rec_ctr->run(ptr_A->dev_ptr, ptr_B->dev_ptr, ptr_C->dev_ptr);
+    TAU_FSTOP(ctr_offload);
+    rec_ctr->run(ptr_A->dev_spr, ptr_B->dev_spr, ptr_C->dev_spr);
+    TAU_FSTART(ctr_offload);
     
     iter_counter++;
 
@@ -137,6 +143,7 @@ namespace CTF_int {
       delete ptr_C;
       iter_counter = 0;
     }
+    TAU_FSTOP(ctr_offload);
   }
 }
 #endif

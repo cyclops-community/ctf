@@ -3,8 +3,11 @@
 #include "../shared/blas_symbs.h"
 #include "untyped_tensor.h"
 #include "algstrct.h"
+#include "../sparse_formats/csr.h"
 
 namespace CTF_int {
+  LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
+  LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
 
   void sgemm(char           tA,
              char           tB,
@@ -109,7 +112,7 @@ namespace CTF_int {
   }
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
-    has_csrmm = false;
+    has_coo_ker = false;
   }
   
 
@@ -154,6 +157,11 @@ namespace CTF_int {
     ASSERT(0);
     assert(0);
   }
+
+  void algstrct::accum(char const * a, char * b) const {
+    this->add(a, b, b);
+  }
+
 
   void algstrct::mul(char const * a, char const * b, char * c) const {
     printf("CTF ERROR: no multiplication operation present for this algebraic structure\n");
@@ -298,6 +306,164 @@ namespace CTF_int {
   void algstrct::coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
+  }
+      
+  void algstrct::csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const {
+    printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
+    ASSERT(0);
+  }
+
+
+//  void algstrct::csr_add(int64_t m, int64_t n, char const * a, int const * ja, int const * ia, char const * b, int const * jb, int const * ib, char *& c, int *& jc, int *& ic){
+  char * algstrct::csr_add(char * cA, char * cB) const {
+
+    return CTF_int::CSR_Matrix::csr_add(cA, cB, this);
+  }
+  
+  char * algstrct::csr_reduce(char * cA, int root, MPI_Comm cm) const {
+    int r, p;
+    MPI_Comm_rank(cm, &r);
+    MPI_Comm_size(cm, &p);
+    if (p==1) return cA;
+    TAU_FSTART(csr_reduce);
+    int s = 2;
+    double t_st = MPI_Wtime();
+    while (p%s != 0) s++;
+    int sr = r%s;
+    MPI_Comm scm;
+    MPI_Comm rcm;
+    MPI_Comm_split(cm, r/s, sr, &scm);
+    MPI_Comm_split(cm, sr, r/s, &rcm);
+    
+    CSR_Matrix A(cA);
+    int64_t sz_A = A.size();
+    char * parts_buffer; 
+    CSR_Matrix ** parts = (CSR_Matrix**)alloc(sizeof(CSR_Matrix*)*s);
+    A.partition(s, &parts_buffer, parts);
+    //MPI_Request reqs[2*(s-1)];
+    int rcv_szs[s];
+    int snd_szs[s];
+    int64_t tot_buf_size = 0;
+    for (int i=0; i<s; i++){
+      if (i==sr) snd_szs[i] = 0;
+      else snd_szs[i] = parts[i]->size();
+      tot_buf_size += snd_szs[i];
+    }
+
+    MPI_Alltoall(snd_szs, 1, MPI_INT, rcv_szs, 1, MPI_INT, scm);
+    int64_t tot_rcv_sz = 0;
+    for (int i=0; i<s; i++){
+      //printf("i=%d/%d,rcv_szs[i]=%d\n",i,s,rcv_szs[i]);
+      tot_rcv_sz += rcv_szs[i];
+    }
+    char * rcv_buf = (char*)alloc(tot_rcv_sz);
+  
+    char * smnds[s];
+    int rcv_displs[s];
+    int snd_displs[s];
+    rcv_displs[0] = 0;
+    for (int i=0; i<s; i++){
+      if (i>0) rcv_displs[i] = rcv_szs[i-1]+rcv_displs[i-1];
+      snd_displs[i] = parts[i]->all_data - parts[0]->all_data;
+      if (i==sr) smnds[i] = parts[i]->all_data;
+      else smnds[i] = rcv_buf + rcv_displs[i];
+//      printf("parts[%d].all_data = %p\n",i,parts[i]->all_data);
+  //    printf("snd_dipls[%d] = %d\n", i, snd_displs[i]);
+//      printf("rcv_dipls[%d] = %d\n", i, rcv_displs[i]);
+    }
+    MPI_Alltoallv(parts[0]->all_data, snd_szs, snd_displs, MPI_CHAR, rcv_buf, rcv_szs, rcv_displs, MPI_CHAR, scm);
+    for (int i=0; i<s; i++){
+      delete parts[i]; //does not actually free buffer space
+    }
+    cdealloc(parts);
+    /*  smnds[i] = (char*)alloc(rcv_szs[i]);
+      int sbw = (r/phase - i + s-1)%s;
+      int rbw = sbw + (r/(phase*s))*s + (r%phase);
+      int rfw = sfw + (r/(phase*s))*s + (r%phase);
+      char * rcv_data = (char*)alloc(rcv_szs[i]);
+      smnds[i] = rcv_data;
+      MPI_Isend(parts[sfw], snd_szs[i], MPI_CHAR, rfw, s+i, cm, reqs+i);
+      MPI_Irecv(rcv_data, rcv_szs[i], MPI_CHAR, rbw, s+i, cm, reqs+s-1+i);
+    }
+    MPI_Status stats[2*(s-1)];
+    MPI_Waitall(2*(s-1), reqs, stats);
+    for (int i=1; i<s; i++){
+      int sfw = (r/phase + i + s-1)%s;
+      cdealloc(parts[sfw]);
+    }
+    cdealloc(parts);*/
+    for (int z=1; z<s; z<<=1){
+      for (int i=0; i<s-z; i+=2*z){
+        char * csr_new = csr_add(smnds[i], smnds[i+z]);
+        if ((smnds[i] < parts_buffer || 
+             smnds[i] > parts_buffer+tot_buf_size) &&
+            (smnds[i] < rcv_buf || 
+             smnds[i] > rcv_buf+tot_rcv_sz))
+          cdealloc(smnds[i]);
+        if ((smnds[i+z] < parts_buffer || 
+             smnds[i+z] > parts_buffer+tot_buf_size) &&
+            (smnds[i+z] < rcv_buf || 
+             smnds[i+z] > rcv_buf+tot_rcv_sz))
+          cdealloc(smnds[i+z]);
+        smnds[i] = csr_new;
+      }
+    }
+    cdealloc(parts_buffer); //dealloc all parts
+    cdealloc(rcv_buf);
+    TAU_FSTOP(csr_reduce);
+    char * red_sum = csr_reduce(smnds[0], root/s, rcm);
+    TAU_FSTART(csr_reduce);
+    if (smnds[0] != red_sum) cdealloc(smnds[0]);
+    if (r/s == root/s){
+      CSR_Matrix cf(red_sum);
+      int sz = cf.size();
+      int sroot = root%s;
+      int cb_sizes[s];
+      if (sroot == sr) sz = 0;
+      MPI_Gather(&sz, 1, MPI_INT, cb_sizes, 1, MPI_INT, sroot, scm);
+      int64_t tot_cb_size = 0;
+      int cb_displs[s];
+      if (sr == sroot){
+        for (int i=0; i<s; i++){
+          cb_displs[i] = tot_cb_size;
+          tot_cb_size += cb_sizes[i];
+        }
+      }
+      char * cb_bufs = (char*)alloc(tot_cb_size);
+      MPI_Gatherv(red_sum, sz, MPI_CHAR, cb_bufs, cb_sizes, cb_displs, MPI_CHAR, sroot, scm);
+      MPI_Comm_free(&scm);
+      MPI_Comm_free(&rcm);
+      if (sr == sroot){
+        for (int i=0; i<s; i++){
+          smnds[i] = cb_bufs + cb_displs[i];
+          if (i==sr) smnds[i] = red_sum;
+        }
+        CSR_Matrix out(smnds, s);
+        cdealloc(red_sum);
+        cdealloc(cb_bufs);
+        double t_end = MPI_Wtime() - t_st;
+        double tps[] = {t_end, 1.0, log2((double)p), (double)sz_A};
+        csrred_mdl.observe(tps);
+        TAU_FSTOP(csr_reduce);
+        return out.all_data;
+      } else {
+        cdealloc(red_sum);
+        cdealloc(cb_bufs);
+        TAU_FSTOP(csr_reduce);
+        return NULL;
+      }
+    } else {
+      MPI_Comm_free(&scm);
+      MPI_Comm_free(&rcm);
+      TAU_FSTOP(csr_reduce);
+      return NULL;
+    }
+  }
+
+  double algstrct::estimate_csr_red_time(int64_t msg_sz, CommData const * cdt) const {
+
+    double ps[] = {1.0, log2((double)cdt->np), (double)msg_sz};
+    return csrred_mdl.est_time(ps);
   }
       
   void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {
@@ -468,11 +634,49 @@ namespace CTF_int {
     ASSERT(0);
   }
 
-  void algstrct::csrmm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
+  void algstrct::csrmm(int m, int n, int k, char const * alpha, char const * A, int const * JA, int const * IA, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
     printf("CTF ERROR: csrmm not present for this algebraic structure\n");
     ASSERT(0);
   }
+   
+  void algstrct::csrmultd
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * alpha,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char const * beta,
+                 char *       C) const {
+    printf("CTF ERROR: csrmultd not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+ 
+  void algstrct::csrmultcsr
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * alpha,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char const * beta,
+                 char *&      C_CSR) const {
 
+    printf("CTF ERROR: csrmultcsr not present for this algebraic structure\n");
+    ASSERT(0);
+  }
       
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){
     sr=pi.sr; ptr=pi.ptr; 
@@ -691,6 +895,7 @@ namespace CTF_int {
   }
 
   void ConstPairIterator::pin(int64_t n, int order, int const * lens, int const * divisor, PairIterator pi_new){
+    TAU_FSTART(pin);
     ConstPairIterator pi = *this;
     int * div_lens;
     alloc_ptr(order*sizeof(int), (void**)&div_lens);
@@ -698,6 +903,9 @@ namespace CTF_int {
       div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
 //      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
     }
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
     for (int64_t i=0; i<n; i++){
       int64_t key = pi[i].k();
       int64_t new_key = 0;
@@ -711,12 +919,18 @@ namespace CTF_int {
         key = key/lens[j];
       }
       ((int64_t*)pi_new[i].ptr)[0] = new_key;
+/*      if (i>0 && pi[i].k() > pi[i-1].k()){
+        assert(pi_new[i].k() > pi_new[i-1].k());
+      }*/
     }
     cdealloc(div_lens);
+    TAU_FSTOP(pin);
 
   }
 
   void depin(algstrct const * sr, int order, int const * lens, int const * divisor, int nvirt, int const * virt_dim, int const * phys_rank, char * X, int64_t & new_nnz_B, int64_t * nnz_blk, char *& new_B, bool check_padding){
+
+    TAU_FSTART(depin);
 
     int * div_lens;
     alloc_ptr(order*sizeof(int), (void**)&div_lens);
@@ -817,6 +1031,7 @@ namespace CTF_int {
     cdealloc(virt_offset);
     cdealloc(div_lens);
 
+    TAU_FSTOP(depin);
   }
 
 

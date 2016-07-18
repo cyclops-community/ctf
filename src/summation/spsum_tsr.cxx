@@ -105,7 +105,7 @@ namespace CTF_int {
     int * ilda_A, * ilda_B;
     int64_t i, off_A, off_B;
     int nb_A, nb_B, alloced, ret; 
-    TAU_FSTART(sum_virt);
+    TAU_FSTART(spsum_virt);
 
     if (this->buffer != NULL){    
       alloced = 0;
@@ -232,7 +232,7 @@ namespace CTF_int {
       cdealloc(idx_arr);
     }
     cdealloc(beta_arr);
-    TAU_FSTOP(sum_virt);
+    TAU_FSTOP(spsum_virt);
   }
 
   void tspsum_replicate::print(){
@@ -359,7 +359,7 @@ namespace CTF_int {
       size_B = nnz_B;
       for (i=0; i<ncdt_B; i++){
         cdt_B[i]->bcast(&size_B, 1, MPI_INT64_T, 0);
-        cdt_A[i]->bcast(nnz_blk_B, nvirt_B, MPI_INT64_T, 0);
+        cdt_B[i]->bcast(nnz_blk_B, nvirt_B, MPI_INT64_T, 0);
       }
     }
 
@@ -598,6 +598,7 @@ namespace CTF_int {
   }
 
   void tspsum_map::run(){
+    TAU_FSTART(tspsum_map);
     int64_t tot_rep=1;
     for (int midx=0; midx<nmap_idx; midx++){
       tot_rep *= map_idx_len[midx];
@@ -641,10 +642,13 @@ namespace CTF_int {
       nnz_blk_A[v] *= tot_rep;
     }
     rec_tsum->set_nnz_blk_A(nnz_blk_A);
+    TAU_FSTOP(tspsum_map);
     rec_tsum->run();
+    TAU_FSTART(tspsum_map);
     new_nnz_B = rec_tsum->new_nnz_B;
     new_B = rec_tsum->new_B;
     cdealloc(buf);
+    TAU_FSTOP(tspsum_map);
   }
 
   tspsum_permute::~tspsum_permute() {
@@ -659,6 +663,7 @@ namespace CTF_int {
     rec_tsum = o->rec_tsum->clone();
     A_or_B   = o->A_or_B;
     order    = o->order;
+    skip     = o->skip;
     p        = (int*)alloc(sizeof(int)*order);
     lens_old = (int*)alloc(sizeof(int)*order);
     lens_new = (int*)alloc(sizeof(int)*order);
@@ -707,7 +712,21 @@ namespace CTF_int {
             p[i] = j;
           }
         }       
-      } 
+      }
+      //adjust p in case there are mapped indices in B 
+      int lesser[this->order];
+      for (int i=0; i<this->order; i++){
+        if (p[i] != -1){
+          lesser[i] = 0;
+          for (int j=0; j<this->order; j++){
+            if (i!=j && p[j] != -1 && p[j] < p[i]) lesser[i]++; 
+          }
+        }
+      }
+      for (int i=0; i<this->order; i++){
+        if (p[i] != -1)
+          p[i] = lesser[i];
+      }
     } else {
       // if B then put 'map' indices first
       int nmap_idx = 0;
@@ -722,16 +741,24 @@ namespace CTF_int {
       } 
 
       int nm = 0;
+      int nnm = 0;
       for (int i=0; i<this->order; i++){
         p[i] = nm;
         for (int j=0; j<Y->order; j++){
           if (idx_X[i] == idx_Y[j]){
             ASSERT(p[i] == nm); // no repeating indices allowed here!
-            p[i] = j+nmap_idx;
+            p[i] = nnm+nmap_idx;
+            nnm++;
           }
         }
         if (p[i] == nm) nm++;
       } 
+    }
+    skip = true;
+    for (int i=0; i<this->order; i++){
+      if (p[i] != i) skip = false;
+//      printf("p[%d] = %d order = %d\n", i, p[i], this->order);
+      if (p[i] != -1) lens_new[p[i]] = lens[i];
     }
   }
 
@@ -743,6 +770,10 @@ namespace CTF_int {
     printf("tspsum_permute:\n");
     if (A_or_B) printf("permuting A\n");
     else        printf("permuting B\n");
+    for (int i=0; i<order; i++){
+      printf("p[%d] = %d ",i,p[i]);
+    }
+    printf("\n");
     rec_tsum->print();
   }
   
@@ -756,6 +787,19 @@ namespace CTF_int {
   void tspsum_permute::run(){
     char * buf;
 
+    if (skip){
+      rec_tsum->A = A;
+      rec_tsum->B = B;
+      rec_tsum->nnz_A = nnz_A;
+      rec_tsum->nnz_B = nnz_B;
+
+      rec_tsum->run();
+      new_nnz_B = rec_tsum->new_nnz_B;
+      new_B = rec_tsum->new_B;
+      return;
+    }
+
+    TAU_FSTART(spsum_permute);
     if (A_or_B){
       alloc_ptr(nnz_A*sr_A->pair_size(), (void**)&buf);
       rec_tsum->A = buf;
@@ -768,7 +812,7 @@ namespace CTF_int {
         for (int j=0; j<order; j++){
           if (p[j] == i){ 
             new_lda_A[j] = lda;
-            lda *= lens_new[j];
+            lda *= lens_new[i];
           }
         }
       }
@@ -787,11 +831,16 @@ namespace CTF_int {
       rec_tsum->A = A;
       rec_tsum->B = buf;
       memcpy(buf, B, nnz_B*sr_B->pair_size());
-      int64_t new_lda_B[order];
+      int64_t old_lda_B[order];
       int64_t lda=1;
       for (int i=0; i<order; i++){
-        new_lda_B[p[i]] = lda;
+        old_lda_B[i] = lda;
         lda *= lens_new[i];
+      }
+      int64_t new_lda_B[order];
+      std::fill(new_lda_B, new_lda_B+order, 0);
+      for (int i=0; i<order; i++){
+        new_lda_B[i] = old_lda_B[p[i]];
       }
       ConstPairIterator rB(sr_B, B);
       PairIterator wB(sr_B, buf);
@@ -808,7 +857,9 @@ namespace CTF_int {
 
     rec_tsum->nnz_A = nnz_A;
     rec_tsum->nnz_B = nnz_B;
+    TAU_FSTOP(spsum_permute);
     rec_tsum->run();
+    TAU_FSTART(spsum_permute);
 
     new_nnz_B = rec_tsum->new_nnz_B;
     if (A_or_B){
@@ -825,10 +876,14 @@ namespace CTF_int {
         inv_p[p[i]] = i;
       }
       int64_t new_lda_B[order];
+      int64_t old_lda_B[order];
       int64_t lda=1;
       for (int i=0; i<order; i++){
-        new_lda_B[inv_p[i]] = lda;
+        old_lda_B[i] = lda;
         lda *= lens_old[i];
+      }
+      for (int i=0; i<order; i++){
+        new_lda_B[i] = old_lda_B[inv_p[i]];
       }
       ConstPairIterator rB(sr_B, rec_tsum->new_B);
       PairIterator wB(sr_B, new_B);
@@ -836,16 +891,20 @@ namespace CTF_int {
       rB.permute(new_nnz_B, order, lens_new, new_lda_B, wB);
       PairIterator mwB = wB;
       for (int v=0; v<nvirt_B; v++){
+        /*for (int i=0; i<nnz_blk_B[v]; i++){
+          printf("i=%d/%ld\n",i,nnz_blk_B[v]);
+          sr_B->print(mwB[i].d());
+        }*/
         mwB.sort(nnz_blk_B[v]);
         mwB = mwB[nnz_blk_B[v]];
       }
 
-
-      if (buf != rec_tsum->new_B){
+      if (buf != rec_tsum->new_B && new_B != rec_tsum->new_B){
         cdealloc(rec_tsum->new_B);
       }
       cdealloc(buf);
     }
+    TAU_FSTOP(spsum_permute);
   }
 
   void inv_idx(int                order_A,
@@ -936,6 +995,7 @@ namespace CTF_int {
   }
 
   void tspsum_pin_keys::run(){
+    TAU_FSTART(spsum_pin);
     char * X;
     algstrct const * sr;
     int64_t nnz;
@@ -970,7 +1030,9 @@ namespace CTF_int {
     }
     rec_tsum->nnz_A = nnz_A;
     rec_tsum->nnz_B = nnz_B;
+    TAU_FSTOP(spsum_pin);
     rec_tsum->run();
+    TAU_FSTART(spsum_pin);
 
     new_nnz_B = rec_tsum->new_nnz_B;
     new_B = rec_tsum->new_B;
@@ -981,5 +1043,6 @@ namespace CTF_int {
       depin(sr_B, order, lens, divisor, nvirt_B, virt_dim, phys_rank, new_B, new_nnz_B, nnz_blk_B, new_B, true);
       if (old_B != new_B && old_B != B) cdealloc(old_B);
     }
+    TAU_FSTOP(spsum_pin);
   }
 }

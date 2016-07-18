@@ -70,6 +70,26 @@ class Integrals {
     ijkl = new Tensor<>(4,oooo,shapeASAS,dw_,"Vijkl",1);
   }
 
+  ~Integrals(){
+    delete aa;
+    delete ii;
+    
+    delete ab;
+    delete ai;
+    delete ia;
+    delete ij;
+    
+    delete abcd;
+    delete abci;
+    delete aibc;
+    delete aibj;
+    delete abij;
+    delete ijab;
+    delete aijk;
+    delete ijak;
+    delete ijkl;
+  }
+
   void fill_rand(){
     int i, rank;
     int64_t j, sz, * indices;
@@ -143,8 +163,12 @@ class Amplitudes {
     int vvoo[]      = {nv,nv,no,no};
 
     ai = new CTF_Matrix(nv,no,NS,dw_,"Tai",1);
-
     abij = new Tensor<>(4,vvoo,shapeASAS,dw_,"Tabij",1);
+  }
+
+  ~Amplitudes(){
+    delete ai;
+    delete abij;
   }
 
   Idx_Tensor operator[](char const * idx_map_){

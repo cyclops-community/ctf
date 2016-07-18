@@ -763,7 +763,8 @@ printf("HERE1\n");
                       int const *      edge_len_C,
                       int const *      sym_C,
                       int const *      idx_map_C,
-                      iparam const *   prm){
+                      iparam const *   prm,
+                      bivar_function const * func){
     TAU_FSTART(sym_seq_ctr_inner);
     int idx, i, idx_max, imin, imax, iA, iB, iC, j, k;
     int off_idx, sym_pass, stride_A, stride_B, stride_C;
@@ -814,27 +815,60 @@ printf("HERE1\n");
         TAU_FSTART(gemm);
         if (prm->tC == 'N'){
           if (prm->offload){
-            sr_C->offload_gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
-                               A+idx_A*stride_A*sr_A->el_size,
-                               B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
-                               C+idx_C*stride_C*sr_C->el_size);
+            if (func == NULL){
+              sr_C->offload_gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
+                                 A+idx_A*stride_A*sr_A->el_size,
+                                 B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
+                                 C+idx_C*stride_C*sr_C->el_size);
+            } else {
+              ASSERT(sr_C->isequal(alpha,sr_C->mulid()));
+              func->coffload_gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, 
+                                  A+idx_A*stride_A*sr_A->el_size,
+                                  B+idx_B*stride_B*sr_B->el_size, 
+                                  C+idx_C*stride_C*sr_C->el_size);
+            }
           } else {
-            sr_C->gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
-                       A+idx_A*stride_A*sr_A->el_size, 
-                       B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
-                       C+idx_C*stride_C*sr_C->el_size);
+            if (func == NULL){
+              sr_C->gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
+                         A+idx_A*stride_A*sr_A->el_size, 
+                         B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
+                         C+idx_C*stride_C*sr_C->el_size);
+            } else {
+              ASSERT(sr_C->isequal(alpha,sr_C->mulid()));
+              func->cgemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, 
+                           A+idx_A*stride_A*sr_A->el_size, 
+                           B+idx_B*stride_B*sr_B->el_size, 
+                           C+idx_C*stride_C*sr_C->el_size);
+            }
           }
         } else {
           if (prm->offload){
-            sr_C->offload_gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
-                               B+idx_B*stride_B*sr_B->el_size,
-                               A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(),
-                              C+idx_C*stride_C*sr_C->el_size);
+            if (func == NULL){
+              sr_C->offload_gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
+                                 B+idx_B*stride_B*sr_B->el_size,
+                                 A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(),
+                                 C+idx_C*stride_C*sr_C->el_size);
+            } else {
+              ASSERT(sr_C->isequal(alpha,sr_C->mulid()));
+              func->coffload_gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, 
+                                  B+idx_B*stride_B*sr_B->el_size,
+                                  A+idx_A*stride_A*sr_A->el_size,
+                                  C+idx_C*stride_C*sr_C->el_size);
+            }
           } else {
-            sr_C->gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
-                       B+idx_B*stride_B*sr_B->el_size,
-                       A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(), 
-                       C+idx_C*stride_C*sr_C->el_size);
+            if (func == NULL){ 
+              sr_C->gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
+                         B+idx_B*stride_B*sr_B->el_size,
+                         A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(), 
+                         C+idx_C*stride_C*sr_C->el_size);
+            } else {
+              ASSERT(sr_C->isequal(alpha,sr_C->mulid()));
+              func->cgemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, 
+                           B+idx_B*stride_B*sr_B->el_size,
+                           A+idx_A*stride_A*sr_A->el_size, 
+                           C+idx_C*stride_C*sr_C->el_size);
+
+            }
           }
         }
         //printf("[%d] <- [%d]*[%d] (%d)\n",idx_C, idx_A, idx_B, cntr++);

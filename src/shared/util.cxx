@@ -244,8 +244,8 @@ namespace CTF_int {
               int64_t const * sizes_a,
               int64_t *&      sizes_b,
               int64_t *&      offsets_b){
-    sizes_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
-    offsets_b = (int64_t*)malloc(sizeof(int64_t)*m*n);
+    sizes_b = (int64_t*)alloc(sizeof(int64_t)*m*n);
+    offsets_b = (int64_t*)alloc(sizeof(int64_t)*m*n);
 
     int64_t last_offset = 0;
     for (int i=0; i<n; i++){

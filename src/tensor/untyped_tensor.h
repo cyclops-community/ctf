@@ -125,6 +125,10 @@ namespace CTF_int {
       bool profile;
       /** \brief whether only the non-zero elements of the tensor are stored */
       bool is_sparse;
+      /** \brief whether CSR or COO if folded */
+      bool is_csr;
+      /** \brief how many modes are folded into matricized row */
+      int nrow_idx;
       /** \brief number of local nonzero elements */
       int64_t nnz_loc;
       /** \brief maximum number of local nonzero elements over all procs*/
@@ -428,7 +432,7 @@ namespace CTF_int {
   
       /**
        * \brief sparsifies tensor keeping only values v such that filter(v) = true
-       * \param[in] f boolean function to apply to values to determine whether to keep them
+       * \param[in] f boolean function to apply to values to determine whether to keep them, must be deterministic
        */ 
       int sparsify(std::function<bool(char const*)> f);
 
@@ -564,8 +568,9 @@ namespace CTF_int {
       /**
        * \brief undo the folding of a local tensor block
        *        unsets is_folded and deletes rec_tsr
+       * \param[in] was_mod true if data was modified, controls whether to discard sparse data
        */
-      void unfold();
+      void unfold(bool was_mod=0);
       
       /**
        * \brief removes folding without doing transpose
@@ -656,6 +661,22 @@ namespace CTF_int {
        * \param[in] nnz_blk number of nonzeros in each block  
        */
       void set_new_nnz_glb(int64_t const * nnz_blk);
+
+      /**
+       * \brief transposes local data in preparation for summation or contraction, transforms to COO or CSR format for sparse
+       * \param[in] m number of rows in matrix
+       * \param[in] n number of columns in matrix
+       * \param[in] nrow_idx number of indices to fold into column
+       * \param[in] csr whether to do csr (1) or coo (0) layout
+       */
+      void spmatricize(int m, int n, int nrow_idx, bool csr);
+
+      /**
+       * \brief transposes back local data from sparse matrix format to key-value pair format
+       * \param[in] nrow_idx number of indices to fold into column
+       * \param[in] csr whether to go from csr (1) or coo (0) layout
+       */
+      void despmatricize(int nrow_idx, bool csr);
 
       /**
        * \brief degister home buffer 

@@ -12,6 +12,12 @@
 #undef TEST_SUITE
 using namespace CTF;
 
+namespace CTF_int{
+  void update_all_models(MPI_Comm comm);
+}
+
+void train_off_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C);
+
 void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   Vector<> b(n, dw);
   Vector<> c(m, dw);
@@ -57,11 +63,79 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   
   t2(b["i"],b["i"]);
   t2(A["ij"],A2["ij"]);
-  
+
+
   /*Transform<> t3([](double a, double b, double & c){ c=c*c-b*a; });
 
   t3(c["i"],b["i"],b["i"]);
   t3(A["ij"],G["ij"],F["ij"]);*/
+}
+
+
+void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, bool sp_C){
+  Vector<> b(n, dw);
+  Vector<> c(m, dw);
+  Matrix<> A(m, n, dw);
+  Matrix<> B(m, n, dw);
+  Matrix<> A1(m, n, dw);
+  Matrix<> A2(m, n, dw);
+  Matrix<> G(n, n, NS, dw);
+  Matrix<> F(m, m, NS, dw);
+  
+  srand48(dw.rank);
+  b.fill_random(-.5, .5);
+  c.fill_random(-.5, .5);
+  A.fill_random(-.5, .5);
+  B.fill_random(-.5, .5);
+  A1.fill_random(-.5, .5);
+  A2.fill_random(-.5, .5);
+  G.fill_random(-.5, .5);
+  F.fill_random(-.5, .5);
+  for (double sp = .01; sp<.32; sp*=2.){
+    if (sp_A) A.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+    if (sp_B){
+      G.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      F.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+    }
+    if (sp_C){
+      b.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      B.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+      c.sparsify([=](double a){ return fabs(a)<=.5*sp; });
+    }
+  
+    B["ij"] += A["ik"]*G["kj"];
+    if (!sp_C) B["ij"] += A["ij"]*A1["ij"];
+    B["ij"] += F["ik"]*A["kj"];
+    c["i"]  += A["ij"]*b["j"];
+    b["j"]  += .2*A["ij"]*c["i"];
+    if (!sp_C) b["i"]  += b["i"]*b["i"];
+  
+    Function<> f1([](double a){ return a*a; });
+  
+    A2["ij"] = f1(A["ij"]);
+    
+    c["i"] += f1(A["ij"]);
+    
+    /*Function<> f2([](double a, double b){ return a*a+b*b; });
+  
+    G["ij"] += f2(A["ij"], F["ij"]);
+    ["ij"] -= f2(A["ik"], F["kj"]);*/
+  
+    Transform<> t1([](double & a){ a*=a; });
+  
+    t1(b["i"]);
+    t1(A["ij"]);
+  
+    Transform<> t2([](double a, double & b){ b-=b/a; });
+    
+    t2(b["i"],b["i"]);
+    t2(A["ij"],A2["ij"]);
+  
+    /*Transform<> t3([](double a, double b, double & c){ c=c*c-b*a; });
+  
+    t3(c["i"],b["i"],b["i"]);
+    t3(A["ij"],G["ij"],F["ij"]);*/
+  }
 }
 
 void train_ccsd(int64_t n, int64_t m, World & dw){
@@ -77,27 +151,39 @@ void train_ccsd(int64_t n, int64_t m, World & dw){
 }
 
 void train_world(double dtime, World & dw){
-  int n0 = 15, m0 = 15;
+  int n0 = 19, m0 = 75;
   int64_t n = n0;
-  int64_t approx_niter = (log((dtime*2000./15.)/dw.np)/log(1.4));
+  int64_t approx_niter = std::max(1,(int)(10*log(dtime))); //log((dtime*2000./15.)/dw.np);
   double ddtime = dtime/approx_niter;
+  int rnk;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rnk);
 //  printf("ddtime = %lf\n", ddtime);
   for (;;){
     double t_st = MPI_Wtime();
     int niter = 0;
     int64_t m = m0;
-    double ctime;
+    double ctime = 0.0;
     do {
-//      if (dw.rank == 0) printf("executing n= %ld m = %ld\n", n, m);
-      train_dns_vec_mat(n, m, dw);
-      train_ccsd(n, m, dw);
+      if (rnk == 0) printf("executing p = %d n= %ld m = %ld ctime = %lf ddtime = %lf\n", dw.np, n, m, ctime, ddtime);
+      train_dns_vec_mat(2*n, 2*m, dw);
+      train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
+      train_sps_vec_mat(n+1, m-2, dw, 1, 0, 0);
+      train_sps_vec_mat(n+6, m-4, dw, 1, 1, 0);
+      train_sps_vec_mat(n+2, m-3, dw, 1, 1, 1);
+      train_off_vec_mat(n+7, m-4, dw, 0, 0, 0);
+      train_off_vec_mat(n-2, m+6, dw, 1, 0, 0);
+      train_off_vec_mat(n-5, m+2, dw, 1, 1, 0);
+      train_off_vec_mat(n-3, m-1, dw, 1, 1, 1);
+      train_ccsd(n/2, m/2, dw);
       niter++;
-      m *= 1.6;
+      m *= 1.9;
+      n += 2;
       ctime = MPI_Wtime() - t_st;
       MPI_Allreduce(MPI_IN_PLACE, &ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
     } while (ctime < ddtime && m<= 1000000);
-    if (niter <= 3 || n>=1000000) break;
-    n *= 1.4;
+    if (niter <= 2 || n>=1000000) break;
+    n *= 1.7;
+    m += 3;
   }
 }
 
@@ -124,6 +210,9 @@ void train_all(double time, World & dw){
     MPI_Comm_split(dw.comm, mw, mr, &cm);
     World w(cm);
     train_world(dtime, w);
+    CTF_int::update_all_models(w.cdt.cm);
+    train_world(dtime, w);
+    CTF_int::update_all_models(w.cdt.cm);
   }
 }
 

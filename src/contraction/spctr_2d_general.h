@@ -57,6 +57,9 @@ namespace CTF_int{
       int64_t ctr_lda_C; /* local lda_C of contraction dimension 'k' */
       int64_t ctr_sub_lda_C; /* elements per local lda_C 
                             of contraction dimension 'k' */
+      int64_t dns_vrt_sz_A; /* size of each block of A when stored as dense, needed for time estimation given nnz frac */
+      int64_t dns_vrt_sz_B; /* size of each block of A when stored as dense, needed for time estimation given nnz frac */
+      int64_t dns_vrt_sz_C; /* size of each block of A when stored as dense, needed for time estimation given nnz frac */
   #ifdef OFFLOAD
       bool alloc_host_buf;
   #endif
@@ -97,15 +100,17 @@ namespace CTF_int{
        */
       int64_t mem_rec();
       /**
-       * \brief returns the number of bytes this kernel will send per processor
-       * \return bytes sent
+       * \brief returns the time this kernel will take including calls to rec_ctr
+       * \return seconds needed for recursive contraction
        */
       double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+
       /**
-       * \brief returns the number of bytes send by each proc recursively 
-       * \return bytes needed for recursive contraction
+       * \brief returns the time this kernel will take including calls to rec_ctr
+       * \return seconds needed for recursive contraction
        */
       double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+
       spctr * clone();
 /*      void set_size_blk_A(int new_nblk_A, int64_t const * nnbA){
         spctr::set_size_blk_A(new_nblk_A, nnbA);

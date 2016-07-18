@@ -29,13 +29,14 @@ namespace CTF_int {
 
   seq_tsr_spctr::seq_tsr_spctr(contraction const * c,
                                int                 krnl_type_,
-                               iparam const *      inner_params,
+                               iparam const *      inner_params_,
                                int *               virt_blk_len_A,
                                int *               virt_blk_len_B,
                                int *               virt_blk_len_C,
                                int64_t             vrt_sz_C)
         : spctr(c) {
      
+    int i, j, k; 
     int * new_sym_A, * new_sym_B, * new_sym_C;
     CTF_int::alloc_ptr(sizeof(int)*c->A->order, (void**)&new_sym_A);
     memcpy(new_sym_A, c->A->sym, sizeof(int)*c->A->order);
@@ -44,15 +45,71 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*c->C->order, (void**)&new_sym_C);
     memcpy(new_sym_C, c->C->sym, sizeof(int)*c->C->order);
 
-    this->krnl_type  = krnl_type_;
+    this->krnl_type    = krnl_type_;
+    this->inner_params = *inner_params_;
     if (krnl_type > 0){
       if (c->A->wrld->cdt.rank == 0){
-        DPRINTF(2,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
-          inner_params->m, inner_params->k);
+        DPRINTF(2,"Folded tensor n=%d m=%d k=%d\n", inner_params_->n,
+          inner_params_->m, inner_params_->k);
       }
 
-      this->inner_params  = *inner_params;
       this->inner_params.sz_C = vrt_sz_C;
+      tensor * itsr;
+      itsr = c->A->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->A->inner_ordering[i];
+        for (k=0; k<c->A->order; k++){
+          if (c->A->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->A->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+  /*        printf("inner_ordering[%d]=%d setting dim %d of A, to len %d from len %d\n",
+                  i, c->A->inner_ordering[i], k, 1, virt_blk_len_A[k]);*/
+          virt_blk_len_A[k] = 1;
+          new_sym_A[k] = NS;
+        }
+      }
+      itsr = c->B->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->B->inner_ordering[i];
+        for (k=0; k<c->B->order; k++){
+          if (c->B->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->B->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+        /*  printf("inner_ordering[%d]=%d setting dim %d of B, to len %d from len %d\n",
+                  i, c->B->inner_ordering[i], k, 1, virt_blk_len_B[k]);*/
+          virt_blk_len_B[k] = 1;
+          new_sym_B[k] = NS;
+        }
+      }
+      itsr = c->C->rec_tsr;
+      for (i=0; i<itsr->order; i++){
+        j = c->C->inner_ordering[i];
+        for (k=0; k<c->C->order; k++){
+          if (c->C->sym[k] == NS) j--;
+          if (j<0) break;
+        }
+        j = k;
+        while (k>0 && c->C->sym[k-1] != NS){
+          k--;
+        }
+        for (; k<=j; k++){
+        /*  printf("inner_ordering[%d]=%d setting dim %d of C, to len %d from len %d\n",
+                  i, c->C->inner_ordering[i], k, 1, virt_blk_len_C[k]);*/
+          virt_blk_len_C[k] = 1;
+          new_sym_C[k] = NS;
+        }
+      }
+
     }
 
     this->is_custom  = c->is_custom;
@@ -91,22 +148,22 @@ namespace CTF_int {
       printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
     }
     printf("kernel type is %d\n", krnl_type);
-    if (krnl_type>0) printf("inner n = %d m= %d k = %d\n",
-                          inner_params.n, inner_params.m, inner_params.k);
+    if (krnl_type>0) printf("inner n = %d m= %d k = %d sz_C=%ld\n",
+                          inner_params.n, inner_params.m, inner_params.k, inner_params.sz_C);
   }
 
   seq_tsr_spctr::seq_tsr_spctr(spctr * other) : spctr(other) {
     seq_tsr_spctr * o = (seq_tsr_spctr*)other;
     alpha = o->alpha;
     
-    order_A        = o->order_A;
+    order_A       = o->order_A;
     idx_map_A     = o->idx_map_A;
     sym_A         = (int*)CTF_int::alloc(sizeof(int)*order_A);
     memcpy(sym_A, o->sym_A, sizeof(int)*order_A);
     edge_len_A    = (int*)CTF_int::alloc(sizeof(int)*order_A);
     memcpy(edge_len_A, o->edge_len_A, sizeof(int)*order_A);
 
-    order_B        = o->order_B;
+    order_B       = o->order_B;
     idx_map_B     = o->idx_map_B;
     sym_B         = (int*)CTF_int::alloc(sizeof(int)*order_B);
     memcpy(sym_B, o->sym_B, sizeof(int)*order_B);
@@ -132,18 +189,8 @@ namespace CTF_int {
 
 
   int64_t seq_tsr_spctr::mem_fp(){ return 0; }
-
-  double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
-    uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
-    uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B)*sr_B->el_size;
-    uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C)*sr_C->el_size;
-    if (krnl_type>0) size_A *= inner_params.m*inner_params.k;
-    if (krnl_type>0) size_B *= inner_params.n*inner_params.k;
-    if (krnl_type>0) size_C *= inner_params.m*inner_params.n;
-    if (is_sparse_A) size_A *= nnz_frac_A*10;
-    if (is_sparse_B) size_B *= nnz_frac_B*10;
-    if (is_sparse_C) size_C *= nnz_frac_C*10;
-   
+  
+  double seq_tsr_spctr::est_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     int idx_max, * rev_idx_map; 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
@@ -157,18 +204,110 @@ namespace CTF_int {
       flops *= inner_params.k;
     } else {
       for (int i=0; i<idx_max; i++){
-        if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
+             if (rev_idx_map[3*i+0] != -1) flops*=edge_len_A[rev_idx_map[3*i+0]];
         else if (rev_idx_map[3*i+1] != -1) flops*=edge_len_B[rev_idx_map[3*i+1]];
         else if (rev_idx_map[3*i+2] != -1) flops*=edge_len_C[rev_idx_map[3*i+2]];
       }
     }
-    //FIXME only makes sense when one of A/B/C is sparse
-    if (is_sparse_A) flops *= nnz_frac_A*10;
-    if (is_sparse_B) flops *= nnz_frac_B*10;
-    if (is_sparse_C) flops *= nnz_frac_C*10;
+    if (is_sparse_A) flops *= nnz_frac_A*3.;
+    if (is_sparse_B) flops *= nnz_frac_B*3.;
+    //if (is_sparse_C) flops *= nnz_frac_C*10;
     ASSERT(flops >= 0.0);
     CTF_int::cdealloc(rev_idx_map);
-    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
+    return flops;
+  }
+
+  uint64_t seq_tsr_spctr::est_membw(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
+    uint64_t size_B = sy_packed_size(order_B, edge_len_B, sym_B)*sr_B->el_size;
+    uint64_t size_C = sy_packed_size(order_C, edge_len_C, sym_C)*sr_C->el_size;
+    if (krnl_type>0) size_A *= ((int64_t)inner_params.m)*inner_params.k;
+    if (krnl_type>0) size_B *= ((int64_t)inner_params.n)*inner_params.k;
+    if (krnl_type>0) size_C *= ((int64_t)inner_params.m)*inner_params.n;
+    if (is_sparse_A) size_A *= nnz_frac_A*10;
+    if (is_sparse_B) size_B *= nnz_frac_B*10;
+    if (is_sparse_C) size_C *= nnz_frac_C*10;
+   
+    return size_A+size_B+size_C;
+  }
+
+  LinModel<3> seq_tsr_spctr_cst_off_k0(seq_tsr_spctr_cst_off_k0_init,"seq_tsr_spctr_cst_off_k0");
+  LinModel<3> seq_tsr_spctr_cst_off_k1(seq_tsr_spctr_cst_off_k1_init,"seq_tsr_spctr_cst_off_k1");
+  LinModel<3> seq_tsr_spctr_cst_off_k2(seq_tsr_spctr_cst_off_k2_init,"seq_tsr_spctr_cst_off_k2");
+  LinModel<3> seq_tsr_spctr_off_k0(seq_tsr_spctr_off_k0_init,"seq_tsr_spctr_off_k0");
+  LinModel<3> seq_tsr_spctr_off_k1(seq_tsr_spctr_off_k1_init,"seq_tsr_spctr_off_k1");
+  LinModel<3> seq_tsr_spctr_off_k2(seq_tsr_spctr_off_k2_init,"seq_tsr_spctr_off_k2");
+  LinModel<3> seq_tsr_spctr_cst_k0(seq_tsr_spctr_cst_k0_init,"seq_tsr_spctr_cst_k0");
+  LinModel<3> seq_tsr_spctr_cst_k1(seq_tsr_spctr_cst_k1_init,"seq_tsr_spctr_cst_k1");
+  LinModel<3> seq_tsr_spctr_cst_k2(seq_tsr_spctr_cst_k2_init,"seq_tsr_spctr_cst_k2");
+  LinModel<3> seq_tsr_spctr_cst_k3(seq_tsr_spctr_cst_k3_init,"seq_tsr_spctr_cst_k3");
+  LinModel<3> seq_tsr_spctr_cst_k4(seq_tsr_spctr_cst_k4_init,"seq_tsr_spctr_cst_k4");
+  LinModel<3> seq_tsr_spctr_k0(seq_tsr_spctr_k0_init,"seq_tsr_spctr_k0");
+  LinModel<3> seq_tsr_spctr_k1(seq_tsr_spctr_k1_init,"seq_tsr_spctr_k1");
+  LinModel<3> seq_tsr_spctr_k2(seq_tsr_spctr_k2_init,"seq_tsr_spctr_k2");
+  LinModel<3> seq_tsr_spctr_k3(seq_tsr_spctr_k3_init,"seq_tsr_spctr_k3");
+  LinModel<3> seq_tsr_spctr_k4(seq_tsr_spctr_k4_init,"seq_tsr_spctr_k4");
+
+  double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
+//    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
+    double ps[] = {1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C)};
+    switch (krnl_type){
+      case 0:
+        if (is_custom){
+          if (inner_params.offload)
+            return seq_tsr_spctr_cst_off_k0.est_time(ps);
+          else
+            return seq_tsr_spctr_cst_k0.est_time(ps);
+        } else {
+          if (inner_params.offload)
+            return seq_tsr_spctr_off_k0.est_time(ps);
+          else
+            return seq_tsr_spctr_k0.est_time(ps);
+        }
+        break;
+      case 1:
+        if (is_custom){
+          if (inner_params.offload)
+            return seq_tsr_spctr_cst_off_k1.est_time(ps);
+          else
+            return seq_tsr_spctr_cst_k1.est_time(ps);
+        } else {
+          if (inner_params.offload)
+            return seq_tsr_spctr_off_k1.est_time(ps);
+          else
+            return seq_tsr_spctr_k1.est_time(ps);
+        }
+        break;
+      case 2:
+        if (is_custom){
+          if (inner_params.offload)
+            return seq_tsr_spctr_cst_off_k2.est_time(ps);
+          else
+            return seq_tsr_spctr_cst_k2.est_time(ps);
+        } else {
+          if (inner_params.offload)
+            return seq_tsr_spctr_off_k2.est_time(ps);
+          else
+            return seq_tsr_spctr_k2.est_time(ps);
+        }
+        break;
+      case 3:
+        if (is_custom){
+          return seq_tsr_spctr_cst_k3.est_time(ps);
+        } else {
+          return seq_tsr_spctr_k3.est_time(ps);
+        }
+        break;
+      case 4:
+        if (is_custom){
+          return seq_tsr_spctr_cst_k4.est_time(ps);
+        } else {
+          return seq_tsr_spctr_k4.est_time(ps);
+        }
+        break;
+    }
+    assert(0); //wont make it here
+    return 0.0;
   }
 
   double seq_tsr_spctr::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
@@ -180,14 +319,13 @@ namespace CTF_int {
                           char * C, int nblk_C, int64_t * size_blk_C,
                           char *& new_C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
-    ASSERT( is_sparse_A);
-    ASSERT(!is_sparse_B);
-    ASSERT(!is_sparse_C);
     ASSERT(nblk_A == 1);
+    ASSERT(nblk_B == 1);
+    ASSERT(nblk_C == 1);
 
-    if (krnl_type==2){
-      // Do mm using CSR format
-      CSR_Matrix cA(A);
+    double st_time = MPI_Wtime();
+
+    if (krnl_type > 0){
       if (!sr_C->isequal(beta,sr_C->mulid())){
         if (sr_C->isequal(beta,sr_C->addid())){
           sr_C->set(C, beta, inner_params.sz_C);
@@ -195,55 +333,158 @@ namespace CTF_int {
           sr_C->scal(inner_params.sz_C, beta, C, 1);
         }
       }
-      TAU_FSTART(CSRMM);
-      cA.csrmm(sr_A, inner_params.m, inner_params.n, inner_params.k,
-               alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
-      TAU_FSTOP(CSRMM);
-
-    } else if (krnl_type==1){
-      // Do mm using coordinate format
-      COO_Matrix cA(A);
-      if (!sr_C->isequal(beta,sr_C->mulid())){
-        if (sr_C->isequal(beta,sr_C->addid())){
-          sr_C->set(C, beta, inner_params.sz_C);
-        } else {
-          sr_C->scal(inner_params.sz_C, beta, C, 1);
-        }
-      }
-      TAU_FSTART(COOMM);
-      cA.coomm(sr_A, inner_params.m, inner_params.n, inner_params.k,
-               alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
-      TAU_FSTOP(COOMM);
-    } else {
-      ASSERT(size_blk_A[0]%sr_A->pair_size() == 0);
-
-      int64_t nnz_A = size_blk_A[0]/sr_A->pair_size();
-
-      TAU_FSTART(spA_dnB_dnC_seq);
-      spA_dnB_dnC_seq_ctr(this->alpha,
-                          A,
-                          nnz_A,
-                          sr_A,
-                          order_A,
-                          edge_len_A,
-                          sym_A,
-                          idx_map_A,
-                          B,
-                          sr_B,
-                          order_B,
-                          edge_len_B,
-                          sym_B,
-                          idx_map_B,
-                          this->beta,
-                          C,
-                          sr_C,
-                          order_C,
-                          edge_len_C,
-                          sym_C,
-                          idx_map_C,
-                          func);
-      TAU_FSTOP(spA_dnB_dnC_seq);
     }
+
+    new_C = C;
+
+    switch (krnl_type){
+      case 0:
+      {
+        ASSERT(size_blk_A[0]%sr_A->pair_size() == 0);
+
+        int64_t nnz_A = size_blk_A[0]/sr_A->pair_size();
+
+        TAU_FSTART(spA_dnB_dnC_seq);
+        spA_dnB_dnC_seq_ctr(this->alpha,
+                            A,
+                            nnz_A,
+                            sr_A,
+                            order_A,
+                            edge_len_A,
+                            sym_A,
+                            idx_map_A,
+                            B,
+                            sr_B,
+                            order_B,
+                            edge_len_B,
+                            sym_B,
+                            idx_map_B,
+                            this->beta,
+                            C,
+                            sr_C,
+                            order_C,
+                            edge_len_C,
+                            sym_C,
+                            idx_map_C,
+                            func);
+        TAU_FSTOP(spA_dnB_dnC_seq);
+      }
+      break;
+
+      case 1:
+      {
+        // Do mm using coordinate format
+        TAU_FSTART(COOMM);
+        COO_Matrix::coomm(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                 alpha, B, sr_B, sr_C->mulid(), C, sr_C, func);
+        TAU_FSTOP(COOMM);
+      }
+      break;
+
+      case 2:
+      {
+        // Do mm using CSR format for A
+        TAU_FSTART(CSRMM);
+        CSR_Matrix::csrmm(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                          alpha, B, sr_B, sr_C->mulid(), C, sr_C, func, inner_params.offload);
+        TAU_FSTOP(CSRMM);
+      }
+      break;
+
+      case 3:
+      {
+        // Do mm using CSR format for A and B
+        TAU_FSTART(CSRMULTD);
+        CSR_Matrix::csrmultd(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                             alpha, B, sr_B, sr_C->mulid(), C, sr_C, func, inner_params.offload);
+        TAU_FSTOP(CSRMULTD);
+      }
+      break;
+
+      case 4:
+      {
+        // Do mm using CSR format for A and B and C
+        TAU_FSTART(CSRMULTCSR);
+        CSR_Matrix::csrmultcsr(A, sr_A, inner_params.m, inner_params.n, inner_params.k,
+                               alpha, B, sr_B, sr_C->mulid(), new_C, sr_C, func, inner_params.offload);
+        size_blk_C[0] = ((CSR_Matrix)new_C).size();
+        //printf("new size = %ld nnz = %ld\n",size_blk_C[0],((CSR_Matrix)new_C).nnz());
+        TAU_FSTOP(CSRMULTCSR);
+      }
+      break;
+    }
+    double nnz_frac_A = 1.0, nnz_frac_B = 1.0, nnz_frac_C = 1.0;
+    if (is_sparse_A){
+      nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
+      for (int i=0; i<order_A; i++){
+        nnz_frac_A = nnz_frac_A / edge_len_A[i];
+      }
+    }
+    if (is_sparse_B){
+      nnz_frac_B = size_blk_B[0]/sr_B->pair_size();
+      for (int i=0; i<order_B; i++){
+        nnz_frac_B = nnz_frac_B / edge_len_B[i];
+      }
+    }
+    if (krnl_type > 0){
+      if (is_sparse_A) nnz_frac_A = nnz_frac_A / (inner_params.m*inner_params.k);
+      if (is_sparse_B) nnz_frac_B = nnz_frac_B / (inner_params.k*inner_params.n);
+      if (is_sparse_C) nnz_frac_C = std::min(1.0,nnz_frac_A*nnz_frac_B*inner_params.k / (inner_params.k*inner_params.n));
+    
+    }
+    
+    double exe_time = MPI_Wtime() - st_time;
+    double tps[] = {exe_time, 1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
+    switch (krnl_type){
+      case 0:
+        if (is_custom){
+          seq_tsr_spctr_cst_k0.observe(tps);
+        } else {
+          seq_tsr_spctr_k0.observe(tps);
+        }
+        break;
+      case 1:
+        if (is_custom){
+          if (inner_params.offload)
+            seq_tsr_spctr_cst_off_k1.observe(tps);
+          else
+            seq_tsr_spctr_cst_k1.observe(tps);
+        } else {
+          if (inner_params.offload)
+            seq_tsr_spctr_off_k1.observe(tps);
+          else
+            seq_tsr_spctr_k1.observe(tps);
+        }
+        break;
+      case 2:
+        if (is_custom){
+          if (inner_params.offload)
+            seq_tsr_spctr_cst_off_k2.observe(tps);
+          else
+            seq_tsr_spctr_cst_k2.observe(tps);
+        } else {
+          if (inner_params.offload)
+            seq_tsr_spctr_off_k2.observe(tps);
+          else
+            seq_tsr_spctr_k2.observe(tps);
+        }
+        break;
+      case 3:
+        if (is_custom){
+          seq_tsr_spctr_cst_k3.observe(tps);
+        } else {
+          seq_tsr_spctr_k3.observe(tps);
+        }
+        break;
+      case 4:
+        if (is_custom){
+          seq_tsr_spctr_cst_k4.observe(tps);
+        } else {
+          seq_tsr_spctr_k4.observe(tps);
+        }
+        break;
+    }
+
   }
 
 
@@ -459,25 +700,28 @@ namespace CTF_int {
             if (is_sparse_B){
               rec_B     = B + sp_offsets_B[off_B];
             } else
-              rec_B     = B + off_B*blk_sz_B*sr_A->el_size;
+              rec_B     = B + off_B*blk_sz_B*sr_B->el_size;
             if (is_sparse_C){
-              rec_C     = C + sp_offsets_C[off_C];
+              rec_C     = buckets_C[off_C];
             } else
-              rec_C     = C + off_C*blk_sz_C*sr_A->el_size;
+              rec_C     = C + off_C*blk_sz_C*sr_C->el_size;
             if (beta_arr[off_C]>0)
               rec_ctr->beta = sr_C->mulid();
             else
               rec_ctr->beta = this->beta; 
-            beta_arr[off_C]       = 1;
+            bool do_dealloc = beta_arr[off_C] > 0;
+            beta_arr[off_C] = 1;
+            char * pass_C = is_sparse_C ? buckets_C[off_C] : rec_C;
             tid_rec_ctr->run(rec_A, 1, size_blk_A+off_A,
                              rec_B, 1, size_blk_B+off_B,
                              rec_C, 1, new_sp_szs_C+off_C,
-                             buckets_C[off_C]);
+                             pass_C);
+            if (is_sparse_C){
+              if (do_dealloc) cdealloc(buckets_C[off_C]);
+              buckets_C[off_C] = pass_C;
+            }
           }
 
-          if (is_sparse_C){
-            if (beta_arr[off_C] > 0) cdealloc(buckets_C[off_C]);
-          }
 
           for (i=0; i<num_dim; i++){
             off_A -= ilda_A[i]*tidx_arr[i];
@@ -491,7 +735,11 @@ namespace CTF_int {
             off_C += ilda_C[i]*tidx_arr[i];
             if (tidx_arr[i] != 0) break;
           }
+#ifdef MICROBENCH
+          break;
+#else
           if (i==num_dim) break;
+#endif
         }
         if (tid > 0){
           delete tid_rec_ctr;
@@ -506,14 +754,14 @@ namespace CTF_int {
       new_C = (char*)alloc(new_size_C);
       int64_t pfx = 0;
       for (int i=0; i<nb_C; i++){
-        memcpy(new_C+pfx, buckets_C[i], new_sp_szs_C[i]*this->sr_C->pair_size());
-        pfx += new_sp_szs_C[i]*this->sr_C->pair_size();
+        memcpy(new_C+pfx, buckets_C[i], new_sp_szs_C[i]);
+        pfx += new_sp_szs_C[i];
         if (beta_arr[i] > 0) cdealloc(buckets_C[i]);
       }
       //FIXME: how to pass C back generally
       //cdealloc(C);
       cdealloc(buckets_C);
-    }
+    } else new_C = C;
     if (is_sparse_A) cdealloc(sp_offsets_A);
     if (is_sparse_B) cdealloc(sp_offsets_B);
     if (is_sparse_B) cdealloc(sp_offsets_C);
@@ -606,14 +854,24 @@ namespace CTF_int {
     }
   }
 
+  LinModel<2> pin_keys_mdl(pin_keys_mdl_init,"pin_keys_mdl");
   double spctr_pin_keys::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
     switch (AxBxC){
       case 0:
-        return 2.*dns_blk_sz*nnz_frac_A*COST_MEMBW;
+      {
+        double ps[] = {1.0, dns_blk_sz*nnz_frac_A};
+        return pin_keys_mdl.est_time(ps);
+      }
       case 1:
-        return 2.*dns_blk_sz*nnz_frac_B*COST_MEMBW;
+      {
+        double ps[] = {1.0, dns_blk_sz*nnz_frac_B};
+        return pin_keys_mdl.est_time(ps);
+      }
       case 2:
-        return 4.*dns_blk_sz*nnz_frac_C*COST_MEMBW;
+      {
+        double ps[] = {1.0, dns_blk_sz*nnz_frac_C};
+        return 2.*pin_keys_mdl.est_time(ps);
+      }
     }
     return 0;
   }
@@ -663,6 +921,7 @@ namespace CTF_int {
       div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
 //      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
     }*/
+    double st_time = MPI_Wtime();
     char * nA, * nB, * nC;
     nA = A; nB = B; nC = C;
     char * nX = NULL;
@@ -683,6 +942,10 @@ namespace CTF_int {
 
     pi.pin(nnz, order, lens, divisor, pi_new);
 
+    double exe_time = MPI_Wtime()-st_time;
+    double tps[] = {exe_time, 1.0, (double)nnz};
+    pin_keys_mdl.observe(tps);
+    
     TAU_FSTOP(spctr_pin_keys);
     rec_ctr->run(nA, nblk_A, size_blk_A,
                  nB, nblk_B, size_blk_B,
@@ -697,12 +960,16 @@ namespace CTF_int {
         cdealloc(nX);
         break;
       case 2:
+        st_time = MPI_Wtime();
         int64_t new_nnz_C=0;
         for (int i=0; i<nblk_C; i++){
           ASSERT(size_blk_C[i] % sr_C->pair_size() == 0);
           new_nnz_C += size_blk_C[i] / sr_C->pair_size();
         }
         depin(sr_C, order, lens, divisor, nblk_C, virt_dim, phys_rank, new_C, new_nnz_C, size_blk_C, new_C, true);
+        double exe_time = MPI_Wtime()-st_time;
+        double tps[] = {exe_time, 1.0, (double)nnz};
+        pin_keys_mdl.observe(tps);
         break;
     }
     TAU_FSTOP(spctr_pin_keys);

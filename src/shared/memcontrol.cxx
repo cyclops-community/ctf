@@ -77,6 +77,7 @@ void read_off_memory_status(statm_t& result)
   int64_t tot_mem_used;
   void inc_tot_mem_used(int64_t a){
     tot_mem_used += a;
+    ASSERT(tot_mem_used >= 0);
     //int rank;
   //  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 //    if (rank == 0)

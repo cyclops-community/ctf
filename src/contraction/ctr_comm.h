@@ -5,6 +5,7 @@
 
 #include "../tensor/algstrct.h"
 #include "../interface/fun_term.h"
+#include "../sparse_formats/csr.h"
 
 namespace CTF_int{
   class contraction;
@@ -14,6 +15,10 @@ namespace CTF_int{
    */
   class bivar_function {
     public:
+      bool has_kernel;
+      bool has_off_gemm;
+      bool commutative;
+
       /**
        * \brief apply function f to values stored at a and b
        * \param[in] a pointer to first operand that will be cast to type by extending class
@@ -48,11 +53,94 @@ namespace CTF_int{
       */
       Bifun_Term operator()(Term const & A, Term const & B) const;
       
+      bivar_function(){ has_kernel = false; has_off_gemm = false; commutative = false; }
+      bivar_function(bool is_comm){ has_kernel = false; has_off_gemm = false; commutative = is_comm; }
+
       virtual ~bivar_function(){}
       
       virtual bool is_accumulator() const { return false; }
-  };
 
+      virtual void cgemm(char         tA,
+                         char         tB,
+                         int          m,
+                         int          n,
+                         int          k,
+                         char const * A,
+                         char const * B,
+                         char *       C)  const {}
+
+      virtual void coffload_gemm(char         tA,
+                                 char         tB,
+                                 int          m,
+                                 int          n,
+                                 int          k,
+                                 char const * A,
+                                 char const * B,
+                                 char *       C) const { assert(0); }
+
+    virtual void ccoomm(int          m,
+                        int          n,
+                        int          k,
+                        char const * A,
+                        int const *  rows_A,
+                        int const *  cols_A,
+                        int64_t      nnz_A,
+                        char const * B,
+                        char *       C) const { assert(0); }
+
+
+    virtual void ccsrmm
+               (int              m,
+                int              n,
+                int              k,
+                char const *     A,
+                int const *      JA,
+                int const *      IA,
+                int64_t          nnz_A,
+                char const *     B,
+                char *           C,
+                algstrct const * sr_C) const { assert(0); }
+
+    virtual void ccsrmultd
+                 (int              m,
+                  int              n,
+                  int              k,
+                  char const *     A,
+                  int const *      JA,
+                  int const *      IA,
+                  int              nnz_A,
+                  char const *     B,
+                  int const *      JB,
+                  int const *      IB,
+                  int              nnz_B,
+                  char *           C,
+                  algstrct const * sr_C) const { assert(0); }
+
+    virtual void ccsrmultcsr
+              (int              m,
+               int              n,
+               int              k,
+               char const *     A,
+               int const *      JA,
+               int const *      IA,
+               int              nnz_A,
+               char const *     B,
+               int const *      JB,
+               int const *      IB,
+               int              nnz_B,
+               char *&          C_CSR,
+               algstrct const * sr_C) const { assert(0); }
+
+
+    virtual void coffload_csrmm(int          m,
+                                int          n,
+                                int          k,
+                                char const * all_data,
+                                char const * B,
+                                char *       C) const { assert(0); }
+
+
+  };
 
   /**
    * \addtogroup nest_dist Nested distributed contraction and summation routines

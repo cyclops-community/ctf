@@ -7,15 +7,25 @@ namespace CTF_int {
   class bivar_function;
 
   /**
+   * \brief abstract class that knows how to add
+   */
+  class accumulatable {
+    public:
+      /** \brief b+=a */
+      virtual void accum(char const * a, 
+                         char *       b) const { assert(0); }
+  };
+
+  /**
    * \brief algstrct (algebraic structure) defines the elementwise operations computed 
    *         in each tensor contraction, virtual classes defined in derived typed classes or algstrctcpy
    */
-  class algstrct {
+  class algstrct : public accumulatable {
     public: 
       /** \brief size of each element of algstrct in bytes */
       int el_size;
-      /** \brief whether there is an MKL CSRMM routine for this algebraic structure */
-      bool has_csrmm;
+      /** \brief whether there was a custom COO CSRMM kernel provided for this algebraic structure */
+      bool has_coo_ker;
       /** \brief datatype for pairs, always custom create3d */
 //      MPI_Datatype pmdtype;
 
@@ -30,7 +40,7 @@ namespace CTF_int {
       /**
        * \brief default constructor
        */
-      algstrct(){ has_csrmm = false; }
+      algstrct(){ has_coo_ker = false; }
 
       /**
        * \brief copy constructor
@@ -82,6 +92,12 @@ namespace CTF_int {
       virtual void add(char const * a, 
                        char const * b,
                        char *       c) const;
+
+      /** \brief b+=a */
+      virtual void accum(char const * a, char * b) const;
+
+      /** returns whether multiplication operator is present */
+      virtual bool has_mul() const { return false; }
       
       /** \brief c = a*b */
       virtual void mul(char const * a, 
@@ -183,20 +199,64 @@ namespace CTF_int {
                          int                    k,
                          char const *           alpha,
                          char const *           A,
-                         int const *            rows_A,
-                         int const *            cols_A,
+                         int const *            JA,
+                         int const *            IA,
                          int64_t                nnz_A,
                          char const *           B,
                          char const *           beta,
                          char *                 C,
                          bivar_function const * func) const;
 
+      /** \brief sparse version of gemm using CSR format for A and B*/
+      virtual void csrmultd
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * alpha,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char const * beta,
+                 char *       C) const;
+      virtual void csrmultcsr
+                (int          m,
+                 int          n,
+                 int          k,
+                 char const * alpha,
+                 char const * A,
+                 int const *  JA,
+                 int const *  IA,
+                 int64_t      nnz_A,
+                 char const * B,
+                 int const *  JB,
+                 int const *  IB,
+                 int64_t      nnz_B,
+                 char const * beta,
+                 char *&      C_CSR) const;
+
       /** \brief returns true if algstrct elements a and b are equal */
       virtual bool isequal(char const * a, char const * b) const;
 
       /** \brief converts coordinate sparse matrix layout to CSR layout */
       virtual void coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_cs, int * csr_rs, char const * coo_vs, int const * coo_rs, int const * coo_cs) const;
+      
+      /** \brief converts CSR sparse matrix layout to coordinate (COO) layout */
+      virtual void csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const;
+
+      /** \brief adds CSR matrices A (stored in cA) and B (stored in cB) to create matric C (pointer to all_data returned), C data allocated internally */
+      virtual char * csr_add(char * cA, char * cB) const;
+
+      /** \brief reduces CSR matrices stored in cA on each processor in cm and returns result on processor root */
+      virtual char * csr_reduce(char * cA, int root, MPI_Comm cm) const;
     
+      /** estimate time in seconds necessary for CSR reduction with input of size msg_sz */
+      double estimate_csr_red_time(int64_t msg_sz, CommData const * cdt) const;
+
       /** \brief compute b=beta*b + alpha*a */
       void acc(char * b, char const * beta, char const * a, char const * alpha) const;
       

@@ -110,7 +110,7 @@ namespace CTF{
     if (function_timers == NULL) {
       if (name[0] == 'M' && name[1] == 'P' && 
           name[2] == 'I' && name[3] == '_'){
-        exited = 1;
+        exited = 2;
         original = 0;
         return;
       }
@@ -140,7 +140,8 @@ namespace CTF{
     
   void Timer::start(){
   #ifdef PROFILE
-    if (!exited){
+    if (exited != 2){
+      exited = 0;
       (*function_timers)[index].start_time = MPI_Wtime();
       (*function_timers)[index].start_excl_time = excl_time;
     }
@@ -149,8 +150,8 @@ namespace CTF{
 
   void Timer::stop(){
   #ifdef PROFILE
-    if (!exited){
-      int is_fin = 0;
+    if (exited == 0){
+      int is_fin;
       MPI_Finalized(&is_fin);
       if (!is_fin){
         double delta_time = MPI_Wtime() - (*function_timers)[index].start_time;
@@ -182,6 +183,7 @@ namespace CTF{
     char * recv_symbols = (char*)CTF_int::alloc(MAX_TOT_SYMBOLS_LEN);
     FILE * output = NULL;
 
+    CTF_int::update_all_models(comm);
     if (rank == 0){
       CTF_int::print_all_models();
 

@@ -88,10 +88,15 @@ namespace CTF_int {
     return a.p[0] > b.p[0];
   }
 
+#define REG_LAMBDA 1.E6
+
   template <int nparam>
   LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
     memcpy(param_guess, init_guess, nparam*sizeof(double));
 #ifdef TUNE
+    /*for (int i=0; i<nparam; i++){
+      regularization[i] = param_guess[i]*REG_LAMBDA;
+    }*/
     name = (char*)alloc(strlen(name_)+1);
     name[0] = '\0';
     strcpy(name, name_);
@@ -133,14 +138,14 @@ namespace CTF_int {
       }
       if (is_same) return;
     }*/
-    if (is_tuned){
+//    if (is_tuned){
       tot_time += tp[0];
       if (est_time(tp+1)>tp[0]){ 
         under_time += est_time(tp+1)-tp[0];
       } else {
         over_time += tp[0]-est_time(tp+1);
       }
-    }
+//    }
     /*if (fabs(est_time(tp+1)-tp[0])>1.E-1){ 
       printf("estimate of %s[%1.2E*%1.2E", name, tp[0], param_guess[0]);
       for (int i=1; i<nparam; i++){
@@ -150,6 +155,7 @@ namespace CTF_int {
       print();
     }*/
     //printf("observed %lf %lf %lf\n", tp[0], tp[1], tp[2]);
+    ASSERT(tp[0] > 0.0);
     memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
  /*   if (nobs < hist_size){
       memcpy(time_param_mat+nobs*mat_lda, tp, mat_lda*sizeof(double));
@@ -184,28 +190,68 @@ namespace CTF_int {
     MPI_Comm_size(cm, &np);
     MPI_Comm_rank(cm, &rk);
     //if (nobs % tune_interval == 0){
-    int nrcol = std::min(nobs,hist_size);
+    int nrcol = std::min(nobs,(int64_t)hist_size);
     int ncol = std::max(nrcol, nparam);
     /*  time_param * sort_mat = (time_param*)alloc(sizeof(time_param)*ncol);
       memcpy(sort_mat, time_param_mat, sizeof(time_param)*ncol);
       std::sort(sort_mat, sort_mat+ncol, &comp_time_param);*/
     int tot_nrcol;
     MPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
-    if (tot_nrcol >= 4.*np*nparam){
+    if (tot_nrcol >= 16.*np*nparam){
+      //if (rk == 0){ ncol++; }
       is_tuned = true;
+  
+      if (nrcol >= nparam) ncol += nparam;
+
       double * R = (double*)alloc(sizeof(double)*nparam*nparam);
       double * b = (double*)alloc(sizeof(double)*ncol);
-      if (ncol > nrcol){
+      if (nrcol < nparam){
         std::fill(R, R+nparam*nparam, 0.0);
         std::fill(b, b+ncol, 0.0);
+        //regularization done on every processor
+        for (int i=0; i<nparam; i++){
+          R[nparam*i+i] = REG_LAMBDA;
+        }
+/*        if (rk == 0){
+          lda_cpy(sizeof(double), 1, nparam, 1, nparam, (char const*)regularization, (char*)R);
+        }*/
       } else {
         double * A = (double*)alloc(sizeof(double)*nparam*ncol);
-        for (int i=0; i<ncol; i++){
-          b[i] = time_param_mat[i*mat_lda];
+        int i_st = 0;
+        if (true){ //rk == 0){
+//          lda_cpy(sizeof(double), 1, nparam, 1, ncol, (char const*)regularization, (char*)A);
+          //regularization done on every processor
+          for (int i=0; i<nparam; i++){
+            b[i] = 0.0;
+            for (int j=0; j<nparam; j++){
+              if (i==j) A[ncol*j+i] = REG_LAMBDA;
+              else      A[ncol*j+i] = 0.0;
+            }
+          }
+          i_st = nparam;
+        }
+        double max_time = 0.0;
+        for (int i=0; i<ncol-nparam; i++){
+          max_time = std::max(time_param_mat[i*mat_lda],max_time);
+        }
+        MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
+        double chunk = max_time / 1000.;
+        //printf("%s chunk = %+1.2e\n",name,chunk);
+        for (int i=i_st; i<ncol; i++){
+          b[i] = time_param_mat[(i-i_st)*mat_lda];
+          double rt_chnks = std::sqrt(b[i] / chunk);
+          double sfactor = rt_chnks/b[i];
+          b[i] = rt_chnks;
           for (int j=0; j<nparam; j++){
-            A[i+j*ncol] = time_param_mat[i*mat_lda+j+1];
+            A[i+j*ncol] = sfactor*time_param_mat[(i-i_st)*mat_lda+j+1];
           }
         }
+        /*for (int i=0; i<ncol; i++){
+          for (int j=0; j<nparam; j++){
+            printf("%+1.3e ", A[i+j*ncol]);
+          }
+          printf (" |  %+1.3e\n",b[i]);
+        }*/
         if (false && np == 1){
           cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
           ASSERT(info == 0);
@@ -274,7 +320,7 @@ namespace CTF_int {
       ncol = np*nparam;
       b = all_b;
       double * A = Rs;
-      /*if (rk==0){
+/*      if (rk==0){
         for (int r=0; r<ncol; r++){
           for (int c=0; c<nparam; c++){
             printf("A[%d, %d] = %lf, ", r,c,A[c*ncol+r]);
@@ -295,6 +341,9 @@ namespace CTF_int {
       cdealloc(iwork);
       cdealloc(A);
       memcpy(param_guess, b, nparam*sizeof(double));
+      for (int i=0; i<nparam; i++){
+        regularization[i] = param_guess[i]*REG_LAMBDA;
+      }
 /*      print();
       double max_resd_sq = 0.0;
       for (int i=0; i<ncol-nparam; i++){
@@ -319,6 +368,7 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::print(){
+    ASSERT(name!=NULL);
     printf("double %s_init[] = {",name);
     for (int i=0; i<nparam; i++){
       if (i>0) printf(", ");
@@ -329,7 +379,7 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::print_uo(){
-    printf("%s is_tuned = %d tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,tot_time,over_time,under_time);
+    printf("%s is_tuned = %d (%ld) tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,nobs,tot_time,over_time,under_time);
   }
 
   template class LinModel<1>;

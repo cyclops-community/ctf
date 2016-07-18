@@ -1,7 +1,9 @@
 #include "set.h"
 #include "../shared/blas_symbs.h"
 #include "../shared/offload.h"
+#include "../sparse_formats/csr.h"
 
+using namespace CTF_int;
 
 namespace CTF_int {
   template <>
@@ -186,7 +188,7 @@ namespace CTF_int {
     DEF_COOMM_KERNEL();
 #endif
   }
-
+/*
 #if USE_SP_MKL
   template <>
   bool get_def_has_csrmm<float>(){ return true; }
@@ -198,240 +200,359 @@ namespace CTF_int {
   bool get_def_has_csrmm< std::complex<double> >(){ return true; }
 #else
   template <>
-  bool get_def_has_csrmm<float>(){ return false; }
+  bool get_def_has_csrmm<float>(){ return true; }
   template <>
-  bool get_def_has_csrmm<double>(){ return false; }
+  bool get_def_has_csrmm<double>(){ return true; }
   template <>
-  bool get_def_has_csrmm< std::complex<float> >(){ return false; }
+  bool get_def_has_csrmm< std::complex<float> >(){ return true; }
   template <>
-  bool get_def_has_csrmm< std::complex<double> >(){ return false; }
+  bool get_def_has_csrmm< std::complex<double> >(){ return true; }
 #endif
-
-#if USE_SP_MKL
-  template <>  
-  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_cs, int * csr_rs, float const * coo_vs, int const * coo_rs, int const * coo_cs){
-    int inz = nz;
-    int job[8]={2,1,1,0,inz,0,0,0};
-
-    int info = 1;
-    CTF_BLAS::MKL_SCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (float*)coo_vs, coo_rs, coo_cs, &info);
-
-  }
-  template <>  
-  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_cs, int * csr_rs, double const * coo_vs, int const * coo_rs, int const * coo_cs){
-    int inz = nz;
-    int job[8]={2,1,1,0,inz,0,0,0};
-
-    int info = 1;
-    TAU_FSTART(MKL_DCSRCOO);
-    CTF_BLAS::MKL_DCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (double*)coo_vs, coo_rs, coo_cs, &info);
-    TAU_FSTOP(MKL_DCSRCOO);
-  }
-  template <>  
-  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_cs, int * csr_rs, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs){
-    int inz = nz;
-    int job[8]={2,1,1,0,inz,0,0,0};
-
-    int info = 1;
-    CTF_BLAS::MKL_CCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (std::complex<float>*)coo_vs, coo_rs, coo_cs, &info);
-  }
-  template <>  
-  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_cs, int * csr_rs, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs){
-    int inz = nz;
-    int job[8]={2,1,1,0,inz,0,0,0};
-
-    int info = 1;
-    CTF_BLAS::MKL_ZCSRCOO(job, &nrow, csr_vs, csr_cs, csr_rs, &inz, (std::complex<double>*)coo_vs, coo_rs, coo_cs, &info);
-  }
-#else
-  template <> 
-  void def_coo_to_csr<float>(int64_t nz, int nrow, float * csr_vs, int * csr_cs, int * csr_rs, float const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: MKL required for COO to CSR conversion, should not be here\n");
-    ASSERT(0);
-  }
-  template <>  
-  void def_coo_to_csr<double>(int64_t nz, int nrow, double * csr_vs, int * csr_cs, int * csr_rs, double const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: MKL required for COO to CSR conversion, should not be here\n");
-    ASSERT(0);
-  }
-  template <>  
-  void def_coo_to_csr<std::complex<float>>(int64_t nz, int nrow, std::complex<float> * csr_vs, int * csr_cs, int * csr_rs, std::complex<float> const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: MKL required for COO to CSR conversion, should not be here\n");
-    ASSERT(0);
-  }
-  template <>  
-  void def_coo_to_csr<std::complex<double>>(int64_t nz, int nrow, std::complex<double> * csr_vs, int * csr_cs, int * csr_rs, std::complex<double> const * coo_vs, int const * coo_rs, int const * coo_cs){
-    printf("CTF ERROR: MKL required for COO to CSR conversion, should not be here\n");
-    ASSERT(0);
-  }
-
+*/
+#if (USE_SP_MKL!=1)
+  template <typename dtype>
+  void muladd_csrmm
+                 (int           m,
+                  int           n,
+                  int           k,
+                  dtype         alpha,
+                  dtype const * A,
+                  int const *   JA,
+                  int const *   IA,
+                  int           nnz_A,
+                  dtype const * B,
+                  dtype         beta,
+                  dtype *       C){
+    TAU_FSTART(muladd_csrmm);
+#ifdef USE_OMP
+    #pragma omp parallel for
 #endif
-
-
-#if USE_SP_MKL
-  template <>
-  void default_csrmm< float >
-          (int           m,
-           int           n,
-           int           k,
-           float         alpha,
-           float const * A,
-           int const *   rows_A,
-           int const *   cols_A,
-           int           nnz_A,
-           float const * B,
-           float         beta,
-           float *       C){
-    char transa = 'N';
-    char matdescra[6] = {'G',0,0,'F',0,0};
-    
-    CTF_BLAS::MKL_SCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
-
+    for (int row_A=0; row_A<m; row_A++){
+#ifdef USE_OMP
+      #pragma omp parallel for
+#endif
+      for (int col_B=0; col_B<n; col_B++){
+        C[col_B*m+row_A] *= beta;
+        if (IA[row_A] < IA[row_A+1]){
+          int i_A1 = IA[row_A]-1;
+          int col_A1 = JA[i_A1]-1;
+          dtype tmp = A[i_A1]*B[col_B*k+col_A1];
+          for (int i_A=IA[row_A]; i_A<IA[row_A+1]-1; i_A++){
+            int col_A = JA[i_A]-1;
+            tmp += A[i_A]*B[col_B*k+col_A];
+          }
+          C[col_B*m+row_A] += alpha*tmp;
+        }
+      }
+    }
+    TAU_FSTOP(muladd_csrmm);
   }
 
-  template <>
-  void default_csrmm< double >
-          (int            m,
-           int            n,
-           int            k,
-           double         alpha,
-           double const * A,
-           int const *    rows_A,
-           int const *    cols_A,
-           int            nnz_A,
-           double const * B,
-           double         beta,
-           double *       C){
-    char transa = 'N';
-    char matdescra[6] = {'G',0,0,'F',0,0};
-    
-    TAU_FSTART(MKL_DCSRMM);
-    CTF_BLAS::MKL_DCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
-    TAU_FSTOP(MKL_DCSRMM);
-  }
-
-
-  template <>
-  void default_csrmm< std::complex<float> >
-          (int                         m,
-           int                         n,
-           int                         k,
-           std::complex<float>         alpha,
-           std::complex<float> const * A,
-           int const *                 rows_A,
-           int const *                 cols_A,
-           int                         nnz_A,
-           std::complex<float> const * B,
-           std::complex<float>         beta,
-           std::complex<float> *       C){
-    char transa = 'N';
-    char matdescra[6] = {'G',0,0,'F',0,0};
-    
-    CTF_BLAS::MKL_CCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
-
-  }
-
-  template <>
-  void default_csrmm< std::complex<double> >
-          (int                          m,
-           int                          n,
-           int                          k,
-           std::complex<double>         alpha,
-           std::complex<double> const * A,
-           int const *                  rows_A,
-           int const *                  cols_A,
-           int                          nnz_A,
-           std::complex<double> const * B,
-           std::complex<double>         beta,
-           std::complex<double> *       C){
-
-    char transa = 'N';
-    char matdescra[6] = {'G',0,0,'F',0,0};
-    
-    CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, cols_A, rows_A, rows_A+1, B, &k, &beta, C, &m);
-
-  }
-
-#else
-  template <>
-  void default_csrmm< float >
-          (int           m,
-           int           n,
-           int           k,
-           float         alpha,
-           float const * A,
-           int const *   rows_A,
-           int const *   cols_A,
-           int           nnz_A,
-           float const * B,
-           float         beta,
-           float *       C){
-    printf("CTF ERROR: MKL required for CSRMM, should not be here\n");
-    ASSERT(0);
-  }
-
-  template <>
-  void default_csrmm< double >
-          (int            m,
-           int            n,
-           int            k,
-           double         alpha,
-           double const * A,
-           int const *    rows_A,
-           int const *    cols_A,
-           int            nnz_A,
-           double const * B,
-           double         beta,
-           double *       C){
-    printf("CTF ERROR: MKL required for CSRMM, should not be here\n");
-    ASSERT(0);
-  }
-
-
-  template <>
-  void default_csrmm< std::complex<float> >
-          (int                         m,
-           int                         n,
-           int                         k,
-           std::complex<float>         alpha,
-           std::complex<float> const * A,
-           int const *                 rows_A,
-           int const *                 cols_A,
-           int                         nnz_A,
-           std::complex<float> const * B,
-           std::complex<float>         beta,
-           std::complex<float> *       C){
-
-    printf("CTF ERROR: MKL required for CSRMM, should not be here\n");
-    ASSERT(0);
-  }
-
-
-
-  template <>
-  void default_csrmm< std::complex<double> >
-          (int                          m,
-           int                          n,
-           int                          k,
-           std::complex<double>         alpha,
-           std::complex<double> const * A,
-           int const *                  rows_A,
-           int const *                  cols_A,
-           int                          nnz_A,
-           std::complex<double> const * B,
-           std::complex<double>         beta,
-           std::complex<double> *       C){
-    printf("CTF ERROR: MKL required for CSRMM, should not be here\n");
-    ASSERT(0);
+  template<typename dtype>
+  void muladd_csrmultd
+                 (int           m,
+                  int           n,
+                  int           k,
+                  dtype const * A,
+                  int const *   JA,
+                  int const *   IA,
+                  int           nnz_A,
+                  dtype const * B,
+                  int const *   JB,
+                  int const *   IB,
+                  int           nnz_B,
+                  dtype *       C){
+    TAU_FSTART(muladd_csrmultd);
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int row_A=0; row_A<m; row_A++){
+      for (int i_A=IA[row_A]-1; i_A<IA[row_A+1]-1; i_A++){
+        int row_B = JA[i_A]-1; //=col_A
+        for (int i_B=IB[row_B]-1; i_B<IB[row_B+1]-1; i_B++){
+          int col_B = JB[i_B]-1;
+          C[col_B*m+row_A] += A[i_A]*B[i_B];
+        }
+      }
+    }
+    TAU_FSTOP(muladd_csrmultd);
   }
 #endif
-
 }
+
 namespace CTF {
+
+  template <>
+  void CTF::Semiring<float,1>::default_csrmm
+          (int           m,
+           int           n,
+           int           k,
+           float         alpha,
+           float const * A,
+           int const *   JA,
+           int const *   IA,
+           int           nnz_A,
+           float const * B,
+           float         beta,
+           float *       C) const {
+#if USE_SP_MKL
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    
+    CTF_BLAS::MKL_SCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
+#else
+    CTF_int::muladd_csrmm<float>(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
+#endif
+  }
+
+  template <>
+  void CTF::Semiring<double,1>::default_csrmm
+          (int            m,
+           int            n,
+           int            k,
+           double         alpha,
+           double const * A,
+           int const *    JA,
+           int const *    IA,
+           int            nnz_A,
+           double const * B,
+           double         beta,
+           double *       C) const {
+#if USE_SP_MKL
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    TAU_FSTART(MKL_DCSRMM);
+    CTF_BLAS::MKL_DCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
+    TAU_FSTOP(MKL_DCSRMM);
+#else
+    CTF_int::muladd_csrmm<double>(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
+#endif
+  }
+
+
+  template <>
+  void CTF::Semiring<std::complex<float>,0>::default_csrmm
+          (int                         m,
+           int                         n,
+           int                         k,
+           std::complex<float>         alpha,
+           std::complex<float> const * A,
+           int const *                 JA,
+           int const *                 IA,
+           int                         nnz_A,
+           std::complex<float> const * B,
+           std::complex<float>         beta,
+           std::complex<float> *       C) const {
+#if USE_SP_MKL
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    
+    CTF_BLAS::MKL_CCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
+#else
+    CTF_int::muladd_csrmm< std::complex<float> >(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
+#endif
+  }
+
+  template <>
+  void CTF::Semiring<std::complex<double>,0>::default_csrmm
+          (int                          m,
+           int                          n,
+           int                          k,
+           std::complex<double>         alpha,
+           std::complex<double> const * A,
+           int const *                  JA,
+           int const *                  IA,
+           int                          nnz_A,
+           std::complex<double> const * B,
+           std::complex<double>         beta,
+           std::complex<double> *       C) const {
+#if USE_SP_MKL
+    char transa = 'N';
+    char matdescra[6] = {'G',0,0,'F',0,0};
+    CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
+#else
+    CTF_int::muladd_csrmm< std::complex<double> >(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
+#endif
+  }
+
+
+#if USE_SP_MKL 
+  #define CSR_MULTD_DEF(dtype,is_ord,MKL_name) \
+  template<> \
+  void CTF::Semiring<dtype,is_ord>::default_csrmultd \
+                 (int            m, \
+                  int            n, \
+                  int            k, \
+                  dtype          alpha, \
+                  dtype const *  A, \
+                  int const *    JA, \
+                  int const *    IA, \
+                  int            nnz_A, \
+                  dtype const *  B, \
+                  int const *    JB, \
+                  int const *    IB, \
+                  int            nnz_B, \
+                  dtype          beta, \
+                  dtype *        C) const { \
+    TAU_FSTART(csrmultd); \
+    if (alpha == this->taddid){ \
+      if (beta != this->tmulid) \
+        CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
+      return; \
+    } \
+    char transa = 'N'; \
+    if (beta == this->taddid){ \
+      TAU_FSTART(MKL_name); \
+      CTF_BLAS::MKL_name(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, C, &m); \
+      TAU_FSTOP(MKL_name); \
+      if (alpha != this->tmulid) \
+        CTF_int::default_scal<dtype>(m*n, alpha, C, 1); \
+    } else { \
+      dtype * tmp_C_buf = (dtype*)alloc(sizeof(dtype)*m*n); \
+      TAU_FSTART(MKL_name); \
+      CTF_BLAS::MKL_name(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m); \
+      TAU_FSTOP(MKL_name); \
+      if (beta != this->tmulid) \
+        CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
+      CTF_int::default_axpy<dtype>(m*n, alpha, tmp_C_buf, 1, C, 1); \
+      cdealloc(tmp_C_buf); \
+    } \
+    TAU_FSTOP(csrmultd); \
+  }
+#else 
+  #define CSR_MULTD_DEF(dtype,is_ord,MKL_name) \
+  template<> \
+  void CTF::Semiring<dtype,is_ord>::default_csrmultd \
+                 (int           m, \
+                  int           n, \
+                  int           k, \
+                  dtype         alpha, \
+                  dtype const * A, \
+                  int const *   JA, \
+                  int const *   IA, \
+                  int           nnz_A, \
+                  dtype const * B, \
+                  int const *   JB, \
+                  int const *   IB, \
+                  int           nnz_B, \
+                  dtype         beta, \
+                  dtype *       C) const { \
+    TAU_FSTART(csrmultd); \
+    if (alpha == this->taddid){ \
+      if (beta != this->tmulid) \
+        CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
+      return; \
+    } \
+    if (alpha != this->tmulid || beta != this->tmulid){ \
+      CTF_int::default_scal<dtype>(m*n, beta/alpha, C, 1); \
+    } \
+    CTF_int::muladd_csrmultd<dtype>(m,n,k,A,JA,IA,nnz_A,B,JB,IB,nnz_B,C); \
+    if (alpha != this->tmulid){ \
+      CTF_int::default_scal<dtype>(m*n, alpha, C, 1); \
+    } \
+    TAU_FSTOP(csrmultd); \
+  } 
+#endif
+
+  CSR_MULTD_DEF(float,1,MKL_SCSRMULTD)
+  CSR_MULTD_DEF(double,1,MKL_DCSRMULTD)
+  CSR_MULTD_DEF(std::complex<float>,0,MKL_CCSRMULTD)
+  CSR_MULTD_DEF(std::complex<double>,0,MKL_ZCSRMULTD)
+
+
+#if USE_SP_MKL
+  #define CSR_MULTCSR_DEF(dtype,is_ord,MKL_name) \
+  template<> \
+  void CTF::Semiring<dtype,is_ord>::default_csrmultcsr \
+                     (int           m, \
+                      int           n, \
+                      int           k, \
+                      dtype         alpha, \
+                      dtype const * A, \
+                      int const *   JA, \
+                      int const *   IA, \
+                      int           nnz_A, \
+                      dtype const * B, \
+                      int const *   JB, \
+                      int const *   IB, \
+                      int           nnz_B, \
+                      dtype         beta, \
+                      char *&       C_CSR) const { \
+    char transa = 'N'; \
+    CSR_Matrix C_in(C_CSR); \
+ \
+    int * new_ic = (int*)alloc(sizeof(int)*(m+1)); \
+  \
+    int sort = 1;  \
+    int req = 1; \
+    int info; \
+    CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info); \
+ \
+    CSR_Matrix C_add(new_ic[m]-1, m, n, sizeof(dtype)); \
+    memcpy(C_add.IA(), new_ic, (m+1)*sizeof(int)); \
+    cdealloc(new_ic); \
+    req = 2; \
+    CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (dtype*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info); \
+ \
+    if (beta == this->taddid){ \
+      C_CSR = C_add.all_data; \
+    } else { \
+      if (C_CSR != NULL && beta != this->tmulid){ \
+        this->scal(C_in.nnz(), (char const *)&beta, C_in.vals(), 1); \
+      } \
+      if (alpha != this->tmulid){ \
+        this->scal(C_add.nnz(), (char const *)&alpha, C_add.vals(), 1); \
+      } \
+      if (C_CSR == NULL){ \
+        C_CSR = C_add.all_data; \
+      } else { \
+        char * C_ret = csr_add(C_CSR, C_add.all_data); \
+        cdealloc(C_add.all_data); \
+        C_CSR = C_ret; \
+      } \
+    } \
+  }
+#else
+  #define CSR_MULTCSR_DEF(dtype,is_ord,MKL_name) \
+  template<> \
+  void CTF::Semiring<dtype,is_ord>::default_csrmultcsr \
+                     (int           m, \
+                      int           n, \
+                      int           k, \
+                      dtype         alpha, \
+                      dtype const * A, \
+                      int const *   JA, \
+                      int const *   IA, \
+                      int           nnz_A, \
+                      dtype const * B, \
+                      int const *   JB, \
+                      int const *   IB, \
+                      int           nnz_B, \
+                      dtype         beta, \
+                      char *&       C_CSR) const { \
+    this->gen_csrmultcsr(m,n,k,alpha,A,JA,IA,nnz_A,B,JB,IB,nnz_B,beta,C_CSR); \
+  }
+#endif
+
+  CSR_MULTCSR_DEF(float,1,MKL_SCSRMULTCSR)
+  CSR_MULTCSR_DEF(double,1,MKL_DCSRMULTCSR)
+  CSR_MULTCSR_DEF(std::complex<float>,0,MKL_CCSRMULTCSR)
+  CSR_MULTCSR_DEF(std::complex<double>,0,MKL_ZCSRMULTCSR)
+
 /*  template<> 
   bool CTF::Semiring<float,1>::is_offloadable() const {
     return fgemm == &CTF_int::default_gemm<float>;
   }*/
+  template<> 
+  bool CTF::Semiring<float,1>::is_offloadable() const {
+    return fgemm == &CTF_int::default_gemm<float>;
+  }
+
+  template<> 
+  bool CTF::Semiring<std::complex<float>,0>::is_offloadable() const {
+    return fgemm == &CTF_int::default_gemm< std::complex<float> >;
+  }
+
 
   template<> 
   bool CTF::Semiring<double,1>::is_offloadable() const {

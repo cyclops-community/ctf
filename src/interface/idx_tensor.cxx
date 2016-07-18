@@ -161,7 +161,7 @@ namespace CTF {
       delete parent;
       is_intm = 0;
     }
-    if (parent != NULL)  free(idx_map);
+    if (parent != NULL)  cdealloc(idx_map);
     idx_map = NULL;
   }
 
@@ -179,7 +179,11 @@ namespace CTF {
       std::cout << "op= tensor" << std::endl;
       assert(false);
     } else {
-      sr->safecopy(scale,sr->addid());
+      if (sr->has_mul()){
+        sr->safecopy(scale,sr->addid());
+      } else {
+        this->parent->set_zero();
+      }
       B.execute(*this);
       sr->safecopy(scale,sr->mulid());
     }
@@ -190,7 +194,11 @@ namespace CTF {
       global_schedule->add_operation(
           new TensorOperation(TENSOR_OP_SET, new Idx_Tensor(*this), B.clone()));
     } else {
-      sr->safecopy(scale,sr->addid());
+      if (sr->has_mul()){
+        sr->safecopy(scale,sr->addid());
+      } else {
+        this->parent->set_zero();
+      }
       B.execute(*this);
       sr->safecopy(scale,sr->mulid());
     }

@@ -41,16 +41,32 @@ void acc_force(force f, particle & p){
   p.dy += f.fy*p.coeff;
 }
 
+#ifdef __CUDACC__
+__device__ __host__
+#endif
 double get_distance(particle const & p, particle const & q){
   return sqrt((p.dx-q.dx)*(p.dx-q.dx)+(p.dy-q.dy)*(p.dy-q.dy));
 }
 
-
-force get_force(particle const & p, particle const & q){
+#ifdef __CUDACC__
+__device__ __host__
+#endif
+force get_force(particle const p, particle const q){
   force f;
   f.fx = (p.dx-q.dx)/std::pow(get_distance(p,q)+.01,3);
   f.fy = (p.dy-q.dy)/std::pow(get_distance(p,q)+.01,3);
   return f;
+}
+namespace CTF {
+  template <>  
+  inline void Set<particle>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(dx=%lf dy=%lf coeff=%lf id=%d)",((particle*)a)[0].dx,((particle*)a)[0].dy,((particle*)a)[0].coeff,((particle*)a)[0].id);
+  }
+  template <>  
+  inline void Set<force>::print(char const * a, FILE * fp) const {
+    fprintf(fp,"(fx=%lf fy=%lf)",((force*)a)[0].fx,((force*)a)[0].fy);
+  }
+
 }
 
 

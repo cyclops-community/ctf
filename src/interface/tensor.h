@@ -211,6 +211,24 @@ namespace CTF {
 
 
       /**
+       * \brief defines a nonsymmetric tensor filled with zeros on a specified algstrct
+       * \param[in] order_ number of dimensions of tensor
+       * \param[in] is_sparse if 1 then tensor will be sparse and non-trivial elements won't be stored
+       * \param[in] len_ edge lengths of tensor
+       * \param[in] world_ a world for the tensor to live in
+       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       * \param[in] name_ an optionary name for the tensor
+       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       */
+      Tensor(int                       order,
+             bool                      is_sparse,
+             int const *               len,
+             World &                   wrld=get_universe(),
+             CTF_int::algstrct const & sr=Ring<dtype>(),
+             char const *              name=NULL,
+             bool                      profile=0);
+
+      /**
        * \brief copies a tensor, copying the data of A
        * \param[in] A tensor to copy
        */

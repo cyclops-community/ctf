@@ -58,7 +58,13 @@ namespace CTF_int {
   topology * get_phys_topo(CommData glb_comm,
                            TOPOLOGY mach);
 
- /**
+  /**
+   * \brief computes all topology configurations given undelying physical topology information
+   * \param[in] cdt global communicator
+   */
+  std::vector< topology* > get_generic_topovec(CommData   cdt);
+
+  /**
    * \brief folds specified topology and all of its permutations into all configurations of lesser dimensionality
    * \param[in] phys_topology topology to fold
    * \param[in] cdt  global communicator

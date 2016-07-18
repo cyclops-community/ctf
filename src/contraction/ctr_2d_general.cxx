@@ -246,12 +246,12 @@ namespace CTF_int {
     if (move_B)
       est_comm_time += cdt_B->estimate_bcast_time(sr_B->el_size*s_B);
     if (move_C)
-      est_comm_time += cdt_C->estimate_allred_time(sr_C->el_size*s_C);
+      est_comm_time += cdt_C->estimate_red_time(sr_C->el_size*s_C, sr_C->addmop());
     return (est_comm_time*(double)edge_len)/MIN(nlyr,edge_len);
   }
 
   double ctr_2d_general::est_time_rec(int nlyr) {
-    return edge_len*rec_ctr->est_time_rec(1) + est_time_fp(nlyr);
+    return rec_ctr->est_time_rec(1)*(double)edge_len/MIN(nlyr,edge_len) + est_time_fp(nlyr);
   }
 
   int64_t ctr_2d_general::mem_fp() {
@@ -328,7 +328,12 @@ namespace CTF_int {
     //ASSERT(ret==0);
 
     //for (ib=this->idx_lyr; ib<edge_len; ib+=this->num_lyr){
-    for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr){
+#ifdef MICROBENCH
+    for (ib=iidx_lyr; ib<edge_len; ib+=edge_len)
+#else
+    for (ib=iidx_lyr; ib<edge_len; ib+=inum_lyr)
+#endif
+    {
       if (move_A){
         owner_A   = ib % cdt_A->np;
         if (rank_A == owner_A){
@@ -388,6 +393,8 @@ namespace CTF_int {
       }
       if (move_C){
         op_C = buf_C;
+        //sr_C->set(op_C, sr_C->addid(), s_C);
+        //rec_ctr->beta = sr_C->mulid();
         rec_ctr->beta = sr_C->addid();
       } else {
         if (ctr_sub_lda_C == 0)
@@ -397,6 +404,8 @@ namespace CTF_int {
             op_C = C+sr_C->el_size*ib*ctr_sub_lda_C;
           else {
             op_C = buf_C;
+            //sr_C->set(op_C, sr_C->addid(), s_C);
+            //rec_ctr->beta = sr_C->mulid();
             rec_ctr->beta = sr_C->addid();
           }
         }
@@ -410,8 +419,11 @@ namespace CTF_int {
       }*/
       if (move_C){
         /* FIXME: Wont work for single precsion */
-        cdt_C->allred(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop());
         owner_C   = ib % cdt_C->np;
+        if (cdt_C->rank == owner_C)
+          cdt_C->red(MPI_IN_PLACE, op_C, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
+        else
+          cdt_C->red(op_C, NULL, s_C, sr_C->mdtype(), sr_C->addmop(), owner_C);
         if (rank_C == owner_C){
           sr_C->copy(ctr_sub_lda_C, ctr_lda_C,
                      op_C, ctr_sub_lda_C, sr_C->mulid(),

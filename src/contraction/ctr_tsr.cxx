@@ -205,7 +205,11 @@ namespace CTF_int {
             off_C += ilda_C[i]*tidx_arr[i];
             if (tidx_arr[i] != 0) break;
           }
+#ifdef MICROBENCH
+          break;
+#else
           if (i==num_dim) break;
+#endif
         }
         if (tid > 0){
           delete tid_rec_ctr;
@@ -239,6 +243,7 @@ namespace CTF_int {
     CTF_int::alloc_ptr(sizeof(int)*c->C->order, (void**)&new_sym_C);
     memcpy(new_sym_C, c->C->sym, sizeof(int)*c->C->order);
 
+    this->inner_params  = *inner_params;
     if (!is_inner){
       this->is_inner  = 0;
     } else if (is_inner == 1) {
@@ -248,7 +253,6 @@ namespace CTF_int {
       }
 
       this->is_inner    = 1;
-      this->inner_params  = *inner_params;
       this->inner_params.sz_C = vrt_sz_C;
       tensor * itsr;
       itsr = c->A->rec_tsr;
@@ -310,6 +314,8 @@ namespace CTF_int {
     this->alpha      = c->alpha;
     if (is_custom){
       this->func     = c->func;
+    } else {
+      this->func     = NULL;
     }
     this->order_A    = c->A->order;
     this->idx_map_A  = c->idx_A;
@@ -387,6 +393,8 @@ namespace CTF_int {
   LinModel<3> seq_tsr_ctr_mdl_ref(seq_tsr_ctr_mdl_ref_init,"seq_tsr_ctr_mdl_ref");
   LinModel<3> seq_tsr_ctr_mdl_inr(seq_tsr_ctr_mdl_inr_init,"seq_tsr_ctr_mdl_inr");
   LinModel<3> seq_tsr_ctr_mdl_off(seq_tsr_ctr_mdl_off_init,"seq_tsr_ctr_mdl_off");
+  LinModel<3> seq_tsr_ctr_mdl_cst_inr(seq_tsr_ctr_mdl_cst_inr_init,"seq_tsr_ctr_mdl_cst_inr");
+  LinModel<3> seq_tsr_ctr_mdl_cst_off(seq_tsr_ctr_mdl_cst_off_init,"seq_tsr_ctr_mdl_cst_off");
 
   uint64_t seq_tsr_ctr::est_membw(){
     uint64_t size_A = sy_packed_size(order_A, edge_len_A, sym_A)*sr_A->el_size;
@@ -429,15 +437,24 @@ namespace CTF_int {
     //return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
     double ps[] = {1.0, (double)est_membw(), est_fp()};
 //    printf("time estimate is %lf\n", seq_tsr_ctr_mdl.est_time(ps));
-    if (is_custom)
+    if (is_custom && !is_inner){
       return seq_tsr_ctr_mdl_cst.est_time(ps);
-    else if (is_inner){
-      if (inner_params.offload)
-        return seq_tsr_ctr_mdl_off.est_time(ps);
-      else
-        return seq_tsr_ctr_mdl_inr.est_time(ps);
+    } else if (is_inner){
+      if (is_custom){
+        if (inner_params.offload)
+          return seq_tsr_ctr_mdl_cst_off.est_time(ps);
+        else 
+          return seq_tsr_ctr_mdl_cst_inr.est_time(ps);
+      } else {
+        if (inner_params.offload)
+          return seq_tsr_ctr_mdl_off.est_time(ps);
+        else
+          return seq_tsr_ctr_mdl_inr.est_time(ps);
+      }
     } else                        
       return seq_tsr_ctr_mdl_ref.est_time(ps);
+    assert(0); //wont make it here
+    return 0.0;
   }
 
   double seq_tsr_ctr::est_time_rec(int nlyr){ 
@@ -446,7 +463,7 @@ namespace CTF_int {
 
   void seq_tsr_ctr::run(char * A, char * B, char * C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
-    if (is_custom){
+    if (is_custom && !is_inner){
       double st_time = MPI_Wtime();
       ASSERT(is_inner == 0);
       sym_seq_ctr_cust(this->alpha,
@@ -474,6 +491,7 @@ namespace CTF_int {
       double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
       seq_tsr_ctr_mdl_cst.observe(tps);
     } else if (is_inner){
+      ASSERT(is_custom || func == NULL);
 //      double ps[] = {1.0, (double)est_membw(), est_fp()};
 //      double est_time = seq_tsr_ctr_mdl_inr.est_time(ps);
       double st_time = MPI_Wtime();
@@ -497,14 +515,22 @@ namespace CTF_int {
                       edge_len_C,
                       sym_C,
                       idx_map_C,
-                      &inner_params);
+                      &inner_params,
+                      func);
       double exe_time = MPI_Wtime()-st_time;
  //     printf("exe_time = %E est_time = %E abs_err = %e rel_err = %lf\n", exe_time,est_time,fabs(exe_time-est_time),fabs(exe_time-est_time)/exe_time);
       double tps[] = {exe_time, 1.0, (double)est_membw(), est_fp()};
-      if (inner_params.offload)
-        seq_tsr_ctr_mdl_off.observe(tps);
-      else 
-        seq_tsr_ctr_mdl_inr.observe(tps);
+      if (is_custom){
+        if (inner_params.offload)
+          seq_tsr_ctr_mdl_cst_off.observe(tps);
+        else 
+          seq_tsr_ctr_mdl_cst_inr.observe(tps);
+      } else {
+        if (inner_params.offload)
+          seq_tsr_ctr_mdl_off.observe(tps);
+        else 
+          seq_tsr_ctr_mdl_inr.observe(tps);
+      }
 //      seq_tsr_ctr_mdl_inr.print_param_guess();
     } else {
       double st_time = MPI_Wtime();

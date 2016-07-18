@@ -67,11 +67,12 @@ int univar_transform_cust_sp(int     n,
   F2["ij"] += F["ij"];
   F2["ij"] += F["ij"];
 
-  //below is the same as uacc(F2["ij"],P["i"]);
+
   uacc(F2["ij"],P["i"]);
 
   particle loc_parts_new[nloc];
   P.read(nloc, inds, loc_parts_new);
+
   
   //check that something changed
   int pass = 0;
@@ -146,7 +147,7 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
-      printf("Computing univar_transform_cust_sp A_ijkl = f(A_ijkl)\n");
+      printf("Computing univar_transform_cust_sp P_i = f(F_ij)\n");
     }
     univar_transform_cust_sp(n, dw);
   }

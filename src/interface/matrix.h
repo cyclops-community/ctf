@@ -15,6 +15,14 @@ namespace CTF {
   class Matrix : public Tensor<dtype> {
     public:
       int nrow, ncol, symm;
+
+
+      /** 
+       * \brief copy constructor for a matrix
+       * \param[in] A matrix to copy along with its data
+       */
+      Matrix<dtype>(Matrix<dtype> const & A);
+
       /**
        * \brief constructor for a matrix
        * \param[in] nrow number of matrix rows
@@ -53,7 +61,7 @@ namespace CTF {
        * \brief constructor for a matrix
        * \param[in] nrow number of matrix rows
        * \param[in] ncol number of matrix columns
-       * \param[in] qtf quantifier for qtfmetry or sparsity of matrix
+       * \param[in] atr quantifier for sparsity and symmetry of matrix
        * \param[in] wrld CTF world where the tensor will live
        * \param[in] sr defines the tensor arithmetic for this tensor
        * \param[in] name an optionary name for the tensor
@@ -61,7 +69,7 @@ namespace CTF {
        */ 
       Matrix(int                       nrow,
              int                       ncol,
-             int                       qtf=0,
+             int                       atr=0,
              World &                   wrld=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
@@ -71,7 +79,7 @@ namespace CTF {
        * \brief constructor for a matrix
        * \param[in] nrow number of matrix rows
        * \param[in] ncol number of matrix columns
-       * \param[in] qtf qtfmetry of matrix
+       * \param[in] atr quantifier for sparsity and symmetry of matrix
        * \param[in] world CTF world where the tensor will live
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
@@ -79,13 +87,13 @@ namespace CTF {
        */ 
       Matrix(int                       nrow,
              int                       ncol,
-             int                       qtf,
+             int                       atr,
              World &                   wrld,
              char const *              name,
              int                       profile=0,
              CTF_int::algstrct const & sr=Ring<dtype>());
 
-      Matrix<dtype> & operator=(const Matrix<dtype> & A);
+//      Matrix<dtype> & operator=(const Matrix<dtype> & A);
   };
   /**
    * @}

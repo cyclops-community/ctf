@@ -79,6 +79,7 @@ namespace CTF_int {
     if (tsr->has_zero_edge_len){
       return SUCCESS;
     }
+    TAU_FSTART(scaling);
 
   #if DEBUG>=2
     if (tsr->wrld->cdt.rank == 0){
@@ -95,6 +96,7 @@ namespace CTF_int {
 
     if (A->is_sparse){
       sp_scl();
+      TAU_FSTOP(scaling);
       return SUCCESS;
     }
    
@@ -109,6 +111,10 @@ namespace CTF_int {
       ntsr->topo = tsr->topo;
       copy_mapping(tsr->order, tsr->edge_map, ntsr->edge_map);
       ntsr->set_padding();
+      if (tsr->is_sparse){
+        CTF_int::alloc_ptr(ntsr->calc_nvirt()*sizeof(int64_t), (void**)&ntsr->nnz_blk);
+        ntsr->set_new_nnz_glb(tsr->nnz_blk);
+      }
     } else ntsr = tsr;    
   #else
     ntsr = tsr;
@@ -130,6 +136,7 @@ namespace CTF_int {
         ntsr->clear_mapping();
         ntsr->set_padding();
         ntsr->topo = tsr->wrld->topovec[itopo];
+        ntsr->is_mapped = true;
         ret = map_self_indices(ntsr, idx_map);
         if (ret!=SUCCESS) continue;
         ret = ntsr->map_tensor_rem(ntsr->topo->order,
@@ -165,6 +172,7 @@ namespace CTF_int {
       if (btopo == -1 || btopo == INT_MAX) {
         if (tsr->wrld->cdt.rank==0)
           printf("ERROR: FAILED TO MAP TENSOR SCALE\n");
+        TAU_FSTOP(scaling);
         return ERROR;
       }
 
@@ -172,6 +180,7 @@ namespace CTF_int {
       ntsr->set_padding();
       ntsr->is_cyclic = 1;
       ntsr->topo = tsr->wrld->topovec[btopo];
+      ntsr->is_mapped = true;
       ret = map_self_indices(ntsr, idx_map);
       if (ret!=SUCCESS) ABORT;
       ret = ntsr->map_tensor_rem(ntsr->topo->order,
@@ -290,12 +299,22 @@ namespace CTF_int {
                    &old_edge_len, &ntsr->topo);*/
       tsr->data = ntsr->data;
       tsr->is_home = 0;
+
+      if (tsr->is_sparse){
+        cdealloc(ntsr->home_buffer);
+        ntsr->home_buffer = NULL;
+        CTF_int::alloc_ptr(ntsr->calc_nvirt()*sizeof(int64_t), (void**)&tsr->nnz_blk);
+        tsr->set_new_nnz_glb(ntsr->nnz_blk);
+      } 
+
       TAU_FSTART(redistribute_for_scale_home);
       tsr->redistribute(*old_dst);
       TAU_FSTOP(redistribute_for_scale_home);
-      memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr->el_size);
-      CTF_int::cdealloc(tsr->data);
-      tsr->data = tsr->home_buffer;
+      if (!tsr->is_sparse){
+        memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr->el_size);
+        CTF_int::cdealloc(tsr->data);
+        tsr->data = tsr->home_buffer;
+      }
       tsr->is_home = 1;
       ntsr->is_data_aliased = 1;
       delete ntsr;
@@ -317,11 +336,13 @@ namespace CTF_int {
       printf("Done scaling tensor %s.\n", tsr->name);
   #endif
 
+    TAU_FSTOP(scaling);
     return SUCCESS;
 
   }
 
   void scaling::sp_scl(){
+    TAU_FSTART(sp_scl);
     bool has_rep_idx = false;
     for (int i=0; i<A->order; i++){
       for (int j=0; j<i; j++){
@@ -390,5 +411,6 @@ namespace CTF_int {
         }
       }
     }
+    TAU_FSTOP(sp_scl);
   }
 }
