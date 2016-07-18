@@ -292,11 +292,11 @@ int main(int argc, char ** argv){
     
     if (rank == 0)
       printf("Testing MP3 calculation using sparse*dense with %d occupied and %d virtual orbitals:\n",n,2*n);
-    pass.push_back(sparse_mp3(2*n,n,dw,.8,0,0,0));
+    pass.push_back(sparse_mp3(2*n,n,dw,.8,1,0,0,0,0));
     
     if (rank == 0)
       printf("Testing MP3 calculation using sparse*sparse with %d occupied and %d virtual orbitals:\n",n,2*n);
-    pass.push_back(sparse_mp3(2*n,n,dw,.8,0,0,1));
+    pass.push_back(sparse_mp3(2*n,n,dw,.8,1,0,0,0,1));
     
     /*int logn = log2(n)+1;
     if (rank == 0)

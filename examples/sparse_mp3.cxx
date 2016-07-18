@@ -93,7 +93,7 @@ double mp3(Tensor<> & Ea,
   return MP3_energy;
 }
 
-int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0, bool bd=1, bool sparse_T=1){
+int sparse_mp3(int nv, int no, World & dw, double sp=.8, bool test=1, int niter=0, bool bnd=1, bool bns=1, bool sparse_T=1){
   int vvvv[]      = {nv,nv,nv,nv};
   int vovo[]      = {nv,no,nv,no};
   int vvoo[]      = {nv,nv,no,no};
@@ -135,16 +135,21 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0, bool bd=1,
 
   double dense_energy, sparse_energy;
 
-  dense_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj, 0);
+  if (test){
+    dense_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj, 0);
+#ifndef TEST_SUITE
+    if (dw.rank == 0)
+      printf("Calculated MP3 energy %lf with dense integral tensors.\n",dense_energy);
+#endif
+  } else
+    dense_energy = 0.0;
 
 #ifndef TEST_SUITE
-  if (dw.rank == 0)
-    printf("Calcluated MP3 energy %lf with dense integral tensors.\n",dense_energy);
   double min_time = DBL_MAX;
   double max_time = 0.0;
   double tot_time = 0.0;
   double times[niter];
-  if (bd){
+  if (bnd){
     if (dw.rank == 0){
       printf("Starting %d benchmarking iterations of dense MP3...\n", niter);
     }
@@ -181,21 +186,36 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, int niter=0, bool bd=1,
   Vijkl.sparsify();
   Vaibj.sparsify();
 
-  sparse_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj, sparse_T);
+  if (test)
+    sparse_energy = mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj, sparse_T);
+  else
+    sparse_energy = 0.0;
 
-  bool pass = fabs((dense_energy-sparse_energy)/dense_energy)<1.E-6;
+  bool pass;
+  if (test){
+    pass = fabs((dense_energy-sparse_energy)/dense_energy)<1.E-6;
 
-  if (Ea.wrld->rank == 0){
-    if (pass) 
-      printf("{ sparse third-order Moller-Plesset petrubation theory (MP3) } passed \n");
-    else
-      printf("{ sparse third-order Moller-Plesset petrubation theory (MP3) } failed \n");
-  }
+    if (Ea.wrld->rank == 0){
+      if (!sparse_T){
+        if (pass) 
+          printf("{ third-order Moller-Plesset petrubation theory (MP3) using sparse*dense } passed \n");
+        else
+          printf("{ third-order Moller-Plesset petrubation theory (MP3) using sparse*dense } failed \n");
+      } else {
+        if (pass) 
+          printf("{ third-order Moller-Plesset petrubation theory (MP3) using sparse*sparse } passed \n");
+        else
+          printf("{ third-order Moller-Plesset petrubation theory (MP3) using sparse*sparse } failed \n");
+      }
+    }
+#ifndef TEST_SUITE
+    if (dw.rank == 0)
+      printf("Calcluated MP3 energy %lf with sparse integral tensors.\n",sparse_energy);
+#endif
+  } else pass = 1;
 
 #ifndef TEST_SUITE
-  if (dw.rank == 0)
-    printf("Calcluated MP3 energy %lf with sparse integral tensors.\n",sparse_energy);
-  if (bd){
+  if (bns){
     if (dw.rank == 0){
       printf("Starting %d benchmarking iterations of sparse MP3...\n", niter);
     }
@@ -245,7 +265,7 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, nv, no, pass, niter, bd, sparse;
+  int rank, np, nv, no, pass, niter, bnd, bns, test, sparse;
   bool sparse_T;
   double sp;
   int const in_num = argc;
@@ -278,10 +298,20 @@ int main(int argc, char ** argv){
     sparse_T = (bool)atoi(getCmdOption(input_str, input_str+in_num, "-sparse_T"));
   } else sparse_T = 1;
 
-  if (getCmdOption(input_str, input_str+in_num, "-bd")){
-    bd = atoi(getCmdOption(input_str, input_str+in_num, "-bd"));
-    if (bd != 0 && bd != 1) bd = 1;
-  } else bd = 1;
+  if (getCmdOption(input_str, input_str+in_num, "-bnd")){
+    bnd = atoi(getCmdOption(input_str, input_str+in_num, "-bnd"));
+    if (bnd != 0 && bnd != 1) bnd = 0;
+  } else bnd = 0;
+  
+  if (getCmdOption(input_str, input_str+in_num, "-bns")){
+    bns = atoi(getCmdOption(input_str, input_str+in_num, "-bns"));
+    if (bns != 0 && bns != 1) bns = 0;
+  } else bns = 0;
+  
+  if (getCmdOption(input_str, input_str+in_num, "-test")){
+    test = atoi(getCmdOption(input_str, input_str+in_num, "-test"));
+    if (test != 0 && test != 1) test = 1;
+  } else test = 1;
 
   if (rank == 0){
     printf("Running sparse (%lf zeros) third-order Moller-Plesset petrubation theory (MP3) method on %d virtual and %d occupied orbitals and T sparsity turned ot %d\n",sp,nv,no,sparse_T);
@@ -289,7 +319,7 @@ int main(int argc, char ** argv){
 
   {
     World dw;
-    pass = sparse_mp3(nv, no, dw, sp, niter, bd, sparse_T);
+    pass = sparse_mp3(nv, no, dw, sp, test, niter, bnd, bns, sparse_T);
     assert(pass);
   }
 
