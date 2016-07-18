@@ -5,7 +5,7 @@ namespace CTF {
 
   template<typename dtype>
   Scalar<dtype>::Scalar(World & world_, CTF_int::algstrct const & sr_) :
-    Tensor<dtype>(0, NULL, NULL, world_, sr_) {
+    Tensor<dtype>(0, 0,  NULL, NULL, world_, sr_) {
     
   }
 
@@ -13,7 +13,7 @@ namespace CTF {
   Scalar<dtype>::Scalar(dtype                     val,
                                 World &                   world,
                                 CTF_int::algstrct const & sr_)
-     : Tensor<dtype>(0, NULL, NULL, world, sr_) {
+     : Tensor<dtype>(0, 0, NULL, NULL, world, sr_) {
     int64_t s; 
     dtype * arr;
 

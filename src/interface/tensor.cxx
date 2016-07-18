@@ -51,6 +51,17 @@ namespace CTF {
     ASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        bool                      is_sparse,
+                        int const *               len,
+                        World &                   world,
+                        CTF_int::algstrct const & sr,
+                        char const *              name,
+                        bool                      profile)
+    : CTF_int::tensor(&sr, order, len, NULL, &world, 1, name, profile, is_sparse) {
+    ASSERT(sizeof(dtype)==this->sr->el_size);
+  }
 
 
   template<typename dtype>

@@ -125,6 +125,36 @@ namespace CTF_int {
     assert(0);
     return a;
   }
+   
+  template <typename dtype, bool is_ord>
+  inline typename std::enable_if<is_ord, dtype>::type
+  default_max_lim(){
+    return std::numeric_limits<dtype>::max();
+  }
+
+  template <typename dtype, bool is_ord>
+  inline typename std::enable_if<!is_ord, dtype>::type
+  default_max_lim(){
+    printf("CTF ERROR: cannot compute a max unless the set is ordered");
+    assert(0);
+    dtype * a;
+    return *a;
+  }
+
+  template <typename dtype, bool is_ord>
+  inline typename std::enable_if<is_ord, dtype>::type
+  default_min_lim(){
+    return std::numeric_limits<dtype>::min();
+  }
+
+  template <typename dtype, bool is_ord>
+  inline typename std::enable_if<!is_ord, dtype>::type
+  default_min_lim(){
+    printf("CTF ERROR: cannot compute a max unless the set is ordered");
+    assert(0);
+    dtype * a;
+    return *a;
+  }
 
   template <typename dtype, bool is_ord>
   inline typename std::enable_if<is_ord, dtype>::type
@@ -258,11 +288,11 @@ namespace CTF {
       }
 
       void min(char * c) const {
-        ((dtype*)c)[0] = std::numeric_limits<dtype>::min();
+        ((dtype*)c)[0] = CTF_int::default_min_lim<dtype,is_ord>();
       }
 
       void max(char * c) const {
-        ((dtype*)c)[0] = std::numeric_limits<dtype>::max();
+        ((dtype*)c)[0] = CTF_int::default_max_lim<dtype,is_ord>();
       }
 
       void cast_double(double d, char * c) const {

@@ -195,6 +195,7 @@ namespace CTF_int{
     TAU_FSTART(spA_spB_seq_sum);
     // determine how many unique keys there are in prs_tsr and prs_Write
     nnew = nB;
+    bool is_acc = (func != NULL && func->is_accumulator());
     TAU_FSTART(spA_spB_seq_sum_pre);
     for (int64_t t=0,ww=0; ww<nA*map_pfx; ww++){
       while (ww<nA*map_pfx){
@@ -207,7 +208,7 @@ namespace CTF_int{
           ww++;
         } else {
           //ASSERT(map_pfx == 1);
-          if (map_pfx != 1 || ww==0 || prs_A[ww-1].k() != prs_A[ww].k())
+          if (!is_acc && (map_pfx != 1 || ww==0 || prs_A[ww-1].k() != prs_A[ww].k()))
             nnew++;
           ww++; w=ww;
         }
@@ -229,12 +230,15 @@ namespace CTF_int{
       }*/
       int64_t w = ww/map_pfx;
       int64_t mw = ww%map_pfx;
+      bool skip = 0;
       if (t<nB && (w==nA || prs_B[t].k() < prs_A[w].k()*map_pfx+mw)){
         memcpy(prs_new[n].ptr, prs_B[t].ptr, sr_B->pair_size());
         if (beta != NULL)
           sr_B->mul(prs_B[t].d(), beta, prs_new[n].d());
         t++;
       } else {
+        /*if (t<nB)
+          printf("%ld %ld\n",prs_B[t].k(), prs_A[w].k()*map_pfx+mw);*/
         if (t>=nB || prs_B[t].k() > prs_A[w].k()*map_pfx+mw){
           if (func == NULL){
             if (map_pfx == 1){
@@ -247,16 +251,18 @@ namespace CTF_int{
               sr_A->mul(prs_new[n].d(), alpha, prs_new[n].d());
           } else {
             //((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k();
-            ((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k()*map_pfx+mw; 
-            if (alpha != NULL){
-              char a[sr_A->el_size];
-              sr_A->mul(prs_A[w].d(), alpha, a);
-              prs_new[n].write_val(sr_B->addid());
-              func->apply_f(a, prs_new[n].d());
-            } else {
-              prs_new[n].write_val(sr_B->addid());
-              func->apply_f(prs_A[w].d(), prs_new[n].d());
-            }
+            if (!is_acc){
+              ((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k()*map_pfx+mw; 
+              if (alpha != NULL){
+                char a[sr_A->el_size];
+                sr_A->mul(prs_A[w].d(), alpha, a);
+                prs_new[n].write_val(sr_B->addid());
+                func->apply_f(a, prs_new[n].d());
+              } else {
+                prs_new[n].write_val(sr_B->addid());
+                func->apply_f(prs_A[w].d(), prs_new[n].d());
+              }
+            } else { n--; skip=1; }
           }
           ww++;
         } else {
@@ -274,8 +280,9 @@ namespace CTF_int{
           }
           if (func == NULL){ 
             sr_B->add(a, b, b);
-          } else
+          } else {
             func->acc_f(a, b, sr_B);
+          }
           prs_new[n].write_val(b);
           ((int64_t*)(prs_new[n].ptr))[0] = prs_B[t].k();
           t++;
@@ -283,25 +290,29 @@ namespace CTF_int{
         }
         // accumulate any repeated key writes
         while (map_pfx == 1 && ww > 0 && ww<nA && prs_A[ww].k() == prs_A[ww-1].k()){
-          if (alpha != NULL){
-            char a[sr_A->el_size];
-            sr_A->mul(prs_A[ww].d(), alpha, a);
-            if (func == NULL)
-              sr_B->add(prs_new[n].d(), a, prs_new[n].d());
-            else
-              func->acc_f(a, prs_new[n].d(), sr_B);
-          } else {
-            if (func == NULL)
-              sr_B->add(prs_new[n].d(), prs_A[ww].d(), prs_new[n].d());
-            else
-              func->acc_f(prs_A[ww].d(), prs_new[n].d(), sr_B);
+          if (!skip){
+            if (alpha != NULL){
+              char a[sr_A->el_size];
+              sr_A->mul(prs_A[ww].d(), alpha, a);
+              if (func == NULL)
+                sr_B->add(prs_new[n].d(), a, prs_new[n].d());
+              else
+                func->acc_f(a, prs_new[n].d(), sr_B);
+            } else {
+              if (func == NULL)
+                sr_B->add(prs_new[n].d(), prs_A[ww].d(), prs_new[n].d());
+              else
+                func->acc_f(prs_A[ww].d(), prs_new[n].d(), sr_B);
+            }
           }
           ww++; w=ww;
         }
       }
-      /*printf("%ldth value is ", n);
-      sr_B->print(prs_new[n].d());
-      printf(" with key %ld\n",prs_new[n].k());*/
+      /*if (n>=0){
+        printf("%ldth value is ", n);
+        sr_B->print(prs_new[n].d());
+        printf(" with key %ld\n",prs_new[n].k());
+      }*/
     }
     ASSERT(n==nnew);
     TAU_FSTOP(spA_spB_seq_sum);

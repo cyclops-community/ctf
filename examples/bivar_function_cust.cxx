@@ -65,7 +65,7 @@ int bivar_function_cust(int     n,
     }
   } 
 
-  ((Transform<force,particle>)([] (force f, particle & p){ p.dx += f.fx*p.coeff; p.dy += f.fy*p.coeff; }))(F["i"], P["i"]);
+  Transform<force,particle>([] (force f, particle & p){ p.dx += f.fx*p.coeff; p.dy += f.fy*p.coeff; })(F["i"], P["i"]);
   
   return pass;
 } 

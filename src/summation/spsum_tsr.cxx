@@ -712,7 +712,21 @@ namespace CTF_int {
             p[i] = j;
           }
         }       
-      } 
+      }
+      //adjust p in case there are mapped indices in B 
+      int lesser[this->order];
+      for (int i=0; i<this->order; i++){
+        if (p[i] != -1){
+          lesser[i] = 0;
+          for (int j=0; j<this->order; j++){
+            if (i!=j && p[j] != -1 && p[j] < p[i]) lesser[i]++; 
+          }
+        }
+      }
+      for (int i=0; i<this->order; i++){
+        if (p[i] != -1)
+          p[i] = lesser[i];
+      }
     } else {
       // if B then put 'map' indices first
       int nmap_idx = 0;
@@ -727,12 +741,14 @@ namespace CTF_int {
       } 
 
       int nm = 0;
+      int nnm = 0;
       for (int i=0; i<this->order; i++){
         p[i] = nm;
         for (int j=0; j<Y->order; j++){
           if (idx_X[i] == idx_Y[j]){
             ASSERT(p[i] == nm); // no repeating indices allowed here!
-            p[i] = i+nmap_idx;
+            p[i] = nnm+nmap_idx;
+            nnm++;
           }
         }
         if (p[i] == nm) nm++;
@@ -741,6 +757,8 @@ namespace CTF_int {
     skip = true;
     for (int i=0; i<this->order; i++){
       if (p[i] != i) skip = false;
+//      printf("p[%d] = %d order = %d\n", i, p[i], this->order);
+      if (p[i] != -1) lens_new[p[i]] = lens[i];
     }
   }
 
@@ -794,7 +812,7 @@ namespace CTF_int {
         for (int j=0; j<order; j++){
           if (p[j] == i){ 
             new_lda_A[j] = lda;
-            lda *= lens_new[j];
+            lda *= lens_new[i];
           }
         }
       }
@@ -813,11 +831,16 @@ namespace CTF_int {
       rec_tsum->A = A;
       rec_tsum->B = buf;
       memcpy(buf, B, nnz_B*sr_B->pair_size());
-      int64_t new_lda_B[order];
+      int64_t old_lda_B[order];
       int64_t lda=1;
       for (int i=0; i<order; i++){
-        new_lda_B[p[i]] = lda;
+        old_lda_B[i] = lda;
         lda *= lens_new[i];
+      }
+      int64_t new_lda_B[order];
+      std::fill(new_lda_B, new_lda_B+order, 0);
+      for (int i=0; i<order; i++){
+        new_lda_B[i] = old_lda_B[p[i]];
       }
       ConstPairIterator rB(sr_B, B);
       PairIterator wB(sr_B, buf);
@@ -853,10 +876,14 @@ namespace CTF_int {
         inv_p[p[i]] = i;
       }
       int64_t new_lda_B[order];
+      int64_t old_lda_B[order];
       int64_t lda=1;
       for (int i=0; i<order; i++){
-        new_lda_B[inv_p[i]] = lda;
+        old_lda_B[i] = lda;
         lda *= lens_old[i];
+      }
+      for (int i=0; i<order; i++){
+        new_lda_B[i] = old_lda_B[inv_p[i]];
       }
       ConstPairIterator rB(sr_B, rec_tsum->new_B);
       PairIterator wB(sr_B, new_B);
@@ -872,8 +899,7 @@ namespace CTF_int {
         mwB = mwB[nnz_blk_B[v]];
       }
 
-
-      if (buf != rec_tsum->new_B){
+      if (buf != rec_tsum->new_B && new_B != rec_tsum->new_B){
         cdealloc(rec_tsum->new_B);
       }
       cdealloc(buf);

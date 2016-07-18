@@ -48,7 +48,7 @@ int test_dft(int64_t n,
   DFT["ik"] = .5*DFT["ij"]*IDFT["jk"];
 
   Scalar< std::complex<double> > ss(wrld);
-  ss[""] = ((Function< std::complex<double>, std::complex<double>, std::complex<double> >)([](std::complex<double> a, std::complex<double> b){ return a+b; }))(DFT["ij"],DFT["ij"]);
+  ss[""] = Function< std::complex<double>, std::complex<double>, std::complex<double> >([](std::complex<double> a, std::complex<double> b){ return a+b; })(DFT["ij"],DFT["ij"]);
  
   DFT.read_local(&np, &idx, &data);
   int pass = 1;
