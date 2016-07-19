@@ -100,7 +100,7 @@ namespace CTF_int {
     this->sr->set(this->data, this->sr->addid(), this->size);
 #ifdef HOME_CONTRACT
     this->home_size = this->size;
-    register_size(home_size);
+    register_size(home_size*sr->el_size);
     this->has_home = 1;
     this->is_home = 1;
     this->home_buffer = this->data;
@@ -510,7 +510,7 @@ namespace CTF_int {
           this->set_padding();
           memuse = (int64_t)this->size;
           if (!is_sparse && (int64_t)memuse*sr->el_size >= (int64_t)proc_bytes_available()){
-            DPRINTF(1,"Not enough memory to map tensor on topo %d\n", i);
+            DPRINTF(1,"Not enough memory %E to map tensor (size %E) on topo %d\n", (double)proc_bytes_available(),(double)memuse*sr->el_size,i);
             continue;
           }
           int64_t sum_phases = 0;
@@ -538,7 +538,7 @@ namespace CTF_int {
             bmemuse = memuse;
           }
         } else
-          DPRINTF(3,"Unsuccessful in map_tensor() in set_zero()\n");
+          DPRINTF(1,"Unsuccessful in map_tensor() in set_zero()\n");
       }
       if (btopo == -1)
         bmemuse = INT64_MAX;
@@ -549,7 +549,9 @@ namespace CTF_int {
       if (btopo == -1 || btopo == INT_MAX) {
         if (wrld->rank==0)
           printf("ERROR: FAILED TO MAP TENSOR\n");
+        MPI_Barrier(MPI_COMM_WORLD);
         TAU_FSTOP(set_zero_tsr);
+        ASSERT(0);
         return ERROR;
       }
 
@@ -2661,7 +2663,7 @@ namespace CTF_int {
 
   void tensor::register_size(int64_t sz){
     deregister_size();
-    registered_alloc_size = sz*sr->el_size;
+    registered_alloc_size = sz;
     inc_tot_mem_used(registered_alloc_size);
   }
   
