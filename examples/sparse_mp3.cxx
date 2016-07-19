@@ -175,7 +175,7 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, bool test=1, int niter=
       }
       printf("\n");
       std::sort(times,times+niter);
-      printf("Dense MP3 (no=%d nv=%d sp=%lf) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,min_time,tot_time/niter, times[niter/2], max_time);
+      printf("Dense MP3 (no=%d nv=%d sp=%lf) Min time = %lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,min_time,tot_time/niter, times[niter/2], max_time);
     }
   }
 #endif  

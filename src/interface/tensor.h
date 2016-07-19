@@ -842,6 +842,18 @@ namespace CTF {
        */
       void fill_random(dtype rmin, dtype rmax);
 
+  
+      /**
+       * \brief generate roughly frac_sp*dense_tensor_size nonzeros between rmin and rmax, works only for dtype=dpuble
+       *        does not produce a reproducible result across different numbers of processors
+       *        user must seed (seeds should be different on different ranks, to get a random tensor)
+       * \param[in] rmin minimum random value
+       * \param[in] rmax maximum random value
+       * \param[in] frac_sp desired expected nonzero fraction
+       */
+      void fill_sp_random(dtype rmin, dtype rmax, double frac_sp);
+
+
       /**
        * \brief turns on profiling for tensor
        */

@@ -710,6 +710,29 @@ namespace CTF {
 
 
   template<typename dtype>
+  void Tensor<dtype>::fill_sp_random(dtype rmin, dtype rmax, double frac_sp){
+    if (wrld->rank == 0) 
+      printf("CTF ERROR: fill_sp_random(rmin, rmax, frac_sp) not available for the type of tensor %s\n",name);
+    assert(0);
+  }
+
+  template<>
+  void Tensor<double>::fill_sp_random(double rmin, double rmax, double frac_sp){
+    int64_t tot_sz = CTF_int::packed_size(order, lens, sym);
+    std::vector<Pair<double>> pairs;
+    pairs.reserve(size*frac_sp);
+    int64_t npairs=0;
+    for (int64_t i=wrld->rank; i<tot_sz; i+=wrld->np){
+      if (drand48() < frac_sp){
+        pairs.push_back(Pair<double>(i,drand48()*(rmax-rmin)+rmin));
+        npairs++;
+      }
+    }
+    this->write(npairs, pairs.data());
+  }
+
+
+  template<typename dtype>
   void Tensor<dtype>::contract(dtype            alpha,
                                CTF_int::tensor& A,
                                const char *     idx_A,

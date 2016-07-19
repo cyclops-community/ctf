@@ -40,21 +40,30 @@ int matmul(int     m,
            int     niter=10){
   assert(test || bench);
 
+  int sA = sp_A < 1. ? SP : 0;
+  int sB = sp_B < 1. ? SP : 0;
+  int sC = sp_C < 1. ? SP : 0;
+
   /* initialize matrices with attributes */
-  Matrix<> A(m, k, sym_A, dw);
-  Matrix<> B(k, n, sym_B, dw);
-  Matrix<> C(m, n, sym_C, dw, "C");
+  Matrix<> A(m, k, sym_A|sA, dw);
+  Matrix<> B(k, n, sym_B|sB, dw);
+  Matrix<> C(m, n, sym_C|sC, dw, "C");
+
 
   /* fill with random data */
   srand48(dw.rank);
-  A.fill_random(0.0,1.0);
-  B.fill_random(0.0,1.0);
-  C.fill_random(0.0,1.0);
-
-  /* sparsify as specified */
-  if (sp_A < 1.) A.sparsify(1.-sp_A);
-  if (sp_B < 1.) B.sparsify(1.-sp_B);
-  if (sp_C < 1.) C.sparsify(1.-sp_C);
+  if (sp_A < 1.)
+    A.fill_sp_random(0.0,1.0,sp_A);
+  else
+    A.fill_random(0.0,1.0);
+  if (sp_B < 1.)
+    B.fill_sp_random(0.0,1.0,sp_B);
+  else
+    B.fill_random(0.0,1.0);
+  if (sp_C < 1.)
+    C.fill_sp_random(0.0,1.0,sp_C);
+  else
+    C.fill_random(0.0,1.0);
 
   bool pass = true;
 
@@ -140,7 +149,7 @@ int matmul(int     m,
       }
       printf("\n");
       std::sort(times,times+niter);
-      printf("A (%d*%d sym %d sp %lf), B (%d*%d sym %d sp %lf), C (%d*%d sym %d sp %lf) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",m,k,sym_A,sp_A,k,n,sym_B,sp_B,m,n,sym_C,sp_C,min_time,tot_time/niter, times[niter/2], max_time);
+      printf("A (%d*%d sym %d sp %lf), B (%d*%d sym %d sp %lf), C (%d*%d sym %d sp %lf) Min time = %lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",m,k,sym_A,sp_A,k,n,sym_B,sp_B,m,n,sym_C,sp_C,min_time,tot_time/niter, times[niter/2], max_time);
     }
   
   }
