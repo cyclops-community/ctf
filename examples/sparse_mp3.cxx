@@ -87,7 +87,7 @@ double mp3(Tensor<> & Ea,
   Z["abij"] += 0.5*Vijkl["mnij"]*T["abmn"];
   Z["abij"] += Vaibj["amei"]*T["ebmj"];
 
-//  divide_EaEi(Ea, Ei, Z, 0);
+  divide_EaEi(Ea, Ei, Z, 0);
 
   double MP3_energy = Z["abij"]*Vabij["abij"];
   return MP3_energy;
