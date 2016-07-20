@@ -9,6 +9,7 @@
 #include <ctf.hpp>
 #define TEST_SUITE
 #include "../examples/ccsd.cxx"
+#include "../examples/sparse_mp3.cxx"
 #undef TEST_SUITE
 using namespace CTF;
 
@@ -150,6 +151,18 @@ void train_ccsd(int64_t n, int64_t m, World & dw){
   T["abij"] = (1./T.abij->norm2())*T["abij"];
 }
 
+
+void train_sparse_mp3(int64_t n, int64_t m, World & dw){
+  int nv = sqrt(n);
+  int no = sqrt(m);
+  for (double sp = .001; sp<.2; sp*=4.){
+    sparse_mp3(nv, no, dw, sp, 0, 1, 1, 0, 0);
+    sparse_mp3(nv, no, dw, sp, 0, 1, 0, 1, 0);
+    sparse_mp3(nv, no, dw, sp, 0, 1, 0, 1, 1);
+  }
+}
+
+
 void train_world(double dtime, World & dw){
   int n0 = 19, m0 = 75;
   int64_t n = n0;
@@ -175,6 +188,7 @@ void train_world(double dtime, World & dw){
       train_off_vec_mat(n-5, m+2, dw, 1, 1, 0);
       train_off_vec_mat(n-3, m-1, dw, 1, 1, 1);
       train_ccsd(n/2, m/2, dw);
+      train_sparse_mp3(n,m,dw);
       niter++;
       m *= 1.9;
       n += 2;

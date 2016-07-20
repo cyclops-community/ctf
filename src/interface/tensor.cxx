@@ -717,7 +717,7 @@ namespace CTF {
   }
 
   template<>
-  void Tensor<double>::fill_sp_random(double rmin, double rmax, double frac_sp){
+  inline void Tensor<double>::fill_sp_random(double rmin, double rmax, double frac_sp){
     int64_t tot_sz = CTF_int::packed_size(order, lens, sym);
     std::vector<Pair<double>> pairs;
     pairs.reserve(size*frac_sp);
