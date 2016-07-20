@@ -306,58 +306,64 @@ namespace CTF_int {
         cdealloc(tau);
         cdealloc(A);
       }
-      double * all_R = (double*)alloc(sizeof(double)*nparam*nparam*np);
-      double * all_b = (double*)alloc(sizeof(double)*nparam*np);
-      MPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, cm);
-      double * Rs = (double*)alloc(sizeof(double)*nparam*nparam*np);
-      for (int i=0; i<np; i++){
-        lda_cpy(sizeof(double), nparam, nparam, nparam, np*nparam, (const char *)(all_R+i*nparam*nparam), (char*)(Rs+i*nparam));
-      }
-      MPI_Allgather(b, nparam, MPI_DOUBLE, all_b, nparam, MPI_DOUBLE, cm);
-      cdealloc(b);
-      cdealloc(all_R);
-      cdealloc(R);
-      ncol = np*nparam;
-      b = all_b;
-      double * A = Rs;
-/*      if (rk==0){
-        for (int r=0; r<ncol; r++){
-          for (int c=0; c<nparam; c++){
-            printf("A[%d, %d] = %lf, ", r,c,A[c*ncol+r]);
-          }
-          printf("b[%d] = %lf\n",r,b[r]);
+      int sub_np = std::min(np,8);
+      MPI_Comm sub_comm;
+      MPI_Comm_split(cm, rk<sub_np, rk, &sub_comm);
+      if (rk < sub_np){
+
+        double * all_R = (double*)alloc(sizeof(double)*nparam*nparam*sub_np);
+        double * all_b = (double*)alloc(sizeof(double)*nparam*sub_np);
+        MPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, sub_comm);
+        double * Rs = (double*)alloc(sizeof(double)*nparam*nparam*sub_np);
+        for (int i=0; i<sub_np; i++){
+          lda_cpy(sizeof(double), nparam, nparam, nparam, sub_np*nparam, (const char *)(all_R+i*nparam*nparam), (char*)(Rs+i*nparam));
         }
-      }*/
-      cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
-      ASSERT(info == 0);
-      lwork = (int)dlwork;
-      work = (double*)alloc(sizeof(double)*lwork);
-      iwork = (int*)alloc(sizeof(int)*liwork);
-      std::fill(iwork, iwork+liwork, 0);
-      cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
-      //cdgeqrf(
-      ASSERT(info == 0);
-      cdealloc(work);
-      cdealloc(iwork);
-      cdealloc(A);
-      memcpy(param_guess, b, nparam*sizeof(double));
+        MPI_Allgather(b, nparam, MPI_DOUBLE, all_b, nparam, MPI_DOUBLE, sub_comm);
+        cdealloc(b);
+        cdealloc(all_R);
+        cdealloc(R);
+        ncol = sub_np*nparam;
+        b = all_b;
+        double * A = Rs;
+  /*      if (rk==0){
+          for (int r=0; r<ncol; r++){
+            for (int c=0; c<nparam; c++){
+              printf("A[%d, %d] = %lf, ", r,c,A[c*ncol+r]);
+            }
+            printf("b[%d] = %lf\n",r,b[r]);
+          }
+        }*/
+        cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
+        ASSERT(info == 0);
+        lwork = (int)dlwork;
+        work = (double*)alloc(sizeof(double)*lwork);
+        iwork = (int*)alloc(sizeof(int)*liwork);
+        std::fill(iwork, iwork+liwork, 0);
+        cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, work, lwork, iwork, &info);
+        //cdgeqrf(
+        ASSERT(info == 0);
+        cdealloc(work);
+        cdealloc(iwork);
+        cdealloc(A);
+        memcpy(param_guess, b, nparam*sizeof(double));
+  /*      print();
+        double max_resd_sq = 0.0;
+        for (int i=0; i<ncol-nparam; i++){
+          max_resd_sq = std::max(max_resd_sq, b[nparam+i]);
+        }
+        printf("%s max residual sq is %lf\n",name,max_resd_sq);
+        double max_err = 0.0;
+        for (int i=0; i<nobs; i++){
+          max_err = std::max(max_err, fabs(est_time(time_param_mat+i*mat_lda+1)-time_param_mat[i*mat_lda]));
+        }
+        printf("%s max error is %lf\n",name,max_err);*/
+        cdealloc(b);
+      }
+      MPI_Bcast(param_guess, nparam, MPI_DOUBLE, 0, cm);
       for (int i=0; i<nparam; i++){
         regularization[i] = param_guess[i]*REG_LAMBDA;
       }
-/*      print();
-      double max_resd_sq = 0.0;
-      for (int i=0; i<ncol-nparam; i++){
-        max_resd_sq = std::max(max_resd_sq, b[nparam+i]);
-      }
-      printf("%s max residual sq is %lf\n",name,max_resd_sq);
-      double max_err = 0.0;
-      for (int i=0; i<nobs; i++){
-        max_err = std::max(max_err, fabs(est_time(time_param_mat+i*mat_lda+1)-time_param_mat[i*mat_lda]));
-      }
-      printf("%s max error is %lf\n",name,max_err);*/
-      cdealloc(b);
     }
- //   MPI_Bcast(param_guess, nparam, MPI_DOUBLE, 0, cm);
 #endif
   }
   
