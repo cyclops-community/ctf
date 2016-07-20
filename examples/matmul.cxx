@@ -130,7 +130,7 @@ int matmul(int     m,
       //B.print();
 
       double start_time = MPI_Wtime();
-      C["ik"] += A["ij"]*B["jk"];
+      C["ik"] = A["ij"]*B["jk"];
       //C.print();
       double end_time = MPI_Wtime();
       double iter_time = end_time-start_time;
