@@ -486,6 +486,7 @@ namespace CTF {
     int sort = 1;  \
     int req = 1; \
     int info; \
+    TAU_FSTART(mkl_csrmultcsr) \
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info); \
  \
     CSR_Matrix C_add(new_ic[m]-1, m, n, sizeof(dtype)); \
@@ -493,6 +494,7 @@ namespace CTF {
     cdealloc(new_ic); \
     req = 2; \
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (dtype*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info); \
+    TAU_FSTOP(mkl_csrmultcsr) \
  \
     if (beta == this->taddid){ \
       C_CSR = C_add.all_data; \
@@ -530,7 +532,9 @@ namespace CTF {
                       int           nnz_B, \
                       dtype         beta, \
                       char *&       C_CSR) const { \
+    TAU_FSTART(gen_csrmultcsr) \
     this->gen_csrmultcsr(m,n,k,alpha,A,JA,IA,nnz_A,B,JB,IB,nnz_B,beta,C_CSR); \
+    TAU_FSTOP(gen_csrmultcsr) \
   }
 #endif
 

@@ -88,7 +88,7 @@ namespace CTF_int {
     return a.p[0] > b.p[0];
   }
 
-#define REG_LAMBDA 1.E6
+#define REG_LAMBDA 1.E5
 
   template <int nparam>
   LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
@@ -209,15 +209,19 @@ namespace CTF_int {
         std::fill(R, R+nparam*nparam, 0.0);
         std::fill(b, b+ncol, 0.0);
         //regularization done on every processor
-        for (int i=0; i<nparam; i++){
-          R[nparam*i+i] = REG_LAMBDA;
-        }
 /*        if (rk == 0){
           lda_cpy(sizeof(double), 1, nparam, 1, nparam, (char const*)regularization, (char*)R);
         }*/
       } else {
         double * A = (double*)alloc(sizeof(double)*nparam*ncol);
         int i_st = 0;
+        double max_time = 0.0;
+        for (int i=0; i<ncol-nparam; i++){
+          max_time = std::max(time_param_mat[i*mat_lda],max_time);
+        }
+        /*for (int i=0; i<nparam; i++){
+          R[nparam*i+i] = REG_LAMBDA;
+        }*/
         if (true){ //rk == 0){
 //          lda_cpy(sizeof(double), 1, nparam, 1, ncol, (char const*)regularization, (char*)A);
           //regularization done on every processor
@@ -230,20 +234,23 @@ namespace CTF_int {
           }
           i_st = nparam;
         }
-        double max_time = 0.0;
-        for (int i=0; i<ncol-nparam; i++){
-          max_time = std::max(time_param_mat[i*mat_lda],max_time);
-        }
         MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
-        double chunk = max_time / 1000.;
+        //double chunk = max_time / 1000.;
         //printf("%s chunk = %+1.2e\n",name,chunk);
         for (int i=i_st; i<ncol; i++){
-          b[i] = time_param_mat[(i-i_st)*mat_lda];
-          double rt_chnks = std::sqrt(b[i] / chunk);
-          double sfactor = rt_chnks/b[i];
-          b[i] = rt_chnks;
-          for (int j=0; j<nparam; j++){
-            A[i+j*ncol] = sfactor*time_param_mat[(i-i_st)*mat_lda+j+1];
+          if (time_param_mat[(i-i_st)*mat_lda] > max_time/3.){
+            b[i] = 0.0;
+            for (int j=0; j<nparam; j++){
+              A[i+j*ncol] = 0.0;
+            }
+          } else {
+            b[i] = time_param_mat[(i-i_st)*mat_lda];
+            //double rt_chnks = std::sqrt(b[i] / chunk);
+            //double sfactor = rt_chnks/b[i];
+            //b[i] = rt_chnks;
+            for (int j=0; j<nparam; j++){
+              A[i+j*ncol] = /*sfactor**/time_param_mat[(i-i_st)*mat_lda+j+1];
+            }
           }
         }
         /*for (int i=0; i<ncol; i++){
@@ -306,7 +313,7 @@ namespace CTF_int {
         cdealloc(tau);
         cdealloc(A);
       }
-      int sub_np = std::min(np,8);
+      int sub_np = std::min(np,32);
       MPI_Comm sub_comm;
       MPI_Comm_split(cm, rk<sub_np, rk, &sub_comm);
       if (rk < sub_np){

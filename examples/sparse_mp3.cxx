@@ -175,7 +175,7 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, bool test=1, int niter=
       }
       printf("\n");
       std::sort(times,times+niter);
-      printf("Dense MP3 (no=%d nv=%d sp=%lf) Min time = %lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,min_time,tot_time/niter, times[niter/2], max_time);
+      printf("Dense MP3 (no=%d nv=%d sp=%lf p=%d) Min time = %lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,dw.np,min_time,tot_time/niter, times[niter/2], max_time);
     }
   }
 #endif  
@@ -226,9 +226,12 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, bool test=1, int niter=
     smp3.begin();
     for (int i=0; i<niter; i++){
       double start_time = MPI_Wtime();
-       mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj, sparse_T);
+      mp3(Ea, Ei, Fab, Fij, Vabij, Vijab, Vabcd, Vijkl, Vaibj, sparse_T);
       double end_time = MPI_Wtime();
       double iter_time = end_time-start_time;
+#ifdef TUNE
+      CTF_int::update_all_models(dw.cdt.cm);
+#endif
       times[i] = iter_time;
       tot_time += iter_time;
       if (iter_time < min_time) min_time = iter_time;
@@ -244,7 +247,7 @@ int sparse_mp3(int nv, int no, World & dw, double sp=.8, bool test=1, int niter=
       }
       printf("\n");
       std::sort(times,times+niter);
-      printf("Sparse MP3 (no=%d nv=%d sp=%lf) Min time=%lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,min_time,tot_time/niter, times[niter/2], max_time);
+      printf("Sparse MP3 (no=%d nv=%d sp=%lf p=%d spT=%d) Min time = %lf, Avg time = %lf, Med time = %lf, Max time = %lf\n",no,nv,sp,dw.np,sparse_T,min_time,tot_time/niter, times[niter/2], max_time);
     }
   }
 #endif 

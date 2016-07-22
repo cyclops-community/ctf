@@ -390,9 +390,9 @@ namespace CTF_int {
  
     double exe_time = MPI_Wtime() - st_time;
     double tps[] = {exe_time, 1.0, (double)tot_sz};
-    if (contig0 < 2){
+    if (contig0 < 4){
       non_contig_transp_mdl.observe(tps);
-    } else if (contig0 <= 8){
+    } else if (contig0 <= 64){
       shrt_contig_transp_mdl.observe(tps);
     } else {
       long_contig_transp_mdl.observe(tps);

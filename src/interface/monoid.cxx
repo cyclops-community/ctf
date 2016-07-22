@@ -26,6 +26,7 @@ namespace CTF {
   template <>
   char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB) const {
 #if USE_SP_MKL
+    TAU_FSTART(mkl_csr_add)
     if (fadd != default_add<double>){
       return CTF_int::algstrct::csr_add(cA, cB);
     }
@@ -46,6 +47,7 @@ namespace CTF {
     cdealloc(ic);
     job = 2;
     CTF_BLAS::MKL_DCSRADD(&tA, &job, &sort, &m, &n, (double*)A.vals(), A.JA(), A.IA(), &mlid, (double*)B.vals(), B.JA(), B.IA(), (double*)C.vals(), C.JA(), C.IA(), NULL, &info);
+    TAU_FSTOP(mkl_csr_add)
     return C.all_data;
 #else
     return CTF_int::algstrct::csr_add(cA, cB);
