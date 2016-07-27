@@ -50,10 +50,9 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   
   c["i"] += f1(A["ij"]);
   
-  /*Function<> f2([](double a, double b){ return a*a+b*b; });
+  Function<> f2([](double a, double b){ return a*a+b*b; });
 
-  G["ij"] += f2(A["ij"], F["ij"]);
-  ["ij"] -= f2(A["ik"], F["kj"]);*/
+  A1["ij"] -= f2(A["kj"], F["ki"]);
 
   Transform<> t1([](double & a){ a*=a; });
 
@@ -117,10 +116,9 @@ void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, b
     
     c["i"] += f1(A["ij"]);
     
-    /*Function<> f2([](double a, double b){ return a*a+b*b; });
+    Function<> f2([](double a, double b){ return a*a+b*b; });
   
-    G["ij"] += f2(A["ij"], F["ij"]);
-    ["ij"] -= f2(A["ik"], F["kj"]);*/
+    A2["ji"] -= f2(A1["ki"], F["kj"]);
   
     Transform<> t1([](double & a){ a*=a; });
   
