@@ -1171,12 +1171,12 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
       mapping * map = this->edge_map+i;
       for (int j=0; j<prl.part.order; j++){
-        if (map->type != NOT_MAPPED){
-          map->has_child = 1;
-          map->child = new mapping();
-          map = map->child;
-        }
         if (idx[i] == prl.idx[j]){
+          if (map->type != NOT_MAPPED){
+            map->has_child = 1;
+            map->child = new mapping();
+            map = map->child;
+          }
           map->type = PHYSICAL_MAP;
           map->np = top->dim_comm[j].np;
           map->cdt = j;

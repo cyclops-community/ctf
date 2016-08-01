@@ -1037,7 +1037,7 @@ namespace CTF_int {
 
     if (was_home_B && !tnsr_B->is_home){
       if (A->wrld->cdt.rank == 0)
-        DPRINTF(2,"Migrating tensor %s back to home\n", B->name);
+        DPRINTF(1,"Migrating tensor %s back to home\n", B->name);
       distribution odst(tnsr_B);
       B->is_home = 0;
       TAU_FSTART(redistribute_for_sum_home);

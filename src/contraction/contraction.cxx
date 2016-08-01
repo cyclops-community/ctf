@@ -4127,11 +4127,17 @@ namespace CTF_int {
     if (check_mapping() != 0) {
       keep_map = 1;
       /* Construct the tensor algorithm we would like to use */
-  #if DEBUG > 2
+  #if DEBUG >= 1
       if (global_comm.rank == 0)
         printf("Keeping mappings:\n");
   #endif
-    }
+    } else {
+      keep_map=0;
+  #if DEBUG >= 1
+      if (global_comm.rank == 0)
+        printf("Initial mappings are unsuitable mappings:\n");
+  #endif
+    } 
     stat = map(&ctrf);
     if (stat == ERROR) {
       printf("Failed to map tensors to physical grid\n");
@@ -4646,7 +4652,16 @@ namespace CTF_int {
       if (C->sr->isequal(beta,C->sr->addid())){
         C->set_zero();
       }
-      tensor * C_buf = new tensor(C, 0, 1);
+      int64_t * nnz_blk_C = (int64_t*)alloc(sizeof(int64_t)*C->calc_nvirt());
+      memcpy(nnz_blk_C, C->nnz_blk, sizeof(int64_t)*C->calc_nvirt());
+      int64_t * nnz_blk_zero = (int64_t*)alloc(sizeof(int64_t)*C->calc_nvirt());
+      std::fill(nnz_blk_zero, nnz_blk_zero+C->calc_nvirt(), 0);
+      C->set_new_nnz_glb(nnz_blk_zero);
+      
+      tensor * C_buf = new tensor(C, 1, 1);
+      C->set_new_nnz_glb(nnz_blk_C);
+      cdealloc(nnz_blk_C);
+      cdealloc(nnz_blk_zero);
       C_buf->has_home = 0;
       C_buf->is_home = 0;
       contraction new_ctr(*this);
