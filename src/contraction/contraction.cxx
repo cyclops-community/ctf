@@ -2398,9 +2398,9 @@ namespace CTF_int {
     for (j=0; j<6; j++){
       // Attempt to map to all possible permutations of processor topology 
   #if DEBUG < 3 
-      for (int t=global_comm.rank; t<(int)wrld->topovec.size()+3; t+=global_comm.np){
+      for (int t=global_comm.rank; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
   #else
-      for (int t=0; t<(int)wrld->topovec.size()+3; t++){
+      for (int t=0; t<(int)wrld->topovec.size()+8; t++){
   #endif
         A->clear_mapping();
         B->clear_mapping();
@@ -2410,27 +2410,30 @@ namespace CTF_int {
         C->set_padding();
       
         topology * topo_i = NULL;
-        if (t < 3){
-          switch (t){
-            case 0:
+        if (t < 8){
+          if (t & 2 > 0){
             if (old_topo_A == NULL) continue;
-            topo_i = old_topo_A;
-            copy_mapping(A->order, old_map_A, A->edge_map);
-            break;
-          
-            case 1:
-            if (old_topo_B == NULL) continue;
-            topo_i = old_topo_B;
-            copy_mapping(B->order, old_map_B, B->edge_map);
-            break;
-
-            case 2:
-            if (old_topo_C == NULL) continue;
-            topo_i = old_topo_C;
-            copy_mapping(C->order, old_map_C, C->edge_map);
-            break;
+            else {
+              topo_i = old_topo_A;
+              copy_mapping(A->order, old_map_A, A->edge_map);
+            }
           }
-        } else topo_i = wrld->topovec[t-3];
+          if (t & 1 > 0){
+            if (old_topo_B == NULL || (topo_i != NULL && topo_i != old_topo_B)) continue;
+            else {
+              topo_i = old_topo_B;
+              copy_mapping(B->order, old_map_B, B->edge_map);
+            }
+          }
+
+          if (t & 4 > 0){
+            if (old_topo_C == NULL || (topo_i != NULL && topo_i != old_topo_C)) continue;
+            else {
+              topo_i = old_topo_C;
+              copy_mapping(C->order, old_map_C, C->edge_map);
+            }
+          }
+        } else topo_i = wrld->topovec[t-8];
       
         TAU_FSTART(map_ctr_to_topo);
         ret = map_to_topology(topo_i, j);
@@ -2469,12 +2472,10 @@ namespace CTF_int {
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
-        if (A->is_sparse) nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
-        if (B->is_sparse) nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
+        if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+        if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
         if (C->is_sparse){
-          nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
-          //nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
-          //nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
+          nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
           int64_t len_ctr = 1;
           for (int i=0; i<num_tot; i++){
             if (idx_arr[3*i+2]==-1){
@@ -2678,10 +2679,10 @@ namespace CTF_int {
         double nnz_frac_A = 1.0;
         double nnz_frac_B = 1.0;
         double nnz_frac_C = 1.0;
-        if (A->is_sparse) nnz_frac_A = std::min(2,(int)A->calc_npe())*((double)A->nnz_tot)/(A->size*A->calc_npe());
-        if (B->is_sparse) nnz_frac_B = std::min(2,(int)B->calc_npe())*((double)B->nnz_tot)/(B->size*B->calc_npe());
+        if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+        if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
         if (C->is_sparse){
-          nnz_frac_C = std::min(2,(int)C->calc_npe())*((double)C->nnz_tot)/(C->size*C->calc_npe());
+          nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
           nnz_frac_C = std::max(nnz_frac_C,nnz_frac_A);
           nnz_frac_C = std::max(nnz_frac_C,nnz_frac_B);
           int64_t len_ctr = 1;
@@ -2930,7 +2931,7 @@ namespace CTF_int {
     int j_g;
     if (gbest_time_sel <= gbest_time_exh){
       j_g = ttopo%6;
-      if (ttopo < 18){
+      if (ttopo < 48){
         switch (ttopo/6){
           case 0:
           topo_g = old_topo_A;
@@ -2952,7 +2953,7 @@ namespace CTF_int {
           assert(0);
           break;
         }
-      } else topo_g = wrld->topovec[(ttopo-18)/6];
+      } else topo_g = wrld->topovec[(ttopo-48)/6];
     } else {
       int64_t choice_offset = 0;
       int i=0;
@@ -4134,8 +4135,12 @@ namespace CTF_int {
     } else {
       keep_map=0;
   #if DEBUG >= 1
-      if (global_comm.rank == 0)
+      if (global_comm.rank == 0){
         printf("Initial mappings are unsuitable mappings:\n");
+        A->print_map();
+        B->print_map();
+        C->print_map();
+      }
   #endif
     } 
     stat = map(&ctrf);
