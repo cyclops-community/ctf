@@ -144,16 +144,22 @@ namespace CTF_int {
     for (i=0; i<ncdt_A; i++){
       ASSERT(cdt_A[i]->np > 0);
       //FIXME estimates off since multiplying by element size vs pair/CSR size
-      tot_sz += cdt_A[i]->estimate_bcast_time(nnz_frac_A*size_A*sr_A->el_size);
+      if (is_sparse_A)
+        tot_sz += cdt_A[i]->estimate_bcast_time(nnz_frac_A*size_A*sr_A->pair_size());
+      else
+        tot_sz += cdt_A[i]->estimate_bcast_time(nnz_frac_A*size_A*sr_A->el_size);
     }
     for (i=0; i<ncdt_B; i++){
       ASSERT(cdt_B[i]->np > 0);
-      tot_sz += cdt_B[i]->estimate_bcast_time(nnz_frac_B*size_B*sr_B->el_size);
+      if (is_sparse_B)
+        tot_sz += cdt_B[i]->estimate_bcast_time(nnz_frac_B*size_B*sr_B->pair_size());
+      else
+        tot_sz += cdt_B[i]->estimate_bcast_time(nnz_frac_B*size_B*sr_B->el_size);
     }
     for (i=0; i<ncdt_C; i++){
       ASSERT(cdt_C[i]->np > 0);
       if (is_sparse_C)
-        tot_sz += sr_C->estimate_csr_red_time(nnz_frac_C*size_C*sr_C->el_size, cdt_C[i]);
+        tot_sz += sr_C->estimate_csr_red_time(nnz_frac_C*size_C*sr_C->pair_size(), cdt_C[i]);
       else
         tot_sz += cdt_C[i]->estimate_red_time(nnz_frac_C*size_C*sr_C->el_size, sr_C->addmop());
     }
@@ -164,12 +170,16 @@ namespace CTF_int {
     return rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
-  int64_t spctr_replicate::mem_fp(){
-    return 0;
+  int64_t spctr_replicate::spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    int64_t mem_usage = 0;
+    if (is_sparse_A) mem_usage += nnz_frac_A*size_A*sr_A->pair_size();
+    if (is_sparse_B) mem_usage += nnz_frac_B*size_B*sr_B->pair_size();
+    if (is_sparse_C) mem_usage += nnz_frac_C*size_C*sr_C->pair_size();
+    return mem_usage;
   }
 
-  int64_t spctr_replicate::mem_rec(){
-    return rec_ctr->mem_rec() + mem_fp();
+  int64_t spctr_replicate::spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    return rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
 

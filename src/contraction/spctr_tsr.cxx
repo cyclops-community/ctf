@@ -188,7 +188,7 @@ namespace CTF_int {
   }
 
 
-  int64_t seq_tsr_spctr::mem_fp(){ return 0; }
+  int64_t seq_tsr_spctr::spmem_fp(){ return 0; }
   
   double seq_tsr_spctr::est_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     int idx_max, * rev_idx_map; 
@@ -562,12 +562,12 @@ namespace CTF_int {
 
   #define VIRT_NTD 1
 
-  int64_t spctr_virt::mem_fp(){
+  int64_t spctr_virt::spmem_fp(){
     return (order_A+order_B+order_C+(3+VIRT_NTD)*num_dim)*sizeof(int);
   }
 
-  int64_t spctr_virt::mem_rec() {
-    return rec_ctr->mem_rec() + mem_fp();
+  int64_t spctr_virt::spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    return rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C) + spmem_fp();
   }
 
   void spctr_virt::run(char * A, int nblk_A, int64_t const * size_blk_A,
@@ -585,7 +585,7 @@ namespace CTF_int {
       idx_arr = (int*)this->buffer;
     } else {*/
       alloced = 1;
-      ret = CTF_int::alloc_ptr(mem_fp(), (void**)&idx_arr);
+      ret = CTF_int::alloc_ptr(spmem_fp(), (void**)&idx_arr);
       ASSERT(ret==0);
 //    }
 
@@ -814,12 +814,27 @@ namespace CTF_int {
     rec_ctr->print();
   }
 
-  int64_t spctr_pin_keys::mem_fp(){
-    return 3*order*sizeof(int);
+  int64_t spctr_pin_keys::spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    int64_t mem_usage = 0;
+    switch (AxBxC){
+      case 0:
+      {
+        mem_usage += dns_blk_sz*nnz_frac_A*sr_A->pair_size();
+      }
+      case 1:
+      {
+        mem_usage += dns_blk_sz*nnz_frac_B*sr_B->pair_size();
+      }
+      case 2:
+      {
+        mem_usage += dns_blk_sz*nnz_frac_C*sr_C->pair_size();
+      }
+    } 
+    return mem_usage;
   }
   
-  int64_t spctr_pin_keys::mem_rec(){
-    return mem_fp() + rec_ctr->mem_rec();
+  int64_t spctr_pin_keys::spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
+    return spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C) + rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   spctr_pin_keys::spctr_pin_keys(contraction const * s, int AxBxC_) : spctr(s) {

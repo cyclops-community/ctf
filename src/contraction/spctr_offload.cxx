@@ -77,12 +77,12 @@ namespace CTF_int {
     return rec_ctr->est_time_rec(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C) + est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
-  int64_t spctr_offload::mem_fp(){
+  int64_t spctr_offload::spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     return 0;
   }
 
-  int64_t spctr_offload::mem_rec() {
-    return rec_ctr->mem_rec() + mem_fp();
+  int64_t spctr_offload::mem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C) {
+    return rec_ctr->mem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C) + spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
   void spctr_offload::run(char * A, int nblk_A, int64_t const * size_blk_A,

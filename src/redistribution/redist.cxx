@@ -570,9 +570,11 @@ namespace CTF_int {
       MPI_Waitall(num_new_virt, reqs, MPI_STATUSES_IGNORE);
     } else if (idx_lyr_old == 0){
       MPI_Waitall(num_old_virt, reqs+num_new_virt, MPI_STATUSES_IGNORE);
-      sr->set(tsr_cyclic_data, sr->addid(), new_dist.size);
+      if (sr->addid() != NULL)
+        sr->set(tsr_cyclic_data, sr->addid(), new_dist.size);
     } else {
-      sr->set(tsr_cyclic_data, sr->addid(), new_dist.size);
+      if (sr->addid() != NULL)
+        sr->set(tsr_cyclic_data, sr->addid(), new_dist.size);
     }
 
     cdealloc(idx);

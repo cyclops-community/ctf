@@ -38,6 +38,11 @@ namespace CTF_int{
        */
       virtual double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ return 0.0; }
       double est_time_rec(int nlyr){ return est_time_rec(nlyr, 1.0, 1.0, 1.0); }
+      /**
+       * \brief returns the number of bytes need by each processor in this kernel and its recursive calls
+       * \return bytes needed for recursive contraction
+       */
+      virtual int64_t spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ return 0; };
 
 
       void run(char * A, char * B, char * C) { printf("CTF ERROR: PROVIDE SPARSITY ARGS TO RUN\n"); assert(0); };
@@ -81,9 +86,10 @@ namespace CTF_int{
                char * C, int nblk_C, int64_t * size_blk_C,
                char *& new_C);
       void print();
-      int64_t mem_fp();
+      int64_t spmem_fp();
       spctr * clone();
       double est_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      int64_t est_spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       uint64_t est_membw(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
@@ -132,8 +138,8 @@ namespace CTF_int{
                char * B, int nblk_B, int64_t const * size_blk_B,
                char * C, int nblk_C, int64_t * size_blk_C,
                char *& new_C);
-      int64_t mem_fp();
-      int64_t mem_rec();
+      int64_t spmem_fp();
+      int64_t spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
 
       double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       spctr * clone();
@@ -171,8 +177,8 @@ namespace CTF_int{
                char * C, int nblk_C, int64_t * size_blk_C,
                char *& new_C);
       void print();
-      int64_t mem_fp();
-      int64_t mem_rec();
+      int64_t spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
+      int64_t spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       spctr * clone();
 
       double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);

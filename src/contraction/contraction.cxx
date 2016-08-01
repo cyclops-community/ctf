@@ -2552,7 +2552,10 @@ namespace CTF_int {
           est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
           memuse = 2.*std::max(memuse,C->get_redist_mem(*dC, nnz_frac_C));
         }
-        memuse = MAX((int64_t)sctr->mem_rec(), memuse);
+        if (is_ctr_sparse)
+          memuse = MAX(((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
+        else
+          memuse = MAX((int64_t)sctr->mem_rec(), memuse);
   #if DEBUG >= 4
         printf("total (with redistribution and transp) est_time = %E\n", est_time);
   #endif
@@ -2767,8 +2770,10 @@ namespace CTF_int {
  
         if (est_time >= best_time) continue;
 
-        int64_t sctr_mem_use = (int64_t)sctr->mem_rec();
-        memuse = MAX(sctr_mem_use, memuse);
+        if (is_ctr_sparse)
+          memuse = MAX(((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
+        else
+          memuse = MAX((int64_t)sctr->mem_rec(), memuse);
   #if DEBUG >= 4
         printf("total (with redistribution and transp) est_time = %E\n", est_time);
   #endif
@@ -3008,7 +3013,7 @@ namespace CTF_int {
     #endif
      
     //FIXME: adhoc? 
-    /*memuse = MAX((int64_t)(*ctrf)->mem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
+    /*memuse = MAX((int64_t)(*ctrf)->spmem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
     if (global_comm.rank == 0)
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
               (double)memuse,(double)proc_bytes_available(),gbest_time);*/
@@ -4145,13 +4150,17 @@ namespace CTF_int {
     }
 #if (VERBOSE >= 1 || DEBUG >= 1)
     if (global_comm.rank == 0){
-      int64_t memuse = ctrf->mem_rec();
+  /*    int64_t memuse=0;
+      if (is_sparse())
+        memuse = MAX(((spctr*)ctrf)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
+      else
+        memuse = MAX((int64_t)ctrf->mem_rec(), memuse);
       if (keep_map)
         printf("CTF: Contraction does not require redistribution, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
                 (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
       else
         printf("CTF: Contraction will use new mapping, will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
-                (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));
+                (double)memuse,(double)proc_bytes_available(),ctrf->est_time_rec(1));*/
       A->print_map();
       B->print_map();
       C->print_map();
@@ -4186,17 +4195,17 @@ namespace CTF_int {
   double dtt = MPI_Wtime();
   #endif
   #ifdef DEBUG
-    if (global_comm.rank == 0){
-      //DPRINTF(1,"[%d] performing contraction\n",
-        //  global_comm.rank);
-     // DPRINTF(1,"%E bytes of buffer space will be needed for this contraction\n",
-       // (double)ctrf->mem_rec());
-      printf("%E bytes needed, System memory = %E bytes total, %E bytes used, %E bytes available.\n",
-        (double)ctrf->mem_rec(),
-        (double)proc_bytes_total(),
-        (double)proc_bytes_used(),
-        (double)proc_bytes_available());
-    }
+//    if (global_comm.rank == 0){
+//      //DPRINTF(1,"[%d] performing contraction\n",
+//        //  global_comm.rank);
+//     // DPRINTF(1,"%E bytes of buffer space will be needed for this contraction\n",
+//       // (double)ctrf->mem_rec());
+//      printf("%E bytes needed, System memory = %E bytes total, %E bytes used, %E bytes available.\n",
+//        (double)ctrf->mem_rec(),
+//        (double)proc_bytes_total(),
+//        (double)proc_bytes_used(),
+//        (double)proc_bytes_available());
+//    }
   #endif
   #if DEBUG >=2
     A->print_map();

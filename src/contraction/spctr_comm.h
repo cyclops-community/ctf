@@ -36,12 +36,16 @@ namespace CTF_int{
        *  we need 
        * \return bytes needed
        */
-      int64_t mem_fp();
+      /**
+       * \brief returns the number of bytes need by each processor in this kernel 
+       * \return bytes needed for contraction
+       */
+      int64_t spmem_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       /**
        * \brief returns the number of bytes need by each processor in this kernel and its recursive calls
        * \return bytes needed for recursive contraction
        */
-      int64_t mem_rec();
+      int64_t spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       double est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       double est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C);
       void print();
