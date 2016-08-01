@@ -2398,9 +2398,9 @@ namespace CTF_int {
     for (j=0; j<6; j++){
       // Attempt to map to all possible permutations of processor topology 
   #if DEBUG < 3 
-      for (int t=global_comm.rank; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
+      for (int t=global_comm.rank+1; t<(int)wrld->topovec.size()+8; t+=global_comm.np){
   #else
-      for (int t=0; t<(int)wrld->topovec.size()+8; t++){
+      for (int t=1; t<(int)wrld->topovec.size()+8; t++){
   #endif
         A->clear_mapping();
         B->clear_mapping();
@@ -2411,14 +2411,14 @@ namespace CTF_int {
       
         topology * topo_i = NULL;
         if (t < 8){
-          if (t & 2 > 0){
+          if ((t & 1) > 0){
             if (old_topo_A == NULL) continue;
             else {
               topo_i = old_topo_A;
               copy_mapping(A->order, old_map_A, A->edge_map);
             }
           }
-          if (t & 1 > 0){
+          if ((t & 2) > 0){
             if (old_topo_B == NULL || (topo_i != NULL && topo_i != old_topo_B)) continue;
             else {
               topo_i = old_topo_B;
@@ -2426,7 +2426,7 @@ namespace CTF_int {
             }
           }
 
-          if (t & 4 > 0){
+          if ((t & 4) > 0){
             if (old_topo_C == NULL || (topo_i != NULL && topo_i != old_topo_C)) continue;
             else {
               topo_i = old_topo_C;
@@ -2434,6 +2434,7 @@ namespace CTF_int {
             }
           }
         } else topo_i = wrld->topovec[t-8];
+        ASSERT(topo_i != NULL);
       
         TAU_FSTART(map_ctr_to_topo);
         ret = map_to_topology(topo_i, j);
@@ -2932,27 +2933,21 @@ namespace CTF_int {
     if (gbest_time_sel <= gbest_time_exh){
       j_g = ttopo%6;
       if (ttopo < 48){
-        switch (ttopo/6){
-          case 0:
+        if (((ttopo/6) & 1) > 0){
           topo_g = old_topo_A;
           copy_mapping(A->order, old_map_A, A->edge_map);
-          break;
-        
-          case 1:
+        }
+        if (((ttopo/6) & 2) > 0){
           topo_g = old_topo_B;
           copy_mapping(B->order, old_map_B, B->edge_map);
-          break;
+        }
 
-          case 2:
+        if (((ttopo/6) & 4) > 0){
           topo_g = old_topo_C;
           copy_mapping(C->order, old_map_C, C->edge_map);
-          break;
-          
-          default:
-          topo_g = NULL;
-          assert(0);
-          break;
         }
+        assert(topo_g != NULL);
+
       } else topo_g = wrld->topovec[(ttopo-48)/6];
     } else {
       int64_t choice_offset = 0;
