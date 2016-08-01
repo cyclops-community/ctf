@@ -25,7 +25,7 @@ double seq_tsr_ctr_mdl_cst_off_init[] = {8.4844E-04, -5.9246E-11, 3.5247E-10};
 double long_contig_transp_mdl_init[] = {2.9158E-10, 3.0501E-09};
 double shrt_contig_transp_mdl_init[] = {1.3427E-08, 4.3168E-09};
 double non_contig_transp_mdl_init[] = {4.0475E-08, 4.0463E-09};
-double dgtog_res_mdl_init[] = {2.9786E-06, 2.4335E-05, 1.0845E-09};
+double dgtog_res_mdl_init[] = {2.9786E-05, 2.4335E-04, 1.0845E-08};
 double blres_mdl_init[] = {1.0598E-05, 7.2741E-08};
 double alltoall_mdl_init[] = {1.0000E-06, 1.0000E-06, 5.0000E-10};
 double alltoallv_mdl_init[] = {2.7437E-06, 2.2416E-05, 1.0469E-08};
@@ -34,7 +34,7 @@ double red_mdl_cst_init[] = {5.7302E-07, 4.7347E-06, 6.0191E-10};
 double allred_mdl_init[] = {8.4416E-07, 6.8651E-06, 3.5845E-08};
 double allred_mdl_cst_init[] = {-3.3754E-04, 2.1343E-04, 3.0801E-09};
 double bcast_mdl_init[] = {1.5045E-06, 1.4485E-05, 3.2876E-09};
-double spredist_mdl_init[] = {1.2744E-05, 1.0278E-04, 7.6837E-09};
+double spredist_mdl_init[] = {1.2744E-04, 1.0278E-03, 7.6837E-08};
 double csrred_mdl_init[] = {3.7005E-05, 1.1854E-04, 5.5165E-09};
 double csrred_mdl_cst_init[] = {-1.8323E-04, 1.3076E-04, 2.8732E-09};
 }

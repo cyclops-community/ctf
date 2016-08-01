@@ -586,8 +586,12 @@ namespace CTF_int {
 #ifdef TUNE
     MPI_Barrier(glb_comm.cm);
     double exe_time = MPI_Wtime()-st_time;
-    double tps[] = {exe_time, num_old_virt+num_new_virt, (double)std::max(new_dist.size, new_dist.size)};
+    double * tps = (double*)malloc(3*sizeof(double));
+    tps[0] = exe_time;
+    tps[1] = (double)num_old_virt+num_new_virt;
+    tps[2] = (double)std::max(new_dist.size, new_dist.size);
     blres_mdl.observe(tps);
+    free(tps);
 #endif
 
     TAU_FSTOP(block_reshuffle);

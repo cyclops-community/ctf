@@ -2202,9 +2202,13 @@ namespace CTF_int {
   #endif
     }
     if (can_blres)
-      return (int64_t)this->sr->el_size*this->size*nnz_frac;
-    else
-      return (int64_t)this->sr->el_size*this->size*nnz_frac*2.5;
+      return (int64_t)this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac;
+    else {
+      if (is_sparse)
+        return (int64_t)this->sr->pair_size()*std::max(this->size,old_dist.size)*nnz_frac*3;
+      else
+        return (int64_t)this->sr->el_size*std::max(this->size,old_dist.size)*nnz_frac*2.5;
+    }
   }
 
   int tensor::map_tensor_rem(int        num_phys_dims,

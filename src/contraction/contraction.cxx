@@ -2463,11 +2463,13 @@ namespace CTF_int {
         A->set_padding();
         B->set_padding();
         C->set_padding();
-  #if DEBUG >= 4
-        printf("\nTest mappings:\n");
-        A->print_map(stdout, 0);
-        B->print_map(stdout, 0);
-        C->print_map(stdout, 0);
+  #if DEBUG >= 1
+        if (global_comm.rank == 0){
+          printf("\nTest mappings:\n");
+          A->print_map(stdout, 0);
+          B->print_map(stdout, 0);
+          C->print_map(stdout, 0);
+        }
   #endif
         ctr * sctr;
         double nnz_frac_A = 1.0;
@@ -2510,8 +2512,10 @@ namespace CTF_int {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
         }
-  #if DEBUG >= 4
-        printf("mapping passed contr est_time = %E sec\n", est_time);
+  #if DEBUG >= 1
+        if (global_comm.rank == 0){
+          printf("mapping passed contr est_time = %E sec\n", est_time);
+        }
   #endif 
         ASSERT(est_time >= 0.0);
         memuse = 0;
@@ -2550,28 +2554,30 @@ namespace CTF_int {
           need_remap_C = 1;
         if (need_remap_C) {
           est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
-          memuse = 2.*std::max(memuse,C->get_redist_mem(*dC, nnz_frac_C));
+          memuse = std::max(1.0*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
         }
         if (is_ctr_sparse)
           memuse = MAX(((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
         else
           memuse = MAX((int64_t)sctr->mem_rec(), memuse);
-  #if DEBUG >= 4
-        printf("total (with redistribution and transp) est_time = %E\n", est_time);
+  #if DEBUG >= 1
+        if (global_comm.rank == 0){
+          printf("total (with redistribution and transp) est_time = %E\n", est_time);
+        }
   #endif
         ASSERT(est_time >= 0.0);
 
         TAU_FSTOP(est_ctr_map_time);
         TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
-          DPRINTF(2,"Not enough memory available for topo %d with order\n", j);
+          DPRINTF(1,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
           TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
         } 
         TAU_FSTOP(get_avail_res);
-        if (A->size > INT_MAX || B->size > INT_MAX || C->size > INT_MAX){
-          DPRINTF(2,"MPI does not handle enough bits for topo %d with order\n", j);
+        if ((!A->is_sparse && A->size > INT_MAX) ||(!B->is_sparse &&  B->size > INT_MAX) || (!C->is_sparse && C->size > INT_MAX)){
+          DPRINTF(1,"MPI does not handle enough bits for topo %d with order\n", j);
           delete sctr;
           continue;
         }
@@ -2765,7 +2771,7 @@ namespace CTF_int {
           need_remap_C = 1;
         if (need_remap_C) {
           est_time += 2.*C->est_redist_time(*dC, nnz_frac_C); 
-          memuse = 2.*std::max(memuse,C->get_redist_mem(*dC, nnz_frac_C));
+          memuse = std::max(1.*memuse,2.*C->get_redist_mem(*dC, nnz_frac_C));
         }
  
         if (est_time >= best_time) continue;
@@ -2782,7 +2788,7 @@ namespace CTF_int {
         TAU_FSTOP(est_ctr_map_time);
         TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
-          DPRINTF(1,"Not enough memory available for topo %d with order %d\n", i, j);
+          DPRINTF(1,"[EXH] Not enough memory available for topo %d with order %d memory %ld/%ld\n", i,j,memuse,max_memuse);
           TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
@@ -3012,11 +3018,45 @@ namespace CTF_int {
     MPI_Barrier(global_comm.cm);
     #endif
      
-    //FIXME: adhoc? 
-    /*memuse = MAX((int64_t)(*ctrf)->spmem_rec(), (int64_t)(A->size*A->sr->el_size+B->size*B->sr->el_size+C->size*C->sr->el_size)*3);
-    if (global_comm.rank == 0)
-      VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %lf sec\n",
-              (double)memuse,(double)proc_bytes_available(),gbest_time);*/
+#ifdef VERBOSE
+        double nnz_frac_A = 1.0;
+        double nnz_frac_B = 1.0;
+        double nnz_frac_C = 1.0;
+        int num_tot;
+        int * idx_arr; 
+        inv_idx(A->order, idx_A,
+                B->order, idx_B,
+                C->order, idx_C,
+                &num_tot, &idx_arr);
+        if (A->is_sparse) nnz_frac_A = std::min(1.,((double)A->nnz_tot)/(A->size*A->calc_npe()));
+        if (B->is_sparse) nnz_frac_B = std::min(1.,((double)B->nnz_tot)/(B->size*B->calc_npe()));
+        if (C->is_sparse){
+          nnz_frac_C = std::min(1.,((double)C->nnz_tot)/(C->size*C->calc_npe()));
+          int64_t len_ctr = 1;
+          for (int i=0; i<num_tot; i++){
+            if (idx_arr[3*i+2]==-1){
+              int edge_len = idx_arr[3*i+0] != -1 ? A->lens[idx_arr[3*i+0]] 
+                                                  : B->lens[idx_arr[3*i+1]];
+              len_ctr *= edge_len;
+            }
+          }
+          nnz_frac_C = std::min(1.,std::max(nnz_frac_C,nnz_frac_A*nnz_frac_B*len_ctr));
+        }
+        cdealloc(idx_arr);
+        int64_t memuse = 0;
+        if (is_sparse())
+          memuse = MAX(((spctr*)*ctrf)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
+        else
+          memuse = MAX((int64_t)(*ctrf)->mem_rec(), memuse);
+
+    if (global_comm.rank == 0){
+      VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
+              (double)memuse,(double)proc_bytes_available(),std::min(gbest_time_sel,gbest_time_exh));
+#if DEBUG >= 1
+      (*ctrf)->print();
+#endif
+    }
+#endif
 
     if (A->is_cyclic == 0 &&
         B->is_cyclic == 0 &&
