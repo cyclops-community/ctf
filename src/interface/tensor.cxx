@@ -87,9 +87,26 @@ namespace CTF {
                         char const *              name,
                         bool                      profile,
                         CTF_int::algstrct const & sr_)
-    : CTF_int::tensor(&sr_, order, len, sym, &world, idx, prl, blk, name, profile) { 
+    : CTF_int::tensor(&sr_, order, 0, len, sym, &world, idx, prl, blk, name, profile) { 
     ASSERT(sizeof(dtype)==this->sr->el_size);
   }
+
+  template<typename dtype>
+  Tensor<dtype>::Tensor(int                       order,
+                        bool                      is_sparse_,
+                        int const *               len,
+                        int const *               sym,
+                        World &                   world,
+                        char const *              idx,
+                        Idx_Partition const &     prl,
+                        Idx_Partition const &     blk,
+                        char const *              name,
+                        bool                      profile,
+                        CTF_int::algstrct const & sr_)
+    : CTF_int::tensor(&sr_, order, is_sparse_, len, sym, &world, idx, prl, blk, name, profile) { 
+    ASSERT(sizeof(dtype)==this->sr->el_size);
+  }
+
 
   template<typename dtype>
   Tensor<dtype>::Tensor(bool           copy,

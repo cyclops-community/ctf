@@ -176,6 +176,7 @@ namespace CTF_int {
        * \brief defines a tensor object with some mapping (if alloc_data)
        * \param[in] sr defines the tensor arithmetic for this tensor
        * \param[in] order number of dimensions of tensor
+       * \param[in] is_sparse whether to make tensor sparse
        * \param[in] edge_len edge lengths of tensor
        * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
        * \param[in] wrld a distributed context for the tensor to live in
@@ -187,6 +188,7 @@ namespace CTF_int {
        */
       tensor(algstrct const *           sr,
              int                        order,
+             bool                       is_sparse,
              int const *                edge_len,
              int const *                sym,
              CTF::World *               wrld,

@@ -85,6 +85,7 @@ namespace CTF_int {
 
   tensor::tensor(algstrct const *           sr,
                  int                        order,
+                 bool                       is_sparse,
                  int const *                edge_len,
                  int const *                sym,
                  CTF::World *               wrld,
@@ -93,20 +94,32 @@ namespace CTF_int {
                  CTF::Idx_Partition const & blk,
                  char const *               name,
                  bool                       profile){
-    this->init(sr, order,edge_len,sym,wrld,0,name,profile,0);
+    this->init(sr, order,edge_len,sym,wrld,0,name,profile,is_sparse);
     set_distribution(idx, prl, blk);
-    register_size(this->home_size*sr->el_size);
-    this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
-    this->sr->set(this->data, this->sr->addid(), this->size);
+    if (is_sparse){
+      nnz_blk = (int64_t*)alloc(sizeof(int64_t)*calc_nvirt());
+      std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
 #ifdef HOME_CONTRACT
-    this->home_size = this->size;
-    register_size(home_size*sr->el_size);
-    this->has_home = 1;
-    this->is_home = 1;
-    this->home_buffer = this->data;
+      this->is_home = 1;
+      this->has_home = 1;
 #else
-    this->has_home = 0;
+      this->has_home = 0;
 #endif
+    } else {
+#ifdef HOME_CONTRACT
+      this->home_size = this->size;
+      register_size(home_size*sr->el_size);
+      this->has_home = 1;
+      this->is_home = 1;
+      this->home_buffer = this->data;
+#else
+      this->has_home = 0;
+#endif
+
+      register_size(this->home_size*sr->el_size);
+      this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
+      this->sr->set(this->data, this->sr->addid(), this->size);
+    }
 
   }
 
@@ -1137,8 +1150,8 @@ namespace CTF_int {
   void tensor::set_distribution(char const *          idx,
                                 Idx_Partition const & prl,
                                 Idx_Partition const & blk){
-    topology top(prl.part.order, prl.part.lens, wrld->cdt);
-    int itopo = find_topology(&top, wrld->topovec);
+    topology * top = new topology(prl.part.order, prl.part.lens, wrld->cdt);
+    int itopo = find_topology(top, wrld->topovec);
 /*    if (wrld->rank == 0){
       for (int i=0; i<wrld->topovec.size(); i++){
         if (wrld->topovec[i]->order == 2){
@@ -1147,6 +1160,10 @@ namespace CTF_int {
       }
       printf("lens %d %d\n", top.lens[0], top.lens[1]);
     }*/
+    if (itopo == -1){
+      itopo = wrld->topovec.size();
+      wrld->topovec.push_back(top);
+    }
     ASSERT(itopo != -1);
     assert(itopo != -1);
 
@@ -1161,7 +1178,7 @@ namespace CTF_int {
         }
         if (idx[i] == prl.idx[j]){
           map->type = PHYSICAL_MAP;
-          map->np = top.dim_comm[j].np;
+          map->np = top->dim_comm[j].np;
           map->cdt = j;
         }
       }
@@ -1179,6 +1196,7 @@ namespace CTF_int {
         }
       }
     }
+    this->is_mapped = true;
     this->set_padding();
     int * idx_A;
     conv_idx(this->order, idx, &idx_A);
@@ -2056,7 +2074,7 @@ namespace CTF_int {
       }
     }
   #endif
-  #if DEBUG >=1
+  #if VERBOSE >=1
     if (wrld->cdt.rank == 0){
       if (can_block_shuffle) VPRINTF(1,"Remapping tensor %s via block_reshuffle to mapping\n",this->name);
       else if (is_sparse) VPRINTF(1,"Remapping tensor %s via sparse reshuffle to mapping\n",this->name);

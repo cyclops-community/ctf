@@ -295,6 +295,33 @@ namespace CTF {
 
 
       /**
+       * \brief defines tensor filled with zeros on the default algstrct on a user-specified distributed layout
+       * \param[in] order_ number of dimensions of tensor
+       * \param[in] is_sparse whether tensor is sparse
+       * \param[in] len_ edge lengths of tensor
+       * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld_ a world for the tensor to live in
+       * \param[in] idx assignment of characters to each dim
+       * \param[in] prl mesh processor topology with character labels
+       * \param[in] blk local blocking with processor labels
+       * \param[in] name_ an optionary name for the tensor
+       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       */
+      Tensor(int                       dim,
+             bool                      is_sparse,
+             int const *               len,
+             int const *               sym,
+             World &                   wrld,
+             char const *              idx,
+             Idx_Partition const &     prl,
+             Idx_Partition const &     blk=Idx_Partition(),
+             char const *              name=NULL,
+             bool                      profile=0,
+             CTF_int::algstrct const & sr=Ring<dtype>());
+
+
+      /**
        * \brief associated an index map with the tensor for future operation
        * \param[in] idx_map_ index assignment for this tensor
        */
