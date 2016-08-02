@@ -2570,7 +2570,8 @@ namespace CTF_int {
         TAU_FSTOP(est_ctr_map_time);
         TAU_FSTART(get_avail_res);
         if ((int64_t)memuse >= max_memuse){
-          DPRINTF(1,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
+          if (global_comm.rank == 0)
+            DPRINTF(1,"Not enough memory available for topo %d with order %d memory %ld/%ld\n", t,j,memuse,max_memuse);
           TAU_FSTOP(get_avail_res);
           delete sctr;
           continue;
