@@ -12,7 +12,7 @@
 #include <complex>
 #include <assert.h>
 
-#define CTF_VERSION 135
+#define CTF_VERSION 141
 
 #include "../src/interface/tensor.h"
 #include "../src/interface/idx_tensor.h"
