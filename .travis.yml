@@ -1,0 +1,43 @@
+sudo: false
+language: cpp
+os:
+  - linux
+#  - osx
+compiler:
+  - gcc
+  - clang
+#env:
+#matrix:
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      #- llvm-toolchain-precise-3.7
+    packages:
+      - gcc-5
+      - g++-5
+      - gfortran-5
+      - libopenmpi-dev
+      - libblas-dev
+      - liblapack-dev
+before_install:
+  - pwd
+  - export TRAVIS_HOME=$PWD
+  - export PATH=$TRAVIS_HOME/deps/bin:$PATH
+install:
+  - mkdir -p $TRAVIS_HOME/deps
+  - sh ./travis/install-mpi.sh $TRAVIS_HOME/deps mpich
+before_script:
+  - which mpicxx ; mpicxx -v
+  - ./configure CXX=mpicxx
+script:
+  - make
+  - make test
+  - make test2
+#after_failure:
+notifications:
+  email:
+    recipients:
+      - jeff.science@gmail.com
+    on_success: change
+    on_failure: always
