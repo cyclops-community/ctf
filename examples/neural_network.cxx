@@ -8,10 +8,20 @@
 #include <ctf.hpp>
 using namespace CTF;
 
+/** \brief folds a tensor X into tensor Y assuming the lexicographical ordering of elements in both tensors is the same but the order is different */
+void fold_unfold(Tensor<>& X, Tensor<>& Y){
+  int64_t * inds_X;
+  double * vals_X;
+  int64_t n_X;
+  //if global index ordering is preserved between the two tensors, we can fold simply
+  X.read_local(&n_X, &inds_X, &vals_X);
+  Y.write(n_X, inds_X, vals_X);
+}
+
 /**
  * \brief computes a neural network iteration for tensor n*n*m tensor X
  *        whose sparsity fraction is sp. Filter W is d*d*m and dense.
- *  Y_ij = sum_{k=1}^m sum_{a=1}^d sum_{b=1}^d X_{i+a,j+b,k} * W_{abk}
+ *  Y_ij = sum_{k=1}^m sum_{a=1}^d sum_{b=1}^d X_{i+a % n, j+b % n, k} * W_{abk}
  *        this algorithm assumes n = 0 (mod d)
  */
 int neural(int     n,
@@ -33,45 +43,77 @@ int neural(int     n,
   int lens_X5[] = {n/d, d, n/d, d, m};
   Tensor<> X5(5, lens_X5);
 
-  int64_t * inds_X;
-  double * vals_X;
-  int64_t n_X;
-  //global index ordering is preserved between the two tensors, so we can fold simply
-  X.read_local(&n_X, &inds_X, &vals_X);
-  X5.write(n_X, inds_X, vals_X);
+  fold_unfold(X, X5);
   
-  int lens_Y4[] = {n/d, d, n/d, d, m};
+  int lens_Y4[] = {n/d, d, n/d, d};
   Tensor<> Y4(4, lens_Y4);
 
-  //define a matrix that rotates the elements of a vector
-  Matrix<> R(d, d);
+  //define a matrix that rotates the elements of a vector with wrap around
+  Matrix<> Rd(d, d);
   if (dw.rank == 0){
-    int64_t inds_R[d];
-    double vals_R[d];
-    std::fill(vals_R, vals_R+d, 1.0);
+    int64_t inds_Rd[d];
+    double vals_Rd[d];
+    std::fill(vals_Rd, vals_Rd+d, 1.0);
     for (int i=0; i<d; i++){
-      inds_R[i] = ((i+1) % d) + i*d;
+      inds_Rd[i] = ((i+1) % d) + i*d;
     }
-    R.write(d,inds_R,vals_R);
-  } else R.write(0,NULL,NULL);
+    Rd.write(d,inds_Rd,vals_Rd);
+  } else Rd.write(0,NULL,NULL);
+
+  //define a matrix that rotates the elements of a vector of length n with wrap around
+  Matrix<> Rn(n, n);
+  if (dw.rank == 0){
+    int64_t inds_Rn[n];
+    double vals_Rn[n];
+    std::fill(vals_Rn, vals_Rn+n, 1.0);
+    for (int i=0; i<n; i++){
+      inds_Rn[i] = ((i+1) % n) + i*n;
+    }
+    Rn.write(n,inds_Rn,vals_Rn);
+  } else Rn.write(0,NULL,NULL);
+  
+  //fold that vector rotation into a tensor of order 4, to make it act on a vector folded into a n/d-by-d matrix
+  Tensor<> Rn4(4, lens_Y4);
+  fold_unfold(Rn, Rn4);
+
+  //define a matrix that rotates the elements of a vector of length n by d with wrap around
+  Matrix<> Rnd(n, n);
+  if (dw.rank == 0){
+    int64_t inds_Rnd[n];
+    double vals_Rnd[n];
+    std::fill(vals_Rnd, vals_Rnd+n, 1.0);
+    for (int i=0; i<n; i++){
+      inds_Rnd[i] = ((i+d) % n) + i*n;
+    }
+    Rnd.write(n,inds_Rnd,vals_Rnd);
+  } else Rnd.write(0,NULL,NULL);
+
+  //fold that vector d-depth rotation into a tensor of order 4, to make it act on a vector folded into a n/d-by-d matrix
+  Tensor<> Rnd4(4, lens_Y4);
+  fold_unfold(Rnd, Rnd4);
+
 
   for (int a=0; a<d; a++){
     for (int b=0; b<d; b++){
+      //compute k of the kd^2 contributions to the output Y
       Y4["iajb"] += X5["iajbk"]*W["abk"];
-      W["abk"] = R["ac"]*W["ack"];
-      Y4["iajb"] = R["ac"]*Y4["iajc"];
+      //rotate the filter cyclically in the first mode
+      W["abk"] = Rd["bc"]*W["ack"];
+      //rotate Y cyclically in the first mode
+      Y4["iajb"] = Rn4["jbkc"]*Y4["iakc"];
     }
-    W["abk"] = R["ac"]*W["cbk"];
-    Y4["iajb"] = R["ac"]*Y4["icjb"];
+    //now rotate Y back by d in the first mode
+    Y4["iajb"] = Rnd4["kcjb"]*Y4["iakc"];
+    //rotate W cyclically in the second mode
+    W["abk"] = Rd["ac"]*W["cbk"];
+    //rotate Y cyclically in the second mode
+    Y4["iajb"] = Rn4["iakc"]*Y4["kcjb"];
   }
+  //now rotate Y back by d in the second mode
+  Y4["iajb"] = Rnd4["kcia"]*Y4["kcjb"];
 
   //unfold output into matrix
-  int64_t * inds_Y;
-  double * vals_Y;
-  int64_t n_Y;
-  //global index ordering is preserved between the two tensors, so we can unfold simply
-  Y4.read_local(&n_Y, &inds_Y, &vals_Y);
-  Y.write(n_Y, inds_Y, vals_Y);
+  fold_unfold(Y4, Y);
 
   bool pass = Y.norm2() >= 1.E-6;
 
