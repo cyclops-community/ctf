@@ -9,11 +9,11 @@ using namespace CTF;
 
 /**
  * \brief computes the following kernel of the spectral element method
- *        Given u, D, and diagonal matrix G_{xy} for x,y in [1,3], 
+ *        Given u, D, and diagonal matrices G_{xy} for x,y in [1,3], 
  *        let E_1 = I x I x D, E_2 = I x D x I, E_3 = D x I x I
- *        [E_1, E_2, E_3] * [G_{11}, G_{12}, G_{13}] * [E_1] * u
- *                          [G_{21}, G_{22}, G_{23}]   [E_2]
- *                          [G_{31}, G_{32}, G_{33}]   [E_2]
+ *        [E_1^T, E_2^t, E_3^T] * [G_{11}, G_{12}, G_{13}] * [E_1] * u
+ *                                [G_{21}, G_{22}, G_{23}]   [E_2]
+ *                                [G_{31}, G_{32}, G_{33}]   [E_3]
  */
 int spectral(int     n,
              World & dw){
