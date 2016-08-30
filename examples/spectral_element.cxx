@@ -4,11 +4,8 @@
   * @{ 
   * \brief Spectral element methods test/benchmark
   */
-
 #include <ctf.hpp>
 using namespace CTF;
-
-
 
 /**
  * \brief computes the following kernel of the spectral element method
@@ -52,13 +49,13 @@ int spectral(int     n,
   
   for (int a=0; a<3; a++){
     for (int b=0; b<3; b++){
-      z[a]["ijk"] = G[a][b]["ijk"]*w[b]["ijk"];
+      z[a]["ijk"] += G[a][b]["ijk"]*w[b]["ijk"];
     }
   }
    
   u["ijk"]  = D["li"]*z[0]["ijl"];
-  u["ijk"] += D["lj"]*z[0]["ilk"];
-  u["ijk"] += D["lk"]*z[0]["ljk"];
+  u["ijk"] += D["lj"]*z[1]["ilk"];
+  u["ijk"] += D["lk"]*z[2]["ljk"];
 
   double exe_time = MPI_Wtime() - st_time;
 
