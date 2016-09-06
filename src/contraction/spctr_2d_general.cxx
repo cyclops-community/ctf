@@ -137,7 +137,7 @@ namespace CTF_int {
 
   char * bcast_step(int edge_len, char * A, bool is_sparse_A, bool move_A, algstrct const * sr_A, int64_t b_A, int64_t s_A, char * buf_A, CommData * cdt_A, int64_t ctr_sub_lda_A, int64_t ctr_lda_A, int nblk_A, int64_t const * size_blk_A, int & new_nblk_A, int64_t *& new_size_blk_A, int64_t * offsets_A, int ib){
     int ret;
-    char * op_A;
+    char * op_A = NULL;
     new_size_blk_A = (int64_t*)size_blk_A;
     if (move_A){
       new_nblk_A  = nblk_A/b_A;

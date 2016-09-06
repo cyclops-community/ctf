@@ -438,7 +438,7 @@ namespace CTF_int {
       new_prelens[n_prepend] = len0;
       std::vector< topology* > new_topos = get_all_topos(cdt, n_uf, uniq_fact, sub_mults, n_prepend+1, new_prelens);
       //FIXME call some append function?
-      for (int i=0; i<new_topos.size(); i++){
+      for (unsigned i=0; i<new_topos.size(); i++){
         topos.push_back(new_topos[i]);
       }
     }
