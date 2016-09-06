@@ -2940,7 +2940,7 @@ namespace CTF_int {
       }
       return SUCCESS;
     }
-    topology * topo_g;
+    topology * topo_g = NULL;
     int j_g;
     if (gbest_time_sel <= gbest_time_exh){
       j_g = ttopo%6;
@@ -3863,7 +3863,7 @@ namespace CTF_int {
     } else
       CTF_int::cdealloc(virt_dim);
 
-    int krnl_type;
+    int krnl_type = -1;
     if (is_inner){
       ASSERT(!(!A->is_sparse && (B->is_sparse || C->is_sparse)));
       ASSERT(!(C->is_sparse && (!B->is_sparse || !A->is_sparse)));
