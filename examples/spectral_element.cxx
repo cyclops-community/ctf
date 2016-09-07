@@ -43,9 +43,9 @@ int spectral(int     n,
   
   double st_time = MPI_Wtime();
   
-  w[0]["ijk"] = D["il"]*u["ijl"];
+  w[0]["ijk"] = D["kl"]*u["ijl"];
   w[1]["ijk"] = D["jl"]*u["ilk"];
-  w[2]["ijk"] = D["kl"]*u["ljk"];
+  w[2]["ijk"] = D["il"]*u["ljk"];
   
   for (int a=0; a<3; a++){
     for (int b=0; b<3; b++){
@@ -53,9 +53,9 @@ int spectral(int     n,
     }
   }
    
-  u["ijk"]  = D["li"]*z[0]["ijl"];
+  u["ijk"]  = D["lk"]*z[0]["ijl"];
   u["ijk"] += D["lj"]*z[1]["ilk"];
-  u["ijk"] += D["lk"]*z[2]["ljk"];
+  u["ijk"] += D["li"]*z[2]["ljk"];
 
   double exe_time = MPI_Wtime() - st_time;
 
