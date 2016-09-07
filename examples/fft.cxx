@@ -143,7 +143,7 @@ int fft(int     n,
   s[""] += da["i"]*da["i"];
   s.print();
   dnrm = s;  
-  bool pass = dnrm.real() <= 1.E-6 && dnrm.imag() <= 1.E-6;
+  bool pass = fabs(dnrm.real()) <= 1.E-6 && fabs(dnrm.imag()) <= 1.E-6;
 
   if (dw.rank == 0){
     if (pass) 
