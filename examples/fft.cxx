@@ -12,16 +12,20 @@ namespace CTF_int{
   void factorize(int n, int *nfactor, int **factor);
 }
 
+std::complex<double> omega(int i, int n){
+  std::complex<double> imag(0,1);
+  return exp(-2.*i*(M_PI/n)*imag);
+}
+
 Matrix< std::complex<double> > DFT_matrix(int n, World & wrld){
   int64_t np;
   int64_t * idx;
-  std::complex<double> imag(0,1);
   std::complex<double> * data;
   Matrix < std::complex<double> >DFT(n, n, NS, wrld, "DFT");
   DFT.read_local(&np, &idx, &data);
 
   for (int64_t i=0; i<np; i++){
-    data[i] = exp(-2.*(idx[i]/n)*(idx[i]%n)*(M_PI/n)*imag);
+    data[i] = omega((idx[i]/n)*(idx[i]%n), n);
   }
   DFT.write(np, idx, data);
   free(idx);
@@ -66,23 +70,23 @@ void fft(Vector< std::complex<double> > & v, int n){
     inds[nfact+i]='a'+i;
   }
  
-  V.print(); 
   Matrix< std::complex<double> > DFT = DFT_matrix(2,*v.wrld);
+  int i2 = 1;
   for (int i=0; i<nfact; i++){
+    i2*=2;
     Tensor< std::complex<double> > S(i+1, factors, *v.wrld, *v.sr, "S");
     S.read_local(&np, &idx, &data);
     std::complex<double> imag(0,1);
-    for(int64_t i=0; i<np; i++){
-      if (idx[i]%2 == 1){
-        data[i] = exp(-2.*(idx[i]/2)*(M_PI/n)*imag);
+    for(int64_t j=0; j<np; j++){
+      if (idx[j]*2/i2 == 1){
+        data[j] = omega(idx[j]%(i2/2),i2);
       } else {
-        data[i] = std::complex<double>(1.0,0.0);
+        data[j] = std::complex<double>(1.0,0.0);
       }
     }
     S.write(np, idx, data);
 
-    S.print();
-    V[inds+1] *= S[inds];
+    V[inds] *= S[inds];
     char inds_in[nfact];
     char inds_out[nfact];
     char inds_DFT[2];
@@ -132,16 +136,12 @@ int fft(int     n,
   fa["i"] = a["i"];
   
   fft(fa, n);
-  fa.print();
 
-  da.print();
   da["i"] -= fa["i"];
 
   std::complex<double> dnrm;
   Scalar< std::complex<double> > s(dnrm, dw);
-  s.print();
   s[""] += da["i"]*da["i"];
-  s.print();
   dnrm = s;  
   bool pass = fabs(dnrm.real()) <= 1.E-6 && fabs(dnrm.imag()) <= 1.E-6;
 
