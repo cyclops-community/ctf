@@ -9,7 +9,7 @@ namespace CTF {
 
   template<typename dtype>
   Tensor<dtype>::Tensor() : CTF_int::tensor() { 
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    //ASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
 
