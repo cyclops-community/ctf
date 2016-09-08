@@ -95,7 +95,7 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
   r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
   double rnorm3 = r.norm2();
-    if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E initially\n",nlevel,rnorm0);
+  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E initially\n",nlevel,rnorm0);
   if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after initial smooth\n",nlevel,rnorm);
   if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after coarse recursion\n",nlevel,rnorm2);
   if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after final smooth\n",nlevel,rnorm3);
