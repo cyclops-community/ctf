@@ -256,10 +256,14 @@ namespace CTF_int{
               if (alpha != NULL){
                 char a[sr_A->el_size];
                 sr_A->mul(prs_A[w].d(), alpha, a);
-                prs_new[n].write_val(sr_B->addid());
-                func->apply_f(a, prs_new[n].d());
+                //if (sr_B->addid() != NULL){
+                 // prs_new[n].write_val(sr_B->addid());
+                  func->apply_f(a, prs_new[n].d());
+               // } else {
+
+                //}
               } else {
-                prs_new[n].write_val(sr_B->addid());
+             //   prs_new[n].write_val(sr_B->addid());
                 func->apply_f(prs_A[w].d(), prs_new[n].d());
               }
             } else { n--; skip=1; }
