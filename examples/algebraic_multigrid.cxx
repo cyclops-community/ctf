@@ -8,6 +8,9 @@
 using namespace CTF;
 
 void smooth_jacobi(Matrix<> & A, Vector<> & x, Vector <> & b, int nsmooth){
+  Timer jacobi("jacobi");
+
+  jacobi.start();
   Vector<> d(x.len, *x.wrld);
   d["i"] = A["ii"];
   Transform<>([](double & d){ d= fabs(d) > 0.0 ? 1./d : 0.0; })(d["i"]);
@@ -20,10 +23,14 @@ void smooth_jacobi(Matrix<> & A, Vector<> & x, Vector <> & b, int nsmooth){
     x["i"] += b["i"];
     x["i"] *= d["i"];
   }
+  jacobi.stop();
 }
 
 void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int nlevel, int nsmooth){
   //do smoothing using Jacobi
+  char tlvl_name[] = {'l','v','l',(char)('0'+nlevel),'\0'};
+  Timer tlvl(tlvl_name);
+  tlvl.start();
   Vector<> r(b);
   r["i"] -= A["ij"]*x["j"];
   double rnorm0 = r.norm2();
@@ -51,13 +58,18 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
 //  d["i"] = A["ii"];
 //  P["ik"] -= d["i"]*A["ij"]*T[0]["jk"];
   //smooth the restriction/interpolation operator P = (I-omega*diag(A)^{-1}*A)T
+  Timer rstr("restriction");
+  rstr.start();
   Matrix<> P(T[0].lens[0], T[0].lens[1], SP, *T[0].wrld);
   Matrix<> D(n,n,SP,*A.wrld);
   D["ii"] = A["ii"];
   double omega=.1;
   Transform<>([=](double & d){ d= omega/d; })(D["ii"]);
+  Timer trip("triple_matrix_product");
+  trip.start();
   P["ik"] = A["ij"]*T[0]["jk"];
   P["ik"] =  D["il"]*P["lk"];
+  trip.stop();
   P["ij"] += T[0]["ij"];
 
   //restrict residual vector
@@ -78,9 +90,12 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
   //restrict A via triple matrix product, should probably be done outside v-cycle
   AP["lj"] = A["lk"]*P["kj"];
   PTAP["ij"] = P["li"]*AP["lj"];
- 
+
+  rstr.stop(); 
+  tlvl.stop();
   //recurse into coarser level
   vcycle(PTAP, zx, PTr, T+1, m, nlevel-1, nsmooth);
+  tlvl.start();
   
 //  zx.print();
 
@@ -92,6 +107,7 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
   r["i"] -= A["ij"]*x["j"];
   double rnorm2 = r.norm2();
   smooth_jacobi(A,x,b,nsmooth);
+  tlvl.stop();
   r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
   double rnorm3 = r.norm2();
@@ -181,7 +197,12 @@ int algebraic_multigrid(int     n,
     m = m2;
   }
 
+  Timer vc("vcycle");
+  vc.start();
+  double st_time = MPI_Wtime();
   vcycle(A, x, b, T, n, nlvl, nsmooth);
+  double vtime = MPI_Wtime()-st_time;
+  vc.stop();
 
   delete [] T;
   
@@ -193,7 +214,7 @@ int algebraic_multigrid(int     n,
 
   if (dw.rank == 0){
 #ifndef TEST_SUITE
-    printf("original err = %E, new err = %E\n",err,err2); 
+    printf("Algebraic multigrid with n %d sp_frac %lf nlvl %d ndiv %d nsmooth %d decay_exp %d took %lf seconds, original err = %E, new err = %E\n",n,sp_frac,nlvl,ndiv,nsmooth,decay_exp,vtime,err,err2); 
 #endif
     if (pass) 
       printf("{ algebraic multigrid method } passed \n");
