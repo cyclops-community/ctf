@@ -9,6 +9,7 @@ using namespace CTF;
 
 void smooth_jacobi(Matrix<> & A, Vector<> & x, Vector <> & b, int nsmooth){
   Timer jacobi("jacobi");
+  Timer jacobi_spmv("jacobi_spmv");
 
   jacobi.start();
   Vector<> d(x.len, *x.wrld);
@@ -19,7 +20,9 @@ void smooth_jacobi(Matrix<> & A, Vector<> & x, Vector <> & b, int nsmooth){
 
   //20 iterations of Jacobi, should probably be a parameter or some convergence check instead
   for (int i=0; i<nsmooth; i++){
+    jacobi_spmv.start();
     x["i"] = -1.0*R["ij"]*x["j"];
+    jacobi_spmv.stop();
     x["i"] += b["i"];
     x["i"] *= d["i"];
   }
@@ -32,31 +35,20 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
   Timer tlvl(tlvl_name);
   tlvl.start();
   Vector<> r(b);
-  r["i"] -= A["ij"]*x["j"];
-  double rnorm0 = r.norm2();
+/*  r["i"] -= A["ij"]*x["j"];
+  double rnorm0 = r.norm2();*/
   smooth_jacobi(A,x,b,nsmooth);
-  r["i"] = b["i"];
+//  r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
   double rnorm = r.norm2();
+  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after initial smooth\n",nlevel,rnorm);
   if (nlevel == 0){
-    if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E initially\n",nlevel,rnorm0);
-    if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E after smooth\n",nlevel,rnorm);
+    /*if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E initially\n",nlevel,rnorm0);
+    if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E after smooth\n",nlevel,rnorm);*/
     return; 
   }
-  Vector<> x2(x);
-  Vector<> r2(x);
-
-  smooth_jacobi(A,x2,b,nsmooth);
-  r2["i"] = b["i"];
-  r2["i"] -= A["ij"]*x2["j"];
-  double rnorm_alt = r2.norm2();
-  
-
   int m = T[0].lens[1];
 
-//  Vector<> d(x.len, *x.wrld);
-//  d["i"] = A["ii"];
-//  P["ik"] -= d["i"]*A["ij"]*T[0]["jk"];
   //smooth the restriction/interpolation operator P = (I-omega*diag(A)^{-1}*A)T
   Timer rstr("restriction");
   rstr.start();
@@ -65,7 +57,7 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
   D["ii"] = A["ii"];
   double omega=.1;
   Transform<>([=](double & d){ d= omega/d; })(D["ii"]);
-  Timer trip("triple_matrix_product");
+  Timer trip("triple_matrix_product_to_form_T");
   trip.start();
   P["ik"] = A["ij"]*T[0]["jk"];
   P["ik"] =  D["il"]*P["lk"];
@@ -83,39 +75,37 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
   if (A.is_sparse){ 
     atr = atr | SP;
   }
-  //atr = atr | A.symm;
   Matrix<> AP(n, m, atr, *x.wrld);
   Matrix<> PTAP(m, m, atr, *x.wrld);
  
+  Timer trip2("triple_matrix_product_to_form_PTAP");
+  trip2.start();
   //restrict A via triple matrix product, should probably be done outside v-cycle
   AP["lj"] = A["lk"]*P["kj"];
   PTAP["ij"] = P["li"]*AP["lj"];
 
+  trip2.stop();
   rstr.stop(); 
   tlvl.stop();
   //recurse into coarser level
   vcycle(PTAP, zx, PTr, T+1, m, nlevel-1, nsmooth);
   tlvl.start();
-  
-//  zx.print();
 
   //interpolate solution to residual equation at coraser level back
   x["i"] += P["ij"]*zx["j"]; 
  
   //smooth new solution
-  r["i"] = b["i"];
+  /*r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
-  double rnorm2 = r.norm2();
+  double rnorm2 = r.norm2();*/
   smooth_jacobi(A,x,b,nsmooth);
   tlvl.stop();
-  r["i"] = b["i"];
+  /*r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
-  double rnorm3 = r.norm2();
-  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E initially\n",nlevel,rnorm0);
-  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after initial smooth\n",nlevel,rnorm);
-  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after coarse recursion\n",nlevel,rnorm2);
-  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after final smooth\n",nlevel,rnorm3);
-  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E if we skipped the coarsening\n",nlevel,rnorm_alt);
+  double rnorm3 = r.norm2();*/
+  //if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E initially\n",nlevel,rnorm0);
+//  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after coarse recursion\n",nlevel,rnorm2);
+//  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after final smooth\n",nlevel,rnorm3);
 }
 
 /**
@@ -137,48 +127,19 @@ int algebraic_multigrid(int     n,
   Matrix<> A(n, n, SP, dw);
   srand48(dw.rank*12);
   A.fill_sp_random(0.0, 1.0, sp_frac);
-//  if (dw.rank == 0) printf("Desired sparsity fraciton was %lf, generated was %lf\n", sp_frac, ((((double)A.nnz_tot)/n)/n));
 
   A["ij"] += A["ji"];
 
   double pn = pow(n,1./6);
   A["ii"] += pn;
 
-//  Transform<>([](double & d){ d = fabs(d).; })(A["ii"]);
-
-//  A.print();
-
-  /*Vector<int> N(n, dw);
-  int64_t * inds;
-  int * vals;
-  int64_t nvals;
-  N.read_local(&nvals, &inds, &vals);
-  for (int i=0; i<nvals; i++){
-    vals[i] = (int)inds[i];
-  }
-  N.write(nvals, inds, vals);
-
-  free(vals);
-  free(inds);*/
-
-//  printf("curootn = %d\n",curootn);
-  
   Matrix<std::pair<double, int>> B(n,n,SP,dw,Set<std::pair<double, int>>());
-
-  
-
-  /*B["ij"] = Function< double, std::pair<double,int> >([](double d){ return std::pair<double,int>(d,0); })(A["ij"]);
-
-
-  Transform< int, std::pair<double,int> >([](int i, std::pair<double,int> & d){ d.second = i; } )(N["i"], B["ij"]);
-  Transform< int, std::pair<double,int> >([](int i, std::pair<double,int> & d){ d.second = abs(d.second-i); } )(N["j"], B["ij"]);*/
 
   int64_t * inds;
   double * vals;
   std::pair<double,int> * new_vals;
   int64_t nvals;
   A.read_local_nnz(&nvals, &inds, &vals);
-
 
   new_vals = (std::pair<double,int>*)malloc(sizeof(std::pair<double,int>)*nvals);
 
@@ -207,7 +168,6 @@ int algebraic_multigrid(int     n,
   r["i"] -= A["ij"]*x["j"];
   double err = r.norm2(); 
 
-
   Matrix<> * T = new Matrix<>[nlvl];
   int m=n;
   for (int i=0; i<nlvl; i++){
@@ -229,12 +189,22 @@ int algebraic_multigrid(int     n,
   }
   tct.stop();
 
-  Timer vc("vcycle");
-  vc.start();
+  Vector<> x2(x);
+
+  Timer_epoch vc("vcycle");
+  vc.begin();
   double st_time = MPI_Wtime();
   vcycle(A, x, b, T, n, nlvl, nsmooth);
   double vtime = MPI_Wtime()-st_time;
-  vc.stop();
+  vc.end();
+
+
+  Vector<> r2(x);
+  smooth_jacobi(A,x2,b,2*nsmooth);
+  r2["i"] = b["i"];
+  r2["i"] -= A["ij"]*x2["j"];
+  double rnorm_alt = r2.norm2();
+  if (A.wrld->rank == 0) printf("Residual norm would have been %1.2E if we skipped the coarsening\n",rnorm_alt);
 
   delete [] T;
   
@@ -246,7 +216,7 @@ int algebraic_multigrid(int     n,
 
   if (dw.rank == 0){
 #ifndef TEST_SUITE
-    printf("Algebraic multigrid with n %d sp_frac %lf nlvl %d ndiv %d nsmooth %d decay_exp %d took %lf seconds, original err = %E, new err = %E\n",n,sp_frac,nlvl,ndiv,nsmooth,decay_exp,vtime,err,err2); 
+    printf("Algebraic multigrid with n %d sp_frac %1.2E nlvl %d ndiv %d nsmooth %d decay_exp %d took %lf seconds, original err = %E, new err = %E\n",n,sp_frac,nlvl,ndiv,nsmooth,decay_exp,vtime,err,err2); 
 #endif
     if (pass) 
       printf("{ algebraic multigrid method } passed \n");
