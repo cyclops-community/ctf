@@ -29,7 +29,7 @@ void smooth_jacobi(Matrix<> & A, Vector<> & x, Vector <> & b, int nsmooth){
   jacobi.stop();
 }
 
-void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int nlevel, int nsmooth){
+void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int64_t n, int nlevel, int nsmooth){
   //do smoothing using Jacobi
   char tlvl_name[] = {'l','v','l',(char)('0'+nlevel),'\0'};
   Timer tlvl(tlvl_name);
@@ -47,7 +47,7 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
     if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E after smooth\n",nlevel,rnorm);*/
     return; 
   }
-  int m = T[0].lens[1];
+  int64_t m = T[0].lens[1];
 
   //smooth the restriction/interpolation operator P = (I-omega*diag(A)^{-1}*A)T
   Timer rstr("restriction");
@@ -111,7 +111,7 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * T, int n, int n
 /**
  * \brief computes Multigrid for a 3D regular discretization
  */
-int algebraic_multigrid(int     n,
+int algebraic_multigrid(int64_t n,
                         double  sp_frac,
                         int     nlvl,
                         int     ndiv,
@@ -128,23 +128,28 @@ int algebraic_multigrid(int     n,
   srand48(dw.rank*12);
   A.fill_sp_random(0.0, 1.0, sp_frac);
 
+  if (dw.rank == 0){
+    printf("Generated matrix with dimension %1.2E and %1.2E nonzeros\n", (double)n, (double)A.nnz_tot);
+    fflush(stdout);
+  }
+
   A["ij"] += A["ji"];
 
   double pn = pow(n,1./6);
   A["ii"] += pn;
 
-  Matrix<std::pair<double, int>> B(n,n,SP,dw,Set<std::pair<double, int>>());
+  Matrix<std::pair<double, int64_t>> B(n,n,SP,dw,Set<std::pair<double, int64_t>>());
 
   int64_t * inds;
   double * vals;
-  std::pair<double,int> * new_vals;
+  std::pair<double,int64_t> * new_vals;
   int64_t nvals;
   A.read_local_nnz(&nvals, &inds, &vals);
 
-  new_vals = (std::pair<double,int>*)malloc(sizeof(std::pair<double,int>)*nvals);
+  new_vals = (std::pair<double,int64_t>*)malloc(sizeof(std::pair<double,int64_t>)*nvals);
 
   for (int64_t i=0; i<nvals; i++){
-    new_vals[i] = std::pair<double,int>(vals[i],abs((inds[i]%n) - (inds[i]/n)));
+    new_vals[i] = std::pair<double,int64_t>(vals[i],abs((inds[i]%n) - (inds[i]/n)));
   }
 
   B.write(nvals,inds,new_vals);
@@ -152,26 +157,26 @@ int algebraic_multigrid(int     n,
   free(new_vals);
   free(inds);
 
-  int curootn = (int)(pow((double)n,1./3.)+.001);
-  Transform< std::pair<double,int> >([=](std::pair<double,int> & d){ 
-    int x =  d.second % curootn;
-    int y = (d.second / curootn) % curootn;
-    int z =  d.second / curootn  / curootn;
+  int64_t curootn = (int64_t)(pow((double)n,1./3.)+.001);
+  Transform< std::pair<double,int64_t> >([=](std::pair<double,int64_t> & d){ 
+    int64_t x =  d.second % curootn;
+    int64_t y = (d.second / curootn) % curootn;
+    int64_t z =  d.second / curootn  / curootn;
     if (x+y+z > 0)
       d.first = d.first/pow((double)(x+y+z),decay_exp/2.);
     }
   )(B["ij"]);
   
-  A["ij"] = Function< std::pair<double,int>, double >([](std::pair<double,int> p){ return p.first; })(B["ij"]);
+  A["ij"] = Function< std::pair<double,int64_t>, double >([](std::pair<double,int64_t> p){ return p.first; })(B["ij"]);
 
   Vector<> r(b);
   r["i"] -= A["ij"]*x["j"];
   double err = r.norm2(); 
 
   Matrix<> * T = new Matrix<>[nlvl];
-  int m=n;
+  int64_t m=n;
   for (int i=0; i<nlvl; i++){
-    int m2 = m/ndiv;
+    int64_t m2 = m/ndiv;
     T[i] = Matrix<>(m, m2, SP, dw);
     int64_t mmy = m2/dw.np;
     if (dw.rank < m2%dw.np) mmy++;
@@ -216,7 +221,7 @@ int algebraic_multigrid(int     n,
 
   if (dw.rank == 0){
 #ifndef TEST_SUITE
-    printf("Algebraic multigrid with n %d sp_frac %1.2E nlvl %d ndiv %d nsmooth %d decay_exp %d took %lf seconds, original err = %E, new err = %E\n",n,sp_frac,nlvl,ndiv,nsmooth,decay_exp,vtime,err,err2); 
+    printf("Algebraic multigrid with n %ld sp_frac %1.2E nlvl %d ndiv %d nsmooth %d decay_exp %d took %lf seconds, original err = %E, new err = %E\n",n,sp_frac,nlvl,ndiv,nsmooth,decay_exp,vtime,err,err2); 
 #endif
     if (pass) 
       printf("{ algebraic multigrid method } passed \n");
@@ -240,7 +245,8 @@ char* getCmdOption(char ** begin,
 
 
 int main(int argc, char ** argv){
-  int rank, np, n, pass, nlvl, ndiv, decay_exp, nsmooth;
+  int rank, np, pass, nlvl, ndiv, decay_exp, nsmooth;
+  int64_t n;
   double sp_frac;
   int const in_num = argc;
   char ** input_str = argv;
@@ -279,7 +285,7 @@ int main(int argc, char ** argv){
     if (sp_frac < 0) sp_frac = .01;
   } else sp_frac = .01;
 
-  int tot_ndiv=1;
+  int64_t tot_ndiv=1;
   for (int i=0; i<nlvl; i++){ tot_ndiv *= ndiv; }
 
   assert(n%tot_ndiv == 0);
@@ -288,7 +294,7 @@ int main(int argc, char ** argv){
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Running algebraic smoothed multigrid method with %d levels with divisor %d in V-cycle, %d elements, %d smooth iterations, decayed based on 3D indexing with decay exponent of %d\n",nlvl,ndiv,n,nsmooth, decay_exp);
+      printf("Running algebraic smoothed multigrid method with %d levels with divisor %d in V-cycle, matrix dimension %ld, %d smooth iterations, decayed based on 3D indexing with decay exponent of %d\n",nlvl,ndiv,n,nsmooth, decay_exp);
     }
     pass = algebraic_multigrid(n, sp_frac, nlvl, ndiv, nsmooth, decay_exp, dw);
     assert(pass);
