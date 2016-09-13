@@ -128,17 +128,21 @@ int algebraic_multigrid(int     n,
                         int     nsmooth,
                         int     decay_exp,
                         World & dw){
-
+  Timer tct("initialization");
+  tct.start();
   Vector<> x(n, dw);
   Vector<> b(n, dw);
   x.fill_random(0.0, 1.0);
   b.fill_random(0.0, 1.0);
   Matrix<> A(n, n, SP, dw);
+  srand48(dw.rank*12);
   A.fill_sp_random(0.0, 1.0, sp_frac);
+//  if (dw.rank == 0) printf("Desired sparsity fraciton was %lf, generated was %lf\n", sp_frac, ((((double)A.nnz_tot)/n)/n));
 
   A["ij"] += A["ji"];
 
-  A["ii"] += pow(n,1./6.);
+  double pn = pow(n,1./6);
+  A["ii"] += pn;
 
 //  Transform<>([](double & d){ d = fabs(d).; })(A["ii"]);
 
@@ -175,11 +179,13 @@ int algebraic_multigrid(int     n,
   int64_t nvals;
   A.read_local_nnz(&nvals, &inds, &vals);
 
+
   new_vals = (std::pair<double,int>*)malloc(sizeof(std::pair<double,int>)*nvals);
 
   for (int64_t i=0; i<nvals; i++){
     new_vals[i] = std::pair<double,int>(vals[i],abs((inds[i]%n) - (inds[i]/n)));
   }
+
   B.write(nvals,inds,new_vals);
   free(vals);
   free(new_vals);
@@ -201,20 +207,27 @@ int algebraic_multigrid(int     n,
   r["i"] -= A["ij"]*x["j"];
   double err = r.norm2(); 
 
+
   Matrix<> * T = new Matrix<>[nlvl];
   int m=n;
   for (int i=0; i<nlvl; i++){
     int m2 = m/ndiv;
     T[i] = Matrix<>(m, m2, SP, dw);
-    std::vector< Pair<> > pairs;
+    int64_t mmy = m2/dw.np;
+    if (dw.rank < m2%dw.np) mmy++;
+    Pair<> * pairs = (Pair<>*)malloc(sizeof(Pair<>)*mmy*ndiv);
+    int64_t nel = 0;
     for (int64_t j=dw.rank; j<m2; j+=dw.np){
       for (int k=0; k<ndiv; k++){
-        pairs.push_back(Pair<>(j*m+j*ndiv+k, 1.0));
+        pairs[nel] = Pair<>(j*m+j*ndiv+k, 1.0);
+        nel++;
       }
     }
-    T[i].write(pairs.size(), &(pairs[0]));
+    T[i].write(nel, pairs);
+    free(pairs);
     m = m2;
   }
+  tct.stop();
 
   Timer vc("vcycle");
   vc.start();

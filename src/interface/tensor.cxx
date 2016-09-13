@@ -735,8 +735,34 @@ namespace CTF {
 
   template<>
   inline void Tensor<double>::fill_sp_random(double rmin, double rmax, double frac_sp){
-    int64_t tot_sz = CTF_int::packed_size(order, lens, sym);
-    std::vector<Pair<double>> pairs;
+    int64_t tot_size = CTF_int::packed_size(order, lens, sym);
+    double sf = tot_size*frac_sp;
+    double dg = 0.0;
+    //generate approximately tot_size*e^frac_sp rather than tot_size*frac_sp elements, to account for conflicts in writing them
+    for (int i=2; i<20; i++){
+      dg += sf;
+      sf *= frac_sp/i;
+    }
+    int64_t gen_size = (int64_t)(dg+.5);
+    int64_t my_gen_size = gen_size/wrld->np;
+    if (gen_size % wrld->np > wrld->rank){
+      my_gen_size++;
+    }
+    Pair<double> * pairs = (Pair<double>*)malloc(my_gen_size*sizeof(Pair<double>));
+    for (int64_t i=0; i<my_gen_size; i++){
+      pairs[i] = Pair<double>((int64_t)(drand48()*tot_size), 1.0);
+    }
+    this->write(my_gen_size,pairs);
+    char str[order];
+    for (int i=0; i<order; i++){
+      str[i] = 'a'+i;
+    }
+
+    Transform<>([=](double & d){ d=drand48()*(rmax-rmin)+rmin; })((*this)[str]);
+
+    /*std::vector<Pair<double>> pairs;
+
+
     pairs.reserve(size*frac_sp);
     int64_t npairs=0;
     for (int64_t i=wrld->rank; i<tot_sz; i+=wrld->np){
@@ -745,7 +771,7 @@ namespace CTF {
         npairs++;
       }
     }
-    this->write(npairs, pairs.data());
+    this->write(npairs, pairs.data());*/
   }
 
 
