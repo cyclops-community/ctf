@@ -138,7 +138,7 @@ int algebraic_multigrid(int     n,
 
   A["ij"] += A["ji"];
 
-  A["ii"] += sqrt((double)n);
+  A["ii"] += pow(n,1./6.);
 
 //  Transform<>([](double & d){ d = fabs(d).; })(A["ii"]);
 
