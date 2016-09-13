@@ -144,7 +144,7 @@ int algebraic_multigrid(int     n,
 
 //  A.print();
 
-  Vector<int> N(n, dw);
+  /*Vector<int> N(n, dw);
   int64_t * inds;
   int * vals;
   int64_t nvals;
@@ -155,18 +155,37 @@ int algebraic_multigrid(int     n,
   N.write(nvals, inds, vals);
 
   free(vals);
-  free(inds);
+  free(inds);*/
 
-  int curootn = (int)(pow((double)n,1./3.)+.001);
 //  printf("curootn = %d\n",curootn);
   
   Matrix<std::pair<double, int>> B(n,n,SP,dw,Set<std::pair<double, int>>());
 
-  B["ij"] = Function< double, std::pair<double,int> >([](double d){ return std::pair<double,int>(d,0); })(A["ij"]);
+  
+
+  /*B["ij"] = Function< double, std::pair<double,int> >([](double d){ return std::pair<double,int>(d,0); })(A["ij"]);
 
 
   Transform< int, std::pair<double,int> >([](int i, std::pair<double,int> & d){ d.second = i; } )(N["i"], B["ij"]);
-  Transform< int, std::pair<double,int> >([](int i, std::pair<double,int> & d){ d.second = abs(d.second-d.first); } )(N["j"], B["ij"]);
+  Transform< int, std::pair<double,int> >([](int i, std::pair<double,int> & d){ d.second = abs(d.second-i); } )(N["j"], B["ij"]);*/
+
+  int64_t * inds;
+  double * vals;
+  std::pair<double,int> * new_vals;
+  int64_t nvals;
+  A.read_local_nnz(&nvals, &inds, &vals);
+
+  new_vals = (std::pair<double,int>*)malloc(sizeof(std::pair<double,int>)*nvals);
+
+  for (int64_t i=0; i<nvals; i++){
+    new_vals[i] = std::pair<double,int>(vals[i],abs((inds[i]%n) - (inds[i]/n)));
+  }
+  B.write(nvals,inds,new_vals);
+  free(vals);
+  free(new_vals);
+  free(inds);
+
+  int curootn = (int)(pow((double)n,1./3.)+.001);
   Transform< std::pair<double,int> >([=](std::pair<double,int> & d){ 
     int x =  d.second % curootn;
     int y = (d.second / curootn) % curootn;
