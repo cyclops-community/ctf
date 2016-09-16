@@ -6,6 +6,7 @@
   */
 #include <ctf.hpp>
 using namespace CTF;
+#define ERR_REPORT
 
 void smooth_jacobi(Matrix<> & A, Vector<> & x, Vector <> & b, int nsm){
   Timer jacobi("jacobi");
@@ -15,80 +16,118 @@ void smooth_jacobi(Matrix<> & A, Vector<> & x, Vector <> & b, int nsm){
   Vector<> d(x.len, *x.wrld);
   d["i"] = A["ii"];
   Transform<>([](double & d){ d= fabs(d) > 0.0 ? 1./d : 0.0; })(d["i"]);
-  Matrix<> R(A);
-  R["ii"] = 0.0;
+  //Matrix<> R(A);
+  //R["ii"] = 0.0;
 
   Vector<> x1(x.len, *x.wrld);
+
+  int64_t N = A.nrow;
+  Vector<> Red(N, *A.wrld);
+  Vector<> Blk(N, *A.wrld);
+  int64_t Np = N / A.wrld->np;
+  int64_t sNp = Np * A.wrld->rank;
+  if (A.wrld->rank < N % A.wrld->np) Np++;
+  sNp += std::min(A.wrld->rank,(int)( N % A.wrld->np));
+  int64_t * inds_R = (int64_t*)malloc(sizeof(int64_t)*Np);
+  double * vals_R = (double*)malloc(sizeof(double)*Np);
+  int64_t * inds_B = (int64_t*)malloc(sizeof(int64_t)*Np);
+  double * vals_B = (double*)malloc(sizeof(double)*Np);
+  int nR = 0;
+  int nB = 0;
+  int64_t n=1;
+  while (n*n*n < N) n++;
+  assert(n*n*n==N);
+  for (int64_t i=0; i<Np; i++){
+    bool p = 1;
+    if (((i+sNp)/(n*n)) % 2 == 1) p = !p;
+    if ((((i+sNp)/n)%n) % 2 == 1) p = !p;
+    if (((i+sNp)%n) % 2 == 1) p = !p;
+    if (p){
+      inds_B[nB] = i+sNp;
+      vals_B[nB] = 1.;
+      nB++;
+    } else {
+      inds_R[nR] = i+sNp;
+      vals_R[nR] = 1.;
+      nR++;
+    }    
+  }
+  Red.write(nR, inds_R, vals_R);
+  Blk.write(nB, inds_B, vals_B);
+  
+//  Red.print();
+//  Blk.print();
+  
+  double omega = .66667;
   //20 iterations of Jacobi, should probably be a parameter or some convergence check instead
   for (int i=0; i<nsm; i++){
     jacobi_spmv.start();
+    x1["i"] = -omega*A["ij"]*x["j"];
+    jacobi_spmv.stop();
+    x1["i"] *= d["i"];
+    x1["i"] += x["i"];
+    x1["i"] += omega*d["i"]*b["i"];
+    x["i"] *= Red["i"];
+    x["i"] += Blk["i"]*x1["i"];
+
+    jacobi_spmv.start();
+    x1["i"] = -omega*A["ij"]*x["j"];
+    jacobi_spmv.stop();
+    x1["i"] *= d["i"];
+    x1["i"] += x["i"];
+    x1["i"] += omega*d["i"]*b["i"];
+    x["i"] *= Blk["i"];
+    x["i"] += Red["i"]*x1["i"];
+
+//    x["i"] *= .333;
+/*    jacobi_spmv.start();
     x1["i"] = -1.*R["ij"]*x["j"];
     jacobi_spmv.stop();
     x1["i"] += b["i"];
     x1["i"] *= d["i"];
     x["i"] *= .333;
-    x["i"] += .667*x1["i"];
-/*    Vector<> r(b);
+    x["i"] += .667*x1["i"];*/
+#ifdef ERR_REPORT
+    Vector<> r(b);
     r["i"] -= A["ij"]*x["j"];
     double rnorm = r.norm2();
-    printf("r norm is %E\n",rnorm);*/
+//    printf("r norm is %E\n",rnorm);
+#endif
   }
   jacobi.stop();
 }
 
-void setup(Matrix<> & A, Matrix<> * T, int n, int nlevel, Matrix<> * P, Matrix<> * PTAP){
-  if (nlevel == 0) return;
-  int64_t m = T[0].lens[1];
-  P[0] = Matrix<>(n, m, SP, *T[0].wrld);
-  Matrix<> D(n,n,SP,*A.wrld);
-  D["ii"] = A["ii"];
-  double omega=.666;
-  Transform<>([=](double & d){ d= omega/d; })(D["ii"]);
-  Timer trip("triple_matrix_product_to_form_T");
-  trip.start();
-  Matrix<> R(A);
-  R["ii"] = 0.0;
-  P[0]["ik"] = R["ij"]*T[0]["jk"];
-  Matrix<> F(P[0]);
-  P[0]["ik"] = D["il"]*F["lk"];
-//  P[0].print();
-  trip.stop();
-  P[0]["ij"] += (1.-omega)*T[0]["ij"];
-  
-  int atr = 0;
-  if (A.is_sparse){ 
-    atr = atr | SP;
-  }
-  Matrix<> AP(n, m, atr, *A.wrld);
-  PTAP[0] = Matrix<>(m, m, atr, *A.wrld);
- 
-  Timer trip2("triple_matrix_product_to_form_PTAP");
-  trip2.start();
-  //restrict A via triple matrix product, should probably be done outside v-cycle
-  AP["lj"] = A["lk"]*P[0]["kj"];
-  PTAP[0]["ij"] = P[0]["li"]*AP["lj"];
-//  PTAP[0].print();
-
-  trip2.stop();
-  setup(PTAP[0], T+1, m, nlevel-1, P+1, PTAP+1);
-}
-
-void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * P, Matrix<> * PTAP, int64_t n, int nlevel, int * nsm){
+void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * P, Matrix<> * PTAP, int64_t N, int nlevel, int * nsm){
   //do smoothing using Jacobi
   char tlvl_name[] = {'l','v','l',(char)('0'+nlevel),'\0'};
   Timer tlvl(tlvl_name);
   tlvl.start();
-  Vector<> r(b);
-/*  r["i"] -= A["ij"]*x["j"];
-  double rnorm0 = r.norm2();*/
-  smooth_jacobi(A,x,b,nsm[0]);
+  Vector<> r(N,*A.wrld,"r");
+#ifdef ERR_REPORT
+  r["i"] -= A["ij"]*x["j"];
+//  r.print();
+  r["i"] += b["i"];
+//  r.print();
+//  b.print();
+//  return;
+  double rnorm0 = r.norm2();
+#endif
+#ifdef ERR_REPORT
+  if (A.wrld->rank == 0) printf("At level %d residual norm was %1.2E initially\n",nlevel,rnorm0);
+#endif
+  if (N==1){
+    x["i"] = Function<>([](double a, double b){ return b/a; })(A["ij"],b["j"]);
+  } else {
+    smooth_jacobi(A,x,b,nsm[0]);
+  }
 //  r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
   double rnorm = r.norm2();
-  if (x.wrld->rank == 0) printf("At level %d, n=%ld residual norm was %1.2E after initial smooth\n",nlevel,n,rnorm);
   if (nlevel == 0){
-    /*if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E initially\n",nlevel,rnorm0);
-    if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E after smooth\n",nlevel,rnorm);*/
+#ifdef ERR_REPORT
+    if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E initially\n",nlevel,rnorm0);
+    if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E after smooth\n",nlevel,rnorm);
+#endif
     return; 
   }
   int64_t m = P[0].lens[1];
@@ -97,7 +136,7 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * P, Matrix<> * P
   Timer rstr("restriction");
   rstr.start();
 
-  double nm = (double)n/m;
+  double nm = (double)N/m;
   //restrict residual vector
   Vector<> PTr(m, *x.wrld);
   PTr["i"] += P[0]["ji"]*r["j"];
@@ -113,35 +152,97 @@ void vcycle(Matrix<> & A, Vector<> & x, Vector<> & b, Matrix<> * P, Matrix<> * P
   //interpolate solution to residual equation at coraser level back
   x["i"] += P[0]["ij"]*zx["j"]; 
  
-  //smooth new solution
-  smooth_jacobi(A,x,b,nsm[0]);
-/*  r["i"] = b["i"];
-  r["i"] -= A["ij"]*x["j"];
-  double rnorm2 = r.norm2();
-  tlvl.stop();
+#ifdef ERR_REPORT
   r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
-  double rnorm3 = r.norm2();*/
-  //if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E initially\n",nlevel,rnorm0);
-//  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after coarse recursion\n",nlevel,rnorm2);
-  //if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after final smooth\n",nlevel,rnorm3);
+  double rnorm2 = r.norm2();
+#endif
+  //smooth new solution
+  smooth_jacobi(A,x,b,nsm[0]);
+  tlvl.stop();
+#ifdef ERR_REPORT
+  r["i"] = b["i"];
+  r["i"] -= A["ij"]*x["j"];
+  double rnorm3 = r.norm2();
+  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E initially\n",nlevel,rnorm0);
+  if (x.wrld->rank == 0) printf("At level %d, n=%ld residual norm was %1.2E after initial smooth\n",nlevel,N,rnorm);
+  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after coarse recursion\n",nlevel,rnorm2);
+  if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after final smooth\n",nlevel,rnorm3);
+#endif
+}
+
+
+void setup(Matrix<> & A, Matrix<> * T, int N, int nlevel, Matrix<> * P, Matrix<> * PTAP){
+  if (nlevel == 0) return;
+
+  char slvl_name[] = {'s','l','v','l',(char)('0'+nlevel),'\0'};
+  Timer slvl(slvl_name);
+  slvl.start();
+  int64_t m = T[0].lens[1];
+  P[0] = Matrix<>(N, m, SP, *T[0].wrld);
+  Matrix<> D(N,N,SP,*A.wrld);
+  D["ii"] = A["ii"];
+  double omega=.666;
+  Transform<>([=](double & d){ d= omega/d; })(D["ii"]);
+  Timer trip("triple_matrix_product_to_form_T");
+  trip.start();
+//  Matrix<> R(A);
+//  R["ii"] = 0.0;
+  Matrix<> F(P[0]);
+  F["ik"] = A["ij"]*T[0]["jk"];
+  P[0]["ik"] = D["il"]*F["lk"];
+//  P[0].print();
+  trip.stop();
+  //P[0]["ij"] += (1.-omega)*T[0]["ij"];
+  P[0]["ij"] += T[0]["ij"];
+  
+  int atr = 0;
+  if (A.is_sparse){ 
+    atr = atr | SP;
+  }
+  Matrix<> AP(N, m, atr, *A.wrld);
+  PTAP[0] = Matrix<>(m, m, atr, *A.wrld);
+ 
+  Timer trip2("triple_matrix_product_to_form_PTAP");
+  trip2.start();
+  //restrict A via triple matrix product, should probably be done outside v-cycle
+  AP["lj"] = A["lk"]*P[0]["kj"];
+  PTAP[0]["ij"] = P[0]["li"]*AP["lj"];
+//  PTAP[0].print();
+
+  trip2.stop();
+  slvl.stop();
+  setup(PTAP[0], T+1, m, nlevel-1, P+1, PTAP+1);
 }
 
 /**
  * \brief computes Multigrid for a 3D regular discretization
  */
-int test_alg_multigrid(int64_t    n,
+int test_alg_multigrid(int64_t    N,
                        int        nlvl,
                        int *      nsm,
                        Matrix<> & A,
                        Vector<> & b,
                        Matrix<> * P,
                        Matrix<> * PTAP){
-
-  Vector<> x(n, *A.wrld);
+//  A.print_matrix();
+  Vector<> x(N, *A.wrld, "x");
   srand48(A.wrld->rank*13);
   //x.fill_random(-1./n/n, 1./n/n);
  // x["i"] = (1./n)/n;
+
+/*  int64_t * inds;
+  int64_t nloc;
+  double * vals;
+  x.read_local(&nloc, &inds, &vals);
+  int64_t n=1;
+  while (n*n*n< N) n++;
+  for (int64_t i=0; i<nloc; i++){
+    //double h = 2./n;
+    int n1 = n+1;
+    double h = 1./(n1);
+  }
+  x.write(nloc,inds,vals);*/
 
 
   //x.fill_random(-1.E-1, 1.E-1);
@@ -153,7 +254,7 @@ int test_alg_multigrid(int64_t    n,
   Timer_epoch vc("vcycle");
   vc.begin();
   double st_time = MPI_Wtime();
-  vcycle(A, x, b, P, PTAP, n, nlvl, nsm);
+  vcycle(A, x, b, P, PTAP, N, nlvl, nsm);
   double vtime = MPI_Wtime()-st_time;
   vc.end();
 
@@ -172,7 +273,7 @@ int test_alg_multigrid(int64_t    n,
 
   if (A.wrld->rank == 0){
 #ifndef TEST_SUITE
-    printf("Algebraic multigrid with n %ld nlvl %d took %lf seconds, fine-grid only err = %E, multigrid err = %E\n",n,nlvl,vtime,rnorm_alt,rnorm); 
+    printf("Algebraic multigrid with n %ld nlvl %d took %lf seconds, fine-grid only err = %E, multigrid err = %E\n",N,nlvl,vtime,rnorm_alt,rnorm); 
 #endif
     if (pass) 
       printf("{ algebraic multigrid method } passed \n");
@@ -267,7 +368,6 @@ void setup_unstructured(int64_t     n,
   ve.begin();
   setup(A, T, n3, nlvl, P, PTAP);
   ve.end();
-//  P=T;
 }
 
 
@@ -346,7 +446,6 @@ void setup_3d_Poisson(int64_t     n,
       }
     }
     T[i].write(nel, pairs);
-    //T[i].print();
     free(pairs);
     m = m2;
   }
@@ -453,20 +552,28 @@ int main(int argc, char ** argv){
     Matrix<> A;
     Matrix<> * P;
     Matrix<> * PTAP;
-    Vector<> b(n*n*n,dw);
+    Vector<> b(n*n*n,dw,"b");
     if (poi){
       setup_3d_Poisson(n, nlvl, ndiv, A, P, PTAP, dw);
       int64_t * inds;
       int64_t nloc;
       double * vals;
       b.read_local(&nloc, &inds, &vals);
+      int n1 = n+1;
+      double h = 1./(n1);
       for (int64_t i=0; i<nloc; i++){
-        vals[i] = sin(((double)((inds[i]/(n*n))+1.01*((inds[i]/n)%n)+1.02*(inds[i]%n)))*4./n)/n/n;
-        //vals[i] = ((double)((inds[i]/(n*n))+1.01*((inds[i]/n)%n)+1.02*(inds[i]%n)))*10./n;
+        vals[i] = (1./(n1))*(1./(n1))*sin(h*M_PI*(1+(inds[i]/(n*n))))*sin(h*M_PI*(1+((inds[i]/n)%n)))*sin(h*M_PI*(1+(inds[i]%n)));
       }
       b.write(nloc,inds,vals);
-//      b.print();
- //     b["i"] = (1./n)/n;
+      for (int64_t i=0; i<nloc; i++){
+        vals[i] = (1./(3.*M_PI*M_PI))*sin(h*M_PI*(1+(inds[i]/(n*n))))*sin(h*M_PI*(1+((inds[i]/n)%n)))*sin(h*M_PI*(1+(inds[i]%n)));
+      }
+      Vector<> x_t(n*n*n,dw,"x_t");
+      x_t.write(nloc,inds,vals);
+      x_t["i"] = A["ij"]*x_t["j"];
+      x_t["i"] -= b["i"];
+      double tnorm = x_t.norm2();
+      if (dw.rank == 0) printf("Truncation error norm is %1.2E\n",tnorm);
     } else {
       setup_unstructured(n, nlvl, sp_frac, ndiv, decay_exp, A, P, PTAP, dw);
       b.fill_random(-1.E-1, 1.E-1);
