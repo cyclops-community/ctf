@@ -52,6 +52,13 @@ namespace CTF_int {
 #include "pmpi.h"
 #include "fompi_wrapper.h"
 
+#ifndef __APPLE__
+#ifndef OMP_OFF
+#define USE_OMP
+#include "omp.h"
+#endif
+#endif
+
 namespace CTF_int {
 
 
@@ -125,13 +132,6 @@ namespace CTF_int {
         break; \
     }
 
-
-  #ifndef __APPLE__
-  #ifndef OMP_OFF
-  #define USE_OMP
-  #include "omp.h"
-  #endif
-  #endif
 
   #define CTF_COUNT_FLOPS
   #ifdef CTF_COUNT_FLOPS
