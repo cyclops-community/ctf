@@ -711,7 +711,7 @@ namespace CTF {
   inline void Tensor<double>::fill_random(double rmin, double rmax){
     assert(!is_sparse);
     for (int64_t i=0; i<size; i++){
-      ((double*)data)[i] = drand48()*(rmax-rmin)+rmin;
+      ((double*)data)[i] = CTF_int::get_rand48()*(rmax-rmin)+rmin;
     }
     zero_out_padding();
   }
@@ -720,7 +720,7 @@ namespace CTF {
   inline void Tensor<int>::fill_random(int rmin, int rmax){
     assert(!is_sparse);
     for (int64_t i=0; i<size; i++){
-      ((int*)data)[i] = ((rand())%(rmax-rmin))+rmin;
+      ((int*)data)[i] = CTF_int::get_rand48()*(rmax-rmin)+rmin;
     }
     zero_out_padding();
   }
@@ -740,8 +740,8 @@ namespace CTF {
     pairs.reserve(size*frac_sp);
     int64_t npairs=0;
     for (int64_t i=wrld->rank; i<tot_sz; i+=wrld->np){
-      if (drand48() < frac_sp){
-        pairs.push_back(Pair<double>(i,drand48()*(rmax-rmin)+rmin));
+      if (CTF_int::get_rand48() < frac_sp){
+        pairs.push_back(Pair<double>(i,CTF_int::get_rand48()*(rmax-rmin)+rmin));
         npairs++;
       }
     }

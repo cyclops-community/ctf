@@ -60,6 +60,19 @@ namespace CTF {
 
 
 namespace CTF_int {
+  /**
+   * \brief initialized random number generator
+   * \param[in] rank processor index
+   */
+  void init_rng(int rank);
+
+  /**
+   * \brief returns new random number in [0,1)
+   */
+  double get_rand48();
+
+
+
   void handler();
   #define IASSERT(...)                \
   do { if (!(__VA_ARGS__)){ int rank; MPI_Comm_rank(MPI_COMM_WORLD,&rank); if (rank == 0){ printf("CTF ERROR: %s:%d, ASSERT(%s) failed\n",__FILE__,__LINE__,#__VA_ARGS__); } CTF_int::handler(); assert(__VA_ARGS__); } } while (0)

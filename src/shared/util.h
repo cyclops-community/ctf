@@ -64,8 +64,6 @@ namespace CTF_int {
 #include "fompi_wrapper.h"
 
 namespace CTF_int {
-
-
   //max total virtualization factor for mappings
   #define MAX_NVIRT 256
   //min total virtualization factor for mappings 

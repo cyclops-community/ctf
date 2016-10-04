@@ -8,6 +8,23 @@ namespace CTF {
 }
 
 namespace CTF_int {
+  std::mersenne_twister_engine<std::uint_fast64_t, 64, 312, 156, 31,
+                               0xb5026f5aa96619e9, 29,
+                               0x5555555555555555, 17,
+                               0x71d67fffeda60000, 37,
+                               0xfff7eee000000000, 43, 6364136223846793005> rng;
+
+ 
+  void init_rng(int rank){
+    rng.seed(rank);
+  }
+
+  double get_rand48(){
+    return ((double)rng()-(double)rng.min())/rng.max();
+  }
+
+
+
   //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
   LinModel<3> alltoall_mdl(alltoall_mdl_init,"alltoall_mdl");
   LinModel<3> alltoallv_mdl(alltoallv_mdl_init,"alltoallv_mdl");

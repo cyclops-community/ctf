@@ -329,7 +329,7 @@ namespace CTF_int {
     } else {
       this->name = (char*)alloc(7*sizeof(char));
       for (int i=0; i<4; i++){
-        this->name[i] = 'A'+(rand()%26);
+        this->name[i] = 'A'+(wrld->glob_wrld_rng()%26);
       }
       this->name[4] = '0'+(order_/10);
       this->name[5] = '0'+(order_%10);

@@ -141,6 +141,7 @@ namespace CTF {
       is_copy = true;
     } else {
       is_copy = false;
+      glob_wrld_rng.seed(CTF_int::get_num_instances());
       MPI_Comm_rank(comm, &rank);
       MPI_Comm_size(comm, &np);
       if (phys_topology == NULL){
@@ -161,6 +162,18 @@ namespace CTF {
   #ifdef OFFLOAD
       offload_init();
   #endif
+      int all_np;
+      MPI_Comm_rank(MPI_COMM_WORLD, &all_np);
+      if (all_np != np){
+        if (rank == 0){
+          printf("CTF ERROR: the first CTF instance created has to be on MPI_COMM_WORLD\n");
+          fflush(stdout);
+        }
+        MPI_Barrier(comm);
+        ASSERT(0);
+      } 
+      init_rng(rank);
+  
       CTF::set_context(cdt.cm);
       CTF::set_main_args(argc, argv);
 
