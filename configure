@@ -484,6 +484,7 @@ if [ $status = 1 ]; then
   echo
   DEFS="$DEFS -D_DARWIN_C_SOURCE"
   CXX="$CXX -std=c++0x"
+  FRAMEWORK_ACCELERATE=1
 else
   echo -n 'no.'
   echo
@@ -585,6 +586,10 @@ else
         echo 'BLAS library was not specified, using -mkl.'
         BLASLIBS=-mkl
         DEFS="$DEFS -DUSE_SP_MKL=1"
+      elif [ "x$FRAMEWORK_ACCELERATE" != "x" ]; then
+        UNDERSCORE=0
+        echo 'BLAS library was not specified, using -framework Accelerate (without underscores).'
+        BLASLIBS="-framework Accelerate"
       elif testlink -lblas dgemm_ 0; then
         UNDERSCORE=1
         echo 'BLAS library was not specified, using -lblas (with underscores).'
