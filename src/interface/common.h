@@ -60,7 +60,30 @@ namespace CTF {
 
 
 namespace CTF_int {
-  
+  void handler();
+  #define IASSERT(...)                \
+  do { if (!(__VA_ARGS__)){ int rank; MPI_Comm_rank(MPI_COMM_WORLD,&rank); if (rank == 0){ printf("CTF ERROR: %s:%d, ASSERT(%s) failed\n",__FILE__,__LINE__,#__VA_ARGS__); } CTF_int::handler(); assert(__VA_ARGS__); } } while (0)
+
+  /**
+   * \brief computes the size of a tensor in SY (NOT HOLLOW) packed symmetric layout
+   * \param[in] order tensor dimension
+   * \param[in] len tensor edge _elngths
+   * \param[in] sym tensor symmetries
+   * \return size of tensor in packed layout
+   */
+  int64_t sy_packed_size(int order, const int* len, const int* sym);
+
+
+  /**
+   * \brief computes the size of a tensor in packed symmetric (SY, SH, or AS) layout
+   * \param[in] order tensor dimension
+   * \param[in] len tensor edge _elngths
+   * \param[in] sym tensor symmetries
+   * \return size of tensor in packed layout
+   */
+  int64_t packed_size(int order, const int* len, const int* sym);
+
+
   enum { SUCCESS, ERROR, NEGATIVE };
 
   template <typename type=char>

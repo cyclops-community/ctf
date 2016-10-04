@@ -9,7 +9,7 @@ namespace CTF {
 
   template<typename dtype>
   Tensor<dtype>::Tensor() : CTF_int::tensor() { 
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
 
@@ -22,7 +22,7 @@ namespace CTF {
                         bool                      profile,
                         CTF_int::algstrct const & sr)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
   template<typename dtype>
@@ -34,7 +34,7 @@ namespace CTF {
                         char const *              name,
                         bool                      profile)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile) {
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
 
@@ -48,7 +48,7 @@ namespace CTF {
                         char const *              name,
                         bool                      profile)
     : CTF_int::tensor(&sr, order, len, sym, &world, 1, name, profile, is_sparse) {
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
   template<typename dtype>
@@ -60,7 +60,7 @@ namespace CTF {
                         char const *              name,
                         bool                      profile)
     : CTF_int::tensor(&sr, order, len, NULL, &world, 1, name, profile, is_sparse) {
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
 
@@ -72,7 +72,7 @@ namespace CTF {
                         char const *              name,
                         bool                      profile)
     : CTF_int::tensor(&sr, order, len, NULL, &world, 1, name, profile) {
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
 
@@ -88,7 +88,7 @@ namespace CTF {
                         bool                      profile,
                         CTF_int::algstrct const & sr_)
     : CTF_int::tensor(&sr_, order, 0, len, sym, &world, idx, prl, blk, name, profile) { 
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
   template<typename dtype>
@@ -104,7 +104,7 @@ namespace CTF {
                         bool                      profile,
                         CTF_int::algstrct const & sr_)
     : CTF_int::tensor(&sr_, order, is_sparse_, len, sym, &world, idx, prl, blk, name, profile) { 
-    ASSERT(sizeof(dtype)==this->sr->el_size);
+    IASSERT(sizeof(dtype)==this->sr->el_size);
   }
 
 
@@ -133,7 +133,7 @@ namespace CTF {
 
   template<typename dtype>
   Typ_Idx_Tensor<dtype> Tensor<dtype>::operator[](const char * idx_map_){
-    //ASSERT(strlen(idx_map_)==order);
+    //IASSERT(strlen(idx_map_)==order);
     Typ_Idx_Tensor<dtype> idxtsr(this, idx_map_);
     return idxtsr;
   }
@@ -842,7 +842,7 @@ namespace CTF {
 /*    int64_t size;
     dtype* raw = get_raw_data(&size);
     //FIXME: Uuuuh, padding?
-    ASSERT(0);
+    IASSERT(0);
     std::fill(raw, raw+size, val);*/
     return *this;
   }

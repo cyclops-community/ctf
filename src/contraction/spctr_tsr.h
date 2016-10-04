@@ -49,7 +49,7 @@ namespace CTF_int{
       virtual void run(char * A, int nblk_A, int64_t const * size_blk_A,
                        char * B, int nblk_B, int64_t const * size_blk_B,
                        char * C, int nblk_C, int64_t * size_blk_C,
-                       char *& new_C) { ASSERT(0); }
+                       char *& new_C) { IASSERT(0); }
       spctr(contraction const * c);
   };
 

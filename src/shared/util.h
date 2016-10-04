@@ -8,6 +8,17 @@
 volatile static int64_t int64_t_max = INT64_MAX;
 
 #include <inttypes.h>
+#include <execinfo.h>
+#include <signal.h>
+
+#ifndef __APPLE__
+#ifndef OMP_OFF
+#define USE_OMP
+#include "omp.h"
+#endif
+#endif
+
+
 /*
 #if (defined(__X86_64__) || defined(__IA64__) || defined(__amd64__) || \
      defined(__ppc64__) || defined(_ARCH_PPC) || defined(BGQ) || defined(BGP))
@@ -71,7 +82,6 @@ namespace CTF_int {
   #endif
   #endif
 
-  void handler();
 
   #ifndef ASSERT
   #if ENABLE_ASSERT
@@ -126,13 +136,6 @@ namespace CTF_int {
     }
 
 
-  #ifndef __APPLE__
-  #ifndef OMP_OFF
-  #define USE_OMP
-  #include "omp.h"
-  #endif
-  #endif
-
   #define CTF_COUNT_FLOPS
   #ifdef CTF_COUNT_FLOPS
   #define CTF_FLOPS_ADD(n) CTF_int::flops_add(n)
@@ -159,8 +162,6 @@ namespace CTF_int {
   }
   #endif
 
-  #include <execinfo.h>
-  #include <signal.h>
   #define ABORT                                   \
     do{                                           \
     handler(); MPI_Abort(MPI_COMM_WORLD, -1); } while(0)
@@ -296,25 +297,6 @@ namespace CTF_int {
   void mem_create();
   void mst_create(int64_t size);
   void mem_exit(int rank);
-
-  /**
-   * \brief computes the size of a tensor in SY (NOT HOLLOW) packed symmetric layout
-   * \param[in] order tensor dimension
-   * \param[in] len tensor edge _elngths
-   * \param[in] sym tensor symmetries
-   * \return size of tensor in packed layout
-   */
-  int64_t sy_packed_size(int order, const int* len, const int* sym);
-
-
-  /**
-   * \brief computes the size of a tensor in packed symmetric (SY, SH, or AS) layout
-   * \param[in] order tensor dimension
-   * \param[in] len tensor edge _elngths
-   * \param[in] sym tensor symmetries
-   * \return size of tensor in packed layout
-   */
-  int64_t packed_size(int order, const int* len, const int* sym);
 
 
   /*

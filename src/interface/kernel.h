@@ -206,7 +206,7 @@ namespace CTF{
                       int             nnz_A,
                       dtype_B const * B,
                       dtype_C *       C){
-      TAU_FSTART(default_fcoomm);
+      //TAU_FSTART(default_fcoomm);
       for (int i=0; i<nnz_A; i++){
         int row_A = rows_A[i]-1;
         int col_A = cols_A[i]-1;
@@ -214,7 +214,7 @@ namespace CTF{
           g(f(A[i],B[col_C*k+col_A]),C[col_C*m+row_A]);
         }
       }
-      TAU_FSTOP(default_fcoomm);
+      //TAU_FSTOP(default_fcoomm);
     }
 
     void ccoomm(int          m,
@@ -239,7 +239,7 @@ namespace CTF{
                       int64_t         nnz_A,
                       dtype_B const * B,
                       dtype_C *       C){
-      TAU_FSTART(3type_csrmm);
+      //TAU_FSTART(3type_csrmm);
 #ifdef _OPENMP
       #pragma omp parallel for
 #endif
@@ -254,7 +254,7 @@ namespace CTF{
           }
         }
       }
-      TAU_FSTOP(3type_csrmm);
+      //TAU_FSTOP(3type_csrmm);
     }
     void cgemm(char         tA,
                char         tB,
@@ -534,12 +534,12 @@ namespace CTF{
                              dtype_C *       C){
 #ifdef __CUDACC__
 #ifdef PROFILE_CUGEMM
-      TAU_FSTART(3type_cugemm);
+      //TAU_FSTART(3type_cugemm);
 #endif
       cuda_gemmf<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(tA, tB, m, n, k, A, B, C);
 #ifdef PROFILE_CUGEMM
       cudaDeviceSynchronize();
-      TAU_FSTOP(3type_cugemm);
+      //TAU_FSTOP(3type_cugemm);
 #endif
 #else
       assert(0);
@@ -578,12 +578,12 @@ namespace CTF{
                         char *       C) const {
 #ifdef __CUDACC__
 #ifdef PROFILE_CUGEMM
-      TAU_FSTART(3type_cucsrmm);
+      //TAU_FSTART(3type_cucsrmm);
 #endif
       offload_csrmm<dtype_A,dtype_B,dtype_C,f,g><<<NBLK,NTRD>>>(m, n, k, all_data, (dtype_B const *)B, (dtype_C *)C);
 #ifdef PROFILE_CUGEMM
       cudaDeviceSynchronize();
-      TAU_FSTOP(3type_cucsrmm);
+      //TAU_FSTOP(3type_cucsrmm);
 #endif
 #else
       assert(0);

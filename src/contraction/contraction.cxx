@@ -4013,7 +4013,7 @@ namespace CTF_int {
       delete new_tsr;
       return stat;
     }
-    for (int i=0; i<A->order; i++){
+/*    for (int i=0; i<A->order; i++){
       int iA = idx_A[i];
       bool has_match = false;
       for (int j=0; j<B->order; j++){
@@ -4022,7 +4022,7 @@ namespace CTF_int {
       for (int j=0; j<C->order; j++){
         if (idx_C[j] == iA) has_match = true;
       }
-      /*if (false && !has_match){
+      if (false && !has_match){
         int new_len[A->order-1];
         int new_sym[A->order-1];
         int new_idx[A->order-1];
@@ -4045,8 +4045,8 @@ namespace CTF_int {
         ctr.execute();
         delete new_tsr;
         return SUCCESS;
-      }*/
-    }
+      }
+    }*/
 
 
 //    ASSERT(!C->is_sparse);
@@ -4156,9 +4156,7 @@ namespace CTF_int {
     MPI_Barrier(global_comm.cm);
     TAU_FSTOP(pre_map_barrier);
   #endif
-    bool keep_map = 1;
   #if REDIST
-    keep_map = 0;
     //stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
     stat = map(&ctrf);
     if (stat == ERROR) {
@@ -4167,14 +4165,12 @@ namespace CTF_int {
     }
   #else
     if (check_mapping() != 0) {
-      keep_map = 1;
       /* Construct the tensor algorithm we would like to use */
   #if DEBUG >= 1
       if (global_comm.rank == 0)
         printf("Keeping mappings:\n");
   #endif
     } else {
-      keep_map=0;
   #if DEBUG >= 1
       if (global_comm.rank == 0){
         printf("Initial mappings are unsuitable mappings:\n");

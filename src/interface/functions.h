@@ -223,7 +223,7 @@ namespace CTF {
                  dtype_B const *  B,
                  dtype_C *        C,
                  CTF_int::algstrct const * sr_C) const {
-        TAU_FSTART(3type_csrmm);
+        //TAU_FSTART(3type_csrmm);
   #ifdef _OPENMP
         #pragma omp parallel for
   #endif
@@ -240,7 +240,7 @@ namespace CTF {
             }
           }
         }
-        TAU_FSTOP(3type_csrmm);
+        //TAU_FSTOP(3type_csrmm);
       }
 
 

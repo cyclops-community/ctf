@@ -127,12 +127,12 @@ namespace CTF_int {
 #if USE_SP_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
-    TAU_FSTART(MKL_DCOOMM);
+    //TAU_FSTART(MKL_DCOOMM);
     CTF_BLAS::MKL_DCOOMM(&transa, &m, &n, &k, &alpha,
                matdescra, (double*)A, rows_A, cols_A, &nnz_A,
                (double*)B, &k, &beta,
                (double*)C, &m);
-    TAU_FSTOP(MKL_DCOOMM);
+    //TAU_FSTOP(MKL_DCOOMM);
 #else
     DEF_COOMM_KERNEL();
 #endif
@@ -223,7 +223,7 @@ namespace CTF_int {
                   dtype const * B,
                   dtype         beta,
                   dtype *       C){
-    TAU_FSTART(muladd_csrmm);
+    //TAU_FSTART(muladd_csrmm);
 #ifdef USE_OMP
     #pragma omp parallel for
 #endif
@@ -245,7 +245,7 @@ namespace CTF_int {
         }
       }
     }
-    TAU_FSTOP(muladd_csrmm);
+    //TAU_FSTOP(muladd_csrmm);
   }
 
   template<typename dtype>
@@ -262,7 +262,7 @@ namespace CTF_int {
                   int const *   IB,
                   int           nnz_B,
                   dtype *       C){
-    TAU_FSTART(muladd_csrmultd);
+    //TAU_FSTART(muladd_csrmultd);
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
@@ -275,7 +275,7 @@ namespace CTF_int {
         }
       }
     }
-    TAU_FSTOP(muladd_csrmultd);
+    //TAU_FSTOP(muladd_csrmultd);
   }
 #endif
 }
@@ -321,9 +321,9 @@ namespace CTF {
 #if USE_SP_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
-    TAU_FSTART(MKL_DCSRMM);
+    //TAU_FSTART(MKL_DCSRMM);
     CTF_BLAS::MKL_DCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
-    TAU_FSTOP(MKL_DCSRMM);
+    //TAU_FSTOP(MKL_DCSRMM);
 #else
     CTF_int::muladd_csrmm<double>(m,n,k,alpha,A,JA,IA,nnz_A,B,beta,C);
 #endif
@@ -394,7 +394,6 @@ namespace CTF {
                   int            nnz_B, \
                   dtype          beta, \
                   dtype *        C) const { \
-    TAU_FSTART(csrmultd); \
     if (alpha == this->taddid){ \
       if (beta != this->tmulid) \
         CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
@@ -402,22 +401,17 @@ namespace CTF {
     } \
     char transa = 'N'; \
     if (beta == this->taddid){ \
-      TAU_FSTART(MKL_name); \
       CTF_BLAS::MKL_name(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, C, &m); \
-      TAU_FSTOP(MKL_name); \
       if (alpha != this->tmulid) \
         CTF_int::default_scal<dtype>(m*n, alpha, C, 1); \
     } else { \
       dtype * tmp_C_buf = (dtype*)alloc(sizeof(dtype)*m*n); \
-      TAU_FSTART(MKL_name); \
       CTF_BLAS::MKL_name(&transa, &m, &k, &n, A, JA, IA, B, JB, IB, tmp_C_buf, &m); \
-      TAU_FSTOP(MKL_name); \
       if (beta != this->tmulid) \
         CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
       CTF_int::default_axpy<dtype>(m*n, alpha, tmp_C_buf, 1, C, 1); \
       cdealloc(tmp_C_buf); \
     } \
-    TAU_FSTOP(csrmultd); \
   }
 #else 
   #define CSR_MULTD_DEF(dtype,is_ord,MKL_name) \
@@ -437,7 +431,6 @@ namespace CTF {
                   int           nnz_B, \
                   dtype         beta, \
                   dtype *       C) const { \
-    TAU_FSTART(csrmultd); \
     if (alpha == this->taddid){ \
       if (beta != this->tmulid) \
         CTF_int::default_scal<dtype>(m*n, beta, C, 1); \
@@ -450,7 +443,6 @@ namespace CTF {
     if (alpha != this->tmulid){ \
       CTF_int::default_scal<dtype>(m*n, alpha, C, 1); \
     } \
-    TAU_FSTOP(csrmultd); \
   } 
 #endif
 
@@ -486,7 +478,6 @@ namespace CTF {
     int sort = 1;  \
     int req = 1; \
     int info; \
-    TAU_FSTART(mkl_csrmultcsr) \
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info); \
  \
     CSR_Matrix C_add(new_ic[m]-1, m, n, sizeof(dtype)); \
@@ -494,7 +485,6 @@ namespace CTF {
     cdealloc(new_ic); \
     req = 2; \
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, (dtype*)C_add.vals(), C_add.JA(), C_add.IA(), &req, &info); \
-    TAU_FSTOP(mkl_csrmultcsr) \
  \
     if (beta == this->taddid){ \
       C_CSR = C_add.all_data; \
@@ -532,9 +522,7 @@ namespace CTF {
                       int           nnz_B, \
                       dtype         beta, \
                       char *&       C_CSR) const { \
-    TAU_FSTART(gen_csrmultcsr) \
     this->gen_csrmultcsr(m,n,k,alpha,A,JA,IA,nnz_A,B,JB,IB,nnz_B,beta,C_CSR); \
-    TAU_FSTOP(gen_csrmultcsr) \
   }
 #endif
 

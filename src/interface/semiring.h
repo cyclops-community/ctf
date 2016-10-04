@@ -78,7 +78,7 @@ namespace CTF_int {
                     dtype *       C){
     int i,j,l;
     int istride_A, lstride_A, jstride_B, lstride_B;
-    TAU_FSTART(default_gemm);
+    //TAU_FSTART(default_gemm);
     if (tA == 'N' || tA == 'n'){
       istride_A=1; 
       lstride_A=m; 
@@ -101,7 +101,7 @@ namespace CTF_int {
         }
       }
     }
-    TAU_FSTOP(default_gemm);
+    //TAU_FSTOP(default_gemm);
   }
 
   template<>
@@ -177,7 +177,7 @@ namespace CTF_int {
                   dtype const * B,
                   dtype         beta,
                   dtype *       C){
-    TAU_FSTART(default_coomm);
+    //TAU_FSTART(default_coomm);
     for (int j=0; j<n; j++){
       for (int i=0; i<m; i++){
         C[j*m+i] *= beta;
@@ -190,7 +190,7 @@ namespace CTF_int {
          C[col_C*m+row_A] += alpha*A[i]*B[col_C*k+col_A];
       }
     }
-    TAU_FSTOP(default_coomm);
+    //TAU_FSTOP(default_coomm);
   }
 
   template <>
@@ -376,7 +376,7 @@ namespace CTF {
                 char *       C)  const {
         if (fgemm != NULL) fgemm(tA, tB, m, n, k, ((dtype const *)alpha)[0], (dtype const *)A, (dtype const *)B, ((dtype const *)beta)[0], (dtype *)C);
         else {
-          TAU_FSTART(sring_gemm);
+          //TAU_FSTART(sring_gemm);
           dtype const * dA = (dtype const *) A;
           dtype const * dB = (dtype const *) B;
           dtype * dC       = (dtype*) C;
@@ -422,7 +422,7 @@ namespace CTF {
               }
             }
           }
-          TAU_FSTOP(sring_gemm);
+          //TAU_FSTOP(sring_gemm);
         } 
       }
 
@@ -437,7 +437,7 @@ namespace CTF {
                         char const * beta,
                         char *       C) const {
         printf("CTF ERROR: offload gemm not present for this semiring\n");
-        ASSERT(0);
+        assert(0);
       }
 
       bool is_offloadable() const {
@@ -451,7 +451,7 @@ namespace CTF {
           return;
         }
         if (func == NULL && alpha != NULL && this->isequal(beta,mulid())){
-          TAU_FSTART(func_coomm);
+          //TAU_FSTART(func_coomm);
           dtype const * dA = (dtype const*)A;
           dtype const * dB = (dtype const*)B;
           dtype * dC = (dtype*)C;
@@ -466,7 +466,7 @@ namespace CTF {
               dC[col_C*m+row_A] = this->fadd(fmul(a,fmul(dA[i],dB[col_C*k+col_A])), dC[col_C*m+row_A]);
             }
           }
-          TAU_FSTOP(func_coomm);
+          //TAU_FSTOP(func_coomm);
         } else { assert(0); }
       }
 

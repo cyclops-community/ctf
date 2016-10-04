@@ -4,7 +4,6 @@
 #define __CTR_TSR_H__
 
 #include "ctr_comm.h"
-#include "../shared/util.h"
 namespace CTF_int {
      
   class ctr_virt : public ctr {

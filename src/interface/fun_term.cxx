@@ -3,6 +3,7 @@
 #include "common.h"
 #include "../tensor/algstrct.h"
 #include "../scaling/scaling.h"
+#include "../shared/util.h"
 #include "functions.h"
 #include "idx_tensor.h"
 
