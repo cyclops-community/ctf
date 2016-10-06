@@ -7,7 +7,7 @@ Basic test process: sequential: 'make test', parallel: 'make test2'
 See examples/ directory to learn usage, or src/ directory to examine library source code.
 
 
-Links in documentation below redirect to Doxygen documentation hosted at http://solomon2.web.engr.illinois.edu/ctf
+Links in documentation below redirect to Doxygen documentation hosted at http://solomon2.web.engr.illinois.edu/ctf/index.html
 
 
 <html>

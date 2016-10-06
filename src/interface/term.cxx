@@ -600,7 +600,6 @@ namespace CTF_int {
         sr->safemul(op_B.scale, op_A.scale, op_A.scale);
         tmp_ops.push_back(op_A.clone());
       } else {
-        printf("HERE2\n");
         Idx_Tensor * intm = get_full_intm(op_A, op_B);
         sr->safemul(tscale, op_A.scale, tscale);
         sr->safemul(tscale, op_B.scale, tscale);

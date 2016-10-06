@@ -126,6 +126,7 @@ namespace CTF {
              char const *              name=NULL,
              int                       profile=0);
 
+      void print_matrix();
 
 //      Matrix<dtype> & operator=(const Matrix<dtype> & A);
   };
