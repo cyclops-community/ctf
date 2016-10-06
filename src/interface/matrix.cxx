@@ -20,8 +20,33 @@ namespace CTF_int{
 
 namespace CTF {
   template<typename dtype>
-  Matrix<dtype>::Matrix()
-    : Tensor<dtype>() {
+  Matrix<dtype>::Matrix(Matrix<dtype> const & A)
+    : Tensor<dtype>(A) {
+    nrow = A.nrow;
+    ncol = A.ncol;
+    symm = A.symm;
+  }
+
+  template<typename dtype>
+  Matrix<dtype>::Matrix(Tensor<dtype> const & A)
+    : Tensor<dtype>(A) {
+    ASSERT(A.order == 2);
+    nrow = A.lens[0];
+    ncol = A.lens[1];
+    switch (A.sym[0]){
+      case NS:
+        symm=NS;
+        break;
+      case SY:
+        symm=SY;
+        break;
+      case AS:
+        symm=AS;
+        break;
+      default:
+        IASSERT(0);
+        break;
+    }
   }
 
 
@@ -83,18 +108,6 @@ namespace CTF {
     ncol = ncol_;
     symm = atr_&3;
   }
-
-  template<typename dtype>
-  Matrix<dtype>::Matrix(const Matrix<dtype> & A) 
-    : Tensor<dtype>(A) {
-    nrow = A.nrow;
-    ncol = A.ncol;
-    symm = A.symm;
-/*    CTF_int::tensor::free_self();
-    CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile, A.is_sparse);
-    return *this;*/
-  }
-
 
 
   template<typename dtype>

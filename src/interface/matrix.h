@@ -30,6 +30,13 @@ namespace CTF {
        */
       Matrix<dtype>(Matrix<dtype> const & A);
 
+
+      /** 
+       * \brief casts a tensor to a matrix
+       * \param[in] A tensor object of order 2
+       */
+      Matrix<dtype>(Tensor<dtype> const & A);
+
       /**
        * \brief constructor for a matrix
        * \param[in] nrow number of matrix rows

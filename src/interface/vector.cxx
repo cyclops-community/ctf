@@ -16,6 +16,18 @@ namespace CTF_int {
   };
 }
 namespace CTF {
+  template<typename dtype>
+  Vector<dtype>::Vector(Vector<dtype> const & A)
+    : Tensor<dtype>(A) {
+    len = A.len;
+  }
+
+  template<typename dtype>
+  Vector<dtype>::Vector(Tensor<dtype> const & A)
+    : Tensor<dtype>(A) {
+    ASSERT(A.order == 1);
+    len = A.lens[0];
+  }
 
   template<typename dtype>
   Vector<dtype>::Vector(int                       len_,

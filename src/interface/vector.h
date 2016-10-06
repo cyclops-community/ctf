@@ -14,6 +14,18 @@ namespace CTF {
   class Vector : public Tensor<dtype> {
     public:
       int len;
+      /** 
+       * \brief copy constructor for a matrix
+       * \param[in] A matrix to copy along with its data
+       */
+      Vector<dtype>(Vector<dtype> const & A);
+
+      /** 
+       * \brief casts a tensor to a matrix
+       * \param[in] A tensor object of order 1
+       */
+      Vector<dtype>(Tensor<dtype> const & A);
+
       /**
        * \brief constructor for a vector
        * \param[in] len_ dimension of vector
