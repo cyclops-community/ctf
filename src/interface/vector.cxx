@@ -17,6 +17,9 @@ namespace CTF_int {
 }
 namespace CTF {
   template<typename dtype>
+  Vector<dtype>::Vector() : Tensor<dtype>() { }
+
+  template<typename dtype>
   Vector<dtype>::Vector(Vector<dtype> const & A)
     : Tensor<dtype>(A) {
     len = A.len;

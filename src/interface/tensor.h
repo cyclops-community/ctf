@@ -861,25 +861,22 @@ namespace CTF {
   
       /**
        * \brief fills local unique tensor elements to random values in the range [min,max]
-       *        currently only implemented for dense tensors of doubles using drand48()
-       *        does not produce a reproducible result across different numbers of processors
-       *        user must seed (seeds should be different on different ranks, to get a random tensor)
+       *        works only for dtype in {float,double,int,int64_t}, for others you can use Transform()
+       *        uses mersenne twister seeded every time a global world is created (reseeded if all worlds destroyed)
        * \param[in] rmin minimum random value
        * \param[in] rmax maximum random value
        */
       void fill_random(dtype rmin, dtype rmax);
-
   
       /**
-       * \brief generate roughly frac_sp*dense_tensor_size nonzeros between rmin and rmax, works only for dtype=dpuble
-       *        does not produce a reproducible result across different numbers of processors
-       *        user must seed (seeds should be different on different ranks, to get a random tensor)
+       * \brief generate roughly frac_sp*dense_tensor_size nonzeros between rmin and rmax, 
+       *        works only for dtype in {float,double,int,int64_t}, for others you can use Transform()
+       *        uses mersenne twister seeded every time a global world is created (reseeded if all worlds destroyed)
        * \param[in] rmin minimum random value
        * \param[in] rmax maximum random value
        * \param[in] frac_sp desired expected nonzero fraction
        */
       void fill_sp_random(dtype rmin, dtype rmax, double frac_sp);
-
 
       /**
        * \brief turns on profiling for tensor
@@ -915,6 +912,7 @@ namespace CTF {
       
       /**
        * \brief prints tensor data to file using process 0
+       *    (modify print(...) overload in set.h if you would like a different print format)
        * \param[in] fp file to print to e.g. stdout
        * \param[in] cutoff do not print values of absolute value smaller than this
        */

@@ -15,27 +15,24 @@ namespace CTF {
   class Matrix : public Tensor<dtype> {
     public:
       int nrow, ncol, symm;
-
-
       /** 
        * \brief default constructor for a matrix
-       * \param[in] A matrix to copy along with its data
        */
-      Matrix<dtype>();
+      Matrix();
 
 
       /** 
        * \brief copy constructor for a matrix
        * \param[in] A matrix to copy along with its data
        */
-      Matrix<dtype>(Matrix<dtype> const & A);
+      Matrix(Matrix<dtype> const & A);
 
 
       /** 
        * \brief casts a tensor to a matrix
        * \param[in] A tensor object of order 2
        */
-      Matrix<dtype>(Tensor<dtype> const & A);
+      Matrix(Tensor<dtype> const & A);
 
       /**
        * \brief constructor for a matrix
@@ -133,9 +130,10 @@ namespace CTF {
              char const *              name=NULL,
              int                       profile=0);
 
+      /**
+       * \brief prints matrix by row and column (modify print(...) overload in set.h if you would like a different print format)
+       */
       void print_matrix();
-
-//      Matrix<dtype> & operator=(const Matrix<dtype> & A);
   };
   /**
    * @}

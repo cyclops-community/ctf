@@ -15,6 +15,11 @@ namespace CTF {
     public:
       int len;
       /** 
+       * \brief default constructor for a vector
+       */
+      Vector();
+
+      /** 
        * \brief copy constructor for a matrix
        * \param[in] A matrix to copy along with its data
        */

@@ -20,6 +20,9 @@ namespace CTF_int{
 
 namespace CTF {
   template<typename dtype>
+  Matrix<dtype>::Matrix() : Tensor<dtype>() { }
+
+  template<typename dtype>
   Matrix<dtype>::Matrix(Matrix<dtype> const & A)
     : Tensor<dtype>(A) {
     nrow = A.nrow;
