@@ -33,17 +33,7 @@ int spmv(int     n,
   
   c2["i"] += .5*spA["ij"]*b["j"];
   c2["i"] += .5*b["j"]*spA["ij"];
-/*
-  if (dw.rank == 0) printf("dense A\n");
-  dnA.print();
-  if (dw.rank == 0) printf("sparse A\n");
-  spA.print();
-  if (dw.rank == 0) printf("b\n");
-  b.print();
-  if (dw.rank == 0) printf("dense c + A * b\n");
-  c1.print();
-  if (dw.rank == 0) printf("sparse c + A * b\n");
-  c2.print();*/
+
 
   bool pass = c2.norm2() >= 1E-6;
 

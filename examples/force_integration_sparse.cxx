@@ -2,16 +2,16 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup univar_transform_cust_sp univar_transform_cust_sp
+  * \defgroup force_integration_sparse force_integration_sparse
   * @{ 
-  * \brief tests cust_spom element-wise transform_cust_sps by implementing division elementwise on 4D tensors
+  * \brief tests custom element-wise transform on sparse tensors by doing force integration
   */
 
 #include <ctf.hpp>
 #include "moldynamics.h"
 using namespace CTF;
 
-int univar_transform_cust_sp(int     n,
+int force_integration_sparse(int     n,
                                World & dw){
   assert(n>1);
   
@@ -63,7 +63,6 @@ int univar_transform_cust_sp(int     n,
 
   CTF::Transform<force,particle> uacc(&acc_force);
 
-  //FIXME = does not work because it sets beta to addid :/
   F2["ij"] += F["ij"];
   F2["ij"] += F["ij"];
 
@@ -147,9 +146,9 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
-      printf("Computing univar_transform_cust_sp P_i = f(F_ij)\n");
+      printf("Computing force_integration_sparse P_i = f(F_ij)\n");
     }
-    univar_transform_cust_sp(n, dw);
+    force_integration_sparse(n, dw);
   }
 
 

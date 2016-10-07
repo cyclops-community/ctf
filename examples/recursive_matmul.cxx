@@ -1,7 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup slice_gemm slice_gemm
+  * \defgroup recursive_matmul recursive_matmul
   * @{ 
   * \brief Performs recursive parallel matrix multiplication using the slice interface to extract blocks
   */
@@ -9,12 +9,12 @@
 #include <ctf.hpp>
 using namespace CTF;
 
-void slice_gemm(int         n,
-                int         m,
-                int         k,
-                Tensor<> &A,
-                Tensor<> &B,
-                Tensor<> &C){
+void recursive_matmul(int        n,
+                      int        m,
+                      int        k,
+                      Tensor<> & A,
+                      Tensor<> & B,
+                      Tensor<> & C){
   int rank, num_pes, cnum_pes, ri, rj, rk, ni, nj, nk, div;
   MPI_Comm pcomm, ccomm;
   pcomm = C.wrld->comm;
@@ -62,7 +62,7 @@ void slice_gemm(int         n,
     Tensor<> cB = B.slice(off_kj, end_kj, &cdw);
     Matrix<> cC(m/ni, n/nj, NS, cdw);
 
-    slice_gemm(n/nj, m/ni, k/nk, cA, cB, cC);
+    recursive_matmul(n/nj, m/ni, k/nk, cA, cB, cC);
 
     int off_00[2] = {0, 0};
     int end_11[2] = {m/ni, n/nj};
@@ -72,10 +72,10 @@ void slice_gemm(int         n,
   }
 }
 
-int test_slice_gemm(int const n,
-                    int const m,
-                    int const k,
-                    World &dw){
+int test_recursive_matmul(int     n,
+                    int     m,
+                    int     k,
+                    World & dw){
   int rank, num_pes;
   int64_t i, np;
   double * pairs, err;
@@ -106,7 +106,7 @@ int test_slice_gemm(int const n,
   
 //  C_ans.print(stdout);
   
-  slice_gemm(n,m,k,A,B,C);
+  recursive_matmul(n,m,k,A,B,C);
 
 //  C.print(stdout);
 
@@ -161,9 +161,9 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
     int pass;    
     if (rank == 0){
-      printf("Non-symmetric: NS = NS*NS test_slice_gemm:\n");
+      printf("Non-symmetric: NS = NS*NS test_recursive_matmul:\n");
     }
-    pass = test_slice_gemm(n, m, k, dw);
+    pass = test_recursive_matmul(n, m, k, dw);
     assert(pass);
   }
 

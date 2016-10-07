@@ -2,15 +2,15 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup bivar_function_cust bivar_function_cust
+  * \defgroup particle_interaction particle_interaction
   * @{ 
-  * \brief tests custom element-wise functions by implementing division elementwise on 4D tensors
+  * \brief tests custom element-wise functions by computing interactions between particles and integrating
   */
 
 #include <ctf.hpp>
 #include "moldynamics.h"
 using namespace CTF;
-int bivar_function_cust(int     n,
+int particle_interaction(int     n,
                         World & dw){
   
   Set<particle> sP = Set<particle>();
@@ -103,9 +103,9 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
-      printf("Computing bivar_function_cust A_ijkl = f(B_ijkl, A_ijkl)\n");
+      printf("Computing particle_interaction A_ijkl = f(B_ijkl, A_ijkl)\n");
     }
-    bivar_function_cust(n, dw);
+    particle_interaction(n, dw);
   }
 
 

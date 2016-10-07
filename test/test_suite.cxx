@@ -4,44 +4,46 @@
 #include <ctf.hpp>
 
 #define TEST_SUITE
-#include "../examples/weigh_4D.cxx"
-#include "../examples/gemm_4D.cxx"
-#include "../examples/scalar.cxx"
-#include "../examples/trace.cxx"
+#include "weigh_4D.cxx"
+#include "gemm_4D.cxx"
+#include "scalar.cxx"
 #include "diag_sym.cxx"
 #include "diag_ctr.cxx"
-#include "../examples/dft.cxx"
-#include "../examples/dft_3D.cxx"
-#include "../studies/fast_sym.cxx"
-#include "../studies/fast_sym_4D.cxx"
+#include "dft.cxx"
 #include "ccsdt_t3_to_t2.cxx"
-#include "../examples/strassen.cxx"
-#include "../examples/slice_gemm.cxx"
 #include "readwrite_test.cxx"
 #include "readall_test.cxx"
-#include "../examples/subworld_gemm.cxx"
+#include "subworld_gemm.cxx"
 #include "multi_tsr_sym.cxx"
 #include "repack.cxx"
 #include "sy_times_ns.cxx"
 #include "speye.cxx"
 #include "sptensor_sum.cxx"
-#include "../examples/endomorphism.cxx"
-#include "../examples/endomorphism_cust.cxx"
-#include "../examples/endomorphism_cust_sp.cxx"
-#include "../examples/univar_function.cxx"
-#include "../examples/univar_transform_cust.cxx"
-#include "../examples/univar_transform_cust_sp.cxx"
-#include "../examples/bivar_function.cxx"
-#include "../examples/bivar_function_cust.cxx"
-#include "../examples/bivar_transform.cxx"
+#include "endomorphism.cxx"
+#include "endomorphism_cust.cxx"
+#include "endomorphism_cust_sp.cxx"
+#include "univar_function.cxx"
+#include "bivar_function.cxx"
+#include "bivar_transform.cxx"
+
+#include "../examples/trace.cxx"
+#include "../examples/dft_3D.cxx"
+#include "../examples/strassen.cxx"
+#include "../examples/recursive_matmul.cxx"
+#include "../examples/force_integration.cxx"
+#include "../examples/force_integration_sparse.cxx"
+#include "../examples/particle_interaction.cxx"
 #include "../examples/spmv.cxx"
 #include "../examples/jacobi.cxx"
 #include "../examples/sssp.cxx"
 #include "../examples/apsp.cxx"
 #include "../examples/btwn_central.cxx"
 #include "../examples/sparse_mp3.cxx"
-#include "../examples/bitonic.cxx"
+#include "../examples/bitonic_sort.cxx"
 #include "../examples/matmul.cxx"
+
+#include "../studies/fast_sym.cxx"
+#include "../studies/fast_sym_4D.cxx"
 
 using namespace CTF;
 
@@ -203,7 +205,7 @@ int main(int argc, char ** argv){
     if (np == 1<<(int)log2(np)){
       if (rank == 0)
         printf("Testing non-symmetric sliced GEMM algorithm with (%d %d %d):\n",16,32,8);
-      pass.push_back(test_slice_gemm(16, 32, 8, dw));
+      pass.push_back(test_recursive_matmul(16, 32, 8, dw));
     }
 #endif    
 #endif
@@ -244,12 +246,12 @@ int main(int argc, char ** argv){
     pass.push_back(univar_function(n,dw));
 
     if (rank == 0)
-      printf("Testing univar_transform_cust integrates forces to particles with n = %d:\n",n);
-    pass.push_back(univar_transform_cust(n,dw));
+      printf("Testing force_integration integrates forces to particles with n = %d:\n",n);
+    pass.push_back(force_integration(n,dw));
 
     if (rank == 0)
-      printf("Testing univar_transform_cust_sp integrates sparse forces to particles with n = %d:\n",n);
-    pass.push_back(univar_transform_cust_sp(n,dw));
+      printf("Testing force_integration_sparse integrates sparse forces to particles with n = %d:\n",n);
+    pass.push_back(force_integration_sparse(n,dw));
     
     if (rank == 0)
       printf("Testing bivar_function A_ijkl = f2(A_ijkl, B_ijkl) with n = %d:\n",n);
@@ -257,7 +259,7 @@ int main(int argc, char ** argv){
     
     if (rank == 0)
       printf("Testing custom bivar_function F[\"i\"] += f(P[\"i\"],P[\"j\"] with n = %d:\n",n);
-    pass.push_back(bivar_function_cust(n,dw));
+    pass.push_back(particle_interaction(n,dw));
     
     if (rank == 0)
       printf("Testing bivar_transform 3(A_ijkl, B_ijkl, C_ijkl) with n = %d:\n",n);

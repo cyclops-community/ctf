@@ -2,17 +2,17 @@
 
 /** \addtogroup examples 
   * @{ 
-  * \defgroup univar_transform_cust univar_transform_cust
+  * \defgroup force_integration force_integration
   * @{ 
-  * \brief tests custom element-wise transform_custs by implementing division elementwise on 4D tensors
+  * \brief tests custom element-wise transform by doing force integration
   */
 
 #include <ctf.hpp>
 #include "moldynamics.h"
 using namespace CTF;
 
-int univar_transform_cust(int     n,
-                          World & dw){
+int force_integration(int     n,
+                      World & dw){
   
   Set<particle> sP = Set<particle>();
   Group<force> gF = Group<force>();
@@ -52,12 +52,9 @@ int univar_transform_cust(int     n,
       p.dx += f.fx*p.coeff;
       p.dy += f.fy*p.coeff;
     });
-  //FIXME = does not work because it sets beta to addid :/
   F2["ij"] += F["ij"];
   F2["ij"] += F["ij"];
 
-  //below is the same as uacc(F2["ij"],P["i"]);
-  //uacc(F2["ij"],P["i"]);
   uacc(F2["ij"],P["i"]);
 
   particle loc_parts_new[nloc];
@@ -138,9 +135,9 @@ int main(int argc, char ** argv){
     World dw(MPI_COMM_WORLD, argc, argv);
 
     if (rank == 0){
-      printf("Computing univar_transform_cust A_ijkl = f(A_ijkl)\n");
+      printf("Computing force_integration A_ijkl = f(A_ijkl)\n");
     }
-    univar_transform_cust(n, dw);
+    force_integration(n, dw);
   }
 
 

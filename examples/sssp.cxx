@@ -69,7 +69,7 @@ int sssp(int     n,
       int val[] = {1, -1, -1};
       A.write(3, idx, val);
     } else A.write(0, NULL, NULL);
-    //make sure we did not converged
+    //make sure we did not converge
     int pass2 = Bellman_Ford(A, v, n);
     pass = pass & !pass2;
   }

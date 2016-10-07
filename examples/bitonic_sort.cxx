@@ -1,8 +1,8 @@
 /** \addtogroup examples 
   * @{ 
-  * \defgroup bitonic bitonic
+  * \defgroup bitonic_sort bitonic_sort
   * @{ 
-  * \brief bitonic sort iterative method using gemv and spmv
+  * \brief bitonic_sort sort iterative method using gemv and spmv
   */
 
 #include <ctf.hpp>

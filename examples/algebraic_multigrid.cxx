@@ -21,8 +21,10 @@ void smooth_jacobi(Matrix<float> & A, Vector<float> & x, Vector <float> & b, int
 
   Vector<float> x1(x.len, *x.wrld);
 
+  
+/*  
   int64_t N = A.nrow;
-/*  Vector<float> Red(N, *A.wrld);
+  Vector<float> Red(N, *A.wrld);
   Vector<float> Blk(N, *A.wrld);
   int64_t Np = N / A.wrld->np;
   int64_t sNp = Np * A.wrld->rank;
@@ -116,7 +118,9 @@ void vcycle(Matrix<float> & A, Vector<float> & x, Vector<float> & b, Matrix<floa
   }
   r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
+#ifdef ERR_REPORT
   float rnorm = r.norm2();
+#endif
   if (nlevel == 0){
 #ifdef ERR_REPORT
     if (A.wrld->rank == 0) printf("At level %d (coarsest level), residual norm was %1.2E initially\n",nlevel,rnorm0);
@@ -130,7 +134,6 @@ void vcycle(Matrix<float> & A, Vector<float> & x, Vector<float> & b, Matrix<floa
   Timer rstr("restriction");
   rstr.start();
 
-  float nm = (float)N/m;
   //restrict residual vector
   Vector<float> PTr(m, *x.wrld);
   PTr["i"] += P[0]["ji"]*r["j"];
