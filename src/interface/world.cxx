@@ -163,14 +163,14 @@ namespace CTF {
       offload_init();
   #endif
       int all_np;
-      MPI_Comm_rank(MPI_COMM_WORLD, &all_np);
+      MPI_Comm_size(MPI_COMM_WORLD, &all_np);
       if (all_np != np){
         if (rank == 0){
           printf("CTF ERROR: the first CTF instance created has to be on MPI_COMM_WORLD\n");
           fflush(stdout);
         }
         MPI_Barrier(comm);
-        ASSERT(0);
+        IASSERT(0);
       } 
       init_rng(rank);
   
