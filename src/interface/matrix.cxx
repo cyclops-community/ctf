@@ -1,6 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "common.h"
+#include "../shared/blas_symbs.h"
 namespace CTF_int{
   struct int2
   {
@@ -233,5 +234,102 @@ namespace CTF {
       cdealloc(pairs);
     }
   }
+
+  template<typename dtype>
+  void Matrix<dtype>::read_mat(int     mb,
+                               int     nb,
+                               int     pr,
+                               int     pc,
+                               int     rsrc,
+                               int     csrc,
+                               int     lda,
+                               dtype * data_){
+    if (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
+      if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
+        if (lda == nrow/pc){
+          printf("untested\n");
+          memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
+        } else {
+          printf("untested\n");
+          for (int i=0; i<ncol/pc; i++){
+            memcpy((char*)(data_+i*nrow/pr), this->data+i*nrow*sizeof(dtype)/pr, sizeof(dtype)*this->size);
+          }
+        }
+      } else {
+      printf("untested\n");
+        int plens[] = {pr, pc};
+        Partition ip(2, plens);
+        Matrix M(nrow, ncol, "ij", ip["ij"], 0, this->wrld, this->sr);
+        M["ab"] = (*this)["ab"];
+        M.read_mat(mb, nb, pr, pc, rsrc, csrc, lda, data_);
+      }
+    } else {
+      Pair<dtype> * pairs;
+      int64_t nmyr, nmyc;
+      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, rsrc, csrc, nmyr, nmyc, &pairs);
+
+      this->read(nmyr*nmyc, pairs);
+      if (lda == nmyr){
+      printf("untested\n");
+        for (int64_t i=0; i<nmyr*nmyc; i++){
+          data_[i] = pairs[i].d;
+        }
+      } else {
+        for (int64_t i=0; i<nmyc; i++){
+          for (int64_t j=0; j<nmyr; j++){
+            data_[i*lda+j] = pairs[i*nmyr+j].d;
+          }
+        }
+      }
+      cdealloc(pairs);
+    }
+  }
+
+  template<typename dtype>
+  Matrix<dtype>::Matrix(int                       nrow_,
+                        int                       ncol_,
+                        int                       mb,
+                        int                       nb,
+                        int                       pr,
+                        int                       pc,
+                        int                       rsrc,
+                        int                       csrc,
+                        int                       lda,
+                        dtype *                   data,
+                        World &                   wrld_,
+                        CTF_int::algstrct const & sr_,
+                        char const *              name_,
+                        int                       profile_)
+    : Tensor<dtype>(2, false, CTF_int::int2(nrow_, ncol_),  CTF_int::int2(NS, NS),
+                           wrld_, sr_, name_, profile_) {
+    nrow = nrow_;
+    ncol = ncol_;
+    symm = NS;
+    write_mat(mb,nb,pr,pc,rsrc,csrc,lda,data);
+  }
+
+  
+
+  template<typename dtype>
+  Matrix<dtype>::Matrix(int const *               desc,
+                        dtype const *             data_,
+                        World &                   wrld_,
+                        CTF_int::algstrct const & sr_,
+                        char const *              name_,
+                        int                       profile_)
+    : Tensor<dtype>(2, false, CTF_int::int2(desc[2], desc[3]),  CTF_int::int2(NS, NS),
+                           wrld_, sr_, name_, profile_) {
+    nrow = desc[2];
+    ncol = desc[3];
+    symm = NS;
+    int ictxt = desc[1];
+    int pr, pc, ipr, ipc;
+    CTF_BLAS::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    IASSERT(ipr == wrld_.rank%pr);
+    IASSERT(ipc == wrld_.rank/pr);
+    this->set_distribution("ij", Partition(2,CTF_int::int2(pr, pc))["ij"], Idx_Partition());
+    write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
+  }
+
 
 }
