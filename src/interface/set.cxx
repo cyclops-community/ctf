@@ -1,5 +1,6 @@
 #include "set.h"
 #include "../shared/blas_symbs.h"
+#include "../shared/util.h"
 
 namespace CTF_int {
 #if USE_SP_MKL
