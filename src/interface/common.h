@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <limits.h>
+#include <random>
 
 #include "mpi.h"
 #include "../shared/model.h"
