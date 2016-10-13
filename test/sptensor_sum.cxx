@@ -1,4 +1,4 @@
-/** \addtogroup examples 
+/** \addtogroup tests 
   * @{ 
   * \defgroup sptensor_sum sptensor_sum
   * @{ 

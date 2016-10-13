@@ -3,6 +3,9 @@
  * 
  * Cyclops Tensor Framework (CTF) is a distributed-memory library that provides support for tensor algebra.
  * CTF tensors are multidimensional distributed arrays of arbitrary type, which may be used to represent graphs or hypergraphs.
+ *
+ * To get an idea of how CTF can be used, browse through some of the short sample codes in the examples folder (or Examples doxygen module)!
+ *
  * The primary means of specifying CTF tensor operations is assigning `iterator' indices for each way of each tensor and specifying an elementwise function to apply.
  * Partitioning and efficient redistribution of tensor data is also possible via CTF.
  *

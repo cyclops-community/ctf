@@ -1,4 +1,4 @@
-/** \addtogroup examples 
+/** \addtogroup tests 
   * @{ 
   * \defgroup GEMM_4D GEMM_4D
   * @{ 

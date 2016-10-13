@@ -1,5 +1,5 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
-/** \addtogroup examples 
+/** \addtogroup tests 
   * @{ 
   * \defgroup subworld_gemm subworld_gemm
   * @{ 

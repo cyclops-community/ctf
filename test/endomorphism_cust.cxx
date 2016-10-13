@@ -1,6 +1,6 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
-/** \addtogroup examples 
+/** \addtogroup tests 
   * @{ 
   * \defgroup endomorphism_cust endomorphism_cust
   * @{ 

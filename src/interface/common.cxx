@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "../shared/util.h"
+#include <random>
 
 namespace CTF {
   int DGTOG_SWITCH = 1;
