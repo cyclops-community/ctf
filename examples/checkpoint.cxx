@@ -1,9 +1,9 @@
 /*Copyright (c) 2016, Edgar Solomonik, all rights reserved.*/
 /** \addtogroup examples 
   * @{ 
-  * \defgroup checkpoint tests read and write dense data to file functionality
+  * \defgroup checkpoint checkpoint 
   * @{ 
-  * \brief tests checkpointing
+  * \brief tests read and write dense data to file functionality
   */
 
 #include <ctf.hpp>
