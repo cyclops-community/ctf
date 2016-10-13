@@ -7,10 +7,9 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <math.h>
-//#include <assert.h>
-#include "../dist_tensor/cyclopstf.hpp"
-#include "../shared/util.h"
-#include "../shared/offload.h"
+#include "ctf.hpp"
+
+using namespace CTF;
 
 #define ZGEMM_TEST
 #ifdef ZGEMM_TEST
@@ -178,18 +177,20 @@ int main(int argc, char **argv) {
   else alloc_host_buf = 1;
 
 #ifdef ZGEMM_TEST
-  std::complex<double> ALPHA = std::complex<double>(2.0,-.7);
-  std::complex<double> BETA =std::complex<double>(1.3,.4); 
+  std::complex<double> ALPHA = std::complex<double>(.3,0.);
+  std::complex<double> BETA =std::complex<double>(.7,0.); 
 #else
   double ALPHA = 0.3;
   double BETA = .7;
 #endif
+  double DALPHA = 0.3;
+  double DBETA = .7;
 
 
 
   if (myRank == 0){ 
     printf("matrix multiplication of matrices\n");
-    printf("matrix dimensions are " PRId64 " by " PRId64 " by " PRId64 "\n", m, n, k);
+    printf("matrix dimensions are %ld by %ld by %ld\n", m, n, k);
     printf("processor grid is %d by %d\n", nprow, npcol);
     printf("performing %d iterations\n", num_iter);
     printf("with random data\n");
@@ -201,17 +202,18 @@ int main(int argc, char **argv) {
   int64_t nblk, mblk;
   int64_t fnblk, fmblk, fkblk;
 
+//#define TESTPAD
 #ifdef TESTPAD
   nblk = n/npcol+4;
-  mblk = m/npcol;
+  mblk = m/std::min(nprow,npcol);
   fnblk = n/npcol+4;
-  fmblk = m/npcol;
+  fmblk = m/std::min(nprow,npcol);
   fkblk = k/nprow;
 #else
   nblk = n/npcol;
-  mblk = m/npcol;
+  mblk = m/std::min(nprow,npcol);
   fnblk = n/npcol;
-  fmblk = m/npcol;
+  fmblk = m/std::min(nprow,npcol);
   fkblk = k/nprow;
 #endif
 
@@ -245,8 +247,8 @@ int main(int argc, char **argv) {
   for (i=0; i<fkblk; i++){
     for (j=0; j<fmblk; j++){
 #ifdef ZGEMM_TEST
-      mat_A[i*(fmblk)+j].real() = drand48();
-      mat_A[i*(fmblk)+j].imag() = drand48();
+      mat_A[i*(fmblk)+j].real(drand48());
+      mat_A[i*(fmblk)+j].imag(drand48());
 #else
       mat_A[i*(fmblk)+j] = drand48();
 #endif
@@ -257,11 +259,11 @@ int main(int argc, char **argv) {
     for (j=0; j<fkblk; j++){
 #ifdef ZGEMM_TEST
       if (i>=n){
-        mat_B[i*(fkblk)+j].real() = 0.0;
-        mat_B[i*(fkblk)+j].imag() = 0.0;
-      } else {
-        mat_B[i*(fkblk)+j].real() = drand48();
-        mat_B[i*(fkblk)+j].imag() = drand48();
+        mat_B[i*(fkblk)+j].real(0.0);
+        mat_B[i*(fkblk)+j].imag(0.0);
+      } else {                            
+        mat_B[i*(fkblk)+j].real(drand48());
+        mat_B[i*(fkblk)+j].imag(drand48());
       }
 #else
       mat_B[i*(fkblk)+j] = drand48();
@@ -273,11 +275,11 @@ int main(int argc, char **argv) {
     for (j=0; j<mblk; j++){
 #ifdef ZGEMM_TEST
       if (i>=n){
-        mat_C[i*(mblk)+j].real() = 0.0;
-        mat_C[i*(mblk)+j].imag() = 0.0;
+        mat_C[i*(mblk)+j].real(0.0);
+        mat_C[i*(mblk)+j].imag(0.0);
       } else {
-        mat_C[i*(mblk)+j].real() = drand48();
-        mat_C[i*(mblk)+j].imag() = drand48();
+        mat_C[i*(mblk)+j].real(drand48());
+        mat_C[i*(mblk)+j].imag(drand48());
       }
 #else
       mat_C[i*(mblk)+j] = drand48();
@@ -320,27 +322,27 @@ int main(int argc, char **argv) {
   int desc_b[9];
   int desc_c[9];
   cdesc_init(desc_a, k, m,
-                    fkblk, fmblk,
-                    0,  0,
-                    icontxt, fkblk, 
-                                 &info);
+             fkblk, fmblk,
+             0,  0,
+             icontxt, fkblk, 
+             &info);
   assert(info==0);
   cdesc_init(desc_b, k, n,
-                    fkblk, fnblk,
-                    0,  0,
-                    icontxt, fkblk, 
-                                 &info);
+             fkblk, fnblk,
+             0,  0,
+             icontxt, fkblk, 
+             &info);
   assert(info==0);
   cdesc_init(desc_c, m, n,
-                    mblk, nblk,
-                    0,  0,
-                    icontxt, mblk, 
-                                 &info);
+             mblk, nblk,
+             0,  0,
+             icontxt, mblk, 
+             &info);
   assert(info==0);
+  
+  World dw(MPI_COMM_WORLD);
 
 #ifdef ZGEMM_TEST
-  tCTF< std::complex<double> > * myctf = new tCTF< std::complex<double> >;
-  myctf->init(MPI_COMM_WORLD,  myRank,numPes);
   double scalaTime = MPI_Wtime();
   cpzgemm('T','N', m, n, k, ALPHA, 
           mat_A, 1, 1, desc_a,
@@ -349,13 +351,22 @@ int main(int argc, char **argv) {
 
   if (myRank == 0)
     printf("Performed ScaLAPACK pzgemm in %lf sec, starting CTF pzgemm\n", MPI_Wtime()-scalaTime);
+
+  Matrix< std::complex<double> > A(desc_a, mat_A, dw);
+  Matrix< std::complex<double> > B(desc_b, mat_B, dw);
+  Matrix< std::complex<double> > C(desc_c, mat_C_CTF, dw);
+
   double ctfTime = MPI_Wtime();
-  myctf->pgemm('T','N', m, n, k, ALPHA, 
-              mat_A, 1, 1, desc_a,
-              mat_B, 1, 1, desc_b, BETA,
-              mat_C_CTF, 1, 1, desc_c); 
+  (DBETA*C["ij"])+=DALPHA*A["ki"]*B["kj"];
   if (myRank == 0)
     printf("Performed CTF pzgemm in %lf sec\n", MPI_Wtime()-ctfTime);
+
+  C.read_mat(desc_c, mat_C_CTF);
+
+/*  myctf->pgemm('T','N', m, n, k, ALPHA, 
+              mat_A, 1, 1, desc_a,
+              mat_B, 1, 1, desc_b, BETA,
+              mat_C_CTF, 1, 1, desc_c); */
 
   if (myRank < npcol*npcol){
     for (i=0; i<mblk; i++){
@@ -440,24 +451,16 @@ int main(int argc, char **argv) {
 #endif
     //printf("Ans=%lf\n",ans_verify);
   }
-  
-#ifdef TAU
-  TAU_PROFILE_TIMER(timer, "main", "int (int, char**)", TAU_USER);
-  TAU_PROFILE_START(timer);
-  TAU_PROFILE_INIT(argc, argv);
-  TAU_PROFILE_SET_NODE(myRank);
-  TAU_PROFILE_SET_CONTEXT(0);
-#endif
-
   startTime = MPI_Wtime();
   for (iter=0; iter < num_iter; iter++){
+    (DBETA*C["ij"])+=DALPHA*A["ki"]*B["kj"];
     //seq_square_matmul(mat_A, mat_B, mat_C, blockDim, 0);
-    myctf->pgemm( 'T','N', m, n, k, ALPHA, 
+    /*myctf->pgemm( 'T','N', m, n, k, ALPHA, 
                   mat_A, 1, 1, desc_a,
                   mat_B, 1, 1, desc_b, BETA,
                   mat_C, 1, 1, desc_c); 
     if (iter == 0)
-      ans_verify = mat_C[2];
+      ans_verify = mat_C[2];*/
   }
 
   if(myRank == 0) {
@@ -471,12 +474,7 @@ int main(int argc, char **argv) {
     printf("Gigaflops: %f\n", 2.*m*n*k/
                                 ((endTime - startTime)/num_iter)*1E-9);
 #endif
-    //printf("Ans=%lf\n",ans_verify);
   }
-
-  TAU_PROFILE_STOP(timer);
-
-  myctf->exit();
 
   MPI_Finalize();
   return 0;

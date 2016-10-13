@@ -1167,6 +1167,8 @@ namespace CTF_int {
     ASSERT(itopo != -1);
     assert(itopo != -1);
 
+    this->clear_mapping();
+
     this->topo = wrld->topovec[itopo];
     for (int i=0; i<order; i++){
       mapping * map = this->edge_map+i;
@@ -1178,7 +1180,7 @@ namespace CTF_int {
             map = map->child;
           }
           map->type = PHYSICAL_MAP;
-          map->np = top->dim_comm[j].np;
+          map->np = this->topo->dim_comm[j].np;
           map->cdt = j;
         }
       }
@@ -1203,7 +1205,7 @@ namespace CTF_int {
     if (!check_self_mapping(this, idx_A)){
       if (wrld->rank == 0)
         printf("CTF ERROR: invalid distribution in read() call, aborting.\n");
-      ASSERT(0);
+      IASSERT(0);
       assert(0);
     }
 

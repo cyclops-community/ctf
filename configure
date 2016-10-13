@@ -567,6 +567,12 @@ else
 fi
   
 
+SPMKL_COMMENT="
+### Optional: sparse MKL BLAS Routines
+#uncomment below to enable MKL BLAS routines if setting up MKL manually
+#DEFS       += -DUSE_SP_MKL=1
+"
+
 #
 # Determine BLAS/LAPACK naming convention
 #
@@ -585,6 +591,7 @@ else
         echo 'BLAS library was not specified, using -mkl.'
         BLASLIBS=-mkl
         DEFS="$DEFS -DUSE_SP_MKL=1"
+        SPMKL_COMMENT=""
       elif testlink -lblas dgemm_ 0; then
         UNDERSCORE=1
         echo 'BLAS library was not specified, using -lblas (with underscores).'
@@ -697,6 +704,7 @@ mkdir -p $BUILDDIR/lib
 mkdir -p $BUILDDIR/obj
 mkdir -p $BUILDDIR/bin
 
+
 cat > $BUILDDIR/config.mk <<EOF
 ### LINK TIME LIBRARIES AND FLAGS
 #libraries and flags for link time (irrelevant if only building CTF lib and not examples/tests)
@@ -715,6 +723,10 @@ AR          = $AR
 
 #macros to be defined throughout the code
 DEFS        = $DEFS 
+$SPMKL_COMMENT
+### Optional: ScaLAPACK (needed only for testing)
+#uncomment and set ScaLAPACK lib path below to build tests of ScaLAPACK interface (scalapack_tests)
+#LIB_SCLPCK  = -L./lib -lscalapack 
 
 ### Optional: PROFILING AND TUNING
 #uncomment below to enable performance profiling

@@ -182,7 +182,7 @@ namespace CTF {
              int                       rsrc,
              int                       csrc,
              int                       lda,
-             dtype *                   data,
+             dtype const *             data,
              World &                   wrld=get_universe(),
              CTF_int::algstrct const & sr=Ring<dtype>(),
              char const *              name=NULL,
@@ -241,8 +241,8 @@ namespace CTF {
        *                 see ScaLAPACK docs for "Array Descriptor for In-core Dense Matrices"
        * \param[in] data locally stored values
        */
-      void read(int const * desc,
-                dtype *     data);
+      void read_mat(int const * desc,
+                    dtype *     data);
 
       /*
        * \brief prints matrix by row and column (modify print(...) overload in set.h if you would like a different print format)

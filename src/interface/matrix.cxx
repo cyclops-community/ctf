@@ -150,7 +150,7 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void gen_my_kv_pair(int            rank,
+  void get_my_kv_pair(int            rank,
                       int            nrow,
                       int            ncol,
                       int            mb,
@@ -159,29 +159,30 @@ namespace CTF {
                       int            pc,
                       int            rsrc,
                       int            csrc,
-                      int64_t &      nmyc,
                       int64_t &      nmyr,
+                      int64_t &      nmyc,
                       Pair<dtype> *& pairs){
     nmyr = mb*(nrow/mb/pr);
     if ((nrow/mb)%pr > (rank+pr-rsrc)%pr){
       nmyr+=mb;
     }
-    if (((nrow/mb)%pr)+1 == (rank+pr-rsrc)%pr){
+    if (((nrow/mb)%pr) == (rank+pr-rsrc)%pr){
       nmyr+=nrow%mb;
     }
     nmyc = nb*(ncol/nb/pc);
     if ((ncol/nb)%pc > (rank/pr+pc-csrc)%pc){
-      nmyc+=mb;
+      nmyc+=nb;
     }
-    if (((ncol/nb)%pc)+1 == (rank/pr+pc-csrc)%pc){
+    if (((ncol/nb)%pc) == (rank/pr+pc-csrc)%pc){
       nmyc+=ncol%nb;
     }
+//    printf("nrow = %d ncol = %d nmyr = %ld, nmyc = %ld mb = %d nb = %d pr = %d pc = %d\n",nrow,ncol,nmyr,nmyc,mb,nb,pr,pc);
     pairs = (Pair<dtype>*)CTF_int::alloc(sizeof(Pair<dtype>)*nmyr*nmyc);
     int cblk = (rank/pr+pc-csrc)%pc;
     for (int64_t i=0; i<nmyc;  i++){
       int rblk = (rank+pr-rsrc)%pr;
       for (int64_t j=0; j<nmyr;  j++){
-        pairs[i*nmyr+j].k = (cblk*nb+(i%nb))*nrow+rblk*nb+(j%nb);
+        pairs[i*nmyr+j].k = (cblk*nb+(i%nb))*nrow+rblk*mb+(j%mb);
         if ((j+1)%mb == 0) rblk += pr;
       }
       if ((i+1)%nb == 0) cblk += pc;
@@ -200,26 +201,23 @@ namespace CTF {
     if (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
         if (lda == nrow/pc){
-          printf("untested\n");
           memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
         } else {
-          printf("untested\n");
           for (int i=0; i<ncol/pc; i++){
-            memcpy(this->data+i*nrow*sizeof(dtype)/pr,(char*)(data_+i*nrow/pr), sizeof(dtype)*this->size);
+            memcpy(this->data+i*nrow*sizeof(dtype)/pr,(char*)(data_+i*nrow/pr), nrow*sizeof(dtype)/pr);
           }
         }
       } else {
-      printf("untested\n");
-        Matrix M(nrow, ncol, mb, nb, pr, pc, rsrc, csrc, lda, data_);
+        Matrix<dtype> M(nrow, ncol, mb, nb, pr, pc, rsrc, csrc, lda, data_);
         (*this)["ab"] = M["ab"];
       }
     } else {
       Pair<dtype> * pairs;
       int64_t nmyr, nmyc;
-      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, rsrc, csrc, nmyr, nmyc, &pairs);
+      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, pr, pc, rsrc, csrc, nmyr, nmyc, pairs);
 
+        //printf("lda = %d, nmyr =%ld, nmyc=%ld\n",lda,nmyr,nmyc);
       if (lda == nmyr){
-      printf("untested\n");
         for (int64_t i=0; i<nmyr*nmyc; i++){
           pairs[i].d = data_[i];
         }
@@ -231,7 +229,7 @@ namespace CTF {
         }
       }
       this->write(nmyr*nmyc, pairs);
-      cdealloc(pairs);
+      CTF_int::cdealloc(pairs);
     }
   }
 
@@ -247,30 +245,26 @@ namespace CTF {
     if (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
         if (lda == nrow/pc){
-          printf("untested\n");
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
         } else {
-          printf("untested\n");
           for (int i=0; i<ncol/pc; i++){
-            memcpy((char*)(data_+i*nrow/pr), this->data+i*nrow*sizeof(dtype)/pr, sizeof(dtype)*this->size);
+            memcpy((char*)(data_+i*nrow/pr), this->data+i*nrow*sizeof(dtype)/pr, nrow*sizeof(dtype)/pr);
           }
         }
       } else {
-      printf("untested\n");
         int plens[] = {pr, pc};
         Partition ip(2, plens);
-        Matrix M(nrow, ncol, "ij", ip["ij"], 0, this->wrld, this->sr);
+        Matrix M(nrow, ncol, "ij", ip["ij"], Idx_Partition(), 0, *this->wrld, *this->sr);
         M["ab"] = (*this)["ab"];
         M.read_mat(mb, nb, pr, pc, rsrc, csrc, lda, data_);
       }
     } else {
       Pair<dtype> * pairs;
       int64_t nmyr, nmyc;
-      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, rsrc, csrc, nmyr, nmyc, &pairs);
+      get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, pr, pc, rsrc, csrc, nmyr, nmyc, pairs);
 
       this->read(nmyr*nmyc, pairs);
       if (lda == nmyr){
-      printf("untested\n");
         for (int64_t i=0; i<nmyr*nmyc; i++){
           data_[i] = pairs[i].d;
         }
@@ -281,8 +275,20 @@ namespace CTF {
           }
         }
       }
-      cdealloc(pairs);
+      CTF_int::cdealloc(pairs);
     }
+  }
+
+  template<typename dtype>
+  void Matrix<dtype>::read_mat(int const * desc,
+                               dtype *     data_){
+    int ictxt = desc[1];
+    int pr, pc, ipr, ipc;
+    CTF_BLAS::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    IASSERT(ipr == this->wrld->rank%pr);
+    IASSERT(ipc == this->wrld->rank/pr);
+
+    read_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
   }
 
   template<typename dtype>
@@ -295,7 +301,7 @@ namespace CTF {
                         int                       rsrc,
                         int                       csrc,
                         int                       lda,
-                        dtype *                   data,
+                        dtype const *             data,
                         World &                   wrld_,
                         CTF_int::algstrct const & sr_,
                         char const *              name_,
@@ -327,6 +333,7 @@ namespace CTF {
     CTF_BLAS::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
     IASSERT(ipr == wrld_.rank%pr);
     IASSERT(ipc == wrld_.rank/pr);
+    IASSERT(pr*pc == wrld_.np);
     this->set_distribution("ij", Partition(2,CTF_int::int2(pr, pc))["ij"], Idx_Partition());
     write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
   }
