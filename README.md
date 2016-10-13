@@ -1,27 +1,15 @@
-A distributed memory library for efficient decomposition of tensors of arbitrary type and parallel MPI+OpenMP execution of tensor contractions/functions.
-
-Basic build process: ./configure; make; 
-
-Basic test process: sequential: 'make test', parallel: 'make test2'
-
-See examples/ directory to learn usage, or src/ directory to examine library source code.
-
-
-Links in documentation below redirect to Doxygen documentation hosted at http://solomon2.web.engr.illinois.edu/ctf/index.html
-
-
 <html>
 <body>
 <div class="header">
-  <div class="headertitle">
-<div class="title">Cyclops Tensor Framework Documentation</div>  </div>
-</div><!--header-->
 <div class="contents">
 <div class="textblock"><h1><a class="anchor" id="intro"></a>
-Introduction</h1>
-<p>Cyclops Tensor Framework (<a class="el" href="http://solomon2.web.engr.illinois.edu/ctf/namespaceCTF.html">CTF</a>) is a distributed-memory library that provides support for tensor algebra. <a class="el" href="http://solomon2.web.engr.illinois.edu/ctf/namespaceCTF.html">CTF</a> tensors are multidimensional distributed arrays of arbitrary type, which may be used to represent graphs or hypergraphs. The primary means of specifying <a class="el" href="http://solomon2.web.engr.illinois.edu/ctf/namespaceCTF.html">CTF</a> tensor operations is assigning `iterator' indices for each way of each tensor and specifying an elementwise function to apply. Partitioning and efficient redistribution of tensor data is also possible via <a class="el" href="http://solomon2.web.engr.illinois.edu/ctf/namespaceCTF.html">CTF</a>.</p>
-<p>The software is available on GitHub (github.com/solomonik/ctf) and maybe obtained via the command</p>
-<p>git clone <a href="https://github.com/solomonik/ctf">https://github.com/solomonik/ctf</a></p>
+Cyclops Tensor Framework</h1>
+<p><img src="https://travis-ci.org/solomonik/ctf.svg?branch=master"/></p>
+<p>Cyclops Tensor Framework (<a class="el" href="namespaceCTF.html">CTF</a>) is a distributed-memory library that provides support for tensor algebra. <a class="el" href="namespaceCTF.html">CTF</a> tensors are multidimensional distributed arrays of arbitrary type, which may be used to represent graphs or hypergraphs.</p>
+<p>To get an idea of how <a class="el" href="namespaceCTF.html">CTF</a> can be used, browse through some of the short sample codes in the examples folder (or Examples doxygen module)!</p>
+<p>Basic build process: ./configure; make; </p>
+<p>Basic test process: sequential: 'make test', parallel: 'make test2' </p>
+<p>The primary means of specifying <a class="el" href="namespaceCTF.html">CTF</a> tensor operations is assigning `iterator' indices for each way of each tensor and specifying an elementwise function to apply. Partitioning and efficient redistribution of tensor data is also possible via <a class="el" href="namespaceCTF.html">CTF</a>.</p>
 <p><a class="el" href="http://solomon2.web.engr.illinois.edu/ctf/namespaceCTF.html">CTF</a> requires the BLAS and MPI to be built, with MPI being the main parallel execution and communication mechanism. OpenMP and CUDA may additionally be provided for threading and accelerator support, respectively, but <a class="el" href="http://solomon2.web.engr.illinois.edu/ctf/namespaceCTF.html">CTF</a> will also build without them.</p>
 <p>As a guide to modern usage of <a class="el" href="http://solomon2.web.engr.illinois.edu/ctf/namespaceCTF.html">CTF</a> for sparse matrix computations, graph computations, and tensor computations, we recommend the following paper</p>
 <p>Edgar Solomonik and Torsten Hoefler; Sparse Tensor Algebra as a Parallel Programming Model; arXiv, Nov 2015. <a href="http://arxiv.org/abs/1512.00066">(link)</a></p>
