@@ -1,10 +1,14 @@
 /*! \mainpage 
  * \section intro Introduction
  * 
- * Cyclops Tensor Framework (CTF) is a distributed-memory library that provides support for tensor algebra.
- * CTF tensors are multidimensional distributed arrays of arbitrary type, which may be used to represent graphs or hypergraphs.
+ * This library provides automatic parallelization of operations on multidimensional (sparse) arrays.
+ * The operations are expressed algebraically via vector, matrix, or tensor representation of the arrays.
+ * An array with k dimensions is represented by a tensor of order k.
+ * By default, the tensor elements are floating point numbers and tensor operations are combinations of products and sums.
+ * However, a user can define any statically-sized type and elementwise operations.
+ * CTF supports general tensor sparsity, so it is possible to define graph algorithms with the use of sparse adjacency matrices.
  *
- * To get an idea of how CTF can be used, browse through some of the short sample codes in the examples folder (or Examples doxygen module)!
+ * To get an idea of how CTF interface works, browse through some of the short sample codes in the examples folder (or Examples doxygen module).
  *
  * The primary means of specifying CTF tensor operations is assigning `iterator' indices for each way of each tensor and specifying an elementwise function to apply.
  * Partitioning and efficient redistribution of tensor data is also possible via CTF.
@@ -31,7 +35,7 @@
  * Threading is activated by compiling with -fopenmp and setting OMP_NUM_THREADS appropriately at runtime.
  * Further build-time configurations may be specified as parameters to the configure script (run configure --help) or modified in the generated config.mk file.
  *
- * The algorithms and application of CTF to electronic structure methods are described in detail in the following publications
+ * The algorithms and application of CTF to electronic structure methods are described in detail in the following publications 
  *
  * Edgar Solomonik, Devin Matthews, Jeff R. Hammond, John F. Stanton, and James Demmel; A massively parallel tensor contraction framework for coupled-cluster computations; Journal of Parallel and Distributed Computing, June 2014.
  * <a href="http://www.sciencedirect.com/science/article/pii/S074373151400104X">(link)</a>
@@ -42,6 +46,8 @@
  * Edgar Solomonik, Jeff Hammond, and James Demmel; A preliminary analysis of Cyclops Tensor Framework; EECS Department, University of California, Berkeley, March 2012. 
  * <a href="http://www.eecs.berkeley.edu/Pubs/TechRpts/2012/EECS-2012-29.pdf">(link)</a>
  *
+ * We would appreciate it, if the first paper was cited in publications that leverage CTF tensors.
+ * If you leverage sparse tensor functionality, the aforementioned arXiv paper is the best reference.
 
  *
  * The lead developer of this code is Edgar Solomonik (University of California-Berkeley).
