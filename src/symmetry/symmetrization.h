@@ -44,13 +44,13 @@ namespace CTF_int {
    * \brief orders the summation indices of one tensor 
    *        that don't break summation symmetries
    *
-   * \param[in] tsr_A
-   * \param[in] tsr_B
+   * \param[in] A
+   * \param[in] B
    * \param[in] idx_arr inverted summation index map
    * \param[in] off_A offset of A in inverted index map
    * \param[in] off_B offset of B in inverted index map
-   * \param[in] idx_map_A index map of A
-   * \param[in] idx_map_B index map of B
+   * \param[in] idx_A index map of A
+   * \param[in] idx_B index map of B
    * \param[in,out] add_sign sign of contraction
    * \param[in,out] mod 1 if sum is permuted
    */
@@ -68,17 +68,16 @@ namespace CTF_int {
    * \brief orders the contraction indices of one tensor 
    *        that don't break contraction symmetries
    *
-   * \param[in,out] ctr contraction object with tensors and index maps
-   * \param[in] tsr_A
-   * \param[in] tsr_B
-   * \param[in] tsr_C
+   * \param[in] A
+   * \param[in] B
+   * \param[in] C
    * \param[in] idx_arr inverted contraction index map
    * \param[in] off_A offset of A in inverted index map
    * \param[in] off_B offset of B in inverted index map
    * \param[in] off_C offset of C in inverted index map
-   * \param[in] idx_map_A index map of A
-   * \param[in] idx_map_B index map of B
-   * \param[in] idx_map_C index map of C
+   * \param[in] idx_A index map of A
+   * \param[in] idx_B index map of B
+   * \param[in] idx_C index map of C
    * \param[in,out] add_sign sign of contraction
    * \param[in,out] mod 1 if permutation done
    */
@@ -143,8 +142,7 @@ namespace CTF_int {
    * \brief finds all permutations of a contraction 
    *        that must be done for a broken symmetry
    *
-   * \param[in] type contraction specification
-   * \param[in] alpha sign of contraction specification
+   * \param[in] ctr contraction specification
    * \param[out] perms the permuted contraction specifications
    * \param[out] signs sign of each contraction
    */

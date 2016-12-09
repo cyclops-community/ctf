@@ -29,6 +29,8 @@ namespace CTF_int {
    * \param[in,out] new_data buffers to fill with data to send to each process and virtual bucket
    * \param[in] forward is 0 on the receiving side and reverses the role of all the previous parameters
    * \param[in] bucket_offset offsets for target index for each dimension
+   * \param[in] alpha scaling factor for received data
+   * \param[in] beta scaling factor for previous data
    * \param[in] sr algstrct defining elements and ops
    */
   void pad_cyclic_pup_virt_buff(int const *          sym,

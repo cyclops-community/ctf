@@ -24,7 +24,7 @@ namespace CTF_int {
 
       /** \brief scaling of A*B */
       char const * alpha;
-      /** \biref scaling of existing C */
+      /** \brief scaling of existing C */
       char const * beta;
     
       /** \brief indices of left operand */

@@ -13,11 +13,11 @@ using namespace CTF;
  * \param[in] n dimension of global matrix
  * \param[in] b rough dimension of sparse blocks to write from each processor
  * \param[in] sym symmetry of the global matrix (and of each block)
- * \parma[in] dw world/communicator on which to define the global matrix
+ * \param[in] dw world/communicator on which to define the global matrix
  */
-int sparse_permuted_slice(int         n,
-                          int         b,
-                          int         sym,
+int sparse_permuted_slice(int     n,
+                          int     b,
+                          int     sym,
                           World & dw){
   int np, rank, pass, bi;
   int64_t i, j, nvals;

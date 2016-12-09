@@ -51,9 +51,8 @@ namespace CTF_int {
   /**
    * \brief get dimension and torus lengths of specified topology
    *
+   * \param[in] glb_comm communicator
    * \param[in] mach specified topology
-   * \param[out] order dimension of torus
-   * \param[out] dim_len torus lengths of topology
    */
   topology * get_phys_topo(CommData glb_comm,
                            TOPOLOGY mach);
@@ -93,7 +92,9 @@ namespace CTF_int {
    * \brief get the best topologoes (least nvirt) over all procs
    * \param[in] nvirt best virtualization achieved by this proc
    * \param[in] topo topology index corresponding to best virtualization
-   * \param[in] globla_comm is the global communicator
+   * \param[in] global_comm is the global communicator
+   * \param[in] bcomm_vol best comm volume computed
+   * \param[in] bmemuse best memory usage computed
    * return virtualization factor
    */
    int get_best_topo(int64_t  nvirt,
@@ -111,8 +112,8 @@ namespace CTF_int {
    * \param[in] order_B dimension of B
    * \param[in] edge_map_B mapping of B
    * \param[out] num_sub_phys_dims number of free torus dimensions
-   * \param[out] sub_phys_comm the torus dimensions
-   * \param[out] comm_idx index of the free torus dimensions in the origin topology
+   * \param[out] psub_phys_comm the torus dimensions
+   * \param[out] pcomm_idx index of the free torus dimensions in the origin topology
    */
   void extract_free_comms(topology const *  topo,
                           int               order_A,

@@ -166,12 +166,13 @@ namespace CTF_int{
    * \brief As pairs in a sparse A set to the 
    *         sparse set of elements defining the tensor,
    *         resulting in a set of size between nB and nB+nA
-   * \param[in] sr algstrct defining data type of array
-   * \param[in] nB number of elements in sparse tensor
-   * \param[in] prs_B pairs of the sparse tensor
+   * \param[in] sr_A algstrct defining data type of array
+   * \param[in] nA number of elements in sparse tensor
+   * \param[in] prs_A pairs of the sparse tensor
    * \param[in] beta scaling factor for data of the sparse tensor
-   * \param[in] nA number of elements in the A set
-   * \param[in] prs_A pairs of the A set
+   * \param[in] sr_B algstrct defining data type of array
+   * \param[in] nB number of elements in the A set
+   * \param[in] prs_B pairs of the A set
    * \param[in] alpha scaling factor for data of the A set
    * \param[out] nnew number of elements in resulting set
    * \param[out] pprs_new char array containing the pairs of the resulting set

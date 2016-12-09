@@ -34,11 +34,11 @@ namespace CTF {
       
       /**
        * \brief copy constructor
-       * \param[in] B tensor to copy
+       * \param[in] other tensor to copy
        * \param[in] copy if 1 then copy the parent tensor of B into a new tensor
        * \param[in] remap redistribution dependency map
        */
-      Idx_Tensor(Idx_Tensor const &                            B,
+      Idx_Tensor(CTF::Idx_Tensor const &                       other,
                  int                                           copy=0,
                  std::map<CTF_int::tensor*, CTF_int::tensor*>* remap=NULL);
 
@@ -51,16 +51,11 @@ namespace CTF {
       Idx_Tensor(CTF_int::algstrct const * sr, int64_t scl);
       ~Idx_Tensor();
       
-      /**
-       * \brief constructor for scalar
-       * \param[in] val double value
-       */
-      //Idx_Tensor(double val);
 
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[in,out] output tensor to write results into and its indices
+       * \return output tensor to write results into and its indices
        */
       Idx_Tensor execute() const;
       
@@ -79,7 +74,7 @@ namespace CTF {
       /**
        * \brief estimates the cost the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[in,out] output tensor to write results into and its indices
+       * \param[out] cost estimate of time in sec
        */
       Idx_Tensor estimate_time(double  & cost) const;
       
@@ -134,13 +129,13 @@ namespace CTF {
       void operator*=(CTF_int::Term const & B);
 
       /**
-       * \brief TODO A -> A * B^-1
-       * \param[in] B
+       * brief TODO A -> A * B^-1
+       * param[in] B
        */
       //void operator/(IdxTensor& tsr);
       
       /**
-       * \brief execute ips into output with scale beta
+       * brief execute ips into output with scale beta
        */    
       //void run(Idx_Tensor* output, dtype  beta);
 
@@ -148,6 +143,8 @@ namespace CTF {
         Idx_Tensor * tsr = new Idx_Tensor(*this);
         return tsr;
       }*/
+
+
       /**
        * \brief figures out what world this term lives on
        */

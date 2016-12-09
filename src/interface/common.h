@@ -168,7 +168,7 @@ namespace CTF_int {
 
       /**
        * \brief activate this subcommunicator by splitting parent_comm
-       * \param[in] parent_comm communicator to split
+       * \param[in] parent communicator to split
        */
       void activate(MPI_Comm parent);
 

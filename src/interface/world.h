@@ -43,7 +43,6 @@ namespace CTF {
       /**
        * \brief creates CTF library on comm that can output profile data 
        *        into a file with a name based on the main args
-       * \param[in] comm MPI communicator associated with this CTF instance
        * \param[in] argc number of main arguments 
        * \param[in] argv main arguments 
        */
@@ -82,7 +81,7 @@ namespace CTF {
 
       /**
        * \brief substitute for default constructor that does not initialize the world
-       * \param[in] ptrnull should be set to ""
+       * \param[in] emptystring should be set to ""
        */
       World(char const * emptystring);
 

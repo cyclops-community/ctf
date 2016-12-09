@@ -190,6 +190,7 @@ namespace CTF_int {
    * \param[in] C tensor 3
    * \param[in] idx_A indices of tensor 1
    * \param[in] idx_B indices of tensor 2
+   * \param[in] idx_C indices of tensor 3
    *
    * \param[in] ordering_A the dimensional-ordering of the inner mapping of A
    * \param[in] ordering_B the dimensional-ordering of the inner mapping of B

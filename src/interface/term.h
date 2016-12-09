@@ -68,7 +68,6 @@ namespace CTF_int {
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[in,out] output tensor to write results into and its indices
        */
       virtual CTF::Idx_Tensor execute() const = 0;
       
@@ -159,7 +158,7 @@ namespace CTF_int {
       /**
        * \brief creates sum term for B+A
        * \param[in] B left hand side
-       * \param[in] B right hand side
+       * \param[in] A right hand side
        */
       Sum_Term(Term * B, Term * A);
 
@@ -188,7 +187,7 @@ namespace CTF_int {
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[in,out] output tensor to write results into and its indices
+       * \return output tensor to write results into and its indices
        */
       CTF::Idx_Tensor execute() const;
       
@@ -201,7 +200,8 @@ namespace CTF_int {
       /**
        * \brief estimates the cost the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[in,out] output tensor to write results into and its indices
+       * \param[in] cost time estimate
+       * \return output tensor to write results into and its indices
        */
       CTF::Idx_Tensor estimate_time(double  & cost) const;
       
@@ -245,7 +245,7 @@ namespace CTF_int {
       /**
        * \brief creates sum term for B+A
        * \param[in] B left hand side
-       * \param[in] B right hand side
+       * \param[in] A right hand side
        */
       Contract_Term(Term * B, Term * A);
 
@@ -274,7 +274,7 @@ namespace CTF_int {
       /**
        * \brief evalues the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[in,out] output tensor to write results into and its indices
+       * \return output tensor to write results into and its indices
        */
       CTF::Idx_Tensor execute() const;
       
@@ -287,7 +287,8 @@ namespace CTF_int {
       /**
        * \brief estimates the cost the expression to produce an intermediate with 
        *        all expression indices remaining
-       * \param[in,out] output tensor to write results into and its indices
+       * \param[out] cost time estimate
+       * \return output tensor to write results into and its indices
        */
       CTF::Idx_Tensor estimate_time(double  & cost) const;
       

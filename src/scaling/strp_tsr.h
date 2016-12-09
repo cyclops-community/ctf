@@ -176,7 +176,7 @@ namespace CTF_int {
    * \param[in] idx_map the index mapping for this contraction/sum
    * \param[in] vrt_sz size of virtual block
    * \param[in] edge_map mapping of each dimension
-   * \param[in] topology the tensor is mapped to
+   * \param[in] topo topology the tensor is mapped to
    * \param[in] sr algstrct to be given  to all stpr objs
    * \param[in,out] blk_edge_len edge lengths of local block after strip
    * \param[in,out] blk_sz size of local sub-block block after strip

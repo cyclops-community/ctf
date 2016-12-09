@@ -115,7 +115,7 @@ namespace CTF {
 
   Idx_Tensor::Idx_Tensor(Idx_Tensor const & other,
                          int                copy,
-      std::map<CTF_int::tensor*, CTF_int::tensor*>* remap) : Term(other.sr) {
+      std::map<tensor*, tensor*>* remap) : Term(other.sr) {
     if (other.parent == NULL){
       parent  = NULL;
       idx_map = NULL;

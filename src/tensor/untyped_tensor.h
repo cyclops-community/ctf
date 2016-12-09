@@ -26,7 +26,8 @@ namespace CTF_int {
        * \param[in] edge_len edge lengths of tensor
        * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
        * \param[in] wrld a distributed context for the tensor to live in
-       * \param[in] name_an optionary name for the tensor
+       * \param[in] alloc_data set to 1 if tensor should be mapped and data buffer allocated
+       * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] is_sparse set to 1 to store only nontrivial tensor elements
        */
@@ -42,6 +43,7 @@ namespace CTF_int {
       /**
        * \brief read all pairs with each processor (packed)
        * \param[out] num_pair number of values read
+       * \param[in] unpack whether to read all or unique pairs
        * return pair iterator with allocated all pairs read 
        */
       PairIterator read_all_pairs(int64_t * num_pair, bool unpack);
@@ -138,7 +140,7 @@ namespace CTF_int {
       
       /**
        * \brief associated an index map with the tensor for future operation
-       * \param[in] idx_map_ index assignment for this tensor
+       * \param[in] idx_map index assignment for this tensor
        */
       CTF::Idx_Tensor operator[](char const * idx_map);
  
@@ -158,7 +160,7 @@ namespace CTF_int {
        * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
        * \param[in] wrld a distributed context for the tensor to live in
        * \param[in] alloc_data whether to allocate and set data to zero immediately
-       * \param[in] name_ an optionary name for the tensor
+       * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] is_sparse set to 1 to store only nontrivial tensor elements
        */
@@ -183,7 +185,7 @@ namespace CTF_int {
        * \param[in] idx assignment of characters to each dim
        * \param[in] prl mesh processor topology with character labels
        * \param[in] blk local blocking with processor labels
-       * \param[in] name_ an optionary name for the tensor
+       * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        */
       tensor(algstrct const *           sr,
@@ -262,7 +264,7 @@ namespace CTF_int {
 
       /**
        * \brief scales each element by 1/(number of entries equivalent to it after permutation of indices for which sym_mask is 1)
-       * \param[in] identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
+       * \param[in] sym_mask identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
        */
       void scale_diagonals(int const * sym_mask);
 
@@ -358,7 +360,7 @@ namespace CTF_int {
        * \brief read entire tensor with each processor (in packed layout).
        *         WARNING: will use an 'unscalable' amount of memory. 
        * \param[out] num_pair number of values read
-       * \param[in,out] mapped_data values read (allocated by library)
+       * \param[in,out] all_data values read (allocated by library)
        * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
        */
       int allread(int64_t * num_pair,
@@ -369,7 +371,7 @@ namespace CTF_int {
        * \brief read entire tensor with each processor (in packed layout).
        *         WARNING: will use an 'unscalable' amount of memory. 
        * \param[out] num_pair number of values read
-       * \param[in,out] preallocated mapped_data values read
+       * \param[in,out] all_data preallocated mapped_data values read
        * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
        */
       int allread(int64_t * num_pair,
@@ -381,10 +383,10 @@ namespace CTF_int {
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] offsets_B bottom left corner of block
        * \param[in] ends_B top right corner of block
-       * \param[in] alpha scaling factor of this tensor
+       * \param[in] beta scaling factor of this tensor
        * \param[in] A tensor who owns pure-operand slice
-       * \param[in] offsets bottom left corner of block of A
-       * \param[in] ends top right corner of block of A
+       * \param[in] offsets_A bottom left corner of block of A
+       * \param[in] ends_A top right corner of block of A
        * \param[in] alpha scaling factor of tensor A
        */
       void slice(int const *  offsets_B,
@@ -414,7 +416,7 @@ namespace CTF_int {
        * \param[in] permutation_A mappings for each dimension of A indices
        * \param[in] alpha scaling factor for A
        * \param[in] permutation_B mappings for each dimension of B (this) indices
-       * \param[in] alpha scaling factor for current values of B
+       * \param[in] beta scaling factor for current values of B
        */
       int permute(tensor *      A,
                   int * const * permutation_A,
@@ -457,8 +459,8 @@ namespace CTF_int {
                          char **   mapped_data) const;
 
       /** 
-       * \brief copy A into this (B). Realloc if necessary 
-       * \param[in] A tensor to copy
+       * brief copy A into this (B). Realloc if necessary 
+       * param[in] A tensor to copy
        */
       //int copy(tensor * A);
 
@@ -537,7 +539,7 @@ namespace CTF_int {
        * \param[in] greater_world comm with respect to which the data needs to be ordered
        * \param[out] bw_mirror_rank processor rank in greater_world from which data is received
        * \param[out] fw_mirror_rank processor rank in greater_world to   which data is sent
-       * \param[out] distribution mapping of data on output defined on oriented subworld
+       * \param[out] odst distribution mapping of data on output defined on oriented subworld
        * \param[out] sub_buffer_ allocated buffer of received data on oriented subworld
       */
       void orient_subworld(CTF::World *    greater_world,
@@ -559,7 +561,6 @@ namespace CTF_int {
       /**
         * \brief accumulates this tensor from a tensor object defined on a different world
         * \param[in] tsr_sub id of tensor on a subcomm of this CTF inst
-        * \param[in] tC_sub CTF instance on a mpi subcomm
         * \param[in] alpha scaling factor for this tensor
         * \param[in] beta scaling factor for tensor tsr
         */
@@ -620,6 +621,10 @@ namespace CTF_int {
       /**
        * \brief permutes the data of a tensor to its new layout
        * \param[in] old_dist previous distribution to remap data from
+       * \param[in] old_offsets offsets from corner of tensor
+       * \param[in] old_permutation permutation of rows/cols/...
+       * \param[in] new_offsets offsets from corner of tensor
+       * \param[in] new_permutation permutation of rows/cols/...
        */
       int redistribute(distribution const & old_dist,
                        int const *  old_offsets = NULL,
@@ -635,6 +640,7 @@ namespace CTF_int {
         * \brief map the remainder of a tensor 
         * \param[in] num_phys_dims number of physical processor grid dimensions
         * \param[in] phys_comm dimensional communicators
+        * \param[in] fill whether to map everything
         */
       int map_tensor_rem(int        num_phys_dims,
                          CommData * phys_comm,
@@ -644,7 +650,7 @@ namespace CTF_int {
        * \brief extracts the diagonal of a tensor if the index map specifies to do so
        * \param[in] idx_map index map of tensor for this operation
        * \param[in] rw if 1 this writes to the diagonal, if 0 it reads the diagonal
-       * \param[in,out] new_tsrw if rw=1 this will be output as new tensor
+       * \param[in,out] new_tsr if rw=1 this will be output as new tensor
                                 if rw=0 this should be input as the tensor of the extracted diagonal 
        * \param[out] idx_map_new if rw=1 this will be the new index map
        */

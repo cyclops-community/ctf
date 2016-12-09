@@ -36,9 +36,9 @@ namespace CTF_int {
 
       /** 
        * \brief constructor
-       * \param[in] init guess array of size nparam consisting of initial model parameter guesses
+       * \param[in] init_guess array of size nparam consisting of initial model parameter guesses
+       * \param[in] name identifier
        * \param[in] hist_size number of times to keep in history
-       * \param[in] tune_interval
        */
       LinModel(double const * init_guess, char const * name, int hist_size=32768);
 
@@ -86,9 +86,9 @@ namespace CTF_int {
     public:
       /** 
        * \brief constructor
-       * \param[in] init guess array of size nparam consisting of initial model parameter guesses
+       * \param[in] init_guess array of size nparam consisting of initial model parameter guesses
+       * \param[in] name identifier
        * \param[in] hist_size number of times to keep in history
-       * \param[in] tune_interval
        */
       CubicModel(double const * init_guess, char const * name, int hist_size=8192);
 

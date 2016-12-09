@@ -110,9 +110,9 @@ namespace CTF_int{
        * \param[out] b_A block size of A if its communicated, 0 otherwise
        * \param[out] b_B block size of A if its communicated, 0 otherwise
        * \param[out] b_C block size of A if its communicated, 0 otherwise
-       * \param[out] b_A total size of A if its communicated, 0 otherwise
-       * \param[out] b_B total size of B if its communicated, 0 otherwise
-       * \param[out] b_C total size of C if its communicated, 0 otherwise
+       * \param[out] s_A total size of A if its communicated, 0 otherwise
+       * \param[out] s_B total size of B if its communicated, 0 otherwise
+       * \param[out] s_C total size of C if its communicated, 0 otherwise
        * \param[out] aux_size size of auxillary buffer needed 
        */
       void find_bsizes(int64_t & b_A,
@@ -132,7 +132,7 @@ namespace CTF_int{
       ~ctr_2d_general();
       /**
        * \brief partial constructor, most of the logic is in the ctr_2d_gen_build function
-       * \param[in] contraction object to get info about ctr from
+       * \param[in] c contraction object to get info about ctr from
        */
       ctr_2d_general(contraction * c) : ctr(c){ move_A=0; move_B=0; move_C=0; }
   };

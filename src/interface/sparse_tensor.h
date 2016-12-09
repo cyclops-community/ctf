@@ -35,7 +35,7 @@ namespace CTF {
 
       /**
        * \brief initialize a tensor which corresponds to a set of indices 
-       * \param[in] number of values this sparse tensor will have locally
+       * \param[in] n number of values this sparse tensor will have locally
        * \param[in] indices an array of global indices to tensor values
        * \param[in] parent dense distributed tensor to which this sparse tensor belongs to
        */

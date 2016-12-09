@@ -67,7 +67,7 @@ namespace CTF_int {
        * \param[in] lens ranges of tensor modes
        * \param[in] ordering reordering of tensor modes
        * \param[in] nrow_idx number of modes to fold into rows
-       * \param[in] data in key-value pair format
+       * \param[in] tsr_data in key-value pair format
        * \param[in] sr algebraic structure
        * \param[in] phase dimensions of the blocking grid
        */
@@ -78,9 +78,9 @@ namespace CTF_int {
        * \param[in] nz number of nonzers
        * \param[in] order number of tensor modes
        * \param[in] lens ranges of tensor modes
-       * \param[in] ordering reordering of tensor modes
+       * \param[in] rev_ordering reordering of tensor modes
        * \param[in] nrow_idx number of modes to fold into rows
-       * \param[in,out] data in key-value pair format
+       * \param[in,out] tsr_data in key-value pair format
        * \param[in] sr algebraic structure
        * \param[in] phase dimensions of the blocking grid
        * \param[in] phase_rank index of this block in grid

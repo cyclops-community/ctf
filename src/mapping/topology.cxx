@@ -403,8 +403,9 @@ namespace CTF_int {
    * \param[in] n_uf number of unique prime factors
    * \param[in] uniq_fact list of prime factors
    * \param[in] n_prepend number of factors to prepend
+   * \param[in] mults ? 
    * \param[in] prelens factors to prepend
-   * \param[return] lens vector of factorizations
+   * \return lens vector of factorizations
    */
   std::vector< topology* > get_all_topos(CommData cdt, int n_uf, int const * uniq_fact, int const * mults, int n_prepend, int const * prelens){
     std::vector<topology*> topos;

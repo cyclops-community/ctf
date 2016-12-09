@@ -28,7 +28,7 @@ namespace CTF {
   * \param[in] A matrix on the tropical semiring containing edge weights
   * \param[in] b number of source vertices for which to compute Bellman Ford at a time
   * \param[out] v vector that will contain centrality scores for each vertex
-  * \param[in] nbatches, number of batches (sets of nodes of size b) to compute on (0 means all)
+  * \param[in] nbatches number of batches (sets of nodes of size b) to compute on (0 means all)
   * \param[in] sp_B whether to store second operand as sparse
   * \param[in] sp_C whether to store output as sparse
   */

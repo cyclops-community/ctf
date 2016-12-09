@@ -50,10 +50,9 @@ namespace CTF_int {
                       int const *      idx_map_A);
   /**
    * \brief invert index map
-   * \param[in] ndim_A number of dimensions of A
+   * \param[in] order_A number of dimensions of A
    * \param[in] idx_A index map of A
-   * \param[in] edge_map_B mapping of each dimension of A
-   * \param[out] ndim_tot number of total dimensions
+   * \param[out] order_tot number of total dimensions
    * \param[out] idx_arr 2*ndim_tot index array
    */
   void inv_idx(int const          order_A,

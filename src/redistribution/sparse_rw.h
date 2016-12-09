@@ -111,7 +111,7 @@ namespace CTF_int {
   /**
    * \brief buckets key-value pairs by processor according to distribution
    * \param[in] order number of tensor dims
-   * \param[in] num_pairs numbers of values being written
+   * \param[in] num_pair numbers of values being written
    * \param[in] np number of processor buckets
    * \param[in] phys_phase physical distribution phase
    * \param[in] virt_phase factor of phase due to local blocking
@@ -119,7 +119,7 @@ namespace CTF_int {
    * \param[in] edge_len padded edge lengths of tensor
    * \param[in] mapped_data set of sparse key-value pairs
    * \param[out] bucket_counts how many keys belong to each processor
-   * \param[out] bucket_offsets prefix sum of bucket_counts
+   * \param[out] bucket_off prefix sum of bucket_counts
    * \param[out] bucket_data mapped_data reordered by bucket
    * \param[in] sr algstrct context defining values
    */
@@ -164,11 +164,11 @@ namespace CTF_int {
    * \param[in] size number of pairs
    * \param[in] alpha multiplier for new value
    * \param[in] beta multiplier for old value
+   * \param[in] nvirt num local blocks
    * \param[in] edge_len tensor edge lengths
    * \param[in] sym symmetries of tensor
    * \param[in] phase total phase in each dimension
    * \param[in] phys_phase physical distribution phase
-   * \param[in] virt_phase factor of phase due to local blocking
    * \param[in] virt_dim virtualization in each dimension
    * \param[in] phase_rank virtualized rank in total phase
    * \param[in,out] vdata data to read from or write to
@@ -208,15 +208,16 @@ namespace CTF_int {
    * \param[in] phase total phase in each dimension
    * \param[in] phys_phase physical phase in each dimension
    * \param[in] virt_phase virtualization in each dimension
-   * \param[in] phase_rank virtualized rank in total phase
+   * \param[in] virt_phys_rank virtualized rank in total phase
    * \param[in] bucket_lda prefix sum of the processor grid
-   * \param[in,out] wr_pairs pairs to read or write
+   * \param[in,out] wr_pairs_buf pairs to read or write
    * \param[in,out] rw_data data to read from or write to
    * \param[in] glb_comm the global communicator
    * \param[in] sr algstrct context defining values
    * \param[in] is_sparse if true local data (vdata) is sparse, otherwise rest of params irrelevant
    * \param[in] nnz_loc number of local elements in sparse tensor
-   * \param[out] new_data new elements of the local sparse tensor (if rw=='w')
+   * \param[in] nnz_blk number of local elements in each block
+   * \param[out] pprs_new new elements of the local sparse tensor (if rw=='w')
    * \param[out] nnz_loc_new number of elements of the new local sparse tensor (if rw=='w')
    */
   void wr_pairs_layout(int              order,
@@ -249,17 +250,16 @@ namespace CTF_int {
    * \brief read tensor pairs local to processor
    * \param[in] order tensor dimension
    * \param[in] nval number of local values
-   * \param[in] pad whether tensor is padded
    * \param[in] num_virt new total virtualization factor
    * \param[in] sym symmetries of tensor
    * \param[in] edge_len tensor edge lengths
    * \param[in] padding padding of tensor
-   * \param[in] virt_dim virtualization in each dimension
-   * \param[in] phase total phase in each dimension
+   * \param[in] phase blocking factor in each dimension
+   * \param[in] phys_phase number of procs in each dimension
+   * \param[in] virt_phase virtualization in each dimension
    * \param[in] phase_rank virtualized rank in total phase
-   * \param[in] bucket_lda prefix sum of the processor grid
    * \param[out] nread number of local pairs read
-   * \param[in] tensor data data to read from
+   * \param[in] data tensor data to read from
    * \param[out] pairs local pairs read
    * \param[in] sr algstrct context defining values
    */
@@ -303,14 +303,15 @@ namespace CTF_int {
    * \brief writes pairs in a sparse write set to the 
    *         sparse set of elements defining the tensor,
    *         resulting in a set of size between ntsr and ntsr+nwrite
+   * \param[in] num_virt num local blocks
    * \param[in] sr algstrct defining data type of array
-   * \param[in] ntsr number of elements in sparse tensor
-   * \param[in] prs_tsr pairs of the sparse tensor
+   * \param[in] vntsr number of elements in sparse tensor
+   * \param[in] vprs_tsr pairs of the sparse tensor
    * \param[in] beta scaling factor for data of the sparse tensor
-   * \param[in] nwrite number of elements in the write set
-   * \param[in] prs_write pairs of the write set
+   * \param[in] vnwrite number of elements in the write set
+   * \param[in] vprs_write pairs of the write set
    * \param[in] alpha scaling factor for data of the write set
-   * \param[out] nnew number of elements in resulting set
+   * \param[out] vnnew number of elements in resulting set
    * \param[out] pprs_new char array containing the pairs of the resulting set
    */
   void sp_write(int               num_virt,

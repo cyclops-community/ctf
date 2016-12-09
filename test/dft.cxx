@@ -2,7 +2,7 @@
 
 /** \addtogroup tests 
   * @{ 
-  * \defgroup DFT 
+  * \defgroup DFT  DFT
   * @{ 
   * \brief Discrete Fourier Transform by matrix multiplication
   */

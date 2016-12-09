@@ -312,7 +312,7 @@ void read_off_memory_status(statm_t& result)
 
   /**
    * \brief alloc abstraction
-   * \param[in] len number of bytes
+   * \param[in] len_ number of bytes
    * \param[in,out] ptr pointer to set to new allocation address
    */
   int alloc_ptr(int64_t const len_, void ** const ptr){

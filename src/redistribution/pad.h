@@ -14,7 +14,7 @@ namespace CTF_int {
    * \param[in] edge_len tensor edge lengths
    * \param[in] padding padding of tensor (included in edge_len)
    * \param[in,out] pairs set of pairs which to pad
-   * \param[in] algstrct defines sizeo of each pair
+   * \param[in] sr algstrct defines sizeo of each pair
    * \param[in] offsets (default NULL, none applied), offsets keys
    */
   void pad_key(int              order,
@@ -33,10 +33,10 @@ namespace CTF_int {
    * \param[in] sym symmetry types of tensor
    * \param[in] padding padding of tensor (included in edge_len)
    * \param[in] prepadding padding at start of tensor (included in edge_len)
-   * \param[in] pairs padded array of pairs
-   * \param[out] new_pairs unpadded pairs
+   * \param[in] pairsb padded array of pairs
+   * \param[out] new_pairsb unpadded pairs
    * \param[out] new_num_pair number of unpadded pairs
-   * \param[in] algstrct defines sizeo of each pair
+   * \param[in] sr algstrct defines sizeo of each pair
    */
   void depad_tsr(int              order,
                  int64_t          num_pair,
@@ -50,19 +50,19 @@ namespace CTF_int {
                  algstrct const * sr);
 
   /**
-   * \brief pads a tensor
-   * \param[in] order tensor dimension
-   * \param[in] num_pair number of pairs
-   * \param[in] edge_len tensor edge lengths
-   * \param[in] sym symmetries of tensor
-   * \param[in] padding padding of tensor (included in edge_len)
-   * \param[in] phys_phase phase of the tensor on virtualized processor grid
-   * \param[in] phase_rank physical phase rank multiplied by virtual phase
-   * \param[in] virt_phase virtual phase in each dimension
-   * \param[in] old_data array of input pairs
-   * \param[out] new_pairs padded pairs
-   * \param[out] new_size number of new padded pairs
-   * \param[in] algstrct defines sizeo of each pair
+   * brief pads a tensor
+   * param[in] order tensor dimension
+   * param[in] num_pair number of pairs
+   * param[in] edge_len tensor edge lengths
+   * param[in] sym symmetries of tensor
+   * param[in] padding padding of tensor (included in edge_len)
+   * param[in] phys_phase phase of the tensor on virtualized processor grid
+   * param[in] phase_rank physical phase rank multiplied by virtual phase
+   * param[in] virt_phase virtual phase in each dimension
+   * param[in] old_data array of input pairs
+   * param[out] new_pairs padded pairs
+   * param[out] new_size number of new padded pairs
+   * param[in] algstrct defines sizeo of each pair
    */
 /*  void pad_tsr(int              order,
                int64_t          size,
@@ -89,9 +89,9 @@ namespace CTF_int {
    * \param[in] phase phase of the tensor on virtualized processor grid
    * \param[in] phys_phase phase of the tensor on virtualized processor grid
    * \param[in] virt_phase virtual phase in each dimension
-   * \param[in] phase_rank physical phase rank 
+   * \param[in] cphase_rank physical phase rank 
    * \param[in,out] vdata array of all local data
-   * \param[in] algstrct defines sizeo of each pair
+   * \param[in] sr algstrct defines sizeo of each pair
    */
   void zero_padding( int              order,
                      int64_t          size,
@@ -117,10 +117,10 @@ namespace CTF_int {
    * \param[in] phase phase of the tensor on virtualized processor grid
    * \param[in] phys_phase phase of the tensor on virtualized processor grid
    * \param[in] virt_phase virtual phase in each dimension
-   * \param[in] phase_rank physical phase rank 
+   * \param[in] cphase_rank physical phase rank 
    * \param[in,out] vdata array of all local data
-   * \param[in] algstrct defines sizeo of each pair
-   * \param[in] identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
+   * \param[in] sr algstrct defines sizeo of each pair
+   * \param[in] sym_mask identifies which tensor indices are part of the symmetric group which diagonals we want to scale (i.e. sym_mask [1,1] does A["ii"]= (1./2.)*A["ii"])
 */
   void scal_diag(int              order,
                  int64_t          size,

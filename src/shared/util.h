@@ -344,6 +344,7 @@ namespace CTF_int {
 
   /**
    * \brief Copies submatrix to submatrix (column-major)
+   * \param[in] el_size element size
    * \param[in] nrow number of rows
    * \param[in] ncol number of columns
    * \param[in] lda_A lda along rows for A
@@ -431,7 +432,6 @@ namespace CTF_int {
    * \brief permutes a permutation array 
    *
    * \param order number of elements in perm
-   * \param order_perm number of elements in arr
    * \param perm permutation array
    * \param arr permutation array to permute
    */

@@ -413,10 +413,10 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::permute(int * const * perms_B,
-                              dtype         beta,
-                              tensor &      A,
-                              dtype         alpha){
+  void Tensor<dtype>::permute(int * const *     perms_B,
+                              dtype             beta,
+                              CTF_int::tensor & A,
+                              dtype             alpha){
     int ret = CTF_int::tensor::permute(&A, NULL, (char*)&alpha,
                                        perms_B, (char*)&beta);
     assert(ret == CTF_int::SUCCESS);
@@ -488,13 +488,13 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::slice(int const *    offsets,
-                            int const *    ends,
-                            dtype          beta,
-                            tensor const & A,
-                            int const *    offsets_A,
-                            int const *    ends_A,
-                            dtype          alpha){
+  void Tensor<dtype>::slice(int const *             offsets,
+                            int const *             ends,
+                            dtype                   beta,
+                            CTF_int::tensor const & A,
+                            int const *             offsets_A,
+                            int const *             ends_A,
+                            dtype                   alpha){
     int np_A, np_B;
     if (A.wrld->comm != wrld->comm){
       MPI_Comm_size(A.wrld->comm, &np_A);
@@ -512,13 +512,13 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::slice(int64_t        corner_off,
-                            int64_t        corner_end,
-                            dtype          beta,
-                            tensor const & A,
-                            int64_t        corner_off_A,
-                            int64_t        corner_end_A,
-                            dtype          alpha){
+  void Tensor<dtype>::slice(int64_t                 corner_off,
+                            int64_t                 corner_end,
+                            dtype                   beta,
+                            CTF_int::tensor const & A,
+                            int64_t                 corner_off_A,
+                            int64_t                 corner_end_A,
+                            dtype                   alpha){
     int * offsets, * ends, * offsets_A, * ends_A;
    
     CTF_int::cvrt_idx(this->order, this->lens, corner_off, &offsets);

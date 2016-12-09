@@ -80,7 +80,7 @@ namespace CTF {
 
       /**
        * \brief cast array of Pairs to tightly packed character array, needed to handle alignment
-       * \param[in,out] array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)], deleted if copied
+       * \param[in,out] arr array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)], deleted if copied
        * \param[in] n number of pairs in array
        * \return arr char array stored as [k1, d1, k2, d2, ..., kn, dn]
        */
@@ -100,7 +100,7 @@ namespace CTF {
 
       /**
        * \brief(same as above except doesn't delete arr) cast array of Pairs to tightly packed character array, needed to handle alignment
-       * \param[in] array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)]
+       * \param[in] arr array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)]
        * \param[in] n number of pairs in array
        * \return arr char array stored as [k1, d1, k2, d2, ..., kn, dn]
        */
@@ -139,15 +139,15 @@ namespace CTF {
 
       /**
        * \brief defines tensor filled with zeros on the default algstrct
-       * \param[in] order_ number of dimensions of tensor
-       * \param[in] len_ edge lengths of tensor
-       * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
-       * \param[in] wrld_ a world for the tensor to live in
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       * \param[in] order number of dimensions of tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] sr defines the tensor arithmetic for this tensor
        */
-      Tensor(int                       dim,
+      Tensor(int                       order,
              int const *               len,
              int const *               sym,
              World &                   wrld=get_universe(),
@@ -157,13 +157,13 @@ namespace CTF {
 
       /**
        * \brief defines a tensor filled with zeros on a specified algstrct
-       * \param[in] order_ number of dimensions of tensor
-       * \param[in] len_ edge lengths of tensor
-       * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
-       * \param[in] world_ a world for the tensor to live in
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] order number of dimensions of tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
        */
       Tensor(int                       order,
              int const *               len,
@@ -175,12 +175,12 @@ namespace CTF {
 
       /**
        * \brief defines a nonsymmetric tensor filled with zeros on a specified algstrct
-       * \param[in] order_ number of dimensions of tensor
-       * \param[in] len_ edge lengths of tensor
-       * \param[in] world_ a world for the tensor to live in
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] order number of dimensions of tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
        */
       Tensor(int                       order,
              int const *               len,
@@ -191,14 +191,14 @@ namespace CTF {
 
       /**
        * \brief defines a (sparse) tensor on a specified algstrct
-       * \param[in] order_ number of dimensions of tensor
+       * \param[in] order number of dimensions of tensor
        * \param[in] is_sparse if 1 then tensor will be sparse and non-trivial elements won't be stored
-       * \param[in] len_ edge lengths of tensor
-       * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
-       * \param[in] world_ a world for the tensor to live in
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
        */
       Tensor(int                       order,
              bool                      is_sparse,
@@ -212,13 +212,13 @@ namespace CTF {
 
       /**
        * \brief defines a nonsymmetric tensor filled with zeros on a specified algstrct
-       * \param[in] order_ number of dimensions of tensor
+       * \param[in] order number of dimensions of tensor
        * \param[in] is_sparse if 1 then tensor will be sparse and non-trivial elements won't be stored
-       * \param[in] len_ edge lengths of tensor
-       * \param[in] world_ a world for the tensor to live in
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] wrld a world for the tensor to live in
+       * \param[in] sr defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
        */
       Tensor(int                       order,
              bool                      is_sparse,
@@ -262,7 +262,7 @@ namespace CTF {
       /**
        * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
        * \param[in] A tensor whose characteristics to copy
-       * \param[in] world_ a world for the tensor we are creating to live in, can be different from A
+       * \param[in] wrld a world for the tensor we are creating to live in, can be different from A
        */
       Tensor(tensor const & A,
              World &        wrld);
@@ -271,18 +271,18 @@ namespace CTF {
 
       /**
        * \brief defines tensor filled with zeros on the default algstrct on a user-specified distributed layout
-       * \param[in] order_ number of dimensions of tensor
-       * \param[in] len_ edge lengths of tensor
-       * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
-       * \param[in] wrld_ a world for the tensor to live in
+       * \param[in] order number of dimensions of tensor
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
        * \param[in] idx assignment of characters to each dim
        * \param[in] prl mesh processor topology with character labels
        * \param[in] blk local blocking with processor labels
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] sr defines the tensor arithmetic for this tensor
        */
-      Tensor(int                       dim,
+      Tensor(int                       order,
              int const *               len,
              int const *               sym,
              World &                   wrld,
@@ -296,19 +296,19 @@ namespace CTF {
 
       /**
        * \brief defines tensor filled with zeros on the default algstrct on a user-specified distributed layout
-       * \param[in] order_ number of dimensions of tensor
+       * \param[in] order number of dimensions of tensor
        * \param[in] is_sparse whether tensor is sparse
-       * \param[in] len_ edge lengths of tensor
-       * \param[in] sym_ symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
-       * \param[in] wrld_ a world for the tensor to live in
+       * \param[in] len edge lengths of tensor
+       * \param[in] sym symmetries of tensor (e.g. symmetric matrix -> sym={SY, NS})
+       * \param[in] wrld a world for the tensor to live in
        * \param[in] idx assignment of characters to each dim
        * \param[in] prl mesh processor topology with character labels
        * \param[in] blk local blocking with processor labels
-       * \param[in] name_ an optionary name for the tensor
-       * \param[in] profile_ set to 1 to profile contractions involving this tensor
-       * \param[in] sr_ defines the tensor arithmetic for this tensor
+       * \param[in] name an optionary name for the tensor
+       * \param[in] profile set to 1 to profile contractions involving this tensor
+       * \param[in] sr defines the tensor arithmetic for this tensor
        */
-      Tensor(int                       dim,
+      Tensor(int                       order,
              bool                      is_sparse,
              int const *               len,
              int const *               sym,
@@ -323,7 +323,7 @@ namespace CTF {
 
       /**
        * \brief associated an index map with the tensor for future operation
-       * \param[in] idx_map_ index assignment for this tensor
+       * \param[in] idx_map index assignment for this tensor
        */
       Typ_Idx_Tensor<dtype> operator[](char const * idx_map);
  
@@ -502,6 +502,7 @@ namespace CTF {
        * \brief scales A[idx_A] = fseq(alpha*A[idx_A])
        * \param[in] alpha A scaling factor
        * \param[in] idx_A indices of A (this tensor), e.g. "ij" -> A_{ij}
+       * \param[in] fseq user defined function
        */
       void scale(dtype               alpha,
                  char const *        idx_A,
@@ -609,10 +610,10 @@ namespace CTF {
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
-       * \param[in] alpha scaling factor of this tensor
+       * \param[in] beta scaling factor of this tensor
        * \param[in] A tensor who owns pure-operand slice
-       * \param[in] offsets bottom left corner of block of A
-       * \param[in] ends top right corner of block of A
+       * \param[in] offsets_A bottom left corner of block of A
+       * \param[in] ends_A top right corner of block of A
        * \param[in] alpha scaling factor of tensor A
        */
       void slice(int const *             offsets,
@@ -628,10 +629,10 @@ namespace CTF {
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] corner_off top left corner of block
        * \param[in] corner_end bottom right corner of block       
-       * \param[in] alpha scaling factor of this tensor
+       * \param[in] beta scaling factor of this tensor
        * \param[in] A tensor who owns pure-operand slice
-       * \param[in] corner_off top left corner of block of A
-       * \param[in] corner_end bottom right corner of block of A
+       * \param[in] corner_off_A top left corner of block of A
+       * \param[in] corner_end_A bottom right corner of block of A
        * \param[in] alpha scaling factor of tensor A
        */
       void slice(int64_t                 corner_off,
@@ -754,7 +755,7 @@ namespace CTF {
       
       /**
        * \brief map data according to global index
-       * \param[in]  map_funcfunction that takes indices and tensor element value and returns new value 
+       * \param[in]  map_func function that takes indices and tensor element value and returns new value 
        */
       void map_tensor(dtype (*map_func)(int         order,
                                         int const * indices,
@@ -842,8 +843,7 @@ namespace CTF {
       
       /**
        * \brief collects the entire tensor data on each process (not memory scalable)
-       * \param[in,out] preallocated data pointer to the data of the entire tensor
-       * \param[in,out] preallocated data pointer to the data of the entire tensor
+       * \param[in,out] data preallocated pointer to the data of the entire tensor
        * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
        */
       int64_t read_all(dtype * data, bool unpack=false);
@@ -906,7 +906,7 @@ namespace CTF {
      
       /**
        * \brief gives handle to sparse index subset of tensors
-       * \param[in] indices, vector of indices to sparse tensor
+       * \param[in] indices vector of indices to sparse tensor
        */
       Sparse_Tensor<dtype> operator[](std::vector<int64_t> indices);
       

@@ -26,10 +26,10 @@ namespace CTF_int {
       int el_size;
       /** \brief whether there was a custom COO CSRMM kernel provided for this algebraic structure */
       bool has_coo_ker;
-      /** \brief datatype for pairs, always custom create3d */
+      /** brief datatype for pairs, always custom create3d */
 //      MPI_Datatype pmdtype;
 
-      /** \brief b = \max(a,addinv(a)) */
+      /** \brief b = max(a,addinv(a)) */
       void (*abs)(char const * a, 
                   char *       b);
 
@@ -43,15 +43,15 @@ namespace CTF_int {
       algstrct(){ has_coo_ker = false; }
 
       /**
-       * \brief copy constructor
-       * \param[in] other another algstrct to copy from
+       * brief copy constructor
+       * param[in] other another algstrct to copy from
        */
       //algstrct(algstrct const &other);
 
       /**
        * \brief constructor creates algstrct with all parameters
        * \param[in] el_size number of bytes in each element in the algstrct set
-             */
+       */
       algstrct(int el_size);
 
       /**

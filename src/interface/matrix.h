@@ -54,7 +54,7 @@ namespace CTF {
        * \brief constructor for a matrix
        * \param[in] nrow number of matrix rows
        * \param[in] ncol number of matrix columns
-       * \param[in] world CTF world where the tensor will live
+       * \param[in] wrld CTF world where the tensor will live
        * \param[in] name an optionary name for the tensor
        * \param[in] profile set to 1 to profile contractions involving this tensor
        * \param[in] sr defines the tensor arithmetic for this tensor
@@ -212,8 +212,6 @@ namespace CTF {
        * \brief reads a nonsymmetric matrix into a block-cyclic initial distribution
        *        this is `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, rsrc=0, csrc=0, but is done via sparse read/write otherwise
        *        assumes processor grid is row-major (otherwise transpose matrix)
-       * \param[in] nrow number of matrix rows
-       * \param[in] ncol number of matrix columns
        * \param[in] mb row block dimension
        * \param[in] nb col block dimension
        * \param[in] pr number of rows in processor grid

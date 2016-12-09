@@ -66,24 +66,18 @@ namespace CTF {
        */
       Univar_Function(std::function<dtype_B(dtype_A)> f_){ f = f_; }
 
-      /** 
-       * \brief evaluate B=f(A) 
-       * \param[in] A operand tensor with pre-defined indices 
-       * return f(A) output tensor 
-       */
-      //Idx_Tensor operator()(Idx_Tensor const  & A);
       
       /**
        * \brief apply function f to value stored at a
        * \param[in] a pointer to operand that will be cast to dtype 
-       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       * \param[in,out] b result &f(*a) of applying f on value of (different type) on a
        */
       void apply_f(char const * a, char * b) const { ((dtype_B*)b)[0]=f(((dtype_A*)a)[0]); }
       
       /**
        * \brief compute b = b+f(a)
        * \param[in] a pointer to operand that will be cast to dtype 
-       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       * \param[in,out] b result &f(*a) of applying f on value of (different type) on a
        * \param[in] sr_B algebraic structure for b, needed to do add
        */
       void acc_f(char const * a, char * b, CTF_int::algstrct const * sr_B) const {
@@ -113,24 +107,18 @@ namespace CTF {
        */
       Univar_Transform(std::function<void(dtype_A, dtype_B &)> f_){ f = f_; }
 
-      /** 
-       * \brief evaluate B=f(A) 
-       * \param[in] A operand tensor with pre-defined indices 
-       * return f(A) output tensor 
-       */
-      //Idx_Tensor operator()(Idx_Tensor const  & A);
       
       /**
        * \brief apply function f to value stored at a, for an accumulator, this is the same as acc_f below
        * \param[in] a pointer to operand that will be cast to dtype 
-       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       * \param[in,out] b result &f(*a) of applying f on value of (different type) on a
        */
       void apply_f(char const * a, char * b) const { acc_f(a,b,NULL); }
 
        /**
        * \brief compute f(a,b)
        * \param[in] a pointer to the accumulated operand 
-       * \param[in,out] value that is accumulated to
+       * \param[in,out] b value that is accumulated to
        * \param[in] sr_B algebraic structure for b, here is ignored
        */
       void acc_f(char const * a, char * b, CTF_int::algstrct const * sr_B) const {
@@ -179,20 +167,12 @@ namespace CTF {
        */
       Bivar_Function();
 
-      /** 
-       * \brief evaluate C=f(A,B) 
-       * \param[in] A left operand tensor with pre-defined indices 
-       * \param[in] B right operand tensor with pre-defined indices
-       * \return C output tensor
-      */
-      //Idx_Tensor operator()(Idx_Tensor const  & A, 
-      //                      Idx_Tensor const  & B);
 
       /**
        * \brief compute c = f(a,b)
        * \param[in] a pointer to operand that will be cast to dtype 
        * \param[in] b pointer to operand that will be cast to dtype 
-       * \param[in,out] result c+f(*a,b) of applying f on value of (different type) on a
+       * \param[in,out] c result c+f(*a,b) of applying f on value of (different type) on a
        */
       void apply_f(char const * a, char const * b, char * c) const { 
         ((dtype_C*)c)[0] = f(((dtype_A const*)a)[0],((dtype_B const*)b)[0]); 
@@ -202,7 +182,7 @@ namespace CTF {
        * \brief compute c = c+ f(a,b)
        * \param[in] a pointer to operand that will be cast to dtype 
        * \param[in] b pointer to operand that will be cast to dtype 
-       * \param[in,out] result c+f(*a,b) of applying f on value of (different type) on a
+       * \param[in,out] c result c+f(*a,b) of applying f on value of (different type) on a
        * \param[in] sr_C algebraic structure for b, needed to do add
        */
       void acc_f(char const * a, char const * b, char * c, CTF_int::algstrct const * sr_C) const { 
@@ -429,17 +409,11 @@ namespace CTF {
         f=f_; 
       }
 
-
-      /** 
-       * \brief evaluate B=f(A) 
-       * \param[in] A operand tensor with pre-defined indices 
-       * return f(A) output tensor 
-       */
-      //Idx_Tensor operator()(Idx_Tensor const  & A);
        /**
        * \brief compute f(a,b)
-       * \param[in] a pointer to the accumulated operand 
-       * \param[in,out] value that is accumulated to
+       * \param[in] a pointer to first operand 
+       * \param[in] b pointer to second operand 
+       * \param[in,out] c value that is accumulated to
        * \param[in] sr_B algebraic structure for b, here is ignored
        */
       void acc_f(char const * a, char const * b, char * c, CTF_int::algstrct const * sr_B) const {
@@ -449,7 +423,8 @@ namespace CTF {
       /**
        * \brief apply function f to value stored at a, for an accumulator, this is the same as acc_f below
        * \param[in] a pointer to operand that will be cast to dtype 
-       * \param[in,out] result &f(*a) of applying f on value of (different type) on a
+       * \param[in] b pointer to second operand that will be cast to dtype 
+       * \param[in,out] c result &f(*a,*b) of applying f on value of (different type) on a
        */
       void apply_f(char const * a, char const * b, char * c) const { acc_f(a,b,c,NULL); }
 

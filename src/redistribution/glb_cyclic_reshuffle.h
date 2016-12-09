@@ -12,10 +12,11 @@ namespace CTF_int {
    * \brief reorder local buffer so that elements are in ordered according to where they
    *        are in the global tensor (interleave virtual blocks)
    * \param[in] sym symmetry relations between tensor dimensions
+   * \param[in] dist distribution of data
    * \param[in] virt_edge_len dimensions of each block
-   * \param[in] virt_phase prefix sum of virtual blocks
+   * \param[in] virt_phase_lda prefix sum of virtual blocks
    * \param[in] vbs size of virtual blocks
-   * \param[in] if 1 then go to global layout, if 0 than from
+   * \param[in] dir if 1 then go to global layout, if 0 than from
    * \param[in] tsr_data_in starting data buffer
    * \param[out] tsr_data_out target data buffer
    * \param[in] sr algstrct defining data
@@ -39,8 +40,8 @@ namespace CTF_int {
    * \param[in] new_dist target data distrubtion
    * \param[in] new_offsets old offsets of each tensor edge (corner 1 of slice)
    * \param[in] new_permutation permutation array for each edge length (no perm if NULL)
-   * \param[in] tsr_data starting data buffer
-   * \param[out] tsr_cyclic_data target data buffer
+   * \param[in] ptr_tsr_data starting data buffer
+   * \param[out] ptr_tsr_cyclic_data target data buffer
    * \param[in] sr algstrct defining data
    * \param[in] ord_glb_comm communicator on which to redistribute
    * \param[in] reuse_buffers if 1: ptr_tsr_cyclic_data is allocated dynamically and ptr_tsr_data 

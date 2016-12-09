@@ -23,7 +23,7 @@ namespace CTF_int{
        * \brief apply function f to values stored at a and b
        * \param[in] a pointer to first operand that will be cast to type by extending class
        * \param[in] b pointer to second operand that will be cast to type by extending class
-       * \param[in,out] result: c=&f(*a,*b) 
+       * \param[in,out] c result: c=&f(*a,*b) 
        */
       virtual void apply_f(char const * a, char const * b, char * c) const = 0;
       
@@ -31,7 +31,7 @@ namespace CTF_int{
        * \brief compute c = c+f(a,b)
        * \param[in] a pointer to operand that will be cast to dtype 
        * \param[in] b pointer to operand that will be cast to dtype 
-       * \param[in,out] result c+f(*a,b) of applying f on value of (different type) on a
+       * \param[in,out] c result c+f(*a,b) of applying f on value of (different type) on a
        * \param[in] sr_C algebraic structure for b, needed to do add
        */
       virtual void acc_f(char const * a, char const * b, char * c, CTF_int::algstrct const * sr_C) const = 0;

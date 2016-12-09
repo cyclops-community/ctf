@@ -61,18 +61,14 @@ namespace CTF_int {
    * \param[in] sym symmetry relations between tensor dimensions
    * \param[in] old_dist starting data distrubtion
    * \param[in] new_dist target data distrubtion
-   * \param[in] nbuf number of global virtual buckets
    * \param[in] new_nvirt new total virtualization factor
    * \param[in] np number of processors
+   * \param[in] old_virt_edge_len old edge lengths of blocks
    * \param[in] new_virt_lda prefix sum of new_dist.virt_phase
-   * \param[in] buf_lda prefix sum of new_phase
-   * \param[in] padding padding of tensor
    * \param[out] send_counts outgoing counts of pairs by pe
    * \param[out] recv_counts incoming counts of pairs by pe
    * \param[out] send_displs outgoing displs of pairs by pe
    * \param[out] recv_displs incoming displs of pairs by pe
-   * \param[out] svirt_displs outgoing displs of pairs by virt bucket
-   * \param[out] rvirt_displs incoming displs of pairs by virt bucket
    * \param[in] ord_glb_comm the global communicator
    * \param[in] idx_lyr starting processor layer (2.5D)
    * \param[in] bucket_offset offsets for target index for each dimension

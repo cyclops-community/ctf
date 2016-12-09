@@ -100,6 +100,7 @@ namespace CTF_int {
    * \param[in] mapping_A mapping to copy from 
    * \param[in] idx_B index mapping of B
    * \param[in,out] mapping_B mapping to copy to
+   * \param[in] make_virt makes virtual
    */
   int copy_mapping(int             order_A,
                    int             order_B,
@@ -113,6 +114,7 @@ namespace CTF_int {
   /**
    * \brief map a tensor
    * \param[in] num_phys_dims number of physical processor grid dimensions
+   * \param[in] tsr_order number dims
    * \param[in] tsr_edge_len edge lengths of the tensor
    * \param[in] tsr_sym_table the symmetry table of a tensor
    * \param[in,out] restricted an array used to restricted the mapping of tensor dims

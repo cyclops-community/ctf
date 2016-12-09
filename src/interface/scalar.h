@@ -14,7 +14,7 @@ namespace CTF {
     public:
       /**
        * \brief constructor for a scalar
-       * \param[in] world CTF world where the tensor will live
+       * \param[in] wrld CTF world where the tensor will live
        * \param[in] sr defines the tensor arithmetic for this tensor
        */
       Scalar(World &                   wrld=get_universe(),
@@ -23,7 +23,7 @@ namespace CTF {
       /**
        * \brief constructor for a scalar with predefined value
        * \param[in] val scalar value
-       * \param[in] world CTF world where the tensor will live
+       * \param[in] wrld CTF world where the tensor will live
        * \param[in] sr defines the tensor arithmetic for this tensor
        */ 
       Scalar(dtype                     val,
