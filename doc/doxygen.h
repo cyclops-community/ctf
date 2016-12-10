@@ -8,7 +8,7 @@
  * However, a user can define any statically-sized type and elementwise operations.
  * CTF supports general tensor sparsity, so it is possible to define graph algorithms with the use of sparse adjacency matrices.
  *
- * To get an idea of how CTF interface works, browse through some of the short sample codes in the examples folder (or Examples doxygen module).
+ * To get an idea of how CTF interface works, browse through some of the short sample codes in the <a href="https://github.com/solomonik/ctf/tree/master/examples">examples folder</a>.
  *
  * The primary means of specifying CTF tensor operations is assigning `iterator' indices for each way of each tensor and specifying an elementwise function to apply.
  * Partitioning and efficient redistribution of tensor data is also possible via CTF.
@@ -41,25 +41,10 @@
  * <a href="http://www.sciencedirect.com/science/article/pii/S074373151400104X">(link)</a>
  *
  * Edgar Solomonik, Devin Matthews, Jeff Hammond, and James Demmel; Cyclops Tensor Framework: reducing communication and eliminating load imbalance in massively parallel contractions; IEEE International Parallel and Distributed Processing Symposium (IPDPS), Boston, MA, May 2013. 
- * <a href="http://www.eecs.berkeley.edu/Pubs/TechRpts/2013/EECS-2013-11.pdf">(link)</a>
+ * <a href="http://dl.acm.org/citation.cfm?id=2650535">(link)</a>
  *
- * Edgar Solomonik, Jeff Hammond, and James Demmel; A preliminary analysis of Cyclops Tensor Framework; EECS Department, University of California, Berkeley, March 2012. 
- * <a href="http://www.eecs.berkeley.edu/Pubs/TechRpts/2012/EECS-2012-29.pdf">(link)</a>
- *
- * We would appreciate it, if the first paper was cited in publications that leverage CTF tensors.
+ * We would appreciate it, if the JPDC paper was cited in publications that leverage CTF tensors.
  * If you leverage sparse tensor functionality, the aforementioned arXiv paper is the best reference.
-
- *
- * The lead developer of this code is Edgar Solomonik (University of California-Berkeley).
- * Devin Matthews (University of Austin Texas) has also made significant contributions to CTF.
- * Additionally, Devin leads the development of Aquarius (https://code.google.com/p/aquarius-chem/),
- * a distributed-memory quantum chemistry software suite running on top of the CTF library.
- * Richard Lin (UC Berkeley) has worked on multi-contraction scheduling in (on top of) CTF.
- * Jeff Hammond (Intel), Torsten Hoefler (ETH Zurich) and James Demmel (University of California-Berkeley) have overseen the high-level development of the ideas in the CTF framework.
- *
- * The source to CTF is available for reference and usage under
- * a BSD license. Please email solomon@eecs.berkeley.edu with all questions and interest.
- *
  *
  * \section interface Interface
  * The main interface of the library is in include/ctf.hpp (C++)
@@ -199,4 +184,17 @@
  * src/redistribution/ contains functions that reshuffle data between two different parallel decompositions 
  *
  * src/shared/ contains some shared utility functions and definitions
+ *
+ * \section devel Developers
+ *
+ * The lead developer of this code is Edgar Solomonik (University of Illinois).
+ * Devin Matthews (University of Austin Texas) has also made significant contributions to CTF.
+ * Additionally, Devin leads the development of Aquarius (https://github.com/devinamatthews/aquarius),
+ * a distributed-memory quantum chemistry software suite running on top of the CTF library.
+ * Richard Lin (UC Berkeley) has worked on multi-contraction scheduling in (on top of) CTF.
+ * Jeff Hammond (Intel), Torsten Hoefler (ETH Zurich) and James Demmel (UC Berkeley) have overseen the high-level development of the ideas in the CTF framework.
+ *
+ * The source to CTF is available for reference and usage under
+ * a BSD license. Please email solomon2@illinois.edu with all questions and interest.
  */
+
