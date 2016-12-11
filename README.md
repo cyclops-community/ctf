@@ -112,6 +112,8 @@ To build the library, it is necessary to execute './configure' and 'make'. The c
 
 For testing the library, run 'make test', which will run a suite of dozens of tests sequentially, but should only take a couple of seconds. You can also build and execute 'test_suite' using multiple MPI processors ('make test2', 'make test4', ... will build and run the test suite with 2, 4, ... processors, but only works for some small processor counts).
 
+Parallel make (e.g. -j4) is supported. The library will build in seconds if you switch off the optimization flags in config.mk, but may take a few minutes otherwise.
+
 ## Performance
 
 Please see the aforementioned papers for various applications and benchmarks, which are also summarized in [this recent presentation](http://solomon2.web.engr.illinois.edu/talks/istcp_jul22_2016.pdf). Generally, the distributed-memory dense and sparse matrix multiplication performance should be very good. Similar performance is achieved for many types of contractions. CTF can leverage threading, but is fastest with pure MPI or hybrid MPI+OpenMP. The code aims at scalability to a large number of processors by minimizing communication cost, rather than necessarily achieving perfect absolute performance. User-defined functions naturally inhibit the sequential kernel performance. Algorithms that have a low flop-to-byte ratio may not achieve memory-bandwidth peak as some copying/transposition may take place. Absolute performance of operations that have Hadamard indices is relatively low for the time being, but will be improved.
