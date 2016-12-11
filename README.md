@@ -11,7 +11,7 @@ The CTF library enables general-purpose programming, but is particularly useful 
 
 #### Numerical methods based on tensor contractions
 
-The framework provides a powerful domain specific language for computational chemistry and physics codes that work on higher order tensors (e.g. coupled cluster, lattice QCD, quantum informatics). See the [CCSD](examples/ccsd.cxx) and [sparse MP3](examples/sparse_mp3.cxx) examples, or the [Aquarius](https://github.com/devinamatthews/aquarius) application. This domain was the initial motivation for the development of CTF. An examplary paper for this type of applications is
+The framework provides a powerful domain specific language for computational chemistry and physics codes that work on higher order tensors (e.g. coupled cluster, lattice QCD, quantum informatics). See the [CCSD](examples/ccsd.cxx) and [sparse MP3](examples/sparse_mp3.cxx) examples, or the [Aquarius](https://github.com/devinamatthews/aquarius) application. This domain was the initial motivation for the development of CTF. An exemplary paper for this type of applications is
 
 [Edgar Solomonik, Devin Matthews, Jeff R. Hammond, John F. Stanton, and James Demmel; A massively parallel tensor contraction framework for coupled-cluster computations; Journal of Parallel and Distributed Computing, June 2014.](http://www.sciencedirect.com/science/article/pii/S074373151400104X)
 
@@ -54,7 +54,7 @@ The key illustrative part of the above example is
 ```cpp
 x["i"] = d["i"]*(b["i"]-R["ij"]*x["j"]);
 ```
-to evalute this expression, CTF would execute the following set of loops, each in parallel,
+to evaluate this expression, CTF would execute the following set of loops, each in parallel,
 ```cpp
 double y[n];
 for (int i=0; i<n; i++){
@@ -114,7 +114,7 @@ For testing the library, run 'make test', which will run a suite of dozens of te
 
 ## Performance
 
-Please see the aforementioned papers for various applications and benchmarks. Generally, the distribued-memory dense and sparse matrix multiplication performance should be very good. Similar performance is achieved for many types of contractions. CTF can leverage threading, but is fastest with pure MPI or hybrid MPI+OpenMP. The code aims at scalability to a large number of processors by minimizing communication cost, rather than necessarily achieving perfect absolute performance. User-defined functions naturally inhibit the sequential kernel performance. Algorithms that have a low flop-to-byte ratio may not achieve memory-bandwidth peak as some copying/transposition may take place. Absolute performance of operations that have Hadamard indices is relatively low for the time being, but will be improved.
+Please see the aforementioned papers for various applications and benchmarks. Generally, the distributed-memory dense and sparse matrix multiplication performance should be very good. Similar performance is achieved for many types of contractions. CTF can leverage threading, but is fastest with pure MPI or hybrid MPI+OpenMP. The code aims at scalability to a large number of processors by minimizing communication cost, rather than necessarily achieving perfect absolute performance. User-defined functions naturally inhibit the sequential kernel performance. Algorithms that have a low flop-to-byte ratio may not achieve memory-bandwidth peak as some copying/transposition may take place. Absolute performance of operations that have Hadamard indices is relatively low for the time being, but will be improved.
 
 ## Alternative frameworks
 
