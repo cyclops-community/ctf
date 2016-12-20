@@ -398,6 +398,13 @@ namespace CTF {
   }
 
   template<typename dtype>
+  void Tensor<dtype>::pyprint() const{
+    CTF_int::tensor::print(stdout, NULL);
+  }
+
+
+
+  template<typename dtype>
   void Tensor<dtype>::compare(const Tensor<dtype>& A, FILE* fp, double cutoff){
     CTF_int::tensor::compare(&A, fp, (char const *)&cutoff);
   }

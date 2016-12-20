@@ -73,8 +73,16 @@ ctf:
 ctflib: ctf 
 	$(AR) -crs $(BDIR)/lib/libctf.a $(ODIR)/*.o; 
 
+.PHONY: ctflibso
+ctflibso: ctf 
+	$(FCXX) -shared -o $(BDIR)/lib/libctf.so $(ODIR)/*.o; 
+
+
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
+
+$(BDIR)/lib/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
+	$(MAKE) ctflibso
 	
 clean: clean_bin clean_lib clean_obj
 #	$(MAKE) $@ -C src

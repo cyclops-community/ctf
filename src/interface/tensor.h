@@ -918,6 +918,7 @@ namespace CTF {
        */
       void print(FILE * fp, dtype cutoff) const;
       void print(FILE * fp = stdout) const;
+      void pyprint() const;
 
       /**
        * \brief prints two sets of tensor data side-by-side to file using process 0
