@@ -326,6 +326,7 @@ namespace CTF {
        * \param[in] idx_map index assignment for this tensor
        */
       Typ_Idx_Tensor<dtype> operator[](char const * idx_map);
+      Typ_Idx_Tensor<dtype> i(char const * idx_map);
  
       /**
        * \brief gives the values associated with any set of indices

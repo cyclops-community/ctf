@@ -137,6 +137,14 @@ namespace CTF {
   }
 
   template<typename dtype>
+  Typ_Idx_Tensor<dtype> Tensor<dtype>::i(const char * idx_map_){
+    //IASSERT(strlen(idx_map_)==order);
+    Typ_Idx_Tensor<dtype> idxtsr(this, idx_map_);
+    return idxtsr;
+  }
+
+
+  template<typename dtype>
   Tensor<dtype>::~Tensor(){ }
 
   template<typename dtype>

@@ -214,6 +214,18 @@ namespace CTF {
       sr->safecopy(scale,sr->mulid());
     }
   }
+
+  void Idx_Tensor::operator<<(Term const & B){
+    if (global_schedule != NULL) {
+      global_schedule->add_operation(
+          new TensorOperation(TENSOR_OP_SUM, new Idx_Tensor(*this), B.clone()));
+    } else {
+      //sr->copy(scale,sr->mulid());
+      B.execute(*this);
+      sr->safecopy(scale,sr->mulid());
+    }
+  }
+
   
   void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }
   void Idx_Tensor::operator+=(double scl){ execute() += Idx_Tensor(sr,scl); }

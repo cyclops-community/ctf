@@ -109,6 +109,7 @@ namespace CTF {
        * \param[in] B tensor on the right hand side
        */
       void operator+=(CTF_int::Term const & B);
+      void operator<<(CTF_int::Term const & B);
       
       /**
        * \brief A += B, compute any operations on operand B and add

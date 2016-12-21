@@ -88,6 +88,8 @@ namespace CTF {
       if (this->cdt.cm == MPI_COMM_WORLD){
         ASSERT(universe_exists);
         universe_exists = false;
+ASSERT(0);
+printf("kill uni\n");
       }
       topovec.clear();
     }
@@ -280,9 +282,10 @@ namespace CTF {
 
   World & get_universe(){
     if (!universe_exists){
-      universe = World();
-      universe_exists = true;
-    }
+      World * pscp_universe = new World();
+      pscp_universe->is_copy=true;
+      delete pscp_universe;
+    } 
     return universe;
   }
 

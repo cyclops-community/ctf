@@ -1,3 +1,3 @@
 import tensor
 
-tensor.test_tensor()
+tensor.test()

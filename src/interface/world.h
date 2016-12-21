@@ -93,9 +93,9 @@ namespace CTF {
 
 
       bool operator==(World const & other){ return comm==other.comm; }
+      bool is_copy;
     private:
       /* whether this world is a copy of the universe object */
-      bool is_copy;
 
       /**
        * \brief initializes world stack and parameters, args only needed for profiler output
