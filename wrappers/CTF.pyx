@@ -8,10 +8,19 @@ cdef extern from "mpi.h" namespace "MPI":
   void Init()
   void Finalize()
 
+def MPI_start():
+  Init()
+
+def MPI_end():
+  Finalize()
+
 cdef extern from "../include/ctf.hpp" namespace "CTF_int":
   cdef cppclass tensor:
     tensor()
+  cdef cppclass algstrct:
+    algstrct()
   cdef cppclass Term:
+    Term(algstrct * sr);
     Contract_Term operator*(Term A);
     #Contract_Term operator*(int64_t scl);
     #Contract_Term operator*(double scl);
@@ -23,10 +32,12 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     #Sum_Term operator-(int64_t scl);
   
   cdef cppclass Sum_Term(Term):
+    Sum_Term(Term * B, Term * A);
     Sum_Term operator+(Term A);
     Sum_Term operator-(Term A);
   
   cdef cppclass Contract_Term(Term):
+    Contract_Term(Term * B, Term * A);
     Contract_Term operator*(Term A);
 
 cdef extern from "../include/ctf.hpp" namespace "CTF":
@@ -54,13 +65,13 @@ cdef extern from "../include/ctf.hpp" namespace "CTF":
     void operator<<(Term & B);
 
   cdef cppclass Typ_Idx_Tensor[dtype](Idx_Tensor):
-    Typ_Idx_Tensor()
+    Typ_Idx_Tensor(tensor *, char *)
     void operator=(Term B)
     void operator=(Idx_Tensor B)
     #void operator=(double scl)
     #void operator=(int64_t scl)
     #void operator=(int scl)
-  cdef cppclass Tensor[dtype]:
+  cdef cppclass Tensor[dtype](tensor):
     Tensor()
     Tensor(int, int *)
     Tensor(int, int *, World)
@@ -74,58 +85,81 @@ cdef extern from "../include/ctf.hpp" namespace "CTF":
 
 
 cdef class atsr:
-  cdef tensor * at
+  cdef tensor * t
   def __cinit__(self):
-    self.at = new tensor()
+    self.t = new tensor()
   def __dealloc__(self):
-    del self.at
+    del self.t
    
+cdef class algstr:
+  cdef algstrct * sr
+#  def __cinit__(self):
+#    self.sr = new algstrct()
+#  def __dealloc__(self):
+#    del self.sr
 
 cdef class term:
   cdef Term * tm
-  def __cinit__(self):
-    self.tm = new Term()
-  def __dealloc__(self):
-    del self.tm
+  def __add__(self, other):
+    return sum_term(self,other)
+  def __sub__(self, other):
+    return self.tm-other.tm
+  def __mul__(self, other):
+    return self.tm*other.tm
+#  def __cinit__(self, ntm)
+#    self.tm = ntm
+#  def __cinit__(self, algstr asr):
+#    self.tm = new Term(asr.sr)
 
 cdef class sum_term(term):
-  cdef Sum_Term * st
-  def __cinit__(self):
-    self.st = new Sum_Term()
-  def __dealloc__(self):
-    del self.st
+#  def __cinit__(Term x):
+#    self.tm = x
+  def __cinit__(self, term b, term a):
+    self.tm = new Sum_Term(b.tm, a.tm)
+#  def __dealloc__(self):
+#    del self.st
 
 cdef class itsr(term):
   cdef Idx_Tensor * it
+  def __lshift__(self, other):
+    return self.it << other.tm
   def __cinit__(self, atsr a, string):
-    self.it = new Idx_Tensor(a.at, string)
+    self.it = new Idx_Tensor(a.t, string)
+    self.tm = self.it
   def __dealloc__(self):
     del self.it
 
-cdef class idtsr(itsr):
-  cdef Typ_Idx_Tensor[double] * idt
-  def __cinit__(self):
-    self.idt = new Typ_Idx_Tensor[double]()
-  def __dealloc__(self):
-    del self.idt
+#cdef class idtsr(itsr):
+#  cdef Typ_Idx_Tensor[double] * idt
+#  def __cinit__(self, atsr a, string):
+#    self.it = new Typ_Idx_Tensor[double](a.t, string)
+#    self.tm = self.it
+#  def __dealloc__(self):
+#    del self.idt
 
 
 cdef class dtsr(atsr):
-  cdef Tensor[double]* t
+  cdef Tensor[double]* dt
   def __cinit__(self, order, lens):
     cdef int * clens 
     clens = <int*> malloc(order*sizeof(int))
     if clens is NULL:
       raise MemoryError()
-    for i in range(1,order):
+    for i in range(0,order):
       clens[i] = lens[i]
-    self.t = new Tensor[double](order, clens)
+    self.dt = new Tensor[double](order, clens)
+    self.t = self.dt
     free(clens)
-  def __dealloc__(self):
-    del self.t
+  def fill_random(self, mn, mx):
+    self.dt.fill_random(mn,mx)
+  def pyprint(self):
+    self.dt.pyprint()
+  def i(self, string):
+    return itsr(self, string)
+    #return idtsr(self, string)
     
 
-def test():
+def testcpyiface():
   Init()
   cdef int lens[2] 
   lens[:] = [4,4]
