@@ -231,6 +231,7 @@ namespace CTF {
   void Idx_Tensor::operator+=(double scl){ execute() += Idx_Tensor(sr,scl); }
   void Idx_Tensor::operator-=(double scl){ execute() -= Idx_Tensor(sr,scl); }
   void Idx_Tensor::operator*=(double scl){ execute() *= Idx_Tensor(sr,scl); }
+  void Idx_Tensor::multeq(double scl){ execute() *= Idx_Tensor(sr,scl); }
 
   void Idx_Tensor::operator=(int64_t scl){ execute() = Idx_Tensor(sr,scl); }
   void Idx_Tensor::operator+=(int64_t scl){ execute() += Idx_Tensor(sr,scl); }

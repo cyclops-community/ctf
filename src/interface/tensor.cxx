@@ -335,12 +335,12 @@ namespace CTF {
     CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
       pairs[i].write_key(global_idx[i]);
-      pairs[i].write_val(data[i]);
+      pairs[i].write_val((char*)&(data[i]));
     }
     ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
     assert(ret == CTF_int::SUCCESS);
     for (i=0; i<npair; i++){
-      pairs[i].read_val((char*)((*data)+i));
+      pairs[i].read_val((char*)(data+i));
     }
     CTF_int::cdealloc(cpairs);
   }
@@ -379,6 +379,15 @@ namespace CTF {
     assert(ret == CTF_int::SUCCESS);
     return npair;
   }
+      
+  template<typename dtype>
+  int64_t Tensor<dtype>::get_tot_size(){
+    int64_t size = 1;
+    for (int i=0; i<order; i++){
+      size *= lens[i];
+    }
+    return size;
+  }
 
   template<typename dtype>
   void Tensor<dtype>::set_name(char const * name_) {
@@ -406,7 +415,7 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::pyprint() const{
+  void Tensor<dtype>::prnt() const{
     CTF_int::tensor::print(stdout, NULL);
   }
 

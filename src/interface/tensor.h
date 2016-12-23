@@ -848,6 +848,12 @@ namespace CTF {
        * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
        */
       int64_t read_all(dtype * data, bool unpack=false);
+  
+      /**
+       * \brief get number of elements in whole tensor
+       * \return number of elements (including zeros)
+       */
+      int64_t get_tot_size();
 
       /**
        * \brief obtains a small number of the biggest elements of the 
@@ -919,7 +925,7 @@ namespace CTF {
        */
       void print(FILE * fp, dtype cutoff) const;
       void print(FILE * fp = stdout) const;
-      void pyprint() const;
+      void prnt() const;
 
       /**
        * \brief prints two sets of tensor data side-by-side to file using process 0

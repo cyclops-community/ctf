@@ -95,6 +95,7 @@ namespace CTF {
       void operator+=(double scl);
       void operator-=(double scl);
       void operator*=(double scl);
+      void multeq(double scl);
       void operator=(int64_t scl);
       void operator+=(int64_t scl);
       void operator-=(int64_t scl);
