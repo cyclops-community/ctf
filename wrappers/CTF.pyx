@@ -62,7 +62,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF":
     #void operator+=(int scl);
     #void operator-=(int scl);
     #void operator*=(int scl);
-    void operator<<(Term & B);
+    void operator<<(Term B);
 
   cdef cppclass Typ_Idx_Tensor[dtype](Idx_Tensor):
     Typ_Idx_Tensor(tensor *, char *)
@@ -102,14 +102,17 @@ cdef class term:
   cdef Term * tm
   def __add__(self, other):
     return sum_term(self,other)
-  def __sub__(self, other):
-    return self.tm-other.tm
   def __mul__(self, other):
-    return self.tm*other.tm
+    return contract_term(self,other)
 #  def __cinit__(self, ntm)
 #    self.tm = ntm
 #  def __cinit__(self, algstr asr):
 #    self.tm = new Term(asr.sr)
+
+cdef class contract_term(term):
+  def __cinit__(self, term b, term a):
+    self.tm = new Contract_Term(b.tm, a.tm)
+
 
 cdef class sum_term(term):
 #  def __cinit__(Term x):
@@ -122,12 +125,12 @@ cdef class sum_term(term):
 cdef class itsr(term):
   cdef Idx_Tensor * it
   def __lshift__(self, other):
-    return self.it << other.tm
+    return deref((<itsr>self).it) << deref((<term>other).tm)
   def __cinit__(self, atsr a, string):
     self.it = new Idx_Tensor(a.t, string)
     self.tm = self.it
-  def __dealloc__(self):
-    del self.it
+#  def __dealloc__(self):
+#    del self.it
 
 #cdef class idtsr(itsr):
 #  cdef Typ_Idx_Tensor[double] * idt
