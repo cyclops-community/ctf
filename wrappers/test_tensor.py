@@ -1,5 +1,6 @@
 import CTF
 import numpy as np
+#from mpi4py import MPI
 
 CTF.MPI_start()
 
@@ -8,7 +9,7 @@ A.fill_sp_random(1., 2., .8)
 
 B = CTF.dtsr([5, 4], sym=[CTF.SYM.NS, CTF.SYM.NS])
 B.fill_random(1., 2.)
-
+#print 'hi'
 #vals = [0] * 4
 #A.read([0, 2, 4, 6], vals)
 #print vals
@@ -26,6 +27,10 @@ C.i('ij').scale(2.0)
 #print vals
 C.i('ij') << -2.0*A.i('ik')*B.i('kj')
 
-print 'error norm is ' + repr(C.norm2())
+W = CTF.comm()
+rank = W.rank()
+norm = C.norm2()
+if rank is 0:
+  print 'error norm is ' + repr(norm)
 
 CTF.MPI_end()

@@ -1666,6 +1666,9 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  void tensor::prnt() const {
+    this->print();
+  }
   void tensor::print(FILE * fp, char const * cutoff) const {
     int my_sz;
     int64_t imy_sz, tot_sz =0;
