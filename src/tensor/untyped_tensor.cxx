@@ -1568,7 +1568,15 @@ namespace CTF_int {
     *num_pair = nval;
     return ipr; 
   }
-
+      
+  int64_t tensor::get_tot_size(){
+    int64_t tsize = 1;
+    for (int i=0; i<order; i++){
+      tsize *= lens[i];
+    }
+    return tsize;
+  }
+  
   int tensor::allread(int64_t * num_pair,
                       char **   all_data,
                       bool      unpack){

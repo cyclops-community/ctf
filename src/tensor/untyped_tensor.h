@@ -357,6 +357,12 @@ namespace CTF_int {
                char *  mapped_data);
 
       /**
+       * \brief get number of elements in whole tensor
+       * \return number of elements (including zeros)
+       */
+      int64_t get_tot_size();
+
+      /**
        * \brief read entire tensor with each processor (in packed layout).
        *         WARNING: will use an 'unscalable' amount of memory. 
        * \param[out] num_pair number of values read
@@ -376,7 +382,7 @@ namespace CTF_int {
        */
       int allread(int64_t * num_pair,
                   char *    all_data,
-                  bool      unpack);
+                  bool      unpack=true);
 
        /**
        * \brief cuts out a slice (block) of this tensor = B

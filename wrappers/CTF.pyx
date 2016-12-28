@@ -4,6 +4,9 @@ from cython.operator cimport dereference as deref, preincrement as inc
 from libc.stdint cimport int64_t
 from libc.stdlib cimport malloc, free
 import numpy as np
+cimport numpy as cnp
+
+import struct
 #from enum import Enum
 #class SYM(Enum):
 #  NS=0
@@ -28,13 +31,28 @@ def MPI_end():
   Finalize()
 
 cdef extern from "../include/ctf.hpp" namespace "CTF_int":
+  cdef cppclass algstrct:
+    char * addid()
+    char * mulid()
+
   cdef cppclass tensor:
+    algstrct * sr
     tensor()
     void prnt()
     int read(int64_t num_pair,
              char *  alpha,
              char *  beta,
-             char *  mapped_data);
+             char *  data);
+    int write(int64_t num_pair,
+              char *  alpha,
+              char *  beta,
+              char *  data);
+    int read_local(int64_t * num_pair,
+                   char **   data)
+    int read_local_nnz(int64_t * num_pair,
+                       char **   data)
+    void allread(int64_t * num_pair, char * data)
+    int64_t get_tot_size()
 
 #  cdef cppclass algstrct:
 #    algstrct()
@@ -89,8 +107,6 @@ cdef extern from "../include/ctf.hpp" namespace "CTF":
     #Typ_Idx_Tensor& operator[](char *)
     void read(int64_t, int64_t *, dtype *)
     void read(int64_t, dtype, dtype, int64_t *, dtype *)
-    int64_t read_all(dtype * data)
-    int64_t get_tot_size()
     void read_local(int64_t *, int64_t **, dtype **)
     void read_local_nnz(int64_t *, int64_t **, dtype **)
     void write(int64_t, int64_t *, dtype *)
@@ -110,58 +126,61 @@ cdef int* int_arr_py_to_c(a):
   return ca
 
 
-cdef char* interleave_py_pairs(a,b,typ):
+cdef char* interleave_py_pairs(a,b):
   cdef char * ca
   dim = len(a)
-  #ca = <char*> malloc(dim*(sizeof(int64_t)+sys.getsizeof(b[0])))
   cdef int tA, tB
-  tA = sys.getsizeof(a[0])
-  tB = sys.getsizeof(b[0])
+  tA = sizeof(int64_t)
+  tB = b.dtype.itemsize
   ca = <char*> malloc(dim*(tA+tB))
   if ca is NULL:
     raise MemoryError()
-  nb = np.asarray(b)
   for i in range(0,dim):
     (<int64_t*>&(ca[i*(tA+tB)]))[0] = a[i]
-    ca[(i+1)*tA+i*tB:(i+1)*(tA+tB)-1] = nb.astype(np.int8)[i*tA:i*tA+tA-1] #))[1:typ.itemsize]
+    for j in range(0,tB):
+     ca[(i+1)*tA+i*tB+j] = b.view(dtype=np.int8)[i*tB+j]
+#  ca[(i+1)*tA+i*tB:(i+1)*(tA+tB)-1] =( nb.view(dtype=np.int8)[i*tB:i*tB+tB-1])
+#  not sure why subarray copy doesn't work here
   return ca
 
-cdef void uninterleave_py_pairs(char * ca,a,b,typ):
+cdef void uninterleave_py_pairs(char * ca,a,b):
   dim = len(a)
+  tB = b.dtype.itemsize
+  tA = sizeof(int64_t)
   for i in range(0,dim):
-    a[i] = (<int64_t*>&(ca[i*(sizeof(int64_t)+typ.itemsize)]))[0] 
-    b[i] = ca[(i+1)*sizeof(int64_t)+i*typ.itemsize:(i+1)*(sizeof(int64_t)+typ.itemsize)]  #))[1:typ.itemsize]
+    a[i] = (<int64_t*>&(ca[i*(tA+tB)]))[0] 
+    for j in range(0,tB):
+      b.view(dtype=np.int8)[i*tB+j] = ca[(i+1)*tA+i*tB+j]
+
+
+#cdef double* double_arr_py_to_c(a):
+#  cdef double * ca
+#  dim = len(a)
+#  ca = <double*> malloc(dim*sizeof(double))
+#  if ca is NULL:
+#    raise MemoryError()
+#  for i in range(0,dim):
+#    ca[i] = a[i]
 #  return ca
-
-
-cdef double* double_arr_py_to_c(a):
-  cdef double * ca
-  dim = len(a)
-  ca = <double*> malloc(dim*sizeof(double))
-  if ca is NULL:
-    raise MemoryError()
-  for i in range(0,dim):
-    ca[i] = a[i]
-  return ca
-cdef int64_t* int64_arr_py_to_c(a):
-  cdef int64_t * ca
-  dim = len(a)
-  ca = <int64_t*> malloc(dim*sizeof(int64_t))
-  if ca is NULL:
-    raise MemoryError()
-  for i in range(0,dim):
-    ca[i] = a[i]
-  return ca
-
-cdef void double_ret_c_to_py(double * a, b):
-  dim = len(b)
-  for i in range(0,dim):
-    b[i] = a[i]
-
-cdef void int64_ret_c_to_py(int64_t * a, b):
-  dim = len(b)
-  for i in range(0,dim):
-    b[i] = a[i]
+#cdef int64_t* int64_arr_py_to_c(a):
+#  cdef int64_t * ca
+#  dim = len(a)
+#  ca = <int64_t*> malloc(dim*sizeof(int64_t))
+#  if ca is NULL:
+#    raise MemoryError()
+#  for i in range(0,dim):
+#    ca[i] = a[i]
+#  return ca
+#
+#cdef void double_ret_c_to_py(double * a, b):
+#  dim = len(b)
+#  for i in range(0,dim):
+#    b[i] = a[i]
+#
+#cdef void int64_ret_c_to_py(int64_t * a, b):
+#  dim = len(b)
+#  for i in range(0,dim):
+#    b[i] = a[i]
 
 cdef class comm:
   cdef World * w
@@ -176,18 +195,6 @@ cdef class comm:
   
   def np(self):
     return self.w.np
-
-cdef class atsr:
-  cdef tensor * t
-
-  def __cinit__(self):
-    self.t = new tensor()
-
-  def __dealloc__(self):
-    del self.t
-   
-#cdef class algstr:
-#  cdef algstrct * sr
 
 cdef class term:
   cdef Term * tm
@@ -226,20 +233,20 @@ cdef class itsr(term):
   def __lshift__(self, other):
     return deref((<itsr>self).it) << deref((<term>other).tm)
 
-  def __cinit__(self, atsr a, string):
-    self.it = new Idx_Tensor(a.t, string)
+  def __cinit__(self, tsr a, string):
+    self.it = new Idx_Tensor(a.dt, string)
     self.tm = self.it
 
   def scale(self, scl):
     self.it.multeq(scl)
 
-cdef class dtsr(atsr):
-  cdef Tensor[double]* dt
-  #def np.dtype typ
-  cdef object typ
 
-  def __cinit__(self, lens, sp=0, sym=None):
-    self.typ=np.float64
+cdef class tsr:
+  cdef tensor * dt
+  cdef cnp.dtype typ
+
+  def __cinit__(self, lens, sp=0, sym=None, dt=np.float64):
+    self.typ = <cnp.dtype>dt
     cdef int * clens
     clens = int_arr_py_to_c(lens)
     cdef int * csym
@@ -247,16 +254,24 @@ cdef class dtsr(atsr):
       csym = int_arr_py_to_c([0]*len(lens))
     else:
       csym = int_arr_py_to_c(sym)
-    self.dt = new Tensor[double](len(lens), sp, clens, csym)
-    self.t = self.dt
+    if dt is np.float64:
+      self.dt = new Tensor[double](len(lens), sp, clens, csym)
+    else:
+      raise ValueError('bad dtype')
     free(clens)
     free(csym)
 
   def fill_random(self, mn, mx):
-    self.dt.fill_random(mn,mx)
+    if self.typ is np.float64:
+      (<Tensor[double]*>self.dt).fill_random(mn,mx)
+    else:
+      raise ValueError('bad dtype')
 
   def fill_sp_random(self, mn, mx, frac):
-    self.dt.fill_sp_random(mn,mx,frac)
+    if self.typ is np.float64:
+      (<Tensor[double]*>self.dt).fill_sp_random(mn,mx,frac)
+    else:
+      raise ValueError('bad dtype')
 
   def i(self, string):
     return itsr(self, string)
@@ -265,201 +280,114 @@ cdef class dtsr(atsr):
     self.dt.prnt()
 
   def read(self, inds, vals):
-    #cdef int64_t * cinds
-    #cinds = int64_arr_py_to_c(inds)
-    #cdef double * cvals
-    #cvals = <double*> malloc(len(vals)*sizeof(double))
-#    vals = np.zeros(len(inds),dtype=self.typ)
     cdef char * ca
-    #ca = <char*> malloc(len(vals)*(sizeof(double)+sizeof(int64_t)))
-    ca = interleave_py_pairs(inds,vals,self.typ)
-    cdef double alpha, beta
-    alpha = 1.0
-    beta = 0.0
-    (<tensor*>self.dt).read(len(inds),<char*>&alpha,<char*>&beta,ca)
-    uninterleave_py_pairs(ca,inds,vals,self.typ)
+    ca = interleave_py_pairs(inds,vals)
+    cdef char * alpha
+    cdef char * beta
+    alpha = <char*>self.dt.sr.mulid()
+    beta = <char*>self.dt.sr.addid()
+    (<tensor*>self.dt).read(len(inds),alpha,beta,ca)
+    uninterleave_py_pairs(ca,inds,vals)
+    free(ca)
 
   def read(self,  a, b, inds, vals):
-    cdef int64_t * cinds
-    cinds = int64_arr_py_to_c(inds)
-    cdef double * cvals
-    cvals = double_arr_py_to_c(vals)
-    self.dt.read(len(inds),a,b,cinds,cvals)
-    double_ret_c_to_py(cvals,vals)
+    cdef char * ca
+    ca = interleave_py_pairs(inds,vals)
+    tB = self.typ.itemsize
+    cdef char * alpha, * beta
+    alpha = <char*> malloc(tB)
+    beta = <char*> malloc(tB)
+    na = np.array([a])
+    nb = np.array([b])
+    for j in range(0,tB):
+      alpha[j] = na.view(dtype=np.int8)[j]
+      beta[j] = nb.view(dtype=np.int8)[j]
+    (<tensor*>self.dt).read(len(inds),<char*>&alpha,<char*>&beta,ca)
+    uninterleave_py_pairs(ca,inds,vals)
+    free(ca)
+    free(alpha)
+    free(beta)
 
   def read_local(self):
     cdef int64_t * cinds
-    cdef double * cvals
+    cdef char * data
     cdef int64_t n
-    self.dt.read_local(&n,&cinds,&cvals)
-    inds = [0] * n
-    vals = [0.0] * n
-    double_ret_c_to_py(cvals,vals)
-    int64_ret_c_to_py(cinds,inds)
-    free(cinds)
-    free(cvals)
+    self.dt.read_local(&n,&data)
+    inds = np.zeros(n, dtype=np.int64)
+    vals = np.zeros(n, dtype=self.typ)
+    uninterleave_py_pairs(data,inds,vals)
+    free(data)
     return n, inds, vals
 
   def read_local_nnz(self):
     cdef int64_t * cinds
-    cdef double * cvals
+    cdef char * data
     cdef int64_t n
-    self.dt.read_local_nnz(&n,&cinds,&cvals)
-    inds = [0] * n
-    vals = [0.0] * n
-    double_ret_c_to_py(cvals,vals)
-    int64_ret_c_to_py(cinds,inds)
-    free(cinds)
-    free(cvals)
+    self.dt.read_local_nnz(&n,&data)
+    inds = np.zeros(n, dtype=np.int64)
+    vals = np.zeros(n, dtype=self.typ)
+    uninterleave_py_pairs(data,inds,vals)
+    free(data)
     return n, inds, vals
 
-  def read_all(self):
-    cdef double * cvals
+  def tot_size(self):
+    return self.dt.get_tot_size()
+
+  def read_all(self, arr):
+    cdef char * cvals
     cdef int64_t sz
     sz = self.dt.get_tot_size()
-    cvals = <double*> malloc(sz*sizeof(double))
-    self.dt.read_all(cvals)
-    vals = [0.0] * sz
-    double_ret_c_to_py(cvals,vals)
-    return vals
+    tB = arr.dtype.itemsize
+    cvals = <char*> malloc(sz*tB)
+    self.dt.allread(&sz, cvals)
+    for j in range(0,sz*tB):
+      arr.view(dtype=np.int8)[j] = cvals[j]
+    free(cvals)
 
   def write(self, inds, vals):
-    cdef int64_t * cinds
-    cinds = int64_arr_py_to_c(inds)
-    cdef double * cvals
-    cvals = double_arr_py_to_c(vals)
-    self.dt.write(len(inds),cinds,cvals)
+    cdef char * ca
+    ca = interleave_py_pairs(inds,vals)
+    cdef char * alpha
+    cdef char * beta
+    alpha = <char*>self.dt.sr.mulid()
+    beta = <char*>self.dt.sr.addid()
+    self.dt.write(len(inds),alpha,beta,ca)
 
   def write(self, a, b, inds, vals):
-    cdef int64_t * cinds
-    cinds = int64_arr_py_to_c(inds)
-    cdef double * cvals
-    cvals = double_arr_py_to_c(vals)
-    self.dt.write(len(inds),a,b,cinds,cvals)
+    cdef char * ca
+    ca = interleave_py_pairs(inds,vals)
+    tB = self.typ.itemsize
+    cdef char * alpha, * beta
+    alpha = <char*> malloc(tB)
+    beta = <char*> malloc(tB)
+    na = np.array([a])
+    nb = np.array([b])
+    for j in range(0,tB):
+      alpha[j] = na.view(dtype=np.int8)[j]
+      beta[j] = nb.view(dtype=np.int8)[j]
+    self.dt.write(len(inds),alpha,beta,ca)
+    free(ca)
+    free(alpha)
+    free(beta)
 
   def norm1(self):
-    return self.dt.norm1()
+    if self.typ is np.float64:
+      return (<Tensor[double]*>self.dt).norm1()
+    else:
+      raise ValueError('norm not present for this dtype')
 
   def norm2(self):
-    return self.dt.norm2()
+    if self.typ is np.float64:
+      return (<Tensor[double]*>self.dt).norm2()
+    else:
+      raise ValueError('norm not present for this dtype')
 
   def norm_infty(self):
-    return self.dt.norm_infty()
+    if self.typ is np.float64:
+      return (<Tensor[double]*>self.dt).norm_infty()
+    else:
+      raise ValueError('norm not present for this dtype')
 
-
-#cdef class tsr(atsr):
-#  cdef tensor * dt
-##  typ
-#
-#  def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64):
-#    self.typ = dtype
-#    cdef int * clens
-#    clens = int_arr_py_to_c(lens)
-#    cdef int * csym
-#    if sym is None:
-#      csym = int_arr_py_to_c([0]*len(lens))
-#    else:
-#      csym = int_arr_py_to_c(sym)
-#    if dtype is np.float64:
-#      self.dt = new Tensor[double](len(lens), sp, clens, csym)
-#    else:
-#      raise ValueError('bad dtype')
-#    self.t = self.dt
-#    free(clens)
-#    free(csym)
-#
-#  def fill_random(self, mn, mx):
-#    if self.typ is np.float64:
-#      (<Tensor[double]*>self.dt).fill_random(mn,mx)
-#    else:
-#      raise ValueError('bad dtype')
-#
-#  def fill_sp_random(self, mn, mx, frac):
-#    if self.typ is np.float64:
-#      (<Tensor[double]*>self.dt).fill_sp_random(mn,mx,frac)
-#    else:
-#      raise ValueError('bad dtype')
-#
-#  def i(self, string):
-#    return itsr(self, string)
-#
-#  def prnt(self):
-#    self.dt.prnt()
-#
-#  def read(self, inds, vals):
-#    cdef int64_t * cinds
-#    cinds = int64_arr_py_to_c(inds)
-#    cdef double * cvals
-#    cvals = <double*> malloc(len(vals)*sizeof(double))
-#    self.dt.read(len(inds),cinds,cvals)
-#    double_ret_c_to_py(cvals,vals)
-#
-#  def read(self,  a, b, inds, vals):
-#    cdef int64_t * cinds
-#    cinds = int64_arr_py_to_c(inds)
-#    cdef double * cvals
-#    cvals = double_arr_py_to_c(vals)
-#    self.dt.read(len(inds),a,b,cinds,cvals)
-#    double_ret_c_to_py(cvals,vals)
-#
-#  def read_local(self):
-#    cdef int64_t * cinds
-#    cdef double * cvals
-#    cdef int64_t n
-#    self.dt.read_local(&n,&cinds,&cvals)
-#    inds = [0] * n
-#    vals = [0.0] * n
-#    double_ret_c_to_py(cvals,vals)
-#    int64_ret_c_to_py(cinds,inds)
-#    free(cinds)
-#    free(cvals)
-#    return n, inds, vals
-#
-#  def read_local_nnz(self):
-#    cdef int64_t * cinds
-#    cdef double * cvals
-#    cdef int64_t n
-#    self.dt.read_local_nnz(&n,&cinds,&cvals)
-#    inds = [0] * n
-#    vals = [0.0] * n
-#    double_ret_c_to_py(cvals,vals)
-#    int64_ret_c_to_py(cinds,inds)
-#    free(cinds)
-#    free(cvals)
-#    return n, inds, vals
-#
-#  def read_all(self):
-#    cdef double * cvals
-#    cdef int64_t sz
-#    sz = self.dt.get_tot_size()
-#    cvals = <double*> malloc(sz*sizeof(double))
-#    self.dt.read_all(cvals)
-#    vals = [0.0] * sz
-#    double_ret_c_to_py(cvals,vals)
-#    return vals
-#
-#  def write(self, inds, vals):
-#    cdef int64_t * cinds
-#    cinds = int64_arr_py_to_c(inds)
-#    cdef double * cvals
-#    cvals = double_arr_py_to_c(vals)
-#    self.dt.write(len(inds),cinds,cvals)
-#
-#  def write(self, a, b, inds, vals):
-#    cdef int64_t * cinds
-#    cinds = int64_arr_py_to_c(inds)
-#    cdef double * cvals
-#    cvals = double_arr_py_to_c(vals)
-#    self.dt.write(len(inds),a,b,cinds,cvals)
-#
-#  def norm1(self):
-#    return self.dt.norm1()
-#
-#  def norm2(self):
-#    return self.dt.norm2()
-#
-#  def norm_infty(self):
-#    return self.dt.norm_infty()
 
 
 #def testcpyiface():

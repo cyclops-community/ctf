@@ -850,12 +850,6 @@ namespace CTF {
       int64_t read_all(dtype * data, bool unpack=false);
   
       /**
-       * \brief get number of elements in whole tensor
-       * \return number of elements (including zeros)
-       */
-      int64_t get_tot_size();
-
-      /**
        * \brief obtains a small number of the biggest elements of the 
        *        tensor in sorted order (e.g. eigenvalues)
        * \param[in] n number of elements to collect

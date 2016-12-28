@@ -379,16 +379,6 @@ namespace CTF {
     assert(ret == CTF_int::SUCCESS);
     return npair;
   }
-      
-  template<typename dtype>
-  int64_t Tensor<dtype>::get_tot_size(){
-    int64_t size = 1;
-    for (int i=0; i<order; i++){
-      size *= lens[i];
-    }
-    return size;
-  }
-
   template<typename dtype>
   void Tensor<dtype>::set_name(char const * name_) {
     CTF_int::tensor::set_name(name_);
