@@ -65,18 +65,33 @@ studies: $(STUDIES)
 $(STUDIES):
 	$(MAKE) $@ -C studies
 
-.PHONY: ctf
-ctf:
+.PHONY: ctf_objs
+ctf_objs:
 	$(MAKE) ctf -C src; 
 
 .PHONY: ctflib
-ctflib: ctf 
+ctflib: ctf_objs 
 	$(AR) -crs $(BDIR)/lib/libctf.a $(ODIR)/*.o; 
 
+.PHONY: shared
+shared: ctflibso
 .PHONY: ctflibso
-ctflibso: ctf 
-	$(FCXX) -shared -o $(BDIR)/lib/libctf.so $(ODIR)/*.o; 
+ctflibso: export FCXX+=-fPIC
+ctflibso: export OFFLOAD_CXX+=-fPIC
+ctflibso: export ODIR=$(BDIR)/obj_shared
+ctflibso: ctf_objs 
+	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o; 
 
+.PHONY: python
+python: pylib
+.PHONY: pylib
+pylib: lib_py/ctf.so
+lib_py/ctf.so: ctflibso src_python/ctf.pyx
+	LDFLAGS="-L./lib_shared" python setup_wrapper.py build_ext --inplace && mv ctf.so lib_py/
+
+.PHONY: test_python
+test_python: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_wrapper.py
 
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
@@ -85,7 +100,6 @@ $(BDIR)/lib/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile sr
 	$(MAKE) ctflibso
 	
 clean: clean_bin clean_lib clean_obj
-#	$(MAKE) $@ -C src
 
 
 test: test_suite
@@ -116,7 +130,10 @@ clean_bin:
 
 clean_lib:
 	rm -f $(BDIR)/lib/libctf.a
+	rm -f $(BDIR)/lib_shared/libctf.so
+	rm -f $(BDIR)/lib_py/ctf.so
 
 clean_obj:
-	rm -f src/*/*.o #DEPRECATED: objs no longer created here, but keep it clean in case of git pull
-	rm -f $(ODIR)/*.o 
+	rm -f obj/*.o 
+	rm -f obj_shared/*.o 
+	rm -f build/*/*/*.o 

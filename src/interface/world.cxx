@@ -88,8 +88,6 @@ namespace CTF {
       if (this->cdt.cm == MPI_COMM_WORLD){
         ASSERT(universe_exists);
         universe_exists = false;
-ASSERT(0);
-printf("kill uni\n");
       }
       topovec.clear();
     }

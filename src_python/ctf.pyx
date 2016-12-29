@@ -253,7 +253,8 @@ cdef class tsr:
         cdef char * ca
         ca = interleave_py_pairs(inds,vals)
         tB = self.typ.itemsize
-        cdef char * alpha, * beta
+        cdef char * alpha 
+        cdef char * beta
         alpha = <char*> malloc(tB)
         beta = <char*> malloc(tB)
         na = np.array([a])
@@ -316,7 +317,8 @@ cdef class tsr:
         cdef char * ca
         ca = interleave_py_pairs(inds,vals)
         tB = self.typ.itemsize
-        cdef char * alpha, * beta
+        cdef char * alpha
+        cdef char * beta
         alpha = <char*> malloc(tB)
         beta = <char*> malloc(tB)
         na = np.array([a])
