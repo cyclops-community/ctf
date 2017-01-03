@@ -36,6 +36,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         char * mulid()
 
     cdef cppclass tensor:
+        World * wrld
         algstrct * sr
         tensor()
         void prnt()
@@ -109,7 +110,7 @@ cdef int* int_arr_py_to_c(a):
     cdef int * ca
     dim = len(a)
     ca = <int*> malloc(dim*sizeof(int))
-    if ca is NULL:
+    if ca == NULL:
         raise MemoryError()
     for i in range(0,dim):
         ca[i] = a[i]
@@ -122,7 +123,7 @@ cdef char* interleave_py_pairs(a,b):
     tA = sizeof(int64_t)
     tB = b.dtype.itemsize
     ca = <char*> malloc(dim*(tA+tB))
-    if ca is NULL:
+    if ca == NULL:
         raise MemoryError()
     for i in range(0,dim):
         (<int64_t*>&(ca[i*(tA+tB)]))[0] = a[i]
@@ -199,21 +200,22 @@ cdef class itsr(term):
     def scale(self, scl):
         self.it.multeq(scl)
 
-
 cdef class tsr:
     cdef tensor * dt
     cdef cnp.dtype typ
+    cdef cnp.ndarray dims
 
     def __cinit__(self, lens, sp=0, sym=None, dt=np.float64):
         self.typ = <cnp.dtype>dt
+        self.dims = np.asarray(lens, dtype=dt, order=1)
         cdef int * clens
         clens = int_arr_py_to_c(lens)
         cdef int * csym
-        if sym is None:
+        if sym == None:
             csym = int_arr_py_to_c([0]*len(lens))
         else:
             csym = int_arr_py_to_c(sym)
-        if dt is np.float64:
+        if dt == np.float64:
             self.dt = new Tensor[double](len(lens), sp, clens, csym)
         else:
             raise ValueError('bad dtype')
@@ -221,13 +223,13 @@ cdef class tsr:
         free(csym)
 
     def fill_random(self, mn, mx):
-        if self.typ is np.float64:
+        if self.typ == np.float64:
             (<Tensor[double]*>self.dt).fill_random(mn,mx)
         else:
             raise ValueError('bad dtype')
 
     def fill_sp_random(self, mn, mx, frac):
-        if self.typ is np.float64:
+        if self.typ == np.float64:
             (<Tensor[double]*>self.dt).fill_sp_random(mn,mx,frac)
         else:
             raise ValueError('bad dtype')
@@ -238,35 +240,33 @@ cdef class tsr:
     def prnt(self):
         self.dt.prnt()
 
-    def read(self, inds, vals):
+    def read(self, inds, vals, a=None, b=None):
         cdef char * ca
         ca = interleave_py_pairs(inds,vals)
-        cdef char * alpha
-        cdef char * beta
-        alpha = <char*>self.dt.sr.mulid()
-        beta = <char*>self.dt.sr.addid()
-        (<tensor*>self.dt).read(len(inds),alpha,beta,ca)
-        uninterleave_py_pairs(ca,inds,vals)
-        free(ca)
-
-    def read(self,    a, b, inds, vals):
-        cdef char * ca
-        ca = interleave_py_pairs(inds,vals)
-        tB = self.typ.itemsize
         cdef char * alpha 
         cdef char * beta
-        alpha = <char*> malloc(tB)
-        beta = <char*> malloc(tB)
-        na = np.array([a])
-        nb = np.array([b])
-        for j in range(0,tB):
-            alpha[j] = na.view(dtype=np.int8)[j]
-            beta[j] = nb.view(dtype=np.int8)[j]
+        st = self.typ.itemsize
+        if a == None:
+            alpha = <char*>self.dt.sr.mulid()
+        else:
+            alpha = <char*>malloc(st)
+            na = np.array([a])
+            for j in range(0,st):
+                alpha[j] = na.view(dtype=np.int8)[j]
+        if b == None:
+            beta = <char*>self.dt.sr.addid()
+        else:
+            beta = <char*>malloc(st)
+            nb = np.array([b])
+            for j in range(0,st):
+                beta[j] = nb.view(dtype=np.int8)[j]
         (<tensor*>self.dt).read(len(inds),<char*>&alpha,<char*>&beta,ca)
         uninterleave_py_pairs(ca,inds,vals)
         free(ca)
-        free(alpha)
-        free(beta)
+        if a != None:
+            free(alpha)
+        if b != None:
+            free(beta)
 
     def read_local(self):
         cdef int64_t * cinds
@@ -304,50 +304,78 @@ cdef class tsr:
             arr.view(dtype=np.int8)[j] = cvals[j]
         free(cvals)
 
-    def write(self, inds, vals):
+    def write(self, inds, vals, a=None, b=None):
         cdef char * ca
         ca = interleave_py_pairs(inds,vals)
         cdef char * alpha
         cdef char * beta
-        alpha = <char*>self.dt.sr.mulid()
-        beta = <char*>self.dt.sr.addid()
+        st = self.typ.itemsize
+        if a == None:
+            alpha = <char*>self.dt.sr.mulid()
+        else:
+            alpha = <char*>malloc(st)
+            na = np.array([a])
+            for j in range(0,st):
+                alpha[j] = na.view(dtype=np.int8)[j]
+        if b == None:
+            beta = <char*>self.dt.sr.addid()
+        else:
+            beta = <char*>malloc(st)
+            nb = np.array([b])
+            for j in range(0,st):
+                beta[j] = nb.view(dtype=np.int8)[j]
         self.dt.write(len(inds),alpha,beta,ca)
-
-    def write(self, a, b, inds, vals):
-        cdef char * ca
-        ca = interleave_py_pairs(inds,vals)
-        tB = self.typ.itemsize
-        cdef char * alpha
-        cdef char * beta
-        alpha = <char*> malloc(tB)
-        beta = <char*> malloc(tB)
-        na = np.array([a])
-        nb = np.array([b])
-        for j in range(0,tB):
-            alpha[j] = na.view(dtype=np.int8)[j]
-            beta[j] = nb.view(dtype=np.int8)[j]
-        self.dt.write(len(inds),alpha,beta,ca)
-        free(ca)
-        free(alpha)
-        free(beta)
+        if a != None:
+            free(alpha)
+        if b != None:
+            free(beta)
 
     def norm1(self):
-        if self.typ is np.float64:
+        if self.typ == np.float64:
             return (<Tensor[double]*>self.dt).norm1()
         else:
             raise ValueError('norm not present for this dtype')
 
     def norm2(self):
-        if self.typ is np.float64:
+        if self.typ == np.float64:
             return (<Tensor[double]*>self.dt).norm2()
         else:
             raise ValueError('norm not present for this dtype')
 
     def norm_infty(self):
-        if self.typ is np.float64:
+        if self.typ == np.float64:
             return (<Tensor[double]*>self.dt).norm_infty()
         else:
             raise ValueError('norm not present for this dtype')
+
+    def to_nparray(self):
+        if self.typ == np.float64:
+            vals = np.zeros(self.tot_size(), dtype=np.float64)
+            self.read_all(vals)
+            return np.resize(vals, self.dims)
+        else:
+            raise ValueError('bad dtype')
+
+    def __repr__(self):
+        return repr(self.to_nparray())
+
+    def from_nparray(self, arr):
+        if arr.dtype != self.typ:
+            raise ValueError('bad dtype')
+        if self.dt.wrld.rank == 0:
+            self.write(np.arange(0,self.tot_size(),dtype=np.int64),arr)
+        else:
+            self.write([], [])
+
+def astensor(arr):
+    if arr.dtype == np.float64:
+        t = tsr(arr.shape)
+        t.from_nparray(arr)
+        return t
+    else:
+        raise ValueError('bad dtype')
+
+
 
 #cdef object f
 #ctypedef int (*cfunction) (double a, double b, double c, void *args)
