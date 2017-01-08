@@ -88,6 +88,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF":
         void operator=(Idx_Tensor B);
         void multeq(double scl);
         void operator<<(Term B);
+        void operator<<(double scl);
 
     cdef cppclass Typ_Idx_Tensor[dtype](Idx_Tensor):
         Typ_Idx_Tensor(tensor *, char *)
@@ -201,7 +202,10 @@ cdef class itsr(term):
     cdef Idx_Tensor * it
 
     def __lshift__(self, other):
-        return deref((<itsr>self).it) << deref((<term>other).tm)
+        if isinstance(other, term):
+            deref((<itsr>self).it) << deref((<term>other).tm)
+        else:
+            deref((<itsr>self).it) << <double>other
 
     def __cinit__(self, tsr a, string):
         self.it = new Idx_Tensor(a.dt, string)
@@ -215,14 +219,20 @@ cdef class tsr:
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
 
-    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64):
+    def get_dims(self):
+        return self.dims
+
+    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='C'):
         self.typ = <cnp.dtype>dtype
-        self.dims = np.asarray(lens, dtype=np.dtype(self.typ), order=1)
+        self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
         cdef int * clens
         clens = int_arr_py_to_c(lens)
+        if order == 'F':
+            for i in range(0,len(lens)):
+                clens[i] = lens[len(lens)-i-1]
         cdef int * csym
         if sym == None:
-            csym = int_arr_py_to_c([0]*len(lens))
+            csym = int_arr_py_to_c(np.zeros(len(lens)))
         else:
             csym = int_arr_py_to_c(sym)
         if self.typ == np.float64:
@@ -385,10 +395,9 @@ cdef class tsr:
         else:
             caoffs = int_arr_py_to_c(A_offsets)
         if A_ends == None:
-            caends = int_arr_py_to_c(A.dims)
+            caends = int_arr_py_to_c(A.get_dims())
         else:
             caends = int_arr_py_to_c(A_ends)
-
 
         cdef int * coffs
         cdef int * cends
@@ -427,7 +436,7 @@ cdef class tsr:
         if self.typ == np.float64:
             vals = np.zeros(self.tot_size(), dtype=np.float64)
             self.read_all(vals)
-            return np.resize(vals, self.dims)
+            return np.asarray(np.ascontiguousarray(np.reshape(vals, self.dims, order='F')),order='C')
         else:
             raise ValueError('bad dtype')
 
@@ -438,34 +447,59 @@ cdef class tsr:
         if arr.dtype != self.typ:
             raise ValueError('bad dtype')
         if self.dt.wrld.rank == 0:
-            self.write(np.arange(0,self.tot_size(),dtype=np.int64),arr)
+            self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr))
         else:
             self.write([], [])
 
-cdef class mtx(tsr):
-    def __cinit__(self, nrow, ncol, sp=0, sym=None, dt=np.float64):
-        super(tsr,self,[nrow, ncol], sp, sym, dt)
+#cdef class mtx(tsr):
+#    def __cinit__(self, nrow, ncol, sp=0, sym=None, dtype=np.float64):
+#        super(mtx, self).__cinit__([nrow, ncol], sp=sp, sym=[sym, SYM.NS], dtype=dtype)
 
 
 def astensor(arr):
     if arr.dtype == np.float64:
-        t = tsr(arr.shape)
+        t = tsr(arr.shape, order='F')
         t.from_nparray(arr)
         return t
     else:
         raise ValueError('bad dtype')
 
 def eye(n, m=None, k=0, dtype=np.float64):
-    A = mtx(n, n, dt=dtype)
+    mm = n
+    if m != None:
+        mm = m
+    l = min(mm,n)
+    if k >= 0:
+        l = min(l,mm-k)
+    else:
+        l = min(l,n+k)
+    
+    A = tsr([l, l], dtype=dtype)
     if dtype == np.float64:
-        A.i["ii"] = 1.0
+        A.i("ii") << 1.0
     else:
         raise ValueError('bad dtype')
     if m == None:
         return A
     else:
-        B = mtx(n, m, dt=dtype)
-      
+        B = tsr([n, m], dtype=dtype)
+        if k >= 0:
+            B.write_slice([0, k], [l, l+k], A)
+        else:
+            B.write_slice([-k, 0], [l-k, l], A)
+        return B
+
+def identity(n, dtype=np.float64):
+    return eye(n, dtype=dtype)
+#    A = tsr([n, n], dtype=dtype)
+#    if dtype == np.float64:
+#        A.i("ii") << 1.0
+#    else:
+#        raise ValueError('bad dtype')
+#    return A
+
+
+
     
 
 
