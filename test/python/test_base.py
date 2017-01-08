@@ -63,6 +63,7 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(ctf.all(a0==0))
         self.assertTrue(ctf.all(a1==0))
         a0 = numpy.asarray(a1)
+        # self.assertTrue(ctf.asarray(a0).__class__ == ctf.astensor(a0).__class__)
 
         a0 = ctf.astensor([1,2.,3], dtype='D')
         self.assertTrue(a0.dtype == numpy.complex)
@@ -201,9 +202,16 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(a1.transpose(-3,-2,0,-1).shape == (3,4,2,5))
         self.assertTrue(a1.transpose(-3,0,-1,2).shape == (3,2,5,4))
         self.assertTrue(a1.transpose(-3,-2,-1,-4).shape == (3,4,5,2))
+
+        # The case which does not change the data ordering in memory.
+        # It does not need create new tensor.
         a2 = a1.transpose(0,1,2,3)
         a2[:] = 1
         self.assertTrue(ctf.all(a2 == 1))
+        a0 = ctf.zeros((1,1,3))
+        a2 = a0.transpose(1,0,2)
+        a2[:] = 1
+        self.assertTrue(ctf.all(a0 == 1))
 
         a1 = ctf.zeros((2,3,4,5))
         with self.assertRaises(ValueError):

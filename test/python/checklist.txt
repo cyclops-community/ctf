@@ -89,6 +89,7 @@
 
 
 * functions and methods not defined in numpy, numpy.ndarray
+[ ] ctf.astensor
     ctf.scale
     ctf.fill_sp_random
     ctf.tsr
