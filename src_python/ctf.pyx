@@ -3,6 +3,7 @@ import sys
 from cython.operator cimport dereference as deref, preincrement as inc
 from libc.stdint cimport int64_t
 from libc.stdlib cimport malloc, free
+from libcpp cimport bool
 import numpy as np
 cimport numpy as cnp
 
@@ -38,6 +39,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass tensor:
         World * wrld
         algstrct * sr
+        bool is_sparse
         tensor()
         void prnt()
         int read(int64_t num_pair,
@@ -53,6 +55,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         int read_local_nnz(int64_t * num_pair,
                            char **   data)
         void allread(int64_t * num_pair, char * data)
+        void slice(int *, int *, char *, tensor *, int *, int *, char *)
         int64_t get_tot_size()
 
     cdef cppclass Term:
@@ -105,6 +108,13 @@ cdef extern from "../include/ctf.hpp" namespace "CTF":
         dtype norm1()
         dtype norm2() # Frobenius norm
         dtype norm_infty()
+    
+    cdef cppclass Matrix[dtype](tensor):
+        Matrix()
+        Matrix(Tensor[dtype] A)
+        Matrix(int, int)
+        Matrix(int, int, int)
+        Matrix(int, int, int, World)
 
 cdef int* int_arr_py_to_c(a):
     cdef int * ca
@@ -205,9 +215,9 @@ cdef class tsr:
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
 
-    def __cinit__(self, lens, sp=0, sym=None, dt=np.float64):
-        self.typ = <cnp.dtype>dt
-        self.dims = np.asarray(lens, dtype=dt, order=1)
+    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64):
+        self.typ = <cnp.dtype>dtype
+        self.dims = np.asarray(lens, dtype=np.dtype(self.typ), order=1)
         cdef int * clens
         clens = int_arr_py_to_c(lens)
         cdef int * csym
@@ -215,7 +225,7 @@ cdef class tsr:
             csym = int_arr_py_to_c([0]*len(lens))
         else:
             csym = int_arr_py_to_c(sym)
-        if dt == np.float64:
+        if self.typ == np.float64:
             self.dt = new Tensor[double](len(lens), sp, clens, csym)
         else:
             raise ValueError('bad dtype')
@@ -245,7 +255,7 @@ cdef class tsr:
         ca = interleave_py_pairs(inds,vals)
         cdef char * alpha 
         cdef char * beta
-        st = self.typ.itemsize
+        st = self.typ().itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
         else:
@@ -309,7 +319,7 @@ cdef class tsr:
         ca = interleave_py_pairs(inds,vals)
         cdef char * alpha
         cdef char * beta
-        st = self.typ.itemsize
+        st = self.typ().itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
         else:
@@ -329,6 +339,71 @@ cdef class tsr:
             free(alpha)
         if b != None:
             free(beta)
+
+    def get_slice(self, offsets, ends):
+        cdef char * alpha
+        cdef char * beta
+        alpha = <char*>self.dt.sr.mulid()
+        beta = <char*>self.dt.sr.addid()
+        A = tsr(np.asarray(ends)-np.asarray(offsets), sp=self.dt.is_sparse, dtype=self.typ)
+        cdef int * clens
+        cdef int * coffs
+        cdef int * cends
+        clens = int_arr_py_to_c(A.dims)
+        coffs = int_arr_py_to_c(offsets)
+        cends = int_arr_py_to_c(ends)
+        czeros = int_arr_py_to_c(np.zeros(len(self.dims)))
+        A.dt.slice(czeros, clens, beta, self.dt, coffs, cends, alpha)
+        free(czeros)
+        free(cends)
+        free(coffs)
+        free(clens)
+        return A
+        
+    def write_slice(self, offsets, ends, A, A_offsets=None, A_ends=None, a=None, b=None):
+        cdef char * alpha
+        cdef char * beta
+        st = self.typ().itemsize
+        if a == None:
+            alpha = <char*>self.dt.sr.mulid()
+        else:
+            alpha = <char*>malloc(st)
+            na = np.array([a],dtype=self.typ)
+            for j in range(0,st):
+                alpha[j] = na.view(dtype=np.int8)[j]
+        if b == None:
+            beta = <char*>self.dt.sr.addid()
+        else:
+            beta = <char*>malloc(st)
+            nb = np.array([b])
+            for j in range(0,st):
+                beta[j] = nb.view(dtype=np.int8)[j]
+        cdef int * caoffs
+        cdef int * caends
+        if A_offsets == None:
+            caoffs = int_arr_py_to_c(np.zeros(len(self.dims)))
+        else:
+            caoffs = int_arr_py_to_c(A_offsets)
+        if A_ends == None:
+            caends = int_arr_py_to_c(A.dims)
+        else:
+            caends = int_arr_py_to_c(A_ends)
+
+
+        cdef int * coffs
+        cdef int * cends
+        coffs = int_arr_py_to_c(offsets)
+        cends = int_arr_py_to_c(ends)
+        self.dt.slice(coffs, cends, beta, (<tsr>A).dt, caoffs, caends, alpha)
+        free(cends)
+        free(coffs)
+        if a != None:
+            free(alpha)
+        if b != None:
+            free(beta)
+        free(caends)
+        free(caoffs)
+
 
     def norm1(self):
         if self.typ == np.float64:
@@ -367,6 +442,11 @@ cdef class tsr:
         else:
             self.write([], [])
 
+cdef class mtx(tsr):
+    def __cinit__(self, nrow, ncol, sp=0, sym=None, dt=np.float64):
+        super(tsr,self,[nrow, ncol], sp, sym, dt)
+
+
 def astensor(arr):
     if arr.dtype == np.float64:
         t = tsr(arr.shape)
@@ -375,6 +455,18 @@ def astensor(arr):
     else:
         raise ValueError('bad dtype')
 
+def eye(n, m=None, k=0, dtype=np.float64):
+    A = mtx(n, n, dt=dtype)
+    if dtype == np.float64:
+        A.i["ii"] = 1.0
+    else:
+        raise ValueError('bad dtype')
+    if m == None:
+        return A
+    else:
+        B = mtx(n, m, dt=dtype)
+      
+    
 
 
 #cdef object f

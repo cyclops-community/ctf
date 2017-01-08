@@ -17,6 +17,9 @@ print a
 A.write([0, 2, 4, 6], a)
 print A
 A.prnt()
+B.write_slice([1, 0], [2, 3], A, A_offsets=[0, 1], A_ends=[1, 4], a=1.2, b=2.3) 
+print B.get_slice([1, 1], [4, 3])
+print B
 
 C = ctf.tsr([4, 4])
 
@@ -30,6 +33,7 @@ vals = np.zeros(16, dtype=np.float64)
 #C.read_all(vals)
 #print vals
 C.i('ij') << -2.0*A.i('ik')*B.i('kj')
+
 
 W = ctf.comm()
 rank = W.rank()
