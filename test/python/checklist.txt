@@ -75,6 +75,10 @@
     .__rpow__
     .__repr__
 [ ] .__eq__
+    .__getitem__  # for fancy index
+    .__setitem__  # for fancy index
+    .__getslice__
+    .__setslice__
 
 
 * attributes of tensor object

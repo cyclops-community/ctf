@@ -50,6 +50,11 @@ class KnowValues(unittest.TestCase):
         self.assertEqual(a1.sum(axis=-1).shape, (2,3))
         self.assertEqual(ctf.sum(a1, axis=2).shape, (2,3))
         self.assertEqual(ctf.sum(a1.transpose(2,1,0), axis=2).shape, (4,3))
+        self.assertEqual(ctf.sum(a1, axis=(1,2)).shape, 2)
+        self.assertEqual(ctf.sum(a1, axis=(0,2)).shape, 3)
+        self.assertEqual(ctf.sum(a1, axis=(2,0)).shape, 2)
+        self.assertEqual(ctf.sum(a1, axis=(0,-1)).shape, 3)
+        self.assertEqual(ctf.sum(a1, axis=(-1,-2)).shape, 2)
 
     def test_astensor(self):
         # astensor converts python object to ctf tensor
@@ -162,6 +167,13 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(ctf.all(a1.reshape(-1,20)   ==a0.reshape(-1,20)))
         self.assertTrue(ctf.all(a1.reshape(6,-1,4)  ==a0.reshape(6,-1,4)))
         self.assertTrue(ctf.all(a1.reshape((3,-1,2))==a0.reshape(3,-1,2)))
+        with self.assertRaises(ValueError):
+            a1.reshape((1,2))
+
+        # no need to create new tensor if shape is not changed.
+        a2 = a1.reshape(2,3,4,5)
+        a2[:] = 0
+        self.assertTrue(ctf.all(a1==0))
 
     def test_transpose_reshape(self):
         a0 = numpy.arange(120).reshape(2,3,4,5)
@@ -231,7 +243,19 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(a0.imag.shape == (2,3,4,5))
         self.assertTrue(a0.ndim == 4)
 
+        # modify the real part and imaginary part in-place
+        a0.real = 1
+        self.assertTrue(ctf.all(a0 == 1))
+        with self.assertRaises(TypeError):
+            a0.imag = 1
+
+        a0 = ctf.zeros((2,3,4,5), dtype='D')
+        a0.real = 1
+        self.assertTrue(ctf.all(a0 == 1))
+        a0.imag = 1
+        self.assertTrue(ctf.all(a0 == 1+1j))
+
 
 if __name__ == "__main__":
-    print("Tests for base")
+    print("Base tests")
     unittest.main()
