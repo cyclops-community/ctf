@@ -15,10 +15,7 @@ class KnowValues(unittest.TestCase):
         a1 = ctf.eye(4)
         self.assertTrue(ctf.all(a0==a1))
         a1 = ctf.eye(4, dtype=complex)
-
-    def test_eye(self):
-        a1 = ctf.eye(4)
-        a1 = ctf.eye(4, dtype=complex)
+        self.assertTrue(a1.dtype == complex)
 
     def test_zeros(self):
         a1 = ctf.zeros((2,3,4))
@@ -50,11 +47,11 @@ class KnowValues(unittest.TestCase):
         self.assertEqual(a1.sum(axis=-1).shape, (2,3))
         self.assertEqual(ctf.sum(a1, axis=2).shape, (2,3))
         self.assertEqual(ctf.sum(a1.transpose(2,1,0), axis=2).shape, (4,3))
-        self.assertEqual(ctf.sum(a1, axis=(1,2)).shape, 2)
-        self.assertEqual(ctf.sum(a1, axis=(0,2)).shape, 3)
-        self.assertEqual(ctf.sum(a1, axis=(2,0)).shape, 2)
-        self.assertEqual(ctf.sum(a1, axis=(0,-1)).shape, 3)
-        self.assertEqual(ctf.sum(a1, axis=(-1,-2)).shape, 2)
+        self.assertEqual(ctf.sum(a1, axis=(1,2)).shape, (2,))
+        self.assertEqual(ctf.sum(a1, axis=(0,2)).shape, (3,))
+        self.assertEqual(ctf.sum(a1, axis=(2,0)).shape, (3,))
+        self.assertEqual(ctf.sum(a1, axis=(0,-1)).shape, (3,))
+        self.assertEqual(ctf.sum(a1, axis=(-1,-2)).shape, (2,))
 
     def test_astensor(self):
         # astensor converts python object to ctf tensor
@@ -254,6 +251,37 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(ctf.all(a0 == 1))
         a0.imag = 1
         self.assertTrue(ctf.all(a0 == 1+1j))
+
+    def test_diagonal(self):
+        a0 = ctf.astensor(numpy.arange(9).reshape(3,3))
+        a1 = a0.diagonal()
+        self.assertTrue(ctf.all(a1 == ctf.astensor([0,4,8])))
+        self.assertTrue(ctf.all(a1 == ctf.diagonal(numpy.arange(9).reshape(3,3))))
+        try:
+            a1.diagonal()
+        except ValueError:  # a1 needs to be 2d array
+            pass
+        # support dimensions > 2d or not?
+
+    def test_diag(self):
+        a0 = ctf.astensor(numpy.arange(9).reshape(3,3))
+        a1 = a0.diagonal()
+        self.assertTrue(ctf.all(a1 == ctf.diag(a0)))
+        self.assertTrue(ctf.all(ctf.diag(a1) == numpy.diag(a1)))
+
+    def test_trace(self):
+        a0 = ctf.astensor(numpy.arange(9).reshape(3,3))
+        a1 = a0.trace()
+        self.assertEqual(a1, 12)
+        self.assertEqual(ctf.trace(numpy.arange(9).reshape(3,3)), 12)
+
+    def test_take(self):
+        a0 = numpy.arange(24.).reshape(4,3,2)
+        a1 = ctf.astensor(a0)
+        self.assertEqual(ctf.take(a0, numpy.array([0,3]), axis=0).shape, (2,3,2))
+        self.assertEqual(ctf.take(a1, [2], axis=1).shape, (4,1,2))
+        self.assertEqual(a1.take([0], axis=-1).shape, (4,3,1))
+        self.assertEqual(a1.transpose().take([1], axis=0).shape, (1,3,4))
 
 
 if __name__ == "__main__":

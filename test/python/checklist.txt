@@ -5,11 +5,11 @@
 [ ] ctf.array
 [ ] ctf.asarray
 [ ] ctf.conj
-    ctf.take
+[ ] ctf.take
     ctf.hstack
     ctf.vstack
-    ctf.diag
-    ctf.diagonal
+[ ] ctf.diag
+[ ] ctf.diagonal
 [ ] ctf.zeros
 [ ] ctf.zeros_like
 [ ] ctf.empty
@@ -25,7 +25,7 @@
     ctf.power
     ctf.dot
     ctf.tensordot
-    ctf.trace
+[ ] ctf.trace
 [ ] ctf.from_nparray
 [ ] ctf.to_nparray
     ctf.einsum
@@ -41,8 +41,8 @@
 * methods of tensor object
 
 [ ] .conj
-    .take
-    .diagonal
+[ ] .take
+[ ] .diagonal
 [ ] .reshape
 [ ] .ravel
 [ ] .transpose
@@ -50,7 +50,7 @@
 [ ] .copy
 [ ] .sum
     .dot
-    .trace
+[ ] .trace
 [ ] .to_nparray
     .flatten ?
     .max ?
