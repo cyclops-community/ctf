@@ -214,22 +214,28 @@ cdef class itsr(term):
     def scale(self, scl):
         self.it.multeq(scl)
 
+def rev_array(arr):
+    arr2 = arr[::-1]
+    return arr2
+
 cdef class tsr:
     cdef tensor * dt
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
+    cdef int order
 
     def get_dims(self):
         return self.dims
 
-    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='C'):
+    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F'):
         self.typ = <cnp.dtype>dtype
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
-        cdef int * clens
-        clens = int_arr_py_to_c(lens)
+        self.order = ord(order)
+        rlens = lens[:]
         if order == 'F':
-            for i in range(0,len(lens)):
-                clens[i] = lens[len(lens)-i-1]
+            rlens = rev_array(lens)
+        cdef int * clens
+        clens = int_arr_py_to_c(rlens)
         cdef int * csym
         if sym == None:
             csym = int_arr_py_to_c(np.zeros(len(lens)))
@@ -255,7 +261,10 @@ cdef class tsr:
             raise ValueError('bad dtype')
 
     def i(self, string):
-        return itsr(self, string)
+        if self.order == ord('F'):
+            return itsr(self, rev_array(string))
+        else:
+            return itsr(self, string)
 
     def prnt(self):
         self.dt.prnt()
