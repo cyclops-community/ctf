@@ -6,8 +6,8 @@
 [ ] ctf.asarray
 [ ] ctf.conj
 [ ] ctf.take
-    ctf.hstack
-    ctf.vstack
+[ ] ctf.hstack
+[ ] ctf.vstack
 [ ] ctf.diag
 [ ] ctf.diagonal
 [ ] ctf.zeros
@@ -17,12 +17,12 @@
 [ ] ctf.eye
 [ ] ctf.identity
 [ ] ctf.reshape
-[ ] ctf.ravel
+[ ] ctf.ravel ?
 [ ] ctf.transpose
 [ ] ctf.copy
 [ ] ctf.abs
 [ ] ctf.sum
-    ctf.power
+[ ] ctf.power
     ctf.dot
     ctf.tensordot
 [ ] ctf.trace
@@ -44,7 +44,7 @@
 [ ] .take
 [ ] .diagonal
 [ ] .reshape
-[ ] .ravel
+[ ] .ravel ?
 [ ] .transpose
 [ ] .astype
 [ ] .copy
@@ -58,11 +58,11 @@
     .all ?
     .any ?
 
-    .__mul__
-    .__add__
-    .__sub__
-    .__div__
-    .__pow__
+[ ] .__mul__
+[ ] .__add__
+[ ] .__sub__
+[ ] .__div__
+[ ] .__pow__
     .__imul__
     .__iadd__
     .__isub__

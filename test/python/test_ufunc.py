@@ -47,6 +47,56 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(ctf.all(a0 == 0))
 
 
+    def test__mul__(self):
+        a0 = numpy.arange(24.).reshape(4,3,2) + .4
+        a1 = ctf.astensor(a0)
+        self.assertTrue(ctf.all(a1*.5 == a0*.5))
+        a2 = ctf.astensor(a0*.2+1j)
+        self.assertTrue(ctf.all(a1*a2 == a0*(a0*.2+1j)))
+        self.assertTrue(ctf.all(a1*a0 == a0*a0))
+
+    def test__add__(self):
+        a0 = numpy.arange(24.).reshape(4,3,2) + .4
+        a1 = ctf.astensor(a0)
+        self.assertTrue(ctf.all(a1+.5 == a0+.5))
+        a2 = ctf.astensor(a0*.2+1j)
+        self.assertTrue(ctf.all(a1+a2 == a0+(a0*.2+1j)))
+        self.assertTrue(ctf.all(a1+a0 == a0+a0))
+
+    def test__sub__(self):
+        a0 = numpy.arange(24.).reshape(4,3,2) + .4
+        a1 = ctf.astensor(a0)
+        self.assertTrue(ctf.all(a1-.5 == a0-.5))
+        a2 = ctf.astensor(a0*.2+1j)
+        self.assertTrue(ctf.all(a1-a2 == a0-(a0*.2+1j)))
+        self.assertTrue(ctf.all(a1-a0 == a0-a0))
+
+    def test__div__(self):
+        a0 = numpy.arange(24.).reshape(4,3,2) + .4
+        a1 = ctf.astensor(a0)
+        self.assertTrue(ctf.all(a1/.5 == a0/.5))
+        a2 = ctf.astensor(a0*.2+1j)
+        self.assertTrue(ctf.all(a1/a2 == a0/(a0*.2+1j)))
+        self.assertTrue(ctf.all(a1/a0 == a0/a0))
+
+    def test_power(self):
+        a0 = numpy.arange(24.).reshape(4,3,2) + .4
+        a1 = ctf.astensor(a0)
+        self.assertTrue(ctf.all(ctf.power(a1, .5) == a0**.5))
+        a2 = ctf.astensor(a0*.2+1j)
+        self.assertTrue(ctf.all(ctf.power(a1, a2) == a0**(a0*.2+1j)))
+        self.assertTrue(ctf.all(ctf.power(a1, a0) == a0**a0))
+
+    def test__pow__(self):
+        a0 = numpy.arange(24.).reshape(4,3,2) + .4
+        a1 = ctf.astensor(a0)
+        self.assertTrue(ctf.all(a1**.5 == a0**.5))
+        a2 = ctf.astensor(a0*.2+1j)
+        self.assertTrue(ctf.all(a1**a2 == a0**(a0*.2+1j)))
+        self.assertTrue(ctf.all(a1**a0 == a0**a0))
+        self.assertTrue(ctf.all(a0**a1 == a0**a0))
+
+
 if __name__ == "__main__":
     print("Tests for ufunc")
     unittest.main()

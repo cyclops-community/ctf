@@ -283,6 +283,52 @@ class KnowValues(unittest.TestCase):
         self.assertEqual(a1.take([0], axis=-1).shape, (4,3,1))
         self.assertEqual(a1.transpose().take([1], axis=0).shape, (1,3,4))
 
+    def test_vstack(self):
+        a1 = ctf.astensor(numpy.ones(4))
+        a2 = ctf.astensor(numpy.ones(4))
+        self.assertTrue(ctf.vstack((a1, a2)).shape == (2,4))
+
+        a1 = ctf.astensor(numpy.ones((2,4)))
+        a2 = ctf.astensor(numpy.ones((3,4)))
+        self.assertTrue(ctf.vstack((a1, a2)).shape == (5,4))
+
+        a1 = ctf.astensor(numpy.ones((2,4)))
+        a2 = ctf.astensor(numpy.ones((3,4))+0j)
+        self.assertTrue(ctf.vstack((a1, a2)).shape == (5,4))
+        self.assertTrue(ctf.vstack((a1, a2)).dtype == numpy.complex)
+
+        a1 = ctf.astensor(numpy.ones((4,1)))
+        self.assertTrue(ctf.vstack((a1, 1.5)).shape == (5,1))
+
+        a1 = ctf.astensor(numpy.ones((2,4,2)))
+        a2 = ctf.astensor(numpy.ones((3,4,2)))
+        self.assertTrue(ctf.vstack((a1, a2)).shape == (5,4,2))
+
+    def test_hstack(self):
+        a1 = ctf.astensor(numpy.ones(4))
+        a2 = ctf.astensor(numpy.ones(5))
+        self.assertTrue(ctf.hstack((a1, a2)).shape == (9,))
+
+        a1 = ctf.astensor(numpy.ones((2,4)))
+        a2 = ctf.astensor(numpy.ones((2,5)))
+        self.assertTrue(ctf.hstack((a1, a2)).shape == (2,9))
+
+        a1 = ctf.astensor(numpy.ones((2,4)))
+        a2 = ctf.astensor(numpy.ones((2,5))+0j)
+        self.assertTrue(ctf.hstack((a1, a2)).shape == (2,9))
+        self.assertTrue(ctf.hstack((a1, a2)).dtype == numpy.complex)
+
+        a1 = numpy.ones((2,4))
+        a2 = ctf.astensor(numpy.ones((2,5))+0j)
+        self.assertTrue(ctf.hstack((a1, a2)).shape == (2,9))
+
+        a1 = ctf.astensor(numpy.ones(4))
+        self.assertTrue(ctf.hstack((a1, 1.5)).shape == (5,))
+
+        a1 = ctf.astensor(numpy.ones((2,4,2)))
+        a2 = ctf.astensor(numpy.ones((2,5,2)))
+        self.assertTrue(ctf.hstack((a1, a2)).shape == (2,9,2))
+
 
 if __name__ == "__main__":
     print("Base tests")
