@@ -2,6 +2,8 @@
 import sys
 from cython.operator cimport dereference as deref, preincrement as inc
 from libc.stdint cimport int64_t
+from libc.stdint cimport int64_t
+from libcpp.complex cimport *
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool
 import numpy as np
@@ -243,6 +245,8 @@ cdef class tsr:
             csym = int_arr_py_to_c(sym)
         if self.typ == np.float64:
             self.dt = new Tensor[double](len(lens), sp, clens, csym)
+        elif self.typ == np.complex128:
+            self.dt = new Tensor[double complex](len(lens), sp, clens, csym)
         else:
             raise ValueError('bad dtype')
         free(clens)
@@ -251,12 +255,16 @@ cdef class tsr:
     def fill_random(self, mn, mx):
         if self.typ == np.float64:
             (<Tensor[double]*>self.dt).fill_random(mn,mx)
+        elif self.typ == np.complex128:
+            (<Tensor[double complex]*>self.dt).fill_random(mn,mx)
         else:
             raise ValueError('bad dtype')
 
     def fill_sp_random(self, mn, mx, frac):
         if self.typ == np.float64:
             (<Tensor[double]*>self.dt).fill_sp_random(mn,mx,frac)
+        elif self.typ == np.complex128:
+            (<Tensor[double complex]*>self.dt).fill_sp_random(mn,mx,frac)
         else:
             raise ValueError('bad dtype')
 
@@ -426,28 +434,31 @@ cdef class tsr:
     def norm1(self):
         if self.typ == np.float64:
             return (<Tensor[double]*>self.dt).norm1()
+        #if self.typ == np.complex128:
+        #    return (<Tensor[double complex]*>self.dt).norm1()
         else:
             raise ValueError('norm not present for this dtype')
 
     def norm2(self):
         if self.typ == np.float64:
             return (<Tensor[double]*>self.dt).norm2()
+#        elif self.typ == np.complex128:
+#            return (<Tensor[double complex]*>self.dt).norm2()
         else:
             raise ValueError('norm not present for this dtype')
 
     def norm_infty(self):
         if self.typ == np.float64:
             return (<Tensor[double]*>self.dt).norm_infty()
+#        elif self.typ == np.complex128:
+#            return (<Tensor[double complex]*>self.dt).norm_infty()
         else:
             raise ValueError('norm not present for this dtype')
 
     def to_nparray(self):
-        if self.typ == np.float64:
-            vals = np.zeros(self.tot_size(), dtype=np.float64)
-            self.read_all(vals)
-            return np.asarray(np.ascontiguousarray(np.reshape(vals, self.dims, order='F')),order='C')
-        else:
-            raise ValueError('bad dtype')
+        vals = np.zeros(self.tot_size(), dtype=self.typ)
+        self.read_all(vals)
+        return np.asarray(np.ascontiguousarray(np.reshape(vals, self.dims, order='F')),order='C')
 
     def __repr__(self):
         return repr(self.to_nparray())

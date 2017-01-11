@@ -1694,7 +1694,7 @@ namespace CTF_int {
       tsr_cpy.sparsify(cutoff);
       tsr_cpy.read_local_nnz(&imy_sz, &pmy_data);
     } else
-      read_local_nnz(&imy_sz, &pmy_data);
+      read_local(&imy_sz, &pmy_data);
     my_sz = imy_sz;
     //PairIterator my_data = PairIterator(sr,pmy_data);
 
