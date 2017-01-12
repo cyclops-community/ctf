@@ -23,8 +23,8 @@
 [ ] ctf.abs
 [ ] ctf.sum
 [ ] ctf.power
-    ctf.dot
-    ctf.tensordot
+[ ] ctf.dot
+[ ] ctf.tensordot
 [ ] ctf.trace
 [ ] ctf.from_nparray
 [ ] ctf.to_nparray
@@ -49,7 +49,7 @@
 [ ] .astype
 [ ] .copy
 [ ] .sum
-    .dot
+[ ] .dot
 [ ] .trace
 [ ] .to_nparray
     .flatten ?
