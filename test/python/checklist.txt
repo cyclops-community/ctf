@@ -63,16 +63,16 @@
 [ ] .__sub__
 [ ] .__div__
 [ ] .__pow__
-    .__imul__
-    .__iadd__
-    .__isub__
-    .__idiv__
-    .__ipow__
-    .__rmul__
-    .__radd__
-    .__rsub__
-    .__rdiv__
-    .__rpow__
+[ ] .__imul__
+[ ] .__iadd__
+[ ] .__isub__
+[ ] .__idiv__
+[ ] .__ipow__
+[ ] .__rmul__
+[ ] .__radd__
+[ ] .__rsub__
+[ ] .__rdiv__
+[ ] .__rpow__
     .__repr__
 [ ] .__eq__
     .__getitem__  # for fancy index
