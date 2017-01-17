@@ -101,6 +101,11 @@ class KnowValues(unittest.TestCase):
         a0[1:3,:,2:] = 99
         self.assertTrue(allclose(a1, a0))
 
+        a0, a1 = a0_and_a1()
+        a1[...,1] = 99
+        a0[...,1] = 99
+        self.assertTrue(allclose(a1, a0))
+
         with self.assertRaises(IndexError):
             a1[[3,6]] = 99
 
