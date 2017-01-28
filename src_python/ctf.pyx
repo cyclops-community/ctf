@@ -210,7 +210,7 @@ cdef class itsr(term):
             deref((<itsr>self).it) << <double>other
 
     def __cinit__(self, tsr a, string):
-        self.it = new Idx_Tensor(a.dt, string)
+        self.it = new Idx_Tensor(a.dt, string.encode())
         self.tm = self.it
 
     def scale(self, scl):
@@ -511,6 +511,21 @@ def eye(n, m=None, k=0, dtype=np.float64):
 
 def identity(n, dtype=np.float64):
     return eye(n, dtype=dtype)
+
+def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe'):
+    numop = len(operands)
+    tsrs = [astensor(op) for op in operands]
+    inds = []
+    j=0
+    for i in range(numop):
+        inds.append([])
+        while subscripts[j] != ',':
+            inds[i].append(subscripts[j])
+            j += 1
+        print(inds[i])
+        j += 1
+    
+
 #    A = tsr([n, n], dtype=dtype)
 #    if dtype == np.float64:
 #        A.i("ii") << 1.0

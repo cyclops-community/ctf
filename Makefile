@@ -87,7 +87,8 @@ python: pylib
 .PHONY: pylib
 pylib: lib_py/ctf.so
 lib_py/ctf.so: ctflibso src_python/ctf.pyx
-	LDFLAGS="-L./lib_shared" python setup_wrapper.py build_ext --inplace && mv ctf.so lib_py/
+	LDFLAGS="-L./lib_shared" python setup_wrapper.py build_ext --inplace
+	mv ctf*.so lib_py/ctf.so
 
 .PHONY: test_python
 test_python: lib_py/ctf.so
