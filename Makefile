@@ -94,6 +94,10 @@ lib_py/ctf.so: ctflibso src_python/ctf.pyx
 test_python: lib_py/ctf.so
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_wrapper.py
 
+.PHONY: test_einsum
+test_einsum: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_einsum.py
+
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
 

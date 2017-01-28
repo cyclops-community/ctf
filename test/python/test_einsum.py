@@ -2,12 +2,12 @@
 
 import unittest
 import numpy
-#import ctf
+import ctf
 
-import numpy as ctf
-ctf.from_nparray = numpy.asarray
-ctf.to_nparray = numpy.asarray
-ctf.astensor = numpy.asarray
+#import numpy as ctf
+#ctf.from_nparray = numpy.asarray
+#ctf.to_nparray = numpy.asarray
+#ctf.astensor = numpy.asarray
 
 def allclose(a, b):
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
@@ -115,6 +115,7 @@ class KnowValues(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    ctf.MPI_start()
     print("Tests for einsum")
     unittest.main()
 

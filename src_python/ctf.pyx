@@ -467,7 +467,7 @@ cdef class tsr:
         if arr.dtype != self.typ:
             raise ValueError('bad dtype')
         if self.dt.wrld.rank == 0:
-            self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr))
+            self.write(np.arange(0,self.tot_size(),dtype=np.int8),np.asfortranarray(arr).flatten())
         else:
             self.write([], [])
 
@@ -478,11 +478,18 @@ cdef class tsr:
 
 def astensor(arr):
     if arr.dtype == np.float64:
-        t = tsr(arr.shape, order='F')
+        t = tsr(arr.shape)
         t.from_nparray(arr)
         return t
     else:
         raise ValueError('bad dtype')
+
+def to_nparray(t):
+    if isinstance(t,tsr):
+        return t.to_nparray()
+    else:
+        return np.asarray(t)
+
 
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n
@@ -514,16 +521,32 @@ def identity(n, dtype=np.float64):
 
 def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe'):
     numop = len(operands)
-    tsrs = [astensor(op) for op in operands]
     inds = []
     j=0
+    print('here')
+    print(numop)
+    out_inds = ''
     for i in range(numop):
-        inds.append([])
-        while subscripts[j] != ',':
-            inds[i].append(subscripts[j])
+        inds.append('')
+        while j < len(subscripts) and subscripts[j] != ',' and subscripts[j] != ' ' and subscripts[j] != '-':
+            inds[i] += subscripts[j]
+            j += 1
+        j += 1
+        while j < len(subscripts) and subscripts[j] == ' ':
             j += 1
         print(inds[i])
+    if j < len(subscripts) and subscripts[j] == '-':
         j += 1
+    if j < len(subscripts) and subscripts[j] == '>':
+        start_out = 1
+        j += 1
+    while j < len(subscripts) and subscripts[j] == ' ':
+        j += 1
+    while j < len(subscripts) and subscripts[j] != ' ':
+        out_inds += subscripts[j]
+        j += 1
+    print(out_inds)
+    
     
 
 #    A = tsr([n, n], dtype=dtype)
