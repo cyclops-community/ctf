@@ -10,6 +10,8 @@ import ctf
 #ctf.astensor = numpy.asarray
 
 def allclose(a, b):
+    print(ctf.to_nparray(a))
+    print(ctf.to_nparray(b))
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
 
 class KnowValues(unittest.TestCase):
@@ -17,8 +19,8 @@ class KnowValues(unittest.TestCase):
         a0 = numpy.arange(27.).reshape(3,3,3)
         a1 = ctf.astensor(a0)
         self.assertTrue(allclose(ctf.einsum("jii->ij", a1), numpy.einsum("jii->ij", a0)))
-        self.assertTrue(allclose(ctf.einsum("iii", a1), numpy.einsum("iii", a0)))
         self.assertTrue(allclose(ctf.einsum("iii->i", a1), numpy.einsum("iii->i", a0)))
+        self.assertTrue(allclose(ctf.einsum("iii", a1), numpy.einsum("iii", a0)))
 
         a0 = numpy.arange(6.)
         a1 = ctf.astensor(a0)
@@ -90,8 +92,11 @@ class KnowValues(unittest.TestCase):
         b0 = numpy.ones((5, 12, 11))
         a1 = ctf.astensor(a0)
         b1 = ctf.astensor(b0)
-        self.assertTrue(allclose(ctf.einsum('ijklm,ijn,ijn->', a1, b1, b1),
+        self.assertTrue(allclose(ctf.einsum('ijklm,ijn->', a1, b1),
                                  numpy.einsum('ijklm,ijn->', a0, b0)))
+        #self.assertTrue(allclose(ctf.einsum('ijklm,ijn,ijn->', a1, b1, b1),
+        #                         numpy.einsum('ijklm,ijn,ijn->', a0, b0, b0)))
+                                # numpy.einsum('ijklm,ijn->', a0, b0)))
 
         # inner loop implementation
         a0 = numpy.arange(1., 3.)
@@ -100,8 +105,8 @@ class KnowValues(unittest.TestCase):
         a1 = ctf.astensor(a0)
         b1 = ctf.astensor(b0)
         c1 = ctf.astensor(c0)
-        self.assertTrue(allclose(ctf.einsum('x,yx,zx->xzy', a0, b0, c0),
-                                 numpy.einsum('x,yx,zx->xzy', a1, b1, c1)))
+        self.assertTrue(allclose(ctf.einsum('x,yx,zx->xzy', a1, b1, c1),
+                                 numpy.einsum('x,yx,zx->xzy', a0, b0, c0)))
 
         a0 = numpy.random.normal(0, 1, (5, 5, 5, 5))
         a1 = ctf.astensor(a0)

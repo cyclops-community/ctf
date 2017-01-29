@@ -458,7 +458,8 @@ cdef class tsr:
     def to_nparray(self):
         vals = np.zeros(self.tot_size(), dtype=self.typ)
         self.read_all(vals)
-        return np.asarray(np.ascontiguousarray(np.reshape(vals, self.dims, order='F')),order='C')
+        #return np.asarray(np.ascontiguousarray(np.reshape(vals, self.dims, order='F')),order='C')
+        return np.reshape(vals, self.dims, order='C')
 
     def __repr__(self):
         return repr(self.to_nparray())
@@ -467,7 +468,8 @@ cdef class tsr:
         if arr.dtype != self.typ:
             raise ValueError('bad dtype')
         if self.dt.wrld.rank == 0:
-            self.write(np.arange(0,self.tot_size(),dtype=np.int8),np.asfortranarray(arr).flatten())
+            #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
+            self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
         else:
             self.write([], [])
 
@@ -533,20 +535,26 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
         j += 1
         while j < len(subscripts) and subscripts[j] == ' ':
             j += 1
-        #print(inds[i])
     out_inds = ''
     out_lens = []
+    do_reduce = 0
     if j < len(subscripts) and subscripts[j] == '-':
         j += 1
     if j < len(subscripts) and subscripts[j] == '>':
         start_out = 1
         j += 1
+        do_reduce = 1
     while j < len(subscripts) and subscripts[j] == ' ':
         j += 1
     while j < len(subscripts) and subscripts[j] != ' ':
         out_inds += subscripts[j]
         out_lens.append(dind_lens[subscripts[j]])
         j += 1
+    if do_reduce == 0:
+        for ind in dind_lens:
+            out_inds += ind
+            out_lens.append(dind_lens[ind])
+        print(out_inds)
     output = tsr(out_lens)
     if numop == 1:
         output.i(out_inds) << operands[0].i(inds[0])
