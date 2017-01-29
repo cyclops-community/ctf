@@ -523,18 +523,19 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     numop = len(operands)
     inds = []
     j=0
-    print('here')
-    print(numop)
-    out_inds = ''
+    dind_lens = dict()
     for i in range(numop):
         inds.append('')
         while j < len(subscripts) and subscripts[j] != ',' and subscripts[j] != ' ' and subscripts[j] != '-':
+            dind_lens[subscripts[j]] = operands[i].get_dims()[len(inds[i])]
             inds[i] += subscripts[j]
             j += 1
         j += 1
         while j < len(subscripts) and subscripts[j] == ' ':
             j += 1
-        print(inds[i])
+        #print(inds[i])
+    out_inds = ''
+    out_lens = []
     if j < len(subscripts) and subscripts[j] == '-':
         j += 1
     if j < len(subscripts) and subscripts[j] == '>':
@@ -544,9 +545,18 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
         j += 1
     while j < len(subscripts) and subscripts[j] != ' ':
         out_inds += subscripts[j]
+        out_lens.append(dind_lens[subscripts[j]])
         j += 1
-    print(out_inds)
-    
+    output = tsr(out_lens)
+    if numop == 1:
+        output.i(out_inds) << operands[0].i(inds[0])
+    elif numop == 2:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])
+    elif numop == 3:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])
+    else:
+        raise ValueError('CTF einsum currently allows only no more than three operands')
+    return output
     
 
 #    A = tsr([n, n], dtype=dtype)
