@@ -181,6 +181,7 @@ cdef class term:
     def __mul__(first, second):
         if (isinstance(first,term)):
             if (isinstance(second,term)):
+                print('here')
                 return contract_term(first,second)
             else:
                 first.scale(second)
@@ -459,7 +460,9 @@ cdef class tsr:
         vals = np.zeros(self.tot_size(), dtype=self.typ)
         self.read_all(vals)
         #return np.asarray(np.ascontiguousarray(np.reshape(vals, self.dims, order='F')),order='C')
-        return np.reshape(vals, self.dims, order='C')
+        #return np.reshape(vals, rev_array(self.dims)).transpose()
+        return np.reshape(vals, self.dims)
+        #return np.reshape(vals, self.dims, order='C')
 
     def __repr__(self):
         return repr(self.to_nparray())
@@ -526,12 +529,18 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     inds = []
     j=0
     dind_lens = dict()
+    uniq_subs = set()
     for i in range(numop):
         inds.append('')
         while j < len(subscripts) and subscripts[j] != ',' and subscripts[j] != ' ' and subscripts[j] != '-':
+            if dind_lens.has_key(subscripts[j]):
+                uniq_subs.discard(subscripts[j])
+            else:
+                uniq_subs.add(subscripts[j])
             dind_lens[subscripts[j]] = operands[i].get_dims()[len(inds[i])]
             inds[i] += subscripts[j]
             j += 1
+        print(inds[i])
         j += 1
         while j < len(subscripts) and subscripts[j] == ' ':
             j += 1
@@ -551,17 +560,17 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
         out_lens.append(dind_lens[subscripts[j]])
         j += 1
     if do_reduce == 0:
-        for ind in dind_lens:
+        for ind in uniq_subs:
             out_inds += ind
             out_lens.append(dind_lens[ind])
-        print(out_inds)
+    print(out_inds)
     output = tsr(out_lens)
     if numop == 1:
         output.i(out_inds) << operands[0].i(inds[0])
     elif numop == 2:
         output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])
     elif numop == 3:
-        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])
+        output.i(out_inds ) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])
     else:
         raise ValueError('CTF einsum currently allows only no more than three operands')
     return output
