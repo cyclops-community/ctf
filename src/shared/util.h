@@ -63,6 +63,13 @@ namespace CTF_int {
 #include "pmpi.h"
 #include "fompi_wrapper.h"
 
+#ifndef __APPLE__
+#ifndef OMP_OFF
+#define USE_OMP
+#include "omp.h"
+#endif
+#endif
+
 namespace CTF_int {
   //max total virtualization factor for mappings
   #define MAX_NVIRT 256
