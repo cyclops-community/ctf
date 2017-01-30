@@ -284,7 +284,7 @@ function defaultflags
             if [ "x$AR"        = "x" ]; then AR='ar'; fi
             if [ "x$CXXFLAGS"  = "x" ]; then CXXFLAGS='-O3'; fi
             if [ "x$NVCCFLAGS" = "x" ]; then NVCCLAGS=''; fi
-            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'; fi
+            if [ "x$DEFS"      = "x" ]; then DEFS='-D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS -D_DARWIN_C_SOURCE'; fi
             if [ "x$WARNFLAGS"      = "x" ]; then WARNFLAGS='-Wall'; fi
             PASS_TO_LINKER='-Wl,'
             ;;
