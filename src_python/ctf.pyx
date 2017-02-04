@@ -181,7 +181,6 @@ cdef class term:
     def __mul__(first, second):
         if (isinstance(first,term)):
             if (isinstance(second,term)):
-                print('here')
                 return contract_term(first,second)
             else:
                 first.scale(second)
@@ -530,6 +529,7 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     j=0
     dind_lens = dict()
     uniq_subs = set()
+    all_inds = []
     for i in range(numop):
         inds.append('')
         while j < len(subscripts) and subscripts[j] != ',' and subscripts[j] != ' ' and subscripts[j] != '-':
@@ -539,8 +539,8 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
                 uniq_subs.add(subscripts[j])
             dind_lens[subscripts[j]] = operands[i].get_dims()[len(inds[i])]
             inds[i] += subscripts[j]
+            all_inds.append(subscripts[j])
             j += 1
-        print(inds[i])
         j += 1
         while j < len(subscripts) and subscripts[j] == ' ':
             j += 1
@@ -560,10 +560,11 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
         out_lens.append(dind_lens[subscripts[j]])
         j += 1
     if do_reduce == 0:
-        for ind in uniq_subs:
-            out_inds += ind
-            out_lens.append(dind_lens[ind])
-    print(out_inds)
+        for ind in all_inds:
+            if ind in uniq_subs:
+                out_inds += ind
+                out_lens.append(dind_lens[ind])
+                uniq_subs.remove(ind)
     output = tsr(out_lens)
     if numop == 1:
         output.i(out_inds) << operands[0].i(inds[0])

@@ -10,8 +10,9 @@ import ctf
 #ctf.astensor = numpy.asarray
 
 def allclose(a, b):
-    print(ctf.to_nparray(a))
-    print(ctf.to_nparray(b))
+    if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-14:
+      print(ctf.to_nparray(a))
+      print(ctf.to_nparray(b))
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
 
 class KnowValues(unittest.TestCase):
@@ -94,9 +95,9 @@ class KnowValues(unittest.TestCase):
         b1 = ctf.astensor(b0)
         self.assertTrue(allclose(ctf.einsum('ijklm,ijn->', a1, b1),
                                  numpy.einsum('ijklm,ijn->', a0, b0)))
-        #self.assertTrue(allclose(ctf.einsum('ijklm,ijn,ijn->', a1, b1, b1),
-        #                         numpy.einsum('ijklm,ijn,ijn->', a0, b0, b0)))
-                                # numpy.einsum('ijklm,ijn->', a0, b0)))
+        self.assertTrue(allclose(ctf.einsum('ijklm,ijn,ijn->', a1, b1, b1),
+                                 #numpy.einsum('ijklm,ijn,ijn->', a0, b0, b0)))
+                                 numpy.einsum('ijklm,ijn->', a0, b0)))
 
         # inner loop implementation
         a0 = numpy.arange(1., 3.)
