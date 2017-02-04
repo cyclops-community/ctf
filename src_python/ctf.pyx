@@ -481,9 +481,12 @@ cdef class tsr:
 
 
 def astensor(arr):
-    if arr.dtype == np.float64:
-        t = tsr(arr.shape)
-        t.from_nparray(arr)
+    if isinstance(arr,tsr):
+        return arr
+    narr = np.asarray(arr,dtype=np.float64)
+    if narr.dtype == np.float64:
+        t = tsr(narr.shape)
+        t.from_nparray(narr)
         return t
     else:
         raise ValueError('bad dtype')

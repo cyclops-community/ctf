@@ -2,12 +2,12 @@
 
 import unittest
 import numpy
-#import ctf
+import ctf
 
-import numpy as ctf
-ctf.from_nparray = numpy.asarray
-ctf.to_nparray = numpy.asarray
-ctf.astensor = numpy.asarray
+#import numpy as ctf
+#ctf.from_nparray = numpy.asarray
+#ctf.to_nparray = numpy.asarray
+#ctf.astensor = numpy.asarray
 
 class KnowValues(unittest.TestCase):
     def test_eye(self):
@@ -331,5 +331,6 @@ class KnowValues(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    ctf.MPI_start()
     print("Base tests")
     unittest.main()
