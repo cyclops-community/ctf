@@ -386,6 +386,28 @@ cdef class tsr:
         free(coffs)
         free(clens)
         return A
+
+    def __getitem__(self, slices):
+        is_everything = 1
+        is_contig = 1
+        inds = []
+        for i, s in slices:
+            ind = s.indices(self.lens[i])
+            if ind[2] != 1:
+                is_everything = 0
+                is_contig = 0
+            if ind[1] != self.lens[i]:
+                is_everything = 0
+            inds.append(s.indices())
+        for i in range(len(slices),self.order):
+            inds.append(slice(0,self.lens[i],1))
+        if is_everything:
+            return self
+        if is_contig:
+            offs = [ind[0] for ind in inds]
+            ends = [ind[1] for ind in inds]
+            return self.get_slice(offs,ends)
+        raise ValueError('strided slices not currently supported')
         
     def write_slice(self, offsets, ends, A, A_offsets=None, A_ends=None, a=None, b=None):
         cdef char * alpha
@@ -429,6 +451,40 @@ cdef class tsr:
             free(beta)
         free(caends)
         free(caoffs)
+
+    def __setitem__(self, slices, value):
+        is_everything = 1
+        is_contig = 1
+        inds = []
+        for i, s in slices:
+            ind = s.indices(self.lens[i])
+            if ind[2] != 1:
+                is_everything = 0
+                is_contig = 0
+            if ind[1] != self.lens[i]:
+                is_everything = 0
+            inds.append(s.indices())
+        for i in range(len(slices),self.order):
+            inds.append(slice(0,self.lens[i],1))
+        mystr = [chr(i) for i in range(self.order)]
+        if is_everything == 1:
+            self.scale(0.0)
+            if isinstance(value,tsr):
+                self.i(mystr) << value.i(mystr)
+            else:
+                nv = np.asarray([value])
+                self.i(mystr) << astensor(nv).i(mystr)
+        if is_contig:
+            offs = [ind[0] for ind in inds]
+            ends = [ind[1] for ind in inds]
+            sl = tsr(ends-offs)
+            if isinstance(value,tsr):
+                sl.i(mystr) << value.i(mystr)
+            else:
+                sl.i(mystr) << astensor(value).i(mystr)
+            self.write_slice(offs,ends,sl)
+        raise ValueError('strided slices not currently supported')
+        
 
 
     def norm1(self):
