@@ -391,16 +391,28 @@ cdef class tsr:
         is_everything = 1
         is_contig = 1
         inds = []
-        for i, s in slices:
-            ind = s.indices(self.lens[i])
+        lensl = 1
+        if isinstance(slices,slice):
+            s = slices
+            ind = s.indices(self.dims[0])
             if ind[2] != 1:
                 is_everything = 0
                 is_contig = 0
-            if ind[1] != self.lens[i]:
+            if ind[1] != self.dims[0]:
                 is_everything = 0
             inds.append(s.indices())
-        for i in range(len(slices),self.order):
-            inds.append(slice(0,self.lens[i],1))
+        else:
+            lensl = len(slices)
+            for i, s in slices:
+                ind = s.indices(self.dims[i])
+                if ind[2] != 1:
+                    is_everything = 0
+                    is_contig = 0
+                if ind[1] != self.dims[i]:
+                    is_everything = 0
+                inds.append(s.indices())
+        for i in range(lensl,self.order):
+            inds.append(slice(0,self.dims[i],1))
         if is_everything:
             return self
         if is_contig:
@@ -456,16 +468,28 @@ cdef class tsr:
         is_everything = 1
         is_contig = 1
         inds = []
-        for i, s in slices:
-            ind = s.indices(self.lens[i])
+        lensl = 1
+        if isinstance(slices,slice):
+            s = slices
+            ind = s.indices(self.dims[0])
             if ind[2] != 1:
                 is_everything = 0
                 is_contig = 0
-            if ind[1] != self.lens[i]:
+            if ind[1] != self.dims[0]:
                 is_everything = 0
-            inds.append(s.indices())
-        for i in range(len(slices),self.order):
-            inds.append(slice(0,self.lens[i],1))
+            inds.append(ind)
+        else:
+            lensl = len(slices)
+            for i, s in slices:
+                ind = s.indices(self.dims[i])
+                if ind[2] != 1:
+                    is_everything = 0
+                    is_contig = 0
+                if ind[1] != self.dims[i]:
+                    is_everything = 0
+                inds.append(ind)
+        for i in range(lensl,self.order):
+            inds.append(slice(0,self.dims[i],1))
         mystr = [chr(i) for i in range(self.order)]
         if is_everything == 1:
             self.scale(0.0)
