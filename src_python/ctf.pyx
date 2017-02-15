@@ -8,8 +8,20 @@ from libc.stdlib cimport malloc, free
 from libcpp cimport bool
 import numpy as np
 cimport numpy as cnp
+#from std.functional cimport function
 
 import struct
+
+cdef extern from "pyctf_aux.h":
+    cdef void equate(double, double, bool &)
+
+ctypedef void (*equate_type)(double, double, bool &)
+
+
+cdef extern from "<functional>" namespace "std":
+    cdef cppclass function[dtype]:
+        function()
+        function(dtype)
 #from enum import Enum
 #class SYM(Enum):
 #  NS=0
@@ -77,6 +89,26 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         Contract_Term operator*(double scl);
         Contract_Term operator*(Term A);
 
+    cdef cppclass endomorphism:
+        endomorphism()
+
+    cdef cppclass univar_function:
+        univar_function()
+
+    cdef cppclass bivar_function:
+        bivar_function()
+
+    cdef cppclass Endomorphism[dtype_A](endomorphism):
+        Endomorphism(function[void(dtype_A&)] f_);
+
+    cdef cppclass Univar_Transform[dtype_A,dtype_B](univar_function):
+        Univar_Transform(function[void(dtype_A,dtype_B&)] f_);
+    
+    cdef cppclass Bivar_Transform[dtype_A,dtype_B,dtype_C](bivar_function):
+        Bivar_Transform(function[void(dtype_A,dtype_B,dtype_C&)] f_);
+
+
+
 cdef extern from "../include/ctf.hpp" namespace "CTF":
 
     cdef cppclass World:
@@ -118,6 +150,10 @@ cdef extern from "../include/ctf.hpp" namespace "CTF":
         Matrix(int, int)
         Matrix(int, int, int)
         Matrix(int, int, int, World)
+    
+    cdef cppclass contraction:
+        contraction(tensor *, int *, tensor *, int *, char *, tensor *, int *, char *, bivar_function *)
+        void execute()
 
 cdef int* int_arr_py_to_c(a):
     cdef int * ca
@@ -247,6 +283,8 @@ cdef class tsr:
             self.dt = new Tensor[double](len(lens), sp, clens, csym)
         elif self.typ == np.complex128:
             self.dt = new Tensor[double complex](len(lens), sp, clens, csym)
+        elif self.typ == np.bool:
+            self.dt = new Tensor[bool](len(lens), sp, clens, csym)
         else:
             raise ValueError('bad dtype')
         free(clens)
@@ -558,6 +596,25 @@ cdef class tsr:
         else:
             self.write([], [])
 
+    def __richcmp__(self, b, op):
+        cdef int * inds
+        #cdef function[equate_type] fbf
+        if op == 2:#Py_EQ
+            t = tsr(self.shape, np.bool)
+            inds = <int*>malloc(len(self.dims))
+            for i in range(len(self.dims)):
+                inds[i] = i
+            #fbf = function[equate_type](equate)
+            #f = Bivar_Transform[double,double,bool](fbf) 
+            #c = contraction(self.dt, inds, b.dt, inds, NULL, t.dt, inds, NULL, bf)
+            #c.execute()
+            return t
+        #if op == 3:#Py_NE
+        #    return not x.__is_equal(y)
+        else:
+            assert False
+
+
 #cdef class mtx(tsr):
 #    def __cinit__(self, nrow, ncol, sp=0, sym=None, dtype=np.float64):
 #        super(mtx, self).__cinit__([nrow, ncol], sp=sp, sym=[sym, SYM.NS], dtype=dtype)
@@ -566,13 +623,24 @@ cdef class tsr:
 def astensor(arr):
     if isinstance(arr,tsr):
         return arr
-    narr = np.asarray(arr,dtype=np.float64)
+    narr = np.asarray(arr)
     if narr.dtype == np.float64:
         t = tsr(narr.shape)
         t.from_nparray(narr)
         return t
+    elif narr.dtype == np.complex128:
+        t = tsr(narr.shape, dtype=np.complex128)
+        t.from_nparray(narr)
+        return t
+    elif narr.dtype == np.bool:
+        t = tsr(narr.shape, dtype=np.bool)
+        t.from_nparray(narr)
+        return t
     else:
-        raise ValueError('bad dtype')
+        narr = np.asarray(arr, dtype=np.float64)
+        t = tsr(narr.shape)
+        t.from_nparray(narr)
+        return t
 
 def to_nparray(t):
     if isinstance(t,tsr):
@@ -594,6 +662,10 @@ def eye(n, m=None, k=0, dtype=np.float64):
     A = tsr([l, l], dtype=dtype)
     if dtype == np.float64:
         A.i("ii") << 1.0
+    elif dtype == np.complex128:
+        A.i("ii") << 1.0
+    elif dtype == np.bool:
+        A.i("ii") << 1
     else:
         raise ValueError('bad dtype')
     if m == None:
