@@ -488,17 +488,19 @@ cdef class tsr:
                 if ind[1] != self.dims[i]:
                     is_everything = 0
                 inds.append(ind)
-        for i in range(lensl,self.order):
+        for i in range(lensl,len(self.dims)):
             inds.append(slice(0,self.dims[i],1))
-        mystr = [chr(i) for i in range(self.order)]
+        mystr = ''
+        for i in range(len(self.dims)):
+            mystr += chr(i)
         if is_everything == 1:
-            self.scale(0.0)
+            self.i(mystr).scale(0.0)
             if isinstance(value,tsr):
                 self.i(mystr) << value.i(mystr)
             else:
-                nv = np.asarray([value])
-                self.i(mystr) << astensor(nv).i(mystr)
-        if is_contig:
+                nv = np.asarray(value)
+                self.i(mystr) << astensor(nv).i('')
+        elif is_contig:
             offs = [ind[0] for ind in inds]
             ends = [ind[1] for ind in inds]
             sl = tsr(ends-offs)
@@ -507,7 +509,8 @@ cdef class tsr:
             else:
                 sl.i(mystr) << astensor(value).i(mystr)
             self.write_slice(offs,ends,sl)
-        raise ValueError('strided slices not currently supported')
+        else:
+            raise ValueError('strided slices not currently supported')
         
 
 
