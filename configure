@@ -758,7 +758,7 @@ fi
 if [ ! -e $BUILDDIR/Makefile ] ; then
 cat > $BUILDDIR/Makefile <<EOF
 CTFDIR=$CTFDIR
-all: ctf
+all:
 %:
 	export CTF_BUILD_DIR=$BUILDDIR; cd \$(CTFDIR); \$(MAKE) \$@;
 EOF
