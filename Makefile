@@ -134,6 +134,6 @@ clean_lib:
 	rm -f $(BDIR)/lib_py/ctf.so
 
 clean_obj:
-	rm -f obj/*.o 
-	rm -f obj_shared/*.o 
-	rm -f build/*/*/*.o 
+	rm -f $(BDIR)/obj/*.o 
+	rm -f $(BDIR)/obj_shared/*.o 
+	rm -f $(BDIR)/build/*/*/*.o 
