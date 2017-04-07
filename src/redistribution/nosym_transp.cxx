@@ -1,5 +1,15 @@
+#include <ccomplex>
+
+#define HPTT_ //TODO
+
+#ifdef HPTT_
+#include <hptc/hptc.h>
+#endif
+
 #include "nosym_transp.h"
 #include "../shared/util.h"
+#include "../tensor/untyped_tensor.h"
+
 
 namespace CTF_int {
 
@@ -308,6 +318,157 @@ namespace CTF_int {
 #endif
 #endif
 
+  bool hptt_is_applicable(int order, int const * new_order, int elementSize) {
+     bool is_diff = false;
+     for (int i=0; i<order; i++){
+        if (new_order[i] != i) is_diff = true;
+     }
+
+     return is_diff && (elementSize == sizeof(float) || elementSize == sizeof(double) || elementSize == sizeof(double _Complex));
+  }
+
+void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, int dim, const double* A, double alpha, double * B, double beta)
+{
+   // compute stride for all dimensions w.r.t. A
+   uint32_t strideA[dim];
+   strideA[0] = 1;
+   for(int i=1; i < dim; ++i)
+      strideA[i] = strideA[i-1] * size[i-1];
+
+   // combine all non-stride-one dimensions of B into a single dimension for
+   // maximum parallelism
+   uint32_t sizeOuter = 1;
+   for(int i=0; i < dim; ++i)
+      if( i != perm[0] )
+         sizeOuter *= size[i]; 
+
+   uint32_t sizeInner = size[perm[0]];
+
+   // This implementation traverses the output tensor in a linear fashion
+
+#pragma omp parallel for
+   for(uint32_t j=0; j < sizeOuter; ++j)
+   {
+      uint32_t offsetA = 0;
+      uint32_t offsetB = 0;
+      uint32_t j_tmp = j;
+      for(int i=1; i < dim; ++i)
+      {
+         int current_index = j_tmp % size[perm[i]];
+         j_tmp /= size[perm[i]];
+         offsetA += current_index * strideA[perm[i]];
+      }
+
+      const double* __restrict__ A_ = A + offsetA;
+      double* __restrict__ B_ = B + j*sizeInner;
+
+      uint32_t strideAinner = strideA[perm[0]];
+
+      for(int i=0; i < sizeInner; ++i)
+         B_[i] = alpha * A_[i * strideAinner] + beta * B_[i];
+   }
+}
+  void nosym_transpose_hptt(int         order,
+                       int const *      edge_len,
+                       int              dir,
+                       tensor *         &A)
+  {
+     if( dir != 1)
+        printf("ERROR: dir == 1 not yet supported.\n"); //TODO
+#ifdef USE_OMP
+    int numThreads = MIN(24,omp_get_max_threads());
+#else
+    int numThreads = 1;
+#endif
+
+    printf("HPTT called %d\n", numThreads);
+    // allocate auxiliary buffer
+    void* tmp_buffer = nullptr;
+    CTF_int::alloc_ptr(A->size * A->sr->el_size, (void**)&tmp_buffer);
+
+    // prepare perm and size for HPTT
+    std::vector<uint32_t> perm;
+    for(int i=0;i < order; ++i){
+       perm.push_back(A->inner_ordering[i]);
+       printf("%d: %d\n",i, A->inner_ordering[i]);
+    }
+    std::vector<uint32_t> size;
+    int64_t total = 1;
+    for(int i=0;i < order; ++i)
+    {
+       size.push_back(edge_len[i]);
+       total *= edge_len[i];
+       printf("%d: %d\n",i, edge_len[i]);
+    }
+
+    int nvirt_A = A->calc_nvirt();
+    int64_t chunk_size = A->size/nvirt_A;
+    const int elementSize = A->sr->el_size;
+    if( elementSize == sizeof(float) )
+    {
+       double timeout = 0; // in seconds for auto-tuning
+       for (int i=0; i<nvirt_A; i++){
+#ifdef HPTT_
+          hptc::DeducedFloatType<float> alpha = 1.0;
+          hptc::DeducedFloatType<float> beta = 0.0;
+          auto plan = hptc::create_trans_plan<float>(((float*)A->data)+i * chunk_size, ((float*)tmp_buffer)+i * chunk_size,
+                size, perm, alpha, beta, numThreads, timeout);
+          if (nullptr != plan){
+             plan->exec(); //TODO reuse plan
+             delete plan;
+          } else
+             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+#endif
+       }
+    } else if( elementSize  == sizeof(double) ) {
+       double timeout = 0; // in seconds for auto-tuning
+       for (int i=0; i<nvirt_A; i++){
+#ifdef HPTT_
+          hptc::DeducedFloatType<double> alpha = 1.0;
+          hptc::DeducedFloatType<double> beta = 0.0;
+          auto plan = hptc::create_trans_plan<double>(((double*)A->data)+i * chunk_size, ((double*)tmp_buffer)+i * chunk_size,
+                size, perm, alpha, beta, numThreads, timeout);
+          if (nullptr != plan){
+             plan->exec();
+             delete plan;
+          } else
+             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+#else
+          transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, alpha, ((double*)tmp_buffer)+i * chunk_size, beta);
+#endif
+       }
+    } else if( elementSize == sizeof(double _Complex) ) {
+       double timeout = 0; // in seconds for auto-tuning
+       for (int i=0; i<nvirt_A; i++){
+#ifdef HPTT_
+          hptc::DeducedFloatType<double _Complex> alpha = 1.0;
+          hptc::DeducedFloatType<double _Complex> beta = 0.0;
+          auto plan = hptc::create_trans_plan<double _Complex>(((double _Complex*)A->data)+i * chunk_size, ((double _Complex*)tmp_buffer)+i * chunk_size,
+                size, perm, alpha, beta, numThreads, timeout);
+          if (nullptr != plan){
+             plan->exec();
+             delete plan;
+          } else
+             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+#endif
+       }
+    } else {
+       fprintf(stderr, "ERROR in HPTT wrapper: element size not supported\n");
+    }
+
+    // copy data
+    float* A_data = (float*) A->data;
+    float* tmp_data = (float*) tmp_buffer;
+    int64_t total_size_elem = A->size * (A->sr->el_size/sizeof(float));
+#pragma vector nontemporal
+    for(int64_t i=0; i < total_size_elem; ++i)
+       A_data[i] = tmp_data[i];
+    CTF_int::cdealloc(tmp_buffer);
+
+//    //swap pointers
+//    CTF_int::cdealloc(A->data);
+//    A->data = (char*)tmp_buffer;
+  }
 
 
 
@@ -317,6 +478,7 @@ namespace CTF_int {
                        char *           data,
                        int              dir,
                        algstrct const * sr){
+    printf("non-HPTT called\n");
     int64_t * chunk_size;
     char ** tswap_data;
 

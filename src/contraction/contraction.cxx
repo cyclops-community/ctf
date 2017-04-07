@@ -735,9 +735,14 @@ namespace CTF_int {
       bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
       nvirt_A = A->calc_nvirt();
       if (!A->is_sparse){
-        for (i=0; i<nvirt_A; i++){
-          nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A,
-                          A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
+        if (hptt_is_applicable(all_fdim_A, A->inner_ordering, A->sr->el_size))
+        {
+           nosym_transpose_hptt(all_fdim_A, all_flen_A, 1, A);
+        }else{
+           for (i=0; i<nvirt_A; i++){
+              nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A,
+                    A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
+           }
         }
       } else {
         int nrow_idx = 0;
