@@ -91,16 +91,17 @@ void example(int argc, char** argv){
      C["abcdef"] = A["dfgb"]*B["geac"];
      t = MPI_Wtime() - t;
      minTime = (minTime < t) ? minTime : t;
+
+     Adata = A.get_raw_data(&sizeAtotal);
+     Bdata = B.get_raw_data(&sizeBtotal);
+     if( !equal_(Adata, Acopy, sizeAtotal) )
+        fprintf(stderr, "ERROR: A has changed\n");
+     if( !equal_(Bdata, Bcopy, sizeBtotal) )
+        fprintf(stderr, "ERROR: B has changed\n");
   }
 
-  Adata = A.get_raw_data(&sizeAtotal);
-  Bdata = B.get_raw_data(&sizeBtotal);
   Cdata = C.get_raw_data(&sizeCtotal);
 
-  if( !equal_(Adata, Acopy, sizeAtotal) )
-     fprintf(stderr, "ERROR: A has changed\n");
-  if( !equal_(Bdata, Bcopy, sizeBtotal) )
-     fprintf(stderr, "ERROR: B has changed\n");
 
   double flops = 2.E-9 * 905969664.000000; 
   printf("abcdef-dfgb-geac %.2lf seconds/GEMM, %.2lf GF\n",minTime, flops/minTime);

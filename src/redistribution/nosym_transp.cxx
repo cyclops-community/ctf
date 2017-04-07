@@ -363,8 +363,12 @@ void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, in
 
       uint32_t strideAinner = strideA[perm[0]];
 
-      for(uint32_t i=0; i < sizeInner; ++i)
-         B_[i] = alpha * A_[i * strideAinner] + beta * B_[i];
+      if( std::fabs(beta) < 1e-16 )
+         for(uint32_t i=0; i < sizeInner; ++i)
+            B_[i] = alpha * A_[i * strideAinner];
+      else
+         for(uint32_t i=0; i < sizeInner; ++i)
+            B_[i] = alpha * A_[i * strideAinner] + beta * B_[i];
    }
 }
 int equal_(const double*A, const double*B, int total_size){
@@ -428,15 +432,15 @@ int equal_(const double*A, const double*B, int total_size){
     int nvirt_A = A->calc_nvirt();
     int64_t chunk_size = A->size/nvirt_A;
     const int elementSize = A->sr->el_size;
-    for (int i=0; i<nvirt_A; i++){
-       transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, 1.0, ((double*)tmp_buffer)+i * chunk_size, 0.0);
-       nosym_transpose(order, A->inner_ordering, edge_len, (char*)((double*)A->data)+i * chunk_size, 1, A->sr);
-    }
-    if( !equal_((double*)A->data, (double*)tmp_buffer, A->size) )
-       printf("NOT EQUAL\n");
-    memcpy ((void*)A->data, (void*)tmp_buffer, A->size * A->sr->el_size);
-    CTF_int::cdealloc(tmp_buffer);
-    return;
+//    for (int i=0; i<nvirt_A; i++){
+//       transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, 1.0, ((double*)tmp_buffer)+i * chunk_size, 0.0);
+//       nosym_transpose(order, A->inner_ordering, edge_len, (char*)((double*)A->data)+i * chunk_size, 1, A->sr);
+//    }
+//    if( !equal_((double*)A->data, (double*)tmp_buffer, A->size) )
+//       printf("NOT EQUAL\n");
+//    memcpy ((void*)A->data, (void*)tmp_buffer, A->size * A->sr->el_size);
+//    CTF_int::cdealloc(tmp_buffer);
+//    return;
 
     if( elementSize == sizeof(float) )
     {
