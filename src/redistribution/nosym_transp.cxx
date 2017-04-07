@@ -367,6 +367,31 @@ void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, in
          B_[i] = alpha * A_[i * strideAinner] + beta * B_[i];
    }
 }
+int equal_(const double*A, const double*B, int total_size){
+  int error = 0;
+   const double*Atmp= A;
+   const double*Btmp= B;
+   for(int i=0;i < total_size ; ++i){
+      if( Atmp[i] != Atmp[i] || Btmp[i] != Btmp[i]  || isinf(Atmp[i]) || isinf(Btmp[i]) ){
+         error += 1; //test for NaN or Inf
+         continue;
+      }
+      double Aabs = (Atmp[i] < 0) ? -Atmp[i] : Atmp[i];
+      double Babs = (Btmp[i] < 0) ? -Btmp[i] : Btmp[i];
+      double max = (Aabs < Babs) ? Babs : Aabs;
+      double diff = (Aabs - Babs);
+      diff = (diff < 0) ? -diff : diff;
+      if(diff > 0){
+         double relError = (diff / max);
+         if(relError > 4e-5){
+            printf("%.3e  %.3e %.3e\n",relError, Atmp[i], Btmp[i]);
+            error += 1;
+         }
+      }
+   }
+   return (error == 0) ? 1 : 0;
+}
+
   void nosym_transpose_hptt(int         order,
                        int const *      edge_len,
                        int              dir,
@@ -403,6 +428,16 @@ void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, in
     int nvirt_A = A->calc_nvirt();
     int64_t chunk_size = A->size/nvirt_A;
     const int elementSize = A->sr->el_size;
+    for (int i=0; i<nvirt_A; i++){
+       transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, 1.0, ((double*)tmp_buffer)+i * chunk_size, 0.0);
+       nosym_transpose(order, A->inner_ordering, edge_len, (char*)((double*)A->data)+i * chunk_size, 1, A->sr);
+    }
+    if( !equal_((double*)A->data, (double*)tmp_buffer, A->size) )
+       printf("NOT EQUAL\n");
+    memcpy ((void*)A->data, (void*)tmp_buffer, A->size * A->sr->el_size);
+    CTF_int::cdealloc(tmp_buffer);
+    return;
+
     if( elementSize == sizeof(float) )
     {
        double timeout = 0; // in seconds for auto-tuning
