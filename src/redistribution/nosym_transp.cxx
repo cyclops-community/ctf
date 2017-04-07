@@ -495,17 +495,17 @@ int equal_(const double*A, const double*B, int total_size){
     }
 
     // copy data
-    float* A_data = (float*) A->data;
-    float* tmp_data = (float*) tmp_buffer;
-    int64_t total_size_elem = A->size * (A->sr->el_size/sizeof(float));
-#pragma vector nontemporal
-    for(int64_t i=0; i < total_size_elem; ++i)
-       A_data[i] = tmp_data[i];
-    CTF_int::cdealloc(tmp_buffer);
+//    float* A_data = (float*) A->data;
+//    float* tmp_data = (float*) tmp_buffer;
+//    int64_t total_size_elem = A->size * (A->sr->el_size/sizeof(float));
+//#pragma vector nontemporal
+//    for(int64_t i=0; i < total_size_elem; ++i)
+//       A_data[i] = tmp_data[i];
+//    CTF_int::cdealloc(tmp_buffer);
 
-//    //swap pointers
-//    CTF_int::cdealloc(A->data);
-//    A->data = (char*)tmp_buffer;
+    //swap pointers
+    CTF_int::cdealloc(A->data);
+    A->data = (char*)tmp_buffer;
   }
 
 
