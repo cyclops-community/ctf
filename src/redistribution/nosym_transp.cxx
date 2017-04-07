@@ -1,6 +1,6 @@
 #include <ccomplex>
 
-#define HPTT_ //TODO
+//#define HPTT_ //TODO
 
 #ifdef HPTT_
 #include <hptc/hptc.h>
@@ -338,7 +338,7 @@ void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, in
    // combine all non-stride-one dimensions of B into a single dimension for
    // maximum parallelism
    uint32_t sizeOuter = 1;
-   for(int i=0; i < dim; ++i)
+   for(uint32_t i=0; i < dim; ++i)
       if( i != perm[0] )
          sizeOuter *= size[i]; 
 
@@ -350,7 +350,6 @@ void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, in
    for(uint32_t j=0; j < sizeOuter; ++j)
    {
       uint32_t offsetA = 0;
-      uint32_t offsetB = 0;
       uint32_t j_tmp = j;
       for(int i=1; i < dim; ++i)
       {
@@ -364,7 +363,7 @@ void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, in
 
       uint32_t strideAinner = strideA[perm[0]];
 
-      for(int i=0; i < sizeInner; ++i)
+      for(uint32_t i=0; i < sizeInner; ++i)
          B_[i] = alpha * A_[i * strideAinner] + beta * B_[i];
    }
 }
@@ -434,7 +433,7 @@ void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, in
           } else
              fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
 #else
-          transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, alpha, ((double*)tmp_buffer)+i * chunk_size, beta);
+          transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, 1.0, ((double*)tmp_buffer)+i * chunk_size, 0.0);
 #endif
        }
     } else if( elementSize == sizeof(double _Complex) ) {
