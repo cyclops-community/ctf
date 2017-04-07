@@ -364,7 +364,7 @@ void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, in
       uint32_t strideAinner = strideA[perm[0]];
 
       for(uint32_t i=0; i < sizeInner; ++i)
-         B_[i] = alpha * A_[i * strideAinner] + beta * B_[i];
+         B_[i] = A_[i * strideAinner];
    }
 }
 int equal_(const double*A, const double*B, int total_size){
@@ -372,8 +372,14 @@ int equal_(const double*A, const double*B, int total_size){
    const double*Atmp= A;
    const double*Btmp= B;
    for(int i=0;i < total_size ; ++i){
-      if( Atmp[i] != Atmp[i] || Btmp[i] != Btmp[i]  || isinf(Atmp[i]) || isinf(Btmp[i]) ){
+      if(  Btmp[i] != Btmp[i]  || isinf(Btmp[i]) ){
          error += 1; //test for NaN or Inf
+         printf("B is nan or inf\n");
+         continue;
+      }
+      if( Atmp[i] != Atmp[i] ||  isinf(Atmp[i])  ){
+         error += 1; //test for NaN or Inf
+         printf("A is nan or inf\n");
          continue;
       }
       double Aabs = (Atmp[i] < 0) ? -Atmp[i] : Atmp[i];
@@ -430,10 +436,12 @@ int equal_(const double*A, const double*B, int total_size){
     const int elementSize = A->sr->el_size;
     for (int i=0; i<nvirt_A; i++){
        transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, 1.0, ((double*)tmp_buffer)+i * chunk_size, 0.0);
-       nosym_transpose(order, A->inner_ordering, edge_len, (char*)((double*)A->data)+i * chunk_size, 1, A->sr);
+       nosym_transpose(order, A->inner_ordering, edge_len, (char*)(((double*)A->data)+i * chunk_size), dir, A->sr);
     }
     if( !equal_((double*)A->data, (double*)tmp_buffer, A->size) )
-       printf("NOT EQUAL\n");
+       printf("NOT EQUAL dir = %d\n",dir);
+    else
+       printf("EQUAL dir = %d\n",dir);
     memcpy ((void*)A->data, (void*)tmp_buffer, A->size * A->sr->el_size);
     CTF_int::cdealloc(tmp_buffer);
     return;
