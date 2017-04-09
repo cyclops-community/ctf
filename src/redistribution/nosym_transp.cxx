@@ -3,7 +3,7 @@
 //#define HPTT_ //TODO
 
 #ifdef HPTT_
-#include <hptc/hptc.h>
+#include <hptt.h>
 #endif
 
 #include "nosym_transp.h"
@@ -324,10 +324,10 @@ namespace CTF_int {
         if (new_order[i] != i) is_diff = true;
      }
 
-     return is_diff && (elementSize == sizeof(float) || elementSize == sizeof(double) || elementSize == sizeof(double _Complex));
+     return is_diff && (elementSize == sizeof(float) || elementSize == sizeof(double));// || elementSize == sizeof(double _Complex));
   }
 
-void transpose_ref( std::vector<uint32_t> &size, std::vector<uint32_t> &perm, int dim, const double* A, double alpha, double * B, double beta)
+void transpose_ref( int* size, int* perm, int dim, const double* A, double alpha, double * B, double beta)
 {
    // compute stride for all dimensions w.r.t. A
    uint32_t strideA[dim];
@@ -421,16 +421,20 @@ int equal_(const double*A, const double*B, int total_size){
     CTF_int::alloc_ptr(A->size * A->sr->el_size, (void**)&tmp_buffer);
 
     // prepare perm and size for HPTT
-    std::vector<uint32_t> perm;
+//    std::vector<uint32_t> perm;
+    int perm[order];
     for(int i=0;i < order; ++i){
-       perm.push_back(A->inner_ordering[i]);
+       perm[i] = A->inner_ordering[i];
+//       perm.push_back(A->inner_ordering[i]);
 //       printf("%d: %d\n",i, A->inner_ordering[i]);
     }
-    std::vector<uint32_t> size;
+//    std::vector<uint32_t> size;
+    int size[order];
     int64_t total = 1;
     for(int i=0;i < order; ++i)
     {
-       size.push_back(edge_len[i]);
+//       size.push_back(edge_len[i]);
+       size[i] = edge_len[i];
        total *= edge_len[i];
 //       printf("%d: %d\n",i, edge_len[i]);
     }
@@ -453,13 +457,12 @@ int equal_(const double*A, const double*B, int total_size){
        double timeout = 0; // in seconds for auto-tuning
        for (int i=0; i<nvirt_A; i++){
 #ifdef HPTT_
-          hptc::DeducedFloatType<float> alpha = 1.0;
-          hptc::DeducedFloatType<float> beta = 0.0;
-          auto plan = hptc::create_trans_plan<float>(((float*)A->data)+i * chunk_size, ((float*)tmp_buffer)+i * chunk_size,
-                size, perm, alpha, beta, numThreads, timeout);
+//          auto plan = hptt::create_plan<float>(((float*)A->data)+i * chunk_size, ((float*)tmp_buffer)+i * chunk_size, size, perm, 1., 0., numThreads, timeout);
+          auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
+                ((float*)A->data)+i * chunk_size, 1., 
+                ((float*)tmp_buffer)+i * chunk_size, 0.0, hptt::ESTIMATE, numThreads );
           if (nullptr != plan){
-             plan->exec(); //TODO reuse plan
-             delete plan;
+             plan->execute(); //TODO reuse plan
           } else
              fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
 #endif
@@ -468,50 +471,51 @@ int equal_(const double*A, const double*B, int total_size){
        double timeout = 0; // in seconds for auto-tuning
        for (int i=0; i<nvirt_A; i++){
 #ifdef HPTT_
-          hptc::DeducedFloatType<double> alpha = 1.0;
-          hptc::DeducedFloatType<double> beta = 0.0;
-          auto plan = hptc::create_trans_plan<double>(((double*)A->data)+i * chunk_size, ((double*)tmp_buffer)+i * chunk_size,
-                size, perm, alpha, beta, numThreads, timeout);
+//          auto plan = hptc::create_plan<double>(((double*)A->data)+i * chunk_size, ((double*)tmp_buffer)+i * chunk_size,
+//                size, perm, alpha, beta, numThreads, timeout);
+          auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
+                ((double*)A->data)+i * chunk_size, 1., 
+                ((double*)tmp_buffer)+i * chunk_size, 0.0, hptt::ESTIMATE, numThreads );
           if (nullptr != plan){
-             plan->exec();
-             delete plan;
+             plan->execute();
           } else
              fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
 #else
           transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, 1.0, ((double*)tmp_buffer)+i * chunk_size, 0.0);
 #endif
        }
-    } else if( elementSize == sizeof(double _Complex) ) {
-       double timeout = 0; // in seconds for auto-tuning
-       for (int i=0; i<nvirt_A; i++){
-#ifdef HPTT_
-          hptc::DeducedFloatType<double _Complex> alpha = 1.0;
-          hptc::DeducedFloatType<double _Complex> beta = 0.0;
-          auto plan = hptc::create_trans_plan<double _Complex>(((double _Complex*)A->data)+i * chunk_size, ((double _Complex*)tmp_buffer)+i * chunk_size,
-                size, perm, alpha, beta, numThreads, timeout);
-          if (nullptr != plan){
-             plan->exec();
-             delete plan;
-          } else
-             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
-#endif
-       }
-    } else {
-       fprintf(stderr, "ERROR in HPTT wrapper: element size not supported\n");
-    }
+    } 
+//    else if( elementSize == sizeof(double _Complex) ) {
+//       double timeout = 0; // in seconds for auto-tuning
+//       for (int i=0; i<nvirt_A; i++){
+//#ifdef HPTT_
+//          hptc::DeducedFloatType<double _Complex> alpha = 1.0;
+//          hptc::DeducedFloatType<double _Complex> beta = 0.0;
+//          auto plan = hptc::create_trans_plan<double _Complex>(((double _Complex*)A->data)+i * chunk_size, ((double _Complex*)tmp_buffer)+i * chunk_size,
+//                size, perm, alpha, beta, numThreads, timeout);
+//          if (nullptr != plan){
+//             plan->exec();
+//             delete plan;
+//          } else
+//             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+//#endif
+//       }
+//    } else {
+//       fprintf(stderr, "ERROR in HPTT wrapper: element size not supported\n");
+//    }
 
     // copy data
-//    float* A_data = (float*) A->data;
-//    float* tmp_data = (float*) tmp_buffer;
-//    int64_t total_size_elem = A->size * (A->sr->el_size/sizeof(float));
-//#pragma vector nontemporal
-//    for(int64_t i=0; i < total_size_elem; ++i)
-//       A_data[i] = tmp_data[i];
-//    CTF_int::cdealloc(tmp_buffer);
+    float* A_data = (float*) A->data;
+    float* tmp_data = (float*) tmp_buffer;
+    int64_t total_size_elem = A->size * (A->sr->el_size/sizeof(float));
+#pragma vector nontemporal
+    for(int64_t i=0; i < total_size_elem; ++i)
+       A_data[i] = tmp_data[i];
+    CTF_int::cdealloc(tmp_buffer);
 
     //swap pointers
-    CTF_int::cdealloc(A->data);
-    A->data = (char*)tmp_buffer;
+//    CTF_int::cdealloc(A->data);
+//    A->data = (char*)tmp_buffer;
   }
 
 
