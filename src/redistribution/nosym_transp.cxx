@@ -376,8 +376,14 @@ int equal_(const double*A, const double*B, int total_size){
    const double*Atmp= A;
    const double*Btmp= B;
    for(int i=0;i < total_size ; ++i){
-      if( Atmp[i] != Atmp[i] || Btmp[i] != Btmp[i]  || isinf(Atmp[i]) || isinf(Btmp[i]) ){
+      if(  Btmp[i] != Btmp[i]  || isinf(Btmp[i]) ){
          error += 1; //test for NaN or Inf
+         printf("B is nan or inf\n");
+         continue;
+      }
+      if( Atmp[i] != Atmp[i] ||  isinf(Atmp[i])  ){
+         error += 1; //test for NaN or Inf
+         printf("A is nan or inf\n");
          continue;
       }
       double Aabs = (Atmp[i] < 0) ? -Atmp[i] : Atmp[i];
@@ -418,7 +424,7 @@ int equal_(const double*A, const double*B, int total_size){
     std::vector<uint32_t> perm;
     for(int i=0;i < order; ++i){
        perm.push_back(A->inner_ordering[i]);
-       printf("%d: %d\n",i, A->inner_ordering[i]);
+//       printf("%d: %d\n",i, A->inner_ordering[i]);
     }
     std::vector<uint32_t> size;
     int64_t total = 1;
@@ -426,7 +432,7 @@ int equal_(const double*A, const double*B, int total_size){
     {
        size.push_back(edge_len[i]);
        total *= edge_len[i];
-       printf("%d: %d\n",i, edge_len[i]);
+//       printf("%d: %d\n",i, edge_len[i]);
     }
 
     int nvirt_A = A->calc_nvirt();
