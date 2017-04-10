@@ -735,15 +735,7 @@ namespace CTF_int {
       bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
       nvirt_A = A->calc_nvirt();
       if (!A->is_sparse){
-        if (hptt_is_applicable(all_fdim_A, A->inner_ordering, A->sr->el_size))
-        {
-           nosym_transpose_hptt(all_fdim_A, all_flen_A, 1, A);
-        }else{
-           for (i=0; i<nvirt_A; i++){
-              nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A,
-                    A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
-           }
-        }
+        nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
       } else {
         int nrow_idx = 0;
         for (int i=0; i<A->order; i++){
@@ -755,10 +747,11 @@ namespace CTF_int {
       }
       nvirt_B = B->calc_nvirt();
       if (!B->is_sparse){
-        for (i=0; i<nvirt_B; i++){
+        nosym_transpose(B, all_fdim_B, all_flen_B, B->inner_ordering, 1);
+        /*for (i=0; i<nvirt_B; i++){
           nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B,
                           B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
-        }
+        }*/
       } else {
         int nrow_idx = 0;
         for (int i=0; i<B->order; i++){
@@ -771,10 +764,7 @@ namespace CTF_int {
 
       nvirt_C = C->calc_nvirt();
       if (!C->is_sparse){
-        for (i=0; i<nvirt_C; i++){
-          nosym_transpose(all_fdim_C, C->inner_ordering, all_flen_C,
-                          C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
-        }
+        nosym_transpose(C, all_fdim_C, all_flen_C, C->inner_ordering, 1);
       } else {
         int nrow_idx = 0;
         for (int i=0; i<C->order; i++){
@@ -4832,6 +4822,8 @@ namespace CTF_int {
         new_ctr.C->data = C->data;
         new_ctr.C->home_buffer = C->home_buffer;
         new_ctr.C->is_home = 1;
+        new_ctr.C->has_home = 1;
+        new_ctr.C->home_size = C->home_size;
         new_ctr.C->is_mapped = 1;
         new_ctr.C->topo = C->topo;
         copy_mapping(C->order, C->edge_map, new_ctr.C->edge_map);
@@ -4868,6 +4860,8 @@ namespace CTF_int {
       CTF_int::cdealloc(C->data);
       C->data = C->home_buffer;
       C->is_home = 1;
+      C->has_home = 1;
+      C->home_size = C->size;
       new_ctr.C->is_data_aliased = 1;
       delete new_ctr.C;
     } else if (was_home_C) {
@@ -4881,6 +4875,7 @@ namespace CTF_int {
     if (new_ctr.A != new_ctr.C){ //ntype.tid_A != ntype.tid_C){
       if (was_home_A && !new_ctr.A->is_home){
         new_ctr.A->has_home = 0;
+        new_ctr.A->is_home = 0;
         if (A->is_sparse){
           A->data = new_ctr.A->home_buffer;
           new_ctr.A->home_buffer = NULL;
@@ -4894,6 +4889,7 @@ namespace CTF_int {
     if (new_ctr.B != new_ctr.A && new_ctr.B != new_ctr.C){
       if (was_home_B && A != B && !new_ctr.B->is_home){
         new_ctr.B->has_home = 0;
+        new_ctr.B->is_home = 0;
         if (B->is_sparse){
           B->data = new_ctr.B->home_buffer;
           new_ctr.B->home_buffer = NULL;

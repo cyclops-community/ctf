@@ -402,96 +402,83 @@ int equal_(const double*A, const double*B, int total_size){
    return (error == 0) ? 1 : 0;
 }
 
-  void nosym_transpose_hptt(int         order,
-                       int const *      edge_len,
-                       int              dir,
-                       tensor *         &A)
-  {
-     if( dir != 1)
-        printf("ERROR: dir == 1 not yet supported.\n"); //TODO
+  void nosym_transpose_hptt(int              order,
+                            int const *      st_new_order,
+                            int const *      st_edge_len,
+                            int              dir,
+                            char const *     st_buffer,
+                            char *           new_buffer,
+                            algstrct const * sr){
+    int new_order[order];
+    int edge_len[order];
+    if (dir){
+      memcpy(new_order, st_new_order, order*sizeof(int));
+      memcpy(edge_len, st_edge_len, order*sizeof(int));
+    } else {
+      for (int i=0; i<order; i++){
+        new_order[st_new_order[i]] = i;
+        edge_len[i] = st_edge_len[st_new_order[i]];
+      }
+    }
 #ifdef USE_OMP
     int numThreads = MIN(24,omp_get_max_threads());
 #else
     int numThreads = 1;
 #endif
 
-    printf("HPTT called %d\n", numThreads);
-    // allocate auxiliary buffer
-    void* tmp_buffer = nullptr;
-    CTF_int::alloc_ptr(A->size * A->sr->el_size, (void**)&tmp_buffer);
 
     // prepare perm and size for HPTT
-//    std::vector<uint32_t> perm;
     int perm[order];
     for(int i=0;i < order; ++i){
-       perm[i] = A->inner_ordering[i];
-//       perm.push_back(A->inner_ordering[i]);
-//       printf("%d: %d\n",i, A->inner_ordering[i]);
+       perm[i] = new_order[i];
     }
-//    std::vector<uint32_t> size;
     int size[order];
     int64_t total = 1;
-    for(int i=0;i < order; ++i)
-    {
-//       size.push_back(edge_len[i]);
+    for(int i=0;i < order; ++i){
        size[i] = edge_len[i];
        total *= edge_len[i];
-//       printf("%d: %d\n",i, edge_len[i]);
     }
 
-    int nvirt_A = A->calc_nvirt();
-    int64_t chunk_size = A->size/nvirt_A;
-    const int elementSize = A->sr->el_size;
-//    for (int i=0; i<nvirt_A; i++){
-//       transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, 1.0, ((double*)tmp_buffer)+i * chunk_size, 0.0);
-//       nosym_transpose(order, A->inner_ordering, edge_len, (char*)((double*)A->data)+i * chunk_size, 1, A->sr);
-//    }
-//    if( !equal_((double*)A->data, (double*)tmp_buffer, A->size) )
-//       printf("NOT EQUAL\n");
-//    memcpy ((void*)A->data, (void*)tmp_buffer, A->size * A->sr->el_size);
-//    CTF_int::cdealloc(tmp_buffer);
-//    return;
-
-    if( elementSize == sizeof(float) )
-    {
-       double timeout = 0; // in seconds for auto-tuning
-       for (int i=0; i<nvirt_A; i++){
+    const int elementSize = sr->el_size;
+    if (elementSize == sizeof(float)){
+      double timeout = 0; // in seconds for auto-tuning
 #ifdef HPTT_
-//          auto plan = hptt::create_plan<float>(((float*)A->data)+i * chunk_size, ((float*)tmp_buffer)+i * chunk_size, size, perm, 1., 0., numThreads, timeout);
-          auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
-                ((float*)A->data)+i * chunk_size, 1., 
-                ((float*)tmp_buffer)+i * chunk_size, 0.0, hptt::ESTIMATE, numThreads );
-          if (nullptr != plan){
-             plan->execute(); //TODO reuse plan
-          } else
-             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
-#endif
-       }
-    } else if( elementSize  == sizeof(double) ) {
-       double timeout = 0; // in seconds for auto-tuning
-       for (int i=0; i<nvirt_A; i++){
-#ifdef HPTT_
-//          auto plan = hptc::create_plan<double>(((double*)A->data)+i * chunk_size, ((double*)tmp_buffer)+i * chunk_size,
-//                size, perm, alpha, beta, numThreads, timeout);
-          auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
-                ((double*)A->data)+i * chunk_size, 1., 
-                ((double*)tmp_buffer)+i * chunk_size, 0.0, hptt::ESTIMATE, numThreads );
-          if (nullptr != plan){
-             plan->execute();
-          } else
-             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+//          auto plan = hptt::create_plan<float>(((float*)A->data)+i * chunk_size, ((float*)new_buffer)+i * chunk_size, size, perm, 1., 0., numThreads, timeout);
+      auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
+              ((float*)st_buffer), 1., 
+              ((float*)new_buffer), 0.0, hptt::ESTIMATE, numThreads );
+      if (nullptr != plan){
+         plan->execute(); //TODO reuse plan
+      } else
+         fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
 #else
-          transpose_ref( size, perm, order, ((double*)A->data)+i * chunk_size, 1.0, ((double*)tmp_buffer)+i * chunk_size, 0.0);
+      ABORT;
 #endif
-       }
-    } 
+    } else if (elementSize  == sizeof(double)){
+      double timeout = 0; // in seconds for auto-tuning
+#ifdef HPTT_
+//          auto plan = hptc::create_plan<double>(((double*)A->data)+i * chunk_size, ((double*)new_buffer)+i * chunk_size,
+//               size, perm, alpha, beta, numThreads, timeout);
+      auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
+            ((double*)st_buffer), 1., 
+            ((double*)new_buffer), 0.0, hptt::ESTIMATE, numThreads );
+      if (nullptr != plan){
+        plan->execute();
+      } else 
+        fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+#else
+      transpose_ref( size, perm, order, ((double*)st_buffer), 1.0, ((double*)new_buffer), 0.0);
+#endif
+    } else {
+       ABORT;
+    }
 //    else if( elementSize == sizeof(double _Complex) ) {
 //       double timeout = 0; // in seconds for auto-tuning
 //       for (int i=0; i<nvirt_A; i++){
 //#ifdef HPTT_
 //          hptc::DeducedFloatType<double _Complex> alpha = 1.0;
 //          hptc::DeducedFloatType<double _Complex> beta = 0.0;
-//          auto plan = hptc::create_trans_plan<double _Complex>(((double _Complex*)A->data)+i * chunk_size, ((double _Complex*)tmp_buffer)+i * chunk_size,
+//          auto plan = hptc::create_trans_plan<double _Complex>(((double _Complex*)A->data)+i * chunk_size, ((double _Complex*)new_buffer)+i * chunk_size,
 //                size, perm, alpha, beta, numThreads, timeout);
 //          if (nullptr != plan){
 //             plan->exec();
@@ -503,25 +490,93 @@ int equal_(const double*A, const double*B, int total_size){
 //    } else {
 //       fprintf(stderr, "ERROR in HPTT wrapper: element size not supported\n");
 //    }
-
-    if( 0 )
-    {
-       // copy data
-       float* A_data = (float*) A->data;
-       float* tmp_data = (float*) tmp_buffer;
-       int64_t total_size_elem = A->size * (A->sr->el_size/sizeof(float));
-#pragma vector nontemporal
-       for(int64_t i=0; i < total_size_elem; ++i)
-          A_data[i] = tmp_data[i];
-       CTF_int::cdealloc(tmp_buffer);
-    } else {
-       //swap pointers
-       CTF_int::cdealloc(A->data);
-       A->data = (char*)tmp_buffer;
-    }
   }
 
 
+  void nosym_transpose(tensor *    A,
+                       int         all_fdim_A,
+                       int const * all_flen_A,
+                       int const * new_order,
+                       int         dir){
+
+    bool is_diff = false;
+    for (int i=0; i<all_fdim_A; i++){
+      if (new_order[i] != i) is_diff = true;
+    }
+    if (!is_diff) return;
+
+    TAU_FSTART(nosym_transpose);
+    if (all_fdim_A == 0){
+      TAU_FSTOP(nosym_transpose);
+      return;
+    }
+    double st_time = MPI_Wtime();
+
+    bool use_hptt = false;
+#if USE_HPTT
+    use_hptt = hptt_is_applicable(all_fdim_A, new_order, A->sr->el_size);
+#endif
+    int nvirt_A = A->calc_nvirt();
+    if (use_hptt){
+      char * new_buffer;
+      if (A->left_home_transp){
+        assert(dir == 0);
+        new_buffer = A->home_buffer;
+      } else {
+        CTF_int::alloc_ptr(A->sr->el_size*A->size, (void**)&new_buffer);
+      }
+      for (int i=0; i<nvirt_A; i++){
+        nosym_transpose_hptt(all_fdim_A, new_order, all_flen_A, dir,
+              A->data    + A->sr->el_size*i*(A->size/nvirt_A), 
+              new_buffer + A->sr->el_size*i*(A->size/nvirt_A), A->sr);
+      }
+      if (!A->has_home || !A->is_home){
+        if (A->left_home_transp){ 
+          A->is_home = true;
+          A->left_home_transp = false;
+          cdealloc(A->data);
+          A->data = A->home_buffer;
+        } else {
+          cdealloc(A->data);
+          A->data = new_buffer;
+        }
+      } else {
+        A->is_home = false;
+        A->left_home_transp = true;
+        A->data = new_buffer;
+      }
+    } else {
+      for (int i=0; i<nvirt_A; i++){
+         nosym_transpose(all_fdim_A, new_order, all_flen_A,
+               A->data + A->sr->el_size*i*(A->size/nvirt_A), dir, A->sr);
+      }
+    }
+
+    int64_t contig0 = 1;
+    for (int i=0; i<all_fdim_A; i++){
+      if (new_order[i] == i) contig0 *= all_flen_A[i];
+      else break;
+    } 
+
+    int64_t tot_sz = 1;
+    for (int i=0; i<all_fdim_A; i++){
+      tot_sz *= all_flen_A[i];
+    }
+    tot_sz *= nvirt_A;
+ 
+    double exe_time = MPI_Wtime() - st_time;
+    double tps[] = {exe_time, 1.0, (double)tot_sz};
+    if (contig0 < 4){
+      non_contig_transp_mdl.observe(tps);
+    } else if (contig0 <= 64){
+      shrt_contig_transp_mdl.observe(tps);
+    } else {
+      long_contig_transp_mdl.observe(tps);
+    }
+
+    TAU_FSTOP(nosym_transpose);
+  }
+                        
 
   void nosym_transpose(int              order,
                        int const *      new_order,
@@ -529,24 +584,9 @@ int equal_(const double*A, const double*B, int total_size){
                        char *           data,
                        int              dir,
                        algstrct const * sr){
-    printf("non-HPTT called\n");
     int64_t * chunk_size;
     char ** tswap_data;
 
-
-
-    bool is_diff = false;
-    for (int i=0; i<order; i++){
-      if (new_order[i] != i) is_diff = true;
-    }
-    if (!is_diff) return;
-
-    TAU_FSTART(nosym_transpose);
-    if (order == 0){
-      TAU_FSTOP(nosym_transpose);
-      return;
-    }
-    double st_time = MPI_Wtime();
   #ifdef USE_OMP
     int max_ntd = MIN(16,omp_get_max_threads());
     CTF_int::alloc_ptr(max_ntd*sizeof(char*),   (void**)&tswap_data);
@@ -590,28 +630,7 @@ int equal_(const double*A, const double*B, int total_size){
 
     CTF_int::cdealloc(tswap_data);
     CTF_int::cdealloc(chunk_size);
-    int64_t contig0 = 1;
-    for (int i=0; i<order; i++){
-      if (new_order[i] == i) contig0 *= edge_len[i];
-      else break;
-    } 
 
-    int64_t tot_sz = 1;
-    for (int i=0; i<order; i++){
-      tot_sz *= edge_len[i];
-    }
- 
-    double exe_time = MPI_Wtime() - st_time;
-    double tps[] = {exe_time, 1.0, (double)tot_sz};
-    if (contig0 < 4){
-      non_contig_transp_mdl.observe(tps);
-    } else if (contig0 <= 64){
-      shrt_contig_transp_mdl.observe(tps);
-    } else {
-      long_contig_transp_mdl.observe(tps);
-    }
-
-    TAU_FSTOP(nosym_transpose);
   }
 
   void nosym_transpose(int              order,

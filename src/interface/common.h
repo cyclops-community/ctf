@@ -22,6 +22,10 @@
 #define USE_SP_MKL 0
 #endif
 
+#ifndef USE_HPTT
+#define USE_HPTT 1
+#endif
+
 /**
  * labels corresponding to symmetry of each tensor dimension
  * NS = 0 - nonsymmetric

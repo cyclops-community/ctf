@@ -40,7 +40,11 @@ namespace CTF_int {
                          int              dir,
                          algstrct const * sr);
 
-
+  void nosym_transpose(tensor *    A,
+                       int         all_fdim_A,
+                       int const * all_flen_A,
+                       int const * new_order,
+                       int         dir);
   /**
    * \brief transposes a non-symmetric (folded) tensor internal kernel
    *
