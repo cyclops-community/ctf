@@ -32,6 +32,23 @@ int equal_(const double*A, const double*B, int total_size){
    return (error == 0) ? 1 : 0;
 }
 
+void reference(const double* A, const double* B, double* C, int *sizeC, int *sizeB, int *lda, int* ldb, int*ldc)
+{
+   for(int a=0; a < sizeC[0]; ++a)
+      for(int b=0; b < sizeC[1]; ++b)
+         for(int c=0; c < sizeC[2]; ++c)
+            for(int d=0; d < sizeC[3]; ++d)
+               for(int e=0; e < sizeC[4]; ++e)
+                  for(int f=0; f < sizeC[5]; ++f){
+                     double tmp = 0;
+                     for(int g=0; g < sizeB[0]; ++g){
+//                        C["abcdef"] = A["dfgb"]*B["geac"]; 
+                        tmp += A[d + f *lda[1] + g * lda[2] + b * lda[3]] * B[g+e*ldb[1]+a*ldb[2]+c*ldb[3]];
+                     }
+                     C[a + b *ldc[1] + c *ldc[2] + d *ldc[3] + e *ldc[4] + f *ldc[5]] = tmp;
+                  }
+}
+
 void example(int argc, char** argv){
   
 
@@ -39,16 +56,29 @@ void example(int argc, char** argv){
   int dimA = 4;
   int shapeA[dimA];
   int sizeA[] = {24,16,24,16};
+  int lda[4];
+  lda[0] = 1;
+  for(int i=1; i < 4; ++i)
+     lda[i] = lda[i-1] * sizeA[i-1];
   for( int i = 0; i < dimA; i++ )
     shapeA[i] = NS;
   int dimB = 4;
   int shapeB[dimB];
   int sizeB[] = {24,16,24,16};
+  int ldb[4];
+  ldb[0] = 1;
+  for(int i=1; i < 4; ++i)
+     ldb[i] = ldb[i-1] * sizeB[i-1];
   for( int i = 0; i < dimB; i++ )
     shapeB[i] = NS;
   int dimC = 6;
   int shapeC[dimC];
   int sizeC[] = {24,16,16,24,16,16};
+  int ldc[6];
+  ldc[0] = 1;
+  for(int i=1; i < 6; ++i)
+     ldc[i] = ldc[i-1] * sizeC[i-1];
+
   for( int i = 0; i < dimC; i++ )
    shapeC[i] = NS;
 
@@ -70,6 +100,7 @@ void example(int argc, char** argv){
   int64_t sizeCtotal;
   double* Cdata = C.get_raw_data(&sizeCtotal);
   double *Ccopy = (double*) malloc(sizeof(double)*sizeCtotal);
+  double *Cref = (double*) malloc(sizeof(double)*sizeCtotal);
   for(int64_t i = 0; i < sizeAtotal; i++){
      Adata[i] = (((i+1)*13 % 1000) - 500.) / 1000.;
      Acopy[i] = (((i+1)*13 % 1000) - 500.) / 1000.;
@@ -81,8 +112,10 @@ void example(int argc, char** argv){
   for(int64_t i = 0; i < sizeCtotal; i++){
      Cdata[i] = (((i+1)*17 % 1000) - 500.) / 1000.;
      Ccopy[i] = (((i+1)*17 % 1000) - 500.) / 1000.;
+     Cref[i] = (((i+1)*17 % 1000) - 500.) / 1000.;
   }
 
+  reference(Acopy, Bcopy, Cref, sizeC, sizeB, lda, ldb, ldc);
 
   double minTime = 1e100;
   for (int i=0; i<3; i++){
@@ -102,6 +135,10 @@ void example(int argc, char** argv){
 
   Cdata = C.get_raw_data(&sizeCtotal);
 
+  if( !equal_(Cdata, Cref, sizeCtotal) )
+     fprintf(stderr, "ERROR: C incorrect\n");
+  else
+     fprintf(stderr, "SUCCESS\n");
 
   double flops = 2.E-9 * 905969664.000000; 
   printf("abcdef-dfgb-geac %.2lf seconds/GEMM, %.2lf GF\n",minTime, flops/minTime);
