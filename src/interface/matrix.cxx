@@ -136,7 +136,7 @@ namespace CTF {
   void Matrix<dtype>::print_matrix(){
     int64_t nel;
     dtype * data = (dtype*)malloc(sizeof(dtype)*nrow*ncol);
-    nel = read_all(data,true);
+    nel = this->read_all(data,true);
     if (this->wrld->rank == 0){
       for (int i=0; i<nrow; i++){
         for (int j=0; j<ncol; j++){
