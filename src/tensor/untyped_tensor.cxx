@@ -106,6 +106,9 @@ namespace CTF_int {
       this->has_home = 0;
 #endif
     } else {
+
+      this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
+      this->sr->set(this->data, this->sr->addid(), this->size);
 #ifdef HOME_CONTRACT
       this->home_size = this->size;
       register_size(home_size*sr->el_size);
@@ -115,10 +118,6 @@ namespace CTF_int {
 #else
       this->has_home = 0;
 #endif
-
-      register_size(this->home_size*sr->el_size);
-      this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
-      this->sr->set(this->data, this->sr->addid(), this->size);
     }
 
   }
