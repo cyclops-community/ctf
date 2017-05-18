@@ -1,6 +1,5 @@
-#include <ccomplex>
 
-//#define HPTT_ //TODO
+#define HPTT_ //TODO
 
 #ifdef HPTT_
 #include <hptt.h>
@@ -319,12 +318,16 @@ namespace CTF_int {
 #endif
 
   bool hptt_is_applicable(int order, int const * new_order, int elementSize) {
+#ifdef HPTT_ 
      bool is_diff = false;
      for (int i=0; i<order; i++){
         if (new_order[i] != i) is_diff = true;
      }
 
-     return is_diff && (elementSize == sizeof(float) || elementSize == sizeof(double));// || elementSize == sizeof(double _Complex));
+     return is_diff && (elementSize == sizeof(float) || elementSize == sizeof(double) || elementSize == sizeof(hptt::DoubleComplex));
+#else
+     return 0;
+#endif
   }
 
 void transpose_ref( int* size, int* perm, int dim, const double* A, double alpha, double * B, double beta)
@@ -441,55 +444,46 @@ int equal_(const double*A, const double*B, int total_size){
 
     const int elementSize = sr->el_size;
     if (elementSize == sizeof(float)){
-      double timeout = 0; // in seconds for auto-tuning
 #ifdef HPTT_
-//          auto plan = hptt::create_plan<float>(((float*)A->data)+i * chunk_size, ((float*)new_buffer)+i * chunk_size, size, perm, 1., 0., numThreads, timeout);
-      auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
-              ((float*)st_buffer), 1., 
-              ((float*)new_buffer), 0.0, hptt::ESTIMATE, numThreads );
+      auto plan = hptt::create_plan( perm, order, 
+            1.0, ((float*)st_buffer), size, NULL,
+            0.0, ((float*)new_buffer), NULL,
+            hptt::ESTIMATE, numThreads );
       if (nullptr != plan){
-         plan->execute(); //TODO reuse plan
+         plan->execute();
       } else
          fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
 #else
       ABORT;
 #endif
     } else if (elementSize  == sizeof(double)){
-      double timeout = 0; // in seconds for auto-tuning
 #ifdef HPTT_
-//          auto plan = hptc::create_plan<double>(((double*)A->data)+i * chunk_size, ((double*)new_buffer)+i * chunk_size,
-//               size, perm, alpha, beta, numThreads, timeout);
-      auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
-            ((double*)st_buffer), 1., 
-            ((double*)new_buffer), 0.0, hptt::ESTIMATE, numThreads );
+      auto plan = hptt::create_plan( perm, order, 
+            1.0, ((double*)st_buffer), size, NULL,
+            0.0, ((double*)new_buffer), NULL,
+            hptt::ESTIMATE, numThreads );
       if (nullptr != plan){
-        plan->execute();
+         plan->execute();
       } else 
-        fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+         fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
 #else
-      transpose_ref( size, perm, order, ((double*)st_buffer), 1.0, ((double*)new_buffer), 0.0);
+      ABORT;
+//      transpose_ref( size, perm, order, ((double*)st_buffer), 1.0, ((double*)new_buffer), 0.0);
+#endif
+    } else if( elementSize == sizeof(hptt::DoubleComplex) ) {
+#ifdef HPTT_
+       auto plan = hptt::create_plan( perm, order, 
+             hptt::DoubleComplex(1.0), ((hptt::DoubleComplex*)st_buffer), size, NULL,
+             hptt::DoubleComplex(0.0), ((hptt::DoubleComplex*)new_buffer), NULL,
+             hptt::ESTIMATE, numThreads );
+       if (nullptr != plan){
+          plan->execute();
+       } else 
+          fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
 #endif
     } else {
        ABORT;
     }
-//    else if( elementSize == sizeof(double _Complex) ) {
-//       double timeout = 0; // in seconds for auto-tuning
-//       for (int i=0; i<nvirt_A; i++){
-//#ifdef HPTT_
-//          hptc::DeducedFloatType<double _Complex> alpha = 1.0;
-//          hptc::DeducedFloatType<double _Complex> beta = 0.0;
-//          auto plan = hptc::create_trans_plan<double _Complex>(((double _Complex*)A->data)+i * chunk_size, ((double _Complex*)new_buffer)+i * chunk_size,
-//                size, perm, alpha, beta, numThreads, timeout);
-//          if (nullptr != plan){
-//             plan->exec();
-//             delete plan;
-//          } else
-//             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
-//#endif
-//       }
-//    } else {
-//       fprintf(stderr, "ERROR in HPTT wrapper: element size not supported\n");
-//    }
   }
 
 
