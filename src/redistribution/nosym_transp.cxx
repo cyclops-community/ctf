@@ -1,5 +1,15 @@
+#include <ccomplex>
+
+//#define HPTT_ //TODO
+
+#ifdef HPTT_
+#include <hptt.h>
+#endif
+
 #include "nosym_transp.h"
 #include "../shared/util.h"
+#include "../tensor/untyped_tensor.h"
+
 
 namespace CTF_int {
 
@@ -308,8 +318,265 @@ namespace CTF_int {
 #endif
 #endif
 
+  bool hptt_is_applicable(int order, int const * new_order, int elementSize) {
+     bool is_diff = false;
+     for (int i=0; i<order; i++){
+        if (new_order[i] != i) is_diff = true;
+     }
+
+     return is_diff && (elementSize == sizeof(float) || elementSize == sizeof(double));// || elementSize == sizeof(double _Complex));
+  }
+
+void transpose_ref( int* size, int* perm, int dim, const double* A, double alpha, double * B, double beta)
+{
+   // compute stride for all dimensions w.r.t. A
+   uint32_t strideA[dim];
+   strideA[0] = 1;
+   for(int i=1; i < dim; ++i)
+      strideA[i] = strideA[i-1] * size[i-1];
+
+   // combine all non-stride-one dimensions of B into a single dimension for
+   // maximum parallelism
+   uint32_t sizeOuter = 1;
+   for(uint32_t i=0; i < dim; ++i)
+      if( i != perm[0] )
+         sizeOuter *= size[i]; 
+
+   uint32_t sizeInner = size[perm[0]];
+
+   // This implementation traverses the output tensor in a linear fashion
+
+#pragma omp parallel for
+   for(uint32_t j=0; j < sizeOuter; ++j)
+   {
+      uint32_t offsetA = 0;
+      uint32_t j_tmp = j;
+      for(int i=1; i < dim; ++i)
+      {
+         int current_index = j_tmp % size[perm[i]];
+         j_tmp /= size[perm[i]];
+         offsetA += current_index * strideA[perm[i]];
+      }
+
+      const double* __restrict__ A_ = A + offsetA;
+      double* __restrict__ B_ = B + j*sizeInner;
+
+      uint32_t strideAinner = strideA[perm[0]];
+
+      if( std::fabs(beta) < 1e-16 )
+         for(uint32_t i=0; i < sizeInner; ++i)
+            B_[i] = alpha * A_[i * strideAinner];
+      else
+         for(uint32_t i=0; i < sizeInner; ++i)
+            B_[i] = alpha * A_[i * strideAinner] + beta * B_[i];
+   }
+}
+int equal_(const double*A, const double*B, int total_size){
+  int error = 0;
+   const double*Atmp= A;
+   const double*Btmp= B;
+   for(int i=0;i < total_size ; ++i){
+      if(  Btmp[i] != Btmp[i]  || isinf(Btmp[i]) ){
+         error += 1; //test for NaN or Inf
+         printf("B is nan or inf\n");
+         continue;
+      }
+      if( Atmp[i] != Atmp[i] ||  isinf(Atmp[i])  ){
+         error += 1; //test for NaN or Inf
+         printf("A is nan or inf\n");
+         continue;
+      }
+      double Aabs = (Atmp[i] < 0) ? -Atmp[i] : Atmp[i];
+      double Babs = (Btmp[i] < 0) ? -Btmp[i] : Btmp[i];
+      double max = (Aabs < Babs) ? Babs : Aabs;
+      double diff = (Aabs - Babs);
+      diff = (diff < 0) ? -diff : diff;
+      if(diff > 0){
+         double relError = (diff / max);
+         if(relError > 4e-5){
+            printf("%.3e  %.3e %.3e\n",relError, Atmp[i], Btmp[i]);
+            error += 1;
+         }
+      }
+   }
+   return (error == 0) ? 1 : 0;
+}
+
+  void nosym_transpose_hptt(int              order,
+                            int const *      st_new_order,
+                            int const *      st_edge_len,
+                            int              dir,
+                            char const *     st_buffer,
+                            char *           new_buffer,
+                            algstrct const * sr){
+    int new_order[order];
+    int edge_len[order];
+    if (dir){
+      memcpy(new_order, st_new_order, order*sizeof(int));
+      memcpy(edge_len, st_edge_len, order*sizeof(int));
+    } else {
+      for (int i=0; i<order; i++){
+        new_order[st_new_order[i]] = i;
+        edge_len[i] = st_edge_len[st_new_order[i]];
+      }
+    }
+#ifdef USE_OMP
+    int numThreads = MIN(24,omp_get_max_threads());
+#else
+    int numThreads = 1;
+#endif
 
 
+    // prepare perm and size for HPTT
+    int perm[order];
+    for(int i=0;i < order; ++i){
+       perm[i] = new_order[i];
+    }
+    int size[order];
+    int64_t total = 1;
+    for(int i=0;i < order; ++i){
+       size[i] = edge_len[i];
+       total *= edge_len[i];
+    }
+
+    const int elementSize = sr->el_size;
+    if (elementSize == sizeof(float)){
+      double timeout = 0; // in seconds for auto-tuning
+#ifdef HPTT_
+//          auto plan = hptt::create_plan<float>(((float*)A->data)+i * chunk_size, ((float*)new_buffer)+i * chunk_size, size, perm, 1., 0., numThreads, timeout);
+      auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
+              ((float*)st_buffer), 1., 
+              ((float*)new_buffer), 0.0, hptt::ESTIMATE, numThreads );
+      if (nullptr != plan){
+         plan->execute(); //TODO reuse plan
+      } else
+         fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+#else
+      ABORT;
+#endif
+    } else if (elementSize  == sizeof(double)){
+      double timeout = 0; // in seconds for auto-tuning
+#ifdef HPTT_
+//          auto plan = hptc::create_plan<double>(((double*)A->data)+i * chunk_size, ((double*)new_buffer)+i * chunk_size,
+//               size, perm, alpha, beta, numThreads, timeout);
+      auto plan = hptt::create_plan( size, perm, NULL, NULL, order, 
+            ((double*)st_buffer), 1., 
+            ((double*)new_buffer), 0.0, hptt::ESTIMATE, numThreads );
+      if (nullptr != plan){
+        plan->execute();
+      } else 
+        fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+#else
+      transpose_ref( size, perm, order, ((double*)st_buffer), 1.0, ((double*)new_buffer), 0.0);
+#endif
+    } else {
+       ABORT;
+    }
+//    else if( elementSize == sizeof(double _Complex) ) {
+//       double timeout = 0; // in seconds for auto-tuning
+//       for (int i=0; i<nvirt_A; i++){
+//#ifdef HPTT_
+//          hptc::DeducedFloatType<double _Complex> alpha = 1.0;
+//          hptc::DeducedFloatType<double _Complex> beta = 0.0;
+//          auto plan = hptc::create_trans_plan<double _Complex>(((double _Complex*)A->data)+i * chunk_size, ((double _Complex*)new_buffer)+i * chunk_size,
+//                size, perm, alpha, beta, numThreads, timeout);
+//          if (nullptr != plan){
+//             plan->exec();
+//             delete plan;
+//          } else
+//             fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
+//#endif
+//       }
+//    } else {
+//       fprintf(stderr, "ERROR in HPTT wrapper: element size not supported\n");
+//    }
+  }
+
+
+  void nosym_transpose(tensor *    A,
+                       int         all_fdim_A,
+                       int const * all_flen_A,
+                       int const * new_order,
+                       int         dir){
+
+    bool is_diff = false;
+    for (int i=0; i<all_fdim_A; i++){
+      if (new_order[i] != i) is_diff = true;
+    }
+    if (!is_diff) return;
+
+    TAU_FSTART(nosym_transpose);
+    if (all_fdim_A == 0){
+      TAU_FSTOP(nosym_transpose);
+      return;
+    }
+    double st_time = MPI_Wtime();
+
+    bool use_hptt = false;
+#if USE_HPTT
+    use_hptt = hptt_is_applicable(all_fdim_A, new_order, A->sr->el_size);
+#endif
+    int nvirt_A = A->calc_nvirt();
+    if (use_hptt){
+      char * new_buffer;
+      if (A->left_home_transp){
+        assert(dir == 0);
+        new_buffer = A->home_buffer;
+      } else {
+        CTF_int::alloc_ptr(A->sr->el_size*A->size, (void**)&new_buffer);
+      }
+      for (int i=0; i<nvirt_A; i++){
+        nosym_transpose_hptt(all_fdim_A, new_order, all_flen_A, dir,
+              A->data    + A->sr->el_size*i*(A->size/nvirt_A), 
+              new_buffer + A->sr->el_size*i*(A->size/nvirt_A), A->sr);
+      }
+      if (!A->has_home || !A->is_home){
+        if (A->left_home_transp){ 
+          A->is_home = true;
+          A->left_home_transp = false;
+          cdealloc(A->data);
+          A->data = A->home_buffer;
+        } else {
+          cdealloc(A->data);
+          A->data = new_buffer;
+        }
+      } else {
+        A->is_home = false;
+        A->left_home_transp = true;
+        A->data = new_buffer;
+      }
+    } else {
+      for (int i=0; i<nvirt_A; i++){
+         nosym_transpose(all_fdim_A, new_order, all_flen_A,
+               A->data + A->sr->el_size*i*(A->size/nvirt_A), dir, A->sr);
+      }
+    }
+
+    int64_t contig0 = 1;
+    for (int i=0; i<all_fdim_A; i++){
+      if (new_order[i] == i) contig0 *= all_flen_A[i];
+      else break;
+    } 
+
+    int64_t tot_sz = 1;
+    for (int i=0; i<all_fdim_A; i++){
+      tot_sz *= all_flen_A[i];
+    }
+    tot_sz *= nvirt_A;
+ 
+    double exe_time = MPI_Wtime() - st_time;
+    double tps[] = {exe_time, 1.0, (double)tot_sz};
+    if (contig0 < 4){
+      non_contig_transp_mdl.observe(tps);
+    } else if (contig0 <= 64){
+      shrt_contig_transp_mdl.observe(tps);
+    } else {
+      long_contig_transp_mdl.observe(tps);
+    }
+
+    TAU_FSTOP(nosym_transpose);
+  }
+                        
 
   void nosym_transpose(int              order,
                        int const *      new_order,
@@ -320,20 +587,6 @@ namespace CTF_int {
     int64_t * chunk_size;
     char ** tswap_data;
 
-
-
-    bool is_diff = false;
-    for (int i=0; i<order; i++){
-      if (new_order[i] != i) is_diff = true;
-    }
-    if (!is_diff) return;
-
-    TAU_FSTART(nosym_transpose);
-    if (order == 0){
-      TAU_FSTOP(nosym_transpose);
-      return;
-    }
-    double st_time = MPI_Wtime();
   #ifdef USE_OMP
     int max_ntd = MIN(16,omp_get_max_threads());
     CTF_int::alloc_ptr(max_ntd*sizeof(char*),   (void**)&tswap_data);
@@ -377,28 +630,7 @@ namespace CTF_int {
 
     CTF_int::cdealloc(tswap_data);
     CTF_int::cdealloc(chunk_size);
-    int64_t contig0 = 1;
-    for (int i=0; i<order; i++){
-      if (new_order[i] == i) contig0 *= edge_len[i];
-      else break;
-    } 
 
-    int64_t tot_sz = 1;
-    for (int i=0; i<order; i++){
-      tot_sz *= edge_len[i];
-    }
- 
-    double exe_time = MPI_Wtime() - st_time;
-    double tps[] = {exe_time, 1.0, (double)tot_sz};
-    if (contig0 < 4){
-      non_contig_transp_mdl.observe(tps);
-    } else if (contig0 <= 64){
-      shrt_contig_transp_mdl.observe(tps);
-    } else {
-      long_contig_transp_mdl.observe(tps);
-    }
-
-    TAU_FSTOP(nosym_transpose);
   }
 
   void nosym_transpose(int              order,

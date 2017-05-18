@@ -107,6 +107,7 @@ namespace CTF_int {
       ntsr->data = tsr->data;
       ntsr->home_buffer = tsr->home_buffer;
       ntsr->is_home = 1;
+      ntsr->has_home = 1;
       ntsr->is_mapped = 1;
       ntsr->topo = tsr->topo;
       copy_mapping(tsr->order, tsr->edge_map, ntsr->edge_map);
@@ -316,6 +317,7 @@ namespace CTF_int {
         tsr->data = tsr->home_buffer;
       }
       tsr->is_home = 1;
+      tsr->has_home = 1;
       ntsr->is_data_aliased = 1;
       delete ntsr;
     } else if (was_home){
@@ -325,6 +327,7 @@ namespace CTF_int {
 
       }
       ntsr->has_home = 0;
+      ntsr->is_home = 0;
       ntsr->is_data_aliased = 1;
       delete ntsr;
     }

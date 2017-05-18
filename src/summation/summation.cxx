@@ -303,15 +303,17 @@ namespace CTF_int {
     
 
     nvirt_A = A->calc_nvirt();
-    for (i=0; i<nvirt_A; i++){
+    nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
+    /*for (i=0; i<nvirt_A; i++){
       nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A, 
                       A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
-    }
+    }*/
     nvirt_B = B->calc_nvirt();
-    for (i=0; i<nvirt_B; i++){
+    nosym_transpose(B, all_fdim_B, all_flen_B, B->inner_ordering, 1);
+    /*for (i=0; i<nvirt_B; i++){
       nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B, 
                       B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
-    }
+    }*/
 
     inr_stride = 1;
     for (i=0; i<fold_sum->A->order; i++){
@@ -976,7 +978,7 @@ namespace CTF_int {
       tnsr_A->home_buffer = A->home_buffer;
       tnsr_A->is_home     = 1;
       tnsr_A->has_home    = 1;
-      tnsr_A->home_size = A->home_size;
+      tnsr_A->home_size   = A->home_size;
       tnsr_A->is_mapped   = 1;
       tnsr_A->topo        = A->topo;
       copy_mapping(A->order, A->edge_map, tnsr_A->edge_map);
@@ -992,6 +994,8 @@ namespace CTF_int {
       tnsr_B->data        = B->data;
       tnsr_B->home_buffer = B->home_buffer;
       tnsr_B->is_home     = 1;
+      tnsr_B->has_home    = 1;
+      tnsr_B->home_size   = B->home_size;
       tnsr_B->is_mapped   = 1;
       tnsr_B->topo        = B->topo;
       copy_mapping(B->order, B->edge_map, tnsr_B->edge_map);
@@ -1050,6 +1054,7 @@ namespace CTF_int {
       }
       tnsr_B->is_data_aliased = 1;
       B->is_home = 1;
+      B->has_home = 1;
       delete tnsr_B;
     } else if (was_home_B){
       if (!B->is_sparse){
@@ -1059,11 +1064,13 @@ namespace CTF_int {
         }
       }
       tnsr_B->has_home = 0;
+      tnsr_B->is_home = 0;
       tnsr_B->is_data_aliased = 1;
       delete tnsr_B;
     }
     if (was_home_A && !tnsr_A->is_home){
       tnsr_A->has_home = 0;
+      tnsr_A->is_home = 0;
       if (A->is_sparse){
         A->data = tnsr_A->home_buffer;
         tnsr_A->home_buffer = NULL;
@@ -1071,6 +1078,7 @@ namespace CTF_int {
       delete tnsr_A;
     } else if (was_home_A) {
       tnsr_A->has_home = 0;
+      tnsr_A->is_home = 0;
       tnsr_A->is_data_aliased = 1;
       delete tnsr_A;
     }
