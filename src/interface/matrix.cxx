@@ -140,7 +140,7 @@ namespace CTF {
     if (this->wrld->rank == 0){
       for (int i=0; i<nrow; i++){
         for (int j=0; j<ncol; j++){
-          this->sr->print((char*)&(data[i*ncol+j]));
+          this->sr->print((char*)&(data[j*nrow+i]));
           if (j!=ncol-1) printf(" ");
         }
         printf("\n");
