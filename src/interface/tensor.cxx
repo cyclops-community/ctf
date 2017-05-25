@@ -757,8 +757,9 @@ namespace CTF {
   }
 
   template <typename dtype>
-  void fill_sp_random_base(dtype rmin, dtype rmax, double frac_sp, Tensor<dtype> & T){
-    int64_t tot_size = CTF_int::packed_size(T.order, T.lens, T.sym);
+  void fill_sp_random_base(dtype rmin, dtype rmax, double frac_sp, Tensor<dtype> * T){
+    int64_t tot_size = 1; //CTF_int::packed_size(T.order, T.lens, T.sym);
+    for (int i=0; i<T->order; i++) tot_size *= T->lens[i];
     double sf = tot_size*frac_sp;
     double dg = 0.0;
     //generate approximately tot_size*e^frac_sp rather than tot_size*frac_sp elements, to account for conflicts in writing them
@@ -767,21 +768,21 @@ namespace CTF {
       sf *= frac_sp/i;
     }
     int64_t gen_size = (int64_t)(dg+.5);
-    int64_t my_gen_size = gen_size/T.wrld->np;
-    if (gen_size % T.wrld->np > T.wrld->rank){
+    int64_t my_gen_size = gen_size/T->wrld->np;
+    if (gen_size % T->wrld->np > T->wrld->rank){
       my_gen_size++;
     }
     Pair<dtype> * pairs = (Pair<dtype>*)malloc(my_gen_size*sizeof(Pair<dtype>));
     for (int64_t i=0; i<my_gen_size; i++){
       pairs[i] = Pair<dtype>((int64_t)(CTF_int::get_rand48()*tot_size), 1.0);
     }
-    T.write(my_gen_size,pairs);
-    char str[T.order];
-    for (int i=0; i<T.order; i++){
+    T->write(my_gen_size,pairs);
+    char str[T->order];
+    for (int i=0; i<T->order; i++){
       str[i] = 'a'+i;
     }
 
-    Transform<dtype>([=](dtype & d){ d=CTF_int::get_rand48()*(rmax-rmin)+rmin; })(T[str]);
+    Transform<dtype>([=](dtype & d){ d=CTF_int::get_rand48()*(rmax-rmin)+rmin; })(T->operator[](str));
 
     /*std::vector<Pair<dtype>> pairs;
 
@@ -800,22 +801,22 @@ namespace CTF {
 
   template<>
   inline void Tensor<double>::fill_sp_random(double rmin, double rmax, double frac_sp){
-    fill_sp_random_base<double>(rmin, rmax, frac_sp, *this);
+    fill_sp_random_base<double>(rmin, rmax, frac_sp, this);
   }
  
   template<>
   inline void Tensor<float>::fill_sp_random(float rmin, float rmax, double frac_sp){
-    fill_sp_random_base<float>(rmin, rmax, frac_sp, *this);
+    fill_sp_random_base<float>(rmin, rmax, frac_sp, this);
   }
 
   template<>
   inline void Tensor<int>::fill_sp_random(int rmin, int rmax, double frac_sp){
-    fill_sp_random_base<int>(rmin, rmax, frac_sp, *this);
+    fill_sp_random_base<int>(rmin, rmax, frac_sp, this);
   }
 
   template<>
   inline void Tensor<int64_t>::fill_sp_random(int64_t rmin, int64_t rmax, double frac_sp){
-    fill_sp_random_base<int64_t>(rmin, rmax, frac_sp, *this);
+    fill_sp_random_base<int64_t>(rmin, rmax, frac_sp, this);
   }
 
   template<typename dtype>

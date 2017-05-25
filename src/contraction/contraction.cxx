@@ -4882,6 +4882,7 @@ namespace CTF_int {
         }
         delete new_ctr.A;
       } else if (was_home_A) {
+        A->data = new_ctr.A->data;
         new_ctr.A->is_data_aliased = 1;
         delete new_ctr.A;
       }
@@ -4895,6 +4896,7 @@ namespace CTF_int {
         }
         delete new_ctr.B;
       } else if (was_home_B && A != B) {
+        B->data = new_ctr.B->data;
         new_ctr.B->is_data_aliased = 1;
         delete new_ctr.B;
       }

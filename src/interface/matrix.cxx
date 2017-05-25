@@ -34,7 +34,7 @@ namespace CTF {
   template<typename dtype>
   Matrix<dtype>::Matrix(Tensor<dtype> const & A)
     : Tensor<dtype>(A) {
-    ASSERT(A.order == 2);
+    assert(A.order == 2);
     nrow = A.lens[0];
     ncol = A.lens[1];
     switch (A.sym[0]){
