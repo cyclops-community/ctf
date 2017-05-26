@@ -77,10 +77,9 @@ bool test_mis(int n, double sp_frac){
     printf("Found MIS of size %ld\n",s.nnz_tot);
   }
 
-  //create copy of MIS
   Vector<float> t(n);
 
-  //add to copy of MIS all neighbors of MIS
+  //find all neighbors of MIS
   t["i"] += A["ij"]*s["j"];
 
   //if MIS is independent t should be zero everywhere s isn't
@@ -137,8 +136,8 @@ int main(int argc, char ** argv){
  
   if (getCmdOption(input_str, input_str+in_num, "-sp_frac")){
     sp_frac = atof(getCmdOption(input_str, input_str+in_num, "-sp_frac"));
-    if (sp_frac < 0) sp_frac = .01;
-  } else sp_frac = .01;
+    if (sp_frac < 0) sp_frac = .1;
+  } else sp_frac = .1;
 
   {
     World dw(argc, argv);
