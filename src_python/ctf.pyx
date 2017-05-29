@@ -14,11 +14,6 @@ cimport numpy as cnp
 
 import struct
 
-cdef extern from "pyctf_aux.h":
-    cdef void equate(double, double, bool &)
-
-ctypedef void (*equate_type)(double, double, bool &)
-
 
 cdef extern from "<functional>" namespace "std":
     cdef cppclass function[dtype]:
@@ -73,6 +68,8 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         void allread(int64_t * num_pair, char * data)
         void slice(int *, int *, char *, tensor *, int *, int *, char *)
         int64_t get_tot_size()
+        void conv_type[dtype_A,dtype_B](tensor * B)
+        void compare_elementwise[dtype](tensor * A, tensor * B)
 
     cdef cppclass Term:
         Term * clone();
@@ -619,7 +616,7 @@ cdef class tsr:
         else:
             self.write([], [])
 
-    def __richcmp__(self, b, op):
+    def __richcmp__(tsr self, tsr b, op):
 	    # <
         if op == 0:
             return None
@@ -630,8 +627,13 @@ cdef class tsr:
 		
 		# ==	
         if op == 2:
-            
-            return None
+            #FIXME: transfer sp, sym, order 
+            c = tsr(self.get_dims(), dtype=np.bool)
+            if self.typ == np.float64:
+                c.dt.compare_elementwise[double](<tensor*>self.dt,<tensor*>b.dt)
+            else:
+                raise ValueError('bad dtype')
+            return c
 			
 		# !=
         if op == 3:

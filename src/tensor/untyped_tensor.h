@@ -723,7 +723,20 @@ namespace CTF_int {
        */
       void read_dense_from_file(MPI_File & file, int64_t offset=0);
 
-      tensor equals_equals(tensor * A, tensor * B);
+      /**
+       * \brief convert this tensor from dtype_A to dtype_B and store the result in B (primarily needed for python interface)
+       * \param[in] B output tensor
+       */
+      template <typename dtype_A, typename dtype_B>
+      void conv_type(tensor * B);
+
+      /**
+       * \brief do an elementwise comparison of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      template <typename dtype>
+      void compare_elementwise(tensor * A, tensor * B);
   };
 }
 
