@@ -1062,7 +1062,8 @@ namespace CTF_int {
           printf("Tensor %s is a copy of %s and did not leave home but buffer is %p was %p\n", tnsr_B->name, B->name, tnsr_B->data, B->data);
           ABORT;
         }
-      }
+      } else
+        B->data = tnsr_B->data;
       tnsr_B->has_home = 0;
       tnsr_B->is_home = 0;
       tnsr_B->is_data_aliased = 1;
@@ -1080,6 +1081,8 @@ namespace CTF_int {
       tnsr_A->has_home = 0;
       tnsr_A->is_home = 0;
       tnsr_A->is_data_aliased = 1;
+      if (A->is_sparse)
+        A->data = tnsr_A->data;
       delete tnsr_A;
     }
     return ret;

@@ -76,8 +76,8 @@ namespace CTF {
        */ 
       Vector(int                       len,
              int                       atr,
-             World &                   world=get_universe(),
-             char const *              name=NULL,
+             World &                   world,
+             char const *              name,
              int                       profile=0,
              CTF_int::algstrct const & sr=Ring<dtype>());
 

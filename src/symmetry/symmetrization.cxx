@@ -53,6 +53,10 @@ namespace CTF_int {
     nonsym_tsr->clear_mapping();
     nonsym_tsr->set_padding();
     copy_mapping(sym_tsr->order, sym_tsr->edge_map, nonsym_tsr->edge_map);
+    if (nonsym_tsr->is_sparse){
+      nonsym_tsr->nnz_blk = (int64_t*)alloc(sizeof(int64_t)*nonsym_tsr->calc_nvirt());
+      std::fill(nonsym_tsr->nnz_blk, nonsym_tsr->nnz_blk+nonsym_tsr->calc_nvirt(), 0);
+    }
     nonsym_tsr->is_mapped = 1;
     nonsym_tsr->topo      = sym_tsr->topo;
     nonsym_tsr->set_padding();
@@ -83,8 +87,10 @@ namespace CTF_int {
     }
     #endif
 
-    CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr->el_size, (void**)&nonsym_tsr->data);
-    nonsym_tsr->sr->set(nonsym_tsr->data, nonsym_tsr->sr->addid(), nonsym_tsr->size);
+    if (!nonsym_tsr->is_sparse)
+      CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr->el_size, (void**)&nonsym_tsr->data);
+    nonsym_tsr->set_zero();
+    //nonsym_tsr->sr->set(nonsym_tsr->data, nonsym_tsr->sr->addid(), nonsym_tsr->size);
 
     CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_A);
     CTF_int::alloc_ptr(sym_tsr->order*sizeof(int), (void**)&idx_map_B);
@@ -178,10 +184,7 @@ namespace CTF_int {
       }
     } else if (!is_C) { 
       summation ssum = summation(sym_tsr, idx_map_A, nonsym_tsr->sr->mulid(), nonsym_tsr, idx_map_B, nonsym_tsr->sr->mulid());
-      //if (is_C)
-      //  ssum.sum_tensors(0);
-      //else
-        ssum.execute();
+      ssum.execute();
     }
     CTF_int::cdealloc(idx_map_A);
     CTF_int::cdealloc(idx_map_B);  
@@ -282,8 +285,12 @@ namespace CTF_int {
     }
     if (sym_dim == -1) {
       sym_tsr->topo    = nonsym_tsr->topo;
-      sym_tsr->is_mapped    = 1;
       copy_mapping(nonsym_tsr->order, nonsym_tsr->edge_map, sym_tsr->edge_map);
+      if (sym_tsr->is_sparse){
+        sym_tsr->nnz_blk = (int64_t*)alloc(sizeof(int64_t)*sym_tsr->calc_nvirt());
+        std::fill(sym_tsr->nnz_blk, sym_tsr->nnz_blk+sym_tsr->calc_nvirt(), 0);
+      }
+      sym_tsr->is_mapped    = 1;
       sym_tsr->set_padding();
       sym_tsr->size     = nonsym_tsr->size;
       sym_tsr->data     = nonsym_tsr->data;

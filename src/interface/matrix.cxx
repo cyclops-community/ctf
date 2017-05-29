@@ -34,7 +34,7 @@ namespace CTF {
   template<typename dtype>
   Matrix<dtype>::Matrix(Tensor<dtype> const & A)
     : Tensor<dtype>(A) {
-    ASSERT(A.order == 2);
+    assert(A.order == 2);
     nrow = A.lens[0];
     ncol = A.lens[1];
     switch (A.sym[0]){
@@ -140,7 +140,7 @@ namespace CTF {
     if (this->wrld->rank == 0){
       for (int i=0; i<nrow; i++){
         for (int j=0; j<ncol; j++){
-          this->sr->print((char*)&(data[i*ncol+j]));
+          this->sr->print((char*)&(data[j*nrow+i]));
           if (j!=ncol-1) printf(" ");
         }
         printf("\n");

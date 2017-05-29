@@ -541,6 +541,7 @@ namespace CTF {
                       int           nnz_B,
                       dtype         beta,
                       dtype *       C) const {
+        
         if (!this->isequal((char const*)&beta, this->mulid())){
           this->scal(m*n, (char const *)&beta, (char*)C, 1);
         }

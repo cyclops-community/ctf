@@ -247,7 +247,7 @@ namespace CTF_int {
       CTF_int::alloc_ptr(other->nnz_loc*(sizeof(int64_t)+sr->el_size), 
                        (void**)&this->data);
       CTF_int::alloc_ptr(other->calc_nvirt()*sizeof(int64_t), (void**)&this->nnz_blk);
-      //memcpy(this->nnz_blk, other->nnz_blk, other->calc_nvirt()*sizeof(int64_t));
+      memcpy(this->nnz_blk, other->nnz_blk, other->calc_nvirt()*sizeof(int64_t));
       this->set_new_nnz_glb(other->nnz_blk);
       memcpy(this->data, other->data, 
              (sizeof(int64_t)+sr->el_size)*other->nnz_loc);
@@ -2120,7 +2120,7 @@ namespace CTF_int {
         this->write(old_nnz, sr->mulid(), sr->addid(), old_data);
         //this->set_new_nnz_glb(nnz_blk);
         shuffled_data = this->data;
-        cdealloc(old_data);
+        if (old_data != NULL) cdealloc(old_data);
 
         double exe_time = MPI_Wtime()-st_time;
         double nnz_frac = ((double)nnz_tot)/(old_dist.size*wrld->cdt.np);
