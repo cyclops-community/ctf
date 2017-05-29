@@ -7,6 +7,8 @@ from libcpp.complex cimport *
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool
 import numpy as np
+import string
+import random
 cimport numpy as cnp
 #from std.functional cimport function
 
@@ -165,6 +167,7 @@ cdef int* int_arr_py_to_c(a):
         ca[i] = a[i]
     return ca
 
+#what is this function for?
 cdef char* interleave_py_pairs(a,b):
     cdef char * ca
     dim = len(a)
@@ -256,15 +259,21 @@ def rev_array(arr):
     arr2 = arr[::-1]
     return arr2
 
+
 cdef class tsr:
     cdef tensor * dt
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
     cdef int order
-
+    
     def get_dims(self):
         return self.dims
 
+	# get the type of tsr
+    def get_type(self):
+        return self.typ
+
+	# add type np.int64, int32
     def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F'):
         self.typ = <cnp.dtype>dtype
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
@@ -279,12 +288,17 @@ cdef class tsr:
             csym = int_arr_py_to_c(np.zeros(len(lens)))
         else:
             csym = int_arr_py_to_c(sym)
+			
         if self.typ == np.float64:
             self.dt = new Tensor[double](len(lens), sp, clens, csym)
         elif self.typ == np.complex128:
             self.dt = new Tensor[double complex](len(lens), sp, clens, csym)
         elif self.typ == np.bool:
             self.dt = new Tensor[bool](len(lens), sp, clens, csym)
+        elif self.typ == np.int64:
+            self.dt = new Tensor[int64_t](len(lens), sp, clens, csym)
+        #elif self.typ == np.int16:
+            #self.dt = new Tensor[int16_t](len(lens), sp, clens, csym)
         else:
             raise ValueError('bad dtype')
         free(clens)
@@ -305,7 +319,7 @@ cdef class tsr:
             (<Tensor[double complex]*>self.dt).fill_sp_random(mn,mx,frac)
         else:
             raise ValueError('bad dtype')
-
+			
     def i(self, string):
         if self.order == ord('F'):
             return itsr(self, rev_array(string))
@@ -320,7 +334,7 @@ cdef class tsr:
         ca = interleave_py_pairs(inds,vals)
         cdef char * alpha 
         cdef char * beta
-        st = self.typ().itemsize
+        st = np.ndarray([],dtype=self.typ()).itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
         else:
@@ -343,6 +357,7 @@ cdef class tsr:
         if b != None:
             free(beta)
 
+# (9, array([0, 1, 2, 3, 4, 5, 6, 7, 8]), array([ 1.15979336,  1.99214521,  1.03956903,  1.59749466,  1.54228497...]))
     def read_local(self):
         cdef int64_t * cinds
         cdef char * data
@@ -365,6 +380,7 @@ cdef class tsr:
         free(data)
         return n, inds, vals
 
+# number of entries?
     def tot_size(self):
         return self.dt.get_tot_size()
 
@@ -373,6 +389,7 @@ cdef class tsr:
         cdef int64_t sz
         sz = self.dt.get_tot_size()
         tB = arr.dtype.itemsize
+        # dtype.itemsize?
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals)
         for j in range(0,sz*tB):
@@ -384,7 +401,11 @@ cdef class tsr:
         ca = interleave_py_pairs(inds,vals)
         cdef char * alpha
         cdef char * beta
-        st = self.typ().itemsize
+		# if type is np.bool, assign the st with 2, since bool does not have itemsize
+        if self.typ == np.bool:
+            st = 1
+        else:
+            st = self.typ().itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
         else:
@@ -405,6 +426,7 @@ cdef class tsr:
         if b != None:
             free(beta)
 
+# what is the parameter offsets and ends
     def get_slice(self, offsets, ends):
         cdef char * alpha
         cdef char * beta
@@ -449,7 +471,7 @@ cdef class tsr:
                 if ind[1] != self.dims[i]:
                     is_everything = 0
                 inds.append(s.indices())
-        for i in range(lensl,self.order):
+        for i in range(lensl,len(self.dims)):
             inds.append(slice(0,self.dims[i],1))
         if is_everything:
             return self
@@ -459,6 +481,7 @@ cdef class tsr:
             return self.get_slice(offs,ends)
         raise ValueError('strided slices not currently supported')
         
+	# bool no itemsize
     def write_slice(self, offsets, ends, A, A_offsets=None, A_ends=None, a=None, b=None):
         cdef char * alpha
         cdef char * beta
@@ -597,48 +620,95 @@ cdef class tsr:
             self.write([], [])
 
     def __richcmp__(self, b, op):
-        cdef int * inds
+	    # <
+        if op == 0:
+            return None
+			
+		# <=
+        if op == 1:
+            return None
+		
+		# ==	
+        if op == 2:
+            
+            return None
+			
+		# !=
+        if op == 3:
+            return None
+			
+		# >
+        if op == 4:
+            return None
+			
+		# >=
+        if op == 5:
+            return None
+			
+        return None
+		
+        #cdef int * inds
         #cdef function[equate_type] fbf
-        if op == 2:#Py_EQ
-            t = tsr(self.shape, np.bool)
-            inds = <int*>malloc(len(self.dims))
-            for i in range(len(self.dims)):
-                inds[i] = i
+        #if op == 2:#Py_EQ
+            #t = tsr(self.shape, np.bool)
+            #inds = <int*>malloc(len(self.dims))
+            #for i in range(len(self.dims)):
+                #inds[i] = i
             #fbf = function[equate_type](equate)
             #f = Bivar_Transform[double,double,bool](fbf) 
             #c = contraction(self.dt, inds, b.dt, inds, NULL, t.dt, inds, NULL, bf)
             #c.execute()
-            return t
+            #return t
         #if op == 3:#Py_NE
         #    return not x.__is_equal(y)
-        else:
-            assert False
+        #else:
+            #assert False
 
 
 #cdef class mtx(tsr):
 #    def __cinit__(self, nrow, ncol, sp=0, sym=None, dtype=np.float64):
 #        super(mtx, self).__cinit__([nrow, ncol], sp=sp, sym=[sym, SYM.NS], dtype=dtype)
 
-
-def astensor(arr):
+# add the shape parameter
+def astensor(arr, shape=None):
     if isinstance(arr,tsr):
         return arr
     narr = np.asarray(arr)
+    if shape == None:
+        shape = narr.shape
+    else:
+        count_shape = 1
+        count_narrshape = 1
+        for i in range(len(shape)):
+            count_shape *= shape[i]
+        for i in range(len(narr.shape)):
+          count_narrshape *= narr.shape[i]
+        if count_shape != count_narrshape:
+            print("total size of new array must be unchanged")
+            return None
     if narr.dtype == np.float64:
-        t = tsr(narr.shape)
+        t = tsr(shape)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.complex128:
-        t = tsr(narr.shape, dtype=np.complex128)
+        t = tsr(shape, dtype=np.complex128)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.bool:
-        t = tsr(narr.shape, dtype=np.bool)
+        t = tsr(shape, dtype=np.bool)
+        t.from_nparray(narr)
+        return t
+    elif narr.dtype == np.int64:
+        t = tsr(shape, dtype=np.int64)
+        t.from_nparray(narr)
+        return t
+    elif narr.dtype == np.int16:
+        t = tsr(shape, dtype=np.int16)
         t.from_nparray(narr)
         return t
     else:
         narr = np.asarray(arr, dtype=np.float64)
-        t = tsr(narr.shape)
+        t = tsr(shape)
         t.from_nparray(narr)
         return t
 
@@ -648,7 +718,245 @@ def to_nparray(t):
     else:
         return np.asarray(t)
 
+# return tensor with all zeros
+# dtype: np.float64, np.compex128 etc.
+def zeros(shape, dtype):
+    A = tsr(shape, dtype=dtype)
+    return A
+	
+# return sum of tensors
+# Issues:
+# 1. add int32 -> compile error? Cython seems to not support int_32???
+# 2. change the type
+def sum(A, axis = None, dtype = None, out = None, keepdims = None):
+	# if the input is not a tensor, return none
+    if not isinstance(A,tsr):
+        print("Input is not a tensor")
+        return None
+	
+    if not isinstance(out,tsr) and out != None:
+        print("output must be a tensor")
+        return None
+	
+	# if dtype not specified, assign np.float64 to it
+    if dtype == None:
+        dtype = A.get_type()
+	
+	# if keepdims not specified, assign false to it
+    if keepdims == None :
+        keepdims = False;
 
+	# it keepdims == true and axis not specified
+    if isinstance(out,tsr) and axis == None:
+        print("output parameter for reduction operation add has too many dimensions")
+        return None
+		
+    # get_dims use the nparray??
+    dim = A.get_dims()
+	
+	# check whether the axis entry is out of bounds, if axis input is positive e.g. axis = 5
+    if axis != None and axis >= len(dim):
+        print("'axis' entry is out of bounds")
+        return None
+	
+	# check whether the axis entry is out of bounds, if axis input is negative e.g. axis = -5
+    if axis != None and axis <= (-len(dim)-1):
+        print("'axis' entry is out of bounds")
+        return None
+		
+    if isinstance(out,tsr):
+        outputdim = out.get_dims()
+        print(outputdim)
+        outputdim = np.ndarray.tolist(outputdim)
+        outputdim = tuple(outputdim)
+		
+	# if there is no axis input, sum all the entries
+    index = ""
+    if axis == None:
+        index = random.sample(string.ascii_letters+string.digits,len(dim))
+        index = "".join(index)
+        index_A = index[0:len(dim)]
+        if keepdims == True:
+            ret_dim = []
+            for i in range(len(dim)):
+                ret_dim.append(1)
+            ret_dim = tuple(ret_dim)
+            ret = tsr(ret_dim, dtype = dtype)
+            ret.i("") << A.i(index_A)
+            return ret
+        else:
+			# if A type is bool and axis is none, we need to return count of True
+            if A.get_type() == np.bool:
+                count = 0
+                n, inds, vals = A.read_local()
+                for i in range(vals.shape[0]):
+                    if vals[i] == True:
+                        count += 1
+                return count
+            else:
+                ret = tsr((1,), dtype = dtype)
+                ret.i("") << A.i(index_A)
+                n, inds, vals = ret.read_local()
+                return vals[0]
+	
+	
+	#following is when axis not None
+    ret_dim = ()
+    if axis < 0:
+        axis += len(dim)
+    for i in range(len(dim)):
+        if i == axis:
+            continue
+        else:
+            ret_dim = list(ret_dim)
+            ret_dim.insert(i+1,dim[i])
+            #print(ret_dim)
+            ret_dim = tuple(ret_dim) 
+            #print(ret_dim)
+
+	# when float64 cast to complex128 problem
+    B = tsr(ret_dim, dtype = dtype)	
+    if isinstance(out,tsr):
+        print(outputdim," ",ret_dim)
+        if(outputdim != ret_dim):
+            print("dimension of output mismatch")
+            return None
+        else:
+            if keepdims == True:
+                print("Must match the dimension when keepdims = True")
+            else:
+                B = tsr(ret_dim, dtype = out.get_type())
+
+	# add when type is bool	- 05/27/2017
+    if dtype == np.bool or A.get_type()==np.bool:
+        n, inds, vals = A.read_local()
+        temp_arr = np.zeros(vals.shape)
+        for i in range(vals.shape[0]):
+            if vals[i] == True:
+                temp_arr[i] = 1
+        C = astensor(temp_arr,dim)
+        index = random.sample(string.ascii_letters+string.digits,len(dim))
+        index = "".join(index)
+        index_C = index[0:len(dim)]
+        index_B = index[0:axis] + index[axis+1:len(dim)]
+        B.i(index_B) << C.i(index_C)
+        return B
+				
+    #if outputdim != ret_dim
+    index = random.sample(string.ascii_letters+string.digits,len(dim))
+    index = "".join(index)
+    index_A = index[0:len(dim)]
+    index_B = index[0:axis] + index[axis+1:len(dim)]
+    #print("index_A is ",index_A)
+    #print("index_B is ",index_B)
+    B.i(index_B) << A.i(index_A)
+	#"ijk" "ijk"
+    return B
+		
+# ravel, the default order is Fortran, using read_local, not good
+def ravel(A, order="F"):
+    if not isinstance(A,tsr):
+        print("not a tensor")
+        return None
+    if order == "F":
+        n, inds, vals = A.read_local()
+        return astensor(vals)
+
+# check whether along the given axis all array elements are true (not 0)
+# Issues:
+# 1. A type is not bool
+def all(A, axis=None, out=None, keepdims=None):
+    if not isinstance(A,tsr):
+        print("not a tensor")
+        return None
+
+    out_type = True
+    if out == None:
+        out_type = False
+	
+    if out_type==True and not(isinstance(out,tsr)):
+        print("out is not a tensor")
+        return None
+		
+    ret = True
+    if axis == None and A.get_type()!=np.bool:
+        n, inds, vals = A.read_local()
+        n1, inds1, vals1 = A.read_local_nnz()
+		# compare the entries
+        if n1 != n:
+            ret = False
+        return ret
+		
+    if axis == None and A.get_type()==np.bool:
+        n, inds, vals = A.read_local()
+        for i in range(vals.shape[0]):
+            if vals[i] == False:
+                ret = False
+                break
+        return ret
+	
+    dim = A.get_dims()
+    # check whether the axis entry is out of bounds, if axis input is positive e.g. axis = 5
+    if axis != None and axis >= len(dim):
+        print("'axis' entry is out of bounds")
+        return None
+	
+	# check whether the axis entry is out of bounds, if axis input is negative e.g. axis = -5
+    if axis != None and axis <= (-len(dim)-1):
+        print("'axis' entry is out of bounds")
+        return None
+		
+	# if axis not None
+    dim = A.get_dims()
+    ret_dim = []
+    for i in range(len(dim)):
+        if i != axis:
+            ret_dim.append(dim[i])
+    ret_dim = tuple(ret_dim)
+    B = tsr(ret_dim,dtype=np.float64)
+
+	# if A type is bool
+    if A.get_type()==np.bool:
+        n, inds, vals = A.read_local()
+        temp_arr = []
+        for i in range(len(vals)):
+            if vals[i] == False:
+                temp_arr.append(1.0)
+            else:
+                temp_arr.append(0.0)
+        C = astensor(temp_arr,dim)
+        index = random.sample(string.ascii_letters+string.digits,len(dim))
+        index = "".join(index)
+        index_C = index[0:len(dim)]
+        index_B = index[0:axis] + index[axis+1:len(dim)]
+        B.i(index_B) << C.i(index_C)
+		
+		
+        if out_type==False or out.get_type()==np.bool:
+            n, inds, vals = B.read_local()
+            temp_arr = []
+            for i in range(len(vals)):
+                if vals[i] > 0:
+                    temp_arr.append(False)
+                else:
+                    temp_arr.append(True)
+            D = astensor(temp_arr, ret_dim)
+            return D
+	
+	# if A type is not bool
+	
+        
+
+def transpose(A, axes=None):
+    if not isinstance(A,tsr):
+        print("not a tensor")
+        return None
+    n, inds, vals = A.read_local()
+    B = astensor(vals, A.get_dims())
+    C = (A==B)
+    return C
+	
+	
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n
     if m != None:
@@ -734,18 +1042,12 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
         raise ValueError('CTF einsum currently allows only no more than three operands')
     return output
     
-
 #    A = tsr([n, n], dtype=dtype)
 #    if dtype == np.float64:
 #        A.i("ii") << 1.0
 #    else:
 #        raise ValueError('bad dtype')
 #    return A
-
-
-
-    
-
 
 #cdef object f
 #ctypedef int (*cfunction) (double a, double b, double c, void *args)

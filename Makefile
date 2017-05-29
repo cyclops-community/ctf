@@ -98,6 +98,10 @@ test_python: lib_py/ctf.so
 test_einsum: lib_py/ctf.so
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_einsum.py
 
+.PHONY: test_new
+test_new: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_new.py
+
 .PHONY: test_base
 test_base: lib_py/ctf.so
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_base.py
