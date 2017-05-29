@@ -330,81 +330,6 @@ namespace CTF_int {
 #endif
   }
 
-void transpose_ref( int* size, int* perm, int dim, const double* A, double alpha, double * B, double beta)
-{
-   // compute stride for all dimensions w.r.t. A
-   uint32_t strideA[dim];
-   strideA[0] = 1;
-   for(int i=1; i < dim; ++i)
-      strideA[i] = strideA[i-1] * size[i-1];
-
-   // combine all non-stride-one dimensions of B into a single dimension for
-   // maximum parallelism
-   uint32_t sizeOuter = 1;
-   for(uint32_t i=0; i < dim; ++i)
-      if( i != perm[0] )
-         sizeOuter *= size[i]; 
-
-   uint32_t sizeInner = size[perm[0]];
-
-   // This implementation traverses the output tensor in a linear fashion
-
-#pragma omp parallel for
-   for(uint32_t j=0; j < sizeOuter; ++j)
-   {
-      uint32_t offsetA = 0;
-      uint32_t j_tmp = j;
-      for(int i=1; i < dim; ++i)
-      {
-         int current_index = j_tmp % size[perm[i]];
-         j_tmp /= size[perm[i]];
-         offsetA += current_index * strideA[perm[i]];
-      }
-
-      const double* __restrict__ A_ = A + offsetA;
-      double* __restrict__ B_ = B + j*sizeInner;
-
-      uint32_t strideAinner = strideA[perm[0]];
-
-      if( std::fabs(beta) < 1e-16 )
-         for(uint32_t i=0; i < sizeInner; ++i)
-            B_[i] = alpha * A_[i * strideAinner];
-      else
-         for(uint32_t i=0; i < sizeInner; ++i)
-            B_[i] = alpha * A_[i * strideAinner] + beta * B_[i];
-   }
-}
-int equal_(const double*A, const double*B, int total_size){
-  int error = 0;
-   const double*Atmp= A;
-   const double*Btmp= B;
-   for(int i=0;i < total_size ; ++i){
-      if(  Btmp[i] != Btmp[i]  || isinf(Btmp[i]) ){
-         error += 1; //test for NaN or Inf
-         printf("B is nan or inf\n");
-         continue;
-      }
-      if( Atmp[i] != Atmp[i] ||  isinf(Atmp[i])  ){
-         error += 1; //test for NaN or Inf
-         printf("A is nan or inf\n");
-         continue;
-      }
-      double Aabs = (Atmp[i] < 0) ? -Atmp[i] : Atmp[i];
-      double Babs = (Btmp[i] < 0) ? -Btmp[i] : Btmp[i];
-      double max = (Aabs < Babs) ? Babs : Aabs;
-      double diff = (Aabs - Babs);
-      diff = (diff < 0) ? -diff : diff;
-      if(diff > 0){
-         double relError = (diff / max);
-         if(relError > 4e-5){
-            printf("%.3e  %.3e %.3e\n",relError, Atmp[i], Btmp[i]);
-            error += 1;
-         }
-      }
-   }
-   return (error == 0) ? 1 : 0;
-}
-
   void nosym_transpose_hptt(int              order,
                             int const *      st_new_order,
                             int const *      st_edge_len,
@@ -412,6 +337,7 @@ int equal_(const double*A, const double*B, int total_size){
                             char const *     st_buffer,
                             char *           new_buffer,
                             algstrct const * sr){
+#ifdef HPTT_
     int new_order[order];
     int edge_len[order];
     if (dir){
@@ -444,7 +370,6 @@ int equal_(const double*A, const double*B, int total_size){
 
     const int elementSize = sr->el_size;
     if (elementSize == sizeof(float)){
-#ifdef HPTT_
       auto plan = hptt::create_plan( perm, order, 
             1.0, ((float*)st_buffer), size, NULL,
             0.0, ((float*)new_buffer), NULL,
@@ -453,11 +378,7 @@ int equal_(const double*A, const double*B, int total_size){
          plan->execute();
       } else
          fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
-#else
-      ABORT;
-#endif
     } else if (elementSize  == sizeof(double)){
-#ifdef HPTT_
       auto plan = hptt::create_plan( perm, order, 
             1.0, ((double*)st_buffer), size, NULL,
             0.0, ((double*)new_buffer), NULL,
@@ -466,12 +387,7 @@ int equal_(const double*A, const double*B, int total_size){
          plan->execute();
       } else 
          fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
-#else
-      ABORT;
-//      transpose_ref( size, perm, order, ((double*)st_buffer), 1.0, ((double*)new_buffer), 0.0);
-#endif
     } else if( elementSize == sizeof(hptt::DoubleComplex) ) {
-#ifdef HPTT_
        auto plan = hptt::create_plan( perm, order, 
              hptt::DoubleComplex(1.0), ((hptt::DoubleComplex*)st_buffer), size, NULL,
              hptt::DoubleComplex(0.0), ((hptt::DoubleComplex*)new_buffer), NULL,
@@ -480,12 +396,11 @@ int equal_(const double*A, const double*B, int total_size){
           plan->execute();
        } else 
           fprintf(stderr, "ERROR in HPTT: plan == NULL\n");
-#endif
     } else {
-       ABORT;
+      ABORT; //transpose_ref( size, perm, order, ((double*)st_buffer), 1.0, ((double*)new_buffer), 0.0);
     }
+#endif
   }
-
 
   void nosym_transpose(tensor *    A,
                        int         all_fdim_A,
@@ -797,6 +712,7 @@ int equal_(const double*A, const double*B, int total_size){
     CTF_int::cdealloc(new_lda);
     TAU_FSTOP(nosym_transpose_thr);
   }
+
   double est_time_transp(int              order,
                          int const *      new_order,
                          int const *      edge_len,
