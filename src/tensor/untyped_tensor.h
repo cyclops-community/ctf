@@ -739,5 +739,4 @@ namespace CTF_int {
       void compare_elementwise(tensor * A, tensor * B);
   };
 }
-
 #endif// __UNTYPED_TENSOR_H__

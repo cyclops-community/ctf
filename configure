@@ -702,6 +702,7 @@ fi
 mkdir -p $BUILDDIR
 mkdir -p $BUILDDIR/lib
 mkdir -p $BUILDDIR/obj
+mkdir -p $BUILDDIR/obj_ext
 mkdir -p $BUILDDIR/bin
 
 

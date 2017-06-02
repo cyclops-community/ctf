@@ -106,7 +106,8 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass Bivar_Transform[dtype_A,dtype_B,dtype_C](bivar_function):
         Bivar_Transform(function[void(dtype_A,dtype_B,dtype_C&)] f_);
 
-
+cdef extern from "ctf_ext.h" namespace "CTF_int":
+    cdef int64_t sum_bool_tsr(tensor *);
 
 cdef extern from "../include/ctf.hpp" namespace "CTF":
 
@@ -730,7 +731,7 @@ def zeros(shape, dtype):
 # Issues:
 # 1. add int32 -> compile error? Cython seems to not support int_32???
 # 2. change the type
-def sum(A, axis = None, dtype = None, out = None, keepdims = None):
+def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
 	# if the input is not a tensor, return none
     if not isinstance(A,tsr):
         print("Input is not a tensor")
@@ -789,12 +790,13 @@ def sum(A, axis = None, dtype = None, out = None, keepdims = None):
         else:
 			# if A type is bool and axis is none, we need to return count of True
             if A.get_type() == np.bool:
-                count = 0
-                n, inds, vals = A.read_local()
-                for i in range(vals.shape[0]):
-                    if vals[i] == True:
-                        count += 1
-                return count
+                return sum_bool_tsr(<tensor*>A.dt) 
+                #count = 0
+                #n, inds, vals = A.read_local()
+                #for i in range(vals.shape[0]):
+                #    if vals[i] == True:
+                #        count += 1
+                #return count
             else:
                 ret = tsr((1,), dtype = dtype)
                 ret.i("") << A.i(index_A)

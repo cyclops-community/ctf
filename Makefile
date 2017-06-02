@@ -4,6 +4,7 @@ ifeq (,${BDIR})
 endif
 export BDIR
 export ODIR=$(BDIR)/obj
+export OEDIR=$(BDIR)/obj_ext
 include $(BDIR)/config.mk
 export FCXX
 export OFFLOAD_CXX
@@ -82,11 +83,20 @@ ctflibso: export ODIR=$(BDIR)/obj_shared
 ctflibso: ctf_objs 
 	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o; 
 
+ctf_ext_objs:
+	$(MAKE) ctf_ext_objs -C src_python; 
+
+ctf_extlibso: export FCXX+=-fPIC
+ctf_extlibso: export OFFLOAD_CXX+=-fPIC
+ctf_extlibso: export ODIR=$(BDIR)/obj_shared
+ctf_extlibso: ctf_ext_objs 
+	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf_ext.so $(OEDIR)/*.o; 
+
 .PHONY: python
 python: pylib
 .PHONY: pylib
 pylib: lib_py/ctf.so
-lib_py/ctf.so: ctflibso src_python/ctf.pyx
+lib_py/ctf.so: ctflibso ctf_extlibso src_python/ctf.pyx
 	LDFLAGS="-L./lib_shared" python setup_wrapper.py build_ext --inplace
 	mv ctf*.so lib_py/ctf.so
 
@@ -144,9 +154,11 @@ clean_bin:
 clean_lib:
 	rm -f $(BDIR)/lib/libctf.a
 	rm -f $(BDIR)/lib_shared/libctf.so
+	rm -f $(BDIR)/lib_shared/libctf_ext.so
 	rm -f $(BDIR)/lib_py/ctf.so
 
 clean_obj:
 	rm -f obj/*.o 
+	rm -f obj_ext/*.o 
 	rm -f obj_shared/*.o 
 	rm -f build/*/*/*.o 
