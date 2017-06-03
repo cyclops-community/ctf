@@ -559,8 +559,5 @@ namespace CTF {
  */
 }
 
-//include here because requires above defs
-#include "../tensor/untyped_tensor_tmpl.h"
-
 #endif
 
