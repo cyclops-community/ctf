@@ -1016,13 +1016,55 @@ def all(A, axis=None, out=None, keepdims=None):
         temp = astensor(vals, F.get_dims())
     return F
 
+
 def transpose(A, axes=None):
     if not isinstance(A,tsr):
         print("not a tensor")
         return None
-    B = tsr(A.get_dims(), dtype=A.get_type(), copy=A)
+
+    dim = A.get_dims()
+    if axes == None:
+        B = tsr(dim, dtype=A.get_type())
+        index = random.sample(string.ascii_letters+string.digits,len(dim))
+        index = "".join(index)
+        rev_index = str(index[::-1])
+        B.i(rev_index) << A.i(index)
+        return B
+   
+    # length of axes should match with the length of tensor dimension 
+    if len(axes) != len(dim):
+        print("axes don't match tensor")
+        return None
+
+    axes_list = list(axes)
+    for i in range(len(axes)):
+        # when any elements of axes is not an integer
+        if type(axes_list[i]) != int:
+            print("an integer is required")
+            return None
+        # change the negative axes to positive, which will be easier hangling
+        if axes_list[i] < 0:
+            axes_list[i] += len(dim)
+    for i in range(len(axes)):
+        # if axes out of bound
+        if axes_list[i] >= len(dim) or axes_list[i] < 0:
+            print("invalid axis for this tensor")
+            return None
+        # if axes are repeated
+        if axes_list.count(axes_list[i]) > 1:
+            print("repeated axis in transpose")
+            return None
+
+    index = random.sample(string.ascii_letters+string.digits,len(dim))
+    index = "".join(index)
+    rev_index = ""
+    for i in range(len(dim)):
+        rev_index += index[axes_list[i]]
+    B = tsr(dim, dtype=A.get_type())
+    B.i(rev_index) << A.i(index)
     return B
-	
+    
+    
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n
     if m != None:
