@@ -116,6 +116,10 @@ test_new: lib_py/ctf.so
 test_base: lib_py/ctf.so
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_base.py
 
+.PHONY: test_live
+test_live: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" ipython -i -c "import numpy as np; import ctf"
+
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
 

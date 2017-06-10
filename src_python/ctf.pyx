@@ -42,6 +42,8 @@ def MPI_start():
 def MPI_end():
     Finalize()
 
+test = MPI_start();
+
 cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass algstrct:
         char * addid()
@@ -71,7 +73,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         int64_t get_tot_size()
         void conv_type[dtype_A,dtype_B](tensor * B)
         void compare_elementwise[dtype](tensor * A, tensor * B)
-        void compare_helper_python[dtype](tensor * A, tensor * B)
+#        void compare_helper_python[dtype](tensor * A, tensor * B)
 
     cdef cppclass Term:
         Term * clone();
@@ -267,8 +269,8 @@ cdef class tsr:
     cdef cnp.ndarray dims
     cdef int order
    
-    def bool_sum(tsr self):
-        return sum_bool_tsr(<tensor*>self.dt)
+#    def bool_sum(tsr self):
+#        return sum_bool_tsr(<tensor*>self.dt)
     
     def convert_type(tsr self, tsr B):
         if self.typ == np.float64 and B.typ == np.bool:
@@ -286,7 +288,7 @@ cdef class tsr:
         return self.typ
 
 	# add type np.int64, int32
-    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tsr copy=None):
+    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', copy=None):
         self.typ = <cnp.dtype>dtype
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
         self.order = ord(order)
@@ -301,11 +303,11 @@ cdef class tsr:
         else:
             csym = int_arr_py_to_c(sym)
 
-        if copy != None:
+        if copy is not None:
             print("reached")
         if isinstance(copy, tsr):
             #self.dt = new tensor(<tensor*>copy.dt, True, True)
-            self.dt = new Tensor[double](True, <tensor>copy.dt[0])
+            self.dt = new Tensor[double](True, <tensor>(<tsr>copy).dt[0])
 
         if self.typ == np.float64:
             self.dt = new Tensor[double](len(lens), sp, clens, csym)
@@ -645,10 +647,10 @@ cdef class tsr:
         else:
             self.write([], [])
 
-    def compare_helper(tsr self, tsr b):
-        c = tsr(self.get_dims(), dtype=np.bool)
-        c.dt.compare_helper_python[double](<tensor*>self.dt,<tensor*>b.dt)
-        return c
+#    def compare_helper(tsr self, tsr b):
+ #       c = tsr(self.get_dims(), dtype=np.bool)
+  #      c.dt.compare_helper_python[double](<tensor*>self.dt,<tensor*>b.dt)
+  #      return c
 
     def __richcmp__(tsr self, tsr b, op):
 	    # <
@@ -857,7 +859,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
             return ret
         else:
             if A.get_type() == np.bool:
-                return sum_bool_tsr(<tensor*>A.dt) 
+                return 0#sum_bool_tsr(<tensor*>A.dt) 
             else:
                 ret = tsr((1,), dtype = dtype)
                 ret.i("") << A.i(index_A)
@@ -927,95 +929,95 @@ def ravel(A, order="F"):
 # Issues:
 # 1. A type is not bool
 
-def all(A, axis=None, out=None, keepdims=None):
-    if not isinstance(A,tsr):
-        print("not a tensor")
-        return None
-
-    out_type = True
-    if out == None:
-        out_type = False
-	
-    if out_type==True and not(isinstance(out,tsr)):
-        print("out is not a tensor")
-        return None
-    
-    #ret_dim = None
-    #if isinstance(out,tsr):
-        #print(outputdim," ",ret_dim)
-        #if(outputdim != ret_dim):
-            #print("dimension of output mismatch")
-            #return None
-        #else:
-            #if keepdims == True:
-                #print("Must match the dimension when keepdims = True")
-            #else:
-		# FIX ME
-                #B = tsr(ret_dim, dtype = out.get_type())
-
-    if axis == None:
-        compare_tensor = zeros(A.get_dims(),A.get_type())
-        print(A.get_type())
-        B = (A==compare_tensor)
-        if B.bool_sum() > 0.0:
-            return True
-        return False
-	
-    dim = A.get_dims()
-    axis_tuple=()
-    # check whether the axis entry is out of bounds
-    if type(axis)==int:
-        if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
-            print("'axis' entry is out of bounds")
-            return None
-    elif type(axis)==tuple:
-        for i in range(len(axis)):
-            if axis[i] >= len(dim) or axis[i] <= (-len(dim)-1):
-                print("'axis' entry is out of bounds")
-                return None
-        axis_arr = list(axis)
-        for i in range(len(axis)):
-            if type(axis_arr[i])!=int:
-                print("Value in the tuple should be int.")
-            if axis_arr[i] < 0:
-                axis_arr[i] += len(dim)
-            if axis_arr[i] in axis_tuple:
-                print("duplicate value in 'axis'")
-                return None
-            axis_tuple += (axis_arr[i],)	
-    
-    # if axis not None and axis is int
-    if type(axis)==int:
-        ret_dim = []
-        for i in range(len(dim)):
-            if i != axis:
-                ret_dim.append(dim[i])
-        ret_dim = tuple(ret_dim)
-    
-        D = zeros(A.get_dims(), np.float64)
-        A.convert_type(D)
-        compare_tensor = zeros(D.get_dims(),D.get_type())
-        B = (D == compare_tensor)
-        C = sum(B, axis=axis)
-        E = zeros(C.get_dims(), np.float64)
-        F = C.compare_helper(E)
-        return F
-
-    B = None
-    n, inds, vals = A.read_local()
-    temp = astensor(vals, A.get_dims())
-    for i in range(len(axis)-1,-1,-1):
-        D = zeros(temp.get_dims(), np.float64)
-        temp.convert_type(D)
-        compare_tensor = zeros(D.get_dims(),D.get_type())
-        B = (D == compare_tensor)
-        C = sum(B, axis=axis[i])
-        E = zeros(C.get_dims(), np.float64)
-        F = C.compare_helper(E)
-        n, inds, vals = F.read_local()
-        temp = astensor(vals, F.get_dims())
-    return F
-
+#def all(A, axis=None, out=None, keepdims=None):
+#    if not isinstance(A,tsr):
+#        print("not a tensor")
+#        return None
+#
+#    out_type = True
+#    if out == None:
+#        out_type = False
+#	
+#    if out_type==True and not(isinstance(out,tsr)):
+#        print("out is not a tensor")
+#        return None
+#    
+#    #ret_dim = None
+#    #if isinstance(out,tsr):
+#        #print(outputdim," ",ret_dim)
+#        #if(outputdim != ret_dim):
+#            #print("dimension of output mismatch")
+#            #return None
+#        #else:
+#            #if keepdims == True:
+#                #print("Must match the dimension when keepdims = True")
+#            #else:
+#		# FIX ME
+#                #B = tsr(ret_dim, dtype = out.get_type())
+#
+#    if axis == None:
+#        compare_tensor = zeros(A.get_dims(),A.get_type())
+#        print(A.get_type())
+#        B = (A==compare_tensor)
+#        if B.bool_sum() > 0.0:
+#            return True
+#        return False
+#	
+#    dim = A.get_dims()
+#    axis_tuple=()
+#    # check whether the axis entry is out of bounds
+#    if type(axis)==int:
+#        if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
+#            print("'axis' entry is out of bounds")
+#            return None
+#    elif type(axis)==tuple:
+#        for i in range(len(axis)):
+#            if axis[i] >= len(dim) or axis[i] <= (-len(dim)-1):
+#                print("'axis' entry is out of bounds")
+#                return None
+#        axis_arr = list(axis)
+#        for i in range(len(axis)):
+#            if type(axis_arr[i])!=int:
+#                print("Value in the tuple should be int.")
+#            if axis_arr[i] < 0:
+#                axis_arr[i] += len(dim)
+#            if axis_arr[i] in axis_tuple:
+#                print("duplicate value in 'axis'")
+#                return None
+#            axis_tuple += (axis_arr[i],)	
+#    
+#    # if axis not None and axis is int
+#    if type(axis)==int:
+#        ret_dim = []
+#        for i in range(len(dim)):
+#            if i != axis:
+#                ret_dim.append(dim[i])
+#        ret_dim = tuple(ret_dim)
+#    
+#        D = zeros(A.get_dims(), np.float64)
+#        A.convert_type(D)
+#        compare_tensor = zeros(D.get_dims(),D.get_type())
+#        B = (D == compare_tensor)
+#        C = sum(B, axis=axis)
+#        E = zeros(C.get_dims(), np.float64)
+#        F = C.compare_helper(E)
+#        return F
+#
+#    B = None
+#    n, inds, vals = A.read_local()
+#    temp = astensor(vals, A.get_dims())
+#    for i in range(len(axis)-1,-1,-1):
+#        D = zeros(temp.get_dims(), np.float64)
+#        temp.convert_type(D)
+#        compare_tensor = zeros(D.get_dims(),D.get_type())
+#        B = (D == compare_tensor)
+#        C = sum(B, axis=axis[i])
+#        E = zeros(C.get_dims(), np.float64)
+#        F = C.compare_helper(E)
+#        n, inds, vals = F.read_local()
+#        temp = astensor(vals, F.get_dims())
+#    return F
+#
 
 def transpose(A, axes=None):
     if not isinstance(A,tsr):
