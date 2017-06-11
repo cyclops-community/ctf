@@ -356,7 +356,7 @@ namespace CTF {
       CTF_int::PairIterator ipairs = CTF_int::PairIterator(sr, cpairs);
       for (int64_t i=0; i<npair; i++){
         pairs[i].k = ipairs[i].k();
-        ipairs[i].read_val((char*)&(pairs[i].d));
+        ipairs[i].read_val((char*)&(pairs[i].d()));
       }
       CTF_int::cdealloc(cpairs);
     }

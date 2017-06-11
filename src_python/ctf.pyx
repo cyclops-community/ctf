@@ -357,9 +357,15 @@ cdef class tsr:
         #ret.dt.tensor(<tensor*>self.dt,copy=1,alloc_data=1)
         #return ret
 
-    def read(self, inds, vals, a=None, b=None):
+    def read(self, inds, vals=None, a=None, b=None):
         cdef char * ca
-        ca = interleave_py_pairs(inds,vals)
+        if vals != None:
+            if vals.dtype != self.typ:
+                raise ValueError('bad dtype of vals parameter to read')
+        gvals = vals
+        if vals == None:
+            gvals = np.zeros(len(inds),dtype=self.typ)
+        ca = interleave_py_pairs(inds,gvals)
         cdef char * alpha 
         cdef char * beta
         st = np.ndarray([],dtype=self.typ()).itemsize
@@ -377,13 +383,15 @@ cdef class tsr:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        (<tensor*>self.dt).read(len(inds),<char*>&alpha,<char*>&beta,ca)
-        uninterleave_py_pairs(ca,inds,vals)
+        (<tensor*>self.dt).read(len(inds),<char*>alpha,<char*>beta,ca)
+        uninterleave_py_pairs(ca,inds,gvals)
         free(ca)
         if a != None:
             free(alpha)
         if b != None:
             free(beta)
+        if vals == None:
+            return gvals
 
 # (9, array([0, 1, 2, 3, 4, 5, 6, 7, 8]), array([ 1.15979336,  1.99214521,  1.03956903,  1.59749466,  1.54228497...]))
     def read_local(self):
@@ -426,7 +434,8 @@ cdef class tsr:
 
     def write(self, inds, vals, a=None, b=None):
         cdef char * ca
-        ca = interleave_py_pairs(inds,vals)
+        dvals = np.asarray(vals, dtype=self.typ)
+        ca = interleave_py_pairs(inds,dvals)
         cdef char * alpha
         cdef char * beta
 		# if type is np.bool, assign the st with 2, since bool does not have itemsize
