@@ -771,7 +771,28 @@ def take(A, indices, axis=None, out=None, mode='raise'):
                     # FIX: should add the convert function
                     return vals.reshape(out.shape)
             return vals.reshape(indices_np.shape)
-    
+    else:
+        if type(axis) != tuple and type(axis) != int and type(axis) != np.ndarray:
+            raise ValueError('The axis type should be int, tuple, or np.ndarray')
+        if type(axis) != np.ndarray:
+            axis = np.asarray(axis, dtype=np.int64)
+        if type(axis) == int:
+            axis = axis.reshape((1,))
+        if len(axis.shape) != 1:
+            raise ValueError('only length-1 arrays can be converted to Python scalars')
+        if len(axis) != 1:
+            raise ValueError('only length-1 arrays can be converted to Python scalars')
+        if axis.dtype != np.int8 and axis.dtype != np.int16 and axis.dtype != np.int32 and axis.dtype != np.int64:
+            raise ValueError('an integer required for axis')
+        if axis[0] < 0:
+            axis[0] += len(A.get_dims())
+        if axis[0] < 0 or axis[0] >= len(axis):
+            if (axis[0] + len(A.get_dims())) < 0 and axis[0] < 0:
+                raise ValueError((axis[0]-len(A.get_dims())), " out of bounds")
+            else:
+                raise ValueError(axis[0], " out of bounds")
+        # FIX: should add the permute
+        return None
 
 # the default order is Fortran
 
