@@ -42,7 +42,7 @@ def MPI_start():
 def MPI_end():
     Finalize()
 
-test = MPI_start();
+#test = MPI_start();
 
 cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass algstrct:
@@ -170,7 +170,6 @@ cdef int* int_arr_py_to_c(a):
         ca[i] = a[i]
     return ca
 
-#what is this function for?
 cdef char* interleave_py_pairs(a,b):
     cdef char * ca
     dim = len(a)
@@ -416,7 +415,6 @@ cdef class tsr:
         free(data)
         return n, inds, vals
 
-# number of entries?
     def tot_size(self):
         return self.dt.get_tot_size()
 
@@ -425,7 +423,6 @@ cdef class tsr:
         cdef int64_t sz
         sz = self.dt.get_tot_size()
         tB = arr.dtype.itemsize
-        # dtype.itemsize?
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals)
         for j in range(0,sz*tB):
@@ -438,7 +435,7 @@ cdef class tsr:
         ca = interleave_py_pairs(inds,dvals)
         cdef char * alpha
         cdef char * beta
-		# if type is np.bool, assign the st with 2, since bool does not have itemsize
+		# if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
         if self.typ == np.bool:
             st = 1
         else:
@@ -463,7 +460,6 @@ cdef class tsr:
         if b != None:
             free(beta)
 
-# what is the parameter offsets and ends
     def get_slice(self, offsets, ends):
         cdef char * alpha
         cdef char * beta
@@ -611,7 +607,6 @@ cdef class tsr:
             raise ValueError('strided slices not currently supported')
         
 
-
     def norm1(self):
         if self.typ == np.float64:
             return (<Tensor[double]*>self.dt).norm1()
@@ -715,8 +710,71 @@ cdef class tsr:
 #    def __cinit__(self, nrow, ncol, sp=0, sym=None, dtype=np.float64):
 #        super(mtx, self).__cinit__([nrow, ncol], sp=sp, sym=[sym, SYM.NS], dtype=dtype)
 
+# 
+
+def take(A, indices, axis=None, out=None, mode='raise'):
+    if not isinstance(A, tsr):
+        raise ValueError("A is not a tensor")
+    
+    if axis == None:
+        if type(indices)==int:
+            tot_size = A.tot_size()
+            if indices < 0:
+                indices += tot_size
+            if indices >= tot_size or indices < 0:
+                if indices < 0:
+                    indices -= tot_size
+                raise ValueError('index ', indices, ' is out of bounds for size ',tot_size)  
+            index_arr = np.array([indices],dtype=A.get_type())
+            vals = np.array([0],dtype=A.get_type())
+            A.read(index_arr,vals)
+            if out != None:
+                if type(out) != np.ndarray:
+                    raise ValueError('output must be an array')
+                out_shape = 1
+                for i in range(len(out.shape)):
+                    out_shape *= out.shape[i]
+                if out_shape == 1:
+                    # complex128 can not convert to these
+                    # should add more
+                    if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
+                        raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
+                    # if we can reshape the return value
+                    # FIX: should add the convert function
+                    return np.reshape(vals, out.shape)
+                else:
+                    raise ValueError('output array does not match result of ctf.take')
+            return vals[0]
+        elif type(indices)==tuple or type(indices)==np.ndarray:
+            tot_size = A.tot_size()
+            indices_np = np.asarray(indices, dtype=np.int64)
+            indices_ravel = np.ravel(indices_np)
+            for i in range(len(indices_ravel)):
+                if indices_ravel[i] < 0:
+                    indices_ravel[i] += tot_size
+                if indices_ravel[i] >= tot_size or indices_ravel[i] < 0:
+                    raise ValueError('index ', indices_ravel[i], ' is out of bounds for size ', tot_size)
+            vals = np.zeros(len(indices_ravel),dtype=A.get_type())
+            A.read(indices_ravel, vals)
+            if out != None:
+                # check out type of out first
+                if type(out) != np.ndarray:
+                    raise ValueError('output must be an array')
+                out_shape = 1
+                for i in range(len(out.shape)):
+                    out_shape *= out.shape[i]
+                if out_shape == tot_size:
+                    if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
+                        raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
+                else:
+                    raise ValueError('output array does not match result of ctf.take')
+                    # FIX: should add the convert function
+                    return vals.reshape(out.shape)
+            return vals.reshape(indices_np.shape)
+    
 
 # the default order is Fortran
+
 def reshape(A, newshape, order='F'):
     if not isinstance(A, tsr):
         print("A is not a tensor")
@@ -737,6 +795,10 @@ def reshape(A, newshape, order='F'):
         if new_size != total_size:
             print("total size of new array must be unchanged")
             return None
+    # using read and permute
+    B = tsr((2,4),dtype=A.get_type())
+    B.i("ij") << A.i("kl")
+    return B
 
 # add the shape parameter
 def astensor(arr, shape=None):
@@ -1028,6 +1090,97 @@ def ravel(A, order="F"):
 #    return F
 #
 
+def all(A, axis=None, out=None, keepdims=None):
+    if not isinstance(A,tsr):
+        print("not a tensor")
+        return None
+
+    out_type = True
+    if out == None:
+        out_type = False
+	
+    if out_type==True and not(isinstance(out,tsr)):
+        print("out is not a tensor")
+        return None
+    
+    #ret_dim = None
+    #if isinstance(out,tsr):
+        #print(outputdim," ",ret_dim)
+        #if(outputdim != ret_dim):
+            #print("dimension of output mismatch")
+            #return None
+        #else:
+            #if keepdims == True:
+                #print("Must match the dimension when keepdims = True")
+            #else:
+		# FIX ME
+                #B = tsr(ret_dim, dtype = out.get_type())
+
+    if axis == None:
+        compare_tensor = zeros(A.get_dims(),A.get_type())
+        print(A.get_type())
+        B = (A==compare_tensor)
+        if B.bool_sum() > 0.0:
+            return True
+        return False
+	
+    dim = A.get_dims()
+    axis_tuple=()
+    # check whether the axis entry is out of bounds
+    if type(axis)==int:
+        if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
+            print("'axis' entry is out of bounds")
+            return None
+    elif type(axis)==tuple:
+        for i in range(len(axis)):
+            if axis[i] >= len(dim) or axis[i] <= (-len(dim)-1):
+                print("'axis' entry is out of bounds")
+                return None
+        axis_arr = list(axis)
+        for i in range(len(axis)):
+            if type(axis_arr[i])!=int:
+                print("Value in the tuple should be int.")
+            if axis_arr[i] < 0:
+                axis_arr[i] += len(dim)
+            if axis_arr[i] in axis_tuple:
+                print("duplicate value in 'axis'")
+                return None
+            axis_tuple += (axis_arr[i],)	
+    
+    # if axis not None and axis is int
+    if type(axis)==int:
+        ret_dim = []
+        for i in range(len(dim)):
+            if i != axis:
+                ret_dim.append(dim[i])
+        ret_dim = tuple(ret_dim)
+    
+        D = zeros(A.get_dims(), np.float64)
+        A.convert_type(D)
+        compare_tensor = zeros(D.get_dims(),D.get_type())
+        B = (D == compare_tensor)
+        C = sum(B, axis=axis)
+        E = zeros(C.get_dims(), np.float64)
+        F = C.compare_helper(E)
+        return F
+
+    B = None
+    n, inds, vals = A.read_local()
+    temp = astensor(vals, A.get_dims())
+    for i in range(len(axis)-1,-1,-1):
+        D = zeros(temp.get_dims(), np.float64)
+        temp.convert_type(D)
+        compare_tensor = zeros(D.get_dims(),D.get_type())
+        B = (D == compare_tensor)
+        C = sum(B, axis=axis[i])
+        E = zeros(C.get_dims(), np.float64)
+        F = C.compare_helper(E)
+        n, inds, vals = F.read_local()
+        temp = astensor(vals, F.get_dims())
+    return F
+
+# issues:
+# when the input is numpy array
 def transpose(A, axes=None):
     if not isinstance(A,tsr):
         print("not a tensor")
