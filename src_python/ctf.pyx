@@ -348,13 +348,25 @@ cdef class tsr:
     def prnt(self):
         self.dt.prnt()
 
-    #def __cinit__(self, tsr other, copy=1, alloc_data=1):
-        #self.dt[0] = tensor(<tensor*>other.dt, copy, alloc_data)
-
-    #def copy(tsr self):
-        #ret = tsr(self.dims, self.typ)
-        #ret.dt.tensor(<tensor*>self.dt,copy=1,alloc_data=1)
-        #return ret
+    def reshape(self, newshape, order='F'):
+        dim = self.dims
+        total_size = 1
+        for i in range(len(dim)):
+            total_size *= dim[i]
+        if type(newshape)==int:
+            if total_size!=newshape:
+                raise ValueError("total size of new array must be unchanged")
+        elif type(newshape)==tuple or type(newshape)==list or type(newshape) == np.ndarray:
+            newshape = np.asarray(newshape, dtype=np.int64)
+            new_size = 1
+            for i in range(len(newshape)):
+                new_size *= newshape[i]
+            if new_size != total_size:
+                raise ValueError("total size of new array must be unchanged")
+        B = tsr(newshape,dtype=self.typ)
+        n, inds, vals = self.read_local()
+        B.write(inds, vals)
+        return B
 
     def read(self, inds, vals=None, a=None, b=None):
         cdef char * ca
@@ -798,8 +810,7 @@ def take(A, indices, axis=None, out=None, mode='raise'):
 
 def reshape(A, newshape, order='F'):
     if not isinstance(A, tsr):
-        print("A is not a tensor")
-        return None
+        raise ValueError("A is not a tensor")
     
     dim = A.get_dims()
     total_size = 1
@@ -809,16 +820,17 @@ def reshape(A, newshape, order='F'):
         if total_size!=newshape:
             print("total size of new array must be unchanged")
             return None
-    elif (type(newshape)==tuple):
+    elif type(newshape)==tuple or type(newshape)==list or type(newshape) == np.ndarray:
+        newshape = np.asarray(newshape, dtype=np.int64)
         new_size = 1
         for i in range(len(newshape)):
             new_size *= newshape[i]
         if new_size != total_size:
-            print("total size of new array must be unchanged")
-            return None
+            raise ValueError("total size of new array must be unchanged")
     # using read and permute
-    B = tsr((2,4),dtype=A.get_type())
-    B.i("ij") << A.i("kl")
+    B = tsr(newshape,dtype=A.get_type())
+    n, inds, vals = A.read_local()
+    B.write(inds, vals)
     return B
 
 # add the shape parameter
