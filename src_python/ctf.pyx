@@ -280,6 +280,8 @@ cdef class tsr:
             self.dt.conv_type[bool,double](<tensor*> B.dt)
         elif self.typ == np.float64 and B.typ == np.float64:
             self.dt.conv_type[double,double](<tensor*> B.dt)
+        elif self.typ == np.float64 and B.typ == np.int64:
+            self.dt.conv_type[double,int64_t](<tensor*> B.dt)
 
     def get_dims(self):
         return self.dims
@@ -396,7 +398,7 @@ cdef class tsr:
         ca = interleave_py_pairs(inds,gvals)
         cdef char * alpha 
         cdef char * beta
-        st = np.ndarray([],dtype=self.typ()).itemsize
+        st = np.ndarray([],dtype=self.typ).itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
         else:
@@ -754,9 +756,6 @@ def take(A, indices, axis=None, out=None, mode='raise'):
                 if indices < 0:
                     indices -= tot_size
                 raise ValueError('index ', indices, ' is out of bounds for size ',tot_size)  
-            index_arr = np.array([indices],dtype=A.get_type())
-            vals = np.array([0],dtype=A.get_type())
-            A.read(index_arr,vals)
             if out != None:
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
@@ -769,10 +768,17 @@ def take(A, indices, axis=None, out=None, mode='raise'):
                     if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
                         raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
                     # if we can reshape the return value
-                    # FIX: should add the convert function
+                    B = tsr(A.get_dims(), dtype=out.dtype)
+                    index_arr = np.array([indices],dtype=B.get_type())
+                    A.convert_type(B)
+                    vals = np.array([0],dtype=B.get_type())
+                    B.read(index_arr,vals)
                     return np.reshape(vals, out.shape)
                 else:
                     raise ValueError('output array does not match result of ctf.take')
+            index_arr = np.array([indices],dtype=np.int64)
+            vals = np.array([0],dtype=A.get_type())
+            A.read(index_arr,vals)
             return vals[0]
         elif type(indices)==tuple or type(indices)==np.ndarray:
             tot_size = A.tot_size()
@@ -783,22 +789,28 @@ def take(A, indices, axis=None, out=None, mode='raise'):
                     indices_ravel[i] += tot_size
                 if indices_ravel[i] >= tot_size or indices_ravel[i] < 0:
                     raise ValueError('index ', indices_ravel[i], ' is out of bounds for size ', tot_size)
-            vals = np.zeros(len(indices_ravel),dtype=A.get_type())
-            A.read(indices_ravel, vals)
+            #vals = np.zeros(len(indices_ravel),dtype=A.get_type())
+            #A.read(indices_ravel, vals)
             if out != None:
                 # check out type of out first
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
                 out_shape = 1
+                indices_shape = 1
                 for i in range(len(out.shape)):
                     out_shape *= out.shape[i]
-                if out_shape == tot_size:
+                if out_shape == len(indices_ravel):
                     if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
                         raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
                 else:
                     raise ValueError('output array does not match result of ctf.take')
-                    # FIX: should add the convert function
-                    return vals.reshape(out.shape)
+                B = tsr(A.get_dims(), dtype = out.dtype)
+                vals = np.zeros(len(indices_ravel),dtype=B.get_type())
+                A.convert_type(B)
+                B.read(indices_ravel, vals)
+                return np.reshape(vals, out.shape)
+            vals = np.zeros(len(indices_ravel),dtype=A.get_type())
+            A.read(indices_ravel, vals)
             return vals.reshape(indices_np.shape)
     else:
         if type(axis) != tuple and type(axis) != int and type(axis) != np.ndarray:
@@ -1275,7 +1287,6 @@ def transpose(A, axes=None):
     B.i(rev_index) << A.i(index)
     return B
     
-    
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n
     if m != None:
@@ -1377,4 +1388,3 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
 #    for k in range(fdim):
 #        fval[k] = fval_buffer[k]
 #    return 0
-
