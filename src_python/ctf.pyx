@@ -2,7 +2,9 @@
 import sys
 from cython.operator cimport dereference as deref, preincrement as inc
 from libc.stdint cimport int64_t
-from libc.stdint cimport int64_t
+from libc.stdint cimport int32_t
+from libc.stdint cimport int16_t
+from libc.stdint cimport int8_t
 from libcpp.complex cimport *
 from libc.stdlib cimport malloc, free
 from libcpp cimport bool
@@ -311,8 +313,14 @@ cdef class tsr:
                 self.dt = new Tensor[bool](len(lens), sp, clens, csym)
             elif self.typ == np.int64:
                 self.dt = new Tensor[int64_t](len(lens), sp, clens, csym)
-            #elif self.typ == np.int16:
-                #self.dt = new Tensor[int16_t](len(lens), sp, clens, csym)
+            elif self.typ == np.int32:
+                self.dt = new Tensor[int32_t](len(lens), sp, clens, csym)
+            elif self.typ == np.int16:
+                self.dt = new Tensor[int16_t](len(lens), sp, clens, csym)
+            elif self.typ == np.int8:
+                self.dt = new Tensor[int8_t](len(lens), sp, clens, csym)
+            elif self.typ == np.float32:
+                self.dt = new Tensor[float](len(lens), sp, clens, csym)
             else:
                 raise ValueError('bad dtype')
         else:
@@ -869,8 +877,20 @@ def astensor(arr, shape=None):
         t = tsr(shape, dtype=np.int64)
         t.from_nparray(narr)
         return t
+    elif narr.dtype == np.int32:
+        t = tsr(shape, dtype=np.int32)
+        t.from_nparray(narr)
+        return t
     elif narr.dtype == np.int16:
         t = tsr(shape, dtype=np.int16)
+        t.from_nparray(narr)
+        return t
+    elif narr.dtype == np.int8:
+        t = tsr(shape, dtype=np.int8)
+        t.from_nparray(narr)
+        return t
+    elif narr.dtype == np.float32:
+        t = tsr(shape, dtype=np.float32)
         t.from_nparray(narr)
         return t
     else:
