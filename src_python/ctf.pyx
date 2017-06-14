@@ -380,6 +380,11 @@ cdef class tsr:
         B.write(inds, vals)
         return B
 
+    def ravel(self, order="F"):
+        if order == "F":
+            n, inds, vals = self.read_local()
+            return astensor(vals)
+
     def read(self, inds, vals=None, a=None, b=None):
         cdef char * ca
         if vals != None:
@@ -838,64 +843,51 @@ def reshape(A, newshape, order='F'):
             new_size *= newshape[i]
         if new_size != total_size:
             raise ValueError("total size of new array must be unchanged")
-    # using read and permute
     B = tsr(newshape,dtype=A.get_type())
     n, inds, vals = A.read_local()
     B.write(inds, vals)
     return B
 
 # add the shape parameter
-def astensor(arr, shape=None):
+def astensor(arr):
     if isinstance(arr,tsr):
         return arr
     narr = np.asarray(arr)
-    if shape == None:
-        shape = narr.shape
-    else:
-        count_shape = 1
-        count_narrshape = 1
-        for i in range(len(shape)):
-            count_shape *= shape[i]
-        for i in range(len(narr.shape)):
-          count_narrshape *= narr.shape[i]
-        if count_shape != count_narrshape:
-            print("total size of new array must be unchanged")
-            return None
     if narr.dtype == np.float64:
-        t = tsr(shape)
+        t = tsr(narr.shape, dtype=np.float64)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.complex128:
-        t = tsr(shape, dtype=np.complex128)
+        t = tsr(narr.shape, dtype=np.complex128)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.bool:
-        t = tsr(shape, dtype=np.bool)
+        t = tsr(narr.shape, dtype=np.bool)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.int64:
-        t = tsr(shape, dtype=np.int64)
+        t = tsr(narr.shape, dtype=np.int64)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.int32:
-        t = tsr(shape, dtype=np.int32)
+        t = tsr(narr.shape, dtype=np.int32)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.int16:
-        t = tsr(shape, dtype=np.int16)
+        t = tsr(narr.shape, dtype=np.int16)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.int8:
-        t = tsr(shape, dtype=np.int8)
+        t = tsr(narr.shape, dtype=np.int8)
         t.from_nparray(narr)
         return t
     elif narr.dtype == np.float32:
-        t = tsr(shape, dtype=np.float32)
+        t = tsr(narr.shape, dtype=np.float32)
         t.from_nparray(narr)
         return t
     else:
         narr = np.asarray(arr, dtype=np.float64)
-        t = tsr(shape)
+        t = tsr(narr.shape)
         t.from_nparray(narr)
         return t
 
@@ -907,7 +899,7 @@ def to_nparray(t):
 
 # return tensor with all zeros
 # dtype: np.float64, np.compex128 etc.
-def zeros(shape, dtype):
+def zeros(shape, dtype, order='F'):
     A = tsr(shape, dtype=dtype)
     return A
 	
@@ -1043,11 +1035,10 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
         del decrease_dim[index_removal]
     return B
 		
-# ravel, the default order is Fortran, using read_local, not good
+# ravel, the default order is Fortran
 def ravel(A, order="F"):
     if not isinstance(A,tsr):
-        print("not a tensor")
-        return None
+        raise ValueError("A is not a tensor")
     if order == "F":
         n, inds, vals = A.read_local()
         return astensor(vals)
