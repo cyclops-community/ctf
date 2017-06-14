@@ -832,7 +832,49 @@ def take(A, indices, axis=None, out=None, mode='raise'):
                 raise ValueError((axis[0]-len(A.get_dims())), " out of bounds")
             else:
                 raise ValueError(axis[0], " out of bounds")
-        # FIX: should add the permute
+        if type(indices) == int:
+            if out != None:
+                if type(out) != np.ndarray:
+                    raise ValueError('output must be an array')
+                out_shape = 1
+                for i in range(len(out.shape)):
+                    out_shape *= out.shape[i]
+                if out_shape == 1:
+                    # complex128 can not convert to these
+                    # should add more
+                    if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
+                        raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
+                # permute
+                return None
+            return None
+        elif type(indices)==tuple or type(indices)==np.ndarray:
+            tot_size = A.tot_size()
+            indices_np = np.asarray(indices, dtype=np.int64)
+            indices_ravel = np.ravel(indices_np)
+            for i in range(len(indices_ravel)):
+                if indices_ravel[i] < 0:
+                    indices_ravel[i] += tot_size
+                if indices_ravel[i] >= tot_size or indices_ravel[i] < 0:
+                    raise ValueError('index ', indices_ravel[i], ' is out of bounds for size ', tot_size)
+            #vals = np.zeros(len(indices_ravel),dtype=A.get_type())
+            #A.read(indices_ravel, vals)
+            if out != None:
+                # check out type of out first
+                if type(out) != np.ndarray:
+                    raise ValueError('output must be an array')
+                out_shape = 1
+                indices_shape = 1
+                for i in range(len(out.shape)):
+                    out_shape *= out.shape[i]
+                if out_shape == len(indices_ravel):
+                    if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
+                        raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
+                else:
+                    raise ValueError('output array does not match result of ctf.take')
+                # permute
+                return None
+            # permute
+            return None
         return None
 
 # the default order is Fortran
