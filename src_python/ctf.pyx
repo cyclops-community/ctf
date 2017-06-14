@@ -287,7 +287,7 @@ cdef class tsr:
         return self.typ
 
 	# add type np.int64, int32
-    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', copy=None):
+    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tsr copy=None):
         self.typ = <cnp.dtype>dtype
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
         self.order = ord(order)
@@ -302,24 +302,24 @@ cdef class tsr:
         else:
             csym = int_arr_py_to_c(sym)
 
-        if copy is not None:
-            print("reached")
-        if isinstance(copy, tsr):
-            #self.dt = new tensor(<tensor*>copy.dt, True, True)
-            self.dt = new Tensor[double](True, <tensor>(<tsr>copy).dt[0])
-
-        if self.typ == np.float64:
-            self.dt = new Tensor[double](len(lens), sp, clens, csym)
-        elif self.typ == np.complex128:
-            self.dt = new Tensor[double complex](len(lens), sp, clens, csym)
-        elif self.typ == np.bool:
-            self.dt = new Tensor[bool](len(lens), sp, clens, csym)
-        elif self.typ == np.int64:
-            self.dt = new Tensor[int64_t](len(lens), sp, clens, csym)
-        #elif self.typ == np.int16:
-            #self.dt = new Tensor[int16_t](len(lens), sp, clens, csym)
+        if copy is None:
+            if self.typ == np.float64:
+                self.dt = new Tensor[double](len(lens), sp, clens, csym)
+            elif self.typ == np.complex128:
+                self.dt = new Tensor[double complex](len(lens), sp, clens, csym)
+            elif self.typ == np.bool:
+                self.dt = new Tensor[bool](len(lens), sp, clens, csym)
+            elif self.typ == np.int64:
+                self.dt = new Tensor[int64_t](len(lens), sp, clens, csym)
+            #elif self.typ == np.int16:
+                #self.dt = new Tensor[int16_t](len(lens), sp, clens, csym)
+            else:
+                raise ValueError('bad dtype')
         else:
-            raise ValueError('bad dtype')
+            if isinstance(copy, tsr):
+                self.dt = new tensor(<tensor*>copy.dt, True, True)
+            else:
+                raise ValueError('Copy should be a tensor')
         free(clens)
         free(csym)
 
@@ -347,6 +347,10 @@ cdef class tsr:
 
     def prnt(self):
         self.dt.prnt()
+
+    def copy(self):
+        B = tsr(self.dims, dtype=self.typ, copy=self)
+        return B
 
     def reshape(self, newshape, order='F'):
         dim = self.dims
@@ -818,8 +822,7 @@ def reshape(A, newshape, order='F'):
         total_size *= dim[i]
     if type(newshape)==int:
         if total_size!=newshape:
-            print("total size of new array must be unchanged")
-            return None
+            raise ValueError("total size of new array must be unchanged")
     elif type(newshape)==tuple or type(newshape)==list or type(newshape) == np.ndarray:
         newshape = np.asarray(newshape, dtype=np.int64)
         new_size = 1
