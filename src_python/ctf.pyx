@@ -115,7 +115,8 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
 
 cdef extern from "ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(tensor *);
-
+    cdef void all_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
+    
 cdef extern from "../include/ctf.hpp" namespace "CTF":
 
     cdef cppclass World:
@@ -271,8 +272,8 @@ cdef class tsr:
     cdef cnp.ndarray dims
     cdef int order
    
-#    def bool_sum(tsr self):
-#        return sum_bool_tsr(<tensor*>self.dt)
+    def bool_sum(tsr self):
+        return sum_bool_tsr(<tensor*>self.dt)
     
     def convert_type(tsr self, tsr B):
         if self.typ == np.float64 and B.typ == np.bool:
@@ -349,7 +350,16 @@ cdef class tsr:
             (<Tensor[double complex]*>self.dt).fill_sp_random(mn,mx,frac)
         else:
             raise ValueError('bad dtype')
-			
+	
+    def all(tsr self, axis=None, out=None):
+        B = tsr((2,2), dtype=np.bool)
+        all_helper[double](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "jk".encode())
+        #free(idx_A)
+        #free(idx_B)
+        return B
+    # cdef void all(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B)
+
+
     def i(self, string):
         if self.order == ord('F'):
             return itsr(self, rev_array(string))
