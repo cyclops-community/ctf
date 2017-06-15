@@ -73,6 +73,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         void allread(int64_t * num_pair, char * data)
         void slice(int *, int *, char *, tensor *, int *, int *, char *)
         int64_t get_tot_size()
+        int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
         void conv_type[dtype_A,dtype_B](tensor * B)
         void compare_elementwise[dtype](tensor * A, tensor * B)
 #        void compare_helper_python[dtype](tensor * A, tensor * B)
@@ -459,7 +460,42 @@ cdef class tsr:
         for j in range(0,sz*tB):
             arr.view(dtype=np.int8)[j] = cvals[j]
         free(cvals)
-
+    
+    def permute(self, tsr A, a, b, p_A, p_B):
+        cdef char * alpha 
+        cdef char * beta
+        # whether permutation need malloc?
+        cdef int ** permutation_A
+        cdef int ** permutation_B
+        st = np.ndarray([],dtype=self.typ).itemsize
+        if a == None:
+            alpha = <char*>self.dt.sr.mulid()
+        else:
+            alpha = <char*>malloc(st)
+            na = np.array([a])
+            for j in range(0,st):
+                alpha[j] = na.view(dtype=np.int8)[j]
+        if b == None:
+            beta = <char*>self.dt.sr.addid()
+        else:
+            beta = <char*>malloc(st)
+            nb = np.array([b])
+            for j in range(0,st):
+                beta[j] = nb.view(dtype=np.int8)[j]
+        self.dt.permute(<tensor*>A.dt, <int**>permutation_A, <char*>alpha, <int**>permutation_B, <char*>beta)
+        if a != None:
+            free(alpha)
+        if b != None:
+            free(beta)
+        if p_A != None:
+            for i in range(0, sizeof(permutation_A), sizeof(int*)):
+                free(permutation_A+sizeof(int*))
+            free(permutation_A)
+        if p_B != None:
+            for i in range(0, sizeof(permutation_B), sizeof(int*)):
+                free(permutation_B+sizeof(int*))
+            free(permutation_B)
+        #int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
     def write(self, inds, vals, a=None, b=None):
         cdef char * ca
         dvals = np.asarray(vals, dtype=self.typ)
