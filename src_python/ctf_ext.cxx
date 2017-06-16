@@ -1,7 +1,6 @@
 #include "ctf_ext.h"
 #include "../src/tensor/untyped_tensor.h"
 namespace CTF_int{
-  
   template <typename dtype>
   void all_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B){
     B_bool->operator[](idx_B) = CTF::Function<dtype,bool>([](dtype a){ return a==0; })(A->operator[](idx_A));
@@ -26,4 +25,6 @@ namespace CTF_int{
   template void tensor::compare_helper_python<bool>(tensor * A, tensor * B);
   template void tensor::compare_helper_python<double>(tensor * A, tensor * B);
 	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper<int64_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper<bool>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 }

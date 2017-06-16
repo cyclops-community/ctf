@@ -352,8 +352,71 @@ cdef class tsr:
             raise ValueError('bad dtype')
 	
     def all(tsr self, axis=None, out=None):
-        B = tsr((2,2), dtype=np.bool)
-        all_helper[double](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "jk".encode())
+        if axis == None:
+            if out != None:
+                if type(out) != np.ndarray:
+                    raise ValueError('output must be an array')
+                if out.shape != ():
+                    raise ValueError('output parameter has too many dimensions')
+            B = tsr((1,), dtype=np.bool)
+            if self.typ == np.float64:
+                all_helper[double](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "".encode())
+            elif self.typ == np.int64:
+                all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "".encode())
+            elif self.typ == np.bool:
+                all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "".encode())
+            if out != None:
+                if out.dtype != B.get_type():
+                    C = tsr((1,), dtype=out.dtype)
+                    B.convert_type(C)
+                    n, inds, vals = C.read_local()
+                    return vals.reshape(out.shape)
+                else:
+                    n, inds, vals = B.read_local()
+                    return vals.reshape(out.shape)
+            n, inds, vals = B.read_local()
+            return vals[0]
+
+        # when the axis is not None
+        dim = self.dims
+        if type(axis) == int:
+            if axis < 0:
+                axis += len(dim)
+            if axis >= len(dim) or axis < 0:
+                raise ValueError("'axis' entry is out of bounds")
+            dim_ret = np.delete(dim, axis)
+            index_A = "" 
+            index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+            index_A = "".join(index_A)
+            index_B = index_A[0:axis] + index_A[axis+1:len(dim)]
+            B = tsr(dim_ret, dtype=np.bool)
+            if self.typ == np.float64:
+                all_helper[double](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.int64:
+                all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.bool:
+                all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            return B
+        elif type(axis) == tuple or type(axis) == np.ndarray:
+            axis = np.asarray(axis, dtype=np.int64)
+            for i in range(len(axis.shape)):
+                if axis[i] < 0:
+                    axis[i] += len(dim)
+                if axis[i] >= len(dim) or axis[i] < 0:
+                    raise ValueError("'axis' entry is out of bounds")
+            for i in range(len(axis.shape)):
+                if np.count_nonzero(axis==axis[i]) > 1:
+                    raise ValueError("duplicate value in 'axis'")
+        else:
+            raise ValueError("an integer is required")
+
+        B = tsr((2,), dtype=np.bool)
+        if self.typ == np.float64:
+            all_helper[double](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "jk".encode())
+        elif self.typ == np.int64:
+            all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "j".encode())
+        elif self.typ == np.bool:
+            all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "k".encode())
         #free(idx_A)
         #free(idx_B)
         return B
