@@ -385,6 +385,14 @@ cdef class tsr:
             if axis >= len(dim) or axis < 0:
                 raise ValueError("'axis' entry is out of bounds")
             dim_ret = np.delete(dim, axis)
+            if out != None:
+                if type(out) != np.ndarray:
+                    raise ValueError('output must be an array')
+                if len(dim_ret) != len(out.shape):
+                    raise ValueError('output parameter dimensions mismatch')
+                for i in range(len(dim_ret)):
+                    if dim_ret[i] != out.shape[i]:
+                        raise ValueError('output parameter dimensions mismatch')
             index_A = "" 
             index_A = random.sample(string.ascii_letters+string.digits,len(dim))
             index_A = "".join(index_A)
@@ -396,6 +404,11 @@ cdef class tsr:
                 all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.typ == np.bool:
                 all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            if out != None:
+                if out.dtype != B.get_type():
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return C
             return B
         elif type(axis) == tuple or type(axis) == np.ndarray:
             axis = np.asarray(axis, dtype=np.int64)
