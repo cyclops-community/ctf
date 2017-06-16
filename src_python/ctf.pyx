@@ -420,21 +420,39 @@ cdef class tsr:
             for i in range(len(axis.shape)):
                 if np.count_nonzero(axis==axis[i]) > 1:
                     raise ValueError("duplicate value in 'axis'")
+            dim_ret = np.delete(dim, axis)
+            if out != None:
+                if type(out) != np.ndarray:
+                    raise ValueError('output must be an array')
+                if len(dim_ret) != len(out.shape):
+                    raise ValueError('output parameter dimensions mismatch')
+                for i in range(len(dim_ret)):
+                    if dim_ret[i] != out.shape[i]:
+                        raise ValueError('output parameter dimensions mismatch')
+            B = tsr(dim_ret, dtype=np.bool)
+            index_A = "" 
+            index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+            index_A = "".join(index_A)
+            index_B = ""
+            for i in range(len(dim)):
+                if i not in axis:
+                    index_B += index_A[i]
+            # print(dim_ret, " ", index_A, " ", index_B)
+            if self.typ == np.float64:
+                all_helper[double](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.int64:
+                all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.bool:
+                all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            if out != None:
+                if out.dtype != B.get_type():
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return C
+            return B
         else:
             raise ValueError("an integer is required")
-
-        B = tsr((2,), dtype=np.bool)
-        if self.typ == np.float64:
-            all_helper[double](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "jk".encode())
-        elif self.typ == np.int64:
-            all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "j".encode())
-        elif self.typ == np.bool:
-            all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "k".encode())
-        #free(idx_A)
-        #free(idx_B)
-        return B
-    # cdef void all(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B)
-
+        return None
 
     def i(self, string):
         if self.order == ord('F'):
