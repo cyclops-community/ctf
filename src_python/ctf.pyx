@@ -908,7 +908,11 @@ cdef class tsr:
             else:
                 raise ValueError('bad dtype')
             return c	
-			
+		
+    # !=
+        if op == 3:
+            return None
+	
 		# >
         if op == 4:
             return None
@@ -1165,8 +1169,7 @@ def zeros(shape, dtype, order='F'):
 def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
 	# if the input is not a tensor, return none
     if not isinstance(A,tsr):
-        print("Input is not a tensor")
-        return None
+        raise ValueError("not a tensor")
 	
     if not isinstance(out,tsr) and out != None:
         print("output must be a tensor")
@@ -1469,8 +1472,7 @@ def all(tsr A, axis=None, out=None, keepdims = None):
 # when the input is numpy array
 def transpose(A, axes=None):
     if not isinstance(A,tsr):
-        print("not a tensor")
-        return None
+        raise ValueError("A is not a tensor")
 
     dim = A.get_dims()
     if axes == None:
@@ -1483,27 +1485,23 @@ def transpose(A, axes=None):
    
     # length of axes should match with the length of tensor dimension 
     if len(axes) != len(dim):
-        print("axes don't match tensor")
-        return None
+        raise ValueError("axes don't match tensor")
 
     axes_list = list(axes)
     for i in range(len(axes)):
         # when any elements of axes is not an integer
         if type(axes_list[i]) != int:
-            print("an integer is required")
-            return None
+            raise ValueError("an integer is required")
         # change the negative axes to positive, which will be easier hangling
         if axes_list[i] < 0:
             axes_list[i] += len(dim)
     for i in range(len(axes)):
         # if axes out of bound
         if axes_list[i] >= len(dim) or axes_list[i] < 0:
-            print("invalid axis for this tensor")
-            return None
+            raise ValueError("invalid axis for this tensor")
         # if axes are repeated
         if axes_list.count(axes_list[i]) > 1:
-            print("repeated axis in transpose")
-            return None
+            raise ValueError("repeated axis in transpose")
 
     index = random.sample(string.ascii_letters+string.digits,len(dim))
     index = "".join(index)
