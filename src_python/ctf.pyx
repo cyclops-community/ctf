@@ -377,6 +377,12 @@ cdef class tsr:
                 all_helper[double](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
             elif self.typ == np.int64:
                 all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+            elif self.typ == np.int32:
+                all_helper[int32_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+            elif self.typ == np.int16:
+                all_helper[int16_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+            elif self.typ == np.int8:
+                all_helper[int8_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
             elif self.typ == np.bool:
                 all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
             if out != None:
@@ -440,6 +446,12 @@ cdef class tsr:
                 all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.typ == np.bool:
                 all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.int32:
+                all_helper[int32_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.int16:
+                all_helper[int16_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.int8:
+                all_helper[int8_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             if out != None:
                 if out.dtype != B.get_type():
                     if keepdims == True:
@@ -495,6 +507,12 @@ cdef class tsr:
                 all_helper[double](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.typ == np.int64:
                 all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.int32:
+                all_helper[int32_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.int16:
+                all_helper[int16_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+            elif self.typ == np.int8:
+                all_helper[int8_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.typ == np.bool:
                 all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             if out != None:
@@ -1331,6 +1349,12 @@ def all(tsr A, axis=None, out=None, keepdims = None):
             all_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
         elif A.get_type() == np.int64:
             all_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.int32:
+            all_helper[int32_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.int16:
+            all_helper[int16_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.int8:
+            all_helper[int8_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
         elif A.get_type() == np.bool:
             all_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
         if out != None:
@@ -1392,6 +1416,12 @@ def all(tsr A, axis=None, out=None, keepdims = None):
             all_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.int64:
             all_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int32:
+            all_helper[int32_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int16:
+            all_helper[int16_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int8:
+            all_helper[int8_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.bool:
             all_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
         if out != None:
@@ -1449,6 +1479,12 @@ def all(tsr A, axis=None, out=None, keepdims = None):
             all_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.int64:
             all_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int32:
+            all_helper[int32_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int16:
+            all_helper[int16_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int8:
+            all_helper[int8_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.bool:
             all_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
         if out != None:

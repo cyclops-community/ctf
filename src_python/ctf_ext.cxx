@@ -3,6 +3,8 @@
 namespace CTF_int{
   template <typename dtype>
   void all_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B){
+    //std::cout<<idx_A<<std::endl;
+    //std::cout<<idx_B<<std::endl;
     B_bool->operator[](idx_B) = CTF::Function<dtype,bool>([](dtype a){ return a==0; })(A->operator[](idx_A));
     //B_bool->operator[](idx_B) = -B_bool->operator[](idx_B);
     B_bool->operator[](idx_B) = CTF::Function<bool, bool>([](bool a){ return a==false ? true : false; })(B_bool->operator[](idx_B));
@@ -27,4 +29,7 @@ namespace CTF_int{
 	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int64_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<bool>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper<int32_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper<int16_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper<int8_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 }
