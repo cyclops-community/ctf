@@ -1301,108 +1301,182 @@ def ravel(A, order="F"):
 # Issues:
 # 1. A type is not bool
 
+def all(tsr A, axis=None, out=None, keepdims = None):
+    if not isinstance(A, tsr):
+        raise ValueError("A is not a tensor")
+
+    if keepdims == None:
+        keepdims = False
+    if axis == None:
+        if out != None:
+            if type(out) != np.ndarray:
+                raise ValueError('output must be an array')
+            if out.shape != () and keepdims == False:
+                raise ValueError('output parameter has too many dimensions')
+            if keepdims == True:
+                dims_keep = []
+                for i in range(len(A.get_dims())):
+                    dims_keep.append(1)
+                dims_keep = tuple(dims_keep)
+                if out.shape != dims_keep:
+                    raise ValueError('output must match when keepdims = True')
+        B = tsr((1,), dtype=np.bool)
+        index_A = "" 
+        index_A = random.sample(string.ascii_letters+string.digits,len(A.get_dims()))
+        index_A = "".join(index_A)
+        if A.get_type() == np.float64:
+            all_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.int64:
+            all_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.bool:
+            all_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        if out != None:
+            if out.dtype != B.get_type():
+                if keepdims == True:
+                    dim_keep = np.ones(len(A.get_dims()),dtype=np.int64)
+                    ret = reshape(B,dim_keep)
+                C = tsr((1,), dtype=out.dtype)
+                B.convert_type(C)
+                n, inds, vals = C.read_local()
+                return vals.reshape(out.shape)
+            else:
+                if keepdims == True:
+                    dim_keep = np.ones(len(A.get_dims()),dtype=np.int64)
+                    ret = reshape(B,dim_keep)
+                    return ret
+                n, inds, vals = B.read_local()
+                return vals.reshape(out.shape)
+        if keepdims == True:
+            dim_keep = np.ones(len(A.get_dims()),dtype=np.int64)
+            ret = reshape(B,dim_keep)
+            return ret
+        n, inds, vals = B.read_local()
+        return vals[0]
+
+    # when the axis is not None
+    dim = A.get_dims()
+    if type(axis) == int:
+        if axis < 0:
+            axis += len(dim)
+        if axis >= len(dim) or axis < 0:
+            raise ValueError("'axis' entry is out of bounds")
+        dim_ret = np.delete(dim, axis)
+        # print(dim_ret)
+        if out != None:
+            if type(out) != np.ndarray:
+                raise ValueError('output must be an array')
+            if len(dim_ret) != len(out.shape):
+                raise ValueError('output parameter dimensions mismatch')
+            for i in range(len(dim_ret)):
+                if dim_ret[i] != out.shape[i]:
+                    raise ValueError('output parameter dimensions mismatch')
+        dim_keep = None
+        if keepdims == True:
+            dim_keep = dim.copy()
+            dim_keep[axis] = 1
+            if out!= None:
+                if tuple(dim_keep) != tuple(out.shape):
+                    raise ValueError('output must match when keepdims = True')
+        index_A = "" 
+        index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+        index_A = "".join(index_A)
+        index_temp = rev_array(index_A)
+        index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
+        index_B = rev_array(index_B)
+        # print(index_A, " ", index_B)
+        B = tsr(dim_ret, dtype=np.bool)
+        if A.get_type() == np.float64:
+            all_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int64:
+            all_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.bool:
+            all_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        if out != None:
+            if out.dtype != B.get_type():
+                if keepdims == True:
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return reshape(C, dim_keep)
+                else:
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return C
+        if keepdims == True:
+            return reshape(B, dim_keep)
+        return B
+    elif type(axis) == tuple or type(axis) == np.ndarray:
+        axis = np.asarray(axis, dtype=np.int64)
+        dim_keep = None
+        if keepdims == True:
+            dim_keep = dim.copy()
+            for i in range(len(axis)):
+                dim_keep[axis[i]] = 1
+            if out!= None:
+                if tuple(dim_keep) != tuple(out.shape):
+                    raise ValueError('output must match when keepdims = True')
+        for i in range(len(axis.shape)):
+            if axis[i] < 0:
+                axis[i] += len(dim)
+            if axis[i] >= len(dim) or axis[i] < 0:
+                raise ValueError("'axis' entry is out of bounds")
+        for i in range(len(axis.shape)):
+            if np.count_nonzero(axis==axis[i]) > 1:
+                raise ValueError("duplicate value in 'axis'")
+        dim_ret = np.delete(dim, axis)
+        if out != None:
+            if type(out) != np.ndarray:
+                raise ValueError('output must be an array')
+            if len(dim_ret) != len(out.shape):
+                raise ValueError('output parameter dimensions mismatch')
+            for i in range(len(dim_ret)):
+                if dim_ret[i] != out.shape[i]:
+                    raise ValueError('output parameter dimensions mismatch')
+        B = tsr(dim_ret, dtype=np.bool)
+        index_A = "" 
+        index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+        index_A = "".join(index_A)
+        index_temp = rev_array(index_A)
+        index_B = ""
+        for i in range(len(dim)):
+            if i not in axis:
+                index_B += index_temp[i]
+        index_B = rev_array(index_B)
+        # print(" ", index_A, " ", index_B)
+        if A.get_type() == np.float64:
+            all_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int64:
+            all_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.bool:
+            all_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        if out != None:
+            if out.dtype != B.get_type():
+                if keepdims == True:
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return reshape(C, dim_keep)
+                else:
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return C
+        if keepdims == True:
+            return reshape(B, dim_keep)
+        return B
+    else:
+        raise ValueError("an integer is required")
+    return None
+
 #def all(A, axis=None, out=None, keepdims=None):
-#    if not isinstance(A,tsr):
-#        print("not a tensor")
-#        return None
-#
-#    out_type = True
-#    if out == None:
-#        out_type = False
-#	
-#    if out_type==True and not(isinstance(out,tsr)):
-#        print("out is not a tensor")
-#        return None
-#    
-#    #ret_dim = None
-#    #if isinstance(out,tsr):
-#        #print(outputdim," ",ret_dim)
-#        #if(outputdim != ret_dim):
-#            #print("dimension of output mismatch")
-#            #return None
-#        #else:
-#            #if keepdims == True:
-#                #print("Must match the dimension when keepdims = True")
-#            #else:
-#		# FIX ME
-#                #B = tsr(ret_dim, dtype = out.get_type())
-#
-#    if axis == None:
-#        compare_tensor = zeros(A.get_dims(),A.get_type())
-#        print(A.get_type())
-#        B = (A==compare_tensor)
-#        if B.bool_sum() > 0.0:
-#            return True
-#        return False
-#	
-#    dim = A.get_dims()
-#    axis_tuple=()
-#    # check whether the axis entry is out of bounds
-#    if type(axis)==int:
-#        if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
-#            print("'axis' entry is out of bounds")
-#            return None
-#    elif type(axis)==tuple:
-#        for i in range(len(axis)):
-#            if axis[i] >= len(dim) or axis[i] <= (-len(dim)-1):
-#                print("'axis' entry is out of bounds")
-#                return None
-#        axis_arr = list(axis)
-#        for i in range(len(axis)):
-#            if type(axis_arr[i])!=int:
-#                print("Value in the tuple should be int.")
-#            if axis_arr[i] < 0:
-#                axis_arr[i] += len(dim)
-#            if axis_arr[i] in axis_tuple:
-#                print("duplicate value in 'axis'")
-#                return None
-#            axis_tuple += (axis_arr[i],)	
-#    
-#    # if axis not None and axis is int
-#    if type(axis)==int:
-#        ret_dim = []
-#        for i in range(len(dim)):
-#            if i != axis:
-#                ret_dim.append(dim[i])
-#        ret_dim = tuple(ret_dim)
-#    
-#        D = zeros(A.get_dims(), np.float64)
-#        A.convert_type(D)
-#        compare_tensor = zeros(D.get_dims(),D.get_type())
-#        B = (D == compare_tensor)
-#        C = sum(B, axis=axis)
-#        E = zeros(C.get_dims(), np.float64)
-#        F = C.compare_helper(E)
-#        return F
-#
-#    B = None
-#    n, inds, vals = A.read_local()
-#    temp = astensor(vals, A.get_dims())
-#    for i in range(len(axis)-1,-1,-1):
-#        D = zeros(temp.get_dims(), np.float64)
-#        temp.convert_type(D)
-#        compare_tensor = zeros(D.get_dims(),D.get_type())
-#        B = (D == compare_tensor)
-#        C = sum(B, axis=axis[i])
-#        E = zeros(C.get_dims(), np.float64)
-#        F = C.compare_helper(E)
-#        n, inds, vals = F.read_local()
-#        temp = astensor(vals, F.get_dims())
-#    return F
-#
+    #if not isinstance(A,tsr):
+        #print("not a tensor")
+        #return None
 
-def all(A, axis=None, out=None, keepdims=None):
-    if not isinstance(A,tsr):
-        print("not a tensor")
-        return None
-
-    out_type = True
-    if out == None:
-        out_type = False
+    #out_type = True
+    #if out == None:
+        #out_type = False
 	
-    if out_type==True and not(isinstance(out,tsr)):
-        print("out is not a tensor")
-        return None
+    #if out_type==True and not(isinstance(out,tsr)):
+        #print("out is not a tensor")
+        #return None
     
     #ret_dim = None
     #if isinstance(out,tsr):
@@ -1417,68 +1491,68 @@ def all(A, axis=None, out=None, keepdims=None):
 		# FIX ME
                 #B = tsr(ret_dim, dtype = out.get_type())
 
-    if axis == None:
-        compare_tensor = zeros(A.get_dims(),A.get_type())
-        print(A.get_type())
-        B = (A==compare_tensor)
-        if B.bool_sum() > 0.0:
-            return True
-        return False
+    #if axis == None:
+        #compare_tensor = zeros(A.get_dims(),A.get_type())
+        #print(A.get_type())
+        #B = (A==compare_tensor)
+        #if B.bool_sum() > 0.0:
+            #return True
+        #return False
 	
-    dim = A.get_dims()
-    axis_tuple=()
+    #dim = A.get_dims()
+    #axis_tuple=()
     # check whether the axis entry is out of bounds
-    if type(axis)==int:
-        if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
-            print("'axis' entry is out of bounds")
-            return None
-    elif type(axis)==tuple:
-        for i in range(len(axis)):
-            if axis[i] >= len(dim) or axis[i] <= (-len(dim)-1):
-                print("'axis' entry is out of bounds")
-                return None
-        axis_arr = list(axis)
-        for i in range(len(axis)):
-            if type(axis_arr[i])!=int:
-                print("Value in the tuple should be int.")
-            if axis_arr[i] < 0:
-                axis_arr[i] += len(dim)
-            if axis_arr[i] in axis_tuple:
-                print("duplicate value in 'axis'")
-                return None
-            axis_tuple += (axis_arr[i],)	
+    #if type(axis)==int:
+        #if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
+           # print("'axis' entry is out of bounds")
+           # return None
+    #elif type(axis)==tuple:
+        #for i in range(len(axis)):
+            #if axis[i] >= len(dim) or axis[i] <= (-len(dim)-1):
+                #print("'axis' entry is out of bounds")
+                #return None
+        #axis_arr = list(axis)
+        #for i in range(len(axis)):
+            #if type(axis_arr[i])!=int:
+                #print("Value in the tuple should be int.")
+            #if axis_arr[i] < 0:
+                #axis_arr[i] += len(dim)
+            #if axis_arr[i] in axis_tuple:
+                #print("duplicate value in 'axis'")
+                #return None
+            #axis_tuple += (axis_arr[i],)	
     
     # if axis not None and axis is int
-    if type(axis)==int:
-        ret_dim = []
-        for i in range(len(dim)):
-            if i != axis:
-                ret_dim.append(dim[i])
-        ret_dim = tuple(ret_dim)
+    #if type(axis)==int:
+        #ret_dim = []
+        #for i in range(len(dim)):
+            #if i != axis:
+                #ret_dim.append(dim[i])
+        #ret_dim = tuple(ret_dim)
     
-        D = zeros(A.get_dims(), np.float64)
-        A.convert_type(D)
-        compare_tensor = zeros(D.get_dims(),D.get_type())
-        B = (D == compare_tensor)
-        C = sum(B, axis=axis)
-        E = zeros(C.get_dims(), np.float64)
-        F = C.compare_helper(E)
-        return F
+        #D = zeros(A.get_dims(), np.float64)
+        #A.convert_type(D)
+        #compare_tensor = zeros(D.get_dims(),D.get_type())
+        #B = (D == compare_tensor)
+        #C = sum(B, axis=axis)
+        #E = zeros(C.get_dims(), np.float64)
+        #F = C.compare_helper(E)
+        #return F
 
-    B = None
-    n, inds, vals = A.read_local()
-    temp = astensor(vals, A.get_dims())
-    for i in range(len(axis)-1,-1,-1):
-        D = zeros(temp.get_dims(), np.float64)
-        temp.convert_type(D)
-        compare_tensor = zeros(D.get_dims(),D.get_type())
-        B = (D == compare_tensor)
-        C = sum(B, axis=axis[i])
-        E = zeros(C.get_dims(), np.float64)
-        F = C.compare_helper(E)
-        n, inds, vals = F.read_local()
-        temp = astensor(vals, F.get_dims())
-    return F
+    #B = None
+    #n, inds, vals = A.read_local()
+    #temp = astensor(vals, A.get_dims())
+    #for i in range(len(axis)-1,-1,-1):
+        #D = zeros(temp.get_dims(), np.float64)
+        #temp.convert_type(D)
+        #compare_tensor = zeros(D.get_dims(),D.get_type())
+        #B = (D == compare_tensor)
+        #C = sum(B, axis=axis[i])
+        #E = zeros(C.get_dims(), np.float64)
+        #F = C.compare_helper(E)
+        #n, inds, vals = F.read_local()
+        #temp = astensor(vals, F.get_dims())
+    #return F
 
 # issues:
 # when the input is numpy array
