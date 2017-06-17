@@ -350,30 +350,55 @@ cdef class tsr:
             (<Tensor[double complex]*>self.dt).fill_sp_random(mn,mx,frac)
         else:
             raise ValueError('bad dtype')
+
+# issue: when shape contains 1 such as [3,4,1]
 	
-    def all(tsr self, axis=None, out=None):
+    def all(tsr self, axis=None, out=None, keepdims = None):
+        if keepdims == None:
+            keepdims = False
         if axis == None:
             if out != None:
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
-                if out.shape != ():
+                if out.shape != () and keepdims == False:
                     raise ValueError('output parameter has too many dimensions')
+                if keepdims == True:
+                    dims_keep = []
+                    for i in range(len(self.dims)):
+                        dims_keep.append(1)
+                    dims_keep = tuple(dims_keep)
+                    if out.shape != dims_keep:
+                        raise ValueError('output must match when keepdims = True')
             B = tsr((1,), dtype=np.bool)
+            index_A = "" 
+            index_A = random.sample(string.ascii_letters+string.digits,len(self.get_dims()))
+            index_A = "".join(index_A)
             if self.typ == np.float64:
-                all_helper[double](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "".encode())
+                all_helper[double](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
             elif self.typ == np.int64:
-                all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "".encode())
+                all_helper[int64_t](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
             elif self.typ == np.bool:
-                all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, "jk".encode(), "".encode())
+                all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
             if out != None:
                 if out.dtype != B.get_type():
+                    if keepdims == True:
+                        dim_keep = np.ones(len(self.dims),dtype=np.int64)
+                        ret = reshape(B,dim_keep)
                     C = tsr((1,), dtype=out.dtype)
                     B.convert_type(C)
                     n, inds, vals = C.read_local()
                     return vals.reshape(out.shape)
                 else:
+                    if keepdims == True:
+                        dim_keep = np.ones(len(self.dims),dtype=np.int64)
+                        ret = reshape(B,dim_keep)
+                        return ret
                     n, inds, vals = B.read_local()
                     return vals.reshape(out.shape)
+            if keepdims == True:
+                dim_keep = np.ones(len(self.dims),dtype=np.int64)
+                ret = reshape(B,dim_keep)
+                return ret
             n, inds, vals = B.read_local()
             return vals[0]
 
@@ -385,6 +410,7 @@ cdef class tsr:
             if axis >= len(dim) or axis < 0:
                 raise ValueError("'axis' entry is out of bounds")
             dim_ret = np.delete(dim, axis)
+            print(dim_ret)
             if out != None:
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
@@ -393,10 +419,20 @@ cdef class tsr:
                 for i in range(len(dim_ret)):
                     if dim_ret[i] != out.shape[i]:
                         raise ValueError('output parameter dimensions mismatch')
+            dim_keep = None
+            if keepdims == True:
+                dim_keep = dim.copy()
+                dim_keep[axis] = 1
+                if out!= None:
+                    if tuple(dim_keep) != tuple(out.shape):
+                        raise ValueError('output must match when keepdims = True')
             index_A = "" 
             index_A = random.sample(string.ascii_letters+string.digits,len(dim))
             index_A = "".join(index_A)
-            index_B = index_A[0:axis] + index_A[axis+1:len(dim)]
+            index_temp = rev_array(index_A)
+            index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
+            index_B = rev_array(index_B)
+            # print(index_A, " ", index_B)
             B = tsr(dim_ret, dtype=np.bool)
             if self.typ == np.float64:
                 all_helper[double](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
@@ -406,12 +442,27 @@ cdef class tsr:
                 all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             if out != None:
                 if out.dtype != B.get_type():
-                    C = tsr(dim_ret, dtype=out.dtype)
-                    B.convert_type(C)
-                    return C
+                    if keepdims == True:
+                        C = tsr(dim_ret, dtype=out.dtype)
+                        B.convert_type(C)
+                        return reshape(C, dim_keep)
+                    else:
+                        C = tsr(dim_ret, dtype=out.dtype)
+                        B.convert_type(C)
+                        return C
+            if keepdims == True:
+                return reshape(B, dim_keep)
             return B
         elif type(axis) == tuple or type(axis) == np.ndarray:
             axis = np.asarray(axis, dtype=np.int64)
+            dim_keep = None
+            if keepdims == True:
+                dim_keep = dim.copy()
+                for i in range(len(axis)):
+                    dim_keep[axis[i]] = 1
+                if out!= None:
+                    if tuple(dim_keep) != tuple(out.shape):
+                        raise ValueError('output must match when keepdims = True')
             for i in range(len(axis.shape)):
                 if axis[i] < 0:
                     axis[i] += len(dim)
@@ -433,11 +484,13 @@ cdef class tsr:
             index_A = "" 
             index_A = random.sample(string.ascii_letters+string.digits,len(dim))
             index_A = "".join(index_A)
+            index_temp = rev_array(index_A)
             index_B = ""
             for i in range(len(dim)):
                 if i not in axis:
-                    index_B += index_A[i]
-            # print(dim_ret, " ", index_A, " ", index_B)
+                    index_B += index_temp[i]
+            index_B = rev_array(index_B)
+            # print(" ", index_A, " ", index_B)
             if self.typ == np.float64:
                 all_helper[double](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.typ == np.int64:
@@ -446,9 +499,16 @@ cdef class tsr:
                 all_helper[bool](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
             if out != None:
                 if out.dtype != B.get_type():
-                    C = tsr(dim_ret, dtype=out.dtype)
-                    B.convert_type(C)
-                    return C
+                    if keepdims == True:
+                        C = tsr(dim_ret, dtype=out.dtype)
+                        B.convert_type(C)
+                        return reshape(C, dim_keep)
+                    else:
+                        C = tsr(dim_ret, dtype=out.dtype)
+                        B.convert_type(C)
+                        return C
+            if keepdims == True:
+                return reshape(B, dim_keep)
             return B
         else:
             raise ValueError("an integer is required")
