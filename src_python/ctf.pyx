@@ -75,8 +75,13 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         int64_t get_tot_size()
         int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
         void conv_type[dtype_A,dtype_B](tensor * B)
+        void conv_type_self[dtype_A,dtype_B]()
         void compare_elementwise[dtype](tensor * A, tensor * B)
-#        void compare_helper_python[dtype](tensor * A, tensor * B)
+        void not_equals[dtype](tensor * A, tensor * B)
+        void smaller_than[dtype](tensor * A, tensor * B)
+        void smaller_equal_than[dtype](tensor * A, tensor * B)
+        void larger_than[dtype](tensor * A, tensor * B)
+        void larger_equal_than[dtype](tensor * A, tensor * B)
 
     cdef cppclass Term:
         Term * clone();
@@ -284,6 +289,11 @@ cdef class tsr:
             self.dt.conv_type[double,double](<tensor*> B.dt)
         elif self.typ == np.float64 and B.typ == np.int64:
             self.dt.conv_type[double,int64_t](<tensor*> B.dt)
+    
+    # issue that how can we change the type of tsr
+    #def convert_type_self(tsr self, dtype):
+        #if self.typ == np.float64 and dtype == np.int64:
+            #self.dt.conv_type_self[double, int64_t]()
 
     def get_dims(self):
         return self.dims
@@ -677,6 +687,9 @@ cdef class tsr:
                     raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
             else:
                 raise ValueError("casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'")
+        else:
+            #self.convert_type_self(np.int64)
+            return self
         return None
 
 # (9, array([0, 1, 2, 3, 4, 5, 6, 7, 8]), array([ 1.15979336,  1.99214521,  1.03956903,  1.59749466,  1.54228497...]))
@@ -973,25 +986,35 @@ cdef class tsr:
         else:
             self.write([], [])
 
-#    def compare_helper(tsr self, tsr b):
- #       c = tsr(self.get_dims(), dtype=np.bool)
-  #      c.dt.compare_helper_python[double](<tensor*>self.dt,<tensor*>b.dt)
-  #      return c
-
     def __richcmp__(tsr self, tsr b, op):
 	    # <
         if op == 0:
-            return None
+            if self.typ == np.float64:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.smaller_than[double](<tensor*>self.dt,<tensor*>b.dt)
+            elif self.typ == np.bool:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.smaller_than[bool](<tensor*>self.dt,<tensor*>b.dt)
+            else:
+                raise ValueError('bad dtype')
+            return c	
 			
 		# <=
         if op == 1:
-            return None
+            if self.typ == np.float64:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.smaller_equal_than[double](<tensor*>self.dt,<tensor*>b.dt)
+            elif self.typ == np.bool:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.smaller_equal_than[bool](<tensor*>self.dt,<tensor*>b.dt)
+            else:
+                raise ValueError('bad dtype')
+            return c	
 		
 		# ==	
         if op == 2:
-	    #FIXME: transfer sp, sym, order 
             if self.typ == np.float64:
-                c = tsr(self.get_dims(), dtype=np.float64)
+                c = tsr(self.get_dims(), dtype=np.bool)
                 c.dt.compare_elementwise[double](<tensor*>self.dt,<tensor*>b.dt)
             elif self.typ == np.bool:
                 c = tsr(self.get_dims(), dtype=np.bool)
@@ -1002,17 +1025,39 @@ cdef class tsr:
 		
     # !=
         if op == 3:
-            return None
+            if self.typ == np.float64:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.not_equals[double](<tensor*>self.dt,<tensor*>b.dt)
+            elif self.typ == np.bool:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.not_equals[bool](<tensor*>self.dt,<tensor*>b.dt)
+            else:
+                raise ValueError('bad dtype')
+            return c	
 	
 		# >
         if op == 4:
-            return None
+            if self.typ == np.float64:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.larger_than[double](<tensor*>self.dt,<tensor*>b.dt)
+            elif self.typ == np.bool:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.larger_than[bool](<tensor*>self.dt,<tensor*>b.dt)
+            else:
+                raise ValueError('bad dtype')
+            return c	
 			
 		# >=
         if op == 5:
-            return None
-			
-        return None
+            if self.typ == np.float64:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.larger_equal_than[double](<tensor*>self.dt,<tensor*>b.dt)
+            elif self.typ == np.bool:
+                c = tsr(self.get_dims(), dtype=np.bool)
+                c.dt.larger_equal_than[bool](<tensor*>self.dt,<tensor*>b.dt)
+            else:
+                raise ValueError('bad dtype')
+            return c	
 		
         #cdef int * inds
         #cdef function[equate_type] fbf

@@ -19,13 +19,38 @@ namespace CTF_int{
     s[""] += CTF::Function<bool, int64_t>([](bool a){ return (int64_t)a; })(A->operator[](str));
     return s.get_val();
   }
+
+	// == (add more dtype)
   template void tensor::compare_elementwise<double>(tensor * A, tensor * B);
-  template void tensor::compare_elementwise<bool>(tensor * A, tensor * B);
-  template void tensor::conv_type<double, bool>(tensor* B);
+ 	template void tensor::compare_elementwise<bool>(tensor * A, tensor * B);
+
+
+	// != (add more dtype)
+ 	template void tensor::not_equals<double>(tensor * A, tensor * B);
+ 	template void tensor::not_equals<bool>(tensor * A, tensor * B);
+
+	// < (add more dtype)
+ 	template void tensor::smaller_than<double>(tensor * A, tensor * B);
+ 	template void tensor::smaller_than<bool>(tensor * A, tensor * B);
+
+	// <= (add more dtype)
+ 	template void tensor::smaller_equal_than<double>(tensor * A, tensor * B);
+ 	template void tensor::smaller_equal_than<bool>(tensor * A, tensor * B);
+
+	// > (add more dtype)
+ 	template void tensor::larger_than<double>(tensor * A, tensor * B);
+ 	template void tensor::larger_than<bool>(tensor * A, tensor * B);
+
+	// >= (add more dtype)
+ 	template void tensor::larger_equal_than<double>(tensor * A, tensor * B);
+ 	template void tensor::larger_equal_than<bool>(tensor * A, tensor * B);
+  
+	template void tensor::conv_type<double, bool>(tensor* B);
   template void tensor::conv_type<bool, double>(tensor* B);
 	template void tensor::conv_type<double, int64_t>(tensor* B);
-  template void tensor::compare_helper_python<bool>(tensor * A, tensor * B);
-  template void tensor::compare_helper_python<double>(tensor * A, tensor * B);
+
+	template void tensor::conv_type_self<double, double>();
+
 	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int64_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<bool>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
