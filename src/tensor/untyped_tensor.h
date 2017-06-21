@@ -733,7 +733,7 @@ namespace CTF_int {
       template <typename dtype_A, typename dtype_B>
       void conv_type_self();
       
-			/**
+      /**
        * \brief do an elementwise comparison(==) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
        * \param[in] B second operand
@@ -741,7 +741,7 @@ namespace CTF_int {
       template <typename dtype>
       void compare_elementwise(tensor * A, tensor * B);
       
-			/**
+      /**
        * \brief do an elementwise comparison(!=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
        * \param[in] B second operand
@@ -749,7 +749,7 @@ namespace CTF_int {
       template <typename dtype>
       void not_equals(tensor * A, tensor * B);
 
-			/**
+      /**
        * \brief do an elementwise comparison(<) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
        * \param[in] B second operand
@@ -757,7 +757,7 @@ namespace CTF_int {
       template <typename dtype>
       void smaller_than(tensor * A, tensor * B);
 
-			/**
+      /**
        * \brief do an elementwise comparison(<=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
        * \param[in] B second operand
@@ -765,7 +765,7 @@ namespace CTF_int {
       template <typename dtype>
       void smaller_equal_than(tensor * A, tensor * B);
 
-			/**
+      /**
        * \brief do an elementwise comparison(>) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
        * \param[in] B second operand
@@ -773,7 +773,7 @@ namespace CTF_int {
       template <typename dtype>
       void larger_than(tensor * A, tensor * B);
 
-			/**
+      /**
        * \brief do an elementwise comparison(>=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
        * \param[in] B second operand
