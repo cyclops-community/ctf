@@ -24,7 +24,6 @@ namespace CTF_int{
   template void tensor::compare_elementwise<double>(tensor * A, tensor * B);
  	template void tensor::compare_elementwise<bool>(tensor * A, tensor * B);
 
-
 	// != (add more dtype)
  	template void tensor::not_equals<double>(tensor * A, tensor * B);
  	template void tensor::not_equals<bool>(tensor * A, tensor * B);
@@ -44,13 +43,15 @@ namespace CTF_int{
 	// >= (add more dtype)
  	template void tensor::larger_equal_than<double>(tensor * A, tensor * B);
  	template void tensor::larger_equal_than<bool>(tensor * A, tensor * B);
-  
+ 
+	// convert type (add more dtype) 
 	template void tensor::conv_type<double, bool>(tensor* B);
   template void tensor::conv_type<bool, double>(tensor* B);
 	template void tensor::conv_type<double, int64_t>(tensor* B);
 
 	template void tensor::conv_type_self<double, double>();
 
+	// ctf.all() function in c++ file (add more type)
 	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int64_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<bool>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
