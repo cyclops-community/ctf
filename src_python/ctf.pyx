@@ -966,6 +966,46 @@ cdef class tsr:
         else:
             raise ValueError('norm not present for this dtype')
 
+
+    def T(self, axes=None):
+        dim = self.dims
+        if axes == None:
+            B = tsr(dim, dtype=self.typ)
+            index = random.sample(string.ascii_letters+string.digits,len(dim))
+            index = "".join(index)
+            rev_index = str(index[::-1])
+            B.i(rev_index) << self.i(index)
+            return B
+   
+        # length of axes should match with the length of tensor dimension 
+        if len(axes) != len(dim):
+            raise ValueError("axes don't match tensor")
+
+        axes_list = list(axes)
+        for i in range(len(axes)):
+            # when any elements of axes is not an integer
+            if type(axes_list[i]) != int:
+                raise ValueError("an integer is required")
+            # change the negative axes to positive, which will be easier hangling
+            if axes_list[i] < 0:
+                axes_list[i] += len(dim)
+        for i in range(len(axes)):
+            # if axes out of bound
+            if axes_list[i] >= len(dim) or axes_list[i] < 0:
+                raise ValueError("invalid axis for this tensor")
+            # if axes are repeated
+            if axes_list.count(axes_list[i]) > 1:
+                raise ValueError("repeated axis in transpose")
+
+        index = random.sample(string.ascii_letters+string.digits,len(dim))
+        index = "".join(index)
+        rev_index = ""
+        for i in range(len(dim)):
+            rev_index += index[axes_list[i]]
+        B = tsr(dim, dtype=self.typ)
+        B.i(rev_index) << self.i(index)
+        return B
+
     def to_nparray(self):
         vals = np.zeros(self.tot_size(), dtype=self.typ)
         self.read_all(vals)
@@ -1083,10 +1123,55 @@ cdef class tsr:
 
 # 
 
-def empty(shape, dtype=None, order='F'):
-    return None
+def empty(shape, dtype=np.float64, order='F'):
+    if type(shape)!=int and type(shape)!=tuple and type(shape)!=np.ndarray and type(shape)!=list:
+        raise ValueError('an integer is required')
+    # FIX this
+    ret = tsr(shape, dtype=dtype)
+    return ret
+
+def T(self, axes=None):
+    dim = self.dims
+    if axes == None:
+        B = tsr(dim, dtype=self.typ)
+        index = random.sample(string.ascii_letters+string.digits,len(dim))
+        index = "".join(index)
+        rev_index = str(index[::-1])
+        B.i(rev_index) << self.i(index)
+        return B
+   
+    # length of axes should match with the length of tensor dimension 
+    if len(axes) != len(dim):
+        raise ValueError("axes don't match tensor")
+
+    axes_list = list(axes)
+    for i in range(len(axes)):
+        # when any elements of axes is not an integer
+        if type(axes_list[i]) != int:
+            raise ValueError("an integer is required")
+        # change the negative axes to positive, which will be easier hangling
+        if axes_list[i] < 0:
+            axes_list[i] += len(dim)
+    for i in range(len(axes)):
+        # if axes out of bound
+        if axes_list[i] >= len(dim) or axes_list[i] < 0:
+            raise ValueError("invalid axis for this tensor")
+        # if axes are repeated
+        if axes_list.count(axes_list[i]) > 1:
+            raise ValueError("repeated axis in transpose")
+
+    index = random.sample(string.ascii_letters+string.digits,len(dim))
+    index = "".join(index)
+    rev_index = ""
+    for i in range(len(dim)):
+        rev_index += index[axes_list[i]]
+    B = tsr(dim, dtype=self.typ)
+    B.i(rev_index) << self.i(index)
+    return B
 
 def empty_like(A, dtype=None, order='F', subok=True):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
     return None
 
 def diagonal(A, offset=0, axis1=0, axis2=1):
@@ -1304,7 +1389,6 @@ def to_nparray(t):
         return np.asarray(t)
 
 # return tensor with all zeros
-# dtype: np.float64, np.compex128 etc.
 def zeros(shape, dtype, order='F'):
     A = tsr(shape, dtype=dtype)
     return A
