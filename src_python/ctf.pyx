@@ -270,13 +270,14 @@ def rev_array(arr):
     arr2 = arr[::-1]
     return arr2
 
-
 cdef class tsr:
     cdef tensor * dt
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
     cdef int order
-   
+    cdef int ndim   
+    cdef int size
+    
     def bool_sum(tsr self):
         return sum_bool_tsr(<tensor*>self.dt)
     
@@ -290,15 +291,15 @@ cdef class tsr:
         elif self.typ == np.float64 and B.typ == np.int64:
             self.dt.conv_type[double,int64_t](<tensor*> B.dt)
     
-    # issue that how can we change the type of tsr
-    #def convert_type_self(tsr self, dtype):
-        #if self.typ == np.float64 and dtype == np.int64:
-            #self.dt.conv_type_self[double, int64_t]()
-
     def get_dims(self):
         return self.dims
+    
+    def get_ndim(self):
+        return self.ndim
 
-	# get the type of tsr
+    def get_size(self):
+        return self.size
+
     def get_type(self):
         return self.typ
 
@@ -306,7 +307,11 @@ cdef class tsr:
     def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tsr copy=None):
         self.typ = <cnp.dtype>dtype
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
+        self.ndim = len(self.dims)
         self.order = ord(order)
+        self.size = 1
+        for i in range(len(self.dims)):
+            self.size *= self.dims[i]
         rlens = lens[:]
         if order == 'F':
             rlens = rev_array(lens)
@@ -550,6 +555,17 @@ cdef class tsr:
 
     def prnt(self):
         self.dt.prnt()
+
+    def real(self):
+        if self.typ != np.complex64 and self.typ != np.complex128 and self.typ != np.complex256:
+            return self
+        return None
+
+    def imag(self):
+        if self.typ != np.complex64 and self.typ != np.complex128 and self.typ != np.complex256:
+            ret = zeros(self.dims, self.typ)
+            return ret
+        return None
 
     def copy(self):
         B = tsr(self.dims, dtype=self.typ, copy=self)
@@ -1141,6 +1157,17 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
 def trace(a, offset=0, axis1=0, axis2=1, dtype=None, out=None):
     return None
 
+def real(A):
+    if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
+        return A
+    return None
+
+def imag(A):
+    if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
+        ret = zeros(A.get_dims(), A.get_type())
+        return ret
+    return None
+
 def take(A, indices, axis=None, out=None, mode='raise'):
     if not isinstance(A, tsr):
         raise ValueError("A is not a tensor")
@@ -1274,6 +1301,10 @@ def take(A, indices, axis=None, out=None, mode='raise'):
             # permute
             return None
         return None
+
+def copy(tsr A):
+    B = tsr(A.get_dims(), dtype=A.get_type(), copy=A)
+    return B
 
 # the default order is Fortran
 
