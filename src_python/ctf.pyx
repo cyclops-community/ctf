@@ -270,14 +270,29 @@ def rev_array(arr):
     arr2 = arr[::-1]
     return arr2
 
+#class tsr1:
+    #cdef tsr A
+    
+    #def __init__(self, dim, dtype=np.float64, copy = None):
+        #self.A = tsr(dim, dtype = dtype, copy = copy)
+        #self.size = len(dim)
+
 cdef class tsr:
     cdef tensor * dt
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
     cdef int order
     cdef int ndim   
-    cdef int size
-    
+    cdef int size    
+
+    property size:
+        def __get__(self):
+            return self.size
+
+    property ndim:
+        def __get__(self):
+            return self.ndim
+
     def bool_sum(tsr self):
         return sum_bool_tsr(<tensor*>self.dt)
     
@@ -300,8 +315,10 @@ cdef class tsr:
     def get_size(self):
         return self.size
 
+	# get the type of tsr
     def get_type(self):
         return self.typ
+
 
 	# add type np.int64, int32
     def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tsr copy=None):
