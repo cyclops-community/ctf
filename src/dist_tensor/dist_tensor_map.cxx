@@ -1667,6 +1667,14 @@ int dist_tensor<dtype>::
 
   tsr_ndim = num_weigh;
 
+
+  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&restricted);
+  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
+  CTF_alloc_ptr(tsr_ndim*tsr_ndim*sizeof(int),       (void**)&tsr_sym_table);
+  CTF_alloc_ptr(tsr_ndim*sizeof(mapping),            (void**)&weigh_map);
+  
+  memset(tsr_sym_table, 0, tsr_ndim*tsr_ndim*sizeof(int));
+  memset(restricted, 0, tsr_ndim*sizeof(int));
   
   for (i=0; i<num_weigh; i++){
     iweigh = idx_weigh[i];
@@ -1676,16 +1684,21 @@ int dist_tensor<dtype>::
 
     if (tsr_A->edge_map[iA].type == PHYSICAL_MAP ||
         tsr_B->edge_map[iB].type == PHYSICAL_MAP ||
-        tsr_C->edge_map[iC].type == PHYSICAL_MAP)
-      return DIST_TENSOR_NEGATIVE; 
-  }  
-  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&restricted);
-  CTF_alloc_ptr(tsr_ndim*sizeof(int),                (void**)&tsr_edge_len);
-  CTF_alloc_ptr(tsr_ndim*tsr_ndim*sizeof(int),       (void**)&tsr_sym_table);
-  CTF_alloc_ptr(tsr_ndim*sizeof(mapping),            (void**)&weigh_map);
+        tsr_C->edge_map[iC].type == PHYSICAL_MAP){
+      if (tsr_A->edge_map[iA].type == PHYSICAL_MAP){
+        copy_mapping(1, tsr_A->edge_map + iA, tsr_B->edge_map+iB);
+        copy_mapping(1, tsr_A->edge_map + iA, tsr_C->edge_map+iC);
+      } else if (tsr_B->edge_map[iB].type == PHYSICAL_MAP){
+        copy_mapping(1, tsr_B->edge_map + iB, tsr_A->edge_map+iA);
+        copy_mapping(1, tsr_B->edge_map + iB, tsr_C->edge_map+iC);
 
-  memset(tsr_sym_table, 0, tsr_ndim*tsr_ndim*sizeof(int));
-  memset(restricted, 0, tsr_ndim*sizeof(int));
+      } else {
+        copy_mapping(1, tsr_C->edge_map + iC, tsr_B->edge_map+iB);
+        copy_mapping(1, tsr_C->edge_map + iC, tsr_A->edge_map+iA);
+      }
+      restricted[i] = 1;
+    }
+  }  
   extract_free_comms(topo, tsr_A->ndim, tsr_A->edge_map,
                            tsr_B->ndim, tsr_B->edge_map,
                      num_sub_phys_dims, &sub_phys_comm, &comm_idx);
