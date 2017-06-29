@@ -1066,7 +1066,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
         return DIST_TENSOR_ERROR;
       }
       if (ret == DIST_TENSOR_NEGATIVE){
-        //printf("map_to_topology returned negative\n");
+        //printf("%d map_to_topology returned negative\n",t);
         continue;
       }
   
@@ -1077,7 +1077,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
       tsr_B->itopo = i;
       tsr_C->itopo = i;
 #if DEBUG >= 3
-      printf("\nTest mappings:\n");
+      printf("\nTest mappings %d:\n",t);
       print_map(stdout, type->tid_A, 0);
       print_map(stdout, type->tid_B, 0);
       print_map(stdout, type->tid_C, 0);
@@ -1691,33 +1691,34 @@ int dist_tensor<dtype>::
       } else if (tsr_B->edge_map[iB].type == PHYSICAL_MAP){
         copy_mapping(1, tsr_B->edge_map + iB, tsr_A->edge_map+iA);
         copy_mapping(1, tsr_B->edge_map + iB, tsr_C->edge_map+iC);
-
       } else {
         copy_mapping(1, tsr_C->edge_map + iC, tsr_B->edge_map+iB);
         copy_mapping(1, tsr_C->edge_map + iC, tsr_A->edge_map+iA);
       }
+      weigh_map[i].type             = VIRTUAL_MAP; 
+      weigh_map[i].has_child        = 0; 
+      weigh_map[i].np               = 1; 
+      copy_mapping(1, tsr_C->edge_map + iC, weigh_map+i);
       restricted[i] = 1;
+    } else {
+      weigh_map[i].type             = VIRTUAL_MAP; 
+      weigh_map[i].has_child        = 0; 
+      weigh_map[i].np               = 1; 
+      weigh_map[i].np = lcm(weigh_map[i].np,tsr_A->edge_map[iA].np);
+      weigh_map[i].np = lcm(weigh_map[i].np,tsr_B->edge_map[iB].np);
+      weigh_map[i].np = lcm(weigh_map[i].np,tsr_C->edge_map[iC].np);
     }
   }  
   extract_free_comms(topo, tsr_A->ndim, tsr_A->edge_map,
                            tsr_B->ndim, tsr_B->edge_map,
+                           tsr_C->ndim, tsr_C->edge_map,
                      num_sub_phys_dims, &sub_phys_comm, &comm_idx);
 
-  for (i=0; i<tsr_ndim; i++){ 
-    weigh_map[i].type             = VIRTUAL_MAP; 
-    weigh_map[i].has_child        = 0; 
-    weigh_map[i].np               = 1; 
-  }
   for (i=0; i<num_weigh; i++){
     iweigh = idx_weigh[i];
     iA = idx_arr[iweigh*3+0];
     iB = idx_arr[iweigh*3+1];
     iC = idx_arr[iweigh*3+2];
-
-    
-    weigh_map[i].np = lcm(weigh_map[i].np,tsr_A->edge_map[iA].np);
-    weigh_map[i].np = lcm(weigh_map[i].np,tsr_B->edge_map[iB].np);
-    weigh_map[i].np = lcm(weigh_map[i].np,tsr_C->edge_map[iC].np);
 
     tsr_edge_len[i] = tsr_A->edge_len[iA];
 
@@ -1846,6 +1847,7 @@ int dist_tensor<dtype>::
     ictr = idx_ctr[i];
     iA = idx_arr[ictr*3+0];
     iB = idx_arr[ictr*3+1];
+
 
     copy_mapping(1, &tsr_A->edge_map[iA], &ctr_map[2*i+0]);
     copy_mapping(1, &tsr_B->edge_map[iB], &ctr_map[2*i+1]);
@@ -1985,7 +1987,7 @@ int dist_tensor<dtype>::
   tsr_B = tensors[tid_B];
   tsr_C = tensors[tid_C];
 
-/*  for (i=0; i<num_no_ctr; i++){
+  for (i=0; i<num_no_ctr; i++){
     inoctr = idx_no_ctr[i];
     iA = idx_arr[3*inoctr+0];
     iB = idx_arr[3*inoctr+1];
@@ -1998,7 +2000,7 @@ int dist_tensor<dtype>::
     if (iB != -1 && iA != -1){
       copy_mapping(1, tsr_C->edge_map + iB, tsr_A->edge_map + iA); 
     }
-  }*/
+  }
   /* Map remainders of A and B to remainders of phys grid */
   stat = map_tensor_rem(topo->ndim, topo->dim_comm, tsr_A, 1);
   if (stat != DIST_TENSOR_SUCCESS){
@@ -2038,6 +2040,9 @@ int dist_tensor<dtype>::
     } 
     if (iB != -1 && iC != -1){
       copy_mapping(1, tsr_C->edge_map + iC, tsr_B->edge_map + iB); 
+    }
+    if (iB != -1 && iA != -1){
+      copy_mapping(1, tsr_B->edge_map + iB, tsr_A->edge_map + iA); 
     }
   }
   TAU_FSTOP(map_noctr_indices);

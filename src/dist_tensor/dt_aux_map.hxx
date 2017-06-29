@@ -1244,6 +1244,84 @@ void extract_free_comms(topology const *  topo,
   *psub_phys_comm = sub_phys_comm;
 
 }
+/**
+ * \brief extracts the set of physical dimensions still available for mapping
+ * \param[in] topo topology
+ * \param[in] ndim_A dimension of A
+ * \param[in] edge_map_A mapping of A
+ * \param[in] ndim_B dimension of B
+ * \param[in] edge_map_B mapping of B
+ * \param[in] ndim_C dimension of C
+ * \param[in] edge_map_C mapping of C
+ * \param[out] num_sub_phys_dims number of free torus dimensions
+ * \param[out] sub_phys_comm the torus dimensions
+ * \param[out] comm_idx index of the free torus dimensions in the origin topology
+ */
+void extract_free_comms(topology const *  topo,
+                        int               ndim_A,
+                        mapping const *   edge_map_A,
+                        int               ndim_B,
+                        mapping const *   edge_map_B,
+                        int               ndim_C,
+                        mapping const *   edge_map_C,
+                        int &             num_sub_phys_dims,
+                        CommData_t **     psub_phys_comm,
+                        int **            pcomm_idx){
+  int i;
+  int phys_mapped[topo->ndim];
+  CommData_t * sub_phys_comm;
+  int * comm_idx;
+  mapping const * map;
+  memset(phys_mapped, 0, topo->ndim*sizeof(int));  
+  
+  num_sub_phys_dims = 0;
+
+  for (i=0; i<ndim_A; i++){
+    map = &edge_map_A[i];
+    while (map->type == PHYSICAL_MAP){
+      phys_mapped[map->cdt] = 1;
+      if (map->has_child) map = map->child;
+      else break;
+    } 
+  }
+  for (i=0; i<ndim_B; i++){
+    map = &edge_map_B[i];
+    while (map->type == PHYSICAL_MAP){
+      phys_mapped[map->cdt] = 1;
+      if (map->has_child) map = map->child;
+      else break;
+    } 
+  }
+  for (i=0; i<ndim_C; i++){
+    map = &edge_map_C[i];
+    while (map->type == PHYSICAL_MAP){
+      phys_mapped[map->cdt] = 1;
+      if (map->has_child) map = map->child;
+      else break;
+    } 
+  }
+
+
+  num_sub_phys_dims = 0;
+  for (i=0; i<topo->ndim; i++){
+    if (phys_mapped[i] == 0){
+      num_sub_phys_dims++;
+    }
+  }
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(CommData_t), (void**)&sub_phys_comm);
+  CTF_alloc_ptr(num_sub_phys_dims*sizeof(int), (void**)&comm_idx);
+  num_sub_phys_dims = 0;
+  for (i=0; i<topo->ndim; i++){
+    if (phys_mapped[i] == 0){
+      sub_phys_comm[num_sub_phys_dims] = topo->dim_comm[i];
+      comm_idx[num_sub_phys_dims] = i;
+      num_sub_phys_dims++;
+    }
+  }
+  *pcomm_idx = comm_idx;
+  *psub_phys_comm = sub_phys_comm;
+
+}
 
 /**
  * \brief determines if two topologies are compatible with each other
