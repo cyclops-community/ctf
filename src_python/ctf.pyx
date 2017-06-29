@@ -270,20 +270,51 @@ def rev_array(arr):
     arr2 = arr[::-1]
     return arr2
 
-#class tsr1:
-    #cdef tsr A
+class FLAGS(object):
+    def __init__(self, c_con=False, f_con=True, own=True, write=True, align=True, update=False):
+        self.C_CONTIGUOUS = c_con
+        self.F_CONTIGUOUS = f_con
+        self.OWNDATA = own
+        self.WRITEABLE = write
+        self.ALIGNED = align
+        self.UPDATEIFCOPY = update
     
-    #def __init__(self, dim, dtype=np.float64, copy = None):
-        #self.A = tsr(dim, dtype = dtype, copy = copy)
-        #self.size = len(dim)
+    def __str__(self):
+        s =  "C_CONTIGUOUS : " + str(self.C_CONTIGUOUS) + "\n"
+        s +=  "F_CONTIGUOUS : " + str(self.F_CONTIGUOUS) + "\n"
+        s +=  "OWNDATA : " + str(self.OWNDATA) + "\n"
+        s +=  "WRITEABLE : " + str(self.WRITEABLE) + "\n"
+        s +=  "ALIGNED : " + str(self.ALIGNED) + "\n"
+        s +=  "UPDATEIFCOPY : " + str(self.UPDATEIFCOPY)
+        return s
 
-cdef class tsr:
+cdef class tsr(object):
     cdef tensor * dt
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
     cdef int order
     cdef int ndim   
-    cdef int size    
+    cdef int size
+    cdef int itemsize
+    cdef int nbytes
+    cdef tuple strides
+    cdef object flags
+
+    property flags:
+        def __get__(self):
+            return self.flags
+
+    property strides:
+        def __get__(self):
+            return self.strides
+
+    property nbytes:
+        def __get__(self):
+            return self.nbytes
+
+    property itemsize:
+        def __get__(self):
+            return self.itemsize
 
     property size:
         def __get__(self):
@@ -309,13 +340,6 @@ cdef class tsr:
     def get_dims(self):
         return self.dims
     
-    def get_ndim(self):
-        return self.ndim
-
-    def get_size(self):
-        return self.size
-
-	# get the type of tsr
     def get_type(self):
         return self.typ
 
@@ -326,9 +350,30 @@ cdef class tsr:
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
         self.ndim = len(self.dims)
         self.order = ord(order)
+        if self.typ == np.bool:
+            self.itemsize = 1
+        else:
+            self.itemsize = np.dtype(self.typ).itemsize
         self.size = 1
         for i in range(len(self.dims)):
             self.size *= self.dims[i]
+        self.nbytes = self.size * self.itemsize
+        strides = [1] * len(self.dims)
+        for i in range(len(self.dims)-1, -1, -1):
+            if i == len(self.dims) -1:
+                strides[i] = self.itemsize
+            else:
+                strides[i] = self.dims[i+1] * strides[i+1]
+        self.strides = tuple(strides)
+        f_con = True
+        c_con = False
+        if order == "F":
+            c_con = False
+            f_con = True
+        else:
+            c_con = True
+            f_con = False
+        self.flags = FLAGS(c_con = c_con, f_con = f_con)
         rlens = lens[:]
         if order == 'F':
             rlens = rev_array(lens)
