@@ -121,6 +121,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
 cdef extern from "ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(tensor *);
     cdef void all_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
+    cdef void any_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
     
 cdef extern from "../include/ctf.hpp" namespace "CTF":
 
@@ -288,7 +289,7 @@ class FLAGS(object):
         s +=  "UPDATEIFCOPY : " + str(self.UPDATEIFCOPY)
         return s
 
-cdef class tsr(object):
+cdef class tsr:
     cdef tensor * dt
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
@@ -1585,6 +1586,50 @@ def ravel(A, order="F"):
     if order == "F":
         n, inds, vals = A.read_local()
         return astensor(vals)
+
+def any(tsr A, axis=None, out=None, keepdims=None):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
+    
+    if keepdims == None:
+        keepdims = False
+    
+    if axis == None:
+        if out != None and type(out) != np.ndarray:
+            raise ValueError('output must be an array')
+        if out != None and out.shape != () and keepdims == False:
+            raise ValueError('output parameter has too many dimensions')
+        if keepdims == True:
+            dims_keep = []
+            for i in range(len(A.get_dims())):
+                dims_keep.append(1)
+            dims_keep = tuple(dims_keep)
+            if out != None and out.shape != dims_keep:
+                raise ValueError('output must match when keepdims = True')
+        B = tsr((1,), dtype=np.bool)
+        index_A = "" 
+        index_A = random.sample(string.ascii_letters+string.digits,len(A.get_dims()))
+        index_A = "".join(index_A)
+        if A.get_type() == np.float64:
+            any_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.int64:
+            any_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.int32:
+            any_helper[int32_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.int16:
+            any_helper[int16_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.int8:
+            any_helper[int8_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        elif A.get_type() == np.bool:
+            any_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), "".encode())
+        if out is not None and out.get_type() != np.bool:
+            C = tsr((1,), dtype=out.dtype)
+            B.convert_type(C)
+            n, inds, vals = C.read_local()
+            return vals[0]
+        else:
+            n, inds, vals = B.read_local()
+            return vals[0]
 
 # check whether along the given axis all array elements are true (not 0)
 # Issues:

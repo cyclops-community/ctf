@@ -10,6 +10,11 @@ namespace CTF_int{
     B_bool->operator[](idx_B) = CTF::Function<bool, bool>([](bool a){ return a==false ? true : false; })(B_bool->operator[](idx_B));
   }
 
+  template <typename dtype>
+  void any_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B){
+    B_bool->operator[](idx_B) = CTF::Function<dtype,bool>([](dtype a){ return a == 0 ? false : true; })(A->operator[](idx_A));
+  }
+
   int64_t sum_bool_tsr(tensor * A){
     CTF::Scalar<int64_t> s(*A->wrld);
     char str[A->order];
@@ -58,4 +63,12 @@ namespace CTF_int{
 	template void all_helper<int32_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int16_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int8_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+
+  // ctf.any() function in c++ file (add more type)
+	template void any_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void any_helper<int64_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void any_helper<bool>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void any_helper<int32_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void any_helper<int16_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void any_helper<int8_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 }
