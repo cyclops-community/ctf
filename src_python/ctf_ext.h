@@ -10,7 +10,11 @@ namespace CTF_int{
   template <typename dtype>
   void all_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 
-
+  /**
+   * \python any function
+   * \param[in] A tensor, param[in] B tensor with bool values created, param[in] index of A, param[in] index of B
+   * \return None
+   */
   template <typename dtype>
   void any_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
   /**

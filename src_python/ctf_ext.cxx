@@ -53,8 +53,8 @@ namespace CTF_int{
 	template void tensor::conv_type<double, bool>(tensor* B);
   template void tensor::conv_type<bool, double>(tensor* B);
 	template void tensor::conv_type<double, int64_t>(tensor* B);
+	template void tensor::conv_type<double, std::complex<double>>(tensor* B);
 
-	template void tensor::conv_type_self<double, double>();
 
 	// ctf.all() function in c++ file (add more type)
 	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);

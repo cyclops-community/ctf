@@ -314,6 +314,8 @@ cdef class tsr:
             self.dt.conv_type[double,double](<tensor*> B.dt)
         elif self.typ == np.float64 and B.typ == np.int64:
             self.dt.conv_type[double,int64_t](<tensor*> B.dt)
+        elif self.typ == np.float64 and B.typ == np.complex128:
+            self.dt.conv_type[double,complex](<tensor*> B.dt)
     
     def get_dims(self):
         return self.dims
@@ -674,11 +676,10 @@ cdef class tsr:
                 dtype = np.int64
             if dtype == float:
                 dtype = np.float64
-            #if dtype == bool:
-                #dtype = np.bool
-            # if dtype == complex:
-                # == is not working, cython confliction may be
-                #dtype = np.complex128
+            if str(dtype) == "<class 'bool'>":
+                dtype = np.bool
+            if str(dtype) == "<class 'complex'>":
+                dtype = np.complex128
             B = tsr(self.dims, dtype = dtype)
             self.convert_type(B)
             return B
