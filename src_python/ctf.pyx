@@ -667,77 +667,72 @@ cdef class tsr:
     # assume the order is 'F'
     # assume the casting is unsafe (no, equiv, safe, same_kind, unsafe)
     # originally in numpy's astype there is subok, (subclass) not available now in ctf?
-    def astype(self, dtype, order='F', casting='unsafe', copy=True):
-        if copy==True:
-            if casting == 'unsafe':
-                # may add more types
-                if dtype == int:
-                    dtype = np.int64
-                if dtype == float:
-                    dtype = np.float64
-                #if dtype == bool:
-                    #dtype = np.bool
-                # if dtype == complex:
-                    # == is not working, cython confliction may be
-                    #dtype = np.complex128
-                B = tsr(self.dims, dtype = dtype)
-                self.convert_type(B)
-                return B
-            elif casting == 'safe':
-                if dtype == int:
-                    dtype = np.int64
-                if dtype == float:
-                    dtype = np.float64
-                # np.bool doesnot have itemsize
-                if (self.typ != np.bool and dtype != np.bool) and self.typ.itemsize > dtype.itemsize:
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
-                if dtype == np.bool and self.typ != np.bool:
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
-                str_self = str(self.typ)
-                str_dtype = str(dtype)
-                if "float" in str_self and "int" in str_dtype:
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
-                elif "complex" in str_self and ("int" in str_dtype or "float" in str_dtype):
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
-                B = tsr(self.dims, dtype = dtype)
-                self.convert_type(B)
-                return B
-            elif casting == 'equiv':
-                # only allows byte-wise change
-                if dtype == int:
-                    dtype = np.int64
-                if dtype == float:
-                    dtype = np.float64
-                if self.typ != dtype:
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'equiv'")
-            elif casting == 'no':
-                if dtype == int:
-                    dtype = np.int64
-                if dtype == float:
-                    dtype = np.float64
-                if self.typ != dtype:
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'no'")
-                B = tsr(self.dims, dtype = self.typ, copy = self)
-                return B
-            elif casting == 'same_kind':
-                if dtype == int:
-                    dtype = np.int64
-                if dtype == float:
-                    dtype = np.float64
-                str_self = str(self.typ)
-                str_dtype = str(dtype)
-                if 'float' in str_self and 'int' in str_dtype:
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
-                if 'complex' in str_self and ('int' in str_dtype or ('float' in str_dtype)):
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
-                if self.typ != np.bool and dtype == np.bool:
-                    raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
-            else:
-                raise ValueError("casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'")
+    def astype(self, dtype, order='F', casting='unsafe'):
+        if casting == 'unsafe':
+            # may add more types
+            if dtype == int:
+                dtype = np.int64
+            if dtype == float:
+                dtype = np.float64
+            #if dtype == bool:
+                #dtype = np.bool
+            # if dtype == complex:
+                # == is not working, cython confliction may be
+                #dtype = np.complex128
+            B = tsr(self.dims, dtype = dtype)
+            self.convert_type(B)
+            return B
+        elif casting == 'safe':
+            if dtype == int:
+                dtype = np.int64
+            if dtype == float:
+                dtype = np.float64
+            # np.bool doesnot have itemsize
+            if (self.typ != np.bool and dtype != np.bool) and self.typ.itemsize > dtype.itemsize:
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
+            if dtype == np.bool and self.typ != np.bool:
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
+            str_self = str(self.typ)
+            str_dtype = str(dtype)
+            if "float" in str_self and "int" in str_dtype:
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
+            elif "complex" in str_self and ("int" in str_dtype or "float" in str_dtype):
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
+            B = tsr(self.dims, dtype = dtype)
+            self.convert_type(B)
+            return B
+        elif casting == 'equiv':
+            # only allows byte-wise change
+            if dtype == int:
+                dtype = np.int64
+            if dtype == float:
+                dtype = np.float64
+            if self.typ != dtype:
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'equiv'")
+        elif casting == 'no':
+            if dtype == int:
+                dtype = np.int64
+            if dtype == float:
+                dtype = np.float64
+            if self.typ != dtype:
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'no'")
+            B = tsr(self.dims, dtype = self.typ, copy = self)
+            return B
+        elif casting == 'same_kind':
+            if dtype == int:
+                dtype = np.int64
+            if dtype == float:
+                dtype = np.float64
+            str_self = str(self.typ)
+            str_dtype = str(dtype)
+            if 'float' in str_self and 'int' in str_dtype:
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
+            if 'complex' in str_self and ('int' in str_dtype or ('float' in str_dtype)):
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
+            if self.typ != np.bool and dtype == np.bool:
+                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
         else:
-            #self.convert_type_self(np.int64)
-            return self
-        return None
+            raise ValueError("casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'")
 
 # (9, array([0, 1, 2, 3, 4, 5, 6, 7, 8]), array([ 1.15979336,  1.99214521,  1.03956903,  1.59749466,  1.54228497...]))
     def read_local(self):
