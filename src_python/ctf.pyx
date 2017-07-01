@@ -1627,13 +1627,148 @@ def any(tsr A, axis=None, out=None, keepdims=None):
             B.convert_type(C)
             n, inds, vals = C.read_local()
             return vals[0]
+        elif out is not None and keepdims == True and out.get_type() != np.bool:
+            C = tsr(dims_keep, dtype=out.dtype)
+            B.convert_type(C)
+            return C
+        elif out == None and keepdims == True:
+            ret = reshape(B,dims_keep)
+            return ret
+        elif out is not None and keepdims == True and out.get_type() == np.bool:
+            ret = reshape(B,dims_keep)
+            return ret
         else:
             n, inds, vals = B.read_local()
             return vals[0]
 
+
+    dim = A.get_dims()
+    if type(axis) == int:
+        if axis < 0:
+            axis += len(dim)
+        if axis >= len(dim) or axis < 0:
+            raise ValueError("'axis' entry is out of bounds")
+        dim_ret = np.delete(dim, axis)
+        # print(dim_ret)
+        if out != None:
+            if type(out) != np.ndarray:
+                raise ValueError('output must be an array')
+            if len(dim_ret) != len(out.shape):
+                raise ValueError('output parameter dimensions mismatch')
+            for i in range(len(dim_ret)):
+                if dim_ret[i] != out.shape[i]:
+                    raise ValueError('output parameter dimensions mismatch')
+        dim_keep = None
+        if keepdims == True:
+            dim_keep = dim.copy()
+            dim_keep[axis] = 1
+            if out!= None:
+                if tuple(dim_keep) != tuple(out.shape):
+                    raise ValueError('output must match when keepdims = True')
+        index_A = "" 
+        index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+        index_A = "".join(index_A)
+        index_temp = rev_array(index_A)
+        index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
+        index_B = rev_array(index_B)
+        # print(index_A, " ", index_B)
+        B = tsr(dim_ret, dtype=np.bool)
+        if A.get_type() == np.float64:
+            any_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int64:
+            any_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int32:
+            any_helper[int32_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int16:
+            any_helper[int16_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int8:
+            any_helper[int8_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.bool:
+            any_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        if out != None:
+            if out.dtype != B.get_type():
+                if keepdims == True:
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return reshape(C, dim_keep)
+                else:
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return C
+        if keepdims == True:
+            return reshape(B, dim_keep)
+        return B
+    elif type(axis) == tuple or type(axis) == np.ndarray:
+        axis = np.asarray(axis, dtype=np.int64)
+        dim_keep = None
+        if keepdims == True:
+            dim_keep = dim.copy()
+            for i in range(len(axis)):
+                dim_keep[axis[i]] = 1
+            if out!= None:
+                if tuple(dim_keep) != tuple(out.shape):
+                    raise ValueError('output must match when keepdims = True')
+        for i in range(len(axis.shape)):
+            if axis[i] < 0:
+                axis[i] += len(dim)
+            if axis[i] >= len(dim) or axis[i] < 0:
+                raise ValueError("'axis' entry is out of bounds")
+        for i in range(len(axis.shape)):
+            if np.count_nonzero(axis==axis[i]) > 1:
+                raise ValueError("duplicate value in 'axis'")
+        dim_ret = np.delete(dim, axis)
+        if out != None:
+            if type(out) != np.ndarray:
+                raise ValueError('output must be an array')
+            if len(dim_ret) != len(out.shape):
+                raise ValueError('output parameter dimensions mismatch')
+            for i in range(len(dim_ret)):
+                if dim_ret[i] != out.shape[i]:
+                    raise ValueError('output parameter dimensions mismatch')
+        B = tsr(dim_ret, dtype=np.bool)
+        index_A = "" 
+        index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+        index_A = "".join(index_A)
+        index_temp = rev_array(index_A)
+        index_B = ""
+        for i in range(len(dim)):
+            if i not in axis:
+                index_B += index_temp[i]
+        index_B = rev_array(index_B)
+        # print(" ", index_A, " ", index_B)
+        if A.get_type() == np.float64:
+            any_helper[double](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int64:
+            any_helper[int64_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int32:
+            any_helper[int32_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int16:
+            any_helper[int16_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.int8:
+            any_helper[int8_t](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        elif A.get_type() == np.bool:
+            any_helper[bool](<tensor*>A.dt, <tensor*>B.dt, index_A.encode(), index_B.encode())
+        if out != None:
+            if out.dtype != B.get_type():
+                if keepdims == True:
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return reshape(C, dim_keep)
+                else:
+                    C = tsr(dim_ret, dtype=out.dtype)
+                    B.convert_type(C)
+                    return C
+        if keepdims == True:
+            return reshape(B, dim_keep)
+        return B
+    else:
+        raise ValueError("an integer is required")
+    return None
+
 # check whether along the given axis all array elements are true (not 0)
 # Issues:
 # 1. A type is not bool
+
 
 def all(tsr A, axis=None, out=None, keepdims = None):
     if not isinstance(A, tsr):
