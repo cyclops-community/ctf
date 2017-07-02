@@ -11,6 +11,24 @@ namespace CTF_int{
   }
 
   template <typename dtype>
+  void get_real(tensor * A, tensor * B){
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+			str[i] = 'a' + i;
+		}
+    B->operator[](str) = CTF::Function<dtype>([](std::complex<double> a){ std::cout<<a<<std::endl;return a.real(); })(A->operator[](str));
+  }
+
+  template <typename dtype>
+  void get_imag(tensor * A, tensor * B){
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+			str[i] = 'a' + i;
+		}
+    B->operator[](str) = CTF::Function<dtype>([](std::complex<double> a){ return a.imag(); })(A->operator[](str));
+  }
+
+  template <typename dtype>
   void any_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B){
     B_bool->operator[](idx_B) = CTF::Function<dtype,bool>([](dtype a){ return a == 0 ? false : true; })(A->operator[](idx_A));
   }
@@ -24,6 +42,11 @@ namespace CTF_int{
     s[""] += CTF::Function<bool, int64_t>([](bool a){ return (int64_t)a; })(A->operator[](str));
     return s.get_val();
   }
+
+	// get the real number
+	template void get_real<double>(tensor * A, tensor * B);
+	// get the imag number
+	template void get_imag<double>(tensor * A, tensor * B);
 
 	// == (add more dtype)
   template void tensor::compare_elementwise<double>(tensor * A, tensor * B);
@@ -54,6 +77,7 @@ namespace CTF_int{
   template void tensor::conv_type<bool, double>(tensor* B);
 	template void tensor::conv_type<double, int64_t>(tensor* B);
 	template void tensor::conv_type<double, std::complex<double>>(tensor* B);
+	template void tensor::conv_type<double, std::complex<long double>>(tensor* B);
 
 
 	// ctf.all() function in c++ file (add more type)

@@ -122,6 +122,8 @@ cdef extern from "ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(tensor *);
     cdef void all_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
     cdef void any_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
+    cdef void get_real[dtype](tensor * A, tensor * B)
+    cdef void get_imag[dtype](tensor * A, tensor * B)
     
 cdef extern from "../include/ctf.hpp" namespace "CTF":
 
@@ -592,13 +594,18 @@ cdef class tsr:
     def real(self):
         if self.typ != np.complex64 and self.typ != np.complex128 and self.typ != np.complex256:
             return self
-        return None
+        else:
+            ret = tsr(self.dims, dtype = np.float64)
+            get_real[double](<tensor*>self.dt, <tensor*>ret.dt)
+            return ret
 
     def imag(self):
         if self.typ != np.complex64 and self.typ != np.complex128 and self.typ != np.complex256:
-            ret = zeros(self.dims, self.typ)
+            return zeros(self.dims, dtype=self.typ)
+        else:
+            ret = tsr(self.dims, dtype = np.float64)
+            get_imag[double](<tensor*>self.dt, <tensor*>ret.dt)
             return ret
-        return None
 
     def copy(self):
         B = tsr(self.dims, dtype=self.typ, copy=self)
@@ -664,7 +671,6 @@ cdef class tsr:
             free(beta)
         if vals == None:
             return gvals
-
 
     # assume the order is 'F'
     # assume the casting is unsafe (no, equiv, safe, same_kind, unsafe)
@@ -1166,6 +1172,26 @@ cdef class tsr:
 
 # 
 
+def real(tsr A):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
+    if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
+        return A
+    else:
+        ret = tsr(A.get_dims(), dtype = np.float64)
+        get_real[double](<tensor*>A.dt, <tensor*>ret.dt)
+        return ret
+
+def imag(tsr A):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
+    if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
+        return zeros(A.get_dims(), dtype=A.get_type())
+    else:
+        ret = tsr(A.get_dims(), dtype = np.float64)
+        get_imag[double](<tensor*>A.dt, <tensor*>ret.dt)
+        return ret
+
 def empty(shape, dtype=np.float64, order='F'):
     if type(shape)!=int and type(shape)!=tuple and type(shape)!=np.ndarray and type(shape)!=list:
         raise ValueError('an integer is required')
@@ -1182,17 +1208,6 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
     return None
 
 def trace(a, offset=0, axis1=0, axis2=1, dtype=None, out=None):
-    return None
-
-def real(A):
-    if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
-        return A
-    return None
-
-def imag(A):
-    if A.get_type() != np.complex64 and A.get_type() != np.complex128 and A.get_type() != np.complex256:
-        ret = zeros(A.get_dims(), A.get_type())
-        return ret
     return None
 
 def take(A, indices, axis=None, out=None, mode='raise'):
