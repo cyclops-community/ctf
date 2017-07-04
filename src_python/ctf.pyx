@@ -1193,6 +1193,13 @@ def imag(tsr A):
         return ret
 
 def diagonal(A, offset=0, axis1=0, axis2=1):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
+    if len(A.get_dims()) == 2:
+        ofst = A.get_dims()[1]
+        ret_dims = np.asarray((A.get_dims(),))
+        B = tsr(ret_dims,dtype=A.get_type())
+        return B
     return None
 
 def trace(a, offset=0, axis1=0, axis2=1, dtype=None, out=None):
@@ -1978,6 +1985,8 @@ def eye(n, m=None, k=0, dtype=np.float64):
         A.i("ii") << 1.0
     elif dtype == np.complex128:
         A.i("ii") << 1.0
+    elif dtype == np.int64:
+        A.i("ii") << 1
     elif dtype == np.bool:
         A.i("ii") << 1
     else:
