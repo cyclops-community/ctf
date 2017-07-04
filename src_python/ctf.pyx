@@ -1192,18 +1192,6 @@ def imag(tsr A):
         get_imag[double](<tensor*>A.dt, <tensor*>ret.dt)
         return ret
 
-def empty(shape, dtype=np.float64, order='F'):
-    if type(shape)!=int and type(shape)!=tuple and type(shape)!=np.ndarray and type(shape)!=list:
-        raise ValueError('an integer is required')
-    # FIX this
-    ret = tsr(shape, dtype=dtype)
-    return ret
-
-def empty_like(A, dtype=None, order='F', subok=True):
-    if not isinstance(A, tsr):
-        raise ValueError('A is not a tensor')
-    return None
-
 def diagonal(A, offset=0, axis1=0, axis2=1):
     return None
 
