@@ -16,7 +16,7 @@ namespace CTF_int{
     for(int i=0;i<A->order;i++) {
 			str[i] = 'a' + i;
 		}
-    B->operator[](str) = CTF::Function<dtype>([](std::complex<double> a){ std::cout<<a<<std::endl;return a.real(); })(A->operator[](str));
+    B->operator[](str) = CTF::Function<std::complex<double>,dtype>([](std::complex<double> a){ std::cout<<a<<std::endl;return a.real(); })(A->operator[](str));
   }
 
   template <typename dtype>
@@ -25,7 +25,7 @@ namespace CTF_int{
     for(int i=0;i<A->order;i++) {
 			str[i] = 'a' + i;
 		}
-    B->operator[](str) = CTF::Function<dtype>([](std::complex<double> a){ return a.imag(); })(A->operator[](str));
+    B->operator[](str) = CTF::Function<std::complex<double>,dtype>([](std::complex<double> a){ return a.imag(); })(A->operator[](str));
   }
 
   template <typename dtype>
