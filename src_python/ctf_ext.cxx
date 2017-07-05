@@ -10,13 +10,21 @@ namespace CTF_int{
     B_bool->operator[](idx_B) = CTF::Function<bool, bool>([](bool a){ return a==false ? true : false; })(B_bool->operator[](idx_B));
   }
 
+	void conj_helper(tensor * A, tensor * B) {
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+			str[i] = 'a' + i;
+		}
+    B->operator[](str) = CTF::Function<std::complex<double>,std::complex<double>>([](std::complex<double> a){ return std::complex<double>(a.real(), -a.imag()); })(A->operator[](str));
+	}
+
   template <typename dtype>
   void get_real(tensor * A, tensor * B){
     char str[A->order];
     for(int i=0;i<A->order;i++) {
 			str[i] = 'a' + i;
 		}
-    B->operator[](str) = CTF::Function<std::complex<double>,dtype>([](std::complex<double> a){ std::cout<<a<<std::endl;return a.real(); })(A->operator[](str));
+    B->operator[](str) = CTF::Function<std::complex<double>,dtype>([](std::complex<double> a){ return a.real(); })(A->operator[](str));
   }
 
   template <typename dtype>

@@ -121,6 +121,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
 cdef extern from "ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(tensor *);
     cdef void all_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
+    cdef void conj_helper(tensor * A, tensor * B);
     cdef void any_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
     cdef void get_real[dtype](tensor * A, tensor * B)
     cdef void get_imag[dtype](tensor * A, tensor * B)
@@ -778,6 +779,13 @@ cdef class tsr:
             arr.view(dtype=np.int8)[j] = cvals[j]
         free(cvals)
     
+    def conj(tsr self):
+        if self.typ != np.complex64 and self.typ != np.complex128:
+            return self.copy()
+        B = tsr(self.dims, dtype=self.typ)
+        conj_helper(<tensor*> self.dt, <tensor*> B.dt);
+        return B
+
     def permute(self, tsr A, a, b, p_A, p_B):
         cdef char * alpha 
         cdef char * beta
@@ -1197,7 +1205,7 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
         raise ValueError('A is not a tensor')
     if len(A.get_dims()) == 2:
         ofst = A.get_dims()[1]
-        ret_dims = np.asarray((A.get_dims(),))
+        ret_dims = np.asarray((A.get_dims()[0],))
         B = tsr(ret_dims,dtype=A.get_type())
         return B
     return None
@@ -1739,6 +1747,15 @@ def any(tsr A, axis=None, out=None, keepdims=None):
         raise ValueError("an integer is required")
     return None
 
+
+def conj(tsr A):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
+    if A.get_type() != np.complex64 and A.get_type() != np.complex128:
+        return A.copy()
+    B = tsr(A.get_dims(), dtype=A.get_type())
+    conj_helper(<tensor*> A.dt, <tensor*> B.dt);
+    return B
 # check whether along the given axis all array elements are true (not 0)
 # Issues:
 # 1. A type is not bool
