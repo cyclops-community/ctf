@@ -1200,6 +1200,44 @@ def imag(tsr A):
         get_imag[double](<tensor*>A.dt, <tensor*>ret.dt)
         return ret
 
+def array(A, dtype=None, order='F'):
+    if type(A) != np.ndarray:
+        raise ValueError('A should be an ndarray')
+    if dtype == None or dtype == np.float64:
+        ret = tsr(A.shape, dtype=np.float64)
+        ret.from_nparray(A)
+        return ret
+    elif dtype == np.float32:
+        ret = tsr(A.shape, dtype=np.float32)
+        ret.from_nparray(A)
+        return ret
+    elif dtype == np.int64:
+        ret = tsr(A.shape, dtype=np.int64)
+        ret.from_nparray(A)
+        return ret
+    elif dtype == np.int32:
+        ret = tsr(A.shape, dtype=np.int32)
+        ret.from_nparray(A)
+        return ret
+    elif dtype == np.int16:
+        ret = tsr(A.shape, dtype=np.int16)
+        ret.from_nparray(A)
+        return ret
+    elif dtype == np.int8:
+        ret = tsr(A.shape, dtype=np.int8)
+        ret.from_nparray(A)
+        return ret
+    elif dtype == np.complex128:
+        ret = tsr(A.shape, dtype=np.complex128)
+        ret.from_nparray(A)
+        return ret
+    elif dtype == np.complex64:
+        ret = tsr(A.shape, dtype=np.complex64)
+        ret.from_nparray(A)
+        return ret
+    else:
+        raise ValueError('wrong type')
+
 def diagonal(A, offset=0, axis1=0, axis2=1):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
@@ -1747,6 +1785,16 @@ def any(tsr A, axis=None, out=None, keepdims=None):
         raise ValueError("an integer is required")
     return None
 
+def vstack(tup):
+    if type(tup) != tuple:
+        raise ValueError('The type of input should be tuple')
+    return None
+
+def hstack(tup):
+    if type(tup) != tuple:
+        raise ValueError('The type of input should be tuple')
+    return None
+
 
 def conj(tsr A):
     if not isinstance(A, tsr):
@@ -1756,10 +1804,10 @@ def conj(tsr A):
     B = tsr(A.get_dims(), dtype=A.get_type())
     conj_helper(<tensor*> A.dt, <tensor*> B.dt);
     return B
+
 # check whether along the given axis all array elements are true (not 0)
 # Issues:
 # 1. A type is not bool
-
 
 def all(tsr A, axis=None, out=None, keepdims = None):
     if not isinstance(A, tsr):
