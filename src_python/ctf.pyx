@@ -1463,6 +1463,14 @@ def to_nparray(t):
     else:
         return np.asarray(t)
 
+def zeros_like(A, dtype=None, order='F'):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
+    shape = A.get_dims()
+    if dtype == None:
+        dtype = A.get_type()
+    return zeros(shape, dtype, order)
+
 # return tensor with all zeros
 def zeros(shape, dtype, order='F'):
     A = tsr(shape, dtype=dtype)
