@@ -44,7 +44,7 @@ def MPI_start():
 def MPI_end():
     Finalize()
 
-#test = MPI_start();
+test = MPI_start();
 
 cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass algstrct:
@@ -1472,7 +1472,7 @@ def zeros_like(A, dtype=None, order='F'):
     return zeros(shape, dtype, order)
 
 # return tensor with all zeros
-def zeros(shape, dtype, order='F'):
+def zeros(shape, dtype=np.float64, order='F'):
     A = tsr(shape, dtype=dtype)
     return A
 	

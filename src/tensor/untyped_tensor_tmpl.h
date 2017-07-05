@@ -30,16 +30,7 @@ namespace CTF_int {
     }
     assert(A->order == B->order);
     assert(A->sr->el_size == B->sr->el_size);
-    assert(A->order == this->order);
-    switch (sr->el_size) {
-      case sizeof(bool):
-        this->operator[](str) = CTF::Function<dtype,dtype,bool>([](dtype a, dtype b){ return a==b; })(A->operator[](str),B->operator[](str));  
-      case sizeof(double):
-        this->operator[](str) = CTF::Function<dtype,dtype,double>([](dtype a, dtype b){ return a==b; })(A->operator[](str),B->operator[](str));
-      default:
-        assert(0);
-        break;
-    }  
+    this->operator[](str) = CTF::Function<dtype,dtype,bool>([](dtype a, dtype b){ return a==b; })(A->operator[](str),B->operator[](str));  
   }
 
   template <typename dtype>
