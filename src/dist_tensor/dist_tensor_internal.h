@@ -178,6 +178,8 @@ class dist_tensor{
     int get_phys_ndim();
     int * get_phys_lda();
     std::vector< tensor<dtype>* > * get_tensors();
+    void activate_topo(int itopo);
+    void deactivate_topo(int itopo);
 
     int initialize(CommData_t   cdt_global,
                    int const    ndim,

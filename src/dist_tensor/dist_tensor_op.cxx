@@ -662,7 +662,11 @@ int dist_tensor<dtype>::
   CTF_free(idx_arr);
   CTF_free(blk_len);
 
+  this->activate_topo(ntsr->itopo);
+
   hscl->run();
+  
+  this->deactivate_topo(ntsr->itopo);
 
   delete hscl;
   
@@ -2198,6 +2202,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
       print_map(stdout, ntid_B);
 #endif
     }
+    this->activate_topo(tensors[ntid_B]->itopo);
     /* Construct the tensor algorithm we would like to use */
     LIBT_ASSERT(check_sum_mapping(ntid_A, map_A, ntid_B, map_B));
 #if FOLD_TSR
@@ -2240,6 +2245,7 @@ int dist_tensor<dtype>::sum_tensors( dtype const                alpha_,
     /* Invoke the contraction algorithm */
     sumf->run();
     TAU_FSTOP(sum_func);
+    this->deactivate_topo(tensors[ntid_B]->itopo);
 #ifndef SEQ
     stat = zero_out_padding(ntid_B);
 #endif
@@ -2832,6 +2838,7 @@ int dist_tensor<dtype>::
   }
 #if REDIST
   stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
+  this->activate_topo(tensors[type->tid_C]->itopo);
   if (stat == DIST_TENSOR_ERROR) {
     printf("Failed to map tensors to physical grid\n");
     return DIST_TENSOR_ERROR;
@@ -2840,6 +2847,7 @@ int dist_tensor<dtype>::
   if (check_contraction_mapping(type) == 0) {
     /* remap if necessary */
     stat = map_tensors(type, fftsr, felm, alpha, beta, &ctrf);
+    this->activate_topo(tensors[type->tid_C]->itopo);
     if (stat == DIST_TENSOR_ERROR) {
       printf("Failed to map tensors to physical grid\n");
       return DIST_TENSOR_ERROR;
@@ -2853,6 +2861,7 @@ int dist_tensor<dtype>::
     print_map(stdout, type->tid_B);
     print_map(stdout, type->tid_C);
 #endif
+    this->activate_topo(tensors[type->tid_C]->itopo);
     ctrf = construct_contraction(type, fftsr, felm, alpha, beta);
     if (global_comm.rank == 0){
       uint64_t memuse = ctrf->mem_rec();
@@ -2875,10 +2884,17 @@ int dist_tensor<dtype>::
     }
     if (stat == DIST_TENSOR_SUCCESS){
       delete ctrf;
+      this->activate_topo(tensors[type->tid_C]->itopo);
       ctrf = construct_contraction(type, fftsr, felm, alpha, beta, 2, &prm);
     }
-  } 
+  } else 
 #endif
+  {
+    delete ctrf;
+    this->activate_topo(tensors[type->tid_C]->itopo);
+    ctrf = construct_contraction(type, fftsr, felm, alpha, beta, 0, NULL);
+
+  }
 #if DEBUG >=2
   if (get_global_comm().rank == 0)
     ctrf->print();
@@ -2903,6 +2919,7 @@ int dist_tensor<dtype>::
   /* Invoke the contraction algorithm */
   ctrf->run();
   TAU_FSTOP(ctr_func);
+  this->deactivate_topo(tensors[type->tid_C]->itopo);
 #ifndef SEQ
   if (tensors[type->tid_C]->is_cyclic)
     stat = zero_out_padding(type->tid_C);
