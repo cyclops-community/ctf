@@ -44,7 +44,7 @@ def MPI_start():
 def MPI_end():
     Finalize()
 
-test = MPI_start();
+#test = MPI_start();
 
 cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass algstrct:
@@ -1242,10 +1242,7 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
     if len(A.get_dims()) == 2:
-        ofst = A.get_dims()[1]
-        ret_dims = np.asarray((A.get_dims()[0],))
-        B = tsr(ret_dims,dtype=A.get_type())
-        return B
+        return einsum("ii->i",A)
     return None
 
 def trace(a, offset=0, axis1=0, axis2=1, dtype=None, out=None):
@@ -2119,7 +2116,7 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
                 out_inds += ind
                 out_lens.append(dind_lens[ind])
                 uniq_subs.remove(ind)
-    output = tsr(out_lens)
+    output = tsr(out_lens, dtype=operands[0].get_type())
     if numop == 1:
         output.i(out_inds) << operands[0].i(inds[0])
     elif numop == 2:
