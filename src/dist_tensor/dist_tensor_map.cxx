@@ -1156,7 +1156,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
           est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_A->size+global_comm.estimate_alltoall_time(nvirt);
           if (nvirt > 1) 
             est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_A->size;
-          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_A->size*2.5);
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_A->size*2.1);
         }
       } else
         memuse = 0;
@@ -1176,7 +1176,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
           est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_B->size+global_comm.estimate_alltoall_time(nvirt);
           if (nvirt > 1) 
             est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_B->size;
-          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*2.5);
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_B->size*2.1);
         }
       }
       if (i == old_topo_C){
@@ -1195,7 +1195,7 @@ int dist_tensor<dtype>::map_tensors(CTF_ctr_type_t const *      type,
           est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_C->size+global_comm.estimate_alltoall_time(nvirt);
           if (nvirt > 1) 
             est_time += 5.*COST_MEMBW*sizeof(dtype)*tsr_C->size;
-          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*2.5);
+          memuse = MAX(memuse,(uint64_t)sizeof(dtype)*tsr_C->size*2.1);
         }
       }
       memuse = MAX((uint64_t)sctr->mem_rec(), memuse);
