@@ -1373,7 +1373,7 @@ def take(A, indices, axis=None, out=None, mode='raise'):
         if type(axis) != np.ndarray:
             axis = np.asarray(axis, dtype=np.int64)
         if type(axis) == int:
-            axis = axis.reshape((1,))
+            axis = reshape(axis, (1,))
         if len(axis.shape) != 1:
             raise ValueError('only length-1 arrays can be converted to Python scalars')
         if len(axis) != 1:
