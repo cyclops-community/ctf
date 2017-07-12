@@ -612,25 +612,65 @@ cdef class tsr:
         B = tsr(self.dims, dtype=self.typ, copy=self)
         return B
 
-    def reshape(self, newshape, order='F'):
+    def wa(self, *integer):
+        a = []
+        for i in range(len(integer)):
+            a.append(integer[i])
+        return np.array(a)
+
+    def reshape(self, *integer, order='F'):
         dim = self.dims
         total_size = 1
+        arr = []
+        for i in range(len(integer)):
+            arr.append(integer[i])
+        newshape = arr
         for i in range(len(dim)):
             total_size *= dim[i]
         if type(newshape)==int:
             if total_size!=newshape:
                 raise ValueError("total size of new array must be unchanged")
+            newshape = np.asarray(newshape, dtype=np.int64)
+            B = tsr(newshape,dtype=self.typ)
+            n, inds, vals = self.read_local()
+            B.write(inds, vals)
+            return B
         elif type(newshape)==tuple or type(newshape)==list or type(newshape) == np.ndarray:
             newshape = np.asarray(newshape, dtype=np.int64)
             new_size = 1
+            nega = 0
             for i in range(len(newshape)):
-                new_size *= newshape[i]
-            if new_size != total_size:
-                raise ValueError("total size of new array must be unchanged")
-        B = tsr(newshape,dtype=self.typ)
-        n, inds, vals = self.read_local()
-        B.write(inds, vals)
-        return B
+                if newshape[i] < 0:
+                    nega += 1
+            if nega == 0:
+                for i in range(len(newshape)):
+                    new_size *= newshape[i]
+                if new_size != total_size:
+                    raise ValueError("total size of new array must be unchanged")
+                B = tsr(newshape,dtype=self.typ)
+                n, inds, vals = self.read_local()
+                B.write(inds, vals)
+                return B
+            elif nega == 1:
+                pos = 0
+                for i in range(len(newshape)):
+                    if newshape[i] > 0:
+                        new_size *= newshape[i]
+                    else:
+                        pos = i
+                nega_size = total_size / new_size
+                if nega_size < 1:
+                    raise ValueError("can not reshape into this size")
+                newshape[pos] = nega_size
+                B = tsr(newshape,dtype=self.typ)
+                n, inds, vals = self.read_local()
+                B.write(inds, vals)
+                return B
+            else:
+                raise ValueError('can only specify one unknown dimension')
+        else:
+            raise ValueError('cannot interpreted as an integer')
+        return None
 
     def ravel(self, order="F"):
         if order == "F":
@@ -820,7 +860,7 @@ cdef class tsr:
             for i in range(0, sizeof(permutation_B), sizeof(int*)):
                 free(permutation_B+sizeof(int*))
             free(permutation_B)
-        #int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
+
     def write(self, inds, vals, a=None, b=None):
         cdef char * ca
         dvals = np.asarray(vals, dtype=self.typ)
@@ -1415,17 +1455,49 @@ def reshape(A, newshape, order='F'):
     if type(newshape)==int:
         if total_size!=newshape:
             raise ValueError("total size of new array must be unchanged")
+        a = []
+        a.append(newshape)
+        newshape = np.asarray(a,dtype=np.int64)
+        B = tsr(newshape,dtype=A.get_type())
+        n, inds, vals = A.read_local()
+        B.write(inds, vals)
+        return B
     elif type(newshape)==tuple or type(newshape)==list or type(newshape) == np.ndarray:
         newshape = np.asarray(newshape, dtype=np.int64)
         new_size = 1
+        nega = 0
         for i in range(len(newshape)):
-            new_size *= newshape[i]
-        if new_size != total_size:
-            raise ValueError("total size of new array must be unchanged")
-    B = tsr(newshape,dtype=A.get_type())
-    n, inds, vals = A.read_local()
-    B.write(inds, vals)
-    return B
+            if newshape[i] < 0:
+                nega += 1
+        if nega == 0:
+            for i in range(len(newshape)):
+                new_size *= newshape[i]
+            if new_size != total_size:
+                raise ValueError("total size of new array must be unchanged")
+            B = tsr(newshape,dtype=A.get_type())
+            n, inds, vals = A.read_local()
+            B.write(inds, vals)
+            return B
+        elif nega == 1:
+            pos = 0
+            for i in range(len(newshape)):
+                if newshape[i] > 0:
+                    new_size *= newshape[i]
+                else:
+                    pos = i
+            nega_size = total_size / new_size
+            if nega_size < 1:
+                raise ValueError("can not reshape into this size")
+            newshape[pos] = nega_size
+            B = tsr(newshape,dtype=A.get_type())
+            n, inds, vals = A.read_local()
+            B.write(inds, vals)
+            return B
+        else:
+            raise ValueError('can only specify one unknown dimension')
+    else:
+        raise ValueError('cannot interpreted as an integer')
+    return None
 
 # add the shape parameter
 def astensor(arr):
