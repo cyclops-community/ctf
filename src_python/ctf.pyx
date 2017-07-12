@@ -612,12 +612,6 @@ cdef class tsr:
         B = tsr(self.dims, dtype=self.typ, copy=self)
         return B
 
-    def wa(self, *integer):
-        a = []
-        for i in range(len(integer)):
-            a.append(integer[i])
-        return np.array(a)
-
     def reshape(self, *integer, order='F'):
         dim = self.dims
         total_size = 1
