@@ -1244,6 +1244,8 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
     if axis1 == axis2:
         raise ValueError('axis1 and axis2 cannot be the same')
     dim = A.get_dims()
+    if len(dim) == 1 or len(dim)==0:
+        raise ValueError('diag requires an array of at least two dimensions')
     if dim[0] <= offset:
         return tsr((0,))
     if len(dim) == 2 and dim[0] == dim[1]:
@@ -1254,6 +1256,8 @@ def trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
     dim = A.get_dims()
+    if len(dim) == 1 or len(dim)==0:
+        raise ValueError('diag requires an array of at least two dimensions')
     if dim[0] <= offset:
         return 0
     if len(dim) == 2 and dim[0] == dim[1]:
