@@ -1250,7 +1250,14 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
         return einsum("ii->i",A)
     return None
 
-def trace(a, offset=0, axis1=0, axis2=1, dtype=None, out=None):
+def trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
+    dim = A.get_dims()
+    if dim[0] <= offset:
+        return 0
+    if len(dim) == 2 and dim[0] == dim[1]:
+        return sum(diagonal(A))
     return None
 
 def take(A, indices, axis=None, out=None, mode='raise'):
