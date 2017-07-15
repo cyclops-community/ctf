@@ -1280,10 +1280,45 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
     dim = A.get_dims()
     if len(dim) == 1 or len(dim)==0:
         raise ValueError('diag requires an array of at least two dimensions')
-    if dim[0] <= offset:
+    if axis1 ==1 and axis2 == 0:
+        offset = -offset
+    if offset < 0 and dim[0] + offset <=0:
         return tsr((0,))
-    if len(dim) == 2 and dim[0] == dim[1]:
-        return einsum("ii->i",A)
+    if offset > 0 and dim[1] - offset <=0:
+        return tsr((0,))
+    if len(dim) == 2:
+        if offset > 0:
+            if dim[0] == dim[1]:
+                up_left = np.zeros([2])
+                up_left[0] += offset
+                down_right = np.array([dim[0], dim[1]])
+                down_right[1] -= offset
+            else:
+                up_left = np.zeros([2])
+                m = min(dim[0], dim[1])
+                down_right = np.array([m, m])
+                up_left[0] += offset
+                down_right[0] += offset
+                if down_right[0] > dim[1]:
+                    down_right[1] -= (down_right[0] - dim[1])
+                    down_right[0] = dim[1]
+            return einsum("ii->i",A.get_slice(up_left, down_right))
+        elif offset <= 0:
+            if dim[0] == dim[1]:
+                up_left = np.zeros([2])
+                up_left[1] -= offset
+                down_right = np.array([dim[0], dim[1]])
+                down_right[0] += offset
+            else:
+                up_left = np.zeros([2])
+                m = min(dim[0], dim[1])
+                down_right = np.array([m, m])
+                up_left[1] -= offset
+                down_right[1] -= offset
+                if down_right[1] > dim[0]:
+                    down_right[0] -= (down_right[1] - dim[0])
+                    down_right[1] = dim[0]
+            return einsum("ii->i",A.get_slice(up_left, down_right))
     return None
 
 def trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
@@ -1292,10 +1327,8 @@ def trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
     dim = A.get_dims()
     if len(dim) == 1 or len(dim)==0:
         raise ValueError('diag requires an array of at least two dimensions')
-    if dim[0] <= offset:
-        return 0
-    if len(dim) == 2 and dim[0] == dim[1]:
-        return sum(diagonal(A))
+    if len(dim) == 2:
+        return sum(diagonal(A, offset=offset, axis1 = axis1, axis2 = axis2))
     return None
 
 def take(A, indices, axis=None, out=None, mode='raise'):
