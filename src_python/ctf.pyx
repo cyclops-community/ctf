@@ -1592,9 +1592,10 @@ def zeros_like(A, dtype=None, order='F'):
 def zeros(shape, dtype=np.float64, order='F'):
     A = tsr(shape, dtype=dtype)
     return A
-	
+
+# Maybe there are issues that when keepdims, dtype and out are all specified.	
 def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
-	# if the input is not a tensor, return none
+	# if the input is not a tensor
     if not isinstance(A,tsr):
         raise ValueError("not a tensor")
 	
@@ -1615,9 +1616,9 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
         print("output parameter for reduction operation add has too many dimensions")
         return None
 		
-    # get_dims use the nparray??
+    # get_dims of tensor A
     dim = A.get_dims()
-
+    # store the axis in a tuple
     axis_tuple = ()
     # check whether the axis entry is out of bounds, if axis input is positive e.g. axis = 5
     if type(axis)==int:
@@ -1627,6 +1628,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
     elif axis == None:
         axis = None
     else:
+        # check whether the axis parameter has the correct type, number etc.
         axis = np.asarray(axis, dtype=np.int64)
         if len(axis.shape) > 1:
             raise ValueError("the object cannot be interpreted as integer")
@@ -1640,9 +1642,10 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
                 raise ValueError("duplicate value in 'axis'")
             axis_tuple += (axis[i],)
     
+    # if out has been specified, assign a outputdim
     if isinstance(out,tsr):
         outputdim = out.get_dims()
-        print(outputdim)
+        #print(outputdim)
         outputdim = np.ndarray.tolist(outputdim)
         outputdim = tuple(outputdim)
 		
@@ -1657,11 +1660,13 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
             for i in range(len(dim)):
                 ret_dim.append(1)
             ret_dim = tuple(ret_dim)
+            # dtype has the same type of A, we do not need to convert
             if dtype == A.get_type():
                 ret = tsr(ret_dim, dtype = dtype)
                 ret.i("") << A.i(index_A)
                 return ret
             else:
+                # since the type is not same, we need another tensor C change the value of A and use C instead of A
                 C = tsr(A.get_dims(), dtype = dtype)
                 A.convert_type(C)
                 ret = tsr(ret_dim, dtype = dtype)
@@ -1685,6 +1690,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
                     n, inds, vals = ret.read_local()
                     return vals[0]
     
+    # is the axis is an integer
     if type(axis)==int:
         ret_dim = ()
         if axis < 0:
@@ -1697,6 +1703,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
                 ret_dim.insert(i+1,dim[i])
                 ret_dim = tuple(ret_dim)
 
+        # following specified when out, dtype is not none etc.
         B = tsr(ret_dim, dtype = dtype)	
         C = None
         if dtype != A.get_type():
@@ -1722,6 +1729,8 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
         else:
             B.i(index_B) << A.i(index_A)
             return B
+
+    # following is when axis is an tuple or nparray.
     C = None
     if dtype != A.get_type():
         C = tsr(A.get_dims(), dtype = dtype)	
@@ -1734,10 +1743,8 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
     if isinstance(C, tsr):
         A.convert_type(C)
         temp = C.copy()
-        print("a")
     else:
         temp = A.copy()
-        print("b")
     decrease_dim = list(dim)
     axis_list = list(axis_tuple)
     axis_list.sort()
