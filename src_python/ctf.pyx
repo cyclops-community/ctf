@@ -285,6 +285,7 @@ cdef class tsr:
     cdef int nbytes
     cdef tuple strides
 
+    # some property of the tensor, use like tensor.strides
     property strides:
         def __get__(self):
             return self.strides
@@ -308,6 +309,7 @@ cdef class tsr:
     def bool_sum(tsr self):
         return sum_bool_tsr(<tensor*>self.dt)
     
+    # convert the type of self and store the elements in self to B
     def convert_type(tsr self, tsr B):
         if self.typ == np.float64 and B.typ == np.bool:
             self.dt.conv_type[double,bool](<tensor*> B.dt)
@@ -329,7 +331,7 @@ cdef class tsr:
         return self.typ
 
 
-	# add type np.int64, int32
+	# add type np.int64, int32, maybe we can add other types
     def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tsr copy=None):
         self.typ = <cnp.dtype>dtype
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
@@ -404,7 +406,7 @@ cdef class tsr:
         else:
             raise ValueError('bad dtype')
 
-# issue: when shape contains 1 such as [3,4,1]
+    # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
 	
     def all(tsr self, axis=None, out=None, keepdims = None):
         if keepdims == None:
@@ -585,6 +587,7 @@ cdef class tsr:
             raise ValueError("an integer is required")
         return None
 
+    # the core function when we want to sum the tensor...
     def i(self, string):
         if self.order == ord('F'):
             return itsr(self, rev_array(string))
@@ -610,6 +613,7 @@ cdef class tsr:
             get_imag[double](<tensor*>self.dt, <tensor*>ret.dt)
             return ret
 
+    # call this function A.copy() which return a copy of A
     def copy(self):
         B = tsr(self.dims, dtype=self.typ, copy=self)
         return B
@@ -822,6 +826,7 @@ cdef class tsr:
         conj_helper(<tensor*> self.dt, <tensor*> B.dt);
         return B
 
+    # the permute function has not been finished... not very clear about what the malloc memory to do for the permute function
     def permute(self, tsr A, a, b, p_A, p_B):
         cdef char * alpha 
         cdef char * beta
@@ -1059,7 +1064,7 @@ cdef class tsr:
         else:
             raise ValueError('norm not present for this dtype')
 
-
+    # call this function to get the transpose of the tensor
     def T(self, axes=None):
         dim = self.dims
         if axes == None:
@@ -1119,8 +1124,9 @@ cdef class tsr:
         else:
             self.write([], [])
 
+    # change the operators "<","<=","==","!=",">",">=" when applied to tensors
     def __richcmp__(tsr self, tsr b, op):
-	    # <
+	      # <
         if op == 0:
             if self.typ == np.float64:
                 c = tsr(self.get_dims(), dtype=np.bool)
@@ -1132,7 +1138,7 @@ cdef class tsr:
                 raise ValueError('bad dtype')
             return c	
 			
-		# <=
+		    # <=
         if op == 1:
             if self.typ == np.float64:
                 c = tsr(self.get_dims(), dtype=np.bool)
@@ -1144,7 +1150,7 @@ cdef class tsr:
                 raise ValueError('bad dtype')
             return c	
 		
-		# ==	
+		    # ==	
         if op == 2:
             if self.typ == np.float64:
                 c = tsr(self.get_dims(), dtype=np.bool)
@@ -1156,7 +1162,7 @@ cdef class tsr:
                 raise ValueError('bad dtype')
             return c	
 		
-    # !=
+        # !=
         if op == 3:
             if self.typ == np.float64:
                 c = tsr(self.get_dims(), dtype=np.bool)
@@ -1168,7 +1174,7 @@ cdef class tsr:
                 raise ValueError('bad dtype')
             return c	
 	
-		# >
+		    # >
         if op == 4:
             if self.typ == np.float64:
                 c = tsr(self.get_dims(), dtype=np.bool)
@@ -1180,7 +1186,7 @@ cdef class tsr:
                 raise ValueError('bad dtype')
             return c	
 			
-		# >=
+		    # >=
         if op == 5:
             if self.typ == np.float64:
                 c = tsr(self.get_dims(), dtype=np.bool)
@@ -1216,6 +1222,7 @@ cdef class tsr:
 
 # 
 
+# call this function to get the real part of complex number in tensor
 def real(tsr A):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
@@ -1226,6 +1233,7 @@ def real(tsr A):
         get_real[double](<tensor*>A.dt, <tensor*>ret.dt)
         return ret
 
+# call this function to get the imaginary part of complex number in tensor
 def imag(tsr A):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
@@ -1236,6 +1244,7 @@ def imag(tsr A):
         get_imag[double](<tensor*>A.dt, <tensor*>ret.dt)
         return ret
 
+# similar to astensor.
 def array(A, dtype=None, order='F'):
     if type(A) != np.ndarray:
         raise ValueError('A should be an ndarray')
@@ -1274,9 +1283,7 @@ def array(A, dtype=None, order='F'):
     else:
         raise ValueError('wrong type')
 
-def test(A):
-    return einsum("ii->ii",A)
-
+# diagonal function only support the when len(A.get_dims()) == 2
 def diagonal(A, offset=0, axis1=0, axis2=1):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
@@ -1326,6 +1333,7 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
             return einsum("ii->i",A.get_slice(up_left, down_right))
     return None
 
+# trace function only support the when len(A.get_dims()) == 2
 def trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
@@ -1336,6 +1344,7 @@ def trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
         return sum(diagonal(A, offset=offset, axis1 = axis1, axis2 = axis2))
     return None
 
+# the take function now lack of the "permute function" which can take the elements from the tensor.
 def take(A, indices, axis=None, out=None, mode='raise'):
     if not isinstance(A, tsr):
         raise ValueError("A is not a tensor")
@@ -1470,12 +1479,12 @@ def take(A, indices, axis=None, out=None, mode='raise'):
             return None
         return None
 
+# the copy function need to call the constructor which return a copy.
 def copy(tsr A):
     B = tsr(A.get_dims(), dtype=A.get_type(), copy=A)
     return B
 
 # the default order is Fortran
-
 def reshape(A, newshape, order='F'):
     if not isinstance(A, tsr):
         raise ValueError("A is not a tensor")
@@ -1531,7 +1540,7 @@ def reshape(A, newshape, order='F'):
         raise ValueError('cannot interpreted as an integer')
     return None
 
-# add the shape parameter
+# in the astensor function we need to specify the type.
 def astensor(arr):
     if isinstance(arr,tsr):
         return arr
