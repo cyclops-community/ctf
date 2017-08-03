@@ -319,6 +319,8 @@ cdef class tsr:
             self.dt.conv_type[double,int64_t](<tensor*> B.dt)
         elif self.typ == np.float64 and B.typ == np.complex128:
             self.dt.conv_type[double,complex](<tensor*> B.dt)
+        elif self.typ == np.int64 and B.typ == np.float64:
+            self.dt.conv_type[int64_t,double](<tensor*> B.dt)
     
     def get_dims(self):
         return self.dims
@@ -1272,6 +1274,9 @@ def array(A, dtype=None, order='F'):
     else:
         raise ValueError('wrong type')
 
+def test(A):
+    return einsum("ii->ii",A)
+
 def diagonal(A, offset=0, axis1=0, axis2=1):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
@@ -1588,11 +1593,6 @@ def zeros(shape, dtype=np.float64, order='F'):
     A = tsr(shape, dtype=dtype)
     return A
 	
-# return sum of tensors
-# Issues:
-# 1. add int32 -> compile error? Cython seems to not support int_32???
-# 2. change the type
-# 3. bool input should return int64
 def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
 	# if the input is not a tensor, return none
     if not isinstance(A,tsr):
@@ -1624,21 +1624,21 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
         if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
             print("'axis' entry is out of bounds")
             return None
-    elif type(axis)==tuple:
+    elif axis == None:
+        axis = None
+    else:
+        axis = np.asarray(axis, dtype=np.int64)
+        if len(axis.shape) > 1:
+            raise ValueError("the object cannot be interpreted as integer")
         for i in range(len(axis)):
             if axis[i] >= len(dim) or axis[i] <= (-len(dim)-1):
-                print("'axis' entry is out of bounds")
-                return None
-        axis_arr = list(axis)
+                raise ValueError("'axis' entry is out of bounds")
         for i in range(len(axis)):
-            if type(axis_arr[i])!=int:
-                print("Value in the tuple should be int.")
-            if axis_arr[i] < 0:
-                axis_arr[i] += len(dim)
-            if axis_arr[i] in axis_tuple:
-                print("duplicate value in 'axis'")
-                return None
-            axis_tuple += (axis_arr[i],)
+            if axis[i] < 0:
+                axis[i] += len(dim)
+            if axis[i] in axis_tuple:
+                raise ValueError("duplicate value in 'axis'")
+            axis_tuple += (axis[i],)
     
     if isinstance(out,tsr):
         outputdim = out.get_dims()
@@ -1657,17 +1657,33 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
             for i in range(len(dim)):
                 ret_dim.append(1)
             ret_dim = tuple(ret_dim)
-            ret = tsr(ret_dim, dtype = dtype)
-            ret.i("") << A.i(index_A)
-            return ret
+            if dtype == A.get_type():
+                ret = tsr(ret_dim, dtype = dtype)
+                ret.i("") << A.i(index_A)
+                return ret
+            else:
+                C = tsr(A.get_dims(), dtype = dtype)
+                A.convert_type(C)
+                ret = tsr(ret_dim, dtype = dtype)
+                ret.i("") << C.i(index_A)
+                return ret
         else:
             if A.get_type() == np.bool:
-                return 0#sum_bool_tsr(<tensor*>A.dt) 
+                # not sure at this one
+                return 0
             else:
-                ret = tsr((1,), dtype = dtype)
-                ret.i("") << A.i(index_A)
-                n, inds, vals = ret.read_local()
-                return vals[0]
+                if dtype == A.get_type():
+                    ret = tsr((1,), dtype = dtype)
+                    ret.i("") << A.i(index_A)
+                    n, inds, vals = ret.read_local()
+                    return vals[0]
+                else:
+                    C = tsr(A.get_dims(), dtype = dtype)
+                    A.convert_type(C)
+                    ret = tsr((1,), dtype = dtype)
+                    ret.i("") << C.i(index_A)
+                    n, inds, vals = ret.read_local()
+                    return vals[0]
     
     if type(axis)==int:
         ret_dim = ()
@@ -1682,29 +1698,53 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
                 ret_dim = tuple(ret_dim)
 
         B = tsr(ret_dim, dtype = dtype)	
+        C = None
+        if dtype != A.get_type():
+            C = tsr(A.get_dims(), dtype = dtype)	
         if isinstance(out,tsr):
-            print(outputdim," ",ret_dim)
             if(outputdim != ret_dim):
-                print("dimension of output mismatch")
-                return None
+                raise ValueError("dimension of output mismatch")
             else:
                 if keepdims == True:
-                    print("Must match the dimension when keepdims = True")
+                    raise ValueError("Must match the dimension when keepdims = True")
                 else:
                     B = tsr(ret_dim, dtype = out.get_type())
+                    C = tsr(A.get_dims(), dtype = out.get_type())
 
         index = random.sample(string.ascii_letters+string.digits,len(dim))
         index = "".join(index)
         index_A = index[0:len(dim)]
         index_B = index[0:axis] + index[axis+1:len(dim)]
-        B.i(index_B) << A.i(index_A)
-        return B
-    # copy the tensor
-    n, inds, vals = A.read_local()
-    temp = astensor(vals, A.get_dims())
+        if isinstance(C, tsr):
+            A.convert_type(C)
+            B.i(index_B) << C.i(index_A)
+            return B
+        else:
+            B.i(index_B) << A.i(index_A)
+            return B
+    C = None
+    if dtype != A.get_type():
+        C = tsr(A.get_dims(), dtype = dtype)	
+    if isinstance(out,tsr):
+        if keepdims == True:
+            raise ValueError("Must match the dimension when keepdims = True")
+        else:
+            dtype = out.get_type()
+            C = tsr(A.get_dims(), dtype = out.get_type())
+    if isinstance(C, tsr):
+        A.convert_type(C)
+        temp = C.copy()
+        print("a")
+    else:
+        temp = A.copy()
+        print("b")
     decrease_dim = list(dim)
+    axis_list = list(axis_tuple)
+    axis_list.sort()
     for i in range(len(axis)-1,-1,-1):
-        index_removal = axis_tuple[i]
+        #print(decrease_dim)
+        index_removal = axis_list[i]
+        #print(index_removal)
         temp_dim = decrease_dim.copy()
         del temp_dim[index_removal]
         ret_dim = tuple(temp_dim)
@@ -1712,10 +1752,9 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
         index = random.sample(string.ascii_letters+string.digits,len(decrease_dim))
         index = "".join(index)
         index_A = index[0:len(decrease_dim)]
-        index_B = index[0:axis_tuple[i]] + index[axis_tuple[i]+1:len(decrease_dim)]
+        index_B = index[0:axis_list[i]] + index[axis_list[i]+1:len(decrease_dim)]
         B.i(index_B) << temp.i(index_A)
-        n, inds, vals = B.read_local()
-        temp = astensor(vals, B.get_dims())
+        temp = B.copy()
         del decrease_dim[index_removal]
     return B
 		

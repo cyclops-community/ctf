@@ -84,6 +84,7 @@ namespace CTF_int{
 	template void tensor::conv_type<double, bool>(tensor* B);
   template void tensor::conv_type<bool, double>(tensor* B);
 	template void tensor::conv_type<double, int64_t>(tensor* B);
+	template void tensor::conv_type<int64_t, double>(tensor* B);
 	template void tensor::conv_type<double, std::complex<double>>(tensor* B);
 	template void tensor::conv_type<double, std::complex<long double>>(tensor* B);
 
