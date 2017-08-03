@@ -34,15 +34,15 @@ def enum(**enums):
 SYM = enum(NS=0, SY=1, AS=2, SH=3)
 
 
-cdef extern from "mpi.h" namespace "MPI":
-    void Init()
-    void Finalize()
+cdef extern from "mpi.h":
+    void MPI_Init(int,char)
+    void MPI_Finalize()
 
 def MPI_start():
-    Init()
+    MPI_Init(0,0)
 
 def MPI_end():
-    Finalize()
+    MPI_Finalize()
 
 #test = MPI_start();
 
