@@ -141,9 +141,9 @@ We hope you enjoy writing your parallel program with algebra!
 
 ## CTF Python Development
 
-The C++ functions for CTF python should be written into "ctf_ext.cxx" and "ctf_ext.h" files. When it is necessary to initialize template, the initialization should be written into "ctf_ext.cxx", also, in "ctf.pyx" it will be necessary to "initialize" the template such as "self.dt.conv_type[double,bool](<tensor*> B.dt)".
+The C++ functions for CTF python should be written into "ctf_ext.cxx" and "ctf_ext.h" files. When it is necessary to initialize template, the initialization should be written into "ctf_ext.cxx"; also, in "ctf.pyx" it will be necessary to "initialize" the template such as "self.dt.conv_type[double,bool](<tensor*> B.dt)" by using the Cython.
 
 ## CTF Python on MacOS Notice
 
-- In MacOS System Preference Network users may change some Network settings which might change the localhost for terminal on mac and might cause the CTF Python crash.
-- When installing mpich using Homebrew, some other installation might update compilers automatically... So it will be necessary to update mpich when compilers updated.
+- In MacOS System Preference Network users may change some Network settings which might change the localhost for terminal on MacOS and might cause the CTF Python crash.
+- When installing mpich using Homebrew, some other installation might update compilers automatically... So it will be necessary to update mpich by using Homebrew when compilers have been updated.
