@@ -280,6 +280,27 @@ namespace CTF {
   }
 
   template<typename dtype>
+  void Matrix<dtype>::get_desc(int & ictxt, int *& desc){
+    int pr, pc;
+    pr = this->edge_map[0].calc_phase();       
+    pc = this->edge_map[1].calc_phase();       
+
+    char R = 'R';
+    CTF_BLAS::BLACS_GRIDINIT(&ictxt, &R, &pr, &pc);
+
+    desc = (int*)malloc(sizeof(int)*9);
+    desc[0] = 1;
+    desc[1] = ictxt;
+    desc[2] = nrow;
+    desc[3] = ncol;
+    desc[4] = 1;
+    desc[5] = 1;
+    desc[6] = 1;
+    desc[7] = 1;
+    desc[8] = this->pad_edge_len[0]/pr;
+  }
+
+  template<typename dtype>
   void Matrix<dtype>::read_mat(int const * desc,
                                dtype *     data_){
     int ictxt = desc[1];

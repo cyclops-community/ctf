@@ -415,5 +415,7 @@ namespace CTF_BLAS {
   extern "C"
   void BLACS_GRIDINFO(int * icontxt, int * nprow, int * npcol, int * iprow, int * ipcol);
 
+  extern "C"
+  void BLACS_GRIDINIT(int * icontxt, char * order, int * nprow, int * npcol);
 }
 #endif

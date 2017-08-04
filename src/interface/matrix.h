@@ -230,7 +230,16 @@ namespace CTF {
                     int     lda,
                     dtype * data);
 
- 
+  
+      /**
+       * \brief get a ScaLAPACK descriptor for this Matrix, will always be in pure cyclic layout
+       * \param[out] ictxt index of newly created context
+       * \param[out] desc array of integers of size 9, which will be filled with attributes
+       *                 see ScaLAPACK docs for "Array Descriptor for In-core Dense Matrices"
+       */
+      void get_desc(int & ictxt, int *& desc);
+
+
       /**
        * \brief read Matrix into ScaLAPACK array descriptor
        *        `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, rsrc=0, csrc=0, but is done via sparse read/write otherwise
