@@ -447,6 +447,61 @@ namespace CTF_int {
       int64_t lower_bound(int64_t n, ConstPairIterator op);
   };
 
+  void sgemm_batch(
+            char            Layout,
+            char    *       taA,
+            char    *       taB,
+            int     *       m,
+            int     *       n,
+            int     *       k,
+            float   *       alpha,
+            float   const** A,
+            float   const** B,
+            float   *       beta,
+            float   **      C,
+            int     *       size_per_group);
+
+  void dgemm_batch(
+            char            Layout,
+            char    *       taA,
+            char    *       taB,
+            int     *       m,
+            int     *       n,
+            int     *       k,
+            double  *       alpha,
+            double  const** A,
+            double  const** B,
+            double  *       beta,
+            double  **      C,
+            int     *       size_per_group);
+
+  void cgemm_batch(
+            char                         Layout,
+            char                 *       taA,
+            char                 *       taB,
+            int                  *       m,
+            int                  *       n,
+            int                  *       k,
+            std::complex<float>  *       alpha,
+            std::complex<float>  const** A,
+            std::complex<float>  const** B,
+            std::complex<float>  *       beta,
+            std::complex<float>  **      C,
+            int                  *       size_per_group);
+
+  void zgemm_batch(
+            char                         Layout,
+            char                 *       taA,
+            char                 *       taB,
+            int                  *       m,
+            int                  *       n,
+            int                  *       k,
+            std::complex<double> *       alpha,
+            std::complex<double> const** A,
+            std::complex<double> const** B,
+            std::complex<double> *       beta,
+            std::complex<double> **      C,
+            int                  *       size_per_group);
 
   void sgemm(char           tA,
              char           tB,

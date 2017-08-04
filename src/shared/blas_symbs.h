@@ -8,6 +8,10 @@
 #define DGEMM dgemm_
 #define CGEMM cgemm_
 #define ZGEMM zgemm_
+#define SGEMM_BATCH sgemm_batch_
+#define DGEMM_BATCH dgemm_batch_
+#define CGEMM_BATCH cgemm_batch_
+#define ZGEMM_BATCH zgemm_batch_
 #define SAXPY saxpy_
 #define DAXPY daxpy_
 #define CAXPY caxpy_
@@ -50,6 +54,10 @@
 #define DGEMM dgemm
 #define CGEMM cgemm
 #define ZGEMM zgemm
+#define SGEMM_BATCH sgemm_batch
+#define DGEMM_BATCH dgemm_batch
+#define CGEMM_BATCH cgemm_batch
+#define ZGEMM_BATCH zgemm_batch
 #define SAXPY saxpy
 #define DAXPY daxpy
 #define CAXPY caxpy
@@ -95,6 +103,77 @@ namespace CTF_BLAS {
               int * incX,      const double * dY,      
               int * incY);
 
+  extern "C"
+  void SGEMM_BATCH(
+            const char *,
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const float *,
+            const float **,
+            const int *,
+            const float **,
+            const int *,
+            const float *,
+            float **,
+            const int *,
+            const int *);
+
+  extern "C"
+  void DGEMM_BATCH(
+            const char *,
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const double *,
+            const double **,
+            const int *,
+            const double **,
+            const int *,
+            const double *,
+            double **,
+            const int *,
+            const int *);
+
+  extern "C"
+  void CGEMM_BATCH(
+            const char *,
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const std::complex<float> *,
+            const std::complex<float> **,
+            const int *,
+            const std::complex<float> **,
+            const int *,
+            const std::complex<float> *,
+            std::complex<float> **,
+            const int *,
+            const int *);
+
+  extern "C"
+  void ZGEMM_BATCH(
+            const char *,
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const std::complex<double> *,
+            const std::complex<double> **,
+            const int *,
+            const std::complex<double> **,
+            const int *,
+            const std::complex<double> *,
+            std::complex<double> **,
+            const int *,
+            const int *);
 
   extern "C"
   void SGEMM(const char *,
