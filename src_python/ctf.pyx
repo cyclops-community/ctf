@@ -1283,10 +1283,6 @@ def array(A, dtype=None, order='F'):
     else:
         raise ValueError('wrong type')
 
-def test(A):
-    return einsum("iijk->jki",A)
-    
-
 # diagonal function only support the when len(A.get_dims()) == 2
 def diagonal(A, offset=0, axis1=0, axis2=1):
     if not isinstance(A, tsr):
