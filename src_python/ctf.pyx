@@ -323,10 +323,12 @@ cdef class tsr:
             self.dt.conv_type[double,complex](<tensor*> B.dt)
         elif self.typ == np.int64 and B.typ == np.float64:
             self.dt.conv_type[int64_t,double](<tensor*> B.dt)
-    
+    # get "shape" or dimensions of the tensor
     def get_dims(self):
         return self.dims
     
+
+    # get type of the tensor
     def get_type(self):
         return self.typ
 
@@ -1124,7 +1126,10 @@ cdef class tsr:
         else:
             self.write([], [])
 
+   
+
     # change the operators "<","<=","==","!=",">",">=" when applied to tensors
+    # also for each operator we need to add the template.
     def __richcmp__(tsr self, tsr b, op):
 	      # <
         if op == 0:
@@ -1283,7 +1288,64 @@ def array(A, dtype=None, order='F'):
     else:
         raise ValueError('wrong type')
 
-# diagonal function only support the when len(A.get_dims()) == 2
+def diag(A, k=0):
+    if not isinstance(A, tsr):
+        raise ValueError('A is not a tensor')
+    dim = A.get_dims()
+    if len(dim) == 1 or len(dim)==0:
+        raise ValueError('diag requires an array of at least two dimensions')
+    if k < 0 and dim[0] + k <=0:
+        return tsr((0,))
+    if k > 0 and dim[1] - k <=0:
+        return tsr((0,))
+    if len(dim) == 2:
+        if k > 0:
+            if dim[0] == dim[1]:
+                up_left = np.zeros([2])
+                up_left[0] += k
+                down_right = np.array([dim[0], dim[1]])
+                down_right[1] -= k
+            else:
+                up_left = np.zeros([2])
+                m = min(dim[0], dim[1])
+                down_right = np.array([m, m])
+                up_left[0] += k
+                down_right[0] += k
+                if down_right[0] > dim[1]:
+                    down_right[1] -= (down_right[0] - dim[1])
+                    down_right[0] = dim[1]
+            return einsum("ii->i",A.get_slice(up_left, down_right))
+        elif k <= 0:
+            if dim[0] == dim[1]:
+                up_left = np.zeros([2])
+                up_left[1] -= k
+                down_right = np.array([dim[0], dim[1]])
+                down_right[0] += k
+            else:
+                up_left = np.zeros([2])
+                m = min(dim[0], dim[1])
+                down_right = np.array([m, m])
+                up_left[1] -= k
+                down_right[1] -= k
+                if down_right[1] > dim[0]:
+                    down_right[0] -= (down_right[1] - dim[0])
+                    down_right[1] = dim[0]
+            return einsum("ii->i",A.get_slice(up_left, down_right))
+    else:
+        square = True
+        # check whether the tensor has all the same shape for every dimension -> [2,2,2,2] dims etc.
+        for i in range(1,len(dim)):
+            if dim[0] != dim[i]:
+                square = False
+                break
+        if square == True:
+            back = random.sample(string.ascii_letters+string.digits,len(dim)-1)
+            back = "".join(back)
+            front = back[len(back)-1]+back[len(back)-1]+back[0:len(back)-1]
+            einsum_input = front + "->" + back
+            return einsum(einsum_input,A)
+    return None
+
 def diagonal(A, offset=0, axis1=0, axis2=1):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
@@ -1346,7 +1408,6 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
             return einsum(einsum_input,A)
     return None
 
-# trace function only support the when len(A.get_dims()) == 2
 def trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
@@ -1489,9 +1550,9 @@ def take(A, indices, axis=None, out=None, mode='raise'):
                         raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
                 else:
                     raise ValueError('output array does not match result of ctf.take')
-                # permute
+                # add the permute function
                 return None
-            # permute
+            # add the permute function
             return None
         return None
 
@@ -1598,6 +1659,22 @@ def astensor(arr):
         t = tsr(narr.shape)
         t.from_nparray(narr)
         return t
+
+def dot(A, B, out=None):
+    # there will be error when using "type(A)==complex" since there seems confliction between Cython complex and Python complex... 
+    if (type(A)==int or type(A)==float) and (type(B)==int or type(B)==float):
+        return A * B
+    elif type(A)==tsr and type(B)!=tsr:
+        return None
+    elif type(A)!=tsr and type(B)==tsr:
+        return None
+    elif type(A)==tsr and type(B)==tsr:
+        return None
+    else:
+        raise ValueError("Wrong Type")
+
+def tensordot(A, B, axes=2):
+    return None
 
 def to_nparray(t):
     if isinstance(t,tsr):
