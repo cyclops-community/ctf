@@ -1283,6 +1283,10 @@ def array(A, dtype=None, order='F'):
     else:
         raise ValueError('wrong type')
 
+def test(A):
+    return einsum("iijk->jki",A)
+    
+
 # diagonal function only support the when len(A.get_dims()) == 2
 def diagonal(A, offset=0, axis1=0, axis2=1):
     if not isinstance(A, tsr):
@@ -1331,6 +1335,19 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
                     down_right[0] -= (down_right[1] - dim[0])
                     down_right[1] = dim[0]
             return einsum("ii->i",A.get_slice(up_left, down_right))
+    else:
+        square = True
+        # check whether the tensor has all the same shape for every dimension -> [2,2,2,2] dims etc.
+        for i in range(1,len(dim)):
+            if dim[0] != dim[i]:
+                square = False
+                break
+        if square == True:
+            back = random.sample(string.ascii_letters+string.digits,len(dim)-1)
+            back = "".join(back)
+            front = back[len(back)-1]+back[len(back)-1]+back[0:len(back)-1]
+            einsum_input = front + "->" + back
+            return einsum(einsum_input,A)
     return None
 
 # trace function only support the when len(A.get_dims()) == 2
@@ -1340,8 +1357,11 @@ def trace(A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
     dim = A.get_dims()
     if len(dim) == 1 or len(dim)==0:
         raise ValueError('diag requires an array of at least two dimensions')
-    if len(dim) == 2:
+    elif len(dim) == 2:
         return sum(diagonal(A, offset=offset, axis1 = axis1, axis2 = axis2))
+    else:
+        # this is the case when len(dims) > 2 and "square tensor"
+        return sum(diagonal(A, offset=offset, axis1 = axis1, axis2 = axis2), axis=len(A.get_dims())-2)
     return None
 
 # the take function now lack of the "permute function" which can take the elements from the tensor.
