@@ -284,6 +284,10 @@ cdef class tsr:
     cdef int itemsize
     cdef int nbytes
     cdef tuple strides
+    # add shape and dtype to make CTF "same" with those in numpy
+    # virtually, shape == dims, dtype == typ
+    cdef cnp.dtype dtype
+    cdef tuple shape
 
     # some property of the tensor, use like tensor.strides
     property strides:
@@ -305,6 +309,14 @@ cdef class tsr:
     property ndim:
         def __get__(self):
             return self.ndim
+
+    property shape:
+        def __get__(self):
+            return self.shape
+
+    property dtype:
+        def __get__(self):
+            return self.dtype
 
     def bool_sum(tsr self):
         return sum_bool_tsr(<tensor*>self.dt)
@@ -336,7 +348,9 @@ cdef class tsr:
 	# add type np.int64, int32, maybe we can add other types
     def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tsr copy=None):
         self.typ = <cnp.dtype>dtype
+        self.dtype = <cnp.dtype>dtype
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
+        self.shape = tuple(lens)
         self.ndim = len(self.dims)
         self.order = ord(order)
         if self.typ == np.bool:
@@ -1682,6 +1696,7 @@ def to_nparray(t):
     else:
         return np.asarray(t)
 
+# return a zero tensor just like the tensor A
 def zeros_like(A, dtype=None, order='F'):
     if not isinstance(A, tsr):
         raise ValueError('A is not a tensor')
