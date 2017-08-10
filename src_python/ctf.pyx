@@ -1688,7 +1688,24 @@ def dot(A, B, out=None):
         raise ValueError("Wrong Type")
 
 def tensordot(A, B, axes=2):
-    return None
+    if not isinstance(A, tsr) or not isinstance(B, tsr):
+        raise ValueError("Both should be tensors")
+    if axes > len(A.shape) or axes > len(B.shape):
+        raise ValueError("tuple index out of range")
+    
+    # when axes equals integer
+    if axes <= 0:
+        ret_shape = A.shape + B.shape
+        C = tsr(ret_shape, dtype = np.float64)
+        return C
+    #elif type(axes) == int:
+        #for i in range(axes):
+            #if A.shape[len(A.shape)-1-i] != B.shape[i]:
+                #raise ValueError("shape-mismatch for sum")
+        #new_shape = A.shape[0:len(A.shape)-axes] + B.shape[axes:len(B.shape)]
+        #C = tsr(new_shape, dtype = np.float64)
+        #print(C.shape)
+        #return C
 
 def to_nparray(t):
     if isinstance(t,tsr):
