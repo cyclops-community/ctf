@@ -10,6 +10,9 @@ namespace CTF_int{
     B_bool->operator[](idx_B) = CTF::Function<bool, bool>([](bool a){ return a==false ? true : false; })(B_bool->operator[](idx_B));
   }
 
+	/*void tensordot_helper(tensor * A, tensor * B, char const * idx_A, char const * idx_B){
+		char 
+	}*/
 	void conj_helper(tensor * A, tensor * B) {
     char str[A->order];
     for(int i=0;i<A->order;i++) {
@@ -88,6 +91,8 @@ namespace CTF_int{
 	template void tensor::conv_type<double, std::complex<double>>(tensor* B);
 	template void tensor::conv_type<double, std::complex<long double>>(tensor* B);
 
+  // exp_helper
+	template void tensor::exp_helper<int64_t, double>(tensor* A);
 
 	// ctf.all() function in c++ file (add more type)
 	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);

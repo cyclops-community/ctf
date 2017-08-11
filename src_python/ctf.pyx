@@ -75,13 +75,13 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         int64_t get_tot_size()
         int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
         void conv_type[dtype_A,dtype_B](tensor * B)
-        void conv_type_self[dtype_A,dtype_B]()
         void compare_elementwise[dtype](tensor * A, tensor * B)
         void not_equals[dtype](tensor * A, tensor * B)
         void smaller_than[dtype](tensor * A, tensor * B)
         void smaller_equal_than[dtype](tensor * A, tensor * B)
         void larger_than[dtype](tensor * A, tensor * B)
         void larger_equal_than[dtype](tensor * A, tensor * B)
+        void exp_helper[dtype_A,dtype_B](tensor * A)
 
     cdef cppclass Term:
         Term * clone();
@@ -421,6 +421,9 @@ cdef class tsr:
             (<Tensor[double complex]*>self.dt).fill_sp_random(mn,mx,frac)
         else:
             raise ValueError('bad dtype')
+
+    def exp_python(self, tsr A):
+        self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
 
     # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
 	
@@ -1703,7 +1706,7 @@ def tensordot(A, B, axes=2):
             if A.shape[len(A.shape)-1-i] != B.shape[axes-1-i]:
                 raise ValueError("shape-mismatch for sum")
         new_shape = A.shape[0:len(A.shape)-axes] + B.shape[axes:len(B.shape)]
-        
+
         # following is to check the return tensor type
         new_dtype = A.dtype
         if new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64 and B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64:
@@ -1740,8 +1743,19 @@ def tensordot(A, B, axes=2):
             if str(new_dtype) < str(B.dtype):
                 new_dtype = B.dtype
         C = tsr(new_shape, dtype = new_dtype)
-        print(C.dtype)
+        print(C.shape)
+        C.i("ij") << A.i("ikl") * B.i("klj")
+        #print(C.dtype)
         return C
+
+# the default order of exp in CTF is Fortran order
+def exp(x, out=None, where=True, casting='same_kind', order='F', dtype=None, subok=True):
+    if not isinstance(x, tsr):
+        raise ValueError("Input should be a tensor")
+    
+    ret = tsr(x.shape, dtype = np.float64)
+    ret.exp_python(x)
+    return ret
 
 def to_nparray(t):
     if isinstance(t,tsr):
@@ -2335,7 +2349,11 @@ def transpose(A, axes=None):
 
     dim = A.get_dims()
     if axes == None:
-        B = tsr(dim, dtype=A.get_type())
+        new_dim = []
+        for i in range(len(dim)-1, -1, -1):
+            new_dim.append(dim[i])
+        new_dim = tuple(new_dim)
+        B = tsr(new_dim, dtype=A.get_type())
         index = random.sample(string.ascii_letters+string.digits,len(dim))
         index = "".join(index)
         rev_index = str(index[::-1])

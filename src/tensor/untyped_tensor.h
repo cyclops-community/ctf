@@ -730,9 +730,12 @@ namespace CTF_int {
       template <typename dtype_A, typename dtype_B>
       void conv_type(tensor * B);
 
+      /**
+       * \exponential function store the e**value in tensor A into this (primarily needed for python interface)
+       */
       template <typename dtype_A, typename dtype_B>
-      void conv_type_self();
-      
+      void exp_helper(tensor * A);
+
       /**
        * \brief do an elementwise comparison(==) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
        * \param[in] A first operand
