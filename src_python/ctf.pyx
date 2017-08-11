@@ -1698,14 +1698,14 @@ def tensordot(A, B, axes=2):
         ret_shape = A.shape + B.shape
         C = tsr(ret_shape, dtype = np.float64)
         return C
-    #elif type(axes) == int:
-        #for i in range(axes):
-            #if A.shape[len(A.shape)-1-i] != B.shape[i]:
-                #raise ValueError("shape-mismatch for sum")
-        #new_shape = A.shape[0:len(A.shape)-axes] + B.shape[axes:len(B.shape)]
-        #C = tsr(new_shape, dtype = np.float64)
-        #print(C.shape)
-        #return C
+    elif type(axes) == int:
+        for i in range(axes):
+            if A.shape[len(A.shape)-1-i] != B.shape[axes-1-i]:
+                raise ValueError("shape-mismatch for sum")
+        new_shape = A.shape[0:len(A.shape)-axes] + B.shape[axes:len(B.shape)]
+        C = tsr(new_shape, dtype = np.float64)
+        print(C.shape)
+        return C
 
 def to_nparray(t):
     if isinstance(t,tsr):
