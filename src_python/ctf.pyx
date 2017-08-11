@@ -1703,8 +1703,44 @@ def tensordot(A, B, axes=2):
             if A.shape[len(A.shape)-1-i] != B.shape[axes-1-i]:
                 raise ValueError("shape-mismatch for sum")
         new_shape = A.shape[0:len(A.shape)-axes] + B.shape[axes:len(B.shape)]
-        C = tsr(new_shape, dtype = np.float64)
-        print(C.shape)
+        
+        # following is to check the return tensor type
+        new_dtype = A.dtype
+        if new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64 and B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64:
+            if str(new_dtype) < str(B.dtype):
+                new_dtype = B.dtype
+        elif new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64 and B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128:
+            if B.dtype == np.float128:
+                new_dtype = np.float128
+            else:
+                new_dtype = np.float64
+        elif new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
+            if B.dtype == np.complex256:
+                new_dtype = np.complex256
+            else:
+                new_dtype = np.complex128
+        elif new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128 and B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64:
+            if new_dtype != np.float128:
+                new_dtype = np.float64
+        elif new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128 and B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128:
+            if str(new_dtype) < str(B.dtype):
+                new_dtype = B.dtype
+        elif new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
+            if B.dtype == np.complex256:
+                new_dtype = np.complex256
+            else:
+                new_dtype = np.complex128
+        elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256  and B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64:
+            if new_dtype != np.complex256:
+                new_dtype = np.complex128
+        elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256 and B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128:
+            if new_dtype != np.complex256:
+                new_dtype = np.complex128
+        elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
+            if str(new_dtype) < str(B.dtype):
+                new_dtype = B.dtype
+        C = tsr(new_shape, dtype = new_dtype)
+        print(C.dtype)
         return C
 
 def to_nparray(t):
