@@ -1765,9 +1765,28 @@ def tensordot(A, B, axes=2):
             if str(new_dtype) < str(B.dtype):
                 new_dtype = B.dtype
         C = tsr(new_shape, dtype = new_dtype)
-        print(C.shape)
-        C.i("ij") << A.i("ikl") * B.i("klj")
-        #print(C.dtype)
+        # change type
+        string_index = 33
+        A_str = ""
+        B_str = ""
+        C_str = ""
+        for i in range(axes):
+            A_str += chr(string_index)
+            B_str += chr(string_index)
+            string_index += 1
+
+        # update the string of A
+        for i in range(len(A.shape)-axes):
+            A_str = chr(string_index) + A_str
+            C_str = chr(string_index) + C_str
+            string_index += 1
+
+        # update the string of B
+        for i in range(len(B.shape)-axes):
+            B_str += chr(string_index)
+            C_str += chr(string_index)
+            string_index += 1
+        C.i(C_str) << A.i(A_str) * B.i(B_str)
         return C
 
 # the default order of exp in CTF is Fortran order
