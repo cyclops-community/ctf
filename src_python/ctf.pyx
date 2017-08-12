@@ -425,29 +425,34 @@ cdef class tsr:
             raise ValueError('bad dtype')
 
     # the function that call the exp_helper in the C++ level
-    def exp_python(self, tsr A):
-        if A.dtype == np.int8:#
-            self.dt.exp_helper[int8_t, double](<tensor*>A.dt)
-        elif A.dtype == np.int16:
-            self.dt.exp_helper[int16_t, float](<tensor*>A.dt)
-        elif A.dtype == np.int32:
-            self.dt.exp_helper[int32_t, double](<tensor*>A.dt)
-        elif A.dtype == np.int64:
-            self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
-        elif A.dtype == np.float16:#
-            self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
-        elif A.dtype == np.float32:
-            self.dt.exp_helper[float, float](<tensor*>A.dt)
-        elif A.dtype == np.float64:
-            self.dt.exp_helper[double, double](<tensor*>A.dt)
-        elif A.dtype == np.float128:#
-            self.dt.exp_helper[double, double](<tensor*>A.dt)
-        #elif A.dtype == np.complex64:
-            #self.dt.exp_helper[complex, complex](<tensor*>A.dt)
-        #elif A.dtype == np.complex128:
-            #self.dt.exp_helper[double complex,double complex](<tensor*>A.dt)
-        #elif A.dtype == np.complex256:#
-            #self.dt.exp_helper[double complex, double complex](<tensor*>A.dt)
+    def exp_python(self, tsr A, cast = None, dtype = None):
+        if cast == None:
+            if A.dtype == np.int8:#
+                self.dt.exp_helper[int8_t, double](<tensor*>A.dt)
+            elif A.dtype == np.int16:
+                self.dt.exp_helper[int16_t, float](<tensor*>A.dt)
+            elif A.dtype == np.int32:
+                self.dt.exp_helper[int32_t, double](<tensor*>A.dt)
+            elif A.dtype == np.int64:
+                self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
+            elif A.dtype == np.float16:#
+                self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
+            elif A.dtype == np.float32:
+                self.dt.exp_helper[float, float](<tensor*>A.dt)
+            elif A.dtype == np.float64:
+                self.dt.exp_helper[double, double](<tensor*>A.dt)
+            elif A.dtype == np.float128:#
+                self.dt.exp_helper[double, double](<tensor*>A.dt)
+            #elif A.dtype == np.complex64:
+                #self.dt.exp_helper[complex, complex](<tensor*>A.dt)
+            #elif A.dtype == np.complex128:
+                #self.dt.exp_helper[double complex,double complex](<tensor*>A.dt)
+            #elif A.dtype == np.complex256:#
+                #self.dt.exp_helper[double complex, double complex](<tensor*>A.dt)
+        elif cast == 'unsafe':
+            # we can add more types
+            if A.dtype == np.int64 and dtype == np.int8:
+                self.dt.exp_helper[int64_t, int8_t](<tensor*>A.dt)
 
     # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
 	
@@ -1846,26 +1851,56 @@ def tensordot(A, B, axes=2):
             return C
 
 # the default order of exp in CTF is Fortran order
+# the exp not working when the type of x is complex, there are some problems when implementing the template in function exp_python() function
+# not sure out and dtype can be specified together, now this is not allowed in this function
+# haven't implemented the out that store the value into the out, now only return a new tensor
 def exp(x, out=None, where=True, casting='same_kind', order='F', dtype=None, subok=True):
     if not isinstance(x, tsr):
         raise ValueError("Input should be a tensor")
-    ret_dtype = None
-    x_dtype = x.dtype
-    if x_dtype == np.int8:
-        ret_dtype = np.float16
-    elif x_dtype == np.int16:
-        ret_dtype = np.float32
-    elif x_dtype == np.int32:
-        ret_dtype = np.float64
-    elif x_dtype == np.int64:
-        ret_dtype = np.float64
-    elif x_dtype == np.float16 or x_dtype == np.float32 or x_dtype == np.float64 or x_dtype == np.float128:
-        ret_dtype = x_dtype
-    elif x_dtype == np.complex64 or x_dtype == np.complex128 or x_dtype == np.complex256:
-        ret_dtype = x_dtype
-    ret = tsr(x.shape, dtype = ret_dtype)
-    ret.exp_python(x)
-    return ret
+    if out is not None and out.shape != x.shape:
+        raise ValueError("Shape does not match")
+    if casting == 'same_kind' and (out is not None or dtype != None):
+        if out is not None and dtype != None:
+            raise TypeError("out and dtype should not be specified together")
+        type_list = [np.int8, np.int16, np.int32, np.int64]
+        for i in range(4):
+            if out is not None and out.dtype == type_list[i]:
+                raise TypeError("Can not cast according to the casting rule 'same_kind'")
+            if dtype != None and dtype == type_list[i]:
+                raise TypeError("Can not cast according to the casting rule 'same_kind'")
+    
+    # we need to add more templates initialization in exp_python() function
+    if casting == 'unsafe':
+        if out is not None and dtype != None:
+            raise TypeError("out and dtype should not be specified together")
+            
+    if dtype != None:
+        ret_dtype = dtype
+    elif out is not None:
+        ret_dtype = out.dtype
+    else:
+        ret_dtype = None
+        x_dtype = x.dtype
+        if x_dtype == np.int8:
+            ret_dtype = np.float16
+        elif x_dtype == np.int16:
+            ret_dtype = np.float32
+        elif x_dtype == np.int32:
+            ret_dtype = np.float64
+        elif x_dtype == np.int64:
+            ret_dtype = np.float64
+        elif x_dtype == np.float16 or x_dtype == np.float32 or x_dtype == np.float64 or x_dtype == np.float128:
+            ret_dtype = x_dtype
+        elif x_dtype == np.complex64 or x_dtype == np.complex128 or x_dtype == np.complex256:
+            ret_dtype = x_dtype
+    if casting == "unsafe":
+        ret = tsr(x.shape, dtype = ret_dtype)
+        ret.exp_python(x, cast = 'unsafe', dtype = ret_dtype)
+        return ret
+    else:
+        ret = tsr(x.shape, dtype = ret_dtype)
+        ret.exp_python(x)
+        return ret
 
 def to_nparray(t):
     if isinstance(t,tsr):
