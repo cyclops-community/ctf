@@ -88,6 +88,7 @@ namespace CTF_int{
   template void tensor::conv_type<bool, double>(tensor* B);
 	template void tensor::conv_type<double, int64_t>(tensor* B);
 	template void tensor::conv_type<int64_t, double>(tensor* B);
+	template void tensor::conv_type<int32_t, double>(tensor* B);
 	template void tensor::conv_type<double, std::complex<double>>(tensor* B);
 	template void tensor::conv_type<double, std::complex<long double>>(tensor* B);
 
@@ -99,6 +100,8 @@ namespace CTF_int{
 	template void tensor::exp_helper<double, double>(tensor* A);
 	template void tensor::exp_helper<long double, long double>(tensor* A);
 	template void tensor::exp_helper<std::complex<double>, std::complex<double>>(tensor* A);
+  // exp_helper when casting == unsafe
+	template void tensor::exp_helper<int64_t, int8_t>(tensor* A);
 
 	// ctf.all() function in c++ file (add more type)
 	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
