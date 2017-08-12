@@ -335,6 +335,8 @@ cdef class tsr:
             self.dt.conv_type[double,complex](<tensor*> B.dt)
         elif self.typ == np.int64 and B.typ == np.float64:
             self.dt.conv_type[int64_t,double](<tensor*> B.dt)
+        elif self.typ == np.int32 and B.typ == np.float64:
+            self.dt.conv_type[int32_t,double](<tensor*> B.dt)
     # get "shape" or dimensions of the tensor
     def get_dims(self):
         return self.dims
@@ -1731,41 +1733,41 @@ def tensordot(A, B, axes=2):
 
         # following is to check the return tensor type
         new_dtype = A.dtype
-        if new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64 and B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64:
+        if (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
             if str(new_dtype) < str(B.dtype):
                 new_dtype = B.dtype
-        elif new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64 and B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128:
+        elif (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
             if B.dtype == np.float128:
                 new_dtype = np.float128
             else:
                 new_dtype = np.float64
-        elif new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
+        elif (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256):
             if B.dtype == np.complex256:
                 new_dtype = np.complex256
             else:
                 new_dtype = np.complex128
-        elif new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128 and B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64:
+        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
             if new_dtype != np.float128:
                 new_dtype = np.float64
-        elif new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128 and B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128:
+        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
             if str(new_dtype) < str(B.dtype):
                 new_dtype = B.dtype
-        elif new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
+        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256):
             if B.dtype == np.complex256:
                 new_dtype = np.complex256
             else:
                 new_dtype = np.complex128
-        elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256  and B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64:
+        elif (new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
             if new_dtype != np.complex256:
                 new_dtype = np.complex128
-        elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256 and B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128:
+        elif (new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
             if new_dtype != np.complex256:
                 new_dtype = np.complex128
         elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
             if str(new_dtype) < str(B.dtype):
                 new_dtype = B.dtype
-        C = tsr(new_shape, dtype = new_dtype)
-        # change type
+        
+        # start manage the string input for .i()
         string_index = 33
         A_str = ""
         B_str = ""
@@ -1786,8 +1788,30 @@ def tensordot(A, B, axes=2):
             B_str += chr(string_index)
             C_str += chr(string_index)
             string_index += 1
-        C.i(C_str) << A.i(A_str) * B.i(B_str)
-        return C
+
+        if A.dtype == new_dtype and B.dtype == new_dtype:
+            C = tsr(new_shape, dtype = new_dtype)
+            C.i(C_str) << A.i(A_str) * B.i(B_str)
+            return C
+        else:
+            C = tsr(new_shape, dtype = new_dtype)
+            A_new = None
+            B_new = None
+            if A.dtype != new_dtype:
+                A_new = A.astype(dtype = new_dtype)
+            if B.dtype != new_dtype:
+                B_new = A.astype(dtype = new_dtype)
+            return A_new
+
+            if A_new is not None and B_new is not None:
+                C.i(C_str) << A_new.i(A_str) * B_new.i(B_str)
+            elif A_new is not None:
+                C.i(C_str) << A_new.i(A_str) * B.i(B_str)
+            elif B_new is not None:
+                C.i(C_str) << A.i(A_str) * B_new.i(B_str)
+            else:
+                C.i(C_str) << A.i(A_str) * B.i(B_str)
+            return C
 
 # the default order of exp in CTF is Fortran order
 def exp(x, out=None, where=True, casting='same_kind', order='F', dtype=None, subok=True):
