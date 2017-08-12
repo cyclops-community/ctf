@@ -101,7 +101,8 @@ namespace CTF_int{
 	template void tensor::exp_helper<long double, long double>(tensor* A);
 	template void tensor::exp_helper<std::complex<double>, std::complex<double>>(tensor* A);
   // exp_helper when casting == unsafe
-	template void tensor::exp_helper<int64_t, int8_t>(tensor* A);
+	template void tensor::exp_helper<int64_t, float>(tensor* A);
+	template void tensor::exp_helper<int64_t, double>(tensor* A);
 
 	// ctf.all() function in c++ file (add more type)
 	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);

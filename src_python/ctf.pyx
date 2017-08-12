@@ -451,8 +451,10 @@ cdef class tsr:
                 #self.dt.exp_helper[double complex, double complex](<tensor*>A.dt)
         elif cast == 'unsafe':
             # we can add more types
-            if A.dtype == np.int64 and dtype == np.int8:
-                self.dt.exp_helper[int64_t, int8_t](<tensor*>A.dt)
+            if A.dtype == np.int64 and dtype == np.float32:
+                self.dt.exp_helper[int64_t, float](<tensor*>A.dt)
+            elif A.dtype == np.int64 and dtype == np.float64:
+                self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
 
     # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
 	
@@ -1871,6 +1873,7 @@ def exp(x, out=None, where=True, casting='same_kind', order='F', dtype=None, sub
     
     # we need to add more templates initialization in exp_python() function
     if casting == 'unsafe':
+        # add more, not completed when casting == unsafe
         if out is not None and dtype != None:
             raise TypeError("out and dtype should not be specified together")
             
