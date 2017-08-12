@@ -1721,10 +1721,11 @@ def tensordot(A, B, axes=2):
         raise ValueError("tuple index out of range")
     
     # when axes equals integer
-    if axes <= 0:
-        ret_shape = A.shape + B.shape
-        C = tsr(ret_shape, dtype = np.float64)
-        return C
+    #if type(axes) == int and axes <= 0:
+        #ret_shape = A.shape + B.shape
+        #C = tsr(ret_shape, dtype = np.float64)
+        #C.i("abcdefg") << A.i("abcd") * B.i("efg")
+        #return C
     elif type(axes) == int:
         for i in range(axes):
             if A.shape[len(A.shape)-1-i] != B.shape[axes-1-i]:
@@ -1767,6 +1768,27 @@ def tensordot(A, B, axes=2):
             if str(new_dtype) < str(B.dtype):
                 new_dtype = B.dtype
         
+        if axes <= 0:
+            print("in")
+            ret_shape = A.shape + B.shape
+            C = tsr(ret_shape, dtype = new_dtype)
+            A_new = None
+            B_new = None
+
+            # we need to add more template to conv_type
+            if A.dtype != new_dtype:
+                A_new = A.astype(dtype = new_dtype)
+            if B.dtype != new_dtype:
+                B_new = A.astype(dtype = new_dtype)
+
+            if A_new is not None and B_new is not None:
+                C.i("abcdefg") << A_new.i("abcd") * B_new.i("efg")
+            elif A_new is not None:
+                C.i("abcdefg") << A_new.i("abcd") * B.i("efg")
+            else:
+                C.i("abcdefg") << A.i("abcd") * B.i("efg")
+            return C
+
         # start manage the string input for .i()
         string_index = 33
         A_str = ""
@@ -1803,7 +1825,6 @@ def tensordot(A, B, axes=2):
                 A_new = A.astype(dtype = new_dtype)
             if B.dtype != new_dtype:
                 B_new = A.astype(dtype = new_dtype)
-            return A_new
 
             if A_new is not None and B_new is not None:
                 C.i(C_str) << A_new.i(A_str) * B_new.i(B_str)
