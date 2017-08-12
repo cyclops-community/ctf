@@ -1781,12 +1781,23 @@ def tensordot(A, B, axes=2):
             if B.dtype != new_dtype:
                 B_new = A.astype(dtype = new_dtype)
 
+            string_index = 33
+            A_str = ""
+            B_str = ""
+            C_str = ""
+            for i in range(len(A.shape)):
+                A_str += chr(string_index)
+                string_index += 1
+            for i in range(len(B.shape)):
+                B_str += chr(string_index)
+                string_index += 1
+            C_str = A_str + B_str
             if A_new is not None and B_new is not None:
-                C.i("abcdefg") << A_new.i("abcd") * B_new.i("efg")
+                C.i(C_str) << A_new.i(A_str) * B_new.i(B_str)
             elif A_new is not None:
-                C.i("abcdefg") << A_new.i("abcd") * B.i("efg")
+                C.i(C_str) << A_new.i(A_str) * B.i(B_str)
             else:
-                C.i("abcdefg") << A.i("abcd") * B.i("efg")
+                C.i(C_str) << A.i(A_str) * B.i(B_str)
             return C
 
         # start manage the string input for .i()
