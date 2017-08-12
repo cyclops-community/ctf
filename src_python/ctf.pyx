@@ -1797,6 +1797,8 @@ def tensordot(A, B, axes=2):
             C = tsr(new_shape, dtype = new_dtype)
             A_new = None
             B_new = None
+
+            # we need to add more template to conv_type
             if A.dtype != new_dtype:
                 A_new = A.astype(dtype = new_dtype)
             if B.dtype != new_dtype:
@@ -1807,10 +1809,8 @@ def tensordot(A, B, axes=2):
                 C.i(C_str) << A_new.i(A_str) * B_new.i(B_str)
             elif A_new is not None:
                 C.i(C_str) << A_new.i(A_str) * B.i(B_str)
-            elif B_new is not None:
-                C.i(C_str) << A.i(A_str) * B_new.i(B_str)
             else:
-                C.i(C_str) << A.i(A_str) * B.i(B_str)
+                C.i(C_str) << A.i(A_str) * B_new.i(B_str)
             return C
 
 # the default order of exp in CTF is Fortran order
