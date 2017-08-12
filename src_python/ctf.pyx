@@ -422,8 +422,30 @@ cdef class tsr:
         else:
             raise ValueError('bad dtype')
 
+    # the function that call the exp_helper in the C++ level
     def exp_python(self, tsr A):
-        self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
+        if A.dtype == np.int8:#
+            self.dt.exp_helper[int8_t, double](<tensor*>A.dt)
+        elif A.dtype == np.int16:
+            self.dt.exp_helper[int16_t, float](<tensor*>A.dt)
+        elif A.dtype == np.int32:
+            self.dt.exp_helper[int32_t, double](<tensor*>A.dt)
+        elif A.dtype == np.int64:
+            self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
+        elif A.dtype == np.float16:#
+            self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
+        elif A.dtype == np.float32:
+            self.dt.exp_helper[float, float](<tensor*>A.dt)
+        elif A.dtype == np.float64:
+            self.dt.exp_helper[double, double](<tensor*>A.dt)
+        elif A.dtype == np.float128:#
+            self.dt.exp_helper[double, double](<tensor*>A.dt)
+        #elif A.dtype == np.complex64:
+            #self.dt.exp_helper[complex, complex](<tensor*>A.dt)
+        #elif A.dtype == np.complex128:
+            #self.dt.exp_helper[double complex,double complex](<tensor*>A.dt)
+        #elif A.dtype == np.complex256:#
+            #self.dt.exp_helper[double complex, double complex](<tensor*>A.dt)
 
     # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
 	
@@ -1752,8 +1774,21 @@ def tensordot(A, B, axes=2):
 def exp(x, out=None, where=True, casting='same_kind', order='F', dtype=None, subok=True):
     if not isinstance(x, tsr):
         raise ValueError("Input should be a tensor")
-    
-    ret = tsr(x.shape, dtype = np.float64)
+    ret_dtype = None
+    x_dtype = x.dtype
+    if x_dtype == np.int8:
+        ret_dtype = np.float16
+    elif x_dtype == np.int16:
+        ret_dtype = np.float32
+    elif x_dtype == np.int32:
+        ret_dtype = np.float64
+    elif x_dtype == np.int64:
+        ret_dtype = np.float64
+    elif x_dtype == np.float16 or x_dtype == np.float32 or x_dtype == np.float64 or x_dtype == np.float128:
+        ret_dtype = x_dtype
+    elif x_dtype == np.complex64 or x_dtype == np.complex128 or x_dtype == np.complex256:
+        ret_dtype = x_dtype
+    ret = tsr(x.shape, dtype = ret_dtype)
     ret.exp_python(x)
     return ret
 
