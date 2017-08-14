@@ -6,7 +6,6 @@ ext_module = Extension(
     "ctf",
     ["src_python/ctf.pyx"],
     language="c++",
-    install_requires=["cython"],
     include_dirs=["./include"],
     library_dirs=["./lib_shared"],
     libraries=["ctf", "blas", "mpicxx"],
