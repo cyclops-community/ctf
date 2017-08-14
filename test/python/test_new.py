@@ -69,6 +69,5 @@ class newtest(unittest.TestCase):
 #677 -> A.i("ii") << 1.0        
 
 if __name__ == "__main__":
-    ctf.MPI_start()
     print("Tests for new")
     unittest.main()

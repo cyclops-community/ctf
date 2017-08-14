@@ -707,6 +707,9 @@ mkdir -p $BUILDDIR/bin
 
 
 cat > $BUILDDIR/config.mk <<EOF
+### INSTALLATION TARGET DIRECTORY (for make install)
+INSTALL_DIR = /usr/local
+
 ### LINK TIME LIBRARIES AND FLAGS
 #libraries and flags for link time (irrelevant if only building CTF lib and not examples/tests)
 BLAS_LIBS   = $SCALAPACKLIBS $BLASLIBS

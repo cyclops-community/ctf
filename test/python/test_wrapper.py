@@ -2,7 +2,6 @@ import ctf
 import numpy as np
 #from mpi4py import MPI
 
-ctf.MPI_start()
 
 A = ctf.tsr([4, 5], sp=1)
 A.fill_sp_random(1., 2., .8)
@@ -47,4 +46,3 @@ norm = C.norm2()
 if rank is 0:
   print( 'error norm is ' + repr(norm))
 
-ctf.MPI_end()

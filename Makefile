@@ -10,8 +10,12 @@ export FCXX
 export OFFLOAD_CXX
 export LIBS
 
-all: $(BDIR)/lib/libctf.a
+all: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 
+install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
+	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
+	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
+	cp $(BDIR)/include/ctf.hpp $(INSTALL_DIR)/include
 
 EXAMPLES = algebraic_multigrid apsp bitonic_sort btwn_central ccsd checkpoint dft_3D fft force_integration force_integration_sparse jacobi matmul neural_network particle_interaction qinformatics recursive_matmul scan sparse_mp3 sparse_permuted_slice spectral_element spmv sssp strassen trace 
 TESTS = bivar_function bivar_transform ccsdt_map_test ccsdt_t3_to_t2 dft diag_ctr diag_sym endomorphism_cust endomorphism_cust_sp endomorphism gemm_4D multi_tsr_sym permute_multiworld readall_test readwrite_test repack scalar speye sptensor_sum subworld_gemm sy_times_ns test_suite univar_function weigh_4D 
@@ -74,56 +78,51 @@ ctf_objs:
 ctflib: ctf_objs 
 	$(AR) -crs $(BDIR)/lib/libctf.a $(ODIR)/*.o; 
 
+ctf_ext_objs:
+	$(MAKE) ctf_ext_objs -C src_python; 
+
 .PHONY: shared
 shared: ctflibso
 .PHONY: ctflibso
 ctflibso: export FCXX+=-fPIC
 ctflibso: export OFFLOAD_CXX+=-fPIC
 ctflibso: export ODIR=$(BDIR)/obj_shared
-ctflibso: ctf_objs 
-	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o; 
+ctflibso: ctf_objs ctf_ext_objs
+	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o; 
 
-ctf_ext_objs:
-	$(MAKE) ctf_ext_objs -C src_python; 
 
-ctf_extlibso: export FCXX+=-fPIC
-ctf_extlibso: export OFFLOAD_CXX+=-fPIC
-ctf_extlibso: export ODIR=$(BDIR)/obj_shared
-ctf_extlibso: ctf_ext_objs 
-	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf_ext.so $(OEDIR)/*.o; 
-
-.PHONY: python
-python: pylib
-.PHONY: pylib
-pylib: lib_py/ctf.so
-lib_py/ctf.so: ctflibso ctf_extlibso src_python/ctf.pyx
-	LDFLAGS="-L./lib_shared" python setup_wrapper.py build_ext --inplace
-	mv ctf*.so lib_py/ctf.so
-
-.PHONY: test_python
-test_python: lib_py/ctf.so
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_wrapper.py
-
-.PHONY: test_einsum
-test_einsum: lib_py/ctf.so
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_einsum.py
-
-.PHONY: test_new
-test_new: lib_py/ctf.so
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_new.py
-
-.PHONY: test_base
-test_base: lib_py/ctf.so
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_base.py
-
-.PHONY: test_live
-test_live: lib_py/ctf.so
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" ipython -i -c "import numpy as np; import ctf"
+#.PHONY: python
+#python: pylib
+#.PHONY: pylib
+#pylib: lib_py/ctf.so
+#lib_py/ctf.so: ctflibso src_python/ctf.pyx
+#	LDFLAGS="-L./lib_shared" python setup_wrapper.py build_ext --inplace
+#	mv ctf*.so lib_py/ctf.so
+#
+#.PHONY: test_python
+#test_python: lib_py/ctf.so
+#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_wrapper.py
+#
+#.PHONY: test_einsum
+#test_einsum: lib_py/ctf.so
+#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_einsum.py
+#
+#.PHONY: test_new
+#test_new: lib_py/ctf.so
+#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_new.py
+#
+#.PHONY: test_base
+#test_base: lib_py/ctf.so
+#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_base.py
+#
+#.PHONY: test_live
+#test_live: lib_py/ctf.so
+#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" ipython -i -c "import numpy as np; import ctf"
 
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
 
-$(BDIR)/lib/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
+$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflibso
 	
 clean: clean_bin clean_lib clean_obj

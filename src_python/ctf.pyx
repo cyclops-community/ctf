@@ -33,18 +33,16 @@ def enum(**enums):
 
 SYM = enum(NS=0, SY=1, AS=2, SH=3)
 
-
-cdef extern from "mpi.h":
-    void MPI_Init(int,char)
+cdef extern from "mpi.h":# namespace "MPI":
+    void MPI_Init(int * argc, char *** argv)
+    int MPI_Initialized(int *)
     void MPI_Finalize()
 
-def MPI_start():
-    MPI_Init(0,0)
 
-def MPI_end():
-    MPI_Finalize()
-
-#test = MPI_start();
+cdef int is_mpi_init=0
+MPI_Initialized(<int*>&is_mpi_init)
+if is_mpi_init == 0:
+  MPI_Init(&is_mpi_init, <char***>NULL)
 
 cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass algstrct:

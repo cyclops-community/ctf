@@ -331,6 +331,5 @@ class KnowValues(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    ctf.MPI_start()
     print("Base tests")
     unittest.main()
