@@ -2481,12 +2481,14 @@ int dist_tensor<dtype>::
     ntsr_C->is_data_aliased = 1;
     del_tsr(ntype.tid_C);
   }
-  if (was_home_A && !ntsr_A->is_home){
-    ntsr_A->has_home = 0;
-    del_tsr(ntype.tid_A);
-  } else if (was_home_A) {
-    ntsr_A->is_data_aliased = 1;
-    del_tsr(ntype.tid_A);
+  if (ntype.tid_A != ntype.tid_C){
+    if (was_home_A && !ntsr_A->is_home){
+      ntsr_A->has_home = 0;
+      del_tsr(ntype.tid_A);
+    } else if (was_home_A) {
+      ntsr_A->is_data_aliased = 1;
+      del_tsr(ntype.tid_A);
+    }
   }
   if (was_home_B && stype->tid_A != stype->tid_B && !ntsr_B->is_home){
     ntsr_B->has_home = 0;
