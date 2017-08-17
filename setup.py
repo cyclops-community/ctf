@@ -1,13 +1,13 @@
 from distutils.core import setup
 from Cython.Build import cythonize
 from distutils.extension import Extension
-  
+import numpy
+
 ext_module = Extension(
     "ctf",
     ["src_python/ctf.pyx"],
     language="c++",
-    install_requires=["cython"],
-    include_dirs=["./include"],
+    include_dirs=["./include",numpy.get_include()],
     library_dirs=["./lib_shared"],
     libraries=["ctf", "blas", "mpicxx"],
     extra_compile_args=["-std=c++11"],
