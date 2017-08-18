@@ -616,8 +616,8 @@ void assign_keys(int const          ndim,
                  int *              phase_rank,
                  dtype const *      vdata,
                  tkv_pair<dtype> *  vpairs){
-  int i, imax, act_lda, idx_offset, act_max, buf_offset;
-  long_int p;
+  int i, imax, act_lda, act_max;
+  long_int p, idx_offset, buf_offset;
   int * idx, * virt_rank, * edge_lda;  
   dtype const * data;
   tkv_pair<dtype> * pairs;
@@ -992,9 +992,9 @@ void zero_padding( int const          ndim,
 #pragma omp parallel
 #endif
 {
-  int i, act_lda, act_max, buf_offset, curr_idx, sym_idx;
+  int i, act_lda, act_max, curr_idx, sym_idx;
   int is_outside;
-  long_int p;
+  long_int p, buf_offset;
   int * idx, * virt_rank, * phase_rank, * virt_len;
   dtype* data;
 
