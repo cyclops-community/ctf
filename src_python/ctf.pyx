@@ -265,8 +265,8 @@ cdef class itsr(term):
         self.it = new Idx_Tensor(a.dt, string.encode())
         self.tm = self.it
 
-    def scale(self, scl):
-        self.it.multeq(scl)
+    def scl(self, s):
+        self.it.multeq(s)
 
 def rev_array(arr):
     arr2 = arr[::-1]
