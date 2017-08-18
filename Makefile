@@ -91,33 +91,33 @@ ctflibso: ctf_objs ctf_ext_objs
 	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o; 
 
 
-#.PHONY: python
-#python: pylib
-#.PHONY: pylib
-#pylib: lib_py/ctf.so
-#lib_py/ctf.so: ctflibso src_python/ctf.pyx
-#	LDFLAGS="-L./lib_shared" python setup_wrapper.py build_ext --inplace
-#	mv ctf*.so lib_py/ctf.so
-#
-#.PHONY: test_python
-#test_python: lib_py/ctf.so
-#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_wrapper.py
-#
-#.PHONY: test_einsum
-#test_einsum: lib_py/ctf.so
-#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_einsum.py
-#
-#.PHONY: test_new
-#test_new: lib_py/ctf.so
-#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_new.py
-#
-#.PHONY: test_base
-#test_base: lib_py/ctf.so
-#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_base.py
-#
-#.PHONY: test_live
-#test_live: lib_py/ctf.so
-#	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" ipython -i -c "import numpy as np; import ctf"
+.PHONY: python
+python: pylib
+.PHONY: pylib
+pylib: lib_py/ctf.so
+lib_py/ctf.so: $(BDIR)/lib_shared/libctf.so src_python/ctf.pyx
+	LDFLAGS="-L./lib_shared" python setup.py build_ext --inplace
+	mv ctf*.so lib_py/ctf.so
+
+.PHONY: test_python
+test_python: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_wrapper.py
+
+.PHONY: test_einsum
+test_einsum: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_einsum.py
+
+.PHONY: test_new
+test_new: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_new.py
+
+.PHONY: test_base
+test_base: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_base.py
+
+.PHONY: test_live
+test_live: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" ipython -i -c "import numpy as np; import ctf"
 
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
