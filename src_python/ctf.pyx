@@ -1901,12 +1901,18 @@ def tensordot(A, B, axes=2):
         B_str = ""
         C_str = ""
         new_shape = ()
+        # generate string for tensor A
         for i in range(len(A.shape)):
             A_str += chr(string_index)
             string_index += 1
+        # generate string for tensor B
         for i in range(len(B.shape)):
             B_str += chr(string_index)
             string_index += 1
+        B_str = list(B_str)
+        for i in range(len(axes_arr[1])):
+            B_str[axes_arr[1][i]] = A_str[axes_arr[0][i]]
+        B_str = "".join(B_str)
         for i in range(len(A_str)):
             if i not in axes_arr[0]:
                 C_str += A_str[i]
@@ -1915,8 +1921,10 @@ def tensordot(A, B, axes=2):
             if i not in axes_arr[1]:
                 C_str += B_str[i]
                 new_shape += (B.shape[i],)
+        # that we do not need to change type
         if A.dtype == new_dtype and B.dtype == new_dtype:
             C = tsr(new_shape, dtype = new_dtype)
+            #print(A_str, B_str, C_str)
             C.i(C_str) << A.i(A_str) * B.i(B_str)
             return C
         else:
@@ -1924,7 +1932,7 @@ def tensordot(A, B, axes=2):
             A_new = None
             B_new = None
 
-            # we need to add more template to conv_type
+            # we need to add more template to conv_type for type convert
             if A.dtype != new_dtype:
                 A_new = A.astype(dtype = new_dtype)
             if B.dtype != new_dtype:
