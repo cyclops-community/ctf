@@ -424,6 +424,7 @@ cdef class tsr:
 
     # the function that call the exp_helper in the C++ level
     def exp_python(self, tsr A, cast = None, dtype = None):
+        # when the casting is default that is "same kind"
         if cast == None:
             if A.dtype == np.int8:#
                 self.dt.exp_helper[int8_t, double](<tensor*>A.dt)
@@ -443,8 +444,8 @@ cdef class tsr:
                 self.dt.exp_helper[double, double](<tensor*>A.dt)
             #elif A.dtype == np.complex64:
                 #self.dt.exp_helper[complex, complex](<tensor*>A.dt)
-            #elif A.dtype == np.complex128:
-                #self.dt.exp_helper[double complex,double complex](<tensor*>A.dt)
+            elif A.dtype == np.complex128:
+                self.dt.exp_helper[complex, complex](<tensor*>A.dt)
             #elif A.dtype == np.complex256:#
                 #self.dt.exp_helper[double complex, double complex](<tensor*>A.dt)
         elif cast == 'unsafe':
@@ -453,6 +454,8 @@ cdef class tsr:
                 self.dt.exp_helper[int64_t, float](<tensor*>A.dt)
             elif A.dtype == np.int64 and dtype == np.float64:
                 self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
+        else:
+            raise ValueError("not support other casting now")
 
     # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
 	
@@ -1722,8 +1725,6 @@ def dot(A, B, out=None):
 def tensordot(A, B, axes=2):
     if not isinstance(A, tsr) or not isinstance(B, tsr):
         raise ValueError("Both should be tensors")
-    if axes > len(A.shape) or axes > len(B.shape):
-        raise ValueError("tuple index out of range")
     
     # when axes equals integer
     #if type(axes) == int and axes <= 0:
@@ -1732,6 +1733,8 @@ def tensordot(A, B, axes=2):
         #C.i("abcdefg") << A.i("abcd") * B.i("efg")
         #return C
     elif type(axes) == int:
+        if axes > len(A.shape) or axes > len(B.shape):
+            raise ValueError("tuple index out of range")
         for i in range(axes):
             if A.shape[len(A.shape)-1-i] != B.shape[axes-1-i]:
                 raise ValueError("shape-mismatch for sum")
@@ -1774,7 +1777,6 @@ def tensordot(A, B, axes=2):
                 new_dtype = B.dtype
         
         if axes <= 0:
-            print("in")
             ret_shape = A.shape + B.shape
             C = tsr(ret_shape, dtype = new_dtype)
             A_new = None
@@ -1837,6 +1839,100 @@ def tensordot(A, B, axes=2):
             B_new = None
 
             # we need to add more template to conv_type
+            C.i(C_str) << A.i(A_str) * B_new.i(B_str)
+            if A.dtype != new_dtype:
+                A_new = A.astype(dtype = new_dtype)
+            if B.dtype != new_dtype:
+                B_new = A.astype(dtype = new_dtype)
+
+            if A_new is not None and B_new is not None:
+                C.i(C_str) << A_new.i(A_str) * B_new.i(B_str)
+            elif A_new is not None:
+                C.i(C_str) << A_new.i(A_str) * B.i(B_str)
+            else:
+                C.i(C_str) << A.i(A_str) * B_new.i(B_str)
+            return C
+    else:
+        axes_arr = np.asarray(axes)
+        if len(axes_arr.shape) != 2 or axes_arr.shape[0] != 2:
+            raise ValueError("axes should be int or (2,) array like")
+        if len(axes_arr[0]) != len(axes_arr[1]):
+            raise ValueError("two sequences should have same length")
+        for i in range(len(axes_arr[0])):
+            if A.shape[axes_arr[0][i]] != B.shape[axes_arr[1][i]]:
+                raise ValueError("shape mismatch")
+        new_dtype = A.dtype
+        if (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
+            if str(new_dtype) < str(B.dtype):
+                new_dtype = B.dtype
+        elif (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
+            if B.dtype == np.float128:
+                new_dtype = np.float128
+            else:
+                new_dtype = np.float64
+        elif (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256):
+            if B.dtype == np.complex256:
+                new_dtype = np.complex256
+            else:
+                new_dtype = np.complex128
+        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
+            if new_dtype != np.float128:
+                new_dtype = np.float64
+        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
+            if str(new_dtype) < str(B.dtype):
+                new_dtype = B.dtype
+        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256):
+            if B.dtype == np.complex256:
+                new_dtype = np.complex256
+            else:
+                new_dtype = np.complex128
+        elif (new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
+            if new_dtype != np.complex256:
+                new_dtype = np.complex128
+        elif (new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
+            if new_dtype != np.complex256:
+                new_dtype = np.complex128
+        elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
+            if str(new_dtype) < str(B.dtype):
+                new_dtype = B.dtype
+        # start manage the string input for .i()
+        string_index = 33
+        A_str = ""
+        B_str = ""
+        C_str = ""
+        new_shape = ()
+        # generate string for tensor A
+        for i in range(len(A.shape)):
+            A_str += chr(string_index)
+            string_index += 1
+        # generate string for tensor B
+        for i in range(len(B.shape)):
+            B_str += chr(string_index)
+            string_index += 1
+        B_str = list(B_str)
+        for i in range(len(axes_arr[1])):
+            B_str[axes_arr[1][i]] = A_str[axes_arr[0][i]]
+        B_str = "".join(B_str)
+        for i in range(len(A_str)):
+            if i not in axes_arr[0]:
+                C_str += A_str[i]
+                new_shape += (A.shape[i],)
+        for i in range(len(B_str)):
+            if i not in axes_arr[1]:
+                C_str += B_str[i]
+                new_shape += (B.shape[i],)
+        # that we do not need to change type
+        if A.dtype == new_dtype and B.dtype == new_dtype:
+            C = tsr(new_shape, dtype = new_dtype)
+            #print(A_str, B_str, C_str)
+            C.i(C_str) << A.i(A_str) * B.i(B_str)
+            return C
+        else:
+            C = tsr(new_shape, dtype = new_dtype)
+            A_new = None
+            B_new = None
+
+            # we need to add more template to conv_type for type convert
             if A.dtype != new_dtype:
                 A_new = A.astype(dtype = new_dtype)
             if B.dtype != new_dtype:
