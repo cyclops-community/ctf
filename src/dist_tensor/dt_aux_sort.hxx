@@ -618,7 +618,8 @@ void assign_keys(int const          ndim,
                  tkv_pair<dtype> *  vpairs){
   int i, imax, act_lda, act_max;
   long_int p, idx_offset, buf_offset;
-  int * idx, * virt_rank, * edge_lda;  
+  int * idx, * virt_rank;
+  int64_t * edge_lda;  
   dtype const * data;
   tkv_pair<dtype> * pairs;
   if (ndim == 0){
@@ -633,7 +634,7 @@ void assign_keys(int const          ndim,
   TAU_FSTART(assign_keys);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&idx);
   CTF_alloc_ptr(ndim*sizeof(int), (void**)&virt_rank);
-  CTF_alloc_ptr(ndim*sizeof(int), (void**)&edge_lda);
+  CTF_alloc_ptr(ndim*sizeof(int64_t), (void**)&edge_lda);
   
   memset(virt_rank, 0, sizeof(int)*ndim);
   
