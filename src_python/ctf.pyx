@@ -454,6 +454,8 @@ cdef class tsr:
                 self.dt.exp_helper[int64_t, float](<tensor*>A.dt)
             elif A.dtype == np.int64 and dtype == np.float64:
                 self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
+            else:
+                raise ValueError("current unsafe casting not support all type")
         else:
             raise ValueError("not support other casting now")
 
@@ -884,6 +886,8 @@ cdef class tsr:
         # whether permutation need malloc?
         cdef int ** permutation_A
         cdef int ** permutation_B
+        permutation_A = <int**>malloc(sizeof(int*) * 2)
+        permutation_B = <int**>malloc(sizeof(int*) * 2)
         st = np.ndarray([],dtype=self.typ).itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
@@ -1953,6 +1957,11 @@ def tensordot(A, B, axes=2):
 def exp(x, out=None, where=True, casting='same_kind', order='F', dtype=None, subok=True):
     if not isinstance(x, tsr):
         raise ValueError("Input should be a tensor")
+
+    # delete this one and add for out
+    if out is not None:
+        raise ValueError("current not support to specify out")
+
     if out is not None and out.shape != x.shape:
         raise ValueError("Shape does not match")
     if casting == 'same_kind' and (out is not None or dtype != None):
