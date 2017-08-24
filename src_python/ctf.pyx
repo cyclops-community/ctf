@@ -928,6 +928,8 @@ cdef class tsr:
     # assume the casting is unsafe (no, equiv, safe, same_kind, unsafe)
     # originally in numpy's astype there is subok, (subclass) not available now in ctf?
     def astype(self, dtype, order='F', casting='unsafe'):
+        if dtype == self.dtype:
+            return self.copy()
         if casting == 'unsafe':
             # may add more types
             if dtype == int:
@@ -1878,9 +1880,61 @@ def dot(A, B, out=None):
     if (type(A)==int or type(A)==float) and (type(B)==int or type(B)==float):
         return A * B
     elif type(A)==tsr and type(B)!=tsr:
-        raise ValueError("now ctf does not support dot(tsr, not tsr)")
+        ret_dtype = None
+        if (A.dtype == np.int8 or A.dtype == np.int16 or A.dtype == np.int32 or A.dtype == np.int64) and type(B) == int:
+            ret_dtype = np.int64
+        elif (A.dtype == np.float32 or A.dtype == np.float64) and type(B) == int:
+            ret_dtype = np.float64
+        elif A.dtype == np.complex128 and type(B) == int:
+            ret_dtype = np.complex128
+        elif (A.dtype == np.int8 or A.dtype == np.int16 or A.dtype == np.int32 or A.dtype == np.int64) and type(B) == float:
+            ret_dtype = np.float64
+        elif (A.dtype == np.float32 or A.dtype == np.float64) and type(B) == float:
+            ret_dtype = np.float64
+        elif A.dtype == np.complex128 and type(B) == float:
+            ret_dtype = np.complex128
+        else:
+            raise ValueError("other types is not supported in ctf, also if the input contain python complex")
+        if A.dtype == ret_dtype:
+            temp = A
+        else:
+            temp = A.astype(ret_dtype)
+        string_index = 33
+        string = ""
+        for i in range(len(A.shape)):
+            string += chr(string_index)
+            string_index += 1
+        ret = tsr(A.shape, dtype = ret_dtype)
+        ret.i(string) << B * temp.i(string)
+        return ret
     elif type(A)!=tsr and type(B)==tsr:
-        raise ValueError("now ctf does not support dot(not tsr, tsr)")
+        ret_dtype = None
+        if (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64) and type(A) == int:
+            ret_dtype = np.int64
+        elif (B.dtype == np.float32 or B.dtype == np.float64) and type(A) == int:
+            ret_dtype = np.float64
+        elif B.dtype == np.complex128 and type(A) == int:
+            ret_dtype = np.complex128
+        elif (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64) and type(A) == float:
+            ret_dtype = np.float64
+        elif (B.dtype == np.float32 or B.dtype == np.float64) and type(A) == float:
+            ret_dtype = np.float64
+        elif B.dtype == np.complex128 and type(A) == float:
+            ret_dtype = np.complex128
+        else:
+            raise ValueError("other types is not supported in ctf, also if the input contain python complex")
+        if ret_dtype == B.dtype:
+            temp = B
+        else:
+            temp = B.astype(ret_dtype)
+        string_index = 33
+        string = ""
+        for i in range(len(B.shape)):
+            string += chr(string_index)
+            string_index += 1
+        ret = tsr(B.shape, dtype = ret_dtype)
+        ret.i(string) << A * temp.i(string)
+        return ret
     elif type(A)==tsr and type(B)==tsr:
         return tensordot(A, B, axes=([-1],[-2]))
     else:
