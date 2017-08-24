@@ -10,7 +10,6 @@ namespace CTF_int {
   LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
 
   void sgemm_batch(
-            char            Layout,
             char    *       taA,
             char    *       taB,
             int     *       m,
@@ -36,12 +35,12 @@ namespace CTF_int {
       } else {
         ldb[i] = n[i];
       }
-      CTF_BLAS::SGEMM_BATCH(&Layout, taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, size_per_group);
+      int group_count[] = {1};
+      CTF_BLAS::SGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
 
   void dgemm_batch(
-            char            Layout,
             char    *       taA,
             char    *       taB,
             int     *       m,
@@ -67,12 +66,12 @@ namespace CTF_int {
       } else {
         ldb[i] = n[i];
       }
-      CTF_BLAS::DGEMM_BATCH(&Layout, taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, size_per_group);
+      int group_count[] = {1};
+      CTF_BLAS::DGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
 
   void cgemm_batch(
-            char                         Layout,
             char                 *       taA,
             char                 *       taB,
             int                  *       m,
@@ -98,12 +97,12 @@ namespace CTF_int {
       } else {
         ldb[i] = n[i];
       }
-      CTF_BLAS::CGEMM_BATCH(&Layout, taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, size_per_group);
+      int group_count[] = {1};
+      CTF_BLAS::CGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
 
   void zgemm_batch(
-            char                         Layout,
             char                 *       taA,
             char                 *       taB,
             int                  *       m,
@@ -129,7 +128,8 @@ namespace CTF_int {
       } else {
         ldb[i] = n[i];
       }
-      CTF_BLAS::ZGEMM_BATCH(&Layout, taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, size_per_group);
+      int group_count[] = {1};
+      CTF_BLAS::ZGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
 

@@ -448,7 +448,6 @@ namespace CTF_int {
   };
 
   void sgemm_batch(
-            char            Layout,
             char    *       taA,
             char    *       taB,
             int     *       m,
@@ -462,7 +461,6 @@ namespace CTF_int {
             int     *       size_per_group);
 
   void dgemm_batch(
-            char            Layout,
             char    *       taA,
             char    *       taB,
             int     *       m,
@@ -476,7 +474,6 @@ namespace CTF_int {
             int     *       size_per_group);
 
   void cgemm_batch(
-            char                         Layout,
             char                 *       taA,
             char                 *       taB,
             int                  *       m,
@@ -490,7 +487,6 @@ namespace CTF_int {
             int                  *       size_per_group);
 
   void zgemm_batch(
-            char                         Layout,
             char                 *       taA,
             char                 *       taB,
             int                  *       m,

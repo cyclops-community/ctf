@@ -107,7 +107,6 @@ namespace CTF_BLAS {
   void SGEMM_BATCH(
             const char *,
             const char *,
-            const char *,
             const int *,
             const int *,
             const int *,
@@ -119,11 +118,11 @@ namespace CTF_BLAS {
             const float *,
             float **,
             const int *,
+            const int *,
             const int *);
 
   extern "C"
   void DGEMM_BATCH(
-            const char *,
             const char *,
             const char *,
             const int *,
@@ -137,11 +136,11 @@ namespace CTF_BLAS {
             const double *,
             double **,
             const int *,
+            const int *,
             const int *);
 
   extern "C"
   void CGEMM_BATCH(
-            const char *,
             const char *,
             const char *,
             const int *,
@@ -155,11 +154,11 @@ namespace CTF_BLAS {
             const std::complex<float> *,
             std::complex<float> **,
             const int *,
+            const int *,
             const int *);
 
   extern "C"
   void ZGEMM_BATCH(
-            const char *,
             const char *,
             const char *,
             const int *,
@@ -172,6 +171,7 @@ namespace CTF_BLAS {
             const int *,
             const std::complex<double> *,
             std::complex<double> **,
+            const int *,
             const int *,
             const int *);
 
