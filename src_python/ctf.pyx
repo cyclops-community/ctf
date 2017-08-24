@@ -1873,14 +1873,16 @@ def astensor(arr):
 
 def dot(A, B, out=None):
     # there will be error when using "type(A)==complex" since there seems confliction between Cython complex and Python complex... 
+    if out is not None:
+        raise ValueError("now ctf does not support to specify out")
     if (type(A)==int or type(A)==float) and (type(B)==int or type(B)==float):
         return A * B
     elif type(A)==tsr and type(B)!=tsr:
-        return None
+        raise ValueError("now ctf does not support dot(tsr, not tsr)")
     elif type(A)!=tsr and type(B)==tsr:
-        return None
+        raise ValueError("now ctf does not support dot(not tsr, tsr)")
     elif type(A)==tsr and type(B)==tsr:
-        return None
+        return tensordot(A, B, axes=([-1],[-2]))
     else:
         raise ValueError("Wrong Type")
 
@@ -2020,6 +2022,21 @@ def tensordot(A, B, axes=2):
             raise ValueError("axes should be int or (2,) array like")
         if len(axes_arr[0]) != len(axes_arr[1]):
             raise ValueError("two sequences should have same length")
+        for i in range(len(axes_arr[0])):
+            if axes_arr[0][i] < 0:
+                axes_arr[0][i] += len(A.shape)
+                if axes_arr[0][i] < 0:
+                    raise ValueError("index out of range")
+            if axes_arr[1][i] < 0:
+                axes_arr[1][i] += len(B.shape)
+                if axes_arr[1][i] < 0:
+                    raise ValueError("index out of range")
+        # check whether there are same index
+        for i in range(len(axes_arr[0])):
+            if axes[0].count(axes_arr[0][i]) > 1:
+                raise ValueError("repeated index")
+            if axes[1].count(axes_arr[1][i]) > 1:
+                raise ValueError("repeated index")
         for i in range(len(axes_arr[0])):
             if A.shape[axes_arr[0][i]] != B.shape[axes_arr[1][i]]:
                 raise ValueError("shape mismatch")
