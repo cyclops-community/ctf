@@ -409,7 +409,6 @@ cdef class tsr:
     def __add__(self, other):
         if not isinstance(other, tsr):
             raise ValueError("input should be two tensors")
-        ret = tsr(self.shape)
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -418,6 +417,7 @@ cdef class tsr:
             for i in range(len(self.shape)):
                 string += chr(string_index)
                 string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
             ret.i(string) << self.i(string) + other.i(string)
         else:
             if np.can_cast(self.dtype, other.dtype):
@@ -428,6 +428,7 @@ cdef class tsr:
                 for i in range(len(self.shape)):
                     string += chr(string_index)
                     string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
                 ret.i(string) << temp_str.i(string) + other.i(string)
             elif np.can_cast(other.dtype, self.dtype):
                 ret_dtype = self.dtype
@@ -437,6 +438,7 @@ cdef class tsr:
                 for i in range(len(self.shape)):
                     string += chr(string_index)
                     string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
                 ret.i(string) << temp_str.i(string) + other.i(string)
             else:
                 raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
@@ -445,7 +447,6 @@ cdef class tsr:
     def __sub__(self, other):
         if not isinstance(other, tsr):
             raise ValueError("the input should be tensors")
-        ret = tsr(self.shape)
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -454,6 +455,7 @@ cdef class tsr:
             for i in range(len(self.shape)):
                 string += chr(string_index)
                 string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
             ret.i(string) << self.i(string) + (-1*other.i(string))
         else:
             if np.can_cast(self.dtype, other.dtype):
@@ -464,6 +466,7 @@ cdef class tsr:
                 for i in range(len(self.shape)):
                     string += chr(string_index)
                     string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
                 ret.i(string) << temp_str.i(string) + (-1*other.i(string))
             elif np.can_cast(other.dtype, self.dtype):
                 ret_dtype = self.dtype
@@ -473,6 +476,7 @@ cdef class tsr:
                 for i in range(len(self.shape)):
                     string += chr(string_index)
                     string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
                 ret.i(string) << temp_str.i(string) + (-1*other.i(string))
             else:
                 raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
@@ -481,7 +485,6 @@ cdef class tsr:
     def __mul__(self, other):
         if not isinstance(other, tsr):
             raise ValueError("input should be tensors")
-        ret = tsr(self.shape)
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -490,6 +493,7 @@ cdef class tsr:
             for i in range(len(self.shape)):
                 string += chr(string_index)
                 string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
             ret.i(string) << self.i(string) * other.i(string)
         else:
             if np.can_cast(self.dtype, other.dtype):
@@ -500,6 +504,7 @@ cdef class tsr:
                 for i in range(len(self.shape)):
                     string += chr(string_index)
                     string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
                 ret.i(string) << temp_str.i(string) * other.i(string)
             elif np.can_cast(other.dtype, self.dtype):
                 ret_dtype = self.dtype
@@ -509,6 +514,7 @@ cdef class tsr:
                 for i in range(len(self.shape)):
                     string += chr(string_index)
                     string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
                 ret.i(string) << temp_str.i(string) * other.i(string)
             else:
                 raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
@@ -518,7 +524,6 @@ cdef class tsr:
     def __truediv__(self, other):
         if not isinstance(other, tsr):
             raise ValueError("input should be tensors")
-        ret = tsr(self.shape)
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -527,6 +532,7 @@ cdef class tsr:
             for i in range(len(self.shape)):
                 string += chr(string_index)
                 string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
             ret.i(string) << self.i(string) / other.i(string)
         else:
             if np.can_cast(self.dtype, other.dtype):
@@ -537,6 +543,7 @@ cdef class tsr:
                 for i in range(len(self.shape)):
                     string += chr(string_index)
                     string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
                 ret.i(string) << temp_str.i(string) / other.i(string)
             elif np.can_cast(other.dtype, self.dtype):
                 ret_dtype = self.dtype
@@ -546,6 +553,7 @@ cdef class tsr:
                 for i in range(len(self.shape)):
                     string += chr(string_index)
                     string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
                 ret.i(string) << temp_str.i(string) / other.i(string)
             else:
                 raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
