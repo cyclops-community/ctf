@@ -69,6 +69,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         int read_local_nnz(int64_t * num_pair,
                            char **   data)
         void allread(int64_t * num_pair, char * data)
+        dtype * raw_data(intt64_t * size)
         void slice(int *, int *, char *, tensor *, int *, int *, char *)
         int64_t get_tot_size()
         int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
@@ -869,7 +870,16 @@ cdef class tsr:
         for j in range(0,sz*tB):
             arr.view(dtype=np.int8)[j] = cvals[j]
         free(cvals)
-    
+ 
+    def write_all(self, arr):
+        cdef char * cvals
+        cdef int64_t sz
+        sz = self.dt.get_tot_size()
+        tB = arr.dtype.itemsize
+        cvals = self.dt.raw_data(&sz)
+        for j in range(0,sz*tB):
+            cvals[j] = arr.view(dtype=np.int8)[j]
+   
     def conj(tsr self):
         if self.typ != np.complex64 and self.typ != np.complex128:
             return self.copy()
@@ -1169,7 +1179,9 @@ cdef class tsr:
     def from_nparray(self, arr):
         if arr.dtype != self.typ:
             raise ValueError('bad dtype')
-        if self.dt.wrld.rank == 0:
+        if self.dt.wrld.np == 0:
+            self.write_all(arr)
+        elif self.dt.wrld.rank == 0:
             #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
             self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
         else:
