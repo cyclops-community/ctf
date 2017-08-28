@@ -407,6 +407,169 @@ cdef class tsr:
         free(clens)
         free(csym)
 
+    def __add__(self, other):
+        if not isinstance(other, tsr):
+            raise ValueError("input should be two tensors")
+        if self.shape != other.shape:
+            raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
+        if self.dtype == other.dtype:
+            string_index = 33
+            string = ""
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret.i(string) << self.i(string) + other.i(string)
+        else:
+            if np.can_cast(self.dtype, other.dtype):
+                ret_dtype = other.dtype
+                temp_str = self.astype(ret_dtype)
+                string = ""
+                string_index = 33
+                for i in range(len(self.shape)):
+                    string += chr(string_index)
+                    string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
+                ret.i(string) << temp_str.i(string) + other.i(string)
+            elif np.can_cast(other.dtype, self.dtype):
+                ret_dtype = self.dtype
+                temp_str = other.astype(ret_dtype)
+                string = ""
+                string_index = 33
+                for i in range(len(self.shape)):
+                    string += chr(string_index)
+                    string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
+                ret.i(string) << temp_str.i(string) + other.i(string)
+            else:
+                raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
+        return ret
+
+    def __sub__(self, other):
+        if not isinstance(other, tsr):
+            raise ValueError("the input should be tensors")
+        if self.shape != other.shape:
+            raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
+        if self.dtype == other.dtype:
+            string_index = 33
+            string = ""
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret.i(string) << self.i(string) + (-1*other.i(string))
+        else:
+            if np.can_cast(self.dtype, other.dtype):
+                ret_dtype = other.dtype
+                temp_str = self.astype(ret_dtype)
+                string = ""
+                string_index = 33
+                for i in range(len(self.shape)):
+                    string += chr(string_index)
+                    string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
+                ret.i(string) << temp_str.i(string) + (-1*other.i(string))
+            elif np.can_cast(other.dtype, self.dtype):
+                ret_dtype = self.dtype
+                temp_str = other.astype(ret_dtype)
+                string = ""
+                string_index = 33
+                for i in range(len(self.shape)):
+                    string += chr(string_index)
+                    string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
+                ret.i(string) << temp_str.i(string) + (-1*other.i(string))
+            else:
+                raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
+        return ret
+
+    def __mul__(self, other):
+        if not isinstance(other, tsr):
+            raise ValueError("input should be tensors")
+        if self.shape != other.shape:
+            raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
+        if self.dtype == other.dtype:
+            string_index = 33
+            string = ""
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret.i(string) << self.i(string) * other.i(string)
+        else:
+            if np.can_cast(self.dtype, other.dtype):
+                ret_dtype = other.dtype
+                temp_str = self.astype(ret_dtype)
+                string = ""
+                string_index = 33
+                for i in range(len(self.shape)):
+                    string += chr(string_index)
+                    string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
+                ret.i(string) << temp_str.i(string) * other.i(string)
+            elif np.can_cast(other.dtype, self.dtype):
+                ret_dtype = self.dtype
+                temp_str = other.astype(ret_dtype)
+                string = ""
+                string_index = 33
+                for i in range(len(self.shape)):
+                    string += chr(string_index)
+                    string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
+                ret.i(string) << temp_str.i(string) * other.i(string)
+            else:
+                raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
+        return ret
+
+    # the divide not working now, which need to add to itsr first
+    def __truediv__(self, other):
+        if not isinstance(other, tsr):
+            raise ValueError("input should be tensors")
+        if self.shape != other.shape:
+            raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
+        if self.dtype == other.dtype:
+            string_index = 33
+            string = ""
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret.i(string) << self.i(string) / other.i(string)
+        else:
+            if np.can_cast(self.dtype, other.dtype):
+                ret_dtype = other.dtype
+                temp_str = self.astype(ret_dtype)
+                string = ""
+                string_index = 33
+                for i in range(len(self.shape)):
+                    string += chr(string_index)
+                    string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
+                ret.i(string) << temp_str.i(string) / other.i(string)
+            elif np.can_cast(other.dtype, self.dtype):
+                ret_dtype = self.dtype
+                temp_str = other.astype(ret_dtype)
+                string = ""
+                string_index = 33
+                for i in range(len(self.shape)):
+                    string += chr(string_index)
+                    string_index += 1
+                ret = tsr(self.shape, dtype = ret_dtype)
+                ret.i(string) << temp_str.i(string) / other.i(string)
+            else:
+                raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
+        return ret
+
+    def __matmul__(self, other):
+        if not isinstance(other, tsr):
+            raise ValueError("input should be tensors")
+        temp = dot(self, other)
+        shape = ()
+        for i in range(len(self.shape)-1):
+            shape += (self.shape[i],)
+        shape += (other.shape[len(other.shape)-1],)
+        return dot(self, other).reshape(shape)
+    
     def fill_random(self, mn, mx):
         if self.typ == np.float64:
             (<Tensor[double]*>self.dt).fill_random(mn,mx)
@@ -455,6 +618,8 @@ cdef class tsr:
                 self.dt.exp_helper[int64_t, float](<tensor*>A.dt)
             elif A.dtype == np.int64 and dtype == np.float64:
                 self.dt.exp_helper[int64_t, double](<tensor*>A.dt)
+            else:
+                raise ValueError("current unsafe casting not support all type")
         else:
             raise ValueError("not support other casting now")
 
@@ -769,6 +934,8 @@ cdef class tsr:
     # assume the casting is unsafe (no, equiv, safe, same_kind, unsafe)
     # originally in numpy's astype there is subok, (subclass) not available now in ctf?
     def astype(self, dtype, order='F', casting='unsafe'):
+        if dtype == self.dtype:
+            return self.copy()
         if casting == 'unsafe':
             # may add more types
             if dtype == int:
@@ -894,6 +1061,8 @@ cdef class tsr:
         # whether permutation need malloc?
         cdef int ** permutation_A
         cdef int ** permutation_B
+        permutation_A = <int**>malloc(sizeof(int*) * 2)
+        permutation_B = <int**>malloc(sizeof(int*) * 2)
         st = np.ndarray([],dtype=self.typ).itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
@@ -1723,14 +1892,68 @@ def astensor(arr):
 
 def dot(A, B, out=None):
     # there will be error when using "type(A)==complex" since there seems confliction between Cython complex and Python complex... 
+    if out is not None:
+        raise ValueError("now ctf does not support to specify out")
     if (type(A)==int or type(A)==float) and (type(B)==int or type(B)==float):
         return A * B
     elif type(A)==tsr and type(B)!=tsr:
-        return None
+        ret_dtype = None
+        if (A.dtype == np.int8 or A.dtype == np.int16 or A.dtype == np.int32 or A.dtype == np.int64) and type(B) == int:
+            ret_dtype = np.int64
+        elif (A.dtype == np.float32 or A.dtype == np.float64) and type(B) == int:
+            ret_dtype = np.float64
+        elif A.dtype == np.complex128 and type(B) == int:
+            ret_dtype = np.complex128
+        elif (A.dtype == np.int8 or A.dtype == np.int16 or A.dtype == np.int32 or A.dtype == np.int64) and type(B) == float:
+            ret_dtype = np.float64
+        elif (A.dtype == np.float32 or A.dtype == np.float64) and type(B) == float:
+            ret_dtype = np.float64
+        elif A.dtype == np.complex128 and type(B) == float:
+            ret_dtype = np.complex128
+        else:
+            raise ValueError("other types is not supported in ctf, also if the input contain python complex")
+        if A.dtype == ret_dtype:
+            temp = A
+        else:
+            temp = A.astype(ret_dtype)
+        string_index = 33
+        string = ""
+        for i in range(len(A.shape)):
+            string += chr(string_index)
+            string_index += 1
+        ret = tsr(A.shape, dtype = ret_dtype)
+        ret.i(string) << B * temp.i(string)
+        return ret
     elif type(A)!=tsr and type(B)==tsr:
-        return None
+        ret_dtype = None
+        if (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64) and type(A) == int:
+            ret_dtype = np.int64
+        elif (B.dtype == np.float32 or B.dtype == np.float64) and type(A) == int:
+            ret_dtype = np.float64
+        elif B.dtype == np.complex128 and type(A) == int:
+            ret_dtype = np.complex128
+        elif (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64) and type(A) == float:
+            ret_dtype = np.float64
+        elif (B.dtype == np.float32 or B.dtype == np.float64) and type(A) == float:
+            ret_dtype = np.float64
+        elif B.dtype == np.complex128 and type(A) == float:
+            ret_dtype = np.complex128
+        else:
+            raise ValueError("other types is not supported in ctf, also if the input contain python complex")
+        if ret_dtype == B.dtype:
+            temp = B
+        else:
+            temp = B.astype(ret_dtype)
+        string_index = 33
+        string = ""
+        for i in range(len(B.shape)):
+            string += chr(string_index)
+            string_index += 1
+        ret = tsr(B.shape, dtype = ret_dtype)
+        ret.i(string) << A * temp.i(string)
+        return ret
     elif type(A)==tsr and type(B)==tsr:
-        return None
+        return tensordot(A, B, axes=([-1],[-2]))
     else:
         raise ValueError("Wrong Type")
 
@@ -1871,6 +2094,21 @@ def tensordot(A, B, axes=2):
         if len(axes_arr[0]) != len(axes_arr[1]):
             raise ValueError("two sequences should have same length")
         for i in range(len(axes_arr[0])):
+            if axes_arr[0][i] < 0:
+                axes_arr[0][i] += len(A.shape)
+                if axes_arr[0][i] < 0:
+                    raise ValueError("index out of range")
+            if axes_arr[1][i] < 0:
+                axes_arr[1][i] += len(B.shape)
+                if axes_arr[1][i] < 0:
+                    raise ValueError("index out of range")
+        # check whether there are same index
+        for i in range(len(axes_arr[0])):
+            if axes[0].count(axes_arr[0][i]) > 1:
+                raise ValueError("repeated index")
+            if axes[1].count(axes_arr[1][i]) > 1:
+                raise ValueError("repeated index")
+        for i in range(len(axes_arr[0])):
             if A.shape[axes_arr[0][i]] != B.shape[axes_arr[1][i]]:
                 raise ValueError("shape mismatch")
         new_dtype = A.dtype
@@ -1965,6 +2203,11 @@ def tensordot(A, B, axes=2):
 def exp(x, out=None, where=True, casting='same_kind', order='F', dtype=None, subok=True):
     if not isinstance(x, tsr):
         raise ValueError("Input should be a tensor")
+
+    # delete this one and add for out
+    if out is not None:
+        raise ValueError("current not support to specify out")
+
     if out is not None and out.shape != x.shape:
         raise ValueError("Shape does not match")
     if casting == 'same_kind' and (out is not None or dtype != None):
