@@ -783,6 +783,9 @@ namespace CTF_int {
        */
       template <typename dtype>
       void larger_equal_than(tensor * A, tensor * B);
+
+      template <typename dtype>
+      void true_divide(tensor * A);
   };
 }
 #endif// __UNTYPED_TENSOR_H__

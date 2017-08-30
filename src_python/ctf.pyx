@@ -80,6 +80,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         void larger_than[dtype](tensor * A, tensor * B)
         void larger_equal_than[dtype](tensor * A, tensor * B)
         void exp_helper[dtype_A,dtype_B](tensor * A)
+        void true_divide[dtype](tensor * A)
 
     cdef cppclass Term:
         Term * clone();
@@ -533,7 +534,9 @@ cdef class tsr:
                 string += chr(string_index)
                 string_index += 1
             ret = tsr(self.shape, dtype = self.dtype)
-            ret.i(string) << self.i(string) / other.i(string)
+            inverted = tsr(other.shape, dtype = other.dtype)
+            inverted.divide_helper(other)
+            ret.i(string) << self.i(string) * inverted.i(string)
         else:
             if np.can_cast(self.dtype, other.dtype):
                 ret_dtype = other.dtype
@@ -544,7 +547,9 @@ cdef class tsr:
                     string += chr(string_index)
                     string_index += 1
                 ret = tsr(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) / other.i(string)
+                inverted = tsr(other.shape, dtype = other.dtype)
+                inverted.divide_helper(other)
+                ret.i(string) << temp_str.i(string) * inverted.i(string)
             elif np.can_cast(other.dtype, self.dtype):
                 ret_dtype = self.dtype
                 temp_str = other.astype(ret_dtype)
@@ -554,10 +559,27 @@ cdef class tsr:
                     string += chr(string_index)
                     string_index += 1
                 ret = tsr(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) / other.i(string)
+                inverted = tsr(temp_str.shape, dtype = temp_str.dtype)
+                inverted.divide_helper(temp_str)
+                ret.i(string) << self.i(string) * inverted.i(string)
             else:
                 raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
         return ret
+    
+    def divide_helper(self, tsr other):
+        if self.dtype == np.float64:
+            self.dt.true_divide[double](<tensor*>other.dt)
+        elif self.dtype == np.float32:
+            self.dt.true_divide[float](<tensor*>other.dt)
+        elif self.dtype == np.int64:
+            self.dt.true_divide[int64_t](<tensor*>other.dt)
+        elif self.dtype == np.int32:
+            self.dt.true_divide[int32_t](<tensor*>other.dt)
+        elif self.dtype == np.int16:
+            self.dt.true_divide[int16_t](<tensor*>other.dt)
+        elif self.dtype == np.int8:
+            self.dt.true_divide[int8_t](<tensor*>other.dt)
+        return self
 
     def __matmul__(self, other):
         if not isinstance(other, tsr):
@@ -1083,9 +1105,12 @@ cdef class tsr:
             free(permutation_B)
 
     def write(self, inds, vals, a=None, b=None):
-        cdef char * ca
-        dvals = np.asarray(vals, dtype=self.typ)
-        ca = interleave_py_pairs(inds,dvals)
+        #cdef char * ca
+        #dvals = np.asarray(vals, dtype=self.typ)
+        #ca = interleave_py_pairs(inds,dvals)
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('inds','i8'),('vals',self.typ)])
+        buf['inds'] = inds
+        buf['vals'] = vals
         cdef char * alpha
         cdef char * beta
 		# if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
@@ -1107,7 +1132,8 @@ cdef class tsr:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        self.dt.write(len(inds),alpha,beta,ca)
+        #self.dt.write(len(inds),alpha,beta,ca)
+        self.dt.write(len(inds),alpha,beta,<char*>buf.data)
         if a != None:
             free(alpha)
         if b != None:
@@ -2269,8 +2295,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
         raise ValueError("not a tensor")
 	
     if not isinstance(out,tsr) and out != None:
-        print("output must be a tensor")
-        return None
+        raise ValueError("output must be a tensor")
 	
 	# if dtype not specified, assign np.float64 to it
     if dtype == None:
@@ -2282,8 +2307,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
 
 	# it keepdims == true and axis not specified
     if isinstance(out,tsr) and axis == None:
-        print("output parameter for reduction operation add has too many dimensions")
-        return None
+        raise ValueError("output parameter for reduction operation add has too many dimensions")
 		
     # get_dims of tensor A
     dim = A.get_dims()
