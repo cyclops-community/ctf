@@ -81,6 +81,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         void larger_equal_than[dtype](tensor * A, tensor * B)
         void exp_helper[dtype_A,dtype_B](tensor * A)
         void true_divide[dtype](tensor * A)
+        void pow_helper_int[dtype](tensor * A, int p)
 
     cdef cppclass Term:
         Term * clone();
@@ -566,6 +567,20 @@ cdef class tsr:
                 raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
         return ret
     
+    def __pow__(self, a, b):
+        if type(b) != int or type(b) != float:
+            raise TypeError("current ctf python only support int and float")
+        if type(b) == int:
+            ret = ones(a.shape, dtype = a.dtype)
+            string = ""
+            string_index = 33
+            for i in range(len(a.shape)):
+                string += chr(string_index)
+                string_index += 1
+            for i in range(b):
+                ret.i(string) << ret.i(string) * a.i(string)
+        raise ValueError("now ctf only support for tsr**int")
+
     def divide_helper(self, tsr other):
         if self.dtype == np.float64:
             self.dt.true_divide[double](<tensor*>other.dt)
@@ -2897,6 +2912,36 @@ def transpose(A, axes=None):
     B = tsr(dim, dtype=A.get_type())
     B.i(rev_index) << A.i(index)
     return B
+
+def ones(shape, dtype = None, order='F'):
+    shape = np.asarray(shape)
+    if dtype != None:
+        ret = tsr(shape, dtype = dtype)
+        string = ""
+        string_index = 33
+        for i in range(len(shape)):
+            string += chr(string_index)
+            string_index += 1
+        if dtype == np.float64:
+            ret.i(string) << 1.0
+        elif dtype == np.complex128:
+            ret.i(string) << 1.0
+        elif dtype == np.int64:
+            ret.i(string) << 1
+        elif dtype == np.bool:
+            ret.i(string) << 1
+        return ret
+    else:
+        ret = tsr(shape, dtype = np.float64)
+        string = ""
+        string_index = 33
+        for i in range(len(shape)):
+            string += chr(string_index)
+            string_index += 1
+        ret.i(string) << 1.0
+        return ret
+        
+
     
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n
