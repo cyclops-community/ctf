@@ -4,6 +4,9 @@
 #include "untyped_tensor.h"
 #include "algstrct.h"
 #include "../sparse_formats/csr.h"
+#include <iostream>
+
+using namespace std;
 
 namespace CTF_int {
   LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
@@ -36,6 +39,7 @@ namespace CTF_int {
         ldb[i] = n[i];
       }
       int group_count[] = {1};
+      cout << "sgemm" << endl;
       CTF_BLAS::SGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
@@ -67,6 +71,7 @@ namespace CTF_int {
         ldb[i] = n[i];
       }
       int group_count[] = {1};
+      cout << "dgemm" << endl;
       CTF_BLAS::DGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
@@ -98,6 +103,7 @@ namespace CTF_int {
         ldb[i] = n[i];
       }
       int group_count[] = {1};
+      cout << "cgemm" << endl;
       CTF_BLAS::CGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
@@ -114,6 +120,7 @@ namespace CTF_int {
             std::complex<double> *       beta,
             std::complex<double> **      C,
             int                  *       size_per_group){
+    //m,n,k,taa,tab, alpha, beta, constant
     int GRP_COUNT = sizeof(size_per_group)/sizeof(size_per_group[0]);
     int lda[GRP_COUNT], ldb[GRP_COUNT], ldc[GRP_COUNT];
     for (int i = 0; i < GRP_COUNT; i++) {
@@ -129,6 +136,7 @@ namespace CTF_int {
         ldb[i] = n[i];
       }
       int group_count[] = {1};
+      cout << "zgemm" << endl;
       CTF_BLAS::ZGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
@@ -1207,4 +1215,3 @@ namespace CTF_int {
   }
 
 }
-
