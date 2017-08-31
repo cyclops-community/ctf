@@ -38,10 +38,9 @@ namespace CTF_int {
       } else {
         ldb[i] = n[i];
       }
-      int group_count[] = {1};
-      cout << "sgemm" << endl;
-      CTF_BLAS::SGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
+    int group_count[] = {1};
+    CTF_BLAS::SGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
   }
 
   void dgemm_batch(
@@ -70,11 +69,9 @@ namespace CTF_int {
       } else {
         ldb[i] = n[i];
       }
-      int group_count[] = {1};
-      cout << "dgemm" << endl;
-      cout << "tA: " << taA[0] << ", tB: " << taB[0] << ", m: " << m[0] << ", n: " << n[0] << ", k: " << k[0] << ", alpha: " << alpha[0] << ", beta: " << beta[0] << ",lda: " << lda[0] << ", ldb: " << ldb[0] << ", ldc: " << ldc[0] << endl; 
-      CTF_BLAS::DGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
+    int group_count[] = {1};
+    CTF_BLAS::DGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
   }
 
   void cgemm_batch(
@@ -103,10 +100,9 @@ namespace CTF_int {
       } else {
         ldb[i] = n[i];
       }
-      int group_count[] = {1};
-      cout << "cgemm" << endl;
-      CTF_BLAS::CGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
+    int group_count[] = {1};
+    CTF_BLAS::CGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
   }
 
   void zgemm_batch(
@@ -136,10 +132,9 @@ namespace CTF_int {
       } else {
         ldb[i] = n[i];
       }
-      int group_count[] = {1};
-      cout << "zgemm" << endl;
-      CTF_BLAS::ZGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
+    int group_count[] = {1};
+    CTF_BLAS::ZGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
   }
 
   void sgemm(char           tA,
