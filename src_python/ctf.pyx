@@ -409,8 +409,31 @@ cdef class tsr:
         free(csym)
 
     def __add__(self, other):
-        if not isinstance(other, tsr):
-            raise ValueError("input should be two tensors")
+        if not isinstance(other, tsr) and isinstance(self, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret1 = tsr(self.shape, dtype = self.dtype)
+            ret1.i(string) << other
+            ret.i(string) << ret1.i(string) + self.i(string)
+            return ret
+        elif not isinstance(self, tsr) and isinstance(other, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(other.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(other.shape, dtype = other.dtype)
+            ret1 = tsr(other.shape, dtype = other.dtype)
+            ret1.i(string) << self
+            ret.i(string) << ret1.i(string) + other.i(string)
+            return ret
+        elif not isinstance(self, tsr) and not isinstance(other, tsr):
+            raise TypeError("either input should be tsr type")
+        
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
