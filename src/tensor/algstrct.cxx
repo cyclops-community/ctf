@@ -72,7 +72,7 @@ namespace CTF_int {
       }
       int group_count[] = {1};
       cout << "dgemm" << endl;
-      cout << "tA: " << taA[0] << ", tB: " << taB[0] << ", m: " << m[0] << ", n: " << n[0] << ", k: " << k[0] << ", alpha: " << alpha[0] << ", beta: " << beta[0] << endl; 
+      cout << "tA: " << taA[0] << ", tB: " << taB[0] << ", m: " << m[0] << ", n: " << n[0] << ", k: " << k[0] << ", alpha: " << alpha[0] << ", beta: " << beta[0] << ",lda: " << lda[0] << ", ldb: " << ldb[0] << ", ldc: " << ldc[0] << endl; 
       CTF_BLAS::DGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
     }
   }
@@ -191,7 +191,7 @@ namespace CTF_int {
       lda_B = n;
     }
     cout << "dgemm" << endl;
-    cout << "tA: " << tA << ", tB: " << tB << ", m: " << m << ", n: " << n << ", k: " << k << ", alpha: " << alpha << ", beta: " << beta << endl; 
+    cout << "tA: " << tA << ", tB: " << tB << ", m: " << m << ", n: " << n << ", k: " << k << ", alpha: " << alpha << ", beta: " << beta << ",lda: " << lda << ", ldb: " << lda_B << ", ldc: " << lda_C << endl; 
     CTF_BLAS::DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
   }
 
