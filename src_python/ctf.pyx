@@ -470,8 +470,31 @@ cdef class tsr:
         return ret
 
     def __sub__(self, other):
-        if not isinstance(other, tsr):
-            raise ValueError("the input should be tensors")
+        if not isinstance(other, tsr) and isinstance(self, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret1 = tsr(self.shape, dtype = self.dtype)
+            ret1.i(string) << (-1 * other)
+            ret.i(string) << ret1.i(string) + self.i(string)
+            return ret
+        elif not isinstance(self, tsr) and isinstance(other, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(other.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(other.shape, dtype = other.dtype)
+            ret1 = tsr(other.shape, dtype = other.dtype)
+            ret1.i(string) << self
+            ret.i(string) << ret1.i(string) + (-1*other.i(string))
+            return ret
+        elif not isinstance(self, tsr) and not isinstance(other, tsr):
+            raise TypeError("either input should be tsr type")
+
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -508,8 +531,27 @@ cdef class tsr:
         return ret
 
     def __mul__(self, other):
-        if not isinstance(other, tsr):
-            raise ValueError("input should be tensors")
+        if not isinstance(other, tsr) and isinstance(self, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret.i(string) << other * self.i(string)
+            return ret
+        elif not isinstance(self, tsr) and isinstance(other, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(other.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(other.shape, dtype = other.dtype)
+            ret.i(string) << self * other.i(string)
+            return ret
+        elif not isinstance(self, tsr) and not isinstance(other, tsr):
+            raise TypeError("either input should be tsr type")
+
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -547,8 +589,34 @@ cdef class tsr:
 
     # the divide not working now, which need to add to itsr first
     def __truediv__(self, other):
-        if not isinstance(other, tsr):
-            raise ValueError("input should be tensors")
+        if not isinstance(other, tsr) and isinstance(self, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            inverted = tsr(self.shape, dtype = self.dtype)
+            inverted.i(string) << other
+            inverted.divide_helper(inverted)
+            ret.i(string) << inverted.i(string) * self.i(string)
+            return ret
+        elif not isinstance(self, tsr) and isinstance(other, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(other.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(other.shape, dtype = other.dtype)
+            self_tsr = tsr(other.shape, dtype = other.dtype)
+            self_tsr.i(string) << self
+            inverted = tsr(other.shape, dtype = other.dtype)
+            inverted.divide_helper(other)
+            ret.i(string) << inverted.i(string) * self_tsr.i(string)
+            return ret
+        elif not isinstance(self, tsr) and not isinstance(other, tsr):
+            raise TypeError("either input should be tsr type")
+        
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
