@@ -69,9 +69,9 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         int read_local_nnz(int64_t * num_pair,
                            char **   data)
         void allread(int64_t * num_pair, char * data)
-        dtype * raw_data(int64_t * size)
         void slice(int *, int *, char *, tensor *, int *, int *, char *)
         int64_t get_tot_size()
+        void get_raw_data(char **, int64_t * size)
         int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
         void conv_type[dtype_A,dtype_B](tensor * B)
         void compare_elementwise[dtype](tensor * A, tensor * B)
@@ -1171,9 +1171,11 @@ cdef class tsr:
         cdef int64_t sz
         sz = self.dt.get_tot_size()
         tB = arr.dtype.itemsize
-        cvals = self.dt.raw_data(&sz)
+        self.dt.get_raw_data(&cvals, &sz)
+        cdef char [:] carr = arr
         for j in range(0,sz*tB):
-            cvals[j] = arr.view(dtype=np.int8)[j]
+            carr[j] = cvals[j]
+            #cvals[j] = arr.view(dtype=np.int8)[j]
    
     def conj(tsr self):
         if self.typ != np.complex64 and self.typ != np.complex128:
@@ -2085,7 +2087,7 @@ def dot(A, B, out=None):
         ret.i(string) << A * temp.i(string)
         return ret
     elif type(A)==tsr and type(B)==tsr:
-        return tensordot(A, B, axes=([-1],[-2]))
+        return tensordot(A, B, axes=([-1],[0]))
     else:
         raise ValueError("Wrong Type")
 
@@ -2318,7 +2320,7 @@ def tensordot(A, B, axes=2):
             if A.dtype != new_dtype:
                 A_new = A.astype(dtype = new_dtype)
             if B.dtype != new_dtype:
-                B_new = A.astype(dtype = new_dtype)
+                B_new = B.astype(dtype = new_dtype)
 
             if A_new is not None and B_new is not None:
                 C.i(C_str) << A_new.i(A_str) * B_new.i(B_str)
