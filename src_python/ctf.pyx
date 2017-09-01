@@ -69,7 +69,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         int read_local_nnz(int64_t * num_pair,
                            char **   data)
         void allread(int64_t * num_pair, char * data)
-        dtype * raw_data(intt64_t * size)
+        dtype * raw_data(int64_t * size)
         void slice(int *, int *, char *, tensor *, int *, int *, char *)
         int64_t get_tot_size()
         int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
