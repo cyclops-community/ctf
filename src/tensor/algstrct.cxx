@@ -13,128 +13,136 @@ namespace CTF_int {
   LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
 
   void sgemm_batch(
-            char    *       taA,
-            char    *       taB,
-            int     *       m,
-            int     *       n,
-            int     *       k,
-            float   *       alpha,
+            char            taA,
+            char            taB,
+            int             m,
+            int             n,
+            int             k,
+            float           alpha,
             float   const** A,
             float   const** B,
-            float   *       beta,
-            float   **      C,
-            int     *       size_per_group){
-    int GRP_COUNT = sizeof(size_per_group)/sizeof(size_per_group[0]);
-    int lda[GRP_COUNT], ldb[GRP_COUNT], ldc[GRP_COUNT];
-    for (int i = 0; i < GRP_COUNT; i++) {
-      ldc[i] = m[i];
-      if (taA[i] == 'n' || taA[i] == 'N'){
-        lda[i] = m[i];
-      } else {
-        lda[i] = k[i];
-      }
-      if (taB[i] == 'n' || taB[i] == 'N'){
-        ldb[i] = k[i];
-      } else {
-        ldb[i] = n[i];
-      }
+            float           beta,
+            float   **      C){
+    if (m == 1 && n == 1 && k == 1) {
+      C[0][0]*=beta;
+      C[0][0]+=alpha*A[0][0]*B[0][0];
+      return;
     }
-    int group_count[] = {1};
-    CTF_BLAS::SGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
+    int lda, ldb, ldc;
+    ldc = m;
+    if (taA == 'n' || taA == 'N'){
+      lda = m;
+    } else {
+      lda = k;
+    }
+    if (taB == 'n' || taB == 'N'){
+      ldb = k;
+    } else {
+      ldb = n;
+    }
+    int group_count = 1;
+    int size_per_group = 1;
+    CTF_BLAS::SGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, &group_count, &size_per_group);
   }
 
   void dgemm_batch(
-            char    *       taA,
-            char    *       taB,
-            int     *       m,
-            int     *       n,
-            int     *       k,
-            double  *       alpha,
+            char            taA,
+            char            taB,
+            int             m,
+            int             n,
+            int             k,
+            double          alpha,
             double  const** A,
             double  const** B,
-            double  *       beta,
-            double  **      C,
-            int     *       size_per_group){
-    int GRP_COUNT = sizeof(size_per_group)/sizeof(size_per_group[0]);
-    int lda[GRP_COUNT], ldb[GRP_COUNT], ldc[GRP_COUNT];
-    for (int i = 0; i < GRP_COUNT; i++) {
-      ldc[i] = m[i];
-      if (taA[i] == 'n' || taA[i] == 'N'){
-        lda[i] = m[i];
-      } else {
-        lda[i] = k[i];
-      }
-      if (taB[i] == 'n' || taB[i] == 'N'){
-        ldb[i] = k[i];
-      } else {
-        ldb[i] = n[i];
-      }
+            double          beta,
+            double  **      C){
+    if (m == 1 && n == 1 && k == 1) {
+      C[0][0]*=beta;
+      C[0][0]+=alpha*A[0][0]*B[0][0];
+      return;
     }
-    int group_count[] = {1};
-    CTF_BLAS::DGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
+    int lda, ldb, ldc;
+    ldc = m;
+    if (taA == 'n' || taA == 'N'){
+      lda = m;
+    } else {
+      lda = k;
+    }
+    if (taB == 'n' || taB == 'N'){
+      ldb = k;
+    } else {
+      ldb = n;
+    }
+    int group_count = 1;
+    int size_per_group = 1;
+    CTF_BLAS::DGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, &group_count, &size_per_group);
   }
 
   void cgemm_batch(
-            char                 *       taA,
-            char                 *       taB,
-            int                  *       m,
-            int                  *       n,
-            int                  *       k,
-            std::complex<float>  *       alpha,
+            char                         taA,
+            char                         taB,
+            int                          m,
+            int                          n,
+            int                          k,
+            std::complex<float>          alpha,
             std::complex<float>  const** A,
             std::complex<float>  const** B,
-            std::complex<float>  *       beta,
-            std::complex<float>  **      C,
-            int                  *       size_per_group){
-    int GRP_COUNT = sizeof(size_per_group)/sizeof(size_per_group[0]);
-    int lda[GRP_COUNT], ldb[GRP_COUNT], ldc[GRP_COUNT];
-    for (int i = 0; i < GRP_COUNT; i++) {
-      ldc[i] = m[i];
-      if (taA[i] == 'n' || taA[i] == 'N'){
-        lda[i] = m[i];
-      } else {
-        lda[i] = k[i];
-      }
-      if (taB[i] == 'n' || taB[i] == 'N'){
-        ldb[i] = k[i];
-      } else {
-        ldb[i] = n[i];
-      }
+            std::complex<float>          beta,
+            std::complex<float>  **      C){
+    if (m == 1 && n == 1 && k == 1) {
+      C[0][0]*=beta;
+      C[0][0]+=alpha*A[0][0]*B[0][0];
+      return;
     }
-    int group_count[] = {1};
-    CTF_BLAS::CGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
+    int lda, ldb, ldc;
+    ldc = m;
+    if (taA == 'n' || taA == 'N'){
+      lda = m;
+    } else {
+      lda = k;
+    }
+    if (taB == 'n' || taB == 'N'){
+      ldb = k;
+    } else {
+      ldb = n;
+    }
+    int group_count = 1;
+    int size_per_group = 1;
+    CTF_BLAS::CGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, &group_count, &size_per_group);
   }
 
   void zgemm_batch(
-            char                 *       taA,
-            char                 *       taB,
-            int                  *       m,
-            int                  *       n,
-            int                  *       k,
-            std::complex<double> *       alpha,
+            char                         taA,
+            char                         taB,
+            int                          m,
+            int                          n,
+            int                          k,
+            std::complex<double>         alpha,
             std::complex<double> const** A,
             std::complex<double> const** B,
-            std::complex<double> *       beta,
-            std::complex<double> **      C,
-            int                  *       size_per_group){
+            std::complex<double>         beta,
+            std::complex<double> **      C){
     //m,n,k,taa,tab, alpha, beta, constant
-    int GRP_COUNT = sizeof(size_per_group)/sizeof(size_per_group[0]);
-    int lda[GRP_COUNT], ldb[GRP_COUNT], ldc[GRP_COUNT];
-    for (int i = 0; i < GRP_COUNT; i++) {
-      ldc[i] = m[i];
-      if (taA[i] == 'n' || taA[i] == 'N'){
-        lda[i] = m[i];
-      } else {
-        lda[i] = k[i];
-      }
-      if (taB[i] == 'n' || taB[i] == 'N'){
-        ldb[i] = k[i];
-      } else {
-        ldb[i] = n[i];
-      }
+    if (m == 1 && n == 1 && k == 1) {
+      C[0][0]*=beta;
+      C[0][0]+=alpha*A[0][0]*B[0][0];
+      return;
     }
-    int group_count[] = {1};
-    CTF_BLAS::ZGEMM_BATCH(taA, taB, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc, group_count, size_per_group);
+    int lda, ldb, ldc;
+    ldc = m;
+    if (taA == 'n' || taA == 'N'){
+      lda = m;
+    } else {
+      lda = k;
+    }
+    if (taB == 'n' || taB == 'N'){
+      ldb = k;
+    } else {
+      ldb = n;
+    }
+    int group_count = 1;
+    int size_per_group = 1;
+    CTF_BLAS::ZGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, &group_count, &size_per_group);
   }
 
   void sgemm(char           tA,

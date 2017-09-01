@@ -448,56 +448,52 @@ namespace CTF_int {
   };
 
   void sgemm_batch(
-            char    *       taA,
-            char    *       taB,
-            int     *       m,
-            int     *       n,
-            int     *       k,
-            float   *       alpha,
+            char            taA,
+            char            taB,
+            int             m,
+            int             n,
+            int             k,
+            float           alpha,
             float   const** A,
             float   const** B,
-            float   *       beta,
-            float   **      C,
-            int     *       size_per_group);
+            float           beta,
+            float   **      C);
 
   void dgemm_batch(
-            char    *       taA,
-            char    *       taB,
-            int     *       m,
-            int     *       n,
-            int     *       k,
-            double  *       alpha,
+            char            taA,
+            char            taB,
+            int             m,
+            int             n,
+            int             k,
+            double          alpha,
             double  const** A,
             double  const** B,
-            double  *       beta,
-            double  **      C,
-            int     *       size_per_group);
+            double          beta,
+            double  **      C);
 
   void cgemm_batch(
-            char                 *       taA,
-            char                 *       taB,
-            int                  *       m,
-            int                  *       n,
-            int                  *       k,
-            std::complex<float>  *       alpha,
+            char                         taA,
+            char                         taB,
+            int                          m,
+            int                          n,
+            int                          k,
+            std::complex<float>          alpha,
             std::complex<float>  const** A,
             std::complex<float>  const** B,
-            std::complex<float>  *       beta,
-            std::complex<float>  **      C,
-            int                  *       size_per_group);
+            std::complex<float>          beta,
+            std::complex<float>  **      C);
 
   void zgemm_batch(
-            char                 *       taA,
-            char                 *       taB,
-            int                  *       m,
-            int                  *       n,
-            int                  *       k,
-            std::complex<double> *       alpha,
+            char                         taA,
+            char                         taB,
+            int                          m,
+            int                          n,
+            int                          k,
+            std::complex<double>         alpha,
             std::complex<double> const** A,
             std::complex<double> const** B,
-            std::complex<double> *       beta,
-            std::complex<double> **      C,
-            int                  *       size_per_group);
+            std::complex<double>         beta,
+            std::complex<double> **      C);
 
   void sgemm(char           tA,
              char           tB,
