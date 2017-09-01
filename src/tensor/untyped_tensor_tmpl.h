@@ -1,5 +1,6 @@
 #include "../interface/functions.h"
 #include <math.h>
+#include <cmath>
 namespace CTF_int {
 
   template <typename dtype_A, typename dtype_B>
@@ -92,4 +93,25 @@ namespace CTF_int {
     assert(A->order == this->order);
     this->operator[](str) = CTF::Function<dtype,dtype,bool>([](dtype a, dtype b){ return a >= b;})(A->operator[](str),B->operator[](str));  
 	}
+
+  template <typename dtype>
+  void tensor::true_divide(tensor * A){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    assert(A->order == this->order);
+    this->operator[](str) = CTF::Function<dtype,dtype>([](dtype a){ return 1/a;})(A->operator[](str));  
+  }
+
+/*
+  template <typename dtype>
+  void tensor::pow_helper_int(tensor * A, int p){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    assert(A->order == this->order);
+    this->operator[](str) = CTF::Function<dtype,dtype>([](dtype a){ return std::pow(a, p);})(A->operator[](str));  
+  }*/
 }

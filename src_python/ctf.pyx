@@ -81,6 +81,8 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         void larger_than[dtype](tensor * A, tensor * B)
         void larger_equal_than[dtype](tensor * A, tensor * B)
         void exp_helper[dtype_A,dtype_B](tensor * A)
+        void true_divide[dtype](tensor * A)
+        void pow_helper_int[dtype](tensor * A, int p)
 
     cdef cppclass Term:
         Term * clone();
@@ -408,8 +410,31 @@ cdef class tsr:
         free(csym)
 
     def __add__(self, other):
-        if not isinstance(other, tsr):
-            raise ValueError("input should be two tensors")
+        if not isinstance(other, tsr) and isinstance(self, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret1 = tsr(self.shape, dtype = self.dtype)
+            ret1.i(string) << other
+            ret.i(string) << ret1.i(string) + self.i(string)
+            return ret
+        elif not isinstance(self, tsr) and isinstance(other, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(other.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(other.shape, dtype = other.dtype)
+            ret1 = tsr(other.shape, dtype = other.dtype)
+            ret1.i(string) << self
+            ret.i(string) << ret1.i(string) + other.i(string)
+            return ret
+        elif not isinstance(self, tsr) and not isinstance(other, tsr):
+            raise TypeError("either input should be tsr type")
+        
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -446,8 +471,31 @@ cdef class tsr:
         return ret
 
     def __sub__(self, other):
-        if not isinstance(other, tsr):
-            raise ValueError("the input should be tensors")
+        if not isinstance(other, tsr) and isinstance(self, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret1 = tsr(self.shape, dtype = self.dtype)
+            ret1.i(string) << (-1 * other)
+            ret.i(string) << ret1.i(string) + self.i(string)
+            return ret
+        elif not isinstance(self, tsr) and isinstance(other, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(other.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(other.shape, dtype = other.dtype)
+            ret1 = tsr(other.shape, dtype = other.dtype)
+            ret1.i(string) << self
+            ret.i(string) << ret1.i(string) + (-1*other.i(string))
+            return ret
+        elif not isinstance(self, tsr) and not isinstance(other, tsr):
+            raise TypeError("either input should be tsr type")
+
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -484,8 +532,27 @@ cdef class tsr:
         return ret
 
     def __mul__(self, other):
-        if not isinstance(other, tsr):
-            raise ValueError("input should be tensors")
+        if not isinstance(other, tsr) and isinstance(self, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            ret.i(string) << other * self.i(string)
+            return ret
+        elif not isinstance(self, tsr) and isinstance(other, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(other.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(other.shape, dtype = other.dtype)
+            ret.i(string) << self * other.i(string)
+            return ret
+        elif not isinstance(self, tsr) and not isinstance(other, tsr):
+            raise TypeError("either input should be tsr type")
+
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -523,8 +590,34 @@ cdef class tsr:
 
     # the divide not working now, which need to add to itsr first
     def __truediv__(self, other):
-        if not isinstance(other, tsr):
-            raise ValueError("input should be tensors")
+        if not isinstance(other, tsr) and isinstance(self, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(self.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(self.shape, dtype = self.dtype)
+            inverted = tsr(self.shape, dtype = self.dtype)
+            inverted.i(string) << other
+            inverted.divide_helper(inverted)
+            ret.i(string) << inverted.i(string) * self.i(string)
+            return ret
+        elif not isinstance(self, tsr) and isinstance(other, tsr):
+            string = ""
+            string_index = 33
+            for i in range(len(other.shape)):
+                string += chr(string_index)
+                string_index += 1
+            ret = tsr(other.shape, dtype = other.dtype)
+            self_tsr = tsr(other.shape, dtype = other.dtype)
+            self_tsr.i(string) << self
+            inverted = tsr(other.shape, dtype = other.dtype)
+            inverted.divide_helper(other)
+            ret.i(string) << inverted.i(string) * self_tsr.i(string)
+            return ret
+        elif not isinstance(self, tsr) and not isinstance(other, tsr):
+            raise TypeError("either input should be tsr type")
+        
         if self.shape != other.shape:
             raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
         if self.dtype == other.dtype:
@@ -534,7 +627,9 @@ cdef class tsr:
                 string += chr(string_index)
                 string_index += 1
             ret = tsr(self.shape, dtype = self.dtype)
-            ret.i(string) << self.i(string) / other.i(string)
+            inverted = tsr(other.shape, dtype = other.dtype)
+            inverted.divide_helper(other)
+            ret.i(string) << self.i(string) * inverted.i(string)
         else:
             if np.can_cast(self.dtype, other.dtype):
                 ret_dtype = other.dtype
@@ -545,7 +640,9 @@ cdef class tsr:
                     string += chr(string_index)
                     string_index += 1
                 ret = tsr(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) / other.i(string)
+                inverted = tsr(other.shape, dtype = other.dtype)
+                inverted.divide_helper(other)
+                ret.i(string) << temp_str.i(string) * inverted.i(string)
             elif np.can_cast(other.dtype, self.dtype):
                 ret_dtype = self.dtype
                 temp_str = other.astype(ret_dtype)
@@ -555,10 +652,41 @@ cdef class tsr:
                     string += chr(string_index)
                     string_index += 1
                 ret = tsr(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) / other.i(string)
+                inverted = tsr(temp_str.shape, dtype = temp_str.dtype)
+                inverted.divide_helper(temp_str)
+                ret.i(string) << self.i(string) * inverted.i(string)
             else:
                 raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
         return ret
+    
+    def __pow__(self, a, b):
+        if type(b) != int or type(b) != float:
+            raise TypeError("current ctf python only support int and float")
+        if type(b) == int:
+            ret = ones(a.shape, dtype = a.dtype)
+            string = ""
+            string_index = 33
+            for i in range(len(a.shape)):
+                string += chr(string_index)
+                string_index += 1
+            for i in range(b):
+                ret.i(string) << ret.i(string) * a.i(string)
+        raise ValueError("now ctf only support for tsr**int")
+
+    def divide_helper(self, tsr other):
+        if self.dtype == np.float64:
+            self.dt.true_divide[double](<tensor*>other.dt)
+        elif self.dtype == np.float32:
+            self.dt.true_divide[float](<tensor*>other.dt)
+        elif self.dtype == np.int64:
+            self.dt.true_divide[int64_t](<tensor*>other.dt)
+        elif self.dtype == np.int32:
+            self.dt.true_divide[int32_t](<tensor*>other.dt)
+        elif self.dtype == np.int16:
+            self.dt.true_divide[int16_t](<tensor*>other.dt)
+        elif self.dtype == np.int8:
+            self.dt.true_divide[int8_t](<tensor*>other.dt)
+        return self
 
     def __matmul__(self, other):
         if not isinstance(other, tsr):
@@ -1093,9 +1221,12 @@ cdef class tsr:
             free(permutation_B)
 
     def write(self, inds, vals, a=None, b=None):
-        cdef char * ca
-        dvals = np.asarray(vals, dtype=self.typ)
-        ca = interleave_py_pairs(inds,dvals)
+        #cdef char * ca
+        #dvals = np.asarray(vals, dtype=self.typ)
+        #ca = interleave_py_pairs(inds,dvals)
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('inds','i8'),('vals',self.typ)])
+        buf['inds'] = inds
+        buf['vals'] = vals
         cdef char * alpha
         cdef char * beta
 		# if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
@@ -1117,7 +1248,8 @@ cdef class tsr:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        self.dt.write(len(inds),alpha,beta,ca)
+        #self.dt.write(len(inds),alpha,beta,ca)
+        self.dt.write(len(inds),alpha,beta,<char*>buf.data)
         if a != None:
             free(alpha)
         if b != None:
@@ -2281,8 +2413,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
         raise ValueError("not a tensor")
 	
     if not isinstance(out,tsr) and out != None:
-        print("output must be a tensor")
-        return None
+        raise ValueError("output must be a tensor")
 	
 	# if dtype not specified, assign np.float64 to it
     if dtype == None:
@@ -2294,8 +2425,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
 
 	# it keepdims == true and axis not specified
     if isinstance(out,tsr) and axis == None:
-        print("output parameter for reduction operation add has too many dimensions")
-        return None
+        raise ValueError("output parameter for reduction operation add has too many dimensions")
 		
     # get_dims of tensor A
     dim = A.get_dims()
@@ -2885,6 +3015,36 @@ def transpose(A, axes=None):
     B = tsr(dim, dtype=A.get_type())
     B.i(rev_index) << A.i(index)
     return B
+
+def ones(shape, dtype = None, order='F'):
+    shape = np.asarray(shape)
+    if dtype != None:
+        ret = tsr(shape, dtype = dtype)
+        string = ""
+        string_index = 33
+        for i in range(len(shape)):
+            string += chr(string_index)
+            string_index += 1
+        if dtype == np.float64:
+            ret.i(string) << 1.0
+        elif dtype == np.complex128:
+            ret.i(string) << 1.0
+        elif dtype == np.int64:
+            ret.i(string) << 1
+        elif dtype == np.bool:
+            ret.i(string) << 1
+        return ret
+    else:
+        ret = tsr(shape, dtype = np.float64)
+        string = ""
+        string_index = 33
+        for i in range(len(shape)):
+            string += chr(string_index)
+            string_index += 1
+        ret.i(string) << 1.0
+        return ret
+        
+
     
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n

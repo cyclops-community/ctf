@@ -119,4 +119,14 @@ namespace CTF_int{
 	template void any_helper<int32_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void any_helper<int16_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void any_helper<int8_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+
+  template void tensor::true_divide<double>(tensor* A);
+  template void tensor::true_divide<float>(tensor* A);
+  template void tensor::true_divide<int64_t>(tensor* A);
+  template void tensor::true_divide<int32_t>(tensor* A);
+  template void tensor::true_divide<int16_t>(tensor* A);
+  template void tensor::true_divide<int8_t>(tensor* A);
+
+  //template void tensor::pow_helper_int<int64_t>(tensor* A, int p);
+  //template void tensor::pow_helper_int<double>(tensor* A, int p);
 }
