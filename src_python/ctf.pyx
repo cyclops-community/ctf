@@ -691,12 +691,7 @@ cdef class tsr:
     def __matmul__(self, other):
         if not isinstance(other, tsr):
             raise ValueError("input should be tensors")
-        temp = dot(self, other)
-        shape = ()
-        for i in range(len(self.shape)-1):
-            shape += (self.shape[i],)
-        shape += (other.shape[len(other.shape)-1],)
-        return dot(self, other).reshape(shape)
+        return dot(self, other)
     
     def fill_random(self, mn, mx):
         if self.typ == np.float64:
