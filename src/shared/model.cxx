@@ -88,14 +88,16 @@ namespace CTF_int {
     return a.p[0] > b.p[0];
   }
 
+//FIXME: be smarter about regularization, magnitude of  coefficients is different!
 #define REG_LAMBDA 1.E5
 
   template <int nparam>
   LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
-    memcpy(param_guess, init_guess, nparam*sizeof(double));
+    //copy initial static coefficients to initialzie model (defined in init_model.cxx)
+    memcpy(coeff_guess, init_guess, nparam*sizeof(double));
 #ifdef TUNE
     /*for (int i=0; i<nparam; i++){
-      regularization[i] = param_guess[i]*REG_LAMBDA;
+      regularization[i] = coeff_guess[i]*REG_LAMBDA;
     }*/
     name = (char*)alloc(strlen(name_)+1);
     name[0] = '\0';
@@ -147,9 +149,9 @@ namespace CTF_int {
       }
 //    }
     /*if (fabs(est_time(tp+1)-tp[0])>1.E-1){ 
-      printf("estimate of %s[%1.2E*%1.2E", name, tp[0], param_guess[0]);
+      printf("estimate of %s[%1.2E*%1.2E", name, tp[0], coeff_guess[0]);
       for (int i=1; i<nparam; i++){
-        printf(",%1.2E*%1.2E",tp[i+1], param_guess[i]);
+        printf(",%1.2E*%1.2E",tp[i+1], coeff_guess[i]);
       }
       printf("] was %1.2E, actual executon took %1.2E\n", est_time(tp+1), tp[0]);
       print();
@@ -190,21 +192,32 @@ namespace CTF_int {
     MPI_Comm_size(cm, &np);
     MPI_Comm_rank(cm, &rk);
     //if (nobs % tune_interval == 0){
+
+    //define the number of cols in the matrix to be the min of the number of observations and
+    //the number we are willing to store (hist_size)
     int nrcol = std::min(nobs,(int64_t)hist_size);
+    //max of the number of local observations and nparam (will usually be the former)
     int ncol = std::max(nrcol, nparam);
     /*  time_param * sort_mat = (time_param*)alloc(sizeof(time_param)*ncol);
       memcpy(sort_mat, time_param_mat, sizeof(time_param)*ncol);
       std::sort(sort_mat, sort_mat+ncol, &comp_time_param);*/
     int tot_nrcol;
+
+    //compute the total number of observations over all processors
     MPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
+
+    //if there has been more than 16*nparam observations per processor, tune the model
     if (tot_nrcol >= 16.*np*nparam){
-      //if (rk == 0){ ncol++; }
       is_tuned = true;
-  
+ 
+      //add nparam to ncol to include regularization, don't do so if the number of local
+      //observatins is less than the number of params, as in this case, the processor will
+      //not do any local tuning
       if (nrcol >= nparam) ncol += nparam;
 
       double * R = (double*)alloc(sizeof(double)*nparam*nparam);
       double * b = (double*)alloc(sizeof(double)*ncol);
+      //if number of local observations less than than nparam don't do local QR
       if (nrcol < nparam){
         std::fill(R, R+nparam*nparam, 0.0);
         std::fill(b, b+ncol, 0.0);
@@ -213,8 +226,11 @@ namespace CTF_int {
           lda_cpy(sizeof(double), 1, nparam, 1, nparam, (char const*)regularization, (char*)R);
         }*/
       } else {
+        //define tall-skinny matrix A that is almost the transpose of time_param, but excludes the first row of time_param (that has execution times that we will put into b
         double * A = (double*)alloc(sizeof(double)*nparam*ncol);
         int i_st = 0;
+
+        //figure out the maximum execution time any observation recorded
         double max_time = 0.0;
         for (int i=0; i<ncol-nparam; i++){
           max_time = std::max(time_param_mat[i*mat_lda],max_time);
@@ -222,9 +238,17 @@ namespace CTF_int {
         /*for (int i=0; i<nparam; i++){
           R[nparam*i+i] = REG_LAMBDA;
         }*/
+        // do regularization
         if (true){ //rk == 0){
 //          lda_cpy(sizeof(double), 1, nparam, 1, ncol, (char const*)regularization, (char*)A);
           //regularization done on every processor
+          //                                         parameter observs.  coeffs.  times (sec)
+          //matrix Ax~=b has the form, e.g. nparam=2 [ REG_LAMBDA   0 ] [ x_1 ] = [ 0     ]
+          //                                         [ 0   REG_LAMBDA ] [ x_2 ]   [ 0     ]
+          //                                         [ obs1p1  obs1p2 ]           [ obs1t ]
+          // obsxpy is the yth parameter as observed [ obs2p1  obs2p2 ]           [ obs2t ]
+          // in observation x                        [ ...     ...    ]           [ ...   ]
+          // obsxt is the exe time of observation x  
           for (int i=0; i<nparam; i++){
             b[i] = 0.0;
             for (int j=0; j<nparam; j++){
@@ -234,16 +258,23 @@ namespace CTF_int {
           }
           i_st = nparam;
         }
+        //find the max execution time over all processors
         MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
         //double chunk = max_time / 1000.;
         //printf("%s chunk = %+1.2e\n",name,chunk);
+
+        //form A
         for (int i=i_st; i<ncol; i++){
+          //ignore observations that took time less than 1/3 of max
+          //FIXME: WHY? could be much smarter
           if (time_param_mat[(i-i_st)*mat_lda] > max_time/3.){
             b[i] = 0.0;
             for (int j=0; j<nparam; j++){
               A[i+j*ncol] = 0.0;
             }
           } else {
+            //take a column of time_param_mat, put the first element (execution time) into b
+            //and the rest of the elements into a row of A
             b[i] = time_param_mat[(i-i_st)*mat_lda];
             //double rt_chnks = std::sqrt(b[i] / chunk);
             //double sfactor = rt_chnks/b[i];
@@ -259,6 +290,8 @@ namespace CTF_int {
           }
           printf (" |  %+1.3e\n",b[i]);
         }*/
+
+        //sequential code for fitting Ax=b (NOT USED, only works if running with 1 processor)
         if (false && np == 1){
           cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
           ASSERT(info == 0);
@@ -272,7 +305,7 @@ namespace CTF_int {
           cdealloc(work);
           cdealloc(iwork);
           cdealloc(A);
-          memcpy(param_guess, b, nparam*sizeof(double));
+          memcpy(coeff_guess, b, nparam*sizeof(double));
           /*print();
           double max_resd_sq = 0.0;
           for (int i=0; i<ncol-nparam; i++){
@@ -288,8 +321,7 @@ namespace CTF_int {
           return;
         }
 
-
-
+        //otherwise on the ith processor compute Q_iR_i=A_i and y_i=Q_i^Tb_i
         double * tau = (double*)alloc(sizeof(double)*nparam);
         int lwork;
         int info;
@@ -304,10 +336,12 @@ namespace CTF_int {
             R[i*nparam+j] = 0.0;
           }
         }
+        //query how much space dormqr which computes Q_i^Tb_i needs
         cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, &dlwork, -1, &info);
         lwork = (int)dlwork;
         cdealloc(work);
         work = (double*)alloc(sizeof(double)*lwork);
+        //actually run dormqr which computes Q_i^Tb_i needs
         cdormqr('L', 'T', ncol, 1, nparam, A, ncol, tau, b, ncol, work, lwork, &info);
         cdealloc(work);
         cdealloc(tau);
@@ -316,15 +350,20 @@ namespace CTF_int {
       int sub_np = std::min(np,32);
       MPI_Comm sub_comm;
       MPI_Comm_split(cm, rk<sub_np, rk, &sub_comm);
+      //use only data from the first 32 processors, so that this doesn't take too long
+      //FIXME: can be smarter but not clear if necessary
       if (rk < sub_np){
-
+        //all_R will have the Rs from each processor vertically stacked as [R_1^T .. R_32^T]^T
         double * all_R = (double*)alloc(sizeof(double)*nparam*nparam*sub_np);
+        //all_b will have the bs from each processor vertically stacked as [b_1^T .. b_32^T]^T
         double * all_b = (double*)alloc(sizeof(double)*nparam*sub_np);
+        //gather all Rs from all the processors
         MPI_Allgather(R, nparam*nparam, MPI_DOUBLE, all_R, nparam*nparam, MPI_DOUBLE, sub_comm);
         double * Rs = (double*)alloc(sizeof(double)*nparam*nparam*sub_np);
         for (int i=0; i<sub_np; i++){
           lda_cpy(sizeof(double), nparam, nparam, nparam, sub_np*nparam, (const char *)(all_R+i*nparam*nparam), (char*)(Rs+i*nparam));
         }
+        //gather all bs from all the processors
         MPI_Allgather(b, nparam, MPI_DOUBLE, all_b, nparam, MPI_DOUBLE, sub_comm);
         cdealloc(b);
         cdealloc(all_R);
@@ -340,6 +379,13 @@ namespace CTF_int {
             printf("b[%d] = %lf\n",r,b[r]);
           }
         }*/
+        //compute fit for a reduced system
+        //                                         parameter observs.  coeffs.  times (sec)
+        //matrix Ax~=b has the form, e.g. nparam=2 [ R_1 ] [ x_1 ] = [ y_1  ]
+        //                                         [ R_2 ] [ x_2 ]   [ y_2  ]
+        //                                         [ ... ]           [ ... ]
+        //                                         [ R_32 ]          [ y_32 ]
+        //note 32 is p if p < 32
         cdgelsd(ncol, nparam, 1, A, ncol, b, ncol, S, -1, &rank, &dlwork, -1, &liwork, &info);
         ASSERT(info == 0);
         lwork = (int)dlwork;
@@ -352,7 +398,7 @@ namespace CTF_int {
         cdealloc(work);
         cdealloc(iwork);
         cdealloc(A);
-        memcpy(param_guess, b, nparam*sizeof(double));
+        memcpy(coeff_guess, b, nparam*sizeof(double));
   /*      print();
         double max_resd_sq = 0.0;
         for (int i=0; i<ncol-nparam; i++){
@@ -366,17 +412,18 @@ namespace CTF_int {
         printf("%s max error is %lf\n",name,max_err);*/
         cdealloc(b);
       }
-      MPI_Bcast(param_guess, nparam, MPI_DOUBLE, 0, cm);
-      for (int i=0; i<nparam; i++){
-        regularization[i] = param_guess[i]*REG_LAMBDA;
-      }
+      //broadcast new coefficient guess
+      MPI_Bcast(coeff_guess, nparam, MPI_DOUBLE, 0, cm);
+      /*for (int i=0; i<nparam; i++){
+        regularization[i] = coeff_guess[i]*REG_LAMBDA;
+      }*/
     }
 #endif
   }
   
   template <int nparam>
   double LinModel<nparam>::est_time(double const * param){
-    return std::max(0.0,cddot(nparam, param, 1, param_guess, 1));
+    return std::max(0.0,cddot(nparam, param, 1, coeff_guess, 1));
   }
 
   template <int nparam>
@@ -385,7 +432,7 @@ namespace CTF_int {
     printf("double %s_init[] = {",name);
     for (int i=0; i<nparam; i++){
       if (i>0) printf(", ");
-      printf("%1.4E", param_guess[i]);
+      printf("%1.4E", coeff_guess[i]);
     }
     printf("};\n");
   }
