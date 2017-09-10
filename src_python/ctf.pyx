@@ -11,6 +11,8 @@ from libcpp cimport bool
 import numpy as np
 import string
 import random
+import collections
+from copy import deepcopy
 cimport numpy as cnp
 #from std.functional cimport function
 
@@ -184,31 +186,18 @@ cdef int* int_arr_py_to_c(a):
         ca[i] = a[i]
     return ca
 
-cdef char* interleave_py_pairs(a,b):
-    cdef char * ca
-    dim = len(a)
-    cdef int tA, tB
-    tA = sizeof(int64_t)
-    tB = b.dtype.itemsize
-    ca = <char*> malloc(dim*(tA+tB))
-    if ca == NULL:
-        raise MemoryError()
-    for i in range(0,dim):
-        (<int64_t*>&(ca[i*(tA+tB)]))[0] = a[i]
-        for j in range(0,tB):
-         ca[(i+1)*tA+i*tB+j] = b.view(dtype=np.int8)[i*tB+j]
-#    ca[(i+1)*tA+i*tB:(i+1)*(tA+tB)-1] =( nb.view(dtype=np.int8)[i*tB:i*tB+tB-1])
-#    not sure why subarray copy doesn't work here
-    return ca
-
-cdef void uninterleave_py_pairs(char * ca,a,b):
-    dim = len(a)
-    tB = b.dtype.itemsize
-    tA = sizeof(int64_t)
-    for i in range(0,dim):
-        a[i] = (<int64_t*>&(ca[i*(tA+tB)]))[0] 
-        for j in range(0,tB):
-            b.view(dtype=np.int8)[i*tB+j] = ca[(i+1)*tA+i*tB+j]
+#cdef char* interleave_py_pairs(a,b,typ):
+#    cdef cnp.ndarray buf = np.empty(len(a), dtype=[('a','i8'),('b',typ)])
+#    buf['a'] = a
+#    buf['b'] = b
+#    cdef char * dataptr = <char*>(buf.data.copy())
+#    return dataptr
+#
+#cdef void uninterleave_py_pairs(char * ca,a,b,typ):
+#    cdef cnp.ndarray buf = np.empty(len(a), dtype=[('a','i8'),('b',typ)])
+#    buf.data = ca
+#    a = buf['a']
+#    b = buf['b'] 
 
 cdef class comm:
     cdef World * w
@@ -811,7 +800,6 @@ cdef class tsr:
             if axis >= len(dim) or axis < 0:
                 raise ValueError("'axis' entry is out of bounds")
             dim_ret = np.delete(dim, axis)
-            print(dim_ret)
             if out != None:
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
@@ -970,7 +958,7 @@ cdef class tsr:
         if type(newshape)==int:
             if total_size!=newshape:
                 raise ValueError("total size of new array must be unchanged")
-            newshape = np.asarray(newshape, dtype=np.int64)
+            newshape = np.asarray([newshape], dtype=np.int64)
             B = tsr(newshape,dtype=self.typ)
             n, inds, vals = self.read_local()
             B.write(inds, vals)
@@ -1017,7 +1005,14 @@ cdef class tsr:
             n, inds, vals = self.read_local()
             return astensor(vals)
 
-    def read(self, inds, vals=None, a=None, b=None):
+    def read(self, init_inds, vals=None, a=None, b=None):
+        inds = np.asarray(init_inds)
+        #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
+        if inds.ndim == 2:
+            mystrides = np.ones(self.ndim,dtype=int)
+            for i in range(1,self.ndim):
+                mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.dims[self.ndim-i]
+            inds = inds @ np.asarray(mystrides) 
         cdef char * ca
         if vals != None:
             if vals.dtype != self.typ:
@@ -1025,7 +1020,9 @@ cdef class tsr:
         gvals = vals
         if vals == None:
             gvals = np.zeros(len(inds),dtype=self.typ)
-        ca = interleave_py_pairs(inds,gvals)
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.typ)])
+        buf['a'] = inds
+        buf['b'] = gvals
         cdef char * alpha 
         cdef char * beta
         st = np.ndarray([],dtype=self.typ).itemsize
@@ -1043,9 +1040,8 @@ cdef class tsr:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        (<tensor*>self.dt).read(len(inds),<char*>alpha,<char*>beta,ca)
-        uninterleave_py_pairs(ca,inds,gvals)
-        free(ca)
+        (<tensor*>self.dt).read(len(inds),<char*>alpha,<char*>beta,buf.data)
+        gvals = buf['b']
         if a != None:
             free(alpha)
         if b != None:
@@ -1132,8 +1128,9 @@ cdef class tsr:
         self.dt.read_local(&n,&data)
         inds = np.zeros(n, dtype=np.int64)
         vals = np.zeros(n, dtype=self.typ)
-        uninterleave_py_pairs(data,inds,vals)
-        free(data)
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.typ)])
+        buf.data = data
+        vals = buf['b']
         return n, inds, vals
 
     def read_local_nnz(self):
@@ -1143,8 +1140,9 @@ cdef class tsr:
         self.dt.read_local_nnz(&n,&data)
         inds = np.zeros(n, dtype=np.int64)
         vals = np.zeros(n, dtype=self.typ)
-        uninterleave_py_pairs(data,inds,vals)
-        free(data)
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.typ)])
+        buf.data = data
+        vals = buf['b']
         return n, inds, vals
 
     def tot_size(self):
@@ -1157,9 +1155,12 @@ cdef class tsr:
         tB = arr.dtype.itemsize
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals)
-        for j in range(0,sz*tB):
-            arr.view(dtype=np.int8)[j] = cvals[j]
-        free(cvals)
+        cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)
+        buf.data = cvals
+        arr[:] = buf[:]
+        #for j in range(0,sz*tB):
+        #    arr.view(dtype=np.int8)[j] = cvals[j]
+        #free(cvals)
  
     def write_all(self, arr):
         cdef char * cvals
@@ -1167,10 +1168,9 @@ cdef class tsr:
         sz = self.dt.get_tot_size()
         tB = arr.dtype.itemsize
         self.dt.get_raw_data(&cvals, &sz)
-        cdef char [:] carr = arr
-        for j in range(0,sz*tB):
-            carr[j] = cvals[j]
-            #cvals[j] = arr.view(dtype=np.int8)[j]
+        cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)
+        buf.data = cvals
+        buf[:] = arr[:]
    
     def conj(tsr self):
         if self.typ != np.complex64 and self.typ != np.complex128:
@@ -1217,13 +1217,21 @@ cdef class tsr:
                 free(permutation_B+sizeof(int*))
             free(permutation_B)
 
-    def write(self, inds, vals, a=None, b=None):
-        #cdef char * ca
-        #dvals = np.asarray(vals, dtype=self.typ)
-        #ca = interleave_py_pairs(inds,dvals)
-        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('inds','i8'),('vals',self.typ)])
-        buf['inds'] = inds
-        buf['vals'] = vals
+    def write(self, init_inds, vals, a=None, b=None):
+        inds = np.asarray(init_inds)
+        #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
+        if inds.ndim == 2:
+            mystrides = np.ones(self.ndim,dtype=int)
+            for i in range(1,self.ndim):
+                #mystrides[i]=mystrides[i-1]*self.dims[i-1]
+                mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.dims[self.ndim-i]
+            inds = inds @ np.asarray(mystrides) 
+        if vals.dtype != self.typ:
+              raise ValueError('bad dtype of vals parameter to read')
+
+        cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.typ)])
+        buf['a'] = inds
+        buf['b'] = vals
         cdef char * alpha
         cdef char * beta
 		# if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
@@ -1245,8 +1253,7 @@ cdef class tsr:
             nb = np.array([b])
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
-        #self.dt.write(len(inds),alpha,beta,ca)
-        self.dt.write(len(inds),alpha,beta,<char*>buf.data)
+        self.dt.write(len(inds),alpha,beta,buf.data)
         if a != None:
             free(alpha)
         if b != None:
@@ -1257,14 +1264,22 @@ cdef class tsr:
         cdef char * beta
         alpha = <char*>self.dt.sr.mulid()
         beta = <char*>self.dt.sr.addid()
-        A = tsr(np.asarray(ends)-np.asarray(offsets), sp=self.dt.is_sparse, dtype=self.typ)
+#        print(rev_array(np.asarray(ends)-np.asarray(offsets)))
+#        A = tsr(np.asarray(ends)-np.asarray(offsets), sp=self.dt.is_sparse, dtype=self.typ)
+        A = tsr(np.asarray(ends)-np.asarray(offsets), dtype=self.typ)
         cdef int * clens
         cdef int * coffs
         cdef int * cends
-        clens = int_arr_py_to_c(A.dims)
-        coffs = int_arr_py_to_c(offsets)
-        cends = int_arr_py_to_c(ends)
-        czeros = int_arr_py_to_c(np.zeros(len(self.dims)))
+        if self.order == 'F':
+            clens = int_arr_py_to_c(rev_array(A.dims))
+            coffs = int_arr_py_to_c(rev_array(offsets))
+            cends = int_arr_py_to_c(rev_array(ends))
+            czeros = int_arr_py_to_c(np.zeros(len(self.dims)))
+        else:
+            clens = int_arr_py_to_c(A.dims)
+            coffs = int_arr_py_to_c(offsets)
+            cends = int_arr_py_to_c(ends)
+            czeros = int_arr_py_to_c(np.zeros(len(self.dims)))
         A.dt.slice(czeros, clens, beta, self.dt, coffs, cends, alpha)
         free(czeros)
         free(cends)
@@ -1272,39 +1287,66 @@ cdef class tsr:
         free(clens)
         return A
 
-    def __getitem__(self, slices):
+    # implements basic indexing and slicing as per numpy.ndarray
+    # indexing can be done to different values with each process, as it produces a local scalar, but slicing must be the same globally, as it produces a global CTF tensor
+    def __getitem__(self, key_init):
         is_everything = 1
         is_contig = 1
         inds = []
         lensl = 1
-        if isinstance(slices,slice):
-            s = slices
-            ind = s.indices(self.dims[0])
-            if ind[2] != 1:
-                is_everything = 0
-                is_contig = 0
-            if ind[1] != self.dims[0]:
-                is_everything = 0
-            inds.append(s.indices())
+        key = deepcopy(key_init)
+
+        if isinstance(key,int):
+            if self.ndim == 1:
+                vals = self.read([key])
+                return vals[0]
+            else:
+                key = (key,)
+        if isinstance(key,slice):
+            key = (key,)
+            #s = key
+            #ind = s.indices(self.dims[0])
+            #if ind[2] != 1:
+            #    is_everything = 0
+            #    is_contig = 0
+            #if ind[1] != self.dims[0]:
+            #    is_everything = 0
+            #inds.append(s.indices())
+        if isinstance(key,tuple):
+            lensl = len(key)
+            i=0
+            is_single_val = 1
+            if lensl != self.ndim:
+                is_single_val = 0
+            for s in key:
+                if isinstance(s,int):
+                    if self.dims[i] != 0:
+                        is_everything = 0
+                    else:
+                        inds.append((s,s+1,1))
+                else:
+                    is_single_val = 0
+                    ind = s.indices(self.dims[i])
+                    if ind[2] != 1:
+                        is_everything = 0
+                        is_contig = 0
+                    if ind[1] != self.dims[i]:
+                        is_everything = 0
+                    inds.append(ind)
+                i+=1
+            if is_single_val:
+                vals = self.read([key])
+                return vals[0]
         else:
-            lensl = len(slices)
-            for i, s in slices:
-                ind = s.indices(self.dims[i])
-                if ind[2] != 1:
-                    is_everything = 0
-                    is_contig = 0
-                if ind[1] != self.dims[i]:
-                    is_everything = 0
-                inds.append(s.indices())
-        for i in range(lensl,len(self.dims)):
-            inds.append(slice(0,self.dims[i],1))
+            raise ValueError('Invalid input to ctf.tsr.__getitem__(input), i.e. ctf.tsr[input]. Only basic slicing and indexing is currently supported')
+        for i in range(lensl,self.ndim):
+            inds.append((0,self.dims[i],1))
         if is_everything:
             return self
         if is_contig:
             offs = [ind[0] for ind in inds]
             ends = [ind[1] for ind in inds]
             return self.get_slice(offs,ends)
-        raise ValueError('strided slices not currently supported')
         
 	# bool no itemsize
     def write_slice(self, offsets, ends, A, A_offsets=None, A_ends=None, a=None, b=None):
@@ -2431,8 +2473,7 @@ def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
     # check whether the axis entry is out of bounds, if axis input is positive e.g. axis = 5
     if type(axis)==int:
         if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
-            print("'axis' entry is out of bounds")
-            return None
+            raise ValueError("'axis' entry is out of bounds")
     elif axis == None:
         axis = None
     else:
