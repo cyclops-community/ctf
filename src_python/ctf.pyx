@@ -1320,10 +1320,9 @@ cdef class tsr:
                 is_single_val = 0
             for s in key:
                 if isinstance(s,int):
-                    if self.dims[i] != 0:
+                    if self.dims[i] != 1:
                         is_everything = 0
-                    else:
-                        inds.append((s,s+1,1))
+                    inds.append((s,s+1,1))
                 else:
                     is_single_val = 0
                     ind = s.indices(self.dims[i])

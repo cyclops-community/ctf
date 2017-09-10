@@ -115,6 +115,10 @@ test_new: lib_py/ctf.so
 test_base: lib_py/ctf.so
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_base.py
 
+.PHONY: test_get_item
+test_get_item: lib_py/ctf.so
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_get_item.py
+
 .PHONY: test_live
 test_live: lib_py/ctf.so
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" ipython -i -c "import numpy as np; import ctf"
