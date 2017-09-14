@@ -1260,8 +1260,9 @@ cdef class tsr:
                 free(permutation_B+sizeof(int*))
             free(permutation_B)
 
-    def write(self, init_inds, vals, a=None, b=None):
+    def write(self, init_inds, init_vals, a=None, b=None):
         inds = np.asarray(init_inds)
+        vals = np.asarray(init_vals, dtype=self.typ)
         #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
         if inds.ndim == 2:
             mystrides = np.ones(self.ndim,dtype=int)
@@ -1269,8 +1270,6 @@ cdef class tsr:
                 #mystrides[i]=mystrides[i-1]*self.dims[i-1]
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.dims[self.ndim-i]
             inds = inds @ np.asarray(mystrides) 
-        if vals.dtype != self.typ:
-              raise ValueError('bad dtype of vals parameter to read')
 
         cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.typ)])
         buf['a'] = inds
