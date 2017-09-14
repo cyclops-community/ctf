@@ -292,8 +292,18 @@ cdef class itsr(term):
         self.it.multeq(s)
 
 def rev_array(arr):
-    arr2 = arr[::-1]
-    return arr2
+    if len(arr) == 1:
+        return arr
+    else:
+        arr2 = arr[::-1]
+        return arr2
+
+def get_num_str(n):
+    mystr = ""
+    for i in range(n):
+        mystr += str(i)
+    return mystr
+    
 
 cdef class tsr:
     cdef tensor * dt
@@ -437,8 +447,15 @@ cdef class tsr:
     
     def T(self):
         return transpose(self)
-    #def transpose(self, axes=None):
-    #    return transpose(self, axes)
+
+    def transpose(self, *axes):
+        if axes:
+            if type(axes[0])==tuple or type(axes[0])==list or type(axes[0]) == np.ndarray:
+                return transpose(self, axes[0])
+            else:
+                return transpose(self, axes)
+        else:
+            return transpose(self)
 
     def __add__(self, other):
         if not isinstance(other, tsr) and isinstance(self, tsr):
@@ -796,9 +813,7 @@ cdef class tsr:
                     if out.shape != dims_keep:
                         raise ValueError('output must match when keepdims = True')
             B = tsr((1,), dtype=np.bool)
-            index_A = "" 
-            index_A = random.sample(string.ascii_letters+string.digits,len(self.get_dims()))
-            index_A = "".join(index_A)
+            index_A = get_num_str(self.ndim)
             if self.typ == np.float64:
                 all_helper[double](<tensor*>self.dt, <tensor*>B.dt, index_A.encode(), "".encode())
             elif self.typ == np.int64:
@@ -858,9 +873,7 @@ cdef class tsr:
                 if out!= None:
                     if tuple(dim_keep) != tuple(out.shape):
                         raise ValueError('output must match when keepdims = True')
-            index_A = "" 
-            index_A = random.sample(string.ascii_letters+string.digits,len(dim))
-            index_A = "".join(index_A)
+            index_A = get_num_str(self.ndim)
             index_temp = rev_array(index_A)
             index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
             index_B = rev_array(index_B)
@@ -919,9 +932,7 @@ cdef class tsr:
                     if dim_ret[i] != out.shape[i]:
                         raise ValueError('output parameter dimensions mismatch')
             B = tsr(dim_ret, dtype=np.bool)
-            index_A = "" 
-            index_A = random.sample(string.ascii_letters+string.digits,len(dim))
-            index_A = "".join(index_A)
+            index_A = get_num_str(self.ndim)
             index_temp = rev_array(index_A)
             index_B = ""
             for i in range(len(dim)):
@@ -1390,17 +1401,12 @@ cdef class tsr:
             return self.get_slice(offs,ends)
   
     def set_zero(self):
-        mystr = ""
-        for i in range(self.ndim):
-            mystr += str(i)
+        mystr = get_num_str(self.ndim)
         self.i(mystr).scl(0.0)
 
     def set_all(self, value):
-        mystr = ""
-        for i in range(self.ndim):
-            mystr += str(i)
         self.set_zero()
-        self.i(mystr) << value
+        self.i(get_num_str(self.ndim)) << value
             
 	# bool no itemsize
     def write_slice(self, offsets, ends, A, A_offsets=None, A_ends=None, a=None, b=None):
@@ -1575,8 +1581,7 @@ cdef class tsr:
         dim = self.dims
         if axes == None:
             B = tsr(dim, dtype=self.typ)
-            index = random.sample(string.ascii_letters+string.digits,len(dim))
-            index = "".join(index)
+            index = get_num_str(self.ndim)
             rev_index = str(index[::-1])
             B.i(rev_index) << self.i(index)
             return B
@@ -1601,8 +1606,7 @@ cdef class tsr:
             if axes_list.count(axes_list[i]) > 1:
                 raise ValueError("repeated axis in transpose")
 
-        index = random.sample(string.ascii_letters+string.digits,len(dim))
-        index = "".join(index)
+        index = get_num_str(self.ndim)
         rev_index = ""
         for i in range(len(dim)):
             rev_index += index[axes_list[i]]
@@ -1870,8 +1874,7 @@ def diag(A, k=0):
                 square = False
                 break
         if square == True:
-            back = random.sample(string.ascii_letters+string.digits,len(dim)-1)
-            back = "".join(back)
+            back = get_num_str(len(dim)-1)
             front = back[len(back)-1]+back[len(back)-1]+back[0:len(back)-1]
             einsum_input = front + "->" + back
             return einsum(einsum_input,A)
@@ -1932,8 +1935,7 @@ def diagonal(A, offset=0, axis1=0, axis2=1):
                 square = False
                 break
         if square == True:
-            back = random.sample(string.ascii_letters+string.digits,len(dim)-1)
-            back = "".join(back)
+            back = get_num_str(len(dim)-1)
             front = back[len(back)-1]+back[len(back)-1]+back[0:len(back)-1]
             einsum_input = front + "->" + back
             return einsum(einsum_input,A)
@@ -2531,6 +2533,10 @@ def zeros(shape, dtype=np.float64, order='F'):
 def empty(shape, dtype=np.float64, order='F'):
     return zeros(shape, dtype, order)
 
+def empty_like(A, dtype=None):
+    if dtype == None: 
+        dtype = A.dtype
+    return empty(A.shape, dtype=dtype)
 
 # Maybe there are issues that when keepdims, dtype and out are all specified.	
 def sum(tsr A, axis = None, dtype = None, out = None, keepdims = None):
@@ -3117,10 +3123,6 @@ def comp_all(tsr A, axis=None, out=None, keepdims=None):
 def transpose(A, axes=None):
     if not isinstance(A,tsr):
         raise ValueError("A is not a tensor")
-    for i in range(A.ndim):
-        if axes[i] < 0:
-            raise ValueError("transpose with negative axes not allowed")
-             
 
     dim = A.get_dims()
     if axes == None:
@@ -3129,8 +3131,7 @@ def transpose(A, axes=None):
             new_dim.append(dim[i])
         new_dim = tuple(new_dim)
         B = tsr(new_dim, dtype=A.get_type())
-        index = random.sample(string.ascii_letters+string.digits,len(dim))
-        index = "".join(index)
+        index = get_num_str(len(dim))
         rev_index = str(index[::-1])
         B.i(rev_index) << A.i(index)
         return B
@@ -3139,6 +3140,10 @@ def transpose(A, axes=None):
     if len(axes) != len(dim):
         raise ValueError("axes don't match tensor")
 
+    for i in range(A.ndim):
+        if axes[i] < 0:
+            raise ValueError("transpose with negative axes not allowed")
+             
     axes_list = list(axes)
     for i in range(len(axes)):
         # when any elements of axes is not an integer
@@ -3155,12 +3160,15 @@ def transpose(A, axes=None):
         if axes_list.count(axes_list[i]) > 1:
             raise ValueError("repeated axis in transpose")
 
-    index = random.sample(string.ascii_letters+string.digits,len(dim))
-    index = "".join(index)
+    index = get_num_str(len(dim))
     rev_index = ""
+    rev_dims = dim.copy()
     for i in range(len(dim)):
         rev_index += index[axes_list[i]]
-    B = tsr(dim, dtype=A.get_type())
+        rev_dims[i] = dim[axes_list[i]]
+    print(rev_dims)
+    print(dim)
+    B = tsr(rev_dims, dtype=A.get_type())
     B.i(rev_index) << A.i(index)
     return B
 
@@ -3276,9 +3284,23 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     elif numop == 2:
         output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])
     elif numop == 3:
-        output.i(out_inds ) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])
+    elif numop == 4:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])
+    elif numop == 5:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])
+    elif numop == 6:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])
+    elif numop == 7:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])
+    elif numop == 8:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])
+    elif numop == 9:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])*operands[8].i(inds[8])
+    elif numop == 10:
+        output.i(out_inds) << operands[0].i(inds[0])*operands[1].i(inds[1])*operands[2].i(inds[2])*operands[3].i(inds[3])*operands[4].i(inds[4])*operands[5].i(inds[5])*operands[6].i(inds[6])*operands[7].i(inds[7])*operands[8].i(inds[8])*operands[9].i(inds[9])
     else:
-        raise ValueError('CTF einsum currently allows only no more than three operands')
+        raise ValueError('CTF einsum currently allows no more than 10 operands')
     return output
     
 #    A = tsr([n, n], dtype=dtype)

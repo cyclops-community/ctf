@@ -100,7 +100,7 @@ class KnowValues(unittest.TestCase):
     def test_transpose_astensor(self):
         a0 = numpy.arange(6).reshape(2,3)
         a1 = ctf.astensor(a0.T)
-        self.assertTrue(ctf.all(a1==a0))
+        #self.assertTrue(ctf.all(a1==a0))
         a1 = ctf.astensor(a1.T())
         self.assertTrue(ctf.all(a1==a0))
 
@@ -144,6 +144,7 @@ class KnowValues(unittest.TestCase):
         a0 = numpy.arange(120).reshape(2,3,4,5)
         a1 = ctf.astensor(a0)
         self.assertTrue(ctf.all(a1.ravel()==a0.ravel()))
+        #self.assertTrue(ctf.all(a1.transpose(0,1,3,2).ravel()==a0.transpose(0,1,3,2).ravel()))
         self.assertTrue(ctf.all(a1.transpose(0,1,3,2).ravel()==a0.transpose(0,1,3,2).ravel()))
         self.assertTrue(ctf.all(a1.transpose(0,2,1,3).ravel()==a0.transpose(0,2,1,3).ravel()))
         self.assertTrue(ctf.all(a1.transpose(3,2,0,1).ravel()==a0.transpose(3,2,0,1).ravel()))
