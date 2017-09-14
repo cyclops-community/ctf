@@ -35,9 +35,8 @@ script:
   - make test
   - make test2
 #after_failure:
-notifications:
-  email:
-    recipients:
-      - jeff.science@gmail.com
-    on_success: change
-    on_failure: always
+#notifications:
+#  email:
+#    recipients:
+#    on_success: change
+#    on_failure: always
