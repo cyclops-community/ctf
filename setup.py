@@ -8,10 +8,9 @@ ext_module = Extension(
     ["src_python/ctf.pyx"],
     language="c++",
     include_dirs=["./include",numpy.get_include()],
-    #install_requires=["cython"],
     library_dirs=["./lib_shared"],
     libraries=["ctf", "blas", "mpicxx"],
-    extra_compile_args=["-std=c++11", "-stdlib=libc++"],
+    extra_compile_args=["-std=c++11","-O0","-g"],
     extra_link_args=["-std=c++11"]
 )
 
