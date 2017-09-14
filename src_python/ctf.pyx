@@ -14,10 +14,163 @@ import collections
 from copy import deepcopy
 cimport numpy as cnp
 #from std.functional cimport function
-cimport ctf_core
-from ctf_core cimport * 
 
 import struct
+
+from libcpp cimport bool
+from libc.stdint cimport int64_t
+
+cdef extern from "<functional>" namespace "std":
+    cdef cppclass function[dtype]:
+        function()
+        function(dtype)
+
+#class SYM(Enum):
+#  NS=0
+#  SY=1
+#  AS=2
+#  SH=3
+cdef extern from "mpi.h":# namespace "MPI":
+    void MPI_Init(int * argc, char *** argv)
+    int MPI_Initialized(int *)
+    void MPI_Finalize()
+
+
+cdef int is_mpi_init=0
+MPI_Initialized(<int*>&is_mpi_init)
+if is_mpi_init == 0:
+  MPI_Init(&is_mpi_init, <char***>NULL)
+
+cdef extern from "../include/ctf.hpp" namespace "CTF_int":
+    cdef cppclass algstrct:
+        char * addid()
+        char * mulid()
+    
+    cdef cppclass tensor:
+        World * wrld
+        algstrct * sr
+        bool is_sparse
+        tensor()
+        tensor(tensor * other, bool copy, bool alloc_data)
+        void prnt()
+        int read(int64_t num_pair,
+                 char *  alpha,
+                 char *  beta,
+                 char *  data);
+        int write(int64_t num_pair,
+                  char *  alpha,
+                  char *  beta,
+                  char *  data);
+        int read_local(int64_t * num_pair,
+                       char **   data)
+        int read_local_nnz(int64_t * num_pair,
+                           char **   data)
+        void allread(int64_t * num_pair, char * data)
+        void slice(int *, int *, char *, tensor *, int *, int *, char *)
+        int64_t get_tot_size()
+        void get_raw_data(char **, int64_t * size)
+        int permute(tensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
+        void conv_type[dtype_A,dtype_B](tensor * B)
+        void compare_elementwise[dtype](tensor * A, tensor * B)
+        void not_equals[dtype](tensor * A, tensor * B)
+        void smaller_than[dtype](tensor * A, tensor * B)
+        void smaller_equal_than[dtype](tensor * A, tensor * B)
+        void larger_than[dtype](tensor * A, tensor * B)
+        void larger_equal_than[dtype](tensor * A, tensor * B)
+        void exp_helper[dtype_A,dtype_B](tensor * A)
+        void true_divide[dtype](tensor * A)
+        void pow_helper_int[dtype](tensor * A, int p)
+
+    cdef cppclass Term:
+        Term * clone();
+        Contract_Term operator*(double scl);
+        Contract_Term operator*(Term A);
+        Sum_Term operator+(Term A);
+        Sum_Term operator-(Term A);
+    
+    cdef cppclass Sum_Term(Term):
+        Sum_Term(Term * B, Term * A);
+        Sum_Term operator+(Term A);
+        Sum_Term operator-(Term A);
+    
+    cdef cppclass Contract_Term(Term):
+        Contract_Term(Term * B, Term * A);
+        Contract_Term operator*(double scl);
+        Contract_Term operator*(Term A);
+
+    cdef cppclass endomorphism:
+        endomorphism()
+
+    cdef cppclass univar_function:
+        univar_function()
+
+    cdef cppclass bivar_function:
+        bivar_function()
+
+    cdef cppclass Endomorphism[dtype_A](endomorphism):
+        Endomorphism(function[void(dtype_A&)] f_);
+
+    cdef cppclass Univar_Transform[dtype_A,dtype_B](univar_function):
+        Univar_Transform(function[void(dtype_A,dtype_B&)] f_);
+    
+    cdef cppclass Bivar_Transform[dtype_A,dtype_B,dtype_C](bivar_function):
+        Bivar_Transform(function[void(dtype_A,dtype_B,dtype_C&)] f_);
+
+cdef extern from "ctf_ext.h" namespace "CTF_int":
+    cdef int64_t sum_bool_tsr(tensor *);
+    cdef void all_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
+    cdef void conj_helper(tensor * A, tensor * B);
+    cdef void any_helper[dtype](tensor * A, tensor * B_bool, char * idx_A, char * idx_B)
+    cdef void get_real[dtype](tensor * A, tensor * B)
+    cdef void get_imag[dtype](tensor * A, tensor * B)
+    
+cdef extern from "../include/ctf.hpp" namespace "CTF":
+
+    cdef cppclass World:
+        int rank, np;
+        World()
+        World(int)
+
+    cdef cppclass Idx_Tensor(Term):
+        Idx_Tensor(tensor *, char *);
+        void operator=(Term B);
+        void operator=(Idx_Tensor B);
+        void multeq(double scl);
+        void operator<<(Term B);
+        void operator<<(double scl);
+
+    cdef cppclass Typ_Idx_Tensor[dtype](Idx_Tensor):
+        Typ_Idx_Tensor(tensor *, char *)
+        void operator=(Term B)
+        void operator=(Idx_Tensor B)
+
+    cdef cppclass Tensor[dtype](tensor):
+        Tensor(int, bint, int *, int *)
+        Tensor(bool , tensor)
+        void fill_random(dtype, dtype)
+        void fill_sp_random(dtype, dtype, double)
+        Typ_Idx_Tensor i(char *)
+        void read(int64_t, int64_t *, dtype *)
+        void read(int64_t, dtype, dtype, int64_t *, dtype *)
+        void read_local(int64_t *, int64_t **, dtype **)
+        void read_local_nnz(int64_t *, int64_t **, dtype **)
+        void write(int64_t, int64_t *, dtype *)
+        void write(int64_t, dtype, dtype, int64_t *, dtype *)
+        dtype norm1()
+        dtype norm2() # Frobenius norm
+        dtype norm_infty()
+    
+    cdef cppclass Matrix[dtype](tensor):
+        Matrix()
+        Matrix(Tensor[dtype] A)
+        Matrix(int, int)
+        Matrix(int, int, int)
+        Matrix(int, int, int, World)
+    
+    cdef cppclass contraction:
+        contraction(tensor *, int *, tensor *, int *, char *, tensor *, int *, char *, bivar_function *)
+        void execute()
+
 
 
 #from enum import Enum
@@ -863,7 +1016,7 @@ cdef class tsr:
             mystrides = np.ones(self.ndim,dtype=int)
             for i in range(1,self.ndim):
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.dims[self.ndim-i]
-            inds = inds @ np.asarray(mystrides) 
+            inds = np.dot(inds, np.asarray(mystrides) )
         cdef char * ca
         if vals != None:
             if vals.dtype != self.typ:
@@ -1242,53 +1395,103 @@ cdef class tsr:
         free(caends)
         free(caoffs)
 
-    def __setitem__(self, slices, value):
+    def __setitem__(self, key_init, value_init):
         is_everything = 1
         is_contig = 1
         inds = []
         lensl = 1
-        if isinstance(slices,slice):
-            s = slices
-            ind = s.indices(self.dims[0])
-            if ind[2] != 1:
-                is_everything = 0
-                is_contig = 0
-            if ind[1] != self.dims[0]:
-                is_everything = 0
-            inds.append(ind)
-        else:
-            lensl = len(slices)
-            for i, s in slices:
-                ind = s.indices(self.dims[i])
-                if ind[2] != 1:
-                    is_everything = 0
-                    is_contig = 0
-                if ind[1] != self.dims[i]:
-                    is_everything = 0
-                inds.append(ind)
-        for i in range(lensl,len(self.dims)):
-            inds.append(slice(0,self.dims[i],1))
-        mystr = ''
-        for i in range(len(self.dims)):
-            mystr += chr(i)
-        if is_everything == 1:
-            self.i(mystr).scale(0.0)
-            if isinstance(value,tsr):
-                self.i(mystr) << value.i(mystr)
+        key = deepcopy(key_init)
+        value = deepcopy(value_init)
+
+        if isinstance(key,int):
+            if self.ndim == 1:
+                self.write([key],[value])
             else:
-                nv = np.asarray(value)
-                self.i(mystr) << astensor(nv).i('')
-        elif is_contig:
+                key = (key,)
+                value = (value,)
+        if isinstance(key,slice):
+            key = (key,)
+            value = (value,)
+            #s = key
+            #ind = s.indices(self.dims[0])
+            #if ind[2] != 1:
+            #    is_everything = 0
+            #    is_contig = 0
+            #if ind[1] != self.dims[0]:
+            #    is_everything = 0
+            #inds.append(ind)
+        if isinstance(key,tuple):
+            lensl = len(key)
+            i=0
+            is_single_val = 1
+            if lensl != self.ndim:
+                is_single_val = 0
+            for s in key:
+                if isinstance(s,int):
+                    if self.dims[i] != 1:
+                        is_everything = 0
+                    inds.append((s,s+1,1))
+                else:
+                    is_single_val = 0
+                    ind = s.indices(self.dims[i])
+                    if ind[2] != 1:
+                        is_everything = 0
+                        is_contig = 0
+                    if ind[1] != self.dims[i]:
+                        is_everything = 0
+                    inds.append(ind)
+                i+=1
+            if is_single_val:
+                self.write([key],[value])
+        else:
+            raise ValueError('Invalid input to ctf.tsr.__setitem__(input), i.e. ctf.tsr[input]. Only basic slicing and indexing is currently supported')
+        for i in range(lensl,self.ndim):
+            inds.append((0,self.dims[i],1))
+        if is_everything:
+            self.i("abcdefghijklmonpqrtuvwzyx1234567890").scl(0.0)
+            self.i("abcdefghijklmonpqrtuvwzyx1234567890") << value
+            #check that value is same everywhere, or this makes no sense
+        if is_contig:
             offs = [ind[0] for ind in inds]
             ends = [ind[1] for ind in inds]
-            sl = tsr(ends-offs)
-            if isinstance(value,tsr):
-                sl.i(mystr) << value.i(mystr)
-            else:
-                sl.i(mystr) << astensor(value).i(mystr)
-            self.write_slice(offs,ends,sl)
-        else:
-            raise ValueError('strided slices not currently supported')
+            self.write_slice(offs,ends,value)
+# 
+#
+#
+#
+#        else:
+#            lensl = len(key)
+#            for i, s in key:
+#                ind = s.indices(self.dims[i])
+#                if ind[2] != 1:
+#                    is_everything = 0
+#                    is_contig = 0
+#                if ind[1] != self.dims[i]:
+#                    is_everything = 0
+#                inds.append(ind)
+#        for i in range(lensl,len(self.dims)):
+#            inds.append(slice(0,self.dims[i],1))
+#        mystr = ''
+#        for i in range(len(self.dims)):
+#            mystr += chr(i)
+#        if is_everything == 1:
+#            self.i(mystr).scale(0.0)
+#            if isinstance(value,tsr):
+#                self.i(mystr) << value.i(mystr)
+#            else:
+#                nv = np.asarray(value)
+#                self.i(mystr) << astensor(nv).i('')
+#        elif is_contig:
+#            offs = [ind[0] for ind in inds]
+#            ends = [ind[1] for ind in inds]
+#            sl = tsr(ends-offs)
+#            if isinstance(value,tsr):
+#                sl.i(mystr) << value.i(mystr)
+#            else:
+#                sl.i(mystr) << astensor(value).i(mystr)
+#            self.write_slice(offs,ends,sl)
+#        else:
+#            raise ValueError('strided key not currently supported')
         
 
     def norm1(self):
