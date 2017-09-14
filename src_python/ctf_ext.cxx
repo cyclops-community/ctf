@@ -60,7 +60,10 @@ namespace CTF_int{
 	template void get_imag<double>(tensor * A, tensor * B);
 
 	// == (add more dtype)
+  template void tensor::compare_elementwise<float>(tensor * A, tensor * B);
   template void tensor::compare_elementwise<double>(tensor * A, tensor * B);
+  template void tensor::compare_elementwise< std::complex<double> >(tensor * A, tensor * B);
+  template void tensor::compare_elementwise< std::complex<float> >(tensor * A, tensor * B);
  	template void tensor::compare_elementwise<bool>(tensor * A, tensor * B);
 
 	// != (add more dtype)
