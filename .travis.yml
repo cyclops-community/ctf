@@ -34,9 +34,10 @@ script:
   - make
   - make test
   - make test2
-#after_failure:
-#notifications:
-#  email:
-#    recipients:
-#    on_success: change
-#    on_failure: always
+after_failure:
+notifications:
+  email:
+    recipients:
+      - solomon2@illinois.edu
+    on_success: change
+    on_failure: always
