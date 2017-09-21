@@ -347,6 +347,10 @@ cdef class tsr:
         def __get__(self):
             return self.dtype
 
+    property order:
+        def __get__(self):
+            return self.order
+
     def bool_sum(tsr self):
         return sum_bool_tsr(<tensor*>self.dt)
     
@@ -1124,7 +1128,7 @@ cdef class tsr:
             if dtype == float:
                 dtype = np.float64
             # np.bool doesnot have itemsize
-            if (self.typ != np.bool and dtype != np.bool) and self.typ.itemsize > dtype.itemsize:
+            if (self.typ != np.bool and dtype != np.bool) and self.itemsize > dtype.itemsize:
                 raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
             if dtype == np.bool and self.typ != np.bool:
                 raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
@@ -1278,7 +1282,7 @@ cdef class tsr:
             for i in range(1,self.ndim):
                 #mystrides[i]=mystrides[i-1]*self.dims[i-1]
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.dims[self.ndim-i]
-            inds = inds @ np.asarray(mystrides) 
+            inds = np.dot(inds, np.asarray(mystrides))
 
         cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.typ)])
         buf['a'] = inds
@@ -1289,7 +1293,7 @@ cdef class tsr:
         if self.typ == np.bool:
             st = 1
         else:
-            st = self.typ().itemsize
+            st = self.itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
         else:
@@ -1410,7 +1414,7 @@ cdef class tsr:
     def write_slice(self, offsets, ends, A, A_offsets=None, A_ends=None, a=None, b=None):
         cdef char * alpha
         cdef char * beta
-        st = self.typ().itemsize
+        st = self.itemsize
         if a == None:
             alpha = <char*>self.dt.sr.mulid()
         else:
@@ -1516,7 +1520,7 @@ cdef class tsr:
                     inds.append(ind)
                 i+=1
             if is_single_val:
-                self.write([key],[value])
+                self.write([key],np.asarray(value))
                 return
         else:
             raise ValueError('Invalid input to ctf.tsr.__setitem__(input), i.e. ctf.tsr[input]. Only basic slicing and indexing is currently supported')
@@ -1567,7 +1571,11 @@ cdef class tsr:
 #            else:
 #                sl.i(mystr) << astensor(value).i(mystr)
 #            self.write_slice(offs,ends,sl)
-        
+    def diagonal(self, offset=0, axis1=0, axis2=1):
+        return diagonal(self,offset,axis1,axis2)        
+
+    def sum(self, axis = None, dtype = None, out = None, keepdims = None):
+        return sum(self, dtype, out, keepdims)
 
     def norm1(self):
         if self.typ == np.float64:
@@ -1803,42 +1811,7 @@ def imag(tsr A):
 
 # similar to astensor.
 def array(A, dtype=None, order='F'):
-    if type(A) != np.ndarray:
-        raise ValueError('A should be an ndarray')
-    if dtype == None or dtype == np.float64:
-        ret = tsr(A.shape, dtype=np.float64)
-        ret.from_nparray(A)
-        return ret
-    elif dtype == np.float32:
-        ret = tsr(A.shape, dtype=np.float32)
-        ret.from_nparray(A)
-        return ret
-    elif dtype == np.int64:
-        ret = tsr(A.shape, dtype=np.int64)
-        ret.from_nparray(A)
-        return ret
-    elif dtype == np.int32:
-        ret = tsr(A.shape, dtype=np.int32)
-        ret.from_nparray(A)
-        return ret
-    elif dtype == np.int16:
-        ret = tsr(A.shape, dtype=np.int16)
-        ret.from_nparray(A)
-        return ret
-    elif dtype == np.int8:
-        ret = tsr(A.shape, dtype=np.int8)
-        ret.from_nparray(A)
-        return ret
-    elif dtype == np.complex128:
-        ret = tsr(A.shape, dtype=np.complex128)
-        ret.from_nparray(A)
-        return ret
-    elif dtype == np.complex64:
-        ret = tsr(A.shape, dtype=np.complex64)
-        ret.from_nparray(A)
-        return ret
-    else:
-        raise ValueError('wrong type')
+    return astensor(A,dtype,order)
 
 def diag(A, k=0):
     if not isinstance(A, tsr):
@@ -1897,9 +1870,8 @@ def diag(A, k=0):
             return einsum(einsum_input,A)
     return None
 
-def diagonal(A, offset=0, axis1=0, axis2=1):
-    if not isinstance(A, tsr):
-        raise ValueError('A is not a tensor')
+def diagonal(init_A, offset=0, axis1=0, axis2=1):
+    A = astensor(init_A)
     if axis1 == axis2:
         raise ValueError('axis1 and axis2 cannot be the same')
     dim = A.get_dims()
@@ -2117,51 +2089,19 @@ def reshape(A, newshape, order='F'):
 
 
 # the default order is Fortran
-def astensor(arr, dtype = None, order="F"):
-    if isinstance(arr,tsr):
-        return arr
-    if dtype == None:
-        narr = np.asarray(arr)
-    else:
-        narr = np.asarray(arr,dtype)
-
-    if narr.dtype == np.float64:
-        t = tsr(narr.shape, dtype=np.float64)
-        t.from_nparray(narr)
-        return t
-    elif narr.dtype == np.complex128:
-        t = tsr(narr.shape, dtype=np.complex128)
-        t.from_nparray(narr)
-        return t
-    elif narr.dtype == np.bool:
-        t = tsr(narr.shape, dtype=np.bool)
-        t.from_nparray(narr)
-        return t
-    elif narr.dtype == np.int64:
-        t = tsr(narr.shape, dtype=np.int64)
-        t.from_nparray(narr)
-        return t
-    elif narr.dtype == np.int32:
-        t = tsr(narr.shape, dtype=np.int32)
-        t.from_nparray(narr)
-        return t
-    elif narr.dtype == np.int16:
-        t = tsr(narr.shape, dtype=np.int16)
-        t.from_nparray(narr)
-        return t
-    elif narr.dtype == np.int8:
-        t = tsr(narr.shape, dtype=np.int8)
-        t.from_nparray(narr)
-        return t
-    elif narr.dtype == np.float32:
-        t = tsr(narr.shape, dtype=np.float32)
-        t.from_nparray(narr)
-        return t
-    else:
-        narr = np.asarray(arr, dtype=np.float64)
-        t = tsr(narr.shape)
-        t.from_nparray(narr)
-        return t
+def astensor(A, dtype = None, order=None):
+    if isinstance(A,tsr):
+        if order != None and order != A.order:
+            raise ValueError('CTF does not support this type of order conversion in astensor()')
+        if dtype != None and dtype != A.dtype:
+            raise ValueError('CTF does not support this type of order conversion in astensor()')
+        return A
+    if order == None:
+        order = 'F'
+    narr = np.asarray(A,dtype=dtype,order=order)
+    t = tsr(narr.shape, dtype=narr.dtype)
+    t.from_nparray(narr)
+    return t
 
 def dot(A, B, out=None):
     # there will be error when using "type(A)==complex" since there seems confliction between Cython complex and Python complex... 
@@ -2533,8 +2473,8 @@ def to_nparray(t):
     else:
         return np.asarray(t)
 
-#def from_nparray(arr):
-#    return astensor(arr)
+def from_nparray(arr):
+    return astensor(arr)
 
 
 # return a zero tensor just like the tensor A
