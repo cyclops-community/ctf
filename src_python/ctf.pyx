@@ -299,10 +299,8 @@ def rev_array(arr):
         return arr2
 
 def get_num_str(n):
-    mystr = ""
-    for i in range(n):
-        mystr += str(i)
-    return mystr
+    allstr = "abcdefghijklmonpqrstuvwzyx0123456789,./;'][=-`"
+    return allstr[0:n]
     
 
 cdef class tsr:
@@ -1429,19 +1427,33 @@ cdef class tsr:
                 beta[j] = nb.view(dtype=np.int8)[j]
         cdef int * caoffs
         cdef int * caends
-        if A_offsets == None:
-            caoffs = int_arr_py_to_c(np.zeros(len(self.dims)))
-        else:
-            caoffs = int_arr_py_to_c(A_offsets)
-        if A_ends == None:
-            caends = int_arr_py_to_c(A.get_dims())
-        else:
-            caends = int_arr_py_to_c(A_ends)
 
         cdef int * coffs
         cdef int * cends
-        coffs = int_arr_py_to_c(offsets)
-        cends = int_arr_py_to_c(ends)
+        if self.order == 'F':
+            if A_offsets == None:
+                caoffs = int_arr_py_to_c(rev_array(np.zeros(len(self.dims))))
+            else:
+                caoffs = int_arr_py_to_c(rev_array(A_offsets))
+            if A_ends == None:
+                caends = int_arr_py_to_c(rev_array(A.get_dims()))
+            else:
+                caends = int_arr_py_to_c(rev_array(A_ends))
+            coffs = int_arr_py_to_c(rev_array(offsets))
+            cends = int_arr_py_to_c(rev_array(ends))
+        else:
+            if A_offsets == None:
+                caoffs = int_arr_py_to_c(np.zeros(len(self.dims)))
+            else:
+                caoffs = int_arr_py_to_c(A_offsets)
+            if A_ends == None:
+                caends = int_arr_py_to_c(A.get_dims())
+            else:
+                caends = int_arr_py_to_c(A_ends)
+            coffs = int_arr_py_to_c(offsets)
+            cends = int_arr_py_to_c(ends)
+        #coffs = int_arr_py_to_c(offsets)
+        #cends = int_arr_py_to_c(ends)
         self.dt.slice(coffs, cends, beta, (<tsr>A).dt, caoffs, caends, alpha)
         free(cends)
         free(coffs)
@@ -1451,6 +1463,9 @@ cdef class tsr:
             free(beta)
         free(caends)
         free(caoffs)
+
+    def __deepcopy__(self, memo):
+        return tsr(self.shape, copy=self)
 
     def __setitem__(self, key_init, value_init):
         is_everything = 1
@@ -1495,6 +1510,8 @@ cdef class tsr:
                         is_everything = 0
                         is_contig = 0
                     if ind[1] != self.dims[i]:
+                        is_everything = 0
+                    if ind[0] != 0:
                         is_everything = 0
                     inds.append(ind)
                 i+=1
