@@ -2116,11 +2116,15 @@ def reshape(A, newshape, order='F'):
     return A.reshape(newshape, order)
 
 
-# in the astensor function we need to specify the type.
-def astensor(arr):
+# the default order is Fortran
+def astensor(arr, dtype = None, order="F"):
     if isinstance(arr,tsr):
         return arr
-    narr = np.asarray(arr)
+    if dtype == None:
+        narr = np.asarray(arr)
+    else:
+        narr = np.asarray(arr,dtype)
+
     if narr.dtype == np.float64:
         t = tsr(narr.shape, dtype=np.float64)
         t.from_nparray(narr)
