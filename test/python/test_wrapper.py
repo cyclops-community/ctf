@@ -3,10 +3,10 @@ import numpy as np
 #from mpi4py import MPI
 
 
-A = ctf.tsr([4, 5], sp=1)
+A = ctf.tensor([4, 5], sp=1)
 A.fill_sp_random(1., 2., .8)
 
-B = ctf.tsr([5, 4], sym=[ctf.SYM.NS, ctf.SYM.NS])
+B = ctf.tensor([5, 4], sym=[ctf.SYM.NS, ctf.SYM.NS])
 B.fill_random(1., 2.)
 #vals = np.zeros(4, dtype=np.float64)
 #A.read([0, 2, 4, 6], vals)
@@ -20,7 +20,7 @@ B.fill_random(1., 2.)
 #print( B.get_slice([1, 1], [4, 3]))
 #print( B)
 
-C = ctf.tsr([4, 4])
+C = ctf.tensor([4, 4])
 
 M = np.array((3, 2), dtype=np.float64)
 M[:]=1
@@ -33,7 +33,7 @@ vals = np.zeros(16, dtype=np.float64)
 #print( vals)
 C.i('ij') << -2.0*A.i('ik')*B.i('kj')
 
-C.i('ij') << ctf.eye(4).i('ik')*C.i('kj')
+C.i('ij') << -1.0*ctf.eye(4).i('ik')*C.i('kj')
 
 #print( ctf.identity(5))
 #print( ctf.eye(3,5,1))

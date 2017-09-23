@@ -222,8 +222,9 @@ namespace CTF_int {
       /**
        * \brief checks the edge lengths specfied for this sum match
        *          throws error if not
+       * \return whether contraction indices are consistent with lengths
        */
-      void check_consistency();
+      bool check_consistency();
 
 
       /**

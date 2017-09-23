@@ -119,7 +119,8 @@ namespace CTF_int {
 #endif
     //update_all_models(A->wrld->cdt.cm);
     int stat = home_sum_tsr(run_diag);
-    assert(stat == SUCCESS); 
+    if (stat != SUCCESS)
+      printf("CTF ERROR: Failed to perform summation\n");
   }
   
   double summation::estimate_time(){
@@ -1089,7 +1090,8 @@ namespace CTF_int {
   #if (DEBUG >= 2)
     print();
   #endif
-    check_consistency();
+    bool is_cons = check_consistency();
+    if (!is_cons) return ERROR;
 
     A->unfold();
     B->unfold();
@@ -1745,7 +1747,7 @@ namespace CTF_int {
     return sidx;
   }
 
-  void summation::check_consistency(){
+  bool summation::check_consistency(){
     int i, num_tot, len;
     int iA, iB;
     int * idx_arr;
@@ -1768,10 +1770,11 @@ namespace CTF_int {
           printf("match the %dth edge length (%d) of tensor %s.\n",
                   iB, B->lens[iB], B->name);
         }
-        ABORT;
+        return false;
       }
     }
     CTF_int::cdealloc(idx_arr);
+    return true;
 
   }
 
@@ -2211,8 +2214,8 @@ namespace CTF_int {
     gtopo = get_best_topo(min_size, btopo, wrld->cdt);
     TAU_FSTOP(map_tensor_pair);
     if (gtopo == -1){
-      printf("ERROR: Failed to map pair!\n");
-      ABORT;
+      printf("CTF ERROR: Failed to map pair!\n");
+      //ABORT;
       return ERROR;
     }
     

@@ -62,8 +62,6 @@ class KnowValues(unittest.TestCase):
         a0 = ctf.astensor([numpy.array((1,2)), numpy.array((3,4))+1j])
         a1 = ctf.astensor(a0)
         a1[:] = 0
-        print(a0==0)
-        print(ctf.all(a0==0))
         self.assertTrue(ctf.all(a0==0))
         self.assertTrue(ctf.all(a1==0))
         a0 = numpy.asarray(a1)
