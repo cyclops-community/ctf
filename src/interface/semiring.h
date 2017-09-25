@@ -67,7 +67,7 @@ namespace CTF_int {
   void default_scal< std::complex<double> >
       (int n, std::complex<double> alpha, std::complex<double> * X, int incX);
 
-  /*template<typename dtype>
+  template<typename dtype>
   void default_gemm(char          tA,
                     char          tB,
                     int           m,
@@ -104,82 +104,9 @@ namespace CTF_int {
       }
     }
     //TAU_FSTOP(default_gemm);
-  }*/
-
-  template<typename dtype>
-  void default_gemm(char          taA,
-                    char          taB,
-                    int           m,
-                    int           n,
-                    int           k,
-                    dtype         alpha,
-                    dtype const** A,
-                    dtype const** B,
-                    dtype         beta,
-                    dtype **      C){
   }
-  
-  template<>
-  inline void default_gemm<float> 
-            (char           taA,
-             char           taB,
-             int            m,
-             int            n,
-             int            k,
-             float          alpha,
-             float  const** A,
-             float  const** B,
-             float          beta,
-             float  **      C){
-    CTF_int::sgemm_batch(taA, taB, m, n, k, alpha, A, B, beta, C);        
-  } 
 
   template<>
-  inline void default_gemm<double> 
-            (char           taA,
-             char           taB,
-             int            m,
-             int            n,
-             int            k,
-             double         alpha,
-             double const** A,
-             double const** B,
-             double         beta,
-             double **      C){
-    CTF_int::dgemm_batch(taA, taB, m, n, k, alpha, A, B, beta, C);        
-  } 
-
-  template<>
-  inline void default_gemm<std::complex<float>> 
-            (char                         taA,
-             char                         taB,
-             int                          m,
-             int                          n,
-             int                          k,
-             std::complex<float>          alpha,
-             std::complex<float>  const** A,
-             std::complex<float>  const** B,
-             std::complex<float>          beta,
-             std::complex<float>  **      C){
-    CTF_int::cgemm_batch(taA, taB, m, n, k, alpha, A, B, beta, C);        
-  } 
-
-  template<>
-  inline void default_gemm<std::complex<double>> 
-          (char                         taA,
-           char                         taB,
-           int                          m,
-           int                          n,
-           int                          k,
-           std::complex<double>         alpha,
-           std::complex<double> const** A,
-           std::complex<double> const** B,
-           std::complex<double>         beta,
-           std::complex<double> **      C){
-    CTF_int::zgemm_batch(taA, taB, m, n, k, alpha, A, B, beta, C);        
-  }             
-
-  /*template<>
   inline void default_gemm<float>
             (char           tA,
              char           tB,
@@ -237,7 +164,80 @@ namespace CTF_int {
              std::complex<double>         beta,
              std::complex<double> *       C){
     CTF_int::zgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
-  }*/
+  }
+
+  template<typename dtype>
+  void default_gemm_batch(char          taA,
+                    char          taB,
+                    int           m,
+                    int           n,
+                    int           k,
+                    dtype         alpha,
+                    dtype const** A,
+                    dtype const** B,
+                    dtype         beta,
+                    dtype **      C){
+  }
+  
+  template<>
+  inline void default_gemm_batch<float> 
+            (char           taA,
+             char           taB,
+             int            m,
+             int            n,
+             int            k,
+             float          alpha,
+             float  const** A,
+             float  const** B,
+             float          beta,
+             float  **      C){
+    CTF_int::sgemm_batch(taA, taB, m, n, k, alpha, A, B, beta, C);        
+  } 
+
+  template<>
+  inline void default_gemm_batch<double> 
+            (char           taA,
+             char           taB,
+             int            m,
+             int            n,
+             int            k,
+             double         alpha,
+             double const** A,
+             double const** B,
+             double         beta,
+             double **      C){
+    CTF_int::dgemm_batch(taA, taB, m, n, k, alpha, A, B, beta, C);        
+  } 
+
+  template<>
+  inline void default_gemm_batch<std::complex<float>> 
+            (char                         taA,
+             char                         taB,
+             int                          m,
+             int                          n,
+             int                          k,
+             std::complex<float>          alpha,
+             std::complex<float>  const** A,
+             std::complex<float>  const** B,
+             std::complex<float>          beta,
+             std::complex<float>  **      C){
+    CTF_int::cgemm_batch(taA, taB, m, n, k, alpha, A, B, beta, C);        
+  } 
+
+  template<>
+  inline void default_gemm_batch<std::complex<double>> 
+          (char                         taA,
+           char                         taB,
+           int                          m,
+           int                          n,
+           int                          k,
+           std::complex<double>         alpha,
+           std::complex<double> const** A,
+           std::complex<double> const** B,
+           std::complex<double>         beta,
+           std::complex<double> **      C){
+    CTF_int::zgemm_batch(taA, taB, m, n, k, alpha, A, B, beta, C);        
+  }             
 
   template <typename dtype>
   void default_coomm
@@ -308,8 +308,9 @@ namespace CTF {
       void (*fscal)(int,dtype,dtype*,int);
       void (*faxpy)(int,dtype,dtype const*,int,dtype*,int);
       dtype (*fmul)(dtype a, dtype b);
-      void (*fgemm)(char,char,int,int,int,dtype,dtype const**,dtype const**,dtype,dtype**);
+      void (*fgemm)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*);
       void (*fcoomm)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*);
+      void (*gemm_batch)(char,char,int,int,int,dtype,dtype const**,dtype const**,dtype,dtype**);
       //void (*fcsrmm)(int,int,int,dtype,dtype const*,int const*,int const*,dtype const*,dtype,dtype*);
        //csrmultd_ kernel for multiplying two sparse matrices into a dense output 
       //void (*fcsrmultd)(int,int,int,dtype const*,int const*,int const*,dtype const*,int const*, int const*,dtype*,int);
@@ -322,6 +323,7 @@ namespace CTF {
         this->fgemm     = other.fgemm;
         this->fcoomm    = other.fcoomm;
         this->is_def    = other.is_def;
+        this->gemm_batch    = other.gemm_batch;
       }
 
       virtual CTF_int::algstrct * clone() const {
@@ -345,16 +347,18 @@ namespace CTF {
                MPI_Op       addmop_,
                dtype        mulid_,
                dtype (*fmul_)(dtype a, dtype b),
-               void (*gemm_)(char,char,int,int,int,dtype,dtype const**,dtype const**,dtype,dtype**)=NULL,
+               void (*gemm_)(char,char,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL,
                void (*axpy_)(int,dtype,dtype const*,int,dtype*,int)=NULL,
                void (*scal_)(int,dtype,dtype*,int)=NULL,
-               void (*coomm_)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*)=NULL)
+               void (*coomm_)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*)=NULL,
+               void (*gemm_batch_)(char,char,int,int,int,dtype,dtype const**,dtype const**,dtype,dtype**)=NULL)
                 : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) , tmulid(mulid_) {
         fmul      = fmul_;
         fgemm     = gemm_;
         faxpy     = axpy_;
         fscal     = scal_;
         fcoomm    = coomm_;
+        gemm_batch    = gemm_batch_;
         // if provided a coordinate MM kernel, don't use CSR
         this->has_coo_ker = (coomm_ != NULL);
         is_def = false;
@@ -370,6 +374,7 @@ namespace CTF {
         faxpy     = &CTF_int::default_axpy<dtype>;
         fscal     = &CTF_int::default_scal<dtype>;
         fcoomm    = &CTF_int::default_coomm<dtype>;
+        gemm_batch    = &CTF_int::default_gemm_batch<dtype>;
         is_def = true;
       }
 
@@ -450,7 +455,7 @@ namespace CTF {
                 char const * beta,
                 char *       C)  const {
         if (fgemm != NULL) {
-          fgemm(tA, tB, m, n, k, ((dtype const *)alpha)[0], ((dtype const **)&A), ((dtype const **)&B), ((dtype const *)beta)[0], ((dtype **)&C));
+          fgemm(tA, tB, m, n, k, ((dtype const *)alpha)[0], (dtype const *)A, (dtype const *)B, ((dtype const *)beta)[0], (dtype *)C);
         } else {
           //TAU_FSTART(sring_gemm);
           dtype const * dA = (dtype const *) A;
@@ -500,6 +505,21 @@ namespace CTF {
           }
           //TAU_FSTOP(sring_gemm);
         } 
+      }
+
+      void gemm_batch(char         tA,
+                char         tB,
+                int          m,
+                int          n,
+                int          k,
+                char const * alpha,
+                char const ** A,
+                char const ** B,
+                char const * beta,
+                char **       C){
+        if (gemm_batch != NULL) {
+          gemm_batch(tA, tB, m, n, k, ((dtype const *)alpha)[0], ((dtype const **)A), ((dtype const **)B), ((dtype const *)beta)[0], ((dtype **)C));
+        }
       }
 
       void offload_gemm(char         tA,
