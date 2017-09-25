@@ -12,20 +12,37 @@ namespace CTF_int {
   LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
   LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
 
+  template<typename dtype>
+  dtype ** get_grp_ptrs(int64_t          grp_sz,
+                        int64_t          ngrp,
+                        dtype const *    data){
+    dtype ** data_ptrs = (dtype**)alloc(sizeof(dtype*)*ngrp);
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int i=0; i<ngrp; i++){
+      data_ptrs[i] = (dtype*)data+i*grp_sz;
+    }
+    return data_ptrs;
+  }
+
   void sgemm_batch(
-            char            taA,
-            char            taB,
-            int             m,
-            int             n,
-            int             k,
-            float           alpha,
-            float   const** A,
-            float   const** B,
-            float           beta,
-            float   **      C){
+            char           taA,
+            char           taB,
+            int            l,
+            int            m,
+            int            n,
+            int            k,
+            float          alpha,
+            float   const* A,
+            float   const* B,
+            float          beta,
+            float   *      C){
     if (m == 1 && n == 1 && k == 1) {
-      C[0][0]*=beta;
-      C[0][0]+=alpha*A[0][0]*B[0][0];
+      for (int i=0; i<l; i++){
+        C[i]*=beta;
+        C[i]+=alpha*A[i]*B[i];
+      }
       return;
     }
     int lda, ldb, ldc;
@@ -41,24 +58,33 @@ namespace CTF_int {
       ldb = n;
     }
     int group_count = 1;
-    int size_per_group = 1;
-    CTF_BLAS::SGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, &group_count, &size_per_group);
+    int size_per_group = l;
+    float ** ptrs_A = get_grp_ptrs(m*k,l,A);
+    float ** ptrs_B = get_grp_ptrs(k*n,l,B);
+    float ** ptrs_C = get_grp_ptrs(m*n,l,C);
+    CTF_BLAS::SGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    free(ptrs_A);
+    free(ptrs_B);
+    free(ptrs_C);
   }
 
   void dgemm_batch(
-            char            taA,
-            char            taB,
-            int             m,
-            int             n,
-            int             k,
-            double          alpha,
-            double  const** A,
-            double  const** B,
-            double          beta,
-            double  **      C){
+            char           taA,
+            char           taB,
+            int            l,
+            int            m,
+            int            n,
+            int            k,
+            double         alpha,
+            double  const* A,
+            double  const* B,
+            double         beta,
+            double  *      C){
     if (m == 1 && n == 1 && k == 1) {
-      C[0][0]*=beta;
-      C[0][0]+=alpha*A[0][0]*B[0][0];
+      for (int i=0; i<l; i++){
+        C[i]*=beta;
+        C[i]+=alpha*A[i]*B[i];
+      }
       return;
     }
     int lda, ldb, ldc;
@@ -74,24 +100,33 @@ namespace CTF_int {
       ldb = n;
     }
     int group_count = 1;
-    int size_per_group = 1;
-    CTF_BLAS::DGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, &group_count, &size_per_group);
+    int size_per_group = l;
+    double ** ptrs_A = get_grp_ptrs(m*k,l,A);
+    double ** ptrs_B = get_grp_ptrs(k*n,l,B);
+    double ** ptrs_C = get_grp_ptrs(m*n,l,C);
+    CTF_BLAS::DGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    free(ptrs_A);
+    free(ptrs_B);
+    free(ptrs_C);
   }
 
   void cgemm_batch(
-            char                         taA,
-            char                         taB,
-            int                          m,
-            int                          n,
-            int                          k,
-            std::complex<float>          alpha,
-            std::complex<float>  const** A,
-            std::complex<float>  const** B,
-            std::complex<float>          beta,
-            std::complex<float>  **      C){
+            char                        taA,
+            char                        taB,
+            int                         l,
+            int                         m,
+            int                         n,
+            int                         k,
+            std::complex<float>         alpha,
+            std::complex<float>  const* A,
+            std::complex<float>  const* B,
+            std::complex<float>         beta,
+            std::complex<float>  *      C){
     if (m == 1 && n == 1 && k == 1) {
-      C[0][0]*=beta;
-      C[0][0]+=alpha*A[0][0]*B[0][0];
+      for (int i=0; i<l; i++){
+        C[i]*=beta;
+        C[i]+=alpha*A[i]*B[i];
+      }
       return;
     }
     int lda, ldb, ldc;
@@ -107,25 +142,33 @@ namespace CTF_int {
       ldb = n;
     }
     int group_count = 1;
-    int size_per_group = 1;
-    CTF_BLAS::CGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, &group_count, &size_per_group);
+    int size_per_group = l;
+    std::complex<float> ** ptrs_A = get_grp_ptrs(m*k,l,A);
+    std::complex<float> ** ptrs_B = get_grp_ptrs(k*n,l,B);
+    std::complex<float> ** ptrs_C = get_grp_ptrs(m*n,l,C);
+    CTF_BLAS::CGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    free(ptrs_A);
+    free(ptrs_B);
+    free(ptrs_C);
   }
 
   void zgemm_batch(
-            char                         taA,
-            char                         taB,
-            int                          m,
-            int                          n,
-            int                          k,
-            std::complex<double>         alpha,
-            std::complex<double> const** A,
-            std::complex<double> const** B,
-            std::complex<double>         beta,
-            std::complex<double> **      C){
-    //m,n,k,taa,tab, alpha, beta, constant
+            char                        taA,
+            char                        taB,
+            int                         l,
+            int                         m,
+            int                         n,
+            int                         k,
+            std::complex<double>        alpha,
+            std::complex<double> const* A,
+            std::complex<double> const* B,
+            std::complex<double>        beta,
+            std::complex<double> *      C){
     if (m == 1 && n == 1 && k == 1) {
-      C[0][0]*=beta;
-      C[0][0]+=alpha*A[0][0]*B[0][0];
+      for (int i=0; i<l; i++){
+        C[i]*=beta;
+        C[i]+=alpha*A[i]*B[i];
+      }
       return;
     }
     int lda, ldb, ldc;
@@ -141,8 +184,14 @@ namespace CTF_int {
       ldb = n;
     }
     int group_count = 1;
-    int size_per_group = 1;
-    CTF_BLAS::ZGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, &group_count, &size_per_group);
+    int size_per_group = l;
+    std::complex<double> ** ptrs_A = get_grp_ptrs(m*k,l,A);
+    std::complex<double> ** ptrs_B = get_grp_ptrs(k*n,l,B);
+    std::complex<double> ** ptrs_C = get_grp_ptrs(m*n,l,C);
+    CTF_BLAS::ZGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    free(ptrs_A);
+    free(ptrs_B);
+    free(ptrs_C);
   }
 
   void sgemm(char           tA,
@@ -398,6 +447,21 @@ namespace CTF_int {
     ASSERT(0);
     assert(0);
   }
+   void algstrct::gemm_batch(char         tA,
+                             char         tB,
+                             int          l,
+                             int          m,
+                             int          n,
+                             int          k,
+                             char const * alpha,
+                             char const * A,
+                             char const * B,
+                             char const * beta,
+                             char *       C)  const {
+    printf("CTF ERROR: gemm_batch not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
 
    void algstrct::gemm(char         tA,
                        char         tB,

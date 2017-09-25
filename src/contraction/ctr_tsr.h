@@ -73,9 +73,10 @@ namespace CTF_int {
   };*/
 
   struct iparam {
-    int n;
-    int m;
-    int k;
+    int64_t l;
+    int64_t n;
+    int64_t m;
+    int64_t k;
     int64_t sz_C;
     char tA;
     char tB;

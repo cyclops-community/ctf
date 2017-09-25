@@ -194,9 +194,9 @@ namespace CTF_int {
    *
    * \param[in] ordering_A the dimensional-ordering of the inner mapping of A
    * \param[in] ordering_B the dimensional-ordering of the inner mapping of B
-   * \param[out] inner_prm parameters includng n,m,k
+   * \param[out] inner_prm parameters includng l(number of matrix mutlplications),n,m,k
    */
-  void calc_fold_nmk(
+  void calc_fold_lnmk(
                      tensor const * A,
                      tensor const * B,
                      tensor const * C,
@@ -206,24 +206,31 @@ namespace CTF_int {
                      int const *    ordering_A,
                      int const *    ordering_B,
                      iparam *       inner_prm){
-    int i, num_ctr, num_tot;
+    int i, num_tot, num_ctr, num_no_ctr_A, num_weigh;
     int * idx_arr;
       
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    num_ctr = 0;
+    num_ctr = 0, num_no_ctr_A = 0, num_weigh = 0;
     for (i=0; i<num_tot; i++){
-      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
+      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+        num_weigh++;
+      } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
         num_ctr++;
-      } 
+      } else if (idx_arr[3*i] != -1){
+        num_no_ctr_A++;
+      }
     }
+    inner_prm->l = 1;
     inner_prm->m = 1;
     inner_prm->n = 1;
     inner_prm->k = 1;
     for (i=0; i<A->order; i++){
-      if (i >= num_ctr)
+      if (i >= num_ctr+num_no_ctr_A)
+        inner_prm->l = inner_prm->l * A->pad_edge_len[ordering_A[i]];
+      else if (i >= num_ctr)
         inner_prm->m = inner_prm->m * A->pad_edge_len[ordering_A[i]];
       else 
         inner_prm->k = inner_prm->k * A->pad_edge_len[ordering_A[i]];
@@ -266,13 +273,23 @@ namespace CTF_int {
         in = idx_A[inA];
         inB = idx_arr[3*in+1];
         inC = idx_arr[3*in+2];
-        if (((inA>=0) + (inB>=0) + (inC>=0) != 2) ||
-            ((inB == -1) ^ (iB == -1)) ||
-            ((inC == -1) ^ (iC == -1)) ||
-            (iB != -1 && inB - iB != in-i) ||
-            (iC != -1 && inC - iC != in-i) ||
-            (iB != -1 && A->sym[inA] != B->sym[inB]) ||
-            (iC != -1 && A->sym[inA] != C->sym[inC])){
+        if ((iA>=0) + (iB>=0) + (iC>=0) == 2){
+          if (((inA>=0) + (inB>=0) + (inC>=0) != 2) ||
+              ((inB == -1) ^ (iB == -1)) ||
+              ((inC == -1) ^ (iC == -1)) ||
+              (iB != -1 && inB - iB != in-i) ||
+              (iC != -1 && inC - iC != in-i) ||
+              (iB != -1 && A->sym[inA] != B->sym[inB]) ||
+              (iC != -1 && A->sym[inA] != C->sym[inC])){
+            broken = 1;
+          }
+        } else if ((iA>=0) + (iB>=0) + (iC>=0) != 3){
+          if ((inA>=0) + (inB>=0) + (inC>=0) != 3 ||
+              A->sym[inA] != B->sym[inB] ||
+              A->sym[inA] != C->sym[inC]){
+            broken = 1;
+          }
+        } else {  
           broken = 1;
         }
         inA++;
@@ -408,8 +425,8 @@ namespace CTF_int {
             int ** new_ordering_A,
             int ** new_ordering_B,
             int ** new_ordering_C){
-    int i, num_tot, num_ctr, idx_ctr, num_no_ctr_A;
-    int idx_no_ctr_A, idx_no_ctr_B;
+    int i, num_tot, num_ctr, num_no_ctr_A, num_no_ctr_B, num_weigh;
+    int idx_no_ctr_A, idx_no_ctr_B, idx_ctr, idx_weigh;
     int * ordering_A, * ordering_B, * ordering_C, * idx_arr;
     
     CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&ordering_A);
@@ -420,18 +437,27 @@ namespace CTF_int {
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    num_ctr = 0, num_no_ctr_A = 0;
+    num_no_ctr_B = 0, num_ctr = 0, num_no_ctr_A = 0, num_weigh = 0;
     for (i=0; i<num_tot; i++){
-      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
+      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+        num_weigh++;
+      } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
         num_ctr++;
       } else if (idx_arr[3*i] != -1){
         num_no_ctr_A++;
+      } else if (idx_arr[3*i+1] != -1){
+        num_no_ctr_B++;
       }
     }
-    /* Put all contraction indices up front, put A indices in front for C */
-    idx_ctr = 0, idx_no_ctr_A = 0, idx_no_ctr_B = 0;
+    /* Put all weigh indices in back, w ut all contraction indices up front, put A indices in front for C */
+    idx_ctr = 0, idx_no_ctr_A = 0, idx_no_ctr_B = 0, idx_weigh = 0;
     for (i=0; i<num_tot; i++){
-      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
+      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+        ordering_A[idx_weigh+num_no_ctr_A+num_ctr] = idx_arr[3*i];
+        ordering_B[idx_weigh+num_no_ctr_B+num_ctr] = idx_arr[3*i+1];
+        ordering_C[idx_weigh+num_no_ctr_A+num_no_ctr_B] = idx_arr[3*i+2];
+        idx_weigh++;
+      } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
         ordering_A[idx_ctr] = idx_arr[3*i];
         ordering_B[idx_ctr] = idx_arr[3*i+1];
         idx_ctr++;
@@ -579,7 +605,7 @@ namespace CTF_int {
                         &tfnew_ord_A, &tfnew_ord_B, &tfnew_ord_C); 
       // m,n,k should be invarient to what transposes are done
       if (iord == 0){
-        calc_fold_nmk(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, tfnew_ord_A, tfnew_ord_B, &iprm);
+        calc_fold_lnmk(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, tfnew_ord_A, tfnew_ord_B, &iprm);
       }
 
       CTF_int::alloc_ptr(tall_fdim_A*sizeof(int), (void**)&tAiord);

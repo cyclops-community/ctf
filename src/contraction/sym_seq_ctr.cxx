@@ -815,6 +815,8 @@ printf("HERE1\n");
         TAU_FSTART(gemm);
         if (prm->tC == 'N'){
           if (prm->offload){
+            //FIXME: Add GPU batched gemm support
+            ASSERT(prm->l == 1);
             if (func == NULL){
               sr_C->offload_gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
                                  A+idx_A*stride_A*sr_A->el_size,
