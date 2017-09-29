@@ -1367,10 +1367,13 @@ cdef class tensor:
             #if ind[1] != self.dims[0]:
             #    is_everything = 0
             #inds.append(s.indices())
+        if key is Ellipsis:
+            key = (key,)
         if isinstance(key,tuple):
             lensl = len(key)
             i=0
             is_single_val = 1
+            saw_elips=False
             if lensl != self.ndim:
                 is_single_val = 0
             for s in key:
@@ -1378,6 +1381,16 @@ cdef class tensor:
                     if self.dims[i] != 1:
                         is_everything = 0
                     inds.append((s,s+1,1))
+                    i+=1
+                elif s is Ellipsis:
+                    if saw_elips:
+                        raise ValueError('Only one Ellpisis, ..., supported in __getitem__')
+                    for j in range(lensl-1,self.ndim):
+                        inds.append((0,self.dims[j],1))
+                        i+=1
+                    saw_elpis=True
+                    is_single_val = 0
+                    lensl = self.ndim
                 else:
                     is_single_val = 0
                     ind = s.indices(self.dims[i])
@@ -1387,7 +1400,7 @@ cdef class tensor:
                     if ind[1] != self.dims[i]:
                         is_everything = 0
                     inds.append(ind)
-                i+=1
+                    i+=1
             if is_single_val:
                 vals = self.read([key])
                 return vals[0]
@@ -2858,8 +2871,14 @@ def vstack(tup):
 def hstack(tup):
     if type(tup) != tuple:
         raise ValueError('The type of input should be tuple')
-    raise ValueError('hstack not implemented')
-    return None
+    out_shape = np.asarray(tup[0].shape)
+    out_shape[-1] = np.sum([t.shape[-1] for t in tup])
+    out = tensor(out_shape, dtype=tup[0].get_type())
+    acc_len = 0
+    for i in range(len(tup)):
+        out[...,acc_len:acc_len+tup[i].shape[-1]]
+        acc_len += tup[i].shape[-1]
+    return out
 
 
 def conj(init_A):
