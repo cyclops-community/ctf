@@ -166,7 +166,8 @@ namespace CTF {
         }
         comm_op_iter->local_tensors.insert(local_clone);
         comm_op_iter->remap[(*global_tensor_iter)->parent] = local_clone->parent;
-        (*global_tensor_iter)->parent->add_to_subworld(local_clone->parent, (*global_tensor_iter)->sr->mulid(), (*global_tensor_iter)->sr->addid());
+        if (local_clone != NULL) 
+          (*global_tensor_iter)->parent->add_to_subworld(local_clone->parent, (*global_tensor_iter)->sr->mulid(), (*global_tensor_iter)->sr->addid());
       }
       typename std::set<Idx_Tensor*, tensor_name_less >::iterator output_tensor_iter;
       for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {

@@ -160,8 +160,55 @@ namespace CTF_int {
 
 
   double contraction::estimate_time(){
-    assert(0); //FIXME
-    return 0.0;
+    //int ret, j, need_remap, d;
+    //int * old_phase_A, * old_phase_B, * old_phase_C;
+    //topology * old_topo_A, * old_topo_B, * old_topo_C;
+    //distribution * dA, * dB, * dC;
+    //old_topo_A = A->topo;
+    //old_topo_B = B->topo;
+    //old_topo_C = C->topo;
+    //mapping * old_map_A = new mapping[A->order];
+    //mapping * old_map_B = new mapping[B->order];
+    //mapping * old_map_C = new mapping[C->order];
+    //copy_mapping(A->order, A->edge_map, old_map_A);
+    //copy_mapping(B->order, B->edge_map, old_map_B);
+    //copy_mapping(C->order, C->edge_map, old_map_C);
+
+    //ASSERT(A->wrld->comm == B->wrld->comm && B->wrld->comm == C->wrld->comm);
+    //World * wrld = A->wrld;
+    //CommData global_comm = wrld->cdt;
+    //
+    //TAU_FSTART(init_select_ctr_map);
+  //#if BEST_VOL
+    //CTF_int::alloc_ptr(sizeof(int)*A->order,     (void**)&virt_blk_len_A);
+    //CTF_int::alloc_ptr(sizeof(int)*B->order,     (void**)&virt_blk_len_B);
+    //CTF_int::alloc_ptr(sizeof(int)*C->order,     (void**)&virt_blk_len_C);
+  //#endif
+ 
+    //dA = new distribution(A);
+    //dB = new distribution(B);
+    //dC = new distribution(C);
+    //CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&old_phase_A);
+    //for (j=0; j<A->order; j++){
+    //  old_phase_A[j]   = A->edge_map[j].calc_phase();
+    //}
+    //CTF_int::alloc_ptr(sizeof(int)*B->order, (void**)&old_phase_B);
+    //for (j=0; j<B->order; j++){
+    //  old_phase_B[j]   = B->edge_map[j].calc_phase();
+    //}
+    //CTF_int::alloc_ptr(sizeof(int)*C->order, (void**)&old_phase_C);
+    //for (j=0; j<C->order; j++){
+    //  old_phase_C[j]   = C->edge_map[j].calc_phase();
+    //}
+
+    ////bmemuse = UINT64_MAX;
+    //int ttopo, ttopo_sel, ttopo_exh;
+    //double gbest_time_sel, gbest_time_exh;
+  
+    //TAU_FSTART(get_best_sel_map);
+    //get_best_sel_map(dA, dB, dC, old_topo_A, old_topo_B, old_topo_C, old_map_A, old_map_B, old_map_C, ttopo_sel, gbest_time_sel);
+    //return gbest_time_sel;
+    return 1.E-3;
   }
 
   int contraction::is_equal(contraction const & os){

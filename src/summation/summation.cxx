@@ -123,8 +123,8 @@ namespace CTF_int {
   }
   
   double summation::estimate_time(){
-    assert(0); //FIXME
-    return 0.0;
+//    assert(0); //FIXME
+    return 1.E-6;
   }
 
   void summation::get_fold_indices(int *  num_fold,
