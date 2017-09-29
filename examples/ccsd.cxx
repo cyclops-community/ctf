@@ -9,6 +9,7 @@
 
 #include <ctf.hpp>
 using namespace CTF;
+#define SCHEDULE_CCSD 1
 
 double divide(double a, double b){
   return a/b;
@@ -203,7 +204,7 @@ void ccsd(Integrals   &V,
   int rank;   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #ifdef SCHEDULE_CCSD
   double timer = MPI_Wtime();
-  tCTF_Schedule<double> sched(V.dw);
+  Schedule sched(V.dw);
   sched.set_max_partitions(sched_nparts);
   sched.record();
 #endif
@@ -283,7 +284,7 @@ void ccsd(Integrals   &V,
   }
 
   timer = MPI_Wtime();
-  tCTF_ScheduleTimer schedule_time = sched.execute();
+  ScheduleTimer schedule_time = sched.execute();
 #endif
 
 

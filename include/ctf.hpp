@@ -16,6 +16,7 @@
 
 #include "../src/interface/tensor.h"
 #include "../src/interface/idx_tensor.h"
+#include "../src/interface/schedule.h"
 #include "../src/interface/timer.h"
 #include "../src/interface/back_comp.h"
 #include "../src/interface/kernel.h"
