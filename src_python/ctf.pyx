@@ -185,6 +185,21 @@ def enum(**enums):
 
 SYM = enum(NS=0, SY=1, AS=2, SH=3)
 
+def ord_comp(o1,o2):
+    i1 = 0
+    i2 = 0
+    if isinstance(o1,int):
+        i1 = o1
+    else:
+        i1 = ord(o1)
+    if isinstance(o2,int):
+        i2 = o2
+    else:
+        i2 = ord(o2)
+    return i1==i2
+
+def get_np_dtype(typs):
+    return np.sum([np.zeros(1,dtype=typ) for typ in typs]).dtype
 
 cdef int* int_arr_py_to_c(a):
     cdef int * ca
@@ -308,6 +323,8 @@ cdef class tensor:
     cdef cnp.dtype typ
     cdef cnp.ndarray dims
     cdef int order
+    cdef int sp
+    cdef cnp.ndarray sym
     cdef int ndim   
     cdef int size
     cdef int itemsize
@@ -349,7 +366,15 @@ cdef class tensor:
 
     property order:
         def __get__(self):
-            return self.order
+            return chr(self.order)
+
+    property sp:
+        def __get__(self):
+            return self.sp
+
+    property sym:
+        def __get__(self):
+            return self.sym
 
     def bool_sum(tensor self):
         return sum_bool_tsr(self.dt)
@@ -381,7 +406,31 @@ cdef class tensor:
 
 
 	# add type np.int64, int32, maybe we can add other types
-    def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tensor copy=None):
+    #def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tensor copy=None):
+    def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None):
+        if copy is None:
+            if lens is None:
+                lens = []
+            if sp is None:
+                sp = 0
+            if dtype is None:
+                dtype = np.float64
+            if order is None:
+                order = 'F'
+        else:
+            if isinstance(copy,tensor) == False:
+                copy = astensor(copy)
+            if lens is None:
+                lens = copy.shape
+            if sp is None:
+                sp = copy.sp
+            if sym is None:
+                sym = copy.sym
+            if dtype is None:
+                dtype = copy.dtype
+            if order is None:
+                order = copy.order
+
         if dtype == 'D':
             self.typ = <cnp.dtype>np.complex128
         elif dtype == 'd':
@@ -392,7 +441,15 @@ cdef class tensor:
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
         self.shape = tuple(lens)
         self.ndim = len(self.dims)
-        self.order = ord(order)
+        if isinstance(order,int):
+            self.order = order
+        else:
+            self.order = ord(order)
+        self.sp = sp
+        if sym is None:
+            self.sym = np.asarray([0]*self.ndim)
+        else:
+            self.sym = sym
         if self.typ == np.bool:
             self.itemsize = 1
         else:
@@ -409,12 +466,12 @@ cdef class tensor:
                 strides[i] = self.dims[i+1] * strides[i+1]
         self.strides = tuple(strides)
         rlens = lens[:]
-        if order == 'F':
+        if ord_comp(self.order, 'F'):
             rlens = rev_array(lens)
         cdef int * clens
         clens = int_arr_py_to_c(rlens)
         cdef int * csym
-        if sym == None:
+        if sym is None:
             csym = int_arr_py_to_c(np.zeros(len(lens)))
         else:
             csym = int_arr_py_to_c(sym)
@@ -441,9 +498,12 @@ cdef class tensor:
                 raise ValueError('bad dtype')
         else:
             if isinstance(copy, tensor):
-                self.dt = new ctensor(<ctensor*>copy.dt, True, True)
-            else:
-                raise ValueError('Copy should be a tensor')
+                if dtype is None or dtype == copy.dtype:
+                    self.dt = new ctensor(<ctensor*>copy.dt, True, True)
+                else:
+                    ccopy = tensor(copy.shape, sp=copy.sp, sym=copy.sym, dtype=dtype, order=copy.order)
+                    copy.convert_type(ccopy)
+                    self.dt = new ctensor(<ctensor*>ccopy.dt, True, True)
         free(clens)
         free(csym)
     
@@ -762,7 +822,7 @@ cdef class tensor:
     # the function that call the exp_helper in the C++ level
     def exp_python(self, tensor A, cast = None, dtype = None):
         # when the casting is default that is "same kind"
-        if cast == None:
+        if cast is None:
             if A.dtype == np.int8:#
                 self.dt.exp_helper[int8_t, double](<ctensor*>A.dt)
             elif A.dtype == np.int16:
@@ -799,10 +859,10 @@ cdef class tensor:
     # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
 	
     def all(tensor self, axis=None, out=None, keepdims = None):
-        if keepdims == None:
+        if keepdims is None:
             keepdims = False
-        if axis == None:
-            if out != None:
+        if axis is None:
+            if out is not None:
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
                 if out.shape != () and keepdims == False:
@@ -828,7 +888,7 @@ cdef class tensor:
                 all_helper[int8_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
             elif self.typ == np.bool:
                 all_helper[bool](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-            if out != None:
+            if out is not None:
                 if out.dtype != B.get_type():
                     if keepdims == True:
                         dim_keep = np.ones(len(self.dims),dtype=np.int64)
@@ -860,7 +920,7 @@ cdef class tensor:
             if axis >= len(dim) or axis < 0:
                 raise ValueError("'axis' entry is out of bounds")
             dim_ret = np.delete(dim, axis)
-            if out != None:
+            if out is not None:
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
                 if len(dim_ret) != len(out.shape):
@@ -872,7 +932,7 @@ cdef class tensor:
             if keepdims == True:
                 dim_keep = dim.copy()
                 dim_keep[axis] = 1
-                if out!= None:
+                if out is not None:
                     if tuple(dim_keep) != tuple(out.shape):
                         raise ValueError('output must match when keepdims = True')
             index_A = get_num_str(self.ndim)
@@ -893,7 +953,7 @@ cdef class tensor:
                 all_helper[int16_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.typ == np.int8:
                 all_helper[int8_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-            if out != None:
+            if out is not None:
                 if out.dtype != B.get_type():
                     if keepdims == True:
                         C = tensor(dim_ret, dtype=out.dtype)
@@ -913,8 +973,8 @@ cdef class tensor:
                 dim_keep = dim.copy()
                 for i in range(len(axis)):
                     dim_keep[axis[i]] = 1
-                if out!= None:
-                    if tuple(dim_keep) != tuple(out.shape):
+                if out is not None:
+                    if tuple(dim_keep) is not tuple(out.shape):
                         raise ValueError('output must match when keepdims = True')
             for i in range(len(axis.shape)):
                 if axis[i] < 0:
@@ -925,13 +985,13 @@ cdef class tensor:
                 if np.count_nonzero(axis==axis[i]) > 1:
                     raise ValueError("duplicate value in 'axis'")
             dim_ret = np.delete(dim, axis)
-            if out != None:
-                if type(out) != np.ndarray:
+            if out is not None:
+                if type(out) is not np.ndarray:
                     raise ValueError('output must be an array')
-                if len(dim_ret) != len(out.shape):
+                if len(dim_ret) is not len(out.shape):
                     raise ValueError('output parameter dimensions mismatch')
                 for i in range(len(dim_ret)):
-                    if dim_ret[i] != out.shape[i]:
+                    if dim_ret[i] is not out.shape[i]:
                         raise ValueError('output parameter dimensions mismatch')
             B = tensor(dim_ret, dtype=np.bool)
             index_A = get_num_str(self.ndim)
@@ -954,8 +1014,8 @@ cdef class tensor:
                 all_helper[int8_t](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.typ == np.bool:
                 all_helper[bool](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-            if out != None:
-                if out.dtype != B.get_type():
+            if out is not None:
+                if out.dtype is not B.get_type():
                     if keepdims == True:
                         C = tensor(dim_ret, dtype=out.dtype)
                         B.convert_type(C)
@@ -973,7 +1033,7 @@ cdef class tensor:
 
     # the core function when we want to sum the ctensor...
     def i(self, string):
-        if self.order == ord('F'):
+        if ord_comp(self.order, 'F'):
             return itensor(self, rev_array(string))
         else:
             return itensor(self, string)
@@ -1051,7 +1111,7 @@ cdef class tensor:
         return None
 
     def ravel(self, order="F"):
-        if order == "F":
+        if ord_comp(order, 'F'):
             inds, vals = self.read_local()
             return astensor(vals)
 
@@ -1064,11 +1124,11 @@ cdef class tensor:
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.dims[self.ndim-i]
             inds = np.dot(inds, np.asarray(mystrides) )
         cdef char * ca
-        if vals != None:
+        if vals is not None:
             if vals.dtype != self.typ:
                 raise ValueError('bad dtype of vals parameter to read')
         gvals = vals
-        if vals == None:
+        if vals is None:
             gvals = np.zeros(len(inds),dtype=self.typ)
         cdef cnp.ndarray buf = np.empty(len(inds), dtype=[('a','i8'),('b',self.typ)])
         buf['a'] = inds
@@ -1076,14 +1136,14 @@ cdef class tensor:
         cdef char * alpha 
         cdef char * beta
         st = np.ndarray([],dtype=self.typ).itemsize
-        if a == None:
+        if a is None:
             alpha = <char*>self.dt.sr.mulid()
         else:
             alpha = <char*>malloc(st)
             na = np.array([a])
             for j in range(0,st):
                 alpha[j] = na.view(dtype=np.int8)[j]
-        if b == None:
+        if b is None:
             beta = <char*>self.dt.sr.addid()
         else:
             beta = <char*>malloc(st)
@@ -1092,11 +1152,11 @@ cdef class tensor:
                 beta[j] = nb.view(dtype=np.int8)[j]
         (<ctensor*>self.dt).read(len(inds),<char*>alpha,<char*>beta,buf.data)
         gvals = buf['b']
-        if a != None:
+        if a is not None:
             free(alpha)
-        if b != None:
+        if b is not None:
             free(beta)
-        if vals == None:
+        if vals is None:
             return gvals
 
     # assume the order is 'F'
@@ -1245,14 +1305,14 @@ cdef class tensor:
         permutation_A = <int**>malloc(sizeof(int*) * 2)
         permutation_B = <int**>malloc(sizeof(int*) * 2)
         st = np.ndarray([],dtype=self.typ).itemsize
-        if a == None:
+        if a is None:
             alpha = <char*>self.dt.sr.mulid()
         else:
             alpha = <char*>malloc(st)
             na = np.array([a])
             for j in range(0,st):
                 alpha[j] = na.view(dtype=np.int8)[j]
-        if b == None:
+        if b is None:
             beta = <char*>self.dt.sr.addid()
         else:
             beta = <char*>malloc(st)
@@ -1260,15 +1320,15 @@ cdef class tensor:
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
         self.dt.permute(<ctensor*>A.dt, <int**>permutation_A, <char*>alpha, <int**>permutation_B, <char*>beta)
-        if a != None:
+        if a is not None:
             free(alpha)
-        if b != None:
+        if b is not None:
             free(beta)
-        if p_A != None:
+        if p_A is not None:
             for i in range(0, sizeof(permutation_A), sizeof(int*)):
                 free(permutation_A+sizeof(int*))
             free(permutation_A)
-        if p_B != None:
+        if p_B is not None:
             for i in range(0, sizeof(permutation_B), sizeof(int*)):
                 free(permutation_B+sizeof(int*))
             free(permutation_B)
@@ -1294,14 +1354,14 @@ cdef class tensor:
             st = 1
         else:
             st = self.itemsize
-        if a == None:
+        if a is None:
             alpha = <char*>self.dt.sr.mulid()
         else:
             alpha = <char*>malloc(st)
             na = np.array([a])
             for j in range(0,st):
                 alpha[j] = na.view(dtype=np.int8)[j]
-        if b == None:
+        if b is None:
             beta = <char*>self.dt.sr.addid()
         else:
             beta = <char*>malloc(st)
@@ -1309,9 +1369,9 @@ cdef class tensor:
             for j in range(0,st):
                 beta[j] = nb.view(dtype=np.int8)[j]
         self.dt.write(len(inds),alpha,beta,buf.data)
-        if a != None:
+        if a is not None:
             free(alpha)
-        if b != None:
+        if b is not None:
             free(beta)
 
     def get_slice(self, offsets, ends):
@@ -1325,7 +1385,7 @@ cdef class tensor:
         cdef int * clens
         cdef int * coffs
         cdef int * cends
-        if self.order == 'F':
+        if ord_comp(self.order, 'F'):
             clens = int_arr_py_to_c(rev_array(A.dims))
             coffs = int_arr_py_to_c(rev_array(offsets))
             cends = int_arr_py_to_c(rev_array(ends))
@@ -1374,8 +1434,6 @@ cdef class tensor:
             i=0
             is_single_val = 1
             saw_elips=False
-            if lensl != self.ndim:
-                is_single_val = 0
             for s in key:
                 if isinstance(s,int):
                     if self.dims[i] != 1:
@@ -1384,9 +1442,9 @@ cdef class tensor:
                     i+=1
                 elif s is Ellipsis:
                     if saw_elips:
-                        raise ValueError('Only one Ellpisis, ..., supported in __getitem__')
+                        raise ValueError('Only one Elllipsis, ..., supported in __getitem__')
                     for j in range(lensl-1,self.ndim):
-                        inds.append((0,self.dims[j],1))
+                        inds.append((0,self.dims[i],1))
                         i+=1
                     saw_elpis=True
                     is_single_val = 0
@@ -1399,8 +1457,12 @@ cdef class tensor:
                         is_contig = 0
                     if ind[1] != self.dims[i]:
                         is_everything = 0
+                    if ind[0] != 0:
+                        is_everything = 0
                     inds.append(ind)
                     i+=1
+            if lensl <= self.ndim:
+                is_single_val = 0
             if is_single_val:
                 vals = self.read([key])
                 return vals[0]
@@ -1413,7 +1475,8 @@ cdef class tensor:
         if is_contig:
             offs = [ind[0] for ind in inds]
             ends = [ind[1] for ind in inds]
-            return self.get_slice(offs,ends)
+            S = self.get_slice(offs,ends)
+            return S
   
     def set_zero(self):
         mystr = get_num_str(self.ndim)
@@ -1428,14 +1491,14 @@ cdef class tensor:
         cdef char * alpha
         cdef char * beta
         st = self.itemsize
-        if a == None:
+        if a is None:
             alpha = <char*>self.dt.sr.mulid()
         else:
             alpha = <char*>malloc(st)
             na = np.array([a],dtype=self.typ)
             for j in range(0,st):
                 alpha[j] = na.view(dtype=np.int8)[j]
-        if b == None:
+        if b is None:
             beta = <char*>self.dt.sr.addid()
         else:
             beta = <char*>malloc(st)
@@ -1447,23 +1510,23 @@ cdef class tensor:
 
         cdef int * coffs
         cdef int * cends
-        if self.order == 'F':
-            if A_offsets == None:
+        if ord_comp(self.order, 'F'):
+            if A_offsets is None:
                 caoffs = int_arr_py_to_c(rev_array(np.zeros(len(self.dims))))
             else:
                 caoffs = int_arr_py_to_c(rev_array(A_offsets))
-            if A_ends == None:
+            if A_ends is None:
                 caends = int_arr_py_to_c(rev_array(A.get_dims()))
             else:
                 caends = int_arr_py_to_c(rev_array(A_ends))
             coffs = int_arr_py_to_c(rev_array(offsets))
             cends = int_arr_py_to_c(rev_array(ends))
         else:
-            if A_offsets == None:
+            if A_offsets is None:
                 caoffs = int_arr_py_to_c(np.zeros(len(self.dims)))
             else:
                 caoffs = int_arr_py_to_c(A_offsets)
-            if A_ends == None:
+            if A_ends is None:
                 caends = int_arr_py_to_c(A.get_dims())
             else:
                 caends = int_arr_py_to_c(A_ends)
@@ -1474,9 +1537,9 @@ cdef class tensor:
         self.dt.slice(coffs, cends, beta, (<tensor>A).dt, caoffs, caends, alpha)
         free(cends)
         free(coffs)
-        if a != None:
+        if a is not None:
             free(alpha)
-        if b != None:
+        if b is not None:
             free(beta)
         free(caends)
         free(caoffs)
@@ -1489,7 +1552,7 @@ cdef class tensor:
         is_contig = 1
         inds = []
         lensl = 1
-        key = deepcopy(key_init)
+        key = deepcopy(key_init)      
         value = deepcopy(value_init)
 
         if isinstance(key,int):
@@ -1509,17 +1572,27 @@ cdef class tensor:
             #if ind[1] != self.dims[0]:
             #    is_everything = 0
             #inds.append(ind)
+        if key is Ellipsis:
+            key = (key,)
         if isinstance(key,tuple):
             lensl = len(key)
             i=0
             is_single_val = 1
-            if lensl != self.ndim:
-                is_single_val = 0
+            saw_elips=False
             for s in key:
                 if isinstance(s,int):
                     if self.dims[i] != 1:
                         is_everything = 0
                     inds.append((s,s+1,1))
+                elif s is Ellipsis:
+                    if saw_elips:
+                        raise ValueError('Only one Ellipsis, ..., supported in __setitem__')
+                    for j in range(lensl-1,self.ndim):
+                        inds.append((0,self.dims[i],1))
+                        i+=1
+                    saw_elpis=True
+                    is_single_val = 0
+                    lensl = self.ndim
                 else:
                     is_single_val = 0
                     ind = s.indices(self.dims[i])
@@ -1530,8 +1603,12 @@ cdef class tensor:
                         is_everything = 0
                     if ind[0] != 0:
                         is_everything = 0
+                    if ind[0] != 0:
+                        is_everything = 0
                     inds.append(ind)
-                i+=1
+                    i+=1
+            if lensl != self.ndim:
+                is_single_val = 0
             if is_single_val:
                 self.write([key],np.asarray(value))
                 return
@@ -1620,7 +1697,7 @@ cdef class tensor:
     # call this function to get the transpose of the tensor
     def T(self, axes=None):
         dim = self.dims
-        if axes == None:
+        if axes is None:
             B = tensor(dim, dtype=self.typ)
             index = get_num_str(self.ndim)
             rev_index = str(index[::-1])
@@ -1839,9 +1916,9 @@ def imag(tensor A):
 def array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0):
     if ndmin != 0:
         raise ValueError('ndmin not supported in ctf.array()')
-    if dtype == None:
+    if dtype is None:
         dtype = A.dtype
-    if order == 'K' or order == 'A':
+    if ord_comp(order, 'K') or ord_comp(order, 'A'):
         if np.isfortran(A):
             B = astensor(A,dtype=dtype,order='F')
         else:
@@ -1985,7 +2062,7 @@ def trace(init_A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
 def take(init_A, indices, axis=None, out=None, mode='raise'):
     A = astensor(init_A)
     
-    if axis == None:
+    if axis is None:
         if type(indices)==int:
             tot_size = A.tot_size()
             if indices < 0:
@@ -1994,7 +2071,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                 if indices < 0:
                     indices -= tot_size
                 raise ValueError('index ', indices, ' is out of bounds for size ',tot_size)  
-            if out != None:
+            if out is not None:
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
                 out_shape = 1
@@ -2029,7 +2106,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                     raise ValueError('index ', indices_ravel[i], ' is out of bounds for size ', tot_size)
             #vals = np.zeros(len(indices_ravel),dtype=A.get_type())
             #A.read(indices_ravel, vals)
-            if out != None:
+            if out is not None:
                 # check out type of out first
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
@@ -2071,7 +2148,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             else:
                 raise ValueError(axis[0], " out of bounds")
         if type(indices) == int:
-            if out != None:
+            if out is not None:
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
                 out_shape = 1
@@ -2096,7 +2173,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                     raise ValueError('index ', indices_ravel[i], ' is out of bounds for size ', tot_size)
             #vals = np.zeros(len(indices_ravel),dtype=A.get_type())
             #A.read(indices_ravel, vals)
-            if out != None:
+            if out is not None:
                 # check out type of out first
                 if type(out) != np.ndarray:
                     raise ValueError('output must be an array')
@@ -2128,12 +2205,12 @@ def reshape(A, newshape, order='F'):
 # the default order is Fortran
 def astensor(A, dtype = None, order=None):
     if isinstance(A,tensor):
-        if order != None and order != A.order:
+        if order is not None and order != A.order:
             raise ValueError('CTF does not support this type of order conversion in astensor()')
-        if dtype != None and dtype != A.dtype:
-            raise ValueError('CTF does not support this type of order conversion in astensor()')
+        if dtype is not None and dtype != A.dtype:
+            return tensor(copy=A, dtype=dtype)
         return A
-    if order == None:
+    if order is None:
         order = 'F'
     narr = np.asarray(A,dtype=dtype,order=order)
     t = tensor(narr.shape, dtype=narr.dtype)
@@ -2459,23 +2536,23 @@ def exp(init_x, out=None, where=True, casting='same_kind', order='F', dtype=None
 
     if out is not None and out.shape != x.shape:
         raise ValueError("Shape does not match")
-    if casting == 'same_kind' and (out is not None or dtype != None):
-        if out is not None and dtype != None:
+    if casting == 'same_kind' and (out is not None or dtype is not None):
+        if out is not None and dtype is not None:
             raise TypeError("out and dtype should not be specified together")
         type_list = [np.int8, np.int16, np.int32, np.int64]
         for i in range(4):
             if out is not None and out.dtype == type_list[i]:
                 raise TypeError("Can not cast according to the casting rule 'same_kind'")
-            if dtype != None and dtype == type_list[i]:
+            if dtype is not None and dtype == type_list[i]:
                 raise TypeError("Can not cast according to the casting rule 'same_kind'")
     
     # we need to add more templates initialization in exp_python() function
     if casting == 'unsafe':
         # add more, not completed when casting == unsafe
-        if out is not None and dtype != None:
+        if out is not None and dtype is not None:
             raise TypeError("out and dtype should not be specified together")
             
-    if dtype != None:
+    if dtype is not None:
         ret_dtype = dtype
     elif out is not None:
         ret_dtype = out.dtype
@@ -2517,7 +2594,7 @@ def from_nparray(arr):
 def zeros_like(init_A, dtype=None, order='F'):
     A = astensor(init_A)
     shape = A.get_dims()
-    if dtype == None:
+    if dtype is None:
         dtype = A.get_type()
     return zeros(shape, dtype, order)
 
@@ -2530,7 +2607,7 @@ def empty(shape, dtype=np.float64, order='F'):
     return zeros(shape, dtype, order)
 
 def empty_like(A, dtype=None):
-    if dtype == None: 
+    if dtype is None: 
         dtype = A.dtype
     return empty(A.shape, dtype=dtype)
 
@@ -2538,19 +2615,19 @@ def empty_like(A, dtype=None):
 def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     A = astensor(init_A)
 	
-    if not isinstance(out,tensor) and out != None:
+    if not isinstance(out,tensor) and out is not None:
         raise ValueError("output must be a tensor")
 	
 	# if dtype not specified, assign np.float64 to it
-    if dtype == None:
+    if dtype is None:
         dtype = A.get_type()
 	
 	# if keepdims not specified, assign false to it
-    if keepdims == None :
+    if keepdims is None :
         keepdims = False;
 
 	# it keepdims == true and axis not specified
-    if isinstance(out,tensor) and axis == None:
+    if isinstance(out,tensor) and axis is None:
         raise ValueError("output parameter for reduction operation add has too many dimensions")
 		
     # get_dims of tensor A
@@ -2559,9 +2636,9 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     axis_tuple = ()
     # check whether the axis entry is out of bounds, if axis input is positive e.g. axis = 5
     if type(axis)==int:
-        if axis != None and (axis >= len(dim) or axis <= (-len(dim)-1)):
+        if axis is not None and (axis >= len(dim) or axis <= (-len(dim)-1)):
             raise ValueError("'axis' entry is out of bounds")
-    elif axis == None:
+    elif axis is None:
         axis = None
     else:
         # check whether the axis parameter has the correct type, number etc.
@@ -2587,7 +2664,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
 		
     # if there is no axis input, sum all the entries
     index = ""
-    if axis == None:
+    if axis is None:
         index = random.sample(string.ascii_letters+string.digits,len(dim))
         index = "".join(index)
         index_A = index[0:len(dim)]
@@ -2704,27 +2781,27 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
 # ravel, the default order is Fortran
 def ravel(init_A, order="F"):
     A = astensor(init_A) 
-    if order == "F":
+    if ord_comp(order, "F"):
         inds, vals = A.read_local()
         return astensor(vals)
 
 def any(tensor init_A, axis=None, out=None, keepdims=None):
     cdef tensor A = astensor(init_A) 
     
-    if keepdims == None:
+    if keepdims is None:
         keepdims = False
     
-    if axis == None:
-        if out != None and type(out) != np.ndarray:
+    if axis is None:
+        if out is not None and type(out) != np.ndarray:
             raise ValueError('output must be an array')
-        if out != None and out.shape != () and keepdims == False:
+        if out is not None and out.shape != () and keepdims == False:
             raise ValueError('output parameter has too many dimensions')
         if keepdims == True:
             dims_keep = []
             for i in range(len(A.get_dims())):
                 dims_keep.append(1)
             dims_keep = tuple(dims_keep)
-            if out != None and out.shape != dims_keep:
+            if out is not None and out.shape != dims_keep:
                 raise ValueError('output must match when keepdims = True')
         B = tensor((1,), dtype=np.bool)
         index_A = "" 
@@ -2751,7 +2828,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             C = tensor(dims_keep, dtype=out.dtype)
             B.convert_type(C)
             return C
-        elif out == None and keepdims == True:
+        elif out is None and keepdims == True:
             ret = reshape(B,dims_keep)
             return ret
         elif out is not None and keepdims == True and out.get_type() == np.bool:
@@ -2770,7 +2847,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             raise ValueError("'axis' entry is out of bounds")
         dim_ret = np.delete(dim, axis)
         # print(dim_ret)
-        if out != None:
+        if out is not None:
             if type(out) != np.ndarray:
                 raise ValueError('output must be an array')
             if len(dim_ret) != len(out.shape):
@@ -2782,7 +2859,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
         if keepdims == True:
             dim_keep = dim.copy()
             dim_keep[axis] = 1
-            if out!= None:
+            if out is not None:
                 if tuple(dim_keep) != tuple(out.shape):
                     raise ValueError('output must match when keepdims = True')
         index_A = "" 
@@ -2805,7 +2882,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             any_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.bool:
             any_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-        if out != None:
+        if out is not None:
             if out.dtype != B.get_type():
                 if keepdims == True:
                     C = tensor(dim_ret, dtype=out.dtype)
@@ -2825,7 +2902,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             dim_keep = dim.copy()
             for i in range(len(axis)):
                 dim_keep[axis[i]] = 1
-            if out!= None:
+            if out is not None:
                 if tuple(dim_keep) != tuple(out.shape):
                     raise ValueError('output must match when keepdims = True')
         for i in range(len(axis.shape)):
@@ -2837,7 +2914,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             if np.count_nonzero(axis==axis[i]) > 1:
                 raise ValueError("duplicate value in 'axis'")
         dim_ret = np.delete(dim, axis)
-        if out != None:
+        if out is not None:
             if type(out) != np.ndarray:
                 raise ValueError('output must be an array')
             if len(dim_ret) != len(out.shape):
@@ -2868,7 +2945,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             any_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.bool:
             any_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-        if out != None:
+        if out is not None:
             if out.dtype != B.get_type():
                 if keepdims == True:
                     C = tensor(dim_ret, dtype=out.dtype)
@@ -2891,17 +2968,48 @@ def vstack(tup):
     raise ValueError('vstack not implemented')
     return None
 
-def hstack(tup):
-    if type(tup) != tuple:
+def stackdim(in_tup, dim):
+    if type(in_tup) != tuple:
         raise ValueError('The type of input should be tuple')
+    ttup = []
+    max_dim = 0
+    for i in range(len(in_tup)):
+        ttup.append(astensor(in_tup[i]))
+        if ttup[i].ndim == 0:
+            ttup[i] = ttup[i].reshape([1])
+        max_dim = max(max_dim,ttup[i].ndim)
+    new_dtype = get_np_dtype([t.dtype for t in ttup])
+    tup = []
+    for i in range(len(ttup)):
+        tup.append(astensor(ttup[i],dtype=new_dtype))
+    #needed for vstack/hstack
+    if max_dim == 1:
+        if dim == 0:
+            for i in range(len(ttup)):
+                tup[i] = tup[i].reshape([1,tup[i].shape[0]])
+        else:
+            dim = 0
     out_shape = np.asarray(tup[0].shape)
-    out_shape[-1] = np.sum([t.shape[-1] for t in tup])
-    out = tensor(out_shape, dtype=tup[0].get_type())
+    out_shape[dim] = np.sum([t.shape[dim] for t in tup])
+    out = tensor(out_shape, dtype=new_dtype)
     acc_len = 0
     for i in range(len(tup)):
-        out[...,acc_len:acc_len+tup[i].shape[-1]]
-        acc_len += tup[i].shape[-1]
+        if dim == 0:
+            out[acc_len:acc_len+tup[i].shape[dim],...] = tup[i]
+        elif dim == 1:
+            out[:,acc_len:acc_len+tup[i].shape[dim],...] = tup[i]
+        else:
+            raise ValueError('ctf.stackdim currently only supports dim={0,1}, although this is easily fixed')
+        acc_len += tup[i].shape[dim]
     return out
+
+
+def hstack(in_tup):
+    return stackdim(in_tup, 1)
+
+def vstack(in_tup):
+    return stackdim(in_tup, 0)
+
 
 
 def conj(init_A):
@@ -2929,18 +3037,18 @@ def all(inA, axis=None, out=None, keepdims = False):
 
 #def comp_all(tensor A, axis=None, out=None, keepdims = None):
 def comp_all(tensor A, axis=None, out=None, keepdims=None):
-    if keepdims == None:
+    if keepdims is None:
         keepdims = False
-    if axis != None:
+    if axis is not None:
         raise ValueError("'axis' not supported for all yet")
-    if out != None:
+    if out is not None:
         raise ValueError("'out' not supported for all yet")
     if keepdims:
         raise ValueError("'keepdims' not supported for all yet")
-    if axis == None:
+    if axis is None:
         x = A.bool_sum()
         return x == A.tot_size() 
-        #if out != None:
+        #if out is not None:
         #    if type(out) != np.ndarray:
         #        raise ValueError('output must be an array')
         #    if out.shape != () and keepdims == False:
@@ -2968,7 +3076,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
         #    all_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
         #elif A.get_type() == np.bool:
         #    all_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-        #if out != None:
+        #if out is not None:
         #    if out.dtype != B.get_type():
         #        if keepdims == True:
         #            dim_keep = np.ones(len(A.get_dims()),dtype=np.int64)
@@ -3000,7 +3108,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #        raise ValueError("'axis' entry is out of bounds")
     #    dim_ret = np.delete(dim, axis)
     #    # print(dim_ret)
-    #    if out != None:
+    #    if out is not None:
     #        if type(out) != np.ndarray:
     #            raise ValueError('output must be an array')
     #        if len(dim_ret) != len(out.shape):
@@ -3012,7 +3120,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #    if keepdims == True:
     #        dim_keep = dim.copy()
     #        dim_keep[axis] = 1
-    #        if out!= None:
+    #        if out is not None:
     #            if tuple(dim_keep) != tuple(out.shape):
     #                raise ValueError('output must match when keepdims = True')
     #    index_A = "" 
@@ -3035,7 +3143,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #        all_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
     #    elif A.get_type() == np.bool:
     #        all_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    if out != None:
+    #    if out is not None:
     #        if out.dtype != B.get_type():
     #            if keepdims == True:
     #                C = tensor(dim_ret, dtype=out.dtype)
@@ -3055,7 +3163,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #        dim_keep = dim.copy()
     #        for i in range(len(axis)):
     #            dim_keep[axis[i]] = 1
-    #        if out!= None:
+    #        if out is not None:
     #            if tuple(dim_keep) != tuple(out.shape):
     #                raise ValueError('output must match when keepdims = True')
     #    for i in range(len(axis.shape)):
@@ -3067,7 +3175,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #        if np.count_nonzero(axis==axis[i]) > 1:
     #            raise ValueError("duplicate value in 'axis'")
     #    dim_ret = np.delete(dim, axis)
-    #    if out != None:
+    #    if out is not None:
     #        if type(out) != np.ndarray:
     #            raise ValueError('output must be an array')
     #        if len(dim_ret) != len(out.shape):
@@ -3098,7 +3206,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #        all_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
     #    elif A.get_type() == np.bool:
     #        all_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    if out != None:
+    #    if out is not None:
     #        if out.dtype != B.get_type():
     #            if keepdims == True:
     #                C = tensor(dim_ret, dtype=out.dtype)
@@ -3121,7 +3229,7 @@ def transpose(init_A, axes=None):
     A = astensor(init_A)
 
     dim = A.get_dims()
-    if axes == None:
+    if axes is None:
         new_dim = []
         for i in range(len(dim)-1, -1, -1):
             new_dim.append(dim[i])
@@ -3168,7 +3276,7 @@ def transpose(init_A, axes=None):
 
 def ones(shape, dtype = None, order='F'):
     shape = np.asarray(shape)
-    if dtype != None:
+    if dtype is not None:
         ret = tensor(shape, dtype = dtype)
         string = ""
         string_index = 33
@@ -3198,7 +3306,7 @@ def ones(shape, dtype = None, order='F'):
     
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n
-    if m != None:
+    if m is not None:
         mm = m
     l = min(mm,n)
     if k >= 0:
@@ -3217,7 +3325,7 @@ def eye(n, m=None, k=0, dtype=np.float64):
         A.i("ii") << 1
     else:
         raise ValueError('bad dtype')
-    if m == None:
+    if m is None:
         return A
     else:
         B = tensor([n, m], dtype=dtype)
