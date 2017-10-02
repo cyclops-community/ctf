@@ -1684,9 +1684,10 @@ cdef class tensor:
         elif isinstance(b,np.ndarray):
             return self.compare_tensors(astensor(b),op)
         else:
-            A = tensor(self.shape,dtype=self.dtype)
-            A.set_all(b)
-            return self.compare_tensors(A,op)
+            #A = tensor(self.shape,dtype=self.dtype)
+            #A.set_all(b)
+            #return self.compare_tensors(A,op)
+            return self.compare_tensors(astensor(b,dtype=self.dtype),op)
             
 
     # change the operators "<","<=","==","!=",">",">=" when applied to tensors
@@ -1718,9 +1719,18 @@ cdef class tensor:
 		
 		    # ==	
         if op == 2:
-            if self.shape != b.shape:
-                return False
-            c = tensor(self.get_dims(), dtype=np.bool)
+            new_shape = []
+            for i in range(min(self.ndim,b.ndim)):
+                new_shape.append(self.shape[i])
+                if b.shape[i] != new_shape[i]:
+                    raise ValueError('bad dtype')
+            for i in range(min(self.ndim,b.ndim),max(self.ndim,b.ndim)):
+                if self.ndim > b.ndim:
+                    new_shape.append(self.shape[i])
+                else:
+                    new_shape.append(b.shape[i])
+                    
+            c = tensor(new_shape, dtype=np.bool)
             if self.typ == np.float64:
                 c.dt.compare_elementwise[double](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.typ == np.float32:
@@ -1826,8 +1836,21 @@ def imag(tensor A):
         return ret
 
 # similar to astensor.
-def array(A, dtype=None, order='F'):
-    return astensor(A,dtype,order)
+def array(A, dtype=None, copy=True, order='K', subok=False, ndmin=0):
+    if ndmin != 0:
+        raise ValueError('ndmin not supported in ctf.array()')
+    if dtype == None:
+        dtype = A.dtype
+    if order == 'K' or order == 'A':
+        if np.isfortran(A):
+            B = astensor(A,dtype=dtype,order='F')
+        else:
+            B = astensor(A,dtype=dtype,order='C')
+    else:
+        B = astensor(A,dtype=dtype,order=order)
+    if copy is False:
+        B.set_zero()
+    return B
 
 def diag(A, k=0):
     if not isinstance(A, tensor):
@@ -2892,7 +2915,7 @@ def conj(init_A):
 # check whether along the given axis all array elements are true (not 0)
 # Issues:
 # 1. A type is not bool
-def all(inA, axis=None, out=None, keepdims = None):
+def all(inA, axis=None, out=None, keepdims = False):
     if isinstance(inA, tensor):
         return comp_all(inA, axis, out, keepdims)
     else:

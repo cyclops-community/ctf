@@ -29,7 +29,8 @@ namespace CTF_int {
     for (int i=0; i<this->order; i++){
       str[i] = 'a'+i;
     }
-    assert(A->order == B->order);
+    assert(this->order >= A->order);
+    assert(this->order >= B->order);
     assert(A->sr->el_size == B->sr->el_size);
     this->operator[](str) = CTF::Function<dtype,dtype,bool>([](dtype a, dtype b){ return a==b; })(A->operator[](str),B->operator[](str));  
   }
