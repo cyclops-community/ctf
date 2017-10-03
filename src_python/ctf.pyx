@@ -2962,12 +2962,6 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
         raise ValueError("an integer is required")
     return None
 
-def vstack(tup):
-    if type(tup) != tuple:
-        raise ValueError('The type of input should be tuple')
-    raise ValueError('vstack not implemented')
-    return None
-
 def stackdim(in_tup, dim):
     if type(in_tup) != tuple:
         raise ValueError('The type of input should be tuple')
