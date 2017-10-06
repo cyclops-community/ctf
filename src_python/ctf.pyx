@@ -1063,7 +1063,7 @@ cdef class tensor:
         return B
 
     def reshape(self, integer, order='F'):
-        dim = self.dims
+        dim = self.shape
         total_size = 1
         newshape = []
         if type(integer)==int:
@@ -1073,7 +1073,6 @@ cdef class tensor:
                 newshape.append(integer[i])
         else:
             raise ValueError("invalid shape input to reshape")
-            
         for i in range(len(dim)):
             total_size *= dim[i]
         newshape = np.asarray(newshape, dtype=np.int64)
@@ -1295,11 +1294,9 @@ cdef class tensor:
         conj_helper(<ctensor*>(<tensor> self).dt, <ctensor*>(<tensor> B).dt);
         return B
 
-    # the permute function has not been finished... not very clear about what the malloc memory to do for the permute function
     def permute(self, tensor A, a, b, p_A, p_B):
         cdef char * alpha 
         cdef char * beta
-        # whether permutation need malloc?
         cdef int ** permutation_A
         cdef int ** permutation_B
         permutation_A = <int**>malloc(sizeof(int*) * 2)
@@ -1310,6 +1307,7 @@ cdef class tensor:
         else:
             alpha = <char*>malloc(st)
             na = np.array([a])
+            print(na)
             for j in range(0,st):
                 alpha[j] = na.view(dtype=np.int8)[j]
         if b is None:
@@ -2060,8 +2058,51 @@ def trace(init_A, offset=0, axis1=0, axis2=1, dtype=None, out=None):
 
 # the take function now lack of the "permute function" which can take the elements from the ctensor.
 def take(init_A, indices, axis=None, out=None, mode='raise'):
+    if out is not None:
+        raise ValueError("Now ctf does not support to specify 'out' in functions")
     A = astensor(init_A)
-    
+    indices = np.asarray(indices)
+
+    if axis == None:
+        # if the indices is int
+        if indices.shape == ():
+            indices = indices.reshape(1,)
+            if indices[0] < 0:
+                indices[0] += A.shape[0]
+            if indices[0] > 0 and indices[0] > A.shape[0]:
+                error = "index "+str(indices[0])+" is out of bounds for size " + str(A.shape[0])
+                raise IndexError(error)
+            if indices[0] < 0:
+                error = "index "+str(indices[0]-A.shape[0])+" is out of bounds for size " + str(A.shape[0])
+                raise IndexError(error)
+            return A.read(indices)[0]
+        # if the indices is 1-D array
+        else:
+            total_size = 1
+            for i in range(len(A.shape)):
+                total_size *= A.shape[i]
+            indices_ravel = np.ravel(indices)
+            for i in range(len(indices_ravel)):
+                if indices_ravel[i] < 0:
+                    indices_ravel[i] += total_size
+                    if indices_ravel[i] < 0:
+                        error = "index "+str(indices_ravel[i]-total_size)+" is out of bounds for size " + str(total_size)
+                        raise IndexError(error)
+                if indices_ravel[i] > 0 and indices_ravel[0] > total_size:
+                    error = "index "+str(indices_ravel[i])+" is out of bounds for size " + str(total_size)
+                    raise IndexError(error)
+            if len(indices.shape) == 1:
+                B = astensor(A.read(indices_ravel))
+            else:
+                B = astensor(A.read(indices_ravel)).reshape(indices.shape)
+            return B
+    else:
+        if type(axis) != int:
+            raise TypeError("the axis should be int type")
+        return None
+    return B
+
+"""
     if axis is None:
         if type(indices)==int:
             tot_size = A.tot_size()
@@ -2191,7 +2232,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             # add the permute function
             return None
         return None
-
+"""
 # the copy function need to call the constructor which return a copy.
 def copy(tensor A):
     B = tensor(A.get_dims(), dtype=A.get_type(), copy=A)
