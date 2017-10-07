@@ -2099,8 +2099,43 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
     else:
         if type(axis) != int:
             raise TypeError("the axis should be int type")
-        return None
-    return B
+        if axis < 0:
+            axis += len(A.shape)
+            if axis < 0:
+                raise IndexError("axis out of bounds")
+        if axis > len(A.shape):
+            raise IndexError("axis out of bounds")
+        if indices.shape == () or indices.shape== (1,):
+            total_size = 1
+            for i in range(len(A.shape)):
+                total_size *= A[i]
+            if indices >= A.shape[axis]:
+                raise IndexError("index out of bounds")
+            ret_shape = list(A.shape)
+            if indices.shape == ():
+                del ret_shape[axis]
+            else:
+                ret_shape[axis] = 1
+            #print(ret_shape)
+            begin = 1
+            for i in range(axis+1, len(A.shape),1):
+                begin *= A.shape[i]
+            #print(begin)
+            next_slot = A.shape[axis] * begin
+            #print(next_slot)
+            start = indices * begin
+            arange_times = 1
+            for i in range(0, axis):
+                arange_times *= A.shape[i]
+            #print(arange_times)
+            a = np.arange(start,start+begin)
+            start += next_slot
+            for i in range(1,arange_times,1):
+                a = np.concatenate((a, np.arange(start,start+begin)))
+                start += next_slot
+            B = astensor(A.read(a)).reshape(ret_shape)
+            return B
+    return None
 
 """
     if axis is None:
