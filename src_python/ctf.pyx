@@ -2135,139 +2135,41 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                 start += next_slot
             B = astensor(A.read(a)).reshape(ret_shape)
             return B
+        else:
+            if len(indices.shape) > 1:
+                raise ValueError("current ctf does not support when specify axis and the len(indices.shape) > 1")
+            total_size = 1
+            for i in range(len(A.shape)):
+                total_size *= A[i]
+            for i in range(len(indices)):
+                if indices[i] >= A.shape[axis]:
+                    raise IndexError("index out of bounds")
+            ret_shape = list(A.shape)
+            ret_index = 0
+            ret_shape[axis] = len(indices)
+            #print(ret_shape)
+            begin = np.ones(indices.shape)
+            for i in range(axis+1, len(A.shape),1):
+                begin *= A.shape[i]
+            next_slot = A.shape[axis] * begin
+            start = indices * begin
+            arange_times = 1
+            for i in range(0, axis):
+                arange_times *= A.shape[i]
+            #print(arange_times)
+            a = np.arange(start[0],start[0]+begin[0])
+            start[0] += next_slot[0]
+            for i in range(1,len(indices),1):
+                a = np.concatenate((a, np.arange(start[i],start[i]+begin[i])))
+                start[i] += next_slot[i]
+            for i in range(1,arange_times,1):
+                for j in range(len(indices)):
+                    a = np.concatenate((a, np.arange(start[j],start[j]+begin[j])))
+                    start[j] += next_slot[j]
+            B = astensor(A.read(a)).reshape(ret_shape)
+            return B
     return None
 
-"""
-    if axis is None:
-        if type(indices)==int:
-            tot_size = A.tot_size()
-            if indices < 0:
-                indices += tot_size
-            if indices >= tot_size or indices < 0:
-                if indices < 0:
-                    indices -= tot_size
-                raise ValueError('index ', indices, ' is out of bounds for size ',tot_size)  
-            if out is not None:
-                if type(out) != np.ndarray:
-                    raise ValueError('output must be an array')
-                out_shape = 1
-                for i in range(len(out.shape)):
-                    out_shape *= out.shape[i]
-                if out_shape == 1:
-                    # complex128 can not convert to these
-                    # should add more
-                    if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
-                        raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
-                    # if we can reshape the return value
-                    B = tensor(A.get_dims(), dtype=out.dtype)
-                    index_arr = np.array([indices],dtype=B.get_type())
-                    A.convert_type(B)
-                    vals = np.array([0],dtype=B.get_type())
-                    B.read(index_arr,vals)
-                    return np.reshape(vals, out.shape)
-                else:
-                    raise ValueError('output array does not match result of ctf.take')
-            index_arr = np.array([indices],dtype=np.int64)
-            vals = np.array([0],dtype=A.get_type())
-            A.read(index_arr,vals)
-            return vals[0]
-        elif type(indices)==tuple or type(indices)==np.ndarray:
-            tot_size = A.tot_size()
-            indices_np = np.asarray(indices, dtype=np.int64)
-            indices_ravel = np.ravel(indices_np)
-            for i in range(len(indices_ravel)):
-                if indices_ravel[i] < 0:
-                    indices_ravel[i] += tot_size
-                if indices_ravel[i] >= tot_size or indices_ravel[i] < 0:
-                    raise ValueError('index ', indices_ravel[i], ' is out of bounds for size ', tot_size)
-            #vals = np.zeros(len(indices_ravel),dtype=A.get_type())
-            #A.read(indices_ravel, vals)
-            if out is not None:
-                # check out type of out first
-                if type(out) != np.ndarray:
-                    raise ValueError('output must be an array')
-                out_shape = 1
-                indices_shape = 1
-                for i in range(len(out.shape)):
-                    out_shape *= out.shape[i]
-                if out_shape == len(indices_ravel):
-                    if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
-                        raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
-                else:
-                    raise ValueError('output array does not match result of ctf.take')
-                B = tensor(A.get_dims(), dtype = out.dtype)
-                vals = np.zeros(len(indices_ravel),dtype=B.get_type())
-                A.convert_type(B)
-                B.read(indices_ravel, vals)
-                return np.reshape(vals, out.shape)
-            vals = np.zeros(len(indices_ravel),dtype=A.get_type())
-            A.read(indices_ravel, vals)
-            return vals.reshape(indices_np.shape)
-    else:
-        if type(axis) != tuple and type(axis) != int and type(axis) != np.ndarray:
-            raise ValueError('The axis type should be int, tuple, or np.ndarray')
-        if type(axis) != np.ndarray:
-            axis = np.asarray(axis, dtype=np.int64)
-        if type(axis) == int:
-            axis = reshape(axis, (1,))
-        if len(axis.shape) != 1:
-            raise ValueError('only length-1 arrays can be converted to Python scalars')
-        if len(axis) != 1:
-            raise ValueError('only length-1 arrays can be converted to Python scalars')
-        if axis.dtype != np.int8 and axis.dtype != np.int16 and axis.dtype != np.int32 and axis.dtype != np.int64:
-            raise ValueError('an integer required for axis')
-        if axis[0] < 0:
-            axis[0] += len(A.get_dims())
-        if axis[0] < 0 or axis[0] >= len(axis):
-            if (axis[0] + len(A.get_dims())) < 0 and axis[0] < 0:
-                raise ValueError((axis[0]-len(A.get_dims())), " out of bounds")
-            else:
-                raise ValueError(axis[0], " out of bounds")
-        if type(indices) == int:
-            if out is not None:
-                if type(out) != np.ndarray:
-                    raise ValueError('output must be an array')
-                out_shape = 1
-                for i in range(len(out.shape)):
-                    out_shape *= out.shape[i]
-                if out_shape == 1:
-                    # complex128 can not convert to these
-                    # should add more
-                    if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
-                        raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
-                # permute
-                return None
-            return None
-        elif type(indices)==tuple or type(indices)==np.ndarray:
-            tot_size = A.tot_size()
-            indices_np = np.asarray(indices, dtype=np.int64)
-            indices_ravel = np.ravel(indices_np)
-            for i in range(len(indices_ravel)):
-                if indices_ravel[i] < 0:
-                    indices_ravel[i] += tot_size
-                if indices_ravel[i] >= tot_size or indices_ravel[i] < 0:
-                    raise ValueError('index ', indices_ravel[i], ' is out of bounds for size ', tot_size)
-            #vals = np.zeros(len(indices_ravel),dtype=A.get_type())
-            #A.read(indices_ravel, vals)
-            if out is not None:
-                # check out type of out first
-                if type(out) != np.ndarray:
-                    raise ValueError('output must be an array')
-                out_shape = 1
-                indices_shape = 1
-                for i in range(len(out.shape)):
-                    out_shape *= out.shape[i]
-                if out_shape == len(indices_ravel):
-                    if out.dtype == np.complex128 and (A.get_type() == np.int64 or A.get_type() == np.float64 or A.get_type() == np.float32):
-                        raise ValueError("Cannot cast array data from dtype 'complex128') to dtype'", A.get_type(),"' according to the rule 'safe'")
-                else:
-                    raise ValueError('output array does not match result of ctf.take')
-                # add the permute function
-                return None
-            # add the permute function
-            return None
-        return None
-"""
 # the copy function need to call the constructor which return a copy.
 def copy(tensor A):
     B = tensor(A.get_dims(), dtype=A.get_type(), copy=A)
