@@ -1062,10 +1062,16 @@ cdef class tensor:
         B = tensor(self.dims, dtype=self.typ, copy=self)
         return B
 
-    def reshape(self, integer, order='F'):
+    def reshape(self, *integer):
         dim = self.shape
         total_size = 1
         newshape = []
+        if type(integer[0])!=int:
+            if len(integer)!=1:
+                raise ValueError("invalid shape argument to reshape")
+            else:
+                integer = integer[0]
+            
         if type(integer)==int:
             newshape.append(integer)
         elif type(newshape)==tuple or type(newshape)==list or type(newshape) == np.ndarray:
@@ -1307,7 +1313,6 @@ cdef class tensor:
         else:
             alpha = <char*>malloc(st)
             na = np.array([a])
-            print(na)
             for j in range(0,st):
                 alpha[j] = na.view(dtype=np.int8)[j]
         if b is None:
@@ -1660,13 +1665,13 @@ cdef class tensor:
 #                sl.i(mystr) << astensor(value).i(mystr)
 #            self.write_slice(offs,ends,sl)
     def trace(self, offset=0, axis1=0, axis2=1, dtype=None, out=None):
-        trace(self, offset, axis1, axis2, dtype, out)
+        return trace(self, offset, axis1, axis2, dtype, out)
 
     def diagonal(self, offset=0, axis1=0, axis2=1):
         return diagonal(self,offset,axis1,axis2)        
 
     def sum(self, axis = None, dtype = None, out = None, keepdims = None):
-        return sum(self, dtype, out, keepdims)
+        return sum(self, axis, dtype, out, keepdims)
 
     def norm1(self):
         if self.typ == np.float64:
@@ -1752,6 +1757,8 @@ cdef class tensor:
         else:
             self.write([], [])
 
+    def take(self, indices, axis=None, out=None, mode='raise'):
+        return take(self,indices,axis,out,mode)
    
     def __richcmp__(self, b, op):
         if isinstance(b,tensor):
@@ -1931,8 +1938,23 @@ def diag(A, k=0):
     if not isinstance(A, tensor):
         raise ValueError('A is not a tensor')
     dim = A.get_dims()
-    if len(dim) == 1 or len(dim)==0:
-        raise ValueError('diag requires an array of at least two dimensions')
+    if len(dim) == 0:
+        raise ValueError('diag requires an array of at least 1 dimension')
+    if len(dim) == 1:
+        B = tensor((A.shape[0],A.shape[0]),dtype=A.dtype,sp=A.sp)
+        B.i("ii") << A.i("i")
+        absk = np.abs(k)
+        if k>0:
+            B2 = tensor((A.shape[0],A.shape[0]+absk),dtype=A.dtype,sp=A.sp)
+            B2[:,absk:] = B
+            return B2
+        elif k < 0:
+            B2 = tensor((A.shape[0]+absk,A.shape[0]),dtype=A.dtype,sp=A.sp)
+            B2[absk:,:] = B
+            return B2
+        else:
+            return B
+         
     if k < 0 and dim[0] + k <=0:
         return tensor((0,))
     if k > 0 and dim[1] - k <=0:
@@ -2134,7 +2156,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                 a = np.concatenate((a, np.arange(start,start+begin)))
                 start += next_slot
             B = astensor(A.read(a)).reshape(ret_shape)
-            return B
+            return B.to_nparray()
         else:
             if len(indices.shape) > 1:
                 raise ValueError("current ctf does not support when specify axis and the len(indices.shape) > 1")
@@ -2168,7 +2190,7 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                     start[j] += next_slot[j]
             B = astensor(A.read(a)).reshape(ret_shape)
             return B
-    return None
+    raise ValueError('CTF error: should not get here')
 
 # the copy function need to call the constructor which return a copy.
 def copy(tensor A):
@@ -2177,7 +2199,9 @@ def copy(tensor A):
 
 # the default order is Fortran
 def reshape(A, newshape, order='F'):
-    return A.reshape(newshape, order)
+    if A.order != order:
+      raise ValueError('CTF does not support reshape with a new element order (Fortran vs C)')
+    return A.reshape(newshape)
 
 
 # the default order is Fortran
@@ -3215,16 +3239,28 @@ def transpose(init_A, axes=None):
     # length of axes should match with the length of tensor dimension 
     if len(axes) != len(dim):
         raise ValueError("axes don't match tensor")
-
+    axes = np.asarray(axes,dtype=np.int)
     for i in range(A.ndim):
         if axes[i] < 0:
-            raise ValueError("transpose with negative axes not allowed")
-             
+            axes[i] = A.ndim+axes[i]
+            if axes[i] < 0:
+                raise ValueError("axes too negative for CTF transpose")
+              
+            #all_axes = np.arange(A.ndim)
+            #for j in range(A.ndim):
+            #    if j != i:
+            #        if axes[j] < 0:
+            #            raise ValueError("cannot have negative two negative axes for transpose")
+            #    all_axes[j] = -1
+            #for j in range(A.ndim):
+            #    if all_axes[j] != -1:
+            #        axes[i] = j
     axes_list = list(axes)
     for i in range(len(axes)):
         # when any elements of axes is not an integer
-        if type(axes_list[i]) != int:
-            raise ValueError("an integer is required")
+        #if type(axes_list[i]) != int:
+        #    print(type(axes_list[i]))
+        #    raise ValueError("an integer is required")
         # change the negative axes to positive, which will be easier hangling
         if axes_list[i] < 0:
             axes_list[i] += len(dim)
