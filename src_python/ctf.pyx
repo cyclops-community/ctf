@@ -1490,9 +1490,10 @@ cdef class tensor:
         self.i(get_num_str(self.ndim)) << value
             
 	# bool no itemsize
-    def write_slice(self, offsets, ends, A, A_offsets=None, A_ends=None, a=None, b=None):
+    def write_slice(self, offsets, ends, init_A, A_offsets=None, A_ends=None, a=None, b=None):
         cdef char * alpha
         cdef char * beta
+        A = astensor(init_A)
         st = self.itemsize
         if a is None:
             alpha = <char*>self.dt.sr.mulid()
@@ -2767,7 +2768,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         #print(decrease_dim)
         index_removal = axis_list[i]
         #print(index_removal)
-        temp_dim = decrease_dim.copy()
+        temp_dim = list(decrease_dim)
         del temp_dim[index_removal]
         ret_dim = tuple(temp_dim)
         B = tensor(ret_dim, dtype = dtype)

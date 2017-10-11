@@ -842,7 +842,7 @@ namespace CTF_int {
                      int const *  ends_A,
                      char const * alpha){
 
-    int64_t i, sz_A, blk_sz_A, sz_B, blk_sz_B;
+    int64_t i, j, sz_A, blk_sz_A, sz_B, blk_sz_B;
     char * all_data_A, * blk_data_A;
     char * all_data_B, * blk_data_B;
     tensor * tsr_A, * tsr_B;
@@ -854,6 +854,22 @@ namespace CTF_int {
     int * toffset_A = (int*)CTF_int::alloc(sizeof(int)*tsr_A->order);
     int * padding_B = (int*)CTF_int::alloc(sizeof(int)*tsr_B->order);
     int * toffset_B = (int*)CTF_int::alloc(sizeof(int)*tsr_B->order);
+    for (i=0,j=0; i<this->order && j<A->order; i++, j++){
+      while (ends_B[i] - offsets_B[i] == 1) i++;
+      while (ends_A[j] - offsets_A[j] == 1) j++;
+      if (i>=this->order || j>=A->order) break;
+      if (ends_A[j] - offsets_A[j] != ends_B[i] - offsets_B[i]){
+        printf("CTF ERROR: slice dimensions inconsistent\n");
+        ASSERT(0);
+        return;
+      }
+    }
+
+    if (i != this->order || j != A->order){
+      printf("CTF ERROR: slice dimensions inconsistent\n");
+      ASSERT(0);
+      return;
+    }    
 
     if (tsr_B->wrld->np < tsr_A->wrld->np){
       if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
@@ -1205,7 +1221,7 @@ namespace CTF_int {
     if (!check_self_mapping(this, idx_A)){
       if (wrld->rank == 0)
         printf("CTF ERROR: invalid distribution in read() call, aborting.\n");
-      IASSERT(0);
+      ASSERT(0);
       assert(0);
     }
 
