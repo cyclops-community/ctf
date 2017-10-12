@@ -277,7 +277,7 @@ cdef class itensor(term):
             deref((<itensor>self).it) << deref((<term>other).tm)
         else:
             dother = np.asarray([other],dtype=np.float64)
-            deref((<itensor>self).it) << <double>dother[0]
+            deref((<itensor>self).it) << <double>dother
 #            if self.typ == np.float64:
 #            elif self.typ == np.float32:
 #                deref((<itensor>self).it) << <float>other
@@ -430,6 +430,13 @@ cdef class tensor:
                 dtype = copy.dtype
             if order is None:
                 order = copy.order
+        if isinstance(dtype,np.dtype):
+            dtype = dtype.type
+
+        if dtype is int:
+            dtype = np.int64
+        if dtype is np.int:
+            dtype = np.int64
 
         if dtype == 'D':
             self.typ = <cnp.dtype>np.complex128
@@ -520,126 +527,135 @@ cdef class tensor:
             return transpose(self)
 
     def __add__(self, other):
-        if not isinstance(other, tensor) and isinstance(self, tensor):
-            string = ""
-            string_index = 33
-            for i in range(len(self.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(self.shape, dtype = self.dtype)
-            ret1 = tensor(self.shape, dtype = self.dtype)
-            ret1.i(string) << other
-            ret.i(string) << ret1.i(string) + self.i(string)
-            return ret
-        elif not isinstance(self, tensor) and isinstance(other, tensor):
-            string = ""
-            string_index = 33
-            for i in range(len(other.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(other.shape, dtype = other.dtype)
-            ret1 = tensor(other.shape, dtype = other.dtype)
-            ret1.i(string) << self
-            ret.i(string) << ret1.i(string) + other.i(string)
-            return ret
-        elif not isinstance(self, tensor) and not isinstance(other, tensor):
-            raise TypeError("either input should be tensor type")
-        
-        if self.shape != other.shape:
-            raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
-        if self.dtype == other.dtype:
-            string_index = 33
-            string = ""
-            for i in range(len(self.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(self.shape, dtype = self.dtype)
-            ret.i(string) << self.i(string) + other.i(string)
-        else:
-            if np.can_cast(self.dtype, other.dtype):
-                ret_dtype = other.dtype
-                temp_str = self.astype(ret_dtype)
-                string = ""
-                string_index = 33
-                for i in range(len(self.shape)):
-                    string += chr(string_index)
-                    string_index += 1
-                ret = tensor(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) + other.i(string)
-            elif np.can_cast(other.dtype, self.dtype):
-                ret_dtype = self.dtype
-                temp_str = other.astype(ret_dtype)
-                string = ""
-                string_index = 33
-                for i in range(len(self.shape)):
-                    string += chr(string_index)
-                    string_index += 1
-                ret = tensor(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) + other.i(string)
-            else:
-                raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
-        return ret
+        tsr = tensor(copy=self)
+        otsr = astensor(other)
+        tsr.i(get_num_str(self.ndim)) << otsr.i(get_num_str(otsr.ndim))
+        return tsr
+        #if not isinstance(other, tensor) and isinstance(self, tensor):
+        #    string = ""
+        #    string_index = 33
+        #    for i in range(len(self.shape)):
+        #        string += chr(string_index)
+        #        string_index += 1
+        #    ret = tensor(self.shape, dtype = self.dtype)
+        #    ret1 = tensor(self.shape, dtype = self.dtype)
+        #    ret1.i(string) << other
+        #    ret.i(string) << ret1.i(string) + self.i(string)
+        #    return ret
+        #elif not isinstance(self, tensor) and isinstance(other, tensor):
+        #    string = ""
+        #    string_index = 33
+        #    for i in range(len(other.shape)):
+        #        string += chr(string_index)
+        #        string_index += 1
+        #    ret = tensor(other.shape, dtype = other.dtype)
+        #    ret1 = tensor(other.shape, dtype = other.dtype)
+        #    ret1.i(string) << self
+        #    ret.i(string) << ret1.i(string) + other.i(string)
+        #    return ret
+        #elif not isinstance(self, tensor) and not isinstance(other, tensor):
+        #    raise TypeError("either input should be tensor type")
+        #
+        #if self.shape != other.shape:
+        #    raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
+        #if self.dtype == other.dtype:
+        #    string_index = 33
+        #    string = ""
+        #    for i in range(len(self.shape)):
+        #        string += chr(string_index)
+        #        string_index += 1
+        #    ret = tensor(self.shape, dtype = self.dtype)
+        #    ret.i(string) << self.i(string) + other.i(string)
+        #else:
+        #    if np.can_cast(self.dtype, other.dtype):
+        #        ret_dtype = other.dtype
+        #        temp_str = self.astype(ret_dtype)
+        #        string = ""
+        #        string_index = 33
+        #        for i in range(len(self.shape)):
+        #            string += chr(string_index)
+        #            string_index += 1
+        #        ret = tensor(self.shape, dtype = ret_dtype)
+        #        ret.i(string) << temp_str.i(string) + other.i(string)
+        #    elif np.can_cast(other.dtype, self.dtype):
+        #        ret_dtype = self.dtype
+        #        temp_str = other.astype(ret_dtype)
+        #        string = ""
+        #        string_index = 33
+        #        for i in range(len(self.shape)):
+        #            string += chr(string_index)
+        #            string_index += 1
+        #        ret = tensor(self.shape, dtype = ret_dtype)
+        #        ret.i(string) << temp_str.i(string) + other.i(string)
+        #    else:
+        #        raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
+        #return ret
 
     def __sub__(self, other):
-        if not isinstance(other, tensor) and isinstance(self, tensor):
-            string = ""
-            string_index = 33
-            for i in range(len(self.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(self.shape, dtype = self.dtype)
-            ret1 = tensor(self.shape, dtype = self.dtype)
-            ret1.i(string) << (-1 * other)
-            ret.i(string) << ret1.i(string) + self.i(string)
-            return ret
-        elif not isinstance(self, tensor) and isinstance(other, tensor):
-            string = ""
-            string_index = 33
-            for i in range(len(other.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(other.shape, dtype = other.dtype)
-            ret1 = tensor(other.shape, dtype = other.dtype)
-            ret1.i(string) << self
-            ret.i(string) << ret1.i(string) + (-1*other.i(string))
-            return ret
-        elif not isinstance(self, tensor) and not isinstance(other, tensor):
-            raise TypeError("either input should be tensor type")
+        tsr = tensor(copy=self)
+        otsr = astensor(other)
+        tsr.i(get_num_str(self.ndim)) << -1*otsr.i(get_num_str(otsr.ndim))
+        return tsr
 
-        if self.shape != other.shape:
-            raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
-        if self.dtype == other.dtype:
-            string_index = 33
-            string = ""
-            for i in range(len(self.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(self.shape, dtype = self.dtype)
-            ret.i(string) << self.i(string) + (-1*other.i(string))
-        else:
-            if np.can_cast(self.dtype, other.dtype):
-                ret_dtype = other.dtype
-                temp_str = self.astype(ret_dtype)
-                string = ""
-                string_index = 33
-                for i in range(len(self.shape)):
-                    string += chr(string_index)
-                    string_index += 1
-                ret = tensor(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) + (-1*other.i(string))
-            elif np.can_cast(other.dtype, self.dtype):
-                ret_dtype = self.dtype
-                temp_str = other.astype(ret_dtype)
-                string = ""
-                string_index = 33
-                for i in range(len(self.shape)):
-                    string += chr(string_index)
-                    string_index += 1
-                ret = tensor(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) + (-1*other.i(string))
-            else:
-                raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
-        return ret
+        #if not isinstance(other, tensor) and isinstance(self, tensor):
+        #    string = ""
+        #    string_index = 33
+        #    for i in range(len(self.shape)):
+        #        string += chr(string_index)
+        #        string_index += 1
+        #    ret = tensor(self.shape, dtype = self.dtype)
+        #    ret1 = tensor(self.shape, dtype = self.dtype)
+        #    ret1.i(string) << (-1 * other)
+        #    ret.i(string) << ret1.i(string) + self.i(string)
+        #    return ret
+        #elif not isinstance(self, tensor) and isinstance(other, tensor):
+        #    string = ""
+        #    string_index = 33
+        #    for i in range(len(other.shape)):
+        #        string += chr(string_index)
+        #        string_index += 1
+        #    ret = tensor(other.shape, dtype = other.dtype)
+        #    ret1 = tensor(other.shape, dtype = other.dtype)
+        #    ret1.i(string) << self
+        #    ret.i(string) << ret1.i(string) + (-1*other.i(string))
+        #    return ret
+        #elif not isinstance(self, tensor) and not isinstance(other, tensor):
+        #    raise TypeError("either input should be tensor type")
+
+        #if self.shape != other.shape:
+        #    raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
+        #if self.dtype == other.dtype:
+        #    string_index = 33
+        #    string = ""
+        #    for i in range(len(self.shape)):
+        #        string += chr(string_index)
+        #        string_index += 1
+        #    ret = tensor(self.shape, dtype = self.dtype)
+        #    ret.i(string) << self.i(string) + (-1*other.i(string))
+        #else:
+        #    if np.can_cast(self.dtype, other.dtype):
+        #        ret_dtype = other.dtype
+        #        temp_str = self.astype(ret_dtype)
+        #        string = ""
+        #        string_index = 33
+        #        for i in range(len(self.shape)):
+        #            string += chr(string_index)
+        #            string_index += 1
+        #        ret = tensor(self.shape, dtype = ret_dtype)
+        #        ret.i(string) << temp_str.i(string) + (-1*other.i(string))
+        #    elif np.can_cast(other.dtype, self.dtype):
+        #        ret_dtype = self.dtype
+        #        temp_str = other.astype(ret_dtype)
+        #        string = ""
+        #        string_index = 33
+        #        for i in range(len(self.shape)):
+        #            string += chr(string_index)
+        #            string_index += 1
+        #        ret = tensor(self.shape, dtype = ret_dtype)
+        #        ret.i(string) << temp_str.i(string) + (-1*other.i(string))
+        #    else:
+        #        raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
+        #return ret
 
     def __mul__(self, other):
         if not isinstance(other, tensor) and isinstance(self, tensor):
@@ -1124,7 +1140,7 @@ cdef class tensor:
         inds = np.asarray(init_inds)
         #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
         if inds.ndim == 2:
-            mystrides = np.ones(self.ndim,dtype=int)
+            mystrides = np.ones(self.ndim,dtype=np.int32)
             for i in range(1,self.ndim):
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.dims[self.ndim-i]
             inds = np.dot(inds, np.asarray(mystrides) )
@@ -1341,7 +1357,7 @@ cdef class tensor:
         vals = np.asarray(init_vals, dtype=self.typ)
         #if each index is a tuple, we have a 2D array, convert it to 1D array of global indices
         if inds.ndim == 2:
-            mystrides = np.ones(self.ndim,dtype=int)
+            mystrides = np.ones(self.ndim,dtype=np.int32)
             for i in range(1,self.ndim):
                 #mystrides[i]=mystrides[i-1]*self.dims[i-1]
                 mystrides[self.ndim-i-1]=mystrides[self.ndim-i]*self.dims[self.ndim-i]
@@ -1558,7 +1574,6 @@ cdef class tensor:
         lensl = 1
         key = deepcopy(key_init)      
         value = deepcopy(value_init)
-
         if isinstance(key,int):
             if self.ndim == 1:
                 self.write([key],[value])
@@ -1622,11 +1637,26 @@ cdef class tensor:
             inds.append((0,self.dims[i],1))
         if is_everything:
             #check that value is same everywhere, or this makes no sense
-            self.set_all(value)
+            if isinstance(value,tuple):
+                self.set_all(value[0])
+            else:
+                self.set_all(value)
         elif is_contig:
             offs = [ind[0] for ind in inds]
             ends = [ind[1] for ind in inds]
-            self.write_slice(offs,ends,value)
+            if isinstance(value,tuple):
+                tval = astensor(value[0])
+            else:
+                tval = astensor(value)
+            if np.prod(np.asarray(tval.shape,dtype=np.int32)) == np.prod(np.asarray(ends,dtype=np.int32) - np.asarray(offs,dtype=np.int32)):
+                self.write_slice(offs,ends,tval)
+            else:
+                tsr = self.get_slice(offs,ends)
+                tsr.set_zero()
+                #slens = [l for l in tsr.shape if l != 1]
+                #tsr = tsr.reshape(slens)
+                tsr += tval #.reshape
+                self.write_slice(offs,ends,tsr)
         else:
             raise ValueError('strided key not currently supported')
   
@@ -2215,7 +2245,10 @@ def astensor(A, dtype = None, order=None):
         return A
     if order is None:
         order = 'F'
-    narr = np.asarray(A,dtype=dtype,order=order)
+    if dtype != None:
+        narr = np.asarray(A,dtype=dtype,order=order)
+    else:
+        narr = np.asarray(A,order=order)
     t = tensor(narr.shape, dtype=narr.dtype)
     t.from_nparray(narr)
     return t
