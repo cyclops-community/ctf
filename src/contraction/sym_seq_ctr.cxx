@@ -831,11 +831,12 @@ printf("HERE1\n");
             }
           } else {
             if (func == NULL){
-              sr_C->gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
+              sr_C->gemm_batch(prm->tA, prm->tB, prm->l, prm->m, prm->n, prm->k, alpha, 
                          A+idx_A*stride_A*sr_A->el_size, 
                          B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
                          C+idx_C*stride_C*sr_C->el_size);
             } else {
+              ASSERT(prm->l == 1);
               ASSERT(sr_C->isequal(alpha,sr_C->mulid()));
               func->cgemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, 
                            A+idx_A*stride_A*sr_A->el_size, 
@@ -845,6 +846,7 @@ printf("HERE1\n");
           }
         } else {
           if (prm->offload){
+            ASSERT(prm->l == 1);
             if (func == NULL){
               sr_C->offload_gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
                                  B+idx_B*stride_B*sr_B->el_size,
@@ -859,12 +861,13 @@ printf("HERE1\n");
             }
           } else {
             if (func == NULL){ 
-              sr_C->gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
+              sr_C->gemm_batch(prm->tB, prm->tA, prm->l, prm->n, prm->m, prm->k, alpha, 
                          B+idx_B*stride_B*sr_B->el_size,
                          A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(), 
                          C+idx_C*stride_C*sr_C->el_size);
             } else {
               ASSERT(sr_C->isequal(alpha,sr_C->mulid()));
+              ASSERT(prm->l == 1);
               func->cgemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, 
                            B+idx_B*stride_B*sr_B->el_size,
                            A+idx_A*stride_A*sr_A->el_size, 

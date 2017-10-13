@@ -523,13 +523,12 @@ namespace CTF {
                       char const * A,
                       char const * B,
                       char const * beta,
-                      char *       C){
+                      char *       C) const {
         if (fgemm_batch != NULL) {
           fgemm_batch(tA, tB, l, m, n, k, ((dtype const *)alpha)[0], ((dtype const *)A), ((dtype const *)B), ((dtype const *)beta)[0], ((dtype *)C));
         } else {
           for (int i=0; i<l; i++){
-            gemm(tA, tB, m, n, k, ((dtype const *)alpha)[0], ((dtype const *)A)+m*k*i, ((dtype const *)B)+k*n*i, ((dtype const *)beta)[0], ((dtype *)C)+m*n*i);
-
+            gemm(tA, tB, m, n, k, alpha, A+m*k*i*sizeof(dtype), B+k*n*i*sizeof(dtype), beta, C+m*n*i*sizeof(dtype));
           }
         }
       }

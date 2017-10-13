@@ -62,7 +62,13 @@ namespace CTF_int {
     float ** ptrs_A = get_grp_ptrs(m*k,l,A);
     float ** ptrs_B = get_grp_ptrs(k*n,l,B);
     float ** ptrs_C = get_grp_ptrs(m*n,l,C);
-    CTF_BLAS::SGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    #if USE_SP_MKL
+      CTF_BLAS::SGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    #else 
+    for (int i=0; i<l; i++){
+            CTF_BLAS::SGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+    }
+    #endif
     free(ptrs_A);
     free(ptrs_B);
     free(ptrs_C);
@@ -104,7 +110,15 @@ namespace CTF_int {
     double ** ptrs_A = get_grp_ptrs(m*k,l,A);
     double ** ptrs_B = get_grp_ptrs(k*n,l,B);
     double ** ptrs_C = get_grp_ptrs(m*n,l,C);
+    #if USE_SP_MKL
+    if (l > 1) 
+      cout << "here:  " << l << endl;
     CTF_BLAS::DGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    #else
+    for (int i=0; i<l; i++){
+            CTF_BLAS::DGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+    }
+    #endif
     free(ptrs_A);
     free(ptrs_B);
     free(ptrs_C);
@@ -146,7 +160,13 @@ namespace CTF_int {
     std::complex<float> ** ptrs_A = get_grp_ptrs(m*k,l,A);
     std::complex<float> ** ptrs_B = get_grp_ptrs(k*n,l,B);
     std::complex<float> ** ptrs_C = get_grp_ptrs(m*n,l,C);
+    #if USE_SP_MKL
     CTF_BLAS::CGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    #else
+    for (int i=0; i<l; i++){
+            CTF_BLAS::CGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+    }
+    #endif
     free(ptrs_A);
     free(ptrs_B);
     free(ptrs_C);
@@ -188,7 +208,13 @@ namespace CTF_int {
     std::complex<double> ** ptrs_A = get_grp_ptrs(m*k,l,A);
     std::complex<double> ** ptrs_B = get_grp_ptrs(k*n,l,B);
     std::complex<double> ** ptrs_C = get_grp_ptrs(m*n,l,C);
+    #if USE_SP_MKL
     CTF_BLAS::ZGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    #else
+    for (int i=0; i<l; i++){
+            CTF_BLAS::ZGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+    }
+    #endif
     free(ptrs_A);
     free(ptrs_B);
     free(ptrs_C);
