@@ -808,7 +808,6 @@ printf("HERE1\n");
     }
     idx_A = 0, idx_B = 0, idx_C = 0;
     sym_pass = 1;
-
    // int cntr=0;  
     for (;;){
       if (sym_pass){
@@ -884,7 +883,7 @@ printf("HERE1\n");
     ((double*)(C+idx_C*stride_C*sr_C->el_size))[0]);*/
         TAU_FSTOP(gemm);
         // count n^2 FLOPS too
-        CTF_FLOPS_ADD((2 * (int64_t)prm->n * (int64_t)prm->m * (int64_t)(prm->k+1)));
+        CTF_FLOPS_ADD((2 * (int64_t)prm->l * (int64_t)prm->n * (int64_t)prm->m * (int64_t)(prm->k+1)));
       }
       //printf("[%ld] <- [%ld]*[%ld] (%d <- %d, %d)\n",idx_C,idx_A,idx_B,stride_C,stride_A,stride_B);
 

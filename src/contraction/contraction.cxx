@@ -206,14 +206,14 @@ namespace CTF_int {
                      int const *    ordering_A,
                      int const *    ordering_B,
                      iparam *       inner_prm){
-    int i, num_tot, num_ctr, num_no_ctr_A, num_weigh;
+    int i, num_tot, num_ctr, num_no_ctr_A, num_no_ctr_B, num_weigh;
     int * idx_arr;
       
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    num_ctr = 0, num_no_ctr_A = 0, num_weigh = 0;
+    num_ctr = 0, num_no_ctr_A = 0, num_no_ctr_B = 0, num_weigh = 0;
     for (i=0; i<num_tot; i++){
       if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
         num_weigh++;
@@ -221,6 +221,8 @@ namespace CTF_int {
         num_ctr++;
       } else if (idx_arr[3*i] != -1){
         num_no_ctr_A++;
+      } else if (idx_arr[3*i-1] != -1){
+        num_no_ctr_B++;
       }
     }
     inner_prm->l = 1;
@@ -236,7 +238,7 @@ namespace CTF_int {
         inner_prm->k = inner_prm->k * A->pad_edge_len[ordering_A[i]];
     }
     for (i=0; i<B->order; i++){
-      if (i >= num_ctr)
+      if (i >= num_ctr && i< num_ctr + num_no_ctr_B)
         inner_prm->n = inner_prm->n * B->pad_edge_len[ordering_B[i]];
     }
     /* This gets set later */
@@ -290,7 +292,18 @@ namespace CTF_int {
             broken = 1;
           }
         } else {  
-          broken = 1;
+          if (((inA>=0) + (inB>=0) + (inC>=0) != 3) ||
+              ((inB == -1) ^ (iB == -1)) ||
+              ((inC == -1) ^ (iC == -1)) ||
+              ((inA == -1) ^ (iA == -1)) ||
+              (inB - iB != in-i) ||
+              (inC - iC != in-i) ||
+              (inA - iA != in-i) ||
+              (A->sym[inA] != B->sym[inB]) ||
+              (B->sym[inB] != C->sym[inC]) ||
+              (A->sym[inA] != C->sym[inC])){
+            broken = 1;
+          }
         }
         inA++;
       } while (A->sym[inA-1] != NS);
@@ -311,7 +324,7 @@ namespace CTF_int {
         in = idx_C[inC];
         inA = idx_arr[3*in+0];
         inB = idx_arr[3*in+1];
-        if (((inC>=0) + (inA>=0) + (inB>=0) != 2) ||
+        if (((inC>=0) + (inA>=0) + (inB>=0) == 1) ||
             ((inA == -1) ^ (iA == -1)) ||
             ((inB == -1) ^ (iB == -1)) ||
             (iA != -1 && inA - iA != in-i) ||
@@ -339,7 +352,7 @@ namespace CTF_int {
         in = idx_B[inB];
         inC = idx_arr[3*in+2];
         inA = idx_arr[3*in+0];
-        if (((inB>=0) + (inC>=0) + (inA>=0) != 2) ||
+        if (((inB>=0) + (inC>=0) + (inA>=0) == 1) ||
             ((inC == -1) ^ (iC == -1)) ||
             ((inA == -1) ^ (iA == -1)) ||
             (iC != -1 && inC - iC != in-i) ||
@@ -392,9 +405,10 @@ namespace CTF_int {
     if (is_sparse()){
       //when A is sparse we must fold all indices and reduce block contraction entirely to coomm
       if ((A->order+B->order+C->order)%2 == 1 ||
-          (A->order+B->order+C->order)/2 < nfold){
+          (A->order+B->order+C->order)/2 < nfold ){
         return 0;
       }
+      //FIXME:!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     }
     CTF_int::cdealloc(fold_idx);
     /* FIXME: 1 folded index is good enough for now, in the future model */

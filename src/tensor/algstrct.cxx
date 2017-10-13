@@ -21,7 +21,7 @@ namespace CTF_int {
     #pragma omp parallel for
 #endif
     for (int i=0; i<ngrp; i++){
-      data_ptrs[i] = (dtype*)data+i*grp_sz;
+      data_ptrs[i] = ((dtype*)data)+i*grp_sz;
     }
     return data_ptrs;
   }
@@ -63,10 +63,10 @@ namespace CTF_int {
     float ** ptrs_B = get_grp_ptrs(k*n,l,B);
     float ** ptrs_C = get_grp_ptrs(m*n,l,C);
     #if USE_SP_MKL
-      CTF_BLAS::SGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    CTF_BLAS::SGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
     #else 
     for (int i=0; i<l; i++){
-            CTF_BLAS::SGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+      CTF_BLAS::SGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
     }
     #endif
     free(ptrs_A);
@@ -110,13 +110,13 @@ namespace CTF_int {
     double ** ptrs_A = get_grp_ptrs(m*k,l,A);
     double ** ptrs_B = get_grp_ptrs(k*n,l,B);
     double ** ptrs_C = get_grp_ptrs(m*n,l,C);
-    #if USE_SP_MKL
     if (l > 1) 
       cout << "here:  " << l << endl;
+    #if USE_SP_MKL
     CTF_BLAS::DGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
     #else
     for (int i=0; i<l; i++){
-            CTF_BLAS::DGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+      CTF_BLAS::DGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
     }
     #endif
     free(ptrs_A);
@@ -164,7 +164,7 @@ namespace CTF_int {
     CTF_BLAS::CGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
     #else
     for (int i=0; i<l; i++){
-            CTF_BLAS::CGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+      CTF_BLAS::CGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
     }
     #endif
     free(ptrs_A);
@@ -212,7 +212,7 @@ namespace CTF_int {
     CTF_BLAS::ZGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
     #else
     for (int i=0; i<l; i++){
-            CTF_BLAS::ZGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+      CTF_BLAS::ZGEMM(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
     }
     #endif
     free(ptrs_A);

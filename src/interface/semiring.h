@@ -179,6 +179,15 @@ namespace CTF_int {
                     dtype const* B,
                     dtype        beta,
                     dtype *      C){
+    if (m == 1 && n == 1 && k == 1){
+      for (int i=0; i<l; i++){
+        C[i] = C[i]*beta + alpha*A[i]*B[i];
+      }
+    } else {
+      for (int i=0; i<l; i++){
+        default_gemm<dtype>(taA, taB, m, n, k, alpha, A+i*m*k, B+i*k*n, beta, C+i*m*n);
+      }
+    }
   }
   
   template<>
