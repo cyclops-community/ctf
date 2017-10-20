@@ -14,7 +14,6 @@
 int icontxt;
 
 extern "C" 
-
 void PDGESVD(   char * JOBU,
 		char * JOBVT,
 		int * M,
@@ -35,8 +34,8 @@ void PDGESVD(   char * JOBU,
 		double * WORK,
 		int * LWORK,
 		int * info);
-extern "C"
 
+extern "C"
 void DESCINIT(int *, int *,
 
               int *, int *,
@@ -121,6 +120,7 @@ void fold_unfold(Tensor<>& X, Tensor<>& Y){
 
 void SVD(Matrix<>& M, Matrix<>& U, Matrix<>& VT, World& dw){
 	std::cout<< "Computing SVD of M" <<std::endl;
+	int info;
 
 	int m = M.nrow;
 	int n = M.ncol;
@@ -128,15 +128,11 @@ void SVD(Matrix<>& M, Matrix<>& U, Matrix<>& VT, World& dw){
 	double * A = (double*)malloc(n*m*sizeof(double));
 	double * u = (double*)malloc(n*m*sizeof(double));
 	double * vt = (double*)malloc(n*m*sizeof(double));
-	int desca [9];
-	//int descu [9];
-	//int descvt [9];
-	int info;
+	int * desca = (int*)malloc(9*sizeof(int));
 
 	cdescinit(desca, m, n, 1, 1, 0, 0, icontxt, m/dw.np, &info);
 
 	M.read_mat(desca, A);
-
 
 	int lwork;
 	double * s = (double*)malloc(n*sizeof(double));
@@ -148,18 +144,14 @@ void SVD(Matrix<>& M, Matrix<>& U, Matrix<>& VT, World& dw){
 	Matrix<double> MVT(M);
 	MVT.read_mat(desca, vt);
 	*/
-	std::cout<< "print m "; 
-	std::cout<<  m <<std::endl;
-	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, (double*)&lwork, -1, &info);  
+  double llwork;
+	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, (double*)&llwork, -1, &info);  
+  lwork = (int)llwork;
 	double * work = (double*)malloc(sizeof(double)*lwork);
-	std::cout<< m <<std::endl;
-	std::cout<< n <<std::endl;
-	std::cout<< lwork <<std::endl;
 
 	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, work, lwork, &info);	//illegal value error after this call
 
 
-	std::cout<< info << std::endl;
 	Matrix<double> S(desca, s, dw);
 	S.print_matrix();
 
@@ -231,7 +223,7 @@ int main(int argc, char ** argv) {
 	Cblacs_get(-1, 0, &icontxt);
 	Cblacs_gridinit(&icontxt, &cC, np, 1);
 	
-	int lens[] = {2, 2};
+	int lens[] = {16, 16};
 	Tensor<double> T(2, lens, dw);
 	T.fill_random(0,10);
 	Matrix<double> M(T);
