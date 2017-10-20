@@ -17,7 +17,7 @@ TESTS = bivar_function bivar_transform ccsdt_map_test ccsdt_t3_to_t2 dft diag_ct
 
 BENCHMARKS = bench_contraction bench_nosym_transp bench_redistribution model_trainer
 
-SCALAPACK_TESTS = nonsq_pgemm_test hosvd 
+SCALAPACK_TESTS = nonsq_pgemm_test nonsq_pgemm_bench hosvd
 
 STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
           fast_tensor_ctr fast_sy_as_as_tensor_ctr fast_as_as_sy_tensor_ctr
