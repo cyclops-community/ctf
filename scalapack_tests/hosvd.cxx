@@ -139,7 +139,6 @@ void SVD(Matrix<>& M, Matrix<>& U, Matrix<>& VT, World& dw){
 
 
 	int lwork;
-	std::cout<<lwork<<std::endl;
 	double * s = (double*)malloc(n*sizeof(double));
 
 	/*
@@ -149,7 +148,8 @@ void SVD(Matrix<>& M, Matrix<>& U, Matrix<>& VT, World& dw){
 	Matrix<double> MVT(M);
 	MVT.read_mat(desca, vt);
 	*/
-	std::cout<< m+n <<std::endl;
+	std::cout<< "print m "; 
+	std::cout<<  m <<std::endl;
 	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, (double*)&lwork, -1, &info);  
 	double * work = (double*)malloc(sizeof(double)*lwork);
 	std::cout<< m <<std::endl;
@@ -187,6 +187,7 @@ std::vector< Matrix <> > get_factor_matrices(Tensor<>& T, World& dw) {
 		Matrix<> factor_matrix;
 		Matrix<> VT;
 		SVD(M, factor_matrix, VT, dw);
+		factor_matrices[i] = factor_matrix;
 		/*
 		double * A, * U;
 		int desca [9];
