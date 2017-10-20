@@ -156,13 +156,16 @@ void SVD(Matrix<>& M, Matrix<>& U, Matrix<>& VT, World& dw){
 	std::cout<< n <<std::endl;
 	std::cout<< lwork <<std::endl;
 
-	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, work, lwork, &info);
+	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, work, lwork, &info);	//illegal value error after this call
+
 
 	std::cout<< info << std::endl;
 	Matrix<double> S(desca, s, dw);
 	S.print_matrix();
+
 	U = Matrix<double>(desca, u, dw);
 	VT = Matrix<double>(desca, vt, dw);
+	
 
 }
 
@@ -180,6 +183,10 @@ std::vector< Matrix <> > get_factor_matrices(Tensor<>& T, World& dw) {
 		unfold_lens[1] = ncol;
 		Tensor<double> cur_unfold(2, unfold_lens, dw);
 		fold_unfold(T, cur_unfold);
+		Matrix<double> M(cur_unfold);
+		Matrix<> factor_matrix;
+		Matrix<> VT;
+		SVD(M, factor_matrix, VT, dw);
 		/*
 		double * A, * U;
 		int desca [9];
