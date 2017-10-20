@@ -5,7 +5,7 @@
   * \brief Jacobi iterative method using gemv and spmv
   */
 
-#include "ctf.hpp"
+#include <ctf.hpp>
 using namespace CTF;
 
 // compute a single Jacobi iteration to get new x, elementwise: x_i <== d_i*(b_i-sum_j R_ij*x_j)

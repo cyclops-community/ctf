@@ -22,15 +22,13 @@ SCALAPACK_TESTS = nonsq_pgemm_test hosvd
 STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
           fast_tensor_ctr fast_sy_as_as_tensor_ctr fast_as_as_sy_tensor_ctr
 
-EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(SCALAPACK_TESTS) $(STUDIES) $(DECOMPOSITIONS)
+EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(SCALAPACK_TESTS) $(STUDIES) 
 
 export EXAMPLES
 export TESTS
 export BENCHMARKS
 export SCALAPACK_TESTS
 export STUDIES
-export DECOMPOSITIONS
-
 
 
 
