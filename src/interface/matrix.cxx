@@ -2,6 +2,86 @@
 
 #include "common.h"
 #include "../shared/blas_symbs.h"
+
+
+#if !FTN_UNDERSCORE
+#define PDGESVD pdgesvd
+#define DESCINIT descinit
+#else
+#define PDGESVD pdgesvd_
+#define DESCINIT descinit_
+#endif
+
+extern "C" 
+void PDGESVD(   char *,
+		char *,
+		int *,
+		int *, 
+		double *,
+		int *,
+		int *,
+		int *,
+		double *,
+		double *,
+		int *,
+		int *,
+		int *,
+		double *,
+		int *,
+		int *,
+		int *,
+		double *,
+		int *,
+		int *);
+
+extern "C"
+void DESCINIT(int *, int *,
+
+              int *, int *,
+
+              int *, int *,
+
+              int *, int *,
+
+              int *, int *);
+
+void cpdgesvd(  char JOBU,
+		char JOBVT,
+		int M,
+		int N,
+		double * A,
+		int IA,
+		int JA,
+		int * DESCA,
+		double * S,
+		double * U,
+		int IU,
+		int JU,
+		int * DESCU,
+		double * VT,
+		int IVT,
+		int JVT,
+		int * DESCVT,
+		double * WORK,
+		int LWORK,
+		int * info) {
+	PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+}
+
+void cdescinit( int * desc, 
+                int m,	    
+		int n,
+                int mb,
+		int nb,
+                int irsrc,
+		int icsrc,
+                int ictxt,
+		int LLD,
+                int * info) {
+	  DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
+}
+
+
 namespace CTF_int{
   struct int2
   {
@@ -359,5 +439,39 @@ namespace CTF {
     write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
   }
 
+  template<typename dtype>
+  void Matrix<dtype>::matrix_svd(Matrix<> & U, Matrix<> & S, Matrix<> & VT, World & wrld, int icontxt){
+
+	int info;
+
+	int m = this->nrow;
+	int n = this->ncol;
+
+	double * A = (double*)malloc(n*m*sizeof(double)/wrld.np);
+	double * u = (double*)malloc(n*m*sizeof(double)/wrld.np);
+	double * s = (double*)malloc(n*m*sizeof(double)/wrld.np);
+	double * vt = (double*)malloc(n*m*sizeof(double)/wrld.np);
+
+	int * desca = (int*)malloc(9*sizeof(int));
+
+	cdescinit(desca, m, n, 1, 1, 0, 0, icontxt, m/wrld.np, &info);
+	this->read_mat(desca, A);
+
+	double llwork;
+	int lwork;
+
+	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, (double*)&llwork, -1, &info);  
+	
+	lwork = (int)llwork;
+	double * work = (double*)malloc(sizeof(double)*lwork);
+
+	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, work, lwork, &info);	
+
+
+	S = Matrix<double>(desca, s, wrld);
+	U = Matrix<double>(desca, u, wrld);
+	VT = Matrix<double>(desca, vt, wrld);
+
+  }
 
 }

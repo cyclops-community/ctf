@@ -255,6 +255,15 @@ namespace CTF {
        * \brief prints matrix by row and column (modify print(...) overload in set.h if you would like a different print format)
        */
       void print_matrix();
+
+      /*
+       * \calculates the singular value decomposition, M = U x S x VT, of matrix using pdgesvd from ScaLAPACK
+       * \param[out] U left singular vectors of matrix
+       * \param[out] S singular values of matrix
+       * \param[out] VT right singular vectors of matrix
+       * \param[in] wrld CTF world where the matrices will live, must contain pr*pc processors
+       */
+      void matrix_svd(Matrix<> & U, Matrix<> & S, Matrix<> & VT, World & wrld, int icontxt);
   };
   /**
    * @}
