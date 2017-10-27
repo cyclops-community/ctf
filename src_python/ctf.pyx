@@ -456,7 +456,7 @@ cdef class tensor:
         if sym is None:
             self.sym = np.asarray([0]*self.ndim)
         else:
-            self.sym = sym
+            self.sym = np.asarray(sym)
         if self.typ == np.bool:
             self.itemsize = 1
         else:
@@ -527,8 +527,14 @@ cdef class tensor:
             return transpose(self)
 
     def __add__(self, other):
-        tsr = tensor(copy=self)
-        otsr = astensor(other)
+        if isinstance(self, tensor):
+            tsr = self
+        else:
+            tsr = tensor(copy=astensor(self))
+        if isinstance(self, tensor):
+            otsr = other
+        else:
+            otsr = tensor(copy=astensor(other))
         tsr.i(get_num_str(self.ndim)) << otsr.i(get_num_str(otsr.ndim))
         return tsr
         #if not isinstance(other, tensor) and isinstance(self, tensor):

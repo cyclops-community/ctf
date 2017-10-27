@@ -12,10 +12,19 @@ export LIBS
 
 all: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 
+.PHONY: install
 install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
 	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
 	cp $(BDIR)/include/ctf.hpp $(INSTALL_DIR)/include
+
+.PHONY: uninstall
+uninstall: 
+	rm $(INSTALL_DIR)/lib/libctf.a 
+	rm $(INSTALL_DIR)/lib/libctf.so 
+	rm $(INSTALL_DIR)/include/ctf.hpp 
+
+
 
 EXAMPLES = algebraic_multigrid apsp bitonic_sort btwn_central ccsd checkpoint dft_3D fft force_integration force_integration_sparse jacobi matmul neural_network particle_interaction qinformatics recursive_matmul scan sparse_mp3 sparse_permuted_slice spectral_element spmv sssp strassen trace 
 TESTS = bivar_function bivar_transform ccsdt_map_test ccsdt_t3_to_t2 dft diag_ctr diag_sym endomorphism_cust endomorphism_cust_sp endomorphism gemm_4D multi_tsr_sym permute_multiworld readall_test readwrite_test repack scalar speye sptensor_sum subworld_gemm sy_times_ns test_suite univar_function weigh_4D 
