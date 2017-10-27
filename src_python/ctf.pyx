@@ -531,7 +531,7 @@ cdef class tensor:
             tsr = self
         else:
             tsr = tensor(copy=astensor(self))
-        if isinstance(self, tensor):
+        if isinstance(other, tensor):
             otsr = other
         else:
             otsr = tensor(copy=astensor(other))
@@ -2260,10 +2260,30 @@ def astensor(A, dtype = None, order=None):
     t.from_nparray(narr)
     return t
 
-def dot(A, B, out=None):
+def dot(tA, tB, out=None):
     # there will be error when using "type(A)==complex" since there seems confliction between Cython complex and Python complex... 
     if out is not None:
         raise ValueError("now ctf does not support to specify out")
+    
+    if type(tA)==tensor:
+        if tA.ndim == 0:
+            arr = np.ndarray(1, dtype = tA.dtype)
+            tA.read_all(arr)
+            A = arr[0]
+        else:
+            A = tA
+    else:
+        A = tA
+ 
+    if type(tB)==tensor:
+        if tB.ndim == 0:
+            arr = np.ndarray(1, dtype = tB.dtype)
+            tB.read_all(arr)
+            B = arr[0]
+        else:
+            B = tB
+    else:
+        B = tB
     if (type(A)==int or type(A)==float) and (type(B)==int or type(B)==float):
         return A * B
     elif type(A)==tensor and type(B)!=tensor:
