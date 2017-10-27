@@ -535,8 +535,12 @@ cdef class tensor:
             otsr = other
         else:
             otsr = tensor(copy=astensor(other))
-        tsr.i(get_num_str(tsr.ndim)) << otsr.i(get_num_str(otsr.ndim))
-        return tsr
+        if tsr.ndim < otsr.ndim:
+            otsr.i(get_num_str(otsr.ndim)) << tsr.i(get_num_str(tsr.ndim))
+            return otsr
+        else:
+            tsr.i(get_num_str(tsr.ndim)) << otsr.i(get_num_str(otsr.ndim))
+            return tsr
         #if not isinstance(other, tensor) and isinstance(self, tensor):
         #    string = ""
         #    string_index = 33
