@@ -42,6 +42,12 @@ class KnowValues(unittest.TestCase):
 #        self.assertTrue(a1[idx,:,idx].shape == (3, 4))
 #        self.assertTrue(allclose(a1[idx,idx+1,:], a0[idx,idx+1,:]))
 
+    def test__getitem__(self):
+        a0 = numpy.arange(12.).reshape(4,3)
+        a1 = ctf.astensor(a0)
+        self.assertTrue(a1.shape == (4,3))
+        self.assertTrue(a1[1].shape == (3,))
+
     def test__setitem__(self):
         def a0_and_a1():
             a0 = numpy.arange(60.).reshape(5,4,3)
@@ -53,8 +59,18 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(a1, a0))
 
         a0, a1 = a0_and_a1()
+        a1[3] = a0[3] + 11
+        a0[3] += 11
+        self.assertTrue(allclose(a1, a0))
+
+        a0, a1 = a0_and_a1()
         a1[(3,1)] = 99
         a0[3,1] = 99
+        self.assertTrue(allclose(a1, a0))
+
+        a0, a1 = a0_and_a1()
+        a1[(3,1)] = a0[3,1] + 11
+        a0[3,1] += 11
         self.assertTrue(allclose(a1, a0))
 
         a1[1:3:2] = 99
@@ -69,6 +85,11 @@ class KnowValues(unittest.TestCase):
         a0, a1 = a0_and_a1()
         a1[:,:1] = 99
         a0[:,:1] = 99
+        self.assertTrue(allclose(a1, a0))
+
+        a0, a1 = a0_and_a1()
+        a1[:,:1] = a0[:,:1] + 11
+        a0[:,:1] += 11
         self.assertTrue(allclose(a1, a0))
 
         a0, a1 = a0_and_a1()
@@ -92,6 +113,11 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(a1, a0))
 
         a0, a1 = a0_and_a1()
+        a1[1:3,2:5] = a0[1:3,2:5] + 11
+        a0[1:3,2:5] += 11
+        self.assertTrue(allclose(a1, a0))
+
+        a0, a1 = a0_and_a1()
         a1[1:-2] = 99
         a0[1:-2] = 99
         self.assertTrue(allclose(a1, a0))
@@ -99,6 +125,11 @@ class KnowValues(unittest.TestCase):
         a0, a1 = a0_and_a1()
         a1[1:3,:,2:] = 99
         a0[1:3,:,2:] = 99
+        self.assertTrue(allclose(a1, a0))
+
+        a0, a1 = a0_and_a1()
+        a1[1:3,:,2:] = a0[1:3,:,2:] + 11
+        a0[1:3,:,2:] += 11
         self.assertTrue(allclose(a1, a0))
 
         a0, a1 = a0_and_a1()

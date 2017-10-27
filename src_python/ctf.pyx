@@ -326,9 +326,9 @@ cdef class tensor:
     cdef int sp
     cdef cnp.ndarray sym
     cdef int ndim   
-    cdef int size
+    cdef size_t size
     cdef int itemsize
-    cdef int nbytes
+    cdef size_t nbytes
     cdef tuple strides
     # add shape and dtype to make CTF "same" with those in numpy
     # virtually, shape == dims, dtype == typ
@@ -1784,7 +1784,8 @@ cdef class tensor:
             self.write_all(arr)
         elif self.dt.wrld.rank == 0:
             #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
-            self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
+            #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
+            self.write(np.arange(0,self.tot_size(),dtype=np.int64),arr.ravel())
         else:
             self.write([], [])
 
