@@ -86,6 +86,8 @@ namespace CTF_int {
             double  const* B,
             double         beta,
             double  *      C){
+    if (l > 1) 
+      cout << "here:  " << l << endl;
     if (m == 1 && n == 1 && k == 1) {
       for (int i=0; i<l; i++){
         C[i]*=beta;
@@ -110,8 +112,6 @@ namespace CTF_int {
     double ** ptrs_A = get_grp_ptrs(m*k,l,A);
     double ** ptrs_B = get_grp_ptrs(k*n,l,B);
     double ** ptrs_C = get_grp_ptrs(m*n,l,C);
-    if (l > 1) 
-      cout << "here:  " << l << endl;
     #if USE_SP_MKL
     CTF_BLAS::DGEMM_BATCH(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
     #else

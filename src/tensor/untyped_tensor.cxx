@@ -39,7 +39,7 @@ namespace CTF_int {
 
   void tensor::free_self(){
     if (order != -1){
-      if (wrld->rank == 0) DPRINTF(2,"Deleted order %d tensor %s\n",order,name);
+      if (wrld->rank == 0) DPRINTF(3,"Deleted order %d tensor %s\n",order,name);
       if (is_folded) unfold();
       cdealloc(sym);
       cdealloc(lens);
@@ -335,7 +335,7 @@ namespace CTF_int {
       this->name[6] = '\0';
     }
     if (wrld->rank == 0)
-      DPRINTF(2,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
+      DPRINTF(3,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
 
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int));

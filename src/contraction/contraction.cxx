@@ -221,7 +221,7 @@ namespace CTF_int {
         num_ctr++;
       } else if (idx_arr[3*i] != -1){
         num_no_ctr_A++;
-      } else if (idx_arr[3*i-1] != -1){
+      } else if (idx_arr[3*i+1] != -1){
         num_no_ctr_B++;
       }
     }
@@ -230,8 +230,10 @@ namespace CTF_int {
     inner_prm->n = 1;
     inner_prm->k = 1;
     for (i=0; i<A->order; i++){
-      if (i >= num_ctr+num_no_ctr_A)
+      if (i >= num_ctr+num_no_ctr_A){
         inner_prm->l = inner_prm->l * A->pad_edge_len[ordering_A[i]];
+        printf("inner prm l = %d\n", inner_prm->l); 
+      }
       else if (i >= num_ctr)
         inner_prm->m = inner_prm->m * A->pad_edge_len[ordering_A[i]];
       else 
@@ -2504,7 +2506,7 @@ namespace CTF_int {
         A->set_padding();
         B->set_padding();
         C->set_padding();
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("\nTest mappings:\n");
           A->print_map(stdout, 0);
@@ -2553,7 +2555,7 @@ namespace CTF_int {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
         }
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("mapping passed contr est_time = %E sec\n", est_time);
         }
@@ -2601,7 +2603,7 @@ namespace CTF_int {
           memuse = MAX(((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
         else
           memuse = MAX((int64_t)sctr->mem_rec(), memuse);
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("total (with redistribution and transp) est_time = %E\n", est_time);
         }
@@ -3094,7 +3096,7 @@ namespace CTF_int {
     if (global_comm.rank == 0){
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
               (double)memuse,(double)proc_bytes_available(),std::min(gbest_time_sel,gbest_time_exh));
-#if DEBUG >= 1
+#if DEBUG >= 3
       (*ctrf)->print();
 #endif
     }
