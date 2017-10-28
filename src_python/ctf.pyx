@@ -508,7 +508,7 @@ cdef class tensor:
                 if dtype is None or dtype == copy.dtype:
                     self.dt = new ctensor(<ctensor*>copy.dt, True, True)
                 else:
-                    ccopy = tensor(copy.shape, sp=copy.sp, sym=copy.sym, dtype=dtype, order=copy.order)
+                    ccopy = tensor(self.shape, sp=self.sp, sym=self.sym, dtype=self.dtype, order=self.order)
                     copy.convert_type(ccopy)
                     self.dt = new ctensor(<ctensor*>ccopy.dt, True, True)
         free(clens)
@@ -1142,9 +1142,7 @@ cdef class tensor:
         return None
 
     def ravel(self, order="F"):
-        if ord_comp(order, 'F'):
-            inds, vals = self.read_local()
-            return astensor(vals)
+        return ravel(self, order)
 
     def read(self, init_inds, vals=None, a=None, b=None):
         inds = np.asarray(init_inds)
@@ -1295,16 +1293,19 @@ cdef class tensor:
     def tot_size(self):
         return self.dt.get_tot_size()
 
-    def read_all(self, arr):
+    def read_all(self, arr=None):
         cdef char * cvals
         cdef int64_t sz
         sz = self.dt.get_tot_size()
-        tB = arr.dtype.itemsize
+        tB = self.dtype.itemsize
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals)
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)
         buf.data = cvals
-        arr[:] = buf[:]
+        if arr is None:
+            return np.asarray(buf)
+        else:
+            arr[:] = buf[:]
         #for j in range(0,sz*tB):
         #    arr.view(dtype=np.int8)[j] = cvals[j]
         #free(cvals)
@@ -2732,43 +2733,41 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     # if there is no axis input, sum all the entries
     index = ""
     if axis is None:
-        index = random.sample(string.ascii_letters+string.digits,len(dim))
-        index = "".join(index)
-        index_A = index[0:len(dim)]
-        if keepdims == True:
-            ret_dim = []
-            for i in range(len(dim)):
-                ret_dim.append(1)
-            ret_dim = tuple(ret_dim)
+        index_A = get_num_str(len(dim))
+            #ret_dim = []
+            #for i in range(len(dim)):
+            #    ret_dim.append(1)
+            #ret_dim = tuple(ret_dim)
             # dtype has the same type of A, we do not need to convert
-            if dtype == A.get_type():
-                ret = tensor(ret_dim, dtype = dtype)
-                ret.i("") << A.i(index_A)
-                return ret
-            else:
-                # since the type is not same, we need another tensor C change the value of A and use C instead of A
-                C = tensor(A.get_dims(), dtype = dtype)
-                A.convert_type(C)
-                ret = tensor(ret_dim, dtype = dtype)
-                ret.i("") << C.i(index_A)
-                return ret
+            #if dtype == A.get_type():
+        ret = tensor([], dtype = dtype)
+        ret.i("") << A.i(index_A)
+        if keepdims == True:
+            return ret.reshape(np.ones(tensor.ndim))
         else:
-            if A.get_type() == np.bool:
-                # not sure at this one
-                return 0
-            else:
-                if dtype == A.get_type():
-                    ret = tensor((1,), dtype = dtype)
-                    ret.i("") << A.i(index_A)
-                    vals = ret.read([0])
-                    return vals[0]
-                else:
-                    C = tensor(A.get_dims(), dtype = dtype)
-                    A.convert_type(C)
-                    ret = tensor((1,), dtype = dtype)
-                    ret.i("") << C.i(index_A)
-                    vals = ret.read([0])
-                    return vals[0]
+            return ret.read_all()[0]
+            #else:
+                # since the type is not same, we need another tensor C change the value of A and use C instead of A
+            #    C = tensor(A.get_dims(), dtype = dtype)
+            #    A.convert_type(C)
+            #    ret = tensor(ret_dim, dtype = dtype)
+            #    ret.i("") << C.i(index_A)
+            #    return ret
+        #else:
+        #    if A.get_type() == np.bool:
+        #        # not sure at this one
+        #        return 0
+        #    else:
+        #        if dtype == A.get_type():
+        #            ret = tensor((1,), dtype = dtype)
+        #            ret.i("") << A.i(index_A)
+        #            vals = ret.read([0])
+        #            return vals[0]
+        #        else:
+        #            C = tensor(A.get_dims(), dtype = dtype)
+        #            A.convert_type(C)
+        #            ret = tensor((1,), dtype = dtype)
+        #            ret.i("") << C.i(index_A)
     
     # is the axis is an integer
     if type(axis)==int:
@@ -2848,9 +2847,10 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
 # ravel, the default order is Fortran
 def ravel(init_A, order="F"):
     A = astensor(init_A) 
-    if ord_comp(order, "F"):
-        inds, vals = A.read_local()
-        return astensor(vals)
+    if ord_comp(order, A.order):
+        return A.reshape(-1)
+    else:
+        return tensor(copy=A, order=order).reshape(-1)
 
 def any(tensor init_A, axis=None, out=None, keepdims=None):
     cdef tensor A = astensor(init_A) 
