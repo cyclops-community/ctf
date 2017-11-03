@@ -5,6 +5,7 @@
 
 int icontxt;
 
+
 extern "C" {
 
   void Cblacs_pinfo(int*, int*);
@@ -59,9 +60,13 @@ std::vector< Matrix <> > get_factor_matrices(Tensor<>& T, World& dw) {
 		Matrix<double> M(cur_unfold);
 		Matrix<> U;
 		Matrix<> VT;
-		Matrix<> S;
+		Vector<> S;
 
 		M.matrix_svd(U, S, VT, dw, icontxt);
+		printf("print S\n");
+		S.print();
+		printf("print VT\n");
+		VT.print_matrix();
 
 		factor_matrices[i] = U;
 		
@@ -71,13 +76,39 @@ std::vector< Matrix <> > get_factor_matrices(Tensor<>& T, World& dw) {
 }
 
 Tensor<> get_core_tensor(Tensor<>& T, std::vector< Matrix <> > factor_matrices, World& dw) {
-	Tensor<double> core(T.order, T.lens, dw);
+	
+	Tensor<double> core(T);
 
 	//calculate core tensor
+	char chars[] = {'i','j','k','l','m','n','o','p','\0'};
+	char arg[T.order+1];
+	char core_arg[T.order+1];
 	for (int i = 0; i < T.order; i++) {
-		
+		arg[i] = chars[i];
+		core_arg[i] = chars[i];
 	}
-
+	arg[T.order] = '\0';
+	core_arg[T.order] = '\0';
+	char matrix_arg[3];
+	matrix_arg[0] = 'a';
+	matrix_arg[2] = '\0';
+	Matrix<double> transpose();
+	for (int i = 0; i < T.order; i++) {
+		core_arg[i] = 'a';
+		matrix_arg[1] = arg[i];
+		Matrix<double> transpose(factor_matrices[i]);
+		transpose["ij"] = transpose["ji"];
+		printf("core_arg is %s \n", core_arg);
+		printf("matrix_arg is %s \n", matrix_arg);
+		printf("arg is %s \n", arg);
+		printf("Matrix is: \n");
+		factor_matrices[i].print_matrix();
+		printf("Transpose is: \n");
+		transpose.print_matrix();
+		core[core_arg] = transpose[matrix_arg] * core[arg];
+		core_arg[i] = arg[i];
+	}
+	core.print();
 	return core;
 }
 int main(int argc, char ** argv) {
@@ -93,8 +124,54 @@ int main(int argc, char ** argv) {
 	Cblacs_get(-1, 0, &icontxt);
 	Cblacs_gridinit(&icontxt, &cC, np, 1);
 
-	//Test get_factor_matrices
 	/*
+	int T_lens[] = {2 ,2 ,3};
+	Tensor<double> T(3, T_lens, dw);
+	T.fill_random(0,10);
+	printf("Tensor T \n");
+	T.print();
+	
+
+	int m1_lens[] = {2, 2};
+	Tensor<double> T1(2, m1_lens, dw);
+	T1.fill_random(0,10);
+	Matrix<double> M1(T1);
+	printf("Matrix M1 \n");
+	M1.print_matrix();
+
+
+	
+	int m2_lens[] = {2, 2};
+	Tensor<double> T2(2, m2_lens, dw);
+	T2.fill_random(0,10);
+	Matrix<double> M2(T2);
+	printf("Matrix M2 \n");
+	M2.print_matrix();
+
+	int m3_lens[] = {3, 3};
+	Tensor<double> T3(2, m3_lens, dw);
+	T3.fill_random(0,10);
+	Matrix<double> M3(T3);
+	printf("Matrix M3 \n");
+	M3.print_matrix();
+
+	std::vector< Matrix<double> > factor_matrices(3);
+	factor_matrices[0] = M1;
+	factor_matrices[1] = M2;
+	factor_matrices[2] = M3;
+	Tensor<double> core(get_core_tensor(T, factor_matrices, dw));
+	printf("Core Tensor \n");
+	core.print();
+	*/
+	//std::vector< Matrix<double> > factor_matrices2 = get_factor_matrices(T, dw);
+	//Tensor<double> core2(get_core_tensor(T, factor_matrices2, dw));
+	//core2.print();
+	
+	//T["ajk"] = T1[arg]*T["ijk"];
+	//T["iak"] = T2["aj"]*T["ijk"];
+	//T.print();
+	//Test get_factor_matrices
+	
 	int lens[] = {3, 4, 2};
 	Tensor<double> T(3, lens, dw);
 	T.fill_random(0,10);
@@ -111,7 +188,7 @@ int main(int argc, char ** argv) {
 	Matrix<double> unfold(one_mode_unfold);
 	printf("one-mode unfolding of T \n");
 	unfold.print_matrix();
-	*/
+	
 	//Test SVD 
 	/*
 	int lens[] = {2, 2};

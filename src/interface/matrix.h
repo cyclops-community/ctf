@@ -11,6 +11,9 @@ namespace CTF {
    * \brief Matrix class which encapsulates a 2D tensor 
    * \param[in] dtype specifies tensor element type
    */
+	//template<typename dtype>
+	//class Vector : public Tensor<dtype>;
+
   template<typename dtype=double> 
   class Matrix : public Tensor<dtype> {
     public:
@@ -262,8 +265,9 @@ namespace CTF {
        * \param[out] S singular values of matrix
        * \param[out] VT right singular vectors of matrix
        * \param[in] wrld CTF world where the matrices will live, must contain pr*pc processors
+       * \param[in] ictxt index of context
        */
-      void matrix_svd(Matrix<> & U, Matrix<> & S, Matrix<> & VT, World & wrld, int icontxt);
+      void matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, World & wrld, int ictxt);
   };
   /**
    * @}

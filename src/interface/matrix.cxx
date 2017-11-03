@@ -2,7 +2,7 @@
 
 #include "common.h"
 #include "../shared/blas_symbs.h"
-
+#include <stdlib.h>
 
 #if !FTN_UNDERSCORE
 #define PDGESVD pdgesvd
@@ -439,39 +439,64 @@ namespace CTF {
     write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
   }
 
-  template<typename dtype>
-  void Matrix<dtype>::matrix_svd(Matrix<> & U, Matrix<> & S, Matrix<> & VT, World & wrld, int icontxt){
+  template<>
+  inline void Matrix<double>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT, World & wrld, int ictxt){
 
 	int info;
 
 	int m = this->nrow;
 	int n = this->ncol;
+	int k = std::min(m,n);
 
-	double * A = (double*)malloc(n*m*sizeof(double)/wrld.np);
-	double * u = (double*)malloc(n*m*sizeof(double)/wrld.np);
-	double * s = (double*)malloc(n*m*sizeof(double)/wrld.np);
-	double * vt = (double*)malloc(n*m*sizeof(double)/wrld.np);
+	double * A = (double*)malloc(m*n*sizeof(double)/wrld.np);
+	double * u = (double*)malloc(m*k*sizeof(double)/wrld.np);
+	double * s = (double*)malloc(k*sizeof(double)/wrld.np);
+	double * vt = (double*)malloc(n*k*sizeof(double)/wrld.np);
 
 	int * desca = (int*)malloc(9*sizeof(int));
+	int * descu = (int*)malloc(9*sizeof(int));
+	int * descvt = (int*)malloc(9*sizeof(int));
 
-	cdescinit(desca, m, n, 1, 1, 0, 0, icontxt, m/wrld.np, &info);
+	cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+	cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+	cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+
 	this->read_mat(desca, A);
 
 	double llwork;
 	int lwork;
 
-	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, (double*)&llwork, -1, &info);  
+	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (double*)&llwork, -1, &info);  
 	
 	lwork = (int)llwork;
 	double * work = (double*)malloc(sizeof(double)*lwork);
 
-	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, desca, vt, 1, 1, desca, work, lwork, &info);	
+	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
 
 
-	S = Matrix<double>(desca, s, wrld);
-	U = Matrix<double>(desca, u, wrld);
-	VT = Matrix<double>(desca, vt, wrld);
+	//S = Matrix<double>(desca, s, wrld);
+	S = Vector<double>(k, wrld);
+	int64_t sc;
+	double * s_data = S.get_raw_data(&sc);
+	//memcpy(s_data, s, sizeof(double)*sc);
+	for (int i = wrld.rank; i < k; i += wrld.np) {
+		s_data[i/wrld.np] = s[i];
+	} 
+	U = Matrix<double>(descu, u, wrld);
+	VT = Matrix<double>(descvt, vt, wrld);
 
+	free(A);
+	free(u);
+	free(s);
+	free(vt);
+	free(desca);
+	free(work);
+
+  }
+  
+  template<typename dtype>
+  void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, World & wrld, int ictxt) {
+    assert(0);
   }
 
 }

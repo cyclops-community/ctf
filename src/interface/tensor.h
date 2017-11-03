@@ -940,9 +940,9 @@ namespace CTF {
 }
 
 #include "tensor.cxx"
-#include "matrix.h"
 #include "vector.h"
 #include "scalar.h"
+#include "matrix.h"
 #include "sparse_tensor.h"
 
 
