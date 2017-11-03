@@ -602,12 +602,20 @@ cdef class tensor:
         #return ret
 
     def __sub__(self, other):
-        tsr = tensor(copy=self)
-        otsr = astensor(other)
-        tsr.i(get_num_str(self.ndim)) << -1*otsr.i(get_num_str(otsr.ndim))
-        return tsr
-
-        #if not isinstance(other, tensor) and isinstance(self, tensor):
+        if isinstance(self, tensor):
+            tsr = self
+        else:
+            tsr = tensor(copy=astensor(self))
+        if isinstance(other, tensor):
+            otsr = other
+        else:
+            otsr = tensor(copy=astensor(other))
+        if tsr.ndim < otsr.ndim:
+            otsr.i(get_num_str(otsr.ndim)) << -1*tsr.i(get_num_str(tsr.ndim))
+            return otsr
+        else:
+            tsr.i(get_num_str(tsr.ndim)) << -1*otsr.i(get_num_str(otsr.ndim))
+            return tsr        #if not isinstance(other, tensor) and isinstance(self, tensor):
         #    string = ""
         #    string_index = 33
         #    for i in range(len(self.shape)):
