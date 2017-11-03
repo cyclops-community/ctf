@@ -772,9 +772,9 @@ printf("HERE1\n");
     int * dlen_A, * dlen_B, * dlen_C;
     int64_t idx_A, idx_B, idx_C, off_lda;
 
-    stride_A = prm->m*prm->k;
-    stride_B = prm->k*prm->n;
-    stride_C = prm->m*prm->n;
+    stride_A = prm->m*prm->k*prm->l;
+    stride_B = prm->k*prm->n*prm->l;
+    stride_C = prm->m*prm->n*prm->l;
 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
