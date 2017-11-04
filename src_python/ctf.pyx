@@ -445,6 +445,8 @@ cdef class tensor:
         else:
             self.typ = <cnp.dtype>dtype
         self.dtype = <cnp.dtype>dtype
+        if isinstance(lens,int):
+            lens = (lens,)
         self.dims = np.asarray(lens, dtype=np.dtype(int), order=1)
         self.shape = tuple(lens)
         self.ndim = len(self.dims)
@@ -3362,6 +3364,8 @@ def transpose(init_A, axes=None):
     return B
 
 def ones(shape, dtype = None, order='F'):
+    if isinstance(shape,int):
+        shape = (shape,)
     shape = np.asarray(shape)
     if dtype is not None:
         ret = tensor(shape, dtype = dtype)
