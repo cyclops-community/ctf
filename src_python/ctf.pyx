@@ -700,7 +700,7 @@ cdef class tensor:
             raise TypeError("either input should be tensor type")
 
         if self.shape != other.shape:
-            raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
+            raise ValueError("operands could not be broadcast together with shapes {0} {1}".format(self.shape,other.shape))
         if self.dtype == other.dtype:
             string_index = 33
             string = ""
@@ -765,7 +765,7 @@ cdef class tensor:
             raise TypeError("either input should be tensor type")
         
         if self.shape != other.shape:
-            raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
+            raise ValueError("operands could not be broadcast together with shapes {0} {1}".format(self.shape,other.shape))
         if self.dtype == other.dtype:
             string_index = 33
             string = ""
@@ -934,7 +934,7 @@ cdef class tensor:
                     vals = C.read([0])
                     return vals.reshape(out.shape)
                 else:
-                    raise ValueError("CTF error")
+                    raise ValueError("CTF PYTHON ERROR: invalid output dtype")
                     #if keepdims == True:
                     #    dim_keep = np.ones(len(self.dims),dtype=np.int64)
                     #    ret = reshape(B,dim_keep)
@@ -1228,15 +1228,15 @@ cdef class tensor:
                 dtype = np.float64
             # np.bool doesnot have itemsize
             if (self.typ != np.bool and dtype != np.bool) and self.itemsize > dtype.itemsize:
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.typ,dtype))
             if dtype == np.bool and self.typ != np.bool:
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.typ,dtype))
             str_self = str(self.typ)
             str_dtype = str(dtype)
             if "float" in str_self and "int" in str_dtype:
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.typ,dtype))
             elif "complex" in str_self and ("int" in str_dtype or "float" in str_dtype):
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'safe'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.typ,dtype))
             B = tensor(self.dims, dtype = dtype)
             self.convert_type(B)
             return B
@@ -1247,14 +1247,14 @@ cdef class tensor:
             if dtype == float:
                 dtype = np.float64
             if self.typ != dtype:
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'equiv'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'safe'".format(self.typ,dtype))
         elif casting == 'no':
             if dtype == int:
                 dtype = np.int64
             if dtype == float:
                 dtype = np.float64
             if self.typ != dtype:
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'no'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'no'".format(self.typ,dtype))
             B = tensor(self.dims, dtype = self.typ, copy = self)
             return B
         elif casting == 'same_kind':
@@ -1265,11 +1265,11 @@ cdef class tensor:
             str_self = str(self.typ)
             str_dtype = str(dtype)
             if 'float' in str_self and 'int' in str_dtype:
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.typ,dtype))
             if 'complex' in str_self and ('int' in str_dtype or ('float' in str_dtype)):
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.typ,dtype))
             if self.typ != np.bool and dtype == np.bool:
-                raise ValueError("Cannot cast array from dtype(", self.typ, ") to dtype(", dtype, ") according to the rule 'same_kind'")
+                raise ValueError("Cannot cast array from dtype({0}) to dtype({1}) according to the rule 'same_kind'".format(self.typ,dtype))
         else:
             raise ValueError("casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'")
 
@@ -3443,6 +3443,8 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
                 uniq_subs.discard(subscripts[j])
             else:
                 uniq_subs.add(subscripts[j])
+            if operands[i].ndim <= len(inds[i]):
+                raise ValueError("einsum subscripts string contains too many subscripts for operand {0}".format(i))
             dind_lens[subscripts[j]] = operands[i].get_dims()[len(inds[i])]
             inds[i] += subscripts[j]
             all_inds.append(subscripts[j])
