@@ -855,11 +855,10 @@ namespace CTF_int {
     int * padding_B = (int*)CTF_int::alloc(sizeof(int)*tsr_B->order);
     int * toffset_B = (int*)CTF_int::alloc(sizeof(int)*tsr_B->order);
     for (i=0,j=0; i<this->order && j<A->order; i++, j++){
-      if (ends_B[i] - offsets_B[i] == 1){ i++; continue; }
-      if (ends_A[j] - offsets_A[j] == 1){ j++; continue; }
-      if (i>=this->order || j>=A->order) break;
+      if (ends_B[i] - offsets_B[i] == 1){ j--; continue; } // continue with i+1,j
+      if (ends_A[j] - offsets_A[j] == 1){ i--; continue; } // continue with i,j+1
       if (ends_A[j] - offsets_A[j] != ends_B[i] - offsets_B[i]){
-        printf("CTF ERROR: slice dimensions inconsistent\n");
+        printf("CTF ERROR: slice dimensions inconsistent 1\n");
         ASSERT(0);
         return;
       }
@@ -867,13 +866,13 @@ namespace CTF_int {
 
     while (i < this->order){
       if (ends_B[i] - offsets_B[i] == 1){ i++; continue; }
-      printf("CTF ERROR: slice dimensions inconsistent\n");
+      printf("CTF ERROR: slice dimensions inconsistent 2\n");
       ASSERT(0);
       return;
     }
     while (j < A->order){
       if (ends_A[j] - offsets_A[j] == 1){ j++; continue; }
-      printf("CTF ERROR: slice dimensions inconsistent\n");
+      printf("CTF ERROR: slice dimensions inconsistent 3\n");
       ASSERT(0);
       return;
     }    
