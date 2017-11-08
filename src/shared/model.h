@@ -21,17 +21,32 @@ namespace CTF_int {
   template <int nparam>
   class LinModel : Model {
     private:
+      /** \brief number of performance observations made (calls to observe() */
       int64_t nobs;
+      /** \brief nmat_lda = nparam+1, defines the number of rows in the time_param_matrix
+                            the first row will store the execution time for each observation */
       int mat_lda;
+      /** \brief whether the model has been tuned during this execution */
       bool is_tuned;
+      /** \brief tot_time total time over all observations */
       double tot_time;
+      /** \brief over_time amount of time that the model would have overestimated the obeservations */
       double over_time;
+      /** \brief under_time amount of time that the model would have underestimated the obeservations */
       double under_time;
     public:
+      /** \brief the number of latest observations we want to  consider when updating the model */ 
       int hist_size;
+      /** \brief matrix containing parameter/time obervations, 
+                 with hist_size columns and nmat_lda rows,
+                 stores the last hist_size paramstime obervations */
       double * time_param_mat;
-      double param_guess[nparam];
-      double regularization[nparam];
+      /** \brief current coefficients for each paramter that the linear model will use */
+      double coeff_guess[nparam];
+
+      //double regularization[nparam];
+
+      /** \brief name of model */
       char * name;
 
       /** 

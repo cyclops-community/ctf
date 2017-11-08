@@ -140,7 +140,7 @@ namespace CTF_int {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
         assert(!do_offload);
-        sr_A->csrmm(m,n,k,alpha,vs,ja,ia,nz,B,beta,C,func);
+        sr_C->csrmm(m,n,k,alpha,vs,ja,ia,nz,B,beta,C,func);
       }
     }
   }
@@ -169,7 +169,7 @@ namespace CTF_int {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
         assert(!do_offload);
-        sr_A->csrmultd(m,n,k,alpha,vsA,jA,iA,nzA,vsB,jB,iB,nzB,beta,C);
+        sr_C->csrmultd(m,n,k,alpha,vsA,jA,iA,nzA,vsB,jB,iB,nzB,beta,C);
       }
     }
 
@@ -199,7 +199,7 @@ namespace CTF_int {
         ASSERT(sr_B->el_size == sr_A->el_size);
         ASSERT(sr_C->el_size == sr_A->el_size);
         assert(!do_offload);
-        sr_A->csrmultcsr(m,n,k,alpha,vsA,jA,iA,nzA,vsB,jB,iB,nzB,beta,C);
+        sr_C->csrmultcsr(m,n,k,alpha,vsA,jA,iA,nzA,vsB,jB,iB,nzB,beta,C);
       }
     }
 

@@ -103,7 +103,7 @@ int fast_sym(int const     n,
   Matrix<> Diff(n, n, SY, ctf, "Diff");
   Diff["ij"] += C["ij"];
   Diff["ij"] -= C_ans["ij"];
-  double nrm = sqrt(Diff["ij"]*Diff["ij"]);
+  double nrm = sqrt((double)(Diff["ij"]*Diff["ij"]));
   int pass = (nrm <=1.E-10);
   if (nrm > 1.E-10 && rank == 0) printf("nrm = %lf\n",nrm);
   

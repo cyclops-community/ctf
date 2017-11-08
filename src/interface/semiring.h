@@ -97,7 +97,7 @@ namespace CTF_int {
       for (i=0; i<m; i++){
         C[j*m+i] *= beta;
         for (l=0; l<k; l++){
-          C[j*m+i] += A[istride_A*i+lstride_A*l]*B[lstride_B*l+jstride_B*j];
+          C[j*m+i] += alpha*A[istride_A*i+lstride_A*l]*B[lstride_B*l+jstride_B*j];
         }
       }
     }
@@ -541,6 +541,7 @@ namespace CTF {
                       int           nnz_B,
                       dtype         beta,
                       dtype *       C) const {
+        
         if (!this->isequal((char const*)&beta, this->mulid())){
           this->scal(m*n, (char const *)&beta, (char*)C, 1);
         }
