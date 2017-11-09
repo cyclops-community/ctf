@@ -58,6 +58,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         bool is_sparse
         ctensor()
         ctensor(ctensor * other, bool copy, bool alloc_data)
+        ctensor(ctensor * other, int * new_sym)
         void prnt()
         int read(int64_t num_pair,
                  char *  alpha,
@@ -86,6 +87,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         void exp_helper[dtype_A,dtype_B](ctensor * A)
         void true_divide[dtype](ctensor * A)
         void pow_helper_int[dtype](ctensor * A, int p)
+        int sparsify(char * threshold, int take_abs)
 
     cdef cppclass Term:
         Term * clone();
@@ -516,6 +518,9 @@ cdef class tensor:
         free(clens)
         free(csym)
     
+    def __dealloc__(self):
+        del self.dt
+    
     def T(self):
         return transpose(self)
 
@@ -846,6 +851,16 @@ cdef class tensor:
             (<Tensor[double complex]*>self.dt).fill_random(mn,mx)
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
+
+    #def sparsify(self, threshold=None, take_abs=True):
+    #    if threshold == None and take_abs == True:
+    #        self.dt.sparsify(0, 1)
+    #    elif threshold != None and take_abs == True:
+    #        self.dt.sparsify(threshold, 1)
+    #    elif threshold == None and take_abs == False:
+    #        self.dt.sparsify(0, 0)
+    #    else:
+    #        self.dt.sparsify(threshold, 0)
 
     def fill_sp_random(self, mn, mx, frac):
         if self.typ == np.float64:
@@ -1953,6 +1968,45 @@ cdef class tensor:
 #        super(mtx, self).__cinit__([nrow, ncol], sp=sp, sym=[sym, SYM.NS], dtype=dtype)
 
 # 
+
+def trilSquare(tensor A):
+    if not isinstance(A, tensor):
+        raise ValueError('CTF PYTHON ERROR: A is not a tensor')
+    if A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: A is not a matrix')
+    if A.shape[0] != A.shape[1]:
+        raise ValueError('CTF PYTHON ERROR: A is not a square matrix')
+    cdef tensor B
+    B = A.copy()
+    cdef int * csym
+    cdef int * csym2
+    csym = int_arr_py_to_c(np.zeros([2]))
+    csym2 = int_arr_py_to_c(np.asarray([2,0]))
+    del B.dt
+    cdef ctensor * ct
+    ct = new ctensor(A.dt, csym2) 
+    B.dt = new ctensor(ct, csym) 
+    del ct
+    return B
+    
+def tril(A, k=0):
+    if not isinstance(A, tensor):
+        raise ValueError('CTF PYTHON ERROR: A is not a tensor')
+    if A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: A is not a matrix')
+    A = A.copy()
+    if k >= 0:
+        A[0:k,:] = 0
+    if A.shape[0] != A.shape[1] or k != 0:
+        B = A[ max(0, k) : min(k+A.shape[1],A.shape[0]), max(0, -k) : min(A.shape[1], A.shape[0] - k)]
+        C = trilSquare(B)
+        A[ max(0, k) : min(k+A.shape[1],A.shape[0]), max(0, -k) : min(A.shape[1], A.shape[0] - k)] = C
+    else:
+        A = trilSquare(A)
+    return A
+
+def triu(A,k=0):
+    return transpose(tril(A.transpose(), -k))
 
 # call this function to get the real part of complex number in ctensor
 def real(tensor A):
