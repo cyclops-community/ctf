@@ -13,26 +13,26 @@
 #endif
 
 extern "C" 
-void PDGESVD(   char *,
-		char *,
-		int *,
-		int *, 
-		double *,
-		int *,
-		int *,
-		int *,
-		double *,
-		double *,
-		int *,
-		int *,
-		int *,
-		double *,
-		int *,
-		int *,
-		int *,
-		double *,
-		int *,
-		int *);
+void PDGESVD( char *,
+              char *,
+              int *,
+              int *, 
+              double *,
+              int *,
+              int *,
+              int *,
+              double *,
+              double *,
+              int *,
+              int *,
+              int *,
+              double *,
+              int *,
+              int *,
+              int *,
+              double *,
+              int *,
+              int *);
 
 extern "C"
 void DESCINIT(int *, int *,
@@ -46,39 +46,39 @@ void DESCINIT(int *, int *,
               int *, int *);
 
 void cpdgesvd(  char JOBU,
-		char JOBVT,
-		int M,
-		int N,
-		double * A,
-		int IA,
-		int JA,
-		int * DESCA,
-		double * S,
-		double * U,
-		int IU,
-		int JU,
-		int * DESCU,
-		double * VT,
-		int IVT,
-		int JVT,
-		int * DESCVT,
-		double * WORK,
-		int LWORK,
-		int * info) {
-	PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+                char JOBVT,
+                int M,
+                int N,
+                double * A,
+                int IA,
+                int JA,
+                int * DESCA,
+                double * S,
+                double * U,
+                int IU,
+                int JU,
+                int * DESCU,
+                double * VT,
+                int IVT,
+                int JVT,
+                int * DESCVT,
+                double * WORK,
+                int LWORK,
+                int * info) {
+  PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
 }
 
 void cdescinit( int * desc, 
                 int m,	    
-		int n,
+		            int n,
                 int mb,
-		int nb,
+                int nb,
                 int irsrc,
-		int icsrc,
+                int icsrc,
                 int ictxt,
-		int LLD,
+                int LLD,
                 int * info) {
-	  DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
+  DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
 }
 
 
@@ -440,62 +440,76 @@ namespace CTF {
   }
 
   template<>
-  inline void Matrix<double>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT, World & wrld, int ictxt){
+  inline void Matrix<double>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT, int rank, World & wrld, int ictxt){
 
-	int info;
+    int info;
 
-	int m = this->nrow;
-	int n = this->ncol;
-	int k = std::min(m,n);
+    int m = this->nrow;
+    int n = this->ncol;
+    int k = std::min(m,n);
 
-	double * A = (double*)malloc(m*n*sizeof(double)/wrld.np);
-	double * u = (double*)malloc(m*k*sizeof(double)/wrld.np);
-	double * s = (double*)malloc(k*sizeof(double)/wrld.np);
-	double * vt = (double*)malloc(n*k*sizeof(double)/wrld.np);
+    double * A = (double*)malloc(m*n*sizeof(double)/wrld.np);
+    double * u = (double*)malloc(m*k*sizeof(double)/wrld.np);
+    double * s = (double*)malloc(k*sizeof(double)/wrld.np);
+    double * vt = (double*)malloc(k*n*sizeof(double)/wrld.np);
 
-	int * desca = (int*)malloc(9*sizeof(int));
-	int * descu = (int*)malloc(9*sizeof(int));
-	int * descvt = (int*)malloc(9*sizeof(int));
+    int * desca = (int*)malloc(9*sizeof(int));
+    int * descu = (int*)malloc(9*sizeof(int));
+    int * descvt = (int*)malloc(9*sizeof(int));
 
-	cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
-	cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
-	cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+    cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+    cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+    cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
 
-	this->read_mat(desca, A);
+    this->read_mat(desca, A);
 
-	double llwork;
-	int lwork;
+    double llwork;
+    int lwork;
 
-	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (double*)&llwork, -1, &info);  
-	
-	lwork = (int)llwork;
-	double * work = (double*)malloc(sizeof(double)*lwork);
+    cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (double*)&llwork, -1, &info);  
 
-	cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
+    lwork = (int)llwork;
+    double * work = (double*)malloc(sizeof(double)*lwork);
 
+    cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
 
-	//S = Matrix<double>(desca, s, wrld);
-	S = Vector<double>(k, wrld);
-	int64_t sc;
-	double * s_data = S.get_raw_data(&sc);
-	//memcpy(s_data, s, sizeof(double)*sc);
-	for (int i = wrld.rank; i < k; i += wrld.np) {
-		s_data[i/wrld.np] = s[i];
-	} 
-	U = Matrix<double>(descu, u, wrld);
-	VT = Matrix<double>(descvt, vt, wrld);
+ 
+    S = Vector<double>(k, wrld);
+    int64_t sc;
+    double * s_data = S.get_raw_data(&sc);
 
-	free(A);
-	free(u);
-	free(s);
-	free(vt);
-	free(desca);
-	free(work);
+    for (int i = wrld.rank; i < k; i += wrld.np) {
+      s_data[i/wrld.np] = s[i];
+    } 
+    U = Matrix<double>(descu, u, wrld);
+    VT = Matrix<double>(descvt, vt, wrld);
+    printf("Left singular vectors (U) before slice: \n");
+    U.print_matrix();
+    printf("Singular values (S):\n");
+    S.print();
+    printf("Right singular vectors (VT):\n");
+    VT.print_matrix();
+    printf("rank is: %d\n", rank);
+    int zero = 0;
+    if (rank > 0 && rank < k) {
+      S = S.slice(&zero, &rank);
+      U = U.slice(0, rank*(m-1));
+      VT = VT.slice(0, rank+(n-1)*k);
+    }
+
+    free(A);
+    free(u);
+    free(s);
+    free(vt);
+    free(desca);
+    free(descu);
+    free(descvt);
+    free(work);
 
   }
   
   template<typename dtype>
-  void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, World & wrld, int ictxt) {
+  void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, World & wrld, int ictxt) {
     assert(0);
   }
 

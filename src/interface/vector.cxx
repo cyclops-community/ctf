@@ -28,7 +28,7 @@ namespace CTF {
   template<typename dtype>
   Vector<dtype>::Vector(Tensor<dtype> const & A)
     : Tensor<dtype>(A) {
-    ASSERT(A.order == 1);
+    IASSERT(A.order == 1);
     len = A.lens[0];
   }
 
