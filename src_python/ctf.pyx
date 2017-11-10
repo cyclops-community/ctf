@@ -609,18 +609,33 @@ cdef class tensor:
         #return ret
 
     def __sub__(self, other):
+        was_tsr_self = True
+        was_otsr_self = True
         if isinstance(self, tensor):
             tsr = self
         else:
-            tsr = tensor(copy=astensor(self))
+            was_tsr_self = False
+            if isinstance(other, tensor):
+                tsr = astensor(self,dtype=other.dtype)
+            else:
+                tsr = astensor(self)
         if isinstance(other, tensor):
             otsr = other
         else:
-            otsr = tensor(copy=astensor(other))
+            was_otsr_self = False
+            otsr = astensor(other,dtype=tsr.dtype)
+        if tsr.dtype != otsr.dtype:
+            was_otsr_self = False
+            otsr = tensor(copy=otsr,dtype=tsr.dtype)
         if tsr.ndim < otsr.ndim:
-            otsr.i(get_num_str(otsr.ndim)) << -1*tsr.i(get_num_str(tsr.ndim))
+            if was_otsr_self:
+                otsr = tensor(copy=otsr)
+            otsr.i(get_num_str(otsr.ndim)).scl(-1.)
+            otsr.i(get_num_str(otsr.ndim)) << tsr.i(get_num_str(tsr.ndim))
             return otsr
         else:
+            if was_tsr_self:
+                tsr = tensor(copy=tsr)
             tsr.i(get_num_str(tsr.ndim)) << -1*otsr.i(get_num_str(otsr.ndim))
             return tsr        #if not isinstance(other, tensor) and isinstance(self, tensor):
         #    string = ""
