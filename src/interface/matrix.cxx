@@ -440,7 +440,7 @@ namespace CTF {
   }
 
   template<>
-  inline void Matrix<double>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT, int rank, World & wrld, int ictxt){
+  inline void Matrix<double>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT, World & wrld, int ictxt, int rank){
 
     int info;
 
@@ -490,11 +490,10 @@ namespace CTF {
     printf("Right singular vectors (VT):\n");
     VT.print_matrix();
     printf("rank is: %d\n", rank);
-    int zero = 0;
     if (rank > 0 && rank < k) {
-      S = S.slice(&zero, &rank);
-      U = U.slice(0, rank*(m-1));
-      VT = VT.slice(0, rank+(n-1)*k);
+      S = S.slice(0, rank-1);
+      U = U.slice(0, rank*(m)-1);
+      VT = VT.slice(0, k*n-(k-rank+1));
     }
 
     free(A);
@@ -509,7 +508,7 @@ namespace CTF {
   }
   
   template<typename dtype>
-  void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank, World & wrld, int ictxt) {
+  void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, World & wrld, int ictxt, int rank) {
     assert(0);
   }
 

@@ -92,7 +92,7 @@ std::vector< Matrix <> > get_factor_matrices(Tensor<>& T, int ranks[], World& dw
     Vector<> S;
     printf("%d-mode unfolding of T:\n", i+1);
     M.print_matrix();
-    M.matrix_svd(U, S, VT, ranks[i], dw, icontxt);
+    M.matrix_svd(U, S, VT, dw, icontxt, ranks[i]);
 
     printf("SVD of %d-mode unfolding of T\n", i+1);
     printf("Left singular vectors (U): \n");
@@ -109,9 +109,18 @@ std::vector< Matrix <> > get_factor_matrices(Tensor<>& T, int ranks[], World& dw
   return factor_matrices;
 }
 
-Tensor<> get_core_tensor(Tensor<>& T, std::vector< Matrix <> > factor_matrices, World& dw) {
-	
-  Tensor<double> core(T);
+Tensor<> get_core_tensor(Tensor<>& T, std::vector< Matrix <> > factor_matrices, int ranks[], World& dw) {
+	std::vector< Tensor <> > core_tensors(T.order+1);
+  core_tensors[0] = T;
+  int lens[T.order];
+  for (int i = 0; i < T.order; i++) {
+    lens[i] = T.lens[i];
+  } 
+  for (int i = 1; i < T.order+1; i++) {
+    lens[i-1] = ranks[i-1];
+    Tensor<double> core(T.order, lens, dw);
+    core_tensors[i] = core;
+  }
 
   //calculate core tensor
   char chars[] = {'i','j','k','l','m','n','o','p','\0'};
@@ -130,13 +139,18 @@ Tensor<> get_core_tensor(Tensor<>& T, std::vector< Matrix <> > factor_matrices, 
   for (int i = 0; i < T.order; i++) {
     core_arg[i] = 'a';
     matrix_arg[1] = arg[i];
-    Matrix<double> transpose(factor_matrices[i]);
-    transpose["ij"] = transpose["ji"];
-    core[core_arg] = transpose[matrix_arg] * core[arg];
+    Matrix<double> transpose(factor_matrices[i].ncol, factor_matrices[i].nrow, dw);
+    transpose["ij"] = factor_matrices[i]["ji"];
+    //printf("transpose of factor matrix %d is\n", i+1);
+    transpose.print_matrix();
+    //printf("core_arg is %s \n", core_arg);
+    //printf("matrix_arg is %s \n", matrix_arg);
+    //printf("arg is %s \n", arg);
+    core_tensors[i+1][core_arg] = transpose[matrix_arg] * core_tensors[i][arg];
     core_arg[i] = arg[i];
   }
-  core.print();
-  return core;
+  core_tensors[T.order].print();
+  return core_tensors[T.order];
 }
 int main(int argc, char ** argv) {
 	
@@ -152,17 +166,16 @@ int main(int argc, char ** argv) {
   Cblacs_gridinit(&icontxt, &cC, np, 1);
 
 	
-	int T_lens[] = {3 ,3 ,3, 3};
-	Tensor<double> T(4, T_lens, dw);
+	int T_lens[] = {2 ,2 ,3};
+	Tensor<double> T(3, T_lens, dw);
 	T.fill_random(0,10);
 	printf("Tensor T \n");
 	T.print();
 
-  int ranks[] = {2,2,2,2};
+  int ranks[] = {2,1,2};
   std::vector< Matrix<double> > factor_matrices = get_factor_matrices(T, ranks, dw);
-	Tensor<double> core(get_core_tensor(T, factor_matrices, dw));
-	printf("Core Tensor \n");
-	core.print();
+	Tensor<double> core(get_core_tensor(T, factor_matrices, ranks, dw)); 
+
 
 
   MPI_Finalize();
