@@ -2,84 +2,8 @@
 
 #include "common.h"
 #include "../shared/blas_symbs.h"
+#include "../shared/lapack_symbs.h"
 #include <stdlib.h>
-
-#if !FTN_UNDERSCORE
-#define PDGESVD pdgesvd
-#define DESCINIT descinit
-#else
-#define PDGESVD pdgesvd_
-#define DESCINIT descinit_
-#endif
-
-extern "C" 
-void PDGESVD( char *,
-              char *,
-              int *,
-              int *, 
-              double *,
-              int *,
-              int *,
-              int *,
-              double *,
-              double *,
-              int *,
-              int *,
-              int *,
-              double *,
-              int *,
-              int *,
-              int *,
-              double *,
-              int *,
-              int *);
-
-extern "C"
-void DESCINIT(int *, int *,
-
-              int *, int *,
-
-              int *, int *,
-
-              int *, int *,
-
-              int *, int *);
-
-void cpdgesvd(  char JOBU,
-                char JOBVT,
-                int M,
-                int N,
-                double * A,
-                int IA,
-                int JA,
-                int * DESCA,
-                double * S,
-                double * U,
-                int IU,
-                int JU,
-                int * DESCU,
-                double * VT,
-                int IVT,
-                int JVT,
-                int * DESCVT,
-                double * WORK,
-                int LWORK,
-                int * info) {
-  PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
-}
-
-void cdescinit( int * desc, 
-                int m,	    
-		            int n,
-                int mb,
-                int nb,
-                int irsrc,
-                int icsrc,
-                int ictxt,
-                int LLD,
-                int * info) {
-  DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
-}
 
 
 namespace CTF_int{
@@ -457,21 +381,21 @@ namespace CTF {
     int * descu = (int*)malloc(9*sizeof(int));
     int * descvt = (int*)malloc(9*sizeof(int));
 
-    cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
-    cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
-    cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+    CTF_LAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+    CTF_LAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+    CTF_LAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
 
     this->read_mat(desca, A);
 
     double llwork;
     int lwork;
 
-    cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (double*)&llwork, -1, &info);  
+    CTF_LAPACK::cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (double*)&llwork, -1, &info);  
 
     lwork = (int)llwork;
     double * work = (double*)malloc(sizeof(double)*lwork);
 
-    cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
+    CTF_LAPACK::cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
 
  
     S = Vector<double>(k, wrld);

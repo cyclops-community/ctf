@@ -615,7 +615,7 @@ namespace CTF {
       ends[i]++;
     }
     
-    Tensor tsr = slice(offsets, ends, owrld);
+    Tensor<dtype> tsr = slice(offsets, ends, owrld);
 
     CTF_int::cdealloc(offsets);
     CTF_int::cdealloc(ends);
