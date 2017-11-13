@@ -47,7 +47,7 @@ if is_mpi_init == 0:
 def MPI_Stop():
     MPI_Finalize()
 
-cdef extern from "../include/ctf.hpp" namespace "CTF_int":
+cdef extern from "ctf.hpp" namespace "CTF_int":
     cdef cppclass algstrct:
         char * addid()
         char * mulid()
@@ -124,7 +124,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass Bivar_Transform[dtype_A,dtype_B,dtype_C](bivar_function):
         Bivar_Transform(function[void(dtype_A,dtype_B,dtype_C&)] f_);
 
-cdef extern from "ctf_ext.h" namespace "CTF_int":
+cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(ctensor *);
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void conj_helper(ctensor * A, ctensor * B);
@@ -132,7 +132,7 @@ cdef extern from "ctf_ext.h" namespace "CTF_int":
     cdef void get_real[dtype](ctensor * A, ctensor * B)
     cdef void get_imag[dtype](ctensor * A, ctensor * B)
     
-cdef extern from "../include/ctf.hpp" namespace "CTF":
+cdef extern from "ctf.hpp" namespace "CTF":
 
     cdef cppclass World:
         int rank, np;
@@ -859,10 +859,18 @@ cdef class tensor:
             raise ValueError("input should be tensors")
         return dot(self, other)
     
-    def fill_random(self, mn, mx):
+    def fill_random(self, mn=None, mx=None):
         if self.typ == np.float64:
+            if mn is None:
+                mn = 0.
+            if mx is None:
+                mx = 1.
             (<Tensor[double]*>self.dt).fill_random(mn,mx)
         elif self.typ == np.complex128:
+            if mn is None:
+                mn = 0.+0.j
+            if mx is None:
+                mx = 1.+1.j
             (<Tensor[double complex]*>self.dt).fill_random(mn,mx)
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -1095,7 +1103,6 @@ cdef class tensor:
             return B
         else:
             raise ValueError("an integer is required")
-        return None
 
     # the core function when we want to sum the ctensor...
     def i(self, string):
@@ -3461,9 +3468,7 @@ def ones(shape, dtype = None, order='F'):
             string_index += 1
         ret.i(string) << 1.0
         return ret
-        
-
-    
+   
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n
     if m is not None:
