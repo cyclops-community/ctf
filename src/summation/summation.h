@@ -1,7 +1,7 @@
 #ifndef __INT_SUMMATION_H__
 #define __INT_SUMMATION_H__
 
-#include "assert.h"
+#include <assert.h>
 #include "sum_tsr.h"
 #include "spsum_tsr.h"
 
