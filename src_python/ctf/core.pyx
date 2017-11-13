@@ -47,7 +47,7 @@ if is_mpi_init == 0:
 def MPI_Stop():
     MPI_Finalize()
 
-cdef extern from "../include/ctf.hpp" namespace "CTF_int":
+cdef extern from "ctf.hpp" namespace "CTF_int":
     cdef cppclass algstrct:
         char * addid()
         char * mulid()
@@ -58,6 +58,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         bool is_sparse
         ctensor()
         ctensor(ctensor * other, bool copy, bool alloc_data)
+        ctensor(ctensor * other, int * new_sym)
         void prnt()
         int read(int64_t num_pair,
                  char *  alpha,
@@ -86,6 +87,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
         void exp_helper[dtype_A,dtype_B](ctensor * A)
         void true_divide[dtype](ctensor * A)
         void pow_helper_int[dtype](ctensor * A, int p)
+        int sparsify(char * threshold, int take_abs)
 
     cdef cppclass Term:
         Term * clone();
@@ -122,7 +124,7 @@ cdef extern from "../include/ctf.hpp" namespace "CTF_int":
     cdef cppclass Bivar_Transform[dtype_A,dtype_B,dtype_C](bivar_function):
         Bivar_Transform(function[void(dtype_A,dtype_B,dtype_C&)] f_);
 
-cdef extern from "ctf_ext.h" namespace "CTF_int":
+cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(ctensor *);
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void conj_helper(ctensor * A, ctensor * B);
@@ -130,7 +132,7 @@ cdef extern from "ctf_ext.h" namespace "CTF_int":
     cdef void get_real[dtype](ctensor * A, ctensor * B)
     cdef void get_imag[dtype](ctensor * A, ctensor * B)
     
-cdef extern from "../include/ctf.hpp" namespace "CTF":
+cdef extern from "ctf.hpp" namespace "CTF":
 
     cdef cppclass World:
         int rank, np;
@@ -516,6 +518,9 @@ cdef class tensor:
         free(clens)
         free(csym)
     
+    def __dealloc__(self):
+        del self.dt
+    
     def T(self):
         return transpose(self)
 
@@ -604,18 +609,33 @@ cdef class tensor:
         #return ret
 
     def __sub__(self, other):
+        was_tsr_self = True
+        was_otsr_self = True
         if isinstance(self, tensor):
             tsr = self
         else:
-            tsr = tensor(copy=astensor(self))
+            was_tsr_self = False
+            if isinstance(other, tensor):
+                tsr = astensor(self,dtype=other.dtype)
+            else:
+                tsr = astensor(self)
         if isinstance(other, tensor):
             otsr = other
         else:
-            otsr = tensor(copy=astensor(other))
+            was_otsr_self = False
+            otsr = astensor(other,dtype=tsr.dtype)
+        if tsr.dtype != otsr.dtype:
+            was_otsr_self = False
+            otsr = tensor(copy=otsr,dtype=tsr.dtype)
         if tsr.ndim < otsr.ndim:
-            otsr.i(get_num_str(otsr.ndim)) << -1*tsr.i(get_num_str(tsr.ndim))
+            if was_otsr_self:
+                otsr = tensor(copy=otsr)
+            otsr.i(get_num_str(otsr.ndim)).scl(-1.)
+            otsr.i(get_num_str(otsr.ndim)) << tsr.i(get_num_str(tsr.ndim))
             return otsr
         else:
+            if was_tsr_self:
+                tsr = tensor(copy=tsr)
             tsr.i(get_num_str(tsr.ndim)) << -1*otsr.i(get_num_str(otsr.ndim))
             return tsr        #if not isinstance(other, tensor) and isinstance(self, tensor):
         #    string = ""
@@ -839,13 +859,31 @@ cdef class tensor:
             raise ValueError("input should be tensors")
         return dot(self, other)
     
-    def fill_random(self, mn, mx):
+    def fill_random(self, mn=None, mx=None):
         if self.typ == np.float64:
+            if mn is None:
+                mn = 0.
+            if mx is None:
+                mx = 1.
             (<Tensor[double]*>self.dt).fill_random(mn,mx)
         elif self.typ == np.complex128:
+            if mn is None:
+                mn = 0.+0.j
+            if mx is None:
+                mx = 1.+1.j
             (<Tensor[double complex]*>self.dt).fill_random(mn,mx)
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
+
+    #def sparsify(self, threshold=None, take_abs=True):
+    #    if threshold == None and take_abs == True:
+    #        self.dt.sparsify(0, 1)
+    #    elif threshold != None and take_abs == True:
+    #        self.dt.sparsify(threshold, 1)
+    #    elif threshold == None and take_abs == False:
+    #        self.dt.sparsify(0, 0)
+    #    else:
+    #        self.dt.sparsify(threshold, 0)
 
     def fill_sp_random(self, mn, mx, frac):
         if self.typ == np.float64:
@@ -1065,7 +1103,6 @@ cdef class tensor:
             return B
         else:
             raise ValueError("an integer is required")
-        return None
 
     # the core function when we want to sum the ctensor...
     def i(self, string):
@@ -1953,6 +1990,45 @@ cdef class tensor:
 #        super(mtx, self).__cinit__([nrow, ncol], sp=sp, sym=[sym, SYM.NS], dtype=dtype)
 
 # 
+
+def trilSquare(tensor A):
+    if not isinstance(A, tensor):
+        raise ValueError('CTF PYTHON ERROR: A is not a tensor')
+    if A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: A is not a matrix')
+    if A.shape[0] != A.shape[1]:
+        raise ValueError('CTF PYTHON ERROR: A is not a square matrix')
+    cdef tensor B
+    B = A.copy()
+    cdef int * csym
+    cdef int * csym2
+    csym = int_arr_py_to_c(np.zeros([2]))
+    csym2 = int_arr_py_to_c(np.asarray([2,0]))
+    del B.dt
+    cdef ctensor * ct
+    ct = new ctensor(A.dt, csym2) 
+    B.dt = new ctensor(ct, csym) 
+    del ct
+    return B
+    
+def tril(A, k=0):
+    if not isinstance(A, tensor):
+        raise ValueError('CTF PYTHON ERROR: A is not a tensor')
+    if A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: A is not a matrix')
+    A = A.copy()
+    if k >= 0:
+        A[0:k,:] = 0
+    if A.shape[0] != A.shape[1] or k != 0:
+        B = A[ max(0, k) : min(k+A.shape[1],A.shape[0]), max(0, -k) : min(A.shape[1], A.shape[0] - k)]
+        C = trilSquare(B)
+        A[ max(0, k) : min(k+A.shape[1],A.shape[0]), max(0, -k) : min(A.shape[1], A.shape[0] - k)] = C
+    else:
+        A = trilSquare(A)
+    return A
+
+def triu(A,k=0):
+    return transpose(tril(A.transpose(), -k))
 
 # call this function to get the real part of complex number in ctensor
 def real(tensor A):
@@ -3392,9 +3468,7 @@ def ones(shape, dtype = None, order='F'):
             string_index += 1
         ret.i(string) << 1.0
         return ret
-        
-
-    
+   
 def eye(n, m=None, k=0, dtype=np.float64):
     mm = n
     if m is not None:

@@ -15,7 +15,7 @@
 #include <limits.h>
 #include <random>
 
-#include "mpi.h"
+#include <mpi.h>
 #include "../shared/model.h"
 
 #ifndef USE_SP_MKL
