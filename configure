@@ -369,9 +369,6 @@ if [ "x$BUILDDIR" = "x" ]; then
   fi
 fi
 
-echo $PARAMS > $BUILDDIR/how-did-i-configure
-
-
 #
 # Check for known supercomputer host names
 #
@@ -702,10 +699,25 @@ fi
 mkdir -p $BUILDDIR
 mkdir -p $BUILDDIR/lib
 mkdir -p $BUILDDIR/obj
+mkdir -p $BUILDDIR/obj_ext
 mkdir -p $BUILDDIR/bin
+
+if [ -f $BUILDDIR/config.mk ] ; then
+    if [ $BUILDDIR/config.mk -nt $BUILDDIR/how-did-i-configure ] ; then
+        read -p "Execution will overwrite existing config.mk file with local modifications. Are you sure you ant to proceed (Y/N)? " -n 1 -r
+        echo    # (optional) move to a new line
+        if [[ ! $REPLY =~ ^[Yy]$ ]]
+        then
+            exit 1
+        fi
+    fi
+fi
 
 
 cat > $BUILDDIR/config.mk <<EOF
+### INSTALLATION TARGET DIRECTORY (for make install)
+INSTALL_DIR = /usr/local
+
 ### LINK TIME LIBRARIES AND FLAGS
 #libraries and flags for link time (irrelevant if only building CTF lib and not examples/tests)
 BLAS_LIBS   = $SCALAPACKLIBS $BLASLIBS
@@ -749,6 +761,15 @@ LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
 #compiler for CUDA files (used to compile CUDA code only when -DOFFLOAD and -DUSE_CUDA are in DEFS, otherwise should be same as FCXX with -x c++)
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
 EOF
+
+
+
+echo $PARAMS >> $BUILDDIR/how-did-i-configure
+NUMOFLINES=$(wc -l < "$BUILDDIR/how-did-i-configure")
+if [ $NUMOFLINES -ge 10 ]; then
+    tail -n +2 "$BUILDDIR/how-did-i-configure" > $BUILDDIR/how-did-i-configure.tmp
+    mv $BUILDDIR/how-did-i-configure.tmp $BUILDDIR/how-did-i-configure
+fi 
 
 if [ ! -f $BUILDDIR/include/ctf.hpp ] ; then
 mkdir -p $BUILDDIR/include

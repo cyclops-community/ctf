@@ -4,12 +4,27 @@ ifeq (,${BDIR})
 endif
 export BDIR
 export ODIR=$(BDIR)/obj
+export OEDIR=$(BDIR)/obj_ext
 include $(BDIR)/config.mk
 export FCXX
 export OFFLOAD_CXX
 export LIBS
 
-all: $(BDIR)/lib/libctf.a
+all: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
+
+.PHONY: install
+install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
+	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
+	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
+	src/scripts/expand_includes.sh
+	mv include/ctf_all.hpp $(INSTALL_DIR)/include/ctf.hpp
+
+.PHONY: uninstall
+uninstall: 
+	rm $(INSTALL_DIR)/lib/libctf.a 
+	rm $(INSTALL_DIR)/lib/libctf.so 
+	rm $(INSTALL_DIR)/include/ctf.hpp 
+
 
 
 EXAMPLES = algebraic_multigrid apsp bitonic_sort btwn_central ccsd checkpoint dft_3D fft force_integration force_integration_sparse jacobi matmul neural_network particle_interaction qinformatics recursive_matmul scan sparse_mp3 sparse_permuted_slice spectral_element spmv sssp strassen trace mis mis2 ao_mo_transf 
@@ -70,33 +85,57 @@ ctf_objs:
 ctflib: ctf_objs 
 	$(AR) -crs $(BDIR)/lib/libctf.a $(ODIR)/*.o; 
 
+ctf_ext_objs:
+	$(MAKE) ctf_ext_objs -C src_python; 
+
 .PHONY: shared
 shared: ctflibso
 .PHONY: ctflibso
 ctflibso: export FCXX+=-fPIC
 ctflibso: export OFFLOAD_CXX+=-fPIC
 ctflibso: export ODIR=$(BDIR)/obj_shared
-ctflibso: ctf_objs 
-	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o; 
+ctflibso: ctf_objs ctf_ext_objs
+	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o; 
+
 
 .PHONY: python
 python: pylib
+	cd src_python && pip install . --upgrade
 .PHONY: pylib
-pylib: lib_py/ctf.so
-lib_py/ctf.so: ctflibso src_python/ctf.pyx
-	LDFLAGS="-L./lib_shared" python setup_wrapper.py build_ext --inplace && mv ctf.so lib_py/
+pylib: src_python/setup.py $(BDIR)/lib_shared/libctf.so src_python/ctf/core.pyx src_python/ctf/random.pyx
+	cd src_python && LDFLAGS="-L../lib_shared" python setup.py build_ext --inplace  && cd ..
 
 .PHONY: test_python
-test_python: lib_py/ctf.so
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./lib_py" python ./test/python/test_wrapper.py
+test_python: pylib
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./src_python/ctf" python ./test/python/test_wrapper.py
+
+.PHONY: test_einsum
+test_einsum: pylib
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./src_python/ctf" python ./test/python/test_einsum.py
+
+.PHONY: test_new
+test_new: pylib
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./src_python/ctf" python ./test/python/test_new.py
+
+.PHONY: test_base
+test_base: pylib
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./src_python/ctf" python ./test/python/test_base.py
+
+.PHONY: test_get_item
+test_get_item: pylib
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./src_python/ctf" python ./test/python/test_get_item.py
+
+.PHONY: test_live
+test_live: pylib
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):./lib_shared" PYTHONPATH="./src_python/ctf" ipython -i -c "import numpy as np; import ctf"
 
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
 
-$(BDIR)/lib/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
+$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflibso
 	
-clean: clean_bin clean_lib clean_obj
+clean: clean_bin clean_lib clean_obj clean_py
 
 
 test: test_suite
@@ -120,6 +159,14 @@ test7: test_suite
 test8: test_suite
 	mpirun -np 8 $(BDIR)/bin/test_suite
 
+clean_py:
+	rm -f $(BDIR)/src_python/ctf/core*.so
+	rm -f $(BDIR)/src_python/ctf/random*.so
+	rm -f $(BDIR)/src_python/ctf/core.cpp
+	rm -f $(BDIR)/src_python/ctf/random.cpp
+	rm -rf $(BDIR)/src_python/build
+
+
 clean_bin:
 	for comp in $(EXECUTABLES) ; do \
 		rm -f $(BDIR)/bin/$$comp ; \
@@ -128,9 +175,10 @@ clean_bin:
 clean_lib:
 	rm -f $(BDIR)/lib/libctf.a
 	rm -f $(BDIR)/lib_shared/libctf.so
-	rm -f $(BDIR)/lib_py/ctf.so
+	rm -f $(BDIR)/lib_shared/libctf_ext.so
 
 clean_obj:
 	rm -f $(BDIR)/obj/*.o 
+	rm -f $(BDIR)/obj_ext/*.o 
 	rm -f $(BDIR)/obj_shared/*.o 
 	rm -f $(BDIR)/build/*/*/*.o 

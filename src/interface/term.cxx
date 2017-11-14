@@ -46,7 +46,7 @@ namespace CTF_int {
     idx = 0;
     for (i=0; i<A.parent->order; i++){
       for (j=0; j<i && A.idx_map[i] != A.idx_map[j]; j++){}
-      if (j!=i) break;
+      if (j!=i) continue;
       idx_C[idx] = A.idx_map[i];
       len_C[idx] = A.parent->lens[i];
       if (idx >= 1 && i >= 1 && idx_C[idx-1] == A.idx_map[i-1] && A.parent->sym[i-1] != NS){
@@ -58,7 +58,7 @@ namespace CTF_int {
     int order_AC = idx;
     for (j=0; j<B.parent->order; j++){
       for (i=0; i<j && B.idx_map[i] != B.idx_map[j]; i++){}
-      if (i!=j) break;
+      if (i!=j) continue;
       for (i=0; i<order_AC && idx_C[i] != B.idx_map[j]; i++){}
       if (i!=order_AC){
         if (sym_C[i] != NS) {
@@ -75,7 +75,7 @@ namespace CTF_int {
             sym_C[j] = NS;
           }
         }
-        break;
+        continue;
       }
       idx_C[idx] = B.idx_map[j];
       len_C[idx] = B.parent->lens[j];
@@ -88,6 +88,19 @@ namespace CTF_int {
 
     tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
+    //printf("A_inds =");
+    //for (int i=0; i<A.parent->order; i++){
+    //  printf("%c",A.idx_map[i]);
+    //}
+    //printf("B_inds =");
+    //for (int i=0; i<B.parent->order; i++){
+    //  printf("%c",B.idx_map[i]);
+    //}
+    //printf("C_inds =");
+    //for (int i=0; i<order_C; i++){
+    //  printf("%c",idx_C[i]);
+    //}
+    //printf("\n");
     out->is_intm = 1;
     cdealloc(sym_C);
     cdealloc(len_C);
@@ -100,6 +113,7 @@ namespace CTF_int {
                              Idx_Tensor& B,
                              int num_out_inds,
                              char const * out_inds){
+
     int * len_C, * sym_C;
     char * idx_C;
     int order_C, i, j;

@@ -109,7 +109,8 @@ namespace CTF_int {
     //}
     
     int stat = home_contract();
-    assert(stat == SUCCESS); 
+    if (stat != SUCCESS)
+      printf("CTF ERROR: Failed to perform contraction\n");
   }
   
   template<typename ptype>
@@ -1037,7 +1038,7 @@ namespace CTF_int {
     return -1;
   }
 
-  void contraction::check_consistency(){
+  bool contraction::check_consistency(){
     int i, num_tot, len;
     int iA, iB, iC;
     int * idx_arr;
@@ -1062,7 +1063,7 @@ namespace CTF_int {
           printf("match the %dth edge length of tensor %s.\n",
                   iB, B->name);
         }
-        ABORT;
+        return false;
       }
       if (len != -1 && iC != -1 && len != C->lens[iC]){
         if (A->wrld->cdt.rank == 0){
@@ -1071,7 +1072,7 @@ namespace CTF_int {
           printf("match the %dth edge length of tensor %s (%d).\n",
                   iC, C->name, C->lens[iC]);
         }
-        ABORT;
+        return false;
       }
       if (iB != -1){
         len = B->lens[iB];
@@ -1083,10 +1084,11 @@ namespace CTF_int {
           printf("match the %dth edge length of tensor %s.\n",
                   iC, C->name);
         }
-        ABORT;
+        return false;
       }
     }
     CTF_int::cdealloc(idx_arr);
+    return true;
   }
 
     
@@ -2935,7 +2937,6 @@ namespace CTF_int {
 
       if (ttopo == INT_MAX || ttopo == -1){
         printf("ERROR: Failed to map contraction!\n");
-        ASSERT(0);
         //ABORT;
         return ERROR;
       }
@@ -3879,8 +3880,10 @@ namespace CTF_int {
         krnl_type = 4;
       }
     } else {
+      // FIXME: currently this type of contraction cannot be done with sparse tensors
       ASSERT(!B->is_sparse && !C->is_sparse);
-      assert(!B->is_sparse && !C->is_sparse); // FIXME: currently this type of contraction cannot be done with sparse tensors
+      assert(!B->is_sparse && !C->is_sparse);
+
       krnl_type = 0;
     }
 
@@ -4448,7 +4451,8 @@ namespace CTF_int {
     ctr * ctrf;
     tensor * tnsr_A, * tnsr_B, * tnsr_C;
   
-    this->check_consistency();
+    bool is_cons = this->check_consistency();
+    if (!is_cons) return ERROR;
   
     CommData global_comm = A->wrld->cdt;
   

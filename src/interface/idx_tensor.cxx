@@ -225,6 +225,7 @@ namespace CTF {
       sr->safecopy(scale,sr->mulid());
     }
   }
+  void Idx_Tensor::operator<<(double scl){ execute() += Idx_Tensor(sr,scl); }
 
   
   void Idx_Tensor::operator=(double scl){ execute() = Idx_Tensor(sr,scl); }

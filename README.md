@@ -108,9 +108,9 @@ The examples and aforementioned papers can be used to gain further insight. If y
 
 ## Building and testing
 
-To build the library, it is necessary to execute './configure' and 'make'. The configure file does not use autotools and should be relatively easily to interpret and tweak. Run './configure --help' to see a list of options. The configure file will generate a file called config.mk. You can tweak this file further, it has options for running CTF in verbose mode (stating which contractions are executed), debug mode (doing extra checks and outputting various execution information) or with performance profiling (outputting a breakdown of performance at the end in the style of a TAU performance profile summary). It is possible to execute configure from an external folder to build the library out of source. Note that rerunning configure might overwrite any changes you make to the config.mk file.
+To build the library, it is necessary to execute `./configure` and `make`. To install it system-wide run `make install` with appropriate administrative priveledges (or set `INSTALL_DIR` in config.mk). To build the python library run `make pylib` to install the python CTF library in your python current environment run `make python` (which runs `pip install . --upgrade` inside `src_python`). The configure file does not use autotools and should be relatively easily to interpret and tweak. Run `./configure --help` to see a list of options. The configure file will generate a file called config.mk. You can tweak this file further, it has options for running CTF in verbose mode (stating which contractions are executed), debug mode (doing extra checks and outputting various execution information) or with performance profiling (outputting a breakdown of performance at the end in the style of a TAU performance profile summary). It is possible to execute configure from an external folder to build the library out of source. Note that rerunning configure might overwrite any changes you make to the config.mk file.
 
-For testing the library, run 'make test', which will run a suite of dozens of tests sequentially, but should only take a couple of seconds. You can also build and execute 'test_suite' using multiple MPI processors ('make test2', 'make test4', ... will build and run the test suite with 2, 4, ... processors, but only works for some small processor counts).
+For testing the library, run `make test`, which will run a suite of dozens of tests sequentially, but should only take a couple of seconds. You can also build and execute `test_suite` using multiple MPI processors (`make test2`, `make test4`, ... will build and run the test suite with 2, 4, ... processors, but only works for some small processor counts).
 
 Parallel make (e.g. -j4) is supported. The library will build in seconds if you switch off the optimization flags in config.mk, but may take a few minutes otherwise.
 
@@ -137,3 +137,5 @@ Edgar Solomonik, Devin Matthews, Jeff R. Hammond, John F. Stanton, and James Dem
 here is the [bibtex](http://solomon2.web.engr.illinois.edu/bibtex/SMHSD_JPDC_2014.txt).
 
 We hope you enjoy writing your parallel program with algebra!
+
+

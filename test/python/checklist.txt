@@ -1,0 +1,102 @@
+(notation [ ] means the tests are implemented)
+
+* module level functions
+
+[ ] ctf.array
+[ ] ctf.asarray
+[ ] ctf.conj
+[ ] ctf.take
+[ ] ctf.hstack
+[ ] ctf.vstack
+[ ] ctf.diag
+[ ] ctf.diagonal
+[ ] ctf.zeros
+[ ] ctf.zeros_like
+[ ] ctf.empty
+[ ] ctf.empty_like
+[ ] ctf.eye
+[ ] ctf.identity
+[ ] ctf.reshape
+[ ] ctf.ravel ?
+[ ] ctf.transpose
+[ ] ctf.copy
+[ ] ctf.abs
+[ ] ctf.sum
+[ ] ctf.power
+[ ] ctf.dot
+[ ] ctf.tensordot
+[ ] ctf.trace
+[ ] ctf.from_nparray
+[ ] ctf.to_nparray
+    ctf.einsum
+    ctf.tril ?
+    ctf.triu ?
+    ctf.max ?
+    ctf.min ?
+[ ] ctf.all ?
+    ctf.any ?
+    ctf.ufunc ? (sqrt, isnan, isinf, exp, sin, cos, log)
+
+
+* methods of tensor object
+
+[ ] .conj
+[ ] .take
+[ ] .diagonal
+[ ] .reshape
+[ ] .ravel ?
+[ ] .transpose
+[ ] .astype
+[ ] .copy
+[ ] .sum
+[ ] .dot
+[ ] .trace
+[ ] .to_nparray
+    .flatten ?
+    .max ?
+    .min ?
+    .all ?
+    .any ?
+
+[ ] .__mul__
+[ ] .__add__
+[ ] .__sub__
+[ ] .__div__
+[ ] .__pow__
+[ ] .__imul__
+[ ] .__iadd__
+[ ] .__isub__
+[ ] .__idiv__
+[ ] .__ipow__
+[ ] .__rmul__
+[ ] .__radd__
+[ ] .__rsub__
+[ ] .__rdiv__
+[ ] .__rpow__
+    .__repr__
+[ ] .__eq__
+[ ] .__getitem__  # for fancy index
+[ ] .__setitem__  # for fancy index
+[ ] .__getslice__
+[ ] .__setslice__
+
+
+* attributes of tensor object
+
+[ ] .T
+[ ] .size
+[ ] .dtype
+[ ] .real
+[ ] .imag
+[ ] .shape
+[ ] .ndim
+
+
+* functions and methods not defined in numpy, numpy.ndarray
+[ ] ctf.astensor
+    ctf.scale
+    ctf.fill_sp_random
+    ctf.tsr
+
+    .prnt
+

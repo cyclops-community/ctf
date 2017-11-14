@@ -137,7 +137,7 @@ namespace CTF_int {
   default_max_lim(){
     printf("CTF ERROR: cannot compute a max unless the set is ordered");
     assert(0);
-    dtype * a;
+    dtype * a = NULL;
     return *a;
   }
 
@@ -152,7 +152,7 @@ namespace CTF_int {
   default_min_lim(){
     printf("CTF ERROR: cannot compute a max unless the set is ordered");
     assert(0);
-    dtype * a;
+    dtype * a = NULL;
     return *a;
   }
 
