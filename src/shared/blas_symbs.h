@@ -43,7 +43,6 @@
 #define MKL_DCSRMULTCSR mkl_dcsrmultcsr_
 #define MKL_CCSRMULTCSR mkl_ccsrmultcsr_
 #define MKL_ZCSRMULTCSR mkl_zcsrmultcsr_
-#define BLACS_GRIDINFO blacs_gridinfo_
 #else
 #define DDOT ddot
 #define SGEMM sgemm
@@ -85,7 +84,6 @@
 #define MKL_DCSRMULTCSR mkl_dcsrmultcsr
 #define MKL_CCSRMULTCSR mkl_ccsrmultcsr
 #define MKL_ZCSRMULTCSR mkl_zcsrmultcsr
-#define BLACS_GRIDINFO blacs_gridinfo
 #endif
 
 
@@ -412,10 +410,5 @@ namespace CTF_BLAS {
 #endif
 
 
-  extern "C"
-  void BLACS_GRIDINFO(int * icontxt, int * nprow, int * npcol, int * iprow, int * ipcol);
-
-  extern "C"
-  void BLACS_GRIDINIT(int * icontxt, char * order, int * nprow, int * npcol);
 }
 #endif

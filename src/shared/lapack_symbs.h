@@ -7,15 +7,20 @@
 #define DORMQR dormqr_
 #define PDGESVD pdgesvd_
 #define DESCINIT descinit_
+#define BLACS_GRIDINFO blacs_gridinfo_
+#define BLACS_GRIDINIT blacs_gridinit_
 #else
 #define DGELSD dgelsd
 #define DGEQRF dgeqrf
 #define DORMQR dormqr
 #define PDGESVD pdgesvd
 #define DESCINIT descinit
+#define BLACS_GRIDINFO blacs_gridinfo
+#define BLACS_GRIDINIT blacs_gridinit
 #endif
 
 #define USE_LAPACK
+#define USE_SCALAPACK
 #ifdef USE_LAPACK
 namespace CTF_LAPACK{
   extern "C"
@@ -28,6 +33,15 @@ namespace CTF_LAPACK{
 
   extern "C"
   void DORMQR(char const * SIDE, char const * TRANS, int const *  M, int const *  N, int const *  K, double const * A, int const *  LDA, double const * TAU2, double * C, int const *  LDC, double * WORK, int const *  LWORK, int  * INFO);
+}
+#endif
+#ifdef USE_SCALAPACK
+namespace CTF_SCALAPACK{
+  extern "C"
+  void BLACS_GRIDINFO(int * icontxt, int * nprow, int * npcol, int * iprow, int * ipcol);
+
+  extern "C"
+  void BLACS_GRIDINIT(int * icontxt, char * order, int * nprow, int * npcol);
 
   extern "C" 
   void PDGESVD( char *,
@@ -84,7 +98,7 @@ namespace CTF_LAPACK{
                   double * WORK,
                   int LWORK,
                   int * info) {
-    CTF_LAPACK::PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+    PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
 
   inline
@@ -98,10 +112,17 @@ namespace CTF_LAPACK{
                   int ictxt,
                   int LLD,
                   int * info) {
-    CTF_LAPACK::DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
+    DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
   }
-
+  extern "C" {
+    void Cblacs_pinfo(int*, int*);
+    void Cblacs_get(int, int, int*);
+    void Cblacs_gridinit(int*, char*, int, int);
+    void Cblacs_gridinfo(int, int*, int*, int*, int*);
+    void Cblacs_gridmap(int*, int*, int, int, int);
+    void Cblacs_barrier(int , char*);
+    void Cblacs_gridexit(int);
+  }
 }
 #endif
-
 #endif

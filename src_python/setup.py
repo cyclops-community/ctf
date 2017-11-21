@@ -9,8 +9,8 @@ ext_mod_core = Extension(
     ["ctf/core.pyx"],
     language="c++",
     include_dirs=["../include",".",numpy.get_include()],
-    library_dirs=["../lib_shared"],
-    libraries=["ctf", "blas", "mpicxx"],
+    library_dirs=["../lib_shared","/home/edgar/work/scalapack-2.0.2/build/lib"],
+    libraries=["ctf", "blas", "mpicxx","scalapack"],
     extra_compile_args=["-std=c++11","-O0","-g"],
     extra_link_args=["-std=c++11"]
 )
@@ -20,8 +20,8 @@ ext_mod_rand = Extension(
     ["ctf/random.pyx"],
     language="c++",
     include_dirs=["../include",".",numpy.get_include()],
-    library_dirs=["../lib_shared"],
-    libraries=["ctf", "blas", "mpicxx"],
+    library_dirs=["../lib_shared","/home/edgar/work/scalapack-2.0.2/build/lib"],
+    libraries=["ctf", "blas", "mpicxx","scalapack"],
     extra_compile_args=["-std=c++11","-O0","-g"],
     extra_link_args=["-std=c++11"]
 )

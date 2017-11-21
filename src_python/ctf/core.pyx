@@ -12,7 +12,6 @@ ctypedef double complex complex128_t
 from libc.stdlib cimport malloc, free
 import numpy as np
 import string
-import random
 import collections
 from copy import deepcopy
 cimport numpy as cnp
@@ -131,6 +130,7 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void any_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void get_real[dtype](ctensor * A, ctensor * B)
     cdef void get_imag[dtype](ctensor * A, ctensor * B)
+    cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
     
 cdef extern from "ctf.hpp" namespace "CTF":
 
@@ -167,6 +167,10 @@ cdef extern from "ctf.hpp" namespace "CTF":
         dtype norm1()
         dtype norm2() # Frobenius norm
         dtype norm_infty()
+     
+    cdef cppclass Vector[dtype](ctensor):
+        Vector()
+        Vector(Tensor[dtype] A)
     
     cdef cppclass Matrix[dtype](ctensor):
         Matrix()
@@ -2889,8 +2893,8 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
                     B = tensor(ret_dim, dtype = out.get_type())
                     C = tensor(A.get_dims(), dtype = out.get_type())
 
-        index = random.sample(string.ascii_letters+string.digits,len(dim))
-        index = "".join(index)
+        index = get_num_str(len(dim))
+        #index = "".join(index)
         index_A = index[0:len(dim)]
         index_B = index[0:axis] + index[axis+1:len(dim)]
         if isinstance(C, tensor):
@@ -2927,8 +2931,9 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         del temp_dim[index_removal]
         ret_dim = tuple(temp_dim)
         B = tensor(ret_dim, dtype = dtype)
-        index = random.sample(string.ascii_letters+string.digits,len(decrease_dim))
-        index = "".join(index)
+        #index = rand.sample(string.ascii_letters+string.digits,len(decrease_dim))
+        #index = "".join(index)
+        index = get_num_str(len(decrease_dim))
         index_A = index[0:len(decrease_dim)]
         index_B = index[0:axis_list[i]] + index[axis_list[i]+1:len(decrease_dim)]
         B.i(index_B) << temp.i(index_A)
@@ -2963,8 +2968,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             if out is not None and out.shape != dims_keep:
                 raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
         B = tensor((1,), dtype=np.bool)
-        index_A = "" 
-        index_A = random.sample(string.ascii_letters+string.digits,len(A.get_dims()))
+        index_A = get_num_str(len(A.get_dims()))
         index_A = "".join(index_A)
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
@@ -3021,9 +3025,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             if out is not None:
                 if tuple(dim_keep) != tuple(out.shape):
                     raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
-        index_A = "" 
-        index_A = random.sample(string.ascii_letters+string.digits,len(dim))
-        index_A = "".join(index_A)
+        index_A = get_num_str(len(dim))
         index_temp = rev_array(index_A)
         index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
         index_B = rev_array(index_B)
@@ -3082,9 +3084,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
                 if dim_ret[i] != out.shape[i]:
                     raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
         B = tensor(dim_ret, dtype=np.bool)
-        index_A = "" 
-        index_A = random.sample(string.ascii_letters+string.digits,len(dim))
-        index_A = "".join(index_A)
+        index_A = get_num_str(len(dim))
         index_temp = rev_array(index_A)
         index_B = ""
         for i in range(len(dim)):
@@ -3215,7 +3215,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
         #            raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
         #B = tensor((1,), dtype=np.bool)
         #index_A = "" 
-        #index_A = random.sample(string.ascii_letters+string.digits,len(A.get_dims()))
+        #index_A = rand.sample(string.ascii_letters+string.digits,len(A.get_dims()))
         #index_A = "".join(index_A)
         #if A.get_type() == np.float64:
         #    all_helper[double](<ctensor*>(A.dt), <ctensor*>B.dt, index_A.encode(), "".encode())
@@ -3277,7 +3277,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #            if tuple(dim_keep) != tuple(out.shape):
     #                raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
     #    index_A = "" 
-    #    index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+    #    index_A = rand.sample(string.ascii_letters+string.digits,len(dim))
     #    index_A = "".join(index_A)
     #    index_temp = rev_array(index_A)
     #    index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
@@ -3338,7 +3338,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #                raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
     #    B = tensor(dim_ret, dtype=np.bool)
     #    index_A = "" 
-    #    index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+    #    index_A = rand.sample(string.ascii_letters+string.digits,len(dim))
     #    index_A = "".join(index_A)
     #    index_temp = rev_array(index_A)
     #    index_B = ""
@@ -3571,7 +3571,21 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     else:
         raise ValueError('CTF PYTHON ERROR: CTF einsum currently allows no more than 10 operands')
     return output
-    
+
+def svd(tensor A, rank=None):
+    if not isinstance(A,tensor) or A.ndim != 2 or A.dtype != np.float64:
+        raise ValueError('CTF PYTHON ERROR: SVD called on invalid tensor, must be CTF double matrix')
+    if rank is None:
+        rank = 0
+        k = min(A.shape[0],A.shape[1])
+    else:
+        k = rank
+    S = tensor(k)
+    U = tensor([k,A.shape[1]])
+    VT = tensor([k,A.shape[0]])
+    matrix_svd(A.dt, U.dt, S.dt, VT.dt, rank)
+    return [VT.transpose(), S, U.transpose()]   
+ 
 #    A = tensor([n, n], dtype=dtype)
 #    if dtype == np.float64:
 #        A.i("ii") << 1.0
@@ -3579,8 +3593,8 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
 #        raise ValueError('CTF PYTHON ERROR: bad dtype')
 #    return A
 
-#cdef object f
-#ctypedef int (*cfunction) (double a, double b, double c, void *args)
+#cdef ct f
+#ef int (*cfunction) (double a, double b, double c, void *args)
 #
 #cdef int cfunction_cb(double a, double b, double c, void *args):
 #    global f

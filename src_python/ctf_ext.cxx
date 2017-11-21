@@ -1,5 +1,6 @@
 #include "ctf_ext.h"
-#include "../src/tensor/untyped_tensor.h"
+//#include "../src/tensor/untyped_tensor.h"
+#include "../include/ctf.hpp"
 namespace CTF_int{
   template <typename dtype>
   void all_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B){
@@ -52,6 +53,16 @@ namespace CTF_int{
     }
     s[""] += CTF::Function<bool, int64_t>([](bool a){ return (int64_t)a; })(A->operator[](str));
     return s.get_val();
+  }
+
+
+  void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
+    CTF::Matrix<double> mA(*A);
+    CTF::Matrix<double> mU(*U);
+    CTF::Vector<double> vS(*S);
+    CTF::Matrix<double> mVT(*VT);
+    printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+    mA.matrix_svd(mU, vS, mVT, rank);
   }
 
 	// get the real number

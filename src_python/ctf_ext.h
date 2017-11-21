@@ -40,4 +40,6 @@ namespace CTF_int{
    * \return number of 1s in A
    */
   int64_t sum_bool_tsr(tensor * A);
+
+  void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
 }

@@ -290,7 +290,11 @@ namespace CTF {
     pc = this->edge_map[1].calc_phase();       
 
     char R = 'R';
-    CTF_BLAS::BLACS_GRIDINIT(&ictxt, &R, &pr, &pc);
+    int ctxt;
+    IASSERT(this->wrld->comm == MPI_COMM_WORLD);
+    CTF_SCALAPACK::Cblacs_get(-1, 0, &ctxt);
+    CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &R, pr, pc);
+    ictxt = ctxt;
 
     desc = (int*)malloc(sizeof(int)*9);
     desc[0] = 1;
@@ -309,7 +313,7 @@ namespace CTF {
                                dtype *     data_){
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
-    CTF_BLAS::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
     IASSERT(ipr == this->wrld->rank%pr);
     IASSERT(ipc == this->wrld->rank/pr);
 
@@ -355,7 +359,7 @@ namespace CTF {
     symm = NS;
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
-    CTF_BLAS::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
     IASSERT(ipr == wrld_.rank%pr);
     IASSERT(ipc == wrld_.rank/pr);
     IASSERT(pr*pc == wrld_.np);
@@ -364,7 +368,7 @@ namespace CTF {
   }
 
   template<>
-  inline void Matrix<double>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT, World & wrld, int ictxt, int rank){
+  inline void Matrix<double>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT,  int rank){
 
     int info;
 
@@ -372,48 +376,51 @@ namespace CTF {
     int n = this->ncol;
     int k = std::min(m,n);
 
-    double * A = (double*)malloc(m*n*sizeof(double)/wrld.np);
-    double * u = (double*)malloc(m*k*sizeof(double)/wrld.np);
-    double * s = (double*)malloc(k*sizeof(double)/wrld.np);
-    double * vt = (double*)malloc(k*n*sizeof(double)/wrld.np);
+    double * A = (double*)malloc(m*n*sizeof(double)/(*(this->wrld)).np);
+    double * u = (double*)malloc(m*k*sizeof(double)/(*(this->wrld)).np);
+    double * s = (double*)malloc(k*sizeof(double)/(*(this->wrld)).np);
+    double * vt = (double*)malloc(k*n*sizeof(double)/(*(this->wrld)).np);
 
-    int * desca = (int*)malloc(9*sizeof(int));
+//    int * desca = (int*)malloc(9*sizeof(int));
     int * descu = (int*)malloc(9*sizeof(int));
     int * descvt = (int*)malloc(9*sizeof(int));
 
-    CTF_LAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
-    CTF_LAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
-    CTF_LAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, m/wrld.np, &info);
+    int ictxt;
+    int * desca;
+    this->get_desc(ictxt, desca);
+    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 1, 1, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 1, 1, ictxt, k/(*(this->wrld)).np, &info);
 
     this->read_mat(desca, A);
 
     double llwork;
     int lwork;
 
-    CTF_LAPACK::cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (double*)&llwork, -1, &info);  
+    CTF_SCALAPACK::cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (double*)&llwork, -1, &info);  
 
     lwork = (int)llwork;
     double * work = (double*)malloc(sizeof(double)*lwork);
 
-    CTF_LAPACK::cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
+    CTF_SCALAPACK::cpdgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
 
  
-    S = Vector<double>(k, wrld);
+    S = Vector<double>(k, (*(this->wrld)));
     int64_t sc;
     double * s_data = S.get_raw_data(&sc);
 
-    for (int i = wrld.rank; i < k; i += wrld.np) {
-      s_data[i/wrld.np] = s[i];
+    for (int i = (*(this->wrld)).rank; i < k; i += (*(this->wrld)).np) {
+      s_data[i/(*(this->wrld)).np] = s[i];
     } 
-    U = Matrix<double>(descu, u, wrld);
-    VT = Matrix<double>(descvt, vt, wrld);
-    printf("Left singular vectors (U) before slice: \n");
+    U = Matrix<double>(descu, u, (*(this->wrld)));
+    VT = Matrix<double>(descvt, vt, (*(this->wrld)));
+    /*printf("Left singular vectors (U) before slice: \n");
     U.print_matrix();
     printf("Singular values (S):\n");
     S.print();
     printf("Right singular vectors (VT):\n");
     VT.print_matrix();
-    printf("rank is: %d\n", rank);
+    printf("rank is: %d\n", rank);*/
     if (rank > 0 && rank < k) {
       S = S.slice(0, rank-1);
       U = U.slice(0, rank*(m)-1);
@@ -432,7 +439,7 @@ namespace CTF {
   }
   
   template<typename dtype>
-  void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, World & wrld, int ictxt, int rank) {
+  void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank) {
     assert(0);
   }
 
