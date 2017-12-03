@@ -6,6 +6,9 @@ function usage
 {
   echo -e 'Usage: configure [options]'
   echo
+  echo -e '\t--install-dir=dir Specify where to install header and lib files (default is /usr/local/,'
+  echo -e '\t                  so headers will be installed to /usr/local/include and libs to /usr/local/lib)'
+  echo
   echo -e '\t--build-dir=dir   Specify where to build object files, library, and executable (default is .)'
   echo
   echo -e '\t--blas=libs       Specify the linker options and/or libraries needed to link'
@@ -328,6 +331,9 @@ while [ "x$1" != "x" ]; do
     --build-dir=*)
       eval BUILDDIR="$(printf "%q" "${1#--build-dir=}")"
       ;;
+    --build-dir=*)
+      eval INSTALLDIR="$(printf "%q" "${1#--install-dir=}")"
+      ;;
     --blas=*)
       BLASLIBS="${1#--blas=}"
       ;;
@@ -369,6 +375,11 @@ if [ "x$BUILDDIR" = "x" ]; then
   fi
 fi
 
+if [ "x$INSTALLDIR" = "x" ]; then
+	INSTALLDIR='/usr/local/'
+fi
+
+
 #
 # Check for known supercomputer host names
 #
@@ -385,7 +396,7 @@ if [ "$NERSC_HOST" = "carver" ]; then
         fi
     fi
     
-    CXX="mpiCC -std=c++0x"
+    CXX="mpiCC"
     realcompiler
     defaultflags
     DEFS="$DEFS -DCARVER"
@@ -395,11 +406,11 @@ elif [ "$NERSC_HOST" = "hopper"  -o "$NERSC_HOST" = "cori" -o "$NERSC_HOST" = "e
     echo 'Hostname recognized as a NERSC machine.'
     host=nersc
     BLASLIBS="-mkl=parallel"   
-    CXX="CC -std=c++0x"
+    CXX="CC"
     LDFGLAGS="-lpthread"
     realcompiler
     defaultflags
-    DEFS="$DEFS -DUSE_SP_MKL=1 -D`echo $NERSC_HOST | tr a-z A-Z`"
+    DEFS="$DEFS -DUSE_USE_MKL=1 -D`echo $NERSC_HOST | tr a-z A-Z`"
 echo -n 'Checking if std::function recognition works... '
 if testlambda 0; then
   echo 'successful.'
@@ -441,14 +452,14 @@ elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
   INCLUDES="-I$BGQ_ESSL/include"
   AR='ar'
   CXX=mpic++11
-  CXXFLAGS='-O3 -std=c++11 -DOMP_OFF'
+  CXXFLAGS='-O3 -DOMP_OFF'
   DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
   WARNFLAGS=''
 
 elif (hostname | grep 'titan'); then
     host=titan
     
-    CXX="CC -std=c++0x"
+    CXX="CC"
     realcompiler
     defaultflags
     NVCC='nvcc -ccbin g++ -x cu'
@@ -477,10 +488,10 @@ echo -n 'Checking whether __APPLE__ is defined... '
 check_if_apple;
 status=$?
 if [ $status = 1 ]; then
-  echo -n 'yes, tacking on -D_DARWIN_C_SOURCE to DEFS and -std=c++0x to CXX.'
+  echo -n 'yes, tacking on -D_DARWIN_C_SOURCE to DEFS and -std=c++0x to CXXFLAGS.'
   echo
   DEFS="$DEFS -D_DARWIN_C_SOURCE"
-  CXX="$CXX -std=c++0x"
+  CXXFLAGS="$CXXFLAGS -std=c++0x"
 else
   echo -n 'no.'
   echo
@@ -501,36 +512,7 @@ else
 fi
 
 #
-# Check that compiler works without error
-#
-echo -n 'Checking availability of C++11... '
-
-if testcpp11 0; then
-  echo 'successful.'
-else
-  if [ "$NERSC_HOST" = "edison" ]; then
-    echo 'FAILED! error below, try using module load gcc/4.8.2:'
-    echo
-    testcpp11 1
-    echo
-    exit 1
-  else
-    CXX="$CXX -std=c++0x"
-    if testcpp11 0; then
-      echo 'successful (tacking on -std=c++0x).'
-    else
-      echo 'FAILED! error below:'
-      echo
-      testcpp11 1
-      echo
-      exit 1
-    fi
-  fi
-fi
-
-
-#
-# Check that compiler works without error
+# Check that CXXFLAGS works without error
 #
 echo -n 'Checking flags (CXXFLAGS)... '
 ODEFS="$DEFS"
@@ -545,6 +527,43 @@ else
   exit 1
 fi
 DEFS="$ODEFS"
+
+
+#
+# Check that compiler works without error
+#
+echo -n 'Checking availability of C++11... '
+
+if testcpp11 0; then
+  echo 'successful.'
+else
+  ODEFS="$DEFS"
+  DEFS="$DEFS $CXXFLAGS"
+  if testcpp11 0; then
+    echo 'successful.'
+  else
+    if [ "$NERSC_HOST" = "edison" ]; then
+      echo 'FAILED! error below, try using module load gcc/4.8.2:'
+      echo
+      testcpp11 1
+      echo
+      exit 1
+    else
+      CXXFLAGS="$CXXFLAGS -std=c++0x"
+      DEFS="$ODEFS $CXXFLAGS"
+      if testcpp11 0; then
+        echo 'successful (tacking on -std=c++0x to CXXFLAGS).'
+      else
+        echo 'FAILED! error below:'
+        echo
+        testcpp11 1
+        echo
+        exit 1
+      fi
+    fi
+  DEFS="$ODEFS"
+  fi
+fi
 
 #
 # Check if OpenMP is provided
@@ -567,7 +586,7 @@ fi
 SPMKL_COMMENT="
 ### Optional: sparse MKL BLAS Routines
 #uncomment below to enable MKL BLAS routines if setting up MKL manually
-#DEFS       += -DUSE_SP_MKL=1
+#DEFS       += -DUSE_USE_MKL=1
 "
 
 #
@@ -587,7 +606,7 @@ else
         UNDERSCORE=1
         echo 'BLAS library was not specified, using -mkl.'
         BLASLIBS=-mkl
-        DEFS="$DEFS -DUSE_SP_MKL=1"
+        DEFS="$DEFS -DUSE_USE_MKL=1"
         SPMKL_COMMENT=""
       elif testlink -lblas dgemm_ 0; then
         UNDERSCORE=1
@@ -627,17 +646,28 @@ else
   PDGEMM=pdgemm
 fi
 
-#echo -n 'Checking whether ScaLAPACK is provided... '
-#if testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 0; then
-#  echo 'SCALAPACK found.'
-#  DEFS="$DEFS -DUSE_SCALAPACK"
-#else
-#  echo
-#  echo '  ScaLAPACK not found, a couple of the tests/benchmarks will not build, build error below:'
-#  echo
-#  testlink "$SCALAPACKLIBS $BLASLIBS" $PDGEMM 1
-#  echo
-#fi
+echo -n 'Checking whether ScaLAPACK is provided... '
+if testlink "$SCALAPACKLIBS $BLASLIBS $LDFLAGS" $PDGEMM 0; then
+  echo 'SCALAPACK found.'
+  DEFS="$DEFS -DUSE_SCALAPACK"
+else
+  if [ "x$SCALAPACKLIBS" = "x" ]; then
+    if testlink "-lscalapack $BLASLIBS $LDFLAGS" $PDGEMM 0; then
+      echo 'SCALAPACK library found (-lscalapack).'
+      SCALAPACKLIBS="-lscalapack"
+      DEFS="$DEFS -DUSE_SCALAPACK"
+    else
+      echo '  ScaLAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --scalapack= or --libs='
+    fi
+  else
+    echo
+    echo '  FAILED ! ScaLAPACK lib path found (--scalapack specified), but lib not functional, error below'
+    echo
+    testlink "$SCALAPACKLIBS $BLASLIBS $LDFLAGS" $PDGEMM 1
+    echo
+    exit 1
+  fi
+fi
 
 USE_CUDA=0
 echo -n 'Checking whether to use CUDA... '
@@ -698,8 +728,11 @@ fi
 
 mkdir -p $BUILDDIR
 mkdir -p $BUILDDIR/lib
+mkdir -p $BUILDDIR/lib_shared
+mkdir -p $BUILDDIR/lib_python
 mkdir -p $BUILDDIR/obj
 mkdir -p $BUILDDIR/obj_ext
+mkdir -p $BUILDDIR/obj_shared
 mkdir -p $BUILDDIR/bin
 
 if [ -f $BUILDDIR/config.mk ] ; then
@@ -716,7 +749,7 @@ fi
 
 cat > $BUILDDIR/config.mk <<EOF
 ### INSTALLATION TARGET DIRECTORY (for make install)
-INSTALL_DIR = /usr/local
+INSTALL_DIR = $INSTALLDIR
 
 ### LINK TIME LIBRARIES AND FLAGS
 #libraries and flags for link time (irrelevant if only building CTF lib and not examples/tests)
@@ -785,4 +818,45 @@ all:
 EOF
 fi
 echo 'A config.mk file has been created (to adjust all settings edit the config.mk file manually or rerun ./configure to create a new one).'
+
+if [ -f $BUILDDIR/setup.py ] ; then
+    if [ $BUILDDIR/setup.py -nt $BUILDDIR/how-did-i-configure ] ; then
+        read -p "Execution will overwrite existing setup.py file with local modifications. Are you sure you ant to proceed (Y/N)? " -n 1 -r
+        echo    # (optional) move to a new line
+        if [[ ! $REPLY =~ ^[Yy]$ ]]
+        then
+            exit 1
+        fi
+    fi
+fi
+
+
+cat > $BUILDDIR/setup.py <<EOF
+from distutils.core import setup
+from distutils.extension import Extension
+import numpy
+
+import os
+os.environ["CXX"] = "$CXX"
+
+from Cython.Distutils import build_ext
+from Cython.Build import cythonize
+
+mod_core = ["ctf.core", "ctf/core.pyx"]
+mod_rand = ["ctf.random", "ctf/random.pyx"]
+mods = [mod_core, mod_rand]
+ext_mods = []
+for mod in mods:
+    ext_mods.append(Extension(
+            mod[0],
+            [mod[1]],
+            language="c++",
+            extra_compile_args="$CXXFLAGS".split(),
+            extra_link_args=["-L$BUILDDIR/lib_shared $CXXFLAGS $SCALAPACKLIBS $BLASLIBS $LDFLAGS"]
+        ))
+
+setup(name="CTF",packages=["ctf"],version="1.5.0",cmdclass = {'build_ext': build_ext},ext_modules = cythonize(ext_mods))
+
+EOF
+echo 'A setup.py file has been created (to adjust all settings edit the setup.py file manually or rerun ./configure to create a new one).'
 echo 'Configure finished successfully.'

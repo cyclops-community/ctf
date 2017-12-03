@@ -3,6 +3,13 @@
 #include "../shared/offload.h"
 #include "../sparse_formats/csr.h"
 
+#ifdef USE_SP_MKL
+#define USE_MKL
+#endif
+#ifdef USE_MKL
+#include "../shared/mkl_symbs.h"
+#endif
+
 using namespace CTF_int;
 
 namespace CTF_int {
@@ -99,7 +106,7 @@ namespace CTF_int {
            float const * B,
            float         beta,
            float *       C){
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_SCOOMM(&transa, &m, &n, &k, &alpha,
@@ -124,7 +131,7 @@ namespace CTF_int {
            double const * B,
            double         beta,
            double *       C){
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     //TAU_FSTART(MKL_DCOOMM);
@@ -152,7 +159,7 @@ namespace CTF_int {
            std::complex<float> const * B,
            std::complex<float>         beta,
            std::complex<float> *       C){
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_CCOOMM(&transa, &m, &n, &k, &alpha,
@@ -177,7 +184,7 @@ namespace CTF_int {
       std::complex<double> const * B,
       std::complex<double>         beta,
       std::complex<double> *       C){
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_ZCOOMM(&transa, &m, &n, &k, &alpha,
@@ -189,7 +196,7 @@ namespace CTF_int {
 #endif
   }
 /*
-#if USE_SP_MKL
+#if USE_MKL
   template <>
   bool get_def_has_csrmm<float>(){ return true; }
   template <>
@@ -209,7 +216,7 @@ namespace CTF_int {
   bool get_def_has_csrmm< std::complex<double> >(){ return true; }
 #endif
 */
-#if (USE_SP_MKL!=1)
+#if (USE_MKL!=1)
   template <typename dtype>
   void muladd_csrmm
                  (int           m,
@@ -295,7 +302,7 @@ namespace CTF {
            float const * B,
            float         beta,
            float *       C) const {
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
@@ -318,7 +325,7 @@ namespace CTF {
            double const * B,
            double         beta,
            double *       C) const {
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     //TAU_FSTART(MKL_DCSRMM);
@@ -343,7 +350,7 @@ namespace CTF {
            std::complex<float> const * B,
            std::complex<float>         beta,
            std::complex<float> *       C) const {
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
@@ -366,7 +373,7 @@ namespace CTF {
            std::complex<double> const * B,
            std::complex<double>         beta,
            std::complex<double> *       C) const {
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
@@ -376,7 +383,7 @@ namespace CTF {
   }
 
 
-#if USE_SP_MKL 
+#if USE_MKL 
   #define CSR_MULTD_DEF(dtype,is_ord,MKL_name) \
   template<> \
   void CTF::Semiring<dtype,is_ord>::default_csrmultd \
@@ -452,7 +459,7 @@ namespace CTF {
   CSR_MULTD_DEF(std::complex<double>,0,MKL_ZCSRMULTD)
 
 
-#if USE_SP_MKL
+#if USE_MKL
   #define CSR_MULTCSR_DEF(dtype,is_ord,MKL_name) \
   template<> \
   void CTF::Semiring<dtype,is_ord>::default_csrmultcsr \

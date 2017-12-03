@@ -18,10 +18,6 @@
 #include <mpi.h>
 #include "../shared/model.h"
 
-#ifndef USE_SP_MKL
-#define USE_SP_MKL 0
-#endif
-
 /**
  * labels corresponding to symmetry of each tensor dimension
  * NS = 0 - nonsymmetric
