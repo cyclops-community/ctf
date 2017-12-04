@@ -103,7 +103,7 @@ PYTHON_SRC_FILES=src_python/ctf/core.pyx src_python/ctf/random.pyx
 .PHONY: pip
 python_install: pip
 pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES) 
-	cd src_python && pip install -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ . --upgrade
+	cd src_python && ln -s $(BDIR)/setup.py setup.py && pip install -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ . --upgrade && rm setup.py && cd ..
 
 .PHONY: python
 python: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)

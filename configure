@@ -14,13 +14,19 @@ function usage
   echo -e '\t--blas=libs       Specify the linker options and/or libraries needed to link'
   echo -e '\t                  the BLAS. If not specified, common BLAS libraries will be searched for.'
   echo
+  echo -e '\t--with-blas       Tells CTF build to enable BLAS functionality regardless of whether BLAS libs have been given.'
+  echo
   echo -e '\t--lapack=libs     Specify the linker options and/or libraries needed to link'
   echo -e '\t                  the LAPACK libraries. Necessary for some functionality and tests.'
+  echo
+  echo -e '\t--with-scalapack  Tells CTF build to enable LAPACK functionality regardless of whether LAPACK libs have been given.'
   echo
   echo -e '\t--scalapack=libs  Specify the linker options and/or libraries needed to link'
   echo -e '\t                  the ScaLAPACK libraries. Necessary for some functionality and tests.'
   echo
-  echo -e '\t--with-cuda       Tells CTF to try setup NVCC, NVCCFLAGS, and CUBLAS libs automatically'
+  echo -e '\t--with-scalapack  Tells CTF build to enable ScaLAPACK functionality regardless of whether ScaLAPACK libs have been given.'
+  echo
+  echo -e '\t--with-cuda       Tells CTF to setup and use NVCC, NVCCFLAGS, and CUBLAS libs'
   echo
   echo -e 'Additionally, the variables CXX, CXXFLAGS, INCLUDES, AR, NVCC, NVCCFLAGS, LDFLAGS, and WARNFLAGS'
   echo -e 'can be set on the command line, e.g. ./configure CXX=g++ CXXFLAGS="-fopenmp -O2 -g".'
@@ -343,8 +349,14 @@ while [ "x$1" != "x" ]; do
     --lapack=*)
       LAPACKLIBS="${1#--lapack=}"
       ;;
+    --with-lapack)
+      SETUP_LAPACK=1
+      ;;
     --scalapack=*)
       SCALAPACKLIBS="${1#--scalapack=}"
+      ;;
+    --with-scalapack)
+      SETUP_SCALAPACK=1
       ;;
     --with-cuda)
       SETUP_CUDA=1
@@ -632,12 +644,11 @@ else
     else 
       UNDERSCORE=1
       echo
-      echo '  WARNING: Unable to link with specified BLAS library, build error below:'
+      echo '  ERROR: Unable to link with specified BLAS library, build error below:'
       echo
       testlink "$BLASLIBS" dgemm_ 1
       echo
-      echo '  please specify correct --blas and/or LDFLAGS (run ./configure --help to see all options),'
-      echo '  CTF library can still build (via 'make'), but none of the executables will.'
+      exit 1
     fi
   fi
 fi
@@ -665,7 +676,13 @@ else
       LAPACKLIBS="-llapack"
       DEFS="$DEFS -DUSE_LAPACK"
     else
-      echo '  LAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --lapack=/path/to/liblapack.a'
+      if [ $SETUP_LAPACK = 1 ]; then
+        echo '  LAPACK not found, will build with LAPACK-dependent functionality anyway, since --with-lapackwas specified.'
+        echo '  WARNING: you may not be able to build CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a lapack library)'
+        DEFS="$DEFS -DUSE_LAPACK"
+      else
+        echo '  LAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --lapack=/path/to/liblapack.a'
+      fi 
     fi
   else
     echo
@@ -688,7 +705,12 @@ else
       SCALAPACKLIBS="-lscalapack"
       DEFS="$DEFS -DUSE_SCALAPACK"
     else
-      echo '  ScaLAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --scalapack=/path/to/libscalapack.a'
+      if [ $SETUP_SCALAPACK = 1 ]; then
+        echo '  ScaLAPACK not found, will build with ScaLAPACK-dependent functionality anyway, since --with-scalapack was specified. WARNING: you may not be able build some CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a scalapack library)'
+        DEFS="$DEFS -DUSE_SCALAPACK"
+      else
+        echo '  ScaLAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --scalapack=/path/to/libscalapack.a'
+      fi
     fi
   else
     echo
@@ -885,6 +907,8 @@ for mod in mods:
             [mod[1]],
             language="c++",
             extra_compile_args="$CXXFLAGS".split(),
+            extra_compile_args="$CXXFLAGS".split(),
+            libraries=["ctf", "blas", "mpicxx", "scalapack"],
             extra_link_args=["-L$BUILDDIR/lib_shared $CXXFLAGS $SCALAPACKLIBS $BLASLIBS $LDFLAGS"]
         ))
 

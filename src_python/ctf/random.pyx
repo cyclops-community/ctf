@@ -1,6 +1,5 @@
 import os, sys
 sys.path.insert(0, os.path.abspath("."))
-import ctf
 
 cdef extern from "ctf.hpp" namespace "CTF_int":
     void init_rng(int seed)
@@ -19,6 +18,7 @@ def all_seed(seed):
     init_rng(seed)
 
 def random(shape):
+    import ctf
     A = ctf.tensor(shape)
     A.fill_random()
     return A

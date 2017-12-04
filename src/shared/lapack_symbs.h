@@ -19,8 +19,8 @@
 #define BLACS_GRIDINIT blacs_gridinit
 #endif
 
-#ifdef USE_LAPACK
 namespace CTF_LAPACK{
+#ifdef USE_LAPACK
   extern "C"
   void DGELSD(int * m, int * n, int * k, double const * A, int * lda_A, double * B, int * lda_B, double * S, int * cond, int * rank, double * work, int * lwork, int * iwork, int * info);
 
@@ -31,15 +31,19 @@ namespace CTF_LAPACK{
 
   extern "C"
   void DORMQR(char const * SIDE, char const * TRANS, int const *  M, int const *  N, int const *  K, double const * A, int const *  LDA, double const * TAU2, double * C, int const *  LDC, double * WORK, int const *  LWORK, int  * INFO);
-}
 #endif
+}
 #ifdef USE_SCALAPACK
+#define SCAL_END ;
+#else
+#define SCAL_END {}
+#endif
 namespace CTF_SCALAPACK{
   extern "C"
-  void BLACS_GRIDINFO(int * icontxt, int * nprow, int * npcol, int * iprow, int * ipcol);
+  void BLACS_GRIDINFO(int * icontxt, int * nprow, int * npcol, int * iprow, int * ipcol) SCAL_END
 
   extern "C"
-  void BLACS_GRIDINIT(int * icontxt, char * order, int * nprow, int * npcol);
+  void BLACS_GRIDINIT(int * icontxt, char * order, int * nprow, int * npcol) SCAL_END
 
   extern "C" 
   void PDGESVD( char *,
@@ -73,8 +77,15 @@ namespace CTF_SCALAPACK{
                 int *, int *,
 
                 int *, int *);
-
-
+  extern "C" {
+    void Cblacs_pinfo(int*, int*) SCAL_END
+    void Cblacs_get(int, int, int*) SCAL_END
+    void Cblacs_gridinit(int*, char*, int, int) SCAL_END
+    void Cblacs_gridinfo(int, int*, int*, int*, int*) SCAL_END
+    void Cblacs_gridmap(int*, int*, int, int, int) SCAL_END
+    void Cblacs_barrier(int , char*) SCAL_END
+    void Cblacs_gridexit(int) SCAL_END
+  }
   inline
   void cpdgesvd(  char JOBU,
                   char JOBVT,
@@ -112,15 +123,6 @@ namespace CTF_SCALAPACK{
                   int * info) {
     DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
   }
-  extern "C" {
-    void Cblacs_pinfo(int*, int*);
-    void Cblacs_get(int, int, int*);
-    void Cblacs_gridinit(int*, char*, int, int);
-    void Cblacs_gridinfo(int, int*, int*, int*, int*);
-    void Cblacs_gridmap(int*, int*, int, int, int);
-    void Cblacs_barrier(int , char*);
-    void Cblacs_gridexit(int);
-  }
+
 }
-#endif
 #endif
