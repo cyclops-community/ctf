@@ -19,8 +19,6 @@
 #define BLACS_GRIDINIT blacs_gridinit
 #endif
 
-#define USE_LAPACK
-#define USE_SCALAPACK
 #ifdef USE_LAPACK
 namespace CTF_LAPACK{
   extern "C"

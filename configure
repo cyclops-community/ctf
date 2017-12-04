@@ -14,8 +14,11 @@ function usage
   echo -e '\t--blas=libs       Specify the linker options and/or libraries needed to link'
   echo -e '\t                  the BLAS. If not specified, common BLAS libraries will be searched for.'
   echo
+  echo -e '\t--lapack=libs     Specify the linker options and/or libraries needed to link'
+  echo -e '\t                  the LAPACK libraries. Necessary for some functionality and tests.'
+  echo
   echo -e '\t--scalapack=libs  Specify the linker options and/or libraries needed to link'
-  echo -e '\t                  the ScaLAPACK libraries. Necessary only for a couple of non-critical tests.'
+  echo -e '\t                  the ScaLAPACK libraries. Necessary for some functionality and tests.'
   echo
   echo -e '\t--with-cuda       Tells CTF to try setup NVCC, NVCCFLAGS, and CUBLAS libs automatically'
   echo
@@ -337,6 +340,9 @@ while [ "x$1" != "x" ]; do
     --blas=*)
       BLASLIBS="${1#--blas=}"
       ;;
+    --lapack=*)
+      LAPACKLIBS="${1#--lapack=}"
+      ;;
     --scalapack=*)
       SCALAPACKLIBS="${1#--scalapack=}"
       ;;
@@ -640,10 +646,35 @@ DEFS="$DEFS -DFTN_UNDERSCORE=$UNDERSCORE"
 
 if [ $UNDERSCORE = 1 ] ; then
   DGEMM=dgemm_
+  DGEQRF=dgeqrf_
   PDGEMM=pdgemm_
 else
   DGEMM=dgemm
+  DGEQRF=dgeqrf
   PDGEMM=pdgemm
+fi
+
+echo -n 'Checking whether LAPACK is provided... '
+if testlink "$LAPACKLIBS $BLASLIBS $LDFLAGS" $DGEQRF 0; then
+  echo 'LAPACK found.'
+  DEFS="$DEFS -DUSE_LAPACK"
+else
+  if [ "x$LAPACKLIBS" = "x" ]; then
+    if testlink "-llapack $BLASLIBS $LDFLAGS" $DGEQRF 0; then
+      echo 'LAPACK library found (-llapack).'
+      LAPACKLIBS="-llapack"
+      DEFS="$DEFS -DUSE_LAPACK"
+    else
+      echo '  LAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --lapack=/path/to/liblapack.a'
+    fi
+  else
+    echo
+    echo '  FAILED ! LAPACK lib path found (--lapack specified), but lib not functional, error below'
+    echo
+    testlink "$LAPACKLIBS $BLASLIBS $LDFLAGS" $DGEQRF 1
+    echo
+    exit 1
+  fi
 fi
 
 echo -n 'Checking whether ScaLAPACK is provided... '
@@ -657,7 +688,7 @@ else
       SCALAPACKLIBS="-lscalapack"
       DEFS="$DEFS -DUSE_SCALAPACK"
     else
-      echo '  ScaLAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --scalapack= or --libs='
+      echo '  ScaLAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --scalapack=/path/to/libscalapack.a'
     fi
   else
     echo
@@ -753,7 +784,7 @@ INSTALL_DIR = $INSTALLDIR
 
 ### LINK TIME LIBRARIES AND FLAGS
 #libraries and flags for link time (irrelevant if only building CTF lib and not examples/tests)
-BLAS_LIBS   = $SCALAPACKLIBS $BLASLIBS
+BLAS_LIBS   = $SCALAPACKLIBS $LAPACKLIBS $BLASLIBS
 LDFLAGS     = $LDFLAGS
 
 ### COMPILE TIME INCLUDES AND FLAGS
@@ -766,12 +797,13 @@ CXXFLAGS    = $CXXFLAGS $WARNFLAGS
 #command to make library out of object files
 AR          = $AR
 
-#macros to be defined throughout the code
+#macros to be defined throughout the code, use the below in combination with appropriate external libraries
+#Include in DEFS -DUSE_LAPACK to build with LAPACK functionality, 
+#                -DUSE_SCALAPACK to build with SCALAPACK functionality
+#                -DUSE_MKL to build with MKL batched GEMM and sparse matrix kernels
+#                -DUSE_HPTT to build with optimized tensor transposition routines from HPTT library
 DEFS        = $DEFS 
 $SPMKL_COMMENT
-### Optional: ScaLAPACK (needed only for testing)
-#uncomment and set ScaLAPACK lib path below to build tests of ScaLAPACK interface (scalapack_tests)
-#LIB_SCLPCK  = -L./lib -lscalapack 
 
 ### Optional: PROFILING AND TUNING
 #uncomment below to enable performance profiling
@@ -838,6 +870,7 @@ import numpy
 
 import os
 os.environ["CXX"] = "$CXX"
+os.environ["CC"] = "$CXX"
 
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
