@@ -334,7 +334,9 @@ EOF
 # Parse command-line arguments
 #
 depstype=normal
-SETUP_CUDA=0
+WITH_CUDA=0
+WITH_LAPACK=0
+WITH_SCALAPACK=0
 while [ "x$1" != "x" ]; do
   case $1 in
     --build-dir=*)
@@ -350,16 +352,16 @@ while [ "x$1" != "x" ]; do
       LAPACKLIBS="${1#--lapack=}"
       ;;
     --with-lapack)
-      SETUP_LAPACK=1
+      WITH_LAPACK=1
       ;;
     --scalapack=*)
       SCALAPACKLIBS="${1#--scalapack=}"
       ;;
     --with-scalapack)
-      SETUP_SCALAPACK=1
+      WITH_SCALAPACK=1
       ;;
     --with-cuda)
-      SETUP_CUDA=1
+      WITH_CUDA=1
       ;;
     --help)
       usage
@@ -676,7 +678,7 @@ else
       LAPACKLIBS="-llapack"
       DEFS="$DEFS -DUSE_LAPACK"
     else
-      if [ $SETUP_LAPACK = 1 ]; then
+      if [ $WITH_LAPACK = 1 ]; then
         echo '  LAPACK not found, will build with LAPACK-dependent functionality anyway, since --with-lapackwas specified.'
         echo '  WARNING: you may not be able to build CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a lapack library)'
         DEFS="$DEFS -DUSE_LAPACK"
@@ -705,7 +707,7 @@ else
       SCALAPACKLIBS="-lscalapack"
       DEFS="$DEFS -DUSE_SCALAPACK"
     else
-      if [ $SETUP_SCALAPACK = 1 ]; then
+      if [ $WITH_SCALAPACK = 1 ]; then
         echo '  ScaLAPACK not found, will build with ScaLAPACK-dependent functionality anyway, since --with-scalapack was specified. WARNING: you may not be able build some CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a scalapack library)'
         DEFS="$DEFS -DUSE_SCALAPACK"
       else
@@ -725,7 +727,7 @@ fi
 USE_CUDA=0
 echo -n 'Checking whether to use CUDA... '
 if [ "x$NVCC" = "x" ]; then
-  if [ $SETUP_CUDA = 1 ]; then
+  if [ $WITH_CUDA = 1 ]; then
     echo -n 'automatic nvcc setup requested... '
     NVCC='nvcc -ccbin g++ -x cu'
     NVCCFLAGS='-O3 -std=c++11 -m64'
