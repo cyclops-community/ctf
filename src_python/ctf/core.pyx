@@ -477,15 +477,16 @@ cdef class tensor:
                 strides[i] = self.dims[i+1] * strides[i+1]
         self.strides = tuple(strides)
         rlens = lens[:]
+        rsym = self.sym[:]
         if ord_comp(self.order, 'F'):
             rlens = rev_array(lens)
+            rsym = rev_array(self.sym)
+            rsym[0:-1] = rsym[1:]
+            rsym[-1] = SYM.NS
         cdef int * clens
         clens = int_arr_py_to_c(rlens)
         cdef int * csym
-        if sym is None:
-            csym = int_arr_py_to_c(np.zeros(len(lens)))
-        else:
-            csym = int_arr_py_to_c(sym)
+        csym = int_arr_py_to_c(rsym)
         if copy is None:
             if self.typ == np.float64:
                 self.dt = new Tensor[double](len(lens), sp, clens, csym)
