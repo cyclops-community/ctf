@@ -74,7 +74,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
                            char **   data)
         void allread(int64_t * num_pair, char * data, bool unpack)
         void slice(int *, int *, char *, ctensor *, int *, int *, char *)
-        int64_t get_tot_size()
+        int64_t get_tot_size(bool packed)
         void get_raw_data(char **, int64_t * size)
         int permute(ctensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
         void conv_type[dtype_A,dtype_B](ctensor * B)
@@ -1340,13 +1340,13 @@ cdef class tensor:
         inds = buf['a']
         return inds, vals
 
-    def tot_size(self):
-        return self.dt.get_tot_size()
+    def tot_size(self, unpack=True):
+        return self.dt.get_tot_size(not unpack)
 
     def read_all(self, arr=None, unpack=True):
         cdef char * cvals
         cdef int64_t sz
-        sz = self.dt.get_tot_size()
+        sz = self.dt.get_tot_size(not unpack)
         tB = self.dtype.itemsize
         cvals = <char*> malloc(sz*tB)
         self.dt.allread(&sz, cvals, unpack)
@@ -1363,7 +1363,7 @@ cdef class tensor:
     def write_all(self, arr):
         cdef char * cvals
         cdef int64_t sz
-        sz = self.dt.get_tot_size()
+        sz = self.dt.get_tot_size(False)
         tB = arr.dtype.itemsize
         self.dt.get_raw_data(&cvals, &sz)
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)

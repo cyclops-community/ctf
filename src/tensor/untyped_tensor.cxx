@@ -1591,12 +1591,16 @@ namespace CTF_int {
     return ipr;
   }
 
-  int64_t tensor::get_tot_size(){
-    int64_t tsize = 1;
-    for (int i=0; i<order; i++){
-      tsize *= lens[i];
+  int64_t tensor::get_tot_size(bool packed=false){
+    if (!packed){
+      int64_t tsize = 1;
+      for (int i=0; i<order; i++){
+        tsize *= lens[i];
+      }
+      return tsize;
+    } else {
+      return packed_size(order, lens, sym);
     }
-    return tsize;
   }
 
   int tensor::allread(int64_t * num_pair,
