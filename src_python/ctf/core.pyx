@@ -72,7 +72,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
                        char **   data)
         int read_local_nnz(int64_t * num_pair,
                            char **   data)
-        void allread(int64_t * num_pair, char * data)
+        void allread(int64_t * num_pair, char * data, bool unpack)
         void slice(int *, int *, char *, ctensor *, int *, int *, char *)
         int64_t get_tot_size()
         void get_raw_data(char **, int64_t * size)
@@ -510,7 +510,10 @@ cdef class tensor:
         else:
             if isinstance(copy, tensor):
                 if dtype is None or dtype == copy.dtype:
-                    self.dt = new ctensor(<ctensor*>copy.dt, True, True)
+                    if np.all(sym == copy.sym):
+                        self.dt = new ctensor(<ctensor*>copy.dt, True, True)
+                    else:
+                        self.dt = new ctensor(<ctensor*>copy.dt, csym)
                 else:
                     ccopy = tensor(self.shape, sp=self.sp, sym=self.sym, dtype=self.dtype, order=self.order)
                     copy.convert_type(ccopy)
@@ -1340,13 +1343,13 @@ cdef class tensor:
     def tot_size(self):
         return self.dt.get_tot_size()
 
-    def read_all(self, arr=None):
+    def read_all(self, arr=None, unpack=True):
         cdef char * cvals
         cdef int64_t sz
         sz = self.dt.get_tot_size()
         tB = self.dtype.itemsize
         cvals = <char*> malloc(sz*tB)
-        self.dt.allread(&sz, cvals)
+        self.dt.allread(&sz, cvals, unpack)
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)
         buf.data = cvals
         if arr is None:
