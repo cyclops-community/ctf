@@ -11,24 +11,44 @@ function usage
   echo
   echo -e '\t--build-dir=dir   Specify where to build object files, library, and executable (default is .)'
   echo
-  echo -e '\t--blas=libs       Specify the linker options and/or libraries needed to link'
-  echo -e '\t                  the BLAS. If not specified, common BLAS libraries will be searched for.'
-  echo
-  echo -e '\t--with-blas       Tells CTF build to enable BLAS functionality regardless of whether BLAS libs have been given.'
-  echo
-  echo -e '\t--lapack=libs     Specify the linker options and/or libraries needed to link'
-  echo -e '\t                  the LAPACK libraries. Necessary for some functionality and tests.'
-  echo
-  echo -e '\t--with-scalapack  Tells CTF build to enable LAPACK functionality regardless of whether LAPACK libs have been given.'
-  echo
-  echo -e '\t--scalapack=libs  Specify the linker options and/or libraries needed to link'
-  echo -e '\t                  the ScaLAPACK libraries. Necessary for some functionality and tests.'
+  echo -e '\t--with-lapack     Tells CTF build to enable LAPACK functionality regardless of whether LAPACK libs have been given.'
   echo
   echo -e '\t--with-scalapack  Tells CTF build to enable ScaLAPACK functionality regardless of whether ScaLAPACK libs have been given.'
+#  echo
+#  echo -e '\t--lapack=libs     Specify the linker options and/or libraries needed to link'
+#  echo -e '\t                  the LAPACK libraries. Necessary for some functionality and tests.'
+#  echo
+#  echo -e '\t--scalapack=libs  Specify the linker options and/or libraries needed to link'
+#  echo -e '\t                  the ScaLAPACK libraries. Necessary for some functionality and tests.'
+#  echo
   echo
   echo -e '\t--with-cuda       Tells CTF to setup and use NVCC, NVCCFLAGS, and CUBLAS libs'
   echo
-  echo -e 'Additionally, the variables CXX, CXXFLAGS, INCLUDES, AR, NVCC, NVCCFLAGS, LDFLAGS, and WARNFLAGS'
+  echo -e '\t--no-dynamic      Turns off configuration and build of dynamic (shared) libraries (these are needed for Python codes and some C++ codes)'
+  echo
+  echo -e '\t--no-static       Turns off configuration and build of static libraries (these are needed for C++ codes)'
+  echo
+  echo -e '\tLIB_PATH=-Ldir    Specify paths to static libraries, e.g. -L/usr/local/lib/ to be used for test executables'
+  echo
+  echo -e '\tLD_LIB_PATH=-Ldir Specify paths to dynamic libraries to be used for test executables as part of LD_LIBRARY_PATH'
+  echo
+  echo -e '\tLIBS=-llibname    Specify list of static libraries to link to, by default "-lblas -llapack -lscalapack" or a subset'
+  echo -e '\t                  (for each -l<name> ensure lib<name>.a is found in LIBRARY_PATH or LIB_PATH)'
+  echo
+  echo -e '\tLD_LIBS=-llibname Specify list of dynamic libraries to link to, by default "-lblas -llapack -lscalapack" or a subset'
+  echo -e '\t                  (for each -l<name> ensure lib<name>.a is found in LD_LIBRARY_PATH or LD_LIB_PATH)'
+  echo
+  echo -e '\tCXX=compiler      Specify the C++ compiler (e.g. mpicxx)'
+  echo
+  echo -e '\tCXXFLAGS=flags    Specify the compiler flags (e.g. "-g -O0" for a lightweight debug build),'
+  echo -e '\t                  can also be used to specify macros like -DOMP_OFF (turn off OpenMP) -DPROFILE -DPMPI (turn on performance profiling)'
+  echo -e '\t                  -DVERBOSE=1 -DDEBUG, see docs and generated config.mk for details)'
+  echo
+  echo -e '\tLDFLAGS=flags     Specify the link flags (e.g. -lmpich)'
+  echo
+  echo -e '\tINCLUDES=-Idir    Specify directories and header files to include (e.g. -I/path/to/mpi/header/file/)'
+  echo
+  echo -e 'Additionally, the variables AR, NVCC, NVCCFLAGS, LDFLAGS, and WARNFLAGS'
   echo -e 'can be set on the command line, e.g. ./configure CXX=g++ CXXFLAGS="-fopenmp -O2 -g".'
   echo
 }
@@ -44,6 +64,7 @@ done
 # $3 - 0 if no printouts, 1 if verbose
 function testlink
 {
+  rm -f a.out
   status=1
   cat > .test.cxx <<EOF
 #if __cplusplus
@@ -64,6 +85,50 @@ EOF
   return $status
 }
 
+#Usage: 'testldlink $1 $2 $3' for checking symbol with dynamic library where 
+# $1 - library link line
+# $2 - symbol (function)
+# $3 - 0 if no printouts, 1 if verbose
+function testldlink
+{
+  rm -f a.out
+  status=1
+  cat > .test.cxx <<EOF
+#if __cplusplus
+  extern "C" 
+#endif
+  void $2();
+  void func(){ $2(); }
+  int main(){ return 0; }
+EOF
+  if [ $3 -eq 1 ]; then
+    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $1 $LDFLAGS  2>&1 )
+  else
+    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $1 $LDFLAGS  > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+    if [ $3 -eq 1 ]; then
+      ( set -x; LD_LIBRARY_PATH="$LD_LIB_PATH:$LD_LIBRARY_PATH" ./a.out 2>&1 )
+    else
+      LD_LIBRARY_PATH="$LD_LIB_PATH:$LD_LIBRARY_PATH" ./a.out > /dev/null 2>&1
+    fi
+    if [ $? -eq 0 ]; then
+      UDEFSYMB=$(nm ./a.out | grep -c "U $2")
+      if [ $UDEFSYMB -eq 0 ]; then
+        status=1
+        if [ $3 -eq 1 ]; then
+            echo "Undefined symbol not found, so we did not really link to dynamic library (but rather static)"
+            ( set -x; nm ./a.out; )
+        fi
+      fi
+    else
+      status=0
+    fi
+  fi
+  rm -f .test.cxx a.out
+  return $status
+}
 
 #Usage: 'testcompiler $1' where 
 # $1 - 0 if no printouts, 1 if verbose
@@ -337,6 +402,8 @@ depstype=normal
 WITH_CUDA=0
 WITH_LAPACK=0
 WITH_SCALAPACK=0
+WITH_STATIC=1
+WITH_DYNAMIC=1
 while [ "x$1" != "x" ]; do
   case $1 in
     --build-dir=*)
@@ -345,17 +412,8 @@ while [ "x$1" != "x" ]; do
     --build-dir=*)
       eval INSTALLDIR="$(printf "%q" "${1#--install-dir=}")"
       ;;
-    --blas=*)
-      BLASLIBS="${1#--blas=}"
-      ;;
-    --lapack=*)
-      LAPACKLIBS="${1#--lapack=}"
-      ;;
     --with-lapack)
       WITH_LAPACK=1
-      ;;
-    --scalapack=*)
-      SCALAPACKLIBS="${1#--scalapack=}"
       ;;
     --with-scalapack)
       WITH_SCALAPACK=1
@@ -363,10 +421,20 @@ while [ "x$1" != "x" ]; do
     --with-cuda)
       WITH_CUDA=1
       ;;
+    --no-dynamic)
+      WITH_DYNAMIC=0
+      ;;
+    --no-static)
+      WITH_STATIC=0
+      ;;
     --help)
       usage
       exit 0
       ;;
+    LIB_PATH=*|\
+    LD_LIB_PATH=*|\
+    LIBS=*|\
+    LD_LIBS=*|\
     CXX=*|\
     NVCC=*|\
     AR=*|\
@@ -399,109 +467,130 @@ if [ "x$INSTALLDIR" = "x" ]; then
 	INSTALLDIR='/usr/local/'
 fi
 
+if [ "x$LIB_PATH" = "x" ]; then
+	LIB_PATH=""
+fi
+if [ "x$LD_LIB_PATH" = "x" ]; then
+	LD_LIB_PATH=$LIB_PATH
+fi
+
+FLIB_PATH=${LIB_PATH//'-l'/''}
+LD_LIB_PATH="-Wl,-rpath=\"$FLIB_PATH\" $LIB_PATH"
+
+#FLD_LIBS="${LD_LIBS//'-l[a-z\|A-Z\|0-9]*'/'-Wl,-Bdynamic &.so'} -lbrt"
+#FLD_LIBS="${LD_LIBS//'-l[a-z\|A-Z\|0-9]*'/'-Wl,-Bdynamic &.so'} -lbrt"
+#FLD_LIBS=$LD_LIBS -lbrt"
+
 
 #
 # Check for known supercomputer host names
 #
-echo -n 'Checking hostname... '
-if [ "$NERSC_HOST" = "carver" ]; then
-    echo 'Hostname recognized as a NERSC machine.'
-    host=nersc
-    
-    if [ "x$BLASLIBS" = "x" ]; then
-        if [ "x$MKL" = "x" -o "x$MKL_ILP64" = "x" ]; then
-            echo 'MKL module not loaded and no alternative specified.'
-            echo 'Do "module load mkl" or use the --blas option.'
-            exit 1
-        fi
-    fi
-    
-    CXX="mpiCC"
-    realcompiler
-    defaultflags
-    DEFS="$DEFS -DCARVER"
-    
-    
-elif [ "$NERSC_HOST" = "hopper"  -o "$NERSC_HOST" = "cori" -o "$NERSC_HOST" = "edison" ]; then
-    echo 'Hostname recognized as a NERSC machine.'
-    host=nersc
-    BLASLIBS="-mkl=parallel"   
-    CXX="CC"
-    LDFGLAGS="-lpthread"
-    realcompiler
-    defaultflags
-    DEFS="$DEFS -DUSE_USE_MKL=1 -D`echo $NERSC_HOST | tr a-z A-Z`"
-echo -n 'Checking if std::function recognition works... '
-if testlambda 0; then
-  echo 'successful.'
-else
-  echo
-  testlambda 1
-  echo
-  echo 'failed, if on Edison, please run `module load gcc/4.9.2` and reconfigure.'
-  echo
-  exit 1
-fi
-    
-elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
-  echo 'Hostname recognized as a BG/P machine. (PLEASE USE CTF v1.1: git checkout v1.1)'
-  
-  host=bgp
-  BLASLIBS='-lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread'
-  BGP_ESSL='/soft/apps/ESSL-4.4.1-0'
-  LDFLAGS="-L$BGP_ESSL/lib \
-             -L/bgsys/ibm_compilers/sles10/prod/opt/ibmcmp/xlf/bg/11.1/bglib/ \
-             -L/soft/apps/ibmcmp/xlsmp/bg/1.7/bglib \
-             -L/soft/apps/ibmcmp/xlf/bg/11.1/bglib"
-  INCLUDES="-I$BGP_ESSL/include -I/bgsys/drivers/ppcfloor/arch/include"
-  AR='ar'
-  CXX=mpixlcxx_r
-  CXXFLAGS='-qsmp=omp -qnoipa -g -O3'
-  DEFS='-DBGP -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
-  WARNFLAGS='-Wall'
-  
-elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
-  echo 'Hostname recognized as a BG/Q machine (note: requires +mpiwrapper-bgclang in ~/.soft).'
-  echo 'FOR XLC SUPPORT, WHICH PERMITS THE USE OF THREADED ESSL AND IMPROVES PERFORMANCE BY UP TO 10X, PLEASE USE CTF v1.1: git checkout v1.1).'
- 
-  host=bgq
-  BGQ_ESSL='/soft/libraries/essl/current'
-  SCALAPACKLIBS=""
-  BLASLIBS="-L${BGQ_ESSL}/lib64 -lesslbg -L${IBM_MAIN_DIR}/xlf/bg/14.1/lib64 -lxlopt -lxlf90_r -lxlfmath -lxl -Wl,--allow-multiple-definition"
-  LDFLAGS=""
-  INCLUDES="-I$BGQ_ESSL/include"
-  AR='ar'
-  CXX=mpic++11
-  CXXFLAGS='-O3 -DOMP_OFF'
-  DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
-  WARNFLAGS=''
-
-elif (hostname | grep 'titan'); then
-    host=titan
-    
-    CXX="CC"
-    realcompiler
-    defaultflags
-    NVCC='nvcc -ccbin g++ -x cu'
-    NVCCFLAGS='-O3 -std=c++11 -m64'
-    LDFLAGS="$LDFLAGS -lcuda -lcudart -lcublas"
- 
-else
-  #
-  # Check for other common architectures (just Linux for now)
-  #
-  host=linux
-  echo 'Hostname not recognized, assuming generic Linux host.'
-
-  #
-  # Check for compiler used by MPI
-  #
+#echo -n 'Checking hostname... '
+#if [ "$NERSC_HOST" = "carver" ]; then
+#    echo 'Hostname recognized as a NERSC machine.'
+#    host=nersc
+#    
+#    if [ "x$LIBS" = "x" ]; then
+#        if [ "x$MKL" = "x" -o "x$MKL_ILP64" = "x" ]; then
+#            echo 'MKL module not loaded and no alternative specified.'
+#            echo 'Do "module load mkl" or use the --blas option.'
+#            exit 1
+#        fi
+#    fi
+#    
+#    CXX="mpiCC"
+#    realcompiler
+#    defaultflags
+#    DEFS="$DEFS -DCARVER"
+#    
+#    
+#elif [ "$NERSC_HOST" = "hopper"  -o "$NERSC_HOST" = "cori" -o "$NERSC_HOST" = "edison" ]; then
+#    echo 'Hostname recognized as a NERSC machine.'
+#    host=nersc
+#    LIBS="-mkl=parallel"   
+#    CXX="CC"
+#    realcompiler
+#    defaultflags
+#    DEFS="$DEFS -DUSE_MKL=1 -D`echo $NERSC_HOST | tr a-z A-Z`"
+#echo -n 'Checking if std::function recognition works... '
+#if testlambda 0; then
+#  echo 'successful.'
+#else
+#  echo
+#  testlambda 1
+#  echo
+#  echo 'failed, if on Edison, please run `module load gcc/4.9.2` and reconfigure.'
+#  echo
+#  exit 1
+#fi
+#    
+#elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
+#  echo 'Hostname recognized as a BG/P machine. (PLEASE USE CTF v1.1: git checkout v1.1)'
+#  
+#  host=bgp
+#  LIBS='-lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread'
+#  BGP_ESSL='/soft/apps/ESSL-4.4.1-0'
+#  LIB_PATH="-L$BGP_ESSL/lib \
+#             -L/bgsys/ibm_compilers/sles10/prod/opt/ibmcmp/xlf/bg/11.1/bglib/ \
+#             -L/soft/apps/ibmcmp/xlsmp/bg/1.7/bglib \
+#             -L/soft/apps/ibmcmp/xlf/bg/11.1/bglib"
+#  INCLUDES="-I$BGP_ESSL/include -I/bgsys/drivers/ppcfloor/arch/include"
+#  AR='ar'
+#  CXX=mpixlcxx_r
+#  CXXFLAGS='-qsmp=omp -qnoipa -g -O3'
+#  DEFS='-DBGP -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
+#  WARNFLAGS='-Wall'
+#  
+#elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
+#  echo 'Hostname recognized as a BG/Q machine (note: requires +mpiwrapper-bgclang in ~/.soft).'
+#  echo 'FOR XLC SUPPORT, WHICH PERMITS THE USE OF THREADED ESSL AND IMPROVES PERFORMANCE BY UP TO 10X, PLEASE USE CTF v1.1: git checkout v1.1).'
+# 
+#  host=bgq
+#  BGQ_ESSL='/soft/libraries/essl/current'
+#  LIB_PATH="-L${BGQ_ESSL}/lib64 -L${IBM_MAIN_DIR}/xlf/bg/14.1/lib64"
+#  LIBS="-lesslbg -lxlopt -lxlf90_r -lxlfmath -lxl -Wl,--allow-multiple-definition"
+#  INCLUDES="-I$BGQ_ESSL/include"
+#  AR='ar'
+#  CXX=mpic++11
+#  CXXFLAGS='-O3 -DOMP_OFF'
+#  DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
+#  WARNFLAGS=''
+#
+#elif (hostname | grep 'titan'); then
+#    host=titan
+#    
+#    CXX="CC"
+#    realcompiler
+#    defaultflags
+#    NVCC='nvcc -ccbin g++ -x cu'
+#    NVCCFLAGS='-O3 -std=c++11 -m64'
+#    LIBS="$LIBS -lcuda -lcudart -lcublas"
+# 
+#else
+#  #
+#  # Check for other common architectures (just Linux for now)
+#  #
+#  host=linux
+#  echo 'Hostname not recognized, assuming generic Linux host.'
+#
+#  #
+#  # Check for compiler used by MPI
+#  #
   if [ "x$CXX" = "x" ]; then
     CXX=mpicxx
   fi
   
   realcompiler
   defaultflags
+#fi
+
+if [ $WITH_STATIC = 0 ]; then
+  if [ $WITH_DYNAMIC = 0 ]; then
+    echo
+    echo -n 'Specifying --no-dynamic and --no-static does not make sense, what do you want to build?'
+    echo
+    exit 1
+  fi
 fi
 
 echo -n 'Checking whether __APPLE__ is defined... '
@@ -588,7 +677,7 @@ fi
 #
 # Check if OpenMP is provided
 #
-echo -n 'Checking if OpenMP is provided... '
+echo -n 'Checking for OpenMP... '
 if testopenmp; then
   echo 'OpenMP works.'
 else
@@ -606,51 +695,82 @@ fi
 SPMKL_COMMENT="
 ### Optional: sparse MKL BLAS Routines
 #uncomment below to enable MKL BLAS routines if setting up MKL manually
-#DEFS       += -DUSE_USE_MKL=1
+#DEFS       += -DUSE_MKL=1
 "
 
 #
-# Determine BLAS/LAPACK naming convention
+# Check for BLAS/LAPACK/SCLAPACK libraries and determine BLAS/LAPACK naming convention (underscores)
 #
-echo -n 'Checking whether BLAS works... '
-if testlink "$BLASLIBS" dgemm_ 0; then
-  UNDERSCORE=1
-  echo 'BLAS works, with underscores.'
-else
-  if testlink "$BLASLIBS" dgemm 0; then
-    UNDERSCORE= 0
-    echo 'BLAS works, without underscores.'
+if [ $WITH_STATIC = 1 ]; then
+  echo -n 'Checking for static BLAS library... '
+  if testlink "$LIB_PATH $LIBS" dgemm_ 0; then
+    UNDERSCORE=1
+    echo 'static BLAS library found, with underscores.'
   else
-    if [ "x$BLASLIBS" = "x" ]; then
-      if [ "$compiler" = "intel" ] &&  testlink -mkl dgemm_ 0 ; then
+    if testlink "$LIB_PATH $LIBS" dgemm 0; then
+      UNDERSCORE= 0
+      echo 'static BLAS library found, without underscores.'
+    else
+      if [ "$compiler" = "intel" ] &&  testlink  "$LIB_PATH -mkl $LIBS" dgemm_ 0 ; then
         UNDERSCORE=1
-        echo 'BLAS library was not specified, using -mkl.'
-        BLASLIBS=-mkl
-        DEFS="$DEFS -DUSE_USE_MKL=1"
+        echo 'detected that -mkl works, speculatively using -mkl.'
+        LIBS="-mkl $LIBS"
+        DEFS="$DEFS -DUSE_MKL=1"
         SPMKL_COMMENT=""
-      elif testlink -lblas dgemm_ 0; then
+      elif testlink "$LIB_PATH -lblas $LIBS" dgemm_ 0; then
         UNDERSCORE=1
-        echo 'BLAS library was not specified, using -lblas (with underscores).'
-        BLASLIBS=-lblas
-      elif testlink -lblas dgemm 0; then
+        echo 'detected that -lblas works, speculatively using -lblas (with underscores).'
+        LIBS="$LIBS -lblas"
+      elif testlink "$LIB_PATH -lblas $LIBS" dgemm 0; then
         UNDERSCORE=0
-        echo 'BLAS library was not specified, using -lblas (without underscores).'
-        BLASLIBS=-lblas
+        echo 'detected that -lblas works, speculatively using -lblas (without underscores).'
+        LIBS="$LIBS -lblas"
       else
         UNDERSCORE=1
         echo
-        echo '  WARNING: BLAS libirary was not specified, executables will not build,'
-        echo '  please specify correct --blas and/or LDFLAGS (run ./configure --help to see all options),'
-        echo '  CTF library can still build (via make).'
+        echo '    WARNING: static BLAS libirary did not work, executables will not build (error below),'
+        testlink "$LIB_PATH $LIBS $LDFLAGS" dgemm 1
+        echo '    please specify correct LIB_PATH and LIBS (run ./configure --help to see all options),'
+        echo '    CTF library can still build (via make), but executables will not!'
+        echo
       fi
-    else 
-      UNDERSCORE=1
-      echo
-      echo '  ERROR: Unable to link with specified BLAS library, build error below:'
-      echo
-      testlink "$BLASLIBS" dgemm_ 1
-      echo
-      exit 1
+    fi
+  fi
+fi
+if [ $WITH_DYNAMIC = 1 ]; then
+  echo -n 'Checking for dynamic BLAS library... '
+  if testldlink "$LD_LIB_PATH $LD_LIBS $LDFLAGS" dgemm_ 0; then
+    UNDERSCORE=1
+    echo 'dynamic BLAS library found, with underscores.'
+  else
+    if testldlink "$LD_LIB_PATH $LD_LIBS $LDFLAGS" dgemm 0; then
+      UNDERSCORE= 0
+      echo 'dynamic BLAS library found, without underscores.'
+    else
+      if [ "$compiler" = "intel" ] &&  testldlink -mkl dgemm_ 0 ; then
+        UNDERSCORE=1
+        echo 'detected that -mkl works, speculatively using -mkl.'
+        LD_LIBS="$LD_LIBS -mkl"
+        DEFS="$DEFS -DUSE_MKL=1"
+        SPMKL_COMMENT=""
+      elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas $LD_LIBS $LDFLAGS" dgemm_ 0; then
+        UNDERSCORE=1
+        echo 'detected that -Wl,-Bdynamic -lblas.so works, speculatively using -Wl,-Bdynamic -lblas (with underscores).'
+        LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lblas"
+      elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas $LD_LIBS $LDFLAGS" dgemm 0; then
+        UNDERSCORE=0
+        echo 'detected that -Wl,-Bdynamic -lblas.so works, speculatively using -Wl,-Bdynamic -lblas (without underscores).'
+        LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lblas"
+      else
+        UNDERSCORE=1
+        echo
+        echo '    WARNING: dynamic BLAS libirary did not work, python executables will not run (error below),'
+        testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas $LD_LIBS $LDFLAGS" dgemm_ 1
+        echo '    please specify correct LD_LIB_PATH and LD_LIBS (run ./configure --help to see all options),'
+        echo '    CTF library can still build (via make), but executables will not!'
+        echo
+        exit 1
+      fi
     fi
   fi
 fi
@@ -667,63 +787,136 @@ else
   PDGEMM=pdgemm
 fi
 
-echo -n 'Checking whether LAPACK is provided... '
-if testlink "$LAPACKLIBS $BLASLIBS $LDFLAGS" $DGEQRF 0; then
-  echo 'LAPACK found.'
-  DEFS="$DEFS -DUSE_LAPACK"
-else
-  if [ "x$LAPACKLIBS" = "x" ]; then
-    if testlink "-llapack $BLASLIBS $LDFLAGS" $DGEQRF 0; then
-      echo 'LAPACK library found (-llapack).'
-      LAPACKLIBS="-llapack"
+USING_LAPACK=0
+if [ $WITH_STATIC = 1 ]; then
+  echo -n 'Checking for static LAPACK library... '
+  if testlink "$LIB_PATH $LIBS $LDFLAGS" $DGEQRF 0; then
+    echo 'static LAPACK found.'
+    DEFS="$DEFS -DUSE_LAPACK"
+    USING_LAPACK=1
+  else
+    if testlink "$LIB_PATH -llapack $LIBS $LDFLAGS" $DGEQRF 0; then
+      echo 'static LAPACK library found (-llapack).'
+      LIBS="-llapack $LIBS"
       DEFS="$DEFS -DUSE_LAPACK"
+      USING_LAPACK=1
     else
       if [ $WITH_LAPACK = 1 ]; then
         echo '  LAPACK not found, will build with LAPACK-dependent functionality anyway, since --with-lapackwas specified.'
         echo '  WARNING: you may not be able to build CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a lapack library)'
+        echo '  WARNING: executables will not build until you provide a BLAS library (error below),'
+        testlink "$LIB_PATH $LIBS $LDFLAGS" $DGEQRF 1
+        echo '    please specify correct LIB_PATH and LIBS (run ./configure --help to see all options),'
+        echo '    CTF library can still build (via make), but executables will not!'
         DEFS="$DEFS -DUSE_LAPACK"
+        USING_LAPACK=1
       else
-        echo '  LAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --lapack=/path/to/liblapack.a'
+        echo '  LAPACK not found, some functionality and tests will be unavailable,'
+        echo '  to fix reconfigure and add --with-lapack and the appropriate library path'
+        echo '  (LIB_PATH/LIBS for static, LD_LIB_PATH/LD_LIBS for dynamic)'
       fi 
     fi
-  else
-    echo
-    echo '  FAILED ! LAPACK lib path found (--lapack specified), but lib not functional, error below'
-    echo
-    testlink "$LAPACKLIBS $BLASLIBS $LDFLAGS" $DGEQRF 1
-    echo
-    exit 1
   fi
 fi
-
-echo -n 'Checking whether ScaLAPACK is provided... '
-if testlink "$SCALAPACKLIBS $BLASLIBS $LDFLAGS" $PDGEMM 0; then
-  echo 'SCALAPACK found.'
-  DEFS="$DEFS -DUSE_SCALAPACK"
-else
-  if [ "x$SCALAPACKLIBS" = "x" ]; then
-    if testlink "-lscalapack $BLASLIBS $LDFLAGS" $PDGEMM 0; then
-      echo 'SCALAPACK library found (-lscalapack).'
-      SCALAPACKLIBS="-lscalapack"
-      DEFS="$DEFS -DUSE_SCALAPACK"
-    else
-      if [ $WITH_SCALAPACK = 1 ]; then
-        echo '  ScaLAPACK not found, will build with ScaLAPACK-dependent functionality anyway, since --with-scalapack was specified. WARNING: you may not be able build some CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a scalapack library)'
-        DEFS="$DEFS -DUSE_SCALAPACK"
-      else
-        echo '  ScaLAPACK not found, some functionality and tests will be unavailable, to fix reconfigure with appropriate --scalapack=/path/to/libscalapack.a'
-      fi
+if [ $WITH_DYNAMIC = 1 ]; then
+  echo -n 'Checking for dynamic LAPACK library... '
+  if testldlink "$LD_LIB_PATH $LD_LIBS $LDFLAGS" $DGEQRF 0; then
+    echo 'dynamic LAPACK found.'
+    if [ $USING_LAPACK = 0 ]; then 
+      DEFS="$DEFS -DUSE_LAPACK"
     fi
   else
-    echo
-    echo '  FAILED ! ScaLAPACK lib path found (--scalapack specified), but lib not functional, error below'
-    echo
-    testlink "$SCALAPACKLIBS $BLASLIBS $LDFLAGS" $PDGEMM 1
-    echo
-    exit 1
+    if testldlink "$LD_LIB_PATH -Wl,-Bdynamic -llapack $LD_LIBS $LDFLAGS" $DGEQRF 0; then
+      echo 'dynamic LAPACK library found (-Wl,-Bdynamic -llapack).'
+      LD_LIBS="$LD_LIBS -Wl,-Bdynamic -llapack"
+      if [ $USING_LAPACK = 0 ]; then 
+        DEFS="$DEFS -DUSE_LAPACK"
+      fi
+    else
+      if [ $WITH_LAPACK = 1 ]; then
+        echo '  LAPACK not found, will build with LAPACK-dependent functionality anyway, since --with-lapackwas specified.'
+        echo '  WARNING: you may not be able to build CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a lapack library)'
+        echo '  WARNING: executables will not build until you provide a BLAS library (error below),'
+        testldlink "$LD_LIB_PATH $LD_LIBS $LDFLAGS" $DGEQRF 1
+        echo '    please specify correct LD_LIB_PATH and LD_LIBS (run ./configure --help to see all options),'
+        echo '    CTF library can still build (via make), but executables will not!'
+        if [ $USING_LAPACK = 0 ]; then 
+          DEFS="$DEFS -DUSE_LAPACK"
+        fi
+      else
+        echo '  LAPACK not found, some functionality and tests will be unavailable,'
+        echo '  to fix reconfigure and add --with-lapack and the appropriate library path'
+        echo '  (LD_LIB_PATH/LD_LIBS for dynamic, LD_LD_LIB_PATH/LD_LD_LIBS for dynamic)'
+      fi 
+    fi
   fi
 fi
 
+USING_SCALA=0
+if [ $WITH_STATIC = 1 ]; then
+  echo -n 'Checking for static ScaLAPACK... '
+  if testlink "$LIB_PATH $LIBS $LDFLAGS" $PDGEMM 0; then
+    echo 'static SCALAPACK found.'
+    DEFS="$DEFS -DUSE_SCALAPACK"
+    USING_SCALA=1
+  else
+    if testlink "$LIB_PATH -lscalapack $LIBS $LDFLAGS" $PDGEMM 0; then
+      echo 'SCALAPACK library found (-lscalapack).'
+      LIBS="-lscalapack $LIBS"
+      DEFS="$DEFS -DUSE_SCALAPACK"
+      USING_SCALA=1
+    else
+      if [ $WITH_SCALAPACK = 1 ]; then
+        echo '  static ScaLAPACK not found, will build with ScaLAPACK-dependent functionality anyway, since --with-scalapack was specified.'
+        echo '  WARNING: you may not be able to build ctf tests and benchmarks in this configuration (but you can build the library and use in conjunction with a scalapack library)'
+        echo '  WARNING: executables will not build until you provide a scalapack library (error below),'
+        testlink "$SCALAPACKLIBS $BLASLIBS $LDFLAGS" $PDGEMM 1
+        echo '    please specify correct LIB_PATH and LIBS (run ./configure --help to see all options),'
+        echo '    CTF library can still build (via make), but executables will not!'
+        DEFS="$DEFS -DUSE_SCALAPACK"
+        USING_SCALA=1
+      else
+        echo '  static ScaLAPACK not found, some functionality and tests will be unavailable,'
+        echo '  to fix reconfigure and add --with-scalapack and the appropriate library path'
+        echo '  (LIB_PATH/LIBS for static, LD_LIB_PATH/LD_LIBS for dynamic)'
+      fi
+    fi
+  fi
+fi
+
+if [ $WITH_DYNAMIC = 1 ]; then
+  echo -n 'Checking for dynamic ScaLAPACK... '
+  if testldlink "$LD_LIB_PATH $LD_LIBS $LDFLAGS" $PDGEMM 0; then
+    echo 'dynamic SCALAPACK found.'
+    if [ $USING_SCALA = 0 ]; then 
+      DEFS="$DEFS -DUSE_SCALAPACK"
+    fi
+  else
+    if testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lscalapack $LD_LIBS $LDFLAGS" $PDGEMM 0; then
+      echo 'SCALAPACK library found (-Wl,-Bdynamic -lscalapack).'
+      LD_LIBS="-Wl,-Bdynamic -lscalapack $LD_LIBS"
+      if [ $USING_SCALA = 0 ]; then 
+        DEFS="$DEFS -DUSE_SCALAPACK"
+      fi
+    else
+      if [ $WITH_SCALAPACK = 1 ]; then
+        echo '  dynamic ScaLAPACK not found, will build with ScaLAPACK-dependent functionality anyway, since --with-scalapack was specified.'
+        echo '  WARNING: you may not be able to build ctf tests and benchmarks in this configuration (but you can build the library and use in conjunction with a scalapack library)'
+        echo '  WARNING: executables will not build until you provide a scalapack library (error below),'
+        testldlink "$SCALAPACKLD_LIBS $BLASLD_LIBS $LDFLAGS" $PDGEMM 1
+        echo '    please specify correct LD_LIB_PATH and LD_LIBS (run ./configure --help to see all options),'
+        echo '    CTF library can still build (via make), but executables will not!'
+        if [ $USING_SCALA = 0 ]; then 
+          DEFS="$DEFS -DUSE_SCALAPACK"
+        fi
+      else
+        echo '  dynamic ScaLAPACK not found, some functionality and tests will be unavailable,'
+        echo '  to fix reconfigure and add --with-scalapack and the appropriate library path'
+        echo '  (LD_LIB_PATH/LD_LIBS for dynamic, LD_LD_LIB_PATH/LD_LD_LIBS for dynamic)'
+      fi
+    fi
+  fi
+fi
 USE_CUDA=0
 echo -n 'Checking whether to use CUDA... '
 if [ "x$NVCC" = "x" ]; then
@@ -744,7 +937,7 @@ if [ "x$NVCC" = "x" ]; then
       exit 1
     fi
   else
-    echo 'cuda will not be used.'
+    echo 'CUDA will not be used.'
     NVCC='$(CXX) -x c++'
     NVCCFLAGS='$(CXXFLAGS)'
   fi
@@ -808,8 +1001,8 @@ INSTALL_DIR = $INSTALLDIR
 
 ### LINK TIME LIBRARIES AND FLAGS
 #libraries and flags for link time (irrelevant if only building CTF lib and not examples/tests)
-BLAS_LIBS   = $SCALAPACKLIBS $LAPACKLIBS $BLASLIBS
-LDFLAGS     = $LDFLAGS
+LIBS    = $LIB_PATH $LIBS
+LDFLAGS = $LDFLAGS
 
 ### COMPILE TIME INCLUDES AND FLAGS
 #C++ compiler 
@@ -833,7 +1026,7 @@ $SPMKL_COMMENT
 #uncomment below to enable performance profiling
 #DEFS       += -DPROFILE -DPMPI
 #uncomment below to enable automatic performance tuning (loses reproducibility of results)
-#Note: -DTUNE requires lapack (include -mkl or -llapack in BLAS_LIBS)
+#Note: -DTUNE requires lapack (include -mkl or -llapack in LIBS) and the inclusion of above performance profiling flags
 #DEFS       += -DTUNE
 
 ### Optional: DEBUGGING AND VERBOSITY
@@ -846,7 +1039,7 @@ $SPMKL_COMMENT
 #used to compile all plain C++ files
 FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS) \$(INCLUDES)
 #link-line for all executables
-LIBS        = \$(BLAS_LIBS) \$(LDFLAGS)
+LIBS        = $LIBS \$(LDFLAGS)
 #compiler for CUDA files (used to compile CUDA code only when -DOFFLOAD and -DUSE_CUDA are in DEFS, otherwise should be same as FCXX with -x c++)
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
 EOF
@@ -908,10 +1101,9 @@ for mod in mods:
             mod[0],
             [mod[1]],
             language="c++",
+            libraries=["$LD_LIBS".replace('-l','').replace('-Wl,-Bdynamic','').split()],
             extra_compile_args="$CXXFLAGS".split(),
-            extra_compile_args="$CXXFLAGS".split(),
-            libraries=["ctf", "blas", "mpicxx", "scalapack"],
-            extra_link_args=["-L$BUILDDIR/lib_shared $CXXFLAGS $SCALAPACKLIBS $BLASLIBS $LDFLAGS"]
+            extra_link_args=["-L$BUILDDIR/lib_shared $CXXFLAGS $LD_LIB_PATH $LDFLAGS"]
         ))
 
 setup(name="CTF",packages=["ctf"],version="1.5.0",cmdclass = {'build_ext': build_ext},ext_modules = cythonize(ext_mods))

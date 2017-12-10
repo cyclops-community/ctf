@@ -34,18 +34,20 @@ namespace CTF_LAPACK{
 #endif
 }
 #ifdef USE_SCALAPACK
+#define EXTERN_OR_INLINE extern "C"
 #define SCAL_END ;
 #else
+#define EXTERN_OR_INLINE inline 
 #define SCAL_END {}
 #endif
 namespace CTF_SCALAPACK{
-  extern "C"
+  EXTERN_OR_INLINE
   void BLACS_GRIDINFO(int * icontxt, int * nprow, int * npcol, int * iprow, int * ipcol) SCAL_END
 
-  extern "C"
+  EXTERN_OR_INLINE
   void BLACS_GRIDINIT(int * icontxt, char * order, int * nprow, int * npcol) SCAL_END
 
-  extern "C" 
+  EXTERN_OR_INLINE 
   void PDGESVD( char *,
                 char *,
                 int *,
@@ -65,9 +67,9 @@ namespace CTF_SCALAPACK{
                 int *,
                 double *,
                 int *,
-                int *);
+                int *) SCAL_END
 
-  extern "C"
+  EXTERN_OR_INLINE
   void DESCINIT(int *, int *,
 
                 int *, int *,
@@ -76,16 +78,23 @@ namespace CTF_SCALAPACK{
 
                 int *, int *,
 
-                int *, int *);
-  extern "C" {
+                int *, int *) SCAL_END
+
+  EXTERN_OR_INLINE 
     void Cblacs_pinfo(int*, int*) SCAL_END
+  EXTERN_OR_INLINE 
     void Cblacs_get(int, int, int*) SCAL_END
+  EXTERN_OR_INLINE 
     void Cblacs_gridinit(int*, char*, int, int) SCAL_END
+  EXTERN_OR_INLINE 
     void Cblacs_gridinfo(int, int*, int*, int*, int*) SCAL_END
+  EXTERN_OR_INLINE 
     void Cblacs_gridmap(int*, int*, int, int, int) SCAL_END
+  EXTERN_OR_INLINE 
     void Cblacs_barrier(int , char*) SCAL_END
+  EXTERN_OR_INLINE 
     void Cblacs_gridexit(int) SCAL_END
-  }
+  
   inline
   void cpdgesvd(  char JOBU,
                   char JOBVT,
@@ -123,6 +132,8 @@ namespace CTF_SCALAPACK{
                   int * info) {
     DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
   }
+#undef EXTERN_OR_INLINE 
+#undef SCAL_END
 
 }
 #endif
