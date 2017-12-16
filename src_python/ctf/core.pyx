@@ -480,9 +480,10 @@ cdef class tensor:
         rsym = self.sym[:]
         if ord_comp(self.order, 'F'):
             rlens = rev_array(lens)
-            rsym = rev_array(self.sym)
-            rsym[0:-1] = rsym[1:]
-            rsym[-1] = SYM.NS
+            if self.ndim > 1:
+                rsym = rev_array(self.sym)
+                rsym[0:-1] = rsym[1:]
+                rsym[-1] = SYM.NS
         cdef int * clens
         clens = int_arr_py_to_c(rlens)
         cdef int * csym
@@ -2893,8 +2894,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
                     B = tensor(ret_dim, dtype = out.get_type())
                     C = tensor(A.get_dims(), dtype = out.get_type())
 
-        index = random.sample(string.ascii_letters+string.digits,len(dim))
-        index = "".join(index)
+        index = get_num_str(len(dim))
         index_A = index[0:len(dim)]
         index_B = index[0:axis] + index[axis+1:len(dim)]
         if isinstance(C, tensor):
@@ -2931,8 +2931,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         del temp_dim[index_removal]
         ret_dim = tuple(temp_dim)
         B = tensor(ret_dim, dtype = dtype)
-        index = random.sample(string.ascii_letters+string.digits,len(decrease_dim))
-        index = "".join(index)
+        index = get_num_str(len(decrease_dim))
         index_A = index[0:len(decrease_dim)]
         index_B = index[0:axis_list[i]] + index[axis_list[i]+1:len(decrease_dim)]
         B.i(index_B) << temp.i(index_A)
@@ -2968,7 +2967,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
                 raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
         B = tensor((1,), dtype=np.bool)
         index_A = "" 
-        index_A = random.sample(string.ascii_letters+string.digits,len(A.get_dims()))
+        index_A = random.random(string.ascii_letters+string.digits,len(A.get_dims()))
         index_A = "".join(index_A)
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
@@ -3026,7 +3025,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
                 if tuple(dim_keep) != tuple(out.shape):
                     raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
         index_A = "" 
-        index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+        index_A = random.random(string.ascii_letters+string.digits,len(dim))
         index_A = "".join(index_A)
         index_temp = rev_array(index_A)
         index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
@@ -3087,7 +3086,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
                     raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
         B = tensor(dim_ret, dtype=np.bool)
         index_A = "" 
-        index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+        index_A = random.random(string.ascii_letters+string.digits,len(dim))
         index_A = "".join(index_A)
         index_temp = rev_array(index_A)
         index_B = ""
@@ -3219,7 +3218,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
         #            raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
         #B = tensor((1,), dtype=np.bool)
         #index_A = "" 
-        #index_A = random.sample(string.ascii_letters+string.digits,len(A.get_dims()))
+        #index_A = random.random(string.ascii_letters+string.digits,len(A.get_dims()))
         #index_A = "".join(index_A)
         #if A.get_type() == np.float64:
         #    all_helper[double](<ctensor*>(A.dt), <ctensor*>B.dt, index_A.encode(), "".encode())
@@ -3281,7 +3280,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #            if tuple(dim_keep) != tuple(out.shape):
     #                raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
     #    index_A = "" 
-    #    index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+    #    index_A = random.random(string.ascii_letters+string.digits,len(dim))
     #    index_A = "".join(index_A)
     #    index_temp = rev_array(index_A)
     #    index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
@@ -3342,7 +3341,7 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     #                raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
     #    B = tensor(dim_ret, dtype=np.bool)
     #    index_A = "" 
-    #    index_A = random.sample(string.ascii_letters+string.digits,len(dim))
+    #    index_A = random.random(string.ascii_letters+string.digits,len(dim))
     #    index_A = "".join(index_A)
     #    index_temp = rev_array(index_A)
     #    index_B = ""
