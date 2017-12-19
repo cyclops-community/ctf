@@ -1796,7 +1796,7 @@ namespace CTF_int {
 
   int summation::check_mapping(){
     int i, pass, order_tot, iA, iB;
-    int * idx_arr; //, * phys_map;
+    int * idx_arr, * phys_map;
     //mapping * map;
 
     TAU_FSTART(check_sum_mapping);
@@ -1820,8 +1820,8 @@ namespace CTF_int {
       return 0;
     }
     
-    //CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
-    //memset(phys_map, 0, sizeof(int)*A->topo->order);
+    CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
+    memset(phys_map, 0, sizeof(int)*A->topo->order);
 
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -1843,35 +1843,30 @@ namespace CTF_int {
           DPRINTF(4,"failed confirmation here i=%d\n",i);
         }
       }
-      /*if (iA != -1) {
-        map = &A->edge_map[iA];
-        if (map->type == PHYSICAL_MAP)
-          phys_map[map->cdt] = 1;
-        while (map->has_child) {
-          map = map->child;
-          if (map->type == PHYSICAL_MAP)
-            phys_map[map->cdt] = 1;
+      if (iA != -1 && iB == -1) {
+        mapping * map = &A->edge_map[iA];
+        while (map->type == PHYSICAL_MAP){
+          phys_map[map->cdt]++;
+          if (map->has_child) map = map->child;
+          else break;
         }
       }
-      if (iB != -1){
-        map = &B->edge_map[iB];
-        if (map->type == PHYSICAL_MAP)
-          phys_map[map->cdt] = 1;
-        while (map->has_child) {
-          map = map->child;
-          if (map->type == PHYSICAL_MAP)
-            phys_map[map->cdt] = 1;
+      if (iB != -1 && iA == -1){
+        mapping * map = &B->edge_map[iB];
+        while (map->type == PHYSICAL_MAP){
+          phys_map[map->cdt]++;
+          if (map->has_child) map = map->child;
+          else break;
         }
-      }*/
+      }
     }
-    /* Ensure that something is mapped to each dimension, since replciation
-       does not make sense in sum for all tensors */
-  /*  for (i=0; i<topovec[A->itopo].order; i++){
-      if (phys_map[i] == 0) {
+    /* Ensure that a replicated and a reduced mode are not mapped to processor grid dimensions not used by the other tensor */
+    for (i=0; i<A->topo->order; i++){
+      if (phys_map[i] > 1) {
         pass = 0;
         DPRINTF(3,"failed confirmation here i=%d\n",i);
       }
-    }*/
+    }
 
     //CTF_int::cdealloc(phys_map);
     CTF_int::cdealloc(idx_arr);
