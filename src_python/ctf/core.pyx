@@ -2447,7 +2447,8 @@ def dot(tA, tB, out=None):
     elif type(A)==tensor and type(B)==tensor:
         return tensordot(A, B, axes=([-1],[0]))
     else:
-        raise ValueError("Wrong Type")
+        return tensordot(astensor(A), astensor(B), axes=([-1],[0]))
+#        raise ValueError("Wrong Type")
 
 def tensordot(A, B, axes=2):
     if not isinstance(A, tensor) or not isinstance(B, tensor):
