@@ -723,7 +723,27 @@ namespace CTF_int {
        */
       void read_dense_from_file(MPI_File & file, int64_t offset=0);
 
-
+      /**
+       * \brief performs a partial reduction on the tensor (used in summation and contraction)
+       * \param[in] idx_A index map of this tensor as defined by summation/contraction
+       * \param[out] new_idx_A how idx_A needs to be transformed
+       * \param[in] order_B number of modes in tensor B
+       * \param[in] idx_B index map containing all indices in another tensor involved in the operaiton
+       * \param[out] new_idx_B how idx_B needs to be transformed
+       * \param[in] order_C number of modes in tensor C
+       * \param[in] idx_C index map containing all indices in another tensor involved in the operaiton (should be NULL for summation)
+       * \param[out] new_idx_C how idx_C needs to be transformed, untouched if idx_C is NULL
+       * \param[in] idx_C index map containing all indices in another tensor involved in the operaiton (should be NULL for summation)
+       * \param[out] new_idx_C how idx_C needs to be transformed, untouched if idx_C is NULL
+       */
+      tensor * self_reduce(int const * idx_A,
+                           int **      new_idx_A,
+                           int         order_B,
+                           int const * idx_B,
+                           int **      new_idx_B,
+                           int         order_C=0,
+                           int const * idx_C=NULL,
+                           int **      new_idx_C=NULL);
   };
 }
 

@@ -28,10 +28,8 @@ namespace CTF_int {
     B     = other.B;
     idx_B = (int*)alloc(sizeof(int)*other.B->order);
     memcpy(idx_B, other.idx_B, sizeof(int)*other.B->order);
-    if (other.is_custom){
-      func      = other.func;
-      is_custom = 1;
-    } else is_custom = 0; 
+    func      = other.func;
+    is_custom = other.is_custom;
     alpha = other.alpha;
     beta  = other.beta;
   }
@@ -47,6 +45,7 @@ namespace CTF_int {
     B         = B_;
     beta      = beta_;
     is_custom = 0;
+    func      = NULL;
 
     idx_A     = (int*)alloc(sizeof(int)*A->order);
     idx_B     = (int*)alloc(sizeof(int)*B->order);
@@ -66,6 +65,7 @@ namespace CTF_int {
     B         = B_;
     beta      = beta_;
     is_custom = 0;
+    func      = NULL;
     
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
   }
@@ -83,7 +83,10 @@ namespace CTF_int {
     B         = B_;
     beta      = beta_;
     func      = func_;
-    is_custom = 1;
+    if (func == NULL)
+      is_custom = 0;
+    else
+      is_custom = 1;
 
     idx_A     = (int*)alloc(sizeof(int)*A->order);
     idx_B     = (int*)alloc(sizeof(int)*B->order);
@@ -105,7 +108,10 @@ namespace CTF_int {
     B         = B_;
     beta      = beta_;
     func      = func_;
-    is_custom = 1;
+    if (func == NULL)
+      is_custom = 0;
+    else
+      is_custom = 1;
 
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
   }
@@ -1116,6 +1122,20 @@ namespace CTF_int {
       }
       return SUCCESS;
     }
+
+
+
+    int * new_idx_A, * new_idx_B;
+    if (!is_custom || func->is_distributive){
+      tensor * new_tsr_A = A->self_reduce(idx_A, &new_idx_A, B->order, idx_B, &new_idx_B);
+      if (new_tsr_A != A) {
+        summation s(new_tsr_A, new_idx_A, alpha, B, new_idx_B, beta, func);
+        s.execute();
+        delete new_tsr_A;
+        return SUCCESS;
+      }
+    }
+
     // If we have sparisity, use separate mechanism
     /*if (A->is_sparse || B->is_sparse){
       sp_sum();

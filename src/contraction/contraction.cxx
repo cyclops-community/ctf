@@ -4014,79 +4014,6 @@ namespace CTF_int {
       delete new_tsr;
       return stat;
     }
-    if (!is_custom || func->left_distributive){
-      for (int i=0; i<A->order; i++){    
-        int iA = idx_A[i];
-        bool has_match = false;
-        for (int j=0; j<B->order; j++){
-          if (idx_B[j] == iA) has_match = true;
-        }
-        for (int j=0; j<C->order; j++){
-          if (idx_C[j] == iA) has_match = true;
-        }
-        if (!has_match){
-          int new_len[A->order-1];
-          int new_sym[A->order-1];
-          int sum_A_idx[A->order];
-          int sum_B_idx[A->order-1];
-          int new_idx_A[A->order-1];
-          int new_idx_B[B->order];
-          int new_idx_C[C->order];
-          int max_idx = 0;
-          for (int j=0; j<A->order; j++){
-            max_idx = std::max(max_idx, idx_A[j]);
-            sum_A_idx[j] = j;
-            if (j==i) continue;
-            if (j<i){
-              new_len[j] = A->lens[j];
-              new_idx_A[j] = idx_A[j];
-              new_sym[j] = A->sym[j];
-              if (j == i-1){
-                if (A->sym[i] == NS) new_sym[j] = NS;
-              }
-              sum_A_idx[j] = j;
-              sum_B_idx[j] = j;
-            } else {
-              new_len[j-1] = A->lens[j];
-              new_sym[j-1] = A->sym[j];
-              new_idx_A[j-1] = j;
-              sum_A_idx[j] = j;
-              sum_B_idx[j-1] = j;
-            }
-          }
-          for (int j=0; j<B->order; j++){
-            new_idx_B[j] = idx_B[j];
-            max_idx = std::max(max_idx, idx_B[j]);
-          }
-          for (int j=0; j<C->order; j++){
-            new_idx_C[j] = idx_C[j];
-            max_idx = std::max(max_idx, idx_C[j]);
-          }
-          if (iA != max_idx){
-            for (int j=0; j<A->order-1; j++){
-              if (new_idx_A[j] == max_idx)
-                new_idx_A[j] = iA;
-            }
-            for (int j=0; j<B->order; j++){
-              if (new_idx_B[j] == max_idx)
-                new_idx_B[j] = iA;
-            }
-            for (int j=0; j<C->order; j++){
-              if (new_idx_C[j] == max_idx)
-                new_idx_C[j] = iA;
-            }
-          }
-          tensor * new_tsr = new tensor(A->sr, A->order-1, new_len, new_sym, A->wrld, 1, A->name, 1, A->is_sparse);
-          summation s(A, sum_A_idx, A->sr->mulid(), new_tsr, sum_B_idx, A->sr->mulid());
-          s.execute();
-          contraction ctr(new_tsr, new_idx_A, B, new_idx_B, alpha, C, new_idx_C, beta, func);
-          ctr.execute();
-          delete new_tsr;
-          return SUCCESS;
-        }
-      }
-    }
-
 //    ASSERT(!C->is_sparse);
     if (B->is_sparse && !A->is_sparse){
 //      ASSERT(!A->is_sparse);
@@ -4514,6 +4441,29 @@ namespace CTF_int {
       }
       return SUCCESS;
     }
+
+    int * new_idx_A, * new_idx_B, * new_idx_C;
+    if (!is_custom || func->left_distributive){
+      tensor * new_tsr_A = A->self_reduce(idx_A, &new_idx_A, B->order, idx_B, &new_idx_B, C->order, idx_C, &new_idx_C);
+      if (new_tsr_A != A) {
+        contraction ctr(new_tsr_A, new_idx_A, B, new_idx_B, alpha, C, new_idx_C, beta, func);
+        ctr.execute();
+        delete new_tsr_A;
+        return SUCCESS;
+      }
+    }
+
+    if (!is_custom || func->right_distributive){
+      tensor * new_tsr_B = B->self_reduce(idx_B, &new_idx_B, A->order, idx_A, &new_idx_A, C->order, idx_C, &new_idx_C);
+      if (new_tsr_B != B) {
+        contraction ctr(A, new_idx_A, new_tsr_B, new_idx_B, alpha, C, new_idx_C, beta, func);
+        ctr.execute();
+        delete new_tsr_B;
+        return SUCCESS;
+      }
+    }
+
+
     CTF_int::alloc_ptr(sizeof(int)*A->order,          (void**)&map_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order,          (void**)&map_B);
     CTF_int::alloc_ptr(sizeof(int)*C->order,          (void**)&map_C);

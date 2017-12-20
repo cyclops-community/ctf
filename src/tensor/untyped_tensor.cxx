@@ -39,7 +39,7 @@ namespace CTF_int {
 
   void tensor::free_self(){
     if (order != -1){
-      if (wrld->rank == 0) DPRINTF(2,"Deleted order %d tensor %s\n",order,name);
+      if (wrld->rank == 0) DPRINTF(3,"Deleted order %d tensor %s\n",order,name);
       if (is_folded) unfold();
       cdealloc(sym);
       cdealloc(lens);
@@ -335,7 +335,7 @@ namespace CTF_int {
       this->name[6] = '\0';
     }
     if (wrld->rank == 0)
-      DPRINTF(2,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
+      DPRINTF(3,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
 
     CTF_int::alloc_ptr(order*sizeof(int), (void**)&this->padding);
     memset(this->padding, 0, order*sizeof(int));
@@ -2786,5 +2786,114 @@ namespace CTF_int {
     }    
   }
 
+  
+  tensor * tensor::self_reduce(int const * idx_A,
+                               int **      new_idx_A,
+                               int         order_B,
+                               int const * idx_B,
+                               int **      new_idx_B,
+                               int         order_C,
+                               int const * idx_C,
+                               int **      new_idx_C){
+    //check first that we are not already effectively doing a summation for a self_reduce, to ensure that there is no infinite recursion
+    if (order_C == 0 && this->order == order_B + 1){
+      bool all_match_except_one = true;
+      bool one_skip = false;
+      int iiA=0,iiB=0;
+      while (iiA < this->order){
+        if (iiB >= order_B || idx_A[iiA] != idx_B[iiB]){
+          if (one_skip) all_match_except_one = false;
+          else one_skip = true;
+          iiA++;
+        } else {
+          iiA++;
+          iiB++;
+        }
+      }
+      if (all_match_except_one && one_skip) return this;
+    }
+
+    //look for unmatched indices
+    for (int i=0; i<this->order; i++){    
+      int iA = idx_A[i];
+      bool has_match = false;
+      for (int j=0; j<this->order; j++){
+        if (j != i && idx_A[j] == iA) has_match = true;
+      }
+      for (int j=0; j<order_B; j++){
+        if (idx_B[j] == iA) has_match = true;
+      }
+      for (int j=0; j<order_C; j++){
+        if (idx_C[j] == iA) has_match = true;
+      }
+      //reduce/contract any unmatched index
+      if (!has_match){
+        int new_len[this->order-1];
+        int new_sym[this->order-1];
+        int sum_A_idx[this->order];
+        int sum_B_idx[this->order-1];
+        *new_idx_A = (int*)malloc(sizeof(int)*(this->order-1));
+        *new_idx_B = (int*)malloc(sizeof(int)*(order_B));
+        if (order_C > 0)
+          *new_idx_C = (int*)malloc(sizeof(int)*(order_C));
+        int max_idx = 0;
+        //determine new symmetry and edge lengths
+        for (int j=0; j<this->order; j++){
+          max_idx = std::max(max_idx, idx_A[j]);
+          sum_A_idx[j] = j;
+          if (j==i) continue;
+          if (j<i){
+            new_len[j] = this->lens[j];
+            (*new_idx_A)[j] = idx_A[j];
+            new_sym[j] = this->sym[j];
+            if (j == i-1){
+              if (this->sym[i] == NS) new_sym[j] = NS;
+            }
+            sum_A_idx[j] = j;
+            sum_B_idx[j] = j;
+          } else {
+            new_len[j-1] = this->lens[j];
+            new_sym[j-1] = this->sym[j];
+            (*new_idx_A)[j-1] = idx_A[j];
+            sum_A_idx[j] = j;
+            sum_B_idx[j-1] = j;
+          }
+        }
+        //determine maximum index
+        for (int j=0; j<this->order; j++){
+          max_idx = std::max(max_idx, idx_A[j]);
+        }
+        for (int j=0; j<order_B; j++){
+          (*new_idx_B)[j] = idx_B[j];
+          max_idx = std::max(max_idx, idx_B[j]);
+        }
+        for (int j=0; j<order_C; j++){
+          (*new_idx_C)[j] = idx_C[j];
+          max_idx = std::max(max_idx, idx_C[j]);
+        }
+        //adjust indices by rotating maximum index with removed index, so that indices range from 0 to num_indices-1
+        if (iA != max_idx){
+          for (int j=0; j<this->order-1; j++){
+            if ((*new_idx_A)[j] == max_idx)
+              (*new_idx_A)[j] = iA;
+          }
+          for (int j=0; j<order_B; j++){
+            if ((*new_idx_B)[j] == max_idx)
+              (*new_idx_B)[j] = iA;
+          }
+          for (int j=0; j<order_C; j++){
+            if ((*new_idx_C)[j] == max_idx)
+              (*new_idx_C)[j] = iA;
+          }
+        }
+        //run summation to reduce index
+        tensor * new_tsr = new tensor(this->sr, this->order-1, new_len, new_sym, this->wrld, 1, this->name, 1, this->is_sparse);
+        summation s(this, sum_A_idx, this->sr->mulid(), new_tsr, sum_B_idx, this->sr->mulid());
+        s.execute();
+        return new_tsr;
+      }
+    }
+    return this;
+  } 
 }
 
