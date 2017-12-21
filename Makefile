@@ -16,7 +16,7 @@ all: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
 	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
-	src/scripts/expand_includes.sh
+	sh src/scripts/expand_includes.sh
 	mv include/ctf_all.hpp $(INSTALL_DIR)/include/ctf.hpp
 
 .PHONY: uninstall
