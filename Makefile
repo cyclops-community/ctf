@@ -169,11 +169,14 @@ test8: test_suite
 	mpirun -np 8 $(BDIR)/bin/test_suite
 
 clean_py:
-	rm -f $(BDIR)/src_python/ctf/core*.so
-	rm -f $(BDIR)/src_python/ctf/random*.so
+	rm -f $(BDIR)/src_python/ctf/core.*.so
+	rm -f $(BDIR)/src_python/ctf/random.*.so
 	rm -f $(BDIR)/src_python/ctf/core.cpp
 	rm -f $(BDIR)/src_python/ctf/random.cpp
 	rm -rf $(BDIR)/src_python/build
+	rm -rf $(BDIR)/src_python/__pycache__
+	rm -f $(BDIR)/lib_python/ctf/core.so
+	rm -f $(BDIR)/lib_python/ctf/random.so
 
 
 clean_bin:
