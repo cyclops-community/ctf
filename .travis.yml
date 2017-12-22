@@ -40,7 +40,8 @@ before_install:
 install:
   - mkdir -p $TRAVIS_HOME/deps
   - sh ./travis/install-mpi.sh $TRAVIS_HOME/deps mpich
-  - pip install cython numpy
+  - pip install --force-reinstall numpy
+  - pip install cython
 before_script:
   - which mpicxx ; mpicxx -v
   - ./configure CXX=mpicxx
