@@ -358,9 +358,10 @@ namespace CTF_int {
 
       /**
        * \brief get number of elements in whole tensor
+       * \param[in] packed if false (default) ignore symmetry
        * \return number of elements (including zeros)
        */
-      int64_t get_tot_size();
+      int64_t get_tot_size(bool packed);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).

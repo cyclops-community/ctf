@@ -114,6 +114,14 @@ For testing the library, run `make test`, which will run a suite of dozens of te
 
 Parallel make (e.g. -j4) is supported. The library will build in seconds if you switch off the optimization flags in config.mk, but may take a few minutes otherwise.
 
+## Building optional dependencies
+
+CTF can be enhanved to provide SVD functionality by building with ScaLAPACK libraries and requires LAPACK libraries for tuning. The High-Performance Tensor Transpose (HPTT) library can be used with CTF to accelerate transpositions. To access the same features in Python, shared (dynamic) libraries must be built for these dependencies and for CTF.
+
+#Notes
+
+Building ScaLAPACK as a shared library is possible via ``mkdir build && cd build && cmake .. -DBUILD_SHARED_LIBS=ON``.
+
 ## Performance
 
 Please see the aforementioned papers for various applications and benchmarks, which are also summarized in [this recent presentation](http://solomon2.web.engr.illinois.edu/talks/istcp_jul22_2016.pdf). Generally, the distributed-memory dense and sparse matrix multiplication performance should be very good. Similar performance is achieved for many types of contractions. CTF can leverage threading, but is fastest with pure MPI or hybrid MPI+OpenMP. The code aims at scalability to a large number of processors by minimizing communication cost, rather than necessarily achieving perfect absolute performance. User-defined functions naturally inhibit the sequential kernel performance. Algorithms that have a low flop-to-byte ratio may not achieve memory-bandwidth peak as some copying/transposition may take place. Absolute performance of operations that have Hadamard indices is relatively low for the time being, but will be improved.

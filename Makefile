@@ -19,6 +19,11 @@ install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 	src/scripts/expand_includes.sh
 	mv include/ctf_all.hpp $(INSTALL_DIR)/include/ctf.hpp
 
+.PHONY: install-python
+install-python:
+	$(MAKE) install
+	$(MAKE) python
+
 .PHONY: uninstall
 uninstall: 
 	rm $(INSTALL_DIR)/lib/libctf.a 
@@ -95,7 +100,7 @@ ctflibso: export FCXX+=-fPIC
 ctflibso: export OFFLOAD_CXX+=-fPIC
 ctflibso: export ODIR=$(BDIR)/obj_shared
 ctflibso: ctf_objs ctf_ext_objs
-	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o; 
+	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o  $(LD_LIB_PATH) $(LD_LIB_FILES) $(LDFLAGS)
 
 
 PYTHON_SRC_FILES=src_python/ctf/core.pyx src_python/ctf/random.pyx
