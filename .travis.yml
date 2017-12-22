@@ -8,8 +8,19 @@ language:
 compiler:
   - gcc
   - llvm
-#env:
-#matrix:
+language: python
+python:
+#  - "2.6"
+#  - "2.7"
+#  - "3.3"
+  - "3.4"
+#  - "3.5"
+#  - "3.5-dev"  # 3.5 development branch
+#  - "3.6"
+#  - "3.6-dev"  # 3.6 development branch
+#  - "3.7-dev"  # 3.7 development branch
+# command to install dependencies
+
 addons:
   apt:
     sources:
@@ -29,6 +40,7 @@ before_install:
 install:
   - mkdir -p $TRAVIS_HOME/deps
   - sh ./travis/install-mpi.sh $TRAVIS_HOME/deps mpich
+  - pip install cython numpy
 before_script:
   - which mpicxx ; mpicxx -v
   - ./configure CXX=mpicxx
@@ -36,32 +48,7 @@ script:
   - make
   - make test
   - make test2
-after_failure:
-notifications:
-  email:
-    recipients:
-      - solomon2@illinois.edu
-    on_success: change
-    on_failure: always
-
-language: python
-python:
-  - "2.6"
-  - "2.7"
-  - "3.3"
-  - "3.4"
-  - "3.5"
-  - "3.5-dev"  # 3.5 development branch
-  - "3.6"
-  - "3.6-dev"  # 3.6 development branch
-  - "3.7-dev"  # 3.7 development branch
-# command to install dependencies
-install:
-  - pip install cython
-  - pip install numpy
   - make python
-# command to run tests
-script:
   - make test_base
 after_failure:
 notifications:
