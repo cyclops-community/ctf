@@ -1110,7 +1110,8 @@ for mod in mods:
             mod[0],
             [mod[1]],
             language="c++",
-            libraries="$LD_LIBS".replace('-l','').replace('-Wl,-Bdynamic','').split(),
+            include_dirs=[numpy.get_include()],
+            libraries="-lctf $LD_LIBS".replace('-l','').replace('-Wl,-Bdynamic','').split(),
             extra_compile_args="$CXXFLAGS".split(),
             extra_link_args="-L$BUILDDIR/lib_shared $CXXFLAGS $LD_LIB_PATH $LINKFLAGS".split()
         ))

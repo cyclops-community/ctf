@@ -1,14 +1,11 @@
 sudo: false
-os:
-  - linux
-  - osx
+os: linux
 language: 
   - cpp
   - python
 compiler:
   - gcc
   - llvm
-language: python
 python:
 #  - "2.6"
 #  - "2.7"
@@ -49,7 +46,6 @@ script:
   - make
   - make test
   - make test2
-  - make python
   - make test_base
 after_failure:
 notifications:
