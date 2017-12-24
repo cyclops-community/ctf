@@ -989,7 +989,7 @@ mkdir -p $BUILDDIR/bin
 
 if [ -f $BUILDDIR/config.mk ] ; then
     if [ $BUILDDIR/config.mk -nt $BUILDDIR/how-did-i-configure ] ; then
-        read -p "Execution will overwrite existing config.mk file with local modifications. Are you sure you ant to proceed (Y/N)? " -n 1 -r
+        read -p "Execution will overwrite existing config.mk file with local modifications. "$'\n'"Are you sure you ant to proceed? "$'\n'""$'\n'"(Y/N) :  " -n 1 -r
         echo    # (optional) move to a new line
         if [[ ! $REPLY =~ ^[Yy]$ ]]
         then
@@ -1110,7 +1110,7 @@ for mod in mods:
             mod[0],
             [mod[1]],
             language="c++",
-            include_dirs=[numpy.get_include()],
+            include_dirs=[numpy.get_include(),"$BUILDDIR/include","."],
             libraries="-lctf $LD_LIBS".replace('-l','').replace('-Wl,-Bdynamic','').split(),
             extra_compile_args="$CXXFLAGS".split(),
             extra_link_args="-L$BUILDDIR/lib_shared $CXXFLAGS $LD_LIB_PATH $LINKFLAGS".split()

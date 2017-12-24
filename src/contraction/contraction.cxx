@@ -2466,7 +2466,7 @@ namespace CTF_int {
         A->set_padding();
         B->set_padding();
         C->set_padding();
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("\nTest mappings:\n");
           A->print_map(stdout, 0);
@@ -2515,7 +2515,7 @@ namespace CTF_int {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
         }
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("mapping passed contr est_time = %E sec\n", est_time);
         }
@@ -2563,7 +2563,7 @@ namespace CTF_int {
           memuse = MAX(((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
         else
           memuse = MAX((int64_t)sctr->mem_rec(), memuse);
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("total (with redistribution and transp) est_time = %E\n", est_time);
         }
@@ -4017,42 +4017,6 @@ namespace CTF_int {
       delete new_tsr;
       return stat;
     }
-/*    for (int i=0; i<A->order; i++){
-      int iA = idx_A[i];
-      bool has_match = false;
-      for (int j=0; j<B->order; j++){
-        if (idx_B[j] == iA) has_match = true;
-      }
-      for (int j=0; j<C->order; j++){
-        if (idx_C[j] == iA) has_match = true;
-      }
-      if (false && !has_match){
-        int new_len[A->order-1];
-        int new_sym[A->order-1];
-        int new_idx[A->order-1];
-        for (int j=0; j<A->order; j++){
-          if (j==iA) continue;
-          if (j<iA){
-            new_len[j] = A->lens[j];
-            new_sym[j] = A->sym[j];
-            new_idx[j] = idx_A[j];
-          } else {
-            new_len[j-1] = A->lens[j];
-            new_sym[j-1] = A->sym[j];
-            new_idx[j-1] = idx_A[j];
-          }
-        }
-        tensor * new_tsr = new tensor(A->sr, A->order-1, new_len, new_sym, A->wrld, 1, A->name, 1, A->is_sparse);
-        summation s(A, idx_A, A->sr->mulid(), new_tsr, new_idx, A->sr->mulid());
-        s.execute();
-        contraction ctr(new_tsr, new_idx, B, idx_B, alpha, C, idx_C, beta, func);
-        ctr.execute();
-        delete new_tsr;
-        return SUCCESS;
-      }
-    }*/
-
-
 //    ASSERT(!C->is_sparse);
     if (B->is_sparse && !A->is_sparse){
 //      ASSERT(!A->is_sparse);
@@ -4481,6 +4445,29 @@ namespace CTF_int {
       }
       return SUCCESS;
     }
+
+    int * new_idx_A, * new_idx_B, * new_idx_C;
+    if (!is_custom || func->left_distributive){
+      tensor * new_tsr_A = A->self_reduce(idx_A, &new_idx_A, B->order, idx_B, &new_idx_B, C->order, idx_C, &new_idx_C);
+      if (new_tsr_A != A) {
+        contraction ctr(new_tsr_A, new_idx_A, B, new_idx_B, alpha, C, new_idx_C, beta, func);
+        ctr.execute();
+        delete new_tsr_A;
+        return SUCCESS;
+      }
+    }
+
+    if (!is_custom || func->right_distributive){
+      tensor * new_tsr_B = B->self_reduce(idx_B, &new_idx_B, A->order, idx_A, &new_idx_A, C->order, idx_C, &new_idx_C);
+      if (new_tsr_B != B) {
+        contraction ctr(A, new_idx_A, new_tsr_B, new_idx_B, alpha, C, new_idx_C, beta, func);
+        ctr.execute();
+        delete new_tsr_B;
+        return SUCCESS;
+      }
+    }
+
+
     CTF_int::alloc_ptr(sizeof(int)*A->order,          (void**)&map_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order,          (void**)&map_B);
     CTF_int::alloc_ptr(sizeof(int)*C->order,          (void**)&map_C);
