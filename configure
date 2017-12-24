@@ -223,7 +223,7 @@ EOF
 }
 
 
-#Usage: 'testcpp11 $1 $2' where 
+#Usage: 'testmpi $1 $2' where 
 # $1 is MPI_Datatype to test
 # $2 - 0 if no printouts, 1 if verbose
 function testmpi
@@ -342,7 +342,7 @@ function realcompiler
     else
         $CXX --version
         $CXX -V 
-        echo 'Could not determine underlying C/C++ compilers.'
+        echo 'Could not determine underlying C/C++ compilers. Specify MPI compiler via CXX=...'
         exit 1
     fi
 
@@ -352,7 +352,7 @@ function realcompiler
             compiler=intel
             ;;
         *Portland*)
-            echo 'Portland Group compilers are not supported.'
+            echo 'Portland Group compilers are not supported. Specify MPI compiler via CXX=...'
             exit 1
             compiler=pgi
             ;;
@@ -370,7 +370,7 @@ function realcompiler
             compiler=clang
             ;;
         *)
-            echo 'Could not determine underlying C/C++ compilers.'
+            echo 'Could not determine underlying C/C++ compilers. Specify MPI compiler via CXX=...'
             exit 1
             ;;
     esac
@@ -620,7 +620,7 @@ else
     echo 'detected old (incorrect) MPI type-naming convention, e.g. MPI_C_DOUBLE_COMPLEX, adapting to use MPI_C_... instead of MPI_CXX_...'
     DEFS="$DEFS -DUSE_MPI_C"
   else
-    echo 'ERROR: unable to compile MPI test program, provide appropriate compiler, e.g. CXX=mpicxx or specify INCLUDES=/path/to/mpi.h/ as well as appropriate static/dynamic paths/libraries, see ./configure --help.'
+    echo 'ERROR: unable to compile MPI test program, provide appropriate compiler, e.g. CXX=mpicxx or specify INCLUDES=-I/path/to/mpi.h/ as well as appropriate static/dynamic paths/libraries, see ./configure --help.'
     echo
     testmpi MPI_CXX_DOUBLE_COMPLEX 1;
     echo
