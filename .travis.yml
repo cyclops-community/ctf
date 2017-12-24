@@ -47,6 +47,8 @@ script:
   - make test
   - make test2
   - make test_base
+  - make test_einsum
+  - make test_get_item
 after_failure:
 notifications:
   email:

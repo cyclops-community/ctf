@@ -1,1 +1,0 @@
-from ctf.core import *
