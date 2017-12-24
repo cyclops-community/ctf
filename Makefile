@@ -126,14 +126,10 @@ python: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 .PHONY: test_python
 test_python: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_einsum.py
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
 
 .PHONY: test_python
 test_python2: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np 2 python ./test/python/test_base.py
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np 2 python ./test/python/test_einsum.py
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np 2 python ./test/python/test_get_item.py
 
 .PHONY: test_einsum
 test_einsum: python

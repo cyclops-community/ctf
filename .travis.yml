@@ -31,24 +31,21 @@ addons:
       - libblas-dev
       - liblapack-dev
 before_install:
-  - pwd
-  - export TRAVIS_HOME=$PWD
-  - export PATH=$TRAVIS_HOME/deps/bin:$PATH
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  - bash Miniconda3-latest-Linux-x86_64.sh -b
+  - export PATH=$HOME/miniconda3/bin:$PATH
+  - conda install -y cython
+  - conda install -y numpy  
+  - conda install -y mpich2  
 install:
-  - mkdir -p $TRAVIS_HOME/deps
-  - sh ./travis/install-mpi.sh $TRAVIS_HOME/deps mpich
-  - pip install --force-reinstall numpy
-  - pip install cython
-before_script:
-  - which mpicxx ; mpicxx -v
-  - ./configure CXX=mpicxx
+  - ./configure
+  - make -j2 
+  - make python -j2
 script:
-  - make
   - make test
   - make test2
-  - make test_base
-  - make test_einsum
-  - make test_get_item
+  - make test_python
+  - make test_python2
 after_failure:
 notifications:
   email:

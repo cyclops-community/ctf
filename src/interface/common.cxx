@@ -4,6 +4,10 @@
 #include "../shared/util.h"
 #include <random>
 
+#ifdef USE_MPI_C
+#define MPI_CXX_DOUBLE_COMPLEX MPI_C_DOUBLE_COMPLEX
+#endif
+
 namespace CTF {
   int DGTOG_SWITCH = 1;
 }

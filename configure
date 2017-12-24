@@ -196,6 +196,7 @@ EOF
   return $status
 }
 
+#Usage: 'testopenmp'
 function testopenmp
 {
   status=1
@@ -220,6 +221,36 @@ EOF
   return $status
 
 }
+
+
+#Usage: 'testcpp11 $1 $2' where 
+# $1 is MPI_Datatype to test
+# $2 - 0 if no printouts, 1 if verbose
+function testmpi
+{
+  status=1
+  cat > .test.cxx <<EOF
+  #include "mpi.h"
+  int main(){ 
+    MPI_Init(NULL,NULL);
+    MPI_Datatype a = $1;
+    MPI_Finalize();
+    return 0; 
+  }
+EOF
+  if [ $2 -eq 1 ]; then
+    ( set -x; $CXX $CXXFLAGS $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LINKFLAGS 2>&1 )
+  else
+    $CXX $CXXFLAGS $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LINKFLAGS > /dev/null 2>&1
+  fi
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cxx a.out
+  return $status
+
+}
+
 
 #Usage: 'testcompiler $1' where 
 # $1 - 0 if no printouts, 1 if verbose
@@ -481,112 +512,12 @@ if [ "x$LD_LIB_PATH" != "x" ]; then
   LD_LIB_PATH="$LD_LIB_PATH ${LD_LIB_PATH//'-L'/'-Wl,-rpath='}"
 fi
 
-#FLD_LIBS="${LD_LIBS//'-l[a-z\|A-Z\|0-9]*'/'-Wl,-Bdynamic &.so'} -lbrt"
-#FLD_LIBS="${LD_LIBS//'-l[a-z\|A-Z\|0-9]*'/'-Wl,-Bdynamic &.so'} -lbrt"
-#FLD_LIBS=$LD_LIBS -lbrt"
+if [ "x$CXX" = "x" ]; then
+  CXX=mpicxx
+fi
 
-
-#
-# Check for known supercomputer host names
-#
-#echo -n 'Checking hostname... '
-#if [ "$NERSC_HOST" = "carver" ]; then
-#    echo 'Hostname recognized as a NERSC machine.'
-#    host=nersc
-#    
-#    if [ "x$LIBS" = "x" ]; then
-#        if [ "x$MKL" = "x" -o "x$MKL_ILP64" = "x" ]; then
-#            echo 'MKL module not loaded and no alternative specified.'
-#            echo 'Do "module load mkl" or use the --blas option.'
-#            exit 1
-#        fi
-#    fi
-#    
-#    CXX="mpiCC"
-#    realcompiler
-#    defaultflags
-#    DEFS="$DEFS -DCARVER"
-#    
-#    
-#elif [ "$NERSC_HOST" = "hopper"  -o "$NERSC_HOST" = "cori" -o "$NERSC_HOST" = "edison" ]; then
-#    echo 'Hostname recognized as a NERSC machine.'
-#    host=nersc
-#    LIBS="-mkl=parallel"   
-#    CXX="CC"
-#    realcompiler
-#    defaultflags
-#    DEFS="$DEFS -DUSE_MKL=1 -D`echo $NERSC_HOST | tr a-z A-Z`"
-#echo -n 'Checking if std::function recognition works... '
-#if testlambda 0; then
-#  echo 'successful.'
-#else
-#  echo
-#  testlambda 1
-#  echo
-#  echo 'failed, if on Edison, please run `module load gcc/4.9.2` and reconfigure.'
-#  echo
-#  exit 1
-#fi
-#    
-#elif (hostname | grep 'surveyor\|intrepid\|challenger\|udawn'); then
-#  echo 'Hostname recognized as a BG/P machine. (PLEASE USE CTF v1.1: git checkout v1.1)'
-#  
-#  host=bgp
-#  LIBS='-lesslsmpbg -lmass -lxlfmath -lxlf90_r -lxlsmp -lxlomp_ser -lpthread'
-#  BGP_ESSL='/soft/apps/ESSL-4.4.1-0'
-#  LIB_PATH="-L$BGP_ESSL/lib \
-#             -L/bgsys/ibm_compilers/sles10/prod/opt/ibmcmp/xlf/bg/11.1/bglib/ \
-#             -L/soft/apps/ibmcmp/xlsmp/bg/1.7/bglib \
-#             -L/soft/apps/ibmcmp/xlf/bg/11.1/bglib"
-#  INCLUDES="-I$BGP_ESSL/include -I/bgsys/drivers/ppcfloor/arch/include"
-#  AR='ar'
-#  CXX=mpixlcxx_r
-#  CXXFLAGS='-qsmp=omp -qnoipa -g -O3'
-#  DEFS='-DBGP -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
-#  WARNFLAGS='-Wall'
-#  
-#elif (hostname | grep 'vesta\|mira\|cetus\|seq'); then
-#  echo 'Hostname recognized as a BG/Q machine (note: requires +mpiwrapper-bgclang in ~/.soft).'
-#  echo 'FOR XLC SUPPORT, WHICH PERMITS THE USE OF THREADED ESSL AND IMPROVES PERFORMANCE BY UP TO 10X, PLEASE USE CTF v1.1: git checkout v1.1).'
-# 
-#  host=bgq
-#  BGQ_ESSL='/soft/libraries/essl/current'
-#  LIB_PATH="-L${BGQ_ESSL}/lib64 -L${IBM_MAIN_DIR}/xlf/bg/14.1/lib64"
-#  LIBS="-lesslbg -lxlopt -lxlf90_r -lxlfmath -lxl -Wl,--allow-multiple-definition"
-#  INCLUDES="-I$BGQ_ESSL/include"
-#  AR='ar'
-#  CXX=mpic++11
-#  CXXFLAGS='-O3 -DOMP_OFF'
-#  DEFS='-DBGQ -D_POSIX_C_SOURCE=200112L -D__STDC_LIMIT_MACROS'
-#  WARNFLAGS=''
-#
-#elif (hostname | grep 'titan'); then
-#    host=titan
-#    
-#    CXX="CC"
-#    realcompiler
-#    defaultflags
-#    NVCC='nvcc -ccbin g++ -x cu'
-#    NVCCFLAGS='-O3 -std=c++11 -m64'
-#    LIBS="$LIBS -lcuda -lcudart -lcublas"
-# 
-#else
-#  #
-#  # Check for other common architectures (just Linux for now)
-#  #
-#  host=linux
-#  echo 'Hostname not recognized, assuming generic Linux host.'
-#
-#  #
-#  # Check for compiler used by MPI
-#  #
-  if [ "x$CXX" = "x" ]; then
-    CXX=mpicxx
-  fi
-  
-  realcompiler
-  defaultflags
-#fi
+realcompiler
+defaultflags
 
 if [ $WITH_STATIC = 0 ]; then
   if [ $WITH_DYNAMIC = 0 ]; then
@@ -678,6 +609,25 @@ else
   fi
 fi
 
+#
+# Check if MPI is provided
+#
+echo -n 'Checking for MPI... '
+if testmpi MPI_CXX_DOUBLE_COMPLEX 0; then
+  echo 'MPI works.'
+else
+  if testmpi MPI_C_DOUBLE_COMPLEX 0; then
+    echo 'detected old (incorrect) MPI type-naming convention, e.g. MPI_C_DOUBLE_COMPLEX, adapting to use MPI_C_... instead of MPI_CXX_...'
+    DEFS="$DEFS -DUSE_MPI_C"
+  else
+    echo 'ERROR: unable to compile MPI test program, provide appropriate compiler, e.g. CXX=mpicxx or specify INCLUDES=/path/to/mpi.h/ as well as appropriate static/dynamic paths/libraries, see ./configure --help.'
+    echo
+    testmpi MPI_CXX_DOUBLE_COMPLEX 1;
+    echo
+    exit 1
+  fi
+fi
+ 
 #
 # Check if OpenMP is provided
 #
@@ -989,7 +939,7 @@ mkdir -p $BUILDDIR/bin
 
 if [ -f $BUILDDIR/config.mk ] ; then
     if [ $BUILDDIR/config.mk -nt $BUILDDIR/how-did-i-configure ] ; then
-        read -p "Execution will overwrite existing config.mk file with local modifications. "$'\n'"Are you sure you ant to proceed? "$'\n'""$'\n'"(Y/N) :  " -n 1 -r
+        read -p "Execution will overwrite existing config.mk file with local modifications. "$'\n'"Are you sure you want to proceed? "$'\n'""$'\n'"(Y/N) :  " -n 1 -r
         echo    # (optional) move to a new line
         if [[ ! $REPLY =~ ^[Yy]$ ]]
         then
