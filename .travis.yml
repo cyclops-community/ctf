@@ -3,7 +3,7 @@ os: linux
 language: python
 python:
   - "2.7"
-  - "3.3"
+  - "3.2"
   - "3.4"
   - "3.5"
   - "3.6"
@@ -36,6 +36,7 @@ before_install:
   - conda install -y numpy  
   - conda install -y mpich2  
 install:
+  - $CTF_CXX --version
   - ./configure CXX="mpicxx -cxx=$CTF_CXX"
   - make -j2 
   - make python -j2
