@@ -117,7 +117,7 @@ EOF
     fi
     if [ $? -eq 0 ]; then
       UDEFSYMB=$(nm ./a.out | grep -c "U $2")
-      if [ $UDEFSYMB -eq 0 ]; then
+      if [ "x$UDEFSYMB" = "x" ]; then
         status=1
         if [ $3 -eq 1 ]; then
             echo "Undefined symbol not found, so we did not really link to dynamic library (but rather static)"
@@ -213,7 +213,8 @@ function testopenmp
     return j; 
   }
 EOF
-  $CXX $CXXFLAGS $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LINKFLAGS > /dev/null 2>&1
+  $CXX $CXXFLAGS $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LINKFLAGS  > /dev/null  2>&1
+  
   if [ -x a.out ]; then
     status=0
   fi
@@ -366,7 +367,8 @@ function realcompiler
             compiler=cray
             ;;
         *clang*)
-            echo 'Using Clang/LLVM compiler.'
+            CLANG_VERSION=$(clang++ --version | grep -o "\([0-9]\.[0-9]\)" | tail -n 1)
+            echo 'Using Clang/LLVM compiler, version '$CLANG_VERSION'.'
             compiler=clang
             ;;
         *)
@@ -480,7 +482,7 @@ while [ "x$1" != "x" ]; do
       eval "${1%%=*}=\"${1#*=}\""
       ;;
     *)
-      echo "WARNING: Unknown option \"$1\"."
+      echo "    WARNING: Unknown option \"$1\"."
       usage
       exit 1
       ;;
@@ -620,7 +622,7 @@ else
     echo 'detected limited MPI type-naming convention, e.g. MPI_C_DOUBLE_COMPLEX, adapting to use MPI::... instead of MPI_CXX_... for some types.'
     DEFS="$DEFS -DUSE_MPI_CPP"
   else
-    echo 'ERROR: unable to compile MPI test program, provide appropriate compiler, e.g. CXX=mpicxx or specify INCLUDES=-I/path/to/mpi.h/ as well as appropriate static/dynamic paths/libraries, see ./configure --help.'
+    echo '    ERROR: unable to compile MPI test program, provide appropriate compiler, e.g. CXX=mpicxx or specify INCLUDES=-I/path/to/mpi.h/ as well as appropriate static/dynamic paths/libraries, see ./configure --help.'
     echo
     testmpi MPI_CXX_DOUBLE_COMPLEX 1;
     echo
@@ -636,7 +638,13 @@ if testopenmp; then
   echo 'OpenMP works.'
 else
   OCXXFLAGS=$CXXFLAGS
-  CXXFLAGS="$CXXFLAGS -fopenmp"
+  if [ "$compiler" = "clang" ] && [ $(echo $CLANG_VERSION'<'3.8 | bc -l) = 1 ]; then
+    echo
+    echo '    WARNING: not attempting usage of -fopenmp due to detection of old clang version... '
+    echo -n '  ... '
+  else
+    CXXFLAGS="$CXXFLAGS -fopenmp"
+  fi
   if testopenmp; then
     echo 'using OpenMP via -fopenmp flag.'
   else
