@@ -2,7 +2,19 @@
 #include "../shared/blas_symbs.h"
 #include "../shared/util.h"
 
+
 namespace CTF_int {
+
+#ifdef USE_MPI_CPP
+  MPI_Datatype MPI_CTF_BOOL = MPI::BOOL;
+  MPI_Datatype MPI_CTF_DOUBLE_COMPLEX = MPI::DOUBLE_COMPLEX;
+  MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX = MPI::LONG_DOUBLE_COMPLEX;
+#else
+  MPI_Datatype MPI_CTF_BOOL = MPI_CXX_BOOL;
+  MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX = MPI_CXX_LONG_DOUBLE_COMPLEX;
+  MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX = MPI_CXX_LONG_DOUBLE_COMPLEX;
+#endif
+
 #if USE_SP_MKL
   void def_coo_to_csr_fl(int64_t nz, int nrow, float * csr_vs, int * csr_ja, int * csr_ia, float * coo_vs, int * coo_rs, int * coo_cs, bool to_csr){
     int inz = nz;
@@ -94,36 +106,5 @@ namespace CTF_int {
 #endif
     return false;
   }
-
-#ifdef USE_MPI_C
-#define MPI_CXX_BOOL MPI_C_BOOL
-#define MPI_CXX_DOUBLE_COMPLEX MPI_C_DOUBLE_COMPLEX
-#define MPI_CXX_LONG_DOUBLE_COMPLEX MPI_C_LONG_DOUBLE_COMPLEX
-#endif
-  template <>
-  MPI_Datatype get_default_mdtype<char>(bool & is_custom){ is_custom=false; return MPI_CHAR; }
-  template <>
-  MPI_Datatype get_default_mdtype<bool>(bool & is_custom){ is_custom=false; return MPI_CXX_BOOL; }
-  template <>
-  MPI_Datatype get_default_mdtype<int>(bool & is_custom){ is_custom=false; return MPI_INT; }
-  template <>
-  MPI_Datatype get_default_mdtype<int64_t>(bool & is_custom){ is_custom=false; return MPI_INT64_T; }
-  template <>
-  MPI_Datatype get_default_mdtype<unsigned int>(bool & is_custom){ is_custom=false; return MPI_UNSIGNED; }
-  template <>
-  MPI_Datatype get_default_mdtype<uint64_t>(bool & is_custom){ is_custom=false; return MPI_UINT64_T; }
-  template <>
-  MPI_Datatype get_default_mdtype<float>(bool & is_custom){ is_custom=false; return MPI_FLOAT; }
-  template <>
-  MPI_Datatype get_default_mdtype<double>(bool & is_custom){ is_custom=false; return MPI_DOUBLE; }
-  template <>
-  MPI_Datatype get_default_mdtype<long double>(bool & is_custom){ is_custom=false; return MPI_LONG_DOUBLE; }
-  template <>
-  MPI_Datatype get_default_mdtype< std::complex<float> >(bool & is_custom){ is_custom=false; return MPI_COMPLEX; }
-  template <>
-  MPI_Datatype get_default_mdtype< std::complex<double> >(bool & is_custom){ is_custom=false; return MPI_CXX_DOUBLE_COMPLEX; }
-  template <>
-  MPI_Datatype get_default_mdtype< std::complex<long double> >(bool & is_custom){ is_custom=false; return MPI_CXX_LONG_DOUBLE_COMPLEX; }
-
 
 }

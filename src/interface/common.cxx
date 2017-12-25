@@ -4,8 +4,8 @@
 #include "../shared/util.h"
 #include <random>
 
-#ifdef USE_MPI_C
-#define MPI_CXX_DOUBLE_COMPLEX MPI_C_DOUBLE_COMPLEX
+#ifdef USE_MPI_CPP
+#define MPI_CXX_DOUBLE_COMPLEX MPI::DOUBLE_COMPLEX
 #endif
 
 namespace CTF {
@@ -538,9 +538,15 @@ namespace CTF_int {
       case 8:
         dt = MPI_DOUBLE;
         break;
+#ifndef USE_MPI_C
       case 16:
-        dt = MPI_CXX_DOUBLE_COMPLEX;
+        dt = MPI::DOUBLE_COMPLEX;
         break;
+#else
+      case 16:
+        dt = MPI::DOUBLE_COMPLEX;
+        break;
+#endif
       default:
         MPI_Type_contiguous(datum_size, MPI_CHAR, &dt);
         MPI_Type_commit(&dt);
