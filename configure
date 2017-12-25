@@ -367,8 +367,9 @@ function realcompiler
             compiler=cray
             ;;
         *clang*)
-            CLANG_VERSION=$(clang++ --version | grep -o "[0-9]\.[0-9]" | sort | head -n 1)
-            echo 'Using Clang/LLVM compiler, version '$CLANG_VERSION'.'
+            #CLANG_VERSION=$(clang++ --version | grep -o "[0-9]\.[0-9]" | sort | head -n 1)
+            #echo 'Using Clang/LLVM compiler, version '$CLANG_VERSION'.'
+            echo 'Using Clang/LLVM compiler.'
             compiler=clang
             ;;
         *)
@@ -638,9 +639,9 @@ if testopenmp; then
   echo 'OpenMP works.'
 else
   OCXXFLAGS=$CXXFLAGS
-  if [ "$compiler" = "clang" ] && [ $(echo $CLANG_VERSION'<'3.8 | bc -l) = 1 ]; then
+  if [ "$compiler" = "clang" ]; then
     echo
-    echo '    WARNING: not attempting usage of -fopenmp due to detection of old clang version... '
+    echo '    WARNING: not attempting usage of -fopenmp for Clang, reconfigure with appropriate flags to use OpenMP with Clang... '
     echo -n '  ... '
   else
     CXXFLAGS="$CXXFLAGS -fopenmp"
