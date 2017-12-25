@@ -1,11 +1,8 @@
 sudo: false
 os: linux
-language: 
-  - cpp
-  - python
-compiler:
-  - gcc
-  - llvm
+language: python
+#  - cpp
+#  - python
 python:
   - "2.6"
   - "2.7"
@@ -13,6 +10,9 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
+compiler:
+  - gcc
+  - llvm
 
 addons:
   apt:
