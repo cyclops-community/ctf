@@ -759,11 +759,11 @@ if [ $WITH_DYNAMIC = 1 ]; then
         SPMKL_COMMENT=""
       elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas $LD_LIBS" dgemm_ 0; then
         UNDERSCORE=1
-        echo 'detected that -Wl,-Bdynamic -lblas.so works, speculatively using -Wl,-Bdynamic -lblas (with underscores).'
+        echo 'detected that -Wl,-Bdynamic -lblas works, speculatively using -Wl,-Bdynamic -lblas (with underscores).'
         LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lblas"
       elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas $LD_LIBS" dgemm 0; then
         UNDERSCORE=0
-        echo 'detected that -Wl,-Bdynamic -lblas.so works, speculatively using -Wl,-Bdynamic -lblas (without underscores).'
+        echo 'detected that -Wl,-Bdynamic -lblas works, speculatively using -Wl,-Bdynamic -lblas (without underscores).'
         LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lblas"
       else
         UNDERSCORE=1
