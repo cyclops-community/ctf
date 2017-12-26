@@ -103,6 +103,7 @@ namespace CTF_int {
       this->is_home = 1;
       this->has_home = 1;
 #else
+      this->is_home = 0;
       this->has_home = 0;
 #endif
     } else {
@@ -116,6 +117,7 @@ namespace CTF_int {
       this->is_home = 1;
       this->home_buffer = this->data;
 #else
+      this->is_home = 0;
       this->has_home = 0;
 #endif
     }
@@ -320,6 +322,7 @@ namespace CTF_int {
     this->nnz_blk           = NULL;
     this->is_csr            = false;
     this->nrow_idx          = -1;
+    this->left_home_transp  = 0;
 //    this->nnz_loc_max       = 0;
     this->registered_alloc_size = 0;
     if (name_ != NULL){
@@ -1259,6 +1262,7 @@ namespace CTF_int {
     tsr_ali.set_distribution(idx, prl, blk);
     if (tsr_ali.has_home) deregister_size();
     tsr_ali.has_home = 0;
+    tsr_ali.is_home = 0;
     tsr_ali.redistribute(st_dist);
     tsr_ali.is_data_aliased = 1;
     return tsr_ali.data;
@@ -1901,10 +1905,8 @@ namespace CTF_int {
       }
       nvirt = this->calc_nvirt();
       if (!is_sparse){
-        for (i=0; i<nvirt; i++){
-          nosym_transpose(allfold_dim, this->inner_ordering, all_edge_len,
-                                 this->data + i*sr->el_size*(this->size/nvirt), 0, sr);
-        }
+        nosym_transpose(this, allfold_dim, all_edge_len, this->inner_ordering, 0);
+        assert(!left_home_transp);
       } else {
         ASSERT(this->nrow_idx != -1);
         if (was_mod)

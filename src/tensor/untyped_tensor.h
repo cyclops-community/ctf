@@ -123,6 +123,8 @@ namespace CTF_int {
       int64_t home_size;
       /** \brief whether the latest tensor data is in the home buffer */
       bool is_home;
+      /** \brief whether the tensor left home to transpose */
+      bool left_home_transp;
       /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
       /** \brief whether only the non-zero elements of the tensor are stored */

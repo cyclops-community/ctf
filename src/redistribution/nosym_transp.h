@@ -6,6 +6,8 @@
 #include "../tensor/algstrct.h"
 
 namespace CTF_int {
+  class tensor;
+
   /**
    * \brief transposes a non-symmetric (folded) tensor
    *
@@ -38,7 +40,11 @@ namespace CTF_int {
                          int              dir,
                          algstrct const * sr);
 
-
+  void nosym_transpose(tensor *    A,
+                       int         all_fdim_A,
+                       int const * all_flen_A,
+                       int const * new_order,
+                       int         dir);
   /**
    * \brief transposes a non-symmetric (folded) tensor internal kernel
    *
@@ -62,5 +68,25 @@ namespace CTF_int {
                        int64_t *        chunk_size,
                        algstrct const * sr);
 
+  /**
+   * \brief Checks if the HPTT library is applicable
+   * \param[in] order dimension of tensor
+   * \param[in] new_order new ordering of dimensions
+   * \param[in] elementSize element size
+   */
+  bool hptt_is_applicable(int order, int const * new_order, int elementSize);
+
+  /**
+   * \brief High-performance implementation of nosym_transpose using HPTT
+   *
+   * \param[in] order dimension of tensor
+   * \param[in] edge_len original edge lengths
+   * \param[in] dir which way are we going?
+   * \param[in,out] A tensor to be transposed
+   */
+  void nosym_transpose_hptt(int         order,
+                       int const *      edge_len,
+                       int              dir,
+                       tensor *         &A);
 }
 #endif

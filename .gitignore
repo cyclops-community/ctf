@@ -11,3 +11,6 @@ bin
 config.mk
 setup.py
 how-did-i-configure
+
+.*.swp
+.*.swo
