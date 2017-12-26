@@ -995,18 +995,18 @@ if testhptt 0; then
 else
   OLIBS=$LIBS
   OLIBS=$LD_LIBS
-  LIBS="$LIBS -static -lhptt"
-  LD_LIBS="$LD_LIBS -Wl,Bdynamic -lhptt"
+  LIBS="$LIBS -Wl,-Bstatic -lhptt -Wl,-Bdynamic"
+  LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lhptt"
   if testhptt 0; then
     echo 'HPTT works by tacking on -lhptt to LIBS and LD_LIBS.'
     USE_HPTT=1
   else
-    if [ $BUILD_HPTT = 1 ]; then
+    if [ $BUILD_HPTT = 1 ] || [ $WITH_HPTT = 1 ]; then
       echo 'ERROR: HPTT does not work, aborting.'
       testhptt 1
       echo
       exit 0
-    else 
+    else
       echo 'HPTT does not work, will use built-in transpose kernel.'
       LIBS=$OLIBS
       LD_LIBS=$OLD_LIBS
@@ -1097,17 +1097,21 @@ if [ -f $BUILDDIR/config.mk ] ; then
 fi
 
 
+
+RAW_LD_LIB_PATH=${LD_LIB_PATH//-L/""}
+
 cat > $BUILDDIR/config.mk <<EOF
 ### INSTALLATION TARGET DIRECTORY (for make install)
 INSTALL_DIR = $INSTALLDIR
 
 ### LINK TIME LIBRARIES AND FLAGS
 #libraries and flags for link time (irrelevant if only building CTF lib and not examples/tests)
-LIB_PATH  = $LIB_PATH
-LIB_FILES = $LIBS
-LINKFLAGS = $LINKFLAGS
-LD_LIB_PATH  = $LD_LIB_PATH
-LD_LIB_FILES = $LD_LIBS
+LIB_PATH     = $LIB_PATH
+LIB_FILES    = $LIBS
+LINKFLAGS    = $LINKFLAGS
+LD_LIB_PATH  = $RAW_LD_LIB_PATH
+SO_LIB_PATH  = $LD_LIB_PATH
+SO_LIB_FILES = $LD_LIBS
 LDFLAGS      = $LDFLAGS
 
 

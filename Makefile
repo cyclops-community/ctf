@@ -100,7 +100,7 @@ ctflibso: export FCXX+=-fPIC
 ctflibso: export OFFLOAD_CXX+=-fPIC
 ctflibso: export ODIR=$(BDIR)/obj_shared
 ctflibso: ctf_objs ctf_ext_objs
-	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o  $(LD_LIB_PATH) $(LD_LIB_FILES) $(LDFLAGS)
+	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o  $(SO_LIB_PATH) $(SO_LIB_FILES) $(LDFLAGS)
 
 
 PYTHON_SRC_FILES=src_python/ctf/core.pyx src_python/ctf/random.pyx
@@ -125,31 +125,31 @@ python: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 
 .PHONY: test_python
 test_python: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
 
-.PHONY: test_python
+.PHONY: test_python2
 test_python2: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np 2 python ./test/python/test_base.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np 2 python ./test/python/test_base.py
 
 .PHONY: test_einsum
 test_einsum: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_einsum.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_einsum.py
 
 .PHONY: test_new
 test_new: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_new.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_new.py
 
 .PHONY: test_base
 test_base: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
 
 .PHONY: test_get_item
 test_get_item: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
 
 .PHONY: test_live
 test_live: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
 
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
