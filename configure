@@ -973,10 +973,10 @@ if [ $BUILD_HPTT = 1 ]; then
     fi
   fi
   if [ ! -d $BUILDDIR/hptt ]; then
-    wget https://github.com/solomonik/hptt/archive/master.zip -O hptt-master.zip
-    unzip -o hptt-master.zip; mv hptt-master $BUILDDIR/hptt
+    wget https://github.com/solomonik/hptt/archive/master.zip -O $BUILDDIR/hptt-master.zip
+    unzip -o $BUILDDIR/hptt-master.zip; mv $BUILDDIR/hptt-master $BUILDDIR/hptt
   fi
-  cd hptt/;
+  cd hptt
   make CXX=$CXX
   LIB_PATH="$LIB_PATH -L$BUILDDIR/hptt/lib"
   LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/hptt/lib"
