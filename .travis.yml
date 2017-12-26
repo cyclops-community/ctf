@@ -20,6 +20,7 @@ addons:
       - gfortran-5
       - libblas-dev
       - liblapack-dev
+      - cmake
 before_install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] || [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]] ; then
       export PYTHONMAJORV=2;
@@ -36,7 +37,7 @@ before_install:
   - conda install -y mpich2  
 install:
   - $CTF_CXX --version
-  - ./configure CXX="mpicxx -cxx=$CTF_CXX"
+  - ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack
   - make -j2 
   - make python -j2
 script:

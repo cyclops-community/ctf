@@ -17,14 +17,9 @@ function usage
   echo
   echo -e '\t--build-scalapack Tells CTF to download and build ScaLAPACK library.'
   echo
+  echo -e '\t--with-hptt       Tells CTF build to enable HPTT functionality.'
+  echo
   echo -e '\t--build-hptt      Tells CTF to download and build HPTT library.'
-#  echo
-#  echo -e '\t--lapack=libs     Specify the linker options and/or libraries needed to link'
-#  echo -e '\t                  the LAPACK libraries. Necessary for some functionality and tests.'
-#  echo
-#  echo -e '\t--scalapack=libs  Specify the linker options and/or libraries needed to link'
-#  echo -e '\t                  the ScaLAPACK libraries. Necessary for some functionality and tests.'
-#  echo
   echo
   echo -e '\t--with-cuda       Tells CTF to setup and use NVCC, NVCCFLAGS, and CUBLAS libs'
   echo
@@ -257,6 +252,36 @@ EOF
 }
 
 
+#Usage: 'testhptt $1' where 
+# $1 - 0 if no printouts, 1 if verbose
+function testhptt
+{
+  status=1
+  cat > .test.cxx <<EOF
+  #include <hptt.h>
+  int main(){ 
+    int i = sizeof(hptt::DoubleComplex);
+    auto plan = hptt::create_plan( NULL, 0,
+          hptt::DoubleComplex(1.0), NULL, 0, NULL,
+          hptt::DoubleComplex(0.0), NULL, NULL,
+          hptt::ESTIMATE, 1 );
+    return 1; 
+  }
+EOF
+  if [ $1 -eq 1 ]; then
+    (set -x; $CXX $CXXFLAGS $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LIB_PATH $LIBS $LINKFLAGS  2>&1 )
+  else
+    $CXX $CXXFLAGS $DEFS $WARNFLAGS $INCLUDES .test.cxx  $LIB_PATH $LIBS $LINKFLAGS  > /dev/null  2>&1
+  fi
+  
+  if [ -x a.out ]; then
+    status=0
+  fi
+  rm -f .test.cxx a.out
+  return $status
+}
+
+
 #Usage: 'testcompiler $1' where 
 # $1 - 0 if no printouts, 1 if verbose
 function testnvcc
@@ -280,7 +305,7 @@ EOF
   if [ -x a.out ]; then
     status=0
   fi
-  rm -f .test.cu .test.o
+  rm -f .test.cu .test.o a.out
   return $status
 }
 
@@ -444,8 +469,9 @@ WITH_LAPACK=0
 WITH_SCALAPACK=0
 WITH_STATIC=1
 WITH_DYNAMIC=1
-BUILD_SCALAPACK=1
-BUILD_HPTT=1
+BUILD_SCALAPACK=0
+WITH_HPTT=0
+BUILD_HPTT=0
 while [ "x$1" != "x" ]; do
   case $1 in
     --build-dir=*)
@@ -462,6 +488,9 @@ while [ "x$1" != "x" ]; do
       ;;
     --build-scalapack)
       BUILD_SCALAPACK=1
+      ;;
+    --with-hptt)
+      WITH_HPTT=1
       ;;
     --build-hptt)
       BUILD_HPTT=1
@@ -821,7 +850,7 @@ if [ $WITH_DYNAMIC = 1 ]; then
       else
         echo '  LAPACK not found, some functionality and tests will be unavailable,'
         echo '  to fix reconfigure and add --with-lapack and the appropriate library path'
-        echo '  (LD_LIB_PATH/LD_LIBS for dynamic, LD_LD_LIB_PATH/LD_LD_LIBS for dynamic)'
+        echo '  (LIB_PATH/LIBS for static, LD_LIB_PATH/LD_LIBS for dynamic)'
       fi 
     fi
   fi
@@ -830,7 +859,7 @@ fi
 if [ $BUILD_SCALAPACK = 1 ]; then
   echo -n 'Building ScaLAPACK using cmake (no options passed along)... '
   if [ -d $BUILDDIR/scalapack ]; then
-    read -p "found existing scalapack subdirectory, overwrite (Y/N)? " -n 1 -r
+    read -p "found existing scalapack subdirectory,"$'\n'""$'\n'" overwrite?  (Y/N)? " -n 1 -r
     echo    # (optional) move to a new line
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
@@ -848,7 +877,7 @@ if [ $BUILD_SCALAPACK = 1 ]; then
   STR=""
   if [ $WITH_STATIC = 1 ]; then
     STR="$STR -DBUILD_STATIC_LIBS=ON"
-    LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/scalapack/build/lib"
+    LIB_PATH="$LIB_PATH -L$BUILDDIR/scalapack/build/lib"
   else
     STR="$STR -DBUILD_STATIC_LIBS=OFF"
   fi
@@ -931,6 +960,65 @@ if [ $WITH_DYNAMIC = 1 ]; then
     fi
   fi
 fi
+
+USE_HPTT=0
+if [ $BUILD_HPTT = 1 ]; then
+  echo -n "Building HPTT using CXX=$CXX... "
+  if [ -d $BUILDDIR/hptt ]; then
+    read -p "found existing HPTT subdirectory,"$'\n'""$'\n'" overwrite?  (Y/N)? " -n 1 -r
+    echo    # (optional) move to a new line
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+      rm -rf $BUILDDIR/hptt
+    fi
+  fi
+  if [ ! -d $BUILDDIR/hptt ]; then
+    wget https://github.com/solomonik/hptt/archive/master.zip -O hptt-master.zip
+    unzip -o hptt-master.zip; mv hptt-master $BUILDDIR/hptt
+  fi
+  cd hptt/;
+  make CXX=$CXX
+  LIB_PATH="$LIB_PATH -L$BUILDDIR/hptt/lib"
+  LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/hptt/lib"
+  INCLUDES="$INCLUDES -I$BUILDDIR/hptt/include"
+ 
+  echo "build completed in $BUILDDIR/hptt subdirectory."
+fi
+
+#
+# Check if HPTT is provided
+# 
+echo -n 'Checking for HPTT (optimized transposition library)... '
+if testhptt 0; then
+  echo 'HPTT works.'
+  USE_HPTT=1
+else
+  OLIBS=$LIBS
+  OLIBS=$LD_LIBS
+  LIBS="$LIBS -static -lhptt"
+  LD_LIBS="$LD_LIBS -Wl,Bdynamic -lhptt"
+  if testhptt 0; then
+    echo 'HPTT works by tacking on -lhptt to LIBS and LD_LIBS.'
+    USE_HPTT=1
+  else
+    if [ $BUILD_HPTT = 1 ]; then
+      echo 'ERROR: HPTT does not work, aborting.'
+      testhptt 1
+      echo
+      exit 0
+    else 
+      echo 'HPTT does not work, will use built-in transpose kernel.'
+      LIBS=$OLIBS
+      LD_LIBS=$OLD_LIBS
+      USE_HPTT=0
+    fi
+  fi
+fi
+
+if [ $USE_HPTT = 1 ]; then
+  DEFS="$DEFS -DUSE_HPTT"
+fi
+
 USE_CUDA=0
 echo -n 'Checking whether to use CUDA... '
 if [ "x$NVCC" = "x" ]; then
@@ -1058,7 +1146,7 @@ $SPMKL_COMMENT
 #used to compile all plain C++ files
 FCXX        = \$(CXX) \$(CXXFLAGS) \$(DEFS) \$(INCLUDES)
 #link-line for all executables
-LIBS        = \$(LIB_PATH)$ \$(LIB_FILES) \$(LINKFLAGS)
+LIBS        = \$(LIB_PATH) \$(LIB_FILES) \$(LINKFLAGS)
 #compiler for CUDA files (used to compile CUDA code only when -DOFFLOAD and -DUSE_CUDA are in DEFS, otherwise should be same as FCXX with -x c++)
 OFFLOAD_CXX = $NVCC $NVCCFLAGS \$(DEFS) \$(INCLUDES)
 EOF
@@ -1089,7 +1177,7 @@ echo 'A config.mk file has been created (to adjust all settings edit the config.
 
 if [ -f $BUILDDIR/setup.py ] ; then
     if [ $BUILDDIR/setup.py -nt $BUILDDIR/how-did-i-configure ] ; then
-        read -p "Execution will overwrite existing setup.py file with local modifications. Are you sure you ant to proceed (Y/N)? " -n 1 -r
+        read -p "Execution will overwrite existing setup.py file with local modifications. Are you sure you ant to proceed "$'\n'""$'\n'"(Y/N)? " -n 1 -r
         echo    # (optional) move to a new line
         if [[ ! $REPLY =~ ^[Yy]$ ]]
         then
