@@ -14,6 +14,10 @@ function usage
   echo -e '\t--with-lapack     Tells CTF build to enable LAPACK functionality regardless of whether LAPACK libs have been given.'
   echo
   echo -e '\t--with-scalapack  Tells CTF build to enable ScaLAPACK functionality regardless of whether ScaLAPACK libs have been given.'
+  echo
+  echo -e '\t--build-scalapack Tells CTF to download and build ScaLAPACK library.'
+  echo
+  echo -e '\t--build-hptt      Tells CTF to download and build HPTT library.'
 #  echo
 #  echo -e '\t--lapack=libs     Specify the linker options and/or libraries needed to link'
 #  echo -e '\t                  the LAPACK libraries. Necessary for some functionality and tests.'
@@ -440,6 +444,8 @@ WITH_LAPACK=0
 WITH_SCALAPACK=0
 WITH_STATIC=1
 WITH_DYNAMIC=1
+BUILD_SCALAPACK=1
+BUILD_HPTT=1
 while [ "x$1" != "x" ]; do
   case $1 in
     --build-dir=*)
@@ -453,6 +459,12 @@ while [ "x$1" != "x" ]; do
       ;;
     --with-scalapack)
       WITH_SCALAPACK=1
+      ;;
+    --build-scalapack)
+      BUILD_SCALAPACK=1
+      ;;
+    --build-hptt)
+      BUILD_HPTT=1
       ;;
     --with-cuda)
       WITH_CUDA=1
@@ -815,6 +827,42 @@ if [ $WITH_DYNAMIC = 1 ]; then
   fi
 fi
 
+if [ $BUILD_SCALAPACK = 1 ]; then
+  echo -n 'Building ScaLAPACK using cmake (no options passed along)... '
+  if [ -d $BUILDDIR/scalapack ]; then
+    read -p "found existing scalapack subdirectory, overwrite (Y/N)? " -n 1 -r
+    echo    # (optional) move to a new line
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+        rm -rf $BUILDDIR/scalapack
+    fi
+  fi
+  if [ ! -d $BUILDDIR/scalapack ]; then
+    wget http://www.netlib.org/scalapack/scalapack.tgz -O scalapack.tgz
+    mkdir scalapack;
+    tar -xzf scalapack.tgz -C scalapack --strip-components 1;
+  fi
+  cd scalapack/;
+  mkdir -p build;
+  cd build;
+  STR=""
+  if [ $WITH_STATIC = 1 ]; then
+    STR="$STR -DBUILD_STATIC_LIBS=ON"
+    LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/scalapack/build/lib"
+  else
+    STR="$STR -DBUILD_STATIC_LIBS=OFF"
+  fi
+  if [ $WITH_DYNAMIC = 1 ]; then
+    STR="$STR -DBUILD_SHARED_LIBS=ON"
+    LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/scalapack/build/lib"
+  else
+    STR="$STR -DBUILD_SHARED_LIBS=OFF"
+  fi
+  cmake .. $STR
+  make 
+  echo "build completed in $BUILDDIR/scalapack subdirectory."
+fi
+
 USING_SCALA=0
 if [ $WITH_STATIC = 1 ]; then
   echo -n 'Checking for static ScaLAPACK... '
@@ -834,14 +882,17 @@ if [ $WITH_STATIC = 1 ]; then
         echo '  WARNING: you may not be able to build ctf tests and benchmarks in this configuration (but you can build the library and use in conjunction with a scalapack library)'
         echo '  WARNING: executables will not build until you provide a scalapack library (error below),'
         testlink "$LIB_PATH -lscalapack $LIBS" $PDGEMM 1
-        echo '    please specify correct LIB_PATH and LIBS (run ./configure --help to see all options),'
+        echo '    please specify correct LIB_PATH and LIBS or configure with'
+        echo '    --build-scalapack to attempt to automatically download and build scalapack'
+        echo '    (run ./configure --help to see all options),'
         echo '    CTF library can still build (via make), but executables will not!'
         DEFS="$DEFS -DUSE_SCALAPACK"
         USING_SCALA=1
       else
         echo '  static ScaLAPACK not found, some functionality and tests will be unavailable,'
         echo '  to fix reconfigure and add --with-scalapack and the appropriate library path'
-        echo '  (LIB_PATH/LIBS for static, LD_LIB_PATH/LD_LIBS for dynamic)'
+        echo '  (LIB_PATH/LIBS for static, LD_LIB_PATH/LD_LIBS for dynamic) or configure with'
+        echo '  --build-scalapack to attempt to automatically download and build scalapack'
       fi
     fi
   fi
