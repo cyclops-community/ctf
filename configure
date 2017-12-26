@@ -858,16 +858,16 @@ fi
 
 if [ $BUILD_SCALAPACK = 1 ]; then
   echo -n 'Building ScaLAPACK using cmake (no options passed along)... '
-  if [ -d $BUILDDIR/scalapack ]; then
+  if [ -d scalapack ]; then
     read -p "found existing scalapack subdirectory,"$'\n'""$'\n'" overwrite?  (Y/N)? " -n 1 -r
     echo    # (optional) move to a new line
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
-        rm -rf $BUILDDIR/scalapack
+        rm -rf scalapack
     fi
   fi
-  if [ ! -d $BUILDDIR/scalapack ]; then
-    wget http://www.netlib.org/scalapack/scalapack.tgz -O scalapack.tgz
+  if [ ! -d scalapack ]; then
+    wget http://www.netlib.org/scalapack/scalapack.tgz -O scalapack.tgz;
     mkdir scalapack;
     tar -xzf scalapack.tgz -C scalapack --strip-components 1;
   fi
@@ -877,19 +877,19 @@ if [ $BUILD_SCALAPACK = 1 ]; then
   STR=""
   if [ $WITH_STATIC = 1 ]; then
     STR="$STR -DBUILD_STATIC_LIBS=ON"
-    LIB_PATH="$LIB_PATH -L$BUILDDIR/scalapack/build/lib"
+    LIB_PATH="$LIB_PATH -L$scalapack/build/lib"
   else
     STR="$STR -DBUILD_STATIC_LIBS=OFF"
   fi
   if [ $WITH_DYNAMIC = 1 ]; then
     STR="$STR -DBUILD_SHARED_LIBS=ON"
-    LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/scalapack/build/lib"
+    LD_LIB_PATH="$LD_LIB_PATH -L$scalapack/build/lib"
   else
     STR="$STR -DBUILD_SHARED_LIBS=OFF"
   fi
   cmake .. $STR
   make 
-  echo "build completed in $BUILDDIR/scalapack subdirectory."
+  echo "build completed in $scalapack subdirectory."
 fi
 
 USING_SCALA=0
@@ -964,25 +964,26 @@ fi
 USE_HPTT=0
 if [ $BUILD_HPTT = 1 ]; then
   echo -n "Building HPTT using CXX=$CXX... "
-  if [ -d $BUILDDIR/hptt ]; then
+  if [ -d hptt ]; then
     read -p "found existing HPTT subdirectory,"$'\n'""$'\n'" overwrite?  (Y/N)? " -n 1 -r
     echo    # (optional) move to a new line
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
-      rm -rf $BUILDDIR/hptt
+      rm -rf hptt;
     fi
   fi
-  if [ ! -d $BUILDDIR/hptt ]; then
-    wget https://github.com/solomonik/hptt/archive/master.zip -O $BUILDDIR/hptt-master.zip
-    unzip -o $BUILDDIR/hptt-master.zip; mv $BUILDDIR/hptt-master $BUILDDIR/hptt
+  if [ ! -d hptt ]; then
+    wget https://github.com/solomonik/hptt/archive/master.zip -O hptt-master.zip;
+    unzip -o hptt-master.zip;
+    mv hptt-master hptt;
   fi
-  cd hptt
-  make CXX=$CXX
+  cd hptt;
+  CXX=$CXX make
   LIB_PATH="$LIB_PATH -L$BUILDDIR/hptt/lib"
   LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/hptt/lib"
   INCLUDES="$INCLUDES -I$BUILDDIR/hptt/include"
  
-  echo "build completed in $BUILDDIR/hptt subdirectory."
+  echo "build completed in $hptt subdirectory."
 fi
 
 #
@@ -1003,7 +1004,7 @@ else
   else
     if [ $BUILD_HPTT = 1 ] || [ $WITH_HPTT = 1 ]; then
       echo 'ERROR: HPTT does not work, aborting.'
-      testhptt 1
+      testhptt 1;
       echo
       exit 0
     else
@@ -1034,7 +1035,7 @@ if [ "x$NVCC" = "x" ]; then
     else  
       echo 'FAILED! error below:'
       echo
-      testnvcc 1
+      testnvcc 1;
       echo
       exit 1
     fi
@@ -1052,7 +1053,7 @@ else
   else
     echo 'FAILED! error below:'
     echo
-    testnvcc 1
+    testnvcc 1;
     echo
     exit 1
   fi
