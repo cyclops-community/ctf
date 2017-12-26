@@ -12,8 +12,15 @@ export LIBS
 
 all: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 
+
 .PHONY: install
 install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
+	if [ -d hptt ]; then  \
+		echo "WARNING: detected HPTT installation in hptt/, you might need to also install it manually separately."; \
+	fi 
+	if [ -d scalapack ]; then \
+		echo "WARNING: detected ScaLAPACK installation in scalapack/, you might need to also install it manually separately."; \
+	fi 
 	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
 	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
 	src/scripts/expand_includes.sh
@@ -29,6 +36,11 @@ uninstall:
 	rm $(INSTALL_DIR)/lib/libctf.a 
 	rm $(INSTALL_DIR)/lib/libctf.so 
 	rm $(INSTALL_DIR)/include/ctf.hpp 
+
+.PHONY: uninstall-python
+install-python:
+	pip uninstall ctf
+
 
 
 
@@ -206,5 +218,5 @@ clean_obj:
 	rm -f $(BDIR)/obj/*.o 
 	rm -f $(BDIR)/obj_ext/*.o 
 	rm -f $(BDIR)/obj_shared/*.o 
-	rm -f $(BDIR)/obj_shared/ctf/*.o 
+	rm -rf $(BDIR)/obj_shared/ctf/ 
 	rm -f $(BDIR)/build/*/*/*.o 

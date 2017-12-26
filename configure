@@ -856,9 +856,9 @@ if [ $WITH_DYNAMIC = 1 ]; then
   fi
 fi
 
-cd $BUILDDIR
 if [ $BUILD_SCALAPACK = 1 ]; then
   echo -n 'Building ScaLAPACK using cmake (no options passed along)... '
+  cd $BUILDDIR
   if [ -d scalapack ]; then
     read -p "found existing scalapack subdirectory,"$'\n'""$'\n'" overwrite?  (Y/N)? " -n 1 -r
     echo    # (optional) move to a new line
@@ -890,7 +890,7 @@ if [ $BUILD_SCALAPACK = 1 ]; then
   fi
   cmake .. $STR
   make
-  cd .. 
+  cd $BUILDDIR
   echo "build completed in scalapack subdirectory."
 fi
 
@@ -966,6 +966,7 @@ fi
 USE_HPTT=0
 if [ $BUILD_HPTT = 1 ]; then
   echo -n "Building HPTT using CXX=$CXX... "
+  cd $BUILDDIR
   if [ -d hptt ]; then
     read -p "found existing HPTT subdirectory,"$'\n'""$'\n'" overwrite?  (Y/N)? " -n 1 -r
     echo    # (optional) move to a new line
@@ -984,7 +985,7 @@ if [ $BUILD_HPTT = 1 ]; then
   LIB_PATH="$LIB_PATH -L$BUILDDIR/hptt/lib"
   LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/hptt/lib"
   INCLUDES="$INCLUDES -I$BUILDDIR/hptt/include"
-  cd ..
+  cd $BUILDDIR
   echo "build completed in $hptt subdirectory."
 fi
 
@@ -1101,7 +1102,9 @@ fi
 
 
 
-RAW_LD_LIB_PATH=${LD_LIB_PATH//-L/""}
+RAW_LD_LIB_PATH=${LD_LIB_PATH//" -L"/":"}
+RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//"-L"/""}
+RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//" "/""}
 
 cat > $BUILDDIR/config.mk <<EOF
 ### INSTALLATION TARGET DIRECTORY (for make install)
