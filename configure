@@ -856,6 +856,7 @@ if [ $WITH_DYNAMIC = 1 ]; then
   fi
 fi
 
+cd $BUILDDIR
 if [ $BUILD_SCALAPACK = 1 ]; then
   echo -n 'Building ScaLAPACK using cmake (no options passed along)... '
   if [ -d scalapack ]; then
@@ -877,19 +878,20 @@ if [ $BUILD_SCALAPACK = 1 ]; then
   STR=""
   if [ $WITH_STATIC = 1 ]; then
     STR="$STR -DBUILD_STATIC_LIBS=ON"
-    LIB_PATH="$LIB_PATH -L$scalapack/build/lib"
+    LIB_PATH="$LIB_PATH -L$BUILDDIR/scalapack/build/lib"
   else
     STR="$STR -DBUILD_STATIC_LIBS=OFF"
   fi
   if [ $WITH_DYNAMIC = 1 ]; then
     STR="$STR -DBUILD_SHARED_LIBS=ON"
-    LD_LIB_PATH="$LD_LIB_PATH -L$scalapack/build/lib"
+    LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/scalapack/build/lib"
   else
     STR="$STR -DBUILD_SHARED_LIBS=OFF"
   fi
   cmake .. $STR
-  make 
-  echo "build completed in $scalapack subdirectory."
+  make
+  cd .. 
+  echo "build completed in scalapack subdirectory."
 fi
 
 USING_SCALA=0
@@ -982,7 +984,7 @@ if [ $BUILD_HPTT = 1 ]; then
   LIB_PATH="$LIB_PATH -L$BUILDDIR/hptt/lib"
   LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/hptt/lib"
   INCLUDES="$INCLUDES -I$BUILDDIR/hptt/include"
- 
+  cd ..
   echo "build completed in $hptt subdirectory."
 fi
 
