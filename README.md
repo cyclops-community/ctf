@@ -1,9 +1,62 @@
 ## Cyclops Tensor Framework (CTF)
-![alt text](https://travis-ci.org/solomonik/ctf.svg?branch=master)
+![alt text](https://travis-ci.org/cyclops-community/ctf.svg?branch=master)
 
-CTF is a C++ library for algebraic operations on distributed multidimensional arrays.
+Cyclops is a parallel (distributed-memory) library for numerical operations on multidimensional arrays (tensors) in C++ and Python.
 
-The operations are expressed algebraically via vector, matrix, or tensor representation of the arrays. An array with k dimensions is represented by a tensor of order k. By default, the tensor elements are floating point numbers and tensor operations are combinations of products and sums. However, a user can define any statically-sized type and elementwise operations. CTF supports general tensor sparsity, so it is possible to define graph algorithms with the use of sparse adjacency matrices.
+Broadly, Cyclops provides tensor objects that are stored and operated on by all processes executing the program, coordianting via MPI communication.
+
+Cyclops supports a multitide of tensor attributes, including sparsity, various symmetries, and user-defined element types.
+
+The library is interoperable with ScaLAPACK at the C++ level and with numpy at the Python level. In Python, the library provides a parallel/sparse implementation of numpy.ndarray functionality.
+
+## Building and Testing
+
+It is possible to build static and dynamic C++ libraries, the Python CTF library, as well as examples and tests for both via this repository. Cyclops follows the basic installation conventions:
+```sh
+./configure
+make
+make install
+```
+below we give more details on how the build can be customized.
+
+First, its necessary to run the configure script, which can be set to the appropriate type of build and is responsible for obtaining and checking for any necessary dependencies. For options and documentation on how to execute configure, run
+```sh
+./configure --help
+```
+then execute ./configure with the appropriate options. Successful execution of this script, will generate a `config.mk` file and a `setup.py` file, needed for C++ and Python builds, respectively, as well as a how-did-i-configure file with info on how the build was configured. You may modify the `config.mk` and `setup.py` files thereafter, subsequent executions of configure will prompt to overwrite these files.
+
+###Dependencies and Supplemental Packages
+
+The strict library dependncies of Cyclops are MPI and BLAS libraries.
+
+Some functionality in Cyclops requires LAPACK and ScaLAPACK. A standard build of the latter can be constructed automatically by running configure with `--build-scalapack`.
+
+Faster transposition in Cyclops is made possible by the HPTT library. To obtain a build of HPTT automatically run configure with `--build-hptt`.
+
+###Building and Installing the Libraries
+
+Once configured, you may install both the shared and dynamic libraries, by running `make`. Parallel make is supported.
+
+To build exclusively the static library, run `make libctf`, to build exclusively the shared library, run `make shared`.
+
+To install the C++ libraries to the prespecified build destination directory (--build-dir for ./configure, /usr/local by default), run `make install` (as superuser if necessary). If the CTF configure script built the ScaLAPACK and/or HPTT libraries automatically, the libraries for these will need to be installed system-wide manually.
+
+To build the Python CTF library, execute `make python`.
+
+To install the Python CTF library via pip, execute `make python_install`.
+
+To uninstall, use `make uninstall` and `make python_uninstall`.
+
+###Testing the Libraries
+
+To test the C++ library with a sequential suite of tests, run `make test`. To test the library using 2 processors, execute `make test2`. To test the library using an arbitrary number of processors, run `make test_suite` then execute `./bin/test_suite` using any number of MPI processes.
+
+To test the Python library, run `make test_python` to do so sequentially and `make test_python2` to do so with two processors. For an arbitrary number of processors, install the Python library and run `./test/python/test_base.py` with any number of MPI processes.
+
+To debug issues with custom code execution correctness, build CTF libraries with `-DDEBUG=1 -DVERBOSE=1` (more info in `config.mk`).
+
+To debug issues with custom code performance, build CTF libraries with `-DPROFILE -DPMPI` (more info in `config.mk`), which should lead to a performance log dump at the end of an execution of a code using CTF.
+
 
 ### Applications
 
@@ -106,22 +159,6 @@ Detailed documentation of all functionality and the organization of the source c
 
 The examples and aforementioned papers can be used to gain further insight. If you have any questions regarding usage, do not hesitate to contact us! You can do so by posting an issue on the github page or emailing solomon2@illinois.edu.
 
-## Building and testing
-
-To build the library, it is necessary to execute `./configure` and `make`. To install it system-wide run `make install` with appropriate administrative priveledges (or set `INSTALL_DIR` in config.mk). To build the python library run `make pylib` to install the python CTF library in your python current environment run `make python` (which runs `pip install . --upgrade` inside `src_python`). The configure file does not use autotools and should be relatively easily to interpret and tweak. Run `./configure --help` to see a list of options. The configure file will generate a file called config.mk. You can tweak this file further, it has options for running CTF in verbose mode (stating which contractions are executed), debug mode (doing extra checks and outputting various execution information) or with performance profiling (outputting a breakdown of performance at the end in the style of a TAU performance profile summary). It is possible to execute configure from an external folder to build the library out of source. Note that rerunning configure might overwrite any changes you make to the config.mk file.
-
-For testing the library, run `make test`, which will run a suite of dozens of tests sequentially, but should only take a couple of seconds. You can also build and execute `test_suite` using multiple MPI processors (`make test2`, `make test4`, ... will build and run the test suite with 2, 4, ... processors, but only works for some small processor counts).
-
-Parallel make (e.g. -j4) is supported. The library will build in seconds if you switch off the optimization flags in config.mk, but may take a few minutes otherwise.
-
-## Building optional dependencies
-
-CTF can be enhanved to provide SVD functionality by building with ScaLAPACK libraries and requires LAPACK libraries for tuning. The High-Performance Tensor Transpose (HPTT) library can be used with CTF to accelerate transpositions. To access the same features in Python, shared (dynamic) libraries must be built for these dependencies and for CTF.
-
-#Notes
-
-Building ScaLAPACK as a shared library is possible via ``mkdir build && cd build && cmake .. -DBUILD_SHARED_LIBS=ON``.
-
 ## Performance
 
 Please see the aforementioned papers for various applications and benchmarks, which are also summarized in [this recent presentation](http://solomon2.web.engr.illinois.edu/talks/istcp_jul22_2016.pdf). Generally, the distributed-memory dense and sparse matrix multiplication performance should be very good. Similar performance is achieved for many types of contractions. CTF can leverage threading, but is fastest with pure MPI or hybrid MPI+OpenMP. The code aims at scalability to a large number of processors by minimizing communication cost, rather than necessarily achieving perfect absolute performance. User-defined functions naturally inhibit the sequential kernel performance. Algorithms that have a low flop-to-byte ratio may not achieve memory-bandwidth peak as some copying/transposition may take place. Absolute performance of operations that have Hadamard indices is relatively low for the time being, but will be improved.
@@ -135,10 +172,9 @@ A faster library for dense tensor contractions in shared memory is [Libtensor](h
 An excellent distributed-memory library with native support for block-sparse tensors is [TiledArray](https://github.com/ValeevGroup/tiledarray).
 
 
-
 ## Acknowledging usage
 
-The library and source code is available to everyone. If you would like to acknowledge the usage of the library, please cite one of our papers. The below one would be a good choice,
+The library and source code is available to everyone. If you would like to acknowledge the usage of the library, please cite one of our papers. The follow reference details dense tensor functionality in CTF,
 
 Edgar Solomonik, Devin Matthews, Jeff R. Hammond, John F. Stanton, and James Demmel; A massively parallel tensor contraction framework for coupled-cluster computations; Journal of Parallel and Distributed Computing, June 2014.
 
