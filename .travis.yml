@@ -18,6 +18,7 @@ addons:
       - gcc-5
       - g++-5
       - gfortran-5
+      - libgfortran-58-dev
       - libblas-dev
       - liblapack-dev
       - cmake
