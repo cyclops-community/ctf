@@ -1,5 +1,6 @@
 #!/bin/bash
-SCRIPT=$(readlink -f $0)
+REL_SCRIPT_DIR=$(dirname $0)
+SCRIPT=$(${REL_SCRIPT_DIR}/manual_readlink.sh $0)
 SCRIPT_DIR=$(dirname $SCRIPT)
 DIR=$(pwd)
 cd $(dirname $1)
