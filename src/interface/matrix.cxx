@@ -528,7 +528,7 @@ namespace CTF {
 
     CTF_SCALAPACK::cpcgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, &llwork, -1, &info);  
 
-    lwork = real(llwork);
+    lwork = (int)(real(llwork));
     std::complex<float> * work = (std::complex<float>*)malloc(sizeof(std::complex<float>)*lwork);
 
     CTF_SCALAPACK::cpcgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
@@ -593,7 +593,7 @@ namespace CTF {
 
     CTF_SCALAPACK::cpzgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, &llwork, -1, &info);  
 
-    lwork = real(llwork);
+    lwork = (int)(real(llwork));
     std::complex<double> * work = (std::complex<double>*)malloc(sizeof(std::complex<double>)*lwork);
 
     CTF_SCALAPACK::cpzgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
