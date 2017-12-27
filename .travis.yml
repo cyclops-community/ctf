@@ -38,7 +38,7 @@ before_install:
   - conda install -y mpich2  
 install:
   - $CTF_CXX --version
-  - FC=mpif90 ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack
+  - FC=gfortran-5 ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack
   - make -j2 
   - make python -j2
 script:

@@ -57,12 +57,26 @@ namespace CTF_int{
 
 
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
-    CTF::Matrix<double> mA(*A);
-    CTF::Matrix<double> mU(*U);
-    CTF::Vector<double> vS(*S);
-    CTF::Matrix<double> mVT(*VT);
-    printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
-    mA.matrix_svd(mU, vS, mVT, rank);
+    switch (A->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix<double> mA(*A);
+          CTF::Matrix<double> mU;
+          CTF::Vector<double> vS;
+          CTF::Matrix<double> mVT;
+          mA.matrix_svd(mU, vS, mVT, rank);
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+          (*U)["ij"] = mU["ij"];
+          (*S)["i"] = vS["i"];
+          (*VT)["ij"] = mVT["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
   }
 
 	// get the real number

@@ -18,3 +18,4 @@ num_success += allclose(A[1],nA[1])
 num_success += allclose(A[1:2],nA[1:2])
 
 print(num_success, "out of 4 tests succeeded")
+ctf.MPI_Stop()

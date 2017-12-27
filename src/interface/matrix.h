@@ -267,6 +267,7 @@ namespace CTF {
        * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
        */
       void matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0);
+
   };
   /**
    * @}
