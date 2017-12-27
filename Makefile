@@ -23,7 +23,7 @@ install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 	fi 
 	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
 	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
-	sh src/scripts/expand_includes.sh
+	cd src/scripts && bash ./expand_includes.sh && cd ..
 	mv include/ctf_all.hpp $(INSTALL_DIR)/include/ctf.hpp
 
 .PHONY: uninstall
