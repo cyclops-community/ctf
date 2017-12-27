@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <iostream>
+#include <complex>
 #ifndef __LAPACK_SYMBS__
 #define __LAPACK_SYMBS__
 
@@ -6,6 +9,9 @@
 #define DGEQRF dgeqrf_
 #define DORMQR dormqr_
 #define PDGESVD pdgesvd_
+#define PSGESVD psgesvd_
+#define PCGESVD pcgesvd_
+#define PZGESVD pzgesvd_
 #define DESCINIT descinit_
 #define BLACS_GRIDINFO blacs_gridinfo_
 #define BLACS_GRIDINIT blacs_gridinit_
@@ -14,6 +20,9 @@
 #define DGEQRF dgeqrf
 #define DORMQR dormqr
 #define PDGESVD pdgesvd
+#define PSGESVD psgesvd
+#define PCGESVD pcgesvd
+#define PZGESVD pzgesvd
 #define DESCINIT descinit
 #define BLACS_GRIDINFO blacs_gridinfo
 #define BLACS_GRIDINIT blacs_gridinit
@@ -69,6 +78,72 @@ namespace CTF_SCALAPACK{
                 int *,
                 int *) SCAL_END
 
+  EXTERN_OR_INLINE 
+  void PSGESVD( char *,
+                char *,
+                int *,
+                int *, 
+                float *,
+                int *,
+                int *,
+                int *,
+                float *,
+                float *,
+                int *,
+                int *,
+                int *,
+                float *,
+                int *,
+                int *,
+                int *,
+                float *,
+                int *,
+                int *) SCAL_END
+
+  EXTERN_OR_INLINE 
+  void PCGESVD( char *,
+                char *,
+                int *,
+                int *, 
+                std::complex<float> *,
+                int *,
+                int *,
+                int *,
+                std::complex<float> *,
+                std::complex<float> *,
+                int *,
+                int *,
+                int *,
+                std::complex<float> *,
+                int *,
+                int *,
+                int *,
+                std::complex<float> *,
+                int *,
+                int *) SCAL_END
+
+  EXTERN_OR_INLINE 
+  void PZGESVD( char *,
+                char *,
+                int *,
+                int *, 
+                std::complex<double> *,
+                int *,
+                int *,
+                int *,
+                std::complex<double> *,
+                std::complex<double> *,
+                int *,
+                int *,
+                int *,
+                std::complex<double> *,
+                int *,
+                int *,
+                int *,
+                std::complex<double> *,
+                int *,
+                int *) SCAL_END
+
   EXTERN_OR_INLINE
   void DESCINIT(int *, int *,
 
@@ -118,6 +193,80 @@ namespace CTF_SCALAPACK{
                   int * info) {
     PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
+
+  inline
+  void cpsgesvd(  char JOBU,
+                  char JOBVT,
+                  int M,
+                  int N,
+                  float * A,
+                  int IA,
+                  int JA,
+                  int * DESCA,
+                  float * S,
+                  float * U,
+                  int IU,
+                  int JU,
+                  int * DESCU,
+                  float * VT,
+                  int IVT,
+                  int JVT,
+                  int * DESCVT,
+                  float * WORK,
+                  int LWORK,
+                  int * info) {
+    PSGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+  }
+
+  inline
+  void cpcgesvd(  char JOBU,
+                  char JOBVT,
+                  int M,
+                  int N,
+                  std::complex<float> * A,
+                  int IA,
+                  int JA,
+                  int * DESCA,
+                  std::complex<float> * S,
+                  std::complex<float> * U,
+                  int IU,
+                  int JU,
+                  int * DESCU,
+                  std::complex<float> * VT,
+                  int IVT,
+                  int JVT,
+                  int * DESCVT,
+                  std::complex<float> * WORK,
+                  int LWORK,
+                  int * info) {
+    PCGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+  }
+
+  inline
+  void cpzgesvd(  char JOBU,
+                  char JOBVT,
+                  int M,
+                  int N,
+                  std::complex<double> * A,
+                  int IA,
+                  int JA,
+                  int * DESCA,
+                  std::complex<double> * S,
+                  std::complex<double> * U,
+                  int IU,
+                  int JU,
+                  int * DESCU,
+                  std::complex<double> * VT,
+                  int IVT,
+                  int JVT,
+                  int * DESCVT,
+                  std::complex<double> * WORK,
+                  int LWORK,
+                  int * info) {
+    PZGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+  }
+
+
 
   inline
   void cdescinit( int * desc, 
