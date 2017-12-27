@@ -21,6 +21,7 @@ addons:
       - libgfortran-5-dev
       - libblas-dev
       - liblapack-dev
+      - mpich2
       - libmpich2-dev
       - cmake
 before_install:
