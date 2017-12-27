@@ -3,9 +3,9 @@
 
 Cyclops is a parallel (distributed-memory) numerical library for multidimensional arrays (tensors) in C++ and Python.
 
-Broadly, Cyclops provides tensor objects that are stored and operated on by all processes executing the program, coordianting via MPI communication.
+Broadly, Cyclops provides tensor objects that are stored and operated on by all processes executing the program, coordinating via MPI communication.
 
-Cyclops supports a multitide of tensor attributes, including sparsity, various symmetries, and user-defined element types.
+Cyclops supports a multitude of tensor attributes, including sparsity, various symmetries, and user-defined element types.
 
 The library is interoperable with ScaLAPACK at the C++ level and with numpy at the Python level. In Python, the library provides a parallel/sparse implementation of `numpy.ndarray` functionality.
 
@@ -27,7 +27,7 @@ then execute ./configure with the appropriate options. Successful execution of t
 
 ### Dependencies and Supplemental Packages
 
-The strict library dependncies of Cyclops are MPI and BLAS libraries.
+The strict library dependencies of Cyclops are MPI and BLAS libraries.
 
 Some functionality in Cyclops requires LAPACK and ScaLAPACK. A standard build of the latter can be constructed automatically by running configure with `--build-scalapack`.
 
