@@ -23,25 +23,14 @@ install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 	fi 
 	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
 	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
-	src/scripts/expand_includes.sh
+	sh src/scripts/expand_includes.sh
 	mv include/ctf_all.hpp $(INSTALL_DIR)/include/ctf.hpp
-
-.PHONY: install-python
-install-python:
-	$(MAKE) install
-	$(MAKE) python
 
 .PHONY: uninstall
 uninstall: 
 	rm $(INSTALL_DIR)/lib/libctf.a 
 	rm $(INSTALL_DIR)/lib/libctf.so 
 	rm $(INSTALL_DIR)/include/ctf.hpp 
-
-.PHONY: uninstall-python
-install-python:
-	pip uninstall ctf
-
-
 
 
 EXAMPLES = algebraic_multigrid apsp bitonic_sort btwn_central ccsd checkpoint dft_3D fft force_integration force_integration_sparse jacobi matmul neural_network particle_interaction qinformatics recursive_matmul scan sparse_mp3 sparse_permuted_slice spectral_element spmv sssp strassen trace mis mis2 ao_mo_transf 
@@ -117,15 +106,6 @@ ctflibso: ctf_objs ctf_ext_objs
 
 PYTHON_SRC_FILES=src_python/ctf/core.pyx src_python/ctf/random.pyx
 
-.PHONY: pip
-python_install: pip
-pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES) 
-	cd src_python; \
-	ln -sf $(BDIR)/setup.py setup.py; \
-	pip install -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ . --upgrade; \
-	rm setup.py; \
-	cd .. 
-
 .PHONY: python
 python: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 	cd src_python; \
@@ -134,6 +114,21 @@ python: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 	rm setup.py; \
 	cd ..; \
 	cp src_python/ctf/__init__.py $(BDIR)/lib_python/ctf/__init__.py
+
+
+.PHONY: python_install
+python_install: install pip
+.PHONY: pip
+pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES) 
+	cd src_python; \
+	ln -sf $(BDIR)/setup.py setup.py; \
+	pip install -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ . --upgrade; \
+	rm setup.py; \
+	cd .. 
+
+.PHONY: python_uninstall
+python_uninstall:
+	pip uninstall ctf
 
 .PHONY: test_python
 test_python: python

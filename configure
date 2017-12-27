@@ -45,7 +45,7 @@ function usage
   echo
   echo -e '\tLINKFLAGS=flags   Specify flags for creating the static library'
   echo
-  echo -e '\tLDLAGS=flags     Specify flags for creating the dynamic library'
+  echo -e '\tLDFLAGS=flags     Specify flags for creating the dynamic library'
   echo
   echo -e '\tINCLUDES=-Idir    Specify directories and header files to include (e.g. -I/path/to/mpi/header/file/)'
   echo
@@ -998,7 +998,7 @@ if testhptt 0; then
   USE_HPTT=1
 else
   OLIBS=$LIBS
-  OLIBS=$LD_LIBS
+  OLD_LIBS=$LD_LIBS
   LIBS="$LIBS -Wl,-Bstatic -lhptt -Wl,-Bdynamic"
   LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lhptt"
   if testhptt 0; then
