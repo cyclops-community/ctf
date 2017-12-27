@@ -166,6 +166,19 @@ namespace CTF_int {
                         char const * beta,
                         char *       C)  const;
 
+      /** \brief beta*C["ijl"]=alpha*A^tA["ikl"]*B^tB["kjl"]; */
+      virtual void gemm_batch(char         tA,
+                              char         tB,
+                              int          l,
+                              int          m,
+                              int          n,
+                              int          k,
+                              char const * alpha,
+                              char const * A,
+                              char const * B,
+                              char const * beta,
+                              char *       C)  const;
+
       virtual void offload_gemm(char         tA,
                                 char         tB,
                                 int          m,
@@ -446,51 +459,6 @@ namespace CTF_int {
        */
       int64_t lower_bound(int64_t n, ConstPairIterator op);
   };
-
-
-  void sgemm(char           tA,
-             char           tB,
-             int            m,
-             int            n,
-             int            k,
-             float          alpha,
-             float  const * A,
-             float  const * B,
-             float          beta,
-             float  *       C);
-
-  void cidgemm(char           tA,
-               char           tB,
-               int            m,
-               int            n,
-               int            k,
-               double         alpha,
-               double const * A,
-               double const * B,
-               double         beta,
-               double *       C);
-
-  void cgemm(char                        tA,
-             char                        tB,
-             int                         m,
-             int                         n,
-             int                         k,
-             std::complex<float>         alpha,
-             std::complex<float> const * A,
-             std::complex<float> const * B,
-             std::complex<float>         beta,
-             std::complex<float> *       C);
-
-  void zgemm(char                         tA,
-             char                         tB,
-             int                          m,
-             int                          n,
-             int                          k,
-             std::complex<double>         alpha,
-             std::complex<double> const * A,
-             std::complex<double> const * B,
-             std::complex<double>         beta,
-             std::complex<double> *       C);
 
 }
 
