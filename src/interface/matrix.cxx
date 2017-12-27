@@ -303,8 +303,8 @@ namespace CTF {
     desc[3] = ncol;
     desc[4] = 1;
     desc[5] = 1;
-    desc[6] = 1;
-    desc[7] = 1;
+    desc[6] = 0;
+    desc[7] = 0;
     desc[8] = this->pad_edge_len[0]/pr;
   }
 
@@ -368,7 +368,7 @@ namespace CTF {
   }
 
   template<>
-  inline void Matrix<double>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT,  int rank){
+  inline void Matrix<>::matrix_svd(Matrix<double> & U, Vector<double> & S, Matrix<double> & VT,  int rank){
 
     int info;
 
@@ -389,8 +389,8 @@ namespace CTF {
     int * desca;
     this->get_desc(ictxt, desca);
     //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
-    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 1, 1, ictxt, m/(*(this->wrld)).np, &info);
-    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 1, 1, ictxt, k/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, k/(*(this->wrld)).np, &info);
 
     this->read_mat(desca, A);
 
@@ -414,13 +414,6 @@ namespace CTF {
     } 
     U = Matrix<double>(descu, u, (*(this->wrld)));
     VT = Matrix<double>(descvt, vt, (*(this->wrld)));
-    /*printf("Left singular vectors (U) before slice: \n");
-    U.print_matrix();
-    printf("Singular values (S):\n");
-    S.print();
-    printf("Right singular vectors (VT):\n");
-    VT.print_matrix();
-    printf("rank is: %d\n", rank);*/
     if (rank > 0 && rank < k) {
       S = S.slice(0, rank-1);
       U = U.slice(0, rank*(m)-1);
@@ -437,7 +430,267 @@ namespace CTF {
     free(work);
 
   }
-  
+
+  template<>
+  inline void Matrix<float>::matrix_svd(Matrix<float> & U, Vector<float> & S, Matrix<float> & VT,  int rank){
+
+    int info;
+
+    int m = this->nrow;
+    int n = this->ncol;
+    int k = std::min(m,n);
+
+    float * A = (float*)malloc(m*n*sizeof(float)/(*(this->wrld)).np);
+    float * u = (float*)malloc(m*k*sizeof(float)/(*(this->wrld)).np);
+    float * s = (float*)malloc(k*sizeof(float)/(*(this->wrld)).np);
+    float * vt = (float*)malloc(k*n*sizeof(float)/(*(this->wrld)).np);
+
+//    int * desca = (int*)malloc(9*sizeof(int));
+    int * descu = (int*)malloc(9*sizeof(int));
+    int * descvt = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    int * desca;
+    this->get_desc(ictxt, desca);
+    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, k/(*(this->wrld)).np, &info);
+
+    this->read_mat(desca, A);
+
+    float llwork;
+    int lwork;
+
+    CTF_SCALAPACK::cpsgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, &llwork, -1, &info);  
+
+    lwork = (int)llwork;
+    float * work = (float*)malloc(sizeof(float)*lwork);
+
+    CTF_SCALAPACK::cpsgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
+
+ 
+    S = Vector<float>(k, (*(this->wrld)));
+    int64_t sc;
+    float * s_data = (float*)S.get_raw_data(&sc);
+
+    for (int i = (*(this->wrld)).rank; i < k; i += (*(this->wrld)).np) {
+      s_data[i/(*(this->wrld)).np] = s[i];
+    } 
+    U = Matrix<float>(descu, u, (*(this->wrld)));
+    VT = Matrix<float>(descvt, vt, (*(this->wrld)));
+
+    if (rank > 0 && rank < k) {
+      S = S.slice(0, rank-1);
+      U = U.slice(0, rank*(m)-1);
+      VT = VT.slice(0, k*n-(k-rank+1));
+    }
+
+    free(A);
+    free(u);
+    free(s);
+    free(vt);
+    free(desca);
+    free(descu);
+    free(descvt);
+    free(work);
+
+  }
+
+  template<>
+  inline void Matrix<std::complex<float>>::matrix_svd(Matrix<std::complex<float>> & U, Vector<std::complex<float>> & S, Matrix<std::complex<float>> & VT,  int rank){
+
+    int info;
+
+    int m = this->nrow;
+    int n = this->ncol;
+    int k = std::min(m,n);
+
+    std::complex<float> * A = (std::complex<float>*)malloc(m*n*sizeof(std::complex<float>)/(*(this->wrld)).np);
+    std::complex<float> * u = (std::complex<float>*)malloc(m*k*sizeof(std::complex<float>)/(*(this->wrld)).np);
+    std::complex<float> * s = (std::complex<float>*)malloc(k*sizeof(std::complex<float>)/(*(this->wrld)).np);
+    std::complex<float> * vt = (std::complex<float>*)malloc(k*n*sizeof(std::complex<float>)/(*(this->wrld)).np);
+
+//    int * desca = (int*)malloc(9*sizeof(int));
+    int * descu = (int*)malloc(9*sizeof(int));
+    int * descvt = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    int * desca;
+    this->get_desc(ictxt, desca);
+    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, k/(*(this->wrld)).np, &info);
+
+    this->read_mat(desca, A);
+
+    std::complex<float> llwork;
+    int lwork;
+
+    CTF_SCALAPACK::cpcgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, &llwork, -1, &info);  
+
+    lwork = (int)(real(llwork));
+    std::complex<float> * work = (std::complex<float>*)malloc(sizeof(std::complex<float>)*lwork);
+
+    CTF_SCALAPACK::cpcgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
+
+ 
+    S = Vector<std::complex<float>>(k, (*(this->wrld)));
+    int64_t sc;
+    std::complex<float> * s_data = (std::complex<float>*)S.get_raw_data(&sc);
+
+    for (int i = (*(this->wrld)).rank; i < k; i += (*(this->wrld)).np) {
+      s_data[i/(*(this->wrld)).np] = s[i];
+    } 
+    U = Matrix<std::complex<float>>(descu, u, (*(this->wrld)));
+    VT = Matrix<std::complex<float>>(descvt, vt, (*(this->wrld)));
+
+    if (rank > 0 && rank < k) {
+      S = S.slice(0, rank-1);
+      U = U.slice(0, rank*(m)-1);
+      VT = VT.slice(0, k*n-(k-rank+1));
+    }
+
+    free(A);
+    free(u);
+    free(s);
+    free(vt);
+    free(desca);
+    free(descu);
+    free(descvt);
+    free(work);
+
+  }
+
+  template<>
+  inline void Matrix<std::complex<double>>::matrix_svd(Matrix<std::complex<double>> & U, Vector<std::complex<double>> & S, Matrix<std::complex<double>> & VT,  int rank){
+
+    int info;
+
+    int m = this->nrow;
+    int n = this->ncol;
+    int k = std::min(m,n);
+
+    std::complex<double> * A = (std::complex<double>*)malloc(m*n*sizeof(std::complex<double>)/(*(this->wrld)).np);
+    std::complex<double> * u = (std::complex<double>*)malloc(m*k*sizeof(std::complex<double>)/(*(this->wrld)).np);
+    std::complex<double> * s = (std::complex<double>*)malloc(k*sizeof(std::complex<double>)/(*(this->wrld)).np);
+    std::complex<double> * vt = (std::complex<double>*)malloc(k*n*sizeof(std::complex<double>)/(*(this->wrld)).np);
+
+//    int * desca = (int*)malloc(9*sizeof(int));
+    int * descu = (int*)malloc(9*sizeof(int));
+    int * descvt = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    int * desca;
+    this->get_desc(ictxt, desca);
+    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, k/(*(this->wrld)).np, &info);
+
+    this->read_mat(desca, A);
+
+    std::complex<double> llwork;
+    int lwork;
+
+    CTF_SCALAPACK::cpzgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, &llwork, -1, &info);  
+
+    lwork = (int)(real(llwork));
+    std::complex<double> * work = (std::complex<double>*)malloc(sizeof(std::complex<double>)*lwork);
+
+    CTF_SCALAPACK::cpzgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
+
+ 
+    S = Vector<std::complex<double>>(k, (*(this->wrld)));
+    int64_t sc;
+    std::complex<double> * s_data = (std::complex<double>*)S.get_raw_data(&sc);
+
+    for (int i = (*(this->wrld)).rank; i < k; i += (*(this->wrld)).np) {
+      s_data[i/(*(this->wrld)).np] = s[i];
+    } 
+    U = Matrix<std::complex<double>>(descu, u, (*(this->wrld)));
+    VT = Matrix<std::complex<double>>(descvt, vt, (*(this->wrld)));
+
+    if (rank > 0 && rank < k) {
+      S = S.slice(0, rank-1);
+      U = U.slice(0, rank*(m)-1);
+      VT = VT.slice(0, k*n-(k-rank+1));
+    }
+
+    free(A);
+    free(u);
+    free(s);
+    free(vt);
+    free(desca);
+    free(descu);
+    free(descvt);
+    free(work);
+
+  }
+  /*
+  template<>
+  inline void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT,  int rank){
+
+    int info;
+
+    int m = this->nrow;
+    int n = this->ncol;
+    int k = std::min(m,n);
+
+    dtype * A = (dtype*)malloc(m*n*sizeof(dtype)/(*(this->wrld)).np);
+    dtype * u = (dtype*)malloc(m*k*sizeof(dtype)/(*(this->wrld)).np);
+    dtype * s = (dtype*)malloc(k*sizeof(dtype)/(*(this->wrld)).np);
+    dtype * vt = (dtype*)malloc(k*n*sizeof(dtype)/(*(this->wrld)).np);
+
+//    int * desca = (int*)malloc(9*sizeof(int));
+    int * descu = (int*)malloc(9*sizeof(int));
+    int * descvt = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    int * desca;
+    this->get_desc(ictxt, desca);
+    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, k/(*(this->wrld)).np, &info);
+
+    this->read_mat(desca, A);
+
+    dtype llwork;
+    int lwork;
+
+    CTF_SCALAPACK::cpgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, &llwork, -1, &info);  
+
+    lwork = (int)llwork;
+    dtype * work = (dtype*)malloc(sizeof(dtype)*lwork);
+
+    CTF_SCALAPACK::cpgesvd('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
+
+ 
+    S = Vector<dtype>(k, (*(this->wrld)));
+    int64_t sc;
+    dtype * s_data = (dtype*)S.get_raw_data(&sc);
+
+    for (int i = (*(this->wrld)).rank; i < k; i += (*(this->wrld)).np) {
+      s_data[i/(*(this->wrld)).np] = s[i];
+    } 
+    U = Matrix<dtype>(descu, u, (*(this->wrld)));
+    VT = Matrix<dtype>(descvt, vt, (*(this->wrld)));
+
+    if (rank > 0 && rank < k) {
+      S = S.slice(0, rank-1);
+      U = U.slice(0, rank*(m)-1);
+      VT = VT.slice(0, k*n-(k-rank+1));
+    }
+
+    free(A);
+    free(u);
+    free(s);
+    free(vt);
+    free(desca);
+    free(descu);
+    free(descvt);
+    free(work);
+
+  }
+  */
   template<typename dtype>
   void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank) {
     assert(0);

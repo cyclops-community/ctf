@@ -265,8 +265,6 @@ namespace CTF {
        * \param[out] S singular values of matrix
        * \param[out] VT right singular vectors of matrix
        * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
-       * \param[in] wrld CTF world where the matrices will live, must contain pr*pc processors
-       * \param[in] ictxt index of context
        */
       void matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0);
   };
