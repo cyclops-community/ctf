@@ -123,6 +123,8 @@ namespace CTF_int {
       int64_t home_size;
       /** \brief whether the latest tensor data is in the home buffer */
       bool is_home;
+      /** \brief whether the tensor left home to transpose */
+      bool left_home_transp;
       /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
       /** \brief whether only the non-zero elements of the tensor are stored */
@@ -358,9 +360,10 @@ namespace CTF_int {
 
       /**
        * \brief get number of elements in whole tensor
+       * \param[in] packed if false (default) ignore symmetry
        * \return number of elements (including zeros)
        */
-      int64_t get_tot_size();
+      int64_t get_tot_size(bool packed);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
@@ -724,6 +727,7 @@ namespace CTF_int {
       void read_dense_from_file(MPI_File & file, int64_t offset=0);
 
       /**
+<<<<<<< HEAD
        * \brief convert this tensor from dtype_A to dtype_B and store the result in B (primarily needed for python interface)
        * \param[in] B output tensor
        */
@@ -786,6 +790,28 @@ namespace CTF_int {
 
       template <typename dtype>
       void true_divide(tensor * A);
+
+      /**
+       * \brief performs a partial reduction on the tensor (used in summation and contraction)
+       * \param[in] idx_A index map of this tensor as defined by summation/contraction
+       * \param[out] new_idx_A how idx_A needs to be transformed
+       * \param[in] order_B number of modes in tensor B
+       * \param[in] idx_B index map containing all indices in another tensor involved in the operaiton
+       * \param[out] new_idx_B how idx_B needs to be transformed
+       * \param[in] order_C number of modes in tensor C
+       * \param[in] idx_C index map containing all indices in another tensor involved in the operaiton (should be NULL for summation)
+       * \param[out] new_idx_C how idx_C needs to be transformed, untouched if idx_C is NULL
+       * \param[in] idx_C index map containing all indices in another tensor involved in the operaiton (should be NULL for summation)
+       * \param[out] new_idx_C how idx_C needs to be transformed, untouched if idx_C is NULL
+       */
+      tensor * self_reduce(int const * idx_A,
+                           int **      new_idx_A,
+                           int         order_B,
+                           int const * idx_B,
+                           int **      new_idx_B,
+                           int         order_C=0,
+                           int const * idx_C=NULL,
+                           int **      new_idx_C=NULL);
   };
 }
 #endif// __UNTYPED_TENSOR_H__

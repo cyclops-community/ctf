@@ -71,9 +71,9 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
                        char **   data)
         int read_local_nnz(int64_t * num_pair,
                            char **   data)
-        void allread(int64_t * num_pair, char * data)
+        void allread(int64_t * num_pair, char * data, bool unpack)
         void slice(int *, int *, char *, ctensor *, int *, int *, char *)
-        int64_t get_tot_size()
+        int64_t get_tot_size(bool packed)
         void get_raw_data(char **, int64_t * size)
         int permute(ctensor * A, int ** permutation_A, char * alpha, int ** permutation_B, char * beta)
         void conv_type[dtype_A,dtype_B](ctensor * B)
@@ -481,15 +481,17 @@ cdef class tensor:
                 strides[i] = self.dims[i+1] * strides[i+1]
         self.strides = tuple(strides)
         rlens = lens[:]
+        rsym = self.sym[:]
         if ord_comp(self.order, 'F'):
             rlens = rev_array(lens)
+            if self.ndim > 1:
+                rsym = rev_array(self.sym)
+                rsym[0:-1] = rsym[1:]
+                rsym[-1] = SYM.NS
         cdef int * clens
         clens = int_arr_py_to_c(rlens)
         cdef int * csym
-        if sym is None:
-            csym = int_arr_py_to_c(np.zeros(len(lens)))
-        else:
-            csym = int_arr_py_to_c(sym)
+        csym = int_arr_py_to_c(rsym)
         if copy is None:
             if self.typ == np.float64:
                 self.dt = new Tensor[double](len(lens), sp, clens, csym)
@@ -514,7 +516,10 @@ cdef class tensor:
         else:
             if isinstance(copy, tensor):
                 if dtype is None or dtype == copy.dtype:
-                    self.dt = new ctensor(<ctensor*>copy.dt, True, True)
+                    if np.all(sym == copy.sym):
+                        self.dt = new ctensor(<ctensor*>copy.dt, True, True)
+                    else:
+                        self.dt = new ctensor(<ctensor*>copy.dt, csym)
                 else:
                     ccopy = tensor(self.shape, sp=self.sp, sym=self.sym, dtype=self.dtype, order=self.order)
                     copy.convert_type(ccopy)
@@ -1341,16 +1346,16 @@ cdef class tensor:
         inds = buf['a']
         return inds, vals
 
-    def tot_size(self):
-        return self.dt.get_tot_size()
+    def tot_size(self, unpack=True):
+        return self.dt.get_tot_size(not unpack)
 
-    def read_all(self, arr=None):
+    def read_all(self, arr=None, unpack=True):
         cdef char * cvals
         cdef int64_t sz
-        sz = self.dt.get_tot_size()
+        sz = self.dt.get_tot_size(not unpack)
         tB = self.dtype.itemsize
         cvals = <char*> malloc(sz*tB)
-        self.dt.allread(&sz, cvals)
+        self.dt.allread(&sz, cvals, unpack)
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)
         buf.data = cvals
         if arr is None:
@@ -1364,7 +1369,7 @@ cdef class tensor:
     def write_all(self, arr):
         cdef char * cvals
         cdef int64_t sz
-        sz = self.dt.get_tot_size()
+        sz = self.dt.get_tot_size(False)
         tB = arr.dtype.itemsize
         self.dt.get_raw_data(&cvals, &sz)
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)
@@ -2446,7 +2451,8 @@ def dot(tA, tB, out=None):
     elif type(A)==tensor and type(B)==tensor:
         return tensordot(A, B, axes=([-1],[0]))
     else:
-        raise ValueError("Wrong Type")
+        return tensordot(astensor(A), astensor(B), axes=([-1],[0]))
+#        raise ValueError("Wrong Type")
 
 def tensordot(A, B, axes=2):
     if not isinstance(A, tensor) or not isinstance(B, tensor):
@@ -2894,7 +2900,6 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
                     C = tensor(A.get_dims(), dtype = out.get_type())
 
         index = get_num_str(len(dim))
-        #index = "".join(index)
         index_A = index[0:len(dim)]
         index_B = index[0:axis] + index[axis+1:len(dim)]
         if isinstance(C, tensor):
@@ -2967,7 +2972,6 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
                 raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
         B = tensor((1,), dtype=np.bool)
         index_A = get_num_str(len(A.get_dims()))
-        index_A = "".join(index_A)
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
         elif A.get_type() == np.int64:

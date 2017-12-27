@@ -28,10 +28,8 @@ namespace CTF_int {
     B     = other.B;
     idx_B = (int*)alloc(sizeof(int)*other.B->order);
     memcpy(idx_B, other.idx_B, sizeof(int)*other.B->order);
-    if (other.is_custom){
-      func      = other.func;
-      is_custom = 1;
-    } else is_custom = 0; 
+    func      = other.func;
+    is_custom = other.is_custom;
     alpha = other.alpha;
     beta  = other.beta;
   }
@@ -47,6 +45,7 @@ namespace CTF_int {
     B         = B_;
     beta      = beta_;
     is_custom = 0;
+    func      = NULL;
 
     idx_A     = (int*)alloc(sizeof(int)*A->order);
     idx_B     = (int*)alloc(sizeof(int)*B->order);
@@ -66,6 +65,7 @@ namespace CTF_int {
     B         = B_;
     beta      = beta_;
     is_custom = 0;
+    func      = NULL;
     
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
   }
@@ -83,7 +83,10 @@ namespace CTF_int {
     B         = B_;
     beta      = beta_;
     func      = func_;
-    is_custom = 1;
+    if (func == NULL)
+      is_custom = 0;
+    else
+      is_custom = 1;
 
     idx_A     = (int*)alloc(sizeof(int)*A->order);
     idx_B     = (int*)alloc(sizeof(int)*B->order);
@@ -105,7 +108,10 @@ namespace CTF_int {
     B         = B_;
     beta      = beta_;
     func      = func_;
-    is_custom = 1;
+    if (func == NULL)
+      is_custom = 0;
+    else
+      is_custom = 1;
 
     conv_idx(A->order, cidx_A, &idx_A, B->order, cidx_B, &idx_B);
   }
@@ -304,15 +310,17 @@ namespace CTF_int {
     
 
     nvirt_A = A->calc_nvirt();
-    for (i=0; i<nvirt_A; i++){
+    nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
+    /*for (i=0; i<nvirt_A; i++){
       nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A, 
                       A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
-    }
+    }*/
     nvirt_B = B->calc_nvirt();
-    for (i=0; i<nvirt_B; i++){
+    nosym_transpose(B, all_fdim_B, all_flen_B, B->inner_ordering, 1);
+    /*for (i=0; i<nvirt_B; i++){
       nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B, 
                       B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
-    }
+    }*/
 
     inr_stride = 1;
     for (i=0; i<fold_sum->A->order; i++){
@@ -977,7 +985,7 @@ namespace CTF_int {
       tnsr_A->home_buffer = A->home_buffer;
       tnsr_A->is_home     = 1;
       tnsr_A->has_home    = 1;
-      tnsr_A->home_size = A->home_size;
+      tnsr_A->home_size   = A->home_size;
       tnsr_A->is_mapped   = 1;
       tnsr_A->topo        = A->topo;
       copy_mapping(A->order, A->edge_map, tnsr_A->edge_map);
@@ -993,6 +1001,8 @@ namespace CTF_int {
       tnsr_B->data        = B->data;
       tnsr_B->home_buffer = B->home_buffer;
       tnsr_B->is_home     = 1;
+      tnsr_B->has_home    = 1;
+      tnsr_B->home_size   = B->home_size;
       tnsr_B->is_mapped   = 1;
       tnsr_B->topo        = B->topo;
       copy_mapping(B->order, B->edge_map, tnsr_B->edge_map);
@@ -1051,6 +1061,7 @@ namespace CTF_int {
       }
       tnsr_B->is_data_aliased = 1;
       B->is_home = 1;
+      B->has_home = 1;
       delete tnsr_B;
     } else if (was_home_B){
       if (!B->is_sparse){
@@ -1061,11 +1072,13 @@ namespace CTF_int {
       } else
         B->data = tnsr_B->data;
       tnsr_B->has_home = 0;
+      tnsr_B->is_home = 0;
       tnsr_B->is_data_aliased = 1;
       delete tnsr_B;
     }
     if (was_home_A && !tnsr_A->is_home){
       tnsr_A->has_home = 0;
+      tnsr_A->is_home = 0;
       if (A->is_sparse){
         A->data = tnsr_A->home_buffer;
         tnsr_A->home_buffer = NULL;
@@ -1073,6 +1086,7 @@ namespace CTF_int {
       delete tnsr_A;
     } else if (was_home_A) {
       tnsr_A->has_home = 0;
+      tnsr_A->is_home = 0;
       tnsr_A->is_data_aliased = 1;
       if (A->is_sparse)
         A->data = tnsr_A->data;
@@ -1118,6 +1132,20 @@ namespace CTF_int {
       }
       return SUCCESS;
     }
+
+
+
+    int * new_idx_A, * new_idx_B;
+    if (!is_custom || func->is_distributive){
+      tensor * new_tsr_A = A->self_reduce(idx_A, &new_idx_A, B->order, idx_B, &new_idx_B);
+      if (new_tsr_A != A) {
+        summation s(new_tsr_A, new_idx_A, alpha, B, new_idx_B, beta, func);
+        s.execute();
+        delete new_tsr_A;
+        return SUCCESS;
+      }
+    }
+
     // If we have sparisity, use separate mechanism
     /*if (A->is_sparse || B->is_sparse){
       sp_sum();
@@ -1799,7 +1827,7 @@ namespace CTF_int {
 
   int summation::check_mapping(){
     int i, pass, order_tot, iA, iB;
-    int * idx_arr; //, * phys_map;
+    int * idx_arr, * phys_map;
     //mapping * map;
 
     TAU_FSTART(check_sum_mapping);
@@ -1823,8 +1851,8 @@ namespace CTF_int {
       return 0;
     }
     
-    //CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
-    //memset(phys_map, 0, sizeof(int)*A->topo->order);
+    CTF_int::alloc_ptr(sizeof(int)*A->topo->order, (void**)&phys_map);
+    memset(phys_map, 0, sizeof(int)*A->topo->order);
 
     inv_idx(A->order, idx_A,
             B->order, idx_B,
@@ -1846,35 +1874,30 @@ namespace CTF_int {
           DPRINTF(4,"failed confirmation here i=%d\n",i);
         }
       }
-      /*if (iA != -1) {
-        map = &A->edge_map[iA];
-        if (map->type == PHYSICAL_MAP)
-          phys_map[map->cdt] = 1;
-        while (map->has_child) {
-          map = map->child;
-          if (map->type == PHYSICAL_MAP)
-            phys_map[map->cdt] = 1;
+      if (iA != -1 && iB == -1) {
+        mapping * map = &A->edge_map[iA];
+        while (map->type == PHYSICAL_MAP){
+          phys_map[map->cdt]++;
+          if (map->has_child) map = map->child;
+          else break;
         }
       }
-      if (iB != -1){
-        map = &B->edge_map[iB];
-        if (map->type == PHYSICAL_MAP)
-          phys_map[map->cdt] = 1;
-        while (map->has_child) {
-          map = map->child;
-          if (map->type == PHYSICAL_MAP)
-            phys_map[map->cdt] = 1;
+      if (iB != -1 && iA == -1){
+        mapping * map = &B->edge_map[iB];
+        while (map->type == PHYSICAL_MAP){
+          phys_map[map->cdt]++;
+          if (map->has_child) map = map->child;
+          else break;
         }
-      }*/
+      }
     }
-    /* Ensure that something is mapped to each dimension, since replciation
-       does not make sense in sum for all tensors */
-  /*  for (i=0; i<topovec[A->itopo].order; i++){
-      if (phys_map[i] == 0) {
+    /* Ensure that a replicated and a reduced mode are not mapped to processor grid dimensions not used by the other tensor */
+    for (i=0; i<A->topo->order; i++){
+      if (phys_map[i] > 1) {
         pass = 0;
         DPRINTF(3,"failed confirmation here i=%d\n",i);
       }
-    }*/
+    }
 
     //CTF_int::cdealloc(phys_map);
     CTF_int::cdealloc(idx_arr);

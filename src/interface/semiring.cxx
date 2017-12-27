@@ -3,9 +3,6 @@
 #include "../shared/offload.h"
 #include "../sparse_formats/csr.h"
 
-#ifdef USE_SP_MKL
-#define USE_MKL
-#endif
 #ifdef USE_MKL
 #include "../shared/mkl_symbs.h"
 #endif

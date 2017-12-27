@@ -294,6 +294,7 @@ namespace CTF_int {
       sym_tsr->set_padding();
       sym_tsr->size     = nonsym_tsr->size;
       sym_tsr->data     = nonsym_tsr->data;
+      sym_tsr->is_home  = nonsym_tsr->is_home;
       sym_tsr->set_new_nnz_glb(nonsym_tsr->nnz_blk);
     } else {
   

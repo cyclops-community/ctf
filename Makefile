@@ -12,12 +12,24 @@ export LIBS
 
 all: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 
+
 .PHONY: install
 install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
+	if [ -d hptt ]; then  \
+		echo "WARNING: detected HPTT installation in hptt/, you might need to also install it manually separately."; \
+	fi 
+	if [ -d scalapack ]; then \
+		echo "WARNING: detected ScaLAPACK installation in scalapack/, you might need to also install it manually separately."; \
+	fi 
 	cp $(BDIR)/lib/libctf.a $(INSTALL_DIR)/lib 
 	cp $(BDIR)/lib_shared/libctf.so $(INSTALL_DIR)/lib 
 	src/scripts/expand_includes.sh
 	mv include/ctf_all.hpp $(INSTALL_DIR)/include/ctf.hpp
+
+.PHONY: install-python
+install-python:
+	$(MAKE) install
+	$(MAKE) python
 
 .PHONY: uninstall
 uninstall: 
@@ -25,12 +37,17 @@ uninstall:
 	rm $(INSTALL_DIR)/lib/libctf.so 
 	rm $(INSTALL_DIR)/include/ctf.hpp 
 
+.PHONY: uninstall-python
+install-python:
+	pip uninstall ctf
+
+
 
 
 EXAMPLES = algebraic_multigrid apsp bitonic_sort btwn_central ccsd checkpoint dft_3D fft force_integration force_integration_sparse jacobi matmul neural_network particle_interaction qinformatics recursive_matmul scan sparse_mp3 sparse_permuted_slice spectral_element spmv sssp strassen trace mis mis2 ao_mo_transf 
-TESTS = bivar_function bivar_transform ccsdt_map_test ccsdt_t3_to_t2 dft diag_ctr diag_sym endomorphism_cust endomorphism_cust_sp endomorphism gemm_4D multi_tsr_sym permute_multiworld readall_test readwrite_test repack scalar speye sptensor_sum subworld_gemm sy_times_ns test_suite univar_function weigh_4D 
+TESTS = bivar_function bivar_transform ccsdt_map_test ccsdt_t3_to_t2 dft diag_ctr diag_sym endomorphism_cust endomorphism_cust_sp endomorphism gemm_4D multi_tsr_sym permute_multiworld readall_test readwrite_test repack scalar speye sptensor_sum subworld_gemm sy_times_ns test_suite univar_function weigh_4D  reduce_bcast
 
-BENCHMARKS = bench_contraction bench_nosym_transp bench_redistribution model_trainer
+BENCHMARKS = bench_contraction bench_nosym_transp bench_redistribution model_trainer 
 
 SCALAPACK_TESTS = nonsq_pgemm_test nonsq_pgemm_bench hosvd
 
@@ -95,7 +112,7 @@ ctflibso: export FCXX+=-fPIC
 ctflibso: export OFFLOAD_CXX+=-fPIC
 ctflibso: export ODIR=$(BDIR)/obj_shared
 ctflibso: ctf_objs ctf_ext_objs
-	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o; 
+	$(FCXX) -shared -o $(BDIR)/lib_shared/libctf.so $(ODIR)/*.o $(OEDIR)/*.o  $(SO_LIB_PATH) $(SO_LIB_FILES) $(LDFLAGS)
 
 
 PYTHON_SRC_FILES=src_python/ctf/core.pyx src_python/ctf/random.pyx
@@ -103,35 +120,48 @@ PYTHON_SRC_FILES=src_python/ctf/core.pyx src_python/ctf/random.pyx
 .PHONY: pip
 python_install: pip
 pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES) 
-	cd src_python && ln -s $(BDIR)/setup.py setup.py && pip install -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ . --upgrade && rm setup.py && cd ..
+	cd src_python; \
+	ln -sf $(BDIR)/setup.py setup.py; \
+	pip install -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ . --upgrade; \
+	rm setup.py; \
+	cd .. 
 
 .PHONY: python
 python: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
-	cd src_python && LDFLAGS="-L$(BDIR)/lib_shared" python $(BDIR)/setup.py build_ext -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ && cd ..
+	cd src_python; \
+	ln -sf $(BDIR)/setup.py setup.py; \
+	LDFLAGS="-L$(BDIR)/lib_shared" python setup.py build_ext -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/; \
+	rm setup.py; \
+	cd ..; \
+	cp src_python/ctf/__init__.py $(BDIR)/lib_python/ctf/__init__.py
 
 .PHONY: test_python
 test_python: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared" PYTHONPATH="$(BDIR)/lib_python" python ./test/python/test_wrapper.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
+
+.PHONY: test_python2
+test_python2: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np 2 python ./test/python/test_base.py
 
 .PHONY: test_einsum
 test_einsum: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared" PYTHONPATH="$(BDIR)/lib_python" python ./test/python/test_einsum.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_einsum.py
 
 .PHONY: test_new
 test_new: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared" PYTHONPATH="$(BDIR)/lib_python" python ./test/python/test_new.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_new.py
 
 .PHONY: test_base
 test_base: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared" PYTHONPATH="$(BDIR)/lib_python" python ./test/python/test_base.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
 
 .PHONY: test_get_item
 test_get_item: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared" PYTHONPATH="$(BDIR)/lib_python" python ./test/python/test_get_item.py
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
 
 .PHONY: test_live
 test_live: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared" PYTHONPATH="$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
 
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
@@ -164,11 +194,14 @@ test8: test_suite
 	mpirun -np 8 $(BDIR)/bin/test_suite
 
 clean_py:
-	rm -f $(BDIR)/src_python/ctf/core*.so
-	rm -f $(BDIR)/src_python/ctf/random*.so
+	rm -f $(BDIR)/src_python/ctf/core.*.so
+	rm -f $(BDIR)/src_python/ctf/random.*.so
 	rm -f $(BDIR)/src_python/ctf/core.cpp
 	rm -f $(BDIR)/src_python/ctf/random.cpp
 	rm -rf $(BDIR)/src_python/build
+	rm -rf $(BDIR)/src_python/__pycache__
+	rm -f $(BDIR)/lib_python/ctf/core.*.so
+	rm -f $(BDIR)/lib_python/ctf/random.*.so
 
 
 clean_bin:
@@ -185,4 +218,5 @@ clean_obj:
 	rm -f $(BDIR)/obj/*.o 
 	rm -f $(BDIR)/obj_ext/*.o 
 	rm -f $(BDIR)/obj_shared/*.o 
+	rm -rf $(BDIR)/obj_shared/ctf/ 
 	rm -f $(BDIR)/build/*/*/*.o 

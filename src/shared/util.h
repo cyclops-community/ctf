@@ -18,9 +18,6 @@ volatile static int64_t int64_t_max = INT64_MAX;
 #endif
 #endif
 
-#ifdef USE_SP_MKL
-#define USE_MKL
-#endif
 
 /*
 #if (defined(__X86_64__) || defined(__IA64__) || defined(__amd64__) || \
@@ -173,7 +170,7 @@ namespace CTF_int {
   #endif
 
   #ifndef ALIGN_BYTES
-  #define ALIGN_BYTES     16
+  #define ALIGN_BYTES     32
   #endif
 
   #ifndef MIN
