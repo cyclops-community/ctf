@@ -1,5 +1,5 @@
 ## Cyclops Tensor Framework (CTF)
-[<img src="(https://travis-ci.org/cyclops-community/ctf.svg?branch=v150">](https://travis-ci.org/cyclops-community/ctf)
+[<img src="https://travis-ci.org/cyclops-community/ctf.svg?branch=v150">](https://travis-ci.org/cyclops-community/ctf)
 
 Cyclops is a parallel (distributed-memory) numerical library for multidimensional arrays (tensors) in C++ and Python.
 
