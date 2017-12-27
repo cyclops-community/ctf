@@ -175,6 +175,23 @@ namespace CTF_BLAS {
             const int *,
             const int *);
 
+  template <typename dtype>
+  void gemm_batch(const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const dtype *,
+            dtype **,
+            const int *,
+            dtype **,
+            const int *,
+            const dtype *,
+            dtype **,
+            const int *,
+            const int *,
+            const int *);
+
   extern "C"
   void SGEMM(const char *,
              const char *,
@@ -236,6 +253,31 @@ namespace CTF_BLAS {
              const std::complex<double> *,
              std::complex<double> *,
              const int *);
+
+
+  extern "C"
+  void SAXPY(const int *   n,
+             float *       dA,
+             const float * dX,
+             const int *   incX,
+             float *       dY,
+             const int *   incY);
+
+
+  template <typename dtype>
+  void gemm(const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const dtype *,
+            const dtype *,
+            const int *,
+            const dtype *,
+            const int *,
+            const dtype *,
+            dtype *,
+            const int *);
 
 
   extern "C"

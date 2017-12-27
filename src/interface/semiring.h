@@ -106,6 +106,46 @@ namespace CTF_int {
     //TAU_FSTOP(default_gemm);
   }
 
+  template<typename dtype>
+  dtype ** get_grp_ptrs(int64_t          grp_sz,
+                        int64_t          ngrp,
+                        dtype const *    data){
+    dtype ** data_ptrs = (dtype**)alloc(sizeof(dtype*)*ngrp);
+#ifdef USE_OMP
+    #pragma omp parallel for
+#endif
+    for (int i=0; i<ngrp; i++){
+      data_ptrs[i] = ((dtype*)data)+i*grp_sz;
+    }
+    return data_ptrs;
+  }
+
+  template <typename dtype>
+  void gemm_batch(
+            char           taA,
+            char           taB,
+            int            l,
+            int            m,
+            int            n,
+            int            k,
+            dtype          alpha,
+            dtype   const* A,
+            dtype   const* B,
+            dtype          beta,
+            dtype   *      C);
+
+  template <typename dtype>
+  void gemm(char           tA,
+            char           tB,
+            int            m,
+            int            n,
+            int            k,
+            dtype          alpha,
+            dtype  const * A,
+            dtype  const * B,
+            dtype          beta,
+            dtype  *       C);
+
   template<>
   inline void default_gemm<float>
             (char           tA,
@@ -118,7 +158,7 @@ namespace CTF_int {
              float  const * B,
              float          beta,
              float  *       C){
-    CTF_int::sgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
+    CTF_int::gemm<float>(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
 
   template<>
@@ -133,7 +173,7 @@ namespace CTF_int {
              double const * B,
              double         beta,
              double *       C){
-    CTF_int::cidgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
+    CTF_int::gemm<double>(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
 
   template<>
@@ -148,7 +188,7 @@ namespace CTF_int {
              std::complex<float> const * B,
              std::complex<float>         beta,
              std::complex<float> *       C){
-    CTF_int::cgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
+    CTF_int::gemm< std::complex<float> >(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
 
   template<>
@@ -163,7 +203,7 @@ namespace CTF_int {
              std::complex<double> const * B,
              std::complex<double>         beta,
              std::complex<double> *       C){
-    CTF_int::zgemm(tA,tB,m,n,k,alpha,A,B,beta,C);
+    CTF_int::gemm< std::complex<double> >(tA,tB,m,n,k,alpha,A,B,beta,C);
   }
 
   template<typename dtype>
@@ -203,7 +243,7 @@ namespace CTF_int {
              float  const* B,
              float         beta,
              float  *      C){
-    CTF_int::sgemm_batch(taA, taB, l, m, n, k, alpha, A, B, beta, C);        
+    CTF_int::gemm_batch<float>(taA, taB, l, m, n, k, alpha, A, B, beta, C);        
   } 
 
   template<>
@@ -219,7 +259,7 @@ namespace CTF_int {
              double const* B,
              double        beta,
              double *      C){
-    CTF_int::dgemm_batch(taA, taB, l, m, n, k, alpha, A, B, beta, C);        
+    CTF_int::gemm_batch<double>(taA, taB, l, m, n, k, alpha, A, B, beta, C);        
   } 
 
   template<>
@@ -235,7 +275,7 @@ namespace CTF_int {
              std::complex<float>  const* B,
              std::complex<float>         beta,
              std::complex<float>  *       C){
-    CTF_int::cgemm_batch(taA, taB, l, m, n, k, alpha, A, B, beta, C);        
+    CTF_int::gemm_batch< std::complex<float> >(taA, taB, l, m, n, k, alpha, A, B, beta, C);        
   } 
 
   template<>
@@ -251,7 +291,7 @@ namespace CTF_int {
            std::complex<double> const* B,
            std::complex<double>        beta,
            std::complex<double> *      C){
-    CTF_int::zgemm_batch(taA, taB, l, m, n, k, alpha, A, B, beta, C);        
+    CTF_int::gemm_batch< std::complex<double> >(taA, taB, l, m, n, k, alpha, A, B, beta, C);        
   }             
 
   template <typename dtype>

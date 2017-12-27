@@ -232,7 +232,6 @@ namespace CTF_int {
     for (i=0; i<A->order; i++){
       if (i >= num_ctr+num_no_ctr_A){
         inner_prm->l = inner_prm->l * A->pad_edge_len[ordering_A[i]];
-        printf("inner prm l = %d\n", inner_prm->l); 
       }
       else if (i >= num_ctr)
         inner_prm->m = inner_prm->m * A->pad_edge_len[ordering_A[i]];
@@ -482,7 +481,6 @@ namespace CTF_int {
         ordering_A[idx_weigh+num_no_ctr_A+num_ctr] = idx_arr[3*i];
         ordering_B[idx_weigh+num_no_ctr_B+num_ctr] = idx_arr[3*i+1];
         ordering_C[idx_weigh+num_no_ctr_A+num_no_ctr_B] = idx_arr[3*i+2];
-        printf("set ordering for idx_weigh = %d,i=%d\n",idx_weigh,i);
         idx_weigh++;
       } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
         ordering_A[idx_ctr] = idx_arr[3*i];
@@ -796,10 +794,6 @@ namespace CTF_int {
       bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
       nvirt_A = A->calc_nvirt();
       if (!A->is_sparse){
-        printf("transposing A\n");
-        for (i=0; i<all_fdim_A; i++){
-          printf("inner ordering [%d] of A is %d\n", i, A->inner_ordering[i]);
-        }
         for (i=0; i<nvirt_A; i++){
           nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A,
                           A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
@@ -815,10 +809,6 @@ namespace CTF_int {
       }
       nvirt_B = B->calc_nvirt();
       if (!B->is_sparse){
-        printf("transposing B\n");
-        for (i=0; i<all_fdim_B; i++){
-          printf("inner ordering [%d] of B is %d\n", i, B->inner_ordering[i]);
-        }
         for (i=0; i<nvirt_B; i++){
           nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B,
                           B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
@@ -836,10 +826,6 @@ namespace CTF_int {
       nvirt_C = C->calc_nvirt();
       if (!C->is_sparse){
 
-        printf("transposing C\n");
-        for (i=0; i<all_fdim_C; i++){
-          printf("inner ordering [%d] of C is %d\n", i, C->inner_ordering[i]);
-        }
         for (i=0; i<nvirt_C; i++){
           nosym_transpose(all_fdim_C, C->inner_ordering, all_flen_C,
                           C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
