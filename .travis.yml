@@ -21,6 +21,7 @@ addons:
       - libgfortran-5-dev
       - libblas-dev
       - liblapack-dev
+      - libmpich2-dev
       - cmake
 before_install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] || [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]] ; then
@@ -35,7 +36,6 @@ before_install:
   - source activate mypy
   - conda install -y cython
   - conda install -y numpy  
-  - conda install -y mpich2  
 install:
   - $CTF_CXX --version
   - FC=gfortran-5 ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack
