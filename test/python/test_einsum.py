@@ -123,4 +123,5 @@ class KnowValues(unittest.TestCase):
 if __name__ == "__main__":
     print("Tests for einsum")
     unittest.main()
+    ctf.MPI_Stop()
 

@@ -3577,10 +3577,10 @@ def svd(tensor A, rank=None):
     else:
         k = rank
     S = tensor(k)
-    U = tensor([k,A.shape[1]])
-    VT = tensor([k,A.shape[0]])
-    matrix_svd(A.dt, U.dt, S.dt, VT.dt, rank)
-    return [VT.transpose(), S, U.transpose()]   
+    U = tensor([A.shape[0],k])
+    VT = tensor([A.shape[1],k])
+    matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
+    return [U, S, VT]   
  
 #    A = tensor([n, n], dtype=dtype)
 #    if dtype == np.float64:

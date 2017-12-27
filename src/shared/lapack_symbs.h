@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include <iostream>
 #include <complex>
+#include <assert.h>
 #ifndef __LAPACK_SYMBS__
 #define __LAPACK_SYMBS__
 
@@ -170,32 +170,32 @@ namespace CTF_SCALAPACK{
   EXTERN_OR_INLINE 
     void Cblacs_gridexit(int) SCAL_END
   
-  inline
-  void cpdgesvd(  char JOBU,
-                  char JOBVT,
-                  int M,
-                  int N,
-                  double * A,
-                  int IA,
-                  int JA,
-                  int * DESCA,
-                  double * S,
-                  double * U,
-                  int IU,
-                  int JU,
-                  int * DESCU,
-                  double * VT,
-                  int IVT,
-                  int JVT,
-                  int * DESCVT,
-                  double * WORK,
-                  int LWORK,
-                  int * info) {
-    PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+  template <typename dtype>
+  void pgesvd(char JOBU,
+              char JOBVT,
+              int M,
+              int N,
+              dtype * A,
+              int IA,
+              int JA,
+              int * DESCA,
+              dtype * S,
+              dtype * U,
+              int IU,
+              int JU,
+              int * DESCU,
+              dtype * VT,
+              int IVT,
+              int JVT,
+              int * DESCVT,
+              dtype * WORK,
+              int LWORK,
+              int * info) {
+    assert(0);
   }
 
-  inline
-  void cpsgesvd(  char JOBU,
+  template <>
+  inline void pgesvd<float>(char JOBU,
                   char JOBVT,
                   int M,
                   int N,
@@ -218,8 +218,33 @@ namespace CTF_SCALAPACK{
     PSGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
 
-  inline
-  void cpcgesvd(  char JOBU,
+  template <>
+  inline void pgesvd<double>(char JOBU,
+                  char JOBVT,
+                  int M,
+                  int N,
+                  double * A,
+                  int IA,
+                  int JA,
+                  int * DESCA,
+                  double * S,
+                  double * U,
+                  int IU,
+                  int JU,
+                  int * DESCU,
+                  double * VT,
+                  int IVT,
+                  int JVT,
+                  int * DESCVT,
+                  double * WORK,
+                  int LWORK,
+                  int * info) {
+    PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+  }
+
+
+  template <>
+  inline void pgesvd< std::complex<float> >(char JOBU,
                   char JOBVT,
                   int M,
                   int N,
@@ -242,8 +267,9 @@ namespace CTF_SCALAPACK{
     PCGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
 
-  inline
-  void cpzgesvd(  char JOBU,
+
+  template <>
+  inline void pgesvd< std::complex<double> >(char JOBU,
                   char JOBVT,
                   int M,
                   int N,
@@ -265,8 +291,6 @@ namespace CTF_SCALAPACK{
                   int * info) {
     PZGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
-
-
 
   inline
   void cdescinit( int * desc, 
