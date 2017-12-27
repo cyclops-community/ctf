@@ -8,6 +8,10 @@
 #define DGEMM dgemm_
 #define CGEMM cgemm_
 #define ZGEMM zgemm_
+#define SGEMM_BATCH sgemm_batch_
+#define DGEMM_BATCH dgemm_batch_
+#define CGEMM_BATCH cgemm_batch_
+#define ZGEMM_BATCH zgemm_batch_
 #define SAXPY saxpy_
 #define DAXPY daxpy_
 #define CAXPY caxpy_
@@ -25,6 +29,10 @@
 #define DGEMM dgemm
 #define CGEMM cgemm
 #define ZGEMM zgemm
+#define SGEMM_BATCH sgemm_batch
+#define DGEMM_BATCH dgemm_batch
+#define CGEMM_BATCH cgemm_batch
+#define ZGEMM_BATCH zgemm_batch
 #define SAXPY saxpy
 #define DAXPY daxpy
 #define CAXPY caxpy
@@ -45,6 +53,94 @@ namespace CTF_BLAS {
               int * incX,      const double * dY,      
               int * incY);
 
+  extern "C"
+  void SGEMM_BATCH(
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const float *,
+            float **,
+            const int *,
+            float **,
+            const int *,
+            const float *,
+            float **,
+            const int *,
+            const int *,
+            const int *);
+
+  extern "C"
+  void DGEMM_BATCH(
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const double *,
+            double **,
+            const int *,
+            double **,
+            const int *,
+            const double *,
+            double **,
+            const int *,
+            const int *,
+            const int *);
+
+  extern "C"
+  void CGEMM_BATCH(
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const std::complex<float> *,
+            std::complex<float> **,
+            const int *,
+            std::complex<float> **,
+            const int *,
+            const std::complex<float> *,
+            std::complex<float> **,
+            const int *,
+            const int *,
+            const int *);
+
+  extern "C"
+  void ZGEMM_BATCH(
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const std::complex<double> *,
+            std::complex<double> **,
+            const int *,
+            std::complex<double> **,
+            const int *,
+            const std::complex<double> *,
+            std::complex<double> **,
+            const int *,
+            const int *,
+            const int *);
+
+  template <typename dtype>
+  void gemm_batch(const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const dtype *,
+            dtype **,
+            const int *,
+            dtype **,
+            const int *,
+            const dtype *,
+            dtype **,
+            const int *,
+            const int *,
+            const int *);
 
   extern "C"
   void SGEMM(const char *,
@@ -107,6 +203,31 @@ namespace CTF_BLAS {
              const std::complex<double> *,
              std::complex<double> *,
              const int *);
+
+
+  extern "C"
+  void SAXPY(const int *   n,
+             float *       dA,
+             const float * dX,
+             const int *   incX,
+             float *       dY,
+             const int *   incY);
+
+
+  template <typename dtype>
+  void gemm(const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const dtype *,
+            const dtype *,
+            const int *,
+            const dtype *,
+            const int *,
+            const dtype *,
+            dtype *,
+            const int *);
 
 
   extern "C"

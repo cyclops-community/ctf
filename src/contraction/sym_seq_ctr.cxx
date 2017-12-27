@@ -772,9 +772,9 @@ printf("HERE1\n");
     int * dlen_A, * dlen_B, * dlen_C;
     int64_t idx_A, idx_B, idx_C, off_lda;
 
-    stride_A = prm->m*prm->k;
-    stride_B = prm->k*prm->n;
-    stride_C = prm->m*prm->n;
+    stride_A = prm->m*prm->k*prm->l;
+    stride_B = prm->k*prm->n*prm->l;
+    stride_C = prm->m*prm->n*prm->l;
 
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
@@ -808,13 +808,14 @@ printf("HERE1\n");
     }
     idx_A = 0, idx_B = 0, idx_C = 0;
     sym_pass = 1;
-
    // int cntr=0;  
     for (;;){
       if (sym_pass){
         TAU_FSTART(gemm);
         if (prm->tC == 'N'){
           if (prm->offload){
+            //FIXME: Add GPU batched gemm support
+            ASSERT(prm->l == 1);
             if (func == NULL){
               sr_C->offload_gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
                                  A+idx_A*stride_A*sr_A->el_size,
@@ -829,11 +830,12 @@ printf("HERE1\n");
             }
           } else {
             if (func == NULL){
-              sr_C->gemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, alpha, 
+              sr_C->gemm_batch(prm->tA, prm->tB, prm->l, prm->m, prm->n, prm->k, alpha, 
                          A+idx_A*stride_A*sr_A->el_size, 
                          B+idx_B*stride_B*sr_B->el_size, sr_C->mulid(),
                          C+idx_C*stride_C*sr_C->el_size);
             } else {
+              ASSERT(prm->l == 1);
               ASSERT(sr_C->isequal(alpha,sr_C->mulid()));
               func->cgemm(prm->tA, prm->tB, prm->m, prm->n, prm->k, 
                            A+idx_A*stride_A*sr_A->el_size, 
@@ -843,6 +845,7 @@ printf("HERE1\n");
           }
         } else {
           if (prm->offload){
+            ASSERT(prm->l == 1);
             if (func == NULL){
               sr_C->offload_gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
                                  B+idx_B*stride_B*sr_B->el_size,
@@ -857,12 +860,13 @@ printf("HERE1\n");
             }
           } else {
             if (func == NULL){ 
-              sr_C->gemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, alpha, 
+              sr_C->gemm_batch(prm->tB, prm->tA, prm->l, prm->n, prm->m, prm->k, alpha, 
                          B+idx_B*stride_B*sr_B->el_size,
                          A+idx_A*stride_A*sr_A->el_size, sr_C->mulid(), 
                          C+idx_C*stride_C*sr_C->el_size);
             } else {
               ASSERT(sr_C->isequal(alpha,sr_C->mulid()));
+              ASSERT(prm->l == 1);
               func->cgemm(prm->tB, prm->tA, prm->n, prm->m, prm->k, 
                            B+idx_B*stride_B*sr_B->el_size,
                            A+idx_A*stride_A*sr_A->el_size, 
@@ -879,7 +883,7 @@ printf("HERE1\n");
     ((double*)(C+idx_C*stride_C*sr_C->el_size))[0]);*/
         TAU_FSTOP(gemm);
         // count n^2 FLOPS too
-        CTF_FLOPS_ADD((2 * (int64_t)prm->n * (int64_t)prm->m * (int64_t)(prm->k+1)));
+        CTF_FLOPS_ADD((2 * (int64_t)prm->l * (int64_t)prm->n * (int64_t)prm->m * (int64_t)(prm->k+1)));
       }
       //printf("[%ld] <- [%ld]*[%ld] (%d <- %d, %d)\n",idx_C,idx_A,idx_B,stride_C,stride_A,stride_B);
 
