@@ -1,4 +1,4 @@
-#!/bin/bas
+#!/bin/bash
 REL_SCRIPT_DIR=$(dirname $0)
 SCRIPT=$(${REL_SCRIPT_DIR}/manual_readlink.sh $0)
 SCRIPT_DIR=$(dirname $SCRIPT)
