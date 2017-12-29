@@ -1359,12 +1359,10 @@ cdef class tensor:
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)
         buf.data = cvals
         if arr is None:
-            return np.asarray(buf)
+            sbuf = np.asarray(buf)
+            return buf
         else:
             arr[:] = buf[:]
-        #for j in range(0,sz*tB):
-        #    arr.view(dtype=np.int8)[j] = cvals[j]
-        #free(cvals)
  
     def write_all(self, arr):
         cdef char * cvals
@@ -1373,8 +1371,11 @@ cdef class tensor:
         tB = arr.dtype.itemsize
         self.dt.get_raw_data(&cvals, &sz)
         cdef cnp.ndarray buf = np.empty(sz, dtype=self.typ)
+        odata = buf.data
         buf.data = cvals
-        buf[:] = arr[:]
+        rarr = arr.ravel()
+        buf[:] = rarr[:]
+        buf.data = odata
    
     def conj(tensor self):
         if self.typ != np.complex64 and self.typ != np.complex128:
@@ -1853,7 +1854,7 @@ cdef class tensor:
     def from_nparray(self, arr):
         if arr.dtype != self.typ:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
-        if self.dt.wrld.np == 0:
+        if self.dt.wrld.np == 1:
             self.write_all(arr)
         elif self.dt.wrld.rank == 0:
             #self.write(np.arange(0,self.tot_size(),dtype=np.int64),np.asfortranarray(arr).flatten())
@@ -2842,10 +2843,10 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
             #ret_dim = tuple(ret_dim)
             # dtype has the same type of A, we do not need to convert
             #if dtype == A.get_type():
-        ret = tensor([], dtype = dtype)
+        ret = tensor([], dtype = A.dtype)
         ret.i("") << A.i(index_A)
         if keepdims == True:
-            return ret.reshape(np.ones(tensor.ndim))
+            return ret.reshape(np.ones(tensor.shape))
         else:
             return ret.read_all()[0]
             #else:

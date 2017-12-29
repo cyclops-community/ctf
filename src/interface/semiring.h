@@ -407,13 +407,14 @@ namespace CTF {
                void (*scal_)(int,dtype,dtype*,int)=NULL,
                void (*coomm_)(int,int,int,dtype,dtype const*,int const*,int const*,int,dtype const*,dtype,dtype*)=NULL,
                void (*fgemm_batch_)(char,char,int,int,int,int,dtype,dtype const*,dtype const*,dtype,dtype*)=NULL)
-                : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) , tmulid(mulid_) {
+                : Monoid<dtype, is_ord>(addid_, fadd_, addmop_) {
         fmul        = fmul_;
         fgemm       = gemm_;
         faxpy       = axpy_;
         fscal       = scal_;
         fcoomm      = coomm_;
         fgemm_batch = fgemm_batch_;
+        tmulid      = mulid_;
         // if provided a coordinate MM kernel, don't use CSR
         this->has_coo_ker = (coomm_ != NULL);
         is_def = false;
@@ -422,8 +423,8 @@ namespace CTF {
       /**
        * \brief constructor for algstrct equipped with + only
        */
-      Semiring() : Monoid<dtype,is_ord>() {
-        tmulid = dtype(1);
+      Semiring() : Monoid<dtype,is_ord>()  {
+        tmulid      = dtype(1);
         fmul        = &CTF_int::default_mul<dtype>;
         fgemm       = &CTF_int::default_gemm<dtype>;
         faxpy       = &CTF_int::default_axpy<dtype>;

@@ -4,7 +4,7 @@ import ctf
 
 from ctf import random
 
-A = ctf.random.random((8,8))
+A = ctf.random.random((32,32))
 
 [U,S,VT]=ctf.svd(A)
 

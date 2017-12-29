@@ -45,6 +45,7 @@ STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
 
 EXECUTABLES = $(EXAMPLES) $(TESTS) $(BENCHMARKS) $(SCALAPACK_TESTS) $(STUDIES) 
 
+
 export EXAMPLES
 export TESTS
 export BENCHMARKS
@@ -107,13 +108,15 @@ ctflibso: ctf_objs ctf_ext_objs
 PYTHON_SRC_FILES=src_python/ctf/core.pyx src_python/ctf/random.pyx
 
 .PHONY: python
-python: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
+python: $(BDIR)/lib_python/ctf/core.so
+
+$(BDIR)/lib_python/ctf/core.so: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 	cd src_python; \
 	ln -sf $(BDIR)/setup.py setup.py; \
-	LDFLAGS="-L$(BDIR)/lib_shared" python setup.py build_ext -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/; \
+	LDFLAGS="-L$(BDIR)/lib_shared" python setup.py build_ext --force -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/; \
 	rm setup.py; \
 	cd ..; \
-	cp src_python/ctf/__init__.py $(BDIR)/lib_python/ctf/__init__.py
+	cp src_python/ctf/__init__.py $(BDIR)/lib_python/ctf/;
 
 
 .PHONY: python_install
@@ -124,42 +127,58 @@ pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 	ln -sf $(BDIR)/setup.py setup.py; \
 	pip install -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ . --upgrade; \
 	rm setup.py; \
-	cd .. 
+	cd ..;
 
 .PHONY: python_uninstall
 python_uninstall:
 	pip uninstall ctf
 
-.PHONY: test_python
-test_python: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
+.PHONY: python_test
+python_test: python_base_test python_einsum python_svd_test python_get_item_test
+	echo "Cyclops Python tests completed."
+
+.PHONY: python_test%
+python_test%: python_base_test% python_einsum% python_svd_test%
+	echo "Cyclops Python tests completed."
+
+.PHONY: python_einsum
+python_einsum: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_einsum.py
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
+
+.PHONY: python_einsum%
+python_einsum%: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_einsum.py
+
+.PHONY: python_base_test
+python_base_test: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
+
+.PHONY: python_base_test%
+python_base_test%: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_base.py
+
+.PHONY: python_svd_test
+python_svd_test: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_svd.py
 
-.PHONY: test_python2
-test_python2: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np 2 python ./test/python/test_base.py
+.PHONY: python_svd_test%
+python_svd_test%: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_svd.py
 
-.PHONY: test_einsum
-test_einsum: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_einsum.py
-
-.PHONY: test_new
-test_new: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_new.py
-
-.PHONY: test_base
-test_base: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
-
-.PHONY: test_get_item
-test_get_item: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
 
 .PHONY: test_live
 test_live: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
+
+
+.PHONY: python_new_test
+python_new_test: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_new.py
+
+.PHONY: python_get_item_test
+python_get_item_test: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
+
 
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflib
@@ -167,33 +186,20 @@ $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src
 $(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
 	$(MAKE) ctflibso
 	
-clean: clean_bin clean_lib clean_obj clean_py
-
-
 test: test_suite
 	$(BDIR)/bin/test_suite
 
-test2: test_suite
-	mpirun -np 2 $(BDIR)/bin/test_suite
+.PHONY: test%
+test%: test_suite
+	mpirun -np $* $(BDIR)/bin/test_suite
 
-test3: test_suite
-	mpirun -np 3 $(BDIR)/bin/test_suite
 
-test4: test_suite
-	mpirun -np 4 $(BDIR)/bin/test_suite
-
-test6: test_suite
-	mpirun -np 6 $(BDIR)/bin/test_suite
-
-test7: test_suite
-	mpirun -np 7 $(BDIR)/bin/test_suite
-
-test8: test_suite
-	mpirun -np 8 $(BDIR)/bin/test_suite
+clean: clean_bin clean_lib clean_obj clean_py
 
 clean_py:
 	rm -f $(BDIR)/src_python/ctf/core.*.so
 	rm -f $(BDIR)/src_python/ctf/random.*.so
+	rm -f $(BDIR)/bin/test_suite
 	rm -f $(BDIR)/src_python/ctf/core.cpp
 	rm -f $(BDIR)/src_python/ctf/random.cpp
 	rm -rf $(BDIR)/src_python/build

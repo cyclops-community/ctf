@@ -203,7 +203,7 @@ namespace CTF_int{
         }
         CTF_FLOPS_ADD(imax-imin);
       } else*/ 
-      if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
+      if (alpha == NULL || sr_C->isequal(alpha,sr_C->mulid())){
         for (int i=imin; i<imax; i++){
           char tmp[sr_C->el_size];
           sr_C->mul(A+offsets_A[0][i], 
@@ -231,7 +231,6 @@ namespace CTF_int{
       }
     } else {
       /*if (alpha == NULL && beta == NULL){
-printf("HERE1\n");
         for (int i=imin; i<imax; i++){
           func->apply_f(A+offsets_A[0][i],
                         B+offsets_B[0][i], 
@@ -239,7 +238,7 @@ printf("HERE1\n");
         }
         CTF_FLOPS_ADD(imax-imin);
       } else*/ 
-      if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
+      if (alpha == NULL || sr_C->isequal(alpha,sr_C->mulid())){
         for (int i=imin; i<imax; i++){
           func->acc_f(A+offsets_A[0][i], 
                       B+offsets_B[0][i], 

@@ -13,7 +13,8 @@ def allclose(a, b):
     if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-14:
       print(ctf.to_nparray(a))
       print(ctf.to_nparray(b))
-    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
+    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-14
+
 
 class KnowValues(unittest.TestCase):
     def test_einsum_views(self):
@@ -122,6 +123,7 @@ class KnowValues(unittest.TestCase):
 
 if __name__ == "__main__":
     print("Tests for einsum")
+    numpy.random.seed(5330);
     unittest.main()
     ctf.MPI_Stop()
 

@@ -1558,7 +1558,7 @@ namespace CTF_int {
           idx_A[i] = i;
         }
         tensor tA(sr, order, lens, sym_A, wrld, 1);
-        tA.leave_home_with_buffer();
+        //tA.leave_home_with_buffer();
         summation st(this, idx_A, sr->mulid(), &tA, idx_A, sr->mulid());
         st.execute();
         return tA.read_all_pairs(num_pair, false);
@@ -1614,7 +1614,8 @@ namespace CTF_int {
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(ball_data+i*sr->el_size);
     }
-    cdealloc(ipr.ptr);
+    if (ipr.ptr != NULL)
+      cdealloc(ipr.ptr);
     *all_data = ball_data;
     return SUCCESS;
   }
