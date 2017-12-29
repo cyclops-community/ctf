@@ -289,7 +289,6 @@ namespace CTF_int {
 
   int summation::map_fold(){
     int i, all_fdim_A, all_fdim_B;
-    int nvirt_A, nvirt_B;
     int * fnew_ord_A, * fnew_ord_B;
     int * all_flen_A, * all_flen_B;
     int inr_stride;
@@ -309,13 +308,11 @@ namespace CTF_int {
     permute_target(fold_sum->B->order, fnew_ord_B, B->inner_ordering);
     
 
-    nvirt_A = A->calc_nvirt();
     nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
     /*for (i=0; i<nvirt_A; i++){
       nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A, 
                       A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
     }*/
-    nvirt_B = B->calc_nvirt();
     nosym_transpose(B, all_fdim_B, all_flen_B, B->inner_ordering, 1);
     /*for (i=0; i<nvirt_B; i++){
       nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B, 

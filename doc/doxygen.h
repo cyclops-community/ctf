@@ -8,14 +8,14 @@
  * However, a user can define any statically-sized type and elementwise operations.
  * CTF supports general tensor sparsity, so it is possible to define graph algorithms with the use of sparse adjacency matrices.
  *
- * To get an idea of how CTF interface works, browse through some of the short sample codes in the <a href="https://github.com/solomonik/ctf/tree/master/examples">examples folder</a>.
+ * To get an idea of how CTF interface works, browse through some of the short sample codes in the <a href="https://github.com/cyclops-community/ctf/tree/master/examples">examples folder</a>.
  *
  * The primary means of specifying CTF tensor operations is assigning `iterator' indices for each way of each tensor and specifying an elementwise function to apply.
  * Partitioning and efficient redistribution of tensor data is also possible via CTF.
  *
- * The software is available on GitHub (github.com/solomonik/ctf) and maybe obtained via the command 
+ * The software is available on GitHub (github.com/cyclops-community/ctf) and maybe obtained via the command 
  *
- * git clone https://github.com/solomonik/ctf
+ * git clone https://github.com/cyclops-community/ctf
  *
  * CTF requires the BLAS and MPI to be built, with MPI being the main parallel execution and communication mechanism.
  * OpenMP and CUDA may additionally be provided for threading and accelerator support, respectively, but CTF will also build without them.
