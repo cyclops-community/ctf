@@ -4612,15 +4612,14 @@ namespace CTF_int {
         align_alpha = u_align_alpha;
         //FIXME free new_alpha
       }
-
       char * oc_align_alpha = (char*)alloc(tnsr_C->sr->el_size);
       tnsr_C->sr->safecopy(oc_align_alpha, align_alpha);
       if (ocfact != 1){
         if (ocfact != 1){
-          tnsr_B->sr->safecopy(oc_align_alpha, tnsr_B->sr->addid());
+          tnsr_C->sr->safecopy(oc_align_alpha, tnsr_C->sr->addid());
           
           for (int i=0; i<ocfact; i++){
-            tnsr_B->sr->add(oc_align_alpha, align_alpha, oc_align_alpha);
+            tnsr_C->sr->add(oc_align_alpha, align_alpha, oc_align_alpha);
           }
 //          alpha = new_alpha;
         }

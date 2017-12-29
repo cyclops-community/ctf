@@ -289,11 +289,11 @@ namespace CTF {
     pr = this->edge_map[0].calc_phase();       
     pc = this->edge_map[1].calc_phase();       
 
-    char R = 'R';
+    char C = 'C';
     int ctxt;
     IASSERT(this->wrld->comm == MPI_COMM_WORLD);
     CTF_SCALAPACK::Cblacs_get(-1, 0, &ctxt);
-    CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &R, pr, pc);
+    CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &C, pr, pc);
     ictxt = ctxt;
 
     desc = (int*)malloc(sizeof(int)*9);
@@ -376,10 +376,6 @@ namespace CTF {
     int n = this->ncol;
     int k = std::min(m,n);
 
-    dtype * A = (dtype*)malloc(m*n*sizeof(dtype)/(*(this->wrld)).np);
-    dtype * u = (dtype*)malloc(m*k*sizeof(dtype)/(*(this->wrld)).np);
-    dtype * s = (dtype*)malloc(k*sizeof(dtype)/(*(this->wrld)).np);
-    dtype * vt = (dtype*)malloc(k*n*sizeof(dtype)/(*(this->wrld)).np);
 
     int * desca;// = (int*)malloc(9*sizeof(int));
     int * descu = (int*)malloc(9*sizeof(int));
@@ -387,10 +383,23 @@ namespace CTF {
 
     int ictxt;
     this->get_desc(ictxt, desca);
-    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
-    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
-    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, k/(*(this->wrld)).np, &info);
 
+    int pr, pc;
+    pr = this->edge_map[0].calc_phase();       
+    pc = this->edge_map[1].calc_phase();       
+    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    int64_t mpr = m/pr + (m % pr != 0);
+    int64_t kpr = k/pr + (k % pr != 0);
+    int64_t kpc = k/pc + (k % pc != 0);
+    int64_t npc = n/pc + (n % pc != 0);
+    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, mpr, &info);
+    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, kpr, &info);
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+
+    dtype * u = (dtype*)malloc(mpr*kpc*sizeof(dtype));
+    dtype * s = (dtype*)malloc(k*sizeof(dtype));
+    dtype * vt = (dtype*)malloc(kpr*npc*sizeof(dtype));
     this->read_mat(desca, A);
 
     dtype llwork;
@@ -404,6 +413,9 @@ namespace CTF {
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
 
  
+    U = Matrix<dtype>(descu, u, (*(this->wrld)));
+    VT = Matrix<dtype>(descvt, vt, (*(this->wrld)));
+
     S = Vector<dtype>(k, (*(this->wrld)));
     int64_t sc;
     dtype * s_data = S.get_raw_data(&sc);
@@ -411,8 +423,6 @@ namespace CTF {
     for (int i = (*(this->wrld)).rank; i < k; i += (*(this->wrld)).np) {
       s_data[i/(*(this->wrld)).np] = s[i];
     } 
-    U = Matrix<dtype>(descu, u, (*(this->wrld)));
-    VT = Matrix<dtype>(descvt, vt, (*(this->wrld)));
     if (rank > 0 && rank < k) {
       S = S.slice(0, rank-1);
       U = U.slice(0, rank*(m)-1);

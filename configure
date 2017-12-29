@@ -102,10 +102,11 @@ function testldlink
   void func(){ $2(); }
   int main(){ return 0; }
 EOF
+  TMP_LD_LIB_PATH="$1 ${1//'-L'/'-Wl,-rpath='}"
   if [ $3 -eq 1 ]; then
-    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $1 $LDFLAGS  2>&1 )
+    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $TMP_LD_LIB_PATH $LDFLAGS  2>&1 )
   else
-    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $1 $LDFLAGS  > /dev/null 2>&1
+    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $TMP_LD_LIB_PATH $LDFLAGS  > /dev/null 2>&1
   fi
   if [ -x a.out ]; then
     status=0
@@ -550,10 +551,6 @@ if [ "x$LIB_PATH" = "x" ]; then
 fi
 if [ "x$LD_LIB_PATH" = "x" ]; then
 	LD_LIB_PATH=$LIB_PATH
-fi
-
-if [ "x$LD_LIB_PATH" != "x" ]; then
-  LD_LIB_PATH="$LD_LIB_PATH ${LD_LIB_PATH//'-L'/'-Wl,-rpath='}"
 fi
 
 if [ "x$CXX" = "x" ]; then
@@ -1122,6 +1119,10 @@ fi
 RAW_LD_LIB_PATH=${LD_LIB_PATH//" -L"/":"}
 RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//"-L"/""}
 RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//" "/""}
+
+if [ "x$LD_LIB_PATH" != "x" ]; then
+  LD_LIB_PATH="$LD_LIB_PATH ${LD_LIB_PATH//'-L'/'-Wl,-rpath='}"
+fi
 
 cat > $BUILDDIR/config.mk <<EOF
 ### INSTALLATION TARGET DIRECTORY (for make install)
