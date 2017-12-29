@@ -45,8 +45,8 @@ install:
 script:
   - make test
   - make test2
-  - make test_python
-  - make test_python2
+  - make python_test
+  - make python_test2
 after_failure:
 notifications:
   email:
