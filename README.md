@@ -51,9 +51,9 @@ To uninstall, use `make uninstall` and `make python_uninstall`.
 
 ### Testing the Libraries
 
-To test the C++ library with a sequential suite of tests, run `make test`. To test the library using 2 processors, execute `make test2`. To test the library using an arbitrary number of processors, run `make test_suite` then execute `./bin/test_suite` using any number of MPI processes.
+To test the C++ library with a sequential suite of tests, run `make test`. To test the library using 2 processors, execute `make test2`. To test the library using some number N processors, run `make testN`.
 
-To test the Python library, run `make test_python` to do so sequentially and `make test_python2` to do so with two processors. For an arbitrary number of processors, install the Python library and run `python ./test/python/test_base.py` with any number of MPI processes.
+To test the Python library, run `make python_test` to do so sequentially and `make python_testN` to do so with N processors.
 
 To debug issues with custom code execution correctness, build CTF libraries with `-DDEBUG=1 -DVERBOSE=1` (more info in `config.mk`).
 
