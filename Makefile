@@ -134,19 +134,19 @@ python_uninstall:
 	pip uninstall ctf
 
 .PHONY: python_test
-python_test: python_base_test python_einsum python_svd_test python_get_item_test
+python_test: python_base_test python_einsum_test python_svd_test python_get_item_test
 	echo "Cyclops Python tests completed."
 
 .PHONY: python_test%
-python_test%: python_base_test% python_einsum% python_svd_test%
+python_test%: python_base_test% python_einsum_test% python_svd_test%
 	echo "Cyclops Python tests completed."
 
-.PHONY: python_einsum
-python_einsum: python
+.PHONY: python_einsum_test
+python_einsum_test: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_einsum.py
 
-.PHONY: python_einsum%
-python_einsum%: python
+.PHONY: python_einsum_test%
+python_einsum_test%: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_einsum.py
 
 .PHONY: python_base_test

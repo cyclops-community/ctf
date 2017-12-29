@@ -43,12 +43,12 @@ namespace CTF_int {
     } else {
       ldb = n;
     }
-    int group_count = 1;
-    int size_per_group = l;
     dtype ** ptrs_A = get_grp_ptrs(m*k,l,A);
     dtype ** ptrs_B = get_grp_ptrs(k*n,l,B);
     dtype ** ptrs_C = get_grp_ptrs(m*n,l,C);
     #if USE_SP_MKL
+    int group_count = 1;
+    int size_per_group = l;
     CTF_BLAS::gemm_batch<dtype>(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
     #else 
     for (int i=0; i<l; i++){

@@ -741,7 +741,6 @@ namespace CTF_int {
 
   iparam contraction::map_fold(bool do_transp){
     int i, all_fdim_A, all_fdim_B, all_fdim_C;
-    int nvirt_A, nvirt_B, nvirt_C;
     int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
     int * all_flen_A, * all_flen_B, * all_flen_C;
     iparam iprm;
@@ -793,7 +792,6 @@ namespace CTF_int {
  
     if (do_transp){
       bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
-      nvirt_A = A->calc_nvirt();
       if (!A->is_sparse){
         nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
       } else {
@@ -805,7 +803,6 @@ namespace CTF_int {
         }
         A->spmatricize(iprm.m, iprm.k, nrow_idx, csr_or_coo);
       }
-      nvirt_B = B->calc_nvirt();
       if (!B->is_sparse){
         nosym_transpose(B, all_fdim_B, all_flen_B, B->inner_ordering, 1);
         /*for (i=0; i<nvirt_B; i++){
@@ -822,7 +819,6 @@ namespace CTF_int {
         B->spmatricize(iprm.k, iprm.n, nrow_idx, csr_or_coo);
       }
 
-      nvirt_C = C->calc_nvirt();
       if (!C->is_sparse){
         nosym_transpose(C, all_fdim_C, all_flen_C, C->inner_ordering, 1);
       } else {
