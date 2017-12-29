@@ -139,7 +139,7 @@ An example of basic CTF functionality as a `numpy.ndarray` back-end is shown in 
 
 ## Documentation
 
-Detailed documentation of all functionality and the organization of the source code can be found in the [Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/index.html). Much of the C++ functionality is expressed through the [Tensor object](http://solomon2.web.engr.illinois.edu/ctf/classCTF_1_1Tensor.html). A list of key available Python functions can be found in the [core Ctyhon module doxygen page](http://solomon2.web.engr.illinois.edu/ctf/doc/html/namespacectf_1_1core.html).
+Detailed documentation of all functionality and the organization of the source code can be found in the [Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/index.html). Much of the C++ functionality is expressed through the [Tensor object](http://solomon2.web.engr.illinois.edu/ctf/classCTF_1_1Tensor.html). A list of key available Python functions can be found in the [core Cython module Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/core_8pyx.html).
 
 The examples and aforementioned papers can be used to gain further insight. If you have any questions regarding usage, do not hesitate to contact us! Please do so by creating an issue on this github webpage. You can also email questions to solomon2@illinois.edu.
 
