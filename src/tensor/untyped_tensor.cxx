@@ -1561,7 +1561,7 @@ namespace CTF_int {
         //tA.leave_home_with_buffer();
         summation st(this, idx_A, sr->mulid(), &tA, idx_A, sr->mulid());
         st.execute();
-        return tA.read_all_pairs(num_pair, false);
+        return PairIterator(sr,tA.read_all_pairs(num_pair, false).ptr);
       }
     }
     alloc_ptr(numPes*sizeof(int), (void**)&nXs);
