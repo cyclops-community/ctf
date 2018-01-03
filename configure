@@ -102,7 +102,8 @@ function testldlink
   void func(){ $2(); }
   int main(){ return 0; }
 EOF
-  TMP_LD_LIB_PATH="$1 ${1//'-L'/'-Wl,-rpath='}"
+  TMP_LD_LIB_PATH=${1//"-L"/"-Wl,-rpath="}
+  TMP_LD_LIB_PATH="$1 $TMP_LD_LIB_PATH"
   if [ $3 -eq 1 ]; then
     ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $TMP_LD_LIB_PATH $LDFLAGS  2>&1 )
   else
@@ -766,7 +767,7 @@ if [ $WITH_DYNAMIC = 1 ]; then
         UNDERSCORE=1
         echo
         echo '    WARNING: dynamic BLAS libirary did not work, python executables will not run (error below),'
-        testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas $LD_LIBS" dgemm_ 1
+        testldlink "$LD_LIB_PATH $LD_LIBS" dgemm_ 1
         echo '    please specify correct LD_LIB_PATH and LD_LIBS (run ./configure --help to see all options),'
         echo '    CTF library can still build (via make), but executables will not!'
         echo
@@ -815,7 +816,7 @@ if [ $WITH_STATIC = 1 ]; then
           echo '  LAPACK not found, will build with LAPACK-dependent functionality anyway, since --with-lapackwas specified.'
           echo '  WARNING: you may not be able to build CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a lapack library)'
           echo '  WARNING: executables will not build until you provide a BLAS library (error below),'
-          testlink "$LIB_PATH  -Wl,-Bstatic -llapack -Wl,-Bdynamic $LIBS" $DGEQRF 1
+          testlink "$LIB_PATH $LIBS" $DGEQRF 1
           echo '    please specify correct LIB_PATH and LIBS (run ./configure --help to see all options),'
           echo '    CTF library can still build (via make), but executables will not!'
           DEFS="$DEFS -DUSE_LAPACK"
@@ -1121,7 +1122,8 @@ RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//"-L"/""}
 RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//" "/""}
 
 if [ "x$LD_LIB_PATH" != "x" ]; then
-  LD_LIB_PATH="$LD_LIB_PATH ${LD_LIB_PATH//'-L'/'-Wl,-rpath='}"
+  RLD_LIB_PATH=${LD_LIB_PATH//'-L'/'-Wl,-rpath='}
+  LD_LIB_PATH="$LD_LIB_PATH $RLD_LIB_PATH"
 fi
 
 cat > $BUILDDIR/config.mk <<EOF
