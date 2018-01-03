@@ -64,8 +64,8 @@ class KnowValues(unittest.TestCase):
         self.assertTrue((a0.reshape(4,1)*a1).shape == (4,3))
         self.assertTrue((a1*a0.reshape(4,1)).shape == (4,3))
         self.assertTrue((a1.reshape(1,3)*a0.reshape(4,1)).shape == (4,3))
-        #self.assertTrue((a1.reshape(1,1,3)*a0.reshape(4,1)).shape == (1,4,3))
-        #self.assertTrue((a1.reshape(1,1,3)*a0.reshape(4,1,1)).shape == (4,1,3))
+        self.assertTrue((a1.reshape(1,1,3)*a0.reshape(4,1)).shape == (1,4,3))
+        self.assertTrue((a1.reshape(1,1,3)*a0.reshape(4,1,1)).shape == (4,1,3))
 
     def test__add__(self):
         a0 = numpy.arange(24.).reshape(4,3,2) + .4
@@ -81,8 +81,9 @@ class KnowValues(unittest.TestCase):
         self.assertTrue((a0.reshape(4,1)+a1).shape == (4,3))
         self.assertTrue((a1+a0.reshape(4,1)).shape == (4,3))
         self.assertTrue((a1.reshape(1,3)+a0.reshape(4,1)).shape == (4,3))
-        #self.assertTrue((a1.reshape(1,1,3)+a0.reshape(4,1)).shape == (1,4,3))
-        #self.assertTrue((a1.reshape(1,1,3)+a0.reshape(4,1,1)).shape == (4,1,3))
+        self.assertTrue((a0.reshape(4,1)+a1.reshape(1,3)).shape == (4,3))
+        self.assertTrue((a1.reshape(1,1,3)+a0.reshape(4,1)).shape == (1,4,3))
+        self.assertTrue((a1.reshape(1,1,3)+a0.reshape(4,1,1)).shape == (4,1,3))
 
     def test__sub__(self):
         a0 = numpy.arange(24.).reshape(4,3,2) + .4
@@ -129,8 +130,8 @@ class KnowValues(unittest.TestCase):
         self.assertTrue((a0.reshape(3,1)*a1).shape == (3,4))
         self.assertTrue((a0*a1.reshape(4,1)).shape == (4,3))
         self.assertTrue((a0.reshape(1,3)*a1.reshape(4,1)).shape == (4,3))
-        #self.assertTrue((a0.reshape(1,1,3)*a1.reshape(4,1)).shape == (1,4,3))
-        #self.assertTrue((a0.reshape(1,1,3)*a1.reshape(4,1,1)).shape == (4,1,3))
+        self.assertTrue((a0.reshape(1,1,3)*a1.reshape(4,1)).shape == (1,4,3))
+        self.assertTrue((a0.reshape(1,1,3)*a1.reshape(4,1,1)).shape == (4,1,3))
 
     def test__radd__(self):
         a0 = numpy.arange(24.).reshape(4,3,2) + .4
@@ -145,8 +146,8 @@ class KnowValues(unittest.TestCase):
         self.assertTrue((a0.reshape(3,1)+a1).shape == (3,4))
         self.assertTrue((a0+a1.reshape(4,1)).shape == (4,3))
         self.assertTrue((a0.reshape(1,3)+a1.reshape(4,1)).shape == (4,3))
-        #self.assertTrue((a0.reshape(1,1,3)+a1.reshape(4,1)).shape == (1,4,3))
-        #self.assertTrue((a0.reshape(1,1,3)+a1.reshape(4,1,1)).shape == (4,1,3))
+        self.assertTrue((a0.reshape(1,1,3)+a1.reshape(4,1)).shape == (1,4,3))
+        self.assertTrue((a0.reshape(1,1,3)+a1.reshape(4,1,1)).shape == (4,1,3))
 
     def test__rsub__(self):
         a0 = numpy.arange(24.).reshape(4,3,2) + .4
@@ -227,6 +228,31 @@ class KnowValues(unittest.TestCase):
         a1 = ctf.astensor(a0).copy()
         a1 **= .5
         self.assertTrue(allclose(a1, a0**.5))
+
+    def test_set_item(self):
+        a0 = numpy.arange(24.).reshape(4,3,2) + 400.
+        b0 = numpy.arange(6.).reshape(3,2)
+        a1 = ctf.astensor(a0).copy()
+        b1 = ctf.astensor(b0).copy()
+        a0[:] = b0
+        a1[:] = b1
+        self.assertTrue(allclose(a1, a0))
+
+        a0 = numpy.arange(24.).reshape(4,3,2) + 400.
+        b0 = numpy.arange(6.).reshape(3,2)
+        a1 = ctf.astensor(a0).copy()
+        b1 = ctf.astensor(b0).copy()
+        a0[1:,1] = b0
+        a1[1:,1] = b1
+        self.assertTrue(allclose(a1, a0))
+
+        a0 = numpy.arange(24.).reshape(4,3,2) + 400.
+        b0 = numpy.arange(6.).reshape(3,2)
+        a1 = ctf.astensor(a0).copy()
+        b1 = ctf.astensor(b0).copy()
+        a0[2:,:,1] = b0[:,1]
+        a1[2:,:,1] = b1[:,1]
+        self.assertTrue(allclose(a1, a0))
 
 
 if __name__ == "__main__":
