@@ -441,8 +441,10 @@ cdef class tensor:
 
         if dtype is int:
             dtype = np.int64
-        if dtype is np.int:
-            dtype = np.int64
+
+        if dtype is float:
+            dtype = np.float64
+
 
         if dtype == 'D':
             self.typ = <cnp.dtype>np.complex128
