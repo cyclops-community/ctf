@@ -550,7 +550,7 @@ cdef class tensor:
             raise ValueError("Universal functions among tensors with different order, i.e. Fortran vs C are not currently supported")
         out_order = self.order
         out_dtype = get_np_dtype([self.dtype, other.dtype])
-        out_dims = np.zeros(np.maximum(self.ndim, other.ndim))
+        out_dims = np.zeros(np.maximum(self.ndim, other.ndim), dtype=np.int)
         out_sp = min(self.sp,other.sp) 
         out_sym = [SYM.NS]*len(out_dims)
         ind_coll = get_num_str(3*out_dims.size)
@@ -1267,12 +1267,12 @@ cdef class tensor:
             clens = int_arr_py_to_c(rev_array(A.shape))
             coffs = int_arr_py_to_c(rev_array(offsets))
             cends = int_arr_py_to_c(rev_array(ends))
-            czeros = int_arr_py_to_c(np.zeros(len(self.shape)))
+            czeros = int_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
         else:
             clens = int_arr_py_to_c(A.shape)
             coffs = int_arr_py_to_c(offsets)
             cends = int_arr_py_to_c(ends)
-            czeros = int_arr_py_to_c(np.zeros(len(self.shape)))
+            czeros = int_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
         A.dt.slice(czeros, clens, beta, self.dt, coffs, cends, alpha)
         free(czeros)
         free(cends)
@@ -1397,7 +1397,7 @@ cdef class tensor:
         cdef int * cends
         if ord_comp(self.order, 'F'):
             if A_offsets is None:
-                caoffs = int_arr_py_to_c(rev_array(np.zeros(len(self.shape))))
+                caoffs = int_arr_py_to_c(rev_array(np.zeros(len(self.shape), dtype=np.int32)))
             else:
                 caoffs = int_arr_py_to_c(rev_array(A_offsets))
             if A_ends is None:
@@ -1408,7 +1408,7 @@ cdef class tensor:
             cends = int_arr_py_to_c(rev_array(ends))
         else:
             if A_offsets is None:
-                caoffs = int_arr_py_to_c(np.zeros(len(self.shape)))
+                caoffs = int_arr_py_to_c(np.zeros(len(self.shape), dtype=np.int32))
             else:
                 caoffs = int_arr_py_to_c(A_offsets)
             if A_ends is None:
@@ -1803,8 +1803,8 @@ def trilSquare(tensor A):
     B = A.copy()
     cdef int * csym
     cdef int * csym2
-    csym = int_arr_py_to_c(np.zeros([2]))
-    csym2 = int_arr_py_to_c(np.asarray([2,0]))
+    csym = int_arr_py_to_c(np.zeros([2], dtype=np.int32))
+    csym2 = int_arr_py_to_c(np.asarray([2,0], dtype=np.int32))
     del B.dt
     cdef ctensor * ct
     ct = new ctensor(A.dt, csym2) 
@@ -1958,14 +1958,14 @@ def diagonal(init_A, offset=0, axis1=0, axis2=1):
     if len(dim) == 2:
         if offset > 0:
             if dim[0] == dim[1]:
-                up_left = np.zeros([2])
+                up_left = np.zeros([2], dtype=np.int)
                 up_left[0] += offset
-                down_right = np.array([dim[0], dim[1]])
+                down_right = np.array([dim[0], dim[1]], dtype=np.int)
                 down_right[1] -= offset
             else:
-                up_left = np.zeros([2])
+                up_left = np.zeros([2], dtype=np.int)
                 m = min(dim[0], dim[1])
-                down_right = np.array([m, m])
+                down_right = np.array([m, m], dtype=np.int)
                 up_left[0] += offset
                 down_right[0] += offset
                 if down_right[0] > dim[1]:
@@ -1974,14 +1974,14 @@ def diagonal(init_A, offset=0, axis1=0, axis2=1):
             return einsum("ii->i",A.get_slice(up_left, down_right))
         elif offset <= 0:
             if dim[0] == dim[1]:
-                up_left = np.zeros([2])
+                up_left = np.zeros([2], dtype=np.int)
                 up_left[1] -= offset
-                down_right = np.array([dim[0], dim[1]])
+                down_right = np.array([dim[0], dim[1]], dtype=np.int)
                 down_right[0] += offset
             else:
-                up_left = np.zeros([2])
+                up_left = np.zeros([2], dtype=np.int)
                 m = min(dim[0], dim[1])
-                down_right = np.array([m, m])
+                down_right = np.array([m, m], dtype=np.int)
                 up_left[1] -= offset
                 down_right[1] -= offset
                 if down_right[1] > dim[0]:
