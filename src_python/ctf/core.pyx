@@ -206,7 +206,7 @@ def ord_comp(o1,o2):
     return i1==i2
 
 def get_np_div_dtype(typ1, typ2):
-    return (np.zeros(1,dtype=typ1)/np.zeros(1,dtype=typ2)).dtype
+    return (np.zeros(1,dtype=typ1)/np.ones(1,dtype=typ2)).dtype
 
 def get_np_dtype(typs):
     return np.sum([np.zeros(1,dtype=typ) for typ in typs]).dtype
@@ -538,7 +538,7 @@ cdef class tensor:
 
     def transpose(self, *axes):
         if axes:
-            if type(axes[0])==tuple or type(axes[0])==list or type(axes[0]) == np.ndarray:
+            if isinstance(axes[0], (tuple, list, np.ndarray)):
                 return transpose(self, axes[0])
             else:
                 return transpose(self, axes)
@@ -788,7 +788,7 @@ cdef class tensor:
 
         # when the axis is not None
         dim = self.shape
-        if type(axis) == int:
+        if isinstance(axis, (int, np.integer)):
             if axis < 0:
                 axis += len(dim)
             if axis >= len(dim) or axis < 0:
@@ -840,7 +840,7 @@ cdef class tensor:
             if keepdims == True:
                 return reshape(B, dim_keep)
             return B
-        elif type(axis) == tuple or type(axis) == np.ndarray:
+        elif isinstance(axis, (tuple, np.ndarray)):
             axis = np.asarray(axis, dtype=np.int64)
             dim_keep = None
             if keepdims == True:
@@ -939,15 +939,15 @@ cdef class tensor:
         dim = self.shape
         total_size = 1
         newshape = []
-        if type(integer[0])!=int:
+        if not isinstance(integer[0], (int, np.integer)):
             if len(integer)!=1:
                 raise ValueError("invalid shape argument to reshape")
             else:
                 integer = integer[0]
             
-        if type(integer)==int:
+        if isinstance(integer, (int, np.integer)):
             newshape.append(integer)
-        elif type(newshape)==tuple or type(newshape)==list or type(newshape) == np.ndarray:
+        elif isinstance(newshape, (tuple, list, np.ndarray)):
             for i in range(len(integer)):
                 newshape.append(integer[i])
         else:
@@ -2182,7 +2182,8 @@ def dot(tA, tB, out=None):
             B = tB
     else:
         B = tB
-    if (type(A)==int or type(A)==float) and (type(B)==int or type(B)==float):
+    if (isinstance(A, (np.int, np.float, np.complex, np.number)) and 
+        isinstance(B, (np.int, np.float, np.complex, np.number))):
         return A * B
     elif type(A)==tensor and type(B)!=tensor:
         ret_dtype = None
@@ -2256,7 +2257,7 @@ def tensordot(A, B, axes=2):
         #C = tensor(ret_shape, dtype = np.float64)
         #C.i("abcdefg") << A.i("abcd") * B.i("efg")
         #return C
-    elif type(axes) == int:
+    elif isinstance(axes, (int, np.integer)):
         if axes > len(A.shape) or axes > len(B.shape):
             raise ValueError("tuple index out of range")
         for i in range(axes):
@@ -2597,7 +2598,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     # store the axis in a tuple
     axis_tuple = ()
     # check whether the axis entry is out of bounds, if axis input is positive e.g. axis = 5
-    if type(axis)==int:
+    if isinstance(axis, (int, np.integer)):
         if axis is not None and (axis >= len(dim) or axis <= (-len(dim)-1)):
             raise ValueError("'axis' entry is out of bounds")
     elif axis is None:
@@ -2664,7 +2665,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         #            ret.i("") << C.i(index_A)
     
     # is the axis is an integer
-    if type(axis)==int:
+    if isinstance(axis, (int, np.integer)):
         ret_dim = ()
         if axis < 0:
             axis += len(dim)
@@ -2797,7 +2798,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
 
 
     dim = A.shape
-    if type(axis) == int:
+    if isinstance(axis, (int, np.integer)):
         if axis < 0:
             axis += len(dim)
         if axis >= len(dim) or axis < 0:
@@ -2850,7 +2851,7 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
         if keepdims == True:
             return reshape(B, dim_keep)
         return B
-    elif type(axis) == tuple or type(axis) == np.ndarray:
+    elif isinstance(axis, (tuple, np.ndarray)):
         axis = np.asarray(axis, dtype=np.int64)
         dim_keep = None
         if keepdims == True:
