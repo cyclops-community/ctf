@@ -3,10 +3,16 @@
 import unittest
 import numpy
 import ctf
+import ctf.random
 
 
 def allclose(a, b):
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
+
+def a0_and_a1():
+    a0 = numpy.arange(60.).reshape(5,4,3)
+    a1 = ctf.astensor(a0)
+    return a0, a1
 
 class KnowValues(unittest.TestCase):
     def test__getitem__(self):
@@ -45,10 +51,6 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(a1[1].shape == (3,))
 
     def test__setitem__(self):
-        def a0_and_a1():
-            a0 = numpy.arange(60.).reshape(5,4,3)
-            a1 = ctf.astensor(a0)
-            return a0, a1
         a0, a1 = a0_and_a1()
         a1[3] = 99
         a0[3] = 99
@@ -204,6 +206,70 @@ class KnowValues(unittest.TestCase):
     def test__setslice__(self):
         a0 = ctf.astensor(numpy.arange(12.).reshape(4,3))
         a0[1:3] = 9
+
+    def test_slice_sym_4d(self):
+        n = 5
+        SY = ctf.SYM.SY
+        NS = ctf.SYM.NS
+        a0 = ctf.tensor([n,n,n,n], sym=[SY,NS,SY,NS])
+        ctf.random.seed(1)
+        a0.fill_random()
+        mo = ctf.tensor([n,n])
+        mo.fill_random()
+        dat = ctf.einsum('pqrs,ri,sj->pqij', a0[:2], mo, mo)
+
+        a1 = ctf.tensor(a0.shape, sym=[NS,NS,NS,NS])
+        a1.i('ijkl') << a0.i('ijkl')
+        ref = ctf.einsum('pqrs,ri,sj->pqij', a1[:2], mo, mo)
+        self.assertTrue(allclose(ref, dat))
+
+    def test_noslice_sym_4d(self):
+        n = 5
+        SY = ctf.SYM.SY
+        NS = ctf.SYM.NS
+        a0 = ctf.tensor([n,n,n,n], sym=[SY,NS,SY,NS])
+        ctf.random.seed(1)
+        a0.fill_random()
+        mo = ctf.tensor([n,n])
+        mo.fill_random()
+        dat = ctf.einsum('pqrs,ri,sj->pqij', a0, mo, mo)
+
+        a1 = ctf.tensor(a0.shape, sym=[NS,NS,NS,NS])
+        a1.i('ijkl') << a0.i('ijkl')
+        ref = ctf.einsum('pqrs,ri,sj->pqij', a1, mo, mo)
+        self.assertTrue(allclose(ref, dat))
+
+    def test_slice_sym_3d(self):
+        n = 5
+        SY = ctf.SYM.SY
+        NS = ctf.SYM.NS
+        a0 = ctf.tensor([n,n,n], sym=[NS,SY,NS])
+        ctf.random.seed(1)
+        a0.fill_random()
+        mo = ctf.tensor([n,n])
+        mo.fill_random()
+        dat = ctf.einsum('qrs,ri,sj->qij', a0[:2], mo, mo)
+
+        a1 = ctf.tensor(a0.shape, sym=[NS,NS,NS])
+        a1.i('ijkl') << a0.i('ijkl')
+        ref = ctf.einsum('qrs,ri,sj->qij', a1[:2], mo, mo)
+        self.assertTrue(allclose(ref, dat))
+
+    def test_noslice_sym_3d(self):
+        n = 5
+        SY = ctf.SYM.SY
+        NS = ctf.SYM.NS
+        a0 = ctf.tensor([n,n,n], sym=[NS,SY,NS])
+        ctf.random.seed(1)
+        a0.fill_random()
+        mo = ctf.tensor([n,n])
+        mo.fill_random()
+        dat = ctf.einsum('qrs,ri,sj->qij', a0, mo, mo)
+
+        a1 = ctf.tensor(a0.shape, sym=[NS,NS,NS])
+        a1.i('ijkl') << a0.i('ijkl')
+        ref = ctf.einsum('qrs,ri,sj->qij', a1, mo, mo)
+        self.assertTrue(allclose(ref, dat))
 
 
 if __name__ == "__main__":
