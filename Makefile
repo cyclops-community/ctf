@@ -134,11 +134,13 @@ python_uninstall:
 	pip uninstall ctf
 
 .PHONY: python_test
-python_test: python_base_test python_einsum_test python_svd_test python_get_item_test python_ufunc_test python_fancyindex_test
+.NOTPARALLEL: python_test
+python_test: python_base_test python_einsum_test python_svd_test python_get_item_test python_ufunc_test 
 	echo "Cyclops Python tests completed."
 
 .PHONY: python_test%
-python_test%: python_base_test% python_einsum_test% python_svd_test%
+.NOTPARALLEL: python_test%
+python_test%: python_base_test% python_einsum_test% python_svd_test% python_get_item_test% python_ufunc_test%
 	echo "Cyclops Python tests completed."
 
 .PHONY: python_einsum_test
@@ -194,6 +196,10 @@ python_new_test: python
 .PHONY: python_get_item_test
 python_get_item_test: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
+
+.PHONY: python_get_item_test%
+python_get_item_test%: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_get_item.py
 
 
 $(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk

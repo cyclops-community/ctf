@@ -727,7 +727,6 @@ namespace CTF_int {
       void read_dense_from_file(MPI_File & file, int64_t offset=0);
 
       /**
-<<<<<<< HEAD
        * \brief convert this tensor from dtype_A to dtype_B and store the result in B (primarily needed for python interface)
        * \param[in] B output tensor
        */

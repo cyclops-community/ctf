@@ -32,18 +32,15 @@ class KnowValues(unittest.TestCase):
 
     def test_conj(self):
         a0 = ctf.zeros((2,3))
-        self.assertTrue(numpy.conj(a0).dtype == numpy.double)
+        self.assertTrue(ctf.conj(a0).dtype == numpy.double)
         self.assertTrue(a0.conj().dtype == numpy.double)
-        a1 = a0.conj()
-        a1[:] = 1
-        self.assertTrue(ctf.all(a0 == 1))
 
-        a0 = ctf.zeros((2,3), dtype='D')
-        self.assertTrue(numpy.conj(a0).dtype == numpy.complex)
-        self.assertTrue(a0.conj().dtype == numpy.complex)
-        a1 = a0.conj()
-        a1[:] = 1j
-        self.assertTrue(ctf.all(a0 == 0))
+        a0 = ctf.zeros((2,3), dtype=numpy.complex)
+        self.assertTrue(ctf.conj(a0).dtype == numpy.complex128)
+        self.assertTrue(a0.conj().dtype == numpy.complex128)
+        a0[:] = 1j
+        a0 = a0.conj()
+        self.assertTrue(ctf.all(a0 == -1j))
 
 
     def test__mul__(self):
@@ -93,7 +90,6 @@ class KnowValues(unittest.TestCase):
         a0 = numpy.arange(24.).reshape(4,3,2) + .4
         a1 = ctf.astensor(a0)
         self.assertTrue(allclose(a1/.5, a0/.5))
-        print(a1/.5, a0/.5)
         a2 = ctf.astensor(a0*.2+1j)
         self.assertTrue(allclose(a1/a2, a0/(a0*.2+1j)))
         self.assertTrue(allclose(a1/a0, a0/a0))
