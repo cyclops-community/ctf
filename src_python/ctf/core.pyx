@@ -125,6 +125,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
 
 cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(ctensor *);
+    cdef void pow_helper[dtype](ctensor * A, ctensor * B, ctensor * C, char * idx_A, char * idx_B, char * idx_C);
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void conj_helper(ctensor * A, ctensor * B);
     cdef void any_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
@@ -203,6 +204,9 @@ def ord_comp(o1,o2):
     else:
         i2 = ord(o2)
     return i1==i2
+
+def get_np_div_dtype(typ1, typ2):
+    return (np.zeros(1,dtype=typ1)/np.zeros(1,dtype=typ2)).dtype
 
 def get_np_dtype(typs):
     return np.sum([np.zeros(1,dtype=typ) for typ in typs]).dtype
@@ -409,7 +413,7 @@ cdef class tensor:
         return self.dtype
 
 
-	# add type np.int64, int32, maybe we can add other types
+  # add type np.int64, int32, maybe we can add other types
     #def __cinit__(self, lens, sp=0, sym=None, dtype=np.float64, order='F', tensor copy=None):
     def __cinit__(self, lens=None, sp=None, sym=None, dtype=None, order=None, tensor copy=None):
         if copy is None:
@@ -541,326 +545,114 @@ cdef class tensor:
         else:
             return transpose(self)
 
+    def ufunc_interpret(self, tensor other):
+        if self.order != other.order:
+            raise ValueError("Universal functions among tensors with different order, i.e. Fortran vs C are not currently supported")
+        out_order = self.order
+        out_dtype = get_np_dtype([self.dtype, other.dtype])
+        out_dims = np.zeros(np.maximum(self.ndim, other.ndim))
+        out_sp = min(self.sp,other.sp) 
+        out_sym = [SYM.NS]*len(out_dims)
+        ind_coll = get_num_str(3*out_dims.size)
+        idx_C = ind_coll[0:out_dims.size]
+        idx_A = ""
+        idx_B = ""
+        red_idx_num = out_dims.size
+        for i in range(out_dims.size):
+            if i<self.ndim and i<other.ndim:
+                if self.shape[-i-1] == other.shape[-i-1]:
+                    idx_A = idx_C[-i-1] + idx_A
+                    idx_B = idx_C[-i-1] + idx_B
+                    if i+1<self.ndim and i+1<other.ndim:
+                        if self.sym[-i-2] == other.sym[-i-2]:
+                            out_sym[-i-2] = self.sym[-i-2]
+                elif self.shape[-i-1] == 1:
+                    idx_A = ind_coll[red_idx_num] + idx_A
+                    red_idx_num += 1
+                    idx_B = idx_C[-i-1] + idx_B
+                    if i+1<other.ndim:
+                        if i+1>=self.ndim or self.shape[-i-2] == 1:
+                            out_sym[-i-2] = other.sym[-i-2]
+                elif other.shape[-i-1] == 1:
+                    idx_A = idx_C[-i-1] + idx_A
+                    idx_B = ind_coll[red_idx_num] + idx_B
+                    red_idx_num += 1
+                    if i+1<self.ndim:
+                        if i+1>=other.ndim or other.shape[-i-2] == 1:
+                            out_sym[-i-2] = self.sym[-i-2]
+                else:
+                    raise ValueError("Invalid use of universal function broadcasting, tensor dimensions are both non-unit and don't match")
+                out_dims[-i-1] = np.maximum(self.shape[-i-1], other.shape[-i-1])
+            elif i<self.ndim:
+                idx_A = idx_C[-i-1] + idx_A
+                out_dims[-i-1] = self.shape[-i-1]
+                if i+1<self.ndim:
+                    out_sym[-i-2] = self.sym[-i-2]
+            else:
+                idx_B = idx_C[-i-1] + idx_B
+                out_dims[-i-1] = other.shape[-i-1]
+                if i+1<other.ndim:
+                    out_sym[-i-2] = other.sym[-i-2]
+        out_tsr = tensor(out_dims, out_sp, out_sym, out_dtype, out_order)
+        return [idx_A, idx_B, idx_C, out_tsr]
+
     def __add__(self, other):
-        if isinstance(self, tensor):
-            tsr = self
-        else:
-            tsr = tensor(copy=astensor(self))
-        if isinstance(other, tensor):
-            otsr = other
-        else:
-            otsr = tensor(copy=astensor(other))
-        if tsr.ndim < otsr.ndim:
-            otsr.i(get_num_str(otsr.ndim)) << tsr.i(get_num_str(tsr.ndim))
-            return otsr
-        else:
-            tsr.i(get_num_str(tsr.ndim)) << otsr.i(get_num_str(otsr.ndim))
-            return tsr
-        #if not isinstance(other, tensor) and isinstance(self, tensor):
-        #    string = ""
-        #    string_index = 33
-        #    for i in range(len(self.shape)):
-        #        string += chr(string_index)
-        #        string_index += 1
-        #    ret = tensor(self.shape, dtype = self.dtype)
-        #    ret1 = tensor(self.shape, dtype = self.dtype)
-        #    ret1.i(string) << other
-        #    ret.i(string) << ret1.i(string) + self.i(string)
-        #    return ret
-        #elif not isinstance(self, tensor) and isinstance(other, tensor):
-        #    string = ""
-        #    string_index = 33
-        #    for i in range(len(other.shape)):
-        #        string += chr(string_index)
-        #        string_index += 1
-        #    ret = tensor(other.shape, dtype = other.dtype)
-        #    ret1 = tensor(other.shape, dtype = other.dtype)
-        #    ret1.i(string) << self
-        #    ret.i(string) << ret1.i(string) + other.i(string)
-        #    return ret
-        #elif not isinstance(self, tensor) and not isinstance(other, tensor):
-        #    raise TypeError("either input should be tensor type")
-        #
-        #if self.shape != other.shape:
-        #    raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
-        #if self.dtype == other.dtype:
-        #    string_index = 33
-        #    string = ""
-        #    for i in range(len(self.shape)):
-        #        string += chr(string_index)
-        #        string_index += 1
-        #    ret = tensor(self.shape, dtype = self.dtype)
-        #    ret.i(string) << self.i(string) + other.i(string)
-        #else:
-        #    if np.can_cast(self.dtype, other.dtype):
-        #        ret_dtype = other.dtype
-        #        temp_str = self.astype(ret_dtype)
-        #        string = ""
-        #        string_index = 33
-        #        for i in range(len(self.shape)):
-        #            string += chr(string_index)
-        #            string_index += 1
-        #        ret = tensor(self.shape, dtype = ret_dtype)
-        #        ret.i(string) << temp_str.i(string) + other.i(string)
-        #    elif np.can_cast(other.dtype, self.dtype):
-        #        ret_dtype = self.dtype
-        #        temp_str = other.astype(ret_dtype)
-        #        string = ""
-        #        string_index = 33
-        #        for i in range(len(self.shape)):
-        #            string += chr(string_index)
-        #            string_index += 1
-        #        ret = tensor(self.shape, dtype = ret_dtype)
-        #        ret.i(string) << temp_str.i(string) + other.i(string)
-        #    else:
-        #        raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
-        #return ret
+        [tsr, otsr] = match_tensor_types(self,other)
+
+        [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
+
+        out_tsr.i(idx_C) << tsr.i(idx_A)
+        out_tsr.i(idx_C) << otsr.i(idx_B)
+        return out_tsr
 
     def __sub__(self, other):
-        was_tsr_self = True
-        was_otsr_self = True
-        if isinstance(self, tensor):
-            tsr = self
-        else:
-            was_tsr_self = False
-            if isinstance(other, tensor):
-                tsr = astensor(self,dtype=other.dtype)
-            else:
-                tsr = astensor(self)
-        if isinstance(other, tensor):
-            otsr = other
-        else:
-            was_otsr_self = False
-            otsr = astensor(other,dtype=tsr.dtype)
-        if tsr.dtype != otsr.dtype:
-            was_otsr_self = False
-            otsr = tensor(copy=otsr,dtype=tsr.dtype)
-        if tsr.ndim < otsr.ndim:
-            if was_otsr_self:
-                otsr = tensor(copy=otsr)
-            otsr.i(get_num_str(otsr.ndim)).scl(-1.)
-            otsr.i(get_num_str(otsr.ndim)) << tsr.i(get_num_str(tsr.ndim))
-            return otsr
-        else:
-            if was_tsr_self:
-                tsr = tensor(copy=tsr)
-            tsr.i(get_num_str(tsr.ndim)) << -1*otsr.i(get_num_str(otsr.ndim))
-            return tsr        #if not isinstance(other, tensor) and isinstance(self, tensor):
-        #    string = ""
-        #    string_index = 33
-        #    for i in range(len(self.shape)):
-        #        string += chr(string_index)
-        #        string_index += 1
-        #    ret = tensor(self.shape, dtype = self.dtype)
-        #    ret1 = tensor(self.shape, dtype = self.dtype)
-        #    ret1.i(string) << (-1 * other)
-        #    ret.i(string) << ret1.i(string) + self.i(string)
-        #    return ret
-        #elif not isinstance(self, tensor) and isinstance(other, tensor):
-        #    string = ""
-        #    string_index = 33
-        #    for i in range(len(other.shape)):
-        #        string += chr(string_index)
-        #        string_index += 1
-        #    ret = tensor(other.shape, dtype = other.dtype)
-        #    ret1 = tensor(other.shape, dtype = other.dtype)
-        #    ret1.i(string) << self
-        #    ret.i(string) << ret1.i(string) + (-1*other.i(string))
-        #    return ret
-        #elif not isinstance(self, tensor) and not isinstance(other, tensor):
-        #    raise TypeError("either input should be tensor type")
+        [tsr, otsr] = match_tensor_types(self,other)
 
-        #if self.shape != other.shape:
-        #    raise ValueError("operands could not be broadcast together with shapes ",self.shape," ",other.shape)
-        #if self.dtype == other.dtype:
-        #    string_index = 33
-        #    string = ""
-        #    for i in range(len(self.shape)):
-        #        string += chr(string_index)
-        #        string_index += 1
-        #    ret = tensor(self.shape, dtype = self.dtype)
-        #    ret.i(string) << self.i(string) + (-1*other.i(string))
-        #else:
-        #    if np.can_cast(self.dtype, other.dtype):
-        #        ret_dtype = other.dtype
-        #        temp_str = self.astype(ret_dtype)
-        #        string = ""
-        #        string_index = 33
-        #        for i in range(len(self.shape)):
-        #            string += chr(string_index)
-        #            string_index += 1
-        #        ret = tensor(self.shape, dtype = ret_dtype)
-        #        ret.i(string) << temp_str.i(string) + (-1*other.i(string))
-        #    elif np.can_cast(other.dtype, self.dtype):
-        #        ret_dtype = self.dtype
-        #        temp_str = other.astype(ret_dtype)
-        #        string = ""
-        #        string_index = 33
-        #        for i in range(len(self.shape)):
-        #            string += chr(string_index)
-        #            string_index += 1
-        #        ret = tensor(self.shape, dtype = ret_dtype)
-        #        ret.i(string) << temp_str.i(string) + (-1*other.i(string))
-        #    else:
-        #        raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
-        #return ret
+        [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
+
+        out_tsr.i(idx_C) << tsr.i(idx_A)
+        out_tsr.i(idx_C) << -1*otsr.i(idx_B)
+        return out_tsr
 
     def __mul__(self, other):
-        if not isinstance(other, tensor) and isinstance(self, tensor):
-            string = ""
-            string_index = 33
-            for i in range(len(self.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(self.shape, dtype = self.dtype)
-            ret.i(string) << other * self.i(string)
-            return ret
-        elif not isinstance(self, tensor) and isinstance(other, tensor):
-            string = ""
-            string_index = 33
-            for i in range(len(other.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(other.shape, dtype = other.dtype)
-            ret.i(string) << self * other.i(string)
-            return ret
-        elif not isinstance(self, tensor) and not isinstance(other, tensor):
-            raise TypeError("either input should be tensor type")
+        [tsr, otsr] = match_tensor_types(self,other)
 
-        if self.shape != other.shape:
-            raise ValueError("operands could not be broadcast together with shapes {0} {1}".format(self.shape,other.shape))
-        if self.dtype == other.dtype:
-            string_index = 33
-            string = ""
-            for i in range(len(self.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(self.shape, dtype = self.dtype)
-            ret.i(string) << self.i(string) * other.i(string)
-        else:
-            if np.can_cast(self.dtype, other.dtype):
-                ret_dtype = other.dtype
-                temp_str = self.astype(ret_dtype)
-                string = ""
-                string_index = 33
-                for i in range(len(self.shape)):
-                    string += chr(string_index)
-                    string_index += 1
-                ret = tensor(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) * other.i(string)
-            elif np.can_cast(other.dtype, self.dtype):
-                ret_dtype = self.dtype
-                temp_str = other.astype(ret_dtype)
-                string = ""
-                string_index = 33
-                for i in range(len(self.shape)):
-                    string += chr(string_index)
-                    string_index += 1
-                ret = tensor(self.shape, dtype = ret_dtype)
-                ret.i(string) << temp_str.i(string) * other.i(string)
-            else:
-                raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
-        return ret
+        [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
 
-    # the divide not working now, which need to add to itensor first
+        out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
+        return out_tsr
+
     def __truediv__(self, other):
-        if not isinstance(other, tensor) and isinstance(self, tensor):
-            string = ""
-            string_index = 33
-            for i in range(len(self.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(self.shape, dtype = self.dtype)
-            inverted = tensor(self.shape, dtype = self.dtype)
-            inverted.i(string) << other
-            inverted.divide_helper(inverted)
-            ret.i(string) << inverted.i(string) * self.i(string)
-            return ret
-        elif not isinstance(self, tensor) and isinstance(other, tensor):
-            string = ""
-            string_index = 33
-            for i in range(len(other.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(other.shape, dtype = other.dtype)
-            self_tensor = tensor(other.shape, dtype = other.dtype)
-            self_tensor.i(string) << self
-            inverted = tensor(other.shape, dtype = other.dtype)
-            inverted.divide_helper(other)
-            ret.i(string) << inverted.i(string) * self_tensor.i(string)
-            return ret
-        elif not isinstance(self, tensor) and not isinstance(other, tensor):
-            raise TypeError("either input should be tensor type")
-        
-        if self.shape != other.shape:
-            raise ValueError("operands could not be broadcast together with shapes {0} {1}".format(self.shape,other.shape))
-        if self.dtype == other.dtype:
-            string_index = 33
-            string = ""
-            for i in range(len(self.shape)):
-                string += chr(string_index)
-                string_index += 1
-            ret = tensor(self.shape, dtype = self.dtype)
-            inverted = tensor(other.shape, dtype = other.dtype)
-            inverted.divide_helper(other)
-            ret.i(string) << self.i(string) * inverted.i(string)
-        else:
-            if np.can_cast(self.dtype, other.dtype):
-                ret_dtype = other.dtype
-                temp_str = self.astype(ret_dtype)
-                string = ""
-                string_index = 33
-                for i in range(len(self.shape)):
-                    string += chr(string_index)
-                    string_index += 1
-                ret = tensor(self.shape, dtype = ret_dtype)
-                inverted = tensor(other.shape, dtype = other.dtype)
-                inverted.divide_helper(other)
-                ret.i(string) << temp_str.i(string) * inverted.i(string)
-            elif np.can_cast(other.dtype, self.dtype):
-                ret_dtype = self.dtype
-                temp_str = other.astype(ret_dtype)
-                string = ""
-                string_index = 33
-                for i in range(len(self.shape)):
-                    string += chr(string_index)
-                    string_index += 1
-                ret = tensor(self.shape, dtype = ret_dtype)
-                inverted = tensor(temp_str.shape, dtype = temp_str.dtype)
-                inverted.divide_helper(temp_str)
-                ret.i(string) << self.i(string) * inverted.i(string)
-            else:
-                raise TypeError("now '+' does not support to add two tensors whose dtype cannot be converted safely.")
-        return ret
-    
-    def __pow__(self, a, b):
-        if type(b) != int or type(b) != float:
-            raise TypeError("current ctf python only support int and float")
-        if type(b) == int:
-            ret = ones(a.shape, dtype = a.dtype)
-            string = ""
-            string_index = 33
-            for i in range(len(a.shape)):
-                string += chr(string_index)
-                string_index += 1
-            for i in range(b):
-                ret.i(string) << ret.i(string) * a.i(string)
-        raise ValueError("now ctf only support for tensor**int")
+        return div(self,other)
 
-    def divide_helper(self, tensor other):
+    def __div__(self, other):
+        return div(self,other)
+
+    
+    def __pow__(self, other, modulus):
+        if modulus is not None:
+            raise ValueError('CTF PYTHON ERROR: powering function does not accept third parameter (modulus)')
+        return power(self,other)
+
+    def invert_elements(self):
         if self.dtype == np.float64:
-            self.dt.true_divide[double](<ctensor*>other.dt)
+            self.dt.true_divide[double](<ctensor*>self.dt)
         elif self.dtype == np.float32:
-            self.dt.true_divide[float](<ctensor*>other.dt)
+            self.dt.true_divide[float](<ctensor*>self.dt)
+        elif self.dtype == np.complex64:
+            self.dt.true_divide[complex](<ctensor*>self.dt)
+        elif self.dtype == np.complex128:
+            self.dt.true_divide[complex128_t](<ctensor*>self.dt)
         elif self.dtype == np.int64:
-            self.dt.true_divide[int64_t](<ctensor*>other.dt)
+            self.dt.true_divide[int64_t](<ctensor*>self.dt)
         elif self.dtype == np.int32:
-            self.dt.true_divide[int32_t](<ctensor*>other.dt)
+            self.dt.true_divide[int32_t](<ctensor*>self.dt)
         elif self.dtype == np.int16:
-            self.dt.true_divide[int16_t](<ctensor*>other.dt)
+            self.dt.true_divide[int16_t](<ctensor*>self.dt)
         elif self.dtype == np.int8:
-            self.dt.true_divide[int8_t](<ctensor*>other.dt)
-        return self
+            self.dt.true_divide[int8_t](<ctensor*>self.dt)
+        elif self.dtype == np.bool:
+            self.dt.true_divide[bool](<ctensor*>self.dt)
 
     def __matmul__(self, other):
         if not isinstance(other, tensor):
@@ -939,7 +731,7 @@ cdef class tensor:
             raise ValueError("not support other casting now")
 
     # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
-	
+  
     def all(tensor self, axis=None, out=None, keepdims = None):
         if keepdims is None:
             keepdims = False
@@ -1435,7 +1227,7 @@ cdef class tensor:
         buf['b'] = vals
         cdef char * alpha
         cdef char * beta
-		# if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
+    # if type is np.bool, assign the st with 1, since bool does not have itemsize in numpy
         if self.dtype == np.bool:
             st = 1
         else:
@@ -1578,7 +1370,7 @@ cdef class tensor:
         self.set_zero()
         self.i(get_num_str(self.ndim)) << value
             
-	# bool no itemsize
+  # bool no itemsize
     def write_slice(self, offsets, ends, init_A, A_offsets=None, A_ends=None, a=None, b=None):
         cdef char * alpha
         cdef char * beta
@@ -1731,7 +1523,7 @@ cdef class tensor:
                 tsr += tval #.reshape
                 self.write_slice(offs,ends,tsr)
         else:
-            raise ValueError('CTF PYTHON ERROR: s not currently supported')
+            raise ValueError('CTF PYTHON ERROR: strided slice not currently supported')
   
 # 
 #
@@ -1880,7 +1672,7 @@ cdef class tensor:
     # change the operators "<","<=","==","!=",">",">=" when applied to tensors
     # also for each operator we need to add the template.
     def compare_tensors(tensor self, tensor b, op):
-	      # <
+        # <
         if op == 0:
             if self.dtype == np.float64:
                 c = tensor(self.shape, dtype=np.bool)
@@ -1890,9 +1682,9 @@ cdef class tensor:
                 c.dt.smaller_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
-            return c	
-			
-		    # <=
+            return c  
+      
+        # <=
         if op == 1:
             if self.dtype == np.float64:
                 c = tensor(self.shape, dtype=np.bool)
@@ -1902,9 +1694,9 @@ cdef class tensor:
                 c.dt.smaller_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
-            return c	
-		
-		    # ==	
+            return c  
+    
+        # ==  
         if op == 2:
             new_shape = []
             for i in range(min(self.ndim,b.ndim)):
@@ -1938,8 +1730,8 @@ cdef class tensor:
                 c.dt.compare_elementwise[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
-            return c	
-		
+            return c  
+    
         # !=
         if op == 3:
             if self.dtype == np.float64:
@@ -1950,9 +1742,9 @@ cdef class tensor:
                 c.dt.not_equals[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
-            return c	
-	
-		    # >
+            return c  
+  
+        # >
         if op == 4:
             if self.dtype == np.float64:
                 c = tensor(self.shape, dtype=np.bool)
@@ -1962,9 +1754,9 @@ cdef class tensor:
                 c.dt.larger_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
-            return c	
-			
-		    # >=
+            return c  
+      
+        # >=
         if op == 5:
             if self.dtype == np.float64:
                 c = tensor(self.shape, dtype=np.bool)
@@ -1974,8 +1766,8 @@ cdef class tensor:
                 c.dt.larger_equal_than[bool](<ctensor*>self.dt,<ctensor*>b.dt)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
-            return c	
-		
+            return c  
+    
         #cdef int * inds
         #cdef function[equate_type] fbf
         #if op == 2:#Py_EQ
@@ -2781,25 +2573,25 @@ def empty_like(A, dtype=None):
         dtype = A.dtype
     return empty(A.shape, dtype=dtype)
 
-# Maybe there are issues that when keepdims, dtype and out are all specified.	
+# Maybe there are issues that when keepdims, dtype and out are all specified.  
 def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     A = astensor(init_A)
-	
+  
     if not isinstance(out,tensor) and out is not None:
         raise ValueError("output must be a tensor")
-	
-	# if dtype not specified, assign np.float64 to it
+  
+  # if dtype not specified, assign np.float64 to it
     if dtype is None:
         dtype = A.get_type()
-	
-	# if keepdims not specified, assign false to it
+  
+  # if keepdims not specified, assign false to it
     if keepdims is None :
         keepdims = False;
 
-	# it keepdims == true and axis not specified
+  # it keepdims == true and axis not specified
     if isinstance(out,tensor) and axis is None:
         raise ValueError("output parameter for reduction operation add has too many dimensions")
-		
+    
     # get_dims of tensor A
     dim = A.shape
     # store the axis in a tuple
@@ -2831,7 +2623,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         #print(outputdim)
         outputdim = np.ndarray.tolist(outputdim)
         outputdim = tuple(outputdim)
-		
+    
     # if there is no axis input, sum all the entries
     index = ""
     if axis is None:
@@ -2885,10 +2677,10 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
                 ret_dim = tuple(ret_dim)
 
         # following specified when out, dtype is not none etc.
-        B = tensor(ret_dim, dtype = dtype)	
+        B = tensor(ret_dim, dtype = dtype)  
         C = None
         if dtype != A.get_type():
-            C = tensor(A.shape, dtype = dtype)	
+            C = tensor(A.shape, dtype = dtype)  
         if isinstance(out,tensor):
             if(outputdim != ret_dim):
                 raise ValueError("dimension of output mismatch")
@@ -2913,7 +2705,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     # following is when axis is an tuple or nparray.
     C = None
     if dtype != A.get_type():
-        C = tensor(A.shape, dtype = dtype)	
+        C = tensor(A.shape, dtype = dtype)  
     if isinstance(out,tensor):
         if keepdims == True:
             raise ValueError("Must match the dimension when keepdims = True")
@@ -2943,7 +2735,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
         temp = B.copy()
         del decrease_dim[index_removal]
     return B
-		
+    
 # ravel, the default order is Fortran
 def ravel(init_A, order="F"):
     A = astensor(init_A) 
@@ -3598,3 +3390,89 @@ def svd(tensor A, rank=None):
 #    for k in range(fdim):
 #        fval[k] = fval_buffer[k]
 #    return 0
+
+
+def match_tensor_types(first, other):
+    if isinstance(first, tensor):
+        tsr = first
+    else:
+        tsr = tensor(copy=astensor(first))
+    if isinstance(other, tensor):
+        otsr = other
+    else:
+        otsr = tensor(copy=astensor(other))
+    out_dtype = get_np_dtype([tsr.dtype, otsr.dtype])
+    if tsr.dtype != out_dtype:
+        tsr = tensor(copy=tsr, dtype = out_dtype)
+    if otsr.dtype != out_dtype:
+        otsr = tensor(copy=otsr, dtype = out_dtype)
+    return [tsr, otsr]
+
+
+
+def div(first, other):
+    if isinstance(first, tensor):
+        tsr = first
+    else:
+        tsr = tensor(copy=astensor(first))
+    if isinstance(other, tensor):
+        otsr = other
+    else:
+        otsr = tensor(copy=astensor(other))
+    out_dtype = get_np_div_dtype(tsr.dtype, otsr.dtype)
+    if tsr.dtype != out_dtype:
+        tsr = tensor(copy=tsr, dtype = out_dtype)
+    if otsr.dtype != out_dtype:
+        otsr = tensor(copy=otsr, dtype = out_dtype)
+
+
+    [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
+    
+    print(tsr,otsr,out_tsr)
+
+    if otsr is other:
+        otsr = tensor(copy=other)
+
+    otsr.invert_elements()
+
+    print(otsr)
+
+    out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
+    return out_tsr
+
+
+def tensor_pow_helper(tensor tsr, tensor otsr, tensor out_tsr, idx_A, idx_B, idx_C):
+    if ord_comp(tsr.order, 'F'):
+        idx_A = rev_array(idx_A)
+    if ord_comp(otsr.order, 'F'):
+        idx_B = rev_array(idx_B)
+    if ord_comp(out_tsr.order, 'F'):
+        idx_C = rev_array(idx_C)
+    if out_tsr.dtype == np.float64:
+        pow_helper[double](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+    elif out_tsr.dtype == np.float32:
+        pow_helper[float](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+    elif out_tsr.dtype == np.complex64:
+        pow_helper[complex](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+    elif out_tsr.dtype == np.complex128:
+        pow_helper[complex128_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+    elif out_tsr.dtype == np.int64:
+        pow_helper[int64_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+    elif out_tsr.dtype == np.int32:
+        pow_helper[int32_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+    elif out_tsr.dtype == np.int16:
+        pow_helper[int16_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+    elif out_tsr.dtype == np.int8:
+        pow_helper[int8_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+
+def power(first, second):
+    [tsr, otsr] = match_tensor_types(first,second)
+
+    [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
+
+    tensor_pow_helper(tsr, otsr, out_tsr, idx_A, idx_B, idx_C)
+
+    return out_tsr
+
+
+

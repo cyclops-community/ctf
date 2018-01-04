@@ -102,7 +102,7 @@ namespace CTF_int {
       str[i] = 'a'+i;
     }
     assert(A->order == this->order);
-    this->operator[](str) = CTF::Function<dtype,dtype>([](dtype a){ return 1/a;})(A->operator[](str));  
+    this->operator[](str) = CTF::Function<dtype,dtype>([](dtype a){ return ((dtype)1)/a;})(A->operator[](str));  
   }
 
 /*

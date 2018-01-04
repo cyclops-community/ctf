@@ -134,7 +134,7 @@ python_uninstall:
 	pip uninstall ctf
 
 .PHONY: python_test
-python_test: python_base_test python_einsum_test python_svd_test python_get_item_test
+python_test: python_base_test python_einsum_test python_svd_test python_get_item_test python_ufunc_test python_fancyindex_test
 	echo "Cyclops Python tests completed."
 
 .PHONY: python_test%
@@ -148,6 +148,22 @@ python_einsum_test: python
 .PHONY: python_einsum_test%
 python_einsum_test%: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_einsum.py
+
+.PHONY: python_ufunc_test
+python_ufunc_test: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_ufunc.py
+
+.PHONY: python_ufunc_test%
+python_ufunc_test%: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_ufunc.py
+
+.PHONY: python_fancyindex_test
+python_fancyindex_test: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_fancyindex.py
+
+.PHONY: python_fancyindex_test%
+python_fancyindex_test%: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_fancyindex.py
 
 .PHONY: python_base_test
 python_base_test: python

@@ -3,6 +3,14 @@
   
 namespace CTF_int{
   /**
+   * \python pow function
+   * \param[in] A tensor, param[in] B tensor, param[in,out] C tensor, param[in] index of A, param[in] index of B, param[in] index of C
+   * \return None
+   */
+  template <typename dtype>
+  void pow_helper(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+
+  /**
    * \python all function
    * \param[in] A tensor, param[in] B tensor with bool values created, param[in] index of A, param[in] index of B
    * \return None
