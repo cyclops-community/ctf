@@ -914,7 +914,7 @@ namespace CTF_int {
       all_data_A = blk_data_B;
       sz_A = blk_sz_B;
     } else {
-      tsr_A->read_local_nnz(&sz_A, &all_data_A);
+      tsr_A->read_local(&sz_A, &all_data_A);
 //      printf("sz_A+%ld\n",sz_A);
     }
 
