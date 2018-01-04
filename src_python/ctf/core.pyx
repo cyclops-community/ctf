@@ -3425,17 +3425,12 @@ def div(first, other):
     if otsr.dtype != out_dtype:
         otsr = tensor(copy=otsr, dtype = out_dtype)
 
-
     [idx_A, idx_B, idx_C, out_tsr] = tsr.ufunc_interpret(otsr)
     
-    print(tsr,otsr,out_tsr)
-
     if otsr is other:
         otsr = tensor(copy=other)
 
     otsr.invert_elements()
-
-    print(otsr)
 
     out_tsr.i(idx_C) << tsr.i(idx_A)*otsr.i(idx_B)
     return out_tsr
