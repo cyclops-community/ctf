@@ -3,10 +3,17 @@
 #include "../include/ctf.hpp"
 namespace CTF_int{
   template <typename dtype>
+  void pow_helper(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C){
+    
+    C->operator[](idx_C) = CTF::Function<dtype>([](dtype a, dtype b){ return std::pow(a,b); })(A->operator[](idx_A),B->operator[](idx_B));
+  }
+
+
+  template <typename dtype>
   void all_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B){
     //std::cout<<idx_A<<std::endl;
     //std::cout<<idx_B<<std::endl;
-    B_bool->operator[](idx_B) = CTF::Function<dtype,bool>([](dtype a){ return a==0; })(A->operator[](idx_A));
+    B_bool->operator[](idx_B) = CTF::Function<dtype,bool>([](dtype a){ return a==(dtype)0; })(A->operator[](idx_A));
     //B_bool->operator[](idx_B) = -B_bool->operator[](idx_B);
     B_bool->operator[](idx_B) = CTF::Function<bool, bool>([](bool a){ return a==false ? true : false; })(B_bool->operator[](idx_B));
   }
@@ -42,7 +49,7 @@ namespace CTF_int{
 
   template <typename dtype>
   void any_helper(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B){
-    B_bool->operator[](idx_B) = CTF::Function<dtype,bool>([](dtype a){ return a == 0 ? false : true; })(A->operator[](idx_A));
+    B_bool->operator[](idx_B) = CTF::Function<dtype,bool>([](dtype a){ return a == (dtype)0 ? false : true; })(A->operator[](idx_A));
   }
 
   int64_t sum_bool_tsr(tensor * A){
@@ -132,16 +139,34 @@ namespace CTF_int{
 	template void tensor::exp_helper<int64_t, float>(tensor* A);
 	template void tensor::exp_helper<int32_t, float>(tensor* A);
 
+	// ctf.pow() function in c++ file (add more type)
+	template void pow_helper< std::complex<double> >(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+	template void pow_helper< std::complex<float> >(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+	template void pow_helper<double>(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+	template void pow_helper<float>(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+	template void pow_helper<int64_t>(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+	template void pow_helper<bool>(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+	template void pow_helper<int32_t>(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+	template void pow_helper<int16_t>(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+	template void pow_helper<int8_t>(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
+
+
 	// ctf.all() function in c++ file (add more type)
-	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper< std::complex<double> >(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper< std::complex<float> >(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int64_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void all_helper<float>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<bool>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int32_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int16_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void all_helper<int8_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 
   // ctf.any() function in c++ file (add more type)
+	template void any_helper< std::complex<double> >(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void any_helper< std::complex<float> >(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void any_helper<double>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
+	template void any_helper<float>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void any_helper<int64_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void any_helper<bool>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
 	template void any_helper<int32_t>(tensor * A, tensor * B_bool, char const * idx_A, char const * idx_B);
@@ -154,6 +179,7 @@ namespace CTF_int{
   template void tensor::true_divide<int32_t>(tensor* A);
   template void tensor::true_divide<int16_t>(tensor* A);
   template void tensor::true_divide<int8_t>(tensor* A);
+  template void tensor::true_divide<bool>(tensor* A);
 
   //template void tensor::pow_helper_int<int64_t>(tensor* A, int p);
   //template void tensor::pow_helper_int<double>(tensor* A, int p);

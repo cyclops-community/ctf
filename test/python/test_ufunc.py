@@ -2,12 +2,8 @@
 
 import unittest
 import numpy
-#import ctf
+import ctf
 
-import numpy as ctf
-ctf.from_nparray = numpy.asarray
-ctf.to_nparray = numpy.asarray
-ctf.astensor = numpy.asarray
 
 def allclose(a, b):
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
@@ -115,54 +111,6 @@ class KnowValues(unittest.TestCase):
         a2 = ctf.astensor(a0*.2+1j)
         self.assertTrue(allclose(a1**a2, a0**(a0*.2+1j)))
         self.assertTrue(allclose(a1**a0, a0**a0))
-
-    def test__rmul__(self):
-        a0 = numpy.arange(24.).reshape(4,3,2) + .4
-        a1 = ctf.astensor(a0)
-        self.assertTrue(allclose(.5*a1, a0*.5))
-        a2 = ctf.astensor(a0*.2+1j)
-        self.assertTrue(allclose(a0*a2, a0*(a0*.2+1j)))
-        a2 = numpy.arange(6.).reshape(3,2)
-        self.assertTrue(allclose(a0*ctf.astensor(a2), a0*a2))
-        a0 = numpy.arange(3.)
-        a1 = ctf.astensor(numpy.arange(4.))
-        self.assertTrue((a0.reshape(3,1)*a1).shape == (3,4))
-        self.assertTrue((a0*a1.reshape(4,1)).shape == (4,3))
-        self.assertTrue((a0.reshape(1,3)*a1.reshape(4,1)).shape == (4,3))
-        #self.assertTrue((a0.reshape(1,1,3)*a1.reshape(4,1)).shape == (1,4,3))
-        #self.assertTrue((a0.reshape(1,1,3)*a1.reshape(4,1,1)).shape == (4,1,3))
-
-    def test__radd__(self):
-        a0 = numpy.arange(24.).reshape(4,3,2) + .4
-        a1 = ctf.astensor(a0)
-        self.assertTrue(allclose(.5+a1, a0+.5))
-        a2 = ctf.astensor(a0*.2+1j)
-        self.assertTrue(allclose(a0+a2, a0+(a0*.2+1j)))
-        a2 = numpy.arange(6.).reshape(3,2)
-        self.assertTrue(allclose(a0+ctf.astensor(a2), a0+a2))
-        a0 = numpy.arange(3.)
-        a1 = ctf.astensor(numpy.arange(4.))
-        self.assertTrue((a0.reshape(3,1)+a1).shape == (3,4))
-        self.assertTrue((a0+a1.reshape(4,1)).shape == (4,3))
-        self.assertTrue((a0.reshape(1,3)+a1.reshape(4,1)).shape == (4,3))
-        #self.assertTrue((a0.reshape(1,1,3)+a1.reshape(4,1)).shape == (1,4,3))
-        #self.assertTrue((a0.reshape(1,1,3)+a1.reshape(4,1,1)).shape == (4,1,3))
-
-    def test__rsub__(self):
-        a0 = numpy.arange(24.).reshape(4,3,2) + .4
-        a1 = ctf.astensor(a0)
-        self.assertTrue(allclose(.5-a1, .5-a0))
-
-    def test__rdiv__(self):
-        a0 = numpy.arange(24.).reshape(4,3,2) + .4
-        a1 = ctf.astensor(a0)
-        self.assertTrue(allclose(.5/a1, .5/a0))
-
-    def test__rpow__(self):
-        a0 = numpy.arange(24.).reshape(4,3,2) + .4
-        a1 = ctf.astensor(a0)
-        self.assertTrue(allclose(.5**a1, .5**a0))
-        self.assertTrue(allclose(a0**a1, a0**a0))
 
     def test__imul__(self):
         a0 = numpy.arange(24.).reshape(4,3,2) + .4

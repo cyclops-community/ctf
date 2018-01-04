@@ -2,12 +2,8 @@
 
 import unittest
 import numpy
-#import ctf
+import ctf
 
-import numpy as ctf
-ctf.from_nparray = numpy.asarray
-ctf.to_nparray = numpy.asarray
-ctf.astensor = numpy.asarray
 
 def allclose(a, b):
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
