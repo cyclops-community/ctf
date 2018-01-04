@@ -139,6 +139,63 @@ class KnowValues(unittest.TestCase):
         with self.assertRaises(ValueError):  # shape mismatch error
             a1[[2,3]] = a1
 
+# Some advanced fancy indices which involve multiple dimensions of a tensor.
+# Remove these tests if they are not compatible to the distributed tensor
+# structure.
+        idx = numpy.array([1,2,3])
+        idy = numpy.array([0,2])
+        a0, a1 = a0_and_a1()
+        a1[idx[:,None],idy] = 99
+        a0[idx[:,None],idy] = 99
+        self.assertTrue(allclose(a1, a0))
+        a0, a1 = a0_and_a1()
+        a1[idx[:,None],:,idy] = 99
+        a0[idx[:,None],:,idy] = 99
+        self.assertTrue(allclose(a1, a0))
+        a0, a1 = a0_and_a1()
+        a1[:,idx[:,None],idy] = 99
+        a0[:,idx[:,None],idy] = 99
+        self.assertTrue(allclose(a1, a0))
+        a0, a1 = a0_and_a1()
+        a1[idx[:,None,None],idy[:,None],idy] = 99
+        a0[idx[:,None,None],idy[:,None],idy] = 99
+        self.assertTrue(allclose(a1, a0))
+
+        bidx = numpy.zeros(5, dtype=bool)
+        bidy = numpy.zeros(4, dtype=bool)
+        bidz = numpy.zeros(3, dtype=bool)
+        bidx[idx] = True
+        bidy[idy] = True
+        bidz[idy] = True
+        a0, a1 = a0_and_a1()
+        a1[bidx] = 99
+        a0[bidx] = 99
+        self.assertTrue(allclose(a1, a0))
+        a0, a1 = a0_and_a1()
+        a1[:,bidy] = 99
+        a0[:,bidy] = 99
+        self.assertTrue(allclose(a1, a0))
+        a0, a1 = a0_and_a1()
+        a1[:,:,bidz] = 99
+        a0[:,:,bidz] = 99
+        self.assertTrue(allclose(a1, a0))
+
+        a0, a1 = a0_and_a1()
+        mask = bidx[:,None] & bidy
+        a1[mask] = 99
+        a0[mask] = 99
+        self.assertTrue(allclose(a1, a0))
+        a0, a1 = a0_and_a1()
+        mask = bidy[:,None] & bidz
+        a1[:,mask] = 99
+        a0[:,mask] = 99
+        self.assertTrue(allclose(a1, a0))
+        a0, a1 = a0_and_a1()
+        mask = bidy[:,None] & bidz
+        a1[:,mask] = 99
+        a0[:,mask] = 99
+        self.assertTrue(allclose(a1, a0))
+
 
     def test__getslice__(self):
         a0 = ctf.astensor(numpy.arange(12.).reshape(4,3))
