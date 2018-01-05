@@ -3,11 +3,7 @@
 import unittest
 import numpy
 import ctf
-
-#import numpy as ctf
-#ctf.from_nparray = numpy.asarray
-#ctf.to_nparray = numpy.asarray
-#ctf.astensor = numpy.asarray
+import os
 
 def allclose(a, b):
     if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-14:
@@ -122,8 +118,11 @@ class KnowValues(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("Tests for einsum")
     numpy.random.seed(5330);
-    unittest.main()
+    if ctf.comm().rank() != 0:
+        result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite())
+    else:
+        print("Tests for einsum")
+        result = unittest.TextTestRunner().run(unittest.TestSuite())
     ctf.MPI_Stop()
 

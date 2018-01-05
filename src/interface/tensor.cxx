@@ -158,10 +158,11 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::read_local(int64_t *  npair,
                                  int64_t ** global_idx,
-                                 dtype **   data) const {
+                                 dtype **   data,
+                                 bool       unpack_sym) const {
     char * cpairs;
     int ret, i;
-    ret = CTF_int::tensor::read_local(npair,&cpairs);
+    ret = CTF_int::tensor::read_local(npair,&cpairs,unpack_sym);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     /* FIXME: careful with alloc */
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
@@ -176,10 +177,11 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::read_local(int64_t *      npair,
-                                         Pair<dtype> ** pairs) const {
+                                 Pair<dtype> ** pairs,
+                                 bool           unpack_sym) const {
     //FIXME raises mem consumption
     char * cpairs; 
-    int ret = CTF_int::tensor::read_local(npair, &cpairs);
+    int ret = CTF_int::tensor::read_local(npair, &cpairs, unpack_sym);
     *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
   }
@@ -187,10 +189,11 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::read_local_nnz(int64_t *  npair,
                                      int64_t ** global_idx,
-                                     dtype **   data) const {
+                                     dtype **   data,
+                                     bool       unpack_sym) const {
     char * cpairs;
     int ret, i;
-    ret = CTF_int::tensor::read_local_nnz(npair,&cpairs);
+    ret = CTF_int::tensor::read_local_nnz(npair,&cpairs,unpack_sym);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local_nnz\n"); IASSERT(0); return; }
     /* FIXME: careful with alloc */
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
@@ -205,10 +208,11 @@ namespace CTF {
 
   template<typename dtype>
   void Tensor<dtype>::read_local_nnz(int64_t *      npair,
-                                     Pair<dtype> ** pairs) const {
+                                     Pair<dtype> ** pairs,
+                                     bool           unpack_sym) const {
     //FIXME raises mem consumption
     char * cpairs; 
-    int ret = CTF_int::tensor::read_local_nnz(npair, &cpairs);
+    int ret = CTF_int::tensor::read_local_nnz(npair, &cpairs, unpack_sym);
     *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local_nnz\n"); IASSERT(0); return; }
   }

@@ -135,13 +135,23 @@ python_uninstall:
 
 .PHONY: python_test
 .NOTPARALLEL: python_test
-python_test: python_base_test python_einsum_test python_svd_test python_get_item_test python_ufunc_test 
+ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
+python_test: python_base_test python_einsum_test python_ufunc_test python_dot_test python_svd_test 
 	echo "Cyclops Python tests completed."
+else
+python_test: python_base_test python_einsum_test python_ufunc_test python_dot_test 
+	echo "Cyclops Python tests completed."
+endif
 
 .PHONY: python_test%
 .NOTPARALLEL: python_test%
-python_test%: python_base_test% python_einsum_test% python_svd_test% python_get_item_test% python_ufunc_test%
+ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
+python_test%: python_base_test% python_einsum_test% python_ufunc_test% python_dot_test% python_svd_test%
 	echo "Cyclops Python tests completed."
+else
+python_test%: python_base_test% python_einsum_test% python_ufunc_test% python_dot_test%
+	echo "Cyclops Python tests completed."
+endif
 
 .PHONY: python_einsum_test
 python_einsum_test: python
@@ -177,15 +187,19 @@ python_base_test%: python
 
 .PHONY: python_svd_test
 python_svd_test: python
-	if [[ $(DEFS) == *"USE_SCALAPACK"* ]]; then \
-		LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_svd.py; \
-	fi
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_svd.py; 
 
 .PHONY: python_svd_test%
 python_svd_test%: python
-	if [[ $(DEFS) == *"USE_SCALAPACK"* ]]; then \
-		LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_svd.py; \
-	fi
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_svd.py;
+
+.PHONY: python_dot_test
+python_dot_test: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_dot.py; 
+
+.PHONY: python_dot_test%
+python_dot_test%: python
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_dot.py;
 
 
 .PHONY: test_live
@@ -193,23 +207,10 @@ test_live: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
 
 
-.PHONY: python_new_test
-python_new_test: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_new.py
-
-.PHONY: python_get_item_test
-python_get_item_test: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_get_item.py
-
-.PHONY: python_get_item_test%
-python_get_item_test%: python
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_get_item.py
-
-
-$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
+$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk Makefile
 	$(MAKE) ctflib
 
-$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h Makefile src/Makefile src/*/Makefile $(BDIR)/config.mk
+$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk Makefile
 	$(MAKE) ctflibso
 	
 test: test_suite

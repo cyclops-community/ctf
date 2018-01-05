@@ -149,7 +149,7 @@
  *
  * OMP_NUM_THREADS number of threads to use on each MPI process, can be changed from within the code with omp_set_num_threads()
  * 
- * CTF_MEMORY_SIZE tells CTF how much memory on the node there is for usage. By default CTF will try to read the available memory using system calls.
+ * CTF_MEMORY_SIZE tells CTF how much memory on the node there is for usage. By default CTF will try to read the available memory using system calls. CTF does not try to take into account memory used by the application or other application running on the system, so CTF_MEMORY_SIZE should be set ot the amount of memory allotted for CTF tensor and temporary buffers (more specifically, you should likely use, CTF_MEMORY_SIZE=bytes available on your node minus maximum number of bytes being used by application during any CTF contraction execution).
  *
  * CTF_PPN tells CTF how many processes per node you are using. The default is 1.
  *

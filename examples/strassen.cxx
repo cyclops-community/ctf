@@ -83,7 +83,7 @@ int strassen(int const     n,
   int snhalf[2] = {n/2, n/2};
   int sym_ns[2] = {NS,  NS};
 
-  if (ccomm != dw.comm && sym == NS){
+  if (ccomm != dw.comm){
     /*int off_ij[2] = {ri * n/2, rj * n/2};
     int end_ij[2] = {ri * n/2 + n/2, rj * n/2 + n/2};
     int off_ik[2] = {ri * n/2, rk * n/2};
@@ -172,7 +172,7 @@ int strassen(int const     n,
     Tensor<> A21 = A.slice(off_10, end_21);
     Tensor<> A11 = A.slice(off_00, end_11);
     Tensor<> A12(2,snhalf,sym_ns,dw);
-    if (sym == SY){
+    if (sym == SY || sym == SH){
       A12["ij"] = A21["ji"];
     }
     if (sym == AS){
@@ -187,7 +187,7 @@ int strassen(int const     n,
     Tensor<> B21 = B.slice(off_10, end_21);
     
     Tensor<> B12(2,snhalf,sym_ns,dw);
-    if (sym == SY){
+    if (sym == SY || sym == SH){
       B12["ij"] = B21["ji"];
     }
     if (sym == AS){
@@ -276,7 +276,7 @@ int main(int argc, char ** argv){
     }
     pass = strassen(n, NS, dw);
     assert(pass);
-    /*if (rank == 0){
+    if (rank == 0){
       printf("(Anti-)Skew-symmetric: NS = AS*AS strassen:\n");
     }
     pass = strassen(n, AS, dw);
@@ -290,7 +290,7 @@ int main(int argc, char ** argv){
       printf("Symmetric-hollow: NS = SH*SH strassen:\n");
     }
     pass = strassen(n, SH, dw);
-    assert(pass);*/
+    assert(pass);
   }
 
   MPI_Finalize();

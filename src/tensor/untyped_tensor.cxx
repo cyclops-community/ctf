@@ -716,9 +716,9 @@ namespace CTF_int {
         blk_sz_B = 0;
         all_data_B = NULL;
       } else {
-        if (wrld->rank == 0) printf("CTF ERROR: please use other variant of permute function when the output is sparse\n");
+        if (wrld->rank == 0 && tsr_B->is_sparse) printf("CTF ERROR: please use other variant of permute function when the output is sparse\n");
         assert(!tsr_B->is_sparse);
-        tsr_B->read_local_nnz(&sz_B, &all_data_B);
+        tsr_B->read_local(&sz_B, &all_data_B, true);
         //permute all_data_B
         permute_keys(tsr_B->order, sz_B, tsr_B->lens, tsr_A->lens, permutation_B, all_data_B, &blk_sz_B, sr);
       }
@@ -735,7 +735,7 @@ namespace CTF_int {
       } else {
         ASSERT(permutation_A != NULL);
         ASSERT(permutation_B == NULL);
-        tsr_A->read_local_nnz(&sz_A, &all_data_A);
+        tsr_A->read_local(&sz_A, &all_data_A, true);
         //permute all_data_A
         permute_keys(tsr_A->order, sz_A, tsr_A->lens, tsr_B->lens, permutation_A, all_data_A, &blk_sz_A, sr);
       }
@@ -857,34 +857,36 @@ namespace CTF_int {
     int * padding_B = (int*)CTF_int::alloc(sizeof(int)*tsr_B->order);
     int * toffset_B = (int*)CTF_int::alloc(sizeof(int)*tsr_B->order);
     for (i=0,j=0; i<this->order && j<A->order; i++, j++){
-      if (ends_B[i] - offsets_B[i] == 1){ j--; continue; } // continue with i+1,j
-      if (ends_A[j] - offsets_A[j] == 1){ i--; continue; } // continue with i,j+1
       if (ends_A[j] - offsets_A[j] != ends_B[i] - offsets_B[i]){
+        if (ends_B[i] - offsets_B[i] == 1){ j--; continue; } // continue with i+1,j
+        if (ends_A[j] - offsets_A[j] == 1){ i--; continue; } // continue with i,j+1
         printf("CTF ERROR: slice dimensions inconsistent 1\n");
         ASSERT(0);
         return;
       }
     }
 
-    while (i < this->order){
+    while (A->order != 0 && i < this->order){
       if (ends_B[i] - offsets_B[i] == 1){ i++; continue; }
       printf("CTF ERROR: slice dimensions inconsistent 2\n");
       ASSERT(0);
       return;
     }
-    while (j < A->order){
+    while (this->order != 0 && j < A->order){
       if (ends_A[j] - offsets_A[j] == 1){ j++; continue; }
       printf("CTF ERROR: slice dimensions inconsistent 3\n");
       ASSERT(0);
       return;
-    }    
+    }
+   // bool tsr_A_has_sym = false; 
 
-    if (tsr_B->wrld->np < tsr_A->wrld->np){
+    if (tsr_B->wrld->np <= tsr_A->wrld->np){
+      //usually 'read' elements of B from A, since B may be smalelr than A
       if (tsr_B->order == 0 || tsr_B->has_zero_edge_len){
         blk_sz_B = 0;
         blk_data_B = NULL;
       } else {
-        tsr_B->read_local(&sz_B, &all_data_B);
+        tsr_B->read_local(&sz_B, &all_data_B, false);
 
         CTF_int::alloc_ptr((sizeof(int64_t)+tsr_B->sr->el_size)*sz_B, (void**)&blk_data_B);
 
@@ -914,8 +916,8 @@ namespace CTF_int {
       all_data_A = blk_data_B;
       sz_A = blk_sz_B;
     } else {
-      tsr_A->read_local(&sz_A, &all_data_A);
-//      printf("sz_A+%ld\n",sz_A);
+      tsr_A->read_local(&sz_A, &all_data_A, true);
+      //printf("sz_A=%ld\n",sz_A);
     }
 
     if (tsr_A->order == 0 || tsr_A->has_zero_edge_len){
@@ -927,7 +929,9 @@ namespace CTF_int {
       for (i=0; i<tsr_A->order; i++){
         padding_A[i] = tsr_A->lens[i] - ends_A[i];
       }
-      depad_tsr(tsr_A->order, sz_A, ends_A, tsr_A->sym, padding_A, offsets_A,
+      int nosym[tsr_A->order];
+      std::fill(nosym, nosym+tsr_A->order, NS);
+      depad_tsr(tsr_A->order, sz_A, ends_A, nosym, padding_A, offsets_A,
                 all_data_A, blk_data_A, &blk_sz_A, sr);
       //if (sz_A > 0)
         CTF_int::cdealloc(all_data_A);
@@ -1438,9 +1442,10 @@ namespace CTF_int {
   }
 
   int tensor::read_local_nnz(int64_t * num_pair,
-                             char **   mapped_data) const {
+                             char **   mapped_data,
+                             bool      unpack_sym) const {
     if (sr->isequal(sr->addid(), NULL) && !is_sparse)
-      return read_local(num_pair,mapped_data);
+      return read_local(num_pair,mapped_data, unpack_sym);
     tensor tsr_cpy(this);
     if (!is_sparse)
       tsr_cpy.sparsify();
@@ -1452,7 +1457,8 @@ namespace CTF_int {
 
 
   int tensor::read_local(int64_t * num_pair,
-                         char **   mapped_data) const {
+                         char **   mapped_data,
+                         bool      unpack_sym) const {
     int i, num_virt, idx_lyr;
     int64_t np;
     int * virt_phase, * virt_phys_rank, * phys_phase, * phase;
@@ -1472,17 +1478,32 @@ namespace CTF_int {
 
 //    tsr->set_padding();
 
+    bool has_sym = false;
+    for (i=0; i<this->order; i++){
+      if (this->sym[i] != NS) has_sym = true;
+    }
 
     if (tsr->is_sparse){
       char * nnz_data;
       int64_t num_nnz;
-      read_local_nnz(&num_nnz, &nnz_data);
+      read_local_nnz(&num_nnz, &nnz_data, unpack_sym);
       tensor dense_tsr(sr, order, lens, sym, wrld);
       dense_tsr.write(num_nnz, sr->mulid(), sr->addid(), nnz_data);
       cdealloc(nnz_data);
-      dense_tsr.read_local(num_pair, mapped_data);
+      dense_tsr.read_local(num_pair, mapped_data, unpack_sym);
       //*num_pair = num_pair;
       return SUCCESS;
+    } else if (has_sym && unpack_sym) {
+      int nosym[this->order];
+      std::fill(nosym, nosym+this->order, NS);
+      tensor nosym_tsr(sr, order, lens, nosym, wrld);
+      int idx[this->order];
+      for (i=0; i<this->order; i++){
+        idx[i] = i;
+      }
+      summation s((tensor*)this, idx, sr->mulid(), &nosym_tsr, idx, sr->mulid());
+      s.execute();
+      return nosym_tsr.read_local(num_pair, mapped_data);
     } else {
       TAU_FSTART(read_local_pairs);
       np = tsr->size;
@@ -1543,7 +1564,7 @@ namespace CTF_int {
       return PairIterator(sr, NULL);
     }
     //unpack symmetry
-    if (unpack){
+    /*if (unpack){
       bool is_nonsym=true;
       for (int i=0; i<order; i++){
         if (sym[i] != NS){
@@ -1563,14 +1584,14 @@ namespace CTF_int {
         st.execute();
         return PairIterator(sr,tA.read_all_pairs(num_pair, false).ptr);
       }
-    }
+    }*/
     alloc_ptr(numPes*sizeof(int), (void**)&nXs);
     alloc_ptr(numPes*sizeof(int), (void**)&pXs);
     pXs[0] = 0;
 
     int64_t ntt = 0;
     my_pairs = NULL;
-    read_local(&ntt, &my_pairs);
+    read_local(&ntt, &my_pairs, unpack);
     n = (int)ntt;
     n*=sr->pair_size();
     MPI_Allgather(&n, 1, MPI_INT, nXs, 1, MPI_INT, wrld->comm);
@@ -1722,9 +1743,9 @@ namespace CTF_int {
     if (cutoff != NULL){
       tensor tsr_cpy(this);
       tsr_cpy.sparsify(cutoff);
-      tsr_cpy.read_local_nnz(&imy_sz, &pmy_data);
+      tsr_cpy.read_local_nnz(&imy_sz, &pmy_data, true);
     } else
-      read_local(&imy_sz, &pmy_data);
+      read_local(&imy_sz, &pmy_data, true);
     my_sz = imy_sz;
     //PairIterator my_data = PairIterator(sr,pmy_data);
 

@@ -2,12 +2,9 @@
 
 import unittest
 import numpy
-#import ctf
+import ctf
+import os
 
-import numpy as ctf
-ctf.from_nparray = numpy.asarray
-ctf.to_nparray = numpy.asarray
-ctf.astensor = numpy.asarray
 
 def allclose(a, b):
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
@@ -44,6 +41,9 @@ class KnowValues(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("Tests for dot")
-    unittest.main()
-
+    if ctf.comm().rank() != 0:
+        result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite())
+    else:
+        print("Tests for dot")
+        result = unittest.TextTestRunner().run(unittest.TestSuite())
+    ctf.MPI_Stop()

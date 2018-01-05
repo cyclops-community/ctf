@@ -1216,13 +1216,41 @@ cdef class tensor:
     def conj(self):
         return conj(self)
 
-    def permute(self, tensor A, a, b, p_A, p_B):
+    def permute(self, tensor A, p_A=None, p_B=None, a=None, b=None):
+        if p_A is None and p_B is None:
+            raise ValueError("CTF PYTHON ERROR: permute must be called with either p_A or p_B defined")
+        if p_A is not None and p_B is not None:
+            raise ValueError("CTF PYTHON ERROR: permute cannot be called with both p_A and p_B defined")
         cdef char * alpha 
         cdef char * beta
-        cdef int ** permutation_A
-        cdef int ** permutation_B
-        permutation_A = <int**>malloc(sizeof(int*) * 2)
-        permutation_B = <int**>malloc(sizeof(int*) * 2)
+        cdef int ** permutation_A = NULL
+        cdef int ** permutation_B = NULL
+        if p_A is not None:
+#            p_A = np.asarray(p_A)
+#            print("p_A is ", p_A)
+            permutation_A = <int**>malloc(sizeof(int*) * A.ndim)
+            for i in range(self.ndim):
+                if A.order == 'F':
+                    permutation_A[i] = <int*>malloc(sizeof(int) * A.shape[-i-1])
+                    for j in range(A.shape[-i-1]):
+                        permutation_A[i][j] = p_A[-i-1][j]
+                else:
+                    permutation_A[i] = <int*>malloc(sizeof(int) * A.shape[i])
+                    for j in range(A.shape[i]):
+                        permutation_A[i][j] = p_A[i][j]
+        if p_B is not None:
+#            p_B = np.asarray(p_B)
+            permutation_B = <int**>malloc(sizeof(int*) * self.ndim)
+            for i in range(self.ndim):
+                if self.order == 'F':
+                    permutation_B[i] = <int*>malloc(sizeof(int) * self.shape[-i-1])
+                    for j in range(self.shape[-i-1]):
+                        permutation_B[i][j] = p_B[-i-1][j]
+                else:
+                    permutation_B[i] = <int*>malloc(sizeof(int) * self.shape[i])
+                    for j in range(self.shape[i]):
+                        permutation_B[i][j] = p_B[i][j]
+                
         st = np.ndarray([],dtype=self.dtype).itemsize
         if a is None:
             alpha = <char*>self.dt.sr.mulid()
@@ -1245,11 +1273,11 @@ cdef class tensor:
             free(beta)
         if p_A is not None:
             for i in range(0, sizeof(permutation_A), sizeof(int*)):
-                free(permutation_A+sizeof(int*))
+                free(permutation_A[i])
             free(permutation_A)
         if p_B is not None:
             for i in range(0, sizeof(permutation_B), sizeof(int*)):
-                free(permutation_B+sizeof(int*))
+                free(permutation_B[i])
             free(permutation_B)
 
     def write(self, init_inds, init_vals, a=None, b=None):
@@ -1490,14 +1518,14 @@ cdef class tensor:
         corr_shape = []
         one_shape = []
         if isinstance(key,int):
-            if self.ndim == 1:
-                self.write([key],[value])
-            else:
-                key = (key,)
-                value = (value,)
-        if isinstance(key,slice):
+            #if self.ndim == 1:
+            #    self.write([key],[value])
+            #else:
             key = (key,)
-            value = (value,)
+                #value = (value,)
+        elif isinstance(key,slice):
+            key = (key,)
+            #value = (value,)
             #s = key
             #ind = s.indices(self.shape[0])
             #if ind[2] != 1:
@@ -1506,66 +1534,66 @@ cdef class tensor:
             #if ind[1] != self.shape[0]:
             #    is_everything = 0
             #inds.append(ind)
-        if key is Ellipsis:
+        elif key is Ellipsis:
             key = (key,)
-        if isinstance(key,tuple):
-            lensl = len(key)
-            i=0
-            is_single_val = 1
-            saw_elips=False
-            for s in key:
-                if isinstance(s,int):
-                    if self.shape[i] != 1:
-                        is_everything = 0
-                    inds.append((s,s+1,1))
-                    one_shape.append(1)
-                elif s is Ellipsis:
-                    if saw_elips:
-                        raise ValueError('CTF PYTHON ERROR: Only one Ellipsis, ..., supported in __setitem__')
-                    for j in range(lensl-1,self.ndim):
-                        inds.append((0,self.shape[i],1))
-                        corr_shape.append(self.shape[i])
-                        one_shape.append(self.shape[i])
-                        i+=1
-                    saw_elpis=True
-                    is_single_val = 0
-                    lensl = self.ndim
-                else:
-                    is_single_val = 0
-                    ind = s.indices(self.shape[i])
-                    if ind[2] != 1:
-                        is_everything = 0
-                        is_contig = 0
-                    if ind[1] != self.shape[i]:
-                        is_everything = 0
-                    if ind[0] != 0:
-                        is_everything = 0
-                    if ind[0] != 0:
-                        is_everything = 0
-                    inds.append(ind)
-                    i+=1
-                    corr_shape.append(ind[1]-ind[0])
-                    one_shape.append(ind[1]-ind[0])
-            if lensl != self.ndim:
-                is_single_val = 0
-            if is_single_val:
-                self.write([key],np.asarray(value))
-                return
         else:
-            raise ValueError('CTF PYTHON ERROR: Invalid input to ctf.tensor.__setitem__(input), i.e. ctf.tensor[input]. Only basic slicing and indexing is currently supported')
+            if not isinstance(key, tuple):
+                raise ValueError("CTF PYTHON ERROR: fancy indexing with non-slice/int/ellipsis-type indices is unsupported and can instead be done via take or read/write")
+            for i in range(len(key)):
+                if not isinstance(key[i], slice) and not isinstance(key[i],int) and key[i] is not Ellipsis:
+                    raise ValueError("CTF PYTHON ERROR: invalid __setitem__ tuple passed, type of elements not recognized")
+        lensl = len(key)
+        i=0
+        is_single_val = 1
+        saw_elips=False
+        for s in key:
+            if isinstance(s,int):
+                if self.shape[i] != 1:
+                    is_everything = 0
+                inds.append((s,s+1,1))
+                one_shape.append(1)
+            elif s is Ellipsis:
+                if saw_elips:
+                    raise ValueError('CTF PYTHON ERROR: Only one Ellipsis, ..., supported in __setitem__')
+                for j in range(lensl-1,self.ndim):
+                    inds.append((0,self.shape[i],1))
+                    corr_shape.append(self.shape[i])
+                    one_shape.append(self.shape[i])
+                    i+=1
+                saw_elpis=True
+                is_single_val = 0
+                lensl = self.ndim
+            else:
+                is_single_val = 0
+                ind = s.indices(self.shape[i])
+                if ind[2] != 1:
+                    is_everything = 0
+                    is_contig = 0
+                if ind[1] != self.shape[i]:
+                    is_everything = 0
+                if ind[0] != 0:
+                    is_everything = 0
+                inds.append(ind)
+                i+=1
+                corr_shape.append(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2])))
+                one_shape.append(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2])))
+        if lensl != self.ndim:
+            is_single_val = 0
+        if is_single_val:
+            self.write([key],np.asarray(value,dtype=self.dtype))
+            return
         for i in range(lensl,self.ndim):
             inds.append((0,self.shape[i],1))
             corr_shape.append(self.shape[i])
             one_shape.append(self.shape[i])
+
+        if isinstance(value, (np.int, np.float, np.complex, np.number)):
+            tval = np.asarray([value],dtype=self.dtype)[0]
+        else:
+            tval = astensor(value,dtype=self.dtype)
         if is_everything:
             #check that value is same everywhere, or this makes no sense
-            if isinstance(value,tuple):
-                if isinstance(value[0],tensor):
-                    self.set_zero()
-                    self += value[0]
-                else:
-                    self.set_all(value[0])
-            elif isinstance(value,tensor):
+            if isinstance(tval,tensor):
                 self.set_zero()
                 self += value
             else:
@@ -1573,19 +1601,22 @@ cdef class tensor:
         elif is_contig:
             offs = [ind[0] for ind in inds]
             ends = [ind[1] for ind in inds]
-            if isinstance(value,tuple):
-                tval = astensor(value[0])
-            else:
-                tval = astensor(value)
-            #if np.asarray(tval.shape,dtype=np.int32) == np.asarray(ends,dtype=np.int32) - np.asarray(offs,dtype=np.int32):
-            #    self.write_slice(offs,ends,tval)
-            #else:
             tsr = tensor(corr_shape, dtype=self.dtype, order=self.order) 
-            tsr += tval
+            if isinstance(tval,tensor):
+                tsr += tval
+            else:
+                tsr.set_all(value)
             self.write_slice(offs,ends,tsr.reshape(one_shape))
         else:
-            raise ValueError('CTF PYTHON ERROR: strided slice not currently supported')
-  
+            pA = []
+            for i in range(self.ndim):
+                pA.append(np.arange(inds[i][0],inds[i][1],inds[i][2],dtype=int))
+            tsr = tensor(corr_shape, dtype=self.dtype, order=self.order) 
+            if isinstance(tval,tensor):
+                tsr += tval
+            else:
+                tsr.set_all(value)
+            self.permute(tsr.reshape(one_shape), pA)
 # 
 #
 #
@@ -2519,7 +2550,6 @@ def tensordot(A, B, axes=2):
         # that we do not need to change type
         if A.dtype == new_dtype and B.dtype == new_dtype:
             C = tensor(new_shape, dtype = new_dtype)
-            #print(A_str, B_str, C_str)
             C.i(C_str) << A.i(A_str) * B.i(B_str)
             return C
         else:
@@ -2676,7 +2706,6 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     # if out has been specified, assign a outputdim
     if isinstance(out,tensor):
         outputdim = out.shape
-        #print(outputdim)
         outputdim = np.ndarray.tolist(outputdim)
         outputdim = tuple(outputdim)
     
@@ -2777,9 +2806,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
     axis_list = list(axis_tuple)
     axis_list.sort()
     for i in range(len(axis)-1,-1,-1):
-        #print(decrease_dim)
         index_removal = axis_list[i]
-        #print(index_removal)
         temp_dim = list(decrease_dim)
         del temp_dim[index_removal]
         ret_dim = tuple(temp_dim)
