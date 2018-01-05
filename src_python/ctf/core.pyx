@@ -3336,7 +3336,11 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
                 out_inds += ind
                 out_lens.append(dind_lens[ind])
                 uniq_subs.remove(ind)
-    output = tensor(out_lens, dtype=operands[0].get_type())
+    if out is None:
+        out_dtype = get_np_dtype([x.dtype for x in operands])
+        output = tensor(out_lens, dtype=out_dtype)
+    else:
+        output = out
     if numop == 1:
         output.i(out_inds) << operands[0].i(inds[0])
     elif numop == 2:
