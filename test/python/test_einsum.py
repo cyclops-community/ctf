@@ -120,6 +120,16 @@ class KnowValues(unittest.TestCase):
         self.assertTrue(allclose(ctf.einsum('mi,mi,mi->m', a1, a1, a1),
                                  numpy.einsum('mi,mi,mi->m', a0, a0, a0)))
 
+    def test_einsum_mix_types(self):
+        a0 = numpy.random.random((5, 1, 4, 2, 3)).astype(numpy.float32)
+        b0 = numpy.random.random((5, 1, 11))
+        a1 = ctf.astensor(a0)
+        b1 = ctf.astensor(b0)
+        c0 = numpy.einsum('ijklm,ijn->', a0, b0)
+        c1 = ctf.einsum('ijklm,ijn->', a1, b1).to_nparray()
+        self.assertTrue(c1.dtype == numpy.double)
+        self.assertTrue(allclose(c0, c1))
+
 
 if __name__ == "__main__":
     print("Tests for einsum")
