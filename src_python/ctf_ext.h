@@ -2,6 +2,16 @@
 #include "../include/ctf.hpp"
   
 namespace CTF_int{
+
+
+  /**
+   * \python absolute value function
+   * \param[in] A tensor, param[in,out] B tensor (becomes absolute value of A)
+   * \return None
+   */
+  template <typename dtype>
+  void abs_helper(tensor * A, tensor * B);
+
   /**
    * \python pow function
    * \param[in] A tensor, param[in] B tensor, param[in,out] C tensor, param[in] index of A, param[in] index of B, param[in] index of C

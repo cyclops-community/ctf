@@ -2,6 +2,16 @@
 //#include "../src/tensor/untyped_tensor.h"
 #include "../include/ctf.hpp"
 namespace CTF_int{
+
+  template <typename dtype>
+  void abs_helper(tensor * A, tensor * B){
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+			str[i] = 'a' + i;
+    }
+    B->operator[](str) = CTF::Function<dtype>([](dtype a){ return std::abs(a); })(A->operator[](str));
+  }
+
   template <typename dtype>
   void pow_helper(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C){
     
@@ -138,6 +148,18 @@ namespace CTF_int{
   // exp_helper when casting == unsafe
 	template void tensor::exp_helper<int64_t, float>(tensor* A);
 	template void tensor::exp_helper<int32_t, float>(tensor* A);
+
+	// ctf.pow() function in c++ file (add more type)
+	template void abs_helper< std::complex<double> >(tensor * A, tensor * B);
+	template void abs_helper< std::complex<float> >(tensor * A, tensor * B);
+	template void abs_helper<double>(tensor * A, tensor * B);
+	template void abs_helper<float>(tensor * A, tensor * B);
+	template void abs_helper<int64_t>(tensor * A, tensor * B);
+	template void abs_helper<bool>(tensor * A, tensor * B);
+	template void abs_helper<int32_t>(tensor * A, tensor * B);
+	template void abs_helper<int16_t>(tensor * A, tensor * B);
+	template void abs_helper<int8_t>(tensor * A, tensor * B);
+
 
 	// ctf.pow() function in c++ file (add more type)
 	template void pow_helper< std::complex<double> >(tensor * A, tensor * B, tensor * C, char const * idx_A, char const * idx_B, char const * idx_C);
