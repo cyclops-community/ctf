@@ -59,6 +59,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
         ctensor(ctensor * other, bool copy, bool alloc_data)
         ctensor(ctensor * other, int * new_sym)
         void prnt()
+        void set(char *)
         int read(int64_t num_pair,
                  char *  alpha,
                  char *  beta,
@@ -126,6 +127,7 @@ cdef extern from "ctf.hpp" namespace "CTF_int":
 cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef int64_t sum_bool_tsr(ctensor *);
     cdef void pow_helper[dtype](ctensor * A, ctensor * B, ctensor * C, char * idx_A, char * idx_B, char * idx_C);
+    cdef void abs_helper[dtype](ctensor * A, ctensor * B);
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void conj_helper(ctensor * A, ctensor * B);
     cdef void any_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
@@ -281,13 +283,24 @@ cdef class sum_term(term):
 
 cdef class itensor(term):
     cdef Idx_Tensor * it
+    cdef tensor tsr
+    cdef str string
+
+    property tsr:
+        def __get__(self):
+            return self.tsr
+
+    property string:
+        def __get__(self):
+            return self.string
 
     def __lshift__(self, other):
         if isinstance(other, term):
             deref((<itensor>self).it) << deref((<term>other).tm)
         else:
-            dother = np.asarray([other],dtype=np.float64)
-            deref((<itensor>self).it) << <double>dother
+            tsr_copy = tensor(copy=self.tsr)
+            tsr_copy.set_all(other)
+            deref((<itensor>self).it) << deref(itensor(tsr_copy,self.string).it)
 #            if self.dtype == np.float64:
 #            elif self.dtype == np.float32:
 #                deref((<itensor>self).it) << <float>other
@@ -312,6 +325,8 @@ cdef class itensor(term):
     def __cinit__(self, tensor a, string):
         self.it = new Idx_Tensor(a.dt, string.encode())
         self.tm = self.it
+        self.tsr = a
+        self.string = string
 
     def scl(self, s):
         self.it.multeq(s)
@@ -447,6 +462,9 @@ cdef class tensor:
         if dtype is float:
             dtype = np.float64
 
+        if dtype == np.complex:
+            dtype = np.complex128
+
 
         if dtype == 'D':
             self.dtype = <cnp.dtype>np.complex128
@@ -545,7 +563,7 @@ cdef class tensor:
         else:
             return transpose(self)
 
-    def ufunc_interpret(self, tensor other):
+    def ufunc_interpret(self, tensor other, gen_tsr=True):
         if self.order != other.order:
             raise ValueError("Universal functions among tensors with different order, i.e. Fortran vs C are not currently supported")
         out_order = self.order
@@ -593,7 +611,10 @@ cdef class tensor:
                 out_dims[-i-1] = other.shape[-i-1]
                 if i+1<other.ndim:
                     out_sym[-i-2] = other.sym[-i-2]
-        out_tsr = tensor(out_dims, out_sp, out_sym, out_dtype, out_order)
+        if gen_tsr is True:
+            out_tsr = tensor(out_dims, out_sp, out_sym, out_dtype, out_order)
+        else:
+            out_tsr = None
         return [idx_A, idx_B, idx_C, out_tsr]
 
     def __add__(self, other):
@@ -604,6 +625,30 @@ cdef class tensor:
         out_tsr.i(idx_C) << tsr.i(idx_A)
         out_tsr.i(idx_C) << otsr.i(idx_B)
         return out_tsr
+
+  
+    def __iadd__(self, other_in):
+        other = astensor(other_in)
+        if np.result_type(self.dtype, other.dtype) != self.dtype:
+            raise TypeError('CTF PYTHON ERROR: refusing to downgrade type within __iadd__ (+=), as done by numpy')
+        [idx_A, idx_B, idx_C, out_tsr] = self.ufunc_interpret(other, False)
+        if len(idx_C) != self.ndim:
+            raise ValueError('CTF PYTHON ERROR: invalid call to __iadd__ (+=)')
+        self.i(idx_C) << other.i(idx_A)
+        return self
+ 
+    def __imul__(self, other_in):
+        other = astensor(other_in)
+        if np.result_type(self.dtype, other.dtype) != self.dtype:
+            raise TypeError('CTF PYTHON ERROR: refusing to downgrade type within __iadd__ (+=), as done by numpy')
+        [idx_A, idx_B, idx_C, out_tsr] = self.ufunc_interpret(other, False)
+        if len(idx_C) != self.ndim or idx_C != idx_A:
+            raise ValueError('CTF PYTHON ERROR: invalid call to __iadd__ (+=)')
+        self_copy = tensor(copy=self)
+        self.set_zero()
+        self.i(idx_C) << self_copy.i(idx_A)*other.i(idx_B)
+        return self
+
 
     def __sub__(self, other):
         [tsr, otsr] = match_tensor_types(self,other)
@@ -1168,12 +1213,8 @@ cdef class tensor:
         buf[:] = rarr[:]
         buf.data = odata
    
-    def conj(tensor self):
-        if self.dtype != np.complex64 and self.dtype != np.complex128:
-            return self.copy()
-        B = tensor(self.shape, dtype=self.dtype)
-        conj_helper(<ctensor*>(<tensor> self).dt, <ctensor*>(<tensor> B).dt);
-        return B
+    def conj(self):
+        return conj(self)
 
     def permute(self, tensor A, a, b, p_A, p_B):
         cdef char * alpha 
@@ -1367,8 +1408,15 @@ cdef class tensor:
         self.i(mystr).scl(0.0)
 
     def set_all(self, value):
-        self.set_zero()
-        self.i(get_num_str(self.ndim)) << value
+        val = np.asarray([value],dtype=self.dtype)[0]
+        cdef char * alpha
+        st = self.itemsize
+        alpha = <char*>malloc(st)
+        na = np.array([val],dtype=self.dtype)
+        for j in range(0,st):
+            alpha[j] = na.view(dtype=np.int8)[j]
+
+        self.dt.set(alpha)
             
   # bool no itemsize
     def write_slice(self, offsets, ends, init_A, A_offsets=None, A_ends=None, a=None, b=None):
@@ -1439,6 +1487,8 @@ cdef class tensor:
         lensl = 1
         key = deepcopy(key_init)      
         value = deepcopy(value_init)
+        corr_shape = []
+        one_shape = []
         if isinstance(key,int):
             if self.ndim == 1:
                 self.write([key],[value])
@@ -1468,11 +1518,14 @@ cdef class tensor:
                     if self.shape[i] != 1:
                         is_everything = 0
                     inds.append((s,s+1,1))
+                    one_shape.append(1)
                 elif s is Ellipsis:
                     if saw_elips:
                         raise ValueError('CTF PYTHON ERROR: Only one Ellipsis, ..., supported in __setitem__')
                     for j in range(lensl-1,self.ndim):
                         inds.append((0,self.shape[i],1))
+                        corr_shape.append(self.shape[i])
+                        one_shape.append(self.shape[i])
                         i+=1
                     saw_elpis=True
                     is_single_val = 0
@@ -1491,6 +1544,8 @@ cdef class tensor:
                         is_everything = 0
                     inds.append(ind)
                     i+=1
+                    corr_shape.append(ind[1]-ind[0])
+                    one_shape.append(ind[1]-ind[0])
             if lensl != self.ndim:
                 is_single_val = 0
             if is_single_val:
@@ -1500,10 +1555,19 @@ cdef class tensor:
             raise ValueError('CTF PYTHON ERROR: Invalid input to ctf.tensor.__setitem__(input), i.e. ctf.tensor[input]. Only basic slicing and indexing is currently supported')
         for i in range(lensl,self.ndim):
             inds.append((0,self.shape[i],1))
+            corr_shape.append(self.shape[i])
+            one_shape.append(self.shape[i])
         if is_everything:
             #check that value is same everywhere, or this makes no sense
             if isinstance(value,tuple):
-                self.set_all(value[0])
+                if isinstance(value[0],tensor):
+                    self.set_zero()
+                    self += value[0]
+                else:
+                    self.set_all(value[0])
+            elif isinstance(value,tensor):
+                self.set_zero()
+                self += value
             else:
                 self.set_all(value)
         elif is_contig:
@@ -1513,15 +1577,12 @@ cdef class tensor:
                 tval = astensor(value[0])
             else:
                 tval = astensor(value)
-            if np.prod(np.asarray(tval.shape,dtype=np.int32)) == np.prod(np.asarray(ends,dtype=np.int32) - np.asarray(offs,dtype=np.int32)):
-                self.write_slice(offs,ends,tval)
-            else:
-                tsr = self.get_slice(offs,ends)
-                tsr.set_zero()
-                #slens = [l for l in tsr.shape if l != 1]
-                #tsr = tsr.reshape(slens)
-                tsr += tval #.reshape
-                self.write_slice(offs,ends,tsr)
+            #if np.asarray(tval.shape,dtype=np.int32) == np.asarray(ends,dtype=np.int32) - np.asarray(offs,dtype=np.int32):
+            #    self.write_slice(offs,ends,tval)
+            #else:
+            tsr = tensor(corr_shape, dtype=self.dtype, order=self.order) 
+            tsr += tval
+            self.write_slice(offs,ends,tsr.reshape(one_shape))
         else:
             raise ValueError('CTF PYTHON ERROR: strided slice not currently supported')
   
@@ -2074,18 +2135,14 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
                 del ret_shape[axis]
             else:
                 ret_shape[axis] = 1
-            #print(ret_shape)
             begin = 1
             for i in range(axis+1, len(A.shape),1):
                 begin *= A.shape[i]
-            #print(begin)
             next_slot = A.shape[axis] * begin
-            #print(next_slot)
             start = indices * begin
             arange_times = 1
             for i in range(0, axis):
                 arange_times *= A.shape[i]
-            #print(arange_times)
             a = np.arange(start,start+begin)
             start += next_slot
             for i in range(1,arange_times,1):
@@ -2105,7 +2162,6 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             ret_shape = list(A.shape)
             ret_index = 0
             ret_shape[axis] = len(indices)
-            #print(ret_shape)
             begin = np.ones(indices.shape)
             for i in range(axis+1, len(A.shape),1):
                 begin *= A.shape[i]
@@ -2114,7 +2170,6 @@ def take(init_A, indices, axis=None, out=None, mode='raise'):
             arange_times = 1
             for i in range(0, axis):
                 arange_times *= A.shape[i]
-            #print(arange_times)
             a = np.arange(start[0],start[0]+begin[0])
             start[0] += next_slot[0]
             for i in range(1,len(indices),1):
@@ -3449,21 +3504,21 @@ def tensor_pow_helper(tensor tsr, tensor otsr, tensor out_tsr, idx_A, idx_B, idx
     if ord_comp(out_tsr.order, 'F'):
         idx_C = rev_array(idx_C)
     if out_tsr.dtype == np.float64:
-        pow_helper[double](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+        pow_helper[double](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.float32:
-        pow_helper[float](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+        pow_helper[float](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.complex64:
-        pow_helper[complex](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+        pow_helper[complex](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.complex128:
-        pow_helper[complex128_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+        pow_helper[complex128_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.int64:
-        pow_helper[int64_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+        pow_helper[int64_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.int32:
-        pow_helper[int32_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+        pow_helper[int32_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.int16:
-        pow_helper[int16_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+        pow_helper[int16_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.int8:
-        pow_helper[int8_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A, idx_B, idx_C)
+        pow_helper[int8_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
 
 def power(first, second):
     [tsr, otsr] = match_tensor_types(first,second)
@@ -3474,5 +3529,24 @@ def power(first, second):
 
     return out_tsr
 
-
+def abs(initA):
+    cdef tensor A = astensor(initA)
+    cdef tensor oA = tensor(copy=A)
+    if A.dtype == np.float64:
+        abs_helper[double](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.float32:
+        abs_helper[float](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.complex64:
+        abs_helper[complex](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.complex128:
+        abs_helper[complex128_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.int64:
+        abs_helper[int64_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.int32:
+        abs_helper[int32_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.int16:
+        abs_helper[int16_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+    elif A.dtype == np.int8:
+        abs_helper[int8_t](<ctensor*>A.dt, <ctensor*>oA.dt)
+    return oA
 

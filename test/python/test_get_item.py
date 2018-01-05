@@ -6,6 +6,7 @@ import ctf
 def allclose(a, b):
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
 
+np.random.seed(13)
 
 nA = np.random.random((4,4))
 A = ctf.astensor(nA)
