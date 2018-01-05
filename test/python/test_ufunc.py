@@ -3,6 +3,7 @@
 import unittest
 import numpy
 import ctf
+import os
 
 
 def allclose(a, b):
@@ -201,6 +202,10 @@ class KnowValues(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("Tests for ufunc")
-    unittest.main()
+    if ctf.comm().rank() != 0:
+        result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite())
+    else:
+        print("Tests for univeral functions")
+        result = unittest.TextTestRunner().run(unittest.TestSuite())
+    ctf.MPI_Stop()
 

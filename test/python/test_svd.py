@@ -16,10 +16,11 @@ err_nrm = err.norm2()
 if err_nrm > 1.E-6:
   success=False
 
-if success:
-  print("success, norm is ", err_nrm)
-else:
-  print("failure, norm is ", err_nrm)
+if ctf.comm().rank() == 0:
+    if success:
+      print("success, norm is ", err_nrm)
+    else:
+      print("failure, norm is ", err_nrm)
 
 ctf.MPI_Stop()
 

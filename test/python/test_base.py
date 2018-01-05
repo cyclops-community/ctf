@@ -3,11 +3,8 @@
 import unittest
 import numpy
 import ctf
+import os
 
-#import numpy as ctf
-#ctf.from_nparray = numpy.asarray
-#ctf.to_nparray = numpy.asarray
-#ctf.astensor = numpy.asarray
 
 class KnowValues(unittest.TestCase):
     def test_eye(self):
@@ -334,6 +331,9 @@ class KnowValues(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("Base tests")
-    unittest.main()
+    if ctf.comm().rank() != 0:
+        result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite())
+    else:
+        print("Tests for basic numpy ndarray functionality")
+        result = unittest.TextTestRunner().run(unittest.TestSuite())
     ctf.MPI_Stop()

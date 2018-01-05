@@ -388,7 +388,7 @@ namespace CTF_int {
                   bool      unpack=true);
 
        /**
-       * \brief cuts out a slice (block) of this tensor = B
+       * \brief accumulates out a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] offsets_B bottom left corner of block
        * \param[in] ends_B top right corner of block
@@ -457,7 +457,8 @@ namespace CTF_int {
        * \param[out] mapped_data values read
        */
       int read_local(int64_t * num_pair,
-                     char **   mapped_data) const;
+                     char **   mapped_data,
+                     bool      unpack_sym=false) const;
 
       /**
        * \brief read tensor data pairs local to processor that have nonzero values
@@ -465,7 +466,8 @@ namespace CTF_int {
        * \param[out] mapped_data values read
        */
       int read_local_nnz(int64_t * num_pair,
-                         char **   mapped_data) const;
+                         char **   mapped_data,
+                         bool      unpack_sym=false) const;
 
       /**
        * brief copy A into this (B). Realloc if necessary

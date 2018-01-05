@@ -62,11 +62,11 @@ void recursive_matmul(int        n,
     Tensor<> cB = B.slice(off_kj, end_kj, &cdw);
     Matrix<> cC(m/ni, n/nj, NS, cdw);
 
+
     recursive_matmul(n/nj, m/ni, k/nk, cA, cB, cC);
 
     int off_00[2] = {0, 0};
     int end_11[2] = {m/ni, n/nj};
-    
     C.slice(off_ij, end_ij, 1.0, cC, off_00, end_11, 1.0);
     MPI_Comm_free(&ccomm);
   }
