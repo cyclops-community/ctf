@@ -6,10 +6,10 @@ import ctf
 import os
 
 def allclose(a, b):
-    if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-14:
+    if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-10:
       print(ctf.to_nparray(a))
       print(ctf.to_nparray(b))
-    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-14
+    return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() <= 1e-10
 
 
 class KnowValues(unittest.TestCase):
@@ -117,22 +117,22 @@ class KnowValues(unittest.TestCase):
                                  numpy.einsum('mi,mi,mi->m', a0, a0, a0)))
 
     def test_einsum_mix_types(self):
-        a0 = numpy.random.random((5, 1, 4, 2, 3)).astype(numpy.float32)
-        b0 = numpy.random.random((5, 1, 11))
+        a0 = numpy.random.random((5, 1, 4, 2, 3)).astype(numpy.complex)+1j
+        b0 = numpy.random.random((5, 1, 11)).astype(numpy.float32)
         a1 = ctf.astensor(a0)
         b1 = ctf.astensor(b0)
         c0 = numpy.einsum('ijklm,ijn->', a0, b0)
         c1 = ctf.einsum('ijklm,ijn->', a1, b1).to_nparray()
-        self.assertTrue(c1.dtype == numpy.double)
+        self.assertTrue(c1.dtype == numpy.complex)
         self.assertTrue(allclose(c0, c1))
 
 
 if __name__ == "__main__":
     numpy.random.seed(5330);
     if ctf.comm().rank() != 0:
-        result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite())
+        result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     else:
         print("Tests for einsum")
-        result = unittest.TextTestRunner().run(unittest.TestSuite())
+        result = unittest.TextTestRunner().run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     ctf.MPI_Stop()
 

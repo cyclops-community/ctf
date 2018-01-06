@@ -3,6 +3,14 @@
 #include "../include/ctf.hpp"
 namespace CTF_int{
 
+  typedef bool TYPE1;
+  typedef int TYPE2;
+  typedef int64_t TYPE3;
+  typedef float TYPE4;
+  typedef double TYPE5;
+  typedef std::complex<float> TYPE6;
+  typedef std::complex<double> TYPE7;
+
   template <typename dtype>
   void abs_helper(tensor * A, tensor * B){
     char str[A->order];
@@ -96,6 +104,106 @@ namespace CTF_int{
     }
   }
 
+
+/*  template <>
+  void tensor::conv_type<bool, std::complex<float>>(tensor * B){
+    char str[this->order];
+    for (int i=0; i<this->order; i++){
+      str[i] = 'a'+i;
+    }
+    assert(this->order == B->order);
+    B->operator[](str) = CTF::Function<std::complex<float>,bool>([](std::complex<float> a){ return a == std::complex<float>(0.,0.); })(this->operator[](str));
+
+  }*/
+
+#define CONV_FCOMPLEX_INST(ctype,otype) \
+  template <> \
+  void tensor::conv_type<std::complex<ctype>,otype>(tensor * B){ \
+    char str[this->order]; \
+    for (int i=0; i<this->order; i++){ \
+      str[i] = 'a'+i; \
+    } \
+    assert(this->order == B->order); \
+    B->operator[](str) = CTF::Function<otype,std::complex<ctype>>([](otype a){ return std::complex<ctype>(a,0.); })(this->operator[](str)); \
+  }
+
+CONV_FCOMPLEX_INST(float,bool)
+CONV_FCOMPLEX_INST(float,int)
+CONV_FCOMPLEX_INST(float,int64_t)
+CONV_FCOMPLEX_INST(float,float)
+CONV_FCOMPLEX_INST(float,double)
+CONV_FCOMPLEX_INST(double,bool)
+CONV_FCOMPLEX_INST(double,int)
+CONV_FCOMPLEX_INST(double,int64_t)
+CONV_FCOMPLEX_INST(double,float)
+CONV_FCOMPLEX_INST(double,double)
+
+
+#define SWITCH_TYPE(T1, type_idx2, A, B) \
+  switch (type_idx2){ \
+    case 1: \
+      A->conv_type<TYPE##T1, TYPE1>(B); \
+      break; \
+    case 2: \
+      A->conv_type<TYPE##T1, TYPE2>(B); \
+      break; \
+    case 3: \
+      A->conv_type<TYPE##T1, TYPE3>(B); \
+      break; \
+    case 4: \
+      A->conv_type<TYPE##T1, TYPE4>(B); \
+      break; \
+    case 5: \
+      A->conv_type<TYPE##T1, TYPE5>(B); \
+      break; \
+    case 6: \
+      A->conv_type<TYPE##T1, TYPE6>(B); \
+      break; \
+    case 7: \
+      A->conv_type<TYPE##T1, TYPE7>(B); \
+      break; \
+    \
+    default: \
+      assert(0); \
+      break; \ 
+  }
+
+  void conv_type(int type_idx1, int type_idx2, tensor * A, tensor * B){
+    switch (type_idx1){
+      case 1:
+        SWITCH_TYPE(1, type_idx2, A, B);
+        break;
+
+      case 2:
+        SWITCH_TYPE(2, type_idx2, A, B);
+        break;
+
+      case 3:
+        SWITCH_TYPE(3, type_idx2, A, B);
+        break;
+
+      case 4:
+        SWITCH_TYPE(4, type_idx2, A, B);
+        break;
+
+      case 5:
+        SWITCH_TYPE(5, type_idx2, A, B);
+        break;
+
+      case 6:
+        SWITCH_TYPE(6, type_idx2, A, B);
+        break;
+
+      case 7:
+        SWITCH_TYPE(7, type_idx2, A, B);
+        break;
+
+      default:
+        assert(0);
+        break;
+    }
+  }
+
 	// get the real number
 	template void get_real<double>(tensor * A, tensor * B);
 	// get the imag number
@@ -127,15 +235,7 @@ namespace CTF_int{
 	// >= (add more dtype)
  	template void tensor::larger_equal_than<double>(tensor * A, tensor * B);
  	template void tensor::larger_equal_than<bool>(tensor * A, tensor * B);
- 
-	// convert type (add more dtype) 
-	template void tensor::conv_type<double, bool>(tensor* B);
-  template void tensor::conv_type<bool, double>(tensor* B);
-	template void tensor::conv_type<double, int64_t>(tensor* B);
-	template void tensor::conv_type<int64_t, double>(tensor* B);
-	template void tensor::conv_type<int32_t, double>(tensor* B);
-	template void tensor::conv_type<double, std::complex<double>>(tensor* B);
-	template void tensor::conv_type<double, std::complex<long double>>(tensor* B);
+
 
   // exp_helper
 	template void tensor::exp_helper<int16_t, float>(tensor* A);

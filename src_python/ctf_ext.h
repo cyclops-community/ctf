@@ -60,4 +60,14 @@ namespace CTF_int{
   int64_t sum_bool_tsr(tensor * A);
 
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank);
+
+  /**
+   * \brief convert tensor from one type to another
+   * \param[in] type_idx1 index of first ype
+   * \param[in] type_idx2 index of second ype
+   * \param[in] A tensor to convert
+   * \param[in] B tensor to convert to
+   */
+  void conv_type(int type_idx1, int type_idx2, tensor * A, tensor * B);
+
 }
