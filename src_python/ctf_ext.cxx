@@ -10,6 +10,8 @@ namespace CTF_int{
   typedef double TYPE5;
   typedef std::complex<float> TYPE6;
   typedef std::complex<double> TYPE7;
+  typedef int16_t TYPE8;
+  typedef int8_t TYPE9;
 
   template <typename dtype>
   void abs_helper(tensor * A, tensor * B){
@@ -128,11 +130,15 @@ namespace CTF_int{
   }
 
 CONV_FCOMPLEX_INST(float,bool)
+CONV_FCOMPLEX_INST(float,int8_t)
+CONV_FCOMPLEX_INST(float,int16_t)
 CONV_FCOMPLEX_INST(float,int)
 CONV_FCOMPLEX_INST(float,int64_t)
 CONV_FCOMPLEX_INST(float,float)
 CONV_FCOMPLEX_INST(float,double)
 CONV_FCOMPLEX_INST(double,bool)
+CONV_FCOMPLEX_INST(double,int8_t)
+CONV_FCOMPLEX_INST(double,int16_t)
 CONV_FCOMPLEX_INST(double,int)
 CONV_FCOMPLEX_INST(double,int64_t)
 CONV_FCOMPLEX_INST(double,float)
@@ -161,6 +167,14 @@ CONV_FCOMPLEX_INST(double,double)
       break; \
     case 7: \
       A->conv_type<TYPE##T1, TYPE7>(B); \
+      break; \
+    \
+    case 8: \
+      A->conv_type<TYPE##T1, TYPE8>(B); \
+      break; \
+    \
+    case 9: \
+      A->conv_type<TYPE##T1, TYPE9>(B); \
       break; \
     \
     default: \
@@ -196,6 +210,14 @@ CONV_FCOMPLEX_INST(double,double)
 
       case 7:
         SWITCH_TYPE(7, type_idx2, A, B);
+        break;
+
+      case 8:
+        SWITCH_TYPE(8, type_idx2, A, B);
+        break;
+
+      case 9:
+        SWITCH_TYPE(9, type_idx2, A, B);
         break;
 
       default:
