@@ -45,6 +45,8 @@ type_index[np.float32] = 4
 type_index[np.float64] = 5
 type_index[np.complex64] = 6
 type_index[np.complex128] = 7
+type_index[np.int16] = 8
+type_index[np.int8] = 9
 
 cdef int is_mpi_init=0
 MPI_Initialized(<int*>&is_mpi_init)
@@ -1234,6 +1236,13 @@ cdef class tensor:
         inds = buf['a']
         return inds, vals
 
+    def dot(self, other, out=None):
+        return dot(self,other,out)
+
+    def tensordot(self, other, axes):
+        return tensordot(self,other,axes)
+
+
     def read_local_nnz(self):
         cdef int64_t * cinds
         cdef char * data
@@ -2310,97 +2319,46 @@ def astensor(A, dtype = None, order=None):
     return t
 
 def dot(tA, tB, out=None):
-    # there will be error when using "type(A)==complex" since there seems confliction between Cython complex and Python complex... 
     if out is not None:
         raise ValueError("now ctf does not support to specify out")
-    
-    if type(tA)==tensor:
-        if tA.ndim == 0:
-            arr = np.ndarray(1, dtype = tA.dtype)
-            tA.read_all(arr)
-            A = arr[0]
-        else:
-            A = tA
-    else:
-        A = tA
- 
-    if type(tB)==tensor:
-        if tB.ndim == 0:
-            arr = np.ndarray(1, dtype = tB.dtype)
-            tB.read_all(arr)
-            B = arr[0]
-        else:
-            B = tB
-    else:
-        B = tB
-    if (isinstance(A, (np.int, np.float, np.complex, np.number)) and 
-        isinstance(B, (np.int, np.float, np.complex, np.number))):
-        return A * B
-    elif type(A)==tensor and type(B)!=tensor:
-        ret_dtype = None
-        if (A.dtype == np.int8 or A.dtype == np.int16 or A.dtype == np.int32 or A.dtype == np.int64) and type(B) == int:
-            ret_dtype = np.int64
-        elif (A.dtype == np.float32 or A.dtype == np.float64) and type(B) == int:
-            ret_dtype = np.float64
-        elif A.dtype == np.complex128 and type(B) == int:
-            ret_dtype = np.complex128
-        elif (A.dtype == np.int8 or A.dtype == np.int16 or A.dtype == np.int32 or A.dtype == np.int64) and type(B) == float:
-            ret_dtype = np.float64
-        elif (A.dtype == np.float32 or A.dtype == np.float64) and type(B) == float:
-            ret_dtype = np.float64
-        elif A.dtype == np.complex128 and type(B) == float:
-            ret_dtype = np.complex128
-        else:
-            raise ValueError("other types is not supported in ctf, also if the input contain python complex")
-        if A.dtype == ret_dtype:
-            temp = A
-        else:
-            temp = A.astype(ret_dtype)
-        string_index = 33
-        string = ""
-        for i in range(len(A.shape)):
-            string += chr(string_index)
-            string_index += 1
-        ret = tensor(A.shape, dtype = ret_dtype)
-        ret.i(string) << B * temp.i(string)
-        return ret
-    elif type(A)!=tensor and type(B)==tensor:
-        ret_dtype = None
-        if (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64) and type(A) == int:
-            ret_dtype = np.int64
-        elif (B.dtype == np.float32 or B.dtype == np.float64) and type(A) == int:
-            ret_dtype = np.float64
-        elif B.dtype == np.complex128 and type(A) == int:
-            ret_dtype = np.complex128
-        elif (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64) and type(A) == float:
-            ret_dtype = np.float64
-        elif (B.dtype == np.float32 or B.dtype == np.float64) and type(A) == float:
-            ret_dtype = np.float64
-        elif B.dtype == np.complex128 and type(A) == float:
-            ret_dtype = np.complex128
-        else:
-            raise ValueError("other types is not supported in ctf, also if the input contain python complex")
-        if ret_dtype == B.dtype:
-            temp = B
-        else:
-            temp = B.astype(ret_dtype)
-        string_index = 33
-        string = ""
-        for i in range(len(B.shape)):
-            string += chr(string_index)
-            string_index += 1
-        ret = tensor(B.shape, dtype = ret_dtype)
-        ret.i(string) << A * temp.i(string)
-        return ret
-    elif type(A)==tensor and type(B)==tensor:
-        return tensordot(A, B, axes=([-1],[0]))
-    else:
-        return tensordot(astensor(A), astensor(B), axes=([-1],[0]))
+
+    if (isinstance(tA, (np.int, np.float, np.complex, np.number)) and 
+        isinstance(tB, (np.int, np.float, np.complex, np.number))):
+        return tA * tB
+
+    A = astensor(tA)
+    B = astensor(tB)
+    #elif type(A)==tensor and type(B)!=tensor:
+    #    ret_dtype = get_np_dtype([A.dtype, type(B)])
+
+    #    if A.dtype == ret_dtype:
+    #        temp = A
+    #    else:
+    #        temp = A.astype(ret_dtype)
+    #    string = get_num_str(len(A.shape))
+    #    ret = tensor(A.shape, dtype = ret_dtype)
+    #    ret.i(string) << B * temp.i(string)
+    #    return ret
+    #elif type(A)!=tensor and type(B)==tensor:
+    #    ret_dtype = get_np_dtype([type(A), B.dtype])
+
+    #    if ret_dtype == B.dtype:
+    #        temp = B
+    #    else:
+    #        temp = B.astype(ret_dtype)
+    #    string = get_num_str(len(A.shape))
+    #    ret = tensor(B.shape, dtype = ret_dtype)
+    #    ret.i(string) << A * temp.i(string)
+    #    return ret
+    #elif type(A)==tensor and type(B)==tensor:
+    return tensordot(A, B, axes=([-1],[0]))
+    #else:
+    #    return tensordot(astensor(A), astensor(B), axes=([-1],[0]))
 #        raise ValueError("Wrong Type")
 
-def tensordot(A, B, axes=2):
-    if not isinstance(A, tensor) or not isinstance(B, tensor):
-        raise ValueError("Both should be tensors")
+def tensordot(tA, tB, axes=2):
+    A = astensor(tA)
+    B = astensor(tB)
     
     # when axes equals integer
     #if type(axes) == int and axes <= 0:
@@ -2408,7 +2366,7 @@ def tensordot(A, B, axes=2):
         #C = tensor(ret_shape, dtype = np.float64)
         #C.i("abcdefg") << A.i("abcd") * B.i("efg")
         #return C
-    elif isinstance(axes, (int, np.integer)):
+    if isinstance(axes, (int, np.integer)):
         if axes > len(A.shape) or axes > len(B.shape):
             raise ValueError("tuple index out of range")
         for i in range(axes):
@@ -2417,41 +2375,8 @@ def tensordot(A, B, axes=2):
         new_shape = A.shape[0:len(A.shape)-axes] + B.shape[axes:len(B.shape)]
 
         # following is to check the return tensor type
-        new_dtype = A.dtype
-        if (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
-            if str(new_dtype) < str(B.dtype):
-                new_dtype = B.dtype
-        elif (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
-            if B.dtype == np.float128:
-                new_dtype = np.float128
-            else:
-                new_dtype = np.float64
-        elif (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256):
-            if B.dtype == np.complex256:
-                new_dtype = np.complex256
-            else:
-                new_dtype = np.complex128
-        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
-            if new_dtype != np.float128:
-                new_dtype = np.float64
-        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
-            if str(new_dtype) < str(B.dtype):
-                new_dtype = B.dtype
-        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256):
-            if B.dtype == np.complex256:
-                new_dtype = np.complex256
-            else:
-                new_dtype = np.complex128
-        elif (new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
-            if new_dtype != np.complex256:
-                new_dtype = np.complex128
-        elif (new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
-            if new_dtype != np.complex256:
-                new_dtype = np.complex128
-        elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
-            if str(new_dtype) < str(B.dtype):
-                new_dtype = B.dtype
-        
+        new_dtype = get_np_dtype([A.dtype, B.dtype])
+       
         if axes <= 0:
             ret_shape = A.shape + B.shape
             C = tensor(ret_shape, dtype = new_dtype)
@@ -2552,40 +2477,8 @@ def tensordot(A, B, axes=2):
         for i in range(len(axes_arr[0])):
             if A.shape[axes_arr[0][i]] != B.shape[axes_arr[1][i]]:
                 raise ValueError("shape mismatch")
-        new_dtype = A.dtype
-        if (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
-            if str(new_dtype) < str(B.dtype):
-                new_dtype = B.dtype
-        elif (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
-            if B.dtype == np.float128:
-                new_dtype = np.float128
-            else:
-                new_dtype = np.float64
-        elif (new_dtype == np.int8 or new_dtype == np.int16 or new_dtype == np.int32 or new_dtype == np.int64) and (B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256):
-            if B.dtype == np.complex256:
-                new_dtype = np.complex256
-            else:
-                new_dtype = np.complex128
-        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
-            if new_dtype != np.float128:
-                new_dtype = np.float64
-        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
-            if str(new_dtype) < str(B.dtype):
-                new_dtype = B.dtype
-        elif (new_dtype == np.float16 or new_dtype == np.float32 or new_dtype == np.float64 or new_dtype == np.float128) and (B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256):
-            if B.dtype == np.complex256:
-                new_dtype = np.complex256
-            else:
-                new_dtype = np.complex128
-        elif (new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256) and (B.dtype == np.int8 or B.dtype == np.int16 or B.dtype == np.int32 or B.dtype == np.int64):
-            if new_dtype != np.complex256:
-                new_dtype = np.complex128
-        elif (new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256) and (B.dtype == np.float16 or B.dtype == np.float32 or B.dtype == np.float64 or B.dtype == np.float128):
-            if new_dtype != np.complex256:
-                new_dtype = np.complex128
-        elif new_dtype == np.complex64 or new_dtype == np.complex128 or new_dtype == np.complex256 and B.dtype == np.complex64 or B.dtype == np.complex128 or B.dtype == np.complex256:
-            if str(new_dtype) < str(B.dtype):
-                new_dtype = B.dtype
+        new_dtype = get_np_dtype([A.dtype, B.dtype])
+
         # start manage the string input for .i()
         string_index = 33
         A_str = ""
