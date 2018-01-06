@@ -37,6 +37,14 @@ cdef extern from "mpi.h":# namespace "MPI":
     int MPI_Initialized(int *)
     void MPI_Finalize()
 
+type_index = {}
+type_index[np.bool] = 1
+type_index[np.int32] = 2
+type_index[np.int64] = 3
+type_index[np.float32] = 4
+type_index[np.float64] = 5
+type_index[np.complex64] = 6
+type_index[np.complex128] = 7
 
 cdef int is_mpi_init=0
 MPI_Initialized(<int*>&is_mpi_init)
@@ -134,6 +142,7 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void get_real[dtype](ctensor * A, ctensor * B)
     cdef void get_imag[dtype](ctensor * A, ctensor * B)
     cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     
 cdef extern from "ctf.hpp" namespace "CTF":
 
@@ -252,11 +261,17 @@ cdef class comm:
 
 cdef class term:
     cdef Term * tm
+    cdef cnp.dtype dtype
+    property dtype:
+        def __get__(self):
+            return self.dtype
 
     def scale(self, scl):
         self.tm = (deref(self.tm) * <double>scl).clone()
 
     def __add__(self, other):
+        if other.dtype != self.dtype:
+            other = tensor(copy=other,dtype=self.dtype)
         return sum_term(self,other)
 
     def __mul__(first, second):
@@ -273,13 +288,61 @@ cdef class term:
     def __dealloc__(self):
         del self.tm
 
+    def conv_type(self, dtype):
+        raise ValueError("CTF PYTHON ERROR: in abstract conv_type function")
+
+    def __repr__(self):
+        raise ValueError("CTF PYTHON ERROR: in abstract __repr__ function")
+
 cdef class contract_term(term):
-    def __cinit__(self, term b, term a):
-        self.tm = new Contract_Term(b.tm.clone(), a.tm.clone())
+    cdef term a
+    cdef term b
+
+    def __cinit__(self, term a, term b):
+        self.a = a
+        self.b = b
+        self.dtype = get_np_dtype([a.dtype,b.dtype])
+        if self.dtype != a.dtype:
+            self.a.conv_type(self.dtype)
+        if self.dtype != b.dtype:
+            self.b.conv_type(self.dtype)
+        self.tm = new Contract_Term(self.a.tm.clone(), self.b.tm.clone())
+    
+    def conv_type(self, dtype):
+        self.a.conv_type(dtype)
+        self.b.conv_type(dtype)
+        self.dtype = dtype
+        del self.tm
+        self.tm = new Contract_Term(self.a.tm.clone(), self.b.tm.clone())
+
+    def __repr__(self):
+        return "a is" + self.a.__repr__() + "b is" + self.b.__repr__()
 
 cdef class sum_term(term):
-    def __cinit__(self, term b, term a):
-        self.tm = new Sum_Term(b.tm.clone(), a.tm.clone())
+    cdef term a
+    cdef term b
+
+    def __cinit__(self, term a, term b):
+        self.a = a
+        self.b = b
+        self.dtype = get_np_dtype([a.dtype,b.dtype])
+        if self.dtype != a.dtype:
+            self.a.conv_type(self.dtype)
+        if self.dtype != b.dtype:
+            self.b.conv_type(self.dtype)
+        self.tm = new Sum_Term(self.a.tm.clone(), self.b.tm.clone())
+
+    def conv_type(self, dtype):
+        self.a.conv_type(dtype)
+        self.b.conv_type(dtype)
+        self.dtype = dtype
+        del self.tm
+        self.tm = new Sum_Term(self.a.tm.clone(), self.b.tm.clone())
+
+    def __repr__(self):
+        return "a is" + self.a.__repr__() + "b is" + self.b.__repr__()
+
+
 
 cdef class itensor(term):
     cdef Idx_Tensor * it
@@ -294,8 +357,21 @@ cdef class itensor(term):
         def __get__(self):
             return self.string
 
+    def conv_type(self, dtype):
+        self.tsr = tensor(copy=self.tsr,dtype=dtype)
+        self.it = new Idx_Tensor(self.tsr.dt, self.string.encode())
+        self.dtype = dtype
+        del self.tm
+        self.tm = self.it
+
+    def __repr__(self):
+        return "tsr is" + self.tsr.__repr__()
+
+
     def __lshift__(self, other):
         if isinstance(other, term):
+            if other.dtype != self.dtype:
+                other.conv_type(self.dtype)
             deref((<itensor>self).it) << deref((<term>other).tm)
         else:
             tsr_copy = tensor(copy=self.tsr)
@@ -327,6 +403,7 @@ cdef class itensor(term):
         self.tm = self.it
         self.tsr = a
         self.string = string
+        self.dtype = a.dtype
 
     def scl(self, s):
         self.it.multeq(s)
@@ -404,20 +481,8 @@ cdef class tensor:
     
     # convert the type of self and store the elements in self to B
     def convert_type(tensor self, tensor B):
-        if self.dtype == np.float64 and B.dtype == np.bool:
-            self.dt.conv_type[double,bool](<ctensor*> B.dt)
-        elif self.dtype == np.bool and B.dtype == np.float64:
-            self.dt.conv_type[bool,double](<ctensor*> B.dt)
-        elif self.dtype == np.float64 and B.dtype == np.float64:
-            self.dt.conv_type[double,double](<ctensor*> B.dt)
-        elif self.dtype == np.float64 and B.dtype == np.int64:
-            self.dt.conv_type[double,int64_t](<ctensor*> B.dt)
-        elif self.dtype == np.float64 and B.dtype == np.complex128:
-            self.dt.conv_type[double,complex](<ctensor*> B.dt)
-        elif self.dtype == np.int64 and B.dtype == np.float64:
-            self.dt.conv_type[int64_t,double](<ctensor*> B.dt)
-        elif self.dtype == np.int32 and B.dtype == np.float64:
-            self.dt.conv_type[int32_t,double](<ctensor*> B.dt)
+        conv_type(type_index[self.dtype], type_index[B.dtype], <ctensor*>self.dt, <ctensor*>B.dt);
+
     # get "shape" or dimensions of the ctensor
     def get_dims(self):
         return self.shape

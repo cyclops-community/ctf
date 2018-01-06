@@ -42,8 +42,8 @@ class KnowValues(unittest.TestCase):
 
 if __name__ == "__main__":
     if ctf.comm().rank() != 0:
-        result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite())
+        result = unittest.TextTestRunner(stream = open(os.devnull, 'w')).run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     else:
         print("Tests for dot")
-        result = unittest.TextTestRunner().run(unittest.TestSuite())
+        result = unittest.TextTestRunner().run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     ctf.MPI_Stop()

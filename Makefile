@@ -136,20 +136,20 @@ python_uninstall:
 .PHONY: python_test
 .NOTPARALLEL: python_test
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test: python_base_test python_einsum_test python_ufunc_test python_dot_test python_svd_test 
+python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_svd_test 
 	echo "Cyclops Python tests completed."
 else
-python_test: python_base_test python_einsum_test python_ufunc_test python_dot_test 
+python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test 
 	echo "Cyclops Python tests completed."
 endif
 
 .PHONY: python_test%
 .NOTPARALLEL: python_test%
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test%: python_base_test% python_einsum_test% python_ufunc_test% python_dot_test% python_svd_test%
+python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_svd_test%
 	echo "Cyclops Python tests completed."
 else
-python_test%: python_base_test% python_einsum_test% python_ufunc_test% python_dot_test%
+python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test%
 	echo "Cyclops Python tests completed."
 endif
 
@@ -207,10 +207,10 @@ test_live: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
 
 
-$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk Makefile
+$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk Makefile src_python/ctf_ext.cxx src_python/ctf_ext.h
 	$(MAKE) ctflib
 
-$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk Makefile
+$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk Makefile src_python/ctf_ext.cxx src_python/ctf_ext.h
 	$(MAKE) ctflibso
 	
 test: test_suite
