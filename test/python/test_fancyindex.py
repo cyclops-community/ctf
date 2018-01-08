@@ -55,16 +55,19 @@ class KnowValues(unittest.TestCase):
         a1[3] = 99
         a0[3] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[3], a0[3]))
 
         a0, a1 = a0_and_a1()
         a1[3] = a0[3] + 11
         a0[3] += 11
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[3], a0[3]))
 
         a0, a1 = a0_and_a1()
         a1[(3,1)] = 99
         a0[3,1] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[3,1], a0[3,1]))
 
         #a0, a1 = a0_and_a1()
         #a1[(3,1)] = a0[3,1] + 11
@@ -74,21 +77,25 @@ class KnowValues(unittest.TestCase):
         a1[1:3:2] = 99
         a0[1:3:2] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[1:3:2], a0[1:3:2]))
 
         a0, a1 = a0_and_a1()
         a1[:,1:] = 99
         a0[:,1:] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[:,1:], a0[:,1:]))
 
         a0, a1 = a0_and_a1()
         a1[:,:1] = 99
         a0[:,:1] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[:,:1], a0[:,:1]))
 
         a0, a1 = a0_and_a1()
         a1[:,:1] = a0[:,:1] + 11
         a0[:,:1] += 11
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[:,:1], a0[:,:1]))
 
         #a0, a1 = a0_and_a1()
         #a1[[3,1]] = 99
@@ -104,36 +111,43 @@ class KnowValues(unittest.TestCase):
         a1[1:3,2:3] = 99
         a0[1:3,2:3] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[1:3,2:3], a0[1:3,2:3]))
 
         a0, a1 = a0_and_a1()
         a1[1:3,2:5] = 99
         a0[1:3,2:5] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[1:3,2:5], a0[1:3,2:5]))
 
         a0, a1 = a0_and_a1()
         a1[1:3,2:5] = a0[1:3,2:5] + 11
         a0[1:3,2:5] += 11
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[1:3,2:5], a0[1:3,2:5]))
 
         a0, a1 = a0_and_a1()
         a1[1:-2] = 99
         a0[1:-2] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[1:-2], a0[1:-2]))
 
         a0, a1 = a0_and_a1()
         a1[1:3,:,2:] = 99
         a0[1:3,:,2:] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[1:3,:,2:], a0[1:3,:,2:]))
 
         a0, a1 = a0_and_a1()
         a1[1:3,:,2:] = a0[1:3,:,2:] + 11
         a0[1:3,:,2:] += 11
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[1:3,:,2:], a0[1:3,:,2:]))
 
         a0, a1 = a0_and_a1()
         a1[...,1] = 99
         a0[...,1] = 99
         self.assertTrue(allclose(a1, a0))
+        self.assertTrue(allclose(a1[...,1], 99))
 
         #with self.assertRaises(IndexError):
         #    a1[[3,6]] = 99

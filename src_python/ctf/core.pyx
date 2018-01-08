@@ -1422,104 +1422,7 @@ cdef class tensor:
         free(coffs)
         free(clens)
         return A
-
-    # implements basic indexing and slicing as per numpy.ndarray
-    # indexing can be done to different values with each process, as it produces a local scalar, but slicing must be the same globally, as it produces a global CTF ctensor
-    def __getitem__(self, key_init):
-        is_everything = 1
-        is_contig = 1
-        inds = []
-        lensl = 1
-        key = deepcopy(key_init)
-        new_shape = []
-
-        if isinstance(key,int):
-            if self.ndim == 1:
-                vals = self.read([key])
-                return vals[0]
-            else:
-                key = (key,)
-        if isinstance(key,slice):
-            key = (key,)
-            #s = key
-            #ind = s.indices(self.shape[0])
-            #if ind[2] != 1:
-            #    is_everything = 0
-            #    is_contig = 0
-            #if ind[1] != self.shape[0]:
-            #    is_everything = 0
-            #inds.append(s.indices())
-        if key is Ellipsis:
-            key = (key,)
-        if isinstance(key,tuple):
-            lensl = len(key)
-            i=0
-            is_single_val = 1
-            saw_elips=False
-            for s in key:
-                if isinstance(s,int):
-                    if self.shape[i] != 1:
-                        is_everything = 0
-                    inds.append((s,s+1,1))
-                    i+=1
-                elif s is Ellipsis:
-                    if saw_elips:
-                        raise ValueError('CTF PYTHON ERROR: Only one Elllipsis, ..., supported in __getitem__')
-                    for j in range(lensl-1,self.ndim):
-                        inds.append((0,self.shape[i],1))
-                        new_shape.append(self.shape[i])
-                        i+=1
-                    saw_elpis=True
-                    is_single_val = 0
-                    lensl = self.ndim
-                else:
-                    is_single_val = 0
-                    ind = s.indices(self.shape[i])
-                    if ind[2] != 1:
-                        is_everything = 0
-                        is_contig = 0
-                    if ind[1] != self.shape[i]:
-                        is_everything = 0
-                    if ind[0] != 0:
-                        is_everything = 0
-                    inds.append(ind)
-                    new_shape.append(ind[1]-ind[0])
-                    i+=1
-            if lensl <= self.ndim:
-                is_single_val = 0
-            if is_single_val:
-                vals = self.read([key])
-                return vals[0]
-        else:
-            raise ValueError('CTF PYTHON ERROR: Invalid input to ctf.tensor.__getitem__(input), i.e. ctf.tensor[input]. Only basic slicing and indexing is currently supported')
-        for i in range(lensl,self.ndim):
-            inds.append((0,self.shape[i],1))
-            new_shape.append(self.shape[i])
-        if is_everything:
-            return self
-        if is_contig:
-            offs = [ind[0] for ind in inds]
-            ends = [ind[1] for ind in inds]
-            S = self.get_slice(offs,ends).reshape(new_shape)
-            return S
-        else:
-            raise ValueError('CTF PYTHON ERROR: Invalid input to ctf.tensor.__getitem__(input), i.e. ctf.tensor[input]. Strided access not yet supported.')
-  
-    def set_zero(self):
-        mystr = get_num_str(self.ndim)
-        self.i(mystr).scl(0.0)
-
-    def set_all(self, value):
-        val = np.asarray([value],dtype=self.dtype)[0]
-        cdef char * alpha
-        st = self.itemsize
-        alpha = <char*>malloc(st)
-        na = np.array([val],dtype=self.dtype)
-        for j in range(0,st):
-            alpha[j] = na.view(dtype=np.int8)[j]
-
-        self.dt.set(alpha)
-            
+           
   # bool no itemsize
     def write_slice(self, offsets, ends, init_A, A_offsets=None, A_ends=None, a=None, b=None):
         cdef char * alpha
@@ -1582,85 +1485,53 @@ cdef class tensor:
     def __deepcopy__(self, memo):
         return tensor(self.shape, copy=self)
 
-    def __setitem__(self, key_init, value_init):
-        is_everything = 1
-        is_contig = 1
-        inds = []
-        lensl = 1
-        key = deepcopy(key_init)      
-        value = deepcopy(value_init)
-        corr_shape = []
-        one_shape = []
-        if isinstance(key,int):
-            #if self.ndim == 1:
-            #    self.write([key],[value])
-            #else:
-            key = (key,)
-                #value = (value,)
-        elif isinstance(key,slice):
-            key = (key,)
-            #value = (value,)
-            #s = key
-            #ind = s.indices(self.shape[0])
-            #if ind[2] != 1:
-            #    is_everything = 0
-            #    is_contig = 0
-            #if ind[1] != self.shape[0]:
-            #    is_everything = 0
-            #inds.append(ind)
-        elif key is Ellipsis:
-            key = (key,)
+    # implements basic indexing and slicing as per numpy.ndarray
+    # indexing can be done to different values with each process, as it produces a local scalar, but slicing must be the same globally, as it produces a global CTF ctensor
+    def __getitem__(self, key_init):
+        [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = setgetitem_helper(self, key_init)
+
+        if is_everything:
+            return self
+
+        if is_single_val:
+            vals = self.read([key])
+            return vals[0]
+
+        if is_contig:
+            offs = [ind[0] for ind in inds]
+            ends = [ind[1] for ind in inds]
+            S = self.get_slice(offs,ends).reshape(corr_shape)
+            return S
         else:
-            if not isinstance(key, tuple):
-                raise ValueError("CTF PYTHON ERROR: fancy indexing with non-slice/int/ellipsis-type indices is unsupported and can instead be done via take or read/write")
-            for i in range(len(key)):
-                if not isinstance(key[i], slice) and not isinstance(key[i],int) and key[i] is not Ellipsis:
-                    raise ValueError("CTF PYTHON ERROR: invalid __setitem__ tuple passed, type of elements not recognized")
-        lensl = len(key)
-        i=0
-        is_single_val = 1
-        saw_elips=False
-        for s in key:
-            if isinstance(s,int):
-                if self.shape[i] != 1:
-                    is_everything = 0
-                inds.append((s,s+1,1))
-                one_shape.append(1)
-            elif s is Ellipsis:
-                if saw_elips:
-                    raise ValueError('CTF PYTHON ERROR: Only one Ellipsis, ..., supported in __setitem__')
-                for j in range(lensl-1,self.ndim):
-                    inds.append((0,self.shape[i],1))
-                    corr_shape.append(self.shape[i])
-                    one_shape.append(self.shape[i])
-                    i+=1
-                saw_elpis=True
-                is_single_val = 0
-                lensl = self.ndim
-            else:
-                is_single_val = 0
-                ind = s.indices(self.shape[i])
-                if ind[2] != 1:
-                    is_everything = 0
-                    is_contig = 0
-                if ind[1] != self.shape[i]:
-                    is_everything = 0
-                if ind[0] != 0:
-                    is_everything = 0
-                inds.append(ind)
-                i+=1
-                corr_shape.append(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2])))
-                one_shape.append(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2])))
-        if lensl != self.ndim:
-            is_single_val = 0
+            pB = []
+            for i in range(self.ndim):
+                pB.append(np.arange(inds[i][0],inds[i][1],inds[i][2],dtype=int))
+            tsr = tensor(one_shape, dtype=self.dtype, order=self.order) 
+            tsr.permute(self, p_B=pB)
+            return tsr.reshape(corr_shape)
+
+ 
+    def set_zero(self):
+        mystr = get_num_str(self.ndim)
+        self.i(mystr).scl(0.0)
+
+    def set_all(self, value):
+        val = np.asarray([value],dtype=self.dtype)[0]
+        cdef char * alpha
+        st = self.itemsize
+        alpha = <char*>malloc(st)
+        na = np.array([val],dtype=self.dtype)
+        for j in range(0,st):
+            alpha[j] = na.view(dtype=np.int8)[j]
+
+        self.dt.set(alpha)
+ 
+    def __setitem__(self, key_init, value_init):
+        value = deepcopy(value_init)
+        [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape] = setgetitem_helper(self, key_init)
         if is_single_val:
             self.write([key],np.asarray(value,dtype=self.dtype))
             return
-        for i in range(lensl,self.ndim):
-            inds.append((0,self.shape[i],1))
-            corr_shape.append(self.shape[i])
-            one_shape.append(self.shape[i])
-
         if isinstance(value, (np.int, np.float, np.complex, np.number)):
             tval = np.asarray([value],dtype=self.dtype)[0]
         else:
@@ -1691,41 +1562,7 @@ cdef class tensor:
             else:
                 tsr.set_all(value)
             self.permute(tsr.reshape(one_shape), pA)
-# 
-#
-#
-#
-#        else:
-#            lensl = len(key)
-#            for i, s in key:
-#                ind = s.indices(self.shape[i])
-#                if ind[2] != 1:
-#                    is_everything = 0
-#                    is_contig = 0
-#                if ind[1] != self.shape[i]:
-#                    is_everything = 0
-#                inds.append(ind)
-#        for i in range(lensl,len(self.shape)):
-#            inds.append(slice(0,self.shape[i],1))
-#        mystr = ''
-#        for i in range(len(self.shape)):
-#            mystr += chr(i)
-#        if is_everything == 1:
-#            self.i(mystr).scale(0.0)
-#            if isinstance(value,tensor):
-#                self.i(mystr) << value.i(mystr)
-#            else:
-#                nv = np.asarray(value)
-#                self.i(mystr) << astensor(nv).i('')
-#        elif is_contig:
-#            offs = [ind[0] for ind in inds]
-#            ends = [ind[1] for ind in inds]
-#            sl = tensor(ends-offs)
-#            if isinstance(value,tensor):
-#                sl.i(mystr) << value.i(mystr)
-#            else:
-#                sl.i(mystr) << astensor(value).i(mystr)
-#            self.write_slice(offs,ends,sl)
+
     def trace(self, offset=0, axis1=0, axis2=1, dtype=None, out=None):
         return trace(self, offset, axis1, axis2, dtype, out)
 
@@ -3534,4 +3371,69 @@ def abs(initA):
     elif A.dtype == np.int8:
         abs_helper[int8_t](<ctensor*>A.dt, <ctensor*>oA.dt)
     return oA
+
+
+def setgetitem_helper(obj, key_init):
+    is_everything = 1
+    is_contig = 1
+    inds = []
+    lensl = 1
+    key = deepcopy(key_init)      
+    corr_shape = []
+    one_shape = []
+    if isinstance(key,int):
+        key = (key,)
+    elif isinstance(key,slice):
+        key = (key,)
+    elif key is Ellipsis:
+        key = (key,)
+    else:
+        if not isinstance(key, tuple):
+            raise ValueError("CTF PYTHON ERROR: fancy indexing with non-slice/int/ellipsis-type indices is unsupported and can instead be done via take or read/write")
+        for i in range(len(key)):
+            if not isinstance(key[i], slice) and not isinstance(key[i],int) and key[i] is not Ellipsis:
+                raise ValueError("CTF PYTHON ERROR: invalid __setitem__/__getitem__ tuple passed, type of elements not recognized")
+    lensl = len(key)
+    i=0
+    is_single_val = 1
+    saw_elips=False
+    for s in key:
+        if isinstance(s,int):
+            if obj.shape[i] != 1:
+                is_everything = 0
+            inds.append((s,s+1,1))
+            one_shape.append(1)
+            i+=1
+        elif s is Ellipsis:
+            if saw_elips:
+                raise ValueError('CTF PYTHON ERROR: Only one Ellipsis, ..., supported in __setitem__ and __getitem__')
+            for j in range(lensl-1,obj.ndim):
+                inds.append((0,obj.shape[i],1))
+                corr_shape.append(obj.shape[i])
+                one_shape.append(obj.shape[i])
+                i+=1
+            saw_elpis=True
+            is_single_val = 0
+            lensl = obj.ndim
+        else:
+            is_single_val = 0
+            ind = s.indices(obj.shape[i])
+            if ind[2] != 1:
+                is_everything = 0
+                is_contig = 0
+            if ind[1] != obj.shape[i]:
+                is_everything = 0
+            if ind[0] != 0:
+                is_everything = 0
+            inds.append(ind)
+            i+=1
+            corr_shape.append(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2])))
+            one_shape.append(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2])))
+    if lensl != obj.ndim:
+        is_single_val = 0
+    for i in range(lensl,obj.ndim):
+        inds.append((0,obj.shape[i],1))
+        corr_shape.append(obj.shape[i])
+        one_shape.append(obj.shape[i])
+    return [key, is_everything, is_single_val, is_contig, inds, corr_shape, one_shape]
 
