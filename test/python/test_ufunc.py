@@ -200,6 +200,32 @@ class KnowValues(unittest.TestCase):
         a1[2:,:,1] = b1[:,1]
         self.assertTrue(allclose(a1, a0))
 
+    def test_get_item(self):
+        a0 = numpy.arange(24.).reshape(4,3,2) + 400.
+        b0 = numpy.arange(6.).reshape(3,2)
+        a1 = ctf.astensor(a0).copy()
+        b1 = ctf.astensor(b0).copy()
+        b0 = a0[:]
+        b1 = a1[:]
+        self.assertTrue(allclose(b1, b0))
+
+        a0 = numpy.arange(24.).reshape(4,3,2) + 400.
+        b0 = numpy.arange(6.).reshape(3,2)
+        a1 = ctf.astensor(a0).copy()
+        b1 = ctf.astensor(b0).copy()
+        b0 = a0[1:,1]
+        b1 = a1[1:,1]
+        self.assertTrue(allclose(b1, b0))
+
+        a0 = numpy.arange(24.).reshape(4,3,2) + 400.
+        b0 = numpy.arange(6.).reshape(3,2)
+        a1 = ctf.astensor(a0).copy()
+        b1 = ctf.astensor(b0).copy()
+        b0[:,1] = a0[2,:,1] 
+        b1[:,1] = a1[2,:,1]
+        self.assertTrue(allclose(b1, b0))
+
+
 
 if __name__ == "__main__":
     if ctf.comm().rank() != 0:
