@@ -379,26 +379,6 @@ cdef class itensor(term):
             tsr_copy = tensor(copy=self.tsr)
             tsr_copy.set_all(other)
             deref((<itensor>self).it) << deref(itensor(tsr_copy,self.string).it)
-#            if self.dtype == np.float64:
-#            elif self.dtype == np.float32:
-#                deref((<itensor>self).it) << <float>other
-#            elif self.dtype == np.complex128:
-#                deref((<itensor>self).it) << <double complex>other
-#            elif self.dtype == np.complex64:
-#                deref((<itensor>self).it) << <complex>other
-#            elif self.dtype == np.bool:
-#                deref((<itensor>self).it) << <bool>other
-#            elif self.dtype == np.int64:
-#                deref((<itensor>self).it) << <int64_t>other
-#            elif self.dtype == np.int32:
-#                deref((<itensor>self).it) << <int32_t>other
-#            elif self.dtype == np.int16:
-#                deref((<itensor>self).it) << <int16_t>other
-#            elif self.dtype == np.int8:
-#                deref((<itensor>self).it) << <int8_t>other
-#            else:
-#                raise ValueError('CTF PYTHON ERROR: bad dtype')
-
 
     def __cinit__(self, tensor a, string):
         self.it = new Idx_Tensor(a.dt, string.encode())
@@ -2165,44 +2145,13 @@ def dot(tA, tB, out=None):
 
     A = astensor(tA)
     B = astensor(tB)
-    #elif type(A)==tensor and type(B)!=tensor:
-    #    ret_dtype = get_np_dtype([A.dtype, type(B)])
 
-    #    if A.dtype == ret_dtype:
-    #        temp = A
-    #    else:
-    #        temp = A.astype(ret_dtype)
-    #    string = get_num_str(len(A.shape))
-    #    ret = tensor(A.shape, dtype = ret_dtype)
-    #    ret.i(string) << B * temp.i(string)
-    #    return ret
-    #elif type(A)!=tensor and type(B)==tensor:
-    #    ret_dtype = get_np_dtype([type(A), B.dtype])
-
-    #    if ret_dtype == B.dtype:
-    #        temp = B
-    #    else:
-    #        temp = B.astype(ret_dtype)
-    #    string = get_num_str(len(A.shape))
-    #    ret = tensor(B.shape, dtype = ret_dtype)
-    #    ret.i(string) << A * temp.i(string)
-    #    return ret
-    #elif type(A)==tensor and type(B)==tensor:
     return tensordot(A, B, axes=([-1],[0]))
-    #else:
-    #    return tensordot(astensor(A), astensor(B), axes=([-1],[0]))
-#        raise ValueError("Wrong Type")
 
 def tensordot(tA, tB, axes=2):
     A = astensor(tA)
     B = astensor(tB)
     
-    # when axes equals integer
-    #if type(axes) == int and axes <= 0:
-        #ret_shape = A.shape + B.shape
-        #C = tensor(ret_shape, dtype = np.float64)
-        #C.i("abcdefg") << A.i("abcd") * B.i("efg")
-        #return C
     if isinstance(axes, (int, np.integer)):
         if axes > len(A.shape) or axes > len(B.shape):
             raise ValueError("tuple index out of range")
@@ -2520,28 +2469,7 @@ def sum(tensor init_A, axis = None, dtype = None, out = None, keepdims = None):
             return ret.reshape(np.ones(tensor.shape))
         else:
             return ret.read_all()[0]
-            #else:
-                # since the type is not same, we need another tensor C change the value of A and use C instead of A
-            #    C = tensor(A.shape, dtype = dtype)
-            #    A.convert_type(C)
-            #    ret = tensor(ret_dim, dtype = dtype)
-            #    ret.i("") << C.i(index_A)
-            #    return ret
-        #else:
-        #    if A.get_type() == np.bool:
-        #        # not sure at this one
-        #        return 0
-        #    else:
-        #        if dtype == A.get_type():
-        #            ret = tensor((1,), dtype = dtype)
-        #            ret.i("") << A.i(index_A)
-        #            vals = ret.read([0])
-        #            return vals[0]
-        #        else:
-        #            C = tensor(A.shape, dtype = dtype)
-        #            A.convert_type(C)
-        #            ret = tensor((1,), dtype = dtype)
-        #            ret.i("") << C.i(index_A)
+
     
     # is the axis is an integer
     if isinstance(axis, (int, np.integer)):
@@ -2873,174 +2801,6 @@ def comp_all(tensor A, axis=None, out=None, keepdims=None):
     if axis is None:
         x = A.bool_sum()
         return x == A.tot_size() 
-        #if out is not None:
-        #    if type(out) != np.ndarray:
-        #        raise ValueError('CTF PYTHON ERROR: output must be an array')
-        #    if out.shape != () and keepdims == False:
-        #        raise ValueError('CTF PYTHON ERROR: output parameter has too many dimensions')
-        #    if keepdims == True:
-        #        dims_keep = []
-        #        for i in range(len(A.shape)):
-        #            dims_keep.append(1)
-        #        dims_keep = tuple(dims_keep)
-        #        if out.shape != dims_keep:
-        #            raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
-        #B = tensor((1,), dtype=np.bool)
-        #index_A = "" 
-        #if A.get_type() == np.float64:
-        #    all_helper[double](<ctensor*>(A.dt), <ctensor*>B.dt, index_A.encode(), "".encode())
-        #elif A.get_type() == np.int64:
-        #    all_helper[int64_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-        #elif A.get_type() == np.int32:
-        #    all_helper[int32_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-        #elif A.get_type() == np.int16:
-        #    all_helper[int16_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-        #elif A.get_type() == np.int8:
-        #    all_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-        #elif A.get_type() == np.bool:
-        #    all_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), "".encode())
-        #if out is not None:
-        #    if out.dtype != B.get_type():
-        #        if keepdims == True:
-        #            dim_keep = np.ones(len(A.shape),dtype=np.int64)
-        #            ret = reshape(B,dim_keep)
-        #        C = tensor((1,), dtype=out.dtype)
-        #        B.convert_type(C)
-        #        n, inds, vals = C.read_local()
-        #        return vals.reshape(out.shape)
-        #    else:
-        #        if keepdims == True:
-        #            dim_keep = np.ones(len(A.shape),dtype=np.int64)
-        #            ret = reshape(B,dim_keep)
-        #            return ret
-        #        n, inds, vals = B.read_local()
-        #        return vals.reshape(out.shape)
-        #if keepdims == True:
-        #    dim_keep = np.ones(len(A.shape),dtype=np.int64)
-        #    ret = reshape(B,dim_keep)
-        #    return ret
-        #n, inds, vals = B.read_local()
-        #return vals[0]
-
-    # when the axis is not None
-    #dim = A.shape
-    #if type(axis) == int:
-    #    if axis < 0:
-    #        axis += len(dim)
-    #    if axis >= len(dim) or axis < 0:
-    #        raise ValueError("'axis' entry is out of bounds")
-    #    dim_ret = np.delete(dim, axis)
-    #    # print(dim_ret)
-    #    if out is not None:
-    #        if type(out) != np.ndarray:
-    #            raise ValueError('CTF PYTHON ERROR: output must be an array')
-    #        if len(dim_ret) != len(out.shape):
-    #            raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
-    #        for i in range(len(dim_ret)):
-    #            if dim_ret[i] != out.shape[i]:
-    #                raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
-    #    dim_keep = None
-    #    if keepdims == True:
-    #        dim_keep = dim
-    #        dim_keep[axis] = 1
-    #        if out is not None:
-    #            if tuple(dim_keep) != tuple(out.shape):
-    #                raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
-    #    index_A = "" 
-    #    index_temp = rev_array(index_A)
-    #    index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
-    #    index_B = rev_array(index_B)
-    #    # print(index_A, " ", index_B)
-    #    B = tensor(dim_ret, dtype=np.bool)
-    #    if A.get_type() == np.float64:
-    #        all_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.int64:
-    #        all_helper[int64_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.int32:
-    #        all_helper[int32_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.int16:
-    #        all_helper[int16_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.int8:
-    #        all_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.bool:
-    #        all_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    if out is not None:
-    #        if out.dtype != B.get_type():
-    #            if keepdims == True:
-    #                C = tensor(dim_ret, dtype=out.dtype)
-    #                B.convert_type(C)
-    #                return reshape(C, dim_keep)
-    #            else:
-    #                C = tensor(dim_ret, dtype=out.dtype)
-    #                B.convert_type(C)
-    #                return C
-    #    if keepdims == True:
-    #        return reshape(B, dim_keep)
-    #    return B
-    #elif type(axis) == tuple or type(axis) == np.ndarray:
-    #    axis = np.asarray(axis, dtype=np.int64)
-    #    dim_keep = None
-    #    if keepdims == True:
-    #        dim_keep = dim
-    #        for i in range(len(axis)):
-    #            dim_keep[axis[i]] = 1
-    #        if out is not None:
-    #            if tuple(dim_keep) != tuple(out.shape):
-    #                raise ValueError('CTF PYTHON ERROR: output must match when keepdims = True')
-    #    for i in range(len(axis.shape)):
-    #        if axis[i] < 0:
-    #            axis[i] += len(dim)
-    #        if axis[i] >= len(dim) or axis[i] < 0:
-    #            raise ValueError("'axis' entry is out of bounds")
-    #    for i in range(len(axis.shape)):
-    #        if np.count_nonzero(axis==axis[i]) > 1:
-    #            raise ValueError("duplicate value in 'axis'")
-    #    dim_ret = np.delete(dim, axis)
-    #    if out is not None:
-    #        if type(out) != np.ndarray:
-    #            raise ValueError('CTF PYTHON ERROR: output must be an array')
-    #        if len(dim_ret) != len(out.shape):
-    #            raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
-    #        for i in range(len(dim_ret)):
-    #            if dim_ret[i] != out.shape[i]:
-    #                raise ValueError('CTF PYTHON ERROR: output parameter dimensions mismatch')
-    #    B = tensor(dim_ret, dtype=np.bool)
-    #    index_A = "" 
-    #    index_temp = rev_array(index_A)
-    #    index_B = ""
-    #    for i in range(len(dim)):
-    #        if i not in axis:
-    #            index_B += index_temp[i]
-    #    index_B = rev_array(index_B)
-    #    # print(" ", index_A, " ", index_B)
-    #    if A.get_type() == np.float64:
-    #        all_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.int64:
-    #        all_helper[int64_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.int32:
-    #        all_helper[int32_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.int16:
-    #        all_helper[int16_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.int8:
-    #        all_helper[int8_t](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    elif A.get_type() == np.bool:
-    #        all_helper[bool](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
-    #    if out is not None:
-    #        if out.dtype != B.get_type():
-    #            if keepdims == True:
-    #                C = tensor(dim_ret, dtype=out.dtype)
-    #                B.convert_type(C)
-    #                return reshape(C, dim_keep)
-    #            else:
-    #                C = tensor(dim_ret, dtype=out.dtype)
-    #                B.convert_type(C)
-    #                return C
-    #    if keepdims == True:
-    #        return reshape(B, dim_keep)
-    #    return B
-    #else:
-    #    raise ValueError("an integer is required")
-    #return None
 
 # issues:
 # when the input is numpy array
@@ -3069,15 +2829,7 @@ def transpose(init_A, axes=None):
             if axes[i] < 0:
                 raise ValueError("axes too negative for CTF transpose")
               
-            #all_axes = np.arange(A.ndim)
-            #for j in range(A.ndim):
-            #    if j != i:
-            #        if axes[j] < 0:
-            #            raise ValueError("cannot have negative two negative axes for transpose")
-            #    all_axes[j] = -1
-            #for j in range(A.ndim):
-            #    if all_axes[j] != -1:
-            #        axes[i] = j
+
     axes_list = list(axes)
     for i in range(len(axes)):
         # when any elements of axes is not an integer
@@ -3256,23 +3008,6 @@ def svd(tensor A, rank=None):
     matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
     return [U, S, VT]   
  
-#    A = tensor([n, n], dtype=dtype)
-#    if dtype == np.float64:
-#        A.i("ii") << 1.0
-#    else:
-#        raise ValueError('CTF PYTHON ERROR: bad dtype')
-#    return A
-
-#cdef ct f
-#ef int (*cfunction) (double a, double b, double c, void *args)
-#
-#cdef int cfunction_cb(double a, double b, double c, void *args):
-#    global f
-#    result_from_function = (<object>f)(a, b, c, *<tuple>args)
-#    for k in range(fdim):
-#        fval[k] = fval_buffer[k]
-#    return 0
-
 
 def match_tensor_types(first, other):
     if isinstance(first, tensor):
