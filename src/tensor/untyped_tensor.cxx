@@ -1796,7 +1796,7 @@ namespace CTF_int {
           fprintf(fp,"[%d]",idx_arr[j]);
         }
         fprintf(fp,"(%ld, <",all_data[i].k());
-        sr->print(all_data[i].d());
+        sr->print(all_data[i].d(), fp);
         fprintf(fp,">)\n");
       }
       cdealloc(recvcnts);
