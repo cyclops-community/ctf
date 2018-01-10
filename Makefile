@@ -14,7 +14,9 @@ all: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 
 
 .PHONY: install
-install: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
+install: $(INSTALL_DIR)/lib/libctf.so
+
+$(INSTALL_DIR)/lib/libctf.so: $(BDIR)/lib/libctf.a $(BDIR)/lib_shared/libctf.so
 	if [ -d hptt ]; then  \
 		echo "WARNING: detected HPTT installation in hptt/, you might need to also install it manually separately."; \
 	fi 
@@ -113,19 +115,20 @@ python: $(BDIR)/lib_python/ctf/core.so
 $(BDIR)/lib_python/ctf/core.so: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 	cd src_python; \
 	ln -sf $(BDIR)/setup.py setup.py; \
-	LDFLAGS="-L$(BDIR)/lib_shared" python setup.py build_ext --force -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/; \
+	mkdir -p $(BDIR)/lib_python/ctf && cp ctf/__init__.py $(BDIR)/lib_python/ctf/; \
+	LDFLAGS="-L$(BDIR)/lib_shared" python setup.py build_ext --force -b $(BDIR)/lib_python/ -t $(BDIR)/lib_python/; \
 	rm setup.py; \
-	cd ..; \
-	cp src_python/ctf/__init__.py $(BDIR)/lib_python/ctf/;
+	cd ..;
 
 
 .PHONY: python_install
-python_install: install pip
+python_install: $(INSTALL_DIR)/lib/libctf.so pip
 .PHONY: pip
 pip: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES) 
 	cd src_python; \
 	ln -sf $(BDIR)/setup.py setup.py; \
-	pip install -b $(BDIR)/lib_python/ -t $(BDIR)/obj_shared/ . --upgrade; \
+	mkdir -p $(BDIR)/lib_python/ctf && cp ctf/__init__.py $(BDIR)/lib_python/ctf/; \
+	pip install --force -b $(BDIR)/lib_python/ . --upgrade; \
 	rm setup.py; \
 	cd ..;
 
@@ -207,10 +210,10 @@ test_live: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
 
 
-$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk Makefile src_python/ctf_ext.cxx src_python/ctf_ext.h
+$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk src_python/ctf_ext.cxx src_python/ctf_ext.h Makefile
 	$(MAKE) ctflib
 
-$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk Makefile src_python/ctf_ext.cxx src_python/ctf_ext.h
+$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk src_python/ctf_ext.cxx src_python/ctf_ext.h Makefile
 	$(MAKE) ctflibso
 	
 test: test_suite
