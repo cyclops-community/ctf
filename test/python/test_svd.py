@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import ctf
+import sys
 
 from ctf import random
 
@@ -23,4 +24,5 @@ if ctf.comm().rank() == 0:
       print("failure, norm is ", err_nrm)
 
 ctf.MPI_Stop()
+sys.exit(not success)
 

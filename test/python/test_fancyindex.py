@@ -5,6 +5,7 @@ import numpy
 import ctf
 import ctf.random
 import os
+import sys
 
 def allclose(a, b):
     return abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() < 1e-14
@@ -293,4 +294,5 @@ if __name__ == "__main__":
         print("Tests for fancy index")
         result = unittest.TextTestRunner().run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     ctf.MPI_Stop()
+    sys.exit(not result)
 

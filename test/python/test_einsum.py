@@ -4,6 +4,7 @@ import unittest
 import numpy
 import ctf
 import os
+import sys
 
 def allclose(a, b):
     if abs(ctf.to_nparray(a) - ctf.to_nparray(b)).sum() > 1e-10:
@@ -135,4 +136,5 @@ if __name__ == "__main__":
         print("Tests for einsum")
         result = unittest.TextTestRunner().run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     ctf.MPI_Stop()
+    sys.exit(not result)
 

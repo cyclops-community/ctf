@@ -4,6 +4,7 @@ import unittest
 import numpy
 import ctf
 import os
+import sys
 
 
 class KnowValues(unittest.TestCase):
@@ -337,3 +338,4 @@ if __name__ == "__main__":
         print("Tests for basic numpy ndarray functionality")
         result = unittest.TextTestRunner().run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     ctf.MPI_Stop()
+    sys.exit(not result)
