@@ -17,7 +17,7 @@ It is possible to build static and dynamic C++ libraries, the Python CTF library
 make
 make install
 ```
-below we give more details on how the build can be customized.
+(where the last command should usually be executed as superuser, i.e. requires `sudo`) below we give more details on how the build can be customized.
 
 First, its necessary to run the configure script, which can be set to the appropriate type of build and is responsible for obtaining and checking for any necessary dependencies. For options and documentation on how to execute configure, run
 ```sh
@@ -45,7 +45,7 @@ To install the C++ libraries to the prespecified build destination directory (`-
 
 To build the Python CTF library, execute `make python`.
 
-To install the Python CTF library via pip, execute `make python_install`.
+To install the Python CTF library via pip, execute `make python_install` (as superuser if not in a virtual environment).
 
 To uninstall, use `make uninstall` and `make python_uninstall`.
 
