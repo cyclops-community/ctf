@@ -4,6 +4,7 @@ import unittest
 import numpy
 import ctf
 import os
+import sys
 
 
 def allclose(a, b):
@@ -50,3 +51,4 @@ if __name__ == "__main__":
         print("Tests for dot")
         result = unittest.TextTestRunner().run(unittest.TestSuite(unittest.TestLoader().loadTestsFromTestCase(KnowValues)))
     ctf.MPI_Stop()
+    sys.exit(not result)

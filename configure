@@ -87,9 +87,10 @@ EOF
 }
 
 #Usage: 'testldlink $1 $2 $3' for checking symbol with dynamic library where 
-# $1 - library link line
-# $2 - symbol (function)
-# $3 - 0 if no printouts, 1 if verbose
+# $1 - shared library link path
+# $2 - shared library libs
+# $3 - symbol (function)
+# $4 - 0 if no printouts, 1 if verbose
 function testldlink
 {
   rm -f a.out
@@ -98,29 +99,33 @@ function testldlink
 #if __cplusplus
   extern "C" 
 #endif
-  void $2();
-  void func(){ $2(); }
+  void $3();
+  void func(){ $3(); }
   int main(){ return 0; }
 EOF
   TMP_LD_LIB_PATH=${1//"-L"/"-Wl,-rpath="}
   TMP_LD_LIB_PATH="$1 $TMP_LD_LIB_PATH"
-  if [ $3 -eq 1 ]; then
-    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $TMP_LD_LIB_PATH $LDFLAGS  2>&1 )
+  TMP_LD_LIBS="$2"
+  if [ $4 -eq 1 ]; then
+    ( set -x; $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $TMP_LD_LIB_PATH $TMP_LD_LIBS $LDFLAGS  2>&1 )
   else
-    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $TMP_LD_LIB_PATH $LDFLAGS  > /dev/null 2>&1
+    $CXX $DEFS $WARNFLAGS $CXXFLAGS $INCLUDES .test.cxx $TMP_LD_LIB_PATH $TMP_LD_LIBS $LDFLAGS  > /dev/null 2>&1
   fi
   if [ -x a.out ]; then
     status=0
-    if [ $3 -eq 1 ]; then
-      ( set -x; LD_LIBRARY_PATH="$LD_LIB_PATH:$LD_LIBRARY_PATH" ./a.out 2>&1 )
+    TMP_RAW_LD_LIB_PATH=${TMP_LD_LIB_PATH//" -L"/":"}
+    TMP_RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//"-L"/""}
+    TMP_RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//" "/""}
+    if [ $4 -eq 1 ]; then
+      ( set -x; LD_LIBRARY_PATH="$TMP_RAW_LD_LIB_PATH:$LD_LIBRARY_PATH" ./a.out 2>&1 )
     else
-      LD_LIBRARY_PATH="$LD_LIB_PATH:$LD_LIBRARY_PATH" ./a.out > /dev/null 2>&1
+      LD_LIBRARY_PATH="$TMP_RAW_LD_LIB_PATH:$LD_LIBRARY_PATH" ./a.out > /dev/null 2>&1
     fi
     if [ $? -eq 0 ]; then
-      UDEFSYMB=$(nm ./a.out | grep -c "U $2")
-      if [ "x$UDEFSYMB" = "x" ]; then
+      UDEFSYMB=$(nm ./a.out | grep "$3" | grep -c "U")
+      if [ $UDEFSYMB -eq 0 ]; then
         status=1
-        if [ $3 -eq 1 ]; then
+        if [ $4 -eq 1 ]; then
             echo "Undefined symbol not found, so we did not really link to dynamic library (but rather static)"
             ( set -x; nm ./a.out; )
         fi
@@ -741,11 +746,11 @@ if [ $WITH_STATIC = 1 ]; then
 fi
 if [ $WITH_DYNAMIC = 1 ]; then
   echo -n 'Checking for dynamic BLAS library... '
-  if testldlink "$LD_LIB_PATH $LD_LIBS" dgemm_ 0; then
+  if testldlink "$LD_LIB_PATH" "$LD_LIBS" dgemm_ 0; then
     UNDERSCORE=1
     echo 'dynamic BLAS library found, with underscores.'
   else
-    if testldlink "$LD_LIB_PATH $LD_LIBS" dgemm 0; then
+    if testldlink "$LD_LIB_PATH" "$LD_LIBS" dgemm 0; then
       UNDERSCORE= 0
       echo 'dynamic BLAS library found, without underscores.'
     else
@@ -755,11 +760,11 @@ if [ $WITH_DYNAMIC = 1 ]; then
         LD_LIBS="$LD_LIBS -mkl"
         DEFS="$DEFS -DUSE_MKL=1"
         SPMKL_COMMENT=""
-      elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas $LD_LIBS" dgemm_ 0; then
+      elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas" "$LD_LIBS" dgemm_ 0; then
         UNDERSCORE=1
         echo 'detected that -Wl,-Bdynamic -lblas works, speculatively using -Wl,-Bdynamic -lblas (with underscores).'
         LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lblas"
-      elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas $LD_LIBS" dgemm 0; then
+      elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas" "$LD_LIBS" dgemm 0; then
         UNDERSCORE=0
         echo 'detected that -Wl,-Bdynamic -lblas works, speculatively using -Wl,-Bdynamic -lblas (without underscores).'
         LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lblas"
@@ -767,7 +772,7 @@ if [ $WITH_DYNAMIC = 1 ]; then
         UNDERSCORE=1
         echo
         echo '    WARNING: dynamic BLAS libirary did not work, python executables will not run (error below),'
-        testldlink "$LD_LIB_PATH $LD_LIBS" dgemm_ 1
+        testldlink "$LD_LIB_PATH" "$LD_LIBS" dgemm_ 1
         echo '    please specify correct LD_LIB_PATH and LD_LIBS (run ./configure --help to see all options),'
         echo '    CTF library can still build (via make), but executables will not!'
         echo
@@ -832,13 +837,13 @@ if [ $WITH_STATIC = 1 ]; then
 fi
 if [ $WITH_DYNAMIC = 1 ]; then
   echo -n 'Checking for dynamic LAPACK library... '
-  if testldlink "$LD_LIB_PATH $LD_LIBS" $DGEQRF 0; then
+  if testldlink "$LD_LIB_PATH" "$LD_LIBS" $DGEQRF 0; then
     echo 'dynamic LAPACK found.'
     if [ $USING_LAPACK = 0 ]; then 
       DEFS="$DEFS -DUSE_LAPACK"
     fi
   else
-    if testldlink "$LD_LIB_PATH -Wl,-Bdynamic -llapack $LD_LIBS" $DGEQRF 0; then
+    if testldlink "$LD_LIB_PATH -Wl,-Bdynamic -llapack" "$LD_LIBS" $DGEQRF 0; then
       echo 'dynamic LAPACK library found (-Wl,-Bdynamic -llapack).'
       LD_LIBS="$LD_LIBS -Wl,-Bdynamic -llapack"
       if [ $USING_LAPACK = 0 ]; then 
@@ -849,7 +854,7 @@ if [ $WITH_DYNAMIC = 1 ]; then
         echo '  LAPACK not found, will build with LAPACK-dependent functionality anyway, since --with-lapackwas specified.'
         echo '  WARNING: you may not be able to build CTF tests and benchmarks in this configuration (but you can build the library and use in conjunction with a lapack library)'
         echo '  WARNING: executables will not build until you provide a BLAS library (error below),'
-        testldlink "$LD_LIB_PATH $LD_LIBS" $DGEQRF 1
+        testldlink "$LD_LIB_PATH" "$LD_LIBS" $DGEQRF 1
         echo '    please specify correct LD_LIB_PATH and LD_LIBS (run ./configure --help to see all options),'
         echo '    CTF library can still build (via make), but executables will not!'
         if [ $USING_LAPACK = 0 ]; then 
@@ -946,13 +951,13 @@ fi
 
 if [ $WITH_DYNAMIC = 1 ]; then
   echo -n 'Checking for dynamic ScaLAPACK... '
-  if testldlink "$LD_LIB_PATH $LD_LIBS" $PDGEMM 0; then
+  if testldlink "$LD_LIB_PATH" "$LD_LIBS" $PDGEMM 0; then
     echo 'dynamic SCALAPACK found.'
     if [ $USING_SCALA = 0 ]; then 
       DEFS="$DEFS -DUSE_SCALAPACK"
     fi
   else
-    if testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lscalapack $LD_LIBS" $PDGEMM 0; then
+    if testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lscalapack" "$LD_LIBS" $PDGEMM 0; then
       echo 'SCALAPACK library found (-Wl,-Bdynamic -lscalapack).'
       LD_LIBS="-Wl,-Bdynamic -lscalapack $LD_LIBS"
       if [ $USING_SCALA = 0 ]; then 
@@ -963,7 +968,7 @@ if [ $WITH_DYNAMIC = 1 ]; then
         echo '  dynamic ScaLAPACK not found, will build with ScaLAPACK-dependent functionality anyway, since --with-scalapack was specified.'
         echo '  WARNING: you may not be able to build ctf tests and benchmarks in this configuration (but you can build the library and use in conjunction with a scalapack library)'
         echo '  WARNING: executables will not build until you provide a scalapack library (error below),'
-        testldlink "$LD_LIB_PATH -lscalapack $LD_LIBS" $PDGEMM 1
+        testldlink "$LD_LIB_PATH" "$LD_LIBS" $PDGEMM 1
         echo '    please specify correct LD_LIB_PATH and LD_LIBS (run ./configure --help to see all options),'
         echo '    CTF library can still build (via make), but executables will not!'
         if [ $USING_SCALA = 0 ]; then 
