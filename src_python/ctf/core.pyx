@@ -521,7 +521,7 @@ cdef class tensor:
             self.dtype = <cnp.dtype>dtype
         if isinstance(lens,int):
             lens = (lens,)
-        self.shape = tuple(lens)
+        lens = [int(l) for l in lens]
         self.shape = tuple(lens)
         self.ndim = len(self.shape)
         if isinstance(order,int):
@@ -562,23 +562,23 @@ cdef class tensor:
         csym = int_arr_py_to_c(rsym)
         if copy is None:
             if self.dtype == np.float64:
-                self.dt = new Tensor[double](len(lens), sp, clens, csym)
+                self.dt = new Tensor[double](self.ndim, sp, clens, csym)
             elif self.dtype == np.complex64:
-                self.dt = new Tensor[complex](len(lens), sp, clens, csym)
+                self.dt = new Tensor[complex](self.ndim, sp, clens, csym)
             elif self.dtype == np.complex128:
-                self.dt = new Tensor[complex128_t](len(lens), sp, clens, csym)
+                self.dt = new Tensor[complex128_t](self.ndim, sp, clens, csym)
             elif self.dtype == np.bool:
-                self.dt = new Tensor[bool](len(lens), sp, clens, csym)
+                self.dt = new Tensor[bool](self.ndim, sp, clens, csym)
             elif self.dtype == np.int64:
-                self.dt = new Tensor[int64_t](len(lens), sp, clens, csym)
+                self.dt = new Tensor[int64_t](self.ndim, sp, clens, csym)
             elif self.dtype == np.int32:
-                self.dt = new Tensor[int32_t](len(lens), sp, clens, csym)
+                self.dt = new Tensor[int32_t](self.ndim, sp, clens, csym)
             elif self.dtype == np.int16:
-                self.dt = new Tensor[int16_t](len(lens), sp, clens, csym)
+                self.dt = new Tensor[int16_t](self.ndim, sp, clens, csym)
             elif self.dtype == np.int8:
-                self.dt = new Tensor[int8_t](len(lens), sp, clens, csym)
+                self.dt = new Tensor[int8_t](self.ndim, sp, clens, csym)
             elif self.dtype == np.float32:
-                self.dt = new Tensor[float](len(lens), sp, clens, csym)
+                self.dt = new Tensor[float](self.ndim, sp, clens, csym)
             else:
                 raise ValueError('CTF PYTHON ERROR: bad dtype')
         else:
@@ -905,7 +905,6 @@ cdef class tensor:
             index_temp = rev_array(index_A)
             index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
             index_B = rev_array(index_B)
-            # print(index_A, " ", index_B)
             B = tensor(dim_ret, dtype=np.bool)
             if self.dtype == np.float64:
                 all_helper[double](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
@@ -967,7 +966,6 @@ cdef class tensor:
                 if i not in axis:
                     index_B += index_temp[i]
             index_B = rev_array(index_B)
-            # print(" ", index_A, " ", index_B)
             if self.dtype == np.float64:
                 all_helper[double](<ctensor*>self.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
             elif self.dtype == np.int64:
@@ -1281,7 +1279,6 @@ cdef class tensor:
         cdef int ** permutation_B = NULL
         if p_A is not None:
 #            p_A = np.asarray(p_A)
-#            print("p_A is ", p_A)
             permutation_A = <int**>malloc(sizeof(int*) * A.ndim)
             for i in range(self.ndim):
                 if A.order == 'F':
@@ -1380,7 +1377,6 @@ cdef class tensor:
         cdef char * beta
         alpha = <char*>self.dt.sr.mulid()
         beta = <char*>self.dt.sr.addid()
-#        print(rev_array(np.asarray(ends)-np.asarray(offsets)))
 #        A = tensor(np.asarray(ends)-np.asarray(offsets), sp=self.dt.is_sparse, dtype=self.dtype)
         A = tensor(np.asarray(ends)-np.asarray(offsets), dtype=self.dtype)
         cdef int * clens
@@ -2609,7 +2605,6 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
         if axis >= len(dim) or axis < 0:
             raise ValueError("'axis' entry is out of bounds")
         dim_ret = np.delete(dim, axis)
-        # print(dim_ret)
         if out is not None:
             if type(out) != np.ndarray:
                 raise ValueError('CTF PYTHON ERROR: output must be an array')
@@ -2629,7 +2624,6 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
         index_temp = rev_array(index_A)
         index_B = index_temp[0:axis] + index_temp[axis+1:len(dim)]
         index_B = rev_array(index_B)
-        # print(index_A, " ", index_B)
         B = tensor(dim_ret, dtype=np.bool)
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
@@ -2691,7 +2685,6 @@ def any(tensor init_A, axis=None, out=None, keepdims=None):
             if i not in axis:
                 index_B += index_temp[i]
         index_B = rev_array(index_B)
-        # print(" ", index_A, " ", index_B)
         if A.get_type() == np.float64:
             any_helper[double](<ctensor*>A.dt, <ctensor*>B.dt, index_A.encode(), index_B.encode())
         elif A.get_type() == np.int64:
@@ -3162,8 +3155,8 @@ def setgetitem_helper(obj, key_init):
                 is_everything = 0
             inds.append(ind)
             i+=1
-            corr_shape.append(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2])))
-            one_shape.append(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2])))
+            corr_shape.append(int(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2]))))
+            one_shape.append(int(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2]))))
     if lensl != obj.ndim:
         is_single_val = 0
     for i in range(lensl,obj.ndim):
