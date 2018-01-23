@@ -18,6 +18,8 @@ namespace CTF_int{
       bool has_kernel;
       bool has_off_gemm;
       bool commutative;
+      bool left_distributive;
+      bool right_distributive;
 
       /**
        * \brief apply function f to values stored at a and b
@@ -52,9 +54,22 @@ namespace CTF_int{
        * \return Bifun_Term that evaluates f(A)
       */
       Bifun_Term operator()(Term const & A, Term const & B) const;
-      
-      bivar_function(){ has_kernel = false; has_off_gemm = false; commutative = false; }
-      bivar_function(bool is_comm){ has_kernel = false; has_off_gemm = false; commutative = is_comm; }
+     
+      /**
+       * \brief constructor sets function properties, pessimistic defaults
+       * \param[in] is_comm f(a,b)=f(b,a)?
+       * \param[in] is_left_dist \sum_i f(a_i,b)=f(\sum_i a_i,b)?
+       * \param[in] is_right_dist \sum_i f(a,b_i)=f(a, \sum_i b_i)?
+       */
+      bivar_function(bool is_comm=false,
+                     bool is_left_dist=false,
+                     bool is_right_dist=false){
+        has_kernel = false;
+        has_off_gemm = false;
+        commutative = is_comm;
+        left_distributive = is_left_dist;
+        right_distributive = is_right_dist;
+      }
 
       virtual ~bivar_function(){}
       

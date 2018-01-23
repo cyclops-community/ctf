@@ -1,7 +1,7 @@
 #ifndef __MODEL_H__
 #define __MODEL_H__
 
-#include "mpi.h"
+#include <mpi.h>
 #include "init_models.h"
 
 namespace CTF_int { 

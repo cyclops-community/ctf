@@ -3,9 +3,126 @@
 #include "../shared/offload.h"
 #include "../sparse_formats/csr.h"
 
+#ifdef USE_MKL
+#include "../shared/mkl_symbs.h"
+#endif
+
 using namespace CTF_int;
 
 namespace CTF_int {
+
+  template <typename dtype>
+  void gemm_batch(
+            char           taA,
+            char           taB,
+            int            l,
+            int            m,
+            int            n,
+            int            k,
+            dtype          alpha,
+            dtype   const* A,
+            dtype   const* B,
+            dtype          beta,
+            dtype   *      C){
+    if (m == 1 && n == 1 && k == 1) {
+      for (int i=0; i<l; i++){
+        C[i]*=beta;
+        C[i]+=alpha*A[i]*B[i];
+      }
+      return;
+    }
+    int lda, ldb, ldc;
+    ldc = m;
+    if (taA == 'n' || taA == 'N'){
+      lda = m;
+    } else {
+      lda = k;
+    }
+    if (taB == 'n' || taB == 'N'){
+      ldb = k;
+    } else {
+      ldb = n;
+    }
+    dtype ** ptrs_A = get_grp_ptrs(m*k,l,A);
+    dtype ** ptrs_B = get_grp_ptrs(k*n,l,B);
+    dtype ** ptrs_C = get_grp_ptrs(m*n,l,C);
+    #if USE_SP_MKL
+    int group_count = 1;
+    int size_per_group = l;
+    CTF_BLAS::gemm_batch<dtype>(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
+    #else 
+    for (int i=0; i<l; i++){
+      CTF_BLAS::gemm<dtype>(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
+    }
+    #endif
+    free(ptrs_A);
+    free(ptrs_B);
+    free(ptrs_C);
+  }
+
+#define INST_GEMM_BATCH(dtype)            \
+  template void gemm_batch<dtype>( char , \
+             char ,                       \
+             int ,                        \
+             int ,                        \
+             int ,                        \
+             int ,                        \
+             dtype ,                      \
+             dtype const *,               \
+             dtype const *,               \
+             dtype ,                      \
+             dtype *);
+  INST_GEMM_BATCH(float)
+  INST_GEMM_BATCH(double)
+  INST_GEMM_BATCH(std::complex<float>)
+  INST_GEMM_BATCH(std::complex<double>)
+#undef INST_GEMM_BATCH
+
+  template <typename dtype>
+  void gemm(char           tA,
+            char           tB,
+            int            m,
+            int            n,
+            int            k,
+            dtype          alpha,
+            dtype  const * A,
+            dtype  const * B,
+            dtype          beta,
+            dtype  *       C){
+    int lda, lda_B, lda_C;
+    lda_C = m;
+    if (tA == 'n' || tA == 'N'){
+      lda = m;
+    } else {
+      lda = k;
+    }
+    if (tB == 'n' || tB == 'N'){
+      lda_B = k;
+    } else {
+      lda_B = n;
+    }
+    CTF_BLAS::gemm<dtype>(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
+  }
+
+#define INST_GEMM(dtype)            \
+  template void gemm<dtype>( char , \
+             char ,                 \
+             int ,                  \
+             int ,                  \
+             int ,                  \
+             dtype ,                \
+             dtype const *,         \
+             dtype const *,         \
+             dtype ,                \
+             dtype *);
+  INST_GEMM(float)
+  INST_GEMM(double)
+  INST_GEMM(std::complex<float>)
+  INST_GEMM(std::complex<double>)
+#undef INST_GEMM
+
+
+
   template <>
   void default_axpy<float>
                    (int           n,
@@ -99,7 +216,7 @@ namespace CTF_int {
            float const * B,
            float         beta,
            float *       C){
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_SCOOMM(&transa, &m, &n, &k, &alpha,
@@ -124,7 +241,7 @@ namespace CTF_int {
            double const * B,
            double         beta,
            double *       C){
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     //TAU_FSTART(MKL_DCOOMM);
@@ -152,7 +269,7 @@ namespace CTF_int {
            std::complex<float> const * B,
            std::complex<float>         beta,
            std::complex<float> *       C){
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_CCOOMM(&transa, &m, &n, &k, &alpha,
@@ -177,7 +294,7 @@ namespace CTF_int {
       std::complex<double> const * B,
       std::complex<double>         beta,
       std::complex<double> *       C){
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_ZCOOMM(&transa, &m, &n, &k, &alpha,
@@ -189,7 +306,7 @@ namespace CTF_int {
 #endif
   }
 /*
-#if USE_SP_MKL
+#if USE_MKL
   template <>
   bool get_def_has_csrmm<float>(){ return true; }
   template <>
@@ -209,7 +326,7 @@ namespace CTF_int {
   bool get_def_has_csrmm< std::complex<double> >(){ return true; }
 #endif
 */
-#if (USE_SP_MKL!=1)
+#if (USE_MKL!=1)
   template <typename dtype>
   void muladd_csrmm
                  (int           m,
@@ -295,7 +412,7 @@ namespace CTF {
            float const * B,
            float         beta,
            float *       C) const {
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
@@ -318,7 +435,7 @@ namespace CTF {
            double const * B,
            double         beta,
            double *       C) const {
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     //TAU_FSTART(MKL_DCSRMM);
@@ -343,7 +460,7 @@ namespace CTF {
            std::complex<float> const * B,
            std::complex<float>         beta,
            std::complex<float> *       C) const {
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     
@@ -366,7 +483,7 @@ namespace CTF {
            std::complex<double> const * B,
            std::complex<double>         beta,
            std::complex<double> *       C) const {
-#if USE_SP_MKL
+#if USE_MKL
     char transa = 'N';
     char matdescra[6] = {'G',0,0,'F',0,0};
     CTF_BLAS::MKL_ZCSRMM(&transa, &m, &n, &k, &alpha, matdescra, A, JA, IA, IA+1, B, &k, &beta, C, &m);
@@ -376,7 +493,7 @@ namespace CTF {
   }
 
 
-#if USE_SP_MKL 
+#if USE_MKL 
   #define CSR_MULTD_DEF(dtype,is_ord,MKL_name) \
   template<> \
   void CTF::Semiring<dtype,is_ord>::default_csrmultd \
@@ -452,7 +569,7 @@ namespace CTF {
   CSR_MULTD_DEF(std::complex<double>,0,MKL_ZCSRMULTD)
 
 
-#if USE_SP_MKL
+#if USE_MKL
   #define CSR_MULTCSR_DEF(dtype,is_ord,MKL_name) \
   template<> \
   void CTF::Semiring<dtype,is_ord>::default_csrmultcsr \

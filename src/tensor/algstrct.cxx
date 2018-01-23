@@ -5,116 +5,16 @@
 #include "algstrct.h"
 #include "../sparse_formats/csr.h"
 
+using namespace std;
+
 namespace CTF_int {
   LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
   LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
 
-  void sgemm(char           tA,
-             char           tB,
-             int            m,
-             int            n,
-             int            k,
-             float          alpha,
-             float  const * A,
-             float  const * B,
-             float          beta,
-             float  *       C){
-    int lda, lda_B, lda_C;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda = m;
-    } else {
-      lda = k;
-    }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-    } else {
-      lda_B = n;
-    }
-    CTF_BLAS::SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
-  }
-
-
-  void cidgemm(char           tA,
-               char           tB,
-               int            m,
-               int            n,
-               int            k,
-               double         alpha,
-               double const * A,
-               double const * B,
-               double         beta,
-               double *       C){
-    int lda, lda_B, lda_C;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda = m;
-    } else {
-      lda = k;
-    }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-    } else {
-      lda_B = n;
-    }
-    CTF_BLAS::DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
-  }
-
-  void cgemm(char                        tA,
-             char                        tB,
-             int                         m,
-             int                         n,
-             int                         k,
-             std::complex<float>         alpha,
-             std::complex<float> const * A,
-             std::complex<float> const * B,
-             std::complex<float>         beta,
-             std::complex<float> *       C){
-    int lda, lda_B, lda_C;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda = m;
-    } else {
-      lda = k;
-    }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-    } else {
-      lda_B = n;
-    }
-    CTF_BLAS::CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
-  }
-
-
-  void zgemm(char                         tA,
-             char                         tB,
-             int                          m,
-             int                          n,
-             int                          k,
-             std::complex<double>         alpha,
-             std::complex<double> const * A,
-             std::complex<double> const * B,
-             std::complex<double>         beta,
-             std::complex<double> *       C){
-    int lda, lda_B, lda_C;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda = m;
-    } else {
-      lda = k;
-    }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-    } else {
-      lda_B = n;
-    }
-    CTF_BLAS::ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
-  }
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
     has_coo_ker = false;
   }
-  
 
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
@@ -259,6 +159,22 @@ namespace CTF_int {
     ASSERT(0);
     assert(0);
   }
+
+  void algstrct::gemm_batch(char         tA,
+                            char         tB,
+                            int          l,
+                            int          m,
+                            int          n,
+                            int          k,
+                            char const * alpha,
+                            char const * A,
+                            char const * B,
+                            char const * beta,
+                            char *       C)  const {
+    printf("CTF ERROR: gemm_batch not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
 
    void algstrct::gemm(char         tA,
                        char         tB,
@@ -1082,4 +998,3 @@ namespace CTF_int {
   }
 
 }
-

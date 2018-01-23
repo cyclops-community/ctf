@@ -137,7 +137,7 @@ namespace CTF_int {
   default_max_lim(){
     printf("CTF ERROR: cannot compute a max unless the set is ordered");
     assert(0);
-    dtype * a;
+    dtype * a = NULL;
     return *a;
   }
 
@@ -152,7 +152,7 @@ namespace CTF_int {
   default_min_lim(){
     printf("CTF ERROR: cannot compute a max unless the set is ordered");
     assert(0);
-    dtype * a;
+    dtype * a = NULL;
     return *a;
   }
 
@@ -177,10 +177,19 @@ namespace CTF_int {
     is_custom = true;
     return newtype;
   }
+
+  extern MPI_Datatype MPI_CTF_BOOL;
+  extern MPI_Datatype MPI_CTF_DOUBLE_COMPLEX;
+  extern MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX;
+
+  template <>
+  inline MPI_Datatype get_default_mdtype<bool>(bool & is_custom){ is_custom=false; return MPI_CTF_BOOL; }
+  template <>
+  inline MPI_Datatype get_default_mdtype< std::complex<double> >(bool & is_custom){ is_custom=false; return MPI_CTF_DOUBLE_COMPLEX; }
+  template <>
+  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(bool & is_custom){ is_custom=false; return MPI_CTF_LONG_DOUBLE_COMPLEX; }
   template <>
   inline MPI_Datatype get_default_mdtype<char>(bool & is_custom){ is_custom=false; return MPI_CHAR; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<bool>(bool & is_custom){ is_custom=false; return MPI_CXX_BOOL; }
   template <>
   inline MPI_Datatype get_default_mdtype<int>(bool & is_custom){ is_custom=false; return MPI_INT; }
   template <>
@@ -197,10 +206,8 @@ namespace CTF_int {
   inline MPI_Datatype get_default_mdtype<long double>(bool & is_custom){ is_custom=false; return MPI_LONG_DOUBLE; }
   template <>
   inline MPI_Datatype get_default_mdtype< std::complex<float> >(bool & is_custom){ is_custom=false; return MPI_COMPLEX; }
-  template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<double> >(bool & is_custom){ is_custom=false; return MPI_CXX_DOUBLE_COMPLEX; }
-  template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(bool & is_custom){ is_custom=false; return MPI_CXX_LONG_DOUBLE_COMPLEX; }
+
+
 
   template <typename dtype>
   constexpr bool get_default_is_ord(){

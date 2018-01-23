@@ -126,7 +126,7 @@ namespace CTF_int {
     double cost = 0.0;
     CTF::Idx_Tensor opA = A->estimate_time(cost);
     CTF::Idx_Tensor opB = B->estimate_time(cost);
-    contraction c(opA.parent, opA.idx_map, opB.parent, opB.idx_map, opB.scale, output.parent, output.idx_map, output.scale, func);
+    contraction c(opA.parent, opA.idx_map, opB.parent, opB.idx_map, output.sr->mulid(), output.parent, output.idx_map, output.scale, func);
     cost += c.estimate_time();
     return cost;
   }

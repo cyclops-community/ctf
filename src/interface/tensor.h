@@ -565,6 +565,7 @@ namespace CTF {
 
       /**
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+       *        result will always be fully nonsymmetric
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
        * \return new tensor corresponding to requested slice
@@ -574,6 +575,7 @@ namespace CTF {
       
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
+       *        result will always be fully nonsymmetric
        * \param[in] corner_off top left corner of block
        * \param[in] corner_end bottom right corner of block
        * \return new tensor corresponding to requested slice
@@ -583,6 +585,7 @@ namespace CTF {
       
       /**
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+       *        result will always be fully nonsymmetric
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
        * \param[in] oworld the world in which the new tensor should be defined
@@ -595,6 +598,7 @@ namespace CTF {
 
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
+       *        result will always be fully nonsymmetric
        * \param[in] corner_off top left corner of block
        * \param[in] corner_end bottom right corner of block
        * \param[in] oworld the world in which the new tensor should be defined
@@ -607,7 +611,7 @@ namespace CTF {
       
       
       /**
-       * \brief cuts out a slice (block) of this tensor = B
+       * \brief adds to a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
@@ -626,7 +630,7 @@ namespace CTF {
                  dtype                   alpha);
 
       /**
-       * \brief cuts out a slice (block) of this tensor = B
+       * \brief adds to a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] corner_off top left corner of block
        * \param[in] corner_end bottom right corner of block       
@@ -793,15 +797,17 @@ namespace CTF {
 
       /**
        * \brief gives the global indices and values associated with the local data
-       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with 
+       *          WARNING-1: for sparse tensors this includes the zeros to maintain consistency with 
        *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
        * \param[out] npair number of local values
        * \param[out] global_idx index within global tensor of each data value
        * \param[out] data pointer to local values in the order of the indices
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
        */
       void read_local(int64_t  *  npair,
                       int64_t  ** global_idx,
-                      dtype **    data) const;
+                      dtype **    data,
+                      bool        unpack_sym=false) const;
 
       /**
        * \brief gives the global indices and values associated with the local data
@@ -809,19 +815,23 @@ namespace CTF {
        *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
        * \param[out] npair number of local values
        * \param[out] pairs pointer to local key-value pairs
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
        */
       void read_local(int64_t  *     npair,
-                      Pair<dtype> ** pairs) const;
+                      Pair<dtype> ** pairs,
+                      bool           unpack_sym=false) const;
 
       /**
        * \brief gives the global indices and nonzero values associated with the nonzero data
        * \param[out] npair number of local values
        * \param[out] global_idx index within global tensor of each data value
        * \param[out] data pointer to local values in the order of the indices
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
        */
       void read_local_nnz(int64_t  *  npair,
                           int64_t  ** global_idx,
-                          dtype **    data) const;
+                          dtype **    data,
+                          bool        unpack_sym=false) const;
 
       /**
        * \brief gives the global indices and nonzero values associated with the nonzero data
@@ -829,7 +839,8 @@ namespace CTF {
        * \param[out] pairs pointer to local key-value pairs
        */
       void read_local_nnz(int64_t  *     npair,
-                          Pair<dtype> ** pairs) const;
+                          Pair<dtype> ** pairs,
+                          bool        unpack_sym=false) const;
 
 
       /**
@@ -940,9 +951,9 @@ namespace CTF {
 }
 
 #include "tensor.cxx"
-#include "matrix.h"
 #include "vector.h"
 #include "scalar.h"
+#include "matrix.h"
 #include "sparse_tensor.h"
 
 

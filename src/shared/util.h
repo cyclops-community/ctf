@@ -170,7 +170,7 @@ namespace CTF_int {
   #endif
 
   #ifndef ALIGN_BYTES
-  #define ALIGN_BYTES     16
+  #define ALIGN_BYTES     32
   #endif
 
   #ifndef MIN

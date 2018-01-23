@@ -16,7 +16,9 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()>
   class Ring : public Semiring<dtype, is_ord> {
     public:
-      Ring(Ring const & other) : Semiring<dtype, is_ord>(other) { }
+      Ring(Ring const & other) : Semiring<dtype, is_ord>(other) { 
+        this->abs = &CTF_int::char_abs< dtype, CTF_int::default_abs<dtype, is_ord> >;
+      }
       /** 
        * \brief default constructor valid for only certain types:
        *         bool, int, unsigned int, int64_t, uint64_t,
