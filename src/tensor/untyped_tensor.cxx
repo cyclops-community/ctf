@@ -764,6 +764,7 @@ namespace CTF_int {
     greater_world->cdt.allred(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
     //this should in most sane cases ensure that a unique subcomm is involved
+    printf("tot_sub = %d rank = %d np = %d\n",tot_sub, wrld->rank, wrld->np);
     if (order != -1) ASSERT(tot_sub == wrld->np);
     int aorder;
     greater_world->cdt.allred(&order, &aorder, 1, MPI_INT, MPI_MAX);
@@ -965,7 +966,7 @@ namespace CTF_int {
     CTF_int::cdealloc(toffset_B);
   }
 
-#define USE_SLICE_FOR_SUBWORLD
+// #define USE_SLICE_FOR_SUBWORLD
   void tensor::add_to_subworld(tensor *     tsr_sub,
                                char const * alpha,
                                char const * beta){
@@ -1012,23 +1013,27 @@ namespace CTF_int {
 
   }
 
-  void tensor::add_from_subworld(tensor *     tsr_sub,
+  void tensor::add_from_subworld(tensor *     tsr_sub_,
                                  char const * alpha,
                                  char const * beta){
+    tensor * tsr_sub = tsr_sub_;
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
     if (tsr_sub == NULL || tsr_sub->order == -1){
       World dt_self = World(MPI_COMM_SELF);
-      tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
-      slice(offsets, offsets, beta, &stsr, NULL, NULL, alpha);
-    } else {
-      slice(offsets, lens, alpha, tsr_sub, offsets, lens, beta);
+      tsr_sub = new tensor(sr, 0, NULL, NULL, &dt_self, 0);
     }
+    slice(offsets, lens, alpha, tsr_sub, offsets, lens, beta);
   #else
     int fw_mirror_rank, bw_mirror_rank;
     distribution * odst;
     char * sub_buffer;
+    if (tsr_sub == NULL){
+      World dt_self = World(MPI_COMM_SELF);
+      tsr_sub = new tensor();
+      printf("rank = %d\n",wrld->rank);
+    }
     tsr_sub->orient_subworld(wrld, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
 
     distribution idst = distribution(this);
@@ -1039,6 +1044,9 @@ namespace CTF_int {
     delete odst;
     CTF_int::cdealloc(sub_buffer);
   #endif
+    if (tsr_sub_ != tsr_sub){
+      delete tsr_sub;
+    }
 
   }
 

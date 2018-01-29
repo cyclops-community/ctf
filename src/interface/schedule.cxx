@@ -193,7 +193,6 @@ namespace CTF {
 
     // Create and communicate tensors to subworlds
     schedule_timer.comm_down_time = MPI_Wtime();
-    printf("comm_ops size %d\n", (int64_t)comm_ops.size());
     for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
       typename std::set<Idx_Tensor*, tensor_name_less >::iterator global_tensor_iter;
       //printf("before inner for loop\n");
@@ -204,7 +203,8 @@ namespace CTF {
 
         if (comm_op_iter->world != NULL) {
 
-          local_clone = new Idx_Tensor(*(*global_tensor_iter));//, *comm_op_iter->world);
+          tensor * local_clone_tsr = new tensor((*global_tensor_iter)->parent->sr, (*global_tensor_iter)->parent->order,(*global_tensor_iter)->parent->lens, (*global_tensor_iter)->parent->sym, comm_op_iter->world, 1, NULL, 1,  (*global_tensor_iter)->parent->is_sparse );
+          local_clone = new Idx_Tensor(local_clone_tsr, (*global_tensor_iter)->idx_map);
         
         } else {
           local_clone = NULL;
