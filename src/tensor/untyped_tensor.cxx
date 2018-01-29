@@ -965,7 +965,7 @@ namespace CTF_int {
     CTF_int::cdealloc(toffset_B);
   }
 
-//#define USE_SLICE_FOR_SUBWORLD
+#define USE_SLICE_FOR_SUBWORLD
   void tensor::add_to_subworld(tensor *     tsr_sub,
                                char const * alpha,
                                char const * beta){
@@ -1018,7 +1018,7 @@ namespace CTF_int {
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
-    if (tsr_sub->order == -1){ // == NULL){
+    if (tsr_sub == NULL || tsr_sub->order == -1){
       World dt_self = World(MPI_COMM_SELF);
       tensor stsr = tensor(sr, 0, NULL, NULL, &dt_self, 0);
       slice(offsets, offsets, beta, &stsr, NULL, NULL, alpha);

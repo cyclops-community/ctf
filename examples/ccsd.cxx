@@ -209,27 +209,45 @@ void ccsd(Integrals   &V,
   sched.record();
 #endif
 
+
   Tensor<> T21 = Tensor<>(T.abij);
-  T21["abij"] += .5*T["ai"]*T["bj"];
+  
+  //T21["abij"] += .5*T["ai"]*T["bj"];
+  
+
+
 
   Tensor<> tFme(*V["me"].parent);
   Idx_Tensor Fme(&tFme,"me");
-  Fme += V["me"];
-  Fme += V["mnef"]*T["fn"];
   
+  Fme += V["me"];
+
+  //Fme += V["mnef"]*T["fn"];
+  
+
+
+
   Tensor<> tFae(*V["ae"].parent);
   Idx_Tensor Fae(&tFae,"ae");
+  // Where the program blocks
   Fae += V["ae"];
+/*
   Fae -= Fme*T["am"];
   Fae -=.5*V["mnef"]*T["afmn"];
   Fae += V["anef"]*T["fn"];
+  printf("after third tensor contraction\n");
+  */
+
+  
 
   Tensor<> tFmi(*V["mi"].parent);
   Idx_Tensor Fmi(&tFmi,"mi");
-  Fmi += V["mi"];
-  Fmi += Fme*T["ei"];
-  Fmi += .5*V["mnef"]*T["efin"];
-  Fmi += V["mnfi"]*T["fn"];
+  //Fmi += V["mi"];
+  //Fmi += Fme*T["ei"];
+  //Fmi += .5*V["mnef"]*T["efin"];
+  //Fmi += V["mnfi"]*T["fn"];
+  
+  /*
 
   Tensor<> tWmnei(*V["mnei"].parent);
   Idx_Tensor Wmnei(&tWmnei,"mnei");
@@ -237,11 +255,13 @@ void ccsd(Integrals   &V,
   Wmnei += V["mnei"];
   Wmnei += V["mnef"]*T["fi"];
   
+  
   Tensor<> tWmnij(*V["mnij"].parent);
   Idx_Tensor Wmnij(&tWmnij,"mnij");
   Wmnij += V["mnij"];
   Wmnij -= V["mnei"]*T["ej"];
   Wmnij += V["mnef"]*T21["efij"];
+  
 
   Tensor<> tWamei(*V["amei"].parent);
   Idx_Tensor Wamei(&tWamei,"amei");
@@ -250,11 +270,13 @@ void ccsd(Integrals   &V,
   Wamei += V["amef"]*T["fi"];
   Wamei += .5*V["mnef"]*T["afin"];
   
+  
   Tensor<> tWamij(*V["amij"].parent);
   Idx_Tensor Wamij(&tWamij,"amij");
   Wamij += V["amij"];
   Wamij += V["amei"]*T["ej"];
   Wamij += V["amef"]*T["efij"];
+ 
 
   Tensor<> tZai(*V["ai"].parent);
   Idx_Tensor Zai(&tZai,"ai");
@@ -266,6 +288,7 @@ void ccsd(Integrals   &V,
   Zai += .5*V["amef"]*T21["efim"];
   Zai -= .5*Wmnei*T21["eamn"];
   
+  
   Tensor<> tZabij(*V["abij"].parent);
   Idx_Tensor Zabij(&tZabij,"abij");
   Zabij += V["abij"];
@@ -276,7 +299,10 @@ void ccsd(Integrals   &V,
   Zabij -= Fmi*T["abmj"];
   Zabij += .5*V["abef"]*T21["efij"];
   Zabij += .5*Wmnij*T21["abmn"];
- 
+  
+ */
+
+
 #ifdef SCHEDULE_CCSD 
   if (rank == 0) {
     printf("Record: %lf\n",
@@ -284,7 +310,9 @@ void ccsd(Integrals   &V,
   }
 
   timer = MPI_Wtime();
+  printf("before executing\n");
   ScheduleTimer schedule_time = sched.execute();
+  printf("after executing\n");
 #endif
 
 
@@ -293,6 +321,8 @@ void ccsd(Integrals   &V,
   Tensor<> Dabij(4, V.abij->lens, sh_sym, *V.dw);
   Dai["ai"] += V["i"];
   Dai["ai"] -= V["a"];
+
+
  
   Dabij["abij"] += V["i"];
   Dabij["abij"] += V["j"];
@@ -301,9 +331,11 @@ void ccsd(Integrals   &V,
 
 
   Function<> fctr(&divide);
-
+  /*
   T.ai->contract(1.0, *(Zai.parent), "ai", Dai, "ai", 0.0, "ai", fctr);
   T.abij->contract(1.0, *(Zabij.parent), "abij", Dabij, "abij", 0.0, "abij", fctr);
+  */
+
 #ifdef SCHEDULE_CCSD
   if (rank == 0) {
     printf("Schedule comm down: %lf\n", schedule_time.comm_down_time);
@@ -368,6 +400,7 @@ int main(int argc, char ** argv){
       for (i=0; i<niter; i++){
         T.fill_rand();
         double d = MPI_Wtime();
+        printf("before ccsd\n");
         ccsd(V,T,sched_nparts);
         if (rank == 0)
           printf("(%d nodes) Completed %dth CCSD iteration in time = %lf, |T| is %lf\n",
