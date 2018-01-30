@@ -764,7 +764,6 @@ namespace CTF_int {
     greater_world->cdt.allred(&is_sub, &tot_sub, 1, MPI_INT, MPI_SUM);
     //ensure the number of processes that have a subcomm defined is equal to the size of the subcomm
     //this should in most sane cases ensure that a unique subcomm is involved
-    printf("tot_sub = %d rank = %d np = %d\n",tot_sub, wrld->rank, wrld->np);
     if (order != -1) ASSERT(tot_sub == wrld->np);
     int aorder;
     greater_world->cdt.allred(&order, &aorder, 1, MPI_INT, MPI_MAX);
@@ -917,7 +916,8 @@ namespace CTF_int {
       all_data_A = blk_data_B;
       sz_A = blk_sz_B;
     } else {
-      tsr_A->read_local(&sz_A, &all_data_A, true);
+      if (tsr_A->order != 0 && !tsr_A->has_zero_edge_len)
+        tsr_A->read_local(&sz_A, &all_data_A, true);
       //printf("sz_A=%ld\n",sz_A);
     }
 
@@ -966,14 +966,14 @@ namespace CTF_int {
     CTF_int::cdealloc(toffset_B);
   }
 
-// #define USE_SLICE_FOR_SUBWORLD
+  #define USE_SLICE_FOR_SUBWORLD
   void tensor::add_to_subworld(tensor *     tsr_sub,
                                char const * alpha,
                                char const * beta){
   #ifdef USE_SLICE_FOR_SUBWORLD
     int offsets[this->order];
     memset(offsets, 0, this->order*sizeof(int));
-    if (tsr_sub->order == -1){ // == NULL){
+    if (tsr_sub == NULL || tsr_sub->order == -1){ // == NULL){
 //      CommData * cdt = new CommData(MPI_COMM_SELF);
     // (CommData*)CTF_int::alloc(sizeof(CommData));
     //  SET_COMM(MPI_COMM_SELF, 0, 1, cdt);
@@ -987,6 +987,8 @@ namespace CTF_int {
     int fw_mirror_rank, bw_mirror_rank;
     distribution * odst;
     char * sub_buffer;
+    tensor tsr1 = tensor();
+    if (tsr_sub == NULL) tsr_sub = &tsr1;
     tsr_sub->orient_subworld(wrld, bw_mirror_rank, fw_mirror_rank, odst, &sub_buffer);
 
     distribution idst = distribution(this);

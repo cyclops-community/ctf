@@ -857,7 +857,8 @@ namespace CTF_int {
       if (act_lda == order) break;
     }
     TAU_FSTOP(readwrite);
-    //printf("pr_offset = %ld / %ld \n",pr_offset,size);
+    printf("pr_offset = %ld / %ld \n",pr_offset,size);
+    if (pr_offset != size) printf("asd %ld\n", pairs[pr_offset].k());
     ASSERT(pr_offset == size);
     CTF_int::cdealloc(idx);
     CTF_int::cdealloc(virt_rank);

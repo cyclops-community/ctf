@@ -231,23 +231,19 @@ void ccsd(Integrals   &V,
   Idx_Tensor Fae(&tFae,"ae");
   // Where the program blocks
   Fae += V["ae"];
-/*
   Fae -= Fme*T["am"];
   Fae -=.5*V["mnef"]*T["afmn"];
   Fae += V["anef"]*T["fn"];
-  printf("after third tensor contraction\n");
-  */
 
   
 
   Tensor<> tFmi(*V["mi"].parent);
   Idx_Tensor Fmi(&tFmi,"mi");
-  //Fmi += V["mi"];
-  //Fmi += Fme*T["ei"];
-  //Fmi += .5*V["mnef"]*T["efin"];
-  //Fmi += V["mnfi"]*T["fn"];
+  Fmi += V["mi"];
+  Fmi += Fme*T["ei"];
+  Fmi += .5*V["mnef"]*T["efin"];
+  Fmi += V["mnfi"]*T["fn"];
   
-  /*
 
   Tensor<> tWmnei(*V["mnei"].parent);
   Idx_Tensor Wmnei(&tWmnei,"mnei");
@@ -300,7 +296,6 @@ void ccsd(Integrals   &V,
   Zabij += .5*V["abef"]*T21["efij"];
   Zabij += .5*Wmnij*T21["abmn"];
   
- */
 
 
 #ifdef SCHEDULE_CCSD 

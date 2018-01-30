@@ -170,8 +170,6 @@ namespace CTF {
       comm_ops[color].ops.push_back(ready_tasks[max_starting_task + color]);
     }
 
-    printf("my_color %d, comm_ops[0].world %p, comm_ops[1].world %p\n",
-            my_color, comm_ops[0].world, comm_ops[1].world);
 
     for (int color=0; color<max_num_tasks; color++) {
       ready_tasks.erase(ready_tasks.begin() + max_starting_task);
@@ -198,35 +196,38 @@ namespace CTF {
       //printf("before inner for loop\n");
       //printf("comm_op_iter: %p\n", comm_op_iter);
       for (global_tensor_iter=comm_op_iter->global_tensors.begin(); global_tensor_iter!=comm_op_iter->global_tensors.end(); global_tensor_iter++) {
-        Idx_Tensor* local_clone;
-        printf("comm_op_iter->world %p\n", comm_op_iter->world);
+        if ((*global_tensor_iter)->parent != NULL){
+          Idx_Tensor* local_clone;
+          printf("comm_op_iter->world %p\n", comm_op_iter->world);
 
-        if (comm_op_iter->world != NULL) {
+          if (comm_op_iter->world != NULL) {
 
-          tensor * local_clone_tsr = new tensor((*global_tensor_iter)->parent->sr, (*global_tensor_iter)->parent->order,(*global_tensor_iter)->parent->lens, (*global_tensor_iter)->parent->sym, comm_op_iter->world, 1, NULL, 1,  (*global_tensor_iter)->parent->is_sparse );
-          local_clone = new Idx_Tensor(local_clone_tsr, (*global_tensor_iter)->idx_map);
-        
-        } else {
-          local_clone = NULL;
-        }
+            tensor * local_clone_tsr = new tensor((*global_tensor_iter)->parent->sr, (*global_tensor_iter)->parent->order,(*global_tensor_iter)->parent->lens, (*global_tensor_iter)->parent->sym, comm_op_iter->world, 1, NULL, 1,  (*global_tensor_iter)->parent->is_sparse );
+            local_clone = new Idx_Tensor(local_clone_tsr, (*global_tensor_iter)->idx_map);
+          
+          } else {
+            local_clone = NULL;
+          }
 
-        
-        printf("local_clone: %p\n", local_clone); // local_clone should not be null?
-        if (local_clone != NULL){
-          comm_op_iter->local_tensors.insert(local_clone);
+          
+          printf("local_clone: %p\n", local_clone); // local_clone should not be null?
+          if (local_clone != NULL){
+            comm_op_iter->local_tensors.insert(local_clone);
 
-          comm_op_iter->remap[(*global_tensor_iter)->parent] = local_clone->parent;
-          if (local_clone->parent != NULL){
-            //printf("local_clone: %p\n", local_clone);
-            //printf("local_clone->parent: %p\n", local_clone->parent);
-            //printf("(*global_tensor_iter)->sr: %p\n", (*global_tensor_iter));
-            //printf("(*global_tensor_iter)->parent: %p\n", (*global_tensor_iter)->parent);
+            comm_op_iter->remap[(*global_tensor_iter)->parent] = local_clone->parent;
             (*global_tensor_iter)->parent->add_to_subworld(local_clone->parent, (*global_tensor_iter)->sr->mulid(), (*global_tensor_iter)->sr->addid());
+          } else {
+            comm_op_iter->remap[(*global_tensor_iter)->parent] = NULL;
+            (*global_tensor_iter)->parent->add_to_subworld(NULL, (*global_tensor_iter)->sr->mulid(), (*global_tensor_iter)->sr->addid());
           }
         }
-        else{
-          comm_op_iter->remap[(*global_tensor_iter)->parent] = NULL;
-        }
+         //   if (local_clone->parent != NULL){
+              //printf("local_clone: %p\n", local_clone);
+            //printf("local_clone->parent: %p\n", local_clone->parent);
+       //     local_clone->parent->print();
+            //printf("(*global_tensor_iter)->sr: %p\n", (*global_tensor_iter));
+            //printf("(*global_tensor_iter)->parent: %p\n", (*global_tensor_iter)->parent);
+
       }
 
       printf("aaaa");
