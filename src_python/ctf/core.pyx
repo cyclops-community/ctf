@@ -1792,6 +1792,7 @@ def trilSquare(tensor A):
     return B
     
 def tril(A, k=0):
+    k = -1-k
     if not isinstance(A, tensor):
         raise ValueError('CTF PYTHON ERROR: A is not a tensor')
     if A.ndim != 2:
@@ -3155,8 +3156,8 @@ def setgetitem_helper(obj, key_init):
                 is_everything = 0
             inds.append(ind)
             i+=1
-            corr_shape.append(int(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2]))))
-            one_shape.append(int(-(-np.abs(ind[1]-ind[0])/np.abs(ind[2]))))
+            corr_shape.append(int((np.abs(ind[1]-ind[0])+np.abs(ind[2])-1)/np.abs(ind[2])))
+            one_shape.append(int((np.abs(ind[1]-ind[0])+np.abs(ind[2])-1)/np.abs(ind[2])))
     if lensl != obj.ndim:
         is_single_val = 0
     for i in range(lensl,obj.ndim):
