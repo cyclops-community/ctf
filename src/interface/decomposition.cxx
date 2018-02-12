@@ -16,8 +16,33 @@ namespace CTF {
 
   }
 
+
   template<typename dtype>
-  std::vector< Matrix <dtype> > get_factor_matrices(Tensor<dtype>& T, int ranks[]) {
+  Contract_Term HoSVD::operator[](char const * idx_map){
+    char int_inds[core_tensor.order];
+    for (int i=0; i<core_tensor.order; i++){
+      int_inds = "["+i;
+      //FIXME: how to make this robust?
+    }
+    char factor_inds[2];
+    factor_inds[0] = idx_map[0];
+    factor_inds[1] = int_inds[0];
+    Contract_Term t(core_tensor[ind_inds],factor_matrices[0][factor_inds]);
+    for (int i=1; i<core_tensor.order; i++){
+      factor_inds[0] = idx_map[i];
+      factor_inds[1] = int_inds[i];
+      Contract_Term t(t,factor_matrices[0][factor_inds]);
+    }
+    return t;
+  }
+  
+
+  /**
+   * \calculate the rank[i] left singular columns of the i-mode unfoldings of a tensor
+   * \param[in] ranks array of ints that denote number of leading columns of left singular matrix to store
+   */
+  template<typename dtype>
+  std::vector< Matrix <dtype> > get_factor_matrices(Tensor<dtype>& T, int * ranks) {
 	
     std::vector< Matrix <dtype> > factor_matrices (T.order);
 
@@ -69,7 +94,7 @@ namespace CTF {
     return factor_matrices;
   }
   template<typename dtype>
-  Tensor<dtype> get_core_tensor(Tensor<dtype>& T, std::vector< Matrix <dtype> > factor_matrices, int ranks[]) {
+  Tensor<dtype> get_core_tensor(Tensor<dtype>& T, std::vector< Matrix <dtype> > factor_matrices, int * ranks) {
 
     std::vector< Tensor <> > core_tensors(T.order+1);
     core_tensors[0] = T;
@@ -104,9 +129,17 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void hosvd(Tensor<dtype>& T, Tensor<dtype>& core, std::vector< Matrix <dtype> > factor_matrices, int * ranks) {
+  void HoSVD::HoSVD(Tensor<dtype>& T, int * ranks) {
     factor_matrices = get_factor_matrices(T, ranks);
-	  core = get_core_tensor(T, factor_matrices, ranks); 
+	  core_tensor = get_core_tensor(T, factor_matrices, ranks); 
+  }
+
+  template<typename dtype>
+  void HoSVD::HoSVD(int * lens, int * ranks) {
+    //initialize to zero
+    assert(0);
+    /*factor_matrices = get_factor_matrices(T, ranks);
+	  core_tensor = get_core_tensor(T, factor_matrices, ranks); */
   }
 
 }
