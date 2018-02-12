@@ -4,27 +4,44 @@
 #include "matrix.h"
 #include "vector.h"
 namespace CTF {
+ 
+  void fold_unfold(Tensor<dtype>& X, Tensor<dtype>& Y);
 
   template<typename dtype>  
-  class decomposition {
+  class Decomposition {
     public:
-      void fold_unfold(Tensor<dtype>& X, Tensor<dtype>& Y);
-       
-       /**
-       * \calculate the rank[i] left singular columns of the i-mode unfoldings of a tensor
-       * \param[in] ranks array of ints that denote number of leading columns of left singular matrix to store
+      /**
+       * \brief associated an index map with the tensor decomposition for algebra
+       * \param[in] idx_map index assignment for this tensor
        */
-      std::vector< Matrix<dtype> > get_factor_matrices(Tensor<dtype> T, int * ranks);
+      virtual Contract_Term operator[](char const * idx_map) = 0;
+  };
 
-      Tensor<dtype> get_core_tensor(Tensor<dtype>& T, std::vector< Matrix <dtype> > factor_matrices, int ranks[]);
+  template<typename dtype>  
+  class HoSVD : public Decomposition {
+    public:
+      Tensor<dtype> core_tensor;
+      std::vector< Matrix<dtype> > factor_matrices;
 
       /**
        * \calculate higher order singular value decomposition of a tensor
-       * \param[out] core core tensor with dimensions corresponding to ranks
-       * \param[out] factor_matrices rank-i left singular columns of i-mode unfolding of T
        * \param[in] ranks ranks(dimensions) of the core tensor and factor matrices
        */
-      void hosvd(Tensor<dtype> T, Tensor<dtype>& core, std::vector< Matrix<dtype> > factor_matrices, int * ranks);
+      HoSVD(Tensor<dtype> T, int * ranks);
+
+      /**
+       * \calculate initialize a higher order singular value decomposition of a tensor to zero
+       * \param[in] lens ranks(dimensions) of the factored tensor
+       * \param[in] ranks ranks(dimensions) of the core tensor and factor matrices
+       */
+      HoSVD(int * lens, int * ranks);
+
+      /**
+       * \brief associated an index map with the tensor decomposition for algebra
+       * \param[in] idx_map index assignment for this tensor
+       */
+      Contract_Term operator[](char const * idx_map);
+
   };
 
 }
