@@ -894,7 +894,7 @@ if [ $BUILD_SCALAPACK = 1 ]; then
     LIB_PATH="$LIB_PATH -L$BUILDDIR/scalapack/build/lib"
   fi
   if [ $WITH_DYNAMIC = 1 ]; then
-    cmake .. -DBUILD_SHARED_LIBS=OFF -DBUILD_SHARED_LIBS=ON
+    cmake .. -DBUILD_STATIC_LIBS=OFF -DBUILD_SHARED_LIBS=ON
     make
     LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/scalapack/build/lib"
   fi
