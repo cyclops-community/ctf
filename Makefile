@@ -210,10 +210,10 @@ test_live: python
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
 
 
-$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk src_python/ctf_ext.cxx src_python/ctf_ext.h Makefile
+$(BDIR)/lib/libctf.a: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk src_python/ctf_ext.cxx src_python/ctf_ext.h
 	$(MAKE) ctflib
 
-$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk src_python/ctf_ext.cxx src_python/ctf_ext.h Makefile
+$(BDIR)/lib_shared/libctf.so: src/*/*.cu src/*/*.cxx src/*/*.h src/Makefile src/*/Makefile $(BDIR)/config.mk src_python/ctf_ext.cxx src_python/ctf_ext.h
 	$(MAKE) ctflibso
 	
 test: test_suite
@@ -234,8 +234,12 @@ clean_py:
 	rm -f $(BDIR)/src_python/ctf/random.cpp
 	rm -rf $(BDIR)/src_python/build
 	rm -rf $(BDIR)/src_python/__pycache__
+	rm -rf $(BDIR)/src_python/ctf/__pycache__
+	rm -f $(BDIR)/lib_python/ctf/core.o
+	rm -f $(BDIR)/lib_python/ctf/random.o
 	rm -f $(BDIR)/lib_python/ctf/core.*.so
 	rm -f $(BDIR)/lib_python/ctf/random.*.so
+	rm -rf $(BDIR)/lib_python/ctf/__pycache__
 
 
 clean_bin:
