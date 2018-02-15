@@ -484,7 +484,7 @@ while [ "x$1" != "x" ]; do
     --build-dir=*)
       eval BUILDDIR="$(printf "%q" "${1#--build-dir=}")"
       ;;
-    --build-dir=*)
+    --install-dir=*)
       eval INSTALLDIR="$(printf "%q" "${1#--install-dir=}")"
       ;;
     --with-lapack)
