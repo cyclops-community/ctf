@@ -1,6 +1,7 @@
 #include "../sparse_formats/csr.h"
 #include "set.h"
 #include "../shared/blas_symbs.h"
+#include "../shared/mkl_symbs.h"
 #include "../shared/util.h"
 using namespace CTF_int;
 namespace CTF {

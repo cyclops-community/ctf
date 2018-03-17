@@ -227,3 +227,5 @@ namespace CTF_BLAS {
   void MKL_ZCSRADD(char const * transa, int const * job, int const * sort, int const * n, int const * k, std::complex<double> const * a, int const * ja, int const * ia, std::complex<double> const * beta, std::complex<double> const * b, int const * jb, int const * ib, std::complex<double> * c, int * jc, int * ic, int const * nnzmax, int const * ierr);
 
 }
+
+#endif
