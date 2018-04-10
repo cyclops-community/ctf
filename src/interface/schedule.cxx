@@ -132,8 +132,8 @@ namespace CTF {
       my_color = i;
       // find which one to work on
       // maybe estimate_time()
-      printf("%dth estimate_time: %f\n", max_starting_task+i, ready_tasks[max_starting_task+i]->estimate_time());
-      printf("color_sample_point: %.7Lf\n", color_sample_point);
+      //printf("%dth estimate_time: %f\n", max_starting_task+i, ready_tasks[max_starting_task+i]->estimate_time());
+      //printf("color_sample_point: %.7Lf\n", color_sample_point);
       if (color_sample_point < ready_tasks[max_starting_task+i]->estimate_time()) {
         break;
       } else {
@@ -141,7 +141,7 @@ namespace CTF {
       }
     }
 
-    printf("my_color %d rank %d\n", my_color, rank);
+    //printf("my_color %d rank %d\n", my_color, rank);
     MPI_Comm my_comm;
     MPI_Comm_split(world->comm, my_color, rank, &my_comm);
 
@@ -166,7 +166,6 @@ namespace CTF {
       } else {
         comm_ops[color].world = NULL;
       }
-      // why always push to ops regardless of color
       comm_ops[color].ops.push_back(ready_tasks[max_starting_task + color]);
     }
 
@@ -198,7 +197,7 @@ namespace CTF {
       for (global_tensor_iter=comm_op_iter->global_tensors.begin(); global_tensor_iter!=comm_op_iter->global_tensors.end(); global_tensor_iter++) {
         if ((*global_tensor_iter)->parent != NULL){
           Idx_Tensor* local_clone;
-          printf("comm_op_iter->world %p\n", comm_op_iter->world);
+          //printf("comm_op_iter->world %p\n", comm_op_iter->world);
 
           if (comm_op_iter->world != NULL) {
 
@@ -210,27 +209,23 @@ namespace CTF {
           }
 
           
-          printf("local_clone: %p\n", local_clone); // local_clone should not be null?
+          //printf("local_clone: %p\n", local_clone); // local_clone should not be null?
           if (local_clone != NULL){
-            comm_op_iter->local_tensors.insert(local_clone);
+	    //printf("before add to subworld 1\n");
 
+            comm_op_iter->local_tensors.insert(local_clone);
             comm_op_iter->remap[(*global_tensor_iter)->parent] = local_clone->parent;
+	    //(*global_tensor_iter)->parent->print();
             (*global_tensor_iter)->parent->add_to_subworld(local_clone->parent, (*global_tensor_iter)->sr->mulid(), (*global_tensor_iter)->sr->addid());
           } else {
+	    //printf("before add to subworld 2\n");
             comm_op_iter->remap[(*global_tensor_iter)->parent] = NULL;
+	    //(*global_tensor_iter)->parent->print();
             (*global_tensor_iter)->parent->add_to_subworld(NULL, (*global_tensor_iter)->sr->mulid(), (*global_tensor_iter)->sr->addid());
           }
         }
-         //   if (local_clone->parent != NULL){
-              //printf("local_clone: %p\n", local_clone);
-            //printf("local_clone->parent: %p\n", local_clone->parent);
-       //     local_clone->parent->print();
-            //printf("(*global_tensor_iter)->sr: %p\n", (*global_tensor_iter));
-            //printf("(*global_tensor_iter)->parent: %p\n", (*global_tensor_iter)->parent);
-
       }
 
-      printf("aaaa");
       typename std::set<Idx_Tensor*, tensor_name_less >::iterator output_tensor_iter;
       //printf("after inner for loop\n");
       for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {
@@ -263,16 +258,21 @@ namespace CTF {
     my_imbal = my_exec_time - min_exec;
     MPI_Allreduce(&my_imbal, &accum_imbal, 1, MPI_DOUBLE, MPI_SUM, world->comm);
     schedule_timer.imbalance_acuum_time = accum_imbal;
-    printf("bbbb");
+    
     // Communicate results back into global
     schedule_timer.comm_up_time = MPI_Wtime();
     for (comm_op_iter=comm_ops.begin(); comm_op_iter!=comm_ops.end(); comm_op_iter++) {
       typename std::set<Idx_Tensor*, tensor_name_less >::iterator output_tensor_iter;
       for (output_tensor_iter=comm_op_iter->output_tensors.begin(); output_tensor_iter!=comm_op_iter->output_tensors.end(); output_tensor_iter++) {
-        printf("comm_op_iter->remap[]: %p\n, parent: %p\n",comm_op_iter->remap[(*output_tensor_iter)->parent], (*output_tensor_iter)->parent);
-        ///////////////////////
-        (*output_tensor_iter)->parent->print();
-        (*output_tensor_iter)->parent->add_from_subworld(comm_op_iter->remap[(*output_tensor_iter)->parent], (*output_tensor_iter)->sr->mulid(), (*output_tensor_iter)->sr->addid());
+        //printf("comm_op_iter->remap[]: %p\n, parent: %p\n",comm_op_iter->remap[(*output_tensor_iter)->parent], (*output_tensor_iter)->parent);
+	//printf("before add from subworld\n");
+        //(*output_tensor_iter)->parent->print(); //original
+	//comm_op_iter->remap[(*output_tensor_iter)->parent]->print(); // calculation result
+
+        (*output_tensor_iter)->parent->add_from_subworld(comm_op_iter->remap[(*output_tensor_iter)->parent], (*output_tensor_iter)->sr->addid(), (*output_tensor_iter)->sr->mulid());
+        
+	//printf("after add from subworld\n");
+	//(*output_tensor_iter)->parent->print(); // still original, not overwrite by result
       }
     }
     schedule_timer.comm_up_time = MPI_Wtime() - schedule_timer.comm_up_time;
