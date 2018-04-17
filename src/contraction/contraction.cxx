@@ -161,10 +161,66 @@ namespace CTF_int {
 
 
   double contraction::estimate_time(){
+      ctr* new_ctr;
+      new_ctr.A = new tensor(A, 0, 0); //tensors[ntype.tid_A];
+      new_ctr.A = new_ctr.A;
+      new_ctr.A->data = A->data;
+      new_ctr.A->home_buffer = A->home_buffer;
+      new_ctr.A->is_home = 1;
+      new_ctr.A->has_home = 1;
+      new_ctr.A->home_size = A->home_size;
+      new_ctr.A->is_mapped = 1;
+      new_ctr.A->topo = A->topo;
+      new_ctr.A->is_data_aliased = 1;
+      copy_mapping(A->order, A->edge_map, new_ctr.A->edge_map);
+      new_ctr.A->set_padding();
+      if (A->is_sparse){
+        CTF_int::alloc_ptr(new_ctr.A->calc_nvirt()*sizeof(int64_t), (void**)&new_ctr.A->nnz_blk);
+        new_ctr.A->set_new_nnz_glb(A->nnz_blk);
+      }
+
+      new_ctr.B = new tensor(B, 0, 0);
+      new_ctr.B = new_ctr.B;
+      new_ctr.B->data = B->data;
+      new_ctr.B->home_buffer = B->home_buffer;
+      new_ctr.B->is_home = 1;
+      new_ctr.B->has_home = 1;
+      new_ctr.B->home_size = B->home_size;
+      new_ctr.B->is_mapped = 1;
+      new_ctr.B->topo = B->topo;
+      new_ctr.B->is_data_aliased = 1;
+      copy_mapping(B->order, B->edge_map, new_ctr.B->edge_map);
+      new_ctr.B->set_padding();
+      if (B->is_sparse){
+        CTF_int::alloc_ptr(new_ctr.B->calc_nvirt()*sizeof(int64_t), (void**)&new_ctr.B->nnz_blk);
+        new_ctr.B->set_new_nnz_glb(B->nnz_blk);
+      }
+
+      new_ctr.C = new tensor(C, 0, 0);
+      new_ctr.C = new_ctr.C;
+      new_ctr.C->data = C->data;
+      new_ctr.C->home_buffer = C->home_buffer;
+      new_ctr.C->is_home = 1;
+      new_ctr.C->has_home = 1;
+      new_ctr.C->home_size = C->home_size;
+      new_ctr.C->is_mapped = 1;
+      new_ctr.C->topo = C->topo;
+      new_ctr.C->is_data_aliased = 1;
+      copy_mapping(C->order, C->edge_map, new_ctr.C->edge_map);
+      new_ctr.C->set_padding();
+      if (C->is_sparse){
+        CTF_int::alloc_ptr(new_ctr.C->calc_nvirt()*sizeof(int64_t), (void**)&new_ctr.C->nnz_blk);
+        new_ctr.C->set_new_nnz_glb(C->nnz_blk);
+      }
+
+      int stat = map(&new_ctr, false);
+      return 1.E-3;
+
+/*
     bool is_inner = false;
     is_inner = can_fold();
     ctr* ctrf;
-
+return 1.E-3;
     // error at line below
     int stat = map(&ctrf, false);
     return 1.E-3;
@@ -189,6 +245,8 @@ namespace CTF_int {
     double est_time = ctrf->est_time_rec(1);
     delete ctrf;
     return est_time;
+    */
+
     //int ret, j, need_remap, d;
     //int * old_phase_A, * old_phase_B, * old_phase_C;
     //topology * old_topo_A, * old_topo_B, * old_topo_C;
