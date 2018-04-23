@@ -113,7 +113,7 @@ int apsp(int     n,
       printf("{ APSP by path doubling } failed \n");
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-  free(prs);
+  delete [] prs;
 #ifndef TEST_SUITE
   if (dw.rank == 0){
     printf("Starting %d benchmarking iterations of dense APSP-PD...\n", niter);

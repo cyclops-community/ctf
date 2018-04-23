@@ -25,7 +25,10 @@ namespace CTF_int{
 
 namespace CTF {
   template<typename dtype>
-  Matrix<dtype>::Matrix() : Tensor<dtype>() { }
+  Matrix<dtype>::Matrix() : Tensor<dtype>() { 
+    nrow = -1;
+    ncol = -1;
+  }
 
   template<typename dtype>
   Matrix<dtype>::Matrix(Matrix<dtype> const & A)

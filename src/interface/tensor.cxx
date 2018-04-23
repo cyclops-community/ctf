@@ -182,7 +182,7 @@ namespace CTF {
     //FIXME raises mem consumption
     char * cpairs; 
     int ret = CTF_int::tensor::read_local(npair, &cpairs, unpack_sym);
-    *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair);
+    *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair, sr);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
   }
 
@@ -203,7 +203,7 @@ namespace CTF {
       (*global_idx)[i] = pairs[i].k();
       pairs[i].read_val((char*)((*data)+i));
     }
-    if (cpairs != NULL) CTF_int::cdealloc(cpairs);
+    if (cpairs != NULL) sr->dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -213,7 +213,7 @@ namespace CTF {
     //FIXME raises mem consumption
     char * cpairs; 
     int ret = CTF_int::tensor::read_local_nnz(npair, &cpairs, unpack_sym);
-    *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair);
+    *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair, sr);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local_nnz\n"); IASSERT(0); return; }
   }
 

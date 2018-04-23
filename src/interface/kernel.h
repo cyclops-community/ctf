@@ -427,7 +427,7 @@ namespace CTF{
 #endif      
           int ins = 0;
           int *dcol = (int *) CTF_int::alloc(n*sizeof(int));
-          dtype_C *acc_data = (dtype_C *)CTF_int::alloc(n*sizeof (dtype_C));
+          dtype_C *acc_data = new dtype_C[n];
 #ifdef _OPENMP
           #pragma omp for
 #endif            
@@ -445,6 +445,7 @@ namespace CTF{
                     dcol[col_c] = JB[col_b];
                     acc_data[col_c] =f(A[idx_a],B[col_b]);
                 } else {
+                    printf("%p %p -> %p\n",A+idx_a,B+col_b,acc_data+col_c);
                     g(f(A[idx_a],B[col_b]), acc_data[col_c]);
                 }
               }
@@ -458,7 +459,7 @@ namespace CTF{
             }
           }
           CTF_int::cdealloc(dcol);
-          CTF_int::cdealloc(acc_data);
+          delete [] acc_data;
 #ifdef _OPENMP
         } //PRAGMA END
 #endif

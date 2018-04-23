@@ -57,9 +57,22 @@ namespace CTF_int {
     #pragma omp parallel for
 #endif
     for (int64_t i=0; i<nz; i++){
-      csr_vs[i] = coo_vs[csr_ja[i]];
+//      csr_ja[i] = coo_cs[csr_ja[i]-1];
       csr_ja[i] = coo_cs[csr_ja[i]];
     }
+    // do not copy by value in case values are objects, then csr_vs is uninitialized
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nz; i++){
+      //printf("%d, %d, %ld\n",(int)((char*)(coo_vs+csr_ja[i])-(char*)(coo_vs))-csr_ja[i]*sizeof(dtype),sizeof(dtype),csr_ja[i]);
+//      memcpy(csr_vs+i, coo_vs+csr_ja[i]-1,sizeof(dtype));
+      //copy(csr_vs+i, coo_vs+csr_ja[i],sizeof(dtype));
+      csr_vs[i] = coo_vs[csr_ja[i]];
+      printf("%p %d\n",coo_vs+i,*(int32_t*)(coo_vs+i));
+    }
+    /*for (int64_t i=0; i<nz; i++){
+    }*/
   }
   template <typename dtype>  
   void seq_csr_to_coo(int64_t nz, int nrow, dtype const * csr_vs, int const * csr_ja, int const * csr_ia, dtype * coo_vs, int * coo_rs, int * coo_cs){
@@ -234,6 +247,17 @@ namespace CTF_int {
 
 
 namespace CTF {
+
+  /** \brief pair for sorting */  
+  template <typename dtype>
+  struct dtypePair{
+    int64_t key;
+    dtype data;
+    bool operator < (const dtypePair<dtype>& other) const {
+      return (key < other.key);
+    }
+  };
+
   /**
    * \defgroup algstrct Algebraic Structures
    * \addtogroup algstrct 
@@ -247,6 +271,7 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()> 
   class Set : public CTF_int::algstrct {
     public:
+      int pair_sz;
       bool is_custom_mdtype;
       MPI_Datatype tmdtype;
       ~Set(){
@@ -260,8 +285,29 @@ namespace CTF {
           this->tmdtype = other.tmdtype;
           is_custom_mdtype = false;
         }
+        pair_sz = sizeof(std::pair<int64_t,dtype>);
+        //printf("%ld %ld \n", sizeof(dtype), pair_sz);
         abs = other.abs;
       }
+
+      int pair_size() const {
+        //printf("%d %d \n", sizeof(dtype), pair_sz);
+        return pair_sz;
+      }
+
+      int64_t get_key(char const * a) const {
+        return ((std::pair<int64_t,dtype> const *)a)->first;
+      }
+
+      char * get_value(char * a) const {
+        return (char*)&(((std::pair<int64_t,dtype> const *)a)->second);
+      }
+
+      char const * get_const_value(char const * a) const {
+        return (char const *)&(((std::pair<int64_t,dtype> const *)a)->second);
+      }
+
+
 
       virtual CTF_int::algstrct * clone() const {
         return new Set<dtype, is_ord>(*this);
@@ -272,6 +318,7 @@ namespace CTF {
       Set() : CTF_int::algstrct(sizeof(dtype)){ 
         tmdtype = CTF_int::get_default_mdtype<dtype>(is_custom_mdtype);
         set_abs_to_default();
+        pair_sz = sizeof(std::pair<int64_t,dtype>);
       }
 
       void set_abs_to_default(){
@@ -351,7 +398,32 @@ namespace CTF {
         CTF_int::def_csr_to_coo(nz, nrow, (dtype const *)csr_vs, csr_ja, csr_ia, (dtype*) coo_vs, coo_rs, coo_cs);
       }
 
+      char * pair_alloc(int64_t n) const {
+        assert(sizeof(std::pair<int64_t,dtype>[n])==pair_size()*n);
+        return (char*)(new std::pair<int64_t,dtype>[n]);
+      }
 
+      char * alloc(int64_t n) const {
+        return (char*)(new dtype[n]);
+      }
+
+      void dealloc(char * ptr) const {
+        return delete [] (dtype*)ptr;
+      }
+
+      void init(int64_t n, char * arr) const {
+        for (int64_t i=0; i<n; i++){
+          dtype * a = new dtype();
+          memcpy(((dtype*)arr)+i, a, sizeof(dtype));
+          free((char*)a);          
+        }
+      }
+
+
+      void sort(int64_t n, char * pairs) const {
+        std::sort((dtypePair<dtype>*)pairs,((dtypePair<dtype>*)pairs)+n);
+
+      }
   };
 
   //FIXME do below with macros to shorten

@@ -62,10 +62,11 @@ namespace CTF {
        * \brief cast tightly packed character array to array of Pairs, needed to handle alignment
        * \param[in,out] arr char array stored as [k1, d1, k2, d2, ..., kn, dn], deleted if copied
        * \param[in] n number of pairs in array
+       * \param[in] sr algebraci structure associated with dtype
        * \return array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)]
        */
-      static Pair<dtype> * cast_char_arr(char * arr, int64_t n){
-        if (sizeof(Pair<dtype>) == sizeof(int64_t)+sizeof(dtype)){
+      static Pair<dtype> * cast_char_arr(char * arr, int64_t n, CTF_int::algstrct const * sr){
+        if (sizeof(Pair<dtype>) == sr->pair_size()){
           return (Pair<dtype>*)arr;
         } else {
           Pair<dtype> * prs = (Pair<dtype>*)CTF_int::alloc(sizeof(Pair<dtype>)*n);

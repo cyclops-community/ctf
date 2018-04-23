@@ -296,7 +296,7 @@ namespace CTF_int {
       ASSERT(size <= 1);
       if (size == 1){
         if (f(vdata)){
-          vpairs = (char*)alloc(sr->pair_size()*1);
+          vpairs = sr->pair_alloc(1);
           nnz_blk[0] = 1;
           sr->set_pair(vpairs, 0, vdata);
         } else vpairs = NULL;
@@ -357,7 +357,7 @@ namespace CTF_int {
     for (int i=1; i<nvirt; i++){
       nnz_blk_lda[i] = nnz_blk_lda[i-1]+nnz_blk[i-1];
     } 
-    vpairs = (char*)alloc(sr->pair_size()*(nnz_blk_lda[nvirt-1]+nnz_blk[nvirt-1]));
+    vpairs = sr->pair_alloc(nnz_blk_lda[nvirt-1]+nnz_blk[nvirt-1]);
     
     memset(nnz_blk, 0, sizeof(int64_t)*nvirt); 
     virt_blk = 0;
@@ -901,8 +901,8 @@ namespace CTF_int {
       memcpy(old_nnz_blk, nnz_blk, num_virt*sizeof(int64_t));
     }
 
-    CTF_int::alloc_ptr(inwrite*sr->pair_size(), (void**)&buf_datab);
-    CTF_int::alloc_ptr(inwrite*sr->pair_size(), (void**)&swap_datab);
+    buf_datab = sr->pair_alloc(inwrite);
+    swap_datab = sr->pair_alloc(inwrite);
     CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&bucket_counts);
     CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&recv_counts);
     CTF_int::alloc_ptr(np*sizeof(int64_t),     (void**)&send_displs);
@@ -1080,8 +1080,8 @@ namespace CTF_int {
     if (glb_comm.rank == 0) printf("max received elements is %ld, mine are %ld\n", max_np, new_num_pair);*/
 
     if (new_num_pair > nwrite){
-      CTF_int::cdealloc(swap_datab);
-      CTF_int::alloc_ptr(sr->pair_size()*new_num_pair, (void**)&swap_datab);
+      sr->dealloc(swap_datab);
+      swap_datab = sr->pair_alloc(new_num_pair);
       swap_data = PairIterator(sr, swap_datab);
     }
     /* Exchange data according to counts/offsets */
@@ -1093,11 +1093,11 @@ namespace CTF_int {
 
 
     if (new_num_pair > nwrite){
-      CTF_int::cdealloc(buf_datab);
-      CTF_int::alloc_ptr(sr->pair_size()*new_num_pair, (void**)&buf_datab);
+      sr->dealloc(buf_datab);
+      buf_datab = sr->pair_alloc(new_num_pair);
       buf_data = PairIterator(sr, buf_datab);
     }
-
+    printf("inwrite %lld %lld %ld\n",inwrite,nwrite,sr->pair_size());
     /* Figure out what virtual bucket each key belongs to. Bucket
        and sort them accordingly */
     int64_t * virt_counts = 
@@ -1212,8 +1212,8 @@ namespace CTF_int {
     TAU_FSTOP(wr_pairs_layout);
 
     if (is_sparse) CTF_int::cdealloc(old_nnz_blk);
-    CTF_int::cdealloc(swap_datab);
-    CTF_int::cdealloc(buf_datab);
+    sr->dealloc(swap_datab);
+    sr->dealloc(buf_datab);
     CTF_int::cdealloc((void*)bucket_counts);
     CTF_int::cdealloc((void*)recv_counts);
     CTF_int::cdealloc((void*)send_displs);
@@ -1307,7 +1307,8 @@ namespace CTF_int {
     // each for loop iteration does one addition, o and r are also incremented within
     // only incrementing r allows multiple reads of the same val
     for (int64_t t=0,r=0; t<ntsr && r<nread; r++){
-      while (prs_tsr[t].k() != prs_read[r].k() && t<ntsr && r<nread){
+      printf("t= %lld r = %lld ntsr = %lld nread = %lld\n",t,r,ntsr,nread);
+      while (t<ntsr && r<nread && prs_tsr[t].k() != prs_read[r].k()){
         if (prs_tsr[t].k() < prs_read[r].k())
           t++;
         else
@@ -1375,7 +1376,7 @@ namespace CTF_int {
       tot_new += nnew;
     }
     //printf("ntsr = %ld nwrite = %ld nnew = %ld\n",ntsr,nwrite,nnew); 
-    alloc_ptr(sr->pair_size()*tot_new, (void**)&pprs_new);
+    pprs_new = sr->pair_alloc(tot_new);
     PairIterator vprs_new(sr, pprs_new);
     // each for loop computes one new value of prs_new 
     //    (multiple writes may contribute to it), 

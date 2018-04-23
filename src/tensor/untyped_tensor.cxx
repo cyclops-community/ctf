@@ -52,13 +52,15 @@ namespace CTF_int {
       deregister_size();
       if (!is_data_aliased){
         if (is_home){
-          if (!is_sparse) cdealloc(home_buffer);
-          else cdealloc(data);
+          if (!is_sparse) sr->dealloc(home_buffer);
+          else sr->dealloc(data);
         } else {
-          if (data != NULL)
-            cdealloc(data);
+          if (data != NULL){
+            //if (order == 0) sr->dealloc(data);
+            sr->dealloc(data); 
+          }
         }
-        if (has_home && !is_home) cdealloc(home_buffer);
+        if (has_home && !is_home) sr->dealloc(home_buffer);
       }
       if (is_sparse) cdealloc(nnz_blk);
       order = -1;
@@ -108,7 +110,7 @@ namespace CTF_int {
 #endif
     } else {
 
-      this->data = (char*)CTF_int::alloc(this->size*this->sr->el_size);
+      this->data = sr->alloc(this->size);
       this->sr->set(this->data, this->sr->addid(), this->size);
 #ifdef HOME_CONTRACT
       this->home_size = this->size;
@@ -213,7 +215,7 @@ namespace CTF_int {
         }*/
         this->home_size = other->home_size;
         register_size(this->home_size*sr->el_size);
-        this->home_buffer = (char*)CTF_int::alloc(other->home_size*sr->el_size);
+        this->home_buffer = sr->alloc(other->home_size);
         if (other->is_home){
           this->is_home = 1;
           this->data = this->home_buffer;
@@ -222,11 +224,13 @@ namespace CTF_int {
           }*/
           this->is_home = 0;
           memcpy(this->home_buffer, other->home_buffer, other->home_size);
-          CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+          //CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+          this->data = sr->alloc(other->size);
         }
         this->has_home = 1;
       } else {
-        CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+        //CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+        this->data = sr->alloc(other->size);
 /*          if (this->has_home && !this->is_home){
           CTF_int::cdealloc(this->home_buffer);
         }*/
@@ -234,7 +238,8 @@ namespace CTF_int {
         this->is_home = 0;
       }
   #else
-      CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+      //CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
+      this->data = sr->alloc(other->size);
   #endif
       memcpy(this->data, other->data, sr->el_size*other->size);
     } else {
@@ -244,8 +249,9 @@ namespace CTF_int {
       this->home_buffer = other->home_buffer;
       if (data!=NULL)    CTF_int::cdealloc(this->data);
       if (nnz_blk!=NULL) CTF_int::cdealloc(this->nnz_blk);
-      CTF_int::alloc_ptr(other->nnz_loc*(sizeof(int64_t)+sr->el_size),
-                       (void**)&this->data);
+      //CTF_int::alloc_ptr(other->nnz_loc*(sizeof(int64_t)+sr->el_size),
+      //                 (void**)&this->data);
+      this->data = sr->pair_alloc(other->nnz_loc);
       CTF_int::alloc_ptr(other->calc_nvirt()*sizeof(int64_t), (void**)&this->nnz_blk);
       memcpy(this->nnz_blk, other->nnz_blk, other->calc_nvirt()*sizeof(int64_t));
       this->set_new_nnz_glb(other->nnz_blk);
@@ -492,7 +498,7 @@ namespace CTF_int {
 
     if (this->is_mapped){
       if (is_sparse){
-        cdealloc(this->data);
+        sr->dealloc(this->data);
         this->data = NULL;
 //        this->size = 0;
         memset(this->nnz_blk, 0, sizeof(int64_t)*calc_nvirt());
@@ -604,15 +610,16 @@ namespace CTF_int {
           //this->has_home = 0;
     /*      if (wrld->rank == 0)
             DPRINTF(3,"Initial size of tensor %d is " PRId64 ",",tensor_id,this->size);*/
-          CTF_int::alloc_ptr(this->home_size*sr->el_size, (void**)&this->home_buffer);
+          this->home_buffer = sr->alloc(this->home_size);
           if (wrld->rank == 0) DPRINTF(2,"Creating home of %s\n",name);
           register_size(this->size*sr->el_size);
           this->data = this->home_buffer;
         } else {
-          CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);
+          this->data = sr->alloc(this->size);
         }
         #else
-        CTF_int::mst_alloc_ptr(this->size*sr->el_size, (void**)&this->data);
+        this->data = sr->alloc(this->size);
+        //CTF_int::alloc_ptr(this->size*sr->el_size, (void**)&this->data);
         #endif
         #if DEBUG >= 2
         if (wrld->rank == 0)
@@ -888,7 +895,7 @@ namespace CTF_int {
       } else {
         tsr_B->read_local(&sz_B, &all_data_B, false);
 
-        CTF_int::alloc_ptr((sizeof(int64_t)+tsr_B->sr->el_size)*sz_B, (void**)&blk_data_B);
+        blk_data_B = tsr_B->sr->pair_alloc(sz_B);
 
         for (i=0; i<tsr_B->order; i++){
           padding_B[i] = tsr_B->lens[i] - ends_B[i];
@@ -924,7 +931,7 @@ namespace CTF_int {
       blk_sz_A = 0;
       blk_data_A = NULL;
     } else {
-      CTF_int::alloc_ptr((sizeof(int64_t)+tsr_A->sr->el_size)*sz_A, (void**)&blk_data_A);
+      blk_data_A = tsr_A->sr->pair_alloc(sz_A);
 
       for (i=0; i<tsr_A->order; i++){
         padding_A[i] = tsr_A->lens[i] - ends_A[i];
@@ -934,7 +941,7 @@ namespace CTF_int {
       depad_tsr(tsr_A->order, sz_A, ends_A, nosym, padding_A, offsets_A,
                 all_data_A, blk_data_A, &blk_sz_A, sr);
       //if (sz_A > 0)
-        CTF_int::cdealloc(all_data_A);
+        tsr_A->sr->dealloc(all_data_A);
 
 
       for (i=0; i<tsr_A->order; i++){
@@ -958,7 +965,7 @@ namespace CTF_int {
 
     tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');
     if (tsr_A->order != 0 && !tsr_A->has_zero_edge_len)
-      CTF_int::cdealloc(blk_data_A);
+      tsr_A->sr->dealloc(blk_data_A);
     CTF_int::cdealloc(padding_A);
     CTF_int::cdealloc(padding_B);
     CTF_int::cdealloc(toffset_A);
@@ -1137,7 +1144,7 @@ namespace CTF_int {
                         nnz_loc_new);
         if (is_sparse && rw == 'w'){
           this->set_new_nnz_glb(nnz_blk);
-          if (tsr->data != NULL) cdealloc(tsr->data);
+          if (tsr->data != NULL) sr->dealloc(tsr->data);
           tsr->data = new_pairs;
   /*        for (int64_t i=0; i<nnz_loc; i++){
             printf("rank = %d, stores key %ld value %lf\n",wrld->rank,
@@ -1319,7 +1326,7 @@ namespace CTF_int {
       // if we don't have any actual zeros don't do anything
       if (nnz_loc_new != nnz_loc){
         char * old_data = data;
-        alloc_ptr(nnz_loc_new*sr->pair_size(), (void**)&data);
+        data = sr->pair_alloc(nnz_loc_new);
         PairIterator pi_new(sr, data);
         nnz_loc_new = 0;
         for (int64_t i=0; i<nnz_loc; i++){
@@ -1328,7 +1335,7 @@ namespace CTF_int {
             nnz_loc_new++;
           }
         }
-        cdealloc(old_data);
+        sr->dealloc(old_data);
       }
 
       this->set_new_nnz_glb(nnz_blk);
@@ -1396,7 +1403,7 @@ namespace CTF_int {
           for (int v=0; v<nvirt; v++){
             if (nnz_blk[v] > 0){
               int64_t old_nnz = nnz_blk[v];
-              new_pairs[v] = (char*)alloc(nnz_blk[v]*sr->pair_size());
+              new_pairs[v] = (char*)sr->pair_alloc(nnz_blk[v]);
               depad_tsr(order, nnz_blk[v], this->lens, this->sym, this->padding, prepadding,
                         data_ptr, new_pairs[v], nnz_blk+v, sr);
               pad_key(order, nnz_blk[v], this->pad_edge_len, depadding, PairIterator(sr,new_pairs[v]), sr);
@@ -1406,13 +1413,13 @@ namespace CTF_int {
           }
           cdealloc(depadding);
           cdealloc(prepadding);
-          cdealloc(this->data);
-          CTF_int::alloc_ptr(sr->pair_size()*new_nnz_tot,   (void**)&this->data);
+          sr->dealloc(this->data);
+          this->data = sr->pair_alloc(new_nnz_tot);
           char * new_data_ptr = this->data;
           for (int v=0; v<nvirt; v++){
             if (nnz_blk[v] > 0){
               memcpy(new_data_ptr, new_pairs[v], nnz_blk[v]*sr->pair_size());
-              cdealloc(new_pairs[v]);
+              sr->dealloc(new_pairs[v]);
             }
           }
         }
@@ -1421,7 +1428,7 @@ namespace CTF_int {
         this->data = NULL;
       }
 
-      cdealloc(old_data);
+      sr->dealloc(old_data);
       //become sparse
       if (has_home) deregister_size();
       is_home = true;
@@ -1745,7 +1752,7 @@ namespace CTF_int {
       tsr_cpy.sparsify(cutoff);
       tsr_cpy.read_local_nnz(&imy_sz, &pmy_data, true);
     } else
-      read_local(&imy_sz, &pmy_data, true);
+      read_local_nnz(&imy_sz, &pmy_data, true);
     my_sz = imy_sz;
     //PairIterator my_data = PairIterator(sr,pmy_data);
 
@@ -2415,7 +2422,7 @@ namespace CTF_int {
               }
 
               this->write(nw, NULL, NULL, pwdata);
-              cdealloc(pwdata);
+              sr->dealloc(pwdata);
             }
           } else {
             if (rw){
@@ -2673,15 +2680,15 @@ namespace CTF_int {
       if (this->rec_tsr->nnz_blk[i]>0){
         if (csr){
           CSR_Matrix cA(this->rec_tsr->data+offset);
-          new_sz += cA.nnz()*sr->pair_size();
+          new_sz += cA.nnz();
         } else {
           COO_Matrix cA(this->rec_tsr->data+offset);
-          new_sz += cA.nnz()*sr->pair_size();
+          new_sz += cA.nnz();
         }
       }
       offset += this->rec_tsr->nnz_blk[i];
     }
-    this->data = (char*)alloc(new_sz);
+    this->data = sr->pair_alloc(new_sz);
     int phase[this->order];
     int phys_phase[this->order];
     int phase_rank[this->order];
