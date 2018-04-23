@@ -215,7 +215,7 @@ namespace CTF_int {
       for (int i=0; i<nb_B; i++){
         this->new_nnz_B += new_sp_szs_B[i];
       }
-      new_B = (char*)alloc(this->new_nnz_B*this->sr_B->pair_size());
+      new_B = sr_B->pair_alloc(this->new_nnz_B);
       int64_t pfx = 0;
       for (int i=0; i<nb_B; i++){
         memcpy(new_B+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->pair_size());

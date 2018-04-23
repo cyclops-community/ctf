@@ -829,7 +829,7 @@ namespace CTF_int {
           }
         }
         C->spmatricize(iprm.m, iprm.n, nrow_idx, csr_or_coo);
-        cdealloc(C->data);
+        C->sr->dealloc(C->data);
       }
     
     }
@@ -5087,7 +5087,7 @@ namespace CTF_int {
         if (T->is_home){
           if (T->wrld->cdt.rank == 0)
             DPRINTF(2,"Tensor %s leaving home\n", T->name);
-          T->data = (char*)CTF_int::mst_alloc(T->size*T->sr->el_size);
+          T->data = T->sr->alloc(T->size);
           memcpy(T->data, T->home_buffer, T->size*T->sr->el_size);
           T->is_home = 0;
         }

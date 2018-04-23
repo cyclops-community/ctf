@@ -34,7 +34,7 @@ namespace CTF_int {
                   char *       b);
 
       /** \brief gets pair size el_size plus the key size */
-      int pair_size() const { return el_size + sizeof(int64_t); }
+      virtual int pair_size() const { return el_size + sizeof(int64_t); }
 
 
       /**
@@ -266,7 +266,42 @@ namespace CTF_int {
 
       /** \brief reduces CSR matrices stored in cA on each processor in cm and returns result on processor root */
       virtual char * csr_reduce(char * cA, int root, MPI_Comm cm) const;
-    
+
+      /** \brief allocate space for n (int64_t,dtype) pairs, necessary for object types 
+        * \param[in] n number of pairs
+        * \return array containing n pair items
+        */
+      virtual char * pair_alloc(int64_t n) const;
+
+      /** \brief allocate space for n items, necessary for object types 
+        * \param[in] n number of items
+        * \return array containing n items
+        */
+      virtual char * alloc(int64_t n) const;
+     
+      /** \brief gets key from pair */
+      virtual int64_t get_key(char const * a) const;
+      
+      /** \brief gets pair to value from pair */
+      virtual char * get_value(char * a) const;
+      virtual char const * get_const_value(char const * a) const;
+      /**
+        * \brief deallocate given pointer
+        * \param[in] ptr array to deallocate
+        */
+      virtual void dealloc(char * ptr) const;
+      
+      /** \brief initialize n objects to zero
+        * \param[in] n number of items
+        * \param[in] arr array containing n items, to be set to zero
+        */
+      virtual void init(int64_t n, char * arr) const;
+
+      /**
+       * \brief sorts n sets of pairs using std::sort 
+       */
+      virtual void sort(int64_t n, char * pairs) const;
+ 
       /** estimate time in seconds necessary for CSR reduction with input of size msg_sz */
       double estimate_csr_red_time(int64_t msg_sz, CommData const * cdt) const;
 
@@ -320,13 +355,6 @@ namespace CTF_int {
 
       /** \brief sets n elements of array of pairs a to value b */
       void set_pairs(char * a, char const * b, int64_t n) const;
-      
-      /** \brief gets key from pair */
-      int64_t get_key(char const * a) const;
-      
-      /** \brief gets pair to value from pair */
-      char const * get_value(char const * a) const;
-
 
   };
 

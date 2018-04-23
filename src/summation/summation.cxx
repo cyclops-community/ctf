@@ -1595,7 +1595,7 @@ namespace CTF_int {
       if (tnsr_B->is_sparse){
         tspsum * spsumf = (tspsum*)sumf;
         if (tnsr_B->data != spsumf->new_B){
-          cdealloc(tnsr_B->data);
+          tnsr_B->sr->dealloc(tnsr_B->data);
           tnsr_B->data = spsumf->new_B;
           //tnsr_B->nnz_loc = spsumf->new_nnz_B;
         }

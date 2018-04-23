@@ -306,8 +306,9 @@ namespace CTF {
               if (has_col[JB[idx_B]-1]){
                 dtype_C tmp = f(A[idx_A],B[idx_B]);
                 sr_C->add((char const *)&vC[rev_col[JB[idx_B]-1]], (char const *)&tmp, (char *)&vC[rev_col[JB[idx_B]-1]]);  
-              } else
+              } else {
                 vC[rev_col[JB[idx_B]-1]] = f(A[idx_A],B[idx_B]);
+              }
               has_col[JB[idx_B]-1] = 1;  
             }
           }
