@@ -900,7 +900,7 @@ namespace CTF_int {
       }
 
       if (buf != rec_tsum->new_B && new_B != rec_tsum->new_B){
-        cdealloc(rec_tsum->new_B);
+        sr_B->dealloc(rec_tsum->new_B);
       }
       cdealloc(buf);
     }
