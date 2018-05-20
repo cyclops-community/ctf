@@ -12,6 +12,14 @@
 #define PSGESVD psgesvd_
 #define PCGESVD pcgesvd_
 #define PZGESVD pzgesvd_
+#define PSGEQRF psgeqrf_
+#define PDGEQRF pdgeqrf_
+#define PCGEQRF pcgeqrf_
+#define PZGEQRF pzgeqrf_
+#define PSORGQR psorgqr_
+#define PDORGQR pdorgqr_
+#define PCORGQR pcorgqr_
+#define PZORGQR pzorgqr_
 #define DESCINIT descinit_
 #define BLACS_GRIDINFO blacs_gridinfo_
 #define BLACS_GRIDINIT blacs_gridinit_
@@ -23,6 +31,14 @@
 #define PSGESVD psgesvd
 #define PCGESVD pcgesvd
 #define PZGESVD pzgesvd
+#define PSGEQRF psgeqrf
+#define PDGEQRF pdgeqrf
+#define PCGEQRF pcgeqrf
+#define PZGEQRF pzgeqrf
+#define PSORGQR psorgqr
+#define PDORGQR pdorgqr
+#define PCORGQR pcorgqr
+#define PZORGQR pzorgqr
 #define DESCINIT descinit
 #define BLACS_GRIDINFO blacs_gridinfo
 #define BLACS_GRIDINIT blacs_gridinit
@@ -143,6 +159,115 @@ namespace CTF_SCALAPACK{
                 std::complex<double> *,
                 int *,
                 int *) SCAL_END
+
+  
+  EXTERN_OR_INLINE 
+  void PSGEQRF(int *,
+               int *,
+               float *,
+               int *,
+               int *,
+               int const *,
+               float *,
+               float *,
+               int *,
+               int *) SCAL_END
+  
+  EXTERN_OR_INLINE 
+  void PDGEQRF(int *,
+               int *,
+               double *,
+               int *,
+               int *,
+               int const *,
+               double *,
+               double *,
+               int *,
+               int *) SCAL_END
+   
+
+  EXTERN_OR_INLINE 
+  void PCGEQRF(int *,
+               int *,
+               std::complex<float> *,
+               int *,
+               int *,
+               int const *,
+               std::complex<float> *,
+               std::complex<float> *,
+               int *,
+               int *) SCAL_END
+  
+  EXTERN_OR_INLINE 
+  void PZGEQRF(int *,
+               int *,
+               std::complex<double> *,
+               int *,
+               int *,
+               int const *,
+               std::complex<double> *,
+               std::complex<double> *,
+               int *,
+               int *) SCAL_END
+   
+
+  EXTERN_OR_INLINE 
+  void PSORGQR(int *,
+                int *,
+                int *,
+                float *,
+                int *,
+                int *,
+                int const *,
+                float *,
+                float *,
+                int *,
+                int *) SCAL_END
+
+  
+
+  EXTERN_OR_INLINE 
+  void PDORGQR(int *,
+                int *,
+                int *,
+                double *,
+                int *,
+                int *,
+                int const *,
+                double *,
+                double *,
+                int *,
+                int *) SCAL_END
+
+
+  EXTERN_OR_INLINE 
+  void PCORGQR(int *,
+                int *,
+                int *,
+                std::complex<float> *,
+                int *,
+                int *,
+                int const *,
+                std::complex<float> *,
+                std::complex<float> *,
+                int *,
+                int *) SCAL_END
+
+  
+
+  EXTERN_OR_INLINE 
+  void PZORGQR(int *,
+                int *,
+                int *,
+                std::complex<double> *,
+                int *,
+                int *,
+                int const *,
+                std::complex<double> *,
+                std::complex<double> *,
+                int *,
+                int *) SCAL_END
+
 
   EXTERN_OR_INLINE
   void DESCINIT(int *, int *,
@@ -292,9 +417,156 @@ namespace CTF_SCALAPACK{
     PZGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
 
+  template <typename dtype> 
+  inline void pgeqrf(int  M,
+                     int  N,
+                     dtype *  A,
+                     int  IA,
+                     int  JA,
+                     int const *     DESCA,
+                     dtype *  TAU2,
+                     dtype *  WORK,
+                     int  LWORK,
+                     int *     INFO){
+    assert(0);
+  }
+
+  template <> 
+  inline void pgeqrf<float>(int  M,
+                            int  N,
+                            float *  A,
+                            int  IA,
+                            int  JA,
+                            int const *     DESCA,
+                            float *  TAU2,
+                            float *  WORK,
+                            int  LWORK,
+                            int *     INFO){
+    PSGEQRF(&M,&N,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  }
+  template <> 
+  inline void pgeqrf<double>(int  M,
+                             int  N,
+                             double *  A,
+                             int  IA,
+                             int  JA,
+                             int const *     DESCA,
+                             double *  TAU2,
+                             double *  WORK,
+                             int  LWORK,
+                             int *     INFO){
+    PDGEQRF(&M,&N,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  }
+
+  template <> 
+  inline void pgeqrf< std::complex<float> >(int  M,
+                                            int  N,
+                                            std::complex<float> *  A,
+                                            int  IA,
+                                            int  JA,
+                                            int const *     DESCA,
+                                            std::complex<float> *  TAU2,
+                                            std::complex<float> *  WORK,
+                                            int  LWORK,
+                                            int *     INFO){
+    PCGEQRF(&M,&N,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  }
+
+
+  template <> 
+  inline void pgeqrf< std::complex<double> >(int  M,
+                                             int  N,
+                                             std::complex<double> *  A,
+                                             int  IA,
+                                             int  JA,
+                                             int const *     DESCA,
+                                             std::complex<double> *  TAU2,
+                                             std::complex<double> *  WORK,
+                                             int  LWORK,
+                                             int *     INFO){
+    PZGEQRF(&M,&N,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  }
+
+  template <typename dtype>
+  inline void porgqr(int  M,
+                     int  N,
+                     int  K,
+                     dtype *  A,
+                     int  IA,
+                     int  JA,
+                     int const *     DESCA,
+                     dtype *  TAU2,
+                     dtype *  WORK,
+                     int  LWORK,
+                     int *     INFO){
+    assert(0); // PORGQR not defined for this type
+  }
+  
+  template <>
+  inline void porgqr<float>(int  M,
+                            int  N,
+                            int  K,
+                            float *  A,
+                            int  IA,
+                            int  JA,
+                            int const *     DESCA,
+                            float *  TAU2,
+                            float *  WORK,
+                            int  LWORK,
+                            int *     INFO){
+    PSORGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  }
+  
+  template <>
+  inline void porgqr<double>(int  M,
+                             int  N,
+                             int  K,
+                             double *  A,
+                             int  IA,
+                             int  JA,
+                             int const *     DESCA,
+                             double *  TAU2,
+                             double *  WORK,
+                             int  LWORK,
+                             int *     INFO){
+    PDORGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  }
+  
+  template <>
+  inline void porgqr< std::complex<float> >(int  M,
+                                            int  N,
+                                            int  K,
+                                            std::complex<float>  *  A,
+                                            int  IA,
+                                            int  JA,
+                                            int const *     DESCA,
+                                            std::complex<float>  *  TAU2,
+                                            std::complex<float>  *  WORK,
+                                            int  LWORK,
+                                            int *     INFO){
+    PCORGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  }
+  
+  
+  template <>
+  inline void porgqr< std::complex<double> >(int  M,
+                                             int  N,
+                                             int  K,
+                                             std::complex<double>  *  A,
+                                             int  IA,
+                                             int  JA,
+                                             int const *     DESCA,
+                                             std::complex<double>  *  TAU2,
+                                             std::complex<double>  *  WORK,
+                                             int  LWORK,
+                                             int *     INFO){
+    PZORGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  }
+
+
   inline
   void cdescinit( int * desc, 
-                  int m,	    
+                  int m,    
                   int n,
                   int mb,
                   int nb,

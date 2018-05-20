@@ -723,6 +723,111 @@ namespace CTF {
   }
 
   template<typename dtype>
+  void real_norm1(Tensor<dtype> & A, double & nrm){
+    char inds[A.order];
+    for (int i=0; i<A.order; i++){
+      inds[i] = 'a'+i;
+    }
+    nrm = Function<dtype,double>([](dtype a){ return (double)std::abs(a); })(A[inds]);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::norm1(double & nrm){
+    if (wrld->rank == 0) 
+      printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
+    IASSERT(0);
+  }
+
+#define NORM1_INST(dtype) \
+  template<> \
+  void Tensor<dtype>::norm1(double & nrm){ \
+    real_norm1<dtype>(*this, nrm); \
+  }
+
+NORM1_INST(bool)
+NORM1_INST(int8_t)
+NORM1_INST(int16_t)
+NORM1_INST(int)
+NORM1_INST(int64_t)
+NORM1_INST(float)
+NORM1_INST(double)
+
+  template<typename dtype>
+  void real_norm2(Tensor<dtype> & A, double & nrm){
+    char inds[A.order];
+    for (int i=0; i<A.order; i++){
+      inds[i] = 'a'+i;
+    }
+    nrm = Function<dtype,double>([](dtype a){ return (double)(a*a); })(A[inds]);
+  }
+
+  template<typename dtype>
+  void complex_norm2(Tensor<dtype> & A, double & nrm){
+    char inds[A.order];
+    for (int i=0; i<A.order; i++){
+      inds[i] = 'a'+i;
+    }
+    nrm = Function<dtype,double>([](dtype a){ return std::norm(a); })(A[inds]);
+  }
+
+
+  template<typename dtype>
+  void Tensor<dtype>::norm2(double & nrm){
+    if (wrld->rank == 0) 
+      printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
+    IASSERT(0);
+  }
+
+#define NORM2_REAL_INST(dtype) \
+  template<> \
+  void Tensor<dtype>::norm2(double & nrm){ \
+    real_norm2<dtype>(*this, nrm); \
+  }
+
+#define NORM2_COMPLEX_INST(dtype) \
+  template<> \
+  void Tensor< std::complex<dtype> >::norm2(double & nrm){ \
+    complex_norm2< std::complex<dtype> >(*this, nrm); \
+  }
+
+
+NORM2_REAL_INST(bool)
+NORM2_REAL_INST(int8_t)
+NORM2_REAL_INST(int16_t)
+NORM2_REAL_INST(int)
+NORM2_REAL_INST(int64_t)
+NORM2_REAL_INST(float)
+NORM2_REAL_INST(double)
+NORM2_COMPLEX_INST(float)
+NORM2_COMPLEX_INST(double)
+
+  template<typename dtype>
+  void Tensor<dtype>::norm_infty(double & nrm){
+    if (wrld->rank == 0) 
+      printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
+    IASSERT(0);
+  }
+
+#define NORM_INFTY_INST(dtype) \
+  template<> \
+  void Tensor<dtype>::norm_infty(double & nrm){ \
+    nrm = this->norm_infty(); \
+  }
+
+NORM_INFTY_INST(bool)
+NORM_INFTY_INST(int8_t)
+NORM_INFTY_INST(int16_t)
+NORM_INFTY_INST(int)
+NORM_INFTY_INST(int64_t)
+NORM_INFTY_INST(float)
+NORM_INFTY_INST(double)
+
+#undef NORM1_INST
+#undef NORM2_REAL_INST
+#undef NORM2_COMPLEX_INST
+#undef NORM_INFTY_INST
+
+  template<typename dtype>
   void Tensor<dtype>::get_max_abs(int     n,
                                   dtype * data) const {
     int ret;
