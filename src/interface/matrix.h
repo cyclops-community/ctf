@@ -260,13 +260,20 @@ namespace CTF {
       void print_matrix();
 
       /*
+       * \calculates the reduced QR decomposition, A = Q x R for A of dimensions m by n with m>=n
+       * \param[out] Q m-by-n matrix with orthonormal columns
+       * \param[out] R n-by-n upper-triangular matrix
+       */
+      void qr(Matrix<dtype> & Q, Matrix<dtype> & R);
+
+      /*
        * \calculates the singular value decomposition, M = U x S x VT, of matrix using pdgesvd from ScaLAPACK
        * \param[out] U left singular vectors of matrix
        * \param[out] S singular values of matrix
        * \param[out] VT right singular vectors of matrix
        * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
        */
-      void matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0);
+      void svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0);
 
   };
   /**
