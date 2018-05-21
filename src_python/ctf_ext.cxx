@@ -91,7 +91,7 @@ namespace CTF_int{
           CTF::Matrix<double> mU;
           CTF::Vector<double> vS;
           CTF::Matrix<double> mVT;
-          mA.matrix_svd(mU, vS, mVT, rank);
+          mA.svd(mU, vS, mVT, rank);
           //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
           (*U)["ij"] = mU["ij"];
           (*S)["i"] = vS["i"];

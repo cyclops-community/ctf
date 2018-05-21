@@ -18,8 +18,8 @@
 #define PZGEQRF pzgeqrf_
 #define PSORGQR psorgqr_
 #define PDORGQR pdorgqr_
-#define PCORGQR pcorgqr_
-#define PZORGQR pzorgqr_
+#define PCUNGQR pcungqr_
+#define PZUNGQR pzungqr_
 #define DESCINIT descinit_
 #define BLACS_GRIDINFO blacs_gridinfo_
 #define BLACS_GRIDINIT blacs_gridinit_
@@ -37,8 +37,8 @@
 #define PZGEQRF pzgeqrf
 #define PSORGQR psorgqr
 #define PDORGQR pdorgqr
-#define PCORGQR pcorgqr
-#define PZORGQR pzorgqr
+#define PCUNGQR pcungqr
+#define PZUNGQR pzungqr
 #define DESCINIT descinit
 #define BLACS_GRIDINFO blacs_gridinfo
 #define BLACS_GRIDINIT blacs_gridinit
@@ -241,7 +241,7 @@ namespace CTF_SCALAPACK{
 
 
   EXTERN_OR_INLINE 
-  void PCORGQR(int *,
+  void PCUNGQR(int *,
                 int *,
                 int *,
                 std::complex<float> *,
@@ -256,7 +256,7 @@ namespace CTF_SCALAPACK{
   
 
   EXTERN_OR_INLINE 
-  void PZORGQR(int *,
+  void PZUNGQR(int *,
                 int *,
                 int *,
                 std::complex<double> *,
@@ -296,285 +296,286 @@ namespace CTF_SCALAPACK{
     void Cblacs_gridexit(int) SCAL_END
   
   template <typename dtype>
-  void pgesvd(char JOBU,
-              char JOBVT,
-              int M,
-              int N,
+  void pgesvd(char    JOBU,
+              char    JOBVT,
+              int     M,
+              int     N,
               dtype * A,
-              int IA,
-              int JA,
-              int * DESCA,
+              int     IA,
+              int     JA,
+              int *   DESCA,
               dtype * S,
               dtype * U,
-              int IU,
-              int JU,
-              int * DESCU,
+              int     IU,
+              int     JU,
+              int *   DESCU,
               dtype * VT,
-              int IVT,
-              int JVT,
-              int * DESCVT,
+              int     IVT,
+              int     JVT,
+              int *   DESCVT,
               dtype * WORK,
-              int LWORK,
-              int * info) {
+              int     LWORK,
+              int *   info) {
     assert(0);
   }
 
   template <>
-  inline void pgesvd<float>(char JOBU,
-                  char JOBVT,
-                  int M,
-                  int N,
-                  float * A,
-                  int IA,
-                  int JA,
-                  int * DESCA,
-                  float * S,
-                  float * U,
-                  int IU,
-                  int JU,
-                  int * DESCU,
-                  float * VT,
-                  int IVT,
-                  int JVT,
-                  int * DESCVT,
-                  float * WORK,
-                  int LWORK,
-                  int * info) {
+  inline void pgesvd<float>(char    JOBU,
+                            char    JOBVT,
+                            int     M,
+                            int     N,
+                            float * A,
+                            int     IA,
+                            int     JA,
+                            int *   DESCA,
+                            float * S,
+                            float * U,
+                            int     IU,
+                            int     JU,
+                            int *   DESCU,
+                            float * VT,
+                            int     IVT,
+                            int     JVT,
+                            int *   DESCVT,
+                            float * WORK,
+                            int     LWORK,
+                            int *   info) {
     PSGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
 
   template <>
-  inline void pgesvd<double>(char JOBU,
-                  char JOBVT,
-                  int M,
-                  int N,
-                  double * A,
-                  int IA,
-                  int JA,
-                  int * DESCA,
-                  double * S,
-                  double * U,
-                  int IU,
-                  int JU,
-                  int * DESCU,
-                  double * VT,
-                  int IVT,
-                  int JVT,
-                  int * DESCVT,
-                  double * WORK,
-                  int LWORK,
-                  int * info) {
+  inline void pgesvd<double>(char     JOBU,
+                             char     JOBVT,
+                             int      M,
+                             int      N,
+                             double * A,
+                             int      IA,
+                             int      JA,
+                             int *    DESCA,
+                             double * S,
+                             double * U,
+                             int      IU,
+                             int      JU,
+                             int *    DESCU,
+                             double * VT,
+                             int      IVT,
+                             int      JVT,
+                             int *    DESCVT,
+                             double * WORK,
+                             int      LWORK,
+                             int *    info) {
     PDGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
 
 
   template <>
-  inline void pgesvd< std::complex<float> >(char JOBU,
-                  char JOBVT,
-                  int M,
-                  int N,
-                  std::complex<float> * A,
-                  int IA,
-                  int JA,
-                  int * DESCA,
-                  std::complex<float> * S,
-                  std::complex<float> * U,
-                  int IU,
-                  int JU,
-                  int * DESCU,
-                  std::complex<float> * VT,
-                  int IVT,
-                  int JVT,
-                  int * DESCVT,
-                  std::complex<float> * WORK,
-                  int LWORK,
-                  int * info) {
+  inline void pgesvd< std::complex<float> >(char                  JOBU,
+                                            char                  JOBVT,
+                                            int                   M,
+                                            int                   N,
+                                            std::complex<float> * A,
+                                            int                   IA,
+                                            int                   JA,
+                                            int *                 DESCA,
+                                            std::complex<float> * S,
+                                            std::complex<float> * U,
+                                            int                   IU,
+                                            int                   JU,
+                                            int *                 DESCU,
+                                            std::complex<float> * VT,
+                                            int                   IVT,
+                                            int                   JVT,
+                                            int *                 DESCVT,
+                                            std::complex<float> * WORK,
+                                            int                   LWORK,
+                                            int *                 info) {
     PCGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
 
 
   template <>
-  inline void pgesvd< std::complex<double> >(char JOBU,
-                  char JOBVT,
-                  int M,
-                  int N,
-                  std::complex<double> * A,
-                  int IA,
-                  int JA,
-                  int * DESCA,
-                  std::complex<double> * S,
-                  std::complex<double> * U,
-                  int IU,
-                  int JU,
-                  int * DESCU,
-                  std::complex<double> * VT,
-                  int IVT,
-                  int JVT,
-                  int * DESCVT,
-                  std::complex<double> * WORK,
-                  int LWORK,
-                  int * info) {
+  inline void pgesvd< std::complex<double> >(char                   JOBU,
+                                             char                   JOBVT,
+                                             int                    M,
+                                             int                    N,
+                                             std::complex<double> * A,
+                                             int                    IA,
+                                             int                    JA,
+                                             int *                  DESCA,
+                                             std::complex<double> * S,
+                                             std::complex<double> * U,
+                                             int                    IU,
+                                             int                    JU,
+                                             int *                  DESCU,
+                                             std::complex<double> * VT,
+                                             int                    IVT,
+                                             int                    JVT,
+                                             int *                  DESCVT,
+                                             std::complex<double> * WORK,
+                                             int                    LWORK,
+                                             int *                  info) {
     PZGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
   }
 
   template <typename dtype> 
-  inline void pgeqrf(int  M,
-                     int  N,
-                     dtype *  A,
-                     int  IA,
-                     int  JA,
-                     int const *     DESCA,
-                     dtype *  TAU2,
-                     dtype *  WORK,
-                     int  LWORK,
-                     int *     INFO){
+  inline void pgeqrf(int         M,
+                     int         N,
+                     dtype *     A,
+                     int         IA,
+                     int         JA,
+                     int const * DESCA,
+                     dtype *     TAU2,
+                     dtype *     WORK,
+                     int         LWORK,
+                     int *       INFO){
     assert(0);
   }
 
   template <> 
-  inline void pgeqrf<float>(int  M,
-                            int  N,
-                            float *  A,
-                            int  IA,
-                            int  JA,
-                            int const *     DESCA,
-                            float *  TAU2,
-                            float *  WORK,
-                            int  LWORK,
-                            int *     INFO){
+  inline void pgeqrf<float>(int         M,
+                            int         N,
+                            float *     A,
+                            int         IA,
+                            int         JA,
+                            int const * DESCA,
+                            float *     TAU2,
+                            float *     WORK,
+                            int         LWORK,
+                            int *       INFO){
     PSGEQRF(&M,&N,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
   }
+
   template <> 
-  inline void pgeqrf<double>(int  M,
-                             int  N,
-                             double *  A,
-                             int  IA,
-                             int  JA,
-                             int const *     DESCA,
-                             double *  TAU2,
-                             double *  WORK,
-                             int  LWORK,
-                             int *     INFO){
+  inline void pgeqrf<double>(int         M,
+                             int         N,
+                             double *    A,
+                             int         IA,
+                             int         JA,
+                             int const * DESCA,
+                             double *    TAU2,
+                             double *    WORK,
+                             int         LWORK,
+                             int *       INFO){
     PDGEQRF(&M,&N,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
   }
 
   template <> 
-  inline void pgeqrf< std::complex<float> >(int  M,
-                                            int  N,
-                                            std::complex<float> *  A,
-                                            int  IA,
-                                            int  JA,
-                                            int const *     DESCA,
-                                            std::complex<float> *  TAU2,
-                                            std::complex<float> *  WORK,
-                                            int  LWORK,
-                                            int *     INFO){
+  inline void pgeqrf< std::complex<float> >(int                   M,
+                                            int                   N,
+                                            std::complex<float> * A,
+                                            int                   IA,
+                                            int                   JA,
+                                            int const *           DESCA,
+                                            std::complex<float> * TAU2,
+                                            std::complex<float> * WORK,
+                                            int                   LWORK,
+                                            int *                 INFO){
     PCGEQRF(&M,&N,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
   }
 
 
   template <> 
-  inline void pgeqrf< std::complex<double> >(int  M,
-                                             int  N,
-                                             std::complex<double> *  A,
-                                             int  IA,
-                                             int  JA,
-                                             int const *     DESCA,
-                                             std::complex<double> *  TAU2,
-                                             std::complex<double> *  WORK,
-                                             int  LWORK,
-                                             int *     INFO){
+  inline void pgeqrf< std::complex<double> >(int                    M,
+                                             int                    N,
+                                             std::complex<double> * A,
+                                             int                    IA,
+                                             int                    JA,
+                                             int const *            DESCA,
+                                             std::complex<double> * TAU2,
+                                             std::complex<double> * WORK,
+                                             int                    LWORK,
+                                             int *                  INFO){
     PZGEQRF(&M,&N,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
   }
 
   template <typename dtype>
-  inline void porgqr(int  M,
-                     int  N,
-                     int  K,
-                     dtype *  A,
-                     int  IA,
-                     int  JA,
-                     int const *     DESCA,
-                     dtype *  TAU2,
-                     dtype *  WORK,
-                     int  LWORK,
-                     int *     INFO){
+  inline void porgqr(int         M,
+                     int         N,
+                     int         K,
+                     dtype *     A,
+                     int         IA,
+                     int         JA,
+                     int const * DESCA,
+                     dtype *     TAU2,
+                     dtype *     WORK,
+                     int         LWORK,
+                     int *       INFO){
     assert(0); // PORGQR not defined for this type
   }
   
   template <>
-  inline void porgqr<float>(int  M,
-                            int  N,
-                            int  K,
-                            float *  A,
-                            int  IA,
-                            int  JA,
-                            int const *     DESCA,
-                            float *  TAU2,
-                            float *  WORK,
-                            int  LWORK,
-                            int *     INFO){
+  inline void porgqr<float>(int         M,
+                            int         N,
+                            int         K,
+                            float *     A,
+                            int         IA,
+                            int         JA,
+                            int const * DESCA,
+                            float *     TAU2,
+                            float *     WORK,
+                            int         LWORK,
+                            int *       INFO){
     PSORGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
   }
   
   template <>
-  inline void porgqr<double>(int  M,
-                             int  N,
-                             int  K,
-                             double *  A,
-                             int  IA,
-                             int  JA,
-                             int const *     DESCA,
-                             double *  TAU2,
-                             double *  WORK,
-                             int  LWORK,
-                             int *     INFO){
+  inline void porgqr<double>(int         M,
+                             int         N,
+                             int         K,
+                             double *    A,
+                             int         IA,
+                             int         JA,
+                             int const * DESCA,
+                             double *    TAU2,
+                             double *    WORK,
+                             int         LWORK,
+                             int *       INFO){
     PDORGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
   }
   
   template <>
-  inline void porgqr< std::complex<float> >(int  M,
-                                            int  N,
-                                            int  K,
-                                            std::complex<float>  *  A,
-                                            int  IA,
-                                            int  JA,
-                                            int const *     DESCA,
-                                            std::complex<float>  *  TAU2,
-                                            std::complex<float>  *  WORK,
-                                            int  LWORK,
-                                            int *     INFO){
-    PCORGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  inline void porgqr< std::complex<float> >(int                    M,
+                                            int                    N,
+                                            int                    K,
+                                            std::complex<float>  * A,
+                                            int                    IA,
+                                            int                    JA,
+                                            int const *            DESCA,
+                                            std::complex<float>  * TAU2,
+                                            std::complex<float>  * WORK,
+                                            int                    LWORK,
+                                            int *                  INFO){
+    PCUNGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
   }
   
   
   template <>
-  inline void porgqr< std::complex<double> >(int  M,
-                                             int  N,
-                                             int  K,
-                                             std::complex<double>  *  A,
-                                             int  IA,
-                                             int  JA,
-                                             int const *     DESCA,
-                                             std::complex<double>  *  TAU2,
-                                             std::complex<double>  *  WORK,
-                                             int  LWORK,
-                                             int *     INFO){
-    PZORGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
+  inline void porgqr< std::complex<double> >(int                     M,
+                                             int                     N,
+                                             int                     K,
+                                             std::complex<double>  * A,
+                                             int                     IA,
+                                             int                     JA,
+                                             int const *             DESCA,
+                                             std::complex<double>  * TAU2,
+                                             std::complex<double>  * WORK,
+                                             int                     LWORK,
+                                             int *                   INFO){
+    PZUNGQR(&M,&N,&K,A,&IA,&JA,DESCA,TAU2,WORK,&LWORK,INFO);
   }
 
 
   inline
-  void cdescinit( int * desc, 
-                  int m,    
-                  int n,
-                  int mb,
-                  int nb,
-                  int irsrc,
-                  int icsrc,
-                  int ictxt,
-                  int LLD,
-                  int * info) {
+  void cdescinit( int *  desc,
+                  int    m,
+                  int    n,
+                  int    mb,
+                  int    nb,
+                  int    irsrc,
+                  int    icsrc,
+                  int    ictxt,
+                  int    LLD,
+                  int *  info){
     DESCINIT(desc,&m,&n,&mb,&nb,&irsrc,&icsrc,&ictxt, &LLD, info);
   }
 #undef EXTERN_OR_INLINE 

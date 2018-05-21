@@ -723,7 +723,7 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void real_norm1(Tensor<dtype> & A, double & nrm){
+  static void real_norm1(Tensor<dtype> & A, double & nrm){
     char inds[A.order];
     for (int i=0; i<A.order; i++){
       inds[i] = 'a'+i;
@@ -740,7 +740,7 @@ namespace CTF {
 
 #define NORM1_INST(dtype) \
   template<> \
-  void Tensor<dtype>::norm1(double & nrm){ \
+  inline void Tensor<dtype>::norm1(double & nrm){ \
     real_norm1<dtype>(*this, nrm); \
   }
 
@@ -753,21 +753,22 @@ NORM1_INST(float)
 NORM1_INST(double)
 
   template<typename dtype>
-  void real_norm2(Tensor<dtype> & A, double & nrm){
+  static void real_norm2(Tensor<dtype> & A, double & nrm){
     char inds[A.order];
     for (int i=0; i<A.order; i++){
       inds[i] = 'a'+i;
     }
-    nrm = Function<dtype,double>([](dtype a){ return (double)(a*a); })(A[inds]);
+    //CTF::Scalar<double> dnrm(A.dw);
+    nrm = std::sqrt((double)Function<dtype,double>([](dtype a){ return (double)(a*a); })(A[inds]));
   }
 
   template<typename dtype>
-  void complex_norm2(Tensor<dtype> & A, double & nrm){
+  static void complex_norm2(Tensor<dtype> & A, double & nrm){
     char inds[A.order];
     for (int i=0; i<A.order; i++){
       inds[i] = 'a'+i;
     }
-    nrm = Function<dtype,double>([](dtype a){ return std::norm(a); })(A[inds]);
+    nrm = std::sqrt((double)Function<dtype,double>([](dtype a){ return (double)std::norm(a); })(A[inds]));
   }
 
 
@@ -780,13 +781,13 @@ NORM1_INST(double)
 
 #define NORM2_REAL_INST(dtype) \
   template<> \
-  void Tensor<dtype>::norm2(double & nrm){ \
+  inline void Tensor<dtype>::norm2(double & nrm){ \
     real_norm2<dtype>(*this, nrm); \
   }
 
 #define NORM2_COMPLEX_INST(dtype) \
   template<> \
-  void Tensor< std::complex<dtype> >::norm2(double & nrm){ \
+  inline void Tensor< std::complex<dtype> >::norm2(double & nrm){ \
     complex_norm2< std::complex<dtype> >(*this, nrm); \
   }
 
@@ -810,7 +811,7 @@ NORM2_COMPLEX_INST(double)
 
 #define NORM_INFTY_INST(dtype) \
   template<> \
-  void Tensor<dtype>::norm_infty(double & nrm){ \
+  inline void Tensor<dtype>::norm_infty(double & nrm){ \
     nrm = this->norm_infty(); \
   }
 

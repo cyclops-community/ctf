@@ -4,6 +4,7 @@
 #include "../interface/common.h"
 
 namespace CTF_int {
+
   class bivar_function;
 
   /**
