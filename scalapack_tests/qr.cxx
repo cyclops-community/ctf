@@ -9,11 +9,27 @@
 using namespace CTF;
 
 template <typename dtype>
-bool qr(int     m,
+Matrix<dtype> conj(Matrix<dtype> & A){
+  return A;
+}
+template <>
+Matrix< std::complex<float> > conj(Matrix< std::complex<float> > & A){
+  Matrix< std::complex<float> > B(A);
+  B["ij"] = Function< std::complex<float>>([](std::complex<float> a){ return std::conj(a); })(A["ij"]);
+  return B;
+}
+template <>
+Matrix<std::complex<double>> conj(Matrix<std::complex<double>> & A){
+  Matrix<std::complex<double>> B(A);
+  B["ij"] = Function<std::complex<double>>([](std::complex<double> a){ return std::conj(a); })(A["ij"]);
+  return B;
+}
+
+template <typename dtype>
+bool qr(Matrix<dtype> A,
+        int     m,
         int     n,
         World & dw){
-
-  Matrix<dtype> A(m,n,dw);
 
   // Perform QR
   Matrix<dtype> Q,R;
@@ -22,21 +38,23 @@ bool qr(int     m,
   // Test orthogonality
   Matrix<dtype> E(n,n,dw);
 
-  E["ij"] = Q["ik"]*Q["jk"];
+  E["ii"] = 1.;
+
+  E["ij"] -= Q["ki"]*conj<dtype>(Q)["kj"];
 
   bool pass_orthogonality = true;
 
   double nrm;
   E.norm2(nrm);
-  if (nrm > 1.E-6){
+  if (nrm > m*n*1.E-6){
     pass_orthogonality = false;
   }
 
-  A["ij"] = Q["ik"]*R["kj"];
+  A["ij"] -= Q["ik"]*R["kj"];
 
   bool pass_residual = true;
   A.norm2(nrm);
-  if (nrm > 1.E-6){
+  if (nrm > m*n*n*1.E-6){
     pass_residual = false;
   }
 
@@ -50,10 +68,26 @@ bool qr(int     m,
 
 bool test_qr(int m, int n, World dw){
   bool pass = true;
-  pass = pass & qr<float>(m,n,dw);
-  pass = pass & qr<double>(m,n,dw);
-  pass = pass & qr<std::complex<float>>(m,n,dw);
-  pass = pass & qr<std::complex<double>>(m,n,dw);
+  Matrix<float> A(m,n,dw);
+  Matrix<float> AA(m,n,dw);
+  A.fill_random(0.,1.);
+  AA.fill_random(0.,1.);
+  pass = pass & qr<float>(A,m,n,dw);
+
+  Matrix<double> B(m,n,dw);
+  Matrix<double> BB(m,n,dw);
+  B.fill_random(0.,1.);
+  BB.fill_random(0.,1.);
+  pass = pass & qr<double>(B,m,n,dw);
+
+  Matrix<std::complex<float>> cA(m,n,dw);
+  cA["ij"] = Function<float,float,std::complex<float>>([](float a, float b){ return std::complex<float>(a,b); })(A["ij"],AA["ij"]);
+  pass = pass & qr<std::complex<float>>(cA,m,n,dw);
+
+
+  Matrix<std::complex<double>> cB(m,n,dw);
+  cB["ij"] = Function<double,double,std::complex<double>>([](double a, double b){ return std::complex<double>(a,b); })(B["ij"],BB["ij"]);
+  pass = pass & qr<std::complex<double>>(cB,m,n,dw);
   if (dw.rank == 0){
     if (pass){
       printf("{ A = QR and Q^TQ = I } passed\n");

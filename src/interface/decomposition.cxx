@@ -86,7 +86,7 @@ namespace CTF {
       Matrix<dtype> U;
       Matrix<dtype> VT;
       Vector<dtype> S;
-      M.matrix_svd(U, S, VT, ranks[i]);
+      M.svd(U, S, VT, ranks[i]);
       factor_matrices[i] = U;
 		
     }

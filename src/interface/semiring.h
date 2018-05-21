@@ -973,7 +973,8 @@ namespace CTF {
   /**
    * @}
    */
-
+}
+namespace CTF {
   template <>
   void CTF::Semiring<float,1>::default_csrmm(int,int,int,float,float const *,int const *,int const *,int,float const *,float,float *) const;
   template <>
@@ -1021,5 +1022,6 @@ namespace CTF {
   template<> 
   void CTF::Semiring<std::complex<double>,0>::offload_gemm(char,char,int,int,int,char const *,char const *,char const *,char const *,char *) const;
 }
+
 #include "ring.h"
 #endif
