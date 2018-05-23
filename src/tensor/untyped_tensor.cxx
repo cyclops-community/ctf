@@ -1809,7 +1809,7 @@ namespace CTF_int {
       cdealloc(recvcnts);
       cdealloc(displs);
       cdealloc(idx_arr);
-      if (pmy_data != NULL) cdealloc(pmy_data);
+      if (pmy_data != NULL) sr->dealloc(pmy_data);
       cdealloc(pall_data);
     }
 

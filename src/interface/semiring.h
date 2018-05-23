@@ -718,7 +718,7 @@ namespace CTF {
           }
         }
       
-}
+      }
       void gen_csrmultcsr
                       (int          m, 
                       int           n,
@@ -763,7 +763,7 @@ namespace CTF {
           CTF_int::cdealloc(has_col);
 #ifdef _OPENMP
         } // END PARALLEL 
-#endif 
+#endif
         int ic_prev = 1;
         for(int i=0;i < m+1; i++){
           ic_prev += IC[i];

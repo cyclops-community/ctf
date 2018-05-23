@@ -217,7 +217,7 @@ namespace CTF_int{
     }
     TAU_FSTOP(spA_spB_seq_sum_pre);
 //    printf("nB = %ld nA = %ld nnew = %ld\n",nB,nA,nnew); 
-    alloc_ptr(sr_B->pair_size()*nnew, (void**)&pprs_new);
+    pprs_new = sr_B->pair_alloc(nnew);
     PairIterator prs_new(sr_B, pprs_new);
     // each for loop computes one new value of prs_new 
     //    (multiple writes may contribute to it), 
