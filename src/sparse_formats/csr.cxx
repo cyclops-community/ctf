@@ -39,6 +39,11 @@ namespace CTF_int {
     int const * coo_rs = coom.rows();
     int const * coo_cs = coom.cols();
     char const * vs = coom.vals();
+    /*if (nz >= 2){
+      printf("herecsr\n");
+      sr->print(vs);
+      sr->print(vs+v_sz);
+    }*/
 
     int64_t size = get_csr_size(nz, nrow_, v_sz);
     if (data == NULL)
@@ -391,7 +396,7 @@ namespace CTF_int {
     }
     cdealloc(has_col);
     cdealloc(rev_col);
- /*   printf("nnz C is %ld\n", C.nnz());
+    /*printf("nnz C is %ld\n", C.nnz());
     printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
     printf("%d %d\n",C.JA()[0],C.JA()[1]);
     printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);*/

@@ -445,7 +445,6 @@ namespace CTF{
                     dcol[col_c] = JB[col_b];
                     acc_data[col_c] =f(A[idx_a],B[col_b]);
                 } else {
-                    printf("%p %p -> %p\n",A+idx_a,B+col_b,acc_data+col_c);
                     g(f(A[idx_a],B[col_b]), acc_data[col_c]);
                 }
               }

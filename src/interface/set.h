@@ -27,9 +27,15 @@ namespace CTF_int {
     for (int i=1; i<nrow+1; i++){
       csr_ia[i] = 0;
     }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (int64_t i=0; i<nz; i++){
       csr_ia[coo_rs[i]]++;
     }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (int i=0; i<nrow; i++){
       csr_ia[i+1] += csr_ia[i];
     }
@@ -53,14 +59,8 @@ namespace CTF_int {
     std::sort(csr_ja, csr_ja+nz, crc);
     comp_ref crr(coo_rs);
     std::stable_sort(csr_ja, csr_ja+nz, crr);
-#ifdef _OPENMP
-    #pragma omp parallel for
-#endif
-    for (int64_t i=0; i<nz; i++){
-//      csr_ja[i] = coo_cs[csr_ja[i]-1];
-      csr_ja[i] = coo_cs[csr_ja[i]];
-    }
     // do not copy by value in case values are objects, then csr_vs is uninitialized
+    //printf("csr nz = %ld\n",nz);
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
@@ -69,10 +69,17 @@ namespace CTF_int {
 //      memcpy(csr_vs+i, coo_vs+csr_ja[i]-1,sizeof(dtype));
       //copy(csr_vs+i, coo_vs+csr_ja[i],sizeof(dtype));
       csr_vs[i] = coo_vs[csr_ja[i]];
-      printf("%p %d\n",coo_vs+i,*(int32_t*)(coo_vs+i));
+//      printf("i %ld csr_ja[i] %d\n", i, csr_ja[i]);
+//      printf("i %ld v %lf\n", i, csr_vs[i]);
+      //printf("%p %d\n",coo_vs+i,*(int32_t*)(coo_vs+i));
     }
-    /*for (int64_t i=0; i<nz; i++){
-    }*/
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nz; i++){
+      csr_ja[i] = coo_cs[csr_ja[i]];
+    }
+
   }
   template <typename dtype>  
   void seq_csr_to_coo(int64_t nz, int nrow, dtype const * csr_vs, int const * csr_ja, int const * csr_ia, dtype * coo_vs, int * coo_rs, int * coo_cs){

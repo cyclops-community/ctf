@@ -1097,7 +1097,6 @@ namespace CTF_int {
       buf_datab = sr->pair_alloc(new_num_pair);
       buf_data = PairIterator(sr, buf_datab);
     }
-    printf("inwrite %lld %lld %ld\n",inwrite,nwrite,sr->pair_size());
     /* Figure out what virtual bucket each key belongs to. Bucket
        and sort them accordingly */
     int64_t * virt_counts = 
@@ -1307,7 +1306,6 @@ namespace CTF_int {
     // each for loop iteration does one addition, o and r are also incremented within
     // only incrementing r allows multiple reads of the same val
     for (int64_t t=0,r=0; t<ntsr && r<nread; r++){
-      printf("t= %lld r = %lld ntsr = %lld nread = %lld\n",t,r,ntsr,nread);
       while (t<ntsr && r<nread && prs_tsr[t].k() != prs_read[r].k()){
         if (prs_tsr[t].k() < prs_read[r].k())
           t++;
