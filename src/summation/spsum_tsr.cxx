@@ -220,7 +220,7 @@ namespace CTF_int {
       for (int i=0; i<nb_B; i++){
         memcpy(new_B+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->pair_size());
         pfx += new_sp_szs_B[i]*this->sr_B->pair_size();
-        if (beta_arr[i] > 0) cdealloc(buckets_B[i]);
+        if (beta_arr[i] > 0) sr_B->dealloc(buckets_B[i]);
       }
       //FIXME: how to pass B back generally
       //cdealloc(this->B);
