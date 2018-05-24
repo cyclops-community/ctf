@@ -1774,7 +1774,7 @@ namespace CTF_int {
         displs[i] = displs[i-1] + recvcnts[i-1];
       }
       tot_sz = (displs[wrld->np-1] + recvcnts[wrld->np-1])/sr->pair_size();
-      alloc_ptr(tot_sz*sr->pair_size(), (void**)&pall_data);
+      pall_data = sr->pair_alloc(tot_sz);
     } else {
       pall_data = NULL;
       displs = NULL;
@@ -1810,7 +1810,7 @@ namespace CTF_int {
       cdealloc(displs);
       cdealloc(idx_arr);
       if (pmy_data != NULL) sr->dealloc(pmy_data);
-      cdealloc(pall_data);
+      sr->dealloc(pall_data);
     }
 
   }
@@ -2381,7 +2381,7 @@ namespace CTF_int {
                 int64_t k = pi[p].k();
                 if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]) nw++;
               }
-              char * pwdata = (char*)alloc(sr->pair_size()*nw);
+              char * pwdata = sr->pair_alloc(nw);
               PairIterator wdata(sr, pwdata);
               nw=0;
 #ifdef USE_OMP
@@ -2389,15 +2389,17 @@ namespace CTF_int {
 #endif
               for (int p=0; p<nnz_loc; p++){
                 int64_t k = pi[p].k();
+                //printf("p = %d k = %ld\n",p, k);
                 if ((k/lda_i)%lens[i] == (k/lda_j)%lens[j]){
                   int64_t k_new = (k%lda_j)+(k/(lda_j*lens[j])*lda_j);
+                  //printf("p = %d k = %ld lda_j = %ld lens[j] = %d k_new = %ld\n",p, k, lda_j, lens[j], k_new);
                   ((int64_t*)(wdata[nw].ptr))[0] = k_new;
                   wdata[nw].write_val(pi[p].d());
                   nw++;
                 }
               }
               new_tsr->write(nw, sr->mulid(), sr->addid(), pwdata);
-              cdealloc(pwdata);
+              sr->dealloc(pwdata);
             } else {
               char * pwdata;
               int64_t nw;
