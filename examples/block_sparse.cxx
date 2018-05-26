@@ -72,15 +72,17 @@ int block_sparse(std::vector<int> ranges, World & dw){
   //set different double random seed on all processors, to generate different elements in blocks
   srand48(dw.rank);
 
-  int64_t A_blk_inds[nblk];
-  Tensor<> A_blks[nblk];
+//  int64_t A_blk_inds[nblk];
+  CTF::Pair< Tensor<> > * A_blks = new CTF::Pair< Tensor<> >[nblk];
   for (int64_t i=0; i<nblk; i++){
     int64_t j = rand()%nblk;
-    A_blk_inds[i] = j + nblk*i;
-    A_blks[i] = Matrix<>(ranges[j],ranges[i],dw);
-    A_blks[i].fill_random(0.,1.);
+    A_blks[i].k = j + nblk*i;
+    A_blks[i].d = Matrix<>(ranges[j],ranges[i],dw);
+    A_blks[i].d.fill_random(0.,1.);
+    A_blks[i].d.print();
+    A_blks[i].d.unfold();
   }
-  A.write(nblk,A_blk_inds,A_blks);
+  A.write(nblk,A_blks);
 
   int64_t B_blk_inds[nblk];
   Tensor<> B_blks[nblk];
@@ -138,7 +140,7 @@ int main(int argc, char ** argv){
   } else n = 7;
 
   if (getCmdOption(input_str, input_str+in_num, "-r")){
-    r = atof(getCmdOption(input_str, input_str+in_num, "-ranges"));
+    r = atof(getCmdOption(input_str, input_str+in_num, "-r"));
     if (r < 0) r = 10;
   } else r = 10;
 

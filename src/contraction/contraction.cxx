@@ -740,7 +740,7 @@ namespace CTF_int {
   }
 
   iparam contraction::map_fold(bool do_transp){
-    int i, all_fdim_A, all_fdim_B, all_fdim_C;
+    int all_fdim_A, all_fdim_B, all_fdim_C;
     int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
     int * all_flen_A, * all_flen_B, * all_flen_C;
     iparam iprm;

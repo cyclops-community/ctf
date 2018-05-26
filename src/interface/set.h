@@ -418,11 +418,13 @@ namespace CTF {
         return delete [] (dtype*)ptr;
       }
 
+      void pair_dealloc(char * ptr) const {
+        return delete [] (std::pair<int64_t,dtype>*)ptr;
+      }
+
       void init(int64_t n, char * arr) const {
         for (int64_t i=0; i<n; i++){
-          dtype * a = new dtype();
-          memcpy(((dtype*)arr)+i, a, sizeof(dtype));
-          free((char*)a);          
+          ((dtype*)arr)[i] = dtype();
         }
       }
 
