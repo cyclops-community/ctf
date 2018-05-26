@@ -681,8 +681,12 @@ namespace CTF_int {
   char * algstrct::alloc(int64_t n) const {
     return (char*)CTF_int::alloc(n*el_size);
   }    
-      
+ 
   void algstrct::dealloc(char * ptr) const {
+    CTF_int::cdealloc(ptr);
+  }
+      
+  void algstrct::pair_dealloc(char * ptr) const {
     CTF_int::cdealloc(ptr);
   }
       

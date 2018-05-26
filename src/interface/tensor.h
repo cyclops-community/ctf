@@ -47,8 +47,8 @@ namespace CTF {
        * \brief default constructor
        */
       Pair(){
-        k=0;
-        d=0; //(not possible if type has no zero!)
+        //k=0;
+        //d=0; //(not possible if type has no zero!)
       }
 
       /**

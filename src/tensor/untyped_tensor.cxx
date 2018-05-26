@@ -53,14 +53,18 @@ namespace CTF_int {
       if (!is_data_aliased){
         if (is_home){
           if (!is_sparse) sr->dealloc(home_buffer);
-          else sr->dealloc(data);
+          else sr->pair_dealloc(data);
         } else {
           if (data != NULL){
             //if (order == 0) sr->dealloc(data);
-            sr->dealloc(data); 
+            if (!is_sparse) sr->dealloc(data);
+            else sr->pair_dealloc(data); 
           }
         }
-        if (has_home && !is_home) sr->dealloc(home_buffer);
+        if (has_home && !is_home){
+          if (!is_sparse) sr->dealloc(home_buffer);
+          else sr->pair_dealloc(home_buffer);
+        }
       }
       if (is_sparse) cdealloc(nnz_blk);
       order = -1;
@@ -256,8 +260,6 @@ namespace CTF_int {
       memcpy(this->nnz_blk, other->nnz_blk, other->calc_nvirt()*sizeof(int64_t));
       this->set_new_nnz_glb(other->nnz_blk);
       sr->copy_pairs(this->data, other->data, other->nnz_loc);
-      PairIterator my_data = PairIterator(sr,this->data);
-      //PairIterator my_data = PairIterator(sr,tsr_cpy.data);
     }
     if (this->is_folded){
       delete this->rec_tsr;
@@ -499,7 +501,7 @@ namespace CTF_int {
 
     if (this->is_mapped){
       if (is_sparse){
-        sr->dealloc(this->data);
+        sr->pair_dealloc(this->data);
         this->data = NULL;
 //        this->size = 0;
         memset(this->nnz_blk, 0, sizeof(int64_t)*calc_nvirt());
@@ -904,7 +906,7 @@ namespace CTF_int {
         depad_tsr(tsr_B->order, sz_B, ends_B, tsr_B->sym, padding_B, offsets_B,
                   all_data_B, blk_data_B, &blk_sz_B, sr);
         if (sz_B > 0)
-          sr->dealloc(all_data_B);
+          sr->pair_dealloc(all_data_B);
 
         for (i=0; i<tsr_B->order; i++){
           toffset_B[i] = -offsets_B[i];
@@ -942,7 +944,7 @@ namespace CTF_int {
       depad_tsr(tsr_A->order, sz_A, ends_A, nosym, padding_A, offsets_A,
                 all_data_A, blk_data_A, &blk_sz_A, sr);
       //if (sz_A > 0)
-        tsr_A->sr->dealloc(all_data_A);
+        tsr_A->sr->pair_dealloc(all_data_A);
 
 
       for (i=0; i<tsr_A->order; i++){
@@ -966,7 +968,7 @@ namespace CTF_int {
 
     tsr_B->write(blk_sz_A, alpha, beta, blk_data_A, 'w');
     if (tsr_A->order != 0 && !tsr_A->has_zero_edge_len)
-      tsr_A->sr->dealloc(blk_data_A);
+      tsr_A->sr->pair_dealloc(blk_data_A);
     CTF_int::cdealloc(padding_A);
     CTF_int::cdealloc(padding_B);
     CTF_int::cdealloc(toffset_A);
@@ -1145,7 +1147,7 @@ namespace CTF_int {
                         nnz_loc_new);
         if (is_sparse && rw == 'w'){
           this->set_new_nnz_glb(nnz_blk);
-          if (tsr->data != NULL) sr->dealloc(tsr->data);
+          if (tsr->data != NULL) sr->pair_dealloc(tsr->data);
           tsr->data = new_pairs;
   /*        for (int64_t i=0; i<nnz_loc; i++){
             printf("rank = %d, stores key %ld value %lf\n",wrld->rank,
@@ -1414,13 +1416,13 @@ namespace CTF_int {
           }
           cdealloc(depadding);
           cdealloc(prepadding);
-          sr->dealloc(this->data);
+          sr->pair_dealloc(this->data);
           this->data = sr->pair_alloc(new_nnz_tot);
           char * new_data_ptr = this->data;
           for (int v=0; v<nvirt; v++){
             if (nnz_blk[v] > 0){
               memcpy(new_data_ptr, new_pairs[v], nnz_blk[v]*sr->pair_size());
-              sr->dealloc(new_pairs[v]);
+              sr->pair_dealloc(new_pairs[v]);
             }
           }
         }
@@ -1497,7 +1499,7 @@ namespace CTF_int {
       read_local_nnz(&num_nnz, &nnz_data, unpack_sym);
       tensor dense_tsr(sr, order, lens, sym, wrld);
       dense_tsr.write(num_nnz, sr->mulid(), sr->addid(), nnz_data);
-      sr->dealloc(nnz_data);
+      sr->pair_dealloc(nnz_data);
       dense_tsr.read_local(num_pair, mapped_data, unpack_sym);
       //*num_pair = num_pair;
       return SUCCESS;
@@ -1746,7 +1748,12 @@ namespace CTF_int {
     if (wrld->rank == 0)
       printf("Printing tensor %s\n",name);
     //print_map(fp);
-    PairIterator this_data = PairIterator(sr,this->data);
+
+    /*for (int i=0; i<this->size; i++){
+      printf("this->data[%d] = ",i);
+      sr->print(data+i*sr->el_size);
+      printf("\n");
+    }*/
 
 
     imy_sz = 0;
@@ -1756,8 +1763,14 @@ namespace CTF_int {
       tsr_cpy.read_local_nnz(&imy_sz, &pmy_data, true);
     } else
       read_local_nnz(&imy_sz, &pmy_data, true);
+    /*PairIterator my_data = PairIterator(sr,pmy_data);
+    for (int i=0; i<imy_sz; i++){
+      printf("my_data[%d].k() = %ld my_data[%d].d() = ",i,my_data[i].k(),i);
+      sr->print(my_data[i].d());
+      printf("\n");
+    }*/
+
     my_sz = imy_sz;
-    PairIterator my_data = PairIterator(sr,pmy_data);
 
     if (wrld->rank == 0){
       alloc_ptr(wrld->np*sizeof(int), (void**)&recvcnts);
@@ -1769,15 +1782,15 @@ namespace CTF_int {
     MPI_Gather(&my_sz, 1, MPI_INT, recvcnts, 1, MPI_INT, 0, wrld->cdt.cm);
 
     if (wrld->rank == 0){
-      /*for (int i=0; i<wrld->np; i++){
+      for (int i=0; i<wrld->np; i++){
         recvcnts[i] *= sr->pair_size();
-      }*/
+      }
       displs[0] = 0;
       for (int i=1; i<wrld->np; i++){
         displs[i] = displs[i-1] + recvcnts[i-1];
       }
-      //tot_sz = (displs[wrld->np-1] + recvcnts[wrld->np-1])/sr->pair_size();
-      tot_sz = displs[wrld->np-1] + recvcnts[wrld->np-1];
+      tot_sz = (displs[wrld->np-1] + recvcnts[wrld->np-1])/sr->pair_size();
+      //tot_sz = displs[wrld->np-1] + recvcnts[wrld->np-1];
       pall_data = sr->pair_alloc(tot_sz);
     } else {
       pall_data = NULL;
@@ -1785,9 +1798,14 @@ namespace CTF_int {
     }
 
     if (my_sz == 0) pmy_data = NULL;
-    MPI_Gatherv(pmy_data, my_sz, sr->mdtype(),
-               pall_data, recvcnts, displs, sr->mdtype(), 0, wrld->cdt.cm);
+    MPI_Gatherv(pmy_data, my_sz*sr->pair_size(), MPI_CHAR,
+               pall_data, recvcnts, displs, MPI_CHAR, 0, wrld->cdt.cm);
     PairIterator all_data = PairIterator(sr,pall_data);
+    /*for (int i=0; i<tot_sz; i++){
+      printf("all_data[%d].k() = %ld all_data[%d].d() = ",i,all_data[i].k(),i);
+      sr->print(all_data[i].d());
+      printf("\n");
+    }*/
     if (wrld->rank == 0){
       all_data.sort(tot_sz);
       for (int64_t i=0; i<tot_sz; i++){
@@ -1813,8 +1831,8 @@ namespace CTF_int {
       cdealloc(recvcnts);
       cdealloc(displs);
       cdealloc(idx_arr);
-      if (pmy_data != NULL) sr->dealloc(pmy_data);
-      sr->dealloc(pall_data);
+      if (pmy_data != NULL) sr->pair_dealloc(pmy_data);
+      sr->pair_dealloc(pall_data);
     }
 
   }
@@ -2403,7 +2421,7 @@ namespace CTF_int {
                 }
               }
               new_tsr->write(nw, sr->mulid(), sr->addid(), pwdata);
-              sr->dealloc(pwdata);
+              sr->pair_dealloc(pwdata);
             } else {
               char * pwdata;
               int64_t nw;
@@ -2428,7 +2446,7 @@ namespace CTF_int {
               }
 
               this->write(nw, NULL, NULL, pwdata);
-              sr->dealloc(pwdata);
+              sr->pair_dealloc(pwdata);
             }
           } else {
             if (rw){

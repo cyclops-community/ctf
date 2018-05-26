@@ -1080,7 +1080,7 @@ namespace CTF_int {
     if (glb_comm.rank == 0) printf("max received elements is %ld, mine are %ld\n", max_np, new_num_pair);*/
 
     if (new_num_pair > nwrite){
-      sr->dealloc(swap_datab);
+      sr->pair_dealloc(swap_datab);
       swap_datab = sr->pair_alloc(new_num_pair);
       swap_data = PairIterator(sr, swap_datab);
     }
@@ -1093,7 +1093,7 @@ namespace CTF_int {
 
 
     if (new_num_pair > nwrite){
-      sr->dealloc(buf_datab);
+      sr->pair_dealloc(buf_datab);
       buf_datab = sr->pair_alloc(new_num_pair);
       buf_data = PairIterator(sr, buf_datab);
     }
@@ -1206,12 +1206,12 @@ namespace CTF_int {
     //FIXME: free here?
     cdealloc(changed_key_indices);
     cdealloc(changed_key_scale);
-    sr->dealloc(new_changed_pairs);
+    sr->pair_dealloc(new_changed_pairs);
     TAU_FSTOP(wr_pairs_layout);
 
     if (is_sparse) CTF_int::cdealloc(old_nnz_blk);
-    sr->dealloc(swap_datab);
-    sr->dealloc(buf_datab);
+    sr->pair_dealloc(swap_datab);
+    sr->pair_dealloc(buf_datab);
     CTF_int::cdealloc((void*)bucket_counts);
     CTF_int::cdealloc((void*)recv_counts);
     CTF_int::cdealloc((void*)send_displs);
@@ -1276,9 +1276,9 @@ namespace CTF_int {
     depad_tsr(order, nval, pad_len, sym, padding, prepadding,
               dpairsb, new_pairsb, &new_num_pair, sr);
 
-    sr->dealloc(dpairsb);
+    sr->pair_dealloc(dpairsb);
     if (new_num_pair == 0){
-      sr->dealloc(new_pairsb);
+      sr->pair_dealloc(new_pairsb);
       new_pairsb = NULL;
     }
     *pairs = new_pairsb;

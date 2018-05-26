@@ -286,10 +286,16 @@ namespace CTF_int {
       virtual char * get_value(char * a) const;
       virtual char const * get_const_value(char const * a) const;
       /**
-        * \brief deallocate given pointer
+        * \brief deallocate given pointer containing contiguous array of values
         * \param[in] ptr array to deallocate
         */
       virtual void dealloc(char * ptr) const;
+ 
+      /**
+        * \brief deallocate given pointer containing contiguous array of pairs
+        * \param[in] ptr array to deallocate
+        */
+      virtual void pair_dealloc(char * ptr) const;
       
       /** \brief initialize n objects to zero
         * \param[in] n number of items
