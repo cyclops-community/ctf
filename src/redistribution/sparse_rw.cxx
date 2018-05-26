@@ -979,10 +979,10 @@ namespace CTF_int {
 
     nwrite = 0;
     int64_t * changed_key_indices;
-    char * new_changed_pairs;
+    char * new_changed_pairs = sr->alloc(nchanged);
+    PairIterator ncp(sr, new_changed_pairs);
     int * changed_key_scale;
     CTF_int::alloc_ptr(nchanged*sizeof(int64_t), (void**)&changed_key_indices);
-    CTF_int::alloc_ptr(nchanged*sr->pair_size(),  (void**)&new_changed_pairs);
     CTF_int::alloc_ptr(nchanged*sizeof(int),     (void**)&changed_key_scale);
 
     nchanged = 0;
@@ -1028,14 +1028,14 @@ namespace CTF_int {
           /*printf("the %lldth key has been set from %lld to %lld\n",
                    i, wr_pairs[i].k, swap_data[nwrite].k);*/
           changed_key_indices[nchanged]= i;
-          swap_data[nwrite].read(new_changed_pairs+nchanged*sr->pair_size());
+          swap_data[nwrite].read(ncp[nchanged].ptr);
           changed_key_scale[nchanged] = sign;
           nchanged++;
         }
         nwrite++;
       } else if (rw == 'r'){
         changed_key_indices[nchanged] = i;
-        wr_pairs[i].read(new_changed_pairs+nchanged*sr->pair_size());
+        wr_pairs[i].read(ncp[nchanged].ptr);
         changed_key_scale[nchanged] = 0;
         nchanged++;
       } 
@@ -1088,7 +1088,7 @@ namespace CTF_int {
     //ALL_TO_ALLV(buf_data, bucket_counts, send_displs, MPI_CHAR,
     //            swap_data, recv_counts, recv_displs, MPI_CHAR, glb_comm);
     glb_comm.all_to_allv(buf_data.ptr, bucket_counts, send_displs, sr->pair_size(),
-                    swap_data.ptr, recv_counts, recv_displs);
+                         swap_data.ptr, recv_counts, recv_displs);
     
 
 
@@ -1133,7 +1133,7 @@ namespace CTF_int {
                 buf_datab,
                 rw,
                 sr);
-
+      
     cdealloc(virt_counts);
 
     /* If we want to read the keys, we must return them to where they
@@ -1164,7 +1164,6 @@ namespace CTF_int {
       //            buf_data, bucket_counts, send_displs, MPI_CHAR, glb_comm);
       glb_comm.all_to_allv(swap_data.ptr, recv_counts, recv_displs, sr->pair_size(),
                       buf_data.ptr, bucket_counts, send_displs);
-      
 
       /* unpad the keys if necesary */
       if (!is_sparse){
@@ -1207,7 +1206,7 @@ namespace CTF_int {
     //FIXME: free here?
     cdealloc(changed_key_indices);
     cdealloc(changed_key_scale);
-    cdealloc(new_changed_pairs);
+    sr->dealloc(new_changed_pairs);
     TAU_FSTOP(wr_pairs_layout);
 
     if (is_sparse) CTF_int::cdealloc(old_nnz_blk);
@@ -1237,7 +1236,7 @@ namespace CTF_int {
     int64_t i;
     int * prepadding;
     char * dpairsb;
-    CTF_int::alloc_ptr(sr->pair_size()*nval, (void**)&dpairsb);
+    dpairsb = sr->pair_alloc(nval);
     CTF_int::alloc_ptr(sizeof(int)*order,   (void**)&prepadding);
     memset(prepadding, 0, sizeof(int)*order);
     /* Iterate through packed layout and form key value pairs */
@@ -1263,7 +1262,7 @@ namespace CTF_int {
     int * depadding;
     int * pad_len;
     char * new_pairsb;
-    CTF_int::alloc_ptr(sr->pair_size()*nval, (void**)&new_pairsb);
+    new_pairsb = sr->pair_alloc(nval);
    
     PairIterator new_pairs = PairIterator(sr, new_pairsb); 
 
@@ -1277,9 +1276,9 @@ namespace CTF_int {
     depad_tsr(order, nval, pad_len, sym, padding, prepadding,
               dpairsb, new_pairsb, &new_num_pair, sr);
 
-    CTF_int::cdealloc(dpairsb);
+    sr->dealloc(dpairsb);
     if (new_num_pair == 0){
-      CTF_int::cdealloc(new_pairsb);
+      sr->dealloc(new_pairsb);
       new_pairsb = NULL;
     }
     *pairs = new_pairsb;
