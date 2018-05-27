@@ -37,12 +37,12 @@ int diag_sym(int     n,
   mA.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   mA.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
   mB.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   mB.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
 
   A["abij"] = mA["ii"];

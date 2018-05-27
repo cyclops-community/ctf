@@ -325,7 +325,7 @@ void setup_unstructured(int64_t     n,
       }
     }
     T[i].write(nel, pairs);
-    free(pairs);
+    delete [] pairs;
     m = m2;
   }
   tct.stop();
@@ -415,7 +415,7 @@ void setup_3d_Poisson(int64_t     n,
       }
     }
     T[i].write(nel, pairs);
-    free(pairs);
+    delete [] pairs;
     m = m2;
   }
  

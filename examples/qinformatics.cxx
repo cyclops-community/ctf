@@ -50,7 +50,7 @@ int main(int argc, char ** argv){
       pairs[i] = drand48();
     }
     h.write(npair, indices, pairs);
-    free(pairs);
+    delete [] pairs;
     free(indices);
 
     {
@@ -70,7 +70,7 @@ int main(int argc, char ** argv){
         pairs[i] = drand48();
       }
       v_in.write(npair, indices, pairs);
-      free(pairs);
+      delete [] pairs;
       free(indices);
       Tensor<> v_out(L/2+1, size, shape, dw);
       
@@ -118,7 +118,7 @@ int main(int argc, char ** argv){
       
       double t_io_start = MPI_Wtime();
       v_in.write(npair, indices, pairs);
-      free(pairs);
+      delete [] pairs;
       free(indices);
       Tensor<> v_out(L/2+1, size, shape, dw);
       v_out.write(onpair, oindices, opairs);
@@ -170,7 +170,7 @@ int main(int argc, char ** argv){
       pairs[i] = drand48();
     }
     v_in.write(npair, indices, pairs);
-    free(pairs);
+    delete [] pairs;
     free(indices);
     h.read_local(&npair, &indices, &pairs);
     for (int i=0; i<npair; i++) {
@@ -178,7 +178,7 @@ int main(int argc, char ** argv){
       pairs[i] = drand48();
     }
     h.write(npair, indices, pairs);
-    free(pairs);
+    delete [] pairs;
     free(indices);
     Tensor<> v_out(L, size, shape, dw);
 

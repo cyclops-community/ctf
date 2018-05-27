@@ -34,17 +34,17 @@ int  gemm_4D(int const    n,
   A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
   B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   B.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
   C.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   C.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
 
 
@@ -82,8 +82,8 @@ int  gemm_4D(int const    n,
   for (i=0; i<np; i++){
     if (fabs((double)pairs_BC[i]-(double)pairs_AB[i])>=1.E-6) pass = 0;
   }
-  free(pairs_AB);
-  free(pairs_BC);
+  delete [] pairs_AB;
+  delete [] pairs_BC;
   free(indices_AB);
   free(indices_BC);
   if (rank == 0){

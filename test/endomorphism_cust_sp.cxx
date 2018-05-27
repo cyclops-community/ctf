@@ -68,7 +68,7 @@ int endomorphism_cust_sp(int     n,
   } 
 
   free(indices);
-  free(loc_data);
+  delete [] loc_data;
   
   return pass;
 } 

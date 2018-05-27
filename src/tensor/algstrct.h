@@ -321,13 +321,13 @@ namespace CTF_int {
       virtual void copy(char * a, char const * b) const;
       
       /** \brief copies element b to element a, , with checks for NULL and alloc as necessary */
-      virtual void safecopy(char *& a, char const * b) const;
+      void safecopy(char *& a, char const * b) const;
       
       /** \brief copies n elements from array b to array a */
       virtual void copy(char * a, char const * b, int64_t n) const;
       
       /** \brief copies n elements TO array b with increment inc_a FROM array a with increment inc_b */
-      virtual void copy(int n, char const * a, int inc_a, char * b, int inc_b) const;
+      virtual void copy(int64_t n, char const * a, int inc_a, char * b, int inc_b) const;
       
       /** \brief copies m-by-n submatrix from a with lda_a to b with lda_b  */
       virtual void copy(

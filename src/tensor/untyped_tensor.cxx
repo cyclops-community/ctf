@@ -227,7 +227,7 @@ namespace CTF_int {
           /*if (this->is_home || this->home_size != other->home_size){
           }*/
           this->is_home = 0;
-          memcpy(this->home_buffer, other->home_buffer, other->home_size);
+          sr->copy(this->home_buffer, other->home_buffer, other->home_size);
           //CTF_int::alloc_ptr(other->size*sr->el_size, (void**)&this->data);
           this->data = sr->alloc(other->size);
         }
@@ -815,7 +815,7 @@ namespace CTF_int {
 
     MPI_Request req1, req2;
 
-    char * sub_buffer = (char*)CTF_int::mst_alloc(sr->el_size*odst->size);
+    char * sub_buffer = sr->alloc(odst->size);
 
     char * rbuffer = NULL;
     if (bw_mirror_rank >= 0){
@@ -1017,7 +1017,7 @@ namespace CTF_int {
       MPI_Wait(&req, &stat);
     }
     delete odst;
-    CTF_int::cdealloc(sub_buffer);
+    sr->dealloc(sub_buffer);
   #endif
 
   }
@@ -1047,7 +1047,7 @@ namespace CTF_int {
                                    idst, this->data,  beta);*/
     cyclic_reshuffle(sym, *odst, NULL, NULL, idst, NULL, NULL, &sub_buffer, &this->data, sr, wrld->cdt, 0, alpha, beta);
     delete odst;
-    CTF_int::cdealloc(sub_buffer);
+    sr->dealloc(sub_buffer);
   #endif
 
   }
@@ -1334,7 +1334,7 @@ namespace CTF_int {
         nnz_loc_new = 0;
         for (int64_t i=0; i<nnz_loc; i++){
           if (f(pi[i].d())){
-            memcpy(pi_new[nnz_loc_new].ptr, pi[i].ptr, sr->pair_size());
+            pi_new[nnz_loc_new].write(pi[i].ptr);
             nnz_loc_new++;
           }
         }
@@ -1421,7 +1421,7 @@ namespace CTF_int {
           char * new_data_ptr = this->data;
           for (int v=0; v<nvirt; v++){
             if (nnz_blk[v] > 0){
-              memcpy(new_data_ptr, new_pairs[v], nnz_blk[v]*sr->pair_size());
+              sr->copy(new_data_ptr, new_pairs[v], nnz_blk[v]);
               sr->pair_dealloc(new_pairs[v]);
             }
           }
@@ -1609,17 +1609,17 @@ namespace CTF_int {
       pXs[i] = pXs[i-1]+nXs[i-1];
     }
     nval = pXs[numPes-1] + nXs[numPes-1];
-    alloc_ptr(nval, (void**)&all_pairs);
+    nval = nval/sr->pair_size();
+    all_pairs = sr->pair_alloc(nval);
     MPI_Allgatherv(my_pairs, n, MPI_CHAR,
                    all_pairs, nXs, pXs, MPI_CHAR, wrld->comm);
-    nval = nval/sr->pair_size();
     cdealloc(nXs);
     cdealloc(pXs);
 
     PairIterator ipr(sr, all_pairs);
     ipr.sort(nval);
     if (n>0){
-      cdealloc(my_pairs);
+      sr->pair_dealloc(my_pairs);
     }
     *num_pair = nval;
     return ipr;
@@ -1641,12 +1641,12 @@ namespace CTF_int {
                       char **   all_data,
                       bool      unpack){
     PairIterator ipr = read_all_pairs(num_pair, unpack);
-    char * ball_data = (char*)alloc(sr->el_size*(*num_pair));
+    char * ball_data = sr->alloc((*num_pair));
     for (int64_t i=0; i<*num_pair; i++){
       ipr[i].read_val(ball_data+i*sr->el_size);
     }
     if (ipr.ptr != NULL)
-      cdealloc(ipr.ptr);
+      sr->pair_dealloc(ipr.ptr);
     *all_data = ball_data;
     return SUCCESS;
   }
@@ -1884,8 +1884,8 @@ namespace CTF_int {
       }
       tot_sz = (displs[global_comm.np-1]
                       + recvcnts[global_comm.np-1])/A->sr->pair_size();
-      alloc_ptr(tot_sz*A->sr->pair_size(), (void**)&all_data_A);
-      alloc_ptr(tot_sz*A->sr->pair_size(), (void**)&all_data_B);
+      all_data_A = A->sr->pair_alloc(tot_sz);
+      all_data_B = B->sr->pair_alloc(tot_sz);
     } else {
       all_data_A = NULL;
       all_data_B = NULL;
@@ -1930,14 +1930,14 @@ namespace CTF_int {
       cdealloc(recvcnts);
       cdealloc(displs);
       cdealloc(idx_arr);
-      cdealloc(all_data_A);
-      cdealloc(all_data_B);
+      sr->pair_dealloc(all_data_A);
+      sr->pair_dealloc(all_data_B);
     }
 
   }
 
   void tensor::unfold(bool was_mod){
-    int i, j, nvirt, allfold_dim;
+    int i, j, allfold_dim;
     int * all_edge_len, * sub_edge_len;
     if (this->is_folded){
       CTF_int::alloc_ptr(this->order*sizeof(int), (void**)&all_edge_len);
@@ -1954,7 +1954,6 @@ namespace CTF_int {
           allfold_dim++;
         }
       }
-      nvirt = this->calc_nvirt();
       if (!is_sparse){
         nosym_transpose(this, allfold_dim, all_edge_len, this->inner_ordering, 0);
         assert(!left_home_transp);
@@ -1962,7 +1961,7 @@ namespace CTF_int {
         ASSERT(this->nrow_idx != -1);
         if (was_mod)
           despmatricize(this->nrow_idx, this->is_csr);
-        cdealloc(this->rec_tsr->data);
+        sr->pair_dealloc(this->rec_tsr->data);
       }
       CTF_int::cdealloc(all_edge_len);
       CTF_int::cdealloc(sub_edge_len);
@@ -2143,13 +2142,13 @@ namespace CTF_int {
         DPRINTF(2,"Tensor %s leaving home %d\n", name, is_sparse);
       if (is_sparse){
         if (this->has_home){
-          this->home_buffer = (char*)CTF_int::mst_alloc(nnz_loc*sr->pair_size());
-          memcpy(this->home_buffer, this->data, nnz_loc*sr->pair_size());
+          this->home_buffer = sr->pair_alloc(nnz_loc);
+          sr->copy(this->home_buffer, this->data, nnz_loc);
         }
         this->is_home = 0;
       } else {
-        this->data = (char*)CTF_int::mst_alloc(old_dist.size*sr->el_size);
-        memcpy(this->data, this->home_buffer, old_dist.size*sr->el_size);
+        this->data = sr->alloc(old_dist.size);
+        sr->copy(this->data, this->home_buffer, old_dist.size);
         this->is_home = 0;
       }
     }
@@ -2181,7 +2180,7 @@ namespace CTF_int {
 
     if (can_block_shuffle){
       block_reshuffle(old_dist, new_dist, this->data, shuffled_data, sr, wrld->cdt);
-      CTF_int::cdealloc((void*)this->data);
+      sr->dealloc(this->data);
     } else {
       if (is_sparse){
         //padded_reshuffle(sym, old_dist, new_dist, this->data, &shuffled_data, sr, wrld->cdt);
@@ -2197,7 +2196,7 @@ namespace CTF_int {
         this->write(old_nnz, sr->mulid(), sr->addid(), old_data);
         //this->set_new_nnz_glb(nnz_blk);
         shuffled_data = this->data;
-        if (old_data != NULL) cdealloc(old_data);
+        if (old_data != NULL) sr->dealloc(old_data);
 
         double exe_time = MPI_Wtime()-st_time;
         double nnz_frac = ((double)nnz_tot)/(old_dist.size*wrld->cdt.np);
@@ -2230,7 +2229,7 @@ namespace CTF_int {
         }
       }
       if (abortt) ABORT;
-      CTF_int::cdealloc(shuffled_data_corr);
+      sr->dealloc(shuffled_data_corr);
     }
 
   #endif

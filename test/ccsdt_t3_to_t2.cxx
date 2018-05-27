@@ -57,12 +57,12 @@ int ccsdt_t3_to_t2(int     n,
   AS_A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   AS_A[std::vector<int64_t>(indices,indices+np)] = pairs;
-  free(pairs);
+  delete [] pairs;
   free(indices);
   AS_B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.33+indices[i]);
   AS_B[std::vector<int64_t>(indices,indices+np)] = pairs;
-  free(pairs);
+  delete [] pairs;
   free(indices);
   AS_C.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
@@ -154,7 +154,7 @@ int ccsdt_t3_to_t2(int     n,
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
 
-  free(pairs);
+  delete [] pairs;
   free(indices);
   return pass;
 } 

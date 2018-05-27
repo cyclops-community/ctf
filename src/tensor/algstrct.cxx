@@ -531,7 +531,7 @@ namespace CTF_int {
       a = NULL;
     } else {
       if (a == NULL) a = (char*)CTF_int::alloc(el_size); 
-      memcpy(a, b, el_size);
+      this->copy(a, b);
     }
   }
   void algstrct::copy(char * a, char const * b) const {
@@ -551,7 +551,8 @@ namespace CTF_int {
   }
 
 
-  void algstrct::copy(int n, char const * a, int inc_a, char * b, int inc_b) const {
+  void algstrct::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
     switch (el_size) {
       case 4:
         CTF_BLAS::SCOPY(&n, (float const*)a, &inc_a, (float*)b, &inc_b);
@@ -566,7 +567,7 @@ namespace CTF_int {
 #ifdef USE_OMP
         #pragma omp parallel for
 #endif
-        for (int i=0; i<n; i++){
+        for (int64_t i=0; i<nn; i++){
           copy(b+el_size*inc_b*i, a+el_size*inc_a*i);
         }
         break;

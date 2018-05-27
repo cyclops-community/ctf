@@ -68,7 +68,7 @@ int repack(int     n,
     }
 
   }
-  free(pairs);
+  delete [] pairs;
   free(indices);
   return pass;
 } 

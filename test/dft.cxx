@@ -31,7 +31,7 @@ int test_dft(int64_t n,
   DFT.write(np, idx, data);
   //DFT.print(stdout);
   free(idx);
-  free(data); 
+  delete [] data; 
   
   IDFT.read_local(&np, &idx, &data);
 
@@ -41,7 +41,7 @@ int test_dft(int64_t n,
   IDFT.write(np, idx, data);
   //IDFT.print(stdout);
   free(idx);
-  free(data); 
+  delete [] data; 
 
   /*DFT.contract(std::complex<double> (1.0, 0.0), DFT, "ij", IDFT, "jk", 
                std::complex<double> (0.0, 0.0), "ik");*/
@@ -77,7 +77,7 @@ int test_dft(int64_t n,
   MPI_Barrier(MPI_COMM_WORLD);
 
   free(idx);
-  free(data);
+  delete [] data; 
   return pass;
 }
 
