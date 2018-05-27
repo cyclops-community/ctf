@@ -318,19 +318,20 @@ namespace CTF_int {
       void accmul(char * c, char const * a, char const * b, char const * alpha) const;
       
       /** \brief copies element b to element a */
-      void copy(char * a, char const * b) const;
+      virtual void copy(char * a, char const * b) const;
       
       /** \brief copies element b to element a, , with checks for NULL and alloc as necessary */
-      void safecopy(char *& a, char const * b) const;
+      virtual void safecopy(char *& a, char const * b) const;
       
       /** \brief copies n elements from array b to array a */
-      void copy(char * a, char const * b, int64_t n) const;
+      virtual void copy(char * a, char const * b, int64_t n) const;
       
       /** \brief copies n elements TO array b with increment inc_a FROM array a with increment inc_b */
-      void copy(int n, char const * a, int inc_a, char * b, int inc_b) const;
+      virtual void copy(int n, char const * a, int inc_a, char * b, int inc_b) const;
       
       /** \brief copies m-by-n submatrix from a with lda_a to b with lda_b  */
-      void copy(int64_t      m,
+      virtual void copy(
+                int64_t      m,
                 int64_t      n,
                 char const * a,
                 int64_t      lda_a,
@@ -338,7 +339,8 @@ namespace CTF_int {
                 int64_t      lda_b) const;
       
       /** \brief copies m-by-n submatrix from a with lda_a and scaling alpha to b with lda_b and scaling by 1 */
-      void copy(int64_t      m,
+      virtual void copy(
+                int64_t      m,
                 int64_t      n,
                 char const * a,
                 int64_t      lda_a,
@@ -348,19 +350,19 @@ namespace CTF_int {
                 char const * beta) const;
 
       /** \brief copies pair b to element a */
-      void copy_pair(char * a, char const * b) const;
+      virtual void copy_pair(char * a, char const * b) const;
       
       /** \brief copies n pair from array b to array a */
-      void copy_pairs(char * a, char const * b, int64_t n) const;
+      virtual void copy_pairs(char * a, char const * b, int64_t n) const;
 
       /** \brief sets n elements of array a to value b */
-      void set(char * a, char const * b, int64_t n) const;
+      virtual void set(char * a, char const * b, int64_t n) const;
       
       /** \brief sets 1 elements of pair a to value and key */
-      void set_pair(char * a, int64_t key, char const * vb) const;
+      virtual void set_pair(char * a, int64_t key, char const * vb) const;
 
       /** \brief sets n elements of array of pairs a to value b */
-      void set_pairs(char * a, char const * b, int64_t n) const;
+      virtual void set_pairs(char * a, char const * b, int64_t n) const;
 
   };
 

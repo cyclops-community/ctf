@@ -347,7 +347,7 @@ namespace CTF_int {
       printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
     }
     printf("is inner = %d\n", is_inner);
-    if (is_inner) printf("inner n = %d m= %d k = %d l = %d\n",
+    if (is_inner) printf("inner n = %ld m= %ld k = %ld l = %ld\n",
                           inner_params.n, inner_params.m, inner_params.k, inner_params.l);
   }
 

@@ -238,20 +238,22 @@ namespace CTF_int {
           idx_pairs[i].idx = i;
         }
         //FIXME :(
-        char swap_buffer[(sizeof(int64_t)+this->el_size)*n];
-    
-        memcpy(swap_buffer, pairs, (sizeof(int64_t)+this->el_size)*n);
+        char * swap_buffer = this->pair_alloc(n);
+
+        this->copy_pairs(swap_buffer, pairs, n);
 
         std::sort(idx_pairs, idx_pairs+n);
         
+        ConstPairIterator piw(this, swap_buffer);
+        PairIterator pip(this, pairs);
+    
 #ifdef USE_OMP
         #pragma omp parallel for
 #endif
         for (int64_t i=0; i<n; i++){
-          memcpy(pairs+i*(sizeof(int64_t)+this->el_size), 
-                 swap_buffer+idx_pairs[i].idx*(sizeof(int64_t)+this->el_size),
-                 sizeof(int64_t)+this->el_size);
+          pip[i].write_val(piw[idx_pairs[i].idx].d());
         }
+        this->pair_dealloc(swap_buffer);
         break; //compiler warning here seems to be gcc bug
     }
 
@@ -791,27 +793,27 @@ namespace CTF_int {
   }
 
   void PairIterator::read(char * buf, int64_t n) const {
-    memcpy(buf, ptr, sr->pair_size()*n);
+    sr->copy_pair(buf, ptr);
   }
   
   void PairIterator::read_val(char * buf) const {
-    memcpy(buf, sr->get_const_value(ptr), sr->el_size);
+    sr->copy(buf, sr->get_const_value(ptr));
   }
 
   void PairIterator::write(char const * buf, int64_t n){
-    memcpy(ptr, buf, sr->pair_size()*n);
+    sr->copy_pairs(ptr, buf, n);
   }
 
   void PairIterator::write(PairIterator const iter, int64_t n){
-    memcpy(ptr, iter.ptr, sr->pair_size()*n);
+    this->write(iter.ptr, n);
   }
 
   void PairIterator::write(ConstPairIterator const iter, int64_t n){
-    memcpy(ptr, iter.ptr, sr->pair_size()*n);
+    this->write(iter.ptr, n);
   }
 
   void PairIterator::write_val(char const * buf){
-    memcpy(sr->get_value(ptr), buf, sr->el_size);
+    sr->copy(sr->get_value(ptr), buf);
   }
 
   void PairIterator::write_key(int64_t key){
@@ -835,7 +837,7 @@ namespace CTF_int {
         k = k/old_lens[j];
       }
       ((int64_t*)wA[i].ptr)[0] = k_new;
-      memcpy(wA[i].d(), rA[i].d(), sr->el_size);
+      wA[i].write_val(rA[i].d());
       //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
     }
    
