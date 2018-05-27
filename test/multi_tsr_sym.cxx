@@ -38,7 +38,7 @@ int multi_tsr_sym(int     m,
   A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
 
   C_NS["ij"] = A["ik"]*A["jk"];

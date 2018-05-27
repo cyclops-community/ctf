@@ -46,14 +46,14 @@ int fast_sym(int const     n,
     }
     A.write(size, indices, values);
     free(indices);
-    free(values);
+    delete [] values;
     B.read_local(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
     B.write(size, indices, values);
     free(indices);
-    free(values);
+    delete [] values;
   }
   C_ans["ij"] = A["ik"]*B["kj"];
   A_rep["ijk"] += A["ij"];

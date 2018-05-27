@@ -1087,9 +1087,10 @@ namespace CTF_int {
     /* Exchange data according to counts/offsets */
     //ALL_TO_ALLV(buf_data, bucket_counts, send_displs, MPI_CHAR,
     //            swap_data, recv_counts, recv_displs, MPI_CHAR, glb_comm);
-    glb_comm.all_to_allv(buf_data.ptr, bucket_counts, send_displs, sr->pair_size(),
+    /*glb_comm.all_to_allv(buf_data.ptr, bucket_counts, send_displs, sr->pair_size(),
                          swap_data.ptr, recv_counts, recv_displs);
-    
+    */
+    sr->copy_pairs(buf_data.ptr, swap_data.ptr, new_num_pair);
 
 
     if (new_num_pair > nwrite){
@@ -1394,11 +1395,11 @@ namespace CTF_int {
 
       for (int64_t t=0,w=0,n=0; n<nnew; n++){
         if (t<ntsr && (w==nwrite || prs_tsr[t].k() < prs_write[w].k())){
-          memcpy(prs_new[n].ptr, prs_tsr[t].ptr, sr->pair_size());
+          prs_new[n].write(prs_tsr[t].ptr);
           t++;
         } else {
           if (t>=ntsr || prs_tsr[t].k() > prs_write[w].k()){
-            memcpy(prs_new[n].ptr, prs_write[w].ptr, sr->pair_size());
+            prs_new[n].write(prs_write[w].ptr);
             if (alpha != NULL)
               sr->mul(prs_new[n].d(), alpha, prs_new[n].d());
             w++;

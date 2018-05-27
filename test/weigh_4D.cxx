@@ -40,12 +40,12 @@ int weigh_4D(int const    n,
   B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   B.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
   C.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   C.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
 
   C["ijkl"] = A["ijkl"]*B["klij"];
@@ -75,7 +75,7 @@ int weigh_4D(int const    n,
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
   
   free(indices_A);
-  free(pairs_A);
+  delete [] pairs_A;
   free(post_pairs_C);
   return pass;
 } 

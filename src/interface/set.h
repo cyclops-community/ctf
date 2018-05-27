@@ -431,8 +431,70 @@ namespace CTF {
 
       void sort(int64_t n, char * pairs) const {
         std::sort((dtypePair<dtype>*)pairs,((dtypePair<dtype>*)pairs)+n);
-
       }
+
+      void copy(char * a, char const * b) const {
+        ((dtype *)a)[0] = ((dtype const *)b)[0];
+      }
+
+      void copy(char * a, char const * b, int64_t n) const {
+        std::copy((dtype const *)b, ((dtype const *)b) + n, (dtype *)a);
+      }
+
+      void copy_pair(char * a, char const * b) const {
+        ((std::pair<int64_t,dtype> *)a)[0] = ((std::pair<int64_t,dtype> const *)b)[0];
+      }
+
+      void copy_pairs(char * a, char const * b, int64_t n) const {
+        std::copy((std::pair<int64_t,dtype> const *)b, ((std::pair<int64_t,dtype> const *)b) + n, (std::pair<int64_t,dtype> *)a);
+        //std::copy((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> const *)b, n);
+      }
+
+
+      /* void copy(int64_t n, char const * a, int inc_a, char * b, int inc_b){
+        dtype const * da = (dtype const*)a;
+        dtype * db = (dtype *)b;
+        for (int64_t i=0; i<n; i++){
+          db[inc_a*i] = da[inc_b*i];
+        }
+      }
+
+      void copy(int64_t      m,
+                int64_t      n,
+                char const * a,
+                int64_t      lda_a,
+                char *       b,
+                int64_t      lda_b) const {
+
+        dtype const * da = (dtype const*)a;
+        dtype * db = (dtype *)b;
+        for (int64_t j=0; j<n; j++){
+          for (int64_t i=0; i<m; i++){
+            db[j*lda_b+i] = da[j*lda_a+i]
+          }
+        }
+      }
+
+      void copy(int64_t      m,
+                int64_t      n,
+                char const * a,
+                int64_t      lda_a,
+                char const * alpha,
+                char *       b,
+                int64_t      lda_b,
+                char const * beta) const {
+
+        dtype const * da = (dtype const*)a;
+        dtype dalpha = *((dtype const*)alpha);
+        dtype dbeta = *((dtype const*)beta);
+        dtype * db = (dtype *)b;
+        for (int64_t j=0; j<n; j++){
+          for (int64_t i=0; i<m; i++){
+            dbeta*db[j*lda_b+i] += dalpha*da[j*lda_a+i]
+          }
+        }
+      }*/
+
   };
 
   //FIXME do below with macros to shorten

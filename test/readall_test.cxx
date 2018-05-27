@@ -63,7 +63,7 @@ int readall_test(int   n,
         pass = 0;
     }
   }
-  free(vs);
+  delete [] vs;
 
   if (pass){
     if (rank == 0)

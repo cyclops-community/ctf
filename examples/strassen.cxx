@@ -56,17 +56,17 @@ int strassen(int const     n,
   A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   A.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
   B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   B.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
   /*C.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = 0.0;
   C.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);*/
 
   C["ij"] = A["ik"]*B["kj"];

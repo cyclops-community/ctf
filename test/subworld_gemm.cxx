@@ -38,12 +38,12 @@ int test_subworld_gemm(int n,
   A.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   A.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
   B.read_local(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   B.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
 
   

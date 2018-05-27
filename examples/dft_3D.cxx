@@ -41,7 +41,7 @@ int test_dft_3D(int     n,
   DFT.write(np, idx, data);
   //DFT.print(stdout);
   free(idx);
-  free(data); 
+  delete [] data; 
   
   IDFT.read_local(&np, &idx, &data);
 
@@ -51,7 +51,7 @@ int test_dft_3D(int     n,
   IDFT.write(np, idx, data);
   //IDFT.print(stdout);
   free(idx);
-  free(data); 
+  delete [] data; 
 
   MESH.read_local(&np, &idx, &data);
   for (i=0; i<np; i++){
@@ -92,7 +92,7 @@ int test_dft_3D(int     n,
 
 
   free(idx);
-  free(data);
+  delete [] data; 
   return pass;
 }
 

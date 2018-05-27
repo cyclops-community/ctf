@@ -166,13 +166,13 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     /* FIXME: careful with alloc */
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
-    *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
+    *data = (dtype*)sr->alloc((*npair));
     CTF_int::PairIterator pairs(sr, cpairs);
     for (i=0; i<(*npair); i++){
       (*global_idx)[i] = pairs[i].k();
       pairs[i].read_val((char*)((*data)+i));
     }
-    if (cpairs != NULL) CTF_int::cdealloc(cpairs);
+    if (cpairs != NULL) sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -197,13 +197,13 @@ namespace CTF {
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local_nnz\n"); IASSERT(0); return; }
     /* FIXME: careful with alloc */
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
-    *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
+    *data = (dtype*)sr->alloc(*npair);
     CTF_int::PairIterator pairs(sr, cpairs);
     for (i=0; i<(*npair); i++){
       (*global_idx)[i] = pairs[i].k();
       pairs[i].read_val((char*)((*data)+i));
     }
-    if (cpairs != NULL) sr->dealloc(cpairs);
+    if (cpairs != NULL) sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -229,7 +229,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
     }*/
-    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
+    char * cpairs = sr->pair_alloc(npair);
     CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
       pairs[i].write_key(global_idx[i]);
@@ -239,7 +239,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       pairs[i].read_val((char*)(data+i));
     }
-    CTF_int::cdealloc(cpairs);
+    sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -254,7 +254,7 @@ namespace CTF {
         pairs[i].k = ipairs[i].k();
         ipairs[i].read_val((char*)&(pairs[i].d));
       }
-      CTF_int::cdealloc(cpairs);
+      sr->pair_dealloc(cpairs);
     }
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
   }
@@ -270,7 +270,7 @@ namespace CTF {
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
     }*/
-    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
+    char * cpairs = sr->pair_alloc(npair);
     CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
       pairs[i].write_key(global_idx[i]);
@@ -278,7 +278,7 @@ namespace CTF {
     }
     ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), cpairs);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
-    CTF_int::cdealloc(cpairs);
+    sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -290,7 +290,7 @@ namespace CTF {
     int ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), cpairs);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
     if (cpairs != (char*)pairs)
-      CTF_int::cdealloc(cpairs);
+      sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -300,7 +300,8 @@ namespace CTF {
                             int64_t const * global_idx,
                             dtype const *   data) {
     int ret, i;
-    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
+    char * cpairs = sr->pair_alloc(npair);
+
     CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
       pairs[i].write_key(global_idx[i]);
@@ -314,7 +315,7 @@ namespace CTF {
     }*/
     ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
-    CTF_int::cdealloc(cpairs);
+    sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -325,7 +326,7 @@ namespace CTF {
     char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
 
     int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
-    if (cpairs != (char*)pairs) CTF_int::cdealloc(cpairs);
+    if (cpairs != (char*)pairs) sr->pair_dealloc(cpairs);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
   }
 
@@ -336,7 +337,7 @@ namespace CTF {
                                    int64_t const * global_idx,
                                    dtype *         data){
     int ret, i;
-    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
+    char * cpairs = sr->pair_alloc(npair);
     CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
       pairs[i].write_key(global_idx[i]);
@@ -347,7 +348,7 @@ namespace CTF {
     for (i=0; i<npair; i++){
       pairs[i].read_val((char*)(data+i));
     }
-    CTF_int::cdealloc(cpairs);
+    sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -363,7 +364,7 @@ namespace CTF {
         pairs[i].k = ipairs[i].k();
         ipairs[i].read_val((char*)&(pairs[i].d()));
       }
-      CTF_int::cdealloc(cpairs);
+      sr->pair_dealloc(cpairs);
     }
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
   }
@@ -794,7 +795,7 @@ namespace CTF {
     if (gen_size % T->wrld->np > T->wrld->rank){
       my_gen_size++;
     }
-    Pair<dtype> * pairs = (Pair<dtype>*)malloc(my_gen_size*sizeof(Pair<dtype>));
+    Pair<dtype> * pairs = (Pair<dtype>*)T->sr->pair_alloc(my_gen_size);
     for (int64_t i=0; i<my_gen_size; i++){
       pairs[i] = Pair<dtype>((int64_t)(CTF_int::get_rand48()*tot_size), 1.0);
     }
