@@ -570,5 +570,4 @@ namespace CTF_int {
     return is_new;
   }
 
-#undef USE_CUST_DBL_CMPLX 1
 }

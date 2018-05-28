@@ -411,6 +411,7 @@ namespace CTF {
       }
 
       char * alloc(int64_t n) const {
+        assert(sizeof(dtype[n])==(uint64_t)(el_size*n));
         return (char*)(new dtype[n]);
       }
 
@@ -462,11 +463,11 @@ namespace CTF {
         std::fill((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> *)a + n, std::pair<int64_t,dtype>(key,*((dtype*)b)));
       }
 
-      /* void copy(int64_t n, char const * a, int inc_a, char * b, int inc_b){
+      void copy(int64_t n, char const * a, int inc_a, char * b, int inc_b) const {
         dtype const * da = (dtype const*)a;
         dtype * db = (dtype *)b;
         for (int64_t i=0; i<n; i++){
-          db[inc_a*i] = da[inc_b*i];
+          db[inc_b*i] = da[inc_a*i];
         }
       }
 
@@ -481,11 +482,11 @@ namespace CTF {
         dtype * db = (dtype *)b;
         for (int64_t j=0; j<n; j++){
           for (int64_t i=0; i<m; i++){
-            db[j*lda_b+i] = da[j*lda_a+i]
+            db[j*lda_b+i] = da[j*lda_a+i];
           }
         }
       }
-
+/* 
       void copy(int64_t      m,
                 int64_t      n,
                 char const * a,
