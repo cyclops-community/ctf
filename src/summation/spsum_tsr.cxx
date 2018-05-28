@@ -339,6 +339,7 @@ namespace CTF_int {
         cdt_A[i]->bcast(&size_A, 1, MPI_INT64_T, 0);
         cdt_A[i]->bcast(nnz_blk_A, nvirt_A, MPI_INT64_T, 0);
       }
+      //get mpi dtype for pair object
       MPI_Datatype md;
       bool need_free = get_mpi_dt(size_A, sr_A->pair_size(), md);
       
