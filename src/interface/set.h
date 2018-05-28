@@ -406,7 +406,7 @@ namespace CTF {
       }
 
       char * pair_alloc(int64_t n) const {
-        assert(sizeof(std::pair<int64_t,dtype>[n])==pair_size()*n);
+        assert(sizeof(std::pair<int64_t,dtype>[n])==(uint64_t)(pair_size()*n));
         return (char*)(new std::pair<int64_t,dtype>[n]);
       }
 
@@ -450,6 +450,17 @@ namespace CTF {
         //std::copy((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> const *)b, n);
       }
 
+      void set(char * a, char const * b, int64_t n) const {
+        std::fill((dtype*)a, ((dtype*)a)+n, *((dtype*)b));
+      }
+
+      void set_pair(char * a, int64_t key, char const * b, int64_t n) const {
+        ((std::pair<int64_t,dtype> *)a)[0] = std::pair<int64_t,dtype>(key,*((dtype*)b));
+      }
+
+      void set_pairs(char * a, int64_t key, char const * b, int64_t n) const {
+        std::fill((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> *)a + n, std::pair<int64_t,dtype>(key,*((dtype*)b)));
+      }
 
       /* void copy(int64_t n, char const * a, int inc_a, char * b, int inc_b){
         dtype const * da = (dtype const*)a;

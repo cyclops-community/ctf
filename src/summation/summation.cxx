@@ -1055,6 +1055,9 @@ namespace CTF_int {
         B->sr->copy(B->home_buffer, B->data, B->size);
         B->sr->dealloc(B->data);
         B->data = B->home_buffer;
+      } else {
+        B->sr->pair_dealloc(B->home_buffer);
+        B->home_buffer = NULL;
       }
       tnsr_B->is_data_aliased = 1;
       B->is_home = 1;
