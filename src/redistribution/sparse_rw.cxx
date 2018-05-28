@@ -1087,10 +1087,9 @@ namespace CTF_int {
     /* Exchange data according to counts/offsets */
     //ALL_TO_ALLV(buf_data, bucket_counts, send_displs, MPI_CHAR,
     //            swap_data, recv_counts, recv_displs, MPI_CHAR, glb_comm);
-    /*glb_comm.all_to_allv(buf_data.ptr, bucket_counts, send_displs, sr->pair_size(),
+    glb_comm.all_to_allv(buf_data.ptr, bucket_counts, send_displs, sr->pair_size(),
                          swap_data.ptr, recv_counts, recv_displs);
-    */
-    sr->copy_pairs(buf_data.ptr, swap_data.ptr, new_num_pair);
+    
 
 
     if (new_num_pair > nwrite){

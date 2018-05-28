@@ -800,6 +800,7 @@ namespace CTF {
       pairs[i] = Pair<dtype>((int64_t)(CTF_int::get_rand48()*tot_size), 1.0);
     }
     T->write(my_gen_size,pairs);
+    T->sr->pair_dealloc((char*)pairs);
     char str[T->order];
     for (int i=0; i<T->order; i++){
       str[i] = 'a'+i;

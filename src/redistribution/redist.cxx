@@ -466,7 +466,7 @@ namespace CTF_int {
     int order = old_dist.order; 
 
     if (order == 0){
-      alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
+      tsr_cyclic_data = sr->alloc(new_dist.size);
 
       if (glb_comm.rank == 0){
         sr->copy(tsr_cyclic_data,  tsr_data);
@@ -482,7 +482,7 @@ namespace CTF_int {
     double st_time = MPI_Wtime();
 #endif
 
-    mst_alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
+    tsr_cyclic_data = sr->alloc(new_dist.size);
     alloc_ptr(sizeof(int)*order, (void**)&idx);
     alloc_ptr(sizeof(int)*order, (void**)&old_loc_lda);
     alloc_ptr(sizeof(int)*order, (void**)&new_loc_lda);

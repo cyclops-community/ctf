@@ -1052,8 +1052,8 @@ namespace CTF_int {
       B->redistribute(odst);
       TAU_FSTOP(redistribute_for_sum_home);
       if (!B->is_sparse){
-        memcpy(B->home_buffer, B->data, B->size*B->sr->el_size);
-        CTF_int::cdealloc(B->data);
+        B->sr->copy(B->home_buffer, B->data, B->size);
+        B->sr->dealloc(B->data);
         B->data = B->home_buffer;
       }
       tnsr_B->is_data_aliased = 1;
@@ -1139,6 +1139,8 @@ namespace CTF_int {
         summation s(new_tsr_A, new_idx_A, alpha, B, new_idx_B, beta, func);
         s.execute();
         delete new_tsr_A;
+        cdealloc(new_idx_A);
+        cdealloc(new_idx_B);
         return SUCCESS;
       }
     }
@@ -1896,7 +1898,7 @@ namespace CTF_int {
       }
     }
 
-    //CTF_int::cdealloc(phys_map);
+    CTF_int::cdealloc(phys_map);
     CTF_int::cdealloc(idx_arr);
 
     //if we have don't have an additive id we can't replicate

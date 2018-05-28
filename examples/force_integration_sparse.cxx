@@ -57,7 +57,7 @@ int force_integration_sparse(int     n,
       }
     }
   }
-  free(all_parts);
+  delete [] all_parts;
     
   F.write(my_forces.size(), &my_forces[0]);
 
@@ -98,7 +98,7 @@ int force_integration_sparse(int     n,
           fabs(loc_parts[i].dy - loc_parts_new[i].dy)>1.E-6) pass = 0;
     }
   } 
-  free(loc_parts);
+  delete [] loc_parts;
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
 
   if (dw.rank == 0){

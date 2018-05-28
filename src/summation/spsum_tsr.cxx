@@ -1041,7 +1041,7 @@ namespace CTF_int {
     } else {
       char * old_B = new_B;
       depin(sr_B, order, lens, divisor, nvirt_B, virt_dim, phys_rank, new_B, new_nnz_B, nnz_blk_B, new_B, true);
-      if (old_B != new_B && old_B != B) cdealloc(old_B);
+      if (old_B != new_B && old_B != B) sr->pair_dealloc(old_B);
     }
     TAU_FSTOP(spsum_pin);
   }

@@ -33,7 +33,7 @@ int particle_interaction(int     n,
   }
   P.write(nloc, inds, loc_parts);
   free(inds);
-  free(loc_parts);
+  delete [] loc_parts;
 
   Vector<force> F(n, dw, gF);
   

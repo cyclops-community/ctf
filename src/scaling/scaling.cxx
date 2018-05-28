@@ -302,7 +302,7 @@ namespace CTF_int {
       tsr->is_home = 0;
 
       if (tsr->is_sparse){
-        cdealloc(ntsr->home_buffer);
+        tsr->sr->pair_dealloc(ntsr->home_buffer);
         ntsr->home_buffer = NULL;
         CTF_int::alloc_ptr(ntsr->calc_nvirt()*sizeof(int64_t), (void**)&tsr->nnz_blk);
         tsr->set_new_nnz_glb(ntsr->nnz_blk);
@@ -312,8 +312,8 @@ namespace CTF_int {
       tsr->redistribute(*old_dst);
       TAU_FSTOP(redistribute_for_scale_home);
       if (!tsr->is_sparse){
-        memcpy(tsr->home_buffer, tsr->data, tsr->size*tsr->sr->el_size);
-        CTF_int::cdealloc(tsr->data);
+        tsr->sr->copy(tsr->home_buffer, tsr->data, tsr->size);
+        tsr->sr->dealloc(tsr->data);
         tsr->data = tsr->home_buffer;
       }
       tsr->is_home = 1;

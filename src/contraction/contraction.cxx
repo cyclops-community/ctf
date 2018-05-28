@@ -4503,6 +4503,9 @@ namespace CTF_int {
         contraction ctr(new_tsr_A, new_idx_A, B, new_idx_B, alpha, C, new_idx_C, beta, func);
         ctr.execute();
         delete new_tsr_A;
+        cdealloc(new_idx_A);
+        cdealloc(new_idx_B);
+        cdealloc(new_idx_C);
         return SUCCESS;
       }
     }
@@ -4513,6 +4516,9 @@ namespace CTF_int {
         contraction ctr(A, new_idx_A, new_tsr_B, new_idx_B, alpha, C, new_idx_C, beta, func);
         ctr.execute();
         delete new_tsr_B;
+        cdealloc(new_idx_A);
+        cdealloc(new_idx_B);
+        cdealloc(new_idx_C);
         return SUCCESS;
       }
     }
@@ -4901,8 +4907,8 @@ namespace CTF_int {
                    old_pe_lda_C, was_cyclic_C,
                    old_padding_C, old_edge_len_C, global_comm);*/
       TAU_FSTOP(redistribute_for_ctr_home);
-      memcpy(C->home_buffer, C->data, C->size*C->sr->el_size);
-      CTF_int::cdealloc(C->data);
+      C->sr->copy(C->home_buffer, C->data, C->size);
+      C->sr->dealloc(C->data);
       C->data = C->home_buffer;
       C->is_home = 1;
       C->has_home = 1;

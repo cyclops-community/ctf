@@ -905,7 +905,7 @@ namespace CTF_int {
     int64_t * old_nnz_blk_B = nnz_blk;
     if (check_padding){
       //FIXME: uses a bit more memory then we will probably need, but probably worth not doing another round to count first
-      new_B = (char*)CTF_int::alloc(sr->pair_size()*new_nnz_B);
+      new_B = sr->pair_alloc(new_nnz_B);
       old_nnz_blk_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nvirt);
       memcpy(old_nnz_blk_B, nnz_blk, sizeof(int64_t)*nvirt);
       memset(nnz_blk, 0, sizeof(int64_t)*nvirt);

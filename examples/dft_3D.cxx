@@ -63,7 +63,7 @@ int test_dft_3D(int     n,
   MESH.write(np, idx, data);
   //MESH.print(stdout);
   free(idx);
-  free(data); 
+  delete [] data; 
   
   MESH["ijk"] = 1.0*MESH["pqr"]*DFT["ip"]*DFT["jq"]*DFT["kr"];
  
