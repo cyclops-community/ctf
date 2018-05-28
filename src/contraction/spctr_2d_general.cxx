@@ -495,11 +495,14 @@ new_nblk_C = nblk_C/edge_len;
       /*for (int i=0; i<ctr_sub_lda_C*ctr_lda_C; i++){
         printf("[%d] P%d up_C[%d]  = %lf\n",ctr_lda_C,idx_lyr,i, ((double*)up_C)[i]);
       }*/
-      if (is_sparse_A && move_A && (cdt_A->rank != (ib % cdt_A->np) || b_A != 1)){
+      if (is_sparse_A && ((move_A && cdt_A->rank != (ib % cdt_A->np)) || b_A != 1)){
         cdealloc(op_A);
       }
-      if (is_sparse_B && move_B && (cdt_B->rank != (ib % cdt_B->np)|| b_B != 1)){
+      if (is_sparse_B && ((move_B && cdt_B->rank != (ib % cdt_B->np)) || b_B != 1)){
         cdealloc(op_B);
+      }
+      if (op_C != C && up_C != C){
+        cdealloc(op_C);
       }
       reduce_step_post(edge_len, C, is_sparse_C, move_C, sr_C, b_C, s_C, buf_C, cdt_C, ctr_sub_lda_C, ctr_lda_C, nblk_C, size_blk_C, new_nblk_C, new_size_blk_C, offsets_C, ib, rec_ctr->beta, this->beta, up_C, new_C, n_new_C_grps, i_new_C_grp, new_C_grps);
       
