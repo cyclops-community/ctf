@@ -522,8 +522,28 @@ namespace CTF_int {
       (*idx) += idx_arr[i]*lda;
       lda *= lens[i];
     }
-
   }
+/*
+#define USE_CUST_DBL_CMPLX 0
+
+#if USE_CUST_DBL_CMPLX
+  MPI_Datatype MPI_DBL_CMPLX;  
+  bool dbl_cmplx_type_created = 0;
+#else
+  MPI_Datatype MPI_DBL_CMPLX = MPI_CXX_DOUBLE_COMPLEX;  
+  bool dbl_cmplx_type_created = 1;
+#endif
+
+  MPI_Datatype get_dbl_cmplx_type(){
+    if (dbl_cmplx_type_created){
+      MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_DBL_CMPLX);
+      MPI_Type_commit(&MPI_DBL_CMPLX);
+      MPI_DBL_CMPLX = dt;
+    }
+    return MPI_DBL_CMPLX;
+  }*/
+
+  extern MPI_Datatype MPI_CTF_DOUBLE_COMPLEX;
 
   bool get_mpi_dt(int64_t count, int64_t datum_size, MPI_Datatype & dt){
     ASSERT(count <= INT_MAX);
@@ -538,15 +558,9 @@ namespace CTF_int {
       case 8:
         dt = MPI_DOUBLE;
         break;
-#ifndef USE_MPI_C
       case 16:
-        dt = MPI::DOUBLE_COMPLEX;
+        dt = MPI_CTF_DOUBLE_COMPLEX;
         break;
-#else
-      case 16:
-        dt = MPI::DOUBLE_COMPLEX;
-        break;
-#endif
       default:
         MPI_Type_contiguous(datum_size, MPI_CHAR, &dt);
         MPI_Type_commit(&dt);
@@ -556,5 +570,5 @@ namespace CTF_int {
     return is_new;
   }
 
-
+#undef USE_CUST_DBL_CMPLX 1
 }
