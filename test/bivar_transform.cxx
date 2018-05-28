@@ -68,10 +68,10 @@ int bivar_transform(int     n,
     }
   } 
 
-  free(all_start_data_A);
-  free(all_start_data_B);
-  free(all_start_data_C);
-  free(all_end_data_C);
+  delete [] all_start_data_A;
+  delete [] all_start_data_B;
+  delete [] all_start_data_C;
+  delete [] all_end_data_C;
   
   return pass;
 } 

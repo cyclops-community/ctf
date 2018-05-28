@@ -1421,7 +1421,7 @@ namespace CTF_int {
           char * new_data_ptr = this->data;
           for (int v=0; v<nvirt; v++){
             if (nnz_blk[v] > 0){
-              sr->copy(new_data_ptr, new_pairs[v], nnz_blk[v]);
+              sr->copy_pairs(new_data_ptr, new_pairs[v], nnz_blk[v]);
               sr->pair_dealloc(new_pairs[v]);
             }
           }
@@ -1961,7 +1961,7 @@ namespace CTF_int {
         ASSERT(this->nrow_idx != -1);
         if (was_mod)
           despmatricize(this->nrow_idx, this->is_csr);
-        sr->pair_dealloc(this->rec_tsr->data);
+        cdealloc(this->rec_tsr->data);
       }
       CTF_int::cdealloc(all_edge_len);
       CTF_int::cdealloc(sub_edge_len);
@@ -2143,7 +2143,7 @@ namespace CTF_int {
       if (is_sparse){
         if (this->has_home){
           this->home_buffer = sr->pair_alloc(nnz_loc);
-          sr->copy(this->home_buffer, this->data, nnz_loc);
+          sr->copy_pairs(this->home_buffer, this->data, nnz_loc);
         }
         this->is_home = 0;
       } else {
@@ -2644,7 +2644,7 @@ namespace CTF_int {
         this->rec_tsr->nnz_blk[i] = get_coo_size(this->nnz_blk[i], this->sr->el_size);
       new_sz_A += this->rec_tsr->nnz_blk[i];
     }
-    this->rec_tsr->data = (char*)alloc(new_sz_A);
+    CTF_int::alloc_ptr(new_sz_A, (void**)&this->rec_tsr->data);
     this->rec_tsr->is_data_aliased = false;
     int phase[this->order];
     for (int i=0; i<this->order; i++){
@@ -2912,10 +2912,10 @@ namespace CTF_int {
         int new_sym[this->order-1];
         int sum_A_idx[this->order];
         int sum_B_idx[this->order-1];
-        *new_idx_A = (int*)malloc(sizeof(int)*(this->order-1));
-        *new_idx_B = (int*)malloc(sizeof(int)*(order_B));
+        *new_idx_A = (int*)CTF_int::alloc(sizeof(int)*(this->order-1));
+        *new_idx_B = (int*)CTF_int::alloc(sizeof(int)*(order_B));
         if (order_C > 0)
-          *new_idx_C = (int*)malloc(sizeof(int)*(order_C));
+          *new_idx_C = (int*)CTF_int::alloc(sizeof(int)*(order_C));
         int max_idx = 0;
         //determine new symmetry and edge lengths
         for (int j=0; j<this->order; j++){
