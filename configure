@@ -592,6 +592,7 @@ if [ $status = 1 ]; then
   if [ "$compiler" = "clang" ]; then
     echo -n 'Detected Apple + Clang, disabling use of rpath, Bdynamic, and Bstatic'
     echo
+    IS_APPLE_CLANG=1
     BDYNAMIC=""
     BSTATIC=""
   fi
