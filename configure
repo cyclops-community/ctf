@@ -736,11 +736,11 @@ if [ $WITH_STATIC = 1 ]; then
         LIBS="-mkl $LIBS"
         DEFS="$DEFS -DUSE_MKL=1"
         SPMKL_COMMENT=""
-      elif testlink "$LIB_PATH $BSTATIC -lblas $BDYNAMIC" dgemm_ 1; then
+      elif testlink "$LIB_PATH $LIBS $BSTATIC -lblas $BDYNAMIC" dgemm_ 0; then
         UNDERSCORE=1
         echo 'detected that -lblas works, speculatively using -lblas (with underscores).'
         LIBS="$LIBS -lblas"
-      elif testlink "$LIB_PATH $BSTATIC -lblas $BDYNAMIC" dgemm 1; then
+      elif testlink "$LIB_PATH $LIBS $BSTATIC -lblas $BDYNAMIC" dgemm 0; then
         UNDERSCORE=0
         echo 'detected that -lblas works, speculatively using -lblas (without underscores).'
         LIBS="$LIBS -lblas"
@@ -748,7 +748,10 @@ if [ $WITH_STATIC = 1 ]; then
         UNDERSCORE=1
         echo
         echo '    WARNING: static BLAS libirary did not work, executables will not build (error below),'
+        testlink "$LIB_PATH $LIBS" dgemm_ 1
         testlink "$LIB_PATH $LIBS" dgemm 1
+        testlink "$LIB_PATH $LIBS $BSTATIC -lblas $BDYNAMIC" dgemm_ 1
+        testlink "$LIB_PATH $LIBS $BSTATIC -lblas $BDYNAMIC" dgemm 1
         echo '    please specify correct LIB_PATH and LIBS (run ./configure --help to see all options),'
         echo '    CTF library can still build (via make), but executables will not!'
         echo
@@ -772,11 +775,11 @@ if [ $WITH_DYNAMIC = 1 ]; then
         LD_LIBS="$LD_LIBS -mkl"
         DEFS="$DEFS -DUSE_MKL=1"
         SPMKL_COMMENT=""
-      elif testldlink "$LD_LIB_PATH $BDYNAMIC -lblas" "$LD_LIBS" dgemm_ 0; then
+      elif testldlink "$LD_LIB_PATH $LD_LIBS $BDYNAMIC -lblas" "$LD_LIBS" dgemm_ 0; then
         UNDERSCORE=1
         echo 'detected that (-Wl,-Bdynamic) -lblas works, speculatively using (-Wl,-Bdynamic) -lblas (with underscores).'
         LD_LIBS="$LD_LIBS $BDYNAMIC -lblas"
-      elif testldlink "$LD_LIB_PATH $BDYNAMIC -lblas" "$LD_LIBS" dgemm 0; then
+      elif testldlink "$LD_LIB_PATH $LD_LIBS $BDYNAMIC -lblas" "$LD_LIBS" dgemm 0; then
         UNDERSCORE=0
         echo 'detected that $BDYNAMIC -lblas works, speculatively using $BDYNAMIC -lblas (without underscores).'
         LD_LIBS="$LD_LIBS $BDYNAMIC -lblas"
@@ -785,6 +788,9 @@ if [ $WITH_DYNAMIC = 1 ]; then
         echo
         echo '    WARNING: dynamic BLAS libirary did not work, python executables will not run (error below),'
         testldlink "$LD_LIB_PATH" "$LD_LIBS" dgemm_ 1
+        testldlink "$LD_LIB_PATH" "$LD_LIBS" dgemm 1
+        testldlink "$LD_LIB_PATH $LD_LIBS $BDYNAMIC -lblas" "$LD_LIBS" dgemm_ 1
+        testldlink "$LD_LIB_PATH $LD_LIBS $BDYNAMIC -lblas" "$LD_LIBS" dgemm 1
         echo '    please specify correct LD_LIB_PATH and LD_LIBS (run ./configure --help to see all options),'
         echo '    CTF library can still build (via make), but executables will not!'
         echo
