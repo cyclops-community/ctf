@@ -20,7 +20,10 @@ class force {
     return fnew;
   }
 
-  force(){}
+  force(){
+    fx = 0.0;
+    fy = 0.0;
+  }
 
   // additive identity
   force(int){
@@ -29,11 +32,19 @@ class force {
   }
 };
 
-struct particle {
+class particle {
+  public:
   double dx;
   double dy;
   double coeff;
   int id;
+
+  particle(){
+    dx = 0.0;
+    dy = 0.0;
+    coeff = 0.0;
+    id = 0;
+  }
 };
 
 void acc_force(force f, particle & p){

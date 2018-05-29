@@ -107,5 +107,28 @@ namespace CTF_int {
 #endif
     return false;
   }
+}
+
+namespace CTF {
+  template <>
+  void CTF::Set<float,true>::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
+    CTF_BLAS::SCOPY(&n, (float const*)a, &inc_a, (float*)b, &inc_b);
+  }
+  template <>
+  void CTF::Set<double,true>::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
+    CTF_BLAS::DCOPY(&n, (double const*)a, &inc_a, (double*)b, &inc_b);
+  }
+  template <>
+  void CTF::Set<std::complex<float>,false>::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
+    CTF_BLAS::DCOPY(&n, (double const*)a, &inc_a, (double*)b, &inc_b);
+  }
+  template <>
+  void CTF::Set<std::complex<double>,false>::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
+    CTF_BLAS::ZCOPY(&n, (std::complex<double> const*)a, &inc_a, (std::complex<double>*)b, &inc_b);
+  }
 
 }
