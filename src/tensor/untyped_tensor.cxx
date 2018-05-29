@@ -503,6 +503,7 @@ namespace CTF_int {
       if (is_sparse){
         sr->pair_dealloc(this->data);
         this->data = NULL;
+        this->home_buffer = NULL;
 //        this->size = 0;
         memset(this->nnz_blk, 0, sizeof(int64_t)*calc_nvirt());
         this->set_new_nnz_glb(this->nnz_blk);
@@ -603,6 +604,7 @@ namespace CTF_int {
         std::fill(nnz_blk, nnz_blk+calc_nvirt(), 0);
         this->is_home = 1;
         this->has_home = 1;
+        this->home_buffer = NULL;
       } else {
         #ifdef HOME_CONTRACT
         if (this->order > 0){
@@ -629,8 +631,7 @@ namespace CTF_int {
           printf("New tensor %s defined of size %ld elms (%ld bytes):\n",name, this->size,this->size*sr->el_size);
         this->print_map(stdout);
         #endif
-        if (sr->addid() != NULL)
-          sr->set(this->data, sr->addid(), this->size);
+        sr->init(this->size, this->data);
       }
     }
     TAU_FSTOP(set_zero_tsr);

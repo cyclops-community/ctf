@@ -473,7 +473,7 @@ namespace CTF_int {
           tot_cb_size += cb_sizes[i];
         }
       }
-      char * cb_bufs = (char*)alloc(tot_cb_size);
+      char * cb_bufs = (char*)CTF_int::alloc(tot_cb_size);
       MPI_Gatherv(red_sum, sz, MPI_CHAR, cb_bufs, cb_sizes, cb_displs, MPI_CHAR, sroot, scm);
       MPI_Comm_free(&scm);
       MPI_Comm_free(&rcm);

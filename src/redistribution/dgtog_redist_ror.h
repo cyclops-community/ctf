@@ -554,8 +554,7 @@ void dgtog_reshuffle(int const *          sym,
 
   if (new_idx_lyr == 0){
     char * aux_buf = sr->alloc(new_dist.size);
-    if (sr->addid() != NULL)
-      sr->set(aux_buf, sr->addid(), new_dist.size);
+    sr->init(new_dist.size, aux_buf);
 
     char ** buckets = (char**)alloc(sizeof(char**)*nnew_rep);
 

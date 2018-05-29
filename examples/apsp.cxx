@@ -11,7 +11,7 @@ using namespace CTF;
 struct path {
   int w, h;
   path(int w_, int h_){ w=w_; h=h_; }
-  path(){};
+  path(){ w=0; h=0;};
 };
 
 namespace CTF {

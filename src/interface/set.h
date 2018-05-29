@@ -423,12 +423,6 @@ namespace CTF {
         return delete [] (std::pair<int64_t,dtype>*)ptr;
       }
 
-      void init(int64_t n, char * arr) const {
-        for (int64_t i=0; i<n; i++){
-          ((dtype*)arr)[i] = dtype();
-        }
-      }
-
 
       void sort(int64_t n, char * pairs) const {
         std::sort((dtypePair<dtype>*)pairs,((dtypePair<dtype>*)pairs)+n);
@@ -486,6 +480,11 @@ namespace CTF {
           }
         }
       }
+
+    void init(int64_t n, char * arr) const {
+      std::fill((dtype*)arr,((dtype*)arr)+n,dtype());
+    }
+
 /* 
       void copy(int64_t      m,
                 int64_t      n,
