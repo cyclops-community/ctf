@@ -124,18 +124,18 @@ EOF
     else
       LD_LIBRARY_PATH="$TMP_RAW_LD_LIB_PATH:$LD_LIBRARY_PATH" ./a.out > /dev/null 2>&1
     fi
-    if [ $? -eq 0 ]; then
-      UDEFSYMB=$(nm ./a.out | grep "$3" | grep -c "U")
-      if [ $UDEFSYMB -eq 0 ]; then
-        status=1
-        if [ $4 -eq 1 ]; then
-            echo "Undefined symbol not found, so we did not really link to dynamic library (but rather static)"
-            ( set -x; nm ./a.out; )
-        fi
-      fi
-    else
-      status=0
-    fi
+    #if [ $? -eq 0 ]; then
+    #  UDEFSYMB=$(nm ./a.out | grep "$3" | grep -c "U")
+    #  if [ $UDEFSYMB -eq 0 ]; then
+    #    status=1
+    #    if [ $4 -eq 1 ]; then
+    #        echo "Undefined symbol not found, so we did not really link to dynamic library (but rather static)"
+    #        ( set -x; nm ./a.out; )
+    #    fi
+    #  fi
+    #else
+    #  status=0
+    #fi
   fi
   rm -f .test.cxx a.out
   return $status
@@ -748,7 +748,7 @@ if [ $WITH_STATIC = 1 ]; then
       else
         UNDERSCORE=1
         echo
-        echo '    WARNING: static BLAS libirary did not work, executables will not build (error below),'
+        echo '    WARNING: static BLAS libirary did not work, executables will not build (errors for a few configurations below),'
         testlink "$LIB_PATH $LIBS" dgemm_ 1
         testlink "$LIB_PATH $LIBS" dgemm 1
         testlink "$LIB_PATH $LIBS $BSTATIC -lblas $BDYNAMIC" dgemm_ 1
@@ -787,7 +787,7 @@ if [ $WITH_DYNAMIC = 1 ]; then
       else
         UNDERSCORE=1
         echo
-        echo '    WARNING: dynamic BLAS libirary did not work, python executables will not run (error below),'
+        echo '    WARNING: dynamic BLAS libirary did not work, python executables will not run (errors for a few configurations below),'
         testldlink "$LD_LIB_PATH" "$LD_LIBS" dgemm_ 1
         testldlink "$LD_LIB_PATH" "$LD_LIBS" dgemm 1
         testldlink "$LD_LIB_PATH $LD_LIBS $BDYNAMIC -lblas" "$LD_LIBS" dgemm_ 1
@@ -1209,13 +1209,6 @@ EOF
 
 
 
-echo $PARAMS >> $BUILDDIR/how-did-i-configure
-NUMOFLINES=$(wc -l < "$BUILDDIR/how-did-i-configure")
-if [ $NUMOFLINES -ge 10 ]; then
-    tail -n +2 "$BUILDDIR/how-did-i-configure" > $BUILDDIR/how-did-i-configure.tmp
-    mv $BUILDDIR/how-did-i-configure.tmp $BUILDDIR/how-did-i-configure
-fi 
-
 if [ ! -f $BUILDDIR/include/ctf.hpp ] ; then
 mkdir -p $BUILDDIR/include
 echo "#include \"$CTFDIR/include/ctf.hpp\"" > $BUILDDIR/include/ctf.hpp
@@ -1242,6 +1235,12 @@ if [ -f $BUILDDIR/setup.py ] ; then
     fi
 fi
 
+CORRFLAGS=""
+if [ $IS_APPLE_CLANG -eq 0 ]; then
+  CORRFLAGS="-stdlib=libc++ -mmacosx-version-min=10.7"
+  echo 'Tacking on -stdlib=libc++ -mmacosx-version-min=10.7 to setup.py (relevant only for Python build), since apple clang was detected.'
+fi
+
 
 cat > $BUILDDIR/setup.py <<EOF
 from distutils.core import setup
@@ -1266,7 +1265,7 @@ for mod in mods:
             language="c++",
             include_dirs=[numpy.get_include(),"$BUILDDIR/include","."],
             libraries="-lctf $LD_LIBS".replace('-l','').replace('$BDYNAMIC','').split(),
-            extra_compile_args="$CXXFLAGS".split(),
+            extra_compile_args="$CXXFLAGS $CORRFLAGS".split(),
             extra_link_args="-L$BUILDDIR/lib_shared $CXXFLAGS $LD_LIB_PATH $LINKFLAGS".split()
         ))
 
@@ -1274,4 +1273,14 @@ setup(name="CTF",packages=["ctf"],version="1.5.0",cmdclass = {'build_ext': build
 
 EOF
 echo 'A setup.py file has been created (to adjust all settings edit the setup.py file manually or rerun ./configure to create a new one).'
+
+
+echo $PARAMS >> $BUILDDIR/how-did-i-configure
+NUMOFLINES=$(wc -l < "$BUILDDIR/how-did-i-configure")
+if [ $NUMOFLINES -ge 10 ]; then
+    tail -n +2 "$BUILDDIR/how-did-i-configure" > $BUILDDIR/how-did-i-configure.tmp
+    mv $BUILDDIR/how-did-i-configure.tmp $BUILDDIR/how-did-i-configure
+fi 
+
+
 echo 'Configure finished successfully (see how-did-i-configure to determine how script was executed).'
