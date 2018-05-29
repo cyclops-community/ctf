@@ -103,7 +103,10 @@ function testldlink
   void func(){ $3(); }
   int main(){ return 0; }
 EOF
-  TMP_LD_LIB_PATH=${1//"-L"/"-Wl,-rpath="}
+  if [ $IS_APPLE_CLANG -eq 0 ]; then
+    TMP_LD_LIB_PATH=${1//"-L"/"-Wl,-rpath="}
+  fi
+  
   TMP_LD_LIB_PATH="$1 $TMP_LD_LIB_PATH"
   TMP_LD_LIBS="$2"
   if [ $4 -eq 1 ]; then
@@ -576,6 +579,9 @@ if [ $WITH_STATIC = 0 ]; then
 fi
 
 echo -n 'Checking whether __APPLE__ is defined... '
+IS_APPLE_CLANG=0
+BDYNAMIC="-Wl,-Bdynamic"
+BSTATIC="-Wl,-Bstatic"
 check_if_apple;
 status=$?
 if [ $status = 1 ]; then
@@ -583,6 +589,12 @@ if [ $status = 1 ]; then
   echo
   DEFS="$DEFS -D_DARWIN_C_SOURCE"
   CXXFLAGS="$CXXFLAGS -std=c++0x"
+  if [ "$compiler" = "clang" ]; then
+    echo -n 'Detected Apple + Clang, disabling use of rpath, Bdynamic, and Bstatic'
+    echo
+    BDYNAMIC=""
+    BSTATIC=""
+  fi
 else
   echo -n 'no.'
   echo
@@ -724,11 +736,11 @@ if [ $WITH_STATIC = 1 ]; then
         LIBS="-mkl $LIBS"
         DEFS="$DEFS -DUSE_MKL=1"
         SPMKL_COMMENT=""
-      elif testlink "$LIB_PATH -Wl,-Bstatic -lblas -Wl,-Bdynamic" dgemm_ 0; then
+      elif testlink "$LIB_PATH $BSTATIC -lblas $BDYNAMIC" dgemm_ 1; then
         UNDERSCORE=1
         echo 'detected that -lblas works, speculatively using -lblas (with underscores).'
         LIBS="$LIBS -lblas"
-      elif testlink "$LIB_PATH -Wl,-Bstatic -lblas -Wl,-Bdynamic" dgemm 0; then
+      elif testlink "$LIB_PATH $BSTATIC -lblas $BDYNAMIC" dgemm 1; then
         UNDERSCORE=0
         echo 'detected that -lblas works, speculatively using -lblas (without underscores).'
         LIBS="$LIBS -lblas"
@@ -760,14 +772,14 @@ if [ $WITH_DYNAMIC = 1 ]; then
         LD_LIBS="$LD_LIBS -mkl"
         DEFS="$DEFS -DUSE_MKL=1"
         SPMKL_COMMENT=""
-      elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas" "$LD_LIBS" dgemm_ 0; then
+      elif testldlink "$LD_LIB_PATH $BDYNAMIC -lblas" "$LD_LIBS" dgemm_ 0; then
         UNDERSCORE=1
-        echo 'detected that -Wl,-Bdynamic -lblas works, speculatively using -Wl,-Bdynamic -lblas (with underscores).'
-        LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lblas"
-      elif testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lblas" "$LD_LIBS" dgemm 0; then
+        echo 'detected that (-Wl,-Bdynamic) -lblas works, speculatively using (-Wl,-Bdynamic) -lblas (with underscores).'
+        LD_LIBS="$LD_LIBS $BDYNAMIC -lblas"
+      elif testldlink "$LD_LIB_PATH $BDYNAMIC -lblas" "$LD_LIBS" dgemm 0; then
         UNDERSCORE=0
-        echo 'detected that -Wl,-Bdynamic -lblas works, speculatively using -Wl,-Bdynamic -lblas (without underscores).'
-        LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lblas"
+        echo 'detected that $BDYNAMIC -lblas works, speculatively using $BDYNAMIC -lblas (without underscores).'
+        LD_LIBS="$LD_LIBS $BDYNAMIC -lblas"
       else
         UNDERSCORE=1
         echo
@@ -802,17 +814,17 @@ if [ $WITH_STATIC = 1 ]; then
     DEFS="$DEFS -DUSE_LAPACK"
     USING_LAPACK=1
   else
-    if testlink "$LIB_PATH -Wl,-Bstatic -llapack -Wl,-Bdynamic $LIBS" $DGEQRF 0; then
+    if testlink "$LIB_PATH $BSTATIC -llapack $BDYNAMIC $LIBS" $DGEQRF 0; then
       echo 'static LAPACK library found (-llapack).'
-      LIBS="-Wl,-Bstatic -llapack -Wl,-Bdynamic $LIBS"
+      LIBS="$BSTATIC -llapack $BDYNAMIC $LIBS"
       DEFS="$DEFS -DUSE_LAPACK"
       USING_LAPACK=1
     else
       OLINKFLAGS=$LINKFLAGS
       LINKFLAGS="$LINKFLAGS -lgfortran"
-      if testlink "$LIB_PATH -Wl,-Bstatic -llapack -Wl,-Bdynamic $LIBS" $DGEQRF 0; then
+      if testlink "$LIB_PATH $BSTATIC -llapack $BDYNAMIC $LIBS" $DGEQRF 0; then
         echo 'static LAPACK library found (-llapack -lgfortran).'
-        LIBS="-Wl,-Bstatic -llapack -Wl,-Bdynamic $LIBS"
+        LIBS="$BSTATIC -llapack $BDYNAMIC $LIBS"
         DEFS="$DEFS -DUSE_LAPACK"
         USING_LAPACK=1
       else
@@ -843,9 +855,9 @@ if [ $WITH_DYNAMIC = 1 ]; then
       DEFS="$DEFS -DUSE_LAPACK"
     fi
   else
-    if testldlink "$LD_LIB_PATH -Wl,-Bdynamic -llapack" "$LD_LIBS" $DGEQRF 0; then
-      echo 'dynamic LAPACK library found (-Wl,-Bdynamic -llapack).'
-      LD_LIBS="$LD_LIBS -Wl,-Bdynamic -llapack"
+    if testldlink "$LD_LIB_PATH $BDYNAMIC -llapack" "$LD_LIBS" $DGEQRF 0; then
+      echo 'dynamic LAPACK library found ($BDYNAMIC -llapack).'
+      LD_LIBS="$LD_LIBS $BDYNAMIC -llapack"
       if [ $USING_LAPACK = 0 ]; then 
         DEFS="$DEFS -DUSE_LAPACK"
       fi
@@ -922,9 +934,9 @@ if [ $WITH_STATIC = 1 ]; then
     DEFS="$DEFS -DUSE_SCALAPACK"
     USING_SCALA=1
   else
-    if testlink "$LIB_PATH -Wl,-Bstatic -lscalapack -Wl,-Bdynamic $LIBS" $PDGEMM 0; then
+    if testlink "$LIB_PATH $BSTATIC -lscalapack $BDYNAMIC $LIBS" $PDGEMM 0; then
       echo 'SCALAPACK library found (-lscalapack).'
-      LIBS="-Wl,-Bstatic -lscalapack -Wl,-Bdynamic $LIBS"
+      LIBS="$BSTATIC -lscalapack $BDYNAMIC $LIBS"
       DEFS="$DEFS -DUSE_SCALAPACK"
       USING_SCALA=1
     else
@@ -932,7 +944,7 @@ if [ $WITH_STATIC = 1 ]; then
         echo '  static ScaLAPACK not found, will build with ScaLAPACK-dependent functionality anyway, since --with-scalapack was specified.'
         echo '  WARNING: you may not be able to build ctf tests and benchmarks in this configuration (but you can build the library and use in conjunction with a scalapack library)'
         echo '  WARNING: executables will not build until you provide a scalapack library (error below),'
-        testlink "$LIB_PATH -Wl,-Bstatic -lscalapack -Wl,-Bdynamic $LIBS" $PDGEMM 1
+        testlink "$LIB_PATH $BSTATIC -lscalapack $BDYNAMIC $LIBS" $PDGEMM 1
         echo '    please specify correct LIB_PATH and LIBS or configure with'
         echo '    --build-scalapack to attempt to automatically download and build scalapack'
         echo '    (run ./configure --help to see all options),'
@@ -957,9 +969,9 @@ if [ $WITH_DYNAMIC = 1 ]; then
       DEFS="$DEFS -DUSE_SCALAPACK"
     fi
   else
-    if testldlink "$LD_LIB_PATH -Wl,-Bdynamic -lscalapack" "$LD_LIBS" $PDGEMM 0; then
-      echo 'SCALAPACK library found (-Wl,-Bdynamic -lscalapack).'
-      LD_LIBS="-Wl,-Bdynamic -lscalapack $LD_LIBS"
+    if testldlink "$LD_LIB_PATH $BDYNAMIC -lscalapack" "$LD_LIBS" $PDGEMM 0; then
+      echo 'SCALAPACK library found ($BDYNAMIC -lscalapack).'
+      LD_LIBS="$BDYNAMIC -lscalapack $LD_LIBS"
       if [ $USING_SCALA = 0 ]; then 
         DEFS="$DEFS -DUSE_SCALAPACK"
       fi
@@ -1019,8 +1031,8 @@ if testhptt 0; then
 else
   OLIBS=$LIBS
   OLD_LIBS=$LD_LIBS
-  LIBS="$LIBS -Wl,-Bstatic -lhptt -Wl,-Bdynamic"
-  LD_LIBS="$LD_LIBS -Wl,-Bdynamic -lhptt"
+  LIBS="$LIBS $BSTATIC -lhptt $BDYNAMIC"
+  LD_LIBS="$LD_LIBS $BDYNAMIC -lhptt"
   if testhptt 0; then
     echo 'HPTT works by tacking on -lhptt to LIBS and LD_LIBS.'
     USE_HPTT=1
@@ -1126,9 +1138,11 @@ RAW_LD_LIB_PATH=${LD_LIB_PATH//" -L"/":"}
 RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//"-L"/""}
 RAW_LD_LIB_PATH=${RAW_LD_LIB_PATH//" "/""}
 
-if [ "x$LD_LIB_PATH" != "x" ]; then
-  RLD_LIB_PATH=${LD_LIB_PATH//'-L'/'-Wl,-rpath='}
-  LD_LIB_PATH="$LD_LIB_PATH $RLD_LIB_PATH"
+if [ $IS_APPLE_CLANG -eq 0 ]; then
+  if [ "x$LD_LIB_PATH" != "x" ]; then
+    RLD_LIB_PATH=${LD_LIB_PATH//'-L'/'-Wl,-rpath='}
+    LD_LIB_PATH="$LD_LIB_PATH $RLD_LIB_PATH"
+  fi
 fi
 
 cat > $BUILDDIR/config.mk <<EOF
@@ -1244,7 +1258,7 @@ for mod in mods:
             [mod[1]],
             language="c++",
             include_dirs=[numpy.get_include(),"$BUILDDIR/include","."],
-            libraries="-lctf $LD_LIBS".replace('-l','').replace('-Wl,-Bdynamic','').split(),
+            libraries="-lctf $LD_LIBS".replace('-l','').replace('$BDYNAMIC','').split(),
             extra_compile_args="$CXXFLAGS".split(),
             extra_link_args="-L$BUILDDIR/lib_shared $CXXFLAGS $LD_LIB_PATH $LINKFLAGS".split()
         ))
