@@ -112,6 +112,9 @@ namespace CTF {
         return taddmop;        
       }
 
+      void init(int64_t n, char * arr) const {
+        std::fill((dtype*)arr,((dtype*)arr)+n,taddid);
+      }
 
       void axpy(int          n,
                 char const * alpha,
