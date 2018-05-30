@@ -193,7 +193,7 @@ namespace CTF_int {
       rec_tsum->run();
       if (is_sparse_B){
         new_sp_szs_B[off_B] = rec_tsum->new_nnz_B;
-        if (beta_arr[off_B] > 0) cdealloc(buckets_B[off_B]);
+        if (beta_arr[off_B] > 0) sr_B->pair_dealloc(buckets_B[off_B]);
         buckets_B[off_B] = rec_tsum->new_B;
       }
       beta_arr[off_B] = 1;
@@ -218,9 +218,11 @@ namespace CTF_int {
       new_B = sr_B->pair_alloc(this->new_nnz_B);
       int64_t pfx = 0;
       for (int i=0; i<nb_B; i++){
-        memcpy(new_B+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->pair_size());
+        //memcpy(new_B+pfx, buckets_B[i], new_sp_szs_B[i]*this->sr_B->pair_size());
+        //printf("copying %ld pairs\n",new_sp_szs_B[i]);
+        sr_B->copy_pairs(new_B+pfx, buckets_B[i], new_sp_szs_B[i]);
         pfx += new_sp_szs_B[i]*this->sr_B->pair_size();
-        if (beta_arr[i] > 0) sr_B->dealloc(buckets_B[i]);
+        if (beta_arr[i] > 0) sr_B->pair_dealloc(buckets_B[i]);
       }
       //FIXME: how to pass B back generally
       //cdealloc(this->B);
@@ -614,7 +616,7 @@ namespace CTF_int {
 #endif
     for (int64_t i=0; i<nnz_A; i++){
       for (int64_t r=0; r<tot_rep; r++){
-        memcpy(pi_new[i*tot_rep+r].ptr, pi[i].ptr, this->sr_A->pair_size());
+        this->sr_A->copy(pi_new[i*tot_rep+r].ptr, pi[i].ptr);
       }
     }
 #ifdef USE_OMP
@@ -805,7 +807,7 @@ namespace CTF_int {
       alloc_ptr(nnz_A*sr_A->pair_size(), (void**)&buf);
       rec_tsum->A = buf;
       rec_tsum->B = B;
-      memcpy(buf, A, nnz_A*sr_A->pair_size());
+      sr_A->copy_pairs(buf, A, nnz_A);
       int64_t new_lda_A[order];
       memset(new_lda_A, 0, order*sizeof(int64_t));
       int64_t lda=1;
@@ -831,7 +833,7 @@ namespace CTF_int {
       alloc_ptr(nnz_B*sr_B->pair_size(), (void**)&buf);
       rec_tsum->A = A;
       rec_tsum->B = buf;
-      memcpy(buf, B, nnz_B*sr_B->pair_size());
+      sr_B->copy(buf, B, nnz_B);
       int64_t old_lda_B[order];
       int64_t lda=1;
       for (int i=0; i<order; i++){

@@ -233,7 +233,7 @@ namespace CTF_int{
       int64_t mw = ww%map_pfx;
       bool skip = 0;
       if (t<nB && (w==nA || prs_B[t].k() < prs_A[w].k()*map_pfx+mw)){
-        memcpy(prs_new[n].ptr, prs_B[t].ptr, sr_B->pair_size());
+        sr_B->copy_pair(prs_new[n].ptr, prs_B[t].ptr);
         if (beta != NULL)
           sr_B->mul(prs_B[t].d(), beta, prs_new[n].d());
         t++;
@@ -243,7 +243,7 @@ namespace CTF_int{
         if (t>=nB || prs_B[t].k() > prs_A[w].k()*map_pfx+mw){
           if (func == NULL){
             if (map_pfx == 1){
-              memcpy(prs_new[n].ptr, prs_A[w].ptr, sr_A->pair_size());
+              sr_A->copy_pair(prs_new[n].ptr, prs_A[w].ptr);
             } else {
               ((int64_t*)prs_new[n].ptr)[0] = prs_A[w].k()*map_pfx+mw; 
               prs_new[n].write_val(prs_A[w].d());

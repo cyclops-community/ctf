@@ -25,7 +25,7 @@ namespace CTF_int {
       char * all_data;
       
       /** \brief constructor allocates all_data */
-      CSR_Matrix(int64_t nnz, int nrow, int ncol, int el_size);
+      CSR_Matrix(int64_t nnz, int nrow, int ncol, accumulatable const * sr);
 
       /** \brief constructor given serialized CSR matrix */
       CSR_Matrix(char * all_data);
@@ -35,7 +35,7 @@ namespace CTF_int {
       CSR_Matrix(CSR_Matrix const & other){ all_data=other.all_data; }
       
       /** \brief constructor given coordinate format (COO) matrix */
-      CSR_Matrix(COO_Matrix const & coom, int nrow, int ncol, algstrct const * sr, char * data=NULL);
+      CSR_Matrix(COO_Matrix const & coom, int nrow, int ncol, algstrct const * sr, char * data=NULL, bool init_data=true);
 
       /** \brief retrieves number of nonzeros out of all_data */
       int64_t nnz() const;
