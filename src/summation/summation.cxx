@@ -1048,6 +1048,7 @@ namespace CTF_int {
         DPRINTF(1,"Migrating tensor %s back to home\n", B->name);
       distribution odst(tnsr_B);
       B->is_home = 0;
+      B->has_home = 0;
       TAU_FSTART(redistribute_for_sum_home);
       B->redistribute(odst);
       TAU_FSTOP(redistribute_for_sum_home);
@@ -1055,11 +1056,13 @@ namespace CTF_int {
         B->sr->copy(B->home_buffer, B->data, B->size);
         B->sr->dealloc(B->data);
         B->data = B->home_buffer;
-      } else if (B->home_buffer != NULL) {
-        B->sr->pair_dealloc(B->home_buffer);
-        B->home_buffer = NULL;
+      } else if (tnsr_B->home_buffer != NULL) {
+        tnsr_B->sr->pair_dealloc(tnsr_B->home_buffer);
+        tnsr_B->home_buffer = NULL;
       }
       tnsr_B->is_data_aliased = 1;
+      tnsr_B->is_home = 0;
+      tnsr_B->has_home = 0;
       B->is_home = 1;
       B->has_home = 1;
       delete tnsr_B;
@@ -1077,11 +1080,14 @@ namespace CTF_int {
       delete tnsr_B;
     }
     if (was_home_A && !tnsr_A->is_home){
-      tnsr_A->has_home = 0;
-      tnsr_A->is_home = 0;
       if (A->is_sparse){
         A->data = tnsr_A->home_buffer;
         tnsr_A->home_buffer = NULL;
+        tnsr_A->has_home = 1;
+        tnsr_A->is_home = 1;
+      } else {
+        tnsr_A->has_home = 0;
+        tnsr_A->is_home = 0;
       }
       delete tnsr_A;
     } else if (was_home_A) {
@@ -2331,8 +2337,9 @@ namespace CTF_int {
       }
     } else
       need_remap = 1;
-    if (need_remap)
+    if (need_remap){
       A->redistribute(dA);
+    }
     need_remap = 0;
     if (B->topo == old_topo_B){
       for (d=0; d<B->order; d++){
@@ -2341,8 +2348,9 @@ namespace CTF_int {
       }
     } else
       need_remap = 1;
-    if (need_remap)
+    if (need_remap){
       B->redistribute(dB);
+    }
 
     TAU_FSTOP(redistribute_for_sum);
     delete [] old_map_A;

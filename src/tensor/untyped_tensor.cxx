@@ -53,7 +53,9 @@ namespace CTF_int {
       if (!is_data_aliased){
         if (is_home){
           if (!is_sparse) sr->dealloc(home_buffer);
-          else sr->pair_dealloc(data);
+          else {
+            sr->pair_dealloc(data);
+          }
         } else {
           if (data != NULL){
             //if (order == 0) sr->dealloc(data);
@@ -108,6 +110,7 @@ namespace CTF_int {
 #ifdef HOME_CONTRACT
       this->is_home = 1;
       this->has_home = 1;
+      this->home_buffer = NULL;
 #else
       this->is_home = 0;
       this->has_home = 0;
@@ -346,6 +349,7 @@ namespace CTF_int {
       this->name[5] = '0'+(order_%10);
       this->name[6] = '\0';
     }
+    this->home_buffer = NULL;
     if (wrld->rank == 0)
       DPRINTF(3,"Created order %d tensor %s, is_sparse = %d, allocated = %d\n",order,name,is_sparse,alloc_data);
 
