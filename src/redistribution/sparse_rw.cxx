@@ -43,7 +43,7 @@ namespace CTF_int {
       //std::vector< tkv_pair<dtype> > my_pairs;
       //allocate buffer of same size of pairs, 
       //FIXME: not all space may be used, so a smaller buffer is possible
-      char * my_pairs_buf = (char*)alloc(sr->pair_size()*tnum_pair);
+      char * my_pairs_buf = sr->pair_alloc(tnum_pair);
       PairIterator my_pairs(sr, my_pairs_buf);
       PairIterator pairs(sr, pairs_buf);
       cnum_pair = 0;
@@ -87,7 +87,7 @@ namespace CTF_int {
         }
         pairs[pfx].write(my_pairs,cnum_pair);
       }
-      cdealloc(my_pairs_buf);
+      sr->pair_dealloc(my_pairs_buf);
     } 
     *new_num_pair = 0;
     for (int i=0; i<mntd; i++){
