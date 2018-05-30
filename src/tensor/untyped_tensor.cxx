@@ -254,7 +254,7 @@ namespace CTF_int {
       has_home = other->has_home;
       is_home = other->is_home;
       this->home_buffer = other->home_buffer;
-      if (data!=NULL)    CTF_int::cdealloc(this->data);
+      if (data!=NULL)    sr->dealloc(this->data);
       if (nnz_blk!=NULL) CTF_int::cdealloc(this->nnz_blk);
       //CTF_int::alloc_ptr(other->nnz_loc*(sizeof(int64_t)+sr->el_size),
       //                 (void**)&this->data);
@@ -762,7 +762,7 @@ namespace CTF_int {
     ret = tsr_B->write(blk_sz_A, alpha, beta, all_data_A, 'w');
 
     if (blk_sz_A > 0)
-      CTF_int::cdealloc(all_data_A);
+      tsr_A->sr->pair_dealloc(all_data_A);
 
     return ret;
   }
@@ -2146,9 +2146,10 @@ namespace CTF_int {
       printf("CTF WARNING: Tensor %s is being redistributed to a mapping where its size is %ld, which is greater than INT_MAX=%d, so MPI could run into problems\n", name, size, INT_MAX);
 
   #ifdef HOME_CONTRACT
+    if (wrld->cdt.rank == 0)
+      DPRINTF(2,"Tensor %s leaving home %d\n", name, is_sparse);
+
     if (this->is_home){
-      if (wrld->cdt.rank == 0)
-        DPRINTF(2,"Tensor %s leaving home %d\n", name, is_sparse);
       if (is_sparse){
         if (this->has_home){
           this->home_buffer = sr->pair_alloc(nnz_loc);
@@ -2205,7 +2206,9 @@ namespace CTF_int {
         this->write(old_nnz, sr->mulid(), sr->addid(), old_data);
         //this->set_new_nnz_glb(nnz_blk);
         shuffled_data = this->data;
-        if (old_data != NULL) sr->pair_dealloc(old_data);
+        if (old_data != NULL){
+          sr->pair_dealloc(old_data);
+        }
 
         double exe_time = MPI_Wtime()-st_time;
         double nnz_frac = ((double)nnz_tot)/(old_dist.size*wrld->cdt.np);
@@ -2773,8 +2776,13 @@ namespace CTF_int {
 #ifdef HOME_CONTRACT
     if (this->has_home){
       if (!this->is_home){
-        cdealloc(this->home_buffer);
-        this->home_buffer = this->data;
+        if (is_sparse){
+          sr->pair_dealloc(this->home_buffer);
+          this->home_buffer = NULL;
+        } else {
+          sr->dealloc(this->home_buffer);
+          this->home_buffer = this->data;
+        }
       }
       if (wrld->rank == 0) DPRINTF(2,"Deleting home (leave) of %s\n",name);
       deregister_size();
