@@ -16,6 +16,43 @@ namespace CTF {
   }
 }
 
+Matrix<> flatten_block_sparse_matrix(Matrix< Tensor<> > A, std::vector<int> ranges, World & dw){
+  int64_t nrng = ranges.size();
+  int64_t range_sum = 0;
+  int64_t range_pfx[nrng];
+  for (int64_t i=0; i<nrng; i++){
+    if (i==0) range_pfx[i] = 0;
+    else      range_pfx[i] = range_sum;
+    range_sum += ranges[i];
+  }
+
+  Matrix<> flatA(range_sum, range_sum, SP, dw);
+
+  //below only works when the blocks are distributed over all processors
+  assert(A.wrld->np == 1);
+  int64_t nblk;
+  int64_t * blk_inds;
+  Tensor<> * A_blks;
+
+  A.read_local_nnz(&nblk, &blk_inds, &A_blks);
+
+  int zeros[] = {0,0};
+  int offs[2];
+  int ends[2];
+  for (int64_t b=0; b<nblk; b++){
+    assert(A_blks[b].order == 2);
+    int64_t i = blk_inds[b] / nblk;
+    int64_t j = blk_inds[b] % nblk;
+    offs[0] = range_pfx[j];
+    offs[1] = range_pfx[i];
+    ends[0] = range_pfx[j]+ranges[j];
+    ends[1] = range_pfx[i]+ranges[i];
+    flatA.slice(offs,ends,0.0,A_blks[b],zeros,A_blks[b].lens,1.0);
+  }
+  return flatA;
+
+}
+
 /**
  * \brief perform block sparse matrix-matrix product
  * \param[in] ranges block sizes along each dimension
@@ -59,7 +96,7 @@ int block_sparse(std::vector<int> ranges, World & dw){
                     C[idx_C] += A[idx_A]+B[idx_B];
                     return C;
                   },
-                  MPI_SUM); //not really valid, but should never be used if we only use Monoid on world with a single processor
+                  MPI_SUM); //MPI op not really valid, but should never be used if we only use Monoid on world with a single processor
 
   int nblk = ranges.size();
 
@@ -78,22 +115,18 @@ int block_sparse(std::vector<int> ranges, World & dw){
     int64_t j = rand()%nblk;
     A_blks[i].k = j + nblk*i;
     A_blks[i].d = Matrix<>(ranges[j],ranges[i],dw);
-    A_blks[i].d.fill_random(0.,1.);
-    A_blks[i].d.print();
-    A_blks[i].d.unfold();
+    A_blks[i].d.fill_random(0,1);
   }
   A.write(nblk,A_blks);
-
   int64_t B_blk_inds[nblk];
   Tensor<> B_blks[nblk];
   for (int64_t i=0; i<nblk; i++){
     int64_t j = rand()%nblk;
     B_blk_inds[i] = i + j*nblk;
     B_blks[i] = Matrix<>(ranges[i],ranges[j],dw);
-    B_blks[i].fill_random(0.,1.);
+    B_blks[i].fill_random(1.,1.);
   }
   B.write(nblk,B_blk_inds,B_blks);
-
   Matrix< Tensor<> > C(nblk, nblk, SP, self_world, tmon);
 
   C["ij"] = Function< Tensor<> >(
@@ -105,9 +138,23 @@ int block_sparse(std::vector<int> ranges, World & dw){
               }
             )(A["ik"],B["kj"]);
 
-  C.print();
+  Matrix<> refA = flatten_block_sparse_matrix(A,ranges,dw);
+  Matrix<> refB = flatten_block_sparse_matrix(B,ranges,dw);
+  Matrix<> cmpC = flatten_block_sparse_matrix(C,ranges,dw);
 
-  bool pass = true;
+  Matrix<> refC(cmpC);
+
+  refC["ij"] = refA["ik"]*refB["kj"];
+
+  /*refA.print_matrix();
+  refB.print_matrix();
+  cmpC.print_matrix();
+  refC.print_matrix();*/
+
+  refC["ij"] -= cmpC["ij"];
+  double err_nrm = refC.norm2();
+
+  bool pass = err_nrm <= 1.e-4;
 
   return pass;
 } 
@@ -148,13 +195,20 @@ int main(int argc, char ** argv){
     World dw(argc, argv);
 
     if (rank == 0){
-      printf("Computing block-sparse with %d block ranges, all of size %d\n",r,n);
+      printf("Computing block-sparse with %d block ranges, all of size %d... ",r,n);
     }
     std::vector<int> ranges;
     for (int i=0; i<r; i++){
       ranges.push_back(n);
     }
     pass = block_sparse(ranges, dw);
+    if (rank == 0){
+      if (pass){
+        printf("successful, answer correct.\n");
+      } else {
+        printf("failed, answer wrong.\n");
+      }
+    }
     assert(pass);
   }
 
