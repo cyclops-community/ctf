@@ -11,9 +11,19 @@ namespace CTF_int {
    */
   class accumulatable {
     public:
+      /** \brief size of each element of algstrct in bytes */
+      int el_size;
+
       /** \brief b+=a */
       virtual void accum(char const * a, 
                          char *       b) const { assert(0); }
+
+      /** \brief initialize n objects to zero
+        * \param[in] n number of items
+        * \param[in] arr array containing n items, to be set to zero
+        */
+      virtual void init_shell(int64_t n, char * arr) const { assert(0); };
+
   };
 
   /**
@@ -22,8 +32,6 @@ namespace CTF_int {
    */
   class algstrct : public accumulatable {
     public: 
-      /** \brief size of each element of algstrct in bytes */
-      int el_size;
       /** \brief whether there was a custom COO CSRMM kernel provided for this algebraic structure */
       bool has_coo_ker;
       /** brief datatype for pairs, always custom create3d */

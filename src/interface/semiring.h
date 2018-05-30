@@ -769,7 +769,7 @@ namespace CTF {
           ic_prev += IC[i];
           IC[i] = ic_prev;
         }
-        CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype));
+        CTF_int::CSR_Matrix C(IC[m]-1, m, n, this);
         dtype * vC = (dtype*)C.vals();
         this->set((char *)vC, this->addid(), IC[m]+1);
         int * JC = C.JA();

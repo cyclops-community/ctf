@@ -67,7 +67,7 @@ namespace CTF_int {
     for (int64_t i=0; i<nz; i++){
       //printf("%d, %d, %ld\n",(int)((char*)(coo_vs+csr_ja[i])-(char*)(coo_vs))-csr_ja[i]*sizeof(dtype),sizeof(dtype),csr_ja[i]);
 //      memcpy(csr_vs+i, coo_vs+csr_ja[i]-1,sizeof(dtype));
-      //copy(csr_vs+i, coo_vs+csr_ja[i],sizeof(dtype));
+      //memcpy(csr_vs+i, coo_vs+csr_ja[i],sizeof(dtype));
       csr_vs[i] = coo_vs[csr_ja[i]];
 //      printf("i %ld csr_ja[i] %d\n", i, csr_ja[i]);
 //      printf("i %ld v %lf\n", i, csr_vs[i]);
@@ -88,7 +88,8 @@ namespace CTF_int {
       bool b = try_mkl_csr_to_coo(nz, nrow, (char const*)csr_vs, csr_ja, csr_ia, (char*)coo_vs, coo_rs, coo_cs, sz);
       if (b) return;
     }
-    memcpy(coo_vs, csr_vs, sizeof(dtype)*nz);
+    //memcpy(coo_vs, csr_vs, sizeof(dtype)*nz);
+    std::copy(csr_vs, csr_vs+nz, coo_vs);
     memcpy(coo_cs, csr_ja, sizeof(int)*nz);
     for (int i=0; i<nrow; i++){
       std::fill(coo_rs+csr_ia[i]-1, coo_rs+csr_ia[i+1]-1, i+1);
@@ -443,13 +444,20 @@ namespace CTF {
       void copy_pairs(char * a, char const * b, int64_t n) const {
         std::copy((std::pair<int64_t,dtype> const *)b, ((std::pair<int64_t,dtype> const *)b) + n, (std::pair<int64_t,dtype> *)a);
         //std::copy((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> const *)b, n);
+        //for (int64_t i=0; i<n; i++){
+          /*printf("i=%ld\n",i);
+          this->print((char*)&(((std::pair<int64_t,dtype> const *)a)[i].second));
+          this->print((char*)&(((std::pair<int64_t,dtype> const *)b)[i].second));*/
+          //((std::pair<int64_t,dtype>*)a)[i] = ((std::pair<int64_t,dtype> const *)b)[i];
+          //this->print((char*)&(((std::pair<int64_t,dtype> const *)a)[i].second));
+        //}
       }
 
       void set(char * a, char const * b, int64_t n) const {
         std::fill((dtype*)a, ((dtype*)a)+n, *((dtype*)b));
       }
 
-      void set_pair(char * a, int64_t key, char const * b, int64_t n) const {
+      void set_pair(char * a, int64_t key, char const * b) const {
         ((std::pair<int64_t,dtype> *)a)[0] = std::pair<int64_t,dtype>(key,*((dtype*)b));
       }
 
@@ -484,6 +492,18 @@ namespace CTF {
     void init(int64_t n, char * arr) const {
       std::fill((dtype*)arr,((dtype*)arr)+n,dtype());
     }
+
+    /** \brief initialize n objects to zero
+      * \param[in] n number of items
+      * \param[in] arr array containing n items, to be set to zero
+      */
+    virtual void init_shell(int64_t n, char * arr) const {
+      dtype dummy = dtype();
+      for (int i=0; i<n; i++){
+        memcpy(arr+i*el_size,(char*)&dummy,el_size);
+      }
+    }
+
 
 /* 
       void copy(int64_t      m,

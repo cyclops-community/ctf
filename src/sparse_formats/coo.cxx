@@ -36,6 +36,8 @@ namespace CTF_int {
     char * vs = vals();
     int * coo_rs = rows();
     int * coo_cs = cols();
+
+    sr->init_shell(nnz, vs);
   
     sr->csr_to_coo(nnz, csr.nrow(), csr_vs, csr_ja, csr_ia, vs, coo_rs, coo_cs);
   }

@@ -1803,8 +1803,12 @@ namespace CTF_int {
     }
 
     if (my_sz == 0) pmy_data = NULL;
-    MPI_Gatherv(pmy_data, my_sz*sr->pair_size(), MPI_CHAR,
-               pall_data, recvcnts, displs, MPI_CHAR, 0, wrld->cdt.cm);
+    if (wrld->cdt.np == 1)
+      pall_data = pmy_data;
+    else {
+      MPI_Gatherv(pmy_data, my_sz*sr->pair_size(), MPI_CHAR,
+                 pall_data, recvcnts, displs, MPI_CHAR, 0, wrld->cdt.cm);
+    }
     PairIterator all_data = PairIterator(sr,pall_data);
     /*for (int i=0; i<tot_sz; i++){
       printf("all_data[%d].k() = %ld all_data[%d].d() = ",i,all_data[i].k(),i);
@@ -1836,8 +1840,8 @@ namespace CTF_int {
       cdealloc(recvcnts);
       cdealloc(displs);
       cdealloc(idx_arr);
+      if (pall_data != pmy_data) sr->pair_dealloc(pall_data);
       if (pmy_data != NULL) sr->pair_dealloc(pmy_data);
-      sr->pair_dealloc(pall_data);
     }
 
   }

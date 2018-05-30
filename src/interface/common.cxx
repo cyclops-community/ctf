@@ -184,19 +184,19 @@ namespace CTF_int {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD,&rank); 
     if (rank == 0){
-      void *array[26];
+      void *array[51];
 
       // get void*'s for all entries on the stack
-      size = backtrace(array, 25);
+      size = backtrace(array, 50);
 
       // print out all the frames to stderr
       backtrace_symbols(array, size);
-      char syscom[256*size];
+      char syscom[2048*size];
       for (i=1; i<size; ++i)
       {
-        char buf[256];
-        char buf2[256];
-        int bufsize = 256;
+        char buf[2048];
+        char buf2[2048];
+        int bufsize = 2048;
         int sz = readlink("/proc/self/exe", buf, bufsize);
         buf[sz] = '\0';
         sprintf(buf2,"addr2line %p -e %s", array[i], buf);
