@@ -30,7 +30,7 @@ int repack(int     n,
   Tensor<> An(4, sizeN4, shapeN4, dw);
   Tensor<> As(4, sizeN4, shapeS4, dw);
 
-  As.read_local(&np, &indices, &pairs);
+  As.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   As.write(np, indices, pairs);
   An.write(np, indices, pairs);

@@ -58,7 +58,7 @@ int sparse_permuted_slice(int     n,
 
   Matrix<> B(bi, bi, sym, id_world, "B");
 
-  B.read_local(&nvals, &indices, &data);
+  B.get_local_data(&nvals, &indices, &data);
 
   srand48(rank*29+3);
   for (i=0; i<nvals; i++){

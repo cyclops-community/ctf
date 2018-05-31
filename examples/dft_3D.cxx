@@ -33,7 +33,7 @@ int test_dft_3D(int     n,
   Matrix < std::complex<long double> >IDFT(n, n, SY, wrld, ldr);
   Tensor < std::complex<long double> >MESH(3, len, sym, wrld, ldr);
 
-  DFT.read_local(&np, &idx, &data);
+  DFT.get_local_data(&np, &idx, &data);
 
   for (i=0; i<np; i++){
     data[i] = ((long double)1./n)*exp(-2.*(idx[i]/n)*(idx[i]%n)*((long double)M_PI/n)*imag);
@@ -43,7 +43,7 @@ int test_dft_3D(int     n,
   free(idx);
   delete [] data; 
   
-  IDFT.read_local(&np, &idx, &data);
+  IDFT.get_local_data(&np, &idx, &data);
 
   for (i=0; i<np; i++){
     data[i] = ((long double)1./n)*exp(2.*(idx[i]/n)*(idx[i]%n)*((long double)M_PI/n)*imag);
@@ -53,7 +53,7 @@ int test_dft_3D(int     n,
   free(idx);
   delete [] data; 
 
-  MESH.read_local(&np, &idx, &data);
+  MESH.get_local_data(&np, &idx, &data);
   for (i=0; i<np; i++){
     for (j=0; j<n; j++){
       data[i] += exp(imag*(long double)((-2.*M_PI*(j/(double)(n)))
@@ -67,7 +67,7 @@ int test_dft_3D(int     n,
   
   MESH["ijk"] = 1.0*MESH["pqr"]*DFT["ip"]*DFT["jq"]*DFT["kr"];
  
-  MESH.read_local(&np, &idx, &data);
+  MESH.get_local_data(&np, &idx, &data);
   //MESH.print(stdout);
   int pass = 1;
   for (i=0; i<np; i++){

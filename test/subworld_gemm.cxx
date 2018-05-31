@@ -35,12 +35,12 @@ int test_subworld_gemm(int n,
 
   
   srand48(13*rank);
-  A.read_local(&np, &indices, &pairs);
+  A.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   A.write(np, indices, pairs);
   delete [] pairs;
   free(indices);
-  B.read_local(&np, &indices, &pairs);
+  B.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   B.write(np, indices, pairs);
   delete [] pairs;

@@ -54,17 +54,17 @@ int ccsdt_t3_to_t2(int     n,
 
   //* Writes noise to local data based on global index
   srand48(2013);
-  AS_A.read_local(&np, &indices, &pairs);
+  AS_A.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   AS_A[std::vector<int64_t>(indices,indices+np)] = pairs;
   delete [] pairs;
   free(indices);
-  AS_B.read_local(&np, &indices, &pairs);
+  AS_B.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.33+indices[i]);
   AS_B[std::vector<int64_t>(indices,indices+np)] = pairs;
   delete [] pairs;
   free(indices);
-  AS_C.read_local(&np, &indices, &pairs);
+  AS_C.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
   AS_C[std::vector<int64_t>(indices,indices+np)]=pairs;
  

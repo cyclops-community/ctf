@@ -53,17 +53,17 @@ int strassen(int const     n,
   Matrix<> M7(n/2, n/2, NS,  dw);
 
   srand48(13*rank);
-  A.read_local(&np, &indices, &pairs);
+  A.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   A.write(np, indices, pairs);
   delete [] pairs;
   free(indices);
-  B.read_local(&np, &indices, &pairs);
+  B.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   B.write(np, indices, pairs);
   delete [] pairs;
   free(indices);
-  /*C.read_local(&np, &indices, &pairs);
+  /*C.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = 0.0;
   C.write(np, indices, pairs);
   delete [] pairs;
