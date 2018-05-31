@@ -101,7 +101,7 @@ int apsp(int     n,
 
   int64_t loc_nnz;
   Pair<int> * prs; 
-  D2.read_local_nnz(&loc_nnz, &prs);
+  D2.get_local_pairs(&loc_nnz, &prs, true);
 
   int pass = (loc_nnz == 0);
 

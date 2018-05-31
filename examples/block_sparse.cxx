@@ -34,7 +34,7 @@ Matrix<> flatten_block_sparse_matrix(Matrix< Tensor<> > A, std::vector<int> rang
   int64_t * blk_inds;
   Tensor<> * A_blks;
 
-  A.read_local_nnz(&nblk, &blk_inds, &A_blks);
+  A.get_local_data(&nblk, &blk_inds, &A_blks, true);
 
   int zeros[] = {0,0};
   int offs[2];

@@ -34,15 +34,15 @@ int weigh_4D(int const    n,
   Tensor<> C(4, sizeN4, shapeN4, dw);
 
   srand48(13*rank);
-  A.read_local(&np_A, &indices_A, &pairs_A);
+  A.get_local_data(&np_A, &indices_A, &pairs_A);
   for (i=0; i<np_A; i++ ) pairs_A[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write(np_A, indices_A, pairs_A);
-  B.read_local(&np, &indices, &pairs);
+  B.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   B.write(np, indices, pairs);
   delete [] pairs;
   free(indices);
-  C.read_local(&np, &indices, &pairs);
+  C.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   C.write(np, indices, pairs);
   delete [] pairs;

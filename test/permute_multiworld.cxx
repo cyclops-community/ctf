@@ -58,7 +58,7 @@ int permute_multiworld(int         n,
   }
   
   Matrix<> A(n, n, sym, dw);
-  A.read_local(&nvals, &indices, &data);
+  A.get_local_data(&nvals, &indices, &data);
 
   for (i=0; i<nvals; i++){
     data[i] = (double)indices[i];
@@ -83,7 +83,7 @@ int permute_multiworld(int         n,
 
     B.permute(perms, 1.0, A, 1.0);
    
-    B.read_local(&nvals, &indices, &data);
+    B.get_local_data(&nvals, &indices, &data);
   }
 
 
@@ -130,7 +130,7 @@ int permute_multiworld(int         n,
     free(indices);
   }
   
-  A.read_local(&nvals, &indices, &data);
+  A.get_local_data(&nvals, &indices, &data);
 
   pass = 1;
   for (i=0; i<nvals; i++){

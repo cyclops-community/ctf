@@ -24,7 +24,7 @@ int force_integration(int     n,
   particle * loc_parts;
   int64_t nloc;
   int64_t * inds;
-  P.read_local(&nloc, &inds, &loc_parts);
+  P.get_local_data(&nloc, &inds, &loc_parts);
   
   srand48(dw.rank);
 
@@ -39,7 +39,7 @@ int force_integration(int     n,
   force * loc_frcs;
   int64_t * finds;
   int64_t nf;
-  F.read_local(&nf, &finds, &loc_frcs);
+  F.get_local_data(&nf, &finds, &loc_frcs);
   for (int64_t i=0; i<nf; i++){
     loc_frcs[i].fx = drand48();
     loc_frcs[i].fy = drand48();

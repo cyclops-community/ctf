@@ -43,7 +43,7 @@ int sptensor_sum(int     n,
   int64_t * new_keys_B;
   double * new_vals_B;
   int64_t nloc;
-  B.read_local_nnz(&nloc, &new_keys_B, &new_vals_B);
+  B.get_local_data(&nloc, &new_keys_B, &new_vals_B, true);
   int pass = 1;
   for (int i=0; i<nloc; i++){
     switch (new_keys_B[i]){

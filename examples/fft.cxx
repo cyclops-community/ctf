@@ -25,7 +25,7 @@ Matrix< std::complex<double> > DFT_matrix(int n, World & wrld){
   int64_t * idx;
   std::complex<double> * data;
   Matrix < std::complex<double> >DFT(n, n, NS, wrld, "DFT");
-  DFT.read_local(&np, &idx, &data);
+  DFT.get_local_data(&np, &idx, &data);
 
   for (int64_t i=0; i<np; i++){
     data[i] = omega((idx[i]/n)*(idx[i]%n), n);
@@ -42,7 +42,7 @@ Matrix< std::complex<double> > twiddle_matrix(int n, World & wrld){
   int64_t * idx;
   std::complex<double> * data;
   Matrix < std::complex<double> >T(2, 2, NS, wrld, "T");
-  T.read_local(&np, &idx, &data);
+  T.get_local_data(&np, &idx, &data);
 
   for (int64_t i=0; i<np; i++){
     if (idx[i]<3) data[i] = std::complex<double>(1,0);
@@ -73,7 +73,7 @@ void fft(Vector< std::complex<double> > & v, int n){
   
   // Fold v into log_2(n) tensor V
   Tensor< std::complex<double> > V(nfact, factors, *v.wrld, *v.sr, "V");
-  v.read_local(&np, &idx, &data);
+  v.get_local_data(&np, &idx, &data);
   V.write(np, idx, data);
   free(idx);
   free(data);
@@ -136,7 +136,7 @@ void fft(Vector< std::complex<double> > & v, int n){
   }
 
   // we now unfold the tensor back into vector form
-  V.read_local(&np, &idx, &data);
+  V.get_local_data(&np, &idx, &data);
   v.write(np, idx, data);
   
   free(idx);

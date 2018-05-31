@@ -56,7 +56,7 @@ void scan(Vector<dtype> & v, int logn){
   // represent vector to scan as 2-by-...-by-2 tensor  
   Tensor<dtype> V(logn, lens, *v.wrld, *v.sr);
 
-  v.read_local(&np, &inds, &data);
+  v.get_local_data(&np, &inds, &data);
   V.write(np, inds, data);
 
   free(inds);
@@ -65,7 +65,7 @@ void scan(Vector<dtype> & v, int logn){
   rec_scan(V);
 
   // put the data from the tensor back into the vector
-  V.read_local(&np, &inds, &data);
+  V.get_local_data(&np, &inds, &data);
   v.write(np, inds, data);
   
   free(inds);

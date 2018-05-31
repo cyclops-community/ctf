@@ -15,6 +15,7 @@ void smooth_jacobi(Matrix<float> & A, Vector<float> & x, Vector <float> & b, int
   jacobi.start();
   Vector<float> d(x.len, *x.wrld);
   d["i"] = A["ii"];
+  d.print();
   Transform<float>([](float & d){ d= fabs(d) > 0.0 ? 1./d : 0.0; })(d["i"]);
   Matrix<float> R(A);
   R["ii"] = 0.0;
@@ -284,7 +285,7 @@ void setup_unstructured(int64_t     n,
   float * vals;
   std::pair<float,int64_t> * new_vals;
   int64_t nvals;
-  A.read_local_nnz(&nvals, &inds, &vals);
+  A.get_local_data(&nvals, &inds, &vals, true);
 
   new_vals = (std::pair<float,int64_t>*)malloc(sizeof(std::pair<float,int64_t>)*nvals);
 
@@ -293,7 +294,7 @@ void setup_unstructured(int64_t     n,
   }
 
   B.write(nvals,inds,new_vals);
-  free(vals);
+  delete [] vals;
   free(new_vals);
   free(inds);
 
@@ -400,6 +401,7 @@ void setup_3d_Poisson(int64_t     n,
     int64_t mmy = m2/dw.np;
     if (dw.rank < m2%dw.np) mmy++;
     Pair<float> * pairs = (Pair<float>*)malloc(sizeof(Pair<float>)*mmy*tot_ndiv);
+    //Pair<float> * pairs = new Pair<float>[mmy*tot_ndiv];
     int64_t nel = 0;
     for (int64_t j=dw.rank; j<m2; j+=dw.np){
       int64_t j1 = j/(n*n);
@@ -415,7 +417,7 @@ void setup_3d_Poisson(int64_t     n,
       }
     }
     T[i].write(nel, pairs);
-    delete [] pairs;
+    free(pairs);
     m = m2;
   }
  
@@ -528,7 +530,7 @@ int main(int argc, char ** argv){
       int64_t * inds;
       int64_t nloc;
       float * vals;
-      b.read_local(&nloc, &inds, &vals);
+      b.get_local_data(&nloc, &inds, &vals);
       int n1 = n+1;
       float h = 1./(n1);
       for (int64_t i=0; i<nloc; i++){

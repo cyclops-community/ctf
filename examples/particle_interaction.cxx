@@ -21,7 +21,7 @@ int particle_interaction(int     n,
   particle * loc_parts;
   int64_t nloc;
   int64_t * inds;
-  P.read_local(&nloc, &inds, &loc_parts);
+  P.get_local_data(&nloc, &inds, &loc_parts);
   
   srand48(dw.rank);
 

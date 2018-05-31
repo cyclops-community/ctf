@@ -48,7 +48,7 @@ int endomorphism_cust(int     n,
   cust_type * vals;
   int64_t nvals;  
 
-  A.read_local(&nvals, &inds, &vals);
+  A.get_local_data(&nvals, &inds, &vals);
 
   srand48(dw.rank);
   for (int64_t i=0; i<nvals; i++){
@@ -70,7 +70,7 @@ int endomorphism_cust(int     n,
   int64_t * indices;
   cust_type * loc_data;
   int64_t nloc;
-  A.read_local(&nloc, &indices, &loc_data);
+  A.get_local_data(&nloc, &indices, &loc_data);
 
   int pass = 1;
   if (pass){

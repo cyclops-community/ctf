@@ -33,7 +33,7 @@ Vector<float> mis2(Matrix<float> & undir_A){
   Vector<float> inds(n);
   Pair<float> * prs;
   int64_t nloc;
-  inds.read_local(&nloc, &prs);
+  inds.get_local_pairs(&nloc, &prs);
   for (int i=0; i<nloc; i++){
     prs[i].d = prs[i].k+1.;
   }

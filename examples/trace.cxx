@@ -32,22 +32,22 @@ int trace(int const     n,
 
   srand48(13*rank);
 
-  A.read_local(&np, &indices, &pairs);
+  A.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48();;
   A.write(np, indices, pairs);
   delete [] pairs;
   free(indices);
-  B.read_local(&np, &indices, &pairs);
+  B.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48();
   B.write(np, indices, pairs);
   delete [] pairs;
   free(indices);
-  C.read_local(&np, &indices, &pairs);
+  C.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48();
   C.write(np, indices, pairs);
   delete [] pairs;
   free(indices);
-  D.read_local(&np, &indices, &pairs);
+  D.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48();
   D.write(np, indices, pairs);
   delete [] pairs;
