@@ -739,6 +739,7 @@ namespace CTF {
       void add_from_subworld(Tensor<dtype> * tsr,
                              dtype           alpha,
                              dtype           beta);
+
       /**
        * \brief accumulates this tensor from a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
@@ -758,14 +759,6 @@ namespace CTF {
        * \param[in] op reduction operation (see top of this cyclopstf.hpp for choices)
        */    
       dtype reduce(OP op);
-      
-      /**
-       * \brief map data according to global index
-       * \param[in]  map_func function that takes indices and tensor element value and returns new value 
-       */
-      void map_tensor(dtype (*map_func)(int         order,
-                                        int const * indices,
-                                        dtype       elem));
 
       /**
        * \brief computes the entrywise 1-norm of the tensor
@@ -781,6 +774,21 @@ namespace CTF {
        * \brief finds the max absolute value element of the tensor
        */    
       dtype norm_infty(){ return reduce(OP_MAXABS); };
+
+      /**
+       * \brief computes the entrywise 1-norm of the tensor
+       */    
+      void norm1(double & nrm);
+
+      /**
+       * \brief computes the frobenius norm of the tensor
+       */    
+      void norm2(double & nrm);
+
+      /**
+       * \brief finds the max absolute value element of the tensor
+       */    
+      void norm_infty(double & nrm);
 
       /**
        * \brief gives the raw current local data with padding included

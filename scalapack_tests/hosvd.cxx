@@ -89,7 +89,7 @@ std::vector< Matrix <> > get_factor_matrices(Tensor<>& T, int ranks[], World& dw
     Matrix<> U;
     Matrix<> VT;
     Vector<> S;
-    M.matrix_svd(U, S, VT, ranks[i]);
+    M.svd(U, S, VT, ranks[i]);
 /*
     printf("%d-mode unfolding of T:\n", i+1);
     M.print_matrix();
@@ -270,7 +270,7 @@ int main(int argc, char ** argv) {
   Matrix<> U;
   Matrix<> VT;
   Vector<> S;
-  M.matrix_svd(U, S, VT);
+  M.svd(U, S, VT);
   U.print_matrix();
  
   T2.print();

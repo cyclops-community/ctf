@@ -370,8 +370,88 @@ namespace CTF {
     write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
   }
 
+  template <typename dtype>
+  int get_int_fromreal(dtype r){
+    assert(0);
+    return -1;
+  }
+
+  template <>
+  inline int get_int_fromreal<float>(float r){
+    return (int)r;
+  }
+  template <>
+  inline int get_int_fromreal<double>(double r){
+    return (int)r;
+  }
+  template <>
+  inline int get_int_fromreal<std::complex<float>>(std::complex<float> r){
+    return (int)r.real();
+  }
+  template <>
+  inline int get_int_fromreal<std::complex<double>>(std::complex<double> r){
+    return (int)r.real();
+  }
+
+
+
+
   template<typename dtype>
-  void Matrix<dtype>::matrix_svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT,  int rank){
+  void Matrix<dtype>::qr(Matrix<dtype> & Q, Matrix<dtype> & R){
+
+    int info;
+
+    int m = this->nrow;
+    int n = this->ncol;
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    this->get_desc(ictxt, desca);
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+    this->read_mat(desca, A);
+
+    dtype * tau = (dtype*)malloc(n*sizeof(dtype));
+    dtype dlwork;
+    CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
+    int lwork = get_int_fromreal<dtype>(dlwork);
+    dtype * work = (dtype*)malloc(lwork*sizeof(dtype));
+    CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,work,lwork,&info);
+ 
+
+    dtype * dQ = (dtype*)malloc(this->size*sizeof(dtype));
+    memcpy(dQ,A,this->size*sizeof(dtype));
+
+    Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
+    if (m==n)
+      R = Matrix<dtype>(Q);
+    else {
+      R = Matrix<dtype>(desca,dQ,*this->wrld,*this->sr);
+      R = R.slice(0,m*(n-1)+n-1);
+    }
+
+
+    free(work);
+    CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
+    lwork = get_int_fromreal<dtype>(dlwork);
+    work = (dtype*)malloc(lwork*sizeof(dtype));
+    CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,work,lwork,&info);
+    Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
+    free(work);
+    //make upper-tri
+    int syns[] = {SY, NS};
+    Tensor<dtype> tR(R,syns);
+    int nsns[] = {NS, NS};
+    tR = Tensor<dtype>(tR,nsns);
+    R = CTF::Matrix<dtype>(tR);
+    //R["ij"] = R["ji"];
+    free(A);
+    free(dQ);
+  }
+
+  template<typename dtype>
+  void Matrix<dtype>::svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT,  int rank){
 
     int info;
 
