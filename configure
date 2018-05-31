@@ -124,18 +124,20 @@ EOF
     else
       LD_LIBRARY_PATH="$TMP_RAW_LD_LIB_PATH:$LD_LIBRARY_PATH" ./a.out > /dev/null 2>&1
     fi
-    #if [ $? -eq 0 ]; then
-    #  UDEFSYMB=$(nm ./a.out | grep "$3" | grep -c "U")
-    #  if [ $UDEFSYMB -eq 0 ]; then
-    #    status=1
-    #    if [ $4 -eq 1 ]; then
-    #        echo "Undefined symbol not found, so we did not really link to dynamic library (but rather static)"
-    #        ( set -x; nm ./a.out; )
-    #    fi
-    #  fi
-    #else
-    #  status=0
-    #fi
+    if [ $IS_APPLE_CLANG -eq 0 ]; then
+      if [ $? -eq 0 ]; then
+        UDEFSYMB=$(nm ./a.out | grep "$3" | grep -c "U")
+        if [ $UDEFSYMB -eq 0 ]; then
+          status=1
+          if [ $4 -eq 1 ]; then
+              echo "Undefined symbol not found, so we did not really link to dynamic library (but rather static)"
+              ( set -x; nm ./a.out; )
+          fi
+        fi
+      else
+        status=0
+      fi
+    fi
   fi
   rm -f .test.cxx a.out
   return $status
@@ -913,7 +915,7 @@ if [ $BUILD_SCALAPACK = 1 ]; then
     LIB_PATH="$LIB_PATH -L$BUILDDIR/scalapack/build/lib"
   fi
   if [ $WITH_DYNAMIC = 1 ]; then
-    cmake .. -DBUILD_SHARED_LIBS=OFF -DBUILD_SHARED_LIBS=ON
+    cmake .. -DBUILD_STATIC_LIBS=OFF -DBUILD_SHARED_LIBS=ON
     make
     LD_LIB_PATH="$LD_LIB_PATH -L$BUILDDIR/scalapack/build/lib"
   fi
@@ -1236,7 +1238,7 @@ if [ -f $BUILDDIR/setup.py ] ; then
 fi
 
 CORRFLAGS=""
-if [ $IS_APPLE_CLANG -eq 0 ]; then
+if [ $IS_APPLE_CLANG -eq 1 ]; then
   CORRFLAGS="-stdlib=libc++ -mmacosx-version-min=10.7"
   echo 'Tacking on -stdlib=libc++ -mmacosx-version-min=10.7 to setup.py (relevant only for Python build), since apple clang was detected.'
 fi

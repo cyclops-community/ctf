@@ -371,6 +371,7 @@ namespace CTF {
 
       double cast_to_double(char const * c) const {
         printf("CTF ERROR: double cast not possible for this algebraic structure\n");
+        IASSERT(0);
         assert(0);
         return 0.0;
       }

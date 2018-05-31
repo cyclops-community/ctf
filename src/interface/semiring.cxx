@@ -674,6 +674,44 @@ namespace CTF {
   }
 
   template<> 
+  void CTF::Semiring<float,1>::offload_gemm(
+                        char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C) const {
+    int lda_A = k;
+    if (tA == 'n' || tA == 'N') lda_A = m;
+    int lda_B = n;
+    if (tB == 'N' || tB == 'N') lda_B = k;
+    CTF_int::offload_gemm<float>(tA, tB, m, n, k, ((float const*)alpha)[0], (float const *)A, lda_A, (float const *)B, lda_B, ((float const*)beta)[0], (float*)C, m);
+  }
+
+  template<> 
+  void CTF::Semiring<std::complex<float>,0>::offload_gemm(
+                        char         tA,
+                        char         tB,
+                        int          m,
+                        int          n,
+                        int          k,
+                        char const * alpha,
+                        char const * A,
+                        char const * B,
+                        char const * beta,
+                        char *       C) const {
+    int lda_A = k;
+    if (tA == 'n' || tA == 'N') lda_A = m;
+    int lda_B = n;
+    if (tB == 'N' || tB == 'N') lda_B = k;
+    CTF_int::offload_gemm<std::complex<float>>(tA, tB, m, n, k, ((std::complex<float> const*)alpha)[0], (std::complex<float> const *)A, lda_A, (std::complex<float> const *)B, lda_B, ((std::complex<float> const*)beta)[0], (std::complex<float>*)C, m);
+  }
+
+  template<> 
   void CTF::Semiring<double,1>::offload_gemm(
                         char         tA,
                         char         tB,

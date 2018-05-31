@@ -148,7 +148,7 @@ namespace CTF_int {
       printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
     }
     printf("kernel type is %d\n", krnl_type);
-    if (krnl_type>0) printf("inner n = %d m= %d k = %d sz_C=%ld\n",
+    if (krnl_type>0) printf("inner n = %ld m= %ld k = %ld sz_C=%ld\n",
                           inner_params.n, inner_params.m, inner_params.k, inner_params.sz_C);
   }
 

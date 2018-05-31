@@ -8,7 +8,14 @@
 
 using namespace CTF;
 
+
 namespace CTF_int {
+  algstrct const * get_double_ring();
+  algstrct const * get_int64_t_ring();
+}
+
+namespace CTF_int {
+
   Idx_Tensor * get_full_intm(Idx_Tensor& A, 
                              Idx_Tensor& B){
     int * len_C, * sym_C;
@@ -270,7 +277,13 @@ namespace CTF_int {
   }
 
   Term::operator double () const {
-    int64_t s;
+    //return 0.0 += *this;
+    CTF_int::tensor ts(get_double_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    ts[""] += *this;
+    double dbl = ((double*)ts.data)[0];
+    ts.wrld->cdt.bcast(&dbl, 1, MPI_DOUBLE, 0);
+    return dbl;
+    /*int64_t s;
     CTF_int::tensor ts(sr, 0, NULL, NULL, where_am_i(), true, NULL, 0);
     Idx_Tensor iscl(&ts,"");
     execute(iscl);
@@ -279,20 +292,26 @@ namespace CTF_int {
     iscl.parent->get_raw_data(&datap,&s); 
     memcpy(val, datap, sr->el_size);
     MPI_Bcast(val, sr->el_size, MPI_CHAR, 0, where_am_i()->comm);
-    return sr->cast_to_double(val);
+    return sr->cast_to_double(val);*/
   }
 
   Term::operator int64_t () const {
-    int64_t s;
-    CTF_int::tensor ts(sr, 0, NULL, NULL, where_am_i(), true, NULL, 0);
-    Idx_Tensor iscl(&ts,"");
-    execute(iscl);
-    char val[sr->el_size];
-    char * datap;
-    iscl.parent->get_raw_data(&datap,&s); 
-    memcpy(val, datap, sr->el_size);
-    MPI_Bcast(val, sr->el_size, MPI_CHAR, 0, where_am_i()->comm);
-    return sr->cast_to_int(val);
+    CTF_int::tensor ts(get_int64_t_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    ts[""] += *this;
+    int64_t dbl = ((double*)ts.data)[0];
+    ts.wrld->cdt.bcast(&dbl, 1, MPI_INT64_T, 0);
+    return dbl;
+
+    //int64_t s;
+    //CTF_int::tensor ts(sr, 0, NULL, NULL, where_am_i(), true, NULL, 0);
+    //Idx_Tensor iscl(&ts,"");
+    //execute(iscl);
+    //char val[sr->el_size];
+    //char * datap;
+    //iscl.parent->get_raw_data(&datap,&s); 
+    //memcpy(val, datap, sr->el_size);
+    //MPI_Bcast(val, sr->el_size, MPI_CHAR, 0, where_am_i()->comm);
+    //return sr->cast_to_int(val);
   }
 
 
@@ -738,31 +757,19 @@ namespace CTF_int {
   }
 
   void operator-=(double & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d -= (double)ts[""];
+    d -= (double)tsr;
   }
-
 
   void operator+=(double & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d += (double)ts[""];
+    d += (double)tsr;
   }
-
   void operator-=(int64_t & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d -= (int64_t)ts[""];
+    d -= (int64_t)tsr;
   }
 
   void operator+=(int64_t & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d += (int64_t)ts[""];
+    d += (int64_t)tsr;
   }
-
-
 }
 
 

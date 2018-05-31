@@ -1,6 +1,7 @@
 #ifndef __RING_H__
 #define __RING_H__
 
+#include "../tensor/algstrct.h"
 
 namespace CTF {
 
@@ -74,6 +75,7 @@ namespace CTF {
   /**
    * @}
    */
+
 }
 
-  #endif
+#endif
