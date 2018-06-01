@@ -4505,7 +4505,8 @@ namespace CTF_int {
         delete new_tsr_A;
         cdealloc(new_idx_A);
         cdealloc(new_idx_B);
-        cdealloc(new_idx_C);
+        if (C->order > 0)
+          cdealloc(new_idx_C);
         return SUCCESS;
       }
     }
