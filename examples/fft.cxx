@@ -32,7 +32,7 @@ Matrix< std::complex<double> > DFT_matrix(int n, World & wrld){
   }
   DFT.write(np, idx, data);
   free(idx);
-  free(data);
+  delete [] data;
   return DFT;
 }
 
@@ -50,7 +50,7 @@ Matrix< std::complex<double> > twiddle_matrix(int n, World & wrld){
   }
   T.write(np, idx, data);
   free(idx);
-  free(data);
+  delete [] data;
   return T;
 
 }
@@ -76,7 +76,7 @@ void fft(Vector< std::complex<double> > & v, int n){
   v.get_local_data(&np, &idx, &data);
   V.write(np, idx, data);
   free(idx);
-  free(data);
+  delete [] data;
 
   // define range of indices [a, b, c, ...]
   char inds[nfact+1];
@@ -140,7 +140,7 @@ void fft(Vector< std::complex<double> > & v, int n){
   v.write(np, idx, data);
   
   free(idx);
-  free(data);
+  delete [] data;
   
 }
 

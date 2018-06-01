@@ -66,7 +66,7 @@ int permute_multiworld(int         n,
 
   A.write(nvals, indices, data);
   free(indices);
-  free(data);
+  delete [] data;
 
   World id_world(MPI_COMM_SELF);
 
@@ -103,7 +103,7 @@ int permute_multiworld(int         n,
       else
         printf("{ permuted-read among multiple worlds } failed\n");
     }
-    free(data);
+    delete [] data;
     free(indices);
     return pass;
   } 
@@ -126,7 +126,7 @@ int permute_multiworld(int         n,
   }
 
   if (nvals > 0){
-    free(data);
+    delete [] data;
     free(indices);
   }
   
@@ -147,7 +147,7 @@ int permute_multiworld(int         n,
       printf("{ permuted read and write among multiple worlds } failed\n");
   }
   free(indices);
-  free(data);
+  delete [] data;
 
   return pass;
 } 

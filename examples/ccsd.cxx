@@ -108,7 +108,7 @@ class Integrals {
 //      for (j=0; j<sz; j++) values[j] = drand48()-.5;
       for (j=0; j<sz; j++) values[j] = ((indices[j]*16+i)%13077)/13077. -.5;
       tarr[i]->write(sz, indices, values);
-      free(indices), free(values);
+      free(indices), delete [] values;
     }
   }
   
@@ -192,7 +192,7 @@ class Amplitudes {
 //      for (j=0; j<sz; j++) values[j] = drand48()-.5;
       for (j=0; j<sz; j++) values[j] = ((indices[j]*13+i)%13077)/13077. -.5;
       tarr[i]->write(sz, indices, values);
-      free(indices), free(values);
+      free(indices), delete [] values;
     }
   }
 };

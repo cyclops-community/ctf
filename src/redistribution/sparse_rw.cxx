@@ -979,7 +979,7 @@ namespace CTF_int {
 
     nwrite = 0;
     int64_t * changed_key_indices;
-    char * new_changed_pairs = sr->alloc(nchanged);
+    char * new_changed_pairs = sr->pair_alloc(nchanged);
     PairIterator ncp(sr, new_changed_pairs);
     int * changed_key_scale;
     CTF_int::alloc_ptr(nchanged*sizeof(int64_t), (void**)&changed_key_indices);
