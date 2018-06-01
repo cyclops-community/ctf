@@ -480,17 +480,16 @@ namespace CTF {
     dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
 
 
-    dtype * u = (dtype*)malloc(mpr*kpc*sizeof(dtype));
-    dtype * s = (dtype*)malloc(k*sizeof(dtype));
-    dtype * vt = (dtype*)malloc(kpr*npc*sizeof(dtype));
+    dtype * u = (dtype*)new dtype[mpr*kpc];
+    dtype * s = (dtype*)new dtype[k];
+    dtype * vt = (dtype*)new dtype[kpr*npc];
     this->read_mat(desca, A);
 
-    dtype llwork;
     int lwork;
+    dtype dlwork;
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
 
-    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (dtype*)&llwork, -1, &info);  
-
-    lwork = (int)llwork;
+    lwork = get_int_fromreal<dtype>(dlwork);
     dtype * work = (dtype*)malloc(sizeof(dtype)*lwork);
 
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
@@ -513,9 +512,9 @@ namespace CTF {
     }
 
     free(A);
-    free(u);
-    free(s);
-    free(vt);
+    delete [] u;
+    delete [] s;
+    delete [] vt;
     free(desca);
     free(descu);
     free(descvt);

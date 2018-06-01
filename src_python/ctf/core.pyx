@@ -9,6 +9,7 @@ from libc.stdint cimport int8_t
 #from libcpp.complex cimport complex
 from libcpp.complex cimport *
 ctypedef double complex complex128_t
+ctypedef float complex complex64_t
 from libc.stdlib cimport malloc, free
 import numpy as np
 import string
@@ -139,11 +140,16 @@ cdef extern from "../ctf_ext.h" namespace "CTF_int":
     cdef void pow_helper[dtype](ctensor * A, ctensor * B, ctensor * C, char * idx_A, char * idx_B, char * idx_C);
     cdef void abs_helper[dtype](ctensor * A, ctensor * B);
     cdef void all_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
-    cdef void conj_helper(ctensor * A, ctensor * B);
+    cdef void conj_helper[dtype](ctensor * A, ctensor * B);
     cdef void any_helper[dtype](ctensor * A, ctensor * B_bool, char * idx_A, char * idx_B)
     cdef void get_real[dtype](ctensor * A, ctensor * B)
     cdef void get_imag[dtype](ctensor * A, ctensor * B)
+    cdef void set_real[dtype](ctensor * A, ctensor * B)
+    cdef void set_imag[dtype](ctensor * A, ctensor * B)
     cdef void matrix_svd(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_svd_cmplx(ctensor * A, ctensor * U, ctensor * S, ctensor * VT, int rank)
+    cdef void matrix_qr(ctensor * A, ctensor * Q, ctensor * R)
+    cdef void matrix_qr_cmplx(ctensor * A, ctensor * Q, ctensor * R)
     cdef void conv_type(int type_idx1, int type_idx2, ctensor * A, ctensor * B)
     
 cdef extern from "ctf.hpp" namespace "CTF":
@@ -564,7 +570,7 @@ cdef class tensor:
             if self.dtype == np.float64:
                 self.dt = new Tensor[double](self.ndim, sp, clens, csym)
             elif self.dtype == np.complex64:
-                self.dt = new Tensor[complex](self.ndim, sp, clens, csym)
+                self.dt = new Tensor[complex64_t](self.ndim, sp, clens, csym)
             elif self.dtype == np.complex128:
                 self.dt = new Tensor[complex128_t](self.ndim, sp, clens, csym)
             elif self.dtype == np.bool:
@@ -732,7 +738,7 @@ cdef class tensor:
         elif self.dtype == np.float32:
             self.dt.true_divide[float](<ctensor*>self.dt)
         elif self.dtype == np.complex64:
-            self.dt.true_divide[complex](<ctensor*>self.dt)
+            self.dt.true_divide[complex64_t](<ctensor*>self.dt)
         elif self.dtype == np.complex128:
             self.dt.true_divide[complex128_t](<ctensor*>self.dt)
         elif self.dtype == np.int64:
@@ -752,36 +758,36 @@ cdef class tensor:
         return dot(self, other)
     
     def fill_random(self, mn=None, mx=None):
-        if self.dtype == np.float64:
-            if mn is None:
-                mn = 0.
-            if mx is None:
-                mx = 1.
+        if mn is None:
+            mn = 0
+        if mx is None:
+            mx = 1
+        if self.dtype == np.int32:
+            (<Tensor[int32_t]*>self.dt).fill_random(mn,mx)
+        elif self.dtype == np.int64:
+            (<Tensor[int64_t]*>self.dt).fill_random(mn,mx)
+        elif self.dtype == np.float32:
+            (<Tensor[float]*>self.dt).fill_random(mn,mx)
+        elif self.dtype == np.float64:
             (<Tensor[double]*>self.dt).fill_random(mn,mx)
-        elif self.dtype == np.complex128:
-            if mn is None:
-                mn = 0.+0.j
-            if mx is None:
-                mx = 1.+1.j
-            (<Tensor[double complex]*>self.dt).fill_random(mn,mx)
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
 
-    #def sparsify(self, threshold=None, take_abs=True):
-    #    if threshold == None and take_abs == True:
-    #        self.dt.sparsify(0, 1)
-    #    elif threshold != None and take_abs == True:
-    #        self.dt.sparsify(threshold, 1)
-    #    elif threshold == None and take_abs == False:
-    #        self.dt.sparsify(0, 0)
-    #    else:
-    #        self.dt.sparsify(threshold, 0)
-
-    def fill_sp_random(self, mn, mx, frac):
-        if self.dtype == np.float64:
-            (<Tensor[double]*>self.dt).fill_sp_random(mn,mx,frac)
-        elif self.dtype == np.complex128:
-            (<Tensor[double complex]*>self.dt).fill_sp_random(mn,mx,frac)
+    def fill_sp_random(self, mn=None, mx=None, frac_sp=None):
+        if mn is None:
+            mn = 0
+        if mx is None:
+            mx = 1
+        if frac_sp is None:
+            frac_sp = .1
+        if self.dtype == np.int32:
+            (<Tensor[int32_t]*>self.dt).fill_sp_random(mn,mx,frac_sp)
+        elif self.dtype == np.int64:
+            (<Tensor[int64_t]*>self.dt).fill_sp_random(mn,mx,frac_sp)
+        elif self.dtype == np.float32:
+            (<Tensor[float]*>self.dt).fill_sp_random(mn,mx,frac_sp)
+        elif self.dtype == np.float64:
+            (<Tensor[double]*>self.dt).fill_sp_random(mn,mx,frac_sp)
         else:
             raise ValueError('CTF PYTHON ERROR: bad dtype')
 
@@ -805,10 +811,12 @@ cdef class tensor:
                 self.dt.exp_helper[double, double](<ctensor*>A.dt)
             elif A.dtype == np.float128:#
                 self.dt.exp_helper[double, double](<ctensor*>A.dt)
-            #elif A.dtype == np.complex64:
-                #self.dt.exp_helper[complex, complex](<ctensor*>A.dt)
-            elif A.dtype == np.complex128:
-                self.dt.exp_helper[complex, complex](<ctensor*>A.dt)
+            else:
+                raise ValueError("exponentiation not supported for these types")
+#            elif A.dtype == np.complex64:
+#                self.dt.exp_helper[complex64_t, complex64_t](<ctensor*>A.dt)
+#            elif A.dtype == np.complex128:
+#                self.dt.exp_helper[complex128_t, complex_128t](<ctensor*>A.dt)
             #elif A.dtype == np.complex256:#
                 #self.dt.exp_helper[double complex, double complex](<ctensor*>A.dt)
         elif cast == 'unsafe':
@@ -818,9 +826,9 @@ cdef class tensor:
             elif A.dtype == np.int64 and dtype == np.float64:
                 self.dt.exp_helper[int64_t, double](<ctensor*>A.dt)
             else:
-                raise ValueError("current unsafe casting not support all type")
+                raise ValueError("exponentiation not supported for these types")
         else:
-            raise ValueError("not support other casting now")
+            raise ValueError("exponentiation not supported for these types")
 
     # issue: when shape contains 1 such as [3,4,1], it seems that CTF in C++ does not support sum over empty dims -> sum over 1.
   
@@ -1004,21 +1012,55 @@ cdef class tensor:
     def prnt(self):
         self.dt.prnt()
 
-    def real(self):
-        if self.dtype != np.complex64 and self.dtype != np.complex128 and self.dtype != np.complex256:
-            return self
+    def real(self,tensor value = None):
+        if value is None:
+            if self.dtype == np.complex64:
+                ret = tensor(self.shape, dtype=np.float32)
+                get_real[float](<ctensor*>self.dt, <ctensor*>ret.dt)
+                return self
+            elif self.dtype == np.complex128:
+                ret = tensor(self.shape, dtype=np.float64)
+                get_real[double](<ctensor*>self.dt, <ctensor*>ret.dt)
+                return ret
+            else:
+                return self.copy()
         else:
-            ret = tensor(self.shape, dtype = np.float64)
-            get_real[double](<ctensor*>self.dt, <ctensor*>ret.dt)
-            return ret
+            if self.dtype == np.complex64:
+                set_real[float](<ctensor*>value.dt, <ctensor*>self.dt)
+            elif self.dtype == np.complex128:
+                set_real[double](<ctensor*>value.dt, <ctensor*>self.dt)
+            else:
+                del self.dt
+                self.__cinit__(copy=value)
 
-    def imag(self):
-        if self.dtype != np.complex64 and self.dtype != np.complex128 and self.dtype != np.complex256:
-            return zeros(self.shape, dtype=self.dtype)
+
+    def imag(self,tensor value = None):
+        if value is None:
+            if self.dtype == np.complex64:
+                ret = tensor(self.shape, dtype=np.float32)
+                get_imag[float](<ctensor*>self.dt, <ctensor*>ret.dt)
+                return self
+            elif self.dtype == np.complex128:
+                ret = tensor(self.shape, dtype=np.float64)
+                get_imag[double](<ctensor*>self.dt, <ctensor*>ret.dt)
+                return ret
+            if self.dtype == np.float32:
+                ret = tensor(self.shape, dtype=np.complex64)
+                ret.set_imag(self)
+                return ret
+            elif self.dtype == np.float64:
+                ret = tensor(self.shape, dtype=np.complex128)
+                ret.set_imag(self)
+                return ret
+            else:
+                raise ValueError("CTF ERROR: cannot call imag on non-complex/real single/double precision tensor")
         else:
-            ret = tensor(self.shape, dtype = np.float64)
-            get_imag[double](<ctensor*>self.dt, <ctensor*>ret.dt)
-            return ret
+            if self.dtype == np.complex64:
+                set_imag[float](<ctensor*>value.dt, <ctensor*>self.dt)
+            elif self.dtype == np.complex128:
+                set_imag[double](<ctensor*>value.dt, <ctensor*>self.dt)
+            else:
+                raise ValueError("CTF ERROR: cannot call imag with value on non-complex single/double precision tensor")
 
     # call this function A.copy() which return a copy of A
     def copy(self):
@@ -1694,7 +1736,7 @@ cdef class tensor:
             elif self.dtype == np.float32:
                 c.dt.compare_elementwise[float](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.complex64:
-                c.dt.compare_elementwise[complex](<ctensor*>self.dt,<ctensor*>b.dt)
+                c.dt.compare_elementwise[complex64_t](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.complex128:
                 c.dt.compare_elementwise[complex128_t](<ctensor*>self.dt,<ctensor*>b.dt)
             elif self.dtype == np.int64:
@@ -2761,11 +2803,16 @@ def vstack(in_tup):
 
 def conj(init_A):
     cdef tensor A = astensor(init_A) 
-    if A.get_type() != np.complex64 and A.get_type() != np.complex128:
+    if A.get_type() == np.complex64:
+        B = tensor(A.shape, dtype=A.get_type())
+        conj_helper[float](<ctensor*> A.dt, <ctensor*> B.dt);
+        return B
+    elif A.get_type() == np.complex128:
+        B = tensor(A.shape, dtype=A.get_type())
+        conj_helper[double](<ctensor*> A.dt, <ctensor*> B.dt);
+        return B
+    else:
         return A.copy()
-    B = tensor(A.shape, dtype=A.get_type())
-    conj_helper(<ctensor*> A.dt, <ctensor*> B.dt);
-    return B
 
 # check whether along the given axis all array elements are true (not 0)
 # Issues:
@@ -2892,13 +2939,9 @@ def eye(n, m=None, k=0, dtype=np.float64):
         l = min(l,n+k)
     
     A = tensor([l, l], dtype=dtype)
-    if dtype == np.float64:
+    if dtype == np.float64 or dtype == np.complex128 or dtype == np.complex64 or dtype == np.float32:
         A.i("ii") << 1.0
-    elif dtype == np.complex128:
-        A.i("ii") << 1.0
-    elif dtype == np.int64:
-        A.i("ii") << 1
-    elif dtype == np.bool:
+    elif dtype == np.bool or dtype == np.int64 or dtype == np.int32 or dtype == np.int16 or dtype == np.int8:  
         A.i("ii") << 1
     else:
         raise ValueError('CTF PYTHON ERROR: bad dtype')
@@ -2989,19 +3032,35 @@ def einsum(subscripts, *operands, out=None, dtype=None, order='K', casting='safe
     return output
 
 def svd(tensor A, rank=None):
-    if not isinstance(A,tensor) or A.ndim != 2 or A.dtype != np.float64:
+    if not isinstance(A,tensor) or A.ndim != 2:
         raise ValueError('CTF PYTHON ERROR: SVD called on invalid tensor, must be CTF double matrix')
     if rank is None:
         rank = 0
         k = min(A.shape[0],A.shape[1])
     else:
         k = rank
-    S = tensor(k)
-    U = tensor([A.shape[0],k])
-    VT = tensor([A.shape[1],k])
-    matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
+    S = tensor(k,dtype=A.dtype)
+    U = tensor([A.shape[0],k],dtype=A.dtype)
+    VT = tensor([k,A.shape[1]],dtype=A.dtype)
+    if A.dtype == np.float64 or A.dtype == np.float32:
+        matrix_svd(A.dt, VT.dt, S.dt, U.dt, rank)
+    elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        matrix_svd_cmplx(A.dt, VT.dt, S.dt, U.dt, rank)
     return [U, S, VT]   
  
+def qr(tensor A):
+    if not isinstance(A,tensor) or A.ndim != 2:
+        raise ValueError('CTF PYTHON ERROR: QR called on invalid tensor, must be CTF double matrix')
+    B = tensor(copy=A.T())
+    Q = tensor(B.shape,dtype=B.dtype)
+    R = tensor([B.shape[0],B.shape[0]],dtype=B.dtype)
+    if A.dtype == np.float64 or A.dtype == np.float32:
+        matrix_qr(B.dt, Q.dt, R.dt)
+    elif A.dtype == np.complex128 or A.dtype == np.complex64:
+        matrix_qr_cmplx(B.dt, Q.dt, R.dt)
+    return [Q.T(), R.T()]
+ 
+
 
 def match_tensor_types(first, other):
     if isinstance(first, tensor):
@@ -3059,7 +3118,7 @@ def tensor_pow_helper(tensor tsr, tensor otsr, tensor out_tsr, idx_A, idx_B, idx
     elif out_tsr.dtype == np.float32:
         pow_helper[float](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.complex64:
-        pow_helper[complex](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
+        pow_helper[complex64_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.complex128:
         pow_helper[complex128_t](<ctensor*>tsr.dt, <ctensor*>otsr.dt, <ctensor*>out_tsr.dt, idx_A.encode(), idx_B.encode(), idx_C.encode())
     elif out_tsr.dtype == np.int64:
@@ -3088,7 +3147,7 @@ def abs(initA):
     elif A.dtype == np.float32:
         abs_helper[float](<ctensor*>A.dt, <ctensor*>oA.dt)
     elif A.dtype == np.complex64:
-        abs_helper[complex](<ctensor*>A.dt, <ctensor*>oA.dt)
+        abs_helper[complex64_t](<ctensor*>A.dt, <ctensor*>oA.dt)
     elif A.dtype == np.complex128:
         abs_helper[complex128_t](<ctensor*>A.dt, <ctensor*>oA.dt)
     elif A.dtype == np.int64:
