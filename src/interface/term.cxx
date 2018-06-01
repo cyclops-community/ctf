@@ -602,9 +602,9 @@ namespace CTF_int {
       tmp_ops.pop_back();
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
-      if (tscale != NULL) cdealloc(tscale);
+      /*if (tscale != NULL) cdealloc(tscale);
       tscale = NULL;
-      sr->safecopy(tscale, this->scale);
+      sr->safecopy(tscale, this->scale);*/
       sr->safemul(tscale, op_A.scale, tscale);
       sr->safemul(tscale, op_B.scale, tscale);
 

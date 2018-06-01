@@ -41,7 +41,7 @@ TESTS = bivar_function bivar_transform ccsdt_map_test ccsdt_t3_to_t2 dft diag_ct
 
 BENCHMARKS = bench_contraction bench_nosym_transp bench_redistribution model_trainer 
 
-SCALAPACK_TESTS = nonsq_pgemm_test nonsq_pgemm_bench hosvd qr
+SCALAPACK_TESTS = nonsq_pgemm_test nonsq_pgemm_bench hosvd qr svd
 
 STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
           fast_tensor_ctr fast_sy_as_as_tensor_ctr fast_as_as_sy_tensor_ctr
@@ -140,7 +140,7 @@ python_uninstall:
 .PHONY: python_test
 .NOTPARALLEL: python_test
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_svd_test 
+python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_la_test 
 	echo "Cyclops Python tests completed."
 else
 python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test 
@@ -150,7 +150,7 @@ endif
 .PHONY: python_test%
 .NOTPARALLEL: python_test%
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_svd_test%
+python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_la_test%
 	echo "Cyclops Python tests completed."
 else
 python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test%
@@ -189,13 +189,13 @@ python_base_test: $(BDIR)/lib_python/ctf/core.o
 python_base_test%: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_base.py
 
-.PHONY: python_svd_test
-python_svd_test: $(BDIR)/lib_python/ctf/core.o
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_svd.py; 
+.PHONY: python_la_test
+python_la_test: $(BDIR)/lib_python/ctf/core.o
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_la.py; 
 
-.PHONY: python_svd_test%
-python_svd_test%: $(BDIR)/lib_python/ctf/core.o
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_svd.py;
+.PHONY: python_la_test%
+python_la_test%: $(BDIR)/lib_python/ctf/core.o
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_la.py;
 
 .PHONY: python_dot_test
 python_dot_test: $(BDIR)/lib_python/ctf/core.o
