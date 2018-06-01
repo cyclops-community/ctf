@@ -60,7 +60,7 @@ void scan(Vector<dtype> & v, int logn){
   V.write(np, inds, data);
 
   free(inds);
-  free(data);
+  delete [] data;
 
   rec_scan(V);
 
@@ -69,7 +69,7 @@ void scan(Vector<dtype> & v, int logn){
   v.write(np, inds, data);
   
   free(inds);
-  free(data);
+  delete [] data;
 }
 
 int scan_test(int     logn,

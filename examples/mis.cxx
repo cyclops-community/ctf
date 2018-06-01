@@ -76,14 +76,13 @@ bool test_mis(int n, double sp_frac){
   if (A.wrld->rank == 0){
     printf("Found MIS of size %ld\n",s.nnz_tot);
   }
-
   Vector<float> t(n);
 
   //find all neighbors of MIS
   t["i"] += A["ij"]*s["j"];
 
   //if MIS is independent t should be zero everywhere s isn't
-  double zero = s["i"]*t["i"];
+  float zero = s["i"]*t["i"];
 
   if (zero != 0.0){
     if (A.wrld->rank == 0){

@@ -1731,7 +1731,7 @@ namespace CTF_int {
     tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
-       idx_A[i] = i;
+      idx_A[i] = i;
     }
     contraction ctr = contraction(this, idx_A, this, idx_A, sr->mulid(), &sc, NULL, sr->addid());
     ctr.execute();

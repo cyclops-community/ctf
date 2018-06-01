@@ -15,7 +15,6 @@ void smooth_jacobi(Matrix<float> & A, Vector<float> & x, Vector <float> & b, int
   jacobi.start();
   Vector<float> d(x.len, *x.wrld);
   d["i"] = A["ii"];
-  d.print();
   Transform<float>([](float & d){ d= fabs(d) > 0.0 ? 1./d : 0.0; })(d["i"]);
   Matrix<float> R(A);
   R["ii"] = 0.0;
@@ -549,7 +548,7 @@ int main(int argc, char ** argv){
       if (dw.rank == 0) printf("Truncation error norm is %1.2E\n",tnorm);
       x["i"] = x_t["i"];
       Vector<float> rand(n*n*n,dw,"rand");
-      double tot = x["i"];
+      float tot = x["i"];
       tot = tot/(n*n*n);
       rand.fill_random(-tot*.1,tot*.1);
       x["i"]+=rand["i"];
