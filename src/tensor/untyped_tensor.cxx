@@ -1057,6 +1057,21 @@ namespace CTF_int {
 
   }
 
+  void tensor::write(int64_t        num_pair,
+                     char const *   alpha,
+                     char const *   beta,
+                     int64_t const *inds,
+                     char const *   data){
+    char * pairs = sr->pair_alloc(num_pair);
+    PairIterator pr(sr, pairs);
+    for (int64_t i=0; i<num_pair; i++){
+      pr[i].write_key(inds[i]);
+      pr[i].write_val(data+i*sr->el_size);
+    }
+    this->write(num_pair,alpha,beta,pairs,'w');
+    sr->pair_dealloc(pairs);
+  }
+
   int tensor::write(int64_t      num_pair,
                     char const * alpha,
                     char const * beta,
@@ -1176,6 +1191,24 @@ namespace CTF_int {
     }
     TAU_FSTOP(write_pairs);
     return SUCCESS;
+  }
+
+  void tensor::read(int64_t      num_pair,
+                    char const * alpha,
+                    char const * beta,
+                    int64_t const * inds,
+                    char *          data){
+    char * pairs = sr->pair_alloc(num_pair);
+    PairIterator pr(sr, pairs);
+    for (int64_t i=0; i<num_pair; i++){
+      pr[i].write_key(inds[i]);
+      pr[i].write_val(data+i*sr->el_size);
+    }
+    write(num_pair, alpha, beta, pairs, 'r');
+    for (int64_t i=0; i<num_pair; i++){
+      pr[i].read_val(data+i*sr->el_size);
+    }
+    sr->pair_dealloc(pairs);
   }
 
   int tensor::read(int64_t      num_pair,
@@ -1456,6 +1489,39 @@ namespace CTF_int {
     return SUCCESS;
   }
 
+  void tensor::read_local(int64_t * num_pair,
+                          int64_t ** inds,
+                          char **   data,
+                          bool      unpack_sym) const {
+    char * pairs;
+    read_local(num_pair, &pairs, unpack_sym);
+    *inds = (int64_t*)CTF_int::alloc(sizeof(int64_t)*(*num_pair));
+    *data = sr->alloc(*num_pair);
+    ConstPairIterator pr(sr, pairs);
+    for (int64_t i=0; i<*num_pair; i++){
+      (*inds)[i] = pr[i].k();
+      pr[i].read_val(*data+i*sr->el_size);
+    }
+    sr->pair_dealloc(pairs);
+  }
+
+
+  void tensor::read_local_nnz(int64_t * num_pair,
+                              int64_t ** inds,
+                              char **   data,
+                              bool      unpack_sym) const {
+    char * pairs;
+    read_local_nnz(num_pair, &pairs, unpack_sym);
+    *inds = (int64_t*)CTF_int::alloc(sizeof(int64_t)*(*num_pair));
+    *data = sr->alloc(*num_pair);
+    ConstPairIterator pr(sr, pairs);
+    for (int64_t i=0; i<*num_pair; i++){
+      (*inds)[i] = pr[i].k();
+      pr[i].read_val(*data+i*sr->el_size);
+    }
+    sr->pair_dealloc(pairs);
+  }
+
   int tensor::read_local_nnz(int64_t * num_pair,
                              char **   mapped_data,
                              bool      unpack_sym) const {
@@ -1731,7 +1797,7 @@ namespace CTF_int {
     tensor sc = tensor(sr, 0, NULL, NULL, wrld, 1);
     int idx_A[order];
     for (int i=0; i<order; i++){
-       idx_A[i] = i;
+      idx_A[i] = i;
     }
     contraction ctr = contraction(this, idx_A, this, idx_A, sr->mulid(), &sc, NULL, sr->addid());
     ctr.execute();

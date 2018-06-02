@@ -38,15 +38,13 @@ namespace CTF_int{
     B_bool->operator[](idx_B) = CTF::Function<bool, bool>([](bool a){ return a==false ? true : false; })(B_bool->operator[](idx_B));
   }
 
-	/*void tensordot_helper(tensor * A, tensor * B, char const * idx_A, char const * idx_B){
-		char 
-	}*/
+  template <typename dtype>
 	void conj_helper(tensor * A, tensor * B) {
     char str[A->order];
     for(int i=0;i<A->order;i++) {
 			str[i] = 'a' + i;
 		}
-    B->operator[](str) = CTF::Function<std::complex<double>,std::complex<double>>([](std::complex<double> a){ return std::complex<double>(a.real(), -a.imag()); })(A->operator[](str));
+    B->operator[](str) = CTF::Function<std::complex<dtype>,std::complex<dtype>>([](std::complex<dtype> a){ return std::complex<dtype>(a.real(), -a.imag()); })(A->operator[](str));
 	}
 
   template <typename dtype>
@@ -55,7 +53,7 @@ namespace CTF_int{
     for(int i=0;i<A->order;i++) {
 			str[i] = 'a' + i;
 		}
-    B->operator[](str) = CTF::Function<std::complex<double>,dtype>([](std::complex<double> a){ return a.real(); })(A->operator[](str));
+    B->operator[](str) = CTF::Function<std::complex<dtype>,dtype>([](std::complex<dtype> a){ return a.real(); })(A->operator[](str));
   }
 
   template <typename dtype>
@@ -64,7 +62,26 @@ namespace CTF_int{
     for(int i=0;i<A->order;i++) {
 			str[i] = 'a' + i;
 		}
-    B->operator[](str) = CTF::Function<std::complex<double>,dtype>([](std::complex<double> a){ return a.imag(); })(A->operator[](str));
+    B->operator[](str) = CTF::Function<std::complex<dtype>,dtype>([](std::complex<dtype> a){ return a.imag(); })(A->operator[](str));
+  }
+
+
+  template <typename dtype>
+  void set_real(tensor * A, tensor * B){
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+			str[i] = 'a' + i;
+		}
+    CTF::Transform<dtype,std::complex<dtype>>([](dtype a, std::complex<dtype> & b){ b.real(a); })(A->operator[](str),B->operator[](str));
+  }
+
+  template <typename dtype>
+  void set_imag(tensor * A, tensor * B){
+    char str[A->order];
+    for(int i=0;i<A->order;i++) {
+			str[i] = 'a' + i;
+		}
+    CTF::Transform<dtype,std::complex<dtype>>([](dtype a, std::complex<dtype> & b){ b.imag(a); })(A->operator[](str),B->operator[](str));
   }
 
   template <typename dtype>
@@ -83,14 +100,134 @@ namespace CTF_int{
   }
 
 
+
+  void matrix_qr(tensor * A, tensor * Q, tensor * R){
+    switch (A->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mA(*A);
+          CTF::Matrix<float> mQ;
+          CTF::Matrix<float> mR;
+          mA.qr(mQ, mR);
+          (*Q)["ij"] = mQ["ij"];
+          (*R)["ij"] = mR["ij"];
+        }
+        break;
+
+
+      case 8:
+        {
+          CTF::Matrix<double> mA(*A);
+          CTF::Matrix<double> mQ;
+          CTF::Matrix<double> mR;
+          mA.qr(mQ, mR);
+          (*Q)["ij"] = mQ["ij"];
+          (*R)["ij"] = mR["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_qr_cmplx(tensor * A, tensor * Q, tensor * R){
+    switch (A->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix< std::complex<float> > mA(*A);
+          CTF::Matrix< std::complex<float> > mQ;
+          CTF::Matrix< std::complex<float> > mR;
+          mA.qr(mQ, mR);
+          (*Q)["ij"] = mQ["ij"];
+          (*R)["ij"] = mR["ij"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix< std::complex<double> > mA(*A);
+          CTF::Matrix< std::complex<double> > mQ;
+          CTF::Matrix< std::complex<double> > mR;
+          mA.qr(mQ, mR);
+          (*Q)["ij"] = mQ["ij"];
+          (*R)["ij"] = mR["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+
+
   void matrix_svd(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
     switch (A->sr->el_size){
+      case 4:
+        {
+          CTF::Matrix<float> mA(*A);
+          CTF::Matrix<float> mU;
+          CTF::Vector<float> vS;
+          CTF::Matrix<float> mVT;
+          mA.svd(mU, vS, mVT, rank);
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+          (*U)["ij"] = mU["ij"];
+          (*S)["i"] = vS["i"];
+          (*VT)["ij"] = mVT["ij"];
+        }
+        break;
+
+
       case 8:
         {
           CTF::Matrix<double> mA(*A);
           CTF::Matrix<double> mU;
           CTF::Vector<double> vS;
           CTF::Matrix<double> mVT;
+          mA.svd(mU, vS, mVT, rank);
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+          (*U)["ij"] = mU["ij"];
+          (*S)["i"] = vS["i"];
+          (*VT)["ij"] = mVT["ij"];
+        }
+        break;
+
+      default:
+        printf("CTF ERROR: SVD called on invalid tensor element type\n");
+        assert(0);
+        break;
+    }
+  }
+
+  void matrix_svd_cmplx(tensor * A, tensor * U, tensor * S, tensor * VT, int rank){
+    switch (A->sr->el_size){
+      case 8:
+        {
+          CTF::Matrix< std::complex<float> > mA(*A);
+          CTF::Matrix< std::complex<float> > mU;
+          CTF::Vector< std::complex<float> > vS;
+          CTF::Matrix< std::complex<float> > mVT;
+          mA.svd(mU, vS, mVT, rank);
+          //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
+          (*U)["ij"] = mU["ij"];
+          (*S)["i"] = vS["i"];
+          (*VT)["ij"] = mVT["ij"];
+        }
+        break;
+
+
+      case 16:
+        {
+          CTF::Matrix< std::complex<double> > mA(*A);
+          CTF::Matrix< std::complex<double> > mU;
+          CTF::Vector< std::complex<double> > vS;
+          CTF::Matrix< std::complex<double> > mVT;
           mA.svd(mU, vS, mVT, rank);
           //printf("A dims %d %d, U dims %d %d, S dim %d, mVT dms %d %d)\n",mA.nrow, mA.ncol, mU.nrow, mU.ncol, vS.len, mVT.nrow, mVT.ncol);
           (*U)["ij"] = mU["ij"];
@@ -179,7 +316,7 @@ CONV_FCOMPLEX_INST(double,double)
     \
     default: \
       assert(0); \
-      break; \ 
+      break; \
   }
 
   void conv_type(int type_idx1, int type_idx2, tensor * A, tensor * B){
@@ -225,6 +362,30 @@ CONV_FCOMPLEX_INST(double,double)
         break;
     }
   }
+
+
+	// conjugate complex tensor
+	template void conj_helper<float>(tensor * A, tensor * B);
+	// conjugate complex tensor
+	template void conj_helper<double>(tensor * A, tensor * B);
+
+	// set the real number
+	template void set_real<float>(tensor * A, tensor * B);
+	// set the imag number
+	template void set_imag<float>(tensor * A, tensor * B);
+
+
+	// set the real number
+	template void set_real<double>(tensor * A, tensor * B);
+	// set the imag number
+	template void set_imag<double>(tensor * A, tensor * B);
+
+
+	// get the real number
+	template void get_real<float>(tensor * A, tensor * B);
+	// get the imag number
+	template void get_imag<float>(tensor * A, tensor * B);
+
 
 	// get the real number
 	template void get_real<double>(tensor * A, tensor * B);

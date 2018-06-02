@@ -32,7 +32,7 @@ void bitonic_sort(Vector<> & v, int logn, World & dw){
   V.write(np, inds, data);
 
   free(inds);
-  free(data);
+  delete [] data;
 
 
   // 2-by-2-by-2 tensor X, consisting of matrices
@@ -109,7 +109,7 @@ void bitonic_sort(Vector<> & v, int logn, World & dw){
   v.write(np, inds, data);
   
   free(inds);
-  free(data);
+  delete [] data;
 }
 
 int bitonic(int     logn,

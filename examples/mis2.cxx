@@ -38,7 +38,7 @@ Vector<float> mis2(Matrix<float> & undir_A){
     prs[i].d = prs[i].k+1.;
   }
   inds.write(nloc,prs);
-  free(prs);
+  delete [] prs;
 
   Semiring<float> max_semiring(0., [](float a, float b){ return std::max(a,b); }, MPI_MAX,
                                1.0, [](float a, float b){ return a*b; }); 

@@ -125,17 +125,18 @@ namespace CTF_SCALAPACK{
                 int *,
                 int *,
                 int *,
-                std::complex<float> *,
-                std::complex<float> *,
-                int *,
-                int *,
-                int *,
+                float *,
                 std::complex<float> *,
                 int *,
                 int *,
                 int *,
                 std::complex<float> *,
                 int *,
+                int *,
+                int *,
+                float *,
+                int *,
+                float *,
                 int *) SCAL_END
 
   EXTERN_OR_INLINE 
@@ -147,17 +148,18 @@ namespace CTF_SCALAPACK{
                 int *,
                 int *,
                 int *,
-                std::complex<double> *,
-                std::complex<double> *,
-                int *,
-                int *,
-                int *,
+                double *,
                 std::complex<double> *,
                 int *,
                 int *,
                 int *,
                 std::complex<double> *,
                 int *,
+                int *,
+                int *,
+                double *,
+                int *,
+                double *,
                 int *) SCAL_END
 
   
@@ -377,7 +379,7 @@ namespace CTF_SCALAPACK{
                                             int                   IA,
                                             int                   JA,
                                             int *                 DESCA,
-                                            std::complex<float> * S,
+                                            std::complex<float> * cS,
                                             std::complex<float> * U,
                                             int                   IU,
                                             int                   JU,
@@ -389,7 +391,17 @@ namespace CTF_SCALAPACK{
                                             std::complex<float> * WORK,
                                             int                   LWORK,
                                             int *                 info) {
-    PCGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+    float * S = (float*)cS;
+    float * rwork;
+    rwork = new float[4*std::max(M,N)+1];
+    PCGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, (float*)WORK, &LWORK, rwork, info);
+    delete [] rwork;
+    if (LWORK != -1){
+      for (int i=std::min(M,N)-1; i>=0; i--){
+        cS[i].real(S[i]);
+        cS[i].imag(0.0);
+      }
+    }
   }
 
 
@@ -402,7 +414,7 @@ namespace CTF_SCALAPACK{
                                              int                    IA,
                                              int                    JA,
                                              int *                  DESCA,
-                                             std::complex<double> * S,
+                                             std::complex<double> * cS,
                                              std::complex<double> * U,
                                              int                    IU,
                                              int                    JU,
@@ -413,8 +425,18 @@ namespace CTF_SCALAPACK{
                                              int *                  DESCVT,
                                              std::complex<double> * WORK,
                                              int                    LWORK,
-                                             int *                  info) {
-    PZGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, WORK, &LWORK, info);
+                                             int *                  info){
+    double * S = (double*)cS;
+    double * rwork;
+    rwork = new double[4*std::max(M,N)+1];
+    PZGESVD(&JOBU, &JOBVT, &M, &N, A, &IA, &JA, DESCA, S, U, &IU, &JU, DESCU, VT, &IVT, &JVT,  DESCVT, (double*)WORK, &LWORK, rwork, info);
+    delete [] rwork;
+    if (LWORK != -1){
+      for (int i=std::min(M,N)-1; i>=0; i--){
+        cS[i].real(S[i]);
+        cS[i].imag(0.0);
+      }
+    }
   }
 
   template <typename dtype> 

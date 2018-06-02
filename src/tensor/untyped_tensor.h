@@ -323,6 +323,38 @@ namespace CTF_int {
                  char const   rw='w');
 
       /**
+       * \brief  Add tensor data new=alpha*new+beta*old
+       *         with <key, value> pairs where key is the
+       *         global index for the value.
+       * \param[in] num_pair number of pairs to write
+       * \param[in] alpha scaling factor of written (read) value
+       * \param[in] beta scaling factor of old (existing) value
+       * \param[in] indices 64-bit global indices
+       * \param[in] data values (num_pair of them)
+       */
+        void write(int64_t         num_pair,
+                   char const *    alpha,
+                   char const *    beta,
+                   int64_t const * inds,
+                   char const *    data);
+
+      /**
+       * \brief read tensor data with <key, value> pairs where key is the
+       *         global index for the value, which gets filled in with
+       *         beta times the old values plus alpha times the values read from the tensor.
+       * \param[in] num_pair number of pairs to read
+       * \param[in] alpha scaling factor of read value
+       * \param[in] beta scaling factor of old value
+       * \param[in] indices 64-bit global indices
+       * \param[in] data values (num_pair of them to read)
+       */
+      void read(int64_t         num_pair,
+                char const *    alpha,
+                char const *    beta,
+                int64_t const * inds,
+                char *          data);
+
+      /**
        * \brief read tensor data with <key, value> pairs where key is the
        *         global index for the value, which gets filled in with
        *         beta times the old values plus alpha times the values read from the tensor.
@@ -335,6 +367,7 @@ namespace CTF_int {
                char const * alpha,
                char const * beta,
                char *       mapped_data);
+
 
       /**
        * \brief returns local data of tensor with parallel distribution prl and local blocking blk
@@ -468,6 +501,31 @@ namespace CTF_int {
       int read_local_nnz(int64_t * num_pair,
                          char **   mapped_data,
                          bool      unpack_sym=false) const;
+
+      /**
+       * \brief read tensor data pairs local to processor including those with zero values
+       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with
+       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
+       * \param[out] num_pair number of values read
+       * \param[out] indices 64-bit global indices
+       * \param[out] data values (num_pair of them to read)
+       */
+      void read_local(int64_t *  num_pair,
+                      int64_t ** inds,
+                      char **    data,
+                      bool       unpack_sym=false) const;
+
+      /**
+       * \brief read tensor data pairs local to processor that have nonzero values
+       * \param[out] num_pair number of values read
+       * \param[out] indices 64-bit global indices
+       * \param[out] data values (num_pair of them to read)
+       */
+      void read_local_nnz(int64_t * num_pair,
+                          int64_t ** inds,
+                          char **    data,
+                          bool      unpack_sym=false) const;
+
 
       /**
        * brief copy A into this (B). Realloc if necessary
