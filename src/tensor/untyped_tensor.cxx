@@ -1496,7 +1496,7 @@ namespace CTF_int {
     char * pairs;
     read_local(num_pair, &pairs, unpack_sym);
     *inds = (int64_t*)CTF_int::alloc(sizeof(int64_t)*(*num_pair));
-    *data = sr->alloc(*num_pair);
+    *data = (char*)CTF_int::alloc(sr->el_size*(*num_pair));
     ConstPairIterator pr(sr, pairs);
     for (int64_t i=0; i<*num_pair; i++){
       (*inds)[i] = pr[i].k();
@@ -1513,7 +1513,7 @@ namespace CTF_int {
     char * pairs;
     read_local_nnz(num_pair, &pairs, unpack_sym);
     *inds = (int64_t*)CTF_int::alloc(sizeof(int64_t)*(*num_pair));
-    *data = sr->alloc(*num_pair);
+    *data = (char*)CTF_int::alloc(sr->el_size*(*num_pair));
     ConstPairIterator pr(sr, pairs);
     for (int64_t i=0; i<*num_pair; i++){
       (*inds)[i] = pr[i].k();
@@ -1526,7 +1526,7 @@ namespace CTF_int {
                              char **   mapped_data,
                              bool      unpack_sym) const {
     if (sr->isequal(sr->addid(), NULL) && !is_sparse)
-      return read_local(num_pair,mapped_data, unpack_sym);
+      return read_local_nnz(num_pair,mapped_data, unpack_sym);
     tensor tsr_cpy(this);
     if (!is_sparse)
       tsr_cpy.sparsify();

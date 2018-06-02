@@ -236,7 +236,6 @@ namespace CTF {
     }
     ret = CTF_int::tensor::read(npair, cpairs);
     if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
-    assert(pairs==cpairs);
     for (i=0; i<npair; i++){
       data[i] = pairs[i].d;
     }
