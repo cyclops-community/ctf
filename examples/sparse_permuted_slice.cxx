@@ -66,7 +66,7 @@ int sparse_permuted_slice(int     n,
   }
   B.write(nvals, indices, data);
   free(indices);
-  free(data);
+  delete [] data;
 
 
   // this is the main command that does the sparse write

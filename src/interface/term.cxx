@@ -11,7 +11,9 @@ using namespace CTF;
 
 namespace CTF_int {
   algstrct const * get_double_ring();
+  algstrct const * get_float_ring();
   algstrct const * get_int64_t_ring();
+  algstrct const * get_int_ring();
 }
 
 namespace CTF_int {
@@ -276,6 +278,15 @@ namespace CTF_int {
     return trm;
   }
 
+  Term::operator float () const {
+    CTF_int::tensor ts(get_float_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    ts[""] += *this;
+    float dbl = ((float*)ts.data)[0];
+    ts.wrld->cdt.bcast(&dbl, 1, MPI_DOUBLE, 0);
+    return dbl;
+
+  }
+
   Term::operator double () const {
     //return 0.0 += *this;
     CTF_int::tensor ts(get_double_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
@@ -295,10 +306,19 @@ namespace CTF_int {
     return sr->cast_to_double(val);*/
   }
 
+  Term::operator int () const {
+    CTF_int::tensor ts(get_int_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    ts[""] += *this;
+    int dbl = ((int*)ts.data)[0];
+    ts.wrld->cdt.bcast(&dbl, 1, MPI_INT64_T, 0);
+    return dbl;
+
+  }
+
   Term::operator int64_t () const {
     CTF_int::tensor ts(get_int64_t_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
     ts[""] += *this;
-    int64_t dbl = ((double*)ts.data)[0];
+    int64_t dbl = ((int64_t*)ts.data)[0];
     ts.wrld->cdt.bcast(&dbl, 1, MPI_INT64_T, 0);
     return dbl;
 
@@ -582,9 +602,9 @@ namespace CTF_int {
       tmp_ops.pop_back();
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
-      if (tscale != NULL) cdealloc(tscale);
+      /*if (tscale != NULL) cdealloc(tscale);
       tscale = NULL;
-      sr->safecopy(tscale, this->scale);
+      sr->safecopy(tscale, this->scale);*/
       sr->safemul(tscale, op_A.scale, tscale);
       sr->safemul(tscale, op_B.scale, tscale);
 

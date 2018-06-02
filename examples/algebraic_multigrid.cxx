@@ -8,7 +8,7 @@
 using namespace CTF;
 //#define ERR_REPORT
 
-typedef double REAL;
+typedef float REAL;
 
 void smooth_jacobi(Matrix<REAL> & A, Vector<REAL> & x, Vector <REAL> & b, int nsm){
   Timer jacobi("jacobi");
@@ -552,7 +552,7 @@ int main(int argc, char ** argv){
       if (dw.rank == 0) printf("Truncation error norm is %1.2E\n",tnorm);
       x["i"] = x_t["i"];
       Vector<REAL> rand(n*n*n,dw,"rand");
-      double tot = x["i"];
+      REAL tot = x["i"];
       tot = tot/(n*n*n);
       rand.fill_random(-tot*.1,tot*.1);
       x["i"]+=rand["i"];

@@ -41,7 +41,7 @@ TESTS = bivar_function bivar_transform ccsdt_map_test ccsdt_t3_to_t2 dft diag_ct
 
 BENCHMARKS = bench_contraction bench_nosym_transp bench_redistribution model_trainer 
 
-SCALAPACK_TESTS = nonsq_pgemm_test nonsq_pgemm_bench hosvd qr
+SCALAPACK_TESTS = nonsq_pgemm_test nonsq_pgemm_bench hosvd qr svd
 
 STUDIES = fast_diagram fast_3mm fast_sym fast_sym_4D \
           fast_tensor_ctr fast_sy_as_as_tensor_ctr fast_as_as_sy_tensor_ctr
@@ -111,9 +111,9 @@ ctflibso: ctf_objs ctf_ext_objs
 PYTHON_SRC_FILES=src_python/ctf/core.pyx src_python/ctf/random.pyx
 
 .PHONY: python
-python: $(BDIR)/lib_python/ctf/core.so
+python: $(BDIR)/lib_python/ctf/core.o
 
-$(BDIR)/lib_python/ctf/core.so: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
+$(BDIR)/lib_python/ctf/core.o: $(BDIR)/setup.py $(BDIR)/lib_shared/libctf.so $(PYTHON_SRC_FILES)
 	cd src_python; \
 	ln -sf $(BDIR)/setup.py setup.py; \
 	mkdir -p $(BDIR)/lib_python/ctf && cp ctf/__init__.py $(BDIR)/lib_python/ctf/; \
@@ -140,7 +140,7 @@ python_uninstall:
 .PHONY: python_test
 .NOTPARALLEL: python_test
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_svd_test 
+python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test python_la_test 
 	echo "Cyclops Python tests completed."
 else
 python_test: python_base_test python_fancyindex_test python_einsum_test python_ufunc_test python_dot_test 
@@ -150,7 +150,7 @@ endif
 .PHONY: python_test%
 .NOTPARALLEL: python_test%
 ifneq (,$(findstring USE_SCALAPACK,$(DEFS)))
-python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_svd_test%
+python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test% python_la_test%
 	echo "Cyclops Python tests completed."
 else
 python_test%: python_base_test% python_fancyindex_test% python_einsum_test% python_ufunc_test% python_dot_test%
@@ -158,56 +158,56 @@ python_test%: python_base_test% python_fancyindex_test% python_einsum_test% pyth
 endif
 
 .PHONY: python_einsum_test
-python_einsum_test: $(BDIR)/lib_python/ctf/core.so
+python_einsum_test: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_einsum.py
 
 .PHONY: python_einsum_test%
-python_einsum_test%: $(BDIR)/lib_python/ctf/core.so
+python_einsum_test%: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_einsum.py
 
 .PHONY: python_ufunc_test
-python_ufunc_test: $(BDIR)/lib_python/ctf/core.so
+python_ufunc_test: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_ufunc.py
 
 .PHONY: python_ufunc_test%
-python_ufunc_test%: $(BDIR)/lib_python/ctf/core.so
+python_ufunc_test%: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_ufunc.py
 
 .PHONY: python_fancyindex_test
-python_fancyindex_test: $(BDIR)/lib_python/ctf/core.so
+python_fancyindex_test: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_fancyindex.py
 
 .PHONY: python_fancyindex_test%
-python_fancyindex_test%: $(BDIR)/lib_python/ctf/core.so
+python_fancyindex_test%: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_fancyindex.py
 
 .PHONY: python_base_test
-python_base_test: $(BDIR)/lib_python/ctf/core.so
+python_base_test: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_base.py
 
 .PHONY: python_base_test%
-python_base_test%: $(BDIR)/lib_python/ctf/core.so
+python_base_test%: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_base.py
 
-.PHONY: python_svd_test
-python_svd_test: $(BDIR)/lib_python/ctf/core.so
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_svd.py; 
+.PHONY: python_la_test
+python_la_test: $(BDIR)/lib_python/ctf/core.o
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_la.py; 
 
-.PHONY: python_svd_test%
-python_svd_test%: $(BDIR)/lib_python/ctf/core.so
-	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_svd.py;
+.PHONY: python_la_test%
+python_la_test%: $(BDIR)/lib_python/ctf/core.o
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_la.py;
 
 .PHONY: python_dot_test
-python_dot_test: $(BDIR)/lib_python/ctf/core.so
+python_dot_test: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" python ./test/python/test_dot.py; 
 
 .PHONY: python_dot_test%
-python_dot_test%: $(BDIR)/lib_python/ctf/core.so
+python_dot_test%: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" mpirun -np $* python ./test/python/test_dot.py;
 
 
 .PHONY: test_live
-test_live: $(BDIR)/lib_python/ctf/core.so
+test_live: $(BDIR)/lib_python/ctf/core.o
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):$(BDIR)/lib_shared:$(BDIR)/lib_python:$(LD_LIB_PATH)" PYTHONPATH="$(PYTHONPATH):$(BDIR)/lib_python" ipython -i -c "import numpy as np; import ctf"
 
 
@@ -228,8 +228,8 @@ test%: test_suite
 clean: clean_bin clean_lib clean_obj clean_py
 
 clean_py:
-	rm -f $(BDIR)/src_python/ctf/core.*.so
-	rm -f $(BDIR)/src_python/ctf/random.*.so
+	rm -f $(BDIR)/src_python/ctf/core.*so
+	rm -f $(BDIR)/src_python/ctf/random.*so
 	rm -f $(BDIR)/bin/test_suite
 	rm -f $(BDIR)/src_python/ctf/core.cpp
 	rm -f $(BDIR)/src_python/ctf/random.cpp
@@ -238,8 +238,8 @@ clean_py:
 	rm -rf $(BDIR)/src_python/ctf/__pycache__
 	rm -f $(BDIR)/lib_python/ctf/core.o
 	rm -f $(BDIR)/lib_python/ctf/random.o
-	rm -f $(BDIR)/lib_python/ctf/core.*.so
-	rm -f $(BDIR)/lib_python/ctf/random.*.so
+	rm -f $(BDIR)/lib_python/ctf/core.*so
+	rm -f $(BDIR)/lib_python/ctf/random.*so
 	rm -rf $(BDIR)/lib_python/ctf/__pycache__
 
 

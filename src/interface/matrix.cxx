@@ -183,8 +183,8 @@ namespace CTF {
     if (((ncol/nb)%pc) == (rank/pr+pc-csrc)%pc){
       nmyc+=ncol%nb;
     }
-//    printf("nrow = %d ncol = %d nmyr = %ld, nmyc = %ld mb = %d nb = %d pr = %d pc = %d\n",nrow,ncol,nmyr,nmyc,mb,nb,pr,pc);
-    pairs = (Pair<dtype>*)CTF_int::alloc(sizeof(Pair<dtype>)*nmyr*nmyc);
+    printf("nrow = %d ncol = %d nmyr = %ld, nmyc = %ld mb = %d nb = %d pr = %d pc = %d\n",nrow,ncol,nmyr,nmyc,mb,nb,pr,pc);
+    pairs = new Pair<dtype>[nmyr*nmyc];
     int cblk = (rank/pr+pc-csrc)%pc;
     for (int64_t i=0; i<nmyc;  i++){
       int rblk = (rank+pr-rsrc)%pr;
@@ -211,7 +211,7 @@ namespace CTF {
           memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
         } else {
           for (int i=0; i<ncol/pc; i++){
-            memcpy(this->data+i*nrow*sizeof(dtype)/pr,(char*)(data_+i*nrow/pr), nrow*sizeof(dtype)/pr);
+            memcpy(this->data+i*lda*sizeof(dtype),(char*)(data_+i*lda), nrow*sizeof(dtype)/pr);
           }
         }
       } else {
@@ -251,14 +251,16 @@ namespace CTF {
                                dtype * data_){
     if (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
+        printf("HERE\n");
         if (lda == nrow/pc){
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
         } else {
           for (int i=0; i<ncol/pc; i++){
-            memcpy((char*)(data_+i*nrow/pr), this->data+i*nrow*sizeof(dtype)/pr, nrow*sizeof(dtype)/pr);
+            memcpy((char*)(data_+i*lda), this->data+i*lda*sizeof(dtype), nrow*sizeof(dtype)/pr);
           }
         }
       } else {
+        printf("HERE3\n");
         int plens[] = {pr, pc};
         Partition ip(2, plens);
         Matrix M(nrow, ncol, "ij", ip["ij"], Idx_Partition(), 0, *this->wrld, *this->sr);
@@ -266,6 +268,7 @@ namespace CTF {
         M.read_mat(mb, nb, pr, pc, rsrc, csrc, lda, data_);
       }
     } else {
+      printf("HERE2 mb = %d nb = %d\n",mb,nb);
       Pair<dtype> * pairs;
       int64_t nmyr, nmyc;
       get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, pr, pc, rsrc, csrc, nmyr, nmyc, pairs);
@@ -273,16 +276,18 @@ namespace CTF {
       this->read(nmyr*nmyc, pairs);
       if (lda == nmyr){
         for (int64_t i=0; i<nmyr*nmyc; i++){
+          printf("pairs[%ld].k=%ld\n",i,pairs[i].k);
           data_[i] = pairs[i].d;
         }
       } else {
         for (int64_t i=0; i<nmyc; i++){
           for (int64_t j=0; j<nmyr; j++){
+            printf("2pairs[%ld].k=%ld\n",i*nmyr+j,pairs[i*nmyr+j].k);
             data_[i*lda+j] = pairs[i*nmyr+j].d;
           }
         }
       }
-      CTF_int::cdealloc(pairs);
+      delete [] pairs;
     }
   }
 
@@ -480,17 +485,16 @@ namespace CTF {
     dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
 
 
-    dtype * u = (dtype*)malloc(mpr*kpc*sizeof(dtype));
-    dtype * s = (dtype*)malloc(k*sizeof(dtype));
-    dtype * vt = (dtype*)malloc(kpr*npc*sizeof(dtype));
+    dtype * u = (dtype*)new dtype[mpr*kpc];
+    dtype * s = (dtype*)new dtype[k];
+    dtype * vt = (dtype*)new dtype[kpr*npc];
     this->read_mat(desca, A);
 
-    dtype llwork;
     int lwork;
+    dtype dlwork;
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
 
-    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, (dtype*)&llwork, -1, &info);  
-
-    lwork = (int)llwork;
+    lwork = get_int_fromreal<dtype>(dlwork);
     dtype * work = (dtype*)malloc(sizeof(dtype)*lwork);
 
     CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
@@ -503,9 +507,12 @@ namespace CTF {
     int64_t sc;
     dtype * s_data = S.get_raw_data(&sc);
 
-    for (int i = (*(this->wrld)).rank; i < k; i += (*(this->wrld)).np) {
-      s_data[i/(*(this->wrld)).np] = s[i];
-    } 
+    int phase = S.edge_map[0].calc_phase();
+    if (this->wrld->rank < phase){
+      for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
+        s_data[i/phase] = s[i];
+      } 
+    }
     if (rank > 0 && rank < k) {
       S = S.slice(0, rank-1);
       U = U.slice(0, rank*(m)-1);
@@ -513,9 +520,9 @@ namespace CTF {
     }
 
     free(A);
-    free(u);
-    free(s);
-    free(vt);
+    delete [] u;
+    delete [] s;
+    delete [] vt;
     free(desca);
     free(descu);
     free(descvt);

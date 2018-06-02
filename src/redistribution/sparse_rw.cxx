@@ -918,10 +918,10 @@ namespace CTF_int {
     for (int i=0; i<order; i++){
       total_tsr_size *= edge_len[i];
     }
-
+    //printf("pair size is %d el size is %d\n",sr->pair_size(),sr->el_size);
     for (int64_t i=0; i<inwrite; i++){
-      //if (wr_pairs[i].k()>=total_tsr_size)
-        //printf("[%d] %ldth key is %ld size %ld\n",glb_comm.rank, i, wr_pairs[i].k(),total_tsr_size);
+      if (wr_pairs[i].k()>=total_tsr_size)
+        printf("[%d] %ldth key is %ld size %ld\n",glb_comm.rank, i, wr_pairs[i].k(),total_tsr_size);
       ASSERT(wr_pairs[i].k() >= 0);
       ASSERT(wr_pairs[i].k() < total_tsr_size);
     }
@@ -979,7 +979,7 @@ namespace CTF_int {
 
     nwrite = 0;
     int64_t * changed_key_indices;
-    char * new_changed_pairs = sr->alloc(nchanged);
+    char * new_changed_pairs = sr->pair_alloc(nchanged);
     PairIterator ncp(sr, new_changed_pairs);
     int * changed_key_scale;
     CTF_int::alloc_ptr(nchanged*sizeof(int64_t), (void**)&changed_key_indices);
