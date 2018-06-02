@@ -280,7 +280,6 @@ class KnowValues(unittest.TestCase):
         self.assertEqual(ctf.take(a0, numpy.array([0,3]), axis=0).shape, (2,3,2))
         self.assertEqual(ctf.take(a1, [2], axis=1).shape, (4,1,2))
         self.assertEqual(a1.take([0], axis=-1).shape, (4,3,1))
-        self.assertEqual(a1.transpose().take([1], axis=0).shape, (1,3,4))
 
     def test_vstack(self):
         a1 = ctf.astensor(numpy.ones(4))

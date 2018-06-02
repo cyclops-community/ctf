@@ -183,7 +183,7 @@ namespace CTF {
     if (((ncol/nb)%pc) == (rank/pr+pc-csrc)%pc){
       nmyc+=ncol%nb;
     }
-    printf("nrow = %d ncol = %d nmyr = %ld, nmyc = %ld mb = %d nb = %d pr = %d pc = %d\n",nrow,ncol,nmyr,nmyc,mb,nb,pr,pc);
+    //printf("nrow = %d ncol = %d nmyr = %ld, nmyc = %ld mb = %d nb = %d pr = %d pc = %d\n",nrow,ncol,nmyr,nmyc,mb,nb,pr,pc);
     pairs = new Pair<dtype>[nmyr*nmyc];
     int cblk = (rank/pr+pc-csrc)%pc;
     for (int64_t i=0; i<nmyc;  i++){
@@ -251,7 +251,6 @@ namespace CTF {
                                dtype * data_){
     if (mb==1 && nb==1 && nrow%pr==0 && ncol%pc==0 && rsrc==0 && csrc==0){
       if (this->edge_map[0].np == pr && this->edge_map[1].np == pc){
-        printf("HERE\n");
         if (lda == nrow/pc){
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
         } else {
@@ -260,7 +259,6 @@ namespace CTF {
           }
         }
       } else {
-        printf("HERE3\n");
         int plens[] = {pr, pc};
         Partition ip(2, plens);
         Matrix M(nrow, ncol, "ij", ip["ij"], Idx_Partition(), 0, *this->wrld, *this->sr);
@@ -268,7 +266,6 @@ namespace CTF {
         M.read_mat(mb, nb, pr, pc, rsrc, csrc, lda, data_);
       }
     } else {
-      printf("HERE2 mb = %d nb = %d\n",mb,nb);
       Pair<dtype> * pairs;
       int64_t nmyr, nmyc;
       get_my_kv_pair(this->wrld->rank, nrow, ncol, mb, nb, pr, pc, rsrc, csrc, nmyr, nmyc, pairs);
@@ -276,13 +273,11 @@ namespace CTF {
       this->read(nmyr*nmyc, pairs);
       if (lda == nmyr){
         for (int64_t i=0; i<nmyr*nmyc; i++){
-          printf("pairs[%ld].k=%ld\n",i,pairs[i].k);
           data_[i] = pairs[i].d;
         }
       } else {
         for (int64_t i=0; i<nmyc; i++){
           for (int64_t j=0; j<nmyr; j++){
-            printf("2pairs[%ld].k=%ld\n",i*nmyr+j,pairs[i*nmyr+j].k);
             data_[i*lda+j] = pairs[i*nmyr+j].d;
           }
         }
