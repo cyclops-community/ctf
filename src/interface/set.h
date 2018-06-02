@@ -408,12 +408,12 @@ namespace CTF {
       }
 
       char * pair_alloc(int64_t n) const {
-        assert(sizeof(std::pair<int64_t,dtype>[n])==(uint64_t)(pair_size()*n));
+        //assert(sizeof(std::pair<int64_t,dtype>[n])==(uint64_t)(pair_size()*n));
         return (char*)(new std::pair<int64_t,dtype>[n]);
       }
 
       char * alloc(int64_t n) const {
-        assert(sizeof(dtype[n])==(uint64_t)(el_size*n));
+        //assert(sizeof(dtype[n])==(uint64_t)(el_size*n));
         return (char*)(new dtype[n]);
       }
 
