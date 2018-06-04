@@ -2,10 +2,7 @@ sudo: false
 os: linux
 language: python
 python:
-  - "2.7"
   - "3.4"
-  - "3.5"
-  - "3.6"
 env:
   - CTF_CXX=clang++
   - CTF_CXX=g++
@@ -24,6 +21,7 @@ addons:
       - mpich2
       - libmpich2-dev
       - cmake
+      - valgrind
 before_install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] || [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]] ; then
       export PYTHONMAJORV=2;
@@ -39,12 +37,10 @@ before_install:
   - conda install -y numpy  
 install:
   - $CTF_CXX --version
-  - FC=gfortran-5 ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack
-  - make -j2 
+  - FC=gfortran-5 ./configure CXXFLAGS="-g -O0" CXX="mpicxx -cxx=$CTF_CXX" --build-scalapack
   - make python -j2
 script:
-  - make test
-  - make test2
+  - LD_LIBRARY_PATH=":/home/travis/build/cyclops-community/ctf/lib_shared:/home/travis/build/cyclops-community/ctf/lib_python::/home/travis/build/cyclops-community/ctf/scalapack/build/lib:/home/travis/build/cyclops-community/ctf/hptt/lib" PYTHONPATH=":/home/travis/build/cyclops-community/ctf/lib_python" mpirun -np 2 valgrind python ./test/python/test_la.py;
   - make python_test
   - make python_test2
 after_failure:
