@@ -475,6 +475,7 @@ namespace CTF_int {
         assert(0);
       }
     }
+    idx_self_A = 0, idx_self_B = 0, idx_self_C=0;
     /* Put all weigh indices in back, w ut all contraction indices up front, put A indices in front for C */
     idx_ctr = 0, idx_no_ctr_A = 0, idx_no_ctr_B = 0, idx_weigh = 0;
     for (i=0; i<num_tot; i++){

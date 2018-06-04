@@ -40,14 +40,14 @@ int fast_sym(int const     n,
     int64_t size;
     srand48(173*rank);
 
-    A.read_local(&size, &indices, &values);
+    A.get_local_data(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
     A.write(size, indices, values);
     free(indices);
     delete [] values;
-    B.read_local(&size, &indices, &values);
+    B.get_local_data(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
