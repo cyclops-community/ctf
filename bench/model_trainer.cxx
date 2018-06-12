@@ -178,7 +178,10 @@ void train_world(double dtime, World & dw, double step_size){
     int64_t m = m0;
     double ctime = 0.0;
     do {
-      if (rnk == 0) printf("executing p = %d n= %ld m = %ld ctime = %lf ddtime = %lf\n", dw.np, n, m, ctime, ddtime);
+
+      // if (rnk == 0)
+      printf("rank = %ld executing p = %d n= %ld m = %ld ", rnk, dw.np, n, m);
+
       train_dns_vec_mat(n, m, dw);
       train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
       train_sps_vec_mat(n+1, m-2, dw, 1, 0, 0);
@@ -196,7 +199,12 @@ void train_world(double dtime, World & dw, double step_size){
       n += 2;
       ctime = MPI_Wtime() - t_st;
       MPI_Allreduce(MPI_IN_PLACE, &ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
+
+      // if (rnk == 0)
+      printf("rank = %ld ctime = %lf ddtime = %lf\n", rnk, ctime, ddtime);
+
     } while (ctime < ddtime && m<= 1000000);
+
     if (niter <= 2 || n>=1000000) break;
     // n *= 1.7;
     n *= step_size;
@@ -232,11 +240,14 @@ void train_all(double time, World & dw, bool write_coeff, bool dump_data, std::s
     // Turn off all models
 
     for (int i=0; i<5; i++){
-      double step_size = 1.0 + 3.0 / pow(2.0, (double)i);
+      // TODO probably change it to 1.2 ^ x
+      double step_size = 1.0 + 2.0 / pow(2.0, (double)i);
        // std::cout<<"step size: "<<step_size<<std::endl;
       train_world(dtime, w, step_size);
       CTF_int::update_all_models(w.cdt.cm);
-      CTF_int::active_switch_all_models(1000, 0.15);
+
+      // TODO what should be the threshold
+      // CTF_int::active_switch_all_models(1000, 0.15);
       }
   }
    if(write_coeff)

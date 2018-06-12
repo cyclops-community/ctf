@@ -505,7 +505,29 @@ namespace CTF_int {
         regularization[i] = coeff_guess[i]*REG_LAMBDA;
       }*/
     }
+
+    // check to see if the model should be turned off
+
+    // First aggregrate the
+    double tot_time_total;
+    double over_time_total;
+    double under_time_total;
+    MPI_Allreduce(&tot_time, &tot_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
+    MPI_Allreduce(&over_time, &over_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
+    MPI_Allreduce(&under_time, &under_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
+    // std::cout<<"total time: "<<tot_time_total<<std::endl;
+    // std::cout<<"over time: "<<over_time_total<<std::endl;
+    // std::cout<<"under time: "<<under_time_total<<std::endl;
+
+    double under_time_ratio = under_time_total/tot_time_total;
+    double over_time_ratio = over_time_total/tot_time_total;
+    if (tot_nrcol >= 1000 && over_time_ratio < 0.20 && under_time_ratio < 0.20){
+      is_active = false;
+      std::cout<<"Model "<<name<<" has been turned off"<<std::endl;
+   }
+
 #endif
+
   }
 
   template <int nparam>
