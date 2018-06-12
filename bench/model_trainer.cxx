@@ -176,12 +176,8 @@ void train_world(double dtime, World & dw, double step_size){
     double t_st = MPI_Wtime();
     int niter = 0;
     int64_t m = m0;
-    double ctime = 0.0;
+    volatile double ctime = 0.0;
     do {
-
-      // if (rnk == 0)
-      printf("rank = %ld executing p = %d n= %ld m = %ld ", rnk, dw.np, n, m);
-
       train_dns_vec_mat(n, m, dw);
       train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
       train_sps_vec_mat(n+1, m-2, dw, 1, 0, 0);
@@ -198,10 +194,9 @@ void train_world(double dtime, World & dw, double step_size){
       m *= step_size;
       n += 2;
       ctime = MPI_Wtime() - t_st;
-      MPI_Allreduce(MPI_IN_PLACE, &ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
+      MPI_Allreduce(MPI_IN_PLACE, (void*)&ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
 
-      // if (rnk == 0)
-      printf("rank = %ld ctime = %lf ddtime = %lf\n", rnk, ctime, ddtime);
+      printf("rank = %d executing p = %d n= %ld m = %ld ctime = %lf ddtime = %lf\n", rnk, dw.np, n, m, ctime, ddtime);
 
     } while (ctime < ddtime && m<= 1000000);
 
@@ -241,7 +236,7 @@ void train_all(double time, World & dw, bool write_coeff, bool dump_data, std::s
 
     for (int i=0; i<5; i++){
       // TODO probably change it to 1.2 ^ x
-      double step_size = 1.0 + 2.0 / pow(2.0, (double)i);
+      double step_size = 1.0 + 1.5 / pow(2.0, (double)i);
        // std::cout<<"step size: "<<step_size<<std::endl;
       train_world(dtime/5, w, step_size);
       CTF_int::update_all_models(MPI_COMM_WORLD);
@@ -253,7 +248,10 @@ void train_all(double time, World & dw, bool write_coeff, bool dump_data, std::s
    if(write_coeff)
       CTF_int::write_all_models(coeff_file);
    if(dump_data){
-      CTF_int::dump_all_models(data_dir);
+      int rank, np;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &np);
+      CTF_int::dump_all_models(data_dir, MPI_COMM_WORLD);
    }
 
 }
@@ -312,7 +310,7 @@ int main(int argc, char ** argv){
   char * data_dir = getenv("MODEL_DATA_DIR");
   std::string data_dir_str;
   if(!data_dir){
-     data_dir_str = std::string("../src/shared/data");
+     data_dir_str = std::string("./src/shared/data");
   }
   else{
      data_dir_str = std::string(data_dir);

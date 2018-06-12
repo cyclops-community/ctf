@@ -3,6 +3,7 @@
 #include "../shared/blas_symbs.h"
 #include "model.h"
 #include "../shared/util.h"
+#include <iomanip>
 
 namespace CTF_int {
 
@@ -46,10 +47,10 @@ namespace CTF_int {
 #endif
   }
 
-  void dump_all_models(std::string path){
+  void dump_all_models(std::string path, MPI_Comm cm){
 #ifdef TUNE
     for (int i=0; i<get_all_models().size(); i++){
-      get_all_models()[i]->dump_data(path);
+      get_all_models()[i]->dump_data(path, cm);
     }
 #endif
   }
@@ -548,7 +549,7 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::print_uo(){
-    printf("%s is_tuned = %d (%ld) tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,nobs,tot_time,over_time,under_time);
+    printf("%s is_tuned = %d (%lld) tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,nobs,tot_time,over_time,under_time);
   }
 
 
@@ -643,7 +644,7 @@ namespace CTF_int {
         found_line = true;
 
         // Get the nparam coeffs
-        double coeff_from_file [nparam];
+        // double coeff_from_file [nparam];
         for(int i=0; i<nparam; i++){
           if(!std::getline(f,s,' ')){
             right_num_coeff = false;
@@ -678,29 +679,41 @@ namespace CTF_int {
     }
   }
 
-
   template <int nparam>
-  void LinModel<nparam>::dump_data(std::string path){
-      // Open the file
-      std::string model_name = std::string(name);
-      std::ofstream ofs;
-      ofs.open(path+"/"+model_name, std::ofstream::out | std::ofstream::trunc);
+  void LinModel<nparam>::dump_data(std::string path, MPI_Comm cm){
+     int rank = 0;
+     int np, my_rank;
+     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+     MPI_Comm_size(MPI_COMM_WORLD, &np);
+     while(rank < np){
+        if (rank == my_rank){
+         // Open the file
+         std::ofstream ofs;
+         std::string model_name = std::string(name);
+         ofs.open(path+"/"+model_name, std::ofstream::out | std::ofstream::app);
 
-      // Dump the model coeffs
-      for(int i=0; i<nparam; i++){
-        ofs<<coeff_guess[i]<<" ";
-      }
-      ofs<<"\n";
+         if (my_rank == 0){
+            // Dump the model coeffs
+            for(int i=0; i<nparam; i++){
+              ofs<<coeff_guess[i]<<" ";
+            }
+            ofs<<"\n";
+         }
 
-      // Dump the training data
-      int num_records = std::min(nobs, (int64_t)hist_size);
-      for(int i=0; i<num_records; i++){
-        for(int j=0; j<mat_lda; j++){
-          ofs<<time_param_mat[i*mat_lda+j]<<" ";
-        }
-        ofs<<"\n";
+         // Dump the training data
+         int num_records = std::min(nobs, (int64_t)hist_size);
+         for(int i=0; i<num_records; i++){
+            std::string instance = "";
+           for(int j=0; j<mat_lda; j++){
+             ofs<<time_param_mat[i*mat_lda+j]<<" ";
+           }
+           ofs<<"\n";
+         }
+         ofs.close();
       }
-      ofs.close();
+      rank++;
+      MPI_Barrier(cm);
+   }
   }
 
 
@@ -807,8 +820,8 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void CubicModel<nparam>::dump_data(std::string path){
-    lmdl.dump_data(path);
+  void CubicModel<nparam>::dump_data(std::string path, MPI_Comm cm){
+    lmdl.dump_data(path, cm);
   }
 
   template class CubicModel<1>;
