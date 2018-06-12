@@ -47,10 +47,10 @@ namespace CTF_int {
 #endif
   }
 
-  void dump_all_models(std::string path, MPI_Comm cm){
+  void dump_all_models(std::string path){
 #ifdef TUNE
     for (int i=0; i<get_all_models().size(); i++){
-      get_all_models()[i]->dump_data(path, cm);
+      get_all_models()[i]->dump_data(path);
     }
 #endif
   }
@@ -317,10 +317,10 @@ namespace CTF_int {
         int i_st = 0;
 
         //figure out the maximum execution time any observation recorded
-        double max_time = 0.0;
-        for (int i=0; i<ncol-nparam; i++){
-          max_time = std::max(time_param_mat[i*mat_lda],max_time);
-        }
+        // double max_time = 0.0;
+        // for (int i=0; i<ncol-nparam; i++){
+        //   max_time = std::max(time_param_mat[i*mat_lda],max_time);
+        // }
         /*for (int i=0; i<nparam; i++){
           R[nparam*i+i] = REG_LAMBDA;
         }*/
@@ -345,7 +345,7 @@ namespace CTF_int {
           i_st = nparam;
         }
         //find the max execution time over all processors
-        MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
+        // MPI_Allreduce(MPI_IN_PLACE, &max_time, 1, MPI_DOUBLE, MPI_MAX, cm);
         //double chunk = max_time / 1000.;
         //printf("%s chunk = %+1.2e\n",name,chunk);
 
@@ -434,7 +434,7 @@ namespace CTF_int {
         cdealloc(tau);
         cdealloc(A);
       }
-      int sub_np = std::min(np,32);
+      int sub_np = np; //std::min(np,32);
       MPI_Comm sub_comm;
       MPI_Comm_split(cm, rk<sub_np, rk, &sub_comm);
       //use only data from the first 32 processors, so that this doesn't take too long
@@ -509,20 +509,38 @@ namespace CTF_int {
 
     // check to see if the model should be turned off
 
-    // First aggregrate the
+    // first aggregrate the training records of all models
     double tot_time_total;
     double over_time_total;
     double under_time_total;
     MPI_Allreduce(&tot_time, &tot_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
     MPI_Allreduce(&over_time, &over_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
     MPI_Allreduce(&under_time, &under_time_total, 1, MPI_DOUBLE, MPI_SUM, cm);
-    // std::cout<<"total time: "<<tot_time_total<<std::endl;
-    // std::cout<<"over time: "<<over_time_total<<std::endl;
-    // std::cout<<"under time: "<<under_time_total<<std::endl;
 
+
+    // NOTE: to change the minimum number of observations and the threshold,
+    // one needs to change the environment variable MIN_OBS and THRESHOLD before running model_trainer
+
+    // get the minimum observations required and threshold
+    int min_obs = 1000;
+    char * min_obs_env = getenv("MIN_OBS");
+    if(min_obs_env){
+      min_obs = std::stoi(min_obs_env);
+    }
+
+    // get the threshold for turning off the model
+    double threshold = 0.2;
+    char * threshold_env = getenv("THRESHOLD");
+    if (threshold_env){
+      threshold = std::stod(threshold_env);
+   }
+
+   // determine whether the model should be turned off
     double under_time_ratio = under_time_total/tot_time_total;
     double over_time_ratio = over_time_total/tot_time_total;
-    if (tot_nrcol >= 1000 && over_time_ratio < 0.20 && under_time_ratio < 0.20){
+
+
+    if (tot_nrcol >= min_obs && over_time_ratio < threshold && threshold < threshold){
       is_active = false;
       std::cout<<"Model "<<name<<" has been turned off"<<std::endl;
    }
@@ -560,6 +578,10 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::write_coeff(std::string file_name){
+     int my_rank;
+     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+     // Only first process needs to dump the coefficient
+     if (my_rank) return;
 
      // Generate the model name
      std::string model_name = std::string(name);
@@ -680,7 +702,7 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void LinModel<nparam>::dump_data(std::string path, MPI_Comm cm){
+  void LinModel<nparam>::dump_data(std::string path){
      int rank = 0;
      int np, my_rank;
      MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -712,7 +734,7 @@ namespace CTF_int {
          ofs.close();
       }
       rank++;
-      MPI_Barrier(cm);
+      MPI_Barrier(MPI_COMM_WORLD);
    }
   }
 
@@ -820,8 +842,8 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void CubicModel<nparam>::dump_data(std::string path, MPI_Comm cm){
-    lmdl.dump_data(path, cm);
+  void CubicModel<nparam>::dump_data(std::string path){
+    lmdl.dump_data(path);
   }
 
   template class CubicModel<1>;

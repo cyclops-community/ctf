@@ -171,7 +171,6 @@ void train_world(double dtime, World & dw, double step_size){
   // ddtime = dime / (10*log(dtime)), which is a function that increase really slow
   int rnk;
   MPI_Comm_rank(MPI_COMM_WORLD, &rnk);
-//  printf("ddtime = %lf\n", ddtime);
   for (;;){
     double t_st = MPI_Wtime();
     int niter = 0;
@@ -218,41 +217,107 @@ void frize(std::set<int> & ps, int p){
   }
 }
 
-void train_all(double time, World & dw, bool write_coeff, bool dump_data, std::string coeff_file, std::string data_dir){
-  std::set<int> ps;
-  frize(ps, dw.np);
+void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_file, std::string data_dir){
+  World dw(MPI_COMM_WORLD);
+  int np = dw.np;
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  std::set<int>::iterator it;
-  double dtime = time/ps.size();
-  for (it=ps.begin(); it!=ps.end(); it++){
-    int np = *it;
-    int mw = dw.rank/np;
-    int mr = dw.rank%np;
-    int cm;
-    MPI_Comm_split(dw.comm, mw, mr, &cm);
-    World w(cm);
+  /* compute membership for each process
+  first process belongs to group 0
+  next 2 belong to group 1
+  next 4 belong to group 2
+  next 8 belong to group 3
+  and so on
+  */
 
-    // Turn off all models
+  int color = (int)log2(rank + 1);
+  int key = rank + 1 - (1<<color);
 
-    for (int i=0; i<5; i++){
-      // TODO probably change it to 1.2 ^ x
+  // split out the communicator
+  int cm;
+  MPI_Comm_split(dw.comm, color, key, &cm);
+  World w(cm);
+
+   // number of iterations for training
+   int num_iterations = 5;
+
+   // control how much dtime should be increased upon each iteration
+   // dtime = dtime * time_dump at the end of each iteration
+   double time_jump = 1.5;
+
+   double dtime = (time / (1- 1/time_jump)) / pow(time_jump, num_iterations - 1.0);
+    for (int i=0; i<num_iterations; i++){
+      // TODO probably need to adjust
       double step_size = 1.0 + 1.5 / pow(2.0, (double)i);
-       // std::cout<<"step size: "<<step_size<<std::endl;
-      train_world(dtime/5, w, step_size);
+      // discard the last process
+      if (rank != np - 1 || np == 1){
+         train_world(dtime/5, w, step_size);
+         CTF_int::update_all_models(cm);
+      }
+
+      if (rank != np - 1 || np == 1)
+         train_world(dtime/5, w, step_size);
+      CTF_int::update_all_models(MPI_COMM_WORLD);
+      if (rank != np - 1 || np == 1){
+         train_world(dtime/5, w, step_size);
+         CTF_int::update_all_models(cm);
+      }
+
+      if (rank != np - 1 || np == 1)
+         train_world(dtime/5, w, step_size);
+      CTF_int::update_all_models(MPI_COMM_WORLD);
+      train_world(dtime/5, dw, step_size);
       CTF_int::update_all_models(MPI_COMM_WORLD);
 
-      // TODO what should be the threshold
-      // CTF_int::active_switch_all_models(1000, 0.15);
-      }
-  }
+      // double dtime for next iteration
+      dtime *= time_jump;
+   }
+
+
    if(write_coeff)
       CTF_int::write_all_models(coeff_file);
    if(dump_data){
       int rank, np;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &np);
-      CTF_int::dump_all_models(data_dir, MPI_COMM_WORLD);
+      CTF_int::dump_all_models(data_dir);
    }
+
+
+
+  //  std::set<int> ps;
+  //  frize(ps, dw.np);
+  // std::set<int>::iterator it;
+  // double dtime = time/ps.size();
+  // for (it=ps.begin(); it!=ps.end(); it++){
+  //   int np = *it;
+  //   int mw = dw.rank/np;
+  //   int mr = dw.rank%np;
+  //   int cm;
+  //   MPI_Comm_split(dw.comm, mw, mr, &cm);
+  //   World w(cm);
+  //
+  //
+  //   for (int i=0; i<5; i++){
+  //     // TODO probably change it to 1.2 ^ x
+  //     double step_size = 1.0 + 1.5 / pow(2.0, (double)i);
+  //      // std::cout<<"step size: "<<step_size<<std::endl;
+  //     train_world(dtime/5, w, step_size);
+  //     CTF_int::update_all_models(MPI_COMM_WORLD);
+  //
+  //     // TODO what should be the threshold
+  //     // CTF_int::active_switch_all_models(1000, 0.15);
+  //     }
+  // }
+  //  if(write_coeff)
+  //     CTF_int::write_all_models(coeff_file);
+  //  if(dump_data){
+  //     int rank, np;
+  //     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  //     MPI_Comm_size(MPI_COMM_WORLD, &np);
+  //     CTF_int::dump_all_models(data_dir, MPI_COMM_WORLD);
+  //  }
 
 }
 
@@ -304,6 +369,7 @@ int main(int argc, char ** argv){
   bool dump_data = false;
 
   if(std::find(input_str, input_str+in_num, std::string("-write")) != input_str + in_num){
+     std::cout<<"The write flag is turned on"<<std::endl;
      write_coeff = true;
   }
 
@@ -326,7 +392,7 @@ int main(int argc, char ** argv){
     if (rank == 0){
       printf("Executing a wide set of contractions to train model with time budget of %lf sec\n", time);
     }
-    train_all(time, dw, write_coeff, dump_data, coeff_file, data_dir_str);
+    train_all(time, write_coeff, dump_data, coeff_file, data_dir_str);
   }
 
 

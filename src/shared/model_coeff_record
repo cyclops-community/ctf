@@ -1,0 +1,38 @@
+csrred_mdl 3.7005E-05 1.1854E-04 5.5165E-09
+csrred_mdl_cst -1.8323E-04 1.3076E-04 2.8732E-09
+alltoall_mdl 1.0000E-06 1.0000E-06 5.0000E-10
+alltoallv_mdl 6.0399E-14 0.0000E+00 1.0497E-10
+red_mdl 6.2935E-07 4.6276E-06 9.2245E-10
+red_mdl_cst 5.7302E-07 4.7347E-06 6.0191E-10
+allred_mdl 6.0572E-13 0.0000E+00 2.4229E-12
+allred_mdl_cst -3.3754E-04 2.1343E-04 3.0801E-09
+bcast_mdl 1.5045E-06 1.4485E-05 3.2876E-09
+seq_tsr_ctr_mdl_cst 1.8155E-13 2.0887E-09 3.5026E-09
+seq_tsr_ctr_mdl_ref 1.3268E-13 3.7712E-10 3.1427E-11
+seq_tsr_ctr_mdl_inr 8.6689E-14 4.1927E-10 -2.0450E-11
+seq_tsr_ctr_mdl_off 6.2925E-05 1.7449E-11 1.7211E-12
+seq_tsr_ctr_mdl_cst_inr 1.3863E-04 2.0119E-10 9.8820E-09
+seq_tsr_ctr_mdl_cst_off 8.4844E-04 -5.9246E-11 3.5247E-10
+dgtog_res_mdl 2.9786E-05 2.4335E-04 1.0845E-08
+long_contig_transp_mdl 2.9158E-10 3.0501E-09
+shrt_contig_transp_mdl 1.3427E-08 4.3168E-09
+non_contig_transp_mdl 8.3584E-13 1.2532E-09
+blres_mdl 1.0598E-05 7.2741E-08
+seq_tsr_spctr_cst_off_k0 5.3745E-06 3.6464E-08 2.2334E-10
+seq_tsr_spctr_cst_off_k1 5.3745E-06 3.6464E-08 2.2334E-10
+seq_tsr_spctr_cst_off_k2 -2.1996E-04 3.1883E-09 3.8743E-11
+seq_tsr_spctr_off_k0 8.6970E-06 4.5598E-11 1.1544E-09
+seq_tsr_spctr_off_k1 5.3745E-06 3.6464E-08 2.2334E-10
+seq_tsr_spctr_off_k2 5.3745E-06 3.6464E-08 2.2334E-10
+seq_tsr_spctr_cst_k0 5.3745E-06 3.6464E-08 2.2334E-10
+seq_tsr_spctr_cst_k1 5.3745E-06 3.6464E-08 2.2334E-10
+seq_tsr_spctr_cst_k2 7.5571E-15 1.2818E-10 8.8639E-12
+seq_tsr_spctr_cst_k3 1.8122E-15 7.5325E-11 1.2625E-12
+seq_tsr_spctr_cst_k4 -3.5313E-15 6.5734E-10 -2.5000E-11
+seq_tsr_spctr_k0 3.1829E-14 1.2115E-10 4.2441E-11
+seq_tsr_spctr_k1 5.3745E-06 3.6464E-08 2.2334E-10
+seq_tsr_spctr_k2 6.3539E-14 5.9358E-11 -4.1153E-14
+seq_tsr_spctr_k3 4.6297E-15 4.3782E-11 2.8027E-11
+seq_tsr_spctr_k4 2.6184E-14 3.7267E-10 -1.9817E-12
+pin_keys_mdl 3.1189E-09 6.6717E-08
+spredist_mdl 1.2744E-04 1.0278E-03 7.6837E-08

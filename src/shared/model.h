@@ -16,7 +16,7 @@ namespace CTF_int {
       virtual void print_uo(){};
       virtual void load_coeff(std::string file_name){};
       virtual void write_coeff(std::string file_name){};
-      virtual void dump_data(std::string path, MPI_Comm cm){};
+      virtual void dump_data(std::string path){};
       virtual void active_switch(int min_obs, double threshold){};
   };
 
@@ -24,7 +24,7 @@ namespace CTF_int {
   void print_all_models();
   void load_all_models(std::string file_name);
   void write_all_models(std::string file_name);
-  void dump_all_models(std::string path, MPI_Comm cm);
+  void dump_all_models(std::string path);
   void active_switch_all_models(int min_obs, double threshold);
 
   /**
@@ -137,7 +137,7 @@ namespace CTF_int {
       /**
        * \brief dump model data to a file
        */
-      void dump_data(std::string path, MPI_Comm cm);
+      void dump_data(std::string path);
   };
 
   /**
@@ -222,7 +222,7 @@ namespace CTF_int {
        * \brief write model coefficients to file
        * \param[in] path the path that we wish to dump all files to
        */
-      void dump_data(std::string path, MPI_Comm cm);
+      void dump_data(std::string path);
 
   };
 
