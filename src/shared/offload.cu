@@ -29,15 +29,15 @@ namespace CTF_int{
   #define TAU_FSTART(ARG)
   #define TAU_FSTOP(ARG)
   #endif
-  
+
   #define ABORT                                   \
     do{                                           \
      assert(0); } while (0)
-  
+
 #ifdef USE_CUDA
   int initialized = 0;
   cublasHandle_t cuhandle;
-  
+
   void offload_init(){
     if (!initialized){
       int ndev=0;
@@ -49,7 +49,7 @@ namespace CTF_int{
     }
     initialized = 1;
   }
-  
+
   void offload_exit(){
     if (initialized){
       cublasStatus_t status = cublasDestroy(cuhandle);
@@ -57,12 +57,12 @@ namespace CTF_int{
       initialized = 0;
     }
   }
-  
+
   offload_tsr::offload_tsr(algstrct const * sr_, int64_t size_) : offload_arr(size_*sr_->el_size) {
     sr = sr_;
     size = size_;
   }
-  
+
   /*offload_tsr::~offload_tsr(){
   }*/
 
@@ -78,17 +78,17 @@ namespace CTF_int{
     double ps[] = {1.0, (double)size};
     return upload_mdl.est_time(ps);
   }
-  
-  
+
+
   template <typename dtype>
   __global__ void gset_zero(dtype *arr, int64_t size, dtype val) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  
+
     for (int i=idx; i<size; i+= gridDim.x*blockDim.x) {
       arr[i]=val;
     }
   }
-  
+
   void offload_tsr::set_zero(){
     int blockSize = 256;
     int numBlocks = (size + blockSize - 1) / (size);
@@ -110,7 +110,7 @@ namespace CTF_int{
     TAU_FSTOP(set_zero);
   }
 
- 
+
   offload_arr::offload_arr(int64_t nbytes_){
     nbytes = nbytes_;
     TAU_FSTART(offload_malloc);
@@ -118,7 +118,7 @@ namespace CTF_int{
     TAU_FSTOP(offload_malloc);
     assert(err == cudaSuccess);
   }
-  
+
   offload_arr::~offload_arr(){
     TAU_FSTART(offload_free);
     cudaError_t err = cudaFree(dev_spr);
@@ -126,8 +126,9 @@ namespace CTF_int{
     assert(err == cudaSuccess);
   }
 
- 
+
   void offload_arr::download(char * host_spr){
+     // not-quite-sure
     assert(initialized);
     TAU_FSTART(cuda_download);
     double st_time = MPI_Wtime();
@@ -139,8 +140,9 @@ namespace CTF_int{
     TAU_FSTOP(cuda_download);
     assert(err == cudaSuccess);
   }
-  
+
   void offload_arr::upload(char const * host_spr){
+     // not-quite-sure
     TAU_FSTART(cuda_upload);
     double st_time = MPI_Wtime();
     cudaError_t err = cudaMemcpy(dev_spr, host_spr, nbytes,
@@ -152,16 +154,16 @@ namespace CTF_int{
     TAU_FSTOP(cuda_upload);
     assert(err == cudaSuccess);
   }
-  
 
-  
+
+
   void host_pinned_alloc(void ** ptr, int64_t size){
     TAU_FSTART(host_pinned_malloc);
     cudaError_t err = cudaHostAlloc(ptr, size, cudaHostAllocMapped);
     TAU_FSTOP(host_pinned_malloc);
     assert(err == cudaSuccess);
   }
-  
+
   void host_pinned_free(void * ptr){
     TAU_FSTART(host_pinned_free);
     cudaError_t err = cudaFreeHost(ptr);
@@ -169,9 +171,9 @@ namespace CTF_int{
     assert(err == cudaSuccess);
   }
 #endif
- 
 
-  template 
+
+  template
   void offload_gemm(char          tA,
                     char          tB,
                     int           m,
@@ -185,7 +187,7 @@ namespace CTF_int{
                     double        beta,
                     offload_tsr & C,
                     int           lda_C);
-  template 
+  template
   void offload_gemm(char                 tA,
                     char                 tB,
                     int                  m,
@@ -216,8 +218,8 @@ namespace CTF_int{
                             int            lda_C){
   #ifdef USE_CUDA
     assert(initialized);
-  
-    cublasOperation_t cuA;  
+
+    cublasOperation_t cuA;
     switch (tA){
       case 'n':
       case 'N':
@@ -227,8 +229,8 @@ namespace CTF_int{
       case 'T':
         cuA = CUBLAS_OP_T;
         break;
-    }  
-  
+    }
+
     cublasOperation_t cuB;
     switch (tB){
       case 'n':
@@ -239,22 +241,22 @@ namespace CTF_int{
       case 'T':
         cuB = CUBLAS_OP_T;
         break;
-    }  
-  
-    cublasStatus_t status = 
-      cublasDgemm(cuhandle, cuA, cuB, m, n, k, &alpha, 
-                  dev_A, lda_A, 
-                  dev_B, lda_B, &beta, 
+    }
+
+    cublasStatus_t status =
+      cublasDgemm(cuhandle, cuA, cuB, m, n, k, &alpha,
+                  dev_A, lda_A,
+                  dev_B, lda_B, &beta,
                   dev_C, lda_C);
   #ifdef PROFILE
     cudaDeviceSynchronize();
   #endif
-    
+
     assert(status == CUBLAS_STATUS_SUCCESS);
-  #endif  
+  #endif
   }
-  
-  
+
+
   template <>
   void offload_gemm< std::complex<double> >(
                            char                         tA,
@@ -272,8 +274,8 @@ namespace CTF_int{
                            int                          lda_C){
   #ifdef USE_CUDA
     assert(initialized);
-    
-    cublasOperation_t cuA;  
+
+    cublasOperation_t cuA;
     switch (tA){
       case 'n':
       case 'N':
@@ -287,8 +289,8 @@ namespace CTF_int{
       case 'C':
         cuA = CUBLAS_OP_C;
         break;
-    }  
-  
+    }
+
     cublasOperation_t cuB;
     switch (tB){
       case 'n':
@@ -303,26 +305,26 @@ namespace CTF_int{
       case 'C':
         cuB = CUBLAS_OP_C;
         break;
-    }  
-  
+    }
+
     TAU_FSTART(cublas_zgemm);
-    cublasStatus_t status = 
-      cublasZgemm(cuhandle, cuA, cuB, m, n, k, 
-                  reinterpret_cast<cuDoubleComplex*>(&alpha), 
-                  reinterpret_cast<const cuDoubleComplex*>(dev_A), lda_A, 
-                  reinterpret_cast<const cuDoubleComplex*>(dev_B), lda_B, 
-                  reinterpret_cast<cuDoubleComplex*>(&beta), 
+    cublasStatus_t status =
+      cublasZgemm(cuhandle, cuA, cuB, m, n, k,
+                  reinterpret_cast<cuDoubleComplex*>(&alpha),
+                  reinterpret_cast<const cuDoubleComplex*>(dev_A), lda_A,
+                  reinterpret_cast<const cuDoubleComplex*>(dev_B), lda_B,
+                  reinterpret_cast<cuDoubleComplex*>(&beta),
                   reinterpret_cast<cuDoubleComplex*>(dev_C), lda_C);
   #ifdef PROFILE
     cudaDeviceSynchronize();
   #endif
     TAU_FSTOP(cublas_zgemm);
-    
+
     assert(status == CUBLAS_STATUS_SUCCESS);
     assert(status == CUBLAS_STATUS_SUCCESS);
   #endif
   }
- 
+
   template <typename dtype>
   void offload_gemm(char           tA,
                     char           tB,

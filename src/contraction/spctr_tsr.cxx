@@ -9,7 +9,7 @@
 #include "../sparse_formats/csr.h"
 #include "../tensor/untyped_tensor.h"
 
-namespace CTF_int {  
+namespace CTF_int {
   spctr::spctr(contraction const * c)
     : ctr(c) {
     is_sparse_A = c->A->is_sparse;
@@ -35,8 +35,8 @@ namespace CTF_int {
                                int *               virt_blk_len_C,
                                int64_t             vrt_sz_C)
         : spctr(c) {
-     
-    int i, j, k; 
+
+    int i, j, k;
     int * new_sym_A, * new_sym_B, * new_sym_C;
     CTF_int::alloc_ptr(sizeof(int)*c->A->order, (void**)&new_sym_A);
     memcpy(new_sym_A, c->A->sym, sizeof(int)*c->A->order);
@@ -155,7 +155,7 @@ namespace CTF_int {
   seq_tsr_spctr::seq_tsr_spctr(spctr * other) : spctr(other) {
     seq_tsr_spctr * o = (seq_tsr_spctr*)other;
     alpha = o->alpha;
-    
+
     order_A       = o->order_A;
     idx_map_A     = o->idx_map_A;
     sym_A         = (int*)CTF_int::alloc(sizeof(int)*order_A);
@@ -189,9 +189,9 @@ namespace CTF_int {
 
 
   int64_t seq_tsr_spctr::spmem_fp(){ return 0; }
-  
+
   double seq_tsr_spctr::est_fp(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
-    int idx_max, * rev_idx_map; 
+    int idx_max, * rev_idx_map;
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
             order_C,       idx_map_C,
@@ -227,7 +227,7 @@ namespace CTF_int {
     if (is_sparse_A) size_A *= nnz_frac_A*10;
     if (is_sparse_B) size_B *= nnz_frac_B*10;
     if (is_sparse_C) size_C *= nnz_frac_C*10;
-   
+
     return size_A+size_B+size_C;
   }
 
@@ -248,7 +248,7 @@ namespace CTF_int {
   LinModel<3> seq_tsr_spctr_k3(seq_tsr_spctr_k3_init,"seq_tsr_spctr_k3");
   LinModel<3> seq_tsr_spctr_k4(seq_tsr_spctr_k4_init,"seq_tsr_spctr_k4");
 
-  double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
+  double seq_tsr_spctr::est_time_fp(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
 //    return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
     double ps[] = {1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C)};
     switch (krnl_type){
@@ -310,7 +310,7 @@ namespace CTF_int {
     return 0.0;
   }
 
-  double seq_tsr_spctr::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){ 
+  double seq_tsr_spctr::est_time_rec(int nlyr, double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     return est_time_fp(nlyr, nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
 
@@ -318,6 +318,9 @@ namespace CTF_int {
                           char * B, int nblk_B, int64_t const * size_blk_B,
                           char * C, int nblk_C, int64_t * size_blk_C,
                           char *& new_C){
+
+   // not-quite-sure
+
     ASSERT(idx_lyr == 0 && num_lyr == 1);
     ASSERT(nblk_A == 1);
     ASSERT(nblk_B == 1);
@@ -336,6 +339,89 @@ namespace CTF_int {
     }
 
     new_C = C;
+
+    // Check if this function should be executed
+
+    bool sr = true;
+
+    // Generate tps
+    double nnz_frac_A = 1.0, nnz_frac_B = 1.0, nnz_frac_C = 1.0;
+    if (is_sparse_A){
+      nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
+      for (int i=0; i<order_A; i++){
+        nnz_frac_A = nnz_frac_A / edge_len_A[i];
+      }
+    }
+    if (is_sparse_B){
+      nnz_frac_B = size_blk_B[0]/sr_B->pair_size();
+      for (int i=0; i<order_B; i++){
+        nnz_frac_B = nnz_frac_B / edge_len_B[i];
+      }
+    }
+    if (krnl_type > 0){
+      if (is_sparse_A) nnz_frac_A = nnz_frac_A / (inner_params.m*inner_params.k);
+      if (is_sparse_B) nnz_frac_B = nnz_frac_B / (inner_params.k*inner_params.n);
+      if (is_sparse_C) nnz_frac_C = std::min(1.0,nnz_frac_A*nnz_frac_B*inner_params.k / (inner_params.k*inner_params.n));
+
+    }
+    double tps_[] = {0.0, 1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
+
+   switch (krnl_type){
+      case 0:
+        if (is_custom){
+          sr = seq_tsr_spctr_cst_k0.should_observe(tps_);
+        } else {
+          sr = seq_tsr_spctr_k0.should_observe(tps_);
+        }
+        break;
+      case 1:
+        if (is_custom){
+          if (inner_params.offload)
+            sr = seq_tsr_spctr_cst_off_k1.should_observe(tps_);
+          else
+            sr = seq_tsr_spctr_cst_k1.should_observe(tps_);
+        } else {
+          if (inner_params.offload)
+            sr = seq_tsr_spctr_off_k1.should_observe(tps_);
+          else
+            sr = seq_tsr_spctr_k1.should_observe(tps_);
+        }
+        break;
+      case 2:
+        if (is_custom){
+          if (inner_params.offload)
+            sr = seq_tsr_spctr_cst_off_k2.should_observe(tps_);
+          else
+            sr = seq_tsr_spctr_cst_k2.should_observe(tps_);
+        } else {
+          if (inner_params.offload)
+            sr = seq_tsr_spctr_off_k2.should_observe(tps_);
+          else
+            sr = seq_tsr_spctr_k2.should_observe(tps_);
+        }
+        break;
+      case 3:
+        if (is_custom){
+          sr = seq_tsr_spctr_cst_k3.should_observe(tps_);
+        } else {
+          sr = seq_tsr_spctr_k3.should_observe(tps_);
+        }
+        break;
+      case 4:
+        if (is_custom){
+           // to-be-complete
+           // should always observe
+          //seq_tsr_spctr_cst_k4.observe(tps);
+          sr = true;
+        } else {
+          sr = seq_tsr_spctr_k4.should_observe(tps_);
+        }
+        break;
+    }
+
+    if(!sr){
+      return;
+   }
 
     switch (krnl_type){
       case 0:
@@ -413,7 +499,9 @@ namespace CTF_int {
       }
       break;
     }
-    double nnz_frac_A = 1.0, nnz_frac_B = 1.0, nnz_frac_C = 1.0;
+    nnz_frac_A = 1.0;
+    nnz_frac_B = 1.0;
+    nnz_frac_C = 1.0;
     if (is_sparse_A){
       nnz_frac_A = size_blk_A[0]/sr_A->pair_size();
       for (int i=0; i<order_A; i++){
@@ -430,9 +518,9 @@ namespace CTF_int {
       if (is_sparse_A) nnz_frac_A = nnz_frac_A / (inner_params.m*inner_params.k);
       if (is_sparse_B) nnz_frac_B = nnz_frac_B / (inner_params.k*inner_params.n);
       if (is_sparse_C) nnz_frac_C = std::min(1.0,nnz_frac_A*nnz_frac_B*inner_params.k / (inner_params.k*inner_params.n));
-    
+
     }
-    
+
     double exe_time = MPI_Wtime() - st_time;
     double tps[] = {exe_time, 1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
     switch (krnl_type){
@@ -478,6 +566,8 @@ namespace CTF_int {
         break;
       case 4:
         if (is_custom){
+           // to-be-complete
+           // should always observe
           seq_tsr_spctr_cst_k4.observe(tps);
         } else {
           seq_tsr_spctr_k4.observe(tps);
@@ -578,9 +668,9 @@ namespace CTF_int {
     int * idx_arr, * tidx_arr, * lda_A, * lda_B, * lda_C, * beta_arr;
     int * ilda_A, * ilda_B, * ilda_C;
     int64_t i, off_A, off_B, off_C;
-    int nb_A, nb_B, nb_C, alloced, ret; 
+    int nb_A, nb_B, nb_C, alloced, ret;
 
-    /*if (this->buffer != NULL){    
+    /*if (this->buffer != NULL){
       alloced = 0;
       idx_arr = (int*)this->buffer;
     } else {*/
@@ -589,7 +679,7 @@ namespace CTF_int {
       ASSERT(ret==0);
 //    }
 
-    
+
     lda_A = idx_arr + VIRT_NTD*num_dim;
     lda_B = lda_A + order_A;
     lda_C = lda_B + order_B;
@@ -613,8 +703,8 @@ namespace CTF_int {
     SET_LDA_X(B);
     SET_LDA_X(C);
   #undef SET_LDA_X
-   
-    /* dynammically determined size */ 
+
+    /* dynammically determined size */
     beta_arr = (int*)CTF_int::alloc(sizeof(int)*nb_C);
     memset(beta_arr, 0, nb_C*sizeof(int));
 
@@ -649,11 +739,11 @@ namespace CTF_int {
         else
           sp_offsets_C[i] = sp_offsets_C[i-1]+size_blk_C[i-1];
         buckets_C[i] = C + sp_offsets_C[i];
-      }      
+      }
     }
 
   #if (VIRT_NTD>1)
-//  #pragma omp parallel private(off_A,off_B,off_C,tidx_arr,i) 
+//  #pragma omp parallel private(off_A,off_B,off_C,tidx_arr,i)
   #endif
     {
       int tid, ntd, start_off, end_off;
@@ -685,7 +775,7 @@ namespace CTF_int {
           tid_rec_ctr = rec_ctr->clone();
         else
           tid_rec_ctr = rec_ctr;
-        
+
         tid_rec_ctr->num_lyr = this->num_lyr;
         tid_rec_ctr->idx_lyr = this->idx_lyr;
 
@@ -708,7 +798,7 @@ namespace CTF_int {
             if (beta_arr[off_C]>0)
               rec_ctr->beta = sr_C->mulid();
             else
-              rec_ctr->beta = this->beta; 
+              rec_ctr->beta = this->beta;
             bool do_dealloc = beta_arr[off_C] > 0;
             beta_arr[off_C] = 1;
             char * pass_C = is_sparse_C ? buckets_C[off_C] : rec_C;
@@ -778,7 +868,7 @@ namespace CTF_int {
     cdealloc(virt_dim);
     cdealloc(phys_rank);
   }
-  
+
   spctr_pin_keys::spctr_pin_keys(spctr * other) : spctr(other) {
     spctr_pin_keys * o = (spctr_pin_keys*)other;
 
@@ -800,7 +890,7 @@ namespace CTF_int {
 
   void spctr_pin_keys::print(){
     printf("spctr_pin_keys:\n");
-    switch (AxBxC){ 
+    switch (AxBxC){
       case 0:
         printf("transforming global keys of A to local keys\n");
         break;
@@ -829,10 +919,10 @@ namespace CTF_int {
       {
         mem_usage += dns_blk_sz*nnz_frac_C*sr_C->pair_size();
       }
-    } 
+    }
     return mem_usage;
   }
-  
+
   int64_t spctr_pin_keys::spmem_rec(double nnz_frac_A, double nnz_frac_B, double nnz_frac_C){
     return spmem_fp(nnz_frac_A, nnz_frac_B, nnz_frac_C) + rec_ctr->spmem_rec(nnz_frac_A, nnz_frac_B, nnz_frac_C);
   }
@@ -840,7 +930,7 @@ namespace CTF_int {
   spctr_pin_keys::spctr_pin_keys(contraction const * s, int AxBxC_) : spctr(s) {
     tensor * X = NULL;
     AxBxC = AxBxC_;
-    switch (AxBxC){ 
+    switch (AxBxC){
       case 0:
         X = s->A;
         dns_blk_sz = s->A->size;
@@ -903,7 +993,7 @@ namespace CTF_int {
     char * X = NULL;
     algstrct const * sr = NULL;
     int64_t nnz = 0;
-    switch (AxBxC){ 
+    switch (AxBxC){
       case 0:
         X = A;
         sr = this->sr_A;
@@ -960,7 +1050,7 @@ namespace CTF_int {
     double exe_time = MPI_Wtime()-st_time;
     double tps[] = {exe_time, 1.0, (double)nnz};
     pin_keys_mdl.observe(tps);
-    
+
     TAU_FSTOP(spctr_pin_keys);
     rec_ctr->run(nA, nblk_A, size_blk_A,
                  nB, nblk_B, size_blk_B,

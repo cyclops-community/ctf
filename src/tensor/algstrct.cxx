@@ -114,7 +114,7 @@ namespace CTF_int {
     el_size = el_size_;
     has_coo_ker = false;
   }
-  
+
 
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
@@ -129,8 +129,8 @@ namespace CTF_int {
     assert(0);
     return MPI_CHAR;
   }
-  
-  
+
+
 
   char const * algstrct::addid() const {
     return NULL;
@@ -292,7 +292,7 @@ namespace CTF_int {
   bool algstrct::is_offloadable() const {
     return false;
   }
- 
+
   bool algstrct::isequal(char const * a, char const * b) const {
     if (a == NULL && b == NULL) return true;
     if (a == NULL || b == NULL) return false;
@@ -307,7 +307,7 @@ namespace CTF_int {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
   }
-      
+
   void algstrct::csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs) const {
     printf("CTF ERROR: cannot convert elements of this algebraic structure to CSR\n");
     ASSERT(0);
@@ -319,7 +319,7 @@ namespace CTF_int {
 
     return CTF_int::CSR_Matrix::csr_add(cA, cB, this);
   }
-  
+
   char * algstrct::csr_reduce(char * cA, int root, MPI_Comm cm) const {
     int r, p;
     MPI_Comm_rank(cm, &r);
@@ -334,10 +334,10 @@ namespace CTF_int {
     MPI_Comm rcm;
     MPI_Comm_split(cm, r/s, sr, &scm);
     MPI_Comm_split(cm, sr, r/s, &rcm);
-    
+
     CSR_Matrix A(cA);
     int64_t sz_A = A.size();
-    char * parts_buffer; 
+    char * parts_buffer;
     CSR_Matrix ** parts = (CSR_Matrix**)alloc(sizeof(CSR_Matrix*)*s);
     A.partition(s, &parts_buffer, parts);
     //MPI_Request reqs[2*(s-1)];
@@ -357,7 +357,7 @@ namespace CTF_int {
       tot_rcv_sz += rcv_szs[i];
     }
     char * rcv_buf = (char*)alloc(tot_rcv_sz);
-  
+
     char * smnds[s];
     int rcv_displs[s];
     int snd_displs[s];
@@ -395,14 +395,14 @@ namespace CTF_int {
     for (int z=1; z<s; z<<=1){
       for (int i=0; i<s-z; i+=2*z){
         char * csr_new = csr_add(smnds[i], smnds[i+z]);
-        if ((smnds[i] < parts_buffer || 
+        if ((smnds[i] < parts_buffer ||
              smnds[i] > parts_buffer+tot_buf_size) &&
-            (smnds[i] < rcv_buf || 
+            (smnds[i] < rcv_buf ||
              smnds[i] > rcv_buf+tot_rcv_sz))
           cdealloc(smnds[i]);
-        if ((smnds[i+z] < parts_buffer || 
+        if ((smnds[i+z] < parts_buffer ||
              smnds[i+z] > parts_buffer+tot_buf_size) &&
-            (smnds[i+z] < rcv_buf || 
+            (smnds[i+z] < rcv_buf ||
              smnds[i+z] > rcv_buf+tot_rcv_sz))
           cdealloc(smnds[i+z]);
         smnds[i] = csr_new;
@@ -443,6 +443,8 @@ namespace CTF_int {
         cdealloc(cb_bufs);
         double t_end = MPI_Wtime() - t_st;
         double tps[] = {t_end, 1.0, log2((double)p), (double)sz_A};
+
+        // note-quite-sure
         csrred_mdl.observe(tps);
         TAU_FSTOP(csr_reduce);
         return out.all_data;
@@ -465,14 +467,14 @@ namespace CTF_int {
     double ps[] = {1.0, log2((double)cdt->np), (double)msg_sz};
     return csrred_mdl.est_time(ps);
   }
-      
+
   void algstrct::acc(char * b, char const * beta, char const * a, char const * alpha) const {
     char tmp[el_size];
     mul(b, beta, tmp);
     mul(a, alpha, b);
     add(b, tmp, b);
   }
-  
+
   void algstrct::accmul(char * c, char const * a, char const * b, char const * alpha) const {
     char tmp[el_size];
     mul(a, b, tmp);
@@ -486,22 +488,22 @@ namespace CTF_int {
       if (a != NULL) cdealloc(a);
       a = NULL;
     } else {
-      if (a == NULL) a = (char*)alloc(el_size); 
+      if (a == NULL) a = (char*)alloc(el_size);
       memcpy(a, b, el_size);
     }
   }
   void algstrct::copy(char * a, char const * b) const {
     memcpy(a, b, el_size);
   }
-  
+
   void algstrct::copy_pair(char * a, char const * b) const {
     memcpy(a, b, pair_size());
   }
-      
+
   void algstrct::copy(char * a, char const * b, int64_t n) const {
     memcpy(a, b, el_size*n);
   }
-  
+
   void algstrct::copy_pairs(char * a, char const * b, int64_t n) const {
     memcpy(a, b, pair_size()*n);
   }
@@ -543,7 +545,7 @@ namespace CTF_int {
       }
     }
   }
- 
+
   void algstrct::copy(int64_t      m,
                       int64_t      n,
                       char const * a,
@@ -578,8 +580,8 @@ namespace CTF_int {
         axpy(m, alpha, a+el_size*lda_a*i, 1, b+el_size*lda_b*i, 1);
       }
     }
-  }     
- 
+  }
+
   void algstrct::set(char * a, char const * b, int64_t n) const {
     switch (el_size) {
       case 4: {
@@ -619,11 +621,11 @@ namespace CTF_int {
       memcpy(a + i*(sizeof(int64_t)+el_size), b, (sizeof(int64_t)+el_size));
     }
   }
- 
+
   int64_t algstrct::get_key(char const * a) const {
     return (int64_t)*a;
   }
-     
+
   char const * algstrct::get_value(char const * a) const {
     return a+sizeof(int64_t);
   }
@@ -638,7 +640,7 @@ namespace CTF_int {
     printf("CTF ERROR: csrmm not present for this algebraic structure\n");
     ASSERT(0);
   }
-   
+
   void algstrct::csrmultd
                 (int          m,
                  int          n,
@@ -657,7 +659,7 @@ namespace CTF_int {
     printf("CTF ERROR: csrmultd not present for this algebraic structure\n");
     ASSERT(0);
   }
- 
+
   void algstrct::csrmultcsr
                 (int          m,
                  int          n,
@@ -677,16 +679,16 @@ namespace CTF_int {
     printf("CTF ERROR: csrmultcsr not present for this algebraic structure\n");
     ASSERT(0);
   }
-      
+
   ConstPairIterator::ConstPairIterator(PairIterator const & pi){
-    sr=pi.sr; ptr=pi.ptr; 
+    sr=pi.sr; ptr=pi.ptr;
   }
 
-  ConstPairIterator::ConstPairIterator(algstrct const * sr_, char const * ptr_){ 
-    sr=sr_; ptr=ptr_; 
+  ConstPairIterator::ConstPairIterator(algstrct const * sr_, char const * ptr_){
+    sr=sr_; ptr=ptr_;
   }
 
-  ConstPairIterator ConstPairIterator::operator[](int n) const { 
+  ConstPairIterator ConstPairIterator::operator[](int n) const {
     return ConstPairIterator(sr,ptr+(sr->el_size+sizeof(int64_t))*n);
   }
 
@@ -701,17 +703,17 @@ namespace CTF_int {
   void ConstPairIterator::read(char * buf, int64_t n) const {
     memcpy(buf, ptr, (sizeof(int64_t)+sr->el_size)*n);
   }
-  
+
   void ConstPairIterator::read_val(char * buf) const {
     memcpy(buf, ptr+sizeof(int64_t), sr->el_size);
   }
-  
+
   PairIterator::PairIterator(algstrct const * sr_, char * ptr_){
     sr=sr_;
     ptr=ptr_;
   }
 
-  PairIterator PairIterator::operator[](int n) const { 
+  PairIterator PairIterator::operator[](int n) const {
     return PairIterator(sr,ptr+(sr->el_size+sizeof(int64_t))*n);
   }
 
@@ -726,7 +728,7 @@ namespace CTF_int {
   void PairIterator::read(char * buf, int64_t n) const {
     memcpy(buf, ptr, (sizeof(int64_t)+sr->el_size)*n);
   }
-  
+
   void PairIterator::read_val(char * buf) const {
     memcpy(buf, ptr+sizeof(int64_t), sr->el_size);
   }
@@ -767,7 +769,7 @@ namespace CTF_int {
       return (key < other.key);
     }
   } __attribute__((packed));
-  
+
   struct ShortPair{
     int64_t key;
     short data;
@@ -775,7 +777,7 @@ namespace CTF_int {
       return (key < other.key);
     }
   } __attribute__((packed));
-  
+
   struct BoolPair{
     int64_t key;
     bool data;
@@ -794,7 +796,7 @@ namespace CTF_int {
   template struct CompPair<24>;
   template struct CompPair<28>;
   template struct CompPair<32>;
-  
+
   struct CompPtrPair{
     int64_t key;
     int64_t idx;
@@ -857,16 +859,16 @@ namespace CTF_int {
         }
         //FIXME :(
         char swap_buffer[(sizeof(int64_t)+sr->el_size)*n];
-    
+
         memcpy(swap_buffer, ptr, (sizeof(int64_t)+sr->el_size)*n);
 
         std::sort(ptr_pairs, ptr_pairs+n);
-        
+
 #ifdef USE_OMP
         #pragma omp parallel for
 #endif
         for (int64_t i=0; i<n; i++){
-          memcpy(ptr+i*(sizeof(int64_t)+sr->el_size), 
+          memcpy(ptr+i*(sizeof(int64_t)+sr->el_size),
                  swap_buffer+ptr_pairs[i].idx*(sizeof(int64_t)+sr->el_size),
                  sizeof(int64_t)+sr->el_size);
         }
@@ -890,7 +892,7 @@ namespace CTF_int {
       memcpy(wA[i].d(), rA[i].d(), sr->el_size);
       //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
     }
-   
+
 
   }
 
@@ -938,7 +940,7 @@ namespace CTF_int {
       div_lens[j] = (lens[j]/divisor[j] + (lens[j]%divisor[j] > 0));
 //      printf("lens[%d] = %d divisor[%d] = %d div_lens[%d] = %d\n",j,lens[j],j,divisor[j],j,div_lens[j]);
     }
-    if (check_padding){ 
+    if (check_padding){
       check_padding = false;
       for (int v=0; v<nvirt; v++){
         int vv = v;
@@ -950,7 +952,7 @@ namespace CTF_int {
           vv=vv/virt_dim[j];
         }
       }
-    } 
+    }
     int64_t * old_nnz_blk_B = nnz_blk;
     if (check_padding){
       //FIXME: uses a bit more memory then we will probably need, but probably worth not doing another round to count first
@@ -973,7 +975,7 @@ namespace CTF_int {
         vv=vv/virt_dim[j];
       }
 
-      if (check_padding){ 
+      if (check_padding){
         int64_t new_nnz_blk = 0;
         ConstPairIterator vpi(sr, X+nnz_off*sr->pair_size());
         PairIterator vpi_new(sr, new_B+new_nnz_B*sr->pair_size());
@@ -997,7 +999,7 @@ namespace CTF_int {
             ((int64_t*)vpi_new[new_nnz_blk].ptr)[0] = new_key;
             vpi_new[new_nnz_blk].write_val(vpi[i].d());
             new_nnz_blk++;
-          }  
+          }
         }
         nnz_blk[v] = new_nnz_blk;
         new_nnz_B += nnz_blk[v];
@@ -1082,4 +1084,3 @@ namespace CTF_int {
   }
 
 }
-

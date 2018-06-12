@@ -15,7 +15,7 @@ namespace CTF_int {
                                0x71d67fffeda60000, 37,
                                0xfff7eee000000000, 43, 6364136223846793005> rng;
 
- 
+
   void init_rng(int rank){
     rng.seed(rank);
   }
@@ -29,7 +29,7 @@ namespace CTF_int {
   //static double init_mdl[] = {COST_LATENCY, COST_LATENCY, COST_NETWBW};
   LinModel<3> alltoall_mdl(alltoall_mdl_init,"alltoall_mdl");
   LinModel<3> alltoallv_mdl(alltoallv_mdl_init,"alltoallv_mdl");
-  
+
 #ifdef BGQ
   //static double init_lg_mdl[] = {COST_LATENCY, COST_LATENCY, 0.0, COST_NETWBW + 2.0*COST_MEMBW};
 #else
@@ -178,7 +178,7 @@ namespace CTF_int {
   #if (!BGP && !BGQ && !HOPPER)
     int i, size;
     int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank); 
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     if (rank == 0){
       void *array[26];
 
@@ -287,12 +287,12 @@ namespace CTF_int {
       created = 0;
     }
   }
-     
+
   double CommData::estimate_bcast_time(int64_t msg_sz){
     double ps[] = {1.0, log2((double)np), (double)msg_sz};
     return bcast_mdl.est_time(ps);
   }
-     
+
   double CommData::estimate_allred_time(int64_t msg_sz, MPI_Op op){
     double ps[] = {1.0, log2((double)np), (double)msg_sz*log2((double)(np))};
     if (op >= MPI_MAX && op <= MPI_REPLACE)
@@ -308,7 +308,7 @@ namespace CTF_int {
     else
       return red_mdl_cst.est_time(ps);
   }
-/* 
+/*
   double CommData::estimate_csrred_time(int64_t msg_sz, MPI_Op op){
     double ps[] = {1.0, log2((double)np), (double)msg_sz};
     if (op >= MPI_MAX && op <= MPI_REPLACE)
@@ -317,12 +317,12 @@ namespace CTF_int {
       return csrred_mdl_cst.est_time(ps);
   }*/
 
-  
+
   double CommData::estimate_alltoall_time(int64_t chunk_sz) {
     double ps[] = {1.0, log2((double)np), log2((double)np)*np*chunk_sz};
     return alltoall_mdl.est_time(ps);
   }
-  
+
   double CommData::estimate_alltoallv_time(int64_t tot_sz) {
     double ps[] = {1.0, log2((double)np), log2((double)np)*tot_sz};
     return alltoallv_mdl.est_time(ps);
@@ -333,6 +333,13 @@ namespace CTF_int {
 #ifdef TUNE
     MPI_Barrier(cm);
 #endif
+
+   // change-of-observe
+   int tsize_;
+   MPI_Type_size(mdtype, &tsize_);
+   double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_};
+   if (!bcast_mdl.should_observe(tps_)) return;
+
     double st_time = MPI_Wtime();
     MPI_Bcast(buf, count, mdtype, root, cm);
 #ifdef TUNE
@@ -349,6 +356,18 @@ namespace CTF_int {
 #ifdef TUNE
     MPI_Barrier(cm);
 #endif
+
+   // change-of-observe
+   int tsize_;
+   MPI_Type_size(mdtype, &tsize_);
+   double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
+   bool sr = true;
+   if (op >= MPI_MAX && op <= MPI_REPLACE)
+     sr = allred_mdl.should_observe(tps_);
+   else
+     sr = allred_mdl_cst.should_observe(tps_);
+   if(!sr) return;
+
     double st_time = MPI_Wtime();
     MPI_Allreduce(inbuf, outbuf, count, mdtype, op, cm);
 #ifdef TUNE
@@ -368,6 +387,18 @@ namespace CTF_int {
 #ifdef TUNE
     MPI_Barrier(cm);
 #endif
+
+   // change-of-observe
+   int tsize_;
+   MPI_Type_size(mdtype, &tsize_);
+   double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
+   bool sr = true;
+   if (op >= MPI_MAX && op <= MPI_REPLACE)
+     sr = red_mdl.should_observe(tps_);
+   else
+     sr = red_mdl_cst.should_observe(tps_);
+     if(!sr) return;
+
     double st_time = MPI_Wtime();
     MPI_Reduce(inbuf, outbuf, count, mdtype, op, root, cm);
 #ifdef TUNE
@@ -391,9 +422,15 @@ namespace CTF_int {
                              void *          recv_buffer,
                              int64_t const * recv_counts,
                              int64_t const * recv_displs){
-#ifdef TUNE
-    MPI_Barrier(cm);
-#endif
+
+     #ifdef TUNE
+        MPI_Barrier(cm);
+     #endif
+      // change-of-observe
+      int64_t tot_sz_ = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
+      double tps_[] = {0.0, 1.0, log2(np), (double)tot_sz_};
+      if (!alltoallv_mdl.should_observe(tps_)) return;
+
     double st_time = MPI_Wtime();
     int num_nnz_trgt = 0;
     int num_nnz_recv = 0;
@@ -408,9 +445,9 @@ namespace CTF_int {
 
     int64_t max_displs = std::max(recv_displs[np-1], send_displs[np-1]);
     int64_t tot_max_displs;
-    
+
     MPI_Allreduce(&max_displs, &tot_max_displs, 1, MPI_INT64_T, MPI_MAX, cm);
-    
+
     if (tot_max_displs >= INT32_MAX ||
         (datum_size != 4 && datum_size != 8 && datum_size != 16) ||
         (tot_frac_nnz <= .25 && tot_frac_nnz*np < 100)){
@@ -422,21 +459,21 @@ namespace CTF_int {
       int nnr = 0;
       for (int p=0; p<np; p++){
         if (recv_counts[p] != 0){
-          MPI_Irecv(((char*)recv_buffer)+recv_displs[p]*datum_size, 
-                    recv_counts[p], 
+          MPI_Irecv(((char*)recv_buffer)+recv_displs[p]*datum_size,
+                    recv_counts[p],
                     mdt, p, p, cm, reqs+nnr);
           nnr++;
-        } 
+        }
       }
       int nns = 0;
       for (int lp=0; lp<np; lp++){
         int p = (lp+rank)%np;
         if (send_counts[p] != 0){
-          MPI_Isend(((char*)send_buffer)+send_displs[p]*datum_size, 
-                    send_counts[p], 
+          MPI_Isend(((char*)send_buffer)+send_displs[p]*datum_size,
+                    send_counts[p],
                     mdt, p, rank, cm, reqs+nnr+nns);
           nns++;
-        } 
+        }
       }
       MPI_Waitall(num_nnz_recv+num_nnz_trgt, reqs, stat);
       MPI_Type_free(&mdt);
@@ -444,7 +481,7 @@ namespace CTF_int {
       int * i32_send_counts, * i32_send_displs;
       int * i32_recv_counts, * i32_recv_displs;
 
-      
+
       CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_counts);
       CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_send_displs);
       CTF_int::mst_alloc_ptr(np*sizeof(int), (void**)&i32_recv_counts);
@@ -469,7 +506,7 @@ namespace CTF_int {
           MPI_Alltoallv(send_buffer, i32_send_counts, i32_send_displs, MPI_CXX_DOUBLE_COMPLEX,
                         recv_buffer, i32_recv_counts, i32_recv_displs, MPI_CXX_DOUBLE_COMPLEX, cm);
           break;
-        default: 
+        default:
           ABORT;
           break;
       }

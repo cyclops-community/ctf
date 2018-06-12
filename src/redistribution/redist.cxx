@@ -59,7 +59,7 @@ namespace CTF_int {
     }
     swp_nval = new_num_virt*sy_packed_size(old_dist.order, sub_edge_len, sym);
     if (ord_glb_comm.rank == 0){
-      DPRINTF(1,"Tensor is of size %ld, has factor of %lf growth due to padding\n", 
+      DPRINTF(1,"Tensor is of size %ld, has factor of %lf growth due to padding\n",
             swp_nval,
             ord_glb_comm.np*(swp_nval/(double)old_dist.size));
     }
@@ -96,7 +96,7 @@ namespace CTF_int {
                     NULL,
                     aignrd,
                     ignrd);
-                  
+
     *tsr_cyclic_data = tsr_new_data;
 
     cdealloc(old_virt_phase_rank);
@@ -122,9 +122,9 @@ namespace CTF_int {
                                 int                  new_virt_np,
                                 int const *          old_virt_edge_len){
     TAU_FSTART(compute_bucket_offsets);
-    
+
     int **bucket_offset; alloc_ptr(sizeof(int*)*old_dist.order, (void**)&bucket_offset);
-    
+
     for (int dim = 0;dim < old_dist.order;dim++){
       alloc_ptr(sizeof(int)*old_phys_edge_len[dim], (void**)&bucket_offset[dim]);
       int pidx = 0;
@@ -191,7 +191,7 @@ namespace CTF_int {
   #else
     int max_ntd = 1;
   #endif
-    
+
     mst_alloc_ptr(np*sizeof(int64_t)*max_ntd, (void**)&all_virt_counts);
 
 
@@ -271,13 +271,13 @@ namespace CTF_int {
         memset(virt_counts, 0, np*sizeof(int64_t));
         memset(old_virt_idx, 0, old_dist.order*sizeof(int64_t));
         /* virt_rank = physical_rank + virtual_rank*num_phys_ranks */
-        for (int i=0; i<old_dist.order; i++){ 
-          virt_rank[i] = old_dist.perank[i]; 
+        for (int i=0; i<old_dist.order; i++){
+          virt_rank[i] = old_dist.perank[i];
         }
         for (;;){
           memset(idx, 0, old_dist.order*sizeof(int64_t));
           memset(idx_offs, 0, old_dist.order*sizeof(int64_t));
-          idx_offset = 0; 
+          idx_offset = 0;
           skip = 0;
           idx[old_dist.order-1] = MAX(idx[old_dist.order-1],start_ldim);
           for (dim=0; dim<old_dist.order; dim++) {
@@ -325,7 +325,7 @@ namespace CTF_int {
                 i_st = start_ldim;
               } else
                 i_st = 0;
-              
+
               /* Increment virtual bucket */
               for (int i=i_st; i<imax; i++){
                 vc = bucket_offset[0][old_virt_idx[0]+i*old_dist.virt_phase[0]];
@@ -340,7 +340,7 @@ namespace CTF_int {
                   act_max++;
                 if (dim == old_dist.order - 1)
                   act_max = MIN(act_max, end_ldim);
-                if (sym[dim] != NS) 
+                if (sym[dim] != NS)
                   act_max = MIN(act_max,idx[dim+1]+1-spad[dim]);
                 bool ended = true;
                 if (idx[dim] >= act_max){
@@ -364,9 +364,9 @@ namespace CTF_int {
               old_virt_idx[dim] = 0;
 
             virt_rank[dim] = old_dist.perank[dim]+old_virt_idx[dim]*old_dist.phys_phase[dim];
-    
+
             if (old_virt_idx[dim] > 0)
-              break;  
+              break;
           }
           if (dim == old_dist.order) break;
         }
@@ -414,9 +414,9 @@ namespace CTF_int {
     }*/
 
     /* Exchange counts */
-    MPI_Alltoall(send_counts, 1, MPI_INT64_T, 
+    MPI_Alltoall(send_counts, 1, MPI_INT64_T,
                  recv_counts, 1, MPI_INT64_T, ord_glb_comm.cm);
-    
+
     /* Calculate displacements out of the count arrays */
     send_displs[0] = 0;
     recv_displs[0] = 0;
@@ -437,9 +437,9 @@ namespace CTF_int {
     }*/
 
     /* Exchange displacements for virt buckets */
-/*    MPI_Alltoall(svirt_displs, new_nvirt, MPI_INT64_T, 
+/*    MPI_Alltoall(svirt_displs, new_nvirt, MPI_INT64_T,
                  rvirt_displs, new_nvirt, MPI_INT64_T, ord_glb_comm.cm);*/
-    
+
     cdealloc(all_virt_counts);
   }
 
@@ -457,13 +457,23 @@ namespace CTF_int {
                        char *&              tsr_cyclic_data,
                        algstrct const *     sr,
                        CommData             glb_comm){
+
     int i, idx_lyr_new, idx_lyr_old, rem_idx, prc_idx, loc_idx;
     int num_old_virt, num_new_virt;
     int * idx, * old_loc_lda, * new_loc_lda, * phase_lda;
     int64_t blk_sz;
     MPI_Request * reqs;
     int * phase = old_dist.phase;
-    int order = old_dist.order; 
+    int order = old_dist.order;
+
+
+    double * tps = (double*)malloc(3*sizeof(double));
+    tps[0] = 0;
+    tps[1] = (double)num_old_virt+num_new_virt;
+    tps[2] = (double)std::max(new_dist.size, new_dist.size);
+
+    if (!(blres_mdl.should_observe(tps))) return;
+
 
     if (order == 0){
       alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
@@ -509,7 +519,7 @@ namespace CTF_int {
         phase_lda[i] = phase_lda[i-1]*phase[i-1];
       }
     }
-    
+
     alloc_ptr(sizeof(MPI_Request)*(num_old_virt+num_new_virt), (void**)&reqs);
 
     if (idx_lyr_new == 0){
@@ -524,15 +534,15 @@ namespace CTF_int {
           rem_idx += ((idx[i]*new_dist.phys_phase[i] + new_dist.perank[i])/old_dist.phys_phase[i])*old_loc_lda[i];
           prc_idx += ((idx[i]*new_dist.phys_phase[i] + new_dist.perank[i])%old_dist.phys_phase[i])*old_dist.pe_lda[i];
         }
-        DPRINTF(3,"proc %d receiving blk %d (loc %d, size %ld) from proc %d\n", 
+        DPRINTF(3,"proc %d receiving blk %d (loc %d, size %ld) from proc %d\n",
                 glb_comm.rank, rem_idx, loc_idx, blk_sz, prc_idx);
-        MPI_Irecv(tsr_cyclic_data+sr->el_size*loc_idx*blk_sz, blk_sz, 
+        MPI_Irecv(tsr_cyclic_data+sr->el_size*loc_idx*blk_sz, blk_sz,
                   sr->mdtype(), prc_idx, rem_idx, glb_comm.cm, reqs+loc_idx);
         for (i=0; i<order; i++){
           idx[i]++;
           if (idx[i] >= new_dist.virt_phase[i])
             idx[i] = 0;
-          else 
+          else
             break;
         }
         if (i==order) break;
@@ -549,7 +559,7 @@ namespace CTF_int {
           loc_idx += idx[i]*old_loc_lda[i];
           prc_idx += ((idx[i]*old_dist.phys_phase[i] + old_dist.perank[i])%new_dist.phys_phase[i])*new_dist.pe_lda[i];
         }
-        DPRINTF(3,"proc %d sending blk %d (loc %d size %ld) to proc %d el_size = %d %p %p\n", 
+        DPRINTF(3,"proc %d sending blk %d (loc %d size %ld) to proc %d el_size = %d %p %p\n",
                 glb_comm.rank, loc_idx, loc_idx, blk_sz, prc_idx, sr->el_size, tsr_data, reqs+num_new_virt+loc_idx);
         MPI_Isend(tsr_data+sr->el_size*loc_idx*blk_sz, blk_sz,
                   sr->mdtype(), prc_idx, loc_idx, glb_comm.cm, reqs+num_new_virt+loc_idx);
@@ -557,7 +567,7 @@ namespace CTF_int {
           idx[i]++;
           if (idx[i] >= old_dist.virt_phase[i])
             idx[i] = 0;
-          else 
+          else
             break;
         }
         if (i==order) break;
@@ -582,11 +592,11 @@ namespace CTF_int {
     cdealloc(new_loc_lda);
     cdealloc(phase_lda);
     cdealloc(reqs);
-    
+
 #ifdef TUNE
     MPI_Barrier(glb_comm.cm);
     double exe_time = MPI_Wtime()-st_time;
-    double * tps = (double*)malloc(3*sizeof(double));
+    tps = (double*)malloc(3*sizeof(double));
     tps[0] = exe_time;
     tps[1] = (double)num_old_virt+num_new_virt;
     tps[2] = (double)std::max(new_dist.size, new_dist.size);

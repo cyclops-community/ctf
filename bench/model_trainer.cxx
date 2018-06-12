@@ -166,6 +166,9 @@ void train_world(double dtime, World & dw){
   int64_t n = n0;
   int64_t approx_niter = std::max(1,(int)(10*log(dtime))); //log((dtime*2000./15.)/dw.np);
   double ddtime = dtime/approx_niter;
+
+  // Question # 1:
+  // ddtime = dime / (10*log(dtime)), which is a function that increase really slow
   int rnk;
   MPI_Comm_rank(MPI_COMM_WORLD, &rnk);
 //  printf("ddtime = %lf\n", ddtime);
@@ -176,7 +179,7 @@ void train_world(double dtime, World & dw){
     double ctime = 0.0;
     do {
       if (rnk == 0) printf("executing p = %d n= %ld m = %ld ctime = %lf ddtime = %lf\n", dw.np, n, m, ctime, ddtime);
-      train_dns_vec_mat(2*n, 2*m, dw);
+      train_dns_vec_mat(n, m, dw);
       train_sps_vec_mat(n-2, m, dw, 0, 0, 0);
       train_sps_vec_mat(n+1, m-2, dw, 1, 0, 0);
       train_sps_vec_mat(n+6, m-4, dw, 1, 1, 0);
@@ -196,6 +199,8 @@ void train_world(double dtime, World & dw){
     if (niter <= 2 || n>=1000000) break;
     n *= 1.7;
     m += 3;
+    // Question # 2:
+    // If m is reassigned to m0 in the for loop, why is this necessary?
   }
 }
 
@@ -221,8 +226,12 @@ void train_all(double time, World & dw, bool write_coeff, bool dump_data, std::s
     int cm;
     MPI_Comm_split(dw.comm, mw, mr, &cm);
     World w(cm);
+
+    // Turn off all models
+
     train_world(dtime, w);
     CTF_int::update_all_models(w.cdt.cm);
+    CTF_int::active_switch_all_models(1000, 0.15);
     train_world(dtime, w);
     CTF_int::update_all_models(w.cdt.cm);
   }

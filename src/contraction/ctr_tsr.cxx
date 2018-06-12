@@ -103,9 +103,9 @@ namespace CTF_int {
     int * idx_arr, * tidx_arr, * lda_A, * lda_B, * lda_C, * beta_arr;
     int * ilda_A, * ilda_B, * ilda_C;
     int64_t i, off_A, off_B, off_C;
-    int nb_A, nb_B, nb_C, alloced, ret; 
+    int nb_A, nb_B, nb_C, alloced, ret;
 
-    /*if (this->buffer != NULL){    
+    /*if (this->buffer != NULL){
       alloced = 0;
       idx_arr = (int*)this->buffer;
     } else {*/
@@ -114,7 +114,7 @@ namespace CTF_int {
       ASSERT(ret==0);
 //    }
 
-    
+
     lda_A = idx_arr + VIRT_NTD*num_dim;
     lda_B = lda_A + order_A;
     lda_C = lda_B + order_B;
@@ -138,12 +138,12 @@ namespace CTF_int {
     SET_LDA_X(B);
     SET_LDA_X(C);
   #undef SET_LDA_X
-   
-    /* dynammically determined size */ 
+
+    /* dynammically determined size */
     beta_arr = (int*)CTF_int::alloc(sizeof(int)*nb_C);
     memset(beta_arr, 0, nb_C*sizeof(int));
   #if (VIRT_NTD>1)
-  #pragma omp parallel private(off_A,off_B,off_C,tidx_arr,i) 
+  #pragma omp parallel private(off_A,off_B,off_C,tidx_arr,i)
   #endif
     {
       int tid, ntd, start_off, end_off;
@@ -175,7 +175,7 @@ namespace CTF_int {
           tid_rec_ctr = rec_ctr->clone();
         else
           tid_rec_ctr = rec_ctr;
-        
+
         tid_rec_ctr->num_lyr = this->num_lyr;
         tid_rec_ctr->idx_lyr = this->idx_lyr;
 
@@ -185,7 +185,7 @@ namespace CTF_int {
             if (beta_arr[off_C]>0)
               rec_ctr->beta = sr_C->mulid();
             else
-              rec_ctr->beta = this->beta; 
+              rec_ctr->beta = this->beta;
             beta_arr[off_C]       = 1;
             tid_rec_ctr->run(
                      A + off_A*blk_sz_A*sr_A->el_size,
@@ -233,8 +233,8 @@ namespace CTF_int {
                            int *               virt_blk_len_C,
                            int64_t             vrt_sz_C)
         : ctr(c) {
-     
-    int i, j, k; 
+
+    int i, j, k;
     int * new_sym_A, * new_sym_B, * new_sym_C;
     CTF_int::alloc_ptr(sizeof(int)*c->A->order, (void**)&new_sym_A);
     memcpy(new_sym_A, c->A->sym, sizeof(int)*c->A->order);
@@ -354,7 +354,7 @@ namespace CTF_int {
   seq_tsr_ctr::seq_tsr_ctr(ctr * other) : ctr(other) {
     seq_tsr_ctr * o = (seq_tsr_ctr*)other;
     alpha = o->alpha;
-    
+
     order_A        = o->order_A;
     idx_map_A     = o->idx_map_A;
     sym_A         = (int*)CTF_int::alloc(sizeof(int)*order_A);
@@ -403,15 +403,15 @@ namespace CTF_int {
     if (is_inner) size_A *= inner_params.m*inner_params.k;
     if (is_inner) size_B *= inner_params.n*inner_params.k;
     if (is_inner) size_C *= inner_params.m*inner_params.n;
- 
+
     ASSERT(size_A > 0);
     ASSERT(size_B > 0);
     ASSERT(size_C > 0);
     return size_A+size_B+size_C;
   }
-  
+
   double seq_tsr_ctr::est_fp(){
-    int idx_max, * rev_idx_map; 
+    int idx_max, * rev_idx_map;
     inv_idx(order_A,       idx_map_A,
             order_B,       idx_map_B,
             order_C,       idx_map_C,
@@ -433,7 +433,7 @@ namespace CTF_int {
     return flops;
   }
 
-  double seq_tsr_ctr::est_time_fp(int nlyr){ 
+  double seq_tsr_ctr::est_time_fp(int nlyr){
     //return COST_MEMBW*(size_A+size_B+size_C)+COST_FLOP*flops;
     double ps[] = {1.0, (double)est_membw(), est_fp()};
 //    printf("time estimate is %lf\n", seq_tsr_ctr_mdl.est_time(ps));
@@ -443,7 +443,7 @@ namespace CTF_int {
       if (is_custom){
         if (inner_params.offload)
           return seq_tsr_ctr_mdl_cst_off.est_time(ps);
-        else 
+        else
           return seq_tsr_ctr_mdl_cst_inr.est_time(ps);
       } else {
         if (inner_params.offload)
@@ -451,18 +451,46 @@ namespace CTF_int {
         else
           return seq_tsr_ctr_mdl_inr.est_time(ps);
       }
-    } else                        
+    } else
       return seq_tsr_ctr_mdl_ref.est_time(ps);
     assert(0); //wont make it here
     return 0.0;
   }
 
-  double seq_tsr_ctr::est_time_rec(int nlyr){ 
+  double seq_tsr_ctr::est_time_rec(int nlyr){
     return est_time_fp(nlyr);
   }
 
   void seq_tsr_ctr::run(char * A, char * B, char * C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
+
+    // Check if we need to execute this function for the sake of training
+    bool sr;
+    if (is_custom && !is_inner){
+      double tps[] = {0, 1.0, (double)est_membw(), est_fp()};
+      sr = seq_tsr_ctr_mdl_cst.should_observe(tps);
+   } else if (is_inner){
+      ASSERT(is_custom || func == NULL);
+      double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
+      if (is_custom){
+        if (inner_params.offload)
+          sr = seq_tsr_ctr_mdl_cst_off.should_observe(tps);
+        else
+          sr = seq_tsr_ctr_mdl_cst_inr.should_observe(tps);
+      } else {
+        if (inner_params.offload)
+          sr = seq_tsr_ctr_mdl_off.should_observe(tps);
+        else
+          sr = seq_tsr_ctr_mdl_inr.should_observe(tps);
+      }
+
+   } else {
+      double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
+      sr = seq_tsr_ctr_mdl_ref.should_observe(tps);
+   }
+
+   if (!sr) return;
+
     if (is_custom && !is_inner){
       double st_time = MPI_Wtime();
       ASSERT(is_inner == 0);
@@ -523,12 +551,12 @@ namespace CTF_int {
       if (is_custom){
         if (inner_params.offload)
           seq_tsr_ctr_mdl_cst_off.observe(tps);
-        else 
+        else
           seq_tsr_ctr_mdl_cst_inr.observe(tps);
       } else {
         if (inner_params.offload)
           seq_tsr_ctr_mdl_off.observe(tps);
-        else 
+        else
           seq_tsr_ctr_mdl_inr.observe(tps);
       }
 //      seq_tsr_ctr_mdl_inr.print_param_guess();
@@ -583,7 +611,7 @@ namespace CTF_int {
     dim_max++;
     *order_tot = dim_max;
     *idx_arr = (int*)CTF_int::alloc(sizeof(int)*3*dim_max);
-    std::fill((*idx_arr), (*idx_arr)+3*dim_max, -1);  
+    std::fill((*idx_arr), (*idx_arr)+3*dim_max, -1);
 
     for (i=0; i<order_A; i++){
       (*idx_arr)[3*idx_A[i]] = i;
@@ -619,7 +647,7 @@ namespace CTF_int {
 
 
   double ctr_dgemm::est_time_fp(int nlyr) {
-    // FIXME make cost proper, for now return sizes of each submatrix scaled by .2 
+    // FIXME make cost proper, for now return sizes of each submatrix scaled by .2
     ASSERT(0);
     return n*m+m*k+n*k;
   }
@@ -673,4 +701,3 @@ namespace CTF_int {
 
 
 }
-

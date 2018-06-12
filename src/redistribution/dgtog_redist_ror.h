@@ -204,7 +204,7 @@ void redist_bucket_isr(int                  order,
     }
     redist_bucket_isr<0>(order, pe_offset, bucket_offset, data_offset, ivmax_pre, rep_phase, rep_idx2, virt_dim0,
 #ifdef IREDIST
-                         rep_reqs, cm, 
+                         rep_reqs, cm,
 #endif
 #ifdef  PUTREDIST
                          put_displs, win,
@@ -218,7 +218,7 @@ void redist_bucket_isr(int                  order,
     int rec_pe_off = pe_off + pe_offset[idim][0];
     redist_bucket_isr<idim-1>(order, pe_offset, bucket_offset, data_offset, ivmax_pre, rep_phase, rep_idx, virt_dim0,
 #ifdef IREDIST
-                              rep_reqs, cm, 
+                              rep_reqs, cm,
 #endif
 #ifdef  PUTREDIST
                               put_displs, win,
@@ -234,13 +234,13 @@ void redist_bucket_isr(int                  order,
       int rec_pe_off = pe_off + pe_offset[idim][r];
       redist_bucket_isr<idim-1>(order, pe_offset, bucket_offset, data_offset, ivmax_pre, rep_phase, rep_idx2, virt_dim0,
 #ifdef IREDIST
-                                rep_reqs, cm, 
+                                rep_reqs, cm,
 #endif
 #ifdef  PUTREDIST
                                 put_displs, win,
 #endif
                                 data_to_buckets, data, buckets, counts, sr, rec_bucket_off, rec_pe_off);
-    }    
+    }
   }
 #endif
 }
@@ -300,7 +300,7 @@ void redist_bucket_isr<0>
   }
 }
 #endif
- 
+
 void dgtog_reshuffle(int const *          sym,
                      int const *          edge_len,
                      distribution const & old_dist,
@@ -353,7 +353,7 @@ void dgtog_reshuffle(int const *          sym,
   int64_t new_virt_nelem = new_dist.size/new_nvirt;
 
   int *old_phys_edge_len; alloc_ptr(sizeof(int)*order, (void**)&old_phys_edge_len);
-  for (int dim = 0;dim < order;dim++) 
+  for (int dim = 0;dim < order;dim++)
     old_phys_edge_len[dim] = old_dist.pad_edge_len[dim]/old_dist.phys_phase[dim];
 
   int *new_phys_edge_len; alloc_ptr(sizeof(int)*order, (void**)&new_phys_edge_len);
@@ -361,11 +361,11 @@ void dgtog_reshuffle(int const *          sym,
     new_phys_edge_len[dim] = new_dist.pad_edge_len[dim]/new_dist.phys_phase[dim];
 
   int *old_virt_edge_len; alloc_ptr(sizeof(int)*order, (void**)&old_virt_edge_len);
-  for (int dim = 0;dim < order;dim++) 
+  for (int dim = 0;dim < order;dim++)
     old_virt_edge_len[dim] = old_phys_edge_len[dim]/old_dist.virt_phase[dim];
 
   int *new_virt_edge_len; alloc_ptr(sizeof(int)*order, (void**)&new_virt_edge_len);
-  for (int dim = 0;dim < order;dim++) 
+  for (int dim = 0;dim < order;dim++)
     new_virt_edge_len[dim] = new_phys_edge_len[dim]/new_dist.virt_phase[dim];
 
   int nold_rep = 1;
@@ -381,7 +381,7 @@ void dgtog_reshuffle(int const *          sym,
     new_rep_phase[i] = lcm(new_dist.phys_phase[i], old_dist.phys_phase[i])/new_dist.phys_phase[i];
     nnew_rep *= new_rep_phase[i];
   }
-  
+
   int64_t * send_counts = (int64_t*)alloc(sizeof(int64_t)*nold_rep);
   std::fill(send_counts, send_counts+nold_rep, 0);
   calc_drv_displs(sym, edge_len, old_dist, new_dist, send_counts, old_idx_lyr);
@@ -472,7 +472,7 @@ void dgtog_reshuffle(int const *          sym,
     }
 #if DEBUG >= 1
     int64_t save_counts[nold_rep];
-    memcpy(save_counts, send_counts, sizeof(int64_t)*nold_rep); 
+    memcpy(save_counts, send_counts, sizeof(int64_t)*nold_rep);
 #endif
     std::fill(send_counts, send_counts+nold_rep, 0);
     TAU_FSTART(redist_bucket);
@@ -525,7 +525,7 @@ void dgtog_reshuffle(int const *          sym,
   if (new_idx_lyr == 0){
     nrecv = nnew_rep;
     SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, reqs, ord_glb_comm.cm, recv_buffer, sr, 0, 0, 1);
-  } 
+  }
   int nsent = 0;
   if (old_idx_lyr == 0){
     nsent = nold_rep;
@@ -534,7 +534,7 @@ void dgtog_reshuffle(int const *          sym,
   if (nrecv+nsent > 0){
 //      MPI_Status * stat = (MPI_Status*)alloc(sizeof(MPI_Status)*(nrecv+nsent));
     MPI_Waitall(nrecv+nsent, reqs, MPI_STATUSES_IGNORE);
-  } 
+  }
   cdealloc(reqs);
   //ord_glb_comm.all_to_allv(tsr_data, send_counts, send_displs, sr->el_size,
   //                         recv_buffer, recv_counts, recv_displs);
@@ -568,7 +568,7 @@ void dgtog_reshuffle(int const *          sym,
 
 #if DEBUG >= 1
     int64_t save_counts[nnew_rep];
-    memcpy(save_counts, recv_counts, sizeof(int64_t)*nnew_rep); 
+    memcpy(save_counts, recv_counts, sizeof(int64_t)*nnew_rep);
 #endif
     std::fill(recv_counts, recv_counts+nnew_rep, 0);
 
@@ -608,15 +608,15 @@ void dgtog_reshuffle(int const *          sym,
         rep_idx[i] = iboff%new_rep_phase[i];
         iboff = iboff/new_rep_phase[i];
       }
-      
+
       SWITCH_ORD_CALL(redist_bucket_ror, order-1, recv_bucket_offset, recv_data_offset, recv_ivmax_pre, new_rep_phase, rep_idx, new_dist.virt_phase[0], 0, aux_buf, buckets, recv_counts, sr, 0, bucket_off, 0)
       //printf("recv_counts[%d]=%d, saved_counts[%d]=%d\n",bucket_off,recv_counts[bucket_off],bucket_off,save_counts[bucket_off]);
-      
+
     }
 #ifdef PUT_NOTIFY
     for (int nb=0; nb<nnew_rep; nb++){
       foMPI_Request_free(recv_reqs+nb);
-    } 
+    }
 #endif
 #else
 #ifdef ROR
@@ -714,6 +714,8 @@ void dgtog_reshuffle(int const *          sym,
 #endif
   double exe_time = MPI_Wtime()-st_time;
   double tps[] = {exe_time, 1.0, (double)log2(ord_glb_comm.np), (double)std::max(old_dist.size, new_dist.size)*log2(ord_glb_comm.np)*sr->el_size};
-  dgtog_res_mdl.observe(tps);
+
+  // double-check
+   dgtog_res_mdl.observe(tps);
   TAU_FSTOP(dgtog_reshuffle);
 }

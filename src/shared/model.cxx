@@ -54,6 +54,14 @@ namespace CTF_int {
 #endif
   }
 
+  void active_switch_all_models(int min_obs, double threshold){
+#ifdef TUNE
+    for (int i=0; i<get_all_models().size(); i++){
+      get_all_models()[i]->active_switch(min_obs, threshold);
+    }
+#endif
+  }
+
 
 #define SPLINE_CHUNK_SZ = 8
 
@@ -120,6 +128,9 @@ namespace CTF_int {
 
   template <int nparam>
   LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
+
+    //initialize the model as active by default
+    is_active = true;
     //copy initial static coefficients to initialzie model (defined in init_model.cxx)
     memcpy(coeff_guess, init_guess, nparam*sizeof(double));
 #ifdef TUNE
@@ -144,6 +155,8 @@ namespace CTF_int {
 
   template <int nparam>
   LinModel<nparam>::LinModel(){
+    //initialize the model as active by default
+    is_active = true;
     name = NULL;
     time_param_mat = NULL;
   }
@@ -203,6 +216,42 @@ namespace CTF_int {
     nobs++;
 #endif
   }
+
+  template <int nparam>
+  bool LinModel<nparam>::should_observe(double const * tp){
+     return is_active;
+ }
+
+  template <int nparam>
+  void LinModel<nparam>::active_switch(int min_obs, double threshold){
+
+     // Special value of min_obs = -1 denoting turning the model off no matter what
+     if (min_obs == -1){
+        is_active = false;
+        return;
+     }
+
+     // If not enough observations have been made, set is_active to true and return
+     if (nobs < min_obs){
+        is_active = true;
+        return;
+     }
+
+     // Calculate the under time ratio and over time ratio
+     double under_ratio = under_time / tot_time;
+     double over_ratio = over_time / tot_time;
+
+     // If both are within threshold, set shun down the model
+     if (under_ratio <= threshold && over_ratio <= threshold){
+        is_active = false;
+     }
+     else{
+        // Else keep the model training
+        is_active = true;
+     }
+
+}
+
 
 
   template <int nparam>
@@ -692,6 +741,16 @@ namespace CTF_int {
     cube_params(time_param+1, ltime_param+1, nparam);
     lmdl.observe(ltime_param);
   }
+
+  template <int nparam>
+  bool CubicModel<nparam>::should_observe(double const * time_param){
+     return lmdl.should_observe(time_param);
+ }
+
+ template <int nparam>
+ void CubicModel<nparam>::active_switch(int min_obs, double threshold){
+    lmdl.active_switch(min_obs, threshold);
+}
 
   template <int nparam>
   double CubicModel<nparam>::est_time(double const * param){
