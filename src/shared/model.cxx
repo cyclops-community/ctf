@@ -30,6 +30,30 @@ namespace CTF_int {
 #endif
   }
 
+  void load_all_models(std::string file_name){
+#ifdef TUNE
+    for (int i=0; i<get_all_models().size(); i++){
+      get_all_models()[i]->load_coeff(file_name);
+    }
+#endif
+  }
+
+  void write_all_models(std::string file_name){
+#ifdef TUNE
+    for (int i=0; i<get_all_models().size(); i++){
+      get_all_models()[i]->write_coeff(file_name);
+    }
+#endif
+  }
+
+  void dump_all_models(std::string path){
+#ifdef TUNE
+    for (int i=0; i<get_all_models().size(); i++){
+      get_all_models()[i]->dump_data(path);
+    }
+#endif
+  }
+
 
 #define SPLINE_CHUNK_SZ = 8
 
@@ -463,12 +487,12 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void LinModel<nparam>::write_coeff(){
+  void LinModel<nparam>::write_coeff(std::string file_name){
 
       // Generate the model name
-      std::string model_name = std::string(name)+"_init[]";
+      std::string model_name = std::string(name);
       // Generate the new line in the file
-      std::string new_coeff_str = "double " + model_name+ " = {";
+      std::string new_coeff_str = model_name+" ";
       char buffer[64];
       for(int i =0; i<nparam; i++){
         buffer[0] = '\0';
@@ -476,13 +500,13 @@ namespace CTF_int {
         std::string s(buffer);
         new_coeff_str += s;
         if (i != nparam - 1){
-          new_coeff_str += ", ";
+          new_coeff_str += " ";
         }
       }
-      new_coeff_str += "};";
+
       // Open the file that stores the model info
       std::vector<std::string> file_content;
-      std::ifstream infile("model_init.cxx");
+      std::ifstream infile(file_name);
       if(!infile){
         std::cout<<"Error opening file"<<std::endl;
         return;
@@ -496,7 +520,7 @@ namespace CTF_int {
         // Get the model name from the line
         std::string s;
         std::getline(f,s,' ');
-        std::getline(f,s,' ');
+        std::cout<<s<<", "<<model_name<<std::endl;
         if (s == model_name){
           line = new_coeff_str;
           found_line = true;
@@ -505,82 +529,93 @@ namespace CTF_int {
         file_content.push_back(line);
       }
 
+      // Append the string to the file if no match is found
+      if(!found_line){
+        new_coeff_str += "\n";
+        file_content.push_back(new_coeff_str);
+      }
       std::ofstream ofs;
-      ofs.open("model_init.cxx", std::ofstream::out | std::ofstream::trunc);
+      ofs.open(file_name, std::ofstream::out | std::ofstream::trunc);
       for(int i=0; i<file_content.size(); i++){
         ofs<<file_content[i];
       }
       ofs.close();
-
-      // Check if the file is successfully updated
-      if(!found_line){
-        std::cout<<"Error! No model declared in model_init.cxx and model_init.h. Please declare the model first!"<<std::endl;
-      }
   }
 
 
+
   template <int nparam>
-  void LinModel<nparam>::load_coeff(){
+  void LinModel<nparam>::load_coeff(std::string file_name){
     // Generate the model name
-    std::string model_name = std::string(name)+"_init[]";
+    std::string model_name = std::string(name);
 
     // Open the file that stores the model info
     std::vector<std::string> file_content;
-    std::ifstream infile("init_models.cxx");
+    std::ifstream infile(file_name);
     if(!infile){
       std::cout<<"Error opening file"<<std::endl;
       return;
     }
 
-    // Scan the file to find the line and replace with the new model coeffs
-    std::string line;
+    // Flag boolean denotes whether the model is found in the file
     bool found_line = false;
-    bool succeed = false;
+    // Flag boolean denotes whether the number of coefficients in the file matches with what the model expects
+    bool right_num_coeff = true;
+
+    // Scan the file to find the model coefficients
+    std::string line;
     while(std::getline(infile,line)){
       std::istringstream f(line);
       // Get the model name from the line
       std::string s;
       std::getline(f,s,' ');
-      std::getline(f,s,' ');
       if (s == model_name){
         found_line = true;
-        //  Get rid of the '='
-        std::getline(f,s,' ');
-        // Get the n coeffs
+
+        // Get the nparam coeffs
+        double coeff_from_file [nparam];
         for(int i=0; i<nparam; i++){
           if(!std::getline(f,s,' ')){
-              break;
+            right_num_coeff = false;
+            break;
           }
-          char buffer[64];
-          int index = 0;
-          for(int i = 0; i<s.size(); i++){
-            if(s[i] != '{' && s[i] != '}' && s[i] != ',' && s[i] != ';'){
-              buffer[index] = s[i];
-              index++;
-            }
+
+          // Convert the string to char* and update the model coefficients
+          char buf[s.length()+1];
+          for(int i=0;i<s.length();i++){
+            buf[i] = s[i];
           }
-          buffer[index] = '\0';
-          coeff_guess[i] = std::atof(buffer);
+          buf[s.length()] = '\0';
+          coeff_guess[i] = std::atof(buf);
         }
-        succeed = true;
+        // Check if there are more coefficients in the file
+        if(right_num_coeff && std::getline(f,s,' ')){
+          right_num_coeff = false;
+        }
         break;
       }
     }
     // If the model is not found
     if(!found_line){
-        std::cout<<"Error! Not model found in the file!"<<std::endl;
+        std::cout<<"Error! No model found in the file!"<<std::endl;
     }
-    // If there is not enough parameters
-    if(!succeed){
-      std::cout<<"Error! Not enough number of paramters in file!"<<std::endl;
+    else if (!right_num_coeff){
+      std::cout<<"Error! Number of coefficients in file does not match with the model"<<std::endl;
+      // Initialize model coeff to be all 0s
+      for(int i = 0; i < nparam;i++){
+        coeff_guess[i] = 0.0;
+      }
     }
   }
 
+
   template <int nparam>
-  void LinModel<nparam>::dump_data(std::string file_name){
+  void LinModel<nparam>::dump_data(std::string path){
       // Open the file
+      std::string model_name = std::string(name);
       std::ofstream ofs;
-      ofs.open("./data/"+file_name, std::ofstream::out | std::ofstream::trunc);
+      ofs.open("path/"+model_name, std::ofstream::out | std::ofstream::trunc);
+
       // Dump the model coeffs
       for(int i=0; i<nparam; i++){
         ofs<<coeff_guess[i]<<" ";
@@ -682,14 +717,20 @@ namespace CTF_int {
   }
 
   template <int nparam>
-  void CubicModel<nparam>::load_coeff(){
-    lmdl.load_coeff();
+  void CubicModel<nparam>::load_coeff(std::string file_name){
+    lmdl.load_coeff(file_name);
   }
 
   template <int nparam>
-  void CubicModel<nparam>::write_coeff(){
-    lmdl.write_coeff();
+  void CubicModel<nparam>::write_coeff(std::string file_name){
+    lmdl.write_coeff(file_name);
   }
+
+  template <int nparam>
+  void CubicModel<nparam>::dump_data(std::string path){
+    lmdl.dump_data(path);
+  }
+
   template class CubicModel<1>;
   template class CubicModel<2>;
   template class CubicModel<3>;

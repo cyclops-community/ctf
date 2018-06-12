@@ -14,12 +14,16 @@ namespace CTF_int {
       virtual void update(MPI_Comm cm){};
       virtual void print(){};
       virtual void print_uo(){};
-      virtual void load_coeff(){};
-      virtual void write_coeff(){};
+      virtual void load_coeff(std::string file_name){};
+      virtual void write_coeff(std::string file_name){};
+      virtual void dump_data(std::string path){};
   };
 
   void update_all_models(MPI_Comm cm);
   void print_all_models();
+  void load_all_models(std::string file_name);
+  void write_all_models(std::string file_name);
+  void dump_all_models(std::string path);
 
   /**
    * \brief Linear performance models, which given measurements, provides new model guess
@@ -102,18 +106,20 @@ namespace CTF_int {
 
       /**
        * \brief load model coefficients from file
+       * \param[in] file_name the file we wish to load model coefficients from
        */
-      void load_coeff();
+      void load_coeff(std::string file_name);
 
       /**
        * \brief write model coefficients to file
+       * \param[in] file_name the file we wish to write model coefficients to
        */
-      void write_coeff();
+      void write_coeff(std::string file_name);
 
       /**
        * \brief dump model data to a file
        */
-      void dump_data(std::string file_name);
+      void dump_data(std::string path);
   };
 
   /**
@@ -171,13 +177,21 @@ namespace CTF_int {
 
       /**
        * \brief load model coefficients from file
+       * \param[in] file_name the file we wish to load model coefficients from
        */
-      void load_coeff();
+      void load_coeff(std::string file_name);
 
       /**
        * \brief write model coefficients to file
+       * \param[in] file_name the file we wish to write model coefficients to
        */
-      void write_coeff();
+      void write_coeff(std::string file_name);
+
+      /**
+       * \brief write model coefficients to file
+       * \param[in] path the path that we wish to dump all files to
+       */
+      void dump_data(std::string path);
 
   };
 

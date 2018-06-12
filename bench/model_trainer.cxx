@@ -1,8 +1,8 @@
 /** Copyright (c) 2011, Edgar Solomonik, all rights reserved.
   * \addtogroup benchmarks
-  * @{ 
+  * @{
   * \addtogroup model_trainer
-  * @{ 
+  * @{
   * \brief Executes a set of different contractions on different processor counts to train model parameters
   */
 
@@ -47,9 +47,9 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   Function<> f1([](double a){ return a*a; });
 
   A2["ij"] = f1(A["ij"]);
-  
+
   c["i"] += f1(A["ij"]);
-  
+
   Function<> f2([](double a, double b){ return a*a+b*b; });
 
   A1["ij"] -= f2(A["kj"], F["ki"]);
@@ -60,7 +60,7 @@ void train_dns_vec_mat(int64_t n, int64_t m, World & dw){
   t1(A["ij"]);
 
   Transform<> t2([](double a, double & b){ b-=b/a; });
-  
+
   t2(b["i"],b["i"]);
   t2(A["ij"],A2["ij"]);
 
@@ -81,7 +81,7 @@ void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, b
   Matrix<> A2(m, n, dw);
   Matrix<> G(n, n, NS, dw);
   Matrix<> F(m, m, NS, dw);
-  
+
   srand48(dw.rank);
   b.fill_random(-.5, .5);
   c.fill_random(-.5, .5);
@@ -102,36 +102,36 @@ void train_sps_vec_mat(int64_t n, int64_t m, World & dw, bool sp_A, bool sp_B, b
       B.sparsify([=](double a){ return fabs(a)<=.5*sp; });
       c.sparsify([=](double a){ return fabs(a)<=.5*sp; });
     }
-  
+
     B["ij"] += A["ik"]*G["kj"];
     if (!sp_C) B["ij"] += A["ij"]*A1["ij"];
     B["ij"] += F["ik"]*A["kj"];
     c["i"]  += A["ij"]*b["j"];
     b["j"]  += .2*A["ij"]*c["i"];
     if (!sp_C) b["i"]  += b["i"]*b["i"];
-  
+
     Function<> f1([](double a){ return a*a; });
-  
+
     A2["ij"] = f1(A["ij"]);
-    
+
     c["i"] += f1(A["ij"]);
-    
+
     Function<> f2([](double a, double b){ return a*a+b*b; });
-  
+
     A2["ji"] -= f2(A1["ki"], F["kj"]);
-  
+
     Transform<> t1([](double & a){ a*=a; });
-  
+
     t1(b["i"]);
     t1(A["ij"]);
-  
+
     Transform<> t2([](double a, double & b){ b-=b/a; });
-    
+
     t2(b["i"],b["i"]);
     t2(A["ij"],A2["ij"]);
-  
+
     /*Transform<> t3([](double a, double b, double & c){ c=c*c-b*a; });
-  
+
     t3(c["i"],b["i"],b["i"]);
     t3(A["ij"],G["ij"],F["ij"]);*/
   }
@@ -254,6 +254,17 @@ int main(int argc, char ** argv){
     if (time < 0) time = 5.0;
   } else time = 5.0;
 
+  if(std::find(input_str, input_str+in_num,"-load")){
+    CTF_int::load_all_models("./src/shared/model_coeff_record");
+  }
+
+  if(std::find(input_str, input_str+in_num,"-write")){
+    CTF_int::write_all_models("./src/shared/model_coeff_record");
+  }
+
+  if(std::find(input_str, input_str+in_num,"-dump")){
+    CTF_int::dump_all_models("./src/shared/data");
+  }
 
   {
     World dw(MPI_COMM_WORLD, argc, argv);
@@ -270,7 +281,6 @@ int main(int argc, char ** argv){
 }
 
 /**
- * @} 
+ * @}
  * @}
  */
-
