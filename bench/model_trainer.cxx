@@ -161,7 +161,7 @@ void train_sparse_mp3(int64_t n, int64_t m, World & dw){
 }
 
 
-void train_world(double dtime, World & dw){
+void train_world(double dtime, World & dw, double step_size){
   int n0 = 19, m0 = 75;
   int64_t n = n0;
   int64_t approx_niter = std::max(1,(int)(10*log(dtime))); //log((dtime*2000./15.)/dw.np);
@@ -191,13 +191,15 @@ void train_world(double dtime, World & dw){
       train_ccsd(n/2, m/2, dw);
       train_sparse_mp3(n,m,dw);
       niter++;
-      m *= 1.9;
+      // m *= 1.9;
+      m *= step_size;
       n += 2;
       ctime = MPI_Wtime() - t_st;
       MPI_Allreduce(MPI_IN_PLACE, &ctime, 1, MPI_DOUBLE, MPI_MAX, dw.comm);
     } while (ctime < ddtime && m<= 1000000);
     if (niter <= 2 || n>=1000000) break;
-    n *= 1.7;
+    // n *= 1.7;
+    n *= step_size;
     m += 3;
     // Question # 2:
     // If m is reassigned to m0 in the for loop, why is this necessary?
@@ -229,11 +231,13 @@ void train_all(double time, World & dw, bool write_coeff, bool dump_data, std::s
 
     // Turn off all models
 
-    train_world(dtime, w);
-    CTF_int::update_all_models(w.cdt.cm);
-    CTF_int::active_switch_all_models(1000, 0.15);
-    train_world(dtime, w);
-    CTF_int::update_all_models(w.cdt.cm);
+    for (int i=0; i<5; i++){
+      double step_size = 1.0 + 3.0 / pow(2.0, (double)i);
+       // std::cout<<"step size: "<<step_size<<std::endl;
+      train_world(dtime, w, step_size);
+      CTF_int::update_all_models(w.cdt.cm);
+      CTF_int::active_switch_all_models(1000, 0.15);
+      }
   }
    if(write_coeff)
       CTF_int::write_all_models(coeff_file);
