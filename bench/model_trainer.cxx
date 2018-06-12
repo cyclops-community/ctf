@@ -243,8 +243,8 @@ void train_all(double time, World & dw, bool write_coeff, bool dump_data, std::s
       // TODO probably change it to 1.2 ^ x
       double step_size = 1.0 + 2.0 / pow(2.0, (double)i);
        // std::cout<<"step size: "<<step_size<<std::endl;
-      train_world(dtime, w, step_size);
-      CTF_int::update_all_models(w.cdt.cm);
+      train_world(dtime/5, w, step_size);
+      CTF_int::update_all_models(MPI_COMM_WORLD);
 
       // TODO what should be the threshold
       // CTF_int::active_switch_all_models(1000, 0.15);
