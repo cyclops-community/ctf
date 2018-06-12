@@ -184,7 +184,7 @@ namespace CTF_int {
       print();
     }*/
     //printf("observed %lf %lf %lf\n", tp[0], tp[1], tp[2]);
-    assert(tp[0] > 0.0);
+    assert(tp[0] >= 0.0);
 
     // Add the new instance of run process into time_param_mat
     memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
@@ -489,57 +489,56 @@ namespace CTF_int {
   template <int nparam>
   void LinModel<nparam>::write_coeff(std::string file_name){
 
-      // Generate the model name
-      std::string model_name = std::string(name);
-      // Generate the new line in the file
-      std::string new_coeff_str = model_name+" ";
-      char buffer[64];
-      for(int i =0; i<nparam; i++){
-        buffer[0] = '\0';
-        std::sprintf(buffer,"%1.4E", coeff_guess[i]);
-        std::string s(buffer);
-        new_coeff_str += s;
-        if (i != nparam - 1){
-          new_coeff_str += " ";
-        }
+     // Generate the model name
+     std::string model_name = std::string(name);
+     // Generate the new line in the file
+     std::string new_coeff_str = model_name+" ";
+     char buffer[64];
+     for(int i =0; i<nparam; i++){
+      buffer[0] = '\0';
+      std::sprintf(buffer,"%1.4E", coeff_guess[i]);
+      std::string s(buffer);
+      new_coeff_str += s;
+      if (i != nparam - 1){
+         new_coeff_str += " ";
       }
+     }
 
-      // Open the file that stores the model info
-      std::vector<std::string> file_content;
-      std::ifstream infile(file_name);
-      if(!infile){
-        std::cout<<"Error opening file"<<std::endl;
-        return;
-      }
+     // Open the file that stores the model info
+     std::vector<std::string> file_content;
+     std::ifstream infile(file_name);
 
-      // Scan the file to find the line and replace with the new model coeffs
-      std::string line;
       bool found_line = false;
-      while(std::getline(infile,line)){
-        std::istringstream f(line);
-        // Get the model name from the line
-        std::string s;
-        std::getline(f,s,' ');
-        std::cout<<s<<", "<<model_name<<std::endl;
-        if (s == model_name){
-          line = new_coeff_str;
-          found_line = true;
-        }
-        line += "\n";
-        file_content.push_back(line);
+     // If the file exists
+     if(infile){
+     // Scan the file to find the line and replace with the new model coeffs
+     std::string line;
+     while(std::getline(infile,line)){
+      std::istringstream f(line);
+      // Get the model name from the line
+      std::string s;
+      std::getline(f,s,' ');
+      if (s == model_name){
+         line = new_coeff_str;
+         found_line = true;
       }
+      line += "\n";
+      file_content.push_back(line);
+     }
+ }
 
-      // Append the string to the file if no match is found
-      if(!found_line){
-        new_coeff_str += "\n";
-        file_content.push_back(new_coeff_str);
-      }
-      std::ofstream ofs;
-      ofs.open(file_name, std::ofstream::out | std::ofstream::trunc);
-      for(int i=0; i<file_content.size(); i++){
-        ofs<<file_content[i];
-      }
-      ofs.close();
+     // Append the string to the file if no match is found
+     if(!found_line){
+      new_coeff_str += "\n";
+      file_content.push_back(new_coeff_str);
+     }
+     std::ofstream ofs;
+     ofs.open(file_name, std::ofstream::out | std::ofstream::trunc);
+     for(int i=0; i<file_content.size(); i++){
+      ofs<<file_content[i];
+     }
+     ofs.close();
+
   }
 
 
@@ -553,7 +552,7 @@ namespace CTF_int {
     std::vector<std::string> file_content;
     std::ifstream infile(file_name);
     if(!infile){
-      std::cout<<"Error opening file"<<std::endl;
+      std::cout<<"file "<<file_name<<" does not exist"<<std::endl;
       return;
     }
 
@@ -614,7 +613,7 @@ namespace CTF_int {
       // Open the file
       std::string model_name = std::string(name);
       std::ofstream ofs;
-      ofs.open("path/"+model_name, std::ofstream::out | std::ofstream::trunc);
+      ofs.open(path+"/"+model_name, std::ofstream::out | std::ofstream::trunc);
 
       // Dump the model coeffs
       for(int i=0; i<nparam; i++){

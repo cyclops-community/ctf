@@ -208,7 +208,7 @@ void frize(std::set<int> & ps, int p){
   }
 }
 
-void train_all(double time, World & dw){
+void train_all(double time, World & dw, bool write_coeff, bool dump_data, std::string coeff_file, std::string data_dir){
   std::set<int> ps;
   frize(ps, dw.np);
 
@@ -226,6 +226,12 @@ void train_all(double time, World & dw){
     train_world(dtime, w);
     CTF_int::update_all_models(w.cdt.cm);
   }
+   if(write_coeff)
+      CTF_int::write_all_models(coeff_file);
+   if(dump_data){
+      CTF_int::dump_all_models(data_dir);
+   }
+
 }
 
 char* getCmdOption(char ** begin,
@@ -254,16 +260,42 @@ int main(int argc, char ** argv){
     if (time < 0) time = 5.0;
   } else time = 5.0;
 
-  if(std::find(input_str, input_str+in_num,"-load")){
-    CTF_int::load_all_models("./src/shared/model_coeff_record");
+  // Get the environment variable FILE_PATH
+  char * file_path = getenv("FILE_PATH");
+  std::string coeff_file;
+
+  if(!file_path){
+     // If the enviroment variable is not defined, use the default path
+     coeff_file = std::string("../src/shared/model_coeff_record");
+  }else{
+     // Else, use the file path specified by the environment variable
+     coeff_file = std::string(file_path);
   }
 
-  if(std::find(input_str, input_str+in_num,"-write")){
-    CTF_int::write_all_models("./src/shared/model_coeff_record");
+  // If the user specifies -load, read the model coefficients from the file specified by the FILE_PATH environment variable
+  if(std::find(input_str, input_str+in_num, std::string("-load")) != input_str + in_num){
+    CTF_int::load_all_models(coeff_file);
   }
 
-  if(std::find(input_str, input_str+in_num,"-dump")){
-    CTF_int::dump_all_models("./src/shared/data");
+  // Boolean expression that are used to pass command line argument to function train_all
+  bool write_coeff = false;
+  bool dump_data = false;
+
+  if(std::find(input_str, input_str+in_num, std::string("-write")) != input_str + in_num){
+     write_coeff = true;
+  }
+
+  char * data_dir = getenv("MODEL_DATA_DIR");
+  std::string data_dir_str;
+  if(!data_dir){
+     data_dir_str = std::string("../src/shared/data");
+  }
+  else{
+     data_dir_str = std::string(data_dir);
+ }
+
+  if(std::find(input_str, input_str+in_num, std::string("-dump")) != input_str + in_num){
+     dump_data = true;
   }
 
   {
@@ -272,7 +304,7 @@ int main(int argc, char ** argv){
     if (rank == 0){
       printf("Executing a wide set of contractions to train model with time budget of %lf sec\n", time);
     }
-    train_all(time, dw);
+    train_all(time, dw, write_coeff, dump_data, coeff_file, data_dir_str);
   }
 
 
