@@ -232,6 +232,7 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
   */
 
   int color = (int)log2(rank + 1);
+  int end_color =  (int)log2(np + 1);
   int key = rank + 1 - (1<<color);
 
   // split out the communicator
@@ -239,50 +240,50 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
   MPI_Comm_split(dw.comm, color, key, &cm);
   World w(cm);
 
-   // number of iterations for training
-   int num_iterations = 5;
+  // number of iterations for training
+  int num_iterations = 5;
 
-   // control how much dtime should be increased upon each iteration
-   // dtime = dtime * time_dump at the end of each iteration
-   double time_jump = 1.5;
+  // control how much dtime should be increased upon each iteration
+  // dtime = dtime * time_dump at the end of each iteration
+  double time_jump = 1.5;
 
-   double dtime = (time / (1- 1/time_jump)) / pow(time_jump, num_iterations - 1.0);
-    for (int i=0; i<num_iterations; i++){
-      // TODO probably need to adjust
-      double step_size = 1.0 + 1.5 / pow(2.0, (double)i);
-      // discard the last process
-      if (rank != np - 1 || np == 1){
-         train_world(dtime/5, w, step_size);
-         CTF_int::update_all_models(cm);
-      }
+  double dtime = (time / (1- 1/time_jump)) / pow(time_jump, num_iterations - 1.0);
+  for (int i=0; i<num_iterations; i++){
+    // TODO probably need to adjust
+    double step_size = 1.0 + 1.5 / pow(2.0, (double)i);
+    // discard the last process
+    if (color != end_color){
+      train_world(dtime/5, w, step_size);
+      CTF_int::update_all_models(cm);
+    }
 
-      if (rank != np - 1 || np == 1)
-         train_world(dtime/5, w, step_size);
-      CTF_int::update_all_models(MPI_COMM_WORLD);
-      if (rank != np - 1 || np == 1){
-         train_world(dtime/5, w, step_size);
-         CTF_int::update_all_models(cm);
-      }
+    if (color != end_color)
+      train_world(dtime/5, w, step_size);
+    CTF_int::update_all_models(MPI_COMM_WORLD);
+    if (color != end_color){
+      train_world(dtime/5, w, step_size);
+      CTF_int::update_all_models(cm);
+    }
 
-      if (rank != np - 1 || np == 1)
-         train_world(dtime/5, w, step_size);
-      CTF_int::update_all_models(MPI_COMM_WORLD);
-      train_world(dtime/5, dw, step_size);
-      CTF_int::update_all_models(MPI_COMM_WORLD);
+    if (color != end_color)
+      train_world(dtime/5, w, step_size);
+    CTF_int::update_all_models(MPI_COMM_WORLD);
+    train_world(dtime/5, dw, step_size);
+    CTF_int::update_all_models(MPI_COMM_WORLD);
 
-      // double dtime for next iteration
-      dtime *= time_jump;
-   }
+    // double dtime for next iteration
+    dtime *= time_jump;
+  }
 
 
-   if(write_coeff)
-      CTF_int::write_all_models(coeff_file);
-   if(dump_data){
-      int rank, np;
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      MPI_Comm_size(MPI_COMM_WORLD, &np);
-      CTF_int::dump_all_models(data_dir);
-   }
+  if(write_coeff)
+    CTF_int::write_all_models(coeff_file);
+  if(dump_data){
+    int rank, np;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &np);
+    CTF_int::dump_all_models(data_dir);
+  }
 
 
 

@@ -17,7 +17,6 @@ namespace CTF_int {
       virtual void load_coeff(std::string file_name){};
       virtual void write_coeff(std::string file_name){};
       virtual void dump_data(std::string path){};
-      virtual void active_switch(int min_obs, double threshold){};
   };
 
   void update_all_models(MPI_Comm cm);
@@ -25,7 +24,6 @@ namespace CTF_int {
   void load_all_models(std::string file_name);
   void write_all_models(std::string file_name);
   void dump_all_models(std::string path);
-  void active_switch_all_models(int min_obs, double threshold);
 
   /**
    * \brief Linear performance models, which given measurements, provides new model guess
@@ -92,13 +90,6 @@ namespace CTF_int {
        * \param[in] time_param array of size nparam+1 of form [exe_sec,val_1,val_2,...,val_nparam]
        */
       bool should_observe(double const * time_param);
-
-      /**
-      * \brief decides whether the training of this model should switched on or off
-      * \param[in] min_obs the minimum number of observations this model need to observe before considering for shut down
-      * \param[in] threshold the threshold for over_time and under_time
-      */
-      void active_switch(int min_obs, double threshold);
 
       /**
        * \brief estimates model time based on observarions

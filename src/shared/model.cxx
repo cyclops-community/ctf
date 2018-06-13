@@ -223,40 +223,9 @@ namespace CTF_int {
     ASSERT(0);
     assert(0);
 #else
-    return true;//is_active;
+    return is_active;
 #endif
   }
-
-  template <int nparam>
-  void LinModel<nparam>::active_switch(int min_obs, double threshold){
-
-    // Special value of min_obs = -1 denoting turning the model off no matter what
-    if (min_obs == -1){
-        is_active = false;
-        return;
-    }
-
-    // If not enough observations have been made, set is_active to true and return
-    if (nobs < min_obs){
-        is_active = true;
-        return;
-    }
-
-    // Calculate the under time ratio and over time ratio
-    double under_ratio = under_time / tot_time;
-    double over_ratio = over_time / tot_time;
-
-    // If both are within threshold, set shun down the model
-    if (under_ratio <= threshold && over_ratio <= threshold){
-        is_active = false;
-    }
-    else{
-        // Else keep the model training
-        is_active = true;
-    }
-
-}
-
 
 
   template <int nparam>
@@ -531,19 +500,18 @@ namespace CTF_int {
     }
 
     // get the threshold for turning off the model
-    double threshold = 0.2;
+    double threshold = 0.05;
     char * threshold_env = getenv("THRESHOLD");
     if (threshold_env){
       threshold = std::stod(threshold_env);
    }
 
     // determine whether the model should be turned off
-    //FIXME: should below consider under_time?
-    //double under_time_ratio = under_time_total/tot_time_total;
+    double under_time_ratio = under_time_total/tot_time_total;
     double over_time_ratio = over_time_total/tot_time_total;
 
 
-    if (tot_nrcol >= min_obs && over_time_ratio < threshold && threshold < threshold){
+    if (tot_nrcol >= min_obs  && under_time_ratio < threshold && over_time_ratio < threshold && threshold < threshold){
       is_active = false;
       std::cout<<"Model "<<name<<" has been turned off"<<std::endl;
    }
@@ -805,11 +773,6 @@ namespace CTF_int {
   template <int nparam>
   bool CubicModel<nparam>::should_observe(double const * time_param){
     return lmdl.should_observe(time_param);
-  }
-
-  template <int nparam>
-  void CubicModel<nparam>::active_switch(int min_obs, double threshold){
-    lmdl.active_switch(min_obs, threshold);
   }
 
   template <int nparam>
