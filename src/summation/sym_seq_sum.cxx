@@ -464,7 +464,6 @@ namespace CTF_int {
 
     idx_glb = (int*)CTF_int::alloc(sizeof(int)*idx_max);
 
-
     SCAL_B_inr;
 
     memset(idx_glb, 0, sizeof(int)*idx_max);

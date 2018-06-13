@@ -8,14 +8,14 @@
  * However, a user can define any statically-sized type and elementwise operations.
  * CTF supports general tensor sparsity, so it is possible to define graph algorithms with the use of sparse adjacency matrices.
  *
- * To get an idea of how CTF interface works, browse through some of the short sample codes in the <a href="https://github.com/solomonik/ctf/tree/master/examples">examples folder</a>.
+ * To get an idea of how CTF interface works, browse through some of the short sample codes in the <a href="https://github.com/cyclops-community/ctf/tree/master/examples">examples folder</a>.
  *
  * The primary means of specifying CTF tensor operations is assigning `iterator' indices for each way of each tensor and specifying an elementwise function to apply.
  * Partitioning and efficient redistribution of tensor data is also possible via CTF.
  *
- * The software is available on GitHub (github.com/solomonik/ctf) and maybe obtained via the command 
+ * The software is available on GitHub (github.com/cyclops-community/ctf) and maybe obtained via the command 
  *
- * git clone https://github.com/solomonik/ctf
+ * git clone https://github.com/cyclops-community/ctf
  *
  * CTF requires the BLAS and MPI to be built, with MPI being the main parallel execution and communication mechanism.
  * OpenMP and CUDA may additionally be provided for threading and accelerator support, respectively, but CTF will also build without them.
@@ -149,7 +149,7 @@
  *
  * OMP_NUM_THREADS number of threads to use on each MPI process, can be changed from within the code with omp_set_num_threads()
  * 
- * CTF_MEMORY_SIZE tells CTF how much memory on the node there is for usage. By default CTF will try to read the available memory using system calls.
+ * CTF_MEMORY_SIZE tells CTF how much memory on the node there is for usage. By default CTF will try to read the available memory using system calls. CTF does not try to take into account memory used by the application or other application running on the system, so CTF_MEMORY_SIZE should be set ot the amount of memory allotted for CTF tensor and temporary buffers (more specifically, you should likely use, CTF_MEMORY_SIZE=bytes available on your node minus maximum number of bytes being used by application during any CTF contraction execution).
  *
  * CTF_PPN tells CTF how many processes per node you are using. The default is 1.
  *

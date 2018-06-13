@@ -1,7 +1,7 @@
 #ifndef __PMPI_H__
 #define __PMPI_H__
 
-#include "mpi.h"
+#include <mpi.h>
 #include "../interface/timer.h"
 namespace CTF {
   void set_context(MPI_Comm);

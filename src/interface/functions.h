@@ -279,7 +279,7 @@ namespace CTF {
             IC[i+1] += has_col[j];
           }
         }
-        CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype_C));
+        CTF_int::CSR_Matrix C(IC[m]-1, m, n, sr_C);
         dtype_C * vC = (dtype_C*)C.vals();
         int * JC = C.JA();
         memcpy(C.IA(), IC, sizeof(int)*(m+1));
@@ -306,8 +306,9 @@ namespace CTF {
               if (has_col[JB[idx_B]-1]){
                 dtype_C tmp = f(A[idx_A],B[idx_B]);
                 sr_C->add((char const *)&vC[rev_col[JB[idx_B]-1]], (char const *)&tmp, (char *)&vC[rev_col[JB[idx_B]-1]]);  
-              } else
+              } else {
                 vC[rev_col[JB[idx_B]-1]] = f(A[idx_A],B[idx_B]);
+              }
               has_col[JB[idx_B]-1] = 1;  
             }
           }

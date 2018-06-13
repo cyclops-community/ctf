@@ -2,7 +2,7 @@
 #ifndef __CTF_HPP__
 #define __CTF_HPP__
 
-#include "mpi.h"
+#include <mpi.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <vector>
@@ -12,7 +12,7 @@
 #include <complex>
 #include <assert.h>
 
-#define CTF_VERSION 141
+#define CTF_VERSION 150
 
 #include "../src/interface/tensor.h"
 #include "../src/interface/idx_tensor.h"

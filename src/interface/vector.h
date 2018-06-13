@@ -83,7 +83,7 @@ namespace CTF {
 
 
 
-      Vector<dtype> & operator=(const Vector<dtype> & A);
+      //Vector<dtype> & operator=(const Vector<dtype> & A);
   /**
    * @}
    */

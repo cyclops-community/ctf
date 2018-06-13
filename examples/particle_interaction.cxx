@@ -21,7 +21,7 @@ int particle_interaction(int     n,
   particle * loc_parts;
   int64_t nloc;
   int64_t * inds;
-  P.read_local(&nloc, &inds, &loc_parts);
+  P.get_local_data(&nloc, &inds, &loc_parts);
   
   srand48(dw.rank);
 
@@ -33,7 +33,7 @@ int particle_interaction(int     n,
   }
   P.write(nloc, inds, loc_parts);
   free(inds);
-  free(loc_parts);
+  delete [] loc_parts;
 
   Vector<force> F(n, dw, gF);
   

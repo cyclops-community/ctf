@@ -39,16 +39,16 @@ namespace CTF {
        * \param[in] d_ value
        */
       Pair(int64_t k_, dtype d_){
-        this->k = k_; 
+        this->k = k_;
         d = d_;
       }
-      
+
       /**
        * \brief default constructor
        */
       Pair(){
-        k=0;
-        d=0; //(not possible if type has no zero!)
+        //k=0;
+        //d=0; //(not possible if type has no zero!)
       }
 
       /**
@@ -58,65 +58,6 @@ namespace CTF {
         return k<other.k;
       }
 
-      /**
-       * \brief cast tightly packed character array to array of Pairs, needed to handle alignment
-       * \param[in,out] arr char array stored as [k1, d1, k2, d2, ..., kn, dn], deleted if copied
-       * \param[in] n number of pairs in array
-       * \return array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)]
-       */
-      static Pair<dtype> * cast_char_arr(char * arr, int64_t n){
-        if (sizeof(Pair<dtype>) == sizeof(int64_t)+sizeof(dtype)){
-          return (Pair<dtype>*)arr;
-        } else {
-          Pair<dtype> * prs = (Pair<dtype>*)CTF_int::alloc(sizeof(Pair<dtype>)*n);
-          for (int64_t i=0; i<n; i++){
-            prs[i].k = ((int64_t*)(arr+i*(sizeof(int64_t)+sizeof(dtype))))[0];
-            prs[i].d = ((dtype*)(arr+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype))))[0];
-          }
-          CTF_int::cdealloc(arr);
-          return prs;
-        }
-      }
-
-      /**
-       * \brief cast array of Pairs to tightly packed character array, needed to handle alignment
-       * \param[in,out] arr array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)], deleted if copied
-       * \param[in] n number of pairs in array
-       * \return arr char array stored as [k1, d1, k2, d2, ..., kn, dn]
-       */
-      static char * cast_to_char_arr(Pair<dtype> * arr, int64_t n){
-        if (sizeof(Pair<dtype>) == sizeof(int64_t)+sizeof(dtype)){
-          return (char*)arr;
-        } else {
-          char * prs = (char*)CTF_int::alloc((sizeof(dtype)+sizeof(int64_t))*n);
-          for (int64_t i=0; i<n; i++){
-            ((int64_t*)(prs+i*(sizeof(int64_t)+sizeof(dtype))))[0] = arr[i].k;
-            ((dtype*)(prs+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype))))[0] = arr[i].d;
-          }
-          CTF_int::cdealloc(arr);
-          return prs;
-        }
-      }
-
-      /**
-       * \brief(same as above except doesn't delete arr) cast array of Pairs to tightly packed character array, needed to handle alignment
-       * \param[in] arr array of pairs stored as [Pair(k1, d1), Pair(k2, d2), ..., Pair(kn, dn)]
-       * \param[in] n number of pairs in array
-       * \return arr char array stored as [k1, d1, k2, d2, ..., kn, dn]
-       */
-      static char * scast_to_char_arr(Pair<dtype> const * arr, int64_t n){
-        if (sizeof(Pair<dtype>) == sizeof(int64_t)+sizeof(dtype)){
-          return (char*)arr;
-        } else {
-          char * prs = (char*)CTF_int::alloc((sizeof(dtype)+sizeof(int64_t))*n);
-          for (int64_t i=0; i<n; i++){
-            ((int64_t*)(prs+i*(sizeof(int64_t)+sizeof(dtype))))[0] = arr[i].k;
-            ((dtype*)(prs+sizeof(int64_t)+i*(sizeof(int64_t)+sizeof(dtype))))[0] = arr[i].d;
-          }
-          return prs;
-        }
-      }
-
   };
 
   template<typename dtype>
@@ -124,7 +65,7 @@ namespace CTF {
                         Pair<dtype> j) {
     return (i.k<j.k);
   }
- 
+
 
   /**
    * \brief an instance of a tensor within a CTF world
@@ -250,7 +191,7 @@ namespace CTF {
              tensor const & A);
 
       /**
-       * \brief repacks the tensor other to a different symmetry 
+       * \brief repacks the tensor other to a different symmetry
        *        (assumes existing data contains the symmetry and keeps only values with indices in increasing order)
        * WARN: LIMITATION: new_sym must cause unidirectional structural changes, i.e. {NS,NS}->{SY,NS} OK, {SY,NS}->{NS,NS} OK, {NS,NS,SY,NS}->{SY,NS,NS,NS} NOT OK!
        * \param[in] A tensor to copy
@@ -258,7 +199,7 @@ namespace CTF {
        */
       Tensor(tensor &    A,
              int const * new_sym);
-      
+
       /**
        * \brief creates a zeroed out copy (data not copied) of a tensor in a different world
        * \param[in] A tensor whose characteristics to copy
@@ -327,12 +268,20 @@ namespace CTF {
        */
       Typ_Idx_Tensor<dtype> operator[](char const * idx_map);
       Typ_Idx_Tensor<dtype> i(char const * idx_map);
- 
+
       /**
-       * \brief gives the values associated with any set of indices
-       * The sparse data is defined in coordinate format. The tensor index (i,j,k,l) of a tensor with edge lengths
+       * \brief  Gives the values associated with any set of indices.
+       * \param[in] npair number of values to fetch
+       * \param[in,out] pairs a prealloced pointer to key-value pairs
+       */
+      void read(int64_t       npair,
+                Pair<dtype> * pairs);
+
+      /**
+       * \brief  Gives the values associated with any set of indices The sparse data is defined in coordinate format.
+       * The tensor index (i,j,k,l) of a tensor with edge lengths
        * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
-       * and the column index is second for matrices, which means they are column major. 
+       * and the column index is second for matrices, which means they are column major.
        * \param[in] npair number of values to fetch
        * \param[in] global_idx index within global tensor of each value to fetch
        * \param[in,out] data a prealloced pointer to the data with the specified indices
@@ -340,22 +289,27 @@ namespace CTF {
       void read(int64_t          npair,
                 int64_t const *  global_idx,
                 dtype *          data);
-      
+
       /**
-       * \brief gives the values associated with any set of indices
-       * \param[in] npair number of values to fetch
-       * \param[in,out] pairs a prealloced pointer to key-value pairs
+       * \brief sparse read with accumulation: pairs[i].d = alpha*A[pairs[i].k]+beta*pairs[i].d
+       * \param[in] npair number of values to read into tensor
+       * \param[in] alpha scaling factor on read data
+       * \param[in] beta scaling factor on value in initial pairs vector
+       * \param[in] pairs key-value pairs to which tensor values should be accumulated
        */
       void read(int64_t       npair,
+                dtype         alpha,
+                dtype         beta,
                 Pair<dtype> * pairs);
-      
+
+
       /**
-       * \brief sparse read: A[global_idx[i]] = alpha*A[global_idx[i]]+beta*data[i]
+       * \brief sparse read with accumulation: data[i] = alpha*A[global_idx[i]]+beta*data[i]
        * \param[in] npair number of values to read into tensor
        * \param[in] alpha scaling factor on read data
        * \param[in] beta scaling factor on value in initial values vector
        * \param[in] global_idx global index within tensor of value to add
-       * \param[in] data values to add to the tensor
+       * \param[in] data values to which tensor values should be accumulated
        */
       void read(int64_t          npair,
                 dtype            alpha,
@@ -364,23 +318,92 @@ namespace CTF {
                 dtype *          data);
 
       /**
-       * \brief sparse read: pairs[i].d = alpha*A[pairs[i].k]+beta*pairs[i].d
-       * \param[in] npair number of values to read into tensor
-       * \param[in] alpha scaling factor on read data
-       * \param[in] beta scaling factor on value in initial pairs vector
-       * \param[in] pairs key-value pairs to add to the tensor
+       * \brief Gives the global indices and values associated with the local data
+       * \param[out] npair number of local values
+       * \param[out] global_idx index within global tensor of each data value
+       * \param[out] data pointer to local values in the order of the indices, should be released with delete []
+       * \param[in] nonzeros_only if true, outputs all tensor elements, if false ignores those equivalent to the additive identity (zero)
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
        */
-      void read(int64_t       npair,
-                dtype         alpha,
-                dtype         beta,
-                Pair<dtype> * pairs);
-     
+      void get_local_data(int64_t  *  npair,
+                          int64_t  ** global_idx,
+                          dtype **    data,
+                          bool        nonzeros_only=false,
+                          bool        unpack_sym=false) const;
+
+      /**
+       * \brief Using get_local_data(), which returns an array that must be freed with delete [], is more efficient,
+       * this version exists for backwards compatibility.
+ gives the global indices and values associated with the local data
+       *          WARNING-1: for sparse tensors this includes the zeros to maintain consistency with
+       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
+       * \param[out] npair number of local values
+       * \param[out] global_idx index within global tensor of each data value
+       * \param[out] data pointer to local values in the order of the indices, should be released with free
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
+       */
+      void read_local(int64_t  *  npair,
+                      int64_t  ** global_idx,
+                      dtype **    data,
+                      bool        unpack_sym=false) const;
+
+      /**
+       * \brief gives the global indices and values associated with the local data
+       * \param[out] npair number of local values
+       * \param[out] pairs pointer to local key-value pairs, should be released with delete []
+       * \param[in] nonzeros_only if true, outputs all tensor elements, if false ignores those equivalent to the additive identity (zero)
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
+       */
+      void get_local_pairs(int64_t  *     npair,
+                           Pair<dtype> ** pairs,
+                           bool           nonzeros_only=false,
+                           bool           unpack_sym=false) const;
+
+      /**
+       * \brief gives the global indices and values associated with the local data
+       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with
+       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
+       * \param[out] npair number of local values
+       * \param[out] pairs pointer to local key-value pairs, should be released with free
+       * \param[in] unpack_sym if true, outputs all tensor elements, if false only those unique with respect to symmetry
+       */
+      void read_local(int64_t  *     npair,
+                      Pair<dtype> ** pairs,
+                      bool           unpack_sym=false) const;
+
+      /**
+       * \brief collects the entire tensor data on each process (not memory scalable)
+       * \param[out] npair number of values in the tensor
+       * \param[out] data pointer to the data of the entire tensor, should be released with delete []
+       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
+       */
+      void get_all_data(int64_t  * npair,
+                        dtype **   data,
+                        bool       unpack=false);
+
+      /**
+       * \brief collects the entire tensor data on each process (not memory scalable)
+       * \param[out] npair number of values in the tensor
+       * \param[out] data pointer to the data of the entire tensor, should be released with free
+       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
+       */
+      void read_all(int64_t  * npair,
+                    dtype **   data,
+                    bool       unpack=false);
+
+      /**
+       * \brief collects the entire tensor data on each process (not memory scalable)
+       * \param[in,out] data preallocated pointer to the data of the entire tensor
+       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
+       */
+      int64_t read_all(dtype * data, bool unpack=false);
+
 
       /**
        * \brief writes in values associated with any set of indices
        * The sparse data is defined in coordinate format. The tensor index (i,j,k,l) of a tensor with edge lengths
        * {m,n,p,q} is associated with the global index g via the formula g=i+j*m+k*m*n+l*m*n*p. The row index is first
-       * and the column index is second for matrices, which means they are column major. 
+       * and the column index is second for matrices, which means they are column major.
        * \param[in] npair number of values to write into tensor
        * \param[in] global_idx global index within tensor of value to write
        * \param[in] data values to  write to the indices
@@ -396,7 +419,7 @@ namespace CTF {
        */
       void write(int64_t             npair,
                  Pair<dtype> const * pairs);
-      
+
       /**
        * \brief sparse add: A[global_idx[i]] = beta*A[global_idx[i]]+alpha*data[i]
        * \param[in] npair number of values to write into tensor
@@ -422,7 +445,9 @@ namespace CTF {
                  dtype               alpha,
                  dtype               beta,
                  Pair<dtype> const * pairs);
-     
+
+
+
       /**
        * \brief contracts C[idx_C] = beta*C[idx_C] + alpha*A[idx_A]*B[idx_B]
        * \param[in] alpha A*B scaling factor
@@ -515,12 +540,12 @@ namespace CTF {
        * \param[in] prl mesh processor topology with character labels
        * \param[in] blk local blocking with processor labels
        * \param[in] unpack whether to unpack from symmetric layout
-       * \return local piece of data of tensor in this distribution
+       * \return local piece of data of tensor in this distribution, release via delete []
        */
-      dtype * read(char const *          idx,
-                   Idx_Partition const & prl,
-                   Idx_Partition const & blk=Idx_Partition(),
-                   bool                  unpack=true);
+      dtype * get_mapped_data(char const *          idx,
+                              Idx_Partition const & prl,
+                              Idx_Partition const & blk=Idx_Partition(),
+                              bool                  unpack=true);
 
       /**
        * \brief writes data to tensor from parallel distribution prl and local blocking blk
@@ -536,7 +561,7 @@ namespace CTF {
                  Idx_Partition const & blk=Idx_Partition(),
                  bool                  unpack=true);
 
- 
+
       /**
        * \brief estimate the time of a contraction C[idx_C] = A[idx_A]*B[idx_B]
        * \param[in] A first operand tensor
@@ -551,7 +576,7 @@ namespace CTF {
                            CTF_int::tensor & B,
                            char const *      idx_B,
                            char const *      idx_C);
-      
+
       /**
        * \brief estimate the time of a sum B[idx_B] = A[idx_A]
        * \param[in] A first operand tensor
@@ -565,24 +590,27 @@ namespace CTF {
 
       /**
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+       *        result will always be fully nonsymmetric
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
        * \return new tensor corresponding to requested slice
        */
       Tensor<dtype> slice(int const * offsets,
                           int const * ends) const;
-      
+
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
+       *        result will always be fully nonsymmetric
        * \param[in] corner_off top left corner of block
        * \param[in] corner_end bottom right corner of block
        * \return new tensor corresponding to requested slice
       */
       Tensor<dtype> slice(int64_t corner_off,
                           int64_t corner_end) const;
-      
+
       /**
        * \brief cuts out a slice (block) of this tensor A[offsets,ends)
+       *        result will always be fully nonsymmetric
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
        * \param[in] oworld the world in which the new tensor should be defined
@@ -595,6 +623,7 @@ namespace CTF {
 
       /**
        * \brief cuts out a slice (block) of this tensor with corners specified by global index
+       *        result will always be fully nonsymmetric
        * \param[in] corner_off top left corner of block
        * \param[in] corner_end bottom right corner of block
        * \param[in] oworld the world in which the new tensor should be defined
@@ -604,10 +633,10 @@ namespace CTF {
       Tensor<dtype> slice(int64_t corner_off,
                           int64_t corner_end,
                           World * oworld) const;
-      
-      
+
+
       /**
-       * \brief cuts out a slice (block) of this tensor = B
+       * \brief adds to a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] offsets bottom left corner of block
        * \param[in] ends top right corner of block
@@ -626,10 +655,10 @@ namespace CTF {
                  dtype                   alpha);
 
       /**
-       * \brief cuts out a slice (block) of this tensor = B
+       * \brief adds to a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] corner_off top left corner of block
-       * \param[in] corner_end bottom right corner of block       
+       * \param[in] corner_end bottom right corner of block
        * \param[in] beta scaling factor of this tensor
        * \param[in] A tensor who owns pure-operand slice
        * \param[in] corner_off_A top left corner of block of A
@@ -646,15 +675,15 @@ namespace CTF {
 
       /**
        * \brief Apply permutation to matrix, potentially extracting a slice
-       *              B[i,j,...] 
+       *              B[i,j,...]
        *                = beta*B[...] + alpha*A[perms_A[0][i],perms_A[1][j],...]
        *
        * \param[in] beta scaling factor for values of tensor B (this)
-       * \param[in] A specification of operand tensor A must live on 
+       * \param[in] A specification of operand tensor A must live on
                       the same World or a subset of the World on which B lives
        * \param[in] perms_A specifies permutations for tensor A, e.g. A[perms_A[0][i],perms_A[1][j]]
        *                    if a subarray NULL, no permutation applied to this index,
-       *                    if an entry is -1, the corresponding entries of the tensor are skipped 
+       *                    if an entry is -1, the corresponding entries of the tensor are skipped
                               (A must then be smaller than B)
        * \param[in] alpha scaling factor for A tensor
        */
@@ -665,15 +694,15 @@ namespace CTF {
 
       /**
        * \brief Apply permutation to matrix, potentially extracting a slice
-       *              B[perms_B[0][i],perms_B[0][j],...] 
+       *              B[perms_B[0][i],perms_B[0][j],...]
        *                = beta*B[...] + alpha*A[i,j,...]
        *
        * \param[in] perms_B specifies permutations for tensor B, e.g. B[perms_B[0][i],perms_B[1][j]]
        *                    if a subarray NULL, no permutation applied to this index,
-       *                    if an entry is -1, the corresponding entries of the tensor are skipped 
+       *                    if an entry is -1, the corresponding entries of the tensor are skipped
        *                       (A must then be smaller than B)
        * \param[in] beta scaling factor for values of tensor B (this)
-       * \param[in] A specification of operand tensor A must live on 
+       * \param[in] A specification of operand tensor A must live on
                       the same World or a superset of the World on which B lives
        * \param[in] alpha scaling factor for A tensor
        */
@@ -699,11 +728,11 @@ namespace CTF {
       void sparsify(dtype threshold,
                     bool  take_abs=true);
 
-     
+
       /**
        * \brief sparsifies tensor keeping only values v such that filter(v) = true
        * \param[in] filter boolean function to apply to values to determine whether to keep them
-       */ 
+       */
       void sparsify(std::function<bool(dtype)> filter);
 
      /**
@@ -723,7 +752,7 @@ namespace CTF {
        */
 
       void add_to_subworld(Tensor<dtype> * tsr);
-      
+
       /**
        * \brief accumulates this tensor from a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
@@ -734,13 +763,14 @@ namespace CTF {
       void add_from_subworld(Tensor<dtype> * tsr,
                              dtype           alpha,
                              dtype           beta);
+
       /**
        * \brief accumulates this tensor from a tensor object defined on a different world
        * \param[in] tsr a tensor object of the same characteristic as this tensor,
        *             but on a different world/MPI_comm
        */
       void add_from_subworld(Tensor<dtype> * tsr);
-      
+
 
       /**
        * \brief aligns data mapping with tensor A
@@ -751,31 +781,38 @@ namespace CTF {
       /**
        * \brief performs a reduction on the tensor
        * \param[in] op reduction operation (see top of this cyclopstf.hpp for choices)
-       */    
-      dtype reduce(OP op);
-      
-      /**
-       * \brief map data according to global index
-       * \param[in]  map_func function that takes indices and tensor element value and returns new value 
        */
-      void map_tensor(dtype (*map_func)(int         order,
-                                        int const * indices,
-                                        dtype       elem));
+      dtype reduce(OP op);
 
       /**
        * \brief computes the entrywise 1-norm of the tensor
-       */    
+       */
       dtype norm1(){ return reduce(OP_SUMABS); };
 
       /**
        * \brief computes the frobenius norm of the tensor (needs sqrt()!)
-       */    
+       */
       dtype norm2(){ return sqrt(reduce(OP_SUMSQ)); };
 
       /**
        * \brief finds the max absolute value element of the tensor
-       */    
+       */
       dtype norm_infty(){ return reduce(OP_MAXABS); };
+
+      /**
+       * \brief computes the entrywise 1-norm of the tensor
+       */
+      void norm1(double & nrm);
+
+      /**
+       * \brief computes the frobenius norm of the tensor
+       */
+      void norm2(double & nrm);
+
+      /**
+       * \brief finds the max absolute value element of the tensor
+       */
+      void norm_infty(double & nrm);
 
       /**
        * \brief gives the raw current local data with padding included
@@ -790,67 +827,8 @@ namespace CTF {
        * \return pointer to read-only copy of local data
        */
       const dtype * raw_data(int64_t * size) const;
-
       /**
-       * \brief gives the global indices and values associated with the local data
-       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with 
-       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
-       * \param[out] npair number of local values
-       * \param[out] global_idx index within global tensor of each data value
-       * \param[out] data pointer to local values in the order of the indices
-       */
-      void read_local(int64_t  *  npair,
-                      int64_t  ** global_idx,
-                      dtype **    data) const;
-
-      /**
-       * \brief gives the global indices and values associated with the local data
-       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with 
-       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
-       * \param[out] npair number of local values
-       * \param[out] pairs pointer to local key-value pairs
-       */
-      void read_local(int64_t  *     npair,
-                      Pair<dtype> ** pairs) const;
-
-      /**
-       * \brief gives the global indices and nonzero values associated with the nonzero data
-       * \param[out] npair number of local values
-       * \param[out] global_idx index within global tensor of each data value
-       * \param[out] data pointer to local values in the order of the indices
-       */
-      void read_local_nnz(int64_t  *  npair,
-                          int64_t  ** global_idx,
-                          dtype **    data) const;
-
-      /**
-       * \brief gives the global indices and nonzero values associated with the nonzero data
-       * \param[out] npair number of local values
-       * \param[out] pairs pointer to local key-value pairs
-       */
-      void read_local_nnz(int64_t  *     npair,
-                          Pair<dtype> ** pairs) const;
-
-
-      /**
-       * \brief collects the entire tensor data on each process (not memory scalable)
-       * \param[out] npair number of values in the tensor
-       * \param[out] data pointer to the data of the entire tensor
-       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
-       */
-      void read_all(int64_t  * npair,
-                    dtype **   data,
-                    bool       unpack=false);
-      
-      /**
-       * \brief collects the entire tensor data on each process (not memory scalable)
-       * \param[in,out] data preallocated pointer to the data of the entire tensor
-       * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
-       */
-      int64_t read_all(dtype * data, bool unpack=false);
-  
-      /**
-       * \brief obtains a small number of the biggest elements of the 
+       * \brief obtains a small number of the biggest elements of the
        *        tensor in sorted order (e.g. eigenvalues)
        * \param[in] n number of elements to collect
        * \param[in] data output data (should be preallocated to size at least n)
@@ -859,7 +837,7 @@ namespace CTF {
        */
       void get_max_abs(int     n,
                        dtype * data) const;
-  
+
       /**
        * \brief fills local unique tensor elements to random values in the range [min,max]
        *        works only for dtype in {float,double,int,int64_t}, for others you can use Transform()
@@ -868,9 +846,9 @@ namespace CTF {
        * \param[in] rmax maximum random value
        */
       void fill_random(dtype rmin, dtype rmax);
-  
+
       /**
-       * \brief generate roughly frac_sp*dense_tensor_size nonzeros between rmin and rmax, 
+       * \brief generate roughly frac_sp*dense_tensor_size nonzeros between rmin and rmax,
        *        works only for dtype in {float,double,int,int64_t}, for others you can use Transform()
        *        uses mersenne twister seeded every time a global world is created (reseeded if all worlds destroyed)
        * \param[in] rmin minimum random value
@@ -883,7 +861,7 @@ namespace CTF {
        * \brief turns on profiling for tensor
        */
       void profile_on();
-      
+
       /**
        * \brief turns off profiling for tensor
        */
@@ -899,18 +877,18 @@ namespace CTF {
        * \brief sets all values in the tensor to val
        */
       Tensor<dtype>& operator=(dtype val);
-      
+
       /**
        * \brief sets the tensor
        */
       Tensor<dtype>& operator=(const Tensor<dtype> A);
-     
+
       /**
        * \brief gives handle to sparse index subset of tensors
        * \param[in] indices vector of indices to sparse tensor
        */
       Sparse_Tensor<dtype> operator[](std::vector<int64_t> indices);
-      
+
       /**
        * \brief prints tensor data to file using process 0
        *    (modify print(...) overload in set.h if you would like a different print format)
@@ -940,10 +918,11 @@ namespace CTF {
 }
 
 #include "tensor.cxx"
-#include "matrix.h"
 #include "vector.h"
 #include "scalar.h"
+#include "matrix.h"
 #include "sparse_tensor.h"
 
 
 #endif
+

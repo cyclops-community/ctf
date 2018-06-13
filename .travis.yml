@@ -1,43 +1,57 @@
 sudo: false
-language: cpp
-os:
-  - linux
-#  - osx
-compiler:
-  - gcc
-  - clang
-#env:
-#matrix:
+os: linux
+language: python
+python:
+  - "2.7"
+  - "3.5"
+  - "3.6"
+env:
+  - CTF_CXX=clang++
+  - CTF_CXX=g++
+
 addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-      #- llvm-toolchain-precise-3.7
     packages:
       - gcc-5
       - g++-5
       - gfortran-5
-      - libopenmpi-dev
+      - libgfortran-5-dev
       - libblas-dev
       - liblapack-dev
+      - mpich2
+      - libmpich2-dev
+      - cmake
 before_install:
-  - pwd
-  - export TRAVIS_HOME=$PWD
-  - export PATH=$TRAVIS_HOME/deps/bin:$PATH
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]] || [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]] ; then
+      export PYTHONMAJORV=2;
+    else
+      export PYTHONMAJORV=3;
+    fi
+  - wget https://repo.continuum.io/miniconda/Miniconda${PYTHONMAJORV}-latest-Linux-x86_64.sh
+  - bash Miniconda${PYTHONMAJORV}-latest-Linux-x86_64.sh -b
+  - export PATH=$HOME/miniconda${PYTHONMAJORV}/bin:$PATH
+  - conda create -y -n mypy python=$TRAVIS_PYTHON_VERSION
+  - source activate mypy
+  - conda install -y cython
+  - conda install -y numpy  
 install:
-  - mkdir -p $TRAVIS_HOME/deps
-  - sh ./travis/install-mpi.sh $TRAVIS_HOME/deps mpich
-before_script:
-  - which mpicxx ; mpicxx -v
-  - ./configure CXX=mpicxx
+  - $CTF_CXX --version
+  - FC=gfortran-5 ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack
+  - make -j2 
+  - make python -j2
 script:
-  - make
   - make test
   - make test2
-#after_failure:
+  - make python_test
+  - make python_test2
+after_failure:
 notifications:
   email:
     recipients:
-      - jeff.science@gmail.com
+      - solomon2@illinois.edu
     on_success: change
     on_failure: always
+
+

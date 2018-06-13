@@ -27,9 +27,15 @@ namespace CTF_int {
     for (int i=1; i<nrow+1; i++){
       csr_ia[i] = 0;
     }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (int64_t i=0; i<nz; i++){
       csr_ia[coo_rs[i]]++;
     }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
     for (int i=0; i<nrow; i++){
       csr_ia[i+1] += csr_ia[i];
     }
@@ -53,13 +59,27 @@ namespace CTF_int {
     std::sort(csr_ja, csr_ja+nz, crc);
     comp_ref crr(coo_rs);
     std::stable_sort(csr_ja, csr_ja+nz, crr);
+    // do not copy by value in case values are objects, then csr_vs is uninitialized
+    //printf("csr nz = %ld\n",nz);
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
     for (int64_t i=0; i<nz; i++){
+      //printf("%d, %d, %ld\n",(int)((char*)(coo_vs+csr_ja[i])-(char*)(coo_vs))-csr_ja[i]*sizeof(dtype),sizeof(dtype),csr_ja[i]);
+//      memcpy(csr_vs+i, coo_vs+csr_ja[i]-1,sizeof(dtype));
+      //memcpy(csr_vs+i, coo_vs+csr_ja[i],sizeof(dtype));
       csr_vs[i] = coo_vs[csr_ja[i]];
+//      printf("i %ld csr_ja[i] %d\n", i, csr_ja[i]);
+//      printf("i %ld v %lf\n", i, csr_vs[i]);
+      //printf("%p %d\n",coo_vs+i,*(int32_t*)(coo_vs+i));
+    }
+#ifdef _OPENMP
+    #pragma omp parallel for
+#endif
+    for (int64_t i=0; i<nz; i++){
       csr_ja[i] = coo_cs[csr_ja[i]];
     }
+
   }
   template <typename dtype>  
   void seq_csr_to_coo(int64_t nz, int nrow, dtype const * csr_vs, int const * csr_ja, int const * csr_ia, dtype * coo_vs, int * coo_rs, int * coo_cs){
@@ -68,7 +88,8 @@ namespace CTF_int {
       bool b = try_mkl_csr_to_coo(nz, nrow, (char const*)csr_vs, csr_ja, csr_ia, (char*)coo_vs, coo_rs, coo_cs, sz);
       if (b) return;
     }
-    memcpy(coo_vs, csr_vs, sizeof(dtype)*nz);
+    //memcpy(coo_vs, csr_vs, sizeof(dtype)*nz);
+    std::copy(csr_vs, csr_vs+nz, coo_vs);
     memcpy(coo_cs, csr_ja, sizeof(int)*nz);
     for (int i=0; i<nrow; i++){
       std::fill(coo_rs+csr_ia[i]-1, coo_rs+csr_ia[i+1]-1, i+1);
@@ -137,7 +158,7 @@ namespace CTF_int {
   default_max_lim(){
     printf("CTF ERROR: cannot compute a max unless the set is ordered");
     assert(0);
-    dtype * a;
+    dtype * a = NULL;
     return *a;
   }
 
@@ -152,7 +173,7 @@ namespace CTF_int {
   default_min_lim(){
     printf("CTF ERROR: cannot compute a max unless the set is ordered");
     assert(0);
-    dtype * a;
+    dtype * a = NULL;
     return *a;
   }
 
@@ -177,10 +198,19 @@ namespace CTF_int {
     is_custom = true;
     return newtype;
   }
+
+  extern MPI_Datatype MPI_CTF_BOOL;
+  extern MPI_Datatype MPI_CTF_DOUBLE_COMPLEX;
+  extern MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX;
+
+  template <>
+  inline MPI_Datatype get_default_mdtype<bool>(bool & is_custom){ is_custom=false; return MPI_CTF_BOOL; }
+  template <>
+  inline MPI_Datatype get_default_mdtype< std::complex<double> >(bool & is_custom){ is_custom=false; return MPI_CTF_DOUBLE_COMPLEX; }
+  template <>
+  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(bool & is_custom){ is_custom=false; return MPI_CTF_LONG_DOUBLE_COMPLEX; }
   template <>
   inline MPI_Datatype get_default_mdtype<char>(bool & is_custom){ is_custom=false; return MPI_CHAR; }
-  template <>
-  inline MPI_Datatype get_default_mdtype<bool>(bool & is_custom){ is_custom=false; return MPI_CXX_BOOL; }
   template <>
   inline MPI_Datatype get_default_mdtype<int>(bool & is_custom){ is_custom=false; return MPI_INT; }
   template <>
@@ -197,10 +227,8 @@ namespace CTF_int {
   inline MPI_Datatype get_default_mdtype<long double>(bool & is_custom){ is_custom=false; return MPI_LONG_DOUBLE; }
   template <>
   inline MPI_Datatype get_default_mdtype< std::complex<float> >(bool & is_custom){ is_custom=false; return MPI_COMPLEX; }
-  template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<double> >(bool & is_custom){ is_custom=false; return MPI_CXX_DOUBLE_COMPLEX; }
-  template <>
-  inline MPI_Datatype get_default_mdtype< std::complex<long double> >(bool & is_custom){ is_custom=false; return MPI_CXX_LONG_DOUBLE_COMPLEX; }
+
+
 
   template <typename dtype>
   constexpr bool get_default_is_ord(){
@@ -227,6 +255,17 @@ namespace CTF_int {
 
 
 namespace CTF {
+
+  /** \brief pair for sorting */  
+  template <typename dtype>
+  struct dtypePair{
+    int64_t key;
+    dtype data;
+    bool operator < (const dtypePair<dtype>& other) const {
+      return (key < other.key);
+    }
+  };
+
   /**
    * \defgroup algstrct Algebraic Structures
    * \addtogroup algstrct 
@@ -240,6 +279,7 @@ namespace CTF {
   template <typename dtype=double, bool is_ord=CTF_int::get_default_is_ord<dtype>()> 
   class Set : public CTF_int::algstrct {
     public:
+      int pair_sz;
       bool is_custom_mdtype;
       MPI_Datatype tmdtype;
       ~Set(){
@@ -253,8 +293,29 @@ namespace CTF {
           this->tmdtype = other.tmdtype;
           is_custom_mdtype = false;
         }
+        pair_sz = sizeof(std::pair<int64_t,dtype>);
+        //printf("%ld %ld \n", sizeof(dtype), pair_sz);
         abs = other.abs;
       }
+
+      int pair_size() const {
+        //printf("%d %d \n", sizeof(dtype), pair_sz);
+        return pair_sz;
+      }
+
+      int64_t get_key(char const * a) const {
+        return ((std::pair<int64_t,dtype> const *)a)->first;
+      }
+
+      char * get_value(char * a) const {
+        return (char*)&(((std::pair<int64_t,dtype> const *)a)->second);
+      }
+
+      char const * get_const_value(char const * a) const {
+        return (char const *)&(((std::pair<int64_t,dtype> const *)a)->second);
+      }
+
+
 
       virtual CTF_int::algstrct * clone() const {
         return new Set<dtype, is_ord>(*this);
@@ -265,6 +326,7 @@ namespace CTF {
       Set() : CTF_int::algstrct(sizeof(dtype)){ 
         tmdtype = CTF_int::get_default_mdtype<dtype>(is_custom_mdtype);
         set_abs_to_default();
+        pair_sz = sizeof(std::pair<int64_t,dtype>);
       }
 
       void set_abs_to_default(){
@@ -309,6 +371,7 @@ namespace CTF {
 
       double cast_to_double(char const * c) const {
         printf("CTF ERROR: double cast not possible for this algebraic structure\n");
+        IASSERT(0);
         assert(0);
         return 0.0;
       }
@@ -344,6 +407,125 @@ namespace CTF {
         CTF_int::def_csr_to_coo(nz, nrow, (dtype const *)csr_vs, csr_ja, csr_ia, (dtype*) coo_vs, coo_rs, coo_cs);
       }
 
+      char * pair_alloc(int64_t n) const {
+        //assert(sizeof(std::pair<int64_t,dtype>[n])==(uint64_t)(pair_size()*n));
+        return (char*)(new std::pair<int64_t,dtype>[n]);
+      }
+
+      char * alloc(int64_t n) const {
+        //assert(sizeof(dtype[n])==(uint64_t)(el_size*n));
+        return (char*)(new dtype[n]);
+      }
+
+      void dealloc(char * ptr) const {
+        return delete [] (dtype*)ptr;
+      }
+
+      void pair_dealloc(char * ptr) const {
+        return delete [] (std::pair<int64_t,dtype>*)ptr;
+      }
+
+
+      void sort(int64_t n, char * pairs) const {
+        std::sort((dtypePair<dtype>*)pairs,((dtypePair<dtype>*)pairs)+n);
+      }
+
+      void copy(char * a, char const * b) const {
+        ((dtype *)a)[0] = ((dtype const *)b)[0];
+      }
+
+      void copy(char * a, char const * b, int64_t n) const {
+        std::copy((dtype const *)b, ((dtype const *)b) + n, (dtype *)a);
+      }
+
+      void copy_pair(char * a, char const * b) const {
+        ((std::pair<int64_t,dtype> *)a)[0] = ((std::pair<int64_t,dtype> const *)b)[0];
+      }
+
+      void copy_pairs(char * a, char const * b, int64_t n) const {
+        std::copy((std::pair<int64_t,dtype> const *)b, ((std::pair<int64_t,dtype> const *)b) + n, (std::pair<int64_t,dtype> *)a);
+        //std::copy((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> const *)b, n);
+        //for (int64_t i=0; i<n; i++){
+          /*printf("i=%ld\n",i);
+          this->print((char*)&(((std::pair<int64_t,dtype> const *)a)[i].second));
+          this->print((char*)&(((std::pair<int64_t,dtype> const *)b)[i].second));*/
+          //((std::pair<int64_t,dtype>*)a)[i] = ((std::pair<int64_t,dtype> const *)b)[i];
+          //this->print((char*)&(((std::pair<int64_t,dtype> const *)a)[i].second));
+        //}
+      }
+
+      void set(char * a, char const * b, int64_t n) const {
+        std::fill((dtype*)a, ((dtype*)a)+n, *((dtype*)b));
+      }
+
+      void set_pair(char * a, int64_t key, char const * b) const {
+        ((std::pair<int64_t,dtype> *)a)[0] = std::pair<int64_t,dtype>(key,*((dtype*)b));
+      }
+
+      void set_pairs(char * a, int64_t key, char const * b, int64_t n) const {
+        std::fill((std::pair<int64_t,dtype> *)a, (std::pair<int64_t,dtype> *)a + n, std::pair<int64_t,dtype>(key,*((dtype*)b)));
+      }
+
+      void copy(int64_t n, char const * a, int inc_a, char * b, int inc_b) const {
+        dtype const * da = (dtype const*)a;
+        dtype * db = (dtype *)b;
+        for (int64_t i=0; i<n; i++){
+          db[inc_b*i] = da[inc_a*i];
+        }
+      }
+
+      void copy(int64_t      m,
+                int64_t      n,
+                char const * a,
+                int64_t      lda_a,
+                char *       b,
+                int64_t      lda_b) const {
+
+        dtype const * da = (dtype const*)a;
+        dtype * db = (dtype *)b;
+        for (int64_t j=0; j<n; j++){
+          for (int64_t i=0; i<m; i++){
+            db[j*lda_b+i] = da[j*lda_a+i];
+          }
+        }
+      }
+
+    void init(int64_t n, char * arr) const {
+      std::fill((dtype*)arr,((dtype*)arr)+n,dtype());
+    }
+
+    /** \brief initialize n objects to zero
+      * \param[in] n number of items
+      * \param[in] arr array containing n items, to be set to zero
+      */
+    virtual void init_shell(int64_t n, char * arr) const {
+      dtype dummy = dtype();
+      for (int i=0; i<n; i++){
+        memcpy(arr+i*el_size,(char*)&dummy,el_size);
+      }
+    }
+
+
+/* 
+      void copy(int64_t      m,
+                int64_t      n,
+                char const * a,
+                int64_t      lda_a,
+                char const * alpha,
+                char *       b,
+                int64_t      lda_b,
+                char const * beta) const {
+
+        dtype const * da = (dtype const*)a;
+        dtype dalpha = *((dtype const*)alpha);
+        dtype dbeta = *((dtype const*)beta);
+        dtype * db = (dtype *)b;
+        for (int64_t j=0; j<n; j++){
+          for (int64_t i=0; i<m; i++){
+            dbeta*db[j*lda_b+i] += dalpha*da[j*lda_a+i]
+          }
+        }
+      }*/
 
   };
 

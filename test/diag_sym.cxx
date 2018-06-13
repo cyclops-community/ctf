@@ -34,15 +34,15 @@ int diag_sym(int     n,
 
   Matrix<> mA(n,n,NS,dw);
   Matrix<> mB(n,n,NS,dw);
-  mA.read_local(&np, &indices, &pairs);
+  mA.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   mA.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
-  mB.read_local(&np, &indices, &pairs);
+  mB.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   mB.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
 
   A["abij"] = mA["ii"];

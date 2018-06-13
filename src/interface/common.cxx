@@ -4,6 +4,10 @@
 #include "../shared/util.h"
 #include <random>
 
+#ifdef USE_MPI_CPP
+#define MPI_CXX_DOUBLE_COMPLEX MPI::DOUBLE_COMPLEX
+#endif
+
 namespace CTF {
   int DGTOG_SWITCH = 1;
 }
@@ -180,19 +184,19 @@ namespace CTF_int {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     if (rank == 0){
-      void *array[26];
+      void *array[51];
 
       // get void*'s for all entries on the stack
-      size = backtrace(array, 25);
+      size = backtrace(array, 50);
 
       // print out all the frames to stderr
       backtrace_symbols(array, size);
-      char syscom[256*size];
+      char syscom[2048*size];
       for (i=1; i<size; ++i)
       {
-        char buf[256];
-        char buf2[256];
-        int bufsize = 256;
+        char buf[2048];
+        char buf2[2048];
+        int bufsize = 2048;
         int sz = readlink("/proc/self/exe", buf, bufsize);
         buf[sz] = '\0';
         sprintf(buf2,"addr2line %p -e %s", array[i], buf);
@@ -332,24 +336,25 @@ namespace CTF_int {
   void CommData::bcast(void * buf, int64_t count, MPI_Datatype mdtype, int root){
 #ifdef TUNE
     MPI_Barrier(cm);
+
+    int tsize_;
+    MPI_Type_size(mdtype, &tsize_);
+    double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_};
+    if (!bcast_mdl.should_observe(tps_)) return;
 #endif
 
-   // change-of-observe
-   int tsize_;
-   MPI_Type_size(mdtype, &tsize_);
-   double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_};
-   if (!bcast_mdl.should_observe(tps_)) return;
-
+#ifdef TUNE
     double st_time = MPI_Wtime();
+#endif
     MPI_Bcast(buf, count, mdtype, root, cm);
 #ifdef TUNE
     MPI_Barrier(cm);
-#endif
     double exe_time = MPI_Wtime()-st_time;
     int tsize;
     MPI_Type_size(mdtype, &tsize);
     double tps[] = {exe_time, 1.0, log2(np), ((double)count)*tsize};
     bcast_mdl.observe(tps);
+#endif
   }
 
   void CommData::allred(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op){
@@ -357,16 +362,17 @@ namespace CTF_int {
     MPI_Barrier(cm);
 #endif
 
-   // change-of-observe
-   int tsize_;
-   MPI_Type_size(mdtype, &tsize_);
-   double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
-   bool sr = true;
-   if (op >= MPI_MAX && op <= MPI_REPLACE)
-     sr = allred_mdl.should_observe(tps_);
-   else
-     sr = allred_mdl_cst.should_observe(tps_);
-   if(!sr) return;
+#ifdef TUNE
+    int tsize_;
+    MPI_Type_size(mdtype, &tsize_);
+    double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
+    bool bsr = true;
+    if (op >= MPI_MAX && op <= MPI_REPLACE)
+      bsr = allred_mdl.should_observe(tps_);
+    else
+      bsr = allred_mdl_cst.should_observe(tps_);
+    if(!bsr) return;
+#endif
 
     double st_time = MPI_Wtime();
     MPI_Allreduce(inbuf, outbuf, count, mdtype, op, cm);
@@ -386,18 +392,18 @@ namespace CTF_int {
   void CommData::red(void * inbuf, void * outbuf, int64_t count, MPI_Datatype mdtype, MPI_Op op, int root){
 #ifdef TUNE
     MPI_Barrier(cm);
-#endif
 
-   // change-of-observe
-   int tsize_;
-   MPI_Type_size(mdtype, &tsize_);
-   double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
-   bool sr = true;
-   if (op >= MPI_MAX && op <= MPI_REPLACE)
-     sr = red_mdl.should_observe(tps_);
-   else
-     sr = red_mdl_cst.should_observe(tps_);
-     if(!sr) return;
+    // change-of-observe
+    int tsize_;
+    MPI_Type_size(mdtype, &tsize_);
+    double tps_[] = {0.0, 1.0, log2(np), ((double)count)*tsize_*std::max(.5,(double)log2(np))};
+    bool bsr = true;
+    if (op >= MPI_MAX && op <= MPI_REPLACE)
+      bsr = red_mdl.should_observe(tps_);
+    else
+      bsr = red_mdl_cst.should_observe(tps_);
+    if(!bsr) return;
+#endif
 
     double st_time = MPI_Wtime();
     MPI_Reduce(inbuf, outbuf, count, mdtype, op, root, cm);
@@ -423,13 +429,13 @@ namespace CTF_int {
                              int64_t const * recv_counts,
                              int64_t const * recv_displs){
 
-     #ifdef TUNE
-        MPI_Barrier(cm);
-     #endif
-      // change-of-observe
-      int64_t tot_sz_ = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
-      double tps_[] = {0.0, 1.0, log2(np), (double)tot_sz_};
-      if (!alltoallv_mdl.should_observe(tps_)) return;
+    #ifdef TUNE
+    MPI_Barrier(cm);
+    // change-of-observe
+    int64_t tot_sz_ = std::max(send_displs[np-1]+send_counts[np-1], recv_displs[np-1]+recv_counts[np-1])*datum_size;
+    double tps_[] = {0.0, 1.0, log2(np), (double)tot_sz_};
+    if (!alltoallv_mdl.should_observe(tps_)) return;
+    #endif
 
     double st_time = MPI_Wtime();
     int num_nnz_trgt = 0;
@@ -555,8 +561,28 @@ namespace CTF_int {
       (*idx) += idx_arr[i]*lda;
       lda *= lens[i];
     }
-
   }
+/*
+#define USE_CUST_DBL_CMPLX 0
+
+#if USE_CUST_DBL_CMPLX
+  MPI_Datatype MPI_DBL_CMPLX;  
+  bool dbl_cmplx_type_created = 0;
+#else
+  MPI_Datatype MPI_DBL_CMPLX = MPI_CXX_DOUBLE_COMPLEX;  
+  bool dbl_cmplx_type_created = 1;
+#endif
+
+  MPI_Datatype get_dbl_cmplx_type(){
+    if (dbl_cmplx_type_created){
+      MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_DBL_CMPLX);
+      MPI_Type_commit(&MPI_DBL_CMPLX);
+      MPI_DBL_CMPLX = dt;
+    }
+    return MPI_DBL_CMPLX;
+  }*/
+
+  extern MPI_Datatype MPI_CTF_DOUBLE_COMPLEX;
 
   bool get_mpi_dt(int64_t count, int64_t datum_size, MPI_Datatype & dt){
     ASSERT(count <= INT_MAX);
@@ -572,7 +598,7 @@ namespace CTF_int {
         dt = MPI_DOUBLE;
         break;
       case 16:
-        dt = MPI_CXX_DOUBLE_COMPLEX;
+        dt = MPI_CTF_DOUBLE_COMPLEX;
         break;
       default:
         MPI_Type_contiguous(datum_size, MPI_CHAR, &dt);
@@ -582,6 +608,5 @@ namespace CTF_int {
     }
     return is_new;
   }
-
 
 }

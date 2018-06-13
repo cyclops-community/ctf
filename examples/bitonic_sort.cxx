@@ -28,11 +28,11 @@ void bitonic_sort(Vector<> & v, int logn, World & dw){
   // represent vector to sort as 2-by-...-by-2 tensor  
   Tensor<> V(logn, lens, dw, smin);
 
-  v.read_local(&np, &inds, &data);
+  v.get_local_data(&np, &inds, &data);
   V.write(np, inds, data);
 
   free(inds);
-  free(data);
+  delete [] data;
 
 
   // 2-by-2-by-2 tensor X, consisting of matrices
@@ -105,11 +105,11 @@ void bitonic_sort(Vector<> & v, int logn, World & dw){
 
 
   // put the data from the tensor back into the vector
-  V.read_local(&np, &inds, &data);
+  V.get_local_data(&np, &inds, &data);
   v.write(np, inds, data);
   
   free(inds);
-  free(data);
+  delete [] data;
 }
 
 int bitonic(int     logn,

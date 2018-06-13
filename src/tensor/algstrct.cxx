@@ -5,116 +5,70 @@
 #include "algstrct.h"
 #include "../sparse_formats/csr.h"
 
+using namespace std;
+
 namespace CTF_int {
   LinModel<3> csrred_mdl(csrred_mdl_init,"csrred_mdl");
   LinModel<3> csrred_mdl_cst(csrred_mdl_cst_init,"csrred_mdl_cst");
 
-  void sgemm(char           tA,
-             char           tB,
-             int            m,
-             int            n,
-             int            k,
-             float          alpha,
-             float  const * A,
-             float  const * B,
-             float          beta,
-             float  *       C){
-    int lda, lda_B, lda_C;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda = m;
-    } else {
-      lda = k;
+
+  template<int l>
+  struct CompPair{
+    int64_t key;
+    char data[l];
+    bool operator < (const CompPair& other) const {
+      return (key < other.key);
     }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-    } else {
-      lda_B = n;
+  }; // __attribute__((packed));
+
+  struct IntPair{
+    int64_t key;
+    int data;
+    bool operator < (const IntPair& other) const {
+      return (key < other.key);
     }
-    CTF_BLAS::SGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
-  }
+  }; // __attribute__((packed));
+  
+  struct ShortPair{
+    int64_t key;
+    short data;
+    bool operator < (const ShortPair& other) const {
+      return (key < other.key);
+    }
+  }; // __attribute__((packed));
+  
+  struct BoolPair{
+    int64_t key;
+    bool data;
+    bool operator < (const BoolPair& other) const {
+      return (key < other.key);
+    }
+  }; // __attribute__((packed));
+
+/*  template struct CompPair<1>;
+  template struct CompPair<2>;
+  template struct CompPair<4>;*/
+  template struct CompPair<8>;
+  template struct CompPair<12>;
+  template struct CompPair<16>;
+  template struct CompPair<20>;
+  template struct CompPair<24>;
+  template struct CompPair<28>;
+  template struct CompPair<32>;
+  
+  struct CompPtrPair{
+    int64_t key;
+    int64_t idx;
+    bool operator < (const CompPtrPair& other) const {
+      return (key < other.key);
+    }
+  };
 
 
-  void cidgemm(char           tA,
-               char           tB,
-               int            m,
-               int            n,
-               int            k,
-               double         alpha,
-               double const * A,
-               double const * B,
-               double         beta,
-               double *       C){
-    int lda, lda_B, lda_C;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda = m;
-    } else {
-      lda = k;
-    }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-    } else {
-      lda_B = n;
-    }
-    CTF_BLAS::DGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
-  }
-
-  void cgemm(char                        tA,
-             char                        tB,
-             int                         m,
-             int                         n,
-             int                         k,
-             std::complex<float>         alpha,
-             std::complex<float> const * A,
-             std::complex<float> const * B,
-             std::complex<float>         beta,
-             std::complex<float> *       C){
-    int lda, lda_B, lda_C;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda = m;
-    } else {
-      lda = k;
-    }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-    } else {
-      lda_B = n;
-    }
-    CTF_BLAS::CGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
-  }
-
-
-  void zgemm(char                         tA,
-             char                         tB,
-             int                          m,
-             int                          n,
-             int                          k,
-             std::complex<double>         alpha,
-             std::complex<double> const * A,
-             std::complex<double> const * B,
-             std::complex<double>         beta,
-             std::complex<double> *       C){
-    int lda, lda_B, lda_C;
-    lda_C = m;
-    if (tA == 'n' || tA == 'N'){
-      lda = m;
-    } else {
-      lda = k;
-    }
-    if (tB == 'n' || tB == 'N'){
-      lda_B = k;
-    } else {
-      lda_B = n;
-    }
-    CTF_BLAS::ZGEMM(&tA,&tB,&m,&n,&k,&alpha,A,&lda,B,&lda_B,&beta,C,&lda_C);
-  }
   algstrct::algstrct(int el_size_){
     el_size = el_size_;
     has_coo_ker = false;
   }
-
 
   MPI_Op algstrct::addmop() const {
     printf("CTF ERROR: no addition MPI_Op present for this algebraic structure\n");
@@ -231,6 +185,80 @@ namespace CTF_int {
     assert(0);
   }
 
+  void algstrct::sort(int64_t n, char * pairs) const {
+    switch (this->el_size){
+      case 1:
+        ASSERT(sizeof(BoolPair)==this->pair_size());
+        std::sort((BoolPair*)pairs,((BoolPair*)pairs)+n);
+        break;
+      case 2:
+        ASSERT(sizeof(ShortPair)==this->pair_size());
+        std::sort((ShortPair*)pairs,((ShortPair*)pairs)+n);
+        break;
+      case 4:
+        ASSERT(sizeof(IntPair)==this->pair_size());
+        std::sort((IntPair*)pairs,((IntPair*)pairs)+n);
+        break;
+      case 8:
+        ASSERT(sizeof(CompPair<8>)==this->pair_size());
+        std::sort((CompPair<8>*)pairs,((CompPair<8>*)pairs)+n);
+        break;
+      case 12:
+        ASSERT(sizeof(CompPair<12>)==this->pair_size());
+        std::sort((CompPair<12>*)pairs,((CompPair<12>*)pairs)+n);
+        break;
+      case 16:
+        ASSERT(sizeof(CompPair<16>)==this->pair_size());
+        std::sort((CompPair<16>*)pairs,((CompPair<16>*)pairs)+n);
+        break;
+      case 20:
+        ASSERT(sizeof(CompPair<20>)==this->pair_size());
+        std::sort((CompPair<20>*)pairs,((CompPair<20>*)pairs)+n);
+        break;
+      case 24:
+        ASSERT(sizeof(CompPair<24>)==this->pair_size());
+        std::sort((CompPair<24>*)pairs,((CompPair<24>*)pairs)+n);
+        break;
+      case 28:
+        ASSERT(sizeof(CompPair<28>)==this->pair_size());
+        std::sort((CompPair<28>*)pairs,((CompPair<28>*)pairs)+n);
+        break;
+      case 32:
+        ASSERT(sizeof(CompPair<32>)==this->pair_size());
+        std::sort((CompPair<32>*)pairs,((CompPair<32>*)pairs)+n);
+        break;
+      default:
+        //Causes a bogus uninitialized variable warning with GNU
+        CompPtrPair idx_pairs[n];
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<n; i++){
+          idx_pairs[i].key = *(int64_t*)(pairs+i*(sizeof(int64_t)+this->el_size));
+          idx_pairs[i].idx = i;
+        }
+        //FIXME :(
+        char * swap_buffer = this->pair_alloc(n);
+
+        this->copy_pairs(swap_buffer, pairs, n);
+
+        std::sort(idx_pairs, idx_pairs+n);
+        
+        ConstPairIterator piw(this, swap_buffer);
+        PairIterator pip(this, pairs);
+    
+#ifdef USE_OMP
+        #pragma omp parallel for
+#endif
+        for (int64_t i=0; i<n; i++){
+          pip[i].write_val(piw[idx_pairs[i].idx].d());
+        }
+        this->pair_dealloc(swap_buffer);
+        break; //compiler warning here seems to be gcc bug
+    }
+
+  }
+
   void algstrct::scal(int          n,
                       char const * alpha,
                       char       * X,
@@ -259,6 +287,22 @@ namespace CTF_int {
     ASSERT(0);
     assert(0);
   }
+
+  void algstrct::gemm_batch(char         tA,
+                            char         tB,
+                            int          l,
+                            int          m,
+                            int          n,
+                            int          k,
+                            char const * alpha,
+                            char const * A,
+                            char const * B,
+                            char const * beta,
+                            char *       C)  const {
+    printf("CTF ERROR: gemm_batch not present for this algebraic structure\n");
+    ASSERT(0);
+  }
+
 
    void algstrct::gemm(char         tA,
                        char         tB,
@@ -337,8 +381,8 @@ namespace CTF_int {
 
     CSR_Matrix A(cA);
     int64_t sz_A = A.size();
-    char * parts_buffer;
-    CSR_Matrix ** parts = (CSR_Matrix**)alloc(sizeof(CSR_Matrix*)*s);
+    char * parts_buffer; 
+    CSR_Matrix ** parts = (CSR_Matrix**)CTF_int::alloc(sizeof(CSR_Matrix*)*s);
     A.partition(s, &parts_buffer, parts);
     //MPI_Request reqs[2*(s-1)];
     int rcv_szs[s];
@@ -356,8 +400,7 @@ namespace CTF_int {
       //printf("i=%d/%d,rcv_szs[i]=%d\n",i,s,rcv_szs[i]);
       tot_rcv_sz += rcv_szs[i];
     }
-    char * rcv_buf = (char*)alloc(tot_rcv_sz);
-
+    char * rcv_buf = (char*)CTF_int::alloc(tot_rcv_sz);
     char * smnds[s];
     int rcv_displs[s];
     int snd_displs[s];
@@ -429,7 +472,7 @@ namespace CTF_int {
           tot_cb_size += cb_sizes[i];
         }
       }
-      char * cb_bufs = (char*)alloc(tot_cb_size);
+      char * cb_bufs = (char*)CTF_int::alloc(tot_cb_size);
       MPI_Gatherv(red_sum, sz, MPI_CHAR, cb_bufs, cb_sizes, cb_displs, MPI_CHAR, sroot, scm);
       MPI_Comm_free(&scm);
       MPI_Comm_free(&rcm);
@@ -488,8 +531,8 @@ namespace CTF_int {
       if (a != NULL) cdealloc(a);
       a = NULL;
     } else {
-      if (a == NULL) a = (char*)alloc(el_size);
-      memcpy(a, b, el_size);
+      if (a == NULL) a = (char*)CTF_int::alloc(el_size); 
+      this->copy(a, b);
     }
   }
   void algstrct::copy(char * a, char const * b) const {
@@ -509,7 +552,8 @@ namespace CTF_int {
   }
 
 
-  void algstrct::copy(int n, char const * a, int inc_a, char * b, int inc_b) const {
+  void algstrct::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
     switch (el_size) {
       case 4:
         CTF_BLAS::SCOPY(&n, (float const*)a, &inc_a, (float*)b, &inc_b);
@@ -524,7 +568,7 @@ namespace CTF_int {
 #ifdef USE_OMP
         #pragma omp parallel for
 #endif
-        for (int i=0; i<n; i++){
+        for (int64_t i=0; i<nn; i++){
           copy(b+el_size*inc_b*i, a+el_size*inc_a*i);
         }
         break;
@@ -613,12 +657,12 @@ namespace CTF_int {
 
   void algstrct::set_pair(char * a, int64_t key, char const * vb) const {
     memcpy(a, &key, sizeof(int64_t));
-    memcpy(a+sizeof(int64_t), vb, el_size);
+    memcpy(get_value(a), vb, el_size);
   }
 
   void algstrct::set_pairs(char * a, char const * b, int64_t n) const {
     for (int i=0; i<n; i++) {
-      memcpy(a + i*(sizeof(int64_t)+el_size), b, (sizeof(int64_t)+el_size));
+      memcpy(a + i*pair_size(), b, pair_size());
     }
   }
 
@@ -626,9 +670,34 @@ namespace CTF_int {
     return (int64_t)*a;
   }
 
-  char const * algstrct::get_value(char const * a) const {
+  char * algstrct::get_value(char * a) const {
     return a+sizeof(int64_t);
   }
+
+  char const * algstrct::get_const_value(char const * a) const {
+    return a+sizeof(int64_t);
+  }
+
+  char * algstrct::pair_alloc(int64_t n) const {
+    return (char*)CTF_int::alloc(n*pair_size());
+  }    
+
+  char * algstrct::alloc(int64_t n) const {
+    return (char*)CTF_int::alloc(n*el_size);
+  }    
+ 
+  void algstrct::dealloc(char * ptr) const {
+    CTF_int::cdealloc(ptr);
+  }
+      
+  void algstrct::pair_dealloc(char * ptr) const {
+    CTF_int::cdealloc(ptr);
+  }
+      
+  void algstrct::init(int64_t n, char * arr) const {
+
+  }
+    
 
 
   void algstrct::coomm(int m, int n, int k, char const * alpha, char const * A, int const * rows_A, int const * cols_A, int64_t nnz_A, char const * B, char const * beta, char * C, bivar_function const * func) const {
@@ -688,8 +757,8 @@ namespace CTF_int {
     sr=sr_; ptr=ptr_;
   }
 
-  ConstPairIterator ConstPairIterator::operator[](int n) const {
-    return ConstPairIterator(sr,ptr+(sr->el_size+sizeof(int64_t))*n);
+  ConstPairIterator ConstPairIterator::operator[](int n) const { 
+    return ConstPairIterator(sr,ptr+sr->pair_size()*n);
   }
 
   int64_t ConstPairIterator::k() const {
@@ -697,15 +766,15 @@ namespace CTF_int {
   }
 
   char const * ConstPairIterator::d() const {
-    return ptr+sizeof(int64_t);
+    return sr->get_const_value(ptr);
   }
 
   void ConstPairIterator::read(char * buf, int64_t n) const {
-    memcpy(buf, ptr, (sizeof(int64_t)+sr->el_size)*n);
+    memcpy(buf, ptr, sr->pair_size()*n);
   }
 
   void ConstPairIterator::read_val(char * buf) const {
-    memcpy(buf, ptr+sizeof(int64_t), sr->el_size);
+    memcpy(buf, sr->get_const_value(ptr), sr->el_size);
   }
 
   PairIterator::PairIterator(algstrct const * sr_, char * ptr_){
@@ -713,8 +782,8 @@ namespace CTF_int {
     ptr=ptr_;
   }
 
-  PairIterator PairIterator::operator[](int n) const {
-    return PairIterator(sr,ptr+(sr->el_size+sizeof(int64_t))*n);
+  PairIterator PairIterator::operator[](int n) const { 
+    return PairIterator(sr,ptr+sr->pair_size()*n);
   }
 
   int64_t PairIterator::k() const {
@@ -722,158 +791,39 @@ namespace CTF_int {
   }
 
   char * PairIterator::d() const {
-    return ptr+sizeof(int64_t);
+    return sr->get_value(ptr);
   }
 
   void PairIterator::read(char * buf, int64_t n) const {
-    memcpy(buf, ptr, (sizeof(int64_t)+sr->el_size)*n);
+    sr->copy_pair(buf, ptr);
   }
 
   void PairIterator::read_val(char * buf) const {
-    memcpy(buf, ptr+sizeof(int64_t), sr->el_size);
+    sr->copy(buf, sr->get_const_value(ptr));
   }
 
   void PairIterator::write(char const * buf, int64_t n){
-    memcpy(ptr, buf, (sizeof(int64_t)+sr->el_size)*n);
+    sr->copy_pairs(ptr, buf, n);
   }
 
   void PairIterator::write(PairIterator const iter, int64_t n){
-    memcpy(ptr, iter.ptr, (sizeof(int64_t)+sr->el_size)*n);
+    this->write(iter.ptr, n);
   }
 
   void PairIterator::write(ConstPairIterator const iter, int64_t n){
-    memcpy(ptr, iter.ptr, (sizeof(int64_t)+sr->el_size)*n);
+    this->write(iter.ptr, n);
   }
 
   void PairIterator::write_val(char const * buf){
-    memcpy(ptr+sizeof(int64_t), buf, sr->el_size);
+    sr->copy(sr->get_value(ptr), buf);
   }
 
   void PairIterator::write_key(int64_t key){
     ((int64_t*)ptr)[0] = key;
   }
 
-  template<int l>
-  struct CompPair{
-    int64_t key;
-    char data[l];
-    bool operator < (const CompPair& other) const {
-      return (key < other.key);
-    }
-  } __attribute__((packed));
-
-  struct IntPair{
-    int64_t key;
-    int data;
-    bool operator < (const IntPair& other) const {
-      return (key < other.key);
-    }
-  } __attribute__((packed));
-
-  struct ShortPair{
-    int64_t key;
-    short data;
-    bool operator < (const ShortPair& other) const {
-      return (key < other.key);
-    }
-  } __attribute__((packed));
-
-  struct BoolPair{
-    int64_t key;
-    bool data;
-    bool operator < (const BoolPair& other) const {
-      return (key < other.key);
-    }
-  } __attribute__((packed));
-
-/*  template struct CompPair<1>;
-  template struct CompPair<2>;
-  template struct CompPair<4>;*/
-  template struct CompPair<8>;
-  template struct CompPair<12>;
-  template struct CompPair<16>;
-  template struct CompPair<20>;
-  template struct CompPair<24>;
-  template struct CompPair<28>;
-  template struct CompPair<32>;
-
-  struct CompPtrPair{
-    int64_t key;
-    int64_t idx;
-    bool operator < (const CompPtrPair& other) const {
-      return (key < other.key);
-    }
-  };
-
   void PairIterator::sort(int64_t n){
-    switch (sr->el_size){
-      case 1:
-        ASSERT(sizeof(BoolPair)==sr->pair_size());
-        std::sort((BoolPair*)ptr,((BoolPair*)ptr)+n);
-        break;
-      case 2:
-        ASSERT(sizeof(ShortPair)==sr->pair_size());
-        std::sort((ShortPair*)ptr,((ShortPair*)ptr)+n);
-        break;
-      case 4:
-        ASSERT(sizeof(IntPair)==sr->pair_size());
-        std::sort((IntPair*)ptr,((IntPair*)ptr)+n);
-        break;
-      case 8:
-        ASSERT(sizeof(CompPair<8>)==sr->pair_size());
-        std::sort((CompPair<8>*)ptr,((CompPair<8>*)ptr)+n);
-        break;
-      case 12:
-        ASSERT(sizeof(CompPair<12>)==sr->pair_size());
-        std::sort((CompPair<12>*)ptr,((CompPair<12>*)ptr)+n);
-        break;
-      case 16:
-        ASSERT(sizeof(CompPair<16>)==sr->pair_size());
-        std::sort((CompPair<16>*)ptr,((CompPair<16>*)ptr)+n);
-        break;
-      case 20:
-        ASSERT(sizeof(CompPair<20>)==sr->pair_size());
-        std::sort((CompPair<20>*)ptr,((CompPair<20>*)ptr)+n);
-        break;
-      case 24:
-        ASSERT(sizeof(CompPair<24>)==sr->pair_size());
-        std::sort((CompPair<24>*)ptr,((CompPair<24>*)ptr)+n);
-        break;
-      case 28:
-        ASSERT(sizeof(CompPair<28>)==sr->pair_size());
-        std::sort((CompPair<28>*)ptr,((CompPair<28>*)ptr)+n);
-        break;
-      case 32:
-        ASSERT(sizeof(CompPair<32>)==sr->pair_size());
-        std::sort((CompPair<32>*)ptr,((CompPair<32>*)ptr)+n);
-        break;
-      default:
-        //Causes a bogus uninitialized variable warning with GNU
-        CompPtrPair ptr_pairs[n];
-#ifdef USE_OMP
-        #pragma omp parallel for
-#endif
-        for (int64_t i=0; i<n; i++){
-          ptr_pairs[i].key = *(int64_t*)(ptr+i*(sizeof(int64_t)+sr->el_size));
-          ptr_pairs[i].idx = i;
-        }
-        //FIXME :(
-        char swap_buffer[(sizeof(int64_t)+sr->el_size)*n];
-
-        memcpy(swap_buffer, ptr, (sizeof(int64_t)+sr->el_size)*n);
-
-        std::sort(ptr_pairs, ptr_pairs+n);
-
-#ifdef USE_OMP
-        #pragma omp parallel for
-#endif
-        for (int64_t i=0; i<n; i++){
-          memcpy(ptr+i*(sizeof(int64_t)+sr->el_size),
-                 swap_buffer+ptr_pairs[i].idx*(sizeof(int64_t)+sr->el_size),
-                 sizeof(int64_t)+sr->el_size);
-        }
-        break; //compiler warning here seems to be gcc bug
-    }
+    sr->sort(n, ptr);
   }
 
   void ConstPairIterator::permute(int64_t n, int order, int const * old_lens, int64_t const * new_lda, PairIterator wA){
@@ -889,7 +839,7 @@ namespace CTF_int {
         k = k/old_lens[j];
       }
       ((int64_t*)wA[i].ptr)[0] = k_new;
-      memcpy(wA[i].d(), rA[i].d(), sr->el_size);
+      wA[i].write_val(rA[i].d());
       //printf("value %lf old key %ld new key %ld\n",((double*)wA[i].d())[0], rA[i].k(), wA[i].k());
     }
 
@@ -956,8 +906,8 @@ namespace CTF_int {
     int64_t * old_nnz_blk_B = nnz_blk;
     if (check_padding){
       //FIXME: uses a bit more memory then we will probably need, but probably worth not doing another round to count first
-      new_B = (char*)alloc(sr->pair_size()*new_nnz_B);
-      old_nnz_blk_B = (int64_t*)alloc(sizeof(int64_t)*nvirt);
+      new_B = sr->pair_alloc(new_nnz_B);
+      old_nnz_blk_B = (int64_t*)CTF_int::alloc(sizeof(int64_t)*nvirt);
       memcpy(old_nnz_blk_B, nnz_blk, sizeof(int64_t)*nvirt);
       memset(nnz_blk, 0, sizeof(int64_t)*nvirt);
     }

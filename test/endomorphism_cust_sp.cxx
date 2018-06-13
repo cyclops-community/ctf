@@ -49,7 +49,7 @@ int endomorphism_cust_sp(int     n,
   int64_t * indices;
   cust_sp_type * loc_data;
   int64_t nloc;
-  A.read_local_nnz(&nloc, &indices, &loc_data);
+  A.get_local_data(&nloc, &indices, &loc_data, true);
 
   int pass = 1;
   if (pass){
@@ -68,7 +68,7 @@ int endomorphism_cust_sp(int     n,
   } 
 
   free(indices);
-  free(loc_data);
+  delete [] loc_data;
   
   return pass;
 } 

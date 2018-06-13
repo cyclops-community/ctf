@@ -15,7 +15,7 @@ namespace CTF_int {
     public:
       void (*f)(char const *, char *);
 
-      bool is_distributive = true;
+      bool is_distributive = false;
 
       /**
        * \brief apply function f to value stored at a

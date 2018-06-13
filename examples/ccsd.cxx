@@ -104,11 +104,11 @@ class Integrals {
     srand48(rank*13);
 
     for (i=0; i<15; i++){
-      tarr[i]->read_local(&sz, &indices, &values);
+      tarr[i]->get_local_data(&sz, &indices, &values);
 //      for (j=0; j<sz; j++) values[j] = drand48()-.5;
       for (j=0; j<sz; j++) values[j] = ((indices[j]*16+i)%13077)/13077. -.5;
       tarr[i]->write(sz, indices, values);
-      free(indices), free(values);
+      free(indices), delete [] values;
     }
   }
   
@@ -188,11 +188,11 @@ class Amplitudes {
     srand48(rank*25);
 
     for (i=0; i<2; i++){
-      tarr[i]->read_local(&sz, &indices, &values);
+      tarr[i]->get_local_data(&sz, &indices, &values);
 //      for (j=0; j<sz; j++) values[j] = drand48()-.5;
       for (j=0; j<sz; j++) values[j] = ((indices[j]*13+i)%13077)/13077. -.5;
       tarr[i]->write(sz, indices, values);
-      free(indices), free(values);
+      free(indices), delete [] values;
     }
   }
 };

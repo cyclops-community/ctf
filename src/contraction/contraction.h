@@ -1,7 +1,7 @@
 #ifndef __INT_CONTRACTION_H__
 #define __INT_CONTRACTION_H__
 
-#include "assert.h"
+#include <assert.h>
 #include "ctr_tsr.h"
 
 namespace CTF_int {
@@ -206,8 +206,9 @@ namespace CTF_int {
       /**
        * \brief checks the edge lengths specfied for this contraction match
        *          throws error if not
+       * \return returns whether contraction is consistent
        */
-      void check_consistency();
+      bool check_consistency();
 
       /**
        * \brief checks whether mapping of tensors to topology is valid for this contraction 

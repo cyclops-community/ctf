@@ -44,17 +44,17 @@ namespace CTF_int {
        * \brief read all pairs with each processor (packed)
        * \param[out] num_pair number of values read
        * \param[in] unpack whether to read all or unique pairs
-       * return pair iterator with allocated all pairs read 
+       * return pair iterator with allocated all pairs read
        */
       PairIterator read_all_pairs(int64_t * num_pair, bool unpack);
 
-      /** 
+      /**
        * \brief copies all tensor data from other
        * \param[in] other tensor to copy from
        */
       void copy_tensor_data(tensor const * other);
 
-      /** 
+      /**
        * \brief set edge mappings as specified
        * \param[in] idx assignment of characters to each dim
        * \param[in] prl mesh processor topology with character labels
@@ -85,9 +85,9 @@ namespace CTF_int {
       /** \brief whether tensor data has additional padding */
       int is_scp_padded;
       /** \brief additional padding, may be greater than ScaLAPACK phase */
-      int * scp_padding; 
+      int * scp_padding;
       /** \brief order-by-order table of dimensional symmetry relations */
-      int * sym_table; 
+      int * sym_table;
       /** \brief whether a mapping has been selected */
       bool is_mapped;
       /** \brief topology to which the tensor is mapped */
@@ -108,7 +108,7 @@ namespace CTF_int {
       bool is_cyclic;
       /** \brief whether the tensor data is an alias of another tensor object's data */
       bool is_data_aliased;
-      /** \brief tensor object associated with tensor object whose data pointer needs to be preserved, 
+      /** \brief tensor object associated with tensor object whose data pointer needs to be preserved,
           needed for ScaLAPACK wrapper FIXME: home buffer should presumably take care of this... */
       tensor * slay;
       /** \brief if true tensor has a zero edge length, so is zero, which short-cuts stuff */
@@ -123,6 +123,8 @@ namespace CTF_int {
       int64_t home_size;
       /** \brief whether the latest tensor data is in the home buffer */
       bool is_home;
+      /** \brief whether the tensor left home to transpose */
+      bool left_home_transp;
       /** \brief whether profiling should be done for contractions/sums involving this tensor */
       bool profile;
       /** \brief whether only the non-zero elements of the tensor are stored */
@@ -137,13 +139,13 @@ namespace CTF_int {
       int64_t nnz_tot;
       /** \brief nonzero elements in each block owned locally */
       int64_t * nnz_blk;
-      
+
       /**
        * \brief associated an index map with the tensor for future operation
        * \param[in] idx_map index assignment for this tensor
        */
       CTF::Idx_Tensor operator[](char const * idx_map);
- 
+
       tensor();
 
       /** \brief class free self */
@@ -209,7 +211,7 @@ namespace CTF_int {
       tensor(tensor const * other, bool copy = 1, bool alloc_data = 1);
 
       /**
-       * \brief repacks the tensor other to a different symmetry 
+       * \brief repacks the tensor other to a different symmetry
        *        (assumes existing data contains the symmetry and keeps only values with indices in increasing order)
        * WARN: LIMITATION: new_sym must cause unidirectional structural changes, i.e. {NS,NS}->{SY,NS} OK, {SY,NS}->{NS,NS} OK, {NS,NS,SY,NS}->{SY,NS,NS,NS} NOT OK!
        * \param[in] other tensor to copy
@@ -279,14 +281,14 @@ namespace CTF_int {
       void print_map(FILE * stream=stdout, bool allcall=1) const;
 
       /**
-       * \brief set the tensor name 
+       * \brief set the tensor name
        * \param[in] name to set
        */
       void set_name(char const * name);
 
       /**
-       * \brief get the tensor name 
-       * \return tensor name 
+       * \brief get the tensor name
+       * \return tensor name
        */
       char const * get_name() const;
 
@@ -298,16 +300,16 @@ namespace CTF_int {
 
 
       /**
-       * \brief get raw data pointer without copy WARNING: includes padding 
+       * \brief get raw data pointer without copy WARNING: includes padding
        * \param[out] data raw local data in char * format
        * \param[out] size number of elements in data
        */
       void get_raw_data(char ** data, int64_t * size) const;
 
-      /** 
+      /**
        * \brief  Add tensor data new=alpha*new+beta*old
-       *         with <key, value> pairs where key is the 
-       *         global index for the value. 
+       *         with <key, value> pairs where key is the
+       *         global index for the value.
        * \param[in] num_pair number of pairs to write
        * \param[in] alpha scaling factor of written (read) value
        * \param[in] beta scaling factor of old (existing) value
@@ -321,9 +323,41 @@ namespace CTF_int {
                  char const   rw='w');
 
       /**
+       * \brief  Add tensor data new=alpha*new+beta*old
+       *         with <key, value> pairs where key is the
+       *         global index for the value.
+       * \param[in] num_pair number of pairs to write
+       * \param[in] alpha scaling factor of written (read) value
+       * \param[in] beta scaling factor of old (existing) value
+       * \param[in] indices 64-bit global indices
+       * \param[in] data values (num_pair of them)
+       */
+        void write(int64_t         num_pair,
+                   char const *    alpha,
+                   char const *    beta,
+                   int64_t const * inds,
+                   char const *    data);
+
+      /**
        * \brief read tensor data with <key, value> pairs where key is the
        *         global index for the value, which gets filled in with
-       *         beta times the old values plus alpha times the values read from the tensor. 
+       *         beta times the old values plus alpha times the values read from the tensor.
+       * \param[in] num_pair number of pairs to read
+       * \param[in] alpha scaling factor of read value
+       * \param[in] beta scaling factor of old value
+       * \param[in] indices 64-bit global indices
+       * \param[in] data values (num_pair of them to read)
+       */
+      void read(int64_t         num_pair,
+                char const *    alpha,
+                char const *    beta,
+                int64_t const * inds,
+                char *          data);
+
+      /**
+       * \brief read tensor data with <key, value> pairs where key is the
+       *         global index for the value, which gets filled in with
+       *         beta times the old values plus alpha times the values read from the tensor.
        * \param[in] num_pair number of pairs to read
        * \param[in] alpha scaling factor of read value
        * \param[in] beta scaling factor of old value
@@ -333,6 +367,7 @@ namespace CTF_int {
                char const * alpha,
                char const * beta,
                char *       mapped_data);
+
 
       /**
        * \brief returns local data of tensor with parallel distribution prl and local blocking blk
@@ -349,7 +384,7 @@ namespace CTF_int {
 
       /**
        * \brief read tensor data with <key, value> pairs where key is the
-       *              global index for the value, which gets filled in. 
+       *              global index for the value, which gets filled in.
        * \param[in] num_pair number of pairs to read
        * \param[in,out] mapped_data pairs to read
        */
@@ -358,13 +393,14 @@ namespace CTF_int {
 
       /**
        * \brief get number of elements in whole tensor
+       * \param[in] packed if false (default) ignore symmetry
        * \return number of elements (including zeros)
        */
-      int64_t get_tot_size();
+      int64_t get_tot_size(bool packed);
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
-       *         WARNING: will use an 'unscalable' amount of memory. 
+       *         WARNING: will use an 'unscalable' amount of memory.
        * \param[out] num_pair number of values read
        * \param[in,out] all_data values read (allocated by library)
        * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
@@ -375,7 +411,7 @@ namespace CTF_int {
 
       /**
        * \brief read entire tensor with each processor (in packed layout).
-       *         WARNING: will use an 'unscalable' amount of memory. 
+       *         WARNING: will use an 'unscalable' amount of memory.
        * \param[out] num_pair number of values read
        * \param[in,out] all_data preallocated mapped_data values read
        * \param[in] unpack if true any symmetric tensor is unpacked, otherwise only unique elements are read
@@ -385,7 +421,7 @@ namespace CTF_int {
                   bool      unpack=true);
 
        /**
-       * \brief cuts out a slice (block) of this tensor = B
+       * \brief accumulates out a slice (block) of this tensor = B
        *   B[offsets,ends)=beta*B[offsets,ends) + alpha*A[offsets_A,ends_A)
        * \param[in] offsets_B bottom left corner of block
        * \param[in] ends_B top right corner of block
@@ -402,7 +438,7 @@ namespace CTF_int {
                  int const *  offsets_A,
                  int const *  ends_A,
                  char const * alpha);
-     
+
       /* Same as above, except tid_B lives on dt_other_B */
 /*      int slice_tensor(int            tid_A,
                        int const *    offsets_A,
@@ -439,22 +475,23 @@ namespace CTF_int {
        */
       int sparsify(char const * threshold=NULL,
                    bool         take_abs=true);
-  
+
       /**
        * \brief sparsifies tensor keeping only values v such that filter(v) = true
        * \param[in] f boolean function to apply to values to determine whether to keep them, must be deterministic
-       */ 
+       */
       int sparsify(std::function<bool(char const*)> f);
 
       /**
        * \brief read tensor data pairs local to processor including those with zero values
-       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with 
+       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with
        *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
        * \param[out] num_pair number of values read
        * \param[out] mapped_data values read
        */
       int read_local(int64_t * num_pair,
-                     char **   mapped_data) const;
+                     char **   mapped_data,
+                     bool      unpack_sym=false) const;
 
       /**
        * \brief read tensor data pairs local to processor that have nonzero values
@@ -462,10 +499,36 @@ namespace CTF_int {
        * \param[out] mapped_data values read
        */
       int read_local_nnz(int64_t * num_pair,
-                         char **   mapped_data) const;
+                         char **   mapped_data,
+                         bool      unpack_sym=false) const;
 
-      /** 
-       * brief copy A into this (B). Realloc if necessary 
+      /**
+       * \brief read tensor data pairs local to processor including those with zero values
+       *          WARNING: for sparse tensors this includes the zeros to maintain consistency with
+       *                   the behavior for dense tensors, use read_local_nnz to get only nonzeros
+       * \param[out] num_pair number of values read
+       * \param[out] indices 64-bit global indices
+       * \param[out] data values (num_pair of them to read)
+       */
+      void read_local(int64_t *  num_pair,
+                      int64_t ** inds,
+                      char **    data,
+                      bool       unpack_sym=false) const;
+
+      /**
+       * \brief read tensor data pairs local to processor that have nonzero values
+       * \param[out] num_pair number of values read
+       * \param[out] indices 64-bit global indices
+       * \param[out] data values (num_pair of them to read)
+       */
+      void read_local_nnz(int64_t * num_pair,
+                          int64_t ** inds,
+                          char **    data,
+                          bool      unpack_sym=false) const;
+
+
+      /**
+       * brief copy A into this (B). Realloc if necessary
        * param[in] A tensor to copy
        */
       //int copy(tensor * A);
@@ -480,11 +543,11 @@ namespace CTF_int {
       //int dot_tensor(int tid_A, int tid_B, char *product);
 
       /**
-       * \brief Performs an elementwise summation reduction on a tensor 
+       * \brief Performs an elementwise summation reduction on a tensor
        * \param[out] result result of reduction operation
        */
       int reduce_sum(char * result);
- 
+
       /**
        * \brief Performs an elementwise summation reduction on a tensor with summation defined by sr_other
        * \param[out] result result of reduction operation
@@ -493,13 +556,13 @@ namespace CTF_int {
       int reduce_sum(char * result, algstrct const * sr_other);
 
       /**
-       * \brief Performs an elementwise absolute value summation reduction on a tensor 
+       * \brief Performs an elementwise absolute value summation reduction on a tensor
        * \param[out] result result of reduction operation
        */
       int reduce_sumabs(char * result);
 
       /**
-       * \brief Performs an elementwise absolute value summation reduction on a tensor 
+       * \brief Performs an elementwise absolute value summation reduction on a tensor
        * \param[out] result result of reduction operation
        * \param[in] sr_other an algebraic structure (at least a monoid) defining the summation operation
        */
@@ -514,11 +577,11 @@ namespace CTF_int {
 
       /* map data of tid_A with the given function */
 /*      int map_tensor(int tid,
-                     dtype (*map_func)(int order, 
+                     dtype (*map_func)(int order,
                                        int const * indices,
                                        dtype elem));*/
-      /** 
-       * \brief obtains the largest n elements (in absolute value) of the tensor 
+      /**
+       * \brief obtains the largest n elements (in absolute value) of the tensor
        * \param[in] n number of elements to fill
        * \param[in,out] data preallocated array of size at least n, in which to put the elements
        */
@@ -581,7 +644,7 @@ namespace CTF_int {
        * \param[in] was_mod true if data was modified, controls whether to discard sparse data
        */
       void unfold(bool was_mod=0);
-      
+
       /**
        * \brief removes folding without doing transpose
        *        unsets is_folded and deletes rec_tsr
@@ -598,7 +661,7 @@ namespace CTF_int {
 
 
       /**
-       * \brief fold a tensor by putting the symmetry-preserved 
+       * \brief fold a tensor by putting the symmetry-preserved
        *        portion in the leading dimensions of the tensor
        *        sets is_folded and creates rec_tsr with aliased data
        *
@@ -617,10 +680,10 @@ namespace CTF_int {
       /**
         * \brief pulls data from an tensor with an aliased buffer
         * \param[in] other tensor with aliased data to pull from
-        */ 
+        */
       void pull_alias(tensor const * other);
 
-    
+
       /** \brief zeros out mapping */
       void clear_mapping();
 
@@ -640,11 +703,11 @@ namespace CTF_int {
                        int * const * new_permutation = NULL);
 
       double est_redist_time(distribution const & old_dist, double nnz_frac);
-  
+
       int64_t get_redist_mem(distribution const & old_dist, double nnz_frac);
 
       /**
-        * \brief map the remainder of a tensor 
+        * \brief map the remainder of a tensor
         * \param[in] num_phys_dims number of physical processor grid dimensions
         * \param[in] phys_comm dimensional communicators
         * \param[in] fill whether to map everything
@@ -658,7 +721,7 @@ namespace CTF_int {
        * \param[in] idx_map index map of tensor for this operation
        * \param[in] rw if 1 this writes to the diagonal, if 0 it reads the diagonal
        * \param[in,out] new_tsr if rw=1 this will be output as new tensor
-                                if rw=0 this should be input as the tensor of the extracted diagonal 
+                                if rw=0 this should be input as the tensor of the extracted diagonal
        * \param[out] idx_map_new if rw=1 this will be the new index map
        */
       int extract_diag(int const * idx_map,
@@ -669,11 +732,11 @@ namespace CTF_int {
       /** \brief sets symmetry, WARNING: for internal use only !!!!
         * \param[in] sym
         */
-      void set_sym(int const * sym); 
+      void set_sym(int const * sym);
 
       /**
        * \brief sets the number of nonzeros both locally (nnz_loc) and overall globally (nnz_tot)
-       * \param[in] nnz_blk number of nonzeros in each block  
+       * \param[in] nnz_blk number of nonzeros in each block
        */
       void set_new_nnz_glb(int64_t const * nnz_blk);
 
@@ -694,15 +757,15 @@ namespace CTF_int {
       void despmatricize(int nrow_idx, bool csr);
 
       /**
-       * \brief degister home buffer 
+       * \brief degister home buffer
        */
       void leave_home_with_buffer();
-    
+
       /**
         * \brief register buffer allocation for this tensor
         */
       void register_size(int64_t size);
-      
+
       /**
         * \brief deregister buffer allocation for this tensor
         */
@@ -723,9 +786,91 @@ namespace CTF_int {
        */
       void read_dense_from_file(MPI_File & file, int64_t offset=0);
 
+      /**
+       * \brief convert this tensor from dtype_A to dtype_B and store the result in B (primarily needed for python interface)
+       * \param[in] B output tensor
+       */
+      template <typename dtype_A, typename dtype_B>
+      void conv_type(tensor * B);
 
+      /**
+       * \exponential function store the e**value in tensor A into this (primarily needed for python interface)
+       */
+      template <typename dtype_A, typename dtype_B>
+      void exp_helper(tensor * A);
+
+      /**
+       * \brief do an elementwise comparison(==) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      template <typename dtype>
+      void compare_elementwise(tensor * A, tensor * B);
+      
+      /**
+       * \brief do an elementwise comparison(!=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      template <typename dtype>
+      void not_equals(tensor * A, tensor * B);
+
+      /**
+       * \brief do an elementwise comparison(<) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      template <typename dtype>
+      void smaller_than(tensor * A, tensor * B);
+
+      /**
+       * \brief do an elementwise comparison(<=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      template <typename dtype>
+      void smaller_equal_than(tensor * A, tensor * B);
+
+      /**
+       * \brief do an elementwise comparison(>) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      template <typename dtype>
+      void larger_than(tensor * A, tensor * B);
+
+      /**
+       * \brief do an elementwise comparison(>=) of two tensors with elements of type dtype (primarily needed for python interface), store result in this tensor (has to be boolean tensor)
+       * \param[in] A first operand
+       * \param[in] B second operand
+       */
+      template <typename dtype>
+      void larger_equal_than(tensor * A, tensor * B);
+
+      template <typename dtype>
+      void true_divide(tensor * A);
+
+      /**
+       * \brief performs a partial reduction on the tensor (used in summation and contraction)
+       * \param[in] idx_A index map of this tensor as defined by summation/contraction
+       * \param[out] new_idx_A how idx_A needs to be transformed
+       * \param[in] order_B number of modes in tensor B
+       * \param[in] idx_B index map containing all indices in another tensor involved in the operaiton
+       * \param[out] new_idx_B how idx_B needs to be transformed
+       * \param[in] order_C number of modes in tensor C
+       * \param[in] idx_C index map containing all indices in another tensor involved in the operaiton (should be NULL for summation)
+       * \param[out] new_idx_C how idx_C needs to be transformed, untouched if idx_C is NULL
+       * \param[in] idx_C index map containing all indices in another tensor involved in the operaiton (should be NULL for summation)
+       * \param[out] new_idx_C how idx_C needs to be transformed, untouched if idx_C is NULL
+       */
+      tensor * self_reduce(int const * idx_A,
+                           int **      new_idx_A,
+                           int         order_B,
+                           int const * idx_B,
+                           int **      new_idx_B,
+                           int         order_C=0,
+                           int const * idx_C=NULL,
+                           int **      new_idx_C=NULL);
   };
 }
-
 #endif// __UNTYPED_TENSOR_H__
-

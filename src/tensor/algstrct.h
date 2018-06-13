@@ -4,6 +4,7 @@
 #include "../interface/common.h"
 
 namespace CTF_int {
+
   class bivar_function;
 
   /**
@@ -11,9 +12,19 @@ namespace CTF_int {
    */
   class accumulatable {
     public:
+      /** \brief size of each element of algstrct in bytes */
+      int el_size;
+
       /** \brief b+=a */
       virtual void accum(char const * a, 
                          char *       b) const { assert(0); }
+
+      /** \brief initialize n objects to zero
+        * \param[in] n number of items
+        * \param[in] arr array containing n items, to be set to zero
+        */
+      virtual void init_shell(int64_t n, char * arr) const { assert(0); };
+
   };
 
   /**
@@ -22,8 +33,6 @@ namespace CTF_int {
    */
   class algstrct : public accumulatable {
     public: 
-      /** \brief size of each element of algstrct in bytes */
-      int el_size;
       /** \brief whether there was a custom COO CSRMM kernel provided for this algebraic structure */
       bool has_coo_ker;
       /** brief datatype for pairs, always custom create3d */
@@ -34,7 +43,7 @@ namespace CTF_int {
                   char *       b);
 
       /** \brief gets pair size el_size plus the key size */
-      int pair_size() const { return el_size + sizeof(int64_t); }
+      virtual int pair_size() const { return el_size + sizeof(int64_t); }
 
 
       /**
@@ -166,6 +175,19 @@ namespace CTF_int {
                         char const * beta,
                         char *       C)  const;
 
+      /** \brief beta*C["ijl"]=alpha*A^tA["ikl"]*B^tB["kjl"]; */
+      virtual void gemm_batch(char         tA,
+                              char         tB,
+                              int          l,
+                              int          m,
+                              int          n,
+                              int          k,
+                              char const * alpha,
+                              char const * A,
+                              char const * B,
+                              char const * beta,
+                              char *       C)  const;
+
       virtual void offload_gemm(char         tA,
                                 char         tB,
                                 int          m,
@@ -253,7 +275,48 @@ namespace CTF_int {
 
       /** \brief reduces CSR matrices stored in cA on each processor in cm and returns result on processor root */
       virtual char * csr_reduce(char * cA, int root, MPI_Comm cm) const;
-    
+
+      /** \brief allocate space for n (int64_t,dtype) pairs, necessary for object types 
+        * \param[in] n number of pairs
+        * \return array containing n pair items
+        */
+      virtual char * pair_alloc(int64_t n) const;
+
+      /** \brief allocate space for n items, necessary for object types 
+        * \param[in] n number of items
+        * \return array containing n items
+        */
+      virtual char * alloc(int64_t n) const;
+     
+      /** \brief gets key from pair */
+      virtual int64_t get_key(char const * a) const;
+      
+      /** \brief gets pair to value from pair */
+      virtual char * get_value(char * a) const;
+      virtual char const * get_const_value(char const * a) const;
+      /**
+        * \brief deallocate given pointer containing contiguous array of values
+        * \param[in] ptr array to deallocate
+        */
+      virtual void dealloc(char * ptr) const;
+ 
+      /**
+        * \brief deallocate given pointer containing contiguous array of pairs
+        * \param[in] ptr array to deallocate
+        */
+      virtual void pair_dealloc(char * ptr) const;
+      
+      /** \brief initialize n objects to zero
+        * \param[in] n number of items
+        * \param[in] arr array containing n items, to be set to zero
+        */
+      virtual void init(int64_t n, char * arr) const;
+
+      /**
+       * \brief sorts n sets of pairs using std::sort 
+       */
+      virtual void sort(int64_t n, char * pairs) const;
+ 
       /** estimate time in seconds necessary for CSR reduction with input of size msg_sz */
       double estimate_csr_red_time(int64_t msg_sz, CommData const * cdt) const;
 
@@ -264,19 +327,20 @@ namespace CTF_int {
       void accmul(char * c, char const * a, char const * b, char const * alpha) const;
       
       /** \brief copies element b to element a */
-      void copy(char * a, char const * b) const;
+      virtual void copy(char * a, char const * b) const;
       
       /** \brief copies element b to element a, , with checks for NULL and alloc as necessary */
       void safecopy(char *& a, char const * b) const;
       
       /** \brief copies n elements from array b to array a */
-      void copy(char * a, char const * b, int64_t n) const;
+      virtual void copy(char * a, char const * b, int64_t n) const;
       
       /** \brief copies n elements TO array b with increment inc_a FROM array a with increment inc_b */
-      void copy(int n, char const * a, int inc_a, char * b, int inc_b) const;
+      virtual void copy(int64_t n, char const * a, int inc_a, char * b, int inc_b) const;
       
       /** \brief copies m-by-n submatrix from a with lda_a to b with lda_b  */
-      void copy(int64_t      m,
+      virtual void copy(
+                int64_t      m,
                 int64_t      n,
                 char const * a,
                 int64_t      lda_a,
@@ -284,7 +348,8 @@ namespace CTF_int {
                 int64_t      lda_b) const;
       
       /** \brief copies m-by-n submatrix from a with lda_a and scaling alpha to b with lda_b and scaling by 1 */
-      void copy(int64_t      m,
+      virtual void copy(
+                int64_t      m,
                 int64_t      n,
                 char const * a,
                 int64_t      lda_a,
@@ -294,26 +359,19 @@ namespace CTF_int {
                 char const * beta) const;
 
       /** \brief copies pair b to element a */
-      void copy_pair(char * a, char const * b) const;
+      virtual void copy_pair(char * a, char const * b) const;
       
       /** \brief copies n pair from array b to array a */
-      void copy_pairs(char * a, char const * b, int64_t n) const;
+      virtual void copy_pairs(char * a, char const * b, int64_t n) const;
 
       /** \brief sets n elements of array a to value b */
-      void set(char * a, char const * b, int64_t n) const;
+      virtual void set(char * a, char const * b, int64_t n) const;
       
       /** \brief sets 1 elements of pair a to value and key */
-      void set_pair(char * a, int64_t key, char const * vb) const;
+      virtual void set_pair(char * a, int64_t key, char const * vb) const;
 
       /** \brief sets n elements of array of pairs a to value b */
-      void set_pairs(char * a, char const * b, int64_t n) const;
-      
-      /** \brief gets key from pair */
-      int64_t get_key(char const * a) const;
-      
-      /** \brief gets pair to value from pair */
-      char const * get_value(char const * a) const;
-
+      virtual void set_pairs(char * a, char const * b, int64_t n) const;
 
   };
 
@@ -446,51 +504,6 @@ namespace CTF_int {
        */
       int64_t lower_bound(int64_t n, ConstPairIterator op);
   };
-
-
-  void sgemm(char           tA,
-             char           tB,
-             int            m,
-             int            n,
-             int            k,
-             float          alpha,
-             float  const * A,
-             float  const * B,
-             float          beta,
-             float  *       C);
-
-  void cidgemm(char           tA,
-               char           tB,
-               int            m,
-               int            n,
-               int            k,
-               double         alpha,
-               double const * A,
-               double const * B,
-               double         beta,
-               double *       C);
-
-  void cgemm(char                        tA,
-             char                        tB,
-             int                         m,
-             int                         n,
-             int                         k,
-             std::complex<float>         alpha,
-             std::complex<float> const * A,
-             std::complex<float> const * B,
-             std::complex<float>         beta,
-             std::complex<float> *       C);
-
-  void zgemm(char                         tA,
-             char                         tB,
-             int                          m,
-             int                          n,
-             int                          k,
-             std::complex<double>         alpha,
-             std::complex<double> const * A,
-             std::complex<double> const * B,
-             std::complex<double>         beta,
-             std::complex<double> *       C);
 
 }
 

@@ -8,32 +8,32 @@
 using namespace CTF;
 //#define ERR_REPORT
 
-void smooth_jacobi(Matrix<float> & A, Vector<float> & x, Vector <float> & b, int nsm){
+typedef float REAL;
+
+void smooth_jacobi(Matrix<REAL> & A, Vector<REAL> & x, Vector <REAL> & b, int nsm){
   Timer jacobi("jacobi");
   Timer jacobi_spmv("jacobi_spmv");
 
   jacobi.start();
-  Vector<float> d(x.len, *x.wrld);
+  Vector<REAL> d(x.len, *x.wrld);
   d["i"] = A["ii"];
-  Transform<float>([](float & d){ d= fabs(d) > 0.0 ? 1./d : 0.0; })(d["i"]);
-  Matrix<float> R(A);
+  Transform<REAL>([](REAL & d){ d= fabs(d) > 0.0 ? 1./d : 0.0; })(d["i"]);
+  Matrix<REAL> R(A);
   R["ii"] = 0.0;
-
-  Vector<float> x1(x.len, *x.wrld);
-
-  
+  Vector<REAL> x1(x.len, *x.wrld);
+ 
 /*  
   int64_t N = A.nrow;
-  Vector<float> Red(N, *A.wrld);
-  Vector<float> Blk(N, *A.wrld);
+  Vector<REAL> Red(N, *A.wrld);
+  Vector<REAL> Blk(N, *A.wrld);
   int64_t Np = N / A.wrld->np;
   int64_t sNp = Np * A.wrld->rank;
   if (A.wrld->rank < N % A.wrld->np) Np++;
   sNp += std::min(A.wrld->rank,(int)( N % A.wrld->np));
   int64_t * inds_R = (int64_t*)malloc(sizeof(int64_t)*Np);
-  float * vals_R = (float*)malloc(sizeof(float)*Np);
+  REAL * vals_R = (REAL*)malloc(sizeof(REAL)*Np);
   int64_t * inds_B = (int64_t*)malloc(sizeof(int64_t)*Np);
-  float * vals_B = (float*)malloc(sizeof(float)*Np);
+  REAL * vals_B = (REAL*)malloc(sizeof(REAL)*Np);
   int nR = 0;
   int nB = 0;
   int64_t n=1;
@@ -88,38 +88,39 @@ void smooth_jacobi(Matrix<float> & A, Vector<float> & x, Vector <float> & b, int
     x["i"] += omega*x1["i"];
     //x["i"] = x1["i"];
 #ifdef ERR_REPORT
-    Vector<float> r(b);
+    Vector<REAL> r(b);
     r["i"] -= A["ij"]*x["j"];
-    float rnorm = r.norm2();
+    r.print();
+    REAL rnorm = r.norm2();
     if (A.wrld->rank == 0) printf("r norm is %E\n",rnorm);
 #endif
   }
   jacobi.stop();
 }
 
-void vcycle(Matrix<float> & A, Vector<float> & x, Vector<float> & b, Matrix<float> * P, Matrix<float> * PTAP, int64_t N, int nlevel, int * nsm){
+void vcycle(Matrix<REAL> & A, Vector<REAL> & x, Vector<REAL> & b, Matrix<REAL> * P, Matrix<REAL> * PTAP, int64_t N, int nlevel, int * nsm){
   //do smoothing using Jacobi
   char tlvl_name[] = {'l','v','l',(char)('0'+nlevel),'\0'};
   Timer tlvl(tlvl_name);
   tlvl.start();
-  Vector<float> r(N,*A.wrld,"r");
+  Vector<REAL> r(N,*A.wrld,"r");
 #ifdef ERR_REPORT
   r["i"] -= A["ij"]*x["j"];
   r["i"] += b["i"];
-  float rnorm0 = r.norm2();
+  REAL rnorm0 = r.norm2();
 #endif
 #ifdef ERR_REPORT
   if (A.wrld->rank == 0) printf("At level %d residual norm was %1.2E initially\n",nlevel,rnorm0);
 #endif
   if (N==1){
-    x["i"] = Function<float>([](float a, float b){ return b/a; })(A["ij"],b["j"]);
+    x["i"] = Function<REAL>([](REAL a, REAL b){ return b/a; })(A["ij"],b["j"]);
   } else {
     smooth_jacobi(A,x,b,nsm[0]);
   }
   r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
 #ifdef ERR_REPORT
-  float rnorm = r.norm2();
+  REAL rnorm = r.norm2();
 #endif
   if (nlevel == 0){
 #ifdef ERR_REPORT
@@ -135,11 +136,11 @@ void vcycle(Matrix<float> & A, Vector<float> & x, Vector<float> & b, Matrix<floa
   rstr.start();
 
   //restrict residual vector
-  Vector<float> PTr(m, *x.wrld);
+  Vector<REAL> PTr(m, *x.wrld);
   PTr["i"] += P[0]["ji"]*r["j"];
  
   //coarses initial guess should be zeros
-  Vector<float> zx(m, *b.wrld);
+  Vector<REAL> zx(m, *b.wrld);
   rstr.stop(); 
   tlvl.stop();
   //recurse into coarser level
@@ -152,7 +153,7 @@ void vcycle(Matrix<float> & A, Vector<float> & x, Vector<float> & b, Matrix<floa
 #ifdef ERR_REPORT
   r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
-  float rnorm2 = r.norm2();
+  REAL rnorm2 = r.norm2();
 #endif
   //smooth new solution
   smooth_jacobi(A,x,b,nsm[0]);
@@ -160,7 +161,7 @@ void vcycle(Matrix<float> & A, Vector<float> & x, Vector<float> & b, Matrix<floa
 #ifdef ERR_REPORT
   r["i"] = b["i"];
   r["i"] -= A["ij"]*x["j"];
-  float rnorm3 = r.norm2();
+  REAL rnorm3 = r.norm2();
   if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E initially\n",nlevel,rnorm0);
   if (x.wrld->rank == 0) printf("At level %d, n=%ld residual norm was %1.2E after initial smooth\n",nlevel,N,rnorm);
   if (A.wrld->rank == 0) printf("At level %d, residual norm was %1.2E after coarse recursion\n",nlevel,rnorm2);
@@ -169,21 +170,21 @@ void vcycle(Matrix<float> & A, Vector<float> & x, Vector<float> & b, Matrix<floa
 }
 
 
-void setup(Matrix<float> & A, Matrix<float> * T, int N, int nlevel, Matrix<float> * P, Matrix<float> * PTAP){
+void setup(Matrix<REAL> & A, Matrix<REAL> * T, int N, int nlevel, Matrix<REAL> * P, Matrix<REAL> * PTAP){
   if (nlevel == 0) return;
 
   char slvl_name[] = {'s','l','v','l',(char)('0'+nlevel),'\0'};
   Timer slvl(slvl_name);
   slvl.start();
   int64_t m = T[0].lens[1];
-  P[0] = Matrix<float>(N, m, SP, *T[0].wrld);
-  Matrix<float> D(N,N,SP,*A.wrld);
+  P[0] = Matrix<REAL>(N, m, SP, *T[0].wrld);
+  Matrix<REAL> D(N,N,SP,*A.wrld);
   D["ii"] = A["ii"];
-  float omega=.333;
-  Transform<float>([=](float & d){ d= omega/d; })(D["ii"]);
+  REAL omega=.333;
+  Transform<REAL>([=](REAL & d){ d= omega/d; })(D["ii"]);
   Timer trip("triple_matrix_product_to_form_T");
   trip.start();
-  Matrix<float> F(P[0]);
+  Matrix<REAL> F(P[0]);
   F["ik"] = A["ij"]*T[0]["jk"];
   P[0]["ij"] = T[0]["ij"];
   P[0]["ik"] -= D["il"]*F["lk"];
@@ -193,8 +194,8 @@ void setup(Matrix<float> & A, Matrix<float> * T, int N, int nlevel, Matrix<float
   if (A.is_sparse){ 
     atr = atr | SP;
   }
-  Matrix<float> AP(N, m, atr, *A.wrld);
-  PTAP[0] = Matrix<float>(m, m, atr, *A.wrld);
+  Matrix<REAL> AP(N, m, atr, *A.wrld);
+  PTAP[0] = Matrix<REAL>(m, m, atr, *A.wrld);
  
   Timer trip2("triple_matrix_product_to_form_PTAP");
   trip2.start();
@@ -213,13 +214,13 @@ void setup(Matrix<float> & A, Matrix<float> * T, int N, int nlevel, Matrix<float
 int test_alg_multigrid(int64_t    N,
                        int        nlvl,
                        int *      nsm,
-                       Matrix<float> & A,
-                       Vector<float> & b,
-                       Vector<float> & x_init,
-                       Matrix<float> * P,
-                       Matrix<float> * PTAP){
+                       Matrix<REAL> & A,
+                       Vector<REAL> & b,
+                       Vector<REAL> & x_init,
+                       Matrix<REAL> * P,
+                       Matrix<REAL> * PTAP){
 
-  Vector<float> x2(x_init);
+  Vector<REAL> x2(x_init);
   Timer_epoch vc("vcycle");
   vc.begin();
   double st_time = MPI_Wtime();
@@ -228,15 +229,15 @@ int test_alg_multigrid(int64_t    N,
   vc.end();
 
   smooth_jacobi(A,x2,b,2*nsm[0]);
-  Vector<float> r2(x2);
+  Vector<REAL> r2(x2);
   r2["i"] = b["i"];
   r2["i"] -= A["ij"]*x2["j"];
-  float rnorm_alt = r2.norm2();
+  REAL rnorm_alt = r2.norm2();
 
-  Vector<float> r(x_init);
+  Vector<REAL> r(x_init);
   r["i"]  = b["i"];
   r["i"] -= A["ij"]*x_init["j"];
-  float rnorm = r.norm2(); 
+  REAL rnorm = r.norm2(); 
  
   bool pass = rnorm < rnorm_alt;
 
@@ -255,83 +256,83 @@ int test_alg_multigrid(int64_t    N,
 
 void setup_unstructured(int64_t     n,
                         int         nlvl,
-                        float      sp_frac,
+                        REAL      sp_frac,
                         int         ndiv,
                         int         decay_exp,
-                        Matrix<float>  & A,
-                        Matrix<float> *& P,
-                        Matrix<float> *& PTAP,
+                        Matrix<REAL>  & A,
+                        Matrix<REAL> *& P,
+                        Matrix<REAL> *& PTAP,
                         World & dw){
   int64_t n3 = n*n*n;
   Timer tct("initialization");
   tct.start();
-  A = Matrix<float>(n3, n3, SP, dw);
+  A = Matrix<REAL>(n3, n3, SP, dw);
   srand48(dw.rank*12);
   A.fill_sp_random(0.0, 1.0, sp_frac);
 
   A["ij"] += A["ji"];
-  float pn = sqrt((float)n);
+  REAL pn = sqrt((REAL)n);
   A["ii"] += pn;
 
   if (dw.rank == 0){
-    printf("Generated matrix with dimension %1.2E and %1.2E nonzeros\n", (float)n3, (float)A.nnz_tot);
+    printf("Generated matrix with dimension %1.2E and %1.2E nonzeros\n", (REAL)n3, (REAL)A.nnz_tot);
     fflush(stdout);
   }
 
-  Matrix<std::pair<float, int64_t>> B(n3,n3,SP,dw,Set<std::pair<float, int64_t>>());
+  Matrix<std::pair<REAL, int64_t>> B(n3,n3,SP,dw,Set<std::pair<REAL, int64_t>>());
 
   int64_t * inds;
-  float * vals;
-  std::pair<float,int64_t> * new_vals;
+  REAL * vals;
+  std::pair<REAL,int64_t> * new_vals;
   int64_t nvals;
-  A.read_local_nnz(&nvals, &inds, &vals);
+  A.get_local_data(&nvals, &inds, &vals, true);
 
-  new_vals = (std::pair<float,int64_t>*)malloc(sizeof(std::pair<float,int64_t>)*nvals);
+  new_vals = (std::pair<REAL,int64_t>*)malloc(sizeof(std::pair<REAL,int64_t>)*nvals);
 
   for (int64_t i=0; i<nvals; i++){
-    new_vals[i] = std::pair<float,int64_t>(vals[i],abs((inds[i]%n3) - (inds[i]/n3)));
+    new_vals[i] = std::pair<REAL,int64_t>(vals[i],abs((inds[i]%n3) - (inds[i]/n3)));
   }
 
   B.write(nvals,inds,new_vals);
-  free(vals);
+  delete [] vals;
   free(new_vals);
   free(inds);
 
-  Transform< std::pair<float,int64_t> >([=](std::pair<float,int64_t> & d){ 
+  Transform< std::pair<REAL,int64_t> >([=](std::pair<REAL,int64_t> & d){ 
     int64_t x =  d.second % n;
     int64_t y = (d.second / n) % n;
     int64_t z =  d.second / n  / n;
     if (x+y+z > 0)
-      d.first = d.first/pow((float)(x+y+z),decay_exp/2.);
+      d.first = d.first/pow((REAL)(x+y+z),decay_exp/2.);
     }
   )(B["ij"]);
   
-  A["ij"] = Function< std::pair<float,int64_t>, float >([](std::pair<float,int64_t> p){ return p.first; })(B["ij"]);
+  A["ij"] = Function< std::pair<REAL,int64_t>, REAL >([](std::pair<REAL,int64_t> p){ return p.first; })(B["ij"]);
 
-  Matrix<float> * T = new Matrix<float>[nlvl];
+  Matrix<REAL> * T = new Matrix<REAL>[nlvl];
   int64_t m=n3;
   int tot_ndiv = ndiv*ndiv*ndiv;
   for (int i=0; i<nlvl; i++){
     int64_t m2 = m/tot_ndiv;
-    T[i] = Matrix<float>(m, m2, SP, dw);
+    T[i] = Matrix<REAL>(m, m2, SP, dw);
     int64_t mmy = m2/dw.np;
     if (dw.rank < m2%dw.np) mmy++;
-    Pair<float> * pairs = (Pair<float>*)malloc(sizeof(Pair<float>)*mmy*tot_ndiv);
+    Pair<REAL> * pairs = (Pair<REAL>*)malloc(sizeof(Pair<REAL>)*mmy*tot_ndiv);
     int64_t nel = 0;
     for (int64_t j=dw.rank; j<m2; j+=dw.np){
       for (int k=0; k<tot_ndiv; k++){
-        pairs[nel] = Pair<float>(j*m+j*tot_ndiv+k, 1.0);
+        pairs[nel] = Pair<REAL>(j*m+j*tot_ndiv+k, 1.0);
         nel++;
       }
     }
     T[i].write(nel, pairs);
-    free(pairs);
+    delete [] pairs;
     m = m2;
   }
   tct.stop();
 
-  P = new Matrix<float>[nlvl];
-  PTAP = new Matrix<float>[nlvl];
+  P = new Matrix<REAL>[nlvl];
+  PTAP = new Matrix<REAL>[nlvl];
 
   Timer_epoch ve("setup");
   ve.begin();
@@ -343,15 +344,15 @@ void setup_unstructured(int64_t     n,
 void setup_3d_Poisson(int64_t     n,
                       int         nlvl,
                       int         ndiv,
-                      Matrix<float>  & A,
-                      Matrix<float> *& P,
-                      Matrix<float> *& PTAP,
+                      Matrix<REAL>  & A,
+                      Matrix<REAL> *& P,
+                      Matrix<REAL> *& PTAP,
                       World & dw){
   
   Timer tct("initialization");
   tct.start();
   int n3 =n*n*n;
-  A = Matrix<float>(n3, n3, SP, dw);
+  A = Matrix<REAL>(n3, n3, SP, dw);
   A["ii"] = 3.;
 
   int64_t my_col = n3/dw.np;
@@ -360,7 +361,7 @@ void setup_3d_Poisson(int64_t     n,
   my_col_st += std::min((int)dw.rank, n3%dw.np);
   int64_t my_tot_nnz = my_col*3;
   int64_t * inds = (int64_t*)malloc(sizeof(int64_t)*my_tot_nnz);
-  float * vals = (float*)malloc(sizeof(float)*my_tot_nnz);
+  REAL * vals = (REAL*)malloc(sizeof(REAL)*my_tot_nnz);
 
   int64_t act_tot_nnz = 0;
   for (int64_t col=my_col_st; col<my_col_st+my_col; col++){
@@ -387,28 +388,31 @@ void setup_3d_Poisson(int64_t     n,
   A["ij"] += A["ji"];
 
   if (dw.rank == 0){
-    printf("Generated matrix with dimension %1.2E and %1.2E nonzeros\n", (float)n3, (float)A.nnz_tot);
+    printf("Generated matrix with dimension %1.2E and %1.2E nonzeros\n", (REAL)n3, (REAL)A.nnz_tot);
     fflush(stdout);
   }
 
-  Matrix<float> * T = new Matrix<float>[nlvl];
+  Matrix<REAL> * T = new Matrix<REAL>[nlvl];
   int64_t m=n3;
+  int64_t nn=n;
   int tot_ndiv = ndiv*ndiv*ndiv;
   for (int i=0; i<nlvl; i++){
     int64_t m2 = m/tot_ndiv;
-    T[i] = Matrix<float>(m, m2, SP, dw);
+    T[i] = Matrix<REAL>(m, m2, SP, dw);
     int64_t mmy = m2/dw.np;
     if (dw.rank < m2%dw.np) mmy++;
-    Pair<float> * pairs = (Pair<float>*)malloc(sizeof(Pair<float>)*mmy*tot_ndiv);
+    Pair<REAL> * pairs = (Pair<REAL>*)malloc(sizeof(Pair<REAL>)*mmy*tot_ndiv);
+    //Pair<REAL> * pairs = new Pair<REAL>[mmy*tot_ndiv];
     int64_t nel = 0;
     for (int64_t j=dw.rank; j<m2; j+=dw.np){
-      int64_t j1 = j/(n*n);
-      int64_t j2 = (j/n)%n;
-      int64_t j3 = j%n;
+      int64_t j1 = j/(nn*nn);
+      int64_t j2 = (j/nn)%nn;
+      int64_t j3 = j%nn;
       for (int k1=0; k1<ndiv; k1++){
         for (int k2=0; k2<ndiv; k2++){
           for (int k3=0; k3<ndiv; k3++){
-            pairs[nel] = Pair<float>(j*m+(j1*ndiv+k1)*n*n+(j2*ndiv+k2)*n+j3*ndiv+k3, 1.0/tot_ndiv);
+            //printf("i=%d, m= %ld m2=%ld key = %ld\n",i,m,m2,j*m+(j1*ndiv+k1)*nn*nn+(j2*ndiv+k2)*nn+j3*ndiv+k3);
+            pairs[nel] = Pair<REAL>(j*m+(j1*ndiv+k1)*nn*nn+(j2*ndiv+k2)*nn+j3*ndiv+k3, 1.0/tot_ndiv);
             nel++;
           }
         }
@@ -417,12 +421,13 @@ void setup_3d_Poisson(int64_t     n,
     T[i].write(nel, pairs);
     free(pairs);
     m = m2;
+    nn = n/ndiv;
   }
  
   tct.stop();
 
-  P = new Matrix<float>[nlvl];
-  PTAP = new Matrix<float>[nlvl];
+  P = new Matrix<REAL>[nlvl];
+  PTAP = new Matrix<REAL>[nlvl];
   Timer_epoch ve("setup");
   ve.begin();
   setup(A, T, n3, nlvl, P, PTAP);
@@ -447,7 +452,7 @@ int main(int argc, char ** argv){
   int rank, np, pass, nlvl, ndiv, decay_exp, nsmooth, poi;
   int * nsm;
   int64_t n;
-  float sp_frac;
+  REAL sp_frac;
   int const in_num = argc;
   char ** input_str = argv;
 
@@ -518,19 +523,19 @@ int main(int argc, char ** argv){
       for (int i=0; i<nlvl+1; i++){ printf("%d ",nsm[i]); }
       printf("\n");
     }
-    Matrix<float> A;
-    Matrix<float> * P;
-    Matrix<float> * PTAP;
-    Vector<float> b(n*n*n,dw,"b");
-    Vector<float> x(n*n*n,dw,"x");
+    Matrix<REAL> A;
+    Matrix<REAL> * P;
+    Matrix<REAL> * PTAP;
+    Vector<REAL> b(n*n*n,dw,"b");
+    Vector<REAL> x(n*n*n,dw,"x");
     if (poi){
       setup_3d_Poisson(n, nlvl, ndiv, A, P, PTAP, dw);
       int64_t * inds;
       int64_t nloc;
-      float * vals;
-      b.read_local(&nloc, &inds, &vals);
+      REAL * vals;
+      b.get_local_data(&nloc, &inds, &vals);
       int n1 = n+1;
-      float h = 1./(n1);
+      REAL h = 1./(n1);
       for (int64_t i=0; i<nloc; i++){
         vals[i] = (1./(n1))*(1./(n1))*sin(h*M_PI*(1+(inds[i]/(n*n))))*sin(h*M_PI*(1+((inds[i]/n)%n)))*sin(h*M_PI*(1+(inds[i]%n)));
       }
@@ -538,16 +543,16 @@ int main(int argc, char ** argv){
       for (int64_t i=0; i<nloc; i++){
         vals[i] = (1./(3.*M_PI*M_PI))*sin(h*M_PI*(1+(inds[i]/(n*n))))*sin(h*M_PI*(1+((inds[i]/n)%n)))*sin(h*M_PI*(1+(inds[i]%n)));
       }
-      Vector<float> x_t(n*n*n,dw,"x_t");
-      Vector<float> r(n*n*n,dw,"r");
+      Vector<REAL> x_t(n*n*n,dw,"x_t");
+      Vector<REAL> r(n*n*n,dw,"r");
       x_t.write(nloc,inds,vals);
       r["i"] = A["ij"]*x_t["j"];
       r["i"] -= b["i"];
-      float tnorm = r.norm2();
+      REAL tnorm = r.norm2();
       if (dw.rank == 0) printf("Truncation error norm is %1.2E\n",tnorm);
       x["i"] = x_t["i"];
-      Vector<float> rand(n*n*n,dw,"rand");
-      double tot = x["i"];
+      Vector<REAL> rand(n*n*n,dw,"rand");
+      REAL tot = x["i"];
       tot = tot/(n*n*n);
       rand.fill_random(-tot*.1,tot*.1);
       x["i"]+=rand["i"];
