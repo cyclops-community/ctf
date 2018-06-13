@@ -33,12 +33,12 @@ Vector<float> mis2(Matrix<float> & undir_A){
   Vector<float> inds(n);
   Pair<float> * prs;
   int64_t nloc;
-  inds.read_local(&nloc, &prs);
+  inds.get_local_pairs(&nloc, &prs);
   for (int i=0; i<nloc; i++){
     prs[i].d = prs[i].k+1.;
   }
   inds.write(nloc,prs);
-  free(prs);
+  delete [] prs;
 
   Semiring<float> max_semiring(0., [](float a, float b){ return std::max(a,b); }, MPI_MAX,
                                1.0, [](float a, float b){ return a*b; }); 

@@ -24,7 +24,7 @@ int force_integration(int     n,
   particle * loc_parts;
   int64_t nloc;
   int64_t * inds;
-  P.read_local(&nloc, &inds, &loc_parts);
+  P.get_local_data(&nloc, &inds, &loc_parts);
   
   srand48(dw.rank);
 
@@ -39,13 +39,13 @@ int force_integration(int     n,
   force * loc_frcs;
   int64_t * finds;
   int64_t nf;
-  F.read_local(&nf, &finds, &loc_frcs);
+  F.get_local_data(&nf, &finds, &loc_frcs);
   for (int64_t i=0; i<nf; i++){
     loc_frcs[i].fx = drand48();
     loc_frcs[i].fy = drand48();
   }
   F.write(nf, finds, loc_frcs);
-  free(loc_frcs);
+  delete [] loc_frcs;
   free(finds);
 
   CTF::Transform<force,particle> uacc([](force f, particle & p){
@@ -87,7 +87,7 @@ int force_integration(int     n,
           fabs(loc_parts[i].dy - loc_parts_new[i].dy)>1.E-6) pass = 0;
     }
   } 
-  free(loc_parts);
+  delete [] loc_parts;
   MPI_Allreduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
 
   if (dw.rank == 0){

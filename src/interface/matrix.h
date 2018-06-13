@@ -11,6 +11,9 @@ namespace CTF {
    * \brief Matrix class which encapsulates a 2D tensor 
    * \param[in] dtype specifies tensor element type
    */
+	//template<typename dtype>
+	//class Vector : public Tensor<dtype>;
+
   template<typename dtype=double> 
   class Matrix : public Tensor<dtype> {
     public:
@@ -230,7 +233,16 @@ namespace CTF {
                     int     lda,
                     dtype * data);
 
- 
+  
+      /**
+       * \brief get a ScaLAPACK descriptor for this Matrix, will always be in pure cyclic layout
+       * \param[out] ictxt index of newly created context
+       * \param[out] desc array of integers of size 9, which will be filled with attributes
+       *                 see ScaLAPACK docs for "Array Descriptor for In-core Dense Matrices"
+       */
+      void get_desc(int & ictxt, int *& desc);
+
+
       /**
        * \brief read Matrix into ScaLAPACK array descriptor
        *        `cheap' if mb=nb=1, nrow%pr=0, ncol%pc=0, rsrc=0, csrc=0, but is done via sparse read/write otherwise
@@ -246,6 +258,23 @@ namespace CTF {
        * \brief prints matrix by row and column (modify print(...) overload in set.h if you would like a different print format)
        */
       void print_matrix();
+
+      /*
+       * \calculates the reduced QR decomposition, A = Q x R for A of dimensions m by n with m>=n
+       * \param[out] Q m-by-n matrix with orthonormal columns
+       * \param[out] R n-by-n upper-triangular matrix
+       */
+      void qr(Matrix<dtype> & Q, Matrix<dtype> & R);
+
+      /*
+       * \calculates the singular value decomposition, M = U x S x VT, of matrix using pdgesvd from ScaLAPACK
+       * \param[out] U left singular vectors of matrix
+       * \param[out] S singular values of matrix
+       * \param[out] VT right singular vectors of matrix
+       * \param[in] rank rank of output matrices. If rank = 0, will use min(matrix.rows, matrix.columns)
+       */
+      void svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT, int rank = 0);
+
   };
   /**
    * @}

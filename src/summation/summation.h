@@ -1,7 +1,7 @@
 #ifndef __INT_SUMMATION_H__
 #define __INT_SUMMATION_H__
 
-#include "assert.h"
+#include <assert.h>
 #include "sum_tsr.h"
 #include "spsum_tsr.h"
 
@@ -222,8 +222,9 @@ namespace CTF_int {
       /**
        * \brief checks the edge lengths specfied for this sum match
        *          throws error if not
+       * \return whether contraction indices are consistent with lengths
        */
-      void check_consistency();
+      bool check_consistency();
 
 
       /**

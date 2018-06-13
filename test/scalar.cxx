@@ -21,7 +21,7 @@ int scalar(CTF::World    &dw){
 
   CTF::Scalar<> A(dw);
 
-  A.read_local(&np,&indices,&pairs);
+  A.get_local_data(&np,&indices,&pairs);
   pass -=!(np<=1);
  
   if (np>0){
@@ -33,9 +33,9 @@ int scalar(CTF::World    &dw){
   } 
   A.write(np,indices,pairs);
   free(indices);
-  free(pairs);
+  delete [] pairs;
   //A = 4.2;
-  A.read_local(&np,&indices,&pairs);
+  A.get_local_data(&np,&indices,&pairs);
   pass -= !(np<=1);
   assert(pass);
  
@@ -46,7 +46,7 @@ int scalar(CTF::World    &dw){
   assert(pass);
   } 
   free(indices);
-  free(pairs);
+  delete [] pairs;
   val = A;
   pass -=!(val-4.2 < 1.E-9);
   assert(pass);

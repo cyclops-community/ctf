@@ -11,7 +11,7 @@ using namespace CTF;
 struct path {
   int w, h;
   path(int w_, int h_){ w=w_; h=h_; }
-  path(){};
+  path(){ w=0; h=0;};
 };
 
 namespace CTF {
@@ -101,7 +101,7 @@ int apsp(int     n,
 
   int64_t loc_nnz;
   Pair<int> * prs; 
-  D2.read_local_nnz(&loc_nnz, &prs);
+  D2.get_local_pairs(&loc_nnz, &prs, true);
 
   int pass = (loc_nnz == 0);
 
@@ -113,7 +113,7 @@ int apsp(int     n,
       printf("{ APSP by path doubling } failed \n");
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
-  free(prs);
+  delete [] prs;
 #ifndef TEST_SUITE
   if (dw.rank == 0){
     printf("Starting %d benchmarking iterations of dense APSP-PD...\n", niter);

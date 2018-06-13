@@ -14,7 +14,7 @@ namespace CTF_int {
 
   void update_all_models(MPI_Comm cm){
 #ifdef TUNE
-    for (int i=0; i<get_all_models().size(); i++){
+    for (int i=0; i<(int)get_all_models().size(); i++){
       get_all_models()[i]->update(cm);
     }
 #endif
@@ -22,10 +22,10 @@ namespace CTF_int {
 
   void print_all_models(){
 #ifdef TUNE
-    for (int i=0; i<get_all_models().size(); i++){
+    for (int i=0; i<(int)get_all_models().size(); i++){
       get_all_models()[i]->print();
     }
-    for (int i=0; i<get_all_models().size(); i++){
+    for (int i=0; i<(int)get_all_models().size(); i++){
       get_all_models()[i]->print_uo();
     }
 #endif
@@ -33,7 +33,7 @@ namespace CTF_int {
 
   void load_all_models(std::string file_name){
 #ifdef TUNE
-    for (int i=0; i<get_all_models().size(); i++){
+    for (int i=0; i<(int)get_all_models().size(); i++){
       get_all_models()[i]->load_coeff(file_name);
     }
 #endif
@@ -41,7 +41,7 @@ namespace CTF_int {
 
   void write_all_models(std::string file_name){
 #ifdef TUNE
-    for (int i=0; i<get_all_models().size(); i++){
+    for (int i=0; i<(int)get_all_models().size(); i++){
       get_all_models()[i]->write_coeff(file_name);
     }
 #endif
@@ -49,20 +49,11 @@ namespace CTF_int {
 
   void dump_all_models(std::string path){
 #ifdef TUNE
-    for (int i=0; i<get_all_models().size(); i++){
+    for (int i=0; i<(int)get_all_models().size(); i++){
       get_all_models()[i]->dump_data(path);
     }
 #endif
   }
-
-  void active_switch_all_models(int min_obs, double threshold){
-#ifdef TUNE
-    for (int i=0; i<get_all_models().size(); i++){
-      get_all_models()[i]->active_switch(min_obs, threshold);
-    }
-#endif
-  }
-
 
 #define SPLINE_CHUNK_SZ = 8
 
@@ -129,7 +120,6 @@ namespace CTF_int {
 
   template <int nparam>
   LinModel<nparam>::LinModel(double const * init_guess, char const * name_, int hist_size_){
-
     //initialize the model as active by default
     is_active = true;
     //copy initial static coefficients to initialzie model (defined in init_model.cxx)
@@ -202,7 +192,7 @@ namespace CTF_int {
 
     // Add the new instance of run process into time_param_mat
     memcpy(time_param_mat+(nobs%hist_size)*mat_lda, tp, mat_lda*sizeof(double));
- /*   if (nobs < hist_size){
+  /*   if (nobs < hist_size){
       memcpy(time_param_mat+nobs*mat_lda, tp, mat_lda*sizeof(double));
     } else {
       std::pop_heap( (time_param<nparam>*)time_param_mat,
@@ -220,39 +210,13 @@ namespace CTF_int {
 
   template <int nparam>
   bool LinModel<nparam>::should_observe(double const * tp){
-     return is_active;
- }
-
-  template <int nparam>
-  void LinModel<nparam>::active_switch(int min_obs, double threshold){
-
-     // Special value of min_obs = -1 denoting turning the model off no matter what
-     if (min_obs == -1){
-        is_active = false;
-        return;
-     }
-
-     // If not enough observations have been made, set is_active to true and return
-     if (nobs < min_obs){
-        is_active = true;
-        return;
-     }
-
-     // Calculate the under time ratio and over time ratio
-     double under_ratio = under_time / tot_time;
-     double over_ratio = over_time / tot_time;
-
-     // If both are within threshold, set shun down the model
-     if (under_ratio <= threshold && over_ratio <= threshold){
-        is_active = false;
-     }
-     else{
-        // Else keep the model training
-        is_active = true;
-     }
-
-}
-
+#ifndef TUNE
+    ASSERT(0);
+    assert(0);
+#else
+    return is_active;
+#endif
+  }
 
 
   template <int nparam>
@@ -290,7 +254,6 @@ namespace CTF_int {
 
     //compute the total number of observations over all processors
     MPI_Allreduce(&nrcol, &tot_nrcol, 1, MPI_INT, MPI_SUM, cm);
-
 
     //if there has been more than 16*nparam observations per processor, tune the model
     if (tot_nrcol >= 16.*np*nparam){
@@ -334,7 +297,7 @@ namespace CTF_int {
           //                                         [ obs1p1  obs1p2 ]           [ obs1t ]
           // obsxpy is the yth parameter as observed [ obs2p1  obs2p2 ]           [ obs2t ]
           // in observation x                        [ ...     ...    ]           [ ...   ]
-          // obsxt is the exe time of observation x
+          // obsxt is the exe time of observation x  
           for (int i=0; i<nparam; i++){
             b[i] = 0.0;
             for (int j=0; j<nparam; j++){
@@ -353,8 +316,8 @@ namespace CTF_int {
         for (int i=i_st; i<ncol; i++){
           //ignore observations that took time less than 1/3 of max
           //FIXME: WHY? could be much smarter
+          if (0){
           //if (time_param_mat[(i-i_st)*mat_lda] > max_time/3.){
-            if (0){
             b[i] = 0.0;
             for (int j=0; j<nparam; j++){
               A[i+j*ncol] = 0.0;
@@ -501,7 +464,6 @@ namespace CTF_int {
       }
       //broadcast new coefficient guess
       MPI_Bcast(coeff_guess, nparam, MPI_DOUBLE, 0, cm);
-
       /*for (int i=0; i<nparam; i++){
         regularization[i] = coeff_guess[i]*REG_LAMBDA;
       }*/
@@ -529,18 +491,18 @@ namespace CTF_int {
     }
 
     // get the threshold for turning off the model
-    double threshold = 0.2;
+    double threshold = 0.05;
     char * threshold_env = getenv("THRESHOLD");
     if (threshold_env){
       threshold = std::stod(threshold_env);
    }
 
-   // determine whether the model should be turned off
+    // determine whether the model should be turned off
     double under_time_ratio = under_time_total/tot_time_total;
     double over_time_ratio = over_time_total/tot_time_total;
 
 
-    if (tot_nrcol >= min_obs && over_time_ratio < threshold && threshold < threshold){
+    if (tot_nrcol >= min_obs  && under_time_ratio < threshold && over_time_ratio < threshold && threshold < threshold){
       is_active = false;
       std::cout<<"Model "<<name<<" has been turned off"<<std::endl;
    }
@@ -567,7 +529,7 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::print_uo(){
-    printf("%s is_tuned = %d (%lld) tot_time = %lf over_time = %lf under_time = %lf\n",name,is_tuned,nobs,tot_time,over_time,under_time);
+    printf("%s is_tuned = %d (%ld) tot_time = %lf over_time = %lf under_time = %lf\n",name,(int)is_tuned,nobs,tot_time,over_time,under_time);
   }
 
 
@@ -578,60 +540,60 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::write_coeff(std::string file_name){
-     int my_rank;
-     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-     // Only first process needs to dump the coefficient
-     if (my_rank) return;
+    int my_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    // Only first process needs to dump the coefficient
+    if (my_rank) return;
 
-     // Generate the model name
-     std::string model_name = std::string(name);
-     // Generate the new line in the file
-     std::string new_coeff_str = model_name+" ";
-     char buffer[64];
-     for(int i =0; i<nparam; i++){
+    // Generate the model name
+    std::string model_name = std::string(name);
+    // Generate the new line in the file
+    std::string new_coeff_str = model_name+" ";
+    char buffer[64];
+    for(int i =0; i<nparam; i++){
       buffer[0] = '\0';
       std::sprintf(buffer,"%1.4E", coeff_guess[i]);
       std::string s(buffer);
       new_coeff_str += s;
       if (i != nparam - 1){
-         new_coeff_str += " ";
+        new_coeff_str += " ";
       }
-     }
+    }
 
-     // Open the file that stores the model info
-     std::vector<std::string> file_content;
-     std::ifstream infile(file_name);
+    // Open the file that stores the model info
+    std::vector<std::string> file_content;
+    std::ifstream infile(file_name);
 
       bool found_line = false;
-     // If the file exists
-     if(infile){
-     // Scan the file to find the line and replace with the new model coeffs
-     std::string line;
-     while(std::getline(infile,line)){
+    // If the file exists
+    if(infile){
+    // Scan the file to find the line and replace with the new model coeffs
+    std::string line;
+    while(std::getline(infile,line)){
       std::istringstream f(line);
       // Get the model name from the line
       std::string s;
       std::getline(f,s,' ');
       if (s == model_name){
-         line = new_coeff_str;
-         found_line = true;
+        line = new_coeff_str;
+        found_line = true;
       }
       line += "\n";
       file_content.push_back(line);
-     }
- }
+    }
+  }
 
-     // Append the string to the file if no match is found
-     if(!found_line){
+    // Append the string to the file if no match is found
+    if(!found_line){
       new_coeff_str += "\n";
       file_content.push_back(new_coeff_str);
-     }
-     std::ofstream ofs;
-     ofs.open(file_name, std::ofstream::out | std::ofstream::trunc);
-     for(int i=0; i<file_content.size(); i++){
+    }
+    std::ofstream ofs;
+    ofs.open(file_name, std::ofstream::out | std::ofstream::trunc);
+    for(int i=0; i<(int)file_content.size(); i++){
       ofs<<file_content[i];
-     }
-     ofs.close();
+    }
+    ofs.close();
 
   }
 
@@ -675,7 +637,7 @@ namespace CTF_int {
 
           // Convert the string to char* and update the model coefficients
           char buf[s.length()+1];
-          for(int i=0;i<s.length();i++){
+          for(int i=0;i<(int)s.length();i++){
             buf[i] = s[i];
           }
           buf[s.length()] = '\0';
@@ -690,7 +652,7 @@ namespace CTF_int {
     }
     // If the model is not found
     if(!found_line){
-        std::cout<<"Error! No model found in the file!"<<std::endl;
+      std::cout<<"Error! No model found in the file!"<<std::endl;
     }
     else if (!right_num_coeff){
       std::cout<<"Error! Number of coefficients in file does not match with the model"<<std::endl;
@@ -703,39 +665,39 @@ namespace CTF_int {
 
   template <int nparam>
   void LinModel<nparam>::dump_data(std::string path){
-     int rank = 0;
-     int np, my_rank;
-     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-     MPI_Comm_size(MPI_COMM_WORLD, &np);
-     while(rank < np){
+    int rank = 0;
+    int np, my_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &np);
+    while(rank < np){
         if (rank == my_rank){
-         // Open the file
-         std::ofstream ofs;
-         std::string model_name = std::string(name);
-         ofs.open(path+"/"+model_name, std::ofstream::out | std::ofstream::app);
+        // Open the file
+        std::ofstream ofs;
+        std::string model_name = std::string(name);
+        ofs.open(path+"/"+model_name, std::ofstream::out | std::ofstream::app);
 
-         if (my_rank == 0){
+        if (my_rank == 0){
             // Dump the model coeffs
             for(int i=0; i<nparam; i++){
               ofs<<coeff_guess[i]<<" ";
             }
             ofs<<"\n";
-         }
+        }
 
-         // Dump the training data
-         int num_records = std::min(nobs, (int64_t)hist_size);
-         for(int i=0; i<num_records; i++){
+        // Dump the training data
+        int num_records = std::min(nobs, (int64_t)hist_size);
+        for(int i=0; i<num_records; i++){
             std::string instance = "";
            for(int j=0; j<mat_lda; j++){
              ofs<<time_param_mat[i*mat_lda+j]<<" ";
            }
            ofs<<"\n";
-         }
-         ofs.close();
+        }
+        ofs.close();
       }
       rank++;
       MPI_Barrier(MPI_COMM_WORLD);
-   }
+    }
   }
 
 
@@ -801,13 +763,8 @@ namespace CTF_int {
 
   template <int nparam>
   bool CubicModel<nparam>::should_observe(double const * time_param){
-     return lmdl.should_observe(time_param);
- }
-
- template <int nparam>
- void CubicModel<nparam>::active_switch(int min_obs, double threshold){
-    lmdl.active_switch(min_obs, threshold);
-}
+    return lmdl.should_observe(time_param);
+  }
 
   template <int nparam>
   double CubicModel<nparam>::est_time(double const * param){

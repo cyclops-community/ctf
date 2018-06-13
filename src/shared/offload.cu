@@ -172,7 +172,6 @@ namespace CTF_int{
   }
 #endif
 
-
   template
   void offload_gemm(char          tA,
                     char          tB,
@@ -187,20 +186,129 @@ namespace CTF_int{
                     double        beta,
                     offload_tsr & C,
                     int           lda_C);
-  template
-  void offload_gemm(char                 tA,
-                    char                 tB,
-                    int                  m,
-                    int                  n,
-                    int                  k,
-                    std::complex<double> alpha,
-                    offload_tsr &        A,
-                    int                  lda_A,
-                    offload_tsr &        B,
-                    int                  lda_B,
-                    std::complex<double> beta,
-                    offload_tsr &        C,
-                    int                  lda_C);
+
+  template <>
+  void offload_gemm<float>(char           tA,
+                            char           tB,
+                            int            m,
+                            int            n,
+                            int            k,
+                            float         alpha,
+                            float const * dev_A,
+                            int            lda_A,
+                            float const * dev_B,
+                            int            lda_B,
+                            float         beta,
+                            float *       dev_C,
+                            int            lda_C){
+  #ifdef USE_CUDA
+    assert(initialized);
+  
+    cublasOperation_t cuA;  
+    switch (tA){
+      case 'n':
+      case 'N':
+        cuA = CUBLAS_OP_N;
+        break;
+      case 't':
+      case 'T':
+        cuA = CUBLAS_OP_T;
+        break;
+    }  
+  
+    cublasOperation_t cuB;
+    switch (tB){
+      case 'n':
+      case 'N':
+        cuB = CUBLAS_OP_N;
+        break;
+      case 't':
+      case 'T':
+        cuB = CUBLAS_OP_T;
+        break;
+    }  
+  
+    cublasStatus_t status = 
+      cublasDgemm(cuhandle, cuA, cuB, m, n, k, &alpha, 
+                  dev_A, lda_A, 
+                  dev_B, lda_B, &beta, 
+                  dev_C, lda_C);
+  #ifdef PROFILE
+    cudaDeviceSynchronize();
+  #endif
+    
+    assert(status == CUBLAS_STATUS_SUCCESS);
+  #endif  
+  }
+  
+  
+  template <>
+  void offload_gemm< std::complex<float> >(
+                           char                         tA,
+                           char                         tB,
+                           int                          m,
+                           int                          n,
+                           int                          k,
+                           std::complex<float>         alpha,
+                           std::complex<float> const * dev_A,
+                           int                          lda_A,
+                           std::complex<float> const * dev_B,
+                           int                          lda_B,
+                           std::complex<float>         beta,
+                           std::complex<float> *       dev_C,
+                           int                          lda_C){
+  #ifdef USE_CUDA
+    assert(initialized);
+    
+    cublasOperation_t cuA;  
+    switch (tA){
+      case 'n':
+      case 'N':
+        cuA = CUBLAS_OP_N;
+        break;
+      case 't':
+      case 'T':
+        cuA = CUBLAS_OP_T;
+        break;
+      case 'c':
+      case 'C':
+        cuA = CUBLAS_OP_C;
+        break;
+    }  
+  
+    cublasOperation_t cuB;
+    switch (tB){
+      case 'n':
+      case 'N':
+        cuB = CUBLAS_OP_N;
+        break;
+      case 't':
+      case 'T':
+        cuB = CUBLAS_OP_T;
+        break;
+      case 'c':
+      case 'C':
+        cuB = CUBLAS_OP_C;
+        break;
+    }  
+  
+    TAU_FSTART(cublas_zgemm);
+    cublasStatus_t status = 
+      cublasZgemm(cuhandle, cuA, cuB, m, n, k, 
+                  reinterpret_cast<cuDoubleComplex*>(&alpha), 
+                  reinterpret_cast<const cuDoubleComplex*>(dev_A), lda_A, 
+                  reinterpret_cast<const cuDoubleComplex*>(dev_B), lda_B, 
+                  reinterpret_cast<cuDoubleComplex*>(&beta), 
+                  reinterpret_cast<cuDoubleComplex*>(dev_C), lda_C);
+  #ifdef PROFILE
+    cudaDeviceSynchronize();
+  #endif
+    TAU_FSTOP(cublas_zgemm);
+    
+    assert(status == CUBLAS_STATUS_SUCCESS);
+    assert(status == CUBLAS_STATUS_SUCCESS);
+  #endif
+  }
 
   template <>
   void offload_gemm<double>(char           tA,

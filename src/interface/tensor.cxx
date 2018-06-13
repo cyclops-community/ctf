@@ -5,6 +5,7 @@
 #include "idx_tensor.h"
 #include "../tensor/untyped_tensor.h"
 
+
 namespace CTF {
 
   template<typename dtype>
@@ -155,14 +156,37 @@ namespace CTF {
   }
 
   template<typename dtype>
-  void Tensor<dtype>::read_local(int64_t *  npair,
-                                 int64_t ** global_idx,
-                                 dtype **   data) const {
+  void Tensor<dtype>::get_local_data(int64_t *  npair,
+                                     int64_t ** global_idx,
+                                     dtype **   data,
+                                     bool       nonzeros_only,
+                                     bool       unpack_sym) const {
     char * cpairs;
     int ret, i;
-    ret = CTF_int::tensor::read_local(npair,&cpairs);
-    assert(ret == CTF_int::SUCCESS);
-    /* FIXME: careful with alloc */
+    if (nonzeros_only)
+      ret = CTF_int::tensor::read_local_nnz(npair,&cpairs,unpack_sym);
+    else
+      ret = CTF_int::tensor::read_local(npair,&cpairs,unpack_sym);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
+    *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
+    *data = (dtype*)sr->alloc((*npair));
+    CTF_int::PairIterator pairs(sr, cpairs);
+    for (i=0; i<(*npair); i++){
+      (*global_idx)[i] = pairs[i].k();
+      pairs[i].read_val((char*)((*data)+i));
+    }
+    if (cpairs != NULL) sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::read_local(int64_t *  npair,
+                                 int64_t ** global_idx,
+                                 dtype **   data,
+                                 bool       unpack_sym) const {
+    char * cpairs;
+    int ret, i;
+    ret = CTF_int::tensor::read_local(npair,&cpairs,unpack_sym);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
     *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
     *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
     CTF_int::PairIterator pairs(sr, cpairs);
@@ -170,48 +194,33 @@ namespace CTF {
       (*global_idx)[i] = pairs[i].k();
       pairs[i].read_val((char*)((*data)+i));
     }
-    if (cpairs != NULL) CTF_int::cdealloc(cpairs);
+    if (cpairs != NULL) sr->pair_dealloc(cpairs);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::get_local_pairs(int64_t *      npair,
+                                      Pair<dtype> ** pairs,
+                                      bool           nonzeros_only,
+                                      bool           unpack_sym) const {
+    char * cpairs; 
+    int ret;
+    if (nonzeros_only)
+      ret = CTF_int::tensor::read_local_nnz(npair,&cpairs,unpack_sym);
+    else
+      ret = CTF_int::tensor::read_local(npair,&cpairs,unpack_sym);
+    *pairs = (Pair<dtype>*)cpairs; //Pair<dtype>::cast_char_arr(cpairs, *npair, sr);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
   void Tensor<dtype>::read_local(int64_t *      npair,
-                                         Pair<dtype> ** pairs) const {
-    //FIXME raises mem consumption
+                                 Pair<dtype> ** pairs,
+                                 bool           unpack_sym) const {
     char * cpairs; 
-    int ret = CTF_int::tensor::read_local(npair, &cpairs);
-    *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair);
-    assert(ret == CTF_int::SUCCESS);
+    int ret = CTF_int::tensor::read_local(npair, &cpairs, unpack_sym);
+    *pairs = (Pair<dtype>*)cpairs; //Pair<dtype>::cast_char_arr(cpairs, *npair, sr);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_local\n"); IASSERT(0); return; }
   }
-
-  template<typename dtype>
-  void Tensor<dtype>::read_local_nnz(int64_t *  npair,
-                                     int64_t ** global_idx,
-                                     dtype **   data) const {
-    char * cpairs;
-    int ret, i;
-    ret = CTF_int::tensor::read_local_nnz(npair,&cpairs);
-    assert(ret == CTF_int::SUCCESS);
-    /* FIXME: careful with alloc */
-    *global_idx = (int64_t*)CTF_int::alloc((*npair)*sizeof(int64_t));
-    *data = (dtype*)CTF_int::alloc((*npair)*sizeof(dtype));
-    CTF_int::PairIterator pairs(sr, cpairs);
-    for (i=0; i<(*npair); i++){
-      (*global_idx)[i] = pairs[i].k();
-      pairs[i].read_val((char*)((*data)+i));
-    }
-    if (cpairs != NULL) CTF_int::cdealloc(cpairs);
-  }
-
-  template<typename dtype>
-  void Tensor<dtype>::read_local_nnz(int64_t *      npair,
-                                     Pair<dtype> ** pairs) const {
-    //FIXME raises mem consumption
-    char * cpairs; 
-    int ret = CTF_int::tensor::read_local_nnz(npair, &cpairs);
-    *pairs = Pair<dtype>::cast_char_arr(cpairs, *npair);
-    assert(ret == CTF_int::SUCCESS);
-  }
-
 
   template<typename dtype>
   void Tensor<dtype>::read(int64_t         npair,
@@ -219,39 +228,36 @@ namespace CTF {
                            dtype *         data){
     int ret;
     int64_t i;
-    /*Pair< dtype > * pairs;
-    pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
-    }*/
-    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
-    CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
-    for (i=0; i<npair; i++){
-      pairs[i].write_key(global_idx[i]);
+      pairs[i].d = data[i];
     }
     ret = CTF_int::tensor::read(npair, cpairs);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
     for (i=0; i<npair; i++){
-      pairs[i].read_val((char*)(data+i));
+      data[i] = pairs[i].d;
     }
-    CTF_int::cdealloc(cpairs);
+    sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
   void Tensor<dtype>::read(int64_t       npair,
                            Pair<dtype> * pairs){
     //FIXME raises mem consumption
-    char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
+    //char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
+    char * cpairs = (char*)pairs; //Pair<dtype>::scast_to_char_arr(pairs, npair);
     int ret = CTF_int::tensor::read(npair, cpairs);
-    if (cpairs != (char*)pairs){
-      CTF_int::PairIterator ipairs = CTF_int::PairIterator(sr, cpairs);
+    IASSERT(cpairs == (char*)pairs);
+    /*if (cpairs != (char*)pairs){
       for (int64_t i=0; i<npair; i++){
         pairs[i].k = ipairs[i].k();
         ipairs[i].read_val((char*)&(pairs[i].d));
       }
-      CTF_int::cdealloc(cpairs);
-    }
-    assert(ret == CTF_int::SUCCESS);
+      sr->pair_dealloc(cpairs);
+    }*/
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
@@ -259,21 +265,21 @@ namespace CTF {
                             int64_t const * global_idx,
                             dtype const *   data) {
     int ret, i;
-    /*Pair< dtype > * pairs;
-    pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
     for (i=0; i<npair; i++){
       pairs[i].k = global_idx[i];
       pairs[i].d = data[i];
-    }*/
-    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
+    }
+    /*char * cpairs = sr->pair_alloc(npair);
     CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
     for (i=0; i<npair; i++){
       pairs[i].write_key(global_idx[i]);
       pairs[i].write_val((char*)&(data[i]));
-    }
+    }*/
     ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), cpairs);
-    assert(ret == CTF_int::SUCCESS);
-    CTF_int::cdealloc(cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
+    sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -281,11 +287,11 @@ namespace CTF {
                             Pair<dtype> const * pairs) {
 
     //FIXME raises mem consumption
-    char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
-    int ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), cpairs);
-    assert(ret == CTF_int::SUCCESS);
-    if (cpairs != (char*)pairs)
-      CTF_int::cdealloc(cpairs);
+    char const * cpairs = (char const*)pairs; //Pair<dtype>::scast_to_char_arr(pairs, npair);
+    int ret = CTF_int::tensor::write(npair, sr->mulid(), sr->addid(), (char*)cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
+    /*if (cpairs != (char*)pairs)
+      sr->pair_dealloc(cpairs);*/
   }
 
   template<typename dtype>
@@ -295,12 +301,14 @@ namespace CTF {
                             int64_t const * global_idx,
                             dtype const *   data) {
     int ret, i;
-    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
-    CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
+
     for (i=0; i<npair; i++){
-      pairs[i].write_key(global_idx[i]);
-      pairs[i].write_val((char*)&(data[i]));
+      pairs[i].k = global_idx[i];
+      pairs[i].d = data[i];
     }
+
     /*Pair< dtype > * pairs;
     pairs = (Pair< dtype >*)CTF_int::alloc(npair*sizeof(Pair< dtype >));
     for (i=0; i<npair; i++){
@@ -308,8 +316,8 @@ namespace CTF {
       pairs[i].d = data[i];
     }*/
     ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
-    assert(ret == CTF_int::SUCCESS);
-    CTF_int::cdealloc(cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
+    sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -317,32 +325,32 @@ namespace CTF {
                             dtype               alpha,
                             dtype               beta,
                             Pair<dtype> const * pairs) {
-    char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
+    char const * cpairs = (char const*)pairs; //Pair<dtype>::scast_to_char_arr(pairs, npair);
 
-    int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, cpairs);
-    if (cpairs != (char*)pairs) CTF_int::cdealloc(cpairs);
-    assert(ret == CTF_int::SUCCESS);
+    int ret = CTF_int::tensor::write(npair, (char*)&alpha, (char*)&beta, (char*)cpairs);
+    //if (cpairs != (char*)pairs) sr->pair_dealloc(cpairs);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function write\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
   void Tensor<dtype>::read(int64_t         npair,
-                                   dtype           alpha,
-                                   dtype           beta,
-                                   int64_t const * global_idx,
-                                   dtype *         data){
+                           dtype           alpha,
+                           dtype           beta,
+                           int64_t const * global_idx,
+                           dtype *         data){
     int ret, i;
-    char * cpairs = (char*)CTF_int::alloc(npair*sr->pair_size());
-    CTF_int::PairIterator pairs = CTF_int::PairIterator(sr, cpairs);
+    char * cpairs = sr->pair_alloc(npair);
+    Pair< dtype > * pairs =(Pair< dtype >*)cpairs;
     for (i=0; i<npair; i++){
-      pairs[i].write_key(global_idx[i]);
-      pairs[i].write_val((char*)&(data[i]));
+      pairs[i].k = global_idx[i];
+      pairs[i].d = data[i];
     }
     ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
     for (i=0; i<npair; i++){
-      pairs[i].read_val((char*)(data+i));
+      data[i] = pairs[i].d;
     }
-    CTF_int::cdealloc(cpairs);
+    sr->pair_dealloc(cpairs);
   }
 
   template<typename dtype>
@@ -350,17 +358,18 @@ namespace CTF {
                            dtype         alpha,
                            dtype         beta,
                            Pair<dtype> * pairs){
-    char * cpairs = Pair<dtype>::scast_to_char_arr(pairs, npair);
+    char * cpairs = (char*)pairs; //Pair<dtype>::scast_to_char_arr(pairs, npair);
     int ret = CTF_int::tensor::read(npair, (char*)&alpha, (char*)&beta, cpairs);
-    if (cpairs != (char*)pairs){
+    IASSERT(cpairs == (char*)pairs);/*
+    {
       CTF_int::PairIterator ipairs = CTF_int::PairIterator(sr, cpairs);
       for (int64_t i=0; i<npair; i++){
         pairs[i].k = ipairs[i].k();
-        ipairs[i].read_val((char*)&(pairs[i].d));
+        ipairs[i].read_val((char*)&(pairs[i].d()));
       }
-      CTF_int::cdealloc(cpairs);
-    }
-    assert(ret == CTF_int::SUCCESS);
+      sr->pair_dealloc(cpairs);
+    }*/
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read\n"); IASSERT(0); return; }
   }
 
 
@@ -368,7 +377,7 @@ namespace CTF {
   void Tensor<dtype>::read_all(int64_t * npair, dtype ** vals, bool unpack){
     int ret;
     ret = CTF_int::tensor::allread(npair, ((char**)vals), unpack);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_all\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
@@ -376,7 +385,7 @@ namespace CTF {
     int ret;
     int64_t npair;
     ret = CTF_int::tensor::allread(&npair, (char*)vals, unpack);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function read_all\n"); IASSERT(0); }
     return npair;
   }
   template<typename dtype>
@@ -423,7 +432,7 @@ namespace CTF {
                               dtype             alpha){
     int ret = CTF_int::tensor::permute(&A, perms_A, (char*)&alpha,
                                        NULL, (char*)&beta);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
@@ -433,25 +442,25 @@ namespace CTF {
                               dtype             alpha){
     int ret = CTF_int::tensor::permute(&A, NULL, (char*)&alpha,
                                        perms_B, (char*)&beta);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function permute\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
   void Tensor<dtype>::sparsify(){
     int ret = CTF_int::tensor::sparsify();
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparsify\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
   void Tensor<dtype>::sparsify(dtype threshold, bool take_abs){
     int ret = CTF_int::tensor::sparsify((char*)&threshold, take_abs);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparsify\n"); IASSERT(0); return; }
   }
   
   template<typename dtype>
   void Tensor<dtype>::sparsify(std::function<bool(dtype)> filter){
     int ret = CTF_int::tensor::sparsify([&](char const * c){ return filter(((dtype*)c)[0]); });
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function sparisfy\n"); IASSERT(0); return; }
   }
 
 
@@ -513,7 +522,11 @@ namespace CTF {
     if (A.wrld->comm != wrld->comm){
       MPI_Comm_size(A.wrld->comm, &np_A);
       MPI_Comm_size(wrld->comm,   &np_B);
-      assert(np_A != np_B);
+      if (np_A == np_B){
+        printf("CTF ERROR: number of processors should not match in slice if worlds are different\n");
+        IASSERT(0);
+        return;
+      }
       //FIXME: was reversed?
       CTF_int::tensor::slice(
           offsets, ends, (char*)&beta, (Tensor *)&A,
@@ -576,14 +589,22 @@ namespace CTF {
     int * new_lens = (int*)CTF_int::alloc(sizeof(int)*order);
     int * new_sym = (int*)CTF_int::alloc(sizeof(int)*order);
     for (i=0; i<order; i++){
-      assert(ends[i] - offsets[i] > 0 && 
+      if (!(ends[i] - offsets[i] > 0 && 
                   offsets[i] >= 0 && 
-                  ends[i] <= lens[i]);
+                  ends[i] <= lens[i])){
+        printf("CTF ERROR: invalid slice dimensions\n");
+        IASSERT(0);
+        return Tensor<dtype>();
+      }
       if (sym[i] != NS){
         if (offsets[i] == offsets[i+1] && ends[i] == ends[i+1]){
           new_sym[i] = sym[i];
         } else {
-          assert(ends[i+1] >= offsets[i]);
+          if (!(ends[i+1] >= offsets[i])){
+            printf("CTF ERROR: slice dimensions don't respect tensor symmetry\n");
+            IASSERT(0);
+            return Tensor<dtype>();
+          }
           new_sym[i] = NS;
         }
       } else new_sym[i] = NS;
@@ -615,7 +636,7 @@ namespace CTF {
       ends[i]++;
     }
     
-    Tensor tsr = slice(offsets, ends, owrld);
+    Tensor<dtype> tsr = slice(offsets, ends, owrld);
 
     CTF_int::cdealloc(offsets);
     CTF_int::cdealloc(ends);
@@ -626,11 +647,12 @@ namespace CTF {
   template<typename dtype>
   void Tensor<dtype>::align(const CTF_int::tensor & A){
     if (A.wrld->cdt.cm != wrld->cdt.cm) {
-      printf("ERROR: cannot align tensors on different CTF instances\n");
-      assert(0);
+      printf("CTF ERROR: cannot align tensors on different CTF instances\n");
+      IASSERT(0);
+      return;
     }
     int ret = CTF_int::tensor::align(&A);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function align\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
@@ -700,28 +722,138 @@ namespace CTF {
         }
         break;
     }
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function reduce\n"); IASSERT(0); }
     return ans;
   }
+
+  template<typename dtype>
+  static void real_norm1(Tensor<dtype> & A, double & nrm){
+    char inds[A.order];
+    for (int i=0; i<A.order; i++){
+      inds[i] = 'a'+i;
+    }
+    nrm = Function<dtype,double>([](dtype a){ return (double)std::abs(a); })(A[inds]);
+  }
+
+  template<typename dtype>
+  void Tensor<dtype>::norm1(double & nrm){
+    if (wrld->rank == 0) 
+      printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
+    IASSERT(0);
+  }
+
+#define NORM1_INST(dtype) \
+  template<> \
+  inline void Tensor<dtype>::norm1(double & nrm){ \
+    real_norm1<dtype>(*this, nrm); \
+  }
+
+NORM1_INST(bool)
+NORM1_INST(int8_t)
+NORM1_INST(int16_t)
+NORM1_INST(int)
+NORM1_INST(int64_t)
+NORM1_INST(float)
+NORM1_INST(double)
+
+  template<typename dtype>
+  static void real_norm2(Tensor<dtype> & A, double & nrm){
+    char inds[A.order];
+    for (int i=0; i<A.order; i++){
+      inds[i] = 'a'+i;
+    }
+    //CTF::Scalar<double> dnrm(A.dw);
+    nrm = std::sqrt((double)Function<dtype,double>([](dtype a){ return (double)(a*a); })(A[inds]));
+  }
+
+  template<typename dtype>
+  static void complex_norm2(Tensor<dtype> & A, double & nrm){
+    char inds[A.order];
+    for (int i=0; i<A.order; i++){
+      inds[i] = 'a'+i;
+    }
+    nrm = std::sqrt((double)Function<dtype,double>([](dtype a){ return (double)std::norm(a); })(A[inds]));
+  }
+
+
+  template<typename dtype>
+  void Tensor<dtype>::norm2(double & nrm){
+    if (wrld->rank == 0) 
+      printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
+    IASSERT(0);
+  }
+
+#define NORM2_REAL_INST(dtype) \
+  template<> \
+  inline void Tensor<dtype>::norm2(double & nrm){ \
+    real_norm2<dtype>(*this, nrm); \
+  }
+
+#define NORM2_COMPLEX_INST(dtype) \
+  template<> \
+  inline void Tensor< std::complex<dtype> >::norm2(double & nrm){ \
+    complex_norm2< std::complex<dtype> >(*this, nrm); \
+  }
+
+
+NORM2_REAL_INST(bool)
+NORM2_REAL_INST(int8_t)
+NORM2_REAL_INST(int16_t)
+NORM2_REAL_INST(int)
+NORM2_REAL_INST(int64_t)
+NORM2_REAL_INST(float)
+NORM2_REAL_INST(double)
+NORM2_COMPLEX_INST(float)
+NORM2_COMPLEX_INST(double)
+
+  template<typename dtype>
+  void Tensor<dtype>::norm_infty(double & nrm){
+    if (wrld->rank == 0) 
+      printf("CTF ERROR: norm not available for the type of tensor %s\n",name);
+    IASSERT(0);
+  }
+
+#define NORM_INFTY_INST(dtype) \
+  template<> \
+  inline void Tensor<dtype>::norm_infty(double & nrm){ \
+    nrm = this->norm_infty(); \
+  }
+
+NORM_INFTY_INST(bool)
+NORM_INFTY_INST(int8_t)
+NORM_INFTY_INST(int16_t)
+NORM_INFTY_INST(int)
+NORM_INFTY_INST(int64_t)
+NORM_INFTY_INST(float)
+NORM_INFTY_INST(double)
+
+#undef NORM1_INST
+#undef NORM2_REAL_INST
+#undef NORM2_COMPLEX_INST
+#undef NORM_INFTY_INST
 
   template<typename dtype>
   void Tensor<dtype>::get_max_abs(int     n,
                                   dtype * data) const {
     int ret;
     ret = CTF_int::tensor::get_max_abs(n, data);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function get_max_abs\n"); IASSERT(0); return; }
   }
 
   template<typename dtype>
   void Tensor<dtype>::fill_random(dtype rmin, dtype rmax){
     if (wrld->rank == 0) 
       printf("CTF ERROR: fill_random(rmin, rmax) not available for the type of tensor %s\n",name);
-    assert(0);
+    IASSERT(0);
   }
 
   template <typename dtype>
   void fill_random_base(dtype rmin, dtype rmax, Tensor<dtype> & T){
-    assert(!T.is_sparse);
+    if (T.is_sparse){
+      printf("CTF ERROR: fill_random should not be called on a sparse tensor, use fill_random_sp instead\n");
+      IASSERT(0);
+      return;
+    }
     for (int64_t i=0; i<T.size; i++){
       ((dtype*)T.data)[i] = CTF_int::get_rand48()*(rmax-rmin)+rmin;
     }
@@ -753,7 +885,7 @@ namespace CTF {
   void Tensor<dtype>::fill_sp_random(dtype rmin, dtype rmax, double frac_sp){
     if (wrld->rank == 0) 
       printf("CTF ERROR: fill_sp_random(rmin, rmax, frac_sp) not available for the type of tensor %s\n",name);
-    assert(0);
+    IASSERT(0);
   }
 
   template <typename dtype>
@@ -772,11 +904,12 @@ namespace CTF {
     if (gen_size % T->wrld->np > T->wrld->rank){
       my_gen_size++;
     }
-    Pair<dtype> * pairs = (Pair<dtype>*)malloc(my_gen_size*sizeof(Pair<dtype>));
+    Pair<dtype> * pairs = (Pair<dtype>*)T->sr->pair_alloc(my_gen_size);
     for (int64_t i=0; i<my_gen_size; i++){
       pairs[i] = Pair<dtype>((int64_t)(CTF_int::get_rand48()*tot_size), 1.0);
     }
     T->write(my_gen_size,pairs);
+    T->sr->pair_dealloc((char*)pairs);
     char str[T->order];
     for (int i=0; i<T->order; i++){
       str[i] = 'a'+i;
@@ -827,8 +960,11 @@ namespace CTF {
                                const char *     idx_B,
                                dtype            beta,
                                const char *     idx_C){
-    assert(A.wrld->cdt.cm == wrld->cdt.cm);
-    assert(B.wrld->cdt.cm == wrld->cdt.cm);
+    if (A.wrld->cdt.cm != wrld->cdt.cm || B.wrld->cdt.cm != wrld->cdt.cm){
+      printf("CTF ERROR: worlds of contracted tensors must match\n");
+      IASSERT(0);
+      return;
+    }
     CTF_int::contraction ctr 
       = CTF_int::contraction(&A, idx_A, &B, idx_B, (char*)&alpha, this, idx_C, (char*)&beta);
     ctr.execute();
@@ -843,8 +979,11 @@ namespace CTF {
                                dtype                 beta,
                                const char *          idx_C,
                                Bivar_Function<dtype> fseq){
-    assert(A.wrld->cdt.cm == wrld->cdt.cm);
-    assert(B.wrld->cdt.cm == wrld->cdt.cm);
+    if (A.wrld->cdt.cm != wrld->cdt.cm || B.wrld->cdt.cm != wrld->cdt.cm){
+      printf("CTF ERROR: worlds of contracted tensors must match\n");
+      IASSERT(0);
+      return;
+    }
     CTF_int::contraction ctr 
       = CTF_int::contraction(&A, idx_A, &B, idx_B, (char const *)&alpha, this, idx_C, (char const *)&beta, &fseq);
     ctr.execute();
@@ -857,7 +996,11 @@ namespace CTF {
                           const char *     idx_A,
                           dtype            beta,
                           const char *     idx_B){
-    assert(A.wrld->cdt.cm == wrld->cdt.cm);
+    if (A.wrld->cdt.cm != wrld->cdt.cm){
+      printf("CTF ERROR: worlds of summed tensors must match\n");
+      IASSERT(0);
+      return;
+    }
 
     CTF_int::summation sum 
       = CTF_int::summation(&A, idx_A, (char*)&alpha, this, idx_B, (char*)&beta);
@@ -873,7 +1016,11 @@ namespace CTF {
                           dtype                  beta,
                           const char *           idx_B,
                           Univar_Function<dtype> fseq){
-    assert(A.wrld->cdt.cm == wrld->cdt.cm);
+    if (A.wrld->cdt.cm != wrld->cdt.cm){
+      printf("CTF ERROR: worlds of summed tensors must match\n");
+      IASSERT(0);
+      return;
+    }
     
     CTF_int::summation sum = CTF_int::summation(&A, idx_A, (char const *)&alpha, this, idx_B, (char const *)&beta, &fseq);
 
@@ -897,10 +1044,10 @@ namespace CTF {
   }
 
   template<typename dtype>
-  dtype * Tensor<dtype>::read(char const *          idx,
-                              Idx_Partition const & prl,
-                              Idx_Partition const & blk,
-                              bool                  unpack){
+  dtype * Tensor<dtype>::get_mapped_data(char const *          idx,
+                                         Idx_Partition const & prl,
+                                         Idx_Partition const & blk,
+                                         bool                  unpack){
     return (dtype*)CTF_int::tensor::read(idx, prl, blk, unpack);
   }
 
@@ -958,15 +1105,15 @@ namespace CTF {
       CTF_int::cdealloc(len);
       //CTF_int::cdealloc(len);
     ret = CTF_int::tensor::info(&A, &order, &len, &sym);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function\n"); IASSERT(0); return; }
 
     ret = CTF_int::tensor::define(sr, order, len, sym, &tid, 1, name, name != NULL);
-    assert(ret == CTF_int::SUCCESS);
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function\n"); IASSERT(0); return; }
 
     //printf("Set tensor %d to be the same as %d\n", tid, A.tid);
 
     ret = CTF_int::tensor::copy(A.tid, tid);
-    assert(ret == CTF_int::SUCCESS);*/
+    if (ret != CTF_int::SUCCESS){ printf("CTF ERROR: failed to execute function\n"); IASSERT(0); return; }*/
   }
 
 

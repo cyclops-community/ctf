@@ -5,6 +5,7 @@
 
 namespace CTF_int {
   int64_t get_coo_size(int64_t nnz, int val_size){
+    val_size = std::max(val_size,64*((val_size + 63)/64));
     return nnz*(val_size+sizeof(int)*2)+2*sizeof(int64_t);
   }
 
@@ -13,6 +14,7 @@ namespace CTF_int {
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = nnz;
     ((int64_t*)all_data)[1] = sr->el_size;
+    //printf("all_data %p vals %p\n",all_data,this->vals());
   }
 
   COO_Matrix::COO_Matrix(char * all_data_){
@@ -34,6 +36,8 @@ namespace CTF_int {
     char * vs = vals();
     int * coo_rs = rows();
     int * coo_cs = cols();
+
+    sr->init_shell(nnz, vs);
   
     sr->csr_to_coo(nnz, csr.nrow(), csr_vs, csr_ja, csr_ia, vs, coo_rs, coo_cs);
   }
@@ -126,8 +130,11 @@ namespace CTF_int {
         }
         k=k/lens[j];
       }
-    //  printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
-      memcpy(vs+v_sz*i, pi[i].d(), v_sz);
+      //printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
+      pi[i].read_val(vs+v_sz*i);
+      //printf("wrote value at %p v_Sz = %d\n",vs+v_sz*i, v_sz);
+      //sr->print(pi[i].d());
+      //sr->print(vs+v_sz*i);
     }
     cdealloc(ordering);
     cdealloc(rev_ord_lens);
@@ -203,8 +210,10 @@ namespace CTF_int {
 //      if (k>=tot_sz) printf("k=%ld tot_sz=%ld c = %d r = %d\n",k,tot_sz,cs[i],rs[i]);
 //      printf("p[%d %d] [%d,%d]->%ld\n",phase_rank[0],phase_rank[1],rs[i],cs[i],k);
       pi[i].write_key(k);
-    //  printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
-      memcpy(pi[i].d(), vs+v_sz*i, v_sz);
+      pi[i].write_val(vs+v_sz*i);
+      //printf("k=%ld col = %d row = %d\n", pi[i].k(), cs[i], rs[i]);
+      //sr->print(pi[i].d());
+//      memcpy(pi[i].d(), vs+v_sz*i, v_sz);
     }
     PairIterator pi2(sr, tsr_data);
     TAU_FSTART(COO_to_kvpair_sort);

@@ -8,7 +8,16 @@
 
 using namespace CTF;
 
+
 namespace CTF_int {
+  algstrct const * get_double_ring();
+  algstrct const * get_float_ring();
+  algstrct const * get_int64_t_ring();
+  algstrct const * get_int_ring();
+}
+
+namespace CTF_int {
+
   Idx_Tensor * get_full_intm(Idx_Tensor& A, 
                              Idx_Tensor& B){
     int * len_C, * sym_C;
@@ -46,7 +55,7 @@ namespace CTF_int {
     idx = 0;
     for (i=0; i<A.parent->order; i++){
       for (j=0; j<i && A.idx_map[i] != A.idx_map[j]; j++){}
-      if (j!=i) break;
+      if (j!=i) continue;
       idx_C[idx] = A.idx_map[i];
       len_C[idx] = A.parent->lens[i];
       if (idx >= 1 && i >= 1 && idx_C[idx-1] == A.idx_map[i-1] && A.parent->sym[i-1] != NS){
@@ -58,7 +67,7 @@ namespace CTF_int {
     int order_AC = idx;
     for (j=0; j<B.parent->order; j++){
       for (i=0; i<j && B.idx_map[i] != B.idx_map[j]; i++){}
-      if (i!=j) break;
+      if (i!=j) continue;
       for (i=0; i<order_AC && idx_C[i] != B.idx_map[j]; i++){}
       if (i!=order_AC){
         if (sym_C[i] != NS) {
@@ -75,7 +84,7 @@ namespace CTF_int {
             sym_C[j] = NS;
           }
         }
-        break;
+        continue;
       }
       idx_C[idx] = B.idx_map[j];
       len_C[idx] = B.parent->lens[j];
@@ -88,6 +97,19 @@ namespace CTF_int {
 
     tensor * tsr_C = new tensor(A.parent->sr, order_C, len_C, sym_C, A.parent->wrld, 1);
     Idx_Tensor * out = new Idx_Tensor(tsr_C, idx_C);
+    //printf("A_inds =");
+    //for (int i=0; i<A.parent->order; i++){
+    //  printf("%c",A.idx_map[i]);
+    //}
+    //printf("B_inds =");
+    //for (int i=0; i<B.parent->order; i++){
+    //  printf("%c",B.idx_map[i]);
+    //}
+    //printf("C_inds =");
+    //for (int i=0; i<order_C; i++){
+    //  printf("%c",idx_C[i]);
+    //}
+    //printf("\n");
     out->is_intm = 1;
     cdealloc(sym_C);
     cdealloc(len_C);
@@ -100,6 +122,7 @@ namespace CTF_int {
                              Idx_Tensor& B,
                              int num_out_inds,
                              char const * out_inds){
+
     int * len_C, * sym_C;
     char * idx_C;
     int order_C, i, j;
@@ -255,8 +278,23 @@ namespace CTF_int {
     return trm;
   }
 
+  Term::operator float () const {
+    CTF_int::tensor ts(get_float_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    ts[""] += *this;
+    float dbl = ((float*)ts.data)[0];
+    ts.wrld->cdt.bcast(&dbl, 1, MPI_DOUBLE, 0);
+    return dbl;
+
+  }
+
   Term::operator double () const {
-    int64_t s;
+    //return 0.0 += *this;
+    CTF_int::tensor ts(get_double_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    ts[""] += *this;
+    double dbl = ((double*)ts.data)[0];
+    ts.wrld->cdt.bcast(&dbl, 1, MPI_DOUBLE, 0);
+    return dbl;
+    /*int64_t s;
     CTF_int::tensor ts(sr, 0, NULL, NULL, where_am_i(), true, NULL, 0);
     Idx_Tensor iscl(&ts,"");
     execute(iscl);
@@ -265,20 +303,35 @@ namespace CTF_int {
     iscl.parent->get_raw_data(&datap,&s); 
     memcpy(val, datap, sr->el_size);
     MPI_Bcast(val, sr->el_size, MPI_CHAR, 0, where_am_i()->comm);
-    return sr->cast_to_double(val);
+    return sr->cast_to_double(val);*/
+  }
+
+  Term::operator int () const {
+    CTF_int::tensor ts(get_int_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    ts[""] += *this;
+    int dbl = ((int*)ts.data)[0];
+    ts.wrld->cdt.bcast(&dbl, 1, MPI_INT64_T, 0);
+    return dbl;
+
   }
 
   Term::operator int64_t () const {
-    int64_t s;
-    CTF_int::tensor ts(sr, 0, NULL, NULL, where_am_i(), true, NULL, 0);
-    Idx_Tensor iscl(&ts,"");
-    execute(iscl);
-    char val[sr->el_size];
-    char * datap;
-    iscl.parent->get_raw_data(&datap,&s); 
-    memcpy(val, datap, sr->el_size);
-    MPI_Bcast(val, sr->el_size, MPI_CHAR, 0, where_am_i()->comm);
-    return sr->cast_to_int(val);
+    CTF_int::tensor ts(get_int64_t_ring(), 0, NULL, NULL, this->where_am_i(), true, NULL, 0);
+    ts[""] += *this;
+    int64_t dbl = ((int64_t*)ts.data)[0];
+    ts.wrld->cdt.bcast(&dbl, 1, MPI_INT64_T, 0);
+    return dbl;
+
+    //int64_t s;
+    //CTF_int::tensor ts(sr, 0, NULL, NULL, where_am_i(), true, NULL, 0);
+    //Idx_Tensor iscl(&ts,"");
+    //execute(iscl);
+    //char val[sr->el_size];
+    //char * datap;
+    //iscl.parent->get_raw_data(&datap,&s); 
+    //memcpy(val, datap, sr->el_size);
+    //MPI_Bcast(val, sr->el_size, MPI_CHAR, 0, where_am_i()->comm);
+    //return sr->cast_to_int(val);
   }
 
 
@@ -549,9 +602,9 @@ namespace CTF_int {
       tmp_ops.pop_back();
       Idx_Tensor op_A = pop_A->execute();
       Idx_Tensor op_B = pop_B->execute();
-      if (tscale != NULL) cdealloc(tscale);
+      /*if (tscale != NULL) cdealloc(tscale);
       tscale = NULL;
-      sr->safecopy(tscale, this->scale);
+      sr->safecopy(tscale, this->scale);*/
       sr->safemul(tscale, op_A.scale, tscale);
       sr->safemul(tscale, op_B.scale, tscale);
 
@@ -724,31 +777,19 @@ namespace CTF_int {
   }
 
   void operator-=(double & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d -= (double)ts[""];
+    d -= (double)tsr;
   }
-
 
   void operator+=(double & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d += (double)ts[""];
+    d += (double)tsr;
   }
-
   void operator-=(int64_t & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d -= (int64_t)ts[""];
+    d -= (int64_t)tsr;
   }
 
   void operator+=(int64_t & d, CTF_int::Term const & tsr){
-    CTF_int::tensor ts(tsr.sr, 0, NULL, NULL, tsr.where_am_i(), true, NULL, 0);
-    ts[""] += tsr;
-    d += (int64_t)ts[""];
+    d += (int64_t)tsr;
   }
-
-
 }
 
 

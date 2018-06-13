@@ -222,7 +222,7 @@ namespace CTF_int{
           }
           CTF_FLOPS_ADD(imax-imin);
         } else if (alpha == NULL)*/
-        if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
+        if (alpha == NULL || sr_C->isequal(alpha,sr_C->mulid())){
           for (int i=imin; i<imax; i++){
             char tmp[sr_C->el_size];
             sr_C->mul(A[0].d(), 
@@ -257,7 +257,7 @@ namespace CTF_int{
           }
           CTF_FLOPS_ADD(imax-imin);
         } else if (alpha == NULL)*/
-        if (alpha == NULL || sr_A->isequal(alpha,sr_A->mulid())){
+        if (alpha == NULL || sr_C->isequal(alpha,sr_C->mulid())){
           for (int i=imin; i<imax; i++){
             func->acc_f(A[0].d(), 
                         B+offsets_B[0][i], 

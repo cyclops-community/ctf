@@ -1,35 +1,68 @@
 ## Cyclops Tensor Framework (CTF)
-![alt text](https://travis-ci.org/solomonik/ctf.svg?branch=master)
+[<img src="https://travis-ci.org/cyclops-community/ctf.svg?branch=master">](https://travis-ci.org/cyclops-community/ctf)
 
-CTF is a C++ library for algebraic operations on distributed multidimensional arrays.
+Cyclops is a parallel (distributed-memory) numerical library for multidimensional arrays (tensors) in C++ and Python.
 
-The operations are expressed algebraically via vector, matrix, or tensor representation of the arrays. An array with k dimensions is represented by a tensor of order k. By default, the tensor elements are floating point numbers and tensor operations are combinations of products and sums. However, a user can define any statically-sized type and elementwise operations. CTF supports general tensor sparsity, so it is possible to define graph algorithms with the use of sparse adjacency matrices.
+Broadly, Cyclops provides tensor objects that are stored and operated on by all processes executing the program, coordinating via MPI communication.
 
-### Applications
+Cyclops supports a multitude of tensor attributes, including sparsity, various symmetries, and user-defined element types.
 
-The CTF library enables general-purpose programming, but is particularly useful in some specific application domains.
+The library is interoperable with ScaLAPACK at the C++ level and with numpy at the Python level. In Python, the library provides a parallel/sparse implementation of `numpy.ndarray` functionality.
 
-#### Numerical methods based on tensor contractions
+## Building and Testing
 
-The framework provides a powerful domain specific language for computational chemistry and physics codes that work on higher order tensors (e.g. coupled cluster, lattice QCD, quantum informatics). See the [CCSD](examples/ccsd.cxx) and [sparse MP3](examples/sparse_mp3.cxx) examples, or the [Aquarius](https://github.com/devinamatthews/aquarius) application. This domain was the initial motivation for the development of CTF. An exemplary paper for this type of applications is
+It is possible to build static and dynamic C++ libraries, the Python CTF library, as well as examples and tests for both via this repository. Cyclops follows the basic installation convention,
+```sh
+./configure
+make
+make install
+```
+(where the last command should usually be executed as superuser, i.e. requires `sudo`) below we give more details on how the build can be customized.
 
-[Edgar Solomonik, Devin Matthews, Jeff R. Hammond, John F. Stanton, and James Demmel; A massively parallel tensor contraction framework for coupled-cluster computations; Journal of Parallel and Distributed Computing, June 2014.](http://www.sciencedirect.com/science/article/pii/S074373151400104X)
+First, its necessary to run the configure script, which can be set to the appropriate type of build and is responsible for obtaining and checking for any necessary dependencies. For options and documentation on how to execute configure, run
+```sh
+./configure --help
+```
+then execute ./configure with the appropriate options. Successful execution of this script, will generate a `config.mk` file and a `setup.py` file, needed for C++ and Python builds, respectively, as well as a how-did-i-configure file with info on how the build was configured. You may modify the `config.mk` and `setup.py` files thereafter, subsequent executions of configure will prompt to overwrite these files.
 
-#### Algebraic graph algorithms
+### Dependencies and Supplemental Packages
 
-Much like the [CombBLAS](http://gauss.cs.ucsb.edu/~aydin/CombBLAS/html/) library, CTF provides sparse matrix primitives that enable development of parallel graph algorithms. Matrices and vectors can be defined on a user-defined semiring or monoid. Multiplication of sparse matrices with sparse vectors or other sparse matrices is parallelized automatically. The library includes example code for [Bellman-Ford](examples/sssp.cxx) and [betweenness centrality](examples/btwn_central.cxx). An paper describing and analyzing the betweenness centrality code is
+The strict library dependencies of Cyclops are MPI and BLAS libraries.
 
-[Edgar Solomonik, Maciej Besta, Flavio Vella, and Torsten Hoefler; Betweenness centrality is more parallelizable than dense matrix multiplication arXiv preprint, arXiv:1609.07008 [cs.MS], September 2016.](https://arxiv.org/abs/1609.07008)
+Some functionality in Cyclops requires LAPACK and ScaLAPACK. A standard build of the latter can be constructed automatically by running configure with `--build-scalapack`.
 
-#### Prototyping of parallel numerical algorithms
+Faster transposition in Cyclops is made possible by the HPTT library. To obtain a build of HPTT automatically run configure with `--build-hptt`.
 
-The high-level abstractions for vectors, matrices, and order 3+ tensors allow CTF to be a useful tool for developing many numerical algorithms. Interface hook-ups for ScaLAPACK make coordination with distributed-memory solvers easy. Algorithms like [algebraic multigrid](examples/algebraic_multigrid.cxx), which require sparse matrix multiplication can be rapidly implemented with CTF. Further, higher order tensors can be used to express recursive algorithms like [parallel scans](examples/scan.cxx) and [FFT](examples/fft.cxx). Some basic examples of numerical codes using CTF are presented in
+Efficient sparse matrix multiplication primitives and efficient batched BLAS primitives are available via the Intel MKL library, which is automatically detected for standard Intel compiler configurations or when appropriately supplied as a library.
 
-[Edgar Solomonik and Torsten Hoefler; Sparse tensor algebra as a parallel programming model arXiv preprint, arXiv:1512.00066 [cs.MS], November 2015.](http://arxiv.org/abs/1512.00066)
+### Building and Installing the Libraries
 
-## Sample code and minimal tutorial
+Once configured, you may install both the shared and dynamic libraries, by running `make`. Parallel make is supported.
 
-A simple Jacobi iteration code using CTF is given below, also found in [this examples](examples/jacobi.cxx).
+To build exclusively the static library, run `make libctf`, to build exclusively the shared library, run `make shared`.
+
+To install the C++ libraries to the prespecified build destination directory (`--build-dir` for `./configure`, `/usr/local/` by default), run `make install` (as superuser if necessary). If the CTF configure script built the ScaLAPACK and/or HPTT libraries automatically, the libraries for these will need to be installed system-wide manually.
+
+To build the Python CTF library, execute `make python`.
+
+To install the Python CTF library via pip, execute `make python_install` (as superuser if not in a virtual environment).
+
+To uninstall, use `make uninstall` and `make python_uninstall`.
+
+### Testing the Libraries
+
+To test the C++ library with a sequential suite of tests, run `make test`. To test the library using 2 processors, execute `make test2`. To test the library using some number N processors, run `make testN`.
+
+To test the Python library, run `make python_test` to do so sequentially and `make python_testN` to do so with N processors.
+
+To debug issues with custom code execution correctness, build CTF libraries with `-DDEBUG=1 -DVERBOSE=1` (more info in `config.mk`).
+
+To debug issues with custom code performance, build CTF libraries with `-DPROFILE -DPMPI` (more info in `config.mk`), which should lead to a performance log dump at the end of an execution of a code using CTF.
+
+
+## Sample C++ Code and Minimal Tutorial
+
+A simple Jacobi iteration code using CTF is given below, also found in [this example](examples/jacobi.cxx).
 
 ```cpp
 Vector<> Jacobi(Matrix<> A , Vector<> b , int n){
@@ -100,25 +133,51 @@ for (int i=0; i<n; i++)
 ```
 In this way, arbitrary functions can be applied to elements of the tensors. There are additional 'algebraic structure' constructs that allow a redefinition of addition and multiplication for any given tensor. Finally, there is a Transform object, which acts in a similar way as Function, but takes the output element by reference. The Transform construct is more powerful than Function, but limits the transformations that can be applied internally for efficiency. Both Function and Transform can operate on one or two tensors with different element types, and output another element type. 
 
+## Sample Python Jupyter Notebook
+
+An example of basic CTF functionality as a `numpy.ndarray` back-end is shown in this [Jupyter notebook](http://solomonik.cs.illinois.edu/demos/CTF_introductory_demo.html). The full notebook is included inside the `doc` folder.
+
 ## Documentation
 
-Detailed documentation of all functionality and the organization of the source code can be found in the [Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/index.html). Much of the functionality is expressed through the [Tensor object](http://solomon2.web.engr.illinois.edu/ctf/classCTF_1_1Tensor.html).
+Detailed documentation of all functionality and the organization of the source code can be found in the [Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/index.html). Much of the C++ functionality is expressed through the [Tensor object](http://solomon2.web.engr.illinois.edu/ctf/classCTF_1_1Tensor.html). A list of key available Python functions can be found in the [core Cython module Doxygen page](http://solomon2.web.engr.illinois.edu/ctf/core_8pyx.html).
 
-The examples and aforementioned papers can be used to gain further insight. If you have any questions regarding usage, do not hesitate to contact us! You can do so by posting an issue on the github page or emailing solomon2@illinois.edu.
-
-## Building and testing
-
-To build the library, it is necessary to execute './configure' and 'make'. The configure file does not use autotools and should be relatively easily to interpret and tweak. Run './configure --help' to see a list of options. The configure file will generate a file called config.mk. You can tweak this file further, it has options for running CTF in verbose mode (stating which contractions are executed), debug mode (doing extra checks and outputting various execution information) or with performance profiling (outputting a breakdown of performance at the end in the style of a TAU performance profile summary). It is possible to execute configure from an external folder to build the library out of source. Note that rerunning configure might overwrite any changes you make to the config.mk file.
-
-For testing the library, run 'make test', which will run a suite of dozens of tests sequentially, but should only take a couple of seconds. You can also build and execute 'test_suite' using multiple MPI processors ('make test2', 'make test4', ... will build and run the test suite with 2, 4, ... processors, but only works for some small processor counts).
-
-Parallel make (e.g. -j4) is supported. The library will build in seconds if you switch off the optimization flags in config.mk, but may take a few minutes otherwise.
+The examples and aforementioned papers can be used to gain further insight. If you have any questions regarding usage, do not hesitate to contact us! Please do so by creating an issue on this github webpage. You can also email questions to solomon2@illinois.edu.
 
 ## Performance
 
 Please see the aforementioned papers for various applications and benchmarks, which are also summarized in [this recent presentation](http://solomon2.web.engr.illinois.edu/talks/istcp_jul22_2016.pdf). Generally, the distributed-memory dense and sparse matrix multiplication performance should be very good. Similar performance is achieved for many types of contractions. CTF can leverage threading, but is fastest with pure MPI or hybrid MPI+OpenMP. The code aims at scalability to a large number of processors by minimizing communication cost, rather than necessarily achieving perfect absolute performance. User-defined functions naturally inhibit the sequential kernel performance. Algorithms that have a low flop-to-byte ratio may not achieve memory-bandwidth peak as some copying/transposition may take place. Absolute performance of operations that have Hadamard indices is relatively low for the time being, but will be improved.
 
-## Alternative frameworks
+
+## Sample Existing Applications
+
+The CTF library enables general-purpose programming, but is particularly useful in some specific application domains.
+
+### Numerical Methods Based on Tensor Contractions
+
+The framework provides a powerful domain specific language for computational chemistry and physics codes that work on higher order tensors (e.g. coupled cluster, lattice QCD, quantum informatics). See the [CCSD](examples/ccsd.cxx) and [sparse MP3](examples/sparse_mp3.cxx) examples, or the [Aquarius](https://github.com/devinamatthews/aquarius) application. This domain was the initial motivation for the development of CTF. An exemplary paper for this type of applications is
+
+[Edgar Solomonik, Devin Matthews, Jeff R. Hammond, John F. Stanton, and James Demmel; A massively parallel tensor contraction framework for coupled-cluster computations; Journal of Parallel and Distributed Computing, June 2014.](http://www.sciencedirect.com/science/article/pii/S074373151400104X)
+
+### Algebraic Graph Algorithms
+
+Much like the [CombBLAS](http://gauss.cs.ucsb.edu/~aydin/CombBLAS/html/) library, CTF provides sparse matrix primitives that enable development of parallel graph algorithms. Matrices and vectors can be defined on a user-defined semiring or monoid. Multiplication of sparse matrices with sparse vectors or other sparse matrices is parallelized automatically. The library includes example code for [Bellman-Ford](examples/sssp.cxx) and [betweenness centrality](examples/btwn_central.cxx). An paper describing and analyzing the betweenness centrality code is
+
+[Edgar Solomonik, Maciej Besta, Flavio Vella, and Torsten Hoefler Scaling betweenness centrality using communication-efficient sparse matrix multiplication ACM/IEEE Supercomputing Conference, Denver, Colorado, November 2017.](https://arxiv.org/abs/1609.07008)
+
+### Prototyping of Parallel Numerical Algorithms
+
+The high-level abstractions for vectors, matrices, and order 3+ tensors allow CTF to be a useful tool for developing many numerical algorithms. Interface hook-ups for ScaLAPACK make coordination with distributed-memory solvers easy. Algorithms like [algebraic multigrid](examples/algebraic_multigrid.cxx), which require sparse matrix multiplication can be rapidly implemented with CTF. Further, higher order tensors can be used to express recursive algorithms like [parallel scans](examples/scan.cxx) and [FFT](examples/fft.cxx). Some basic examples of numerical codes using CTF are presented in
+
+[Edgar Solomonik and Torsten Hoefler; Sparse tensor algebra as a parallel programming model arXiv preprint, arXiv:1512.00066 [cs.MS], November 2015.](http://arxiv.org/abs/1512.00066)
+
+### Quantum Circuit Simulation
+
+CTF has been recently used to do the largest-ever quantum circuit simulation,
+
+[ Edwin Pednault, John A. Gunnels, Giacomo Nannicini, Lior Horesh, Thomas Magerlein, Edgar Solomonik, and Robert Wisnieff Breaking the 49-qubit barrier in the simulation of quantum circuits arXiv:1710.05867 [quant-ph], October 2017.]( https://arxiv.org/abs/1710.05867)
+
+
+## Alternative Frameworks
 
 [Elemental](http://libelemental.org/) and [ScaLAPACK](http://www.netlib.org/scalapack/) provide distributed-memory support for dense matrix operations in addition to a powerful suite of solver routines. It is also possible to interface them with CTF, in particular, we provide routines for retrieving a ScaLAPACK descriptor.
 
@@ -127,13 +186,14 @@ A faster library for dense tensor contractions in shared memory is [Libtensor](h
 An excellent distributed-memory library with native support for block-sparse tensors is [TiledArray](https://github.com/ValeevGroup/tiledarray).
 
 
+## Acknowledging Usage
 
-## Acknowledging usage
-
-The library and source code is available to everyone. If you would like to acknowledge the usage of the library, please cite one of our papers. The below one would be a good choice,
+The library and source code is available to everyone. If you would like to acknowledge the usage of the library, please cite one of our papers. The follow reference details dense tensor functionality in CTF,
 
 Edgar Solomonik, Devin Matthews, Jeff R. Hammond, John F. Stanton, and James Demmel; A massively parallel tensor contraction framework for coupled-cluster computations; Journal of Parallel and Distributed Computing, June 2014.
 
 here is the [bibtex](http://solomon2.web.engr.illinois.edu/bibtex/SMHSD_JPDC_2014.txt).
 
 We hope you enjoy writing your parallel program with algebra!
+
+

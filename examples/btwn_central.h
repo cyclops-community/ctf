@@ -22,7 +22,7 @@ class mpath {
   DEVICE HOST
   mpath(mpath const & p){ w=p.w; m=p.m; }
   DEVICE HOST
-  mpath(){};
+  mpath(){ w=0; m=0;};
 };
 
 //path with a centrality score
@@ -35,7 +35,7 @@ class cpath {
   cpath(int w_, float m_, double c_){ w=w_; m=m_; c=c_;}
   DEVICE HOST
   cpath(cpath const & p){ w=p.w; m=p.m; c=p.c; }
-  cpath(){};
+  cpath(){ c=0.0; m=0.0; w=0;};
 };
 
 

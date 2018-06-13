@@ -62,11 +62,11 @@ void recursive_matmul(int        n,
     Tensor<> cB = B.slice(off_kj, end_kj, &cdw);
     Matrix<> cC(m/ni, n/nj, NS, cdw);
 
+
     recursive_matmul(n/nj, m/ni, k/nk, cA, cB, cC);
 
     int off_00[2] = {0, 0};
     int end_11[2] = {m/ni, n/nj};
-    
     C.slice(off_ij, end_ij, 1.0, cC, off_00, end_11, 1.0);
     MPI_Comm_free(&ccomm);
   }
@@ -91,15 +91,15 @@ int test_recursive_matmul(int     n,
   MPI_Comm_size(pcomm, &num_pes);
   
   srand48(13*rank);
-  A.read_local(&np, &indices, &pairs);
+  A.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   A.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
-  B.read_local(&np, &indices, &pairs);
+  B.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; 
   B.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
 
   C_ans["ij"] += 1.0*A["ik"]*B["kj"];
