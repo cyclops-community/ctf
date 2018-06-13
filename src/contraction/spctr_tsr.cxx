@@ -49,7 +49,7 @@ namespace CTF_int {
     this->inner_params = *inner_params_;
     if (krnl_type > 0){
       if (c->A->wrld->cdt.rank == 0){
-        DPRINTF(2,"Folded tensor n=%d m=%d k=%d\n", inner_params_->n,
+        DPRINTF(2,"Folded tensor n=%ld m=%ld k=%ld\n", inner_params_->n,
           inner_params_->m, inner_params_->k);
       }
 
