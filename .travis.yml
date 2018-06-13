@@ -35,7 +35,7 @@ before_install:
   - conda create -y -n mypy python=$TRAVIS_PYTHON_VERSION
   - source activate mypy
   - conda install -y cython
-  - conda install -y numpy  
+  - conda install -y numpy nomkl blas=*=openblas
 install:
   - $CTF_CXX --version
   - FC=gfortran-5 ./configure CXX="mpicxx -cxx=$CTF_CXX" --build-hptt --build-scalapack
