@@ -409,8 +409,22 @@ namespace CTF_int {
       if ((A->order+B->order+C->order)%2 == 1 ||
           (A->order+B->order+C->order)/2 < nfold ){
         return 0;
+      } else {
+        // do not allow weigh indices for sparse contractions
+        int num_tot;
+        int * idx_arr;
+
+        inv_idx(A->order, idx_A,
+                B->order, idx_B,
+                C->order, idx_C,
+                &num_tot, &idx_arr);
+        for (i=0; i<num_tot; i++){
+          if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+            return 0;
+          }
+        }
+        CTF_int::cdealloc(idx_arr);
       }
-      //FIXME:!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     }
     CTF_int::cdealloc(fold_idx);
     /* FIXME: 1 folded index is good enough for now, in the future model */

@@ -644,17 +644,17 @@ namespace CTF_int {
 
   void tensor::print_map(FILE * stream, bool allcall) const {
     if (!allcall || wrld->rank == 0){
-/*      if (is_sparse)
+      if (is_sparse)
         printf("printing mapping of sparse tensor %s\n",name);
       else
-        printf("printing mapping of dense tensor %s\n",name);*/
-/*      if (topo != NULL){
+        printf("printing mapping of dense tensor %s\n",name);
+      if (topo != NULL){
         printf("CTF: %s mapped to order %d topology with dims:",name,topo->order);
         for (int dim=0; dim<topo->order; dim++){
           printf(" %d ",topo->lens[dim]);
         }
       }
-      printf("\n");*/
+      printf("\n");
       char tname[200];
       tname[0] = '\0';
       sprintf(tname, "%s[", name);
@@ -676,13 +676,13 @@ namespace CTF_int {
 //        sprintf(tname+strlen(tname),"c%d",edge_map[dim].has_child);
       }
       sprintf(tname+strlen(tname), "]");
-      printf("CTF: Tensor mapping is %s\n",tname);
-/*      printf("\nCTF: sym  len  tphs  pphs  vphs\n");
+      /*printf("CTF: Tensor mapping is %s\n",tname);
+      printf("\nCTF: sym  len  tphs  pphs  vphs\n");
       for (int dim=0; dim<order; dim++){
         int tp = edge_map[dim].calc_phase();
         int pp = edge_map[dim].calc_phys_phase();
         int vp = tp/pp;
-        printf("CTF: %2s %5d %5d %5d %5d\n", SY_strings[sym[dim]], lens[dim], tp, pp, vp);
+        printf("CTF: %5d %5d %5d %5d\n", lens[dim], tp, pp, vp);
       }*/
     }
   }
@@ -1818,7 +1818,9 @@ namespace CTF_int {
 
     if (wrld->rank == 0)
       printf("Printing tensor %s\n",name);
-    //print_map(fp);
+#ifdef DEBUG
+    print_map(fp);
+#endif
 
     /*for (int i=0; i<this->size; i++){
       printf("this->data[%d] = ",i);
