@@ -284,7 +284,7 @@ void train_all(double time, bool write_coeff, bool dump_data, std::string coeff_
     MPI_Comm_size(MPI_COMM_WORLD, &np);
     CTF_int::dump_all_models(data_dir);
   }
-
+  MPI_Comm_free(&cm);
 
 
   //  std::set<int> ps;

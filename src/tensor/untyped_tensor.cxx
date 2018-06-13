@@ -1450,7 +1450,7 @@ namespace CTF_int {
               pad_key(order, nnz_blk[v], this->pad_edge_len, depadding, PairIterator(sr,new_pairs[v]), sr);
               data_ptr += old_nnz*sr->pair_size();
               new_nnz_tot += nnz_blk[v];
-            }
+            } else new_pairs[v] = NULL;
           }
           cdealloc(depadding);
           cdealloc(prepadding);
@@ -1458,7 +1458,7 @@ namespace CTF_int {
           this->data = sr->pair_alloc(new_nnz_tot);
           char * new_data_ptr = this->data;
           for (int v=0; v<nvirt; v++){
-            if (nnz_blk[v] > 0){
+            if (new_pairs[v] != NULL){
               sr->copy_pairs(new_data_ptr, new_pairs[v], nnz_blk[v]);
               sr->pair_dealloc(new_pairs[v]);
             }

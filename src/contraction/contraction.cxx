@@ -408,6 +408,7 @@ namespace CTF_int {
       //when A is sparse we must fold all indices and reduce block contraction entirely to coomm
       if ((A->order+B->order+C->order)%2 == 1 ||
           (A->order+B->order+C->order)/2 < nfold ){
+        CTF_int::cdealloc(fold_idx);
         return 0;
       } else {
         // do not allow weigh indices for sparse contractions
@@ -420,6 +421,8 @@ namespace CTF_int {
                 &num_tot, &idx_arr);
         for (i=0; i<num_tot; i++){
           if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+            CTF_int::cdealloc(idx_arr);
+            CTF_int::cdealloc(fold_idx);
             return 0;
           }
         }
