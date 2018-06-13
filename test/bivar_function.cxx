@@ -58,9 +58,9 @@ int bivar_function(int     n,
     }
   } 
 
-  free(all_start_data_A);
-  free(all_end_data_A);
-  free(all_start_data_B);
+  delete [] all_start_data_A;
+  delete [] all_end_data_A;
+  delete [] all_start_data_B;
   
   return pass;
 } 

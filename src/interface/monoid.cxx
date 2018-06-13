@@ -1,6 +1,7 @@
 #include "../sparse_formats/csr.h"
 #include "set.h"
 #include "../shared/blas_symbs.h"
+#include "../shared/mkl_symbs.h"
 #include "../shared/util.h"
 using namespace CTF_int;
 namespace CTF {
@@ -26,7 +27,7 @@ namespace CTF {
 
   template <>
   char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB) const {
-#if USE_SP_MKL
+#if USE_MKL
     TAU_FSTART(mkl_csr_add)
     if (fadd != default_add<double>){
       return CTF_int::algstrct::csr_add(cA, cB);

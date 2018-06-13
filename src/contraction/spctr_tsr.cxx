@@ -148,7 +148,7 @@ namespace CTF_int {
       printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
     }
     printf("kernel type is %d\n", krnl_type);
-    if (krnl_type>0) printf("inner n = %d m= %d k = %d sz_C=%ld\n",
+    if (krnl_type>0) printf("inner n = %ld m= %ld k = %ld sz_C=%ld\n",
                           inner_params.n, inner_params.m, inner_params.k, inner_params.sz_C);
   }
 
@@ -326,7 +326,9 @@ namespace CTF_int {
     ASSERT(nblk_B == 1);
     ASSERT(nblk_C == 1);
 
+#ifdef TUNE
     double st_time = MPI_Wtime();
+#endif
 
     if (krnl_type > 0){
       if (!sr_C->isequal(beta,sr_C->mulid())){
@@ -340,10 +342,8 @@ namespace CTF_int {
 
     new_C = C;
 
-    // Check if this function should be executed
 
-    bool sr = true;
-
+#ifdef TUNE
     // Generate tps
     double nnz_frac_A = 1.0, nnz_frac_B = 1.0, nnz_frac_C = 1.0;
     if (is_sparse_A){
@@ -364,47 +364,49 @@ namespace CTF_int {
       if (is_sparse_C) nnz_frac_C = std::min(1.0,nnz_frac_A*nnz_frac_B*inner_params.k / (inner_params.k*inner_params.n));
 
     }
-    double tps_[] = {0.0, 1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
 
+    double tps_[] = {0.0, 1.0, (double)est_membw(nnz_frac_A, nnz_frac_B, nnz_frac_C), est_fp(nnz_frac_B, nnz_frac_B, nnz_frac_C)};
+   // Check if we need to execute this function for the sake of training
+   bool bsr = true;
    switch (krnl_type){
       case 0:
         if (is_custom){
-          sr = seq_tsr_spctr_cst_k0.should_observe(tps_);
+          bsr = seq_tsr_spctr_cst_k0.should_observe(tps_);
         } else {
-          sr = seq_tsr_spctr_k0.should_observe(tps_);
+          bsr = seq_tsr_spctr_k0.should_observe(tps_);
         }
         break;
       case 1:
         if (is_custom){
           if (inner_params.offload)
-            sr = seq_tsr_spctr_cst_off_k1.should_observe(tps_);
+            bsr = seq_tsr_spctr_cst_off_k1.should_observe(tps_);
           else
-            sr = seq_tsr_spctr_cst_k1.should_observe(tps_);
+            bsr = seq_tsr_spctr_cst_k1.should_observe(tps_);
         } else {
           if (inner_params.offload)
-            sr = seq_tsr_spctr_off_k1.should_observe(tps_);
+            bsr = seq_tsr_spctr_off_k1.should_observe(tps_);
           else
-            sr = seq_tsr_spctr_k1.should_observe(tps_);
+            bsr = seq_tsr_spctr_k1.should_observe(tps_);
         }
         break;
       case 2:
         if (is_custom){
           if (inner_params.offload)
-            sr = seq_tsr_spctr_cst_off_k2.should_observe(tps_);
+            bsr = seq_tsr_spctr_cst_off_k2.should_observe(tps_);
           else
-            sr = seq_tsr_spctr_cst_k2.should_observe(tps_);
+            bsr = seq_tsr_spctr_cst_k2.should_observe(tps_);
         } else {
           if (inner_params.offload)
-            sr = seq_tsr_spctr_off_k2.should_observe(tps_);
+            bsr = seq_tsr_spctr_off_k2.should_observe(tps_);
           else
-            sr = seq_tsr_spctr_k2.should_observe(tps_);
+            bsr = seq_tsr_spctr_k2.should_observe(tps_);
         }
         break;
       case 3:
         if (is_custom){
-          sr = seq_tsr_spctr_cst_k3.should_observe(tps_);
+          bsr = seq_tsr_spctr_cst_k3.should_observe(tps_);
         } else {
-          sr = seq_tsr_spctr_k3.should_observe(tps_);
+          bsr = seq_tsr_spctr_k3.should_observe(tps_);
         }
         break;
       case 4:
@@ -412,17 +414,17 @@ namespace CTF_int {
            // to-be-complete
            // should always observe
           //seq_tsr_spctr_cst_k4.observe(tps);
-          sr = true;
+          bsr = true;
         } else {
-          sr = seq_tsr_spctr_k4.should_observe(tps_);
+          bsr = seq_tsr_spctr_k4.should_observe(tps_);
         }
         break;
     }
 
-    if(!sr){
+    if(!bsr){
       return;
-   }
-
+    }
+#endif
     switch (krnl_type){
       case 0:
       {
@@ -499,6 +501,7 @@ namespace CTF_int {
       }
       break;
     }
+#ifdef TUNE
     nnz_frac_A = 1.0;
     nnz_frac_B = 1.0;
     nnz_frac_C = 1.0;
@@ -575,6 +578,7 @@ namespace CTF_int {
         break;
     }
 
+#endif
   }
 
 

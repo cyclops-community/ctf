@@ -248,7 +248,7 @@ namespace CTF_int {
       this->is_inner  = 0;
     } else if (is_inner == 1) {
       if (c->A->wrld->cdt.rank == 0){
-        DPRINTF(2,"Folded tensor n=%d m=%d k=%d\n", inner_params->n,
+        DPRINTF(3,"Folded tensor l=%d n=%d m=%d k=%d\n", inner_params->l, inner_params->n,
           inner_params->m, inner_params->k);
       }
 
@@ -347,8 +347,8 @@ namespace CTF_int {
       printf("edge_len_C[%d]=%d\n",i,edge_len_C[i]);
     }
     printf("is inner = %d\n", is_inner);
-    if (is_inner) printf("inner n = %d m= %d k = %d\n",
-                          inner_params.n, inner_params.m, inner_params.k);
+    if (is_inner) printf("inner n = %ld m= %ld k = %ld l = %ld\n",
+                          inner_params.n, inner_params.m, inner_params.k, inner_params.l);
   }
 
   seq_tsr_ctr::seq_tsr_ctr(ctr * other) : ctr(other) {
@@ -464,12 +464,13 @@ namespace CTF_int {
   void seq_tsr_ctr::run(char * A, char * B, char * C){
     ASSERT(idx_lyr == 0 && num_lyr == 1);
 
+#ifdef TUNE
     // Check if we need to execute this function for the sake of training
     bool sr;
     if (is_custom && !is_inner){
       double tps[] = {0, 1.0, (double)est_membw(), est_fp()};
       sr = seq_tsr_ctr_mdl_cst.should_observe(tps);
-   } else if (is_inner){
+    } else if (is_inner){
       ASSERT(is_custom || func == NULL);
       double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
       if (is_custom){
@@ -484,13 +485,13 @@ namespace CTF_int {
           sr = seq_tsr_ctr_mdl_inr.should_observe(tps);
       }
 
-   } else {
-      double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
-      sr = seq_tsr_ctr_mdl_ref.should_observe(tps);
-   }
+    } else {
+       double tps[] = {0.0, 1.0, (double)est_membw(), est_fp()};
+       sr = seq_tsr_ctr_mdl_ref.should_observe(tps);
+    }
 
-   if (!sr) return;
-
+    if (!sr) return;
+#endif
     if (is_custom && !is_inner){
       double st_time = MPI_Wtime();
       ASSERT(is_inner == 0);

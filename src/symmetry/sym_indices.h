@@ -3,7 +3,7 @@
 #ifndef __INT_SYM_INDICES_H__
 #define __INT_SYM_INDICES_H__
 
-#include "assert.h"
+#include <assert.h>
 
 template<typename RAIterator>
 int relativeSign(RAIterator s1b, RAIterator s1e, RAIterator s2b, RAIterator s2e)

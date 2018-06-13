@@ -44,13 +44,13 @@ int main(int argc, char ** argv){
 
   {
     Matrix<> h(d*d, d*d, NS, dw);
-    h.read_local(&npair, &indices, &pairs);
+    h.get_local_data(&npair, &indices, &pairs);
     for (int i=0; i<npair; i++) {
       srand48(indices[i]*23);
       pairs[i] = drand48();
     }
     h.write(npair, indices, pairs);
-    free(pairs);
+    delete [] pairs;
     free(indices);
 
     {
@@ -64,13 +64,13 @@ int main(int argc, char ** argv){
     
       double t_io_start = MPI_Wtime();
 
-      v_in.read_local(&npair, &indices, &pairs);
+      v_in.get_local_data(&npair, &indices, &pairs);
       for (int i=0; i<npair; i++) {
         srand48(indices[i]);
         pairs[i] = drand48();
       }
       v_in.write(npair, indices, pairs);
-      free(pairs);
+      delete [] pairs;
       free(indices);
       Tensor<> v_out(L/2+1, size, shape, dw);
       
@@ -99,8 +99,8 @@ int main(int argc, char ** argv){
 
       double t_io_start2 = MPI_Wtime();
       
-      v_in.read_local(&npair, &indices, &pairs);
-      v_out.read_local(&onpair, &oindices, &opairs);
+      v_in.get_local_data(&npair, &indices, &pairs);
+      v_out.get_local_data(&onpair, &oindices, &opairs);
 
       double t_io_end2 = MPI_Wtime();
       if (rank == 0)
@@ -118,7 +118,7 @@ int main(int argc, char ** argv){
       
       double t_io_start = MPI_Wtime();
       v_in.write(npair, indices, pairs);
-      free(pairs);
+      delete [] pairs;
       free(indices);
       Tensor<> v_out(L/2+1, size, shape, dw);
       v_out.write(onpair, oindices, opairs);
@@ -164,21 +164,21 @@ int main(int argc, char ** argv){
     Tensor<> v_in(L, size, shape, dw);
     Tensor<> h(4, size, shape, dw);
     double t_io_start = MPI_Wtime();
-    v_in.read_local(&npair, &indices, &pairs);
+    v_in.get_local_data(&npair, &indices, &pairs);
     for (int i=0; i<npair; i++) {
       srand48(indices[i]);
       pairs[i] = drand48();
     }
     v_in.write(npair, indices, pairs);
-    free(pairs);
+    delete [] pairs;
     free(indices);
-    h.read_local(&npair, &indices, &pairs);
+    h.get_local_data(&npair, &indices, &pairs);
     for (int i=0; i<npair; i++) {
       srand48(indices[i]*23);
       pairs[i] = drand48();
     }
     h.write(npair, indices, pairs);
-    free(pairs);
+    delete [] pairs;
     free(indices);
     Tensor<> v_out(L, size, shape, dw);
 

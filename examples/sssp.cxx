@@ -15,12 +15,17 @@ template <typename t>
 bool Bellman_Ford(Matrix<t> A, Vector<t> P, int n){
   Vector<t> Q(P);
   int r = 0;
+  int new_tot_wht = P["ij"];
+  int tot_wht;
   do { 
     if (r == n+1) return false;      // exit if we did not converge in n iterations
     else r++;
     Q["i"]  = P["i"];              // save old distances
     P["i"] += A["ij"]*P["j"];      // update distances 
-  } while (P.norm1() < Q.norm1()); // continue so long as some distance got shorter
+    tot_wht = new_tot_wht;
+    new_tot_wht = P["ij"];
+    assert(new_tot_wht <= tot_wht);
+  } while (new_tot_wht < tot_wht); // continue so long as some distance got shorter
   return true;
 }
 
@@ -53,7 +58,6 @@ int sssp(int     n,
 
   //make sure we converged
   int pass = Bellman_Ford(A, v, n);
-
   if (n>=3){
     v["i"] = n*n;
     if (dw.rank == 0){

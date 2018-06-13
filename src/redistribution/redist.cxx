@@ -467,16 +467,8 @@ namespace CTF_int {
     int order = old_dist.order;
 
 
-    double * tps = (double*)malloc(3*sizeof(double));
-    tps[0] = 0;
-    tps[1] = (double)num_old_virt+num_new_virt;
-    tps[2] = (double)std::max(new_dist.size, new_dist.size);
-
-    if (!(blres_mdl.should_observe(tps))) return;
-
-
     if (order == 0){
-      alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
+      tsr_cyclic_data = sr->alloc(new_dist.size);
 
       if (glb_comm.rank == 0){
         sr->copy(tsr_cyclic_data,  tsr_data);
@@ -492,7 +484,7 @@ namespace CTF_int {
     double st_time = MPI_Wtime();
 #endif
 
-    mst_alloc_ptr(sr->el_size*new_dist.size, (void**)&tsr_cyclic_data);
+    tsr_cyclic_data = sr->alloc(new_dist.size);
     alloc_ptr(sizeof(int)*order, (void**)&idx);
     alloc_ptr(sizeof(int)*order, (void**)&old_loc_lda);
     alloc_ptr(sizeof(int)*order, (void**)&new_loc_lda);
@@ -520,6 +512,20 @@ namespace CTF_int {
       }
     }
 
+#ifdef TUNE
+    double * tps = (double*)malloc(3*sizeof(double));
+    tps[0] = 0;
+    tps[1] = (double)num_old_virt+num_new_virt;
+    tps[2] = (double)std::max(new_dist.size, new_dist.size);
+
+    if (!(blres_mdl.should_observe(tps))){
+      cdealloc(idx);
+      cdealloc(old_loc_lda);
+      cdealloc(new_loc_lda);
+      cdealloc(phase_lda);
+      return;
+    }
+#endif
     alloc_ptr(sizeof(MPI_Request)*(num_old_virt+num_new_virt), (void**)&reqs);
 
     if (idx_lyr_new == 0){

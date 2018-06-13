@@ -2,6 +2,10 @@
 
 #include "common.h"
 #include "../shared/blas_symbs.h"
+#include "../shared/lapack_symbs.h"
+#include <stdlib.h>
+
+
 namespace CTF_int{
   struct int2
   {
@@ -21,7 +25,10 @@ namespace CTF_int{
 
 namespace CTF {
   template<typename dtype>
-  Matrix<dtype>::Matrix() : Tensor<dtype>() { }
+  Matrix<dtype>::Matrix() : Tensor<dtype>() { 
+    nrow = -1;
+    ncol = -1;
+  }
 
   template<typename dtype>
   Matrix<dtype>::Matrix(Matrix<dtype> const & A)
@@ -176,8 +183,8 @@ namespace CTF {
     if (((ncol/nb)%pc) == (rank/pr+pc-csrc)%pc){
       nmyc+=ncol%nb;
     }
-//    printf("nrow = %d ncol = %d nmyr = %ld, nmyc = %ld mb = %d nb = %d pr = %d pc = %d\n",nrow,ncol,nmyr,nmyc,mb,nb,pr,pc);
-    pairs = (Pair<dtype>*)CTF_int::alloc(sizeof(Pair<dtype>)*nmyr*nmyc);
+    //printf("nrow = %d ncol = %d nmyr = %ld, nmyc = %ld mb = %d nb = %d pr = %d pc = %d\n",nrow,ncol,nmyr,nmyc,mb,nb,pr,pc);
+    pairs = new Pair<dtype>[nmyr*nmyc];
     int cblk = (rank/pr+pc-csrc)%pc;
     for (int64_t i=0; i<nmyc;  i++){
       int rblk = (rank+pr-rsrc)%pr;
@@ -204,7 +211,7 @@ namespace CTF {
           memcpy(this->data, (char*)data_, sizeof(dtype)*this->size);
         } else {
           for (int i=0; i<ncol/pc; i++){
-            memcpy(this->data+i*nrow*sizeof(dtype)/pr,(char*)(data_+i*nrow/pr), nrow*sizeof(dtype)/pr);
+            memcpy(this->data+i*lda*sizeof(dtype),(char*)(data_+i*lda), nrow*sizeof(dtype)/pr);
           }
         }
       } else {
@@ -248,7 +255,7 @@ namespace CTF {
           memcpy((char*)data_, this->data, sizeof(dtype)*this->size);
         } else {
           for (int i=0; i<ncol/pc; i++){
-            memcpy((char*)(data_+i*nrow/pr), this->data+i*nrow*sizeof(dtype)/pr, nrow*sizeof(dtype)/pr);
+            memcpy((char*)(data_+i*lda), this->data+i*lda*sizeof(dtype), nrow*sizeof(dtype)/pr);
           }
         }
       } else {
@@ -275,8 +282,33 @@ namespace CTF {
           }
         }
       }
-      CTF_int::cdealloc(pairs);
+      delete [] pairs;
     }
+  }
+
+  template<typename dtype>
+  void Matrix<dtype>::get_desc(int & ictxt, int *& desc){
+    int pr, pc;
+    pr = this->edge_map[0].calc_phase();       
+    pc = this->edge_map[1].calc_phase();       
+
+    char C = 'C';
+    int ctxt;
+    IASSERT(this->wrld->comm == MPI_COMM_WORLD);
+    CTF_SCALAPACK::Cblacs_get(-1, 0, &ctxt);
+    CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &C, pr, pc);
+    ictxt = ctxt;
+
+    desc = (int*)malloc(sizeof(int)*9);
+    desc[0] = 1;
+    desc[1] = ictxt;
+    desc[2] = nrow;
+    desc[3] = ncol;
+    desc[4] = 1;
+    desc[5] = 1;
+    desc[6] = 0;
+    desc[7] = 0;
+    desc[8] = this->pad_edge_len[0]/pr;
   }
 
   template<typename dtype>
@@ -284,7 +316,7 @@ namespace CTF {
                                dtype *     data_){
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
-    CTF_BLAS::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
     IASSERT(ipr == this->wrld->rank%pr);
     IASSERT(ipc == this->wrld->rank/pr);
 
@@ -330,7 +362,7 @@ namespace CTF {
     symm = NS;
     int ictxt = desc[1];
     int pr, pc, ipr, ipc;
-    CTF_BLAS::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
+    CTF_SCALAPACK::BLACS_GRIDINFO(&ictxt, &pr, &pc, &ipr, &ipc);
     IASSERT(ipr == wrld_.rank%pr);
     IASSERT(ipc == wrld_.rank/pr);
     IASSERT(pr*pc == wrld_.np);
@@ -338,5 +370,160 @@ namespace CTF {
     write_mat(desc[4],desc[5],pr,pc,desc[6],desc[7],desc[8],data_);
   }
 
+  template <typename dtype>
+  int get_int_fromreal(dtype r){
+    assert(0);
+    return -1;
+  }
+
+  template <>
+  inline int get_int_fromreal<float>(float r){
+    return (int)r;
+  }
+  template <>
+  inline int get_int_fromreal<double>(double r){
+    return (int)r;
+  }
+  template <>
+  inline int get_int_fromreal<std::complex<float>>(std::complex<float> r){
+    return (int)r.real();
+  }
+  template <>
+  inline int get_int_fromreal<std::complex<double>>(std::complex<double> r){
+    return (int)r.real();
+  }
+
+
+
+
+  template<typename dtype>
+  void Matrix<dtype>::qr(Matrix<dtype> & Q, Matrix<dtype> & R){
+
+    int info;
+
+    int m = this->nrow;
+    int n = this->ncol;
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    this->get_desc(ictxt, desca);
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+    this->read_mat(desca, A);
+
+    dtype * tau = (dtype*)malloc(n*sizeof(dtype));
+    dtype dlwork;
+    CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
+    int lwork = get_int_fromreal<dtype>(dlwork);
+    dtype * work = (dtype*)malloc(lwork*sizeof(dtype));
+    CTF_SCALAPACK::pgeqrf<dtype>(m,n,A,1,1,desca,tau,work,lwork,&info);
+ 
+
+    dtype * dQ = (dtype*)malloc(this->size*sizeof(dtype));
+    memcpy(dQ,A,this->size*sizeof(dtype));
+
+    Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
+    if (m==n)
+      R = Matrix<dtype>(Q);
+    else {
+      R = Matrix<dtype>(desca,dQ,*this->wrld,*this->sr);
+      R = R.slice(0,m*(n-1)+n-1);
+    }
+
+
+    free(work);
+    CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,(dtype*)&dlwork,-1,&info);
+    lwork = get_int_fromreal<dtype>(dlwork);
+    work = (dtype*)malloc(lwork*sizeof(dtype));
+    CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,work,lwork,&info);
+    Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
+    free(work);
+    //make upper-tri
+    int syns[] = {SY, NS};
+    Tensor<dtype> tR(R,syns);
+    int nsns[] = {NS, NS};
+    tR = Tensor<dtype>(tR,nsns);
+    R = CTF::Matrix<dtype>(tR);
+    //R["ij"] = R["ji"];
+    free(A);
+    free(dQ);
+  }
+
+  template<typename dtype>
+  void Matrix<dtype>::svd(Matrix<dtype> & U, Vector<dtype> & S, Matrix<dtype> & VT,  int rank){
+
+    int info;
+
+    int m = this->nrow;
+    int n = this->ncol;
+    int k = std::min(m,n);
+
+
+    int * desca;// = (int*)malloc(9*sizeof(int));
+    int * descu = (int*)malloc(9*sizeof(int));
+    int * descvt = (int*)malloc(9*sizeof(int));
+
+    int ictxt;
+    this->get_desc(ictxt, desca);
+
+    int pr, pc;
+    pr = this->edge_map[0].calc_phase();       
+    pc = this->edge_map[1].calc_phase();       
+    //CTF_SCALAPACK::cdescinit(desca, m, n, 1, 1, 0, 0, ictxt, m/(*(this->wrld)).np, &info);
+    int64_t mpr = m/pr + (m % pr != 0);
+    int64_t kpr = k/pr + (k % pr != 0);
+    int64_t kpc = k/pc + (k % pc != 0);
+    int64_t npc = n/pc + (n % pc != 0);
+    CTF_SCALAPACK::cdescinit(descu, m, k, 1, 1, 0, 0, ictxt, mpr, &info);
+    CTF_SCALAPACK::cdescinit(descvt, k, n, 1, 1, 0, 0, ictxt, kpr, &info);
+    dtype * A = (dtype*)malloc(this->size*sizeof(dtype));
+
+
+    dtype * u = (dtype*)new dtype[mpr*kpc];
+    dtype * s = (dtype*)new dtype[k];
+    dtype * vt = (dtype*)new dtype[kpr*npc];
+    this->read_mat(desca, A);
+
+    int lwork;
+    dtype dlwork;
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, NULL, 1, 1, desca, NULL, NULL, 1, 1, descu, vt, 1, 1, descvt, &dlwork, -1, &info);  
+
+    lwork = get_int_fromreal<dtype>(dlwork);
+    dtype * work = (dtype*)malloc(sizeof(dtype)*lwork);
+
+    CTF_SCALAPACK::pgesvd<dtype>('V', 'V', m, n, A, 1, 1, desca, s, u, 1, 1, descu, vt, 1, 1, descvt, work, lwork, &info);	
+
+ 
+    U = Matrix<dtype>(descu, u, (*(this->wrld)));
+    VT = Matrix<dtype>(descvt, vt, (*(this->wrld)));
+
+    S = Vector<dtype>(k, (*(this->wrld)));
+    int64_t sc;
+    dtype * s_data = S.get_raw_data(&sc);
+
+    int phase = S.edge_map[0].calc_phase();
+    if (this->wrld->rank < phase){
+      for (int i = S.edge_map[0].calc_phys_rank(S.topo); i < k; i += phase) {
+        s_data[i/phase] = s[i];
+      } 
+    }
+    if (rank > 0 && rank < k) {
+      S = S.slice(0, rank-1);
+      U = U.slice(0, rank*(m)-1);
+      VT = VT.slice(0, k*n-(k-rank+1));
+    }
+
+    free(A);
+    delete [] u;
+    delete [] s;
+    delete [] vt;
+    free(desca);
+    free(descu);
+    free(descvt);
+    free(work);
+
+  }
+  
 
 }

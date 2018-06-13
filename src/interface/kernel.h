@@ -129,6 +129,10 @@ namespace CTF{
       return moo;
     }
 
+    Monoid_Kernel(){
+      this->el_size = sizeof(dtype);
+    }
+
     void accum(char const * a, 
                char * b) const { 
       g(((dtype const *)a)[0], ((dtype *)b)[0]); 
@@ -144,6 +148,16 @@ namespace CTF{
         g(X[incX*i],Y[incY*i]);
       }
     }
+    /** \brief initialize n objects to zero
+      * \param[in] n number of items
+      * \param[in] arr array containing n items, to be set to zero
+      */
+    virtual void init_shell(int64_t n, char * arr) const {
+      dtype dummy = dtype();
+      for (int i=0; i<n; i++){
+        memcpy(arr+i*el_size,(char*)&dummy,el_size);
+      }
+    }
   };
   
 
@@ -156,6 +170,7 @@ namespace CTF{
 #ifdef __CUDACC__
       this->has_off_gemm = true;
 #endif
+      this->el_size = sizeof(dtype_C);
     }
 
     Bivar_Kernel(bool is_comm) : Bivar_Function<dtype_A, dtype_B, dtype_C>(f, is_comm) {
@@ -322,7 +337,7 @@ namespace CTF{
           IC[i+1] += has_col[j];
         }
       }
-      CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype_C));
+      CTF_int::CSR_Matrix C(IC[m]-1, m, n, this);
       dtype_C * vC = (dtype_C*)C.vals();
       int * JC = C.JA();
       memcpy(C.IA(), IC, sizeof(int)*(m+1));
@@ -415,7 +430,7 @@ namespace CTF{
           ic_prev += IC[i];
           IC[i] = ic_prev;
         }
-        CTF_int::CSR_Matrix C(IC[m]-1, m, n, sizeof(dtype_C));
+        CTF_int::CSR_Matrix C(IC[m]-1, m, n, this);
         dtype_C * vC = (dtype_C*)C.vals();
         int * JC = C.JA();
         memcpy(C.IA(), IC, sizeof(int)*(m+1));
@@ -427,7 +442,7 @@ namespace CTF{
 #endif      
           int ins = 0;
           int *dcol = (int *) CTF_int::alloc(n*sizeof(int));
-          dtype_C *acc_data = (dtype_C *)CTF_int::alloc(n*sizeof (dtype_C));
+          dtype_C *acc_data = new dtype_C[n];
 #ifdef _OPENMP
           #pragma omp for
 #endif            
@@ -458,7 +473,7 @@ namespace CTF{
             }
           }
           CTF_int::cdealloc(dcol);
-          CTF_int::cdealloc(acc_data);
+          delete [] acc_data;
 #ifdef _OPENMP
         } //PRAGMA END
 #endif

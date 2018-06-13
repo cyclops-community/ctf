@@ -32,10 +32,10 @@ int diag_ctr(int     n,
 
   Matrix<> mA(n,m,NS,dw);
   Matrix<> mB(n,m,NS,dw);
-  A.read_local(&np, &indices, &pairs);
+  A.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   A.write(np, indices, pairs);
-  free(pairs);
+  delete [] pairs;
   free(indices);
   pass = 1;
   double tr = 0.0;

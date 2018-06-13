@@ -111,6 +111,7 @@ namespace CTF {
        */
       void operator+=(CTF_int::Term const & B);
       void operator<<(CTF_int::Term const & B);
+      void operator<<(double scl);
       
       /**
        * \brief A += B, compute any operations on operand B and add
@@ -318,4 +319,8 @@ namespace CTF {
    * @}
    */
 }
+
+
+//include here because requires above defs
+#include "../tensor/untyped_tensor_tmpl.h"
 #endif

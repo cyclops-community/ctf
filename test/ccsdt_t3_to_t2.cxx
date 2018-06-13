@@ -54,17 +54,17 @@ int ccsdt_t3_to_t2(int     n,
 
   //* Writes noise to local data based on global index
   srand48(2013);
-  AS_A.read_local(&np, &indices, &pairs);
+  AS_A.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(indices[i]);
   AS_A[std::vector<int64_t>(indices,indices+np)] = pairs;
-  free(pairs);
+  delete [] pairs;
   free(indices);
-  AS_B.read_local(&np, &indices, &pairs);
+  AS_B.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.33+indices[i]);
   AS_B[std::vector<int64_t>(indices,indices+np)] = pairs;
-  free(pairs);
+  delete [] pairs;
   free(indices);
-  AS_C.read_local(&np, &indices, &pairs);
+  AS_C.get_local_data(&np, &indices, &pairs);
   for (i=0; i<np; i++ ) pairs[i] = drand48()-.5; //(1.E-3)*sin(.66+indices[i]);
   AS_C[std::vector<int64_t>(indices,indices+np)]=pairs;
  
@@ -119,11 +119,11 @@ int ccsdt_t3_to_t2(int     n,
 #endif
   double cnrm_AS = AS_C.norm2();
   double cnrm_NS = NS_C.norm2();
-  if (fabs(nrm_AS-cnrm_AS) >= 1.E-10) {
+  if (fabs(nrm_AS-cnrm_AS) >= 1.E-6) {
     printf("ERROR: AS norm not working!\n");
     pass = 0;
   }
-  if (fabs(nrm_NS-cnrm_NS) >= 1.E-10) {
+  if (fabs(nrm_NS-cnrm_NS) >= 1.E-6) {
     printf("ERROR: NS norm not working!\n");
     pass = 0;
   }
@@ -143,7 +143,7 @@ int ccsdt_t3_to_t2(int     n,
     printf("norm of NS_C after contraction should be zero, is = %lf\n", nrm);
   }
 #endif
-  if (fabs(nrm) > 1.E-10) pass = 0;
+  if (fabs(nrm) > 1.E-6) pass = 0;
 
   if (rank == 0){
     MPI_Reduce(MPI_IN_PLACE, &pass, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
@@ -154,7 +154,7 @@ int ccsdt_t3_to_t2(int     n,
   } else 
     MPI_Reduce(&pass, MPI_IN_PLACE, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
 
-  free(pairs);
+  delete [] pairs;
   free(indices);
   return pass;
 } 

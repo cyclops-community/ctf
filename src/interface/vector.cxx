@@ -28,7 +28,7 @@ namespace CTF {
   template<typename dtype>
   Vector<dtype>::Vector(Tensor<dtype> const & A)
     : Tensor<dtype>(A) {
-    ASSERT(A.order == 1);
+    IASSERT(A.order == 1);
     len = A.lens[0];
   }
 
@@ -70,12 +70,12 @@ namespace CTF {
     len = len_;
   }
 
-  template<typename dtype>
-  Vector<dtype> & Vector<dtype>::operator=(const Vector<dtype> & A){
-    CTF_int::tensor::free_self();
-    CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile, A.is_sparse);
-    return *this;
-  }
+  //template<typename dtype>
+  //Vector<dtype> & Vector<dtype>::operator=(const Vector<dtype> & A){
+  //  CTF_int::tensor::free_self();
+  //  CTF_int::tensor::init(A.sr, A.order, A.lens, A.sym, A.wrld, 1, A.name, A.profile, A.is_sparse);
+  //  return *this;
+  //}
 
 
 

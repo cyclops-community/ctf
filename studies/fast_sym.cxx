@@ -40,20 +40,20 @@ int fast_sym(int const     n,
     int64_t size;
     srand48(173*rank);
 
-    A.read_local(&size, &indices, &values);
+    A.get_local_data(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
     A.write(size, indices, values);
     free(indices);
-    free(values);
-    B.read_local(&size, &indices, &values);
+    delete [] values;
+    B.get_local_data(&size, &indices, &values);
     for (i=0; i<size; i++){
       values[i] = drand48();
     }
     B.write(size, indices, values);
     free(indices);
-    free(values);
+    delete [] values;
   }
   C_ans["ij"] = A["ik"]*B["kj"];
   A_rep["ijk"] += A["ij"];

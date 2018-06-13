@@ -137,6 +137,12 @@ namespace CTF_int {
       virtual CTF::World * where_am_i() const = 0;
 
       /**
+       * \brief cast to float (works only if tensor type is castable to float)
+       *        allows a scalar output
+       */
+      operator float() const;
+
+      /**
        * \brief cast to double (works only if tensor type is castable to double)
        *        allows a scalar output
        */
@@ -147,6 +153,13 @@ namespace CTF_int {
        *        allows a scalar output
        */     
       operator int64_t() const;
+ 
+      /**
+       * \brief cast to int64_t (works only if tensor type is castable to int64_t)
+       *        allows a scalar output
+       */     
+      operator int() const;
+
 
 
   };

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "world.h"
+#include "../tensor/algstrct.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
 #include "../shared/offload.h"
@@ -131,6 +132,7 @@ namespace CTF {
 
     return initialize(argc, argv);
   }
+
 
   int World::initialize(int                   argc,
                         const char * const *  argv){

@@ -1,7 +1,7 @@
 #ifndef __INT_SYMMETRIZATION_H__
 #define __INT_SYMMETRIZATION_H__
 
-#include "assert.h"
+#include <assert.h>
 #include "../tensor/untyped_tensor.h"
 #include "../summation/summation.h"
 #include "../contraction/contraction.h"

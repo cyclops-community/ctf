@@ -56,8 +56,8 @@ int univar_function(int     n,
     }
   } 
 
-  free(all_start_data);
-  free(all_end_data);
+  delete [] all_start_data;
+  delete [] all_end_data;
   
   return pass;
 } 

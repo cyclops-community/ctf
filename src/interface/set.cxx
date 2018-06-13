@@ -1,9 +1,22 @@
 #include "set.h"
 #include "../shared/blas_symbs.h"
+#include "../shared/mkl_symbs.h"
 #include "../shared/util.h"
 
+
 namespace CTF_int {
-#if USE_SP_MKL
+
+#ifdef USE_MPI_CPP
+  MPI_Datatype MPI_CTF_BOOL = MPI::BOOL;
+  MPI_Datatype MPI_CTF_DOUBLE_COMPLEX = MPI::DOUBLE_COMPLEX;
+  MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX = MPI::LONG_DOUBLE_COMPLEX;
+#else
+  MPI_Datatype MPI_CTF_BOOL = MPI_CXX_BOOL;
+  MPI_Datatype MPI_CTF_DOUBLE_COMPLEX = MPI_CXX_DOUBLE_COMPLEX;
+  MPI_Datatype MPI_CTF_LONG_DOUBLE_COMPLEX = MPI_CXX_LONG_DOUBLE_COMPLEX;
+#endif
+
+#if USE_MKL
   void def_coo_to_csr_fl(int64_t nz, int nrow, float * csr_vs, int * csr_ja, int * csr_ia, float * coo_vs, int * coo_rs, int * coo_cs, bool to_csr){
     int inz = nz;
     int info;
@@ -55,7 +68,7 @@ namespace CTF_int {
 #endif
 
   bool try_mkl_coo_to_csr(int64_t nz, int nrow, char * csr_vs, int * csr_ja, int * csr_ia, char const * coo_vs, int const * coo_rs, int const * coo_cs, int el_size){
-#if USE_SP_MKL
+#if USE_MKL
     switch (el_size){
       case 4:
         def_coo_to_csr_fl(nz,nrow,(float*)csr_vs,csr_ja,csr_ia,(float*)coo_vs,(int*)coo_rs,(int*)coo_cs,1);
@@ -76,7 +89,7 @@ namespace CTF_int {
 
 
   bool try_mkl_csr_to_coo(int64_t nz, int nrow, char const * csr_vs, int const * csr_ja, int const * csr_ia, char * coo_vs, int * coo_rs, int * coo_cs, int el_size){
-#if USE_SP_MKL
+#if USE_MKL
     switch (el_size){
       case 4:
         def_coo_to_csr_fl(nz,nrow,(float*)csr_vs,(int*)csr_ja,(int*)csr_ia,(float*)coo_vs,coo_rs,coo_cs,0);
@@ -93,6 +106,29 @@ namespace CTF_int {
     } 
 #endif
     return false;
+  }
+}
+
+namespace CTF {
+  template <>
+  void CTF::Set<float,true>::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
+    CTF_BLAS::SCOPY(&n, (float const*)a, &inc_a, (float*)b, &inc_b);
+  }
+  template <>
+  void CTF::Set<double,true>::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
+    CTF_BLAS::DCOPY(&n, (double const*)a, &inc_a, (double*)b, &inc_b);
+  }
+  template <>
+  void CTF::Set<std::complex<float>,false>::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
+    CTF_BLAS::DCOPY(&n, (double const*)a, &inc_a, (double*)b, &inc_b);
+  }
+  template <>
+  void CTF::Set<std::complex<double>,false>::copy(int64_t nn, char const * a, int inc_a, char * b, int inc_b) const {
+    int n = nn;
+    CTF_BLAS::ZCOPY(&n, (std::complex<double> const*)a, &inc_a, (std::complex<double>*)b, &inc_b);
   }
 
 }

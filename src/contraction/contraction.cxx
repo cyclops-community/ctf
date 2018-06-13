@@ -109,7 +109,8 @@ namespace CTF_int {
     //}
     
     int stat = home_contract();
-    assert(stat == SUCCESS); 
+    if (stat != SUCCESS)
+      printf("CTF ERROR: Failed to perform contraction\n");
   }
   
   template<typename ptype>
@@ -194,9 +195,9 @@ namespace CTF_int {
    *
    * \param[in] ordering_A the dimensional-ordering of the inner mapping of A
    * \param[in] ordering_B the dimensional-ordering of the inner mapping of B
-   * \param[out] inner_prm parameters includng n,m,k
+   * \param[out] inner_prm parameters includng l(number of matrix mutlplications),n,m,k
    */
-  void calc_fold_nmk(
+  void calc_fold_lnmk(
                      tensor const * A,
                      tensor const * B,
                      tensor const * C,
@@ -206,30 +207,40 @@ namespace CTF_int {
                      int const *    ordering_A,
                      int const *    ordering_B,
                      iparam *       inner_prm){
-    int i, num_ctr, num_tot;
+    int i, num_tot, num_ctr, num_no_ctr_A, num_no_ctr_B, num_weigh;
     int * idx_arr;
       
     inv_idx(A->order, idx_A,
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    num_ctr = 0;
+    num_ctr = 0, num_no_ctr_A = 0, num_no_ctr_B = 0, num_weigh = 0;
     for (i=0; i<num_tot; i++){
-      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
+      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+        num_weigh++;
+      } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
         num_ctr++;
-      } 
+      } else if (idx_arr[3*i] != -1){
+        num_no_ctr_A++;
+      } else if (idx_arr[3*i+1] != -1){
+        num_no_ctr_B++;
+      }
     }
+    inner_prm->l = 1;
     inner_prm->m = 1;
     inner_prm->n = 1;
     inner_prm->k = 1;
     for (i=0; i<A->order; i++){
-      if (i >= num_ctr)
+      if (i >= num_ctr+num_no_ctr_A){
+        inner_prm->l = inner_prm->l * A->pad_edge_len[ordering_A[i]];
+      }
+      else if (i >= num_ctr)
         inner_prm->m = inner_prm->m * A->pad_edge_len[ordering_A[i]];
       else 
         inner_prm->k = inner_prm->k * A->pad_edge_len[ordering_A[i]];
     }
     for (i=0; i<B->order; i++){
-      if (i >= num_ctr)
+      if (i >= num_ctr && i< num_ctr + num_no_ctr_B)
         inner_prm->n = inner_prm->n * B->pad_edge_len[ordering_B[i]];
     }
     /* This gets set later */
@@ -266,14 +277,35 @@ namespace CTF_int {
         in = idx_A[inA];
         inB = idx_arr[3*in+1];
         inC = idx_arr[3*in+2];
-        if (((inA>=0) + (inB>=0) + (inC>=0) != 2) ||
-            ((inB == -1) ^ (iB == -1)) ||
-            ((inC == -1) ^ (iC == -1)) ||
-            (iB != -1 && inB - iB != in-i) ||
-            (iC != -1 && inC - iC != in-i) ||
-            (iB != -1 && A->sym[inA] != B->sym[inB]) ||
-            (iC != -1 && A->sym[inA] != C->sym[inC])){
-          broken = 1;
+        if ((iA>=0) + (iB>=0) + (iC>=0) == 2){
+          if (((inA>=0) + (inB>=0) + (inC>=0) != 2) ||
+              ((inB == -1) ^ (iB == -1)) ||
+              ((inC == -1) ^ (iC == -1)) ||
+              (iB != -1 && inB - iB != in-i) ||
+              (iC != -1 && inC - iC != in-i) ||
+              (iB != -1 && A->sym[inA] != B->sym[inB]) ||
+              (iC != -1 && A->sym[inA] != C->sym[inC])){
+            broken = 1;
+          }
+        } else if ((iA>=0) + (iB>=0) + (iC>=0) != 3){
+          if ((inA>=0) + (inB>=0) + (inC>=0) != 3 ||
+              A->sym[inA] != B->sym[inB] ||
+              A->sym[inA] != C->sym[inC]){
+            broken = 1;
+          }
+        } else {  
+          if (((inA>=0) + (inB>=0) + (inC>=0) != 3) ||
+              ((inB == -1) ^ (iB == -1)) ||
+              ((inC == -1) ^ (iC == -1)) ||
+              ((inA == -1) ^ (iA == -1)) ||
+              (inB - iB != in-i) ||
+              (inC - iC != in-i) ||
+              (inA - iA != in-i) ||
+              (A->sym[inA] != B->sym[inB]) ||
+              (B->sym[inB] != C->sym[inC]) ||
+              (A->sym[inA] != C->sym[inC])){
+            broken = 1;
+          }
         }
         inA++;
       } while (A->sym[inA-1] != NS);
@@ -294,7 +326,7 @@ namespace CTF_int {
         in = idx_C[inC];
         inA = idx_arr[3*in+0];
         inB = idx_arr[3*in+1];
-        if (((inC>=0) + (inA>=0) + (inB>=0) != 2) ||
+        if (((inC>=0) + (inA>=0) + (inB>=0) == 1) ||
             ((inA == -1) ^ (iA == -1)) ||
             ((inB == -1) ^ (iB == -1)) ||
             (iA != -1 && inA - iA != in-i) ||
@@ -322,7 +354,7 @@ namespace CTF_int {
         in = idx_B[inB];
         inC = idx_arr[3*in+2];
         inA = idx_arr[3*in+0];
-        if (((inB>=0) + (inC>=0) + (inA>=0) != 2) ||
+        if (((inB>=0) + (inC>=0) + (inA>=0) == 1) ||
             ((inC == -1) ^ (iC == -1)) ||
             ((inA == -1) ^ (iA == -1)) ||
             (iC != -1 && inC - iC != in-i) ||
@@ -375,9 +407,10 @@ namespace CTF_int {
     if (is_sparse()){
       //when A is sparse we must fold all indices and reduce block contraction entirely to coomm
       if ((A->order+B->order+C->order)%2 == 1 ||
-          (A->order+B->order+C->order)/2 < nfold){
+          (A->order+B->order+C->order)/2 < nfold ){
         return 0;
       }
+      //FIXME:!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     }
     CTF_int::cdealloc(fold_idx);
     /* FIXME: 1 folded index is good enough for now, in the future model */
@@ -408,8 +441,10 @@ namespace CTF_int {
             int ** new_ordering_A,
             int ** new_ordering_B,
             int ** new_ordering_C){
-    int i, num_tot, num_ctr, idx_ctr, num_no_ctr_A;
-    int idx_no_ctr_A, idx_no_ctr_B;
+    int i, num_tot, num_ctr, num_no_ctr_A, num_no_ctr_B, num_weigh;
+    int idx_no_ctr_A, idx_no_ctr_B, idx_ctr, idx_weigh;
+    int idx_self_C, idx_self_A, idx_self_B;
+    int num_self_C, num_self_A, num_self_B;
     int * ordering_A, * ordering_B, * ordering_C, * idx_arr;
     
     CTF_int::alloc_ptr(sizeof(int)*A->order, (void**)&ordering_A);
@@ -420,32 +455,58 @@ namespace CTF_int {
             B->order, idx_B,
             C->order, idx_C,
             &num_tot, &idx_arr);
-    num_ctr = 0, num_no_ctr_A = 0;
+    num_no_ctr_B = 0, num_ctr = 0, num_no_ctr_A = 0, num_weigh = 0;
     for (i=0; i<num_tot; i++){
-      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
+      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+        num_weigh++;
+      } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
         num_ctr++;
-      } else if (idx_arr[3*i] != -1){
+      } else if (idx_arr[3*i] != -1 && idx_arr[3*i+2] != -1){
         num_no_ctr_A++;
+      } else if (idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+        num_no_ctr_B++;
+      } else if (idx_arr[3*i] != -1){
+        num_self_A++;
+      } else if (idx_arr[3*i+1] != -1){
+        num_self_B++;
+      } else if (idx_arr[3*i+2] != -1){
+        num_self_C++;
+      } else {
+        assert(0);
       }
     }
-    /* Put all contraction indices up front, put A indices in front for C */
-    idx_ctr = 0, idx_no_ctr_A = 0, idx_no_ctr_B = 0;
+    idx_self_A = 0, idx_self_B = 0, idx_self_C=0;
+    /* Put all weigh indices in back, w ut all contraction indices up front, put A indices in front for C */
+    idx_ctr = 0, idx_no_ctr_A = 0, idx_no_ctr_B = 0, idx_weigh = 0;
     for (i=0; i<num_tot; i++){
-      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
+      if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
+        ordering_A[idx_weigh+num_no_ctr_A+num_ctr] = idx_arr[3*i];
+        ordering_B[idx_weigh+num_no_ctr_B+num_ctr] = idx_arr[3*i+1];
+        ordering_C[idx_weigh+num_no_ctr_A+num_no_ctr_B] = idx_arr[3*i+2];
+        idx_weigh++;
+      } else if (idx_arr[3*i] != -1 && idx_arr[3*i+1] != -1){
         ordering_A[idx_ctr] = idx_arr[3*i];
         ordering_B[idx_ctr] = idx_arr[3*i+1];
         idx_ctr++;
       } else {
-        if (idx_arr[3*i] != -1){
+        if (idx_arr[3*i] != -1 && idx_arr[3*i+2] != -1){
           ordering_A[num_ctr+idx_no_ctr_A] = idx_arr[3*i];
           ordering_C[idx_no_ctr_A] = idx_arr[3*i+2];
           idx_no_ctr_A++;
-        }
-        if (idx_arr[3*i+1] != -1){
+        } else if (idx_arr[3*i+1] != -1 && idx_arr[3*i+2] != -1){
           ordering_B[num_ctr+idx_no_ctr_B] = idx_arr[3*i+1];
           ordering_C[num_no_ctr_A+idx_no_ctr_B] = idx_arr[3*i+2];
           idx_no_ctr_B++;
-        }
+        } else if (idx_arr[3*i] != -1){
+          idx_self_A++;
+          ordering_A[num_ctr+num_no_ctr_A+num_weigh+idx_self_A] = idx_arr[3*i];
+        } else if (idx_arr[3*i+1] != -1){
+          idx_self_B++;
+          ordering_B[num_ctr+num_no_ctr_B+num_weigh+idx_self_B] = idx_arr[3*i+1];
+        } else if (idx_arr[3*i+2] != -1){
+          idx_self_C++;
+          ordering_C[num_no_ctr_A+num_no_ctr_B+num_weigh+idx_self_C] = idx_arr[3*i+2];
+        } else assert(0);
       }
     }
     CTF_int::cdealloc(idx_arr);
@@ -579,7 +640,7 @@ namespace CTF_int {
                         &tfnew_ord_A, &tfnew_ord_B, &tfnew_ord_C); 
       // m,n,k should be invarient to what transposes are done
       if (iord == 0){
-        calc_fold_nmk(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, tfnew_ord_A, tfnew_ord_B, &iprm);
+        calc_fold_lnmk(tfA, tfB, tfC, tidx_A, tidx_B, tidx_C, tfnew_ord_A, tfnew_ord_B, &iprm);
       }
 
       CTF_int::alloc_ptr(tall_fdim_A*sizeof(int), (void**)&tAiord);
@@ -680,8 +741,7 @@ namespace CTF_int {
   }
 
   iparam contraction::map_fold(bool do_transp){
-    int i, all_fdim_A, all_fdim_B, all_fdim_C;
-    int nvirt_A, nvirt_B, nvirt_C;
+    int all_fdim_A, all_fdim_B, all_fdim_C;
     int * fnew_ord_A, * fnew_ord_B, * fnew_ord_C;
     int * all_flen_A, * all_flen_B, * all_flen_C;
     iparam iprm;
@@ -733,12 +793,8 @@ namespace CTF_int {
  
     if (do_transp){
       bool csr_or_coo = B->is_sparse || C->is_sparse || is_custom || !A->sr->has_coo_ker;
-      nvirt_A = A->calc_nvirt();
       if (!A->is_sparse){
-        for (i=0; i<nvirt_A; i++){
-          nosym_transpose(all_fdim_A, A->inner_ordering, all_flen_A,
-                          A->data + A->sr->el_size*i*(A->size/nvirt_A), 1, A->sr);
-        }
+        nosym_transpose(A, all_fdim_A, all_flen_A, A->inner_ordering, 1);
       } else {
         int nrow_idx = 0;
         for (int i=0; i<A->order; i++){
@@ -748,12 +804,12 @@ namespace CTF_int {
         }
         A->spmatricize(iprm.m, iprm.k, nrow_idx, csr_or_coo);
       }
-      nvirt_B = B->calc_nvirt();
       if (!B->is_sparse){
-        for (i=0; i<nvirt_B; i++){
+        nosym_transpose(B, all_fdim_B, all_flen_B, B->inner_ordering, 1);
+        /*for (i=0; i<nvirt_B; i++){
           nosym_transpose(all_fdim_B, B->inner_ordering, all_flen_B,
                           B->data + B->sr->el_size*i*(B->size/nvirt_B), 1, B->sr);
-        }
+        }*/
       } else {
         int nrow_idx = 0;
         for (int i=0; i<B->order; i++){
@@ -764,12 +820,8 @@ namespace CTF_int {
         B->spmatricize(iprm.k, iprm.n, nrow_idx, csr_or_coo);
       }
 
-      nvirt_C = C->calc_nvirt();
       if (!C->is_sparse){
-        for (i=0; i<nvirt_C; i++){
-          nosym_transpose(all_fdim_C, C->inner_ordering, all_flen_C,
-                          C->data + C->sr->el_size*i*(C->size/nvirt_C), 1, C->sr);
-        }
+        nosym_transpose(C, all_fdim_C, all_flen_C, C->inner_ordering, 1);
       } else {
         int nrow_idx = 0;
         for (int i=0; i<C->order; i++){
@@ -778,7 +830,7 @@ namespace CTF_int {
           }
         }
         C->spmatricize(iprm.m, iprm.n, nrow_idx, csr_or_coo);
-        cdealloc(C->data);
+        C->sr->dealloc(C->data);
       }
     
     }
@@ -1037,7 +1089,7 @@ namespace CTF_int {
     return -1;
   }
 
-  void contraction::check_consistency(){
+  bool contraction::check_consistency(){
     int i, num_tot, len;
     int iA, iB, iC;
     int * idx_arr;
@@ -1062,7 +1114,7 @@ namespace CTF_int {
           printf("match the %dth edge length of tensor %s.\n",
                   iB, B->name);
         }
-        ABORT;
+        return false;
       }
       if (len != -1 && iC != -1 && len != C->lens[iC]){
         if (A->wrld->cdt.rank == 0){
@@ -1071,7 +1123,7 @@ namespace CTF_int {
           printf("match the %dth edge length of tensor %s (%d).\n",
                   iC, C->name, C->lens[iC]);
         }
-        ABORT;
+        return false;
       }
       if (iB != -1){
         len = B->lens[iB];
@@ -1083,10 +1135,11 @@ namespace CTF_int {
           printf("match the %dth edge length of tensor %s.\n",
                   iC, C->name);
         }
-        ABORT;
+        return false;
       }
     }
     CTF_int::cdealloc(idx_arr);
+    return true;
   }
 
     
@@ -2464,7 +2517,7 @@ namespace CTF_int {
         A->set_padding();
         B->set_padding();
         C->set_padding();
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("\nTest mappings:\n");
           A->print_map(stdout, 0);
@@ -2513,7 +2566,7 @@ namespace CTF_int {
             est_time = sctr->est_time_rec(sctr->num_lyr);
           }
         }
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("mapping passed contr est_time = %E sec\n", est_time);
         }
@@ -2561,7 +2614,7 @@ namespace CTF_int {
           memuse = MAX(((spctr*)sctr)->spmem_rec(nnz_frac_A,nnz_frac_B,nnz_frac_C), memuse);
         else
           memuse = MAX((int64_t)sctr->mem_rec(), memuse);
-  #if DEBUG >= 1
+  #if DEBUG >= 3
         if (global_comm.rank == 0){
           printf("total (with redistribution and transp) est_time = %E\n", est_time);
         }
@@ -2935,7 +2988,6 @@ namespace CTF_int {
 
       if (ttopo == INT_MAX || ttopo == -1){
         printf("ERROR: Failed to map contraction!\n");
-        ASSERT(0);
         //ABORT;
         return ERROR;
       }
@@ -3054,7 +3106,7 @@ namespace CTF_int {
     if (global_comm.rank == 0){
       VPRINTF(1,"Contraction will use %E bytes per processor out of %E available memory and take an estimated of %E sec\n",
               (double)memuse,(double)proc_bytes_available(),std::min(gbest_time_sel,gbest_time_exh));
-#if DEBUG >= 1
+#if DEBUG >= 3
       (*ctrf)->print();
 #endif
     }
@@ -3879,8 +3931,10 @@ namespace CTF_int {
         krnl_type = 4;
       }
     } else {
+      // FIXME: currently this type of contraction cannot be done with sparse tensors
       ASSERT(!B->is_sparse && !C->is_sparse);
-      assert(!B->is_sparse && !C->is_sparse); // FIXME: currently this type of contraction cannot be done with sparse tensors
+      assert(!B->is_sparse && !C->is_sparse);
+
       krnl_type = 0;
     }
 
@@ -4014,42 +4068,6 @@ namespace CTF_int {
       delete new_tsr;
       return stat;
     }
-/*    for (int i=0; i<A->order; i++){
-      int iA = idx_A[i];
-      bool has_match = false;
-      for (int j=0; j<B->order; j++){
-        if (idx_B[j] == iA) has_match = true;
-      }
-      for (int j=0; j<C->order; j++){
-        if (idx_C[j] == iA) has_match = true;
-      }
-      if (false && !has_match){
-        int new_len[A->order-1];
-        int new_sym[A->order-1];
-        int new_idx[A->order-1];
-        for (int j=0; j<A->order; j++){
-          if (j==iA) continue;
-          if (j<iA){
-            new_len[j] = A->lens[j];
-            new_sym[j] = A->sym[j];
-            new_idx[j] = idx_A[j];
-          } else {
-            new_len[j-1] = A->lens[j];
-            new_sym[j-1] = A->sym[j];
-            new_idx[j-1] = idx_A[j];
-          }
-        }
-        tensor * new_tsr = new tensor(A->sr, A->order-1, new_len, new_sym, A->wrld, 1, A->name, 1, A->is_sparse);
-        summation s(A, idx_A, A->sr->mulid(), new_tsr, new_idx, A->sr->mulid());
-        s.execute();
-        contraction ctr(new_tsr, new_idx, B, idx_B, alpha, C, idx_C, beta, func);
-        ctr.execute();
-        delete new_tsr;
-        return SUCCESS;
-      }
-    }*/
-
-
 //    ASSERT(!C->is_sparse);
     if (B->is_sparse && !A->is_sparse){
 //      ASSERT(!A->is_sparse);
@@ -4448,7 +4466,8 @@ namespace CTF_int {
     ctr * ctrf;
     tensor * tnsr_A, * tnsr_B, * tnsr_C;
   
-    this->check_consistency();
+    bool is_cons = this->check_consistency();
+    if (!is_cons) return ERROR;
   
     CommData global_comm = A->wrld->cdt;
   
@@ -4477,6 +4496,36 @@ namespace CTF_int {
       }
       return SUCCESS;
     }
+
+    int * new_idx_A, * new_idx_B, * new_idx_C;
+    if (!is_custom || func->left_distributive){
+      tensor * new_tsr_A = A->self_reduce(idx_A, &new_idx_A, B->order, idx_B, &new_idx_B, C->order, idx_C, &new_idx_C);
+      if (new_tsr_A != A) {
+        contraction ctr(new_tsr_A, new_idx_A, B, new_idx_B, alpha, C, new_idx_C, beta, func);
+        ctr.execute();
+        delete new_tsr_A;
+        cdealloc(new_idx_A);
+        cdealloc(new_idx_B);
+        if (C->order > 0)
+          cdealloc(new_idx_C);
+        return SUCCESS;
+      }
+    }
+
+    if (!is_custom || func->right_distributive){
+      tensor * new_tsr_B = B->self_reduce(idx_B, &new_idx_B, A->order, idx_A, &new_idx_A, C->order, idx_C, &new_idx_C);
+      if (new_tsr_B != B) {
+        contraction ctr(A, new_idx_A, new_tsr_B, new_idx_B, alpha, C, new_idx_C, beta, func);
+        ctr.execute();
+        delete new_tsr_B;
+        cdealloc(new_idx_A);
+        cdealloc(new_idx_B);
+        cdealloc(new_idx_C);
+        return SUCCESS;
+      }
+    }
+
+
     CTF_int::alloc_ptr(sizeof(int)*A->order,          (void**)&map_A);
     CTF_int::alloc_ptr(sizeof(int)*B->order,          (void**)&map_B);
     CTF_int::alloc_ptr(sizeof(int)*C->order,          (void**)&map_C);
@@ -4567,15 +4616,14 @@ namespace CTF_int {
         align_alpha = u_align_alpha;
         //FIXME free new_alpha
       }
-
       char * oc_align_alpha = (char*)alloc(tnsr_C->sr->el_size);
       tnsr_C->sr->safecopy(oc_align_alpha, align_alpha);
       if (ocfact != 1){
         if (ocfact != 1){
-          tnsr_B->sr->safecopy(oc_align_alpha, tnsr_B->sr->addid());
+          tnsr_C->sr->safecopy(oc_align_alpha, tnsr_C->sr->addid());
           
           for (int i=0; i<ocfact; i++){
-            tnsr_B->sr->add(oc_align_alpha, align_alpha, oc_align_alpha);
+            tnsr_C->sr->add(oc_align_alpha, align_alpha, oc_align_alpha);
           }
 //          alpha = new_alpha;
         }
@@ -4827,6 +4875,8 @@ namespace CTF_int {
         new_ctr.C->data = C->data;
         new_ctr.C->home_buffer = C->home_buffer;
         new_ctr.C->is_home = 1;
+        new_ctr.C->has_home = 1;
+        new_ctr.C->home_size = C->home_size;
         new_ctr.C->is_mapped = 1;
         new_ctr.C->topo = C->topo;
         copy_mapping(C->order, C->edge_map, new_ctr.C->edge_map);
@@ -4859,10 +4909,12 @@ namespace CTF_int {
                    old_pe_lda_C, was_cyclic_C,
                    old_padding_C, old_edge_len_C, global_comm);*/
       TAU_FSTOP(redistribute_for_ctr_home);
-      memcpy(C->home_buffer, C->data, C->size*C->sr->el_size);
-      CTF_int::cdealloc(C->data);
+      C->sr->copy(C->home_buffer, C->data, C->size);
+      C->sr->dealloc(C->data);
       C->data = C->home_buffer;
       C->is_home = 1;
+      C->has_home = 1;
+      C->home_size = C->size;
       new_ctr.C->is_data_aliased = 1;
       delete new_ctr.C;
     } else if (was_home_C) {
@@ -4876,6 +4928,7 @@ namespace CTF_int {
     if (new_ctr.A != new_ctr.C){ //ntype.tid_A != ntype.tid_C){
       if (was_home_A && !new_ctr.A->is_home){
         new_ctr.A->has_home = 0;
+        new_ctr.A->is_home = 0;
         if (A->is_sparse){
           A->data = new_ctr.A->home_buffer;
           new_ctr.A->home_buffer = NULL;
@@ -4890,6 +4943,7 @@ namespace CTF_int {
     if (new_ctr.B != new_ctr.A && new_ctr.B != new_ctr.C){
       if (was_home_B && A != B && !new_ctr.B->is_home){
         new_ctr.B->has_home = 0;
+        new_ctr.B->is_home = 0;
         if (B->is_sparse){
           B->data = new_ctr.B->home_buffer;
           new_ctr.B->home_buffer = NULL;
@@ -5041,7 +5095,7 @@ namespace CTF_int {
         if (T->is_home){
           if (T->wrld->cdt.rank == 0)
             DPRINTF(2,"Tensor %s leaving home\n", T->name);
-          T->data = (char*)CTF_int::mst_alloc(T->size*T->sr->el_size);
+          T->data = T->sr->alloc(T->size);
           memcpy(T->data, T->home_buffer, T->size*T->sr->el_size);
           T->is_home = 0;
         }

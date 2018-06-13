@@ -17,14 +17,15 @@ namespace CTF_int {
     return offset;
   }
 
-  CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow_, int ncol, int el_size){
+  CSR_Matrix::CSR_Matrix(int64_t nnz, int nrow_, int ncol, accumulatable const * sr){
     ASSERT(ALIGN >= 16);
-    int64_t size = get_csr_size(nnz, nrow_, el_size);
+    int64_t size = get_csr_size(nnz, nrow_, sr->el_size);
     all_data = (char*)alloc(size);
     ((int64_t*)all_data)[0] = nnz;
-    ((int64_t*)all_data)[1] = el_size;
+    ((int64_t*)all_data)[1] = sr->el_size;
     ((int64_t*)all_data)[2] = (int64_t)nrow_;
     ((int64_t*)all_data)[3] = ncol;
+    sr->init_shell(nnz,this->vals());
   }
 
   CSR_Matrix::CSR_Matrix(char * all_data_){
@@ -32,19 +33,25 @@ namespace CTF_int {
     all_data = all_data_;
   }
 
-  CSR_Matrix::CSR_Matrix(COO_Matrix const & coom, int nrow_, int ncol, algstrct const * sr, char * data){
+  CSR_Matrix::CSR_Matrix(COO_Matrix const & coom, int nrow_, int ncol, algstrct const * sr, char * data, bool init_data){
     ASSERT(ALIGN >= 16);
     int64_t nz = coom.nnz(); 
     int64_t v_sz = coom.val_size(); 
     int const * coo_rs = coom.rows();
     int const * coo_cs = coom.cols();
     char const * vs = coom.vals();
+    /*if (nz >= 2){
+      printf("herecsr\n");
+      sr->print(vs);
+      sr->print(vs+v_sz);
+    }*/
 
     int64_t size = get_csr_size(nz, nrow_, v_sz);
     if (data == NULL)
       all_data = (char*)alloc(size);
     else
       all_data = data;
+    
     ((int64_t*)all_data)[0] = nz;
     ((int64_t*)all_data)[1] = v_sz;
     ((int64_t*)all_data)[2] = (int64_t)nrow_;
@@ -54,6 +61,9 @@ namespace CTF_int {
     int * csr_ja = JA();
     int * csr_ia = IA();
 
+    if (init_data){
+      sr->init_shell(nz, csr_vs);
+    }
     //memcpy(csr_vs, vs, nz*v_sz);
     //memset(csr_ja
 
@@ -351,7 +361,7 @@ namespace CTF_int {
         IC[i+1] += has_col[j];
       }
     }
-    CSR_Matrix C(IC[nrow]-1, nrow, ncol, el_size);
+    CSR_Matrix C(IC[nrow]-1, nrow, ncol, adder);
     char * vC = C.vals();
     int * JC = C.JA();
     memcpy(C.IA(), IC, sizeof(int)*(nrow+1));
@@ -391,7 +401,7 @@ namespace CTF_int {
     }
     cdealloc(has_col);
     cdealloc(rev_col);
- /*   printf("nnz C is %ld\n", C.nnz());
+    /*printf("nnz C is %ld\n", C.nnz());
     printf("%d %d %d\n",C.IA()[0],C.IA()[1],C.IA()[2]);
     printf("%d %d\n",C.JA()[0],C.JA()[1]);
     printf("%lf %lf\n",((double*)C.vals())[0],((double*)C.vals())[1]);*/

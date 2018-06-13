@@ -315,14 +315,14 @@ void dgtog_reshuffle(int const *          sym,
   char * tsr_new_data = *ptr_tsr_new_data;
 
   if (order == 0){
-    alloc_ptr(sr->el_size, (void**)&tsr_new_data);
+    tsr_new_data = sr->alloc(1);
     if (ord_glb_comm.rank == 0){
       sr->copy(tsr_new_data, tsr_data);
     } else {
       sr->copy(tsr_new_data, sr->addid());
     }
     *ptr_tsr_new_data = tsr_new_data;
-    CTF_int::cdealloc(tsr_data);
+    sr->dealloc(tsr_data);
     return;
   }
 #ifdef TUNE
@@ -436,7 +436,8 @@ void dgtog_reshuffle(int const *          sym,
   CTF_int::cdealloc(all_put_displs);
 
   char * recv_buffer;
-  mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
+  //mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
+  recv_buffer = sr->alloc(new_dist.size);
 
   CTF_Win win;
   int suc = MPI_Win_create(recv_buffer, new_dist.size*sr->el_size, sr->el_size, MPI_INFO_NULL, ord_glb_comm.cm, &win);
@@ -452,7 +453,7 @@ void dgtog_reshuffle(int const *          sym,
     SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, win, recv_buffer, sr, 0, 0, 1);
 #else
   char * recv_buffer;
-  mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
+  recv_buffer = sr->alloc(new_dist.size);
   if (new_idx_lyr == 0)
     SWITCH_ORD_CALL(isendrecv, order-1, recv_pe_offset, recv_bucket_offset, new_rep_phase, recv_counts, recv_displs, recv_reqs, ord_glb_comm.cm, recv_buffer, sr, 0, 0, 1);
 #endif
@@ -460,7 +461,7 @@ void dgtog_reshuffle(int const *          sym,
 
 
   if (old_idx_lyr == 0){
-    char * aux_buf; alloc_ptr(sr->el_size*old_dist.size, (void**)&aux_buf);
+    char * aux_buf = sr->alloc(old_dist.size);
     char * tmp = aux_buf;
     aux_buf = tsr_data;
     tsr_data = tmp;
@@ -509,13 +510,12 @@ void dgtog_reshuffle(int const *          sym,
     }
     ASSERT(pass);
 #endif
-    CTF_int::cdealloc(aux_buf);
+    sr->dealloc(aux_buf);
   }
 #ifndef WAITANY
 #ifndef IREDIST
 #ifndef PUTREDIST
-  char * recv_buffer;
-  mst_alloc_ptr(new_dist.size*sr->el_size, (void**)&recv_buffer);
+  char * recv_buffer = sr->alloc(new_dist.size);
 
   /* Communicate data */
   TAU_FSTART(COMM_RESHUFFLE);
@@ -547,15 +547,14 @@ void dgtog_reshuffle(int const *          sym,
   TAU_FSTOP(redist_fence);
   MPI_Win_free(&win);
 #endif
-  CTF_int::cdealloc(tsr_data);
+  sr->dealloc(tsr_data);
 #endif
 #endif
   CTF_int::cdealloc(send_counts);
 
   if (new_idx_lyr == 0){
-    char * aux_buf; alloc_ptr(sr->el_size*new_dist.size, (void**)&aux_buf);
-    if (sr->addid() != NULL)
-      sr->set(aux_buf, sr->addid(), new_dist.size);
+    char * aux_buf = sr->alloc(new_dist.size);
+    sr->init(new_dist.size, aux_buf);
 
     char ** buckets = (char**)alloc(sizeof(char**)*nnew_rep);
 
@@ -654,7 +653,7 @@ void dgtog_reshuffle(int const *          sym,
     ASSERT(pass);
 #endif
     *ptr_tsr_new_data = aux_buf;
-    CTF_int::cdealloc(recv_buffer);
+    sr->dealloc(recv_buffer);
   } else {
     if (sr->addid() != NULL)
       sr->set(recv_buffer, sr->addid(), new_dist.size);
@@ -707,7 +706,7 @@ void dgtog_reshuffle(int const *          sym,
   MPI_Barrier(ord_glb_comm.cm);
   TAU_FSTOP(barrier_after_dgtog_reshuffle);
 #endif
-  CTF_int::cdealloc(tsr_data);
+  sr->dealloc(tsr_data);
 #endif
 #ifdef TUNE
   MPI_Barrier(ord_glb_comm.cm);

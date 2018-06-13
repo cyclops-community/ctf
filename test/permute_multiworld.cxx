@@ -58,7 +58,7 @@ int permute_multiworld(int         n,
   }
   
   Matrix<> A(n, n, sym, dw);
-  A.read_local(&nvals, &indices, &data);
+  A.get_local_data(&nvals, &indices, &data);
 
   for (i=0; i<nvals; i++){
     data[i] = (double)indices[i];
@@ -66,7 +66,7 @@ int permute_multiworld(int         n,
 
   A.write(nvals, indices, data);
   free(indices);
-  free(data);
+  delete [] data;
 
   World id_world(MPI_COMM_SELF);
 
@@ -83,7 +83,7 @@ int permute_multiworld(int         n,
 
     B.permute(perms, 1.0, A, 1.0);
    
-    B.read_local(&nvals, &indices, &data);
+    B.get_local_data(&nvals, &indices, &data);
   }
 
 
@@ -103,7 +103,7 @@ int permute_multiworld(int         n,
       else
         printf("{ permuted-read among multiple worlds } failed\n");
     }
-    free(data);
+    delete [] data;
     free(indices);
     return pass;
   } 
@@ -126,11 +126,11 @@ int permute_multiworld(int         n,
   }
 
   if (nvals > 0){
-    free(data);
+    delete [] data;
     free(indices);
   }
   
-  A.read_local(&nvals, &indices, &data);
+  A.get_local_data(&nvals, &indices, &data);
 
   pass = 1;
   for (i=0; i<nvals; i++){
@@ -147,7 +147,7 @@ int permute_multiworld(int         n,
       printf("{ permuted read and write among multiple worlds } failed\n");
   }
   free(indices);
-  free(data);
+  delete [] data;
 
   return pass;
 } 

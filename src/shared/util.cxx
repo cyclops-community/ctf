@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "string.h"
-#include "assert.h"
+#include <assert.h>
 #include "util.h"
 
 namespace CTF_int {

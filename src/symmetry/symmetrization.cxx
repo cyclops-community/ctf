@@ -88,7 +88,8 @@ namespace CTF_int {
     #endif
 
     if (!nonsym_tsr->is_sparse)
-      CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr->el_size, (void**)&nonsym_tsr->data);
+      nonsym_tsr->data = nonsym_tsr->sr->alloc(nonsym_tsr->size);
+      //CTF_int::mst_alloc_ptr(nonsym_tsr->size*nonsym_tsr->sr->el_size, (void**)&nonsym_tsr->data);
     nonsym_tsr->set_zero();
     //nonsym_tsr->sr->set(nonsym_tsr->data, nonsym_tsr->sr->addid(), nonsym_tsr->size);
 
@@ -294,6 +295,7 @@ namespace CTF_int {
       sym_tsr->set_padding();
       sym_tsr->size     = nonsym_tsr->size;
       sym_tsr->data     = nonsym_tsr->data;
+      sym_tsr->is_home  = nonsym_tsr->is_home;
       sym_tsr->set_new_nnz_glb(nonsym_tsr->nnz_blk);
     } else {
   
