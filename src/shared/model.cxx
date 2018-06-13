@@ -55,15 +55,6 @@ namespace CTF_int {
 #endif
   }
 
-  void active_switch_all_models(int min_obs, double threshold){
-#ifdef TUNE
-    for (int i=0; i<(int)get_all_models().size(); i++){
-      get_all_models()[i]->active_switch(min_obs, threshold);
-    }
-#endif
-  }
-
-
 #define SPLINE_CHUNK_SZ = 8
 
   double cddot(int n,       const double *dX,

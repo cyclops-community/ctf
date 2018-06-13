@@ -169,13 +169,6 @@ namespace CTF_int {
       bool should_observe(double const * time_param);
 
       /**
-      * \brief decides whether the training of this model should switched on or off
-      * \param[in] min_obs the minimum number of observations this model need to observe before considering for shut down
-      * \param[in] threshold the threshold for over_time and under_time
-      */
-      void active_switch(int min_obs, double threshold);
-
-      /**
        * \brief estimates model time based on observarions
        * \param[in] param array of size nparam of form [val_1,val_2,...,val_nparam]
        * \return estimated time
