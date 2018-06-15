@@ -2,6 +2,7 @@
 #define __WORLD_H__
 
 #include "common.h"
+#include <set>
 #include "../mapping/topology.h"
 
 namespace CTF {
@@ -144,6 +145,19 @@ namespace CTF {
   /**
    * @}
    */
+
 }
 
+namespace CTF_int {
+  class grid_wrapper {
+    public:
+      int pr;
+      int pc;
+      int ctxt;
+
+      bool operator<(grid_wrapper const & other) const;
+  }; 
+  extern std::set<grid_wrapper> scalapack_grids;
+
+}
 #endif
