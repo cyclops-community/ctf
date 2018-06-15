@@ -1224,8 +1224,9 @@ namespace CTF_int {
   }
 
   void tensor::set_distribution(char const *          idx,
-                                Idx_Partition const & prl,
+                                Idx_Partition const & prl_,
                                 Idx_Partition const & blk){
+    Idx_Partition prl = prl_.reduce_order();
     topology * top = new topology(prl.part.order, prl.part.lens, wrld->cdt);
     int itopo = find_topology(top, wrld->topovec);
 /*    if (wrld->rank == 0){
@@ -1239,7 +1240,7 @@ namespace CTF_int {
     if (itopo == -1){
       itopo = wrld->topovec.size();
       wrld->topovec.push_back(top);
-    }
+    } else delete top;
     ASSERT(itopo != -1);
     assert(itopo != -1);
 
@@ -1284,7 +1285,7 @@ namespace CTF_int {
       ASSERT(0);
       assert(0);
     }
-
+    cdealloc(idx_A);
   }
 
 
