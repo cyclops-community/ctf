@@ -952,6 +952,7 @@ if [ $WITH_STATIC = 1 ]; then
     USE_MKL=1
   else
     echo 'MKL symbol not detected, assuming sparse MKL routines are unavailable (affects sparse BLAS performance).'
+    USE_MKL=0
   fi
 else
   if testldlink "$LD_LIB_PATH" "$LD_LIBS" mkl_dcsrmultcsr $VERBOSE; then
@@ -962,6 +963,7 @@ else
     USE_MKL=1
   else
     echo 'MKL symbol not detected, assuming sparse MKL routines are unavailable (affects sparse BLAS performance).'
+    USE_MKL=0
   fi
 fi
 
