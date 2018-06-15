@@ -28,9 +28,16 @@ namespace CTF {
   class Idx_Partition {
     public:
       Partition part;
-      char const * idx;
+      char * idx;
       Idx_Partition();
+      ~Idx_Partition();
       Idx_Partition(Partition const & part, char const * idx);
+
+      /**
+       * \brief extracts non-trivial part of partition by ommitting unit dimensions
+       * \return new partition with all dimensions non-unit
+       */
+      Idx_Partition reduce_order() const;
   };
 
 /**
