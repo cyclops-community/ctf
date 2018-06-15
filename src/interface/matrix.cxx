@@ -1,6 +1,7 @@
 /*Copyright (c) 2011, Edgar Solomonik, all rights reserved.*/
 
 #include "common.h"
+#include "world.h"
 #include "../shared/blas_symbs.h"
 #include "../shared/lapack_symbs.h"
 #include <stdlib.h>
@@ -236,7 +237,7 @@ namespace CTF {
         }
       }
       this->write(nmyr*nmyc, pairs);
-      CTF_int::cdealloc(pairs);
+      delete [] pairs;
     }
   }
 
@@ -296,7 +297,17 @@ namespace CTF {
     int ctxt;
     IASSERT(this->wrld->comm == MPI_COMM_WORLD);
     CTF_SCALAPACK::Cblacs_get(-1, 0, &ctxt);
-    CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &C, pr, pc);
+    CTF_int::grid_wrapper gw;
+    gw.pr = pr;
+    gw.pc = pc;
+    std::set<CTF_int::grid_wrapper>::iterator s = CTF_int::scalapack_grids.find(gw);
+    if (s != CTF_int::scalapack_grids.end()){
+      ctxt = s->ctxt;
+    } else {
+      CTF_SCALAPACK::Cblacs_gridinit(&ctxt, &C, pr, pc);
+      gw.ctxt = ctxt;
+      CTF_int::scalapack_grids.insert(gw);
+    }
     ictxt = ctxt;
 
     desc = (int*)malloc(sizeof(int)*9);
@@ -439,6 +450,8 @@ namespace CTF {
     CTF_SCALAPACK::porgqr<dtype>(m,n,n,dQ,1,1,desca,tau,work,lwork,&info);
     Q = Matrix<dtype>(desca, dQ, (*(this->wrld)));
     free(work);
+    free(tau);
+    free(desca);
     //make upper-tri
     int syns[] = {SY, NS};
     Tensor<dtype> tR(R,syns);

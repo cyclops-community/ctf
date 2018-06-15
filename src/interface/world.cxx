@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "world.h"
+#include "../shared/lapack_symbs.h"
 #include "../tensor/algstrct.h"
 #include "../shared/util.h"
 #include "../shared/memcontrol.h"
@@ -13,6 +14,18 @@ extern "C"
 }
 
 using namespace CTF_int;
+
+namespace CTF_int {
+  bool grid_wrapper::operator<(grid_wrapper const & other) const {
+    if (this->pr == other.pr)
+      return this->pc < other.pc;
+    else
+      return this->pr < other.pr;
+  }
+
+  /** \brief index for ScaLAPACK processor grids */
+  std::set<grid_wrapper> scalapack_grids;
+}
 
 namespace CTF {
   bool universe_exists = false;
@@ -96,6 +109,10 @@ namespace CTF {
     initialized = 0;
     mem_exit(rank);
     if (get_num_instances() == 0){
+      for (std::set<grid_wrapper>::iterator it=scalapack_grids.begin(); it!=scalapack_grids.end(); it++){
+        //printf("HERE %d %d %d\n",it->pr,it->pc,it->ctxt);
+        CTF_SCALAPACK::Cblacs_gridexit(it->ctxt);
+      }
 #ifdef OFFLOAD
       offload_exit();
 #endif
