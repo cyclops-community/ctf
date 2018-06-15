@@ -54,95 +54,6 @@ namespace CTF_BLAS {
               int * incY);
 
   extern "C"
-  void SGEMM_BATCH(
-            const char *,
-            const char *,
-            const int *,
-            const int *,
-            const int *,
-            const float *,
-            float **,
-            const int *,
-            float **,
-            const int *,
-            const float *,
-            float **,
-            const int *,
-            const int *,
-            const int *);
-
-  extern "C"
-  void DGEMM_BATCH(
-            const char *,
-            const char *,
-            const int *,
-            const int *,
-            const int *,
-            const double *,
-            double **,
-            const int *,
-            double **,
-            const int *,
-            const double *,
-            double **,
-            const int *,
-            const int *,
-            const int *);
-
-  extern "C"
-  void CGEMM_BATCH(
-            const char *,
-            const char *,
-            const int *,
-            const int *,
-            const int *,
-            const std::complex<float> *,
-            std::complex<float> **,
-            const int *,
-            std::complex<float> **,
-            const int *,
-            const std::complex<float> *,
-            std::complex<float> **,
-            const int *,
-            const int *,
-            const int *);
-
-  extern "C"
-  void ZGEMM_BATCH(
-            const char *,
-            const char *,
-            const int *,
-            const int *,
-            const int *,
-            const std::complex<double> *,
-            std::complex<double> **,
-            const int *,
-            std::complex<double> **,
-            const int *,
-            const std::complex<double> *,
-            std::complex<double> **,
-            const int *,
-            const int *,
-            const int *);
-
-  template <typename dtype>
-  void gemm_batch(const char *,
-            const char *,
-            const int *,
-            const int *,
-            const int *,
-            const dtype *,
-            dtype **,
-            const int *,
-            dtype **,
-            const int *,
-            const dtype *,
-            dtype **,
-            const int *,
-            const int *,
-            const int *);
-
-  extern "C"
   void SGEMM(const char *,
              const char *,
              const int *,
@@ -309,6 +220,98 @@ namespace CTF_BLAS {
              std::complex<double> * dA,
              std::complex<double> * dX,
              const int *            incX);
+
+
+#ifdef USE_BATCH_GEMM
+  extern "C"
+  void SGEMM_BATCH(
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const float *,
+            float **,
+            const int *,
+            float **,
+            const int *,
+            const float *,
+            float **,
+            const int *,
+            const int *,
+            const int *);
+
+  extern "C"
+  void DGEMM_BATCH(
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const double *,
+            double **,
+            const int *,
+            double **,
+            const int *,
+            const double *,
+            double **,
+            const int *,
+            const int *,
+            const int *);
+
+  extern "C"
+  void CGEMM_BATCH(
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const std::complex<float> *,
+            std::complex<float> **,
+            const int *,
+            std::complex<float> **,
+            const int *,
+            const std::complex<float> *,
+            std::complex<float> **,
+            const int *,
+            const int *,
+            const int *);
+
+  extern "C"
+  void ZGEMM_BATCH(
+            const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const std::complex<double> *,
+            std::complex<double> **,
+            const int *,
+            std::complex<double> **,
+            const int *,
+            const std::complex<double> *,
+            std::complex<double> **,
+            const int *,
+            const int *,
+            const int *);
+
+  template <typename dtype>
+  void gemm_batch(const char *,
+            const char *,
+            const int *,
+            const int *,
+            const int *,
+            const dtype *,
+            dtype **,
+            const int *,
+            dtype **,
+            const int *,
+            const dtype *,
+            dtype **,
+            const int *,
+            const int *,
+            const int *);
+#endif //USE_BATCH_GEMM
 
 }
 #endif

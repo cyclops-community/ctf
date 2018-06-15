@@ -46,15 +46,15 @@ namespace CTF_int {
     dtype ** ptrs_A = get_grp_ptrs(m*k,l,A);
     dtype ** ptrs_B = get_grp_ptrs(k*n,l,B);
     dtype ** ptrs_C = get_grp_ptrs(m*n,l,C);
-    #if USE_SP_MKL
+#if USE_BATCH_GEMM
     int group_count = 1;
     int size_per_group = l;
     CTF_BLAS::gemm_batch<dtype>(&taA, &taB, &m, &n, &k, &alpha, ptrs_A, &lda, ptrs_B, &ldb, &beta, ptrs_C, &ldc, &group_count, &size_per_group);
-    #else 
+#else 
     for (int i=0; i<l; i++){
       CTF_BLAS::gemm<dtype>(&taA,&taB,&m,&n,&k,&alpha, ptrs_A[i] ,&lda, ptrs_B[i] ,&ldb,&beta, ptrs_C[i] ,&ldc);
     }
-    #endif
+#endif
     free(ptrs_A);
     free(ptrs_B);
     free(ptrs_C);
@@ -597,7 +597,7 @@ namespace CTF {
     int info; \
     CTF_BLAS::MKL_name(&transa, &req, &sort, &m, &k, &n, A, JA, IA, B, JB, IB, NULL, NULL, new_ic, &req, &info); \
  \
-    CSR_Matrix C_add(new_ic[m]-1, m, n, sizeof(dtype)); \
+    CSR_Matrix C_add(new_ic[m]-1, m, n, this); \
     memcpy(C_add.IA(), new_ic, (m+1)*sizeof(int)); \
     cdealloc(new_ic); \
     req = 2; \
