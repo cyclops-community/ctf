@@ -29,7 +29,7 @@ namespace CTF {
   char * CTF::Monoid<double,1>::csr_add(char * cA, char * cB) const {
 #if USE_MKL
     TAU_FSTART(mkl_csr_add)
-    if (fadd != default_add<double>){
+    if (fadd != &default_add<double>){
       return CTF_int::algstrct::csr_add(cA, cB);
     }
     CSR_Matrix A(cA);
@@ -44,7 +44,7 @@ namespace CTF {
     double mlid = 1.0;
     int info;
     CTF_BLAS::MKL_DCSRADD(&tA, &job, &sort, &m, &n, (double*)A.vals(), A.JA(), A.IA(), &mlid, (double*)B.vals(), B.JA(), B.IA(), NULL, NULL, ic, NULL, &info);
-    CSR_Matrix C(ic[m]-1, m, n, this->el_size);
+    CSR_Matrix C(ic[m]-1, m, n, this);
     memcpy(C.IA(), ic, sizeof(int)*(m+1));
     cdealloc(ic);
     job = 2;

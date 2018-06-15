@@ -43,6 +43,7 @@ namespace CTF_BLAS {
 #undef INST_GEMM
 
 
+#ifdef USE_BATCH_GEMM
   template <typename dtype>
   void gemm_batch(const char *,
             const char *,
@@ -64,7 +65,6 @@ namespace CTF_BLAS {
     assert(0);
   }
 
-#ifdef USE_MKL
 #define INST_GEMM_BATCH(dtype,s)                         \
   template <>                                            \
   void gemm_batch<dtype>(const char * a,                 \
