@@ -11,7 +11,7 @@ The library is interoperable with ScaLAPACK at the C++ level and with numpy at t
 
 ## Building and Testing
 
-It is possible to build static and dynamic C++ libraries, the Python CTF library, as well as examples and tests for both via this repository. Cyclops follows the basic installation convention,
+See the [Github Wiki](https://github.com/cyclops-community/ctf/wiki/Building-and-testing) for more details on this. It is possible to build static and dynamic C++ libraries, the Python CTF library, as well as examples and tests for both via this repository. Cyclops follows the basic installation convention,
 ```sh
 ./configure
 make
